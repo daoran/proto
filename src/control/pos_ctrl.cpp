@@ -1,0 +1,109 @@
+#include "prototype/control/pos_ctrl.hpp"
+
+namespace prototype {
+
+int pos_ctrl_configure(struct pos_ctrl &pc,
+                       const std::string &config_file) {
+  ConfigParser parser;
+
+  // Load config
+  parser.addParam("roll_ctrl.k_p", &pc.x_ctrl.k_p);
+  parser.addParam("roll_ctrl.k_i", &pc.x_ctrl.k_i);
+  parser.addParam("roll_ctrl.k_d", &pc.x_ctrl.k_d);
+  parser.addParam("roll_ctrl.min", &pc.roll_limit[0]);
+  parser.addParam("roll_ctrl.max", &pc.roll_limit[1]);
+
+  parser.addParam("pitch_ctrl.k_p", &pc.y_ctrl.k_p);
+  parser.addParam("pitch_ctrl.k_i", &pc.y_ctrl.k_i);
+  parser.addParam("pitch_ctrl.k_d", &pc.y_ctrl.k_d);
+  parser.addParam("pitch_ctrl.min", &pc.pitch_limit[0]);
+  parser.addParam("pitch_ctrl.max", &pc.pitch_limit[1]);
+
+  parser.addParam("throttle_ctrl.k_p", &pc.z_ctrl.k_p);
+  parser.addParam("throttle_ctrl.k_i", &pc.z_ctrl.k_i);
+  parser.addParam("throttle_ctrl.k_d", &pc.z_ctrl.k_d);
+  parser.addParam("throttle_ctrl.hover_throttle", &pc.hover_throttle);
+
+  if (parser.load(config_file) != 0) {
+    return -1;
+  }
+
+  // Convert roll and pitch limits from degrees to radians
+  pc.roll_limit[0] = deg2rad(pc.roll_limit[0]);
+  pc.roll_limit[1] = deg2rad(pc.roll_limit[1]);
+  pc.pitch_limit[0] = deg2rad(pc.pitch_limit[0]);
+  pc.pitch_limit[1] = deg2rad(pc.pitch_limit[1]);
+
+  return 0;
+}
+
+Vec4 pos_ctrl_update(struct pos_ctrl &pc,
+                     const Vec3 &setpoints,
+                     const Vec4 &actual,
+                     const double yaw,
+                     const double dt) {
+  // Check rate
+  pc.dt += dt;
+  if (pc.dt < 0.01) {
+    return pc.outputs;
+  }
+
+  // Calculate RPY errors relative to quadrotor by incorporating yaw
+  Vec3 errors{setpoints(0) - actual(0),
+              setpoints(1) - actual(1),
+              setpoints(2) - actual(2)};
+  const Vec3 euler{0.0, 0.0, actual(3)};
+  const Mat3 R = euler123ToRot(euler);
+  errors = R * errors;
+
+  // Roll, pitch, yaw and thrust
+  double r = - pid_update(pc.x_ctrl, errors(1), dt);
+  double p = pid_update(pc.y_ctrl, errors(0), dt);
+  double y = yaw;
+  double t = 0.5 + pid_update(pc.z_ctrl, errors(2), dt);
+  Vec4 outputs{r, p, y, t};
+
+  // Limit roll, pitch
+  for (int i = 0; i < 2; i++) {
+    if (outputs(i) > deg2rad(30.0)) {
+      outputs(i) = deg2rad(30.0);
+    } else if (outputs(i) < deg2rad(-30.0)) {
+      outputs(i) = deg2rad(-30.0);
+    }
+  }
+
+  // Limit yaw
+  while (outputs(2) > deg2rad(360.0)) {
+    outputs(2) -= deg2rad(360.0);
+  }
+  while (outputs(2) < deg2rad(0.0)) {
+    outputs(2) += deg2rad(360.0);
+  }
+
+  // Limit thrust
+  if (outputs(3) > 1.0) {
+    outputs(3) = 1.0;
+  } else if (outputs(3) < 0.0) {
+    outputs(3) = 0.0;
+  }
+
+  // Yaw first if threshold reached
+  if (fabs(yaw - actual(3)) > deg2rad(2)) {
+    outputs(0) = 0.0;
+    outputs(1) = 0.0;
+  }
+
+  // Keep track of outputs
+  pc.outputs = outputs;
+  pc.dt = 0.0;
+
+  return outputs;
+}
+
+void pos_ctrl_reset(struct pos_ctrl &pc) {
+  pid_reset(pc.x_ctrl);
+  pid_reset(pc.y_ctrl);
+  pid_reset(pc.z_ctrl);
+}
+
+} //  namespace prototype
