@@ -22,15 +22,15 @@ namespace prototype {
 /**
  * MAV model
  */
-struct mav_model {
-  Vec3 rpy_G{0.0, 0.0, 0.0}; ///< Attitude in global frame
-  Vec3 w_G{0.0, 0.0, 0.0};   ///< Angular velocity in global frame
-  Vec3 p_G{0.0, 0.0, 0.0};   ///< Position in global frame
-  Vec3 a_G{0.0, 0.0, 0.0};   ///< Acceleration in global frame
-  Vec3 v_G{0.0, 0.0, 0.0};   ///< Linear velocity in global frame
+struct mav_model_t {
+  vec3_t rpy_G{0.0, 0.0, 0.0}; ///< Attitude in global frame
+  vec3_t w_G{0.0, 0.0, 0.0};   ///< Angular velocity in global frame
+  vec3_t p_G{0.0, 0.0, 0.0};   ///< Position in global frame
+  vec3_t a_G{0.0, 0.0, 0.0};   ///< Acceleration in global frame
+  vec3_t v_G{0.0, 0.0, 0.0};   ///< Linear velocity in global frame
 
-  Vec3 w_B{0.0, 0.0, 0.0}; ///< Angular velocity in body frame
-  Vec3 a_B{0.0, 0.0, 0.0}; ///< Acceleration in body frame
+  vec3_t w_B{0.0, 0.0, 0.0}; ///< Angular velocity in body frame
+  vec3_t a_B{0.0, 0.0, 0.0}; ///< Acceleration in body frame
 
   double Ix = 0.0963; ///< Moment of inertia in x-axis
   double Iy = 0.0963; ///< Moment of inertia in y-axis
@@ -53,8 +53,8 @@ struct mav_model {
  * @param dt Time difference (s)
  * @returns 0 for success, -1 for failure
  */
-int mav_model_update(struct mav_model &qm,
-                     const Vec4 &motor_inputs,
+int mav_model_update(mav_model_t &qm,
+                     const vec4_t &motor_inputs,
                      const double dt);
 
 // /**
@@ -73,7 +73,7 @@ int mav_model_update(struct mav_model &qm,
   * @param yaw Yaw
   * @param z Thrust
   */
-void mav_model_set_attitude(struct mav_model &qm,
+void mav_model_set_attitude(mav_model_t &qm,
                             const double roll,
                             const double pitch,
                             const double yaw,
@@ -84,13 +84,13 @@ void mav_model_set_attitude(struct mav_model &qm,
   *
   * @param p_G Position in global frame
   */
-void mav_model_set_position(struct mav_model &qm,
-                            const Vec3 &p_G);
+void mav_model_set_position(mav_model_t &qm,
+                            const vec3_t &p_G);
 
 /**
   * Print state
   */
-void mav_model_print(struct mav_model &qm);
+void mav_model_print(mav_model_t &qm);
 
 /** @} group model */
 } //  namespace prototype

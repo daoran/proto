@@ -19,22 +19,21 @@ namespace prototype {
 /**
  * Attitude controller
  */
-struct att_ctrl {
+struct att_ctrl_t {
   double dt = 0.0;
-  Vec4 outputs{0.0, 0.0, 0.0, 0.0};
+  vec4_t outputs{0.0, 0.0, 0.0, 0.0};
 
   // PID tunes for dt = 0.01 (i.e. 100Hz)
-  struct pid roll = pid_setup(200.0, 0.001, 1.0);
-  struct pid pitch = pid_setup(200.0, 0.001, 1.0);
-  struct pid yaw = pid_setup(10.0, 0.001, 1.0);
-};
+  pid_t roll{200.0, 0.001, 1.0};
+  pid_t pitch{200.0, 0.001, 1.0};
+  pid_t yaw{10.0, 0.001, 1.0};
 
-/**
- * Setup attitude control
- */
-struct att_ctrl att_ctrl_setup(const Vec3 &roll_pid,
-                               const Vec3 &pitch_pid,
-                               const Vec3 &yaw_pid);
+  att_ctrl_t();
+  att_ctrl_t(const vec3_t &roll_pid,
+             const vec3_t &pitch_pid,
+             const vec3_t &yaw_pid);
+  virtual ~att_ctrl_t();
+};
 
 /**
  * Update attitude controller
@@ -46,10 +45,10 @@ struct att_ctrl att_ctrl_setup(const Vec3 &roll_pid,
  *
  * @returns Motor command (m1, m2, m3, m4)
  */
-Vec4 att_ctrl_update(struct att_ctrl &controller,
-                     const Vec4 &setpoints,
-                     const Vec4 &actual,
-                     const double dt);
+vec4_t att_ctrl_update(att_ctrl_t &controller,
+                       const vec4_t &setpoints,
+                       const vec4_t &actual,
+                       const double dt);
 
 /** @} group quadrotor */
 } //  namespace prototype

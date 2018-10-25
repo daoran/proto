@@ -45,10 +45,10 @@ int test_SimWorld_create3DFeatures() {
   bounds.z_max = 6.0;
 
   SimWorld world;
-  const MatX features = world.create3DFeatures(bounds, 1000);
+  const matx_t features = world.create3DFeatures(bounds, 1000);
 
   for (int i = 0; i < features.rows(); i++) {
-    const Vec3 feature = features.block(i, 0, 1, 3).transpose();
+    const vec3_t feature = features.block(i, 0, 1, 3).transpose();
     MU_CHECK(feature(0) >= bounds.x_min);
     MU_CHECK(feature(0) <= bounds.x_max);
     MU_CHECK(feature(1) >= bounds.y_min);
@@ -63,14 +63,14 @@ int test_SimWorld_create3DFeatures() {
 int test_SimWorld_create3DFeaturePerimeter() {
   // Test SimWorld.create3DFeaturePerimeter()
   SimWorld world;
-  Vec3 origin{0.0, 0.0, 0.0};
-  Vec3 dimensions{10.0, 10.0, 10.0};
-  const MatX features =
+  vec3_t origin{0.0, 0.0, 0.0};
+  vec3_t dimensions{10.0, 10.0, 10.0};
+  const matx_t features =
       world.create3DFeaturePerimeter(origin, dimensions, 1000);
 
   // Assert
   for (int i = 0; i < features.rows(); i++) {
-    const Vec3 feature = features.block(i, 0, 1, 3).transpose();
+    const vec3_t feature = features.block(i, 0, 1, 3).transpose();
     MU_CHECK(feature(0) >= origin(0) - dimensions(0) / 2.0);
     MU_CHECK(feature(0) <= origin(0) + dimensions(0) / 2.0);
     MU_CHECK(feature(1) >= origin(1) - dimensions(1) / 2.0);
@@ -127,8 +127,8 @@ int test_SimWorld_generateInitializationData() {
   SimWorld world;
 
   const int nb_samples = 10;
-  std::vector<Vec3> imu_gyro_buffer;
-  std::vector<Vec3> imu_accel_buffer;
+  std::vector<vec3_t> imu_gyro_buffer;
+  std::vector<vec3_t> imu_accel_buffer;
   world.generateInitializationData(nb_samples, imu_gyro_buffer, imu_accel_buffer);
 
   for (int i = 0; i < nb_samples; i++) {
@@ -172,13 +172,13 @@ int test_SimWorld_step_stereo_static_camera() {
   imu.v_G = world.camera_motion.v_G;
 
   while (world.step() == 0) {
-    const Vec3 a_m = world.camera_motion.a_B;
-    const Vec3 w_m = world.camera_motion.w_B;
+    const vec3_t a_m = world.camera_motion.a_B;
+    const vec3_t w_m = world.camera_motion.w_B;
     imu.update(a_m, w_m, world.dt);
   }
   FeatureTracks tracks = world.getLostTracks();
   for (const auto &track : tracks) {
-    MU_CHECK(track.T_cam1_cam0.isApprox(Mat4::Zero()) == false);
+    MU_CHECK(track.T_cam1_cam0.isApprox(mat4_t::Zero()) == false);
   }
 
   // Assert
@@ -207,8 +207,8 @@ int test_SimWorld_step_stereo_dynamic_camera() {
   imu.v_G = world.camera_motion.v_G;
 
   while (world.step() == 0) {
-    const Vec3 a_m = world.camera_motion.a_B;
-    const Vec3 w_m = world.camera_motion.w_B;
+    const vec3_t a_m = world.camera_motion.a_B;
+    const vec3_t w_m = world.camera_motion.w_B;
     imu.update(a_m, w_m, world.dt);
   }
   FeatureTracks tracks = world.getLostTracks();

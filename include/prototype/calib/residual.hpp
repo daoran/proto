@@ -61,14 +61,14 @@ struct GimbalCalibResidual {
   double k4_d = 0.0;
 
   GimbalCalibResidual();
-  GimbalCalibResidual(const Vec3 &P_s,
-                      const Vec3 &P_d,
-                      const Vec2 &Q_s,
-                      const Vec2 &Q_d,
-                      const Mat3 &K_s,
-                      const Mat3 &K_d,
-                      const Vec4 &D_s,
-                      const Vec4 &D_d,
+  GimbalCalibResidual(const vec3_t &P_s,
+                      const vec3_t &P_d,
+                      const vec2_t &Q_s,
+                      const vec2_t &Q_d,
+                      const mat3_t &K_s,
+                      const mat3_t &K_d,
+                      const vec4_t &D_s,
+                      const vec4_t &D_d,
                       double theta1_offset,
                       double theta2_offset);
 
@@ -146,29 +146,29 @@ std::ostream &operator<<(std::ostream &os, const GimbalCalibResidual *residual);
  * Gimbal calibration numerical residual
  */
 struct GimbalCalibNumericalResidual {
-  Vec3 P_s = zeros(3, 1); ///< Observed 3d point in static camera
-  Vec3 P_d = zeros(3, 1); ///< Observed 3d point in dynamic camera
-  Vec2 Q_s = zeros(2, 1); ///< Observed pixel in static camera
-  Vec2 Q_d = zeros(2, 1); ///< Observed pixel in dynamic camera
-  Mat3 K_s = zeros(3, 3); ///< Static camera intrinsics
-  Mat3 K_d = zeros(3, 3); ///< Dynamic camera intrinsics
+  vec3_t P_s = zeros(3, 1); ///< Observed 3d point in static camera
+  vec3_t P_d = zeros(3, 1); ///< Observed 3d point in dynamic camera
+  vec2_t Q_s = zeros(2, 1); ///< Observed pixel in static camera
+  vec2_t Q_d = zeros(2, 1); ///< Observed pixel in dynamic camera
+  mat3_t K_s = zeros(3, 3); ///< Static camera intrinsics
+  mat3_t K_d = zeros(3, 3); ///< Dynamic camera intrinsics
 
   GimbalCalibNumericalResidual();
-  GimbalCalibNumericalResidual(const Vec3 &P_s,
-                               const Vec3 &P_d,
-                               const Vec2 &Q_s,
-                               const Vec2 &Q_d,
-                               const Mat3 &K_s,
-                               const Mat3 &K_d)
+  GimbalCalibNumericalResidual(const vec3_t &P_s,
+                               const vec3_t &P_d,
+                               const vec2_t &Q_s,
+                               const vec2_t &Q_d,
+                               const mat3_t &K_s,
+                               const mat3_t &K_d)
       : P_s{P_s}, P_d{P_d}, Q_s{Q_s}, Q_d{Q_d}, K_s{K_s}, K_d{K_d} {}
 
   /// Calculate transform between static and dynamic camera
-  Mat4 T_ds(const VecX &tau_s,
+  mat4_t T_ds(const vecx_t &tau_s,
             const double Lambda1,
-            const Vec3 &w1,
-            const VecX &tau_d,
+            const vec3_t &w1,
+            const vecx_t &tau_d,
             const double Lambda2,
-            const Vec3 &w2) const;
+            const vec3_t &w2) const;
 
   /// Calculate residual
   bool operator()(const double *const p0,

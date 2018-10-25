@@ -65,49 +65,49 @@ void ConfigParser::addParam(const std::string &key,
 }
 
 void ConfigParser::addParam(const std::string &key,
-                            Vec2 *out,
+                            vec2_t *out,
                             const bool optional) {
   this->params.emplace_back(VEC2, key, out, optional);
 }
 
 void ConfigParser::addParam(const std::string &key,
-                            Vec3 *out,
+                            vec3_t *out,
                             const bool optional) {
   this->params.emplace_back(VEC3, key, out, optional);
 }
 
 void ConfigParser::addParam(const std::string &key,
-                            Vec4 *out,
+                            vec4_t *out,
                             const bool optional) {
   this->params.emplace_back(VEC4, key, out, optional);
 }
 
 void ConfigParser::addParam(const std::string &key,
-                            VecX *out,
+                            vecx_t *out,
                             const bool optional) {
   this->params.emplace_back(VECX, key, out, optional);
 }
 
 void ConfigParser::addParam(const std::string &key,
-                            Mat2 *out,
+                            mat2_t *out,
                             const bool optional) {
   this->params.emplace_back(MAT2, key, out, optional);
 }
 
 void ConfigParser::addParam(const std::string &key,
-                            Mat3 *out,
+                            mat3_t *out,
                             const bool optional) {
   this->params.emplace_back(MAT3, key, out, optional);
 }
 
 void ConfigParser::addParam(const std::string &key,
-                            Mat4 *out,
+                            mat4_t *out,
                             const bool optional) {
   this->params.emplace_back(MAT4, key, out, optional);
 }
 
 void ConfigParser::addParam(const std::string &key,
-                            MatX *out,
+                            matx_t *out,
                             const bool optional) {
   this->params.emplace_back(MATX, key, out, optional);
 }
@@ -293,23 +293,23 @@ int ConfigParser::loadVector(ConfigParam &param) {
   // parse
   switch (param.type) {
     case VEC2:
-      *static_cast<Vec2 *>(param.data) << node[0].as<double>(),
+      *static_cast<vec2_t *>(param.data) << node[0].as<double>(),
           node[1].as<double>();
       break;
 
     case VEC3:
-      *static_cast<Vec3 *>(param.data) << node[0].as<double>(),
+      *static_cast<vec3_t *>(param.data) << node[0].as<double>(),
           node[1].as<double>(), node[2].as<double>();
       break;
 
     case VEC4:
-      *static_cast<Vec4 *>(param.data) << node[0].as<double>(),
+      *static_cast<vec4_t *>(param.data) << node[0].as<double>(),
           node[1].as<double>(), node[2].as<double>(), node[3].as<double>();
       break;
 
     case VECX: {
-      VecX &vecx = *static_cast<VecX *>(param.data);
-      vecx = VecX((int) node.size());
+      vecx_t &vecx = *static_cast<vecx_t *>(param.data);
+      vecx = vecx_t((int) node.size());
       for (size_t i = 0; i < node.size(); i++) {
         vecx(i) = node[i].as<double>();
       }
@@ -338,7 +338,7 @@ int ConfigParser::loadMatrix(ConfigParam &param) {
 
   switch (param.type) {
     case MAT2: {
-      Mat2 &mat2 = *static_cast<Mat2 *>(param.data);
+      mat2_t &mat2 = *static_cast<mat2_t *>(param.data);
       mat2(0, 0) = node["data"][0].as<double>();
       mat2(0, 1) = node["data"][1].as<double>();
 
@@ -347,7 +347,7 @@ int ConfigParser::loadMatrix(ConfigParam &param) {
     } break;
 
     case MAT3: {
-      Mat3 &mat3 = *static_cast<Mat3 *>(param.data);
+      mat3_t &mat3 = *static_cast<mat3_t *>(param.data);
       mat3(0, 0) = node["data"][0].as<double>();
       mat3(0, 1) = node["data"][1].as<double>();
       mat3(0, 2) = node["data"][2].as<double>();
@@ -362,7 +362,7 @@ int ConfigParser::loadMatrix(ConfigParam &param) {
     } break;
 
     case MAT4: {
-      Mat4 &mat4 = *static_cast<Mat4 *>(param.data);
+      mat4_t &mat4 = *static_cast<mat4_t *>(param.data);
       for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
           mat4(i, j) = node["data"][index].as<double>();
@@ -372,7 +372,7 @@ int ConfigParser::loadMatrix(ConfigParam &param) {
     } break;
 
     case MATX: {
-      MatX &matx = *static_cast<MatX *>(param.data);
+      matx_t &matx = *static_cast<matx_t *>(param.data);
       matx.resize(rows, cols);
       for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {

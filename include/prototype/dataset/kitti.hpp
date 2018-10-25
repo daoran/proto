@@ -5,9 +5,8 @@
 #ifndef PROTOTYPE_DATASET_KITTI_HPP
 #define PROTOTYPE_DATASET_KITTI_HPP
 
-#include "dataset/kitti/raw/calib.hpp"
-#include "dataset/kitti/raw/oxts.hpp"
-#include "dataset/kitti/raw/parse.hpp"
+#include "prototype/dataset/kitti/raw/calib.hpp"
+#include "prototype/dataset/kitti/raw/oxts.hpp"
+#include "prototype/dataset/kitti/raw/parse.hpp"
 
-#ifndef PROTOTYPE_DATASET_KITTI_HPP
-#define PROTOTYPE_DATASET_KITTI_HPP
+#endif // PROTOTYPE_DATASET_KITTI_HPP

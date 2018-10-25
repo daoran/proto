@@ -48,7 +48,7 @@ int setup_output_files(std::ofstream &gnd_file,
 }
 
 void record_timestep(const double t,
-                     const mav_model &mav,
+                     const mav_model_t &mav,
                      std::ofstream &gnd_file,
                      std::ofstream &mea_file,
                      std::ofstream &est_file) {
@@ -82,7 +82,7 @@ void record_timestep(const double t,
 }
 
 int test_mav_model_constructor() {
-  struct mav_model mav;
+  mav_model_t mav;
   return 0;
 }
 
@@ -99,14 +99,14 @@ int test_mav_model_update() {
   }
 
   // Setup mav model
-  // struct mav_model mav(Vec3{0.0, 0.0, 0.0}, Vec3{0.0, 0.0, 5.0});
-  struct mav_model mav;
+  // mav_model_t mav(vec3_t{0.0, 0.0, 0.0}, vec3_t{0.0, 0.0, 5.0});
+  mav_model_t mav;
 
   // Record initial mav state
   record_timestep(0.0, mav, gnd_file, mea_file, est_file);
 
   // Set mav desired position
-  const Vec3 pos_desired{1.0, 0.0, 5.0};
+  const vec3_t pos_desired{1.0, 0.0, 5.0};
   mav_model_set_position(mav, pos_desired);
 
   // Simulate

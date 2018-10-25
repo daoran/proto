@@ -24,18 +24,18 @@ namespace prototype {
 
 #ifndef __EIGEN_TYPEDEF__
 #define __EIGEN_TYPEDEF__
-typedef Eigen::Vector2d Vec2;
-typedef Eigen::Vector3d Vec3;
-typedef Eigen::Vector4d Vec4;
-typedef Eigen::Matrix<double, 5, 1> Vec5;
-typedef Eigen::Matrix<double, 6, 1> Vec6;
-typedef Eigen::VectorXd VecX;
+typedef Eigen::Vector2d vec2_t;
+typedef Eigen::Vector3d vec3_t;
+typedef Eigen::Vector4d vec4_t;
+typedef Eigen::Matrix<double, 5, 1> vec5_t;
+typedef Eigen::Matrix<double, 6, 1> vec6_t;
+typedef Eigen::VectorXd vecx_t;
 
-typedef Eigen::Matrix2d Mat2;
-typedef Eigen::Matrix3d Mat3;
-typedef Eigen::Matrix4d Mat4;
-typedef Eigen::MatrixXd MatX;
-typedef Eigen::Matrix<double, 3, 4> Mat34;
+typedef Eigen::Matrix2d mat2_t;
+typedef Eigen::Matrix3d mat3_t;
+typedef Eigen::Matrix4d mat4_t;
+typedef Eigen::MatrixXd matx_t;
+typedef Eigen::Matrix<double, 3, 4> mat34_t;
 
 typedef Eigen::Quaterniond Quaternion;
 #endif
@@ -46,7 +46,7 @@ typedef Eigen::Quaterniond Quaternion;
  * @param name Name of matrix
  * @param A Matrix
  */
-void print_shape(const std::string &name, const MatX &A);
+void print_shape(const std::string &name, const matx_t &A);
 
 /**
  * Print shape of a vector
@@ -54,7 +54,7 @@ void print_shape(const std::string &name, const MatX &A);
  * @param name Name of vector
  * @param v Vector
  */
-void print_shape(const std::string &name, const VecX &v);
+void print_shape(const std::string &name, const vecx_t &v);
 
 /**
  * Print array
@@ -83,7 +83,7 @@ std::string array2str(const double *array, const size_t size);
  * @param size Size of input array
  * @param y Output vector
  */
-void array2vec(const double *x, const size_t size, VecX &y);
+void array2vec(const double *x, const size_t size, vecx_t &y);
 
 /**
  * Vector to array
@@ -91,7 +91,7 @@ void array2vec(const double *x, const size_t size, VecX &y);
  * @param v Vector
  * @returns Array
  */
-double *vec2array(const VecX &v);
+double *vec2array(const vecx_t &v);
 
 /**
  * Matrix to array
@@ -99,7 +99,7 @@ double *vec2array(const VecX &v);
  * @param m Matrix
  * @returns Array
  */
-double *mat2array(const MatX &m);
+double *mat2array(const matx_t &m);
 
 /**
  * Vector to array
@@ -107,7 +107,7 @@ double *mat2array(const MatX &m);
  * @param v Vector
  * @param out Output array
  */
-void vec2array(const VecX &v, double *out);
+void vec2array(const vecx_t &v, double *out);
 
 /**
  * Matrix to array
@@ -115,7 +115,7 @@ void vec2array(const VecX &v, double *out);
  * @param m Matrix
  * @param out Output array
  */
-void mat2array(const MatX &m, double *out);
+void mat2array(const matx_t &m, double *out);
 
 /**
  * Matrix to list of vectors
@@ -123,7 +123,7 @@ void mat2array(const MatX &m, double *out);
  * @param m Matrix
  * @returns Vectors
  */
-std::vector<VecX> mat2vec(const MatX &m, bool row_wise = true);
+std::vector<vecx_t> mat2vec(const matx_t &m, bool row_wise = true);
 
 /**
  * Matrix to list of vectors of size 3
@@ -131,7 +131,7 @@ std::vector<VecX> mat2vec(const MatX &m, bool row_wise = true);
  * @param m Matrix
  * @returns Vectors
  */
-std::vector<Vec3> mat2vec3(const MatX &m, bool row_wise = true);
+std::vector<vec3_t> mat2vec3(const matx_t &m, bool row_wise = true);
 
 /**
  * Matrix to list of vectors of size 3
@@ -139,7 +139,7 @@ std::vector<Vec3> mat2vec3(const MatX &m, bool row_wise = true);
  * @param m Matrix
  * @returns Vectors
  */
-std::vector<Vec2> mat2vec2(const MatX &m, bool row_wise = true);
+std::vector<vec2_t> mat2vec2(const matx_t &m, bool row_wise = true);
 
 /**
  * Vector to string
@@ -149,7 +149,7 @@ std::vector<Vec2> mat2vec2(const MatX &m, bool row_wise = true);
  *
  * @returns Vector as a string
  */
-std::string vec2str(const VecX &v, bool brackets=true);
+std::string vec2str(const vecx_t &v, bool brackets=true);
 
 /**
  * Create random integer
@@ -227,7 +227,7 @@ double rad2deg(const double r);
 void load_matrix(const std::vector<double> &x,
                  const int rows,
                  const int cols,
-                 MatX &y);
+                 matx_t &y);
 
 /**
  * Load an Eigen::Matrix into a std::vector of doubles
@@ -235,7 +235,7 @@ void load_matrix(const std::vector<double> &x,
  * @param A Matrix
  * @param x Output vector of matrix values
  */
-void load_matrix(const MatX A, std::vector<double> &x);
+void load_matrix(const matx_t A, std::vector<double> &x);
 
 /**
  * Calculate binomial coefficient
@@ -284,7 +284,7 @@ double wrapTo2Pi(const double r);
  * @param x List of vectors
  * @return Mean vector
  */
-Vec3 mean(const std::vector<Vec3> &x);
+vec3_t mean(const std::vector<vec3_t> &x);
 
 /**
  * Cross-Track error based on waypoint line between p1, p2, and robot position
@@ -294,7 +294,7 @@ Vec3 mean(const std::vector<Vec3> &x);
  * @param pos Robot position
  * @return Cross track error
  */
-double cross_track_error(const Vec2 &p1, const Vec2 &p2, const Vec2 &pos);
+double cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
 
 /**
  * Check if point `pos` is left or right of line formed by `p1` and `p2`
@@ -307,7 +307,7 @@ double cross_track_error(const Vec2 &p1, const Vec2 &p2, const Vec2 &pos);
  *    - 2: Point is right of waypoint line formed by `p1` and `p2`
  *    - 0: Point is colinear with waypoint line formed by `p1` and `p2`
  */
-int point_left_right(const Vec2 &p1, const Vec2 &p2, const Vec2 &pos);
+int point_left_right(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
 
 /**
  * Calculate closest point given waypoint line between `p1`, `p2` and robot
@@ -324,7 +324,7 @@ int point_left_right(const Vec2 &p1, const Vec2 &p2, const Vec2 &pos);
  *    closest point is behind the first waypoint.
  */
 double
-closest_point(const Vec2 &p1, const Vec2 &p2, const Vec2 &p3, Vec2 &closest);
+closest_point(const vec2_t &p1, const vec2_t &p2, const vec2_t &p3, vec2_t &closest);
 
 /**
  * Linear interpolation between two points
@@ -333,7 +333,7 @@ closest_point(const Vec2 &p1, const Vec2 &p2, const Vec2 &p3, Vec2 &closest);
  * @param b Second point
  * @param mu Unit number
  */
-Vec2 lerp(const Vec2 &a, const Vec2 &b, const double mu);
+vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu);
 
 /** @} group math */
 } //  namespace prototype

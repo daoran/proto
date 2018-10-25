@@ -71,14 +71,14 @@ struct DatasetEvent {
   DatasetEventType type;
 
   // IMU data
-  Vec3 a_m;
-  Vec3 w_m;
+  vec3_t a_m;
+  vec3_t w_m;
 
   // Camera data
   int camera_index;
   std::string image_path;
 
-  DatasetEvent(const Vec3 &a_m, const Vec3 &w_m)
+  DatasetEvent(const vec3_t &a_m, const vec3_t &w_m)
       : type{IMU_EVENT}, a_m{a_m}, w_m{w_m} {}
   DatasetEvent(const int camera_index, const std::string &image_path)
       : type{CAMERA_EVENT}, camera_index{camera_index}, image_path{image_path} {
@@ -117,13 +117,13 @@ public:
   FeatureTracks feature_tracks;
 
   // clang-format off
-  std::function<VecX()> get_state;
+  std::function<vecx_t()> get_state;
   std::function<int(const cv::Mat &frame)> mono_camera_cb;
   std::function<int(const cv::Mat &frame0, const cv::Mat &frame1)> stereo_camera_cb;
   std::function<std::vector<FeatureTrack>()> get_tracks_cb;
-  std::function<int(const Vec3 &a_m, const Vec3 &w_m, const long ts)> imu_cb;
+  std::function<int(const vec3_t &a_m, const vec3_t &w_m, const long ts)> imu_cb;
   std::function<int(const FeatureTracks &tracks)> mea_cb;
-  std::function<int(const double time, const Vec3 &p_G, const Vec3 &v_G, const Vec3 &rpy_G)> record_cb;
+  std::function<int(const double time, const vec3_t &p_G, const vec3_t &v_G, const vec3_t &rpy_G)> record_cb;
   // clang-format on
 
   MAVDataset(const std::string &data_path);

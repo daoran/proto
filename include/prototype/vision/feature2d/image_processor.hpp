@@ -200,12 +200,12 @@ public:
   * IMU data
   */
   struct IMUData {
-    Vec3 a_B = Vec3::Zero();
-    Vec3 w_B = Vec3::Zero();
+    vec3_t a_B = vec3_t::Zero();
+    vec3_t w_B = vec3_t::Zero();
     long ts = 0;
 
     IMUData() {}
-    IMUData(const Vec3 &a_B, const Vec3 &w_B, const long ts)
+    IMUData(const vec3_t &a_B, const vec3_t &w_B, const long ts)
         : a_B{a_B}, w_B{w_B}, ts{ts} {}
   };
 
@@ -222,8 +222,8 @@ public:
 
   CameraProperty cam0;
   CameraProperty cam1;
-  Mat4 T_imu_cam0 = Mat4::Zero();
-  Mat4 T_cam1_cam0 = Mat4::Zero();
+  mat4_t T_imu_cam0 = mat4_t::Zero();
+  mat4_t T_cam1_cam0 = mat4_t::Zero();
 
   double fast_threshold = 0;
   int fast_max_corners = 0;
@@ -302,7 +302,7 @@ public:
    * @return cam1_points projected cam1 points
    */
   std::vector<cv::Point2f> projectPointsFromCam0ToCam1(
-      const std::vector<cv::Point2f> &cam0_points, const Mat4 &T_cam1_cam0);
+      const std::vector<cv::Point2f> &cam0_points, const mat4_t &T_cam1_cam0);
 
   /**
    * Initialize
@@ -420,7 +420,7 @@ public:
    * @param w_m Measured angular velocity
    * @param ts Timestamp
    */
-  void imuCallback(const Vec3 &a_m, const Vec3 &w_m, const long ts);
+  void imuCallback(const vec3_t &a_m, const vec3_t &w_m, const long ts);
 
   /**
    * Callback function for the stereo images

@@ -99,7 +99,7 @@ void record_timestep(const double t,
   est_file << imu.v_G(1) << ",";
   est_file << imu.v_G(2) << ",";
   // -- Attitude
-  const Vec3 rpy = quat2euler(imu.q_IG);
+  const vec3_t rpy = quat2euler(imu.q_IG);
   est_file << rpy(0) << ",";
   est_file << rpy(1) << ",";
   est_file << rpy(2) << std::endl;
@@ -118,11 +118,11 @@ int test_QuadrotorModel_update() {
   }
 
   // Setup quadrotor model
-  QuadrotorModel quad(Vec3{0.0, 0.0, 0.0}, Vec3{0.0, 0.0, 5.0});
+  QuadrotorModel quad(vec3_t{0.0, 0.0, 0.0}, vec3_t{0.0, 0.0, 5.0});
 
   // Setup IMU state
   IMUState imu;
-  imu.g_G = Vec3{0.0, 0.0, -quad.g};
+  imu.g_G = vec3_t{0.0, 0.0, -quad.g};
   imu.p_G = quad.p_G;
   imu.q_IG = euler2quat(quad.rpy_G);
 
@@ -130,7 +130,7 @@ int test_QuadrotorModel_update() {
   record_timestep(0.0, quad, imu, gnd_file, mea_file, est_file);
 
   // Set quadrotor desired position
-  const Vec3 pos_desired{1.0, 0.0, 5.0};
+  const vec3_t pos_desired{1.0, 0.0, 5.0};
   quad.setPosition(pos_desired);
 
   // Simulate
@@ -141,8 +141,8 @@ int test_QuadrotorModel_update() {
     quad.update(dt);
 
     // Update imu
-    const Vec3 a_m = quad.a_B;
-    const Vec3 w_m = quad.w_B;
+    const vec3_t a_m = quad.a_B;
+    const vec3_t w_m = quad.w_B;
     imu.update(a_m, w_m, dt);
 
     // Record

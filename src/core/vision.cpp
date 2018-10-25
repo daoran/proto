@@ -25,7 +25,7 @@ bool is_equal(const cv::Mat &m1, const cv::Mat &m2) {
   return cv::countNonZero(diff) ? false : true;
 }
 
-void convert(const cv::Mat &x, MatX &y) {
+void convert(const cv::Mat &x, matx_t &y) {
   y.resize(x.rows, x.cols);
 
   for (int i = 0; i < x.rows; i++) {
@@ -35,7 +35,7 @@ void convert(const cv::Mat &x, MatX &y) {
   }
 }
 
-void convert(const MatX &x, cv::Mat &y) {
+void convert(const matx_t &x, cv::Mat &y) {
   y = cv::Mat(x.rows(), x.cols(), cv::DataType<double>::type);
 
   for (int i = 0; i < x.rows(); i++) {
@@ -45,27 +45,27 @@ void convert(const MatX &x, cv::Mat &y) {
   }
 }
 
-MatX convert(const cv::Mat &x) {
-  MatX y;
+matx_t convert(const cv::Mat &x) {
+  matx_t y;
   convert(x, y);
   return y;
 }
 
-cv::Mat convert(const MatX &x) {
+cv::Mat convert(const matx_t &x) {
   cv::Mat y;
   convert(x, y);
   return y;
 }
 
-Vec3 homogeneous(const Vec2 &x) { return Vec3{x(0), x(1), 1.0}; }
+vec3_t homogeneous(const vec2_t &x) { return vec3_t{x(0), x(1), 1.0}; }
 
-Vec4 homogeneous(const Vec3 &x) { return Vec4{x(0), x(1), x(2), 1.0}; }
+vec4_t homogeneous(const vec3_t &x) { return vec4_t{x(0), x(1), x(2), 1.0}; }
 
-Mat4 rvectvec2transform(const cv::Mat &rvec, const cv::Mat &tvec) {
+mat4_t rvectvec2transform(const cv::Mat &rvec, const cv::Mat &tvec) {
   cv::Mat R;
   cv::Rodrigues(rvec, R);
 
-  Mat4 T;
+  mat4_t T;
   T.block(0, 0, 3, 3) = convert(R);
   T.block(0, 3, 3, 1) = convert(tvec);
   T(3, 3) = 1.0;

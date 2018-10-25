@@ -50,7 +50,7 @@ int csvcols(const std::string &file_path) {
   return (found_separator) ? nb_elements : 0;
 }
 
-int csv2mat(const std::string &file_path, const bool header, MatX &data) {
+int csv2mat(const std::string &file_path, const bool header, matx_t &data) {
   int line_no;
   int nb_rows;
   int nb_cols;
@@ -94,7 +94,7 @@ int csv2mat(const std::string &file_path, const bool header, MatX &data) {
   return 0;
 }
 
-int mat2csv(const std::string &file_path, const MatX &data) {
+int mat2csv(const std::string &file_path, const matx_t &data) {
   std::ofstream outfile(file_path);
 
   // open file

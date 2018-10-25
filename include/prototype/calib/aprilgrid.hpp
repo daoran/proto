@@ -33,7 +33,7 @@ public:
   // y | TAG 1 |  | TAG 2 |
   // ^ 0-------1  2-------3
   // |-->x
-  MatX grid_points;
+  matx_t grid_points;
 
   // AprilGrid tag coordinates:
   //
@@ -104,7 +104,7 @@ public:
    */
   int solvePnP(const std::map<int, std::vector<cv::Point2f>> &tags,
                const cv::Mat &K,
-               MatX &grid_points);
+               matx_t &grid_points);
 };
 
 /** @} group calibration */

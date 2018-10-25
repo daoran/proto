@@ -18,7 +18,7 @@ int CalibData::load(const std::string &data_dir) {
     std::cout << "[" << set_path << "]" << std::endl;
 
     // P_s_i
-    MatX P_s_i;
+    matx_t P_s_i;
     const std::string P_s_fp = set_path + "/P_s";
     if (csv2mat(P_s_fp, false, P_s_i) != 0) {
       LOG_ERROR("Failed to P_s data [%s]!", P_s_fp.c_str());
@@ -26,7 +26,7 @@ int CalibData::load(const std::string &data_dir) {
     }
 
     // P_d_i
-    MatX P_d_i;
+    matx_t P_d_i;
     const std::string P_d_fp = set_path + "/P_d";
     if (csv2mat(P_d_fp, false, P_d_i) != 0) {
       LOG_ERROR("Failed to P_d data [%s]!", P_d_fp.c_str());
@@ -34,7 +34,7 @@ int CalibData::load(const std::string &data_dir) {
     }
 
     // Q_s_i
-    MatX Q_s_i;
+    matx_t Q_s_i;
     const std::string Q_s_fp = set_path + "/Q_s";
     if (csv2mat(Q_s_fp, false, Q_s_i) != 0) {
       LOG_ERROR("Failed to Q_s data [%s]!", Q_s_fp.c_str());
@@ -42,7 +42,7 @@ int CalibData::load(const std::string &data_dir) {
     }
 
     // Q_d_i
-    MatX Q_d_i;
+    matx_t Q_d_i;
     const std::string Q_d_fp = set_path + "/Q_d";
     if (csv2mat(Q_d_fp, false, Q_d_i) != 0) {
       LOG_ERROR("Failed to Q_d data [%s]!", Q_d_fp.c_str());

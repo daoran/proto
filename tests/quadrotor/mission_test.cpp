@@ -87,15 +87,15 @@ int test_Mission_closestPoint() {
   Mission mission;
 
   // setup
-  Vec3 wp_start{1.0, 1.0, 1.0};
-  Vec3 wp_end{10.0, 10.0, 10.0};
-  Vec3 position{5.0, 5.0, 5.0};
-  Vec3 expected{5.0, 5.0, 5.0};
+  vec3_t wp_start{1.0, 1.0, 1.0};
+  vec3_t wp_end{10.0, 10.0, 10.0};
+  vec3_t position{5.0, 5.0, 5.0};
+  vec3_t expected{5.0, 5.0, 5.0};
 
   // test and assert
   mission.wp_start = wp_start;
   mission.wp_end = wp_end;
-  Vec3 point = mission.closestPoint(position);
+  vec3_t point = mission.closestPoint(position);
   MU_CHECK(point.isApprox(expected));
 
   return 0;
@@ -104,11 +104,11 @@ int test_Mission_closestPoint() {
 int test_Mission_pointLineSide() {
   Mission mission;
 
-  Vec3 wp_start{0.0, 0.0, 0.0};
-  Vec3 wp_end{5.0, 0.0, 0.0};
+  vec3_t wp_start{0.0, 0.0, 0.0};
+  vec3_t wp_end{5.0, 0.0, 0.0};
 
   // test colinear
-  Vec3 position{0.0, 0.0, 0.0};
+  vec3_t position{0.0, 0.0, 0.0};
   mission.wp_start = wp_start;
   mission.wp_end = wp_end;
   double s = mission.pointLineSide(position);
@@ -131,9 +131,9 @@ int test_Mission_crossTrackError() {
   Mission mission;
 
   // setup
-  mission.wp_start = Vec3{0.0, 0.0, 10.0};
-  mission.wp_end = Vec3{10.0, 0.0, 10.0};
-  Vec3 position = Vec3::Zero();
+  mission.wp_start = vec3_t{0.0, 0.0, 10.0};
+  mission.wp_end = vec3_t{10.0, 0.0, 10.0};
+  vec3_t position = vec3_t::Zero();
   double e = 0.0;
 
   // test position to the right of waypoint track
@@ -154,13 +154,13 @@ int test_Mission_waypointInterpolate() {
 
   // setup
   double r = 0.0;
-  mission.wp_start = Vec3{0.0, 0.0, 10.0};
-  mission.wp_end = Vec3{10.0, 10.0, 10.0};
-  Vec3 pos{5.0, 8.0, 0.0};
-  Vec3 exp{6.5, 6.5, 10.0};
+  mission.wp_start = vec3_t{0.0, 0.0, 10.0};
+  mission.wp_end = vec3_t{10.0, 10.0, 10.0};
+  vec3_t pos{5.0, 8.0, 0.0};
+  vec3_t exp{6.5, 6.5, 10.0};
 
   // test and assert
-  Vec3 point = mission.waypointInterpolate(pos, r);
+  vec3_t point = mission.waypointInterpolate(pos, r);
   MU_CHECK(point.isApprox(exp));
 
   return 0;
@@ -170,41 +170,41 @@ int test_Mission_waypointHeading() {
   Mission mission;
 
   // setup
-  mission.wp_start = Vec3{0.0, 0.0, 0.0};
+  mission.wp_start = vec3_t{0.0, 0.0, 0.0};
   double heading = 0.0;
 
   // test 45 degree
-  mission.wp_end = Vec3{1.0, 1.0, 0.0};
+  mission.wp_end = vec3_t{1.0, 1.0, 0.0};
   heading = mission.waypointHeading();
   MU_CHECK_FLOAT(deg2rad(45.0), heading);
 
   // test 90 degree
-  mission.wp_end = Vec3{0.0, 1.0, 0.0};
+  mission.wp_end = vec3_t{0.0, 1.0, 0.0};
   heading = mission.waypointHeading();
   MU_CHECK_FLOAT(deg2rad(90.0), heading);
 
   // test 135 degree
-  mission.wp_end = Vec3{-1.0, 1.0, 0.0};
+  mission.wp_end = vec3_t{-1.0, 1.0, 0.0};
   heading = mission.waypointHeading();
   MU_CHECK_FLOAT(deg2rad(135.0), heading);
 
   // test 180 degree
-  mission.wp_end = Vec3{-1.0, 0.0, 0.0};
+  mission.wp_end = vec3_t{-1.0, 0.0, 0.0};
   heading = mission.waypointHeading();
   MU_CHECK_FLOAT(deg2rad(180.0), heading);
 
   // test -45 degree
-  mission.wp_end = Vec3{1.0, -1.0, 0.0};
+  mission.wp_end = vec3_t{1.0, -1.0, 0.0};
   heading = mission.waypointHeading();
   MU_CHECK_FLOAT(deg2rad(-45.0), heading);
 
   // test -90 degree
-  mission.wp_end = Vec3{0.0, -1.0, 0.0};
+  mission.wp_end = vec3_t{0.0, -1.0, 0.0};
   heading = mission.waypointHeading();
   MU_CHECK_FLOAT(deg2rad(-90.0), heading);
 
   // test -135 degree
-  mission.wp_end = Vec3{-1.0, -1.0, 0.0};
+  mission.wp_end = vec3_t{-1.0, -1.0, 0.0};
   heading = mission.waypointHeading();
   MU_CHECK_FLOAT(deg2rad(-135.0), heading);
 
@@ -216,11 +216,11 @@ int test_Mission_waypointReached() {
 
   // setup
   mission.configured = true;
-  mission.wp_end = Vec3{10.0, 10.0, 0.0};
+  mission.wp_end = vec3_t{10.0, 10.0, 0.0};
   mission.threshold_waypoint_reached = 2.0;
 
   // test waypoint not reached
-  Vec3 pos{0.0, 0.0, 0.0};
+  vec3_t pos{0.0, 0.0, 0.0};
   int retval = mission.waypointReached(pos);
   MU_CHECK_EQ(0, retval);
 
@@ -236,13 +236,13 @@ int test_Mission_update() {
   Mission mission;
 
   // setup
-  Vec3 position{2.0, 3.0, 0.0};
+  vec3_t position{2.0, 3.0, 0.0};
   mission.look_ahead_dist = 1;
   mission.threshold_waypoint_reached = 1.0;
   mission.configured = true;
 
   // push waypoints
-  Vec3 wp;
+  vec3_t wp;
   wp << 0.0, 0.0, 0.0;
   mission.wp_start = wp;
   mission.local_waypoints.push_back(wp);
@@ -267,7 +267,7 @@ int test_Mission_update() {
   std::ofstream state_file(STATE_FILE);
   for (int i = 0; i < 40; i++) {
     // waypoint update
-    Vec3 waypoint;
+    vec3_t waypoint;
     int retval = mission.update(position, waypoint);
     if (retval != 0) {
       MU_CHECK_EQ(-2, retval);

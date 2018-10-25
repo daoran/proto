@@ -29,10 +29,10 @@ public:
   CameraProperty cam0;
   CameraProperty cam1;
 
-  Mat4 T_cam1_cam0 = Mat4::Zero();
+  mat4_t T_cam1_cam0 = mat4_t::Zero();
   GimbalModel gimbal_model;
-  Vec2 joint_angles_prev = Vec2::Zero();
-  Vec2 joint_angles_curr = Vec2::Zero();
+  vec2_t joint_angles_prev = vec2_t::Zero();
+  vec2_t joint_angles_curr = vec2_t::Zero();
 
   TrackID counter_frame_id = -1;
   FeatureContainer features;
@@ -70,7 +70,7 @@ public:
 
   StereoKLTTracker(const CameraProperty &camprop0,
                    const CameraProperty &camprop1,
-                   const Mat4 &T_cam1_cam0,
+                   const mat4_t &T_cam1_cam0,
                    const size_t min_track_length,
                    const size_t max_track_length);
 

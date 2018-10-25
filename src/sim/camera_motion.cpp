@@ -4,8 +4,8 @@ namespace prototype {
 
 CameraMotion::CameraMotion() {}
 
-CameraMotion::CameraMotion(const std::vector<Vec3> &pos_points,
-                           const std::vector<Vec3> &att_points,
+CameraMotion::CameraMotion(const std::vector<vec3_t> &pos_points,
+                           const std::vector<vec3_t> &att_points,
                            const double time_dt,
                            const double time_end)
     : pos_points{pos_points}, att_points{att_points},
@@ -35,11 +35,11 @@ int CameraMotion::update() {
   this->w_G = bezier_derivative(this->att_points, this->bezier_t, 1) * this->scale;
 
   // Calculate IMU measurements
-  const Mat3 R_BG = euler123ToRot(this->rpy_G);
-  const Vec3 gravity{0.0, 0.0, 9.81};
+  const mat3_t R_BG = euler123ToRot(this->rpy_G);
+  const vec3_t gravity{0.0, 0.0, 9.81};
   if (this->add_noise) {
-    const Vec3 n_g{gyro_x_dist(this->gen), gyro_y_dist(this->gen), gyro_z_dist(this->gen)};
-    const Vec3 n_a{accel_x_dist(this->gen), accel_y_dist(this->gen), accel_z_dist(this->gen)};
+    const vec3_t n_g{gyro_x_dist(this->gen), gyro_y_dist(this->gen), gyro_z_dist(this->gen)};
+    const vec3_t n_a{accel_x_dist(this->gen), accel_y_dist(this->gen), accel_z_dist(this->gen)};
     this->a_B = R_BG * (this->a_G + gravity) + n_a;
     this->w_B = R_BG * this->w_G + n_g;
   } else {

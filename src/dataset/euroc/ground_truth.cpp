@@ -5,7 +5,7 @@ namespace prototype {
 int GroundTruth::load(const std::string &data_dir) {
   // Load ground truth data
   const std::string gnd_data_path = data_dir + "/data.csv";
-  MatX data;
+  matx_t data;
   if (csv2mat(gnd_data_path, true, data) != 0) {
     LOG_ERROR("Failed to load ground truth data [%s]!", gnd_data_path.c_str());
     return -1;

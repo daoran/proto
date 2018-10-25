@@ -29,7 +29,7 @@ int test_Feature_setTrackID() {
 int test_Feature_getKeyPoint() {
   cv::KeyPoint kp;
   Feature f(kp);
-  const Vec2 kp2{f.getKeyPoint()};
+  const vec2_t kp2{f.getKeyPoint()};
 
   MU_CHECK_FLOAT(kp2(0), kp.pt.x);
   MU_CHECK_FLOAT(kp2(1), kp.pt.y);

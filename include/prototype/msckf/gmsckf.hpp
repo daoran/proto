@@ -41,24 +41,24 @@ public:
   const int x_cam_sz = 6;
 
   // Covariance matrices
-  MatX P_imu = 1e-2 * I(x_imu_sz, x_imu_sz);
-  MatX Q_imu = 1e-2 * I(12, 12);
-  MatX P_cam = 1e-2 * I(x_cam_sz, x_cam_sz);
-  MatX P_imu_cam = 1e-2 * I(x_imu_sz, x_cam_sz);
+  matx_t P_imu = 1e-2 * I(x_imu_sz, x_imu_sz);
+  matx_t Q_imu = 1e-2 * I(12, 12);
+  matx_t P_cam = 1e-2 * I(x_cam_sz, x_cam_sz);
+  matx_t P_imu_cam = 1e-2 * I(x_imu_sz, x_cam_sz);
 
   // IMU
   // -- State
-  Vec4 q_IG = Vec4{0.0, 0.0, 0.0, 1.0}; ///< JPL Quaternion in Global frame
-  Vec3 b_g = zeros(3, 1);               ///< Bias of gyroscope
-  Vec3 v_G = zeros(3, 1);               ///< Velocity in Global frame
-  Vec3 b_a = zeros(3, 1);               ///< Bias of accelerometer
-  Vec3 p_G = zeros(3, 1);               ///< Position in Global frame
+  vec4_t q_IG = vec4_t{0.0, 0.0, 0.0, 1.0}; ///< JPL Quaternion in Global frame
+  vec3_t b_g = zeros(3, 1);               ///< Bias of gyroscope
+  vec3_t v_G = zeros(3, 1);               ///< Velocity in Global frame
+  vec3_t b_a = zeros(3, 1);               ///< Bias of accelerometer
+  vec3_t p_G = zeros(3, 1);               ///< Position in Global frame
   // -- IMU-Camera extrinsics
-  Vec4 q_CI = Vec4{0.0, 0.0, 0.0, 1.0};
-  Vec3 p_IC = zeros(3, 1);
+  vec4_t q_CI = vec4_t{0.0, 0.0, 0.0, 1.0};
+  vec3_t p_IC = zeros(3, 1);
 
   // Constants
-  Vec3 g_G = Vec3{0.0, 0.0, -9.81}; ///< Gravitational acceleration
+  vec3_t g_G = vec3_t{0.0, 0.0, -9.81}; ///< Gravitational acceleration
 
   // Gimbal
   GimbalModel gimbal_model;
@@ -102,7 +102,7 @@ public:
    *
    * @returns State (p_G, v_G, rpy_G)
    */
-  VecX getState();
+  vecx_t getState();
 
   /**
    * Transition F matrix
@@ -112,7 +112,7 @@ public:
    * @param a_hat Estimated acceleration
    * @returns Transition jacobian matrix F
    */
-  MatX F(const Vec3 &w_hat, const Vec4 &q_hat, const Vec3 &a_hat);
+  matx_t F(const vec3_t &w_hat, const vec4_t &q_hat, const vec3_t &a_hat);
 
   /**
    * Input G matrix
@@ -124,12 +124,12 @@ public:
    * @param q_hat Estimated quaternion (x, y, z, w)
    * @returns Input jacobian matrix G
    */
-  MatX G(const Vec4 &q_hat);
+  matx_t G(const vec4_t &q_hat);
 
   /**
    * Return covariance matrix P
    */
-  MatX P();
+  matx_t P();
 
   /**
    * Jacobian J matrix
@@ -141,9 +141,9 @@ public:
    *
    * @returns Jacobian J matrix
    */
-  MatX J(const Vec4 &cam_q_CI,
-         const Vec3 &cam_p_IC,
-         const Vec4 &q_hat_IG,
+  matx_t J(const vec4_t &cam_q_CI,
+         const vec3_t &cam_p_IC,
+         const vec4_t &q_hat_IG,
          const int N);
 
   /**
@@ -162,9 +162,9 @@ public:
    */
   void H(const FeatureTrack &track,
          const CameraStates &track_cam_states,
-         const Vec3 &p_G_f,
-         MatX &H_f_j,
-         MatX &H_x_j);
+         const vec3_t &p_G_f,
+         matx_t &H_f_j,
+         matx_t &H_x_j);
 
   /**
    * Initialize
@@ -177,10 +177,10 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int initialize(const long ts,
-                 const Vec4 &q_IG = Vec4{0.0, 0.0, 0.0, 1.0},
-                 const Vec3 &v_G = Vec3::Zero(),
-                 const Vec3 &p_G = Vec3::Zero(),
-                 const Vec2 &theta = Vec2::Zero());
+                 const vec4_t &q_IG = vec4_t{0.0, 0.0, 0.0, 1.0},
+                 const vec3_t &v_G = vec3_t::Zero(),
+                 const vec3_t &p_G = vec3_t::Zero(),
+                 const vec2_t &theta = vec2_t::Zero());
 
   /**
    * Initialize
@@ -192,9 +192,9 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int initialize(const long ts,
-                 const std::vector<Vec3> &imu_gyro_buffer,
-                 const std::vector<Vec3> &imu_accel_buffer,
-                 const Vec2 &theta);
+                 const std::vector<vec3_t> &imu_gyro_buffer,
+                 const std::vector<vec3_t> &imu_accel_buffer,
+                 const vec2_t &theta);
 
   /**
    * Augment state vector with new camera state
@@ -202,7 +202,7 @@ public:
    * Augment state and covariance matrix with a copy of the current camera
    * pose estimate when a new image is recorded
    */
-  void augmentState(const Vec2 &theta);
+  void augmentState(const vec2_t &theta);
 
   /**
    * Get camera states the feature track was observed in
@@ -228,12 +228,12 @@ public:
    *
    * @returns 0 for success, -1 for failure
    */
-  int predictionUpdate(const Vec3 &a_m, const Vec3 &w_m, const long ts);
+  int predictionUpdate(const vec3_t &a_m, const vec3_t &w_m, const long ts);
 
   /**
    * Chi-squared test
    */
-  int chiSquaredTest(const MatX &H, const VecX &r, const int dof);
+  int chiSquaredTest(const matx_t &H, const vecx_t &r, const int dof);
 
   /**
    * Residualize track
@@ -246,7 +246,7 @@ public:
    *  - -1: Track length < Min track length
    *  - -2: Failed to estimate feature position
    */
-  int residualizeTrack(const FeatureTrack &track, MatX &H_j, VecX &r_j);
+  int residualizeTrack(const FeatureTrack &track, matx_t &H_j, vecx_t &r_j);
 
   /**
    * Calculate residuals
@@ -259,21 +259,21 @@ public:
    *  - -1: Track length < Min track length
    *  - -2: Failed to estimate feature position
    */
-  int calcResiduals(const FeatureTracks &tracks, MatX &T_H, VecX &r_n);
+  int calcResiduals(const FeatureTracks &tracks, matx_t &T_H, vecx_t &r_n);
 
   /**
    * Correct IMU state
    *
    * @param dx Correction vector
    */
-  void correctIMUState(const VecX &dx);
+  void correctIMUState(const vecx_t &dx);
 
   /**
    * Correct camera states
    *
    * @param dx Correction vector
    */
-  void correctCameraStates(const VecX &dx);
+  void correctCameraStates(const vecx_t &dx);
 
   /**
    * Prune old camera state to maintain sliding window size
@@ -294,7 +294,7 @@ public:
    * @param tracks Feature tracks
    * @returns 0 for success, -1 for failure
    */
-  int measurementUpdate(const FeatureTracks &tracks, const Vec2 &theta);
+  int measurementUpdate(const FeatureTracks &tracks, const vec2_t &theta);
 };
 
 /** @} group msckf */

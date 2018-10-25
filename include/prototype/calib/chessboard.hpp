@@ -39,7 +39,7 @@ struct Chessboard {
    * Create 2D grid points
    * @returns Vector of gridpoints
    */
-  std::vector<Vec2> createGridPoints2d();
+  std::vector<vec2_t> createGridPoints2d();
 
   /**
    * Create object points
@@ -74,7 +74,7 @@ struct Chessboard {
    */
   int solvePnP(const std::vector<cv::Point2f> corners,
                const cv::Mat &K,
-               Mat4 &T_c_t);
+               mat4_t &T_c_t);
 
   /**
    * Calculate corner positions
@@ -87,7 +87,7 @@ struct Chessboard {
    */
   int calcCornerPositions(const std::vector<cv::Point2f> corners,
                           const cv::Mat &K,
-                          MatX &X);
+                          matx_t &X);
 
   /**
    * Calculate corner positions
@@ -99,8 +99,8 @@ struct Chessboard {
    * @returns 0 for success, -1 for failure
    */
   int calcCornerPositions(const std::vector<cv::Point2f> corners,
-                          const Mat3 &K,
-                          MatX &X);
+                          const mat3_t &K,
+                          matx_t &X);
 
   /**
    * Project 3D points to image
@@ -109,7 +109,7 @@ struct Chessboard {
    * @param K Camera intrinsics matrix K
    * @param image Target image
    */
-  void project3DPoints(const MatX &X, const Mat3 &K, cv::Mat &image);
+  void project3DPoints(const matx_t &X, const mat3_t &K, cv::Mat &image);
 
   /**
    * Project 3D points to image
@@ -118,7 +118,7 @@ struct Chessboard {
    * @param K Camera intrinsics matrix K
    * @param image Target image
    */
-  void project3DPoints(const MatX &X, const cv::Mat &K, cv::Mat &image);
+  void project3DPoints(const matx_t &X, const cv::Mat &K, cv::Mat &image);
 };
 
 /** @} group calibration */

@@ -2,8 +2,8 @@
 
 namespace prototype {
 
-Mat3 rotx(const double theta) {
-  Mat3 R;
+mat3_t rotx(const double theta) {
+  mat3_t R;
 
   // clang-format off
   R << 1.0, 0.0, 0.0,
@@ -14,8 +14,8 @@ Mat3 rotx(const double theta) {
   return R;
 }
 
-Mat3 roty(const double theta) {
-  Mat3 R;
+mat3_t roty(const double theta) {
+  mat3_t R;
 
   // clang-format off
   R << cos(theta), 0.0, -sin(theta),
@@ -26,8 +26,8 @@ Mat3 roty(const double theta) {
   return R;
 }
 
-Mat3 rotz(const double theta) {
-  Mat3 R;
+mat3_t rotz(const double theta) {
+  mat3_t R;
 
   // clang-format off
   R << cos(theta), sin(theta), 0.0,
@@ -38,7 +38,7 @@ Mat3 rotz(const double theta) {
   return R;
 }
 
-Mat3 euler123ToRot(const Vec3 &euler) {
+mat3_t euler123ToRot(const vec3_t &euler) {
   // i.e. XYZ rotation sequence (body to world)
   const double phi = euler(0);
   const double theta = euler(1);
@@ -56,7 +56,7 @@ Mat3 euler123ToRot(const Vec3 &euler) {
   const double R23 = cos(theta) * sin(phi);
   const double R33 = cos(theta) * cos(phi);
 
-  Mat3 R;
+  mat3_t R;
   // clang-format off
   R << R11, R12, R13,
        R21, R22, R23,
@@ -66,7 +66,7 @@ Mat3 euler123ToRot(const Vec3 &euler) {
   return R;
 }
 
-Mat3 euler321ToRot(const Vec3 &euler) {
+mat3_t euler321ToRot(const vec3_t &euler) {
   // i.e. ZYX rotation sequence (world to body)
   const double phi = euler(0);
   const double theta = euler(1);
@@ -84,7 +84,7 @@ Mat3 euler321ToRot(const Vec3 &euler) {
   const double R23 = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi);
   const double R33 = cos(theta) * cos(phi);
 
-  Mat3 R;
+  mat3_t R;
   // clang-format off
   R << R11, R12, R13,
        R21, R22, R23,

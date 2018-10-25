@@ -16,11 +16,11 @@ namespace prototype {
 
 struct CalibData {
   int nb_measurements = 0;
-  std::vector<MatX> P_s;
-  std::vector<MatX> P_d;
-  std::vector<MatX> Q_s;
-  std::vector<MatX> Q_d;
-  MatX joint_data;
+  std::vector<matx_t> P_s;
+  std::vector<matx_t> P_d;
+  std::vector<matx_t> Q_s;
+  std::vector<matx_t> Q_d;
+  matx_t joint_data;
 
   /**
    * Load data

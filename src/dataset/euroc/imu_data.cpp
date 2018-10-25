@@ -7,7 +7,7 @@ int IMUData::load(const std::string &data_dir) {
   const std::string imu_calib_path = data_dir + "/sensor.yaml";
 
   // Load IMU data
-  MatX data;
+  matx_t data;
   if (csv2mat(imu_data_path, true, data) != 0) {
     LOG_ERROR("Failed to load IMU data [%s]!", imu_data_path.c_str());
     return -1;

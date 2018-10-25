@@ -77,7 +77,7 @@ struct FeatureContainer {
                      Feature &cam0_f1,
                      Feature &cam1_f0,
                      Feature &cam1_f1,
-                     const Mat4 &T_cam1_cam0);
+                     const mat4_t &T_cam1_cam0);
 
   /**
    * Remove feature track
@@ -146,7 +146,7 @@ struct FeatureContainer {
                         const TrackID &track_id,
                         Feature &cam0_f,
                         Feature &cam1_f,
-                        const Vec2 &joint_angles);
+                        const vec2_t &joint_angles);
 
   /**
    * Update dynamic stereo feature track
@@ -165,8 +165,8 @@ struct FeatureContainer {
                      Feature &cam0_f1,
                      Feature &cam1_f0,
                      Feature &cam1_f1,
-                     const Vec2 &joint_angles_t0,
-                     const Vec2 &joint_angles_t1);
+                     const vec2_t &joint_angles_t0,
+                     const vec2_t &joint_angles_t1);
 
   /**
    * Get list of features currently tracking

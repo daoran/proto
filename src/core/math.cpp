@@ -2,11 +2,11 @@
 
 namespace prototype {
 
-void print_shape(const std::string &name, const MatX &A) {
+void print_shape(const std::string &name, const matx_t &A) {
   std::cout << name << ": " << A.rows() << "x" << A.cols() << std::endl;
 }
 
-void print_shape(const std::string &name, const VecX &v) {
+void print_shape(const std::string &name, const vecx_t &v) {
   std::cout << name << ": " << v.rows() << "x" << v.cols() << std::endl;
 }
 
@@ -30,14 +30,14 @@ std::string array2str(const double *array, const size_t size) {
   return os.str();
 }
 
-void array2vec(const double *x, const size_t size, VecX y) {
+void array2vec(const double *x, const size_t size, vecx_t y) {
   y.resize(size);
   for (size_t i = 0; i < size; i++) {
     y(i) = x[i];
   }
 }
 
-double *vec2array(const VecX &v) {
+double *vec2array(const vecx_t &v) {
   double *array = (double *) malloc(sizeof(double) * v.size());
   for (int i = 0; i < v.size(); i++) {
     array[i] = v(i);
@@ -45,7 +45,7 @@ double *vec2array(const VecX &v) {
   return array;
 }
 
-double *mat2array(const MatX &m) {
+double *mat2array(const matx_t &m) {
   double *array = (double *) malloc(sizeof(double) * m.size());
 
   int index = 0;
@@ -58,13 +58,13 @@ double *mat2array(const MatX &m) {
   return array;
 }
 
-void vec2array(const VecX &v, double *out) {
+void vec2array(const vecx_t &v, double *out) {
   for (int i = 0; i < v.size(); i++) {
     out[i] = v(i);
   }
 }
 
-void mat2array(const MatX &A, double *out) {
+void mat2array(const matx_t &A, double *out) {
   int index = 0;
   for (int i = 0; i < A.rows(); i++) {
     for (int j = 0; j < A.cols(); j++) {
@@ -74,8 +74,8 @@ void mat2array(const MatX &A, double *out) {
   }
 }
 
-std::vector<VecX> mat2vec(const MatX &m, bool row_wise) {
-  std::vector<VecX> vectors;
+std::vector<vecx_t> mat2vec(const matx_t &m, bool row_wise) {
+  std::vector<vecx_t> vectors;
 
   if (row_wise) {
     for (long i = 0; i < m.rows(); i++) {
@@ -90,8 +90,8 @@ std::vector<VecX> mat2vec(const MatX &m, bool row_wise) {
   return vectors;
 }
 
-std::vector<Vec3> mat2vec3(const MatX &m, bool row_wise) {
-  std::vector<Vec3> vectors;
+std::vector<vec3_t> mat2vec3(const matx_t &m, bool row_wise) {
+  std::vector<vec3_t> vectors;
 
   if (row_wise) {
     assert(m.cols() == 3);
@@ -108,8 +108,8 @@ std::vector<Vec3> mat2vec3(const MatX &m, bool row_wise) {
   return vectors;
 }
 
-std::vector<Vec2> mat2vec2(const MatX &m, bool row_wise) {
-  std::vector<Vec2> vectors;
+std::vector<vec2_t> mat2vec2(const matx_t &m, bool row_wise) {
+  std::vector<vec2_t> vectors;
 
   if (row_wise) {
     assert(m.cols() == 2);
@@ -126,7 +126,7 @@ std::vector<Vec2> mat2vec2(const MatX &m, bool row_wise) {
   return vectors;
 }
 
-std::string vec2str(const VecX &v, bool brackets) {
+std::string vec2str(const vecx_t &v, bool brackets) {
   std::string str;
 
   if (brackets) {
@@ -198,7 +198,7 @@ double rad2deg(const double r) { return r * (180 / M_PI); }
 void load_matrix(const std::vector<double> &x,
                  const int rows,
                  const int cols,
-                 MatX &y) {
+                 matx_t &y) {
   int idx;
 
   // setup
@@ -214,7 +214,7 @@ void load_matrix(const std::vector<double> &x,
   }
 }
 
-void load_matrix(const MatX &A, std::vector<double> &x) {
+void load_matrix(const matx_t &A, std::vector<double> &x) {
   for (int i = 0; i < A.cols(); i++) {
     for (int j = 0; j < A.rows(); j++) {
       x.push_back(A(j, i));
@@ -246,8 +246,8 @@ double wrapToPi(const double r) { return deg2rad(wrapTo180(rad2deg(r))); }
 
 double wrapTo2Pi(const double r) { return deg2rad(wrapTo360(rad2deg(r))); }
 
-Vec3 mean(const std::vector<Vec3> &x) {
-  Vec3 x_hat{0.0, 0.0, 0.0};
+vec3_t mean(const std::vector<vec3_t> &x) {
+  vec3_t x_hat{0.0, 0.0, 0.0};
 
   for (const auto &v : x) {
     x_hat += v;
@@ -257,7 +257,7 @@ Vec3 mean(const std::vector<Vec3> &x) {
   return x_hat;
 }
 
-double cross_track_error(const Vec2 &p1, const Vec2 &p2, const Vec2 &pos) {
+double cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos) {
   const double x0 = pos(0);
   const double y0 = pos(1);
 
@@ -274,7 +274,7 @@ double cross_track_error(const Vec2 &p1, const Vec2 &p2, const Vec2 &pos) {
   return fabs(n) / d;
 }
 
-int point_left_right(const Vec2 &a, const Vec2 &b, const Vec2 &c) {
+int point_left_right(const vec2_t &a, const vec2_t &b, const vec2_t &c) {
   const double a0 = a(0);
   const double a1 = a(1);
   const double b0 = b(0);
@@ -295,7 +295,7 @@ int point_left_right(const Vec2 &a, const Vec2 &b, const Vec2 &c) {
 }
 
 double
-closest_point(const Vec2 &a, const Vec2 &b, const Vec2 &p, Vec2 &closest) {
+closest_point(const vec2_t &a, const vec2_t &b, const vec2_t &p, vec2_t &closest) {
   // pre-check
   if ((a - b).norm() == 0) {
     closest = a;
@@ -303,15 +303,15 @@ closest_point(const Vec2 &a, const Vec2 &b, const Vec2 &p, Vec2 &closest) {
   }
 
   // calculate closest point
-  const Vec2 v1 = p - a;
-  const Vec2 v2 = b - a;
+  const vec2_t v1 = p - a;
+  const vec2_t v2 = b - a;
   const double t = v1.dot(v2) / v2.squaredNorm();
   closest = a + t * v2;
 
   return t;
 }
 
-Vec2 lerp(const Vec2 &a, const Vec2 &b, const double mu) {
+vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu) {
   return a * (1 - mu) + b * mu;
 }
 

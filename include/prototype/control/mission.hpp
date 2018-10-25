@@ -35,7 +35,7 @@ namespace prototype {
 /**
  * Waypoint
  */
-struct waypoint {
+struct waypoint_t {
   double latitude = 0.0;
   double longitude = 0.0;
   double altitude = 0.0;
@@ -50,7 +50,7 @@ struct waypoint {
  * @param[in] longitude Longitude
  * @returns Waypoint
  */
-struct waypoint waypoint_setup(const double latitude, const double longitude);
+waypoint_t waypoint_setup(const double latitude, const double longitude);
 
 /**
  * Setup waypoint
@@ -63,11 +63,11 @@ struct waypoint waypoint_setup(const double latitude, const double longitude);
  *
  * @returns Waypoint
  */
-struct waypoint waypoint_setup(const double latitude,
-                               const double longitude,
-                               const double altitude,
-                               const double staytime,
-                               const double heading);
+waypoint_t waypoint_setup(const double latitude,
+                          const double longitude,
+                          const double altitude,
+                          const double staytime,
+                          const double heading);
 
 /**
   * Calculate distance away from another waypoint
@@ -76,18 +76,18 @@ struct waypoint waypoint_setup(const double latitude,
   * @param[in] wp_b 2nd Waypoint to calculate distance away to
   * @return Distance between waypoint `wp_a` and waypoint `wp_b`
   */
-double waypoint_distance(const struct waypoint &wp_a,
-                         const struct waypoint &wp_b);
+double waypoint_distance(const waypoint_t &wp_a,
+                         const waypoint_t &wp_b);
 
 /**
  * Waypoint to output stream
  */
-std::ostream &operator<<(std::ostream &out, const struct waypoint &wp);
+std::ostream &operator<<(std::ostream &out, const waypoint_t &wp);
 
 /**
  * Mission
  */
-struct wp_mission {
+struct wp_mission_t {
   bool configured = false;
   bool completed = false;
 
@@ -101,11 +101,11 @@ struct wp_mission {
   double desired_velocity = 0.5;
   double look_ahead_dist = 0.5;
 
-  std::vector<Vec3> gps_waypoints;
-  std::vector<Vec3> local_waypoints;
+  std::vector<vec3_t> gps_waypoints;
+  std::vector<vec3_t> local_waypoints;
   int waypoint_index = 0;
-  Vec3 wp_start = Vec3::Zero();
-  Vec3 wp_end = Vec3::Zero();
+  vec3_t wp_start = vec3_t::Zero();
+  vec3_t wp_end = vec3_t::Zero();
 };
 
 /**
@@ -118,7 +118,7 @@ struct wp_mission {
  *    - -1: failure to load / parse configuration file
  *    - -2: invalid GPS waypoints
  */
-int wp_mission_configure(struct wp_mission &m,
+int wp_mission_configure(wp_mission_t &m,
                          const std::string &config_file);
 
 /**
@@ -128,7 +128,7 @@ int wp_mission_configure(struct wp_mission &m,
  * @param[in] wps Waypoints
  * @return 0 for success, -1 for failure
  */
-int wp_mission_load_waypoints(struct wp_mission &m,
+int wp_mission_load_waypoints(wp_mission_t &m,
                               const std::vector<double> &wps,
                               const int type);
 
@@ -144,7 +144,7 @@ int wp_mission_load_waypoints(struct wp_mission &m,
  *    - -1: no waypoints loaded
  *    - -2: invalid GPS waypoints
  */
-int wp_mission_check_gps_waypoints(struct wp_mission &m);
+int wp_mission_check_gps_waypoints(wp_mission_t &m);
 
 /**
  * Set GPS home point and calculate local waypoints by converting GPS to
@@ -155,7 +155,7 @@ int wp_mission_check_gps_waypoints(struct wp_mission &m);
  * @param[in] home_lon Home longitude point
  * @return 0 for success, -1 for failure
  */
-int wp_mission_set_gps_homepoint(struct wp_mission &m,
+int wp_mission_set_gps_homepoint(wp_mission_t &m,
                                  const double home_lat,
                                  const double home_lon);
 
@@ -166,7 +166,7 @@ int wp_mission_set_gps_homepoint(struct wp_mission &m,
  * @param[in] p_G Position in global frame
  * @return Closest point
  */
-Vec3 wp_mission_closest_point(const struct wp_mission &m, const Vec3 &p_G);
+vec3_t wp_mission_closest_point(const wp_mission_t &m, const vec3_t &p_G);
 
 /**
  * Calcuate which side the point is compared to waypoint track
@@ -178,7 +178,7 @@ Vec3 wp_mission_closest_point(const struct wp_mission &m, const Vec3 &p_G);
  *    - 1: Position is left of waypoint track
  *    - -1: Position is right of waypoint track
  */
-int wp_mission_point_line_side(const struct wp_mission &m, const Vec3 &p_G);
+int wp_mission_point_line_side(const wp_mission_t &m, const vec3_t &p_G);
 
 /**
  * Calcuate crosstrack error
@@ -188,8 +188,8 @@ int wp_mission_point_line_side(const struct wp_mission &m, const Vec3 &p_G);
  * @param[in] mode Cross track error mode
  * @return Cross track error
  */
-double wp_mission_crosstrack_error(const struct wp_mission &m,
-                                   const Vec3 &p_G,
+double wp_mission_crosstrack_error(const wp_mission_t &m,
+                                   const vec3_t &p_G,
                                    int mode = CTRACK_HORIZ);
 
 /**
@@ -201,7 +201,7 @@ double wp_mission_crosstrack_error(const struct wp_mission &m,
  * @param[in] m Mission
  * @return Waypoint yaw
  */
-double wp_mission_waypoint_heading(const struct wp_mission &m);
+double wp_mission_waypoint_heading(const wp_mission_t &m);
 
 /**
  * Calculate waypoint point
@@ -210,8 +210,8 @@ double wp_mission_waypoint_heading(const struct wp_mission &m);
  * @param[in] p_G Position in global frame
  * @param[in] r Lookahead distance in meters
  */
-Vec3 wp_mission_waypoint_interpolate(const struct wp_mission &m,
-                                     const Vec3 &p_G,
+vec3_t wp_mission_waypoint_interpolate(const wp_mission_t &m,
+                                     const vec3_t &p_G,
                                      const double r);
 
 /**
@@ -224,8 +224,8 @@ Vec3 wp_mission_waypoint_interpolate(const struct wp_mission &m,
  *    - 1: Waypoint reached
  *    - -1: Not configured
  */
-int wp_mission_waypoint_reached(const struct wp_mission &m,
-                                const Vec3 &p_G);
+int wp_mission_waypoint_reached(const wp_mission_t &m,
+                                const vec3_t &p_G);
 
 /**
  * Update waypoint
@@ -238,9 +238,9 @@ int wp_mission_waypoint_reached(const struct wp_mission &m,
  *   - -1: Not configured
  *   - -2: No more waypoints
  */
-int wp_mission_update(struct wp_mission &m,
-                      const Vec3 &p_G,
-                      Vec3 &waypoint);
+int wp_mission_update(wp_mission_t &m,
+                      const vec3_t &p_G,
+                      vec3_t &waypoint);
 
 /** @} group control */
 } //  namespace prototype

@@ -78,7 +78,7 @@ int test_Chessboard_solvePnP() {
   K.at<double>(2, 1) = 0.0;
   K.at<double>(2, 2) = 1.0;
   // -- Solve
-  Mat4 T_c_t;
+  mat4_t T_c_t;
   retval = cb.solvePnP(corners, K, T_c_t);
   std::cout << T_c_t << std::endl;
 
@@ -108,7 +108,7 @@ int test_Chessboard_calcCornerPositions() {
   K.at<double>(2, 1) = 0.0;
   K.at<double>(2, 2) = 1.0;
   // -- Calculate
-  MatX X;
+  matx_t X;
   retval = cb.calcCornerPositions(corners, K, X);
   std::cout << X.transpose() << std::endl;
 

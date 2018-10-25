@@ -7,7 +7,7 @@ int CameraData::load(const std::string &data_dir) {
   const std::string cam_calib_path = data_dir + "/sensor.yaml";
 
   // Load camera data
-  MatX data;
+  matx_t data;
   if (csv2mat(cam_data_path, true, data) != 0) {
     LOG_ERROR("Failed to load camera data [%s]!", cam_data_path.c_str());
     return -1;

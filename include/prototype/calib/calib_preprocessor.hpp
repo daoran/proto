@@ -43,7 +43,7 @@ public:
   CalibTarget target;
   std::vector<CameraProperty> camera_properties;
   int nb_measurements = 0;
-  MatX joint_data;
+  matx_t joint_data;
 
   CalibPreprocessor();
   virtual ~CalibPreprocessor();

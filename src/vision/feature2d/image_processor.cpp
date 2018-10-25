@@ -232,7 +232,7 @@ void ImageProcessor::createImagePyramids(const cv::Mat &cam0_img,
 }
 
 std::vector<cv::Point2f> ImageProcessor::projectPointsFromCam0ToCam1(
-    const std::vector<cv::Point2f> &cam0_points, const Mat4 &T_cam1_cam0) {
+    const std::vector<cv::Point2f> &cam0_points, const mat4_t &T_cam1_cam0) {
   auto R_cam0_cam1 = T_cam1_cam0.block(0, 0, 3, 3);
   auto cam0_points_ud = this->cam0.undistortPoints(cam0_points, R_cam0_cam1);
   auto cam1_points = this->cam1.distortPoints(cam0_points_ud);
@@ -326,7 +326,7 @@ void ImageProcessor::stereoMatch(const std::vector<cv::Point2f> &cam0_points,
 
   // Initialize cam1_points by projecting cam0_points to cam1 using the
   // rotation from stereo extrinsics
-  assert(this->T_cam1_cam0.isApprox(Mat4::Zero()) == false);
+  assert(this->T_cam1_cam0.isApprox(mat4_t::Zero()) == false);
   if (cam1_points.size() == 0) {
     cam1_points =
         this->projectPointsFromCam0ToCam1(cam0_points, this->T_cam1_cam0);
@@ -744,9 +744,9 @@ void ImageProcessor::integrateImuData(const long curr_ts,
   }
 
   // Compute the mean angular velocity in the IMU frame.
-  cv::Vec3f mean_ang_vel(0.0, 0.0, 0.0);
+  cv::vec3_tf mean_ang_vel(0.0, 0.0, 0.0);
   for (auto iter = begin_iter; iter < end_iter; ++iter) {
-    mean_ang_vel += cv::Vec3f(iter->w_B(0), iter->w_B(1), iter->w_B(2));
+    mean_ang_vel += cv::vec3_tf(iter->w_B(0), iter->w_B(1), iter->w_B(2));
   }
   if (end_iter - begin_iter > 0) {
     mean_ang_vel *= 1.0f / (end_iter - begin_iter);
@@ -754,12 +754,12 @@ void ImageProcessor::integrateImuData(const long curr_ts,
 
   // Transform the mean angular velocity from the IMU frame to the cam0 and
   // cam1 frames
-  const Mat4 T_cam0_imu = this->T_imu_cam0.inverse();
-  const Mat4 T_cam1_imu = this->T_cam1_cam0 * T_cam0_imu;
+  const mat4_t T_cam0_imu = this->T_imu_cam0.inverse();
+  const mat4_t T_cam1_imu = this->T_cam1_cam0 * T_cam0_imu;
   const cv::Matx33f R_cam0_imu = convert(T_cam0_imu.block(0, 0, 3, 3));
   const cv::Matx33f R_cam1_imu = convert(T_cam1_imu.block(0, 0, 3, 3));
-  cv::Vec3f cam0_mean_ang_vel = R_cam0_imu.t() * mean_ang_vel;
-  cv::Vec3f cam1_mean_ang_vel = R_cam1_imu.t() * mean_ang_vel;
+  cv::vec3_tf cam0_mean_ang_vel = R_cam0_imu.t() * mean_ang_vel;
+  cv::vec3_tf cam1_mean_ang_vel = R_cam1_imu.t() * mean_ang_vel;
 
   // Compute the relative rotation.
   assert(curr_ts != 0);
@@ -798,8 +798,8 @@ void ImageProcessor::predictFeatures(
   // Use homography to predict where points will be
   compensated_pts.resize(input_pts.size());
   for (size_t i = 0; i < input_pts.size(); i++) {
-    cv::Vec3f p1(input_pts[i].x, input_pts[i].y, 1.0f);
-    cv::Vec3f p2 = H * p1;
+    cv::vec3_tf p1(input_pts[i].x, input_pts[i].y, 1.0f);
+    cv::vec3_tf p2 = H * p1;
     compensated_pts[i].x = p2[0] / p2[2];
     compensated_pts[i].y = p2[1] / p2[2];
   }
@@ -857,8 +857,8 @@ void ImageProcessor::printFeatureLifetimeStatistics() {
   }
 }
 
-void ImageProcessor::imuCallback(const Vec3 &a_m,
-                                 const Vec3 &w_m,
+void ImageProcessor::imuCallback(const vec3_t &a_m,
+                                 const vec3_t &w_m,
                                  const long ts) {
   // Pre-check
   if (this->initialized == false) {

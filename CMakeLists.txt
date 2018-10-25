@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.3)
-PROJECT(prototype_core)
+PROJECT(prototype)
 
 # C++ COMPILER SETTINGS
 SET(CMAKE_CXX_STANDARD 11)
@@ -49,6 +49,7 @@ ADD_LIBRARY(
   src/dataset/kitti/raw/calib.cpp
   src/dataset/kitti/raw/oxts.cpp
   src/dataset/kitti/raw/parse.cpp
+  src/dataset/kitti/raw/raw.cpp
   # driver
   src/driver/camera/camera_base.cpp
   src/driver/camera/camera_config.cpp
@@ -67,17 +68,18 @@ ADD_LIBRARY(
   # model
   src/model/gimbal.cpp
   src/model/mav.cpp
+  src/model/two_wheel.cpp
   # msckf
-  src/msckf/blackbox.cpp
+  # src/msckf/blackbox.cpp
   src/msckf/camera_state.cpp
-  src/msckf/feature_estimator.cpp
+  # src/msckf/feature_estimator.cpp
   # src/msckf/gmsckf.cpp
   src/msckf/imu_state.cpp
   src/msckf/jacobians.cpp
   # src/msckf/msckf.cpp
   # vision
   src/vision/camera/distortion.cpp
-  src/vision/camera/pinhole_model.cpp
+  src/vision/camera/pinhole.cpp
   src/vision/feature2d/draw.cpp
   src/vision/feature2d/feature.cpp
   src/vision/feature2d/feature_container.cpp
@@ -131,6 +133,10 @@ SET(
   core-math_test
   core-stats_test
   core-time_test
+  dataset-kitti-raw-calib_test
+  dataset-kitti-raw-oxts_test
+  dataset-kitti-raw-parse_test
+  dataset-kitti-raw-raw_test
   model-mav_test
 )
 FOREACH(TEST ${UNITTESTS})

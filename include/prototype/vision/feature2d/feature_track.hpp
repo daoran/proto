@@ -53,12 +53,12 @@ struct FeatureTrack {
   Features track0;
   Features track1;
   // -- Static track
-  Mat4 T_cam1_cam0;
+  mat4_t T_cam1_cam0;
   // -- Dynamic track
-  std::vector<Vec2> joint_angles;
+  std::vector<vec2_t> joint_angles;
 
   // 3D position of feature relative to camera's first pose
-  Vec3 p_C0_f = Vec3::Zero();
+  vec3_t p_C0_f = vec3_t::Zero();
 
   FeatureTrack();
 
@@ -74,7 +74,7 @@ struct FeatureTrack {
                const FrameID &frame_end,
                const Features &tracks0,
                const Features &tracks1,
-               const Mat4 &T_cam1_cam0);
+               const mat4_t &T_cam1_cam0);
 
   // Dynamic Stereo Feature Track
   FeatureTrack(const TrackID &track_id,
@@ -82,8 +82,8 @@ struct FeatureTrack {
                const FrameID &frame_end,
                const Features &track0,
                const Features &track1,
-               const Vec2 &joint_angles_t0,
-               const Vec2 &joint_angles_t1);
+               const vec2_t &joint_angles_t0,
+               const vec2_t &joint_angles_t1);
 
   /**
    * Update feature track
@@ -115,7 +115,7 @@ struct FeatureTrack {
   void updateStereo(const FrameID &frame_id,
                     const Feature &cam0_f,
                     const Feature &cam1_f,
-                    const Vec2 &joint_angles);
+                    const vec2_t &joint_angles);
 
   /**
    * Slice feature track

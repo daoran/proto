@@ -54,11 +54,11 @@ public:
   CameraMotion camera_motion;
   GimbalMotion gimbal_motion;
 
-  Vec3 origin{0.0, 0.0, 0.0};
-  Vec3 dimensions{60.0, 60.0, 30.0};
+  vec3_t origin{0.0, 0.0, 0.0};
+  vec3_t dimensions{60.0, 60.0, 30.0};
   size_t nb_features = 10000;
   size_t max_track_length = 20;
-  MatX features3d;
+  matx_t features3d;
 
   long track_id_counter = 0;
   size_t min_track_length = 10;
@@ -98,7 +98,7 @@ public:
    * @param nb_features Number of 3D features
    * @returns N Features as a Nx3 matrix
    */
-  MatX create3DFeatures(const struct feature_bounds &bounds,
+  matx_t create3DFeatures(const struct feature_bounds &bounds,
                         const size_t nb_features);
 
   /**
@@ -110,8 +110,8 @@ public:
    * @param nb_features Number of 3D features
    * @returns N Features as a Nx3 matrix
    */
-  MatX create3DFeaturePerimeter(const Vec3 &origin,
-                                const Vec3 &dimensions,
+  matx_t create3DFeaturePerimeter(const vec3_t &origin,
+                                const vec3_t &dimensions,
                                 const size_t nb_features);
 
   /**
@@ -147,9 +147,9 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordGroundTruth(const double time,
-                        const Vec3 &p_G,
-                        const Vec3 &v_G,
-                        const Vec3 &rpy_G);
+                        const vec3_t &p_G,
+                        const vec3_t &v_G,
+                        const vec3_t &rpy_G);
 
   /**
    * Record measurement
@@ -161,8 +161,8 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordMeasurement(const double time,
-                        const Vec3 &measurement_a_B,
-                        const Vec3 &measurement_w_B);
+                        const vec3_t &measurement_a_B,
+                        const vec3_t &measurement_w_B);
 
   /**
    * Record camera observation
@@ -174,8 +174,8 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordCameraObservation(const std::vector<size_t> &feature_ids,
-                              const std::vector<Vec2> &keypoints,
-                              const std::vector<Vec3> &landmarks);
+                              const std::vector<vec2_t> &keypoints,
+                              const std::vector<vec3_t> &landmarks);
 
   /**
    * Record estimate
@@ -188,9 +188,9 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordEstimate(const double time,
-                     const Vec3 &p_G,
-                     const Vec3 &v_G,
-                     const Vec3 &rpy_G);
+                     const vec3_t &p_G,
+                     const vec3_t &v_G,
+                     const vec3_t &rpy_G);
 
   /**
    * Record estimate
@@ -206,12 +206,12 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordEstimate(const double time,
-                     const Vec3 &p_G,
-                     const Vec3 &v_G,
-                     const Vec3 &rpy_G,
-                     const Vec3 &p_G_cov,
-                     const Vec3 &v_G_cov,
-                     const Vec3 &rpy_G_cov);
+                     const vec3_t &p_G,
+                     const vec3_t &v_G,
+                     const vec3_t &rpy_G,
+                     const vec3_t &p_G_cov,
+                     const vec3_t &v_G_cov,
+                     const vec3_t &rpy_G_cov);
 
   /**
    * Record camera pose
@@ -224,8 +224,8 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordCameraStates(const std::vector<double> time,
-												 const std::vector<Vec3> &p_G,
-												 const std::vector<Vec3> &rpy_G);
+												 const std::vector<vec3_t> &p_G,
+												 const std::vector<vec3_t> &rpy_G);
 
   /**
    * Record gimbal joint angles
@@ -235,7 +235,7 @@ public:
    *
    * @returns 0 for success, -1 for failure
    */
-  int recordJointAngles(const double time, const Vec2 &joint_angles);
+  int recordJointAngles(const double time, const vec2_t &joint_angles);
 
   /**
    * Generate initialization data for GMSKCF
@@ -245,8 +245,8 @@ public:
    * @param imu_accel_buffer IMU accel buffer
    */
   void generateInitializationData(const int nb_samples,
-                                  std::vector<Vec3> &imu_gyro_buffer,
-                                  std::vector<Vec3> &imu_accel_buffer);
+                                  std::vector<vec3_t> &imu_gyro_buffer,
+                                  std::vector<vec3_t> &imu_accel_buffer);
 
   /**
    * Step simulation

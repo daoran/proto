@@ -20,7 +20,7 @@ int test_GimbalCalib_load() {
   // const double pitch = 0.2;
   // const double yaw = 0.1;
   //
-  // Mat3 R = euler321ToRot(Vec3{roll, pitch, yaw});
+  // mat3_t R = euler321ToRot(vec3_t{roll, pitch, yaw});
   // std::cout << R << std::endl;
   //
   // Eigen::AngleAxisd roll_angle(roll, Eigen::Vector3d::UnitX());

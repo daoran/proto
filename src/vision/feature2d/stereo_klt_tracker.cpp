@@ -6,12 +6,12 @@ StereoKLTTracker::StereoKLTTracker() {}
 
 StereoKLTTracker::StereoKLTTracker(const CameraProperty &cam0,
                                    const CameraProperty &cam1,
-                                   const Mat4 &T_cam1_cam0,
+                                   const mat4_t &T_cam1_cam0,
                                    const size_t min_track_length,
                                    const size_t max_track_length)
     : type{STATIC_STEREO_TRACK}, cam0{cam0}, cam1{cam1},
       T_cam1_cam0{T_cam1_cam0}, features{min_track_length, max_track_length} {
-  assert(T_cam1_cam0.isApprox(Mat4::Zero()) == false);
+  assert(T_cam1_cam0.isApprox(mat4_t::Zero()) == false);
 }
 
 StereoKLTTracker::StereoKLTTracker(const CameraProperty &cam0,
@@ -106,7 +106,7 @@ int StereoKLTTracker::initialize(const cv::Mat &cam0_img,
   this->stats.update(pts0.size(), 0);
 
   // Project keypoints from cam0 to cam1 to form k1
-  const Mat3 R_cam1_cam0 = this->T_cam1_cam0.block(0, 0, 3, 3);
+  const mat3_t R_cam1_cam0 = this->T_cam1_cam0.block(0, 0, 3, 3);
   const auto pts0_ud = this->cam0.undistortPoints(pts0, R_cam1_cam0);
   auto pts1 = this->cam1.distortPoints(pts0_ud);
 
@@ -271,7 +271,7 @@ void StereoKLTTracker::trackFeatures(const cv::Mat &cam0_img,
 }
 
 void StereoKLTTracker::replenishFeatures(const cv::Mat &image) {
-  assert(this->T_cam1_cam0.isApprox(Mat4::Zero()) == false);
+  assert(this->T_cam1_cam0.isApprox(mat4_t::Zero()) == false);
 
   // Clear previous new points
   this->pts0_new.clear();
@@ -295,7 +295,7 @@ void StereoKLTTracker::replenishFeatures(const cv::Mat &image) {
   this->pts0_new = this->detect(image, mask);
 
   // Project new keypoints from cam0 to cam1
-  const Mat3 R_cam1_cam0 = this->T_cam1_cam0.block(0, 0, 3, 3);
+  const mat3_t R_cam1_cam0 = this->T_cam1_cam0.block(0, 0, 3, 3);
   const auto pts1_ud = this->cam0.undistortPoints(this->pts0_new, R_cam1_cam0);
   this->pts1_new = this->cam1.distortPoints(pts1_ud);
 

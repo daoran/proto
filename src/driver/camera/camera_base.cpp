@@ -100,7 +100,7 @@ int CameraBase::roiImage(cv::Mat &image) {
   const int roi_height = this->config.roi_height;
   const int cx = this->config.camera_matrix.at<double>(0, 2);
   const int cy = this->config.camera_matrix.at<double>(1, 2);
-  const Vec2 top_left{cx - roi_width / 2.0, cy - roi_height / 2.0};
+  const vec2_t top_left{cx - roi_width / 2.0, cy - roi_height / 2.0};
   cv::Rect roi(top_left(0), top_left(1), roi_width, roi_height);
 
   if (roi_width <= 0 || roi_height <= 0) {

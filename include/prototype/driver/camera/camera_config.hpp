@@ -36,7 +36,7 @@ public:
   float exposure_value = 0.0;
   float gain_value = 0.0;
 
-  Vec3 lambda{0.0, 0.0, 0.0};
+  vec3_t lambda{0.0, 0.0, 0.0};
   float alpha = 0.0;
 
   cv::Mat camera_matrix;

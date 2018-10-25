@@ -27,7 +27,7 @@ int test_MSCKF_constructor() {
 
   MU_CHECK_EQ(0, msckf.counter_frame_id);
   MU_CHECK(zeros(3, 1).isApprox(msckf.ext_p_IC));
-  MU_CHECK(Vec4(0.0, 0.0, 0.0, 1.0).isApprox(msckf.ext_q_CI));
+  MU_CHECK(vec4_t(0.0, 0.0, 0.0, 1.0).isApprox(msckf.ext_q_CI));
 
   MU_CHECK(msckf.enable_ns_trick);
   MU_CHECK(msckf.enable_qr_trick);
@@ -51,7 +51,7 @@ int test_MSCKF_configure() {
   //
   // MU_CHECK_EQ(0, msckf.counter_frame_id);
   // MU_CHECK(zeros(3, 1).isApprox(msckf.ext_p_IC));
-  // MU_CHECK(Vec4(0.0, 0.0, 0.0, 1.0).isApprox(msckf.ext_q_CI));
+  // MU_CHECK(vec4_t(0.0, 0.0, 0.0, 1.0).isApprox(msckf.ext_q_CI));
   //
   // MU_CHECK(msckf.enable_ns_trick);
   // MU_CHECK(msckf.enable_qr_trick);
@@ -81,19 +81,19 @@ int test_MSCKF_P() {
   msckf.P_imu_cam.fill(3.0);
 
   // Test
-  const MatX P = msckf.P();
+  const matx_t P = msckf.P();
 
   // Assert
   const int imu_sz = msckf.imu_state.size;
   const int cam_sz = CameraState::size * msckf.N();
 
-  MatX P_imu_expected = zeros(imu_sz);
+  matx_t P_imu_expected = zeros(imu_sz);
   P_imu_expected.fill(1.0);
 
-  MatX P_cam_expected = zeros(cam_sz);
+  matx_t P_cam_expected = zeros(cam_sz);
   P_cam_expected.fill(2.0);
 
-  MatX P_imu_cam_expected = zeros(imu_sz, cam_sz);
+  matx_t P_imu_cam_expected = zeros(imu_sz, cam_sz);
   P_imu_cam_expected.fill(3.0);
 
   MU_CHECK_EQ(cam_sz, msckf.P_cam.rows());
@@ -117,12 +117,12 @@ int test_MSCKF_P() {
 int test_MSCKF_J() {
   MSCKF msckf;
 
-  const Vec4 cam_q_CI = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Vec3 cam_p_IC = Vec3{0.0, 0.0, 0.0};
-  const Vec4 q_hat_IG = Vec4{0.0, 0.0, 0.0, 1.0};
+  const vec4_t cam_q_CI = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const vec3_t cam_p_IC = vec3_t{0.0, 0.0, 0.0};
+  const vec4_t q_hat_IG = vec4_t{0.0, 0.0, 0.0, 1.0};
   const int N = 1;
 
-  const MatX J = msckf.J(cam_q_CI, cam_p_IC, q_hat_IG, N);
+  const matx_t J = msckf.J(cam_q_CI, cam_p_IC, q_hat_IG, N);
   std::cout << J << std::endl;
 
   return 0;
@@ -144,26 +144,26 @@ int test_MSCKF_H() {
   // Setup feature track
   const TrackID track_id = 0;
   const FrameID frame_id = 3;
-  const auto data0 = Feature(Vec2{0.0, 0.0});
-  const auto data1 = Feature(Vec2{0.0, 0.0});
+  const auto data0 = Feature(vec2_t{0.0, 0.0});
+  const auto data1 = Feature(vec2_t{0.0, 0.0});
   const auto track = FeatureTrack(track_id, frame_id, data0, data1);
 
   // Setup track cam states
-  msckf.ext_p_IC = Vec3{0.0, 0.0, 0.0};
-  msckf.ext_q_CI = Vec4{0.5, -0.5, 0.5, -0.5};
+  msckf.ext_p_IC = vec3_t{0.0, 0.0, 0.0};
+  msckf.ext_q_CI = vec4_t{0.5, -0.5, 0.5, -0.5};
   msckf.augmentState();
-  msckf.imu_state.p_G = Vec3{0.1, 0.0, 0.0};
+  msckf.imu_state.p_G = vec3_t{0.1, 0.0, 0.0};
   msckf.augmentState();
-  msckf.imu_state.p_G = Vec3{0.2, 0.0, 0.0};
+  msckf.imu_state.p_G = vec3_t{0.2, 0.0, 0.0};
   msckf.augmentState();
-  msckf.imu_state.p_G = Vec3{0.3, 0.0, 0.0};
+  msckf.imu_state.p_G = vec3_t{0.3, 0.0, 0.0};
   msckf.augmentState();
   CameraStates track_cam_states = msckf.getTrackCameraStates(track);
 
   // Test
-  const Vec3 p_G_f{1.0, 2.0, 3.0};
-  MatX H_f_j;
-  MatX H_x_j;
+  const vec3_t p_G_f{1.0, 2.0, 3.0};
+  matx_t H_f_j;
+  matx_t H_x_j;
   msckf.H(track, track_cam_states, p_G_f, H_f_j, H_x_j);
 
   // Assert
@@ -227,8 +227,8 @@ int test_MSCKF_getTrackCameraStates() {
   msckf.augmentState();
   msckf.augmentState();
 
-  Feature f1{Vec2{0.0, 0.0}};
-  Feature f2{Vec2{1.0, 1.0}};
+  Feature f1{vec2_t{0.0, 0.0}};
+  Feature f2{vec2_t{1.0, 1.0}};
   FeatureTrack track{0, 1, f1, f2};
 
   CameraStates track_cam_states = msckf.getTrackCameraStates(track);
@@ -261,7 +261,7 @@ int test_MSCKF_predictionUpdate() {
   msckf.initialize(raw_dataset.oxts.timestamps[0],
                    euler2quat(raw_dataset.oxts.rpy[0]),
                    raw_dataset.oxts.v_G[0],
-                   Vec3{0.0, 0.0, 0.0});
+                   vec3_t{0.0, 0.0, 0.0});
 
   // Record initial conditions
   blackbox.recordTimeStep(raw_dataset.oxts.time[0],
@@ -274,8 +274,8 @@ int test_MSCKF_predictionUpdate() {
 
   // Loop through data and do prediction update
   for (int i = 1; i < (int) raw_dataset.oxts.time.size() - 1; i++) {
-    const Vec3 a_B = raw_dataset.oxts.a_B[i];
-    const Vec3 w_B = raw_dataset.oxts.w_B[i];
+    const vec3_t a_B = raw_dataset.oxts.a_B[i];
+    const vec3_t w_B = raw_dataset.oxts.w_B[i];
     const long ts = raw_dataset.oxts.timestamps[i];
 
     msckf.predictionUpdate(a_B, w_B, ts);
@@ -319,17 +319,17 @@ int test_MSCKF_residualizeTrack() {
   // -- Add first camera state
   msckf.initialize(0);
   // -- Add second camera state
-  msckf.imu_state.p_G = Vec3{1.0, 1.0, 0.0};
+  msckf.imu_state.p_G = vec3_t{1.0, 1.0, 0.0};
   msckf.augmentState();
 
   // Prepare features and feature track
   // -- Create 2 features
-  const Vec3 p_G_f{0.0, 0.0, 10.0};
-  Vec2 pt0 = pinhole_project(camera_property.K(),
+  const vec3_t p_G_f{0.0, 0.0, 10.0};
+  vec2_t pt0 = pinhole_project(camera_property.K(),
                              C(msckf.cam_states[0].q_CG),
                              msckf.cam_states[0].p_G,
                              p_G_f);
-  Vec2 pt1 = pinhole_project(camera_property.K(),
+  vec2_t pt1 = pinhole_project(camera_property.K(),
                              C(msckf.cam_states[1].q_CG),
                              msckf.cam_states[1].p_G,
                              p_G_f);
@@ -341,8 +341,8 @@ int test_MSCKF_residualizeTrack() {
   FeatureTrack track{0, 1, f0, f1};
 
   // Calculate track residual
-  MatX H_j;
-  VecX r_j;
+  matx_t H_j;
+  vecx_t r_j;
   int retval = msckf.residualizeTrack(track, H_j, r_j);
 
   // Assert
@@ -374,7 +374,7 @@ int test_MSCKF_calcResiduals() {
   const double fy = pinhole_focal_length(image_height, fov);
   const double cx = image_width / 2.0;
   const double cy = image_height / 2.0;
-  const Mat3 K = pinhole_K({fx, fy, cx, cy});
+  const mat3_t K = pinhole_K({fx, fy, cx, cy});
   PinholeModel pinhole_model{image_width, image_height, fx, fy, cx, cy};
 
   // Setup MSCKF
@@ -383,16 +383,16 @@ int test_MSCKF_calcResiduals() {
   // -- Add first camera state
   msckf.initialize(0);
   // -- Add second camera state
-  msckf.imu_state.p_G = Vec3{1.0, 1.0, 0.0};
+  msckf.imu_state.p_G = vec3_t{1.0, 1.0, 0.0};
   msckf.augmentState();
 
   // Prepare features and feature track
   // -- Create a feature track1
-  const Vec3 p_G_f0{0.0, 0.0, 10.0};
-  Vec2 pt0 = pinhole_model.project(p_G_f0,
+  const vec3_t p_G_f0{0.0, 0.0, 10.0};
+  vec2_t pt0 = pinhole_model.project(p_G_f0,
                                    C(msckf.cam_states[0].q_CG),
                                    msckf.cam_states[0].p_G);
-  Vec2 pt1 = pinhole_model.project(p_G_f0,
+  vec2_t pt1 = pinhole_model.project(p_G_f0,
                                    C(msckf.cam_states[1].q_CG),
                                    msckf.cam_states[1].p_G);
   pt0 = pinhole_pixel2ideal(K, pt0);
@@ -401,11 +401,11 @@ int test_MSCKF_calcResiduals() {
   Feature f1{pt1};
   FeatureTrack track1{0, 1, f0, f1};
   // -- Create a feature track2
-  const Vec3 p_G_f1{1.0, 1.0, 10.0};
-  Vec2 pt2 = pinhole_model.project(p_G_f1,
+  const vec3_t p_G_f1{1.0, 1.0, 10.0};
+  vec2_t pt2 = pinhole_model.project(p_G_f1,
                                    C(msckf.cam_states[0].q_CG),
                                    msckf.cam_states[0].p_G);
-  Vec2 pt3 = pinhole_model.project(p_G_f1,
+  vec2_t pt3 = pinhole_model.project(p_G_f1,
                                    C(msckf.cam_states[1].q_CG),
                                    msckf.cam_states[1].p_G);
   pt2 = pinhole_pixel2ideal(K, pt0);
@@ -418,8 +418,8 @@ int test_MSCKF_calcResiduals() {
   // FeatureTracks tracks{track1};
 
   // Calculate residuals
-  MatX T_H;
-  VecX r_n;
+  matx_t T_H;
+  vecx_t r_n;
   int retval = msckf.calcResiduals(tracks, T_H, r_n);
   print_shape("T_H", T_H);
   print_shape("r_n", r_n);
@@ -436,13 +436,13 @@ int test_MSCKF_correctIMUState() {
   msckf.initialize(0);
 
   // Form correction vector
-  const Vec3 dtheta_IG{0.0, 0.0, 0.0};
-  const Vec3 db_g{1.0, 1.0, 1.0};
-  const Vec3 dv_G{2.0, 2.0, 2.0};
-  const Vec3 db_a{3.0, 3.0, 3.0};
-  const Vec3 dp_G{4.0, 4.0, 4.0};
+  const vec3_t dtheta_IG{0.0, 0.0, 0.0};
+  const vec3_t db_g{1.0, 1.0, 1.0};
+  const vec3_t dv_G{2.0, 2.0, 2.0};
+  const vec3_t db_a{3.0, 3.0, 3.0};
+  const vec3_t dp_G{4.0, 4.0, 4.0};
 
-  VecX dx;
+  vecx_t dx;
   dx.resize(15, 1);
   dx << dtheta_IG, db_g, dv_G, db_a, dp_G;
 
@@ -462,16 +462,16 @@ int test_MSCKF_correctCameraStates() {
   msckf.initialize(0);
 
   // Form correction vector
-  const Vec3 dtheta_IG{0.0, 0.0, 0.0};
-  const Vec3 db_g{0.0, 0.0, 0.0};
-  const Vec3 dv_G{0.0, 0.0, 0.0};
-  const Vec3 db_a{0.0, 0.0, 0.0};
-  const Vec3 dp_G_I{0.0, 0.0, 0.0};
+  const vec3_t dtheta_IG{0.0, 0.0, 0.0};
+  const vec3_t db_g{0.0, 0.0, 0.0};
+  const vec3_t dv_G{0.0, 0.0, 0.0};
+  const vec3_t db_a{0.0, 0.0, 0.0};
+  const vec3_t dp_G_I{0.0, 0.0, 0.0};
 
-  const Vec3 dtheta_CG{0.0, 0.0, 0.0};
-  const Vec3 dp_G_C{1.0, 2.0, 3.0};
+  const vec3_t dtheta_CG{0.0, 0.0, 0.0};
+  const vec3_t dp_G_C{1.0, 2.0, 3.0};
 
-  VecX dx;
+  vecx_t dx;
   dx.resize(21, 1);
   dx << dtheta_IG, db_g, dv_G, db_a, dp_G_I, dtheta_CG, dp_G_C;
 
@@ -579,7 +579,7 @@ int test_MSCKF_measurementUpdate() {
   msckf.initialize(raw_dataset.oxts.timestamps[0],
                    euler2quat(raw_dataset.oxts.rpy[0]),
                    raw_dataset.oxts.v_G[0],
-                   Vec3{0.0, 0.0, 0.0});
+                   vec3_t{0.0, 0.0, 0.0});
 
   // Record initial conditions
   blackbox.recordTimeStep(raw_dataset.oxts.time[0],
@@ -604,8 +604,8 @@ int test_MSCKF_measurementUpdate() {
     // cv::waitKey(1);
 
     // MSCKF
-    const Vec3 a_B = raw_dataset.oxts.a_B[i];
-    const Vec3 w_B = raw_dataset.oxts.w_B[i];
+    const vec3_t a_B = raw_dataset.oxts.a_B[i];
+    const vec3_t w_B = raw_dataset.oxts.w_B[i];
     const long ts = raw_dataset.oxts.timestamps[i];
     msckf.predictionUpdate(a_B, w_B, ts);
 
@@ -732,7 +732,7 @@ int test_MSCKF_measurementUpdate2() {
 //   msckf.initialize(0,
 //                    euler2quat(world.robot.rpy_G),
 //                    euler321ToRot(world.robot.rpy_G) * world.robot.v_B,
-//                    Vec3::Zero());
+//                    vec3_t::Zero());
 //
 //   // Record initial conditions
 //   blackbox.recordTimeStep(world.t,
@@ -751,8 +751,8 @@ int test_MSCKF_measurementUpdate2() {
 //     FeatureTracks tracks = world.removeLostTracks();
 //
 //     // MSCKF
-//     const Vec3 a_m = world.robot.a_B + Vec3{0.0, 0.0, 9.81};
-//     const Vec3 w_m = world.robot.w_B;
+//     const vec3_t a_m = world.robot.a_B + vec3_t{0.0, 0.0, 9.81};
+//     const vec3_t w_m = world.robot.w_B;
 //     const long ts = t * 1e9;
 //     msckf.predictionUpdate(a_m, w_m, ts);
 //

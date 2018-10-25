@@ -4,27 +4,27 @@ namespace prototype {
 
 CameraState::CameraState() {}
 
-CameraState::CameraState(const Vec3 &p_G, const Vec4 &q_CG)
+CameraState::CameraState(const vec3_t &p_G, const vec4_t &q_CG)
     : p_G{p_G}, q_CG{q_CG} {}
 
 CameraState::CameraState(const FrameID frame_id,
-                         const Vec3 &p_G,
-                         const Vec4 &q_CG)
+                         const vec3_t &p_G,
+                         const vec4_t &q_CG)
     : frame_id{frame_id}, p_G{p_G}, q_CG{q_CG} {}
 
 CameraState::CameraState(const FrameID frame_id,
-                         const Vec3 &p_G,
-                         const Vec4 &q_CG,
-                         const Vec2 &theta)
+                         const vec3_t &p_G,
+                         const vec4_t &q_CG,
+                         const vec2_t &theta)
     : frame_id{frame_id}, p_G{p_G}, q_CG{q_CG}, theta{theta} {}
 
-void CameraState::correct(const VecX &dx) {
+void CameraState::correct(const vecx_t &dx) {
   // Split dx into its own components
-  const Vec3 dtheta_CG = dx.segment(0, 3);
-  const Vec3 dp_G = dx.segment(3, 3);
+  const vec3_t dtheta_CG = dx.segment(0, 3);
+  const vec3_t dp_G = dx.segment(3, 3);
 
   // Time derivative of quaternion (small angle approx)
-  const Vec4 dq_CG = quatsmallangle(dtheta_CG);
+  const vec4_t dq_CG = quatsmallangle(dtheta_CG);
 
   // Correct camera state
   this->q_CG = quatnormalize(quatlcomp(dq_CG) * this->q_CG);
@@ -81,8 +81,8 @@ int save_camera_states(const CameraStates &states,
 }
 
 void convert_camera_states(const CameraStates &states,
-                           std::vector<Vec3> &p_G,
-                           std::vector<Vec3> &rpy_G) {
+                           std::vector<vec3_t> &p_G,
+                           std::vector<vec3_t> &rpy_G) {
   for (auto state : states) {
     p_G.push_back(state.p_G);
     rpy_G.push_back(quat2euler(state.q_CG));

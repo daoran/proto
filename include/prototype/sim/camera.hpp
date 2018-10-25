@@ -45,9 +45,9 @@ public:
    *
    * @returns Observed features in the image plane
    */
-  MatX observedFeatures(const MatX &features,
-                        const Vec3 &rpy_G,
-                        const Vec3 &t_G,
+  matx_t observedFeatures(const matx_t &features,
+                        const vec3_t &rpy_G,
+                        const vec3_t &t_G,
                         std::vector<int> &feature_ids);
 };
 
@@ -59,7 +59,7 @@ public:
   std::string type;
   PinholeModel camera_model;
   GimbalModel gimbal_model;
-  Mat4 T_cam1_cam0;
+  mat4_t T_cam1_cam0;
 
   VirtualStereoCamera();
 
@@ -69,7 +69,7 @@ public:
                       const double fy,
                       const double cx,
                       const double cy,
-                      const Mat4 &T_cam1_cam0);
+                      const mat4_t &T_cam1_cam0);
 
   VirtualStereoCamera(const int image_width,
                       const int image_height,
@@ -95,9 +95,9 @@ public:
    *
    * @returns Observed features in the image plane
    */
-  MatX observedFeatures(const MatX &features,
-                        const Vec3 &rpy_G,
-                        const Vec3 &t_G,
+  matx_t observedFeatures(const matx_t &features,
+                        const vec3_t &rpy_G,
+                        const vec3_t &t_G,
                         std::vector<int> &feature_ids);
 
   /**

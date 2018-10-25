@@ -31,7 +31,7 @@ bool is_rot_mat(const cv::Mat &R);
  * @param R Rotation matrix
  * @returns Euler angles
  */
-cv::Vec3f rot2euler(const cv::Mat &R);
+cv::vec3_tf rot2euler(const cv::Mat &R);
 
 /**
  * Outlier rejection using essential matrix
@@ -39,7 +39,7 @@ cv::Vec3f rot2euler(const cv::Mat &R);
 void essential_matrix_outlier_rejection(
     CameraProperty &cam0,
     CameraProperty &cam1,
-    const Mat4 &T_cam1_cam0,
+    const mat4_t &T_cam1_cam0,
     const std::vector<cv::Point2f> &cam0_points,
     const std::vector<cv::Point2f> &cam1_points,
     const double threshold,
@@ -86,7 +86,7 @@ void two_point_ransac(const std::vector<cv::Point2f> &pts1,
  *
  * @returns Feature mask
  */
-MatX feature_mask(const int image_width,
+matx_t feature_mask(const int image_width,
                   const int image_height,
                   const std::vector<cv::Point2f> points,
                   const int patch_width);
@@ -100,7 +100,7 @@ MatX feature_mask(const int image_width,
  *
  * @returns Feature mask
  */
-MatX feature_mask(const int image_width,
+matx_t feature_mask(const int image_width,
                   const int image_height,
                   const std::vector<cv::KeyPoint> keypoints,
                   const int patch_width);

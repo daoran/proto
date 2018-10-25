@@ -61,7 +61,7 @@ int FeatureContainer::addStereoTrack(const FrameID &frame_id,
                                      Feature &cam0_f1,
                                      Feature &cam1_f0,
                                      Feature &cam1_f1,
-                                     const Mat4 &T_cam1_cam0) {
+                                     const mat4_t &T_cam1_cam0) {
   // Update and get track and frame ids
   const TrackID track_id = this->counter_track_id;
 
@@ -90,8 +90,8 @@ int FeatureContainer::addStereoTrack(const FrameID &frame_id,
                                      Feature &cam0_f1,
                                      Feature &cam1_f0,
                                      Feature &cam1_f1,
-                                     const Vec2 &joint_angles_t0,
-                                     const Vec2 &joint_angles_t1) {
+                                     const vec2_t &joint_angles_t0,
+                                     const vec2_t &joint_angles_t1) {
   // Update and get track and frame ids
   const TrackID track_id = this->counter_track_id;
 
@@ -232,7 +232,7 @@ int FeatureContainer::updateStereoTrack(const FrameID frame_id,
                                         const TrackID &track_id,
                                         Feature &cam0_f,
                                         Feature &cam1_f,
-                                        const Vec2 &joint_angles) {
+                                        const vec2_t &joint_angles) {
   // Make sure track id is in the buffer
   auto index = this->buffer.find(track_id);
   if (index == this->buffer.end()) {

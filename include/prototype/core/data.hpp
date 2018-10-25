@@ -50,7 +50,7 @@ int csvcols(const std::string &file_path);
  *
  * @returns 0 for success, -1 for failure
  */
-int csv2mat(const std::string &file_path, const bool header, MatX &data);
+int csv2mat(const std::string &file_path, const bool header, matx_t &data);
 
 /**
  * Convert matrix to csv file
@@ -60,7 +60,7 @@ int csv2mat(const std::string &file_path, const bool header, MatX &data);
  *
  * @returns 0 for success, -1 for failure
  */
-int mat2csv(const std::string &file_path, const MatX &data);
+int mat2csv(const std::string &file_path, const matx_t &data);
 
 /**
  * Print progress to screen

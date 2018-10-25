@@ -44,7 +44,7 @@ AprilGrid::AprilGrid(const int tag_rows,
       const double x = (int) (c / 2) * (1 + tag_spacing) * tag_size + (c % 2) * tag_size;
       const double y = (int) (r / 2) * (1 + tag_spacing) * tag_size + (r % 2) * tag_size;
       const double z = 0.0;
-      const Vec3 point{x, y, z};
+      const vec3_t point{x, y, z};
       this->grid_points.row(r * corner_cols + c) = point.transpose();
       // clang-format on
     }
@@ -143,7 +143,7 @@ std::vector<cv::Point3f> AprilGrid::formObjectPoints(
   // Preprocess corners and see which ones are observed
   const int rows = this->tag_rows * 2;
   const int cols = this->tag_cols * 2;
-  MatX corners = zeros(rows * cols, 3);
+  matx_t corners = zeros(rows * cols, 3);
 
   int i = 0;
   for (auto &tag : tags) {
@@ -171,10 +171,10 @@ std::vector<cv::Point3f> AprilGrid::formObjectPoints(
     // std::cout << std::endl;
 
     // From the corner indicies get the corner grid points
-    const Vec3 p0 = this->grid_points.row(bottom_left).transpose();
-    const Vec3 p1 = this->grid_points.row(bottom_right).transpose();
-    const Vec3 p2 = this->grid_points.row(top_right).transpose();
-    const Vec3 p3 = this->grid_points.row(top_left).transpose();
+    const vec3_t p0 = this->grid_points.row(bottom_left).transpose();
+    const vec3_t p1 = this->grid_points.row(bottom_right).transpose();
+    const vec3_t p2 = this->grid_points.row(top_right).transpose();
+    const vec3_t p3 = this->grid_points.row(top_left).transpose();
 
     corners.block(i, 0, 1, 3) = p0.transpose();
     corners.block(i + 1, 0, 1, 3) = p1.transpose();
@@ -191,8 +191,8 @@ std::vector<cv::Point3f> AprilGrid::formObjectPoints(
   // Form object points for SolvePnP
   std::vector<cv::Point3f> object_points;
   for (long i = 0; i < corners.rows(); i++) {
-    Vec3 corner = corners.row(i);
-    if (i == 0 || corner.isApprox(Vec3::Zero(3, 1)) == false) {
+    vec3_t corner = corners.row(i);
+    if (i == 0 || corner.isApprox(vec3_t::Zero(3, 1)) == false) {
       object_points.emplace_back(corner(0), corner(1), corner(2));
     }
   }
@@ -214,7 +214,7 @@ std::vector<cv::Point2f> AprilGrid::formImagePoints(
 
 int AprilGrid::solvePnP(const std::map<int, std::vector<cv::Point2f>> &tags,
                         const cv::Mat &K,
-                        MatX &grid_points) {
+                        matx_t &grid_points) {
   // SolvePnP
   const std::vector<cv::Point3f> object_points = this->formObjectPoints(tags);
   const std::vector<cv::Point2f> image_points = this->formImagePoints(tags);
@@ -243,7 +243,7 @@ int AprilGrid::solvePnP(const std::map<int, std::vector<cv::Point2f>> &tags,
 
   // Form transform
   // clang-format off
-  Mat4 T_c_t;
+  mat4_t T_c_t;
   T_c_t << R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2), tvec.at<double>(0),
            R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2), tvec.at<double>(1),
            R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2), tvec.at<double>(2),
@@ -252,7 +252,7 @@ int AprilGrid::solvePnP(const std::map<int, std::vector<cv::Point2f>> &tags,
 
   // std::cout << T_c_t << std::endl;
   // for (int i = 0; i < this->grid_points.rows(); i++) {
-  //   Vec3 pt = this->grid_points.row(i).transpose();
+  //   vec3_t pt = this->grid_points.row(i).transpose();
   //   std::cout << "tag id: " << i << std::endl;
   //   std::cout << "point: " << pt.transpose() << std::endl;
   //   std::cout << "transformed: " << (T_c_t * pt.homogeneous()).transpose()
@@ -263,8 +263,8 @@ int AprilGrid::solvePnP(const std::map<int, std::vector<cv::Point2f>> &tags,
   grid_points.resize(object_points.size(), 3);
   int i = 0;
   for (auto &p : object_points) {
-    const Vec3 pt{p.x, p.y, p.z};
-    const Vec3 pt_transformed = (T_c_t * pt.homogeneous()).head(3);
+    const vec3_t pt{p.x, p.y, p.z};
+    const vec3_t pt_transformed = (T_c_t * pt.homogeneous()).head(3);
     grid_points.block(i, 0, 1, 3) = pt_transformed.transpose();
     i++;
   }

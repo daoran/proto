@@ -2,22 +2,22 @@
 
 namespace prototype {
 
-struct att_ctrl att_ctrl_setup(const Vec3 &roll_pid,
-                               const Vec3 &pitch_pid,
-                               const Vec3 &yaw_pid) {
-  struct att_ctrl ac;
+att_ctrl_t::att_ctrl_t() {}
 
-  ac.roll = pid_setup(roll_pid(0), roll_pid(1), roll_pid(2));
-  ac.pitch = pid_setup(pitch_pid(0), pitch_pid(1), pitch_pid(2));
-  ac.yaw = pid_setup(yaw_pid(0), yaw_pid(1), yaw_pid(2));
-
-  return ac;
+att_ctrl_t::att_ctrl_t(const vec3_t &roll_pid,
+                       const vec3_t &pitch_pid,
+                       const vec3_t &yaw_pid) {
+  roll = pid_t{roll_pid(0), roll_pid(1), roll_pid(2)};
+  pitch = pid_t{pitch_pid(0), pitch_pid(1), pitch_pid(2)};
+  yaw = pid_t{yaw_pid(0), yaw_pid(1), yaw_pid(2)};
 }
 
-Vec4 att_ctrl_update(struct att_ctrl &ac,
-                     const Vec4 &setpoints,
-                     const Vec4 &actual,
-                     const double dt) {
+att_ctrl_t::~att_ctrl_t() {}
+
+vec4_t att_ctrl_update(att_ctrl_t &ac,
+                       const vec4_t &setpoints,
+                       const vec4_t &actual,
+                       const double dt) {
   // Check rate
   ac.dt += dt;
   if (ac.dt < 0.001) {
@@ -48,10 +48,10 @@ Vec4 att_ctrl_update(struct att_ctrl &ac,
 
   // Map roll, pitch, yaw and thrust to motor outputs
   // clang-format off
-  Vec4 outputs{-p - y + t,
-               -r + y + t,
-               p - y + t,
-               r + y + t};
+  vec4_t outputs{-p - y + t,
+                 -r + y + t,
+                 p - y + t,
+                 r + y + t};
   // clang-format on
 
   // Limit outputs

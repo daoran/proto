@@ -20,20 +20,20 @@ namespace prototype {
 struct IMUStateConfig {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   // Initial Estimate Covariances
-  Vec3 q_init_var = zeros(3, 1);
-  Vec3 bg_init_var = zeros(3, 1);
-  Vec3 v_init_var = zeros(3, 1);
-  Vec3 ba_init_var = zeros(3, 1);
-  Vec3 p_init_var = zeros(3, 1);
+  vec3_t q_init_var = zeros(3, 1);
+  vec3_t bg_init_var = zeros(3, 1);
+  vec3_t v_init_var = zeros(3, 1);
+  vec3_t ba_init_var = zeros(3, 1);
+  vec3_t p_init_var = zeros(3, 1);
 
   // Process Noises
-  Vec3 w_var = zeros(3, 1);
-  Vec3 dbg_var = zeros(3, 1);
-  Vec3 a_var = zeros(3, 1);
-  Vec3 dba_var = zeros(3, 1);
+  vec3_t w_var = zeros(3, 1);
+  vec3_t dbg_var = zeros(3, 1);
+  vec3_t a_var = zeros(3, 1);
+  vec3_t dba_var = zeros(3, 1);
 
   // Constants
-  Vec3 g_G = zeros(3, 1);
+  vec3_t g_G = zeros(3, 1);
 };
 
 /**
@@ -46,26 +46,26 @@ public:
   bool rk4 = false;  ///< Runge-Kutta 4th order integration
 
   // State
-  Vec4 q_IG = Vec4{0.0, 0.0, 0.0, 1.0}; ///< JPL Quaternion in Global frame
-  Vec3 b_g = zeros(3, 1);               ///< Bias of gyroscope
-  Vec3 v_G = zeros(3, 1);               ///< Velocity in Global frame
-  Vec3 b_a = zeros(3, 1);               ///< Bias of accelerometer
-  Vec3 p_G = zeros(3, 1);               ///< Position in Global frame
+  vec4_t q_IG = vec4_t{0.0, 0.0, 0.0, 1.0}; ///< JPL Quaternion in Global frame
+  vec3_t b_g = zeros(3, 1);               ///< Bias of gyroscope
+  vec3_t v_G = zeros(3, 1);               ///< Velocity in Global frame
+  vec3_t b_a = zeros(3, 1);               ///< Bias of accelerometer
+  vec3_t p_G = zeros(3, 1);               ///< Position in Global frame
 
   // Extrinsics
   // -- IMU-Camera extrinsics
-  Vec3 p_IC = zeros(3, 1);
-  Vec4 q_IC = zeros(4, 1);
+  vec3_t p_IC = zeros(3, 1);
+  vec4_t q_IC = zeros(4, 1);
   // -- Gimbal joint angle extrinsics
-  Vec2 theta = zeros(2, 1);
+  vec2_t theta = zeros(2, 1);
 
   // Constants
-  Vec3 g_G = Vec3{0.0, 0.0, -9.81}; ///< Gravitational acceleration
+  vec3_t g_G = vec3_t{0.0, 0.0, -9.81}; ///< Gravitational acceleration
 
   // Misc
-  MatX P = 1e-5 * I(15); ///< Covariance matrix
-  MatX Q = 1e-2 * I(12); ///< Noise matrix
-  MatX Phi = I(15); ///< Noise matrix
+  matx_t P = 1e-5 * I(15); ///< Covariance matrix
+  matx_t Q = 1e-2 * I(12); ///< Noise matrix
+  matx_t Phi = I(15); ///< Noise matrix
 
   IMUState();
   IMUState(const IMUStateConfig &config);
@@ -78,7 +78,7 @@ public:
    * @param a_hat Estimated acceleration
    * @returns Transition jacobian matrix F
    */
-  MatX F(const Vec3 &w_hat, const Vec4 &q_hat, const Vec3 &a_hat);
+  matx_t F(const vec3_t &w_hat, const vec4_t &q_hat, const vec3_t &a_hat);
 
   /**
    * Input G matrix
@@ -90,7 +90,7 @@ public:
    * @param q_hat Estimated quaternion (x, y, z, w)
    * @returns Input jacobian matrix G
    */
-  MatX G(const Vec4 &q_hat);
+  matx_t G(const vec4_t &q_hat);
 
   /**
    * Update
@@ -99,14 +99,14 @@ public:
    * @param w_m Measured angular velocity
    * @param dt Time difference in seconds
    */
-  void update(const Vec3 &a_m, const Vec3 &w_m, const double dt);
+  void update(const vec3_t &a_m, const vec3_t &w_m, const double dt);
 
   /**
    * Correct the IMU state
    *
    * @param dx Correction state vector
    */
-  void correct(const VecX &dx);
+  void correct(const vecx_t &dx);
 };
 
 /** @} group msckf */

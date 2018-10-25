@@ -9,7 +9,7 @@ int test_CameraState_constructor() {
   MU_CHECK_EQ(6, cam_state.size);
   MU_CHECK_EQ(-1, cam_state.frame_id);
   MU_CHECK(zeros(3, 1).isApprox(cam_state.p_G));
-  MU_CHECK(Vec4(0.0, 0.0, 0.0, 1.0).isApprox(cam_state.q_CG));
+  MU_CHECK(vec4_t(0.0, 0.0, 0.0, 1.0).isApprox(cam_state.q_CG));
 
   return 0;
 }
@@ -17,10 +17,10 @@ int test_CameraState_constructor() {
 int test_CameraState_correct() {
   CameraState cam_state;
 
-  Vec3 dtheta_CG{0.0, 0.0, 0.0};
-  Vec3 dp_G{0.0, 0.0, 0.0};
+  vec3_t dtheta_CG{0.0, 0.0, 0.0};
+  vec3_t dp_G{0.0, 0.0, 0.0};
 
-  VecX dx;
+  vecx_t dx;
   dx.resize(6, 1);
   dx.block(0, 0, 3, 1) = dtheta_CG;
   dx.block(3, 0, 3, 1) = dp_G;

@@ -20,7 +20,7 @@ namespace prototype {
   * @param theta Angle in radians
   * @returns Rotation matrix
   */
-Mat3 rotx(const double theta);
+mat3_t rotx(const double theta);
 
 /**
   * Rotation matrix around y-axis (counter-clockwise, right-handed)
@@ -28,7 +28,7 @@ Mat3 rotx(const double theta);
   * @param theta Angle in radians
   * @returns Rotation matrix
   */
-Mat3 roty(const double theta);
+mat3_t roty(const double theta);
 
 /**
   * Rotation matrix around z-axis (counter-clockwise, right-handed)
@@ -36,7 +36,7 @@ Mat3 roty(const double theta);
   * @param theta Angle in radians
   * @returns Rotation matrix
   */
-Mat3 rotz(const double theta);
+mat3_t rotz(const double theta);
 
 /**
  * Convert euler sequence 123 to rotation matrix R
@@ -53,7 +53,7 @@ Mat3 rotz(const double theta);
  * @param euler Euler angle (roll, pitch, yaw)
  * @returns Rotation matrix
  */
-Mat3 euler123ToRot(const Vec3 &euler);
+mat3_t euler123ToRot(const vec3_t &euler);
 
 /**
  * Convert euler sequence 321 to rotation matrix R
@@ -70,7 +70,7 @@ Mat3 euler123ToRot(const Vec3 &euler);
  * @param euler Euler angle (roll, pitch, yaw)
  * @returns Rotation matrix
  */
-Mat3 euler321ToRot(const Vec3 &euler);
+mat3_t euler321ToRot(const vec3_t &euler);
 
 /** @} group data */
 } //  namespace prototype

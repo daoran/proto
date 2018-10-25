@@ -2,7 +2,7 @@
 
 namespace prototype {
 
-int CalibCamToCam::load(const std::string &file_path) {
+int calib_cam2cam_load(calib_cam2cam_t &calib, const std::string &file_path) {
   std::ifstream file(file_path.c_str());
 
   // Check file
@@ -21,11 +21,11 @@ int CalibCamToCam::load(const std::string &file_path) {
 
     // Parse calibration time and corner distance
     if (token == "calib_time") {
-      this->calib_time = parseString(line);
+      calib.calib_time = parse_string(line);
       continue;
 
     } else if (token == "corner_dist") {
-      this->corner_dist = parseDouble(line);
+      calib.corner_dist = parse_double(line);
       continue;
     }
 
@@ -34,11 +34,11 @@ int CalibCamToCam::load(const std::string &file_path) {
     const bool rect_var = (token.find("rect") != std::string::npos);
     if (rect_var) {
       if (token[0] == 'S') {
-        this->S_rect[cam_id] = parseVec2(line);
+        calib.S_rect[cam_id] = parse_vec2(line);
       } else if (token[0] == 'R') {
-        this->R_rect[cam_id] = parseMat3(line);
+        calib.R_rect[cam_id] = parse_mat3(line);
       } else if (token[0] == 'P') {
-        this->P_rect[cam_id] = parseMat34(line);
+        calib.P_rect[cam_id] = parse_mat34(line);
       }
 
       continue;
@@ -46,23 +46,23 @@ int CalibCamToCam::load(const std::string &file_path) {
 
     // Parse calibration variables
     if (token[0] == 'S') {
-      this->S[cam_id] = parseVec2(line);
+      calib.S[cam_id] = parse_vec2(line);
     } else if (token[0] == 'K') {
-      this->K[cam_id] = parseMat3(line);
+      calib.K[cam_id] = parse_mat3(line);
     } else if (token[0] == 'D') {
-      this->D[cam_id] = parseVecX(line);
+      calib.D[cam_id] = parse_vecx(line);
     } else if (token[0] == 'R') {
-      this->R[cam_id] = parseMat3(line);
+      calib.R[cam_id] = parse_mat3(line);
     } else if (token[0] == 'T') {
-      this->T[cam_id] = parseVec3(line);
+      calib.T[cam_id] = parse_vec3(line);
     }
   }
 
-  this->ok = true;
+  calib.ok = true;
   return 0;
 }
 
-int CalibIMUToVelo::load(const std::string &file_path) {
+int calib_imu2velo_load(calib_imu2velo_t &calib, const std::string &file_path) {
   std::ifstream file(file_path.c_str());
 
   // Check file
@@ -81,24 +81,24 @@ int CalibIMUToVelo::load(const std::string &file_path) {
 
     // Parse calibration time and corner distance
     if (token == "calib_time") {
-      this->calib_time = parseString(line);
+      calib.calib_time = parse_string(line);
       continue;
     }
 
     // Parse calibration variables
     if (token[0] == 'R') {
-      this->R = parseMat3(line);
+      calib.R = parse_mat3(line);
     } else if (token[0] == 'T') {
-      this->t = parseVec3(line);
+      calib.t = parse_vec3(line);
     }
   }
 
-  this->T_velo_imu = transformation_matrix(this->R, this->t);
-  this->ok = true;
+  calib.T_velo_imu = transformation_matrix(calib.R, calib.t);
+  calib.ok = true;
   return 0;
 }
 
-int CalibVeloToCam::load(const std::string &file_path) {
+int calib_velo2cam_load(calib_velo2cam_t &calib, const std::string &file_path) {
   std::ifstream file(file_path.c_str());
 
   // Check file
@@ -117,24 +117,24 @@ int CalibVeloToCam::load(const std::string &file_path) {
 
     // Parse calibration time and corner distance
     if (token == "calib_time") {
-      this->calib_time = parseString(line);
+      calib.calib_time = parse_string(line);
       continue;
     }
 
     // Parse calibration variables
     if (token[0] == 'R') {
-      this->R = parseMat3(line);
+      calib.R = parse_mat3(line);
     } else if (token[0] == 'T') {
-      this->t = parseVec3(line);
+      calib.t = parse_vec3(line);
     } else if (token == "delta_f") {
-      this->df = parseVec2(line);
+      calib.df = parse_vec2(line);
     } else if (token == "delta_c") {
-      this->dc = parseVec2(line);
+      calib.dc = parse_vec2(line);
     }
   }
 
-  this->T_cam_velo = transformation_matrix(this->R, this->t);
-  this->ok = true;
+  calib.T_cam_velo = transformation_matrix(calib.R, calib.t);
+  calib.ok = true;
   return 0;
 }
 

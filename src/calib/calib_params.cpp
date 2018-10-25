@@ -39,7 +39,7 @@ int CalibParams::load(const std::string &camchain_file,
   }
 
   // Load joint angles file
-  MatX joint_data;
+  matx_t joint_data;
   if (csv2mat(joint_file, false, joint_data) != 0) {
     LOG_ERROR("Failed to load joint angles file [%s]!", joint_file.c_str());
     return -1;

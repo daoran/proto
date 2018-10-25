@@ -66,7 +66,7 @@ public:
    * - 1 for chessboard detected
    * - -1 for failure
    */
-  int detect(const int camera_index, const cv::Mat &image, MatX &X);
+  int detect(const int camera_index, const cv::Mat &image, matx_t &X);
 
   /**
    * Draw detected
@@ -100,7 +100,7 @@ public:
    */
   cv::Mat project(const int camera_index,
                   const cv::Mat &image,
-                  const MatX &X,
+                  const matx_t &X,
                   const cv::Scalar &color = cv::Scalar(0, 0, 255));
 
   /**
@@ -147,9 +147,9 @@ public:
    * @param joint_pitch Joint pitch angle (radians)
    * @returns Reprojection error
    */
-  double validateGimbal(const Vec3 &P_s,
-                        const Vec2 &Q_d,
-                        const Mat3 &K,
+  double validateGimbal(const vec3_t &P_s,
+                        const vec2_t &Q_d,
+                        const mat3_t &K,
                         const double joint_roll,
                         const double joint_pitch);
 };

@@ -18,7 +18,7 @@ namespace prototype {
 /**
  * PID Controller
  */
-struct pid {
+struct pid_t {
   double error_prev = 0.0;
   double error_sum = 0.0;
 
@@ -29,16 +29,11 @@ struct pid {
   double k_p = 0.0;
   double k_i = 0.0;
   double k_d = 0.0;
-};
 
-/**
- * Setup PID
- *
- * @param[in] k_p Proportional constant
- * @param[in] k_i Integral constant
- * @param[in] k_d Derivative constant
- */
-struct pid pid_setup(const double k_p, const double k_i, const double k_d);
+  pid_t();
+  pid_t(const double k_p, const double k_i, const double k_d);
+  virtual ~pid_t();
+};
 
 /**
  * Update controller
@@ -49,7 +44,7 @@ struct pid pid_setup(const double k_p, const double k_i, const double k_d);
  * @param[in] dt Time step
  * @returns Controller command
  */
-double pid_update(struct pid &p,
+double pid_update(pid_t &p,
                   const double setpoint,
                   const double actual,
                   const double dt);
@@ -62,12 +57,12 @@ double pid_update(struct pid &p,
  * @param[in] dt Difference in time
  * @returns Controller command
  */
-double pid_update(struct pid &p, const double error, const double dt);
+double pid_update(pid_t &p, const double error, const double dt);
 
 /**
  * Reset controller
  */
-void pid_reset(struct pid &p);
+void pid_reset(pid_t &p);
 
 /** @} group control */
 } //  namespace prototype

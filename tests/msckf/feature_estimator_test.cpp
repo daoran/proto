@@ -22,7 +22,7 @@ struct mono_test_config {
   const double fy = pinhole_focal_length(image_height, fov);
   const double cx = image_width / 2.0;
   const double cy = image_height / 2.0;
-  const Vec3 landmark{0.0, 0.0, 10.0};
+  const vec3_t landmark{0.0, 0.0, 10.0};
 
   mono_test_config() {}
 };
@@ -47,16 +47,16 @@ void setup_mono_test(const struct mono_test_config &config,
                            config.cy};
 
   // -- Camera state 0
-  const Vec3 p_G_C0{0.0, 0.0, 0.0};
-  const Vec3 rpy_C0G{deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
-  const Vec4 q_C0G = euler2quat(rpy_C0G);
-  const Mat3 C_C0G = C(q_C0G);
+  const vec3_t p_G_C0{0.0, 0.0, 0.0};
+  const vec3_t rpy_C0G{deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
+  const vec4_t q_C0G = euler2quat(rpy_C0G);
+  const mat3_t C_C0G = C(q_C0G);
   const CameraState cam_state0{p_G_C0, q_C0G};
   // -- Camera state 1
-  const Vec3 p_G_C1{1.0, 1.0, 0.0};
-  const Vec3 rpy_C1G{deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
-  const Vec4 q_C1G = euler2quat(rpy_C1G);
-  const Mat3 C_C1G = C(q_C1G);
+  const vec3_t p_G_C1{1.0, 1.0, 0.0};
+  const vec3_t rpy_C1G{deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
+  const vec4_t q_C1G = euler2quat(rpy_C1G);
+  const mat3_t C_C1G = C(q_C1G);
   const CameraState cam_state1{p_G_C1, q_C1G};
   // -- Add to track camera states
   track_cam_states.push_back(cam_state0);
@@ -64,12 +64,12 @@ void setup_mono_test(const struct mono_test_config &config,
 
   // Feature track
   // -- Project landmark to pixel coordinates
-  const Vec3 landmark{config.landmark};
-  const Vec2 kp1 = cam_model.project(landmark, C_C0G, p_G_C0);
-  const Vec2 kp2 = cam_model.project(landmark, C_C1G, p_G_C1);
+  const vec3_t landmark{config.landmark};
+  const vec2_t kp1 = cam_model.project(landmark, C_C0G, p_G_C0);
+  const vec2_t kp2 = cam_model.project(landmark, C_C1G, p_G_C1);
   // -- Convert pixel coordinates to image coordinates
-  const Vec2 pt1 = cam_model.pixel2ideal(kp1);
-  const Vec2 pt2 = cam_model.pixel2ideal(kp2);
+  const vec2_t pt1 = cam_model.pixel2ideal(kp1);
+  const vec2_t pt2 = cam_model.pixel2ideal(kp2);
   // -- Add to feature track
   track = FeatureTrack{0, 1, Feature{pt1}, Feature{pt2}};
 }
@@ -85,16 +85,16 @@ struct stereo_test_config setup_stereo_test() {
   }
 
   // Obtain cam0 to cam1 transform
-  const Mat3 R_cam1_cam0 = config.raw_dataset.calib_cam_to_cam.R[1];
-  const Vec3 t_cam1_cam0 = config.raw_dataset.calib_cam_to_cam.T[1];
-  const Mat4 T_cam1_cam0 = transformation_matrix(R_cam1_cam0, t_cam1_cam0);
+  const mat3_t R_cam1_cam0 = config.raw_dataset.calib_cam_to_cam.R[1];
+  const vec3_t t_cam1_cam0 = config.raw_dataset.calib_cam_to_cam.T[1];
+  const mat4_t T_cam1_cam0 = transformation_matrix(R_cam1_cam0, t_cam1_cam0);
 
   // Create camera properties
-  const Vec2 image_size = config.raw_dataset.calib_cam_to_cam.S[0];
-  const Mat3 cam0_K = config.raw_dataset.calib_cam_to_cam.K[0];
-  const VecX cam0_D = config.raw_dataset.calib_cam_to_cam.D[0];
-  const Mat3 cam1_K = config.raw_dataset.calib_cam_to_cam.K[1];
-  const VecX cam1_D = config.raw_dataset.calib_cam_to_cam.D[1];
+  const vec2_t image_size = config.raw_dataset.calib_cam_to_cam.S[0];
+  const mat3_t cam0_K = config.raw_dataset.calib_cam_to_cam.K[0];
+  const vecx_t cam0_D = config.raw_dataset.calib_cam_to_cam.D[0];
+  const mat3_t cam1_K = config.raw_dataset.calib_cam_to_cam.K[1];
+  const vecx_t cam1_D = config.raw_dataset.calib_cam_to_cam.D[1];
   CameraProperty cam0(0, "pinhole", cam0_K, "radtan", cam0_D, image_size);
   CameraProperty cam1(1, "pinhole", cam1_K, "radtan", cam1_D, image_size);
 
@@ -115,22 +115,22 @@ int test_lls_triangulation() {
                          config.cy);
 
   // Create keypoints
-  const Vec3 landmark{1.0, 0.0, 10.0};
-  const Vec2 z1 = cam_model.project(landmark, I(3), Vec3{0.0, 0.0, 0.0});
-  const Vec2 z2 = cam_model.project(landmark, I(3), Vec3{0.0, 0.0, 0.2});
+  const vec3_t landmark{1.0, 0.0, 10.0};
+  const vec2_t z1 = cam_model.project(landmark, I(3), vec3_t{0.0, 0.0, 0.0});
+  const vec2_t z2 = cam_model.project(landmark, I(3), vec3_t{0.0, 0.0, 0.2});
 
-  const Vec3 u1 = z1.homogeneous();
-  const Vec3 u2 = z2.homogeneous();
+  const vec3_t u1 = z1.homogeneous();
+  const vec3_t u2 = z2.homogeneous();
 
-  const Mat34 P1{cam_model.P(I(3), Vec3{0.0, 0.0, 0.0})};
-  const Mat34 P2{cam_model.P(I(3), Vec3{0.0, 0.0, 0.2})};
+  const mat34_t P1{cam_model.P(I(3), vec3_t{0.0, 0.0, 0.0})};
+  const mat34_t P2{cam_model.P(I(3), vec3_t{0.0, 0.0, 0.2})};
 
   std::cout << "u1: " << u1.transpose() << std::endl;
   std::cout << "u2: " << u2.transpose() << std::endl;
   std::cout << "P1: " << P1 << std::endl;
   std::cout << "P2: " << P2 << std::endl;
 
-  const Vec3 X = lls_triangulation(u1, P1, u2, P2);
+  const vec3_t X = lls_triangulation(u1, P1, u2, P2);
   std::cout << "X:" << std::endl;
   std::cout << X << std::endl;
 
@@ -148,31 +148,31 @@ int test_lls_triangulation2() {
                          config.cy);
 
   // Create keypoints
-  const Vec3 landmark{0.0, 0.0, 10.0};
-  const Vec2 kp1 = cam_model.project(landmark, I(3), Vec3{0.0, 0.0, 0.0});
-  const Vec2 kp2 = cam_model.project(landmark, I(3), Vec3{0.2, 0.0, 0.0});
-  const Vec2 z1 = cam_model.pixel2ideal(kp1);
-  const Vec2 z2 = cam_model.pixel2ideal(kp2);
+  const vec3_t landmark{0.0, 0.0, 10.0};
+  const vec2_t kp1 = cam_model.project(landmark, I(3), vec3_t{0.0, 0.0, 0.0});
+  const vec2_t kp2 = cam_model.project(landmark, I(3), vec3_t{0.2, 0.0, 0.0});
+  const vec2_t z1 = cam_model.pixel2ideal(kp1);
+  const vec2_t z2 = cam_model.pixel2ideal(kp2);
 
   // Camera states
   // -- Camera state 0
-  const Vec3 p_G_C0{0.0, 0.0, 0.0};
-  const Vec4 q_C0G = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Mat3 C_C0G = C(q_C0G);
+  const vec3_t p_G_C0{0.0, 0.0, 0.0};
+  const vec4_t q_C0G = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const mat3_t C_C0G = C(q_C0G);
   // -- Camera state 1
-  const Vec3 p_G_C1{0.0, -0.2, 0.0};
-  const Vec4 q_C1G = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Mat3 C_C1G = C(q_C1G);
+  const vec3_t p_G_C1{0.0, -0.2, 0.0};
+  const vec4_t q_C1G = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const mat3_t C_C1G = C(q_C1G);
 
   // Calculate rotation and translation of first and last camera states
   // -- Obtain rotation and translation from camera 0 to camera 1
-  const Mat3 C_C0C1 = C_C0G * C_C1G.transpose();
-  const Vec3 t_C0C1 = C_C0G * (p_G_C1 - p_G_C0);
-  const Mat4 T_C0_C1 = transformation_matrix(C_C0C1, t_C0C1);
-  const Mat4 T_C1_C0 = T_C0_C1.inverse();
+  const mat3_t C_C0C1 = C_C0G * C_C1G.transpose();
+  const vec3_t t_C0C1 = C_C0G * (p_G_C1 - p_G_C0);
+  const mat4_t T_C0_C1 = transformation_matrix(C_C0C1, t_C0C1);
+  const mat4_t T_C1_C0 = T_C0_C1.inverse();
 
   // Triangulate
-  const Vec3 X = lls_triangulation(z1, z2, T_C1_C0);
+  const vec3_t X = lls_triangulation(z1, z2, T_C1_C0);
   MU_CHECK(X.isApprox(landmark));
 
   return 0;
@@ -189,35 +189,35 @@ int test_triangulate_mono_track() {
                          config.cy);
   // Camera states
   // -- Camera state 0
-  const Vec3 p_G_C0{0.0, 0.0, 0.0};
-  const Vec4 q_C0G = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Mat3 C_C0G = C(q_C0G);
+  const vec3_t p_G_C0{0.0, 0.0, 0.0};
+  const vec4_t q_C0G = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const mat3_t C_C0G = C(q_C0G);
   // -- Camera state 1
-  const Vec3 p_G_C1{0.0, -0.2, -0.1};
-  const Vec4 q_C1G = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Mat3 C_C1G = C(q_C1G);
+  const vec3_t p_G_C1{0.0, -0.2, -0.1};
+  const vec4_t q_C1G = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const mat3_t C_C1G = C(q_C1G);
 
   // Calculate rotation and translation of first and last camera states
   // -- Obtain rotation and translation from camera 0 to camera 1
-  const Mat3 C_C0C1 = C_C0G * C_C1G.transpose();
-  const Vec3 t_C0C1 = C_C0G * (p_G_C1 - p_G_C0);
-  const Mat4 T_C0_C1 = transformation_matrix(C_C0C1, t_C0C1);
-  const Mat4 T_C1_C0 = T_C0_C1.inverse();
+  const mat3_t C_C0C1 = C_C0G * C_C1G.transpose();
+  const vec3_t t_C0C1 = C_C0G * (p_G_C1 - p_G_C0);
+  const mat4_t T_C0_C1 = transformation_matrix(C_C0C1, t_C0C1);
+  const mat4_t T_C1_C0 = T_C0_C1.inverse();
 
   // Create feature tracks
   FeatureTracks tracks;
-  std::vector<Vec3> landmarks;
+  std::vector<vec3_t> landmarks;
 
   for (int i = 0; i < 1000; i++) {
     // Create keypoints
     const double x = randf(-10.0, 10.0);
     const double y = randf(-10.0, 10.0);
     const double z = randf(-10.0, 10.0);
-    const Vec3 landmark{x, y, z};
-    const Vec2 kp1 = cam_model.project(landmark, I(3), Vec3{0.0, 0.0, 0.0});
-    const Vec2 kp2 = cam_model.project(landmark, I(3), Vec3{0.2, 0.1, 0.0});
-    const Vec2 z1 = cam_model.pixel2ideal(kp1);
-    const Vec2 z2 = cam_model.pixel2ideal(kp2);
+    const vec3_t landmark{x, y, z};
+    const vec2_t kp1 = cam_model.project(landmark, I(3), vec3_t{0.0, 0.0, 0.0});
+    const vec2_t kp2 = cam_model.project(landmark, I(3), vec3_t{0.2, 0.1, 0.0});
+    const vec2_t z1 = cam_model.pixel2ideal(kp1);
+    const vec2_t z2 = cam_model.pixel2ideal(kp2);
 
     // Create Feature Track
     Feature f0{z1};
@@ -243,7 +243,7 @@ int test_group_tracks() {
   FeatureTracks tracks;
   std::map<FrameID, FeatureTracks> expected_track_groups;
   std::set<FrameID> expected_frame_starts;
-  Mat4 T_cam1_cam0 = I(4);
+  mat4_t T_cam1_cam0 = I(4);
 
   for (int i = 0; i < 10; i++) {
     const TrackID track_id = i;
@@ -293,35 +293,35 @@ int test_triangulate_stereo_track() {
                          config.cy);
   // Camera states
   // -- Camera state 0
-  const Vec3 p_G_C0{0.0, 0.0, 0.0};
-  const Vec4 q_C0G = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Mat3 C_C0G = C(q_C0G);
+  const vec3_t p_G_C0{0.0, 0.0, 0.0};
+  const vec4_t q_C0G = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const mat3_t C_C0G = C(q_C0G);
   // -- Camera state 1
-  const Vec3 p_G_C1{0.0, -0.2, -0.1};
-  const Vec4 q_C1G = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Mat3 C_C1G = C(q_C1G);
+  const vec3_t p_G_C1{0.0, -0.2, -0.1};
+  const vec4_t q_C1G = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const mat3_t C_C1G = C(q_C1G);
 
   // Calculate rotation and translation of first and last camera states
   // -- Obtain rotation and translation from camera 0 to camera 1
-  const Mat3 C_C0C1 = C_C0G * C_C1G.transpose();
-  const Vec3 t_C0C1 = C_C0G * (p_G_C1 - p_G_C0);
-  const Mat4 T_C0_C1 = transformation_matrix(C_C0C1, t_C0C1);
-  const Mat4 T_C1_C0 = T_C0_C1.inverse();
+  const mat3_t C_C0C1 = C_C0G * C_C1G.transpose();
+  const vec3_t t_C0C1 = C_C0G * (p_G_C1 - p_G_C0);
+  const mat4_t T_C0_C1 = transformation_matrix(C_C0C1, t_C0C1);
+  const mat4_t T_C1_C0 = T_C0_C1.inverse();
 
   // Create feature tracks
   FeatureTracks tracks;
-  std::vector<Vec3> landmarks;
+  std::vector<vec3_t> landmarks;
 
   for (int i = 0; i < 1000; i++) {
     // Create keypoints
     const double x = randf(-10.0, 10.0);
     const double y = randf(-10.0, 10.0);
     const double z = randf(-10.0, 10.0);
-    const Vec3 landmark{x, y, z};
-    const Vec2 kp1 = cam_model.project(landmark, I(3), Vec3{0.0, 0.0, 0.0});
-    const Vec2 kp2 = cam_model.project(landmark, I(3), Vec3{0.2, 0.1, 0.0});
-    const Vec2 z1 = cam_model.pixel2ideal(kp1);
-    const Vec2 z2 = cam_model.pixel2ideal(kp2);
+    const vec3_t landmark{x, y, z};
+    const vec2_t kp1 = cam_model.project(landmark, I(3), vec3_t{0.0, 0.0, 0.0});
+    const vec2_t kp2 = cam_model.project(landmark, I(3), vec3_t{0.2, 0.1, 0.0});
+    const vec2_t z1 = cam_model.pixel2ideal(kp1);
+    const vec2_t z2 = cam_model.pixel2ideal(kp2);
 
     // Create Feature Track
     Feature f0{z1};
@@ -362,21 +362,21 @@ int test_FeatureEstimator_triangulate() {
 
   // Camera states
   // -- Camera state 0
-  const Vec3 p_G_C0{0.0, 0.0, 0.0};
-  const Vec4 q_C0G = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Mat3 C_C0G = C(q_C0G);
+  const vec3_t p_G_C0{0.0, 0.0, 0.0};
+  const vec4_t q_C0G = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const mat3_t C_C0G = C(q_C0G);
   // -- Camera state 1
-  const Vec3 p_G_C1{2.0, 0.0, 0.0};
-  const Vec4 q_C1G = Vec4{0.5, -0.5, 0.5, -0.5};
-  const Mat3 C_C1G = C(q_C1G);
+  const vec3_t p_G_C1{2.0, 0.0, 0.0};
+  const vec4_t q_C1G = vec4_t{0.5, -0.5, 0.5, -0.5};
+  const mat3_t C_C1G = C(q_C1G);
 
   // Features
-  const Vec3 landmark{1.0, 0.0, 10.0};
-  const Vec2 kp1 = cam_model.project(landmark, I(3), Vec3{0.0, 0.0, 0.0});
-  const Vec2 kp2 = cam_model.project(landmark, I(3), Vec3{0.0, 0.0, 2.0});
+  const vec3_t landmark{1.0, 0.0, 10.0};
+  const vec2_t kp1 = cam_model.project(landmark, I(3), vec3_t{0.0, 0.0, 0.0});
+  const vec2_t kp2 = cam_model.project(landmark, I(3), vec3_t{0.0, 0.0, 2.0});
   // -- Convert pixel coordinates to image coordinates
-  const Vec2 pt1 = cam_model.pixel2ideal(kp1);
-  const Vec2 pt2 = cam_model.pixel2ideal(kp2);
+  const vec2_t pt1 = cam_model.pixel2ideal(kp1);
+  const vec2_t pt2 = cam_model.pixel2ideal(kp2);
   // -- Add to feature track
   const Feature f1 = Feature{pt1};
   const Feature f2 = Feature{pt2};
@@ -384,17 +384,17 @@ int test_FeatureEstimator_triangulate() {
 
   // Calculate rotation and translation of first and last camera states
   // -- Obtain rotation and translation from camera 0 to camera 1
-  const Mat3 C_C0C1 = C_C0G * C_C1G.transpose();
-  const Vec3 t_C0_C1C0 = C_C0G * (p_G_C1 - p_G_C0);
+  const mat3_t C_C0C1 = C_C0G * C_C1G.transpose();
+  const vec3_t t_C0_C1C0 = C_C0G * (p_G_C1 - p_G_C0);
 
   // Triangulate
-  Vec3 p_C0_f;
+  vec3_t p_C0_f;
   int retval =
       FeatureEstimator::triangulate(pt1, pt2, C_C0C1, t_C0_C1C0, p_C0_f);
   // std::cout << "p_C0_f: " << p_C0_f.transpose() << std::endl;
 
   // // Transform feature from camera 0 to global frame
-  // Vec3 p_G_f = C_C0G.transpose() * p_C0_f + p_G_C0;
+  // vec3_t p_G_f = C_C0G.transpose() * p_C0_f + p_G_C0;
   // std::cout << "p_G_f: " << p_G_f.transpose() << std::endl;
 
   // Assert
@@ -412,7 +412,7 @@ int test_FeatureEstimator_initialEstimate() {
   setup_mono_test(config, track_cam_states, track);
 
   // Initial estimate
-  Vec3 p_C0_f;
+  vec3_t p_C0_f;
   FeatureEstimator estimator(track, track_cam_states);
   int retval = estimator.initialEstimate(p_C0_f);
 
@@ -431,8 +431,8 @@ int test_FeatureEstimator_jacobian() {
   setup_mono_test(config, track_cam_states, track);
 
   // Test jacobian
-  Vec3 p_C0_f;
-  Vec3 x{0.0, 0.0, 0.1};
+  vec3_t p_C0_f;
+  vec3_t x{0.0, 0.0, 0.1};
   FeatureEstimator estimator(track, track_cam_states);
   // estimator.jacobian(x);
 
@@ -447,8 +447,8 @@ int test_FeatureEstimator_reprojectionError() {
   setup_mono_test(config, track_cam_states, track);
 
   // Test jacobian
-  Vec3 p_C0_f;
-  Vec3 x{0.0, 0.0, 0.1};
+  vec3_t p_C0_f;
+  vec3_t x{0.0, 0.0, 0.1};
   FeatureEstimator estimator(track, track_cam_states);
   // estimator.reprojectionError(x);
 
@@ -463,7 +463,7 @@ int test_FeatureEstimator_estimate() {
   setup_mono_test(config, track_cam_states, track);
 
   // Test jacobian
-  Vec3 p_G_f;
+  vec3_t p_G_f;
   FeatureEstimator estimator(track, track_cam_states);
   estimator.debug_mode = true;
 
@@ -486,16 +486,16 @@ int test_AnalyticalReprojectionError_constructor() {
   setup_mono_test(config, track_cam_states, track);
 
   // Get camera 0 rotation and translation
-  const Mat3 C_C0G = C(track_cam_states[0].q_CG);
-  const Vec3 p_G_C0 = track_cam_states[0].p_G;
+  const mat3_t C_C0G = C(track_cam_states[0].q_CG);
+  const vec3_t p_G_C0 = track_cam_states[0].p_G;
   // Get camera i rotation and translation
   const int camera_index = 0;
-  const Mat3 C_CiG = C(track_cam_states[camera_index].q_CG);
-  const Vec3 p_G_Ci = track_cam_states[camera_index].p_G;
+  const mat3_t C_CiG = C(track_cam_states[camera_index].q_CG);
+  const vec3_t p_G_Ci = track_cam_states[camera_index].p_G;
   // Set camera 0 as origin, work out rotation and translation
   // between camera i to to camera 0
-  const Mat3 C_CiC0 = C_CiG * C_C0G.transpose();
-  const Vec3 t_Ci_CiC0 = C_CiG * (p_G_C0 - p_G_Ci);
+  const mat3_t C_CiC0 = C_CiG * C_C0G.transpose();
+  const vec3_t t_Ci_CiC0 = C_CiG * (p_G_C0 - p_G_Ci);
 
   // Ceres reprojection error
   AnalyticalReprojectionError error{C_CiC0,
@@ -513,17 +513,17 @@ int test_AnalyticalReprojectionError_evaluate() {
   setup_mono_test(config, track_cam_states, track);
 
   // Get camera 0 rotation and translation
-  const Mat3 C_C0G = C(track_cam_states[0].q_CG);
-  const Vec3 p_G_C0 = track_cam_states[0].p_G;
+  const mat3_t C_C0G = C(track_cam_states[0].q_CG);
+  const vec3_t p_G_C0 = track_cam_states[0].p_G;
 
   for (int i = 0; i < 2; i++) {
     // Get camera 0 rotation and translation
-    const Mat3 C_CiG = C(track_cam_states[i].q_CG);
-    const Vec3 p_G_Ci = track_cam_states[i].p_G;
+    const mat3_t C_CiG = C(track_cam_states[i].q_CG);
+    const vec3_t p_G_Ci = track_cam_states[i].p_G;
     // Set camera 0 as origin, work out rotation and translation
     // between camera 0 to to camera 0
-    const Mat3 C_CiC0 = C_CiG * C_C0G.transpose();
-    const Vec3 t_Ci_CiC0 = C_CiG * (p_G_C0 - p_G_Ci);
+    const mat3_t C_CiC0 = C_CiG * C_C0G.transpose();
+    const vec3_t t_Ci_CiC0 = C_CiG * (p_G_C0 - p_G_Ci);
 
     // Calculate reprojection error for first measurement
     double r[2] = {1.0, 1.0};
@@ -588,7 +588,7 @@ int test_CeresFeatureEstimator_estimate() {
   // Setup CeresFeatureEstimator
   CeresFeatureEstimator estimator{track, track_cam_states};
 
-  Vec3 p_G_f;
+  vec3_t p_G_f;
   struct timespec start = tic();
   estimator.estimate(p_G_f);
   printf("elasped: %fs\n", toc(&start));
@@ -607,29 +607,29 @@ int test_CeresFeatureEstimator_estimate_mono_sim() {
   }
 
   // IMU to camera extrinsics
-  const Vec3 ext_p_IC{0.0, 0.0, 0.0};
-  const Vec4 ext_q_CI{0.50243, -0.491157, 0.504585, -0.50172};
+  const vec3_t ext_p_IC{0.0, 0.0, 0.0};
+  const vec4_t ext_q_CI{0.50243, -0.491157, 0.504585, -0.50172};
 
   // Simulate
   CameraStates camera_states;
-  std::vector<Vec3> estimates;
-  std::vector<Vec3> ground_truths;
+  std::vector<vec3_t> estimates;
+  std::vector<vec3_t> ground_truths;
 
   // Add first camera state
-  const Vec3 imu_p_G = sim.camera_motion.p_G;
-  const Vec4 imu_q_IG = euler2quat(sim.camera_motion.rpy_G);
-  const Vec4 cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
-  const Vec3 cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
+  const vec3_t imu_p_G = sim.camera_motion.p_G;
+  const vec4_t imu_q_IG = euler2quat(sim.camera_motion.rpy_G);
+  const vec4_t cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
+  const vec3_t cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
   camera_states.emplace_back(0, cam_p_G, cam_q_CG);
 
   for (int i = 1; i < 100; i++) {
     sim.step();
 
     // Add camera state
-    const Vec3 imu_p_G = sim.camera_motion.p_G;
-    const Vec4 imu_q_IG = euler2quat(sim.camera_motion.rpy_G);
-    const Vec4 cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
-    const Vec3 cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
+    const vec3_t imu_p_G = sim.camera_motion.p_G;
+    const vec4_t imu_q_IG = euler2quat(sim.camera_motion.rpy_G);
+    const vec4_t cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
+    const vec3_t cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
     camera_states.emplace_back(i, cam_p_G, cam_q_CG);
 
     // Get lost tracks
@@ -642,7 +642,7 @@ int test_CeresFeatureEstimator_estimate_mono_sim() {
       assert(track_cam_states.size() == track.trackedLength());
       CeresFeatureEstimator estimator{track, track_cam_states};
 
-      Vec3 p_G_f;
+      vec3_t p_G_f;
       if (estimator.estimate(p_G_f) == 0) {
         estimates.emplace_back(p_G_f);
         ground_truths.emplace_back(track.track[0].ground_truth);
@@ -676,32 +676,32 @@ int test_CeresFeatureEstimator_estimate_stereo_sim() {
     LOG_ERROR("Failed to configure simulation!");
     return -1;
   }
-  const Mat4 T_cam1_cam0 = sim.stereo_camera.T_cam1_cam0;
+  const mat4_t T_cam1_cam0 = sim.stereo_camera.T_cam1_cam0;
 
   // IMU to camera extrinsics
-  const Vec3 ext_p_IC{0.0, 0.0, 0.0};
-  const Vec4 ext_q_CI{0.50243, -0.491157, 0.504585, -0.50172};
+  const vec3_t ext_p_IC{0.0, 0.0, 0.0};
+  const vec4_t ext_q_CI{0.50243, -0.491157, 0.504585, -0.50172};
 
   // Simulate
   CameraStates camera_states;
-  std::vector<Vec3> estimates;
-  std::vector<Vec3> ground_truths;
+  std::vector<vec3_t> estimates;
+  std::vector<vec3_t> ground_truths;
 
   // Add first camera state
-  const Vec3 imu_p_G = sim.camera_motion.p_G;
-  const Vec4 imu_q_IG = euler2quat(sim.camera_motion.rpy_G);
-  const Vec4 cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
-  const Vec3 cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
+  const vec3_t imu_p_G = sim.camera_motion.p_G;
+  const vec4_t imu_q_IG = euler2quat(sim.camera_motion.rpy_G);
+  const vec4_t cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
+  const vec3_t cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
   camera_states.emplace_back(0, cam_p_G, cam_q_CG);
 
   for (int i = 1; i < 100; i++) {
     sim.step();
 
     // Add camera state
-    const Vec3 imu_p_G = sim.camera_motion.p_G;
-    const Vec4 imu_q_IG = euler2quat(sim.camera_motion.rpy_G);
-    const Vec4 cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
-    const Vec3 cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
+    const vec3_t imu_p_G = sim.camera_motion.p_G;
+    const vec4_t imu_q_IG = euler2quat(sim.camera_motion.rpy_G);
+    const vec4_t cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
+    const vec3_t cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
     camera_states.emplace_back(i, cam_p_G, cam_q_CG);
 
     // Get lost tracks
@@ -719,7 +719,7 @@ int test_CeresFeatureEstimator_estimate_stereo_sim() {
       assert(track_cam_states.size() == track.trackedLength());
       CeresFeatureEstimator estimator{track, track_cam_states};
 
-      Vec3 p_G_f;
+      vec3_t p_G_f;
       if (estimator.estimate(p_G_f) == 0) {
         estimates.emplace_back(p_G_f);
         ground_truths.emplace_back(track.track0[0].ground_truth);
@@ -750,20 +750,20 @@ int test_CeresFeatureEstimator_estimate_stereo_kitti() {
   test.tracker.show_matches = true;
 
   // IMU to camera extrinsics
-  const Vec3 ext_p_IC{0.0, 0.0, 0.0};
-  const Vec4 ext_q_CI{0.50243, -0.491157, 0.504585, -0.50172};
+  const vec3_t ext_p_IC{0.0, 0.0, 0.0};
+  const vec4_t ext_q_CI{0.50243, -0.491157, 0.504585, -0.50172};
 
   CameraStates camera_states;
-  std::vector<Vec3> landmarks;
+  std::vector<vec3_t> landmarks;
   for (int i = 0; i < 100; i++) {
     const cv::Mat cam0_img = cv::imread(test.raw_dataset.cam0[i]);
     const cv::Mat cam1_img = cv::imread(test.raw_dataset.cam1[i]);
 
     // Add camera state
-    const Vec3 imu_p_G = test.raw_dataset.oxts.p_G[i];
-    const Vec4 imu_q_IG = euler2quat(test.raw_dataset.oxts.rpy[i]);
-    const Vec4 cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
-    const Vec3 cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
+    const vec3_t imu_p_G = test.raw_dataset.oxts.p_G[i];
+    const vec4_t imu_q_IG = euler2quat(test.raw_dataset.oxts.rpy[i]);
+    const vec4_t cam_q_CG = quatlcomp(ext_q_CI) * imu_q_IG;
+    const vec3_t cam_p_G = imu_p_G + C(imu_q_IG).transpose() * ext_p_IC;
     camera_states.emplace_back(i, cam_p_G, cam_q_CG);
 
     // Track features and get lost tracks
@@ -780,7 +780,7 @@ int test_CeresFeatureEstimator_estimate_stereo_kitti() {
       assert(track_cam_states.size() == track.trackedLength());
       CeresFeatureEstimator estimator{track, track_cam_states};
 
-      Vec3 p_G_f;
+      vec3_t p_G_f;
       if (estimator.estimate(p_G_f) == 0) {
         landmarks.emplace_back(p_G_f);
         landmarks_added++;
@@ -813,7 +813,7 @@ int test_CeresFeatureEstimator_estimate_stereo_kitti() {
     pose_file << camera_state.p_G(2) << ",";
 
     // Roll, pitch and yaw
-    const Vec3 rpy_G = quat2euler(camera_state.q_CG);
+    const vec3_t rpy_G = quat2euler(camera_state.q_CG);
     pose_file << rpy_G(0) << ",";
     pose_file << rpy_G(1) << ",";
     pose_file << rpy_G(2) << std::endl;

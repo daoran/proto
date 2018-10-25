@@ -21,12 +21,12 @@ namespace prototype {
 class Camchain {
 public:
   std::vector<CameraProperty> cam;
-  Mat4 T_C1_C0;
+  mat4_t T_C1_C0;
 
-  VecX tau_s = zeros(6, 1);
-  VecX tau_d = zeros(6, 1);
-  VecX w1 = zeros(3, 1);
-  VecX w2 = zeros(3, 1);
+  vecx_t tau_s = zeros(6, 1);
+  vecx_t tau_d = zeros(6, 1);
+  vecx_t w1 = zeros(3, 1);
+  vecx_t w2 = zeros(3, 1);
   double theta1_offset = 0.0;
   double theta2_offset = 0.0;
 

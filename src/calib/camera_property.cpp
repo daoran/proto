@@ -115,27 +115,27 @@ CameraProperty::CameraProperty(const int camera_index,
                                const int image_height)
     : camera_index{camera_index}, camera_model{"pinhole"}, distortion_model{},
       resolution{image_width, image_height} {
-  this->intrinsics = Vec4{fx, fy, cx, cy};
+  this->intrinsics = vec4_t{fx, fy, cx, cy};
 }
 
 CameraProperty::CameraProperty(const int camera_index,
-                               const Mat3 &K,
-                               const Vec2 &resolution)
+                               const mat3_t &K,
+                               const vec2_t &resolution)
     : camera_index{camera_index}, camera_model{"pinhole"}, distortion_model{},
       resolution{resolution} {
   const double fx = K(0, 0);
   const double fy = K(1, 1);
   const double cx = K(0, 2);
   const double cy = K(1, 2);
-  this->intrinsics = Vec4{fx, fy, cx, cy};
+  this->intrinsics = vec4_t{fx, fy, cx, cy};
 }
 
 CameraProperty::CameraProperty(const int camera_index,
                                const std::string &camera_model,
-                               const Mat3 &K,
+                               const mat3_t &K,
                                const std::string &distortion_model,
-                               const VecX &D,
-                               const Vec2 &resolution)
+                               const vecx_t &D,
+                               const vec2_t &resolution)
     : camera_index{camera_index}, camera_model{camera_model},
       distortion_model{distortion_model}, distortion_coeffs{D},
       resolution{resolution} {
@@ -143,7 +143,7 @@ CameraProperty::CameraProperty(const int camera_index,
   const double fy = K(1, 1);
   const double cx = K(0, 2);
   const double cy = K(1, 2);
-  this->intrinsics = Vec4{fx, fy, cx, cy};
+  this->intrinsics = vec4_t{fx, fy, cx, cy};
 
   // Some camera calibration results do not provide radtan k3, in the following
   // we set radtan k3 = 0.0 if the provided distortion vector is of size 4. We
@@ -158,14 +158,14 @@ CameraProperty::CameraProperty(const int camera_index,
   }
 }
 
-Mat3 CameraProperty::K() {
+mat3_t CameraProperty::K() {
   const double fx = this->intrinsics(0);
   const double fy = this->intrinsics(1);
   const double cx = this->intrinsics(2);
   const double cy = this->intrinsics(3);
 
   // clang-format off
-  Mat3 K;
+  mat3_t K;
   K << fx, 0.0, cx,
        0.0, fy, cy,
        0.0, 0.0, 1.0;
@@ -174,13 +174,13 @@ Mat3 CameraProperty::K() {
   return K;
 }
 
-VecX CameraProperty::D() {
+vecx_t CameraProperty::D() {
   if (distortion_model == "equidistant") {
     const double k1 = this->distortion_coeffs(0);
     const double k2 = this->distortion_coeffs(1);
     const double k3 = this->distortion_coeffs(2);
     const double k4 = this->distortion_coeffs(3);
-    VecX D = zeros(4, 1);
+    vecx_t D = zeros(4, 1);
     D << k1, k2, k3, k4;
     return D;
 
@@ -190,7 +190,7 @@ VecX CameraProperty::D() {
     const double p1 = this->distortion_coeffs(2);
     const double p2 = this->distortion_coeffs(3);
     const double k3 = this->distortion_coeffs(4);
-    VecX D = zeros(5, 1);
+    vecx_t D = zeros(5, 1);
     D << k1, k2, p1, p2, k3;
     return D;
 
@@ -203,7 +203,7 @@ VecX CameraProperty::D() {
 }
 
 std::vector<cv::Point2f> CameraProperty::undistortPoints(
-    const std::vector<cv::Point2f> &image_points, const Mat3 &rect_mat) {
+    const std::vector<cv::Point2f> &image_points, const mat3_t &rect_mat) {
   std::vector<cv::Point2f> image_points_ud;
 
   // Pre-check
@@ -239,7 +239,7 @@ std::vector<cv::Point2f> CameraProperty::undistortPoints(
 }
 
 cv::Point2f CameraProperty::undistortPoint(const cv::Point2f &image_point,
-                                           const Mat3 &rect_mat) {
+                                           const mat3_t &rect_mat) {
   std::vector<cv::Point2f> points = {image_point};
   std::vector<cv::Point2f> points_ud = this->undistortPoints(points, rect_mat);
   return points_ud[0];
@@ -330,30 +330,30 @@ cv::Mat CameraProperty::undistortImage(const cv::Mat &image,
   return this->undistortImage(image, balance, K_ud);
 }
 
-MatX CameraProperty::project(const MatX &X) {
-  MatX pixels;
+matx_t CameraProperty::project(const matx_t &X) {
+  matx_t pixels;
   pixels.resize(2, X.cols());
 
   if (this->camera_model == "pinhole" &&
       this->distortion_model == "equidistant") {
     for (long i = 0; i < X.cols(); i++) {
-      const Vec3 p = X.col(i);
-      const Vec2 pixel = project_pinhole_equi(this->K(), this->D(), p);
+      const vec3_t p = X.col(i);
+      const vec2_t pixel = project_pinhole_equi(this->K(), this->D(), p);
       pixels.col(i) = pixel;
     }
 
   } else if (this->camera_model == "pinhole" &&
              this->distortion_model == "radtan") {
     for (long i = 0; i < X.cols(); i++) {
-      const Vec3 p = X.col(i);
-      const Vec2 pixel = project_pinhole_radtan(this->K(), this->D(), p);
+      const vec3_t p = X.col(i);
+      const vec2_t pixel = project_pinhole_radtan(this->K(), this->D(), p);
       pixels.col(i) = pixel;
     }
 
   } else if (this->camera_model == "pinhole" &&
              this->distortion_model.empty()) {
     for (long i = 0; i < X.cols(); i++) {
-      const Vec3 p = X.col(i);
+      const vec3_t p = X.col(i);
       pixels.col(i) = pinhole_project(this->K(), p);
     }
 
@@ -364,8 +364,8 @@ MatX CameraProperty::project(const MatX &X) {
   return pixels;
 }
 
-Vec2 CameraProperty::project(const Vec3 &X) {
-  Vec2 pixel;
+vec2_t CameraProperty::project(const vec3_t &X) {
+  vec2_t pixel;
 
   if (this->camera_model == "pinhole" &&
       this->distortion_model == "equidistant") {

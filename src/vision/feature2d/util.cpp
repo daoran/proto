@@ -9,7 +9,7 @@ bool is_rot_mat(const cv::Mat &R) {
   return cv::norm(I, Rt * R) < 1e-6;
 }
 
-cv::Vec3f rot2euler(const cv::Mat &R) {
+cv::vec3_tf rot2euler(const cv::Mat &R) {
   assert(is_rot_mat(R));
   const double R00 = R.at<double>(0, 0);
   const double R10 = R.at<double>(1, 0);
@@ -30,13 +30,13 @@ cv::Vec3f rot2euler(const cv::Mat &R) {
     z = 0;
   }
 
-  return cv::Vec3f(x, y, z);
+  return cv::vec3_tf(x, y, z);
 }
 
 void essential_matrix_outlier_rejection(
     CameraProperty &cam0,
     CameraProperty &cam1,
-    const Mat4 &T_cam1_cam0,
+    const mat4_t &T_cam1_cam0,
     const std::vector<cv::Point2f> &cam0_points,
     const std::vector<cv::Point2f> &cam1_points,
     const double threshold,
@@ -122,9 +122,9 @@ void two_point_ransac(const std::vector<cv::Point2f> &pts1,
   // Compenstate the points in the previous image with
   // the relative rotation.
   for (auto &pt : pts1_ud) {
-    const cv::Vec3f pt_h(pt.x, pt.y, 1.0f);
-    // const cv::Vec3f pt_hc = dR * pt_h;
-    const cv::Vec3f pt_hc = R_p_c * pt_h;
+    const cv::vec3_tf pt_h(pt.x, pt.y, 1.0f);
+    // const cv::vec3_tf pt_hc = dR * pt_h;
+    const cv::vec3_tf pt_hc = R_p_c * pt_h;
     pt.x = pt_hc[0];
     pt.y = pt_hc[1];
   }
@@ -190,7 +190,7 @@ void two_point_ransac(const std::vector<cv::Point2f> &pts1,
 
   // In the case of general motion, the RANSAC model can be applied.
   // The three column corresponds to tx, ty, and tz respectively.
-  MatX coeff_t(pts_diff.size(), 3);
+  matx_t coeff_t(pts_diff.size(), 3);
   for (size_t i = 0; i < pts_diff.size(); ++i) {
     coeff_t(i, 0) = pts_diff[i].y;
     coeff_t(i, 1) = -pts_diff[i].x;
@@ -224,9 +224,9 @@ void two_point_ransac(const std::vector<cv::Point2f> &pts1,
     int pair_idx2 = raw_inlier_idx[select_idx2];
 
     // Construct the model;
-    Vec2 coeff_tx(coeff_t(pair_idx1, 0), coeff_t(pair_idx2, 0));
-    Vec2 coeff_ty(coeff_t(pair_idx1, 1), coeff_t(pair_idx2, 1));
-    Vec2 coeff_tz(coeff_t(pair_idx1, 2), coeff_t(pair_idx2, 2));
+    vec2_t coeff_tx(coeff_t(pair_idx1, 0), coeff_t(pair_idx2, 0));
+    vec2_t coeff_ty(coeff_t(pair_idx1, 1), coeff_t(pair_idx2, 1));
+    vec2_t coeff_tz(coeff_t(pair_idx1, 2), coeff_t(pair_idx2, 2));
     std::vector<double> coeff_l1_norm(3);
     coeff_l1_norm[0] = coeff_tx.lpNorm<1>();
     coeff_l1_norm[1] = coeff_ty.lpNorm<1>();
@@ -235,32 +235,32 @@ void two_point_ransac(const std::vector<cv::Point2f> &pts1,
         min_element(coeff_l1_norm.begin(), coeff_l1_norm.end()) -
         coeff_l1_norm.begin();
 
-    Vec3 model(0.0, 0.0, 0.0);
+    vec3_t model(0.0, 0.0, 0.0);
     if (base_indicator == 0) {
-      Mat2 A;
+      mat2_t A;
       A << coeff_ty, coeff_tz;
-      Vec2 solution = A.inverse() * (-coeff_tx);
+      vec2_t solution = A.inverse() * (-coeff_tx);
       model(0) = 1.0;
       model(1) = solution(0);
       model(2) = solution(1);
     } else if (base_indicator == 1) {
-      Mat2 A;
+      mat2_t A;
       A << coeff_tx, coeff_tz;
-      Vec2 solution = A.inverse() * (-coeff_ty);
+      vec2_t solution = A.inverse() * (-coeff_ty);
       model(0) = solution(0);
       model(1) = 1.0;
       model(2) = solution(1);
     } else {
-      Mat2 A;
+      mat2_t A;
       A << coeff_tx, coeff_ty;
-      Vec2 solution = A.inverse() * (-coeff_tz);
+      vec2_t solution = A.inverse() * (-coeff_tz);
       model(0) = solution(0);
       model(1) = solution(1);
       model(2) = 1.0;
     }
 
     // Find all the inliers among point pairs.
-    VecX error = coeff_t * model;
+    vecx_t error = coeff_t * model;
     std::vector<int> inlier_set;
     for (int i = 0; i < error.rows(); i++) {
       if (inlier_markers[i] == 0) {
@@ -277,36 +277,36 @@ void two_point_ransac(const std::vector<cv::Point2f> &pts1,
     }
 
     // Refit the model using all of the possible inliers.
-    VecX coeff_tx_better(inlier_set.size());
-    VecX coeff_ty_better(inlier_set.size());
-    VecX coeff_tz_better(inlier_set.size());
+    vecx_t coeff_tx_better(inlier_set.size());
+    vecx_t coeff_ty_better(inlier_set.size());
+    vecx_t coeff_tz_better(inlier_set.size());
     for (size_t i = 0; i < inlier_set.size(); ++i) {
       coeff_tx_better(i) = coeff_t(inlier_set[i], 0);
       coeff_ty_better(i) = coeff_t(inlier_set[i], 1);
       coeff_tz_better(i) = coeff_t(inlier_set[i], 2);
     }
 
-    Vec3 model_better(0.0, 0.0, 0.0);
+    vec3_t model_better(0.0, 0.0, 0.0);
     if (base_indicator == 0) {
-      MatX A(inlier_set.size(), 2);
+      matx_t A(inlier_set.size(), 2);
       A << coeff_ty_better, coeff_tz_better;
-      Vec2 solution =
+      vec2_t solution =
           (A.transpose() * A).inverse() * A.transpose() * (-coeff_tx_better);
       model_better(0) = 1.0;
       model_better(1) = solution(0);
       model_better(2) = solution(1);
     } else if (base_indicator == 1) {
-      MatX A(inlier_set.size(), 2);
+      matx_t A(inlier_set.size(), 2);
       A << coeff_tx_better, coeff_tz_better;
-      Vec2 solution =
+      vec2_t solution =
           (A.transpose() * A).inverse() * A.transpose() * (-coeff_ty_better);
       model_better(0) = solution(0);
       model_better(1) = 1.0;
       model_better(2) = solution(1);
     } else {
-      MatX A(inlier_set.size(), 2);
+      matx_t A(inlier_set.size(), 2);
       A << coeff_tx_better, coeff_ty_better;
-      Vec2 solution =
+      vec2_t solution =
           (A.transpose() * A).inverse() * A.transpose() * (-coeff_tz_better);
       model_better(0) = solution(0);
       model_better(1) = solution(1);
@@ -314,7 +314,7 @@ void two_point_ransac(const std::vector<cv::Point2f> &pts1,
     }
 
     // Compute the error and upate the best model if possible.
-    VecX new_error = coeff_t * model_better;
+    vecx_t new_error = coeff_t * model_better;
 
     double this_error = 0.0;
     for (const auto &inlier_idx : inlier_set) {
@@ -336,11 +336,11 @@ void two_point_ransac(const std::vector<cv::Point2f> &pts1,
   }
 }
 
-MatX feature_mask(const int image_width,
+matx_t feature_mask(const int image_width,
                   const int image_height,
                   const std::vector<cv::Point2f> points,
                   const int patch_width) {
-  MatX mask = ones(image_height, image_width);
+  matx_t mask = ones(image_height, image_width);
 
   // Create a mask around each point
   for (const auto &p : points) {
@@ -354,11 +354,11 @@ MatX feature_mask(const int image_width,
     }
 
     // Calculate patch top left corner, patch width and height
-    Vec2 top_left{px - patch_width, py - patch_width};
-    Vec2 top_right{px + patch_width, py - patch_width};
-    Vec2 btm_left{px - patch_width, py + patch_width};
-    Vec2 btm_right{px + patch_width, py + patch_width};
-    std::vector<Vec2 *> corners{&top_left, &top_right, &btm_left, &btm_right};
+    vec2_t top_left{px - patch_width, py - patch_width};
+    vec2_t top_right{px + patch_width, py - patch_width};
+    vec2_t btm_left{px - patch_width, py + patch_width};
+    vec2_t btm_right{px + patch_width, py + patch_width};
+    std::vector<vec2_t *> corners{&top_left, &top_right, &btm_left, &btm_right};
     for (auto corner : corners) {
       // Check corner in x-axis
       if ((*corner)(0) < 0) {
@@ -398,7 +398,7 @@ MatX feature_mask(const int image_width,
   return mask;
 }
 
-MatX feature_mask(const int image_width,
+matx_t feature_mask(const int image_width,
                   const int image_height,
                   const std::vector<cv::KeyPoint> keypoints,
                   const int patch_width) {

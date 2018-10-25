@@ -21,12 +21,12 @@ struct test_config test_setup(const int type = STATIC_STEREO_TRACK) {
   }
 
   // Obtain cam0 to cam1 transform
-  const Mat3 R_cam1_cam0 = test.raw_dataset.calib_cam_to_cam.R[1];
-  const Vec3 t_cam1_cam0 = test.raw_dataset.calib_cam_to_cam.T[1];
-  const Mat4 T_cam1_cam0 = transformation_matrix(R_cam1_cam0, t_cam1_cam0);
+  const mat3_t R_cam1_cam0 = test.raw_dataset.calib_cam_to_cam.R[1];
+  const vec3_t t_cam1_cam0 = test.raw_dataset.calib_cam_to_cam.T[1];
+  const mat4_t T_cam1_cam0 = transformation_matrix(R_cam1_cam0, t_cam1_cam0);
 
   // Create camera properties
-  const Vec2 image_size = test.raw_dataset.calib_cam_to_cam.S[0];
+  const vec2_t image_size = test.raw_dataset.calib_cam_to_cam.S[0];
   CameraProperty cam0(0,
                       "pinhole",
                       test.raw_dataset.calib_cam_to_cam.K[0],

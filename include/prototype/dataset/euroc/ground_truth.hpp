@@ -22,11 +22,11 @@ struct GroundTruth {
   // Data
   std::vector<long> timestamps;
   std::vector<double> time;
-  std::vector<Vec3> p_RS_R;
-  std::vector<Vec4> q_RS;
-  std::vector<Vec3> v_RS_R;
-  std::vector<Vec3> b_w_RS_S;
-  std::vector<Vec3> b_a_RS_S;
+  std::vector<vec3_t> p_RS_R;
+  std::vector<vec4_t> q_RS;
+  std::vector<vec3_t> v_RS_R;
+  std::vector<vec3_t> b_w_RS_S;
+  std::vector<vec3_t> b_a_RS_S;
 
   /**
    * Load ground truth data

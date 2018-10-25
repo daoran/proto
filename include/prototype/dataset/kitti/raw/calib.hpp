@@ -19,67 +19,76 @@ namespace prototype {
 /**
  * Camera to Camera calibration
  */
-struct CalibCamToCam {
+struct calib_cam2cam_t {
   bool ok = false;
 
   std::string calib_time;
   double corner_dist = 0.0;
-  std::array<Vec2, 4> S;
-  std::array<Mat3, 4> K;
-  std::array<VecX, 4> D;
-  std::array<Mat3, 4> R;
-  std::array<Vec3, 4> T;
-  std::array<Vec2, 4> S_rect;
-  std::array<Mat3, 4> R_rect;
-  std::array<Mat34, 4> P_rect;
+  std::array<vec2_t, 4> S;
+  std::array<mat3_t, 4> K;
+  std::array<vecx_t, 4> D;
+  std::array<mat3_t, 4> R;
+  std::array<vec3_t, 4> T;
+  std::array<vec2_t, 4> S_rect;
+  std::array<mat3_t, 4> R_rect;
+  std::array<mat34_t, 4> P_rect;
 
-  CalibCamToCam() {}
-
-  /**
-   * Load calibration
-   */
-  int load(const std::string &file_path);
+  calib_cam2cam_t() {}
 };
 
 /**
  * IMU to Velo calibration
  */
-struct CalibIMUToVelo {
+struct calib_imu2velo_t {
   bool ok = false;
 
   std::string calib_time;
-  Mat3 R;
-  Vec3 t;
-  Mat4 T_velo_imu;
+  mat3_t R;
+  vec3_t t;
+  mat4_t T_velo_imu;
 
-  CalibIMUToVelo() {}
-
-  /**
-   * Load calibration
-   */
-  int load(const std::string &file_path);
+  calib_imu2velo_t() {}
 };
 
 /**
  * Velo to Camera calibration
  */
-struct CalibVeloToCam {
+struct calib_velo2cam_t {
   bool ok = false;
 
   std::string calib_time;
-  Mat3 R;
-  Vec3 t;
-  Vec2 df;
-  Vec2 dc;
-  Mat4 T_cam_velo;
+  mat3_t R;
+  vec3_t t;
+  vec2_t df;
+  vec2_t dc;
+  mat4_t T_cam_velo;
 
-  CalibVeloToCam() {}
-
-  /**
-   * Load calibration
-   */
-  int load(const std::string &file_path);
+  calib_velo2cam_t() {}
 };
+
+/**
+ * Load camera to camera calibration
+ *
+ * @param[in] file_path
+ * @returns 0 or -1 for success or failure
+ */
+int calib_cam2cam_load(calib_cam2cam_t &calib, const std::string &file_path);
+
+/**
+ * Load imu to velo calibration
+ *
+ * @param[in] file_path
+ * @returns 0 or -1 for success or failure
+ */
+int calib_imu2velo_load(calib_imu2velo_t &calib, const std::string &file_path);
+
+/**
+ * Load velo to camera calibration
+ *
+ * @param[in] file_path
+ * @returns 0 or -1 for success or failure
+ */
+int calib_velo2cam_load(calib_velo2cam_t &calib, const std::string &file_path);
 
 /** @} group kitti */
 } //  namespace prototype

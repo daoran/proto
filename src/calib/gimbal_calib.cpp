@@ -23,10 +23,10 @@ int GimbalCalib::load(const std::string &data_dir) {
   }
 
   // Setup optimization problem
-  const Mat3 K_s = this->params.camchain.cam[0].K();
-  const Mat3 K_d = this->params.camchain.cam[2].K();
-  const Vec4 D_s = this->params.camchain.cam[0].D();
-  const Vec4 D_d = this->params.camchain.cam[2].D();
+  const mat3_t K_s = this->params.camchain.cam[0].K();
+  const mat3_t K_d = this->params.camchain.cam[2].K();
+  const vec4_t D_s = this->params.camchain.cam[0].D();
+  const vec4_t D_d = this->params.camchain.cam[2].D();
   const double theta1_offset = *this->params.theta1_offset;
   const double theta2_offset = *this->params.theta2_offset;
 
@@ -36,24 +36,24 @@ int GimbalCalib::load(const std::string &data_dir) {
   // Form residual blocks
   for (int i = 0; i < this->data.nb_measurements; i++) {
     for (int j = 0; j < this->data.P_s[i].rows(); j++) {
-      const Vec3 P_s = this->data.P_s[i].row(j);
-      const Vec3 P_d = this->data.P_d[i].row(j);
+      const vec3_t P_s = this->data.P_s[i].row(j);
+      const vec3_t P_d = this->data.P_d[i].row(j);
 
       // Undistort pixel measurements from static camera
-      const Vec2 p_s = this->data.Q_s[i].row(j);
+      const vec2_t p_s = this->data.Q_s[i].row(j);
       cv::Point2f pt_s(p_s(0), p_s(1));
       pt_s = this->params.camchain.cam[0].undistortPoint(pt_s);
-      Vec3 x_s{pt_s.x, pt_s.y, 1.0};
+      vec3_t x_s{pt_s.x, pt_s.y, 1.0};
       x_s = this->params.camchain.cam[0].K() * x_s;
-      const Vec2 Q_s{x_s(0), x_s(1)};
+      const vec2_t Q_s{x_s(0), x_s(1)};
 
       // Undistort pixel measurements from dynamic camera
-      const Vec2 p_d = this->data.Q_d[i].row(j);
+      const vec2_t p_d = this->data.Q_d[i].row(j);
       cv::Point2f pt_d(p_d(0), p_d(1));
       pt_d = this->params.camchain.cam[2].undistortPoint(pt_d);
-      Vec3 x_d{pt_d.x, pt_d.y, 1.0};
+      vec3_t x_d{pt_d.x, pt_d.y, 1.0};
       x_d = this->params.camchain.cam[2].K() * x_d;
-      const Vec2 Q_d{x_d(0), x_d(1)};
+      const vec2_t Q_d{x_d(0), x_d(1)};
 
       auto residual =
           new GimbalCalibResidual(P_s, P_d,
@@ -95,16 +95,16 @@ int GimbalCalib::load(const std::string &data_dir) {
 int GimbalCalib::calculateReprojectionErrors() {
   // Form gimbal model
   GimbalModel gimbal_model;
-  gimbal_model.tau_s = Vec6{this->params.tau_s};
-  gimbal_model.tau_d = Vec6{this->params.tau_d};
-  gimbal_model.w1 = Vec3{this->params.w1};
-  gimbal_model.w2 = Vec3{this->params.w2};
+  gimbal_model.tau_s = vec6_t{this->params.tau_s};
+  gimbal_model.tau_d = vec6_t{this->params.tau_d};
+  gimbal_model.w1 = vec3_t{this->params.w1};
+  gimbal_model.w2 = vec3_t{this->params.w2};
   gimbal_model.theta1_offset = *this->params.theta1_offset;
   gimbal_model.theta2_offset = *this->params.theta2_offset;
 
 
   // Load joint data
-  MatX joint_data;
+  matx_t joint_data;
   const std::string joint_filepath = this->data_dir + "/joint.csv";
   if (csv2mat(joint_filepath, false, joint_data) != 0) {
     LOG_ERROR("Failed to load joint data [%s]!", joint_filepath.c_str());
@@ -112,8 +112,8 @@ int GimbalCalib::calculateReprojectionErrors() {
   }
 
   // Camera matrix for both static and dynamic camera
-  const Mat3 K_s = this->params.camchain.cam[0].K();
-  const Mat3 K_d = this->params.camchain.cam[2].K();
+  const mat3_t K_s = this->params.camchain.cam[0].K();
+  const mat3_t K_d = this->params.camchain.cam[2].K();
 
   // Calculate reprojection error
   double sse_s = 0.0;
@@ -123,24 +123,24 @@ int GimbalCalib::calculateReprojectionErrors() {
   for (int i = 0; i < this->data.nb_measurements; i++) {
     for (int j = 0; j < this->data.P_s[i].rows(); j++) {
       // Get 3D point from static and dyanmic camera
-      const Vec3 P_s = this->data.P_s[i].row(j);
-      const Vec3 P_d = this->data.P_d[i].row(j);
+      const vec3_t P_s = this->data.P_s[i].row(j);
+      const vec3_t P_d = this->data.P_d[i].row(j);
 
       // Undistort pixel measurements from static camera
-      const Vec2 p_s = this->data.Q_s[i].row(j);
+      const vec2_t p_s = this->data.Q_s[i].row(j);
       cv::Point2f pt_s(p_s(0), p_s(1));
       pt_s = this->params.camchain.cam[0].undistortPoint(pt_s);
-      Vec3 x_s{pt_s.x, pt_s.y, 1.0};
+      vec3_t x_s{pt_s.x, pt_s.y, 1.0};
       x_s = this->params.camchain.cam[0].K() * x_s;
-      const Vec2 Q_s{x_s(0), x_s(1)};
+      const vec2_t Q_s{x_s(0), x_s(1)};
 
       // Undistort pixel measurements from dynamic camera
-      const Vec2 p_d = this->data.Q_d[i].row(j);
+      const vec2_t p_d = this->data.Q_d[i].row(j);
       cv::Point2f pt_d(p_d(0), p_d(1));
       pt_d = this->params.camchain.cam[2].undistortPoint(pt_d);
-      Vec3 x_d{pt_d.x, pt_d.y, 1.0};
+      vec3_t x_d{pt_d.x, pt_d.y, 1.0};
       x_d = this->params.camchain.cam[2].K() * x_d;
-      const Vec2 Q_d{x_d(0), x_d(1)};
+      const vec2_t Q_d{x_d(0), x_d(1)};
 
       // Get gimbal roll and pitch angles then form T_ds transform
       const double joint_roll = this->params.Lambda1[i];
@@ -155,25 +155,25 @@ int GimbalCalib::calculateReprojectionErrors() {
       // std::cout << std::endl;
 
       gimbal_model.setAttitude(joint_roll, joint_pitch);
-      const Mat4 T_ds = gimbal_model.T_ds();
+      const mat4_t T_ds = gimbal_model.T_ds();
 
       // Project 3D point observed from static to dynamic camera
-      const Vec3 P_d_cal = (T_ds * P_s.homogeneous()).head(3);
-      const Vec3 X{P_d_cal(0) / P_d_cal(2), P_d_cal(1) / P_d_cal(2), 1.0};
-      const Vec2 Q_d_cal = (K_d * X).head(2);
+      const vec3_t P_d_cal = (T_ds * P_s.homogeneous()).head(3);
+      const vec3_t X{P_d_cal(0) / P_d_cal(2), P_d_cal(1) / P_d_cal(2), 1.0};
+      const vec2_t Q_d_cal = (K_d * X).head(2);
 
       // Project 3D point observed from dynamic to static camera
-      const Vec3 P_s_cal = (T_ds.inverse() * P_d.homogeneous()).head(3);
-      const Vec3 X_s{P_s_cal(0) / P_s_cal(2), P_s_cal(1) / P_s_cal(2), 1.0};
-      const Vec2 Q_s_cal = (K_s * X_s).head(2);
+      const vec3_t P_s_cal = (T_ds.inverse() * P_d.homogeneous()).head(3);
+      const vec3_t X_s{P_s_cal(0) / P_s_cal(2), P_s_cal(1) / P_s_cal(2), 1.0};
+      const vec2_t Q_s_cal = (K_s * X_s).head(2);
 
       // Calculate reprojection error in static camera
-      const Vec2 diff_s = Q_s_cal - Q_s;
+      const vec2_t diff_s = Q_s_cal - Q_s;
       const double squared_error_s = diff_s.norm();
       sse_s += squared_error_s;
 
       // Calculate reprojection error in dynamic camera
-      const Vec2 diff_d = Q_d_cal - Q_d;
+      const vec2_t diff_d = Q_d_cal - Q_d;
       const double squared_error_d = diff_d.norm();
       sse_d += squared_error_d;
 
@@ -208,10 +208,10 @@ int GimbalCalib::calibrate() {
   std::cout << this->params << std::endl;
 
   // Update camchain with optimized gimbal params
-  this->params.camchain.tau_s = Vec6{this->params.tau_s};
-  this->params.camchain.tau_d = Vec6{this->params.tau_d};
-  this->params.camchain.w1 = Vec3{this->params.w1};
-  this->params.camchain.w2 = Vec3{this->params.w2};
+  this->params.camchain.tau_s = vec6_t{this->params.tau_s};
+  this->params.camchain.tau_d = vec6_t{this->params.tau_d};
+  this->params.camchain.w1 = vec3_t{this->params.w1};
+  this->params.camchain.w2 = vec3_t{this->params.w2};
   this->params.camchain.theta1_offset = *this->params.theta1_offset;
   this->params.camchain.theta2_offset = *this->params.theta2_offset;
 

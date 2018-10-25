@@ -25,10 +25,10 @@ SimWorld::~SimWorld() {
 int SimWorld::configure(const std::string &config_file) {
   int image_width, image_height;
   double fov;
-  MatX p_points;
-  MatX a_points;
-  MatX joint_setpoints;
-  Mat4 T_cam1_cam0 = I(4);
+  matx_t p_points;
+  matx_t a_points;
+  matx_t joint_setpoints;
+  mat4_t T_cam1_cam0 = I(4);
   GimbalModel gimbal_model;
 
   // Load config file
@@ -79,7 +79,7 @@ int SimWorld::configure(const std::string &config_file) {
     this->mono_camera =
         VirtualCamera(image_width, image_height, fx, fy, cx, cy);
   } else if (this->camera_type == "STATIC_STEREO_CAMERA") {
-    if ((T_cam1_cam0 - Mat4::Identity()).norm() < 1e-6) {
+    if ((T_cam1_cam0 - mat4_t::Identity()).norm() < 1e-6) {
       FATAL("T_cam1_cam0 not configured!");
     }
     this->stereo_camera = VirtualStereoCamera(image_width,
@@ -222,11 +222,11 @@ int SimWorld::setupOutput() {
 void SimWorld::detectFeaturesWithMonoCamera() {
   // Check what features are observed
   std::vector<int> feature_ids;
-  const MatX kps = this->mono_camera.observedFeatures(this->features3d,
+  const matx_t kps = this->mono_camera.observedFeatures(this->features3d,
                                                       this->camera_motion.rpy_G,
                                                       this->camera_motion.p_G,
                                                       feature_ids);
-  const Mat3 K = this->mono_camera.camera_model.K;
+  const mat3_t K = this->mono_camera.camera_model.K;
 
   // Get features lost
   std::vector<int> features_lost;
@@ -238,13 +238,13 @@ void SimWorld::detectFeaturesWithMonoCamera() {
 
   // Add or updated features observed
   std::vector<size_t> record_feature_ids;
-  std::vector<Vec2> record_keypoints;
-  std::vector<Vec3> record_landmarks;
+  std::vector<vec2_t> record_keypoints;
+  std::vector<vec3_t> record_landmarks;
   for (size_t i = 0; i < feature_ids.size(); i++) {
     const size_t feature_id = feature_ids[i];
-    const Vec2 kp = kps.row(i).transpose();
-    const Vec2 img_pt = pinhole_pixel2ideal(K, kp);
-    const Vec3 ground_truth = this->features3d.row(feature_id).transpose();
+    const vec2_t kp = kps.row(i).transpose();
+    const vec2_t img_pt = pinhole_pixel2ideal(K, kp);
+    const vec3_t ground_truth = this->features3d.row(feature_id).transpose();
     Feature f{img_pt, ground_truth};
 
     if (this->tracks_tracking.count(feature_id)) {
@@ -304,12 +304,12 @@ void SimWorld::detectFeaturesWithMonoCamera() {
 void SimWorld::detectFeaturesWithStereoCamera() {
   // Check what features are observed
   std::vector<int> feature_ids;
-  const MatX kps =
+  const matx_t kps =
       this->stereo_camera.observedFeatures(this->features3d,
                                            this->camera_motion.rpy_G,
                                            this->camera_motion.p_G,
                                            feature_ids);
-  const Mat3 K = this->stereo_camera.camera_model.K;
+  const mat3_t K = this->stereo_camera.camera_model.K;
 
   // Get features lost
   std::vector<int> features_lost;
@@ -321,15 +321,15 @@ void SimWorld::detectFeaturesWithStereoCamera() {
 
   // Add or updated features observed
   std::vector<size_t> record_feature_ids;
-  std::vector<Vec2> record_keypoints;
-  std::vector<Vec3> record_landmarks;
+  std::vector<vec2_t> record_keypoints;
+  std::vector<vec3_t> record_landmarks;
   for (size_t i = 0; i < feature_ids.size(); i++) {
     const size_t feature_id = feature_ids[i];
-    const Vec2 kp0 = kps.row((i * 2)).transpose();
-    const Vec2 kp1 = kps.row((i * 2) + 1).transpose();
-    const Vec2 p0 = pinhole_pixel2ideal(K, kp0);
-    const Vec2 p1 = pinhole_pixel2ideal(K, kp1);
-    const Vec3 ground_truth = this->features3d.row(feature_id).transpose();
+    const vec2_t kp0 = kps.row((i * 2)).transpose();
+    const vec2_t kp1 = kps.row((i * 2) + 1).transpose();
+    const vec2_t p0 = pinhole_pixel2ideal(K, kp0);
+    const vec2_t p1 = pinhole_pixel2ideal(K, kp1);
+    const vec3_t ground_truth = this->features3d.row(feature_id).transpose();
     Feature f0{p0, ground_truth};
     Feature f1{p1, ground_truth};
 
@@ -342,7 +342,7 @@ void SimWorld::detectFeaturesWithStereoCamera() {
       if (this->stereo_camera.type == "STATIC") {
         track.updateStereo(this->frame_index, f0, f1);
       } else if (this->stereo_camera.type == "DYNAMIC") {
-        Vec2 joint_angles = this->stereo_camera.gimbal_model.getJointAngles();
+        vec2_t joint_angles = this->stereo_camera.gimbal_model.getJointAngles();
         track.updateStereo(this->frame_index, f0, f1, joint_angles);
       }
 
@@ -358,7 +358,7 @@ void SimWorld::detectFeaturesWithStereoCamera() {
         track.T_cam1_cam0 = this->stereo_camera.T_cam1_cam0;
       } else if (this->stereo_camera.type == "DYNAMIC") {
         track.type = DYNAMIC_STEREO_TRACK;
-        Vec2 joint_angles = this->stereo_camera.gimbal_model.getJointAngles();
+        vec2_t joint_angles = this->stereo_camera.gimbal_model.getJointAngles();
         track.joint_angles.push_back(joint_angles);
       }
       track.track_id = this->track_id_counter;
@@ -430,10 +430,10 @@ FeatureTracks SimWorld::getLostTracks() {
   return lost_tracks;
 }
 
-MatX SimWorld::create3DFeatures(const struct feature_bounds &bounds,
+matx_t SimWorld::create3DFeatures(const struct feature_bounds &bounds,
                                 const size_t nb_features) {
   // Create random 3D features
-  MatX features = zeros(nb_features, 3);
+  matx_t features = zeros(nb_features, 3);
   for (size_t i = 0; i < nb_features; i++) {
     features(i, 0) = randf(bounds.x_min, bounds.x_max);
     features(i, 1) = randf(bounds.y_min, bounds.y_max);
@@ -443,8 +443,8 @@ MatX SimWorld::create3DFeatures(const struct feature_bounds &bounds,
   return features;
 }
 
-MatX SimWorld::create3DFeaturePerimeter(const Vec3 &origin,
-                                        const Vec3 &dimensions,
+matx_t SimWorld::create3DFeaturePerimeter(const vec3_t &origin,
+                                        const vec3_t &dimensions,
                                         const size_t nb_features) {
   // Dimension of the outskirt
   const double width = dimensions(0);
@@ -462,7 +462,7 @@ MatX SimWorld::create3DFeaturePerimeter(const Vec3 &origin,
   north_bounds.y_max = origin(1) + length / 2.0;
   north_bounds.z_min = origin(2) - height / 2.0;
   north_bounds.z_max = origin(2) + height / 2.0;
-  const MatX north_features = this->create3DFeatures(north_bounds, nb_fps);
+  const matx_t north_features = this->create3DFeatures(north_bounds, nb_fps);
 
   // Features in the East side
   struct feature_bounds east_bounds;
@@ -472,7 +472,7 @@ MatX SimWorld::create3DFeaturePerimeter(const Vec3 &origin,
   east_bounds.y_max = origin(1) + length / 2.0;
   east_bounds.z_min = origin(2) - height / 2.0;
   east_bounds.z_max = origin(2) + height / 2.0;
-  const MatX east_features = this->create3DFeatures(east_bounds, nb_fps);
+  const matx_t east_features = this->create3DFeatures(east_bounds, nb_fps);
 
   // Features in the South side
   struct feature_bounds south_bounds;
@@ -482,7 +482,7 @@ MatX SimWorld::create3DFeaturePerimeter(const Vec3 &origin,
   south_bounds.y_max = origin(1) - length / 2.0;
   south_bounds.z_min = origin(2) - height / 2.0;
   south_bounds.z_max = origin(2) + height / 2.0;
-  const MatX south_features = this->create3DFeatures(south_bounds, nb_fps);
+  const matx_t south_features = this->create3DFeatures(south_bounds, nb_fps);
 
   // Features in the West side
   struct feature_bounds west_bounds;
@@ -492,10 +492,10 @@ MatX SimWorld::create3DFeaturePerimeter(const Vec3 &origin,
   west_bounds.y_max = origin(1) + length / 2.0;
   west_bounds.z_min = origin(2) - height / 2.0;
   west_bounds.z_max = origin(2) + height / 2.0;
-  const MatX west_features = this->create3DFeatures(west_bounds, nb_fps);
+  const matx_t west_features = this->create3DFeatures(west_bounds, nb_fps);
 
   // Stack features and return
-  MatX features;
+  matx_t features;
   features = vstack(north_features, east_features);
   features = vstack(features, south_features);
   features = vstack(features, west_features);
@@ -503,9 +503,9 @@ MatX SimWorld::create3DFeaturePerimeter(const Vec3 &origin,
 }
 
 int SimWorld::recordGroundTruth(const double time,
-                                const Vec3 &p_G,
-                                const Vec3 &v_G,
-                                const Vec3 &rpy_G) {
+                                const vec3_t &p_G,
+                                const vec3_t &v_G,
+                                const vec3_t &rpy_G) {
   assert(this->gnd_file.good());
 
   // -- Time
@@ -527,8 +527,8 @@ int SimWorld::recordGroundTruth(const double time,
 }
 
 int SimWorld::recordMeasurement(const double time,
-                                const Vec3 &a_B,
-                                const Vec3 &w_B) {
+                                const vec3_t &a_B,
+                                const vec3_t &w_B) {
   assert(this->mea_file.good());
 
   // -- Time
@@ -546,8 +546,8 @@ int SimWorld::recordMeasurement(const double time,
 }
 
 int SimWorld::recordCameraObservation(const std::vector<size_t> &feature_ids,
-                                      const std::vector<Vec2> &keypoints,
-                                      const std::vector<Vec3> &landmarks) {
+                                      const std::vector<vec2_t> &keypoints,
+                                      const std::vector<vec3_t> &landmarks) {
   assert(this->cam0_idx_file.good());
 
   // Add new entry to camera index
@@ -605,9 +605,9 @@ int SimWorld::recordCameraObservation(const std::vector<size_t> &feature_ids,
 }
 
 int SimWorld::recordEstimate(const double time,
-                             const Vec3 &p_G,
-                             const Vec3 &v_G,
-                             const Vec3 &rpy_G) {
+                             const vec3_t &p_G,
+                             const vec3_t &v_G,
+                             const vec3_t &rpy_G) {
   assert(this->est_file.good());
 
   // -- Time
@@ -629,12 +629,12 @@ int SimWorld::recordEstimate(const double time,
 }
 
 int SimWorld::recordEstimate(const double time,
-                             const Vec3 &p_G,
-                             const Vec3 &v_G,
-                             const Vec3 &rpy_G,
-                             const Vec3 &p_G_cov,
-                             const Vec3 &v_G_cov,
-                             const Vec3 &rpy_G_cov) {
+                             const vec3_t &p_G,
+                             const vec3_t &v_G,
+                             const vec3_t &rpy_G,
+                             const vec3_t &p_G_cov,
+                             const vec3_t &v_G_cov,
+                             const vec3_t &rpy_G_cov) {
   assert(this->est_file.good());
 
   // -- Time
@@ -668,8 +668,8 @@ int SimWorld::recordEstimate(const double time,
 }
 
 int SimWorld::recordCameraStates(const std::vector<double> time,
-                                 const std::vector<Vec3> &p_G,
-                                 const std::vector<Vec3> &rpy_G) {
+                                 const std::vector<vec3_t> &p_G,
+                                 const std::vector<vec3_t> &rpy_G) {
   assert(this->cam_file.good());
 
   for (size_t i = 0; i < p_G.size(); i++) {
@@ -688,7 +688,7 @@ int SimWorld::recordCameraStates(const std::vector<double> time,
   return 0;
 }
 
-int SimWorld::recordJointAngles(const double time, const Vec2 &joint_angles) {
+int SimWorld::recordJointAngles(const double time, const vec2_t &joint_angles) {
   assert(this->jnt_file.good());
 
   // -- Time
@@ -701,8 +701,8 @@ int SimWorld::recordJointAngles(const double time, const Vec2 &joint_angles) {
 }
 
 void SimWorld::generateInitializationData(const int nb_samples,
-                                          std::vector<Vec3> &imu_gyro_buffer,
-                                          std::vector<Vec3> &imu_accel_buffer) {
+                                          std::vector<vec3_t> &imu_gyro_buffer,
+                                          std::vector<vec3_t> &imu_accel_buffer) {
   std::random_device rd{};
   std::mt19937 gen{rd()};
   std::normal_distribution<> gyro_x_dist{0.0, 0.01};
@@ -713,8 +713,8 @@ void SimWorld::generateInitializationData(const int nb_samples,
   std::normal_distribution<> accel_z_dist{0.0, 0.001};
 
   for (int i = 0; i < nb_samples; i++) {
-    Vec3 w_m{gyro_x_dist(gen), gyro_y_dist(gen), gyro_z_dist(gen)};
-    Vec3 a_m{accel_x_dist(gen), accel_y_dist(gen), accel_z_dist(gen) + 9.81};
+    vec3_t w_m{gyro_x_dist(gen), gyro_y_dist(gen), gyro_z_dist(gen)};
+    vec3_t a_m{accel_x_dist(gen), accel_y_dist(gen), accel_z_dist(gen) + 9.81};
     imu_gyro_buffer.push_back(w_m);
     imu_accel_buffer.push_back(a_m);
   }

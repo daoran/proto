@@ -33,11 +33,11 @@ struct Feature {
   cv::KeyPoint kp;
   cv::Mat desc;
 
-  Vec3 ground_truth = Vec3::Zero();
+  vec3_t ground_truth = vec3_t::Zero();
 
   Feature();
-  Feature(const Vec2 &pt);
-  Feature(const Vec2 &pt, const Vec3 &ground_truth);
+  Feature(const vec2_t &pt);
+  Feature(const vec2_t &pt, const vec3_t &ground_truth);
   Feature(const cv::Point2f &pt);
   Feature(const cv::KeyPoint &kp);
   Feature(const cv::KeyPoint &kp, const cv::Mat &desc);
@@ -50,14 +50,14 @@ struct Feature {
   void setTrackID(const TrackID &track_id);
 
   /**
-   * Return feature as Vec2
+   * Return feature as vec2_t
    */
-  Vec2 getKeyPoint();
+  vec2_t getKeyPoint();
 
   /**
-   * Return feature as Vec2
+   * Return feature as vec2_t
    */
-  Vec2 getKeyPoint() const;
+  vec2_t getKeyPoint() const;
 };
 
 /**

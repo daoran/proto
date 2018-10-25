@@ -40,16 +40,16 @@ int test_CalibData_load() {
       const cv::Scalar color(blue, green, red);
 
       // Show pixel measurements from static camera
-      const Vec2 p_s = data.Q_s[j].row(i);
+      const vec2_t p_s = data.Q_s[j].row(i);
       const cv::Point2f pt_s(p_s(0), p_s(1));
       cv::circle(image, pt_s, 2, color, -1);
 
       // Show pixel measurements from dynamic camera
-      const Vec2 p_d = data.Q_d[j].row(i);
+      const vec2_t p_d = data.Q_d[j].row(i);
       cv::Point2f pt_d(p_d(0), p_d(1));
       pt_d = camchain.cam[2].undistortPoint(pt_d);
 
-      Vec3 x{pt_d.x, pt_d.y, 1.0};
+      vec3_t x{pt_d.x, pt_d.y, 1.0};
       x = camchain.cam[2].K() * x;
       pt_d.x = x(0) + 752;
       pt_d.y = x(1);
@@ -68,35 +68,35 @@ int test_CalibData_load() {
   }
 
   // Setup optimization problem
-  const Mat3 K_s = camchain.cam[0].K();
-  const Mat3 K_d = camchain.cam[2].K();
-  const Vec4 D_s = camchain.cam[0].D();
-  const Vec4 D_d = camchain.cam[2].D();
+  const mat3_t K_s = camchain.cam[0].K();
+  const mat3_t K_d = camchain.cam[2].K();
+  const vec4_t D_s = camchain.cam[0].D();
+  const vec4_t D_d = camchain.cam[2].D();
   const double theta1_offset = camchain.theta1_offset;
   const double theta2_offset = camchain.theta2_offset;
 
   for (int i = 0; i < data.nb_measurements; i++) {
     for (int j = 0; j < data.P_s[i].rows(); j++) {
-      const Vec3 P_s = data.P_s[i].row(j);
-      const Vec3 P_d = data.P_d[i].row(j);
-      // const Vec2 Q_s = data.Q_s[i].row(j);
-      // const Vec2 Q_d = data.Q_d[i].row(j);
+      const vec3_t P_s = data.P_s[i].row(j);
+      const vec3_t P_d = data.P_d[i].row(j);
+      // const vec2_t Q_s = data.Q_s[i].row(j);
+      // const vec2_t Q_d = data.Q_d[i].row(j);
 
       // Undistort pixel measurements from static camera
-      const Vec2 p_s = data.Q_s[j].row(i);
+      const vec2_t p_s = data.Q_s[j].row(i);
       cv::Point2f pt_s(p_s(0), p_s(1));
       pt_s = camchain.cam[0].undistortPoint(pt_s);
-      Vec3 x_s{pt_s.x, pt_s.y, 1.0};
+      vec3_t x_s{pt_s.x, pt_s.y, 1.0};
       x_s = camchain.cam[0].K() * x_s;
-      const Vec2 Q_s{x_s(0), x_s(1)};
+      const vec2_t Q_s{x_s(0), x_s(1)};
 
       // Undistort pixel measurements from dynamic camera
-      const Vec2 p_d = data.Q_d[j].row(i);
+      const vec2_t p_d = data.Q_d[j].row(i);
       cv::Point2f pt_d(p_d(0), p_d(1));
       pt_d = camchain.cam[2].undistortPoint(pt_d);
-      Vec3 x_d{pt_d.x, pt_d.y, 1.0};
+      vec3_t x_d{pt_d.x, pt_d.y, 1.0};
       x_d = camchain.cam[2].K() * x_d;
-      const Vec2 Q_d{x_d(0), x_d(1)};
+      const vec2_t Q_d{x_d(0), x_d(1)};
 
       GimbalCalibResidual residual(P_s, P_d,
                                    Q_s, Q_d,

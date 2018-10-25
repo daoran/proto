@@ -28,8 +28,8 @@ int MAVDataset::loadIMUData() {
 
   for (size_t i = 0; i < this->imu_data.timestamps.size(); i++) {
     const long ts = this->imu_data.timestamps[i];
-    const Vec3 a_B = this->imu_data.a_B[i];
-    const Vec3 w_B = this->imu_data.w_B[i];
+    const vec3_t a_B = this->imu_data.a_B[i];
+    const vec3_t w_B = this->imu_data.w_B[i];
     const auto imu_event = DatasetEvent(a_B, w_B);
     this->timeline.insert({ts, imu_event});
   }
@@ -155,8 +155,8 @@ int MAVDataset::step() {
   bool cam0_event = false;
   bool cam1_event = false;
 
-  Vec3 a_m{0.0, 0.0, 0.0};
-  Vec3 w_m{0.0, 0.0, 0.0};
+  vec3_t a_m{0.0, 0.0, 0.0};
+  vec3_t w_m{0.0, 0.0, 0.0};
   std::string cam0_image_path;
   std::string cam1_image_path;
 
@@ -184,7 +184,7 @@ int MAVDataset::step() {
   // Trigger imu callback
   if (imu_event && this->imu_cb != nullptr) {
     // clang-format off
-    Mat3 R_body_imu;
+    mat3_t R_body_imu;
     R_body_imu << 0.0, 0.0, 1.0,
                   0.0, -1.0, 0.0,
                   1.0, 0.0, 0.0;
@@ -237,7 +237,7 @@ int MAVDataset::step() {
 
   // Trigger record estimate callback
   if (this->record_cb != nullptr && this->get_state != nullptr) {
-    const VecX state = this->get_state();
+    const vecx_t state = this->get_state();
     this->record_cb(this->time[this->ts_now],
                     state.segment(0, 3),
                     state.segment(3, 3),

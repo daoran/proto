@@ -6,11 +6,11 @@ namespace prototype {
 int test_TwoWheel_constructor() {
   TwoWheelRobot robot;
 
-  MU_CHECK(robot.p_G.isApprox(Vec3::Zero()));
-  MU_CHECK(robot.rpy_G.isApprox(Vec3::Zero()));
-  MU_CHECK(robot.w_B.isApprox(Vec3::Zero()));
-  // MU_CHECK(robot.v_B.isApprox(Vec3::Zero()));
-  MU_CHECK(robot.a_B.isApprox(Vec3::Zero()));
+  MU_CHECK(robot.p_G.isApprox(vec3_t::Zero()));
+  MU_CHECK(robot.rpy_G.isApprox(vec3_t::Zero()));
+  MU_CHECK(robot.w_B.isApprox(vec3_t::Zero()));
+  // MU_CHECK(robot.v_B.isApprox(vec3_t::Zero()));
+  MU_CHECK(robot.a_B.isApprox(vec3_t::Zero()));
 
   return 0;
 }

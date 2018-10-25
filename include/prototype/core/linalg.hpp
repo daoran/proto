@@ -21,7 +21,7 @@ namespace prototype {
  * @param cols Number of cols
  * @returns Zeros matrix
  */
-MatX zeros(const int rows, const int cols);
+matx_t zeros(const int rows, const int cols);
 
 /**
  * Zeros square matrix
@@ -29,7 +29,7 @@ MatX zeros(const int rows, const int cols);
  * @param size Square size of matrix
  * @returns Zeros matrix
  */
-MatX zeros(const int size);
+matx_t zeros(const int size);
 
 /**
  * Identity-matrix
@@ -38,7 +38,7 @@ MatX zeros(const int size);
  * @param cols Number of cols
  * @returns Identity matrix
  */
-MatX I(const int rows, const int cols);
+matx_t I(const int rows, const int cols);
 
 /**
  * Identity square matrix
@@ -46,7 +46,7 @@ MatX I(const int rows, const int cols);
  * @param size Square size of matrix
  * @returns Identity square matrix
  */
-MatX I(const int size);
+matx_t I(const int size);
 
 /**
  * Ones-matrix
@@ -55,7 +55,7 @@ MatX I(const int size);
  * @param cols Number of cols
  * @returns Ones square matrix
  */
-MatX ones(const int rows, const int cols);
+matx_t ones(const int rows, const int cols);
 
 /**
  * Ones square matrix
@@ -63,7 +63,7 @@ MatX ones(const int rows, const int cols);
  * @param size Square size of matrix
  * @returns Ones square matrix
  */
-MatX ones(const int size);
+matx_t ones(const int size);
 
 /**
  * Horizontally stack matrices A and B
@@ -72,7 +72,7 @@ MatX ones(const int size);
  * @param B Matrix B
  * @returns Stacked matrix
  */
-MatX hstack(const MatX &A, const MatX &B);
+matx_t hstack(const matx_t &A, const matx_t &B);
 
 /**
  * Vertically stack matrices A and B
@@ -81,7 +81,7 @@ MatX hstack(const MatX &A, const MatX &B);
  * @param B Matrix B
  * @returns Stacked matrix
  */
-MatX vstack(const MatX &A, const MatX &B);
+matx_t vstack(const matx_t &A, const matx_t &B);
 
 /**
  * Diagonally stack matrices A and B
@@ -90,7 +90,7 @@ MatX vstack(const MatX &A, const MatX &B);
  * @param B Matrix B
  * @returns Stacked matrix
  */
-MatX dstack(const MatX &A, const MatX &B);
+matx_t dstack(const matx_t &A, const matx_t &B);
 
 /**
  * Skew symmetric-matrix
@@ -98,7 +98,7 @@ MatX dstack(const MatX &A, const MatX &B);
  * @param w Input vector
  * @returns Skew symmetric matrix
  */
-Mat3 skew(const Vec3 &w);
+mat3_t skew(const vec3_t &w);
 
 /**
  * Skew symmetric-matrix squared
@@ -106,7 +106,7 @@ Mat3 skew(const Vec3 &w);
  * @param w Input vector
  * @returns Skew symmetric matrix squared
  */
-Mat3 skewsq(const Vec3 &w);
+mat3_t skewsq(const vec3_t &w);
 
 /**
  * Enforce Positive Semi-Definite
@@ -114,7 +114,7 @@ Mat3 skewsq(const Vec3 &w);
  * @param A Input matrix
  * @returns Positive semi-definite matrix
  */
-MatX enforce_psd(const MatX &A);
+matx_t enforce_psd(const matx_t &A);
 
 /**
  * Null-space of A
@@ -122,7 +122,7 @@ MatX enforce_psd(const MatX &A);
  * @param A Input matrix
  * @returns Null space of A
  */
-MatX nullspace(const MatX &A);
+matx_t nullspace(const matx_t &A);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
@@ -132,7 +132,7 @@ MatX nullspace(const MatX &A);
  * @param t Translation vector
  * @return T Transformation matrix
  */
-Mat4 transformation_matrix(const Mat3 R, const Vec3 t);
+mat4_t transformation_matrix(const mat3_t R, const vec3_t t);
 
 /** @} group linalg */
 } // namepsace libr

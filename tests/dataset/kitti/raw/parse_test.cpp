@@ -1,26 +1,26 @@
 #include "prototype/munit.hpp"
-#include "dataset/kitti/raw/parse.hpp"
+#include "prototype/dataset/kitti/raw/parse.hpp"
 
 namespace prototype {
 
-int test_Parse_parseString() {
-  std::string value = parseString("X: Hello World");
+int test_parse_string() {
+  std::string value = parse_string("X: Hello World");
 
   MU_CHECK_EQ("Hello World", value);
 
   return 0;
 }
 
-int test_Parse_parseDouble() {
-  double value = parseDouble("X: 1.23");
+int test_parse_double() {
+  double value = parse_double("X: 1.23");
 
   MU_CHECK_FLOAT(1.23, value);
 
   return 0;
 }
 
-int test_Parse_parseArray() {
-  std::vector<double> value = parseArray("X: 1.0 2.0 3.0");
+int test_parse_array() {
+  std::vector<double> value = parse_array("X: 1.0 2.0 3.0");
 
   MU_CHECK_EQ(3, (int) value.size());
   MU_CHECK_FLOAT(1.0, value[0]);
@@ -30,8 +30,8 @@ int test_Parse_parseArray() {
   return 0;
 }
 
-int test_Parse_parseVec2() {
-  Vec2 value = parseVec2("X: 1.0 2.0");
+int test_parse_vec2() {
+  vec2_t value = parse_vec2("X: 1.0 2.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -39,8 +39,8 @@ int test_Parse_parseVec2() {
   return 0;
 }
 
-int test_Parse_parseVec3() {
-  Vec3 value = parseVec3("X: 1.0 2.0 3.0");
+int test_parse_vec3() {
+  vec3_t value = parse_vec3("X: 1.0 2.0 3.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -49,8 +49,8 @@ int test_Parse_parseVec3() {
   return 0;
 }
 
-int test_Parse_parseVecX() {
-  VecX value = parseVecX("X: 1.0 2.0 3.0 4.0 5.0 6.0");
+int test_parse_vecx() {
+  vecx_t value = parse_vecx("X: 1.0 2.0 3.0 4.0 5.0 6.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -62,8 +62,8 @@ int test_Parse_parseVecX() {
   return 0;
 }
 
-int test_Parse_parseMat3() {
-  Mat3 value = parseMat3("X: 1 2 3 4 5 6 7 8 9");
+int test_parse_mat3() {
+  mat3_t value = parse_mat3("X: 1 2 3 4 5 6 7 8 9");
 
   MU_CHECK_FLOAT(1.0, value(0, 0));
   MU_CHECK_FLOAT(2.0, value(0, 1));
@@ -78,8 +78,8 @@ int test_Parse_parseMat3() {
   return 0;
 }
 
-int test_Parse_parseMat34() {
-  Mat34 value = parseMat34("X: 1 2 3 4 5 6 7 8 9 10 11 12");
+int test_parse_mat34() {
+  mat34_t value = parse_mat34("X: 1 2 3 4 5 6 7 8 9 10 11 12");
 
   MU_CHECK_FLOAT(1.0, value(0, 0));
   MU_CHECK_FLOAT(2.0, value(0, 1));
@@ -100,14 +100,14 @@ int test_Parse_parseMat34() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_Parse_parseString);
-  MU_ADD_TEST(test_Parse_parseDouble);
-  MU_ADD_TEST(test_Parse_parseArray);
-  MU_ADD_TEST(test_Parse_parseVec2);
-  MU_ADD_TEST(test_Parse_parseVec3);
-  MU_ADD_TEST(test_Parse_parseVecX);
-  MU_ADD_TEST(test_Parse_parseMat3);
-  MU_ADD_TEST(test_Parse_parseMat34);
+  MU_ADD_TEST(test_parse_string);
+  MU_ADD_TEST(test_parse_double);
+  MU_ADD_TEST(test_parse_array);
+  MU_ADD_TEST(test_parse_vec2);
+  MU_ADD_TEST(test_parse_vec3);
+  MU_ADD_TEST(test_parse_vecx);
+  MU_ADD_TEST(test_parse_mat3);
+  MU_ADD_TEST(test_parse_mat34);
 }
 
 } // namespace prototype

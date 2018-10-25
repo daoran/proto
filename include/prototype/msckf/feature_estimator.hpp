@@ -14,7 +14,7 @@
 #include "prototype/core/quaternion/jpl.hpp"
 #include "prototype/msckf/msckf.hpp"
 #include "prototype/model/gimbal.hpp"
-#include "prototype/vision/camera/pinhole_model.hpp"
+#include "prototype/vision/camera/pinhole.hpp"
 
 namespace prototype {
 /**
@@ -36,10 +36,10 @@ namespace prototype {
  *
  * @returns Estimated feature position
  */
-Vec3 lls_triangulation(const Vec3 &u1,
-                       const Mat34 &P1,
-                       const Vec3 &u2,
-                       const Mat34 &P2);
+vec3_t lls_triangulation(const vec3_t &u1,
+                       const mat34_t &P1,
+                       const vec3_t &u2,
+                       const mat34_t &P2);
 
 /**
  * Linear Least Squares Triangulation
@@ -50,7 +50,7 @@ Vec3 lls_triangulation(const Vec3 &u1,
  *
  * @returns Estimated feature position
  */
-Vec3 lls_triangulation(const Vec2 &z1, const Vec2 &z2, const Mat4 T_C1_C0);
+vec3_t lls_triangulation(const vec2_t &z1, const vec2_t &z2, const mat4_t T_C1_C0);
 
 /**
  * Linear Least Squares Triangulation
@@ -62,10 +62,10 @@ Vec3 lls_triangulation(const Vec2 &z1, const Vec2 &z2, const Mat4 T_C1_C0);
  *
  * @returns Estimated feature position
  */
-Vec3 lls_triangulation(const Vec2 &z1,
-                       const Vec2 &z2,
-                       const Mat3 &C_C0C1,
-                       const Vec3 &t_C0_C0C1);
+vec3_t lls_triangulation(const vec2_t &z1,
+                       const vec2_t &z2,
+                       const mat3_t &C_C0C1,
+                       const vec3_t &t_C0_C0C1);
 
 /**
  * Triangulate monocular feature tracks
@@ -76,7 +76,7 @@ Vec3 lls_triangulation(const Vec2 &z1,
  * @param T_C1_C0 Transformation matrix from camera 0 to camera 1
  * @param tracks Feature tracks to triangulate
  */
-void triangulate_mono_tracks(const Mat4 &T_cam1_cam0, FeatureTracks &tracks);
+void triangulate_mono_tracks(const mat4_t &T_cam1_cam0, FeatureTracks &tracks);
 
 /**
  * Group tracks according to when they were first captured (frame start)
@@ -98,7 +98,7 @@ void group_tracks(const FeatureTracks &tracks,
  * @param T_C1_C0 Transformation matrix from camera 0 to camera 1
  * @param tracks Feature tracks to triangulate
  */
-FeatureTracks triangulate_stereo_tracks(const Mat4 &T_cam1_cam0,
+FeatureTracks triangulate_stereo_tracks(const mat4_t &T_cam1_cam0,
                                         FeatureTracks &tracks);
 
 /**
@@ -145,11 +145,11 @@ public:
    *
    * @returns 0 for success, -1 for failure
    */
-  static int triangulate(const Vec2 &p1,
-                         const Vec2 &p2,
-                         const Mat3 &C_C0C1,
-                         const Vec3 &t_C0_C0C1,
-                         Vec3 &p_C0_f);
+  static int triangulate(const vec2_t &p1,
+                         const vec2_t &p2,
+                         const mat3_t &C_C0C1,
+                         const vec3_t &t_C0_C0C1,
+                         vec3_t &p_C0_f);
 
   /**
    * Calculate initial estimate
@@ -157,7 +157,7 @@ public:
    * @param p_C0_f Initial feature position
    * @returns 0 for success, -1 for failure
    */
-  int initialEstimate(Vec3 &p_C0_f);
+  int initialEstimate(vec3_t &p_C0_f);
 
   /**
    * Check estimate
@@ -165,7 +165,7 @@ public:
    * @param p_G_f Feature position in global frame
    * @returns 0 for success, -1 for failure
    */
-  int checkEstimate(const Vec3 &p_G_f);
+  int checkEstimate(const vec3_t &p_G_f);
 
   /**
    * Transform feature position from camera to global frame
@@ -178,7 +178,7 @@ public:
   void transformEstimate(const double alpha,
                          const double beta,
                          const double rho,
-                         Vec3 &p_G_f);
+                         vec3_t &p_G_f);
 
   /**
    * Reprojection error
@@ -188,7 +188,7 @@ public:
    * @param x Optimization parameters
    * @returns Jacobian
    */
-  Vec2 residual(const Mat4 &T_Ci_C0, const Vec2 &z, const Vec3 &x);
+  vec2_t residual(const mat4_t &T_Ci_C0, const vec2_t &z, const vec3_t &x);
 
   /**
    * Jacobian
@@ -196,7 +196,7 @@ public:
    * @param x Optimization parameters
    * @returns Jacobian
    */
-  MatX jacobian(const Mat4 &T_Ci_C0, const VecX &x);
+  matx_t jacobian(const mat4_t &T_Ci_C0, const vecx_t &x);
 
   /**
    * Estimate feature position in global frame
@@ -204,7 +204,7 @@ public:
    * @param p_G_f Feature position in global frame
    * @returns 0 for success, -1 for failure
    */
-  virtual int estimate(Vec3 &p_G_f);
+  virtual int estimate(vec3_t &p_G_f);
 };
 
 /**
@@ -222,9 +222,9 @@ public:
   double u = 0.0;
   double v = 0.0;
 
-  AutoDiffReprojectionError(const Mat3 &C_CiC0,
-                            const Vec3 &t_Ci_CiC0,
-                            const Vec2 &kp);
+  AutoDiffReprojectionError(const mat3_t &C_CiC0,
+                            const vec3_t &t_Ci_CiC0,
+                            const vec2_t &kp);
 
   /**
    * JPL Quaternion to rotation matrix R
@@ -257,15 +257,15 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   // Camera extrinsics
-  Mat3 C_CiC0;
-  Vec3 t_Ci_CiC0;
+  mat3_t C_CiC0;
+  vec3_t t_Ci_CiC0;
 
   // Measurement
-  Vec2 keypoint;
+  vec2_t keypoint;
 
-  AnalyticalReprojectionError(const Mat3 &C_CiC0,
-                              const Vec3 &t_Ci_CiC0,
-                              const Vec2 &keypoint)
+  AnalyticalReprojectionError(const mat3_t &C_CiC0,
+                              const vec3_t &t_Ci_CiC0,
+                              const vec2_t &keypoint)
       : C_CiC0{C_CiC0}, t_Ci_CiC0{t_Ci_CiC0}, keypoint{keypoint} {}
 
   /**
@@ -309,9 +309,9 @@ public:
    * @param t_Ci_CiC0 Translation vector from frame C0 to Ci expressed in Ci
    * @param x Optimization parameters
    */
-  void addResidualBlock(const Vec2 &kp,
-                        const Mat3 &C_CiC0,
-                        const Vec3 &t_Ci_CiC0,
+  void addResidualBlock(const vec2_t &kp,
+                        const mat3_t &C_CiC0,
+                        const vec3_t &t_Ci_CiC0,
                         double *x);
 
   /**
@@ -335,7 +335,7 @@ public:
    * @param p_G_f Feature position in global frame
    * @returns 0 for success, -1 for failure
    */
-  int estimate(Vec3 &p_G_f);
+  int estimate(vec3_t &p_G_f);
 };
 
 /** @} group msckf */

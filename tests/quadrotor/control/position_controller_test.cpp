@@ -72,7 +72,7 @@ int test_PositionController_constructor() {
 // }
 
 // int test_PositionController_update() {
-//   Vec3 setpoint_nwu;
+//   vec3_t setpoint_nwu;
 //   Pose actual;
 //   float yaw_setpoint, dt;
 //   PositionController controller;
@@ -145,7 +145,7 @@ int test_PositionController_constructor() {
 // }
 //
 // int test_PositionController_update2() {
-//   Vec3 setpoint_nwu, euler;
+//   vec3_t setpoint_nwu, euler;
 //   Pose actual;
 //   float yaw_setpoint, dt;
 //   PositionController controller;

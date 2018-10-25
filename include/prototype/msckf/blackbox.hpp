@@ -62,9 +62,9 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordEstimate(const double time,
-                     const Vec3 &p_G,
-                     const Vec3 &v_G,
-                     const Vec3 &rpy_G);
+                     const vec3_t &p_G,
+                     const vec3_t &v_G,
+                     const vec3_t &rpy_G);
 
   /**
    * Record measurement
@@ -76,8 +76,8 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordMeasurement(const double time,
-                        const Vec3 &measurement_a_B,
-                        const Vec3 &measurement_w_B);
+                        const vec3_t &measurement_a_B,
+                        const vec3_t &measurement_w_B);
 
   /**
    * Record ground truth
@@ -90,9 +90,9 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordGroundTruth(const double time,
-                        const Vec3 &p_G,
-                        const Vec3 &v_G,
-                        const Vec3 &rpy_G);
+                        const vec3_t &p_G,
+                        const vec3_t &v_G,
+                        const vec3_t &rpy_G);
 
   /**
    * Record MSCKF camera states
@@ -111,8 +111,8 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordCameraStates(const std::vector<double> time,
-                         const std::vector<Vec3> &p_G,
-                         const std::vector<Vec3> &rpy_G);
+                         const std::vector<vec3_t> &p_G,
+                         const std::vector<vec3_t> &rpy_G);
 
   /**
    * Record time step
@@ -129,11 +129,11 @@ public:
    */
   int recordTimeStep(const double time,
                      const MSCKF &msckf,
-                     const Vec3 &mea_a_B,
-                     const Vec3 &mea_w_B,
-                     const Vec3 &gnd_p_G,
-                     const Vec3 &gnd_v_G,
-                     const Vec3 &gnd_rpy_G);
+                     const vec3_t &mea_a_B,
+                     const vec3_t &mea_w_B,
+                     const vec3_t &gnd_p_G,
+                     const vec3_t &gnd_v_G,
+                     const vec3_t &gnd_rpy_G);
 
   /**
    * Record time step
@@ -151,14 +151,14 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordTimeStep(const double time,
-                     const Vec3 &mea_a_B,
-                     const Vec3 &mea_w_B,
-                     const Vec3 &est_p_G,
-                     const Vec3 &est_v_G,
-                     const Vec3 &est_rpy_G,
-                     const Vec3 &gnd_p_G,
-                     const Vec3 &gnd_v_G,
-                     const Vec3 &gnd_rpy_G);
+                     const vec3_t &mea_a_B,
+                     const vec3_t &mea_w_B,
+                     const vec3_t &est_p_G,
+                     const vec3_t &est_v_G,
+                     const vec3_t &est_rpy_G,
+                     const vec3_t &gnd_p_G,
+                     const vec3_t &gnd_v_G,
+                     const vec3_t &gnd_rpy_G);
 };
 
 /** @} group msckf */

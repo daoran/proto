@@ -26,22 +26,22 @@ public:
 
   static const int size = 6;            ///< Size of error-state vector
   FrameID frame_id = -1;                ///< Camera frame id
-  Vec3 p_G = zeros(3, 1);               ///< Position in Global frame
-  Vec4 q_CG = Vec4{0.0, 0.0, 0.0, 1.0}; ///< Orientation in Global frame
+  vec3_t p_G = zeros(3, 1);               ///< Position in Global frame
+  vec4_t q_CG = vec4_t{0.0, 0.0, 0.0, 1.0}; ///< Orientation in Global frame
 
   // Gimbal joint angle
-  Vec2 theta = Vec2::Zero();
+  vec2_t theta = vec2_t::Zero();
 
   CameraState();
-  CameraState(const Vec3 &p_G, const Vec4 &q_CG);
-  CameraState(const FrameID frame_id, const Vec3 &p_G, const Vec4 &q_CG);
-  CameraState(const FrameID frame_id, const Vec3 &p_G, const Vec4 &q_CG, const Vec2 &theta);
+  CameraState(const vec3_t &p_G, const vec4_t &q_CG);
+  CameraState(const FrameID frame_id, const vec3_t &p_G, const vec4_t &q_CG);
+  CameraState(const FrameID frame_id, const vec3_t &p_G, const vec4_t &q_CG, const vec2_t &theta);
 
   /**
    * Correct camera state
    * @param dx Correction vector
    */
-  void correct(const VecX &dx);
+  void correct(const vecx_t &dx);
 
   /**
    * Set frame id
@@ -82,8 +82,8 @@ int save_camera_states(const CameraStates &states,
  * @param rpy_G Euler angles
  */
 void convert_camera_states(const CameraStates &states,
-                           std::vector<Vec3> &p_G,
-                           std::vector<Vec3> &rpy_G);
+                           std::vector<vec3_t> &p_G,
+                           std::vector<vec3_t> &rpy_G);
 
 /**
   * CameraState to string

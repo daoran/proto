@@ -38,15 +38,15 @@ int test_ConfigParser_addParam() {
   std::vector<double> d_array;
   std::vector<std::string> s_array;
 
-  Vec2 vec2;
-  Vec3 vec3;
-  Vec4 vec4;
-  VecX vecx;
+  vec2_t vec2;
+  vec3_t vec3;
+  vec4_t vec4;
+  vecx_t vecx;
 
-  Mat2 mat2;
-  Mat3 mat3;
-  Mat4 mat4;
-  MatX matx;
+  mat2_t mat2;
+  mat3_t mat3;
+  mat4_t mat4;
+  matx_t matx;
   cv::Mat cvmat;
 
   ConfigParser parser;
@@ -227,10 +227,10 @@ int test_ConfigParser_loadArray() {
 }
 
 int test_ConfigParser_loadVector() {
-  Vec2 vec2;
-  Vec3 vec3;
-  Vec4 vec4;
-  VecX vecx;
+  vec2_t vec2;
+  vec3_t vec3;
+  vec4_t vec4;
+  vecx_t vecx;
   ConfigParser parser;
   ConfigParam param;
 
@@ -291,10 +291,10 @@ int test_ConfigParser_loadVector() {
 
 int test_ConfigParser_loadMatrix() {
   int index;
-  Mat2 mat2;
-  Mat3 mat3;
-  Mat4 mat4;
-  MatX matx;
+  mat2_t mat2;
+  mat3_t mat3;
+  mat4_t mat4;
+  matx_t matx;
   cv::Mat cvmat;
   ConfigParser parser;
   ConfigParam param;
@@ -397,15 +397,15 @@ int test_ConfigParser_load() {
   std::vector<double> d_array;
   std::vector<std::string> s_array;
 
-  Vec2 vec2;
-  Vec3 vec3;
-  Vec4 vec4;
-  VecX vecx;
+  vec2_t vec2;
+  vec3_t vec3;
+  vec4_t vec4;
+  vecx_t vecx;
 
-  Mat2 mat2;
-  Mat3 mat3;
-  Mat4 mat4;
-  MatX matx;
+  mat2_t mat2;
+  mat3_t mat3;
+  mat4_t mat4;
+  matx_t matx;
   cv::Mat cvmat;
 
   ConfigParser parser;

@@ -1,5 +1,5 @@
 #include "prototype/munit.hpp"
-#include "dataset/kitti/raw/oxts.hpp"
+#include "prototype/dataset/kitti/raw/oxts.hpp"
 
 #ifndef TEST_KITTI_DATA
 #define TEST_KITTI_DATA                                                        \
@@ -10,9 +10,9 @@
 
 namespace prototype {
 
-int test_OXTS_load() {
-  OXTS oxts;
-  oxts.load(TEST_KITTI_DATA "/oxts");
+int test_oxts_load() {
+  oxts_t oxts;
+  oxts_load(oxts, TEST_KITTI_DATA "/oxts");
 
   for (size_t i = 0; i < oxts.timestamps.size(); i++) {
     MU_CHECK(oxts.time[i] >= 0.0);
@@ -21,7 +21,7 @@ int test_OXTS_load() {
   return 0;
 }
 
-void test_suite() { MU_ADD_TEST(test_OXTS_load); }
+void test_suite() { MU_ADD_TEST(test_oxts_load); }
 
 } // namespace prototype
 

@@ -28,13 +28,13 @@ public:
   double roll_limits[2] = {0.0, 0.0};
   double pitch_limits[2] = {0.0, 0.0};
 
-  Vec3 setpoints = Vec3{0.0, 0.0, 0.0};
+  vec3_t setpoints = vec3_t{0.0, 0.0, 0.0};
 
-  Vec3 imu_accel = Vec3{0.0, 0.0, 0.0};
-  Vec3 imu_gyro = Vec3{0.0, 0.0, 0.0};
-  Vec3 camera_angles = Vec3{0.0, 0.0, 0.0};
-  Vec3 frame_angles = Vec3{0.0, 0.0, 0.0};
-  Vec3 encoder_angles = Vec3{0.0, 0.0, 0.0};
+  vec3_t imu_accel = vec3_t{0.0, 0.0, 0.0};
+  vec3_t imu_gyro = vec3_t{0.0, 0.0, 0.0};
+  vec3_t camera_angles = vec3_t{0.0, 0.0, 0.0};
+  vec3_t frame_angles = vec3_t{0.0, 0.0, 0.0};
+  vec3_t encoder_angles = vec3_t{0.0, 0.0, 0.0};
 
   GimbalBase();
   virtual ~GimbalBase();

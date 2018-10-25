@@ -9,7 +9,7 @@
 
 #include "prototype/core.hpp"
 #include "prototype/vision/camera/distortion.hpp"
-#include "prototype/vision/camera/pinhole_model.hpp"
+#include "prototype/vision/camera/pinhole.hpp"
 
 namespace prototype {
 /**
@@ -41,9 +41,9 @@ struct CameraProperty {
   int camera_index;
   std::string camera_model;
   std::string distortion_model;
-  VecX distortion_coeffs;
-  VecX intrinsics;
-  Vec2 resolution;
+  vecx_t distortion_coeffs;
+  vecx_t intrinsics;
+  vec2_t resolution;
 
   CameraProperty();
 
@@ -57,27 +57,27 @@ struct CameraProperty {
                  const int image_height);
 
   // Pinhole model w/o distortion constructor
-  CameraProperty(const int camera_index, const Mat3 &K, const Vec2 &resolution);
+  CameraProperty(const int camera_index, const mat3_t &K, const vec2_t &resolution);
 
   // Camera model and distortion model constructor
   CameraProperty(const int camera_index,
                  const std::string &camera_model,
-                 const Mat3 &K,
+                 const mat3_t &K,
                  const std::string &distortion_model,
-                 const VecX &D,
-                 const Vec2 &resolution);
+                 const vecx_t &D,
+                 const vec2_t &resolution);
 
   /**
    * Camera intrinsics matrix K
    * @returns Camera intrinsics matrix K
    */
-  Mat3 K();
+  mat3_t K();
 
   /**
    * Distortion coefficients D
    * @returns Distortion coefficients D
    */
-  VecX D();
+  vecx_t D();
 
   /**
    * Undistort points
@@ -88,7 +88,7 @@ struct CameraProperty {
    */
   std::vector<cv::Point2f>
   undistortPoints(const std::vector<cv::Point2f> &image_points,
-                  const Mat3 &rect_mat = I(3));
+                  const mat3_t &rect_mat = I(3));
 
   /**
    * Undistort point
@@ -98,7 +98,7 @@ struct CameraProperty {
    * @returns Undistorted image point [ideal]
    */
   cv::Point2f undistortPoint(const cv::Point2f &image_point,
-                             const Mat3 &rect_mat = I(3));
+                             const mat3_t &rect_mat = I(3));
 
   /**
    * Distort points
@@ -147,7 +147,7 @@ struct CameraProperty {
    * @param X 3D points
    * @returns pixels Pixel point in image plane [px]
    */
-  MatX project(const MatX &X);
+  matx_t project(const matx_t &X);
 
   /**
    * Project 3D point to image plane
@@ -156,7 +156,7 @@ struct CameraProperty {
    * @param pixel Point in image plane [px]
    * @return 0 for success, -1 for failure
    */
-  Vec2 project(const Vec3 &X);
+  vec2_t project(const vec3_t &X);
 };
 
 /**

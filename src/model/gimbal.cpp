@@ -2,12 +2,12 @@
 
 namespace prototype {
 
-Mat4 dh_transform(const double theta,
+mat4_t dh_transform(const double theta,
                   const double d,
                   const double a,
                   const double alpha) {
   // clang-format off
-  Mat4 T;
+  mat4_t T;
   T << cos(theta), -sin(theta) * cos(alpha), sin(theta) * sin(alpha), a * cos(theta),
        sin(theta), cos(theta) * cos(alpha), -cos(theta) * sin(alpha), a * sin(theta),
        0.0, sin(alpha), cos(alpha), d,
@@ -17,82 +17,92 @@ Mat4 dh_transform(const double theta,
   return T;
 }
 
-GimbalModel::GimbalModel() {}
+gimbal_model_t::gimbal_model_t() {}
 
-GimbalModel::GimbalModel(const Vec6 &tau_s,
-                         const Vec6 &tau_d,
-                         const double Lambda1,
-                         const Vec3 w1,
-                         const double Lambda2,
-                         const Vec3 w2,
-                         const double theta1_offset,
-                         const double theta2_offset)
+gimbal_model_t::gimbal_model_t(const vec6_t &tau_s,
+                               const vec6_t &tau_d,
+                               const double Lambda1,
+                               const vec3_t w1,
+                               const double Lambda2,
+                               const vec3_t w2,
+                               const double theta1_offset,
+                               const double theta2_offset)
     : tau_s{tau_s}, tau_d{tau_d}, Lambda1{Lambda1}, w1{w1}, Lambda2{Lambda2},
       w2{w2}, theta1_offset{theta1_offset}, theta2_offset{theta2_offset} {}
 
-GimbalModel::~GimbalModel() {}
+gimbal_model_t::~gimbal_model_t() {}
 
-void GimbalModel::setAttitude(const double roll, const double pitch) {
-  this->Lambda1 = roll;
-  this->Lambda2 = pitch;
+void gimbal_model_set_attitude(gimbal_model_t &model,
+                               const double roll_,
+                               const double pitch_) {
+  model.Lambda1 = roll_;
+  model.Lambda2 = pitch_;
 }
 
-Vec2 GimbalModel::getJointAngles() {
-  return Vec2{this->Lambda1, this->Lambda2};
+vec2_t gimbal_model_get_joint_angles(const gimbal_model_t &model) {
+  return vec2_t{model.Lambda1, model.Lambda2};
 }
 
-Mat4 GimbalModel::T_bs() {
-  Mat4 T_sb = zeros(4, 4);
-  T_sb.block(0, 0, 3, 3) = euler321ToRot(this->tau_s.tail(3));
-  T_sb.block(0, 3, 3, 1) = this->tau_s.head(3);
+mat4_t gimbal_model_T_bs(const gimbal_model_t &model) {
+  mat4_t T_sb = zeros(4, 4);
+  T_sb.block(0, 0, 3, 3) = euler321ToRot(model.tau_s.tail(3));
+  T_sb.block(0, 3, 3, 1) = model.tau_s.head(3);
   T_sb(3, 3) = 1.0;
 
   return T_sb;
 }
 
-Mat4 GimbalModel::T_eb() {
-  const double theta1 = this->Lambda1 + this->theta1_offset;
-  const double d1 = this->w1[0];
-  const double a1 = this->w1[1];
-  const double alpha1 = this->w1[2];
+mat4_t gimbal_model_T_eb(const gimbal_model_t &model) {
+  const double theta1 = model.Lambda1 + model.theta1_offset;
+  const double d1 = model.w1[0];
+  const double a1 = model.w1[1];
+  const double alpha1 = model.w1[2];
 
-  const double theta2 = this->Lambda2 + this->theta2_offset;
-  const double d2 = this->w2[0];
-  const double a2 = this->w2[1];
-  const double alpha2 = this->w2[2];
+  const double theta2 = model.Lambda2 + model.theta2_offset;
+  const double d2 = model.w2[0];
+  const double a2 = model.w2[1];
+  const double alpha2 = model.w2[2];
 
-  const Mat4 T_1b = dh_transform(theta1, d1, a1, alpha1).inverse();
-  const Mat4 T_e1 = dh_transform(theta2, d2, a2, alpha2).inverse();
-  const Mat4 T_eb = T_e1 * T_1b;
+  const mat4_t T_1b = dh_transform(theta1, d1, a1, alpha1).inverse();
+  const mat4_t T_e1 = dh_transform(theta2, d2, a2, alpha2).inverse();
+  const mat4_t T_eb = T_e1 * T_1b;
 
   return T_eb;
 }
 
-Mat4 GimbalModel::T_de() {
-  Mat4 T_de = zeros(4, 4);
-  T_de.block(0, 0, 3, 3) = euler321ToRot(this->tau_d.tail(3));
-  T_de.block(0, 3, 3, 1) = this->tau_d.head(3);
+mat4_t gimbal_model_T_de(const gimbal_model_t &model) {
+  mat4_t T_de = zeros(4, 4);
+  T_de.block(0, 0, 3, 3) = euler321ToRot(model.tau_d.tail(3));
+  T_de.block(0, 3, 3, 1) = model.tau_d.head(3);
   T_de(3, 3) = 1.0;
 
   return T_de;
 }
 
-Mat4 GimbalModel::T_ds() { return this->T_de() * this->T_eb() * this->T_bs(); }
-
-Mat4 GimbalModel::T_ds(const Vec2 &theta) {
-  this->setAttitude(theta(0), theta(1));
-  return this->T_de() * this->T_eb() * this->T_bs();
+mat4_t gimbal_model_T_ds(const gimbal_model_t &model) {
+  const auto T_de = gimbal_model_T_de(model);
+  const auto T_eb = gimbal_model_T_eb(model);
+  const auto T_bs = gimbal_model_T_bs(model);
+  return T_de * T_eb * T_bs;
 }
 
-std::ostream &operator<<(std::ostream &os, const GimbalModel &gimbal) {
-  os << "tau_s: " << gimbal.tau_s.transpose() << std::endl;
-  os << "tau_d: " << gimbal.tau_d.transpose() << std::endl;
-  os << "w1: " << gimbal.w1.transpose() << std::endl;
-  os << "w2: " << gimbal.w2.transpose() << std::endl;
-  os << "Lambda1: " << gimbal.Lambda1 << std::endl;
-  os << "Lambda2: " << gimbal.Lambda2 << std::endl;
-  os << "theta1_offset: " << gimbal.theta1_offset << std::endl;
-  os << "theta2_offset: " << gimbal.theta2_offset << std::endl;
+mat4_t gimbal_model_T_ds(gimbal_model_t &model, const vec2_t &theta) {
+  gimbal_model_set_attitude(model, theta(0), theta(1));
+  const auto T_de = gimbal_model_T_de(model);
+  const auto T_eb = gimbal_model_T_eb(model);
+  const auto T_bs = gimbal_model_T_bs(model);
+  return T_de * T_eb * T_bs;
+}
+
+std::ostream &operator<<(std::ostream &os, const gimbal_model_t &model) {
+  os << "tau_s: " << model.tau_s.transpose() << std::endl;
+  os << "tau_d: " << model.tau_d.transpose() << std::endl;
+  os << "w1: " << model.w1.transpose() << std::endl;
+  os << "w2: " << model.w2.transpose() << std::endl;
+  os << "Lambda1: " << model.Lambda1 << std::endl;
+  os << "Lambda2: " << model.Lambda2 << std::endl;
+  os << "theta1_offset: " << model.theta1_offset << std::endl;
+  os << "theta2_offset: " << model.theta2_offset << std::endl;
   return os;
 }
 

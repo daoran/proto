@@ -16,7 +16,7 @@ FeatureTrack::FeatureTrack(const TrackID &track_id,
                            const FrameID &frame_end,
                            const Features &track0,
                            const Features &track1,
-                           const Mat4 &T_cam1_cam0)
+                           const mat4_t &T_cam1_cam0)
     : type{STATIC_STEREO_TRACK}, track_id{track_id}, frame_start{frame_start},
       frame_end{frame_end}, track0{track0}, track1{track1},
       T_cam1_cam0{T_cam1_cam0} {}
@@ -26,8 +26,8 @@ FeatureTrack::FeatureTrack(const TrackID &track_id,
                            const FrameID &frame_end,
                            const Features &track0,
                            const Features &track1,
-                           const Vec2 &joint_angles_t0,
-                           const Vec2 &joint_angles_t1)
+                           const vec2_t &joint_angles_t0,
+                           const vec2_t &joint_angles_t1)
     : type{DYNAMIC_STEREO_TRACK}, track_id{track_id}, frame_start{frame_start},
       frame_end{frame_end}, track0{track0}, track1{track1},
       joint_angles{joint_angles_t0, joint_angles_t1} {}
@@ -48,7 +48,7 @@ void FeatureTrack::updateStereo(const FrameID &frame_id,
 void FeatureTrack::updateStereo(const FrameID &frame_id,
                                 const Feature &cam0_f,
                                 const Feature &cam1_f,
-                                const Vec2 &joint_angles) {
+                                const vec2_t &joint_angles) {
   this->type = DYNAMIC_STEREO_TRACK;
   this->frame_end = frame_id;
   this->track0.push_back(cam0_f);

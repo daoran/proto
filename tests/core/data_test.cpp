@@ -21,7 +21,7 @@ int test_csvcols() {
 }
 
 int test_csv2mat() {
-  MatX data;
+  matx_t data;
 
   csv2mat(TEST_DATA, true, data);
   MU_CHECK_EQ(280, data.rows());
@@ -35,8 +35,8 @@ int test_csv2mat() {
 }
 
 int test_mat2csv() {
-  MatX x;
-  MatX y;
+  matx_t x;
+  matx_t y;
 
   csv2mat(TEST_DATA, true, x);
   mat2csv(TEST_OUTPUT, x);

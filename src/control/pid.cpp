@@ -2,16 +2,17 @@
 
 namespace prototype {
 
-struct pid pid_setup(const double k_p, const double k_i, const double k_d) {
-  struct pid p;
-  p.k_p = k_p;
-  p.k_i = k_i;
-  p.k_d = k_d;
+pid_t::pid_t() {}
 
-  return p;
+pid_t::pid_t(const double k_p_, const double k_i_, const double k_d_) {
+  k_p = k_p_;
+  k_i = k_i_;
+  k_d = k_d_;
 }
 
-double pid_update(struct pid &p,
+pid_t::~pid_t() {}
+
+double pid_update(pid_t &p,
                   const double setpoint,
                   const double input,
                   const double dt) {
@@ -31,11 +32,11 @@ double pid_update(struct pid &p,
   return output;
 }
 
-double pid_update(struct pid &p, const double error, const double dt) {
+double pid_update(pid_t &p, const double error, const double dt) {
   return pid_update(p, error, 0.0, dt);
 }
 
-void pid_reset(struct pid &p) {
+void pid_reset(pid_t &p) {
   p.error_prev = 0.0;
   p.error_sum = 0.0;
 

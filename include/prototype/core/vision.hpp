@@ -36,7 +36,7 @@ bool is_equal(const cv::Mat &m1, const cv::Mat &m2);
  * @param x Input matrix
  * @param y Output matrix
  */
-void convert(const cv::Mat &x, MatX &y);
+void convert(const cv::Mat &x, matx_t &y);
 
 /**
  * Convert Eigen::Matrix to cv::Mat
@@ -44,7 +44,7 @@ void convert(const cv::Mat &x, MatX &y);
  * @param x Input matrix
  * @param y Output matrix
  */
-void convert(const MatX &x, cv::Mat &y);
+void convert(const matx_t &x, cv::Mat &y);
 
 /**
  * Convert cv::Mat to Eigen::Matrix
@@ -52,7 +52,7 @@ void convert(const MatX &x, cv::Mat &y);
  * @param x Input matrix
  * @returns Matrix as Eigen::Matrix
  */
-MatX convert(const cv::Mat &x);
+matx_t convert(const cv::Mat &x);
 
 /**
  * Convert Eigen::Matrix to cv::Mat
@@ -60,7 +60,7 @@ MatX convert(const cv::Mat &x);
  * @param x Input matrix
  * @returns Matrix as cv::Mat
  */
-cv::Mat convert(const MatX &x);
+cv::Mat convert(const matx_t &x);
 
 /**
  * Convert x to homogenous coordinates
@@ -68,7 +68,7 @@ cv::Mat convert(const MatX &x);
  * @param x Input vector
  * @return Output vector in homogeneous coordinates
  */
-Vec3 homogeneous(const Vec2 &x);
+vec3_t homogeneous(const vec2_t &x);
 
 /**
  * Convert x to homogenous coordinates
@@ -76,12 +76,12 @@ Vec3 homogeneous(const Vec2 &x);
  * @param x Input vector
  * @returns Output vector in homogeneous coordinates
  */
-Vec4 homogeneous(const Vec3 &x);
+vec4_t homogeneous(const vec3_t &x);
 
 /**
  * Normalize vector of
  */
-Vec2 normalize(const Vec2 &x);
+vec2_t normalize(const vec2_t &x);
 
 /**
  * Convert rvec, tvec into transform matrix
@@ -90,7 +90,7 @@ Vec2 normalize(const Vec2 &x);
  * @param tvec Translation vector
  * @returns Transform matrix
  */
-Mat4 rvectvec2transform(const cv::Mat &rvec, const cv::Mat &tvec);
+mat4_t rvectvec2transform(const cv::Mat &rvec, const cv::Mat &tvec);
 
 /**
  * Skew symmetric matrix

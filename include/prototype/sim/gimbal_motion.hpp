@@ -21,7 +21,7 @@ namespace prototype {
 class GimbalMotion {
 public:
   // Simulation settings
-  std::vector<Vec2> joint_setpoints; ///< Bezier curve attitude control points
+  std::vector<vec2_t> joint_setpoints; ///< Bezier curve attitude control points
   double time_dt = 0.01;        ///< Time difference [s]
   double time = 0.0;            ///< Time [s]
   double time_end = 0.0;        ///< Time end [s]
@@ -30,11 +30,11 @@ public:
   double scale = 0.0;           ///< Scale bezier dt back to real time dt
 
   // Gimbal joint angle
-  Vec2 joint_angles = Vec2::Zero();  ///< Gimbal joint angle [rad]
+  vec2_t joint_angles = vec2_t::Zero();  ///< Gimbal joint angle [rad]
 
   GimbalMotion();
 
-  GimbalMotion(const std::vector<Vec2> &joint_setpoints,
+  GimbalMotion(const std::vector<vec2_t> &joint_setpoints,
                const double time_dt,
                const double time_end);
 

@@ -54,7 +54,7 @@ void positive_quatmul(const Eigen::MatrixBase<Derived1> &q1,
  * @param q Quaternion in (x, y, z, w)
  * @returns Norm of quaternion
  */
-double quatnorm(const Vec4 &q);
+double quatnorm(const vec4_t &q);
 
 /**
  * Quaternion normalize
@@ -62,7 +62,7 @@ double quatnorm(const Vec4 &q);
  * @param q Quaternion in (x, y, z, w)
  * @returns Normalized quaternion
  */
-Vec4 quatnormalize(const Vec4 &q);
+vec4_t quatnormalize(const vec4_t &q);
 
 /**
  * Quaternion conjugate
@@ -74,7 +74,7 @@ Vec4 quatnormalize(const Vec4 &q);
  * @param q Quaternion in (x, y, z, w)
  * @returns Conjugate of quaternion
  */
-Vec4 quatconj(const Vec4 &q);
+vec4_t quatconj(const vec4_t &q);
 
 /**
  * Quaternion multiply
@@ -87,7 +87,7 @@ Vec4 quatconj(const Vec4 &q);
  * @param q Quaternion in (x, y, z, w)
  * @returns Product of quaternions p and q
  */
-Vec4 quatmul(const Vec4 &p, const Vec4 &q);
+vec4_t quatmul(const vec4_t &p, const vec4_t &q);
 
 /**
  * Quaternion to Rotation Matrix
@@ -99,7 +99,7 @@ Vec4 quatmul(const Vec4 &p, const Vec4 &q);
  * @param q Quaternion in (x, y, z, w)
  * @returns Rotation matrix
  */
-Mat3 quat2rot(const Vec4 &q);
+mat3_t quat2rot(const vec4_t &q);
 
 /**
  * Quaternion left-compound
@@ -111,7 +111,7 @@ Mat3 quat2rot(const Vec4 &q);
  * @param q Quaternion in (x, y, z, w)
  * @returns Quaternion left-compound
  */
-Mat4 quatlcomp(const Vec4 &q);
+mat4_t quatlcomp(const vec4_t &q);
 
 /**
  * Quaternion right-compound
@@ -123,7 +123,7 @@ Mat4 quatlcomp(const Vec4 &q);
  * @param q Quaternion in (x, y, z, w)
  * @returns Quaternion right-compound
  */
-Mat4 quatrcomp(const Vec4 &q);
+mat4_t quatrcomp(const vec4_t &q);
 
 /**
  * Convert the vector part of a quaternion to a full quaternion.
@@ -136,7 +136,7 @@ Mat4 quatrcomp(const Vec4 &q);
  * @param dtheta Small angle vector to form full quaternion with
  * @returns Small angle Quaternion
  */
-Vec4 quatsmallangle(const Vec3 &dtheta);
+vec4_t quatsmallangle(const vec3_t &dtheta);
 
 /**
  * Quaternion to Euler-angles
@@ -144,7 +144,7 @@ Vec4 quatsmallangle(const Vec3 &dtheta);
  * @param q Quaternion in (x, y, z, w)
  * @returns Euler-angles
  */
-Vec3 quat2euler(const Vec4 &q);
+vec3_t quat2euler(const vec4_t &q);
 
 /**
  * Euler-angles to Quaternion
@@ -152,12 +152,12 @@ Vec3 quat2euler(const Vec4 &q);
  * @param rpy Euler-angles in (roll, pitch, yaw)
  * @returns Quaternion
  */
-Vec4 euler2quat(const Vec3 &rpy);
+vec4_t euler2quat(const vec3_t &rpy);
 
 /**
  * Rotation matrix to Quaternion
  */
-Vec4 rot2quat(const Mat3 &rot);
+vec4_t rot2quat(const mat3_t &rot);
 
 /**
  * Quaternion to Rotation Matrix
@@ -165,7 +165,7 @@ Vec4 rot2quat(const Mat3 &rot);
  * @param q Quaternion in (x, y, z, w)
  * @returns Rotation matrix
  */
-Mat3 C(const Vec4 &q);
+mat3_t C(const vec4_t &q);
 
 /**
  * Omega function
@@ -173,7 +173,7 @@ Mat3 C(const Vec4 &q);
  * @param w Angular velocity
  * @returns Differential form of an angular velocity
  */
-Mat4 Omega(const Vec3 &w);
+mat4_t Omega(const vec3_t &w);
 
 /**
  * Quaternion Zeroth order integration
@@ -188,7 +188,7 @@ Mat4 Omega(const Vec3 &w);
  *
  * @returns Zeroth order integrated quaternion
  */
-Vec4 quatzoi(const Vec4 &q, const Vec3 &w, const double dt);
+vec4_t quatzoi(const vec4_t &q, const vec3_t &w, const double dt);
 
 /** @} group quaternion */
 } //  namespace prototype

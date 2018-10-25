@@ -19,10 +19,10 @@ namespace prototype {
 /**
  * Carrot control
  */
-struct carrot_ctrl {
-  std::vector<Vec3> waypoints;
-  Vec3 wp_start = Vec3::Zero();
-  Vec3 wp_end = Vec3::Zero();
+struct carrot_ctrl_t {
+  std::vector<vec3_t> waypoints;
+  vec3_t wp_start = vec3_t::Zero();
+  vec3_t wp_end = vec3_t::Zero();
   size_t wp_index = 0;
   double look_ahead_dist = 0.0;
 };
@@ -35,8 +35,8 @@ struct carrot_ctrl {
  * @param[in] look_ahead_dist Look ahead distance (m)
  * @returns 0 for success, -1 for failure
  */
-int carrot_ctrl_configure(struct carrot_ctrl &cc,
-                          const std::vector<Vec3> &waypoints,
+int carrot_ctrl_configure(carrot_ctrl_t &cc,
+                          const std::vector<vec3_t> &waypoints,
                           const double look_ahead_dist);
 
 /**
@@ -52,9 +52,9 @@ int carrot_ctrl_configure(struct carrot_ctrl &cc,
  * - t == 0: Position is between `wp_start` and `wp_end`
  * - t == 1: Position is after `wp_end`
  */
-int carrot_ctrl_closest_point(const struct carrot_ctrl &cc,
-                              const Vec3 &pos,
-                              Vec3 &result);
+int carrot_ctrl_closest_point(const carrot_ctrl_t &cc,
+                              const vec3_t &pos,
+                              vec3_t &result);
 
 /**
   * Calculate carrot point
@@ -69,9 +69,9 @@ int carrot_ctrl_closest_point(const struct carrot_ctrl &cc,
   * - t == 0: Position is between `wp_start` and `wp_end`
   * - t == 1: Position is after `wp_end`
   */
-int carrot_ctrl_carrot_point(const struct carrot_ctrl &cc,
-                             const Vec3 &pos,
-                             Vec3 &result);
+int carrot_ctrl_carrot_point(const carrot_ctrl_t &cc,
+                             const vec3_t &pos,
+                             vec3_t &result);
 
 /**
   * Update carrot controller
@@ -81,7 +81,7 @@ int carrot_ctrl_carrot_point(const struct carrot_ctrl &cc,
   * @param[out] carrot_pt Carrot point
   * @returns 0 for success, 1 for all waypoints reached and -1 for failure
   */
-int carrot_ctrl_update(struct carrot_ctrl &cc, const Vec3 &pos, Vec3 &carrot_pt);
+int carrot_ctrl_update(carrot_ctrl_t &cc, const vec3_t &pos, vec3_t &carrot_pt);
 
 /** @} group control */
 } //  namespace prototype

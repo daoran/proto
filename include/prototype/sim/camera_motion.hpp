@@ -22,8 +22,8 @@ namespace prototype {
 class CameraMotion {
 public:
   // Simulation settings
-  std::vector<Vec3> pos_points; ///< Bezier curve position control points
-  std::vector<Vec3> att_points; ///< Bezier curve attitude control points
+  std::vector<vec3_t> pos_points; ///< Bezier curve position control points
+  std::vector<vec3_t> att_points; ///< Bezier curve attitude control points
   double time_dt = 0.01;        ///< Time difference [s]
   double time = 0.0;            ///< Time [s]
   double time_end = 0.0;        ///< Time end [s]
@@ -33,15 +33,15 @@ public:
   bool add_noise = true;
 
   // Camera position velocity and accelation
-  Vec3 p_G = Vec3::Zero();   ///< Global position [m]
-  Vec3 v_G = Vec3::Zero();   ///< Global velocity [m s^-1]
-  Vec3 a_G = Vec3::Zero();   ///< Global acceleration [m s^-2]
-  Vec3 rpy_G = Vec3::Zero(); ///< Global attitude (roll, pitch, yaw) [rad]
-  Vec3 w_G = Vec3::Zero();   ///< Global angular velocity [rad]
+  vec3_t p_G = vec3_t::Zero();   ///< Global position [m]
+  vec3_t v_G = vec3_t::Zero();   ///< Global velocity [m s^-1]
+  vec3_t a_G = vec3_t::Zero();   ///< Global acceleration [m s^-2]
+  vec3_t rpy_G = vec3_t::Zero(); ///< Global attitude (roll, pitch, yaw) [rad]
+  vec3_t w_G = vec3_t::Zero();   ///< Global angular velocity [rad]
 
   // Emulate IMU measurements
-  Vec3 a_B = Vec3::Zero(); ///< Body acceleration [m s^-2]
-  Vec3 w_B = Vec3::Zero(); ///< Body angular velocity [rad s^-1]
+  vec3_t a_B = vec3_t::Zero(); ///< Body acceleration [m s^-2]
+  vec3_t w_B = vec3_t::Zero(); ///< Body angular velocity [rad s^-1]
 
   // Random
   // std::random_device rd;
@@ -49,8 +49,8 @@ public:
 
   CameraMotion();
 
-  CameraMotion(const std::vector<Vec3> &pos_points,
-               const std::vector<Vec3> &att_points,
+  CameraMotion(const std::vector<vec3_t> &pos_points,
+               const std::vector<vec3_t> &att_points,
                const double time_dt,
                const double time_end);
 

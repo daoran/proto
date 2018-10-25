@@ -21,13 +21,13 @@ struct IMUData {
   // Data
   std::vector<long> timestamps;
   std::vector<double> time;
-  std::vector<Vec3> w_B;
-  std::vector<Vec3> a_B;
+  std::vector<vec3_t> w_B;
+  std::vector<vec3_t> a_B;
 
   // Sensor properties
   std::string sensor_type;
   std::string comment;
-  Mat4 T_BS = I(4);
+  mat4_t T_BS = I(4);
   double rate_hz = 0.0;
   double gyro_noise_density = 0.0;
   double gyro_random_walk = 0.0;

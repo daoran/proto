@@ -23,11 +23,11 @@ int Chessboard::load(const std::string &config_file) {
   return 0;
 }
 
-std::vector<Vec2> Chessboard::createGridPoints2d() {
-  std::vector<Vec2> grid_points2d;
+std::vector<vec2_t> Chessboard::createGridPoints2d() {
+  std::vector<vec2_t> grid_points2d;
   for (int i = 0; this->nb_rows; i++) {
     for (int j = 0; this->nb_cols; j++) {
-      auto p = Vec2{i, j} * this->square_size;
+      auto p = vec2_t{i, j} * this->square_size;
       grid_points2d.push_back(p);
     }
   }
@@ -91,7 +91,7 @@ int Chessboard::drawCorners(cv::Mat &image) {
 
 int Chessboard::solvePnP(const std::vector<cv::Point2f> corners,
                          const cv::Mat &K,
-                         Mat4 &T_c_t) {
+                         mat4_t &T_c_t) {
 
   // Calculate transformation matrix
   cv::Mat D;
@@ -124,16 +124,16 @@ int Chessboard::solvePnP(const std::vector<cv::Point2f> corners,
 
 int Chessboard::calcCornerPositions(const std::vector<cv::Point2f> corners,
                                     const cv::Mat &K,
-                                    MatX &X) {
+                                    matx_t &X) {
   // Get transform from camera to chessboard
-  Mat4 T_c_t;
+  mat4_t T_c_t;
   if (this->solvePnP(corners, K, T_c_t) != 0) {
     return -1;
   }
 
   // Convert object points from cv::Point3f to Eigen::Matrix
   const int nb_pts = this->nb_rows * this->nb_cols;
-  MatX obj_pts_homo;
+  matx_t obj_pts_homo;
   obj_pts_homo.resize(4, nb_pts);
   for (int i = 0; i < nb_pts; i++) {
     obj_pts_homo(0, i) = this->object_points[i].x;
@@ -143,7 +143,7 @@ int Chessboard::calcCornerPositions(const std::vector<cv::Point2f> corners,
   }
 
   // Calculate chessboard corners
-  MatX X_homo;
+  matx_t X_homo;
   X_homo = T_c_t * obj_pts_homo;
   X = X_homo.block(0, 0, 3, nb_pts);
 
@@ -151,18 +151,18 @@ int Chessboard::calcCornerPositions(const std::vector<cv::Point2f> corners,
 }
 
 int Chessboard::calcCornerPositions(const std::vector<cv::Point2f> corners,
-                                    const Mat3 &K,
-                                    MatX &X) {
+                                    const mat3_t &K,
+                                    matx_t &X) {
   const cv::Mat K_cam = convert(K);
   return this->calcCornerPositions(corners, K_cam, X);
 }
 
-void Chessboard::project3DPoints(const MatX &X, const Mat3 &K, cv::Mat &image) {
+void Chessboard::project3DPoints(const matx_t &X, const mat3_t &K, cv::Mat &image) {
   // Project 3d point to image plane
-  MatX x = K * X;
+  matx_t x = K * X;
 
   for (int i = 0; i < x.cols(); i++) {
-    const Vec3 p = x.col(i);
+    const vec3_t p = x.col(i);
     const double px = p(0) / p(2);
     const double py = p(1) / p(2);
 
@@ -175,10 +175,10 @@ void Chessboard::project3DPoints(const MatX &X, const Mat3 &K, cv::Mat &image) {
   }
 }
 
-void Chessboard::project3DPoints(const MatX &X,
+void Chessboard::project3DPoints(const matx_t &X,
                                  const cv::Mat &K,
                                  cv::Mat &image) {
-  const Mat3 K_cam = convert(K);
+  const mat3_t K_cam = convert(K);
   this->project3DPoints(X, K_cam, image);
 }
 

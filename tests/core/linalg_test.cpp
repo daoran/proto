@@ -4,7 +4,7 @@
 namespace prototype {
 
 int test_zeros() {
-  MatX A = zeros(2, 2);
+  matx_t A = zeros(2, 2);
 
   MU_CHECK_EQ(A.rows(), 2);
   MU_CHECK_EQ(A.cols(), 2);
@@ -19,7 +19,7 @@ int test_zeros() {
 }
 
 int test_I() {
-  MatX A = I(2, 2);
+  matx_t A = I(2, 2);
 
   MU_CHECK_EQ(A.rows(), 2);
   MU_CHECK_EQ(A.cols(), 2);
@@ -38,7 +38,7 @@ int test_I() {
 }
 
 int test_ones() {
-  MatX A = ones(2, 2);
+  matx_t A = ones(2, 2);
 
   MU_CHECK_EQ(A.rows(), 2);
   MU_CHECK_EQ(A.cols(), 2);
@@ -54,13 +54,13 @@ int test_ones() {
 }
 
 int test_hstack() {
-  Mat2 A;
+  mat2_t A;
   A.fill(1);
 
-  Mat2 B;
+  mat2_t B;
   B.fill(2);
 
-  MatX C = hstack(A, B);
+  matx_t C = hstack(A, B);
   std::cout << C << std::endl;
 
   MU_CHECK_EQ(2, C.rows());
@@ -72,13 +72,13 @@ int test_hstack() {
 }
 
 int test_vstack() {
-  Mat2 A;
+  mat2_t A;
   A.fill(1);
 
-  Mat2 B;
+  mat2_t B;
   B.fill(2);
 
-  MatX C = vstack(A, B);
+  matx_t C = vstack(A, B);
   std::cout << C << std::endl;
 
   MU_CHECK_EQ(4, C.rows());
@@ -90,13 +90,13 @@ int test_vstack() {
 }
 
 int test_dstack() {
-  Mat2 A;
+  mat2_t A;
   A.fill(1);
 
-  Mat2 B;
+  mat2_t B;
   B.fill(2);
 
-  MatX C = dstack(A, B);
+  matx_t C = dstack(A, B);
   std::cout << C << std::endl;
 
   MU_CHECK_EQ(4, C.rows());
@@ -110,10 +110,10 @@ int test_dstack() {
 }
 
 int test_skew() {
-  Vec3 v{1.0, 2.0, 3.0};
-  Mat3 X = skew(v);
+  vec3_t v{1.0, 2.0, 3.0};
+  mat3_t X = skew(v);
 
-  Mat3 X_expected;
+  mat3_t X_expected;
   // clang-format off
   X_expected << 0.0, -3.0, 2.0,
                 3.0, 0.0, -1.0,
@@ -128,14 +128,14 @@ int test_skew() {
 int test_skewsq() { return 0; }
 
 int test_enforce_psd() {
-  Mat3 A;
+  mat3_t A;
   // clang-format off
   A << 0.0, -3.0, 2.0,
        3.0, 0.0, -1.0,
        -2.0, 1.0, 0.0;
   // clang-format on
 
-  Mat3 B = enforce_psd(A);
+  mat3_t B = enforce_psd(A);
   for (int i = 0; i < B.rows(); i++) {
     for (int j = 0; j < B.cols(); j++) {
       MU_CHECK(B(i, j) >= 0);
@@ -146,18 +146,18 @@ int test_enforce_psd() {
 }
 
 int test_nullspace() {
-  Mat3 A;
+  mat3_t A;
   // clang-format off
   A << 1.0, 2.0, 3.0,
        1.0, 2.0, 3.0,
        1.0, 2.0, 3.0;
   // clang-format on
 
-  MatX B = nullspace(A);
+  matx_t B = nullspace(A);
   std::cout << B << std::endl;
   std::cout << A * B << std::endl;
 
-  MatX C = A * B;
+  matx_t C = A * B;
   for (int i = 0; i < C.rows(); i++) {
     for (int j = 0; j < C.cols(); j++) {
       MU_CHECK_FLOAT(0.0, C(i, j));

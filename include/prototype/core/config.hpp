@@ -155,14 +155,14 @@ public:
   void addParam(const std::string &key, std::vector<float> *out, const bool optional = false);
   void addParam(const std::string &key, std::vector<double> *out, const bool optional = false);
   void addParam(const std::string &key, std::vector<std::string> *out, const bool optional = false);
-  void addParam(const std::string &key, Vec2 *out, const bool optional = false);
-  void addParam(const std::string &key, Vec3 *out, const bool optional = false);
-  void addParam(const std::string &key, Vec4 *out, const bool optional = false);
-  void addParam(const std::string &key, VecX *out, const bool optional = false);
-  void addParam(const std::string &key, Mat2 *out, const bool optional = false);
-  void addParam(const std::string &key, Mat3 *out, const bool optional = false);
-  void addParam(const std::string &key, Mat4 *out, const bool optional = false);
-  void addParam(const std::string &key, MatX *out, const bool optional = false);
+  void addParam(const std::string &key, vec2_t *out, const bool optional = false);
+  void addParam(const std::string &key, vec3_t *out, const bool optional = false);
+  void addParam(const std::string &key, vec4_t *out, const bool optional = false);
+  void addParam(const std::string &key, vecx_t *out, const bool optional = false);
+  void addParam(const std::string &key, mat2_t *out, const bool optional = false);
+  void addParam(const std::string &key, mat3_t *out, const bool optional = false);
+  void addParam(const std::string &key, mat4_t *out, const bool optional = false);
+  void addParam(const std::string &key, matx_t *out, const bool optional = false);
   void addParam(const std::string &key, cv::Mat *out, const bool optional = false);
   // clang-format on
 

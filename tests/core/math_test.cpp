@@ -91,7 +91,7 @@ int test_wrapTo360() {
 }
 
 int test_cross_track_error() {
-  Vec2 pos, p1, p2;
+  vec2_t pos, p1, p2;
 
   pos << 2, 2;
   p1 << 1, 1;
@@ -107,7 +107,7 @@ int test_cross_track_error() {
 }
 
 int test_point_left_right() {
-  Vec2 pos, p1, p2;
+  vec2_t pos, p1, p2;
 
   pos << 2, 3;
   p1 << 1, 1;
@@ -144,7 +144,7 @@ int test_point_left_right() {
 
 int test_closest_point() {
   int retval;
-  Vec2 p1, p2, p3, closest;
+  vec2_t p1, p2, p3, closest;
 
   // setup
   p1 << 0, 0;
@@ -184,9 +184,9 @@ int test_closest_point() {
 }
 
 int test_lerp() {
-  const Vec2 a{0.0, 5.0};
-  const Vec2 b{5.0, 0.0};
-  const Vec2 result = lerp(a, b, 0.8);
+  const vec2_t a{0.0, 5.0};
+  const vec2_t b{5.0, 0.0};
+  const vec2_t result = lerp(a, b, 0.8);
   std::cout << result << std::endl;
 
   return 0;

@@ -48,7 +48,7 @@ int test_PinholeModel_constructor2() {
   const double cx = 3.0;
   const double cy = 4.0;
 
-  MatX K = Mat3::Zero();
+  matx_t K = mat3_t::Zero();
   K(0, 0) = fx;
   K(1, 1) = fy;
   K(0, 2) = cx;
@@ -90,7 +90,7 @@ int test_PinholeModel_constructor3() {
 int test_PinholeModel_focalLength() {
   const double fx = pinhole_focal_length(600, 90.0);
   const double fy = pinhole_focal_length(600, 90.0);
-  const Vec2 focal_length = pinhole_focal_length(Vec2{600, 600}, 90.0, 90.0);
+  const vec2_t focal_length = pinhole_focal_length(vec2_t{600, 600}, 90.0, 90.0);
 
   MU_CHECK_FLOAT(300.0, fy);
   MU_CHECK_FLOAT(fx, fy);
@@ -103,11 +103,11 @@ int test_PinholeModel_focalLength() {
 int test_PinholeModel_P() {
   struct test_config config;
   PinholeModel cam_model = setup_pinhole_model();
-  Mat3 R = euler321ToRot(Vec3{0.0, 0.0, 0.0});
-  Vec3 t{1.0, 2.0, 3.0};
-  Mat34 P = cam_model.P(R, t);
+  mat3_t R = euler321ToRot(vec3_t{0.0, 0.0, 0.0});
+  vec3_t t{1.0, 2.0, 3.0};
+  mat34_t P = cam_model.P(R, t);
 
-  Mat34 P_expected;
+  mat34_t P_expected;
   // clang-format off
   P_expected << config.fx, 0.0, config.cx, -1514.26,
                 0.0, config.fy, config.cy, -2068.51,
@@ -121,10 +121,10 @@ int test_PinholeModel_P() {
 
 int test_PinholeModel_project() {
   PinholeModel cam_model = setup_pinhole_model();
-  Mat3 R = euler321ToRot(Vec3{0.0, 0.0, 0.0});
-  Vec3 t{0.0, 0.0, 0.0};
-  Vec3 X{0.0, 0.0, 10.0};
-  Vec2 x = cam_model.project(X, R, t);
+  mat3_t R = euler321ToRot(vec3_t{0.0, 0.0, 0.0});
+  vec3_t t{0.0, 0.0, 0.0};
+  vec3_t X{0.0, 0.0, 10.0};
+  vec2_t x = cam_model.project(X, R, t);
 
   MU_CHECK_FLOAT(320.0, x(0));
   MU_CHECK_FLOAT(320.0, x(1));
@@ -134,7 +134,7 @@ int test_PinholeModel_project() {
 
 int test_PinholeModel_pixel2image() {
   PinholeModel cam_model = setup_pinhole_model();
-  Vec2 point = cam_model.pixel2ideal(Vec2{320, 320});
+  vec2_t point = cam_model.pixel2ideal(vec2_t{320, 320});
 
   MU_CHECK_FLOAT(0.0, point(0));
   MU_CHECK_FLOAT(0.0, point(1));

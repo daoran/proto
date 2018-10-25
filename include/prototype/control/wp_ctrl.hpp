@@ -23,21 +23,21 @@ namespace prototype {
 /**
  * Waypoint Control
  */
-struct wp_ctrl {
+struct wp_ctrl_t {
   bool configured = false;
   double dt = 0.0;
 
-  struct pid at_controller = pid_setup(0.5, 0.0, 0.035);
-  struct pid ct_controller = pid_setup(0.5, 0.0, 0.035);
-  struct pid z_controller = pid_setup(0.3, 0.0, 0.1);
-  struct pid yaw_controller = pid_setup(2.0, 0.0, 0.1);
+  pid_t at_controller{0.5, 0.0, 0.035};
+  pid_t ct_controller{0.5, 0.0, 0.035};
+  pid_t z_controller{0.3, 0.0, 0.1};
+  pid_t yaw_controller{2.0, 0.0, 0.1};
 
   double roll_limit[2] = {deg2rad(-30.0), deg2rad(30.0)};
   double pitch_limit[2] = {deg2rad(-30.0), deg2rad(30.0)};
   double hover_throttle = 0.5;
 
-  Vec3 setpoints{0.0, 0.0, 0.0};
-  Vec4 outputs{0.0, 0.0, 0.0, 0.0};
+  vec3_t setpoints{0.0, 0.0, 0.0};
+  vec4_t outputs{0.0, 0.0, 0.0, 0.0};
 };
 
 /**
@@ -49,7 +49,7 @@ struct wp_ctrl {
  *    - -1: Failed to load config file
  *    - -2: Failed to load mission file
  */
-int wp_ctrl_configure(struct wp_ctrl &wc, const std::string &config_file);
+int wp_ctrl_configure(wp_ctrl_t &wc, const std::string &config_file);
 
 /**
   * Update controller
@@ -66,17 +66,17 @@ int wp_ctrl_configure(struct wp_ctrl &wc, const std::string &config_file);
   *   - -1: Not configured
   *   - -2: No more waypoints
   */
-int wp_ctrl_update(struct wp_ctrl &wc,
-                   struct wp_mission &m,
-                   const Vec3 &p_G,
-                   const Vec3 &v_G,
-                   const Vec3 &rpy_G,
+int wp_ctrl_update(wp_ctrl_t &wc,
+                   wp_mission_t &m,
+                   const vec3_t &p_G,
+                   const vec3_t &v_G,
+                   const vec3_t &rpy_G,
                    const double dt);
 
 /**
  * Reset controller errors to 0
  */
-void wp_ctrl_reset(struct wp_ctrl &wc);
+void wp_ctrl_reset(wp_ctrl_t &wc);
 
 /** @} group control */
 } //  namespace prototype

@@ -54,7 +54,7 @@ int GMSCKF::configure(const std::string &config_file) {
   // Set IMU Settings
   // clang-format off
   // -- Set estimate covariance matrix
-  VecX init_var = zeros(x_imu_sz, 1);
+  vecx_t init_var = zeros(x_imu_sz, 1);
   init_var << imu_config.q_init_var,
               imu_config.bg_init_var,
               imu_config.v_init_var,
@@ -63,7 +63,7 @@ int GMSCKF::configure(const std::string &config_file) {
   this->P_imu = init_var.asDiagonal();
 
   // -- Set noise covariance matrix
-  VecX n_imu = zeros(12, 1);
+  vecx_t n_imu = zeros(12, 1);
   n_imu << imu_config.w_var,
            imu_config.dbg_var,
            imu_config.a_var,
@@ -74,15 +74,15 @@ int GMSCKF::configure(const std::string &config_file) {
   return 0;
 }
 
-VecX GMSCKF::getState() {
-  VecX state = zeros(9, 1);
+vecx_t GMSCKF::getState() {
+  vecx_t state = zeros(9, 1);
   state.segment(0, 3) = this->p_G;
   state.segment(3, 3) = this->v_G;
   state.segment(6, 3) = quat2euler(this->q_IG);
   return state;
 }
 
-MatX GMSCKF::P() {
+matx_t GMSCKF::P() {
   // GMSCKF not initialized yet
   const int N = this->N();
   if (N == 0) {
@@ -91,7 +91,7 @@ MatX GMSCKF::P() {
 
   // Form P
   const int P_size = x_imu_sz + x_cam_sz * this->N();
-  MatX P;
+  matx_t P;
   P = zeros(P_size, P_size);
   P.block(0, 0, x_imu_sz, x_imu_sz) = this->P_imu;
   P.block(0, x_imu_sz, x_imu_sz, N * x_cam_sz) = this->P_imu_cam;
@@ -101,14 +101,14 @@ MatX GMSCKF::P() {
   return P;
 }
 
-MatX GMSCKF::J(const Vec4 &cam_q_CI,
-               const Vec3 &cam_p_IC,
-               const Vec4 &q_hat_IG,
+matx_t GMSCKF::J(const vec4_t &cam_q_CI,
+               const vec3_t &cam_p_IC,
+               const vec4_t &q_hat_IG,
                const int N) {
-  const Mat3 C_CI = C(cam_q_CI);
-  const Mat3 C_IG = C(q_hat_IG);
+  const mat3_t C_CI = C(cam_q_CI);
+  const mat3_t C_IG = C(q_hat_IG);
 
-  MatX J = zeros(x_cam_sz, x_imu_sz + x_cam_sz * N);
+  matx_t J = zeros(x_cam_sz, x_imu_sz + x_cam_sz * N);
   // -- First row --
   J.block(0, 0, 3, 3) = C_CI;
   // -- Second row --
@@ -122,9 +122,9 @@ int GMSCKF::N() { return static_cast<int>(this->cam_states.size()); }
 
 void GMSCKF::H(const FeatureTrack &track,
                const CameraStates &track_cam_states,
-               const Vec3 &p_G_fj,
-               MatX &H_f_j,
-               MatX &H_x_j) {
+               const vec3_t &p_G_fj,
+               matx_t &H_f_j,
+               matx_t &H_x_j) {
   // Setup
   const int N = this->N();             // Number of camera states
   const int M = track.trackedLength(); // Length of feature track
@@ -141,49 +141,49 @@ void GMSCKF::H(const FeatureTrack &track,
   // Form measurement jacobians
   for (int i = 0; i < M; i++) {
     // Static camera pose in global frame
-    const Mat3 C_CsG = C(track_cam_states[i].q_CG);
-    const Vec3 p_G_Cs = track_cam_states[i].p_G;
+    const mat3_t C_CsG = C(track_cam_states[i].q_CG);
+    const vec3_t p_G_Cs = track_cam_states[i].p_G;
 
     // Dynamic camera pose in static camera frame
-    const Vec2 theta = track_cam_states[i].theta;
-    const Mat4 T_CdCs = this->gimbal_model.T_ds(theta);
-    const Mat3 C_CdCs = T_CdCs.block(0, 0, 3, 3);
+    const vec2_t theta = track_cam_states[i].theta;
+    const mat4_t T_CdCs = this->gimbal_model.T_ds(theta);
+    const mat3_t C_CdCs = T_CdCs.block(0, 0, 3, 3);
 
     // Feature position in static camera frame
-    const Vec3 p_Cs_f = C_CsG * (p_G_fj - p_G_Cs);
+    const vec3_t p_Cs_f = C_CsG * (p_G_fj - p_G_Cs);
 
     // Feature position in dynamic camera frame
-    const Vec3 p_Cd_f = (T_CdCs * p_Cs_f.homogeneous()).head(3);
+    const vec3_t p_Cd_f = (T_CdCs * p_Cs_f.homogeneous()).head(3);
 
     // dz / dp_Cs_f
-    MatX dz_dp_Cs_f = zeros(4, 3);
+    matx_t dz_dp_Cs_f = zeros(4, 3);
     dz_dp_Cs_f(0, 0) = 1 / p_Cs_f(2);
     dz_dp_Cs_f(1, 1) = 1 / p_Cs_f(2);
     dz_dp_Cs_f(0, 2) = -p_Cs_f(0) / (p_Cs_f(2) * p_Cs_f(2));
     dz_dp_Cs_f(1, 2) = -p_Cs_f(1) / (p_Cs_f(2) * p_Cs_f(2));
 
     // dz / dp_Cd_f
-    MatX dz_dp_Cd_f = zeros(4, 3);
+    matx_t dz_dp_Cd_f = zeros(4, 3);
     dz_dp_Cd_f(2, 0) = 1 / p_Cd_f(2);
     dz_dp_Cd_f(3, 1) = 1 / p_Cd_f(2);
     dz_dp_Cd_f(2, 2) = -p_Cd_f(0) / (p_Cd_f(2) * p_Cd_f(2));
     dz_dp_Cd_f(3, 2) = -p_Cd_f(1) / (p_Cd_f(2) * p_Cd_f(2));
 
     // dp_Cs_f / dx_Cs
-    MatX dp_Cs_f_dx_Cs = zeros(3, 6);
+    matx_t dp_Cs_f_dx_Cs = zeros(3, 6);
     dp_Cs_f_dx_Cs.leftCols(3) = skew(p_Cs_f);
     dp_Cs_f_dx_Cs.rightCols(3) = -C_CsG;
 
     // dp_Cd_f / dx_Cs
-    MatX dp_Cd_f_dx_Cs = zeros(3, 6);
+    matx_t dp_Cd_f_dx_Cs = zeros(3, 6);
     dp_Cd_f_dx_Cs.leftCols(3) = C_CdCs * skew(p_Cs_f);
     dp_Cd_f_dx_Cs.rightCols(3) = C_CdCs * -C_CsG;
 
     // dp_Cs_f / dp_G_f
-    const Mat3 dp_Cs_f_dp_G_f = C_CsG;
+    const mat3_t dp_Cs_f_dp_G_f = C_CsG;
 
     // dp_Cd_f / dp_G_f
-    const Mat3 dp_Cd_f_dp_G_f = C_CdCs * C_CsG;
+    const mat3_t dp_Cd_f_dp_G_f = C_CdCs * C_CsG;
 
     // Stack Jacobians
     // -- Row start index
@@ -204,10 +204,10 @@ void GMSCKF::H(const FeatureTrack &track,
 }
 
 int GMSCKF::initialize(const long ts,
-                       const Vec4 &q_IG,
-                       const Vec3 &v_G,
-                       const Vec3 &p_G,
-                       const Vec2 &theta) {
+                       const vec4_t &q_IG,
+                       const vec3_t &v_G,
+                       const vec3_t &p_G,
+                       const vec2_t &theta) {
   this->timestamp_first = ts;
   this->last_updated = ts;
   this->q_IG = q_IG;       ///< JPL Quaternion in Global frame
@@ -221,14 +221,14 @@ int GMSCKF::initialize(const long ts,
 }
 
 int GMSCKF::initialize(const long ts,
-                       const std::vector<Vec3> &imu_gyro_buffer,
-                       const std::vector<Vec3> &imu_accel_buffer,
-                       const Vec2 &theta) {
+                       const std::vector<vec3_t> &imu_gyro_buffer,
+                       const std::vector<vec3_t> &imu_accel_buffer,
+                       const vec2_t &theta) {
   assert(imu_gyro_buffer.size() == imu_accel_buffer.size());
 
   // Calculate sum of angular velocity and linear acceleration
-  Vec3 sum_angular_vel = Vec3::Zero();
-  Vec3 sum_linear_acc = Vec3::Zero();
+  vec3_t sum_angular_vel = vec3_t::Zero();
+  vec3_t sum_linear_acc = vec3_t::Zero();
   const int buf_size = imu_gyro_buffer.size();
   for (int i = 0; i < buf_size; i++) {
     sum_angular_vel += imu_gyro_buffer[i];
@@ -239,8 +239,8 @@ int GMSCKF::initialize(const long ts,
   this->b_g = sum_angular_vel / (double) buf_size;
 
   // Initialize gravity
-  Vec3 g_imu = sum_linear_acc / (double) buf_size;
-  this->g_G = Vec3(0.0, 0.0, -g_imu.norm());
+  vec3_t g_imu = sum_linear_acc / (double) buf_size;
+  this->g_G = vec3_t(0.0, 0.0, -g_imu.norm());
 
   // Initialize the initial orientation
   Eigen::Quaterniond q_GI =
@@ -258,23 +258,23 @@ int GMSCKF::initialize(const long ts,
   return 0;
 }
 
-void GMSCKF::augmentState(const Vec2 &theta) {
+void GMSCKF::augmentState(const vec2_t &theta) {
   // Camera pose jacobian
-  const MatX J = this->J(this->q_CI, this->p_IC, this->q_IG, this->N());
+  const matx_t J = this->J(this->q_CI, this->p_IC, this->q_IG, this->N());
 
   // Form temporary matrix to augment new camera state
   const int N = this->N();
   const int X0_size = x_imu_sz + N * x_cam_sz;
   const int X_rows = X0_size + J.rows();
   const int X_cols = X0_size;
-  MatX X;
+  matx_t X;
   X.resize(X_rows, X_cols);
   X.block(0, 0, X0_size, X0_size) = I(X0_size);
   X.block(X0_size, 0, J.rows(), J.cols()) = J;
 
   // Augment GMSCKF covariance matrix (with new camera state)
-  const MatX P = X * this->P() * X.transpose();
-  const MatX P_fixed = (P + P.transpose()) / 2.0; // Ensure symmetry
+  const matx_t P = X * this->P() * X.transpose();
+  const matx_t P_fixed = (P + P.transpose()) / 2.0; // Ensure symmetry
 
   // Decompose covariance into its own constituents
   // clang-format off
@@ -286,10 +286,10 @@ void GMSCKF::augmentState(const Vec2 &theta) {
   // Add new camera state to sliding window by using current IMU pose
   // estimate to calculate camera pose
   // -- Create camera state in global frame
-  const Vec4 imu_q_IG = this->q_IG;
-  const Vec3 imu_p_G = this->p_G;
-  const Vec4 cam_q_CG = quatlcomp(this->q_CI) * imu_q_IG;
-  const Vec3 cam_p_G = imu_p_G + C(imu_q_IG).transpose() * this->p_IC;
+  const vec4_t imu_q_IG = this->q_IG;
+  const vec3_t imu_p_G = this->p_G;
+  const vec4_t cam_q_CG = quatlcomp(this->q_CI) * imu_q_IG;
+  const vec3_t cam_p_G = imu_p_G + C(imu_q_IG).transpose() * this->p_IC;
   // -- Add camera state to sliding window
   this->cam_states.emplace_back(this->counter_frame_id,
                                 cam_p_G,
@@ -335,8 +335,8 @@ CameraStates GMSCKF::getAllCameraStates() {
   return retval;
 }
 
-MatX GMSCKF::F(const Vec3 &w_hat, const Vec4 &q_hat, const Vec3 &a_hat) {
-  MatX F = zeros(x_imu_sz);
+matx_t GMSCKF::F(const vec3_t &w_hat, const vec4_t &q_hat, const vec3_t &a_hat) {
+  matx_t F = zeros(x_imu_sz);
 
   // -- First row block --
   F.block<3, 3>(0, 0) = -skew(w_hat);
@@ -350,8 +350,8 @@ MatX GMSCKF::F(const Vec3 &w_hat, const Vec4 &q_hat, const Vec3 &a_hat) {
   return F;
 }
 
-MatX GMSCKF::G(const Vec4 &q_hat) {
-  MatX G = zeros(x_imu_sz, 12);
+matx_t GMSCKF::G(const vec4_t &q_hat) {
+  matx_t G = zeros(x_imu_sz, 12);
 
   // -- First row block --
   G.block<3, 3>(0, 0) = -I(3);
@@ -365,7 +365,7 @@ MatX GMSCKF::G(const Vec4 &q_hat) {
   return G;
 }
 
-int GMSCKF::predictionUpdate(const Vec3 &a_m, const Vec3 &w_m, const long ts) {
+int GMSCKF::predictionUpdate(const vec3_t &a_m, const vec3_t &w_m, const long ts) {
   const double dt = (ts - this->last_updated) * 1e-9;
   this->imu_timestamps.push_back((ts - this->timestamp_first) * 1.0e-9);
   if (dt < 0.0) {
@@ -375,38 +375,38 @@ int GMSCKF::predictionUpdate(const Vec3 &a_m, const Vec3 &w_m, const long ts) {
   }
 
   // Calculate new accel and gyro estimates
-  const Vec3 a_hat = a_m - this->b_a;
-  const Vec3 w_hat = w_m - this->b_g;
+  const vec3_t a_hat = a_m - this->b_a;
+  const vec3_t w_hat = w_m - this->b_g;
 
   // Build the transition F and input G matrices
-  const MatX F = this->F(w_hat, this->q_IG, a_hat);
-  const MatX G = this->G(this->q_IG);
+  const matx_t F = this->F(w_hat, this->q_IG, a_hat);
+  const matx_t G = this->G(this->q_IG);
 
   // Propagate IMU states
   // clang-format off
   if (this->rk4) {
     // Quaternion zeroth order integration
-    const Vec4 dq_dt = quatzoi(this->q_IG, w_hat, dt);
-    const Vec4 dq_dt2 = quatzoi(this->q_IG, w_hat, dt * 0.5);
-    const Mat3 dR_dt_transpose = C(dq_dt).transpose();
-    const Mat3 dR_dt2_transpose = C(dq_dt2).transpose();
+    const vec4_t dq_dt = quatzoi(this->q_IG, w_hat, dt);
+    const vec4_t dq_dt2 = quatzoi(this->q_IG, w_hat, dt * 0.5);
+    const mat3_t dR_dt_transpose = C(dq_dt).transpose();
+    const mat3_t dR_dt2_transpose = C(dq_dt2).transpose();
 
     // 4th order Runge-Kutta
     // -- k1 = f(tn, yn)
-    const Vec3 k1_v_dot = C(this->q_IG).transpose() * a_hat + this->g_G;
-    const Vec3 k1_p_dot = this->v_G;
+    const vec3_t k1_v_dot = C(this->q_IG).transpose() * a_hat + this->g_G;
+    const vec3_t k1_p_dot = this->v_G;
     // -- k2 = f(tn + dt / 2, yn + k1 * dt / 2)
-    const Vec3 k1_v = this->v_G + k1_v_dot * dt / 2.0;
-    const Vec3 k2_v_dot = dR_dt2_transpose * a_hat + this->g_G;
-    const Vec3 k2_p_dot = k1_v;
+    const vec3_t k1_v = this->v_G + k1_v_dot * dt / 2.0;
+    const vec3_t k2_v_dot = dR_dt2_transpose * a_hat + this->g_G;
+    const vec3_t k2_p_dot = k1_v;
     // -- k3 = f(tn + dt / 2, yn + k2 * dt / 2)
-    const Vec3 k2_v = this->v_G + k2_v_dot * dt / 2;
-    const Vec3 k3_v_dot = dR_dt2_transpose * a_hat + this->g_G;
-    const Vec3 k3_p_dot = k2_v;
+    const vec3_t k2_v = this->v_G + k2_v_dot * dt / 2;
+    const vec3_t k3_v_dot = dR_dt2_transpose * a_hat + this->g_G;
+    const vec3_t k3_p_dot = k2_v;
     // -- k4 = f(tn + dt, yn + k3)
-    const Vec3 k3_v = this->v_G + k3_v_dot * dt;
-    const Vec3 k4_v_dot = dR_dt_transpose * a_hat + this->g_G;
-    const Vec3 k4_p_dot = k3_v;
+    const vec3_t k3_v = this->v_G + k3_v_dot * dt;
+    const vec3_t k4_v_dot = dR_dt_transpose * a_hat + this->g_G;
+    const vec3_t k4_p_dot = k3_v;
     // -- yn + 1 = yn + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
     this->q_IG = quatnormalize(dq_dt);
     this->v_G = this->v_G + dt / 6 * (k1_v_dot + 2 * k2_v_dot + 2 * k3_v_dot + k4_v_dot);
@@ -429,10 +429,10 @@ int GMSCKF::predictionUpdate(const Vec3 &a_m, const Vec3 &w_m, const long ts) {
   // -- Approximate matrix exponential to the 3rd order using the power series,
   //    which can be considered to be accurate enough assuming dt is within
   //    0.01s.
-  const MatX F_dt = F * dt;
-  const MatX F_dt_sq = F_dt * F_dt;
-  const MatX F_dt_cube = F_dt_sq * F_dt;
-  const MatX Phi = I(x_imu_sz) + F_dt + 0.5 * F_dt_sq + (1.0 / 6.0) * F_dt_cube;
+  const matx_t F_dt = F * dt;
+  const matx_t F_dt_sq = F_dt * F_dt;
+  const matx_t F_dt_cube = F_dt_sq * F_dt;
+  const matx_t Phi = I(x_imu_sz) + F_dt + 0.5 * F_dt_sq + (1.0 / 6.0) * F_dt_cube;
   // -- Update
   // this->P = Phi * this->P * Phi.transpose() + this->Q;
   // this->P = Phi * this->P * Phi.transpose() + (G * this->Q_imu * G.transpose()) * dt;
@@ -449,9 +449,9 @@ int GMSCKF::predictionUpdate(const Vec3 &a_m, const Vec3 &w_m, const long ts) {
   return 0;
 }
 
-int GMSCKF::chiSquaredTest(const MatX &H, const VecX &r, const int dof) {
-  const MatX P1 = H * this->P() * H.transpose();
-  const MatX P2 = this->img_var * I(H.rows(), H.rows());
+int GMSCKF::chiSquaredTest(const matx_t &H, const vecx_t &r, const int dof) {
+  const matx_t P1 = H * this->P() * H.transpose();
+  const matx_t P2 = this->img_var * I(H.rows(), H.rows());
   const double gamma = r.transpose() * (P1 + P2).ldlt().solve(r);
 
   if (gamma < this->chi_squared_table[dof]) {
@@ -462,8 +462,8 @@ int GMSCKF::chiSquaredTest(const MatX &H, const VecX &r, const int dof) {
 }
 
 int GMSCKF::residualizeTrack(const FeatureTrack &track,
-                             MatX &H_o_j,
-                             VecX &r_o_j) {
+                             matx_t &H_o_j,
+                             vecx_t &r_o_j) {
   // Pre-check
   if (track.trackedLength() >= (size_t) this->max_window_size) {
     return -1;
@@ -471,7 +471,7 @@ int GMSCKF::residualizeTrack(const FeatureTrack &track,
 
   // Estimate j-th feature position in global frame
   const CameraStates track_cam_states = this->getTrackCameraStates(track);
-  Vec3 p_G_f;
+  vec3_t p_G_f;
   CeresFeatureEstimator feature_estimator(track,
                                           track_cam_states,
                                           this->gimbal_model);
@@ -480,32 +480,32 @@ int GMSCKF::residualizeTrack(const FeatureTrack &track,
   }
 
   // Calculate residuals
-  VecX r_j = zeros(4 * track_cam_states.size(), 1);
+  vecx_t r_j = zeros(4 * track_cam_states.size(), 1);
   for (size_t i = 0; i < track_cam_states.size(); i++) {
     // Transform feature from global frame to i-th camera frame
     const auto cam_state = track_cam_states[i];
-    const Mat3 C_CsG = C(cam_state.q_CG);
-    const Mat4 T_CdCs = this->gimbal_model.T_ds(cam_state.theta);
-    const Vec3 p_Cs_f = C_CsG * (p_G_f - cam_state.p_G);
-    const Vec3 p_Cd_f = (T_CdCs * p_Cs_f.homogeneous()).head(3);
+    const mat3_t C_CsG = C(cam_state.q_CG);
+    const mat4_t T_CdCs = this->gimbal_model.T_ds(cam_state.theta);
+    const vec3_t p_Cs_f = C_CsG * (p_G_f - cam_state.p_G);
+    const vec3_t p_Cd_f = (T_CdCs * p_Cs_f.homogeneous()).head(3);
     const double u_Cs = p_Cs_f(0) / p_Cs_f(2);
     const double v_Cs = p_Cs_f(1) / p_Cs_f(2);
     const double u_Cd = p_Cd_f(0) / p_Cd_f(2);
     const double v_Cd = p_Cd_f(1) / p_Cd_f(2);
-    const Vec4 z_hat{u_Cs, v_Cs, u_Cd, v_Cd};
+    const vec4_t z_hat{u_Cs, v_Cs, u_Cd, v_Cd};
 
     // Calculate reprojection error and add it to the residual vector
     assert(track.type == DYNAMIC_STEREO_TRACK);
-    const Vec2 z_Cs = track.track0[i].getKeyPoint();
-    const Vec2 z_Cd = track.track1[i].getKeyPoint();
-    const Vec4 z{z_Cs(0), z_Cs(1), z_Cd(0), z_Cd(1)};
+    const vec2_t z_Cs = track.track0[i].getKeyPoint();
+    const vec2_t z_Cd = track.track1[i].getKeyPoint();
+    const vec4_t z{z_Cs(0), z_Cs(1), z_Cd(0), z_Cd(1)};
     const int rs = 4 * i;
     r_j.block(rs, 0, 4, 1) = z - z_hat;
   }
 
   // Form jacobian of measurement w.r.t both state and feature
-  MatX H_f_j;
-  MatX H_x_j;
+  matx_t H_f_j;
+  matx_t H_x_j;
   this->H(track, track_cam_states, p_G_f, H_f_j, H_x_j);
 
   // Perform Null Space Trick
@@ -515,8 +515,8 @@ int GMSCKF::residualizeTrack(const FeatureTrack &track,
     // feature position via null space projection [Section D:
     // Measurement Model, Mourikis2007]
     const unsigned int settings = Eigen::ComputeFullU | Eigen::ComputeThinV;
-    Eigen::JacobiSVD<MatX> svd(H_f_j, settings);
-    const MatX A_j = svd.matrixU().rightCols(H_f_j.rows() - 3);
+    Eigen::JacobiSVD<matx_t> svd(H_f_j, settings);
+    const matx_t A_j = svd.matrixU().rightCols(H_f_j.rows() - 3);
     H_o_j = A_j.transpose() * H_x_j;
     r_o_j = A_j.transpose() * r_j;
 
@@ -536,14 +536,14 @@ int GMSCKF::residualizeTrack(const FeatureTrack &track,
   return 0;
 }
 
-int GMSCKF::calcResiduals(const FeatureTracks &tracks, MatX &T_H, VecX &r_n) {
+int GMSCKF::calcResiduals(const FeatureTracks &tracks, matx_t &T_H, vecx_t &r_n) {
   // Residualize feature tracks
-  MatX H_o;
-  VecX r_o;
+  matx_t H_o;
+  vecx_t r_o;
 
   for (auto track : tracks) {
-    MatX H_j;
-    VecX r_j;
+    matx_t H_j;
+    vecx_t r_j;
 
     if (this->residualizeTrack(track, H_j, r_j) == 0) {
       // Stack measurement jacobian matrix and residual vector
@@ -577,8 +577,8 @@ int GMSCKF::calcResiduals(const FeatureTracks &tracks, MatX &T_H, VecX &r_n) {
       spqr_helper.setSPQROrdering(SPQR_ORDERING_NATURAL);
       spqr_helper.compute(H_sparse);
 
-      MatX H_temp;
-      VecX r_temp;
+      matx_t H_temp;
+      vecx_t r_temp;
       (spqr_helper.matrixQ().transpose() * H_o).evalTo(H_temp);
       (spqr_helper.matrixQ().transpose() * r_o).evalTo(r_temp);
 
@@ -587,9 +587,9 @@ int GMSCKF::calcResiduals(const FeatureTracks &tracks, MatX &T_H, VecX &r_n) {
 
     } else if (this->qr_mode == "dense") {
       // -- Dense QR method (slower)
-      Eigen::HouseholderQR<MatX> QR(H_o);
-      MatX Q = QR.householderQ();
-      MatX Q1 = Q.leftCols(x_imu_sz + x_cam_sz * this->N());
+      Eigen::HouseholderQR<matx_t> QR(H_o);
+      matx_t Q = QR.householderQ();
+      matx_t Q1 = Q.leftCols(x_imu_sz + x_cam_sz * this->N());
       T_H = Q1.transpose() * H_o;
       r_n = Q1.transpose() * r_o;
 
@@ -605,18 +605,18 @@ int GMSCKF::calcResiduals(const FeatureTracks &tracks, MatX &T_H, VecX &r_n) {
   return 0;
 }
 
-void GMSCKF::correctIMUState(const VecX &dx) {
-  const VecX dx_imu = dx.head(x_imu_sz);
+void GMSCKF::correctIMUState(const vecx_t &dx) {
+  const vecx_t dx_imu = dx.head(x_imu_sz);
 
   // Split dx into its constituent components
-  const Vec3 dtheta_IG = dx_imu.segment(0, 3);
-  const Vec3 db_g = dx_imu.segment(3, 3);
-  const Vec3 dv_G = dx_imu.segment(6, 3);
-  const Vec3 db_a = dx_imu.segment(9, 3);
-  const Vec3 dp_G = dx_imu.segment(12, 3);
+  const vec3_t dtheta_IG = dx_imu.segment(0, 3);
+  const vec3_t db_g = dx_imu.segment(3, 3);
+  const vec3_t dv_G = dx_imu.segment(6, 3);
+  const vec3_t db_a = dx_imu.segment(9, 3);
+  const vec3_t dp_G = dx_imu.segment(12, 3);
 
   // Time derivative of quaternion (small angle approx)
-  const Vec4 dq_IG = quatsmallangle(dtheta_IG);
+  const vec4_t dq_IG = quatsmallangle(dtheta_IG);
 
   // Correct IMU state
   // -- State
@@ -627,10 +627,10 @@ void GMSCKF::correctIMUState(const VecX &dx) {
   this->p_G += dp_G;
 }
 
-void GMSCKF::correctCameraStates(const VecX &dx) {
+void GMSCKF::correctCameraStates(const vecx_t &dx) {
   for (int i = 0; i < this->N(); i++) {
     const int rs = x_imu_sz + i * x_cam_sz;
-    const VecX dx_cam{dx.block(rs, 0, x_cam_sz, 1)};
+    const vecx_t dx_cam{dx.block(rs, 0, x_cam_sz, 1)};
     this->cam_states[i].correct(dx_cam);
   }
 }
@@ -670,7 +670,7 @@ CameraStates GMSCKF::pruneCameraState() {
   return pruned_camera_states;
 }
 
-int GMSCKF::measurementUpdate(const FeatureTracks &tracks, const Vec2 &theta) {
+int GMSCKF::measurementUpdate(const FeatureTracks &tracks, const vec2_t &theta) {
   // Add a camera state to state vector
   this->augmentState(theta);
   this->cam_timestamps.push_back(
@@ -690,38 +690,38 @@ int GMSCKF::measurementUpdate(const FeatureTracks &tracks, const Vec2 &theta) {
   std::cout << "filtered_tracks:  " << filtered_tracks.size() << std::endl;
 
   // Calculate residuals
-  MatX T_H;
-  VecX r_n;
+  matx_t T_H;
+  vecx_t r_n;
   if (this->calcResiduals(filtered_tracks, T_H, r_n) != 0) {
     /* LOG_WARN("No tracks made it through!"); */
     return 0;
   }
 
   // Calculate the Kalman gain.
-  const MatX P = this->P();
-  const MatX R_n = this->img_var * I(T_H.rows());
+  const matx_t P = this->P();
+  const matx_t R_n = this->img_var * I(T_H.rows());
   // -- Using Cholesky decomposition for matrix inversion
   // Note: Below is equiv to P * T_H^T * (T_H * P * T_H^T + R_n)^-1
-  const MatX S = T_H * P * T_H.transpose() + R_n;
-  const MatX K = S.ldlt().solve(T_H * P).transpose();
+  const matx_t S = T_H * P * T_H.transpose() + R_n;
+  const matx_t K = S.ldlt().solve(T_H * P).transpose();
   // -- Conventional Kalman gain calculation
-  // const MatX K =
+  // const matx_t K =
   //     P * T_H.transpose() * (T_H * P * T_H.transpose() + R_n).inverse();
 
   // Correct states
-  const VecX dx = K * r_n;
+  const vecx_t dx = K * r_n;
   this->correctIMUState(dx);
   this->correctCameraStates(dx);
   LOG_INFO("Correct estimation!");
 
   // Update covariance matrices
-  const MatX I_KH = I(K.rows(), T_H.cols()) - K * T_H;
+  const matx_t I_KH = I(K.rows(), T_H.cols()) - K * T_H;
   // -- Simplest, most unstable form
-  // const MatX P_new = I_KH * P;
+  // const matx_t P_new = I_KH * P;
   // -- Symmetric and positive Joseph form
-  // const MatX P_new = I_KH * P * I_KH.transpose() + K * R_n * K.transpose();
+  // const matx_t P_new = I_KH * P * I_KH.transpose() + K * R_n * K.transpose();
   // -- Upenn's version?
-  const MatX P_new = ((I_KH * P) + (I_KH * P).transpose()) / 2.0;
+  const matx_t P_new = ((I_KH * P) + (I_KH * P).transpose()) / 2.0;
   // -- Partition out main covariance matrix back into its constituents
   const int N = this->N();
   this->P_imu = P_new.block(0, 0, x_imu_sz, x_imu_sz);

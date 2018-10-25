@@ -137,8 +137,8 @@ int test_ImageProcessor_test() {
     const long ts = raw_dataset.oxts.timestamps[i];
     const cv::Mat cam0_img = cv::imread(raw_dataset.cam0[i]);
     const cv::Mat cam1_img = cv::imread(raw_dataset.cam1[i]);
-    const Vec3 a_B = raw_dataset.oxts.a_B[i];
-    const Vec3 w_B = raw_dataset.oxts.w_B[i];
+    const vec3_t a_B = raw_dataset.oxts.a_B[i];
+    const vec3_t w_B = raw_dataset.oxts.w_B[i];
 
     image_processor.imuCallback(a_B, w_B, ts);
     image_processor.stereoCallback(cam0_img, cam1_img, ts);

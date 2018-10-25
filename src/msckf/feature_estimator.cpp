@@ -2,10 +2,10 @@
 
 namespace prototype {
 
-Vec3 lls_triangulation(const Vec3 &u1,
-                       const Mat34 &P1,
-                       const Vec3 &u2,
-                       const Mat34 &P2) {
+vec3_t lls_triangulation(const vec3_t &u1,
+                       const mat34_t &P1,
+                       const vec3_t &u2,
+                       const mat34_t &P2) {
   // Build matrix A for homogenous equation system Ax = 0, assume X = (x,y,z,1),
   // for Linear-LS method which turns it into a AX = B system, where:
   // - A is 4x3,
@@ -13,13 +13,13 @@ Vec3 lls_triangulation(const Vec3 &u1,
   // - B is 4x1
 
   // clang-format off
-  MatX A = zeros(4, 3);
+  matx_t A = zeros(4, 3);
   A << u1(0) * P1(2, 0) - P1(0, 0), u1(0) * P1(2, 1) - P1(0, 1), u1(0) * P1(2, 2) - P1(0, 2),
        u1(1) * P1(2, 0) - P1(1, 0), u1(1) * P1(2, 1) - P1(1, 1), u1(1) * P1(2, 2) - P1(1, 2),
        u2(0) * P2(2, 0) - P2(0, 0), u2(0) * P2(2, 1) - P2(0, 1), u2(0) * P2(2, 2) - P2(0, 2),
        u2(1) * P2(2, 0) - P2(1, 0), u2(1) * P2(2, 1) - P2(1, 1), u2(1) * P2(2, 2) - P2(1, 2);
 
-  Vec4 B{-(u1(0) * P1(2, 3) - P1(0,3)),
+  vec4_t B{-(u1(0) * P1(2, 3) - P1(0,3)),
          -(u1(1) * P1(2, 3) - P1(1,3)),
          -(u2(0) * P2(2, 3) - P2(0,3)),
          -(u2(1) * P2(2, 3) - P2(1,3))};
@@ -27,44 +27,44 @@ Vec3 lls_triangulation(const Vec3 &u1,
 
   // SVD
   const auto svd_options = Eigen::ComputeThinU | Eigen::ComputeThinV;
-  const Vec3 X = A.jacobiSvd(svd_options).solve(B);
+  const vec3_t X = A.jacobiSvd(svd_options).solve(B);
 
   return X;
 }
 
-Vec3 lls_triangulation(const Vec2 &z1,
-                       const Vec2 &z2,
-                       const Mat3 &C_C0C1,
-                       const Vec3 &t_C0_C0C1) {
+vec3_t lls_triangulation(const vec2_t &z1,
+                       const vec2_t &z2,
+                       const mat3_t &C_C0C1,
+                       const vec3_t &t_C0_C0C1) {
   // Triangulate
   // -- Matrix A
-  MatX A = zeros(3, 2);
+  matx_t A = zeros(3, 2);
   A.block(0, 0, 3, 1) = z1.homogeneous();
   A.block(0, 1, 3, 1) = -C_C0C1 * z2.homogeneous();
 
   // -- Vector b
-  const Vec3 b{t_C0_C0C1};
+  const vec3_t b{t_C0_C0C1};
   // -- Perform SVD
   const auto svd_options = Eigen::ComputeThinU | Eigen::ComputeThinV;
-  const VecX x = A.jacobiSvd(svd_options).solve(b);
+  const vecx_t x = A.jacobiSvd(svd_options).solve(b);
   // -- Calculate p_C0_f
-  const Vec3 p_C0_f = x(0) * z1.homogeneous();
+  const vec3_t p_C0_f = x(0) * z1.homogeneous();
 
   return p_C0_f;
 }
 
-Vec3 lls_triangulation(const Vec2 &z1, const Vec2 &z2, const Mat4 T_C1_C0) {
-  const Mat3 C_C1C0 = T_C1_C0.block(0, 0, 3, 3);
-  const Vec3 t_C0_C1C0 = T_C1_C0.block(0, 3, 3, 1);
-  const Vec3 m = C_C1C0 * z1.homogeneous();
+vec3_t lls_triangulation(const vec2_t &z1, const vec2_t &z2, const mat4_t T_C1_C0) {
+  const mat3_t C_C1C0 = T_C1_C0.block(0, 0, 3, 3);
+  const vec3_t t_C0_C1C0 = T_C1_C0.block(0, 3, 3, 1);
+  const vec3_t m = C_C1C0 * z1.homogeneous();
 
   // Form A
-  Vec2 A;
+  vec2_t A;
   A(0) = m(0) - z2(0) * m(2);
   A(1) = m(1) - z2(1) * m(2);
 
   // Form b
-  Vec2 b;
+  vec2_t b;
   b(0) = z2(0) * t_C0_C1C0(2) - t_C0_C1C0(0);
   b(1) = z2(1) * t_C0_C1C0(2) - t_C0_C1C0(1);
 
@@ -72,7 +72,7 @@ Vec3 lls_triangulation(const Vec2 &z1, const Vec2 &z2, const Mat4 T_C1_C0) {
   const double depth = (A.transpose() * A).inverse() * A.transpose() * b;
 
   // Form initial feature position relative to camera 0
-  Vec3 p_C0_f;
+  vec3_t p_C0_f;
   p_C0_f(0) = z1(0) * depth;
   p_C0_f(1) = z1(1) * depth;
   p_C0_f(2) = depth;
@@ -80,22 +80,22 @@ Vec3 lls_triangulation(const Vec2 &z1, const Vec2 &z2, const Mat4 T_C1_C0) {
   return p_C0_f;
 }
 
-void triangulate_mono_tracks(const Mat4 &T_cam1_cam0, FeatureTracks &tracks) {
+void triangulate_mono_tracks(const mat4_t &T_cam1_cam0, FeatureTracks &tracks) {
   // Pre-check
   if (tracks.size() == 0) {
     return;
   }
 
   // Camera 0 - projection matrix P
-  const Mat3 cam0_R = I(3);
-  const Vec3 cam0_t = zeros(3, 1);
-  const Mat34 cam0_P = pinhole_projection_matrix(I(3), cam0_R, cam0_t);
+  const mat3_t cam0_R = I(3);
+  const vec3_t cam0_t = zeros(3, 1);
+  const mat34_t cam0_P = pinhole_projection_matrix(I(3), cam0_R, cam0_t);
   const cv::Mat P0 = convert(cam0_P);
 
   // Camera 1 - projection matrix P
-  const Mat3 cam1_R = T_cam1_cam0.block(0, 0, 3, 3);
-  const Vec3 cam1_t = T_cam1_cam0.block(0, 3, 3, 1);
-  Mat34 cam1_P;
+  const mat3_t cam1_R = T_cam1_cam0.block(0, 0, 3, 3);
+  const vec3_t cam1_t = T_cam1_cam0.block(0, 3, 3, 1);
+  mat34_t cam1_P;
   cam1_P.block(0, 0, 3, 3) = cam1_R;
   cam1_P.block(0, 3, 3, 1) = cam1_t;
   const cv::Mat P1 = convert(cam1_P);
@@ -108,8 +108,8 @@ void triangulate_mono_tracks(const Mat4 &T_cam1_cam0, FeatureTracks &tracks) {
     // We are using the last keypoint observed because all tracks have
     // different lengths, the only keypoints we can guarantee are observed on
     // the same stereo camera pose are the keypoints from the last frame
-    const Vec2 z1 = track.track[0].getKeyPoint();
-    const Vec2 z2 = track.track[1].getKeyPoint();
+    const vec2_t z1 = track.track[0].getKeyPoint();
+    const vec2_t z2 = track.track[1].getKeyPoint();
     cam0_pts.at<float>(0, column) = (float) z1(0);
     cam0_pts.at<float>(1, column) = (float) z1(1);
     cam1_pts.at<float>(0, column) = (float) z2(0);
@@ -128,7 +128,7 @@ void triangulate_mono_tracks(const Mat4 &T_cam1_cam0, FeatureTracks &tracks) {
     const float y = pt.at<float>(1, 0);
     const float z = pt.at<float>(2, 0);
     const float h = pt.at<float>(3, 0);
-    tracks[i].p_C0_f = Vec3{x / h, y / h, z / h};
+    tracks[i].p_C0_f = vec3_t{x / h, y / h, z / h};
   }
 }
 
@@ -142,21 +142,21 @@ void group_tracks(const FeatureTracks &tracks,
   }
 }
 
-FeatureTracks triangulate_stereo_tracks(const Mat4 &T_cam1_cam0,
+FeatureTracks triangulate_stereo_tracks(const mat4_t &T_cam1_cam0,
                                         FeatureTracks &tracks) {
   assert(tracks.size() != 0);
   assert(tracks[0].type != -1 || tracks[0].type != MONO_TRACK);
 
   // Camera 0 - projection matrix P
-  const Mat3 cam0_R = I(3);
-  const Vec3 cam0_t = zeros(3, 1);
-  const Mat34 cam0_P = pinhole_projection_matrix(I(3), cam0_R, cam0_t);
+  const mat3_t cam0_R = I(3);
+  const vec3_t cam0_t = zeros(3, 1);
+  const mat34_t cam0_P = pinhole_projection_matrix(I(3), cam0_R, cam0_t);
   const cv::Mat P0 = convert(cam0_P);
 
   // Camera 1 - projection matrix P
-  const Mat3 cam1_R = T_cam1_cam0.block(0, 0, 3, 3);
-  const Vec3 cam1_t = T_cam1_cam0.block(0, 3, 3, 1);
-  Mat34 cam1_P;
+  const mat3_t cam1_R = T_cam1_cam0.block(0, 0, 3, 3);
+  const vec3_t cam1_t = T_cam1_cam0.block(0, 3, 3, 1);
+  mat34_t cam1_P;
   cam1_P.block(0, 0, 3, 3) = cam1_R;
   cam1_P.block(0, 3, 3, 1) = cam1_t;
   const cv::Mat P1 = convert(cam1_P);
@@ -175,8 +175,8 @@ FeatureTracks triangulate_stereo_tracks(const Mat4 &T_cam1_cam0,
     cv::Mat cam1_pts(2, group.size(), CV_32FC1);
     int cols = 0;
     for (auto &track : group) {
-      const Vec2 z1 = track.track0.front().getKeyPoint();
-      const Vec2 z2 = track.track1.front().getKeyPoint();
+      const vec2_t z1 = track.track0.front().getKeyPoint();
+      const vec2_t z2 = track.track1.front().getKeyPoint();
       cam0_pts.at<float>(0, cols) = (float) z1(0);
       cam0_pts.at<float>(1, cols) = (float) z1(1);
       cam1_pts.at<float>(0, cols) = (float) z2(0);
@@ -195,7 +195,7 @@ FeatureTracks triangulate_stereo_tracks(const Mat4 &T_cam1_cam0,
       const float y = pt.at<float>(1, 0);
       const float z = pt.at<float>(2, 0);
       const float h = pt.at<float>(3, 0);
-      const Vec3 pt_3d{x / h, y / h, z / h};
+      const vec3_t pt_3d{x / h, y / h, z / h};
 
       // Add triangulated feature position back to feature track
       auto &track = group[i];
@@ -216,25 +216,25 @@ FeatureEstimator::FeatureEstimator(const FeatureTrack &track,
                                    const GimbalModel &gimbal_model)
     : track{track}, track_cam_states{track_cam_states}, gimbal_model{gimbal_model} {}
 
-int FeatureEstimator::triangulate(const Vec2 &z1,
-                                  const Vec2 &z2,
-                                  const Mat3 &C_C0C1,
-                                  const Vec3 &t_C0_C0C1,
-                                  Vec3 &p_C0_f) {
+int FeatureEstimator::triangulate(const vec2_t &z1,
+                                  const vec2_t &z2,
+                                  const mat3_t &C_C0C1,
+                                  const vec3_t &t_C0_C0C1,
+                                  vec3_t &p_C0_f) {
   // Convert points to homogenous coordinates and normalize
-  Vec3 pt1{z1[0], z1[1], 1.0};
-  Vec3 pt2{z2[0], z2[1], 1.0};
+  vec3_t pt1{z1[0], z1[1], 1.0};
+  vec3_t pt2{z2[0], z2[1], 1.0};
   pt1.normalize();
   pt2.normalize();
 
   // Form camera matrix P1
-  const Mat34 P1 = I(3) * I(3, 4);
+  const mat34_t P1 = I(3) * I(3, 4);
 
   // Form camera matrix P2
-  Mat34 T2;
+  mat34_t T2;
   T2.block(0, 0, 3, 3) = C_C0C1;
   T2.block(0, 3, 3, 1) = -C_C0C1 * t_C0_C0C1;
-  const Mat34 P2 = I(3) * T2;
+  const mat34_t P2 = I(3) * T2;
 
   // Perform linear least squares triangulation from 2 views
   p_C0_f = lls_triangulation(pt1, P1, pt2, P2);
@@ -242,22 +242,22 @@ int FeatureEstimator::triangulate(const Vec2 &z1,
   return 0;
 }
 
-int FeatureEstimator::initialEstimate(Vec3 &p_C0_f) {
+int FeatureEstimator::initialEstimate(vec3_t &p_C0_f) {
   if (this->track.type == MONO_TRACK) {
     // -- Calculate rotation and translation of first and second camera states
     const CameraState cam0 = this->track_cam_states.front();
     const CameraState cam1 = this->track_cam_states.back();
     // -- Get rotation and translation of camera 0 and camera 1
-    const Mat3 C_C0G = C(cam0.q_CG);
-    const Mat3 C_C1G = C(cam1.q_CG);
-    const Vec3 p_G_C0 = cam0.p_G;
-    const Vec3 p_G_C1 = cam1.p_G;
+    const mat3_t C_C0G = C(cam0.q_CG);
+    const mat3_t C_C1G = C(cam1.q_CG);
+    const vec3_t p_G_C0 = cam0.p_G;
+    const vec3_t p_G_C1 = cam1.p_G;
     // -- Calculate rotation and translation from camera 0 to camera 1
-    const Mat3 C_C0C1 = C_C0G * C_C1G.transpose();
-    const Vec3 t_C0_C0C1 = C_C0G * (p_G_C1 - p_G_C0);
+    const mat3_t C_C0C1 = C_C0G * C_C1G.transpose();
+    const vec3_t t_C0_C0C1 = C_C0G * (p_G_C1 - p_G_C0);
     // -- Get observed image points
-    const Vec2 z1 = this->track.track.front().getKeyPoint();
-    const Vec2 z2 = this->track.track.back().getKeyPoint();
+    const vec2_t z1 = this->track.track.front().getKeyPoint();
+    const vec2_t z2 = this->track.track.back().getKeyPoint();
 
     // Triangulate
     if ((z1 - z2).norm() > 1.0e-3) {
@@ -272,19 +272,19 @@ int FeatureEstimator::initialEstimate(Vec3 &p_C0_f) {
     const auto T_C1_C0 = this->track.T_cam1_cam0;
     assert(T_C1_C0.isApprox(zeros(4, 4)) == false);
     // -- Get observed image points
-    const Vec2 z1 = this->track.track0.front().getKeyPoint();
-    const Vec2 z2 = this->track.track1.front().getKeyPoint();
+    const vec2_t z1 = this->track.track0.front().getKeyPoint();
+    const vec2_t z2 = this->track.track1.front().getKeyPoint();
 
     // // Camera 0 - projection matrix P
-    // const Mat3 cam0_R = I(3);
-    // const Vec3 cam0_t = zeros(3, 1);
-    // const Mat34 cam0_P = pinhole_projection_matrix(I(3), cam0_R, cam0_t);
+    // const mat3_t cam0_R = I(3);
+    // const vec3_t cam0_t = zeros(3, 1);
+    // const mat34_t cam0_P = pinhole_projection_matrix(I(3), cam0_R, cam0_t);
     // const cv::Mat P0 = convert(cam0_P);
     //
     // // Camera 1 - projection matrix P
-    // const Mat3 cam1_R = T_C1_C0.block(0, 0, 3, 3);
-    // const Vec3 cam1_t = T_C1_C0.block(0, 3, 3, 1);
-    // Mat34 cam1_P;
+    // const mat3_t cam1_R = T_C1_C0.block(0, 0, 3, 3);
+    // const vec3_t cam1_t = T_C1_C0.block(0, 3, 3, 1);
+    // mat34_t cam1_P;
     // cam1_P.block(0, 0, 3, 3) = cam1_R;
     // cam1_P.block(0, 3, 3, 1) = cam1_t;
     // const cv::Mat P1 = convert(cam1_P);
@@ -305,7 +305,7 @@ int FeatureEstimator::initialEstimate(Vec3 &p_C0_f) {
     // const float y = pt.at<float>(1, 0);
     // const float z = pt.at<float>(2, 0);
     // const float h = pt.at<float>(3, 0);
-    // p_C0_f = Vec3{x / h, y / h, z / h};
+    // p_C0_f = vec3_t{x / h, y / h, z / h};
 
     // -- Triangulate
     p_C0_f = lls_triangulation(z1, z2, T_C1_C0);
@@ -326,12 +326,12 @@ int FeatureEstimator::initialEstimate(Vec3 &p_C0_f) {
   } else if (this->track.type == DYNAMIC_STEREO_TRACK) {
     // Triangulate feature point observed by stereo camera
     // -- Make sure the camera extrinsics are set
-    const Vec2 theta = this->track.joint_angles.front();
+    const vec2_t theta = this->track.joint_angles.front();
     const auto T_C1_C0 = this->gimbal_model.T_ds(theta);
     assert(T_C1_C0.isApprox(zeros(4, 4)) == false);
     // -- Get observed image points
-    const Vec2 z1 = this->track.track0.front().getKeyPoint();
-    const Vec2 z2 = this->track.track1.front().getKeyPoint();
+    const vec2_t z1 = this->track.track0.front().getKeyPoint();
+    const vec2_t z2 = this->track.track1.front().getKeyPoint();
 
     // -- Triangulate
     p_C0_f = lls_triangulation(z1, z2, T_C1_C0);
@@ -356,7 +356,7 @@ int FeatureEstimator::initialEstimate(Vec3 &p_C0_f) {
   return 0;
 }
 
-int FeatureEstimator::checkEstimate(const Vec3 &p_G_f) {
+int FeatureEstimator::checkEstimate(const vec3_t &p_G_f) {
   const int N = this->track_cam_states.size();
 
   // Pre-check
@@ -367,8 +367,8 @@ int FeatureEstimator::checkEstimate(const Vec3 &p_G_f) {
   // Make sure feature is infront of camera all the way through
   for (int i = 0; i < N; i++) {
     // Transform feature from global frame to i-th camera frame
-    const Mat3 C_CiG = C(this->track_cam_states[i].q_CG);
-    const Vec3 p_Ci_f = C_CiG * (p_G_f - this->track_cam_states[i].p_G);
+    const mat3_t C_CiG = C(this->track_cam_states[i].q_CG);
+    const vec3_t p_Ci_f = C_CiG * (p_G_f - this->track_cam_states[i].p_G);
 
     // Check if feature is in-front of camera
     if (p_Ci_f(2) < 0.0 || p_Ci_f(2) > 100.0) {
@@ -376,8 +376,8 @@ int FeatureEstimator::checkEstimate(const Vec3 &p_G_f) {
     }
   }
 
-  // const Mat3 C_C0G = C(this->track_cam_states[0].q_CG);
-  // const Vec3 p_C0_f = C_C0G * (p_G_f - this->track_cam_states[0].p_G);
+  // const mat3_t C_C0G = C(this->track_cam_states[0].q_CG);
+  // const vec3_t p_C0_f = C_C0G * (p_G_f - this->track_cam_states[0].p_G);
   // std::cout << "p_C0_f: " << p_C0_f.transpose() << std::endl;
 
   return 0;
@@ -386,66 +386,66 @@ int FeatureEstimator::checkEstimate(const Vec3 &p_G_f) {
 void FeatureEstimator::transformEstimate(const double alpha,
                                          const double beta,
                                          const double rho,
-                                         Vec3 &p_G_f) {
+                                         vec3_t &p_G_f) {
   // Transform feature position from camera to global frame
-  const Vec3 X{alpha, beta, 1.0};
+  const vec3_t X{alpha, beta, 1.0};
   const double z = 1 / rho;
-  const Mat3 C_C0G = C(this->track_cam_states[0].q_CG);
-  const Vec3 p_G_C0 = this->track_cam_states[0].p_G;
+  const mat3_t C_C0G = C(this->track_cam_states[0].q_CG);
+  const vec3_t p_G_C0 = this->track_cam_states[0].p_G;
   p_G_f = z * C_C0G.transpose() * X + p_G_C0;
 }
 
-Vec2 FeatureEstimator::residual(const Mat4 &T_Ci_C0,
-                                const Vec2 &z,
-                                const Vec3 &x) {
+vec2_t FeatureEstimator::residual(const mat4_t &T_Ci_C0,
+                                const vec2_t &z,
+                                const vec3_t &x) {
   // Project estimated feature location to image plane
   // -- Inverse depth params
   const double alpha = x(0);
   const double beta = x(1);
   const double rho = x(2);
   // -- Setup vectors and matrices
-  const Vec3 A{alpha, beta, 1.0};
-  const Mat3 C_CiC0 = T_Ci_C0.block(0, 0, 3, 3);
-  const Vec3 t_C0_CiC0 = T_Ci_C0.block(0, 3, 3, 1);
+  const vec3_t A{alpha, beta, 1.0};
+  const mat3_t C_CiC0 = T_Ci_C0.block(0, 0, 3, 3);
+  const vec3_t t_C0_CiC0 = T_Ci_C0.block(0, 3, 3, 1);
   // -- Project estimated feature
-  const Vec3 h = C_CiC0 * A + rho * t_C0_CiC0;
+  const vec3_t h = C_CiC0 * A + rho * t_C0_CiC0;
 
   // Calculate reprojection error
   // -- Convert feature location to normalized coordinates
-  const Vec2 z_hat{h(0) / h(2), h(1) / h(2)};
+  const vec2_t z_hat{h(0) / h(2), h(1) / h(2)};
   // -- Reprojection error
-  const Vec2 r = z - z_hat;
+  const vec2_t r = z - z_hat;
 
   return r;
 }
 
-MatX FeatureEstimator::jacobian(const Mat4 &T_Ci_C0, const VecX &x) {
+matx_t FeatureEstimator::jacobian(const mat4_t &T_Ci_C0, const vecx_t &x) {
   double alpha = x(0);
   double beta = x(1);
   double rho = x(2);
 
   // Set camera 0 as origin, work out rotation and translation
   // of camera i relative to to camera 0
-  const Mat3 C_CiC0 = T_Ci_C0.block(0, 0, 3, 3);
-  const Vec3 t_C0_CiC0 = T_Ci_C0.block(0, 3, 3, 1);
+  const mat3_t C_CiC0 = T_Ci_C0.block(0, 0, 3, 3);
+  const vec3_t t_C0_CiC0 = T_Ci_C0.block(0, 3, 3, 1);
 
   // Project estimated feature location to image plane
-  const Vec3 A{alpha, beta, 1.0};
-  const Vec3 h = C_CiC0 * A + rho * t_C0_CiC0;
+  const vec3_t A{alpha, beta, 1.0};
+  const vec3_t h = C_CiC0 * A + rho * t_C0_CiC0;
 
   // Compute jacobian
   const double hx_div_hz2 = (h(0) / pow(h(2), 2));
   const double hy_div_hz2 = (h(1) / pow(h(2), 2));
 
-  const Vec2 drdalpha{-C_CiC0(0, 0) / h(2) + hx_div_hz2 * C_CiC0(2, 0),
+  const vec2_t drdalpha{-C_CiC0(0, 0) / h(2) + hx_div_hz2 * C_CiC0(2, 0),
                       -C_CiC0(1, 0) / h(2) + hy_div_hz2 * C_CiC0(2, 0)};
-  const Vec2 drdbeta{-C_CiC0(0, 1) / h(2) + hx_div_hz2 * C_CiC0(2, 1),
+  const vec2_t drdbeta{-C_CiC0(0, 1) / h(2) + hx_div_hz2 * C_CiC0(2, 1),
                      -C_CiC0(1, 1) / h(2) + hy_div_hz2 * C_CiC0(2, 1)};
-  const Vec2 drdrho{-t_C0_CiC0(0) / h(2) + hx_div_hz2 * t_C0_CiC0(2),
+  const vec2_t drdrho{-t_C0_CiC0(0) / h(2) + hx_div_hz2 * t_C0_CiC0(2),
                     -t_C0_CiC0(1) / h(2) + hy_div_hz2 * t_C0_CiC0(2)};
 
   // Fill in the jacobian
-  MatX J = zeros(2, 3);
+  matx_t J = zeros(2, 3);
   J.block(0, 0, 2, 1) = drdalpha;
   J.block(0, 1, 2, 1) = drdbeta;
   J.block(0, 2, 2, 1) = drdrho;
@@ -453,19 +453,19 @@ MatX FeatureEstimator::jacobian(const Mat4 &T_Ci_C0, const VecX &x) {
   return J;
 }
 
-int FeatureEstimator::estimate(Vec3 &p_G_f) {
+int FeatureEstimator::estimate(vec3_t &p_G_f) {
   // Calculate initial estimate of 3D position
-  Vec3 p_C0_f = this->track.p_C0_f;
-  if (p_C0_f.isApprox(Vec3::Zero()) && this->initialEstimate(p_C0_f) != 0) {
+  vec3_t p_C0_f = this->track.p_C0_f;
+  if (p_C0_f.isApprox(vec3_t::Zero()) && this->initialEstimate(p_C0_f) != 0) {
     return -1;
   }
 
   // Prepare data
-  const Mat3 C_C0G = C(this->track_cam_states[0].q_CG);
-  const Vec3 p_G_C0 = this->track_cam_states[0].p_G;
+  const mat3_t C_C0G = C(this->track_cam_states[0].q_CG);
+  const vec3_t p_G_C0 = this->track_cam_states[0].p_G;
   const int N = this->track_cam_states.size();
-  std::vector<Vec2> measurements;
-  std::vector<Mat4> cam_poses;
+  std::vector<vec2_t> measurements;
+  std::vector<mat4_t> cam_poses;
   for (int i = 0; i < N; i++) {
     // Add the measurement
     if (this->track.type == MONO_TRACK) {
@@ -475,16 +475,16 @@ int FeatureEstimator::estimate(Vec3 &p_G_f) {
     }
 
     // Get camera current rotation and translation
-    const Mat3 C_CiG = C(this->track_cam_states[i].q_CG);
-    const Vec3 p_G_Ci = this->track_cam_states[i].p_G;
+    const mat3_t C_CiG = C(this->track_cam_states[i].q_CG);
+    const vec3_t p_G_Ci = this->track_cam_states[i].p_G;
 
     // Set camera 0 as origin, work out rotation and translation
     // of camera i relative to to camera 0
-    const Mat3 C_CiC0 = C_CiG * C_C0G.transpose();
-    const Vec3 t_C0_CiC0 = C_CiG * (p_G_C0 - p_G_Ci);
+    const mat3_t C_CiC0 = C_CiG * C_C0G.transpose();
+    const vec3_t t_C0_CiC0 = C_CiG * (p_G_C0 - p_G_Ci);
 
     // Add camera pose
-    const Mat4 T_Ci_CiC0 = transformation_matrix(C_CiC0, t_C0_CiC0);
+    const mat4_t T_Ci_CiC0 = transformation_matrix(C_CiC0, t_C0_CiC0);
     cam_poses.push_back(T_Ci_CiC0);
   }
 
@@ -492,7 +492,7 @@ int FeatureEstimator::estimate(Vec3 &p_G_f) {
   const double alpha = p_C0_f(0) / p_C0_f(2);
   const double beta = p_C0_f(1) / p_C0_f(2);
   const double rho = 1.0 / p_C0_f(2);
-  Vec3 x{alpha, beta, rho};
+  vec3_t x{alpha, beta, rho};
 
   // Apply Levenberg-Marquart method to solve for the 3d position.
   struct OptimizationConfig optimization_config;
@@ -505,19 +505,19 @@ int FeatureEstimator::estimate(Vec3 &p_G_f) {
   // Compute the initial cost.
   double total_cost = 0.0;
   for (size_t i = 0; i < cam_poses.size(); i++) {
-    const Vec2 r = this->residual(cam_poses[i], measurements[i], x);
+    const vec2_t r = this->residual(cam_poses[i], measurements[i], x);
     total_cost += r.squaredNorm();
   }
 
   // Outer loop.
   do {
-    Mat3 A = Mat3::Zero();
-    Vec3 b = Vec3::Zero();
+    mat3_t A = mat3_t::Zero();
+    vec3_t b = vec3_t::Zero();
 
     for (size_t i = 0; i < cam_poses.size(); ++i) {
       // Calculate jacobian and residual
-      const MatX J = this->jacobian(cam_poses[i], x);
-      const Vec2 r = this->residual(cam_poses[i], measurements[i], x);
+      const matx_t J = this->jacobian(cam_poses[i], x);
+      const vec2_t r = this->residual(cam_poses[i], measurements[i], x);
 
       // Compute weight based on residual
       double e = r.norm();
@@ -542,14 +542,14 @@ int FeatureEstimator::estimate(Vec3 &p_G_f) {
     // Inner loop.
     // Solve for the delta that can reduce the total cost.
     do {
-      const Mat3 damper = lambda * Mat3::Identity();
-      const Vec3 delta = (A + damper).ldlt().solve(b);
-      const Vec3 x_new = x - delta;
+      const mat3_t damper = lambda * mat3_t::Identity();
+      const vec3_t delta = (A + damper).ldlt().solve(b);
+      const vec3_t x_new = x - delta;
       delta_norm = delta.norm();
 
       double new_cost = 0.0;
       for (size_t i = 0; i < cam_poses.size(); ++i) {
-        const Vec2 r = this->residual(cam_poses[i], measurements[i], x_new);
+        const vec2_t r = this->residual(cam_poses[i], measurements[i], x_new);
         new_cost += r.squaredNorm();
       }
 
@@ -579,9 +579,9 @@ int FeatureEstimator::estimate(Vec3 &p_G_f) {
   return 0;
 }
 
-AutoDiffReprojectionError::AutoDiffReprojectionError(const Mat3 &C_CiC0,
-                                                     const Vec3 &t_Ci_CiC0,
-                                                     const Vec2 &kp) {
+AutoDiffReprojectionError::AutoDiffReprojectionError(const mat3_t &C_CiC0,
+                                                     const vec3_t &t_Ci_CiC0,
+                                                     const vec2_t &kp) {
   // Camera extrinsics
   mat2array(C_CiC0, this->C_CiC0);
   vec2array(t_Ci_CiC0, this->t_Ci_CiC0);
@@ -600,14 +600,14 @@ bool AnalyticalReprojectionError::Evaluate(double const *const *x,
   const double rho = x[0][2];
 
   // Project estimated feature location to image plane
-  const Vec3 A{alpha, beta, 1.0};
-  const Vec3 h = this->C_CiC0 * A + rho * this->t_Ci_CiC0;
+  const vec3_t A{alpha, beta, 1.0};
+  const vec3_t h = this->C_CiC0 * A + rho * this->t_Ci_CiC0;
 
   // Calculate reprojection error
   // -- Convert measurment to image coordinates
-  const Vec2 z{this->keypoint};
+  const vec2_t z{this->keypoint};
   // -- Convert feature location to normalized coordinates
-  const Vec2 z_hat{h(0) / h(2), h(1) / h(2)};
+  const vec2_t z_hat{h(0) / h(2), h(1) / h(2)};
 
   // Calculate residual error
   residuals[0] = z(0) - z_hat(0);
@@ -665,9 +665,9 @@ bool AnalyticalReprojectionError::Evaluate(double const *const *x,
   return true;
 }
 
-void CeresFeatureEstimator::addResidualBlock(const Vec2 &kp,
-                                             const Mat3 &C_CiC0,
-                                             const Vec3 &t_Ci_CiC0,
+void CeresFeatureEstimator::addResidualBlock(const vec2_t &kp,
+                                             const mat3_t &C_CiC0,
+                                             const vec3_t &t_Ci_CiC0,
                                              double *x) {
   // Build residual
   if (this->method == "ANALYTICAL") {
@@ -702,8 +702,8 @@ void CeresFeatureEstimator::addResidualBlock(const Vec2 &kp,
 
 int CeresFeatureEstimator::setupProblem() {
   // Calculate initial estimate of 3D position
-  Vec3 p_C0_f = this->track.p_C0_f;
-  if (p_C0_f.isApprox(Vec3::Zero()) && this->initialEstimate(p_C0_f) != 0) {
+  vec3_t p_C0_f = this->track.p_C0_f;
+  if (p_C0_f.isApprox(vec3_t::Zero()) && this->initialEstimate(p_C0_f) != 0) {
     return -1;
   }
   /* std::cout << "p_C0_f: " << p_C0_f.transpose() << std::endl; */
@@ -721,18 +721,18 @@ int CeresFeatureEstimator::setupProblem() {
 
   // Add residual blocks
   const int N = this->track_cam_states.size();
-  const Mat3 C_C0G = C(this->track_cam_states[0].q_CG);
-  const Vec3 p_G_C0 = this->track_cam_states[0].p_G;
+  const mat3_t C_C0G = C(this->track_cam_states[0].q_CG);
+  const vec3_t p_G_C0 = this->track_cam_states[0].p_G;
 
   for (int i = 0; i < N; i++) {
     // Get camera's current rotation and translation
-    const Mat3 C_CiG = C(track_cam_states[i].q_CG);
-    const Vec3 p_G_Ci = track_cam_states[i].p_G;
+    const mat3_t C_CiG = C(track_cam_states[i].q_CG);
+    const vec3_t p_G_Ci = track_cam_states[i].p_G;
 
     // Set camera 0 as origin, work out rotation and translation
     // of camera i relative to to camera 0
-    const Mat3 C_CiC0 = C_CiG * C_C0G.transpose();
-    const Vec3 t_Ci_CiC0 = C_CiG * (p_G_C0 - p_G_Ci);
+    const mat3_t C_CiC0 = C_CiG * C_C0G.transpose();
+    const vec3_t t_Ci_CiC0 = C_CiG * (p_G_C0 - p_G_Ci);
 
     // Add residual block
     if (this->track.type == MONO_TRACK) {
@@ -755,7 +755,7 @@ int CeresFeatureEstimator::setupProblem() {
   return 0;
 }
 
-int CeresFeatureEstimator::estimate(Vec3 &p_G_f) {
+int CeresFeatureEstimator::estimate(vec3_t &p_G_f) {
   // Set options
   this->options.max_num_iterations = 1000;
   this->options.num_threads = 1;
@@ -763,7 +763,7 @@ int CeresFeatureEstimator::estimate(Vec3 &p_G_f) {
   this->options.minimizer_progress_to_stdout = false;
 
   /* // Cheat by using ground truth data */
-  /* if (this->track.track0[0].ground_truth.isApprox(Vec3::Zero()) == false) { */
+  /* if (this->track.track0[0].ground_truth.isApprox(vec3_t::Zero()) == false) { */
   /*   p_G_f = this->track.track0[0].ground_truth; */
   /*   return 0; */
   /* } */
@@ -776,7 +776,7 @@ int CeresFeatureEstimator::estimate(Vec3 &p_G_f) {
   // // Check if camera has actually moved?
   // const auto cam_state_first = this->track_cam_states.front();
   // const auto cam_state_last = this->track_cam_states.back();
-  // const Vec3 pos_diff = cam_state_first.p_G - cam_state_last.p_G;
+  // const vec3_t pos_diff = cam_state_first.p_G - cam_state_last.p_G;
 
   // double pos_norm = 0.0;
   // for (size_t i = 1; i < this->track_cam_states.size(); i++) {
@@ -788,7 +788,7 @@ int CeresFeatureEstimator::estimate(Vec3 &p_G_f) {
 
   // const double pos_norm = pos_diff.norm();
   // if (pos_norm < 0.1) {
-  //   const Vec3 X{this->x[0] / this->x[2], this->x[1] / this->x[2], 1.0 / this->x[2]};
+  //   const vec3_t X{this->x[0] / this->x[2], this->x[1] / this->x[2], 1.0 / this->x[2]};
   //   if (X(2) > 10.0) {
   //     LOG_WARN("Bad p_C0_f: [%.2f, %.2f, %.2f]", X(0), X(1), X(2));
   //     return -2;
@@ -814,7 +814,7 @@ int CeresFeatureEstimator::estimate(Vec3 &p_G_f) {
     return -2;
   }
 
-  // Vec3 gnd = this->track.track0[0].ground_truth;
+  // vec3_t gnd = this->track.track0[0].ground_truth;
   // std::cout << "gnd: " << gnd.transpose() << std::endl;
   // std::cout << "est: " << p_G_f.transpose() << std::endl;
   // std::cout << "diff: " << (gnd - p_G_f).norm() << std::endl;

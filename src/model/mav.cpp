@@ -2,9 +2,9 @@
 
 namespace prototype {
 
-int mav_model_update(struct mav_model &qm,
-                           const Vec4 &motor_inputs,
-                           const double dt) {
+int mav_model_update(mav_model_t &qm,
+                     const vec4_t &motor_inputs,
+                     const double dt) {
   const double ph = qm.rpy_G(0);
   const double th = qm.rpy_G(1);
   const double ps = qm.rpy_G(2);
@@ -33,14 +33,14 @@ int mav_model_update(struct mav_model &qm,
 
   // convert motor inputs to angular p, q, r and total thrust
   // clang-format off
-  Mat4 A;
+  mat4_t A;
   A << 1.0, 1.0, 1.0, 1.0,
        0.0, -qm.l, 0.0, qm.l,
        -qm.l, 0.0, qm.l, 0.0,
        -qm.d, qm.d, -qm.d, qm.d;
   // clang-format on
 
-  Vec4 tau = A * motor_inputs;
+  vec4_t tau = A * motor_inputs;
   const double tauf = tau(0);
   const double taup = tau(1);
   const double tauq = tau(2);
@@ -73,8 +73,8 @@ int mav_model_update(struct mav_model &qm,
   qm.rpy_G(2) = wrapToPi(qm.rpy_G(2));
 
   // Calculate body acceleration and angular velocity
-  const Mat3 R_BG = euler321ToRot(qm.rpy_G);
-  const Vec3 g_B = euler321ToRot(qm.rpy_G) * Vec3{0.0, 0.0, qm.g};
+  const mat3_t R_BG = euler321ToRot(qm.rpy_G);
+  const vec3_t g_B = euler321ToRot(qm.rpy_G) * vec3_t{0.0, 0.0, qm.g};
   qm.w_B = R_BG * qm.w_G;
   qm.a_B = (R_BG * qm.a_G) + g_B;
 
@@ -82,7 +82,7 @@ int mav_model_update(struct mav_model &qm,
 }
 
 // int mav_model_update(const double dt) {
-//   Vec4 motor_inputs;
+//   vec4_t motor_inputs;
 //   if (this->ctrl_mode == "POS_CTRL_MODE") {
 //     motor_inputs = this->positionControllerControl(dt);
 //
@@ -101,13 +101,13 @@ int mav_model_update(struct mav_model &qm,
 //   return this->update(motor_inputs, dt);
 // }
 
-// Vec4 QuadrotorModel::attitudeControllerControl(const double dt) {
-//   const Vec4 actual_attitude{this->rpy_G(0), // roll
+// vec4_t QuadrotorModel::attitudeControllerControl(const double dt) {
+//   const vec4_t actual_attitude{this->rpy_G(0), // roll
 //                              this->rpy_G(1), // pitch
 //                              this->rpy_G(2), // yaw
 //                              this->p_G(2)};  // z
 //
-//   const Vec4 motor_inputs =
+//   const vec4_t motor_inputs =
 //       this->attitude_controller.update(this->attitude_setpoints,
 //                                        actual_attitude,
 //                                        dt);
@@ -115,9 +115,9 @@ int mav_model_update(struct mav_model &qm,
 //   return motor_inputs;
 // }
 //
-// Vec4 QuadrotorModel::positionControllerControl(const double dt) {
+// vec4_t QuadrotorModel::positionControllerControl(const double dt) {
 //   // Position controller
-//   const Vec4 actual_position{this->p_G(0),    // x
+//   const vec4_t actual_position{this->p_G(0),    // x
 //                              this->p_G(1),    // y
 //                              this->p_G(2),    // z
 //                              this->rpy_G(2)}; // yaw
@@ -128,12 +128,12 @@ int mav_model_update(struct mav_model &qm,
 //                                        dt);
 //
 //   // Attitude controller
-//   const Vec4 actual_attitude{this->rpy_G(0), // roll
+//   const vec4_t actual_attitude{this->rpy_G(0), // roll
 //                              this->rpy_G(1), // pitch
 //                              this->rpy_G(2), // yaw
 //                              this->p_G(2)};  // z
 //
-//   const Vec4 motor_inputs =
+//   const vec4_t motor_inputs =
 //       this->attitude_controller.update(this->attitude_setpoints,
 //                                        actual_attitude,
 //                                        dt);
@@ -141,7 +141,7 @@ int mav_model_update(struct mav_model &qm,
 //   return motor_inputs;
 // }
 //
-// Vec4 QuadrotorModel::waypointControllerControl(const double dt) {
+// vec4_t QuadrotorModel::waypointControllerControl(const double dt) {
 //   // Waypoint controller
 //   int retval = this->waypoint_controller.update(this->mission,
 //                                                 this->p_G,
@@ -149,17 +149,17 @@ int mav_model_update(struct mav_model &qm,
 //                                                 this->rpy_G,
 //                                                 dt);
 //   if (retval != 0) {
-//     this->attitude_setpoints = Vec4{0.0, 0.0, 0.0, 0.5};
+//     this->attitude_setpoints = vec4_t{0.0, 0.0, 0.0, 0.5};
 //   } else {
 //     this->attitude_setpoints = this->waypoint_controller.outputs;
 //   }
 //
 //   // Attitude controller
-//   const Vec4 actual_attitude{this->rpy_G(0), // roll
+//   const vec4_t actual_attitude{this->rpy_G(0), // roll
 //                              this->rpy_G(1), // pitch
 //                              this->rpy_G(2), // yaw
 //                              this->p_G(2)};  // z
-//   const Vec4 motor_inputs =
+//   const vec4_t motor_inputs =
 //       this->attitude_controller.update(this->attitude_setpoints,
 //                                        actual_attitude,
 //                                        dt);
@@ -167,19 +167,19 @@ int mav_model_update(struct mav_model &qm,
 //   return motor_inputs;
 // }
 
-void mav_model_set_attitude(struct mav_model &qm,
-                                  const double roll,
-                                  const double pitch,
-                                  const double yaw) {
-  qm.rpy_G = Vec3{roll, pitch, yaw};
+void mav_model_set_attitude(mav_model_t &qm,
+                            const double roll,
+                            const double pitch,
+                            const double yaw) {
+  qm.rpy_G = vec3_t{roll, pitch, yaw};
 }
 
-void mav_model_set_position(struct mav_model &qm,
-                                  const Vec3 &p_G) {
+void mav_model_set_position(mav_model_t &qm,
+                            const vec3_t &p_G) {
   qm.p_G = p_G;
 }
 
-void mav_model_print(struct mav_model &qm) {
+void mav_model_print(mav_model_t &qm) {
   printf("x: %f\t", qm.p_G(0));
   printf("y: %f\t", qm.p_G(1));
   printf("z: %f\t\t", qm.p_G(2));

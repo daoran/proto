@@ -30,7 +30,7 @@ int test_GimbalCalibResidual_K() {
   const double fy = 2.0;
   const double cx = 3.0;
   const double cy = 4.0;
-  const Mat3 K = err.K(fx, fy, cx, cy);
+  const mat3_t K = err.K(fx, fy, cx, cy);
   std::cout << K << std::endl;
 
   MU_CHECK_FLOAT(K(0, 0), fx);
@@ -55,7 +55,7 @@ int test_GimbalCalibResidual_K() {
 //   GimbalCalibResidual err;
 //   double Lambda1[1] = {0.0};
 //   double Lambda2[1] = {0.0};
-//   Mat4 T_sd = err.T_sd(params.tau_s,
+//   mat4_t T_sd = err.T_sd(params.tau_s,
 //                        params.tau_d,
 //                        params.w1,
 //                        params.w2,
@@ -84,10 +84,10 @@ int test_GimbalCalibResidual_evaluate() {
     return -1;
   }
 
-  const Mat3 K_s = params.camchain.cam[0].K();
-  const Mat3 K_d = params.camchain.cam[2].K();
-  const Vec4 D_s = params.camchain.cam[0].D();
-  const Vec4 D_d = params.camchain.cam[2].D();
+  const mat3_t K_s = params.camchain.cam[0].K();
+  const mat3_t K_d = params.camchain.cam[2].K();
+  const vec4_t D_s = params.camchain.cam[0].D();
+  const vec4_t D_d = params.camchain.cam[2].D();
 
   // Residuals
   for (int i = 0; i < data.nb_measurements; i++) {

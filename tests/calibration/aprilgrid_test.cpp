@@ -107,19 +107,19 @@ int test_AprilGrid_solvePnP() {
   const double fy = 395.3197;
   const double cx = 370.0501;
   const double cy = 239.3825;
-  Mat3 K;
+  mat3_t K;
   K << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0;
-  Vec4 D;
+  vec4_t D;
   D << -0.0678890809361792, 0.007709008000713503, -0.010307689056822753,
       0.003975705353253985;
 
-  MatX grid_points;
+  matx_t grid_points;
   grid.solvePnP(tags, convert(K), grid_points);
 
   // Draw projected points
   for (long i = 0; i < grid_points.rows(); i++) {
-    const Vec3 X = grid_points.row(i);
-    const Vec2 x = project_pinhole_equi(K, D, X);
+    const vec3_t X = grid_points.row(i);
+    const vec2_t x = project_pinhole_equi(K, D, X);
 
     cv::circle(image,                   // Target image
                cv::Point2f(x(0), x(1)), // Center

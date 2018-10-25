@@ -2,7 +2,7 @@
 
 namespace prototype {
 
-int pos_ctrl_configure(struct pos_ctrl &pc,
+int pos_ctrl_configure(pos_ctrl_t &pc,
                        const std::string &config_file) {
   ConfigParser parser;
 
@@ -37,9 +37,9 @@ int pos_ctrl_configure(struct pos_ctrl &pc,
   return 0;
 }
 
-Vec4 pos_ctrl_update(struct pos_ctrl &pc,
-                     const Vec3 &setpoints,
-                     const Vec4 &actual,
+vec4_t pos_ctrl_update(pos_ctrl_t &pc,
+                     const vec3_t &setpoints,
+                     const vec4_t &actual,
                      const double yaw,
                      const double dt) {
   // Check rate
@@ -49,11 +49,11 @@ Vec4 pos_ctrl_update(struct pos_ctrl &pc,
   }
 
   // Calculate RPY errors relative to quadrotor by incorporating yaw
-  Vec3 errors{setpoints(0) - actual(0),
-              setpoints(1) - actual(1),
-              setpoints(2) - actual(2)};
-  const Vec3 euler{0.0, 0.0, actual(3)};
-  const Mat3 R = euler123ToRot(euler);
+  vec3_t errors{setpoints(0) - actual(0),
+                setpoints(1) - actual(1),
+                setpoints(2) - actual(2)};
+  const vec3_t euler{0.0, 0.0, actual(3)};
+  const mat3_t R = euler123ToRot(euler);
   errors = R * errors;
 
   // Roll, pitch, yaw and thrust
@@ -61,7 +61,7 @@ Vec4 pos_ctrl_update(struct pos_ctrl &pc,
   double p = pid_update(pc.y_ctrl, errors(0), dt);
   double y = yaw;
   double t = 0.5 + pid_update(pc.z_ctrl, errors(2), dt);
-  Vec4 outputs{r, p, y, t};
+  vec4_t outputs{r, p, y, t};
 
   // Limit roll, pitch
   for (int i = 0; i < 2; i++) {
@@ -100,7 +100,7 @@ Vec4 pos_ctrl_update(struct pos_ctrl &pc,
   return outputs;
 }
 
-void pos_ctrl_reset(struct pos_ctrl &pc) {
+void pos_ctrl_reset(pos_ctrl_t &pc) {
   pid_reset(pc.x_ctrl);
   pid_reset(pc.y_ctrl);
   pid_reset(pc.z_ctrl);

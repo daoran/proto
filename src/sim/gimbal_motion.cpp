@@ -4,7 +4,7 @@ namespace prototype {
 
 GimbalMotion::GimbalMotion() {}
 
-GimbalMotion::GimbalMotion(const std::vector<Vec2> &joint_setpoints,
+GimbalMotion::GimbalMotion(const std::vector<vec2_t> &joint_setpoints,
                            const double time_dt,
                            const double time_end)
     : joint_setpoints{joint_setpoints},

@@ -100,7 +100,7 @@ int test_CalibValidator_validateTriclops() {
   std::cout << validator.camchain.cam[1] << std::endl;
   std::cout << validator.camchain.T_C1_C0 << std::endl;
 
-  MatX joint_data;
+  matx_t joint_data;
   if (csv2mat(joint_file, false, joint_data) != 0) {
     LOG_ERROR("Failed to load joint data!");
     return -1;

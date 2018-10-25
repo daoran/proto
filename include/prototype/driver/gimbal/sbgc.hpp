@@ -138,13 +138,13 @@ public:
 
 class SBGCRealtimeData {
 public:
-  Vec3 accel;
-  Vec3 gyro;
+  vec3_t accel;
+  vec3_t gyro;
 
-  Vec3 camera_angles;
-  Vec3 frame_angles;
-  Vec3 rc_angles;
-  Vec3 encoder_angles;
+  vec3_t camera_angles;
+  vec3_t frame_angles;
+  vec3_t rc_angles;
+  vec3_t encoder_angles;
 
   int cycle_time;
   int i2c_error_count;

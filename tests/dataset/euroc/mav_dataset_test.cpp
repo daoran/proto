@@ -93,25 +93,25 @@ int test_MAVDataset_sandbox() {
   int retval = mav_data.load();
   MU_CHECK_EQ(0, retval);
 
-  const Mat4 T_imu_cam0 = mav_data.cam0_data.T_BS;
-  const Mat4 T_imu_cam1 = mav_data.cam1_data.T_BS;
-  const Vec3 X{0.0, 0.0, 10.0};
+  const mat4_t T_imu_cam0 = mav_data.cam0_data.T_BS;
+  const mat4_t T_imu_cam1 = mav_data.cam1_data.T_BS;
+  const vec3_t X{0.0, 0.0, 10.0};
 
   // clang-format off
-  Mat4 T_body_imu;
+  mat4_t T_body_imu;
   T_body_imu << 0.0, 0.0, 1.0, 0.0,
                 0.0, -1.0, 0.0, 0.0,
                 1.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 1.0;
   // clang-format on
-  const Mat4 T_body_cam0 = T_body_imu * T_imu_cam0;
-  const Mat4 T_cam0_body = T_body_cam0.inverse();
+  const mat4_t T_body_cam0 = T_body_imu * T_imu_cam0;
+  const mat4_t T_cam0_body = T_body_cam0.inverse();
 
   // std::cout << T_body_cam0 * X.homogeneous() << std::endl;
 
-  const Vec4 q_CI = rot2quat(T_cam0_body.block(0, 0, 3, 3));
+  const vec4_t q_CI = rot2quat(T_cam0_body.block(0, 0, 3, 3));
   std::cout << "q_CI: " << q_CI.transpose() << std::endl;
-  const Vec3 p_I_CI = T_cam0_body.block(0, 3, 3, 1);
+  const vec3_t p_I_CI = T_cam0_body.block(0, 3, 3, 1);
   std::cout << "p_I_CI: " << p_I_CI.transpose() << std::endl;
 
   // std::cout << T_imu_cam0 << std::endl;

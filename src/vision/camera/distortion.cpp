@@ -2,12 +2,12 @@
 
 namespace prototype {
 
-MatX radtan_distort(const double k1,
+matx_t radtan_distort(const double k1,
                     const double k2,
                     const double k3,
                     const double p1,
                     const double p2,
-                    const MatX &points) {
+                    const matx_t &points) {
   // Asserts
   assert(points.cols() == 3);
 
@@ -32,19 +32,19 @@ MatX radtan_distort(const double k1,
   // clang-format on
 
   // Project rad-tan distorted points to image plane
-  MatX distorted_points{nb_points, 2};
+  matx_t distorted_points{nb_points, 2};
   distorted_points.col(0) = x_ddash;
   distorted_points.col(1) = y_ddash;
 
   return distorted_points;
 }
 
-Vec2 radtan_distort(const double k1,
+vec2_t radtan_distort(const double k1,
                     const double k2,
                     const double k3,
                     const double p1,
                     const double p2,
-                    const Vec3 &point) {
+                    const vec3_t &point) {
   // Setup
   const double x_dash = point(0) / point(2);
   const double y_dash = point(1) / point(2);
@@ -62,15 +62,15 @@ Vec2 radtan_distort(const double k1,
   // clang-format on
 
   // Project rad-tan distorted point to image plane
-  Vec2 distorted_point{x_ddash, y_ddash};
+  vec2_t distorted_point{x_ddash, y_ddash};
   return distorted_point;
 }
 
-MatX equi_distort(const double k1,
+matx_t equi_distort(const double k1,
                   const double k2,
                   const double k3,
                   const double k4,
-                  const MatX &points) {
+                  const matx_t &points) {
   // Asserts
   assert(points.cols() == 3);
 
@@ -90,17 +90,17 @@ MatX equi_distort(const double k1,
 
   // Project equi distorted points to image plane
   const int nb_points = points.rows();
-  MatX distorted_points{nb_points, 2};
+  matx_t distorted_points{nb_points, 2};
   distorted_points.col(0) = x_dash;
   distorted_points.col(1) = y_dash;
   return distorted_points;
 }
 
-Vec2 equi_distort(const double k1,
+vec2_t equi_distort(const double k1,
                   const double k2,
                   const double k3,
                   const double k4,
-                  const Vec3 &point) {
+                  const vec3_t &point) {
   const double z = point(2);
   const double x = point(0) / z;
   const double y = point(1) / z;
@@ -119,14 +119,14 @@ Vec2 equi_distort(const double k1,
   // clang-format on
 
   // Project equi distorted point to image plane
-  return Vec2{x_dash, y_dash};
+  return vec2_t{x_dash, y_dash};
 }
 
 void equi_undistort(const double k1,
                     const double k2,
                     const double k3,
                     const double k4,
-                    Vec2 &p) {
+                    vec2_t &p) {
   const double thetad = sqrt(p(0) * p(0) + p(1) * p(1));
 
   double theta = thetad; // Initial guess
@@ -143,8 +143,8 @@ void equi_undistort(const double k1,
   p(1) *= scaling;
 }
 
-cv::Mat pinhole_equi_undistort_image(const Mat3 &K,
-                                     const VecX &D,
+cv::Mat pinhole_equi_undistort_image(const mat3_t &K,
+                                     const vecx_t &D,
                                      const cv::Mat &image,
                                      const double balance,
                                      cv::Mat &Knew) {
@@ -164,34 +164,34 @@ cv::Mat pinhole_equi_undistort_image(const Mat3 &K,
   return image_ud;
 }
 
-cv::Mat pinhole_equi_undistort_image(const Mat3 &K,
-                                     const VecX &D,
+cv::Mat pinhole_equi_undistort_image(const mat3_t &K,
+                                     const vecx_t &D,
                                      const cv::Mat &image,
                                      cv::Mat &Knew) {
   return pinhole_equi_undistort_image(K, D, image, 0.0, Knew);
 }
 
-Vec2 project_pinhole_radtan(const Mat3 &K, const VecX &D, const Vec3 &X) {
+vec2_t project_pinhole_radtan(const mat3_t &K, const vecx_t &D, const vec3_t &X) {
   // Apply equi distortion
   const double k1 = D(0);
   const double k2 = D(1);
   const double p1 = D(2);
   const double p2 = D(3);
   const double k3 = D(4);
-  const Vec2 x_distorted = radtan_distort(k1, k2, k3, p1, p2, X);
+  const vec2_t x_distorted = radtan_distort(k1, k2, k3, p1, p2, X);
 
   // Project equi distorted point to image plane
-  const Vec2 pixel = (K * x_distorted.homogeneous()).head(2);
+  const vec2_t pixel = (K * x_distorted.homogeneous()).head(2);
 
   return pixel;
 }
 
-Vec2 project_pinhole_equi(const Mat3 &K, const Vec4 &D, const Vec3 &X) {
+vec2_t project_pinhole_equi(const mat3_t &K, const vec4_t &D, const vec3_t &X) {
   // Distort point
-  const Vec2 x_distorted = equi_distort(D(0), D(1), D(2), D(3), X);
+  const vec2_t x_distorted = equi_distort(D(0), D(1), D(2), D(3), X);
 
   // Project equi distorted point to image plane
-  const Vec2 pixel = (K * x_distorted.homogeneous()).head(2);
+  const vec2_t pixel = (K * x_distorted.homogeneous()).head(2);
 
   return pixel;
 }

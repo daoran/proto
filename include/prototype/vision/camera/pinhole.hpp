@@ -2,8 +2,8 @@
  * @file
  * @ingroup camera
  */
-#ifndef PROTOTYPE_VISION_CAMERA_PINHOLE_MODEL_HPP
-#define PROTOTYPE_VISION_CAMERA_PINHOLE_MODEL_HPP
+#ifndef PROTOTYPE_VISION_CAMERA_PINHOLE_HPP
+#define PROTOTYPE_VISION_CAMERA_PINHOLE_HPP
 
 #include "prototype/core.hpp"
 
@@ -19,7 +19,7 @@ namespace prototype {
  * @param intrinsics Intrinsics vector (fx, fy, cx, cy)
  * @returns Intrinsics matrix K
  */
-Mat3 pinhole_K(const Vec4 &intrinsics);
+mat3_t pinhole_K(const vec4_t &intrinsics);
 
 /**
  * Pinhole camera model theoretical focal length
@@ -38,9 +38,9 @@ double pinhole_focal_length(const int image_width, const double fov);
  * @param vfov Vertical field of view [deg]
  * @returns Focal length in pixels
  */
-Vec2 pinhole_focal_length(const Vec2 &image_size,
-                          const double hfov,
-                          const double vfov);
+vec2_t pinhole_focal_length(const vec2_t &image_size,
+                            const double hfov,
+                            const double vfov);
 
 /**
  * Pinhole projection matrix
@@ -51,7 +51,7 @@ Vec2 pinhole_focal_length(const Vec2 &image_size,
  *
  * @returns Projection matrix
  */
-Mat34 pinhole_projection_matrix(const Mat3 &K, const Mat3 &R, const Vec3 &t);
+mat34_t pinhole_projection_matrix(const mat3_t &K, const mat3_t &R, const vec3_t &t);
 
 /**
  * Project 3D point to image plane using pinhole model
@@ -60,7 +60,7 @@ Mat34 pinhole_projection_matrix(const Mat3 &K, const Mat3 &R, const Vec3 &t);
  * @param p 3D point
  * @returns Projected point in image plane
  */
-Vec2 pinhole_project(const Mat3 &K, const Vec3 &p);
+vec2_t pinhole_project(const mat3_t &K, const vec3_t &p);
 
 /**
  * Project 3D point to image plane using pinhole model
@@ -71,10 +71,10 @@ Vec2 pinhole_project(const Mat3 &K, const Vec3 &p);
  * @param X 3D point
  * @returns Projected point in image plane
  */
-Vec3 pinhole_project(const Mat3 &K,
-                     const Mat3 &R,
-                     const Vec3 &t,
-                     const Vec4 &X);
+vec3_t pinhole_project(const mat3_t &K,
+                     const mat3_t &R,
+                     const vec3_t &t,
+                     const vec4_t &X);
 
 /**
  * Project 3D point to image plane using pinhole model
@@ -85,10 +85,10 @@ Vec3 pinhole_project(const Mat3 &K,
  * @param X 3D point
  * @returns Projected point in image plane
  */
-Vec2 pinhole_project(const Mat3 &K,
-                     const Mat3 &R,
-                     const Vec3 &t,
-                     const Vec3 &X);
+vec2_t pinhole_project(const mat3_t &K,
+                     const mat3_t &R,
+                     const vec3_t &t,
+                     const vec3_t &X);
 
 /**
  * Convert pixel to ideal coordinates
@@ -101,11 +101,11 @@ Vec2 pinhole_project(const Mat3 &K,
  *
  * @returns Pixel in ideal coordinates
  */
-Vec2 pinhole_pixel2ideal(const double fx,
+vec2_t pinhole_pixel2ideal(const double fx,
                          const double fy,
                          const double cx,
                          const double cy,
-                         const Vec2 &pixel);
+                         const vec2_t &pixel);
 
 /**
  * Convert pixel to ideal coordinates
@@ -114,7 +114,7 @@ Vec2 pinhole_pixel2ideal(const double fx,
  * @param pixel Pixel measurement
  * @returns Pixel in ideal coordinates
  */
-Vec2 pinhole_pixel2ideal(const Mat3 &K, const Vec2 &pixel);
+vec2_t pinhole_pixel2ideal(const mat3_t &K, const vec2_t &pixel);
 
 /**
  * Pinhole camera model
@@ -124,7 +124,7 @@ public:
   int image_width = 0;
   int image_height = 0;
 
-  Mat3 K = zeros(3, 3); ///< Camera intrinsics
+  mat3_t K = zeros(3, 3); ///< Camera intrinsics
   double cx = 0.0;      ///< Principle center in x-axis
   double cy = 0.0;      ///< Principle center in y-axis
   double fx = 0.0;      ///< Focal length in x-axis
@@ -133,7 +133,7 @@ public:
   PinholeModel() {}
   virtual ~PinholeModel() {}
 
-  PinholeModel(const int image_width, const int image_height, const MatX &K)
+  PinholeModel(const int image_width, const int image_height, const matx_t &K)
       : image_width{image_width}, image_height{image_height}, K{K}, cx{K(0, 2)},
         cy{K(1, 2)}, fx{K(0, 0)}, fy{K(1, 1)} {}
 
@@ -145,7 +145,7 @@ public:
                const double cy)
       : image_width{image_width}, image_height{image_height}, cx{cx}, cy{cy},
         fx{fx}, fy{fy} {
-    this->K = Mat3::Zero();
+    this->K = mat3_t::Zero();
     K(0, 0) = fx;
     K(1, 1) = fy;
     K(0, 2) = cx;
@@ -169,7 +169,7 @@ public:
    *
    * @returns Projection matrix
    */
-  Mat34 P(const Mat3 &R, const Vec3 &t);
+  mat34_t P(const mat3_t &R, const vec3_t &t);
 
   /**
    * Project 3D point to image plane
@@ -180,7 +180,7 @@ public:
    *
    * @returns 3D point in image plane (homogenous)
    */
-  Vec2 project(const Vec3 &X, const Mat3 &R, const Vec3 &t);
+  vec2_t project(const vec3_t &X, const mat3_t &R, const vec3_t &t);
 
   /**
    * Project 3D point to image plane
@@ -191,7 +191,7 @@ public:
    *
    * @returns 3D point in image plane (homogenous)
    */
-  Vec3 project(const Vec4 &X, const Mat3 &R, const Vec3 &t);
+  vec3_t project(const vec4_t &X, const mat3_t &R, const vec3_t &t);
 
   /**
    * Convert pixel measurement to ideal coordinates
@@ -199,7 +199,7 @@ public:
    * @param pixel Pixel measurement
    * @returns Pixel measurement to ideal coordinates
    */
-  Vec2 pixel2ideal(const Vec2 &pixel);
+  vec2_t pixel2ideal(const vec2_t &pixel);
 
   /**
    * Convert pixel measurement to ideal coordinates
@@ -207,7 +207,7 @@ public:
    * @param pixel Pixel measurement
    * @returns Pixel measurement to ideal coordinates
    */
-  Vec2 pixel2ideal(const cv::Point2f &pixel);
+  vec2_t pixel2ideal(const cv::Point2f &pixel);
 
   /**
    * Convert pixel measurement to ideal coordinates
@@ -215,9 +215,9 @@ public:
    * @param pixel Pixel measurement
    * @returns Pixel measurement to ideal coordinates
    */
-  Vec2 pixel2ideal(const cv::KeyPoint &pixel);
+  vec2_t pixel2ideal(const cv::KeyPoint &pixel);
 };
 
 /** @} group camera */
 } //  namespace prototype
-#endif // PROTOTYPE_VISION_CAMERA_PINHOLE_MODEL_HPP
+#endif // PROTOTYPE_VISION_CAMERA_PINHOLE_HPP

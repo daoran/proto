@@ -39,7 +39,7 @@ int benchmark_grid_fast() {
                                true); // Nonmax suppression
 
     // Save keypoints to file
-    MatX data;
+    matx_t data;
     data.resize(keypoints.size(), 2);
     int row_index = 0;
     for (auto kp : keypoints) {
@@ -81,7 +81,7 @@ int benchmark_grid_fast() {
     cv::waitKey(1);
 
     // Save image and keypoints to file
-    MatX data;
+    matx_t data;
     data.resize(keypoints.size(), 2);
     int row_index = 0;
     for (auto kp : keypoints) {

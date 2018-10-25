@@ -2,11 +2,11 @@
 
 namespace prototype {
 
-int wp_ctrl_update(struct wp_ctrl &wc,
-                   struct wp_mission &m,
-                   const Vec3 &p_G,
-                   const Vec3 &v_G,
-                   const Vec3 &rpy_G,
+int wp_ctrl_update(wp_ctrl_t &wc,
+                   wp_mission_t &m,
+                   const vec3_t &p_G,
+                   const vec3_t &v_G,
+                   const vec3_t &rpy_G,
                    const double dt) {
   // Check rate
   wc.dt += dt;
@@ -15,21 +15,21 @@ int wp_ctrl_update(struct wp_ctrl &wc,
   }
 
   // Current waypoint
-  Vec3 wp_G = Vec3::Zero();
+  vec3_t wp_G = vec3_t::Zero();
   int retval = wp_mission_update(m, p_G, wp_G);
   if (retval != 0) {
     return retval;
   }
 
   // // Calculate waypoint relative to quadrotor
-  // Mat4 T_P_W = zeros(4, 4);
+  // mat4_t T_P_W = zeros(4, 4);
   // T_P_W.block(0, 0, 3, 3) = euler123ToRot(yaw(rpy_G));
   // T_P_W(3, 3) = 1.0;
-  // const Vec4 wp_B_homo{wp_G(0) - p_G(0),
+  // const vec4_t wp_B_homo{wp_G(0) - p_G(0),
   //                      wp_G(1) - p_G(1),
   //                      wp_G(2) - p_G(2),
   //                      1.0};
-  // const Vec4 errors = T_P_W * wp_B_homo;
+  // const vec4_t errors = T_P_W * wp_B_homo;
 
   // std::cout << "T_P_W:\n" << T_P_W << std::endl;
   // std::cout << "wp_G: " << wp_G.transpose() << std::endl;
@@ -38,13 +38,13 @@ int wp_ctrl_update(struct wp_ctrl &wc,
   // std::cout << std::endl;
 
   // // Calculate velocity relative to quadrotor
-  // const Vec4 v_G_homo{v_G(0), v_G(1), v_G(2), 1.0};
-  // const Vec4 v_B = T_P_W * v_G_homo;
+  // const vec4_t v_G_homo{v_G(0), v_G(1), v_G(2), 1.0};
+  // const vec4_t v_B = T_P_W * v_G_homo;
 
   // Calculate RPY errors relative to quadrotor by incorporating yaw
-  Vec3 errors{wp_G(0) - p_G(0), wp_G(1) - p_G(1), wp_G(2) - p_G(2)};
-  const Vec3 euler{0.0, 0.0, rpy_G(2)};
-  const Mat3 R = euler123ToRot(euler);
+  vec3_t errors{wp_G(0) - p_G(0), wp_G(1) - p_G(1), wp_G(2) - p_G(2)};
+  const vec3_t euler{0.0, 0.0, rpy_G(2)};
+  const mat3_t R = euler123ToRot(euler);
   errors = R * errors;
 
   // Roll
@@ -80,7 +80,7 @@ int wp_ctrl_update(struct wp_ctrl &wc,
   return 0;
 }
 
-void wp_ctrl_reset(struct wp_ctrl &wc) {
+void wp_ctrl_reset(wp_ctrl_t &wc) {
   pid_reset(wc.at_controller);
   pid_reset(wc.ct_controller);
   pid_reset(wc.z_controller);

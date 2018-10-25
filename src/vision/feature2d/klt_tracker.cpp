@@ -33,8 +33,8 @@ std::vector<FeatureTrack> KLTTracker::getLostTracks() {
     for (auto &track : tracks) {
       for (auto &feature : track.track) {
         // Convert pixel coordinates to image coordinates
-        const Vec2 px{feature.kp.pt.x, feature.kp.pt.y};
-        const Vec2 pt = pinhole_pixel2ideal(this->camera_property.K(), px);
+        const vec2_t px{feature.kp.pt.x, feature.kp.pt.y};
+        const vec2_t pt = pinhole_pixel2ideal(this->camera_property.K(), px);
         feature.kp.pt.x = pt(0);
         feature.kp.pt.y = pt(1);
       }
@@ -194,7 +194,7 @@ int KLTTracker::replenishFeatures(const cv::Mat &image, Features &features) {
   }
 
   // Build a grid denoting where existing keypoints already are
-  MatX pt_grid = zeros(this->image_height, this->image_width);
+  matx_t pt_grid = zeros(this->image_height, this->image_width);
   for (auto f : features) {
     const int px = int(f.kp.pt.x);
     const int py = int(f.kp.pt.y);

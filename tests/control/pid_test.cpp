@@ -4,7 +4,7 @@
 namespace prototype {
 
 int test_pid_construct() {
-  struct pid p;
+  pid_t p;
 
   MU_CHECK_FLOAT(0.0, p.error_prev);
   MU_CHECK_FLOAT(0.0, p.error_sum);
@@ -19,9 +19,7 @@ int test_pid_construct() {
 }
 
 int test_pid_setup() {
-  struct pid p;
-
-  p = pid_setup(1.0, 2.0, 3.0);
+  pid_t p(1.0, 2.0, 3.0);
 
   MU_CHECK_FLOAT(0.0, p.error_prev);
   MU_CHECK_FLOAT(0.0, p.error_sum);
@@ -38,7 +36,7 @@ int test_pid_setup() {
 }
 
 int test_pid_update() {
-  struct pid p = pid_setup(1.0, 1.0, 1.0);
+  pid_t p(1.0, 2.0, 3.0);
 
   // test and assert
   double output = pid_update(p, 10.0, 0.0, 0.1);
@@ -54,7 +52,7 @@ int test_pid_update() {
 }
 
 int test_pid_reset() {
-  struct pid p;
+  pid_t p;
 
   p.error_prev = 0.1;
   p.error_sum = 0.2;

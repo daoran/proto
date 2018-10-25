@@ -103,7 +103,7 @@ int BlackBox::recordMSCKF(const double time, const MSCKF &msckf) {
   this->est_file << msckf.imu_state.v_G(1) << ",";
   this->est_file << msckf.imu_state.v_G(2) << ",";
   // -- Roll, pitch and yaw
-  const Vec3 rpy_G = quat2euler(msckf.imu_state.q_IG);
+  const vec3_t rpy_G = quat2euler(msckf.imu_state.q_IG);
   this->est_file << rpy_G(0) << ",";
   this->est_file << rpy_G(1) << ",";
   this->est_file << rpy_G(2) << std::endl;
@@ -112,9 +112,9 @@ int BlackBox::recordMSCKF(const double time, const MSCKF &msckf) {
 }
 
 int BlackBox::recordEstimate(const double time,
-                             const Vec3 &p_G,
-                             const Vec3 &v_G,
-                             const Vec3 &rpy_G) {
+                             const vec3_t &p_G,
+                             const vec3_t &v_G,
+                             const vec3_t &rpy_G) {
   // Pre-check
   if (this->est_file.good() == false) {
     LOG_ERROR("BlackBox not configured!");
@@ -140,8 +140,8 @@ int BlackBox::recordEstimate(const double time,
 }
 
 int BlackBox::recordMeasurement(const double time,
-                                const Vec3 &a_B,
-                                const Vec3 &w_B) {
+                                const vec3_t &a_B,
+                                const vec3_t &w_B) {
   // Pre-check
   if (this->mea_file.good() == false) {
     LOG_ERROR("BlackBox not configured!");
@@ -163,9 +163,9 @@ int BlackBox::recordMeasurement(const double time,
 }
 
 int BlackBox::recordGroundTruth(const double time,
-                                const Vec3 &p_G,
-                                const Vec3 &v_G,
-                                const Vec3 &rpy_G) {
+                                const vec3_t &p_G,
+                                const vec3_t &v_G,
+                                const vec3_t &rpy_G) {
   // Pre-check
   if (this->gnd_file.good() == false) {
     LOG_ERROR("BlackBox not configured!");
@@ -204,7 +204,7 @@ int BlackBox::recordCameraStates(const MSCKF &msckf) {
     this->win_file << cam_state.p_G(2) << ",";
 
     // -- Roll, pitch and yaw
-    const Vec3 rpy_G = quat2euler(msckf.imu_state.q_IG);
+    const vec3_t rpy_G = quat2euler(msckf.imu_state.q_IG);
     this->win_file << rpy_G(0) << ",";
     this->win_file << rpy_G(1) << ",";
     this->win_file << rpy_G(2) << std::endl;
@@ -214,8 +214,8 @@ int BlackBox::recordCameraStates(const MSCKF &msckf) {
 }
 
 int BlackBox::recordCameraStates(const std::vector<double> time,
-                                 const std::vector<Vec3> &p_G,
-                                 const std::vector<Vec3> &rpy_G) {
+                                 const std::vector<vec3_t> &p_G,
+                                 const std::vector<vec3_t> &rpy_G) {
   assert(this->win_file.good());
 
   for (size_t i = 0; i < p_G.size(); i++) {
@@ -237,11 +237,11 @@ int BlackBox::recordCameraStates(const std::vector<double> time,
 
 int BlackBox::recordTimeStep(const double time,
                              const MSCKF &msckf,
-                             const Vec3 &mea_a_B,
-                             const Vec3 &mea_w_B,
-                             const Vec3 &gnd_p_G,
-                             const Vec3 &gnd_v_G,
-                             const Vec3 &gnd_rpy_G) {
+                             const vec3_t &mea_a_B,
+                             const vec3_t &mea_w_B,
+                             const vec3_t &gnd_p_G,
+                             const vec3_t &gnd_v_G,
+                             const vec3_t &gnd_rpy_G) {
   this->recordMeasurement(time, mea_a_B, mea_w_B);
   this->recordMSCKF(time, msckf);
   this->recordGroundTruth(time, gnd_p_G, gnd_v_G, gnd_rpy_G);
@@ -249,14 +249,14 @@ int BlackBox::recordTimeStep(const double time,
 }
 
 int BlackBox::recordTimeStep(const double time,
-                             const Vec3 &mea_a_B,
-                             const Vec3 &mea_w_B,
-                             const Vec3 &est_p_G,
-                             const Vec3 &est_v_G,
-                             const Vec3 &est_rpy_G,
-                             const Vec3 &gnd_p_G,
-                             const Vec3 &gnd_v_G,
-                             const Vec3 &gnd_rpy_G) {
+                             const vec3_t &mea_a_B,
+                             const vec3_t &mea_w_B,
+                             const vec3_t &est_p_G,
+                             const vec3_t &est_v_G,
+                             const vec3_t &est_rpy_G,
+                             const vec3_t &gnd_p_G,
+                             const vec3_t &gnd_v_G,
+                             const vec3_t &gnd_rpy_G) {
   this->recordMeasurement(time, mea_a_B, mea_w_B);
   this->recordEstimate(time, est_p_G, est_v_G, est_rpy_G);
   this->recordGroundTruth(time, gnd_p_G, gnd_v_G, gnd_rpy_G);

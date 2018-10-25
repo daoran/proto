@@ -8,7 +8,7 @@ IMUState::IMUState(const IMUStateConfig &config)
       : size{15} {
   // clang-format off
   // Set estimate covariance matrix
-  VecX init_var = zeros(15, 1);
+  vecx_t init_var = zeros(15, 1);
   init_var << config.q_init_var,
               config.bg_init_var,
               config.v_init_var,
@@ -17,7 +17,7 @@ IMUState::IMUState(const IMUStateConfig &config)
   this->P = init_var.asDiagonal();
 
   // Set noise covariance matrix
-  VecX n_imu = zeros(12, 1);
+  vecx_t n_imu = zeros(12, 1);
   n_imu << config.w_var,
           config.dbg_var,
           config.a_var,
@@ -26,8 +26,8 @@ IMUState::IMUState(const IMUStateConfig &config)
   // clang-format on
 }
 
-MatX IMUState::F(const Vec3 &w_hat, const Vec4 &q_hat, const Vec3 &a_hat) {
-  MatX F = zeros(15);
+matx_t IMUState::F(const vec3_t &w_hat, const vec4_t &q_hat, const vec3_t &a_hat) {
+  matx_t F = zeros(15);
 
   // -- First row block --
   F.block<3, 3>(0, 0) = -skew(w_hat);
@@ -41,8 +41,8 @@ MatX IMUState::F(const Vec3 &w_hat, const Vec4 &q_hat, const Vec3 &a_hat) {
   return F;
 }
 
-MatX IMUState::G(const Vec4 &q_hat) {
-  MatX G = zeros(15, 12);
+matx_t IMUState::G(const vec4_t &q_hat) {
+  matx_t G = zeros(15, 12);
 
   // -- First row block --
   G.block<3, 3>(0, 0) = -I(3);
@@ -56,40 +56,40 @@ MatX IMUState::G(const Vec4 &q_hat) {
   return G;
 }
 
-void IMUState::update(const Vec3 &a_m, const Vec3 &w_m, const double dt) {
+void IMUState::update(const vec3_t &a_m, const vec3_t &w_m, const double dt) {
   // Calculate new accel and gyro estimates
-  const Vec3 a_hat = a_m - this->b_a;
-  const Vec3 w_hat = w_m - this->b_g;
+  const vec3_t a_hat = a_m - this->b_a;
+  const vec3_t w_hat = w_m - this->b_g;
 
   // Build the transition F and input G matrices
-  const MatX F = this->F(w_hat, this->q_IG, a_hat);
-  const MatX G = this->G(this->q_IG);
+  const matx_t F = this->F(w_hat, this->q_IG, a_hat);
+  const matx_t G = this->G(this->q_IG);
 
   // Propagate IMU states
   // clang-format off
   if (this->rk4) {
     // Quaternion zeroth order integration
-    const Vec4 dq_dt = quatzoi(this->q_IG, w_hat, dt);
-    const Vec4 dq_dt2 = quatzoi(this->q_IG, w_hat, dt * 0.5);
-    const Mat3 dR_dt_transpose = C(dq_dt).transpose();
-    const Mat3 dR_dt2_transpose = C(dq_dt2).transpose();
+    const vec4_t dq_dt = quatzoi(this->q_IG, w_hat, dt);
+    const vec4_t dq_dt2 = quatzoi(this->q_IG, w_hat, dt * 0.5);
+    const mat3_t dR_dt_transpose = C(dq_dt).transpose();
+    const mat3_t dR_dt2_transpose = C(dq_dt2).transpose();
 
     // 4th order Runge-Kutta
     // -- k1 = f(tn, yn)
-    const Vec3 k1_v_dot = C(this->q_IG).transpose() * a_hat + this->g_G;
-    const Vec3 k1_p_dot = this->v_G;
+    const vec3_t k1_v_dot = C(this->q_IG).transpose() * a_hat + this->g_G;
+    const vec3_t k1_p_dot = this->v_G;
     // -- k2 = f(tn + dt / 2, yn + k1 * dt / 2)
-    const Vec3 k1_v = this->v_G + k1_v_dot * dt / 2.0;
-    const Vec3 k2_v_dot = dR_dt2_transpose * a_hat + this->g_G;
-    const Vec3 k2_p_dot = k1_v;
+    const vec3_t k1_v = this->v_G + k1_v_dot * dt / 2.0;
+    const vec3_t k2_v_dot = dR_dt2_transpose * a_hat + this->g_G;
+    const vec3_t k2_p_dot = k1_v;
     // -- k3 = f(tn + dt / 2, yn + k2 * dt / 2)
-    const Vec3 k2_v = this->v_G + k2_v_dot * dt / 2;
-    const Vec3 k3_v_dot = dR_dt2_transpose * a_hat + this->g_G;
-    const Vec3 k3_p_dot = k2_v;
+    const vec3_t k2_v = this->v_G + k2_v_dot * dt / 2;
+    const vec3_t k3_v_dot = dR_dt2_transpose * a_hat + this->g_G;
+    const vec3_t k3_p_dot = k2_v;
     // -- k4 = f(tn + dt, yn + k3)
-    const Vec3 k3_v = this->v_G + k3_v_dot * dt;
-    const Vec3 k4_v_dot = dR_dt_transpose * a_hat + this->g_G;
-    const Vec3 k4_p_dot = k3_v;
+    const vec3_t k3_v = this->v_G + k3_v_dot * dt;
+    const vec3_t k4_v_dot = dR_dt_transpose * a_hat + this->g_G;
+    const vec3_t k4_p_dot = k3_v;
     // -- yn + 1 = yn + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
     this->q_IG = quatnormalize(dq_dt);
     this->v_G = this->v_G + dt / 6 * (k1_v_dot + 2 * k2_v_dot + 2 * k3_v_dot + k4_v_dot);
@@ -112,9 +112,9 @@ void IMUState::update(const Vec3 &a_m, const Vec3 &w_m, const double dt) {
   // -- Approximate matrix exponential to the 3rd order using the power series,
   //    which can be considered to be accurate enough assuming dt is within
   //    0.01s.
-  const MatX F_dt = F * dt;
-  const MatX F_dt_sq = F_dt * F_dt;
-  const MatX F_dt_cube = F_dt_sq * F_dt;
+  const matx_t F_dt = F * dt;
+  const matx_t F_dt_sq = F_dt * F_dt;
+  const matx_t F_dt_cube = F_dt_sq * F_dt;
   this->Phi = I(this->size) + F_dt + 0.5 * F_dt_sq + (1.0 / 6.0) * F_dt_cube;
   // -- Update
   // this->Q = this->Phi * G * this->Q * G.transpose() * this->Phi.transpose() * dt;
@@ -127,16 +127,16 @@ void IMUState::update(const Vec3 &a_m, const Vec3 &w_m, const double dt) {
   // TODO: Modify transition matrix according to OC-EKF
 }
 
-void IMUState::correct(const VecX &dx) {
+void IMUState::correct(const vecx_t &dx) {
   // Split dx into its own components
-  const Vec3 dtheta_IG = dx.segment(0, 3);
-  const Vec3 db_g = dx.segment(3, 3);
-  const Vec3 dv_G = dx.segment(6, 3);
-  const Vec3 db_a = dx.segment(9, 3);
-  const Vec3 dp_G = dx.segment(12, 3);
+  const vec3_t dtheta_IG = dx.segment(0, 3);
+  const vec3_t db_g = dx.segment(3, 3);
+  const vec3_t dv_G = dx.segment(6, 3);
+  const vec3_t db_a = dx.segment(9, 3);
+  const vec3_t dp_G = dx.segment(12, 3);
 
   // Time derivative of quaternion (small angle approx)
-  const Vec4 dq_IG = quatsmallangle(dtheta_IG);
+  const vec4_t dq_IG = quatsmallangle(dtheta_IG);
 
   // Correct IMU state
   this->q_IG = quatnormalize(quatlcomp(dq_IG) * this->q_IG);

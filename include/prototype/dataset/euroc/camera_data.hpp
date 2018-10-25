@@ -29,13 +29,13 @@ struct CameraData {
   // Sensor properties
   std::string sensor_type;
   std::string comment;
-  Mat4 T_BS = I(4);
+  mat4_t T_BS = I(4);
   double rate_hz = 0.0;
-  Vec2 resolution;
+  vec2_t resolution;
   std::string camera_model;
-  Vec4 intrinsics;
+  vec4_t intrinsics;
   std::string distortion_model;
-  Vec4 distortion_coefficients;
+  vec4_t distortion_coefficients;
 
   /**
    * Load Camera data

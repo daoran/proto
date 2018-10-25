@@ -4,14 +4,14 @@ namespace prototype {
 
 GimbalCalibResidual::GimbalCalibResidual() {}
 
-GimbalCalibResidual::GimbalCalibResidual(const Vec3 &P_s,
-                                         const Vec3 &P_d,
-                                         const Vec2 &Q_s,
-                                         const Vec2 &Q_d,
-                                         const Mat3 &K_s,
-                                         const Mat3 &K_d,
-                                         const Vec4 &D_s,
-                                         const Vec4 &D_d,
+GimbalCalibResidual::GimbalCalibResidual(const vec3_t &P_s,
+                                         const vec3_t &P_d,
+                                         const vec2_t &Q_s,
+                                         const vec2_t &Q_d,
+                                         const mat3_t &K_s,
+                                         const mat3_t &K_d,
+                                         const vec4_t &D_s,
+                                         const vec4_t &D_d,
                                          const double theta1_offset,
                                          const double theta2_offset) {
   // Observed 3d point in static camera
@@ -79,16 +79,16 @@ std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-Mat4 GimbalCalibNumericalResidual::T_ds(const VecX &tau_s,
+mat4_t GimbalCalibNumericalResidual::T_ds(const vecx_t &tau_s,
                                         const double Lambda1,
-                                        const Vec3 &w1,
-                                        const VecX &tau_d,
+                                        const vec3_t &w1,
+                                        const vecx_t &tau_d,
                                         const double Lambda2,
-                                        const Vec3 &w2) const {
+                                        const vec3_t &w2) const {
   // Form T_sb
-  Mat4 T_bs;
+  mat4_t T_bs;
   T_bs.block(0, 0, 3, 3) = euler321ToRot({tau_s(3), tau_s(4), tau_s(5)});
-  T_bs.block(0, 3, 3, 1) = Vec3{tau_s(0), tau_s(1), tau_s(2)};
+  T_bs.block(0, 3, 3, 1) = vec3_t{tau_s(0), tau_s(1), tau_s(2)};
   T_bs(3, 3) = 1.0;
 
   // Form T_eb
@@ -103,14 +103,14 @@ Mat4 GimbalCalibNumericalResidual::T_ds(const VecX &tau_s,
   const double a2 = w2(1);
   const double alpha2 = w2(2);
   // -- Combine DH transforms to form T_eb
-  const Mat4 T_1b = dh_transform(theta1, d1, a1, alpha1).inverse();
-  const Mat4 T_e1 = dh_transform(theta2, d2, a2, alpha2).inverse();
-  const Mat4 T_eb = T_e1 * T_1b;
+  const mat4_t T_1b = dh_transform(theta1, d1, a1, alpha1).inverse();
+  const mat4_t T_e1 = dh_transform(theta2, d2, a2, alpha2).inverse();
+  const mat4_t T_eb = T_e1 * T_1b;
 
   // Form T_ed
-  Mat4 T_de;
+  mat4_t T_de;
   T_de.block(0, 0, 3, 3) = euler321ToRot({tau_d(3), tau_d(4), tau_d(5)});
-  T_de.block(0, 3, 3, 1) = Vec3{tau_d(0), tau_d(1), tau_d(2)};
+  T_de.block(0, 3, 3, 1) = vec3_t{tau_d(0), tau_d(1), tau_d(2)};
   T_de(3, 3) = 1.0;
 
   return T_de * T_eb * T_bs;
@@ -125,27 +125,27 @@ bool GimbalCalibNumericalResidual::operator()(const double *const p0,
                                               double *residual) const {
   // Map stacked optimization parameters back to its respective parameter
   // -- tau_s
-  VecX tau_s = zeros(6, 1);
+  vecx_t tau_s = zeros(6, 1);
   tau_s << p0[0], p0[1], p0[2], p0[3], p0[4], p0[5];
   // -- tau_d
-  VecX tau_d = zeros(6, 1);
+  vecx_t tau_d = zeros(6, 1);
   tau_d << p1[0], p1[1], p1[2], p1[3], p1[4], p1[5];
   // -- First DH link
   const double Lambda1 = p4[0];
-  const Vec3 w1{p2[0], p2[1], p2[2]};
+  const vec3_t w1{p2[0], p2[1], p2[2]};
   // -- Second DH link
   const double Lambda2 = p5[0];
-  const Vec3 w2{p3[0], p3[1], p3[2]};
+  const vec3_t w2{p3[0], p3[1], p3[2]};
 
   // Form the transform from static camera to dynamic camera
-  const Mat4 T_ds = this->T_ds(tau_s, Lambda1, w1, tau_d, Lambda2, w2);
+  const mat4_t T_ds = this->T_ds(tau_s, Lambda1, w1, tau_d, Lambda2, w2);
 
   // Calculate reprojection error by projecting 3D world point observed in
   // dynamic camera to static camera
   // -- Transform 3D world point from dynamic to static camera
-  const Vec3 P_s_cal = (T_ds.inverse() * this->P_d.homogeneous()).head(3);
+  const vec3_t P_s_cal = (T_ds.inverse() * this->P_d.homogeneous()).head(3);
   // -- Project 3D world point to image plane
-  Vec3 Q_s_cal = this->K_s * P_s_cal;
+  vec3_t Q_s_cal = this->K_s * P_s_cal;
   // -- Normalize projected image point
   Q_s_cal(0) = Q_s_cal(0) / Q_s_cal(2);
   Q_s_cal(1) = Q_s_cal(1) / Q_s_cal(2);
@@ -156,9 +156,9 @@ bool GimbalCalibNumericalResidual::operator()(const double *const p0,
   // Calculate reprojection error by projecting 3D world point observed in
   // static camera to dynamic camera
   // -- Transform 3D world point from dynamic to static camera
-  const Vec3 P_d_cal = (T_ds * this->P_s.homogeneous()).head(3);
+  const vec3_t P_d_cal = (T_ds * this->P_s.homogeneous()).head(3);
   // -- Project 3D world point to image plane
-  Vec3 Q_d_cal = this->K_d * P_d_cal;
+  vec3_t Q_d_cal = this->K_d * P_d_cal;
   // -- Normalize projected image point
   Q_d_cal(0) = Q_d_cal(0) / Q_d_cal(2);
   Q_d_cal(1) = Q_d_cal(1) / Q_d_cal(2);

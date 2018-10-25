@@ -5,7 +5,7 @@ namespace prototype {
 
 int test_bezier() {
   // Setup
-  std::vector<Vec3> points;
+  std::vector<vec3_t> points;
   points.emplace_back(0, 0, 0);
   points.emplace_back(1, 2, 0);
   points.emplace_back(2, 0, 0);
@@ -14,19 +14,19 @@ int test_bezier() {
   // Create bezier curve
   double t = 0.0;
   double dt = 0.1;
-  MatX pos_data;
+  matx_t pos_data;
   pos_data.resize((1.0 / dt) + 1, 4);
 
   int i = 0;
   while (t < 1.0) {
-    const Vec3 p = bezier(points, t);
+    const vec3_t p = bezier(points, t);
     pos_data.row(i) << t, p.transpose();
     i++;
     t += dt;
   }
 
   // Points data
-  MatX points_data;
+  matx_t points_data;
   points_data.resize(points.size(), 3);
   for (size_t i = 0; i < points.size(); i++) {
     points_data.row(i) = points[i];
@@ -45,17 +45,17 @@ int test_bezier() {
 
 int test_bezier_derivative() {
   // Setup
-  std::vector<Vec3> points;
+  std::vector<vec3_t> points;
   points.emplace_back(0, 0, 0);
   points.emplace_back(1, 3, 1);
   points.emplace_back(2, 0, 2);
   points.emplace_back(3, 3, 3);
 
-  const Vec3 v = bezier_derivative(points, 0.5, 1);
+  const vec3_t v = bezier_derivative(points, 0.5, 1);
   std::cout << v.transpose() << std::endl;
   std::cout << std::endl;
 
-  const Vec3 a = bezier_derivative(points, 0.0, 2);
+  const vec3_t a = bezier_derivative(points, 0.0, 2);
   std::cout << a.transpose() << std::endl;
   std::cout << std::endl;
 
@@ -64,7 +64,7 @@ int test_bezier_derivative() {
 
 int test_bezier_derivative2() {
   // Setup
-  std::vector<Vec3> points;
+  std::vector<vec3_t> points;
   points.emplace_back(0, 0, 0);
   points.emplace_back(1, 2, 1);
   points.emplace_back(2, 1, 2);
@@ -73,18 +73,18 @@ int test_bezier_derivative2() {
   // Create bezier curve and its derivatives
   double t = 0.0;
   double dt = 0.1;
-  MatX pos_data;
-  MatX vel_data;
-  MatX acc_data;
+  matx_t pos_data;
+  matx_t vel_data;
+  matx_t acc_data;
   pos_data.resize((1.0 / dt) + 1, 4);
   vel_data.resize((1.0 / dt) + 1, 4);
   acc_data.resize((1.0 / dt) + 1, 4);
 
   int i = 0;
   while (t < 1.0) {
-    const Vec3 p = bezier(points, t);
-    const Vec3 v = bezier_derivative(points, t, 1);
-    const Vec3 a = bezier_derivative(points, t, 2);
+    const vec3_t p = bezier(points, t);
+    const vec3_t v = bezier_derivative(points, t, 1);
+    const vec3_t a = bezier_derivative(points, t, 2);
     pos_data.row(i) << t, p.transpose();
     vel_data.row(i) << t, v.transpose();
     acc_data.row(i) << t, a.transpose();
@@ -93,7 +93,7 @@ int test_bezier_derivative2() {
   }
 
   // Points data
-  MatX points_data;
+  matx_t points_data;
   points_data.resize(points.size(), 3);
   for (size_t i = 0; i < points.size(); i++) {
     points_data.row(i) = points[i];
@@ -116,7 +116,7 @@ int test_bezier_derivative2() {
 
 int test_bezier_tangent() {
   // Setup
-  std::vector<Vec3> points;
+  std::vector<vec3_t> points;
   points.emplace_back(0, 0, 0);
   points.emplace_back(1, 2, 0);
   points.emplace_back(2, 0, 0);
@@ -125,15 +125,15 @@ int test_bezier_tangent() {
   // Create bezier curve
   double t = 0.0;
   double dt = 0.1;
-  MatX pos_data;
+  matx_t pos_data;
   pos_data.resize((1.0 / dt) + 1, 4);
-  MatX tangent_data;
+  matx_t tangent_data;
   tangent_data.resize((1.0 / dt) + 1, 4);
 
   int i = 0;
   while (t < 1.0) {
-    const Vec3 p = bezier(points, t);
-    const Vec3 tangent = bezier_tangent(points, t);
+    const vec3_t p = bezier(points, t);
+    const vec3_t tangent = bezier_tangent(points, t);
     pos_data.row(i) << t, p.transpose();
     tangent_data.row(i) << t, tangent.transpose();
     i++;
@@ -141,7 +141,7 @@ int test_bezier_tangent() {
   }
 
   // Points data
-  MatX points_data;
+  matx_t points_data;
   points_data.resize(points.size(), 3);
   for (size_t i = 0; i < points.size(); i++) {
     points_data.row(i) = points[i];
@@ -162,7 +162,7 @@ int test_bezier_tangent() {
 
 int test_decasteljau() {
   // Setup
-  std::vector<Vec3> points;
+  std::vector<vec3_t> points;
   points.emplace_back(0, 0, 0);
   points.emplace_back(1, 2, 0);
   points.emplace_back(2, 0, 0);
@@ -173,8 +173,8 @@ int test_decasteljau() {
   double dt = 0.1;
 
   while (t < 1.0) {
-    const Vec3 p0 = bezier(points, t);
-    const Vec3 p1 = decasteljau(points, t);
+    const vec3_t p0 = bezier(points, t);
+    const vec3_t p1 = decasteljau(points, t);
     MU_CHECK((p0 - p1).norm() < 1e-6);
     t += dt;
   }

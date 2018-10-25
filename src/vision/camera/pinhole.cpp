@@ -1,9 +1,9 @@
-#include "prototype/vision/camera/pinhole_model.hpp"
+#include "prototype/vision/camera/pinhole.hpp"
 
 namespace prototype {
 
-Mat3 pinhole_K(const Vec4 &intrinsics) {
-  Mat3 K;
+mat3_t pinhole_K(const vec4_t &intrinsics) {
+  mat3_t K;
 
   // clang-format off
   K << intrinsics(0), 0.0, intrinsics(2),
@@ -18,61 +18,61 @@ double pinhole_focal_length(const int image_width, const double fov) {
   return ((image_width / 2.0) / tan(deg2rad(fov) / 2.0));
 }
 
-Vec2 pinhole_focal_length(const Vec2 &image_size,
+vec2_t pinhole_focal_length(const vec2_t &image_size,
                           const double hfov,
                           const double vfov) {
   const double fx = ((image_size(0) / 2.0) / tan(deg2rad(hfov) / 2.0));
   const double fy = ((image_size(1) / 2.0) / tan(deg2rad(vfov) / 2.0));
-  return Vec2{fx, fy};
+  return vec2_t{fx, fy};
 }
 
-Mat34 pinhole_projection_matrix(const Mat3 &K, const Mat3 &R, const Vec3 &t) {
-  Mat34 A;
+mat34_t pinhole_projection_matrix(const mat3_t &K, const mat3_t &R, const vec3_t &t) {
+  mat34_t A;
   A.block(0, 0, 3, 3) = R;
   A.block(0, 3, 3, 1) = -R * t;
 
-  const Mat34 P = K * A;
+  const mat34_t P = K * A;
   return P;
 }
 
-Vec2 pinhole_project(const Mat3 &K, const Vec3 &X) {
-  const Vec3 x = K * X;
-  return Vec2{x(0) / x(2), x(1) / x(2)};
+vec2_t pinhole_project(const mat3_t &K, const vec3_t &X) {
+  const vec3_t x = K * X;
+  return vec2_t{x(0) / x(2), x(1) / x(2)};
 }
 
-Vec3 pinhole_project(const Mat3 &K,
-                     const Mat3 &R,
-                     const Vec3 &t,
-                     const Vec4 &X) {
-  Mat34 A;
+vec3_t pinhole_project(const mat3_t &K,
+                     const mat3_t &R,
+                     const vec3_t &t,
+                     const vec4_t &X) {
+  mat34_t A;
   A.block(0, 0, 3, 3) = R;
   A.block(0, 3, 3, 1) = -R * t;
 
   // Form projection matrix
-  const Mat34 P = K * A;
-  const Vec3 x = P * X;
+  const mat34_t P = K * A;
+  const vec3_t x = P * X;
   return x;
 }
 
-Vec2 pinhole_project(const Mat3 &K,
-                     const Mat3 &R,
-                     const Vec3 &t,
-                     const Vec3 &X) {
-  const Vec4 X_homo = X.homogeneous();
-  const Vec3 x = pinhole_project(K, R, t, X_homo);
-  return Vec2{x(0) / x(2), x(1) / x(2)};
+vec2_t pinhole_project(const mat3_t &K,
+                     const mat3_t &R,
+                     const vec3_t &t,
+                     const vec3_t &X) {
+  const vec4_t X_homo = X.homogeneous();
+  const vec3_t x = pinhole_project(K, R, t, X_homo);
+  return vec2_t{x(0) / x(2), x(1) / x(2)};
 }
 
-Vec2 pinhole_pixel2ideal(const double fx,
+vec2_t pinhole_pixel2ideal(const double fx,
                          const double fy,
                          const double cx,
                          const double cy,
-                         const Vec2 &pixel) {
-  Vec2 pt((pixel(0) - cx) / fx, (pixel(1) - cy) / fy);
+                         const vec2_t &pixel) {
+  vec2_t pt((pixel(0) - cx) / fx, (pixel(1) - cy) / fy);
   return pt;
 }
 
-Vec2 pinhole_pixel2ideal(const Mat3 &K, const Vec2 &pixel) {
+vec2_t pinhole_pixel2ideal(const mat3_t &K, const vec2_t &pixel) {
   const double fx = K(0, 0);
   const double fy = K(1, 1);
   const double cx = K(0, 2);
@@ -95,7 +95,7 @@ int PinholeModel::configure(const std::string &config_file) {
   }
 
   // Form the intrinsics matrix
-  this->K = Mat3::Zero();
+  this->K = mat3_t::Zero();
   K(0, 0) = fx;
   K(1, 1) = fy;
   K(0, 2) = cx;
@@ -105,28 +105,28 @@ int PinholeModel::configure(const std::string &config_file) {
   return 0;
 }
 
-Mat34 PinholeModel::P(const Mat3 &R, const Vec3 &t) {
+mat34_t PinholeModel::P(const mat3_t &R, const vec3_t &t) {
   return pinhole_projection_matrix(this->K, R, t);
 }
 
-Vec2 PinholeModel::project(const Vec3 &X, const Mat3 &R, const Vec3 &t) {
+vec2_t PinholeModel::project(const vec3_t &X, const mat3_t &R, const vec3_t &t) {
   return pinhole_project(this->K, R, t, X);
 }
 
-Vec3 PinholeModel::project(const Vec4 &X, const Mat3 &R, const Vec3 &t) {
+vec3_t PinholeModel::project(const vec4_t &X, const mat3_t &R, const vec3_t &t) {
   return pinhole_project(this->K, R, t, X);
 }
 
-Vec2 PinholeModel::pixel2ideal(const Vec2 &pixel) {
+vec2_t PinholeModel::pixel2ideal(const vec2_t &pixel) {
   return pinhole_pixel2ideal(this->K, pixel);
 }
 
-Vec2 PinholeModel::pixel2ideal(const cv::Point2f &pixel) {
-  return this->pixel2ideal(Vec2{pixel.x, pixel.y});
+vec2_t PinholeModel::pixel2ideal(const cv::Point2f &pixel) {
+  return this->pixel2ideal(vec2_t{pixel.x, pixel.y});
 }
 
-Vec2 PinholeModel::pixel2ideal(const cv::KeyPoint &kp) {
-  return this->pixel2ideal(Vec2{kp.pt.x, kp.pt.y});
+vec2_t PinholeModel::pixel2ideal(const cv::KeyPoint &kp) {
+  return this->pixel2ideal(vec2_t{kp.pt.x, kp.pt.y});
 }
 
 } //  namespace prototype

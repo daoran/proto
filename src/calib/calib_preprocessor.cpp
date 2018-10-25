@@ -189,21 +189,21 @@ int CalibPreprocessor::preprocess(const std::string &dir_path) {
     // Find common tags between the images
     std::vector<int> common_ids = this->findCommonTags(tags0, tags1, tags2);
     // -- Estimated 3d position of tag corners
-    MatX P_c0 = zeros(common_ids.size() * 4, 3);
-    MatX P_c1 = zeros(common_ids.size() * 4, 3);
-    MatX P_c2 = zeros(common_ids.size() * 4, 3);
+    matx_t P_c0 = zeros(common_ids.size() * 4, 3);
+    matx_t P_c1 = zeros(common_ids.size() * 4, 3);
+    matx_t P_c2 = zeros(common_ids.size() * 4, 3);
     // -- Observed 2d pixel measurements of tag corners
-    MatX Q_c0 = zeros(common_ids.size() * 4, 2);
-    MatX Q_c1 = zeros(common_ids.size() * 4, 2);
-    MatX Q_c2 = zeros(common_ids.size() * 4, 2);
+    matx_t Q_c0 = zeros(common_ids.size() * 4, 2);
+    matx_t Q_c1 = zeros(common_ids.size() * 4, 2);
+    matx_t Q_c2 = zeros(common_ids.size() * 4, 2);
 
-    MatX grid_points;
+    matx_t grid_points;
     grid.solvePnP(tags0, K0, grid_points);
 
     for (long i = 0; i < grid_points.rows(); i++) {
-      const Vec3 pt = grid_points.row(i).transpose();
-      const Mat3 K = this->camera_properties[0].K();
-      Vec3 pixel = K * pt;
+      const vec3_t pt = grid_points.row(i).transpose();
+      const mat3_t K = this->camera_properties[0].K();
+      vec3_t pixel = K * pt;
       pixel(0) = pixel(0) / pixel(2);
       pixel(1) = pixel(1) / pixel(2);
       std::cout << pixel.transpose() << std::endl;
