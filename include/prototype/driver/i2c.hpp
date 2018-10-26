@@ -30,25 +30,24 @@ namespace prototype {
 // DEFINES
 #define I2C_BUF_MAX 1024
 
-class I2C {
-public:
+struct i2c_t {
   int fd = -1;
 
-  I2C() {}
-  ~I2C() {
+  i2c_t() {}
+  virtual ~i2c_t() {
     if (this->fd != -1) {
       close(this->fd);
     }
   }
-
-  int setup();
-  int setSlave(const char slave_addr);
-  int readBytes(const char reg_addr, char *data, size_t length);
-  int readByte(const char reg_addr, char *data);
-  int writeByte(const char reg_addr, const char byte);
-  int writeRawByte(const char byte);
-  int writeBytes(const char reg_addr, const char *data, const size_t length);
 };
+
+int i2c_setup(i2c_t &i2c);
+int i2c_set_slave(const i2c_t &i2c, const char slave_addr);
+int i2c_read_bytes(const i2c_t &i2c, const char reg_addr, char *data, size_t length);
+int i2c_read_byte(const i2c_t &i2c, const char reg_addr, char *data);
+int i2c_write_byte(const i2c_t &i2c, const char reg_addr, const char byte);
+int i2c_write_raw_byte(const i2c_t &i2c, const char byte);
+int i2c_write_bytes(const i2c_t &i2c, const char reg_addr, const char *data, const size_t length);
 
 /** @} group driver */
 } //  namespace prototype

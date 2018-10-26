@@ -45,9 +45,17 @@ struct two_wheel_t {
   vec3_t v_B = vec3_t::Zero();
   vec3_t w_B = vec3_t::Zero();
 
-  two_wheel_t();
-  two_wheel_t(const vec3_t &p_G, const vec3_t &v_G, const vec3_t &rpy_G);
-  virtual ~two_wheel_t();
+  two_wheel_t() {}
+
+  two_wheel_t(const vec3_t &p_G_,
+              const vec3_t &v_G_,
+              const vec3_t &rpy_G_) {
+    p_G = p_G_;
+    v_G = v_G_;
+    rpy_G = rpy_G_;
+  }
+
+  virtual ~two_wheel_t() {}
 };
 
 /**

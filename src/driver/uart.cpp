@@ -2,26 +2,34 @@
 
 namespace prototype {
 
-UART::UART() : port{port}, speed{speed} {}
-
-int UART::connect() {
-  this->connection = open(this->port.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
-  if (this->connection < 0) {
-    std::cout << "failed to connect to UART!" << std::endl;
+int uart_connect(uart_t &uart) {
+  uart.connection = open(uart.port.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+  if (uart.connection < 0) {
     return -1;
   }
+  uart.connected = true;
 
   return 0;
 }
 
-int UART::setInterfaceAttributes(int speed, int parity) {
+int uart_disconnect(uart_t &uart) {
+  if (close(uart.connection) != 0) {
+    return -1;
+  }
+  uart.connected = false;
+  uart.connection = -1;
+
+  return 0;
+}
+
+int uart_configure(const uart_t &uart, const int speed, const int parity) {
   // Setup
   struct termios tty;
   memset(&tty, 0, sizeof(tty));
 
   // Set speed
-  if (tcgetattr(this->connection, &tty) != 0) {
-    std::cout << "error " << errno << " from tcgetattr!" << std::endl;
+  if (tcgetattr(uart.connection, &tty) != 0) {
+    LOG_ERROR("Error %d from tcgetattr!", errno);
     return -1;
   }
   cfsetospeed(&tty, speed);
@@ -44,31 +52,34 @@ int UART::setInterfaceAttributes(int speed, int parity) {
   tty.c_cflag &= ~CSTOPB;
   tty.c_cflag &= ~CRTSCTS;
 
-  if (tcsetattr(this->connection, TCSANOW, &tty) != 0) {
-    std::cout << "error " << errno << " from tcsetattr!" << std::endl;
+  if (tcsetattr(uart.connection, TCSANOW, &tty) != 0) {
+    LOG_ERROR("Error %d from tcsetattr!", errno);
     return -1;
   }
 
   return 0;
 }
 
-void UART::setBlocking(int should_block) {
+int uart_set_blocking(const uart_t &uart, const bool blocking) {
   // Setup
   struct termios tty;
   memset(&tty, 0, sizeof(tty));
 
   // Get terminal attributes
-  if (tcgetattr(this->connection, &tty) != 0) {
-    std::cout << "error " << errno << " from tggetattr!" << std::endl;
-    return;
+  if (tcgetattr(uart.connection, &tty) != 0) {
+    LOG_ERROR("Error %d from tcgetattr!", errno);
+    return -1;
   }
 
   // Set terminal attributes - blocking
-  tty.c_cc[VMIN] = should_block ? 1 : 0;
+  tty.c_cc[VMIN] = blocking ? 1 : 0;
   tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
-  if (tcsetattr(this->connection, TCSANOW, &tty) != 0) {
-    std::cout << "error " << errno << " setting term attributes!" << std::endl;
+  if (tcsetattr(uart.connection, TCSANOW, &tty) != 0) {
+    LOG_ERROR("Error %d from tcsetattr!", errno);
+    return -1;
   }
+
+  return 0;
 }
 
 } //  namespace prototype
