@@ -15,33 +15,6 @@ int test_config_constructor() {
   return 0;
 }
 
-// int test_config_parser_get_node() {
-//   YAML::Node node1, node2, node3;
-//   config_parser_t parser;
-//
-//   parser.params.clear();
-//   config_parser_load(parser, TEST_CONFIG);
-//
-//   int retval;
-//   retval = config_parser_get_node(parser, "level3.a.b.c", false, node1);
-//   MU_CHECK_EQ(0, retval);
-//   MU_CHECK_EQ(3, node1.as<int>());
-//
-//   retval = config_parser_get_node(parser, "level3.a.b.d", false, node2);
-//   MU_CHECK_EQ(0, retval);
-//   // if (node2.IsSequence()) {
-//   //   std::cout << node2.size() << std::endl;
-//   //   std::cout << node2[0].as<double>() << std::endl;
-//   //   std::cout << node2[1].as<double>() << std::endl;
-//   //   std::cout << node2[2].as<double>() << std::endl;
-//   // }
-//
-//   config_parser_get_node(parser, "float", false, node3);
-//   MU_CHECK_FLOAT(2.2, node3.as<float>());
-//
-//   return 0;
-// }
-
 int test_config_parse_primitive() {
   config_t config{TEST_CONFIG};
 

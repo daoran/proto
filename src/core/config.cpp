@@ -47,31 +47,6 @@ YAML::Node config_parse::getNode() const {
   return node;
 }
 
-void config_parse::checkMatrix(size_t &rows, size_t &cols) const {
-  ASSERT(config.ok == true, "Config file is not loaded!");
-
-  // Check key
-  YAML::Node node = getNode();
-
-  // Check fields
-  const std::string targets[3] = {"rows", "cols", "data"};
-  for (int i = 0; i < 3; i++) {
-    if (!node[targets[i]]) {
-      FATAL("Key [%s] is missing for matrix [%s]!",
-            targets[i].c_str(),
-            key_.c_str());
-    }
-  }
-  rows = node["rows"].as<int>();
-  cols = node["cols"].as<int>();
-}
-
-void config_parse::checkMatrix() const {
-  size_t rows;
-  size_t cols;
-  checkMatrix(rows, cols);
-}
-
 config_parse::operator vec2_t() const {
   YAML::Node node = getNode();
   checkVector<vec2_t>();
@@ -110,7 +85,7 @@ config_parse::operator vecx_t() const {
 
 config_parse::operator mat2_t() const {
   YAML::Node node = getNode();
-  checkMatrix();
+  checkMatrix<mat2_t>();
 
   mat2_t mat;
   mat(0, 0) = node["data"][0].as<double>();
@@ -124,7 +99,7 @@ config_parse::operator mat2_t() const {
 
 config_parse::operator mat3_t() const {
   YAML::Node node = getNode();
-  checkMatrix();
+  checkMatrix<mat3_t>();
 
   mat3_t mat;
   mat(0, 0) = node["data"][0].as<double>();
@@ -144,7 +119,7 @@ config_parse::operator mat3_t() const {
 
 config_parse::operator mat4_t() const {
   YAML::Node node = getNode();
-  checkMatrix();
+  checkMatrix<mat4_t>();
 
   mat4_t mat;
   size_t index = 0;
@@ -162,7 +137,7 @@ config_parse::operator matx_t() const {
   YAML::Node node = getNode();
   size_t rows = 0;
   size_t cols = 0;
-  checkMatrix(rows, cols);
+  checkMatrix<matx_t>(rows, cols);
 
   matx_t matx;
   matx.resize(rows, cols);
@@ -181,7 +156,7 @@ config_parse::operator cv::Mat() const {
   YAML::Node node = getNode();
   size_t rows = 0;
   size_t cols = 0;
-  checkMatrix(rows, cols);
+  checkMatrix<cv::Mat>(rows, cols);
 
   cv::Mat mat(rows, cols, CV_64F);
   size_t index = 0;

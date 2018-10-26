@@ -66,6 +66,7 @@ private:
    * "data". It also checks to make sure the number of values is the same size
    * as the matrix.
    */
+  template <typename T>
   void checkMatrix(size_t &rows, size_t &cols) const;
 
   /**
@@ -75,6 +76,7 @@ private:
    * "data". It also checks to make sure the number of values is the same size
    * as the matrix.
    */
+  template <typename T>
   void checkMatrix() const;
 
 public:
