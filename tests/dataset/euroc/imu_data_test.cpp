@@ -1,12 +1,12 @@
 #include "prototype/munit.hpp"
-#include "dataset/euroc/imu_data.hpp"
+#include "prototype/dataset/euroc/imu_data.hpp"
 
 namespace prototype {
 
 #define TEST_DATA "test_data/euroc/imu0"
 
-int test_IMUData_constructor() {
-  IMUData imu_data;
+int test_imu_data_constructor() {
+  imu_data_t imu_data;
 
   // Data
   MU_CHECK_EQ(0, imu_data.timestamps.size());
@@ -27,10 +27,10 @@ int test_IMUData_constructor() {
   return 0;
 }
 
-int test_IMUData_load() {
-  IMUData imu_data;
+int test_imu_data_load() {
+  imu_data_t imu_data{TEST_DATA};
 
-  int retval = imu_data.load(TEST_DATA);
+  int retval = imu_data_load(imu_data);
   MU_CHECK_EQ(0, retval);
 
   MU_CHECK_EQ(91, imu_data.timestamps.size());
@@ -49,9 +49,10 @@ int test_IMUData_load() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_IMUData_constructor);
-  MU_ADD_TEST(test_IMUData_load);
+  MU_ADD_TEST(test_imu_data_constructor);
+  MU_ADD_TEST(test_imu_data_load);
 }
+
 }
 
 MU_RUN_TESTS(prototype::test_suite);

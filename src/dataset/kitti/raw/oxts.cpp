@@ -2,9 +2,9 @@
 
 namespace prototype {
 
-int oxts_entry_load(oxts_entry_t &entry, const std::string &file_path) {
+int oxts_entry_load(oxts_entry_t &entry) {
   // Load file
-  std::ifstream oxt_file(file_path.c_str());
+  std::ifstream oxt_file(entry.file_path.c_str());
   if (oxt_file.good() == false) {
     return -1;
   }
@@ -55,9 +55,9 @@ int oxts_entry_load(oxts_entry_t &entry, const std::string &file_path) {
   return 0;
 }
 
-int oxts_load_entries(oxts_t &oxts, const std::string &oxts_dir) {
+int oxts_load_entries(oxts_t &oxts) {
   // Get list of oxts files
-  const std::string oxts_data_dir = strip(oxts_dir) + "/data";
+  const std::string oxts_data_dir = strip(oxts.oxts_dir) + "/data";
   std::vector<std::string> oxts_files;
   if (list_dir(oxts_data_dir, oxts_files) != 0) {
     return -1;
@@ -65,9 +65,8 @@ int oxts_load_entries(oxts_t &oxts, const std::string &oxts_dir) {
   std::sort(oxts_files.begin(), oxts_files.end());
 
   // Get first GPS point
-  oxts_entry_t first_entry;
-  const std::string file_path = oxts_data_dir + "/" + oxts_files[0];
-  if (oxts_entry_load(first_entry, file_path) != 0) {
+  oxts_entry_t first_entry{oxts_data_dir + "/" + oxts_files[0]};
+  if (oxts_entry_load(first_entry) != 0) {
     return -1;
   }
 
@@ -88,9 +87,8 @@ int oxts_load_entries(oxts_t &oxts, const std::string &oxts_dir) {
   // Parse oxts files
   for (size_t i = 1; i < oxts_files.size(); i++) {
     // Parse single oxts file
-    oxts_entry_t entry;
-    const std::string file_path = oxts_data_dir + "/" + oxts_files[i];
-    if (oxts_entry_load(entry, file_path) != 0) {
+    oxts_entry_t entry{oxts_data_dir + "/" + oxts_files[i]};
+    if (oxts_entry_load(entry) != 0) {
       return -1;
     }
 
@@ -122,9 +120,9 @@ int oxts_load_entries(oxts_t &oxts, const std::string &oxts_dir) {
   return 0;
 }
 
-int oxts_load_timestamps(oxts_t &oxts, const std::string &oxts_dir) {
+int oxts_load_timestamps(oxts_t &oxts) {
   // Setup parse
-  const std::string file_path = strip(oxts_dir) + "/timestamps.txt";
+  const std::string file_path = strip(oxts.oxts_dir) + "/timestamps.txt";
   std::string line;
   std::ifstream timestamps_file(file_path.c_str());
 
@@ -167,11 +165,11 @@ int oxts_load_timestamps(oxts_t &oxts, const std::string &oxts_dir) {
   return 0;
 }
 
-int oxts_load(oxts_t &oxts, const std::string &oxts_dir) {
-  if (oxts_load_entries(oxts, oxts_dir) != 0) {
+int oxts_load(oxts_t &oxts) {
+  if (oxts_load_entries(oxts) != 0) {
     return -1;
   }
-  if (oxts_load_timestamps(oxts, oxts_dir) != 0) {
+  if (oxts_load_timestamps(oxts) != 0) {
     return -1;
   }
 

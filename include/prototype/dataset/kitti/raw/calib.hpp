@@ -21,6 +21,7 @@ namespace prototype {
  */
 struct calib_cam2cam_t {
   bool ok = false;
+  std::string file_path;
 
   std::string calib_time;
   double corner_dist = 0.0;
@@ -34,6 +35,7 @@ struct calib_cam2cam_t {
   std::array<mat34_t, 4> P_rect;
 
   calib_cam2cam_t() {}
+  calib_cam2cam_t(const std::string file_path_) : file_path{file_path_} {}
 };
 
 /**
@@ -41,6 +43,7 @@ struct calib_cam2cam_t {
  */
 struct calib_imu2velo_t {
   bool ok = false;
+  std::string file_path;
 
   std::string calib_time;
   mat3_t R;
@@ -48,6 +51,7 @@ struct calib_imu2velo_t {
   mat4_t T_velo_imu;
 
   calib_imu2velo_t() {}
+  calib_imu2velo_t(const std::string file_path_) : file_path{file_path_} {}
 };
 
 /**
@@ -55,6 +59,7 @@ struct calib_imu2velo_t {
  */
 struct calib_velo2cam_t {
   bool ok = false;
+  std::string file_path;
 
   std::string calib_time;
   mat3_t R;
@@ -64,6 +69,7 @@ struct calib_velo2cam_t {
   mat4_t T_cam_velo;
 
   calib_velo2cam_t() {}
+  calib_velo2cam_t(const std::string file_path_) : file_path{file_path_} {}
 };
 
 /**
@@ -72,7 +78,7 @@ struct calib_velo2cam_t {
  * @param[in] file_path
  * @returns 0 or -1 for success or failure
  */
-int calib_cam2cam_load(calib_cam2cam_t &calib, const std::string &file_path);
+int calib_cam2cam_load(calib_cam2cam_t &calib);
 
 /**
  * Load imu to velo calibration
@@ -80,7 +86,7 @@ int calib_cam2cam_load(calib_cam2cam_t &calib, const std::string &file_path);
  * @param[in] file_path
  * @returns 0 or -1 for success or failure
  */
-int calib_imu2velo_load(calib_imu2velo_t &calib, const std::string &file_path);
+int calib_imu2velo_load(calib_imu2velo_t &calib);
 
 /**
  * Load velo to camera calibration
@@ -88,7 +94,7 @@ int calib_imu2velo_load(calib_imu2velo_t &calib, const std::string &file_path);
  * @param[in] file_path
  * @returns 0 or -1 for success or failure
  */
-int calib_velo2cam_load(calib_velo2cam_t &calib, const std::string &file_path);
+int calib_velo2cam_load(calib_velo2cam_t &calib);
 
 /** @} group kitti */
 } //  namespace prototype

@@ -17,7 +17,9 @@ namespace prototype {
 /**
  * IMU data
  */
-struct IMUData {
+struct imu_data_t {
+  std::string data_dir;
+
   // Data
   std::vector<long> timestamps;
   std::vector<double> time;
@@ -34,19 +36,22 @@ struct IMUData {
   double accel_noise_density = 0.0;
   double accel_random_walk = 0.0;
 
-  /**
-   * Load IMU data
-   *
-   * @param data_dir IMU data directory
-   * @returns 0 for success, -1 for failure
-   */
-  int load(const std::string &data_dir);
+  imu_data_t() {}
+  imu_data_t(const std::string &data_dir_) : data_dir{data_dir_} {}
 };
+
+/**
+  * Load IMU data
+  *
+  * @param data_dir IMU data directory
+  * @returns 0 for success, -1 for failure
+  */
+int imu_data_load(imu_data_t &data);
 
 /**
  * IMUData to output stream
  */
-std::ostream &operator<<(std::ostream &os, const IMUData &data);
+std::ostream &operator<<(std::ostream &os, const imu_data_t &data);
 
 /** @} group euroc */
 } //  namespace prototype

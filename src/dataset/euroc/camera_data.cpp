@@ -2,9 +2,9 @@
 
 namespace prototype {
 
-int CameraData::load(const std::string &data_dir) {
-  const std::string cam_data_path = data_dir + "/data.csv";
-  const std::string cam_calib_path = data_dir + "/sensor.yaml";
+int camera_data_load(camera_data_t &cam_data) {
+  const std::string cam_data_path = cam_data.data_dir + "/data.csv";
+  const std::string cam_calib_path = cam_data.data_dir + "/sensor.yaml";
 
   // Load camera data
   matx_t data;
@@ -16,7 +16,7 @@ int CameraData::load(const std::string &data_dir) {
   const long t0 = data(0, 0);
   for (long i = 0; i < data.rows(); i++) {
     const std::string image_file = std::to_string((long) data(i, 0)) + ".png";
-    const std::string image_path = data_dir + "/data/" + image_file;
+    const std::string image_path = cam_data.data_dir + "/data/" + image_file;
     const long ts = data(i, 0);
 
     if (file_exists(image_path) == false) {
@@ -24,22 +24,22 @@ int CameraData::load(const std::string &data_dir) {
       return -1;
     }
 
-    this->timestamps.emplace_back(ts);
-    this->time.emplace_back((ts - t0) * 1e-9);
-    this->image_paths.emplace_back(image_path);
+    cam_data.timestamps.emplace_back(ts);
+    cam_data.time.emplace_back((ts - t0) * 1e-9);
+    cam_data.image_paths.emplace_back(image_path);
   }
 
   // Load calibration data
   ConfigParser parser;
-  parser.addParam("sensor_type", &this->sensor_type);
-  parser.addParam("comment", &this->comment);
-  parser.addParam("T_BS", &this->T_BS);
-  parser.addParam("rate_hz", &this->rate_hz);
-  parser.addParam("resolution", &this->resolution);
-  parser.addParam("camera_model", &this->camera_model);
-  parser.addParam("intrinsics", &this->intrinsics);
-  parser.addParam("distortion_model", &this->distortion_model);
-  parser.addParam("distortion_coefficients", &this->distortion_coefficients);
+  parser.addParam("sensor_type", &cam_data.sensor_type);
+  parser.addParam("comment", &cam_data.comment);
+  parser.addParam("T_BS", &cam_data.T_BS);
+  parser.addParam("rate_hz", &cam_data.rate_hz);
+  parser.addParam("resolution", &cam_data.resolution);
+  parser.addParam("camera_model", &cam_data.camera_model);
+  parser.addParam("intrinsics", &cam_data.intrinsics);
+  parser.addParam("distortion_model", &cam_data.distortion_model);
+  parser.addParam("distortion_coefficients", &cam_data.distortion_coefficients);
   if (parser.load(cam_calib_path) != 0) {
     LOG_ERROR("Failed to load senor file [%s]!", cam_calib_path.c_str());
     return -1;
@@ -48,7 +48,7 @@ int CameraData::load(const std::string &data_dir) {
   return 0;
 }
 
-std::ostream &operator<<(std::ostream &os, const CameraData &data) {
+std::ostream &operator<<(std::ostream &os, const camera_data_t &data) {
   // clang-format off
   os << "sensor_type: " << data.sensor_type << std::endl;
   os << "comment: " << data.comment << std::endl;

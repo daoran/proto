@@ -1,12 +1,12 @@
 #include "prototype/munit.hpp"
-#include "dataset/euroc/ground_truth.hpp"
+#include "prototype/dataset/euroc/ground_truth.hpp"
 
 namespace prototype {
 
 #define TEST_DATA "test_data/euroc/state_groundtruth_estimate0"
 
-int test_GroundTruth_constructor() {
-  GroundTruth ground_truth;
+int test_ground_truth_constructor() {
+  ground_truth_t ground_truth;
 
   MU_CHECK_EQ(0, ground_truth.timestamps.size());
   MU_CHECK_EQ(0, ground_truth.time.size());
@@ -19,10 +19,10 @@ int test_GroundTruth_constructor() {
   return 0;
 }
 
-int test_GroundTruth_load() {
-  GroundTruth ground_truth;
+int test_ground_truth_load() {
+  ground_truth_t ground_truth{TEST_DATA};
 
-  int retval = ground_truth.load(TEST_DATA);
+  int retval = ground_truth_load(ground_truth);
   MU_CHECK_EQ(0, retval);
   MU_CHECK_EQ(999, ground_truth.timestamps.size());
   MU_CHECK_EQ(999, ground_truth.time.size());
@@ -36,8 +36,8 @@ int test_GroundTruth_load() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_GroundTruth_constructor);
-  MU_ADD_TEST(test_GroundTruth_load);
+  MU_ADD_TEST(test_ground_truth_constructor);
+  MU_ADD_TEST(test_ground_truth_load);
 }
 }
 

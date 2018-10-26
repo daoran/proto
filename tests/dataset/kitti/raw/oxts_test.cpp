@@ -11,8 +11,8 @@
 namespace prototype {
 
 int test_oxts_load() {
-  oxts_t oxts;
-  oxts_load(oxts, TEST_KITTI_DATA "/oxts");
+  oxts_t oxts{TEST_KITTI_DATA "/oxts"};
+  oxts_load(oxts);
 
   for (size_t i = 0; i < oxts.timestamps.size(); i++) {
     MU_CHECK(oxts.time[i] >= 0.0);

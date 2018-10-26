@@ -42,10 +42,10 @@ ADD_LIBRARY(
   src/core/stats.cpp
   src/core/time.cpp
   # dataset
-  # src/dataset/euroc/camera_data.cpp
-  # src/dataset/euroc/ground_truth.cpp
-  # src/dataset/euroc/imu_data.cpp
-  # src/dataset/euroc/mav_dataset.cpp
+  src/dataset/euroc/camera_data.cpp
+  src/dataset/euroc/ground_truth.cpp
+  src/dataset/euroc/imu_data.cpp
+  src/dataset/euroc/mav_dataset.cpp
   src/dataset/kitti/raw/calib.cpp
   src/dataset/kitti/raw/oxts.cpp
   src/dataset/kitti/raw/parse.cpp
@@ -133,6 +133,10 @@ SET(
   core-math_test
   core-stats_test
   core-time_test
+  dataset-euroc-camera_data_test
+  dataset-euroc-ground_truth_test
+  dataset-euroc-imu_data_test
+  dataset-euroc-mav_dataset_test
   dataset-kitti-raw-calib_test
   dataset-kitti-raw-oxts_test
   dataset-kitti-raw-parse_test

@@ -3,8 +3,6 @@
 namespace prototype {
 
 int kitti_raw_dataset_load(kitti_raw_dataset_t &ds) {
-  std::string calib_path;
-
   // Pre-check
   bool res = dir_exists(ds.date_dir);
   CHECK(res == false, "Dataset path not found! [%s]", ds.date_dir.c_str());
@@ -12,16 +10,16 @@ int kitti_raw_dataset_load(kitti_raw_dataset_t &ds) {
   // Load calibration files
   int retval;
   // -- Camera to camera calibration
-  calib_path = ds.date_dir + "/calib_cam_to_cam.txt";
-  retval = calib_cam2cam_load(ds.cam2cam, calib_path);
+  ds.cam2cam = calib_cam2cam_t{ds.date_dir + "/calib_cam_to_cam.txt"};
+  retval = calib_cam2cam_load(ds.cam2cam);
   CHECK(retval == 0, "Failed to load camera to camera calibration!");
   // -- IMU to Velo calibration
-  calib_path = ds.date_dir + "/calib_imu_to_velo.txt";
-  retval = calib_imu2velo_load(ds.imu2velo, calib_path);
+  ds.imu2velo = calib_imu2velo_t{ds.date_dir + "/calib_imu_to_velo.txt"};
+  retval = calib_imu2velo_load(ds.imu2velo);
   CHECK(retval == 0, "Failed to load imu to velocalibration!");
   // -- Velo to camera calibration
-  calib_path = ds.date_dir + "/calib_velo_to_cam.txt";
-  retval = calib_velo2cam_load(ds.velo2cam, calib_path);
+  ds.velo2cam = calib_velo2cam_t{ds.date_dir + "/calib_velo_to_cam.txt"};
+  retval = calib_velo2cam_load(ds.velo2cam);
   CHECK(retval == 0, "Failed to load velo to camera calibration!");
 
   // Load image files
@@ -48,7 +46,8 @@ int kitti_raw_dataset_load(kitti_raw_dataset_t &ds) {
   }
 
   // Load OXTS data
-  retval = oxts_load(ds.oxts, ds.drive_dir + "/oxts");
+  ds.oxts = oxts_t{ds.drive_dir + "/oxts"};
+  retval = oxts_load(ds.oxts);
   CHECK(retval == 0, "Failed to load OXTS data!");
 
   ds.ok = true;

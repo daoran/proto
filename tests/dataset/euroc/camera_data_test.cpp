@@ -1,12 +1,12 @@
 #include "prototype/munit.hpp"
-#include "dataset/euroc/camera_data.hpp"
+#include "prototype/dataset/euroc/camera_data.hpp"
 
 namespace prototype {
 
 #define TEST_DATA "test_data/euroc/cam0"
 
-int test_CameraData_constructor() {
-  CameraData camera_data;
+int test_camera_data_constructor() {
+  camera_data_t camera_data;
 
   MU_CHECK_EQ(0, camera_data.timestamps.size());
   MU_CHECK_EQ(0, camera_data.time.size());
@@ -25,8 +25,8 @@ int test_CameraData_constructor() {
   return 0;
 }
 
-int test_CameraData_load() {
-  CameraData camera_data;
+int test_camera_data_load() {
+  camera_data_t camera_data{TEST_DATA};
 
   // Sensor extrinsics wrt. the body-frame.
   // clang-format off
@@ -40,7 +40,7 @@ int test_CameraData_load() {
   const vec4_t distortion_expected(-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05);
   // clang-format on
 
-  int retval = camera_data.load(TEST_DATA);
+  int retval = camera_data_load(camera_data);
   MU_CHECK_EQ(0.0, retval);
   MU_CHECK_EQ(10, camera_data.timestamps.size());
   MU_CHECK_EQ(10, camera_data.time.size());
@@ -60,9 +60,10 @@ int test_CameraData_load() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_CameraData_constructor);
-  MU_ADD_TEST(test_CameraData_load);
+  MU_ADD_TEST(test_camera_data_constructor);
+  MU_ADD_TEST(test_camera_data_load);
 }
+
 }
 
 MU_RUN_TESTS(prototype::test_suite);

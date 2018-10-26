@@ -25,6 +25,8 @@ namespace prototype {
  */
 struct oxts_entry_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  std::string file_path;
+
   vec3_t gps = zeros(3, 1);
   vec3_t rpy = zeros(3, 1);
   vec3_t v_G = zeros(3, 1);
@@ -35,6 +37,9 @@ struct oxts_entry_t {
   vec3_t w_B = zeros(3, 1);
   double pos_accuracy = 0.0;
   double vel_accuracy = 0.0;
+
+  oxts_entry_t() {}
+  oxts_entry_t(const std::string &file_path_) : file_path{file_path_} {}
 };
 
 /**
@@ -43,13 +48,15 @@ struct oxts_entry_t {
   * @param file_path File path to a single OXTS data
   * @returns 0 for success, -1 for failure
   */
-int oxts_entry_load(oxts_entry_t &entry, const std::string &file_path);
+int oxts_entry_load(oxts_entry_t &entry);
 
 /**
  * OXTS
  */
 struct oxts_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  std::string oxts_dir;
+
   std::vector<long> timestamps;
   std::vector<double> time;
   std::vector<vec3_t> gps;
@@ -65,8 +72,7 @@ struct oxts_t {
   std::vector<double> vel_accuracy;
 
   oxts_t() {}
-
-
+  oxts_t(const std::string &oxts_dir_) : oxts_dir{oxts_dir_} {}
 };
 
 /**
@@ -76,7 +82,7 @@ struct oxts_t {
  * @param oxts_dir Path to OXTS data
  * @returns 0 for success, -1 for failure
  */
-int oxts_load_entries(oxts_t &oxts, const std::string &oxts_dir);
+int oxts_load_entries(oxts_t &oxts);
 
 /**
  * Load timestamps
@@ -85,7 +91,7 @@ int oxts_load_entries(oxts_t &oxts, const std::string &oxts_dir);
  * @param oxts_dir Path to OXTS data
  * @returns 0 for success, -1 for failure
  */
-int oxts_load_timestamps(oxts_t &oxts, const std::string &oxts_dir);
+int oxts_load_timestamps(oxts_t &oxts);
 
 /**
  * Load OXTS
@@ -94,7 +100,7 @@ int oxts_load_timestamps(oxts_t &oxts, const std::string &oxts_dir);
  * @param oxts_dir Path to OXTS data
  * @returns 0 for success, -1 for failure
  */
-int oxts_load(oxts_t &oxts, const std::string &oxts_dir);
+int oxts_load(oxts_t &oxts);
 
 /** @} group kitti */
 } //  namespace prototype

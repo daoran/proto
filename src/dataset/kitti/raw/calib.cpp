@@ -2,8 +2,8 @@
 
 namespace prototype {
 
-int calib_cam2cam_load(calib_cam2cam_t &calib, const std::string &file_path) {
-  std::ifstream file(file_path.c_str());
+int calib_cam2cam_load(calib_cam2cam_t &calib) {
+  std::ifstream file(calib.file_path.c_str());
 
   // Check file
   if (file.good() != true) {
@@ -62,8 +62,8 @@ int calib_cam2cam_load(calib_cam2cam_t &calib, const std::string &file_path) {
   return 0;
 }
 
-int calib_imu2velo_load(calib_imu2velo_t &calib, const std::string &file_path) {
-  std::ifstream file(file_path.c_str());
+int calib_imu2velo_load(calib_imu2velo_t &calib) {
+  std::ifstream file(calib.file_path.c_str());
 
   // Check file
   if (file.good() != true) {
@@ -98,8 +98,8 @@ int calib_imu2velo_load(calib_imu2velo_t &calib, const std::string &file_path) {
   return 0;
 }
 
-int calib_velo2cam_load(calib_velo2cam_t &calib, const std::string &file_path) {
-  std::ifstream file(file_path.c_str());
+int calib_velo2cam_load(calib_velo2cam_t &calib) {
+  std::ifstream file(calib.file_path.c_str());
 
   // Check file
   if (file.good() != true) {

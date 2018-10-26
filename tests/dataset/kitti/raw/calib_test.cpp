@@ -7,9 +7,9 @@ namespace prototype {
 #define TEST_DATA "test_data/kitti/raw/2011_09_26"
 
 int test_calib_cam2cam_load() {
-  calib_cam2cam_t calib;
+  calib_cam2cam_t calib{TEST_DATA "/calib_cam_to_cam.txt"};
 
-  int retval = calib_cam2cam_load(calib, TEST_DATA "/calib_cam_to_cam.txt");
+  int retval = calib_cam2cam_load(calib);
   MU_CHECK_EQ(retval, 0);
 
   const vec2_t S_00_exp{1.392000e+03, 5.120000e+02};
@@ -20,9 +20,9 @@ int test_calib_cam2cam_load() {
 }
 
 int test_calib_imu2velo_load() {
-  calib_imu2velo_t calib;
+  calib_imu2velo_t calib{TEST_DATA "/calib_imu_to_velo.txt"};
 
-  int retval = calib_imu2velo_load(calib, TEST_DATA "/calib_imu_to_velo.txt");
+  int retval = calib_imu2velo_load(calib);
   MU_CHECK_EQ(retval, 0);
 
   std::cout << calib.R << std::endl;
@@ -35,20 +35,20 @@ int test_calib_imu2velo_load() {
 }
 
 int test_calib_velo2cam_load() {
-  calib_velo2cam_t calib;
+  calib_velo2cam_t calib{TEST_DATA "/calib_velo_to_cam.txt"};
 
-  int retval = calib_velo2cam_load(calib, TEST_DATA "/calib_velo_to_cam.txt");
+  int retval = calib_velo2cam_load(calib);
   MU_CHECK_EQ(retval, 0);
 
   return 0;
 }
 
 int test_sandbox() {
-  calib_imu2velo_t imu2velo;
-  calib_velo2cam_t velo2cam;
+  calib_imu2velo_t imu2velo{TEST_DATA "/calib_imu_to_velo.txt"};
+  calib_velo2cam_t velo2cam{TEST_DATA "/calib_velo_to_cam.txt"};
 
-  calib_imu2velo_load(imu2velo, TEST_DATA "/calib_imu_to_velo.txt");
-  calib_velo2cam_load(velo2cam, TEST_DATA "/calib_velo_to_cam.txt");
+  calib_imu2velo_load(imu2velo);
+  calib_velo2cam_load(velo2cam);
 
   // Create transform matrices
   const mat4_t T_cam_imu = velo2cam.T_cam_velo * imu2velo.T_velo_imu;

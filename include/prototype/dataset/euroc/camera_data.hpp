@@ -20,7 +20,9 @@ namespace prototype {
 /**
  * Camera data
  */
-struct CameraData {
+struct camera_data_t {
+  std::string data_dir;
+
   // Data
   std::vector<long> timestamps;
   std::vector<double> time;
@@ -37,19 +39,23 @@ struct CameraData {
   std::string distortion_model;
   vec4_t distortion_coefficients;
 
-  /**
-   * Load Camera data
-   *
-   * @param data_dir Camera data directory
-   * @returns 0 for success, -1 for failure
-   */
-  int load(const std::string &data_dir);
+  camera_data_t() {}
+  camera_data_t(const std::string &data_dir_) : data_dir{data_dir_} {}
 };
 
 /**
- * CameraData to output stream
+  * Load Camera data
+  *
+  * @param[in,out] data Camera data
+  * @param[in] data_dir Camera data directory
+  * @returns 0 for success, -1 for failure
+  */
+int camera_data_load(camera_data_t &cam_data);
+
+/**
+ * camera_data_t to output stream
  */
-std::ostream &operator<<(std::ostream &os, const CameraData &data);
+std::ostream &operator<<(std::ostream &os, const camera_data_t &data);
 
 /** @} group euroc */
 } //  namespace prototype

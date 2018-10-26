@@ -1,6 +1,6 @@
 #include "prototype/munit.hpp"
-#include "dataset/euroc/mav_dataset.hpp"
-#include "quaternion/jpl.hpp"
+#include "prototype/dataset/euroc/mav_dataset.hpp"
+#include "prototype/core/quaternion/jpl.hpp"
 
 namespace prototype {
 
@@ -22,79 +22,32 @@ int stereo_camera_cb(const cv::Mat &frame0, const cv::Mat &frame1) {
   return 0;
 }
 
-int test_MAVDataset_constructor() {
-  MAVDataset mav_data("/tmp");
+int test_mav_dataset_constructor() {
+  mav_dataset_t ds("/tmp");
 
-  MU_CHECK(mav_data.ok == false);
-  MU_CHECK_EQ("/tmp", mav_data.data_path);
+  MU_CHECK(ds.ok == false);
+  MU_CHECK_EQ("/tmp", ds.data_path);
 
   return 0;
 }
 
-int test_MAVDataset_loadIMUData() {
-  MAVDataset mav_data(TEST_DATA);
-  int retval = mav_data.loadIMUData();
+int test_mav_dataset_load() {
+  mav_dataset_t ds{TEST_DATA};
 
+  int retval = mav_dataset_load(ds);
   MU_CHECK_EQ(0, retval);
 
   return 0;
 }
 
-int test_MAVDataset_loadCameraData() {
-  MAVDataset mav_data(TEST_DATA);
-  int retval = mav_data.loadCameraData();
+int test_mav_dataset_sandbox() {
+  mav_dataset_t ds{TEST_DATA};
 
-  // Get timestamps and calculate relative time
-  auto it = mav_data.timeline.begin();
-  auto it_end = mav_data.timeline.end();
-  while (it != it_end) {
-    const long ts = it->first;
-    mav_data.timestamps.push_back(ts);
-
-    // Advance to next non-duplicate entry.
-    do {
-      ++it;
-    } while (ts == it->first);
-  }
-
-  MU_CHECK_EQ(0, retval);
-  MU_CHECK_EQ(10, mav_data.cam0_data.timestamps.size());
-  MU_CHECK_EQ(10, mav_data.cam1_data.timestamps.size());
-  MU_CHECK_EQ(10, mav_data.timestamps.size());
-
-  return 0;
-}
-
-int test_MAVDataset_loadGroundTruthData() {
-  MAVDataset mav_data(TEST_DATA);
-  int retval = mav_data.loadGroundTruth();
-
+  int retval = mav_dataset_load(ds);
   MU_CHECK_EQ(0, retval);
 
-  return 0;
-}
-
-int test_MAVDataset_load() {
-  MAVDataset mav_data(TEST_DATA);
-
-  int retval = mav_data.load();
-  mav_data.mono_camera_cb = mono_camera_cb;
-  // mav_data.stereo_camera_cb = stereo_camera_cb;
-  mav_data.run();
-
-  MU_CHECK_EQ(0, retval);
-
-  return 0;
-}
-
-int test_MAVDataset_sandbox() {
-  MAVDataset mav_data(TEST_DATA);
-
-  int retval = mav_data.load();
-  MU_CHECK_EQ(0, retval);
-
-  const mat4_t T_imu_cam0 = mav_data.cam0_data.T_BS;
-  const mat4_t T_imu_cam1 = mav_data.cam1_data.T_BS;
+  const mat4_t T_imu_cam0 = ds.cam0_data.T_BS;
+  const mat4_t T_imu_cam1 = ds.cam1_data.T_BS;
   const vec3_t X{0.0, 0.0, 10.0};
 
   // clang-format off
@@ -122,12 +75,9 @@ int test_MAVDataset_sandbox() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_MAVDataset_constructor);
-  MU_ADD_TEST(test_MAVDataset_loadIMUData);
-  MU_ADD_TEST(test_MAVDataset_loadCameraData);
-  MU_ADD_TEST(test_MAVDataset_loadGroundTruthData);
-  MU_ADD_TEST(test_MAVDataset_load);
-  MU_ADD_TEST(test_MAVDataset_sandbox);
+  MU_ADD_TEST(test_mav_dataset_constructor);
+  MU_ADD_TEST(test_mav_dataset_load);
+  // MU_ADD_TEST(test_mav_dataset_sandbox);
 }
 
 } // namespace prototype
