@@ -51,8 +51,8 @@ ADD_LIBRARY(
   src/dataset/kitti/raw/parse.cpp
   src/dataset/kitti/raw/raw.cpp
   # driver
-  src/driver/camera/camera_base.cpp
-  src/driver/camera/camera_config.cpp
+  # src/driver/camera/camera_base.cpp
+  # src/driver/camera/camera_config.cpp
   # src/driver/camera/dc1394.cpp*
   # src/driver/camera/ids.cpp
   # src/driver/camera/pointgrey.cpp*
@@ -61,7 +61,7 @@ ADD_LIBRARY(
   src/driver/gimbal/sbgc.cpp
   src/driver/imu/imu_base.cpp
   src/driver/imu/mpu6050.cpp
-  src/driver/imu/mpu9250.cpp
+  # src/driver/imu/mpu9250.cpp
   src/driver/pwm/pca9685.cpp
   src/driver/i2c.cpp
   src/driver/uart.cpp
@@ -82,8 +82,8 @@ ADD_LIBRARY(
   src/vision/camera/pinhole.cpp
   src/vision/feature2d/draw.cpp
   src/vision/feature2d/feature.cpp
-  src/vision/feature2d/feature_container.cpp
-  src/vision/feature2d/feature_track.cpp
+  # src/vision/feature2d/feature_container.cpp
+  # src/vision/feature2d/feature_track.cpp
   # src/vision/feature2d/feature_tracker.cpp
   # src/vision/feature2d/gms_matcher.cpp
   src/vision/feature2d/grid_fast.cpp

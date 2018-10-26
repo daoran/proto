@@ -2,132 +2,150 @@
 
 namespace prototype {
 
-ConfigParser::ConfigParser() { this->config_loaded = false; }
-
-void ConfigParser::addParam(const std::string &key,
-                            bool *out,
-                            const bool optional) {
-  this->params.emplace_back(BOOL, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       bool *out,
+                       const bool optional) {
+  parser.params.emplace_back(BOOL, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            int *out,
-                            const bool optional) {
-  this->params.emplace_back(INT, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       int *out,
+                       const bool optional) {
+  parser.params.emplace_back(INT, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            float *out,
-                            const bool optional) {
-  this->params.emplace_back(FLOAT, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       float *out,
+                       const bool optional) {
+  parser.params.emplace_back(FLOAT, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            double *out,
-                            const bool optional) {
-  this->params.emplace_back(DOUBLE, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       double *out,
+                       const bool optional) {
+  parser.params.emplace_back(DOUBLE, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            std::string *out,
-                            const bool optional) {
-  this->params.emplace_back(STRING, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       std::string *out,
+                       const bool optional) {
+  parser.params.emplace_back(STRING, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            std::vector<bool> *out,
-                            const bool optional) {
-  this->params.emplace_back(BOOL_ARRAY, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       std::vector<bool> *out,
+                       const bool optional) {
+  parser.params.emplace_back(BOOL_ARRAY, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            std::vector<int> *out,
-                            const bool optional) {
-  this->params.emplace_back(INT_ARRAY, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       std::vector<int> *out,
+                       const bool optional) {
+  parser.params.emplace_back(INT_ARRAY, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            std::vector<float> *out,
-                            const bool optional) {
-  this->params.emplace_back(FLOAT_ARRAY, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       std::vector<float> *out,
+                       const bool optional) {
+  parser.params.emplace_back(FLOAT_ARRAY, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            std::vector<double> *out,
-                            const bool optional) {
-  this->params.emplace_back(DOUBLE_ARRAY, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       std::vector<double> *out,
+                       const bool optional) {
+  parser.params.emplace_back(DOUBLE_ARRAY, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            std::vector<std::string> *out,
-                            const bool optional) {
-  this->params.emplace_back(STRING_ARRAY, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       std::vector<std::string> *out,
+                       const bool optional) {
+  parser.params.emplace_back(STRING_ARRAY, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            vec2_t *out,
-                            const bool optional) {
-  this->params.emplace_back(VEC2, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       vec2_t *out,
+                       const bool optional) {
+  parser.params.emplace_back(VEC2, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            vec3_t *out,
-                            const bool optional) {
-  this->params.emplace_back(VEC3, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       vec3_t *out,
+                       const bool optional) {
+  parser.params.emplace_back(VEC3, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            vec4_t *out,
-                            const bool optional) {
-  this->params.emplace_back(VEC4, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       vec4_t *out,
+                       const bool optional) {
+  parser.params.emplace_back(VEC4, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            vecx_t *out,
-                            const bool optional) {
-  this->params.emplace_back(VECX, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       vecx_t *out,
+                       const bool optional) {
+  parser.params.emplace_back(VECX, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            mat2_t *out,
-                            const bool optional) {
-  this->params.emplace_back(MAT2, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       mat2_t *out,
+                       const bool optional) {
+  parser.params.emplace_back(MAT2, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            mat3_t *out,
-                            const bool optional) {
-  this->params.emplace_back(MAT3, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       mat3_t *out,
+                       const bool optional) {
+  parser.params.emplace_back(MAT3, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            mat4_t *out,
-                            const bool optional) {
-  this->params.emplace_back(MAT4, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       mat4_t *out,
+                       const bool optional) {
+  parser.params.emplace_back(MAT4, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            matx_t *out,
-                            const bool optional) {
-  this->params.emplace_back(MATX, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       matx_t *out,
+                       const bool optional) {
+  parser.params.emplace_back(MATX, key, out, optional);
 }
 
-void ConfigParser::addParam(const std::string &key,
-                            cv::Mat *out,
-                            const bool optional) {
-  this->params.emplace_back(CVMAT, key, out, optional);
+void config_parser_add(config_parser_t &parser,
+                       const std::string &key,
+                       cv::Mat *out,
+                       const bool optional) {
+  parser.params.emplace_back(CVMAT, key, out, optional);
 }
 
-int ConfigParser::getYamlNode(const std::string &key,
-                              const bool optional,
-                              YAML::Node &node) {
-  ASSERT(this->config_loaded == true, "Config file is not loaded!");
+int config_parser_get_node(const config_parser_t &parser,
+                           const std::string &key,
+                           const bool optional,
+                           YAML::Node &node) {
+  ASSERT(parser.config_loaded == true, "Config file is not loaded!");
   std::string element;
   std::istringstream iss(key);
   std::vector<YAML::Node> traversal;
 
-  // recurse down config key
-  traversal.push_back(this->root);
+  // Recurse down config key
+  traversal.push_back(parser.root);
   while (std::getline(iss, element, '.')) {
     traversal.push_back(traversal.back()[element]);
   }
@@ -144,7 +162,7 @@ int ConfigParser::getYamlNode(const std::string &key,
   if (!node && optional == false) {
     LOG_ERROR("Opps [%s] missing in yaml file [%s]!",
               key.c_str(),
-              this->file_path.c_str());
+              parser.file_path.c_str());
     return KEY_NOT_FOUND;
   } else if (!node && optional == true) {
     return OPTIONAL_KEY_NOT_FOUND;
@@ -153,14 +171,15 @@ int ConfigParser::getYamlNode(const std::string &key,
   return SUCCESS;
 }
 
-int ConfigParser::checkVector(const std::string &key,
-                              const enum ConfigDataType type,
-                              const bool optional,
-                              YAML::Node &node) {
-  ASSERT(this->config_loaded == true, "Config file is not loaded!");
+int config_parser_check_vector(const config_parser_t &parser,
+                               const std::string &key,
+                               const enum param_type &type,
+                               const bool optional,
+                               YAML::Node &node) {
+  ASSERT(parser.config_loaded == true, "Config file is not loaded!");
 
-  // check key
-  int retval = this->getYamlNode(key, optional, node);
+  // Check key
+  int retval = config_parser_get_node(parser, key, optional, node);
   if (retval != SUCCESS) {
     return retval;
   }
@@ -173,7 +192,7 @@ int ConfigParser::checkVector(const std::string &key,
     default: return SUCCESS;
   }
 
-  // check number of values
+  // Check number of values
   if (node.size() != static_cast<size_t>(vector_size)) {
     LOG_ERROR("Vector [%s] should have %d values but config has %d!",
               key.c_str(),
@@ -185,18 +204,19 @@ int ConfigParser::checkVector(const std::string &key,
   return 0;
 }
 
-int ConfigParser::checkMatrix(const std::string &key,
-                              const bool optional,
-                              YAML::Node &node) {
-  ASSERT(this->config_loaded == true, "Config file is not loaded!");
+int config_parser_check_matrix(const config_parser_t &parser,
+                               const std::string &key,
+                               const bool optional,
+                               YAML::Node &node) {
+  ASSERT(parser.config_loaded == true, "Config file is not loaded!");
 
-  // check key
-  int retval = this->getYamlNode(key, optional, node);
+  // Check key
+  int retval = config_parser_get_node(parser, key, optional, node);
   if (retval != SUCCESS) {
     return retval;
   }
 
-  // check fields
+  // Check fields
   const std::string targets[3] = {"rows", "cols", "data"};
   for (int i = 0; i < 3; i++) {
     if (!node[targets[i]]) {
@@ -210,12 +230,13 @@ int ConfigParser::checkMatrix(const std::string &key,
   return SUCCESS;
 }
 
-int ConfigParser::loadPrimitive(ConfigParam &param) {
+int config_parser_load_primitive(config_parser_t &parser,
+                                 config_param_t &param) {
   ASSERT(this->config_loaded == true, "Config file is not loaded!");
 
   // Pre-check
   YAML::Node node;
-  int retval = this->getYamlNode(param.key, param.optional, node);
+  int retval = config_parser_get_node(parser, param.key, param.optional, node);
   if (retval != SUCCESS) {
     return retval;
   }
@@ -235,17 +256,18 @@ int ConfigParser::loadPrimitive(ConfigParam &param) {
   return SUCCESS;
 }
 
-int ConfigParser::loadArray(ConfigParam &param) {
+int config_parser_load_array(config_parser_t &parser,
+                             config_param_t &param) {
   ASSERT(this->config_loaded == true, "Config file is not loaded!");
 
-  // check parameters
+  // Pre-check
   YAML::Node node;
-  int retval = this->getYamlNode(param.key, param.optional, node);
+  int retval = config_parser_get_node(parser, param.key, param.optional, node);
   if (retval != SUCCESS) {
     return retval;
   }
 
-  // parse
+  // Parse
   switch (param.type) {
     case BOOL_ARRAY:
       for (auto n : node) {
@@ -280,12 +302,12 @@ int ConfigParser::loadArray(ConfigParam &param) {
   return 0;
 }
 
-int ConfigParser::loadVector(ConfigParam &param) {
+int config_parser_load_vector(config_parser_t &parser, config_param_t &param) {
   ASSERT(this->config_loaded == true, "Config file is not loaded!");
 
-  // check parameter
+  // Check parameter
   YAML::Node node;
-  int retval = this->checkVector(param.key, param.type, param.optional, node);
+  int retval = config_parser_check_vector(parser, param.key, param.type, param.optional, node);
   if (retval != SUCCESS) {
     return retval;
   }
@@ -321,12 +343,12 @@ int ConfigParser::loadVector(ConfigParam &param) {
   return SUCCESS;
 }
 
-int ConfigParser::loadMatrix(ConfigParam &param) {
+int config_parser_load_matrix(config_parser_t &parser, config_param_t &param) {
   ASSERT(this->config_loaded == true, "Config file is not loaded!");
 
-  // check parameter
+  // Check parameter
   YAML::Node node;
-  int retval = this->checkMatrix(param.key, param.optional, node);
+  int retval = config_parser_check_matrix(parser, param.key, param.optional, node);
   if (retval != SUCCESS) {
     return retval;
   }
@@ -398,7 +420,8 @@ int ConfigParser::loadMatrix(ConfigParam &param) {
   return SUCCESS;
 }
 
-int ConfigParser::load(const std::string &config_file) {
+int config_parser_load(config_parser_t &parser,
+                       const std::string &config_file) {
   // Pre-check
   if (file_exists(config_file) == false) {
     LOG_ERROR("File not found: %s", config_file.c_str());
@@ -406,20 +429,20 @@ int ConfigParser::load(const std::string &config_file) {
   }
 
   // load and parse file
-  this->file_path = config_file;
-  this->root = YAML::LoadFile(config_file);
-  this->config_loaded = true;
+  parser.file_path = config_file;
+  parser.root = YAML::LoadFile(config_file);
+  parser.config_loaded = true;
 
   int retval;
-  for (size_t i = 0; i < this->params.size(); i++) {
-    switch (this->params[i].type) {
+  for (size_t i = 0; i < parser.params.size(); i++) {
+    switch (parser.params[i].type) {
       // PRIMITIVE
       case BOOL:
       case INT:
       case FLOAT:
       case DOUBLE:
       case STRING:
-        retval = this->loadPrimitive(this->params[i]);
+        retval = config_parser_load_primitive(parser, parser.params[i]);
         break;
       // ARRAY
       case BOOL_ARRAY:
@@ -427,21 +450,21 @@ int ConfigParser::load(const std::string &config_file) {
       case FLOAT_ARRAY:
       case DOUBLE_ARRAY:
       case STRING_ARRAY:
-        retval = this->loadArray(this->params[i]);
+        retval = config_parser_load_array(parser, parser.params[i]);
         break;
       // VECTOR
       case VEC2:
       case VEC3:
       case VEC4:
       case VECX:
-        retval = this->loadVector(this->params[i]);
+        retval = config_parser_load_vector(parser, parser.params[i]);
         break;
       // MAT
       case MAT2:
       case MAT3:
       case MAT4:
       case MATX:
-      case CVMAT: retval = this->loadMatrix(this->params[i]); break;
+      case CVMAT: retval = config_parser_load_matrix(parser, parser.params[i]); break;
       default: return INVALID_TYPE;
     }
 

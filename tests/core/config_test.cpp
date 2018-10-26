@@ -6,8 +6,8 @@
 
 namespace prototype {
 
-int test_ConfigParam_constructor() {
-  ConfigParam param;
+int test_config_param_constructor() {
+  config_param_t param;
 
   MU_CHECK_EQ(TYPE_NOT_SET, param.type);
   MU_CHECK_EQ("", param.key);
@@ -17,15 +17,15 @@ int test_ConfigParam_constructor() {
   return 0;
 }
 
-int test_ConfigParser_constructor() {
-  ConfigParser parser;
+int test_config_parser_constructor() {
+  config_parser_t parser;
 
   MU_FALSE(parser.config_loaded);
 
   return 0;
 }
 
-int test_ConfigParser_addParam() {
+int test_config_parser_add() {
   bool b;
   int i;
   float f;
@@ -49,30 +49,30 @@ int test_ConfigParser_addParam() {
   matx_t matx;
   cv::Mat cvmat;
 
-  ConfigParser parser;
+  config_parser_t parser;
 
-  parser.addParam("bool", &b);
-  parser.addParam("int", &i);
-  parser.addParam("float", &f);
-  parser.addParam("double", &d);
-  parser.addParam("string", &s);
+  config_parser_add(parser, "bool", &b);
+  config_parser_add(parser, "int", &i);
+  config_parser_add(parser, "float", &f);
+  config_parser_add(parser, "double", &d);
+  config_parser_add(parser, "string", &s);
 
-  parser.addParam("bool_array", &b_array);
-  parser.addParam("int_array", &i_array);
-  parser.addParam("float_array", &f_array);
-  parser.addParam("double_array", &d_array);
-  parser.addParam("string_array", &s_array);
+  config_parser_add(parser, "bool_array", &b_array);
+  config_parser_add(parser, "int_array", &i_array);
+  config_parser_add(parser, "float_array", &f_array);
+  config_parser_add(parser, "double_array", &d_array);
+  config_parser_add(parser, "string_array", &s_array);
 
-  parser.addParam("vector2", &vec2);
-  parser.addParam("vector3", &vec3);
-  parser.addParam("vector4", &vec4);
-  parser.addParam("vector", &vecx);
+  config_parser_add(parser, "vector2", &vec2);
+  config_parser_add(parser, "vector3", &vec3);
+  config_parser_add(parser, "vector4", &vec4);
+  config_parser_add(parser, "vector", &vecx);
 
-  parser.addParam("matrix2", &mat2);
-  parser.addParam("matrix3", &mat3);
-  parser.addParam("matrix4", &mat4);
-  parser.addParam("matrix", &matx);
-  parser.addParam("matrix", &cvmat);
+  config_parser_add(parser, "matrix2", &mat2);
+  config_parser_add(parser, "matrix3", &mat3);
+  config_parser_add(parser, "matrix4", &mat4);
+  config_parser_add(parser, "matrix", &matx);
+  config_parser_add(parser, "matrix", &cvmat);
 
   MU_CHECK_EQ(19, (int) parser.params.size());
   MU_CHECK_EQ(BOOL, parser.params[0].type);
@@ -82,37 +82,40 @@ int test_ConfigParser_addParam() {
   return 0;
 }
 
-int test_ConfigParser_getYamlNode() {
+int test_config_parser_get_node() {
   YAML::Node node1, node2, node3;
-  ConfigParser parser;
+  config_parser_t parser;
 
   parser.params.clear();
-  parser.load(TEST_CONFIG);
+  config_parser_load(parser, TEST_CONFIG);
 
-  parser.getYamlNode("level3.a.b.c", false, node1);
+  int retval;
+  retval = config_parser_get_node(parser, "level3.a.b.c", false, node1);
+  MU_CHECK_EQ(0, retval);
   MU_CHECK_EQ(3, node1.as<int>());
 
-  parser.getYamlNode("level3.a.b.d", false, node2);
-  if (node2.IsSequence()) {
-    std::cout << node2.size() << std::endl;
-    std::cout << node2[0].as<double>() << std::endl;
-    std::cout << node2[1].as<double>() << std::endl;
-    std::cout << node2[2].as<double>() << std::endl;
-  }
+  retval = config_parser_get_node(parser, "level3.a.b.d", false, node2);
+  MU_CHECK_EQ(0, retval);
+  // if (node2.IsSequence()) {
+  //   std::cout << node2.size() << std::endl;
+  //   std::cout << node2[0].as<double>() << std::endl;
+  //   std::cout << node2[1].as<double>() << std::endl;
+  //   std::cout << node2[2].as<double>() << std::endl;
+  // }
 
-  parser.getYamlNode("float", false, node3);
+  config_parser_get_node(parser, "float", false, node3);
   MU_CHECK_FLOAT(2.2, node3.as<float>());
 
   return 0;
 }
 
-int test_ConfigParser_loadPrimitive() {
+int test_config_parser_load_primitive() {
   int i;
   float f;
   double d;
   std::string s;
-  ConfigParser parser;
-  ConfigParam param;
+  config_parser_t parser;
+  config_param_t param;
 
   // setup
   parser.root = YAML::LoadFile(TEST_CONFIG);
@@ -123,7 +126,7 @@ int test_ConfigParser_loadPrimitive() {
   param.type = INT;
   param.key = "int";
   param.data = &i;
-  parser.loadPrimitive(param);
+  config_parser_load_primitive(parser, param);
   MU_CHECK_EQ(1, i);
 
   // FLOAT
@@ -131,7 +134,7 @@ int test_ConfigParser_loadPrimitive() {
   param.type = FLOAT;
   param.key = "float";
   param.data = &f;
-  parser.loadPrimitive(param);
+  config_parser_load_primitive(parser, param);
   MU_CHECK_FLOAT(2.2, f);
 
   // DOUBLE
@@ -139,7 +142,7 @@ int test_ConfigParser_loadPrimitive() {
   param.type = DOUBLE;
   param.key = "double";
   param.data = &d;
-  parser.loadPrimitive(param);
+  config_parser_load_primitive(parser, param);
   MU_CHECK_FLOAT(3.3, d);
 
   // STRING
@@ -147,20 +150,20 @@ int test_ConfigParser_loadPrimitive() {
   param.type = STRING;
   param.key = "string";
   param.data = &s;
-  parser.loadPrimitive(param);
+  config_parser_load_primitive(parser, param);
   MU_CHECK_EQ("hello world!", s);
 
   return 0;
 }
 
-int test_ConfigParser_loadArray() {
+int test_config_parser_load_array() {
   std::vector<bool> b_array;
   std::vector<int> i_array;
   std::vector<float> f_array;
   std::vector<double> d_array;
   std::vector<std::string> s_array;
-  ConfigParser parser;
-  ConfigParam param;
+  config_parser_t parser;
+  config_param_t param;
 
   // setup
   parser.root = YAML::LoadFile(TEST_CONFIG);
@@ -171,7 +174,7 @@ int test_ConfigParser_loadArray() {
   param.type = BOOL_ARRAY;
   param.key = "bool_array";
   param.data = &b_array;
-  parser.loadArray(param);
+  config_parser_load_array(parser, param);
 
   MU_CHECK(b_array[0]);
   MU_FALSE(b_array[1]);
@@ -183,7 +186,7 @@ int test_ConfigParser_loadArray() {
   param.type = INT_ARRAY;
   param.key = "int_array";
   param.data = &i_array;
-  parser.loadArray(param);
+  config_parser_load_array(parser, param);
 
   for (int i = 0; i < 4; i++) {
     MU_CHECK_EQ(i + 1, i_array[i]);
@@ -194,7 +197,7 @@ int test_ConfigParser_loadArray() {
   param.type = FLOAT_ARRAY;
   param.key = "float_array";
   param.data = &f_array;
-  parser.loadArray(param);
+  config_parser_load_array(parser, param);
 
   for (int i = 0; i < 4; i++) {
     MU_CHECK_FLOAT((i + 1) * 1.1, f_array[i]);
@@ -205,7 +208,7 @@ int test_ConfigParser_loadArray() {
   param.type = DOUBLE_ARRAY;
   param.key = "double_array";
   param.data = &d_array;
-  parser.loadArray(param);
+  config_parser_load_array(parser, param);
 
   for (int i = 0; i < 4; i++) {
     MU_CHECK_FLOAT((i + 1) * 1.1, d_array[i]);
@@ -216,7 +219,7 @@ int test_ConfigParser_loadArray() {
   param.type = STRING_ARRAY;
   param.key = "string_array";
   param.data = &s_array;
-  parser.loadArray(param);
+  config_parser_load_array(parser, param);
 
   MU_CHECK_EQ("1.1", s_array[0]);
   MU_CHECK_EQ("2.2", s_array[1]);
@@ -226,15 +229,15 @@ int test_ConfigParser_loadArray() {
   return 0;
 }
 
-int test_ConfigParser_loadVector() {
+int test_config_parser_load_vector() {
   vec2_t vec2;
   vec3_t vec3;
   vec4_t vec4;
   vecx_t vecx;
-  ConfigParser parser;
-  ConfigParam param;
+  config_parser_t parser;
+  config_param_t param;
 
-  // setup
+  // Setup
   parser.root = YAML::LoadFile(TEST_CONFIG);
   parser.config_loaded = true;
 
@@ -243,7 +246,7 @@ int test_ConfigParser_loadVector() {
   param.type = VEC2;
   param.key = "vector2";
   param.data = &vec2;
-  parser.loadVector(param);
+  config_parser_load_vector(parser, param);
   std::cout << vec2.transpose() << std::endl;
 
   MU_CHECK_FLOAT(1.1, vec2(0));
@@ -254,7 +257,7 @@ int test_ConfigParser_loadVector() {
   param.type = VEC3;
   param.key = "vector3";
   param.data = &vec3;
-  parser.loadVector(param);
+  config_parser_load_vector(parser, param);
   std::cout << vec3.transpose() << std::endl;
 
   MU_CHECK_FLOAT(1.1, vec3(0));
@@ -266,7 +269,7 @@ int test_ConfigParser_loadVector() {
   param.type = VEC4;
   param.key = "vector4";
   param.data = &vec4;
-  parser.loadVector(param);
+  config_parser_load_vector(parser, param);
   std::cout << vec4.transpose() << std::endl;
 
   MU_CHECK_FLOAT(1.1, vec4(0));
@@ -279,7 +282,7 @@ int test_ConfigParser_loadVector() {
   param.type = VECX;
   param.key = "vector";
   param.data = &vecx;
-  parser.loadVector(param);
+  config_parser_load_vector(parser, param);
   std::cout << vecx.transpose() << std::endl;
 
   for (int i = 0; i < 9; i++) {
@@ -289,15 +292,15 @@ int test_ConfigParser_loadVector() {
   return 0;
 }
 
-int test_ConfigParser_loadMatrix() {
+int test_config_parser_load_matrix() {
   int index;
   mat2_t mat2;
   mat3_t mat3;
   mat4_t mat4;
   matx_t matx;
   cv::Mat cvmat;
-  ConfigParser parser;
-  ConfigParam param;
+  config_parser_t parser;
+  config_param_t param;
 
   // setup
   parser.root = YAML::LoadFile(TEST_CONFIG);
@@ -308,7 +311,7 @@ int test_ConfigParser_loadMatrix() {
   param.type = MAT2;
   param.key = "matrix2";
   param.data = &mat2;
-  parser.loadMatrix(param);
+  config_parser_load_matrix(parser, param);
   std::cout << mat2 << std::endl;
 
   MU_CHECK_FLOAT(1.1, mat2(0, 0));
@@ -321,7 +324,7 @@ int test_ConfigParser_loadMatrix() {
   param.type = MAT3;
   param.key = "matrix3";
   param.data = &mat3;
-  parser.loadMatrix(param);
+  config_parser_load_matrix(parser, param);
   std::cout << mat3 << std::endl;
 
   index = 0;
@@ -337,7 +340,7 @@ int test_ConfigParser_loadMatrix() {
   param.type = MAT4;
   param.key = "matrix4";
   param.data = &mat4;
-  parser.loadMatrix(param);
+  config_parser_load_matrix(parser, param);
   std::cout << mat4 << std::endl;
 
   index = 0;
@@ -353,7 +356,7 @@ int test_ConfigParser_loadMatrix() {
   param.type = MATX;
   param.key = "matrix";
   param.data = &matx;
-  parser.loadMatrix(param);
+  config_parser_load_matrix(parser, param);
   std::cout << matx << std::endl;
 
   index = 0;
@@ -369,7 +372,7 @@ int test_ConfigParser_loadMatrix() {
   param.type = CVMAT;
   param.key = "matrix";
   param.data = &cvmat;
-  parser.loadMatrix(param);
+  config_parser_load_matrix(parser, param);
   std::cout << cvmat << std::endl;
 
   index = 0;
@@ -383,7 +386,7 @@ int test_ConfigParser_loadMatrix() {
   return 0;
 }
 
-int test_ConfigParser_load() {
+int test_config_parser_load() {
   int retval;
   bool b;
   int i;
@@ -408,33 +411,33 @@ int test_ConfigParser_load() {
   matx_t matx;
   cv::Mat cvmat;
 
-  ConfigParser parser;
+  config_parser_t parser;
 
-  parser.addParam("bool", &b);
-  parser.addParam("int", &i);
-  parser.addParam("float", &f);
-  parser.addParam("double", &d);
-  parser.addParam("string", &s);
+  config_parser_add(parser, "bool", &b);
+  config_parser_add(parser, "int", &i);
+  config_parser_add(parser, "float", &f);
+  config_parser_add(parser, "double", &d);
+  config_parser_add(parser, "string", &s);
 
-  parser.addParam("bool_array", &b_array);
-  parser.addParam("int_array", &i_array);
-  parser.addParam("float_array", &f_array);
-  parser.addParam("double_array", &d_array);
-  parser.addParam("string_array", &s_array);
+  config_parser_add(parser, "bool_array", &b_array);
+  config_parser_add(parser, "int_array", &i_array);
+  config_parser_add(parser, "float_array", &f_array);
+  config_parser_add(parser, "double_array", &d_array);
+  config_parser_add(parser, "string_array", &s_array);
 
-  parser.addParam("vector2", &vec2);
-  parser.addParam("vector3", &vec3);
-  parser.addParam("vector4", &vec4);
-  parser.addParam("vector", &vecx);
+  config_parser_add(parser, "vector2", &vec2);
+  config_parser_add(parser, "vector3", &vec3);
+  config_parser_add(parser, "vector4", &vec4);
+  config_parser_add(parser, "vector", &vecx);
 
-  parser.addParam("matrix2", &mat2);
-  parser.addParam("matrix3", &mat3);
-  parser.addParam("matrix4", &mat4);
-  parser.addParam("matrix", &matx);
-  parser.addParam("matrix", &cvmat);
-  parser.addParam("non_existant_key", &cvmat, true);
+  config_parser_add(parser, "matrix2", &mat2);
+  config_parser_add(parser, "matrix3", &mat3);
+  config_parser_add(parser, "matrix4", &mat4);
+  config_parser_add(parser, "matrix", &matx);
+  config_parser_add(parser, "matrix", &cvmat);
+  config_parser_add(parser, "non_existant_key", &cvmat, true);
 
-  retval = parser.load(TEST_CONFIG);
+  retval = config_parser_load(parser, TEST_CONFIG);
   if (retval != 0) {
     return -1;
   }
@@ -464,15 +467,15 @@ int test_ConfigParser_load() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_ConfigParam_constructor);
-  MU_ADD_TEST(test_ConfigParser_constructor);
-  MU_ADD_TEST(test_ConfigParser_addParam);
-  MU_ADD_TEST(test_ConfigParser_getYamlNode);
-  MU_ADD_TEST(test_ConfigParser_loadPrimitive);
-  MU_ADD_TEST(test_ConfigParser_loadArray);
-  MU_ADD_TEST(test_ConfigParser_loadVector);
-  MU_ADD_TEST(test_ConfigParser_loadMatrix);
-  MU_ADD_TEST(test_ConfigParser_load);
+  MU_ADD_TEST(test_config_param_constructor);
+  MU_ADD_TEST(test_config_parser_constructor);
+  MU_ADD_TEST(test_config_parser_add);
+  MU_ADD_TEST(test_config_parser_get_node);
+  MU_ADD_TEST(test_config_parser_load_primitive);
+  MU_ADD_TEST(test_config_parser_load_array);
+  MU_ADD_TEST(test_config_parser_load_vector);
+  MU_ADD_TEST(test_config_parser_load_matrix);
+  MU_ADD_TEST(test_config_parser_load);
 }
 
 } // namespace prototype

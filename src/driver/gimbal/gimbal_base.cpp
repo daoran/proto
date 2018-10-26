@@ -8,14 +8,14 @@ GimbalBase::~GimbalBase() { this->off(); }
 
 int GimbalBase::configure(const std::string &config_file) {
   // Parse config file
-  ConfigParser parser;
+  config_parser_t parser;
   std::string device_path;
-  parser.addParam("device_path", &device_path);
-  parser.addParam("gimbal_limits.roll_min", &this->roll_limits[0]);
-  parser.addParam("gimbal_limits.roll_max", &this->roll_limits[1]);
-  parser.addParam("gimbal_limits.pitch_min", &this->pitch_limits[0]);
-  parser.addParam("gimbal_limits.pitch_max", &this->pitch_limits[1]);
-  if (parser.load(config_file) != 0) {
+  config_parser_add(parser, "device_path", &device_path);
+  config_parser_add(parser, "gimbal_limits.roll_min", &this->roll_limits[0]);
+  config_parser_add(parser, "gimbal_limits.roll_max", &this->roll_limits[1]);
+  config_parser_add(parser, "gimbal_limits.pitch_min", &this->pitch_limits[0]);
+  config_parser_add(parser, "gimbal_limits.pitch_max", &this->pitch_limits[1]);
+  if (config_parser_load(parser, config_file) != 0) {
     LOG_ERROR("Failed to load config file [%s]!", config_file.c_str());
     return -1;
   }

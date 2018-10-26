@@ -82,14 +82,14 @@ vec2_t pinhole_pixel2ideal(const mat3_t &K, const vec2_t &pixel) {
 
 int PinholeModel::configure(const std::string &config_file) {
   // Load config file
-  ConfigParser parser;
-  parser.addParam("image_width", &this->image_width);
-  parser.addParam("image_height", &this->image_height);
-  parser.addParam("fx", &this->fx);
-  parser.addParam("fy", &this->fy);
-  parser.addParam("cx", &this->cx);
-  parser.addParam("cy", &this->cy);
-  if (parser.load(config_file) != 0) {
+  config_parser_t parser;
+  config_parser_add(parser, "image_width", &this->image_width);
+  config_parser_add(parser, "image_height", &this->image_height);
+  config_parser_add(parser, "fx", &this->fx);
+  config_parser_add(parser, "fy", &this->fy);
+  config_parser_add(parser, "cx", &this->cx);
+  config_parser_add(parser, "cy", &this->cy);
+  if (config_parser_load(parser, config_file) != 0) {
     LOG_ERROR("Failed to load config file [%s]!", config_file.c_str());
     return -1;
   }

@@ -30,17 +30,17 @@ int camera_data_load(camera_data_t &cam_data) {
   }
 
   // Load calibration data
-  ConfigParser parser;
-  parser.addParam("sensor_type", &cam_data.sensor_type);
-  parser.addParam("comment", &cam_data.comment);
-  parser.addParam("T_BS", &cam_data.T_BS);
-  parser.addParam("rate_hz", &cam_data.rate_hz);
-  parser.addParam("resolution", &cam_data.resolution);
-  parser.addParam("camera_model", &cam_data.camera_model);
-  parser.addParam("intrinsics", &cam_data.intrinsics);
-  parser.addParam("distortion_model", &cam_data.distortion_model);
-  parser.addParam("distortion_coefficients", &cam_data.distortion_coefficients);
-  if (parser.load(cam_calib_path) != 0) {
+  config_parser_t parser;
+  config_parser_add(parser, "sensor_type", &cam_data.sensor_type);
+  config_parser_add(parser, "comment", &cam_data.comment);
+  config_parser_add(parser, "T_BS", &cam_data.T_BS);
+  config_parser_add(parser, "rate_hz", &cam_data.rate_hz);
+  config_parser_add(parser, "resolution", &cam_data.resolution);
+  config_parser_add(parser, "camera_model", &cam_data.camera_model);
+  config_parser_add(parser, "intrinsics", &cam_data.intrinsics);
+  config_parser_add(parser, "distortion_model", &cam_data.distortion_model);
+  config_parser_add(parser, "distortion_coefficients", &cam_data.distortion_coefficients);
+  if (config_parser_load(parser, cam_calib_path) != 0) {
     LOG_ERROR("Failed to load senor file [%s]!", cam_calib_path.c_str());
     return -1;
   }

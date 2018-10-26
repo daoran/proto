@@ -4,27 +4,27 @@ namespace prototype {
 
 int pos_ctrl_configure(pos_ctrl_t &pc,
                        const std::string &config_file) {
-  ConfigParser parser;
+  config_parser_t parser;
 
   // Load config
-  parser.addParam("roll_ctrl.k_p", &pc.x_ctrl.k_p);
-  parser.addParam("roll_ctrl.k_i", &pc.x_ctrl.k_i);
-  parser.addParam("roll_ctrl.k_d", &pc.x_ctrl.k_d);
-  parser.addParam("roll_ctrl.min", &pc.roll_limit[0]);
-  parser.addParam("roll_ctrl.max", &pc.roll_limit[1]);
+  config_parser_add(parser, "roll_ctrl.k_p", &pc.x_ctrl.k_p);
+  config_parser_add(parser, "roll_ctrl.k_i", &pc.x_ctrl.k_i);
+  config_parser_add(parser, "roll_ctrl.k_d", &pc.x_ctrl.k_d);
+  config_parser_add(parser, "roll_ctrl.min", &pc.roll_limit[0]);
+  config_parser_add(parser, "roll_ctrl.max", &pc.roll_limit[1]);
 
-  parser.addParam("pitch_ctrl.k_p", &pc.y_ctrl.k_p);
-  parser.addParam("pitch_ctrl.k_i", &pc.y_ctrl.k_i);
-  parser.addParam("pitch_ctrl.k_d", &pc.y_ctrl.k_d);
-  parser.addParam("pitch_ctrl.min", &pc.pitch_limit[0]);
-  parser.addParam("pitch_ctrl.max", &pc.pitch_limit[1]);
+  config_parser_add(parser, "pitch_ctrl.k_p", &pc.y_ctrl.k_p);
+  config_parser_add(parser, "pitch_ctrl.k_i", &pc.y_ctrl.k_i);
+  config_parser_add(parser, "pitch_ctrl.k_d", &pc.y_ctrl.k_d);
+  config_parser_add(parser, "pitch_ctrl.min", &pc.pitch_limit[0]);
+  config_parser_add(parser, "pitch_ctrl.max", &pc.pitch_limit[1]);
 
-  parser.addParam("throttle_ctrl.k_p", &pc.z_ctrl.k_p);
-  parser.addParam("throttle_ctrl.k_i", &pc.z_ctrl.k_i);
-  parser.addParam("throttle_ctrl.k_d", &pc.z_ctrl.k_d);
-  parser.addParam("throttle_ctrl.hover_throttle", &pc.hover_throttle);
+  config_parser_add(parser, "throttle_ctrl.k_p", &pc.z_ctrl.k_p);
+  config_parser_add(parser, "throttle_ctrl.k_i", &pc.z_ctrl.k_i);
+  config_parser_add(parser, "throttle_ctrl.k_d", &pc.z_ctrl.k_d);
+  config_parser_add(parser, "throttle_ctrl.hover_throttle", &pc.hover_throttle);
 
-  if (parser.load(config_file) != 0) {
+  if (config_parser_load(parser, config_file) != 0) {
     return -1;
   }
 

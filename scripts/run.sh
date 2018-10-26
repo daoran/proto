@@ -10,4 +10,7 @@ cd build || return
 cmake ..
 time make -j8
 
+# cd tests
+# ./core-config_test
+
 # sudo make install

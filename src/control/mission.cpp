@@ -39,20 +39,20 @@ std::ostream &operator<<(std::ostream &out, const waypoint_t &wp) {
 }
 
 int wp_mission_configure(wp_mission_t &m, const std::string &config_file) {
-  ConfigParser parser;
+  config_parser_t parser;
   std::vector<double> wp_data;
   std::string wp_type;
 
   // Load config
   // clang-format off
-  parser.addParam("desired_velocity", &m.desired_velocity);
-  parser.addParam("look_ahead_dist", &m.look_ahead_dist);
-  parser.addParam("threshold_waypoint_gap", &m.threshold_waypoint_gap);
-  parser.addParam("threshold_waypoint_reached", &m.threshold_waypoint_reached);
-  parser.addParam("waypoint_type", &wp_type);
-  parser.addParam("waypoints", &wp_data);
+  config_parser_add(parser, "desired_velocity", &m.desired_velocity);
+  config_parser_add(parser, "look_ahead_dist", &m.look_ahead_dist);
+  config_parser_add(parser, "threshold_waypoint_gap", &m.threshold_waypoint_gap);
+  config_parser_add(parser, "threshold_waypoint_reached", &m.threshold_waypoint_reached);
+  config_parser_add(parser, "waypoint_type", &wp_type);
+  config_parser_add(parser, "waypoints", &wp_data);
   // clang-format on
-  if (parser.load(config_file) != 0) {
+  if (config_parser_load(parser, config_file) != 0) {
     return -1;
   }
 

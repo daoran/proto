@@ -23,16 +23,16 @@ int imu_data_load(imu_data_t &data) {
   }
 
   // Load calibration data
-  ConfigParser parser;
-  parser.addParam("sensor_type", &data.sensor_type);
-  parser.addParam("comment", &data.comment);
-  parser.addParam("T_BS", &data.T_BS);
-  parser.addParam("rate_hz", &data.rate_hz);
-  parser.addParam("gyroscope_noise_density", &data.gyro_noise_density);
-  parser.addParam("gyroscope_random_walk", &data.gyro_random_walk);
-  parser.addParam("accelerometer_noise_density", &data.accel_noise_density);
-  parser.addParam("accelerometer_random_walk", &data.accel_random_walk);
-  if (parser.load(imu_calib_path) != 0) {
+  config_parser_t parser;
+  config_parser_add(parser, "sensor_type", &data.sensor_type);
+  config_parser_add(parser, "comment", &data.comment);
+  config_parser_add(parser, "T_BS", &data.T_BS);
+  config_parser_add(parser, "rate_hz", &data.rate_hz);
+  config_parser_add(parser, "gyroscope_noise_density", &data.gyro_noise_density);
+  config_parser_add(parser, "gyroscope_random_walk", &data.gyro_random_walk);
+  config_parser_add(parser, "accelerometer_noise_density", &data.accel_noise_density);
+  config_parser_add(parser, "accelerometer_random_walk", &data.accel_random_walk);
+  if (config_parser_load(parser, imu_calib_path) != 0) {
     LOG_ERROR("Failed to load sensor file [%s]!", imu_calib_path.c_str());
     return -1;
   }

@@ -6,12 +6,12 @@ int MPU6050::configure(const std::string &config_file) {
   int retval = 0;
 
   // Load config file
-  ConfigParser parser;
+  config_parser_t parser;
   int dplf, gyro_range, accel_range = 0;
-  parser.addParam("dplf", &dplf);
-  parser.addParam("gyro_range", &gyro_range);
-  parser.addParam("accel_range", &accel_range);
-  if (parser.load(config_file) != 0) {
+  config_parser_add(parser, "dplf", &dplf);
+  config_parser_add(parser, "gyro_range", &gyro_range);
+  config_parser_add(parser, "accel_range", &accel_range);
+  if (config_parser_load(parser, config_file) != 0) {
     LOG_ERROR("Failed to load config file [%s]!", config_file.c_str());
     return -1;
   }
