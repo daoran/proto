@@ -39,22 +39,21 @@ std::ostream &operator<<(std::ostream &out, const waypoint_t &wp) {
 }
 
 int wp_mission_configure(wp_mission_t &m, const std::string &config_file) {
-  config_parser_t parser;
-  std::vector<double> wp_data;
-  std::string wp_type;
-
   // Load config
-  // clang-format off
-  config_parser_add(parser, "desired_velocity", &m.desired_velocity);
-  config_parser_add(parser, "look_ahead_dist", &m.look_ahead_dist);
-  config_parser_add(parser, "threshold_waypoint_gap", &m.threshold_waypoint_gap);
-  config_parser_add(parser, "threshold_waypoint_reached", &m.threshold_waypoint_reached);
-  config_parser_add(parser, "waypoint_type", &wp_type);
-  config_parser_add(parser, "waypoints", &wp_data);
-  // clang-format on
-  if (config_parser_load(parser, config_file) != 0) {
+  config_t config{config_file};
+  if (config.ok == false) {
     return -1;
   }
+  // clang-format off
+  std::string wp_type;
+  std::vector<double> wp_data;
+  parse(config, "desired_velocity", m.desired_velocity);
+  parse(config, "look_ahead_dist", m.look_ahead_dist);
+  parse(config, "threshold_waypoint_gap", m.threshold_waypoint_gap);
+  parse(config, "threshold_waypoint_reached", m.threshold_waypoint_reached);
+  parse(config, "waypoint_type", wp_type);
+  parse(config, "waypoints", wp_data);
+  // clang-format on
 
   // Check number waypoint data
   if (wp_data.size() % 3 != 0) {

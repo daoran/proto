@@ -2,9 +2,9 @@
 
 namespace prototype {
 
-int camera_data_load(camera_data_t &cam_data) {
-  const std::string cam_data_path = cam_data.data_dir + "/data.csv";
-  const std::string cam_calib_path = cam_data.data_dir + "/sensor.yaml";
+int camera_data_load(camera_data_t &cd) {
+  const std::string cam_data_path = cd.data_dir + "/data.csv";
+  const std::string cam_calib_path = cd.data_dir + "/sensor.yaml";
 
   // Load camera data
   matx_t data;
@@ -16,7 +16,7 @@ int camera_data_load(camera_data_t &cam_data) {
   const long t0 = data(0, 0);
   for (long i = 0; i < data.rows(); i++) {
     const std::string image_file = std::to_string((long) data(i, 0)) + ".png";
-    const std::string image_path = cam_data.data_dir + "/data/" + image_file;
+    const std::string image_path = cd.data_dir + "/data/" + image_file;
     const long ts = data(i, 0);
 
     if (file_exists(image_path) == false) {
@@ -24,41 +24,44 @@ int camera_data_load(camera_data_t &cam_data) {
       return -1;
     }
 
-    cam_data.timestamps.emplace_back(ts);
-    cam_data.time.emplace_back((ts - t0) * 1e-9);
-    cam_data.image_paths.emplace_back(image_path);
+    cd.timestamps.emplace_back(ts);
+    cd.time.emplace_back((ts - t0) * 1e-9);
+    cd.image_paths.emplace_back(image_path);
   }
 
   // Load calibration data
-  config_parser_t parser;
-  config_parser_add(parser, "sensor_type", &cam_data.sensor_type);
-  config_parser_add(parser, "comment", &cam_data.comment);
-  config_parser_add(parser, "T_BS", &cam_data.T_BS);
-  config_parser_add(parser, "rate_hz", &cam_data.rate_hz);
-  config_parser_add(parser, "resolution", &cam_data.resolution);
-  config_parser_add(parser, "camera_model", &cam_data.camera_model);
-  config_parser_add(parser, "intrinsics", &cam_data.intrinsics);
-  config_parser_add(parser, "distortion_model", &cam_data.distortion_model);
-  config_parser_add(parser, "distortion_coefficients", &cam_data.distortion_coefficients);
-  if (config_parser_load(parser, cam_calib_path) != 0) {
+  config_t config{cam_calib_path};
+  if (config.ok == false) {
     LOG_ERROR("Failed to load senor file [%s]!", cam_calib_path.c_str());
     return -1;
   }
+  // cd.sensor_type = config_parse(config, "sensor_type");
+  // std::string sensor_type;
+  // sensor_type = config_parse(config, "sensor_type");
+  // std::string sensor_type = config_parse(config, "sensor_type");
+  // cd.comment = config_parse(config, "comment");
+  // cd.T_BS = config_parse(config, "T_BS");
+  // cd.rate_hz = config_parse(config, "rate_hz");
+  // cd.resolution = config_parse(config, "resolution");
+  // cd.camera_model = config_parse(config, "camera_model");
+  // cd.intrinsics = config_parse(config, "intrinsics");
+  // cd.distortion_model = config_parse(config, "distortion_model");
+  // cd.distortion_coefficients = config_parse(config, "distortion_coefficients");
 
   return 0;
 }
 
-std::ostream &operator<<(std::ostream &os, const camera_data_t &data) {
+std::ostream &operator<<(std::ostream &os, const camera_data_t &cd) {
   // clang-format off
-  os << "sensor_type: " << data.sensor_type << std::endl;
-  os << "comment: " << data.comment << std::endl;
-  os << "T_BS:\n" << data.T_BS << std::endl;
-  os << "rate_hz: " << data.rate_hz << std::endl;
-  os << "resolution: " << data.resolution.transpose() << std::endl;
-  os << "camera_model: " << data.camera_model << std::endl;
-  os << "intrinsics: " << data.intrinsics.transpose() << std::endl;
-  os << "distortion_model: " << data.distortion_model << std::endl;
-  os << "distortion_coefficients: " << data.distortion_coefficients.transpose() << std::endl;
+  os << "sensor_type: " << cd.sensor_type << std::endl;
+  os << "comment: " << cd.comment << std::endl;
+  os << "T_BS:\n" << cd.T_BS << std::endl;
+  os << "rate_hz: " << cd.rate_hz << std::endl;
+  os << "resolution: " << cd.resolution.transpose() << std::endl;
+  os << "camera_model: " << cd.camera_model << std::endl;
+  os << "intrinsics: " << cd.intrinsics.transpose() << std::endl;
+  os << "distortion_model: " << cd.distortion_model << std::endl;
+  os << "distortion_coefficients: " << cd.distortion_coefficients.transpose() << std::endl;
   // clang-format on
 
   return os;

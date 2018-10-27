@@ -15,11 +15,12 @@ namespace prototype {
  */
 
 template <typename T>
-size_t config_parse::checkVector() const {
-  ASSERT(config_.ok == true, "Config file is not loaded!");
+size_t yaml_check_vector(const YAML::Node &node,
+                         const std::string &key,
+                         const bool optional) {
+  assert(node);
 
-  // Check what the vector size should be
-  YAML::Node node = getNode();
+  // Get expected vector size
   size_t vector_size = 0;
   if (std::is_same<T, vec2_t>::value) {
     vector_size = 2;
@@ -39,26 +40,29 @@ size_t config_parse::checkVector() const {
   // Check number of values in the param
   if (node.size() == 0 && node.size() != vector_size) {
     FATAL("Vector [%s] should have %d values but config has %d!",
-          key_.c_str(),
-          static_cast<int>(vector_size),
-          static_cast<int>(node.size()));
+              key.c_str(),
+              static_cast<int>(vector_size),
+              static_cast<int>(node.size()));
   }
 
   return vector_size;
 }
 
 template <typename T>
-void config_parse::checkMatrix(size_t &rows, size_t &cols) const {
-  ASSERT(config.ok == true, "Config file is not loaded!");
+void yaml_check_matrix(const YAML::Node &node,
+                       const std::string &key,
+                       const bool optional,
+                       size_t &rows,
+                       size_t &cols) {
+  assert(node);
 
   // Check fields
-  YAML::Node node = getNode();
   const std::string targets[3] = {"rows", "cols", "data"};
   for (int i = 0; i < 3; i++) {
     if (!node[targets[i]]) {
       FATAL("Key [%s] is missing for matrix [%s]!",
             targets[i].c_str(),
-            key_.c_str());
+            key.c_str());
     }
   }
   rows = node["rows"].as<int>();
@@ -80,34 +84,48 @@ void config_parse::checkMatrix(size_t &rows, size_t &cols) const {
     FATAL("Unsportted matrix type!");
   }
   if (node["data"].size() != nb_elements) {
-      FATAL("Matrix [%s] rows and cols do not match actual number of values!",
-            key_.c_str());
+      FATAL("Matrix [%s] rows and cols do not match number of values!",
+                key.c_str());
   }
 }
 
 template <typename T>
-void config_parse::checkMatrix() const {
+void yaml_check_matrix(const YAML::Node &node,
+                       const std::string &key,
+                       const bool optional) {
   size_t rows;
   size_t cols;
-  checkMatrix<T>(rows, cols);
+  yaml_check_matrix<T>(node, key, optional, rows, cols);
 }
 
-template<typename T>
-config_parse::operator T() const {
-  YAML::Node node = getNode();
-  return node.as<T>();
-}
-
-template<typename T>
-config_parse::operator std::vector<T>() const {
-  YAML::Node node = getNode();
-
-  std::vector<T> array;
-  for (auto n : node) {
-    array.push_back(n.as<T>());
+template <typename T>
+void parse(const config_t &config, const std::string &key, T &out, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
   }
 
-  return array;
+  // Parse
+  out = node.as<T>();
+}
+
+template <typename T>
+void parse(const config_t &config,
+           const std::string &key,
+           std::vector<T> &out,
+           const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
+
+  // Parse
+  std::vector<T> array;
+  for (auto n : node) {
+    out.push_back(n.as<T>());
+  }
 }
 
 /** @} group config */

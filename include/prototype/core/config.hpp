@@ -40,72 +40,65 @@ struct config_t {
 };
 
 /**
- * Functor used to parse config parameters
- */
-class config_parse{
-private:
-	const config_t config_;
-	const std::string key_;
-	const bool optional_;
+  * Get YAML node containing the parameter value
+  */
+int yaml_get_node(const config_t &config,
+                  const std::string &key,
+                  const bool optional,
+                  YAML::Node &node);
 
-  /**
-   * Get YAML node containing the parameter value
-   */
-  YAML::Node getNode() const;
+/**
+  * Check length of vector in config file
+  */
+template <typename T>
+size_t yaml_check_vector(const YAML::Node &node,
+                         const std::string &key,
+                         const bool optional);
 
-  /**
-   * Check length of vector in config file
-   */
-  template <typename T>
-  size_t checkVector() const;
+/**
+  * Check matrix
+  *
+  * Makes sure that the parameter has the data field "rows", "cols" and
+  * "data". It also checks to make sure the number of values is the same size
+  * as the matrix.
+  */
+template <typename T>
+void yaml_check_matrix(const YAML::Node &node,
+                       const std::string &key,
+                       const bool optional,
+                       size_t &rows,
+                       size_t &cols);
 
-  /**
-   * Check matrix
-   *
-   * Makes sure that the parameter has the data field "rows", "cols" and
-   * "data". It also checks to make sure the number of values is the same size
-   * as the matrix.
-   */
-  template <typename T>
-  void checkMatrix(size_t &rows, size_t &cols) const;
+/**
+  * Check matrix
+  *
+  * Makes sure that the parameter has the data field "rows", "cols" and
+  * "data". It also checks to make sure the number of values is the same size
+  * as the matrix.
+  */
+template <typename T>
+void yaml_check_matrix(const YAML::Node &node,
+                       const std::string &key,
+                       const bool optional);
 
-  /**
-   * Check matrix
-   *
-   * Makes sure that the parameter has the data field "rows", "cols" and
-   * "data". It also checks to make sure the number of values is the same size
-   * as the matrix.
-   */
-  template <typename T>
-  void checkMatrix() const;
+template <typename T>
+void parse(const config_t &config, const std::string &key, T &out, const bool optional=false);
 
-public:
-	config_parse(const config_t &config,
-	             const std::string &key,
-	             const bool optional=false) :
-	  config_{config},
-	  key_{key},
-	  optional_{optional} {}
+template <typename T>
+void parse(const config_t &config,
+           const std::string &key,
+           std::vector<T> &out,
+           const bool optional=false);
 
-  /**
-   * Functor to parse a config parameter
-   */
-	template<typename T>
-	operator T() const;
-
-	template<typename T>
-	operator std::vector<T>() const;
-
-  operator vec2_t() const;
-  operator vec3_t() const;
-  operator vec4_t() const;
-  operator vecx_t() const;
-  operator mat2_t() const;
-  operator mat3_t() const;
-  operator mat4_t() const;
-  operator matx_t() const;
-  operator cv::Mat() const;
-};
+void parse(const config_t &config, const std::string &key, vec2_t &vec, const bool optional=false);
+void parse(const config_t &config, const std::string &key, vec3_t &vec, const bool optional=false);
+void parse(const config_t &config, const std::string &key, vec4_t &vec, const bool optional=false);
+void parse(const config_t &config, const std::string &key, vecx_t &vec, const bool optional=false);
+void parse(const config_t &config, const std::string &key, mat2_t &mat, const bool optional=false);
+void parse(const config_t &config, const std::string &key, mat3_t &mat, const bool optional=false);
+void parse(const config_t &config, const std::string &key, mat4_t &mat, const bool optional=false);
+void parse(const config_t &config, const std::string &key, matx_t &mat, const bool optional=false);
+void parse(const config_t &config, const std::string &key, cv::Mat &mat, const bool optional=false);
 
 /** @} group config */
 } //  namespace prototype

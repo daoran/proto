@@ -22,15 +22,15 @@ INCLUDE_DIRECTORIES(include /usr/include/eigen3 ${SUITESPARSE_INCLUDE_DIRS})
 # LIBRARY
 ADD_LIBRARY(
   ${PROJECT_NAME}
-  # # control
-  # src/control/att_ctrl.cpp
-  # src/control/carrot_ctrl.cpp
-  # src/control/mission.cpp
-  # src/control/pid.cpp
-  # src/control/pos_ctrl.cpp
-  # src/control/wp_ctrl.cpp
-  # # core
-  # src/core/quaternion/jpl.cpp
+  # control
+  src/control/att_ctrl.cpp
+  src/control/carrot_ctrl.cpp
+  src/control/mission.cpp
+  src/control/pid.cpp
+  src/control/pos_ctrl.cpp
+  src/control/wp_ctrl.cpp
+  # core
+  src/core/quaternion/jpl.cpp
   src/core/config.cpp
   src/core/data.cpp
   src/core/euler.cpp
@@ -41,58 +41,58 @@ ADD_LIBRARY(
   src/core/vision.cpp
   src/core/stats.cpp
   src/core/time.cpp
-  # # dataset
-  # src/dataset/euroc/camera_data.cpp
-  # src/dataset/euroc/ground_truth.cpp
-  # src/dataset/euroc/imu_data.cpp
-  # src/dataset/euroc/mav_dataset.cpp
-  # src/dataset/kitti/raw/calib.cpp
-  # src/dataset/kitti/raw/oxts.cpp
-  # src/dataset/kitti/raw/parse.cpp
-  # src/dataset/kitti/raw/raw.cpp
-  # # driver
-  # # src/driver/camera/camera_base.cpp
-  # # src/driver/camera/camera_config.cpp
-  # # src/driver/camera/dc1394.cpp*
-  # # src/driver/camera/ids.cpp
-  # # src/driver/camera/pointgrey.cpp*
-  # # src/driver/camera/ximea.cpp*
-  # # src/driver/gimbal/gimbal_base.cpp
-  # # src/driver/gimbal/sbgc.cpp
-  # # src/driver/imu/imu_base.cpp
-  # # src/driver/imu/mpu6050.cpp
-  # # src/driver/imu/mpu9250.cpp
-  # # src/driver/pwm/pca9685.cpp
-  # src/driver/i2c.cpp
-  # src/driver/uart.cpp
-  # # model
-  # src/model/gimbal.cpp
-  # src/model/mav.cpp
-  # src/model/two_wheel.cpp
-  # # msckf
-  # # src/msckf/blackbox.cpp
-  # src/msckf/camera_state.cpp
-  # # src/msckf/feature_estimator.cpp
-  # # src/msckf/gmsckf.cpp
-  # src/msckf/imu_state.cpp
-  # src/msckf/jacobians.cpp
-  # # src/msckf/msckf.cpp
-  # # vision
-  # src/vision/camera/distortion.cpp
-  # src/vision/camera/pinhole.cpp
-  # src/vision/feature2d/draw.cpp
-  # src/vision/feature2d/feature.cpp
-  # # src/vision/feature2d/feature_container.cpp
-  # # src/vision/feature2d/feature_track.cpp
-  # # src/vision/feature2d/feature_tracker.cpp
-  # # src/vision/feature2d/gms_matcher.cpp
-  # src/vision/feature2d/grid_fast.cpp
-  # src/vision/feature2d/grid_good.cpp
-  # # src/vision/feature2d/image_processor.cpp
-  # # src/vision/feature2d/klt_tracker.cpp
-  # # src/vision/feature2d/orb_tracker.cpp
-  # # src/vision/feature2d/stereo_klt_tracker.cpp
-  # # src/vision/feature2d/stereo_orb_tracker.cpp
+  # dataset
+  src/dataset/euroc/camera_data.cpp
+  src/dataset/euroc/ground_truth.cpp
+  src/dataset/euroc/imu_data.cpp
+  src/dataset/euroc/mav_dataset.cpp
+  src/dataset/kitti/raw/calib.cpp
+  src/dataset/kitti/raw/oxts.cpp
+  src/dataset/kitti/raw/parse.cpp
+  src/dataset/kitti/raw/raw.cpp
+  # driver
+  # src/driver/camera/camera_base.cpp
+  # src/driver/camera/camera_config.cpp
+  # src/driver/camera/dc1394.cpp*
+  # src/driver/camera/ids.cpp
+  # src/driver/camera/pointgrey.cpp*
+  # src/driver/camera/ximea.cpp*
+  # src/driver/gimbal/gimbal_base.cpp
+  # src/driver/gimbal/sbgc.cpp
+  # src/driver/imu/imu_base.cpp
+  # src/driver/imu/mpu6050.cpp
+  # src/driver/imu/mpu9250.cpp
+  # src/driver/pwm/pca9685.cpp
+  src/driver/i2c.cpp
+  src/driver/uart.cpp
+  # model
+  src/model/gimbal.cpp
+  src/model/mav.cpp
+  src/model/two_wheel.cpp
+  # msckf
+  # src/msckf/blackbox.cpp
+  src/msckf/camera_state.cpp
+  # src/msckf/feature_estimator.cpp
+  # src/msckf/gmsckf.cpp
+  src/msckf/imu_state.cpp
+  src/msckf/jacobians.cpp
+  # src/msckf/msckf.cpp
+  # vision
+  src/vision/camera/distortion.cpp
+  src/vision/camera/pinhole.cpp
+  src/vision/feature2d/draw.cpp
+  src/vision/feature2d/feature.cpp
+  # src/vision/feature2d/feature_container.cpp
+  # src/vision/feature2d/feature_track.cpp
+  # src/vision/feature2d/feature_tracker.cpp
+  # src/vision/feature2d/gms_matcher.cpp
+  src/vision/feature2d/grid_fast.cpp
+  src/vision/feature2d/grid_good.cpp
+  # src/vision/feature2d/image_processor.cpp
+  # src/vision/feature2d/klt_tracker.cpp
+  # src/vision/feature2d/orb_tracker.cpp
+  # src/vision/feature2d/stereo_klt_tracker.cpp
+  # src/vision/feature2d/stereo_orb_tracker.cpp
 )
 SET(
   ${PROJECT_NAME}_DEPS

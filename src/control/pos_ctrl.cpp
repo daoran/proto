@@ -4,29 +4,28 @@ namespace prototype {
 
 int pos_ctrl_configure(pos_ctrl_t &pc,
                        const std::string &config_file) {
-  config_parser_t parser;
-
   // Load config
-  config_parser_add(parser, "roll_ctrl.k_p", &pc.x_ctrl.k_p);
-  config_parser_add(parser, "roll_ctrl.k_i", &pc.x_ctrl.k_i);
-  config_parser_add(parser, "roll_ctrl.k_d", &pc.x_ctrl.k_d);
-  config_parser_add(parser, "roll_ctrl.min", &pc.roll_limit[0]);
-  config_parser_add(parser, "roll_ctrl.max", &pc.roll_limit[1]);
-
-  config_parser_add(parser, "pitch_ctrl.k_p", &pc.y_ctrl.k_p);
-  config_parser_add(parser, "pitch_ctrl.k_i", &pc.y_ctrl.k_i);
-  config_parser_add(parser, "pitch_ctrl.k_d", &pc.y_ctrl.k_d);
-  config_parser_add(parser, "pitch_ctrl.min", &pc.pitch_limit[0]);
-  config_parser_add(parser, "pitch_ctrl.max", &pc.pitch_limit[1]);
-
-  config_parser_add(parser, "throttle_ctrl.k_p", &pc.z_ctrl.k_p);
-  config_parser_add(parser, "throttle_ctrl.k_i", &pc.z_ctrl.k_i);
-  config_parser_add(parser, "throttle_ctrl.k_d", &pc.z_ctrl.k_d);
-  config_parser_add(parser, "throttle_ctrl.hover_throttle", &pc.hover_throttle);
-
-  if (config_parser_load(parser, config_file) != 0) {
+  config_t config{config_file};
+  if (config.ok == false) {
     return -1;
   }
+
+  parse(config, "roll_ctrl.k_p", pc.x_ctrl.k_p);
+  parse(config, "roll_ctrl.k_i", pc.x_ctrl.k_i);
+  parse(config, "roll_ctrl.k_d", pc.x_ctrl.k_d);
+  parse(config, "roll_ctrl.min", pc.roll_limit[0]);
+  parse(config, "roll_ctrl.max", pc.roll_limit[1]);
+
+  parse(config, "pitch_ctrl.k_p", pc.y_ctrl.k_p);
+  parse(config, "pitch_ctrl.k_i", pc.y_ctrl.k_i);
+  parse(config, "pitch_ctrl.k_d", pc.y_ctrl.k_d);
+  parse(config, "pitch_ctrl.min", pc.pitch_limit[0]);
+  parse(config, "pitch_ctrl.max", pc.pitch_limit[1]);
+
+  parse(config, "throttle_ctrl.k_p", pc.z_ctrl.k_p);
+  parse(config, "throttle_ctrl.k_i", pc.z_ctrl.k_i);
+  parse(config, "throttle_ctrl.k_d", pc.z_ctrl.k_d);
+  parse(config, "throttle_ctrl.hover_throttle", pc.hover_throttle);
 
   // Convert roll and pitch limits from degrees to radians
   pc.roll_limit[0] = deg2rad(pc.roll_limit[0]);

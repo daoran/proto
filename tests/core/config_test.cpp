@@ -19,19 +19,23 @@ int test_config_parse_primitive() {
   config_t config{TEST_CONFIG};
 
   // INTEGER
-  const int i = config_parse(config, "int");
+  int i = 0;
+  parse(config, "int", i);
   MU_CHECK_EQ(1, i);
 
   // FLOAT
-  const float f = config_parse(config, "float");
+  float f = 0.0f;
+  parse(config, "float", f);
   MU_CHECK_FLOAT(2.2, f);
 
   // DOUBLE
-  const double d = config_parse(config, "double");
+  double d = 0.0;
+  parse(config, "double", d);
   MU_CHECK_FLOAT(3.3, d);
 
   // STRING
-  const std::string s = config_parse(config, "string");
+  std::string s;
+  parse(config, "string", s);
   MU_CHECK_EQ("hello world!", s);
 
   return 0;
@@ -41,32 +45,37 @@ int test_config_parse_array() {
   config_t config{TEST_CONFIG};
 
   // BOOL ARRAY
-  const std::vector<bool> b_array = config_parse(config, "bool_array");
+  std::vector<bool> b_array;
+  parse(config, "bool_array", b_array);
   MU_CHECK(b_array[0]);
   MU_FALSE(b_array[1]);
   MU_CHECK(b_array[2]);
   MU_FALSE(b_array[3]);
 
   // INTEGER
-  const std::vector<int> i_array = config_parse(config, "int_array");
+  std::vector<int> i_array;
+  parse(config, "int_array", i_array);
   for (int i = 0; i < 4; i++) {
     MU_CHECK_EQ(i + 1, i_array[i]);
   }
 
   // FLOAT
-  const std::vector<float> f_array = config_parse(config, "float_array");
+  std::vector<float> f_array;
+  parse(config, "float_array", f_array);
   for (int i = 0; i < 4; i++) {
     MU_CHECK_FLOAT((i + 1) * 1.1, f_array[i]);
   }
 
   // DOUBLE
-  const std::vector<double> d_array = config_parse(config, "double_array");
+  std::vector<double> d_array;
+  parse(config, "double_array", d_array);
   for (int i = 0; i < 4; i++) {
     MU_CHECK_FLOAT((i + 1) * 1.1, d_array[i]);
   }
 
   // STRING
-  const std::vector<std::string> s_array = config_parse(config, "string_array");
+  std::vector<std::string> s_array;
+  parse(config, "string_array", s_array);
   MU_CHECK_EQ("1.1", s_array[0]);
   MU_CHECK_EQ("2.2", s_array[1]);
   MU_CHECK_EQ("3.3", s_array[2]);
@@ -79,20 +88,23 @@ int test_config_parse_vector() {
   config_t config{TEST_CONFIG};
 
   // VECTOR 2
-  const vec2_t vec2 = config_parse(config, "vector2");
+  vec2_t vec2;
+  parse(config, "vector2", vec2);
   std::cout << vec2.transpose() << std::endl;
   MU_CHECK_FLOAT(1.1, vec2(0));
   MU_CHECK_FLOAT(2.2, vec2(1));
 
   // VECTOR 3
-  const vec3_t vec3 = config_parse(config, "vector3");
+  vec3_t vec3;
+  parse(config, "vector3", vec3);
   std::cout << vec3.transpose() << std::endl;
   MU_CHECK_FLOAT(1.1, vec3(0));
   MU_CHECK_FLOAT(2.2, vec3(1));
   MU_CHECK_FLOAT(3.3, vec3(2));
 
   // VECTOR 4
-  const vec4_t vec4 = config_parse(config, "vector4");
+  vec4_t vec4;
+  parse(config, "vector4", vec4);
   std::cout << vec4.transpose() << std::endl;
   MU_CHECK_FLOAT(1.1, vec4(0));
   MU_CHECK_FLOAT(2.2, vec4(1));
@@ -100,7 +112,8 @@ int test_config_parse_vector() {
   MU_CHECK_FLOAT(4.4, vec4(3));
 
   // VECTOR X
-  const vecx_t vecx = config_parse(config, "vector");
+  vecx_t vecx;
+  parse(config, "vector", vecx);
   std::cout << vecx.transpose() << std::endl;
   for (int i = 0; i < 9; i++) {
     MU_CHECK_FLOAT((i + 1) * 1.1, vecx(i));
@@ -113,7 +126,8 @@ int test_config_parse_matrix() {
   config_t config{TEST_CONFIG};
 
   // MATRIX 2
-  const mat2_t mat2 = config_parse(config, "matrix2");
+  mat2_t mat2;
+  parse(config, "matrix2", mat2);
   std::cout << mat2 << std::endl;
 
   MU_CHECK_FLOAT(1.1, mat2(0, 0));
@@ -122,7 +136,8 @@ int test_config_parse_matrix() {
   MU_CHECK_FLOAT(4.4, mat2(1, 1));
 
   // MATRIX 3
-  const mat3_t mat3 = config_parse(config, "matrix3");
+  mat3_t mat3;
+  parse(config, "matrix3", mat3);
   std::cout << mat3 << std::endl;
 
   int index = 0;
@@ -134,7 +149,8 @@ int test_config_parse_matrix() {
   }
 
   // MATRIX 4
-  const mat4_t mat4 = config_parse(config, "matrix4");
+  mat4_t mat4;
+  parse(config, "matrix4", mat4);
   std::cout << mat4 << std::endl;
 
   index = 0;
@@ -146,7 +162,8 @@ int test_config_parse_matrix() {
   }
 
   // MATRIX X
-  const matx_t matx = config_parse(config, "matrix");
+  matx_t matx;
+  parse(config, "matrix", matx);
   std::cout << matx << std::endl;
 
   index = 0;
@@ -158,7 +175,8 @@ int test_config_parse_matrix() {
   }
 
   // CV MATRIX
-  const cv::Mat cvmat = config_parse(config, "matrix");
+  cv::Mat cvmat;
+  parse(config, "matrix", cvmat);
   std::cout << cvmat << std::endl;
 
   index = 0;
@@ -175,29 +193,67 @@ int test_config_parse_matrix() {
 int test_config_parser_full_example() {
   config_t config{TEST_CONFIG};
 
-  bool b = config_parse(config, "bool");
-  int i = config_parse(config, "int");
-  float f = config_parse(config, "float");
-  double d = config_parse(config, "double");
-  std::string s = config_parse(config, "string");
+  // Primitives
+  bool b;
+  parse(config, "bool", b);
 
-  std::vector<bool> b_array = config_parse(config, "bool_array");
-  std::vector<int> i_array = config_parse(config, "int_array");
-  std::vector<float> f_array = config_parse(config, "float_array");
-  std::vector<double> d_array = config_parse(config, "double_array");
-  std::vector<std::string> s_array = config_parse(config, "string_array");
+  int i;
+  parse(config, "int", i);
 
-  vec2_t vec2 = config_parse(config, "vector2");
-  vec3_t vec3 = config_parse(config, "vector3");
-  vec4_t vec4 = config_parse(config, "vector4");
-  vecx_t vecx = config_parse(config, "vector");
+  float f;
+  parse(config, "float", f);
 
-  mat2_t mat2 = config_parse(config, "matrix2");
-  mat3_t mat3 = config_parse(config, "matrix3");
-  mat4_t mat4 = config_parse(config, "matrix4");
-  matx_t matx = config_parse(config, "matrix");
-  cv::Mat cvmat = config_parse(config, "matrix");
-  config_parse(config, "non_existant_key", true);
+  double d;
+  parse(config, "double", d);
+
+  // Array
+  std::string s;
+  parse(config, "string", s);
+
+  std::vector<bool> b_array;
+  parse(config, "bool_array", b_array);
+
+  std::vector<int> i_array;
+  parse(config, "int_array", i_array);
+
+  std::vector<float> f_array;
+  parse(config, "float_array", f_array);
+
+  std::vector<double> d_array;
+  parse(config, "double_array", d_array);
+
+  std::vector<std::string> s_array;
+  parse(config, "string_array", s_array);
+
+  // Vectors
+  vec2_t vec2;
+  parse(config, "vector2", vec2);
+
+  vec3_t vec3;
+  parse(config, "vector3", vec3);
+
+  vec4_t vec4;
+  parse(config, "vector4", vec4);
+
+  vecx_t vecx;
+  parse(config, "vector", vecx);
+
+  // Matrices
+  mat2_t mat2;
+  parse(config, "matrix2", mat2);
+
+  mat3_t mat3;
+  parse(config, "matrix3", mat3);
+
+  mat4_t mat4;
+  parse(config, "matrix4", mat4);
+
+  matx_t matx;
+  parse(config, "matrix", matx);
+
+  cv::Mat cvmat;
+  parse(config, "matrix", cvmat);
+  parse(config, "non_existant_key", cvmat, true);
 
   std::cout << "bool: " << b << std::endl;
   std::cout << "int: " << i << std::endl;

@@ -82,17 +82,17 @@ vec2_t pinhole_pixel2ideal(const mat3_t &K, const vec2_t &pixel) {
 
 int PinholeModel::configure(const std::string &config_file) {
   // Load config file
-  config_parser_t parser;
-  config_parser_add(parser, "image_width", &this->image_width);
-  config_parser_add(parser, "image_height", &this->image_height);
-  config_parser_add(parser, "fx", &this->fx);
-  config_parser_add(parser, "fy", &this->fy);
-  config_parser_add(parser, "cx", &this->cx);
-  config_parser_add(parser, "cy", &this->cy);
-  if (config_parser_load(parser, config_file) != 0) {
+  config_t config{config_file};
+  if (config.ok == false) {
     LOG_ERROR("Failed to load config file [%s]!", config_file.c_str());
     return -1;
   }
+  parse(config, "image_width", this->image_width);
+  parse(config, "image_height", this->image_height);
+  parse(config, "fx", this->fx);
+  parse(config, "fy", this->fy);
+  parse(config, "cx", this->cx);
+  parse(config, "cy", this->cy);
 
   // Form the intrinsics matrix
   this->K = mat3_t::Zero();

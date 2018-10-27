@@ -15,20 +15,23 @@ config_t::config_t(const std::string &file_path_) :
   ok = true;
 }
 
-YAML::Node config_parse::getNode() const {
+int yaml_get_node(const config_t &config,
+                  const std::string &key,
+                  const bool optional,
+                  YAML::Node &node) {
   ASSERT(config_.ok == true, "Config file is not loaded!");
 
   // Recurse down config key
   std::vector<YAML::Node> traversal;
-  traversal.push_back(config_.root);
+  traversal.push_back(config.root);
 
-  std::istringstream iss(key_);
+  std::istringstream iss(key);
   std::string element;
 
   while (std::getline(iss, element, '.')) {
     traversal.push_back(traversal.back()[element]);
   }
-  YAML::Node node = traversal.back();
+  node = traversal.back();
   // Note:
   //
   //    yaml_node = yaml_node["some_level_deeper"];
@@ -38,90 +41,117 @@ YAML::Node config_parse::getNode() const {
   // a std::vector and return the last visited YAML::Node
 
   // Check key
-  if (!node && optional_ == false) {
+  if (node.IsDefined() == false && optional == false) {
     FATAL("Opps [%s] missing in yaml file [%s]!",
-          key_.c_str(),
-          config_.file_path.c_str());
+          key.c_str(),
+          config.file_path.c_str());
+    return -1;
+  } else if (node.IsDefined() == false && optional == true) {
+    return -1;
   }
 
-  return node;
+  return 0;
 }
 
-config_parse::operator vec2_t() const {
-  YAML::Node node = getNode();
-  checkVector<vec2_t>();
-  vec2_t vec{node[0].as<double>(), node[1].as<double>()};
-  return vec;
+void parse(const config_t &config, const std::string &key, vec2_t &vec, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
+
+  // Parse
+  const size_t vector_size = yaml_check_vector<vec2_t>(node, key, optional);
+  vec = vec2_t{node[0].as<double>(), node[1].as<double>()};
 }
 
-config_parse::operator vec3_t() const {
-  YAML::Node node = getNode();
-  checkVector<vec3_t>();
-  vec3_t vec{node[0].as<double>(),
-              node[1].as<double>(),
-              node[2].as<double>()};
-  return vec;
+void parse(const config_t &config, const std::string &key, vec3_t &vec, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
+
+  // Parse
+  const size_t vector_size = yaml_check_vector<vec3_t>(node, key, optional);
+  vec = vec3_t{node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
 }
 
-config_parse::operator vec4_t() const {
-  YAML::Node node = getNode();
-  checkVector<vec4_t>();
-  vec4_t vec{node[0].as<double>(),
-              node[1].as<double>(),
-              node[2].as<double>(),
-              node[3].as<double>()};
-  return vec;
+void parse(const config_t &config, const std::string &key, vec4_t &vec, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
+
+  // Parse
+  const size_t vector_size = yaml_check_vector<vec4_t>(node, key, optional);
+  vec = vec4_t{node[0].as<double>(), node[1].as<double>(),
+               node[2].as<double>(), node[3].as<double>()};
 }
 
-config_parse::operator vecx_t() const {
-  YAML::Node node = getNode();
-  const size_t vector_size = checkVector<vecx_t>();
-  vecx_t vec = vecx_t::Zero(vector_size, 1);
+void parse(const config_t &config, const std::string &key, vecx_t &vec, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
+
+  // Parse
+  const size_t vector_size = yaml_check_vector<vecx_t>(node, key, optional);
+  vec = vecx_t::Zero(vector_size, 1);
   for (size_t i = 0; i < node.size(); i++) {
     vec(i) = node[i].as<double>();
   }
-  return vec;
 }
 
-config_parse::operator mat2_t() const {
-  YAML::Node node = getNode();
-  checkMatrix<mat2_t>();
+void parse(const config_t &config, const std::string &key, mat2_t &mat, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
 
-  mat2_t mat;
+  // Parse
+  yaml_check_matrix<mat2_t>(node, key, optional);
   mat(0, 0) = node["data"][0].as<double>();
   mat(0, 1) = node["data"][1].as<double>();
-
   mat(1, 0) = node["data"][2].as<double>();
   mat(1, 1) = node["data"][3].as<double>();
-
-  return mat;
 }
 
-config_parse::operator mat3_t() const {
-  YAML::Node node = getNode();
-  checkMatrix<mat3_t>();
+void parse(const config_t &config, const std::string &key, mat3_t &mat, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
 
-  mat3_t mat;
+  // Parse
+  yaml_check_matrix<mat3_t>(node, key, optional);
+  // -- Col 1
   mat(0, 0) = node["data"][0].as<double>();
   mat(0, 1) = node["data"][1].as<double>();
   mat(0, 2) = node["data"][2].as<double>();
-
+  // -- Col 2
   mat(1, 0) = node["data"][3].as<double>();
   mat(1, 1) = node["data"][4].as<double>();
   mat(1, 2) = node["data"][5].as<double>();
-
+  // -- Col 3
   mat(2, 0) = node["data"][6].as<double>();
   mat(2, 1) = node["data"][7].as<double>();
   mat(2, 2) = node["data"][8].as<double>();
-
-  return mat;
 }
 
-config_parse::operator mat4_t() const {
-  YAML::Node node = getNode();
-  checkMatrix<mat4_t>();
+void parse(const config_t &config, const std::string &key, mat4_t &mat, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
 
-  mat4_t mat;
+  // Parse
+  yaml_check_matrix<mat4_t>(node, key, optional);
   size_t index = 0;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -129,36 +159,43 @@ config_parse::operator mat4_t() const {
       index++;
     }
   }
-
-  return mat;
 }
 
-config_parse::operator matx_t() const {
-  YAML::Node node = getNode();
+void parse(const config_t &config, const std::string &key, matx_t &mat, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
+
+  // Parse
   size_t rows = 0;
   size_t cols = 0;
-  checkMatrix<matx_t>(rows, cols);
+  yaml_check_matrix<matx_t>(node, key, optional, rows, cols);
 
-  matx_t matx;
-  matx.resize(rows, cols);
+  mat.resize(rows, cols);
   size_t index = 0;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
-      matx(i, j) = node["data"][index].as<double>();
+      mat(i, j) = node["data"][index].as<double>();
       index++;
     }
   }
-
-  return matx;
 }
 
-config_parse::operator cv::Mat() const {
-  YAML::Node node = getNode();
+void parse(const config_t &config, const std::string &key, cv::Mat &mat, const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return;
+  }
+
+  // Parse
   size_t rows = 0;
   size_t cols = 0;
-  checkMatrix<cv::Mat>(rows, cols);
+  yaml_check_matrix<cv::Mat>(node, key, optional, rows, cols);
 
-  cv::Mat mat(rows, cols, CV_64F);
+  mat = cv::Mat(rows, cols, CV_64F);
   size_t index = 0;
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
@@ -166,8 +203,6 @@ config_parse::operator cv::Mat() const {
       index++;
     }
   }
-
-  return mat;
 }
 
 } //  namespace prototype
