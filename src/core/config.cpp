@@ -4,15 +4,22 @@ namespace prototype {
 
 config_t::config_t(const std::string &file_path_) :
   file_path{file_path_} {
+  if (yaml_load_file(file_path_, root) == 0) {
+    ok = true;
+  }
+}
+
+int yaml_load_file(const std::string file_path,
+                   YAML::Node &root) {
   // Pre-check
   if (file_exists(file_path) == false) {
     LOG_ERROR("File not found: %s", file_path.c_str());
-    ok = false;
+    return -1;
   }
 
   // Load and parse file
   root = YAML::LoadFile(file_path);
-  ok = true;
+  return 0;
 }
 
 int yaml_get_node(const config_t &config,

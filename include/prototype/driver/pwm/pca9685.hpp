@@ -90,50 +90,49 @@ namespace prototype {
 #define PCA9685_I2C_ADDR 0x40
 #define PCA9685_WAIT_MS 5
 
-class PCA9685 {
-public:
-  I2C i2c;
-
-  PCA9685() {}
-
-  /**
-   * Configure
-   *
-   * @param freq Frequency (Hz)
-   * @returns 0 for success, -1 for failure
-   */
-  int configure(const int freq);
-
-  /**
-   * Set PWM frequency
-   *
-   * @param freq Frequency (Hz)
-   * @returns 0 for success, -1 for failure
-   */
-  void setPWMFrequency(const int freq);
-
-  /**
-   * Set PWM on a specific channel
-   *
-   * @param channel (starting from 0)
-   * @param off PWM off duty cycle (out of 4096)
-   * @returns 0 for success, -1 for failure
-   */
-  void setPWM(const int8_t channel, const int16_t off);
-
-  /**
-   * Set PWM on all channels
-   *
-   * @param off PWM off duty cycle (out of 4096)
-   * @returns 0 for success, -1 for failure
-   */
-  void setAllPWM(const int16_t off);
-
-  /**
-   * Reset PCA9685
-   */
-  void reset();
+struct pca9685_t {
+  i2c_t &i2c;
+  pca9685_t(i2c_t &i2c_) : i2c{i2c_} {}
+  virtual ~pca9685_t() {}
 };
+
+/**
+  * Configure
+  *
+  * @param freq Frequency (Hz)
+  * @returns 0 for success, -1 for failure
+  */
+int pca9685_configure(pca9685_t &pwm, const int freq);
+
+/**
+  * Set PWM frequency
+  *
+  * @param freq Frequency (Hz)
+  * @returns 0 for success, -1 for failure
+  */
+void pca9685_set_frequency(const pca9685_t &pwm, const int freq);
+
+/**
+  * Set PWM on a specific channel
+  *
+  * @param channel (starting from 0)
+  * @param off PWM off duty cycle (out of 4096)
+  * @returns 0 for success, -1 for failure
+  */
+void pca9685_set_pwm(const pca9685_t &pwm, const int8_t channel, const int16_t off);
+
+/**
+  * Set PWM on all channels
+  *
+  * @param off PWM off duty cycle (out of 4096)
+  * @returns 0 for success, -1 for failure
+  */
+void pca9685_set_pwm(const pca9685_t &pwm, const int16_t off);
+
+/**
+ * Reset pca9685_t
+ */
+void pca9685_reset(const pca9685_t &pwm);
 
 } //  namespace prototype
 #endif // PROTOTYPE_PWM_PCA9685_HPP

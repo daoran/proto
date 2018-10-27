@@ -31,6 +31,7 @@ namespace prototype {
 #define I2C_BUF_MAX 1024
 
 struct i2c_t {
+  bool ok = false;
   int fd = -1;
 
   i2c_t() {}

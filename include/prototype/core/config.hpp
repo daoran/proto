@@ -40,6 +40,12 @@ struct config_t {
 };
 
 /**
+ * Load YAML file
+ */
+int yaml_load_file(const std::string file_path,
+                   YAML::Node &root);
+
+/**
   * Get YAML node containing the parameter value
   */
 int yaml_get_node(const config_t &config,

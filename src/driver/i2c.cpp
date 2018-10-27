@@ -18,6 +18,7 @@ int i2c_setup(i2c_t &i2c) {
     return -1;
   } else {
     i2c.fd = fd;
+    i2c.ok = true;
   }
 
   return 0;

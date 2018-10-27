@@ -3,24 +3,24 @@
 
 namespace prototype {
 
-#define TEST_CONFIG "tests/configs/control/position_controller.yaml"
+#define TEST_CONFIG "tests/configs/control/pos_ctrl.yaml"
 
-int test_PositionController_constructor() {
-  PositionController controller;
+int test_pos_ctrl_constructor() {
+  pos_ctrl controller;
 
   MU_CHECK_FLOAT(0.0, controller.dt);
 
-  MU_CHECK_FLOAT(0.0, controller.x_controller.k_p);
-  MU_CHECK_FLOAT(0.0, controller.x_controller.k_i);
-  MU_CHECK_FLOAT(0.0, controller.x_controller.k_d);
+  MU_CHECK_FLOAT(0.0, controller.x_ctrl.k_p);
+  MU_CHECK_FLOAT(0.0, controller.x_ctrl.k_i);
+  MU_CHECK_FLOAT(0.0, controller.x_ctrl.k_d);
 
-  MU_CHECK_FLOAT(0.0, controller.y_controller.k_p);
-  MU_CHECK_FLOAT(0.0, controller.y_controller.k_i);
-  MU_CHECK_FLOAT(0.0, controller.y_controller.k_d);
+  MU_CHECK_FLOAT(0.0, controller.y_ctrl.k_p);
+  MU_CHECK_FLOAT(0.0, controller.y_ctrl.k_i);
+  MU_CHECK_FLOAT(0.0, controller.y_ctrl.k_d);
 
-  MU_CHECK_FLOAT(0.0, controller.z_controller.k_p);
-  MU_CHECK_FLOAT(0.0, controller.z_controller.k_i);
-  MU_CHECK_FLOAT(0.0, controller.z_controller.k_d);
+  MU_CHECK_FLOAT(0.0, controller.z_ctrl.k_p);
+  MU_CHECK_FLOAT(0.0, controller.z_ctrl.k_i);
+  MU_CHECK_FLOAT(0.0, controller.z_ctrl.k_d);
 
   MU_CHECK_FLOAT(0.0, controller.outputs(0));
   MU_CHECK_FLOAT(0.0, controller.outputs(1));
@@ -30,52 +30,52 @@ int test_PositionController_constructor() {
   return 0;
 }
 
-// int test_PositionController_configure() {
-//   PositionController controller;
-//
-//   controller.configure(TEST_CONFIG);
-//
-//   MU_CHECK(controller.configured == false);
-//
-//   MU_CHECK_FLOAT(0.0, controller.dt);
-//
-//   MU_CHECK_FLOAT(0.1, controller.x_controller.k_p);
-//   MU_CHECK_FLOAT(0.2, controller.x_controller.k_i);
-//   MU_CHECK_FLOAT(0.3, controller.x_controller.k_d);
-//
-//   MU_CHECK_FLOAT(0.1, controller.y_controller.k_p);
-//   MU_CHECK_FLOAT(0.2, controller.y_controller.k_i);
-//   MU_CHECK_FLOAT(0.3, controller.y_controller.k_d);
-//
-//   MU_CHECK_FLOAT(0.1, controller.z_controller.k_p);
-//   MU_CHECK_FLOAT(0.2, controller.z_controller.k_i);
-//   MU_CHECK_FLOAT(0.3, controller.z_controller.k_d);
-//
-//   MU_CHECK_FLOAT(0.6, controller.hover_throttle);
-//
-//   MU_CHECK_FLOAT(deg2rad(-50.0), controller.roll_limit[0]);
-//   MU_CHECK_FLOAT(deg2rad(50.0), controller.roll_limit[1]);
-//
-//   MU_CHECK_FLOAT(deg2rad(-50.0), controller.pitch_limit[0]);
-//   MU_CHECK_FLOAT(deg2rad(50.0), controller.pitch_limit[1]);
-//
-//   MU_CHECK_FLOAT(0.0, controller.setpoints(0));
-//   MU_CHECK_FLOAT(0.0, controller.setpoints(1));
-//   MU_CHECK_FLOAT(0.0, controller.setpoints(2));
-//
-//   MU_CHECK_FLOAT(0.0, controller.outputs(0));
-//   MU_CHECK_FLOAT(0.0, controller.outputs(1));
-//   MU_CHECK_FLOAT(0.0, controller.outputs(2));
-//   MU_CHECK_FLOAT(0.0, controller.outputs(3));
-//
-//   return 0;
-// }
+int test_pos_ctrl_configure() {
+  pos_ctrl controller;
 
-// int test_PositionController_update() {
+  pos_ctrl_configure(controller, TEST_CONFIG);
+
+  MU_CHECK(controller.configured == false);
+
+  MU_CHECK_FLOAT(0.0, controller.dt);
+
+  MU_CHECK_FLOAT(0.1, controller.x_controller.k_p);
+  MU_CHECK_FLOAT(0.2, controller.x_controller.k_i);
+  MU_CHECK_FLOAT(0.3, controller.x_controller.k_d);
+
+  MU_CHECK_FLOAT(0.1, controller.y_controller.k_p);
+  MU_CHECK_FLOAT(0.2, controller.y_controller.k_i);
+  MU_CHECK_FLOAT(0.3, controller.y_controller.k_d);
+
+  MU_CHECK_FLOAT(0.1, controller.z_controller.k_p);
+  MU_CHECK_FLOAT(0.2, controller.z_controller.k_i);
+  MU_CHECK_FLOAT(0.3, controller.z_controller.k_d);
+
+  MU_CHECK_FLOAT(0.6, controller.hover_throttle);
+
+  MU_CHECK_FLOAT(deg2rad(-50.0), controller.roll_limit[0]);
+  MU_CHECK_FLOAT(deg2rad(50.0), controller.roll_limit[1]);
+
+  MU_CHECK_FLOAT(deg2rad(-50.0), controller.pitch_limit[0]);
+  MU_CHECK_FLOAT(deg2rad(50.0), controller.pitch_limit[1]);
+
+  MU_CHECK_FLOAT(0.0, controller.setpoints(0));
+  MU_CHECK_FLOAT(0.0, controller.setpoints(1));
+  MU_CHECK_FLOAT(0.0, controller.setpoints(2));
+
+  MU_CHECK_FLOAT(0.0, controller.outputs(0));
+  MU_CHECK_FLOAT(0.0, controller.outputs(1));
+  MU_CHECK_FLOAT(0.0, controller.outputs(2));
+  MU_CHECK_FLOAT(0.0, controller.outputs(3));
+
+  return 0;
+}
+
+// int test_pos_ctrl_update() {
 //   vec3_t setpoint_nwu;
 //   Pose actual;
 //   float yaw_setpoint, dt;
-//   PositionController controller;
+//   pos_ctrl controller;
 //
 //   // setup
 //   controller.configure(TEST_CONFIG);
@@ -144,11 +144,11 @@ int test_PositionController_constructor() {
 //   MU_CHECK_FLOAT(yaw_setpoint, controller.outputs(2));
 // }
 //
-// int test_PositionController_update2() {
+// int test_pos_ctrl_update2() {
 //   vec3_t setpoint_nwu, euler;
 //   Pose actual;
 //   float yaw_setpoint, dt;
-//   PositionController controller;
+//   pos_ctrl controller;
 //
 //   // setup
 //   controller.configure(TEST_CONFIG);
@@ -173,9 +173,9 @@ int test_PositionController_constructor() {
 // }
 
 void test_suite() {
-  MU_ADD_TEST(test_PositionController_constructor);
-  MU_ADD_TEST(test_PositionController_update);
-  MU_ADD_TEST(test_PositionController_update2);
+  MU_ADD_TEST(test_pos_ctrl_constructor);
+  MU_ADD_TEST(test_pos_ctrl_update);
+  MU_ADD_TEST(test_pos_ctrl_update2);
 }
 
 } // namespace prototype

@@ -115,81 +115,95 @@ namespace prototype {
 #define U16BIT(DATA, HI_BYTE, LOW_BYTE)                                        \
   (uint16_t)((DATA[HI_BYTE] << 8) | (DATA[LOW_BYTE] & 0xff))
 
-class SBGCFrame {
-public:
-  uint8_t cmd_id;
-  uint8_t data_size;
-  uint8_t header_checksum;
-  uint8_t *data;
-  uint8_t data_checksum;
 
-  void printFrame();
+/**
+ * SBGC UART protocol frame
+ */
+struct sbgc_frame_t {
+  bool ok = false;
 
-  void buildDataChecksum();
-  void buildHeader(uint8_t cmd_id, uint8_t data_size);
-  void buildBody(uint8_t *data);
-  void buildFrame(int cmd_id, uint8_t *data, int data_size);
-  void buildFrame(int cmd_id);
+  uint8_t cmd_id = 0;
+  uint8_t data_size = 0;
+  uint8_t header_checksum = 0;
+  uint8_t *data = nullptr;
+  uint8_t data_checksum = 0;
 
-  int parseHeader(uint8_t *data);
-  int parseBody(uint8_t *data);
-  int parseFrame(uint8_t *data);
+  sbgc_frame_t() {}
+  virtual ~sbgc_frame_t() {}
 };
 
-class SBGCRealtimeData {
-public:
-  vec3_t accel;
-  vec3_t gyro;
+/**
+ * SBGC realtime data
+ */
+struct sbgc_realtime_data_t {
+  vec3_t accel = zeros(3, 1);
+  vec3_t gyro = zeros(3, 1);
 
-  vec3_t camera_angles;
-  vec3_t frame_angles;
-  vec3_t rc_angles;
-  vec3_t encoder_angles;
+  vec3_t camera_angles = zeros(3, 1);
+  vec3_t frame_angles = zeros(3, 1);
+  vec3_t rc_angles = zeros(3, 1);
+  vec3_t encoder_angles = zeros(3, 1);
 
-  int cycle_time;
-  int i2c_error_count;
-  int system_error;
-  int battery_level;
+  int cycle_time = 0;
+  int i2c_error_count = 0;
+  int system_error = 0;
+  int battery_level = 0;
 
-  void printData();
+  sbgc_realtime_data_t() {}
+  virtual ~sbgc_realtime_data_t() {}
 };
 
-class SBGC {
-public:
-  bool connected;
+/**
+ * SBGC
+ */
+struct sbgc_t{
+  bool connected = false;
 
-  SBGCRealtimeData data;
+  sbgc_realtime_data_t data;
   std::string port;
-  int serial;
+  int serial = -1;
 
-  uint8_t board_version;
-  uint16_t firmware_version;
-  uint8_t debug_mode;
-  uint16_t board_features;
-  uint8_t connection_flags;
+  uint8_t board_version = 0;
+  uint16_t firmware_version = 0;
+  uint8_t debug_mode = 0;
+  uint16_t board_features = 0;
+  uint8_t connection_flags = 0;
 
-  SBGC();
-  SBGC(const std::string &port);
-
-  int connect();
-  int disconnect();
-  int sendFrame(const SBGCFrame &cmd);
-  int readFrame(const uint8_t read_length, SBGCFrame &frame);
-  int on();
-  int off();
-  int reset();
-  int getBoardInfo();
-  int getRealtimeData();
-  int getRealtimeData4();
-  int getAnglesExt();
-  int setAngle(const double roll, const double pitch, const double yaw);
-  int setSpeedAngle(const double roll,
-                    const double pitch,
-                    const double yaw,
-                    const double roll_speed,
-                    const double pitch_speed,
-                    const double yaw_speed);
+  sbgc_t() {}
+  sbgc_t(const std::string &port_) : port{port_} {}
+  virtual ~sbgc_t() {}
 };
+
+void sbgc_frame_print(const sbgc_frame_t &frame);
+void sbgc_frame_set_checksum(sbgc_frame_t &frame);
+void sbgc_frame_set_header(sbgc_frame_t &frame, uint8_t cmd_id, uint8_t data_size);
+void sbgc_frame_set_body(sbgc_frame_t &frame, uint8_t *data);
+void sbgc_frame_build(sbgc_frame_t &frame, int cmd_id, uint8_t *data=NULL, int data_size=0);
+int sbgc_frame_parse_header(sbgc_frame_t &frame, uint8_t *data);
+int sbgc_frame_parse_body(sbgc_frame_t &frame, uint8_t *data);
+int sbgc_frame_parse(sbgc_frame_t &frame, uint8_t *data);
+
+void sbgc_realtime_data_print(const sbgc_realtime_data_t &data);
+
+int sbgc_connect(sbgc_t &sbgc);
+int sbgc_disconnect(sbgc_t &sbgc);
+int sbgc_send(const sbgc_t &sbgc, const sbgc_frame_t &cmd);
+int sbgc_read(const sbgc_t &sbgc, const uint8_t read_length, sbgc_frame_t &frame);
+int sbgc_on(const sbgc_t &sbgc);
+int sbgc_off(const sbgc_t &sbgc);
+int sbgc_reset(sbgc_t &sbgc);
+int sbgc_get_board_info(sbgc_t &sbgc);
+int sbgc_get_realtime_data(sbgc_t &sbgc);
+int sbgc_get_realtime_data4(sbgc_t &sbgc);
+int sbgc_get_angles_ext(sbgc_t &sbgc);
+int sbgc_set_angle(const sbgc_t &sbgc, const double roll, const double pitch, const double yaw);
+int sbgc_set_speed_angle(const sbgc_t &sbgc,
+                         const double roll,
+                         const double pitch,
+                         const double yaw,
+                         const double roll_speed,
+                         const double pitch_speed,
+                         const double yaw_speed);
 
 /** @} group feature2d */
 } //  namespace prototype

@@ -9,7 +9,8 @@ cd build || return
 cmake ..
 time make -j8
 
-# cd tests
+cd tests
 # ./core-config_test
+# ./driver-camera-camera_test
 
 # sudo make install

@@ -2,141 +2,124 @@
 
 namespace prototype {
 
-int MPU6050::configure(const std::string &config_file) {
+int mpu6050_configure(mpu6050_t imu, const std::string &config_file) {
   int retval = 0;
 
   // Load config file
-  config_parser_t parser;
-  int dplf, gyro_range, accel_range = 0;
-  config_parser_add(parser, "dplf", &dplf);
-  config_parser_add(parser, "gyro_range", &gyro_range);
-  config_parser_add(parser, "accel_range", &accel_range);
-  if (config_parser_load(parser, config_file) != 0) {
+  config_t config{config_file};
+  if (config.ok == false) {
     LOG_ERROR("Failed to load config file [%s]!", config_file.c_str());
     return -1;
   }
+  int dplf, gyro_range, accel_range = 0;
+  parse(config, "dplf", dplf);
+  parse(config, "gyro_range", gyro_range);
+  parse(config, "accel_range", accel_range);
 
   // Setup i2c
-  this->i2c = I2C();
-  if (this->i2c.setup() != 0) {
+  if (i2c_setup(imu.i2c) != 0) {
     LOG_INFO("Failed to open i2c connection!");
     return -1;
   }
-  this->i2c.setSlave(MPU6050_ADDRESS);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
 
   // Set dplf
-  this->setDPLF(dplf);
-  retval = this->getDPLF();
+  mpu6050_set_dplf(imu, dplf);
+  retval = mpu6050_get_dplf(imu);
   if (retval > 7 || retval < 0) {
     return -1;
   } else {
-    this->dplf_config = retval;
-    LOG_INFO("dplf config: %d", this->dplf_config);
+    imu.dplf_config = retval;
+    LOG_INFO("dplf config: %d", imu.dplf_config);
   }
 
   // Set power management register
-  this->i2c.writeByte(MPU6050_RA_PWR_MGMT_1, 0x00);
+  i2c_write_byte(imu.i2c, MPU6050_RA_PWR_MGMT_1, 0x00);
 
   // Get gyro range
-  this->setGyroRange(gyro_range);
-  retval = this->getGyroRange();
+  mpu6050_set_gyro_range(imu, gyro_range);
+  retval = mpu6050_get_gyro_range(imu);
   if (retval == 0) {
-    this->gyro.sensitivity = 131.0;
+    imu.gyro_sensitivity = 131.0;
   } else if (retval == 1) {
-    this->gyro.sensitivity = 65.5;
+    imu.gyro_sensitivity = 65.5;
   } else if (retval == 2) {
-    this->gyro.sensitivity = 32.8;
+    imu.gyro_sensitivity = 32.8;
   } else if (retval == 3) {
-    this->gyro.sensitivity = 16.4;
+    imu.gyro_sensitivity = 16.4;
   } else {
     LOG_ERROR("Invalid gyro range [%d]!", retval);
     return -2;
   }
 
   // Get accel range
-  this->setAccelRange(accel_range);
-  retval = this->getAccelRange();
+  mpu6050_set_accel_range(imu, accel_range);
+  retval = mpu6050_get_accel_range(imu);
   if (retval == 0) {
-    this->accel.sensitivity = 16384.0;
+    imu.accel_sensitivity = 16384.0;
   } else if (retval == 1) {
-    this->accel.sensitivity = 8192.0;
+    imu.accel_sensitivity = 8192.0;
   } else if (retval == 2) {
-    this->accel.sensitivity = 4096.0;
+    imu.accel_sensitivity = 4096.0;
   } else if (retval == 3) {
-    this->accel.sensitivity = 2048.0;
+    imu.accel_sensitivity = 2048.0;
   } else {
     LOG_ERROR("Invalid accel range [%d]!", retval);
     return -3;
   }
 
   // Get sample rate
-  this->sample_rate = this->getSampleRate();
-
-  // Calibrate offsets
-  this->calibrate();
+  imu.sample_rate = mpu6050_get_sample_rate(imu);
 
   return 0;
 }
 
-int MPU6050::ping() {
+int mpu6050_ping(const mpu6050_t &imu) {
   char buf;
-
-  // print mpu6050 address
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  this->i2c.readByte(MPU6050_RA_WHO_AM_I, &buf);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  i2c_read_byte(imu.i2c, MPU6050_RA_WHO_AM_I, &buf);
   LOG_INFO("MPU6050 ADDRESS: 0x%02X\n", buf);
-
   return 0;
 }
 
-int MPU6050::getData() {
+int mpu6050_get_data(mpu6050_t &imu) {
   // Read data
   char raw_data[14];
   memset(raw_data, '\0', 14);
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  int retval = this->i2c.readBytes(MPU6050_RA_ACCEL_XOUT_H, raw_data, 14);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  int retval = i2c_read_bytes(imu.i2c, MPU6050_RA_ACCEL_XOUT_H, raw_data, 14);
   if (retval != 0) {
     return -1;
   }
 
   // Accelerometer
   const double g = 9.81; // Gravitational constant
-  this->accel.raw_x = (raw_data[0] << 8) | (raw_data[1]);
-  this->accel.raw_y = (raw_data[2] << 8) | (raw_data[3]);
-  this->accel.raw_z = (raw_data[4] << 8) | (raw_data[5]);
-
-  this->accel.x = (this->accel.raw_x / this->accel.sensitivity) * g;
-  this->accel.y = (this->accel.raw_y / this->accel.sensitivity) * g;
-  this->accel.z = (this->accel.raw_z / this->accel.sensitivity) * g;
-
-  this->accel.x = this->accel.x - this->accel.offset_x;
-  this->accel.y = this->accel.y - this->accel.offset_y;
-  this->accel.z = this->accel.z - this->accel.offset_z;
+  const int raw_x = (raw_data[0] << 8) | (raw_data[1]);
+  const int raw_y = (raw_data[2] << 8) | (raw_data[3]);
+  const int raw_z = (raw_data[4] << 8) | (raw_data[5]);
+  imu.accel = vec3_t{(raw_x / imu.accel_sensitivity) * g,
+                     (raw_y / imu.accel_sensitivity) * g,
+                     (raw_z / imu.accel_sensitivity) * g};
 
   // Temperature
   const int8_t raw_temp = (raw_data[6] << 8) | (raw_data[7]);
-  this->temperature = raw_temp / 340.0 + 36.53;
+  imu.temperature = raw_temp / 340.0 + 36.53;
 
   // Gyroscope
-  this->gyro.raw_x = (raw_data[8] << 8) | (raw_data[9]);
-  this->gyro.raw_y = (raw_data[10] << 8) | (raw_data[11]);
-  this->gyro.raw_z = (raw_data[12] << 8) | (raw_data[13]);
-
-  this->gyro.x = deg2rad(this->gyro.raw_x / this->gyro.sensitivity);
-  this->gyro.y = deg2rad(this->gyro.raw_y / this->gyro.sensitivity);
-  this->gyro.z = deg2rad(this->gyro.raw_z / this->gyro.sensitivity);
-
-  this->gyro.x = this->gyro.x - this->gyro.offset_x;
-  this->gyro.y = this->gyro.y - this->gyro.offset_y;
-  this->gyro.z = this->gyro.z - this->gyro.offset_z;
+  const int gyro_raw_x = (raw_data[8] << 8) | (raw_data[9]);
+  const int gyro_raw_y = (raw_data[10] << 8) | (raw_data[11]);
+  const int gyro_raw_z = (raw_data[12] << 8) | (raw_data[13]);
+  imu.gyro = vec3_t{deg2rad(gyro_raw_x / imu.gyro_sensitivity),
+                    deg2rad(gyro_raw_y / imu.gyro_sensitivity),
+                    deg2rad(gyro_raw_z / imu.gyro_sensitivity)};
 
   // Set last_updated
-  this->last_updated = clock();
+  imu.last_updated = clock();
 
   return 0;
 }
 
-int MPU6050::setDPLF(const int setting) {
+int mpu6050_set_dplf(const mpu6050_t &imu, const int setting) {
   /*
       DPLF_CFG    Accelerometer
       ----------------------------------------
@@ -170,8 +153,8 @@ int MPU6050::setDPLF(const int setting) {
   }
 
   // Set DPLF
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  int retval = this->i2c.writeByte(MPU6050_RA_CONFIG, (char) setting);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  int retval = i2c_write_byte(imu.i2c, MPU6050_RA_CONFIG, (char) setting);
   if (retval != 0) {
     return -1;
   }
@@ -179,25 +162,23 @@ int MPU6050::setDPLF(const int setting) {
   return 0;
 }
 
-int MPU6050::getDPLF() {
+int mpu6050_get_dplf(const mpu6050_t &imu) {
   // Get dplf config
   char data[1] = {0x00};
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  int retval = this->i2c.readBytes(MPU6050_RA_CONFIG, data, 1);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  int retval = i2c_read_bytes(imu.i2c, MPU6050_RA_CONFIG, data, 1);
   if (retval != 0) {
     return -1;
   }
-
   LOG_INFO("GOT DPLF: %d", data[0]);
   data[0] = data[0] & 0b00000111;
 
   return data[0];
 }
 
-int MPU6050::setSampleRateDiv(const int div) {
-  // Set sample rate divider
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  int retval = this->i2c.writeByte(MPU6050_RA_SMPLRT_DIV, div);
+int mpu6050_set_sample_rate_div(const mpu6050_t &imu, const int div) {
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  int retval = i2c_write_byte(imu.i2c, MPU6050_RA_SMPLRT_DIV, div);
   if (retval != 0) {
     return -1;
   }
@@ -205,22 +186,20 @@ int MPU6050::setSampleRateDiv(const int div) {
   return 0;
 }
 
-int MPU6050::getSampleRateDiv() {
-  // Get sample rate
-  this->i2c.setSlave(MPU6050_ADDRESS);
+int mpu6050_get_sample_rate_div(const mpu6050_t &imu) {
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
   char data = 0;
-  int retval = this->i2c.readByte(MPU6050_RA_SMPLRT_DIV, &data);
+  int retval = i2c_read_byte(imu.i2c, MPU6050_RA_SMPLRT_DIV, &data);
   if (retval != 0) {
     return -1;
   }
-
   return data;
 }
 
-int MPU6050::getSampleRate() {
+int mpu6050_get_sample_rate(const mpu6050_t &imu) {
   // Get sample rate divider
   uint16_t sample_div = 0;
-  int rate_div = this->getSampleRateDiv();
+  int rate_div = mpu6050_get_sample_rate_div(imu);
   if (rate_div != -1 || rate_div != -2) {
     sample_div = (float) rate_div;
   } else {
@@ -229,7 +208,7 @@ int MPU6050::getSampleRate() {
 
   // Get gyro sample rate
   uint16_t gyro_rate = 0;
-  uint8_t dlpf_cfg = this->getSampleRateDiv();
+  uint8_t dlpf_cfg = mpu6050_get_sample_rate_div(imu);
   if (dlpf_cfg == 0 || dlpf_cfg == 7) {
     gyro_rate = 8000;
   } else if (dlpf_cfg >= 1 || dlpf_cfg <= 6) {
@@ -242,7 +221,7 @@ int MPU6050::getSampleRate() {
   return gyro_rate / (1 + sample_div);
 }
 
-int MPU6050::setGyroRange(const int range) {
+int mpu6050_set_gyro_range(const mpu6050_t &imu, const int range) {
   // Pre-check
   if (range > 3 || range < 0) {
     return -2;
@@ -250,8 +229,8 @@ int MPU6050::setGyroRange(const int range) {
 
   // Set sample rate
   char data = range << 3;
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  int retval = this->i2c.writeByte(MPU6050_RA_GYRO_CONFIG, data);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  int retval = i2c_write_byte(imu.i2c, MPU6050_RA_GYRO_CONFIG, data);
   if (retval != 0) {
     return -1;
   }
@@ -259,11 +238,11 @@ int MPU6050::setGyroRange(const int range) {
   return 0;
 }
 
-int MPU6050::getGyroRange() {
+int mpu6050_get_gyro_range(const mpu6050_t &imu) {
   // Get gyro config
   char data = 0x00;
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  int retval = this->i2c.readByte(MPU6050_RA_GYRO_CONFIG, &data);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  int retval = i2c_read_byte(imu.i2c, MPU6050_RA_GYRO_CONFIG, &data);
   if (retval != 0) {
     return -1;
   }
@@ -274,7 +253,7 @@ int MPU6050::getGyroRange() {
   return data;
 }
 
-int MPU6050::setAccelRange(const int range) {
+int mpu6050_set_accel_range(const mpu6050_t &imu, const int range) {
   // Pre-check
   if (range > 3 || range < 0) {
     return -2;
@@ -282,8 +261,8 @@ int MPU6050::setAccelRange(const int range) {
 
   // Set sample rate
   char data = range << 3;
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  int retval = this->i2c.writeByte(MPU6050_RA_ACCEL_CONFIG, data);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  int retval = i2c_write_byte(imu.i2c, MPU6050_RA_ACCEL_CONFIG, data);
   if (retval != 0) {
     return -1;
   }
@@ -291,12 +270,11 @@ int MPU6050::setAccelRange(const int range) {
   return 0;
 }
 
-int MPU6050::getAccelRange() {
-
+int mpu6050_get_accel_range(const mpu6050_t &imu) {
   // Get accel config
   char data = 0x00;
-  this->i2c.setSlave(MPU6050_ADDRESS);
-  int retval = this->i2c.readByte(MPU6050_RA_ACCEL_CONFIG, &data);
+  i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
+  int retval = i2c_read_byte(imu.i2c, MPU6050_RA_ACCEL_CONFIG, &data);
   if (retval != 0) {
     return -1;
   }
@@ -307,15 +285,7 @@ int MPU6050::getAccelRange() {
   return data;
 }
 
-std::ostream &operator<<(std::ostream &os, const MPU6050 &imu) {
-  os << "gyro_x: " << imu.gyro.x << std::endl;
-  os << "gyro_y: " << imu.gyro.y << std::endl;
-  os << "gyro_z: " << imu.gyro.z << std::endl;
-  os << "accel x: " << imu.accel.x << std::endl;
-  os << "accel y: " << imu.accel.y << std::endl;
-  os << "accel z: " << imu.accel.z << std::endl;
-  os << "temp: " << imu.temperature << std::endl;
-
+std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu) {
   return os;
 }
 

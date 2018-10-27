@@ -11,7 +11,6 @@
 #include <iostream>
 
 #include "prototype/driver/i2c.hpp"
-#include "prototype/driver/imu/imu.hpp"
 
 namespace prototype {
 /**
@@ -139,130 +138,138 @@ namespace prototype {
 /**
  * Invensense MPU6050 I2C Driver
  */
-class MPU6050 : public IMUBase {
-public:
+struct mpu6050_t {
+  bool ok = false;
+  i2c_t &i2c;
+
+  float accel_sensitivity = 0.0;
+  float gyro_sensitivity = 0.0;
+  vec3_t accel = zeros(3, 1);
+  vec3_t gyro = zeros(3, 1);
+
   float temperature = 0.0f;
   float sample_rate = -1.0f;
   int8_t dplf_config = 0;
   clock_t last_updated = 0;
 
-  MPU6050() {}
-
-  /**
-   * Configure
-   *
-   * @param config_file Path to configuration file
-   * @returns 0 for success, -1 for failure
-   */
-  int configure(const std::string &config_file);
-
-  /**
-   * Ping
-   * @returns 0 for success, -1 for failure
-   */
-  int ping();
-
-  /**
-   * Get IMU data
-   * @returns 0 for success, -1 for failure
-   */
-  int getData();
-
-  /**
-   * Set DPLF
-   *
-   *   DPLF_CFG    Accelerometer
-   *   ----------------------------------------
-   *               Bandwidth(Hz) | Delay(ms)
-   *   0           260             0
-   *   1           184             2.0
-   *   2           94              3.0
-   *   3           44              4.9
-   *   4           21              8.5
-   *   5           10              13.8
-   *   6           5               19.0
-   *   7           RESERVED        RESERVED
-   *
-   *   DPLF_CFG    Gyroscope
-   *   ----------------------------------------------
-   *               Bandwidth(Hz) | Delay(ms) | Fs(kHz)
-   *   0           256             0.98        8
-   *   1           188             1.9         1
-   *   2           98              2.8         1
-   *   3           42              4.8         1
-   *   4           20              8.3         1
-   *   5           10              13.4        1
-   *   6           5               18.5        1
-   *   7           RESERVED        RESERVED    8
-   *
-   * @param setting
-   * @returns 0 for success, -1 for failure
-   */
-  int setDPLF(const int setting);
-
-  /**
-   * Get DPLF
-   *
-   * @returns 0 for success, -1 for failure
-   */
-  int getDPLF();
-
-  /**
-   * Set sample rate division
-   *
-   * @param setting
-   * @returns 0 for success, -1 for failure
-   */
-  int setSampleRateDiv(const int setting);
-
-  /**
-   * Get sample rate division
-   *
-   * @returns 0 for success, -1 for failure
-   */
-  int getSampleRateDiv();
-
-  /**
-   * Get sample rate
-   *
-   * @returns 0 for success, -1 for failure
-   */
-  int getSampleRate();
-
-  /**
-   * Set gyro range
-   *
-   * @returns 0 for success, -1 for failure
-   */
-  int setGyroRange(const int setting);
-
-  /**
-   * Set gyro range
-   *
-   * @returns 0 for success, -1 for failure
-   */
-  int getGyroRange();
-
-  /**
-   * Set accelerometer range
-   *
-   * @param setting
-   * @returns 0 for success, -1 for failure
-   */
-  int setAccelRange(const int setting);
-
-  /**
-   * Get accelerometer range
-   *
-   * @returns 0 for success, -1 for failure
-   */
-  int getAccelRange();
+  mpu6050_t(i2c_t &i2c_) : i2c{i2c_} {}
+  virtual ~mpu6050_t() {}
 };
 
 /**
- * MPU6050 to output stream
+  * Configure
+  *
+  * @param config_file Path to configuration file
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_configure(mpu6050_t &imu, const std::string &config_file);
+
+/**
+  * Ping
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_ping(const mpu6050_t &imu);
+
+/**
+  * Get IMU data
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_get_data(mpu6050_t &imu);
+
+/**
+ * Set DPLF
+ *
+ *   DPLF_CFG    Accelerometer
+ *   ----------------------------------------
+ *               Bandwidth(Hz) | Delay(ms)
+ *   0           260             0
+ *   1           184             2.0
+ *   2           94              3.0
+ *   3           44              4.9
+ *   4           21              8.5
+ *   5           10              13.8
+ *   6           5               19.0
+ *   7           RESERVED        RESERVED
+ *
+ *   DPLF_CFG    Gyroscope
+ *   ----------------------------------------------
+ *               Bandwidth(Hz) | Delay(ms) | Fs(kHz)
+ *   0           256             0.98        8
+ *   1           188             1.9         1
+ *   2           98              2.8         1
+ *   3           42              4.8         1
+ *   4           20              8.3         1
+ *   5           10              13.4        1
+ *   6           5               18.5        1
+ *   7           RESERVED        RESERVED    8
+ *
+ * @param setting
+ * @returns 0 for success, -1 for failure
  */
-std::ostream &operator<<(std::ostream &os, const MPU6050 &imu);
+int mpu6050_set_dplf(const mpu6050_t &imu, const int setting);
+
+/**
+  * Get DPLF
+  *
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_get_dplf(const mpu6050_t &imu);
+
+/**
+  * Set sample rate division
+  *
+  * @param setting
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_set_sample_rate_div(const mpu6050_t &imu, const int setting);
+
+/**
+  * Get sample rate division
+  *
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_get_sample_rate_div(const mpu6050_t &imu);
+
+/**
+ * Get sample rate
+ *
+ * @returns 0 for success, -1 for failure
+ */
+int mpu6050_get_sample_rate(const mpu6050_t &imu);
+
+/**
+  * Set gyro range
+  *
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_set_gyro_range(const mpu6050_t &imu, const int setting);
+
+/**
+  * Set gyro range
+  *
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_get_gyro_range(const mpu6050_t &imu);
+
+/**
+  * Set accelerometer range
+  *
+  * @param setting
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_set_accel_range(const mpu6050_t &imu, const int setting);
+
+/**
+  * Get accelerometer range
+  *
+  * @returns 0 for success, -1 for failure
+  */
+int mpu6050_get_accel_range(const mpu6050_t &imu);
+
+/**
+ * mpu6050_t to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu);
 
 /** @} group imu */
 } //  namespace prototype

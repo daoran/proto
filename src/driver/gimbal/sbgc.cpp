@@ -2,106 +2,102 @@
 
 namespace prototype {
 
-int set_interface_attribs(int fd, int speed, int parity) {
-  struct termios tty;
-  memset(&tty, 0, sizeof tty);
-  if (tcgetattr(fd, &tty) != 0) {
-    printf("error %d from tcgetattr", errno);
-    return -1;
-  }
+// int set_interface_attribs(int fd, int speed, int parity) {
+//   struct termios tty;
+//   memset(&tty, 0, sizeof tty);
+//   if (tcgetattr(fd, &tty) != 0) {
+//     printf("error %d from tcgetattr", errno);
+//     return -1;
+//   }
+//
+//   cfsetospeed(&tty, speed);
+//   cfsetispeed(&tty, speed);
+//
+//   tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit chars
+//   // disable IGNBRK for mismatched speed tests; otherwise receive break
+//   // as \000 chars
+//   tty.c_iflag &= ~IGNBRK; // disable break processing
+//   tty.c_lflag = 0;        // no signaling chars, no echo,
+//   // no canonical processing
+//   tty.c_oflag = 0;     // no remapping, no delays
+//   tty.c_cc[VMIN] = 0;  // read doesn't block
+//   tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
+//
+//   tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+//   tty.c_cflag |= (CLOCAL | CREAD);        // ignore modem controls,
+//   // enable reading
+//   tty.c_cflag &= ~(PARENB | PARODD); // shut off parity
+//   tty.c_cflag |= parity;
+//   tty.c_cflag &= ~CSTOPB;
+//   tty.c_cflag &= ~CRTSCTS;
+//
+//   if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+//     printf("error %d from tcsetattr", errno);
+//     return -1;
+//   }
+//
+//   return 0;
+// }
+//
+// void set_blocking(int fd, int should_block) {
+//   struct termios tty;
+//
+//   memset(&tty, 0, sizeof tty);
+//   if (tcgetattr(fd, &tty) != 0) {
+//     printf("error %d from tggetattr", errno);
+//     return;
+//   }
+//
+//   tty.c_cc[VMIN] = should_block ? 1 : 0;
+//   tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
+//
+//   if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+//     printf("error %d setting term attributes", errno);
+//   }
+// }
 
-  cfsetospeed(&tty, speed);
-  cfsetispeed(&tty, speed);
-
-  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit chars
-  // disable IGNBRK for mismatched speed tests; otherwise receive break
-  // as \000 chars
-  tty.c_iflag &= ~IGNBRK; // disable break processing
-  tty.c_lflag = 0;        // no signaling chars, no echo,
-  // no canonical processing
-  tty.c_oflag = 0;     // no remapping, no delays
-  tty.c_cc[VMIN] = 0;  // read doesn't block
-  tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
-
-  tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-  tty.c_cflag |= (CLOCAL | CREAD);        // ignore modem controls,
-  // enable reading
-  tty.c_cflag &= ~(PARENB | PARODD); // shut off parity
-  tty.c_cflag |= parity;
-  tty.c_cflag &= ~CSTOPB;
-  tty.c_cflag &= ~CRTSCTS;
-
-  if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-    printf("error %d from tcsetattr", errno);
-    return -1;
-  }
-
-  return 0;
-}
-
-void set_blocking(int fd, int should_block) {
-  struct termios tty;
-
-  memset(&tty, 0, sizeof tty);
-  if (tcgetattr(fd, &tty) != 0) {
-    printf("error %d from tggetattr", errno);
-    return;
-  }
-
-  tty.c_cc[VMIN] = should_block ? 1 : 0;
-  tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
-
-  if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-    printf("error %d setting term attributes", errno);
-  }
-}
-
-void SBGCFrame::printFrame() {
+void sbgc_frame_print(const sbgc_frame_t &frame) {
   int i;
 
   // print header
   printf("[%d]: %c\n", 0, '>');
-  printf("[%d]: %c\n", 1, this->cmd_id);
-  printf("[%d]: %d\n", 2, this->data_size);
-  printf("[%d]: %d\n", 3, this->header_checksum);
+  printf("[%d]: %c\n", 1, frame.cmd_id);
+  printf("[%d]: %d\n", 2, frame.data_size);
+  printf("[%d]: %d\n", 3, frame.header_checksum);
 
   // print body
-  for (i = 4; i < (this->data_size + 4); i++) {
-    printf("[%d]: %d\n", i, this->data[i]);
+  for (i = 4; i < (frame.data_size + 4); i++) {
+    printf("[%d]: %d\n", i, frame.data[i]);
   }
-  printf("[%d]: %d\n", i, this->data_checksum);
+  printf("[%d]: %d\n", i, frame.data_checksum);
 }
 
-void SBGCFrame::buildHeader(uint8_t cmd_id, uint8_t data_size) {
-  this->cmd_id = cmd_id;
-  this->data_size = data_size;
-  this->header_checksum = (this->cmd_id + this->data_size) % 256;
+void sbgc_frame_set_header(sbgc_frame_t &frame, uint8_t cmd_id, uint8_t data_size) {
+  frame.cmd_id = cmd_id;
+  frame.data_size = data_size;
+  frame.header_checksum = (frame.cmd_id + frame.data_size) % 256;
 }
 
-void SBGCFrame::buildDataChecksum() {
-  this->data_checksum = 0x0;
-  for (int i = 0; i < this->data_size; i++) {
-    this->data_checksum += this->data[i];
+void sbgc_frame_set_checksum(sbgc_frame_t &frame) {
+  frame.data_checksum = 0x0;
+  for (int i = 0; i < frame.data_size; i++) {
+    frame.data_checksum += frame.data[i];
   }
-  this->data_checksum = this->data_checksum % 256;
+  frame.data_checksum = frame.data_checksum % 256;
 }
 
-void SBGCFrame::buildBody(uint8_t *data) {
-  this->data = data;
-  this->buildDataChecksum();
+void sbgc_frame_set_body(sbgc_frame_t &frame, uint8_t *data) {
+  frame.data = data;
+  sbgc_frame_set_checksum(frame);
 }
 
-void SBGCFrame::buildFrame(int cmd_id, uint8_t *data, int data_size) {
-  this->buildHeader((uint8_t) cmd_id, (uint8_t) data_size);
-  this->buildBody(data);
+void sbgc_frame_build(sbgc_frame_t &frame, int cmd_id, uint8_t *data, int data_size) {
+  sbgc_frame_set_header(frame, (uint8_t) cmd_id, (uint8_t) data_size);
+  sbgc_frame_set_body(frame, data);
+  frame.ok = true;
 }
 
-void SBGCFrame::buildFrame(int cmd_id) {
-  this->buildHeader((uint8_t) cmd_id, (uint8_t) 0);
-  this->buildBody(NULL);
-}
-
-int SBGCFrame::parseHeader(uint8_t *data) {
+int sbgc_frame_parse_header(sbgc_frame_t &frame, uint8_t *data) {
   uint8_t expected_checksum;
 
   // Pre-check
@@ -109,155 +105,133 @@ int SBGCFrame::parseHeader(uint8_t *data) {
     return -1;
   }
 
-  // parse header
-  this->cmd_id = data[1];
-  this->data_size = data[2];
-  this->header_checksum = data[3];
+  // Parse header
+  frame.cmd_id = data[1];
+  frame.data_size = data[2];
+  frame.header_checksum = data[3];
 
-  // check the header checksum
-  expected_checksum = (this->cmd_id + this->data_size) % 256;
-  if (this->header_checksum != expected_checksum) {
+  // Check the header checksum
+  expected_checksum = (frame.cmd_id + frame.data_size) % 256;
+  if (frame.header_checksum != expected_checksum) {
     return -1;
   }
 
   return 0;
 }
 
-int SBGCFrame::parseBody(uint8_t *data) {
+int sbgc_frame_parse_body(sbgc_frame_t &frame, uint8_t *data) {
   uint8_t i;
   uint8_t expected_checksum;
 
-  // setup
+  // Setup
   expected_checksum = 0x0;
-  this->data = (uint8_t *) malloc(sizeof(uint8_t) * this->data_size);
+  frame.data = (uint8_t *) malloc(sizeof(uint8_t) * frame.data_size);
 
-  // parse body
-  for (i = 0; i < this->data_size; i++) {
-    this->data[i] = data[4 + i]; // +4 because header is 4 bytes
+  // Parse body
+  for (i = 0; i < frame.data_size; i++) {
+    frame.data[i] = data[4 + i]; // +4 because header is 4 bytes
     expected_checksum += data[4 + i];
   }
-  this->data_checksum = data[4 + i];
+  frame.data_checksum = data[4 + i];
 
-  // check the body checksum
+  // Check the body checksum
   expected_checksum = expected_checksum % 256;
-  if (this->data_checksum != expected_checksum) {
+  if (frame.data_checksum != expected_checksum) {
     // LOG_ERROR("Failed body checksum!");
-    free(this->data);
+    free(frame.data);
     return -1;
   }
 
   return 0;
 }
 
-int SBGCFrame::parseFrame(uint8_t *data) {
+int sbgc_frame_parse(sbgc_frame_t &frame, uint8_t *data) {
   int retval;
 
   // Header
-  retval = this->parseHeader(data);
+  retval = sbgc_frame_parse_header(frame, data);
   if (retval == -1) {
     // LOG_ERROR("Failed to parse header!");
     return -1;
   }
 
   // Body
-  retval = this->parseBody(data);
+  retval = sbgc_frame_parse_body(frame, data);
   if (retval == -1) {
     // LOG_ERROR("Failed to parse body!");
     return -1;
   }
 
+  frame.ok = true;
   return 0;
 }
 
-void SBGCRealtimeData::printData() {
+void sbgc_realtime_data_print(const sbgc_realtime_data_t &data) {
   // ACCELEROMOETER AND GYROSCOPE
   printf("accelerometer: %.2f\t%.2f\t%.2f\n",
-         this->accel(0),
-         this->accel(1),
-         this->accel(2));
+         data.accel(0),
+         data.accel(1),
+         data.accel(2));
   printf("gyroscope: %.2f\t%.2f\t%.2f\n",
-         this->gyro(0),
-         this->gyro(1),
-         this->gyro(2));
+         data.gyro(0),
+         data.gyro(1),
+         data.gyro(2));
   printf("\n");
 
   // ANGLES
   printf("camera_angles: %.2f\t%.2f\t%.2f\n",
-         this->camera_angles(0),
-         this->camera_angles(1),
-         this->camera_angles(2));
+         data.camera_angles(0),
+         data.camera_angles(1),
+         data.camera_angles(2));
   printf("frame_angles: %.2f\t%.2f\t%.2f\n",
-         this->frame_angles(0),
-         this->frame_angles(1),
-         this->frame_angles(2));
+         data.frame_angles(0),
+         data.frame_angles(1),
+         data.frame_angles(2));
   printf("rc_angles: %.2f\t%.2f\t%.2f\n",
-         this->rc_angles(0),
-         this->rc_angles(1),
-         this->rc_angles(2));
+         data.rc_angles(0),
+         data.rc_angles(1),
+         data.rc_angles(2));
 
   // MISC
-  printf("cycle_time: %d\n", this->cycle_time);
-  printf("i2c_error_count: %d\n", this->i2c_error_count);
-  printf("system_error: %d\n", this->system_error);
-  printf("battery_level: %d\n\n", this->battery_level);
+  printf("cycle_time: %d\n", data.cycle_time);
+  printf("i2c_error_count: %d\n", data.i2c_error_count);
+  printf("system_error: %d\n", data.system_error);
+  printf("battery_level: %d\n\n", data.battery_level);
 }
 
-SBGC::SBGC() {
-  this->connected = false;
-
-  this->port = "";
-  this->serial = -1;
-
-  this->board_version = 0;
-  this->firmware_version = 0;
-  this->debug_mode = 0;
-  this->board_features = 0;
-  this->connection_flags = 0;
-}
-
-SBGC::SBGC(const std::string &port) {
-  this->connected = false;
-
-  this->port = port;
-  this->serial = -1;
-
-  this->board_version = 0;
-  this->firmware_version = 0;
-  this->debug_mode = 0;
-  this->board_features = 0;
-  this->connection_flags = 0;
-}
-
-int SBGC::connect() {
+int sbgc_connect(sbgc_t &sbgc) {
   // Open serial port
-  this->serial = open(this->port.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
-  if (this->serial < 0) {
+  sbgc.serial = open(sbgc.port.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+  if (sbgc.serial < 0) {
     return -1;
   }
 
   // Configure serial commnication
-  set_interface_attribs(this->serial, B115200, 0);
-  set_blocking(this->serial, 1);
+  // set_interface_attribs(sbgc.serial, B115200, 0);
+  // set_blocking(sbgc.serial, 1);
   LOG_INFO("Connected to SBGC!");
 
-  this->connected = true;
+  sbgc.connected = true;
   return 0;
 }
 
-int SBGC::disconnect() {
-  if (close(this->serial) != 0) {
+int sbgc_disconnect(sbgc_t &sbgc) {
+  if (close(sbgc.serial) != 0) {
     LOG_ERROR("Failed to disconnect from SBGC!");
     return -1;
 
   } else {
     LOG_INFO("Disconnect from SBGC!");
+    sbgc.connected = false;
+    sbgc.serial = -1;
     return 0;
   }
 }
 
-int SBGC::sendFrame(const SBGCFrame &cmd) {
+int sbgc_send(const sbgc_t &sbgc, const sbgc_frame_t &cmd) {
   // Check connection
-  if (this->connected == false) {
+  if (sbgc.connected == false) {
+    LOG_ERROR("Not connected to SBGC!");
     return -1;
   }
 
@@ -271,17 +245,17 @@ int SBGC::sendFrame(const SBGCFrame &cmd) {
   // Header
   ssize_t retval = 0;
   const uint8_t start = 0x3E; // ">" character
-  retval += write(this->serial, &start, 1);
-  retval += write(this->serial, &cmd.cmd_id, 1);
-  retval += write(this->serial, &cmd.data_size, 1);
+  retval += write(sbgc.serial, &start, 1);
+  retval += write(sbgc.serial, &cmd.cmd_id, 1);
+  retval += write(sbgc.serial, &cmd.data_size, 1);
 
   // Body
-  retval += write(this->serial, &cmd.header_checksum, 1);
-  retval += write(this->serial, cmd.data, cmd.data_size);
-  retval += write(this->serial, &cmd.data_checksum, 1);
+  retval += write(sbgc.serial, &cmd.header_checksum, 1);
+  retval += write(sbgc.serial, cmd.data, cmd.data_size);
+  retval += write(sbgc.serial, &cmd.data_checksum, 1);
 
   // Flush
-  tcflush(this->serial, TCIOFLUSH); // very critical
+  tcflush(sbgc.serial, TCIOFLUSH); // very critical
   usleep(10 * 1000);
   if (retval != (5 + cmd.data_size)) {
     LOG_ERROR("Opps! frame wasn't sent completely!");
@@ -290,22 +264,23 @@ int SBGC::sendFrame(const SBGCFrame &cmd) {
   return 0;
 }
 
-int SBGC::readFrame(const uint8_t read_length, SBGCFrame &frame) {
+int sbgc_read(const sbgc_t &sbgc, const uint8_t read_length, sbgc_frame_t &frame) {
   // Check connection
-  if (this->connected == false) {
+  if (sbgc.connected == false) {
+    LOG_ERROR("Not connected to SBGC!");
     return -1;
   }
 
   // Send query
   uint8_t buffer[150];
-  int16_t nb_bytes = read(this->serial, buffer, read_length);
+  int16_t nb_bytes = read(sbgc.serial, buffer, read_length);
   if (nb_bytes <= 0 || nb_bytes != read_length) {
     // LOG_ERROR("Failed to read SBGC frame!");
     return -1;
   }
 
   // Parse sbgc frame
-  int retval = frame.parseFrame(buffer);
+  int retval = sbgc_frame_parse(frame, buffer);
   if (retval == -1) {
     // LOG_ERROR("Failed to parse SBGC frame!");
     return -1;
@@ -314,15 +289,16 @@ int SBGC::readFrame(const uint8_t read_length, SBGCFrame &frame) {
   return 0;
 }
 
-int SBGC::on() {
-  SBGCFrame cmd;
-  cmd.buildFrame(CMD_MOTORS_ON);
-  return this->sendFrame(cmd);
+int sbgc_on(const sbgc_t &sbgc) {
+  sbgc_frame_t cmd;
+  sbgc_frame_build(cmd, CMD_MOTORS_ON);
+  return sbgc_send(sbgc, cmd);
 }
 
-int SBGC::off() {
-  // Check connection
-  if (this->connected == false) {
+int sbgc_off(const sbgc_t &sbgc) {
+  // Pre-check
+  if (sbgc.connected == false) {
+    LOG_ERROR("Not connected to SBGC!");
     return -1;
   }
 
@@ -334,16 +310,16 @@ int SBGC::off() {
   }
 
   // Send frame
-  SBGCFrame cmd;
-  cmd.buildFrame(CMD_CONTROL, data, 13);
-  int retval = this->sendFrame(cmd);
+  sbgc_frame_t cmd;
+  sbgc_frame_build(cmd, CMD_CONTROL, data, 13);
+  int retval = sbgc_send(sbgc, cmd);
   if (retval != 0) {
     LOG_ERROR("Failed to turn motor control off!");
   }
 
   // Turn off motors
-  cmd.buildFrame(CMD_MOTORS_OFF);
-  retval = this->sendFrame(cmd);
+  sbgc_frame_build(cmd, CMD_MOTORS_OFF);
+  retval = sbgc_send(sbgc, cmd);
   if (retval != 0) {
     LOG_ERROR("Failed to turn motor control off!");
   }
@@ -351,13 +327,14 @@ int SBGC::off() {
   return 0;
 }
 
-int SBGC::reset() {
-  // Check connection
-  if (this->connected == false) {
+int sbgc_reset(sbgc_t &sbgc) {
+  // Pre-check
+  if (sbgc.connected == false) {
+    LOG_ERROR("Not connected to SBGC!");
     return -1;
   }
 
-  if (this->off() || this->on()) {
+  if (sbgc_off(sbgc) || sbgc_on(sbgc)) {
     LOG_ERROR("Failed to reset SBGC!");
     return -1;
   }
@@ -365,31 +342,35 @@ int SBGC::reset() {
   return 0;
 }
 
-int SBGC::getBoardInfo() {
-  int retval;
-  SBGCFrame frame;
+int sbgc_get_board_info(sbgc_t &sbgc) {
+  // Pre-check
+  if (sbgc.connected == false) {
+    LOG_ERROR("Not connected to SBGC!");
+    return -1;
+  }
 
   // Request board info
-  frame.buildFrame(CMD_BOARD_INFO);
-  retval = this->sendFrame(frame);
+  sbgc_frame_t frame;
+  sbgc_frame_build(frame, CMD_BOARD_INFO);
+  int retval = sbgc_send(sbgc, frame);
   if (retval == -1) {
     LOG_ERROR("Failed to request SBGC board info!");
     return -1;
   }
 
   // Obtain board info
-  retval = this->readFrame(CMD_BOARD_INFO_FRAME_SIZE, frame);
+  retval = sbgc_read(sbgc, CMD_BOARD_INFO_FRAME_SIZE, frame);
   if (retval == -1) {
     LOG_ERROR("Failed to parse SBGC frame for board info!");
     return -1;
   }
 
   // Set object board info
-  this->board_version = frame.data[0];
-  this->firmware_version = (frame.data[2] << 8) | (frame.data[1] & 0xff);
-  this->debug_mode = frame.data[3];
-  this->board_features = (frame.data[5] << 8) | (frame.data[4] & 0xff);
-  this->connection_flags = frame.data[6];
+  sbgc.board_version = frame.data[0];
+  sbgc.firmware_version = (frame.data[2] << 8) | (frame.data[1] & 0xff);
+  sbgc.debug_mode = frame.data[3];
+  sbgc.board_features = (frame.data[5] << 8) | (frame.data[4] & 0xff);
+  sbgc.connection_flags = frame.data[6];
 
   // Clean up
   free(frame.data);
@@ -397,21 +378,97 @@ int SBGC::getBoardInfo() {
   return 0;
 }
 
-int SBGC::getRealtimeData4() {
-  int retval;
+int sbgc_get_realtime_data(sbgc_t &sbgc) {
+  // Pre-check
+  if (sbgc.connected == false) {
+    LOG_ERROR("Not connected to SBGC!");
+    return -1;
+  }
 
   // Request real time data
-  SBGCFrame frame;
-  frame.buildFrame(CMD_REALTIME_DATA_4);
-  retval = this->sendFrame(frame);
-  if (retval == -1) {
+  sbgc_frame_t frame;
+  sbgc_frame_build(frame, CMD_REALTIME_DATA_3);
+  if (sbgc_send(sbgc, frame) == -1) {
+    LOG_ERROR("Failed to request SBGC realtime data!");
+    return -1;
+  }
+
+  // Obtain real time data
+  if (sbgc_read(sbgc, 68, frame) == -1) {
+    LOG_ERROR("Failed to parse SBGC frame for realtime data!");
+    return -1;
+  }
+
+  // Parse real time data
+  // Accelerometer and gyroscope
+  sbgc.data.accel(0) = S16BIT(frame.data, 1, 0);
+  sbgc.data.gyro(0) = S16BIT(frame.data, 3, 2);
+  sbgc.data.accel(1) = S16BIT(frame.data, 5, 4);
+  sbgc.data.gyro(1) = S16BIT(frame.data, 7, 6);
+  sbgc.data.accel(2) = S16BIT(frame.data, 9, 8);
+  sbgc.data.gyro(2) = S16BIT(frame.data, 11, 10);
+
+  sbgc.data.accel(0) = (ACC_UNIT) * sbgc.data.accel(0);
+  sbgc.data.accel(1) = (ACC_UNIT) * sbgc.data.accel(1);
+  sbgc.data.accel(2) = (ACC_UNIT) * sbgc.data.accel(2);
+
+  sbgc.data.gyro(0) = (GYRO_UNIT) * sbgc.data.gyro(0);
+  sbgc.data.gyro(1) = (GYRO_UNIT) * sbgc.data.gyro(1);
+  sbgc.data.gyro(2) = (GYRO_UNIT) * sbgc.data.gyro(2);
+
+  // Angles
+  sbgc.data.camera_angles(0) = S16BIT(frame.data, 33, 32);
+  sbgc.data.camera_angles(1) = S16BIT(frame.data, 35, 34);
+  sbgc.data.camera_angles(2) = S16BIT(frame.data, 37, 36);
+
+  sbgc.data.frame_angles(0) = S16BIT(frame.data, 39, 38);
+  sbgc.data.frame_angles(1) = S16BIT(frame.data, 41, 40);
+  sbgc.data.frame_angles(2) = S16BIT(frame.data, 43, 42);
+
+  sbgc.data.rc_angles(0) = S16BIT(frame.data, 45, 44);
+  sbgc.data.rc_angles(1) = S16BIT(frame.data, 47, 45);
+  sbgc.data.rc_angles(2) = S16BIT(frame.data, 49, 46);
+
+  sbgc.data.camera_angles(0) = (DEG_PER_BIT) * sbgc.data.camera_angles(0);
+  sbgc.data.camera_angles(1) = (DEG_PER_BIT) * sbgc.data.camera_angles(1);
+  sbgc.data.camera_angles(2) = (DEG_PER_BIT) * sbgc.data.camera_angles(2);
+
+  sbgc.data.frame_angles(0) = (DEG_PER_BIT) * sbgc.data.frame_angles(0);
+  sbgc.data.frame_angles(1) = (DEG_PER_BIT) * sbgc.data.frame_angles(1);
+  sbgc.data.frame_angles(2) = (DEG_PER_BIT) * sbgc.data.frame_angles(2);
+
+  sbgc.data.rc_angles(0) = (DEG_PER_BIT) * sbgc.data.rc_angles(0);
+  sbgc.data.rc_angles(1) = (DEG_PER_BIT) * sbgc.data.rc_angles(1);
+  sbgc.data.rc_angles(2) = (DEG_PER_BIT) * sbgc.data.rc_angles(2);
+
+  // misc
+  sbgc.data.cycle_time = U16BIT(frame.data, 51, 50);
+  sbgc.data.i2c_error_count = U16BIT(frame.data, 53, 52);
+  sbgc.data.system_error = U16BIT(frame.data, 15, 14);
+  sbgc.data.battery_level = U16BIT(frame.data, 56, 55);
+
+  // sbgc_realtime_data_print(sbgc.data);
+
+  return 0;
+}
+
+int sbgc_get_realtime_data4(sbgc_t &sbgc) {
+  // Pre-check
+  if (sbgc.connected == false) {
+    LOG_ERROR("Not connected to SBGC!");
+    return -1;
+  }
+
+  // Request real time data
+  sbgc_frame_t frame;
+  sbgc_frame_build(frame, CMD_REALTIME_DATA_4);
+  if (sbgc_send(sbgc, frame) == -1) {
     // LOG_ERROR("Failed to request SBGC realtime data!");
     return -1;
   }
 
   // Obtain real time data
-  retval = this->readFrame(129, frame);
-  if (retval == -1) {
+  if (sbgc_read(sbgc, 129, frame) == -1) {
     // LOG_ERROR("Failed to parse SBGC frame for realtime data!" <<
     // std::endl;
     return -1;
@@ -419,188 +476,114 @@ int SBGC::getRealtimeData4() {
 
   // Parse real time data
   // Accelerometer and gyroscope
-  this->data.accel(0) = S16BIT(frame.data, 1, 0);
-  this->data.gyro(0) = S16BIT(frame.data, 3, 2);
-  this->data.accel(1) = S16BIT(frame.data, 5, 4);
-  this->data.gyro(1) = S16BIT(frame.data, 7, 6);
-  this->data.accel(2) = S16BIT(frame.data, 9, 8);
-  this->data.gyro(2) = S16BIT(frame.data, 11, 10);
+  sbgc.data.accel(0) = S16BIT(frame.data, 1, 0);
+  sbgc.data.gyro(0) = S16BIT(frame.data, 3, 2);
+  sbgc.data.accel(1) = S16BIT(frame.data, 5, 4);
+  sbgc.data.gyro(1) = S16BIT(frame.data, 7, 6);
+  sbgc.data.accel(2) = S16BIT(frame.data, 9, 8);
+  sbgc.data.gyro(2) = S16BIT(frame.data, 11, 10);
 
-  this->data.accel(0) = (ACC_UNIT) * this->data.accel(0);
-  this->data.accel(1) = (ACC_UNIT) * this->data.accel(1);
-  this->data.accel(2) = (ACC_UNIT) * this->data.accel(2);
+  sbgc.data.accel(0) = (ACC_UNIT) * sbgc.data.accel(0);
+  sbgc.data.accel(1) = (ACC_UNIT) * sbgc.data.accel(1);
+  sbgc.data.accel(2) = (ACC_UNIT) * sbgc.data.accel(2);
 
-  this->data.gyro(0) = (GYRO_UNIT) * this->data.gyro(0);
-  this->data.gyro(1) = (GYRO_UNIT) * this->data.gyro(1);
-  this->data.gyro(2) = (GYRO_UNIT) * this->data.gyro(2);
+  sbgc.data.gyro(0) = (GYRO_UNIT) * sbgc.data.gyro(0);
+  sbgc.data.gyro(1) = (GYRO_UNIT) * sbgc.data.gyro(1);
+  sbgc.data.gyro(2) = (GYRO_UNIT) * sbgc.data.gyro(2);
 
   // Angles
-  this->data.camera_angles(0) = S16BIT(frame.data, 33, 32);
-  this->data.camera_angles(1) = S16BIT(frame.data, 35, 34);
-  this->data.camera_angles(2) = S16BIT(frame.data, 37, 36);
+  sbgc.data.camera_angles(0) = S16BIT(frame.data, 33, 32);
+  sbgc.data.camera_angles(1) = S16BIT(frame.data, 35, 34);
+  sbgc.data.camera_angles(2) = S16BIT(frame.data, 37, 36);
 
-  this->data.frame_angles(0) = S16BIT(frame.data, 39, 38);
-  this->data.frame_angles(1) = S16BIT(frame.data, 41, 40);
-  this->data.frame_angles(2) = S16BIT(frame.data, 43, 42);
+  sbgc.data.frame_angles(0) = S16BIT(frame.data, 39, 38);
+  sbgc.data.frame_angles(1) = S16BIT(frame.data, 41, 40);
+  sbgc.data.frame_angles(2) = S16BIT(frame.data, 43, 42);
 
-  this->data.rc_angles(0) = S16BIT(frame.data, 45, 44);
-  this->data.rc_angles(1) = S16BIT(frame.data, 47, 45);
-  this->data.rc_angles(2) = S16BIT(frame.data, 49, 46);
+  sbgc.data.rc_angles(0) = S16BIT(frame.data, 45, 44);
+  sbgc.data.rc_angles(1) = S16BIT(frame.data, 47, 45);
+  sbgc.data.rc_angles(2) = S16BIT(frame.data, 49, 46);
 
-  this->data.encoder_angles(0) = S16BIT(frame.data, 64, 63);
-  this->data.encoder_angles(1) = S16BIT(frame.data, 66, 65);
-  this->data.encoder_angles(2) = S16BIT(frame.data, 68, 67);
+  sbgc.data.encoder_angles(0) = S16BIT(frame.data, 64, 63);
+  sbgc.data.encoder_angles(1) = S16BIT(frame.data, 66, 65);
+  sbgc.data.encoder_angles(2) = S16BIT(frame.data, 68, 67);
 
-  this->data.camera_angles(0) = (DEG_PER_BIT) * this->data.camera_angles(0);
-  this->data.camera_angles(1) = (DEG_PER_BIT) * this->data.camera_angles(1);
-  this->data.camera_angles(2) = (DEG_PER_BIT) * this->data.camera_angles(2);
+  sbgc.data.camera_angles(0) = (DEG_PER_BIT) * sbgc.data.camera_angles(0);
+  sbgc.data.camera_angles(1) = (DEG_PER_BIT) * sbgc.data.camera_angles(1);
+  sbgc.data.camera_angles(2) = (DEG_PER_BIT) * sbgc.data.camera_angles(2);
 
-  this->data.frame_angles(0) = (DEG_PER_BIT) * this->data.frame_angles(0);
-  this->data.frame_angles(1) = (DEG_PER_BIT) * this->data.frame_angles(1);
-  this->data.frame_angles(2) = (DEG_PER_BIT) * this->data.frame_angles(2);
+  sbgc.data.frame_angles(0) = (DEG_PER_BIT) * sbgc.data.frame_angles(0);
+  sbgc.data.frame_angles(1) = (DEG_PER_BIT) * sbgc.data.frame_angles(1);
+  sbgc.data.frame_angles(2) = (DEG_PER_BIT) * sbgc.data.frame_angles(2);
 
-  this->data.rc_angles(0) = (DEG_PER_BIT) * this->data.rc_angles(0);
-  this->data.rc_angles(1) = (DEG_PER_BIT) * this->data.rc_angles(1);
-  this->data.rc_angles(2) = (DEG_PER_BIT) * this->data.rc_angles(2);
+  sbgc.data.rc_angles(0) = (DEG_PER_BIT) * sbgc.data.rc_angles(0);
+  sbgc.data.rc_angles(1) = (DEG_PER_BIT) * sbgc.data.rc_angles(1);
+  sbgc.data.rc_angles(2) = (DEG_PER_BIT) * sbgc.data.rc_angles(2);
 
-  this->data.encoder_angles(0) = (DEG_PER_BIT) * this->data.encoder_angles(0);
-  this->data.encoder_angles(1) = (DEG_PER_BIT) * this->data.encoder_angles(1);
-  this->data.encoder_angles(2) = (DEG_PER_BIT) * this->data.encoder_angles(2);
+  sbgc.data.encoder_angles(0) = (DEG_PER_BIT) * sbgc.data.encoder_angles(0);
+  sbgc.data.encoder_angles(1) = (DEG_PER_BIT) * sbgc.data.encoder_angles(1);
+  sbgc.data.encoder_angles(2) = (DEG_PER_BIT) * sbgc.data.encoder_angles(2);
 
   // Misc
-  this->data.cycle_time = U16BIT(frame.data, 51, 50);
-  this->data.i2c_error_count = U16BIT(frame.data, 53, 52);
-  this->data.system_error = U16BIT(frame.data, 15, 14);
-  this->data.battery_level = U16BIT(frame.data, 56, 55);
+  sbgc.data.cycle_time = U16BIT(frame.data, 51, 50);
+  sbgc.data.i2c_error_count = U16BIT(frame.data, 53, 52);
+  sbgc.data.system_error = U16BIT(frame.data, 15, 14);
+  sbgc.data.battery_level = U16BIT(frame.data, 56, 55);
 
-  // this->data.printData();
+  // sbgc_realtime_data_print(sbgc.data);
 
   return 0;
 }
-int SBGC::getRealtimeData() {
+
+int sbgc_get_angles_ext(sbgc_t &sbgc) {
   int retval;
-  SBGCFrame frame;
 
   // Request real time data
-  frame.buildFrame(CMD_REALTIME_DATA_3);
-  retval = this->sendFrame(frame);
-  if (retval == -1) {
+  sbgc_frame_t frame;
+  sbgc_frame_build(frame, CMD_GET_ANGLES_EXT);
+  if (sbgc_send(sbgc, frame) == -1) {
     LOG_ERROR("Failed to request SBGC realtime data!");
     return -1;
   }
 
   // Obtain real time data
-  retval = this->readFrame(68, frame);
-  if (retval == -1) {
-    LOG_ERROR("Failed to parse SBGC frame for realtime data!");
-    return -1;
-  }
-
-  // Parse real time data
-  // Accelerometer and gyroscope
-  this->data.accel(0) = S16BIT(frame.data, 1, 0);
-  this->data.gyro(0) = S16BIT(frame.data, 3, 2);
-  this->data.accel(1) = S16BIT(frame.data, 5, 4);
-  this->data.gyro(1) = S16BIT(frame.data, 7, 6);
-  this->data.accel(2) = S16BIT(frame.data, 9, 8);
-  this->data.gyro(2) = S16BIT(frame.data, 11, 10);
-
-  this->data.accel(0) = (ACC_UNIT) * this->data.accel(0);
-  this->data.accel(1) = (ACC_UNIT) * this->data.accel(1);
-  this->data.accel(2) = (ACC_UNIT) * this->data.accel(2);
-
-  this->data.gyro(0) = (GYRO_UNIT) * this->data.gyro(0);
-  this->data.gyro(1) = (GYRO_UNIT) * this->data.gyro(1);
-  this->data.gyro(2) = (GYRO_UNIT) * this->data.gyro(2);
-
-  // Angles
-  this->data.camera_angles(0) = S16BIT(frame.data, 33, 32);
-  this->data.camera_angles(1) = S16BIT(frame.data, 35, 34);
-  this->data.camera_angles(2) = S16BIT(frame.data, 37, 36);
-
-  this->data.frame_angles(0) = S16BIT(frame.data, 39, 38);
-  this->data.frame_angles(1) = S16BIT(frame.data, 41, 40);
-  this->data.frame_angles(2) = S16BIT(frame.data, 43, 42);
-
-  this->data.rc_angles(0) = S16BIT(frame.data, 45, 44);
-  this->data.rc_angles(1) = S16BIT(frame.data, 47, 45);
-  this->data.rc_angles(2) = S16BIT(frame.data, 49, 46);
-
-  this->data.camera_angles(0) = (DEG_PER_BIT) * this->data.camera_angles(0);
-  this->data.camera_angles(1) = (DEG_PER_BIT) * this->data.camera_angles(1);
-  this->data.camera_angles(2) = (DEG_PER_BIT) * this->data.camera_angles(2);
-
-  this->data.frame_angles(0) = (DEG_PER_BIT) * this->data.frame_angles(0);
-  this->data.frame_angles(1) = (DEG_PER_BIT) * this->data.frame_angles(1);
-  this->data.frame_angles(2) = (DEG_PER_BIT) * this->data.frame_angles(2);
-
-  this->data.rc_angles(0) = (DEG_PER_BIT) * this->data.rc_angles(0);
-  this->data.rc_angles(1) = (DEG_PER_BIT) * this->data.rc_angles(1);
-  this->data.rc_angles(2) = (DEG_PER_BIT) * this->data.rc_angles(2);
-
-  // misc
-  this->data.cycle_time = U16BIT(frame.data, 51, 50);
-  this->data.i2c_error_count = U16BIT(frame.data, 53, 52);
-  this->data.system_error = U16BIT(frame.data, 15, 14);
-  this->data.battery_level = U16BIT(frame.data, 56, 55);
-
-  // this->data.printData();
-
-  return 0;
-}
-
-int SBGC::getAnglesExt() {
-  int retval;
-  // SBGCRealtimeData data;
-
-  // Request real time data
-  SBGCFrame frame;
-  frame.buildFrame(CMD_GET_ANGLES_EXT);
-  retval = this->sendFrame(frame);
-  if (retval == -1) {
-    LOG_ERROR("Failed to request SBGC realtime data!");
-    return -1;
-  }
-
-  // Obtain real time data
-  retval = this->readFrame(54, frame);
-  if (retval == -1) {
+  if (sbgc_read(sbgc, 54, frame) == -1) {
     LOG_ERROR("Failed to parse SBGC frame for realtime data!");
     return -1;
   }
 
   // Roll
-  this->data.camera_angles(0) = S16BIT(frame.data, 1, 0);
-  this->data.rc_angles(0) = S16BIT(frame.data, 3, 2);
-  this->data.encoder_angles(0) = S16BIT(frame.data, 8, 4);
+  sbgc.data.camera_angles(0) = S16BIT(frame.data, 1, 0);
+  sbgc.data.rc_angles(0) = S16BIT(frame.data, 3, 2);
+  sbgc.data.encoder_angles(0) = S16BIT(frame.data, 8, 4);
 
   // Pitch
-  this->data.camera_angles(1) = S16BIT(frame.data, 19, 18);
-  this->data.rc_angles(1) = S16BIT(frame.data, 21, 20);
-  this->data.encoder_angles(1) = S16BIT(frame.data, 26, 22);
+  sbgc.data.camera_angles(1) = S16BIT(frame.data, 19, 18);
+  sbgc.data.rc_angles(1) = S16BIT(frame.data, 21, 20);
+  sbgc.data.encoder_angles(1) = S16BIT(frame.data, 26, 22);
 
-  this->data.camera_angles(2) = S16BIT(frame.data, 37, 36);
-  this->data.rc_angles(2) = S16BIT(frame.data, 39, 38);
-  this->data.encoder_angles(2) = S16BIT(frame.data, 44, 40);
+  sbgc.data.camera_angles(2) = S16BIT(frame.data, 37, 36);
+  sbgc.data.rc_angles(2) = S16BIT(frame.data, 39, 38);
+  sbgc.data.encoder_angles(2) = S16BIT(frame.data, 44, 40);
 
-  this->data.camera_angles(0) = (DEG_PER_BIT) * this->data.camera_angles(0);
-  this->data.camera_angles(1) = (DEG_PER_BIT) * this->data.camera_angles(1);
-  this->data.camera_angles(2) = (DEG_PER_BIT) * this->data.camera_angles(2);
+  sbgc.data.camera_angles(0) = (DEG_PER_BIT) * sbgc.data.camera_angles(0);
+  sbgc.data.camera_angles(1) = (DEG_PER_BIT) * sbgc.data.camera_angles(1);
+  sbgc.data.camera_angles(2) = (DEG_PER_BIT) * sbgc.data.camera_angles(2);
 
-  this->data.rc_angles(0) = (DEG_PER_BIT) * this->data.rc_angles(0);
-  this->data.rc_angles(1) = (DEG_PER_BIT) * this->data.rc_angles(1);
-  this->data.rc_angles(2) = (DEG_PER_BIT) * this->data.rc_angles(2);
+  sbgc.data.rc_angles(0) = (DEG_PER_BIT) * sbgc.data.rc_angles(0);
+  sbgc.data.rc_angles(1) = (DEG_PER_BIT) * sbgc.data.rc_angles(1);
+  sbgc.data.rc_angles(2) = (DEG_PER_BIT) * sbgc.data.rc_angles(2);
 
-  this->data.encoder_angles(0) = (DEG_PER_BIT) * this->data.encoder_angles(0);
-  this->data.encoder_angles(1) = (DEG_PER_BIT) * this->data.encoder_angles(1);
-  this->data.encoder_angles(2) = (DEG_PER_BIT) * this->data.encoder_angles(2);
+  sbgc.data.encoder_angles(0) = (DEG_PER_BIT) * sbgc.data.encoder_angles(0);
+  sbgc.data.encoder_angles(1) = (DEG_PER_BIT) * sbgc.data.encoder_angles(1);
+  sbgc.data.encoder_angles(2) = (DEG_PER_BIT) * sbgc.data.encoder_angles(2);
 
-  this->data.printData();
+  // sbgc_realtime_data_print(sbgc.data);
 
   return 0;
 }
 
-int SBGC::setAngle(const double roll, const double pitch, const double yaw) {
+int sbgc_set_angle(const sbgc_t &sbgc, const double roll, const double pitch, const double yaw) {
   // adjust roll, pitch and yaw
   int16_t roll_adjusted = (int16_t)(roll / DEG_PER_BIT);
   int16_t pitch_adjusted = (int16_t)(pitch / DEG_PER_BIT);
@@ -635,19 +618,20 @@ int SBGC::setAngle(const double roll, const double pitch, const double yaw) {
   data[12] = ((yaw_adjusted >> 8) & 0xff);
 
   // build frame and send
-  SBGCFrame frame;
-  frame.buildFrame(CMD_CONTROL, data, 13);
-  this->sendFrame(frame);
+  sbgc_frame_t frame;
+  sbgc_frame_build(frame, CMD_CONTROL, data, 13);
+  sbgc_send(sbgc, frame);
 
   return 0;
 }
 
-int SBGC::setSpeedAngle(const double roll,
-                        const double pitch,
-                        const double yaw,
-                        const double roll_speed,
-                        const double pitch_speed,
-                        const double yaw_speed) {
+int sbgc_set_speed_angle(const sbgc_t &sbgc,
+                         const double roll,
+                         const double pitch,
+                         const double yaw,
+                         const double roll_speed,
+                         const double pitch_speed,
+                         const double yaw_speed) {
   // Adjust roll, pitch and yaw
   int16_t roll_adjusted = (int16_t)(roll / DEG_PER_BIT);
   int16_t pitch_adjusted = (int16_t)(pitch / DEG_PER_BIT);
@@ -685,9 +669,9 @@ int SBGC::setSpeedAngle(const double roll,
   data[12] = ((yaw_adjusted >> 8) & 0xff);
 
   // Build frame and send
-  SBGCFrame frame;
-  frame.buildFrame(CMD_CONTROL, data, 13);
-  this->sendFrame(frame);
+  sbgc_frame_t frame;
+  sbgc_frame_build(frame, CMD_CONTROL, data, 13);
+  sbgc_send(sbgc, frame);
 
   return 0;
 }

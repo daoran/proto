@@ -16,6 +16,8 @@ int test_pid_construct() {
   MU_CHECK_FLOAT(0.0, p.k_p);
   MU_CHECK_FLOAT(0.0, p.k_i);
   MU_CHECK_FLOAT(0.0, p.k_d);
+
+  return 0;
 }
 
 int test_pid_setup() {
