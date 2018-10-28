@@ -22,6 +22,9 @@ INCLUDE_DIRECTORIES(include /usr/include/eigen3 ${SUITESPARSE_INCLUDE_DIRS})
 # LIBRARY
 ADD_LIBRARY(
   ${PROJECT_NAME}
+  # calib
+  src/calib/gimbal_calib.cpp
+  src/calib/chessboard.cpp
   # control
   src/control/att_ctrl.cpp
   src/control/carrot_ctrl.cpp
@@ -103,7 +106,6 @@ INSTALL(
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
-FILE(COPY tests/test_configs DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   # control-carrot_ctrl_test
