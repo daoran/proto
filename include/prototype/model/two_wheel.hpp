@@ -55,7 +55,7 @@ struct two_wheel_t {
     rpy_G = rpy_G_;
   }
 
-  virtual ~two_wheel_t() {}
+  ~two_wheel_t() {}
 };
 
 /**

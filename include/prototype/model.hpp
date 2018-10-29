@@ -1,6 +1,6 @@
 /**
  * @file
- * @defgroup mav mav
+ * @defgroup model model
  */
 #ifndef PROTOTYPE_MODEL_HPP
 #define PROTOTYPE_MODEL_HPP

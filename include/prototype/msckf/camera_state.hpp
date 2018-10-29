@@ -9,7 +9,6 @@
 
 #include "prototype/core.hpp"
 #include "prototype/core/quaternion/jpl.hpp"
-#include "prototype/vision/feature2d/feature_tracker.hpp"
 
 namespace prototype {
 /**

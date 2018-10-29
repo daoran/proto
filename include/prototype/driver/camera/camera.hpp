@@ -43,7 +43,6 @@ struct camera_t {
   int camera_index = 0;
   cv::VideoCapture capture;
 
-
   double last_tic = 0.0;
   cv::Mat image = cv::Mat(0, 0, CV_64F);
 

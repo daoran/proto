@@ -129,7 +129,7 @@ struct sbgc_frame_t {
   uint8_t data_checksum = 0;
 
   sbgc_frame_t() {}
-  virtual ~sbgc_frame_t() {}
+  ~sbgc_frame_t() {}
 };
 
 /**
@@ -150,7 +150,7 @@ struct sbgc_realtime_data_t {
   int battery_level = 0;
 
   sbgc_realtime_data_t() {}
-  virtual ~sbgc_realtime_data_t() {}
+  ~sbgc_realtime_data_t() {}
 };
 
 /**

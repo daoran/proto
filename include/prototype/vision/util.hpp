@@ -8,6 +8,7 @@
 #include <opencv2/core/eigen.hpp>
 
 #include "prototype/core.hpp"
+#include "prototype/vision/camera/camera_geometry.hpp"
 
 namespace prototype {
 
@@ -40,7 +41,7 @@ static bool keypoint_compare_by_response(const cv::KeyPoint &pt1,
 /**
  * Check to see if rotation matrix is valid (not singular)
  *
- * @param R Rotation matrix
+ * @param[in] R Rotation matrix
  * @returns Boolean to denote whether rotation matrix is valid
  */
 bool is_rot_mat(const cv::Mat &R);
@@ -48,22 +49,23 @@ bool is_rot_mat(const cv::Mat &R);
 /**
  * Convert rotation matrix to euler angles
  *
- * @param R Rotation matrix
+ * @param[in] R Rotation matrix
  * @returns Euler angles
  */
 cv::Vec3f rot2euler(const cv::Mat &R);
 
-// /**
-//  * Outlier rejection using essential matrix
-//  */
-// void essential_matrix_outlier_rejection(
-//     CameraProperty &cam0,
-//     CameraProperty &cam1,
-//     const mat4_t &T_cam1_cam0,
-//     const std::vector<cv::Point2f> &cam0_points,
-//     const std::vector<cv::Point2f> &cam1_points,
-//     const double threshold,
-//     std::vector<uchar> &inlier_markers);
+/**
+ * Outlier rejection using essential matrix
+ */
+template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
+void essential_matrix_outlier_rejection(
+    const camera_geometry_t<CAMERA_MODEL, DISTORTION_MODEL> &cam0,
+    const camera_geometry_t<CAMERA_MODEL, DISTORTION_MODEL> &cam1,
+    const mat4_t &T_cam1_cam0,
+    const std::vector<cv::Point2f> &cam0_points,
+    const std::vector<cv::Point2f> &cam1_points,
+    const double threshold,
+    std::vector<uchar> &inlier_markers);
 
 /**
   * Rescale points
@@ -92,7 +94,7 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
 // void two_point_ransac(const std::vector<cv::Point2f> &pts1,
 //                       const std::vector<cv::Point2f> &pts2,
 //                       const cv::Matx33f &R_p_c,
-//                       CameraProperty &cam,
+//                       camera_geometry_t &cam,
 //                       const double &inlier_error,
 //                       const double &success_probability,
 //                       std::vector<int> &inlier_markers);

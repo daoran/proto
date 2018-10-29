@@ -2,6 +2,10 @@
 
 namespace prototype {
 
+carrot_ctrl_t::carrot_ctrl_t() {}
+
+carrot_ctrl_t::~carrot_ctrl_t() {}
+
 int carrot_ctrl_configure(carrot_ctrl_t &cc,
                           const std::vector<vec3_t> &waypoints,
                           const double look_ahead_dist) {

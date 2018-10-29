@@ -1,15 +1,18 @@
 /**
  * @file
- * @ingroup feature2d
+ * @ingroup vision
  */
 #ifndef PROTOTYPE_VISION_FEATURE2D_DRAW_HPP
 #define PROTOTYPE_VISION_FEATURE2D_DRAW_HPP
 
-#include "prototype/vision/feature2d/feature.hpp"
+#include <opencv2/opencv.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 namespace prototype {
 /**
- * @addtogroup feature2d
+ * @addtogroup vision
  * @{
  */
 
@@ -77,16 +80,6 @@ cv::Mat draw_matches(const cv::Mat &img0,
                      const std::vector<cv::DMatch> &matches);
 
 /**
-  * Draw features
-  *
-  * @param image Image frame
-  * @param features List of features
-  *
-  * @returns Features image
-  */
-cv::Mat draw_features(const cv::Mat &image, const Features features);
-
-/**
  * Draw grid features
  *
   * @param image Image frame
@@ -116,6 +109,6 @@ cv::Mat draw_grid_features(const cv::Mat &image,
                            const int grid_cols,
                            const std::vector<cv::KeyPoint> features);
 
-/** @} group feature2d */
+/** @} group vision */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_FEATURE2D_DRAW_HPP

@@ -23,6 +23,7 @@ INCLUDE_DIRECTORIES(include /usr/include/eigen3 ${SUITESPARSE_INCLUDE_DIRS})
 ADD_LIBRARY(
   ${PROJECT_NAME}
   # calib
+  src/calib/aprilgrid.cpp
   src/calib/gimbal_calib.cpp
   src/calib/chessboard.cpp
   # control
@@ -67,14 +68,16 @@ ADD_LIBRARY(
   src/model/two_wheel.cpp
   # msckf
   # src/msckf/blackbox.cpp
-  src/msckf/camera_state.cpp
+  # src/msckf/camera_state.cpp
   # src/msckf/feature_estimator.cpp
   # src/msckf/gmsckf.cpp
   src/msckf/imu_state.cpp
   src/msckf/jacobians.cpp
   # src/msckf/msckf.cpp
   # vision
-  src/vision/camera/distortion.cpp
+  src/vision/camera/camera_geometry.cpp
+  src/vision/camera/radtan.cpp
+  src/vision/camera/equi.cpp
   src/vision/camera/pinhole.cpp
   src/vision/feature2d/draw.cpp
   src/vision/feature2d/grid_fast.cpp
@@ -86,7 +89,7 @@ SET(
   ${OpenCV_LIBS}
   ${SUITESPARSE_LIBRARIES}
   yaml-cpp
-  pthread
+  apriltags
   ceres
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
@@ -108,6 +111,7 @@ FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
+  calib-aprilgrid_test
   # control-carrot_ctrl_test
   control-mission_test
   control-pid_test

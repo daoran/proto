@@ -25,6 +25,9 @@ struct carrot_ctrl_t {
   vec3_t wp_end = vec3_t::Zero();
   size_t wp_index = 0;
   double look_ahead_dist = 0.0;
+
+  carrot_ctrl_t();
+  ~carrot_ctrl_t();
 };
 
 /**

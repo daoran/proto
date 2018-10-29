@@ -83,22 +83,22 @@ vec2_t gimbal_model_get_joint_angles(const gimbal_model_t &model);
 /**
   * Returns transform from static camera to base mechanism
   */
-mat4_t gimbal_model_T_bs(const gimbal_model_t &model);
+mat4_t gimbal_model_T_BS(const gimbal_model_t &model);
 
 /**
   * Returns transform from base mechanism to end-effector
   */
-mat4_t gimbal_model_T_eb(const gimbal_model_t &model);
+mat4_t gimbal_model_T_EB(const gimbal_model_t &model);
 
 /**
   * Returns transform from end-effector to dynamic camera
   */
-mat4_t gimbal_model_T_de(const gimbal_model_t &model);
+mat4_t gimbal_model_T_DE(const gimbal_model_t &model);
 
 /**
   * Returns transform from static to dynamic camera
   */
-mat4_t gimbal_model_T_ds(const gimbal_model_t &model);
+mat4_t gimbal_model_T_DS(const gimbal_model_t &model);
 
 /**
   * Returns transform from static to dynamic camera
@@ -106,8 +106,11 @@ mat4_t gimbal_model_T_ds(const gimbal_model_t &model);
   * @param theta Gimbal roll and pitch [radians]
   * @returns Transform from static to dynamic camera
   */
-mat4_t gimbal_model_T_ds(gimbal_model_t &model, const vec2_t &theta);
+mat4_t gimbal_model_T_DS(gimbal_model_t &model, const vec2_t &theta);
 
+/**
+ * gimbal_model_t to output stream
+ */
 std::ostream &operator<<(std::ostream &os, const gimbal_model_t &gimbal);
 
 /** @} group gimbal */

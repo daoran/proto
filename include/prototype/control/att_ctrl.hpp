@@ -32,7 +32,7 @@ struct att_ctrl_t {
   att_ctrl_t(const vec3_t &roll_pid,
              const vec3_t &pitch_pid,
              const vec3_t &yaw_pid);
-  virtual ~att_ctrl_t();
+  ~att_ctrl_t();
 };
 
 /**

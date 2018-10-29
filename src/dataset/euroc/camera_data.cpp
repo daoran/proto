@@ -35,18 +35,15 @@ int camera_data_load(camera_data_t &cd) {
     LOG_ERROR("Failed to load senor file [%s]!", cam_calib_path.c_str());
     return -1;
   }
-  // cd.sensor_type = config_parse(config, "sensor_type");
-  // std::string sensor_type;
-  // sensor_type = config_parse(config, "sensor_type");
-  // std::string sensor_type = config_parse(config, "sensor_type");
-  // cd.comment = config_parse(config, "comment");
-  // cd.T_BS = config_parse(config, "T_BS");
-  // cd.rate_hz = config_parse(config, "rate_hz");
-  // cd.resolution = config_parse(config, "resolution");
-  // cd.camera_model = config_parse(config, "camera_model");
-  // cd.intrinsics = config_parse(config, "intrinsics");
-  // cd.distortion_model = config_parse(config, "distortion_model");
-  // cd.distortion_coefficients = config_parse(config, "distortion_coefficients");
+  parse(config, "sensor_type", cd.sensor_type);
+  parse(config, "comment", cd.comment);
+  parse(config, "T_BS", cd.T_BS);
+  parse(config, "rate_hz", cd.rate_hz);
+  parse(config, "resolution", cd.resolution);
+  parse(config, "camera_model", cd.camera_model);
+  parse(config, "intrinsics", cd.intrinsics);
+  parse(config, "distortion_model", cd.distortion_model);
+  parse(config, "distortion_coefficients", cd.distortion_coefficients);
 
   return 0;
 }

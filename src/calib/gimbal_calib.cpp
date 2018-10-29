@@ -255,7 +255,6 @@ int gimbal_calibrator_calc_reprojection_errors(gimbal_calibrator_t &calib) {
   gimbal_model.theta1_offset = *calib.params.theta1_offset;
   gimbal_model.theta2_offset = *calib.params.theta2_offset;
 
-
   // Load joint data
   matx_t joint_data;
   const std::string joint_filepath = calib.data_dir + "/joint.csv";

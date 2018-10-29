@@ -10,6 +10,7 @@ cmake ..
 time make -j8
 
 cd tests
+# ./calib-aprilgrid_test
 # ./core-config_test
 # ./driver-camera-camera_test
 

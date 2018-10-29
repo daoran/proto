@@ -132,7 +132,7 @@ matx_t nullspace(const matx_t &A);
  * @param t Translation vector
  * @return T Transformation matrix
  */
-mat4_t transformation_matrix(const mat3_t R, const vec3_t t);
+mat4_t transform(const mat3_t &R, const vec3_t &t);
 
 /** @} group linalg */
 } // namepsace libr

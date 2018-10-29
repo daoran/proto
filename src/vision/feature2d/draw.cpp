@@ -80,17 +80,6 @@ cv::Mat draw_matches(const cv::Mat &img0,
   return match_img;
 }
 
-cv::Mat draw_features(const cv::Mat &image, const Features features) {
-  cv::Mat fea_img;
-
-  image.copyTo(fea_img);
-  for (auto f : features) {
-    cv::circle(fea_img, f.kp.pt, 2, cv::Scalar(0, 255, 0), -1);
-  }
-
-  return fea_img;
-}
-
 cv::Mat draw_grid_features(const cv::Mat &image,
                            const int grid_rows,
                            const int grid_cols,
