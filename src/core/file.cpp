@@ -2,6 +2,16 @@
 
 namespace prototype {
 
+std::string basename(const std::string &path) {
+  auto output = path;
+  const size_t last_slash_idx = output.find_last_of("\\/");
+  if (std::string::npos != last_slash_idx) {
+    output.erase(0, last_slash_idx + 1);
+  }
+
+	return output;
+}
+
 bool file_exists(const std::string &path) {
   FILE *file;
 
@@ -81,6 +91,15 @@ int remove_dir(const std::string &path) {
   return 0;
 }
 
+std::string remove_ext(const std::string &path) {
+  auto output = path;
+  const size_t period_idx = output.rfind('.');
+  if (std::string::npos != period_idx) {
+    output.erase(period_idx);
+  }
+  return output;
+}
+
 int list_dir(const std::string &path, std::vector<std::string> &results) {
   struct dirent *entry;
   DIR *dp;
@@ -122,15 +141,15 @@ std::vector<std::string> path_split(const std::string path) {
   return splits;
 }
 
-void paths_combine(const std::string path1,
-                   const std::string path2,
-                   std::string &out) {
+std::string paths_combine(const std::string path1,
+                          const std::string path2) {
   int dirs_up;
+  std::string result;
   std::vector<std::string> splits1;
   std::vector<std::string> splits2;
 
   // setup
-  out = "";
+  result = "";
   splits1 = path_split(path1);
   splits2 = path_split(path2);
 
@@ -147,29 +166,31 @@ void paths_combine(const std::string path1,
     splits1.pop_back();
   }
 
-  // append path1 to out
+  // append path1 to result
   if (path1[0] == '/') {
-    out += "/";
+    result += "/";
   }
   for (size_t i = 0; i < splits1.size(); i++) {
-    out += splits1[i];
-    out += "/";
+    result += splits1[i];
+    result += "/";
   }
 
-  // append path2 to out
+  // append path2 to result
   for (size_t i = dirs_up; i < splits2.size(); i++) {
-    out += splits2[i];
-    out += "/";
+    result += splits2[i];
+    result += "/";
   }
 
   // remove trailing slashes
-  for (size_t i = out.length() - 1; i > 0; i--) {
-    if (out[i] == '/') {
-      out.pop_back();
+  for (size_t i = result.length() - 1; i > 0; i--) {
+    if (result[i] == '/') {
+      result.pop_back();
     } else {
       break;
     }
   }
+
+  return result;
 }
 
 } // end of libr namepsace

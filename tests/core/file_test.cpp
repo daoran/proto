@@ -25,19 +25,19 @@ int test_path_split() {
 int test_paths_combine() {
   std::string out;
 
-  paths_combine("/a/b/c", "../", out);
+  out = paths_combine("/a/b/c", "../");
   std::cout << out << std::endl;
   MU_CHECK_EQ("/a/b", out);
 
-  paths_combine("/a/b/c", "../..", out);
+  out = paths_combine("/a/b/c", "../..");
   std::cout << out << std::endl;
   MU_CHECK_EQ("/a", out);
 
-  paths_combine("/a/b/c", "d/e", out);
+  out = paths_combine("/a/b/c", "d/e");
   std::cout << out << std::endl;
   MU_CHECK_EQ("/a/b/c/d/e", out);
 
-  paths_combine("./a/b/c", "../d/e", out);
+  out = paths_combine("./a/b/c", "../d/e");
   std::cout << out << std::endl;
   MU_CHECK_EQ("./a/b/d/e", out);
 

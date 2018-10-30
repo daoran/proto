@@ -25,6 +25,11 @@ namespace prototype {
  */
 
 /**
+ * Return basename
+ */
+std::string basename(const std::string &path);
+
+/**
  * Check if file exists
  *
  * @param path Path to file
@@ -83,6 +88,14 @@ int create_dir(const std::string &path);
 int remove_dir(const std::string &path);
 
 /**
+ * Remove file extension
+ *
+ * @param path Path to directory
+ * @returns File path without extension
+ */
+std::string remove_ext(const std::string &path);
+
+/**
  * List directory
  *
  * @param path Path to directory
@@ -104,11 +117,10 @@ std::vector<std::string> path_split(const std::string path);
  *
  * @param path1 Path 1
  * @param path2 Path 22
- * @param out Combined path
+ * @returns Combined path
  */
-void paths_combine(const std::string path1,
-                   const std::string path2,
-                   std::string &out);
+std::string paths_combine(const std::string path1,
+                          const std::string path2);
 
 /** @} group file */
 } // end of libr namepsace

@@ -247,6 +247,46 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
   return 0;
 }
 
+void aprilgrid_imshow(const aprilgrid_t &grid,
+                      const std::string &title,
+                      const cv::Mat &image) {
+  // Draw corners
+  cv::Mat image_rgb = gray2rgb(image);
+
+  for (size_t i = 0; i < grid.ids.size(); i++) {
+    const size_t id = grid.ids[i];
+    std::vector<vec2_t> kps;
+    if (aprilgrid_get(grid, id, kps) != 0) {
+      return;
+    }
+
+    // Form corner points
+    cv::Point2f p1(kps[0](0), kps[0](1)); // Bottom left
+    cv::Point2f p2(kps[1](0), kps[1](1)); // Top left
+    cv::Point2f p3(kps[2](0), kps[2](1)); // Top right
+    cv::Point2f p4(kps[3](0), kps[3](1)); // Bottom right
+
+    // Draw corners
+    cv::circle(image_rgb, p1, 2, cv::Scalar(0, 0, 255), -1); // Bottom left
+    cv::circle(image_rgb, p2, 2, cv::Scalar(0, 0, 255), -1); // Top left
+    cv::circle(image_rgb, p3, 2, cv::Scalar(0, 0, 255), -1); // Top right
+    cv::circle(image_rgb, p4, 2, cv::Scalar(0, 0, 255), -1); // Bottom right
+
+    // // Draw Tag ID
+    // cv::Point2f cxy(tags[i].cxy.first - 10, tags[i].cxy.second + 5);
+    // cv::Scalar text_color(0, 0, 255);
+    // std::string text = std::to_string(tags[i].id);
+    // int font = cv::FONT_HERSHEY_PLAIN;
+    // double font_scale = 1.0;
+    // int thickness = 2;
+    // cv::putText(image_rgb, text, cxy, font, font_scale, text_color, thickness);
+  }
+
+  // Show
+  cv::imshow(title, image_rgb);
+  cv::waitKey(1);
+}
+
 int aprilgrid_save(const aprilgrid_t &grid,
                    const std::string &save_path) {
   assert((grid.keypoints.size() % 4) == 0);
@@ -475,39 +515,5 @@ aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &det,
   return grid;
 }
 
-void aprilgrid_detector_imshow(
-    const std::string &title,
-    const cv::Mat &image,
-    const std::vector<AprilTags::TagDetection> &tags) {
-  // Draw corners
-  cv::Mat image_rgb = gray2rgb(image);
-
-  for (size_t i = 0; i < tags.size(); i++) {
-    // Form corner points
-    cv::Point2f p1(tags[i].p[0].first, tags[i].p[0].second); // Bottom left
-    cv::Point2f p2(tags[i].p[1].first, tags[i].p[1].second); // Top left
-    cv::Point2f p3(tags[i].p[2].first, tags[i].p[2].second); // Top right
-    cv::Point2f p4(tags[i].p[3].first, tags[i].p[3].second); // Bottom right
-
-    // Draw corners
-    cv::circle(image_rgb, p1, 2, cv::Scalar(0, 0, 255), -1); // Bottom left
-    cv::circle(image_rgb, p2, 2, cv::Scalar(0, 0, 255), -1); // Top left
-    cv::circle(image_rgb, p3, 2, cv::Scalar(0, 0, 255), -1); // Top right
-    cv::circle(image_rgb, p4, 2, cv::Scalar(0, 0, 255), -1); // Bottom right
-
-    // Draw Tag ID
-    cv::Point2f cxy(tags[i].cxy.first - 10, tags[i].cxy.second + 5);
-    cv::Scalar text_color(0, 0, 255);
-    std::string text = std::to_string(tags[i].id);
-    int font = cv::FONT_HERSHEY_PLAIN;
-    double font_scale = 1.0;
-    int thickness = 2;
-    cv::putText(image_rgb, text, cxy, font, font_scale, text_color, thickness);
-  }
-
-  // Show
-  cv::imshow(title, image_rgb);
-  cv::waitKey(1);
-}
 
 } // namespace prototype

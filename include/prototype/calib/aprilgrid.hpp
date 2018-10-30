@@ -128,6 +128,16 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
                                  const vec4_t &cam_D);
 
 /**
+  * Show detection
+  *
+  * @param image Input image
+  * @param tags Detected AprilTags
+  */
+void aprilgrid_imshow(const aprilgrid_t &grid,
+                      const std::string &title,
+                      const cv::Mat &image);
+
+/**
  * Save AprilGrid detection
  *
  * @param[in] save_path Path to save detection
@@ -214,16 +224,6 @@ aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &detector,
                                       const cv::Mat &image,
                                       const mat3_t &cam_K,
                                       const vec4_t &cam_D);
-
-/**
-  * Show detection
-  *
-  * @param image Input image
-  * @param tags Detected AprilTags
-  */
-void aprilgrid_detector_imshow(const std::string &title,
-                               const cv::Mat &image,
-                               const std::vector<AprilTags::TagDetection> &tags);
 
 } // namespace prototype
 #endif // PROTOTYPE_CALIB_APRILGRID_HPP
