@@ -1,7 +1,7 @@
-#include "prototype/munit.hpp"
-#include "camera/ids.hpp"
 #include "calibration/calib_validator.hpp"
+#include "camera/ids.hpp"
 #include "gimbal/gimbal.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 
@@ -83,10 +83,13 @@ int test_CalibValidator_validateStereo() {
 int test_CalibValidator_validateTriclops() {
   // Load validator
   CalibValidator validator;
-  const std::string measurements_dir = "/home/chutsu/se_datasets/calib/gimbal/dataset_4/measurements";
-  const std::string validation_dir = "/home/chutsu/se_datasets/calib/gimbal/validation_2";
+  const std::string measurements_dir =
+      "/home/chutsu/se_datasets/calib/gimbal/dataset_4/measurements";
+  const std::string validation_dir =
+      "/home/chutsu/se_datasets/calib/gimbal/validation_2";
 
-  const std::string camchain_file = measurements_dir + "/camchain_optimized.yaml";
+  const std::string camchain_file =
+      measurements_dir + "/camchain_optimized.yaml";
   const std::string joint_file = validation_dir + "/joint.csv";
   const std::string target_file = validation_dir + "/chessboard.yaml";
 
@@ -107,16 +110,20 @@ int test_CalibValidator_validateTriclops() {
   }
 
   for (int i = 0; i < 50; i++) {
-    const std::string cam0_img_file = validation_dir + "/cam0/" + std::to_string(i) + ".jpg";
-    const std::string cam1_img_file = validation_dir + "/cam1/" + std::to_string(i) + ".jpg";
-    const std::string cam2_img_file = validation_dir + "/cam2/" + std::to_string(i) + ".jpg";
+    const std::string cam0_img_file =
+        validation_dir + "/cam0/" + std::to_string(i) + ".jpg";
+    const std::string cam1_img_file =
+        validation_dir + "/cam1/" + std::to_string(i) + ".jpg";
+    const std::string cam2_img_file =
+        validation_dir + "/cam2/" + std::to_string(i) + ".jpg";
     const cv::Mat cam0_img = cv::imread(cam0_img_file);
     const cv::Mat cam1_img = cv::imread(cam1_img_file);
     const cv::Mat cam2_img = cv::imread(cam2_img_file);
     // const cv::Mat result = validator.validateStereo(cam0_img, cam1_img);
     const double roll = joint_data(i, 0);
     const double pitch = joint_data(i, 1);
-    const cv::Mat result = validator.validateTriclops(cam0_img, cam1_img, cam2_img, roll, pitch);
+    const cv::Mat result =
+        validator.validateTriclops(cam0_img, cam1_img, cam2_img, roll, pitch);
     cv::imshow("Image", result);
     cv::waitKey();
   }
@@ -253,7 +260,6 @@ int test_CalibValidator_validateTriclops_live() {
 
   return 0;
 }
-
 
 void test_suite() {
   // MU_ADD_TEST(test_CalibValidator_constructor);

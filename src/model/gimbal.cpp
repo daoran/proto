@@ -3,9 +3,9 @@
 namespace prototype {
 
 mat4_t dh_transform(const double theta,
-                  const double d,
-                  const double a,
-                  const double alpha) {
+                    const double d,
+                    const double a,
+                    const double alpha) {
   // clang-format off
   mat4_t T;
   T << cos(theta), -sin(theta) * cos(alpha), sin(theta) * sin(alpha), a * cos(theta),

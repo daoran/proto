@@ -102,6 +102,11 @@ static int failed = 0;
              __LINE__,                                                         \
              KRED,                                                             \
              KNRM);                                                            \
+      printf("%sReason: %f != %f%s\n",                                         \
+             KRED,                                                             \
+             (float) expected,                                                 \
+             (float) actual,                                                   \
+             KNRM);                                                            \
       return -1;                                                               \
     }                                                                          \
   } while (0)

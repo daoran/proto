@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "prototype/core/stats.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 

@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "calibration/stereo_calib.hpp"
+#include "prototype/munit.hpp"
 
 // #define TEST_DATA_PATH "test_data/chessboard"
 #define TEST_DATA_PATH "/home/chutsu/Dropbox/calibration_data/stereo_data2"

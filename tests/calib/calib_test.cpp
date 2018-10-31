@@ -1,5 +1,5 @@
+#include "prototype/calib/calib.hpp"
 #include "prototype/munit.hpp"
-#include "prototype/calib/calib_data.hpp"
 
 namespace prototype {
 
@@ -37,9 +37,7 @@ int test_process_mono_data() {
   return 0;
 }
 
-void test_suite() {
-  MU_ADD_TEST(test_process_mono_data);
-}
+void test_suite() { MU_ADD_TEST(test_process_mono_data); }
 
 } // namespace prototype
 

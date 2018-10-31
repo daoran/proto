@@ -1,6 +1,6 @@
-#include "prototype/munit.hpp"
 #include "dataset/dataset.hpp"
 #include "feature2d/image_processor.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 

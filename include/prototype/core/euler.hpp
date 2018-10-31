@@ -15,27 +15,27 @@ namespace prototype {
  */
 
 /**
-  * Rotation matrix around x-axis (counter-clockwise, right-handed)
-  *
-  * @param theta Angle in radians
-  * @returns Rotation matrix
-  */
+ * Rotation matrix around x-axis (counter-clockwise, right-handed)
+ *
+ * @param theta Angle in radians
+ * @returns Rotation matrix
+ */
 mat3_t rotx(const double theta);
 
 /**
-  * Rotation matrix around y-axis (counter-clockwise, right-handed)
-  *
-  * @param theta Angle in radians
-  * @returns Rotation matrix
-  */
+ * Rotation matrix around y-axis (counter-clockwise, right-handed)
+ *
+ * @param theta Angle in radians
+ * @returns Rotation matrix
+ */
 mat3_t roty(const double theta);
 
 /**
-  * Rotation matrix around z-axis (counter-clockwise, right-handed)
-  *
-  * @param theta Angle in radians
-  * @returns Rotation matrix
-  */
+ * Rotation matrix around z-axis (counter-clockwise, right-handed)
+ *
+ * @param theta Angle in radians
+ * @returns Rotation matrix
+ */
 mat3_t rotz(const double theta);
 
 /**

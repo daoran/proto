@@ -2,13 +2,13 @@
  * @file
  * @ingroup calib
  */
-#ifndef PROTOTYPE_CALIB_RESIDUAL_IMPL_HPP
-#define PROTOTYPE_CALIB_RESIDUAL_IMPL_HPP
+#ifndef PROTOTYPE_CALIB_GIMBAL_CALIB_IMPL_HPP
+#define PROTOTYPE_CALIB_GIMBAL_CALIB_IMPL_HPP
 
 #include <ceres/ceres.h>
 
-#include "prototype/core.hpp"
 #include "prototype/calib/gimbal_calib.hpp"
+#include "prototype/core.hpp"
 
 namespace prototype {
 /**
@@ -217,8 +217,7 @@ Eigen::Matrix<T, 2, 1> GimbalCalibResidual::project_pinhole_radtan(
 
 template <typename T>
 Eigen::Matrix<T, 2, 1> GimbalCalibResidual::project_pinhole(
-    const Eigen::Matrix<T, 3, 3> &K,
-    const Eigen::Matrix<T, 3, 1> &X) const {
+    const Eigen::Matrix<T, 3, 3> &K, const Eigen::Matrix<T, 3, 1> &X) const {
   const T px = X(0) / X(2);
   const T py = X(1) / X(2);
   const Eigen::Matrix<T, 2, 1> x{px, py};
@@ -271,4 +270,4 @@ bool GimbalCalibResidual::operator()(const T *const tau_s,
 }
 
 } //  namespace prototype
-#endif // PROTOTYPE_CALIB_RESIDUAL_IMPL_HPP
+#endif // PROTOTYPE_CALIB_GIMBAL_CALIB_IMPL_HPP

@@ -43,7 +43,10 @@ int i2c_read_byte(const i2c_t &i2c, const char reg_addr, char *data) {
   return 0;
 }
 
-int i2c_read_bytes(const i2c_t &i2c, const char reg_addr, char *data, size_t length) {
+int i2c_read_bytes(const i2c_t &i2c,
+                   const char reg_addr,
+                   char *data,
+                   size_t length) {
   char buf[1];
 
   buf[0] = reg_addr;
@@ -78,7 +81,10 @@ int i2c_write_raw_byte(const i2c_t &i2c, const char byte) {
   return 0;
 }
 
-int i2c_write_bytes(const i2c_t &i2c, const char reg_addr, const char *data, const size_t length) {
+int i2c_write_bytes(const i2c_t &i2c,
+                    const char reg_addr,
+                    const char *data,
+                    const size_t length) {
   int i;
   char buf[I2C_BUF_MAX];
 

@@ -1,7 +1,7 @@
 #include <sys/time.h>
 
-#include "prototype/munit.hpp"
 #include "feature2d/gms_matcher.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 

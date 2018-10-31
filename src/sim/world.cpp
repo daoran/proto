@@ -108,9 +108,8 @@ int SimWorld::configure(const std::string &config_file) {
                                      this->dt,
                                      this->t_end);
   if (this->camera_type == "DYNAMIC_STEREO_CAMERA") {
-    this->gimbal_motion = GimbalMotion(mat2vec2(joint_setpoints),
-                                       this->dt,
-                                       this->t_end);
+    this->gimbal_motion =
+        GimbalMotion(mat2vec2(joint_setpoints), this->dt, this->t_end);
   }
 
   // Features
@@ -222,10 +221,11 @@ int SimWorld::setupOutput() {
 void SimWorld::detectFeaturesWithMonoCamera() {
   // Check what features are observed
   std::vector<int> feature_ids;
-  const matx_t kps = this->mono_camera.observedFeatures(this->features3d,
-                                                      this->camera_motion.rpy_G,
-                                                      this->camera_motion.p_G,
-                                                      feature_ids);
+  const matx_t kps =
+      this->mono_camera.observedFeatures(this->features3d,
+                                         this->camera_motion.rpy_G,
+                                         this->camera_motion.p_G,
+                                         feature_ids);
   const mat3_t K = this->mono_camera.camera_model.K;
 
   // Get features lost
@@ -431,7 +431,7 @@ FeatureTracks SimWorld::getLostTracks() {
 }
 
 matx_t SimWorld::create3DFeatures(const struct feature_bounds &bounds,
-                                const size_t nb_features) {
+                                  const size_t nb_features) {
   // Create random 3D features
   matx_t features = zeros(nb_features, 3);
   for (size_t i = 0; i < nb_features; i++) {
@@ -444,8 +444,8 @@ matx_t SimWorld::create3DFeatures(const struct feature_bounds &bounds,
 }
 
 matx_t SimWorld::create3DFeaturePerimeter(const vec3_t &origin,
-                                        const vec3_t &dimensions,
-                                        const size_t nb_features) {
+                                          const vec3_t &dimensions,
+                                          const size_t nb_features) {
   // Dimension of the outskirt
   const double width = dimensions(0);
   const double length = dimensions(1);
@@ -700,9 +700,10 @@ int SimWorld::recordJointAngles(const double time, const vec2_t &joint_angles) {
   return 0;
 }
 
-void SimWorld::generateInitializationData(const int nb_samples,
-                                          std::vector<vec3_t> &imu_gyro_buffer,
-                                          std::vector<vec3_t> &imu_accel_buffer) {
+void SimWorld::generateInitializationData(
+    const int nb_samples,
+    std::vector<vec3_t> &imu_gyro_buffer,
+    std::vector<vec3_t> &imu_accel_buffer) {
   std::random_device rd{};
   std::mt19937 gen{rd()};
   std::normal_distribution<> gyro_x_dist{0.0, 0.01};

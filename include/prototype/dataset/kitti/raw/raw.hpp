@@ -6,8 +6,8 @@
 #ifndef PROTOTYPE_DATASET_KITTI_RAW_HPP
 #define PROTOTYPE_DATASET_KITTI_RAW_HPP
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -47,19 +47,20 @@ struct kitti_raw_dataset_t {
   kitti_raw_dataset_t() {}
 
   kitti_raw_dataset_t(const std::string &raw_dir,
-             const std::string &date,
-             const std::string &seq)
+                      const std::string &date,
+                      const std::string &seq)
       : raw_dir{strip_end(raw_dir, "/")}, date{date}, seq{seq},
-        date_dir{raw_dir + "/" + date},
-        drive_dir{date_dir + "/" + date + "_drive_" + seq + "_sync"} {}
+        date_dir{raw_dir + "/" + date}, drive_dir{date_dir + "/" + date +
+                                                  "_drive_" + seq + "_sync"} {}
 
   kitti_raw_dataset_t(const std::string &raw_dir,
-             const std::string &date,
-             const std::string &seq,
-             const std::string &type)
+                      const std::string &date,
+                      const std::string &seq,
+                      const std::string &type)
       : raw_dir{strip_end(raw_dir, "/")}, date{date}, seq{seq},
-        date_dir{raw_dir + "/" + date},
-        drive_dir{date_dir + "/" + date + "_drive_" + seq + "_" + type} {}
+        date_dir{raw_dir + "/" + date}, drive_dir{date_dir + "/" + date +
+                                                  "_drive_" + seq + "_" +
+                                                  type} {}
 };
 
 /**

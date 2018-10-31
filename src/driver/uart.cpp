@@ -40,13 +40,13 @@ int uart_configure(const uart_t &uart, const int speed, const int parity) {
   // disable IGNBRK for mismatched speed tests; otherwise receive break
   // as \000 chars
   tty.c_iflag &= ~IGNBRK; // disable break processing
-  tty.c_lflag = 0;        // no signaling chars, no echo, no canonical processing
+  tty.c_lflag = 0;     // no signaling chars, no echo, no canonical processing
   tty.c_oflag = 0;     // no remapping, no delays
   tty.c_cc[VMIN] = 0;  // read doesn't block
   tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
 
   tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-  tty.c_cflag |= (CLOCAL | CREAD);        // ignore modem controls, enable reading
+  tty.c_cflag |= (CLOCAL | CREAD);   // ignore modem controls, enable reading
   tty.c_cflag &= ~(PARENB | PARODD); // shut off parity
   tty.c_cflag |= parity;
   tty.c_cflag &= ~CSTOPB;

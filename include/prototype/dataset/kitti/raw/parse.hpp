@@ -6,8 +6,8 @@
 #ifndef PROTOTYPE_DATASET_KITTI_RAW_PARSE_HPP
 #define PROTOTYPE_DATASET_KITTI_RAW_PARSE_HPP
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 

@@ -42,32 +42,31 @@ struct config_t {
 /**
  * Load YAML file
  */
-int yaml_load_file(const std::string file_path,
-                   YAML::Node &root);
+int yaml_load_file(const std::string file_path, YAML::Node &root);
 
 /**
-  * Get YAML node containing the parameter value
-  */
+ * Get YAML node containing the parameter value
+ */
 int yaml_get_node(const config_t &config,
                   const std::string &key,
                   const bool optional,
                   YAML::Node &node);
 
 /**
-  * Check length of vector in config file
-  */
+ * Check length of vector in config file
+ */
 template <typename T>
 size_t yaml_check_vector(const YAML::Node &node,
                          const std::string &key,
                          const bool optional);
 
 /**
-  * Check matrix
-  *
-  * Makes sure that the parameter has the data field "rows", "cols" and
-  * "data". It also checks to make sure the number of values is the same size
-  * as the matrix.
-  */
+ * Check matrix
+ *
+ * Makes sure that the parameter has the data field "rows", "cols" and
+ * "data". It also checks to make sure the number of values is the same size
+ * as the matrix.
+ */
 template <typename T>
 void yaml_check_matrix(const YAML::Node &node,
                        const std::string &key,
@@ -76,35 +75,65 @@ void yaml_check_matrix(const YAML::Node &node,
                        size_t &cols);
 
 /**
-  * Check matrix
-  *
-  * Makes sure that the parameter has the data field "rows", "cols" and
-  * "data". It also checks to make sure the number of values is the same size
-  * as the matrix.
-  */
+ * Check matrix
+ *
+ * Makes sure that the parameter has the data field "rows", "cols" and
+ * "data". It also checks to make sure the number of values is the same size
+ * as the matrix.
+ */
 template <typename T>
 void yaml_check_matrix(const YAML::Node &node,
                        const std::string &key,
                        const bool optional);
 
 template <typename T>
-void parse(const config_t &config, const std::string &key, T &out, const bool optional=false);
+void parse(const config_t &config,
+           const std::string &key,
+           T &out,
+           const bool optional = false);
 
 template <typename T>
 void parse(const config_t &config,
            const std::string &key,
            std::vector<T> &out,
-           const bool optional=false);
+           const bool optional = false);
 
-void parse(const config_t &config, const std::string &key, vec2_t &vec, const bool optional=false);
-void parse(const config_t &config, const std::string &key, vec3_t &vec, const bool optional=false);
-void parse(const config_t &config, const std::string &key, vec4_t &vec, const bool optional=false);
-void parse(const config_t &config, const std::string &key, vecx_t &vec, const bool optional=false);
-void parse(const config_t &config, const std::string &key, mat2_t &mat, const bool optional=false);
-void parse(const config_t &config, const std::string &key, mat3_t &mat, const bool optional=false);
-void parse(const config_t &config, const std::string &key, mat4_t &mat, const bool optional=false);
-void parse(const config_t &config, const std::string &key, matx_t &mat, const bool optional=false);
-void parse(const config_t &config, const std::string &key, cv::Mat &mat, const bool optional=false);
+void parse(const config_t &config,
+           const std::string &key,
+           vec2_t &vec,
+           const bool optional = false);
+void parse(const config_t &config,
+           const std::string &key,
+           vec3_t &vec,
+           const bool optional = false);
+void parse(const config_t &config,
+           const std::string &key,
+           vec4_t &vec,
+           const bool optional = false);
+void parse(const config_t &config,
+           const std::string &key,
+           vecx_t &vec,
+           const bool optional = false);
+void parse(const config_t &config,
+           const std::string &key,
+           mat2_t &mat,
+           const bool optional = false);
+void parse(const config_t &config,
+           const std::string &key,
+           mat3_t &mat,
+           const bool optional = false);
+void parse(const config_t &config,
+           const std::string &key,
+           mat4_t &mat,
+           const bool optional = false);
+void parse(const config_t &config,
+           const std::string &key,
+           matx_t &mat,
+           const bool optional = false);
+void parse(const config_t &config,
+           const std::string &key,
+           cv::Mat &mat,
+           const bool optional = false);
 
 /** @} group config */
 } //  namespace prototype

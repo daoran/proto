@@ -102,9 +102,9 @@ matx_t GMSCKF::P() {
 }
 
 matx_t GMSCKF::J(const vec4_t &cam_q_CI,
-               const vec3_t &cam_p_IC,
-               const vec4_t &q_hat_IG,
-               const int N) {
+                 const vec3_t &cam_p_IC,
+                 const vec4_t &q_hat_IG,
+                 const int N) {
   const mat3_t C_CI = C(cam_q_CI);
   const mat3_t C_IG = C(q_hat_IG);
 
@@ -335,7 +335,9 @@ CameraStates GMSCKF::getAllCameraStates() {
   return retval;
 }
 
-matx_t GMSCKF::F(const vec3_t &w_hat, const vec4_t &q_hat, const vec3_t &a_hat) {
+matx_t GMSCKF::F(const vec3_t &w_hat,
+                 const vec4_t &q_hat,
+                 const vec3_t &a_hat) {
   matx_t F = zeros(x_imu_sz);
 
   // -- First row block --
@@ -365,7 +367,9 @@ matx_t GMSCKF::G(const vec4_t &q_hat) {
   return G;
 }
 
-int GMSCKF::predictionUpdate(const vec3_t &a_m, const vec3_t &w_m, const long ts) {
+int GMSCKF::predictionUpdate(const vec3_t &a_m,
+                             const vec3_t &w_m,
+                             const long ts) {
   const double dt = (ts - this->last_updated) * 1e-9;
   this->imu_timestamps.push_back((ts - this->timestamp_first) * 1.0e-9);
   if (dt < 0.0) {
@@ -536,7 +540,9 @@ int GMSCKF::residualizeTrack(const FeatureTrack &track,
   return 0;
 }
 
-int GMSCKF::calcResiduals(const FeatureTracks &tracks, matx_t &T_H, vecx_t &r_n) {
+int GMSCKF::calcResiduals(const FeatureTracks &tracks,
+                          matx_t &T_H,
+                          vecx_t &r_n) {
   // Residualize feature tracks
   matx_t H_o;
   vecx_t r_o;
@@ -670,12 +676,12 @@ CameraStates GMSCKF::pruneCameraState() {
   return pruned_camera_states;
 }
 
-int GMSCKF::measurementUpdate(const FeatureTracks &tracks, const vec2_t &theta) {
+int GMSCKF::measurementUpdate(const FeatureTracks &tracks,
+                              const vec2_t &theta) {
   // Add a camera state to state vector
   this->augmentState(theta);
   this->cam_timestamps.push_back(
-    (this->imu_timestamps.back() - this->timestamp_first) * 1.0e-9
-  );
+      (this->imu_timestamps.back() - this->timestamp_first) * 1.0e-9);
 
   // Make sure there aren't too many tracks to residualize
   FeatureTracks filtered_tracks;

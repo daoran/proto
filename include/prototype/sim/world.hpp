@@ -5,16 +5,16 @@
 #ifndef PROTOTYPE_VISION_SIM_WORLD_HPP
 #define PROTOTYPE_VISION_SIM_WORLD_HPP
 
-#include <vector>
 #include <map>
+#include <vector>
 
-#include "prototype/core.hpp"
 #include "camera/pinhole_model.hpp"
 #include "feature2d/feature_container.hpp"
-#include "sim/twowheel.hpp"
+#include "prototype/core.hpp"
 #include "sim/camera.hpp"
 #include "sim/camera_motion.hpp"
 #include "sim/gimbal_motion.hpp"
+#include "sim/twowheel.hpp"
 
 namespace prototype {
 /**
@@ -39,8 +39,8 @@ struct feature_bounds {
  */
 class SimWorld {
 public:
-	std::vector<double> timestamps;
-	std::vector<double> camera_timestamps;
+  std::vector<double> timestamps;
+  std::vector<double> camera_timestamps;
   double t = 0.0;
   double t_end = 0.0;
   double dt = 0.01;
@@ -99,7 +99,7 @@ public:
    * @returns N Features as a Nx3 matrix
    */
   matx_t create3DFeatures(const struct feature_bounds &bounds,
-                        const size_t nb_features);
+                          const size_t nb_features);
 
   /**
    * Create 3D feature perimeter around a defined origin in
@@ -111,8 +111,8 @@ public:
    * @returns N Features as a Nx3 matrix
    */
   matx_t create3DFeaturePerimeter(const vec3_t &origin,
-                                const vec3_t &dimensions,
-                                const size_t nb_features);
+                                  const vec3_t &dimensions,
+                                  const size_t nb_features);
 
   /**
    * Detect features with mono camera
@@ -224,8 +224,8 @@ public:
    * @returns 0 for success, -1 for failure
    */
   int recordCameraStates(const std::vector<double> time,
-												 const std::vector<vec3_t> &p_G,
-												 const std::vector<vec3_t> &rpy_G);
+                         const std::vector<vec3_t> &p_G,
+                         const std::vector<vec3_t> &rpy_G);
 
   /**
    * Record gimbal joint angles

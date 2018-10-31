@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "camera/pinhole_model.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 
@@ -90,7 +90,8 @@ int test_PinholeModel_constructor3() {
 int test_PinholeModel_focalLength() {
   const double fx = pinhole_focal_length(600, 90.0);
   const double fy = pinhole_focal_length(600, 90.0);
-  const vec2_t focal_length = pinhole_focal_length(vec2_t{600, 600}, 90.0, 90.0);
+  const vec2_t focal_length =
+      pinhole_focal_length(vec2_t{600, 600}, 90.0, 90.0);
 
   MU_CHECK_FLOAT(300.0, fy);
   MU_CHECK_FLOAT(fx, fy);

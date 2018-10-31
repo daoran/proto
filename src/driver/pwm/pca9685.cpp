@@ -55,7 +55,9 @@ void pca9685_set_frequency(const pca9685_t &pwm, const int freq) {
   i2c_write_byte(pwm.i2c, PCA9685_MODE1, mode_1_old | (1 << 7));
 }
 
-void pca9685_set_pwm(const pca9685_t &pwm, const int8_t channel, const int16_t off) {
+void pca9685_set_pwm(const pca9685_t &pwm,
+                     const int8_t channel,
+                     const int16_t off) {
   i2c_set_slave(pwm.i2c, PCA9685_I2C_ADDR);
   i2c_write_byte(pwm.i2c, PCA9685_LED0_ON_L + (4 * channel), 0 & 0xFF);
   i2c_write_byte(pwm.i2c, PCA9685_LED0_ON_H + (4 * channel), 0 >> 8);
@@ -77,4 +79,4 @@ void pca9685_reset(const pca9685_t &pwm) {
   usleep(PCA9685_WAIT_MS);
 }
 
-} // libr namespace
+} // namespace prototype

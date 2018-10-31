@@ -68,29 +68,29 @@ void essential_matrix_outlier_rejection(
     std::vector<uchar> &inlier_markers);
 
 /**
-  * Rescale points
-  *
-  * @param pts1 Points 1
-  * @param pts2 Points 2
-  * @returns scaling_factor Scaling factor
-  */
+ * Rescale points
+ *
+ * @param pts1 Points 1
+ * @param pts2 Points 2
+ * @returns scaling_factor Scaling factor
+ */
 float rescale_points(std::vector<cv::Point2f> &pts1,
                      std::vector<cv::Point2f> &pts2);
 
 /**
-  * Two point ransac algorithm to mark the inliers in the input set.
-  *
-  * @param pts1 First set of points.
-  * @param pts2 Second set of points.
-  * @param R_p_c: Rotation matrix from previous to current camera frame
-  * @param intrinsics: Camera intrinsics
-  * @param distortion_model: Distortion model of the camera.
-  * @param distortion_coeffs: Distortion coefficients.
-  * @param inlier_error: Acceptable error to be considered as an inlier
-  * @param success_probability Required probability of success
-  *
-  * @returns Vector of ints, 1 for inliers and 0 for outliers
-  */
+ * Two point ransac algorithm to mark the inliers in the input set.
+ *
+ * @param pts1 First set of points.
+ * @param pts2 Second set of points.
+ * @param R_p_c: Rotation matrix from previous to current camera frame
+ * @param intrinsics: Camera intrinsics
+ * @param distortion_model: Distortion model of the camera.
+ * @param distortion_coeffs: Distortion coefficients.
+ * @param inlier_error: Acceptable error to be considered as an inlier
+ * @param success_probability Required probability of success
+ *
+ * @returns Vector of ints, 1 for inliers and 0 for outliers
+ */
 // void two_point_ransac(const std::vector<cv::Point2f> &pts1,
 //                       const std::vector<cv::Point2f> &pts2,
 //                       const cv::Matx33f &R_p_c,

@@ -44,12 +44,12 @@ struct camera_data_t {
 };
 
 /**
-  * Load Camera data
-  *
-  * @param[in,out] data Camera data
-  * @param[in] data_dir Camera data directory
-  * @returns 0 for success, -1 for failure
-  */
+ * Load Camera data
+ *
+ * @param[in,out] data Camera data
+ * @param[in] data_dir Camera data directory
+ * @returns 0 for success, -1 for failure
+ */
 int camera_data_load(camera_data_t &cam_data);
 
 /**

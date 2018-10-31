@@ -8,10 +8,9 @@ CameraMotion::CameraMotion(const std::vector<vec3_t> &pos_points,
                            const std::vector<vec3_t> &att_points,
                            const double time_dt,
                            const double time_end)
-    : pos_points{pos_points}, att_points{att_points},
-      time_dt{time_dt}, time_end{time_end},
-      bezier_dt{time_dt / time_end},
-      scale{bezier_dt / time_dt} {
+    : pos_points{pos_points}, att_points{att_points}, time_dt{time_dt},
+      time_end{time_end}, bezier_dt{time_dt / time_end}, scale{bezier_dt /
+                                                               time_dt} {
   this->update();
 }
 
@@ -27,19 +26,26 @@ int CameraMotion::update() {
 
   // Calculate pos, vel and accel on the Bezier curve at t
   this->p_G = bezier(this->pos_points, this->bezier_t);
-  this->v_G = bezier_derivative(this->pos_points, this->bezier_t, 1) * this->scale;
-  this->a_G = bezier_derivative(this->pos_points, this->bezier_t, 2) * this->scale * this->scale;
+  this->v_G =
+      bezier_derivative(this->pos_points, this->bezier_t, 1) * this->scale;
+  this->a_G = bezier_derivative(this->pos_points, this->bezier_t, 2) *
+              this->scale * this->scale;
 
   // Calculate attitude
   this->rpy_G = bezier(this->att_points, this->bezier_t);
-  this->w_G = bezier_derivative(this->att_points, this->bezier_t, 1) * this->scale;
+  this->w_G =
+      bezier_derivative(this->att_points, this->bezier_t, 1) * this->scale;
 
   // Calculate IMU measurements
   const mat3_t R_BG = euler123ToRot(this->rpy_G);
   const vec3_t gravity{0.0, 0.0, 9.81};
   if (this->add_noise) {
-    const vec3_t n_g{gyro_x_dist(this->gen), gyro_y_dist(this->gen), gyro_z_dist(this->gen)};
-    const vec3_t n_a{accel_x_dist(this->gen), accel_y_dist(this->gen), accel_z_dist(this->gen)};
+    const vec3_t n_g{gyro_x_dist(this->gen),
+                     gyro_y_dist(this->gen),
+                     gyro_z_dist(this->gen)};
+    const vec3_t n_a{accel_x_dist(this->gen),
+                     accel_y_dist(this->gen),
+                     accel_z_dist(this->gen)};
     this->a_B = R_BG * (this->a_G + gravity) + n_a;
     this->w_B = R_BG * this->w_G + n_g;
   } else {

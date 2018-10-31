@@ -61,29 +61,47 @@ int Camchain::save(const std::string &output_path) {
   if (outfile.good()) {
     // cam0 calib params
     outfile << "cam0: " << std::endl;
-    outfile << indent << "camera_model: " << this->cam[0].camera_model << std::endl;
-    outfile << indent << "distortion_model: " << this->cam[0].distortion_model << std::endl;
-    outfile << indent << "distortion_coeffs: " << vec2str(this->cam[0].distortion_coeffs) << std::endl;
-    outfile << indent << "intrinsics: " << vec2str(this->cam[0].intrinsics) << std::endl;
-    outfile << indent << "resolution: " << vec2str(this->cam[0].resolution) << std::endl;
+    outfile << indent << "camera_model: " << this->cam[0].camera_model
+            << std::endl;
+    outfile << indent << "distortion_model: " << this->cam[0].distortion_model
+            << std::endl;
+    outfile << indent
+            << "distortion_coeffs: " << vec2str(this->cam[0].distortion_coeffs)
+            << std::endl;
+    outfile << indent << "intrinsics: " << vec2str(this->cam[0].intrinsics)
+            << std::endl;
+    outfile << indent << "resolution: " << vec2str(this->cam[0].resolution)
+            << std::endl;
     outfile << std::endl;
 
     // cam1 calib params
     outfile << "cam1: " << std::endl;
-    outfile << indent << "camera_model: " << this->cam[1].camera_model << std::endl;
-    outfile << indent << "distortion_model: " << this->cam[1].distortion_model << std::endl;
-    outfile << indent << "distortion_coeffs: " << vec2str(this->cam[1].distortion_coeffs) << std::endl;
-    outfile << indent << "intrinsics: " << vec2str(this->cam[1].intrinsics) << std::endl;
-    outfile << indent << "resolution: " << vec2str(this->cam[1].resolution) << std::endl;
+    outfile << indent << "camera_model: " << this->cam[1].camera_model
+            << std::endl;
+    outfile << indent << "distortion_model: " << this->cam[1].distortion_model
+            << std::endl;
+    outfile << indent
+            << "distortion_coeffs: " << vec2str(this->cam[1].distortion_coeffs)
+            << std::endl;
+    outfile << indent << "intrinsics: " << vec2str(this->cam[1].intrinsics)
+            << std::endl;
+    outfile << indent << "resolution: " << vec2str(this->cam[1].resolution)
+            << std::endl;
     outfile << std::endl;
 
     // cam2 calib params
     outfile << "cam2: " << std::endl;
-    outfile << indent << "camera_model: " << this->cam[2].camera_model << std::endl;
-    outfile << indent << "distortion_model: " << this->cam[2].distortion_model << std::endl;
-    outfile << indent << "distortion_coeffs: " << vec2str(this->cam[2].distortion_coeffs) << std::endl;
-    outfile << indent << "intrinsics: " << vec2str(this->cam[2].intrinsics) << std::endl;
-    outfile << indent << "resolution: " << vec2str(this->cam[2].resolution) << std::endl;
+    outfile << indent << "camera_model: " << this->cam[2].camera_model
+            << std::endl;
+    outfile << indent << "distortion_model: " << this->cam[2].distortion_model
+            << std::endl;
+    outfile << indent
+            << "distortion_coeffs: " << vec2str(this->cam[2].distortion_coeffs)
+            << std::endl;
+    outfile << indent << "intrinsics: " << vec2str(this->cam[2].intrinsics)
+            << std::endl;
+    outfile << indent << "resolution: " << vec2str(this->cam[2].resolution)
+            << std::endl;
     outfile << std::endl;
 
     // Transform from cam0 to cam1
@@ -144,7 +162,6 @@ int Camchain::save(const std::string &output_path) {
 
   } else {
     return -1;
-
   }
   outfile.close();
 
@@ -157,28 +174,43 @@ std::ostream &operator<<(std::ostream &os, const Camchain &camchain) {
   // cam0 calib params
   os << "cam0: " << std::endl;
   os << indent << "camera_model: " << camchain.cam[0].camera_model << std::endl;
-  os << indent << "distortion_model: " << camchain.cam[0].distortion_model << std::endl;
-  os << indent << "distortion_coeffs: " << vec2str(camchain.cam[0].distortion_coeffs) << std::endl;
-  os << indent << "intrinsics: " << vec2str(camchain.cam[0].intrinsics) << std::endl;
-  os << indent << "resolution: " << vec2str(camchain.cam[0].resolution) << std::endl;
+  os << indent << "distortion_model: " << camchain.cam[0].distortion_model
+     << std::endl;
+  os << indent
+     << "distortion_coeffs: " << vec2str(camchain.cam[0].distortion_coeffs)
+     << std::endl;
+  os << indent << "intrinsics: " << vec2str(camchain.cam[0].intrinsics)
+     << std::endl;
+  os << indent << "resolution: " << vec2str(camchain.cam[0].resolution)
+     << std::endl;
   os << std::endl;
 
   // cam1 calib params
   os << "cam1: " << std::endl;
   os << indent << "camera_model: " << camchain.cam[1].camera_model << std::endl;
-  os << indent << "distortion_model: " << camchain.cam[1].distortion_model << std::endl;
-  os << indent << "distortion_coeffs: " << vec2str(camchain.cam[1].distortion_coeffs) << std::endl;
-  os << indent << "intrinsics: " << vec2str(camchain.cam[1].intrinsics) << std::endl;
-  os << indent << "resolution: " << vec2str(camchain.cam[1].resolution) << std::endl;
+  os << indent << "distortion_model: " << camchain.cam[1].distortion_model
+     << std::endl;
+  os << indent
+     << "distortion_coeffs: " << vec2str(camchain.cam[1].distortion_coeffs)
+     << std::endl;
+  os << indent << "intrinsics: " << vec2str(camchain.cam[1].intrinsics)
+     << std::endl;
+  os << indent << "resolution: " << vec2str(camchain.cam[1].resolution)
+     << std::endl;
   os << std::endl;
 
   // cam2 calib params
   os << "cam2: " << std::endl;
   os << indent << "camera_model: " << camchain.cam[2].camera_model << std::endl;
-  os << indent << "distortion_model: " << camchain.cam[2].distortion_model << std::endl;
-  os << indent << "distortion_coeffs: " << vec2str(camchain.cam[2].distortion_coeffs) << std::endl;
-  os << indent << "intrinsics: " << vec2str(camchain.cam[2].intrinsics) << std::endl;
-  os << indent << "resolution: " << vec2str(camchain.cam[2].resolution) << std::endl;
+  os << indent << "distortion_model: " << camchain.cam[2].distortion_model
+     << std::endl;
+  os << indent
+     << "distortion_coeffs: " << vec2str(camchain.cam[2].distortion_coeffs)
+     << std::endl;
+  os << indent << "intrinsics: " << vec2str(camchain.cam[2].intrinsics)
+     << std::endl;
+  os << indent << "resolution: " << vec2str(camchain.cam[2].resolution)
+     << std::endl;
   os << std::endl;
 
   // Transform from cam0 to cam1

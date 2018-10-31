@@ -7,11 +7,11 @@
 
 #include <ios>
 
-#include "prototype/core.hpp"
-#include "camera/distortion.hpp"
-#include "gimbal/gimbal_model.hpp"
 #include "calibration/camchain.hpp"
 #include "calibration/chessboard.hpp"
+#include "camera/distortion.hpp"
+#include "gimbal/gimbal_model.hpp"
+#include "prototype/core.hpp"
 
 namespace prototype {
 /**

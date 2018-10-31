@@ -174,8 +174,7 @@ void mav_model_set_attitude(mav_model_t &qm,
   qm.rpy_G = vec3_t{roll, pitch, yaw};
 }
 
-void mav_model_set_position(mav_model_t &qm,
-                            const vec3_t &p_G) {
+void mav_model_set_position(mav_model_t &qm, const vec3_t &p_G) {
   qm.p_G = p_G;
 }
 

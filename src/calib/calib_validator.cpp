@@ -36,7 +36,8 @@ int CalibValidator::load(const int nb_cameras,
   return 0;
 }
 
-int CalibValidator::load(const int nb_cameras, const std::string &camchain_file) {
+int CalibValidator::load(const int nb_cameras,
+                         const std::string &camchain_file) {
   assert(nb_cameras > 0);
   assert(camchain_file.empty() == false);
 

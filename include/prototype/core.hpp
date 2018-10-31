@@ -5,7 +5,6 @@
 #ifndef PROTOTYPE_CORE_HPP
 #define PROTOTYPE_CORE_HPP
 
-#include "prototype/core/quaternion/jpl.hpp"
 #include "prototype/core/config.hpp"
 #include "prototype/core/data.hpp"
 #include "prototype/core/euler.hpp"
@@ -14,6 +13,7 @@
 #include "prototype/core/linalg.hpp"
 #include "prototype/core/log.hpp"
 #include "prototype/core/math.hpp"
+#include "prototype/core/quaternion/jpl.hpp"
 #include "prototype/core/stats.hpp"
 #include "prototype/core/time.hpp"
 #include "prototype/core/vision.hpp"

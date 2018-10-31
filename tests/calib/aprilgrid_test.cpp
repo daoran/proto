@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "prototype/calib/aprilgrid.hpp"
+#include "prototype/munit.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 // #include "prototype/dataset/euroc/CalibData.hpp"
 
@@ -10,95 +10,12 @@ namespace prototype {
 #define TEST_DATA "/data/euroc_mav/imu_april"
 #define TEST_CONF "test_data/calib/aprilgrid/target.yaml"
 
-// aprilgrid_t
-// calc_corner_positions(const std::vector<AprilTags::TagDetection> &tags,
-//                       const mat3_t &cam_K,
-//                       const vec4_t &cam_D,
-//                       const int tag_rows,
-//                       const int tag_cols,
-//                       const double tag_size,
-//                       const double tag_spacing) {
-//   // Object points (counter-clockwise, from bottom left)
-//   std::vector<cv::Point3f> obj_pts;
-//   // -- Origin is at the first bottom left corner
-//   obj_pts.emplace_back(0, 0, 0);               // Bottom left
-//   obj_pts.emplace_back(tag_size, 0, 0);        // Bottom right
-//   obj_pts.emplace_back(tag_size, tag_size, 0); // Top right
-//   obj_pts.emplace_back(0, tag_size, 0);        // Top left
-//
-//   // Extract out camera intrinsics
-//   const double fx = cam_K(0, 0);
-//   const double fy = cam_K(1, 1);
-//   const double cx = cam_K(0, 2);
-//   const double cy = cam_K(1, 2);
-//
-//   // Extract out camera distortion
-//   const double k1 = cam_D(0);
-//   const double k2 = cam_D(1);
-//   const double p1 = cam_D(2);
-//   const double p2 = cam_D(3);
-//
-//   // Loop through every detected tag
-//   aprilgrid_t aprilgrid(0, tag_rows, tag_cols, tag_size, tag_spacing);
-//   for (const auto tag : tags) {
-//     // Image points (counter-clockwise, from bottom left)
-//     std::vector<cv::Point2f> img_pts;
-//     img_pts.emplace_back(tag.p[0].first, tag.p[0].second); // Bottom left
-//     img_pts.emplace_back(tag.p[1].first, tag.p[1].second); // Bottom right
-//     img_pts.emplace_back(tag.p[2].first, tag.p[2].second); // Top right
-//     img_pts.emplace_back(tag.p[3].first, tag.p[3].second); // Top left
-//
-//     // Solve pnp
-//     cv::vec4_tf distortion_params(k1, k2, p1, p2); // SolvPnP Assumes radtan
-//     cv::Mat camera_matrix(3, 3, CV_32FC1, 0.0f);
-//     camera_matrix.at<float>(0, 0) = fx;
-//     camera_matrix.at<float>(1, 1) = fy;
-//     camera_matrix.at<float>(0, 2) = cx;
-//     camera_matrix.at<float>(1, 2) = cy;
-//     camera_matrix.at<float>(2, 2) = 1.0;
-//     cv::Mat rvec;
-//     cv::Mat tvec;
-//     cv::solvePnP(obj_pts,
-//                  img_pts,
-//                  camera_matrix,
-//                  distortion_params,
-//                  rvec,
-//                  tvec,
-//                  false,
-//                  CV_ITERATIVE);
-//
-//     // Form relative tag pose as a 4x4 transformation matrix
-//     // -- Convert Rodrigues rotation vector to rotation matrix
-//     cv::Mat R;
-//     cv::Rodrigues(rvec, R);
-//     // -- Form full transformation matrix
-//     cv::Mat T_CF = transformation(R, tvec);
-//
-//     // Transform object points to corner positions expressed in camera frame
-//     cv::Mat obj_pts_homo(4, 4, cv::DataType<double>::type);
-//     for (size_t i = 0; i < 4; i++) {
-//       const cv::Point3f obj_pt = obj_pts[i];
-//       obj_pts_homo.at<double>(0, i) = obj_pt.x;
-//       obj_pts_homo.at<double>(1, i) = obj_pt.y;
-//       obj_pts_homo.at<double>(2, i) = obj_pt.z;
-//       obj_pts_homo.at<double>(3, i) = 1.0;
-//     }
-//     const cv::Mat corners = T_CF * obj_pts_homo;
-//
-//     // Add tag to aprilgrid_grid
-//     aprilgrid.addTag(tag.id, img_pts, corners, rvec, tvec);
-//   }
-//
-//   // Return tag pose expressed in camera frame
-//   return aprilgrid;
-// }
-
 static void visualize_grid(const cv::Mat &image,
-                                const mat3_t &K,
-                                const vec4_t &D,
-                                const std::vector<vec3_t> &landmarks,
-                                const std::vector<vec2_t> &keypoints,
-                                const bool show) {
+                           const mat3_t &K,
+                           const vec4_t &D,
+                           const std::vector<vec3_t> &landmarks,
+                           const std::vector<vec2_t> &keypoints,
+                           const bool show) {
   // Undistort image
   cv::Mat image_undistorted;
   cv::Mat intrinsics = convert(K);
@@ -392,7 +309,6 @@ int test_aprilgrid_detector_detect() {
 
   return 0;
 }
-
 
 void test_suite() {
   MU_ADD_TEST(test_aprilgrid_constructor);

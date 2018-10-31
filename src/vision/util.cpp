@@ -1,6 +1,5 @@
 #include "prototype/vision/util.hpp"
 
-
 namespace prototype {
 
 cv::Mat roi(const cv::Mat &image,
@@ -83,7 +82,8 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
 //   const double cam_fy = cam.intrinsics[1];
 //   double norm_pixel_unit = 2.0 / (cam_fx + cam_fy);
 //   const int iter_num =
-//       static_cast<int>(ceil(log(1 - success_probability) / log(1 - 0.7 * 0.7)));
+//       static_cast<int>(ceil(log(1 - success_probability) / log(1 - 0.7 *
+//       0.7)));
 //
 //   // Initially, mark all points as inliers.
 //   inlier_markers.clear();
@@ -168,7 +168,8 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
 //   for (size_t i = 0; i < pts_diff.size(); ++i) {
 //     coeff_t(i, 0) = pts_diff[i].y;
 //     coeff_t(i, 1) = -pts_diff[i].x;
-//     coeff_t(i, 2) = pts1_ud[i].x * pts2_ud[i].y - pts1_ud[i].y * pts2_ud[i].x;
+//     coeff_t(i, 2) = pts1_ud[i].x * pts2_ud[i].y - pts1_ud[i].y *
+//     pts2_ud[i].x;
 //   }
 //
 //   std::vector<int> raw_inlier_idx;
@@ -179,10 +180,11 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
 //
 //   std::vector<int> best_inlier_set;
 //   double best_error = 1e10;
-//   std::random_device rd;  // Used to obtain a seed for the random number engine
-//   std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
-//   std::uniform_int_distribution<> randint1(0, raw_inlier_idx.size() - 1);
-//   std::uniform_int_distribution<> randint2(1, raw_inlier_idx.size() - 1);
+//   std::random_device rd;  // Used to obtain a seed for the random number
+//   engine std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded
+//   with rd() std::uniform_int_distribution<> randint1(0, raw_inlier_idx.size()
+//   - 1); std::uniform_int_distribution<> randint2(1, raw_inlier_idx.size() -
+//   1);
 //
 //   for (int iter_idx = 0; iter_idx < iter_num; ++iter_idx) {
 //     // Randomly select two point pairs.
@@ -311,9 +313,9 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
 // }
 
 matx_t feature_mask(const int image_width,
-                  const int image_height,
-                  const std::vector<cv::Point2f> points,
-                  const int patch_width) {
+                    const int image_height,
+                    const std::vector<cv::Point2f> points,
+                    const int patch_width) {
   matx_t mask = ones(image_height, image_width);
 
   // Create a mask around each point
@@ -373,9 +375,9 @@ matx_t feature_mask(const int image_width,
 }
 
 matx_t feature_mask(const int image_width,
-                  const int image_height,
-                  const std::vector<cv::KeyPoint> keypoints,
-                  const int patch_width) {
+                    const int image_height,
+                    const std::vector<cv::KeyPoint> keypoints,
+                    const int patch_width) {
   std::vector<cv::Point2f> points;
   for (const auto &kp : keypoints) {
     points.emplace_back(kp.pt);

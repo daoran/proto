@@ -60,30 +60,30 @@ int carrot_ctrl_closest_point(const carrot_ctrl_t &cc,
                               vec3_t &result);
 
 /**
-  * Calculate carrot point
-  *
-  * @param[in] cc Carrot control
-  * @param[in] pos Position of robot
-  * @param[out] result Result is a the carrot point between `wp_start` and
-  * `wp_end`
-  *
-  * @returns A number to denote progress along the waypoint,
-  * - t == -1: Position is before `wp_start`
-  * - t == 0: Position is between `wp_start` and `wp_end`
-  * - t == 1: Position is after `wp_end`
-  */
+ * Calculate carrot point
+ *
+ * @param[in] cc Carrot control
+ * @param[in] pos Position of robot
+ * @param[out] result Result is a the carrot point between `wp_start` and
+ * `wp_end`
+ *
+ * @returns A number to denote progress along the waypoint,
+ * - t == -1: Position is before `wp_start`
+ * - t == 0: Position is between `wp_start` and `wp_end`
+ * - t == 1: Position is after `wp_end`
+ */
 int carrot_ctrl_carrot_point(const carrot_ctrl_t &cc,
                              const vec3_t &pos,
                              vec3_t &result);
 
 /**
-  * Update carrot controller
-  *
-  * @param[in,out] cc Carrot control
-  * @param[in] pos Current position
-  * @param[out] carrot_pt Carrot point
-  * @returns 0 for success, 1 for all waypoints reached and -1 for failure
-  */
+ * Update carrot controller
+ *
+ * @param[in,out] cc Carrot control
+ * @param[in] pos Current position
+ * @param[out] carrot_pt Carrot point
+ * @returns 0 for success, 1 for all waypoints reached and -1 for failure
+ */
 int carrot_ctrl_update(carrot_ctrl_t &cc, const vec3_t &pos, vec3_t &carrot_pt);
 
 /** @} group control */

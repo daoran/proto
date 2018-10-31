@@ -135,5 +135,5 @@ matx_t nullspace(const matx_t &A);
 mat4_t transform(const mat3_t &R, const vec3_t &t);
 
 /** @} group linalg */
-} // namepsace libr
+} // namespace prototype
 #endif // PROTOTYPE_CORE_LINALG_HPP

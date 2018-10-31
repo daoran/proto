@@ -81,9 +81,9 @@ matx_t MSCKF::P() {
 }
 
 matx_t MSCKF::J(const vec4_t &cam_q_CI,
-              const vec3_t &cam_p_IC,
-              const vec4_t &q_hat_IG,
-              const int N) {
+                const vec3_t &cam_p_IC,
+                const vec4_t &q_hat_IG,
+                const int N) {
   const mat3_t C_CI = C(cam_q_CI);
   const mat3_t C_IG = C(q_hat_IG);
 
@@ -282,7 +282,9 @@ CameraStates MSCKF::getAllCameraStates() {
   return retval;
 }
 
-int MSCKF::predictionUpdate(const vec3_t &a_m, const vec3_t &w_m, const long ts) {
+int MSCKF::predictionUpdate(const vec3_t &a_m,
+                            const vec3_t &w_m,
+                            const long ts) {
   const double dt = (ts - this->last_updated) * 1e-9;
   if (dt < 0.0) {
     LOG_ERROR("IMU timestamp: [%lu]", ts);
@@ -380,7 +382,9 @@ int MSCKF::residualizeTrack(const FeatureTrack &track,
   return 0;
 }
 
-int MSCKF::calcResiduals(const FeatureTracks &tracks, matx_t &T_H, vecx_t &r_n) {
+int MSCKF::calcResiduals(const FeatureTracks &tracks,
+                         matx_t &T_H,
+                         vecx_t &r_n) {
   // Residualize feature tracks
   matx_t H_o;
   vecx_t r_o;
@@ -531,7 +535,7 @@ int MSCKF::measurementUpdate(const FeatureTracks &tracks) {
   // Note: Below is equiv to P * T_H^T * (T_H * P * T_H^T + R_n)^-1
   const matx_t S = T_H * P * T_H.transpose() + R_n;
   const matx_t K_T = S.ldlt().solve(T_H * P);
-	const matx_t K = K_T.transpose();
+  const matx_t K = K_T.transpose();
   // -- Conventional Kalman gain calculation
   // const matx_t K =
   //     P * T_H.transpose() * (T_H * P * T_H.transpose() + R_n).inverse();
@@ -547,7 +551,8 @@ int MSCKF::measurementUpdate(const FeatureTracks &tracks) {
   // -- Simplest, most unstable form
   /* const matx_t P_new = I_KH * P; */
   // -- Symmetric and positive Joseph form
-  /* const matx_t P_new = I_KH * P * I_KH.transpose() + K * R_n * K.transpose(); */
+  /* const matx_t P_new = I_KH * P * I_KH.transpose() + K * R_n * K.transpose();
+   */
   // -- Upenn's version?
   const matx_t P_new = ((I_KH * P) + (I_KH * P).transpose()) / 2.0;
 

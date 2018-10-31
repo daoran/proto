@@ -9,7 +9,7 @@ std::string basename(const std::string &path) {
     output.erase(0, last_slash_idx + 1);
   }
 
-	return output;
+  return output;
 }
 
 bool file_exists(const std::string &path) {
@@ -141,8 +141,7 @@ std::vector<std::string> path_split(const std::string path) {
   return splits;
 }
 
-std::string paths_combine(const std::string path1,
-                          const std::string path2) {
+std::string paths_combine(const std::string path1, const std::string path2) {
   int dirs_up;
   std::string result;
   std::vector<std::string> splits1;
@@ -193,4 +192,4 @@ std::string paths_combine(const std::string path1,
   return result;
 }
 
-} // end of libr namepsace
+} // namespace prototype

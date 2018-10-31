@@ -42,15 +42,15 @@ struct IMUStateConfig {
 class IMUState {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  int size = 0;  ///< Size of error-state vector
-  bool rk4 = false;  ///< Runge-Kutta 4th order integration
+  int size = 0;     ///< Size of error-state vector
+  bool rk4 = false; ///< Runge-Kutta 4th order integration
 
   // State
   vec4_t q_IG = vec4_t{0.0, 0.0, 0.0, 1.0}; ///< JPL Quaternion in Global frame
-  vec3_t b_g = zeros(3, 1);               ///< Bias of gyroscope
-  vec3_t v_G = zeros(3, 1);               ///< Velocity in Global frame
-  vec3_t b_a = zeros(3, 1);               ///< Bias of accelerometer
-  vec3_t p_G = zeros(3, 1);               ///< Position in Global frame
+  vec3_t b_g = zeros(3, 1);                 ///< Bias of gyroscope
+  vec3_t v_G = zeros(3, 1);                 ///< Velocity in Global frame
+  vec3_t b_a = zeros(3, 1);                 ///< Bias of accelerometer
+  vec3_t p_G = zeros(3, 1);                 ///< Position in Global frame
 
   // Extrinsics
   // -- IMU-Camera extrinsics
@@ -65,7 +65,7 @@ public:
   // Misc
   matx_t P = 1e-5 * I(15); ///< Covariance matrix
   matx_t Q = 1e-2 * I(12); ///< Noise matrix
-  matx_t Phi = I(15); ///< Noise matrix
+  matx_t Phi = I(15);      ///< Noise matrix
 
   IMUState();
   IMUState(const IMUStateConfig &config);

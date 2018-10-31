@@ -5,8 +5,8 @@
 #ifndef PROTOTYPE_MODEL_TWOWHEEL_HPP
 #define PROTOTYPE_MODEL_TWOWHEEL_HPP
 
-#include "prototype/core.hpp"
 #include "prototype/control/pid.hpp"
+#include "prototype/core.hpp"
 
 namespace prototype {
 /**
@@ -47,9 +47,7 @@ struct two_wheel_t {
 
   two_wheel_t() {}
 
-  two_wheel_t(const vec3_t &p_G_,
-              const vec3_t &v_G_,
-              const vec3_t &rpy_G_) {
+  two_wheel_t(const vec3_t &p_G_, const vec3_t &v_G_, const vec3_t &rpy_G_) {
     p_G = p_G_;
     v_G = v_G_;
     rpy_G = rpy_G_;
@@ -59,10 +57,10 @@ struct two_wheel_t {
 };
 
 /**
-  * Update
-  *
-  * @param dt Time difference (s)
-  */
+ * Update
+ *
+ * @param dt Time difference (s)
+ */
 void two_wheel_update(two_wheel_t &tm, const double dt);
 
 /** @} group sim */

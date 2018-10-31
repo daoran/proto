@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "msckf/imu_state.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 

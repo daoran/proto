@@ -149,7 +149,7 @@ std::vector<vec2_t> mat2vec2(const matx_t &m, bool row_wise = true);
  *
  * @returns Vector as a string
  */
-std::string vec2str(const vecx_t &v, bool brackets=true);
+std::string vec2str(const vecx_t &v, bool brackets = true);
 
 /**
  * Create random integer
@@ -323,8 +323,10 @@ int point_left_right(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
  *    (50%) of the waypoint line, alternatively a negative number denotes the
  *    closest point is behind the first waypoint.
  */
-double
-closest_point(const vec2_t &p1, const vec2_t &p2, const vec2_t &p3, vec2_t &closest);
+double closest_point(const vec2_t &p1,
+                     const vec2_t &p2,
+                     const vec2_t &p3,
+                     vec2_t &closest);
 
 /**
  * Linear interpolation between two points

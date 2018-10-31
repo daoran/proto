@@ -5,6 +5,7 @@
 #ifndef PROTOTYPE_CALIB_APRILGRID_HPP
 #define PROTOTYPE_CALIB_APRILGRID_HPP
 
+// Order matters with the AprilTags lib. The detector has to be first.
 #include <AprilTags/TagDetector.h>
 #include <AprilTags/Tag36h11.h>
 
@@ -57,28 +58,27 @@ typedef std::vector<aprilgrid_t> aprilgrids_t;
 /**
  * aprilgrid_t to output stream
  */
-std::ostream &operator<<(std::ostream &os,
-                         const aprilgrid_t &april_grid);
+std::ostream &operator<<(std::ostream &os, const aprilgrid_t &april_grid);
 
 /**
-  * Add measurement
-  *
-  * @param[in,out] grid AprilGrid
-  * @param[in] id Tag id
-  * @param[in] keypoints Keypoints
-  */
+ * Add measurement
+ *
+ * @param[in,out] grid AprilGrid
+ * @param[in] id Tag id
+ * @param[in] keypoints Keypoints
+ */
 void aprilgrid_add(aprilgrid_t &grid,
                    const int id,
                    const std::vector<cv::Point2f> &keypoints);
 
 /**
-  * Get measurements based on tag id
-  *
-  * @param[in] grid AprilGrid
-  * @param[in] id Tag id
-  * @param[out] keypoints Keypoints
-  * @returns 0 or -1 for success or failure
-  */
+ * Get measurements based on tag id
+ *
+ * @param[in] grid AprilGrid
+ * @param[in] id Tag id
+ * @param[out] keypoints Keypoints
+ * @returns 0 or -1 for success or failure
+ */
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
                   std::vector<vec2_t> &keypoints);
@@ -110,10 +110,7 @@ int aprilgrid_get(const aprilgrid_t &grid,
  *
  * @returns 0 or -1 for success or failure
  */
-int aprilgrid_grid_index(const aprilgrid_t &grid,
-                         const int id,
-                         int &i,
-                         int &j);
+int aprilgrid_grid_index(const aprilgrid_t &grid, const int id, int &i, int &j);
 
 /**
  * Calculate relative position between AprilGrid and camera using solvepnp
@@ -128,11 +125,11 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
                                  const vec4_t &cam_D);
 
 /**
-  * Show detection
-  *
-  * @param image Input image
-  * @param tags Detected AprilTags
-  */
+ * Show detection
+ *
+ * @param image Input image
+ * @param tags Detected AprilTags
+ */
 void aprilgrid_imshow(const aprilgrid_t &grid,
                       const std::string &title,
                       const cv::Mat &image);
@@ -177,48 +174,48 @@ public:
 };
 
 /**
-  * Configure AprilGrid detector
-  *
-  * @param[in,out] detector AprilGrid detector
-  * @param[in] config_file Path to config file
-  * @returns 0 or 1 for success or failure
-  */
+ * Configure AprilGrid detector
+ *
+ * @param[in,out] detector AprilGrid detector
+ * @param[in] config_file Path to config file
+ * @returns 0 or 1 for success or failure
+ */
 int aprilgrid_detector_configure(aprilgrid_detector_t &det,
                                  const std::string &config_file);
 
 /**
-  * Filter tags detected
-  *
-  * @param[in,out] detector AprilGrid detector
-  * @param[in] image Image
-  * @param[in,out] tags Detected AprilTags
-  */
+ * Filter tags detected
+ *
+ * @param[in,out] detector AprilGrid detector
+ * @param[in] image Image
+ * @param[in,out] tags Detected AprilTags
+ */
 void aprilgrid_detector_filter_tags(const aprilgrid_detector_t &det,
                                     const cv::Mat &image,
                                     std::vector<AprilTags::TagDetection> &tags);
 
 /**
-  * Detect AprilTags
-  *
-  * @param[in,out] detector AprilGrid detector
-  * @param[in] timestamp Timestamp
-  * @param[in] image Input image
-  * @returns AprilGrid detection
-  */
+ * Detect AprilTags
+ *
+ * @param[in,out] detector AprilGrid detector
+ * @param[in] timestamp Timestamp
+ * @param[in] image Input image
+ * @returns AprilGrid detection
+ */
 aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &detector,
                                       const long timestamp,
                                       const cv::Mat &image);
 
 /**
-  * Detect AprilTags
-  *
-  * @param timestamp Timestamp
-  * @param image Input image
-  * @param cam_K Camera intrinsics matrix K
-  * @param cam_D Camera distortion vector D
-  *
-  * @returns AprilGrid detection
-  */
+ * Detect AprilTags
+ *
+ * @param timestamp Timestamp
+ * @param image Input image
+ * @param cam_K Camera intrinsics matrix K
+ * @param cam_D Camera distortion vector D
+ *
+ * @returns AprilGrid detection
+ */
 aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &detector,
                                       const long timestamp,
                                       const cv::Mat &image,

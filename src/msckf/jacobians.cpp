@@ -3,14 +3,14 @@
 namespace prototype {
 
 vec3_t p_c2_f_jacobian_wrt_theta1(const vec3_t &p_c1_f,
-                                const vec6_t &tau_s,
-                                const vec6_t &tau_d,
-																const double &Lambda1,
-                                const vec3_t &w1,
-																const double &Lambda2,
-                                const vec3_t &w2,
-																const double theta1_offset,
-																const double theta2_offset) {
+                                  const vec6_t &tau_s,
+                                  const vec6_t &tau_d,
+                                  const double &Lambda1,
+                                  const vec3_t &w1,
+                                  const double &Lambda2,
+                                  const vec3_t &w2,
+                                  const double theta1_offset,
+                                  const double theta2_offset) {
   // clang-format off
   const double px_c1_f = p_c1_f(0);
   const double py_c1_f = p_c1_f(1);

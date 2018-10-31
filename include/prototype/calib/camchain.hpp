@@ -5,9 +5,9 @@
 #ifndef PROTOTYPE_CALIB_CAMCHAIN_HPP
 #define PROTOTYPE_CALIB_CAMCHAIN_HPP
 
-#include "prototype/core.hpp"
-#include "camera/distortion.hpp"
 #include "calibration/camera_property.hpp"
+#include "camera/distortion.hpp"
+#include "prototype/core.hpp"
 
 namespace prototype {
 /**

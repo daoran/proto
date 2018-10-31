@@ -36,6 +36,11 @@ struct pid_t {
 };
 
 /**
+ * pid_t to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const pid_t &pid);
+
+/**
  * Update controller
  *
  * @param[in/out] PID controller

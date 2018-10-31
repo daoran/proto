@@ -17,9 +17,9 @@ vec4_t quatconj(const vec4_t &q) { return vec4_t{-q(0), -q(1), -q(2), q(3)}; }
 
 vec4_t quatmul(const vec4_t &p, const vec4_t &q) {
   return vec4_t{q(3) * p(0) + q(2) * p(1) - q(1) * p(2) + q(0) * p(3),
-              -q(2) * p(0) + q(3) * p(1) + q(0) * p(2) + q(1) * p(3),
-              q(1) * p(0) - q(0) * p(1) + q(3) * p(2) + q(2) * p(3),
-              -q(0) * p(0) - q(1) * p(1) - q(2) * p(2) + q(3) * p(3)};
+                -q(2) * p(0) + q(3) * p(1) + q(0) * p(2) + q(1) * p(3),
+                q(1) * p(0) - q(0) * p(1) + q(3) * p(2) + q(2) * p(3),
+                -q(0) * p(0) - q(1) * p(1) - q(2) * p(2) + q(3) * p(3)};
 }
 
 mat3_t quat2rot(const vec4_t &q) {
@@ -139,9 +139,9 @@ vec4_t euler2quat(const vec3_t &rpy) {
   const double sp = sin(pitch * 0.5);
 
   const vec4_t q{cy * sr * cp - sy * cr * sp,
-               cy * cr * sp + sy * sr * cp,
-               sy * cr * cp - cy * sr * sp,
-               cy * cr * cp + sy * sr * sp};
+                 cy * cr * sp + sy * sr * cp,
+                 sy * cr * cp - cy * sr * sp,
+                 cy * cr * cp + sy * sr * sp};
 
   return quatnormalize(q);
 }

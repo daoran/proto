@@ -1,6 +1,6 @@
-#include "prototype/munit.hpp"
-#include "prototype/dataset/euroc/mav_dataset.hpp"
 #include "prototype/core/quaternion/jpl.hpp"
+#include "prototype/dataset/euroc/mav_dataset.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 

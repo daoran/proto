@@ -2,11 +2,15 @@
 
 namespace prototype {
 
-matx_t zeros(const int rows, const int cols) { return matx_t::Zero(rows, cols); }
+matx_t zeros(const int rows, const int cols) {
+  return matx_t::Zero(rows, cols);
+}
 
 matx_t zeros(const int size) { return matx_t::Zero(size, size); }
 
-matx_t I(const int rows, const int cols) { return matx_t::Identity(rows, cols); }
+matx_t I(const int rows, const int cols) {
+  return matx_t::Identity(rows, cols);
+}
 
 matx_t I(const int size) { return matx_t::Identity(size, size); }
 
@@ -87,4 +91,4 @@ mat4_t transform(const mat3_t &R, const vec3_t &t) {
   return T;
 }
 
-} // namepsace libr
+} // namespace prototype

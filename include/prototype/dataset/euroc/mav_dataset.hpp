@@ -6,18 +6,18 @@
 #ifndef PROTOTYPE_VISION_DATASET_EUROC_MAV_DATASET_HPP
 #define PROTOTYPE_VISION_DATASET_EUROC_MAV_DATASET_HPP
 
-#include <iostream>
-#include <functional>
-#include <map>
-#include <vector>
-#include <string>
 #include <fstream>
+#include <functional>
+#include <iostream>
+#include <map>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include "prototype/core.hpp"
-#include "prototype/dataset/euroc/imu_data.hpp"
 #include "prototype/dataset/euroc/camera_data.hpp"
 #include "prototype/dataset/euroc/ground_truth.hpp"
+#include "prototype/dataset/euroc/imu_data.hpp"
 
 namespace prototype {
 /**

@@ -14,8 +14,7 @@ aprilgrid_t::aprilgrid_t(const long timestamp,
 
 aprilgrid_t::~aprilgrid_t() {}
 
-std::ostream &operator<<(std::ostream &os,
-                         const aprilgrid_t &aprilgrid) {
+std::ostream &operator<<(std::ostream &os, const aprilgrid_t &aprilgrid) {
   // Relative rotation and translation
   if (aprilgrid.estimated) {
     os << "AprilGrid: " << std::endl;
@@ -169,7 +168,7 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
 
   // Create image points
   std::vector<cv::Point2f> img_pts;
-  for (const auto kp: grid.keypoints) {
+  for (const auto kp : grid.keypoints) {
     img_pts.emplace_back(kp(0), kp(1));
   }
 
@@ -225,8 +224,8 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
       return -1;
     }
 
-    // Calculate the x and y of the tag origin (bottom left corner of tag) relative
-    // to grid origin (bottom left corner of entire grid)
+    // Calculate the x and y of the tag origin (bottom left corner of tag)
+    // relative to grid origin (bottom left corner of entire grid)
     const double x = j * (grid.tag_size + grid.tag_size * grid.tag_spacing);
     const double y = i * (grid.tag_size + grid.tag_size * grid.tag_spacing);
 
@@ -279,7 +278,8 @@ void aprilgrid_imshow(const aprilgrid_t &grid,
     // int font = cv::FONT_HERSHEY_PLAIN;
     // double font_scale = 1.0;
     // int thickness = 2;
-    // cv::putText(image_rgb, text, cxy, font, font_scale, text_color, thickness);
+    // cv::putText(image_rgb, text, cxy, font, font_scale, text_color,
+    // thickness);
   }
 
   // Show
@@ -287,8 +287,7 @@ void aprilgrid_imshow(const aprilgrid_t &grid,
   cv::waitKey(1);
 }
 
-int aprilgrid_save(const aprilgrid_t &grid,
-                   const std::string &save_path) {
+int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
   assert((grid.keypoints.size() % 4) == 0);
   assert((grid.positions_CF.size() % 4) == 0);
 
@@ -344,8 +343,7 @@ int aprilgrid_save(const aprilgrid_t &grid,
   return 0;
 }
 
-int aprilgrid_load(aprilgrid_t &grid,
-                   const std::string &data_path) {
+int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
   // Load data file
   matx_t data;
   if (csv2mat(data_path, true, data) != 0) {
@@ -404,7 +402,13 @@ int aprilgrid_load(aprilgrid_t &grid,
 aprilgrid_detector_t::aprilgrid_detector_t() {
   detector.thisTagFamily.blackBorder = 2;
   ASSERT(detector.thisTagFamily.blackBorder == 2,
-         "detector.thisTagFamily.blackBorder not editable!");
+         "detector.thisTagFamily.blackBorder not configured!");
+  /**
+   * If the above failed that means the installed AprilTag library was not
+   * patched such that AprilTags::TagDetector.blackBorder is configurable. This
+   * needs to be set to 2 because else the AprilTags in an AprilGrid will not
+   * be detectable, due to the black squares in-between the individual tags.
+   */
 }
 
 aprilgrid_detector_t::aprilgrid_detector_t(const int tag_rows,
@@ -415,7 +419,13 @@ aprilgrid_detector_t::aprilgrid_detector_t(const int tag_rows,
       tag_spacing{tag_spacing} {
   detector.thisTagFamily.blackBorder = 2;
   ASSERT(detector.thisTagFamily.blackBorder == 2,
-         "detector.thisTagFamily.blackBorder not editable!");
+         "detector.thisTagFamily.blackBorder not configured!");
+  /**
+   * If the above failed that means the installed AprilTag library was not
+   * patched such that AprilTags::TagDetector.blackBorder is configurable. This
+   * needs to be set to 2 because else the AprilTags in an AprilGrid will not
+   * be detectable, due to the black squares in-between the individual tags.
+   */
 }
 
 aprilgrid_detector_t::~aprilgrid_detector_t() {}
@@ -483,7 +493,7 @@ aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &det,
 
   // Extract tags
   std::vector<AprilTags::TagDetection> tags =
-    det.detector.extractTags(image_gray);
+      det.detector.extractTags(image_gray);
   aprilgrid_detector_filter_tags(det, image, tags);
   std::sort(tags.begin(), tags.end(), sort_apriltag_by_id);
 
@@ -514,6 +524,5 @@ aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &det,
   aprilgrid_calc_relative_pose(grid, cam_K, cam_D);
   return grid;
 }
-
 
 } // namespace prototype

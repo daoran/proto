@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "prototype/dataset/kitti/raw/oxts.hpp"
+#include "prototype/munit.hpp"
 
 #ifndef TEST_KITTI_DATA
 #define TEST_KITTI_DATA                                                        \

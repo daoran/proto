@@ -4,8 +4,7 @@ namespace prototype {
 
 IMUState::IMUState() : size{15} {}
 
-IMUState::IMUState(const IMUStateConfig &config)
-      : size{15} {
+IMUState::IMUState(const IMUStateConfig &config) : size{15} {
   // clang-format off
   // Set estimate covariance matrix
   vecx_t init_var = zeros(15, 1);
@@ -26,7 +25,9 @@ IMUState::IMUState(const IMUStateConfig &config)
   // clang-format on
 }
 
-matx_t IMUState::F(const vec3_t &w_hat, const vec4_t &q_hat, const vec3_t &a_hat) {
+matx_t IMUState::F(const vec3_t &w_hat,
+                   const vec4_t &q_hat,
+                   const vec3_t &a_hat) {
   matx_t F = zeros(15);
 
   // -- First row block --

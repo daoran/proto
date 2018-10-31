@@ -20,13 +20,13 @@ int test_CameraMotion_constructor() {
 
 int test_CameraMotion_update() {
   const std::vector<vec3_t> pos_points{vec3_t{0.0, 0.0, 0.0},
-                                     vec3_t{0.0, 3.0, 0.0},
-                                     vec3_t{10.0, -10.0, 0.0},
-                                     vec3_t{5.0, 0.0, 0.0}};
+                                       vec3_t{0.0, 3.0, 0.0},
+                                       vec3_t{10.0, -10.0, 0.0},
+                                       vec3_t{5.0, 0.0, 0.0}};
   const std::vector<vec3_t> att_points{vec3_t{0.0, 0.0, 0.0},
-                                     vec3_t{0.0, 0.0, 0.25},
-                                     vec3_t{0.0, 0.0, 0.75},
-                                     vec3_t{0.0, 0.0, 1.0}};
+                                       vec3_t{0.0, 0.0, 0.25},
+                                       vec3_t{0.0, 0.0, 0.75},
+                                       vec3_t{0.0, 0.0, 1.0}};
 
   // Setup camera motion
   const double time_dt = 0.01;

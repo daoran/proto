@@ -23,10 +23,11 @@ waypoint_t waypoint_setup(const double latitude,
   return wp;
 }
 
-double waypoint_distance(const waypoint_t &wp_a,
-                         const waypoint_t &wp_b) {
-  return latlon_dist(wp_a.latitude, wp_a.longitude,
-                     wp_b.latitude, wp_b.longitude);
+double waypoint_distance(const waypoint_t &wp_a, const waypoint_t &wp_b) {
+  return latlon_dist(wp_a.latitude,
+                     wp_a.longitude,
+                     wp_b.latitude,
+                     wp_b.longitude);
 }
 
 std::ostream &operator<<(std::ostream &out, const waypoint_t &wp) {
@@ -62,10 +63,12 @@ int wp_mission_configure(wp_mission_t &m, const std::string &config_file) {
   }
 
   // Load waypoints
-  if (wp_type == "GPS" && wp_mission_load_waypoints(m, wp_data, GPS_WAYPOINTS) != 0) {
+  if (wp_type == "GPS" &&
+      wp_mission_load_waypoints(m, wp_data, GPS_WAYPOINTS) != 0) {
     LOG_ERROR("Failed to load GPS waypoints!");
     return -1;
-  } else if (wp_type == "LOCAL" && wp_mission_load_waypoints(m, wp_data, LOCAL_WAYPOINTS) != 0) {
+  } else if (wp_type == "LOCAL" &&
+             wp_mission_load_waypoints(m, wp_data, LOCAL_WAYPOINTS) != 0) {
     LOG_ERROR("Failed to load local waypoints!");
     return -1;
   } else if (wp_type != "GPS" && wp_type != "LOCAL") {

@@ -5,8 +5,8 @@
 #ifndef PROTOTYPE_IMU_MPU6050_HPP
 #define PROTOTYPE_IMU_MPU6050_HPP
 
-#include <time.h>
 #include <math.h>
+#include <time.h>
 
 #include <iostream>
 
@@ -157,23 +157,23 @@ struct mpu6050_t {
 };
 
 /**
-  * Configure
-  *
-  * @param config_file Path to configuration file
-  * @returns 0 for success, -1 for failure
-  */
+ * Configure
+ *
+ * @param config_file Path to configuration file
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_configure(mpu6050_t &imu, const std::string &config_file);
 
 /**
-  * Ping
-  * @returns 0 for success, -1 for failure
-  */
+ * Ping
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_ping(const mpu6050_t &imu);
 
 /**
-  * Get IMU data
-  * @returns 0 for success, -1 for failure
-  */
+ * Get IMU data
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_get_data(mpu6050_t &imu);
 
 /**
@@ -209,25 +209,25 @@ int mpu6050_get_data(mpu6050_t &imu);
 int mpu6050_set_dplf(const mpu6050_t &imu, const int setting);
 
 /**
-  * Get DPLF
-  *
-  * @returns 0 for success, -1 for failure
-  */
+ * Get DPLF
+ *
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_get_dplf(const mpu6050_t &imu);
 
 /**
-  * Set sample rate division
-  *
-  * @param setting
-  * @returns 0 for success, -1 for failure
-  */
+ * Set sample rate division
+ *
+ * @param setting
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_set_sample_rate_div(const mpu6050_t &imu, const int setting);
 
 /**
-  * Get sample rate division
-  *
-  * @returns 0 for success, -1 for failure
-  */
+ * Get sample rate division
+ *
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_get_sample_rate_div(const mpu6050_t &imu);
 
 /**
@@ -238,32 +238,32 @@ int mpu6050_get_sample_rate_div(const mpu6050_t &imu);
 int mpu6050_get_sample_rate(const mpu6050_t &imu);
 
 /**
-  * Set gyro range
-  *
-  * @returns 0 for success, -1 for failure
-  */
+ * Set gyro range
+ *
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_set_gyro_range(const mpu6050_t &imu, const int setting);
 
 /**
-  * Set gyro range
-  *
-  * @returns 0 for success, -1 for failure
-  */
+ * Set gyro range
+ *
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_get_gyro_range(const mpu6050_t &imu);
 
 /**
-  * Set accelerometer range
-  *
-  * @param setting
-  * @returns 0 for success, -1 for failure
-  */
+ * Set accelerometer range
+ *
+ * @param setting
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_set_accel_range(const mpu6050_t &imu, const int setting);
 
 /**
-  * Get accelerometer range
-  *
-  * @returns 0 for success, -1 for failure
-  */
+ * Get accelerometer range
+ *
+ * @returns 0 for success, -1 for failure
+ */
 int mpu6050_get_accel_range(const mpu6050_t &imu);
 
 /**

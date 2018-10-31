@@ -8,10 +8,10 @@
 #include <float.h>
 #include <iostream>
 
-#include "prototype/core.hpp"
 #include "prototype/control/att_ctrl.hpp"
 #include "prototype/control/pos_ctrl.hpp"
 #include "prototype/control/wp_ctrl.hpp"
+#include "prototype/core.hpp"
 
 namespace prototype {
 /**
@@ -66,13 +66,13 @@ int mav_model_update(mav_model_t &qm,
 // int mav_model_update(const double dt);
 
 /**
-  * Set mav attitude controller setpoints
-  *
-  * @param roll Roll
-  * @param pitch Pitch
-  * @param yaw Yaw
-  * @param z Thrust
-  */
+ * Set mav attitude controller setpoints
+ *
+ * @param roll Roll
+ * @param pitch Pitch
+ * @param yaw Yaw
+ * @param z Thrust
+ */
 void mav_model_set_attitude(mav_model_t &qm,
                             const double roll,
                             const double pitch,
@@ -80,16 +80,15 @@ void mav_model_set_attitude(mav_model_t &qm,
                             const double z);
 
 /**
-  * Set mav position controller setpoints
-  *
-  * @param p_G Position in global frame
-  */
-void mav_model_set_position(mav_model_t &qm,
-                            const vec3_t &p_G);
+ * Set mav position controller setpoints
+ *
+ * @param p_G Position in global frame
+ */
+void mav_model_set_position(mav_model_t &qm, const vec3_t &p_G);
 
 /**
-  * Print state
-  */
+ * Print state
+ */
 void mav_model_print(mav_model_t &qm);
 
 /** @} group model */

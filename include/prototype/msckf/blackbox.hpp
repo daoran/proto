@@ -5,9 +5,9 @@
 #ifndef PROTOTYPE_VISION_MSCKF_BLACKBOX_HPP
 #define PROTOTYPE_VISION_MSCKF_BLACKBOX_HPP
 
-#include <string>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <string>
 
 #include "prototype/core.hpp"
 #include "prototype/msckf/msckf.hpp"

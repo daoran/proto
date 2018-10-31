@@ -7,10 +7,8 @@ GimbalMotion::GimbalMotion() {}
 GimbalMotion::GimbalMotion(const std::vector<vec2_t> &joint_setpoints,
                            const double time_dt,
                            const double time_end)
-    : joint_setpoints{joint_setpoints},
-      time_dt{time_dt}, time_end{time_end},
-      bezier_dt{time_dt / time_end},
-      scale{bezier_dt / time_dt} {
+    : joint_setpoints{joint_setpoints}, time_dt{time_dt}, time_end{time_end},
+      bezier_dt{time_dt / time_end}, scale{bezier_dt / time_dt} {
   this->update();
 }
 

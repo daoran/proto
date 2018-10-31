@@ -46,9 +46,9 @@ public:
    * @returns Observed features in the image plane
    */
   matx_t observedFeatures(const matx_t &features,
-                        const vec3_t &rpy_G,
-                        const vec3_t &t_G,
-                        std::vector<int> &feature_ids);
+                          const vec3_t &rpy_G,
+                          const vec3_t &t_G,
+                          std::vector<int> &feature_ids);
 };
 
 /**
@@ -96,9 +96,9 @@ public:
    * @returns Observed features in the image plane
    */
   matx_t observedFeatures(const matx_t &features,
-                        const vec3_t &rpy_G,
-                        const vec3_t &t_G,
-                        std::vector<int> &feature_ids);
+                          const vec3_t &rpy_G,
+                          const vec3_t &t_G,
+                          std::vector<int> &feature_ids);
 
   /**
    * Set gimbal attitude

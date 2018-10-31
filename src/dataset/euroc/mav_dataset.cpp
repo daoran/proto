@@ -56,7 +56,8 @@ int mav_dataset_load(mav_dataset_t &ds) {
   ds.image_size = cv::Size(image.size());
 
   // Load ground truth
-  ds.ground_truth = ground_truth_t{ds.data_path + "/state_groundtruth_estimate0"};
+  ds.ground_truth =
+      ground_truth_t{ds.data_path + "/state_groundtruth_estimate0"};
   if (ground_truth_load(ds.ground_truth) != 0) {
     LOG_ERROR("Failed to load ground truth!");
     return -1;

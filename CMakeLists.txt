@@ -24,8 +24,7 @@ ADD_LIBRARY(
   ${PROJECT_NAME}
   # calib
   src/calib/aprilgrid.cpp
-  src/calib/calib_data.cpp
-  src/calib/calib_target.cpp
+  src/calib/calib.cpp
   src/calib/gimbal_calib.cpp
   src/calib/chessboard.cpp
   # control
@@ -114,7 +113,7 @@ FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   calib-aprilgrid_test
-  calib-calib_data_test
+  calib-calib_test
   # control-carrot_ctrl_test
   control-mission_test
   control-pid_test

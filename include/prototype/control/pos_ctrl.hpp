@@ -5,8 +5,8 @@
 #ifndef PROTOTYPE_CONTROL_POS_CTRL_HPP
 #define PROTOTYPE_CONTROL_POS_CTRL_HPP
 
-#include "prototype/core.hpp"
 #include "prototype/control/pid.hpp"
+#include "prototype/core.hpp"
 
 namespace prototype {
 /**
@@ -39,29 +39,28 @@ struct pos_ctrl_t {
  *
  * @returns 0 or -1 for success or failure
  */
-int pos_ctrl_configure(pos_ctrl_t &pc,
-                       const std::string &config_file);
+int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file);
 
 /**
-  * Update position control
-  *
-  * @param[in,out] pc Position control
-  * @param[in] setpoints Setpoints (x, y, z)
-  * @param[in] actual Actual (x, y, z)
-  * @param[in] yaw (radians)
-  * @param[in] dt Time difference (s)
-  *
-  * @returns Attitude command (roll, pitch, yaw, thrust)
-  */
+ * Update position control
+ *
+ * @param[in,out] pc Position control
+ * @param[in] setpoints Setpoints (x, y, z)
+ * @param[in] actual Actual (x, y, z)
+ * @param[in] yaw (radians)
+ * @param[in] dt Time difference (s)
+ *
+ * @returns Attitude command (roll, pitch, yaw, thrust)
+ */
 vec4_t pos_ctrl_update(pos_ctrl_t &pc,
-                     const vec3_t &setpoints,
-                     const vec4_t &actual,
-                     const double yaw,
-                     const double dt);
+                       const vec3_t &setpoints,
+                       const vec4_t &actual,
+                       const double yaw,
+                       const double dt);
 
 /**
-  * Reset position control
-  */
+ * Reset position control
+ */
 void pos_ctrl_reset(pos_ctrl_t &pc);
 
 /** @} group control */

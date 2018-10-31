@@ -53,9 +53,8 @@ struct camera_geometry_t {
 template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
 camera_geometry_t<CAMERA_MODEL, DISTORTION_MODEL>::camera_geometry_t(
     const CAMERA_MODEL &camera_model_,
-    const DISTORTION_MODEL &distortion_model_) :
-  camera_model{camera_model_},
-  distortion_model{distortion_model_} {}
+    const DISTORTION_MODEL &distortion_model_)
+    : camera_model{camera_model_}, distortion_model{distortion_model_} {}
 
 template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
 camera_geometry_t<CAMERA_MODEL, DISTORTION_MODEL>::~camera_geometry_t() {}

@@ -41,11 +41,11 @@ struct imu_data_t {
 };
 
 /**
-  * Load IMU data
-  *
-  * @param data_dir IMU data directory
-  * @returns 0 for success, -1 for failure
-  */
+ * Load IMU data
+ *
+ * @param data_dir IMU data directory
+ * @returns 0 for success, -1 for failure
+ */
 int imu_data_load(imu_data_t &data);
 
 /**

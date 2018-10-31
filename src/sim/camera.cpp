@@ -15,9 +15,9 @@ VirtualCamera::VirtualCamera(const int image_width,
 VirtualCamera::~VirtualCamera() {}
 
 matx_t VirtualCamera::observedFeatures(const matx_t &features,
-                                     const vec3_t &rpy_G,
-                                     const vec3_t &t_G,
-                                     std::vector<int> &mask) {
+                                       const vec3_t &rpy_G,
+                                       const vec3_t &t_G,
+                                       std::vector<int> &mask) {
   // Rotation matrix
   // Convert from Global frame NWU to Camera frame EDN
   // NWU: (x - forward, y - left, z - up)
@@ -93,9 +93,9 @@ VirtualStereoCamera::VirtualStereoCamera(const int image_width,
 VirtualStereoCamera::~VirtualStereoCamera() {}
 
 matx_t VirtualStereoCamera::observedFeatures(const matx_t &features,
-                                           const vec3_t &rpy_BG,
-                                           const vec3_t &t_G_B,
-                                           std::vector<int> &mask) {
+                                             const vec3_t &rpy_BG,
+                                             const vec3_t &t_G_B,
+                                             std::vector<int> &mask) {
   // Build transform from global to body frame
   const mat3_t R_BG = euler123ToRot(rpy_BG);
   const mat4_t T_BG = transformation_matrix(R_BG, -R_BG * t_G_B);

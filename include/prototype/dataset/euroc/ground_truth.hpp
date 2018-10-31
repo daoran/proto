@@ -6,8 +6,8 @@
 #ifndef PROTOTYPE_VISION_DATASET_EUROC_GROUND_TRUTH_HPP
 #define PROTOTYPE_VISION_DATASET_EUROC_GROUND_TRUTH_HPP
 
-#include <vector>
 #include "prototype/core.hpp"
+#include <vector>
 
 namespace prototype {
 /**

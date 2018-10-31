@@ -1,13 +1,12 @@
-#include "prototype/munit.hpp"
-#include "prototype/core.hpp"
-#include "dataset/kitti/kitti.hpp"
 #include "dataset/euroc/mav_dataset.hpp"
-#include "msckf/gmsckf.hpp"
-#include "msckf/blackbox.hpp"
+#include "dataset/kitti/kitti.hpp"
 #include "feature2d/klt_tracker.hpp"
 #include "feature2d/orb_tracker.hpp"
+#include "msckf/blackbox.hpp"
+#include "msckf/gmsckf.hpp"
+#include "prototype/core.hpp"
+#include "prototype/munit.hpp"
 #include "sim/world.hpp"
-
 
 namespace prototype {
 
@@ -342,7 +341,7 @@ int test_GMSCKF_residualizeTrack() {
   // Setup MSCKF
   GMSCKF gmsckf;
   gmsckf.gimbal_model.tau_s << -0.045, -0.085, 0.080, 0.0, 0.0, 0.0;
-  gmsckf.gimbal_model.tau_d << 0.01, 0.0, -0.03, 1.5707,  0.0, -1.5707;
+  gmsckf.gimbal_model.tau_d << 0.01, 0.0, -0.03, 1.5707, 0.0, -1.5707;
   gmsckf.gimbal_model.w1 << 0.045, 0.0, 1.5707;
   gmsckf.gimbal_model.w2 << 0.0, 0.0, 0.0;
   gmsckf.gimbal_model.theta1_offset = -1.5707;
@@ -441,11 +440,11 @@ int test_GMSCKF_calcResiduals() {
   // -- Create a feature track1
   const vec3_t p_G_f0{0.0, 0.0, 10.0};
   vec2_t pt0 = pinhole_model.project(p_G_f0,
-                                   C(gmsckf.cam_states[0].q_CG),
-                                   gmsckf.cam_states[0].p_G);
+                                     C(gmsckf.cam_states[0].q_CG),
+                                     gmsckf.cam_states[0].p_G);
   vec2_t pt1 = pinhole_model.project(p_G_f0,
-                                   C(gmsckf.cam_states[1].q_CG),
-                                   gmsckf.cam_states[1].p_G);
+                                     C(gmsckf.cam_states[1].q_CG),
+                                     gmsckf.cam_states[1].p_G);
   pt0 = pinhole_pixel2ideal(K, pt0);
   pt1 = pinhole_pixel2ideal(K, pt1);
   Feature f0{pt0};
@@ -454,11 +453,11 @@ int test_GMSCKF_calcResiduals() {
   // -- Create a feature track2
   const vec3_t p_G_f1{1.0, 1.0, 10.0};
   vec2_t pt2 = pinhole_model.project(p_G_f1,
-                                   C(gmsckf.cam_states[0].q_CG),
-                                   gmsckf.cam_states[0].p_G);
+                                     C(gmsckf.cam_states[0].q_CG),
+                                     gmsckf.cam_states[0].p_G);
   vec2_t pt3 = pinhole_model.project(p_G_f1,
-                                   C(gmsckf.cam_states[1].q_CG),
-                                   gmsckf.cam_states[1].p_G);
+                                     C(gmsckf.cam_states[1].q_CG),
+                                     gmsckf.cam_states[1].p_G);
   pt2 = pinhole_pixel2ideal(K, pt0);
   pt3 = pinhole_pixel2ideal(K, pt1);
   Feature f2{pt2};

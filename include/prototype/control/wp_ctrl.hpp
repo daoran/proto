@@ -10,9 +10,9 @@
 #include <libgen.h>
 #include <vector>
 
-#include "prototype/core.hpp"
-#include "prototype/control/pid.hpp"
 #include "prototype/control/mission.hpp"
+#include "prototype/control/pid.hpp"
+#include "prototype/core.hpp"
 
 namespace prototype {
 /**
@@ -52,20 +52,20 @@ struct wp_ctrl_t {
 int wp_ctrl_configure(wp_ctrl_t &wc, const std::string &config_file);
 
 /**
-  * Update controller
-  *
-  * @param[in,out] wc Waypoint controller
-  * @param[in,out] m Mission
-  * @param[in] p_G Actual position in global frame
-  * @param[in] v_G Actual velocity in global frame
-  * @param[in] rpy_G Actual roll, pitch and yaw in global frame
-  * @param[in] dt Time difference in seconds
-  *
-  * @return
-  *   - 0: Success
-  *   - -1: Not configured
-  *   - -2: No more waypoints
-  */
+ * Update controller
+ *
+ * @param[in,out] wc Waypoint controller
+ * @param[in,out] m Mission
+ * @param[in] p_G Actual position in global frame
+ * @param[in] v_G Actual velocity in global frame
+ * @param[in] rpy_G Actual roll, pitch and yaw in global frame
+ * @param[in] dt Time difference in seconds
+ *
+ * @return
+ *   - 0: Success
+ *   - -1: Not configured
+ *   - -2: No more waypoints
+ */
 int wp_ctrl_update(wp_ctrl_t &wc,
                    wp_mission_t &m,
                    const vec3_t &p_G,

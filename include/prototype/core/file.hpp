@@ -8,8 +8,8 @@
 
 #include <dirent.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <iostream>
 #include <numeric>
@@ -119,9 +119,8 @@ std::vector<std::string> path_split(const std::string path);
  * @param path2 Path 22
  * @returns Combined path
  */
-std::string paths_combine(const std::string path1,
-                          const std::string path2);
+std::string paths_combine(const std::string path1, const std::string path2);
 
 /** @} group file */
-} // end of libr namepsace
+} // namespace prototype
 #endif // PROTOTYPE_CORE_FILE_HPP

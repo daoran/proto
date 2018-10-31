@@ -5,15 +5,15 @@
 #ifndef PROTOTYPE_VISION_MSCKF_FEATURE_ESTIMATOR_HPP
 #define PROTOTYPE_VISION_MSCKF_FEATURE_ESTIMATOR_HPP
 
-#include <cmath>
 #include <cfloat>
+#include <cmath>
 
 #include <ceres/ceres.h>
 
 #include "prototype/core.hpp"
 #include "prototype/core/quaternion/jpl.hpp"
-#include "prototype/msckf/msckf.hpp"
 #include "prototype/model/gimbal.hpp"
+#include "prototype/msckf/msckf.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 
 namespace prototype {
@@ -37,9 +37,9 @@ namespace prototype {
  * @returns Estimated feature position
  */
 vec3_t lls_triangulation(const vec3_t &u1,
-                       const mat34_t &P1,
-                       const vec3_t &u2,
-                       const mat34_t &P2);
+                         const mat34_t &P1,
+                         const vec3_t &u2,
+                         const mat34_t &P2);
 
 /**
  * Linear Least Squares Triangulation
@@ -50,7 +50,9 @@ vec3_t lls_triangulation(const vec3_t &u1,
  *
  * @returns Estimated feature position
  */
-vec3_t lls_triangulation(const vec2_t &z1, const vec2_t &z2, const mat4_t T_C1_C0);
+vec3_t lls_triangulation(const vec2_t &z1,
+                         const vec2_t &z2,
+                         const mat4_t T_C1_C0);
 
 /**
  * Linear Least Squares Triangulation
@@ -63,9 +65,9 @@ vec3_t lls_triangulation(const vec2_t &z1, const vec2_t &z2, const mat4_t T_C1_C
  * @returns Estimated feature position
  */
 vec3_t lls_triangulation(const vec2_t &z1,
-                       const vec2_t &z2,
-                       const mat3_t &C_C0C1,
-                       const vec3_t &t_C0_C0C1);
+                         const vec2_t &z2,
+                         const mat3_t &C_C0C1,
+                         const vec3_t &t_C0_C0C1);
 
 /**
  * Triangulate monocular feature tracks

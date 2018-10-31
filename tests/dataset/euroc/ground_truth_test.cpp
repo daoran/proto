@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "prototype/dataset/euroc/ground_truth.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 
@@ -39,6 +39,6 @@ void test_suite() {
   MU_ADD_TEST(test_ground_truth_constructor);
   MU_ADD_TEST(test_ground_truth_load);
 }
-}
+} // namespace prototype
 
 MU_RUN_TESTS(prototype::test_suite);

@@ -34,7 +34,8 @@ struct uart_t {
   int blocking = 1;
 
   uart_t() {}
-  uart_t(const std::string &port_, const int speed_) : port{port_}, speed{speed_} {}
+  uart_t(const std::string &port_, const int speed_)
+      : port{port_}, speed{speed_} {}
 };
 
 /**

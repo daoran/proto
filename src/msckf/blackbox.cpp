@@ -234,7 +234,6 @@ int BlackBox::recordCameraStates(const std::vector<double> time,
   return 0;
 }
 
-
 int BlackBox::recordTimeStep(const double time,
                              const MSCKF &msckf,
                              const vec3_t &mea_a_B,

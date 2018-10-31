@@ -70,14 +70,13 @@ waypoint_t waypoint_setup(const double latitude,
                           const double heading);
 
 /**
-  * Calculate distance away from another waypoint
-  *
-  * @param[in] wp_a 1st Waypoint to calculate distance away from
-  * @param[in] wp_b 2nd Waypoint to calculate distance away to
-  * @return Distance between waypoint `wp_a` and waypoint `wp_b`
-  */
-double waypoint_distance(const waypoint_t &wp_a,
-                         const waypoint_t &wp_b);
+ * Calculate distance away from another waypoint
+ *
+ * @param[in] wp_a 1st Waypoint to calculate distance away from
+ * @param[in] wp_b 2nd Waypoint to calculate distance away to
+ * @return Distance between waypoint `wp_a` and waypoint `wp_b`
+ */
+double waypoint_distance(const waypoint_t &wp_a, const waypoint_t &wp_b);
 
 /**
  * Waypoint to output stream
@@ -118,8 +117,7 @@ struct wp_mission_t {
  *    - -1: failure to load / parse configuration file
  *    - -2: invalid GPS waypoints
  */
-int wp_mission_configure(wp_mission_t &m,
-                         const std::string &config_file);
+int wp_mission_configure(wp_mission_t &m, const std::string &config_file);
 
 /**
  * Load GPS waypoints
@@ -211,8 +209,8 @@ double wp_mission_waypoint_heading(const wp_mission_t &m);
  * @param[in] r Lookahead distance in meters
  */
 vec3_t wp_mission_waypoint_interpolate(const wp_mission_t &m,
-                                     const vec3_t &p_G,
-                                     const double r);
+                                       const vec3_t &p_G,
+                                       const double r);
 
 /**
  * Check whether waypoint is reached
@@ -224,8 +222,7 @@ vec3_t wp_mission_waypoint_interpolate(const wp_mission_t &m,
  *    - 1: Waypoint reached
  *    - -1: Not configured
  */
-int wp_mission_waypoint_reached(const wp_mission_t &m,
-                                const vec3_t &p_G);
+int wp_mission_waypoint_reached(const wp_mission_t &m, const vec3_t &p_G);
 
 /**
  * Update waypoint
@@ -238,9 +235,7 @@ int wp_mission_waypoint_reached(const wp_mission_t &m,
  *   - -1: Not configured
  *   - -2: No more waypoints
  */
-int wp_mission_update(wp_mission_t &m,
-                      const vec3_t &p_G,
-                      vec3_t &waypoint);
+int wp_mission_update(wp_mission_t &m, const vec3_t &p_G, vec3_t &waypoint);
 
 /** @} group control */
 } //  namespace prototype

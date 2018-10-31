@@ -5,14 +5,14 @@
 #ifndef PROTOTYPE_VISION_FEATURE2D_GRID_FAST_HPP
 #define PROTOTYPE_VISION_FEATURE2D_GRID_FAST_HPP
 
+#include <cstring>
 #include <math.h>
 #include <vector>
-#include <cstring>
 
-#include <opencv2/opencv.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "prototype/core.hpp"
 

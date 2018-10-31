@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "calibration/chessboard.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 

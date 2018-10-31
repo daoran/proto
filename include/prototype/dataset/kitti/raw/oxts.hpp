@@ -7,9 +7,9 @@
 #define PROTOTYPE_DATASET_KITTI_RAW_OXTS_HPP
 
 #include <algorithm>
-#include <vector>
-#include <string>
 #include <chrono>
+#include <string>
+#include <vector>
 
 #include "prototype/core.hpp"
 #include "prototype/dataset/kitti/raw/parse.hpp"
@@ -43,11 +43,11 @@ struct oxts_entry_t {
 };
 
 /**
-  * Load OXTS entry
-  *
-  * @param file_path File path to a single OXTS data
-  * @returns 0 for success, -1 for failure
-  */
+ * Load OXTS entry
+ *
+ * @param file_path File path to a single OXTS data
+ * @returns 0 for success, -1 for failure
+ */
 int oxts_entry_load(oxts_entry_t &entry);
 
 /**

@@ -3,9 +3,9 @@
 namespace prototype {
 
 vec3_t lls_triangulation(const vec3_t &u1,
-                       const mat34_t &P1,
-                       const vec3_t &u2,
-                       const mat34_t &P2) {
+                         const mat34_t &P1,
+                         const vec3_t &u2,
+                         const mat34_t &P2) {
   // Build matrix A for homogenous equation system Ax = 0, assume X = (x,y,z,1),
   // for Linear-LS method which turns it into a AX = B system, where:
   // - A is 4x3,
@@ -33,9 +33,9 @@ vec3_t lls_triangulation(const vec3_t &u1,
 }
 
 vec3_t lls_triangulation(const vec2_t &z1,
-                       const vec2_t &z2,
-                       const mat3_t &C_C0C1,
-                       const vec3_t &t_C0_C0C1) {
+                         const vec2_t &z2,
+                         const mat3_t &C_C0C1,
+                         const vec3_t &t_C0_C0C1) {
   // Triangulate
   // -- Matrix A
   matx_t A = zeros(3, 2);
@@ -53,7 +53,9 @@ vec3_t lls_triangulation(const vec2_t &z1,
   return p_C0_f;
 }
 
-vec3_t lls_triangulation(const vec2_t &z1, const vec2_t &z2, const mat4_t T_C1_C0) {
+vec3_t lls_triangulation(const vec2_t &z1,
+                         const vec2_t &z2,
+                         const mat4_t T_C1_C0) {
   const mat3_t C_C1C0 = T_C1_C0.block(0, 0, 3, 3);
   const vec3_t t_C0_C1C0 = T_C1_C0.block(0, 3, 3, 1);
   const vec3_t m = C_C1C0 * z1.homogeneous();
@@ -214,7 +216,8 @@ FeatureEstimator::FeatureEstimator(const FeatureTrack &track,
 FeatureEstimator::FeatureEstimator(const FeatureTrack &track,
                                    const CameraStates &track_cam_states,
                                    const GimbalModel &gimbal_model)
-    : track{track}, track_cam_states{track_cam_states}, gimbal_model{gimbal_model} {}
+    : track{track}, track_cam_states{track_cam_states}, gimbal_model{
+                                                            gimbal_model} {}
 
 int FeatureEstimator::triangulate(const vec2_t &z1,
                                   const vec2_t &z2,
@@ -342,7 +345,8 @@ int FeatureEstimator::initialEstimate(vec3_t &p_C0_f) {
                p_C0_f(2));
     }
 
-    // std::cout << "ground_truth: " << this->track.track0.front().ground_truth.transpose() << std::endl;
+    // std::cout << "ground_truth: " <<
+    // this->track.track0.front().ground_truth.transpose() << std::endl;
     // std::cout << "p_C0_f: " << p_C0_f.transpose() << std::endl;
     // std::cout << "z1: " << z1.transpose() << std::endl;
     // std::cout << "z2: " << z2.transpose() << std::endl;
@@ -396,8 +400,8 @@ void FeatureEstimator::transformEstimate(const double alpha,
 }
 
 vec2_t FeatureEstimator::residual(const mat4_t &T_Ci_C0,
-                                const vec2_t &z,
-                                const vec3_t &x) {
+                                  const vec2_t &z,
+                                  const vec3_t &x) {
   // Project estimated feature location to image plane
   // -- Inverse depth params
   const double alpha = x(0);
@@ -438,11 +442,11 @@ matx_t FeatureEstimator::jacobian(const mat4_t &T_Ci_C0, const vecx_t &x) {
   const double hy_div_hz2 = (h(1) / pow(h(2), 2));
 
   const vec2_t drdalpha{-C_CiC0(0, 0) / h(2) + hx_div_hz2 * C_CiC0(2, 0),
-                      -C_CiC0(1, 0) / h(2) + hy_div_hz2 * C_CiC0(2, 0)};
+                        -C_CiC0(1, 0) / h(2) + hy_div_hz2 * C_CiC0(2, 0)};
   const vec2_t drdbeta{-C_CiC0(0, 1) / h(2) + hx_div_hz2 * C_CiC0(2, 1),
-                     -C_CiC0(1, 1) / h(2) + hy_div_hz2 * C_CiC0(2, 1)};
+                       -C_CiC0(1, 1) / h(2) + hy_div_hz2 * C_CiC0(2, 1)};
   const vec2_t drdrho{-t_C0_CiC0(0) / h(2) + hx_div_hz2 * t_C0_CiC0(2),
-                    -t_C0_CiC0(1) / h(2) + hy_div_hz2 * t_C0_CiC0(2)};
+                      -t_C0_CiC0(1) / h(2) + hy_div_hz2 * t_C0_CiC0(2)};
 
   // Fill in the jacobian
   matx_t J = zeros(2, 3);
@@ -676,18 +680,19 @@ void CeresFeatureEstimator::addResidualBlock(const vec2_t &kp,
     // Add residual block to problem
     this->problem.AddResidualBlock(cost_func, // Cost function
                                    NULL,      // Loss function
-                                   x); // Optimization parameters
+                                   x);        // Optimization parameters
 
   } else if (this->method == "AUTODIFF") {
     // Build residual
     auto residual = new AutoDiffReprojectionError(C_CiC0, t_Ci_CiC0, kp);
 
     // Build cost and loss function
-    auto cost_func = new ceres::AutoDiffCostFunction<
-        AutoDiffReprojectionError, // Residual
-        2,                         // Size of residual
-        3                          // Size of 1st parameter - inverse depth
-        >(residual);
+    auto cost_func =
+        new ceres::AutoDiffCostFunction<AutoDiffReprojectionError, // Residual
+                                        2, // Size of residual
+                                        3  // Size of 1st parameter - inverse
+                                           // depth
+                                        >(residual);
 
     // Add residual block to problem
     this->problem.AddResidualBlock(cost_func, // Cost function
@@ -712,7 +717,6 @@ int CeresFeatureEstimator::setupProblem() {
   /*   #<{(| exit(0); |)}># */
   /*   return -1; */
   /* } */
-
 
   // Create inverse depth params (these are to be optimized)
   this->x[0] = p_C0_f(0) / p_C0_f(2); // Alpha
@@ -740,8 +744,8 @@ int CeresFeatureEstimator::setupProblem() {
                              C_CiC0,
                              t_Ci_CiC0,
                              this->x);
-    } else if (this->track.type == STATIC_STEREO_TRACK
-               || this->track.type == DYNAMIC_STEREO_TRACK) {
+    } else if (this->track.type == STATIC_STEREO_TRACK ||
+               this->track.type == DYNAMIC_STEREO_TRACK) {
       this->addResidualBlock(this->track.track0[i].getKeyPoint(),
                              C_CiC0,
                              t_Ci_CiC0,
@@ -763,7 +767,8 @@ int CeresFeatureEstimator::estimate(vec3_t &p_G_f) {
   this->options.minimizer_progress_to_stdout = false;
 
   /* // Cheat by using ground truth data */
-  /* if (this->track.track0[0].ground_truth.isApprox(vec3_t::Zero()) == false) { */
+  /* if (this->track.track0[0].ground_truth.isApprox(vec3_t::Zero()) == false) {
+   */
   /*   p_G_f = this->track.track0[0].ground_truth; */
   /*   return 0; */
   /* } */
@@ -788,8 +793,8 @@ int CeresFeatureEstimator::estimate(vec3_t &p_G_f) {
 
   // const double pos_norm = pos_diff.norm();
   // if (pos_norm < 0.1) {
-  //   const vec3_t X{this->x[0] / this->x[2], this->x[1] / this->x[2], 1.0 / this->x[2]};
-  //   if (X(2) > 10.0) {
+  //   const vec3_t X{this->x[0] / this->x[2], this->x[1] / this->x[2], 1.0 /
+  //   this->x[2]}; if (X(2) > 10.0) {
   //     LOG_WARN("Bad p_C0_f: [%.2f, %.2f, %.2f]", X(0), X(1), X(2));
   //     return -2;
   //   }

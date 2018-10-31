@@ -5,24 +5,24 @@
 #ifndef PROTOTYPE_VISION_MSCKF_GMSCKF_HPP
 #define PROTOTYPE_VISION_MSCKF_GMSCKF_HPP
 
-#include <vector>
 #include <algorithm>
 #include <chrono>
 #include <random>
+#include <vector>
 
-#include <Eigen/SVD>
 #include <Eigen/QR>
-#include <Eigen/SparseCore>
 #include <Eigen/SPQRSupport>
+#include <Eigen/SVD>
+#include <Eigen/SparseCore>
 #include <boost/math/distributions/chi_squared.hpp>
 
 #include "prototype/core.hpp"
 #include "prototype/core/quaternion/jpl.hpp"
 #include "prototype/vision/feature2d/feature_tracker.hpp"
 
-#include "prototype/msckf/jacobians.hpp"
 #include "prototype/msckf/camera_state.hpp"
 #include "prototype/msckf/feature_estimator.hpp"
+#include "prototype/msckf/jacobians.hpp"
 
 namespace prototype {
 /**
@@ -36,7 +36,7 @@ namespace prototype {
 class GMSCKF {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  bool rk4 = false;  ///< Runge-Kutta 4th order integration
+  bool rk4 = false; ///< Runge-Kutta 4th order integration
   const int x_imu_sz = 15;
   const int x_cam_sz = 6;
 
@@ -49,10 +49,10 @@ public:
   // IMU
   // -- State
   vec4_t q_IG = vec4_t{0.0, 0.0, 0.0, 1.0}; ///< JPL Quaternion in Global frame
-  vec3_t b_g = zeros(3, 1);               ///< Bias of gyroscope
-  vec3_t v_G = zeros(3, 1);               ///< Velocity in Global frame
-  vec3_t b_a = zeros(3, 1);               ///< Bias of accelerometer
-  vec3_t p_G = zeros(3, 1);               ///< Position in Global frame
+  vec3_t b_g = zeros(3, 1);                 ///< Bias of gyroscope
+  vec3_t v_G = zeros(3, 1);                 ///< Velocity in Global frame
+  vec3_t b_a = zeros(3, 1);                 ///< Bias of accelerometer
+  vec3_t p_G = zeros(3, 1);                 ///< Position in Global frame
   // -- IMU-Camera extrinsics
   vec4_t q_CI = vec4_t{0.0, 0.0, 0.0, 1.0};
   vec3_t p_IC = zeros(3, 1);
@@ -142,9 +142,9 @@ public:
    * @returns Jacobian J matrix
    */
   matx_t J(const vec4_t &cam_q_CI,
-         const vec3_t &cam_p_IC,
-         const vec4_t &q_hat_IG,
-         const int N);
+           const vec3_t &cam_p_IC,
+           const vec4_t &q_hat_IG,
+           const int N);
 
   /**
    * Return length of sliding window
@@ -188,7 +188,7 @@ public:
    * @param ts timestamp in nano-seconds
    * @param imu_gyro_buffer IMU gyro buffer
    * @param imu_accel_buffer IMU accel buffer
-	 *
+   *
    * @returns 0 for success, -1 for failure
    */
   int initialize(const long ts,

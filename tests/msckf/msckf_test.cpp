@@ -1,11 +1,11 @@
-#include "prototype/munit.hpp"
-#include "prototype/core.hpp"
-#include "dataset/kitti/kitti.hpp"
 #include "dataset/euroc/mav_dataset.hpp"
-#include "msckf/msckf.hpp"
-#include "msckf/blackbox.hpp"
+#include "dataset/kitti/kitti.hpp"
 #include "feature2d/klt_tracker.hpp"
 #include "feature2d/orb_tracker.hpp"
+#include "msckf/blackbox.hpp"
+#include "msckf/msckf.hpp"
+#include "prototype/core.hpp"
+#include "prototype/munit.hpp"
 #include "sim/world.hpp"
 
 #include <opencv2/core/eigen.hpp>
@@ -326,13 +326,13 @@ int test_MSCKF_residualizeTrack() {
   // -- Create 2 features
   const vec3_t p_G_f{0.0, 0.0, 10.0};
   vec2_t pt0 = pinhole_project(camera_property.K(),
-                             C(msckf.cam_states[0].q_CG),
-                             msckf.cam_states[0].p_G,
-                             p_G_f);
+                               C(msckf.cam_states[0].q_CG),
+                               msckf.cam_states[0].p_G,
+                               p_G_f);
   vec2_t pt1 = pinhole_project(camera_property.K(),
-                             C(msckf.cam_states[1].q_CG),
-                             msckf.cam_states[1].p_G,
-                             p_G_f);
+                               C(msckf.cam_states[1].q_CG),
+                               msckf.cam_states[1].p_G,
+                               p_G_f);
   pt0 = pinhole_pixel2ideal(camera_property.K(), pt0);
   pt1 = pinhole_pixel2ideal(camera_property.K(), pt1);
   Feature f0{pt0};
@@ -390,11 +390,11 @@ int test_MSCKF_calcResiduals() {
   // -- Create a feature track1
   const vec3_t p_G_f0{0.0, 0.0, 10.0};
   vec2_t pt0 = pinhole_model.project(p_G_f0,
-                                   C(msckf.cam_states[0].q_CG),
-                                   msckf.cam_states[0].p_G);
+                                     C(msckf.cam_states[0].q_CG),
+                                     msckf.cam_states[0].p_G);
   vec2_t pt1 = pinhole_model.project(p_G_f0,
-                                   C(msckf.cam_states[1].q_CG),
-                                   msckf.cam_states[1].p_G);
+                                     C(msckf.cam_states[1].q_CG),
+                                     msckf.cam_states[1].p_G);
   pt0 = pinhole_pixel2ideal(K, pt0);
   pt1 = pinhole_pixel2ideal(K, pt1);
   Feature f0{pt0};
@@ -403,11 +403,11 @@ int test_MSCKF_calcResiduals() {
   // -- Create a feature track2
   const vec3_t p_G_f1{1.0, 1.0, 10.0};
   vec2_t pt2 = pinhole_model.project(p_G_f1,
-                                   C(msckf.cam_states[0].q_CG),
-                                   msckf.cam_states[0].p_G);
+                                     C(msckf.cam_states[0].q_CG),
+                                     msckf.cam_states[0].p_G);
   vec2_t pt3 = pinhole_model.project(p_G_f1,
-                                   C(msckf.cam_states[1].q_CG),
-                                   msckf.cam_states[1].p_G);
+                                     C(msckf.cam_states[1].q_CG),
+                                     msckf.cam_states[1].p_G);
   pt2 = pinhole_pixel2ideal(K, pt0);
   pt3 = pinhole_pixel2ideal(K, pt1);
   Feature f2{pt2};
@@ -511,7 +511,6 @@ int test_MSCKF_pruneCameraStates() {
   msckf.P_cam.block(24, 24, 6, 6) = 5.0 * ones(6, 6);
   msckf.P_cam.block(24, 0, 6, 24) = 5.0 * ones(6, 24);
 
-
   msckf.P_imu_cam.block(0, 0, 15, 6) = 1.0 * ones(15, 6);
   msckf.P_imu_cam.block(0, 6, 15, 6) = 2.0 * ones(15, 6);
   msckf.P_imu_cam.block(0, 12, 15, 6) = 3.0 * ones(15, 6);
@@ -534,7 +533,8 @@ int test_MSCKF_pruneCameraStates() {
   MU_CHECK_EQ(CameraState::size * 3, msckf.P_imu_cam.cols());
 
   // std::cout << msckf.P_cam.rows() << " " << msckf.P_cam.cols() << std::endl;
-  // std::cout << msckf.P_imu_cam.rows() << " " << msckf.P_imu_cam.cols() << std::endl;
+  // std::cout << msckf.P_imu_cam.rows() << " " << msckf.P_imu_cam.cols() <<
+  // std::endl;
 
   // mat2csv("/tmp/P_cam.dat", msckf.P_imu_cam);
   // PYTHON_SCRIPT("scripts/plot_matrix.py /tmp/P_cam.dat");

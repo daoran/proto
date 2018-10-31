@@ -1,6 +1,6 @@
-#include "prototype/munit.hpp"
-#include "prototype/core/data.hpp"
 #include "prototype/core/config.hpp"
+#include "prototype/core/data.hpp"
+#include "prototype/munit.hpp"
 
 #define TEST_CONFIG "test_configs/config/config.yaml"
 

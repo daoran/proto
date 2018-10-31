@@ -9,9 +9,9 @@
 
 #include <opencv2/calib3d/calib3d.hpp>
 
-#include "prototype/core.hpp"
-#include "prototype/calib/chessboard.hpp"
 #include "prototype/calib/camchain.hpp"
+#include "prototype/calib/chessboard.hpp"
+#include "prototype/core.hpp"
 
 namespace prototype {
 /**

@@ -1,6 +1,6 @@
-#include "prototype/munit.hpp"
 #include "prototype/control/carrot_ctrl.hpp"
 #include "prototype/model/mav.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 

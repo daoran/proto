@@ -4,11 +4,9 @@ namespace prototype {
 
 pinhole_t::pinhole_t() {}
 
-pinhole_t::pinhole_t(const vec4_t &intrinsics_) :
-  fx{intrinsics_(0)},
-  fy{intrinsics_(1)},
-  cx{intrinsics_(2)},
-  cy{intrinsics_(3)} {
+pinhole_t::pinhole_t(const vec4_t &intrinsics_)
+    : fx{intrinsics_(0)}, fy{intrinsics_(1)}, cx{intrinsics_(2)},
+      cy{intrinsics_(3)} {
   // clang-format off
   K << fx, 0.0, cx,
        0.0, fx, cy,
@@ -16,9 +14,11 @@ pinhole_t::pinhole_t(const vec4_t &intrinsics_) :
   // clang-format on
 }
 
-pinhole_t::pinhole_t(const double fx_, const double fy_,
-                     const double cx_, const double cy_) :
-  fx{fx_}, fy{fy_}, cx{cx_}, cy{cy_} {
+pinhole_t::pinhole_t(const double fx_,
+                     const double fy_,
+                     const double cx_,
+                     const double cy_)
+    : fx{fx_}, fy{fy_}, cx{cx_}, cy{cy_} {
   // clang-format off
   K << fx_, 0.0, cx_,
        0.0, fx_, cy_,
@@ -31,7 +31,9 @@ vec2_t project(const pinhole_t &model, const vec3_t &X) {
   return vec2_t{x(0) / x(2), x(1) / x(2)};
 }
 
-mat34_t projection_matrix(const pinhole_t &model, const mat3_t &R, const vec3_t &t) {
+mat34_t projection_matrix(const pinhole_t &model,
+                          const mat3_t &R,
+                          const vec3_t &t) {
   mat34_t A;
   A.block(0, 0, 3, 3) = R;
   A.block(0, 3, 3, 1) = -R * t;
@@ -55,8 +57,8 @@ mat3_t pinhole_K(const vec4_t &intrinsics) {
   return K;
 }
 
-mat3_t pinhole_K(const double fx, const double fy,
-                 const double cx, const double cy) {
+mat3_t
+pinhole_K(const double fx, const double fy, const double cx, const double cy) {
   mat3_t K;
 
   // clang-format off
@@ -80,7 +82,9 @@ vec2_t pinhole_focal_length(const vec2_t &image_size,
   return vec2_t{fx, fy};
 }
 
-mat34_t pinhole_projection_matrix(const mat3_t &K, const mat3_t &R, const vec3_t &t) {
+mat34_t pinhole_projection_matrix(const mat3_t &K,
+                                  const mat3_t &R,
+                                  const vec3_t &t) {
   mat34_t A;
   A.block(0, 0, 3, 3) = R;
   A.block(0, 3, 3, 1) = -R * t;

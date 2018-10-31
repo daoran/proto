@@ -1,6 +1,6 @@
+#include "msckf/imu_state.hpp"
 #include "prototype/munit.hpp"
 #include "sim/world.hpp"
-#include "msckf/imu_state.hpp"
 
 namespace prototype {
 
@@ -129,7 +129,9 @@ int test_SimWorld_generateInitializationData() {
   const int nb_samples = 10;
   std::vector<vec3_t> imu_gyro_buffer;
   std::vector<vec3_t> imu_accel_buffer;
-  world.generateInitializationData(nb_samples, imu_gyro_buffer, imu_accel_buffer);
+  world.generateInitializationData(nb_samples,
+                                   imu_gyro_buffer,
+                                   imu_accel_buffer);
 
   for (int i = 0; i < nb_samples; i++) {
     std::cout << imu_gyro_buffer[i].transpose() << std::endl;

@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "feature2d/feature.hpp"
+#include "prototype/munit.hpp"
 
 namespace prototype {
 

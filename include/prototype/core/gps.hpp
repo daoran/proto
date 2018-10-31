@@ -43,8 +43,8 @@ void latlon_offset(double lat_ref,
  * @param lon_ref Longitude of origin (decimal format)
  * @param lat Latitude of point of interest (decimal format)
  * @param lon Longitude of point of interest (decimal format)
- * @param dist_N Distance of point of interest in North axis in meters
- * @param dist_E Distance of point of interest in East axis in meters
+ * @param dist_N Distance of point of interest in North axis [m]
+ * @param dist_E Distance of point of interest in East axis [m]
  */
 void latlon_diff(double lat_ref,
                  double lon_ref,
@@ -61,10 +61,10 @@ void latlon_diff(double lat_ref,
  * @param lat Latitude of point of interest (decimal format)
  * @param lon Longitude of point of interest (decimal format)
  *
- * @returns Euclidean distance between two GPS coordinates
+ * @returns Euclidean distance between two GPS coordinates [m]
  */
 double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
 
 /** @} group gps */
-} // namepsace libr
+} // namespace prototype
 #endif // PROTOTYPE_CORE_GPS_HPP

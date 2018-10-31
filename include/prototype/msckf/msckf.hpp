@@ -5,15 +5,15 @@
 #ifndef PROTOTYPE_VISION_MSCKF_MSCKF_HPP
 #define PROTOTYPE_VISION_MSCKF_MSCKF_HPP
 
-#include <vector>
 #include <algorithm>
 #include <chrono>
 #include <random>
+#include <vector>
 
-#include <Eigen/SVD>
 #include <Eigen/QR>
-#include <Eigen/SparseCore>
 #include <Eigen/SPQRSupport>
+#include <Eigen/SVD>
+#include <Eigen/SparseCore>
 #include <boost/math/distributions/chi_squared.hpp>
 
 #include "prototype/core.hpp"
@@ -114,9 +114,9 @@ public:
    * @param N Number of camera states
    */
   matx_t J(const vec4_t &cam_q_CI,
-         const vec3_t &cam_p_IC,
-         const vec4_t &q_hat_IG,
-         const int N);
+           const vec3_t &cam_p_IC,
+           const vec4_t &q_hat_IG,
+           const int N);
 
   /**
    * Return length of sliding window
@@ -159,7 +159,7 @@ public:
    * @param ts timestamp in nano-seconds
    * @param imu_gyro_buffer IMU gyro buffer
    * @param imu_accel_buffer IMU accel buffer
-	 *
+   *
    * @returns 0 for success, -1 for failure
    */
   int initialize(const long ts,

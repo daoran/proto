@@ -257,7 +257,9 @@ vec3_t mean(const std::vector<vec3_t> &x) {
   return x_hat;
 }
 
-double cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos) {
+double cross_track_error(const vec2_t &p1,
+                         const vec2_t &p2,
+                         const vec2_t &pos) {
   const double x0 = pos(0);
   const double y0 = pos(1);
 
@@ -294,8 +296,10 @@ int point_left_right(const vec2_t &a, const vec2_t &b, const vec2_t &c) {
   return -1;
 }
 
-double
-closest_point(const vec2_t &a, const vec2_t &b, const vec2_t &p, vec2_t &closest) {
+double closest_point(const vec2_t &a,
+                     const vec2_t &b,
+                     const vec2_t &p,
+                     vec2_t &closest) {
   // pre-check
   if ((a - b).norm() == 0) {
     closest = a;
@@ -315,4 +319,4 @@ vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu) {
   return a * (1 - mu) + b * mu;
 }
 
-} // eof libr
+} // namespace prototype

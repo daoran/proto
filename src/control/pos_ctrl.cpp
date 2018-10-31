@@ -2,8 +2,7 @@
 
 namespace prototype {
 
-int pos_ctrl_configure(pos_ctrl_t &pc,
-                       const std::string &config_file) {
+int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file) {
   // Load config
   config_t config{config_file};
   if (config.ok == false) {
@@ -37,10 +36,10 @@ int pos_ctrl_configure(pos_ctrl_t &pc,
 }
 
 vec4_t pos_ctrl_update(pos_ctrl_t &pc,
-                     const vec3_t &setpoints,
-                     const vec4_t &actual,
-                     const double yaw,
-                     const double dt) {
+                       const vec3_t &setpoints,
+                       const vec4_t &actual,
+                       const double yaw,
+                       const double dt) {
   // Check rate
   pc.dt += dt;
   if (pc.dt < 0.01) {
@@ -56,7 +55,7 @@ vec4_t pos_ctrl_update(pos_ctrl_t &pc,
   errors = R * errors;
 
   // Roll, pitch, yaw and thrust
-  double r = - pid_update(pc.x_ctrl, errors(1), dt);
+  double r = -pid_update(pc.x_ctrl, errors(1), dt);
   double p = pid_update(pc.y_ctrl, errors(0), dt);
   double y = yaw;
   double t = 0.5 + pid_update(pc.z_ctrl, errors(2), dt);

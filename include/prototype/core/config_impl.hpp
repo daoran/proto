@@ -40,9 +40,9 @@ size_t yaml_check_vector(const YAML::Node &node,
   // Check number of values in the param
   if (node.size() == 0 && node.size() != vector_size) {
     FATAL("Vector [%s] should have %d values but config has %d!",
-              key.c_str(),
-              static_cast<int>(vector_size),
-              static_cast<int>(node.size()));
+          key.c_str(),
+          static_cast<int>(vector_size),
+          static_cast<int>(node.size()));
   }
 
   return vector_size;
@@ -84,8 +84,8 @@ void yaml_check_matrix(const YAML::Node &node,
     FATAL("Unsportted matrix type!");
   }
   if (node["data"].size() != nb_elements) {
-      FATAL("Matrix [%s] rows and cols do not match number of values!",
-                key.c_str());
+    FATAL("Matrix [%s] rows and cols do not match number of values!",
+          key.c_str());
   }
 }
 
@@ -99,7 +99,10 @@ void yaml_check_matrix(const YAML::Node &node,
 }
 
 template <typename T>
-void parse(const config_t &config, const std::string &key, T &out, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           T &out,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {

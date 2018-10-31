@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
 #include "camera/pinhole_model.hpp"
+#include "prototype/munit.hpp"
 #include "sim/camera.hpp"
 
 namespace prototype {

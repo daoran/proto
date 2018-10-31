@@ -48,7 +48,7 @@ int wp_ctrl_update(wp_ctrl_t &wc,
   errors = R * errors;
 
   // Roll
-  double r = - pid_update(wc.ct_controller, errors(1), wc.dt);
+  double r = -pid_update(wc.ct_controller, errors(1), wc.dt);
 
   // Pitch
   // double error_forward = m.desired_velocity - v_B(0);

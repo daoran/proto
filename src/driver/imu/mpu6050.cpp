@@ -285,8 +285,6 @@ int mpu6050_get_accel_range(const mpu6050_t &imu) {
   return data;
 }
 
-std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu) {
-  return os;
-}
+std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu) { return os; }
 
 } //  namespace prototype

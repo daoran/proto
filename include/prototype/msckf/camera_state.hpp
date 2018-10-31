@@ -23,9 +23,9 @@ class CameraState {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  static const int size = 6;            ///< Size of error-state vector
-  FrameID frame_id = -1;                ///< Camera frame id
-  vec3_t p_G = zeros(3, 1);               ///< Position in Global frame
+  static const int size = 6;                ///< Size of error-state vector
+  FrameID frame_id = -1;                    ///< Camera frame id
+  vec3_t p_G = zeros(3, 1);                 ///< Position in Global frame
   vec4_t q_CG = vec4_t{0.0, 0.0, 0.0, 1.0}; ///< Orientation in Global frame
 
   // Gimbal joint angle
@@ -34,7 +34,10 @@ public:
   CameraState();
   CameraState(const vec3_t &p_G, const vec4_t &q_CG);
   CameraState(const FrameID frame_id, const vec3_t &p_G, const vec4_t &q_CG);
-  CameraState(const FrameID frame_id, const vec3_t &p_G, const vec4_t &q_CG, const vec2_t &theta);
+  CameraState(const FrameID frame_id,
+              const vec3_t &p_G,
+              const vec4_t &q_CG,
+              const vec2_t &theta);
 
   /**
    * Correct camera state
@@ -85,8 +88,8 @@ void convert_camera_states(const CameraStates &states,
                            std::vector<vec3_t> &rpy_G);
 
 /**
-  * CameraState to string
-  */
+ * CameraState to string
+ */
 std::ostream &operator<<(std::ostream &os, const CameraState &state);
 
 /** @} group msckf */

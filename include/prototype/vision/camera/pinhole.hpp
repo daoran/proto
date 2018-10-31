@@ -49,7 +49,9 @@ vec2_t project(const pinhole_t &model, const vec3_t &X);
  * @param[in] t Translation vector
  * @returns 3x4 Projection matrix
  */
-mat34_t projection_matrix(const pinhole_t &model, const mat3_t &R, const vec3_t &t);
+mat34_t projection_matrix(const pinhole_t &model,
+                          const mat3_t &R,
+                          const vec3_t &t);
 
 /**
  * Convert pixel to point
@@ -77,8 +79,8 @@ mat3_t pinhole_K(const vec4_t &intrinsics);
  * @param[in] cy Principal center in y-axis
  * @returns Intrinsics matrix K
  */
-mat3_t pinhole_K(const double fx, const double fy,
-                 const double cx, const double cy);
+mat3_t
+pinhole_K(const double fx, const double fy, const double cx, const double cy);
 
 /**
  * Pinhole camera model theoretical focal length

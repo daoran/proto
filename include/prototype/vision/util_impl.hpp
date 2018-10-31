@@ -36,9 +36,10 @@ void essential_matrix_outlier_rejection(
   // -- Further remove outliers based on essential matrix
   // std::vector<cv::Point2f> cam0_points_ud = undistort(cam0_points);
   // std::vector<cv::Point2f> cam1_points_ud = undistort(cam1_points);
-  // std::vector<cv::Point2f> cam0_points_ud = cam0.undistortPoints(cam0_points);
-  // std::vector<cv::Point2f> cam1_points_ud = cam1.undistortPoints(cam1_points);
-  // for (size_t i = 0; i < cam0_points_ud.size(); i++) {
+  // std::vector<cv::Point2f> cam0_points_ud =
+  // cam0.undistortPoints(cam0_points); std::vector<cv::Point2f> cam1_points_ud
+  // = cam1.undistortPoints(cam1_points); for (size_t i = 0; i <
+  // cam0_points_ud.size(); i++) {
   //   if (inlier_markers[i] == 0) {
   //     continue;
   //   }
@@ -46,13 +47,12 @@ void essential_matrix_outlier_rejection(
   //   const cv::Vec3d pt0(cam0_points_ud[i].x, cam0_points_ud[i].y, 1.0);
   //   const cv::Vec3d pt1(cam1_points_ud[i].x, cam1_points_ud[i].y, 1.0);
   //   const cv::Vec3d el = E * pt0;
-  //   double err = fabs((pt1.t() * el)[0]) / sqrt(el[0] * el[0] + el[1] * el[1]);
-  //   if (err > threshold * norm_pixel_unit) {
+  //   double err = fabs((pt1.t() * el)[0]) / sqrt(el[0] * el[0] + el[1] *
+  //   el[1]); if (err > threshold * norm_pixel_unit) {
   //     inlier_markers[i] = 0;
   //   }
   // }
 }
-
 
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_UTIL_HPP

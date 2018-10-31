@@ -2,15 +2,13 @@
 
 namespace prototype {
 
-config_t::config_t(const std::string &file_path_) :
-  file_path{file_path_} {
+config_t::config_t(const std::string &file_path_) : file_path{file_path_} {
   if (yaml_load_file(file_path_, root) == 0) {
     ok = true;
   }
 }
 
-int yaml_load_file(const std::string file_path,
-                   YAML::Node &root) {
+int yaml_load_file(const std::string file_path, YAML::Node &root) {
   // Pre-check
   if (file_exists(file_path) == false) {
     LOG_ERROR("File not found: %s", file_path.c_str());
@@ -60,7 +58,10 @@ int yaml_get_node(const config_t &config,
   return 0;
 }
 
-void parse(const config_t &config, const std::string &key, vec2_t &vec, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           vec2_t &vec,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -72,7 +73,10 @@ void parse(const config_t &config, const std::string &key, vec2_t &vec, const bo
   vec = vec2_t{node[0].as<double>(), node[1].as<double>()};
 }
 
-void parse(const config_t &config, const std::string &key, vec3_t &vec, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           vec3_t &vec,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -81,10 +85,14 @@ void parse(const config_t &config, const std::string &key, vec3_t &vec, const bo
 
   // Parse
   const size_t vector_size = yaml_check_vector<vec3_t>(node, key, optional);
-  vec = vec3_t{node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
+  vec =
+      vec3_t{node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
 }
 
-void parse(const config_t &config, const std::string &key, vec4_t &vec, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           vec4_t &vec,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -93,11 +101,16 @@ void parse(const config_t &config, const std::string &key, vec4_t &vec, const bo
 
   // Parse
   const size_t vector_size = yaml_check_vector<vec4_t>(node, key, optional);
-  vec = vec4_t{node[0].as<double>(), node[1].as<double>(),
-               node[2].as<double>(), node[3].as<double>()};
+  vec = vec4_t{node[0].as<double>(),
+               node[1].as<double>(),
+               node[2].as<double>(),
+               node[3].as<double>()};
 }
 
-void parse(const config_t &config, const std::string &key, vecx_t &vec, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           vecx_t &vec,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -112,7 +125,10 @@ void parse(const config_t &config, const std::string &key, vecx_t &vec, const bo
   }
 }
 
-void parse(const config_t &config, const std::string &key, mat2_t &mat, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           mat2_t &mat,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -127,7 +143,10 @@ void parse(const config_t &config, const std::string &key, mat2_t &mat, const bo
   mat(1, 1) = node["data"][3].as<double>();
 }
 
-void parse(const config_t &config, const std::string &key, mat3_t &mat, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           mat3_t &mat,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -150,7 +169,10 @@ void parse(const config_t &config, const std::string &key, mat3_t &mat, const bo
   mat(2, 2) = node["data"][8].as<double>();
 }
 
-void parse(const config_t &config, const std::string &key, mat4_t &mat, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           mat4_t &mat,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -168,7 +190,10 @@ void parse(const config_t &config, const std::string &key, mat4_t &mat, const bo
   }
 }
 
-void parse(const config_t &config, const std::string &key, matx_t &mat, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           matx_t &mat,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -190,7 +215,10 @@ void parse(const config_t &config, const std::string &key, matx_t &mat, const bo
   }
 }
 
-void parse(const config_t &config, const std::string &key, cv::Mat &mat, const bool optional) {
+void parse(const config_t &config,
+           const std::string &key,
+           cv::Mat &mat,
+           const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
