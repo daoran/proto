@@ -15,24 +15,24 @@ int test_process_mono_data() {
   }
 
   // Test preprocess data
-	const std::string image_dir = IMAGE_DIR;
-	const vec2_t image_size{752, 480};
-	const double lens_hfov = 98.0;
-	const double lens_vfov = 73.0;
-	const std::string output_dir = "/tmp/aprilgrid_test";
-	preprocess_mono_data(target,
-	                     image_dir,
-	                     image_size,
-	                     lens_hfov,
-	                     lens_vfov,
-	                     output_dir);
+  const std::string image_dir = IMAGE_DIR;
+  const vec2_t image_size{752, 480};
+  const double lens_hfov = 98.0;
+  const double lens_vfov = 73.0;
+  const std::string output_dir = "/tmp/aprilgrid_test";
+  preprocess_mono_data(target,
+                       image_dir,
+                       image_size,
+                       lens_hfov,
+                       lens_vfov,
+                       output_dir);
 
   // Test load
-	std::vector<aprilgrid_t> aprilgrids;
-	int retval = load_mono_calib_data(output_dir, aprilgrids);
-	MU_CHECK(retval == 0);
-	MU_CHECK(aprilgrids.size() > 0);
-	MU_CHECK(aprilgrids[0].ids.size() > 0);
+  std::vector<aprilgrid_t> aprilgrids;
+  int retval = load_mono_calib_data(output_dir, aprilgrids);
+  MU_CHECK(retval == 0);
+  MU_CHECK(aprilgrids.size() > 0);
+  MU_CHECK(aprilgrids[0].ids.size() > 0);
 
   return 0;
 }
