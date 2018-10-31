@@ -20,12 +20,34 @@ namespace prototype {
  * @{
  */
 
-int process_mono_data(const calib_target_t &target,
-                      const std::string &image_dir,
-                      const vec2_t image_size,
-                      const double lens_hfov,
-                      const double lens_vfov,
-                      const std::string &output_dir);
+/**
+ * Preprocess mono camera image data and output AprilGrid detection data as csv
+ *
+ * @param[in] target Calibration target properties
+ * @param[in] image_dir Path to camera images
+ * @param[in] image_size Image resolution
+ * @param[in] lens_hfov Horizontal fov of camera lens
+ * @param[in] lens_vfov Vertical fov of camera lens
+ * @param[in] output_dir Output path
+ *
+ * @returns 0 or -1 for success or failure
+ */
+int preprocess_mono_data(const calib_target_t &target,
+                         const std::string &image_dir,
+                         const vec2_t image_size,
+                         const double lens_hfov,
+                         const double lens_vfov,
+                         const std::string &output_dir);
+
+/**
+ * Load preprocess-ed mono camera calibration data
+ *
+ * @param[in] data_dir Path where calibration data was saved
+ * @param[out] aprilgrids Detected aprilgrids
+ * @returns 0 or -1 for success or failure
+ */
+int load_mono_calib_data(const std::string &data_dir,
+                         std::vector<aprilgrid_t> &aprilgrids);
 
 /** @} group calib */
 } //  namespace prototype

@@ -42,10 +42,10 @@ struct aprilgrid_t {
 
   aprilgrid_t();
   aprilgrid_t(const long timestamp,
-                        const int tag_rows,
-                        const int tag_cols,
-                        const double tag_size,
-                        const double tag_spacing);
+              const int tag_rows,
+              const int tag_cols,
+              const double tag_size,
+              const double tag_spacing);
   ~aprilgrid_t();
 };
 
