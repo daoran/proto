@@ -195,60 +195,50 @@ int test_config_parser_full_example() {
 
   // Primitives
   bool b;
-  parse(config, "bool", b);
-
   int i;
-  parse(config, "int", i);
-
   float f;
-  parse(config, "float", f);
-
   double d;
+
+  parse(config, "bool", b);
+  parse(config, "int", i);
+  parse(config, "float", f);
   parse(config, "double", d);
 
   // Array
   std::string s;
-  parse(config, "string", s);
-
   std::vector<bool> b_array;
-  parse(config, "bool_array", b_array);
-
   std::vector<int> i_array;
-  parse(config, "int_array", i_array);
-
   std::vector<float> f_array;
-  parse(config, "float_array", f_array);
-
   std::vector<double> d_array;
-  parse(config, "double_array", d_array);
-
   std::vector<std::string> s_array;
+
+  parse(config, "string", s);
+  parse(config, "bool_array", b_array);
+  parse(config, "int_array", i_array);
+  parse(config, "float_array", f_array);
+  parse(config, "double_array", d_array);
   parse(config, "string_array", s_array);
 
   // Vectors
   vec2_t vec2;
-  parse(config, "vector2", vec2);
-
   vec3_t vec3;
-  parse(config, "vector3", vec3);
-
   vec4_t vec4;
-  parse(config, "vector4", vec4);
-
   vecx_t vecx;
+
+  parse(config, "vector2", vec2);
+  parse(config, "vector3", vec3);
+  parse(config, "vector4", vec4);
   parse(config, "vector", vecx);
 
   // Matrices
   mat2_t mat2;
-  parse(config, "matrix2", mat2);
-
   mat3_t mat3;
-  parse(config, "matrix3", mat3);
-
   mat4_t mat4;
-  parse(config, "matrix4", mat4);
-
   matx_t matx;
+
+  parse(config, "matrix2", mat2);
+  parse(config, "matrix3", mat3);
+  parse(config, "matrix4", mat4);
   parse(config, "matrix", matx);
 
   cv::Mat cvmat;
