@@ -4,6 +4,11 @@ namespace prototype {
 
 chessboard_t::chessboard_t() {}
 
+chessboard_t::chessboard_t(const std::string &config_file_)
+  : config_file{config_file_} {
+  chessboard_load(*this, config_file_);
+}
+
 chessboard_t::~chessboard_t() {}
 
 int chessboard_load(chessboard_t &cb, const std::string &config_file) {
@@ -27,6 +32,7 @@ int chessboard_load(chessboard_t &cb, const std::string &config_file) {
     }
   }
 
+  cb.config_file = config_file;
   cb.ok = true;
   return 0;
 }

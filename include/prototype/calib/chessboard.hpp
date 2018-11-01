@@ -20,6 +20,7 @@ namespace prototype {
  */
 struct chessboard_t {
   bool ok = false;
+  std::string config_file;
 
   int nb_rows = 10;
   int nb_cols = 10;
@@ -27,7 +28,8 @@ struct chessboard_t {
   std::vector<cv::Point3f> object_points;
 
   chessboard_t();
-  virtual ~chessboard_t();
+  chessboard_t(const std::string &config_file_);
+  ~chessboard_t();
 };
 
 /**

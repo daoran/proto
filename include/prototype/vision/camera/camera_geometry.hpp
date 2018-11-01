@@ -39,25 +39,25 @@ std::vector<cv::Point2f> distortPoints(const std::vector<cv::Point2f> &pts_in,
 /**
  * Camera geometry
  */
-template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
+template <typename CM, typename DM>
 struct camera_geometry_t {
   int camera_index = 0;
-  CAMERA_MODEL camera_model;
-  DISTORTION_MODEL distortion_model;
+  CM camera_model;
+  DM distortion_model;
 
-  camera_geometry_t(const CAMERA_MODEL &camera_model_,
-                    const DISTORTION_MODEL &distortion_model_);
+  camera_geometry_t(const CM &camera_model_,
+                    const DM &distortion_model_);
   ~camera_geometry_t();
 };
 
-template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
-camera_geometry_t<CAMERA_MODEL, DISTORTION_MODEL>::camera_geometry_t(
-    const CAMERA_MODEL &camera_model_,
-    const DISTORTION_MODEL &distortion_model_)
+template <typename CM, typename DM>
+camera_geometry_t<CM, DM>::camera_geometry_t(
+    const CM &camera_model_,
+    const DM &distortion_model_)
     : camera_model{camera_model_}, distortion_model{distortion_model_} {}
 
-template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
-camera_geometry_t<CAMERA_MODEL, DISTORTION_MODEL>::~camera_geometry_t() {}
+template <typename CM, typename DM>
+camera_geometry_t<CM, DM>::~camera_geometry_t() {}
 
 /**
  * Project point to image plane in pixels
@@ -66,9 +66,9 @@ camera_geometry_t<CAMERA_MODEL, DISTORTION_MODEL>::~camera_geometry_t() {}
  * @param[in] point Point
  * @returns Point to image plane projection in pixel coordinates
  */
-template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
+template <typename CM, typename DM>
 vec2_t camera_geometry_project(
-    const camera_geometry_t<CAMERA_MODEL, DISTORTION_MODEL> &cam,
+    const camera_geometry_t<CM, DM> &cam,
     const vec3_t &point) {
   const vec3_t point_distorted = distort(cam.distortion_model, point);
   return project(cam.camera_model, point_distorted);

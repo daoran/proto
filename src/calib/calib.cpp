@@ -32,7 +32,7 @@ int calib_target_load(calib_target_t &ct, const std::string &target_file) {
 
 int preprocess_camera_data(const calib_target_t &target,
                            const std::string &image_dir,
-                           const vec2_t image_size,
+                           const vec2_t &image_size,
                            const double lens_hfov,
                            const double lens_vfov,
                            const std::string &output_dir) {
@@ -121,5 +121,109 @@ int load_camera_calib_data(const std::string &data_dir,
 
   return 0;
 }
+
+double reprojection_error(const std::vector<cv::Point2f> &measured,
+                          const std::vector<cv::Point2f> &projected) {
+  assert(measured.size() == projected.size());
+
+  double sse = 0.0;
+  const size_t nb_keypoints = measured.size();
+  for (size_t i = 0; i < nb_keypoints; i++) {
+    sse += cv::norm(measured[i] - projected[i]);
+  }
+  const double rmse = sqrt(sse / nb_keypoints);
+
+  return rmse;
+}
+
+cv::Mat draw_calib_validation(const cv::Mat &image,
+                              const std::vector<cv::Point2f> &measured,
+                              const std::vector<cv::Point2f> &projected,
+                              const cv::Scalar &measured_color,
+                              const cv::Scalar &projected_color) {
+  // Make an RGB version of the input image
+  cv::Mat image_rgb = gray2rgb(image);
+
+  // Draw measured points
+  for (const auto &point : measured) {
+    cv::circle(image_rgb,        // Target image
+               point,            // Center
+               1,                // Radius
+               measured_color,   // Colour
+               CV_FILLED,        // Thickness
+               8);               // Line type
+  }
+
+  // Draw projected points
+  for (const auto &point : projected) {
+    cv::circle(image_rgb,        // Target image
+               point,            // Center
+               1,                // Radius
+               projected_color,  // Colour
+               CV_FILLED,        // Thickness
+               8);               // Line type
+  }
+
+  // Calculate reprojection error and show in image
+  const double rmse = reprojection_error(measured, projected);
+  // -- Convert rmse to string
+  std::stringstream stream;
+  stream << std::fixed << std::setprecision(2) << rmse;
+  const std::string rmse_str = stream.str();
+  // -- Draw text
+  const auto text = "RMSE Reprojection Error: " + rmse_str;
+  const auto origin = cv::Point(0, 18);
+  const auto red = cv::Scalar(0, 0, 255);
+  const auto font = cv::FONT_HERSHEY_SIMPLEX;
+  cv::putText(image_rgb, text, origin, font, 0.6, red, 2);
+
+  return image_rgb;
+}
+
+
+// cv::Mat validate_stereo(const cv::Mat &img0, const cv::Mat &img1) {
+//   // Pre-check
+//   assert(img0.empty() == false);
+//   assert(img1.empty() == false);
+//
+//   // Setup
+//   const cv::Scalar red{0, 0, 255};
+//   const cv::Scalar green{0, 255, 0};
+//
+//   // Detect chessboard corners and output 3d positions
+//   matx_t X0, X1;
+//   int retval = 0;
+//   retval += this->detect(0, img0, X0);
+//   retval += this->detect(1, img1, X1);
+//   if (retval != 2) {
+//     cv::Mat result;
+//     cv::vconcat(img0, img1, result);
+//     return result;
+//   }
+//   const cv::Mat img0_det = this->drawDetected(img0, red);
+//   const cv::Mat img1_det = this->drawDetected(img1, green);
+//
+//   // Project points observed from cam1 to cam0 image
+//   // -- Make points homogeneous by adding 1's in last row
+//   X1.conservativeResize(X1.rows() + 1, X1.cols());
+//   X1.row(X1.rows() - 1) = ones(1, X1.cols());
+//   // -- Project and draw
+//   const mat4_t T_C1_C0 = this->camchain.T_C1_C0;
+//   const matx_t X0_cal = (T_C1_C0.inverse() * X1).block(0, 0, 3, X1.cols());
+//   const cv::Mat img0_cb = this->project(0, img0_det, X0_cal, green);
+//
+//   // Project points observed from cam0 to cam1 image
+//   // -- Make points homogeneous by adding 1's in last row
+//   X0.conservativeResize(X0.rows() + 1, X0.cols());
+//   X0.row(X0.rows() - 1) = ones(1, X0.cols());
+//   // -- Project and draw
+//   const matx_t X1_cal = (T_C1_C0 * X0).block(0, 0, 3, X0.cols());
+//   const cv::Mat img1_cb = this->project(1, img1_det, X1_cal, red);
+//
+//   // Combine cam0 and cam1 images
+//   cv::Mat result;
+//   cv::vconcat(img0_cb, img1_cb, result);
+//   return result;
+// }
 
 } //  namespace prototype

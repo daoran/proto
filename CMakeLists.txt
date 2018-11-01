@@ -76,7 +76,6 @@ ADD_LIBRARY(
   src/msckf/jacobians.cpp
   # src/msckf/msckf.cpp
   # vision
-  src/vision/camera/camera_geometry.cpp
   src/vision/camera/radtan.cpp
   src/vision/camera/equi.cpp
   src/vision/camera/pinhole.cpp
