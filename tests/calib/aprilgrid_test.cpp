@@ -65,7 +65,7 @@ int test_aprilgrid_constructor() {
   MU_CHECK_EQ(0, grid.keypoints.size());
 
   MU_CHECK(grid.estimated == false);
-  MU_CHECK_EQ(0, grid.positions_CF.size());
+  MU_CHECK_EQ(0, grid.points_CF.size());
   MU_CHECK((zeros(3, 1) - grid.rvec_CF).norm() < 1e-5);
   MU_CHECK((zeros(3, 1) - grid.tvec_CF).norm() < 1e-5);
 
@@ -95,7 +95,7 @@ int test_aprilgrid_add() {
   MU_CHECK_FLOAT(0.0, (grid.keypoints[1] - kp2).norm());
   MU_CHECK_FLOAT(0.0, (grid.keypoints[2] - kp3).norm());
   MU_CHECK_FLOAT(0.0, (grid.keypoints[3] - kp4).norm());
-  MU_CHECK_EQ(0, grid.positions_CF.size());
+  MU_CHECK_EQ(0, grid.points_CF.size());
 
   return 0;
 }
@@ -125,10 +125,10 @@ int test_aprilgrid_get() {
 
     // Add measurment
     aprilgrid_add(grid, i, keypoints);
-    grid.positions_CF.emplace_back(pos1);
-    grid.positions_CF.emplace_back(pos2);
-    grid.positions_CF.emplace_back(pos3);
-    grid.positions_CF.emplace_back(pos4);
+    grid.points_CF.emplace_back(pos1);
+    grid.points_CF.emplace_back(pos2);
+    grid.points_CF.emplace_back(pos3);
+    grid.points_CF.emplace_back(pos4);
     grid.rvec_CF = rvec;
     grid.tvec_CF = rvec;
 
@@ -228,11 +228,19 @@ int test_aprilgrid_save_and_load() {
   vec3_t tvec{2.0, 2.0, 2.0};
 
   // Test save
+  grid.configured = true;
+  grid.tag_rows = 6;
+  grid.tag_cols = 6;
+  grid.tag_size = 0.088;
+  grid.tag_spacing = 0.3;
+
   grid.detected = true;
+  grid.timestamp = 1403709381987836928;
   grid.ids.push_back(1);
   grid.keypoints = {kp1, kp2, kp3, kp4};
+
   grid.estimated = true;
-  grid.positions_CF = {pos1, pos2, pos3, pos4};
+  grid.points_CF = {pos1, pos2, pos3, pos4};
   grid.rvec_CF = rvec;
   grid.tvec_CF = tvec;
   MU_CHECK_EQ(0, aprilgrid_save(grid, TEST_OUTPUT));
@@ -240,18 +248,19 @@ int test_aprilgrid_save_and_load() {
   // Test load
   aprilgrid_t grid2(0, 6, 6, 0.088, 0.3);
   MU_CHECK_EQ(0, aprilgrid_load(grid2, TEST_OUTPUT));
+  std::cout << grid2 << std::endl;
 
   MU_CHECK_EQ(1, grid2.ids.size());
   MU_CHECK_EQ(4, grid2.keypoints.size());
-  MU_CHECK_EQ(4, grid2.positions_CF.size());
+  MU_CHECK_EQ(4, grid2.points_CF.size());
   MU_CHECK_FLOAT(0.0, (grid2.keypoints[0] - kp1).norm());
   MU_CHECK_FLOAT(0.0, (grid2.keypoints[1] - kp2).norm());
   MU_CHECK_FLOAT(0.0, (grid2.keypoints[2] - kp3).norm());
   MU_CHECK_FLOAT(0.0, (grid2.keypoints[3] - kp4).norm());
-  MU_CHECK_FLOAT(0.0, (grid2.positions_CF[0] - pos1).norm());
-  MU_CHECK_FLOAT(0.0, (grid2.positions_CF[1] - pos2).norm());
-  MU_CHECK_FLOAT(0.0, (grid2.positions_CF[2] - pos3).norm());
-  MU_CHECK_FLOAT(0.0, (grid2.positions_CF[3] - pos4).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.points_CF[0] - pos1).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.points_CF[1] - pos2).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.points_CF[2] - pos3).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.points_CF[3] - pos4).norm());
   MU_CHECK_FLOAT(1, grid2.rvec_CF(0));
   MU_CHECK_FLOAT(1, grid2.rvec_CF(1));
   MU_CHECK_FLOAT(1, grid2.rvec_CF(2));
@@ -279,26 +288,26 @@ int test_aprilgrid_print() {
   grid.keypoints.push_back(kp2);
   grid.keypoints.push_back(kp3);
   grid.keypoints.push_back(kp4);
-  grid.positions_CF.push_back(pos1);
-  grid.positions_CF.push_back(pos2);
-  grid.positions_CF.push_back(pos3);
-  grid.positions_CF.push_back(pos4);
+  grid.points_CF.push_back(pos1);
+  grid.points_CF.push_back(pos2);
+  grid.points_CF.push_back(pos3);
+  grid.points_CF.push_back(pos4);
 
   std::cout << grid << std::endl;
 
   return 0;
 }
 
-int test_aprilgrid_detector_detect() {
-  aprilgrid_detector_t det;
-  MU_CHECK_EQ(0, aprilgrid_detector_configure(det, TEST_CONF));
+int test_aprilgrid_detect() {
+  aprilgrid_t grid;
+  MU_CHECK_EQ(0, aprilgrid_configure(grid, TEST_CONF));
 
   const cv::Mat image = cv::imread(TEST_IMAGE);
   const mat3_t K = pinhole_K(458.654, 457.296, 367.215, 248.375);
   const vec4_t D{-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05};
-  const auto aprilgrid = aprilgrid_detector_detect(det, 0, image, K, D);
+  const auto aprilgrid = aprilgrid_detect(grid, image, K, D);
 
-  for (const auto corner : aprilgrid.positions_CF) {
+  for (const auto corner : grid.points_CF) {
     MU_CHECK(corner(0) < 1.0);
     MU_CHECK(corner(0) > -1.0);
     MU_CHECK(corner(1) < 1.0);
@@ -318,7 +327,7 @@ void test_suite() {
   MU_ADD_TEST(test_aprilgrid_calc_relative_pose);
   MU_ADD_TEST(test_aprilgrid_save_and_load);
   MU_ADD_TEST(test_aprilgrid_print);
-  MU_ADD_TEST(test_aprilgrid_detector_detect);
+  MU_ADD_TEST(test_aprilgrid_detect);
 }
 
 } // namespace prototype

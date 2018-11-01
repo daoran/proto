@@ -2,7 +2,17 @@
 
 namespace prototype {
 
-aprilgrid_t::aprilgrid_t() {}
+aprilgrid_t::aprilgrid_t() {
+  detector.thisTagFamily.blackBorder = 2;
+  ASSERT(detector.thisTagFamily.blackBorder == 2,
+         "detector.thisTagFamily.blackBorder not configured!");
+  /**
+   * If the assert failed that means the installed AprilTag library was not
+   * patched such that AprilTags::TagDetector.blackBorder is configurable. This
+   * needs to be set to 2 because else the AprilTags in an AprilGrid will not
+   * be detectable, due to the black squares in-between the individual tags.
+   */
+}
 
 aprilgrid_t::aprilgrid_t(const long timestamp,
                          const int tag_rows,
@@ -10,7 +20,18 @@ aprilgrid_t::aprilgrid_t(const long timestamp,
                          const double tag_size,
                          const double tag_spacing)
     : timestamp{timestamp}, tag_rows{tag_rows}, tag_cols{tag_cols},
-      tag_size{tag_size}, tag_spacing{tag_spacing} {}
+      tag_size{tag_size}, tag_spacing{tag_spacing} {
+  configured = true;
+  detector.thisTagFamily.blackBorder = 2;
+  ASSERT(detector.thisTagFamily.blackBorder == 2,
+         "detector.thisTagFamily.blackBorder not configured!");
+  /**
+   * If the assert failed that means the installed AprilTag library was not
+   * patched such that AprilTags::TagDetector.blackBorder is configurable. This
+   * needs to be set to 2 because else the AprilTags in an AprilGrid will not
+   * be detectable, due to the black squares in-between the individual tags.
+   */
+}
 
 aprilgrid_t::~aprilgrid_t() {}
 
@@ -18,22 +39,28 @@ std::ostream &operator<<(std::ostream &os, const aprilgrid_t &aprilgrid) {
   // Relative rotation and translation
   if (aprilgrid.estimated) {
     os << "AprilGrid: " << std::endl;
-    os << "rvec_CF: " << aprilgrid.rvec_CF.transpose();
-    os << "\t";
-    os << "tvec_CF: " << aprilgrid.tvec_CF.transpose();
+    os << "configured: " << aprilgrid.configured << std::endl;
+    os << "tag_rows: " << aprilgrid.tag_rows << std::endl;
+    os << "tag_cols: " << aprilgrid.tag_cols << std::endl;
+    os << "tag_size: " << aprilgrid.tag_size << std::endl;
+    os << "tag_spacing: " << aprilgrid.tag_spacing << std::endl;
     os << std::endl;
   }
 
   for (size_t i = 0; i < aprilgrid.ids.size(); i++) {
     // Tag id
     os << "tag_id: " << aprilgrid.ids[i] << std::endl;
+    os << "ts: " << aprilgrid.timestamp << std::endl;
+    os << "----------" << std::endl;
 
     // Keypoint and relative position
     for (size_t j = 0; j < 4; j++) {
       os << "keypoint: " << aprilgrid.keypoints[(i * 4) + j].transpose();
+      os << std::endl;
+      os << "estimated: " << aprilgrid.estimated << std::endl;
       if (aprilgrid.estimated) {
-        os << "\t";
-        os << "p_CF: " << aprilgrid.positions_CF[(i * 4) + j].transpose();
+        os << "p_CF: " << aprilgrid.points_CF[(i * 4) + j].transpose();
+        os << std::endl;
       }
       os << std::endl;
     }
@@ -50,6 +77,7 @@ void aprilgrid_add(aprilgrid_t &grid,
 
   // Set AprilGrid as detected
   grid.detected = true;
+  grid.nb_detections++;
 
   // Push id and keypoints
   grid.ids.push_back(id);
@@ -86,7 +114,7 @@ int aprilgrid_get(const aprilgrid_t &grid,
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
                   std::vector<vec2_t> &keypoints,
-                  std::vector<vec3_t> &positions_CF) {
+                  std::vector<vec3_t> &points_CF) {
   assert(grid.estimated);
 
   // Check if tag id was actually detected
@@ -109,10 +137,10 @@ int aprilgrid_get(const aprilgrid_t &grid,
   keypoints.emplace_back(grid.keypoints[(index * 4) + 3]);
 
   // Set positions
-  positions_CF.emplace_back(grid.positions_CF[(index * 4)]);
-  positions_CF.emplace_back(grid.positions_CF[(index * 4) + 1]);
-  positions_CF.emplace_back(grid.positions_CF[(index * 4) + 2]);
-  positions_CF.emplace_back(grid.positions_CF[(index * 4) + 3]);
+  points_CF.emplace_back(grid.points_CF[(index * 4)]);
+  points_CF.emplace_back(grid.points_CF[(index * 4) + 1]);
+  points_CF.emplace_back(grid.points_CF[(index * 4) + 2]);
+  points_CF.emplace_back(grid.points_CF[(index * 4) + 3]);
 
   return 0;
 }
@@ -236,10 +264,10 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
     const vec4_t top_left(x, y + grid.tag_size, 0, 1);
 
     // Transform object points to corner positions expressed in camera frame
-    grid.positions_CF.emplace_back((grid.T_CF * bottom_left).head(3));
-    grid.positions_CF.emplace_back((grid.T_CF * bottom_right).head(3));
-    grid.positions_CF.emplace_back((grid.T_CF * top_right).head(3));
-    grid.positions_CF.emplace_back((grid.T_CF * top_left).head(3));
+    grid.points_CF.emplace_back((grid.T_CF * bottom_left).head(3));
+    grid.points_CF.emplace_back((grid.T_CF * bottom_right).head(3));
+    grid.points_CF.emplace_back((grid.T_CF * top_right).head(3));
+    grid.points_CF.emplace_back((grid.T_CF * top_left).head(3));
   }
   grid.estimated = true;
 
@@ -289,7 +317,7 @@ void aprilgrid_imshow(const aprilgrid_t &grid,
 
 int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
   assert((grid.keypoints.size() % 4) == 0);
-  assert((grid.positions_CF.size() % 4) == 0);
+  assert((grid.points_CF.size() % 4) == 0);
 
   // Open file for saving
   std::ofstream outfile(save_path);
@@ -299,13 +327,19 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
   }
 
   // Output header
-  outfile << "id,kp_x,kp_y";
-  if (grid.estimated) {
-    outfile << ",";
-    outfile << "pos_x,pos_y,pos_z,";
-    outfile << "rvec_x,rvec_y,rvec_z,";
-    outfile << "tvec_x,tvec_y,tvec_z";
-  }
+  // -- Configuration
+  outfile << "configured,";
+  outfile << "tag_rows,";
+  outfile << "tag_cols,";
+  outfile << "tag_size,";
+  outfile << "tag_spacing,";
+  // -- Keypoints
+  outfile << "ts,id,kp_x,kp_y,";
+  // -- Estimation
+  outfile << "estimated,";
+  outfile << "pos_x,pos_y,pos_z,";
+  outfile << "rvec_x,rvec_y,rvec_z,";
+  outfile << "tvec_x,tvec_y,tvec_z";
   outfile << std::endl;
 
   // Output data
@@ -313,33 +347,38 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
     const int tag_id = grid.ids[i];
 
     for (int j = 0; j < 4; j++) {
+      outfile << grid.configured << ",";
+      outfile << grid.tag_rows << ",";
+      outfile << grid.tag_cols << ",";
+      outfile << grid.tag_size << ",";
+      outfile << grid.tag_spacing << ",";
+
       const vec2_t keypoint = grid.keypoints[(i * 4) + j];
+      outfile << grid.timestamp << ",";
       outfile << tag_id << ",";
       outfile << keypoint(0) << ",";
-      outfile << keypoint(1);
+      outfile << keypoint(1) << ",";
 
+      const vec3_t position_CF = grid.points_CF[(i * 4) + j];
+      outfile << grid.estimated << ",";
       if (grid.estimated) {
-        const vec3_t position = grid.positions_CF[(i * 4) + j];
-        outfile << ",";
-        outfile << position(0) << ",";
-        outfile << position(1) << ",";
-        outfile << position(2) << ",";
+        outfile << position_CF(0) << ",";
+        outfile << position_CF(1) << ",";
+        outfile << position_CF(2) << ",";
         outfile << grid.rvec_CF(0) << ",";
         outfile << grid.rvec_CF(1) << ",";
         outfile << grid.rvec_CF(2) << ",";
-
         outfile << grid.tvec_CF(0) << ",";
         outfile << grid.tvec_CF(1) << ",";
-        outfile << grid.tvec_CF(2);
+        outfile << grid.tvec_CF(2) << std::endl;
+      } else {
+        outfile << "0,0,0,0,0,0,0,0,0" << std::endl;
       }
-
-      outfile << std::endl;
     }
   }
 
   // Close up
   outfile.close();
-
   return 0;
 }
 
@@ -356,93 +395,54 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
   // Parse file
   grid.ids.clear();
   grid.keypoints.clear();
-  grid.positions_CF.clear();
-
-  // Check if tag corner positions are estimated
-  if (data.cols() == 12) {
-    grid.estimated = true;
-  }
-
-  // Check if any tag is detected
-  if (data.rows() > 0) {
-    grid.detected = true;
-  }
+  grid.points_CF.clear();
 
   // Parse data
   for (int i = 0; i < data.rows(); i++) {
     const vecx_t row = data.row(i);
 
-    // Tag id
+    // Configuration
+    grid.configured = row(0);
+    grid.tag_rows = row(1);
+    grid.tag_cols = row(2);
+    grid.tag_size = row(3);
+    grid.tag_spacing= row(4);
+
+    // Timestamp, tag id and keypoint
+    grid.timestamp = row(5);
     if (std::count(grid.ids.begin(), grid.ids.end(), row(0)) == 0) {
-      grid.ids.emplace_back(row(0));
-
-      // Relative rotation and translation
-      if (grid.estimated) {
-        grid.rvec_CF = vec3_t{row(6), row(7), row(8)};
-        grid.tvec_CF = vec3_t{row(9), row(10), row(11)};
-
-        cv::Mat R;
-        cv::Rodrigues(convert(grid.rvec_CF), R);
-        grid.T_CF = transform(convert(R), grid.tvec_CF);
-      }
+      grid.ids.emplace_back(row(6));
     }
+    grid.keypoints.emplace_back(row(7), row(8));
 
-    // Keypoint
-    grid.keypoints.emplace_back(row(1), row(2));
+    // Point
+    grid.estimated = row(9);
+    grid.points_CF.emplace_back(row(10), row(11), row(12));
 
-    // Position
-    if (grid.estimated) {
-      grid.positions_CF.emplace_back(row(3), row(4), row(5));
-    }
+    // AprilGrid pose
+    grid.rvec_CF = vec3_t{row(13), row(14), row(15)};
+    grid.tvec_CF = vec3_t{row(16), row(17), row(18)};
+    cv::Mat R;
+    cv::Rodrigues(convert(grid.rvec_CF), R);
+    grid.T_CF = transform(convert(R), grid.tvec_CF);
   }
 
   return 0;
 }
 
-aprilgrid_detector_t::aprilgrid_detector_t() {
-  detector.thisTagFamily.blackBorder = 2;
-  ASSERT(detector.thisTagFamily.blackBorder == 2,
-         "detector.thisTagFamily.blackBorder not configured!");
-  /**
-   * If the above failed that means the installed AprilTag library was not
-   * patched such that AprilTags::TagDetector.blackBorder is configurable. This
-   * needs to be set to 2 because else the AprilTags in an AprilGrid will not
-   * be detectable, due to the black squares in-between the individual tags.
-   */
-}
-
-aprilgrid_detector_t::aprilgrid_detector_t(const int tag_rows,
-                                           const int tag_cols,
-                                           const double tag_size,
-                                           const double tag_spacing)
-    : ok{true}, tag_rows{tag_rows}, tag_cols{tag_cols}, tag_size{tag_size},
-      tag_spacing{tag_spacing} {
-  detector.thisTagFamily.blackBorder = 2;
-  ASSERT(detector.thisTagFamily.blackBorder == 2,
-         "detector.thisTagFamily.blackBorder not configured!");
-  /**
-   * If the above failed that means the installed AprilTag library was not
-   * patched such that AprilTags::TagDetector.blackBorder is configurable. This
-   * needs to be set to 2 because else the AprilTags in an AprilGrid will not
-   * be detectable, due to the black squares in-between the individual tags.
-   */
-}
-
-aprilgrid_detector_t::~aprilgrid_detector_t() {}
-
-int aprilgrid_detector_configure(aprilgrid_detector_t &det,
-                                 const std::string &target_file) {
+int aprilgrid_configure(aprilgrid_t &grid,
+                        const std::string &target_file) {
   // Load target file
-  std::string target_type;
   config_t config{target_file};
   if (config.ok == false) {
     return -1;
   }
+  std::string target_type;
   parse(config, "target_type", target_type);
-  parse(config, "tag_rows", det.tag_rows);
-  parse(config, "tag_cols", det.tag_cols);
-  parse(config, "tag_size", det.tag_size);
-  parse(config, "tag_spacing", det.tag_spacing);
+  parse(config, "tag_rows", grid.tag_rows);
+  parse(config, "tag_cols", grid.tag_cols);
+  parse(config, "tag_size", grid.tag_size);
+  parse(config, "tag_spacing", grid.tag_spacing);
 
   // Double check tag type
   if (target_type != "aprilgrid") {
@@ -450,14 +450,12 @@ int aprilgrid_detector_configure(aprilgrid_detector_t &det,
           target_type.c_str());
   }
 
-  det.ok = true;
+  grid.configured = true;
   return 0;
 }
 
-void aprilgrid_detector_filter_tags(
-    const aprilgrid_detector_t &det,
-    const cv::Mat &image,
-    std::vector<AprilTags::TagDetection> &tags) {
+void aprilgrid_filter_tags(const cv::Mat &image,
+                           std::vector<AprilTags::TagDetection> &tags) {
   std::vector<AprilTags::TagDetection>::iterator iter = tags.begin();
 
   const double min_border_dist = 4.0;
@@ -485,24 +483,19 @@ void aprilgrid_detector_filter_tags(
   }
 }
 
-aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &det,
-                                      const long timestamp,
-                                      const cv::Mat &image) {
+int aprilgrid_detect(aprilgrid_t &grid, const cv::Mat &image) {
+  assert(grid.configured);
+
   // Convert image to gray-scale
   const cv::Mat image_gray = rgb2gray(image);
 
   // Extract tags
   std::vector<AprilTags::TagDetection> tags =
-      det.detector.extractTags(image_gray);
-  aprilgrid_detector_filter_tags(det, image, tags);
+      grid.detector.extractTags(image_gray);
+  aprilgrid_filter_tags(image, tags);
   std::sort(tags.begin(), tags.end(), sort_apriltag_by_id);
 
   // Form results
-  aprilgrid_t grid(timestamp,
-                   det.tag_rows,
-                   det.tag_cols,
-                   det.tag_size,
-                   det.tag_spacing);
   for (const auto tag : tags) {
     std::vector<cv::Point2f> img_pts;
     img_pts.emplace_back(tag.p[0].first, tag.p[0].second); // Bottom left
@@ -512,17 +505,20 @@ aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &det,
     aprilgrid_add(grid, tag.id, img_pts);
   }
 
-  return grid;
+  return grid.nb_detections;
 }
 
-aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &det,
-                                      const long timestamp,
-                                      const cv::Mat &image,
-                                      const mat3_t &cam_K,
-                                      const vec4_t &cam_D) {
-  auto grid = aprilgrid_detector_detect(det, timestamp, image);
+int aprilgrid_detect(aprilgrid_t &grid,
+                     const cv::Mat &image,
+                     const mat3_t &cam_K,
+                     const vec4_t &cam_D) {
+  assert(grid.configured);
+  if (aprilgrid_detect(grid, image) == 0) {
+    return 0;
+  }
   aprilgrid_calc_relative_pose(grid, cam_K, cam_D);
-  return grid;
+
+  return grid.nb_detections;
 }
 
 } // namespace prototype

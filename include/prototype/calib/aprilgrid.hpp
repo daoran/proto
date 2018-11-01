@@ -25,18 +25,23 @@ static bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
  * AprilGrid detection
  */
 struct aprilgrid_t {
-  long timestamp = 0;
+  AprilTags::TagDetector detector =
+      AprilTags::TagDetector(AprilTags::tagCodes36h11);
+
+  bool configured = false;
   int tag_rows = 0;
   int tag_cols = 0;
   double tag_size = 0.0;
   double tag_spacing = 0.0;
 
   bool detected = false;
+  int nb_detections = 0;
+  long timestamp = 0;
   std::vector<int> ids;
   std::vector<vec2_t> keypoints;
 
   bool estimated = false;
-  std::vector<vec3_t> positions_CF;
+  std::vector<vec3_t> points_CF;
   mat4_t T_CF = I(4);
   vec3_t rvec_CF = zeros(3, 1);
   vec3_t tvec_CF = zeros(3, 1);
@@ -89,7 +94,7 @@ int aprilgrid_get(const aprilgrid_t &grid,
  * @param[in] grid AprilGrid
  * @param[in] id Tag id
  * @param[out] keypoints Keypoints
- * @param[out] positions_CF Positions from camera to fiducial target
+ * @param[out] points_CF Positions from camera to fiducial target
  * @param[out] T_CF Transform between fiducial target and camera
  *
  * @returns 0 or -1 for success or failure
@@ -97,7 +102,7 @@ int aprilgrid_get(const aprilgrid_t &grid,
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
                   std::vector<vec2_t> &keypoints,
-                  std::vector<vec3_t> &positions);
+                  std::vector<vec3_t> &points);
 
 /**
  * Get the tag's grid index using the tag id
@@ -127,8 +132,9 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
 /**
  * Show detection
  *
- * @param image Input image
- * @param tags Detected AprilTags
+ * @param[in] grid AprilGrid
+ * @param[in] image Input image
+ * @param[in] tags Detected AprilTags
  */
 void aprilgrid_imshow(const aprilgrid_t &grid,
                       const std::string &title,
@@ -145,82 +151,54 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path);
 /**
  * Load AprilGrid detection
  *
+ * @param[in,out] grid AprilGrid
  * @param[in] data_path Path to data file
  * @returns 0 or -1 for success or failure
  */
 int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path);
 
 /**
- * AprilGrid detector
- */
-class aprilgrid_detector_t {
-public:
-  AprilTags::TagDetector detector =
-      AprilTags::TagDetector(AprilTags::tagCodes36h11);
-
-  // Settings
-  bool ok = false;
-  int tag_rows = 0;
-  int tag_cols = 0;
-  double tag_size = 0.0;
-  double tag_spacing = 0.0;
-
-  aprilgrid_detector_t();
-  aprilgrid_detector_t(const int tag_rows,
-                       const int tag_cols,
-                       const double tag_size,
-                       const double tag_spacing);
-  ~aprilgrid_detector_t();
-};
-
-/**
  * Configure AprilGrid detector
  *
- * @param[in,out] detector AprilGrid detector
+ * @param[in,out] grid AprilGrid
  * @param[in] config_file Path to config file
  * @returns 0 or 1 for success or failure
  */
-int aprilgrid_detector_configure(aprilgrid_detector_t &det,
-                                 const std::string &config_file);
+int aprilgrid_configure(aprilgrid_t &grid,
+                        const std::string &config_file);
 
 /**
  * Filter tags detected
  *
- * @param[in,out] detector AprilGrid detector
  * @param[in] image Image
  * @param[in,out] tags Detected AprilTags
  */
-void aprilgrid_detector_filter_tags(const aprilgrid_detector_t &det,
-                                    const cv::Mat &image,
-                                    std::vector<AprilTags::TagDetection> &tags);
+void aprilgrid_filter_tags(const cv::Mat &image,
+                           std::vector<AprilTags::TagDetection> &tags);
 
 /**
- * Detect AprilTags
+ * Detect AprilGrid
  *
- * @param[in,out] detector AprilGrid detector
- * @param[in] timestamp Timestamp
+ * @param[in,out] grid AprilGrid
  * @param[in] image Input image
- * @returns AprilGrid detection
+ * @returns Number of AprilTags detected
  */
-aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &detector,
-                                      const long timestamp,
-                                      const cv::Mat &image);
+int aprilgrid_detect(aprilgrid_t &detector, const cv::Mat &image);
 
 /**
- * Detect AprilTags
+ * Detect AprilGrid
  *
- * @param timestamp Timestamp
- * @param image Input image
- * @param cam_K Camera intrinsics matrix K
- * @param cam_D Camera distortion vector D
+ * @param[in,out] grid AprilGrid
+ * @param[in] image Input image
+ * @param[in] cam_K Camera intrinsics matrix K
+ * @param[in] cam_D Camera distortion vector D
  *
- * @returns AprilGrid detection
+ * @returns Number of AprilTags detected
  */
-aprilgrid_t aprilgrid_detector_detect(aprilgrid_detector_t &detector,
-                                      const long timestamp,
-                                      const cv::Mat &image,
-                                      const mat3_t &cam_K,
-                                      const vec4_t &cam_D);
+int aprilgrid_detect(aprilgrid_t &grid,
+                     const cv::Mat &image,
+                     const mat3_t &cam_K,
+                     const vec4_t &cam_D);
 
 } // namespace prototype
 #endif // PROTOTYPE_CALIB_APRILGRID_HPP

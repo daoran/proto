@@ -7,11 +7,11 @@ calib_target_t::calib_target_t() {}
 calib_target_t::~calib_target_t() {}
 
 std::ostream &operator<<(std::ostream &os, const calib_target_t &target) {
-  os << "type: " << target.type << std::endl;
-  os << "rows: " << target.tag_rows << std::endl;
-  os << "wols: " << target.tag_cols << std::endl;
-  os << "size: " << target.tag_size << std::endl;
-  os << "spacing: " << target.tag_spacing << std::endl;
+  os << "target_type: " << target.target_type << std::endl;
+  os << "tag_rows: " << target.tag_rows << std::endl;
+  os << "tag_cols: " << target.tag_cols << std::endl;
+  os << "tag_size: " << target.tag_size << std::endl;
+  os << "tag_spacing: " << target.tag_spacing << std::endl;
   return os;
 }
 
@@ -21,7 +21,7 @@ int calib_target_load(calib_target_t &ct, const std::string &target_file) {
     LOG_ERROR("Failed to load target file [%s]!", target_file.c_str());
     return -1;
   }
-  parse(config, "type", ct.type);
+  parse(config, "target_type", ct.target_type);
   parse(config, "tag_rows", ct.tag_rows);
   parse(config, "tag_cols", ct.tag_cols);
   parse(config, "tag_size", ct.tag_size);
@@ -30,12 +30,12 @@ int calib_target_load(calib_target_t &ct, const std::string &target_file) {
   return 0;
 }
 
-int preprocess_mono_data(const calib_target_t &target,
-                         const std::string &image_dir,
-                         const vec2_t image_size,
-                         const double lens_hfov,
-                         const double lens_vfov,
-                         const std::string &output_dir) {
+int preprocess_camera_data(const calib_target_t &target,
+                           const std::string &image_dir,
+                           const vec2_t image_size,
+                           const double lens_hfov,
+                           const double lens_vfov,
+                           const std::string &output_dir) {
   // Check image dir
   if (dir_exists(image_dir) == false) {
     LOG_ERROR("Image dir [%s] does not exist!", image_dir.c_str());
@@ -51,11 +51,6 @@ int preprocess_mono_data(const calib_target_t &target,
   std::sort(image_paths.begin(), image_paths.end());
 
   // Setup AprilGrid detector
-  aprilgrid_detector_t det{target.tag_rows,
-                           target.tag_cols,
-                           target.tag_size,
-                           target.tag_spacing};
-
   // Setup camera intrinsics and distortion vector
   const double fx = pinhole_focal_length(image_size(0), lens_hfov);
   const double fy = pinhole_focal_length(image_size(1), lens_vfov);
@@ -68,31 +63,35 @@ int preprocess_mono_data(const calib_target_t &target,
   for (size_t i = 0; i < image_paths.size(); i++) {
     LOG_INFO("Processing image file: [%s]", image_paths[i].c_str());
 
-    // Detect
-    const auto image_path = paths_combine(image_dir, image_paths[i]);
-    const cv::Mat image = cv::imread(image_path);
-    const auto grid = aprilgrid_detector_detect(det, i, image, cam_K, cam_D);
-
     // Output file path
     auto output_file = basename(image_paths[i]);
+    const long ts = std::stol(output_file);
     output_file = remove_ext(output_file);
     output_file += ".csv";
     const auto save_path = paths_combine(output_dir, output_file);
 
+    // Detect
+    const auto image_path = paths_combine(image_dir, image_paths[i]);
+    const cv::Mat image = cv::imread(image_path);
+    aprilgrid_t grid{ts,
+                     target.tag_rows,
+                     target.tag_cols,
+                     target.tag_size,
+                     target.tag_spacing};
+    aprilgrid_detect(grid, image, cam_K, cam_D);
+
     // Save AprilGrid
     if (grid.detected) {
       aprilgrid_save(grid, save_path);
+      aprilgrid_imshow(grid, "AprilGrid Detection", image);
     }
-
-    // Visualize
-    aprilgrid_imshow(grid, "AprilGrid Detection", image);
   }
 
   return 0;
 }
 
-int load_mono_calib_data(const std::string &data_dir,
-                         std::vector<aprilgrid_t> &aprilgrids) {
+int load_camera_calib_data(const std::string &data_dir,
+                           std::vector<aprilgrid_t> &aprilgrids) {
   // Check image dir
   if (dir_exists(data_dir) == false) {
     LOG_ERROR("Image dir [%s] does not exist!", data_dir.c_str());

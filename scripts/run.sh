@@ -13,7 +13,7 @@ time make -j8
 
 cd tests
 # ./calib-aprilgrid_test
-# ./calib-calib_test
+./calib-calib_test
 # ./control-mission_test
 # ./control-pid_test
 # ./core-config_test

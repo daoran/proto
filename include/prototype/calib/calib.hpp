@@ -23,7 +23,7 @@ namespace prototype {
  * Calibration target
  */
 struct calib_target_t {
-  std::string type;
+  std::string target_type;
   int tag_rows = 0;
   int tag_cols = 0;
   double tag_size = 0.0;
@@ -48,7 +48,7 @@ std::ostream &operator<<(std::ostream &os, const calib_target_t &target);
 int calib_target_load(calib_target_t &ct, const std::string &target_file);
 
 /**
- * Preprocess mono camera image data and output AprilGrid detection data as csv
+ * Preprocess camera image data and output AprilGrid detection data as csv
  *
  * @param[in] target Calibration target properties
  * @param[in] image_dir Path to camera images
@@ -59,22 +59,22 @@ int calib_target_load(calib_target_t &ct, const std::string &target_file);
  *
  * @returns 0 or -1 for success or failure
  */
-int preprocess_mono_data(const calib_target_t &target,
-                         const std::string &image_dir,
-                         const vec2_t image_size,
-                         const double lens_hfov,
-                         const double lens_vfov,
-                         const std::string &output_dir);
+int preprocess_camera_data(const calib_target_t &target,
+                           const std::string &image_dir,
+                           const vec2_t image_size,
+                           const double lens_hfov,
+                           const double lens_vfov,
+                           const std::string &output_dir);
 
 /**
- * Load preprocess-ed mono camera calibration data
+ * Load preprocess-ed camera calibration data
  *
  * @param[in] data_dir Path where calibration data was saved
  * @param[out] aprilgrids Detected aprilgrids
  * @returns 0 or -1 for success or failure
  */
-int load_mono_calib_data(const std::string &data_dir,
-                         std::vector<aprilgrid_t> &aprilgrids);
+int load_camera_calib_data(const std::string &data_dir,
+                           std::vector<aprilgrid_t> &aprilgrids);
 
 /** @} group calib */
 } //  namespace prototype
