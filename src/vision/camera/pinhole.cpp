@@ -26,48 +26,36 @@ pinhole_t::pinhole_t(const double fx_,
   // clang-format on
 }
 
-vec2_t project(const pinhole_t &model, const vec3_t &X) {
-  const vec3_t x = model.K * X;
-  return vec2_t{x(0) / x(2), x(1) / x(2)};
-}
+pinhole_t::~pinhole_t() {}
 
-mat34_t projection_matrix(const pinhole_t &model,
-                          const mat3_t &R,
-                          const vec3_t &t) {
-  mat34_t A;
-  A.block(0, 0, 3, 3) = R;
-  A.block(0, 3, 3, 1) = -R * t;
-  const mat34_t P = model.K * A;
-  return P;
+mat3_t pinhole_K(const double fx, const double fy,
+                 const double cx, const double cy) {
+  mat3_t K;
+  // clang-format off
+  K << fx, 0.0, cx,
+       0.0, fx, cy,
+       0.0, 0.0, 1.0;
+  // clang-format on
+
+  return K;
 }
 
 mat3_t pinhole_K(const vec4_t &intrinsics) {
-  mat3_t K;
-
-  // clang-format off
   const double fx = intrinsics(0);
   const double fy = intrinsics(1);
   const double cx = intrinsics(2);
   const double cy = intrinsics(3);
-  K << fx, 0.0, cx,
-       0.0, fy, cy,
-       0.0, 0.0, 1.0;
-  // clang-format on
-
-  return K;
+  return pinhole_K(fx, fy, cx, cy);
 }
 
-mat3_t
-pinhole_K(const double fx, const double fy, const double cx, const double cy) {
-  mat3_t K;
-
-  // clang-format off
-  K << fx, 0.0, cx,
-       0.0, fy, cy,
-       0.0, 0.0, 1.0;
-  // clang-format on
-
-  return K;
+mat34_t pinhole_P(const mat3_t &K,
+                  const mat3_t &R,
+                  const vec3_t &t) {
+  mat34_t A;
+  A.block(0, 0, 3, 3) = R;
+  A.block(0, 3, 3, 1) = -R * t;
+  const mat34_t P = K * A;
+  return P;
 }
 
 double pinhole_focal_length(const int image_width, const double fov) {
@@ -82,59 +70,35 @@ vec2_t pinhole_focal_length(const vec2_t &image_size,
   return vec2_t{fx, fy};
 }
 
-mat34_t pinhole_projection_matrix(const mat3_t &K,
-                                  const mat3_t &R,
-                                  const vec3_t &t) {
-  mat34_t A;
-  A.block(0, 0, 3, 3) = R;
-  A.block(0, 3, 3, 1) = -R * t;
-  const mat34_t P = K * A;
-  return P;
-}
-
-vec2_t pinhole_project(const mat3_t &K, const vec3_t &X) {
-  const vec3_t x = K * X;
+vec2_t project(const pinhole_t &model, const vec3_t &p) {
+  const vec3_t x = model.K * p;
   return vec2_t{x(0) / x(2), x(1) / x(2)};
 }
 
-vec3_t pinhole_project(const mat3_t &K,
-                       const mat3_t &R,
-                       const vec3_t &t,
-                       const vec4_t &X) {
-  mat34_t A;
-  A.block(0, 0, 3, 3) = R;
-  A.block(0, 3, 3, 1) = -R * t;
-
-  // Form projection matrix
-  const mat34_t P = K * A;
-  const vec3_t x = P * X;
-  return x;
-}
-
-vec2_t pinhole_project(const mat3_t &K,
-                       const mat3_t &R,
-                       const vec3_t &t,
-                       const vec3_t &X) {
-  const vec4_t X_homo = X.homogeneous();
-  const vec3_t x = pinhole_project(K, R, t, X_homo);
+vec2_t project(const pinhole_t &pinhole,
+               const mat3_t &R,
+               const vec3_t &t,
+               const vec4_t &hp) {
+  const mat34_t P = pinhole_P(pinhole.K, R, t);
+  const vec3_t x = P * hp;
   return vec2_t{x(0) / x(2), x(1) / x(2)};
 }
 
-vec2_t pinhole_pixel2point(const double fx,
-                           const double fy,
-                           const double cx,
-                           const double cy,
-                           const vec2_t &pixel) {
+vec2_t project(const pinhole_t &pinhole,
+               const mat3_t &R,
+               const vec3_t &t,
+               const vec3_t &p) {
+  const vec4_t hp = p.homogeneous();
+  return project(pinhole, R, t, hp);
+}
+
+vec2_t pixel2ideal(const pinhole_t &pinhole, const vec2_t &pixel) {
+  const double fx = pinhole.fx;
+  const double fy = pinhole.fy;
+  const double cx = pinhole.cx;
+  const double cy = pinhole.cy;
   vec2_t pt((pixel(0) - cx) / fx, (pixel(1) - cy) / fy);
   return pt;
-}
-
-vec2_t pinhole_pixel2point(const mat3_t &K, const vec2_t &pixel) {
-  const double fx = K(0, 0);
-  const double fy = K(1, 1);
-  const double cx = K(0, 2);
-  const double cy = K(1, 2);
-  return pinhole_pixel2point(fx, fy, cx, cy, pixel);
 }
 
 } //  namespace prototype

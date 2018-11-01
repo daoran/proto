@@ -2,65 +2,66 @@
 
 namespace prototype {
 
-matx_t distort(const radtan4_t &radtan, const matx_t &points) {
-  assert(points.cols() == 3);
-
-  // Setup
+vec2_t distort(const radtan4_t &radtan, const vec3_t &point) {
   const double k1 = radtan.k1;
   const double k2 = radtan.k2;
   const double p1 = radtan.p1;
   const double p2 = radtan.p2;
-  const Eigen::ArrayXd z = points.col(2).array();
-  const Eigen::ArrayXd x = points.col(0).array() / z.array();
-  const Eigen::ArrayXd y = points.col(1).array() / z.array();
 
-  // Apply radial distortion factor
-  // clang-format off
-  const int nb_points = points.rows();
-  const Eigen::ArrayXd r2 = x.pow(2) + y.pow(2);
-  const Eigen::ArrayXd one = ones(nb_points, 1).array();
-  const Eigen::ArrayXd x_dash = x * (one + (k1 * r2) + (k2 * r2.pow(2)));
-  const Eigen::ArrayXd y_dash = y * (one + (k1 * r2) + (k2 * r2.pow(2)));
-  // clang-format on
+  // Project
+  const double x = point(0) / point(2);
+  const double y = point(1) / point(2);
 
-  // Apply tangential distortion factor
-  // clang-format off
-  const Eigen::ArrayXd x_ddash = x_dash + (2 * p1 * x * y + p2 * (r2 + 2 * x.pow(2)));
-  const Eigen::ArrayXd y_ddash = x_dash + (p1 * (r2 + 2 * y.pow(2)) + 2 * p2 * x * y);
-  // clang-format on
+  // Apply radial distortion
+  const double x2 = x * x;
+  const double y2 = y * y;
+  const double r2 = x2 + y2;
+  const double r4 = r2 * r2;
+  const double radial_factor = 1 + (k1 * r2) + (k2 * r4);
+  const double x_dash = x * radial_factor;
+  const double y_dash = y * radial_factor;
 
-  // Project rad-tan distorted points to image plane
-  matx_t distorted_points{nb_points, 2};
-  distorted_points.col(0) = x_ddash;
-  distorted_points.col(1) = y_ddash;
+  // Apply tangential distortion
+  const double xy = x * y;
+  const double x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const double y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
 
-  return distorted_points;
+  return vec2_t{x_ddash, y_ddash};
 }
 
-vec2_t distort(const radtan4_t &radtan, const vec3_t &point) {
-  // Setup
+matx_t distort(const radtan4_t &radtan, const matx_t &points) {
+  assert(points.rows() == 3);
+  assert(points.cols() > 0);
+
+  const int nb_points = points.cols();
   const double k1 = radtan.k1;
   const double k2 = radtan.k2;
   const double p1 = radtan.p1;
   const double p2 = radtan.p2;
-  const double x_dash = point(0) / point(2);
-  const double y_dash = point(1) / point(2);
 
-  // Radial distortion factor
-  const double r2 = (x_dash * x_dash) + (y_dash * y_dash);
-  const double r4 = r2 * r2;
-  const double r6 = r2 * r4;
-  const double temp = 1 + (k1 * r2) + (k2 * r4);
+  // Project
+  const Eigen::ArrayXd x = points.row(0).array() / points.row(2).array();
+  const Eigen::ArrayXd y = points.row(1).array() / points.row(2).array();
 
-  // Tangential distortion factor
-  // clang-format off
-  const double x_ddash = x_dash * temp + (2 * p1 * x_dash * y_dash + p2 * (r2 + 2 * (x_dash * x_dash)));
-  const double y_ddash = y_dash * temp + (p1 * (r2 + 2 * (y_dash * y_dash)) + 2 * p2 * x_dash * y_dash);
-  // clang-format on
+  // Apply radial distortion factor
+  const Eigen::ArrayXd x2 = x * x;
+  const Eigen::ArrayXd y2 = y * y;
+  const Eigen::ArrayXd r2 = x2 + y2;
+  const Eigen::ArrayXd r4 = r2 * r2;
+  const Eigen::ArrayXd x_dash = x * (1 + (k1 * r2) + (k2 * r4));
+  const Eigen::ArrayXd y_dash = y * (1 + (k1 * r2) + (k2 * r4));
 
-  // Project rad-tan distorted point to image plane
-  vec2_t distorted_point{x_ddash, y_ddash};
-  return distorted_point;
+  // Apply tangential distortion factor
+  const Eigen::ArrayXd xy = x * y;
+  const Eigen::ArrayXd x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const Eigen::ArrayXd y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+
+  // Form results
+  matx_t distorted_points{2, nb_points};
+  distorted_points.row(0) = x_ddash;
+  distorted_points.row(1) = y_ddash;
+
+  return distorted_points;
 }
 
 } // namespace prototype

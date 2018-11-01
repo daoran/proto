@@ -38,7 +38,7 @@ struct radtan4_t {
  * Source:
  * http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
  */
-matx_t distort(const radtan4_t &radtan, const matx_t &points);
+vec2_t distort(const radtan4_t &radtan, const vec3_t &point);
 
 /**
  * Distort 3D points with the radial-tangential distortion model
@@ -46,7 +46,7 @@ matx_t distort(const radtan4_t &radtan, const matx_t &points);
  * Source:
  * http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
  */
-vec2_t distort(const radtan4_t &radtan, const vec2_t &point);
+matx_t distort(const radtan4_t &radtan, const matx_t &points);
 
 /** @} group camera */
 } //  namespace prototype

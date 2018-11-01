@@ -33,54 +33,35 @@ struct pinhole_t {
 };
 
 /**
- * Project point to pixel coordinates
+ * Form pinhole camera matrix K
  *
- * @param[in] model Camera model
- * @param[in] X Point in 3D
- * @returns Point in pixel coordinates
+ * @param[in] fx Focal length in x-axis
+ * @param[in] fy Focal length in y-axis
+ * @param[in] cx Principal center in x-axis
+ * @param[in] cy Principal center in y-axis
+ *
+ * @param Camera matrix K
  */
-vec2_t project(const pinhole_t &model, const vec3_t &X);
+mat3_t pinhole_K(const double fx, const double fy,
+                 const double cx, const double cy);
 
 /**
- * Form projection matrix
+ * Form pinhole camera matrix K
  *
- * @param[in] model Camera model
- * @param[in] R Rotation matrix
- * @param[in] t Translation vector
- * @returns 3x4 Projection matrix
- */
-mat34_t projection_matrix(const pinhole_t &model,
-                          const mat3_t &R,
-                          const vec3_t &t);
-
-/**
- * Convert pixel to point
- *
- * @param[in] model Camera model
- * @param[in] pixel Pixel measurement
- * @returns Point in image plane
- */
-vec2_t pixel2point(const pinhole_t &model, const vec2_t &pixel);
-
-/**
- * Pinhole camera model intrinsics matrix
- *
- * @param[in] intrinsics Intrinsics vector (fx, fy, cx, cy)
- * @returns Intrinsics matrix K
+ * @param[in] intrinsics Intrinsics (fx, fy, cx, cy)
+ * @param Camera matrix K
  */
 mat3_t pinhole_K(const vec4_t &intrinsics);
 
 /**
- * Pinhole camera model intrinsics matrix
+ * Form pinhole projection matrix P
  *
- * @param[in] fx Focal-length in x-axis
- * @param[in] fy Focal-length in y-axis
- * @param[in] cx Principal center in x-axis
- * @param[in] cy Principal center in y-axis
- * @returns Intrinsics matrix K
+ * @param[in] K Camera matrix K
+ * @param[in] R Camera rotation matrix
+ * @param[in] t Camera translation vector
+ * @returns Camera projection matrix P
  */
-mat3_t
-pinhole_K(const double fx, const double fy, const double cx, const double cy);
+mat34_t pinhole_P(const mat3_t &K, const mat3_t &R, const vec3_t &t);
 
 /**
  * Pinhole camera model theoretical focal length
@@ -104,81 +85,52 @@ vec2_t pinhole_focal_length(const vec2_t &image_size,
                             const double vfov);
 
 /**
- * Pinhole projection matrix
+ * Project point to pixel coordinates
  *
- * @param[in] K camera intrinsics matrix K
- * @param[in] R Rotation matrix
- * @param[in] t translation vector
- * @returns Projection matrix
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] p Point in 3D
+ * @returns Point in pixel coordinates
  */
-mat34_t pinhole_projection_matrix(const mat3_t &K,
-                                  const mat3_t &R,
-                                  const vec3_t &t);
+vec2_t project(const pinhole_t &pinhole, const vec3_t &p);
 
 /**
  * Project 3D point to image plane using pinhole model
  *
- * @param[in] K camera intrinsics matrix K
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] R Rotation matrix
+ * @param[in] t translation vector
+ * @param[in] hp 3D point in homogeneous coordinates
+ *
+ * @returns Projected point in image plane
+ */
+vec2_t project(const pinhole_t &pinhole,
+               const mat3_t &R,
+               const vec3_t &t,
+               const vec4_t &hp);
+
+/**
+ * Project 3D point to image plane using pinhole model
+ *
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] R Rotation matrix
+ * @param[in] t translation vector
  * @param[in] p 3D point
- * @returns Projected point in image plane
- */
-vec2_t pinhole_project(const mat3_t &K, const vec3_t &p);
-
-/**
- * Project 3D point to image plane using pinhole model
- *
- * @param[in] K camera intrinsics matrix K
- * @param[in] R Rotation matrix
- * @param[in] t translation vector
- * @param[in] X 3D point
  *
  * @returns Projected point in image plane
  */
-vec3_t pinhole_project(const mat3_t &K,
-                       const mat3_t &R,
-                       const vec3_t &t,
-                       const vec4_t &X);
+vec2_t project(const pinhole_t &pinhole,
+               const mat3_t &R,
+               const vec3_t &t,
+               const vec3_t &p);
 
 /**
- * Project 3D point to image plane using pinhole model
+ * Convert pixel to ideal
  *
- * @param[in] K camera intrinsics matrix K
- * @param[in] R Rotation matrix
- * @param[in] t translation vector
- * @param[in] X 3D point
- *
- * @returns Projected point in image plane
- */
-vec2_t pinhole_project(const mat3_t &K,
-                       const mat3_t &R,
-                       const vec3_t &t,
-                       const vec3_t &X);
-
-/**
- * Convert pixel to point
- *
- * @param[in] fx Focal length in x-axis
- * @param[in] fy Focal length in y-axis
- * @param[in] cx Principle center in x-axis
- * @param[in] cy Principle center in y-axis
- * @param[in] pixel Pixel measurement
- *
- * @returns Point in image plane
- */
-vec2_t pinhole_pixel2point(const double fx,
-                           const double fy,
-                           const double cx,
-                           const double cy,
-                           const vec2_t &pixel);
-
-/**
- * Convert pixel to point
- *
- * @param[in] K camera intrinsics matrix K
+ * @param[in] pinhole Pinhole camera model
  * @param[in] pixel Pixel measurement
  * @returns Point in image plane
  */
-vec2_t pinhole_pixel2point(const mat3_t &K, const vec2_t &pixel);
+vec2_t pixel2ideal(const pinhole_t &pinhole, const vec2_t &pixel);
 
 /** @} group camera */
 } //  namespace prototype
