@@ -28,7 +28,7 @@ int test_radtan_distort_point() {
     // Distort point
     radtan4_t radtan{0.1, 0.01, 0.01, 0.01};
     vec3_t p{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
-    vec2_t pixel = distort(radtan, p);
+    vec2_t pixel = distort(radtan, vec2_t{p(0) / p(2), p(1) / p(2)});
 
     // Use opencv to use radtan distortion to distort point
     const std::vector<cv::Point3f> points{cv::Point3f(p(0), p(1), p(2))};
@@ -57,12 +57,12 @@ int test_radtan_distort_points() {
   int nb_points = 100;
   radtan4_t radtan{0.1, 0.01, 0.01, 0.01};
   matx_t points;
-  points.resize(3, nb_points);
+  points.resize(2, nb_points);
 
   std::vector<cv::Point3f> cv_points;
   for (int i = 0; i < nb_points; i++) {
     vec3_t p{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
-    points.block(0, i, 3, 1) = p;
+    points.block(0, i, 2, 1) = vec2_t{p(0) / p(2), p(1) / p(2)};
     cv_points.emplace_back(p(0), p(1), p(2));
   }
 
@@ -87,7 +87,29 @@ int test_radtan_distort_points() {
     // std::cout << expected.transpose() << std::endl;
     // std::cout << std::endl;
 
-    MU_CHECK((pixel - expected).norm() < 0.1);
+    MU_CHECK((pixel - expected).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_radtan_undistort_point() {
+  const int nb_points = 100;
+
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    const radtan4_t radtan{0.1, 0.02, 0.03, 0.04};
+    const vec3_t point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    const vec2_t p{point(0) / point(2), point(1) / point(2)};
+    const vec2_t p_d = distort(radtan, p);
+    const vec2_t p_ud = undistort(radtan, p_d);
+
+    // // Debug
+    // std::cout << p.transpose() << std::endl;
+    // std::cout << p_ud.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((p - p_ud).norm() < 1.0e-5);
   }
 
   return 0;
@@ -96,6 +118,7 @@ int test_radtan_distort_points() {
 void test_suite() {
   MU_ADD_TEST(test_radtan_distort_point);
   MU_ADD_TEST(test_radtan_distort_points);
+  MU_ADD_TEST(test_radtan_undistort_point);
 }
 
 } // namespace prototype

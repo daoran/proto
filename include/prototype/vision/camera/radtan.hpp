@@ -27,26 +27,45 @@ struct radtan4_t {
   radtan4_t(const double k1_,
             const double k2_,
             const double p1_,
-            const double p2_)
-      : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
-  ~radtan4_t() {}
+            const double p2_);
+  ~radtan4_t();
 };
 
 /**
  * Distort 3D points with the radial-tangential distortion model
  *
- * Source:
- * http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] point Point
+ * @returns Distorted point
  */
-vec2_t distort(const radtan4_t &radtan, const vec3_t &point);
+vec2_t distort(const radtan4_t &radtan, const vec2_t &point);
 
 /**
  * Distort 3D points with the radial-tangential distortion model
  *
- * Source:
- * http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] points Points
+ * @returns Distorted points
  */
 matx_t distort(const radtan4_t &radtan, const matx_t &points);
+
+/**
+ * Distort Jacobian
+ *
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] point Point
+ * @returns Jacobian of distorted point p' w.r.t. point p
+ */
+mat2_t distort_jacobian(const radtan4_t &radtan, const vec2_t &point);
+
+/**
+ * Undistort point
+ *
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] p0 Distorted point
+ * @returns Undistorted point
+ */
+vec2_t undistort(const radtan4_t &radtan, const vec2_t &p0, const int max_iter=5);
 
 /** @} group camera */
 } //  namespace prototype

@@ -2,15 +2,21 @@
 
 namespace prototype {
 
-vec2_t distort(const radtan4_t &radtan, const vec3_t &point) {
+radtan4_t::radtan4_t(const double k1_,
+            const double k2_,
+            const double p1_,
+            const double p2_)
+      : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
+
+radtan4_t::~radtan4_t() {}
+
+vec2_t distort(const radtan4_t &radtan, const vec2_t &point) {
   const double k1 = radtan.k1;
   const double k2 = radtan.k2;
   const double p1 = radtan.p1;
   const double p2 = radtan.p2;
-
-  // Project
-  const double x = point(0) / point(2);
-  const double y = point(1) / point(2);
+  const double x = point(0);
+  const double y = point(1);
 
   // Apply radial distortion
   const double x2 = x * x;
@@ -30,20 +36,17 @@ vec2_t distort(const radtan4_t &radtan, const vec3_t &point) {
 }
 
 matx_t distort(const radtan4_t &radtan, const matx_t &points) {
-  assert(points.rows() == 3);
+  assert(points.rows() == 2);
   assert(points.cols() > 0);
 
-  const int nb_points = points.cols();
   const double k1 = radtan.k1;
   const double k2 = radtan.k2;
   const double p1 = radtan.p1;
   const double p2 = radtan.p2;
+  const Eigen::ArrayXd x = points.row(0).array();
+  const Eigen::ArrayXd y = points.row(1).array();
 
-  // Project
-  const Eigen::ArrayXd x = points.row(0).array() / points.row(2).array();
-  const Eigen::ArrayXd y = points.row(1).array() / points.row(2).array();
-
-  // Apply radial distortion factor
+  // Apply radial distortion
   const Eigen::ArrayXd x2 = x * x;
   const Eigen::ArrayXd y2 = y * y;
   const Eigen::ArrayXd r2 = x2 + y2;
@@ -51,17 +54,70 @@ matx_t distort(const radtan4_t &radtan, const matx_t &points) {
   const Eigen::ArrayXd x_dash = x * (1 + (k1 * r2) + (k2 * r4));
   const Eigen::ArrayXd y_dash = y * (1 + (k1 * r2) + (k2 * r4));
 
-  // Apply tangential distortion factor
+  // Apply tangential distortion
   const Eigen::ArrayXd xy = x * y;
   const Eigen::ArrayXd x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
   const Eigen::ArrayXd y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
 
   // Form results
+  const int nb_points = points.cols();
   matx_t distorted_points{2, nb_points};
   distorted_points.row(0) = x_ddash;
   distorted_points.row(1) = y_ddash;
 
   return distorted_points;
+}
+
+mat2_t distort_jacobian(const radtan4_t &radtan, const vec2_t &p) {
+  const double k1 = radtan.k1;
+  const double k2 = radtan.k2;
+  const double p1 = radtan.p1;
+  const double p2 = radtan.p2;
+  const double x = p(0);
+  const double y = p(1);
+
+  const double x2 = x * x;
+  const double y2 = y * y;
+  const double xy = x * y;
+	const double r2 = x2 + y2;
+	const double r4 = r2 * r2;
+	const double radial_factor = 1 + k1 * r2 + k2 * r4;
+
+	// Let p = [x; y] normalized point
+	// Let p' be the distorted p
+  // The jacobian of p' w.r.t. p (or dp'/dp) is:
+	// clang-format off
+  mat2_t J;
+	J(0, 0) = 1 + k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (2 * k1 * x + 4 * k2 * x * r2);
+	J(1, 0) = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
+	J(0, 1) = J(1, 0);
+	J(1, 1) = 1 + k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2);
+	// clang-format on
+	// Above is generated using sympy
+
+	return J;
+}
+
+vec2_t undistort(const radtan4_t &radtan, const vec2_t &p0, const int max_iter) {
+  vec2_t p = p0;
+
+  for (int i = 0; i < max_iter; i++) {
+		// Error
+    const vec2_t p_distorted = distort(radtan, p);
+    const vec2_t err = (p0 - p_distorted);
+
+		// Jacobian
+    const mat2_t J = distort_jacobian(radtan, p);
+    const mat2_t pinv = (J.transpose() * J).inverse() * J.transpose();
+    const vec2_t dp = pinv * err;
+    p += dp;
+
+    if ((err.transpose() * err) < 1.0e-15) {
+      break;
+    }
+  }
+
+  return p;
 }
 
 } // namespace prototype

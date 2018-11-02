@@ -5,6 +5,11 @@ export CXX=/usr/bin/clang++
 
 # bash ./scripts/format_code.bash
 
+# cd octave/vision
+# # octave test_radtan4_jacobian.m
+# # octave test_radtan4_undistort.m
+# octave sandbox.m
+
 # rm -rf build
 mkdir -p build
 cd build || return
