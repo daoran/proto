@@ -136,6 +136,7 @@ SET(
   model-mav_test
   vision-camera-pinhole_test
   vision-camera-radtan_test
+  vision-camera-equi_test
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})

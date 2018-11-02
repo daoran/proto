@@ -31,6 +31,7 @@ cd tests
 # ./core-time_test
 # ./driver-camera-camera_test
 # ./vision-camera-pinhole_test
-./vision-camera-radtan_test
+# ./vision-camera-radtan_test
+# ./vision-camera-equi_test
 
 # sudo make install

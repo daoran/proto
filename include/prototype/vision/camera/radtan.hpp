@@ -44,19 +44,20 @@ vec2_t distort(const radtan4_t &radtan, const vec2_t &point);
  * Distort 3D points with the radial-tangential distortion model
  *
  * @param[in] radtan Radial tangential parameters
+ * @param[in] point Point
+ * @param[out] J Jacobian of radtan w.r.t. point
+ * @returns Distorted point
+ */
+vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J);
+
+/**
+ * Distort 3D points with the radial-tangential distortion model
+ *
+ * @param[in] radtan Radial tangential parameters
  * @param[in] points Points
  * @returns Distorted points
  */
 matx_t distort(const radtan4_t &radtan, const matx_t &points);
-
-/**
- * Distort Jacobian
- *
- * @param[in] radtan Radial tangential parameters
- * @param[in] point Point
- * @returns Jacobian of distorted point p' w.r.t. point p
- */
-mat2_t distort_jacobian(const radtan4_t &radtan, const vec2_t &point);
 
 /**
  * Undistort point
