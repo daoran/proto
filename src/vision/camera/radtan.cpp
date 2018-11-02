@@ -79,34 +79,34 @@ mat2_t distort_jacobian(const radtan4_t &radtan, const vec2_t &p) {
   const double x2 = x * x;
   const double y2 = y * y;
   const double xy = x * y;
-	const double r2 = x2 + y2;
-	const double r4 = r2 * r2;
-	const double radial_factor = 1 + k1 * r2 + k2 * r4;
+  const double r2 = x2 + y2;
+  const double r4 = r2 * r2;
+  const double radial_factor = 1 + k1 * r2 + k2 * r4;
 
-	// Let p = [x; y] normalized point
-	// Let p' be the distorted p
+  // Let p = [x; y] normalized point
+  // Let p' be the distorted p
   // The jacobian of p' w.r.t. p (or dp'/dp) is:
-	// clang-format off
+  // clang-format off
   mat2_t J;
-	J(0, 0) = 1 + k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (2 * k1 * x + 4 * k2 * x * r2);
-	J(1, 0) = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
-	J(0, 1) = J(1, 0);
-	J(1, 1) = 1 + k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2);
-	// clang-format on
-	// Above is generated using sympy
+  J(0, 0) = 1 + k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (2 * k1 * x + 4 * k2 * x * r2);
+  J(1, 0) = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
+  J(0, 1) = J(1, 0);
+  J(1, 1) = 1 + k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2);
+  // clang-format on
+  // Above is generated using sympy
 
-	return J;
+  return J;
 }
 
 vec2_t undistort(const radtan4_t &radtan, const vec2_t &p0, const int max_iter) {
   vec2_t p = p0;
 
   for (int i = 0; i < max_iter; i++) {
-		// Error
+    // Error
     const vec2_t p_distorted = distort(radtan, p);
     const vec2_t err = (p0 - p_distorted);
 
-		// Jacobian
+    // Jacobian
     const mat2_t J = distort_jacobian(radtan, p);
     const mat2_t pinv = (J.transpose() * J).inverse() * J.transpose();
     const vec2_t dp = pinv * err;
