@@ -76,11 +76,11 @@ int test_equi_distort_points() {
     const auto p_dist = points_distorted.block(0, i, 2, 1);
     const auto expected = vec2_t{expected_points[i].x, expected_points[i].y};
 
-    // // Debug
-    // std::cout << i << std::endl;
-    // std::cout << p_dist.transpose() << std::endl;
-    // std::cout << expected.transpose() << std::endl;
-    // std::cout << std::endl;
+    // Debug
+    std::cout << i << std::endl;
+    std::cout << p_dist.transpose() << std::endl;
+    std::cout << expected.transpose() << std::endl;
+    std::cout << std::endl;
 
     MU_CHECK((p_dist - expected).norm() < 1.0e-5);
   }

@@ -30,14 +30,32 @@ struct equi4_t {
 };
 
 /**
- * Distort a single 3D point with the equi-distant distortion model
+ * Distort point with equi-distant distortion model
+ *
+ * @param[in] equi Equi-distance parameters
+ * @param[in] point Point
+ * @returns Distorted point
  */
 vec2_t distort(const equi4_t &equi, const vec2_t &point);
 
 /**
- * Distort 3D points with the equi-distant distortion model
+ * Distort point with equi-distant distortion model
+ *
+ * @param[in] equi Equi-distance parameters
+ * @param[in] point Point
+ * @param[out] J Jacobian of equi w.r.t. point
+ * @returns Distorted point
  */
-matx_t distort(const equi4_t &equi, const matx_t &point);
+vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J);
+
+/**
+ * Distort point with equi-distant distortion model
+ *
+ * @param[in] equi Equi-distance parameters
+ * @param[in] points Points
+ * @returns Distorted points
+ */
+matx_t distort(const equi4_t &equi, const matx_t &points);
 
 /**
  * Un-distort a 2D point with the equi-distant distortion model
