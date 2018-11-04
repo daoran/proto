@@ -10,10 +10,7 @@ for i = 1:nb_tests
 
 	% Form and distort point
 	point = [unifrnd(-0.1, 0.1); unifrnd(-0.1, 0.1)];
-	point0 = radtan4_distort(k1, k2, p1, p2, point);
-
-	% Obtain jacobian
-	J = radtan4_jacobian(k1, k2, p1, p2, point);
+	[point0, J] = radtan4_distort(k1, k2, p1, p2, point);
 
 	% Perform numerical diff to obtain finite difference
 	step_size = 1e-6;

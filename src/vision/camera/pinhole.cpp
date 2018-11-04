@@ -75,6 +75,10 @@ vec2_t project(const pinhole_t &model, const vec3_t &p) {
   return vec2_t{x(0) / x(2), x(1) / x(2)};
 }
 
+vec2_t project(const pinhole_t &model, const vec2_t &p) {
+  return vec2_t{p(0) * model.fx + model.cx, p(1) * model.fy + model.cy};
+}
+
 vec2_t project(const pinhole_t &pinhole,
                const mat3_t &R,
                const vec3_t &t,

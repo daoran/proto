@@ -1,6 +1,6 @@
-#include "feature2d/draw.hpp"
-#include "feature2d/grid_fast.hpp"
 #include "prototype/munit.hpp"
+#include "prototype/vision/feature2d/draw.hpp"
+#include "prototype/vision/feature2d/grid_fast.hpp"
 
 namespace prototype {
 

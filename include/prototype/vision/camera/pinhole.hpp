@@ -94,6 +94,15 @@ vec2_t pinhole_focal_length(const vec2_t &image_size,
 vec2_t project(const pinhole_t &pinhole, const vec3_t &p);
 
 /**
+ * Project point to pixel coordinates
+ *
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] p Point
+ * @returns Point in pixel coordinates
+ */
+vec2_t project(const pinhole_t &model, const vec2_t &p);
+
+/**
  * Project 3D point to image plane using pinhole model
  *
  * @param[in] pinhole Pinhole camera model

@@ -124,25 +124,4 @@ vec2_t undistort(const equi4_t &equi, const vec2_t &p) {
   return p_ud;
 }
 
-cv::Mat undistort_image(const mat3_t &K,
-                        const vecx_t &D,
-                        const cv::Mat &image,
-                        cv::Mat &Knew,
-                        const double balance) {
-  // Estimate new camera matrix first
-  const cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
-  cv::fisheye::estimateNewCameraMatrixForUndistortRectify(convert(K),
-                                                          convert(D),
-                                                          image.size(),
-                                                          R,
-                                                          Knew,
-                                                          balance);
-
-  // Undistort image
-  cv::Mat image_ud;
-  cv::fisheye::undistortImage(image, image_ud, convert(K), convert(D), Knew);
-
-  return image_ud;
-}
-
 } //  namespace prototype

@@ -155,5 +155,35 @@ cv::Mat feature_mask_opencv(const int image_width,
                             const std::vector<cv::KeyPoint> keypoints,
                             const int patch_width);
 
+/**
+ * Equi undistort image
+ *
+ * @param[in] K Camera matrix K
+ * @param[in] D Distortion vector D
+ * @param[in] image Input image
+ *
+ * @returns Undistorted image using radial-tangential distortion
+ */
+cv::Mat radtan_undistort_image(const mat3_t &K,
+                               const vecx_t &D,
+                               const cv::Mat &image);
+
+/**
+ * Equi undistort image
+ *
+ * @param[in] K Camera matrix K
+ * @param[in] D Distortion vector D
+ * @param[in] image Input image
+ * @param[in,out] Knew New camera matrix K
+ * @param[in] balance Balance
+ *
+ * @returns Undistorted image using equidistant distortion
+ */
+cv::Mat equi_undistort_image(const mat3_t &K,
+                             const vecx_t &D,
+                             const cv::Mat &image,
+                             cv::Mat &Knew,
+                             const double balance);
+
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_UTIL_HPP

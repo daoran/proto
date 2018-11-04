@@ -134,9 +134,12 @@ SET(
   dataset-kitti-raw-raw_test
   driver-camera-camera_test
   model-mav_test
+  vision-camera-camera_geometry_test
+  vision-camera-equi_test
   vision-camera-pinhole_test
   vision-camera-radtan_test
-  vision-camera-equi_test
+  vision-feature2d-grid_fast_test
+  vision-feature2d-grid_good_test
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})

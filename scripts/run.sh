@@ -6,9 +6,11 @@ export CXX=/usr/bin/clang++
 # bash ./scripts/format_code.bash
 
 # cd octave/vision
-# # octave test_radtan4_jacobian.m
-# # octave test_radtan4_undistort.m
+# octave test_radtan4_distort.m
+# octave test_radtan4_undistort.m
 # octave sandbox.m
+# octave sandbox2.m
+# exit
 
 # rm -rf build
 mkdir -p build
@@ -30,8 +32,11 @@ cd tests
 # ./core-stats_test
 # ./core-time_test
 # ./driver-camera-camera_test
+# ./vision-camera-camera_geometry_test
+# ./vision-camera-equi_test
 # ./vision-camera-pinhole_test
 # ./vision-camera-radtan_test
-./vision-camera-equi_test
+# ./vision-feature2d-grid_fast_test
+# ./vision-feature2d-grid_good_test
 
 # sudo make install
