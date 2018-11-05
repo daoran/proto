@@ -319,6 +319,13 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
   assert((grid.keypoints.size() % 4) == 0);
   assert((grid.points_CF.size() % 4) == 0);
 
+  // Check save dir
+  const std::string dir_path = dir_name(save_path);
+  if (dir_create(dir_path) != 0) {
+    LOG_ERROR("Could not create dir [%s]!", dir_path.c_str());
+    return -1;
+  }
+
   // Open file for saving
   std::ofstream outfile(save_path);
   if (outfile.good() != true) {

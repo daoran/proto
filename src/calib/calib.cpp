@@ -82,7 +82,9 @@ int preprocess_camera_data(const calib_target_t &target,
 
     // Save AprilGrid
     if (grid.detected) {
-      aprilgrid_save(grid, save_path);
+      if (aprilgrid_save(grid, save_path) != 0) {
+        return -1;
+      }
       aprilgrid_imshow(grid, "AprilGrid Detection", image);
     }
   }
@@ -122,46 +124,32 @@ int load_camera_calib_data(const std::string &data_dir,
   return 0;
 }
 
-double reprojection_error(const std::vector<cv::Point2f> &measured,
-                          const std::vector<cv::Point2f> &projected) {
-  assert(measured.size() == projected.size());
-
-  double sse = 0.0;
-  const size_t nb_keypoints = measured.size();
-  for (size_t i = 0; i < nb_keypoints; i++) {
-    sse += cv::norm(measured[i] - projected[i]);
-  }
-  const double rmse = sqrt(sse / nb_keypoints);
-
-  return rmse;
-}
-
 cv::Mat draw_calib_validation(const cv::Mat &image,
-                              const std::vector<cv::Point2f> &measured,
-                              const std::vector<cv::Point2f> &projected,
+                              const std::vector<vec2_t> &measured,
+                              const std::vector<vec2_t> &projected,
                               const cv::Scalar &measured_color,
                               const cv::Scalar &projected_color) {
   // Make an RGB version of the input image
   cv::Mat image_rgb = gray2rgb(image);
 
   // Draw measured points
-  for (const auto &point : measured) {
-    cv::circle(image_rgb,        // Target image
-               point,            // Center
-               1,                // Radius
-               measured_color,   // Colour
-               CV_FILLED,        // Thickness
-               8);               // Line type
+  for (const auto &p : measured) {
+    cv::circle(image_rgb,                // Target image
+               cv::Point2f(p(0), p(1)),  // Center
+               1,                        // Radius
+               measured_color,           // Colour
+               CV_FILLED,                // Thickness
+               8);                       // Line type
   }
 
   // Draw projected points
-  for (const auto &point : projected) {
-    cv::circle(image_rgb,        // Target image
-               point,            // Center
-               1,                // Radius
-               projected_color,  // Colour
-               CV_FILLED,        // Thickness
-               8);               // Line type
+  for (const auto &p: projected) {
+    cv::circle(image_rgb,                // Target image
+               cv::Point2f(p(0), p(1)),  // Center
+               1,                        // Radius
+               projected_color,          // Colour
+               CV_FILLED,                // Thickness
+               8);                       // Line type
   }
 
   // Calculate reprojection error and show in image
@@ -179,7 +167,6 @@ cv::Mat draw_calib_validation(const cv::Mat &image,
 
   return image_rgb;
 }
-
 
 // cv::Mat validate_stereo(const cv::Mat &img0, const cv::Mat &img1) {
 //   // Pre-check

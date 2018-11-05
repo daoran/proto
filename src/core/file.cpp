@@ -43,6 +43,11 @@ int dir_create(const std::string &path) {
   return system(command.c_str());
 }
 
+std::string dir_name(const std::string &path) {
+  std::size_t found = path.find_last_of("/\\");
+  return path.substr(0, found);
+}
+
 std::string strip(const std::string &s, const std::string &target) {
   size_t first = s.find_first_not_of(target);
   if (std::string::npos == first) {

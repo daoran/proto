@@ -15,13 +15,13 @@ namespace prototype {
 
 template <typename CM, typename DM>
 cv::Mat validate_intrinsics(const cv::Mat &image,
-                            const std::vector<cv::Point2f> &keypoints,
+                            const std::vector<vec2_t> &keypoints,
                             const std::vector<vec3_t> &points,
                             const camera_geometry_t<CM, DM> &camera_geometry) {
   assert(image.empty() == false);
 
   // Project points to image plane
-  std::vector<cv::Point2f> projected;
+  std::vector<vec2_t> projected;
   for (const auto &point : points) {
     const auto p = camera_geometry_project(camera_geometry, point);
     projected.emplace_back(p);

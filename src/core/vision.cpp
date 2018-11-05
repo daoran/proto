@@ -3,8 +3,6 @@
 namespace prototype {
 
 bool is_equal(const cv::Mat &m1, const cv::Mat &m2) {
-  cv::Mat diff;
-
   // pre-check
   if (m1.empty() && m2.empty()) {
     return true;
@@ -20,6 +18,7 @@ bool is_equal(const cv::Mat &m1, const cv::Mat &m2) {
   }
 
   // check matrix elements
+  cv::Mat diff;
   cv::compare(m1, m2, diff, cv::CMP_NE);
 
   return cv::countNonZero(diff) ? false : true;

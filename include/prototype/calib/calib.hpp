@@ -11,6 +11,7 @@
 
 #include "prototype/calib/aprilgrid.hpp"
 #include "prototype/core.hpp"
+#include "prototype/vision/util.hpp"
 #include "prototype/vision/camera/camera_geometry.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 #include "prototype/vision/camera/radtan.hpp"
@@ -80,16 +81,6 @@ int load_camera_calib_data(const std::string &data_dir,
                            std::vector<aprilgrid_t> &aprilgrids);
 
 /**
-  * Calculate reprojection error
-  *
-  * @param[in] measured Measured image pixels
-  * @param[in] projected Projected image pixels
-  * @returns Reprojection error
-  */
-double reprojection_error(const std::vector<cv::Point2f> &measured,
-                          const std::vector<cv::Point2f> &projected);
-
-/**
  * Draw measured and projected pixel points
  *
  * @param[in] image Input image
@@ -101,8 +92,8 @@ double reprojection_error(const std::vector<cv::Point2f> &measured,
  * @returns Image
  */
 cv::Mat draw_calib_validation(const cv::Mat &image,
-                              const std::vector<cv::Point2f> &measured,
-                              const std::vector<cv::Point2f> &projected,
+                              const std::vector<vec2_t> &measured,
+                              const std::vector<vec2_t> &projected,
                               const cv::Scalar &measured_color,
                               const cv::Scalar &projected_color);
 
@@ -115,7 +106,7 @@ cv::Mat draw_calib_validation(const cv::Mat &image,
  */
 template <typename CM, typename DM>
 cv::Mat validate_intrinsics(const cv::Mat &image,
-                            const std::vector<cv::Point2f> &keypoints,
+                            const std::vector<vec2_t> &keypoints,
                             const std::vector<vec3_t> &points,
                             const camera_geometry_t<CM, DM> &camera_geometry);
 

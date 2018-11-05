@@ -63,6 +63,34 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
   return scaling_factor;
 }
 
+double reprojection_error(const std::vector<vec2_t> &measured,
+                          const std::vector<vec2_t> &projected) {
+  assert(measured.size() == projected.size());
+
+  double sse = 0.0;
+  const size_t nb_keypoints = measured.size();
+  for (size_t i = 0; i < nb_keypoints; i++) {
+    sse += (measured[i] - projected[i]).norm();
+  }
+  const double rmse = sqrt(sse / nb_keypoints);
+
+  return rmse;
+}
+
+double reprojection_error(const std::vector<cv::Point2f> &measured,
+                          const std::vector<cv::Point2f> &projected) {
+  assert(measured.size() == projected.size());
+
+  double sse = 0.0;
+  const size_t nb_keypoints = measured.size();
+  for (size_t i = 0; i < nb_keypoints; i++) {
+    sse += cv::norm(measured[i] - projected[i]);
+  }
+  const double rmse = sqrt(sse / nb_keypoints);
+
+  return rmse;
+}
+
 // void two_point_ransac(const std::vector<cv::Point2f> &pts1,
 //                       const std::vector<cv::Point2f> &pts2,
 //                       const cv::Matx33f &R_p_c,

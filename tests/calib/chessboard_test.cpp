@@ -6,8 +6,8 @@ namespace prototype {
 #define TEST_CONFIG "test_configs/gimbal/calibration/chessboard.yaml"
 #define TEST_IMAGE "test_data/calibration2/img_0.jpg"
 
-int test_Chessboard_constructor() {
-  Chessboard cb;
+int test_chessboard_constructor() {
+  chessboard_t cb;
 
   MU_CHECK(cb.nb_rows == 10);
   MU_CHECK(cb.nb_cols == 10);
@@ -16,8 +16,8 @@ int test_Chessboard_constructor() {
   return 0;
 }
 
-int test_Chessboard_load() {
-  Chessboard cb;
+int test_chessboard_load() {
+  chessboard_t cb;
 
   cb.load(TEST_CONFIG);
   MU_CHECK(cb.nb_rows == 6);
@@ -27,8 +27,8 @@ int test_Chessboard_load() {
   return 0;
 }
 
-int test_Chessboard_detect() {
-  Chessboard cb;
+int test_chessboard_detect() {
+  chessboard_t cb;
 
   cb.load(TEST_CONFIG);
   const cv::Mat image = cv::imread(TEST_IMAGE);
@@ -43,8 +43,8 @@ int test_Chessboard_detect() {
   return 0;
 }
 
-int test_Chessboard_drawCorners() {
-  Chessboard cb;
+int test_chessboard_drawCorners() {
+  chessboard_t cb;
 
   cb.load(TEST_CONFIG);
   cv::Mat image = cv::imread(TEST_IMAGE);
@@ -57,8 +57,8 @@ int test_Chessboard_drawCorners() {
   return 0;
 }
 
-int test_Chessboard_solvePnP() {
-  Chessboard cb;
+int test_chessboard_solvePnP() {
+  chessboard_t cb;
 
   cb.load(TEST_CONFIG);
   const cv::Mat image = cv::imread(TEST_IMAGE);
@@ -87,8 +87,8 @@ int test_Chessboard_solvePnP() {
   return 0;
 }
 
-int test_Chessboard_calcCornerPositions() {
-  Chessboard cb;
+int test_chessboard_calcCornerPositions() {
+  chessboard_t cb;
 
   cb.load(TEST_CONFIG);
   cv::Mat image = cv::imread(TEST_IMAGE);
@@ -123,12 +123,12 @@ int test_Chessboard_calcCornerPositions() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_Chessboard_constructor);
-  MU_ADD_TEST(test_Chessboard_load);
-  MU_ADD_TEST(test_Chessboard_detect);
-  MU_ADD_TEST(test_Chessboard_drawCorners);
-  MU_ADD_TEST(test_Chessboard_solvePnP);
-  MU_ADD_TEST(test_Chessboard_calcCornerPositions);
+  MU_ADD_TEST(test_chessboard_constructor);
+  MU_ADD_TEST(test_chessboard_load);
+  MU_ADD_TEST(test_chessboard_detect);
+  MU_ADD_TEST(test_chessboard_drawCorners);
+  MU_ADD_TEST(test_chessboard_solvePnP);
+  MU_ADD_TEST(test_chessboard_calcCornerPositions);
 }
 
 } // namespace prototype

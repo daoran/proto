@@ -74,8 +74,28 @@ void essential_matrix_outlier_rejection(
  * @param pts2 Points 2
  * @returns scaling_factor Scaling factor
  */
-float rescale_points(std::vector<cv::Point2f> &pts1,
-                     std::vector<cv::Point2f> &pts2);
+float rescale_points(std::vector<vec2_t> &pts1,
+                     std::vector<vec2_t> &pts2);
+
+/**
+  * Calculate reprojection error
+  *
+  * @param[in] measured Measured image pixels
+  * @param[in] projected Projected image pixels
+  * @returns Reprojection error
+  */
+double reprojection_error(const std::vector<vec2_t> &measured,
+                          const std::vector<vec2_t> &projected);
+
+/**
+  * Calculate reprojection error
+  *
+  * @param[in] measured Measured image pixels
+  * @param[in] projected Projected image pixels
+  * @returns Reprojection error
+  */
+double reprojection_error(const std::vector<cv::Point2f> &measured,
+                          const std::vector<cv::Point2f> &projected);
 
 /**
  * Two point ransac algorithm to mark the inliers in the input set.
