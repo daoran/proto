@@ -57,7 +57,7 @@ int test_draw_calib_validation() {
   const radtan4_t distortion_model{k1, k2, p1, p2};
   const vec4_t cam_D{k1, k2, p1, p2};
   // -- Camera Geometry
-  PinholeRadtan4 camera{camera_model, distortion_model};
+  pinhole_radtan4_t camera{camera_model, distortion_model};
 
   // Load aprilgrid
   aprilgrid_t aprilgrid;
@@ -124,7 +124,7 @@ int test_validate_intrinsics() {
   const radtan4_t distortion_model{k1, k2, p1, p2};
   const vec4_t cam_D{k1, k2, p1, p2};
   // -- Camera Geometry
-  PinholeRadtan4 camera{camera_model, distortion_model};
+  pinhole_radtan4_t camera{camera_model, distortion_model};
 
   // Load aprilgrid
   aprilgrid_t aprilgrid;
@@ -175,7 +175,7 @@ int test_validate_stereo() {
   const radtan4_t distortion0_model{cam0_k1, cam0_k2, cam0_p1, cam0_p2};
   const vec4_t cam0_D{cam0_k1, cam0_k2, cam0_p1, cam0_p2};
   // -- Camera Geometry
-  const PinholeRadtan4 cam0{camera0_model, distortion0_model};
+  const pinhole_radtan4_t cam0{camera0_model, distortion0_model};
 
   // Setup cam1 geometry
   // -- Camera model
@@ -193,7 +193,7 @@ int test_validate_stereo() {
   const radtan4_t distortion1_model{cam1_k1, cam1_k2, cam1_p1, cam1_p2};
   const vec4_t cam1_D{cam1_k1, cam1_k2, cam1_p1, cam1_p2};
   // -- Camera Geometry
-  const PinholeRadtan4 cam1{camera1_model, distortion1_model};
+  const pinhole_radtan4_t cam1{camera1_model, distortion1_model};
 
   // Camera to camera extrinsics
   // clang-format off

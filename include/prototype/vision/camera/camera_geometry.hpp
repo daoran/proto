@@ -32,8 +32,8 @@ struct camera_geometry_t {
   ~camera_geometry_t();
 };
 
-typedef camera_geometry_t<pinhole_t, radtan4_t> PinholeRadtan4;
-typedef camera_geometry_t<pinhole_t, equi4_t> PinholeEqui4;
+typedef camera_geometry_t<pinhole_t, radtan4_t> pinhole_radtan4_t;
+typedef camera_geometry_t<pinhole_t, equi4_t> pinhole_equi4_t;
 
 /**
  * Project point to image plane in pixels
