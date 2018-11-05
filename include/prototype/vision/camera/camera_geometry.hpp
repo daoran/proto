@@ -9,6 +9,8 @@
 
 #include "prototype/core.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
+#include "prototype/vision/camera/radtan.hpp"
+#include "prototype/vision/camera/equi.hpp"
 
 namespace prototype {
 /**
@@ -29,6 +31,9 @@ struct camera_geometry_t {
                     const DM &distortion_model_);
   ~camera_geometry_t();
 };
+
+typedef camera_geometry_t<pinhole_t, radtan4_t> PinholeRadtan4;
+typedef camera_geometry_t<pinhole_t, equi4_t> PinholeEqui4;
 
 /**
  * Project point to image plane in pixels

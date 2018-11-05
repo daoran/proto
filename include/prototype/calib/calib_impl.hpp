@@ -43,6 +43,60 @@ cv::Mat validate_intrinsics(const cv::Mat &image,
   return result;
 }
 
+template <typename CM, typename DM>
+cv::Mat validate_stereo(const cv::Mat &image0,
+                        const cv::Mat &image1,
+                        const std::vector<vec2_t> &kps0,
+                        const std::vector<vec3_t> &points0,
+                        const std::vector<vec2_t> &kps1,
+                        const std::vector<vec3_t> &points1,
+                        const camera_geometry_t<CM, DM> &cam0,
+                        const camera_geometry_t<CM, DM> &cam1,
+                        const mat4_t &T_C1C0) {
+  assert(image0.empty() == false);
+  assert(image1.empty() == false);
+  assert(kps0.size() == 0);
+  assert(points0.size() == 0);
+  assert(kps1.size() == 0);
+  assert(points1.size() == 0);
+
+  // Project points observed in cam0 to cam1 image plane
+  std::vector<vec2_t> projected1;
+  for (const auto &point_C0F : points0) {
+    const auto point_C1F = (T_C1C0 * point_C0F.homogeneous()).head(3);
+    const auto p = camera_geometry_project(cam1, point_C1F);
+    projected1.emplace_back(p);
+  }
+
+  // Project points observed in cam1 to cam0 image plane
+  std::vector<vec2_t> projected0;
+  const mat4_t T_C0C1 = T_C1C0.inverse();
+  for (const auto &point_C1F : points1) {
+    const auto point_C0F = (T_C0C1 * point_C1F.homogeneous()).head(3);
+    const auto p = camera_geometry_project(cam0, point_C0F);
+    projected0.emplace_back(p);
+  }
+
+  // Draw
+  const cv::Scalar red{0, 0, 255};
+  const cv::Scalar green{0, 255, 0};
+  auto result0 = draw_calib_validation(image0,
+                                       kps0,
+                                       projected0,
+                                       red,
+                                       green);
+  auto result1 = draw_calib_validation(image1,
+                                       kps1,
+                                       projected1,
+                                       red,
+                                       green);
+
+  // Combine cam0 and cam1 images
+  cv::Mat result;
+  cv::vconcat(result0, result1, result);
+  return result;
+}
+
 /** @} group calib */
 } //  namespace prototype
 #endif // PROTOTYPE_CALIB_CALIB_IMPL_HPP

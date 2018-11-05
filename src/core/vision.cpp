@@ -117,7 +117,7 @@ cv::Mat gray2rgb(const cv::Mat &image) {
   if (image.channels() == 1) {
     cv::cvtColor(image, out_image, CV_GRAY2RGB);
   } else {
-    return image;
+    return image.clone();
   }
 
   return out_image;
@@ -129,7 +129,7 @@ cv::Mat rgb2gray(const cv::Mat &image) {
   if (image.channels() == 3) {
     cv::cvtColor(image, image_gray, CV_BGR2GRAY);
   } else {
-    return image;
+    return image.clone();
   }
 
   return image_gray;

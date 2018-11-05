@@ -168,49 +168,4 @@ cv::Mat draw_calib_validation(const cv::Mat &image,
   return image_rgb;
 }
 
-// cv::Mat validate_stereo(const cv::Mat &img0, const cv::Mat &img1) {
-//   // Pre-check
-//   assert(img0.empty() == false);
-//   assert(img1.empty() == false);
-//
-//   // Setup
-//   const cv::Scalar red{0, 0, 255};
-//   const cv::Scalar green{0, 255, 0};
-//
-//   // Detect chessboard corners and output 3d positions
-//   matx_t X0, X1;
-//   int retval = 0;
-//   retval += this->detect(0, img0, X0);
-//   retval += this->detect(1, img1, X1);
-//   if (retval != 2) {
-//     cv::Mat result;
-//     cv::vconcat(img0, img1, result);
-//     return result;
-//   }
-//   const cv::Mat img0_det = this->drawDetected(img0, red);
-//   const cv::Mat img1_det = this->drawDetected(img1, green);
-//
-//   // Project points observed from cam1 to cam0 image
-//   // -- Make points homogeneous by adding 1's in last row
-//   X1.conservativeResize(X1.rows() + 1, X1.cols());
-//   X1.row(X1.rows() - 1) = ones(1, X1.cols());
-//   // -- Project and draw
-//   const mat4_t T_C1_C0 = this->camchain.T_C1_C0;
-//   const matx_t X0_cal = (T_C1_C0.inverse() * X1).block(0, 0, 3, X1.cols());
-//   const cv::Mat img0_cb = this->project(0, img0_det, X0_cal, green);
-//
-//   // Project points observed from cam0 to cam1 image
-//   // -- Make points homogeneous by adding 1's in last row
-//   X0.conservativeResize(X0.rows() + 1, X0.cols());
-//   X0.row(X0.rows() - 1) = ones(1, X0.cols());
-//   // -- Project and draw
-//   const matx_t X1_cal = (T_C1_C0 * X0).block(0, 0, 3, X0.cols());
-//   const cv::Mat img1_cb = this->project(1, img1_det, X1_cal, red);
-//
-//   // Combine cam0 and cam1 images
-//   cv::Mat result;
-//   cv::vconcat(img0_cb, img1_cb, result);
-//   return result;
-// }
-
 } //  namespace prototype
