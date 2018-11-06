@@ -37,7 +37,7 @@ typedef Eigen::Matrix4d mat4_t;
 typedef Eigen::MatrixXd matx_t;
 typedef Eigen::Matrix<double, 3, 4> mat34_t;
 
-typedef Eigen::Quaterniond Quaternion;
+typedef Eigen::Quaterniond quat_t;
 #endif
 
 /**
@@ -100,6 +100,14 @@ double *vec2array(const vecx_t &v);
  * @returns Array
  */
 double *mat2array(const matx_t &m);
+
+/**
+ * Quaternion to array
+ *
+ * @param q Quaternion
+ * @returns Array
+ */
+double *quat2array(const quat_t &q);
 
 /**
  * Vector to array

@@ -58,6 +58,17 @@ double *mat2array(const matx_t &m) {
   return array;
 }
 
+double *quat2array(const quat_t &q) {
+  double *array = (double *) malloc(sizeof(double) * 4);
+
+  array[0] = q.x();
+  array[1] = q.y();
+  array[2] = q.z();
+  array[3] = q.w();
+
+  return array;
+}
+
 void vec2array(const vecx_t &v, double *out) {
   for (int i = 0; i < v.size(); i++) {
     out[i] = v(i);

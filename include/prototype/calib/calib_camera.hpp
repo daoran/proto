@@ -22,18 +22,24 @@ namespace prototype {
  * Gimbal calibration residual
  */
 struct pinhole_radtan4_residual_t {
+  double obj_point_[3] = {0.0, 0.0, 0.0};
   double measurement_[2] = {0.0, 0.0};
 
-  pinhole_radtan4_residual_t(const vec2_t &measurement) {
+  pinhole_radtan4_residual_t(const vec2_t &measurement, const vec3_t &obj_point) {
     measurement_[0] = measurement(0);
     measurement_[1] = measurement(1);
+
+    obj_point_[0] = obj_point(0);
+    obj_point_[1] = obj_point(1);
+    obj_point_[2] = obj_point(2);
   }
 
   /// Calculate residual
   template <typename T>
   bool operator()(const T *const intrinsics,
                   const T *const distortion,
-                  const T *const point_CF,
+                  const T *const q_CF,
+                  const T *const t_CF,
                   T *residual) const;
 };
 
@@ -98,12 +104,24 @@ Eigen::Matrix<T, 2, 1> pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
 template <typename T>
 bool pinhole_radtan4_residual_t::operator()(const T *const intrinsics,
                                             const T *const distortion,
-                                            const T *const point_CF,
+                                            const T *const q_CF_data,
+                                            const T *const t_CF_data,
                                             T *residual) const {
-  // Project point
+  // Map variables to Eigen
   const Eigen::Matrix<T, 3, 3> K = pinhole_K(intrinsics);
   const Eigen::Matrix<T, 4, 1> D = radtan4_D(distortion);
-  const Eigen::Matrix<T, 3, 1> point{point_CF[0], point_CF[1], point_CF[2]};
+  const Eigen::Matrix<T, 3, 1> obj_point{T(obj_point_[0]), T(obj_point_[1]), T(obj_point_[2])};
+
+  // Form transform
+  const Eigen::Quaternion<T> q_CF(q_CF_data[3], q_CF_data[0], q_CF_data[1], q_CF_data[2]);
+  const Eigen::Matrix<T, 3, 3> R_CF = q_CF.toRotationMatrix();
+  const Eigen::Matrix<T, 3, 1> t_CF{t_CF_data[0], t_CF_data[1], t_CF_data[2]};
+  Eigen::Matrix<T, 4, 4> T_CF = Eigen::Matrix<T, 4, 4>::Identity();
+  T_CF.block(0, 0, 3, 3) = R_CF;
+  T_CF.block(0, 3, 3, 1) = t_CF;
+
+  // Project
+  const Eigen::Matrix<T, 3, 1> point = (T_CF * obj_point.homogeneous()).head(3);
   const Eigen::Matrix<T, 2, 1> z = pinhole_radtan4_project(K, D, point);
 
   // Residual

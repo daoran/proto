@@ -45,20 +45,29 @@ int test_calib_camera_solve() {
   pinhole_t pinhole{fx, fy, cx, cy};
   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
 
-  const auto kp = aprilgrids[0].keypoints[0];
-  const auto p = aprilgrids[0].points_CF[0];
-  const auto T_CF = aprilgrids[0].T_CF;
+  const auto grid = aprilgrids[0];
+  const auto tag_id = grid.ids[0];
+  const int corner_id = 0;
+  const auto kp = grid.keypoints[0];
+  const auto T_CF = grid.T_CF;
 
-  // const pinhole_radtan4_residual_t residual{kp};
+  // vec3_t object_point;
+  // if (aprilgrid_object_point(grid, tag_id, corner_id, object_point) != 0) {
+  //   LOG_ERROR("Failed to calculate AprilGrid object point!");
+  // }
+  //
   // const double intrinsics[4] = {pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
   // const double distortion[4] = {radtan.k1, radtan.k2, radtan.p1, radtan.p2};
-  // const double point[3] = {p(0), p(1), p(2)};
+  // const quat_t q_CF{T_CF.block<3, 3>(0, 0)};
+  // const vec3_t t_CF{T_CF.block<3, 1>(0, 3)};
+  // const double q_CF_data[4] = {q_CF.w(), q_CF.x(), q_CF.y(), q_CF.z()};
+  // const double t_CF_data[3] = {t_CF(0), t_CF(1), t_CF(2)};
   // double result[2] = {0.0, 0.0};
-  // residual(intrinsics, distortion, point, result);
-  // std::cout << result[0] << std::endl;
-  // std::cout << result[1] << std::endl;
+  // const pinhole_radtan4_residual_t residual{kp, object_point};
+  //
+  // residual(intrinsics, distortion, q_CF_data, t_CF_data, result);
 
-  // calib_camera_solve(aprilgrids, pinhole, radtan);
+  calib_camera_solve(aprilgrids, pinhole, radtan);
 
   return 0;
 }

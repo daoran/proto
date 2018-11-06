@@ -158,6 +158,50 @@ int aprilgrid_grid_index(const aprilgrid_t &grid,
   return 0;
 }
 
+int aprilgrid_object_point(const aprilgrid_t &grid,
+                           const int tag_id,
+                           const int corner_id,
+                           vec3_t &object_point) {
+  const int tag_rows = grid.tag_rows;
+  const int tag_cols = grid.tag_cols;
+  const double tag_size = grid.tag_size;
+  const double tag_spacing = grid.tag_spacing;
+
+  // Calculate the AprilGrid index using tag id
+  int i = 0;
+  int j = 0;
+  if (aprilgrid_grid_index(grid, tag_id, i, j) != 0) {
+    LOG_ERROR("Incorrect tag id [%d]!", tag_id);
+    return -1;
+  }
+
+  // Caculate the x and y of the tag origin (bottom left corner of tag)
+  // relative to grid origin (bottom left corner of entire grid)
+  const double x = j * (tag_size + tag_size * tag_spacing);
+  const double y = i * (tag_size + tag_size * tag_spacing);
+
+  // Calculate the x and y of each corner
+  switch(corner_id) {
+    case 0:  // Bottom left
+      object_point = vec3_t(x, y, 0);
+      break;
+    case 1:  // Bottom right
+      object_point = vec3_t(x + tag_size, y, 0);
+      break;
+    case 2:  // Top right
+      object_point = vec3_t(x + tag_size, y + tag_size, 0);
+      break;
+    case 3:  // Top left
+      object_point = vec3_t(x, y + tag_size, 0);
+      break;
+    default:
+      FATAL("Incorrect corner id [%d]!", corner_id);
+      break;
+  }
+
+  return 0;
+}
+
 int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
                                  const mat3_t &cam_K,
                                  const vec4_t &cam_D) {
@@ -417,7 +461,7 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
 
     // Timestamp, tag id and keypoint
     grid.timestamp = row(5);
-    if (std::count(grid.ids.begin(), grid.ids.end(), row(0)) == 0) {
+    if (std::count(grid.ids.begin(), grid.ids.end(), row(6)) == 0) {
       grid.ids.emplace_back(row(6));
     }
     grid.keypoints.emplace_back(row(7), row(8));
