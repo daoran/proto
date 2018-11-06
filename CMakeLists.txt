@@ -25,7 +25,8 @@ ADD_LIBRARY(
   # calib
   src/calib/aprilgrid.cpp
   src/calib/calib.cpp
-  src/calib/gimbal_calib.cpp
+  src/calib/calib_camera.cpp
+  src/calib/calib_gimbal.cpp
   src/calib/chessboard.cpp
   # control
   src/control/att_ctrl.cpp
@@ -113,6 +114,7 @@ SET(
   UNITTESTS
   calib-aprilgrid_test
   calib-calib_test
+  calib-calib_camera_test
   # control-carrot_ctrl_test
   control-mission_test
   control-pid_test

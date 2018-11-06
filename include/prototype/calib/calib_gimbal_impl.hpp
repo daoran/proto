@@ -2,13 +2,13 @@
  * @file
  * @ingroup calib
  */
-#ifndef PROTOTYPE_CALIB_GIMBAL_CALIB_IMPL_HPP
-#define PROTOTYPE_CALIB_GIMBAL_CALIB_IMPL_HPP
+#ifndef PROTOTYPE_CALIB_CALIB_GIMBAL_IMPL_HPP
+#define PROTOTYPE_CALIB_CALIB_GIMBAL_IMPL_HPP
 
 #include <ceres/ceres.h>
 
-#include "prototype/calib/gimbal_calib.hpp"
 #include "prototype/core.hpp"
+#include "prototype/calib/calib_gimbal.hpp"
 
 namespace prototype {
 /**
@@ -270,4 +270,4 @@ bool GimbalCalibResidual::operator()(const T *const tau_s,
 }
 
 } //  namespace prototype
-#endif // PROTOTYPE_CALIB_GIMBAL_CALIB_IMPL_HPP
+#endif // PROTOTYPE_CALIB_CALIB_GIMBAL_IMPL_HPP

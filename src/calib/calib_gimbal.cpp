@@ -1,14 +1,14 @@
-#include "prototype/calib/gimbal_calib.hpp"
+#include "prototype/calib/calib_gimbal.hpp"
 
 namespace prototype {
 
-gimbal_calib_data_t::gimbal_calib_data_t() {}
+calib_gimbal_data_t::calib_gimbal_data_t() {}
 
-gimbal_calib_data_t::~gimbal_calib_data_t() {}
+calib_gimbal_data_t::~calib_gimbal_data_t() {}
 
-gimbal_calib_params_t::gimbal_calib_params_t() {}
+calib_gimbal_params_t::calib_gimbal_params_t() {}
 
-gimbal_calib_params_t::~gimbal_calib_params_t() {
+calib_gimbal_params_t::~calib_gimbal_params_t() {
   if (this->tau_s != nullptr)
     free(this->tau_s);
 
@@ -34,17 +34,17 @@ gimbal_calib_params_t::~gimbal_calib_params_t() {
     free(this->Lambda2);
 }
 
-gimbal_calibrator_t::gimbal_calibrator_t() {}
+calib_gimbal_t::calib_gimbal_t() {}
 
-gimbal_calibrator_t::~gimbal_calibrator_t() {}
+calib_gimbal_t::~calib_gimbal_t() {}
 
-std::ostream &operator<<(std::ostream &os, const gimbal_calib_data_t &m) {
+std::ostream &operator<<(std::ostream &os, const calib_gimbal_data_t &m) {
   os << "nb_measurements: " << m.nb_measurements << std::endl;
   return os;
 }
 
 std::ostream &operator<<(std::ostream &os,
-                         const gimbal_calib_params_t &params) {
+                         const calib_gimbal_params_t &params) {
   os << "tau_s: " << array2str(params.tau_s, 6) << std::endl;
   os << "tau_d: " << array2str(params.tau_d, 6) << std::endl;
   os << "w1: " << array2str(params.w1, 3) << std::endl;
@@ -60,7 +60,7 @@ std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-int gimbal_calib_data_load(gimbal_calib_data_t &data,
+int calib_gimbal_data_load(calib_gimbal_data_t &data,
                            const std::string &data_dir) {
   // Load joint data
   const std::string joint_filepath = data_dir + "/joint.csv";
@@ -119,7 +119,7 @@ int gimbal_calib_data_load(gimbal_calib_data_t &data,
   return 0;
 }
 
-int gimbal_calib_params_load(gimbal_calib_params_t &data,
+int calib_gimbal_params_load(calib_gimbal_params_t &data,
                              const std::string &camchain_file,
                              const std::string &joint_file) {
   // Parse camchain file
@@ -153,11 +153,11 @@ int gimbal_calib_params_load(gimbal_calib_params_t &data,
   return 0;
 }
 
-int gimbal_calibrator_load(gimbal_calibrator_t &calib,
-                           const std::string &data_dir) {
+int calib_gimbal_load(calib_gimbal_t &calib,
+                      const std::string &data_dir) {
   // Load calibration data
   calib.data_dir = data_dir;
-  if (gimbal_calib_data_load(calib.data, data_dir) != 0) {
+  if (calib_gimbal_data_load(calib.data, data_dir) != 0) {
     LOG_ERROR("Failed to load calibration data [%s]!", data_dir.c_str());
     return -1;
   }
@@ -165,7 +165,7 @@ int gimbal_calibrator_load(gimbal_calibrator_t &calib,
   // Load optimization params
   const std::string config_file = data_dir + "/camchain.yaml";
   const std::string joint_file = data_dir + "/joint.csv";
-  if (gimbal_calib_params_load(calib.params, config_file, joint_file) != 0) {
+  if (calib_gimbal_params_load(calib.params, config_file, joint_file) != 0) {
     LOG_ERROR("Failed to load optimization params!");
     return -1;
   }
@@ -247,7 +247,7 @@ int gimbal_calibrator_load(gimbal_calibrator_t &calib,
   return 0;
 }
 
-int gimbal_calibrator_calc_reprojection_errors(gimbal_calibrator_t &calib) {
+int calib_gimbal_calc_reprojection_errors(calib_gimbal_t &calib) {
   // Form gimbal model
   gimbal_model_t gimbal_model;
   gimbal_model.tau_s = vec6_t{calib.params.tau_s};
@@ -346,7 +346,7 @@ int gimbal_calibrator_calc_reprojection_errors(gimbal_calibrator_t &calib) {
   return 0;
 }
 
-int gimbal_calibrator_solve(gimbal_calibrator_t &calib) {
+int calib_gimbal_solve(calib_gimbal_t &calib) {
   // Set options
   calib.options.max_num_iterations = 1000;
   calib.options.function_tolerance = 1e-12;
@@ -374,7 +374,7 @@ int gimbal_calibrator_solve(gimbal_calibrator_t &calib) {
   // calib.params.camchain.theta2_offset = *calib.params.theta2_offset;
 
   // Calculate reprojection errors
-  gimbal_calibrator_calc_reprojection_errors(calib);
+  calib_gimbal_calc_reprojection_errors(calib);
 
   // // Save optimized camchain file
   // calib.params.camchain.save(calib.data_dir + "/camchain_optimized.yaml");

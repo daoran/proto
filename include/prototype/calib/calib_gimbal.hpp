@@ -2,8 +2,8 @@
  * @file
  * @ingroup calibration
  */
-#ifndef PROTOTYPE_CALIB_GIMBAL_CALIB_HPP
-#define PROTOTYPE_CALIB_GIMBAL_CALIB_HPP
+#ifndef PROTOTYPE_CALIB_CALIB_GIMBAL_HPP
+#define PROTOTYPE_CALIB_CALIB_GIMBAL_HPP
 
 #include <ceres/ceres.h>
 
@@ -19,7 +19,7 @@ namespace prototype {
 /**
  * Gimbal calibration data
  */
-struct gimbal_calib_data_t {
+struct calib_gimbal_data_t {
   bool ok = false;
 
   int nb_measurements = 0;
@@ -29,14 +29,14 @@ struct gimbal_calib_data_t {
   std::vector<matx_t> Q_d;
   matx_t joint_data;
 
-  gimbal_calib_data_t();
-  virtual ~gimbal_calib_data_t();
+  calib_gimbal_data_t();
+  ~calib_gimbal_data_t();
 };
 
 /**
  * Calibration parameters
  */
-struct gimbal_calib_params_t {
+struct calib_gimbal_params_t {
   bool ok = false;
   // Camchain camchain;
 
@@ -50,35 +50,35 @@ struct gimbal_calib_params_t {
   double *Lambda2 = nullptr;
   int nb_measurements = 0;
 
-  gimbal_calib_params_t();
-  virtual ~gimbal_calib_params_t();
+  calib_gimbal_params_t();
+  virtual ~calib_gimbal_params_t();
 };
 
 /**
- * Gimbal calibrator
+ * Gimbal calib
  */
-struct gimbal_calibrator_t {
+struct calib_gimbal_t {
   std::string data_dir;
-  gimbal_calib_data_t data;
-  gimbal_calib_params_t params;
+  calib_gimbal_data_t data;
+  calib_gimbal_params_t params;
 
   ceres::Problem problem;
   ceres::Solver::Options options;
   ceres::Solver::Summary summary;
 
-  gimbal_calibrator_t();
-  virtual ~gimbal_calibrator_t();
+  calib_gimbal_t();
+  virtual ~calib_gimbal_t();
 };
 
 /**
- * gimbal_calib_data_t to output stream
+ * calib_gimbal_data_t to output stream
  */
-std::ostream &operator<<(std::ostream &os, const gimbal_calib_data_t &m);
+std::ostream &operator<<(std::ostream &os, const calib_gimbal_data_t &m);
 
 /**
- * gimbal_calib_params_t to output stream
+ * calib_gimbal_params_t to output stream
  */
-std::ostream &operator<<(std::ostream &os, const gimbal_calib_params_t &m);
+std::ostream &operator<<(std::ostream &os, const calib_gimbal_params_t &m);
 
 /**
  * Load gimbal calibration data
@@ -87,7 +87,7 @@ std::ostream &operator<<(std::ostream &os, const gimbal_calib_params_t &m);
  * @param[in] data_dir Data directory
  * @return 0 for success, -1 for failure
  */
-int gimbal_calib_data_load(gimbal_calib_data_t &data,
+int calib_gimbal_data_load(calib_gimbal_data_t &data,
                            const std::string &data_dir);
 
 /**
@@ -98,35 +98,35 @@ int gimbal_calib_data_load(gimbal_calib_data_t &data,
  * @param[in] joint_file Path to joint angles file
  * @returns 0 for success, -1 for failure
  */
-int gimbal_calib_params_load(gimbal_calib_data_t &data,
+int calib_gimbal_params_load(calib_gimbal_data_t &data,
                              const std::string &camchain_file,
                              const std::string &joint_file);
 
 /**
- * Load gimbal calibrator and data
+ * Load gimbal calib and data
  *
- * @param[in,out] calib Gimbal calibrator
+ * @param[in,out] calib Gimbal calib
  * @param[in] data_dir Path to where camchain file and calib data are
  * @returns 0 for success, -1 for failure
  */
-int gimbal_calibrator_load(gimbal_calibrator_t &calib,
+int calib_gimbal_load(calib_gimbal_t &calib,
                            const std::string &data_dir);
 
 /**
  * Calculate reprojection errors
  *
- * @param[in,out] calib Gimbal calibrator
+ * @param[in,out] calib Gimbal calib
  * @return 0 for success, -1 for failure
  */
-int gimbal_calibrator_calc_reprojection_errors(gimbal_calibrator_t &calib);
+int calib_gimbal_calc_reprojection_errors(calib_gimbal_t &calib);
 
 /**
  * Calibrate calibration
  *
- * @param[in,out] calib Gimbal calibrator
+ * @param[in,out] calib Gimbal calib
  * @return 0 for success, -1 for failure
  */
-int gimbal_calibrator_solve(gimbal_calibrator_t &calib);
+int calib_gimbal_solve(calib_gimbal_t &calib);
 
 /**
  * Gimbal calibration residual
@@ -256,5 +256,5 @@ std::ostream &operator<<(std::ostream &os, const GimbalCalibResidual *residual);
 
 /** @} group gimbal */
 } //  namespace prototype
-#include "prototype/calib/gimbal_calib_impl.hpp"
-#endif // PROTOTYPE_CALIB_GIMBAL_CALIB_HPP
+#include "calib_gimbal_impl.hpp"
+#endif // PROTOTYPE_CALIB_CALIB_GIMBAL_HPP
