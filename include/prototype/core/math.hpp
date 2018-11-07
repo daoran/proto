@@ -104,6 +104,8 @@ double *mat2array(const matx_t &m);
 /**
  * Quaternion to array
  *
+ * *VERY IMPORTANT*: The returned array is (x, y, z, w).
+ *
  * @param q Quaternion
  * @returns Array
  */

@@ -24,10 +24,17 @@ struct equi4_t {
   double k3 = 0.0;
   double k4 = 0.0;
 
-  equi4_t(const double k1_, const double k2_, const double k3_, const double k4_)
-      : k1{k1_}, k2{k2_}, k3{k3_}, k4{k4_} {}
-  ~equi4_t() {}
+  equi4_t(const double k1_,
+          const double k2_,
+          const double k3_,
+          const double k4_);
+  ~equi4_t();
 };
+
+/**
+ * Type to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const equi4_t &equi4);
 
 /**
  * Distort point with equi-distant distortion model

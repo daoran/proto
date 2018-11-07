@@ -7,9 +7,7 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              vec4_t &distortion,
                              pose_param_t *pose,
                              ceres::Problem *problem) {
-  for (size_t i = 0; i < aprilgrid.ids.size(); i++) {
-    const auto tag_id = aprilgrid.ids[i];
-
+  for (const auto &tag_id: aprilgrid.ids) {
     // Get keypoints
     std::vector<vec2_t> keypoints;
     if (aprilgrid_get(aprilgrid, tag_id, keypoints) != 0) {
@@ -24,10 +22,10 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
       return -1;
     }
 
-    // Form and add cost function and residual block
-    for (size_t j = 0; j < 4; j++) {
-      const auto kp = keypoints[j];
-      const auto obj_pt = object_points[j];
+    // Form residual block
+    for (size_t i = 0; i < 4; i++) {
+      const auto kp = keypoints[i];
+      const auto obj_pt = object_points[i];
       const auto residual = new pinhole_radtan4_residual_t{kp, obj_pt};
 
       const auto cost_func =
@@ -93,30 +91,15 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
   ceres::Solve(options, problem, &summary);
   std::cout << summary.FullReport() << std::endl;
 
-  // Show results
-  std::cout << "Optimized intrinsics and distortions:" <<  std::endl;
-  std::cout << "fx: " << intrinsics[0] << std::endl;
-  std::cout << "fy: " << intrinsics[1] << std::endl;
-  std::cout << "cx: " << intrinsics[2] << std::endl;
-  std::cout << "cy: " << intrinsics[3] << std::endl;
-  std::cout << std::endl;
-
-  std::cout << "k1: " << distortion[0] << std::endl;
-  std::cout << "k2: " << distortion[1] << std::endl;
-  std::cout << "p1: " << distortion[2] << std::endl;
-  std::cout << "p2: " << distortion[3] << std::endl;
-  std::cout << std::endl;
-
   // Map results back to pinhole and radtan
-  pinhole.fx = intrinsics[0];
-  pinhole.fy = intrinsics[1];
-  pinhole.cx = intrinsics[2];
-  pinhole.cy = intrinsics[3];
-
-  radtan.k1 = distortion[0];
-  radtan.k2 = distortion[1];
-  radtan.p1 = distortion[2];
-  radtan.p2 = distortion[3];
+  pinhole = pinhole_t{intrinsics[0],
+                      intrinsics[1],
+                      intrinsics[2],
+                      intrinsics[3]};
+  radtan = radtan4_t{distortion[0],
+                     distortion[1],
+                     distortion[2],
+                     distortion[3]};
 
   // Clean up
   for (auto pose_ptr : poses) {

@@ -49,7 +49,9 @@ struct pinhole_radtan4_residual_t {
     obj_point_[2] = obj_point(2);
   }
 
-  /// Calculate residual
+  /**
+   * Calculate residual
+   */
   template <typename T>
   bool operator()(const T *const intrinsics,
                   const T *const distortion,
@@ -85,29 +87,32 @@ Eigen::Matrix<T, 4, 1> radtan4_D(const T *distortion) {
 }
 
 template <typename T>
-Eigen::Matrix<T, 2, 1> pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
-                                               const Eigen::Matrix<T, 4, 1> &D,
-                                               const Eigen::Matrix<T, 3, 1> &X) {
-
-  // Project
-  const T x_dash = X(0) / X(2);
-  const T y_dash = X(1) / X(2);
-
-  // Radial distortion factor
+Eigen::Matrix<T, 2, 1> pinhole_radtan4_project(
+    const Eigen::Matrix<T, 3, 3> &K,
+    const Eigen::Matrix<T, 4, 1> &D,
+    const Eigen::Matrix<T, 3, 1> &point) {
   const T k1 = D(0);
   const T k2 = D(1);
-  const T r2 = (x_dash * x_dash) + (y_dash * y_dash);
-  const T r4 = r2 * r2;
-  const T r6 = r2 * r4;
-  const T temp = T(1) + (k1 * r2) + (k2 * r4);
-
-  // Tangential distortion factor
   const T p1 = D(2);
   const T p2 = D(3);
-  // clang-format off
-  const T x_ddash = x_dash * temp + (T(2) * p1 * x_dash * y_dash + p2 * (r2 + T(2) * (x_dash * x_dash)));
-  const T y_ddash = y_dash * temp + (p1 * (r2 + T(2) * (y_dash * y_dash)) + T(2) * p2 * x_dash * y_dash);
-  // clang-format on
+
+  // Project
+  const T x = point(0) / point(2);
+  const T y = point(1) / point(2);
+
+  // Radial distortion factor
+  const T x2 = x * x;
+  const T y2 = y * y;
+  const T r2 = x2 + y2;
+  const T r4 = r2 * r2;
+  const T radial_factor = T(1) + (k1 * r2) + (k2 * r4);
+  const T x_dash = x * radial_factor;
+  const T y_dash = y * radial_factor;
+
+  // Tangential distortion factor
+  const T xy = x * y;
+  const T x_ddash = x_dash + (T(2) * p1 * xy + p2 * (r2 + T(2) * x2));
+  const T y_ddash = y_dash + (p1 * (r2 + T(2) * y2) + T(2) * p2 * xy);
 
   // Scale distorted point
   Eigen::Matrix<T, 2, 1> x_distorted{x_ddash, y_ddash};

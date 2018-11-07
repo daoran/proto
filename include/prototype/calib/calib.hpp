@@ -47,7 +47,7 @@ std::ostream &operator<<(std::ostream &os, const calib_target_t &target);
  *
  * @param[in,out] ct Calibration target
  * @param[in] target_file Target file
- * @returns 0 and -1 for success or failure
+ * @returns 0 or -1 for success or failure
  */
 int calib_target_load(calib_target_t &ct, const std::string &target_file);
 
@@ -61,7 +61,10 @@ int calib_target_load(calib_target_t &ct, const std::string &target_file);
  * @param[in] lens_vfov Vertical fov of camera lens [deg]
  * @param[in] output_dir Output path
  *
- * @returns 0 or -1 for success or failure
+ * @returns
+ *   - 0: Success
+ *   - -1: Failure
+ *   - 1: Output directory contains data
  */
 int preprocess_camera_data(const calib_target_t &target,
                            const std::string &image_dir,

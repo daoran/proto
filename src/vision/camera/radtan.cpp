@@ -10,6 +10,14 @@ radtan4_t::radtan4_t(const double k1_,
 
 radtan4_t::~radtan4_t() {}
 
+std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4) {
+  os << "k1: " << radtan4.k1 << std::endl;
+  os << "k2: " << radtan4.k2 << std::endl;
+  os << "p1: " << radtan4.p1 << std::endl;
+  os << "p2: " << radtan4.p2 << std::endl;
+  return os;
+}
+
 vec2_t distort(const radtan4_t &radtan, const vec2_t &point) {
   const double k1 = radtan.k1;
   const double k2 = radtan.k2;

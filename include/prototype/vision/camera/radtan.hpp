@@ -32,6 +32,11 @@ struct radtan4_t {
 };
 
 /**
+ * Type to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4);
+
+/**
  * Distort 3D points with the radial-tangential distortion model
  *
  * @param[in] radtan Radial tangential parameters

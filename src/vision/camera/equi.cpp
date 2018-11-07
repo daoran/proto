@@ -2,6 +2,22 @@
 
 namespace prototype {
 
+equi4_t::equi4_t(const double k1_,
+                 const double k2_,
+                 const double k3_,
+                 const double k4_)
+  : k1{k1_}, k2{k2_}, k3{k3_}, k4{k4_} {}
+
+equi4_t::~equi4_t() {}
+
+std::ostream &operator<<(std::ostream &os, const equi4_t &equi4) {
+  os << "k1: " << equi4.k1 << std::endl;
+  os << "k2: " << equi4.k2 << std::endl;
+  os << "k3: " << equi4.k3 << std::endl;
+  os << "k4: " << equi4.k4 << std::endl;
+  return os;
+}
+
 vec2_t distort(const equi4_t &equi, const vec2_t &point) {
   const double k1 = equi.k1;
   const double k2 = equi.k2;

@@ -33,6 +33,11 @@ struct pinhole_t {
 };
 
 /**
+ * Type to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole);
+
+/**
  * Form pinhole camera matrix K
  *
  * @param[in] fx Focal length in x-axis
