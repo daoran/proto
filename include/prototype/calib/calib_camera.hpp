@@ -5,7 +5,9 @@
 #ifndef PROTOTYPE_CALIB_CALIB_CAMERA_HPP
 #define PROTOTYPE_CALIB_CALIB_CAMERA_HPP
 
+#include <iostream>
 #include <string>
+#include <memory>
 
 #include <ceres/ceres.h>
 
@@ -19,7 +21,20 @@ namespace prototype {
  */
 
 /**
- * Gimbal calibration residual
+ * Pose parameter block
+ */
+struct pose_param_t {
+  quat_t q;
+  vec3_t t;
+
+  pose_param_t(const mat4_t &T)
+    : q{T.block<3, 3>(0, 0)}, t{T.block<3, 1>(0, 3)} {}
+
+  ~pose_param_t() {}
+};
+
+/**
+ * Pinhole Radial-tangential calibration residual
  */
 struct pinhole_radtan4_residual_t {
   double obj_point_[3] = {0.0, 0.0, 0.0};

@@ -202,6 +202,36 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
   return 0;
 }
 
+int aprilgrid_object_points(const aprilgrid_t &grid,
+                            const int tag_id,
+                            std::vector<vec3_t> &object_points) {
+  const int tag_rows = grid.tag_rows;
+  const int tag_cols = grid.tag_cols;
+  const double tag_size = grid.tag_size;
+  const double tag_spacing = grid.tag_spacing;
+
+  // Calculate the AprilGrid index using tag id
+  int i = 0;
+  int j = 0;
+  if (aprilgrid_grid_index(grid, tag_id, i, j) != 0) {
+    LOG_ERROR("Incorrect tag id [%d]!", tag_id);
+    return -1;
+  }
+
+  // Caculate the x and y of the tag origin (bottom left corner of tag)
+  // relative to grid origin (bottom left corner of entire grid)
+  const double x = j * (tag_size + tag_size * tag_spacing);
+  const double y = i * (tag_size + tag_size * tag_spacing);
+
+  // Calculate the x and y of each corner
+  object_points.emplace_back(x, y, 0);
+  object_points.emplace_back(x + tag_size, y, 0);
+  object_points.emplace_back(x + tag_size, y + tag_size, 0);
+  object_points.emplace_back(x, y + tag_size, 0);
+
+  return 0;
+}
+
 int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
                                  const mat3_t &cam_K,
                                  const vec4_t &cam_D) {

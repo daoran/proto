@@ -133,6 +133,19 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
                            vec3_t &object_point);
 
 /**
+ * Calculate object points
+ *
+ * @param[in] grid AprilGrid
+ * @param[in] tag_id Tag id
+ * @param[out] object_points Object points
+ *
+ * @returns 0 or -1 for success or failure
+ */
+int aprilgrid_object_points(const aprilgrid_t &grid,
+                            const int tag_id,
+                            std::vector<vec3_t> &object_points);
+
+/**
  * Calculate relative position between AprilGrid and camera using solvepnp
  *
  * @param[in] cam_K Camera intrinsics matrix K
