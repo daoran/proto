@@ -31,11 +31,15 @@ cv::Mat roi(const cv::Mat &image,
 
 /**
  * Compare two keypoints based on the response.
+ *
+ * @param[in] kp1 First keypoint
+ * @param[in] kp2 Second keypoint
+ * @returns Boolean to denote if first keypoint repose is larger than second
  */
-static bool keypoint_compare_by_response(const cv::KeyPoint &pt1,
-                                         const cv::KeyPoint &pt2) {
+static bool keypoint_compare_by_response(const cv::KeyPoint &kp1,
+                                         const cv::KeyPoint &kp2) {
   // Keypoint with higher response will be at the beginning of the vector
-  return pt1.response > pt2.response;
+  return kp1.response > kp2.response;
 }
 
 /**
@@ -56,6 +60,14 @@ cv::Vec3f rot2euler(const cv::Mat &R);
 
 /**
  * Outlier rejection using essential matrix
+ *
+ * @param[in] cam0 Camera 0 geometry
+ * @param[in] cam1 Camera 1 geometry
+ * @param[in] T_cam1_cam0 Transform between cam1 and cam0
+ * @param[in] cam0_points Points observed from camera 0
+ * @param[in] cam1_points Points observed from camera 1
+ * @param[in] threshold Threshold
+ * @param[out] inlier_markers
  */
 template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
 void essential_matrix_outlier_rejection(
@@ -70,8 +82,8 @@ void essential_matrix_outlier_rejection(
 /**
  * Rescale points
  *
- * @param pts1 Points 1
- * @param pts2 Points 2
+ * @param[in] pts1 Points 1
+ * @param[in] pts2 Points 2
  * @returns scaling_factor Scaling factor
  */
 float rescale_points(std::vector<vec2_t> &pts1,
@@ -98,33 +110,12 @@ double reprojection_error(const std::vector<cv::Point2f> &measured,
                           const std::vector<cv::Point2f> &projected);
 
 /**
- * Two point ransac algorithm to mark the inliers in the input set.
- *
- * @param pts1 First set of points.
- * @param pts2 Second set of points.
- * @param R_p_c: Rotation matrix from previous to current camera frame
- * @param intrinsics: Camera intrinsics
- * @param distortion_model: Distortion model of the camera.
- * @param distortion_coeffs: Distortion coefficients.
- * @param inlier_error: Acceptable error to be considered as an inlier
- * @param success_probability Required probability of success
- *
- * @returns Vector of ints, 1 for inliers and 0 for outliers
- */
-// void two_point_ransac(const std::vector<cv::Point2f> &pts1,
-//                       const std::vector<cv::Point2f> &pts2,
-//                       const cv::Matx33f &R_p_c,
-//                       camera_geometry_t &cam,
-//                       const double &inlier_error,
-//                       const double &success_probability,
-//                       std::vector<int> &inlier_markers);
-
-/**
  * Create feature mask
  *
- * @param image_width Image width
- * @param image_height Image height
- * @param points Points
+ * @param[in] image_width Image width
+ * @param[in] image_height Image height
+ * @param[in] points Points
+ * @param[in] patch_width Patch width
  *
  * @returns Feature mask
  */
@@ -136,9 +127,10 @@ matx_t feature_mask(const int image_width,
 /**
  * Create feature mask
  *
- * @param image_width Image width
- * @param image_height Image height
- * @param keypoints Keypoints
+ * @param[in] image_width Image width
+ * @param[in] image_height Image height
+ * @param[in] keypoints Keypoints
+ * @param[in] patch_width Patch width
  *
  * @returns Feature mask
  */
@@ -150,9 +142,10 @@ matx_t feature_mask(const int image_width,
 /**
  * Create feature mask
  *
- * @param image_width Image width
- * @param image_height Image height
- * @param points Points
+ * @param[in] image_width Image width
+ * @param[in] image_height Image height
+ * @param[in] points Points
+ * @param[in] patch_width Patch width
  *
  * @returns Feature mask
  */
@@ -164,9 +157,10 @@ cv::Mat feature_mask_opencv(const int image_width,
 /**
  * Create feature mask
  *
- * @param image_width Image width
- * @param image_height Image height
- * @param keypoints Keypoints
+ * @param[in] image_width Image width
+ * @param[in] image_height Image height
+ * @param[in] keypoints Keypoints
+ * @param[in] patch_width Patch width
  *
  * @returns Feature mask
  */

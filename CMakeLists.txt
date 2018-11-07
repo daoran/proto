@@ -68,14 +68,6 @@ ADD_LIBRARY(
   src/model/gimbal.cpp
   src/model/mav.cpp
   src/model/two_wheel.cpp
-  # msckf
-  # src/msckf/blackbox.cpp
-  # src/msckf/camera_state.cpp
-  # src/msckf/feature_estimator.cpp
-  # src/msckf/gmsckf.cpp
-  src/msckf/imu_state.cpp
-  src/msckf/jacobians.cpp
-  # src/msckf/msckf.cpp
   # vision
   src/vision/camera/radtan.cpp
   src/vision/camera/equi.cpp

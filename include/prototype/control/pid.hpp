@@ -43,7 +43,7 @@ std::ostream &operator<<(std::ostream &os, const pid_t &pid);
 /**
  * Update controller
  *
- * @param[in/out] PID controller
+ * @param[in,out] p PID controller
  * @param[in] setpoint Setpoint
  * @param[in] actual Actual
  * @param[in] dt Time step
@@ -57,7 +57,7 @@ double pid_update(pid_t &p,
 /**
  * Update controller
  *
- * @param[in/out] PID controller
+ * @param[in,out] p PID controller
  * @param[in] error Error between setpoint and actual
  * @param[in] dt Difference in time
  * @returns Controller command

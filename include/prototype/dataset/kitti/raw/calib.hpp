@@ -75,7 +75,7 @@ struct calib_velo2cam_t {
 /**
  * Load camera to camera calibration
  *
- * @param[in] file_path
+ * @param[in,out] calib Camera to camera calibration
  * @returns 0 or -1 for success or failure
  */
 int calib_cam2cam_load(calib_cam2cam_t &calib);
@@ -83,7 +83,7 @@ int calib_cam2cam_load(calib_cam2cam_t &calib);
 /**
  * Load imu to velo calibration
  *
- * @param[in] file_path
+ * @param[in,out] calib IMU to VELO calibration
  * @returns 0 or -1 for success or failure
  */
 int calib_imu2velo_load(calib_imu2velo_t &calib);
@@ -91,7 +91,7 @@ int calib_imu2velo_load(calib_imu2velo_t &calib);
 /**
  * Load velo to camera calibration
  *
- * @param[in] file_path
+ * @param[in,out] calib VELO to camera calibration
  * @returns 0 or -1 for success or failure
  */
 int calib_velo2cam_load(calib_velo2cam_t &calib);

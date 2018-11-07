@@ -124,6 +124,7 @@ int wp_mission_configure(wp_mission_t &m, const std::string &config_file);
  *
  * @param[in,out] m Mission
  * @param[in] wps Waypoints
+ * @param[in] type Type
  * @return 0 for success, -1 for failure
  */
 int wp_mission_load_waypoints(wp_mission_t &m,

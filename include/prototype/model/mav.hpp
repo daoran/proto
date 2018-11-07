@@ -49,29 +49,23 @@ struct mav_model_t {
 /**
  * Update
  *
- * @param motor_inputs Motor inputs (m1, m2, m3, m4)
- * @param dt Time difference (s)
+ * @param[in,out] qm Model
+ * @param[in] motor_inputs Motor inputs (m1, m2, m3, m4)
+ * @param[in] dt Time difference (s)
  * @returns 0 for success, -1 for failure
  */
 int mav_model_update(mav_model_t &qm,
                      const vec4_t &motor_inputs,
                      const double dt);
 
-// /**
-//   * Update
-//   *
-//   * @param dt Time difference (s)
-//   * @returns 0 for success, -1 for failure
-//   */
-// int mav_model_update(const double dt);
-
 /**
  * Set mav attitude controller setpoints
  *
- * @param roll Roll
- * @param pitch Pitch
- * @param yaw Yaw
- * @param z Thrust
+ * @param[in,out] qm Model
+ * @param[in] roll Roll
+ * @param[in] pitch Pitch
+ * @param[in] yaw Yaw
+ * @param[in] z Thrust
  */
 void mav_model_set_attitude(mav_model_t &qm,
                             const double roll,
@@ -82,14 +76,17 @@ void mav_model_set_attitude(mav_model_t &qm,
 /**
  * Set mav position controller setpoints
  *
- * @param p_G Position in global frame
+ * @param[in,out] qm Model
+ * @param[in] p_G Position in global frame
  */
 void mav_model_set_position(mav_model_t &qm, const vec3_t &p_G);
 
 /**
  * Print state
+ *
+ * @param[in] qm Model
  */
-void mav_model_print(mav_model_t &qm);
+void mav_model_print(const mav_model_t &qm);
 
 /** @} group model */
 } //  namespace prototype

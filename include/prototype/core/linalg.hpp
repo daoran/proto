@@ -134,6 +134,16 @@ matx_t nullspace(const matx_t &A);
  */
 mat4_t transform(const mat3_t &R, const vec3_t &t);
 
+/**
+ * Form a 4x4 homogeneous transformation matrix from a
+ * rotation matrix R and translation vector t.
+ *
+ * @param q Quaternion
+ * @param t Translation vector
+ * @return T Transformation matrix
+ */
+mat4_t transform(const quat_t &q, const vec3_t &t);
+
 /** @} group linalg */
 } // namespace prototype
 #endif // PROTOTYPE_CORE_LINALG_HPP

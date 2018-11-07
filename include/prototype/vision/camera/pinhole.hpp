@@ -45,7 +45,7 @@ std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole);
  * @param[in] cx Principal center in x-axis
  * @param[in] cy Principal center in y-axis
  *
- * @param Camera matrix K
+ * @returns Camera matrix K
  */
 mat3_t pinhole_K(const double fx, const double fy,
                  const double cx, const double cy);
@@ -54,7 +54,7 @@ mat3_t pinhole_K(const double fx, const double fy,
  * Form pinhole camera matrix K
  *
  * @param[in] intrinsics Intrinsics (fx, fy, cx, cy)
- * @param Camera matrix K
+ * @returns Camera matrix K
  */
 mat3_t pinhole_K(const vec4_t &intrinsics);
 
@@ -105,7 +105,7 @@ vec2_t project(const pinhole_t &pinhole, const vec3_t &p);
  * @param[in] p Point
  * @returns Point in pixel coordinates
  */
-vec2_t project(const pinhole_t &model, const vec2_t &p);
+vec2_t project(const pinhole_t &pinhole, const vec2_t &p);
 
 /**
  * Project 3D point to image plane using pinhole model

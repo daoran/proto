@@ -46,11 +46,10 @@ struct camera_data_t {
 /**
  * Load Camera data
  *
- * @param[in,out] data Camera data
- * @param[in] data_dir Camera data directory
+ * @param[in,out] cd Camera data
  * @returns 0 for success, -1 for failure
  */
-int camera_data_load(camera_data_t &cam_data);
+int camera_data_load(camera_data_t &cd);
 
 /**
  * camera_data_t to output stream

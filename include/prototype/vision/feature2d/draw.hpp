@@ -19,10 +19,10 @@ namespace prototype {
 /**
  * Draw tracks
  *
- * @param img_cur Current image frame
- * @param p0 Previous corners
- * @param p1 Current corners
- * @param status Corners status
+ * @param[in] img_cur Current image frame
+ * @param[in] p0 Previous corners
+ * @param[in] p1 Current corners
+ * @param[in] status Corners status
  *
  * @returns Image with feature matches between previous and current frame
  */
@@ -34,10 +34,11 @@ cv::Mat draw_tracks(const cv::Mat &img_cur,
 /**
  * Draw tracks
  *
- * @param img_cur Current image frame
- * @param p0 Previous corners
- * @param p1 Current corners
- * @param status Corners status
+ * @param[in] img_cur Current image frame
+ * @param[in] p0 Previous corners
+ * @param[in] p1 Current corners
+ * @param[in] status Corners status
+ *
  * @returns Image with feature matches between previous and current frame
  */
 cv::Mat draw_tracks(const cv::Mat &img_cur,
@@ -48,11 +49,11 @@ cv::Mat draw_tracks(const cv::Mat &img_cur,
 /**
  * Draw matches
  *
- * @param img0 Image frame 0
- * @param img1 Image frame 1
- * @param k0 Previous keypoints
- * @param k1 Current keypoints
- * @param matches Feature matches
+ * @param[in] img0 Image frame 0
+ * @param[in] img1 Image frame 1
+ * @param[in] k0 Previous keypoints
+ * @param[in] k1 Current keypoints
+ * @param[in] status Inlier vector
  *
  * @returns Image with feature matches between frame 0 and 1
  */
@@ -65,11 +66,11 @@ cv::Mat draw_matches(const cv::Mat &img0,
 /**
  * Draw matches
  *
- * @param img0 Previous image frame
- * @param img1 Current image frame
- * @param k0 Previous keypoints
- * @param k1 Current keypoints
- * @param matches Feature matches
+ * @param[in] img0 Previous image frame
+ * @param[in] img1 Current image frame
+ * @param[in] k0 Previous keypoints
+ * @param[in] k1 Current keypoints
+ * @param[in] matches Feature matches
  *
  * @returns Image with feature matches between previous and current frame
  */
@@ -82,10 +83,10 @@ cv::Mat draw_matches(const cv::Mat &img0,
 /**
  * Draw grid features
  *
- * @param image Image frame
- * @param grid_rows Grid rows
- * @param grid_cols Grid cols
- * @param features List of features
+ * @param[in] image Image frame
+ * @param[in] grid_rows Grid rows
+ * @param[in] grid_cols Grid cols
+ * @param[in] features List of features
  *
  * @returns Grid features image
  */
@@ -97,10 +98,10 @@ cv::Mat draw_grid_features(const cv::Mat &image,
 /**
  * Draw grid features
  *
- * @param image Image frame
- * @param grid_rows Grid rows
- * @param grid_cols Grid cols
- * @param features List of features
+ * @param[in] image Image frame
+ * @param[in] grid_rows Grid rows
+ * @param[in] grid_cols Grid cols
+ * @param[in] features List of features
  *
  * @returns Grid features image
  */

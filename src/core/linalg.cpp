@@ -91,4 +91,8 @@ mat4_t transform(const mat3_t &R, const vec3_t &t) {
   return T;
 }
 
+mat4_t transform(const quat_t &q, const vec3_t &t) {
+  return transform(q.toRotationMatrix(), t);
+}
+
 } // namespace prototype

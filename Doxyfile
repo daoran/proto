@@ -1,5 +1,5 @@
 # General configuration options
-PROJECT_NAME = "libr"
+PROJECT_NAME = "prototype"
 OUTPUT_DIRECTORY = "docs"
 OUTPUT_LANGUAGE = English
 QUIET = YES
@@ -15,8 +15,10 @@ FILE_PATTERNS = *.hpp *.cpp
 RECURSIVE = YES
 
 # HTML output configurations
-GENERATE_HTML = YES
-LAYOUT_FILE = docs/style/layout.xml
+# GENERATE_HTML = YES
+GENERATE_XML = YES
+# GENERATE_HTML = NO
+# LAYOUT_FILE = docs/style/layout.xml
 # HTML_HEADER = docs/style/header.html
 # HTML_FOOTER = docs/style/footer.html
 # HTML_EXTRA_STYLESHEET = docs/style/customdoxygen.css
@@ -32,4 +34,4 @@ DISTRIBUTE_GROUP_DOC = YES
 GENERATE_LATEX = YES
 
 # MATHJAX
-UPROTOTYPE_VISION_MATHJAX = YES
+USE_MATHJAX = YES

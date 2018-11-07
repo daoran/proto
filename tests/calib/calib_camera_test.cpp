@@ -102,7 +102,9 @@ int test_calib_camera_solve() {
   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
 
   // Test
-  MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan));
+  std::vector<mat4_t> poses;
+  MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, poses));
+  MU_CHECK_EQ(aprilgrids.size(), poses.size());
 
   // Show results
   std::cout << "Optimized intrinsics and distortions:" <<  std::endl;
@@ -112,10 +114,47 @@ int test_calib_camera_solve() {
   return 0;
 }
 
+int test_calib_camera_stats() {
+  // Load calibration data
+  std::vector<aprilgrid_t> aprilgrids;
+  int retval = load_camera_calib_data(APRILGRID_DATA, aprilgrids);
+  MU_CHECK(retval == 0);
+  MU_CHECK(aprilgrids.size() > 0);
+  MU_CHECK(aprilgrids[0].ids.size() > 0);
+
+  // Setup camera intrinsics and distortion
+  const vec2_t image_size{752, 480};
+  const double lens_hfov = 98.0;
+  const double lens_vfov = 73.0;
+  const double fx = pinhole_focal_length(image_size(0), lens_hfov);
+  const double fy = pinhole_focal_length(image_size(1), lens_vfov);
+  const double cx = image_size(0) / 2.0;
+  const double cy = image_size(1) / 2.0;
+  pinhole_t pinhole{fx, fy, cx, cy};
+  radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
+
+
+  // Test
+  std::vector<mat4_t> poses;
+  MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, poses));
+  MU_CHECK_EQ(aprilgrids.size(), poses.size());
+
+  const double intrinsics[4] = {pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
+  const double distortion[4] = {radtan.k1, radtan.k2, radtan.p1, radtan.p2};
+  calib_camera_stats<pinhole_radtan4_residual_t>(aprilgrids,
+                                                 intrinsics,
+                                                 distortion,
+                                                 poses,
+                                                 "");
+
+  return 0;
+}
+
 void test_suite() {
   test_setup();
-  MU_ADD_TEST(test_pinhole_radtan4_residual);
-  MU_ADD_TEST(test_calib_camera_solve);
+  // MU_ADD_TEST(test_pinhole_radtan4_residual);
+  // MU_ADD_TEST(test_calib_camera_solve);
+  MU_ADD_TEST(test_calib_camera_stats);
 }
 
 } // namespace prototype

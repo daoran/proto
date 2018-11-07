@@ -18,10 +18,10 @@ namespace prototype {
 /**
  * Create DH transform from link n to link n-1 (end to front)
  *
- * @param theta
- * @param d
- * @param a
- * @param alpha
+ * @param[in] theta
+ * @param[in] d
+ * @param[in] a
+ * @param[in] alpha
  *
  * @returns DH transform
  */
@@ -68,8 +68,9 @@ struct gimbal_model_t {
 /**
  * Set gimbal attitude
  *
- * @param roll Roll (radians)
- * @param pitch Pitch (radians)
+ * @param[in,out] model Model
+ * @param[in] roll Roll [rads]
+ * @param[in] pitch Pitch [rads]
  */
 void gimbal_model_set_attitude(gimbal_model_t &model,
                                const double roll,
@@ -77,33 +78,49 @@ void gimbal_model_set_attitude(gimbal_model_t &model,
 
 /**
  * Get gimbal joint angle
+ *
+ * @param[in] model Model
+ * @returns Gimbal joint angles
  */
 vec2_t gimbal_model_get_joint_angles(const gimbal_model_t &model);
 
 /**
  * Returns transform from static camera to base mechanism
+ *
+ * @param[in] model Model
+ * @returns Transform
  */
 mat4_t gimbal_model_T_BS(const gimbal_model_t &model);
 
 /**
  * Returns transform from base mechanism to end-effector
+ *
+ * @param[in] model Model
+ * @returns Transform
  */
 mat4_t gimbal_model_T_EB(const gimbal_model_t &model);
 
 /**
  * Returns transform from end-effector to dynamic camera
+ *
+ * @param[in] model Model
+ * @returns Transform
  */
 mat4_t gimbal_model_T_DE(const gimbal_model_t &model);
 
 /**
  * Returns transform from static to dynamic camera
+ *
+ * @param[in] model Model
+ * @returns Transform
  */
 mat4_t gimbal_model_T_DS(const gimbal_model_t &model);
 
 /**
  * Returns transform from static to dynamic camera
  *
- * @param theta Gimbal roll and pitch [radians]
+ * @param[in,out] model Model
+ * @param[in] theta Gimbal roll and pitch [radians]
  * @returns Transform from static to dynamic camera
  */
 mat4_t gimbal_model_T_DS(gimbal_model_t &model, const vec2_t &theta);

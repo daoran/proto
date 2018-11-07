@@ -99,7 +99,8 @@ struct pca9685_t {
 /**
  * Configure
  *
- * @param freq Frequency (Hz)
+ * @param[in] pwm PWM controller
+ * @param[in] freq Frequency (Hz)
  * @returns 0 for success, -1 for failure
  */
 int pca9685_configure(pca9685_t &pwm, const int freq);
@@ -107,7 +108,8 @@ int pca9685_configure(pca9685_t &pwm, const int freq);
 /**
  * Set PWM frequency
  *
- * @param freq Frequency (Hz)
+ * @param[in] pwm PWM controller
+ * @param[in] freq Frequency (Hz)
  * @returns 0 for success, -1 for failure
  */
 void pca9685_set_frequency(const pca9685_t &pwm, const int freq);
@@ -115,8 +117,9 @@ void pca9685_set_frequency(const pca9685_t &pwm, const int freq);
 /**
  * Set PWM on a specific channel
  *
- * @param channel (starting from 0)
- * @param off PWM off duty cycle (out of 4096)
+ * @param[in] pwm PWM controller
+ * @param[in] channel (starting from 0)
+ * @param[in] off PWM off duty cycle (out of 4096)
  * @returns 0 for success, -1 for failure
  */
 void pca9685_set_pwm(const pca9685_t &pwm,
@@ -126,13 +129,16 @@ void pca9685_set_pwm(const pca9685_t &pwm,
 /**
  * Set PWM on all channels
  *
- * @param off PWM off duty cycle (out of 4096)
+ * @param[in] pwm PWM controller
+ * @param[in] off PWM off duty cycle (out of 4096)
  * @returns 0 for success, -1 for failure
  */
 void pca9685_set_pwm(const pca9685_t &pwm, const int16_t off);
 
 /**
  * Reset pca9685_t
+ *
+ * @param[in] pwm PWM controller
  */
 void pca9685_reset(const pca9685_t &pwm);
 

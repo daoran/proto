@@ -25,16 +25,16 @@ namespace prototype {
 /**
  * Grid fast
  *
- * @param image Input image
- * @param max_corners Max number of corners
- * @param grid_rows Number of grid rows
- * @param grid_cols Number of grid cols
- * @param quality_level Quality level
- * @param min_distance Min distance
- * @param mask Mask
- * @param block_size Block size
- * @param use_harris_detector Use Harris detector
- * @param k Free parameter for Harris detector
+ * @param[in] image Input image
+ * @param[in] max_corners Max number of corners
+ * @param[in] grid_rows Number of grid rows
+ * @param[in] grid_cols Number of grid cols
+ * @param[in] quality_level Quality level
+ * @param[in] min_distance Min distance
+ * @param[in] mask Mask
+ * @param[in] block_size Block size
+ * @param[in] use_harris_detector Use Harris detector
+ * @param[in] k Free parameter for Harris detector
  *
  * @returns List of points
  */
@@ -46,7 +46,7 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
                                    const double min_distance = 10,
                                    const cv::Mat mask = cv::Mat(),
                                    const int block_size = 3,
-                                   const bool useHarrisDetector = false,
+                                   const bool use_harris_detector = false,
                                    const double k = 0.04);
 
 /** @} group feature2d */

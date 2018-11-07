@@ -35,13 +35,16 @@ struct chessboard_t {
 /**
  * Load config file
  *
- * @param config_file Path to config file
+ * @param[in,out] cb Chessboard
+ * @param[in] config_file Path to config file
  * @returns 0 for success, -1 for failure
  */
 int chessboard_load(chessboard_t &cb, const std::string &config_file);
 
 /**
  * Create object points
+ *
+ * @param[in] cb Chessboard
  * @returns Vector of object points
  */
 std::vector<cv::Point3f> chessboard_object_points(const chessboard_t &cb);
@@ -49,8 +52,9 @@ std::vector<cv::Point3f> chessboard_object_points(const chessboard_t &cb);
 /**
  * Detect chessboard corners
  *
- * @param image Input image
- * @param corners Detected chessboard corners
+ * @param[in] cb Chessboard
+ * @param[in] image Input image
+ * @param[out] corners Detected chessboard corners
  * @returns 0 for success, -1 for failure
  */
 int chessboard_detect(const chessboard_t &cb,
@@ -59,7 +63,9 @@ int chessboard_detect(const chessboard_t &cb,
 
 /**
  * Draw chessboard corners
- * @param image Image where chessboard corners are drawn
+ *
+ * @param[in] cb Chessboard
+ * @param[in,out] image Image where chessboard corners are drawn
  * @returns 0 for success, -1 for failure
  */
 int chessboard_draw_corners(const chessboard_t &cb, cv::Mat &image);
@@ -67,9 +73,10 @@ int chessboard_draw_corners(const chessboard_t &cb, cv::Mat &image);
 /**
  * Solve PnP between camera and chessboard
  *
- * @param corners Detected chessboard corners
- * @param K Camera intrinsics matrix K
- * @param T_c_t Transform from camera to calibration target
+ * @param[in] cb Chessboard
+ * @param[in] corners Detected chessboard corners
+ * @param[in] K Camera intrinsics matrix K
+ * @param[out] T_c_t Transform from camera to calibration target
  *
  * @returns 0 for success, -1 for failure
  */
@@ -81,9 +88,10 @@ int chessboard_solvepnp(const chessboard_t &cb,
 /**
  * Project 3D points to image
  *
- * @param X Corner positions relative to camera in ideal coordinates
- * @param K Camera intrinsics matrix K
- * @param image Target image
+ * @param[in] cb Chessboard
+ * @param[in] X Corner positions relative to camera in ideal coordinates
+ * @param[in] K Camera intrinsics matrix K
+ * @param[in,out] image Target image
  */
 void chessboard_project_points(const chessboard_t &cb,
                                const matx_t &X,

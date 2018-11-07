@@ -51,11 +51,12 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
 
 int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
                        pinhole_t &pinhole,
-                       radtan4_t &radtan) {
+                       radtan4_t &radtan,
+                       std::vector<mat4_t> &poses) {
   // Optimization variables
   vec4_t intrinsics{pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
   vec4_t distortion{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
-  std::vector<pose_param_t *> poses;
+  std::vector<pose_param_t *> pose_params;
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
@@ -65,19 +66,19 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
   // Process all aprilgrid data
   for (const auto &aprilgrid: aprilgrids) {
-    poses.push_back(new pose_param_t(aprilgrid.T_CF));
+    pose_params.push_back(new pose_param_t(aprilgrid.T_CF));
 
     int retval = process_aprilgrid(aprilgrid,
                                    intrinsics,
                                    distortion,
-                                   poses.back(),
+                                   pose_params.back(),
                                    problem);
     if (retval != 0) {
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
 
-    problem->SetParameterization(poses.back()->q.coeffs().data(),
+    problem->SetParameterization(pose_params.back()->q.coeffs().data(),
                                  &quaternion_parameterization);
   }
 
@@ -102,7 +103,8 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
                      distortion[3]};
 
   // Clean up
-  for (auto pose_ptr : poses) {
+  for (auto pose_ptr : pose_params) {
+    poses.emplace_back(transform(pose_ptr->q, pose_ptr->t));
     free(pose_ptr);
   }
   free(problem);

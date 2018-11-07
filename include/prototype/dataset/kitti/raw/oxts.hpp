@@ -45,7 +45,7 @@ struct oxts_entry_t {
 /**
  * Load OXTS entry
  *
- * @param file_path File path to a single OXTS data
+ * @param[in,out] entry OXTS entry
  * @returns 0 for success, -1 for failure
  */
 int oxts_entry_load(oxts_entry_t &entry);
@@ -78,8 +78,7 @@ struct oxts_t {
 /**
  * load OXTS
  *
- * @param oxts OXTS dataset
- * @param oxts_dir Path to OXTS data
+ * @param[in,out] oxts OXTS data
  * @returns 0 for success, -1 for failure
  */
 int oxts_load_entries(oxts_t &oxts);
@@ -87,8 +86,7 @@ int oxts_load_entries(oxts_t &oxts);
 /**
  * Load timestamps
  *
- * @param oxts OXTS dataset
- * @param oxts_dir Path to OXTS data
+ * @param[in,out] oxts OXTS data
  * @returns 0 for success, -1 for failure
  */
 int oxts_load_timestamps(oxts_t &oxts);
@@ -96,8 +94,7 @@ int oxts_load_timestamps(oxts_t &oxts);
 /**
  * Load OXTS
  *
- * @param oxts OXTS dataset
- * @param oxts_dir Path to OXTS data
+ * @param[in,out] oxts OXTS data
  * @returns 0 for success, -1 for failure
  */
 int oxts_load(oxts_t &oxts);

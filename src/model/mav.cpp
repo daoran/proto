@@ -81,26 +81,6 @@ int mav_model_update(mav_model_t &qm,
   return 0;
 }
 
-// int mav_model_update(const double dt) {
-//   vec4_t motor_inputs;
-//   if (this->ctrl_mode == "POS_CTRL_MODE") {
-//     motor_inputs = this->positionControllerControl(dt);
-//
-//   } else if (this->ctrl_mode == "ATT_CTRL_MODE") {
-//     motor_inputs = this->attitudeControllerControl(dt);
-//
-//   } else if (this->ctrl_mode == "WP_CTRL_MODE") {
-//     if (this->mission.configured == false) {
-//       LOG_ERROR("Mission is not configured!");
-//       return -1;
-//     }
-//
-//     motor_inputs = this->waypointControllerControl(dt);
-//   }
-//
-//   return this->update(motor_inputs, dt);
-// }
-
 void mav_model_set_attitude(mav_model_t &qm,
                             const double roll,
                             const double pitch,
@@ -112,7 +92,7 @@ void mav_model_set_position(mav_model_t &qm, const vec3_t &p_G) {
   qm.p_G = p_G;
 }
 
-void mav_model_print(mav_model_t &qm) {
+void mav_model_print(const mav_model_t &qm) {
   printf("x: %f\t", qm.p_G(0));
   printf("y: %f\t", qm.p_G(1));
   printf("z: %f\t\t", qm.p_G(2));

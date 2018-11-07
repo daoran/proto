@@ -25,13 +25,12 @@ namespace prototype {
 /**
  * Grid fast
  *
- * @param image Input image
- * @param max_corners Max number of corners
- * @param grid_rows Number of grid rows
- * @param grid_cols Number of grid cols
- * @param threshold Fast threshold
- * @param nonmax_suppression Nonmax Suppression
- * @param debug Debug mode
+ * @param[in] image Input image
+ * @param[in] max_corners Max number of corners
+ * @param[in] grid_rows Number of grid rows
+ * @param[in] grid_cols Number of grid cols
+ * @param[in] threshold Fast threshold
+ * @param[in] nonmax_suppression Nonmax Suppression
  *
  * @returns List of keypoints
  */

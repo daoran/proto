@@ -5,6 +5,8 @@ export CXX=/usr/bin/clang++
 
 # bash ./scripts/format_code.bash
 
+doxygen Doxyfile
+
 # cd octave/vision
 # octave test_radtan4_distort.m
 # octave test_radtan4_undistort.m
@@ -13,15 +15,15 @@ export CXX=/usr/bin/clang++
 # exit
 
 # rm -rf build
-mkdir -p build
-cd build || return
-cmake ..
-time make -j8
+# mkdir -p build
+# cd build || return
+# cmake ..
+# time make -j8
 
-cd tests
+# cd tests
 # ./calib-aprilgrid_test
 # ./calib-calib_test
-./calib-calib_camera_test
+# ./calib-calib_camera_test
 # ./control-mission_test
 # ./control-pid_test
 # ./core-config_test

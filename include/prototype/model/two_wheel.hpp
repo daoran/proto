@@ -18,10 +18,10 @@ namespace prototype {
  * Calculate target angular velocity and time taken to traverse a desired
  * circle * trajectory of radius r and velocity v
  *
- * @param r Desired circle radius
- * @param v Desired trajectory velocity
- * @param w Target angular velocity
- * @param time Target time taken to complete circle trajectory
+ * @param[in] r Desired circle radius
+ * @param[in] v Desired trajectory velocity
+ * @param[in] w Target angular velocity
+ * @param[in] time Target time taken to complete circle trajectory
  **/
 void circle_trajectory(const double r, const double v, double *w, double *time);
 
@@ -56,7 +56,8 @@ struct two_wheel_t {
 /**
  * Update
  *
- * @param dt Time difference (s)
+ * @param[in,out] tm Model
+ * @param[in] dt Time difference (s)
  */
 void two_wheel_update(two_wheel_t &tm, const double dt);
 

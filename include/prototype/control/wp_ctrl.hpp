@@ -43,6 +43,7 @@ struct wp_ctrl_t {
 /**
  * Configure waypoint control
  *
+ * @param[in,out] wc Waypoint controller
  * @param[in] config_file Path to config file
  * @return
  *    - 0: Success

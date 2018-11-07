@@ -103,8 +103,11 @@ cv::Mat draw_calib_validation(const cv::Mat &image,
 /**
  * Validate calibration
  *
- * @param camera_index Camera index
- * @param image Input image
+ * @param[in] image Input image
+ * @param[in] keypoints Keypoints
+ * @param[in] points Points
+ * @param[in] camera_geometry Camera geometry
+ *
  * @returns Validation image for visual inspection
  */
 template <typename CM, typename DM>

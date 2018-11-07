@@ -95,20 +95,20 @@ int aprilgrid_get(const aprilgrid_t &grid,
  * @param[in] id Tag id
  * @param[out] keypoints Keypoints
  * @param[out] points_CF Positions from camera to fiducial target
- * @param[out] T_CF Transform between fiducial target and camera
  *
  * @returns 0 or -1 for success or failure
  */
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
                   std::vector<vec2_t> &keypoints,
-                  std::vector<vec3_t> &points);
+                  std::vector<vec3_t> &points_CF);
 
 /**
  * Get the tag's grid index using the tag id
  *
  * Note: The origin of the grid is bottom left corner rather than top left.
  *
+ * @param[in] grid AprilGrid
  * @param[in] id Tag id
  * @param[out] i i-th row
  * @param[out] j j-th column
@@ -138,7 +138,6 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
  * @param[in] grid AprilGrid
  * @param[in] tag_id Tag id
  * @param[out] object_points Object points
- *
  * @returns 0 or -1 for success or failure
  */
 int aprilgrid_object_points(const aprilgrid_t &grid,
@@ -148,9 +147,9 @@ int aprilgrid_object_points(const aprilgrid_t &grid,
 /**
  * Calculate relative position between AprilGrid and camera using solvepnp
  *
+ * @param[in] grid AprilGrid
  * @param[in] cam_K Camera intrinsics matrix K
  * @param[in] cam_D Camera distortion vector D
- *
  * @returns 0 or -1 for success or failure
  */
 int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
@@ -161,8 +160,8 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
  * Show detection
  *
  * @param[in] grid AprilGrid
+ * @param[in] title Window title
  * @param[in] image Input image
- * @param[in] tags Detected AprilTags
  */
 void aprilgrid_imshow(const aprilgrid_t &grid,
                       const std::string &title,
@@ -171,6 +170,7 @@ void aprilgrid_imshow(const aprilgrid_t &grid,
 /**
  * Save AprilGrid detection
  *
+ * @param[in] grid AprilGrid
  * @param[in] save_path Path to save detection
  * @returns 0 or -1 for success or failure
  */
@@ -211,7 +211,7 @@ void aprilgrid_filter_tags(const cv::Mat &image,
  * @param[in] image Input image
  * @returns Number of AprilTags detected
  */
-int aprilgrid_detect(aprilgrid_t &detector, const cv::Mat &image);
+int aprilgrid_detect(aprilgrid_t &grid, const cv::Mat &image);
 
 /**
  * Detect AprilGrid

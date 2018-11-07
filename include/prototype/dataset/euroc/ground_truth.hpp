@@ -37,7 +37,7 @@ struct ground_truth_t {
 /**
  * Load ground truth data
  *
- * @param[int,out] data Ground truth data
+ * @param[in,out] data Ground truth data
  * @returns 0 for success, -1 for failure
  */
 int ground_truth_load(ground_truth_t &data);
