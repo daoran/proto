@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup config config
- * @ingroup core
- */
 #ifndef PROTOTYPE_CORE_CONFIG_HPP
 #define PROTOTYPE_CORE_CONFIG_HPP
 
@@ -22,10 +17,6 @@
 #include "prototype/core/math.hpp"
 
 namespace prototype {
-/**
- * @addtogroup config
- * @{
- */
 
 /**
  * Configuration file
@@ -35,17 +26,20 @@ struct config_t {
   YAML::Node root;
   bool ok = false;
 
-  config_t() {}
+  config_t();
   config_t(const std::string &file_path_);
+  ~config_t();
 };
 
 /**
- * Load YAML file
+ * Load YAML file.
+ * Returns 0 for success or -1 for failure.
  */
 int yaml_load_file(const std::string file_path, YAML::Node &root);
 
 /**
- * Get YAML node containing the parameter value
+ * Get YAML node containing the parameter value.
+ * Returns 0 for success or -1 for failure.
  */
 int yaml_get_node(const config_t &config,
                   const std::string &key,
@@ -135,7 +129,6 @@ void parse(const config_t &config,
            cv::Mat &mat,
            const bool optional = false);
 
-/** @} group config */
 } //  namespace prototype
 #include "prototype/core/config_impl.hpp"
 #endif // PROTOTYPE_CORE_CONFIG_HPP

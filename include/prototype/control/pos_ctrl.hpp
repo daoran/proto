@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup control
- */
 #ifndef PROTOTYPE_CONTROL_POS_CTRL_HPP
 #define PROTOTYPE_CONTROL_POS_CTRL_HPP
 
@@ -9,10 +5,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup control
- * @{
- */
 
 /**
  * Position control
@@ -63,6 +55,5 @@ vec4_t pos_ctrl_update(pos_ctrl_t &pc,
  */
 void pos_ctrl_reset(pos_ctrl_t &pc);
 
-/** @} group control */
 } //  namespace prototype
 #endif // PROTOTYPE_CONTROL_POS_CTRL_HPP

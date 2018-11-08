@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup calib
- */
 #ifndef PROTOTYPE_CALIB_CALIB_GIMBAL_HPP
 #define PROTOTYPE_CALIB_CALIB_GIMBAL_HPP
 
@@ -11,10 +7,6 @@
 #include "prototype/model/gimbal.hpp"
 
 namespace prototype {
-/**
- * @addtogroup calib
- * @{
- */
 
 /**
  * Gimbal calibration data
@@ -254,7 +246,6 @@ std::ostream &operator<<(std::ostream &os, const GimbalCalibResidual &residual);
  */
 std::ostream &operator<<(std::ostream &os, const GimbalCalibResidual *residual);
 
-/** @} group calib */
 } //  namespace prototype
 #include "calib_gimbal_impl.hpp"
 #endif // PROTOTYPE_CALIB_CALIB_GIMBAL_HPP

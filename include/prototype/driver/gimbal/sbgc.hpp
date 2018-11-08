@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup gimbal gimbal
- * @ingroup driver
- */
 #ifndef PROTOTYPE_GIMBAL_SBGC_HPP
 #define PROTOTYPE_GIMBAL_SBGC_HPP
 
@@ -17,10 +12,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup gimbal
- * @{
- */
 
 // GENERAL
 #define SBGC_CMD_MAX_BYTES 255
@@ -215,6 +206,5 @@ int sbgc_set_speed_angle(const sbgc_t &sbgc,
                          const double pitch_speed,
                          const double yaw_speed);
 
-/** @} group gimbal */
 } //  namespace prototype
 #endif // PROTOTYPE_GIMBAL_SBGC_HPP

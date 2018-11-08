@@ -1,7 +1,3 @@
-/**
- * @file
- * @defgroup euroc euroc
- */
 #ifndef PROTOTYPE_DATASET_EUROC_EUROC_HPP
 #define PROTOTYPE_DATASET_EUROC_EUROC_HPP
 

@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup util util
- * @ingroup vision
- */
 #ifndef PROTOTYPE_VISION_UTIL_HPP
 #define PROTOTYPE_VISION_UTIL_HPP
 
@@ -16,10 +11,6 @@
 #include "prototype/vision/camera/camera_geometry.hpp"
 
 namespace prototype {
-/**
- * @addtogroup util
- * @{
- */
 
 /**
  * Compare `cv::Mat` whether they are equal
@@ -311,6 +302,5 @@ cv::Mat equi_undistort_image(const mat3_t &K,
                              cv::Mat &Knew,
                              const double balance);
 
-/** @} group util */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_UTIL_HPP

@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup euroc euroc
- * @ingroup dataset
- */
 #ifndef PROTOTYPE_VISION_DATASET_EUROC_MAV_DATASET_HPP
 #define PROTOTYPE_VISION_DATASET_EUROC_MAV_DATASET_HPP
 
@@ -20,10 +15,6 @@
 #include "prototype/dataset/euroc/imu_data.hpp"
 
 namespace prototype {
-/**
- * @addtogroup euroc
- * @{
- */
 
 #define BIND_IMU_CALLBACK(CLASS_METHOD, INSTANCE)                              \
   std::bind(&CLASS_METHOD,                                                     \
@@ -183,6 +174,5 @@ long mav_dataset_max_timestamp(const mav_dataset_t &ds);
 //  */
 // int run();
 
-/** @} group euroc */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_DATASET_EUROC_MAV_DATASET_HPP

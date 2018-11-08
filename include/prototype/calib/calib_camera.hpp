@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup calib
- */
 #ifndef PROTOTYPE_CALIB_CALIB_CAMERA_HPP
 #define PROTOTYPE_CALIB_CALIB_CAMERA_HPP
 
@@ -15,10 +11,6 @@
 #include "prototype/calib/calib.hpp"
 
 namespace prototype {
-/**
- * @addtogroup calib
- * @{
- */
 
 /**
  * Pose parameter block
@@ -88,7 +80,6 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
                        const std::vector<mat4_t> &poses,
                        const std::string &output_path);
 
-/** @} group calib */
 } //  namespace prototype
 #include "calib_camera_impl.hpp"
 #endif // PROTOTYPE_CALIB_CALIB_CAMERA_HPP

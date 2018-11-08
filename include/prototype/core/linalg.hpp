@@ -1,18 +1,9 @@
-/**
- * @file
- * @defgroup linalg linalg
- * @ingroup core
- */
 #ifndef PROTOTYPE_CORE_LINALG_HPP
 #define PROTOTYPE_CORE_LINALG_HPP
 
 #include "prototype/core/math.hpp"
 
 namespace prototype {
-/**
- * @addtogroup linalg
- * @{
- */
 
 /**
  * Zeros-matrix
@@ -144,6 +135,5 @@ mat4_t transform(const mat3_t &R, const vec3_t &t);
  */
 mat4_t transform(const quat_t &q, const vec3_t &t);
 
-/** @} group linalg */
 } // namespace prototype
 #endif // PROTOTYPE_CORE_LINALG_HPP

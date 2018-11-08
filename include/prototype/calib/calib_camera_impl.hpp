@@ -1,17 +1,9 @@
-/**
- * @file
- * @ingroup calib
- */
 #ifndef PROTOTYPE_CALIB_CALIB_CAMERA_IMPL_HPP
 #define PROTOTYPE_CALIB_CALIB_CAMERA_IMPL_HPP
 
 #include "prototype/calib/calib_camera.hpp"
 
 namespace prototype {
-/**
- * @addtogroup calib
- * @{
- */
 
 template <typename T>
 static Eigen::Matrix<T, 3, 3> pinhole_K(const T *intrinsics) {
@@ -170,6 +162,5 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
   return 0;
 }
 
-/** @} group calib */
 } //  namespace prototype
 #endif // PROTOTYPE_CALIB_CALIB_CAMERA_IMPL_HPP

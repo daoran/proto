@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup kitti kitti
- * @ingroup dataset
- */
 #ifndef PROTOTYPE_DATASET_KITTI_RAW_HPP
 #define PROTOTYPE_DATASET_KITTI_RAW_HPP
 
@@ -17,10 +12,6 @@
 #include "prototype/dataset/kitti/raw/parse.hpp"
 
 namespace prototype {
-/**
- * @addtogroup kitti
- * @{
- */
 
 /**
  * KITTI Raw Dataset
@@ -71,6 +62,5 @@ struct kitti_raw_dataset_t {
  */
 int kitti_raw_dataset_load(kitti_raw_dataset_t &dataset);
 
-/** @} group kitti */
 } // namespace prototype
 #endif // PROTOTYPE_DATASET_KITTI_RAW_HPP

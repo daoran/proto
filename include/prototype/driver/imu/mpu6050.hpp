@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup imu imu
- * @ingroup driver
- */
 #ifndef PROTOTYPE_IMU_MPU6050_HPP
 #define PROTOTYPE_IMU_MPU6050_HPP
 
@@ -14,11 +9,8 @@
 #include "prototype/driver/i2c.hpp"
 
 namespace prototype {
-/**
- * @addtogroup imu
- * @{
- */
 
+#ifndef DOXYGEN_IGNORE
 // GENERAL
 #define MPU6050_ADDRESS 0x68
 #define MPU6050_ADDRESS_AD0_LOW 0x68  // addr pin low (GND) [default]
@@ -135,6 +127,7 @@ namespace prototype {
 #define MPU6050_RA_FIFO_COUNTL 0x73
 #define MPU6050_RA_FIFO_R_W 0x74
 #define MPU6050_RA_WHO_AM_I 0x75
+#endif /* DOXYGEN_IGNORE */
 
 /**
  * Invensense MPU6050 I2C Driver
@@ -154,7 +147,7 @@ struct mpu6050_t {
   clock_t last_updated = 0;
 
   mpu6050_t(i2c_t &i2c_) : i2c{i2c_} {}
-  virtual ~mpu6050_t() {}
+  ~mpu6050_t() {}
 };
 
 /**
@@ -287,6 +280,5 @@ int mpu6050_get_accel_range(const mpu6050_t &imu);
  */
 std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu);
 
-/** @} group imu */
 } //  namespace prototype
 #endif // PROTOTYPE_IMU_MPU6050_HPP

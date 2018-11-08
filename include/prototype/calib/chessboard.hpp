@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup calib
- */
 #ifndef PROTOTYPE_VISION_CALIBRATION_CHESSBOARD_HPP
 #define PROTOTYPE_VISION_CALIBRATION_CHESSBOARD_HPP
 
@@ -11,10 +7,6 @@
 #include "prototype/vision/util.hpp"
 
 namespace prototype {
-/**
- * @addtogroup calib
- * @{
- */
 
 /**
  * Chessboard
@@ -99,6 +91,5 @@ void chessboard_project_points(const chessboard_t &cb,
                                const mat3_t &K,
                                cv::Mat &image);
 
-/** @} group calib */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_CALIBRATION_CHESSBOARD_HPP

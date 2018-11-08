@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup driver
- */
 #ifndef PROTOTYPE_DRIVER_I2C_HPP
 #define PROTOTYPE_DRIVER_I2C_HPP
 
@@ -19,10 +15,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup driver
- * @{
- */
 
 // ERROR MESSAGES
 #define I2C_INIT_FAILED "failed to initialize I2C!"
@@ -56,6 +48,5 @@ int i2c_write_bytes(const i2c_t &i2c,
                     const char *data,
                     const size_t length);
 
-/** @} group driver */
 } //  namespace prototype
 #endif

@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup control
- */
 #ifndef PROTOTYPE_CONTROL_ATT_CTRL_HPP
 #define PROTOTYPE_CONTROL_ATT_CTRL_HPP
 
@@ -11,10 +7,6 @@
 using namespace prototype;
 
 namespace prototype {
-/**
- * @addtogroup control
- * @{
- */
 
 /**
  * Attitude controller
@@ -50,6 +42,5 @@ vec4_t att_ctrl_update(att_ctrl_t &controller,
                        const vec4_t &actual,
                        const double dt);
 
-/** @} group quadrotor */
 } //  namespace prototype
 #endif // PROTOTYPE_CONTROL_ATT_CTRL_HPP

@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup kitti kitti
- * @ingroup dataset
- */
 #ifndef PROTOTYPE_DATASET_KITTI_RAW_PARSE_HPP
 #define PROTOTYPE_DATASET_KITTI_RAW_PARSE_HPP
 
@@ -14,10 +9,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup kitti
- * @{
- */
 
 /**
  * Parse string
@@ -92,6 +83,5 @@ mat34_t parse_mat34(const std::string &line);
  */
 int parse_timestamp(const std::string &line, long *s);
 
-/** @} group kitti */
 } //  namespace prototype
 #endif // PROTOTYPE_DATASET_KITTI_RAW_PARSE_HPP

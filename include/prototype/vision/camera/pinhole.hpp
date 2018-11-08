@@ -1,18 +1,9 @@
-/**
- * @file
- * @defgroup pinhole pinhole
- * @ingroup vision
- */
 #ifndef PROTOTYPE_VISION_CAMERA_PINHOLE_HPP
 #define PROTOTYPE_VISION_CAMERA_PINHOLE_HPP
 
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup pinhole
- * @{
- */
 
 /**
  * Pinhole camera model
@@ -147,6 +138,5 @@ vec2_t project(const pinhole_t &pinhole,
  */
 vec2_t pixel2ideal(const pinhole_t &pinhole, const vec2_t &pixel);
 
-/** @} group pinhole */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_CAMERA_PINHOLE_HPP

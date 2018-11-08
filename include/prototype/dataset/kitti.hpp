@@ -1,7 +1,3 @@
-/**
- * @file
- * @defgroup kitti kitti
- */
 #ifndef PROTOTYPE_DATASET_KITTI_HPP
 #define PROTOTYPE_DATASET_KITTI_HPP
 

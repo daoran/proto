@@ -1,17 +1,9 @@
-/**
- * @file
- * @ingroup calib
- */
 #ifndef PROTOTYPE_CALIB_CALIB_IMPL_HPP
 #define PROTOTYPE_CALIB_CALIB_IMPL_HPP
 
 #include "calib.hpp"
 
 namespace prototype {
-/**
- * @addtogroup calib
- * @{
- */
 
 template <typename CM, typename DM>
 cv::Mat validate_intrinsics(const cv::Mat &image,
@@ -97,6 +89,5 @@ cv::Mat validate_stereo(const cv::Mat &image0,
   return result;
 }
 
-/** @} group calib */
 } //  namespace prototype
 #endif // PROTOTYPE_CALIB_CALIB_IMPL_HPP

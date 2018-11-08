@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup mav mav
- * @ingroup model
- */
 #ifndef PROTOTYPE_MODEL_MAV_HPP
 #define PROTOTYPE_MODEL_MAV_HPP
 
@@ -15,10 +10,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup mav
- * @{
- */
 
 /**
  * MAV model
@@ -89,6 +80,5 @@ void mav_model_set_position(mav_model_t &qm, const vec3_t &p_G);
  */
 void mav_model_print(const mav_model_t &qm);
 
-/** @} group mav */
 } //  namespace prototype
 #endif // PROTOTYPE_MODEL_MAV_HPP

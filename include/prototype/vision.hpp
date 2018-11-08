@@ -1,7 +1,3 @@
-/**
- * @file
- * @defgroup vision vision
- */
 #ifndef PROTOTYPE_VISION_HPP
 #define PROTOTYPE_VISION_HPP
 

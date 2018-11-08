@@ -6,6 +6,7 @@ export CXX=/usr/bin/clang++
 # bash ./scripts/format_code.bash
 
 doxygen Doxyfile
+python3 scripts/api.py
 
 # cd octave/vision
 # octave test_radtan4_distort.m

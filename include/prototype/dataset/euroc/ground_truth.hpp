@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup euroc euroc
- * @ingroup dataset
- */
 #ifndef PROTOTYPE_VISION_DATASET_EUROC_GROUND_TRUTH_HPP
 #define PROTOTYPE_VISION_DATASET_EUROC_GROUND_TRUTH_HPP
 
@@ -10,10 +5,6 @@
 #include <vector>
 
 namespace prototype {
-/**
- * @addtogroup euroc
- * @{
- */
 
 /**
  * Ground truth data
@@ -42,6 +33,5 @@ struct ground_truth_t {
  */
 int ground_truth_load(ground_truth_t &data);
 
-/** @} group euroc */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_DATASET_EUROC_GROUND_TRUTH_HPP

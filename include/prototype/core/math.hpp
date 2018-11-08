@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup math math
- * @ingroup core
- */
 #ifndef PROTOTYPE_CORE_MATH_HPP
 #define PROTOTYPE_CORE_MATH_HPP
 
@@ -17,10 +12,6 @@
 #include "prototype/core/log.hpp"
 
 namespace prototype {
-/**
- * @addtogroup math
- * @{
- */
 
 #ifndef __EIGEN_TYPEDEF__
 #define __EIGEN_TYPEDEF__
@@ -350,6 +341,5 @@ double closest_point(const vec2_t &p1,
  */
 vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu);
 
-/** @} group math */
 } //  namespace prototype
 #endif // PROTOTYPE_CORE_MATH_HPP

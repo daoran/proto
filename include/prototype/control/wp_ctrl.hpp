@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup control
- */
 #ifndef PROTOTYPE_CONTROL_WP_CTRL_HPP
 #define PROTOTYPE_CONTROL_WP_CTRL_HPP
 
@@ -15,10 +11,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup control
- * @{
- */
 
 /**
  * Waypoint Control
@@ -79,6 +71,5 @@ int wp_ctrl_update(wp_ctrl_t &wc,
  */
 void wp_ctrl_reset(wp_ctrl_t &wc);
 
-/** @} group control */
 } //  namespace prototype
 #endif // PROTOTYPE_CONTROL_WP_CTRL_HPP

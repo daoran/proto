@@ -5,33 +5,37 @@ OUTPUT_LANGUAGE = English
 QUIET = NO
 WARNINGS = YES
 DISABLE_INDEX = NO
-EXTRACT_ALL = YES  # all docs on classes and functions will be processed
-EXTRACT_PRIVATE = YES  # private docs will be processed
+EXTRACT_ALL = YES
+EXTRACT_PRIVATE = YES
 MARKDOWN_SUPPORT = YES
 HAVE_DOT = NO
 
 # Input files configurations
-FILE_PATTERNS = *.hpp *.cpp
+FILE_PATTERNS = *.hpp
 RECURSIVE = YES
 
 # HTML output configurations
 GENERATE_HTML = YES
-# GENERATE_XML = YES
 # GENERATE_HTML = NO
 # LAYOUT_FILE = docs/style/layout.xml
 # HTML_HEADER = docs/style/header.html
 # HTML_FOOTER = docs/style/footer.html
 # HTML_EXTRA_STYLESHEET = docs/style/customdoxygen.css
 # HTML_EXTRA_FILES = docs/style/doxy-boot.js
-
+USE_MATHJAX = YES
+SHOW_NAMESPACES = NO
+SHOW_FILES = YES
 DISABLE_INDEX = NO
 GENERATE_TREEVIEW = NO
 SEARCHENGINE = NO
 AUTOLINK_SUPPORT = YES
 DISTRIBUTE_GROUP_DOC = YES
+ENABLE_PREPROCESSING = YES
+PREDEFINED = DOXYGEN_IGNORE
+
 
 # LATEX output
 GENERATE_LATEX = NO
 
-# MATHJAX
-USE_MATHJAX = YES
+# XML output
+GENERATE_XML = NO

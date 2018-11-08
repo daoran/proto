@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup euroc euroc
- * @ingroup dataset
- */
 #ifndef PROTOTYPE_VISION_DATASET_EUROC_CAMERA_DATA_HPP
 #define PROTOTYPE_VISION_DATASET_EUROC_CAMERA_DATA_HPP
 
@@ -12,10 +7,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup euroc
- * @{
- */
 
 /**
  * Camera data
@@ -56,6 +47,5 @@ int camera_data_load(camera_data_t &cd);
  */
 std::ostream &operator<<(std::ostream &os, const camera_data_t &data);
 
-/** @} group euroc */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_DATASET_EUROC_CAMERA_DATA_HPP

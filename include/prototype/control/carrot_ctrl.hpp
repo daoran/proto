@@ -1,6 +1,3 @@
-/** @file
- * @ingroup control
- */
 #ifndef PROTOTYPE_CONTROL_CARROT_CTRL_HPP
 #define PROTOTYPE_CONTROL_CARROT_CTRL_HPP
 
@@ -11,10 +8,6 @@
 using namespace prototype;
 
 namespace prototype {
-/**
- * @addtogroup control
- * @{
- */
 
 /**
  * Carrot control
@@ -86,6 +79,5 @@ int carrot_ctrl_carrot_point(const carrot_ctrl_t &cc,
  */
 int carrot_ctrl_update(carrot_ctrl_t &cc, const vec3_t &pos, vec3_t &carrot_pt);
 
-/** @} group control */
 } //  namespace prototype
 #endif // PROTOTYPE_CONTROL_CARROT_CTRL_HPP

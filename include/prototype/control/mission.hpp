@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup control
- */
 #ifndef PROTOTYPE_CONTROL_MISSION_HPP
 #define PROTOTYPE_CONTROL_MISSION_HPP
 
@@ -13,10 +9,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup control
- * @{
- */
 
 // ERROR MESSAGES
 #define EDISTLATLON "Waypoint %d: (%f, %f) has dist > %f from prev waypoint!"
@@ -238,6 +230,5 @@ int wp_mission_waypoint_reached(const wp_mission_t &m, const vec3_t &p_G);
  */
 int wp_mission_update(wp_mission_t &m, const vec3_t &p_G, vec3_t &waypoint);
 
-/** @} group control */
 } //  namespace prototype
 #endif // PROTOTYPE_CONTROL_MISSION_HPP

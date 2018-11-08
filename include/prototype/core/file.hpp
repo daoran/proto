@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup file file
- * @ingroup core
- */
 #ifndef PROTOTYPE_CORE_FILE_HPP
 #define PROTOTYPE_CORE_FILE_HPP
 
@@ -19,10 +14,6 @@
 #include "prototype/core/log.hpp"
 
 namespace prototype {
-/**
- * @addtogroup file
- * @{
- */
 
 /**
  * Return basename
@@ -129,6 +120,5 @@ std::vector<std::string> path_split(const std::string path);
  */
 std::string paths_combine(const std::string path1, const std::string path2);
 
-/** @} group file */
 } // namespace prototype
 #endif // PROTOTYPE_CORE_FILE_HPP

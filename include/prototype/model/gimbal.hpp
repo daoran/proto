@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup gimbal gimbal
- * @ingroup model
- */
 #ifndef PROTOTYPE_MODEL_GIMBAL_HPP
 #define PROTOTYPE_MODEL_GIMBAL_HPP
 
@@ -11,10 +6,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup gimbal
- * @{
- */
 
 /**
  * Create DH transform from link n to link n-1 (end to front)
@@ -131,6 +122,5 @@ mat4_t gimbal_model_T_DS(gimbal_model_t &model, const vec2_t &theta);
  */
 std::ostream &operator<<(std::ostream &os, const gimbal_model_t &gimbal);
 
-/** @} group gimbal */
 } //  namespace prototype
 #endif // PROTOTYPE_MODEL_GIMBAL_HPP

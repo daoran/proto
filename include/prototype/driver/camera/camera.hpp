@@ -1,18 +1,9 @@
-/**
- * @file
- * @defgroup camera camera
- * @ingroup driver
- */
 #ifndef PROTOTYPE_DRIVER_CAMERA_BASE_HPP
 #define PROTOTYPE_DRIVER_CAMERA_BASE_HPP
 
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup camera
- * @{
- */
 
 /**
  * Camera config file
@@ -93,6 +84,5 @@ int camera_disconnect(camera_t &cam);
  */
 int camera_get_frame(camera_t &cam);
 
-/** @} group camera */
 } //  namespace prototype
 #endif // PROTOTYPE_DRIVER_CAMERA_BASE_HPP

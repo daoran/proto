@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup gps gps
- * @ingroup core
- */
 #ifndef PROTOTYPE_CORE_GPS_HPP
 #define PROTOTYPE_CORE_GPS_HPP
 
@@ -11,10 +6,6 @@
 #include "prototype/core/math.hpp"
 
 namespace prototype {
-/**
- * @addtogroup gps
- * @{
- */
 
 #define EARTH_RADIUS_M 6378137.0
 
@@ -65,6 +56,5 @@ void latlon_diff(double lat_ref,
  */
 double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
 
-/** @} group gps */
 } // namespace prototype
 #endif // PROTOTYPE_CORE_GPS_HPP

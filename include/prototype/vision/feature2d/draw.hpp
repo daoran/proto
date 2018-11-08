@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup draw draw
- * @ingroup vision
- */
 #ifndef PROTOTYPE_VISION_FEATURE2D_DRAW_HPP
 #define PROTOTYPE_VISION_FEATURE2D_DRAW_HPP
 
@@ -12,10 +7,6 @@
 #include <opencv2/opencv.hpp>
 
 namespace prototype {
-/**
- * @addtogroup draw
- * @{
- */
 
 /**
  * Draw tracks
@@ -111,6 +102,5 @@ cv::Mat draw_grid_features(const cv::Mat &image,
                            const int grid_cols,
                            const std::vector<cv::KeyPoint> features);
 
-/** @} group draw */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_FEATURE2D_DRAW_HPP

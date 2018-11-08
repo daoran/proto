@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup driver
- */
 #ifndef PROTOTYPE_DRIVER_UART_HPP
 #define PROTOTYPE_DRIVER_UART_HPP
 
@@ -16,10 +12,6 @@
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup driver
- * @{
- */
 
 /**
  * UART
@@ -73,6 +65,5 @@ int uart_configure(const uart_t &uart, const int speed, const int parity);
  */
 void uart_set_blocking(uart_t &uart, const bool blocking);
 
-/** @} group driver */
 } //  namespace prototype
 #endif // PROTOTYPE_DRIVER_UART_HPP

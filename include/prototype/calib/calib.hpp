@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup calib
- */
 #ifndef PROTOTYPE_CALIB_CALIB_HPP
 #define PROTOTYPE_CALIB_CALIB_HPP
 
@@ -18,10 +14,6 @@
 #include "prototype/vision/camera/equi.hpp"
 
 namespace prototype {
-/**
- * @addtogroup calib
- * @{
- */
 
 /**
  * Calibration target
@@ -125,7 +117,6 @@ cv::Mat validate_intrinsics(const cv::Mat &image,
 //   */
 // cv::Mat validateStereo(const cv::Mat &img0, const cv::Mat &img1);
 
-/** @} group calib */
 } //  namespace prototype
 #include "calib_impl.hpp"
 #endif // PROTOTYPE_CALIB_CALIB_HPP

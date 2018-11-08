@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup kitti kitti
- * @ingroup dataset
- */
 #ifndef PROTOTYPE_DATASET_KITTI_RAW_OXTS_HPP
 #define PROTOTYPE_DATASET_KITTI_RAW_OXTS_HPP
 
@@ -15,10 +10,6 @@
 #include "prototype/dataset/kitti/raw/parse.hpp"
 
 namespace prototype {
-/**
- * @addtogroup kitti
- * @{
- */
 
 /**
  * OXTS entry
@@ -99,6 +90,5 @@ int oxts_load_timestamps(oxts_t &oxts);
  */
 int oxts_load(oxts_t &oxts);
 
-/** @} group kitti */
 } //  namespace prototype
 #endif // PROTOTYPE_DATASET_KITTI_RAW_OXTS_HPP

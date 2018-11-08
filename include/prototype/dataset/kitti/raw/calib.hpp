@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup kitti kitti
- * @ingroup dataset
- */
 #ifndef PROTOTYPE_DATASET_KITTI_RAW_CALIB_HPP
 #define PROTOTYPE_DATASET_KITTI_RAW_CALIB_HPP
 
@@ -11,10 +6,6 @@
 #include "prototype/dataset/kitti/raw/parse.hpp"
 
 namespace prototype {
-/**
- * @addtogroup kitti
- * @{
- */
 
 /**
  * Camera to Camera calibration
@@ -96,6 +87,5 @@ int calib_imu2velo_load(calib_imu2velo_t &calib);
  */
 int calib_velo2cam_load(calib_velo2cam_t &calib);
 
-/** @} group kitti */
 } //  namespace prototype
 #endif // PROTOTYPE_DATASET_KITTI_RAW_CALIB_HPP

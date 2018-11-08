@@ -1,18 +1,9 @@
-/**
- * @file
- * @defgroup euroc euroc
- * @ingroup dataset
- */
 #ifndef PROTOTYPE_VISION_DATASET_EUROC_IMU_DATA_HPP
 #define PROTOTYPE_VISION_DATASET_EUROC_IMU_DATA_HPP
 
 #include "prototype/core.hpp"
 
 namespace prototype {
-/**
- * @addtogroup euroc
- * @{
- */
 
 /**
  * IMU data
@@ -53,6 +44,5 @@ int imu_data_load(imu_data_t &data);
  */
 std::ostream &operator<<(std::ostream &os, const imu_data_t &data);
 
-/** @} group euroc */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_DATASET_EUROC_IMU_DATA_HPP

@@ -1,7 +1,3 @@
-/**
- * @file
- * @defgroup driver driver
- */
 #ifndef PROTOTYPE_DRIVER_HPP
 #define PROTOTYPE_DRIVER_HPP
 

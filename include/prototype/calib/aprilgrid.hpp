@@ -1,7 +1,3 @@
-/**
- * @file
- * @defgroup calib calib
- */
 #ifndef PROTOTYPE_CALIB_APRILGRID_HPP
 #define PROTOTYPE_CALIB_APRILGRID_HPP
 

@@ -59,7 +59,6 @@ ADD_LIBRARY(
   src/driver/camera/camera.cpp
   src/driver/gimbal/sbgc.cpp
   src/driver/imu/mpu6050.cpp
-  # src/driver/imu/mpu9250.cpp
   src/driver/pwm/pca9685.cpp
   src/driver/i2c.cpp
   src/driver/uart.cpp

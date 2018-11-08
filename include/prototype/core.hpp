@@ -1,7 +1,3 @@
-/**
- * @file
- * @defgroup core core
- */
 #ifndef PROTOTYPE_CORE_HPP
 #define PROTOTYPE_CORE_HPP
 
@@ -18,10 +14,6 @@
 #include "prototype/core/time.hpp"
 
 namespace prototype {
-/**
- * @addtogroup core
- * @{
- */
 
 // MACROS
 #define UNUSED(expr)                                                           \
@@ -38,6 +30,5 @@ namespace prototype {
   }
 #endif
 
-/** @} group core */
 } //  namespace prototype
 #endif // PROTOTYPE_CORE_HPP

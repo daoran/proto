@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup data data
- * @ingroup core
- */
 #ifndef PROTOTYPE_CORE_DATA_HPP
 #define PROTOTYPE_CORE_DATA_HPP
 
@@ -14,10 +9,6 @@
 #include "prototype/core/math.hpp"
 
 namespace prototype {
-/**
- * @addtogroup data
- * @{
- */
 
 // CSV ERROR MESSAGES
 #define E_CSV_DATA_LOAD "Error! failed to load data [%s]!!\n"
@@ -91,6 +82,5 @@ void extend(std::vector<T> &x, std::vector<T> &add) {
   x.insert(x.end(), add.begin(), add.end());
 }
 
-/** @} group data */
 } //  namespace prototype
 #endif // PROTOTYPE_CORE_DATA_HPP

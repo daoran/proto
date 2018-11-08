@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup control
- */
 #ifndef PROTOTYPE_CONTROL_PID_HPP
 #define PROTOTYPE_CONTROL_PID_HPP
 
@@ -10,10 +6,6 @@
 #include <math.h>
 
 namespace prototype {
-/**
- * @addtogroup control
- * @{
- */
 
 /**
  * PID Controller
@@ -69,6 +61,5 @@ double pid_update(pid_t &p, const double error, const double dt);
  */
 void pid_reset(pid_t &p);
 
-/** @} group control */
 } //  namespace prototype
 #endif // PROTOTYPE_CONTROL_PID_HPP

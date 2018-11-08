@@ -1,7 +1,3 @@
-/**
- * @file
- * @ingroup calib
- */
 #ifndef PROTOTYPE_CALIB_CALIB_GIMBAL_IMPL_HPP
 #define PROTOTYPE_CALIB_CALIB_GIMBAL_IMPL_HPP
 
@@ -11,10 +7,6 @@
 #include "prototype/calib/calib_gimbal.hpp"
 
 namespace prototype {
-/**
- * @addtogroup calib
- * @{
- */
 
 template <typename T>
 Eigen::Matrix<T, 4, 4> GimbalCalibResidual::dhTransform(const T theta,
@@ -269,6 +261,5 @@ bool GimbalCalibResidual::operator()(const T *const tau_s,
   // clang-format on
 }
 
-/** @} group calib */
 } //  namespace prototype
 #endif // PROTOTYPE_CALIB_CALIB_GIMBAL_IMPL_HPP

@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup quaternion quaternion
- * @ingroup core
- */
 #ifndef PROTOTYPE_CORE_QUATERNION_JPL_HPP
 #define PROTOTYPE_CORE_QUATERNION_JPL_HPP
 
@@ -10,10 +5,6 @@
 #include "prototype/core/math.hpp"
 
 namespace prototype {
-/**
- * @addtogroup quaternion
- * @{
- */
 
 /**
  * Skew
@@ -191,7 +182,6 @@ mat4_t Omega(const vec3_t &w);
  */
 vec4_t quatzoi(const vec4_t &q, const vec3_t &w, const double dt);
 
-/** @} group quaternion */
 } //  namespace prototype
 #include "jpl_impl.hpp"
 #endif // PROTOTYPE_CORE_QUATERNION_JPL_HPP

@@ -1,8 +1,3 @@
-/**
- * @file
- * @defgroup time time
- * @ingroup core
- */
 #ifndef PROTOTYPE_CORE_TIME_HPP
 #define PROTOTYPE_CORE_TIME_HPP
 
@@ -10,10 +5,6 @@
 #include <time.h>
 
 namespace prototype {
-/**
- * @addtogroup time
- * @{
- */
 
 struct timespec tic();
 
@@ -26,6 +17,5 @@ float mtoc(struct timespec *tic);
  */
 double time_now();
 
-/** @} group time */
 } //  namespace prototype
 #endif // PROTOTYPE_CORE_TIME_HPP

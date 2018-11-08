@@ -1,7 +1,3 @@
-/**
- * @file
- * @defgroup dataset dataset
- */
 #ifndef PROTOTYPE_DATASET_HPP
 #define PROTOTYPE_DATASET_HPP
 
