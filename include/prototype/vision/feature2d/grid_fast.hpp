@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup feature2d
+ * @defgroup grid_fast grid_fast
+ * @ingroup vision
  */
 #ifndef PROTOTYPE_VISION_FEATURE2D_GRID_FAST_HPP
 #define PROTOTYPE_VISION_FEATURE2D_GRID_FAST_HPP
@@ -15,10 +16,11 @@
 #include <opencv2/opencv.hpp>
 
 #include "prototype/core.hpp"
+#include "prototype/vision/util.hpp"
 
 namespace prototype {
 /**
- * @addtogroup feature2d
+ * @addtogroup grid_fast
  * @{
  */
 
@@ -41,6 +43,6 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
                                     const double threshold = 10.0,
                                     const bool nonmax_suppression = true);
 
-/** @} group feature2d */
+/** @} group grid_fast */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_FEATURE2D_GRID_FAST_HPP

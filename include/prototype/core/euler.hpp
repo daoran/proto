@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup euler euler
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_EULER_HPP
 #define PROTOTYPE_CORE_EULER_HPP
@@ -72,6 +72,6 @@ mat3_t euler123ToRot(const vec3_t &euler);
  */
 mat3_t euler321ToRot(const vec3_t &euler);
 
-/** @} group data */
+/** @} group euler */
 } //  namespace prototype
 #endif // PROTOTYPE_CORE_EULER_HPP

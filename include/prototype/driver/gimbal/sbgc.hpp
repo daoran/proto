@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup gimbal
+ * @defgroup gimbal gimbal
+ * @ingroup driver
  */
 #ifndef PROTOTYPE_GIMBAL_SBGC_HPP
 #define PROTOTYPE_GIMBAL_SBGC_HPP
@@ -214,6 +215,6 @@ int sbgc_set_speed_angle(const sbgc_t &sbgc,
                          const double pitch_speed,
                          const double yaw_speed);
 
-/** @} group feature2d */
+/** @} group gimbal */
 } //  namespace prototype
 #endif // PROTOTYPE_GIMBAL_SBGC_HPP

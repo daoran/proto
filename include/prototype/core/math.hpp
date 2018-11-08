@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup math math
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_MATH_HPP
 #define PROTOTYPE_CORE_MATH_HPP

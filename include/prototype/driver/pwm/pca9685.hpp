@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @defgroup pwm pwm
+ * @ingroup driver
+ */
 #ifndef PROTOTYPE_PWM_PCA9685_HPP
 #define PROTOTYPE_PWM_PCA9685_HPP
 
@@ -7,6 +12,10 @@
 #include "prototype/driver/i2c.hpp"
 
 namespace prototype {
+/**
+ * @addtogroup pwm
+ * @{
+ */
 
 // REGISTERS
 #define PCA9685_MODE1 0x00
@@ -142,5 +151,6 @@ void pca9685_set_pwm(const pca9685_t &pwm, const int16_t off);
  */
 void pca9685_reset(const pca9685_t &pwm);
 
+/** @} group pwm */
 } //  namespace prototype
 #endif // PROTOTYPE_PWM_PCA9685_HPP

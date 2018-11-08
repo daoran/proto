@@ -10,6 +10,7 @@
 #include <AprilTags/Tag36h11.h>
 
 #include "prototype/core.hpp"
+#include "prototype/vision/util.hpp"
 
 namespace prototype {
 

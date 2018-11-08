@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup quaternion
+ * @defgroup quaternion quaternion
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_QUATERNION_JPL_HPP
 #define PROTOTYPE_CORE_QUATERNION_JPL_HPP

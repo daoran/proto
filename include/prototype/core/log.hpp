@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup log log
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_LOG_HPP
 #define PROTOTYPE_CORE_LOG_HPP

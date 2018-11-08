@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup gimbal
+ * @defgroup gimbal gimbal
+ * @ingroup model
  */
 #ifndef PROTOTYPE_MODEL_GIMBAL_HPP
 #define PROTOTYPE_MODEL_GIMBAL_HPP
@@ -11,7 +12,7 @@
 
 namespace prototype {
 /**
- * @addtogroup model
+ * @addtogroup gimbal
  * @{
  */
 

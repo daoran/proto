@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup time time
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_TIME_HPP
 #define PROTOTYPE_CORE_TIME_HPP

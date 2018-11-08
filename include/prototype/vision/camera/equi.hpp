@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup camera
+ * @defgroup equi equi
+ * @ingroup vision
  */
 #ifndef PROTOTYPE_VISION_CAMERA_EQUI_HPP
 #define PROTOTYPE_VISION_CAMERA_EQUI_HPP
@@ -11,7 +12,7 @@
 
 namespace prototype {
 /**
- * @addtogroup camera
+ * @addtogroup equi
  * @{
  */
 
@@ -69,6 +70,6 @@ matx_t distort(const equi4_t &equi, const matx_t &points);
  */
 vec2_t undistort(const equi4_t &equi, const vec2_t &p);
 
-/** @} group camera */
+/** @} group equi */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_CAMERA_EQUI_HPP

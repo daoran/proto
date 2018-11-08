@@ -1,15 +1,7 @@
-/**
- * @file
- * @ingroup calibration
- */
 #ifndef PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_IMPL_HPP
 #define PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_IMPL_HPP
 
 namespace prototype {
-/**
- * @addtogroup calibration
- * @{
- */
 
 template <typename CM, typename DM>
 camera_geometry_t<CM, DM>::camera_geometry_t(
@@ -29,6 +21,5 @@ vec2_t camera_geometry_project(
   return project(cam.camera_model, point_distorted);
 }
 
-/** @} group calibration */
 } //  namespace prototype
 #endif // PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_IMPL_HPP

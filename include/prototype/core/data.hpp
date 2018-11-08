@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup data data
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_DATA_HPP
 #define PROTOTYPE_CORE_DATA_HPP

@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup stats stats
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_STATS_HPP
 #define PROTOTYPE_CORE_STATS_HPP

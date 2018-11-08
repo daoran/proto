@@ -1,6 +1,7 @@
 /**
  * @file
  * @defgroup camera camera
+ * @ingroup driver
  */
 #ifndef PROTOTYPE_DRIVER_CAMERA_BASE_HPP
 #define PROTOTYPE_DRIVER_CAMERA_BASE_HPP

@@ -2,7 +2,7 @@
 PROJECT_NAME = "prototype"
 OUTPUT_DIRECTORY = "docs"
 OUTPUT_LANGUAGE = English
-QUIET = YES
+QUIET = NO
 WARNINGS = YES
 DISABLE_INDEX = NO
 EXTRACT_ALL = YES  # all docs on classes and functions will be processed
@@ -15,8 +15,8 @@ FILE_PATTERNS = *.hpp *.cpp
 RECURSIVE = YES
 
 # HTML output configurations
-# GENERATE_HTML = YES
-GENERATE_XML = YES
+GENERATE_HTML = YES
+# GENERATE_XML = YES
 # GENERATE_HTML = NO
 # LAYOUT_FILE = docs/style/layout.xml
 # HTML_HEADER = docs/style/header.html
@@ -31,7 +31,7 @@ AUTOLINK_SUPPORT = YES
 DISTRIBUTE_GROUP_DOC = YES
 
 # LATEX output
-GENERATE_LATEX = YES
+GENERATE_LATEX = NO
 
 # MATHJAX
 USE_MATHJAX = YES

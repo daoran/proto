@@ -15,7 +15,7 @@
 
 namespace prototype {
 /**
- * @addtogroup calibration
+ * @addtogroup calib
  * @{
  */
 
@@ -50,6 +50,6 @@ public:
   int calibrateExtrinsics();
 };
 
-/** @} group calibration */
+/** @} group calib */
 } //  namespace prototype
 #endif // PROTOTYPE_CALIB_STEREO_CALIB_HPP

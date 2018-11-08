@@ -15,10 +15,10 @@ doxygen Doxyfile
 # exit
 
 # rm -rf build
-# mkdir -p build
-# cd build || return
-# cmake ..
-# time make -j8
+mkdir -p build
+cd build || return
+cmake ..
+time make -j8
 
 # cd tests
 # ./calib-aprilgrid_test

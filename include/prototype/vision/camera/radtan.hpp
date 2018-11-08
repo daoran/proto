@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup camera
+ * @defgroup radtan radtan
+ * @ingroup vision
  */
 #ifndef PROTOTYPE_VISION_CAMERA_RADTAN_HPP
 #define PROTOTYPE_VISION_CAMERA_RADTAN_HPP
@@ -11,7 +12,7 @@
 
 namespace prototype {
 /**
- * @addtogroup camera
+ * @addtogroup radtan
  * @{
  */
 
@@ -74,6 +75,6 @@ matx_t distort(const radtan4_t &radtan, const matx_t &points);
  */
 vec2_t undistort(const radtan4_t &radtan, const vec2_t &p0, const int max_iter=5);
 
-/** @} group camera */
+/** @} group radtan */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_CAMERA_RADTAN_HPP

@@ -1,6 +1,6 @@
 /**
  * @file
- * @ingroup calibration
+ * @ingroup calib
  */
 #ifndef PROTOTYPE_VISION_CALIBRATION_CHESSBOARD_HPP
 #define PROTOTYPE_VISION_CALIBRATION_CHESSBOARD_HPP
@@ -8,10 +8,11 @@
 #include <opencv2/calib3d/calib3d.hpp>
 
 #include "prototype/core.hpp"
+#include "prototype/vision/util.hpp"
 
 namespace prototype {
 /**
- * @addtogroup calibration
+ * @addtogroup calib
  * @{
  */
 
@@ -98,6 +99,6 @@ void chessboard_project_points(const chessboard_t &cb,
                                const mat3_t &K,
                                cv::Mat &image);
 
-/** @} group calibration */
+/** @} group calib */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_CALIBRATION_CHESSBOARD_HPP

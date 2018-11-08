@@ -12,7 +12,7 @@
 
 namespace prototype {
 /**
- * @addtogroup gimbal
+ * @addtogroup calib
  * @{
  */
 
@@ -269,5 +269,6 @@ bool GimbalCalibResidual::operator()(const T *const tau_s,
   // clang-format on
 }
 
+/** @} group calib */
 } //  namespace prototype
 #endif // PROTOTYPE_CALIB_CALIB_GIMBAL_IMPL_HPP

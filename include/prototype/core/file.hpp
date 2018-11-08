@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup file file
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_FILE_HPP
 #define PROTOTYPE_CORE_FILE_HPP

@@ -44,7 +44,6 @@ ADD_LIBRARY(
   src/core/gps.cpp
   src/core/linalg.cpp
   src/core/math.cpp
-  src/core/vision.cpp
   src/core/stats.cpp
   src/core/time.cpp
   # dataset

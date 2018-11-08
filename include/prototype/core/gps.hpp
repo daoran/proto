@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup gps gps
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_GPS_HPP
 #define PROTOTYPE_CORE_GPS_HPP

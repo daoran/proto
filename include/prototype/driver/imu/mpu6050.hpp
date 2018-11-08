@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup imu
+ * @defgroup imu imu
+ * @ingroup driver
  */
 #ifndef PROTOTYPE_IMU_MPU6050_HPP
 #define PROTOTYPE_IMU_MPU6050_HPP

@@ -1,18 +1,9 @@
-/**
- * @file
- * @defgroup config config
- * @ingroup util
- */
 #ifndef PROTOTYPE_CORE_CONFIG_IMPL_HPP
 #define PROTOTYPE_CORE_CONFIG_IMPL_HPP
 
 #include "prototype/core/config.hpp"
 
 namespace prototype {
-/**
- * @addtogroup config
- * @{
- */
 
 template <typename T>
 size_t yaml_check_vector(const YAML::Node &node,
@@ -131,6 +122,5 @@ void parse(const config_t &config,
   }
 }
 
-/** @} group config */
 } //  namespace prototype
 #endif // PROTOTYPE_CORE_CONFIG_IMPL_HPP

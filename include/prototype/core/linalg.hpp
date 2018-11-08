@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup linalg linalg
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_LINALG_HPP
 #define PROTOTYPE_CORE_LINALG_HPP

@@ -1,7 +1,7 @@
 /**
  * @file
  * @defgroup config config
- * @ingroup util
+ * @ingroup core
  */
 #ifndef PROTOTYPE_CORE_CONFIG_HPP
 #define PROTOTYPE_CORE_CONFIG_HPP

@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup sim
+ * @defgroup two_wheel two_wheel
+ * @ingroup model
  */
 #ifndef PROTOTYPE_MODEL_TWOWHEEL_HPP
 #define PROTOTYPE_MODEL_TWOWHEEL_HPP
@@ -10,7 +11,7 @@
 
 namespace prototype {
 /**
- * @addtogroup sim
+ * @addtogroup two_wheel
  * @{
  */
 
@@ -61,6 +62,6 @@ struct two_wheel_t {
  */
 void two_wheel_update(two_wheel_t &tm, const double dt);
 
-/** @} group sim */
+/** @} group two_wheel */
 } //  namespace prototype
 #endif // PROTOTYPE_MODEL_TWOWHEEL_HPP

@@ -1,6 +1,7 @@
 /**
  * @file
- * @ingroup feature2d
+ * @defgroup grid_good grid_good
+ * @ingroup vision
  */
 #ifndef PROTOTYPE_VISION_FEATURE2D_GRID_GOOD_HPP
 #define PROTOTYPE_VISION_FEATURE2D_GRID_GOOD_HPP
@@ -15,10 +16,11 @@
 #include <opencv2/opencv.hpp>
 
 #include "prototype/core.hpp"
+#include "prototype/vision/util.hpp"
 
 namespace prototype {
 /**
- * @addtogroup feature2d
+ * @addtogroup grid_good
  * @{
  */
 
@@ -49,6 +51,6 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
                                    const bool use_harris_detector = false,
                                    const double k = 0.04);
 
-/** @} group feature2d */
+/** @} group grid_good */
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_FEATURE2D_GRID_GOOD_HPP
