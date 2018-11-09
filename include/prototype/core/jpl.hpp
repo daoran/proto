@@ -1,5 +1,5 @@
-#ifndef PROTOTYPE_CORE_QUATERNION_JPL_HPP
-#define PROTOTYPE_CORE_QUATERNION_JPL_HPP
+#ifndef PROTOTYPE_CORE_JPL_HPP
+#define PROTOTYPE_CORE_JPL_HPP
 
 #include "prototype/core.hpp"
 #include "prototype/core/math.hpp"
@@ -184,4 +184,4 @@ vec4_t quatzoi(const vec4_t &q, const vec3_t &w, const double dt);
 
 } //  namespace prototype
 #include "jpl_impl.hpp"
-#endif // PROTOTYPE_CORE_QUATERNION_JPL_HPP
+#endif // PROTOTYPE_CORE_JPL_HPP

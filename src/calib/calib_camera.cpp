@@ -7,7 +7,7 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              vec4_t &distortion,
                              pose_param_t *pose,
                              ceres::Problem *problem) {
-  for (const auto &tag_id: aprilgrid.ids) {
+  for (const auto &tag_id : aprilgrid.ids) {
     // Get keypoints
     std::vector<vec2_t> keypoints;
     if (aprilgrid_get(aprilgrid, tag_id, keypoints) != 0) {
@@ -29,13 +29,13 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
       const auto residual = new pinhole_radtan4_residual_t{kp, obj_pt};
 
       const auto cost_func =
-        new ceres::AutoDiffCostFunction<pinhole_radtan4_residual_t,
-                                        2, // Size of: residual
-                                        4, // Size of: intrinsics
-                                        4, // Size of: distortion
-                                        4, // Size of: q_CF
-                                        3  // Size of: t_CF
-                                        >(residual);
+          new ceres::AutoDiffCostFunction<pinhole_radtan4_residual_t,
+                                          2, // Size of: residual
+                                          4, // Size of: intrinsics
+                                          4, // Size of: distortion
+                                          4, // Size of: q_CF
+                                          3  // Size of: t_CF
+                                          >(residual);
 
       problem->AddResidualBlock(cost_func, // Cost function
                                 NULL,      // Loss function
@@ -60,12 +60,13 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
-  problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  problem_options.local_parameterization_ownership =
+      ceres::DO_NOT_TAKE_OWNERSHIP;
   ceres::Problem *problem = new ceres::Problem(problem_options);
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 
   // Process all aprilgrid data
-  for (const auto &aprilgrid: aprilgrids) {
+  for (const auto &aprilgrid : aprilgrids) {
     pose_params.push_back(new pose_param_t(aprilgrid.T_CF));
 
     int retval = process_aprilgrid(aprilgrid,
@@ -93,14 +94,10 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
   std::cout << summary.FullReport() << std::endl;
 
   // Map results back to pinhole and radtan
-  pinhole = pinhole_t{intrinsics[0],
-                      intrinsics[1],
-                      intrinsics[2],
-                      intrinsics[3]};
-  radtan = radtan4_t{distortion[0],
-                     distortion[1],
-                     distortion[2],
-                     distortion[3]};
+  pinhole =
+      pinhole_t{intrinsics[0], intrinsics[1], intrinsics[2], intrinsics[3]};
+  radtan =
+      radtan4_t{distortion[0], distortion[1], distortion[2], distortion[3]};
 
   // Clean up
   for (auto pose_ptr : pose_params) {

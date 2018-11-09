@@ -1,4 +1,4 @@
-#include "prototype/core/quaternion/jpl.hpp"
+#include "prototype/core/jpl.hpp"
 
 namespace prototype {
 

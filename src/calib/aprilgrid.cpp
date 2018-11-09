@@ -181,22 +181,20 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
   const double y = i * (tag_size + tag_size * tag_spacing);
 
   // Calculate the x and y of each corner
-  switch(corner_id) {
-    case 0:  // Bottom left
+  switch (corner_id) {
+    case 0: // Bottom left
       object_point = vec3_t(x, y, 0);
       break;
-    case 1:  // Bottom right
+    case 1: // Bottom right
       object_point = vec3_t(x + tag_size, y, 0);
       break;
-    case 2:  // Top right
+    case 2: // Top right
       object_point = vec3_t(x + tag_size, y + tag_size, 0);
       break;
-    case 3:  // Top left
+    case 3: // Top left
       object_point = vec3_t(x, y + tag_size, 0);
       break;
-    default:
-      FATAL("Incorrect corner id [%d]!", corner_id);
-      break;
+    default: FATAL("Incorrect corner id [%d]!", corner_id); break;
   }
 
   return 0;
@@ -487,7 +485,7 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
     grid.tag_rows = row(1);
     grid.tag_cols = row(2);
     grid.tag_size = row(3);
-    grid.tag_spacing= row(4);
+    grid.tag_spacing = row(4);
 
     // Timestamp, tag id and keypoint
     grid.timestamp = row(5);
@@ -511,8 +509,7 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
   return 0;
 }
 
-int aprilgrid_configure(aprilgrid_t &grid,
-                        const std::string &target_file) {
+int aprilgrid_configure(aprilgrid_t &grid, const std::string &target_file) {
   // Load target file
   config_t config{target_file};
   if (config.ok == false) {

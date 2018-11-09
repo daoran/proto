@@ -107,7 +107,7 @@ int test_calib_camera_solve() {
   MU_CHECK_EQ(aprilgrids.size(), poses.size());
 
   // Show results
-  std::cout << "Optimized intrinsics and distortions:" <<  std::endl;
+  std::cout << "Optimized intrinsics and distortions:" << std::endl;
   std::cout << pinhole << std::endl;
   std::cout << radtan << std::endl;
 
@@ -132,7 +132,6 @@ int test_calib_camera_stats() {
   const double cy = image_size(1) / 2.0;
   pinhole_t pinhole{fx, fy, cx, cy};
   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
-
 
   // Test
   std::vector<mat4_t> poses;

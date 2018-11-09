@@ -72,16 +72,8 @@ cv::Mat validate_stereo(const cv::Mat &image0,
   // Draw
   const cv::Scalar red{0, 0, 255};
   const cv::Scalar green{0, 255, 0};
-  auto result0 = draw_calib_validation(image0,
-                                       kps0,
-                                       projected0,
-                                       red,
-                                       green);
-  auto result1 = draw_calib_validation(image1,
-                                       kps1,
-                                       projected1,
-                                       red,
-                                       green);
+  auto result0 = draw_calib_validation(image0, kps0, projected0, red, green);
+  auto result1 = draw_calib_validation(image1, kps1, projected1, red, green);
 
   // Combine cam0 and cam1 images
   cv::Mat result;

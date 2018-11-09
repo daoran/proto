@@ -6,15 +6,6 @@ calib_target_t::calib_target_t() {}
 
 calib_target_t::~calib_target_t() {}
 
-std::ostream &operator<<(std::ostream &os, const calib_target_t &target) {
-  os << "target_type: " << target.target_type << std::endl;
-  os << "tag_rows: " << target.tag_rows << std::endl;
-  os << "tag_cols: " << target.tag_cols << std::endl;
-  os << "tag_size: " << target.tag_size << std::endl;
-  os << "tag_spacing: " << target.tag_spacing << std::endl;
-  return os;
-}
-
 int calib_target_load(calib_target_t &ct, const std::string &target_file) {
   config_t config{target_file};
   if (config.ok == false) {
@@ -141,22 +132,22 @@ cv::Mat draw_calib_validation(const cv::Mat &image,
 
   // Draw measured points
   for (const auto &p : measured) {
-    cv::circle(image_rgb,                // Target image
-               cv::Point2f(p(0), p(1)),  // Center
-               1,                        // Radius
-               measured_color,           // Colour
-               CV_FILLED,                // Thickness
-               8);                       // Line type
+    cv::circle(image_rgb,               // Target image
+               cv::Point2f(p(0), p(1)), // Center
+               1,                       // Radius
+               measured_color,          // Colour
+               CV_FILLED,               // Thickness
+               8);                      // Line type
   }
 
   // Draw projected points
-  for (const auto &p: projected) {
-    cv::circle(image_rgb,                // Target image
-               cv::Point2f(p(0), p(1)),  // Center
-               1,                        // Radius
-               projected_color,          // Colour
-               CV_FILLED,                // Thickness
-               8);                       // Line type
+  for (const auto &p : projected) {
+    cv::circle(image_rgb,               // Target image
+               cv::Point2f(p(0), p(1)), // Center
+               1,                       // Radius
+               projected_color,         // Colour
+               CV_FILLED,               // Thickness
+               8);                      // Line type
   }
 
   // Calculate reprojection error and show in image
@@ -173,6 +164,15 @@ cv::Mat draw_calib_validation(const cv::Mat &image,
   cv::putText(image_rgb, text, origin, font, 0.6, red, 2);
 
   return image_rgb;
+}
+
+std::ostream &operator<<(std::ostream &os, const calib_target_t &target) {
+  os << "target_type: " << target.target_type << std::endl;
+  os << "tag_rows: " << target.tag_rows << std::endl;
+  os << "tag_cols: " << target.tag_cols << std::endl;
+  os << "tag_size: " << target.tag_size << std::endl;
+  os << "tag_spacing: " << target.tag_spacing << std::endl;
+  return os;
 }
 
 } //  namespace prototype

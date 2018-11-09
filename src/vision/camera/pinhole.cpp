@@ -36,8 +36,8 @@ std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole) {
   return os;
 }
 
-mat3_t pinhole_K(const double fx, const double fy,
-                 const double cx, const double cy) {
+mat3_t
+pinhole_K(const double fx, const double fy, const double cx, const double cy) {
   mat3_t K;
   // clang-format off
   K << fx, 0.0, cx,
@@ -56,9 +56,7 @@ mat3_t pinhole_K(const vec4_t &intrinsics) {
   return pinhole_K(fx, fy, cx, cy);
 }
 
-mat34_t pinhole_P(const mat3_t &K,
-                  const mat3_t &R,
-                  const vec3_t &t) {
+mat34_t pinhole_P(const mat3_t &K, const mat3_t &R, const vec3_t &t) {
   mat34_t A;
   A.block(0, 0, 3, 3) = R;
   A.block(0, 3, 3, 1) = -R * t;

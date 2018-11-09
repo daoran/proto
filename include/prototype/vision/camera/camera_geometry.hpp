@@ -19,8 +19,7 @@ struct camera_geometry_t {
   CM camera_model;
   DM distortion_model;
 
-  camera_geometry_t(const CM &camera_model_,
-                    const DM &distortion_model_);
+  camera_geometry_t(const CM &camera_model_, const DM &distortion_model_);
   ~camera_geometry_t();
 };
 
@@ -35,8 +34,8 @@ typedef camera_geometry_t<pinhole_t, equi4_t> pinhole_equi4_t;
  * @returns Point to image plane projection in pixel coordinates
  */
 template <typename CM, typename DM>
-vec2_t camera_geometry_project( const camera_geometry_t<CM, DM>
-    &cam, const vec3_t &point);
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &point);
 
 } //  namespace prototype
 #include "camera_geometry_impl.hpp"

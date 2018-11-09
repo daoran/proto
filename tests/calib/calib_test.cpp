@@ -85,12 +85,12 @@ int test_draw_calib_validation() {
 
   // Draw validation
   const cv::Scalar measured_color{0, 0, 255};  // Red
-  const cv::Scalar projected_color{0, 255, 0};  // Green
-  auto validation =  draw_calib_validation(image,
-                                           measured,
-                                           projected,
-                                           measured_color,
-                                           projected_color);
+  const cv::Scalar projected_color{0, 255, 0}; // Green
+  auto validation = draw_calib_validation(image,
+                                          measured,
+                                          projected,
+                                          measured_color,
+                                          projected_color);
 
   // Visualize
   const bool debug = false;

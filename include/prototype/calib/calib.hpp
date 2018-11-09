@@ -16,7 +16,7 @@
 namespace prototype {
 
 /**
- * Calibration target
+ * Calibration target.
  */
 struct calib_target_t {
   std::string target_type;
@@ -30,33 +30,17 @@ struct calib_target_t {
 };
 
 /**
- * calib_target_t to output stream
- */
-std::ostream &operator<<(std::ostream &os, const calib_target_t &target);
-
-/**
- * Load calibration target
- *
- * @param[in,out] ct Calibration target
- * @param[in] target_file Target file
+ * Load calibration target.
  * @returns 0 or -1 for success or failure
  */
 int calib_target_load(calib_target_t &ct, const std::string &target_file);
 
 /**
- * Preprocess camera image data and output AprilGrid detection data as csv
- *
- * @param[in] target Calibration target properties
- * @param[in] image_dir Path to camera images
- * @param[in] image_size Image resolution [px]
- * @param[in] lens_hfov Horizontal fov of camera lens [deg]
- * @param[in] lens_vfov Vertical fov of camera lens [deg]
- * @param[in] output_dir Output path
- *
- * @returns
- *   - 0: Success
- *   - -1: Failure
- *   - 1: Output directory contains data
+ * Preprocess camera image data and output AprilGrid detection data as
+ * csv. The data is initialized with `image_size` in pixels, the horizontal
+ * lens fov `lens_hfov` and vertical lens fov `lens_vfov` in degrees.
+ * @returns 0 for Success, -1 for failure, and 1 where the output directory
+ * contains data.
  */
 int preprocess_camera_data(const calib_target_t &target,
                            const std::string &image_dir,
@@ -66,24 +50,14 @@ int preprocess_camera_data(const calib_target_t &target,
                            const std::string &output_dir);
 
 /**
- * Load preprocess-ed camera calibration data
- *
- * @param[in] data_dir Path where calibration data was saved
- * @param[out] aprilgrids Detected aprilgrids
+ * Load preprocess-ed camera calibration data.
  * @returns 0 or -1 for success or failure
  */
 int load_camera_calib_data(const std::string &data_dir,
                            std::vector<aprilgrid_t> &aprilgrids);
 
 /**
- * Draw measured and projected pixel points
- *
- * @param[in] image Input image
- * @param[in] measured Measured image pixels
- * @param[in] projected Projected image pixels
- * @param[in] measured_color Measured color
- * @param[in] projected_color Projected color
- *
+ * Draw measured and projected pixel points.
  * @returns Image
  */
 cv::Mat draw_calib_validation(const cv::Mat &image,
@@ -93,13 +67,7 @@ cv::Mat draw_calib_validation(const cv::Mat &image,
                               const cv::Scalar &projected_color);
 
 /**
- * Validate calibration
- *
- * @param[in] image Input image
- * @param[in] keypoints Keypoints
- * @param[in] points Points
- * @param[in] camera_geometry Camera geometry
- *
+ * Validate calibration.
  * @returns Validation image for visual inspection
  */
 template <typename CM, typename DM>
@@ -108,15 +76,26 @@ cv::Mat validate_intrinsics(const cv::Mat &image,
                             const std::vector<vec3_t> &points,
                             const camera_geometry_t<CM, DM> &camera_geometry);
 
-// /**
-//   * Validate stereo calibration
-//   *
-//   * @param img0 Input image from cam0
-//   * @param img1 Input image from cam1
-//   * @returns Validation image for visual inspection
-//   */
-// cv::Mat validateStereo(const cv::Mat &img0, const cv::Mat &img1);
+/**
+ * Validate stereo extrinsics.
+ * @returns Validation image for visual inspection
+ */
+template <typename CM, typename DM>
+cv::Mat validate_stereo(const cv::Mat &image0,
+                        const cv::Mat &image1,
+                        const std::vector<vec2_t> &kps0,
+                        const std::vector<vec3_t> &points0,
+                        const std::vector<vec2_t> &kps1,
+                        const std::vector<vec3_t> &points1,
+                        const camera_geometry_t<CM, DM> &cam0,
+                        const camera_geometry_t<CM, DM> &cam1,
+                        const mat4_t &T_C1C0);
 
-} //  namespace prototype
+/**
+ * `calib_target_t` to output stream.
+ */
+std::ostream &operator<<(std::ostream &os, const calib_target_t &target);
+
+} // namespace prototype
 #include "calib_impl.hpp"
 #endif // PROTOTYPE_CALIB_CALIB_HPP

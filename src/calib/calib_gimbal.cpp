@@ -153,8 +153,7 @@ int calib_gimbal_params_load(calib_gimbal_params_t &data,
   return 0;
 }
 
-int calib_gimbal_load(calib_gimbal_t &calib,
-                      const std::string &data_dir) {
+int calib_gimbal_load(calib_gimbal_t &calib, const std::string &data_dir) {
   // Load calibration data
   calib.data_dir = data_dir;
   if (calib_gimbal_data_load(calib.data, data_dir) != 0) {

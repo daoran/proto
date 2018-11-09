@@ -3,10 +3,10 @@
 namespace prototype {
 
 radtan4_t::radtan4_t(const double k1_,
-            const double k2_,
-            const double p1_,
-            const double p2_)
-      : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
+                     const double k2_,
+                     const double p1_,
+                     const double p2_)
+    : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
 
 radtan4_t::~radtan4_t() {}
 
@@ -112,7 +112,9 @@ matx_t distort(const radtan4_t &radtan, const matx_t &points) {
   return distorted_points;
 }
 
-vec2_t undistort(const radtan4_t &radtan, const vec2_t &p0, const int max_iter) {
+vec2_t undistort(const radtan4_t &radtan,
+                 const vec2_t &p0,
+                 const int max_iter) {
   vec2_t p = p0;
 
   for (int i = 0; i < max_iter; i++) {

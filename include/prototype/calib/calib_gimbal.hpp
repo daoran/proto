@@ -101,8 +101,7 @@ int calib_gimbal_params_load(calib_gimbal_data_t &data,
  * @param[in] data_dir Path to where camchain file and calib data are
  * @returns 0 for success, -1 for failure
  */
-int calib_gimbal_load(calib_gimbal_t &calib,
-                           const std::string &data_dir);
+int calib_gimbal_load(calib_gimbal_t &calib, const std::string &data_dir);
 
 /**
  * Calculate reprojection errors

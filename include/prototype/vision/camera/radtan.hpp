@@ -64,7 +64,9 @@ matx_t distort(const radtan4_t &radtan, const matx_t &points);
  * @param[in] max_iter Max iteration
  * @returns Undistorted point
  */
-vec2_t undistort(const radtan4_t &radtan, const vec2_t &p0, const int max_iter=5);
+vec2_t undistort(const radtan4_t &radtan,
+                 const vec2_t &p0,
+                 const int max_iter = 5);
 
 } //  namespace prototype
 #endif // PROTOTYPE_VISION_CAMERA_RADTAN_HPP

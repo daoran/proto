@@ -36,12 +36,12 @@ ADD_LIBRARY(
   src/control/pos_ctrl.cpp
   src/control/wp_ctrl.cpp
   # core
-  src/core/quaternion/jpl.cpp
   src/core/config.cpp
   src/core/data.cpp
   src/core/euler.cpp
   src/core/file.cpp
   src/core/gps.cpp
+  src/core/jpl.cpp
   src/core/linalg.cpp
   src/core/math.cpp
   src/core/stats.cpp

@@ -39,8 +39,8 @@ std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole);
  *
  * @returns Camera matrix K
  */
-mat3_t pinhole_K(const double fx, const double fy,
-                 const double cx, const double cy);
+mat3_t
+pinhole_K(const double fx, const double fy, const double cx, const double cy);
 
 /**
  * Form pinhole camera matrix K

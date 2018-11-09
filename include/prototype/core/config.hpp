@@ -18,9 +18,7 @@
 
 namespace prototype {
 
-/**
- * Configuration file
- */
+// Configuration file
 struct config_t {
   std::string file_path;
   YAML::Node root;
@@ -47,7 +45,7 @@ int yaml_get_node(const config_t &config,
                   YAML::Node &node);
 
 /**
- * Check length of vector in config file
+ * Check size of vector in config file and returns the size.
  */
 template <typename T>
 size_t yaml_check_vector(const YAML::Node &node,
@@ -57,9 +55,9 @@ size_t yaml_check_vector(const YAML::Node &node,
 /**
  * Check matrix
  *
- * Makes sure that the parameter has the data field "rows", "cols" and
- * "data". It also checks to make sure the number of values is the same size
- * as the matrix.
+ * Makes sure that the parameter has the data field "rows", "cols" and "data".
+ * It also checks to make sure the number of values is the same size as the
+ * matrix.
  */
 template <typename T>
 void yaml_check_matrix(const YAML::Node &node,

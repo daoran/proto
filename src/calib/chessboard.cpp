@@ -5,7 +5,7 @@ namespace prototype {
 chessboard_t::chessboard_t() {}
 
 chessboard_t::chessboard_t(const std::string &config_file_)
-  : config_file{config_file_} {
+    : config_file{config_file_} {
   chessboard_load(*this, config_file_);
 }
 

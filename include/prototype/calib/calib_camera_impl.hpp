@@ -42,10 +42,10 @@ static Eigen::Matrix<T, 4, 1> equi4_D(const T *distortion) {
 }
 
 template <typename T>
-static Eigen::Matrix<T, 2, 1> pinhole_radtan4_project(
-    const Eigen::Matrix<T, 3, 3> &K,
-    const Eigen::Matrix<T, 4, 1> &D,
-    const Eigen::Matrix<T, 3, 1> &point) {
+static Eigen::Matrix<T, 2, 1>
+pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
+                        const Eigen::Matrix<T, 4, 1> &D,
+                        const Eigen::Matrix<T, 3, 1> &point) {
   const T k1 = D(0);
   const T k2 = D(1);
   const T p1 = D(2);
@@ -124,7 +124,7 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
     const vec3_t t_CF{T_CF.block<3, 1>(0, 3)};
 
     // Iterate over all tags in AprilGrid
-    for (const auto &tag_id: aprilgrid.ids) {
+    for (const auto &tag_id : aprilgrid.ids) {
       // Get keypoints
       std::vector<vec2_t> keypoints;
       if (aprilgrid_get(aprilgrid, tag_id, keypoints) != 0) {
@@ -143,7 +143,11 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
       for (size_t j = 0; j < 4; j++) {
         const RESIDUAL residual{keypoints[j], object_points[j]};
         double res[2] = {0.0, 0.0};
-        residual(intrinsics, distortion, q_CF.coeffs().data(), t_CF.data(), res);
+        residual(intrinsics,
+                 distortion,
+                 q_CF.coeffs().data(),
+                 t_CF.data(),
+                 res);
         residuals.emplace_back(res[0], res[1]);
       }
     }

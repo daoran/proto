@@ -193,22 +193,22 @@ void essential_matrix_outlier_rejection(
 float rescale_points(std::vector<vec2_t> &pts1, std::vector<vec2_t> &pts2);
 
 /**
-  * Calculate reprojection error
-  *
-  * @param[in] measured Measured image pixels
-  * @param[in] projected Projected image pixels
-  * @returns Reprojection error
-  */
+ * Calculate reprojection error
+ *
+ * @param[in] measured Measured image pixels
+ * @param[in] projected Projected image pixels
+ * @returns Reprojection error
+ */
 double reprojection_error(const std::vector<vec2_t> &measured,
                           const std::vector<vec2_t> &projected);
 
 /**
-  * Calculate reprojection error
-  *
-  * @param[in] measured Measured image pixels
-  * @param[in] projected Projected image pixels
-  * @returns Reprojection error
-  */
+ * Calculate reprojection error
+ *
+ * @param[in] measured Measured image pixels
+ * @param[in] projected Projected image pixels
+ * @returns Reprojection error
+ */
 double reprojection_error(const std::vector<cv::Point2f> &measured,
                           const std::vector<cv::Point2f> &projected);
 

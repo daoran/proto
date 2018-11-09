@@ -26,7 +26,8 @@ pinhole_t setup_pinhole_model() {
 int test_camera_geometry_project_pinhole_radtan() {
   const pinhole_t camera_model = setup_pinhole_model();
   const radtan4_t distortion_model{0.1, 0.01, 0.01, 0.01};
-  camera_geometry_t<pinhole_t, radtan4_t> camera(camera_model, distortion_model);
+  camera_geometry_t<pinhole_t, radtan4_t> camera(camera_model,
+                                                 distortion_model);
 
   const vec3_t point{0.1, 0.2, 10.0};
   const vec2_t pixel = camera_geometry_project(camera, point);

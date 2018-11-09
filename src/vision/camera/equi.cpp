@@ -6,7 +6,7 @@ equi4_t::equi4_t(const double k1_,
                  const double k2_,
                  const double k3_,
                  const double k4_)
-  : k1{k1_}, k2{k2_}, k3{k3_}, k4{k4_} {}
+    : k1{k1_}, k2{k2_}, k3{k3_}, k4{k4_} {}
 
 equi4_t::~equi4_t() {}
 
@@ -27,7 +27,7 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point) {
   const double y = point(1);
   const double r = sqrt(pow(x, 2) + pow(y, 2));
 
-  if (r < 1e-8){
+  if (r < 1e-8) {
     return point;
   }
 
@@ -54,7 +54,7 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J) {
   const double y = point(1);
   const double r = sqrt(pow(x, 2) + pow(y, 2));
 
-  if (r < 1e-8){
+  if (r < 1e-8) {
     J = I(2);
     return point;
   }

@@ -5,8 +5,11 @@ export CXX=/usr/bin/clang++
 
 # bash ./scripts/format_code.bash
 
-doxygen Doxyfile
-python3 scripts/api.py
+# doxygen Doxyfile
+
+# cd scripts && python3 api.py > index.html
+cd scripts && python3 api.py
+
 
 # cd octave/vision
 # octave test_radtan4_distort.m
@@ -16,10 +19,10 @@ python3 scripts/api.py
 # exit
 
 # rm -rf build
-mkdir -p build
-cd build || return
-cmake ..
-time make -j8
+# mkdir -p build
+# cd build || return
+# cmake ..
+# time make -j8
 
 # cd tests
 # ./calib-aprilgrid_test
