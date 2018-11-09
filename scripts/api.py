@@ -1,8 +1,10 @@
 import os
+import html
 import textwrap
 from glob import glob
 
 import CppHeaderParser
+import markdown
 from jinja2 import Template
 
 # GLOBAL VARIABLES
@@ -34,11 +36,9 @@ def process_docstring(data):
     lines = data.split("\n")
     output = ""
     for line in lines:
-        if line == "" or line == " ":
-            continue
-        output += line[2:] if line[:2] == "* " else line
+        output += line[2:] if "*" in line[:2] else line
         output += "\n"
-    output = output.strip()
+    # output = output.strip()
 
     result = ""
     code_on = False
@@ -53,33 +53,39 @@ def process_docstring(data):
             result += c
     result += "\n"
 
-    return result
+    result = result.replace("@returns", "**Returns**")
+    result = result.replace("@return", "**Returns**")
+    return markdown.markdown(result)
 
 
 class CppObj:
     def __init__(self, class_name, data):
         # Class type and name
-        self.cls_type = data.classes[class_name]["declaration_method"]
-        self.cls_name = data.classes[class_name]["name"]
-        self.cls_signature = self.cls_type + " " + self.cls_name
-        self.cls_doc = process_docstring(data.classes[class_name])
+        cl = data.classes[class_name]
+        self.cls_type = cl["declaration_method"]
+        self.cls_name = cl["name"]
+        self.cls_template = cl["template"] if "template" in cl else None
+        self.cls_doc = process_docstring(cl)
 
         # Member variables
         self.properties = []
-        for prop in data.classes[class_name]["properties"]["public"]:
+        for prop in cl["properties"]["public"]:
             self.properties.append({"type": prop["type"],
                                     "name": prop["name"]})
 
         # Member functions
         self.methods = []
-        for method_data in data.classes[class_name]["methods"]["public"]:
+        for method_data in cl["methods"]["public"]:
             self.methods.append(self._process_method(method_data))
 
     def _process_method(self, data):
         params = []
+
         for param in data["parameters"]:
             params.append({"type": param["type"], "name": param["name"]})
+
         return {
+            "template": data["template"] if data["template"] else None,
             "destructor": data["destructor"],
             "constructor": data["constructor"],
             "returns": data["returns"],
@@ -90,6 +96,7 @@ class CppObj:
 
     def _build_method_str(self, func):
         output = ""
+        output += func["template"] if func["template"] else ""
 
         # Constructor or destructor
         if func["destructor"]:
@@ -105,33 +112,38 @@ class CppObj:
         for i in range(nb_params):
             param = func["params"][i]
             output += param["type"]
+
             if param["type"][-1] != "&":
                 output += " "
             output += param["name"]
             if (i + 1) != nb_params:
                 output += ", "
         output += ")"
-        output += ";\n"
+        output += ";"
 
         return textwrap.indent(clang_format(output), "  ")
 
     def __str__(self):
         output = ""
+        output += self.cls_template + "\n" if self.cls_template else ""
         output += self.cls_type + " " + self.cls_name + " {\n"
         for var in self.properties:
             output += "  " + var["type"] + " " + var["name"] + ";\n"
 
-        output += "\n"
-        for func in self.methods:
+        if len(self.methods):
+            output += "\n"
+        nb_methods = len(self.methods)
+        for i in range(nb_methods):
+            func = self.methods[i]
             output += self._build_method_str(func)
+            if func["constructor"] is False and (i + 1) < nb_methods:
+                output += "\n"
         output += "};"
 
-        return output
+        return html.escape(output)
 
     def data(self):
-        return {"signature": self.cls_signature,
-                "api": str(self),
-                "doc": self.cls_doc}
+        return {"api": str(self), "doc": self.cls_doc}
 
 
 class Functions:
@@ -140,12 +152,14 @@ class Functions:
 
     def _process_function(self, data):
         params = []
+
         for param in data["parameters"]:
             param_type = param["type"]
             param_type = param_type.replace(" : : ", "::")
             params.append({"type": param_type, "name": param["name"]})
 
         return {
+            "template": data["template"] if data["template"] else None,
             "returns": data["returns"].replace(" : : ", "::"),
             "doxygen": data["doxygen"] if "doxygen" in data else None,
             "name": data["name"],
@@ -153,9 +167,12 @@ class Functions:
         }
 
     def _func_str(self, func):
+        # Return type and function name
         fstr = ""
+        fstr += func["template"] if func["template"] else ""
         fstr += func["returns"] + " " + func["name"]
 
+        # Params
         fstr += "("
         nb_params = len(func["params"])
         for i in range(nb_params):
@@ -171,7 +188,7 @@ class Functions:
         fstr += ";\n"
         fstr = clang_format(fstr)
 
-        return fstr
+        return html.escape(fstr)
 
     def __str__(self):
         output = ""
@@ -215,10 +232,6 @@ def render(header_path, output_path):
     html_file.close()
 
 
-# import pprint
-# pprint.pprint(header.classes["aprilgrid_t"])
-# exit(0);
-
 # Get all headers
 if include_path[-1] != "/":
     include_path += "/"
@@ -251,6 +264,10 @@ nb_header_files = len(header_files)
 for i in range(nb_header_files):
     render(header_files[i], output_paths[i])
 
+# header = "../include/prototype/control/carrot_ctrl.hpp"
+# dest = "../docs/html/control/carrot_ctrl.hpp"
+# render(header, dest)
+
 # Sidebar file
 sidebar_path = os.path.join(output_path, "sidebar.html")
 sidebar_file = open(sidebar_path, "w")
@@ -260,6 +277,8 @@ sidebar_file.write("<h2>API:</h2>\n")
 sidebar_file.write("<ul>\n")
 
 nb_header_files = len(header_files)
+current_module = ""
+current_level = 0
 for path in output_paths:
     relpath = path.replace(output_path, "")
     if relpath[0] == "/":
@@ -269,8 +288,13 @@ for path in output_paths:
     if len(blocks) == 1:
         continue
 
-    filename = ".".join(blocks).replace(".html", "")
-    sidebar_file.write("  <li><a href='#%s'>%s</a></li>\n" % (filename, filename))
+    if current_module != blocks[-2]:
+        current_module = blocks[-2]
+        current_level = len(blocks) - 1
+        sidebar_file.write("<li>%s</li>" % (current_module))
+
+    fn = ".".join(blocks).replace(".html", "")
+    sidebar_file.write("  <li><a href='#%s'>%s</a></li>\n" % (fn, fn))
 
 sidebar_file.write("</ul>\n")
 sidebar_file.close()

@@ -63,32 +63,15 @@ struct calib_gimbal_t {
 };
 
 /**
- * calib_gimbal_data_t to output stream
- */
-std::ostream &operator<<(std::ostream &os, const calib_gimbal_data_t &m);
-
-/**
- * calib_gimbal_params_t to output stream
- */
-std::ostream &operator<<(std::ostream &os, const calib_gimbal_params_t &m);
-
-/**
- * Load gimbal calibration data
- *
- * @param[in,out] data Gimbal calibration data
- * @param[in] data_dir Data directory
- * @return 0 for success, -1 for failure
+ * Load gimbal calibration data.
+ * @return 0 for success, -1 for failure.
  */
 int calib_gimbal_data_load(calib_gimbal_data_t &data,
                            const std::string &data_dir);
 
 /**
  * Load initial optimization params
- *
- * @param[in,out] data Gimbal calibration data
- * @param[in] camchain_file Path to camchain file
- * @param[in] joint_file Path to joint angles file
- * @returns 0 for success, -1 for failure
+ * @return 0 for success, -1 for failure.
  */
 int calib_gimbal_params_load(calib_gimbal_data_t &data,
                              const std::string &camchain_file,
@@ -96,28 +79,31 @@ int calib_gimbal_params_load(calib_gimbal_data_t &data,
 
 /**
  * Load gimbal calib and data
- *
- * @param[in,out] calib Gimbal calib
- * @param[in] data_dir Path to where camchain file and calib data are
- * @returns 0 for success, -1 for failure
+ * @return 0 for success, -1 for failure.
  */
 int calib_gimbal_load(calib_gimbal_t &calib, const std::string &data_dir);
 
 /**
  * Calculate reprojection errors
- *
- * @param[in,out] calib Gimbal calib
- * @return 0 for success, -1 for failure
+ * @return 0 for success, -1 for failure.
  */
 int calib_gimbal_calc_reprojection_errors(calib_gimbal_t &calib);
 
 /**
  * Calibrate calibration
- *
- * @param[in,out] calib Gimbal calib
- * @return 0 for success, -1 for failure
+ * @return 0 for success, -1 for failure.
  */
 int calib_gimbal_solve(calib_gimbal_t &calib);
+
+/**
+ * calib_gimbal_data_t to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const calib_gimbal_data_t &m);
+
+/**
+ * `calib_gimbal_params_t` to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const calib_gimbal_params_t &m);
 
 /**
  * Gimbal calibration residual
@@ -174,6 +160,7 @@ struct GimbalCalibResidual {
                       const vec4_t &D_d,
                       double theta1_offset,
                       double theta2_offset);
+  ~GimbalCalibResidual();
 
   /// Form DH-Transform
   template <typename T>

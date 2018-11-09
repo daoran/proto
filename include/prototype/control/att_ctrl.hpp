@@ -28,13 +28,8 @@ struct att_ctrl_t {
 };
 
 /**
- * Update attitude controller
- *
- * @param[in] controller Attitude controller
- * @param[in] setpoints Setpoints (roll, pitch, yaw, z)
- * @param[in] actual Actual (roll, pitch, yaw, z)
- * @param[in] dt Time difference (s)
- *
+ * Update attitude controller with `setpoints` (roll, pitch, yaw, z), `actual`
+ * (roll, pitch, yaw, z) and time step `dt` in seconds [s].
  * @returns Motor command (m1, m2, m3, m4)
  */
 vec4_t att_ctrl_update(att_ctrl_t &controller,

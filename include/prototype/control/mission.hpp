@@ -36,22 +36,14 @@ struct waypoint_t {
 };
 
 /**
- * Setup waypoint
+ * Setup waypoint with `latitude` and `longitude`.
  *
- * @param[in] latitude Latitude
- * @param[in] longitude Longitude
  * @returns Waypoint
  */
 waypoint_t waypoint_setup(const double latitude, const double longitude);
 
 /**
- * Setup waypoint
- *
- * @param[in] latitude Latitude
- * @param[in] longitude Longitude
- * @param[in] altitude Altitude
- * @param[in] staytime Staytime
- * @param[in] heading Heading
+ * Setup waypoint.
  *
  * @returns Waypoint
  */
@@ -62,16 +54,13 @@ waypoint_t waypoint_setup(const double latitude,
                           const double heading);
 
 /**
- * Calculate distance away from another waypoint
- *
- * @param[in] wp_a 1st Waypoint to calculate distance away from
- * @param[in] wp_b 2nd Waypoint to calculate distance away to
- * @return Distance between waypoint `wp_a` and waypoint `wp_b`
+ * Calculate distance between waypoint `wp_a` and `wp_b` in [m].
+ * @returns Distance between waypoint `wp_a` and waypoint `wp_b`
  */
 double waypoint_distance(const waypoint_t &wp_a, const waypoint_t &wp_b);
 
 /**
- * Waypoint to output stream
+ * `waypoint_t` to output stream
  */
 std::ostream &operator<<(std::ostream &out, const waypoint_t &wp);
 
@@ -100,133 +89,97 @@ struct wp_mission_t {
 };
 
 /**
- * Configure
+ * Configure mission with configuration file `config_file`.
  *
- * @param[in,out] m Mission
- * @param[in] config_file Path to configuration fileN
- * @return
- *    - 0: success
- *    - -1: failure to load / parse configuration file
- *    - -2: invalid GPS waypoints
+ * @returns 0 for success, -1 for failure to load / parse config file, and -2
+ * for invalid GPS waypoints
  */
 int wp_mission_configure(wp_mission_t &m, const std::string &config_file);
 
 /**
- * Load GPS waypoints
+ * Load GPS waypoints with the list of waypoints `wps`, where waypoint type is
+ * denoted by `type`.
  *
- * @param[in,out] m Mission
- * @param[in] wps Waypoints
- * @param[in] type Type
- * @return 0 for success, -1 for failure
+ * @returns 0 for success, -1 for failure
  */
 int wp_mission_load_waypoints(wp_mission_t &m,
                               const std::vector<double> &wps,
                               const int type);
 
 /**
- * Check GPS waypoints
+ * Check GPS waypoints to make sure the distance between waypoints does not
+ * exceed `mission_t.waypoint_threshold`.
  *
- * Make sure the distance between waypoints does not exceed
- * `Mission.waypoint_threshold`
- *
- * @param[in,out] m Mission
- * @return
- *    - 0: success
- *    - -1: no waypoints loaded
- *    - -2: invalid GPS waypoints
+ * @returns 0 for success, -1 for no waypoints loaded, and finally -2 for
+ * invalid GPS waypoints.
  */
 int wp_mission_check_gps_waypoints(wp_mission_t &m);
 
 /**
- * Set GPS home point and calculate local waypoints by converting GPS to
- * local waypoints
+ * Set GPS home point latitude `home_lat`, longitude `home_lon`, and calculate
+ * local waypoints by converting GPS to local waypoints.
  *
- * @param[in,out] m Mission
- * @param[in] home_lat Home latitude point
- * @param[in] home_lon Home longitude point
- * @return 0 for success, -1 for failure
+ * @returns 0 for success, -1 for failure.
  */
 int wp_mission_set_gps_homepoint(wp_mission_t &m,
                                  const double home_lat,
                                  const double home_lon);
 
 /**
- * Calculate closest point
+ * Calculate closest point.
  *
- * @param[in] m Mission
- * @param[in] p_G Position in global frame
- * @return Closest point
+ * @returns Closest point
  */
 vec3_t wp_mission_closest_point(const wp_mission_t &m, const vec3_t &p_G);
 
 /**
- * Calcuate which side the point is compared to waypoint track
+ * Calcuate which side the point is compared to waypoint track.
  *
- * @param[in] m Mission
- * @param[in] p_G Position
- * @return
- *    - 0: Position is colinear with waypoint track
- *    - 1: Position is left of waypoint track
- *    - -1: Position is right of waypoint track
+ * @returns 0 if position is colinear with waypoint track, 1 if position is
+ * left of waypoint track, and -1 if position is right of waypoint track.
  */
 int wp_mission_point_line_side(const wp_mission_t &m, const vec3_t &p_G);
 
 /**
- * Calcuate crosstrack error
+ * Calcuate crosstrack error.
  *
- * @param[in] m Mission
- * @param[in] p_G Position
- * @param[in] mode Cross track error mode
- * @return Cross track error
+ * @returns Cross track error.
  */
 double wp_mission_crosstrack_error(const wp_mission_t &m,
                                    const vec3_t &p_G,
                                    int mode = CTRACK_HORIZ);
 
 /**
- * Calculate waypoint yaw
+ * Calculate waypoint yaw. This function assumes we are operating in the NWU
+ * frame, where a 0 heading starts from the x-axis and goes counter-clock-wise.
  *
- * This function assumes we are operating in the NWU frame, where a 0 heading
- * starts from the x-axis and goes counter-clock-wise.
- *
- * @param[in] m Mission
- * @return Waypoint yaw
+ * @returns Waypoint yaw
  */
 double wp_mission_waypoint_heading(const wp_mission_t &m);
 
 /**
- * Calculate waypoint point
+ * Interpolate mission waypoint point.
  *
- * @param[in] m Mission
- * @param[in] p_G Position in global frame
- * @param[in] r Lookahead distance in meters
+ * @returns Interpolated mission waypoint.
  */
 vec3_t wp_mission_waypoint_interpolate(const wp_mission_t &m,
                                        const vec3_t &p_G,
                                        const double r);
 
 /**
- * Check whether waypoint is reached
+ * Check whether waypoint is reached.
  *
- * @param[in] m Mission
- * @param[in] p_G Position in global frame
- * @return
- *    - 0: Waypoint not reached
- *    - 1: Waypoint reached
- *    - -1: Not configured
+ * @returns 0 if waypoint not reached, 1 if waypoint is reached, and -1 if
+ * mission is not configured.
  */
 int wp_mission_waypoint_reached(const wp_mission_t &m, const vec3_t &p_G);
 
 /**
- * Update waypoint
+ * Update mission with current position in the global frame `p_G` and output
+ * interpolated `waypoint`.
  *
- * @param[in,out] m Mission
- * @param[in] p_G Position in global frame
- * @param[out] waypoint Waypoint to update
- * @return
- *   - 0: Success
- *   - -1: Not configured
- *   - -2: No more waypoints
+ * @returns 0 for success, -1 if mission is not configured, and -2 for no more
+ * waypoints.
  */
 int wp_mission_update(wp_mission_t &m, const vec3_t &p_G, vec3_t &waypoint);
 

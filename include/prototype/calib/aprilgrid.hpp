@@ -49,28 +49,22 @@ struct aprilgrid_t {
 
 typedef std::vector<aprilgrid_t> aprilgrids_t;
 
-/** Comparator to sort detected AprilTags by id */
-static bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
-                                const AprilTags::TagDetection &b) {
-  return (a.id < b.id);
-}
-
-/** aprilgrid_t to output stream */
-std::ostream &operator<<(std::ostream &os, const aprilgrid_t &april_grid);
-
-/** Add AprilTag measurement to AprilGrid */
+/** Add AprilTag measurement to AprilGrid. */
 void aprilgrid_add(aprilgrid_t &grid,
                    const int id,
                    const std::vector<cv::Point2f> &keypoints);
 
-/** Get AprilTag measurements based on tag id */
+/**
+ * Get AprilTag measurements based on tag id.
+ * @returns 0 or -1 for success or failure.
+ */
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
                   std::vector<vec2_t> &keypoints);
 
 /**
  * Get AprilTag measurements based on tag id.
- * @returns 0 or -1 for success or failure
+ * @returns 0 or -1 for success or failure.
  */
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
@@ -85,8 +79,8 @@ int aprilgrid_get(const aprilgrid_t &grid,
 int aprilgrid_grid_index(const aprilgrid_t &grid, const int id, int &i, int &j);
 
 /**
- * Calculate object point
- * @returns 0 or -1 for success or failure
+ * Calculate object point.
+ * @returns 0 or -1 for success or failure.
  */
 int aprilgrid_object_point(const aprilgrid_t &grid,
                            const int tag_id,
@@ -94,41 +88,41 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
                            vec3_t &object_point);
 
 /**
- * Calculate object points
- * @returns 0 or -1 for success or failure
+ * Calculate object points.
+ * @returns 0 or -1 for success or failure.
  */
 int aprilgrid_object_points(const aprilgrid_t &grid,
                             const int tag_id,
                             std::vector<vec3_t> &object_points);
 
 /**
- * Calculate relative position between AprilGrid and camera using solvepnp
- * @returns 0 or -1 for success or failure
+ * Calculate relative position between AprilGrid and camera using solvepnp.
+ * @returns 0 or -1 for success or failure.
  */
 int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
                                  const mat3_t &cam_K,
                                  const vec4_t &cam_D);
 
-/** Show detection */
+/** Show detection. */
 void aprilgrid_imshow(const aprilgrid_t &grid,
                       const std::string &title,
                       const cv::Mat &image);
 
 /**
- * Save AprilGrid detection
- * @returns 0 or -1 for success or failure
+ * Save AprilGrid detection.
+ * @returns 0 or -1 for success or failure.
  */
 int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path);
 
 /**
- * Load AprilGrid detection
- * @returns 0 or -1 for success or failure
+ * Load AprilGrid detection.
+ * @returns 0 or -1 for success or failure.
  */
 int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path);
 
 /**
- * Configure AprilGrid detector
- * @returns 0 or 1 for success or failure
+ * Configure AprilGrid detector.
+ * @returns 0 or 1 for success or failure.
  */
 int aprilgrid_configure(aprilgrid_t &grid, const std::string &config_file);
 
@@ -137,19 +131,28 @@ void aprilgrid_filter_tags(const cv::Mat &image,
                            std::vector<AprilTags::TagDetection> &tags);
 
 /**
- * Detect AprilGrid
- * @returns Number of AprilTags detected
+ * Detect AprilGrid.
+ * @returns number of AprilTags detected
  */
 int aprilgrid_detect(aprilgrid_t &grid, const cv::Mat &image);
 
 /**
- * Detect AprilGrid
- * @returns Number of AprilTags detected
+ * Detect AprilGrid.
+ * @returns number of AprilTags detected.
  */
 int aprilgrid_detect(aprilgrid_t &grid,
                      const cv::Mat &image,
                      const mat3_t &cam_K,
                      const vec4_t &cam_D);
+
+/** Comparator to sort detected AprilTags by id */
+static bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
+                                const AprilTags::TagDetection &b) {
+  return (a.id < b.id);
+}
+
+/** aprilgrid_t to output stream */
+std::ostream &operator<<(std::ostream &os, const aprilgrid_t &april_grid);
 
 } // namespace prototype
 #endif // PROTOTYPE_CALIB_APRILGRID_HPP

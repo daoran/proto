@@ -26,9 +26,6 @@ struct pos_ctrl_t {
 /**
  * Configure position control
  *
- * @param[in,out] pc Position control
- * @param[in] config_file Configuration file
- *
  * @returns 0 or -1 for success or failure
  */
 int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file);
@@ -36,11 +33,10 @@ int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file);
 /**
  * Update position control
  *
- * @param[in,out] pc Position control
- * @param[in] setpoints Setpoints (x, y, z)
- * @param[in] actual Actual (x, y, z)
- * @param[in] yaw (radians)
- * @param[in] dt Time difference (s)
+ * - `setpoints`: Setpoints (x, y, z)
+ * - `actual`: Actual (x, y, z)
+ * - `yaw`: (radians)
+ * - `dt`: Time step (s)
  *
  * @returns Attitude command (roll, pitch, yaw, thrust)
  */

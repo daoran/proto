@@ -1,7 +1,7 @@
 <!-- CLASSES -->
 {%- for cls in classes -%}
 <div class="cpp_class">
-  <pre><code>{{ cls.api }}</code></pre>
+  <pre><code class="cpp">{{ cls.api }}</code></pre>
   {% if cls.doc %}
   <div class="doc"><p>{{ cls.doc }}</p></div>
   {% endif %}
@@ -11,9 +11,11 @@
 <!-- FUNCTIONS -->
 <h2>Functions</h2>
 {% for func in functions %}
-  <div class="cpp_func" onclick=show_doc(this)>
-    <pre><code class="cpp">{{ func.api }}</code></pre>
-    <div class="doc"><p>{{ func.doc | replace("@returns", "<b>Returns</b>") }}</p></div>
-  </div> <!-- .cpp_func -->
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">{{ func.api }}</code></pre>
+  {% if func.doc %}
+  <div class="doc"><p>{{ func.doc }}</p></div>
+  {% endif %}
+</div> <!-- .cpp_func -->
 {% endfor %}
 </div> <!-- #content -->

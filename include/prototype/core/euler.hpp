@@ -6,25 +6,19 @@
 namespace prototype {
 
 /**
- * Rotation matrix around x-axis (counter-clockwise, right-handed)
- *
- * @param theta Angle in radians
+ * Rotation matrix around x-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
 mat3_t rotx(const double theta);
 
 /**
- * Rotation matrix around y-axis (counter-clockwise, right-handed)
- *
- * @param theta Angle in radians
+ * Rotation matrix around y-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
 mat3_t roty(const double theta);
 
 /**
- * Rotation matrix around z-axis (counter-clockwise, right-handed)
- *
- * @param theta Angle in radians
+ * Rotation matrix around z-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
 mat3_t rotz(const double theta);
@@ -41,7 +35,6 @@ mat3_t rotz(const double theta);
  *
  *     Page 86.
  *
- * @param euler Euler angle (roll, pitch, yaw)
  * @returns Rotation matrix
  */
 mat3_t euler123ToRot(const vec3_t &euler);
@@ -58,7 +51,6 @@ mat3_t euler123ToRot(const vec3_t &euler);
  *
  *     Page 86.
  *
- * @param euler Euler angle (roll, pitch, yaw)
  * @returns Rotation matrix
  */
 mat3_t euler321ToRot(const vec3_t &euler);

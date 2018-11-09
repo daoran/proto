@@ -440,6 +440,8 @@ GimbalCalibResidual::GimbalCalibResidual(const vec3_t &P_s,
   this->k4_d = D_d(2);
 }
 
+GimbalCalibResidual::~GimbalCalibResidual() {}
+
 std::ostream &operator<<(std::ostream &os,
                          const GimbalCalibResidual &residual) {
   os << "P_s: " << array2str(residual.P_s, 3) << std::endl;

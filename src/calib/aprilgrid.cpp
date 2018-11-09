@@ -35,41 +35,6 @@ aprilgrid_t::aprilgrid_t(const long timestamp,
 
 aprilgrid_t::~aprilgrid_t() {}
 
-std::ostream &operator<<(std::ostream &os, const aprilgrid_t &aprilgrid) {
-  // Relative rotation and translation
-  if (aprilgrid.estimated) {
-    os << "AprilGrid: " << std::endl;
-    os << "configured: " << aprilgrid.configured << std::endl;
-    os << "tag_rows: " << aprilgrid.tag_rows << std::endl;
-    os << "tag_cols: " << aprilgrid.tag_cols << std::endl;
-    os << "tag_size: " << aprilgrid.tag_size << std::endl;
-    os << "tag_spacing: " << aprilgrid.tag_spacing << std::endl;
-    os << std::endl;
-  }
-
-  for (size_t i = 0; i < aprilgrid.ids.size(); i++) {
-    // Tag id
-    os << "tag_id: " << aprilgrid.ids[i] << std::endl;
-    os << "ts: " << aprilgrid.timestamp << std::endl;
-    os << "----------" << std::endl;
-
-    // Keypoint and relative position
-    for (size_t j = 0; j < 4; j++) {
-      os << "keypoint: " << aprilgrid.keypoints[(i * 4) + j].transpose();
-      os << std::endl;
-      os << "estimated: " << aprilgrid.estimated << std::endl;
-      if (aprilgrid.estimated) {
-        os << "p_CF: " << aprilgrid.points_CF[(i * 4) + j].transpose();
-        os << std::endl;
-      }
-      os << std::endl;
-    }
-    os << std::endl;
-  }
-
-  return os;
-}
-
 void aprilgrid_add(aprilgrid_t &grid,
                    const int id,
                    const std::vector<cv::Point2f> &keypoints) {
@@ -597,6 +562,41 @@ int aprilgrid_detect(aprilgrid_t &grid,
   aprilgrid_calc_relative_pose(grid, cam_K, cam_D);
 
   return grid.nb_detections;
+}
+
+std::ostream &operator<<(std::ostream &os, const aprilgrid_t &aprilgrid) {
+  // Relative rotation and translation
+  if (aprilgrid.estimated) {
+    os << "AprilGrid: " << std::endl;
+    os << "configured: " << aprilgrid.configured << std::endl;
+    os << "tag_rows: " << aprilgrid.tag_rows << std::endl;
+    os << "tag_cols: " << aprilgrid.tag_cols << std::endl;
+    os << "tag_size: " << aprilgrid.tag_size << std::endl;
+    os << "tag_spacing: " << aprilgrid.tag_spacing << std::endl;
+    os << std::endl;
+  }
+
+  for (size_t i = 0; i < aprilgrid.ids.size(); i++) {
+    // Tag id
+    os << "tag_id: " << aprilgrid.ids[i] << std::endl;
+    os << "ts: " << aprilgrid.timestamp << std::endl;
+    os << "----------" << std::endl;
+
+    // Keypoint and relative position
+    for (size_t j = 0; j < 4; j++) {
+      os << "keypoint: " << aprilgrid.keypoints[(i * 4) + j].transpose();
+      os << std::endl;
+      os << "estimated: " << aprilgrid.estimated << std::endl;
+      if (aprilgrid.estimated) {
+        os << "p_CF: " << aprilgrid.points_CF[(i * 4) + j].transpose();
+        os << std::endl;
+      }
+      os << std::endl;
+    }
+    os << std::endl;
+  }
+
+  return os;
 }
 
 } // namespace prototype

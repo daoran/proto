@@ -19,10 +19,8 @@ struct pose_param_t {
   quat_t q;
   vec3_t t;
 
-  pose_param_t(const mat4_t &T)
-      : q{T.block<3, 3>(0, 0)}, t{T.block<3, 1>(0, 3)} {}
-
-  ~pose_param_t() {}
+  pose_param_t(const mat4_t &T);
+  ~pose_param_t():
 };
 
 /**
@@ -32,8 +30,8 @@ struct pinhole_radtan4_residual_t {
   double p_F_[3] = {0.0, 0.0, 0.0}; ///< Object point
   double z_[2] = {0.0, 0.0};        ///< Measurement
 
-  pinhole_radtan4_residual_t(const vec2_t &z, const vec3_t &p_F)
-      : z_{z(0), z(1)}, p_F_{p_F(0), p_F(1), p_F(2)} {}
+  pinhole_radtan4_residual_t(const vec2_t &z, const vec3_t &p_F);
+  ~pinhole_radtan4_residual_t();
 
   /**
    * Calculate residual
@@ -47,13 +45,7 @@ struct pinhole_radtan4_residual_t {
 };
 
 /**
- * Setup camera calibration problem
- *
- * @param[in] aprilgrids AprilGrids
- * @param[in,out] pinhole Pinhole parameters
- * @param[in,out] radtan Radtan parameters
- * @param[out] poses Optimized poses
- *
+ * Setup camera calibration problem.
  * @returns 0 or -1 for success or failure
  */
 int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
@@ -63,14 +55,7 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
 /**
  * Perform stats analysis on calibration after performing intrinsics
- * calibration
- *
- * @param[in] aprilgrids AprilGrids
- * @param[in] intrinsics Intrinsics vector (fx, fy, cx, cy)
- * @param[in] distortion Distortion vector
- * @param[in] poses Optimized poses
- * @param[in] output_path Path to save output
- *
+ * calibration.
  * @returns 0 or -1 for success or failure
  */
 template <typename RESIDUAL>

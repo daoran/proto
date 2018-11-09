@@ -18,7 +18,6 @@
 
 namespace prototype {
 
-// Configuration file
 struct config_t {
   std::string file_path;
   YAML::Node root;
@@ -31,13 +30,13 @@ struct config_t {
 
 /**
  * Load YAML file.
- * Returns 0 for success or -1 for failure.
+ * @returns 0 for success or -1 for failure.
  */
 int yaml_load_file(const std::string file_path, YAML::Node &root);
 
 /**
  * Get YAML node containing the parameter value.
- * Returns 0 for success or -1 for failure.
+ * @returns 0 for success or -1 for failure.
  */
 int yaml_get_node(const config_t &config,
                   const std::string &key,
@@ -53,11 +52,9 @@ size_t yaml_check_vector(const YAML::Node &node,
                          const bool optional);
 
 /**
- * Check matrix
- *
- * Makes sure that the parameter has the data field "rows", "cols" and "data".
- * It also checks to make sure the number of values is the same size as the
- * matrix.
+ * Check matrix to make sure that the parameter has the data field "rows",
+ * "cols" and "data". It also checks to make sure the number of values is the
+ * same size as the matrix.
  */
 template <typename T>
 void yaml_check_matrix(const YAML::Node &node,
@@ -65,14 +62,6 @@ void yaml_check_matrix(const YAML::Node &node,
                        const bool optional,
                        size_t &rows,
                        size_t &cols);
-
-/**
- * Check matrix
- *
- * Makes sure that the parameter has the data field "rows", "cols" and
- * "data". It also checks to make sure the number of values is the same size
- * as the matrix.
- */
 template <typename T>
 void yaml_check_matrix(const YAML::Node &node,
                        const std::string &key,
@@ -89,7 +78,6 @@ void parse(const config_t &config,
            const std::string &key,
            std::vector<T> &out,
            const bool optional = false);
-
 void parse(const config_t &config,
            const std::string &key,
            vec2_t &vec,

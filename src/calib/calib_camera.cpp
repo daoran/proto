@@ -2,6 +2,16 @@
 
 namespace prototype {
 
+pose_param_t::pose_param_t(const mat4_t &T)
+      : q{T.block<3, 3>(0, 0)}, t{T.block<3, 1>(0, 3)} {}
+
+pose_param_t::~pose_param_t() {}
+
+pinhole_radtan4_residual_t::pinhole_radtan4_residual_t(const vec2_t &z, const vec3_t &p_F)
+      : z_{z(0), z(1)}, p_F_{p_F(0), p_F(1), p_F(2)} {}
+
+pinhole_radtan4_residual_t::~pinhole_radtan4_residual_t() {}
+
 static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              vec4_t &intrinsics,
                              vec4_t &distortion,
