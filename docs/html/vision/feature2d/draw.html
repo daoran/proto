@@ -1,0 +1,116 @@
+<!-- CLASSES --><!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">cv::Mat draw_tracks(const cv::Mat &amp;img_cur,
+                    const std::vector&lt;cv::Point2f&gt; p0,
+                    const std::vector&lt;cv::Point2f&gt; p1,
+                    const std::vector&lt;uchar&gt; &amp;status);
+</code></pre>
+  
+  <div class="doc"><p><p>Draw tracks</p>
+<ul>
+<li>[in] img_cur Current image frame</li>
+<li>[in] p0 Previous corners</li>
+<li>[in] p1 Current corners</li>
+<li>[in] status Corners status</li>
+</ul>
+<p><strong>Returns</strong> Image with feature matches between previous and current frame</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">cv::Mat draw_tracks(const cv::Mat &amp;img_cur,
+                    const std::vector&lt;cv::Point2f&gt; p0,
+                    const std::vector&lt;cv::Point2f&gt; p1,
+                    const std::vector&lt;uchar&gt; &amp;status);
+</code></pre>
+  
+  <div class="doc"><p><p>Draw tracks</p>
+<ul>
+<li>[in] img_cur Current image frame</li>
+<li>[in] p0 Previous corners</li>
+<li>[in] p1 Current corners</li>
+<li>[in] status Corners status</li>
+</ul>
+<p><strong>Returns</strong> Image with feature matches between previous and current frame</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">cv::Mat draw_matches(const cv::Mat &amp;img0,
+                     const cv::Mat &amp;img1,
+                     const std::vector&lt;cv::Point2f&gt; k0,
+                     const std::vector&lt;cv::Point2f&gt; k1,
+                     const std::vector&lt;uchar&gt; &amp;status);
+</code></pre>
+  
+  <div class="doc"><p><p>Draw matches</p>
+<ul>
+<li>[in] img0 Image frame 0</li>
+<li>[in] img1 Image frame 1</li>
+<li>[in] k0 Previous keypoints</li>
+<li>[in] k1 Current keypoints</li>
+<li>[in] status Inlier vector</li>
+</ul>
+<p><strong>Returns</strong> Image with feature matches between frame 0 and 1</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">cv::Mat draw_matches(const cv::Mat &amp;img0,
+                     const cv::Mat &amp;img1,
+                     const std::vector&lt;cv::KeyPoint&gt; k0,
+                     const std::vector&lt;cv::KeyPoint&gt; k1,
+                     const std::vector&lt;cv::DMatch&gt; &amp;matches);
+</code></pre>
+  
+  <div class="doc"><p><p>Draw matches</p>
+<ul>
+<li>[in] img0 Previous image frame</li>
+<li>[in] img1 Current image frame</li>
+<li>[in] k0 Previous keypoints</li>
+<li>[in] k1 Current keypoints</li>
+<li>[in] matches Feature matches</li>
+</ul>
+<p><strong>Returns</strong> Image with feature matches between previous and current frame</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">cv::Mat draw_grid_features(const cv::Mat &amp;image,
+                           const int grid_rows,
+                           const int grid_cols,
+                           const std::vector&lt;cv::Point2f&gt; features);
+</code></pre>
+  
+  <div class="doc"><p><p>Draw grid features</p>
+<ul>
+<li>[in] image Image frame</li>
+<li>[in] grid_rows Grid rows</li>
+<li>[in] grid_cols Grid cols</li>
+<li>[in] features List of features</li>
+</ul>
+<p><strong>Returns</strong> Grid features image</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">cv::Mat draw_grid_features(const cv::Mat &amp;image,
+                           const int grid_rows,
+                           const int grid_cols,
+                           const std::vector&lt;cv::KeyPoint&gt; features);
+</code></pre>
+  
+  <div class="doc"><p><p>Draw grid features</p>
+<ul>
+<li>[in] image Image frame</li>
+<li>[in] grid_rows Grid rows</li>
+<li>[in] grid_cols Grid cols</li>
+<li>[in] features List of features</li>
+</ul>
+<p><strong>Returns</strong> Grid features image</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

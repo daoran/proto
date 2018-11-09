@@ -1,0 +1,204 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct mpu6050_t {
+  bool ok;
+  i2c_t &amp; i2c;
+  float accel_sensitivity;
+  float gyro_sensitivity;
+  vec3_t accel;
+  vec3_t gyro;
+  float temperature;
+  float sample_rate;
+  int8_t dplf_config;
+  clock_t last_updated;
+
+  mpu6050_t(i2c_t &amp;i2c_);
+};</code></pre>
+  
+  <div class="doc"><p><p>Invensense MPU6050 I2C Driver</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_configure(mpu6050_t &amp;imu, const std::string &amp;config_file);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure</p>
+<ul>
+<li>[in,out] imu IMU</li>
+<li>[in] config_file Path to configuration file</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_ping(const mpu6050_t &amp;imu);
+</code></pre>
+  
+  <div class="doc"><p><p>Ping</p>
+<ul>
+<li>[in] imu IMU</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_get_data(mpu6050_t &amp;imu);
+</code></pre>
+  
+  <div class="doc"><p><p>Get IMU data</p>
+<ul>
+<li>[in,out] imu IMU</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_set_dplf(const mpu6050_t &amp;imu, const int setting);
+</code></pre>
+  
+  <div class="doc"><p><p>Set DPLF</p>
+<p>DPLF_CFG    Accelerometer</p>
+<hr />
+<pre><code>          Bandwidth(Hz) | Delay(ms)
+</code></pre>
+<p>0           260             0
+  1           184             2.0
+  2           94              3.0
+  3           44              4.9
+  4           21              8.5
+  5           10              13.8
+  6           5               19.0
+  7           RESERVED        RESERVED</p>
+<p>DPLF_CFG    Gyroscope</p>
+<hr />
+<pre><code>          Bandwidth(Hz) | Delay(ms) | Fs(kHz)
+</code></pre>
+<p>0           256             0.98        8
+  1           188             1.9         1
+  2           98              2.8         1
+  3           42              4.8         1
+  4           20              8.3         1
+  5           10              13.4        1
+  6           5               18.5        1
+  7           RESERVED        RESERVED    8</p>
+<ul>
+<li>[in] imu IMU</li>
+<li>[in] setting</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_get_dplf(const mpu6050_t &amp;imu);
+</code></pre>
+  
+  <div class="doc"><p><p>Get DPLF</p>
+<ul>
+<li>[in] imu IMU</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_set_sample_rate_div(const mpu6050_t &amp;imu, const int setting);
+</code></pre>
+  
+  <div class="doc"><p><p>Set sample rate division</p>
+<ul>
+<li>[in] imu IMU</li>
+<li>[in] setting Setting</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_get_sample_rate_div(const mpu6050_t &amp;imu);
+</code></pre>
+  
+  <div class="doc"><p><p>Get sample rate division</p>
+<ul>
+<li>[in] imu IMU</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_get_sample_rate(const mpu6050_t &amp;imu);
+</code></pre>
+  
+  <div class="doc"><p><p>Get sample rate</p>
+<ul>
+<li>[in] imu IMU</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_set_gyro_range(const mpu6050_t &amp;imu, const int setting);
+</code></pre>
+  
+  <div class="doc"><p><p>Set gyro range</p>
+<ul>
+<li>[in] imu IMU</li>
+<li>[in] setting Setting</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_get_gyro_range(const mpu6050_t &amp;imu);
+</code></pre>
+  
+  <div class="doc"><p><p>Set gyro range</p>
+<ul>
+<li>[in] imu IMU</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_set_accel_range(const mpu6050_t &amp;imu, const int setting);
+</code></pre>
+  
+  <div class="doc"><p><p>Set accelerometer range</p>
+<ul>
+<li>[in] imu IMU</li>
+<li>[in] setting Setting</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mpu6050_get_accel_range(const mpu6050_t &amp;imu);
+</code></pre>
+  
+  <div class="doc"><p><p>Get accelerometer range</p>
+<ul>
+<li>[in] imu IMU</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const mpu6050_t &amp;imu);
+</code></pre>
+  
+  <div class="doc"><p><p>mpu6050_t to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

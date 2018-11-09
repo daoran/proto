@@ -1,0 +1,99 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct dataset_event_t {
+  int type;
+  vec3_t a_m;
+  vec3_t w_m;
+  int camera_index;
+  std::string image_path;
+
+  dataset_event_t();
+  dataset_event_t(const vec3_t &amp;a_m, const vec3_t &amp;w_m);
+};</code></pre>
+  
+  <div class="doc"><p><p>Dataset Event Type</p>
+<p>Dataset Event</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct mav_dataset_t {
+  bool ok;
+  std::string data_path;
+  imu_data_t imu_data;
+  camera_data_t cam0_data;
+  camera_data_t cam1_data;
+  ground_truth_t ground_truth;
+  cv::Size image_size;
+  long ts_start;
+  long ts_end;
+  long ts_now;
+  long time_index;
+  long imu_index;
+  long frame_index;
+  std::vector&lt;long&gt; timestamps;
+  std::map&lt;long, double&gt; time;
+  std::multimap&lt;long, dataset_event_t&gt; timeline;
+
+  mav_dataset_t();
+  mav_dataset_t(const std::string &amp;data_path);
+};</code></pre>
+  
+  <div class="doc"><p><p>EuRoC MAV Dataset</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const dataset_event_t &amp;data);
+</code></pre>
+  
+  <div class="doc"><p><p>dataset_event_t to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int mav_dataset_load(mav_dataset_t &amp;ds);
+</code></pre>
+  
+  <div class="doc"><p><p>Load dataset</p>
+<ul>
+<li>[in,out] ds Dataset</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void mav_dataset_reset(mav_dataset_t &amp;ds);
+</code></pre>
+  
+  <div class="doc"><p><p>Reset</p>
+<ul>
+<li>[in,out] ds Dataset</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">long mav_dataset_min_timestamp(const mav_dataset_t &amp;ds);
+</code></pre>
+  
+  <div class="doc"><p><p>Return min timestamp</p>
+<ul>
+<li>[in] ds Dataset</li>
+</ul>
+<p><strong>Returns</strong> Minimum timestamp</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">long mav_dataset_max_timestamp(const mav_dataset_t &amp;ds);
+</code></pre>
+  
+  <div class="doc"><p><p>Return max timestamp</p>
+<p><strong>Returns</strong> Maximum timestamp</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

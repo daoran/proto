@@ -1,0 +1,196 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct aprilgrid_t {
+  AprilTags::TagDetector detector;
+  bool configured;
+  int tag_rows;
+  int tag_cols;
+  double tag_size;
+  double tag_spacing;
+  bool detected;
+  int nb_detections;
+  long timestamp;
+  std::vector&lt;int&gt; ids;
+  std::vector&lt;vec2_t&gt; keypoints;
+  bool estimated;
+  std::vector&lt;vec3_t&gt; points_CF;
+  mat4_t T_CF;
+  vec3_t rvec_CF;
+  vec3_t tvec_CF;
+
+  aprilgrid_t();
+  aprilgrid_t(const long timestamp,
+              const int tag_rows,
+              const int tag_cols,
+              const double tag_size,
+              const double tag_spacing);
+  ~aprilgrid_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>AprilGrid detection</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void aprilgrid_add(aprilgrid_t &amp;grid,
+                   const int id,
+                   const std::vector&lt;cv::Point2f&gt; &amp;keypoints);
+</code></pre>
+  
+  <div class="doc"><p><p>Add AprilTag measurement to AprilGrid. </p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_get(const aprilgrid_t &amp;grid,
+                  const int id,
+                  std::vector&lt;vec2_t&gt; &amp;keypoints);
+</code></pre>
+  
+  <div class="doc"><p><p>Get AprilTag measurements based on tag id.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_get(const aprilgrid_t &amp;grid,
+                  const int id,
+                  std::vector&lt;vec2_t&gt; &amp;keypoints,
+                  std::vector&lt;vec3_t&gt; &amp;points_CF);
+</code></pre>
+  
+  <div class="doc"><p><p>Get AprilTag measurements based on tag id.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_grid_index(const aprilgrid_t &amp;grid, const int id, int &amp;i, int &amp;j);
+</code></pre>
+  
+  <div class="doc"><p><p>Get the tag's grid index using the tag id
+Note: The origin of the grid is bottom left corner rather than top left.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_object_point(const aprilgrid_t &amp;grid,
+                           const int tag_id,
+                           const int corner_id,
+                           vec3_t &amp;object_point);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate object point.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_object_points(const aprilgrid_t &amp;grid,
+                            const int tag_id,
+                            std::vector&lt;vec3_t&gt; &amp;object_points);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate object points.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_calc_relative_pose(aprilgrid_t &amp;grid,
+                                 const mat3_t &amp;cam_K,
+                                 const vec4_t &amp;cam_D);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate relative position between AprilGrid and camera using solvepnp.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void aprilgrid_imshow(const aprilgrid_t &amp;grid,
+                      const std::string &amp;title,
+                      const cv::Mat &amp;image);
+</code></pre>
+  
+  <div class="doc"><p><p>Show detection. </p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_save(const aprilgrid_t &amp;grid, const std::string &amp;save_path);
+</code></pre>
+  
+  <div class="doc"><p><p>Save AprilGrid detection.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_load(aprilgrid_t &amp;grid, const std::string &amp;data_path);
+</code></pre>
+  
+  <div class="doc"><p><p>Load AprilGrid detection.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_configure(aprilgrid_t &amp;grid, const std::string &amp;config_file);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure AprilGrid detector.</p>
+<p><strong>Returns</strong> 0 or 1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void aprilgrid_filter_tags(const cv::Mat &amp;image,
+                           std::vector&lt;AprilTags::TagDetection&gt; &amp;tags);
+</code></pre>
+  
+  <div class="doc"><p><p>Filter tags detected </p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_detect(aprilgrid_t &amp;grid, const cv::Mat &amp;image);
+</code></pre>
+  
+  <div class="doc"><p><p>Detect AprilGrid.</p>
+<p><strong>Returns</strong> number of AprilTags detected</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_detect(aprilgrid_t &amp;grid,
+                     const cv::Mat &amp;image,
+                     const mat3_t &amp;cam_K,
+                     const vec4_t &amp;cam_D);
+</code></pre>
+  
+  <div class="doc"><p><p>Detect AprilGrid.</p>
+<p><strong>Returns</strong> number of AprilTags detected.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">bool sort_apriltag_by_id(const AprilTags::TagDetection &amp;a,
+                         const AprilTags::TagDetection &amp;b);
+</code></pre>
+  
+  <div class="doc"><p><p>Comparator to sort detected AprilTags by id </p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const aprilgrid_t &amp;april_grid);
+</code></pre>
+  
+  <div class="doc"><p><p>aprilgrid_t to output stream </p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

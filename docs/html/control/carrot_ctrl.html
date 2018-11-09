@@ -1,0 +1,69 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct carrot_ctrl_t {
+  std::vector&lt;vec3_t&gt; waypoints;
+  vec3_t wp_start;
+  vec3_t wp_end;
+  size_t wp_index;
+  double look_ahead_dist;
+
+  carrot_ctrl_t();
+  ~carrot_ctrl_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>Carrot control</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int carrot_ctrl_configure(carrot_ctrl_t &amp;cc,
+                          const std::vector&lt;vec3_t&gt; &amp;waypoints,
+                          const double look_ahead_dist);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure carrot control using a list of position <code>waypoints</code> (x, y, z), and
+a <code>look_ahead</code> distance in [m].</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int carrot_ctrl_closest_point(const carrot_ctrl_t &amp;cc,
+                              const vec3_t &amp;pos,
+                              vec3_t &amp;result);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate closest point along current trajectory using current position
+<code>pos</code>, and outputs the closest point in <code>result</code>.</p>
+<p><strong>Returns</strong> A number to denote progress along the waypoint, if -1 then the
+position is before <code>wp_start</code>, 0 if the position is between <code>wp_start</code> and
+<code>wp_end</code>, and finally 1 if the position is after <code>wp_end</code>.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int carrot_ctrl_carrot_point(const carrot_ctrl_t &amp;cc,
+                             const vec3_t &amp;pos,
+                             vec3_t &amp;result);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate carrot point using current position <code>pos</code>, and outputs the carrot
+point in <code>result</code>.</p>
+<p><strong>Returns</strong> A number to denote progress along the waypoint, if -1 then the
+position is before <code>wp_start</code>, 0 if the position is between <code>wp_start</code> and
+<code>wp_end</code>, and finally 1 if the position is after <code>wp_end</code>.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int carrot_ctrl_update(carrot_ctrl_t &amp;cc, const vec3_t &amp;pos, vec3_t &amp;carrot_pt);
+</code></pre>
+  
+  <div class="doc"><p><p>Update carrot controller using current position <code>pos</code> and outputs the carrot
+point in <code>result</code>.</p>
+<p><strong>Returns</strong> 0 for success, 1 for all waypoints reached and -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

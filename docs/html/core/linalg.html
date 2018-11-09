@@ -1,0 +1,194 @@
+<!-- CLASSES --><!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t zeros(const int rows, const int cols);
+</code></pre>
+  
+  <div class="doc"><p><p>Zeros-matrix</p>
+<ul>
+<li>rows Number of rows</li>
+<li>cols Number of cols</li>
+</ul>
+<p><strong>Returns</strong> Zeros matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t zeros(const int size);
+</code></pre>
+  
+  <div class="doc"><p><p>Zeros square matrix</p>
+<ul>
+<li>size Square size of matrix</li>
+</ul>
+<p><strong>Returns</strong> Zeros matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t I(const int rows, const int cols);
+</code></pre>
+  
+  <div class="doc"><p><p>Identity-matrix</p>
+<ul>
+<li>rows Number of rows</li>
+<li>cols Number of cols</li>
+</ul>
+<p><strong>Returns</strong> Identity matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t I(const int size);
+</code></pre>
+  
+  <div class="doc"><p><p>Identity square matrix</p>
+<ul>
+<li>size Square size of matrix</li>
+</ul>
+<p><strong>Returns</strong> Identity square matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t ones(const int rows, const int cols);
+</code></pre>
+  
+  <div class="doc"><p><p>Ones-matrix</p>
+<ul>
+<li>rows Number of rows</li>
+<li>cols Number of cols</li>
+</ul>
+<p><strong>Returns</strong> Ones square matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t ones(const int size);
+</code></pre>
+  
+  <div class="doc"><p><p>Ones square matrix</p>
+<ul>
+<li>size Square size of matrix</li>
+</ul>
+<p><strong>Returns</strong> Ones square matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t hstack(const matx_t &amp;A, const matx_t &amp;B);
+</code></pre>
+  
+  <div class="doc"><p><p>Horizontally stack matrices A and B</p>
+<ul>
+<li>A Matrix A</li>
+<li>B Matrix B</li>
+</ul>
+<p><strong>Returns</strong> Stacked matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t vstack(const matx_t &amp;A, const matx_t &amp;B);
+</code></pre>
+  
+  <div class="doc"><p><p>Vertically stack matrices A and B</p>
+<ul>
+<li>A Matrix A</li>
+<li>B Matrix B</li>
+</ul>
+<p><strong>Returns</strong> Stacked matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t dstack(const matx_t &amp;A, const matx_t &amp;B);
+</code></pre>
+  
+  <div class="doc"><p><p>Diagonally stack matrices A and B</p>
+<ul>
+<li>A Matrix A</li>
+<li>B Matrix B</li>
+</ul>
+<p><strong>Returns</strong> Stacked matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t skew(const vec3_t &amp;w);
+</code></pre>
+  
+  <div class="doc"><p><p>Skew symmetric-matrix</p>
+<ul>
+<li>w Input vector</li>
+</ul>
+<p><strong>Returns</strong> Skew symmetric matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t skewsq(const vec3_t &amp;w);
+</code></pre>
+  
+  <div class="doc"><p><p>Skew symmetric-matrix squared</p>
+<ul>
+<li>w Input vector</li>
+</ul>
+<p><strong>Returns</strong> Skew symmetric matrix squared</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t enforce_psd(const matx_t &amp;A);
+</code></pre>
+  
+  <div class="doc"><p><p>Enforce Positive Semi-Definite</p>
+<ul>
+<li>A Input matrix</li>
+</ul>
+<p><strong>Returns</strong> Positive semi-definite matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t nullspace(const matx_t &amp;A);
+</code></pre>
+  
+  <div class="doc"><p><p>Null-space of A</p>
+<ul>
+<li>A Input matrix</li>
+</ul>
+<p><strong>Returns</strong> Null space of A</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat4_t transform(const mat3_t &amp;R, const vec3_t &amp;t);
+</code></pre>
+  
+  <div class="doc"><p><p>Form a 4x4 homogeneous transformation matrix from a
+rotation matrix R and translation vector t.</p>
+<ul>
+<li>R Rotation matrix</li>
+<li>t Translation vector</li>
+</ul>
+<p><strong>Returns</strong> T Transformation matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat4_t transform(const quat_t &amp;q, const vec3_t &amp;t);
+</code></pre>
+  
+  <div class="doc"><p><p>Form a 4x4 homogeneous transformation matrix from a
+rotation matrix R and translation vector t.</p>
+<ul>
+<li>q Quaternion</li>
+<li>t Translation vector</li>
+</ul>
+<p><strong>Returns</strong> T Transformation matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

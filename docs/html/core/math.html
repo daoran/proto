@@ -1,0 +1,449 @@
+<!-- CLASSES --><!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void print_shape(const std::string &amp;name, Eigen::MatrixXd A);
+</code></pre>
+  
+  <div class="doc"><p><p>Print shape of a matrix</p>
+<ul>
+<li>[in] name Name of matrix</li>
+<li>[in] A Matrix</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void print_shape(const std::string &amp;name, Eigen::VectorXd v);
+</code></pre>
+  
+  <div class="doc"><p><p>Print shape of a vector</p>
+<ul>
+<li>[in] name Name of vector</li>
+<li>[in] v Vector</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void print_array(const std::string &amp;name,
+                 const double *array,
+                 const size_t size);
+</code></pre>
+  
+  <div class="doc"><p><p>Print array</p>
+<ul>
+<li>[in] name Name of array</li>
+<li>[in] array Target array</li>
+<li>[in] size Size of target array</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::string array2str(const double *array, const size_t size);
+</code></pre>
+  
+  <div class="doc"><p><p>Array to string</p>
+<ul>
+<li>[in] array Target array</li>
+<li>[in] size Size of target array</li>
+</ul>
+<p><strong>Returns</strong> String of array</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void array2vec(const double *x, const size_t size, Eigen::VectorXd y);
+</code></pre>
+  
+  <div class="doc"><p><p>Convert double array to Eigen::Vector</p>
+<ul>
+<li>[in] x Input array</li>
+<li>[in] size Size of input array</li>
+<li>[out] y Output vector</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double vec2array(Eigen::VectorXd v);
+</code></pre>
+  
+  <div class="doc"><p><p>Vector to array</p>
+<ul>
+<li>[in] v Vector</li>
+</ul>
+<p><strong>Returns</strong> Array</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double mat2array(Eigen::MatrixXd m);
+</code></pre>
+  
+  <div class="doc"><p><p>Matrix to array</p>
+<ul>
+<li>[in] m Matrix</li>
+</ul>
+<p><strong>Returns</strong> Array</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double quat2array(Eigen::Quaterniond q);
+</code></pre>
+  
+  <div class="doc"><p><p>Quaternion to array</p>
+<p><em>VERY IMPORTANT</em>: The returned array is (x, y, z, w).</p>
+<ul>
+<li>[in] q Quaternion</li>
+</ul>
+<p><strong>Returns</strong> Array</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void vec2array(Eigen::VectorXd v, double *out);
+</code></pre>
+  
+  <div class="doc"><p><p>Vector to array</p>
+<ul>
+<li>[in] v Vector</li>
+<li>[out] out Output array</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void mat2array(Eigen::MatrixXd m, double *out);
+</code></pre>
+  
+  <div class="doc"><p><p>Matrix to array</p>
+<ul>
+<li>[in] m Matrix</li>
+<li>[in] out Output array</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::vector&lt;vecx_t&gt; mat2vec(Eigen::MatrixXd m, const bool row_wise);
+</code></pre>
+  
+  <div class="doc"><p><p>Matrix to list of vectors</p>
+<ul>
+<li>[in] m Matrix</li>
+<li>[in] row_wise Row wise</li>
+</ul>
+<p><strong>Returns</strong> Vectors</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::vector&lt;vec3_t&gt; mat2vec3(Eigen::MatrixXd m, const bool row_wise);
+</code></pre>
+  
+  <div class="doc"><p><p>Matrix to list of vectors of size 3</p>
+<ul>
+<li>[in] m Matrix</li>
+<li>[in] row_wise Row wise</li>
+</ul>
+<p><strong>Returns</strong> Vectors</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::vector&lt;vec2_t&gt; mat2vec2(Eigen::MatrixXd m, const bool row_wise);
+</code></pre>
+  
+  <div class="doc"><p><p>Matrix to list of vectors of size 3</p>
+<ul>
+<li>[in] m Matrix</li>
+<li>[in] row_wise Row wise</li>
+</ul>
+<p><strong>Returns</strong> Vectors</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::string vec2str(Eigen::VectorXd v, const bool brackets);
+</code></pre>
+  
+  <div class="doc"><p><p>Vector to string</p>
+<ul>
+<li>[in] v Vector</li>
+<li>[in] brackets Brakcets around vector string</li>
+</ul>
+<p><strong>Returns</strong> Vector as a string</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int randi(const int ub, const int lb);
+</code></pre>
+  
+  <div class="doc"><p><p>Create random integer</p>
+<ul>
+<li>[in] ub Upper bound</li>
+<li>[in] lb Lower bound</li>
+</ul>
+<p><strong>Returns</strong> Random integer</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double randf(const double ub, const double lb);
+</code></pre>
+  
+  <div class="doc"><p><p>Create random double</p>
+<ul>
+<li>[in] ub Upper bound</li>
+<li>[in] lb Lower bound</li>
+</ul>
+<p><strong>Returns</strong> Random floating point</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int sign(const double x);
+</code></pre>
+  
+  <div class="doc"><p><p>Sign of number</p>
+<ul>
+<li>[in] x Number to check sign</li>
+</ul>
+<p><strong>Returns</strong>
+   - 0: Number is zero
+   - 1: Positive number
+   - -1: Negative number</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int fltcmp(const double f1, const double f2);
+</code></pre>
+  
+  <div class="doc"><p><p>Floating point comparator</p>
+<ul>
+<li>[in] f1 First value</li>
+<li>[in] f2 Second value</li>
+</ul>
+<p><strong>Returns</strong>
+   - 0: if equal
+   - 1: if f1 &gt; f2
+   - -1: if f1 &lt; f2</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double median(const std::vector&lt;double&gt; &amp;v);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate median given an array of numbers</p>
+<ul>
+<li>[in] v Array of numbers</li>
+</ul>
+<p><strong>Returns</strong> Median of given array</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double deg2rad(const double d);
+</code></pre>
+  
+  <div class="doc"><p><p>Degrees to radians</p>
+<ul>
+<li>[in] d Degree to be converted</li>
+</ul>
+<p><strong>Returns</strong> Degree in radians</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double rad2deg(const double r);
+</code></pre>
+  
+  <div class="doc"><p><p>Radians to degree</p>
+<ul>
+<li>[in] r Radian to be converted</li>
+</ul>
+<p><strong>Returns</strong> Radian in degrees</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void load_matrix(const std::vector&lt;double&gt; &amp;x,
+                 const int rows,
+                 const int cols,
+                 Eigen::MatrixXd y);
+</code></pre>
+  
+  <div class="doc"><p><p>Load std::vector of doubles to an Eigen::Matrix</p>
+<ul>
+<li>[in] x Matrix values</li>
+<li>[in] rows Number of matrix rows</li>
+<li>[in] cols Number of matrix colums</li>
+<li>[out] y Output matrix</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void load_matrix(Eigen::MatrixXd A, std::vector&lt;double&gt; &amp;x);
+</code></pre>
+  
+  <div class="doc"><p><p>Load an Eigen::Matrix into a std::vector of doubles</p>
+<ul>
+<li>[in] A Matrix</li>
+<li>[out] x Output vector of matrix values</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double binomial(const double n, const double k);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate binomial coefficient</p>
+<ul>
+<li>[in] n</li>
+<li>[in] k</li>
+</ul>
+<p><strong>Returns</strong> Binomial coefficient</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double wrapTo180(const double d);
+</code></pre>
+  
+  <div class="doc"><p><p>Wrap angle in degrees to 180</p>
+<ul>
+<li>[in] d Degrees</li>
+</ul>
+<p><strong>Returns</strong> Angle wraped to 180</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double wrapTo360(const double d);
+</code></pre>
+  
+  <div class="doc"><p><p>Wrap angle in degrees to 360</p>
+<ul>
+<li>[in] d Degrees</li>
+</ul>
+<p><strong>Returns</strong> Angle wraped to 360</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double wrapToPi(const double r);
+</code></pre>
+  
+  <div class="doc"><p><p>Wrap angle in radians to PI</p>
+<ul>
+<li>[in] r Radians</li>
+</ul>
+<p><strong>Returns</strong> Angle wraped to PI</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double wrapTo2Pi(const double r);
+</code></pre>
+  
+  <div class="doc"><p><p>Wrap angle in radians to 2 PI</p>
+<ul>
+<li>[in] r Radians</li>
+</ul>
+<p><strong>Returns</strong> Angle wraped to 2 PI</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec3_t mean(const std::vector&lt;vec3_t&gt; &amp;x);
+</code></pre>
+  
+  <div class="doc"><p><p>Mean vector</p>
+<ul>
+<li>[in] x List of vectors</li>
+</ul>
+<p><strong>Returns</strong> Mean vector</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double cross_track_error(Eigen::Vector2d p1,
+                         Eigen::Vector2d p2,
+                         Eigen::Vector2d pos);
+</code></pre>
+  
+  <div class="doc"><p><p>Cross-Track error based on waypoint line between p1, p2, and robot position</p>
+<ul>
+<li>[in] p1 Waypoint 1</li>
+<li>[in] p2 Waypoint 2</li>
+<li>[in] pos Robot position</li>
+</ul>
+<p><strong>Returns</strong> Cross track error</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int point_left_right(Eigen::Vector2d p1,
+                     Eigen::Vector2d p2,
+                     Eigen::Vector2d pos);
+</code></pre>
+  
+  <div class="doc"><p><p>Check if point <code>pos</code> is left or right of line formed by <code>p1</code> and <code>p2</code></p>
+<ul>
+<li>[in] p1 Waypoint 1</li>
+<li>[in] p2 Waypoint 2</li>
+<li>[in] pos Robot position</li>
+</ul>
+<p><strong>Returns</strong>
+   - 1: Point is left of waypoint line formed by <code>p1</code> and <code>p2</code>
+   - 2: Point is right of waypoint line formed by <code>p1</code> and <code>p2</code>
+   - 0: Point is colinear with waypoint line formed by <code>p1</code> and <code>p2</code></p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double closest_point(Eigen::Vector2d p1,
+                     Eigen::Vector2d p2,
+                     Eigen::Vector2d p3,
+                     Eigen::Vector2d closest);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate closest point given waypoint line between <code>p1</code>, <code>p2</code> and robot
+position</p>
+<ul>
+<li>[in] p1 Waypoint 1</li>
+<li>[in] p2 Waypoint 2</li>
+<li>[in] p3 Robot position</li>
+<li>[out] closest Closest point</li>
+</ul>
+<p><strong>Returns</strong>
+   Unit number denoting where the closest point is on waypoint line. For
+   example, a return value of 0.5 denotes the closest point is half-way
+   (50%) of the waypoint line, alternatively a negative number denotes the
+   closest point is behind the first waypoint.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec2_t lerp(Eigen::Vector2d a, Eigen::Vector2d b, const double mu);
+</code></pre>
+  
+  <div class="doc"><p><p>Linear interpolation between two points</p>
+<ul>
+<li>[in] a First point</li>
+<li>[in] b Second point</li>
+<li>[in] mu Unit number</li>
+</ul>
+<p><strong>Returns</strong> Linear interpolation</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

@@ -1,0 +1,60 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct pid_t {
+  double error_prev;
+  double error_sum;
+  double error_p;
+  double error_i;
+  double error_d;
+  double k_p;
+  double k_i;
+  double k_d;
+
+  pid_t();
+  pid_t(const double k_p, const double k_i, const double k_d);
+  ~pid_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>PID Controller</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const pid_t &amp;pid);
+</code></pre>
+  
+  <div class="doc"><p><p><code>pid_t</code> to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double pid_update(pid_t &amp;p,
+                  const double setpoint,
+                  const double actual,
+                  const double dt);
+</code></pre>
+  
+  <div class="doc"><p><p>Update controller</p>
+<p><strong>Returns</strong> Controller command</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double pid_update(pid_t &amp;p, const double error, const double dt);
+</code></pre>
+  
+  <div class="doc"><p><p>Update controller</p>
+<p><strong>Returns</strong> Controller command</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void pid_reset(pid_t &amp;p);
+</code></pre>
+  
+  <div class="doc"><p><p>Reset controller</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

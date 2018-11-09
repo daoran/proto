@@ -24,6 +24,3 @@ octave-workspace
 .ropeproject
 
 *.pyc
-
-docs/html
-docs/latex

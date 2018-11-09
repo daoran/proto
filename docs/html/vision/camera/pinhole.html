@@ -1,0 +1,178 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct pinhole_t {
+  double fx;
+  double fy;
+  double cx;
+  double cy;
+  mat3_t K;
+
+  pinhole_t();
+  pinhole_t(const vec4_t &amp;intrinsics);
+  pinhole_t(const double fx_,
+            const double fy_,
+            const double cx_,
+            const double cy_);
+  ~pinhole_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>Pinhole camera model</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const pinhole_t &amp;pinhole);
+</code></pre>
+  
+  <div class="doc"><p><p>Type to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t
+pinhole_K(const double fx, const double fy, const double cx, const double cy);
+</code></pre>
+  
+  <div class="doc"><p><p>Form pinhole camera matrix K</p>
+<ul>
+<li>[in] fx Focal length in x-axis</li>
+<li>[in] fy Focal length in y-axis</li>
+<li>[in] cx Principal center in x-axis</li>
+<li>[in] cy Principal center in y-axis</li>
+</ul>
+<p><strong>Returns</strong> Camera matrix K</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t pinhole_K(const vec4_t &amp;intrinsics);
+</code></pre>
+  
+  <div class="doc"><p><p>Form pinhole camera matrix K</p>
+<ul>
+<li>[in] intrinsics Intrinsics (fx, fy, cx, cy)</li>
+</ul>
+<p><strong>Returns</strong> Camera matrix K</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat34_t pinhole_P(const mat3_t &amp;K, const mat3_t &amp;R, const vec3_t &amp;t);
+</code></pre>
+  
+  <div class="doc"><p><p>Form pinhole projection matrix P</p>
+<ul>
+<li>[in] K Camera matrix K</li>
+<li>[in] R Camera rotation matrix</li>
+<li>[in] t Camera translation vector</li>
+</ul>
+<p><strong>Returns</strong> Camera projection matrix P</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double pinhole_focal_length(const int image_width, const double fov);
+</code></pre>
+  
+  <div class="doc"><p><p>Pinhole camera model theoretical focal length</p>
+<ul>
+<li>[in] image_width Image width [px]</li>
+<li>[in] fov Field of view [deg]</li>
+</ul>
+<p><strong>Returns</strong> Focal length in pixels</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec2_t pinhole_focal_length(const vec2_t &amp;image_size,
+                            const double hfov,
+                            const double vfov);
+</code></pre>
+  
+  <div class="doc"><p><p>Pinhole camera model theoretical focal length</p>
+<ul>
+<li>[in] image_size Image width and height [px]</li>
+<li>[in] hfov Horizontal field of view [deg]</li>
+<li>[in] vfov Vertical field of view [deg]</li>
+</ul>
+<p><strong>Returns</strong> Focal length in pixels</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec2_t project(const pinhole_t &amp;pinhole, const vec3_t &amp;p);
+</code></pre>
+  
+  <div class="doc"><p><p>Project point to pixel coordinates</p>
+<ul>
+<li>[in] pinhole Pinhole camera model</li>
+<li>[in] p Point in 3D</li>
+</ul>
+<p><strong>Returns</strong> Point in pixel coordinates</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec2_t project(const pinhole_t &amp;pinhole, const vec2_t &amp;p);
+</code></pre>
+  
+  <div class="doc"><p><p>Project point to pixel coordinates</p>
+<ul>
+<li>[in] pinhole Pinhole camera model</li>
+<li>[in] p Point</li>
+</ul>
+<p><strong>Returns</strong> Point in pixel coordinates</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec2_t project(const pinhole_t &amp;pinhole,
+               const mat3_t &amp;R,
+               const vec3_t &amp;t,
+               const vec4_t &amp;hp);
+</code></pre>
+  
+  <div class="doc"><p><p>Project 3D point to image plane using pinhole model</p>
+<ul>
+<li>[in] pinhole Pinhole camera model</li>
+<li>[in] R Rotation matrix</li>
+<li>[in] t translation vector</li>
+<li>[in] hp 3D point in homogeneous coordinates</li>
+</ul>
+<p><strong>Returns</strong> Projected point in image plane</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec2_t project(const pinhole_t &amp;pinhole,
+               const mat3_t &amp;R,
+               const vec3_t &amp;t,
+               const vec3_t &amp;p);
+</code></pre>
+  
+  <div class="doc"><p><p>Project 3D point to image plane using pinhole model</p>
+<ul>
+<li>[in] pinhole Pinhole camera model</li>
+<li>[in] R Rotation matrix</li>
+<li>[in] t translation vector</li>
+<li>[in] p 3D point</li>
+</ul>
+<p><strong>Returns</strong> Projected point in image plane</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec2_t pixel2ideal(const pinhole_t &amp;pinhole, const vec2_t &amp;pixel);
+</code></pre>
+  
+  <div class="doc"><p><p>Convert pixel to ideal</p>
+<ul>
+<li>[in] pinhole Pinhole camera model</li>
+<li>[in] pixel Pixel measurement</li>
+</ul>
+<p><strong>Returns</strong> Point in image plane</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

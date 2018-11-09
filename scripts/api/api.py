@@ -1,5 +1,6 @@
 import os
 import html
+import shutil
 import textwrap
 from glob import glob
 
@@ -8,10 +9,11 @@ import markdown
 from jinja2 import Template
 
 # GLOBAL VARIABLES
-include_path = "../include/prototype"
-output_path = "../docs/html"
+include_path = "../../include/prototype"
+html_path = "../../docs/html"
 header_impl_pattern = "_impl.hpp"
-
+template_file = "template.html"
+index_file = "index.html"
 
 def get_classes(data):
     if len(data.classes) == 0:
@@ -53,8 +55,9 @@ def process_docstring(data):
             result += c
     result += "\n"
 
-    result = result.replace("@returns", "**Returns**")
-    result = result.replace("@return", "**Returns**")
+    result = result.replace("@returns", "\n**Returns**")
+    result = result.replace("@return", "\n**Returns**")
+    result = result.replace("@param", "- ")
     return markdown.markdown(result)
 
 
@@ -225,7 +228,7 @@ def render(header_path, output_path):
     functions = Functions(header)
 
     # Render and save document
-    t = Template(open("template.html").read())
+    t = Template(open(template_file).read())
     html = t.render(classes=classes, functions=functions.data())
     html_file = open(output_path, "w")
     html_file.write(html)
@@ -251,7 +254,7 @@ for header in header_files:
 output_paths = []
 for header in header_files:
     basepath = header.replace(include_path, "").replace(".hpp", ".html")
-    output_paths.append(os.path.join(output_path, basepath))
+    output_paths.append(os.path.join(html_path, basepath))
 
 # Prepare output dirs
 for path in output_paths:
@@ -269,7 +272,7 @@ for i in range(nb_header_files):
 # render(header, dest)
 
 # Sidebar file
-sidebar_path = os.path.join(output_path, "sidebar.html")
+sidebar_path = os.path.join(html_path, "sidebar.html")
 sidebar_file = open(sidebar_path, "w")
 
 sidebar_file.write("<h1>prototype</h1>\n\n")
@@ -280,7 +283,7 @@ nb_header_files = len(header_files)
 current_module = ""
 current_level = 0
 for path in output_paths:
-    relpath = path.replace(output_path, "")
+    relpath = path.replace(html_path, "")
     if relpath[0] == "/":
         relpath = relpath[1:]
 
@@ -288,13 +291,17 @@ for path in output_paths:
     if len(blocks) == 1:
         continue
 
-    if current_module != blocks[-2]:
-        current_module = blocks[-2]
-        current_level = len(blocks) - 1
-        sidebar_file.write("<li>%s</li>" % (current_module))
+    # if current_module != blocks[-2]:
+    #     current_module = blocks[-2]
+    #     current_level = len(blocks) - 1
+    #     sidebar_file.write("<li>%s</li>" % (current_module))
 
     fn = ".".join(blocks).replace(".html", "")
     sidebar_file.write("  <li><a href='#%s'>%s</a></li>\n" % (fn, fn))
 
 sidebar_file.write("</ul>\n")
 sidebar_file.close()
+
+
+# Index file
+shutil.copyfile(index_file, os.path.join(html_path, index_file))

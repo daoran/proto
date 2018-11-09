@@ -1,0 +1,47 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct imu_data_t {
+  std::string data_dir;
+  std::vector&lt;long&gt; timestamps;
+  std::vector&lt;double&gt; time;
+  std::vector&lt;vec3_t&gt; w_B;
+  std::vector&lt;vec3_t&gt; a_B;
+  std::string sensor_type;
+  std::string comment;
+  mat4_t T_BS;
+  double rate_hz;
+  double gyro_noise_density;
+  double gyro_random_walk;
+  double accel_noise_density;
+  double accel_random_walk;
+
+  imu_data_t();
+  imu_data_t(const std::string &amp;data_dir_);
+};</code></pre>
+  
+  <div class="doc"><p><p>IMU data</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int imu_data_load(imu_data_t &amp;data);
+</code></pre>
+  
+  <div class="doc"><p><p>Load IMU data</p>
+<ul>
+<li>[in] data IMU data</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const imu_data_t &amp;data);
+</code></pre>
+  
+  <div class="doc"><p><p>IMUData to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

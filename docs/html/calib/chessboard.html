@@ -1,0 +1,84 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct chessboard_t {
+  bool ok;
+  std::string config_file;
+  int nb_rows;
+  int nb_cols;
+  double square_size;
+  std::vector&lt;cv::Point3f&gt; object_points;
+
+  chessboard_t();
+  chessboard_t(const std::string &amp;config_file_);
+  ~chessboard_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>Chessboard</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int chessboard_load(chessboard_t &amp;cb, const std::string &amp;config_file);
+</code></pre>
+  
+  <div class="doc"><p><p>Load config file</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::vector&lt;cv::Point3f&gt; chessboard_object_points(const chessboard_t &amp;cb);
+</code></pre>
+  
+  <div class="doc"><p><p>Create object points</p>
+<p><strong>Returns</strong> Vector of object points</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int chessboard_detect(const chessboard_t &amp;cb,
+                      const cv::Mat &amp;image,
+                      std::vector&lt;cv::Point2f&gt; &amp;corners);
+</code></pre>
+  
+  <div class="doc"><p><p>Detect chessboard corners</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int chessboard_draw_corners(const chessboard_t &amp;cb, cv::Mat &amp;image);
+</code></pre>
+  
+  <div class="doc"><p><p>Draw chessboard corners</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int chessboard_solvepnp(const chessboard_t &amp;cb,
+                        const std::vector&lt;cv::Point2f&gt; corners,
+                        const mat3_t &amp;K,
+                        mat4_t &amp;T_CF,
+                        matx_t &amp;X);
+</code></pre>
+  
+  <div class="doc"><p><p>Solve PnP between camera and chessboard</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void chessboard_project_points(const chessboard_t &amp;cb,
+                               const matx_t &amp;X,
+                               const mat3_t &amp;K,
+                               cv::Mat &amp;image);
+</code></pre>
+  
+  <div class="doc"><p><p>Project 3D points to image. Where the corner positoins relative to the
+camera is in <em>ideal coordinates</em>, and <code>K</code> is the camera matrix.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>prototype docs</title>
+
+  <link rel="stylesheet"
+        href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/dracula.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <script
+      src="https://code.jquery.com/jquery-3.3.1.min.js"
+  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+  crossorigin="anonymous"></script>
+
+  <style>
+    body {
+      color: #111;
+      margin: 0;
+      padding: 0;
+
+      overflow-y: scroll;
+      overflow-x: hidden;
+
+      font-family: times;
+    }
+
+    #sidebar {
+      position: fixed;
+      width: 220px;
+      height: 100%;
+
+      overflow-y: scroll;
+      overflow: -moz-scrollbars-vertical;
+
+      margin-right: 20px;
+      margin-top: 0;
+      padding-left: 25px;
+      padding-top: 0;
+
+      box-shadow: 0 0 40px #CCC;
+      -webkit-box-shadow: 0 0 40px #CCC;
+      -moz-box-shadow: 0 0 40px #CCC;
+      border-right: 1px solid #BBB;
+    }
+
+    #sidebar h1 {
+      font-size: 25px;
+      margin-bottom: 0px;
+      padding-bottom: 0px;
+    }
+
+    #sidebar h1 a:link, #sidebar h1 a:visited {
+      color: #333;
+    }
+
+    #sidebar h2 {
+      font-size: 18px;
+    }
+
+    #sidebar h5 {
+      margin-top: 20px;
+      margin-bottom: 0;
+    }
+
+    #sidebar a:visited, #sidebar a:link {
+      color: #4682BE;
+      text-decoration: none;
+    }
+
+    #sidebar ul {
+      list-style-type: none;
+      margin: 0;
+      padding-left: 10px;
+      padding-top: 0;
+    }
+
+    #sidebar ul li:before {  /* a hack to have dashes as a list style */
+      content: "-";
+      position: relative;
+      left: -5px;
+    }
+
+    #sidebar ul li {
+      margin-top: 0;
+      margin-bottom: 2px;
+      margin-left: 5px;
+      padding: 0;
+
+      text-indent: -5px;  /* to compensate for the padding for the dash */
+      font-size: 14px;
+    }
+
+    #content {
+      width: 700px;
+
+      margin-left: 290px;
+      padding-top: 10px;
+      padding-bottom: 150px;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .cpp_class_properties {
+      list-style-type: "-";
+    }
+
+    .cpp_func {
+      margin-top: 10px;
+      margin-bottom: 10px;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .cpp_func:hover {
+      cursor: pointer;
+    }
+
+    .cpp_func .doc {
+      display: none;
+      width: 95%;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 40px;
+    }
+
+    .hljs {
+      border-radius: 2px;
+    }
+  </style>
+
+  <script>
+    function show_doc(caller) {
+      var doc = caller.getElementsByClassName("doc")[0];
+      if (doc.style.display === "none" || doc.style.display == "") {
+        doc.style.display = "block";
+      } else {
+        doc.style.display = "none";
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="sidebar"></div>
+  <div id="content"></div>
+
+  <script>
+    $("#sidebar").load("sidebar.html");
+    $(window).on("hashchange", function(e) {
+      var hash = location.hash;
+      var html_file = hash.replace(/\./g, "/").slice(1) + ".html";
+      $("#content").load(html_file, function() {
+        $(document).ready(function() {
+          $('pre code').each(function(i, block) {
+            hljs.highlightBlock(block);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct pos_ctrl_t {
+  double dt;
+  double hover_throttle;
+};</code></pre>
+  
+  <div class="doc"><p><p>Position control</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int pos_ctrl_configure(pos_ctrl_t &amp;pc, const std::string &amp;config_file);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure position control</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec4_t pos_ctrl_update(pos_ctrl_t &amp;pc,
+                       const vec3_t &amp;setpoints,
+                       const vec4_t &amp;actual,
+                       const double yaw,
+                       const double dt);
+</code></pre>
+  
+  <div class="doc"><p><p>Update position control</p>
+<ul>
+<li><code>setpoints</code>: Setpoints (x, y, z)</li>
+<li><code>actual</code>: Actual (x, y, z)</li>
+<li><code>yaw</code>: (radians)</li>
+<li><code>dt</code>: Time step (s)</li>
+</ul>
+<p><strong>Returns</strong> Attitude command (roll, pitch, yaw, thrust)</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void pos_ctrl_reset(pos_ctrl_t &amp;pc);
+</code></pre>
+  
+  <div class="doc"><p><p>Reset position control</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

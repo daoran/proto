@@ -1,0 +1,96 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct calib_cam2cam_t {
+  bool ok;
+  std::string file_path;
+  std::string calib_time;
+  double corner_dist;
+  std::array&lt;vec2_t, 4&gt; S;
+  std::array&lt;mat3_t, 4&gt; K;
+  std::array&lt;vecx_t, 4&gt; D;
+  std::array&lt;mat3_t, 4&gt; R;
+  std::array&lt;vec3_t, 4&gt; T;
+  std::array&lt;vec2_t, 4&gt; S_rect;
+  std::array&lt;mat3_t, 4&gt; R_rect;
+  std::array&lt;mat34_t, 4&gt; P_rect;
+
+  calib_cam2cam_t();
+  calib_cam2cam_t(const std::string file_path_);
+};</code></pre>
+  
+  <div class="doc"><p><p>Camera to Camera calibration</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct calib_imu2velo_t {
+  bool ok;
+  std::string file_path;
+  std::string calib_time;
+  mat3_t R;
+  vec3_t t;
+  mat4_t T_velo_imu;
+
+  calib_imu2velo_t();
+  calib_imu2velo_t(const std::string file_path_);
+};</code></pre>
+  
+  <div class="doc"><p><p>IMU to Velo calibration</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct calib_velo2cam_t {
+  bool ok;
+  std::string file_path;
+  std::string calib_time;
+  mat3_t R;
+  vec3_t t;
+  vec2_t df;
+  vec2_t dc;
+  mat4_t T_cam_velo;
+
+  calib_velo2cam_t();
+  calib_velo2cam_t(const std::string file_path_);
+};</code></pre>
+  
+  <div class="doc"><p><p>Velo to Camera calibration</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int calib_cam2cam_load(calib_cam2cam_t &amp;calib);
+</code></pre>
+  
+  <div class="doc"><p><p>Load camera to camera calibration</p>
+<ul>
+<li>[in,out] calib Camera to camera calibration</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int calib_imu2velo_load(calib_imu2velo_t &amp;calib);
+</code></pre>
+  
+  <div class="doc"><p><p>Load imu to velo calibration</p>
+<ul>
+<li>[in,out] calib IMU to VELO calibration</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int calib_velo2cam_load(calib_velo2cam_t &amp;calib);
+</code></pre>
+  
+  <div class="doc"><p><p>Load velo to camera calibration</p>
+<ul>
+<li>[in,out] calib VELO to camera calibration</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

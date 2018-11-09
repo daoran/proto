@@ -1,0 +1,51 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct two_wheel_t {
+  vec3_t p_G;
+  vec3_t v_G;
+  vec3_t a_G;
+  vec3_t rpy_G;
+  vec3_t w_G;
+  double vx_desired;
+  double yaw_desired;
+  vec3_t a_B;
+  vec3_t v_B;
+  vec3_t w_B;
+
+  two_wheel_t();
+  two_wheel_t(const vec3_t &amp;p_G_, const vec3_t &amp;v_G_, const vec3_t &amp;rpy_G_);
+};</code></pre>
+  
+  <div class="doc"><p><p>Two wheel robot</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void circle_trajectory(const double r, const double v, double *w, double *time);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate target angular velocity and time taken to traverse a desired
+circle * trajectory of radius r and velocity v</p>
+<ul>
+<li>[in] r Desired circle radius</li>
+<li>[in] v Desired trajectory velocity</li>
+<li>[in] w Target angular velocity</li>
+<li>[in] time Target time taken to complete circle trajectory</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void two_wheel_update(two_wheel_t &amp;tm, const double dt);
+</code></pre>
+  
+  <div class="doc"><p><p>Update</p>
+<ul>
+<li>[in,out] tm Model</li>
+<li>[in] dt Time difference (s)</li>
+</ul></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->

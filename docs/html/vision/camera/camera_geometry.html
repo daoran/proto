@@ -1,0 +1,33 @@
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">template &lt;typename CM, typename DM&gt;
+struct camera_geometry_t {
+  int camera_index;
+  CM camera_model;
+  DM distortion_model;
+
+  camera_geometry_t(const CM &amp;camera_model_, const DM &amp;distortion_model_);
+  ~camera_geometry_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>Camera geometry</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">template &lt;typename CM, typename DM&gt;
+vec2_t camera_geometry_project(const camera_geometry_t&lt;CM, DM&gt; &amp;cam,
+                               const vec3_t &amp;point);
+</code></pre>
+  
+  <div class="doc"><p><p>Project point to image plane in pixels</p>
+<ul>
+<li>[in] cam Camera geometry</li>
+<li>[in] point Point</li>
+</ul>
+<p><strong>Returns</strong> Point to image plane projection in pixel coordinates</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+</div> <!-- #content -->
