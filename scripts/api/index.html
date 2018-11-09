@@ -163,7 +163,7 @@
     function location_hash() {
       var hash = location.hash;
       if (hash != '') {
-        return hash.replace(/\./g, "/").slice(1) + ".html";
+        return "api/" + hash.replace(/\./g, "/").slice(1) + ".html";
       } else {
         return "README.html";
       }
