@@ -93,7 +93,7 @@
     }
 
     #content {
-      width: 700px;
+      width: 640px;
 
       margin-left: 290px;
       padding-top: 10px;
@@ -127,6 +127,10 @@
 
     .hljs {
       border-radius: 2px;
+      padding-left: 7px;
+      padding-right: 7px;
+      padding-top: 5px;
+      padding-bottom: 5px;
     }
   </style>
 
@@ -146,10 +150,7 @@
   <div id="content"></div>
 
   <script>
-    $("#sidebar").load("sidebar.html");
-    $(window).on("hashchange", function(e) {
-      var hash = location.hash;
-      var html_file = hash.replace(/\./g, "/").slice(1) + ".html";
+    function load_content(html_file) {
       $("#content").load(html_file, function() {
         $(document).ready(function() {
           $('pre code').each(function(i, block) {
@@ -157,6 +158,30 @@
           });
         });
       });
+    }
+
+    function location_hash() {
+      var hash = location.hash;
+      if (hash != '') {
+        return hash.replace(/\./g, "/").slice(1) + ".html";
+      } else {
+        return "README.html";
+      }
+    }
+
+    // Load sidebar
+    $("#sidebar").load("sidebar.html");
+
+    // Load content
+    $(document).ready(function() {
+      var html_file = location_hash();
+      load_content(html_file);
+    });
+
+    // Update content on hashchange
+    $(window).on("hashchange", function(e) {
+      var html_file = location_hash();
+      load_content(html_file);
     });
   </script>
 </body>

@@ -14,6 +14,8 @@ html_path = "../../docs/html"
 header_impl_pattern = "_impl.hpp"
 template_file = "template.html"
 index_file = "index.html"
+readme_file = "../../README.md"
+md = markdown.Markdown(extensions=["fenced_code"])
 
 def get_classes(data):
     if len(data.classes) == 0:
@@ -58,7 +60,7 @@ def process_docstring(data):
     result = result.replace("@returns", "\n**Returns**")
     result = result.replace("@return", "\n**Returns**")
     result = result.replace("@param", "- ")
-    return markdown.markdown(result)
+    return md.convert(result)
 
 
 class CppObj:
@@ -275,7 +277,7 @@ for i in range(nb_header_files):
 sidebar_path = os.path.join(html_path, "sidebar.html")
 sidebar_file = open(sidebar_path, "w")
 
-sidebar_file.write("<h1>prototype</h1>\n\n")
+sidebar_file.write("<h1><a href='.'>prototype</a></h1>\n\n")
 sidebar_file.write("<h2>API:</h2>\n")
 sidebar_file.write("<ul>\n")
 
@@ -305,3 +307,11 @@ sidebar_file.close()
 
 # Index file
 shutil.copyfile(index_file, os.path.join(html_path, index_file))
+
+
+# Readme file
+readme = open(readme_file, mode="r", encoding="utf-8").read()
+readme_html_path = os.path.join(html_path, "README.html")
+readme_html_file = open(readme_html_path, "w")
+readme_html_file.write(md.convert(readme))
+readme_html_file.close()

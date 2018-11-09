@@ -8,7 +8,7 @@ export CXX=/usr/bin/clang++
 # doxygen Doxyfile
 
 # cd scripts && python3 api.py > index.html
-# cd scripts/api && python3 api.py
+cd scripts/api && python3 api.py
 
 
 # cd octave/vision
