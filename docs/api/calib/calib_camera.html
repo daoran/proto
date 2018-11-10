@@ -1,9 +1,15 @@
+<div class="header_path">prototype/calib/calib_camera.hpp</div>
+
+<!-- DOC -->
+
+
 <!-- CLASSES --><div class="cpp_class">
   <pre><code class="cpp">struct pose_param_t {
   quat_t q;
   vec3_t t;
 
   pose_param_t(const mat4_t &amp;T);
+  ~pose_param_t();
 };</code></pre>
   
   <div class="doc"><p><p>Pose parameter block</p></p></div>
@@ -27,6 +33,7 @@
   
 </div> <!-- .cpp_class -->
 <!-- FUNCTIONS -->
+
 <h2>Functions</h2>
 
 <div class="cpp_func" onclick=show_doc(this)>
@@ -55,5 +62,7 @@ calibration.</p>
 <p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
   
 </div> <!-- .cpp_func -->
+
+
 
 </div> <!-- #content -->

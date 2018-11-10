@@ -1,64 +1,85 @@
-<h1><a href='.'>prototype</a></h1>
-
-<h2>API:</h2>
+<h1><a href="./">prototype</a></h1>
+<p><a href="https://github.com/chutsu/prototype">[github repo]</a></p>
+<h2>API</h2>
 <ul>
-  <li><a href='#.calib.aprilgrid'>.calib.aprilgrid</a></li>
-  <li><a href='#.calib.calib'>.calib.calib</a></li>
-  <li><a href='#.calib.calib_camera'>.calib.calib_camera</a></li>
-  <li><a href='#.calib.calib_gimbal'>.calib.calib_gimbal</a></li>
-  <li><a href='#.calib.calib_impl'>.calib.calib_impl</a></li>
-  <li><a href='#.calib.chessboard'>.calib.chessboard</a></li>
-  <li><a href='#.control'>.control</a></li>
-  <li><a href='#.control.att_ctrl'>.control.att_ctrl</a></li>
-  <li><a href='#.control.carrot_ctrl'>.control.carrot_ctrl</a></li>
-  <li><a href='#.control.mission'>.control.mission</a></li>
-  <li><a href='#.control.pid'>.control.pid</a></li>
-  <li><a href='#.control.pos_ctrl'>.control.pos_ctrl</a></li>
-  <li><a href='#.control.wp_ctrl'>.control.wp_ctrl</a></li>
-  <li><a href='#.core'>.core</a></li>
-  <li><a href='#.core.config'>.core.config</a></li>
-  <li><a href='#.core.data'>.core.data</a></li>
-  <li><a href='#.core.euler'>.core.euler</a></li>
-  <li><a href='#.core.file'>.core.file</a></li>
-  <li><a href='#.core.gps'>.core.gps</a></li>
-  <li><a href='#.core.jpl'>.core.jpl</a></li>
-  <li><a href='#.core.linalg'>.core.linalg</a></li>
-  <li><a href='#.core.log'>.core.log</a></li>
-  <li><a href='#.core.math'>.core.math</a></li>
-  <li><a href='#.core.stats'>.core.stats</a></li>
-  <li><a href='#.core.time'>.core.time</a></li>
-  <li><a href='#.dataset'>.dataset</a></li>
-  <li><a href='#.dataset.euroc'>.dataset.euroc</a></li>
-  <li><a href='#.dataset.euroc.camera_data'>.dataset.euroc.camera_data</a></li>
-  <li><a href='#.dataset.euroc.ground_truth'>.dataset.euroc.ground_truth</a></li>
-  <li><a href='#.dataset.euroc.imu_data'>.dataset.euroc.imu_data</a></li>
-  <li><a href='#.dataset.euroc.mav_dataset'>.dataset.euroc.mav_dataset</a></li>
-  <li><a href='#.dataset.kitti'>.dataset.kitti</a></li>
-  <li><a href='#.dataset.kitti.raw.calib'>.dataset.kitti.raw.calib</a></li>
-  <li><a href='#.dataset.kitti.raw.oxts'>.dataset.kitti.raw.oxts</a></li>
-  <li><a href='#.dataset.kitti.raw.parse'>.dataset.kitti.raw.parse</a></li>
-  <li><a href='#.dataset.kitti.raw.raw'>.dataset.kitti.raw.raw</a></li>
-  <li><a href='#.driver'>.driver</a></li>
-  <li><a href='#.driver.camera.camera'>.driver.camera.camera</a></li>
-  <li><a href='#.driver.gimbal.sbgc'>.driver.gimbal.sbgc</a></li>
-  <li><a href='#.driver.i2c'>.driver.i2c</a></li>
-  <li><a href='#.driver.imu.mpu6050'>.driver.imu.mpu6050</a></li>
-  <li><a href='#.driver.pwm.pca9685'>.driver.pwm.pca9685</a></li>
-  <li><a href='#.driver.uart'>.driver.uart</a></li>
-  <li><a href='#.estimation.filters'>.estimation.filters</a></li>
-  <li><a href='#.model'>.model</a></li>
-  <li><a href='#.model.gimbal'>.model.gimbal</a></li>
-  <li><a href='#.model.mav'>.model.mav</a></li>
-  <li><a href='#.model.two_wheel'>.model.two_wheel</a></li>
-  <li><a href='#.munit'>.munit</a></li>
-  <li><a href='#.prototype'>.prototype</a></li>
-  <li><a href='#.vision'>.vision</a></li>
-  <li><a href='#.vision.camera.camera_geometry'>.vision.camera.camera_geometry</a></li>
-  <li><a href='#.vision.camera.equi'>.vision.camera.equi</a></li>
-  <li><a href='#.vision.camera.pinhole'>.vision.camera.pinhole</a></li>
-  <li><a href='#.vision.camera.radtan'>.vision.camera.radtan</a></li>
-  <li><a href='#.vision.feature2d.draw'>.vision.feature2d.draw</a></li>
-  <li><a href='#.vision.feature2d.grid_fast'>.vision.feature2d.grid_fast</a></li>
-  <li><a href='#.vision.feature2d.grid_good'>.vision.feature2d.grid_good</a></li>
-  <li><a href='#.vision.util'>.vision.util</a></li>
+<li>calib/<ul>
+<li><a href="#calib.aprilgrid">aprilgrid.hpp</a></li>
+<li><a href="#calib.chessboard">chessboard.hpp</a></li>
+<li><a href="#calib.calib_camera">calib_camera.hpp</a></li>
+<li><a href="#calib.calib_data">calib_data.hpp</a></li>
+<li><a href="#calib.calib_gimbal">calib_gimbal.hpp</a></li>
+</ul>
+</li>
+<li>control/<ul>
+<li><a href="#control.att_ctrl">att_ctrl.hpp</a></li>
+<li><a href="#control.carrot_ctrl">carrot_ctrl.hpp</a></li>
+<li><a href="#control.mission">mission.hpp</a></li>
+<li><a href="#control.pid">pid.hpp</a></li>
+<li><a href="#control.pos_ctrl">pos_ctrl.hpp</a></li>
+<li><a href="#control.wp_ctrl">wp_ctrl.hpp</a></li>
+</ul>
+</li>
+<li>core/<ul>
+<li><a href="#core.config">config.hpp</a></li>
+<li><a href="#core.data">data.hpp</a></li>
+<li><a href="#core.euler">euler.hpp</a></li>
+<li><a href="#core.file">file.hpp</a></li>
+<li><a href="#core.gps">gps.hpp</a></li>
+<li><a href="#core.jpl">jpl.hpp</a></li>
+<li><a href="#core.linalg">linalg.hpp</a></li>
+<li><a href="#core.log">log.hpp</a></li>
+<li><a href="#core.math">math.hpp</a></li>
+<li><a href="#core.stats">stats.hpp</a></li>
+<li><a href="#core.time">time.hpp</a></li>
+</ul>
+</li>
+<li>dataset/<ul>
+<li>euroc/</li>
+<li>kitti/</li>
+</ul>
+</li>
+<li>driver/<ul>
+<li>camera/<ul>
+<li><a href="#driver.camera.camera">camera.hpp</a></li>
+</ul>
+</li>
+<li>gimbal/<ul>
+<li><a href="#driver.gimbal.sbgc">sbgc.hpp</a></li>
+</ul>
+</li>
+<li>imu/<ul>
+<li><a href="#driver.imu.mpu6050">mpu6050.hpp</a></li>
+</ul>
+</li>
+<li>pwm/<ul>
+<li><a href="#driver.pca9685">pca9685.hpp</a></li>
+</ul>
+</li>
+<li><a href="#driver.i2c">i2c.cpp</a></li>
+<li><a href="#driver.uart">uart.cpp</a></li>
+</ul>
+</li>
+<li>model/<ul>
+<li><a href="#model.gimbal">gimbal.hpp</a></li>
+<li><a href="#model.mav">mav.hpp</a></li>
+<li><a href="#model.two_wheel">two_wheel.hpp</a></li>
+</ul>
+</li>
+<li>vision/<ul>
+<li>camera/<ul>
+<li><a href="#vision.camera.camera_geometry">camera_geometry.hpp</a></li>
+<li><a href="#vision.camera.equi">equi.hpp</a></li>
+<li><a href="#vision.camera.pinhole">pinhole.hpp</a></li>
+<li><a href="#vision.camera.radtan">radtan.hpp</a></li>
+</ul>
+</li>
+<li>feature2d/<ul>
+<li><a href="#vision.feature2d.draw">draw.hpp</a></li>
+<li><a href="#vision.feature2d.grid_fast">grid_fast.hpp</a></li>
+<li><a href="#vision.feature2d.grid_good">grid_good.hpp</a></li>
+</ul>
+</li>
+<li><a href="#vision.util">util.hpp</a></li>
+</ul>
+</li>
 </ul>
