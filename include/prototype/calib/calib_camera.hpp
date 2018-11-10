@@ -7,6 +7,7 @@
 
 #include <ceres/ceres.h>
 
+#include "prototype/prototype.hpp"
 #include "prototype/core.hpp"
 #include "prototype/calib/calib.hpp"
 
@@ -20,7 +21,7 @@ struct pose_param_t {
   vec3_t t;
 
   pose_param_t(const mat4_t &T);
-  ~pose_param_t():
+  ~pose_param_t();
 };
 
 /**

@@ -204,7 +204,7 @@ class Functions:
         return output
 
 
-def render(header_path, output_path):
+def render_api(header_path, output_path):
     print("Processing header [%s]" % header_path)
     header = CppHeaderParser.CppHeader(header_path)
 
@@ -227,79 +227,99 @@ def render(header_path, output_path):
     html_file.close()
 
 
-# def get_header_files()
+def render_apis(header_files, output_paths):
+    nb_header_files = len(header_files)
+    for i in range(nb_header_files):
+        render_api(header_files[i], output_paths[i])
 
-# Get all headers
-if include_path[-1] != "/":
-    include_path += "/"
 
-header_files = []
-for x in os.walk(include_path):
-    for y in glob(os.path.join(x[0], '*.hpp')):
-        header_files.append(y)
-header_files = sorted(header_files)
+def render_sidebar(docs_path, header_files):
+    # Sidebar file
+    sidebar_path = os.path.join(docs_path, "sidebar.html")
+    sidebar_file = open(sidebar_path, "w")
 
-# Remove header implementation files
-for header in header_files:
-    if header_impl_pattern in header:
-        header_files.remove(header)
+    sidebar_file.write("<h1><a href='.'>prototype</a></h1>\n\n")
+    sidebar_file.write("<h2>API:</h2>\n")
+    sidebar_file.write("<ul>\n")
 
-# Prepare output paths
-output_paths = []
-for header in header_files:
-    basepath = header.replace(include_path, "").replace(".hpp", ".html")
-    output_paths.append(os.path.join(api_path, basepath))
+    nb_header_files = len(header_files)
+    current_module = ""
+    current_level = 0
+    for path in output_paths:
+        relpath = path.replace(api_path, "")
+        if relpath[0] == "/":
+            relpath = relpath[1:]
 
-# Prepare output dirs
-for path in output_paths:
-    basedir = os.path.dirname(path)
-    if os.path.exists(basedir) is False:
-        os.makedirs(basedir)
+        blocks = relpath.split("/")
+        if len(blocks) == 1:
+            continue
 
-# Render docs
-nb_header_files = len(header_files)
-for i in range(nb_header_files):
-    render(header_files[i], output_paths[i])
+        if blocks[-1][-5:] != "html":
+            fn = ".".join(blocks).replace(".html", "")
+            sidebar_file.write("  <li><a href='#%s'>%s</a></li>\n" % (fn, fn))
+
+    sidebar_file.write("</ul>\n")
+    sidebar_file.close()
+
+
+def render_readme(readme_file, docs_path):
+    readme = open(readme_file, mode="r", encoding="utf-8").read()
+    readme_html_path = os.path.join(docs_path, "README.html")
+    readme_html_file = open(readme_html_path, "w")
+    readme_html_file.write(md.convert(readme))
+    readme_html_file.close()
+
+
+def render_index(index_file, docs_path):
+    # Index file
+    shutil.copyfile(index_file, os.path.join(docs_path, index_file))
+
+
+def get_header_files(include_path):
+    if include_path[-1] != "/":
+        include_path += "/"
+
+    # Get all headers
+    header_files = []
+    for x in os.walk(include_path):
+        for y in glob(os.path.join(x[0], '*.hpp')):
+            header_files.append(y)
+    header_files = sorted(header_files)
+
+    # Remove header implementation files
+    for header in header_files:
+        if header_impl_pattern in header:
+            header_files.remove(header)
+
+    return header_files
+
+
+def prepare_destination(header_files, include_path, api_path):
+    # Prepare output paths
+    output_paths = []
+    if api_path[-1] != "/":
+        api_path += "/"
+
+    for header in header_files:
+        basepath = header.replace(include_path, "").replace(".hpp", ".html")
+        output_paths.append(api_path + basepath)
+
+    # Prepare output dirs
+    for path in output_paths:
+        basedir = os.path.dirname(path)
+        if os.path.exists(basedir) is False:
+            os.makedirs(basedir)
+
+    return output_paths
+
+
+header_files = get_header_files(include_path)
+output_paths = prepare_destination(header_files, include_path, api_path)
+# render_apis(header_files, output_paths)
+render_sidebar(docs_path, header_files)
+# render_readme(readme_file, docs_path)
+# render_index(index_file, docs_path)
 
 # header = "../../include/prototype/driver/imu/mpu6050.hpp"
 # dest = "../../docs/api/driver/imu/mpu6050.html"
 # render(header, dest)
-
-# Sidebar file
-sidebar_path = os.path.join(docs_path, "sidebar.html")
-sidebar_file = open(sidebar_path, "w")
-
-sidebar_file.write("<h1><a href='.'>prototype</a></h1>\n\n")
-sidebar_file.write("<h2>API:</h2>\n")
-sidebar_file.write("<ul>\n")
-
-nb_header_files = len(header_files)
-current_module = ""
-current_level = 0
-for path in output_paths:
-    relpath = path.replace(api_path, "")
-    if relpath[0] == "/":
-        relpath = relpath[1:]
-
-    blocks = relpath.split("/")
-    if len(blocks) == 1:
-        continue
-
-    if blocks[-1][-5:] != "html":
-        fn = ".".join(blocks).replace(".html", "")
-        sidebar_file.write("  <li><a href='#%s'>%s</a></li>\n" % (fn, fn))
-
-sidebar_file.write("</ul>\n")
-sidebar_file.close()
-
-
-# Index file
-shutil.copyfile(index_file, os.path.join(docs_path, index_file))
-
-
-# Readme file
-readme = open(readme_file, mode="r", encoding="utf-8").read()
-readme_html_path = os.path.join(docs_path, "README.html")
-readme_html_file = open(readme_html_path, "w")
-readme_html_file.write(md.convert(readme))
-readme_html_file.close()

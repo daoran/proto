@@ -1,4 +1,4 @@
-#include "euroc/camera_data.hpp"
-#include "euroc/ground_truth.hpp"
-#include "euroc/imu_data.hpp"
-#include "euroc/mav_dataset.hpp"
+#include "prototype/dataset/euroc/camera_data.hpp"
+#include "prototype/dataset/euroc/ground_truth.hpp"
+#include "prototype/dataset/euroc/imu_data.hpp"
+#include "prototype/dataset/euroc/mav_dataset.hpp"
