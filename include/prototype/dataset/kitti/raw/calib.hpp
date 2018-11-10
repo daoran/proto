@@ -1,7 +1,7 @@
 #ifndef PROTOTYPE_DATASET_KITTI_RAW_CALIB_HPP
 #define PROTOTYPE_DATASET_KITTI_RAW_CALIB_HPP
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/dataset/kitti/raw/calib.hpp"
 #include "prototype/dataset/kitti/raw/parse.hpp"
 

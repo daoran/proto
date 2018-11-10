@@ -205,8 +205,11 @@ class Functions:
 
 
 def render_api(header_path, output_path):
-    print("Processing header [%s]" % header_path)
     header = CppHeaderParser.CppHeader(header_path)
+    print("Processing header [%s]" % header_path)
+
+    # Documentation
+    doc = parse_docstring(header_path, "<doc>")
 
     # Classes
     class_names = get_classes(header)
@@ -220,45 +223,59 @@ def render_api(header_path, output_path):
     functions = Functions(header)
 
     # Render and save document
+    inc_start = header_path.find("include")
+    inc_end = inc_start + len("include") + 1
+    header_path = header_path[inc_end:]
+
     t = Template(open(template_file).read())
-    html = t.render(classes=classes, functions=functions.data())
+    html = t.render(header_path=header_path,
+                    doc=doc,
+                    classes=classes,
+                    functions=functions.data())
     html_file = open(output_path, "w")
     html_file.write(html)
     html_file.close()
 
 
-def render_apis(header_files, output_paths):
+def render_headers(header_files, output_paths):
     nb_header_files = len(header_files)
     for i in range(nb_header_files):
         render_api(header_files[i], output_paths[i])
 
 
-def render_sidebar(docs_path, header_files):
+def parse_docstring(header_file, tag):
+    is_docstr = False
+    docstr = []
+    start_tag = "/*" + tag
+    end_tag = tag + "*/"
+
+    header = open(header_file, "r").read()
+    for line in header.split("\n"):
+        if line.strip() == start_tag:
+            is_docstr = True
+            continue
+        elif line.strip() == end_tag:
+            break
+        elif is_docstr:
+            docstr.append(line)
+    docstr = "\n".join(docstr)
+
+    if len(docstr) != 0 and docstr != " ":
+        return md.convert(docstr)
+    else:
+        return None
+
+
+def render_sidebar(sidebar_header, docs_path, header_files):
+    # Get sidebar content
+    docstr = parse_docstring(sidebar_header, "<sidebar_doc>")
+    if docstr is None:
+        raise RuntimeError("No docstring in [%s]?" % sidebar_header)
+
     # Sidebar file
     sidebar_path = os.path.join(docs_path, "sidebar.html")
     sidebar_file = open(sidebar_path, "w")
-
-    sidebar_file.write("<h1><a href='.'>prototype</a></h1>\n\n")
-    sidebar_file.write("<h2>API:</h2>\n")
-    sidebar_file.write("<ul>\n")
-
-    nb_header_files = len(header_files)
-    current_module = ""
-    current_level = 0
-    for path in output_paths:
-        relpath = path.replace(api_path, "")
-        if relpath[0] == "/":
-            relpath = relpath[1:]
-
-        blocks = relpath.split("/")
-        if len(blocks) == 1:
-            continue
-
-        if blocks[-1][-5:] != "html":
-            fn = ".".join(blocks).replace(".html", "")
-            sidebar_file.write("  <li><a href='#%s'>%s</a></li>\n" % (fn, fn))
-
-    sidebar_file.write("</ul>\n")
+    sidebar_file.write(docstr)
     sidebar_file.close()
 
 
@@ -315,10 +332,10 @@ def prepare_destination(header_files, include_path, api_path):
 
 header_files = get_header_files(include_path)
 output_paths = prepare_destination(header_files, include_path, api_path)
-# render_apis(header_files, output_paths)
-render_sidebar(docs_path, header_files)
-# render_readme(readme_file, docs_path)
-# render_index(index_file, docs_path)
+render_headers(header_files, output_paths)
+render_sidebar(include_path + "/prototype.hpp", docs_path, header_files)
+render_readme(readme_file, docs_path)
+render_index(index_file, docs_path)
 
 # header = "../../include/prototype/driver/imu/mpu6050.hpp"
 # dest = "../../docs/api/driver/imu/mpu6050.html"

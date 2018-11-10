@@ -1,3 +1,12 @@
+<div class="header_path">{{ header_path }}</div>
+
+<!-- DOC -->
+{% if doc %}
+<div class="module_doc">
+  {{ doc }}
+</div>  <!-- .module_doc -->
+{% endif %}
+
 <!-- CLASSES -->
 {%- for cls in classes -%}
 <div class="cpp_class">
@@ -9,6 +18,7 @@
 {% endfor -%}
 
 <!-- FUNCTIONS -->
+{% if functions|length > 1 %}
 <h2>Functions</h2>
 {% for func in functions %}
 <div class="cpp_func" onclick=show_doc(this)>
@@ -18,4 +28,6 @@
   {% endif %}
 </div> <!-- .cpp_func -->
 {% endfor %}
+{% endif %}
+
 </div> <!-- #content -->

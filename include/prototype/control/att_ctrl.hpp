@@ -2,7 +2,7 @@
 #define PROTOTYPE_CONTROL_ATT_CTRL_HPP
 
 #include "prototype/control/pid.hpp"
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 
 using namespace prototype;
 

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/dataset/kitti/raw/parse.hpp"
 
 namespace prototype {

@@ -24,7 +24,7 @@ ADD_LIBRARY(
   ${PROJECT_NAME}
   # calib
   src/calib/aprilgrid.cpp
-  src/calib/calib.cpp
+  src/calib/calib_data.cpp
   src/calib/calib_camera.cpp
   src/calib/calib_gimbal.cpp
   src/calib/chessboard.cpp
@@ -47,10 +47,11 @@ ADD_LIBRARY(
   src/core/stats.cpp
   src/core/time.cpp
   # dataset
-  src/dataset/euroc/camera_data.cpp
-  src/dataset/euroc/ground_truth.cpp
-  src/dataset/euroc/imu_data.cpp
-  src/dataset/euroc/mav_dataset.cpp
+  # src/dataset/euroc/camera_data.cpp
+  # src/dataset/euroc/ground_truth.cpp
+  # src/dataset/euroc/imu_data.cpp
+  # src/dataset/euroc/mav_dataset.cpp
+  src/dataset/euroc_mav.cpp
   src/dataset/kitti/raw/calib.cpp
   src/dataset/kitti/raw/oxts.cpp
   src/dataset/kitti/raw/parse.cpp
@@ -103,7 +104,7 @@ FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   calib-aprilgrid_test
-  calib-calib_test
+  calib-calib_data_test
   calib-calib_camera_test
   # control-carrot_ctrl_test
   control-mission_test
@@ -116,10 +117,7 @@ SET(
   core-math_test
   core-stats_test
   core-time_test
-  dataset-euroc-camera_data_test
-  dataset-euroc-ground_truth_test
-  dataset-euroc-imu_data_test
-  dataset-euroc-mav_dataset_test
+  dataset-euroc_mav_test
   dataset-kitti-raw-calib_test
   dataset-kitti-raw-oxts_test
   dataset-kitti-raw-parse_test

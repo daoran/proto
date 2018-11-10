@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 
 namespace prototype {
 

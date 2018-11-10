@@ -4,10 +4,10 @@
 #include <float.h>
 #include <iostream>
 
+#include "prototype/core/core.hpp"
 #include "prototype/control/att_ctrl.hpp"
 #include "prototype/control/pos_ctrl.hpp"
 #include "prototype/control/wp_ctrl.hpp"
-#include "prototype/core.hpp"
 
 namespace prototype {
 

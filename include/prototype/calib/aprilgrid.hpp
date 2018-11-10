@@ -5,7 +5,7 @@
 #include <AprilTags/TagDetector.h>
 #include <AprilTags/Tag36h11.h>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/vision/util.hpp"
 
 namespace prototype {

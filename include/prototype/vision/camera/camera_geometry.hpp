@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 #include "prototype/vision/camera/radtan.hpp"
 #include "prototype/vision/camera/equi.hpp"

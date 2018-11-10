@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 
 using namespace prototype;
 

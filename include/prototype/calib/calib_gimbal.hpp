@@ -3,7 +3,7 @@
 
 #include <ceres/ceres.h>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/model/gimbal.hpp"
 
 namespace prototype {

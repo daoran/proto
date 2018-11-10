@@ -1,8 +1,8 @@
 #ifndef PROTOTYPE_CONTROL_POS_CTRL_HPP
 #define PROTOTYPE_CONTROL_POS_CTRL_HPP
 
+#include "prototype/core/core.hpp"
 #include "prototype/control/pid.hpp"
-#include "prototype/core.hpp"
 
 namespace prototype {
 

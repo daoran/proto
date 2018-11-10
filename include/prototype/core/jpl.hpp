@@ -1,7 +1,7 @@
 #ifndef PROTOTYPE_CORE_JPL_HPP
 #define PROTOTYPE_CORE_JPL_HPP
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/core/math.hpp"
 
 namespace prototype {

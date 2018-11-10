@@ -1,7 +1,7 @@
-#ifndef PROTOTYPE_CALIB_CALIB_IMPL_HPP
-#define PROTOTYPE_CALIB_CALIB_IMPL_HPP
+#ifndef PROTOTYPE_CALIB_CALIB_DATA_IMPL_HPP
+#define PROTOTYPE_CALIB_CALIB_DATA_IMPL_HPP
 
-#include "calib.hpp"
+#include "calib_data.hpp"
 
 namespace prototype {
 
@@ -82,4 +82,4 @@ cv::Mat validate_stereo(const cv::Mat &image0,
 }
 
 } //  namespace prototype
-#endif // PROTOTYPE_CALIB_CALIB_IMPL_HPP
+#endif // PROTOTYPE_CALIB_CALIB_DATA_IMPL_HPP

@@ -1,5 +1,4 @@
 #include "prototype/munit.hpp"
-#include "prototype/core.hpp"
 #include "prototype/vision/util.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 #include "prototype/vision/camera/radtan.hpp"

@@ -1,7 +1,7 @@
 #ifndef PROTOTYPE_DRIVER_CAMERA_BASE_HPP
 #define PROTOTYPE_DRIVER_CAMERA_BASE_HPP
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 
 namespace prototype {
 

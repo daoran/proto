@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 
 namespace prototype {
 

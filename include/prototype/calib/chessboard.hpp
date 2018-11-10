@@ -3,7 +3,7 @@
 
 #include <opencv2/calib3d/calib3d.hpp>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/vision/util.hpp"
 
 namespace prototype {

@@ -6,9 +6,9 @@
 #include <libgen.h>
 #include <vector>
 
+#include "prototype/core/core.hpp"
 #include "prototype/control/mission.hpp"
 #include "prototype/control/pid.hpp"
-#include "prototype/core.hpp"
 
 namespace prototype {
 

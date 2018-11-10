@@ -1,7 +1,7 @@
 #ifndef PROTOTYPE_VISION_CAMERA_PINHOLE_HPP
 #define PROTOTYPE_VISION_CAMERA_PINHOLE_HPP
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 
 namespace prototype {
 

@@ -6,7 +6,7 @@
 #include <libgen.h>
 #include <vector>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 
 namespace prototype {
 

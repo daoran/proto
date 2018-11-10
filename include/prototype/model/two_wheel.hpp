@@ -1,8 +1,8 @@
 #ifndef PROTOTYPE_MODEL_TWOWHEEL_HPP
 #define PROTOTYPE_MODEL_TWOWHEEL_HPP
 
+#include "prototype/core/core.hpp"
 #include "prototype/control/pid.hpp"
-#include "prototype/core.hpp"
 
 namespace prototype {
 

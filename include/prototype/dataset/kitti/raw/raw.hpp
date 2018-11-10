@@ -6,7 +6,7 @@
 #include <sstream>
 #include <string>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/dataset/kitti/raw/calib.hpp"
 #include "prototype/dataset/kitti/raw/oxts.hpp"
 #include "prototype/dataset/kitti/raw/parse.hpp"

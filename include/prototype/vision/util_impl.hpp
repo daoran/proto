@@ -7,7 +7,7 @@
 #include <Eigen/Geometry>
 #include <opencv2/core/eigen.hpp>
 
-#include "prototype/core.hpp"
+#include "prototype/core/core.hpp"
 #include "prototype/vision/camera/camera_geometry.hpp"
 
 namespace prototype {
