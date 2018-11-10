@@ -1,4 +1,4 @@
-function T = transformation(R, t)
+function T = transform(R, t)
   T = zeros(4, 4);
   T(1:3, 1:3) = R;
   T(1:3, 4) = t;

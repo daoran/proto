@@ -1,13 +1,5 @@
-#!/usr/bin/octave
-graphics_toolkit("gnuplot");
-% pkg install -forge quaternion
+addpath(genpath("prototype"));
 pkg load quaternion
-
-script_path = fileparts(mfilename('fullpath'));
-addpath(strcat(script_path, "/util"));
-addpath(strcat(script_path, "/camera"));
-addpath(strcat(script_path, "/chessboard"));
-
 
 function data = trajectory_simulate(camera, chessboard)
   # Trajectory - bezier position settings
@@ -23,7 +15,7 @@ function data = trajectory_simulate(camera, chessboard)
   rpy_end = [deg2rad(-90.0); 0.0; deg2rad(-90.0)];
 
   # Initialize camera position and rotation
-  T_WC = transformation(euler321(rpy_init), pos_init);
+  T_WC = transform(euler321(rpy_init), pos_init);
   camera.T_WC = T_WC;
 
   # Generate trajectory
@@ -39,7 +31,7 @@ function data = trajectory_simulate(camera, chessboard)
     # Update camera pose
     pos_t = bezier_cubic(pos_init, wp_0, wp_1, pos_end, t);
     rpy_t = bezier_cubic(rpy_init, att_0, att_1, rpy_end, t);
-    camera.T_WC = transformation(euler321(rpy_t), pos_t);
+    camera.T_WC = transform(euler321(rpy_t), pos_t);
 
     # Check landmarks
     [z_t, landmarks_t] = camera_landmarks_observed(camera, landmarks);
@@ -68,7 +60,7 @@ function trajectory_plot(data)
   for i = 1:columns(data.time)
     cam_pos = data.camera_position(1:3, i);
     cam_rpy = data.camera_orientation(1:3, i);
-    T_WC = transformation(euler321(cam_rpy), cam_pos);
+    T_WC = transform(euler321(cam_rpy), cam_pos);
     data.camera.T_WC = T_WC;
     camera_draw(data.camera);
   endfor
@@ -82,7 +74,7 @@ function z_hat = h(q_WC, C_WC, L_W, K)
   # Project landmark to image plane
   R_WC = quat2rot(q_WC);
 
-  T_WC = transformation(R_WC, C_WC);
+  T_WC = transform(R_WC, C_WC);
   T_CW = inv(T_WC);
   R_CW = T_CW(1:3, 1:3);
   t_CW = T_CW(1:3, 4);
@@ -133,7 +125,7 @@ function J = jacobian(theta, K)
     L_W = theta(start+7:start+9, 1);
 
     # Project landmark to image plane
-    T_CW = inv(transformation(quat2rot(q_WC), C_WC));
+    T_CW = inv(transform(quat2rot(q_WC), C_WC));
     R_CW = T_CW(1:3, 1:3);
     C_CW = T_CW(1:3, 4);
     P = K * [R_CW, C_CW];
@@ -212,13 +204,13 @@ endfunction
 # Create chessboard
 t_WT = [5; 0; 0];
 R_WT = euler321([0.0, -pi / 2, 0]);
-T_WT = transformation(R_WT, t_WT);
+T_WT = transform(R_WT, t_WT);
 chessboard = chessboard_create(T_WT);
 
 # Create camera
 t_WC = [0; 0; 0];
 R_WC = euler321([deg2rad(-90.0), 0.0, deg2rad(-90.0)]);
-T_WC = transformation(R_WC, t_WC);
+T_WC = transform(R_WC, t_WC);
 camera = camera_create(T_WC);
 
 # Create trajectory
@@ -232,7 +224,7 @@ data = trajectory_simulate(camera, chessboard);
 % L_W = [5; 0; 0]
 % K = camera.K;
 
-% T_WC = transformation(R_WC, t_WC);
+% T_WC = transform(R_WC, t_WC);
 % T_CW = inv(T_WC);
 % R_CW = T_CW(1:3, 1:3);
 % t_CW = T_CW(1:3, 4);
@@ -301,9 +293,6 @@ size(J)
 % 	update_jacobian = 0;
 % 	lambda = lamda * 10;
 % end
-
-
-
 
 % Solve!
 % EWE = E' * (W \ E);

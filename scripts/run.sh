@@ -6,17 +6,18 @@ export CXX=/usr/bin/clang++
 # bash ./scripts/format_code.bash
 
 # doxygen Doxyfile
-
-# cd scripts && python3 api.py > index.html
-cd scripts/api && python3 api.py
-
+# cd scripts/api && python3 api.py
 
 # cd octave/vision
-# octave test_radtan4_distort.m
-# octave test_radtan4_undistort.m
 # octave sandbox.m
 # octave sandbox2.m
 # exit
+
+cd octave
+# octave notes/ba.m
+octave notes/point_jacobian.m
+# octave tests/vision/test_radtan4_distort.m
+# octave tests/vision/test_radtan4_undistort.m
 
 # rm -rf build
 # mkdir -p build

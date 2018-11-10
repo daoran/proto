@@ -1,4 +1,4 @@
-% pkg install -forge symbolic;
+addpath(genpath("prototype"));
 pkg load symbolic;
 
 % Setup symbols

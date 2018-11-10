@@ -35,6 +35,7 @@ def process_docstring(data):
     if "doxygen" not in data or data["doxygen"] is None:
         return None
 
+    # Strip comments
     data = data["doxygen"]
     data = data.replace("/**", "")
     data = data.replace("*/", "")
@@ -44,25 +45,12 @@ def process_docstring(data):
     for line in lines:
         output += line[2:] if "*" in line[:2] else line
         output += "\n"
-    # output = output.strip()
 
-    result = ""
-    code_on = False
-    for c in output:
-        if c == "`" and code_on is False:
-            result += "<code>"
-            code_on = True
-        elif c == "`" and code_on:
-            result += "</code>"
-            code_on = False
-        else:
-            result += c
-    result += "\n"
-
-    result = result.replace("@returns", "\n**Returns**")
-    result = result.replace("@return", "\n**Returns**")
-    result = result.replace("@param", "- ")
-    return md.convert(result)
+    # Search and replace doxygen keywords
+    output = output.replace("@returns", "\n**Returns**")
+    output = output.replace("@return", "\n**Returns**")
+    output = output.replace("@param", "- ")
+    return md.convert(output)
 
 
 class CppObj:
@@ -239,6 +227,8 @@ def render(header_path, output_path):
     html_file.close()
 
 
+# def get_header_files()
+
 # Get all headers
 if include_path[-1] != "/":
     include_path += "/"
@@ -271,8 +261,8 @@ nb_header_files = len(header_files)
 for i in range(nb_header_files):
     render(header_files[i], output_paths[i])
 
-# header = "../include/prototype/control/carrot_ctrl.hpp"
-# dest = "../docs/html/control/carrot_ctrl.hpp"
+# header = "../../include/prototype/driver/imu/mpu6050.hpp"
+# dest = "../../docs/api/driver/imu/mpu6050.html"
 # render(header, dest)
 
 # Sidebar file
@@ -295,13 +285,9 @@ for path in output_paths:
     if len(blocks) == 1:
         continue
 
-    # if current_module != blocks[-2]:
-    #     current_module = blocks[-2]
-    #     current_level = len(blocks) - 1
-    #     sidebar_file.write("<li>%s</li>" % (current_module))
-
-    fn = ".".join(blocks).replace(".html", "")
-    sidebar_file.write("  <li><a href='#%s'>%s</a></li>\n" % (fn, fn))
+    if blocks[-1][-5:] != "html":
+        fn = ".".join(blocks).replace(".html", "")
+        sidebar_file.write("  <li><a href='#%s'>%s</a></li>\n" % (fn, fn))
 
 sidebar_file.write("</ul>\n")
 sidebar_file.close()

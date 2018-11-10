@@ -1,4 +1,4 @@
-function [z_data, landmark_data] = camera_landmarks_observed(camera, landmarks)
+function [z_data, points_data] = camera_points_observed(camera, points)
   # Form projection matrix
   K = camera.K;
   T_CW = inv(camera.T_WC);
@@ -9,19 +9,19 @@ function [z_data, landmark_data] = camera_landmarks_observed(camera, landmarks)
   # Setup
   image_width = camera.resolution(1);
   image_height = camera.resolution(2);
-  nb_landmarks = columns(landmarks);
+  nb_points = columns(points);
 
-  # Check landmarks
+  # Check points
   z_data = [];
-  landmark_data = [];
+  point_data = [];
 
-  for i = 1:nb_landmarks
-    # Project landmark to image plane
-    landmark = landmarks(1:3, i);
-    landmark = [landmark; 1.0];
-    x = P * landmark;
+  for i = 1:nb_points
+    # Project point to image plane
+    point = points(1:3, i);
+    point = [point; 1.0];
+    x = P * point;
 
-    # Check to see if landmark is infront of camera
+    # Check to see if point is infront of camera
     if x(3) < 1.0
       continue;
     endif
@@ -37,7 +37,7 @@ function [z_data, landmark_data] = camera_landmarks_observed(camera, landmarks)
     y_ok = (x(2) < image_height) && (x(2) > 0.0);
     if x_ok && y_ok
       z_data = [z_data, z];
-      landmark_data = [landmark_data, landmark(1:3)];
+      points_data = [point_data, point(1:3)];
     endif
   endfor
 endfunction

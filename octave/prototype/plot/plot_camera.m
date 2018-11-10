@@ -1,6 +1,5 @@
-function camera_draw(camera)
-  fov = deg2rad(camera.fov);
-  T_WC = camera.T_WC;
+function plot_camera(T_WC, style="b-")
+  fov = deg2rad(60.0);
 
   # Form the camera fov frame
   fov_hwidth = 0.1;
@@ -27,13 +26,13 @@ function camera_draw(camera)
   frame_x = [fov_corners(1, :), fov_corners(1, 1)];
   frame_y = [fov_corners(2, :), fov_corners(2, 1)];
   frame_z = [fov_corners(3, :), fov_corners(3, 1)];
-  plot3(frame_x, frame_y, frame_z, 'b-');
+  plot3(frame_x, frame_y, frame_z, style);
 
   # Draw from camera origin to fov frame
   for i = 1:4
     x = [cam_origin(1), fov_corners(1, i)];
     y = [cam_origin(2), fov_corners(2, i)];
     z = [cam_origin(3), fov_corners(3, i)];
-    plot3(x, y, z, 'b-');
+    plot3(x, y, z, style);
   endfor
 endfunction
