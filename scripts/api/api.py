@@ -330,6 +330,7 @@ def prepare_destination(header_files, include_path, api_path):
     return output_paths
 
 
+# MAIN
 header_files = get_header_files(include_path)
 output_paths = prepare_destination(header_files, include_path, api_path)
 render_headers(header_files, output_paths)
@@ -337,6 +338,6 @@ render_sidebar(include_path + "/prototype.hpp", docs_path, header_files)
 render_readme(readme_file, docs_path)
 render_index(index_file, docs_path)
 
-# header = "../../include/prototype/driver/imu/mpu6050.hpp"
-# dest = "../../docs/api/driver/imu/mpu6050.html"
-# render(header, dest)
+# header = "../../include/prototype/vision/feature2d/grid_fast.hpp"
+# dest = "../../docs/api/vision/feature2d/grid_fast.html"
+# render_api(header, dest)

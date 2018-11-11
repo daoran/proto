@@ -16,7 +16,7 @@
 namespace prototype {
 
 /**
- * Grid fast
+ * Grid good
  *
  * @param[in] image Input image
  * @param[in] max_corners Max number of corners

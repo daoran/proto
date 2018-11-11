@@ -1,0 +1,201 @@
+<div class="header_path">prototype/mav/mission.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct waypoint_t {
+  double latitude;
+  double longitude;
+  double altitude;
+  double staytime;
+  double heading;
+};</code></pre>
+  
+  <div class="doc"><p><p>Waypoint</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct wp_mission_t {
+  bool configured;
+  bool completed;
+  double home_lat;
+  double home_lon;
+  double home_alt;
+  bool check_waypoints;
+  double threshold_waypoint_gap;
+  double threshold_waypoint_reached;
+  double desired_velocity;
+  double look_ahead_dist;
+  std::vector&lt;vec3_t&gt; gps_waypoints;
+  std::vector&lt;vec3_t&gt; local_waypoints;
+  int waypoint_index;
+  vec3_t wp_start;
+  vec3_t wp_end;
+};</code></pre>
+  
+  <div class="doc"><p><p>Mission</p></p></div>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">waypoint_t waypoint_setup(const double latitude, const double longitude);
+</code></pre>
+  
+  <div class="doc"><p><p>Setup waypoint with <code>latitude</code> and <code>longitude</code>.</p>
+<p><strong>Returns</strong> Waypoint</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">waypoint_t waypoint_setup(const double latitude,
+                          const double longitude,
+                          const double altitude,
+                          const double staytime,
+                          const double heading);
+</code></pre>
+  
+  <div class="doc"><p><p>Setup waypoint.</p>
+<p><strong>Returns</strong> Waypoint</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double waypoint_distance(const waypoint_t &amp;wp_a, const waypoint_t &amp;wp_b);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate distance between waypoint <code>wp_a</code> and <code>wp_b</code> in [m].</p>
+<p><strong>Returns</strong> Distance between waypoint <code>wp_a</code> and waypoint <code>wp_b</code></p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;out, const waypoint_t &amp;wp);
+</code></pre>
+  
+  <div class="doc"><p><p><code>waypoint_t</code> to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_mission_configure(wp_mission_t &amp;m, const std::string &amp;config_file);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure mission with configuration file <code>config_file</code>.</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure to load / parse config file, and -2
+for invalid GPS waypoints</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_mission_load_waypoints(wp_mission_t &amp;m,
+                              const std::vector&lt;double&gt; &amp;wps,
+                              const int type);
+</code></pre>
+  
+  <div class="doc"><p><p>Load GPS waypoints with the list of waypoints <code>wps</code>, where waypoint type is
+denoted by <code>type</code>.</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_mission_check_gps_waypoints(wp_mission_t &amp;m);
+</code></pre>
+  
+  <div class="doc"><p><p>Check GPS waypoints to make sure the distance between waypoints does not
+exceed <code>mission_t.waypoint_threshold</code>.</p>
+<p><strong>Returns</strong> 0 for success, -1 for no waypoints loaded, and finally -2 for
+invalid GPS waypoints.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_mission_set_gps_homepoint(wp_mission_t &amp;m,
+                                 const double home_lat,
+                                 const double home_lon);
+</code></pre>
+  
+  <div class="doc"><p><p>Set GPS home point latitude <code>home_lat</code>, longitude <code>home_lon</code>, and calculate
+local waypoints by converting GPS to local waypoints.</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec3_t wp_mission_closest_point(const wp_mission_t &amp;m, const vec3_t &amp;p_G);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate closest point.</p>
+<p><strong>Returns</strong> Closest point</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_mission_point_line_side(const wp_mission_t &amp;m, const vec3_t &amp;p_G);
+</code></pre>
+  
+  <div class="doc"><p><p>Calcuate which side the point is compared to waypoint track.</p>
+<p><strong>Returns</strong> 0 if position is colinear with waypoint track, 1 if position is
+left of waypoint track, and -1 if position is right of waypoint track.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double wp_mission_crosstrack_error(const wp_mission_t &amp;m,
+                                   const vec3_t &amp;p_G,
+                                   int mode);
+</code></pre>
+  
+  <div class="doc"><p><p>Calcuate crosstrack error.</p>
+<p><strong>Returns</strong> Cross track error.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double wp_mission_waypoint_heading(const wp_mission_t &amp;m);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate waypoint yaw. This function assumes we are operating in the NWU
+frame, where a 0 heading starts from the x-axis and goes counter-clock-wise.</p>
+<p><strong>Returns</strong> Waypoint yaw</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec3_t wp_mission_waypoint_interpolate(const wp_mission_t &amp;m,
+                                       const vec3_t &amp;p_G,
+                                       const double r);
+</code></pre>
+  
+  <div class="doc"><p><p>Interpolate mission waypoint point.</p>
+<p><strong>Returns</strong> Interpolated mission waypoint.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_mission_waypoint_reached(const wp_mission_t &amp;m, const vec3_t &amp;p_G);
+</code></pre>
+  
+  <div class="doc"><p><p>Check whether waypoint is reached.</p>
+<p><strong>Returns</strong> 0 if waypoint not reached, 1 if waypoint is reached, and -1 if
+mission is not configured.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_mission_update(wp_mission_t &amp;m, const vec3_t &amp;p_G, vec3_t &amp;waypoint);
+</code></pre>
+  
+  <div class="doc"><p><p>Update mission with current position in the global frame <code>p_G</code> and output
+interpolated <code>waypoint</code>.</p>
+<p><strong>Returns</strong> 0 for success, -1 if mission is not configured, and -2 for no more
+waypoints.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->

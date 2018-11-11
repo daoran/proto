@@ -1,0 +1,69 @@
+<div class="header_path">prototype/mav/wp_ctrl.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct wp_ctrl_t {
+  bool configured;
+  double dt;
+  double hover_throttle;
+};</code></pre>
+  
+  <div class="doc"><p><p>Waypoint Control</p></p></div>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_ctrl_configure(wp_ctrl_t &amp;wc, const std::string &amp;config_file);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure waypoint control</p>
+<ul>
+<li>[in,out] wc Waypoint controller</li>
+<li>[in] config_file Path to config file</li>
+</ul>
+<p><strong>Returns</strong>
+   - 0: Success
+   - -1: Failed to load config file
+   - -2: Failed to load mission file</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int wp_ctrl_update(wp_ctrl_t &amp;wc,
+                   wp_mission_t &amp;m,
+                   const vec3_t &amp;p_G,
+                   const vec3_t &amp;v_G,
+                   const vec3_t &amp;rpy_G,
+                   const double dt);
+</code></pre>
+  
+  <div class="doc"><p><p>Update controller</p>
+<ul>
+<li>[in,out] wc Waypoint controller</li>
+<li>[in,out] m Mission</li>
+<li>[in] p_G Actual position in global frame</li>
+<li>[in] v_G Actual velocity in global frame</li>
+<li>[in] rpy_G Actual roll, pitch and yaw in global frame</li>
+<li>[in] dt Time difference in seconds</li>
+</ul>
+<p><strong>Returns</strong>
+  - 0: Success
+  - -1: Not configured
+  - -2: No more waypoints</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void wp_ctrl_reset(wp_ctrl_t &amp;wc);
+</code></pre>
+  
+  <div class="doc"><p><p>Reset controller errors to 0</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->
