@@ -4,8 +4,8 @@
 namespace prototype {
 
 int test_file_exists() {
-  MU_CHECK(file_exists("test_configs/control/position_controller.yaml"));
-  MU_FALSE(file_exists("test_configs/control/bogus.yaml"));
+  MU_CHECK(file_exists("test_data/core/config/config.yaml"));
+  MU_FALSE(file_exists("test_data/core/config/bogus.yaml"));
 
   return 0;
 }

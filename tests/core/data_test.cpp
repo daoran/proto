@@ -1,7 +1,7 @@
 #include "prototype/core/data.hpp"
 #include "prototype/munit.hpp"
 
-#define TEST_DATA "test_data/utils/matrix.dat"
+#define TEST_DATA "test_data/core/data/matrix.dat"
 #define TEST_OUTPUT "/tmp/matrix.dat"
 
 namespace prototype {

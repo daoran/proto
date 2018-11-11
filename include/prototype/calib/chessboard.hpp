@@ -26,19 +26,19 @@ struct chessboard_t {
 };
 
 /**
- * Load config file
+ * Configure chessboard.
  * @returns 0 for success, -1 for failure
  */
-int chessboard_load(chessboard_t &cb, const std::string &config_file);
+int chessboard_configure(chessboard_t &cb, const std::string &config_file);
 
 /**
- * Create object points
+ * Create object points.
  * @returns Vector of object points
  */
 std::vector<cv::Point3f> chessboard_object_points(const chessboard_t &cb);
 
 /**
- * Detect chessboard corners
+ * Detect chessboard corners.
  * @returns 0 for success, -1 for failure
  */
 int chessboard_detect(const chessboard_t &cb,
@@ -46,13 +46,13 @@ int chessboard_detect(const chessboard_t &cb,
                       std::vector<cv::Point2f> &corners);
 
 /**
- * Draw chessboard corners
+ * Draw chessboard corners.
  * @returns 0 for success, -1 for failure
  */
-int chessboard_draw_corners(const chessboard_t &cb, cv::Mat &image);
+int chessboard_draw(const chessboard_t &cb, cv::Mat &image);
 
 /**
- * Solve PnP between camera and chessboard
+ * Solve PnP between camera and chessboard.
  * @returns 0 for success, -1 for failure
  */
 int chessboard_solvepnp(const chessboard_t &cb,
@@ -66,8 +66,8 @@ int chessboard_solvepnp(const chessboard_t &cb,
  * camera is in *ideal coordinates*, and `K` is the camera matrix.
  */
 void chessboard_project_points(const chessboard_t &cb,
-                               const matx_t &X,
                                const mat3_t &K,
+                               const matx_t &X,
                                cv::Mat &image);
 
 } //  namespace prototype

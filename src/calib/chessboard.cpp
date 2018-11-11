@@ -6,12 +6,12 @@ chessboard_t::chessboard_t() {}
 
 chessboard_t::chessboard_t(const std::string &config_file_)
     : config_file{config_file_} {
-  chessboard_load(*this, config_file_);
+  chessboard_configure(*this, config_file_);
 }
 
 chessboard_t::~chessboard_t() {}
 
-int chessboard_load(chessboard_t &cb, const std::string &config_file) {
+int chessboard_configure(chessboard_t &cb, const std::string &config_file) {
   // Parse config file
   config_t config{config_file};
   if (!config.ok) {
@@ -66,7 +66,7 @@ int chessboard_detect(const chessboard_t &cb,
   return 0;
 }
 
-int chessboard_draw_corners(const chessboard_t &cb, cv::Mat &image) {
+int chessboard_draw(const chessboard_t &cb, cv::Mat &image) {
   assert(cb.ok);
 
   // Detect corners
@@ -134,13 +134,13 @@ int chessboard_solvepnp(const chessboard_t &cb,
 }
 
 void chessboard_project_points(const chessboard_t &cb,
-                               const matx_t &X,
                                const mat3_t &K,
+                               const matx_t &X,
                                cv::Mat &image) {
   assert(cb.ok);
 
   // Project 3d point to image plane
-  matx_t x = K * X;
+  const matx_t x = K * X;
 
   for (int i = 0; i < x.cols(); i++) {
     const vec3_t p = x.col(i);

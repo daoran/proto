@@ -12,20 +12,28 @@ namespace prototype {
  * Attitude controller
  */
 struct att_ctrl_t {
+  bool configured = false;
+
   double dt = 0.0;
   vec4_t outputs{0.0, 0.0, 0.0, 0.0};
 
-  // PID tunes for dt = 0.01 (i.e. 100Hz)
-  pid_t roll{200.0, 0.001, 1.0};
-  pid_t pitch{200.0, 0.001, 1.0};
-  pid_t yaw{10.0, 0.001, 1.0};
+  double roll_limit[2] = {-30, 30};
+  double pitch_limit[2] = {-30, 30};
+  double max_thrust = 1.0;
+
+  pid_t roll_ctrl;
+  pid_t pitch_ctrl;
+  pid_t yaw_ctrl;
 
   att_ctrl_t();
-  att_ctrl_t(const vec3_t &roll_pid,
-             const vec3_t &pitch_pid,
-             const vec3_t &yaw_pid);
   ~att_ctrl_t();
 };
+
+/**
+ * Configure attitude controller with `config_file`.
+ * @returns 0 or -1 for success or failure
+ */
+int att_ctrl_configure(att_ctrl_t &ac, const std::string &config_file);
 
 /**
  * Update attitude controller with `setpoints` (roll, pitch, yaw, z), `actual`

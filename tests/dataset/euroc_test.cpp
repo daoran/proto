@@ -1,15 +1,14 @@
-#include "prototype/dataset/euroc.hpp"
 #include "prototype/munit.hpp"
+#include "prototype/dataset/euroc.hpp"
 
 namespace prototype {
 
-#define TEST_IMU_DATA "/data/euroc_mav/MH_01_easy/mav0/imu0"
-#define TEST_CAM0_DATA "/data/euroc_mav/MH_01_easy/mav0/cam0"
-#define TEST_GROUND_TRUTH_DATA                                                 \
-  "/data/euroc_mav/MH_01_easy/mav0/state_groundtruth_estimate0"
-#define TEST_DATA "/data/euroc_mav/MH_01_easy"
-
-#define TEST_CALIB_DATA "/data/euroc_mav/cam_april"
+#define TEST_DATA "test_data/dataset/euroc/V1_01_easy"
+#define TEST_IMU_DATA "test_data/dataset/euroc/V1_01_easy/mav0/imu0"
+#define TEST_CAM0_DATA "test_data/dataset/euroc/V1_01_easy/mav0/cam0"
+#define TEST_GROUND_TRUTH_DATA \
+  "test_data/dataset/euroc/V1_01_easy/mav0/state_groundtruth_estimate0"
+#define TEST_CALIB_DATA "test_data/dataset/euroc/cam_april"
 
 int test_euroc_imu_constructor() {
   euroc_imu_t imu_data;

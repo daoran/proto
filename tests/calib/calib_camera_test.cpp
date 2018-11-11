@@ -151,8 +151,8 @@ int test_calib_camera_stats() {
 
 void test_suite() {
   test_setup();
-  // MU_ADD_TEST(test_pinhole_radtan4_residual);
-  // MU_ADD_TEST(test_calib_camera_solve);
+  MU_ADD_TEST(test_pinhole_radtan4_residual);
+  MU_ADD_TEST(test_calib_camera_solve);
   MU_ADD_TEST(test_calib_camera_stats);
 }
 

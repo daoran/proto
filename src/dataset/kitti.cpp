@@ -132,8 +132,6 @@ int kitti_parse_timestamp(const std::string &line, long *s) {
 
 int calib_cam2cam_load(calib_cam2cam_t &calib) {
   std::ifstream file(calib.file_path.c_str());
-
-  // Check file
   if (file.good() != true) {
     return -1;
   }
@@ -482,7 +480,7 @@ kitti_raw_t::~kitti_raw_t() {}
 int kitti_raw_load(kitti_raw_t &ds) {
   // Pre-check
   bool res = dir_exists(ds.date_dir);
-  CHECK(res == false, "Dataset path not found! [%s]", ds.date_dir.c_str());
+  CHECK(res, "Dir not found! [%s]", ds.date_dir.c_str());
 
   // Load calibration files
   int retval;

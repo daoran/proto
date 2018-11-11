@@ -4,11 +4,14 @@
 
 namespace prototype {
 
-#define TEST_IMAGE_CENTER "test_data/apriltag/center.png"
-#define TEST_IMAGE "test_data/euroc/cam0/data/1403715273262142976.png"
+#define TEST_IMAGE "test_data/vision/test_image.jpg"
 
 int test_grid_fast() {
-  const cv::Mat image = cv::imread(TEST_IMAGE_CENTER);
+  const cv::Mat image = cv::imread(TEST_IMAGE);
+  if (image.empty()) {
+    LOG_ERROR("Cannot load image [%s]!", TEST_IMAGE);
+    return -1;
+  }
 
   auto features = grid_fast(image, // Input image
                             1000,  // Max number of corners
@@ -102,7 +105,7 @@ int benchmark_grid_fast() {
 
 void test_suite() {
   MU_ADD_TEST(test_grid_fast);
-  MU_ADD_TEST(benchmark_grid_fast);
+  // MU_ADD_TEST(benchmark_grid_fast);
 }
 
 } // namespace prototype

@@ -1,13 +1,11 @@
 #include "prototype/calib/aprilgrid.hpp"
 #include "prototype/munit.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
-// #include "prototype/dataset/euroc/CalibData.hpp"
 
 namespace prototype {
 
 #define TEST_OUTPUT "/tmp/aprilgrid.csv"
 #define TEST_IMAGE "test_data/calib/aprilgrid/aprilgrid.png"
-#define TEST_DATA "/data/euroc_mav/imu_april"
 #define TEST_CONF "test_data/calib/aprilgrid/target.yaml"
 
 static void visualize_grid(const cv::Mat &image,

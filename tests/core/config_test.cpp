@@ -2,7 +2,7 @@
 #include "prototype/core/data.hpp"
 #include "prototype/munit.hpp"
 
-#define TEST_CONFIG "test_configs/config/config.yaml"
+#define TEST_CONFIG "test_data/core/config/config.yaml"
 
 namespace prototype {
 

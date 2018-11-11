@@ -4,8 +4,8 @@
 
 namespace prototype {
 
-#define TEST_DATA_BASEPATH "test_data/kitti/raw/"
-#define TEST_DATA_PATH "test_data/kitti/raw/2011_09_26"
+#define TEST_DATA_BASEPATH "test_data/dataset/kitti/raw"
+#define TEST_DATA_PATH "test_data/dataset/kitti/raw/2011_09_26"
 
 int test_kitti_parse_string() {
   std::string value = kitti_parse_string("X: Hello World");
@@ -118,12 +118,6 @@ int test_calib_imu2velo_load() {
   int retval = calib_imu2velo_load(calib);
   MU_CHECK_EQ(retval, 0);
 
-  std::cout << calib.R << std::endl;
-
-  // const vec2_t S_00_exp{1.392000e+03, 5.120000e+02};
-  // MU_CHECK_EQ("09-Jan-2012 13:57:47", calib.calib_time);
-  // MU_CHECK_FLOAT(9.950000e-02, calib.corner_dist);
-
   return 0;
 }
 
@@ -132,26 +126,6 @@ int test_calib_velo2cam_load() {
 
   int retval = calib_velo2cam_load(calib);
   MU_CHECK_EQ(retval, 0);
-
-  return 0;
-}
-
-int test_sandbox() {
-  calib_imu2velo_t imu2velo{TEST_DATA_PATH "/calib_imu_to_velo.txt"};
-  calib_velo2cam_t velo2cam{TEST_DATA_PATH "/calib_velo_to_cam.txt"};
-
-  calib_imu2velo_load(imu2velo);
-  calib_velo2cam_load(velo2cam);
-
-  // Create transform matrices
-  const mat4_t T_cam_imu = velo2cam.T_cam_velo * imu2velo.T_velo_imu;
-  const mat4_t T_imu_cam = T_cam_imu.inverse();
-  const vec3_t X{0.0, 10.0, 0.0};
-  // std::cout << T_cam_imu * X.homogeneous() << std::endl;
-
-  const vec4_t q = rot2quat(T_imu_cam.block(0, 0, 3, 3).transpose());
-  std::cout << q.transpose() << std::endl;
-  // std::cout << C(q) * X << std::endl;
 
   return 0;
 }
@@ -186,7 +160,6 @@ void test_suite() {
   MU_ADD_TEST(test_calib_cam2cam_load);
   MU_ADD_TEST(test_calib_imu2velo_load);
   MU_ADD_TEST(test_calib_velo2cam_load);
-  MU_ADD_TEST(test_sandbox);
   MU_ADD_TEST(test_oxts_load);
 
   MU_ADD_TEST(test_kitti_raw_load);

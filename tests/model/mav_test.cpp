@@ -4,8 +4,6 @@
 
 namespace prototype {
 
-#define TEST_MISSION "test_configs/missions/mission_local.yaml"
-
 int setup_output_files(std::ofstream &gnd_file,
                        std::ofstream &mea_file,
                        std::ofstream &est_file) {
@@ -91,7 +89,6 @@ int test_mav_model_update() {
   std::ofstream gnd_file;
   std::ofstream mea_file;
   std::ofstream est_file;
-
   int retval = setup_output_files(gnd_file, mea_file, est_file);
   if (retval != 0) {
     LOG_ERROR("Failed to setup output files!");
@@ -99,7 +96,6 @@ int test_mav_model_update() {
   }
 
   // Setup mav model
-  // mav_model_t mav(vec3_t{0.0, 0.0, 0.0}, vec3_t{0.0, 0.0, 5.0});
   mav_model_t mav;
 
   // Record initial mav state
@@ -114,7 +110,8 @@ int test_mav_model_update() {
   // for (double t = 0.0; t <= 30.0; t += dt) {
   for (double t = 0.0; t <= 30.0; t += dt) {
     // Update mav model
-    // mav_model_update(mav, dt);
+    const vec4_t motor_inputs = zeros(4, 1);
+    mav_model_update(mav, motor_inputs, dt);
 
     // Record
     record_timestep(t, mav, gnd_file, mea_file, est_file);
@@ -122,12 +119,6 @@ int test_mav_model_update() {
   gnd_file.close();
   mea_file.close();
   est_file.close();
-
-  // Plot mav trajectory
-  // PYTHON_SCRIPT("scripts/plot_mav.py "
-  //               "/tmp/mav_gnd.dat "
-  //               "/tmp/mav_mea.dat "
-  //               "/tmp/mav_est.dat");
 
   return 0;
 }

@@ -3,70 +3,58 @@
 
 namespace prototype {
 
-#define TEST_CONFIG "tests/configs/control/pos_ctrl.yaml"
+#define TEST_CONFIG "test_data/mav/pos_ctrl.yaml"
 
 int test_pos_ctrl_constructor() {
-  pos_ctrl controller;
+  pos_ctrl_t p_ctrl;
 
-  MU_CHECK_FLOAT(0.0, controller.dt);
+  MU_CHECK_FLOAT(0.0, p_ctrl.dt);
 
-  MU_CHECK_FLOAT(0.0, controller.x_ctrl.k_p);
-  MU_CHECK_FLOAT(0.0, controller.x_ctrl.k_i);
-  MU_CHECK_FLOAT(0.0, controller.x_ctrl.k_d);
+  MU_CHECK_FLOAT(0.0, p_ctrl.outputs(0));
+  MU_CHECK_FLOAT(0.0, p_ctrl.outputs(1));
+  MU_CHECK_FLOAT(0.0, p_ctrl.outputs(2));
+  MU_CHECK_FLOAT(0.0, p_ctrl.outputs(3));
 
-  MU_CHECK_FLOAT(0.0, controller.y_ctrl.k_p);
-  MU_CHECK_FLOAT(0.0, controller.y_ctrl.k_i);
-  MU_CHECK_FLOAT(0.0, controller.y_ctrl.k_d);
-
-  MU_CHECK_FLOAT(0.0, controller.z_ctrl.k_p);
-  MU_CHECK_FLOAT(0.0, controller.z_ctrl.k_i);
-  MU_CHECK_FLOAT(0.0, controller.z_ctrl.k_d);
-
-  MU_CHECK_FLOAT(0.0, controller.outputs(0));
-  MU_CHECK_FLOAT(0.0, controller.outputs(1));
-  MU_CHECK_FLOAT(0.0, controller.outputs(2));
-  MU_CHECK_FLOAT(0.0, controller.outputs(3));
+  MU_CHECK_FLOAT(-30.0, p_ctrl.roll_limit[0]);
+  MU_CHECK_FLOAT(30.0, p_ctrl.roll_limit[1]);
+  MU_CHECK_FLOAT(-30.0, p_ctrl.pitch_limit[0]);
+  MU_CHECK_FLOAT(30.0, p_ctrl.pitch_limit[1]);
+  MU_CHECK_FLOAT(0.5, p_ctrl.hover_throttle);
 
   return 0;
 }
 
 int test_pos_ctrl_configure() {
-  pos_ctrl controller;
+  pos_ctrl_t p_ctrl;
+  if (pos_ctrl_configure(p_ctrl, TEST_CONFIG) != 0) {
+    LOG_ERROR("Failed to configure position controller!");
+    return -1;
+  }
 
-  pos_ctrl_configure(controller, TEST_CONFIG);
+  MU_CHECK_FLOAT(0.0, p_ctrl.dt);
 
-  MU_CHECK(controller.configured == false);
+  MU_CHECK_FLOAT(0.0, p_ctrl.outputs(0));
+  MU_CHECK_FLOAT(0.0, p_ctrl.outputs(1));
+  MU_CHECK_FLOAT(0.0, p_ctrl.outputs(2));
+  MU_CHECK_FLOAT(0.0, p_ctrl.outputs(3));
 
-  MU_CHECK_FLOAT(0.0, controller.dt);
+  MU_CHECK_FLOAT(-50.0, rad2deg(p_ctrl.roll_limit[0]));
+  MU_CHECK_FLOAT(50.0, rad2deg(p_ctrl.roll_limit[1]));
+  MU_CHECK_FLOAT(-50.0, rad2deg(p_ctrl.pitch_limit[0]));
+  MU_CHECK_FLOAT(50.0, rad2deg(p_ctrl.pitch_limit[1]));
+  MU_CHECK_FLOAT(0.6, p_ctrl.hover_throttle);
 
-  MU_CHECK_FLOAT(0.1, controller.x_controller.k_p);
-  MU_CHECK_FLOAT(0.2, controller.x_controller.k_i);
-  MU_CHECK_FLOAT(0.3, controller.x_controller.k_d);
+  MU_CHECK_FLOAT(0.1, p_ctrl.x_ctrl.k_p);
+  MU_CHECK_FLOAT(0.2, p_ctrl.x_ctrl.k_i);
+  MU_CHECK_FLOAT(0.3, p_ctrl.x_ctrl.k_d);
 
-  MU_CHECK_FLOAT(0.1, controller.y_controller.k_p);
-  MU_CHECK_FLOAT(0.2, controller.y_controller.k_i);
-  MU_CHECK_FLOAT(0.3, controller.y_controller.k_d);
+  MU_CHECK_FLOAT(0.1, p_ctrl.y_ctrl.k_p);
+  MU_CHECK_FLOAT(0.2, p_ctrl.y_ctrl.k_i);
+  MU_CHECK_FLOAT(0.3, p_ctrl.y_ctrl.k_d);
 
-  MU_CHECK_FLOAT(0.1, controller.z_controller.k_p);
-  MU_CHECK_FLOAT(0.2, controller.z_controller.k_i);
-  MU_CHECK_FLOAT(0.3, controller.z_controller.k_d);
-
-  MU_CHECK_FLOAT(0.6, controller.hover_throttle);
-
-  MU_CHECK_FLOAT(deg2rad(-50.0), controller.roll_limit[0]);
-  MU_CHECK_FLOAT(deg2rad(50.0), controller.roll_limit[1]);
-
-  MU_CHECK_FLOAT(deg2rad(-50.0), controller.pitch_limit[0]);
-  MU_CHECK_FLOAT(deg2rad(50.0), controller.pitch_limit[1]);
-
-  MU_CHECK_FLOAT(0.0, controller.setpoints(0));
-  MU_CHECK_FLOAT(0.0, controller.setpoints(1));
-  MU_CHECK_FLOAT(0.0, controller.setpoints(2));
-
-  MU_CHECK_FLOAT(0.0, controller.outputs(0));
-  MU_CHECK_FLOAT(0.0, controller.outputs(1));
-  MU_CHECK_FLOAT(0.0, controller.outputs(2));
-  MU_CHECK_FLOAT(0.0, controller.outputs(3));
+  MU_CHECK_FLOAT(0.1, p_ctrl.z_ctrl.k_p);
+  MU_CHECK_FLOAT(0.2, p_ctrl.z_ctrl.k_i);
+  MU_CHECK_FLOAT(0.3, p_ctrl.z_ctrl.k_d);
 
   return 0;
 }
@@ -75,18 +63,18 @@ int test_pos_ctrl_configure() {
 //   vec3_t setpoint_nwu;
 //   Pose actual;
 //   float yaw_setpoint, dt;
-//   pos_ctrl controller;
+//   pos_ctrl p_ctrl;
 //
 //   // setup
-//   controller.configure(TEST_CONFIG);
+//   pos_ctrl_configure(p_ctrl, TEST_CONFIG);
 //
 //   // CHECK HOVERING PID OUTPUT
 //   setpoint_nwu << 0, 0, 0;
 //   actual.position << 0, 0, 0;
 //   yaw_setpoint = 0;
 //   dt = 0.1;
-//   controller.update(setpoint_nwu, actual, yaw_setpoint, dt);
-//   controller.printOutputs();
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
+//   std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK_FLOAT(0.0, controller.outputs(0));
 //   MU_CHECK_FLOAT(0.0, controller.outputs(1));
@@ -98,9 +86,9 @@ int test_pos_ctrl_configure() {
 //   yaw_setpoint = 0;
 //   dt = 0.1;
 //
-//   controller.reset();
-//   controller.update(setpoint_nwu, actual, yaw_setpoint, dt);
-//   controller.printOutputs();
+//   pos_ctrl_reset(p_ctrl);
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
+//   std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK(controller.outputs(0) < 0.0);
 //   MU_CHECK_FLOAT(0.0, controller.outputs(1));
@@ -111,9 +99,9 @@ int test_pos_ctrl_configure() {
 //   yaw_setpoint = 0;
 //   dt = 0.1;
 //
-//   controller.reset();
-//   controller.update(setpoint_nwu, actual, yaw_setpoint, dt);
-//   controller.printOutputs();
+//   pos_ctrl_reset(p_ctrl);
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
+//   std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK_FLOAT(0.0, controller.outputs(0));
 //   MU_CHECK(controller.outputs(1) > 0.0);
@@ -124,9 +112,9 @@ int test_pos_ctrl_configure() {
 //   yaw_setpoint = 0;
 //   dt = 0.1;
 //
-//   controller.reset();
-//   controller.update(setpoint_nwu, actual, yaw_setpoint, dt);
-//   controller.printOutputs();
+//   pos_ctrl_reset(p_ctrl);
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
+//   std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK(controller.outputs(0) < 0.0);
 //   MU_CHECK(controller.outputs(1) > 0.0);
@@ -137,13 +125,13 @@ int test_pos_ctrl_configure() {
 //   yaw_setpoint = deg2rad(90.0);
 //   dt = 0.1;
 //
-//   controller.reset();
-//   controller.update(setpoint_nwu, actual, yaw_setpoint, dt);
-//   controller.printOutputs();
+//   pos_ctrl_reset(p_ctrl);
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
+//   std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK_FLOAT(yaw_setpoint, controller.outputs(2));
 // }
-//
+
 // int test_pos_ctrl_update2() {
 //   vec3_t setpoint_nwu, euler;
 //   Pose actual;
@@ -162,7 +150,7 @@ int test_pos_ctrl_configure() {
 //   yaw_setpoint = 0;
 //   dt = 0.1;
 //
-//   controller.update(setpoint_nwu, actual, yaw_setpoint, dt);
+//   pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
 //   controller.printOutputs();
 //
 //   MU_CHECK(controller.outputs(0) > 0);
@@ -174,8 +162,9 @@ int test_pos_ctrl_configure() {
 
 void test_suite() {
   MU_ADD_TEST(test_pos_ctrl_constructor);
-  MU_ADD_TEST(test_pos_ctrl_update);
-  MU_ADD_TEST(test_pos_ctrl_update2);
+  MU_ADD_TEST(test_pos_ctrl_configure);
+  // MU_ADD_TEST(test_pos_ctrl_update);
+  // MU_ADD_TEST(test_pos_ctrl_update2);
 }
 
 } // namespace prototype

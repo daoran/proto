@@ -94,14 +94,15 @@ INSTALL(
 
 # UNIT TESTS
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
-FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   calib-aprilgrid_test
   calib-calib_data_test
   calib-calib_camera_test
-  # control-carrot_ctrl_test
+  # calib-calib_gimbal_test
+  calib-chessboard_test
+  control-carrot_ctrl_test
   control-pid_test
   core-config_test
   core-data_test
@@ -115,13 +116,18 @@ SET(
   dataset-kitti_test
   driver-camera-camera_test
   model-mav_test
+  model-two_wheel_test
+  mav-att_ctrl_test
   mav-mission_test
+  mav-pos_ctrl_test
+  mav-wp_ctrl_test
   vision-camera-camera_geometry_test
   vision-camera-equi_test
   vision-camera-pinhole_test
   vision-camera-radtan_test
   vision-feature2d-grid_fast_test
   vision-feature2d-grid_good_test
+  vision-util_test
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
