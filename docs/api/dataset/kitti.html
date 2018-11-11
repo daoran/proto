@@ -1,4 +1,370 @@
-<!-- CLASSES --><!-- FUNCTIONS -->
+<div class="header_path">prototype/dataset/kitti.hpp</div>
+
+<!-- DOC -->
+
+
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct calib_cam2cam_t {
+  bool ok;
+  std::string file_path;
+  std::string calib_time;
+  double corner_dist;
+  std::array&lt;vec2_t, 4&gt; S;
+  std::array&lt;mat3_t, 4&gt; K;
+  std::array&lt;vecx_t, 4&gt; D;
+  std::array&lt;mat3_t, 4&gt; R;
+  std::array&lt;vec3_t, 4&gt; T;
+  std::array&lt;vec2_t, 4&gt; S_rect;
+  std::array&lt;mat3_t, 4&gt; R_rect;
+  std::array&lt;mat34_t, 4&gt; P_rect;
+
+  calib_cam2cam_t();
+  calib_cam2cam_t(const std::string file_path_);
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>calib_cam2cam_t</p>
+<hr />
+<p>Camera to Camera calibration</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct calib_imu2velo_t {
+  bool ok;
+  std::string file_path;
+  std::string calib_time;
+  mat3_t R;
+  vec3_t t;
+  mat4_t T_velo_imu;
+
+  calib_imu2velo_t();
+  calib_imu2velo_t(const std::string file_path_);
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>calib_imu2velo_t</p>
+<hr />
+<p>IMU to Velo calibration</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct calib_velo2cam_t {
+  bool ok;
+  std::string file_path;
+  std::string calib_time;
+  mat3_t R;
+  vec3_t t;
+  vec2_t df;
+  vec2_t dc;
+  mat4_t T_cam_velo;
+
+  calib_velo2cam_t();
+  calib_velo2cam_t(const std::string file_path_);
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>calib_velo2cam_t</p>
+<hr />
+<p>Velo to Camera calibration</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct oxts_entry_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW std::string file_path;
+  vec3_t gps;
+  vec3_t rpy;
+  vec3_t v_G;
+  vec3_t v_B;
+  vec3_t a_G;
+  vec3_t a_B;
+  vec3_t w_G;
+  vec3_t w_B;
+  double pos_accuracy;
+  double vel_accuracy;
+
+  oxts_entry_t();
+  oxts_entry_t(const std::string &amp;file_path_);
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>oxts_entry_t</p>
+<hr />
+<p>OXTS entry</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct oxts_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW std::string oxts_dir;
+  std::vector&lt;long&gt; timestamps;
+  std::vector&lt;double&gt; time;
+  std::vector&lt;vec3_t&gt; gps;
+  std::vector&lt;vec3_t&gt; rpy;
+  std::vector&lt;vec3_t&gt; p_G;
+  std::vector&lt;vec3_t&gt; v_G;
+  std::vector&lt;vec3_t&gt; v_B;
+  std::vector&lt;vec3_t&gt; a_G;
+  std::vector&lt;vec3_t&gt; a_B;
+  std::vector&lt;vec3_t&gt; w_G;
+  std::vector&lt;vec3_t&gt; w_B;
+  std::vector&lt;double&gt; pos_accuracy;
+  std::vector&lt;double&gt; vel_accuracy;
+
+  oxts_t();
+  oxts_t(const std::string &amp;oxts_dir_);
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>oxts_t</p>
+<hr />
+<p>OXTS</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct kitti_raw_t {
+  bool ok;
+  std::string raw_dir;
+  std::string date;
+  std::string seq;
+  std::string date_dir;
+  std::string drive_dir;
+  calib_cam2cam_t cam2cam;
+  calib_imu2velo_t imu2velo;
+  calib_velo2cam_t velo2cam;
+  oxts_t oxts;
+  std::vector&lt;std::string&gt; cam0;
+  std::vector&lt;std::string&gt; cam1;
+  std::vector&lt;std::string&gt; cam2;
+  std::vector&lt;std::string&gt; cam3;
+
+  kitti_raw_t();
+  kitti_raw_t(const std::string &amp;raw_dir,
+              const std::string &amp;date,
+              const std::string &amp;seq);
+  kitti_raw_t(const std::string &amp;raw_dir,
+              const std::string &amp;date,
+              const std::string &amp;seq,
+              const std::string &amp;type);
+  ~kitti_raw_t();
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>kitti_raw_t</p>
+<hr />
+<p>KITTI Raw Dataset</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+
 <h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::string parse_string(const std::string &amp;line);
+</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>Parse functions</p>
+<hr />
+<p>Parse string</p>
+<ul>
+<li>[in] line Line containing a string</li>
+</ul>
+<p><strong>Returns</strong> A string</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double parse_double(const std::string &amp;line);
+</code></pre>
+  
+  <div class="doc"><p><p>Parse double</p>
+<ul>
+<li>[in] line Line containing a double</li>
+</ul>
+<p><strong>Returns</strong> A double</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::vector&lt;double&gt; parse_array(const std::string &amp;line);
+</code></pre>
+  
+  <div class="doc"><p><p>Parse array</p>
+<ul>
+<li>[in] line Line containing an array</li>
+</ul>
+<p><strong>Returns</strong> Array</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec2_t parse_vec2(const std::string &amp;line);
+</code></pre>
+  
+  <div class="doc"><p><p>Parse vector of size 2</p>
+<ul>
+<li>[in] line Line containing a vector of size 2</li>
+</ul>
+<p><strong>Returns</strong> Vector of size 2</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec3_t parse_vec3(const std::string &amp;line);
+</code></pre>
+  
+  <div class="doc"><p><p>Parse vector of size 3</p>
+<ul>
+<li>[in] line Line containing a vector of size 3</li>
+</ul>
+<p><strong>Returns</strong> Vector of size 3</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vecx_t parse_vecx(const std::string &amp;line);
+</code></pre>
+  
+  <div class="doc"><p><p>Parse vector</p>
+<ul>
+<li>[in] line Line containing a vector</li>
+</ul>
+<p><strong>Returns</strong> Vector</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t parse_mat3(const std::string &amp;line);
+</code></pre>
+  
+  <div class="doc"><p><p>Parse 3x3 matrix</p>
+<ul>
+<li>[in] line Line containing a 3x3 matrix</li>
+</ul>
+<p><strong>Returns</strong> 3x3 matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat34_t parse_mat34(const std::string &amp;line);
+</code></pre>
+  
+  <div class="doc"><p><p>Parse 3x4 matrix</p>
+<ul>
+<li>[in] line Line containing a 3x4 matrix</li>
+</ul>
+<p><strong>Returns</strong> 3x4 matrix</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int parse_timestamp(const std::string &amp;line, long *s);
+</code></pre>
+  
+  <div class="doc"><p><p>Parse timestamp</p>
+<ul>
+<li>[in] line Line containing a timestamp</li>
+<li>[out] s Output string</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int calib_cam2cam_load(calib_cam2cam_t &amp;calib);
+</code></pre>
+  
+  <div class="doc"><p><p>Load camera to camera calibration</p>
+<ul>
+<li>[in,out] calib Camera to camera calibration</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int calib_imu2velo_load(calib_imu2velo_t &amp;calib);
+</code></pre>
+  
+  <div class="doc"><p><p>Load imu to velo calibration</p>
+<ul>
+<li>[in,out] calib IMU to VELO calibration</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int calib_velo2cam_load(calib_velo2cam_t &amp;calib);
+</code></pre>
+  
+  <div class="doc"><p><p>Load velo to camera calibration</p>
+<ul>
+<li>[in,out] calib VELO to camera calibration</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int oxts_entry_load(oxts_entry_t &amp;entry);
+</code></pre>
+  
+  <div class="doc"><p><p>Load OXTS entry</p>
+<ul>
+<li>[in,out] entry OXTS entry</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int oxts_load_entries(oxts_t &amp;oxts);
+</code></pre>
+  
+  <div class="doc"><p><p>load OXTS</p>
+<ul>
+<li>[in,out] oxts OXTS data</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int oxts_load_timestamps(oxts_t &amp;oxts);
+</code></pre>
+  
+  <div class="doc"><p><p>Load timestamps</p>
+<ul>
+<li>[in,out] oxts OXTS data</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int oxts_load(oxts_t &amp;oxts);
+</code></pre>
+  
+  <div class="doc"><p><p>Load OXTS</p>
+<ul>
+<li>[in,out] oxts OXTS data</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int kitti_raw_load(kitti_raw_t &amp;dataset);
+</code></pre>
+  
+  <div class="doc"><p><p>Load KITTI raw dataset</p>
+<ul>
+<li>[in,out] dataset KITTI raw dataset</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+
 
 </div> <!-- #content -->

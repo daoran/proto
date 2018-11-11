@@ -1,4 +1,287 @@
-<!-- CLASSES --><!-- FUNCTIONS -->
+<div class="header_path">prototype/dataset/euroc.hpp</div>
+
+<!-- DOC -->
+
+
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct euroc_imu_t {
+  std::string data_dir;
+  std::vector&lt;long&gt; timestamps;
+  std::vector&lt;double&gt; time;
+  std::vector&lt;vec3_t&gt; w_B;
+  std::vector&lt;vec3_t&gt; a_B;
+  std::string sensor_type;
+  std::string comment;
+  mat4_t T_BS;
+  double rate_hz;
+  double gyro_noise_density;
+  double gyro_random_walk;
+  double accel_noise_density;
+  double accel_random_walk;
+
+  euroc_imu_t();
+  euroc_imu_t(const std::string &amp;data_dir_);
+  ~euroc_imu_t();
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>euroc_imu_t</p>
+<hr /></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct euroc_camera_t {
+  std::string data_dir;
+  std::vector&lt;long&gt; timestamps;
+  std::vector&lt;double&gt; time;
+  std::vector&lt;std::string&gt; image_paths;
+  std::string sensor_type;
+  std::string comment;
+  mat4_t T_BS;
+  double rate_hz;
+  vec2_t resolution;
+  std::string camera_model;
+  vec4_t intrinsics;
+  std::string distortion_model;
+  vec4_t distortion_coefficients;
+
+  euroc_camera_t();
+  euroc_camera_t(const std::string &amp;data_dir_);
+  ~euroc_camera_t();
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>euroc_camera_t</p>
+<hr /></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct euroc_ground_truth_t {
+  std::string data_dir;
+  std::vector&lt;long&gt; timestamps;
+  std::vector&lt;double&gt; time;
+  std::vector&lt;vec3_t&gt; p_RS_R;
+  std::vector&lt;vec4_t&gt; q_RS;
+  std::vector&lt;vec3_t&gt; v_RS_R;
+  std::vector&lt;vec3_t&gt; b_w_RS_S;
+  std::vector&lt;vec3_t&gt; b_a_RS_S;
+
+  euroc_ground_truth_t();
+  euroc_ground_truth_t(const std::string data_dir_);
+  ~euroc_ground_truth_t();
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>euroc_ground_truth_t</p>
+<hr /></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct euroc_data_t {
+  bool ok;
+  std::string data_path;
+  euroc_imu_t imu_data;
+  euroc_camera_t cam0_data;
+  euroc_camera_t cam1_data;
+  euroc_ground_truth_t ground_truth;
+  cv::Size image_size;
+  long ts_start;
+  long ts_end;
+  long ts_now;
+  long time_index;
+  long imu_index;
+  long frame_index;
+  std::set&lt;long&gt; timestamps;
+  std::map&lt;long, double&gt; time;
+  std::multimap&lt;long, timeline_event_t&gt; timeline;
+
+  euroc_data_t();
+  euroc_data_t(const std::string &amp;data_path);
+  ~euroc_data_t();
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>euroc_data_t</p>
+<hr /></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct euroc_target_t {
+  bool ok;
+  std::string file_path;
+  std::string type;
+  int tag_rows;
+  int tag_cols;
+  double tag_size;
+  double tag_spacing;
+
+  euroc_target_t();
+  euroc_target_t(const std::string &amp;file_path);
+  ~euroc_target_t();
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>euroc_target_t</p>
+<hr /></p></div>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">class euroc_calib_t {
+  bool ok;
+  std::string data_path;
+  bool imshow;
+  euroc_imu_t imu_data;
+  euroc_camera_t cam0_data;
+  euroc_camera_t cam1_data;
+  euroc_target_t calib_target;
+  cv::Size image_size;
+
+  euroc_calib_t();
+  euroc_calib_t(const std::string &amp;data_path);
+  ~euroc_calib_t();
+};</code></pre>
+  
+  <div class="doc"><p><hr />
+<p>euroc_calib_t</p>
+<hr /></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+
 <h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int euroc_imu_load(euroc_imu_t &amp;data, const std::string &amp;data_dir);
+</code></pre>
+  
+  <div class="doc"><p><p>Load IMU data</p>
+<ul>
+<li>[in] data IMU data</li>
+<li>[in] data_dir Data directory</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_imu_t &amp;data);
+</code></pre>
+  
+  <div class="doc"><p><p><code>euroc_imu_t</code> to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int euroc_camera_load(euroc_camera_t &amp;cd,
+                      const std::string &amp;data_dir,
+                      const bool is_calib_data);
+</code></pre>
+  
+  <div class="doc"><p><p>Load Camera data</p>
+<ul>
+<li>[in,out] cd Camera data</li>
+<li>[in] data_dir Data directory</li>
+<li>[in] is_calib_data Is camera data for calibration?</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_camera_t &amp;data);
+</code></pre>
+  
+  <div class="doc"><p><p><code>euroc_camera_t</code> to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int euroc_ground_truth_load(euroc_ground_truth_t &amp;data,
+                            const std::string &amp;data_dir);
+</code></pre>
+  
+  <div class="doc"><p><p>Load ground truth data</p>
+<ul>
+<li>[in,out] data Ground truth data</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int euroc_data_load(euroc_data_t &amp;ds);
+</code></pre>
+  
+  <div class="doc"><p><p>Load dataset</p>
+<ul>
+<li>[in,out] ds Dataset</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void euroc_data_reset(euroc_data_t &amp;ds);
+</code></pre>
+  
+  <div class="doc"><p><p>Reset</p>
+<ul>
+<li>[in,out] ds Dataset</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">long euroc_data_min_timestamp(const euroc_data_t &amp;ds);
+</code></pre>
+  
+  <div class="doc"><p><p>Return min timestamp</p>
+<ul>
+<li>[in] ds Dataset</li>
+</ul>
+<p><strong>Returns</strong> Minimum timestamp</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">long euroc_data_max_timestamp(const euroc_data_t &amp;ds);
+</code></pre>
+  
+  <div class="doc"><p><p>Return max timestamp</p>
+<p><strong>Returns</strong> Maximum timestamp</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int euroc_target_load(euroc_target_t &amp;target, const std::string &amp;target_file);
+</code></pre>
+  
+  <div class="doc"><p><p>Load calibration target settings</p>
+<ul>
+<li>target_file Path to target yaml file</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_target_t &amp;target);
+</code></pre>
+  
+  <div class="doc"><p><p><code>calib_target_t</code> to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int euroc_calib_load(euroc_calib_t &amp;data, const std::string &amp;data_path);
+</code></pre>
+  
+  <div class="doc"><p><p>Load calibration data</p>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+
 
 </div> <!-- #content -->

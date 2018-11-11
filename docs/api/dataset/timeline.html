@@ -1,0 +1,37 @@
+<div class="header_path">prototype/dataset/timeline.hpp</div>
+
+<!-- DOC -->
+
+
+<!-- CLASSES --><div class="cpp_class">
+  <pre><code class="cpp">struct timeline_event_t {
+  int type;
+  long ts;
+  vec3_t a_m;
+  vec3_t w_m;
+  int camera_index;
+  std::string image_path;
+
+  timeline_event_t();
+  timeline_event_t(const long ts_, const vec3_t &amp;a_m_, const vec3_t &amp;w_m_);
+  timeline_event_t(const long ts_,
+                   const int camera_index_,
+                   const std::string &amp;image_path_);
+  ~timeline_event_t();
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct timeline_t {
+  std::multimap&lt;long, timeline_event_t&gt; data;
+  std::set&lt;long&gt; timestamps;
+
+  timeline_t();
+  ~timeline_t();
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- FUNCTIONS -->
+
+
+</div> <!-- #content -->
