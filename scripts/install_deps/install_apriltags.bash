@@ -39,8 +39,8 @@ install_apriltags()
       AprilTags/TagDetector.h
 
     # Patch makefile so it builds with -fPIC
-		CMAKE_PATCH=$(sed '4iset(CMAKE_POSITION_INDEPENDENT_CODE ON)' CMakeLists.txt)
-		echo "$CMAKE_PATCH" | tee CMakeLists.txt
+    CMAKE_PATCH=$(sed '4iset(CMAKE_POSITION_INDEPENDENT_CODE ON)' CMakeLists.txt)
+    echo "$CMAKE_PATCH" | tee CMakeLists.txt
 
     # Download and build mit apriltags
     cd "$DOWNLOAD_PATH"
