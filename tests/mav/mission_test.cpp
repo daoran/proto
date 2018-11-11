@@ -1,5 +1,5 @@
-#include "prototype/control/mission.hpp"
 #include "prototype/munit.hpp"
+#include "prototype/mav/mission.hpp"
 
 namespace prototype {
 
@@ -8,50 +8,50 @@ namespace prototype {
 #define WAYPOINTS_FILE "/tmp/waypoints.dat"
 #define STATE_FILE "/tmp/state.dat"
 
-// int test_wp_mission_constructor() {
-//   Mission mission;
-//
-//   MU_CHECK(mission.configured == false);
-//   MU_CHECK(mission.check_waypoints);
-//   MU_CHECK_FLOAT(20.0, mission.threshold_waypoint_gap);
-//   MU_CHECK_FLOAT(0.5, mission.desired_velocity);
-//
-//   return 0;
-// }
+int test_wp_mission_constructor() {
+  wp_mission_t mission;
 
-// int test_wp_mission_configure_GPS() {
-//   Mission mission;
-//
-//   int retval = mission.configure(TEST_GPS_CONFIG);
-//   mission.setGPSHomePoint(43.474024, -80.540287);
-//
-//   MU_CHECK_EQ(0, retval);
-//
-//   MU_CHECK(mission.check_waypoints);
-//   MU_CHECK_FLOAT(20.0, mission.threshold_waypoint_gap);
-//
-//   MU_CHECK_FLOAT(0.5, mission.desired_velocity);
-//   MU_CHECK_EQ(4, (size_t) mission.local_waypoints.size());
-//
-//   MU_CHECK_NEAR(0.0, mission.local_waypoints[0](0), 0.001);
-//   MU_CHECK_NEAR(0.0, mission.local_waypoints[0](1), 0.001);
-//   MU_CHECK_NEAR(10.0, mission.local_waypoints[0](2), 0.001);
-//
-//   MU_CHECK_NEAR(6.01125, mission.local_waypoints[1](0), 0.001);
-//   MU_CHECK_NEAR(-10.1787, mission.local_waypoints[1](1), 0.001);
-//   MU_CHECK_NEAR(10.0, mission.local_waypoints[1](2), 0.001);
-//
-//   MU_CHECK_NEAR(-7.45841, mission.local_waypoints[2](0), 0.001);
-//   MU_CHECK_NEAR(-17.2876, mission.local_waypoints[2](1), 0.001);
-//   MU_CHECK_NEAR(10.0, mission.local_waypoints[2](2), 0.001);
-//
-//   MU_CHECK_NEAR(-10.5754, mission.local_waypoints[3](0), 0.001);
-//   MU_CHECK_NEAR(-9.20928, mission.local_waypoints[3](1), 0.001);
-//   MU_CHECK_NEAR(10.0, mission.local_waypoints[3](2), 0.001);
-//
-//   return 0;
-// }
-//
+  MU_CHECK(mission.configured == false);
+  MU_CHECK(mission.check_waypoints);
+  MU_CHECK_FLOAT(20.0, mission.threshold_waypoint_gap);
+  MU_CHECK_FLOAT(0.5, mission.desired_velocity);
+
+  return 0;
+}
+
+int test_wp_mission_configure_GPS() {
+  wp_mission_t mission;
+
+  int retval = wp_mission_configure(mission, TEST_GPS_CONFIG);
+  wp_mission_set_gps_homepoint(mission, 43.474024, -80.540287);
+
+  MU_CHECK_EQ(0, retval);
+
+  MU_CHECK(mission.check_waypoints);
+  MU_CHECK_FLOAT(20.0, mission.threshold_waypoint_gap);
+
+  MU_CHECK_FLOAT(0.5, mission.desired_velocity);
+  MU_CHECK_EQ(4, (size_t) mission.local_waypoints.size());
+
+  MU_CHECK_NEAR(0.0, mission.local_waypoints[0](0), 0.001);
+  MU_CHECK_NEAR(0.0, mission.local_waypoints[0](1), 0.001);
+  MU_CHECK_NEAR(10.0, mission.local_waypoints[0](2), 0.001);
+
+  MU_CHECK_NEAR(6.01125, mission.local_waypoints[1](0), 0.001);
+  MU_CHECK_NEAR(-10.1787, mission.local_waypoints[1](1), 0.001);
+  MU_CHECK_NEAR(10.0, mission.local_waypoints[1](2), 0.001);
+
+  MU_CHECK_NEAR(-7.45841, mission.local_waypoints[2](0), 0.001);
+  MU_CHECK_NEAR(-17.2876, mission.local_waypoints[2](1), 0.001);
+  MU_CHECK_NEAR(10.0, mission.local_waypoints[2](2), 0.001);
+
+  MU_CHECK_NEAR(-10.5754, mission.local_waypoints[3](0), 0.001);
+  MU_CHECK_NEAR(-9.20928, mission.local_waypoints[3](1), 0.001);
+  MU_CHECK_NEAR(10.0, mission.local_waypoints[3](2), 0.001);
+
+  return 0;
+}
+
 // int test_wp_mission_configure_LOCAL() {
 //   Mission mission;
 //
@@ -297,7 +297,7 @@ namespace prototype {
 // }
 
 void test_suite() {
-  // MU_ADD_TEST(test_wp_mission_constructor);
+  MU_ADD_TEST(test_wp_mission_constructor);
   // MU_ADD_TEST(test_wp_mission_configure_GPS);
   // MU_ADD_TEST(test_wp_mission_configure_LOCAL);
   // MU_ADD_TEST(test_wp_mission_closestPoint);

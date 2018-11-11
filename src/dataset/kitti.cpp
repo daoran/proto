@@ -2,19 +2,19 @@
 
 namespace prototype {
 
-std::string parse_string(const std::string &line) {
+std::string kitti_parse_string(const std::string &line) {
   return strip(line.substr(line.find(":") + 1, line.size() - 1));
 }
 
-double parse_double(const std::string &line) {
-  const std::string str_val = parse_string(line);
+double kitti_parse_double(const std::string &line) {
+  const std::string str_val = kitti_parse_string(line);
   const double val = atof(str_val.c_str());
   return val;
 }
 
-std::vector<double> parse_array(const std::string &line) {
+std::vector<double> kitti_parse_array(const std::string &line) {
   // Setup
-  std::string s = parse_string(line);
+  std::string s = kitti_parse_string(line);
   std::string delimiter = " ";
 
   // Extract tokens
@@ -35,18 +35,18 @@ std::vector<double> parse_array(const std::string &line) {
   return values;
 }
 
-vec2_t parse_vec2(const std::string &line) {
-  const std::vector<double> values = parse_array(line);
+vec2_t kitti_parse_vec2(const std::string &line) {
+  const std::vector<double> values = kitti_parse_array(line);
   return vec2_t(values[0], values[1]);
 }
 
-vec3_t parse_vec3(const std::string &line) {
-  const std::vector<double> values = parse_array(line);
+vec3_t kitti_parse_vec3(const std::string &line) {
+  const std::vector<double> values = kitti_parse_array(line);
   return vec3_t(values[0], values[1], values[2]);
 }
 
-vecx_t parse_vecx(const std::string &line) {
-  const std::vector<double> values = parse_array(line);
+vecx_t kitti_parse_vecx(const std::string &line) {
+  const std::vector<double> values = kitti_parse_array(line);
 
   // Form the vector
   vecx_t vec;
@@ -58,8 +58,8 @@ vecx_t parse_vecx(const std::string &line) {
   return vec;
 }
 
-mat3_t parse_mat3(const std::string &line) {
-  const std::vector<double> values = parse_array(line);
+mat3_t kitti_parse_mat3(const std::string &line) {
+  const std::vector<double> values = kitti_parse_array(line);
 
   // Form the matrix
   mat3_t mat;
@@ -74,8 +74,8 @@ mat3_t parse_mat3(const std::string &line) {
   return mat;
 }
 
-mat34_t parse_mat34(const std::string &line) {
-  const std::vector<double> values = parse_array(line);
+mat34_t kitti_parse_mat34(const std::string &line) {
+  const std::vector<double> values = kitti_parse_array(line);
 
   // Form the matrix
   mat34_t mat;
@@ -90,7 +90,7 @@ mat34_t parse_mat34(const std::string &line) {
   return mat;
 }
 
-int parse_timestamp(const std::string &line, long *s) {
+int kitti_parse_timestamp(const std::string &line, long *s) {
   // Parse datetime string
   unsigned int year = 0;
   unsigned int month = 0;
@@ -149,11 +149,11 @@ int calib_cam2cam_load(calib_cam2cam_t &calib) {
 
     // Parse calibration time and corner distance
     if (token == "calib_time") {
-      calib.calib_time = parse_string(line);
+      calib.calib_time = kitti_parse_string(line);
       continue;
 
     } else if (token == "corner_dist") {
-      calib.corner_dist = parse_double(line);
+      calib.corner_dist = kitti_parse_double(line);
       continue;
     }
 
@@ -162,11 +162,11 @@ int calib_cam2cam_load(calib_cam2cam_t &calib) {
     const bool rect_var = (token.find("rect") != std::string::npos);
     if (rect_var) {
       if (token[0] == 'S') {
-        calib.S_rect[cam_id] = parse_vec2(line);
+        calib.S_rect[cam_id] = kitti_parse_vec2(line);
       } else if (token[0] == 'R') {
-        calib.R_rect[cam_id] = parse_mat3(line);
+        calib.R_rect[cam_id] = kitti_parse_mat3(line);
       } else if (token[0] == 'P') {
-        calib.P_rect[cam_id] = parse_mat34(line);
+        calib.P_rect[cam_id] = kitti_parse_mat34(line);
       }
 
       continue;
@@ -174,15 +174,15 @@ int calib_cam2cam_load(calib_cam2cam_t &calib) {
 
     // Parse calibration variables
     if (token[0] == 'S') {
-      calib.S[cam_id] = parse_vec2(line);
+      calib.S[cam_id] = kitti_parse_vec2(line);
     } else if (token[0] == 'K') {
-      calib.K[cam_id] = parse_mat3(line);
+      calib.K[cam_id] = kitti_parse_mat3(line);
     } else if (token[0] == 'D') {
-      calib.D[cam_id] = parse_vecx(line);
+      calib.D[cam_id] = kitti_parse_vecx(line);
     } else if (token[0] == 'R') {
-      calib.R[cam_id] = parse_mat3(line);
+      calib.R[cam_id] = kitti_parse_mat3(line);
     } else if (token[0] == 'T') {
-      calib.T[cam_id] = parse_vec3(line);
+      calib.T[cam_id] = kitti_parse_vec3(line);
     }
   }
 
@@ -213,15 +213,15 @@ int calib_imu2velo_load(calib_imu2velo_t &calib) {
 
     // Parse calibration time and corner distance
     if (token == "calib_time") {
-      calib.calib_time = parse_string(line);
+      calib.calib_time = kitti_parse_string(line);
       continue;
     }
 
     // Parse calibration variables
     if (token[0] == 'R') {
-      calib.R = parse_mat3(line);
+      calib.R = kitti_parse_mat3(line);
     } else if (token[0] == 'T') {
-      calib.t = parse_vec3(line);
+      calib.t = kitti_parse_vec3(line);
     }
   }
 
@@ -253,19 +253,19 @@ int calib_velo2cam_load(calib_velo2cam_t &calib) {
 
     // Parse calibration time and corner distance
     if (token == "calib_time") {
-      calib.calib_time = parse_string(line);
+      calib.calib_time = kitti_parse_string(line);
       continue;
     }
 
     // Parse calibration variables
     if (token[0] == 'R') {
-      calib.R = parse_mat3(line);
+      calib.R = kitti_parse_mat3(line);
     } else if (token[0] == 'T') {
-      calib.t = parse_vec3(line);
+      calib.t = kitti_parse_vec3(line);
     } else if (token == "delta_f") {
-      calib.df = parse_vec2(line);
+      calib.df = kitti_parse_vec2(line);
     } else if (token == "delta_c") {
-      calib.dc = parse_vec2(line);
+      calib.dc = kitti_parse_vec2(line);
     }
   }
 
@@ -288,7 +288,7 @@ int oxts_entry_load(oxts_entry_t &entry) {
   // Load the data
   std::string line;
   std::getline(oxt_file, line);
-  const std::vector<double> array = parse_array(line);
+  const std::vector<double> array = kitti_parse_array(line);
 
   // Store
   const double lat = array[0];
@@ -410,7 +410,7 @@ int oxts_load_timestamps(oxts_t &oxts) {
   long ts_first = 0;
   int retval = 0;
   std::getline(timestamps_file, line);
-  retval = parse_timestamp(line, &ts_first);
+  retval = kitti_parse_timestamp(line, &ts_first);
   if (retval != 0) {
     LOG_ERROR("Failed to parse timestamp -> [%s]", line.c_str());
     return -1;
@@ -423,7 +423,7 @@ int oxts_load_timestamps(oxts_t &oxts) {
   long ts = 0;
   while (std::getline(timestamps_file, line)) {
     // Parse timestamp
-    retval = parse_timestamp(line, &ts);
+    retval = kitti_parse_timestamp(line, &ts);
     if (retval != 0) {
       LOG_ERROR("Failed to parse timestamp -> [%s]", line.c_str());
       return -1;

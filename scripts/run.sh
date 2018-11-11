@@ -6,7 +6,7 @@ export CXX=/usr/bin/clang++
 # bash ./scripts/format_code.bash
 
 # doxygen Doxyfile
-cd scripts/api && python3 api.py
+# cd scripts/api && python3 api.py
 
 # cd octave/vision
 # octave sandbox.m
@@ -20,12 +20,12 @@ cd scripts/api && python3 api.py
 # octave tests/vision/test_radtan4_undistort.m
 
 # rm -rf build
-# mkdir -p build
-# cd build || return
-# cmake ..
-# time make -j8
+mkdir -p build
+cd build || return
+cmake ..
+time make -j8
 
-# cd tests
+cd tests
 # ./calib-aprilgrid_test
 # ./calib-calib_test
 # ./calib-calib_camera_test
@@ -42,6 +42,7 @@ cd scripts/api && python3 api.py
 # ./driver-camera-camera_test
 # ./dataset-euroc_test
 # ./dataset-kitti_test
+ ./mav-mission_test
 # ./vision-camera-camera_geometry_test
 # ./vision-camera-equi_test
 # ./vision-camera-pinhole_test

@@ -1,4 +1,4 @@
-#include "prototype/control/att_ctrl.hpp"
+#include "prototype/mav/att_ctrl.hpp"
 
 namespace prototype {
 

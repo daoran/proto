@@ -22,10 +22,7 @@
   calib_cam2cam_t(const std::string file_path_);
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>calib_cam2cam_t</p>
-<hr />
-<p>Camera to Camera calibration</p></p></div>
+  <div class="doc"><p><p>Camera to Camera calibration</p></p></div>
   
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
@@ -41,10 +38,7 @@
   calib_imu2velo_t(const std::string file_path_);
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>calib_imu2velo_t</p>
-<hr />
-<p>IMU to Velo calibration</p></p></div>
+  <div class="doc"><p><p>IMU to Velo calibration</p></p></div>
   
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
@@ -62,10 +56,7 @@
   calib_velo2cam_t(const std::string file_path_);
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>calib_velo2cam_t</p>
-<hr />
-<p>Velo to Camera calibration</p></p></div>
+  <div class="doc"><p><p>Velo to Camera calibration</p></p></div>
   
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
@@ -86,10 +77,7 @@
   oxts_entry_t(const std::string &amp;file_path_);
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>oxts_entry_t</p>
-<hr />
-<p>OXTS entry</p></p></div>
+  <div class="doc"><p><p>OXTS entry</p></p></div>
   
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
@@ -113,10 +101,7 @@
   oxts_t(const std::string &amp;oxts_dir_);
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>oxts_t</p>
-<hr />
-<p>OXTS</p></p></div>
+  <div class="doc"><p><p>OXTS</p></p></div>
   
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
@@ -147,10 +132,7 @@
   ~kitti_raw_t();
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>kitti_raw_t</p>
-<hr />
-<p>KITTI Raw Dataset</p></p></div>
+  <div class="doc"><p><p>KITTI Raw Dataset</p></p></div>
   
 </div> <!-- .cpp_class -->
 <!-- FUNCTIONS -->
@@ -158,13 +140,10 @@
 <h2>Functions</h2>
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::string parse_string(const std::string &amp;line);
+  <pre><code class="cpp">std::string kitti_parse_string(const std::string &amp;line);
 </code></pre>
   
-  <div class="doc"><p><hr />
-<p>Parse functions</p>
-<hr />
-<p>Parse string</p>
+  <div class="doc"><p><p>Parse string</p>
 <ul>
 <li>[in] line Line containing a string</li>
 </ul>
@@ -173,7 +152,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">double parse_double(const std::string &amp;line);
+  <pre><code class="cpp">double kitti_parse_double(const std::string &amp;line);
 </code></pre>
   
   <div class="doc"><p><p>Parse double</p>
@@ -185,7 +164,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::vector&lt;double&gt; parse_array(const std::string &amp;line);
+  <pre><code class="cpp">std::vector&lt;double&gt; kitti_parse_array(const std::string &amp;line);
 </code></pre>
   
   <div class="doc"><p><p>Parse array</p>
@@ -197,7 +176,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">vec2_t parse_vec2(const std::string &amp;line);
+  <pre><code class="cpp">vec2_t kitti_parse_vec2(const std::string &amp;line);
 </code></pre>
   
   <div class="doc"><p><p>Parse vector of size 2</p>
@@ -209,7 +188,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">vec3_t parse_vec3(const std::string &amp;line);
+  <pre><code class="cpp">vec3_t kitti_parse_vec3(const std::string &amp;line);
 </code></pre>
   
   <div class="doc"><p><p>Parse vector of size 3</p>
@@ -221,7 +200,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">vecx_t parse_vecx(const std::string &amp;line);
+  <pre><code class="cpp">vecx_t kitti_parse_vecx(const std::string &amp;line);
 </code></pre>
   
   <div class="doc"><p><p>Parse vector</p>
@@ -233,7 +212,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">mat3_t parse_mat3(const std::string &amp;line);
+  <pre><code class="cpp">mat3_t kitti_parse_mat3(const std::string &amp;line);
 </code></pre>
   
   <div class="doc"><p><p>Parse 3x3 matrix</p>
@@ -245,7 +224,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">mat34_t parse_mat34(const std::string &amp;line);
+  <pre><code class="cpp">mat34_t kitti_parse_mat34(const std::string &amp;line);
 </code></pre>
   
   <div class="doc"><p><p>Parse 3x4 matrix</p>
@@ -257,7 +236,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">int parse_timestamp(const std::string &amp;line, long *s);
+  <pre><code class="cpp">int kitti_parse_timestamp(const std::string &amp;line, long *s);
 </code></pre>
   
   <div class="doc"><p><p>Parse timestamp</p>

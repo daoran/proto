@@ -1,8 +1,8 @@
-#ifndef PROTOTYPE_CONTROL_ATT_CTRL_HPP
-#define PROTOTYPE_CONTROL_ATT_CTRL_HPP
+#ifndef PROTOTYPE_MAV_ATT_CTRL_HPP
+#define PROTOTYPE_MAV_ATT_CTRL_HPP
 
-#include "prototype/control/pid.hpp"
 #include "prototype/core/core.hpp"
+#include "prototype/control/pid.hpp"
 
 using namespace prototype;
 
@@ -38,4 +38,4 @@ vec4_t att_ctrl_update(att_ctrl_t &controller,
                        const double dt);
 
 } //  namespace prototype
-#endif // PROTOTYPE_CONTROL_ATT_CTRL_HPP
+#endif // PROTOTYPE_MAV_ATT_CTRL_HPP

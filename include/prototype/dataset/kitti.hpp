@@ -5,87 +5,6 @@
 
 namespace prototype {
 
-/*****************************************************************************
- * Parse functions
- *****************************************************************************/
-
-/**
- * Parse string
- *
- * @param[in] line Line containing a string
- * @returns A string
- */
-std::string parse_string(const std::string &line);
-
-/**
- * Parse double
- *
- * @param[in] line Line containing a double
- * @returns A double
- */
-double parse_double(const std::string &line);
-
-/**
- * Parse array
- *
- * @param[in] line Line containing an array
- * @returns Array
- */
-std::vector<double> parse_array(const std::string &line);
-
-/**
- * Parse vector of size 2
- *
- * @param[in] line Line containing a vector of size 2
- * @returns Vector of size 2
- */
-vec2_t parse_vec2(const std::string &line);
-
-/**
- * Parse vector of size 3
- *
- * @param[in] line Line containing a vector of size 3
- * @returns Vector of size 3
- */
-vec3_t parse_vec3(const std::string &line);
-
-/**
- * Parse vector
- *
- * @param[in] line Line containing a vector
- * @returns Vector
- */
-vecx_t parse_vecx(const std::string &line);
-
-/**
- * Parse 3x3 matrix
- *
- * @param[in] line Line containing a 3x3 matrix
- * @returns 3x3 matrix
- */
-mat3_t parse_mat3(const std::string &line);
-
-/**
- * Parse 3x4 matrix
- *
- * @param[in] line Line containing a 3x4 matrix
- * @returns 3x4 matrix
- */
-mat34_t parse_mat34(const std::string &line);
-
-/**
- * Parse timestamp
- *
- * @param[in] line Line containing a timestamp
- * @param[out] s Output string
- * @returns 0 or -1 for success or failure
- */
-int parse_timestamp(const std::string &line, long *s);
-
-/*****************************************************************************
- * calib_cam2cam_t
- *****************************************************************************/
-
 /**
  * Camera to Camera calibration
  */
@@ -109,18 +28,6 @@ struct calib_cam2cam_t {
 };
 
 /**
- * Load camera to camera calibration
- *
- * @param[in,out] calib Camera to camera calibration
- * @returns 0 or -1 for success or failure
- */
-int calib_cam2cam_load(calib_cam2cam_t &calib);
-
-/*****************************************************************************
- * calib_imu2velo_t
- *****************************************************************************/
-
-/**
  * IMU to Velo calibration
  */
 struct calib_imu2velo_t {
@@ -135,18 +42,6 @@ struct calib_imu2velo_t {
   calib_imu2velo_t() {}
   calib_imu2velo_t(const std::string file_path_) : file_path{file_path_} {}
 };
-
-/**
- * Load imu to velo calibration
- *
- * @param[in,out] calib IMU to VELO calibration
- * @returns 0 or -1 for success or failure
- */
-int calib_imu2velo_load(calib_imu2velo_t &calib);
-
-/*****************************************************************************
- * calib_velo2cam_t
- *****************************************************************************/
 
 /**
  * Velo to Camera calibration
@@ -165,18 +60,6 @@ struct calib_velo2cam_t {
   calib_velo2cam_t() {}
   calib_velo2cam_t(const std::string file_path_) : file_path{file_path_} {}
 };
-
-/**
- * Load velo to camera calibration
- *
- * @param[in,out] calib VELO to camera calibration
- * @returns 0 or -1 for success or failure
- */
-int calib_velo2cam_load(calib_velo2cam_t &calib);
-
-/*****************************************************************************
- * oxts_entry_t
- *****************************************************************************/
 
 /**
  * OXTS entry
@@ -199,18 +82,6 @@ struct oxts_entry_t {
   oxts_entry_t() {}
   oxts_entry_t(const std::string &file_path_) : file_path{file_path_} {}
 };
-
-/**
- * Load OXTS entry
- *
- * @param[in,out] entry OXTS entry
- * @returns 0 for success, -1 for failure
- */
-int oxts_entry_load(oxts_entry_t &entry);
-
-/*****************************************************************************
- * oxts_t
- *****************************************************************************/
 
 /**
  * OXTS
@@ -236,34 +107,6 @@ struct oxts_t {
   oxts_t() {}
   oxts_t(const std::string &oxts_dir_) : oxts_dir{oxts_dir_} {}
 };
-
-/**
- * load OXTS
- *
- * @param[in,out] oxts OXTS data
- * @returns 0 for success, -1 for failure
- */
-int oxts_load_entries(oxts_t &oxts);
-
-/**
- * Load timestamps
- *
- * @param[in,out] oxts OXTS data
- * @returns 0 for success, -1 for failure
- */
-int oxts_load_timestamps(oxts_t &oxts);
-
-/**
- * Load OXTS
- *
- * @param[in,out] oxts OXTS data
- * @returns 0 for success, -1 for failure
- */
-int oxts_load(oxts_t &oxts);
-
-/*****************************************************************************
- * kitti_raw_t
- *****************************************************************************/
 
 /**
  * KITTI Raw Dataset
@@ -297,6 +140,135 @@ struct kitti_raw_t {
               const std::string &type);
   ~kitti_raw_t();
 };
+
+/**
+ * Parse string
+ *
+ * @param[in] line Line containing a string
+ * @returns A string
+ */
+std::string kitti_parse_string(const std::string &line);
+
+/**
+ * Parse double
+ *
+ * @param[in] line Line containing a double
+ * @returns A double
+ */
+double kitti_parse_double(const std::string &line);
+
+/**
+ * Parse array
+ *
+ * @param[in] line Line containing an array
+ * @returns Array
+ */
+std::vector<double> kitti_parse_array(const std::string &line);
+
+/**
+ * Parse vector of size 2
+ *
+ * @param[in] line Line containing a vector of size 2
+ * @returns Vector of size 2
+ */
+vec2_t kitti_parse_vec2(const std::string &line);
+
+/**
+ * Parse vector of size 3
+ *
+ * @param[in] line Line containing a vector of size 3
+ * @returns Vector of size 3
+ */
+vec3_t kitti_parse_vec3(const std::string &line);
+
+/**
+ * Parse vector
+ *
+ * @param[in] line Line containing a vector
+ * @returns Vector
+ */
+vecx_t kitti_parse_vecx(const std::string &line);
+
+/**
+ * Parse 3x3 matrix
+ *
+ * @param[in] line Line containing a 3x3 matrix
+ * @returns 3x3 matrix
+ */
+mat3_t kitti_parse_mat3(const std::string &line);
+
+/**
+ * Parse 3x4 matrix
+ *
+ * @param[in] line Line containing a 3x4 matrix
+ * @returns 3x4 matrix
+ */
+mat34_t kitti_parse_mat34(const std::string &line);
+
+/**
+ * Parse timestamp
+ *
+ * @param[in] line Line containing a timestamp
+ * @param[out] s Output string
+ * @returns 0 or -1 for success or failure
+ */
+int kitti_parse_timestamp(const std::string &line, long *s);
+
+/**
+ * Load camera to camera calibration
+ *
+ * @param[in,out] calib Camera to camera calibration
+ * @returns 0 or -1 for success or failure
+ */
+int calib_cam2cam_load(calib_cam2cam_t &calib);
+
+/**
+ * Load imu to velo calibration
+ *
+ * @param[in,out] calib IMU to VELO calibration
+ * @returns 0 or -1 for success or failure
+ */
+int calib_imu2velo_load(calib_imu2velo_t &calib);
+
+/**
+ * Load velo to camera calibration
+ *
+ * @param[in,out] calib VELO to camera calibration
+ * @returns 0 or -1 for success or failure
+ */
+int calib_velo2cam_load(calib_velo2cam_t &calib);
+
+/**
+ * Load OXTS entry
+ *
+ * @param[in,out] entry OXTS entry
+ * @returns 0 for success, -1 for failure
+ */
+int oxts_entry_load(oxts_entry_t &entry);
+
+/**
+ * load OXTS
+ *
+ * @param[in,out] oxts OXTS data
+ * @returns 0 for success, -1 for failure
+ */
+int oxts_load_entries(oxts_t &oxts);
+
+/**
+ * Load timestamps
+ *
+ * @param[in,out] oxts OXTS data
+ * @returns 0 for success, -1 for failure
+ */
+int oxts_load_timestamps(oxts_t &oxts);
+
+/**
+ * Load OXTS
+ *
+ * @param[in,out] oxts OXTS data
+ * @returns 0 for success, -1 for failure
+ */
+int oxts_load(oxts_t &oxts);
 
 /**
  * Load KITTI raw dataset

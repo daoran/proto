@@ -1,5 +1,5 @@
-#ifndef PROTOTYPE_CONTROL_MISSION_HPP
-#define PROTOTYPE_CONTROL_MISSION_HPP
+#ifndef PROTOTYPE_MAV_MISSION_HPP
+#define PROTOTYPE_MAV_MISSION_HPP
 
 #include <deque>
 #include <iomanip>
@@ -184,4 +184,4 @@ int wp_mission_waypoint_reached(const wp_mission_t &m, const vec3_t &p_G);
 int wp_mission_update(wp_mission_t &m, const vec3_t &p_G, vec3_t &waypoint);
 
 } //  namespace prototype
-#endif // PROTOTYPE_CONTROL_MISSION_HPP
+#endif // PROTOTYPE_MAV_MISSION_HPP

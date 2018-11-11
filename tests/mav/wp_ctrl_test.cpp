@@ -1,5 +1,5 @@
-#include "prototype/control/waypoint_controller.hpp"
 #include "prototype/munit.hpp"
+#include "prototype/mav/wp_ctrl.hpp"
 
 #define TEST_CONFIG "tests/configs/control/waypoint_controller.yaml"
 

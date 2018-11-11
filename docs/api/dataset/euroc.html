@@ -24,10 +24,6 @@
   ~euroc_imu_t();
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>euroc_imu_t</p>
-<hr /></p></div>
-  
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_camera_t {
@@ -50,10 +46,6 @@
   ~euroc_camera_t();
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>euroc_camera_t</p>
-<hr /></p></div>
-  
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_ground_truth_t {
@@ -70,10 +62,6 @@
   euroc_ground_truth_t(const std::string data_dir_);
   ~euroc_ground_truth_t();
 };</code></pre>
-  
-  <div class="doc"><p><hr />
-<p>euroc_ground_truth_t</p>
-<hr /></p></div>
   
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
@@ -100,10 +88,6 @@
   ~euroc_data_t();
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>euroc_data_t</p>
-<hr /></p></div>
-  
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_target_t {
@@ -120,13 +104,9 @@
   ~euroc_target_t();
 };</code></pre>
   
-  <div class="doc"><p><hr />
-<p>euroc_target_t</p>
-<hr /></p></div>
-  
 </div> <!-- .cpp_class -->
 <div class="cpp_class">
-  <pre><code class="cpp">class euroc_calib_t {
+  <pre><code class="cpp">struct euroc_calib_t {
   bool ok;
   std::string data_path;
   bool imshow;
@@ -140,10 +120,6 @@
   euroc_calib_t(const std::string &amp;data_path);
   ~euroc_calib_t();
 };</code></pre>
-  
-  <div class="doc"><p><hr />
-<p>euroc_calib_t</p>
-<hr /></p></div>
   
 </div> <!-- .cpp_class -->
 <!-- FUNCTIONS -->
@@ -164,14 +140,6 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_imu_t &amp;data);
-</code></pre>
-  
-  <div class="doc"><p><p><code>euroc_imu_t</code> to output stream</p></p></div>
-  
-</div> <!-- .cpp_func -->
-
-<div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int euroc_camera_load(euroc_camera_t &amp;cd,
                       const std::string &amp;data_dir,
                       const bool is_calib_data);
@@ -184,14 +152,6 @@
 <li>[in] is_calib_data Is camera data for calibration?</li>
 </ul>
 <p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
-  
-</div> <!-- .cpp_func -->
-
-<div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_camera_t &amp;data);
-</code></pre>
-  
-  <div class="doc"><p><p><code>euroc_camera_t</code> to output stream</p></p></div>
   
 </div> <!-- .cpp_func -->
 
@@ -266,19 +226,35 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_target_t &amp;target);
-</code></pre>
-  
-  <div class="doc"><p><p><code>calib_target_t</code> to output stream</p></p></div>
-  
-</div> <!-- .cpp_func -->
-
-<div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int euroc_calib_load(euroc_calib_t &amp;data, const std::string &amp;data_path);
 </code></pre>
   
   <div class="doc"><p><p>Load calibration data</p>
 <p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_imu_t &amp;data);
+</code></pre>
+  
+  <div class="doc"><p><p><code>euroc_imu_t</code> to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_camera_t &amp;data);
+</code></pre>
+  
+  <div class="doc"><p><p><code>euroc_camera_t</code> to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_target_t &amp;target);
+</code></pre>
+  
+  <div class="doc"><p><p><code>calib_target_t</code> to output stream</p></p></div>
   
 </div> <!-- .cpp_func -->
 

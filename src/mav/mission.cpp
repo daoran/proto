@@ -1,4 +1,4 @@
-#include "prototype/control/mission.hpp"
+#include "prototype/mav/mission.hpp"
 
 namespace prototype {
 

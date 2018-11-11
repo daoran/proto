@@ -29,12 +29,8 @@ ADD_LIBRARY(
   src/calib/calib_gimbal.cpp
   src/calib/chessboard.cpp
   # control
-  src/control/att_ctrl.cpp
   src/control/carrot_ctrl.cpp
-  src/control/mission.cpp
   src/control/pid.cpp
-  src/control/pos_ctrl.cpp
-  src/control/wp_ctrl.cpp
   # core
   src/core/config.cpp
   src/core/data.cpp
@@ -57,6 +53,11 @@ ADD_LIBRARY(
   src/driver/pwm/pca9685.cpp
   src/driver/i2c.cpp
   src/driver/uart.cpp
+  # mav
+  src/mav/att_ctrl.cpp
+  src/mav/mission.cpp
+  src/mav/pos_ctrl.cpp
+  src/mav/wp_ctrl.cpp
   # model
   src/model/gimbal.cpp
   src/model/mav.cpp
@@ -101,7 +102,6 @@ SET(
   calib-calib_data_test
   calib-calib_camera_test
   # control-carrot_ctrl_test
-  control-mission_test
   control-pid_test
   core-config_test
   core-data_test
@@ -115,6 +115,7 @@ SET(
   dataset-kitti_test
   driver-camera-camera_test
   model-mav_test
+  mav-mission_test
   vision-camera-camera_geometry_test
   vision-camera-equi_test
   vision-camera-pinhole_test

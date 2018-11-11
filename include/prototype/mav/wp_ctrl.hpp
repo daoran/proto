@@ -1,5 +1,5 @@
-#ifndef PROTOTYPE_CONTROL_WP_CTRL_HPP
-#define PROTOTYPE_CONTROL_WP_CTRL_HPP
+#ifndef PROTOTYPE_MAV_WP_CTRL_HPP
+#define PROTOTYPE_MAV_WP_CTRL_HPP
 
 #include <deque>
 #include <iomanip>
@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "prototype/core/core.hpp"
-#include "prototype/control/mission.hpp"
 #include "prototype/control/pid.hpp"
+#include "prototype/mav/mission.hpp"
 
 namespace prototype {
 
@@ -72,4 +72,4 @@ int wp_ctrl_update(wp_ctrl_t &wc,
 void wp_ctrl_reset(wp_ctrl_t &wc);
 
 } //  namespace prototype
-#endif // PROTOTYPE_CONTROL_WP_CTRL_HPP
+#endif // PROTOTYPE_MAV_WP_CTRL_HPP

@@ -7,20 +7,20 @@ namespace prototype {
 #define TEST_DATA_BASEPATH "test_data/kitti/raw/"
 #define TEST_DATA_PATH "test_data/kitti/raw/2011_09_26"
 
-int test_parse_string() {
-  std::string value = parse_string("X: Hello World");
+int test_kitti_parse_string() {
+  std::string value = kitti_parse_string("X: Hello World");
   MU_CHECK_EQ("Hello World", value);
   return 0;
 }
 
-int test_parse_double() {
-  double value = parse_double("X: 1.23");
+int test_kitti_parse_double() {
+  double value = kitti_parse_double("X: 1.23");
   MU_CHECK_FLOAT(1.23, value);
   return 0;
 }
 
-int test_parse_array() {
-  std::vector<double> value = parse_array("X: 1.0 2.0 3.0");
+int test_kitti_parse_array() {
+  std::vector<double> value = kitti_parse_array("X: 1.0 2.0 3.0");
 
   MU_CHECK_EQ(3, (int) value.size());
   MU_CHECK_FLOAT(1.0, value[0]);
@@ -30,8 +30,8 @@ int test_parse_array() {
   return 0;
 }
 
-int test_parse_vec2() {
-  vec2_t value = parse_vec2("X: 1.0 2.0");
+int test_kitti_parse_vec2() {
+  vec2_t value = kitti_parse_vec2("X: 1.0 2.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -39,8 +39,8 @@ int test_parse_vec2() {
   return 0;
 }
 
-int test_parse_vec3() {
-  vec3_t value = parse_vec3("X: 1.0 2.0 3.0");
+int test_kitti_parse_vec3() {
+  vec3_t value = kitti_parse_vec3("X: 1.0 2.0 3.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -49,8 +49,8 @@ int test_parse_vec3() {
   return 0;
 }
 
-int test_parse_vecx() {
-  vecx_t value = parse_vecx("X: 1.0 2.0 3.0 4.0 5.0 6.0");
+int test_kitti_parse_vecx() {
+  vecx_t value = kitti_parse_vecx("X: 1.0 2.0 3.0 4.0 5.0 6.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -62,8 +62,8 @@ int test_parse_vecx() {
   return 0;
 }
 
-int test_parse_mat3() {
-  mat3_t value = parse_mat3("X: 1 2 3 4 5 6 7 8 9");
+int test_kitti_parse_mat3() {
+  mat3_t value = kitti_parse_mat3("X: 1 2 3 4 5 6 7 8 9");
 
   MU_CHECK_FLOAT(1.0, value(0, 0));
   MU_CHECK_FLOAT(2.0, value(0, 1));
@@ -78,8 +78,8 @@ int test_parse_mat3() {
   return 0;
 }
 
-int test_parse_mat34() {
-  mat34_t value = parse_mat34("X: 1 2 3 4 5 6 7 8 9 10 11 12");
+int test_kitti_parse_mat34() {
+  mat34_t value = kitti_parse_mat34("X: 1 2 3 4 5 6 7 8 9 10 11 12");
 
   MU_CHECK_FLOAT(1.0, value(0, 0));
   MU_CHECK_FLOAT(2.0, value(0, 1));
@@ -174,14 +174,14 @@ int test_kitti_raw_load() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_parse_string);
-  MU_ADD_TEST(test_parse_double);
-  MU_ADD_TEST(test_parse_array);
-  MU_ADD_TEST(test_parse_vec2);
-  MU_ADD_TEST(test_parse_vec3);
-  MU_ADD_TEST(test_parse_vecx);
-  MU_ADD_TEST(test_parse_mat3);
-  MU_ADD_TEST(test_parse_mat34);
+  MU_ADD_TEST(test_kitti_parse_string);
+  MU_ADD_TEST(test_kitti_parse_double);
+  MU_ADD_TEST(test_kitti_parse_array);
+  MU_ADD_TEST(test_kitti_parse_vec2);
+  MU_ADD_TEST(test_kitti_parse_vec3);
+  MU_ADD_TEST(test_kitti_parse_vecx);
+  MU_ADD_TEST(test_kitti_parse_mat3);
+  MU_ADD_TEST(test_kitti_parse_mat34);
 
   MU_ADD_TEST(test_calib_cam2cam_load);
   MU_ADD_TEST(test_calib_imu2velo_load);

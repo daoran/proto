@@ -1,4 +1,4 @@
-#include "prototype/control/pos_ctrl.hpp"
+#include "prototype/mav/pos_ctrl.hpp"
 
 namespace prototype {
 

@@ -1,5 +1,5 @@
-#include "prototype/control/position_controller.hpp"
 #include "prototype/munit.hpp"
+#include "prototype/mav/pos_ctrl.hpp"
 
 namespace prototype {
 
