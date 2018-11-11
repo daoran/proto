@@ -1,61 +1,18 @@
-#include "prototype/dataset/euroc_mav.hpp"
+#include "prototype/dataset/euroc.hpp"
 
 namespace prototype {
-namespace euroc {
 
 /*****************************************************************************
- * calib_target_t
+ * euroc_imu_t
  ****************************************************************************/
 
-calib_target_t::calib_target_t() {}
+euroc_imu_t::euroc_imu_t() {}
 
-calib_target_t::calib_target_t(const std::string &file_path)
-  : file_path{file_path} {
-  if (calib_target_load(*this,  file_path) == 0) {
-    ok = true;
-  }
-}
+euroc_imu_t::euroc_imu_t(const std::string &data_dir_) : data_dir{data_dir_} {}
 
-calib_target_t::~calib_target_t() {}
+euroc_imu_t::~euroc_imu_t() {}
 
-int calib_target_load(calib_target_t &target,
-                      const std::string &target_file) {
-  config_t config{target_file};
-  if (config.ok != true) {
-    LOG_ERROR("Failed to load target file [%s]!", target_file.c_str());
-    return -1;
-  }
-  parse(config, "target_type", target.type);
-  parse(config, "tagRows", target.tag_rows);
-  parse(config, "tagCols", target.tag_cols);
-  parse(config, "tagSize", target.tag_size);
-  parse(config, "tagSpacing", target.tag_spacing);
-
-  return 0;
-}
-
-std::ostream &operator<<(std::ostream &os, const calib_target_t &target) {
-  os << "target_type: " << target.type << std::endl;
-  os << "tag_rows: " << target.tag_rows << std::endl;
-  os << "tag_cols: " << target.tag_cols << std::endl;
-  os << "tag_size: " << target.tag_size << std::endl;
-  os << "tag_spacing: " << target.tag_spacing << std::endl;
-  return os;
-}
-
-
-
-/*****************************************************************************
- * imu_data_t
- ****************************************************************************/
-
-imu_data_t::imu_data_t() {}
-
-imu_data_t::imu_data_t(const std::string &data_dir_) : data_dir{data_dir_} {}
-
-imu_data_t::~imu_data_t() {}
-
-int imu_data_load(imu_data_t &data, const std::string &data_dir) {
+int euroc_imu_load(euroc_imu_t &data, const std::string &data_dir) {
   data.data_dir = data_dir;
   const std::string imu_data_path = data.data_dir + "/data.csv";
   const std::string imu_calib_path = data.data_dir + "/sensor.yaml";
@@ -78,7 +35,7 @@ int imu_data_load(imu_data_t &data, const std::string &data_dir) {
 
   // Load calibration data
   config_t config{imu_calib_path};
-  if (config.ok != false) {
+  if (config.ok != true) {
     LOG_ERROR("Failed to load sensor file [%s]!", imu_calib_path.c_str());
     return -1;
   }
@@ -94,7 +51,7 @@ int imu_data_load(imu_data_t &data, const std::string &data_dir) {
   return 0;
 }
 
-std::ostream &operator<<(std::ostream &os, const imu_data_t &data) {
+std::ostream &operator<<(std::ostream &os, const euroc_imu_t &data) {
   // clang-format off
   os << "sensor_type: " << data.sensor_type << std::endl;
   os << "comment: " << data.comment << std::endl;
@@ -109,19 +66,20 @@ std::ostream &operator<<(std::ostream &os, const imu_data_t &data) {
   return os;
 }
 
-
-
 /*****************************************************************************
- * camera_data_t
+ * euroc_camera_t
  ****************************************************************************/
 
-camera_data_t::camera_data_t() {}
+euroc_camera_t::euroc_camera_t() {}
 
-camera_data_t::camera_data_t(const std::string &data_dir_) : data_dir{data_dir_} {}
+euroc_camera_t::euroc_camera_t(const std::string &data_dir_)
+    : data_dir{data_dir_} {}
 
-camera_data_t::~camera_data_t() {}
+euroc_camera_t::~euroc_camera_t() {}
 
-int camera_data_load(camera_data_t &cd, const std::string &data_dir) {
+int euroc_camera_load(euroc_camera_t &cd,
+                      const std::string &data_dir,
+                      const bool is_calib_data) {
   cd.data_dir = data_dir;
   const std::string cam_data_path = cd.data_dir + "/data.csv";
   const std::string cam_calib_path = cd.data_dir + "/sensor.yaml";
@@ -160,15 +118,18 @@ int camera_data_load(camera_data_t &cd, const std::string &data_dir) {
   parse(config, "T_BS", cd.T_BS);
   parse(config, "rate_hz", cd.rate_hz);
   parse(config, "resolution", cd.resolution);
-  parse(config, "camera_model", cd.camera_model);
-  parse(config, "intrinsics", cd.intrinsics);
-  parse(config, "distortion_model", cd.distortion_model);
-  parse(config, "distortion_coefficients", cd.distortion_coefficients);
+  parse(config, "camera_model", cd.camera_model, is_calib_data);
+  parse(config, "intrinsics", cd.intrinsics, is_calib_data);
+  parse(config, "distortion_model", cd.distortion_model, is_calib_data);
+  parse(config,
+        "distortion_coefficients",
+        cd.distortion_coefficients,
+        is_calib_data);
 
   return 0;
 }
 
-std::ostream &operator<<(std::ostream &os, const camera_data_t &cd) {
+std::ostream &operator<<(std::ostream &os, const euroc_camera_t &cd) {
   // clang-format off
   os << "sensor_type: " << cd.sensor_type << std::endl;
   os << "comment: " << cd.comment << std::endl;
@@ -184,19 +145,19 @@ std::ostream &operator<<(std::ostream &os, const camera_data_t &cd) {
   return os;
 }
 
-
-
 /*****************************************************************************
- * ground_truth_t
+ * euroc_ground_truth_t
  ****************************************************************************/
 
-ground_truth_t::ground_truth_t() {}
+euroc_ground_truth_t::euroc_ground_truth_t() {}
 
-ground_truth_t::ground_truth_t(const std::string data_dir_) : data_dir{data_dir_} {}
+euroc_ground_truth_t::euroc_ground_truth_t(const std::string data_dir_)
+    : data_dir{data_dir_} {}
 
-ground_truth_t::~ground_truth_t() {}
+euroc_ground_truth_t::~euroc_ground_truth_t() {}
 
-int ground_truth_load(ground_truth_t &gtd, const std::string &data_dir) {
+int euroc_ground_truth_load(euroc_ground_truth_t &gtd,
+                            const std::string &data_dir) {
   // Load ground truth data
   gtd.data_dir = data_dir;
   const std::string gnd_data_path = gtd.data_dir + "/data.csv";
@@ -221,40 +182,21 @@ int ground_truth_load(ground_truth_t &gtd, const std::string &data_dir) {
   return 0;
 }
 
-
-
 /*****************************************************************************
- * dataset_event_t
+ * euroc_data_t
  ****************************************************************************/
 
-dataset_event_t::dataset_event_t() {}
+euroc_data_t::euroc_data_t() {}
 
-dataset_event_t::dataset_event_t(const vec3_t &a_m, const vec3_t &w_m)
-    : type{IMU_EVENT}, a_m{a_m}, w_m{w_m} {}
+euroc_data_t::euroc_data_t(const std::string &data_path)
+    : data_path{strip_end(data_path, "/")} {}
 
-dataset_event_t::dataset_event_t(const int camera_index,
-                                 const std::string &image_path)
-    : type{CAMERA_EVENT}, camera_index{camera_index}, image_path{image_path} {}
+euroc_data_t::~euroc_data_t() {}
 
-dataset_event_t::~dataset_event_t() {}
-
-
-
-/*****************************************************************************
- * mav_dataset_t
- ****************************************************************************/
-
-mav_dataset_t::mav_dataset_t() {}
-
-mav_dataset_t::mav_dataset_t(const std::string &data_path)
-      : data_path{strip_end(data_path, "/")} {}
-
-mav_dataset_t::~mav_dataset_t() {}
-
-int mav_dataset_load(mav_dataset_t &ds) {
+int euroc_data_load(euroc_data_t &ds) {
   // Load IMU data
-  const std::string imu_data_dir = ds.data_path + "/imu0";
-  if (imu_data_load(ds.imu_data, imu_data_dir) != 0) {
+  const std::string imu_data_dir = ds.data_path + "/mav0/imu0";
+  if (euroc_imu_load(ds.imu_data, imu_data_dir) != 0) {
     LOG_ERROR("Failed to load IMU data [%s]!", ds.imu_data.data_dir.c_str());
     return -1;
   }
@@ -262,44 +204,47 @@ int mav_dataset_load(mav_dataset_t &ds) {
     const long ts = ds.imu_data.timestamps[i];
     const vec3_t a_B = ds.imu_data.a_B[i];
     const vec3_t w_B = ds.imu_data.w_B[i];
-    const auto imu_event = dataset_event_t{a_B, w_B};
+    const auto imu_event = timeline_event_t{ts, a_B, w_B};
     ds.timeline.insert({ts, imu_event});
   }
 
   // Load camera data
-  const std::string cam0_data_dir = ds.data_path + "/cam0";
-  if (camera_data_load(ds.cam0_data, cam0_data_dir) != 0) {
+  const std::string cam0_data_dir = ds.data_path + "/mav0/cam0";
+  if (euroc_camera_load(ds.cam0_data, cam0_data_dir) != 0) {
     LOG_ERROR("Failed to load cam0 data [%s]!", ds.cam0_data.data_dir.c_str());
     return -1;
   }
-  const std::string cam1_data_dir = ds.data_path + "/cam1";
-  if (camera_data_load(ds.cam1_data, cam1_data_dir) != 0) {
+  const std::string cam1_data_dir = ds.data_path + "/mav0/cam1";
+  if (euroc_camera_load(ds.cam1_data, cam1_data_dir) != 0) {
     LOG_ERROR("Failed to load cam1 data [%s]!", ds.cam1_data.data_dir.c_str());
     return -1;
   }
   for (size_t i = 0; i < ds.cam0_data.timestamps.size(); i++) {
     const long ts = ds.cam0_data.timestamps[i];
-    const auto cam0_event = dataset_event_t(0, ds.cam0_data.image_paths[i]);
+    const auto image_path = ds.cam0_data.image_paths[i];
+    const auto cam0_event = timeline_event_t(ts, 0, image_path);
     ds.timeline.insert({ts, cam0_event});
   }
   for (size_t i = 0; i < ds.cam1_data.timestamps.size(); i++) {
     const long ts = ds.cam1_data.timestamps[i];
-    const auto cam1_event = dataset_event_t(1, ds.cam1_data.image_paths[i]);
+    const auto image_path = ds.cam1_data.image_paths[i];
+    const auto cam1_event = timeline_event_t(ts, 1, image_path);
     ds.timeline.insert({ts, cam1_event});
   }
   cv::Mat image = cv::imread(ds.cam0_data.image_paths[0]);
   ds.image_size = cv::Size(image.size());
 
   // Load ground truth
-  const std::string gnd_path = ds.data_path + "/state_groundtruth_estimate0";
-  if (ground_truth_load(ds.ground_truth, gnd_path) != 0) {
+  const std::string gnd_path =
+      ds.data_path + "/mav0/state_groundtruth_estimate0";
+  if (euroc_ground_truth_load(ds.ground_truth, gnd_path) != 0) {
     LOG_ERROR("Failed to load ground truth!");
     return -1;
   }
 
   // Process timestamps
-  ds.ts_start = mav_dataset_min_timestamp(ds);
-  ds.ts_end = mav_dataset_max_timestamp(ds);
+  ds.ts_start = euroc_data_min_timestamp(ds);
+  ds.ts_end = euroc_data_max_timestamp(ds);
   ds.ts_now = ds.ts_start;
 
   // Get timestamps and calculate relative time
@@ -307,7 +252,7 @@ int mav_dataset_load(mav_dataset_t &ds) {
   auto it_end = ds.timeline.end();
   while (it != it_end) {
     const long ts = it->first;
-    ds.timestamps.push_back(ts);
+    ds.timestamps.insert(ts);
     ds.time[ts] = ((double) ts - ds.ts_start) * 1e-9;
 
     // Advance to next non-duplicate entry.
@@ -320,9 +265,9 @@ int mav_dataset_load(mav_dataset_t &ds) {
   return 0;
 }
 
-void mav_dataset_reset(mav_dataset_t &ds) {
-  ds.ts_start = mav_dataset_min_timestamp(ds);
-  ds.ts_end = mav_dataset_max_timestamp(ds);
+void euroc_data_reset(euroc_data_t &ds) {
+  ds.ts_start = euroc_data_min_timestamp(ds);
+  ds.ts_end = euroc_data_max_timestamp(ds);
   ds.ts_now = ds.ts_start;
   ds.time_index = 0;
   ds.imu_index = 0;
@@ -330,7 +275,7 @@ void mav_dataset_reset(mav_dataset_t &ds) {
   // ds.feature_tracks.clear();
 }
 
-long mav_dataset_min_timestamp(const mav_dataset_t &ds) {
+long euroc_data_min_timestamp(const euroc_data_t &ds) {
   const long cam0_first_ts = ds.cam0_data.timestamps.front();
   const long imu_first_ts = ds.imu_data.timestamps.front();
 
@@ -342,7 +287,7 @@ long mav_dataset_min_timestamp(const mav_dataset_t &ds) {
   return min_ts;
 }
 
-long mav_dataset_max_timestamp(const mav_dataset_t &ds) {
+long euroc_data_max_timestamp(const euroc_data_t &ds) {
   const long cam0_last_ts = ds.cam0_data.timestamps.back();
   const long imu_last_ts = ds.imu_data.timestamps.back();
 
@@ -354,37 +299,75 @@ long mav_dataset_max_timestamp(const mav_dataset_t &ds) {
   return max_ts;
 }
 
-
-
 /*****************************************************************************
- * calib_data_t
+ * euroc_target_t
  ****************************************************************************/
 
-calib_data_t::calib_data_t() {}
+euroc_target_t::euroc_target_t() {}
 
-calib_data_t::calib_data_t(const std::string &data_path)
+euroc_target_t::euroc_target_t(const std::string &file_path)
+    : file_path{file_path} {
+  if (euroc_target_load(*this, file_path) == 0) {
+    ok = true;
+  }
+}
+
+euroc_target_t::~euroc_target_t() {}
+
+int euroc_target_load(euroc_target_t &target, const std::string &target_file) {
+  config_t config{target_file};
+  if (config.ok != true) {
+    LOG_ERROR("Failed to load target file [%s]!", target_file.c_str());
+    return -1;
+  }
+  parse(config, "target_type", target.type);
+  parse(config, "tagRows", target.tag_rows);
+  parse(config, "tagCols", target.tag_cols);
+  parse(config, "tagSize", target.tag_size);
+  parse(config, "tagSpacing", target.tag_spacing);
+
+  return 0;
+}
+
+std::ostream &operator<<(std::ostream &os, const euroc_target_t &target) {
+  os << "target_type: " << target.type << std::endl;
+  os << "tag_rows: " << target.tag_rows << std::endl;
+  os << "tag_cols: " << target.tag_cols << std::endl;
+  os << "tag_size: " << target.tag_size << std::endl;
+  os << "tag_spacing: " << target.tag_spacing << std::endl;
+  return os;
+}
+
+/*****************************************************************************
+ * euroc_calib_t
+ ****************************************************************************/
+
+euroc_calib_t::euroc_calib_t() {}
+
+euroc_calib_t::euroc_calib_t(const std::string &data_path)
     : data_path{strip_end(data_path, "/")} {}
 
-calib_data_t::~calib_data_t() {}
+euroc_calib_t::~euroc_calib_t() {}
 
-int calib_data_load(calib_data_t &data, const std::string &data_path) {
+int euroc_calib_load(euroc_calib_t &data, const std::string &data_path) {
   // Load IMU data
+  data.data_path = data_path;
   const std::string imu_data_dir = data_path + "/mav0/imu0";
-  if (imu_data_load(data.imu_data, imu_data_dir) != 0) {
+  if (euroc_imu_load(data.imu_data, imu_data_dir) != 0) {
     LOG_ERROR("Failed to load IMU data [%s]!", imu_data_dir.c_str());
     return -1;
   }
 
   // Load cam0 data
   const std::string cam0_dir = data.data_path + "/mav0/cam0";
-  if (camera_data_load(data.cam0_data, cam0_dir) != 0) {
+  if (euroc_camera_load(data.cam0_data, cam0_dir, true) != 0) {
     LOG_ERROR("Failed to load cam0 data [%s]!", cam0_dir.c_str());
     return -1;
   }
 
   // Load cam1 data
   const std::string cam1_dir = data.data_path + "/mav0/cam1";
-  if (camera_data_load(data.cam1_data, cam1_dir) != 0) {
+  if (euroc_camera_load(data.cam1_data, cam1_dir, true) != 0) {
     LOG_ERROR("Failed to load cam1 data [%s]!", cam1_dir.c_str());
     return -1;
   }
@@ -410,7 +393,7 @@ int calib_data_load(calib_data_t &data, const std::string &data_path) {
 
   // Load calibration target data
   const std::string target_path = data.data_path + "/april_6x6.yaml";
-  if (calib_target_load(data.calib_target, target_path) != 0) {
+  if (euroc_target_load(data.calib_target, target_path) != 0) {
     LOG_ERROR("Failed to load target [%s]!", target_path.c_str());
     return -1;
   }
@@ -418,5 +401,4 @@ int calib_data_load(calib_data_t &data, const std::string &data_path) {
   return 0;
 }
 
-}  // namespace euroc
-}  // namespace prototype
+} // namespace prototype

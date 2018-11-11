@@ -1,15 +1,18 @@
-#include "prototype/dataset/euroc_mav.hpp"
+#include "prototype/dataset/euroc.hpp"
 #include "prototype/munit.hpp"
 
 namespace prototype {
-namespace euroc {
 
-#define TEST_CAM0_DATA "test_data/euroc/cam0"
-#define TEST_IMU_DATA "test_data/euroc/imu0"
-#define TEST_GROUND_TRUTH_DATA "test_data/euroc/state_groundtruth_estimate0"
+#define TEST_IMU_DATA "/data/euroc_mav/MH_01_easy/mav0/imu0"
+#define TEST_CAM0_DATA "/data/euroc_mav/MH_01_easy/mav0/cam0"
+#define TEST_GROUND_TRUTH_DATA                                                 \
+  "/data/euroc_mav/MH_01_easy/mav0/state_groundtruth_estimate0"
+#define TEST_DATA "/data/euroc_mav/MH_01_easy"
 
-int test_imu_data_constructor() {
-  imu_data_t imu_data;
+#define TEST_CALIB_DATA "/data/euroc_mav/cam_april"
+
+int test_euroc_imu_constructor() {
+  euroc_imu_t imu_data;
 
   // Data
   MU_CHECK_EQ(0, imu_data.timestamps.size());
@@ -30,16 +33,16 @@ int test_imu_data_constructor() {
   return 0;
 }
 
-int test_imu_data_load() {
-  imu_data_t imu_data;
+int test_euroc_imu_load() {
+  euroc_imu_t imu_data;
 
-  int retval = imu_data_load(imu_data, TEST_IMU_DATA);
+  int retval = euroc_imu_load(imu_data, TEST_IMU_DATA);
   MU_CHECK_EQ(0, retval);
 
-  MU_CHECK_EQ(91, imu_data.timestamps.size());
-  MU_CHECK_EQ(91, imu_data.time.size());
-  MU_CHECK_EQ(91, imu_data.w_B.size());
-  MU_CHECK_EQ(91, imu_data.a_B.size());
+  MU_CHECK(imu_data.timestamps.size());
+  MU_CHECK(imu_data.time.size());
+  MU_CHECK(imu_data.w_B.size());
+  MU_CHECK(imu_data.a_B.size());
 
   MU_CHECK_EQ("imu", imu_data.sensor_type);
   MU_CHECK_EQ("VI-Sensor IMU (ADIS16448)", imu_data.comment);
@@ -51,9 +54,8 @@ int test_imu_data_load() {
   return 0;
 }
 
-
-int test_camera_data_constructor() {
-  camera_data_t camera_data;
+int test_euroc_camera_constructor() {
+  euroc_camera_t camera_data;
 
   MU_CHECK_EQ(0, camera_data.timestamps.size());
   MU_CHECK_EQ(0, camera_data.time.size());
@@ -72,8 +74,8 @@ int test_camera_data_constructor() {
   return 0;
 }
 
-int test_camera_data_load() {
-  camera_data_t camera_data;
+int test_euroc_camera_load() {
+  euroc_camera_t camera_data;
 
   // Sensor extrinsics wrt. the body-frame.
   // clang-format off
@@ -87,11 +89,11 @@ int test_camera_data_load() {
   const vec4_t distortion_expected(-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05);
   // clang-format on
 
-  int retval = camera_data_load(camera_data, TEST_CAM0_DATA);
+  int retval = euroc_camera_load(camera_data, TEST_CAM0_DATA);
   MU_CHECK_EQ(0.0, retval);
-  MU_CHECK_EQ(10, camera_data.timestamps.size());
-  MU_CHECK_EQ(10, camera_data.time.size());
-  MU_CHECK_EQ(10, camera_data.image_paths.size());
+  MU_CHECK(camera_data.timestamps.size());
+  MU_CHECK(camera_data.time.size());
+  MU_CHECK(camera_data.image_paths.size());
 
   MU_CHECK_EQ("camera", camera_data.sensor_type);
   MU_CHECK_EQ("VI-Sensor cam0 (MT9M034)", camera_data.comment);
@@ -106,8 +108,8 @@ int test_camera_data_load() {
   return 0;
 }
 
-int test_ground_truth_constructor() {
-  ground_truth_t ground_truth;
+int test_euroc_ground_truth_constructor() {
+  euroc_ground_truth_t ground_truth;
 
   MU_CHECK_EQ(0, ground_truth.timestamps.size());
   MU_CHECK_EQ(0, ground_truth.time.size());
@@ -120,32 +122,69 @@ int test_ground_truth_constructor() {
   return 0;
 }
 
-int test_ground_truth_load() {
-  ground_truth_t ground_truth;
+int test_euroc_ground_truth_load() {
+  euroc_ground_truth_t ground_truth;
 
-  int retval = ground_truth_load(ground_truth, TEST_GROUND_TRUTH_DATA);
+  int retval = euroc_ground_truth_load(ground_truth, TEST_GROUND_TRUTH_DATA);
   MU_CHECK_EQ(0, retval);
-  MU_CHECK_EQ(999, ground_truth.timestamps.size());
-  MU_CHECK_EQ(999, ground_truth.time.size());
-  MU_CHECK_EQ(999, ground_truth.p_RS_R.size());
-  MU_CHECK_EQ(999, ground_truth.q_RS.size());
-  MU_CHECK_EQ(999, ground_truth.v_RS_R.size());
-  MU_CHECK_EQ(999, ground_truth.b_w_RS_S.size());
-  MU_CHECK_EQ(999, ground_truth.b_a_RS_S.size());
+  MU_CHECK(ground_truth.timestamps.size());
+  MU_CHECK(ground_truth.time.size());
+  MU_CHECK(ground_truth.p_RS_R.size());
+  MU_CHECK(ground_truth.q_RS.size());
+  MU_CHECK(ground_truth.v_RS_R.size());
+  MU_CHECK(ground_truth.b_w_RS_S.size());
+  MU_CHECK(ground_truth.b_a_RS_S.size());
 
   return 0;
 }
 
-void test_suite() {
-  MU_ADD_TEST(test_imu_data_constructor);
-  MU_ADD_TEST(test_imu_data_load);
-  MU_ADD_TEST(test_camera_data_constructor);
-  MU_ADD_TEST(test_camera_data_load);
-  MU_ADD_TEST(test_ground_truth_constructor);
-  MU_ADD_TEST(test_ground_truth_load);
+int test_euroc_data_constructor() {
+  euroc_data_t ds("/tmp");
+
+  MU_CHECK(ds.ok == false);
+  MU_CHECK_EQ("/tmp", ds.data_path);
+
+  return 0;
 }
 
-} // namespace euroc
+int test_euroc_data_load() {
+  euroc_data_t ds{TEST_DATA};
+
+  int retval = euroc_data_load(ds);
+  MU_CHECK_EQ(0, retval);
+
+  return 0;
+}
+
+int test_euroc_calib_constructor() {
+  euroc_calib_t data(TEST_CALIB_DATA);
+  MU_CHECK_EQ(TEST_CALIB_DATA, data.data_path);
+  return 0;
+}
+
+int test_euroc_calib_load() {
+  euroc_calib_t data;
+  MU_CHECK_EQ(0, euroc_calib_load(data, TEST_CALIB_DATA));
+  return 0;
+}
+
+void test_suite() {
+  MU_ADD_TEST(test_euroc_imu_constructor);
+  MU_ADD_TEST(test_euroc_imu_load);
+
+  MU_ADD_TEST(test_euroc_camera_constructor);
+  MU_ADD_TEST(test_euroc_camera_load);
+
+  MU_ADD_TEST(test_euroc_ground_truth_constructor);
+  MU_ADD_TEST(test_euroc_ground_truth_load);
+
+  MU_ADD_TEST(test_euroc_data_constructor);
+  MU_ADD_TEST(test_euroc_data_load);
+
+  MU_ADD_TEST(test_euroc_calib_constructor);
+  MU_ADD_TEST(test_euroc_calib_load);
+}
+
 } // namespace prototype
 
-MU_RUN_TESTS(prototype::euroc::test_suite);
+MU_RUN_TESTS(prototype::test_suite);

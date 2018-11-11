@@ -47,15 +47,9 @@ ADD_LIBRARY(
   src/core/stats.cpp
   src/core/time.cpp
   # dataset
-  # src/dataset/euroc/camera_data.cpp
-  # src/dataset/euroc/ground_truth.cpp
-  # src/dataset/euroc/imu_data.cpp
-  # src/dataset/euroc/mav_dataset.cpp
-  src/dataset/euroc_mav.cpp
-  src/dataset/kitti/raw/calib.cpp
-  src/dataset/kitti/raw/oxts.cpp
-  src/dataset/kitti/raw/parse.cpp
-  src/dataset/kitti/raw/raw.cpp
+  src/dataset/euroc.cpp
+  src/dataset/kitti.cpp
+  src/dataset/timeline.cpp
   # driver
   src/driver/camera/camera.cpp
   src/driver/gimbal/sbgc.cpp
@@ -117,11 +111,8 @@ SET(
   core-math_test
   core-stats_test
   core-time_test
-  dataset-euroc_mav_test
-  dataset-kitti-raw-calib_test
-  dataset-kitti-raw-oxts_test
-  dataset-kitti-raw-parse_test
-  dataset-kitti-raw-raw_test
+  dataset-euroc_test
+  dataset-kitti_test
   driver-camera-camera_test
   model-mav_test
   vision-camera-camera_geometry_test

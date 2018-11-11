@@ -36,8 +36,8 @@
     - [stats.hpp](#core.stats)
     - [time.hpp](#core.time)
 - dataset/
-    - euroc/
-    - kitti/
+    - [euroc_mav.hpp](#dataset.euroc_mav)
+    - [kitti_raw.hpp](#dataset.kitti_raw)
 - driver/
     - camera/
         - [camera.hpp](#driver.camera.camera)

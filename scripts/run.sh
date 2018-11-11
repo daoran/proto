@@ -25,7 +25,7 @@ cd build || return
 cmake ..
 time make -j8
 
-# cd tests
+cd tests
 # ./calib-aprilgrid_test
 # ./calib-calib_test
 # ./calib-calib_camera_test
@@ -40,6 +40,8 @@ time make -j8
 # ./core-stats_test
 # ./core-time_test
 # ./driver-camera-camera_test
+# ./dataset-euroc_test
+# ./dataset-kitti_test
 # ./vision-camera-camera_geometry_test
 # ./vision-camera-equi_test
 # ./vision-camera-pinhole_test

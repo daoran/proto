@@ -1,2 +1,2 @@
-// #include "prototype/dataset/euroc/euroc.hpp"
-// #include "prototype/dataset/euroc/kitti.hpp"
+#include "prototype/dataset/euroc.hpp"
+#include "prototype/dataset/kitti.hpp"
