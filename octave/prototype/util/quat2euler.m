@@ -1,8 +1,8 @@
 function euler = quat2euler(q)
-  qx = q(1);
-  qy = q(2);
-  qz = q(3);
-  qw = q(4);
+  qw = q(1);
+  qx = q(2);
+  qy = q(3);
+  qz = q(4);
 
   qw2 = qw**2;
   qx2 = qx**2;

@@ -1,5 +1,5 @@
-#ifndef PROTOTYPE_IMU_MPU6050_HPP
-#define PROTOTYPE_IMU_MPU6050_HPP
+#ifndef PROTOTYPE_MPU6050_HPP
+#define PROTOTYPE_MPU6050_HPP
 
 #include <math.h>
 #include <time.h>
@@ -283,4 +283,4 @@ int mpu6050_get_accel_range(const mpu6050_t &imu);
 std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu);
 
 } //  namespace prototype
-#endif // PROTOTYPE_IMU_MPU6050_HPP
+#endif // PROTOTYPE_MPU6050_HPP

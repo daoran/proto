@@ -1,5 +1,5 @@
-#ifndef PROTOTYPE_DRIVER_CAMERA_BASE_HPP
-#define PROTOTYPE_DRIVER_CAMERA_BASE_HPP
+#ifndef PROTOTYPE_DRIVER_CAMERA_HPP
+#define PROTOTYPE_DRIVER_CAMERA_HPP
 
 #include "prototype/core/core.hpp"
 
@@ -85,4 +85,4 @@ int camera_disconnect(camera_t &cam);
 int camera_get_frame(camera_t &cam);
 
 } //  namespace prototype
-#endif // PROTOTYPE_DRIVER_CAMERA_BASE_HPP
+#endif // PROTOTYPE_DRIVER_CAMERA_HPP

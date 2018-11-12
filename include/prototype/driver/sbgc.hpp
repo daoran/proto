@@ -1,5 +1,5 @@
-#ifndef PROTOTYPE_GIMBAL_SBGC_HPP
-#define PROTOTYPE_GIMBAL_SBGC_HPP
+#ifndef PROTOTYPE_SBGC_HPP
+#define PROTOTYPE_SBGC_HPP
 
 #include <errno.h>
 #include <fcntl.h>

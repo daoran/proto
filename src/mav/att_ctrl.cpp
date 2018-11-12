@@ -10,6 +10,7 @@ int att_ctrl_configure(att_ctrl_t &ac, const std::string &config_file) {
   // Load config
   config_t config{config_file};
   if (config.ok == false) {
+    LOG_ERROR("Failed to load config [%s]!", config_file.c_str());
     return -1;
   }
   parse(config, "roll_ctrl.k_p", ac.roll_ctrl.k_p);

@@ -1,4 +1,4 @@
-#include "prototype/driver/pwm/pca9685.hpp"
+#include "prototype/driver/pca9685.hpp"
 
 namespace prototype {
 

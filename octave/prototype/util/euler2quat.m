@@ -21,5 +21,5 @@ function q = euler2quat(euler)
   qw = c_phi * c_theta * c_psi + s_phi * s_theta * s_psi;
 
   mag = sqrt(qw**2 + qx**2 + qy**2 + qz**2);
-  q = [qx / mag; qy / mag; qz / mag; qw / mag;];
+  q = [qw / mag; qx / mag; qy / mag; qz / mag;];
 endfunction

@@ -9,12 +9,7 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
                                     const double threshold,
                                     const bool nonmax_suppression) {
   // Prepare input image - make sure it is grayscale
-  cv::Mat image_gray;
-  if (image.channels() == 3) {
-    cv::cvtColor(image, image_gray, CV_BGR2GRAY);
-  } else {
-    image_gray = image.clone();
-  }
+  cv::Mat image_gray = rgb2gray(image);
 
   // Calculate number of grid cells and max corners per cell
   const int image_width = image.cols;

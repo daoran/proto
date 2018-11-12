@@ -6,6 +6,7 @@ int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file) {
   // Load config
   config_t config{config_file};
   if (config.ok == false) {
+    LOG_ERROR("Failed to load config [%s]!", config_file.c_str());
     return -1;
   }
 

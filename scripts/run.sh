@@ -7,22 +7,19 @@ export CXX=/usr/bin/clang++
 # bash ./scripts/format_code.bash
 # cd scripts/api && python3 api.py
 
-# cd octave/vision
-# octave sandbox.m
-# octave sandbox2.m
-# exit
 
 # cd octave
 # octave notes/ba.m
+# octave notes/quaternion.m
 # octave notes/point_jacobian.m
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 
 # rm -rf build
-# mkdir -p build
-# cd build || return
-# cmake ..
-# time make -j8
+mkdir -p build
+cd build || return
+cmake ..
+time make -j8
 
 # cd tests
 # -- calib

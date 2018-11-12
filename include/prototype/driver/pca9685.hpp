@@ -1,5 +1,5 @@
-#ifndef PROTOTYPE_PWM_PCA9685_HPP
-#define PROTOTYPE_PWM_PCA9685_HPP
+#ifndef PROTOTYPE_PCA9685_HPP
+#define PROTOTYPE_PCA9685_HPP
 
 #include <math.h>
 #include <unistd.h>
@@ -143,4 +143,4 @@ void pca9685_set_pwm(const pca9685_t &pwm, const int16_t off);
 void pca9685_reset(const pca9685_t &pwm);
 
 } //  namespace prototype
-#endif // PROTOTYPE_PWM_PCA9685_HPP
+#endif // PROTOTYPE_PCA9685_HPP

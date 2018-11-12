@@ -47,11 +47,11 @@ ADD_LIBRARY(
   src/dataset/kitti.cpp
   src/dataset/timeline.cpp
   # driver
-  src/driver/camera/camera.cpp
-  src/driver/gimbal/sbgc.cpp
-  src/driver/imu/mpu6050.cpp
-  src/driver/pwm/pca9685.cpp
+  src/driver/camera.cpp
   src/driver/i2c.cpp
+  src/driver/mpu6050.cpp
+  src/driver/pca9685.cpp
+  src/driver/sbgc.cpp
   src/driver/uart.cpp
   # mav
   src/mav/att_ctrl.cpp
@@ -114,7 +114,7 @@ SET(
   core-time_test
   dataset-euroc_test
   dataset-kitti_test
-  driver-camera-camera_test
+  driver-camera_test
   model-mav_test
   model-two_wheel_test
   mav-att_ctrl_test
