@@ -3,10 +3,9 @@ export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
 # sudo bash scripts/install_deps/run.bash
-
+sudo bash scripts/install_deps/install_realsense_sdk.bash
 # bash ./scripts/format_code.bash
 # cd scripts/api && python3 api.py
-
 
 # cd octave
 # octave notes/ba.m
@@ -16,10 +15,10 @@ export CXX=/usr/bin/clang++
 # octave tests/vision/test_radtan4_undistort.m
 
 # rm -rf build
-mkdir -p build
-cd build || return
-cmake ..
-time make -j8
+# mkdir -p build
+# cd build || return
+# cmake ..
+# time make -j8
 
 # cd tests
 # -- calib
