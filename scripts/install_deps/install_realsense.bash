@@ -1,5 +1,6 @@
 set -e
 
+# Install keys
 apt-key adv \
   --keyserver keys.gnupg.net \
   --recv-key C8B3A55A6F3EFCDE || apt-key adv \
@@ -9,7 +10,7 @@ apt-key adv \
 # Ubuntu 18 LTS
 add-apt-repository "deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo bionic main" -u
 
-# Remove realsense records
+# Remove old realsense sources
 rm -f /etc/apt/sources.list.d/realsense-public.list.
 
 # Install SDK
@@ -32,6 +33,8 @@ apt-key adv --keyserver keys.gnupg.net --recv-key 6F3EFCDE
 apt-get update
 apt-get install intel-realsense-dfu*
 
+
+# Update RealSense firmware
 # To update the firmware, first get the latest firmware from:
 #
 #   https://downloadcenter.intel.com/download/28237/Latest-Firmware-for-Intel-RealSense-D400-Product-Family?v=t
