@@ -1,0 +1,310 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage[pdftex]{graphicx}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks,
+  linktoc=all
+  citecolor=black,
+  filecolor=black,
+  linkcolor=black,
+  urlcolor=black
+}
+
+
+% General maths
+\newcommand{\real}{{\rm I\!R}}
+
+% Linear algebra
+\renewcommand{\Vec}[1]{\mathbf{#1}}
+\newcommand{\Mat}[1]{\mathbf{#1}}
+\newcommand{\re}{{\mathbb{R}}}
+\newcommand{\Zeros}[2]{\Vec{0}_{#1\times#2}}
+\newcommand{\I}{\Vec{I}}
+\newcommand{\rot}{\Mat{R}}
+\newcommand{\quat}{\Vec{q}}
+\newcommand{\jac}{\Mat{J}}
+\newcommand{\Skew}[1]{\lfloor #1 \enspace \times \rfloor}
+\newcommand{\Argmin}[1]{\underset{#1}{\text{argmin }}}
+\newcommand{\Transpose}[1]{{#1^{\top}}}
+
+% Frames
+% \newcommand{\T}{\mathbf{T}}
+% \renewcommand{\frame}{\mathcal{F}}
+\newcommand{\body}{{\text{B}}}
+\newcommand{\robot}{{\text{R}}}
+\newcommand{\world}{{\text{W}}}
+\newcommand{\glob}{{\text{G}}}
+% -- Kinematic Notation --
+% ---- Paul Furgale Kinematic Notation ----
+\newcommand{\KineNotationP}[3]{{{#1}_{#2#3}}}
+\newcommand{\KineNotationF}[4]{{{{}_{#4}} {#1}_{#2#3}}}
+% ---- UPenn Kinematic Notation ----
+%\newcommand{KineNotationP}[3]{{{}^{#2}_{#3} {#1}}}
+%\newcommand{KineNotationF}[4]{{{}^{#3}_{#2} {#1}}}
+% ---- UTIAS Kinematic Notation ----
+%\newcommand{KineNotationP}[3]{{{#1}^{#2}_{#3}}}
+%\newcommand{KineNotationF}[4]{{{#1}^{#3#4}_{#2}}}
+% -- Translation --
+\newcommand{\trans}{{\Vec{t}}}
+\newcommand{\Trans}[3]{{\KineNotationF{\trans}{#1}{#2}{#3}}}
+% -- Position --
+\newcommand{\pos}{{\Vec{p}}}
+\newcommand{\Pos}[3]{{\KineNotationF{\pos}{#1}{#2}{#3}}}
+% -- Velocity --
+\newcommand{\vel}{{\Vec{v}}}
+\newcommand{\Vel}[3]{{\KineNotationF{\vel}{#1}{#2}{#3}}}
+% -- Angular Velocity --
+\newcommand{\angvel}{{\boldsymbol{\omega}}}
+\newcommand{\AngVel}[3]{{\KineNotationF{\angvel}{#1}{#2}{#3}}}
+% -- Acceleration --
+\newcommand{\acc}{{\Vec{a}}}
+\newcommand{\Acc}[3]{{\KineNotationF{\acc}{#1}{#2}{#3}}}
+% -- Rotation --
+\newcommand{\rot}{{\Mat{R}}}
+\newcommand{\Rot}[2]{{\KineNotationP{\rot}{#1}{#2}}}
+% -- Transforms --
+\newcommand{\tf}{{\Mat{T}}}
+\newcommand{\Tf}[2]{{\KineNotationP{\tf}{#1}{#2}}}
+
+% Variables
+\newcommand{\error}{{\Vec{e}}}
+\newcommand{\camRot}{{\Vec{R}}}
+\newcommand{\camPos}{{\Vec{C}}}
+\newcommand{\landmarkPos}{{\Vec{L}}}
+\newcommand{\projFunc}{{\Vec{h}}}
+\newcommand{\measurement}{{\Vec{z}}}
+\newcommand{\estimate}{{\tilde{\Vec{z}}}}
+
+\begin{document}
+
+% TABLE OF CONTENTS
+\tableofcontents
+\newpage
+
+
+% NOTATIONS
+\section{Notations}
+
+Frames:
+\begin{align}
+  \text{body frame: } & \body \\
+  \text{robot frame: } & \robot \\
+  \text{world frame: } & \world \\
+  \text{global frame: } & \glob
+\end{align}
+
+Translation:
+\begin{align}
+  \trans \\
+  \Trans{\glob}{\body}{\glob}
+\end{align}
+
+
+Position:
+\begin{align}
+  \pos \\
+  \Pos{\glob}{\body}{\glob}
+\end{align}
+
+
+Velocity:
+\begin{align}
+  \vel \\
+  \Vel{\glob}{\body}{\glob}
+\end{align}
+
+
+Angular Velocity:
+\begin{align}
+  \angvel \\
+  \AngVel{\glob}{\body}{\glob}
+\end{align}
+
+
+Acceleration:
+\begin{align}
+  \acc \\
+  \Acc{\glob}{\body}{\glob}
+\end{align}
+
+Rotation:
+\begin{align}
+  \rot \\
+  \Rot{\body}{\glob}
+\end{align}
+
+
+Transforms:
+\begin{align}
+  \tf \\
+  \Tf{\body}{\glob}
+\end{align}
+
+
+
+% ROTATION MATRIX
+\section{Rotation Matrix}
+
+Z-Y-X rotation sequence:
+
+\begin{equation}
+  \rot_{zyx} =
+  \begin{bmatrix}
+    c(\psi) c(\theta)
+    & c(\psi) s(\theta) s(\phi) - s(\psi) c(\phi)
+    & c(\psi) s(\theta) c(\phi) + s(\psi) s(\phi) \\
+    s(\psi) c(\theta)
+    & s(\psi) s(\theta) s(\phi) + c(\psi) c(\phi)
+    & s(\psi) s(\theta) c(\phi) - c(\psi) s(\phi) \\
+    -s(\theta) & c(\theta) s(\phi) & c(\theta) c(\phi)
+  \end{bmatrix}
+\end{equation}
+
+
+
+% QUATERNIONS
+\section{Quaternions}
+
+A quaternion, $\Vec{q} \in \real^{4}$, generally has the following form
+%
+\begin{equation}
+  \quat = q_{w} + q_{x} \bold{i} + q_{y} \bold{j} + q_{z} \bold{k},
+\end{equation}
+%
+where $\{ q_{w}, q_{x}, q_{y}, q_{z} \} \in \real$ and $\{ \bold{i}, \bold{j},
+\bold{k} \}$ are the imaginary numbers satisfying
+%
+\begin{equation}
+\begin{split}
+  &\bold{i}^{2}
+  = \bold{j}^{2}
+  = \bold{k}^{2}
+  = \bold{ijk}
+  = -1 \\
+  \bold{ij} = -\bold{ji} &= \bold{k}, \enspace
+  \bold{jk} = -\bold{kj} = \bold{i}, \enspace
+  \bold{ki} = -\bold{ik} = \bold{j}
+\end{split}
+\end{equation}
+%
+corresponding to the Hamiltonian convention. The quaternion can be written as a
+4 element vector consisting of a \textit{real} (\textit{scalar}) part, $q_{w}$,
+and \textit{imaginary} (\textit{vector}) part $\quat_{v}$ as,
+%
+\begin{equation}
+  \quat =
+  \begin{bmatrix} q_{w} \\ \quat_{v} \end{bmatrix} =
+  \begin{bmatrix} q_{w} \\ q_{x} \\ q_{y} \\ q_{z} \end{bmatrix}
+\end{equation}
+%
+% Another popular quaternion convetion is the JPL convention. The difference is
+% how the quaternion is represented and
+
+
+
+\subsection{Some Quaternion Properties}
+
+
+\subsubsection{Sum}
+
+Let $\Vec{p}$ and $\Vec{q}$ be two quaternions, the sum of both quaternions is,
+%
+\begin{equation}
+  \Vec{p} \pm \Vec{q} =
+  \begin{bmatrix} p_w \\ \Vec{p}_{v} \end{bmatrix}
+  \pm
+  \begin{bmatrix} q_w \\ \Vec{q}_{v} \end{bmatrix} =
+  \begin{bmatrix} p_w \pm q_w \\ \Vec{p}_{v} \pm \Vec{q}_{v} \end{bmatrix}.
+\end{equation}
+%
+The sum between two quaternions $\Vec{p}$ and $\Vec{q}$ is \bold{commutative}
+and \bold{associative}.
+%
+\begin{equation}
+  \Vec{p} + \Vec{q} = \Vec{q} + \Vec{p}
+\end{equation}
+%
+\begin{equation}
+  \Vec{p} + (\Vec{q} + \Vec{r}) = (\Vec{p} + \Vec{q}) + \Vec{r}
+\end{equation}
+
+
+\subsubsection{Product}
+
+The quaternion multiplication (or product) of two quaternions $\Vec{p}$ and
+$\Vec{q}$, denoted by $\otimes$ is defined as
+%
+\begin{align}
+  \Vec{p} \otimes \Vec{q} 
+    &=
+    (p_w + p_x \bold{i} + p_y \bold{j} + p_z \bold{k})
+    (q_w + q_x \bold{i} + q_y \bold{j} + q_z \bold{k}) \\
+    &=
+    \begin{matrix}
+      &(p_w q_w - p_x q_x - p_y q_y - p_z q_z)& \\
+      &(p_w q_x + p_x q_w + p_y q_z - p_z q_y)& \bold{i}\\
+      &(p_w q_y - p_y q_w + p_z q_x + p_x q_z)& \bold{j}\\
+      &(p_w q_z + p_z q_w - p_x q_y + p_y q_x)& \bold{k}\\
+    \end{matrix} \\
+    &=
+    \begin{bmatrix}
+      p_w q_w - p_x q_x - p_y q_y - p_z q_z \\
+      p_w q_x + q_x p_w + p_y q_z - p_z q_y \\
+      p_w q_y - p_y q_w + p_z q_x + p_x q_z \\
+      p_w q_z + p_z q_w - p_x q_y + p_y q_x \\
+    \end{bmatrix} \\
+    &=
+    \begin{bmatrix}
+      p_w q_w - \Transpose{\Vec{p}_{v}} \Vec{q}_{v} \\
+      p_w \Vec{q}_{v} + q_w \Vec{p}_{v} + \Vec{p}_{v} \times \Vec{q}_{v}
+    \end{bmatrix}.
+\end{align}
+%
+
+
+
+% COMPUTER VISION
+\section{Computer Vision}
+
+\subsection{Pinhole Camera Model}
+
+\begin{equation}
+  K =
+  \begin{bmatrix}
+    f_x & 0 & c_x \\
+    0 & f_y & c_y \\
+    0 & 0 & 1
+  \end{bmatrix}
+\end{equation}
+
+\subsection{Radial Tangential Distortion}
+
+\begin{align}
+\begin{split}
+  k_{\text{radial}} &= 1 + (k_1 r^2) + (k_2 r^4) \\
+  x' &= x \cdot k_{\text{radial}} \\
+  y' &= y \cdot k_{\text{radial}} \\
+  x'' &= x' + (2 p_1 x y + p_2 * (r^2 + 2 x^2)) \\
+  y'' &= y' + (p_1 (r^2 + 2 y^2) + 2 p_2 x y)
+\end{split}
+\end{align}
+
+\subsection{Equi-distant Distortion}
+
+\begin{align}
+\begin{split}
+  r &= \sqrt{x^{2} + y^{2}} \\
+  \theta &= \arctan{(r)} \\
+  \theta_d &= \theta (1 + k_1 \theta^2 + k_2 \theta^4 + k_3 \theta^6 + k_4 \theta^8) \\
+  x' &= (\theta_d / r) \cdot x \\
+  y' &= (\theta_d / r) \cdot y
+\end{split}
+\end{align}
+
+
+\end{document}
