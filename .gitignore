@@ -4,6 +4,7 @@
 *.log
 *.bcf
 *.toc
+*.run.xml
 *.out
 *.synctex.gz
 *.fdb_latexmk

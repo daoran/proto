@@ -1,9 +1,10 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 
+\usepackage{cite}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{xcolor}
+\usepackage[dvipsnames]{xcolor}
 \usepackage[pdftex]{graphicx}
 \usepackage{hyperref}
 \hypersetup{
@@ -15,22 +16,21 @@
   urlcolor=black
 }
 
-
 % General maths
 \newcommand{\real}{{\rm I\!R}}
 
 % Linear algebra
-\renewcommand{\Vec}[1]{\mathbf{#1}}
-\newcommand{\Mat}[1]{\mathbf{#1}}
+\renewcommand{\Vec}[1]{{\mathbf{#1}}}
+\newcommand{\Mat}[1]{{\mathbf{#1}}}
 \newcommand{\re}{{\mathbb{R}}}
-\newcommand{\Zeros}[2]{\Vec{0}_{#1\times#2}}
-\newcommand{\I}{\Vec{I}}
-\newcommand{\rot}{\Mat{R}}
-\newcommand{\quat}{\Vec{q}}
-\newcommand{\jac}{\Mat{J}}
-\newcommand{\Skew}[1]{\lfloor #1 \enspace \times \rfloor}
-\newcommand{\Argmin}[1]{\underset{#1}{\text{argmin }}}
-\newcommand{\Transpose}[1]{{#1^{\top}}}
+\newcommand{\Zeros}[2]{{\Vec{0}_{#1\times#2}}}
+\newcommand{\I}{{\Vec{I}}}
+\newcommand{\rot}{{\Mat{R}}}
+\newcommand{\quat}{{\Vec{q}}}
+\newcommand{\jac}{{\Mat{J}}}
+\newcommand{\Skew}[1]{{\lfloor #1 \enspace \times \rfloor}}
+\newcommand{\Argmin}[1]{\underset{#1}{{\text{argmin }}}}
+\newcommand{\Transpose}[1]{{{#1^{\top}}}}
 
 % Frames
 % \newcommand{\T}{\mathbf{T}}
@@ -59,7 +59,7 @@
 \newcommand{\vel}{{\Vec{v}}}
 \newcommand{\Vel}[3]{{\KineNotationF{\vel}{#1}{#2}{#3}}}
 % -- Angular Velocity --
-\newcommand{\angvel}{{\boldsymbol{\omega}}}
+\newcommand{\angvel}{{\mathbfsymbol{\omega}}}
 \newcommand{\AngVel}[3]{{\KineNotationF{\angvel}{#1}{#2}{#3}}}
 % -- Acceleration --
 \newcommand{\acc}{{\Vec{a}}}
@@ -79,6 +79,7 @@
 \newcommand{\projFunc}{{\Vec{h}}}
 \newcommand{\measurement}{{\Vec{z}}}
 \newcommand{\estimate}{{\tilde{\Vec{z}}}}
+
 
 \begin{document}
 
@@ -120,10 +121,10 @@ Velocity:
 
 
 Angular Velocity:
-\begin{align}
-  \angvel \\
-  \AngVel{\glob}{\body}{\glob}
-\end{align}
+% \begin{align}
+%   % \angvel \\
+%   % \AngVel{\glob}{\body}{\glob}
+% \end{align}
 
 
 Acceleration:
@@ -148,6 +149,7 @@ Transforms:
 
 
 % ROTATION MATRIX
+\newpage
 \section{Rotation Matrix}
 
 Z-Y-X rotation sequence:
@@ -168,27 +170,28 @@ Z-Y-X rotation sequence:
 
 
 % QUATERNIONS
+\newpage
 \section{Quaternions}
 
 A quaternion, $\Vec{q} \in \real^{4}$, generally has the following form
 %
 \begin{equation}
-  \quat = q_{w} + q_{x} \bold{i} + q_{y} \bold{j} + q_{z} \bold{k},
+  \quat = q_{w} + q_{x} \mathbf{i} + q_{y} \mathbf{j} + q_{z} \mathbf{k},
 \end{equation}
 %
-where $\{ q_{w}, q_{x}, q_{y}, q_{z} \} \in \real$ and $\{ \bold{i}, \bold{j},
-\bold{k} \}$ are the imaginary numbers satisfying
+where $\{ q_{w}, q_{x}, q_{y}, q_{z} \} \in \real$ and $\{ \mathbf{i}, \mathbf{j},
+\mathbf{k} \}$ are the imaginary numbers satisfying
 %
 \begin{equation}
 \begin{split}
-  &\bold{i}^{2}
-  = \bold{j}^{2}
-  = \bold{k}^{2}
-  = \bold{ijk}
+  &\mathbf{i}^{2}
+  = \mathbf{j}^{2}
+  = \mathbf{k}^{2}
+  = \mathbf{ijk}
   = -1 \\
-  \bold{ij} = -\bold{ji} &= \bold{k}, \enspace
-  \bold{jk} = -\bold{kj} = \bold{i}, \enspace
-  \bold{ki} = -\bold{ik} = \bold{j}
+  \mathbf{ij} = -\mathbf{ji} &= \mathbf{k}, \enspace
+  \mathbf{jk} = -\mathbf{kj} = \mathbf{i}, \enspace
+  \mathbf{ki} = -\mathbf{ik} = \mathbf{j}
 \end{split}
 \end{equation}
 %
@@ -202,12 +205,12 @@ and \textit{imaginary} (\textit{vector}) part $\quat_{v}$ as,
   \begin{bmatrix} q_{w} \\ q_{x} \\ q_{y} \\ q_{z} \end{bmatrix}
 \end{equation}
 %
-% Another popular quaternion convetion is the JPL convention. The difference is
-% how the quaternion is represented and
+There are other quaternion conventions, for example, the JPL convention. A more
+detailed discussion between Hamiltonian and JPL quaternion convention is
+discussed in \cite{Sola2017}.
 
 
-
-\subsection{Some Quaternion Properties}
+\subsection{Main Quaternion Properties}
 
 
 \subsubsection{Sum}
@@ -222,8 +225,8 @@ Let $\Vec{p}$ and $\Vec{q}$ be two quaternions, the sum of both quaternions is,
   \begin{bmatrix} p_w \pm q_w \\ \Vec{p}_{v} \pm \Vec{q}_{v} \end{bmatrix}.
 \end{equation}
 %
-The sum between two quaternions $\Vec{p}$ and $\Vec{q}$ is \bold{commutative}
-and \bold{associative}.
+The sum between two quaternions $\Vec{p}$ and $\Vec{q}$ is \textbf{commutative}
+and \textbf{associative}.
 %
 \begin{equation}
   \Vec{p} + \Vec{q} = \Vec{q} + \Vec{p}
@@ -240,19 +243,20 @@ The quaternion multiplication (or product) of two quaternions $\Vec{p}$ and
 $\Vec{q}$, denoted by $\otimes$ is defined as
 %
 \begin{align}
-  \Vec{p} \otimes \Vec{q} 
+  \Vec{p} \otimes \Vec{q}
     &=
-    (p_w + p_x \bold{i} + p_y \bold{j} + p_z \bold{k})
-    (q_w + q_x \bold{i} + q_y \bold{j} + q_z \bold{k}) \\
+    (p_w + p_x \mathbf{i} + p_y \mathbf{j} + p_z \mathbf{k})
+    (q_w + q_x \mathbf{i} + q_y \mathbf{j} + q_z \mathbf{k}) \\
     &=
     \begin{matrix}
       &(p_w q_w - p_x q_x - p_y q_y - p_z q_z)& \\
-      &(p_w q_x + p_x q_w + p_y q_z - p_z q_y)& \bold{i}\\
-      &(p_w q_y - p_y q_w + p_z q_x + p_x q_z)& \bold{j}\\
-      &(p_w q_z + p_z q_w - p_x q_y + p_y q_x)& \bold{k}\\
+      &(p_w q_x + p_x q_w + p_y q_z - p_z q_y)& \mathbf{i}\\
+      &(p_w q_y - p_y q_w + p_z q_x + p_x q_z)& \mathbf{j}\\
+      &(p_w q_z + p_z q_w - p_x q_y + p_y q_x)& \mathbf{k}\\
     \end{matrix} \\
     &=
     \begin{bmatrix}
+      \label{eq:quaternion_product}
       p_w q_w - p_x q_x - p_y q_y - p_z q_z \\
       p_w q_x + q_x p_w + p_y q_z - p_z q_y \\
       p_w q_y - p_y q_w + p_z q_x + p_x q_z \\
@@ -260,15 +264,110 @@ $\Vec{q}$, denoted by $\otimes$ is defined as
     \end{bmatrix} \\
     &=
     \begin{bmatrix}
+      \label{eq:quaternion_product_2}
       p_w q_w - \Transpose{\Vec{p}_{v}} \Vec{q}_{v} \\
       p_w \Vec{q}_{v} + q_w \Vec{p}_{v} + \Vec{p}_{v} \times \Vec{q}_{v}
     \end{bmatrix}.
 \end{align}
 %
+The quaternion product is \textbf{not commutative} in the general
+case\footnote{There are exceptions to the general non-commutative rule, where
+either $\Vec{p}$ or $\Vec{q}$ is real such that $\Vec{p}_{v} \times \Vec{q}_{v}
+= 0$, or when both $\Vec{p}_v$ and $\Vec{q}_v$ are parallel, $\Vec{p}_v ||
+\Vec{q}_v$. Only in these cirmcumstances is the quaternion product
+commutative.},
+%
+\begin{equation}
+  {\Vec{p} \otimes \Vec{q} \neq \Vec{q} \otimes \Vec{p}} \enspace .
+\end{equation}
+%
+The quaternion product is however \textbf{associative},
+%
+\begin{equation}
+  \Vec{p} \otimes (\Vec{q} \otimes \Vec{r}) = (\Vec{p} \otimes \Vec{q}) \otimes \Vec{r}
+\end{equation}
+%
+and \textbf{distributive over the sum}
+%
+\begin{equation}
+  \Vec{p} \otimes (\Vec{q} + \Vec{r}) =
+  \Vec{p} \otimes \Vec{q} + \Vec{p} \otimes \Vec{r}
+  \quad \text{and} \quad
+  (\Vec{p} \otimes \Vec{q}) + \Vec{r} =
+  \Vec{p} \otimes \Vec{r} + \Vec{q} \otimes \Vec{r}
+\end{equation}
+
+The quaternion product can alternatively be expressed in matrix form as
+%
+\begin{equation}
+  \Vec{p} \otimes \Vec{q} = [\Vec{p}]_{L} \Vec{q}
+  \quad \text{and} \quad
+  \Vec{p} \otimes \Vec{q} = [\Vec{q}]_{R} \Vec{p} \enspace ,
+\end{equation}
+%
+where $[\Vec{p}]_{L}$ and $[\Vec{q}]_{R}$ are the left and right
+quaternion-product matrices which are derived from
+\eqref{eq:quaternion_product},
+%
+\begin{equation}
+  [\Vec{p}]_{L} =
+  \begin{bmatrix}
+    p_w & -p_x & -p_y & -p_z \\
+    p_x & p_w & -p_z & p_y \\
+    p_y & p_z & p_w & -p_x \\
+    p_z & -p_y & p_x & p_w
+  \end{bmatrix},
+  \quad \text{and} \quad
+  [\Vec{q}]_{L} =
+  \begin{bmatrix}
+    q_w & -q_x & -q_y & -q_z \\
+    q_x & q_w & q_z & -q_y \\
+    q_y & -q_z & q_w & q_x \\
+    q_z & q_y & -q_x & q_w
+  \end{bmatrix},
+\end{equation}
+%
+or inspecting \eqref{eq:quaternion_product_2} a compact form can be derived as,
+%
+\begin{equation}
+  [\Vec{p}]_{L} =
+  \begin{bmatrix}
+    0 & -\Transpose{\Vec{p}_{v}} \\
+    \Vec{p}_w \I_{3 \times 3} + \Vec{p}_{v} &
+    \Vec{p}_w \I_{3 \times 3} -\Skew{\Vec{p}_{v}}
+  \end{bmatrix}
+\end{equation}
+%
+and
+%
+\begin{equation}
+  [\Vec{q}]_{R} =
+  \begin{bmatrix}
+    0 & -\Transpose{\Vec{q}_{v}} \\
+    \Vec{q}_w \I_{3 \times 3} + \Vec{q}_{v} &
+    \Vec{q}_w \I_{3 \times 3} -\Skew{\Vec{q}_{v}}
+  \end{bmatrix},
+\end{equation}
+%
+where $\Skew{\bullet}$ is the skew operator that produces a matrix cross
+product matrix, and is defined as
+%
+\begin{equation}
+  \Skew{\Vec{v}} =
+  \begin{bmatrix}
+    0 & -v_{3} & v_{2} \\
+    v_{3} & 0 & -v_{1} \\
+    -v_{2} & v_{1} & 0
+  \end{bmatrix},
+  \quad
+  \Vec{v} \in \real^{3}
+\end{equation}
+%
 
 
 
 % COMPUTER VISION
+\newpage
 \section{Computer Vision}
 
 \subsection{Pinhole Camera Model}
@@ -307,4 +406,423 @@ $\Vec{q}$, denoted by $\otimes$ is defined as
 \end{align}
 
 
+\subsection{Bundle Adjustment}
+Let $\measurement \in \re^{2}$ be the image measurement and $\projFunc(\cdot)
+\in \re^{2}$ be the projection function that produces an image projection
+$\estimate$. The reprojection error $e$ is defined as the euclidean distance
+between $\measurement$ and $\estimate$.
+
+\begin{equation}
+  \error = \measurement - \estimate
+\end{equation}
+
+Our aim given image measurement $\measurement$ is to find the image projection
+$\estimate$ that minimizes the reprojection $e$. The image projection
+$\estimate$ in pixels can be represented in homogeneous coordinates with
+$u, v, w$ as
+%
+\begin{equation}
+  \estimate
+  = \begin{bmatrix} x \\ y \end{bmatrix}
+  = \begin{bmatrix} u / w \\ v / w \end{bmatrix}
+\end{equation}
+%
+% Projection function
+\begin{align}
+  \label{eq:projection_function}
+  \begin{bmatrix} u \\ v \\ w \end{bmatrix}
+  = \Mat{P} \begin{bmatrix} \landmarkPos \\ 1 \end{bmatrix}
+  = \Mat{K} \camRot [\landmarkPos - \camPos]
+\end{align}
+%
+where $u, v, w$ is computed by projecting a landmark position
+$\landmarkPos$ in the world frame to the camera's image plane with
+projection matrix $\Mat{P}$. The projection matrix, $\Mat{P}$, can be
+decomposed into the camera intrinsics matrix, $\Mat{K}$, the camera rotation,
+$\camRot$, and camera position, $\camPos$, expressed in the world frame.
+%
+The orientation of the camera in \eqref{eq:projection_function} is
+represented using a rotation matrix. To reduce the optimization parameters
+the rotation matrix can be parameterized by a quaternion by using the following
+formula,
+%
+\begin{equation}
+  \camRot = \begin{bmatrix}
+    % Line 1
+    q_{w}^{2} + q_{x}^{2} - q_{y}^{2} - q_{z}^{2}
+    & 2 (q_{x} q_{y} - q_{w} q_{z})
+    & 2 (q_{x} q_{z} + q_{w} q_{y}) \\
+    % Line 2
+    2 (q_{x} q_{y} + q_{w} q_{z})
+    & q_{w}^{2} - q_{x}^{2} + q_{y}^{2} - q_{z}^{2}
+    & 2 (q_{y} q_{z} - q_{w} q_{x}) \\
+    % Line 3
+    2 (q_{x} q_{z} - q_{w} q_{y})
+    & 2 (q_{y} q_{z} + q_{w} q_{x})
+    & q_{w}^{2} - q_{x}^{2} - q_{y}^{2} + q_{z}^{2}
+  \end{bmatrix}.
+\end{equation}
+%
+By parameterzing the rotation matrix with a quaternion, the optimization
+parameters for the camera's orientation is reduced from 9 to 4.
+
+Our objective is to optimize for the camera rotation $\camRot$, camera
+position $\camPos$ and 3D landmark position $\landmarkPos$ in order to
+minimize the cost function,
+%
+\begin{align}
+  &\Argmin{\camRot, \camPos, \landmarkPos} \left|
+    \measurement - \projFunc(\camRot, \camPos, \landmarkPos)
+  \right|^{2} \\
+  &\Argmin{\camRot, \camPos, \landmarkPos} \left|
+    \begin{bmatrix} x \\ y \end{bmatrix} -
+    \begin{bmatrix} u / w \\ v / w \end{bmatrix}
+  \right|^{2}.
+\end{align}
+%
+The cost function above assumes only a single measurement, if there are $N$
+measurements corresponding to $N$ unique landmarks the cost function can be
+rewritten as a maximum likelihood estimation problem as,
+%
+\begin{equation}
+  \Argmin{\camRot, \camPos, \landmarkPos}
+    \sum_{j = 1}^{N}
+      \left|
+        \measurement_{j} - \projFunc(\camRot_{j}, \camPos_{j}, \landmarkPos_{j})
+      \right|^{2},
+\end{equation}
+%
+under the assumption that the observed landmark, $\landmarkPos$, measured in
+the image plane, $z$, are corrupted by a \textbf{zero-mean Gaussian noise}.
+
+For the general case of $M$ images taken at different camera poses the cost
+function can be further extended to,
+%
+\begin{equation}
+    \min_{R, C, X} \sum_{i = 1}^{M} \sum_{j = 1}^{N}
+        \left|
+            \measurement_{i,j} - \projFunc(\camRot_{i}, \camPos_{i}, \landmarkPos_{j})
+        \right|^{2}
+\end{equation}
+%
+The optimization process begins by setting the first image camera pose as world
+origin, and subsequent $\camRot_{i}$ and $\camPos_{i}$ will be relative to
+the first camera pose.
+
+
+\subsection*{Jacobians}
+
+The Jacobian for the optimization problem for a \textbf{single measurement} has
+the form:
+%
+\begin{equation}
+  \jac = \begin{bmatrix}
+    \color{red}
+    \dfrac{\partial{\projFunc}}{\partial \camRot}
+    \color{cyan}
+    \dfrac{\partial{\camRot}}{\partial{\quat}} \quad
+    \color{Thistle}
+    \dfrac{\partial{\projFunc}}{\partial \camPos} \quad
+    \color{blue}
+    \dfrac{\partial{\projFunc}}{\partial \landmarkPos}
+  \end{bmatrix} \\
+\end{equation}
+%
+If there are two measurements the Jacobian is stacked with the following
+pattern:
+%
+\begin{equation}
+  \jac = \begin{bmatrix}
+    \text{Image 1}_{2 \times 7}
+      & \Zeros{2}{7}
+      & \text{3D Point}_{2 \times 3} \\
+    \Zeros{2}{7}
+      & \text{Image 2}_{2 \times 7}
+      & \text{3D Point}_{2 \times 3}
+  \end{bmatrix}
+\end{equation}
+
+
+% DERIVATION FOR dh / dR
+\subsubsection*{Derivation for 
+$\color{red}
+\dfrac{\partial{\projFunc}}{\partial{\camRot}}$}
+
+\begin{align}
+  \color{red}
+  \dfrac{\partial{\projFunc}}{\partial{\camRot}} =
+  \begin{bmatrix}
+    \dfrac{
+      w \dfrac{\partial{u}}{\partial{\camRot}} -
+      u \dfrac{\partial{w}}{\partial{\camRot}}
+    }{w^{2}} \vspace{1.0em} \\
+    \dfrac{
+      w \dfrac{\partial{v}}{\partial{\camRot}} -
+      v \dfrac{\partial{w}}{\partial{\camRot}}
+    }{w^{2}} \vspace{0.5em}
+  \end{bmatrix}_{2 \times 9}
+\end{align}
+
+\begin{align}
+  % Line 1
+  \begin{bmatrix} u \\ v \\ w \end{bmatrix}
+    &= \Mat{K} \camRot [\landmarkPos - \camPos]
+    \nonumber \\
+  % Line 2
+  \begin{bmatrix} u \\ v \\ w \end{bmatrix}
+  &= \begin{bmatrix}
+      f_x & 0 & p_x \\
+      0 & f_y & p_y \\
+      0 & 0 & 1
+  \end{bmatrix}
+  \begin{bmatrix}
+      R_{11} & R_{12} & R_{13} \\
+      R_{21} & R_{22} & R_{23} \\
+      R_{31} & R_{32} & R_{33}
+  \end{bmatrix}
+  [\landmarkPos - \camPos]
+  \nonumber
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{u}}{\partial{\camRot}} &=
+      \begin{bmatrix}
+        f_{x} (\landmarkPos - \camPos) &
+        \Zeros{1}{3} &
+        p_{x} (\landmarkPos - \camPos)
+      \end{bmatrix}_{1 \times 9} \\
+  \dfrac{\partial{v}}{\partial{\camRot}} &=
+    \begin{bmatrix}
+      \Zeros{1}{3} &
+      f_{y} (\landmarkPos - \camPos) &
+      p_{y} (\landmarkPos - \camPos)
+  \end{bmatrix}_{1 \times 9} \\
+  \dfrac{\partial{w}}{\partial{\camRot}} &=
+    \begin{bmatrix}
+      \Zeros{1}{3} &
+      \Zeros{1}{3} &
+      (\landmarkPos - \camPos)
+    \end{bmatrix}_{1 \times 9}
+\end{align}
+
+
+% DERIVATION FOR dR / dq
+\subsubsection*{Derivation for \color{cyan}
+$\dfrac{\partial{\camRot}}{\partial{\quat}}$}
+
+\begin{align}
+  \color{cyan}
+  \dfrac{\partial{\camRot}}{\partial{\quat}} =
+  \begin{bmatrix}
+    \dfrac{\partial{\camRot_{11}}}{\partial{\quat}} \\
+    \dfrac{\partial{\camRot_{12}}}{\partial{\quat}} \\
+    \vdots \\
+    \dfrac{\partial{\camRot_{33}}}{\partial{\quat}}
+  \end{bmatrix}_{9 \times 4}
+\end{align}
+
+\begin{equation}
+  \camRot = \begin{bmatrix}
+    % Line 1
+    q_{w}^{2} + q_{x}^{2} - q_{y}^{2} - q_{z}^{2}
+    & 2 (q_{x} q_{y} - q_{w} q_{z})
+    & 2 (q_{x} q_{z} + q_{w} q_{y}) \\
+    % Line 2
+    2 (q_{x} q_{y} + q_{w} q_{z})
+    & q_{w}^{2} - q_{x}^{2} + q_{y}^{2} - q_{z}^{2}
+    & 2 (q_{y} q_{z} - q_{w} q_{x}) \\
+    % Line 3
+    2 (q_{x} q_{z} - q_{w} q_{y})
+    & 2 (q_{y} q_{z} + q_{w} q_{x})
+    & q_{w}^{2} - q_{x}^{2} - q_{y}^{2} + q_{z}^{2}
+  \end{bmatrix}
+  \nonumber
+\end{equation}
+
+\begin{align}
+  % R11
+  \dfrac{\camRot_{11}}{\partial{\quat}} &=
+    \begin{bmatrix}
+    0 & -4q_{y} & -4q_{z} & 0
+    \end{bmatrix} \\
+  % R12
+  \dfrac{\camRot_{12}}{\partial{\quat}} &=
+    \begin{bmatrix}
+      2q_{y} & 2q_{x} & -2q_{w} & -2q_{z}
+    \end{bmatrix} \\
+  % R13
+  \dfrac{\camRot_{13}}{\partial{\quat}} &=
+    \begin{bmatrix}
+      2q_{z} & 2q_{w} & 2q_{x} & 2q_{y}
+    \end{bmatrix} \\
+  % R21
+  \dfrac{\camRot_{21}}{\partial{\quat}} &=
+  \begin{bmatrix}
+    2q_{y} & 2q_{x} & 2q_{w} & 2q_{z}
+  \end{bmatrix} \\
+  % R22
+  \dfrac{\camRot_{22}}{\partial{\quat}} &=
+    \begin{bmatrix}
+      4q_{x} & 0 & 4q_{z} & 0
+    \end{bmatrix} \\
+  % R23
+  \dfrac{\camRot_{23}}{\partial{\quat}} &=
+    \begin{bmatrix}
+      2q_{w} & 2q_{z} & 2q_{y} & 2q_{x}
+    \end{bmatrix} \\
+  % R31
+  \dfrac{\camRot_{31}}{\partial{\quat}} &=
+    \begin{bmatrix}
+      2q_{z} & -2q_{w} & 2q_{x} & -2q_{y}
+    \end{bmatrix} \\
+  % R32
+  \dfrac{\camRot_{32}}{\partial{\quat}} &=
+    \begin{bmatrix}
+      -4q_{x} & -4q_{y} & 0 & 0
+    \end{bmatrix} \\
+  % R33
+  \dfrac{\camRot_{33}}{\partial{\quat}} &=
+    \begin{bmatrix}
+      2q_{w} & 2q_{z} & 2q_{y} & 2q_{x}
+    \end{bmatrix}
+\end{align}
+
+
+% DERIVATION FOR dh / dL
+\subsubsection*{Derivation for 
+$\color{blue} \dfrac{\partial{\projFunc}}{\partial{\landmarkPos}}$}
+
+\begin{align}
+  \color{blue}
+  \dfrac{\partial{\projFunc}}{\partial{\landmarkPos}} =
+  \begin{bmatrix}
+    \dfrac{
+      w \dfrac{\partial{u}}{\partial{\landmarkPos}} -
+      u \dfrac{\partial{w}}{\partial{\landmarkPos}}
+    }{w^{2}} \vspace{1.0em} \\
+    \dfrac{
+      w \dfrac{\partial{v}}{\partial{\landmarkPos}} -
+      v \dfrac{\partial{w}}{\partial{\landmarkPos}}
+    }{w^{2}} \vspace{0.5em}
+  \end{bmatrix}_{2 \times 3}
+\end{align}
+
+\begin{align}
+  % Line 1
+  \begin{bmatrix} u \\ v \\ w \end{bmatrix}
+    &= \Mat{K} \camRot [\landmarkPos - \camPos] 
+    \nonumber \\
+  % Line 2
+  \begin{bmatrix} u \\ v \\ w \end{bmatrix}
+  &= \begin{bmatrix}
+      f_x & 0 & p_x \\
+      0 & f_y & p_y \\
+      0 & 0 & 1
+  \end{bmatrix}
+  \begin{bmatrix}
+      R_{11} & R_{12} & R_{13} \\
+      R_{21} & R_{22} & R_{23} \\
+      R_{31} & R_{32} & R_{33}
+  \end{bmatrix}
+  [\landmarkPos - \camPos] 
+  \nonumber
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{u}}{\partial{\landmarkPos}} &=
+    \begin{bmatrix}
+      f_{x} \camRot_{11} + c_{x} \camRot_{31} &
+      f_{x} \camRot_{12} + c_{x} \camRot_{32} &
+      f_{x} \camRot_{13} + c_{x} \camRot_{33}
+    \end{bmatrix} \\
+  \dfrac{\partial{v}}{\partial{\landmarkPos}} &=
+    \begin{bmatrix}
+      f_{y} \camRot_{21} + c_{y} \camRot_{31} &
+      f_{y} \camRot_{22} + c_{y} \camRot_{32} &
+      f_{y} \camRot_{23} + c_{y} \camRot_{33}
+    \end{bmatrix} \\
+  \dfrac{\partial{w}}{\partial{\landmarkPos}} &=
+    \begin{bmatrix}
+      \camRot_{31} &
+      \camRot_{32} &
+      \camRot_{33}
+    \end{bmatrix}
+\end{align}
+
+
+% DERIVATION FOR dh / dC
+\subsubsection*{Derivation for \color{Thistle}
+$\dfrac{\partial{h}}{\partial{\camPos}}$}
+
+% Partial derivative of projection w.r.t camera position
+\begin{align}
+  \color{Thistle}
+  \dfrac{\partial{\projFunc}}{\partial{\camPos}} =
+  \begin{bmatrix}
+    \dfrac{
+      w \dfrac{\partial{u}}{\partial{\camPos}} -
+      u \dfrac{\partial{w}}{\partial{\camPos}}
+    }{w^{2}} \vspace{1.0em} \\
+    \dfrac{
+      w \dfrac{\partial{v}}{\partial{\camPos}} -
+      v \dfrac{\partial{w}}{\partial{\camPos}}
+    }{w^{2}} \vspace{0.5em}
+  \end{bmatrix}_{2 \times 3}
+\end{align}
+
+\begin{align}
+  % Line 1
+  \begin{bmatrix} u \\ v \\ w \end{bmatrix}
+    &= \Mat{K} \camRot [\landmarkPos - \camPos] 
+    \nonumber \\
+  % Line 2
+  \begin{bmatrix} u \\ v \\ w \end{bmatrix}
+  &= \begin{bmatrix}
+      f_x & 0 & p_x \\
+      0 & f_y & p_y \\
+      0 & 0 & 1
+  \end{bmatrix}
+  \begin{bmatrix}
+      R_{11} & R_{12} & R_{13} \\
+      R_{21} & R_{22} & R_{23} \\
+      R_{31} & R_{32} & R_{33}
+  \end{bmatrix}
+  [\landmarkPos - \camPos] 
+  \nonumber
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{u}}{\partial{\camPos}} &=
+    -\begin{bmatrix}
+      f_{x} \camRot_{11} + c_{x} \camRot_{31} &
+      f_{x} \camRot_{12} + c_{x} \camRot_{32} &
+      f_{x} \camRot_{13} + c_{x} \camRot_{33}
+    \end{bmatrix} \\
+  \dfrac{\partial{v}}{\partial{\camPos}} &=
+    -\begin{bmatrix}
+      f_{y} \camRot_{21} + c_{y} \camRot_{31} &
+      f_{y} \camRot_{22} + c_{y} \camRot_{32} &
+      f_{y} \camRot_{23} + c_{y} \camRot_{33}
+    \end{bmatrix} \\
+  \dfrac{\partial{w}}{\partial{\camPos}} &=
+    -\begin{bmatrix}
+      \camRot_{31} &
+      \camRot_{32} &
+      \camRot_{33}
+    \end{bmatrix}
+\end{align}
+
+
+
+% CALIBRATION
+\newpage
+\section{Calibration}
+
+
+
+
+% BIBLIOGRAPHY
+\newpage
+\bibliographystyle{unsrt}
+\bibliography{notes}
 \end{document}
