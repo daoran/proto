@@ -16,66 +16,66 @@
   urlcolor=black
 }
 
-% General maths
-\newcommand{\real}{{\rm I\!R}}
-
 % Linear algebra
 \renewcommand{\Vec}[1]{{\mathbf{#1}}}
 \newcommand{\Mat}[1]{{\mathbf{#1}}}
-\newcommand{\re}{{\mathbb{R}}}
+\newcommand{\real}{{\rm I\!R}}
 \newcommand{\Zeros}[2]{{\Vec{0}_{#1\times#2}}}
-\newcommand{\I}{{\Vec{I}}}
-\newcommand{\rot}{{\Mat{R}}}
+\newcommand{\Norm}[1]{{\|#1\|}}
+\newcommand{\I}{{\Mat{I}}}
 \newcommand{\quat}{{\Vec{q}}}
 \newcommand{\jac}{{\Mat{J}}}
 \newcommand{\Skew}[1]{{\lfloor #1 \enspace \times \rfloor}}
 \newcommand{\Argmin}[1]{\underset{#1}{{\text{argmin }}}}
 \newcommand{\Transpose}[1]{{{#1^{\top}}}}
+\newcommand{\Inv}[1]{{{#1^{-1}}}}
 
 % Frames
-% \newcommand{\T}{\mathbf{T}}
-% \renewcommand{\frame}{\mathcal{F}}
+\newcommand{\tf}{\mathbf{T}}
+\renewcommand{\frame}{\mathcal{F}}
 \newcommand{\body}{{\text{B}}}
+\newcommand{\cam}{{\text{C}}}
 \newcommand{\robot}{{\text{R}}}
+\newcommand{\sensor}{{\text{S}}}
 \newcommand{\world}{{\text{W}}}
 \newcommand{\glob}{{\text{G}}}
+\newcommand{\fiducial}{{\text{F}}}
 % -- Kinematic Notation --
 % ---- Paul Furgale Kinematic Notation ----
-\newcommand{\KineNotationP}[3]{{{#1}_{#2#3}}}
-\newcommand{\KineNotationF}[4]{{{{}_{#4}} {#1}_{#2#3}}}
-% ---- UPenn Kinematic Notation ----
-%\newcommand{KineNotationP}[3]{{{}^{#2}_{#3} {#1}}}
-%\newcommand{KineNotationF}[4]{{{}^{#3}_{#2} {#1}}}
-% ---- UTIAS Kinematic Notation ----
-%\newcommand{KineNotationP}[3]{{{#1}^{#2}_{#3}}}
-%\newcommand{KineNotationF}[4]{{{#1}^{#3#4}_{#2}}}
+\newcommand{\KineNotationTransform}[3]{{{#1}_{#2#3}}}
+\newcommand{\KineNotation}[3]{{{{}_{#2}} {#1}_{#2#3}}}
+\newcommand{\KineNotationPart}[3]{{{{}_{#2}} {#1}_{#3}}}
+\newcommand{\KineNotationBare}[2]{{{{}_{#2}} {#1}}}
 % -- Translation --
-\newcommand{\trans}{{\Vec{t}}}
-\newcommand{\Trans}[3]{{\KineNotationF{\trans}{#1}{#2}{#3}}}
+\newcommand{\trans}{{\Vec{r}}}
+\newcommand{\Trans}[2]{{\KineNotation{\trans}{#1}{#2}}}
 % -- Position --
-\newcommand{\pos}{{\Vec{p}}}
-\newcommand{\Pos}[3]{{\KineNotationF{\pos}{#1}{#2}{#3}}}
+\newcommand{\pos}{{\Vec{r}}}
+\newcommand{\Pos}[2]{{\KineNotation{\pos}{#1}{#2}}}
 % -- Velocity --
 \newcommand{\vel}{{\Vec{v}}}
-\newcommand{\Vel}[3]{{\KineNotationF{\vel}{#1}{#2}{#3}}}
+\newcommand{\Vel}[2]{{\KineNotation{\vel}{#1}{#2}}}
 % -- Angular Velocity --
-\newcommand{\angvel}{{\mathbfsymbol{\omega}}}
-\newcommand{\AngVel}[3]{{\KineNotationF{\angvel}{#1}{#2}{#3}}}
+\newcommand{\angvel}{{\boldsymbol{\omega}}}
+\newcommand{\AngVel}[2]{{\KineNotation{\angvel}{#1}{#2}}}
 % -- Acceleration --
 \newcommand{\acc}{{\Vec{a}}}
-\newcommand{\Acc}[3]{{\KineNotationF{\acc}{#1}{#2}{#3}}}
+\newcommand{\Acc}[2]{{\KineNotation{\acc}{#1}{#2}}}
 % -- Rotation --
-\newcommand{\rot}{{\Mat{R}}}
-\newcommand{\Rot}[2]{{\KineNotationP{\rot}{#1}{#2}}}
+\newcommand{\rot}{{\Mat{C}}}
+\newcommand{\Rot}[2]{{\KineNotationTransform{\rot}{#1}{#2}}}
 % -- Transforms --
 \newcommand{\tf}{{\Mat{T}}}
-\newcommand{\Tf}[2]{{\KineNotationP{\tf}{#1}{#2}}}
+\newcommand{\Tf}[2]{{\KineNotationTransform{\tf}{#1}{#2}}}
+% -- Point --
+\newcommand{\point}{\Vec{p}}
+\newcommand{\Pt}[1]{{\KineNotationPart{\point}{#1}{}}}
+\newcommand{\Point}[2]{{\KineNotationBare{\point}{#1}}}
 
 % Variables
 \newcommand{\error}{{\Vec{e}}}
-\newcommand{\camRot}{{\Vec{R}}}
-\newcommand{\camPos}{{\Vec{C}}}
-\newcommand{\landmarkPos}{{\Vec{L}}}
+\newcommand{\camRot}{{\Rot{\world}{\cam}}}
+\newcommand{\camPos}{{\Pos{\world}{\cam}}}
 \newcommand{\projFunc}{{\Vec{h}}}
 \newcommand{\measurement}{{\Vec{z}}}
 \newcommand{\estimate}{{\tilde{\Vec{z}}}}
@@ -91,66 +91,48 @@
 % NOTATIONS
 \section{Notations}
 
-Frames:
-\begin{align}
-  \text{body frame: } & \body \\
-  \text{robot frame: } & \robot \\
-  \text{world frame: } & \world \\
-  \text{global frame: } & \glob
-\end{align}
+A large part of robotics is about developing machines that perceives and
+interact with the environment. For that robots use sensors to collect and
+process data, and knowing what the data describes is of utmost importance.
+Imagine obtaining the position of the robot but not knowing what that position
+is with respect to. Missing data descriptions such as what a position vector is
+expressing, what is it with respect to and more causes many hours of painful
+trail and error to extract that information.
 
-Translation:
-\begin{align}
-  \trans \\
-  \Trans{\glob}{\body}{\glob}
-\end{align}
+In the following section the notation used throughout this document will be
+described, and it follows closely of that of Paul Furgale's~\cite{Furgale2014}.
+The aim is to mitigate the ambiguity that arises when describing robot poses,
+sensor data and more.
 
-
-Position:
-\begin{align}
-  \pos \\
-  \Pos{\glob}{\body}{\glob}
-\end{align}
-
-
-Velocity:
-\begin{align}
-  \vel \\
-  \Vel{\glob}{\body}{\glob}
-\end{align}
-
-
-Angular Velocity:
-% \begin{align}
-%   % \angvel \\
-%   % \AngVel{\glob}{\body}{\glob}
-% \end{align}
-
-
-Acceleration:
-\begin{align}
-  \acc \\
-  \Acc{\glob}{\body}{\glob}
-\end{align}
-
-Rotation:
-\begin{align}
-  \rot \\
-  \Rot{\body}{\glob}
-\end{align}
-
-
-Transforms:
-\begin{align}
-  \tf \\
-  \Tf{\body}{\glob}
-\end{align}
+A vector expressed in the world frame, $\frame_{\world}$, is written as
+$\KineNotationBare{\pos}{\world}$, or more precisely if the vector describes
+the position of the camera frame, $\frame_{\cam}$, expressed in
+$\frame_{\world}$, the vector can be written as $\Pos{\world}{\cam}}$ with
+$\world$ and $\cam$ as start and end points, or for brevity as
+$\KineNotationPart{\pos}{\world}{\cam}$. Similarly a transformation of a point from
+$\frame_{\cam}$ to $\frame_{\world}$ can be represented by a homogeneous
+transform matrix, $\Tf{\world}{\cam}$, where its rotation matrix component is
+written as $\Rot{\world}{\cam}$ and the translation component written as
+$\Trans{\world}{\cam}$. A rotation matrix that is parametrized by quaternion
+$\quat_{\world\cam}$ is written as $\rot\{\quat_{\world\cam}\}$.
 
 
 
-% ROTATION MATRIX
+\begin{align*}
+  &\text{Position:} \enspace & \Pos{\world}{\body} \\
+  &\text{Velocity:} \enspace & \Vel{\world}{\body} \\
+  &\text{Acceleration:} \enspace & \Acc{\world}{\body} \\
+  &\text{Angular velocity:} \enspace & \AngVel{\world}{\body} \\
+  &\text{Rotation:} \enspace & \Rot{\world}{\body} \\
+  &\text{Transform:} \enspace & \Tf{\world}{\body} \\
+  &\text{Point:} \enspace & \Pt{\world}
+\end{align*}
+
+
+
+% ROTATIONS
 \newpage
-\section{Rotation Matrix}
+\section{Rotations}
 
 Z-Y-X rotation sequence:
 
@@ -284,7 +266,8 @@ commutative.},
 The quaternion product is however \textbf{associative},
 %
 \begin{equation}
-  \Vec{p} \otimes (\Vec{q} \otimes \Vec{r}) = (\Vec{p} \otimes \Vec{q}) \otimes \Vec{r}
+  \Vec{p} \otimes (\Vec{q} \otimes \Vec{r})
+  = (\Vec{p} \otimes \Vec{q}) \otimes \Vec{r}
 \end{equation}
 %
 and \textbf{distributive over the sum}
@@ -318,7 +301,7 @@ quaternion-product matrices which are derived from
     p_z & -p_y & p_x & p_w
   \end{bmatrix},
   \quad \text{and} \quad
-  [\Vec{q}]_{L} =
+  [\Vec{q}]_{R} =
   \begin{bmatrix}
     q_w & -q_x & -q_y & -q_z \\
     q_x & q_w & q_z & -q_y \\
@@ -364,6 +347,67 @@ product matrix, and is defined as
 \end{equation}
 %
 
+\subsubsection{Conjugate}
+
+The conjugate operator for quaternion, ${(\bullet)}^{\ast}$, is
+defined as
+%
+\begin{equation}
+  \quat^{\ast}
+  =
+  \begin{bmatrix}
+    q_w \\
+    - \Vec{q}_v
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    q_w \\
+    - q_x \\
+    - q_y \\
+    - q_z
+  \end{bmatrix}.
+\end{equation}
+%
+This has the properties
+%
+\begin{equation}
+  \quat \otimes \quat^{-1}
+  = \quat^{-1} \otimes \quat
+  = q_{w}^{2} + q_{x}^{2} + q_{y}^{2} + q_{z}^{2}
+  =
+  \begin{bmatrix}
+    q_{w}^{2} + q_{x}^{2} + q_{y}^{2} + q_{z}^{2} \\
+    \Vec{0}
+  \end{bmatrix},
+\end{equation}
+%
+and
+%
+\begin{equation}
+  (\Vec{p} \otimes \Vec{q})^{\ast}
+  = \Vec{q}^{\ast} \otimes \Vec{p}^{\ast}.
+\end{equation}
+
+
+\subsubsection{Norm}
+
+The norm of a quaternion is defined by
+%
+\begin{align}
+  \Norm{\quat} &= \sqrt{\quat \otimes \quat^{\ast}} \\
+    &= \sqrt{\quat^{\ast} \otimes \quat} \\
+    &= \sqrt{q_{w}^{2} + q_{x}^{2} + q_{y}^{2} + q_{z}^{2}}
+    \enspace \in \real,
+\end{align}
+%
+and has the property
+%
+\begin{align}
+  \Norm{\Vec{p} \otimes \Vec{q}} =
+  \Norm{\Vec{q} \otimes \Vec{p}} =
+  \Norm{\Vec{p}} \Norm{\Vec{q}}
+\end{align}
+
 
 
 % COMPUTER VISION
@@ -381,6 +425,8 @@ product matrix, and is defined as
   \end{bmatrix}
 \end{equation}
 
+
+
 \subsection{Radial Tangential Distortion}
 
 \begin{align}
@@ -388,10 +434,12 @@ product matrix, and is defined as
   k_{\text{radial}} &= 1 + (k_1 r^2) + (k_2 r^4) \\
   x' &= x \cdot k_{\text{radial}} \\
   y' &= y \cdot k_{\text{radial}} \\
-  x'' &= x' + (2 p_1 x y + p_2 * (r^2 + 2 x^2)) \\
+  x'' &= x' + (2 p_1 x y + p_2 (r^2 + 2 x^2)) \\
   y'' &= y' + (p_1 (r^2 + 2 y^2) + 2 p_2 x y)
 \end{split}
 \end{align}
+
+
 
 \subsection{Equi-distant Distortion}
 
@@ -406,7 +454,9 @@ product matrix, and is defined as
 \end{align}
 
 
+
 \subsection{Bundle Adjustment}
+
 Let $\measurement \in \re^{2}$ be the image measurement and $\projFunc(\cdot)
 \in \re^{2}$ be the projection function that produces an image projection
 $\estimate$. The reprojection error $e$ is defined as the euclidean distance
@@ -431,15 +481,15 @@ $u, v, w$ as
 \begin{align}
   \label{eq:projection_function}
   \begin{bmatrix} u \\ v \\ w \end{bmatrix}
-  = \Mat{P} \begin{bmatrix} \landmarkPos \\ 1 \end{bmatrix}
-  = \Mat{K} \camRot [\landmarkPos - \camPos]
+    = \Mat{P} \begin{bmatrix} \Pt{\world} \\ 1 \end{bmatrix}
+      = \Mat{K} \camRot [\Pt{\world} - \camPos]
 \end{align}
 %
-where $u, v, w$ is computed by projecting a landmark position
-$\landmarkPos$ in the world frame to the camera's image plane with
-projection matrix $\Mat{P}$. The projection matrix, $\Mat{P}$, can be
-decomposed into the camera intrinsics matrix, $\Mat{K}$, the camera rotation,
-$\camRot$, and camera position, $\camPos$, expressed in the world frame.
+where $u, v, w$ is computed by projecting a landmark position $\Pt{\world}$ in
+the world frame to the camera's image plane with projection matrix $\Mat{P}$.
+The projection matrix, $\Mat{P}$, can be decomposed into the camera intrinsics
+matrix, $\Mat{K}$, the camera rotation, $\camRot$, and camera position,
+$\camPos$, expressed in the world frame.
 %
 The orientation of the camera in \eqref{eq:projection_function} is
 represented using a rotation matrix. To reduce the optimization parameters
@@ -467,17 +517,17 @@ By parameterzing the rotation matrix with a quaternion, the optimization
 parameters for the camera's orientation is reduced from 9 to 4.
 
 Our objective is to optimize for the camera rotation $\camRot$, camera
-position $\camPos$ and 3D landmark position $\landmarkPos$ in order to
+position $\camPos$ and 3D landmark position $\Pt{\world}$ in order to
 minimize the cost function,
 %
 \begin{align}
-  &\Argmin{\camRot, \camPos, \landmarkPos} \left|
-    \measurement - \projFunc(\camRot, \camPos, \landmarkPos)
-  \right|^{2} \\
-  &\Argmin{\camRot, \camPos, \landmarkPos} \left|
+  &\Argmin{\camRot, \camPos, \Pt{\world}} \Norm{
+    \measurement - \projFunc(\camRot, \camPos, \Pt{\world})
+  }^{2} \\
+  &\Argmin{\camRot, \camPos, \Pt{\world}} \Norm{
     \begin{bmatrix} x \\ y \end{bmatrix} -
     \begin{bmatrix} u / w \\ v / w \end{bmatrix}
-  \right|^{2}.
+    }^{2}.
 \end{align}
 %
 The cost function above assumes only a single measurement, if there are $N$
@@ -485,29 +535,31 @@ measurements corresponding to $N$ unique landmarks the cost function can be
 rewritten as a maximum likelihood estimation problem as,
 %
 \begin{equation}
-  \Argmin{\camRot, \camPos, \landmarkPos}
-    \sum_{j = 1}^{N}
-      \left|
-        \measurement_{j} - \projFunc(\camRot_{j}, \camPos_{j}, \landmarkPos_{j})
-      \right|^{2},
+  \Argmin{\camRot, \camPos, \Pt{\world}}
+  \sum_{j = 1}^{N}
+  \Norm{
+    \measurement_{j} - \projFunc(\camRot^{j}, \camPos^{j}, \Point{\world}{j})
+  }^{2}
 \end{equation}
 %
-under the assumption that the observed landmark, $\landmarkPos$, measured in
+under the assumption that the observed landmark, $\Pt{\world}$, measured in
 the image plane, $z$, are corrupted by a \textbf{zero-mean Gaussian noise}.
 
 For the general case of $M$ images taken at different camera poses the cost
 function can be further extended to,
 %
 \begin{equation}
-    \min_{R, C, X} \sum_{i = 1}^{M} \sum_{j = 1}^{N}
-        \left|
-            \measurement_{i,j} - \projFunc(\camRot_{i}, \camPos_{i}, \landmarkPos_{j})
-        \right|^{2}
+  \min_{\camRot, \camPos, \Pt{\world}} 
+  \sum_{i = 1}^{M} \sum_{j = 1}^{N}
+  \Norm{
+    \measurement_{i, j}
+    - \projFunc(\camRot^{i}, \camPos^{i}, \Point{\world}{j})
+  }^{2}
 \end{equation}
 %
 The optimization process begins by setting the first image camera pose as world
-origin, and subsequent $\camRot_{i}$ and $\camPos_{i}$ will be relative to
-the first camera pose.
+origin, and subsequent $\camRot_{i}$ and $\camPos_{i}$ will be relative to the
+first camera pose.
 
 
 \subsection*{Jacobians}
@@ -524,7 +576,7 @@ the form:
     \color{Thistle}
     \dfrac{\partial{\projFunc}}{\partial \camPos} \quad
     \color{blue}
-    \dfrac{\partial{\projFunc}}{\partial \landmarkPos}
+    \dfrac{\partial{\projFunc}}{\partial \Pt{\world}}
   \end{bmatrix} \\
 \end{equation}
 %
@@ -544,7 +596,7 @@ pattern:
 
 
 % DERIVATION FOR dh / dR
-\subsubsection*{Derivation for 
+\subsubsection*{Derivation for
 $\color{red}
 \dfrac{\partial{\projFunc}}{\partial{\camRot}}$}
 
@@ -566,7 +618,7 @@ $\color{red}
 \begin{align}
   % Line 1
   \begin{bmatrix} u \\ v \\ w \end{bmatrix}
-    &= \Mat{K} \camRot [\landmarkPos - \camPos]
+    &= \Mat{K} \camRot [\Pt{\world} - \camPos]
     \nonumber \\
   % Line 2
   \begin{bmatrix} u \\ v \\ w \end{bmatrix}
@@ -580,28 +632,28 @@ $\color{red}
       R_{21} & R_{22} & R_{23} \\
       R_{31} & R_{32} & R_{33}
   \end{bmatrix}
-  [\landmarkPos - \camPos]
+  [\Pt{\world} - \camPos]
   \nonumber
 \end{align}
 
 \begin{align}
   \dfrac{\partial{u}}{\partial{\camRot}} &=
       \begin{bmatrix}
-        f_{x} (\landmarkPos - \camPos) &
+        f_{x} (\Pt{\world} - \camPos) &
         \Zeros{1}{3} &
-        p_{x} (\landmarkPos - \camPos)
+        p_{x} (\Pt{\world} - \camPos)
       \end{bmatrix}_{1 \times 9} \\
   \dfrac{\partial{v}}{\partial{\camRot}} &=
     \begin{bmatrix}
       \Zeros{1}{3} &
-      f_{y} (\landmarkPos - \camPos) &
-      p_{y} (\landmarkPos - \camPos)
+      f_{y} (\Pt{\world} - \camPos) &
+      p_{y} (\Pt{\world} - \camPos)
   \end{bmatrix}_{1 \times 9} \\
   \dfrac{\partial{w}}{\partial{\camRot}} &=
     \begin{bmatrix}
       \Zeros{1}{3} &
       \Zeros{1}{3} &
-      (\landmarkPos - \camPos)
+      (\Pt{\world} - \camPos)
     \end{bmatrix}_{1 \times 9}
 \end{align}
 
@@ -689,20 +741,20 @@ $\dfrac{\partial{\camRot}}{\partial{\quat}}$}
 
 
 % DERIVATION FOR dh / dL
-\subsubsection*{Derivation for 
-$\color{blue} \dfrac{\partial{\projFunc}}{\partial{\landmarkPos}}$}
+\subsubsection*{Derivation for
+$\color{blue} \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}$}
 
 \begin{align}
   \color{blue}
-  \dfrac{\partial{\projFunc}}{\partial{\landmarkPos}} =
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}} =
   \begin{bmatrix}
     \dfrac{
-      w \dfrac{\partial{u}}{\partial{\landmarkPos}} -
-      u \dfrac{\partial{w}}{\partial{\landmarkPos}}
+      w \dfrac{\partial{u}}{\partial{\Pt{\world}}} -
+      u \dfrac{\partial{w}}{\partial{\Pt{\world}}}
     }{w^{2}} \vspace{1.0em} \\
     \dfrac{
-      w \dfrac{\partial{v}}{\partial{\landmarkPos}} -
-      v \dfrac{\partial{w}}{\partial{\landmarkPos}}
+      w \dfrac{\partial{v}}{\partial{\Pt{\world}}} -
+      v \dfrac{\partial{w}}{\partial{\Pt{\world}}}
     }{w^{2}} \vspace{0.5em}
   \end{bmatrix}_{2 \times 3}
 \end{align}
@@ -710,7 +762,7 @@ $\color{blue} \dfrac{\partial{\projFunc}}{\partial{\landmarkPos}}$}
 \begin{align}
   % Line 1
   \begin{bmatrix} u \\ v \\ w \end{bmatrix}
-    &= \Mat{K} \camRot [\landmarkPos - \camPos] 
+    &= \Mat{K} \camRot [\Pt{\world} - \camPos]
     \nonumber \\
   % Line 2
   \begin{bmatrix} u \\ v \\ w \end{bmatrix}
@@ -724,24 +776,24 @@ $\color{blue} \dfrac{\partial{\projFunc}}{\partial{\landmarkPos}}$}
       R_{21} & R_{22} & R_{23} \\
       R_{31} & R_{32} & R_{33}
   \end{bmatrix}
-  [\landmarkPos - \camPos] 
+  [\Pt{\world} - \camPos]
   \nonumber
 \end{align}
 
 \begin{align}
-  \dfrac{\partial{u}}{\partial{\landmarkPos}} &=
+  \dfrac{\partial{u}}{\partial{\Pt{\world}}} &=
     \begin{bmatrix}
       f_{x} \camRot_{11} + c_{x} \camRot_{31} &
       f_{x} \camRot_{12} + c_{x} \camRot_{32} &
       f_{x} \camRot_{13} + c_{x} \camRot_{33}
     \end{bmatrix} \\
-  \dfrac{\partial{v}}{\partial{\landmarkPos}} &=
+  \dfrac{\partial{v}}{\partial{\Pt{\world}}} &=
     \begin{bmatrix}
       f_{y} \camRot_{21} + c_{y} \camRot_{31} &
       f_{y} \camRot_{22} + c_{y} \camRot_{32} &
       f_{y} \camRot_{23} + c_{y} \camRot_{33}
     \end{bmatrix} \\
-  \dfrac{\partial{w}}{\partial{\landmarkPos}} &=
+  \dfrac{\partial{w}}{\partial{\Pt{\world}}} &=
     \begin{bmatrix}
       \camRot_{31} &
       \camRot_{32} &
@@ -773,7 +825,7 @@ $\dfrac{\partial{h}}{\partial{\camPos}}$}
 \begin{align}
   % Line 1
   \begin{bmatrix} u \\ v \\ w \end{bmatrix}
-    &= \Mat{K} \camRot [\landmarkPos - \camPos] 
+    &= \Mat{K} \camRot [\Pt{\world} - \camPos]
     \nonumber \\
   % Line 2
   \begin{bmatrix} u \\ v \\ w \end{bmatrix}
@@ -787,7 +839,7 @@ $\dfrac{\partial{h}}{\partial{\camPos}}$}
       R_{21} & R_{22} & R_{23} \\
       R_{31} & R_{32} & R_{33}
   \end{bmatrix}
-  [\landmarkPos - \camPos] 
+  [\Pt{\world} - \camPos]
   \nonumber
 \end{align}
 
@@ -818,11 +870,237 @@ $\dfrac{\partial{h}}{\partial{\camPos}}$}
 \newpage
 \section{Calibration}
 
+\begin{align}
+  \Argmin{\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial}}
+  \Norm{
+    \measurement
+    - \projFunc(\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial})
+  }^{2}
+\end{align}
+
+\begin{align}
+  \hat{\measurement} &=
+    \projFunc(\Tf{\world}{\sensor},
+              \Tf{\sensor}{\cam},
+              \Tf{\world}{\fiducial}) \\
+  \Vec{e} &= \measurement - \hat{\measurement}
+\end{align}
+
+\begin{align}
+  \hat{\measurement}
+  &=
+  \begin{bmatrix}
+    \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam} \\
+    \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}
+  \end{bmatrix} \\
+  \Point{\cam}{\fiducial_{i}}
+  &=
+  \begin{bmatrix}
+    \KineNotationBare{X}{\cam} \\
+    \KineNotationBare{Y}{\cam} \\
+    \KineNotationBare{Z}{\cam}
+  \end{bmatrix} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+  &=
+  \begin{bmatrix}
+    1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+    0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+  \end{bmatrix}
+\end{align}
+
+\begin{align}
+  \Point{\cam}{\fiducial_{ij}}
+  &=
+  \Tf{\sensor}{\cam}^{-1}
+  \Tf{\world}{\sensor}^{-1}
+  \Tf{\world}{\fiducial}
+  \enspace \Point{\fiducial}{\fiducial_{ij}}
+\end{align}
+
+
+\subsection{Jacobian w.r.t Sensor Pose, $\Tf{\world}{\sensor}$}
+
+\begin{align}
+  \Point{\world}{\fiducial_{ij}}
+  &=
+    \Tf{\world}{\sensor}
+    \enspace \Pt{\sensor}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+  &=
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+  &=
+  \begin{bmatrix}
+    1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+    0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+  \end{bmatrix} \\
+  % -- dp_C / dp_S
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
+  &=
+  \Rot{\cam}{\world}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\Tf{\world}{\sensor}}}
+    &=
+  \begin{bmatrix}
+    \dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\sensor}}}
+    \quad
+    \dfrac{\partial{\projFunc}}{\partial{\Rot{\world}{\sensor}}}
+  \end{bmatrix} \\
+  \dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\sensor}}}
+    &=
+      \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+      \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
+      \dfrac{\partial{\Pt{\sensor}}}{\partial{\Pos{\world}{\sensor}}} \\
+  \dfrac{\partial{\projFunc}}{\partial{\Rot{\world}{\sensor}}}
+    &=
+      \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+      \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
+      \dfrac{\partial{\Pt{\sensor}}}{\partial{\Rot{\world}{\sensor}}} \\
+    \dfrac{\partial{\Pt{\sensor}}}{\partial{\Pos{\world}{\sensor}}}
+    &=
+      \I \\
+    \dfrac{\partial{\Pt{\sensor}}}{\partial{\Rot{\world}{\sensor}}}
+    &= -\Skew{\Rot{\world}{\sensor} \enspace \Pt{\sensor}}
+\end{align}
+
+
+\subsection{Jacobian w.r.t Sensor-Camera Extrinsics, $\Tf{\sensor}{\cam}$}
+
+\begin{align}
+  \Point{\sensor}{\fiducial_{ij}}
+  &=
+    \Tf{\sensor}{\cam}
+    \enspace \Pt{\cam}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\sensor}}}
+  &=
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+  &=
+  \begin{bmatrix}
+    1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+    0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+  \end{bmatrix} \\
+  % -- dp_C / dp_S
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
+  &=
+  \Rot{\cam}{\sensor}
+\end{align}
+
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\Tf{\sensor}{\cam}}}
+    &=
+  \begin{bmatrix}
+    \dfrac{\partial{\projFunc}}{\partial{\Pos{\sensor}{\cam}}}
+    \quad
+    \dfrac{\partial{\projFunc}}{\partial{\Rot{\sensor}{\cam}}}
+  \end{bmatrix} \\
+  \dfrac{\partial{\projFunc}}{\partial{\Pos{\sensor}{\cam}}}
+    &=
+      \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+      \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
+      \dfrac{\partial{\Pt{\sensor}}}{\partial{\Pos{\sensor}{\cam}}} \\
+  \dfrac{\partial{\projFunc}}{\partial{\Rot{\sensor}{\cam}}}
+    &=
+      \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+      \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
+      \dfrac{\partial{\Pt{\sensor}}}{\partial{\Rot{\sensor}{\cam}}} \\
+    \dfrac{\partial{\Pt{\sensor}}}{\partial{\Pos{\sensor}{\cam}}}
+    &=
+      \I \\
+    \dfrac{\partial{\Pt{\sensor}}}{\partial{\Rot{\sensor}{\cam}}}
+    &= -\Skew{\Rot{\sensor}{\cam} \enspace \Pt{\sensor}}
+\end{align}
+
+
+\subsection{Jacobian w.r.t Fiducial Pose, $\Tf{\world}{\fiducial}$}
+
+\begin{align}
+\begin{split}
+  \Point{\world}{\fiducial_{ij}}
+  &= \Tf{\world}{\fiducial}
+     \enspace
+     \Point{\fiducial}{\fiducial_{ij}} \\
+  &= \Rot{\world}{\fiducial}
+     \enspace
+     \Point{\fiducial}{\fiducial_{ij}}
+     + \Trans{\world}{\fiducial}
+\end{split}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+  &=
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+  &=
+  \begin{bmatrix}
+    1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+    0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+  \end{bmatrix} \\
+  % -- dp_C / dp_W
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
+  &=
+  \Rot{\cam}{\world}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\delta\Vec{\theta}}}
+  &=
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+  \dfrac{\partial{\Pt{\world}}}{\partial{\delta\Vec{\theta}}} \\
+  % -- dh / dp_W
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+  &=
+  \begin{bmatrix}
+    1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+    0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+  \end{bmatrix}
+  \Rot{\cam}{\fiducial} \\
+  % -- dp_W / ddtheta
+  \dfrac{\partial{\Pt{\world}}}{\partial{\delta\Vec{\theta}}}
+  &= \I
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\fiducial}}}
+  &=
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+  \dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\fiducial}}} \\
+  % -- dh / dp_W
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+  &=
+  \begin{bmatrix}
+    1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+    0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+  \end{bmatrix}
+  \Rot{\cam}{\fiducial} \\
+  % -- dp_W / dr_WF
+  \dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\fiducial}}}
+  &=
+  -\Skew{\rot\{\delta \theta\} \Pt{\fiducial}}
+\end{align}
+
 
 
 
 % BIBLIOGRAPHY
 \newpage
-\bibliographystyle{unsrt}
+\bibliographystyle{ieeetr}
 \bibliography{notes}
 \end{document}
