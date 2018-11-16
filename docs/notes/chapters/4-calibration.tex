@@ -1,0 +1,250 @@
+\chapter{Calibration}
+
+\begin{align}
+  \Argmin{\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial}}
+  \Norm{
+    \measurement
+    - \projFunc(\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial})
+  }^{2}
+\end{align}
+
+\begin{align}
+	% -- zhat
+  \hat{\measurement} &=
+    \projFunc(\Tf{\world}{\sensor},
+              \Tf{\sensor}{\cam},
+              \Tf{\world}{\fiducial}) \\
+	% -- e = z - zhat
+  \Vec{e} &= \measurement - \hat{\measurement}
+\end{align}
+
+\begin{align}
+  % -- z hat
+  \hat{\measurement}
+		&=
+			\begin{bmatrix}
+				\KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam} \\
+				\KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}
+			\end{bmatrix} \\
+  % -- p_C
+  \Point{\cam}{\fiducial_{i}}
+		&=
+			\begin{bmatrix}
+				\KineNotationBare{X}{\cam} \\
+				\KineNotationBare{Y}{\cam} \\
+				\KineNotationBare{Z}{\cam}
+			\end{bmatrix} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+		&=
+			\begin{bmatrix}
+				1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+				0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+			\end{bmatrix}
+\end{align}
+
+\begin{align}
+  \Point{\cam}{\fiducial_{ij}}
+  &=
+  \Tf{\sensor}{\cam}^{-1}
+  \Tf{\world}{\sensor}^{-1}
+  \Tf{\world}{\fiducial}
+  \enspace \Point{\fiducial}{\fiducial_{ij}}
+\end{align}
+
+
+
+\section{Jacobian w.r.t Sensor Pose, $\Tf{\world}{\sensor}$}
+
+\begin{align}
+  \Point{\world}{\fiducial_{ij}}
+  &=
+    \Tf{\world}{\sensor}
+    \enspace \Pt{\sensor} \\
+  &=
+    \Rot{\world}{\sensor}
+    \enspace \Pt{\sensor}
+		+ \Pos{\world}{\sensor}
+\end{align}
+
+\begin{align}
+  % -- dh / dp_W
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+		&= \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+			 \enspace
+			 \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+		&=
+			\begin{bmatrix}
+				1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+				0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+			\end{bmatrix} \\
+  % -- dp_C / dp_W
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
+		&= \Rot{\cam}{\world}
+\end{align}
+
+\begin{align}
+	% -- dh / dT_WS
+  \dfrac{\partial{\projFunc}}{\partial{\Tf{\world}{\sensor}}}
+    &=
+		\begin{bmatrix}
+			\dfrac{\partial{\projFunc}}{\partial{\Rot{\world}{\sensor}}}
+			\quad
+			\dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\sensor}}}
+		\end{bmatrix} \\
+	% -- dh / dC_WS
+  \dfrac{\partial{\projFunc}}{\partial{\Rot{\world}{\sensor}}}
+    &= \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+			 \enspace
+       \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
+			 \enspace
+       \dfrac{\partial{\Pt{\world}}}{\partial{\Rot{\world}{\sensor}}} \\
+	% -- dh / dr_WS
+  \dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\sensor}}}
+    &= \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+			 \enspace
+       \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
+			 \enspace
+       \dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\sensor}}} \\
+	% -- dp_S / dC_WS
+	\dfrac{\partial{\Pt{\world}}}{\partial{\Rot{\world}{\sensor}}}
+		&= -\Skew{\Rot{\world}{\sensor} \enspace \Pt{\sensor}} \\
+	% -- dp_S / dr_WS
+	\dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\sensor}}}
+		&= \I
+\end{align}
+
+
+\section{Jacobian w.r.t Sensor-Camera Extrinsics, $\Tf{\sensor}{\cam}$}
+
+\begin{align}
+	% p_W
+  \Point{\sensor}{\fiducial_{ij}}
+  &=
+    \Tf{\sensor}{\cam}
+    \enspace \Pt{\cam} \\
+  &=
+    \Rot{\sensor}{\cam}
+    \enspace \Pt{\cam}
+		+ \Pos{\sensor}{\cam}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\sensor}}}
+		&=
+			\dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+			\enspace
+			\dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+		&=
+			\begin{bmatrix}
+				1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+				0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+			\end{bmatrix} \\
+  % -- dp_C / dp_S
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
+		&= \Rot{\cam}{\sensor}
+\end{align}
+
+
+\begin{align}
+	% -- dh / dT_SC
+  \dfrac{\partial{\projFunc}}{\partial{\Tf{\sensor}{\cam}}}
+    &=
+			\begin{bmatrix}
+				\dfrac{\partial{\projFunc}}{\partial{\Rot{\sensor}{\cam}}}
+				\quad
+				\dfrac{\partial{\projFunc}}{\partial{\Pos{\sensor}{\cam}}}
+			\end{bmatrix} \\
+	% -- dh / dC_SC
+  \dfrac{\partial{\projFunc}}{\partial{\Rot{\sensor}{\cam}}}
+    &=
+      \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+			\enspace
+      \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
+			\enspace
+      \dfrac{\partial{\Pt{\sensor}}}{\partial{\Rot{\sensor}{\cam}}} \\
+	% -- dh / dr_SC
+  \dfrac{\partial{\projFunc}}{\partial{\Pos{\sensor}{\cam}}}
+    &=
+      \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+			\enspace
+      \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
+			\enspace
+      \dfrac{\partial{\Pt{\sensor}}}{\partial{\Pos{\sensor}{\cam}}} \\
+	% -- dp_S / dr_SC
+	\dfrac{\partial{\Pt{\sensor}}}{\partial{\Pos{\sensor}{\cam}}}
+	  &= \I \\
+	% -- dp_S / dC_SC
+	\dfrac{\partial{\Pt{\sensor}}}{\partial{\Rot{\sensor}{\cam}}}
+    &= -\Skew{\Rot{\sensor}{\cam} \enspace \Pt{\sensor}}
+\end{align}
+
+
+\section{Jacobian w.r.t Fiducial Pose, $\Tf{\world}{\fiducial}$}
+
+\begin{align}
+\begin{split}
+	% p_W
+  \Pt{\world}
+		&= \Tf{\world}{\fiducial}
+			\enspace
+			\Pt{\fiducial} \\
+		&= \Rot{\world}{\fiducial}
+			\enspace
+			\Pt{\fiducial}
+			+ \Trans{\world}{\fiducial}
+\end{split}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+		&=
+			\dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+			\enspace
+			\dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
+		&=
+			\begin{bmatrix}
+				1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+				0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+			\end{bmatrix} \\
+  % -- dp_C / dp_W
+  \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
+		&= \Rot{\cam}{\world}
+\end{align}
+
+\begin{align}
+	\dfrac{\partial{\projFunc}}{\partial{\Tf{\world}{\fiducial}}}
+		&=
+			\begin{bmatrix}
+				\dfrac{\partial \projFunc}{\partial \delta\Vec{\theta}}
+				\enspace
+				\dfrac{\partial \projFunc}{\partial \Pos{\world}{\fiducial}}
+			\end{bmatrix} \\
+	% dh / dtheta_WF
+  \dfrac{\partial{\projFunc}}
+				{\partial{\delta\Vec{\theta}_{\world\fiducial}}}
+		&=
+			\dfrac{\partial{\projFunc}}
+						{\partial{\Pt{\world}}}
+			\enspace
+			\dfrac{\partial{\Pt{\world}}}
+						{\partial{\delta\Vec{\theta}_{\world\fiducial}}} \\
+	% dh / dr_WF
+  \dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\fiducial}}}
+		&=
+			\dfrac{\partial{\projFunc}}{\partial{\Pt{\world}}}
+			\enspace
+			\dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\fiducial}}} \\
+  % -- dp_W / dr_WF
+  \dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\fiducial}}}
+		&= \I \\
+  % -- dp_W / ddtheta
+  \dfrac{\partial{\Pt{\world}}}{\partial{\delta\Vec{\theta}}}
+		&= -\Skew{\rot\{\delta \theta\} \Pt{\fiducial}}
+\end{align}
