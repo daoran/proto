@@ -1,8 +1,8 @@
-function plot_camera(T_WC, style="b-")
+function draw_camera(T_WC, scale=0.1, style="b-")
   fov = deg2rad(60.0);
 
   # Form the camera fov frame
-  fov_hwidth = 0.1;
+  fov_hwidth = scale;
   fov_corners = zeros(3, 4);
   fov_corners(1:3, 1) = [-fov_hwidth; fov_hwidth; 0.0];  # Bottom left
   fov_corners(1:3, 2) = [-fov_hwidth; -fov_hwidth; 0.0]; # Top left

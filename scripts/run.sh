@@ -3,14 +3,15 @@ export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
 # sudo bash scripts/install_deps/run.bash
-sudo bash scripts/install_deps/install_realsense_sdk.bash
+# sudo bash scripts/install_deps/install_realsense.bash
 # bash ./scripts/format_code.bash
 # cd scripts/api && python3 api.py
 
-# cd octave
+cd octave
 # octave notes/ba.m
 # octave notes/quaternion.m
-# octave notes/point_jacobian.m
+# octave notes/calibration.m
+octave notes/frames.m
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 

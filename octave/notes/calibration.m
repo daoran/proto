@@ -3,7 +3,7 @@ addpath(genpath("prototype"));
 # Settings
 step_size = 1e-10;
 fdiff_threshold = 1e-4;
-nb_tests = 100;
+nb_tests = 1;
 
 test_failed = false;
 for i = 1:nb_tests
