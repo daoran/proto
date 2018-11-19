@@ -93,14 +93,23 @@
 			\dfrac{\partial{\projFunc}}{\partial{\Rot{\world}{\sensor}}}
 			\quad
 			\dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\sensor}}}
-		\end{bmatrix} \\
-	% -- dh / dC_WS
-  \dfrac{\partial{\projFunc}}{\partial{\Rot{\world}{\sensor}}}
+		\end{bmatrix}
+\end{align}
+
+\begin{align}
+	% -- dh / dtheta_WS
+  \dfrac{\partial{\projFunc}}{\partial{\dtheta_{\world\sensor}}}
     &= \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
 			 \enspace
        \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
 			 \enspace
-       \dfrac{\partial{\Pt{\world}}}{\partial{\Rot{\world}{\sensor}}} \\
+       \dfrac{\partial{\Pt{\world}}}{\partial{\dtheta_{\world\sensor}}} \\
+	% -- dp_S / dtheta_WS
+	\dfrac{\partial{\Pt{\world}}}{\partial{\dtheta_{\world\sensor}}}
+    &= -\Skew{\rot\{\dtheta_{\world\sensor}\} \enspace \Pt{\sensor}}
+\end{align}
+
+\begin{align}
 	% -- dh / dr_WS
   \dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\sensor}}}
     &= \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
@@ -108,9 +117,6 @@
        \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
 			 \enspace
        \dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\sensor}}} \\
-	% -- dp_S / dC_WS
-	\dfrac{\partial{\Pt{\world}}}{\partial{\Rot{\world}{\sensor}}}
-		&= -\Skew{\Rot{\world}{\sensor} \enspace \Pt{\sensor}} \\
 	% -- dp_S / dr_WS
 	\dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\sensor}}}
 		&= \I
@@ -150,23 +156,34 @@
 \end{align}
 
 
-\begin{align}
+\begin{equation}
 	% -- dh / dT_SC
   \dfrac{\partial{\projFunc}}{\partial{\Tf{\sensor}{\cam}}}
-    &=
+    =
 			\begin{bmatrix}
 				\dfrac{\partial{\projFunc}}{\partial{\Rot{\sensor}{\cam}}}
 				\quad
 				\dfrac{\partial{\projFunc}}{\partial{\Pos{\sensor}{\cam}}}
-			\end{bmatrix} \\
-	% -- dh / dC_SC
-  \dfrac{\partial{\projFunc}}{\partial{\Rot{\sensor}{\cam}}}
+			\end{bmatrix}
+\end{equation}
+
+
+\begin{align}
+	% -- dh / dtheta_SC
+  \dfrac{\partial{\projFunc}}{\partial{\dtheta_{\sensor\cam}}}
     &=
       \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
 			\enspace
       \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
 			\enspace
-      \dfrac{\partial{\Pt{\sensor}}}{\partial{\Rot{\sensor}{\cam}}} \\
+      \dfrac{\partial{\Pt{\sensor}}}{\partial{\dtheta_{\sensor\cam}}} \\
+	% -- dp_S / dtheta_SC
+	\dfrac{\partial{\Pt{\sensor}}}{\partial{\dtheta_{\sensor\cam}}}
+    &= -\Skew{\rot\{\dtheta_{\sensor\cam}\} \enspace \Pt{\sensor}}
+\end{align}
+
+
+\begin{align}
 	% -- dh / dr_SC
   \dfrac{\partial{\projFunc}}{\partial{\Pos{\sensor}{\cam}}}
     &=
@@ -178,9 +195,6 @@
 	% -- dp_S / dr_SC
 	\dfrac{\partial{\Pt{\sensor}}}{\partial{\Pos{\sensor}{\cam}}}
 	  &= \I \\
-	% -- dp_S / dC_SC
-	\dfrac{\partial{\Pt{\sensor}}}{\partial{\Rot{\sensor}{\cam}}}
-    &= -\Skew{\Rot{\sensor}{\cam} \enspace \Pt{\sensor}}
 \end{align}
 
 
@@ -222,19 +236,28 @@
 	\dfrac{\partial{\projFunc}}{\partial{\Tf{\world}{\fiducial}}}
 		&=
 			\begin{bmatrix}
-				\dfrac{\partial \projFunc}{\partial \delta\Vec{\theta}}
+        \dfrac{\partial \projFunc}{\partial \dtheta_{\world\fiducial}}
 				\enspace
 				\dfrac{\partial \projFunc}{\partial \Pos{\world}{\fiducial}}
-			\end{bmatrix} \\
+			\end{bmatrix}
+\end{align}
+
+\begin{align}
 	% dh / dtheta_WF
   \dfrac{\partial{\projFunc}}
-				{\partial{\delta\Vec{\theta}_{\world\fiducial}}}
+				{\partial{\dtheta_{\world\fiducial}}}
 		&=
 			\dfrac{\partial{\projFunc}}
 						{\partial{\Pt{\world}}}
 			\enspace
 			\dfrac{\partial{\Pt{\world}}}
-						{\partial{\delta\Vec{\theta}_{\world\fiducial}}} \\
+						{\partial{\dtheta_{\world\fiducial}}} \\
+  % -- dp_W / ddtheta
+  \dfrac{\partial{\Pt{\world}}}{\partial{\dtheta}}
+    &= -\Skew{\rot\{\dtheta_{\world\fiducial}\} \enspace \Pt{\fiducial}}
+\end{align}
+
+\begin{align}
 	% dh / dr_WF
   \dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\fiducial}}}
 		&=
@@ -242,9 +265,5 @@
 			\enspace
 			\dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\fiducial}}} \\
   % -- dp_W / dr_WF
-  \dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\fiducial}}}
-		&= \I \\
-  % -- dp_W / ddtheta
-  \dfrac{\partial{\Pt{\world}}}{\partial{\delta\Vec{\theta}}}
-		&= -\Skew{\rot\{\delta \theta\} \Pt{\fiducial}}
+  \dfrac{\partial{\Pt{\world}}}{\partial{\Pos{\world}{\fiducial}}} &= \I
 \end{align}

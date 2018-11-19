@@ -10,8 +10,8 @@ export CXX=/usr/bin/clang++
 cd octave
 # octave notes/ba.m
 # octave notes/quaternion.m
-# octave notes/calibration.m
-octave notes/frames.m
+octave notes/calibration.m
+# octave notes/frames.m
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 

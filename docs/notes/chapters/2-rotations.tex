@@ -273,8 +273,11 @@ and has the property
 \end{align}
 
 
+
+% -- QUATERNION FROM TWO VECTORS
 \subsection{Quaternion from Two Vectors}
 
+% TODO: Need to reword the beginning
 Using the properties of the cross and dot product
 %
 \begin{align}
@@ -401,3 +404,23 @@ Finally the quaternion, $\quat_{\world\sensor}$, can be calculated using
     \end{bmatrix}
   } \enspace .
 \end{equation}
+
+
+
+% -- QUATERNION TO ROTATION MATRIX
+\subsection{Quaternion to Rotation Matrix}
+
+\begin{equation}
+  \Mat{R}\{\quat \} = \begin{bmatrix}
+    q_w^2 + q_x^2 - q_y^2 - q_z^2
+    & 2(q_x q_y - q_w q_z)
+    & 2(q_x q_z + q_w q_y) \\
+    2(q_x q_y + q_w q_z)
+    & q_w^2 - q_x^2 + q_y^2 - q_z^2
+    & 2(q_y q_z - q_w q_x) \\
+    2(q_x q_y - q_w q_y)
+    & 2(q_y q_z + q_w q_x)
+    & q_w^2 - q_x^2 - q_y^2 + q_z^2
+  \end{bmatrix}
+\end{equation}
+
