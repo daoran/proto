@@ -38,8 +38,12 @@
   \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
 		&=
 			\begin{bmatrix}
-				1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
-				0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
+				1 / \KineNotationBare{Z}{\cam}
+				& 0
+				& -\KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
+				0
+				& 1 / \KineNotationBare{Z}{\cam}
+				& -\KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
 			\end{bmatrix}
 \end{align}
 
@@ -73,13 +77,6 @@
 		&= \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
 			 \enspace
 			 \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}} \\
-  % -- dh / dp_C
-  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
-		&=
-			\begin{bmatrix}
-				1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
-				0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
-			\end{bmatrix} \\
   % -- dp_C / dp_W
   \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
 		&= \Rot{\cam}{\world}
@@ -90,7 +87,7 @@
   \dfrac{\partial{\projFunc}}{\partial{\Tf{\world}{\sensor}}}
     &=
 		\begin{bmatrix}
-			\dfrac{\partial{\projFunc}}{\partial{\Rot{\world}{\sensor}}}
+			\dfrac{\partial{\projFunc}}{\partial{\dtheta}}
 			\quad
 			\dfrac{\partial{\projFunc}}{\partial{\Pos{\world}{\sensor}}}
 		\end{bmatrix}
@@ -98,15 +95,15 @@
 
 \begin{align}
 	% -- dh / dtheta_WS
-  \dfrac{\partial{\projFunc}}{\partial{\dtheta_{\world\sensor}}}
+  \dfrac{\partial{\projFunc}}{\partial{\dtheta}}
     &= \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
 			 \enspace
        \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
 			 \enspace
-       \dfrac{\partial{\Pt{\world}}}{\partial{\dtheta_{\world\sensor}}} \\
+       \dfrac{\partial{\Pt{\world}}}{\partial{\dtheta}} \\
 	% -- dp_S / dtheta_WS
-	\dfrac{\partial{\Pt{\world}}}{\partial{\dtheta_{\world\sensor}}}
-    &= -\Skew{\rot\{\dtheta_{\world\sensor}\} \enspace \Pt{\sensor}}
+	\dfrac{\partial{\Pt{\world}}}{\partial{\dtheta}}
+    &= -\Skew{\rot\{\dtheta\} \enspace \Pt{\sensor}}
 \end{align}
 
 \begin{align}
@@ -143,13 +140,6 @@
 			\dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
 			\enspace
 			\dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}} \\
-  % -- dh / dp_C
-  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
-		&=
-			\begin{bmatrix}
-				1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
-				0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
-			\end{bmatrix} \\
   % -- dp_C / dp_S
   \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
 		&= \Rot{\cam}{\sensor}
@@ -161,7 +151,7 @@
   \dfrac{\partial{\projFunc}}{\partial{\Tf{\sensor}{\cam}}}
     =
 			\begin{bmatrix}
-				\dfrac{\partial{\projFunc}}{\partial{\Rot{\sensor}{\cam}}}
+        \dfrac{\partial{\projFunc}}{\partial{\dtheta}}
 				\quad
 				\dfrac{\partial{\projFunc}}{\partial{\Pos{\sensor}{\cam}}}
 			\end{bmatrix}
@@ -170,16 +160,16 @@
 
 \begin{align}
 	% -- dh / dtheta_SC
-  \dfrac{\partial{\projFunc}}{\partial{\dtheta_{\sensor\cam}}}
+  \dfrac{\partial{\projFunc}}{\partial{\dtheta}}
     &=
       \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
 			\enspace
       \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\sensor}}}
 			\enspace
-      \dfrac{\partial{\Pt{\sensor}}}{\partial{\dtheta_{\sensor\cam}}} \\
+      \dfrac{\partial{\Pt{\sensor}}}{\partial{\dtheta}} \\
 	% -- dp_S / dtheta_SC
-	\dfrac{\partial{\Pt{\sensor}}}{\partial{\dtheta_{\sensor\cam}}}
-    &= -\Skew{\rot\{\dtheta_{\sensor\cam}\} \enspace \Pt{\sensor}}
+	\dfrac{\partial{\Pt{\sensor}}}{\partial{\dtheta}}
+    &= -\Skew{\rot\{\dtheta\} \enspace \Pt{\sensor}}
 \end{align}
 
 
@@ -220,13 +210,6 @@
 			\dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
 			\enspace
 			\dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}} \\
-  % -- dh / dp_C
-  \dfrac{\partial{\projFunc}}{\partial{\Pt{\cam}}}
-		&=
-			\begin{bmatrix}
-				1 & 0 & \KineNotationBare{X}{\cam} / \KineNotationBare{Z}{\cam}^{2} \\
-				0 & 1 & \KineNotationBare{Y}{\cam} / \KineNotationBare{Z}{\cam}^{2}
-			\end{bmatrix} \\
   % -- dp_C / dp_W
   \dfrac{\partial{\Pt{\cam}}}{\partial{\Pt{\world}}}
 		&= \Rot{\cam}{\world}
@@ -236,7 +219,7 @@
 	\dfrac{\partial{\projFunc}}{\partial{\Tf{\world}{\fiducial}}}
 		&=
 			\begin{bmatrix}
-        \dfrac{\partial \projFunc}{\partial \dtheta_{\world\fiducial}}
+        \dfrac{\partial \projFunc}{\partial \dtheta}
 				\enspace
 				\dfrac{\partial \projFunc}{\partial \Pos{\world}{\fiducial}}
 			\end{bmatrix}
@@ -245,16 +228,16 @@
 \begin{align}
 	% dh / dtheta_WF
   \dfrac{\partial{\projFunc}}
-				{\partial{\dtheta_{\world\fiducial}}}
+				{\partial{\dtheta}}
 		&=
 			\dfrac{\partial{\projFunc}}
 						{\partial{\Pt{\world}}}
 			\enspace
 			\dfrac{\partial{\Pt{\world}}}
-						{\partial{\dtheta_{\world\fiducial}}} \\
+						{\partial{\dtheta}} \\
   % -- dp_W / ddtheta
   \dfrac{\partial{\Pt{\world}}}{\partial{\dtheta}}
-    &= -\Skew{\rot\{\dtheta_{\world\fiducial}\} \enspace \Pt{\fiducial}}
+    &= -\Skew{\rot\{\dtheta\} \enspace \Pt{\fiducial}}
 \end{align}
 
 \begin{align}

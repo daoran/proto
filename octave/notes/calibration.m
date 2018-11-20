@@ -14,7 +14,8 @@ T_SC0 = transform(R_SC0, t_SC0);
 
 % Sensor pose T_WS
 g = [0; 0; -9.81];  % Gravity vector
-a_m = [9.81; 0; 0];  % Accelerometer reading
+% a_m = [9.81; 0; 0];  % Accelerometer reading
+a_m = [9.2681; -0.310816; -3.14984];  % Accelerometer reading
 q_WS = vecs2quat(a_m, -g);
 R_WS = quat2rot(q_WS);
 t_WS = [0; 0; 0];
@@ -58,19 +59,33 @@ dh__dp_C(1, 3) = -p_C(1) / p_C(3)**2;
 dh__dp_C(2, 3) = -p_C(2) / p_C(3)**2;
 
 
+% % Jacobian w.r.t. sensor pose
+% % -- dp_C__dp_W
+% dp_C__dp_W = inv(T_SC0(1:3, 1:3)) * inv(T_WS(1:3, 1:3));
+% % -- dp_W__dtheta_WS
+% dp_W__dtheta_WS = -skew(T_WS(1:3, 1:3) * p_S);
+% % -- dp_W__dr_WS
+% dp_W__dr_WS = eye(3);
+% % -- dp_C__dp_W
+% dp_C__dp_W = inv(T_SC0(1:3, 1:3)) * inv(T_WS(1:3, 1:3));
+% % -- dh__dtheta_WS
+% dh__dtheta_WS = -1 * dh__dp_C * dp_C__dp_W * dp_W__dtheta_WS;
+% % -- dh__dr_WS
+% dh__dr_WS = -1 * dh__dp_C * dp_C__dp_W * dp_W__dr_WS;
+
+
 % Jacobian w.r.t. sensor pose
-% -- dp_C__dp_W
-dp_C__dp_W = inv(T_SC0(1:3, 1:3)) * inv(T_WS(1:3, 1:3));
-% -- dp_W__dtheta_WS
-dp_W__dtheta_WS = -skew(T_WS(1:3, 1:3) * p_S);
-% -- dp_W__dr_WS
-dp_W__dr_WS = eye(3);
-% -- dp_C__dp_W
-dp_C__dp_W = inv(T_SC0(1:3, 1:3)) * inv(T_WS(1:3, 1:3));
-% -- dh__dr_WS
-dh__dr_WS = -1 * dh__dp_C * dp_C__dp_W * dp_W__dr_WS;
-% -- dh__dtheta_WS
-dh__dtheta_WS = -1 * dh__dp_C * dp_C__dp_W * dp_W__dtheta_WS;
+
+R_WS = T_WS(1:3, 1:3);
+R_SC0 = T_SC0(1:3, 1:3);
+dp_S__dtheta_WS_inv = -skew(inv(R_WS) * p_W);
+dp_C__dp_S = inv(R_SC0);
+dtheta_WS_inv__dtheta_WS = -R_WS';
+dh__dtheta_WS = dh__dp_C * dp_C__dp_S * dp_S__dtheta_WS_inv * dtheta_WS_inv__dtheta_WS;
+
+dp_S__dr_WS_inv = eye(3);
+dr_WS_inv__dr_WS = -R_WS';
+dh__dr_WS = dh__dp_C * dp_C__dp_S * dp_S__dr_WS_inv * dr_WS_inv__dr_WS;
 
 
 % Jacobian w.r.t. sensor-camera extrinsics
@@ -80,10 +95,10 @@ dp_C__dp_S = inv(T_SC0(1:3, 1:3));
 dp_S__dtheta_SC = -skew(T_SC0(1:3, 1:3) * p_C);
 % -- dp_S__dr_SC
 dp_S__dr_SC = eye(3);
-% -- dh__dr_SC
-dh__dr_SC = -1 * dh__dp_C * dp_C__dp_S * dp_S__dr_SC;
 % -- dh__dtheta_SC
 dh__dtheta_SC = -1 * dh__dp_C * dp_C__dp_S * dp_S__dtheta_SC;
+% -- dh__dr_SC
+dh__dr_SC = -1 * dh__dp_C * dp_C__dp_S * dp_S__dr_SC;
 
 
 % Jacobian w.r.t. fiducial pose
@@ -91,24 +106,31 @@ dh__dtheta_SC = -1 * dh__dp_C * dp_C__dp_S * dp_S__dtheta_SC;
 dp_C__dp_W = inv(T_SC0(1:3, 1:3)) * inv(T_WS(1:3, 1:3));
 % -- dh__dp_W
 dh__dp_W = dh__dp_C * dp_C__dp_W;
-% -- dh__dr_WF
-dh__dr_WF = dh__dp_W * eye(3);
 % -- dh__dtheta_WF
 dh__dtheta_WF = dh__dp_W * -skew(R_WF * p_F);
+% -- dh__dr_WF
+dh__dr_WF = dh__dp_W * eye(3);
 
 
 function retval = check_jacobian(jac_name, fdiff, jac, threshold)
-  diff = sum((fdiff - jac)(:));
-  if (diff > threshold)
+  delta = abs(sum((fdiff - jac)(:)));
+  if (delta > threshold)
     retval = -1;
-    printf("Check failed!\n");
+    printf("Check [%s] failed!\n", jac_name);
     fdiff_minus_jac = fdiff - jac
-    diff
+    delta
     printf("----------------------------------------\n");
   else
     printf("Check [%s] passed!\n", jac_name);
     retval = 0;
   endif
+endfunction
+
+% Measurement function h(): Projects point from fiducial frame to image frame
+function z = h(T_WS, T_SC0, T_WF, p_F)
+  % Project point in fiducial frame to image plane
+  p_C = (inv(T_SC0) * inv(T_WS) * T_WF * homogeneous(p_F))(1:3);
+  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
 endfunction
 
 function retval = check_dp_C__dp_W(T_WS, T_SC0, T_WF, p_F, dp_C__dp_W, step_size, threshold)
@@ -136,8 +158,6 @@ function retval = check_dp_C__dp_S(T_WS, T_SC0, T_WF, p_F, dp_C__dp_S, step_size
   p_W = (T_WS * homogeneous(p_S))(1:3);
   T_C0S = inv(T_SC0);
 
-  % Check: dp_C__dp_S
-  % Perform numerical diff to obtain finite difference
   step = eye(3) * step_size;
   fdiff = zeros(3, 3);
   for i = 1:3
@@ -149,6 +169,21 @@ function retval = check_dp_C__dp_S(T_WS, T_SC0, T_WF, p_F, dp_C__dp_S, step_size
   retval = check_jacobian("dp_C__dp_S", fdiff, dp_C__dp_S, threshold);
 endfunction
 
+function retval = check_dh__dp_C(T_WS, T_SC0, T_WF, p_F, dh__dp_C, step_size, threshold)
+  p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
+  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
+
+  step = eye(3) * step_size;
+  fdiff = zeros(2, 3);
+  for i = 1:3
+    p_C_diff = p_C + step(1:3, i);
+    z_hat = [p_C_diff(1) / p_C_diff(3); p_C_diff(2) / p_C_diff(3)];
+    fdiff(1:2, i) = (z_hat - z) / step_size;
+  endfor
+
+  retval = check_jacobian("dh__dp_C", fdiff, dh__dp_C, threshold);
+endfunction
+
 function retval = check_dh__dp_W(T_WS, T_SC0, T_WF, p_F, dh__dp_W, step_size, threshold)
   p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
   z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
@@ -157,8 +192,6 @@ function retval = check_dh__dp_W(T_WS, T_SC0, T_WF, p_F, dh__dp_W, step_size, th
   p_W = (T_WS * homogeneous(p_S))(1:3);
   T_CW = inv(T_SC0) * inv(T_WS);
 
-  % Check: dh__dp_W
-  % Perform numerical diff to obtain finite difference
   step = eye(3) * step_size;
   fdiff = zeros(2, 3);
   for i = 1:3
@@ -172,32 +205,19 @@ function retval = check_dh__dp_W(T_WS, T_SC0, T_WF, p_F, dh__dp_W, step_size, th
 endfunction
 
 function retval = check_dh__dtheta_WS(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WS, step_size, threshold)
-  p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
-  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
-  C_WS = T_WS(1:3, 1:3);
-  r_WS = T_WS(1:3, 4);
-  p_W = (T_WF * homogeneous(p_F))(1:3);
-
-  % Check: dh__dtheta_WS
-  % Perform numerical diff to obtain finite difference
   rvec = eye(3) * step_size;
   fdiff = zeros(2, 3);
   for i = 1:3
-    % Perturb C_WS rotation matrix
+    % Perturb C_WS
+    C_WS = T_WS(1:3, 1:3);
+    r_WS = T_WS(1:3, 4);
     C_WS_diff = rvec2rot(rvec(1:3, i));
     C_WS_diff = C_WS_diff * C_WS;
-
-    % Project point in world frame to sensor frame
     T_WS_diff = transform(C_WS_diff, r_WS);
-    T_SW_diff = inv(T_WS_diff);
-    p_S = (T_SW_diff * homogeneous(p_W))(1:3);
 
-    % Project point in sensor frame to image plane
-    T_C0S = inv(T_SC0);
-    p_C = (T_C0S * homogeneous(p_S))(1:3);
-    z_hat = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
+    % Project to image plane and get finite diff
+    z = h(T_WS, T_SC0, T_WF, p_F);
+    z_hat = h(T_WS_diff, T_SC0, T_WF, p_F);
     fdiff(1:2, i) = (z_hat - z) / step_size;
   endfor
 
@@ -205,32 +225,18 @@ function retval = check_dh__dtheta_WS(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WS, ste
 endfunction
 
 function retval = check_dh__dr_WS(T_WS, T_SC0, T_WF, p_F, dh__dr_WS, step_size, threshold)
-  p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
-  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
-  C_WS = T_WS(1:3, 1:3);
-  r_WS = T_WS(1:3, 4);
-  p_W = (T_WF * homogeneous(p_F))(1:3);
-
-  % Check: dh__dr_WS
-  % Perform numerical diff to obtain finite difference
   dr_WS = eye(3) * step_size;
   fdiff = zeros(2, 3);
   for i = 1:3
-    % Project point in world frame to sensor frame
-    T_WS_diff = transform(C_WS, r_WS + dr_WS(1:3, i));
-    T_SW_diff = inv(T_WS_diff);
-    p_S = (T_SW_diff * homogeneous(p_W))(1:3);
+    % Perturb r_WS
+    C_WS = T_WS(1:3, 1:3);
+    r_WS = T_WS(1:3, 4);
+    r_WS_diff = r_WS + dr_WS(1:3, i);
+    T_WS_diff = transform(C_WS, r_WS_diff);
 
-    % Project point in sensor frame to camera frame
-    T_C0S = inv(T_SC0);
-    C_C0S = T_C0S(1:3, 1:3);
-    r_C0S = T_C0S(1:3, 4);
-    p_C = (C_C0S * p_S) + r_C0S;
-
-    % Project to image plane
-    z_hat = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
+    % Project to image plane and get finite diff
+    z = h(T_WS, T_SC0, T_WF, p_F);
+    z_hat = h(T_WS_diff, T_SC0, T_WF, p_F);
     fdiff(1:2, i) = (z_hat - z) / step_size;
   endfor
 
@@ -238,31 +244,19 @@ function retval = check_dh__dr_WS(T_WS, T_SC0, T_WF, p_F, dh__dr_WS, step_size, 
 endfunction
 
 function retval = check_dh__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, dh__dtheta_SC0, step_size, threshold)
-  p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
-  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
-  C_SC0 = T_SC0(1:3, 1:3);
-  r_SC0 = T_SC0(1:3, 4);
-  p_S = (inv(T_WS) * T_WF * homogeneous(p_F))(1:3);
-
-  % Check: dh__dtheta_SC0
-  % Perform numerical diff to obtain finite difference
   rvec = eye(3) * step_size;
   fdiff = zeros(2, 3);
   for i = 1:3
-    % Transform point in sensor to camera frame
-    p_C = (inv(T_SC0) * homogeneous(p_S))(1:3);
-
-    % Perturb C_SC0 rotation matrix
+    % Perturb C_SC0
+    C_SC0 = T_SC0(1:3, 1:3);
+    r_SC0 = T_SC0(1:3, 4);
     C_SC0_diff = rvec2rot(rvec(1:3, i));
     C_SC0_diff = C_SC0_diff * C_SC0;
     T_SC0_diff = transform(C_SC0_diff, r_SC0);
-    T_C0S_diff = inv(T_SC0_diff);
 
-    % Project point in sensor frame to image plane
-    p_C = (T_C0S_diff * homogeneous(p_S))(1:3);
-    z_hat = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
+    % Project to image plane and get finite diff
+    z = h(T_WS, T_SC0, T_WF, p_F);
+    z_hat = h(T_WS, T_SC0_diff, T_WF, p_F);
     fdiff(1:2, i) = (z_hat - z) / step_size;
   endfor
 
@@ -270,29 +264,18 @@ function retval = check_dh__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, dh__dtheta_SC0, s
 endfunction
 
 function retval = check_dh__dr_SC0(T_WS, T_SC0, T_WF, p_F, dh__dr_SC0, step_size, threshold)
-  p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
-  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
-  C_SC0 = T_SC0(1:3, 1:3);
-  r_SC0 = T_SC0(1:3, 4);
-  p_S = (inv(T_WS) * T_WF * homogeneous(p_F))(1:3);
-
-  % Check: dh__dr_SC0
-  % Perform numerical diff to obtain finite difference
   dr_SC0 = eye(3) * step_size;
   fdiff = zeros(2, 3);
   for i = 1:3
-    % Transform point in sensor to camera frame
-    p_C = (inv(T_SC0) * homogeneous(p_S))(1:3);
-
     % Perturb r_SC0
-    T_SC0_diff = transform(C_SC0, r_SC0 + dr_SC0(1:3, i));
-    T_C0S_diff = inv(T_SC0_diff);
+    C_SC0 = T_SC0(1:3, 1:3);
+    r_SC0 = T_SC0(1:3, 4);
+    r_SC0_diff = r_SC0 + dr_SC0(1:3, i);
+    T_SC0_diff = transform(C_SC0, r_SC0_diff);
 
-    % Project point in sensor frame to image plane
-    p_C = (T_C0S_diff * homogeneous(p_S))(1:3);
-    z_hat = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
+    % Project to image plane and get finite diff
+    z = h(T_WS, T_SC0, T_WF, p_F);
+    z_hat = h(T_WS, T_SC0_diff, T_WF, p_F);
     fdiff(1:2, i) = (z_hat - z) / step_size;
   endfor
 
@@ -300,29 +283,19 @@ function retval = check_dh__dr_SC0(T_WS, T_SC0, T_WF, p_F, dh__dr_SC0, step_size
 endfunction
 
 function retval = check_dh__dtheta_WF(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WF, step_size, threshold)
-  p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
-  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-  r_WF = T_WF(1:3, 4);
-
-  T_C0W = inv(T_SC0) * inv(T_WS);
-  C_C0W = T_C0W(1:3, 1:3);
-  r_C0W = T_C0W(1:3, 4);
-
-  % Check: dh__dtheta_WF
-  % Perform numerical diff to obtain finite difference
   rvec = eye(3) * step_size;
   fdiff = zeros(2, 3);
   for i = 1:3
-    % Perturb C_WF rotation matrix
+    % Perturb C_WF
     C_WF = T_WF(1:3, 1:3);
     r_WF = T_WF(1:3, 4);
     C_WF_diff = rvec2rot(rvec(1:3, i));
+    C_WF_diff = C_WF_diff * C_WF;
+    T_WF_diff = transform(C_WF_diff, r_WF);
 
-    % Project point in fiducial frame to image plane
-    p_W_diff = (C_WF_diff * C_WF * p_F) + r_WF;
-    p_C_diff = (C_C0W * p_W_diff) + r_C0W;
-    z_hat = [p_C_diff(1) / p_C_diff(3); p_C_diff(2) / p_C_diff(3)];
-
+    % Project to image plane and get finite diff
+    z = h(T_WS, T_SC0, T_WF, p_F);
+    z_hat = h(T_WS, T_SC0, T_WF_diff, p_F);
     fdiff(1:2, i) = (z_hat - z) / step_size;
   endfor
 
@@ -330,36 +303,33 @@ function retval = check_dh__dtheta_WF(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WF, ste
 endfunction
 
 function retval = check_dh__dr_WF(T_WS, T_SC0, T_WF, p_F, dh__dr_WF, step_size, threshold)
-  p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
-  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-  r_WF = T_WF(1:3, 4);
-
-  % Check: dh__dr_WF
-  % Perform numerical diff to obtain finite difference
-  step = eye(3) * step_size;
+  dr_WF = eye(3) * step_size;
   fdiff = zeros(2, 3);
   for i = 1:3
-    r_WF_diff = r_WF + step(1:3, i);
-    T_WF_diff = T_WF;
-    T_WF_diff(1:3, 4) = r_WF_diff;
+    % Perturb r_WF
+    C_WF = T_WF(1:3, 1:3);
+    r_WF = T_WF(1:3, 4);
+    r_WF_diff = r_WF + dr_WF(1:3, i);
+    T_WF_diff = transform(C_WF, r_WF_diff);
 
-    p_C_diff = (inv(T_WS * T_SC0) * T_WF_diff * homogeneous(p_F))(1:3);
-    z_hat = [p_C_diff(1) / p_C_diff(3); p_C_diff(2) / p_C_diff(3)];
+    % Project to image plane
+    z = h(T_WS, T_SC0, T_WF, p_F);
+    z_hat = h(T_WS, T_SC0, T_WF_diff, p_F);
     fdiff(1:2, i) = (z_hat - z) / step_size;
   endfor
 
   retval = check_jacobian("dh__dr_WF", fdiff, dh__dr_WF, threshold);
 endfunction
 
-
 % Check jacobians
 retval = 0;
 % retval += check_dp_C__dp_W(T_WS, T_SC0, T_WF, p_F, dp_C__dp_W, step_size, threshold);
 % retval += check_dp_C__dp_S(T_WS, T_SC0, T_WF, p_F, dp_C__dp_S, step_size, threshold);
+% retval += check_dh__dp_C(T_WS, T_SC0, T_WF, p_F, dh__dp_C, step_size, threshold);
 % retval += check_dh__dp_W(T_WS, T_SC0, T_WF, p_F, dh__dp_W, step_size, threshold);
-% % -- Jacobian w.r.t sensor pose: T_WS
+% -- Jacobian w.r.t sensor pose: T_WS
 retval += check_dh__dtheta_WS(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WS, step_size, threshold);
-% retval += check_dh__dr_WS(T_WS, T_SC0, T_WF, p_F, dh__dr_WS, step_size, threshold);
+retval += check_dh__dr_WS(T_WS, T_SC0, T_WF, p_F, dh__dr_WS, step_size, threshold);
 % % -- Jacobian w.r.t sensor camera extrinsics: T_SC0
 % retval += check_dh__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, dh__dtheta_SC, step_size, threshold);
 % retval += check_dh__dr_SC0(T_WS, T_SC0, T_WF, p_F, dh__dr_SC, step_size, threshold);
