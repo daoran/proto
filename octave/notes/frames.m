@@ -18,6 +18,47 @@ g = [0; 0; -9.81];  % Gravity vector
 a = [9.2681; -0.310816; -3.14984];  % Accelerometer reading
 q = vecs2quat(a, -g);
 R_WS = quat2rot(q);
+T_WS = eye(4);
+T_WS(1:3, 1:3) = R_WS;
+T_WS(1:3, 4) = [2; 0; 0];
+
+% Fiducial pose T_WF
+rpy_WF = [deg2rad(0.0); deg2rad(0.0); deg2rad(0.0)];
+R_WF = euler321(rpy_WF);
+t_WF = [10.0; 0; 0];
+T_WF = transform(R_WF, t_WF);
+
+% Fiducial point
+p_F = [0; 0; 0];
+
+p_W = (T_WF * homogeneous(p_F))(1:3)
+t_WS = T_WS(1:3, 4);
+r_SP = p_W - t_WS
+
+
+% Plot
+figure(1);
+hold on;
+grid on;
+view(3);
+draw_frame(T_WS, 1.0);
+scatter3(p_W(1), ...
+         p_W(2), ...
+         p_W(3), 'r',
+         "linewidth", 5)
+% plot3([p_W(1), T_WS(1:3, 4)(1)], ...
+%       [p_W(2), T_WS(1:3, 4)(2)], ...
+%       [p_W(3), T_WS(1:3, 4)(3)],
+%       'k', "linewidth", 5)
+plot3([T_WS(1:3, 4)(1), T_WS(1:3, 4)(1) + r_SP(1)], ...
+      [T_WS(1:3, 4)(2), T_WS(1:3, 4)(2) + r_SP(2)], ...
+      [T_WS(1:3, 4)(3), T_WS(1:3, 4)(3) + r_SP(3)],
+      'g', "linewidth", 5)
+xlabel("x");
+ylabel("y");
+zlabel("z");
+axis('equal');
+ginput();
 
 % u = normalize(a);
 % v = normalize(-g);
@@ -29,21 +70,17 @@ R_WS = quat2rot(q);
 % q = normalize(quatmul(dq, [1; 0; 0; 0]));
 % R_WS = quat2rot(q)
 
-% Assuming IMU is at the origin
-T_WS = eye(4);
-T_WS(1:3, 1:3) = R_WS;
-T_WS(1:3, 4) = [0; 0; 0];
 
-% Plot
-figure(1);
-hold on;
-grid on;
-view(3);
-draw_frame(T_WS(1:3, 1:3), 0.1);
-draw_camera(T_WS * T_SC0, scale=0.05, 'r');
-draw_camera(T_WS * T_SC1, scale=0.05, 'g');
-xlabel("x");
-ylabel("y");
-zlabel("z");
-axis('equal');
-ginput();
+% % Plot
+% figure(1);
+% hold on;
+% grid on;
+% view(3);
+% draw_frame(T_WS, 0.1);
+% draw_camera(T_WS * T_SC0, scale=0.05, 'r');
+% draw_camera(T_WS * T_SC1, scale=0.05, 'g');
+% xlabel("x");
+% ylabel("y");
+% zlabel("z");
+% axis('equal');
+% ginput();

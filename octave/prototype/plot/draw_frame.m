@@ -1,8 +1,11 @@
-function draw_frame(R_WS, scale=1.0)
-	x_axis = R_WS * scale * [1; 0; 0];
-	y_axis = R_WS * scale * [0; 1; 0];
-	z_axis = R_WS * scale * [0; 0; 1];
-	origin = R_WS * [0; 0; 0];
+function draw_frame(T_WS, scale=1.0)
+  R_WS = T_WS(1:3, 1:3);
+  t_WS = T_WS(1:3, 4);
+	origin = t_WS
+
+	x_axis = T_WS * homogeneous(scale * [1; 0; 0]);
+	y_axis = T_WS * homogeneous(scale * [0; 1; 0]);
+	z_axis = T_WS * homogeneous(scale * [0; 0; 1]);
 
 	% Draw x-axis
 	plot3([origin(1), x_axis(1)], ...

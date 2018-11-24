@@ -1,15 +1,15 @@
 addpath(genpath("prototype"));
 
 # Settings
-step_size = 1e-10;
+step_size = 1e-8;
 threshold = 1e-5;
-nb_tests = 1;
 
 % IMU to cam0 T_SC0
-R_SC0 = [0.0, -1.0, 0.0;
-         1.0, 0.0, 0.0;
-         0.0, 0.0, 1.0];
-t_SC0 = [0.05; 0; 0];
+R_SC0 = euler321([deg2rad(-90.0), 0.0, deg2rad(-90.0)]);
+% R_SC0 = [0.0, -1.0, 0.0;
+%          1.0, 0.0, 0.0;
+%          0.0, 0.0, 1.0];
+t_SC0 = [0.0; 0; 0.05];
 T_SC0 = transform(R_SC0, t_SC0);
 
 % Sensor pose T_WS
@@ -43,73 +43,52 @@ T_WF = transform(R_WF, t_WF);
 
 
 % Fiducial point
-p_F = [unifrnd(-0.5, 0.5); unifrnd(-0.5, 0.5); 0.0];
+p_F = [unifrnd(-0.5, 0.5); unifrnd(-0.5, 0.5); unifrnd(-0.5, 0.5)];
 % -- Point projected in camera and sensor frame
 p_W = (T_WF * homogeneous(p_F))(1:3);
-p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
-p_S = (T_SC0 * homogeneous(p_C))(1:3);
+p_S = (inv(T_WS) * T_WF * homogeneous(p_F))(1:3);
+p_C = (inv(T_SC0) * inv(T_WS) * T_WF * homogeneous(p_F))(1:3);
 
 
 % Jacobian of h() w.r.t point in camera frame
-% dh__dp_C
 dh__dp_C = zeros(2, 3);
 dh__dp_C(1, 1) = 1.0 / p_C(3);
 dh__dp_C(2, 2) = 1.0 / p_C(3);
-dh__dp_C(1, 3) = -p_C(1) / p_C(3)**2;
-dh__dp_C(2, 3) = -p_C(2) / p_C(3)**2;
-
-
-% % Jacobian w.r.t. sensor pose
-% % -- dp_C__dp_W
-% dp_C__dp_W = inv(T_SC0(1:3, 1:3)) * inv(T_WS(1:3, 1:3));
-% % -- dp_W__dtheta_WS
-% dp_W__dtheta_WS = -skew(T_WS(1:3, 1:3) * p_S);
-% % -- dp_W__dr_WS
-% dp_W__dr_WS = eye(3);
-% % -- dp_C__dp_W
-% dp_C__dp_W = inv(T_SC0(1:3, 1:3)) * inv(T_WS(1:3, 1:3));
-% % -- dh__dtheta_WS
-% dh__dtheta_WS = -1 * dh__dp_C * dp_C__dp_W * dp_W__dtheta_WS;
-% % -- dh__dr_WS
-% dh__dr_WS = -1 * dh__dp_C * dp_C__dp_W * dp_W__dr_WS;
+dh__dp_C(1, 3) = -(p_C(1) / p_C(3)**2);
+dh__dp_C(2, 3) = -(p_C(2) / p_C(3)**2);
 
 
 % Jacobian w.r.t. sensor pose
+C_C0W = T_SC0(1:3, 1:3)' * T_WS(1:3, 1:3)';
+dp_C__dp_W = C_C0W;
 
-R_WS = T_WS(1:3, 1:3);
-R_SC0 = T_SC0(1:3, 1:3);
-dp_S__dtheta_WS_inv = -skew(inv(R_WS) * p_W);
-dp_C__dp_S = inv(R_SC0);
-dtheta_WS_inv__dtheta_WS = -R_WS';
-dh__dtheta_WS = dh__dp_C * dp_C__dp_S * dp_S__dtheta_WS_inv * dtheta_WS_inv__dtheta_WS;
+dp_W__dtheta_WS = -skew(T_WS(1:3, 1:3) * p_S);
+dh__dtheta_WS = dh__dp_C * dp_C__dp_W * dp_W__dtheta_WS;
 
-dp_S__dr_WS_inv = eye(3);
-dr_WS_inv__dr_WS = -R_WS';
-dh__dr_WS = dh__dp_C * dp_C__dp_S * dp_S__dr_WS_inv * dr_WS_inv__dr_WS;
+dp_W__dr_WS = eye(3);
+dh__dr_WS = dh__dp_C * dp_C__dp_W * dp_W__dr_WS;
 
 
 % Jacobian w.r.t. sensor-camera extrinsics
-% -- dp_C__dp_S
-dp_C__dp_S = inv(T_SC0(1:3, 1:3));
-% -- dp_S__dtheta_SC
-dp_S__dtheta_SC = -skew(T_SC0(1:3, 1:3) * p_C);
-% -- dp_S__dr_SC
+C_SC0 = T_SC0(1:3, 1:3);
+dp_C__dp_S = C_SC0';
+
+dp_S__dtheta_SC = -skew(C_SC0 * p_C);
 dp_S__dr_SC = eye(3);
-% -- dh__dtheta_SC
-dh__dtheta_SC = -1 * dh__dp_C * dp_C__dp_S * dp_S__dtheta_SC;
-% -- dh__dr_SC
-dh__dr_SC = -1 * dh__dp_C * dp_C__dp_S * dp_S__dr_SC;
+
+dh__dtheta_SC = dh__dp_C * dp_C__dp_S * dp_S__dtheta_SC;
+dh__dr_SC = dh__dp_C * dp_C__dp_S * dp_S__dr_SC;
 
 
 % Jacobian w.r.t. fiducial pose
-% -- dp_C__dp_W
-dp_C__dp_W = inv(T_SC0(1:3, 1:3)) * inv(T_WS(1:3, 1:3));
-% -- dh__dp_W
-dh__dp_W = dh__dp_C * dp_C__dp_W;
-% -- dh__dtheta_WF
-dh__dtheta_WF = dh__dp_W * -skew(R_WF * p_F);
-% -- dh__dr_WF
-dh__dr_WF = dh__dp_W * eye(3);
+C_WF = T_WF(1:3, 1:3);
+dp_C__dp_W = T_SC0(1:3, 1:3)' * T_WS(1:3, 1:3)';
+
+dp_W__dtheta_WF = -skew(C_WF * p_F);
+dh__dtheta_WF = -1 * dh__dp_C * dp_C__dp_W * dp_W__dtheta_WF;
+
+dp_W__dr_WF = eye(3);
+dh__dr_WF = -1 * dh__dp_C * dp_C__dp_W * dp_W__dr_WF;
 
 
 function retval = check_jacobian(jac_name, fdiff, jac, threshold)
@@ -139,8 +118,6 @@ function retval = check_dp_C__dp_W(T_WS, T_SC0, T_WF, p_F, dp_C__dp_W, step_size
   p_W = (T_WS * homogeneous(p_S))(1:3);
   T_C0W = inv(T_WS * T_SC0);
 
-  % Check: dp_C__dp_W
-  % Perform numerical diff to obtain finite difference
   step = eye(3) * step_size;
   fdiff = zeros(3, 3);
   for i = 1:3
@@ -184,26 +161,6 @@ function retval = check_dh__dp_C(T_WS, T_SC0, T_WF, p_F, dh__dp_C, step_size, th
   retval = check_jacobian("dh__dp_C", fdiff, dh__dp_C, threshold);
 endfunction
 
-function retval = check_dh__dp_W(T_WS, T_SC0, T_WF, p_F, dh__dp_W, step_size, threshold)
-  p_C = (inv(T_WS * T_SC0) * T_WF * homogeneous(p_F))(1:3);
-  z = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-
-  p_S = (T_SC0 * homogeneous(p_C))(1:3);
-  p_W = (T_WS * homogeneous(p_S))(1:3);
-  T_CW = inv(T_SC0) * inv(T_WS);
-
-  step = eye(3) * step_size;
-  fdiff = zeros(2, 3);
-  for i = 1:3
-    p_W_diff = p_W + step(1:3, i);
-    p_C_diff = (T_CW * [p_W_diff; 1])(1:3);
-    z_hat = [p_C_diff(1) / p_C_diff(3); p_C_diff(2) / p_C_diff(3)];
-    fdiff(1:2, i) = (z_hat - z) / step_size;
-  endfor
-
-  retval = check_jacobian("dh__dp_W", fdiff, dh__dp_W, threshold);
-endfunction
-
 function retval = check_dh__dtheta_WS(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WS, step_size, threshold)
   rvec = eye(3) * step_size;
   fdiff = zeros(2, 3);
@@ -218,7 +175,7 @@ function retval = check_dh__dtheta_WS(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WS, ste
     % Project to image plane and get finite diff
     z = h(T_WS, T_SC0, T_WF, p_F);
     z_hat = h(T_WS_diff, T_SC0, T_WF, p_F);
-    fdiff(1:2, i) = (z_hat - z) / step_size;
+    fdiff(1:2, i) = (z - z_hat) / step_size;
   endfor
 
   retval = check_jacobian("dh__dtheta_WS", fdiff, dh__dtheta_WS, threshold);
@@ -231,13 +188,14 @@ function retval = check_dh__dr_WS(T_WS, T_SC0, T_WF, p_F, dh__dr_WS, step_size, 
     % Perturb r_WS
     C_WS = T_WS(1:3, 1:3);
     r_WS = T_WS(1:3, 4);
+
     r_WS_diff = r_WS + dr_WS(1:3, i);
     T_WS_diff = transform(C_WS, r_WS_diff);
 
     % Project to image plane and get finite diff
     z = h(T_WS, T_SC0, T_WF, p_F);
     z_hat = h(T_WS_diff, T_SC0, T_WF, p_F);
-    fdiff(1:2, i) = (z_hat - z) / step_size;
+    fdiff(1:2, i) = (z - z_hat) / step_size;
   endfor
 
   retval = check_jacobian("dh__dr_WS", fdiff, dh__dr_WS, threshold);
@@ -257,7 +215,7 @@ function retval = check_dh__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, dh__dtheta_SC0, s
     % Project to image plane and get finite diff
     z = h(T_WS, T_SC0, T_WF, p_F);
     z_hat = h(T_WS, T_SC0_diff, T_WF, p_F);
-    fdiff(1:2, i) = (z_hat - z) / step_size;
+    fdiff(1:2, i) = (z - z_hat) / step_size;
   endfor
 
   retval = check_jacobian("dh__dtheta_SC0", fdiff, dh__dtheta_SC0, threshold);
@@ -276,7 +234,7 @@ function retval = check_dh__dr_SC0(T_WS, T_SC0, T_WF, p_F, dh__dr_SC0, step_size
     % Project to image plane and get finite diff
     z = h(T_WS, T_SC0, T_WF, p_F);
     z_hat = h(T_WS, T_SC0_diff, T_WF, p_F);
-    fdiff(1:2, i) = (z_hat - z) / step_size;
+    fdiff(1:2, i) = (z - z_hat) / step_size;
   endfor
 
   retval = check_jacobian("dh__dr_SC0", fdiff, dh__dr_SC0, threshold);
@@ -296,7 +254,7 @@ function retval = check_dh__dtheta_WF(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WF, ste
     % Project to image plane and get finite diff
     z = h(T_WS, T_SC0, T_WF, p_F);
     z_hat = h(T_WS, T_SC0, T_WF_diff, p_F);
-    fdiff(1:2, i) = (z_hat - z) / step_size;
+    fdiff(1:2, i) = (z - z_hat) / step_size;
   endfor
 
   retval = check_jacobian("dh__dtheta_WF", fdiff, dh__dtheta_WF, threshold);
@@ -315,7 +273,7 @@ function retval = check_dh__dr_WF(T_WS, T_SC0, T_WF, p_F, dh__dr_WF, step_size, 
     % Project to image plane
     z = h(T_WS, T_SC0, T_WF, p_F);
     z_hat = h(T_WS, T_SC0, T_WF_diff, p_F);
-    fdiff(1:2, i) = (z_hat - z) / step_size;
+    fdiff(1:2, i) = (z - z_hat) / step_size;
   endfor
 
   retval = check_jacobian("dh__dr_WF", fdiff, dh__dr_WF, threshold);
@@ -323,19 +281,18 @@ endfunction
 
 % Check jacobians
 retval = 0;
-% retval += check_dp_C__dp_W(T_WS, T_SC0, T_WF, p_F, dp_C__dp_W, step_size, threshold);
-% retval += check_dp_C__dp_S(T_WS, T_SC0, T_WF, p_F, dp_C__dp_S, step_size, threshold);
-% retval += check_dh__dp_C(T_WS, T_SC0, T_WF, p_F, dh__dp_C, step_size, threshold);
-% retval += check_dh__dp_W(T_WS, T_SC0, T_WF, p_F, dh__dp_W, step_size, threshold);
+retval += check_dp_C__dp_W(T_WS, T_SC0, T_WF, p_F, dp_C__dp_W, step_size, threshold);
+retval += check_dp_C__dp_S(T_WS, T_SC0, T_WF, p_F, dp_C__dp_S, step_size, threshold);
+retval += check_dh__dp_C(T_WS, T_SC0, T_WF, p_F, dh__dp_C, step_size, threshold);
 % -- Jacobian w.r.t sensor pose: T_WS
 retval += check_dh__dtheta_WS(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WS, step_size, threshold);
 retval += check_dh__dr_WS(T_WS, T_SC0, T_WF, p_F, dh__dr_WS, step_size, threshold);
-% % -- Jacobian w.r.t sensor camera extrinsics: T_SC0
-% retval += check_dh__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, dh__dtheta_SC, step_size, threshold);
-% retval += check_dh__dr_SC0(T_WS, T_SC0, T_WF, p_F, dh__dr_SC, step_size, threshold);
-% % -- Jacobian w.r.t fiducial pose: T_WF
-% retval += check_dh__dtheta_WF(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WF, step_size, threshold);
-% retval += check_dh__dr_WF(T_WS, T_SC0, T_WF, p_F, dh__dr_WF, step_size, threshold);
+% -- Jacobian w.r.t sensor camera extrinsics: T_SC0
+retval += check_dh__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, dh__dtheta_SC, step_size, threshold);
+retval += check_dh__dr_SC0(T_WS, T_SC0, T_WF, p_F, dh__dr_SC, step_size, threshold);
+% -- Jacobian w.r.t fiducial pose: T_WF
+retval += check_dh__dtheta_WF(T_WS, T_SC0, T_WF, p_F, dh__dtheta_WF, step_size, threshold);
+retval += check_dh__dr_WF(T_WS, T_SC0, T_WF, p_F, dh__dr_WF, step_size, threshold);
 
 
 % Summary

@@ -324,8 +324,8 @@ $\boldsymbol{\theta}$, is obtained a quaternion can be formed
 
 In robotics knowing the attitude of the system is often required. An Inertial
 Measurement Unit (IMU) is commonly used to obtain this information. Using the
-method described previously, a gravity and accelerometer measurement vector
-can be used to obtain an attitude in form of a quaternion.
+method described previously, a gravity vector along with an accelerometer
+measurement vector can be used to obtain an attitude in form of a quaternion.
 
 Let $\Vec{g} \in \real^{3}$ be the gravity vector, and $\Vec{a}_{m} \in
 \real^{3}$ be the accelerometer measurement from an IMU. With the two vectors
@@ -424,3 +424,65 @@ Finally the quaternion, $\quat_{\world\sensor}$, can be calculated using
   \end{bmatrix}
 \end{equation}
 
+
+
+% DIFFERENTIAL CALCULUS OF 3D CALCULUS
+\section{Differential Calculus}
+
+Lie Group $SO(3)$
+\begin{itemize}
+  \item{Not a vector space}
+  \item{Has no addition operator
+  \item{Has no subtraction operator
+\end{itemize}
+
+State estimation frameworks rely on small differences and gradients in order to
+correct the state estimate. Orientations unlike translation and velocity do not
+have an addition operator, as such it is more involving to update or
+find the gradients of orientations. Forunately, since orientations are a
+special orhogonal group $SO(3)$ as well as a Lie group, an exponential map
+exists that relates to its Lie algebra allowing orientations to be perturbed
+and its gradients calculated.
+
+Elements in Lie algebra are abstract vectors and not suitable for actual
+computations. A basis $\mathbf{B} = [\vec{\boldsymbol{\varphi}}_{1} \enspace
+\vec{\boldsymbol{\varphi}}_{2} \enspace \vec{\boldsymbol{\varphi}}_{3}]$
+can be used to extend the map to $\real^{3}$. 
+
+The definition of an exponential map $\text{exp} : \real^{3} \mapsto SO(3)$ of a
+coordinate tuple $\boldsymbol{\varphi} (\varphi_1, \varphi_2, \varphi_3) \in
+\real^{3}$ is defined by
+
+\begin{equation}
+  \text{exp}(\boldsymbol{\varphi}) := Exp(
+    \vec{\boldsymbol{\varphi}}_{1}\varphi_{1},
+    \vec{\boldsymbol{\varphi}}_{2}\varphi_{2},
+    \vec{\boldsymbol{\varphi}}_{3}\varphi_{3}
+  )
+\end{equation}
+
+
+$\forall t, s \in \real$, $\forall \vec{\boldsymbol{\varphi}} \in $
+
+\begin{align}
+  Exp((t + s) \vec{\boldsymbol{\varphi}}) =
+    Exp(t\vec{\boldsymbol{\varphi}}) \circ Exp(s\vec{\boldsymbol{\varphi}})
+\end{align}
+
+
+\begin{align}
+  \boxplus :& SO(3) \times \real^{3} \rightarrow SO(3), \\
+    &\Phi, \boldsymbol{\varphi}
+      \mapsto \text{exp}(\boldsymbol{\varphi}) \circ \Phi, \nonumber \\
+  \boxminus :& SO(3) \times SO(3) \rightarrow \real^{3}, \\
+    &\Phi_1, \Phi_2 \mapsto \text{log}(\Phi_1 \circ \Phi_{2}^{-1}) \nonumber
+\end{align}
+
+Similar to regular addition and subtraction, both operators have the following
+identities,
+%
+\begin{align}
+  \Phi \boxplus \Vec{0} &= \Phi \\
+  (\Phi \boxplus \boldsymbol{\varphi}) \boxminus \Phi &= \boldsymbol{\varphi} \\
+  \Phi_1 \boxplus (\Phi_2 \boxminus \Phi_1) &= \Phi_2
+\end{align}
