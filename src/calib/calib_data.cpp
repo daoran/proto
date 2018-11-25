@@ -2,6 +2,12 @@
 
 namespace prototype {
 
+calib_pose_param_t::calib_pose_param_t(const mat4_t &T)
+    : q{T.block<3, 3>(0, 0)}, t{T.block<3, 1>(0, 3)} {}
+
+calib_pose_param_t::~calib_pose_param_t() {}
+
+
 calib_target_t::calib_target_t() {}
 
 calib_target_t::~calib_target_t() {}

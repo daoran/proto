@@ -7,22 +7,12 @@
 
 #include <ceres/ceres.h>
 
-#include "prototype/prototype.hpp"
 #include "prototype/core/core.hpp"
+#include "prototype/calib/ceres.hpp"
 #include "prototype/calib/calib_data.hpp"
+#include "prototype/vision/camera/radtan.hpp"
 
 namespace prototype {
-
-/**
- * Pose parameter block
- */
-struct pose_param_t {
-  quat_t q;
-  vec3_t t;
-
-  pose_param_t(const mat4_t &T);
-  ~pose_param_t();
-};
 
 /**
  * Pinhole Radial-tangential calibration residual

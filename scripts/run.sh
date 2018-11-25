@@ -21,12 +21,13 @@ cd build || return
 cmake ..
 time make -j8
 
-# cd tests
+cd tests
 # -- calib
 # ./calib-aprilgrid_test
 # ./calib-calib_camera_test
 # ./calib-calib_data_test
 # ./calib-calib_gimbal_test
+# ./calib-calib_stereo_test
 # ./calib-chessboard_test
 
 # -- control

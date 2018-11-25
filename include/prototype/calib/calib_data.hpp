@@ -16,6 +16,17 @@
 namespace prototype {
 
 /**
+ * Pose parameter block
+ */
+struct calib_pose_param_t {
+  quat_t q;
+  vec3_t t;
+
+  calib_pose_param_t(const mat4_t &T);
+  ~calib_pose_param_t();
+};
+
+/**
  * Calibration target.
  */
 struct calib_target_t {
@@ -48,6 +59,8 @@ int preprocess_camera_data(const calib_target_t &target,
                            const double lens_hfov,
                            const double lens_vfov,
                            const std::string &output_dir);
+
+// TODO: Need to preprocess stereo camera data
 
 /**
  * Load preprocess-ed camera calibration data.

@@ -2,11 +2,6 @@
 
 namespace prototype {
 
-pose_param_t::pose_param_t(const mat4_t &T)
-    : q{T.block<3, 3>(0, 0)}, t{T.block<3, 1>(0, 3)} {}
-
-pose_param_t::~pose_param_t() {}
-
 pinhole_radtan4_residual_t::pinhole_radtan4_residual_t(const vec2_t &z,
                                                        const vec3_t &p_F)
     : z_{z(0), z(1)}, p_F_{p_F(0), p_F(1), p_F(2)} {}
@@ -16,7 +11,7 @@ pinhole_radtan4_residual_t::~pinhole_radtan4_residual_t() {}
 static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              vec4_t &intrinsics,
                              vec4_t &distortion,
-                             pose_param_t *pose,
+                             calib_pose_param_t *pose,
                              ceres::Problem *problem) {
   for (const auto &tag_id : aprilgrid.ids) {
     // Get keypoints
@@ -67,7 +62,7 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
   // Optimization variables
   vec4_t intrinsics{pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
   vec4_t distortion{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
-  std::vector<pose_param_t *> pose_params;
+  std::vector<calib_pose_param_t *> pose_params;
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
@@ -78,7 +73,7 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
   // Process all aprilgrid data
   for (const auto &aprilgrid : aprilgrids) {
-    pose_params.push_back(new pose_param_t(aprilgrid.T_CF));
+    pose_params.push_back(new calib_pose_param_t(aprilgrid.T_CF));
 
     int retval = process_aprilgrid(aprilgrid,
                                    intrinsics,

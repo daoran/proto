@@ -16,9 +16,9 @@ FIND_PACKAGE(Eigen3 REQUIRED)
 FIND_PACKAGE(SuiteSparse REQUIRED)
 INCLUDE(cmake/ImportEigen3.cmake)
 
-MESSAGE("${EIGEN3_FOUND}")
-MESSAGE("${EIGEN3_VERSION}")
-MESSAGE("${EIGEN3_INCLUDE_DIR}")
+# MESSAGE("${EIGEN3_FOUND}")
+# MESSAGE("${EIGEN3_VERSION}")
+# MESSAGE("${EIGEN3_INCLUDE_DIR}")
 
 # INCLUDES
 INCLUDE_DIRECTORIES(include ${EIGEN3_INCLUDE_DIR} ${SUITESPARSE_INCLUDE_DIRS})
@@ -31,6 +31,7 @@ ADD_LIBRARY(
   src/calib/calib_data.cpp
   src/calib/calib_camera.cpp
   src/calib/calib_gimbal.cpp
+  src/calib/calib_stereo.cpp
   src/calib/chessboard.cpp
   # control
   src/control/carrot_ctrl.cpp
@@ -105,6 +106,7 @@ SET(
   calib-calib_data_test
   calib-calib_camera_test
   # calib-calib_gimbal_test
+  # calib-calib_stereo_test
   calib-chessboard_test
   control-carrot_ctrl_test
   control-pid_test
