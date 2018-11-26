@@ -6,7 +6,7 @@ namespace prototype {
 
 #define IMAGE_DIR "/data/euroc_mav/cam_april/mav0/cam0/data"
 #define APRILGRID_CONF "test_data/calib/aprilgrid/target.yaml"
-#define APRILGRID_DATA "/tmp/aprilgrid_test"
+#define APRILGRID_DATA "/tmp/aprilgrid_test/cam0"
 
 void test_setup() {
   // Setup calibration target
@@ -138,6 +138,9 @@ int test_calib_camera_stats() {
   MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, poses));
   MU_CHECK_EQ(aprilgrids.size(), poses.size());
 
+  // std::cout << pinhole << std::endl;
+  // std::cout << radtan << std::endl;
+
   const double intrinsics[4] = {pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
   const double distortion[4] = {radtan.k1, radtan.k2, radtan.p1, radtan.p2};
   calib_camera_stats<pinhole_radtan4_residual_t>(aprilgrids,
@@ -152,8 +155,8 @@ int test_calib_camera_stats() {
 void test_suite() {
   test_setup();
   MU_ADD_TEST(test_pinhole_radtan4_residual);
-  MU_ADD_TEST(test_calib_camera_solve);
-  // MU_ADD_TEST(test_calib_camera_stats);
+  // MU_ADD_TEST(test_calib_camera_solve);
+  MU_ADD_TEST(test_calib_camera_stats);
 }
 
 } // namespace prototype

@@ -67,10 +67,7 @@ int preprocess_camera_data(const calib_target_t &target,
   }
 
   // Setup camera intrinsics and distortion vector
-  const mat3_t cam_K = pinhole_K(image_size(0),
-                                 image_size(1),
-                                 lens_hfov,
-                                 lens_vfov);
+  const mat3_t cam_K = pinhole_K(image_size, lens_hfov, lens_vfov);
   const vec4_t cam_D = zeros(4, 1);
 
   // Detect AprilGrid
