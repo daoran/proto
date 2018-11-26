@@ -27,12 +27,8 @@ int calib_target_load(calib_target_t &ct, const std::string &target_file) {
   return 0;
 }
 
-int preprocess_camera_data(const calib_target_t &target,
-                           const std::string &image_dir,
-                           const vec2_t &image_size,
-                           const double lens_hfov,
-                           const double lens_vfov,
-                           const std::string &output_dir) {
+static int get_camera_image_paths(const std::string &image_dir,
+                                  std::vector<std::string> &image_paths) {
   // Check image dir
   if (dir_exists(image_dir) == false) {
     LOG_ERROR("Image dir [%s] does not exist!", image_dir.c_str());
@@ -40,12 +36,27 @@ int preprocess_camera_data(const calib_target_t &target,
   }
 
   // Get image paths
-  std::vector<std::string> image_paths;
   if (list_dir(image_dir, image_paths) != 0) {
     LOG_ERROR("Failed to traverse dir [%s]!", image_dir.c_str());
     return -1;
   }
   std::sort(image_paths.begin(), image_paths.end());
+
+  return 0;
+}
+
+int preprocess_camera_data(const calib_target_t &target,
+                           const std::string &image_dir,
+                           const vec2_t &image_size,
+                           const double lens_hfov,
+                           const double lens_vfov,
+                           const std::string &output_dir) {
+  // Get camera image paths
+  std::vector<std::string> image_paths;
+  if (get_camera_image_paths(image_dir, image_paths) != 0) {
+    return -1;
+  }
+  std::cout << image_paths.size() << std::endl;
 
   // Check output dir
   std::vector<std::string> data_paths;
@@ -56,25 +67,24 @@ int preprocess_camera_data(const calib_target_t &target,
   }
 
   // Setup camera intrinsics and distortion vector
-  const double fx = pinhole_focal_length(image_size(0), lens_hfov);
-  const double fy = pinhole_focal_length(image_size(1), lens_vfov);
-  const double cx = image_size(0) / 2.0;
-  const double cy = image_size(1) / 2.0;
-  const mat3_t cam_K = pinhole_K(fx, fy, cx, cy);
+  const mat3_t cam_K = pinhole_K(image_size(0),
+                                 image_size(1),
+                                 lens_hfov,
+                                 lens_vfov);
   const vec4_t cam_D = zeros(4, 1);
 
   // Detect AprilGrid
   for (size_t i = 0; i < image_paths.size(); i++) {
     LOG_INFO("Processing image file: [%s]", image_paths[i].c_str());
 
-    // Output file path
+    // -- Create output file path
     auto output_file = basename(image_paths[i]);
     const long ts = std::stol(output_file);
     output_file = remove_ext(output_file);
     output_file += ".csv";
     const auto save_path = paths_combine(output_dir, output_file);
 
-    // Detect
+    // -- Detect
     const auto image_path = paths_combine(image_dir, image_paths[i]);
     const cv::Mat image = cv::imread(image_path);
     aprilgrid_t grid{ts,
@@ -84,8 +94,9 @@ int preprocess_camera_data(const calib_target_t &target,
                      target.tag_spacing};
     aprilgrid_detect(grid, image, cam_K, cam_D);
 
-    // Save AprilGrid
+    // -- Save AprilGrid
     if (grid.detected) {
+      // -- Save data
       if (aprilgrid_save(grid, save_path) != 0) {
         return -1;
       }
@@ -128,9 +139,117 @@ int load_camera_calib_data(const std::string &data_dir,
   return 0;
 }
 
+int preprocess_stereo_data(const calib_target_t &target,
+                           const std::string &cam0_image_dir,
+                           const std::string &cam1_image_dir,
+                           const vec2_t &cam0_image_size,
+                           const vec2_t &cam1_image_size,
+                           const double cam0_lens_hfov,
+                           const double cam0_lens_vfov,
+                           const double cam1_lens_hfov,
+                           const double cam1_lens_vfov,
+                           const std::string &cam0_output_dir,
+                           const std::string &cam1_output_dir) {
+  int retval = 0;
+
+  // Process cam0 image data
+  retval = preprocess_camera_data(target,
+                                  cam0_image_dir,
+                                  cam0_image_size,
+                                  cam0_lens_hfov,
+                                  cam0_lens_vfov,
+                                  cam0_output_dir);
+  if (retval != 0) {
+    return -1;
+  }
+
+  // Process cam1 image data
+  retval = preprocess_camera_data(target,
+                                  cam1_image_dir,
+                                  cam1_image_size,
+                                  cam1_lens_hfov,
+                                  cam1_lens_vfov,
+                                  cam1_output_dir);
+  if (retval != 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
+int load_stereo_calib_data(const std::string &cam0_data_dir,
+                           const std::string &cam1_data_dir,
+                           std::vector<aprilgrid_t> &cam0_aprilgrids,
+                           std::vector<aprilgrid_t> &cam1_aprilgrids) {
+  int retval = 0;
+
+  // Load cam0 calibration data
+  retval = load_camera_calib_data(cam0_data_dir, cam0_aprilgrids);
+  if (retval != 0) {
+    return -1;
+  }
+
+  // Load cam1 calibration data
+  retval = load_camera_calib_data(cam0_data_dir, cam1_aprilgrids);
+  if (retval != 0) {
+    return -1;
+  }
+
+  // Loop through both sets of calibration data and only keep apriltags that
+  // are seen by both cameras
+  size_t nb_detections = std::max(cam0_aprilgrids.size(),
+                                  cam1_aprilgrids.size());
+  size_t cam0_idx = 0;
+  size_t cam1_idx = 0;
+
+  for (size_t i = 0; i < nb_detections; i++) {
+    // Get grid
+    aprilgrid_t &grid0 = cam0_aprilgrids[cam0_idx];
+    aprilgrid_t &grid1 = cam1_aprilgrids[cam1_idx];
+    if (grid0.timestamp == grid1.timestamp) {
+      cam0_idx++;
+      cam1_idx++;
+    } else if (grid0.timestamp > grid1.timestamp) {
+      cam1_idx++;
+      continue;
+    } else if (grid0.timestamp < grid1.timestamp) {
+      cam0_idx++;
+      continue;
+    }
+
+    // Find the diff of AprilTag ids
+    const std::set<int> ids_0(grid0.ids.begin(), grid0.ids.end());
+    const std::set<int> ids_1(grid1.ids.begin(), grid1.ids.end());
+    const std::set<int> ids = set_diff(ids_0, ids_1);
+
+    // Remove AprilTag based on id
+    for (const auto &id : ids) {
+      aprilgrid_remove(grid0, id);
+      aprilgrid_remove(grid1, id);
+    }
+
+    // Double check both AprilGrids detect same AprilTags (i.e. union)
+    {
+      const std::set<int> ids_0(grid0.ids.begin(), grid0.ids.end());
+      const std::set<int> ids_1(grid1.ids.begin(), grid1.ids.end());
+      const std::set<int> ids = set_diff(ids_0, ids_1);
+      assert(ids_0.size() == ids_1.size());
+      assert(ids.size() == 0);
+    }
+
+    // Check if theres anymore data to go though
+    if (cam0_idx >= cam0_aprilgrids.size()
+        || cam1_idx >= cam1_aprilgrids.size()) {
+      break;
+    }
+  }
+
+  return 0;
+}
+
 cv::Mat draw_calib_validation(const cv::Mat &image,
-                              const std::vector<vec2_t> &measured,
-                              const std::vector<vec2_t> &projected,
+                              const vec2s_t &measured,
+                              const vec2s_t &projected,
                               const cv::Scalar &measured_color,
                               const cv::Scalar &projected_color) {
   // Make an RGB version of the input image

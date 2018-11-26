@@ -28,7 +28,7 @@ int yaml_get_node(const config_t &config,
                   const std::string &key,
                   const bool optional,
                   YAML::Node &node) {
-  ASSERT(config_.ok == true, "Config file is not loaded!");
+  ASSERT(config.ok == true, "Config file is not loaded!");
 
   // Recurse down config key
   std::vector<YAML::Node> traversal;

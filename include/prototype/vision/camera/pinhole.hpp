@@ -51,6 +51,21 @@ pinhole_K(const double fx, const double fy, const double cx, const double cy);
 mat3_t pinhole_K(const vec4_t &intrinsics);
 
 /**
+ * Form pinhole camera matrix K
+ *
+ * @param[in] image_width Image width [px]
+ * @param[in] image_height Image height [px]
+ * @param[in] lens_hfov Lens horizontal field of view [deg]
+ * @param[in] lens_vfov Lens vertical field of view [deg]
+ *
+ * @returns Camera matrix K
+ */
+mat3_t pinhole_K(const int image_width,
+                 const int image_height,
+                 const double lens_hfov,
+                 const double lens_vfov);
+
+/**
  * Form pinhole projection matrix P
  *
  * @param[in] K Camera matrix K

@@ -7,7 +7,7 @@ carrot_ctrl_t::carrot_ctrl_t() {}
 carrot_ctrl_t::~carrot_ctrl_t() {}
 
 int carrot_ctrl_configure(carrot_ctrl_t &cc,
-                          const std::vector<vec3_t> &waypoints,
+                          const vec3s_t &waypoints,
                           const double look_ahead_dist) {
   if (waypoints.size() <= (size_t) 2) {
     LOG_ERROR("Too few waypoints!");

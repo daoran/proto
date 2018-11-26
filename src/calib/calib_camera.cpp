@@ -15,14 +15,14 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              ceres::Problem *problem) {
   for (const auto &tag_id : aprilgrid.ids) {
     // Get keypoints
-    std::vector<vec2_t> keypoints;
+    vec2s_t keypoints;
     if (aprilgrid_get(aprilgrid, tag_id, keypoints) != 0) {
       LOG_ERROR("Failed to get AprilGrid keypoints!");
       return -1;
     }
 
     // Get object points
-    std::vector<vec3_t> object_points;
+    vec3s_t object_points;
     if (aprilgrid_object_points(aprilgrid, tag_id, object_points) != 0) {
       LOG_ERROR("Failed to calculate AprilGrid object points!");
       return -1;
@@ -58,7 +58,7 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
 int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
                        pinhole_t &pinhole,
                        radtan4_t &radtan,
-                       std::vector<mat4_t> &poses) {
+                       mat4s_t &poses) {
   // Optimization variables
   vec4_t intrinsics{pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
   vec4_t distortion{radtan.k1, radtan.k2, radtan.p1, radtan.p2};

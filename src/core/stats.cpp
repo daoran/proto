@@ -4,7 +4,7 @@ namespace prototype {
 
 inline static double sqr(double x) { return x * x; }
 
-int linreg(std::vector<vec2_t> pts, double *m, double *c, double *r) {
+int linreg(vec2s_t pts, double *m, double *c, double *r) {
   // linear regression of form: y = mx + c
   vec2_t p;
   double sumx = 0.0;  /* sum of x */

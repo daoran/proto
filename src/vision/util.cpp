@@ -202,8 +202,8 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
   return scaling_factor;
 }
 
-double reprojection_error(const std::vector<vec2_t> &measured,
-                          const std::vector<vec2_t> &projected) {
+double reprojection_error(const vec2s_t &measured,
+                          const vec2s_t &projected) {
   assert(measured.size() == projected.size());
 
   double sse = 0.0;

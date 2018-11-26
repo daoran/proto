@@ -101,8 +101,8 @@ std::vector<vecx_t> mat2vec(const matx_t &m, bool row_wise) {
   return vectors;
 }
 
-std::vector<vec3_t> mat2vec3(const matx_t &m, bool row_wise) {
-  std::vector<vec3_t> vectors;
+vec3s_t mat2vec3(const matx_t &m, bool row_wise) {
+  vec3s_t vectors;
 
   if (row_wise) {
     assert(m.cols() == 3);
@@ -119,8 +119,8 @@ std::vector<vec3_t> mat2vec3(const matx_t &m, bool row_wise) {
   return vectors;
 }
 
-std::vector<vec2_t> mat2vec2(const matx_t &m, bool row_wise) {
-  std::vector<vec2_t> vectors;
+vec2s_t mat2vec2(const matx_t &m, bool row_wise) {
+  vec2s_t vectors;
 
   if (row_wise) {
     assert(m.cols() == 2);
@@ -257,7 +257,7 @@ double wrapToPi(const double r) { return deg2rad(wrapTo180(rad2deg(r))); }
 
 double wrapTo2Pi(const double r) { return deg2rad(wrapTo360(rad2deg(r))); }
 
-vec3_t mean(const std::vector<vec3_t> &x) {
+vec3_t mean(const vec3s_t &x) {
   vec3_t x_hat{0.0, 0.0, 0.0};
 
   for (const auto &v : x) {

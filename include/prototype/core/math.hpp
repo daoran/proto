@@ -15,6 +15,7 @@ namespace prototype {
 
 #ifndef __EIGEN_TYPEDEF__
 #define __EIGEN_TYPEDEF__
+// clang-format off
 typedef Eigen::Vector2d vec2_t;
 typedef Eigen::Vector3d vec3_t;
 typedef Eigen::Vector4d vec4_t;
@@ -22,13 +23,26 @@ typedef Eigen::Matrix<double, 5, 1> vec5_t;
 typedef Eigen::Matrix<double, 6, 1> vec6_t;
 typedef Eigen::VectorXd vecx_t;
 
+typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>> vec2s_t;
+typedef std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector2d>> vec3s_t;
+typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector2d>> vec4s_t;
+typedef std::vector<Eigen::Matrix<double, 5, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 5, 1>>> vec5s_t;
+typedef std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> vec6s_t;
+typedef std::vector<Eigen::VectorXd> vecxs_t;
+
 typedef Eigen::Matrix2d mat2_t;
 typedef Eigen::Matrix3d mat3_t;
 typedef Eigen::Matrix4d mat4_t;
 typedef Eigen::MatrixXd matx_t;
 typedef Eigen::Matrix<double, 3, 4> mat34_t;
 
+typedef std::vector<Eigen::Matrix2d, Eigen::aligned_allocator<Eigen::Matrix2d>> mat2s_t;
+typedef std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix2d>> mat3s_t;
+typedef std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix2d>> mat4s_t;
+
 typedef Eigen::Quaterniond quat_t;
+typedef std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond>> quats_t;
+// clang-format on
 #endif
 
 /**
@@ -134,7 +148,7 @@ std::vector<vecx_t> mat2vec(const matx_t &m, const bool row_wise = true);
  * @param[in] row_wise Row wise
  * @returns Vectors
  */
-std::vector<vec3_t> mat2vec3(const matx_t &m, const bool row_wise = true);
+vec3s_t mat2vec3(const matx_t &m, const bool row_wise = true);
 
 /**
  * Matrix to list of vectors of size 3
@@ -143,7 +157,7 @@ std::vector<vec3_t> mat2vec3(const matx_t &m, const bool row_wise = true);
  * @param[in] row_wise Row wise
  * @returns Vectors
  */
-std::vector<vec2_t> mat2vec2(const matx_t &m, const bool row_wise = true);
+vec2s_t mat2vec2(const matx_t &m, const bool row_wise = true);
 
 /**
  * Vector to string
@@ -287,7 +301,7 @@ double wrapTo2Pi(const double r);
  * @param[in] x List of vectors
  * @return Mean vector
  */
-vec3_t mean(const std::vector<vec3_t> &x);
+vec3_t mean(const vec3s_t &x);
 
 /**
  * Cross-Track error based on waypoint line between p1, p2, and robot position

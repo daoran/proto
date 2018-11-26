@@ -11,8 +11,8 @@ namespace prototype {
 static void visualize_grid(const cv::Mat &image,
                            const mat3_t &K,
                            const vec4_t &D,
-                           const std::vector<vec3_t> &landmarks,
-                           const std::vector<vec2_t> &keypoints,
+                           const vec3s_t &landmarks,
+                           const vec2s_t &keypoints,
                            const bool show) {
   // Undistort image
   cv::Mat image_undistorted;
@@ -98,6 +98,49 @@ int test_aprilgrid_add() {
   return 0;
 }
 
+int test_aprilgrid_remove() {
+  aprilgrid_t grid(0, 6, 6, 0.088, 0.3);
+
+  // Add keypoints and points_CF
+  for (int i = 0; i < 5; i++) {
+    std::vector<cv::Point2f> keypoints;
+    keypoints.emplace_back(i, i);
+    keypoints.emplace_back(i, i);
+    keypoints.emplace_back(i, i);
+    keypoints.emplace_back(i, i);
+
+    vec3s_t points_CF;
+    points_CF.emplace_back(i, i, i);
+    points_CF.emplace_back(i, i, i);
+    points_CF.emplace_back(i, i, i);
+    points_CF.emplace_back(i, i, i);
+
+    aprilgrid_add(grid, i, keypoints);
+    extend(grid.points_CF, points_CF);
+  }
+
+  // Test remove
+  aprilgrid_remove(grid, 2);
+  aprilgrid_remove(grid, 4);
+
+  for (size_t i = 0; i < grid.ids.size(); i++) {
+    const int id = grid.ids[i];
+    MU_CHECK((vec2_t(id, id) - grid.keypoints[i * 4]).norm() < 1e-8);
+    MU_CHECK((vec2_t(id, id) - grid.keypoints[i * 4 + 1]).norm() < 1e-8);
+    MU_CHECK((vec2_t(id, id) - grid.keypoints[i * 4 + 2]).norm() < 1e-8);
+    MU_CHECK((vec2_t(id, id) - grid.keypoints[i * 4 + 3]).norm() < 1e-8);
+
+    MU_CHECK((vec3_t(id, id, id) - grid.points_CF[i * 4]).norm() < 1e-8);
+    MU_CHECK((vec3_t(id, id, id) - grid.points_CF[i * 4 + 1]).norm() < 1e-8);
+    MU_CHECK((vec3_t(id, id, id) - grid.points_CF[i * 4 + 2]).norm() < 1e-8);
+    MU_CHECK((vec3_t(id, id, id) - grid.points_CF[i * 4 + 3]).norm() < 1e-8);
+
+    printf("id: %d\n", id);
+  }
+
+  return 0;
+}
+
 int test_aprilgrid_get() {
   aprilgrid_t grid(0, 6, 6, 0.088, 0.3);
 
@@ -123,6 +166,7 @@ int test_aprilgrid_get() {
 
     // Add measurment
     aprilgrid_add(grid, i, keypoints);
+    grid.estimated = true;
     grid.points_CF.emplace_back(pos1);
     grid.points_CF.emplace_back(pos2);
     grid.points_CF.emplace_back(pos3);
@@ -131,8 +175,8 @@ int test_aprilgrid_get() {
     grid.tvec_CF = rvec;
 
     // Test get tag
-    std::vector<vec2_t> keypoints_result;
-    std::vector<vec3_t> positions_result;
+    vec2s_t keypoints_result;
+    vec3s_t positions_result;
     aprilgrid_get(grid, i, keypoints_result, positions_result);
 
     MU_CHECK((vec2_t(i, i) - keypoints_result[0]).norm() < 1e-4);
@@ -320,6 +364,7 @@ int test_aprilgrid_detect() {
 void test_suite() {
   MU_ADD_TEST(test_aprilgrid_constructor);
   MU_ADD_TEST(test_aprilgrid_add);
+  MU_ADD_TEST(test_aprilgrid_remove);
   MU_ADD_TEST(test_aprilgrid_get);
   MU_ADD_TEST(test_aprilgrid_grid_index);
   MU_ADD_TEST(test_aprilgrid_calc_relative_pose);

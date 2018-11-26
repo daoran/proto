@@ -42,7 +42,7 @@ struct pinhole_radtan4_residual_t {
 int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
                        pinhole_t &pinhole,
                        radtan4_t &radtan,
-                       std::vector<mat4_t> &poses);
+                       mat4s_t &poses);
 
 /**
  * Perform stats analysis on calibration after performing intrinsics
@@ -53,7 +53,7 @@ template <typename RESIDUAL>
 int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
                        const double *intrinsics,
                        const double *distortion,
-                       const std::vector<mat4_t> &poses,
+                       const mat4s_t &poses,
                        const std::string &output_path);
 
 } //  namespace prototype

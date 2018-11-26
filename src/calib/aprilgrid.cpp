@@ -51,9 +51,40 @@ void aprilgrid_add(aprilgrid_t &grid,
   }
 }
 
+void aprilgrid_remove(aprilgrid_t &grid, const int id) {
+  // Get index where id is stored
+  size_t index = 0;
+  for (index = 0; index < grid.ids.size(); index++) {
+    if (grid.ids.at(index) == id) {
+      break;
+    }
+  }
+
+  // Remove id
+  auto &ids = grid.ids;
+  ids.erase(ids.begin() + index);
+  ids.shrink_to_fit();
+
+  // Remove keypoints
+  auto &kps = grid.keypoints;
+  kps.erase(kps.begin() + (index * 4));
+  kps.erase(kps.begin() + (index * 4));
+  kps.erase(kps.begin() + (index * 4));
+  kps.erase(kps.begin() + (index * 4));
+  kps.shrink_to_fit();
+
+  // Remove points
+  auto &points_CF = grid.points_CF;
+  points_CF.erase(points_CF.begin() + (index * 4));
+  points_CF.erase(points_CF.begin() + (index * 4));
+  points_CF.erase(points_CF.begin() + (index * 4));
+  points_CF.erase(points_CF.begin() + (index * 4));
+  points_CF.shrink_to_fit();
+}
+
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
-                  std::vector<vec2_t> &keypoints) {
+                  vec2s_t &keypoints) {
   // Check if tag id was actually detected
   int index = -1;
   for (size_t i = 0; i < grid.ids.size(); i++) {
@@ -78,8 +109,8 @@ int aprilgrid_get(const aprilgrid_t &grid,
 
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
-                  std::vector<vec2_t> &keypoints,
-                  std::vector<vec3_t> &points_CF) {
+                  vec2s_t &keypoints,
+                  vec3s_t &points_CF) {
   assert(grid.estimated);
 
   // Check if tag id was actually detected
@@ -108,6 +139,18 @@ int aprilgrid_get(const aprilgrid_t &grid,
   points_CF.emplace_back(grid.points_CF[(index * 4) + 3]);
 
   return 0;
+}
+
+void aprilgrid_set_properties(aprilgrid_t &grid,
+                              const int tag_rows,
+                              const int tag_cols,
+                              const double tag_size,
+                              const double tag_spacing) {
+  grid.configured = true;
+  grid.tag_rows = tag_rows;
+  grid.tag_cols = tag_cols;
+  grid.tag_size = tag_size;
+  grid.tag_spacing = tag_spacing;
 }
 
 int aprilgrid_grid_index(const aprilgrid_t &grid,
@@ -167,7 +210,7 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
 
 int aprilgrid_object_points(const aprilgrid_t &grid,
                             const int tag_id,
-                            std::vector<vec3_t> &object_points) {
+                            vec3s_t &object_points) {
   const int tag_rows = grid.tag_rows;
   const int tag_cols = grid.tag_cols;
   const double tag_size = grid.tag_size;
@@ -319,7 +362,7 @@ void aprilgrid_imshow(const aprilgrid_t &grid,
 
   for (size_t i = 0; i < grid.ids.size(); i++) {
     const size_t id = grid.ids[i];
-    std::vector<vec2_t> kps;
+    vec2s_t kps;
     if (aprilgrid_get(grid, id, kps) != 0) {
       return;
     }
@@ -434,7 +477,7 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
               data_path.c_str());
     return -1;
   }
-  assert(data.cols() == 3 || data.cols() == 12);
+  assert(data.cols() == 19);
 
   // Parse file
   grid.ids.clear();

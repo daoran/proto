@@ -17,7 +17,7 @@ int test_carrot_ctrl_constructor() {
 int test_carrot_ctrl_configure() {
   carrot_ctrl_t cc;
 
-  std::vector<vec3_t> waypoints;
+  vec3s_t waypoints;
   waypoints.emplace_back(0.0, 0.0, 0.0);
   waypoints.emplace_back(1.0, 1.0, 0.0);
   waypoints.emplace_back(2.0, 2.0, 0.0);
@@ -35,7 +35,7 @@ int test_carrot_ctrl_configure() {
 int test_carrot_ctrl_closest_point() {
   carrot_ctrl_t cc;
 
-  std::vector<vec3_t> wps;
+  vec3s_t wps;
   wps.emplace_back(0.0, 0.0, 0.0);
   wps.emplace_back(1.0, 1.0, 0.0);
   wps.emplace_back(2.0, 2.0, 0.0);
@@ -74,7 +74,7 @@ int test_carrot_ctrl_closest_point() {
 int test_carrot_ctrl_carrot_point() {
   carrot_ctrl_t cc;
 
-  std::vector<vec3_t> wps;
+  vec3s_t wps;
   wps.emplace_back(0.0, 0.0, 0.0);
   wps.emplace_back(1.0, 0.0, 0.0);
   wps.emplace_back(2.0, 0.0, 0.0);
@@ -113,7 +113,7 @@ int test_carrot_ctrl_carrot_point() {
 int test_carrot_ctrl_update() {
   carrot_ctrl_t cc;
 
-  std::vector<vec3_t> wps;
+  vec3s_t wps;
   wps.emplace_back(0.0, 0.0, 0.0);
   wps.emplace_back(1.0, 0.0, 0.0);
   wps.emplace_back(2.0, 0.0, 0.0);

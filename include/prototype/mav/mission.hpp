@@ -81,8 +81,8 @@ struct wp_mission_t {
   double desired_velocity = 0.5;
   double look_ahead_dist = 0.5;
 
-  std::vector<vec3_t> gps_waypoints;
-  std::vector<vec3_t> local_waypoints;
+  vec3s_t gps_waypoints;
+  vec3s_t local_waypoints;
   int waypoint_index = 0;
   vec3_t wp_start = vec3_t::Zero();
   vec3_t wp_end = vec3_t::Zero();

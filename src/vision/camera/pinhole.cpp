@@ -56,6 +56,17 @@ mat3_t pinhole_K(const vec4_t &intrinsics) {
   return pinhole_K(fx, fy, cx, cy);
 }
 
+mat3_t pinhole_K(const int image_width,
+                 const int image_height,
+                 const double lens_hfov,
+                 const double lens_vfov) {
+  const double fx = pinhole_focal_length(image_width, lens_hfov);
+  const double fy = pinhole_focal_length(image_height, lens_vfov);
+  const double cx = image_width / 2.0;
+  const double cy = image_height / 2.0;
+  return pinhole_K(fx, fy, cx, cy);
+}
+
 mat34_t pinhole_P(const mat3_t &K, const mat3_t &R, const vec3_t &t) {
   mat34_t A;
   A.block(0, 0, 3, 3) = R;

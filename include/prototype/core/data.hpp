@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <set>
 
 #include "prototype/core/math.hpp"
 
@@ -54,12 +55,55 @@ void pop_front(std::vector<T> &vec) {
 }
 
 /**
+ * Pop front of an `std::vector`.
+ */
+template <typename T1, typename T2>
+void pop_front(std::vector<T1, T2> &vec) {
+  assert(!vec.empty());
+  vec.front() = std::move(vec.back());
+  vec.pop_back();
+}
+
+/**
  * Extend `std::vector`.
  */
 template <typename T>
 void extend(std::vector<T> &x, std::vector<T> &add) {
   x.reserve(x.size() + add.size());
   x.insert(x.end(), add.begin(), add.end());
+}
+
+/**
+ * Extend `std::vector`.
+ */
+template <typename T1, typename T2>
+void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add) {
+  x.reserve(x.size() + add.size());
+  x.insert(x.end(), add.begin(), add.end());
+}
+
+/**
+ * Union between set `a` and set `b`.
+ */
+template <typename T>
+std::set<T> set_union(const std::set<T> &s1, const std::set<T> &s2) {
+  std::set<T> result = s1;
+  result.insert(s2.begin(), s2.end());
+  return result;
+}
+
+/**
+ * Difference between set `a` and set `b`.
+ */
+template <typename T>
+std::set<T> set_diff(const std::set<T> &s1, const std::set<T> &s2) {
+  std::set<T> result;
+  std::set_difference(
+    s1.begin(), s1.end(),
+    s2.begin(), s2.end(),
+    std::inserter(result, result.end())
+  );
+  return result;
 }
 
 } //  namespace prototype

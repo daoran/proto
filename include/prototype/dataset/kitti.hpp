@@ -92,15 +92,15 @@ struct oxts_t {
 
   std::vector<long> timestamps;
   std::vector<double> time;
-  std::vector<vec3_t> gps;
-  std::vector<vec3_t> rpy;
-  std::vector<vec3_t> p_G;
-  std::vector<vec3_t> v_G;
-  std::vector<vec3_t> v_B;
-  std::vector<vec3_t> a_G;
-  std::vector<vec3_t> a_B;
-  std::vector<vec3_t> w_G;
-  std::vector<vec3_t> w_B;
+  vec3s_t gps;
+  vec3s_t rpy;
+  vec3s_t p_G;
+  vec3s_t v_G;
+  vec3s_t v_B;
+  vec3s_t a_G;
+  vec3s_t a_B;
+  vec3s_t w_G;
+  vec3s_t w_B;
   std::vector<double> pos_accuracy;
   std::vector<double> vel_accuracy;
 

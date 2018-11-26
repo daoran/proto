@@ -4,8 +4,8 @@
 namespace prototype {
 
 int test_linreg() {
-  Eigen::Vector2d p;
-  std::vector<Eigen::Vector2d> points;
+  vec2_t p;
+  vec2s_t points;
   double m;
   double c;
   double r;

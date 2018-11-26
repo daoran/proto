@@ -13,7 +13,7 @@ namespace prototype {
  * Carrot control
  */
 struct carrot_ctrl_t {
-  std::vector<vec3_t> waypoints;
+  vec3s_t waypoints;
   vec3_t wp_start = vec3_t::Zero();
   vec3_t wp_end = vec3_t::Zero();
   size_t wp_index = 0;
@@ -30,7 +30,7 @@ struct carrot_ctrl_t {
  * @returns 0 for success, -1 for failure
  */
 int carrot_ctrl_configure(carrot_ctrl_t &cc,
-                          const std::vector<vec3_t> &waypoints,
+                          const vec3s_t &waypoints,
                           const double look_ahead_dist);
 
 /**

@@ -29,11 +29,11 @@ struct aprilgrid_t {
   int nb_detections = 0;
   long timestamp = 0;
   std::vector<int> ids;
-  std::vector<vec2_t> keypoints;
+  vec2s_t keypoints;
 
   /// Estimation
   bool estimated = false;
-  std::vector<vec3_t> points_CF;
+  vec3s_t points_CF;
   mat4_t T_CF = I(4);
   vec3_t rvec_CF = zeros(3, 1);
   vec3_t tvec_CF = zeros(3, 1);
@@ -54,13 +54,8 @@ void aprilgrid_add(aprilgrid_t &grid,
                    const int id,
                    const std::vector<cv::Point2f> &keypoints);
 
-/**
- * Get AprilTag measurements based on tag id.
- * @returns 0 or -1 for success or failure.
- */
-int aprilgrid_get(const aprilgrid_t &grid,
-                  const int id,
-                  std::vector<vec2_t> &keypoints);
+/** Remove AprilTag measurement from AprilGrid based on id. */
+void aprilgrid_remove(aprilgrid_t &grid, const int id);
 
 /**
  * Get AprilTag measurements based on tag id.
@@ -68,8 +63,23 @@ int aprilgrid_get(const aprilgrid_t &grid,
  */
 int aprilgrid_get(const aprilgrid_t &grid,
                   const int id,
-                  std::vector<vec2_t> &keypoints,
-                  std::vector<vec3_t> &points_CF);
+                  vec2s_t &keypoints);
+
+/**
+ * Get AprilTag measurements based on tag id.
+ * @returns 0 or -1 for success or failure.
+ */
+int aprilgrid_get(const aprilgrid_t &grid,
+                  const int id,
+                  vec2s_t &keypoints,
+                  vec3s_t &points_CF);
+
+/** Set AprilGrid properties */
+void aprilgrid_set_properties(aprilgrid_t &grid,
+                              const int tag_rows,
+                              const int tag_cols,
+                              const double tag_size,
+                              const double tag_spacing);
 
 /**
  * Get the tag's grid index using the tag id
@@ -93,7 +103,7 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
  */
 int aprilgrid_object_points(const aprilgrid_t &grid,
                             const int tag_id,
-                            std::vector<vec3_t> &object_points);
+                            vec3s_t &object_points);
 
 /**
  * Calculate relative position between AprilGrid and camera using solvepnp.

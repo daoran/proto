@@ -5,7 +5,7 @@
 
 namespace prototype {
 
-int linreg(std::vector<Eigen::Vector2d> pts, double *m, double *b, double *r);
+int linreg(vec2s_t pts, double *m, double *b, double *r);
 
 } //  namespace prototype
 #endif // PROTOTYPE_CORE_STATS_HPP

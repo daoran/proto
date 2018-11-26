@@ -7,13 +7,13 @@ namespace prototype {
 
 template <typename CM, typename DM>
 cv::Mat validate_intrinsics(const cv::Mat &image,
-                            const std::vector<vec2_t> &keypoints,
-                            const std::vector<vec3_t> &points,
+                            const vec2s_t &keypoints,
+                            const vec3s_t &points,
                             const camera_geometry_t<CM, DM> &camera_geometry) {
   assert(image.empty() == false);
 
   // Project points to image plane
-  std::vector<vec2_t> projected;
+  vec2s_t projected;
   for (const auto &point : points) {
     const auto p = camera_geometry_project(camera_geometry, point);
     projected.emplace_back(p);
@@ -38,10 +38,10 @@ cv::Mat validate_intrinsics(const cv::Mat &image,
 template <typename CM, typename DM>
 cv::Mat validate_stereo(const cv::Mat &image0,
                         const cv::Mat &image1,
-                        const std::vector<vec2_t> &kps0,
-                        const std::vector<vec3_t> &points0,
-                        const std::vector<vec2_t> &kps1,
-                        const std::vector<vec3_t> &points1,
+                        const vec2s_t &kps0,
+                        const vec3s_t &points0,
+                        const vec2s_t &kps1,
+                        const vec3s_t &points1,
                         const camera_geometry_t<CM, DM> &cam0,
                         const camera_geometry_t<CM, DM> &cam1,
                         const mat4_t &T_C1C0) {
@@ -53,7 +53,7 @@ cv::Mat validate_stereo(const cv::Mat &image0,
   assert(points1.size() == 0);
 
   // Project points observed in cam0 to cam1 image plane
-  std::vector<vec2_t> projected1;
+  vec2s_t projected1;
   for (const auto &point_C0F : points0) {
     const auto point_C1F = (T_C1C0 * point_C0F.homogeneous()).head(3);
     const auto p = camera_geometry_project(cam1, point_C1F);
@@ -61,7 +61,7 @@ cv::Mat validate_stereo(const cv::Mat &image0,
   }
 
   // Project points observed in cam1 to cam0 image plane
-  std::vector<vec2_t> projected0;
+  vec2s_t projected0;
   const mat4_t T_C0C1 = T_C1C0.inverse();
   for (const auto &point_C1F : points1) {
     const auto point_C0F = (T_C0C1 * point_C1F.homogeneous()).head(3);

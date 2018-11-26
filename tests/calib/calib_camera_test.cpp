@@ -102,7 +102,7 @@ int test_calib_camera_solve() {
   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
 
   // Test
-  std::vector<mat4_t> poses;
+  mat4s_t poses;
   MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, poses));
   MU_CHECK_EQ(aprilgrids.size(), poses.size());
 
@@ -134,7 +134,7 @@ int test_calib_camera_stats() {
   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
 
   // Test
-  std::vector<mat4_t> poses;
+  mat4s_t poses;
   MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, poses));
   MU_CHECK_EQ(aprilgrids.size(), poses.size());
 

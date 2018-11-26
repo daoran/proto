@@ -37,9 +37,9 @@ template <typename RESIDUAL>
 int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
                        const double *intrinsics,
                        const double *distortion,
-                       const std::vector<mat4_t> &poses,
+                       const mat4s_t &poses,
                        const std::string &output_path) {
-  std::vector<vec2_t> residuals;
+  vec2s_t residuals;
 
   // Obtain residuals using optimized params
   for (size_t i = 0; i < aprilgrids.size(); i++) {
@@ -53,14 +53,14 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
     // Iterate over all tags in AprilGrid
     for (const auto &tag_id : aprilgrid.ids) {
       // Get keypoints
-      std::vector<vec2_t> keypoints;
+      vec2s_t keypoints;
       if (aprilgrid_get(aprilgrid, tag_id, keypoints) != 0) {
         LOG_ERROR("Failed to get AprilGrid keypoints!");
         return -1;
       }
 
       // Get object points
-      std::vector<vec3_t> object_points;
+      vec3s_t object_points;
       if (aprilgrid_object_points(aprilgrid, tag_id, object_points) != 0) {
         LOG_ERROR("Failed to calculate AprilGrid object points!");
         return -1;
