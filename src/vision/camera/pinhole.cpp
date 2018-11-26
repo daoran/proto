@@ -28,6 +28,10 @@ pinhole_t::pinhole_t(const double fx_,
 
 pinhole_t::~pinhole_t() {}
 
+// double &pinhole_t::data() {
+//   return {&fx, &fy, &cx, &cy};
+// }
+
 std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole) {
   os << "fx: " << pinhole.fx << std::endl;
   os << "fy: " << pinhole.fy << std::endl;

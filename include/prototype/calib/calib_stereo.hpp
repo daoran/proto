@@ -4,6 +4,7 @@
 #include <ceres/ceres.h>
 
 #include "prototype/core/core.hpp"
+#include "prototype/calib/ceres.hpp"
 #include "prototype/calib/calib_data.hpp"
 
 namespace prototype {
@@ -35,6 +36,18 @@ struct stereo_residual_t {
                   const T *const t_C0F,
                   T *residual) const;
 };
+
+/**
+ * Calibrate stereo camera extrinsics and relative pose between cameras
+ */
+int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
+                       const std::vector<aprilgrid_t> &cam1_aprilgrids,
+                       pinhole_t &cam0_pinhole,
+                       radtan4_t &cam0_radtan,
+                       pinhole_t &cam1_pinhole,
+                       radtan4_t &cam1_radtan,
+                       mat4_t &T_C0C1,
+                       mat4s_t &poses);
 
 } //  namespace prototype
 #include "calib_stereo_impl.hpp"

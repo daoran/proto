@@ -122,9 +122,11 @@ int test_aprilgrid_remove() {
   // Test remove
   aprilgrid_remove(grid, 2);
   aprilgrid_remove(grid, 4);
+  aprilgrid_remove(grid, 5); // Remove non-existant id
 
   for (size_t i = 0; i < grid.ids.size(); i++) {
     const int id = grid.ids[i];
+
     MU_CHECK((vec2_t(id, id) - grid.keypoints[i * 4]).norm() < 1e-8);
     MU_CHECK((vec2_t(id, id) - grid.keypoints[i * 4 + 1]).norm() < 1e-8);
     MU_CHECK((vec2_t(id, id) - grid.keypoints[i * 4 + 2]).norm() < 1e-8);
@@ -134,8 +136,6 @@ int test_aprilgrid_remove() {
     MU_CHECK((vec3_t(id, id, id) - grid.points_CF[i * 4 + 1]).norm() < 1e-8);
     MU_CHECK((vec3_t(id, id, id) - grid.points_CF[i * 4 + 2]).norm() < 1e-8);
     MU_CHECK((vec3_t(id, id, id) - grid.points_CF[i * 4 + 3]).norm() < 1e-8);
-
-    printf("id: %d\n", id);
   }
 
   return 0;

@@ -9,8 +9,8 @@ pinhole_radtan4_residual_t::pinhole_radtan4_residual_t(const vec2_t &z,
 pinhole_radtan4_residual_t::~pinhole_radtan4_residual_t() {}
 
 static int process_aprilgrid(const aprilgrid_t &aprilgrid,
-                             vec4_t &intrinsics,
-                             vec4_t &distortion,
+                             double *intrinsics[4],
+                             double *distortion[4],
                              calib_pose_param_t *pose,
                              ceres::Problem *problem) {
   for (const auto &tag_id : aprilgrid.ids) {
@@ -45,8 +45,8 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
 
       problem->AddResidualBlock(cost_func, // Cost function
                                 NULL,      // Loss function
-                                intrinsics.data(),
-                                distortion.data(),
+                                *intrinsics,
+                                *distortion,
                                 pose->q.coeffs().data(),
                                 pose->t.data());
     }
@@ -60,8 +60,6 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
                        radtan4_t &radtan,
                        mat4s_t &poses) {
   // Optimization variables
-  vec4_t intrinsics{pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
-  vec4_t distortion{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
   std::vector<calib_pose_param_t *> pose_params;
 
   // Setup optimization problem
@@ -76,8 +74,8 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
     pose_params.push_back(new calib_pose_param_t(aprilgrid.T_CF));
 
     int retval = process_aprilgrid(aprilgrid,
-                                   intrinsics,
-                                   distortion,
+                                   pinhole.data,
+                                   radtan.data,
                                    pose_params.back(),
                                    problem);
     if (retval != 0) {
@@ -98,12 +96,6 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
   ceres::Solver::Summary summary;
   ceres::Solve(options, problem, &summary);
   std::cout << summary.FullReport() << std::endl;
-
-  // Map results back to pinhole and radtan
-  pinhole =
-      pinhole_t{intrinsics[0], intrinsics[1], intrinsics[2], intrinsics[3]};
-  radtan =
-      radtan4_t{distortion[0], distortion[1], distortion[2], distortion[3]};
 
   // Clean up
   for (auto pose_ptr : pose_params) {

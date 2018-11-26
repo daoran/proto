@@ -72,6 +72,11 @@ int load_camera_calib_data(const std::string &data_dir,
  * csv. The data is initialized with `image_size` in pixels, the horizontal
  * lens fov `lens_hfov` and vertical lens fov `lens_vfov` in degrees.
  *
+ * This function assumes:
+ *
+ * - Stereo camera images are synchronized
+ * - Number of images observed by both cameras are the same
+ *
  * @returns 0 for Success, -1 for failure, and 1 where the output directory
  * contains data.
  */
@@ -92,6 +97,11 @@ int preprocess_stereo_data(const calib_target_t &target,
  * `cam1_data_dir` are preprocessed calibration data observed from cam0 and
  * cam1. The preprocessed calibration data will be loaded into
  * `cam0_aprilgrids` and `cam1_aprilgrids` respectively.
+ *
+ * This function assumes:
+ *
+ * - Stereo camera images are synchronized
+ * - Number of images observed by both cameras are the same
  *
  * @returns 0 or -1 for success or failure
  */

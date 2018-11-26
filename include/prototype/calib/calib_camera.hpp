@@ -36,7 +36,9 @@ struct pinhole_radtan4_residual_t {
 };
 
 /**
- * Setup camera calibration problem.
+ * Calibrate camera intrinsics and relative pose between camera and fiducial
+ * calibration target.
+ *
  * @returns 0 or -1 for success or failure
  */
 int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
@@ -47,6 +49,7 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
 /**
  * Perform stats analysis on calibration after performing intrinsics
  * calibration.
+ *
  * @returns 0 or -1 for success or failure
  */
 template <typename RESIDUAL>

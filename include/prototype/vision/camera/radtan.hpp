@@ -15,6 +15,7 @@ struct radtan4_t {
   double k2 = 0.0;
   double p1 = 0.0;
   double p2 = 0.0;
+  double *data[4] = {&k1, &k2, &p1, &p2};
 
   radtan4_t(const double k1_,
             const double k2_,

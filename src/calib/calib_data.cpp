@@ -56,7 +56,6 @@ int preprocess_camera_data(const calib_target_t &target,
   if (get_camera_image_paths(image_dir, image_paths) != 0) {
     return -1;
   }
-  std::cout << image_paths.size() << std::endl;
 
   // Check output dir
   std::vector<std::string> data_paths;
@@ -122,8 +121,6 @@ int load_camera_calib_data(const std::string &data_dir,
 
   // Load AprilGrid data
   for (size_t i = 0; i < data_paths.size(); i++) {
-    LOG_INFO("Loading calib data: [%s]", data_paths[i].c_str());
-
     const auto data_path = paths_combine(data_dir, data_paths[i]);
     aprilgrid_t grid;
     if (aprilgrid_load(grid, data_path) != 0) {
@@ -181,28 +178,30 @@ int load_stereo_calib_data(const std::string &cam0_data_dir,
   int retval = 0;
 
   // Load cam0 calibration data
-  retval = load_camera_calib_data(cam0_data_dir, cam0_aprilgrids);
+  std::vector<aprilgrid_t> grids0;
+  retval = load_camera_calib_data(cam0_data_dir, grids0);
   if (retval != 0) {
     return -1;
   }
 
   // Load cam1 calibration data
-  retval = load_camera_calib_data(cam0_data_dir, cam1_aprilgrids);
+  std::vector<aprilgrid_t> grids1;
+  retval = load_camera_calib_data(cam1_data_dir, grids1);
   if (retval != 0) {
     return -1;
   }
 
   // Loop through both sets of calibration data and only keep apriltags that
   // are seen by both cameras
-  size_t nb_detections = std::max(cam0_aprilgrids.size(),
-                                  cam1_aprilgrids.size());
+  size_t nb_detections = std::max(grids0.size(),
+                                  grids1.size());
   size_t cam0_idx = 0;
   size_t cam1_idx = 0;
 
   for (size_t i = 0; i < nb_detections; i++) {
     // Get grid
-    aprilgrid_t &grid0 = cam0_aprilgrids[cam0_idx];
-    aprilgrid_t &grid1 = cam1_aprilgrids[cam1_idx];
+    aprilgrid_t &grid0 = grids0[cam0_idx];
+    aprilgrid_t &grid1 = grids1[cam1_idx];
     if (grid0.timestamp == grid1.timestamp) {
       cam0_idx++;
       cam1_idx++;
@@ -214,29 +213,23 @@ int load_stereo_calib_data(const std::string &cam0_data_dir,
       continue;
     }
 
-    // Find the diff of AprilTag ids
-    const std::set<int> ids_0(grid0.ids.begin(), grid0.ids.end());
-    const std::set<int> ids_1(grid1.ids.begin(), grid1.ids.end());
-    const std::set<int> ids = set_diff(ids_0, ids_1);
+    // Find the symmetric difference of AprilTag ids
+    std::vector<int> unique_ids = set_symmetric_diff(grid0.ids, grid1.ids);
 
     // Remove AprilTag based on id
-    for (const auto &id : ids) {
+    for (const auto &id : unique_ids) {
       aprilgrid_remove(grid0, id);
       aprilgrid_remove(grid1, id);
     }
+    assert(grid0.ids.size() == grid1.ids.size());
 
-    // Double check both AprilGrids detect same AprilTags (i.e. union)
-    {
-      const std::set<int> ids_0(grid0.ids.begin(), grid0.ids.end());
-      const std::set<int> ids_1(grid1.ids.begin(), grid1.ids.end());
-      const std::set<int> ids = set_diff(ids_0, ids_1);
-      assert(ids_0.size() == ids_1.size());
-      assert(ids.size() == 0);
-    }
+    // Add to results
+    cam0_aprilgrids.emplace_back(grid0);
+    cam1_aprilgrids.emplace_back(grid1);
 
     // Check if theres anymore data to go though
-    if (cam0_idx >= cam0_aprilgrids.size()
-        || cam1_idx >= cam1_aprilgrids.size()) {
+    if (cam0_idx >= grids0.size()
+        || cam1_idx >= grids1.size()) {
       break;
     }
   }

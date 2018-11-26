@@ -14,6 +14,7 @@ struct pinhole_t {
   double cx = 0.0;
   double cy = 0.0;
   mat3_t K = zeros(3, 3);
+  double *data[4] = {&fx, &fy, &cx, &cy};
 
   pinhole_t();
   pinhole_t(const vec4_t &intrinsics);
@@ -22,6 +23,8 @@ struct pinhole_t {
             const double cx_,
             const double cy_);
   ~pinhole_t();
+
+  // double &data();
 };
 
 /**

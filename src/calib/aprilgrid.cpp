@@ -54,10 +54,15 @@ void aprilgrid_add(aprilgrid_t &grid,
 void aprilgrid_remove(aprilgrid_t &grid, const int id) {
   // Get index where id is stored
   size_t index = 0;
+  bool found = false;
   for (index = 0; index < grid.ids.size(); index++) {
     if (grid.ids.at(index) == id) {
+      found = true;
       break;
     }
+  }
+  if (found == false) {
+    return;
   }
 
   // Remove id

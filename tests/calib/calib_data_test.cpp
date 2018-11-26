@@ -10,6 +10,10 @@ namespace prototype {
 #define CAM0_IMAGE_DIR "/data/euroc_mav/cam_april/mav0/cam0/data"
 #define CAM1_IMAGE_DIR "/data/euroc_mav/cam_april/mav0/cam1/data"
 
+#define MONO_OUTPUT_DIR "/tmp/aprilgrid_test/mono"
+#define STEREO_OUTPUT_DIR "/tmp/aprilgrid_test/stereo"
+
+
 int test_preprocess_and_load_camera_data() {
   // Setup calibration target
   calib_target_t target;
@@ -23,7 +27,7 @@ int test_preprocess_and_load_camera_data() {
   const vec2_t image_size{752, 480};
   const double lens_hfov = 98.0;
   const double lens_vfov = 73.0;
-  const std::string output_dir = "/tmp/aprilgrid_test/cam0";
+  const std::string output_dir = MONO_OUTPUT_DIR "/cam0";
   preprocess_camera_data(target,
                          image_dir,
                          image_size,
@@ -59,8 +63,8 @@ int test_preprocess_and_load_stereo_data() {
   const double cam1_lens_hfov = 98.0;
   const double cam1_lens_vfov = 73.0;
   // -- Output directory
-  const std::string cam0_output_dir = "/tmp/aprilgrid_test/cam0";
-  const std::string cam1_output_dir = "/tmp/aprilgrid_test/cam1";
+  const std::string cam0_output_dir = STEREO_OUTPUT_DIR "/cam0";
+  const std::string cam1_output_dir = STEREO_OUTPUT_DIR "/cam1";
   preprocess_stereo_data(target,
                          CAM0_IMAGE_DIR,
                          CAM1_IMAGE_DIR,
@@ -87,6 +91,7 @@ int test_preprocess_and_load_stereo_data() {
   MU_CHECK(cam0_aprilgrids[0].ids.size() > 0);
   MU_CHECK(cam1_aprilgrids.size() > 0);
   MU_CHECK(cam1_aprilgrids[0].ids.size() > 0);
+  MU_CHECK(cam0_aprilgrids.size() == cam1_aprilgrids.size());
 
   return 0;
 }
@@ -309,7 +314,7 @@ int test_validate_stereo() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_preprocess_and_load_camera_data);
+  // MU_ADD_TEST(test_preprocess_and_load_camera_data);
   MU_ADD_TEST(test_preprocess_and_load_stereo_data);
   // MU_ADD_TEST(test_draw_calib_validation);
   // MU_ADD_TEST(test_validate_intrinsics);

@@ -86,24 +86,37 @@ void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add) {
  * Union between set `a` and set `b`.
  */
 template <typename T>
-std::set<T> set_union(const std::set<T> &s1, const std::set<T> &s2) {
-  std::set<T> result = s1;
+T set_union(const T &s1, const T &s2) {
+  T result = s1;
   result.insert(s2.begin(), s2.end());
   return result;
 }
 
 /**
- * Difference between set `a` and set `b`.
+ * Difference between `a` and set `b`.
  */
 template <typename T>
-std::set<T> set_diff(const std::set<T> &s1, const std::set<T> &s2) {
-  std::set<T> result;
+T set_diff(const T &a, const T &b) {
+  T results;
   std::set_difference(
-    s1.begin(), s1.end(),
-    s2.begin(), s2.end(),
-    std::inserter(result, result.end())
+    a.begin(), a.end(),
+    b.begin(), b.end(),
+    std::inserter(results, results.end())
   );
-  return result;
+  return results;
+}
+
+/**
+ * Symmetric difference between `a` and `b`.
+ */
+template <typename T>
+T set_symmetric_diff(const T &a, const T &b) {
+  T results;
+  std::set_symmetric_difference(
+      a.begin(), a.end(),
+      b.begin(), b.end(),
+      std::back_inserter(results));
+  return results;
 }
 
 } //  namespace prototype
