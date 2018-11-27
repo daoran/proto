@@ -3,5 +3,6 @@
 #include "prototype/calib/calib_data.hpp"
 #include "prototype/calib/calib_gimbal.hpp"
 #include "prototype/calib/calib_stereo.hpp"
+#include "prototype/calib/calib_vicon_marker.hpp"
 #include "prototype/calib/ceres.hpp"
 #include "prototype/calib/chessboard.hpp"

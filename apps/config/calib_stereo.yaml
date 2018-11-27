@@ -2,18 +2,18 @@ calib:
   target_file: "../config/aprilgrid_6x6.yaml"
   cam0_image_path: "/data/euroc_mav/cam_april/mav0/cam0/data"
   cam1_image_path: "/data/euroc_mav/cam_april/mav0/cam1/data"
-  cam0_data_path: "/tmp/calib/stereo/cam0"
-  cam1_data_path: "/tmp/calib/stereo/cam1"
+  cam0_preprocess_path: "/tmp/calib/stereo/cam0"
+  cam1_preprocess_path: "/tmp/calib/stereo/cam1"
 
 cam0:
-  image_size: [752, 480]
+  resolution: [752, 480]
   lens_hfov: 98.0
   lens_vfov: 73.0
   camera_model: "pinhole"
   distortion_model: "radtan"
 
 cam1:
-  image_size: [752, 480]
+  resolution: [752, 480]
   lens_hfov: 98.0
   lens_vfov: 73.0
   camera_model: "pinhole"

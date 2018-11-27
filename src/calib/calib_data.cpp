@@ -48,9 +48,10 @@ static int get_camera_image_paths(const std::string &image_dir,
 int preprocess_camera_data(const calib_target_t &target,
                            const std::string &image_dir,
                            const vec2_t &image_size,
-                           const double lens_hfov,
-                           const double lens_vfov,
-                           const std::string &output_dir) {
+                           const mat3_t &cam_K,
+                           const vec4_t &cam_D,
+                           const std::string &output_dir,
+                           const bool imshow) {
   // Get camera image paths
   std::vector<std::string> image_paths;
   if (get_camera_image_paths(image_dir, image_paths) != 0) {
@@ -65,13 +66,10 @@ int preprocess_camera_data(const calib_target_t &target,
     return 0;
   }
 
-  // Setup camera intrinsics and distortion vector
-  const mat3_t cam_K = pinhole_K(image_size, lens_hfov, lens_vfov);
-  const vec4_t cam_D = zeros(4, 1);
-
   // Detect AprilGrid
+  LOG_INFO("Processing images:");
   for (size_t i = 0; i < image_paths.size(); i++) {
-    LOG_INFO("Processing image file: [%s]", image_paths[i].c_str());
+    print_progress((double) i / image_paths.size());
 
     // -- Create output file path
     auto output_file = basename(image_paths[i]);
@@ -96,11 +94,33 @@ int preprocess_camera_data(const calib_target_t &target,
       if (aprilgrid_save(grid, save_path) != 0) {
         return -1;
       }
-      aprilgrid_imshow(grid, "AprilGrid Detection", image);
+
+      if (imshow) {
+        aprilgrid_imshow(grid, "AprilGrid Detection", image);
+      }
     }
   }
 
   return 0;
+}
+
+int preprocess_camera_data(const calib_target_t &target,
+                           const std::string &image_dir,
+                           const vec2_t &image_size,
+                           const double lens_hfov,
+                           const double lens_vfov,
+                           const std::string &output_dir,
+                           const bool imshow) {
+  const mat3_t cam_K = pinhole_K(image_size, lens_hfov, lens_vfov);
+  const vec4_t cam_D = zeros(4, 1);
+
+  return preprocess_camera_data(target,
+                                image_dir,
+                                image_size,
+                                cam_K,
+                                cam_D,
+                                output_dir,
+                                imshow);
 }
 
 int load_camera_calib_data(const std::string &data_dir,

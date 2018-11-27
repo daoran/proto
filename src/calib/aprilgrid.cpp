@@ -137,7 +137,7 @@ int aprilgrid_get(const aprilgrid_t &grid,
   keypoints.emplace_back(grid.keypoints[(index * 4) + 2]);
   keypoints.emplace_back(grid.keypoints[(index * 4) + 3]);
 
-  // Set positions
+  // Set points
   points_CF.emplace_back(grid.points_CF[(index * 4)]);
   points_CF.emplace_back(grid.points_CF[(index * 4) + 1]);
   points_CF.emplace_back(grid.points_CF[(index * 4) + 2]);
@@ -229,7 +229,7 @@ int aprilgrid_object_points(const aprilgrid_t &grid,
     return -1;
   }
 
-  // Caculate the x and y of the tag origin (bottom left corner of tag)
+  // Calculate the x and y of the tag origin (bottom left corner of tag)
   // relative to grid origin (bottom left corner of entire grid)
   const double x = j * (tag_size + tag_size * tag_spacing);
   const double y = i * (tag_size + tag_size * tag_spacing);
@@ -323,10 +323,8 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
   cv::Rodrigues(rvec, R);
   // -- Form full transformation matrix
   grid.T_CF = transform(convert(R), convert(tvec));
-  grid.rvec_CF = convert(rvec);
-  grid.tvec_CF = convert(tvec);
 
-  // Calculate corner positions
+  // Calculate corner points
   for (size_t idx = 0; idx < grid.ids.size(); idx++) {
     // Get tag grid index
     int i = 0;
@@ -348,7 +346,7 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
     const vec4_t top_right(x + grid.tag_size, y + grid.tag_size, 0, 1);
     const vec4_t top_left(x, y + grid.tag_size, 0, 1);
 
-    // Transform object points to corner positions expressed in camera frame
+    // Transform object points to corner points expressed in camera frame
     grid.points_CF.emplace_back((grid.T_CF * bottom_left).head(3));
     grid.points_CF.emplace_back((grid.T_CF * bottom_right).head(3));
     grid.points_CF.emplace_back((grid.T_CF * top_right).head(3));
@@ -429,10 +427,15 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
   outfile << "ts,id,kp_x,kp_y,";
   // -- Estimation
   outfile << "estimated,";
-  outfile << "pos_x,pos_y,pos_z,";
-  outfile << "rvec_x,rvec_y,rvec_z,";
-  outfile << "tvec_x,tvec_y,tvec_z";
+  outfile << "p_x,p_y,p_z,";
+  outfile << "q_w,q_x,q_y,q_z,";
+  outfile << "t_x,t_y,t_z";
   outfile << std::endl;
+
+  // Decompose relative pose into rotation (quaternion) and translation
+  const mat3_t R_CF = grid.T_CF.block(0, 0, 3, 3);
+  const quat_t q_CF{R_CF};
+  const vec3_t t_CF{grid.T_CF.block(0, 3, 3, 1)};
 
   // Output data
   for (size_t i = 0; i < grid.ids.size(); i++) {
@@ -451,20 +454,21 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
       outfile << keypoint(0) << ",";
       outfile << keypoint(1) << ",";
 
-      const vec3_t position_CF = grid.points_CF[(i * 4) + j];
+      const vec3_t point_CF = grid.points_CF[(i * 4) + j];
       outfile << grid.estimated << ",";
       if (grid.estimated) {
-        outfile << position_CF(0) << ",";
-        outfile << position_CF(1) << ",";
-        outfile << position_CF(2) << ",";
-        outfile << grid.rvec_CF(0) << ",";
-        outfile << grid.rvec_CF(1) << ",";
-        outfile << grid.rvec_CF(2) << ",";
-        outfile << grid.tvec_CF(0) << ",";
-        outfile << grid.tvec_CF(1) << ",";
-        outfile << grid.tvec_CF(2) << std::endl;
+        outfile << point_CF(0) << ",";
+        outfile << point_CF(1) << ",";
+        outfile << point_CF(2) << ",";
+        outfile << q_CF.w() << ",";
+        outfile << q_CF.x() << ",";
+        outfile << q_CF.y() << ",";
+        outfile << q_CF.z() << ",";
+        outfile << t_CF(0) << ",";
+        outfile << t_CF(1) << ",";
+        outfile << t_CF(2) << std::endl;
       } else {
-        outfile << "0,0,0,0,0,0,0,0,0" << std::endl;
+        outfile << "0,0,0,0,0,0,0,0,0,0" << std::endl;
       }
     }
   }
@@ -482,7 +486,7 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
               data_path.c_str());
     return -1;
   }
-  assert(data.cols() == 19);
+  assert(data.cols() == 20);
 
   // Parse file
   grid.ids.clear();
@@ -512,11 +516,9 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
     grid.points_CF.emplace_back(row(10), row(11), row(12));
 
     // AprilGrid pose
-    grid.rvec_CF = vec3_t{row(13), row(14), row(15)};
-    grid.tvec_CF = vec3_t{row(16), row(17), row(18)};
-    cv::Mat R;
-    cv::Rodrigues(convert(grid.rvec_CF), R);
-    grid.T_CF = transform(convert(R), grid.tvec_CF);
+    const quat_t q_CF{row(13), row(14), row(15), row(16)};
+    const vec3_t t_CF{row(17), row(18), row(19)};
+    grid.T_CF = transform(q_CF.toRotationMatrix(), t_CF);
   }
 
   return 0;

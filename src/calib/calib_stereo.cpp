@@ -83,7 +83,7 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
                        pinhole_t &cam1_pinhole,
                        radtan4_t &cam1_radtan,
                        mat4_t &T_C0C1,
-                       mat4s_t &poses) {
+                       mat4s_t &T_C0F) {
   assert(cam0_aprilgrids.size() == cam1_aprilgrids.size());
 
   // Optimization variables
@@ -100,8 +100,7 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 
   // Process all aprilgrid data
-  size_t nb_detections = cam0_aprilgrids.size();
-  for (size_t i = 0; i < nb_detections; i++) {
+  for (size_t i = 0; i < cam0_aprilgrids.size(); i++) {
     int retval = process_aprilgrid(cam0_aprilgrids[i],
                                    cam1_aprilgrids[i],
                                    *cam0_pinhole.data,
@@ -135,7 +134,7 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   // Finish up
   T_C0C1 = transform(extrinsic_param->q.toRotationMatrix(), extrinsic_param->t);
   for (auto pose_param : pose_params) {
-    poses.emplace_back(transform(pose_param.q, pose_param.t));
+    T_C0F.emplace_back(transform(pose_param.q, pose_param.t));
   }
 
   return 0;

@@ -47,7 +47,7 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
                        pinhole_t &cam1_pinhole,
                        radtan4_t &cam1_radtan,
                        mat4_t &T_C0C1,
-                       mat4s_t &poses);
+                       mat4s_t &T_C0F);
 
 } //  namespace prototype
 #include "calib_stereo_impl.hpp"

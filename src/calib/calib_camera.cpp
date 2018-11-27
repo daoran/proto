@@ -9,8 +9,8 @@ pinhole_radtan4_residual_t::pinhole_radtan4_residual_t(const vec2_t &z,
 pinhole_radtan4_residual_t::~pinhole_radtan4_residual_t() {}
 
 static int process_aprilgrid(const aprilgrid_t &aprilgrid,
-                             double *intrinsics[4],
-                             double *distortion[4],
+                             double *intrinsics,
+                             double *distortion,
                              calib_pose_param_t *pose,
                              ceres::Problem *problem) {
   for (const auto &tag_id : aprilgrid.ids) {
@@ -45,8 +45,8 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
 
       problem->AddResidualBlock(cost_func, // Cost function
                                 NULL,      // Loss function
-                                *intrinsics,
-                                *distortion,
+                                intrinsics,
+                                distortion,
                                 pose->q.coeffs().data(),
                                 pose->t.data());
     }
@@ -58,32 +58,32 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
 int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
                        pinhole_t &pinhole,
                        radtan4_t &radtan,
-                       mat4s_t &poses) {
+                       mat4s_t &T_CF) {
   // Optimization variables
-  std::vector<calib_pose_param_t *> pose_params;
+  std::vector<calib_pose_param_t> T_CF_params;
+  for (size_t i = 0; i < aprilgrids.size(); i++) {
+    T_CF_params.emplace_back(aprilgrids[i].T_CF);
+  }
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
-  problem_options.local_parameterization_ownership =
-      ceres::DO_NOT_TAKE_OWNERSHIP;
-  ceres::Problem *problem = new ceres::Problem(problem_options);
+  problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 
   // Process all aprilgrid data
-  for (const auto &aprilgrid : aprilgrids) {
-    pose_params.push_back(new calib_pose_param_t(aprilgrid.T_CF));
-
-    int retval = process_aprilgrid(aprilgrid,
-                                   pinhole.data,
-                                   radtan.data,
-                                   pose_params.back(),
-                                   problem);
+  for (size_t i = 0; i < aprilgrids.size(); i++) {
+    int retval = process_aprilgrid(aprilgrids[i],
+                                   *pinhole.data,
+                                   *radtan.data,
+                                   &T_CF_params[i],
+                                   problem.get());
     if (retval != 0) {
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
 
-    problem->SetParameterization(pose_params.back()->q.coeffs().data(),
+    problem->SetParameterization(T_CF_params[i].q.coeffs().data(),
                                  &quaternion_parameterization);
   }
 
@@ -94,15 +94,14 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
   // Solve
   ceres::Solver::Summary summary;
-  ceres::Solve(options, problem, &summary);
+  ceres::Solve(options, problem.get(), &summary);
   std::cout << summary.FullReport() << std::endl;
 
   // Clean up
-  for (auto pose_ptr : pose_params) {
-    poses.emplace_back(transform(pose_ptr->q, pose_ptr->t));
-    free(pose_ptr);
+  T_CF.clear();
+  for (auto pose_param : T_CF_params) {
+    T_CF.emplace_back(transform(pose_param.q, pose_param.t));
   }
-  free(problem);
 
   return 0;
 }

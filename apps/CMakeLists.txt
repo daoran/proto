@@ -28,3 +28,6 @@ TARGET_LINK_LIBRARIES(calib_camera ${DEPS})
 
 ADD_EXECUTABLE(calib_stereo calib_stereo.cpp)
 TARGET_LINK_LIBRARIES(calib_stereo ${DEPS})
+
+ADD_EXECUTABLE(calib_vicon_marker calib_vicon_marker.cpp)
+TARGET_LINK_LIBRARIES(calib_vicon_marker ${DEPS})

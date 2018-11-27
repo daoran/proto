@@ -6,16 +6,16 @@ struct calib_config_t {
   std::string target_file;
   std::string cam0_image_path;
   std::string cam1_image_path;
-  std::string cam0_data_path;
-  std::string cam1_data_path;
+  std::string cam0_preprocess_path;
+  std::string cam1_preprocess_path;
 
-  vec2_t cam0_image_size{0.0, 0.0};
+  vec2_t cam0_resolution{0.0, 0.0};
   double cam0_lens_hfov = 0.0;
   double cam0_lens_vfov = 0.0;
   std::string cam0_camera_model;
   std::string cam0_distortion_model;
 
-  vec2_t cam1_image_size{0.0, 0.0};
+  vec2_t cam1_resolution{0.0, 0.0};
   double cam1_lens_hfov = 0.0;
   double cam1_lens_vfov = 0.0;
   std::string cam1_camera_model;
@@ -32,18 +32,18 @@ The `calib_config.yaml` file is expected to have the following format:
     target_file: "aprilgrid_6x6.yaml"
     cam0_image_path: "/data/cam0"
     cam1_image_path: "/data/cam1"
-    cam0_data_path: "/tmp/calib/stereo/cam0"
-    cam1_data_path: "/tmp/calib/stereo/cam1"
+    cam0_preprocess_path: "/tmp/calib/stereo/cam0"
+    cam1_preprocess_path: "/tmp/calib/stereo/cam1"
 
   cam0:
-    image_size: [752, 480]
+    resolution: [752, 480]
     lens_hfov: 98.0
     lens_vfov: 73.0
     camera_model: "pinhole"
     distortion_model: "radtan"
 
   cam1:
-    image_size: [752, 480]
+    resolution: [752, 480]
     lens_hfov: 98.0
     lens_vfov: 73.0
     camera_model: "pinhole"
@@ -60,16 +60,16 @@ calib_config_t parse_config(const std::string &config_file) {
   parse(config, "calib.target_file", calib_config.target_file);
   parse(config, "calib.cam0_image_path", calib_config.cam0_image_path);
   parse(config, "calib.cam1_image_path", calib_config.cam1_image_path);
-  parse(config, "calib.cam0_data_path", calib_config.cam0_data_path);
-  parse(config, "calib.cam1_data_path", calib_config.cam1_data_path);
+  parse(config, "calib.cam0_preprocess_path", calib_config.cam0_preprocess_path);
+  parse(config, "calib.cam1_preprocess_path", calib_config.cam1_preprocess_path);
 
-  parse(config, "cam0.image_size", calib_config.cam0_image_size);
+  parse(config, "cam0.resolution", calib_config.cam0_resolution);
   parse(config, "cam0.lens_hfov", calib_config.cam0_lens_hfov);
   parse(config, "cam0.lens_vfov", calib_config.cam0_lens_vfov);
   parse(config, "cam0.camera_model", calib_config.cam0_camera_model);
   parse(config, "cam0.distortion_model", calib_config.cam0_distortion_model);
 
-  parse(config, "cam1.image_size", calib_config.cam1_image_size);
+  parse(config, "cam1.resolution", calib_config.cam1_resolution);
   parse(config, "cam1.lens_hfov", calib_config.cam1_lens_hfov);
   parse(config, "cam1.lens_vfov", calib_config.cam1_lens_vfov);
   parse(config, "cam1.camera_model", calib_config.cam1_camera_model);
@@ -79,8 +79,8 @@ calib_config_t parse_config(const std::string &config_file) {
 }
 
 int save_results(const std::string &save_path,
-                 const vec2_t &cam0_image_size,
-                 const vec2_t &cam1_image_size,
+                 const vec2_t &cam0_resolution,
+                 const vec2_t &cam1_resolution,
                  const pinhole_t &cam0_pinhole,
                  const radtan4_t &cam0_radtan,
                  const pinhole_t &cam1_pinhole,
@@ -101,7 +101,7 @@ int save_results(const std::string &save_path,
 
   outfile << indent << "resolution: ";
   outfile << "[";
-  outfile << cam0_image_size(0) << ", " << cam0_image_size(1);
+  outfile << cam0_resolution(0) << ", " << cam0_resolution(1);
   outfile << "]" << std::endl;
 
   outfile << indent << "intrinsics: ";
@@ -128,7 +128,7 @@ int save_results(const std::string &save_path,
 
   outfile << indent << "resolution: ";
   outfile << "[";
-  outfile << cam1_image_size(0) << ", " << cam1_image_size(1);
+  outfile << cam1_resolution(0) << ", " << cam1_resolution(1);
   outfile << "]" << std::endl;
 
   outfile << indent << "intrinsics: ";
@@ -196,14 +196,14 @@ int main(int argc, char *argv[]) {
   int retval = preprocess_stereo_data(calib_target,
                                       config.cam0_image_path,
                                       config.cam1_image_path,
-                                      config.cam0_image_size,
-                                      config.cam1_image_size,
+                                      config.cam0_resolution,
+                                      config.cam1_resolution,
                                       config.cam0_lens_hfov,
                                       config.cam0_lens_vfov,
                                       config.cam1_lens_hfov,
                                       config.cam1_lens_vfov,
-                                      config.cam0_data_path,
-                                      config.cam1_data_path);
+                                      config.cam0_preprocess_path,
+                                      config.cam1_preprocess_path);
   if (retval != 0) {
     LOG_ERROR("Failed to preprocess calibration data!");
     return -1;
@@ -212,8 +212,8 @@ int main(int argc, char *argv[]) {
   // Load stereo calibration data
   std::vector<aprilgrid_t> cam0_aprilgrids;
   std::vector<aprilgrid_t> cam1_aprilgrids;
-  retval = load_stereo_calib_data(config.cam0_data_path,
-                                  config.cam1_data_path,
+  retval = load_stereo_calib_data(config.cam0_preprocess_path,
+                                  config.cam1_preprocess_path,
                                   cam0_aprilgrids,
                                   cam1_aprilgrids);
   if (retval != 0) {
@@ -223,8 +223,8 @@ int main(int argc, char *argv[]) {
 
   // Setup initial cam0 intrinsics and distortion
   // -- cam0
-  const double cam0_img_w = config.cam0_image_size(0);
-  const double cam0_img_h = config.cam0_image_size(1);
+  const double cam0_img_w = config.cam0_resolution(0);
+  const double cam0_img_h = config.cam0_resolution(1);
   const double cam0_lens_hfov = config.cam0_lens_hfov;
   const double cam0_lens_vfov = config.cam0_lens_vfov;;
   const double cam0_fx = pinhole_focal_length(cam0_img_w, cam0_lens_hfov);
@@ -234,8 +234,8 @@ int main(int argc, char *argv[]) {
   pinhole_t cam0_pinhole{cam0_fx, cam0_fy, cam0_cx, cam0_cy};
   radtan4_t cam0_radtan{0.01, 0.0001, 0.0001, 0.0001};
   // -- cam1
-  const double cam1_img_w = config.cam1_image_size(0);
-  const double cam1_img_h = config.cam1_image_size(1);
+  const double cam1_img_w = config.cam1_resolution(0);
+  const double cam1_img_h = config.cam1_resolution(1);
   const double cam1_lens_hfov = config.cam1_lens_hfov;
   const double cam1_lens_vfov = config.cam1_lens_vfov;;
   const double cam1_fx = pinhole_focal_length(cam1_img_w, cam1_lens_hfov);
@@ -277,8 +277,8 @@ int main(int argc, char *argv[]) {
   const std::string save_path{"./calib_results.yaml"};
   LOG_INFO("Saving optimization results to [%s]", save_path.c_str());
   retval = save_results(save_path,
-                        config.cam0_image_size,
-                        config.cam1_image_size,
+                        config.cam0_resolution,
+                        config.cam1_resolution,
                         cam0_pinhole,
                         cam0_radtan,
                         cam1_pinhole,

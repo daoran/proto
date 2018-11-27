@@ -4,6 +4,10 @@ namespace prototype {
 
 radtan4_t::radtan4_t() {}
 
+radtan4_t::radtan4_t(const vec4_t &distortion_)
+    : k1{distortion_(0)}, k2{distortion_(1)},
+      p1{distortion_(2)}, p2{distortion_(3)} {}
+
 radtan4_t::radtan4_t(const double k1_,
                      const double k2_,
                      const double p1_,

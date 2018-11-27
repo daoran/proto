@@ -7,14 +7,6 @@ export CXX=/usr/bin/clang++
 # bash ./scripts/format_code.bash
 # cd scripts/api && python3 api.py
 
-# cd apps
-# mkdir -p build
-# cd build
-# cmake ..
-# make
-# ./calib_camera ../config/calib_camera.yaml
-# ./calib_stereo ../config/calib_stereo.yaml
-
 # cd octave
 # octave notes/ba.m
 # octave notes/quaternion.m
@@ -23,13 +15,24 @@ export CXX=/usr/bin/clang++
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 
-# rm -rf build
-# mkdir -p build
-# cd build || return
-# cmake ..
-# sudo make install
-# time make -j8
+# LIBRARY
+mkdir -p build
+cd build || return
+cmake ..
+make -j8
+sudo make install
 
+# APPS
+cd ../apps
+mkdir -p build
+cd build
+cmake ..
+make
+./calib_camera ../config/calib_camera.yaml
+# ./calib_stereo ../config/calib_stereo.yaml
+
+
+# TESTS
 # cd tests
 # -- calib
 # ./calib-aprilgrid_test

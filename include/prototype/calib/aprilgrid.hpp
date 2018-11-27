@@ -35,8 +35,6 @@ struct aprilgrid_t {
   bool estimated = false;
   vec3s_t points_CF;
   mat4_t T_CF = I(4);
-  vec3_t rvec_CF = zeros(3, 1);
-  vec3_t tvec_CF = zeros(3, 1);
 
   aprilgrid_t();
   aprilgrid_t(const long timestamp,

@@ -1,10 +1,10 @@
 calib:
   target_file: "../config/aprilgrid_6x6.yaml"
   image_path: "/data/euroc_mav/cam_april/mav0/cam0/data"
-  data_path: "/tmp/calib/mono"
+  preprocess_path: "/tmp/calib/mono"
 
 cam0:
-  image_size: [752, 480]
+  resolution: [752, 480]
   lens_hfov: 98.0
   lens_vfov: 73.0
   camera_model: "pinhole"

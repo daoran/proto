@@ -28,6 +28,7 @@ ADD_LIBRARY(
   src/calib/calib_camera.cpp
   src/calib/calib_gimbal.cpp
   src/calib/calib_stereo.cpp
+  src/calib/calib_vicon_marker.cpp
   src/calib/chessboard.cpp
   # control
   src/control/carrot_ctrl.cpp

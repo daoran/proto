@@ -28,11 +28,11 @@ struct pinhole_radtan4_residual_t {
    * Calculate residual
    */
   template <typename T>
-  bool operator()(const T *const intrinsics,
-                  const T *const distortion,
-                  const T *const q_CF,
-                  const T *const t_CF,
-                  T *residual) const;
+  bool operator()(const T *const intrinsics_,
+                  const T *const distortion_,
+                  const T *const q_CF_,
+                  const T *const t_CF_,
+                  T *residual_) const;
 };
 
 /**

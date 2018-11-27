@@ -6,7 +6,7 @@ namespace prototype {
 
 #define IMAGE_DIR "/data/euroc_mav/cam_april/mav0/cam0/data"
 #define APRILGRID_CONF "test_data/calib/aprilgrid/target.yaml"
-#define APRILGRID_DATA "/tmp/aprilgrid_test/cam0"
+#define APRILGRID_DATA "/tmp/aprilgrid_test/mono/cam0"
 
 void test_setup() {
   // Setup calibration target

@@ -48,8 +48,27 @@ int calib_target_load(calib_target_t &ct, const std::string &target_file);
 
 /**
  * Preprocess camera image data and output AprilGrid detection data as
+ * csv. The AprilGrid tag corners are estimated using the camera intrinsics
+ * matrix `cam_K` and distortion vector `cam_D`. Once the data is preprocessed
+ * the data is saved to `output_dir`.
+ *
+ * @returns 0 for Success, -1 for failure, and 1 where the output directory
+ * contains data.
+ */
+int preprocess_camera_data(const calib_target_t &target,
+                           const std::string &image_dir,
+                           const vec2_t &image_size,
+                           const mat3_t &cam_K,
+                           const vec4_t &cam_D,
+                           const std::string &output_dir,
+                           const bool imshow=false);
+
+/**
+ * Preprocess camera image data and output AprilGrid detection data as
  * csv. The data is initialized with `image_size` in pixels, the horizontal
- * lens fov `lens_hfov` and vertical lens fov `lens_vfov` in degrees.
+ * lens fov `lens_hfov` and vertical lens fov `lens_vfov` in degrees. Once the
+ * data is preprocessed the data is saved to `output_dir`.
+ *
  * @returns 0 for Success, -1 for failure, and 1 where the output directory
  * contains data.
  */
@@ -58,7 +77,8 @@ int preprocess_camera_data(const calib_target_t &target,
                            const vec2_t &image_size,
                            const double lens_hfov,
                            const double lens_vfov,
-                           const std::string &output_dir);
+                           const std::string &output_dir,
+                           const bool imshow=false);
 
 /**
  * Load preprocess-ed camera calibration data.

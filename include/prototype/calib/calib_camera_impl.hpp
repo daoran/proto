@@ -6,14 +6,14 @@
 namespace prototype {
 
 template <typename T>
-bool pinhole_radtan4_residual_t::operator()(const T *const intrinsics,
-                                            const T *const distortion,
+bool pinhole_radtan4_residual_t::operator()(const T *const intrinsics_,
+                                            const T *const distortion_,
                                             const T *const q_CF_,
                                             const T *const t_CF_,
-                                            T *residual) const {
+                                            T *residual_) const {
   // Map variables to Eigen
-  const Eigen::Matrix<T, 3, 3> K = pinhole_K(intrinsics);
-  const Eigen::Matrix<T, 4, 1> D = radtan4_D(distortion);
+  const Eigen::Matrix<T, 3, 3> K = pinhole_K(intrinsics_);
+  const Eigen::Matrix<T, 4, 1> D = radtan4_D(distortion_);
   const Eigen::Matrix<T, 3, 1> p_F{T(p_F_[0]), T(p_F_[1]), T(p_F_[2])};
 
   // Form transform
@@ -27,8 +27,8 @@ bool pinhole_radtan4_residual_t::operator()(const T *const intrinsics,
   const Eigen::Matrix<T, 2, 1> z_hat = pinhole_radtan4_project(K, D, p_C);
 
   // Residual
-  residual[0] = T(z_[0]) - z_hat(0);
-  residual[1] = T(z_[1]) - z_hat(1);
+  residual_[0] = T(z_[0]) - z_hat(0);
+  residual_[1] = T(z_[1]) - z_hat(1);
 
   return true;
 }
