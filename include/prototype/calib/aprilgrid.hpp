@@ -14,9 +14,6 @@ namespace prototype {
  * AprilGrid detection
  */
 struct aprilgrid_t {
-  AprilTags::TagDetector detector =
-      AprilTags::TagDetector(AprilTags::tagCodes36h11);
-
   /// Grid properties
   bool configured = false;
   int tag_rows = 0;
@@ -142,13 +139,16 @@ void aprilgrid_filter_tags(const cv::Mat &image,
  * Detect AprilGrid.
  * @returns number of AprilTags detected
  */
-int aprilgrid_detect(aprilgrid_t &grid, const cv::Mat &image);
+int aprilgrid_detect(aprilgrid_t &grid,
+                     AprilTags::AprilGridDetector &detector,
+                     const cv::Mat &image);
 
 /**
  * Detect AprilGrid.
  * @returns number of AprilTags detected.
  */
 int aprilgrid_detect(aprilgrid_t &grid,
+                     AprilTags::AprilGridDetector &detector,
                      const cv::Mat &image,
                      const mat3_t &cam_K,
                      const vec4_t &cam_D);

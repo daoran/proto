@@ -217,9 +217,7 @@ int test_aprilgrid_grid_index() {
 }
 
 int test_aprilgrid_calc_relative_pose() {
-  AprilTags::TagDetector detector =
-      AprilTags::TagDetector(AprilTags::tagCodes36h11);
-  detector.thisTagFamily.blackBorder = 2;
+  auto detector = AprilTags::AprilGridDetector();
 
   // Detect tags
   const cv::Mat image = cv::imread(TEST_IMAGE);
@@ -331,10 +329,11 @@ int test_aprilgrid_detect() {
   aprilgrid_t grid;
   MU_CHECK_EQ(0, aprilgrid_configure(grid, TEST_CONF));
 
+  auto detector = AprilTags::AprilGridDetector();
   const cv::Mat image = cv::imread(TEST_IMAGE);
   const mat3_t K = pinhole_K(458.654, 457.296, 367.215, 248.375);
   const vec4_t D{-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05};
-  const auto aprilgrid = aprilgrid_detect(grid, image, K, D);
+  const auto aprilgrid = aprilgrid_detect(grid, detector, image, K, D);
 
   for (const auto corner : grid.points_CF) {
     MU_CHECK(corner(0) < 1.0);

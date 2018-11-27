@@ -2,36 +2,15 @@
 
 namespace prototype {
 
-aprilgrid_t::aprilgrid_t() {
-  detector.thisTagFamily.blackBorder = 2;
-  ASSERT(detector.thisTagFamily.blackBorder == 2,
-         "detector.thisTagFamily.blackBorder not configured!");
-  /**
-   * If the assert failed that means the installed AprilTag library was not
-   * patched such that AprilTags::TagDetector.blackBorder is configurable. This
-   * needs to be set to 2 because else the AprilTags in an AprilGrid will not
-   * be detectable, due to the black squares in-between the individual tags.
-   */
-}
+aprilgrid_t::aprilgrid_t() {}
 
 aprilgrid_t::aprilgrid_t(const long timestamp,
                          const int tag_rows,
                          const int tag_cols,
                          const double tag_size,
                          const double tag_spacing)
-    : timestamp{timestamp}, tag_rows{tag_rows}, tag_cols{tag_cols},
-      tag_size{tag_size}, tag_spacing{tag_spacing} {
-  configured = true;
-  detector.thisTagFamily.blackBorder = 2;
-  ASSERT(detector.thisTagFamily.blackBorder == 2,
-         "detector.thisTagFamily.blackBorder not configured!");
-  /**
-   * If the assert failed that means the installed AprilTag library was not
-   * patched such that AprilTags::TagDetector.blackBorder is configurable. This
-   * needs to be set to 2 because else the AprilTags in an AprilGrid will not
-   * be detectable, due to the black squares in-between the individual tags.
-   */
-}
+    : configured{true}, timestamp{timestamp}, tag_rows{tag_rows}, tag_cols{tag_cols},
+      tag_size{tag_size}, tag_spacing{tag_spacing} {}
 
 aprilgrid_t::~aprilgrid_t() {}
 
@@ -576,15 +555,16 @@ void aprilgrid_filter_tags(const cv::Mat &image,
   }
 }
 
-int aprilgrid_detect(aprilgrid_t &grid, const cv::Mat &image) {
+int aprilgrid_detect(aprilgrid_t &grid,
+                     AprilTags::AprilGridDetector &detector,
+                     const cv::Mat &image) {
   assert(grid.configured);
 
   // Convert image to gray-scale
   const cv::Mat image_gray = rgb2gray(image);
 
   // Extract tags
-  std::vector<AprilTags::TagDetection> tags =
-      grid.detector.extractTags(image_gray);
+  std::vector<AprilTags::TagDetection> tags = detector.extractTags(image_gray);
   aprilgrid_filter_tags(image, tags);
   std::sort(tags.begin(), tags.end(), sort_apriltag_by_id);
 
@@ -602,11 +582,12 @@ int aprilgrid_detect(aprilgrid_t &grid, const cv::Mat &image) {
 }
 
 int aprilgrid_detect(aprilgrid_t &grid,
+                     AprilTags::AprilGridDetector &detector,
                      const cv::Mat &image,
                      const mat3_t &cam_K,
                      const vec4_t &cam_D) {
   assert(grid.configured);
-  if (aprilgrid_detect(grid, image) == 0) {
+  if (aprilgrid_detect(grid, detector, image) == 0) {
     return 0;
   }
   aprilgrid_calc_relative_pose(grid, cam_K, cam_D);

@@ -28,8 +28,8 @@ mkdir -p build
 cd build
 cmake ..
 make
-./calib_camera ../config/calib_camera.yaml
-# ./calib_stereo ../config/calib_stereo.yaml
+# ./calib_camera ../config/calib_camera.yaml
+./calib_stereo ../config/calib_stereo.yaml
 
 
 # TESTS

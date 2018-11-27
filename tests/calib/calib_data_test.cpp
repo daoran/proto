@@ -123,8 +123,9 @@ int test_draw_calib_validation() {
   }
 
   // Detect AprilGrid
+  auto detector = AprilTags::AprilGridDetector();
   cv::Mat image = cv::imread(APRILGRID_IMAGE);
-  aprilgrid_detect(aprilgrid, image, cam_K, cam_D);
+  aprilgrid_detect(aprilgrid, detector, image, cam_K, cam_D);
 
   // Get measured keypoints and project points
   vec2s_t measured;
@@ -190,8 +191,9 @@ int test_validate_intrinsics() {
   }
 
   // Detect AprilGrid
+  auto detector = AprilTags::AprilGridDetector();
   cv::Mat image = cv::imread(APRILGRID_IMAGE);
-  aprilgrid_detect(aprilgrid, image, cam_K, cam_D);
+  aprilgrid_detect(aprilgrid, detector, image, cam_K, cam_D);
 
   // Validate intrinsics
   auto validation = validate_intrinsics(image,
@@ -281,13 +283,14 @@ int test_validate_stereo() {
 
   // Detect AprilGrid
   cv::Mat image0 = cv::imread(CAM0_IMAGE);
-  if (aprilgrid_detect(aprilgrid0, image0, cam0_K, cam0_D) == 0) {
+  auto detector = AprilTags::AprilGridDetector();
+  if (aprilgrid_detect(aprilgrid0, detector, image0, cam0_K, cam0_D) == 0) {
     LOG_ERROR("Failed to detect aprilgrid!");
     return -1;
   }
 
   cv::Mat image1 = cv::imread(CAM1_IMAGE);
-  if (aprilgrid_detect(aprilgrid1, image1, cam1_K, cam1_D) == 0) {
+  if (aprilgrid_detect(aprilgrid1, detector, image1, cam1_K, cam1_D) == 0) {
     LOG_ERROR("Failed to detect aprilgrid!");
     return -1;
   }
@@ -314,11 +317,11 @@ int test_validate_stereo() {
 }
 
 void test_suite() {
-  // MU_ADD_TEST(test_preprocess_and_load_camera_data);
+  MU_ADD_TEST(test_preprocess_and_load_camera_data);
   MU_ADD_TEST(test_preprocess_and_load_stereo_data);
-  // MU_ADD_TEST(test_draw_calib_validation);
-  // MU_ADD_TEST(test_validate_intrinsics);
-  // MU_ADD_TEST(test_validate_stereo);
+  MU_ADD_TEST(test_draw_calib_validation);
+  MU_ADD_TEST(test_validate_intrinsics);
+  MU_ADD_TEST(test_validate_stereo);
 }
 
 } // namespace prototype
