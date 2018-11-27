@@ -13,10 +13,10 @@ stereo_residual_t::~stereo_residual_t() {}
 
 static int process_aprilgrid(const aprilgrid_t &cam0_aprilgrid,
                              const aprilgrid_t &cam1_aprilgrid,
-                             double *cam0_intrinsics[4],
-                             double *cam0_distortion[4],
-                             double *cam1_intrinsics[4],
-                             double *cam1_distortion[4],
+                             double *cam0_intrinsics,
+                             double *cam0_distortion,
+                             double *cam1_intrinsics,
+                             double *cam1_distortion,
                              calib_pose_param_t *T_C0C1,
                              calib_pose_param_t *T_C0F,
                              ceres::Problem *problem) {
@@ -46,7 +46,6 @@ static int process_aprilgrid(const aprilgrid_t &cam0_aprilgrid,
       const auto kp1 = cam1_keypoints[i];
       const auto obj_pt = object_points[i];
       const auto residual = new stereo_residual_t{kp0, kp1, obj_pt};
-      std::cout << kp0.transpose() << " " << kp1.transpose() << std::endl;
 
       const auto cost_func =
           new ceres::AutoDiffCostFunction<stereo_residual_t,
@@ -63,10 +62,10 @@ static int process_aprilgrid(const aprilgrid_t &cam0_aprilgrid,
 
       problem->AddResidualBlock(cost_func, // Cost function
                                 NULL,      // Loss function
-                                *cam0_intrinsics,
-                                *cam0_distortion,
-                                *cam1_intrinsics,
-                                *cam1_distortion,
+                                cam0_intrinsics,
+                                cam0_distortion,
+                                cam1_intrinsics,
+                                cam1_distortion,
                                 T_C0C1->q.coeffs().data(),
                                 T_C0C1->t.data(),
                                 T_C0F->q.coeffs().data(),
@@ -88,17 +87,16 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   assert(cam0_aprilgrids.size() == cam1_aprilgrids.size());
 
   // Optimization variables
-  calib_pose_param_t * extrinsic_param = new calib_pose_param_t(T_C0C1);
-  std::vector<calib_pose_param_t *> pose_params;
+  std::unique_ptr<calib_pose_param_t> extrinsic_param(new calib_pose_param_t(T_C0C1));
+  std::vector<calib_pose_param_t> pose_params;
   for (size_t i = 0; i < cam0_aprilgrids.size(); i++) {
-    pose_params.push_back(new calib_pose_param_t(cam0_aprilgrids[i].T_CF));
+    pose_params.emplace_back(cam0_aprilgrids[i].T_CF);
   }
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
   problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  problem_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  ceres::Problem *problem = new ceres::Problem(problem_options);
+  std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 
   // Process all aprilgrid data
@@ -106,19 +104,19 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   for (size_t i = 0; i < nb_detections; i++) {
     int retval = process_aprilgrid(cam0_aprilgrids[i],
                                    cam1_aprilgrids[i],
-                                   cam0_pinhole.data,
-                                   cam0_radtan.data,
-                                   cam1_pinhole.data,
-                                   cam1_radtan.data,
-                                   extrinsic_param,
-                                   pose_params[i],
-                                   problem);
+                                   *cam0_pinhole.data,
+                                   *cam0_radtan.data,
+                                   *cam1_pinhole.data,
+                                   *cam1_radtan.data,
+                                   extrinsic_param.get(),
+                                   &pose_params[i],
+                                   problem.get());
     if (retval != 0) {
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
 
-    problem->SetParameterization(pose_params[i]->q.coeffs().data(),
+    problem->SetParameterization(pose_params[i].q.coeffs().data(),
                                  &quaternion_parameterization);
   }
   problem->SetParameterization(extrinsic_param->q.coeffs().data(),
@@ -131,20 +129,14 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
 
   // Solve
   ceres::Solver::Summary summary;
-  ceres::Solve(options, problem, &summary);
+  ceres::Solve(options, problem.get(), &summary);
   std::cout << summary.FullReport() << std::endl;
 
-  // Clean up
-  // -- Free extrinsic parameter
+  // Finish up
   T_C0C1 = transform(extrinsic_param->q.toRotationMatrix(), extrinsic_param->t);
-  free(extrinsic_param);
-  // -- Free relative poses
-  for (auto pose_ptr : pose_params) {
-    poses.emplace_back(transform(pose_ptr->q, pose_ptr->t));
-    free(pose_ptr);
+  for (auto pose_param : pose_params) {
+    poses.emplace_back(transform(pose_param.q, pose_param.t));
   }
-  // -- Free problem
-  free(problem);
 
   return 0;
 }

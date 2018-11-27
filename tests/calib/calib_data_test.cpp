@@ -104,7 +104,7 @@ int test_draw_calib_validation() {
   const double cx = 367.215;
   const double cy = 248.375;
   const pinhole_t camera_model{fx, fy, cx, cy};
-  const mat3_t cam_K = camera_model.K;
+  const mat3_t cam_K = pinhole_K(camera_model);
   // -- Distortion model
   const double k1 = -0.28340811;
   const double k2 = 0.07395907;
@@ -171,7 +171,7 @@ int test_validate_intrinsics() {
   const double cx = 367.215;
   const double cy = 248.375;
   const pinhole_t camera_model{fx, fy, cx, cy};
-  const mat3_t cam_K = camera_model.K;
+  const mat3_t cam_K = pinhole_K(camera_model);
   // -- Distortion model
   const double k1 = -0.28340811;
   const double k2 = 0.07395907;
@@ -222,7 +222,7 @@ int test_validate_stereo() {
   const double cam0_cx = 367.215;
   const double cam0_cy = 248.375;
   const pinhole_t camera0_model{cam0_fx, cam0_fy, cam0_cx, cam0_cy};
-  const mat3_t cam0_K = camera0_model.K;
+  const mat3_t cam0_K = pinhole_K(camera0_model);
   // -- Distortion model
   const double cam0_k1 = -0.28340811;
   const double cam0_k2 = 0.07395907;
@@ -240,7 +240,7 @@ int test_validate_stereo() {
   const double cam1_cx = 379.999;
   const double cam1_cy = 255.238;
   const pinhole_t camera1_model{cam1_fx, cam1_fy, cam1_cx, cam1_cy};
-  const mat3_t cam1_K = camera1_model.K;
+  const mat3_t cam1_K = pinhole_K(camera1_model);
   // -- Distortion model
   const double cam1_k1 = -0.28368365;
   const double cam1_k2 = 0.07451284;

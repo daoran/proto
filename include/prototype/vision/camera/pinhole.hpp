@@ -13,7 +13,6 @@ struct pinhole_t {
   double fy = 0.0;
   double cx = 0.0;
   double cy = 0.0;
-  mat3_t K = zeros(3, 3);
   double *data[4] = {&fx, &fy, &cx, &cy};
 
   pinhole_t();
@@ -23,8 +22,6 @@ struct pinhole_t {
             const double cx_,
             const double cy_);
   ~pinhole_t();
-
-  // double &data();
 };
 
 /**
@@ -44,6 +41,22 @@ std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole);
  */
 mat3_t
 pinhole_K(const double fx, const double fy, const double cx, const double cy);
+
+/**
+ * Form pinhole camera matrix K
+ *
+ * @param[in] pinhole Pinhole camera
+ * @returns Camera matrix K
+ */
+mat3_t pinhole_K(const pinhole_t &pinhole);
+
+/**
+ * Form pinhole camera matrix K
+ *
+ * @param[in] intrinsics Intrinsics (fx, fy, cx, cy)
+ * @returns Camera matrix K
+ */
+mat3_t pinhole_K(const double *intrinsics);
 
 /**
  * Form pinhole camera matrix K

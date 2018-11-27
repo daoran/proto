@@ -2,6 +2,8 @@
 
 namespace prototype {
 
+radtan4_t::radtan4_t() {}
+
 radtan4_t::radtan4_t(const double k1_,
                      const double k2_,
                      const double p1_,

@@ -25,6 +25,10 @@ int test_stereo_residual() {
                                       CAM0_APRILGRID_DATA,
                                       cam0_aprilgrids,
                                       cam1_aprilgrids);
+  if (retval != 0) {
+    LOG_ERROR("Failed to local calibration data!");
+    return -1;
+  }
   MU_CHECK(retval == 0);
   MU_CHECK(cam0_aprilgrids.size() > 0);
   MU_CHECK(cam0_aprilgrids[0].ids.size() > 0);
@@ -125,6 +129,7 @@ int test_calib_stereo_solve() {
                          cam0_aprilgrids,
                          cam1_aprilgrids);
   if (retval != 0) {
+    LOG_ERROR("Failed to local calibration data!");
     return -1;
   }
 
@@ -151,36 +156,41 @@ int test_calib_stereo_solve() {
                               cam1_pinhole, cam1_radtan,
                               T_C0C1,
                               poses);
+  if (retval != 0) {
+    LOG_ERROR("Failed to calibrate stereo cameras!");
+    return -1;
+  }
 
+  // Show results
+  // -- cam0
   std::cout << "cam0:" << std::endl;
   std::cout << cam0_pinhole << std::endl;
   std::cout << cam0_radtan << std::endl;
-
+  // -- cam1
   std::cout << "cam1:" << std::endl;
   std::cout << cam1_pinhole << std::endl;
   std::cout << cam1_radtan << std::endl;
-
+  // -- cam0-cam1 extrinsics
   std::cout << "T_C0C1:\n" << T_C0C1 << std::endl;
-  // MU_CHECK_EQ(0, retval);
-  // MU_CHECK_EQ(aprilgrids.size(), poses.size());
-
-  // // Show results
-  // std::cout << "Optimized intrinsics and distortions:" << std::endl;
-  // std::cout << pinhole << std::endl;
-  // std::cout << radtan << std::endl;
 
   return 0;
 }
 
 // int test_calib_camera_stats() {
-//   // Load calibration data
-//   std::vector<aprilgrid_t> aprilgrids;
-//   int retval = load_camera_calib_data(APRILGRID_DATA, aprilgrids);
-//   MU_CHECK(retval == 0);
-//   MU_CHECK(aprilgrids.size() > 0);
-//   MU_CHECK(aprilgrids[0].ids.size() > 0);
+//   // Load stereo calibration data
+//   std::vector<aprilgrid_t> cam0_aprilgrids;
+//   std::vector<aprilgrid_t> cam1_aprilgrids;
+//   int retval = 0;
+//   load_stereo_calib_data(CAM0_APRILGRID_DATA,
+//                          CAM1_APRILGRID_DATA,
+//                          cam0_aprilgrids,
+//                          cam1_aprilgrids);
+//   if (retval != 0) {
+//     LOG_ERROR("Failed to local calibration data!");
+//     return -1;
+//   }
 //
-//   // Setup camera intrinsics and distortion
+//   // Setup cam0 intrinsics and distortion
 //   const vec2_t image_size{752, 480};
 //   const double lens_hfov = 98.0;
 //   const double lens_vfov = 73.0;
@@ -188,21 +198,25 @@ int test_calib_stereo_solve() {
 //   const double fy = pinhole_focal_length(image_size(1), lens_vfov);
 //   const double cx = image_size(0) / 2.0;
 //   const double cy = image_size(1) / 2.0;
-//   pinhole_t pinhole{fx, fy, cx, cy};
-//   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
+//   // -- cam0: pinhole radtan
+//   pinhole_t cam0_pinhole{fx, fy, cx, cy};
+//   radtan4_t cam0_radtan{0.01, 0.0001, 0.0001, 0.0001};
+//   // -- cam1: pinhole radtan
+//   pinhole_t cam1_pinhole{fx, fy, cx, cy};
+//   radtan4_t cam1_radtan{0.01, 0.0001, 0.0001, 0.0001};
 //
 //   // Test
+//   mat4_t T_C0C1 = I(4);
 //   mat4s_t poses;
-//   MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, poses));
-//   MU_CHECK_EQ(aprilgrids.size(), poses.size());
-//
-//   const double intrinsics[4] = {pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
-//   const double distortion[4] = {radtan.k1, radtan.k2, radtan.p1, radtan.p2};
-//   calib_camera_stats<stereo_residual_t>(aprilgrids,
-//                                                  intrinsics,
-//                                                  distortion,
-//                                                  poses,
-//                                                  "");
+//   retval = calib_stereo_solve(cam0_aprilgrids, cam1_aprilgrids,
+//                               cam0_pinhole, cam0_radtan,
+//                               cam1_pinhole, cam1_radtan,
+//                               T_C0C1,
+//                               poses);
+//   if (retval != 0) {
+//     LOG_ERROR("Failed to calibrate stereo cameras!");
+//     return -1;
+//   }
 //
 //   return 0;
 // }

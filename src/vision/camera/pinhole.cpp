@@ -5,32 +5,16 @@ namespace prototype {
 pinhole_t::pinhole_t() {}
 
 pinhole_t::pinhole_t(const vec4_t &intrinsics_)
-    : fx{intrinsics_(0)}, fy{intrinsics_(1)}, cx{intrinsics_(2)},
-      cy{intrinsics_(3)} {
-  // clang-format off
-  K << fx, 0.0, cx,
-       0.0, fx, cy,
-       0.0, 0.0, 1.0;
-  // clang-format on
-}
+    : fx{intrinsics_(0)}, fy{intrinsics_(1)},
+      cx{intrinsics_(2)}, cy{intrinsics_(3)} {}
 
 pinhole_t::pinhole_t(const double fx_,
                      const double fy_,
                      const double cx_,
                      const double cy_)
-    : fx{fx_}, fy{fy_}, cx{cx_}, cy{cy_} {
-  // clang-format off
-  K << fx_, 0.0, cx_,
-       0.0, fx_, cy_,
-       0.0, 0.0, 1.0;
-  // clang-format on
-}
+    : fx{fx_}, fy{fy_}, cx{cx_}, cy{cy_} {}
 
 pinhole_t::~pinhole_t() {}
-
-// double &pinhole_t::data() {
-//   return {&fx, &fy, &cx, &cy};
-// }
 
 std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole) {
   os << "fx: " << pinhole.fx << std::endl;
@@ -50,6 +34,18 @@ pinhole_K(const double fx, const double fy, const double cx, const double cy) {
   // clang-format on
 
   return K;
+}
+
+mat3_t pinhole_K(const double *intrinsics) {
+  const double fx = intrinsics[0];
+  const double fy = intrinsics[1];
+  const double cx = intrinsics[2];
+  const double cy = intrinsics[3];
+  return pinhole_K(fx, fy, cx, cy);
+}
+
+mat3_t pinhole_K(const pinhole_t &pinhole) {
+  return pinhole_K(*pinhole.data);
 }
 
 mat3_t pinhole_K(const vec4_t &intrinsics) {
@@ -91,7 +87,7 @@ vec2_t pinhole_focal_length(const vec2_t &image_size,
 }
 
 vec2_t project(const pinhole_t &model, const vec3_t &p) {
-  const vec3_t x = model.K * p;
+  const vec3_t x = pinhole_K(model) * p;
   return vec2_t{x(0) / x(2), x(1) / x(2)};
 }
 
@@ -103,7 +99,8 @@ vec2_t project(const pinhole_t &pinhole,
                const mat3_t &R,
                const vec3_t &t,
                const vec4_t &hp) {
-  const mat34_t P = pinhole_P(pinhole.K, R, t);
+  const mat3_t K = pinhole_K(pinhole);
+  const mat34_t P = pinhole_P(K, R, t);
   const vec3_t x = P * hp;
   return vec2_t{x(0) / x(2), x(1) / x(2)};
 }

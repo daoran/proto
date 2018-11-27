@@ -1,3 +1,4 @@
+#include "prototype/calib/calib.hpp"
 #include "prototype/control/control.hpp"
 #include "prototype/core/core.hpp"
 #include "prototype/dataset/dataset.hpp"
