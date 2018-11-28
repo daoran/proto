@@ -9,6 +9,8 @@ namespace prototype {
  * Camera to Camera calibration
  */
 struct calib_cam2cam_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   bool ok = false;
   std::string file_path;
 
@@ -31,6 +33,8 @@ struct calib_cam2cam_t {
  * IMU to Velo calibration
  */
 struct calib_imu2velo_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   bool ok = false;
   std::string file_path;
 
@@ -47,6 +51,8 @@ struct calib_imu2velo_t {
  * Velo to Camera calibration
  */
 struct calib_velo2cam_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   bool ok = false;
   std::string file_path;
 

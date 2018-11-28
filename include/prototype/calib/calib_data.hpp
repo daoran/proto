@@ -19,6 +19,7 @@ namespace prototype {
  * Pose parameter block
  */
 struct calib_pose_param_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   quat_t q;
   vec3_t t;
 

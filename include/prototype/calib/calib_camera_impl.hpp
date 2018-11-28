@@ -87,7 +87,11 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
     const double err_sq = norm * norm;
     sum += err_sq;
   }
-  const double rmse = sqrt(sum / residuals.size());
+  const double mean = sum / (double) residuals.size();
+  const double rmse = sqrt(mean);
+  std::cout << "nb_residuals: " << residuals.size() << std::endl;
+  std::cout << "sum: " << sum << std::endl;
+  std::cout << "mean: " << mean << std::endl;
   std::cout << "RMSE Reprojection Error [px]: " << rmse << std::endl;
 
   return 0;

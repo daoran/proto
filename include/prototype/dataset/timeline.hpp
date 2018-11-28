@@ -11,6 +11,8 @@ namespace prototype {
 #define CAMERA_EVENT 2
 
 struct timeline_event_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   // General
   int type = 0;
   long ts = 0.0;

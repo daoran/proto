@@ -14,6 +14,9 @@ namespace prototype {
  * AprilGrid detection
  */
 struct aprilgrid_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  quat_t q;
   /// Grid properties
   bool configured = false;
   int tag_rows = 0;
