@@ -1,7 +1,6 @@
 function draw_frame(T_WS, scale=1.0)
-  R_WS = T_WS(1:3, 1:3);
-  t_WS = T_WS(1:3, 4);
-	origin = t_WS
+  r_WS = tf_trans(T_WS);
+	origin = r_WS;
 
 	x_axis = T_WS * homogeneous(scale * [1; 0; 0]);
 	y_axis = T_WS * homogeneous(scale * [0; 1; 0]);

@@ -134,16 +134,14 @@ int test_calib_camera_stats() {
   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
 
   // Test
-  mat4s_t poses;
-  MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, poses));
-  MU_CHECK_EQ(aprilgrids.size(), poses.size());
+  mat4s_t T_CF;
+  MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, T_CF));
+  MU_CHECK_EQ(aprilgrids.size(), T_CF.size());
 
-  const double intrinsics[4] = {pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
-  const double distortion[4] = {radtan.k1, radtan.k2, radtan.p1, radtan.p2};
   calib_camera_stats<pinhole_radtan4_residual_t>(aprilgrids,
-                                                 intrinsics,
-                                                 distortion,
-                                                 poses,
+                                                 *pinhole.data,
+                                                 *radtan.data,
+                                                 T_CF,
                                                  "");
 
   return 0;
@@ -151,8 +149,8 @@ int test_calib_camera_stats() {
 
 void test_suite() {
   test_setup();
-  MU_ADD_TEST(test_pinhole_radtan4_residual);
-  MU_ADD_TEST(test_calib_camera_solve);
+  // MU_ADD_TEST(test_pinhole_radtan4_residual);
+  // MU_ADD_TEST(test_calib_camera_solve);
   MU_ADD_TEST(test_calib_camera_stats);
 }
 

@@ -149,6 +149,7 @@ int load_camera_calib_data(const std::string &data_dir,
       LOG_ERROR("Failed to load AprilGrid data [%s]!", data_path.c_str());
       return -1;
     }
+
     aprilgrids.emplace_back(grid);
   }
 

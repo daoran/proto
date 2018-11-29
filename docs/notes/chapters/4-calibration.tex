@@ -2,11 +2,20 @@
 
 \begin{align}
   \Argmin{\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial}}
-  \Norm{
-    \measurement
-    - \projFunc(\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial})
-  }^{2}
+  &\Norm{\Vec{f}(\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial})}^{2}
 \end{align}
+%
+Where 
+%
+\begin{equation}
+  \Vec{f}(\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial}) =
+  \measurement - \projFunc(\Tf{\world}{\sensor}, \Tf{\sensor}{\cam}, \Tf{\world}{\fiducial})
+\end{equation}
+
+In ceres-solver the expression $\Norm{\Vec{f}(\Tf{\world}{\sensor},
+\Tf{\sensor}{\cam}, \Tf{\world}{\fiducial})}^{2}$ is known as a residual block.
+As such the optimization jacobian matrix is with respect to the residual.
+
 
 \begin{align}
 	% -- zhat
@@ -51,7 +60,9 @@
   \Point{\cam}{\fiducial_{ij}}
   &=
   \Tf{\sensor}{\cam}^{-1}
+  \enspace
   \Tf{\world}{\sensor}^{-1}
+  \enspace
   \Tf{\world}{\fiducial}
   \enspace \Point{\fiducial}{\fiducial_{ij}}
 \end{align}

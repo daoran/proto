@@ -7,29 +7,31 @@ export CXX=/usr/bin/clang++
 # bash ./scripts/format_code.bash
 # cd scripts/api && python3 api.py
 
-# cd octave
+# OCTAVE
+cd octave
 # octave notes/ba.m
 # octave notes/quaternion.m
-# octave notes/calibration.m
+octave notes/calibration/calibration.m
+# octave notes/calibration/sandbox.m
 # octave notes/frames.m
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 
 # LIBRARY
-mkdir -p build
-cd build || return
-cmake ..
-make -j8
-sudo make install
+# mkdir -p build
+# cd build || return
+# cmake ..
+# make -j8
+# sudo make install
 
 # APPS
-cd ../apps
-mkdir -p build
-cd build
-cmake ..
-make
+# cd ../apps
+# mkdir -p build
+# cd build
+# cmake ..
+# make
 # ./calib_camera ../config/calib_camera.yaml
-./calib_stereo ../config/calib_stereo.yaml
+# ./calib_stereo ../config/calib_stereo.yaml
 
 
 # TESTS
