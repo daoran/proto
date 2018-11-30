@@ -77,7 +77,7 @@ tf_t<TO, FROM> tf_inv(const tf_t<TO, FROM> &tf) {
   return ret;
 }
 
-static void vombie_function() {
+static void zombie_function() {
   // Transform point in world frame to camera frame
   tf_t<fr_cam0, fr_world> T_CW;
   point_t<fr_world> p_W;

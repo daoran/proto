@@ -70,45 +70,25 @@ int save_results(const std::string &save_path,
 
   // Save results
   const std::string indent = "  ";
-  outfile << "cam0:" << std::endl;
-  outfile << indent << "camera_model: \"pinhole\"" << std::endl;
-  outfile << indent << "distortion_model: \"radtan\"" << std::endl;
-
-  outfile << indent << "resolution: ";
-  outfile << "[" << vec2str(resolution) << "]" << std::endl;
-
-  outfile << indent << "intrinsics: ";
-  outfile << "[";
-  outfile << pinhole.fx << ", ";
-  outfile << pinhole.fy << ", ";
-  outfile << pinhole.cx << ", ";
-  outfile << pinhole.cy;
-  outfile << "]" << std::endl;
-
-  outfile << indent << "distortion: ";
-  outfile << "[";
-  outfile << radtan.k1 << ", ";
-  outfile << radtan.k2 << ", ";
-  outfile << radtan.p1 << ", ";
-  outfile << radtan.p2;
-  outfile << "]" << std::endl;
+  {
+    const std::string res = vec2str(resolution);
+    const std::string intrinsics = arr2str(*pinhole.data, 4);
+    const std::string distortion = arr2str(*radtan.data, 4);
+    outfile << "cam0:" << std::endl;
+    outfile << indent << "camera_model: \"pinhole\"" << std::endl;
+    outfile << indent << "distortion_model: \"radtan\"" << std::endl;
+    outfile << indent << "resolution: " << res << std::endl;
+    outfile << indent << "intrinsics: " << intrinsics << std::endl;
+    outfile << indent << "distortion: " << distortion << std::endl;
+    outfile << std::endl;
+  }
 
   // Save marker to camera extrinsics
   outfile << "T_MC: " << std::endl;
   outfile << indent << "rows: 4" << std::endl;
   outfile << indent << "cols: 4" << std::endl;
   outfile << indent << "data: [" << std::endl;
-  for (int i = 0; i < 4; i++) {
-    if ((i + 1) != 4) {
-      outfile << indent;
-      outfile << indent;
-      outfile << vec2str(T_MC.row(i), false) << "," << std::endl;
-    } else {
-      outfile << indent;
-      outfile << indent;
-      outfile << vec2str(T_MC.row(i), false) << std::endl;
-    }
-  }
+  outfile << mat2str(T_MC, indent + indent) << std::endl;
   outfile << indent << "]" << std::endl;
   outfile << std::endl;
 
@@ -162,8 +142,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   mat4s_t T_WM;
-  for (size_t i = 0; i < pose_data.rows(); i++) {
-    const long ts = pose_data(0);
+  for (int i = 0; i < pose_data.rows(); i++) {
     const double tx = pose_data(1);
     const double ty = pose_data(2);
     const double tz = pose_data(3);

@@ -24,8 +24,8 @@ typedef Eigen::Matrix<double, 6, 1> vec6_t;
 typedef Eigen::VectorXd vecx_t;
 
 typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>> vec2s_t;
-typedef std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector2d>> vec3s_t;
-typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector2d>> vec4s_t;
+typedef std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> vec3s_t;
+typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> vec4s_t;
 typedef std::vector<Eigen::Matrix<double, 5, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 5, 1>>> vec5s_t;
 typedef std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> vec6s_t;
 typedef std::vector<Eigen::VectorXd> vecxs_t;
@@ -37,8 +37,9 @@ typedef Eigen::MatrixXd matx_t;
 typedef Eigen::Matrix<double, 3, 4> mat34_t;
 
 typedef std::vector<Eigen::Matrix2d, Eigen::aligned_allocator<Eigen::Matrix2d>> mat2s_t;
-typedef std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix2d>> mat3s_t;
-typedef std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix2d>> mat4s_t;
+typedef std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d>> mat3s_t;
+typedef std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> mat4s_t;
+typedef std::vector<Eigen::MatrixXd, Eigen::aligned_allocator<Eigen::MatrixXd>> matxs_t;
 
 typedef Eigen::Quaterniond quat_t;
 typedef std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond>> quats_t;
@@ -167,6 +168,25 @@ vec2s_t mat2vec2(const matx_t &m, const bool row_wise = true);
  * @returns Vector as a string
  */
 std::string vec2str(const vecx_t &v, const bool brackets = true);
+
+/**
+ * Array to string
+ *
+ * @param[in] arr Array
+ * @param[in] len Length of array
+ * @param[in] brackets Brakcets around vector string
+ * @returns Array as a string
+ */
+std::string arr2str(const double *arr, const size_t len, bool brackets = true);
+
+/**
+ * Matrix to string
+ *
+ * @param[in] m Matrix
+ * @param[in] indent Indent string
+ * @returns Array as a string
+ */
+std::string mat2str(const matx_t &m, const std::string &indent = "  ");
 
 /**
  * Create random integer

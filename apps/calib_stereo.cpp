@@ -55,27 +55,27 @@ The `calib_config.yaml` file is expected to have the following format:
 
 calib_config_t parse_config(const std::string &config_file) {
   config_t config{config_file};
-  calib_config_t calib_config;
+  calib_config_t calib_conf;
 
-  parse(config, "calib.target_file", calib_config.target_file);
-  parse(config, "calib.cam0_image_path", calib_config.cam0_image_path);
-  parse(config, "calib.cam1_image_path", calib_config.cam1_image_path);
-  parse(config, "calib.cam0_preprocess_path", calib_config.cam0_preprocess_path);
-  parse(config, "calib.cam1_preprocess_path", calib_config.cam1_preprocess_path);
+  parse(config, "calib.target_file", calib_conf.target_file);
+  parse(config, "calib.cam0_image_path", calib_conf.cam0_image_path);
+  parse(config, "calib.cam1_image_path", calib_conf.cam1_image_path);
+  parse(config, "calib.cam0_preprocess_path", calib_conf.cam0_preprocess_path);
+  parse(config, "calib.cam1_preprocess_path", calib_conf.cam1_preprocess_path);
 
-  parse(config, "cam0.resolution", calib_config.cam0_resolution);
-  parse(config, "cam0.lens_hfov", calib_config.cam0_lens_hfov);
-  parse(config, "cam0.lens_vfov", calib_config.cam0_lens_vfov);
-  parse(config, "cam0.camera_model", calib_config.cam0_camera_model);
-  parse(config, "cam0.distortion_model", calib_config.cam0_distortion_model);
+  parse(config, "cam0.resolution", calib_conf.cam0_resolution);
+  parse(config, "cam0.lens_hfov", calib_conf.cam0_lens_hfov);
+  parse(config, "cam0.lens_vfov", calib_conf.cam0_lens_vfov);
+  parse(config, "cam0.camera_model", calib_conf.cam0_camera_model);
+  parse(config, "cam0.distortion_model", calib_conf.cam0_distortion_model);
 
-  parse(config, "cam1.resolution", calib_config.cam1_resolution);
-  parse(config, "cam1.lens_hfov", calib_config.cam1_lens_hfov);
-  parse(config, "cam1.lens_vfov", calib_config.cam1_lens_vfov);
-  parse(config, "cam1.camera_model", calib_config.cam1_camera_model);
-  parse(config, "cam1.distortion_model", calib_config.cam1_distortion_model);
+  parse(config, "cam1.resolution", calib_conf.cam1_resolution);
+  parse(config, "cam1.lens_hfov", calib_conf.cam1_lens_hfov);
+  parse(config, "cam1.lens_vfov", calib_conf.cam1_lens_vfov);
+  parse(config, "cam1.camera_model", calib_conf.cam1_camera_model);
+  parse(config, "cam1.distortion_model", calib_conf.cam1_distortion_model);
 
-  return calib_config;
+  return calib_conf;
 }
 
 int save_results(const std::string &save_path,
@@ -95,75 +95,39 @@ int save_results(const std::string &save_path,
   }
 
   // Save cam0 results
-  outfile << "cam0:" << std::endl;
-  outfile << indent << "camera_model: \"pinhole\"" << std::endl;
-  outfile << indent << "distortion_model: \"radtan\"" << std::endl;
-
-  outfile << indent << "resolution: ";
-  outfile << "[";
-  outfile << cam0_resolution(0) << ", " << cam0_resolution(1);
-  outfile << "]" << std::endl;
-
-  outfile << indent << "intrinsics: ";
-  outfile << "[";
-  outfile << cam0_pinhole.fx << ", ";
-  outfile << cam0_pinhole.fy << ", ";
-  outfile << cam0_pinhole.cx << ", ";
-  outfile << cam0_pinhole.cy;
-  outfile << "]" << std::endl;
-
-  outfile << indent << "distortion: ";
-  outfile << "[";
-  outfile << cam0_radtan.k1 << ", ";
-  outfile << cam0_radtan.k2 << ", ";
-  outfile << cam0_radtan.p1 << ", ";
-  outfile << cam0_radtan.p2;
-  outfile << "]" << std::endl;
-  outfile << std::endl;
+  {
+    const std::string resolution = vec2str(cam0_resolution);
+    const std::string intrinsics = arr2str(*cam0_pinhole.data, 4);
+    const std::string distortion = arr2str(*cam0_radtan.data, 4);
+    outfile << "cam0:" << std::endl;
+    outfile << indent << "camera_model: \"pinhole\"" << std::endl;
+    outfile << indent << "distortion_model: \"radtan\"" << std::endl;
+    outfile << indent << "resolution: " << resolution << std::endl;
+    outfile << indent << "intrinsics: " << intrinsics << std::endl;
+    outfile << indent << "distortion: " << distortion << std::endl;
+    outfile << std::endl;
+  }
 
   // Save cam1 results
-  outfile << "cam1:" << std::endl;
-  outfile << indent << "camera_model: \"pinhole\"" << std::endl;
-  outfile << indent << "distortion_model: \"radtan\"" << std::endl;
-
-  outfile << indent << "resolution: ";
-  outfile << "[";
-  outfile << cam1_resolution(0) << ", " << cam1_resolution(1);
-  outfile << "]" << std::endl;
-
-  outfile << indent << "intrinsics: ";
-  outfile << "[";
-  outfile << cam1_pinhole.fx << ", ";
-  outfile << cam1_pinhole.fy << ", ";
-  outfile << cam1_pinhole.cx << ", ";
-  outfile << cam1_pinhole.cy;
-  outfile << "]" << std::endl;
-
-  outfile << indent << "distortion: ";
-  outfile << "[";
-  outfile << cam1_radtan.k1 << ", ";
-  outfile << cam1_radtan.k2 << ", ";
-  outfile << cam1_radtan.p1 << ", ";
-  outfile << cam1_radtan.p2;
-  outfile << "]" << std::endl;
-  outfile << std::endl;
+  {
+    const std::string resolution = vec2str(cam1_resolution);
+    const std::string intrinsics = arr2str(*cam1_pinhole.data, 4);
+    const std::string distortion = arr2str(*cam1_radtan.data, 4);
+    outfile << "cam1:" << std::endl;
+    outfile << indent << "camera_model: \"pinhole\"" << std::endl;
+    outfile << indent << "distortion_model: \"radtan\"" << std::endl;
+    outfile << indent << "resolution: " << resolution << std::endl;
+    outfile << indent << "intrinsics: " << intrinsics << std::endl;
+    outfile << indent << "distortion: " << distortion << std::endl;
+    outfile << std::endl;
+  }
 
   // Save camera extrinsics
   outfile << "T_C0C1: " << std::endl;
   outfile << indent << "rows: 4" << std::endl;
   outfile << indent << "cols: 4" << std::endl;
   outfile << indent << "data: [" << std::endl;
-  for (int i = 0; i < 4; i++) {
-    if ((i + 1) != 4) {
-      outfile << indent;
-      outfile << indent;
-      outfile << vec2str(T_C0C1.row(i), false) << "," << std::endl;
-    } else {
-      outfile << indent;
-      outfile << indent;
-      outfile << vec2str(T_C0C1.row(i), false) << std::endl;
-    }
-  }
+  outfile << mat2str(T_C0C1, indent + indent) << std::endl;
   outfile << indent << "]" << std::endl;
   outfile << std::endl;
 

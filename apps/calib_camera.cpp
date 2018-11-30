@@ -66,30 +66,18 @@ int save_results(const std::string &save_path,
 
   // Save results
   const std::string indent = "  ";
-  outfile << "cam0:" << std::endl;
-  outfile << indent << "camera_model: \"pinhole\"" << std::endl;
-  outfile << indent << "distortion_model: \"radtan\"" << std::endl;
-
-  outfile << indent << "resolution: ";
-  outfile << "[";
-  outfile << resolution(0) << ", " << resolution(1);
-  outfile << "]" << std::endl;
-
-  outfile << indent << "intrinsics: ";
-  outfile << "[";
-  outfile << pinhole.fx << ", ";
-  outfile << pinhole.fy << ", ";
-  outfile << pinhole.cx << ", ";
-  outfile << pinhole.cy;
-  outfile << "]" << std::endl;
-
-  outfile << indent << "distortion: ";
-  outfile << "[";
-  outfile << radtan.k1 << ", ";
-  outfile << radtan.k2 << ", ";
-  outfile << radtan.p1 << ", ";
-  outfile << radtan.p2;
-  outfile << "]" << std::endl;
+  {
+    const std::string res = vec2str(resolution);
+    const std::string intrinsics = arr2str(*pinhole.data, 4);
+    const std::string distortion = arr2str(*radtan.data, 4);
+    outfile << "cam0:" << std::endl;
+    outfile << indent << "camera_model: \"pinhole\"" << std::endl;
+    outfile << indent << "distortion_model: \"radtan\"" << std::endl;
+    outfile << indent << "resolution: " << res << std::endl;
+    outfile << indent << "intrinsics: " << intrinsics << std::endl;
+    outfile << indent << "distortion: " << distortion << std::endl;
+    outfile << std::endl;
+  }
 
   // Finsh up
   outfile.close();

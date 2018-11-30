@@ -15,10 +15,10 @@ struct calib_gimbal_data_t {
   bool ok = false;
 
   int nb_measurements = 0;
-  std::vector<matx_t> P_s;
-  std::vector<matx_t> P_d;
-  std::vector<matx_t> Q_s;
-  std::vector<matx_t> Q_d;
+  matxs_t P_s;
+  matxs_t P_d;
+  matxs_t Q_s;
+  matxs_t Q_d;
   matx_t joint_data;
 
   calib_gimbal_data_t();

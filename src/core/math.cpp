@@ -158,6 +158,43 @@ std::string vec2str(const vecx_t &v, bool brackets) {
   return str;
 }
 
+std::string arr2str(const double *arr, const size_t len, bool brackets) {
+  std::string str;
+
+  if (brackets) {
+    str += "[";
+  }
+
+  for (size_t i = 0; i < len; i++) {
+    str += std::to_string(arr[i]);
+    if ((i + 1) != len) {
+      str += ", ";
+    }
+  }
+
+  if (brackets) {
+    str += "]";
+  }
+
+  return str;
+}
+
+std::string mat2str(const matx_t &m, const std::string &indent) {
+  std::string str;
+
+  for (int i = 0; i < m.rows(); i++) {
+    if ((i + 1) != m.rows()) {
+      str += indent;
+      str += vec2str(m.row(i), false) + ",\n";
+    } else {
+      str += indent;
+      str += vec2str(m.row(i), false);
+    }
+  }
+
+  return str;
+}
+
 int randi(int ub, int lb) { return rand() % lb + ub; }
 
 double randf(const double ub, const double lb) {
