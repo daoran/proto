@@ -8,10 +8,10 @@ export CXX=/usr/bin/clang++
 # cd scripts/api && python3 api.py
 
 # OCTAVE
-cd octave
+# cd octave
 # octave notes/ba.m
 # octave notes/quaternion.m
-octave notes/calibration/calibration.m
+# octave notes/calibration/calibration.m
 # octave notes/calibration/sandbox.m
 # octave notes/frames.m
 # octave tests/vision/test_radtan4_distort.m
@@ -19,9 +19,9 @@ octave notes/calibration/calibration.m
 
 # LIBRARY
 # mkdir -p build
-# cd build || return
-# cmake ..
-# make -j8
+cd build || return
+cmake ..
+make -j8
 # sudo make install
 
 # APPS

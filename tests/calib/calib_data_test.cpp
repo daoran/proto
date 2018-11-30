@@ -124,7 +124,7 @@ int test_draw_calib_validation() {
   }
 
   // Detect AprilGrid
-  auto detector = AprilTags::AprilGridDetector();
+  const auto detector = aprilgrid_detector_t();
   cv::Mat image = cv::imread(APRILGRID_IMAGE);
   aprilgrid_detect(aprilgrid, detector, image, cam_K, cam_D);
 
@@ -192,7 +192,7 @@ int test_validate_intrinsics() {
   }
 
   // Detect AprilGrid
-  auto detector = AprilTags::AprilGridDetector();
+  const auto detector = aprilgrid_detector_t();
   cv::Mat image = cv::imread(APRILGRID_IMAGE);
   aprilgrid_detect(aprilgrid, detector, image, cam_K, cam_D);
 
@@ -283,8 +283,8 @@ int test_validate_stereo() {
   }
 
   // Detect AprilGrid
+  const auto detector = aprilgrid_detector_t();
   cv::Mat image0 = cv::imread(CAM0_IMAGE);
-  auto detector = AprilTags::AprilGridDetector();
   if (aprilgrid_detect(aprilgrid0, detector, image0, cam0_K, cam0_D) == 0) {
     LOG_ERROR("Failed to detect aprilgrid!");
     return -1;

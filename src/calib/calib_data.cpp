@@ -68,7 +68,7 @@ int preprocess_camera_data(const calib_target_t &target,
 
   // Detect AprilGrid
   LOG_INFO("Processing images:");
-  auto detector = AprilTags::AprilGridDetector();
+  aprilgrid_detector_t detector;
 
   for (size_t i = 0; i < image_paths.size(); i++) {
     print_progress((double) i / image_paths.size());

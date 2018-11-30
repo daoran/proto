@@ -2,6 +2,10 @@
 
 namespace prototype {
 
+aprilgrid_detector_t::aprilgrid_detector_t() {}
+
+aprilgrid_detector_t::~aprilgrid_detector_t() {}
+
 aprilgrid_t::aprilgrid_t() {}
 
 aprilgrid_t::aprilgrid_t(const long timestamp,
@@ -527,8 +531,8 @@ int aprilgrid_configure(aprilgrid_t &grid, const std::string &target_file) {
 }
 
 void aprilgrid_filter_tags(const cv::Mat &image,
-                           std::vector<AprilTags::TagDetection> &tags) {
-  std::vector<AprilTags::TagDetection>::iterator iter = tags.begin();
+                           std::vector<apriltag_t> &tags) {
+  std::vector<apriltag_t>::iterator iter = tags.begin();
 
   const double min_border_dist = 4.0;
   for (iter = tags.begin(); iter != tags.end();) {
@@ -556,7 +560,7 @@ void aprilgrid_filter_tags(const cv::Mat &image,
 }
 
 int aprilgrid_detect(aprilgrid_t &grid,
-                     AprilTags::AprilGridDetector &detector,
+                     const aprilgrid_detector_t &detector,
                      const cv::Mat &image) {
   assert(grid.configured);
 
@@ -564,7 +568,7 @@ int aprilgrid_detect(aprilgrid_t &grid,
   const cv::Mat image_gray = rgb2gray(image);
 
   // Extract tags
-  std::vector<AprilTags::TagDetection> tags = detector.extractTags(image_gray);
+  std::vector<apriltag_t> tags = detector.det.extractTags(image_gray);
   aprilgrid_filter_tags(image, tags);
   std::sort(tags.begin(), tags.end(), sort_apriltag_by_id);
 
@@ -582,7 +586,7 @@ int aprilgrid_detect(aprilgrid_t &grid,
 }
 
 int aprilgrid_detect(aprilgrid_t &grid,
-                     AprilTags::AprilGridDetector &detector,
+                     const aprilgrid_detector_t &detector,
                      const cv::Mat &image,
                      const mat3_t &cam_K,
                      const vec4_t &cam_D) {

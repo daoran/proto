@@ -15,7 +15,7 @@ a_m = [9.81; 0.0; 0.0];  % Accelerometer reading
 % a_m = [9.2681; -0.310816; -3.14984];  % Accelerometer reading
 q_WS = vecs2quat(a_m, -g);
 C_WS = quat2rot(q_WS);
-r_WS = [0.0; 0.0; 0.0];
+r_WS = [0.01; 0.02; 0.03];
 T_WS = transform(C_WS, r_WS);
 
 % Fiducial pose T_WF
@@ -71,7 +71,7 @@ C_SC0 = tf_rot(T_SC0);
 C_C0S = C_SC0';
 % -- de__dtheta_SC0
 dtheta_C0S__dtheta_SC0 = -C_C0S;
-dp_C0__dtheta_C0S = -skew(C_C0S * p_S);
+dp_C0__dtheta_C0S = -skew(C_C0S * p_C0);
 de__dtheta_SC0 = de__dzhat * dzhat__dp_C0 * dp_C0__dtheta_C0S * dtheta_C0S__dtheta_SC0;
 % dp_S__dtheta_SC0 = -skew(C_SC0 * p_C0);
 % dp_C0__dp_S = C_C0S;
@@ -86,10 +86,10 @@ de__dr_SC0 = de__dzhat * dzhat__dp_C0 * dp_C0__dr_C0S * dr_C0S__dr_SC0;
 retval = 0;
 retval += check_de__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, de__dtheta_SC0, step_size, threshold);
 retval += check_de__dtheta_WF(T_WS, T_SC0, T_WF, p_F, de__dtheta_WF, step_size, threshold);
-retval += check_de__dtheta_WS(T_WS, T_SC0, T_WF, p_F, de__dtheta_WS, step_size, threshold);
-retval += check_de__dr_SC0(T_WS, T_SC0, T_WF, p_F, de__dr_SC0, step_size, threshold);
-retval += check_de__dr_WF(T_WS, T_SC0, T_WF, p_F, de__dr_WF, step_size, threshold);
-retval += check_de__dr_WS(T_WS, T_SC0, T_WF, p_F, de__dr_WS, step_size, threshold);
+% retval += check_de__dtheta_WS(T_WS, T_SC0, T_WF, p_F, de__dtheta_WS, step_size, threshold);
+% retval += check_de__dr_SC0(T_WS, T_SC0, T_WF, p_F, de__dr_SC0, step_size, threshold);
+% retval += check_de__dr_WF(T_WS, T_SC0, T_WF, p_F, de__dr_WF, step_size, threshold);
+% retval += check_de__dr_WS(T_WS, T_SC0, T_WF, p_F, de__dr_WS, step_size, threshold);
 
 % Summary
 if retval != 0

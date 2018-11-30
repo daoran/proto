@@ -11,12 +11,21 @@
 namespace prototype {
 
 /**
+ * AprilGrid Detector
+ */
+struct aprilgrid_detector_t {
+  AprilTags::AprilGridDetector det;
+
+  aprilgrid_detector_t();
+  ~aprilgrid_detector_t();
+};
+
+/**
  * AprilGrid detection
  */
 struct aprilgrid_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  quat_t q;
   /// Grid properties
   bool configured = false;
   int tag_rows = 0;
@@ -45,6 +54,7 @@ struct aprilgrid_t {
   ~aprilgrid_t();
 };
 
+typedef AprilTags::TagDetection apriltag_t;
 typedef std::vector<aprilgrid_t> aprilgrids_t;
 
 /** Add AprilTag measurement to AprilGrid. */
@@ -143,7 +153,7 @@ void aprilgrid_filter_tags(const cv::Mat &image,
  * @returns number of AprilTags detected
  */
 int aprilgrid_detect(aprilgrid_t &grid,
-                     AprilTags::AprilGridDetector &detector,
+                     const aprilgrid_detector_t &detector,
                      const cv::Mat &image);
 
 /**
@@ -151,7 +161,7 @@ int aprilgrid_detect(aprilgrid_t &grid,
  * @returns number of AprilTags detected.
  */
 int aprilgrid_detect(aprilgrid_t &grid,
-                     AprilTags::AprilGridDetector &detector,
+                     const aprilgrid_detector_t &detector,
                      const cv::Mat &image,
                      const mat3_t &cam_K,
                      const vec4_t &cam_D);
