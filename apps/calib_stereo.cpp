@@ -1,4 +1,4 @@
-#include <prototype/calib/calib.hpp>
+#include <prototype/prototype.hpp>
 
 using namespace prototype;
 

@@ -1,0 +1,11 @@
+calib:
+  target_file: "aprilgrid_6x6.yaml"
+  image_path: "/data/cam0/"
+  preprocess_path: "/tmp/calib/mono"
+
+cam0:
+  resolution: [752, 480]
+  camera_model: "pinhole"
+  distortion_model: "radtan"
+  intrinsics: [460.107, 458.985, 371.509, 244.215]
+  distortion: [-0.268364, 0.0608506, 0.000938523, -0.000351249]

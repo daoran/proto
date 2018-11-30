@@ -137,3 +137,27 @@ FOREACH(TEST ${UNITTESTS})
   ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 ENDFOREACH(TEST)
+
+
+# APPS
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
+SET(
+  APP_DEPS
+  prototype
+  ${OpenCV_LIBS}
+  ${SUITESPARSE_LIBRARIES}
+  yaml-cpp
+  apriltags
+  ceres
+)
+SET(
+  APPS
+  calib_camera
+  calib_stereo
+  calib_vicon_marker
+  detect_aprilgrid
+)
+FOREACH(APP ${APPS})
+  ADD_EXECUTABLE(${APP} apps/${APP}.cpp)
+  TARGET_LINK_LIBRARIES(${APP} ${APP_DEPS})
+ENDFOREACH(APP)

@@ -18,20 +18,17 @@ export CXX=/usr/bin/clang++
 # octave tests/vision/test_radtan4_undistort.m
 
 # LIBRARY
-# mkdir -p build
+mkdir -p build
 cd build || return
 cmake ..
 make -j8
 # sudo make install
 
 # APPS
-# cd ../apps
-# mkdir -p build
-# cd build
-# cmake ..
-# make
+cd apps/config
 # ./calib_camera ../config/calib_camera.yaml
 # ./calib_stereo ../config/calib_stereo.yaml
+# ./../detect_aprilgrid detect_aprilgrid.yaml
 
 
 # TESTS
