@@ -55,7 +55,7 @@ uhat = (fx * x_ddash) + cx;
 vhat = (fy * y_ddash) + cy;
 zhat = [uhat; vhat];
 
-J = jacobian(zhat, [fx, fy, cx, cy])
+J = jacobian(zhat, [k1, k2, p1, p2])
 char(J(1, 1))
 char(J(1, 2))
 char(J(1, 3))

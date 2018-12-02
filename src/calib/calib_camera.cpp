@@ -66,33 +66,59 @@ bool intrinsics_residual_t::Evaluate(double const* const* parameters,
       J = dr__dzhat * dzhat__dpinhole;
     }
 
-    // // Jacobian w.r.t. radtan4 distortion D
-    // if (jacobians[1] != NULL) {
-    //   // dr__zhat
-    //   const mat2_t dr__dzhat = -1 * I(2);
-    //
-    //   // dzhat__dradtan
-    //   const double x = p_C(0) / p_C(2);
-    //   const double y = p_C(1) / p_C(2);
-    //   const double x2 = x * x;
-    //   const double y2 = y * y;
-    //   matx_t dzhat__dradtan = zeros(2, 4);
-    //   // -- Row 1
-    //   dzhat__dradtan(0, 0) = x * (x2 + y2);
-    //   dzhat__dradtan(0, 1) = x * (x2 + y2) * (x2 + y2);
-    //   dzhat__dradtan(0, 2) = 2 * x * y;
-    //   dzhat__dradtan(0, 3) = 3 * x2 + y2;
-    //   // -- Row 2
-    //   dzhat__dradtan(0, 0) = y * (x2 + y2);
-    //   dzhat__dradtan(0, 1) = y * (x2 + y2) * (x2 + y2);
-    //   dzhat__dradtan(0, 2) = x2 + 3 * y2;
-    //   dzhat__dradtan(0, 3) = 2 * x * y;
-    //
-    //   // Fill in jacobian
-    //   Eigen::Map<Eigen::Matrix<double, 2, 4, Eigen::RowMajor>> J(jacobians[1]);
-    //   J = dr__dzhat * dzhat__dradtan;
-    // }
-    //
+    // Jacobian w.r.t. radtan4 distortion D
+    if (jacobians[1] != NULL) {
+      // dr__zhat
+      const mat2_t dr__dzhat = -1 * I(2);
+
+      // // dzhat__dradtan
+      // const double x = p_C(0) / p_C(2);
+      // const double y = p_C(1) / p_C(2);
+      // const double x2 = x * x;
+      // const double y2 = y * y;
+      // matx_t dzhat__dradtan = zeros(2, 4);
+      // // -- Row 1
+      // dzhat__dradtan(0, 0) = x * (x2 + y2);
+      // dzhat__dradtan(0, 1) = x * (x2 + y2) * (x2 + y2);
+      // dzhat__dradtan(0, 2) = 2 * x * y;
+      // dzhat__dradtan(0, 3) = 3 * x2 + y2;
+      // // -- Row 2
+      // dzhat__dradtan(0, 0) = y * (x2 + y2);
+      // dzhat__dradtan(0, 1) = y * (x2 + y2) * (x2 + y2);
+      // dzhat__dradtan(0, 2) = x2 + 3 * y2;
+      // dzhat__dradtan(0, 3) = 2 * x * y;
+
+      // dzhat__dradtan (symbolic diff)
+      // -- Setup
+      const double px = p_C(0);
+      const double py = p_C(1);
+      const double pz = p_C(2);
+      const double px2 = px * px;
+      const double py2 = py * py;
+      const double pz2 = pz * pz;
+      const double x2 = px2 / pz2;
+      const double y2 = py2 / pz2;
+      const double r2 = x2 + y2;
+      const double r4 = r2 * r2;
+      const double fx = K(0, 0);
+      const double fy = K(1, 1);
+      matx_t dzhat__dradtan = zeros(2, 4);
+      // -- Row 1
+      dzhat__dradtan(0, 0) = fx * px * r2 / pz;
+      dzhat__dradtan(0, 1) = fx * px * r4 / pz;
+      dzhat__dradtan(0, 2) = 2 * fx * px * py / pz2;
+      dzhat__dradtan(0, 3) = fx * (3 * x2 + y2);
+      // -- Row 2
+      dzhat__dradtan(1, 0) = fy * py * r2 / pz;
+      dzhat__dradtan(1, 1) = fy * py * r4 / pz;
+      dzhat__dradtan(1, 2) = fy * (x2 + 3 * y2);
+      dzhat__dradtan(1, 3) = 2 * fy * px * py / pz2;
+
+      // Fill in jacobian
+      Eigen::Map<Eigen::Matrix<double, 2, 4, Eigen::RowMajor>> J(jacobians[1]);
+      J = dr__dzhat * dzhat__dradtan;
+    }
+
     // // Jacobian w.r.t. quaternion q_CF
     // if (jacobians[2] != NULL) {
     //   // dr__zhat
