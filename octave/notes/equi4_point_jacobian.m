@@ -50,10 +50,5 @@ for i = 1:2
   finite_diff(1:2, i) = (point1 - point0) / step_size;
 endfor
 
-if any(all((finite_diff - J) < step_size)) == 1
-  printf("Jacobian checks out!\n")
-else
-  printf("Jacobian do not check out!\n")
-endif
-finite_diff
-J
+threshold = 1e-6;
+check_jacobian("J", finite_diff, J, threshold);

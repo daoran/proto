@@ -10,7 +10,7 @@ bool pinhole_radtan4_residual_t::operator()(const T *const intrinsics_,
                                             const T *const distortion_,
                                             const T *const q_CF_,
                                             const T *const t_CF_,
-                                            T *residual_) const {
+                                            T *residuals_) const {
   // Map variables to Eigen
   const Eigen::Matrix<T, 3, 3> K = pinhole_K(intrinsics_);
   const Eigen::Matrix<T, 4, 1> D = radtan4_D(distortion_);
@@ -27,8 +27,8 @@ bool pinhole_radtan4_residual_t::operator()(const T *const intrinsics_,
   const Eigen::Matrix<T, 2, 1> z_hat = pinhole_radtan4_project(K, D, p_C);
 
   // Residual
-  residual_[0] = T(z_[0]) - z_hat(0);
-  residual_[1] = T(z_[1]) - z_hat(1);
+  residuals_[0] = T(z_[0]) - z_hat(0);
+  residuals_[1] = T(z_[1]) - z_hat(1);
 
   return true;
 }

@@ -14,11 +14,16 @@ export CXX=/usr/bin/clang++
 # octave notes/calibration/calibration.m
 # octave notes/calibration/sandbox.m
 # octave notes/frames.m
+# octave notes/quaternion.m
+# octave notes/intrinsics_jacobian.m && exit 0
+# octave notes/equi4_point_jacobian.m
+# octave notes/radtan4_params_jacobian.m && exit 0
+# octave notes/radtan4_point_jacobian.m
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 
 # LIBRARY
-mkdir -p build
+# mkdir -p build
 cd build || return
 cmake ..
 make -j8
@@ -32,10 +37,10 @@ make -j8
 
 
 # TESTS
-# cd tests
+cd tests
 # -- calib
 # ./calib-aprilgrid_test
-# ./calib-calib_camera_test
+./calib-calib_camera_test
 # ./calib-calib_data_test
 # ./calib-calib_gimbal_test
 # ./calib-calib_stereo_test

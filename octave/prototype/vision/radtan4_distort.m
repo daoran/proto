@@ -1,7 +1,9 @@
 function [p_distorted, J] = radtan4_distort(k1, k2, p1, p2, p)
-  % Apply radial distortion
+  % Point
   x = p(1);
   y = p(2);
+
+  % Apply radial distortion
   x2 = x * x;
   y2 = y * y;
   r2 = x2 + y2;
@@ -15,7 +17,6 @@ function [p_distorted, J] = radtan4_distort(k1, k2, p1, p2, p)
 	x_ddash = x_dash + (2.0 * p1 * xy + p2 * (r2 + 2.0 * x2));
 	y_ddash = y_dash + (p1 * (r2 + 2.0 * y2) + 2.0 * p2 * xy);
   p_distorted = [x_ddash; y_ddash];
-
 
 	% Let u = [x; y] normalized point
 	% Let u' be the distorted u

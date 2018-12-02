@@ -29,7 +29,7 @@ pinhole_K(const double fx, const double fy, const double cx, const double cy) {
   mat3_t K;
   // clang-format off
   K << fx, 0.0, cx,
-       0.0, fx, cy,
+       0.0, fy, cy,
        0.0, 0.0, 1.0;
   // clang-format on
 
