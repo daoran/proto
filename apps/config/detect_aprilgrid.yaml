@@ -1,5 +1,5 @@
 calib:
-  target_file: "aprilgrid_6x6.yaml"
+  target_file: "config/aprilgrid_6x6.yaml"
   image_path: "/data/cam0/"
   preprocess_path: "/tmp/calib/mono"
 

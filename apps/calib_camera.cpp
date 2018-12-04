@@ -6,6 +6,7 @@ struct calib_config_t {
   std::string target_file;
   std::string image_path;
   std::string preprocess_path;
+  bool imshow = false;
 
   vec2_t resolution{0.0, 0.0};
   double lens_hfov = 0.0;
@@ -43,6 +44,8 @@ calib_config_t parse_config(const std::string &config_file) {
   parse(config, "calib.target_file", calib_config.target_file);
   parse(config, "calib.image_path", calib_config.image_path);
   parse(config, "calib.preprocess_path", calib_config.preprocess_path);
+  parse(config, "calib.imshow", calib_config.imshow, true);
+
 
   parse(config, "cam0.resolution", calib_config.resolution);
   parse(config, "cam0.lens_hfov", calib_config.lens_hfov);
@@ -109,7 +112,8 @@ int main(int argc, char *argv[]) {
                                       config.resolution,
                                       config.lens_hfov,
                                       config.lens_vfov,
-                                      config.preprocess_path);
+                                      config.preprocess_path,
+                                      config.imshow);
   if (retval != 0) {
     LOG_ERROR("Failed to preprocess calibration data!");
     return -1;

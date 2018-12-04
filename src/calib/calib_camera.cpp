@@ -194,17 +194,17 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
       const auto kp = keypoints[i];
       const auto obj_pt = object_points[i];
 
-      // const auto residual = new pinhole_radtan4_residual_t{kp, obj_pt};
-      // const auto cost_func =
-      //     new ceres::AutoDiffCostFunction<pinhole_radtan4_residual_t,
-      //                                     2, // Size of: residual
-      //                                     4, // Size of: intrinsics
-      //                                     4, // Size of: distortion
-      //                                     4, // Size of: q_CF
-      //                                     3  // Size of: r_CF
-      //                                     >(residual);
+      const auto residual = new pinhole_radtan4_residual_t{kp, obj_pt};
+      const auto cost_func =
+          new ceres::AutoDiffCostFunction<pinhole_radtan4_residual_t,
+                                          2, // Size of: residual
+                                          4, // Size of: intrinsics
+                                          4, // Size of: distortion
+                                          4, // Size of: q_CF
+                                          3  // Size of: r_CF
+                                          >(residual);
 
-      const auto cost_func = new intrinsics_residual_t{kp, obj_pt};
+      // const auto cost_func = new intrinsics_residual_t{kp, obj_pt};
       problem->AddResidualBlock(cost_func, // Cost function
                                 NULL,      // Loss function
                                 intrinsics,
@@ -213,9 +213,9 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 pose->t.data());
     }
   }
-  problem->SetParameterBlockConstant(distortion);
-  problem->SetParameterBlockConstant(pose->q.coeffs().data());
-  problem->SetParameterBlockConstant(pose->t.data());
+  // problem->SetParameterBlockConstant(distortion);
+  // problem->SetParameterBlockConstant(pose->q.coeffs().data());
+  // problem->SetParameterBlockConstant(pose->t.data());
 
   return 0;
 }
@@ -256,7 +256,7 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
   ceres::Solver::Options options;
   options.minimizer_progress_to_stdout = true;
   options.max_num_iterations = 100;
-  options.check_gradients = true;
+  // options.check_gradients = true;
 
   // Solve
   ceres::Solver::Summary summary;

@@ -30,17 +30,17 @@ make -j8
 # sudo make install
 
 # APPS
-# cd apps/config
-# ./../calib_camera calib_camera.yaml
-# ./../calib_stereo calib_stereo.yaml
-# ./../detect_aprilgrid detect_aprilgrid.yaml
+cd apps
+./calib_camera config/calib_camera.yaml
+# ./calib_stereo config/calib_stereo.yaml
+# ./detect_aprilgrid config/detect_aprilgrid.yaml
 
 
 # TESTS
-cd tests
+# cd tests
 # -- calib
 # ./calib-aprilgrid_test
-./calib-calib_camera_test
+# ./calib-calib_camera_test
 # ./calib-calib_data_test
 # ./calib-calib_gimbal_test
 # ./calib-calib_stereo_test

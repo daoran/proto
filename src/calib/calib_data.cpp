@@ -103,6 +103,12 @@ int preprocess_camera_data(const calib_target_t &target,
     }
   }
 
+  // Print newline after print progress has finished
+  std::cout << std::endl;
+
+  // Destroy all opencv windows
+  cv::destroyAllWindows();
+
   return 0;
 }
 

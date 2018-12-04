@@ -1,7 +1,8 @@
 calib:
-  target_file: "../config/aprilgrid_6x6.yaml"
+  target_file: "config/aprilgrid_6x6.yaml"
   image_path: "/data/euroc_mav/cam_april/mav0/cam0/data"
   preprocess_path: "/tmp/calib/mono"
+  imshow: true
 
 cam0:
   resolution: [752, 480]
