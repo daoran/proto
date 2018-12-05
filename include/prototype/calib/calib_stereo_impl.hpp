@@ -29,12 +29,12 @@ bool stereo_residual_t::operator()(const T *const cam0_intrinsics,
   const Eigen::Quaternion<T> q_C0F(q_C0F_[3], q_C0F_[0], q_C0F_[1], q_C0F_[2]);
   const Eigen::Matrix<T, 3, 3> R_C0F = q_C0F.toRotationMatrix();
   const Eigen::Matrix<T, 3, 1> t_C0F{t_C0F_[0], t_C0F_[1], t_C0F_[2]};
-  const Eigen::Matrix<T, 4, 4> T_C0F = transform(R_C0F, t_C0F);
+  const Eigen::Matrix<T, 4, 4> T_C0F = tf(R_C0F, t_C0F);
   // -- Create transform between cam0 and cam1
   const Eigen::Quaternion<T> q_C0C1(q_C0C1_[3], q_C0C1_[0], q_C0C1_[1], q_C0C1_[2]);
   const Eigen::Matrix<T, 3, 3> R_C0C1 = q_C0C1.toRotationMatrix();
   const Eigen::Matrix<T, 3, 1> t_C0C1{t_C0C1_[0], t_C0C1_[1], t_C0C1_[2]};
-  const Eigen::Matrix<T, 4, 4> T_C0C1 = transform(R_C0C1, t_C0C1);
+  const Eigen::Matrix<T, 4, 4> T_C0C1 = tf(R_C0C1, t_C0C1);
   const Eigen::Matrix<T, 4, 4> T_C1C0 = T_C0C1.inverse();
   // clang-format on
 

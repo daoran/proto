@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
 
     const quat_t q_WM{qw, qx, qy, qz};
     const vec3_t t_WM{tx, ty, tz};
-    T_WM.emplace_back(transform(q_WM, t_WM));
+    T_WM.emplace_back(tf(q_WM, t_WM));
   }
 
   // Calibrate camera

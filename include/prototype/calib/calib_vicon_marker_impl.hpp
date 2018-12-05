@@ -23,17 +23,17 @@ bool vicon_marker_residual_t::operator()(const T *const intrinsics_,
   const Eigen::Quaternion<T> q_MC(q_MC_[3], q_MC_[0], q_MC_[1], q_MC_[2]);
   const Eigen::Matrix<T, 3, 3> R_MC = q_MC.toRotationMatrix();
   const Eigen::Matrix<T, 3, 1> t_MC{t_MC_[0], t_MC_[1], t_MC_[2]};
-  const Eigen::Matrix<T, 4, 4> T_MC = transform(R_MC, t_MC);
+  const Eigen::Matrix<T, 4, 4> T_MC = tf(R_MC, t_MC);
   // -- Marker pose
   const Eigen::Quaternion<T> q_WM(q_WM_[3], q_WM_[0], q_WM_[1], q_WM_[2]);
   const Eigen::Matrix<T, 3, 3> R_WM = q_WM.toRotationMatrix();
   const Eigen::Matrix<T, 3, 1> t_WM{t_WM_[0], t_WM_[1], t_WM_[2]};
-  const Eigen::Matrix<T, 4, 4> T_WM = transform(R_WM, t_WM);
+  const Eigen::Matrix<T, 4, 4> T_WM = tf(R_WM, t_WM);
   // -- Fiducial pose
   const Eigen::Quaternion<T> q_WF(q_WF_[3], q_WF_[0], q_WF_[1], q_WF_[2]);
   const Eigen::Matrix<T, 3, 3> R_WF = q_WF.toRotationMatrix();
   const Eigen::Matrix<T, 3, 1> t_WF{t_WF_[0], t_WF_[1], t_WF_[2]};
-  const Eigen::Matrix<T, 4, 4> T_WF = transform(R_WF, t_WF);
+  const Eigen::Matrix<T, 4, 4> T_WF = tf(R_WF, t_WF);
 
   // Project fiducial object point to camera image plane
   const Eigen::Matrix<T, 3, 1> p_F{T(p_F_[0]), T(p_F_[1]), T(p_F_[2])};

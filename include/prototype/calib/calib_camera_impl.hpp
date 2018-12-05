@@ -16,11 +16,11 @@ bool pinhole_radtan4_residual_t::operator()(const T *const intrinsics_,
   const Eigen::Matrix<T, 4, 1> D = radtan4_D(distortion_);
   const Eigen::Matrix<T, 3, 1> p_F{T(p_F_[0]), T(p_F_[1]), T(p_F_[2])};
 
-  // Form transform
+  // Form tf
   const Eigen::Quaternion<T> q_CF(q_CF_[3], q_CF_[0], q_CF_[1], q_CF_[2]);
   const Eigen::Matrix<T, 3, 3> R_CF = q_CF.toRotationMatrix();
   const Eigen::Matrix<T, 3, 1> t_CF{t_CF_[0], t_CF_[1], t_CF_[2]};
-  Eigen::Matrix<T, 4, 4> T_CF = transform(R_CF, t_CF);
+  Eigen::Matrix<T, 4, 4> T_CF = tf(R_CF, t_CF);
 
   // Project
   const Eigen::Matrix<T, 3, 1> p_C = (T_CF * p_F.homogeneous()).head(3);

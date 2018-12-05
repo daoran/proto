@@ -115,38 +115,5 @@ matx_t enforce_psd(const matx_t &A);
  */
 matx_t nullspace(const matx_t &A);
 
-/**
- * Form a 4x4 homogeneous transformation matrix from a
- * rotation matrix R and translation vector t.
- *
- * @param R Rotation matrix
- * @param t Translation vector
- * @return T Transformation matrix
- */
-mat4_t transform(const mat3_t &R, const vec3_t &t);
-
-/**
- * Form a 4x4 homogeneous transformation matrix from a
- * rotation matrix R and translation vector t.
- *
- * @param R Rotation matrix
- * @param t Translation vector
- * @return T Transformation matrix
- */
-template <typename T>
-Eigen::Matrix<T, 4, 4> transform(const Eigen::Matrix<T, 3, 3> &R,
-                                 const Eigen::Matrix<T, 3, 1> &t);
-
-/**
- * Form a 4x4 homogeneous transformation matrix from a
- * rotation matrix R and translation vector t.
- *
- * @param q Quaternion
- * @param t Translation vector
- * @return T Transformation matrix
- */
-mat4_t transform(const quat_t &q, const vec3_t &t);
-
 } // namespace prototype
-#include "linalg_impl.hpp"
 #endif // PROTOTYPE_CORE_LINALG_HPP

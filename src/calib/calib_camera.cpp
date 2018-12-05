@@ -28,7 +28,7 @@ bool intrinsics_residual_t::Evaluate(double const* const* parameters,
 
   // Form transform
   const mat3_t C_CF = q_CF.toRotationMatrix();
-  const mat4_t T_CF = transform(C_CF, r_CF);
+  const mat4_t T_CF = tf(C_CF, r_CF);
 
   // Project
   const vec3_t p_F(p_F_);
@@ -266,7 +266,7 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
   // Clean up
   T_CF.clear();
   for (auto pose_param : T_CF_params) {
-    T_CF.emplace_back(transform(pose_param.q, pose_param.t));
+    T_CF.emplace_back(tf(pose_param.q, pose_param.t));
   }
 
   return 0;

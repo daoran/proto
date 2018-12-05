@@ -127,9 +127,9 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
   // Finish up
   // -- Marker to camera extrinsics
-  T_MC = transform(T_MC_param.q, T_MC_param.t);
+  T_MC = tf(T_MC_param.q, T_MC_param.t);
   // -- Fiducial pose
-  T_WF = transform(T_WF_param.q, T_WF_param.t);
+  T_WF = tf(T_WF_param.q, T_WF_param.t);
 
   return 0;
 }

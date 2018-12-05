@@ -223,7 +223,7 @@ int calib_imu2velo_load(calib_imu2velo_t &calib) {
     }
   }
 
-  calib.T_velo_imu = transform(calib.R, calib.t);
+  calib.T_velo_imu = tf(calib.R, calib.t);
   calib.ok = true;
   return 0;
 }
@@ -267,7 +267,7 @@ int calib_velo2cam_load(calib_velo2cam_t &calib) {
     }
   }
 
-  calib.T_cam_velo = transform(calib.R, calib.t);
+  calib.T_cam_velo = tf(calib.R, calib.t);
   calib.ok = true;
   return 0;
 }

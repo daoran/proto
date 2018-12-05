@@ -30,14 +30,14 @@ make -j8
 # sudo make install
 
 # APPS
-cd apps
-./calib_camera config/calib_camera.yaml
+# cd apps
+# ./calib_camera config/calib_camera.yaml
 # ./calib_stereo config/calib_stereo.yaml
 # ./detect_aprilgrid config/detect_aprilgrid.yaml
 
 
 # TESTS
-# cd tests
+cd tests
 # -- calib
 # ./calib-aprilgrid_test
 # ./calib-calib_camera_test
@@ -58,6 +58,7 @@ cd apps
 # ./core-linalg_test
 # ./core-math_test
 # ./core-stats_test
+./core-tf_test
 # ./core-time_test
 
 # -- driver

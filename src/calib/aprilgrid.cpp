@@ -300,12 +300,12 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
                false,
                CV_ITERATIVE);
 
-  // Form relative tag pose as a 4x4 transformation matrix
+  // Form relative tag pose as a 4x4 tfation matrix
   // -- Convert Rodrigues rotation vector to rotation matrix
   cv::Mat R;
   cv::Rodrigues(rvec, R);
   // -- Form full transformation matrix
-  grid.T_CF = transform(convert(R), convert(tvec));
+  grid.T_CF = tf(convert(R), convert(tvec));
 
   // Calculate corner points
   for (size_t idx = 0; idx < grid.ids.size(); idx++) {
@@ -501,7 +501,7 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
     // AprilGrid pose
     const quat_t q_CF{row(13), row(14), row(15), row(16)};
     const vec3_t t_CF{row(17), row(18), row(19)};
-    grid.T_CF = transform(q_CF.toRotationMatrix(), t_CF);
+    grid.T_CF = tf(q_CF.toRotationMatrix(), t_CF);
   }
 
   return 0;

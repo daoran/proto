@@ -6,10 +6,19 @@
 
 namespace prototype {
 
+/**
+ * Start timer.
+ */
 struct timespec tic();
 
+/**
+ * Stop timer and return number of seconds.
+ */
 float toc(struct timespec *tic);
 
+/**
+ * Stop timer and return miliseconds elasped.
+ */
 float mtoc(struct timespec *tic);
 
 /**

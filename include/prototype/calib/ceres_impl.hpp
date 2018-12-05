@@ -6,6 +6,15 @@
 namespace prototype {
 
 template <typename T>
+Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
+                          const Eigen::Matrix<T, 3, 1> &r) {
+  Eigen::Matrix<T, 4, 4> transform = Eigen::Matrix<T, 4, 4>::Identity();
+  transform.block(0, 0, 3, 3) = C;
+  transform.block(0, 3, 3, 1) = r;
+  return transform;
+}
+
+template <typename T>
 static Eigen::Matrix<T, 3, 3> pinhole_K(const T *intrinsics) {
   const T fx = intrinsics[0];
   const T fy = intrinsics[1];

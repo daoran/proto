@@ -43,6 +43,7 @@ ADD_LIBRARY(
   src/core/linalg.cpp
   src/core/math.cpp
   src/core/stats.cpp
+  src/core/tf.cpp
   src/core/time.cpp
   # dataset
   src/dataset/euroc.cpp
@@ -114,6 +115,7 @@ SET(
   core-linalg_test
   core-math_test
   core-stats_test
+  core-tf_test
   core-time_test
   dataset-euroc_test
   dataset-kitti_test

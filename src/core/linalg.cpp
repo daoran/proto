@@ -82,17 +82,4 @@ matx_t nullspace(const matx_t &A) {
   return A_null_space;
 }
 
-mat4_t transform(const mat3_t &R, const vec3_t &t) {
-  mat4_t T = zeros(4, 4);
-  T.block(0, 0, 3, 3) = R;
-  T.block(0, 3, 3, 1) = t;
-  T(3, 3) = 1.0;
-
-  return T;
-}
-
-mat4_t transform(const quat_t &q, const vec3_t &t) {
-  return transform(q.toRotationMatrix(), t);
-}
-
 } // namespace prototype

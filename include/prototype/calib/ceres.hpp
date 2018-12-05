@@ -6,6 +6,18 @@
 namespace prototype {
 
 /**
+ * Form a 4x4 homogeneous transformation matrix from a
+ * rotation matrix R and translation vector t.
+ *
+ * @param C Rotation matrix
+ * @param r Translation vector
+ * @return T Transformation matrix
+ */
+template <typename T>
+Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
+                          const Eigen::Matrix<T, 3, 1> &r);
+
+/**
  * Pinhole camera matrix K
  */
 template <typename T>

@@ -132,9 +132,9 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   std::cout << summary.FullReport() << std::endl;
 
   // Finish up
-  T_C0C1 = transform(extrinsic_param->q.toRotationMatrix(), extrinsic_param->t);
+  T_C0C1 = tf(extrinsic_param->q.toRotationMatrix(), extrinsic_param->t);
   for (auto pose_param : pose_params) {
-    T_C0F.emplace_back(transform(pose_param.q, pose_param.t));
+    T_C0F.emplace_back(tf(pose_param.q, pose_param.t));
   }
 
   return 0;
