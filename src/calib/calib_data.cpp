@@ -47,7 +47,6 @@ static int get_camera_image_paths(const std::string &image_dir,
 
 int preprocess_camera_data(const calib_target_t &target,
                            const std::string &image_dir,
-                           const vec2_t &image_size,
                            const mat3_t &cam_K,
                            const vec4_t &cam_D,
                            const std::string &output_dir,
@@ -104,6 +103,7 @@ int preprocess_camera_data(const calib_target_t &target,
   }
 
   // Print newline after print progress has finished
+  print_progress(1.0);
   std::cout << std::endl;
 
   // Destroy all opencv windows
@@ -124,7 +124,6 @@ int preprocess_camera_data(const calib_target_t &target,
 
   return preprocess_camera_data(target,
                                 image_dir,
-                                image_size,
                                 cam_K,
                                 cam_D,
                                 output_dir,

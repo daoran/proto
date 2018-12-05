@@ -22,23 +22,15 @@ inline vec3_t tf_trans(const mat4_t &tf) {
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
- * rotation matrix R and translation vector t.
- *
- * @param C Rotation matrix
- * @param r Translation vector
- * @return T Transformation matrix
+ * rotation matrix `C` and translation vector `r`.
  */
 mat4_t tf(const mat3_t &C, const vec3_t &r);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
- * rotation matrix R and translation vector t.
- *
- * @param q Quaternion
- * @param t Translation vector
- * @return T Transformation matrix
+ * hamiltonian quaternion `q` and translation vector `r`.
  */
-mat4_t tf(const quat_t &q, const vec3_t &t);
+mat4_t tf(const quat_t &q, const vec3_t &r);
 
 } //  namespace prototype
 #endif // PROTOTYPE_TF_HPP

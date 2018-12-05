@@ -73,7 +73,6 @@ int test_stereo_residual() {
     // AprilGrid, keypoint and relative pose observed in cam1
     const auto &grid1 = cam1_aprilgrids[i];
     const auto &cam1_kp = grid1.keypoints[0];
-    const auto &T_C1F = grid1.T_CF;
 
     // Tag id and corner id
     const auto tag_id = grid0.ids[0];

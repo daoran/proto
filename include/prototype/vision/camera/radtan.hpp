@@ -27,12 +27,12 @@ struct radtan4_t {
 };
 
 /**
- * Type to output stream
+ * Type to output stream.
  */
 std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4);
 
 /**
- * Distort 3D points with the radial-tangential distortion model
+ * Distort 3D points with the radial-tangential distortion model.
  *
  * @param[in] radtan Radial tangential parameters
  * @param[in] point Point
@@ -41,7 +41,7 @@ std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4);
 vec2_t distort(const radtan4_t &radtan, const vec2_t &point);
 
 /**
- * Distort 3D points with the radial-tangential distortion model
+ * Distort 3D points with the radial-tangential distortion model.
  *
  * @param[in] radtan Radial tangential parameters
  * @param[in] point Point
@@ -51,7 +51,7 @@ vec2_t distort(const radtan4_t &radtan, const vec2_t &point);
 vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J);
 
 /**
- * Distort 3D points with the radial-tangential distortion model
+ * Distort 3D points with the radial-tangential distortion model.
  *
  * @param[in] radtan Radial tangential parameters
  * @param[in] points Points
@@ -60,7 +60,7 @@ vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J);
 matx_t distort(const radtan4_t &radtan, const matx_t &points);
 
 /**
- * Undistort point
+ * Undistort point.
  *
  * @param[in] radtan Radial tangential parameters
  * @param[in] p0 Distorted point

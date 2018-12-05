@@ -58,7 +58,6 @@ int calib_target_load(calib_target_t &ct, const std::string &target_file);
  */
 int preprocess_camera_data(const calib_target_t &target,
                            const std::string &image_dir,
-                           const vec2_t &image_size,
                            const mat3_t &cam_K,
                            const vec4_t &cam_D,
                            const std::string &output_dir,

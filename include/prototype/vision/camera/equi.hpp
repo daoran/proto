@@ -24,12 +24,12 @@ struct equi4_t {
 };
 
 /**
- * Type to output stream
+ * Type to output stream.
  */
 std::ostream &operator<<(std::ostream &os, const equi4_t &equi4);
 
 /**
- * Distort point with equi-distant distortion model
+ * Distort point with equi-distant distortion model.
  *
  * @param[in] equi Equi-distance parameters
  * @param[in] point Point
@@ -38,7 +38,7 @@ std::ostream &operator<<(std::ostream &os, const equi4_t &equi4);
 vec2_t distort(const equi4_t &equi, const vec2_t &point);
 
 /**
- * Distort point with equi-distant distortion model
+ * Distort point with equi-distant distortion model.
  *
  * @param[in] equi Equi-distance parameters
  * @param[in] point Point
@@ -48,7 +48,7 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point);
 vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J);
 
 /**
- * Distort point with equi-distant distortion model
+ * Distort point with equi-distant distortion model.
  *
  * @param[in] equi Equi-distance parameters
  * @param[in] points Points
@@ -57,7 +57,7 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J);
 matx_t distort(const equi4_t &equi, const matx_t &points);
 
 /**
- * Un-distort a 2D point with the equi-distant distortion model
+ * Un-distort a 2D point with the equi-distant distortion model.
  */
 vec2_t undistort(const equi4_t &equi, const vec2_t &p);
 

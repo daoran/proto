@@ -23,7 +23,14 @@ struct camera_geometry_t {
   ~camera_geometry_t();
 };
 
+/**
+ * Pinhole Radial-Tangential Camera Geometry
+ */
 typedef camera_geometry_t<pinhole_t, radtan4_t> pinhole_radtan4_t;
+
+/**
+ * Pinhole Equi Camera Geometry
+ */
 typedef camera_geometry_t<pinhole_t, equi4_t> pinhole_equi4_t;
 
 /**

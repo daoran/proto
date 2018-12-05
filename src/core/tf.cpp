@@ -11,8 +11,8 @@ mat4_t tf(const mat3_t &C, const vec3_t &r) {
   return T;
 }
 
-mat4_t tf(const quat_t &q, const vec3_t &t) {
-  return tf(q.toRotationMatrix(), t);
+mat4_t tf(const quat_t &q, const vec3_t &r) {
+  return tf(q.toRotationMatrix(), r);
 }
 
 } // namespace prototype

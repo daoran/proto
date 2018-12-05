@@ -119,7 +119,6 @@ int main(int argc, char *argv[]) {
   // Preprocess calibration data
   int retval = preprocess_camera_data(calib_target,
                                       config.image_path,
-                                      config.resolution,
                                       pinhole_K(config.intrinsics),
                                       config.distortion,
                                       config.preprocess_path);
