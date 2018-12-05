@@ -6,6 +6,7 @@ struct calib_config_t {
   std::string target_file;
   std::string image_path;
   std::string preprocess_path;
+  bool estimate_target = false;
   bool imshow = true;
 
   vec2_t resolution{0.0, 0.0};
@@ -25,6 +26,8 @@ The `config.yaml` file is expected to have the following format:
     target_file: "aprilgrid_6x6.yaml"
     image_path: "/data/cam0/"
     preprocess_path: "/tmp/calib/mono"
+    estimate_target: true
+    imshow: true
 
   cam0:
     resolution: [752, 480]
@@ -44,13 +47,16 @@ calib_config_t parse_config(const std::string &config_file) {
   parse(config, "calib.target_file", calib_config.target_file);
   parse(config, "calib.image_path", calib_config.image_path);
   parse(config, "calib.preprocess_path", calib_config.preprocess_path);
+  parse(config, "calib.estimate_target", calib_config.estimate_target, true);
   parse(config, "calib.imshow", calib_config.imshow, true);
 
-  parse(config, "cam0.resolution", calib_config.resolution);
-  parse(config, "cam0.camera_model", calib_config.camera_model);
-  parse(config, "cam0.distortion_model", calib_config.distortion_model);
-  parse(config, "cam0.intrinsics", calib_config.intrinsics);
-  parse(config, "cam0.distortion", calib_config.distortion);
+  if (calib_config.estimate_target) {
+    parse(config, "cam0.resolution", calib_config.resolution);
+    parse(config, "cam0.camera_model", calib_config.camera_model);
+    parse(config, "cam0.distortion_model", calib_config.distortion_model);
+    parse(config, "cam0.intrinsics", calib_config.intrinsics);
+    parse(config, "cam0.distortion", calib_config.distortion);
+  }
 
   return calib_config;
 }
@@ -73,16 +79,29 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  // Preprocess calibration data
-  int retval = preprocess_camera_data(calib_target,
-                                      config.image_path,
-                                      pinhole_K(config.intrinsics),
-                                      config.distortion,
-                                      config.preprocess_path,
-                                      config.imshow);
-  if (retval != 0) {
-    LOG_ERROR("Failed to preprocess calibration data!");
-    return -1;
+  if (config.estimate_target) {
+    // Preprocess calibration data
+    int retval = preprocess_camera_data(calib_target,
+                                        config.image_path,
+                                        pinhole_K(config.intrinsics),
+                                        config.distortion,
+                                        config.preprocess_path,
+                                        config.imshow);
+    if (retval != 0) {
+      LOG_ERROR("Failed to preprocess calibration data!");
+      return -1;
+    }
+
+  } else {
+    // Detect AprilGrid without estimating
+    int retval = detect_calib_data(calib_target,
+                                   config.image_path,
+                                   config.imshow);
+    if (retval != 0) {
+      LOG_ERROR("Failed to process calibration data!");
+      return -1;
+    }
+
   }
 
   return 0;

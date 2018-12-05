@@ -159,6 +159,7 @@ SET(
   calib_stereo
   calib_vicon_marker
   detect_aprilgrid
+  validate_intrinsics
 )
 FOREACH(APP ${APPS})
   ADD_EXECUTABLE(${APP} apps/${APP}.cpp)

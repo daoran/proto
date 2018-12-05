@@ -9,6 +9,7 @@ export CXX=/usr/bin/clang++
 
 # OCTAVE
 # cd octave
+# ./tools/calib_data_summary
 # octave notes/ba.m
 # octave notes/quaternion.m
 # octave notes/calibration/calibration.m
@@ -30,14 +31,16 @@ make -j8
 # sudo make install
 
 # APPS
-# cd apps
+cd apps
+# ./scripts/octave/calib_data_summary
 # ./calib_camera config/calib_camera.yaml
 # ./calib_stereo config/calib_stereo.yaml
 # ./detect_aprilgrid config/detect_aprilgrid.yaml
+./validate_intrinsics config/validate_intrinsics.yaml
 
 
 # TESTS
-cd tests
+# cd tests
 # -- calib
 # ./calib-aprilgrid_test
 # ./calib-calib_camera_test
@@ -58,7 +61,7 @@ cd tests
 # ./core-linalg_test
 # ./core-math_test
 # ./core-stats_test
-./core-tf_test
+# ./core-tf_test
 # ./core-time_test
 
 # -- driver

@@ -1,7 +1,9 @@
 calib:
   target_file: "config/aprilgrid_6x6.yaml"
-  image_path: "/data/cam0/"
-  preprocess_path: "/tmp/calib/mono"
+  image_path: "/data/calibration_target/cam0/data"
+  preprocess_path: "/tmp/calib/test2"
+  estimate_target: false
+  imshow: true
 
 cam0:
   resolution: [752, 480]

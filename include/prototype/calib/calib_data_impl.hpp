@@ -11,6 +11,9 @@ cv::Mat validate_intrinsics(const cv::Mat &image,
                             const vec3s_t &points,
                             const camera_geometry_t<CM, DM> &camera_geometry) {
   assert(image.empty() == false);
+  assert(keypoints.size() != 0);
+  assert(points.size() != 0);
+  assert(keypoints.size() == points.size());
 
   // Project points to image plane
   vec2s_t projected;
