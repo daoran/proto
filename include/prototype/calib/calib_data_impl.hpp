@@ -47,29 +47,33 @@ cv::Mat validate_stereo(const cv::Mat &image0,
                         const vec3s_t &points1,
                         const camera_geometry_t<CM, DM> &cam0,
                         const camera_geometry_t<CM, DM> &cam1,
-                        const mat4_t &T_C1C0) {
+                        const mat4_t &T_C0C1) {
   assert(image0.empty() == false);
   assert(image1.empty() == false);
-  assert(kps0.size() == 0);
-  assert(points0.size() == 0);
-  assert(kps1.size() == 0);
-  assert(points1.size() == 0);
+  assert(kps0.size() == kps1.size());
+  assert(points0.size() == points1.size());
 
-  // Project points observed in cam0 to cam1 image plane
-  vec2s_t projected1;
-  for (const auto &point_C0F : points0) {
-    const auto point_C1F = (T_C1C0 * point_C0F.homogeneous()).head(3);
-    const auto p = camera_geometry_project(cam1, point_C1F);
-    projected1.emplace_back(p);
+  if (kps0.size() == 0 || kps1.size() == 0) {
+    cv::Mat result;
+    cv::vconcat(image0, image1, result);
+    return result;
   }
 
   // Project points observed in cam1 to cam0 image plane
   vec2s_t projected0;
-  const mat4_t T_C0C1 = T_C1C0.inverse();
   for (const auto &point_C1F : points1) {
     const auto point_C0F = (T_C0C1 * point_C1F.homogeneous()).head(3);
     const auto p = camera_geometry_project(cam0, point_C0F);
     projected0.emplace_back(p);
+  }
+
+  // Project points observed in cam0 to cam1 image plane
+  vec2s_t projected1;
+  const mat4_t T_C1C0 = T_C0C1.inverse();
+  for (const auto &point_C0F : points0) {
+    const auto point_C1F = (T_C1C0 * point_C0F.homogeneous()).head(3);
+    const auto p = camera_geometry_project(cam1, point_C1F);
+    projected1.emplace_back(p);
   }
 
   // Draw

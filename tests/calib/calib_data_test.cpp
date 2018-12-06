@@ -266,8 +266,9 @@ int test_validate_stereo() {
            0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
            -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
            0.0, 0.0, 0.0, 1.0;
-  const mat4_t T_C1C0 = T_BC1.inverse() * T_BC0;
+  const mat4_t T_C0C1 = T_BC0.inverse() * T_BC1;
   // clang-format on
+  std::cout << T_C0C1 << std::endl;
 
   // Load aprilgrid
   aprilgrid_t aprilgrid0;
@@ -305,7 +306,7 @@ int test_validate_stereo() {
                                       aprilgrid1.points_CF,
                                       cam0,
                                       cam1,
-                                      T_C1C0);
+                                      T_C0C1);
 
   // Visualize
   const bool debug = true;
@@ -322,7 +323,7 @@ void test_suite() {
   // MU_ADD_TEST(test_preprocess_and_load_stereo_data);
   // MU_ADD_TEST(test_draw_calib_validation);
   // MU_ADD_TEST(test_validate_intrinsics);
-  // MU_ADD_TEST(test_validate_stereo);
+  MU_ADD_TEST(test_validate_stereo);
 }
 
 } // namespace prototype

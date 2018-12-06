@@ -31,12 +31,14 @@ make -j8
 # sudo make install
 
 # APPS
-cd apps
+# cd apps
 # ./scripts/octave/calib_data_summary
 # ./calib_camera config/calib_camera.yaml
 # ./calib_stereo config/calib_stereo.yaml
+# ./calib_vicon_marker config/calib_vicon_marker.yaml
 # ./detect_aprilgrid config/detect_aprilgrid.yaml
-./validate_intrinsics config/validate_intrinsics.yaml
+# ./validate_intrinsics config/validate_intrinsics.yaml
+# ./validate_stereo config/validate_stereo.yaml
 
 
 # TESTS

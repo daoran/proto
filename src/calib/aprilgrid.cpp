@@ -13,8 +13,8 @@ aprilgrid_t::aprilgrid_t(const long timestamp,
                          const int tag_cols,
                          const double tag_size,
                          const double tag_spacing)
-    : configured{true}, timestamp{timestamp}, tag_rows{tag_rows}, tag_cols{tag_cols},
-      tag_size{tag_size}, tag_spacing{tag_spacing} {}
+    : configured{true}, tag_rows{tag_rows}, tag_cols{tag_cols},
+      tag_size{tag_size}, tag_spacing{tag_spacing}, timestamp{timestamp} {}
 
 aprilgrid_t::~aprilgrid_t() {}
 
@@ -597,6 +597,18 @@ int aprilgrid_detect(aprilgrid_t &grid,
   aprilgrid_calc_relative_pose(grid, cam_K, cam_D);
 
   return grid.nb_detections;
+}
+
+void aprilgrid_intersection(aprilgrid_t &grid0, aprilgrid_t &grid1) {
+  // Find the symmetric difference of AprilTag ids
+  std::vector<int> unique_ids = set_symmetric_diff(grid0.ids, grid1.ids);
+
+  // Remove AprilTag based on id
+  for (const auto &id : unique_ids) {
+    aprilgrid_remove(grid0, id);
+    aprilgrid_remove(grid1, id);
+  }
+  assert(grid0.ids.size() == grid1.ids.size());
 }
 
 std::ostream &operator<<(std::ostream &os, const aprilgrid_t &aprilgrid) {

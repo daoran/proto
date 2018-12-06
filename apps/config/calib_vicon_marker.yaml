@@ -1,12 +1,12 @@
 calib:
   target_file: "config/aprilgrid_6x6.yaml"
-  image_path: "/data/cam0"
-  pose_file: "/data/marker0/data.csv"
-  preprocess_path: "/tmp/calib/mono"
+  image_path: "/data/calibration_target/cam0/data"
+  pose_file: "/data/calibration_target/vicon0/data.csv"
+  preprocess_path: "/tmp/calib/vicon_marker"
 
 cam0:
-  resolution: [752, 480]
+  resolution: [640, 480]
   camera_model: "pinhole"
   distortion_model: "radtan"
-  intrinsics: [459.176, 458.052, 369.511, 245.668]
-  distortion: [-0.275281, 0.0671088, 0.000645568, -0.000474919]
+  intrinsics: [630.043222, 630.362170, 327.615743, 238.386901]
+  distortion: [0.139066, -0.349607, -0.000163,0.003016]

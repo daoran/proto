@@ -101,7 +101,7 @@ int preprocess_camera_data(const calib_target_t &target,
   // Check output dir
   std::vector<std::string> data_paths;
   if (list_dir(output_dir, data_paths) == 0 && data_paths.size() > 0) {
-    LOG_WARN("Data already exists in [%s]! Skipping preprocessing!",
+    LOG_INFO("Data already exists in [%s]! Skipping preprocessing!",
              output_dir.c_str());
     return 0;
   }

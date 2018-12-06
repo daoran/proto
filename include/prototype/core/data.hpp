@@ -1,6 +1,7 @@
 #ifndef PROTOTYPE_CORE_DATA_HPP
 #define PROTOTYPE_CORE_DATA_HPP
 
+#include <stdlib.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -8,6 +9,7 @@
 #include <set>
 
 #include "prototype/core/math.hpp"
+#include "prototype/core/linalg.hpp"
 
 namespace prototype {
 

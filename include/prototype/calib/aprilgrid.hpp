@@ -166,6 +166,11 @@ int aprilgrid_detect(aprilgrid_t &grid,
                      const mat3_t &cam_K,
                      const vec4_t &cam_D);
 
+/**
+ * Find the intersection of two aprilgrids
+ */
+void aprilgrid_intersection(aprilgrid_t &grid0, aprilgrid_t &grid1);
+
 /** Comparator to sort detected AprilTags by id */
 static bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
                                 const AprilTags::TagDetection &b) {
