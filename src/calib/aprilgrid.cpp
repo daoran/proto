@@ -393,27 +393,27 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
   }
 
   // Open file for saving
-  std::ofstream outfile(save_path);
-  if (outfile.good() != true) {
+  const auto fp = fopen(save_path.c_str(), "w");
+  if (fp == NULL) {
     LOG_ERROR("Failed to open [%s] for saving!", save_path.c_str());
     return -1;
   }
 
+
   // Output header
   // -- Configuration
-  outfile << "configured,";
-  outfile << "tag_rows,";
-  outfile << "tag_cols,";
-  outfile << "tag_size,";
-  outfile << "tag_spacing,";
+  fprintf(fp, "configured,");
+  fprintf(fp, "tag_rows,");
+  fprintf(fp, "tag_cols,");
+  fprintf(fp, "tag_size,");
+  fprintf(fp, "tag_spacing,");
   // -- Keypoints
-  outfile << "ts,id,kp_x,kp_y,";
+  fprintf(fp, "ts,id,kp_x,kp_y,");
   // -- Estimation
-  outfile << "estimated,";
-  outfile << "p_x,p_y,p_z,";
-  outfile << "q_w,q_x,q_y,q_z,";
-  outfile << "t_x,t_y,t_z";
-  outfile << std::endl;
+  fprintf(fp, "estimated,");
+  fprintf(fp, "p_x,p_y,p_z,");
+  fprintf(fp, "q_w,q_x,q_y,q_z,");
+  fprintf(fp, "t_x,t_y,t_z\n");
 
   // Decompose relative pose into rotation (quaternion) and translation
   const mat3_t R_CF = grid.T_CF.block(0, 0, 3, 3);
@@ -425,51 +425,50 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
     const int tag_id = grid.ids[i];
 
     for (int j = 0; j < 4; j++) {
-      outfile << grid.configured << ",";
-      outfile << grid.tag_rows << ",";
-      outfile << grid.tag_cols << ",";
-      outfile << grid.tag_size << ",";
-      outfile << grid.tag_spacing << ",";
+      fprintf(fp, "%d,", grid.configured);
+      fprintf(fp, "%d,", grid.tag_rows);
+      fprintf(fp, "%d,", grid.tag_cols);
+      fprintf(fp, "%f,", grid.tag_size);
+      fprintf(fp, "%f,", grid.tag_spacing);
 
       const vec2_t keypoint = grid.keypoints[(i * 4) + j];
-      outfile << grid.timestamp << ",";
-      outfile << tag_id << ",";
-      outfile << keypoint(0) << ",";
-      outfile << keypoint(1) << ",";
+      fprintf(fp, "%ld,", grid.timestamp);
+      fprintf(fp, "%d,", tag_id);
+      fprintf(fp, "%f,", keypoint(0));
+      fprintf(fp, "%f,", keypoint(1));
 
       const vec3_t point_CF = grid.points_CF[(i * 4) + j];
-      outfile << grid.estimated << ",";
+      fprintf(fp, "%d,", grid.estimated);
       if (grid.estimated) {
-        outfile << point_CF(0) << ",";
-        outfile << point_CF(1) << ",";
-        outfile << point_CF(2) << ",";
-        outfile << q_CF.w() << ",";
-        outfile << q_CF.x() << ",";
-        outfile << q_CF.y() << ",";
-        outfile << q_CF.z() << ",";
-        outfile << t_CF(0) << ",";
-        outfile << t_CF(1) << ",";
-        outfile << t_CF(2) << std::endl;
+        fprintf(fp, "%f,", point_CF(0));
+        fprintf(fp, "%f,", point_CF(1));
+        fprintf(fp, "%f,", point_CF(2));
+        fprintf(fp, "%f,", q_CF.w());
+        fprintf(fp, "%f,", q_CF.x());
+        fprintf(fp, "%f,", q_CF.y());
+        fprintf(fp, "%f,", q_CF.z());
+        fprintf(fp, "%f,", t_CF(0));
+        fprintf(fp, "%f,", t_CF(1));
+        fprintf(fp, "%f\n", t_CF(2));
       } else {
-        outfile << "0,0,0,0,0,0,0,0,0,0" << std::endl;
+        fprintf(fp, "0,0,0,0,0,0,0,0,0,0\n");
       }
     }
   }
 
   // Close up
-  outfile.close();
+  fclose(fp);
   return 0;
 }
 
 int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
-  // Load data file
-  matx_t data;
-  if (csv2mat(data_path, true, data) != 0) {
-    LOG_ERROR("Failed to load AprilGrid detection data [%s]!",
-              data_path.c_str());
+  // Open file for loading
+  const auto fp = fopen(data_path.c_str(), "r");
+  if (fp == NULL) {
+    LOG_ERROR("Failed to open [%s] for loading!", data_path.c_str());
     return -1;
   }
-  assert(data.cols() == 20);
+  const int nb_rows = filerows(data_path);
 
   // Parse file
   grid.ids.clear();
@@ -477,32 +476,83 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
   grid.points_CF.clear();
 
   // Parse data
-  for (int i = 0; i < data.rows(); i++) {
-    const vecx_t row = data.row(i);
-
-    // Configuration
-    grid.configured = row(0);
-    grid.tag_rows = row(1);
-    grid.tag_cols = row(2);
-    grid.tag_size = row(3);
-    grid.tag_spacing = row(4);
-
-    // Timestamp, tag id and keypoint
-    grid.timestamp = row(5);
-    if (std::count(grid.ids.begin(), grid.ids.end(), row(6)) == 0) {
-      grid.ids.emplace_back(row(6));
+  for (int i = 0; i < nb_rows; i++) {
+    // Skip first line
+    if (i == 0) {
+      char header[10000];
+      fscanf(fp, "%s", header);
+      continue;
     }
-    grid.keypoints.emplace_back(row(7), row(8));
 
-    // Point
-    grid.estimated = row(9);
-    grid.points_CF.emplace_back(row(10), row(11), row(12));
+    // Create format string
+    std::string str_format;
+    // -- AprilGrid properties
+    str_format += "%d,%d,%d,%lf,%lf,";
+    // -- Timestamp, tag id and keypoint
+    str_format += "%ld,%d,%lf,%lf,";
+    // -- Corner point
+    str_format += "%d,%lf,%lf,%lf,";
+    // -- AprilGrid pose
+    str_format += "%lf,%lf,%lf,%lf,%lf,%lf,%lf";
 
-    // AprilGrid pose
-    const quat_t q_CF{row(13), row(14), row(15), row(16)};
-    const vec3_t t_CF{row(17), row(18), row(19)};
+    // Parse line
+    int configured = 0;
+    int estimated = 0;
+    int tag_id = 0;
+    double kp_x, kp_y = 0.0;
+    double p_x, p_y, p_z = 0.0;
+    double q_w, q_x, q_y, q_z = 0.0;
+    double r_x, r_y, r_z = 0.0;
+    fscanf(
+      // File pointer
+      fp,
+      // String format
+      str_format.c_str(),
+      // Configuration
+      &configured,
+      &grid.tag_rows,
+      &grid.tag_cols,
+      &grid.tag_size,
+      &grid.tag_spacing,
+      // Timestamp, tag id and keypoint
+      &grid.timestamp,
+      &tag_id,
+      &kp_x,
+      &kp_y,
+      // Corner point
+      &estimated,
+      &p_x,
+      &p_y,
+      &p_z,
+      // AprilGrid pose
+      &q_w,
+      &q_x,
+      &q_y,
+      &q_z,
+      &r_x,
+      &r_y,
+      &r_z
+    );
+
+    // Map variables back to AprilGrid
+    // -- Grid configured, estimated
+    grid.configured = configured;
+    grid.estimated = estimated;
+    // -- AprilTag id and keypoint
+    if (std::count(grid.ids.begin(), grid.ids.end(), tag_id) == 0) {
+      grid.ids.emplace_back(tag_id);
+    }
+    grid.keypoints.emplace_back(kp_x, kp_y);
+    // -- Point
+    grid.points_CF.emplace_back(p_x, p_y, p_z);
+    // -- AprilGrid pose
+    const quat_t q_CF{q_w, q_x, q_y, q_z};
+    const vec3_t t_CF{r_x, r_y, r_z};
     grid.T_CF = tf(q_CF.toRotationMatrix(), t_CF);
   }
+
+  // Clean up
+  fclose(fp);
 
   return 0;
 }

@@ -13,19 +13,21 @@
 
 namespace prototype {
 
-// CSV ERROR MESSAGES
-#define E_CSV_DATA_LOAD "Error! failed to load data [%s]!!\n"
-#define E_CSV_DATA_OPEN "Error! failed to open file for output [%s]!!\n"
+/**
+ * Get number of rows in file.
+ * @returns Number of rows in file else -1 for failure.
+ */
+int filerows(const std::string &file_path);
 
 /**
  * Get number of rows in CSV file.
- * @returns number of rows in CSV file
+ * @returns Number of rows in CSV file else -1 for failure.
  */
 int csvrows(const std::string &file_path);
 
 /**
  * Get number of columns in CSV file.
- * @returns number of columns in CSV file
+ * @returns Number of columns in CSV file else -1 for failure.
  */
 int csvcols(const std::string &file_path);
 

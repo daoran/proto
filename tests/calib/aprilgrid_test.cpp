@@ -1,5 +1,6 @@
-#include "prototype/calib/aprilgrid.hpp"
+#include <limits>
 #include "prototype/munit.hpp"
+#include "prototype/calib/aprilgrid.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 
 namespace prototype {
@@ -259,7 +260,6 @@ int test_aprilgrid_save_and_load() {
   const vec3_t pos3{7.0, 8.0, 9.0};
   const vec3_t pos4{10.0, 11.0, 12.0};
 
-
   // Test save
   grid.configured = true;
   grid.tag_rows = 6;
@@ -268,7 +268,7 @@ int test_aprilgrid_save_and_load() {
   grid.tag_spacing = 0.3;
 
   grid.detected = true;
-  grid.timestamp = 1403709381987836928;
+  grid.timestamp = 1544020482626424074;
   grid.ids.push_back(1);
   grid.keypoints = {kp1, kp2, kp3, kp4};
 
@@ -277,22 +277,23 @@ int test_aprilgrid_save_and_load() {
   grid.T_CF = I(4);
   MU_CHECK_EQ(0, aprilgrid_save(grid, TEST_OUTPUT));
 
-  // // Test load
-  // aprilgrid_t grid2(0, 6, 6, 0.088, 0.3);
-  // MU_CHECK_EQ(0, aprilgrid_load(grid2, TEST_OUTPUT));
-  // std::cout << grid2 << std::endl;
-  //
-  // MU_CHECK_EQ(1, grid2.ids.size());
-  // MU_CHECK_EQ(4, grid2.keypoints.size());
-  // MU_CHECK_EQ(4, grid2.points_CF.size());
-  // MU_CHECK_FLOAT(0.0, (grid2.keypoints[0] - kp1).norm());
-  // MU_CHECK_FLOAT(0.0, (grid2.keypoints[1] - kp2).norm());
-  // MU_CHECK_FLOAT(0.0, (grid2.keypoints[2] - kp3).norm());
-  // MU_CHECK_FLOAT(0.0, (grid2.keypoints[3] - kp4).norm());
-  // MU_CHECK_FLOAT(0.0, (grid2.points_CF[0] - pos1).norm());
-  // MU_CHECK_FLOAT(0.0, (grid2.points_CF[1] - pos2).norm());
-  // MU_CHECK_FLOAT(0.0, (grid2.points_CF[2] - pos3).norm());
-  // MU_CHECK_FLOAT(0.0, (grid2.points_CF[3] - pos4).norm());
+  // Test load
+  aprilgrid_t grid2(0, 6, 6, 0.088, 0.3);
+  MU_CHECK_EQ(0, aprilgrid_load(grid2, TEST_OUTPUT));
+  std::cout << grid2 << std::endl;
+
+  MU_CHECK_EQ(1, grid2.ids.size());
+  MU_CHECK_EQ(4, grid2.keypoints.size());
+  MU_CHECK_EQ(4, grid2.points_CF.size());
+  MU_CHECK_EQ(grid.timestamp, grid2.timestamp);
+  MU_CHECK_FLOAT(0.0, (grid2.keypoints[0] - kp1).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.keypoints[1] - kp2).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.keypoints[2] - kp3).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.keypoints[3] - kp4).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.points_CF[0] - pos1).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.points_CF[1] - pos2).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.points_CF[2] - pos3).norm());
+  MU_CHECK_FLOAT(0.0, (grid2.points_CF[3] - pos4).norm());
 
   return 0;
 }
@@ -332,7 +333,7 @@ int test_aprilgrid_detect() {
   const cv::Mat image = cv::imread(TEST_IMAGE);
   const mat3_t K = pinhole_K(458.654, 457.296, 367.215, 248.375);
   const vec4_t D{-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05};
-  const auto aprilgrid = aprilgrid_detect(grid, detector, image, K, D);
+  aprilgrid_detect(grid, detector, image, K, D);
 
   for (const auto corner : grid.points_CF) {
     MU_CHECK(corner(0) < 1.0);

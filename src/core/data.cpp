@@ -2,11 +2,27 @@
 
 namespace prototype {
 
+int filerows(const std::string &file_path) {
+  // Load file
+  std::ifstream infile(file_path);
+  if (infile.good() != true) {
+    return -1;
+  }
+
+  // Obtain number of lines
+  int nb_rows = 0;
+  std::string line;
+  while (std::getline(infile, line)) {
+    nb_rows++;
+  }
+
+  return nb_rows;
+}
+
 int csvrows(const std::string &file_path) {
   // Load file
   std::ifstream infile(file_path);
   if (infile.good() != true) {
-    printf(E_CSV_DATA_LOAD, file_path.c_str());
     return -1;
   }
 
@@ -27,7 +43,6 @@ int csvcols(const std::string &file_path) {
   // Load file
   std::ifstream infile(file_path);
   if (infile.good() != true) {
-    printf(E_CSV_DATA_LOAD, file_path.c_str());
     return -1;
   }
 
@@ -88,7 +103,6 @@ int mat2csv(const std::string &file_path, const matx_t &data) {
   // Open file
   std::ofstream outfile(file_path);
   if (outfile.good() != true) {
-    printf(E_CSV_DATA_OPEN, file_path.c_str());
     return -1;
   }
 
