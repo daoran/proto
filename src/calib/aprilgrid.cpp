@@ -158,8 +158,6 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
                            const int tag_id,
                            const int corner_id,
                            vec3_t &object_point) {
-  const int tag_rows = grid.tag_rows;
-  const int tag_cols = grid.tag_cols;
   const double tag_size = grid.tag_size;
   const double tag_spacing = grid.tag_spacing;
 
@@ -199,8 +197,6 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
 int aprilgrid_object_points(const aprilgrid_t &grid,
                             const int tag_id,
                             vec3s_t &object_points) {
-  const int tag_rows = grid.tag_rows;
-  const int tag_cols = grid.tag_cols;
   const double tag_size = grid.tag_size;
   const double tag_spacing = grid.tag_spacing;
 
@@ -549,6 +545,11 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
     const quat_t q_CF{q_w, q_x, q_y, q_z};
     const vec3_t t_CF{r_x, r_y, r_z};
     grid.T_CF = tf(q_CF.toRotationMatrix(), t_CF);
+  }
+
+  // Grid detected
+  if (grid.ids.size()) {
+    grid.detected = true;
   }
 
   // Clean up

@@ -135,4 +135,77 @@ void print_progress(const double percentage) {
   fflush(stdout);
 }
 
+mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha) {
+  // Decompose start pose
+  const vec3_t trans0 = tf_trans(p0);
+  const quat_t quat0{tf_rot(p0)};
+
+  // Decompose end pose
+  const vec3_t trans1 = tf_trans(p1);
+  const quat_t quat1{tf_rot(p1)};
+
+  // Interpolate translation and rotation
+  const auto trans_interp = lerp(trans0, trans1, alpha);
+  const auto quat_interp = quat0.slerp(alpha, quat1);
+
+  return tf(quat_interp, trans_interp);
+}
+
+void interp_poses(const std::vector<long> &timestamps,
+                  const mat4s_t &poses,
+                  const std::vector<long> &interp_ts,
+                  mat4s_t &interped_poses,
+                  const double threshold) {
+  assert(timestamps.size() > 0);
+  assert(timestamps.size() == poses.size());
+  assert(interp_ts.size() > 0);
+  assert(timestamps[0] < interp_ts[0]);
+
+  // Interpolation variables
+  long t_start = 0;
+  long t_end = 0;
+  mat4_t pose0 = I(4);
+  mat4_t pose1 = I(4);
+
+  size_t interp_idx = 0;
+  for (size_t i = 0; i < timestamps.size(); i++) {
+    const long ts = timestamps[i];
+    const mat4_t T = poses[i];
+
+    const double diff = (ts - interp_ts[interp_idx]) * 1e-9;
+    if (diff < threshold) {
+      // Set interpolation start point
+      t_start = ts;
+      pose0 = T;
+
+    } else if (diff > threshold) {
+      // Set interpolation end point
+      t_end = ts;
+      pose1 = T;
+
+      // Calculate alpha
+      const double numerator = (interp_ts[interp_idx] - t_start) * 1e-9;
+      const double denominator = (t_end - t_start) * 1e-9;
+      const double alpha = numerator / denominator;
+
+      // Interpoate translation and rotation and add to results
+      interped_poses.push_back(interp_pose(pose0, pose1, alpha));
+      interp_idx++;
+
+      // Shift interpolation current end point to start point
+      t_start = t_end;
+      pose0 = pose1;
+
+      // Reset interpolation end point
+      t_end = 0;
+      pose1 = I(4);
+    }
+
+    // Check if we're done
+    if (interp_idx == interp_ts.size()) {
+      break;
+    }
+  }
+}
+
 } //  namespace prototype

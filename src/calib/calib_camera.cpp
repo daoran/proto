@@ -213,9 +213,6 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 pose->t.data());
     }
   }
-  // problem->SetParameterBlockConstant(distortion);
-  // problem->SetParameterBlockConstant(pose->q.coeffs().data());
-  // problem->SetParameterBlockConstant(pose->t.data());
 
   return 0;
 }
@@ -247,7 +244,6 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
-
     problem->SetParameterization(T_CF_params[i].q.coeffs().data(),
                                  &quaternion_parameterization);
   }

@@ -62,12 +62,13 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 T_WF->t.data());
     }
   }
+  // exit(0);
 
   return 0;
 }
 
 int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
-                             const mat4s_t &T_WM,
+                             mat4s_t &T_WM,
                              pinhole_t &pinhole,
                              radtan4_t &radtan,
                              mat4_t &T_MC,
@@ -105,8 +106,8 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
     }
 
     // Fixing the marker pose - assume vicon is calibrated and accurate
-    problem->SetParameterBlockConstant(T_WM_params[i].q.coeffs().data());
-    problem->SetParameterBlockConstant(T_WM_params[i].t.data());
+    // problem->SetParameterBlockConstant(T_WM_params[i].q.coeffs().data());
+    // problem->SetParameterBlockConstant(T_WM_params[i].t.data());
     problem->SetParameterization(T_WM_params[i].q.coeffs().data(),
                                  &quaternion_parameterization);
   }
@@ -119,6 +120,7 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
   ceres::Solver::Options options;
   options.minimizer_progress_to_stdout = true;
   options.max_num_iterations = 100;
+  options.num_threads = 4;
 
   // Solve
   ceres::Solver::Summary summary;
@@ -126,6 +128,11 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
   std::cout << summary.FullReport() << std::endl;
 
   // Finish up
+  // -- Marker pose
+  T_WM.clear();
+  for (const auto T_WM_param : T_WM_params) {
+    T_WM.push_back(tf(T_WM_param.q, T_WM_param.t));
+  }
   // -- Marker to camera extrinsics
   T_MC = tf(T_MC_param.q, T_MC_param.t);
   // -- Fiducial pose

@@ -10,6 +10,7 @@
 
 #include "prototype/core/math.hpp"
 #include "prototype/core/linalg.hpp"
+#include "prototype/core/tf.hpp"
 
 namespace prototype {
 
@@ -47,6 +48,31 @@ int mat2csv(const std::string &file_path, const matx_t &data);
  * Print progress to screen
  */
 void print_progress(const double percentage);
+
+/**
+ * Lerp
+ */
+template <typename T>
+T lerp(const T &start, const T &end, const double &alpha) {
+  return start + alpha * (end - start);
+}
+
+/**
+ * Interpolate between two poses `p0` and `p1` with parameter `alpha`.
+ */
+mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha);
+
+/**
+ * Interpolate `poses` where each pose has a timestamp in `timestamps` and the
+ * interpolation points in time are in `interp_ts`. The results are recorded
+ * in `interp_poses`.
+ * @returns 0 for success, -1 for failure
+ */
+void interp_poses(const std::vector<long> &timestamps,
+                  const mat4s_t &poses,
+                  const std::vector<long> &interp_ts,
+                  mat4s_t &interped_poses,
+                  const double threshold=0.01);
 
 /**
  * Pop front of an `std::vector`.

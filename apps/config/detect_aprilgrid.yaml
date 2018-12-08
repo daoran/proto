@@ -1,13 +1,13 @@
 calib:
   target_file: "config/aprilgrid_6x6.yaml"
-  image_path: "/data/calibration_target/cam0/data"
-  preprocess_path: "/tmp/calib/test2"
-  estimate_target: false
+  image_path: "/data/sync_data/cam0/data"
+  preprocess_path: "/data/sync_aprilgrid_data"
+  estimate_target: true
   imshow: true
 
 cam0:
-  resolution: [752, 480]
   camera_model: "pinhole"
   distortion_model: "radtan"
-  intrinsics: [460.107, 458.985, 371.509, 244.215]
-  distortion: [-0.268364, 0.0608506, 0.000938523, -0.000351249]
+  resolution: [640.000000, 480.000000]
+  intrinsics: [618.292623, 619.719100, 328.796312, 236.726813]
+  distortion: [0.098084, -0.124203, -0.001879, 0.001630]

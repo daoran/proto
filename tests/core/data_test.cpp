@@ -1,5 +1,6 @@
-#include "prototype/core/data.hpp"
 #include "prototype/munit.hpp"
+#include "prototype/core/data.hpp"
+#include "prototype/core/euler.hpp"
 
 #define TEST_DATA "test_data/core/data/matrix.dat"
 #define TEST_OUTPUT "/tmp/matrix.dat"
@@ -51,11 +52,107 @@ int test_mat2csv() {
   return 0;
 }
 
+static vec3_t quat2euler(const quat_t &q) {
+  const double qw = q.w();
+  const double qx = q.x();
+  const double qy = q.y();
+  const double qz = q.z();
+
+  const double qw2 = qw * qw;
+  const double qx2 = qx * qx;
+  const double qy2 = qy * qy;
+  const double qz2 = qz * qz;
+
+  const double t1 = atan2(2 * (qx * qw + qz * qy), (qw2 - qx2 - qy2 + qz2));
+  const double t2 = asin(2 * (qy * qw - qx * qz));
+  const double t3 = atan2(2 * (qx * qy + qz * qw), (qw2 + qx2 - qy2 - qz2));
+
+  return vec3_t{t1, t2, t3};
+}
+
+int test_interp_pose() {
+  const vec3_t trans_start{0.0, 0.0, 0.0};
+  const vec3_t trans_end{1.0, 2.0, 3.0};
+  const vec3_t rpy_start{0.0, 0.0, 0.0};
+  const vec3_t rpy_end{deg2rad(90.0), deg2rad(90.0), deg2rad(90.0)};
+
+  const auto pose0 = tf(euler321ToRot(rpy_start), trans_start);
+  const auto pose1 = tf(euler321ToRot(rpy_end), trans_end);
+  const auto pose_interp = interp_pose(pose0, pose1, 0.5);
+
+  MU_CHECK((tf_trans(pose_interp) - vec3_t{0.5, 1.0, 1.5}).norm() - 1e-5);
+
+  return 0;
+}
+
+int test_interp_poses() {
+  mat4s_t interped_poses;
+
+  // Create timestamps
+  std::vector<long> timestamps;
+  timestamps.push_back(1500000000000000000);
+  timestamps.push_back(1500000000200000000);
+  timestamps.push_back(1500000000400000000);
+  timestamps.push_back(1500000000600000000);
+  timestamps.push_back(1500000000800000000);
+  timestamps.push_back(1500000001000000000);
+  timestamps.push_back(1500000001200000000);
+  timestamps.push_back(1500000001400000000);
+  timestamps.push_back(1500000001600000000);
+  timestamps.push_back(1500000001800000000);
+
+  // Create poses
+  mat4s_t poses;
+  const vec3_t trans_start{0.0, 0.0, 0.0};
+  const vec3_t trans_end{1.0, 2.0, 3.0};
+  const vec3_t rpy_start{0.0, 0.0, 0.0};
+  const vec3_t rpy_end{deg2rad(90.0), deg2rad(90.0), deg2rad(90.0)};
+
+  const size_t nb_timestamps = timestamps.size();
+  const double step = 1.0 / nb_timestamps;
+  vec3s_t trans_interp_gnd;
+  for (size_t i = 0; i < nb_timestamps; i++) {
+    const auto trans_interp = lerp(trans_start, trans_end, step * i);
+    const auto rpy_interp = lerp(rpy_start, rpy_end, step * i);
+    const auto rot = euler321ToRot(rpy_interp);
+    const auto T = tf(rot, trans_interp);
+
+    poses.push_back(T);
+  }
+
+  // Create interpolate points in time
+  std::vector<long> interp_ts;
+  // interp_ts.push_back(1500000000100000000);
+  // interp_ts.push_back(1500000000300000000);
+  // interp_ts.push_back(1500000000500000000);
+  // interp_ts.push_back(1500000000700000000);
+  // interp_ts.push_back(1500000000900000000);
+  interp_ts.push_back(1500000001100000000);
+  // interp_ts.push_back(1500000001300000000);
+  // interp_ts.push_back(1500000001500000000);
+  // interp_ts.push_back(1500000001700000000);
+
+  // Interpolate poses
+  interp_poses(timestamps, poses, interp_ts, interped_poses);
+
+  // for (const auto &pose: interped_poses) {
+  //   const auto rpy_interp = quat2euler(quat_t{tf_rot(pose)});
+  //   const auto trans_interp = tf_trans(pose);
+  //   std::cout << "rpy interp:\n" << rpy_interp.transpose() << std::endl;
+  //   std::cout << "trans interp:\n" << trans_interp.transpose() << std::endl;
+  //   std::cout << std::endl;
+  // }
+
+  return 0;
+}
+
 void test_suite() {
   MU_ADD_TEST(test_csvrows);
   MU_ADD_TEST(test_csvcols);
   MU_ADD_TEST(test_csv2mat);
   MU_ADD_TEST(test_mat2csv);
+  MU_ADD_TEST(test_interp_pose);
+  MU_ADD_TEST(test_interp_poses);
 }
 
 } // namespace prototype

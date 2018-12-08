@@ -38,7 +38,7 @@ struct vicon_marker_residual_t {
  * Calibrate vicon marker to camera extrinsics
  */
 int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
-                             const mat4s_t &T_WM,
+                             mat4s_t &T_WM,
                              pinhole_t &pinhole,
                              radtan4_t &radtan,
                              mat4_t &T_MC,

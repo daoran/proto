@@ -1,12 +1,13 @@
 calib:
   target_file: "config/aprilgrid_6x6.yaml"
-  image_path: "/data/euroc_mav/cam_april/mav0/cam0/data"
-  preprocess_path: "/tmp/calib/mono"
+  # image_path: "/data/euroc_mav/imu_april/mav0/cam0/data"
+  image_path: "/data/calibration_target/cam0/data"
+  preprocess_path: "/tmp/calib/vicon_marker_intrinsics"
   imshow: true
 
 cam0:
-  resolution: [752, 480]
-  lens_hfov: 98.0
-  lens_vfov: 73.0
+  resolution: [640, 480]
+  lens_hfov: 90.0
+  lens_vfov: 90.0
   camera_model: "pinhole"
   distortion_model: "radtan"

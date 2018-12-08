@@ -131,15 +131,12 @@ int preprocess_camera_data(const calib_target_t &target,
     aprilgrid_detect(grid, detector, image, cam_K, cam_D);
 
     // -- Save AprilGrid
-    if (grid.detected) {
-      // -- Save data
-      if (aprilgrid_save(grid, save_path) != 0) {
-        return -1;
-      }
+    if (aprilgrid_save(grid, save_path) != 0) {
+      return -1;
+    }
 
-      if (imshow) {
-        aprilgrid_imshow(grid, "AprilGrid Detection", image);
-      }
+    if (imshow) {
+      aprilgrid_imshow(grid, "AprilGrid Detection", image);
     }
   }
 
@@ -189,6 +186,7 @@ int load_camera_calib_data(const std::string &data_dir,
 
   // Load AprilGrid data
   for (size_t i = 0; i < data_paths.size(); i++) {
+    // Load
     const auto data_path = paths_combine(data_dir, data_paths[i]);
     aprilgrid_t grid;
     if (aprilgrid_load(grid, data_path) != 0) {
@@ -196,7 +194,10 @@ int load_camera_calib_data(const std::string &data_dir,
       return -1;
     }
 
-    aprilgrids.emplace_back(grid);
+    // Make sure aprilgrid is actually detected
+    if (grid.detected) {
+      aprilgrids.emplace_back(grid);
+    }
   }
 
   return 0;
@@ -262,8 +263,7 @@ int load_stereo_calib_data(const std::string &cam0_data_dir,
 
   // Loop through both sets of calibration data and only keep apriltags that
   // are seen by both cameras
-  size_t nb_detections = std::max(grids0.size(),
-                                  grids1.size());
+  size_t nb_detections = std::max(grids0.size(), grids1.size());
   size_t cam0_idx = 0;
   size_t cam1_idx = 0;
 
@@ -282,21 +282,15 @@ int load_stereo_calib_data(const std::string &cam0_data_dir,
       continue;
     }
 
-    // Find the symmetric difference of AprilTag ids
-    std::vector<int> unique_ids = set_symmetric_diff(grid0.ids, grid1.ids);
-
-    // Remove AprilTag based on id
-    for (const auto &id : unique_ids) {
-      aprilgrid_remove(grid0, id);
-      aprilgrid_remove(grid1, id);
-    }
+    // Keep only common tags between grid0 and grid1
+    aprilgrid_intersection(grid0, grid1);
     assert(grid0.ids.size() == grid1.ids.size());
 
     // Add to results
     cam0_aprilgrids.emplace_back(grid0);
     cam1_aprilgrids.emplace_back(grid1);
 
-    // Check if theres anymore data to go though
+    // Check if there's more data to go though
     if (cam0_idx >= grids0.size()
         || cam1_idx >= grids1.size()) {
       break;
