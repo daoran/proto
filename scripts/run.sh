@@ -20,8 +20,8 @@ export CXX=/usr/bin/clang++
 # octave notes/equi4_point_jacobian.m
 # octave notes/radtan4_params_jacobian.m && exit 0
 # octave notes/radtan4_point_jacobian.m
-# octave tools/plot_calib_vicon
-# octave tools/plot_calib_euroc
+# octave tools/plot_calib_euroc && exit 0
+# octave tools/plot_calib_vicon && exit 0
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 
@@ -30,14 +30,15 @@ mkdir -p build
 cd build || return
 cmake ..
 make -j8
-# sudo make install
+sudo make install
+exit
 
 # APPS
-# cd apps
+cd apps
 # ./scripts/octave/calib_data_summary
 # ./calib_camera config/calib_camera.yaml
 # ./calib_stereo config/calib_stereo.yaml
-# ./calib_vicon_marker config/calib_vicon_marker.yaml
+./calib_vicon_marker config/calib_vicon_marker.yaml
 # ./detect_aprilgrid config/detect_aprilgrid.yaml
 # ./validate_intrinsics config/validate_intrinsics.yaml
 # ./validate_stereo config/validate_stereo.yaml
@@ -52,7 +53,7 @@ debug() {
 }
 
 # TESTS
-cd tests
+# cd tests
 # -- calib
 # ./calib-aprilgrid_test
 # ./calib-calib_camera_test
@@ -67,7 +68,7 @@ cd tests
 
 # -- core
 # ./core-config_test
-./core-data_test
+# ./core-data_test
 # ./core-file_test
 # ./core-gps_test
 # ./core-linalg_test

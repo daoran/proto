@@ -246,12 +246,28 @@ double median(const std::vector<double> &v);
 double deg2rad(const double d);
 
 /**
+ * Degrees to radians
+ *
+ * @param[in] d Degree to be converted
+ * @return Degree in radians
+ */
+vec3_t deg2rad(const vec3_t d);
+
+/**
  * Radians to degree
  *
  * @param[in] r Radian to be converted
  * @return Radian in degrees
  */
 double rad2deg(const double r);
+
+/**
+ * Radians to degree
+ *
+ * @param[in] r Radian to be converted
+ * @return Radian in degrees
+ */
+vec3_t rad2deg(const vec3_t r);
 
 /**
  * Load std::vector of doubles to an Eigen::Matrix

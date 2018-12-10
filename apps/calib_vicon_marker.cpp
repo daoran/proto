@@ -101,8 +101,6 @@ int save_results(const std::string &save_path,
 
 static std::vector<long> get_timestamps(const std::string &file_path,
                                         const bool header=false) {
-  std::vector<long> timestamps;
-
   // Load file
   std::ifstream infile(file_path);
   if (infile.good() != true) {
@@ -120,8 +118,10 @@ static std::vector<long> get_timestamps(const std::string &file_path,
   }
 
   // load data
+  std::vector<long> timestamps;
   size_t line_no = 0;
   std::string element;
+
   while (std::getline(infile, line)) {
     std::istringstream ss(line);
 
@@ -144,7 +144,6 @@ static int load_marker_poses(const calib_config_t &config,
   // Load marker pose data
   // -- First get timestamps
   const auto timestamps = get_timestamps(config.pose_file, true);
-
   // -- Load marker pose data
   matx_t pose_data;
   if (csv2mat(config.pose_file, true, pose_data) != 0) {
@@ -152,50 +151,63 @@ static int load_marker_poses(const calib_config_t &config,
     return -1;
   }
 
-  // -- Only keep marker poses where AprilGrid is detected
-  size_t grid_idx = 0;
-  size_t ts_idx = 0;
-
-  while (true) {
-    const auto &grid = aprilgrids[grid_idx];
-    const long ts = timestamps[ts_idx];
-
-    if (grid.timestamp == ts) {
-      timestamps_filtered.push_back(ts);
-
+  // -- Form transforms T_WM
+  mat4s_t marker_poses;
+  int grid_idx = 0;
+  int pose_idx = 0;
+  for (long i = 0; i < pose_data.rows(); i++) {
+    if (aprilgrids[grid_idx].timestamp == timestamps[pose_idx]) {
       // Translation
-      const double rx = pose_data(ts_idx, 1);
-      const double ry = pose_data(ts_idx, 2);
-      const double rz = pose_data(ts_idx, 3);
+      const double rx = pose_data(i, 1);
+      const double ry = pose_data(i, 2);
+      const double rz = pose_data(i, 3);
       const vec3_t r_WM{rx, ry, rz};
       // Rotation
-      const double qw = pose_data(ts_idx, 4);
-      const double qx = pose_data(ts_idx, 5);
-      const double qy = pose_data(ts_idx, 6);
-      const double qz = pose_data(ts_idx, 7);
+      const double qw = pose_data(i, 4);
+      const double qx = pose_data(i, 5);
+      const double qy = pose_data(i, 6);
+      const double qz = pose_data(i, 7);
       const quat_t q_WM{qw, qx, qy, qz};
       // Add transform T_WM
-      T_WM.emplace_back(tf(q_WM, r_WM));
-
-      // Update indicies
+      marker_poses.emplace_back(tf(q_WM, r_WM));
+      pose_idx++;
       grid_idx++;
-      ts_idx++;
 
-    } else if (grid.timestamp > ts) {
-      ts_idx++;
-    } else if (grid.timestamp < ts) {
+    } else if (aprilgrids[grid_idx].timestamp > timestamps[pose_idx]) {
+      pose_idx++;
+    } else if (aprilgrids[grid_idx].timestamp < timestamps[pose_idx]) {
       grid_idx++;
     }
 
-    // Reach the end of the line?
-    if (grid_idx == aprilgrids.size() || ts_idx == timestamps.size()) {
-      break;
-    }
   }
+  for (size_t i = 0; i < aprilgrids.size(); i++) {
+    timestamps_filtered.push_back(aprilgrids[i].timestamp);
+  }
+  T_WM = marker_poses;
 
-  std::cout << aprilgrids.size() << std::endl;
-  std::cout << T_WM.size() << std::endl;
-  exit(0);
+  // // -- Form transforms T_WM
+  // mat4s_t marker_poses;
+  // for (long i = 0; i < pose_data.rows(); i++) {
+  //   // Translation
+  //   const double rx = pose_data(i, 1);
+  //   const double ry = pose_data(i, 2);
+  //   const double rz = pose_data(i, 3);
+  //   const vec3_t r_WM{rx, ry, rz};
+  //   // Rotation
+  //   const double qw = pose_data(i, 4);
+  //   const double qx = pose_data(i, 5);
+  //   const double qy = pose_data(i, 6);
+  //   const double qz = pose_data(i, 7);
+  //   const quat_t q_WM{qw, qx, qy, qz};
+  //   // Add transform T_WM
+  //   marker_poses.emplace_back(tf(q_WM, r_WM));
+  // }
+
+  // Interpolate transforms against aprilgrids
+  // for (size_t i = 0; i < aprilgrids.size(); i++) {
+  //   timestamps_filtered.push_back(aprilgrids[i].timestamp);
+  // }
+  // interp_poses(timestamps, marker_poses, timestamps_filtered, T_WM);
 
   return 0;
 }
@@ -225,6 +237,9 @@ static cv::Mat project_aprilgrid(
     const mat4_t &T_WM,
     const mat4_t &T_MC,
     const mat4_t &T_WF) {
+  const auto T_MW = T_WM.inverse();
+  const auto T_CM = T_MC.inverse();
+
   // Make an RGB version of the input image
   cv::Mat image_rgb = gray2rgb(image);
 
@@ -237,8 +252,6 @@ static cv::Mat project_aprilgrid(
     }
 
     // Project corner points
-    const auto T_MW = T_WM.inverse();
-    const auto T_CM = T_MC.inverse();
     for (size_t j = 0; j < 4; j++) {
       const auto hp_F = object_points[j].homogeneous();
       const auto hp_C = T_CM * T_MW * T_WF * hp_F;
@@ -246,25 +259,15 @@ static cv::Mat project_aprilgrid(
 
       const cv::Point2f p(pixel(0), pixel(1));
       cv::circle(image_rgb,              // Target image
-                  p,                      // Center
-                  1,                      // Radius
-                  cv::Scalar{0, 0, 255},  // Colour
-                  CV_FILLED,              // Thickness
-                  8);                     // Line type
+                 p,                      // Center
+                 1,                      // Radius
+                 cv::Scalar{0, 0, 255},  // Colour
+                 CV_FILLED,              // Thickness
+                 8);                     // Line type
     }
   }
 
   return image_rgb;
-}
-
-static std::string basename(const std::string &path) {
-  auto output = path;
-  const size_t last_slash_idx = output.find_last_of("\\/");
-  if (std::string::npos != last_slash_idx) {
-    output.erase(0, last_slash_idx + 1);
-  }
-
-  return output;
 }
 
 static int validate(const calib_config_t &config,
@@ -288,18 +291,18 @@ static int validate(const calib_config_t &config,
   const radtan4_t radtan{config.distortion};
   const camera_geometry_t<pinhole_t, radtan4_t> camera(pinhole, radtan);
 
-  for (size_t i = 1500; i < image_paths.size(); i++) {
-    // print_progress((double) i / image_paths.size());
-
-    // Grab timestamp from file name and check if against calibrated
+  int pose_idx = 0;
+  for (size_t i = 0; i < image_paths.size(); i++) {
+    // Grab timestamp from file name
     std::string output = image_paths[i];
     const size_t last_slash_idx = output.find_last_of("\\/");
     if (std::string::npos != last_slash_idx) {
       output.erase(0, last_slash_idx + 1);
     }
-    const long ts = std::stol(output);
-    if (std::count(timestamps.begin(), timestamps.end(), ts) == 0) {
-      std::cout << "skipping" << std::endl;
+
+    // Check to see if image timestamp is among the timestamps we optimized against
+    const long image_ts = std::stol(output);
+    if (std::count(timestamps.begin(), timestamps.end(), image_ts) == 0) {
       continue;
     }
 
@@ -317,16 +320,13 @@ static int validate(const calib_config_t &config,
     const auto image_rgb = project_aprilgrid(grid,
                                              camera,
                                              image,
-                                             T_WM[i],
+                                             T_WM[pose_idx],
                                              T_MC,
                                              T_WF);
+    pose_idx++;
     cv::imshow("Validate:", image_rgb);
     cv::waitKey(1);
   }
-
-  // Print newline after print progress has finished
-  // print_progress(1.0);
-  // std::cout << std::endl;
 
   // Destroy all opencv windows
   cv::destroyAllWindows();
@@ -343,7 +343,7 @@ int main(int argc, char *argv[]) {
 
   // Parse calib config file
   const std::string config_file{argv[1]};
-  const calib_config_t config = parse_config(config_file);
+  calib_config_t config = parse_config(config_file);
 
   // Load calibration target
   calib_target_t calib_target;
@@ -382,8 +382,16 @@ int main(int argc, char *argv[]) {
   LOG_INFO("Calibrating vicon marker!");
   pinhole_t pinhole{config.intrinsics};
   radtan4_t radtan{config.distortion};
-  mat4_t T_MC = I(4);
-  mat4_t T_WF = I(4);
+
+  // const auto rpy_MC = deg2rad(vec3_t{-180.0, 0.0, -90.0});
+  const auto rpy_MC = deg2rad(vec3_t{0.0, 0.0, 0.0});
+  const auto C_MC = euler321ToRot(rpy_MC);
+  mat4_t T_MC = tf(C_MC, zeros(3, 1));
+  mat4_t T_WF = T_WM[0] * T_MC * aprilgrids[0].T_CF;
+
+  std::cout << "aprilgrids: " << aprilgrids.size() << std::endl;
+  std::cout << "T_WM: " << T_WM.size() << std::endl;
+
   retval = calib_vicon_marker_solve(aprilgrids,
                                     T_WM,
                                     pinhole,
@@ -399,7 +407,8 @@ int main(int argc, char *argv[]) {
   std::cout << "Optimization results:" << std::endl;
   std::cout << pinhole << std::endl;
   std::cout << radtan << std::endl;
-  std::cout << "T_MC:\n" << T_MC << std::endl;
+  std::cout << "T_MC:\n" << T_MC << std::endl << std::endl;
+  std::cout << "T_WF:\n" << T_WF << std::endl << std::endl;
 
   // Save results
   const std::string save_path{"./calib_results.yaml"};
@@ -409,8 +418,9 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  std::cout << timestamps.size() << std::endl;
-  std::cout << T_WM.size() << std::endl;
+  // Validate
+  config.intrinsics = vec4_t{pinhole.fx, pinhole.fy, pinhole.cx, pinhole.cy};
+  config.distortion = vec4_t{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
   validate(config, calib_target, timestamps, T_WM, T_MC, T_WF);
 
   return 0;

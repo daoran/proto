@@ -5,8 +5,6 @@
 
 #include "prototype/core/core.hpp"
 
-using namespace prototype;
-
 namespace prototype {
 
 /**

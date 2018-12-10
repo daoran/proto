@@ -70,15 +70,46 @@ static vec3_t quat2euler(const quat_t &q) {
   return vec3_t{t1, t2, t3};
 }
 
+int test_slerp() {
+  for (int i = 0; i < 1000; i++) {
+    const double roll_start = randf(-1.0, 1.0);
+    const double pitch_start = randf(-1.0, 1.0);
+    const double yaw_start = randf(-1.0, 1.0);
+    const vec3_t rpy_start{roll_start, pitch_start, yaw_start};
+
+    const double roll_end = randf(-1.0, 1.0);
+    const double pitch_end = randf(-1.0, 1.0);
+    const double yaw_end = randf(-1.0, 1.0);
+    const vec3_t rpy_end{roll_end, pitch_end, yaw_end};
+
+    const double alpha = randf(0.0, 1.0);
+    const auto q0 = quat_t{euler321ToRot(rpy_start)};
+    const auto q1 = quat_t{euler321ToRot(rpy_end)};
+    const auto expect = q0.slerp(alpha, q1);
+    const auto actual = slerp(q0, q1, alpha);
+
+    MU_CHECK_FLOAT(expect.w(), actual.w());
+    MU_CHECK_FLOAT(expect.x(), actual.x());
+    MU_CHECK_FLOAT(expect.y(), actual.y());
+    MU_CHECK_FLOAT(expect.z(), actual.z());
+  }
+
+  return 0;
+}
+
 int test_interp_pose() {
   const vec3_t trans_start{0.0, 0.0, 0.0};
   const vec3_t trans_end{1.0, 2.0, 3.0};
   const vec3_t rpy_start{0.0, 0.0, 0.0};
-  const vec3_t rpy_end{deg2rad(90.0), deg2rad(90.0), deg2rad(90.0)};
+  const vec3_t rpy_end{deg2rad(10.0), deg2rad(0.0), deg2rad(0.0)};
 
-  const auto pose0 = tf(euler321ToRot(rpy_start), trans_start);
-  const auto pose1 = tf(euler321ToRot(rpy_end), trans_end);
-  const auto pose_interp = interp_pose(pose0, pose1, 0.5);
+  const auto pose_start = tf(euler321ToRot(rpy_start), trans_start);
+  const auto pose_end = tf(euler321ToRot(rpy_end), trans_end);
+  const auto pose_interp = interp_pose(pose_start, pose_end, 0.5);
+
+  std::cout << "pose_start:\n" << pose_start << std::endl << std::endl;
+  std::cout << "pose_end:\n" << pose_end  << std::endl << std::endl;
+  std::cout << "pose_interp:\n" << pose_interp  << std::endl << std::endl;
 
   MU_CHECK((tf_trans(pose_interp) - vec3_t{0.5, 1.0, 1.5}).norm() - 1e-5);
 
@@ -135,14 +166,6 @@ int test_interp_poses() {
   // Interpolate poses
   interp_poses(timestamps, poses, interp_ts, interped_poses);
 
-  // for (const auto &pose: interped_poses) {
-  //   const auto rpy_interp = quat2euler(quat_t{tf_rot(pose)});
-  //   const auto trans_interp = tf_trans(pose);
-  //   std::cout << "rpy interp:\n" << rpy_interp.transpose() << std::endl;
-  //   std::cout << "trans interp:\n" << trans_interp.transpose() << std::endl;
-  //   std::cout << std::endl;
-  // }
-
   return 0;
 }
 
@@ -151,6 +174,7 @@ void test_suite() {
   MU_ADD_TEST(test_csvcols);
   MU_ADD_TEST(test_csv2mat);
   MU_ADD_TEST(test_mat2csv);
+  MU_ADD_TEST(test_slerp);
   MU_ADD_TEST(test_interp_pose);
   MU_ADD_TEST(test_interp_poses);
 }

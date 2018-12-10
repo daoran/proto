@@ -239,9 +239,15 @@ double median(const std::vector<double> &v) {
   }
 }
 
-double deg2rad(const double d) { return d * (M_PI / 180); }
+double deg2rad(const double d) { return d * (M_PI / 180.0); }
 
-double rad2deg(const double r) { return r * (180 / M_PI); }
+vec3_t deg2rad(const vec3_t d) {
+  return d * (M_PI / 180.0);
+}
+
+double rad2deg(const double r) { return r * (180.0 / M_PI); }
+
+vec3_t rad2deg(const vec3_t r) { return r * (180.0 / M_PI); }
 
 void load_matrix(const std::vector<double> &x,
                  const int rows,

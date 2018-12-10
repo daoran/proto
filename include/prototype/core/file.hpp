@@ -16,6 +16,14 @@
 namespace prototype {
 
 /**
+ * Copy file from path `src` to path `dest.
+ *
+ * @returns 0 for success else -1 if `src` file could not be opend, or -2 if
+ * `dest` file could not be opened.
+ */
+int file_copy(const std::string &src, const std::string &dest);
+
+/**
  * Return basename
  */
 std::string basename(const std::string &path);

@@ -4,8 +4,6 @@
 #include "prototype/core/core.hpp"
 #include "prototype/control/pid.hpp"
 
-using namespace prototype;
-
 namespace prototype {
 
 /**

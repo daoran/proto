@@ -135,6 +135,50 @@ void print_progress(const double percentage) {
   fflush(stdout);
 }
 
+quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
+	vec4_t q0{q_start.coeffs().data()};
+	vec4_t q1{q_end.coeffs().data()};
+
+	// Only unit quaternions are valid rotations.
+	// Normalize to avoid undefined behavior.
+	q0.normalize();
+	q1.normalize();
+
+	// Compute the cosine of the angle between the two vectors.
+	double dot = q0.dot(q1);
+
+	// If the dot product is negative, slerp won't take
+	// the shorter path. Note that q1 and -q1 are equivalent when
+	// the negation is applied to all four components. Fix by
+	// reversing one quaternion.
+	if (dot < 0.0f) {
+		q1 = -q1;
+		dot = -dot;
+	}
+
+	const double DOT_THRESHOLD = 0.9995;
+	if (dot > DOT_THRESHOLD) {
+		// If the inputs are too close for comfort, linearly interpolate
+		// and normalize the result.
+		vec4_t result = q0 + alpha * (q1 - q0);
+		result.normalize();
+		return quat_t{result(3), result(0), result(1), result(2)};
+	}
+
+	// Since dot is in range [0, DOT_THRESHOLD], acos is safe
+	const double theta_0 = acos(dot);        // theta_0 = angle between input vectors
+	const double theta = theta_0 * alpha;    // theta = angle between q0 and result
+	const double sin_theta = sin(theta);     // compute this value only once
+	const double sin_theta_0 = sin(theta_0); // compute this value only once
+
+  // == sin(theta_0 - theta) / sin(theta_0)
+	const double s0 = cos(theta) - dot * sin_theta / sin_theta_0;
+	const double s1 = sin_theta / sin_theta_0;
+
+	const vec4_t result = (s0 * q0) + (s1 * q1);
+	return quat_t{result(3), result(0), result(1), result(2)};
+}
+
 mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha) {
   // Decompose start pose
   const vec3_t trans0 = tf_trans(p0);
@@ -146,7 +190,8 @@ mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha) {
 
   // Interpolate translation and rotation
   const auto trans_interp = lerp(trans0, trans1, alpha);
-  const auto quat_interp = quat0.slerp(alpha, quat1);
+  const auto quat_interp = quat1.slerp(alpha, quat0);
+	// const auto quat_interp = slerp(quat0, quat1, alpha);
 
   return tf(quat_interp, trans_interp);
 }
@@ -162,8 +207,8 @@ void interp_poses(const std::vector<long> &timestamps,
   assert(timestamps[0] < interp_ts[0]);
 
   // Interpolation variables
-  long t_start = 0;
-  long t_end = 0;
+  long ts_start = 0;
+  long ts_end = 0;
   mat4_t pose0 = I(4);
   mat4_t pose1 = I(4);
 
@@ -175,17 +220,17 @@ void interp_poses(const std::vector<long> &timestamps,
     const double diff = (ts - interp_ts[interp_idx]) * 1e-9;
     if (diff < threshold) {
       // Set interpolation start point
-      t_start = ts;
+      ts_start = ts;
       pose0 = T;
 
     } else if (diff > threshold) {
       // Set interpolation end point
-      t_end = ts;
+      ts_end = ts;
       pose1 = T;
 
       // Calculate alpha
-      const double numerator = (interp_ts[interp_idx] - t_start) * 1e-9;
-      const double denominator = (t_end - t_start) * 1e-9;
+      const double numerator = (interp_ts[interp_idx] - ts_start) * 1e-9;
+      const double denominator = (ts_end - ts_start) * 1e-9;
       const double alpha = numerator / denominator;
 
       // Interpoate translation and rotation and add to results
@@ -193,11 +238,11 @@ void interp_poses(const std::vector<long> &timestamps,
       interp_idx++;
 
       // Shift interpolation current end point to start point
-      t_start = t_end;
+      ts_start = ts_end;
       pose0 = pose1;
 
       // Reset interpolation end point
-      t_end = 0;
+      ts_end = 0;
       pose1 = I(4);
     }
 

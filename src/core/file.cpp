@@ -2,6 +2,33 @@
 
 namespace prototype {
 
+int file_copy(const std::string &src, const std::string &dest) {
+  // Open input path
+	FILE *src_file = fopen(src.c_str(), "rb");
+	if (src_file == NULL) {
+		return -1;
+	}
+
+  // Open output path
+	FILE *dest_file = fopen(dest.c_str(), "wb");
+	if (src_file == NULL) {
+		return -2;
+	}
+
+	// BUFSIZE default is 8192 bytes
+	// BUFSIZE of 1 means one chareter at time
+	char buf[BUFSIZ];
+	while (size_t size = fread(buf, 1, BUFSIZ, src_file)) {
+		fwrite(buf, 1, size, dest_file);
+	}
+
+  // Clean up
+	fclose(src_file);
+	fclose(dest_file);
+
+	return 0;
+}
+
 std::string basename(const std::string &path) {
   auto output = path;
   const size_t last_slash_idx = output.find_last_of("\\/");
@@ -77,7 +104,6 @@ int create_dir(const std::string &path) {
 int remove_dir(const std::string &path) {
   DIR *dir = opendir(path.c_str());
   struct dirent *next_file;
-  char filepath[256];
 
   // pre-check
   if (dir == NULL) {

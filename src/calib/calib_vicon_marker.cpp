@@ -62,7 +62,6 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 T_WF->t.data());
     }
   }
-  // exit(0);
 
   return 0;
 }
@@ -78,11 +77,11 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
   assert(T_WM.size() == aprilgrids.size());
 
   // Optimization variables
-  calib_pose_param_t T_WF_param{T_WM[0] * T_MC * aprilgrids[0].T_CF};
   calib_pose_param_t T_MC_param{T_MC};
+  calib_pose_param_t T_WF_param{T_WM[0] * T_MC * aprilgrids[0].T_CF};
   std::vector<calib_pose_param_t> T_WM_params;
   for (size_t i = 0; i < T_WM.size(); i++) {
-    T_WM_params.emplace_back(T_WM[i]);
+    T_WM_params.push_back(T_WM[i]);
   }
 
   // Setup optimization problem
@@ -106,11 +105,13 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
     }
 
     // Fixing the marker pose - assume vicon is calibrated and accurate
-    // problem->SetParameterBlockConstant(T_WM_params[i].q.coeffs().data());
-    // problem->SetParameterBlockConstant(T_WM_params[i].t.data());
+    problem->SetParameterBlockConstant(T_WM_params[i].q.coeffs().data());
+    problem->SetParameterBlockConstant(T_WM_params[i].t.data());
     problem->SetParameterization(T_WM_params[i].q.coeffs().data(),
                                  &quaternion_parameterization);
   }
+  problem->SetParameterBlockConstant(*pinhole.data);
+  problem->SetParameterBlockConstant(*radtan.data);
   problem->SetParameterization(T_MC_param.q.coeffs().data(),
                                &quaternion_parameterization);
   problem->SetParameterization(T_WF_param.q.coeffs().data(),

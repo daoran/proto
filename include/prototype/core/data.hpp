@@ -50,6 +50,11 @@ int mat2csv(const std::string &file_path, const matx_t &data);
 void print_progress(const double percentage);
 
 /**
+ * Slerp
+ */
+quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha);
+
+/**
  * Lerp
  */
 template <typename T>
@@ -72,7 +77,7 @@ void interp_poses(const std::vector<long> &timestamps,
                   const mat4s_t &poses,
                   const std::vector<long> &interp_ts,
                   mat4s_t &interped_poses,
-                  const double threshold=0.01);
+                  const double threshold=0.001);
 
 /**
  * Pop front of an `std::vector`.
