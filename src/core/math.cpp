@@ -20,6 +20,31 @@ void print_array(const std::string &name,
   printf("\b\n");
 }
 
+void print_vector(const std::string &name, const vecx_t &v) {
+  printf("%s: ", name.c_str());
+  for (long i = 0; i < v.size(); i++) {
+    printf("%f", v(i));
+    if ((i + 1) != v.size()) {
+      printf(", ");
+    }
+  }
+  printf("\n");
+}
+
+void print_matrix(const std::string &name, const matx_t &m) {
+  printf("%s: ", name.c_str());
+  for (long i = 0; i < m.rows(); i++) {
+    for (long j = 0; j < m.cols(); j++) {
+      printf("%f", m(i, j));
+      if ((j + 1) != m.cols()) {
+        printf(", ");
+      }
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 std::string array2str(const double *array, const size_t size) {
   std::stringstream os;
   for (size_t i = 0; i < (size - 1); i++) {

@@ -74,6 +74,16 @@ void print_array(const std::string &name,
                  const size_t size);
 
 /**
+ * Print vector `v` with a `name`.
+ */
+void print_vector(const std::string &name, const vecx_t &v);
+
+/**
+ * Print matrix `m` with a `name`.
+ */
+void print_matrix(const std::string &name, const matx_t &m);
+
+/**
  * Array to string
  *
  * @param[in] array Target array

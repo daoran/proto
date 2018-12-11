@@ -1,4 +1,3 @@
-#include <libgen.h>
 #include <prototype/prototype.hpp>
 
 using namespace prototype;
@@ -62,27 +61,24 @@ int save_results(const std::string &save_path,
                  const pinhole_t &pinhole,
                  const radtan4_t &radtan,
                  const mat4_t &T_MC) {
-  std::ofstream outfile(save_path);
-
   // Check if file is ok
+  std::ofstream outfile(save_path);
   if (outfile.good() != true) {
     return -1;
   }
 
   // Save results
   const std::string indent = "  ";
-  {
-    const std::string res = vec2str(resolution);
-    const std::string intrinsics = arr2str(*pinhole.data, 4);
-    const std::string distortion = arr2str(*radtan.data, 4);
-    outfile << "cam0:" << std::endl;
-    outfile << indent << "camera_model: \"pinhole\"" << std::endl;
-    outfile << indent << "distortion_model: \"radtan\"" << std::endl;
-    outfile << indent << "resolution: " << res << std::endl;
-    outfile << indent << "intrinsics: " << intrinsics << std::endl;
-    outfile << indent << "distortion: " << distortion << std::endl;
-    outfile << std::endl;
-  }
+  const std::string res = vec2str(resolution);
+  const std::string intrinsics = arr2str(*pinhole.data, 4);
+  const std::string distortion = arr2str(*radtan.data, 4);
+  outfile << "cam0:" << std::endl;
+  outfile << indent << "camera_model: \"pinhole\"" << std::endl;
+  outfile << indent << "distortion_model: \"radtan\"" << std::endl;
+  outfile << indent << "resolution: " << res << std::endl;
+  outfile << indent << "intrinsics: " << intrinsics << std::endl;
+  outfile << indent << "distortion: " << distortion << std::endl;
+  outfile << std::endl;
 
   // Save marker to camera extrinsics
   outfile << "T_MC: " << std::endl;
@@ -99,115 +95,50 @@ int save_results(const std::string &save_path,
   return 0;
 }
 
-static std::vector<long> get_timestamps(const std::string &file_path,
-                                        const bool header=false) {
-  // Load file
-  std::ifstream infile(file_path);
-  if (infile.good() != true) {
-    FATAL("Cannot open file [%s]!", file_path.c_str());
-  }
-
-  // Obtain number of rows and cols
-  int nb_rows = csvrows(file_path);
-
-  // Header line?
-  std::string line;
-  if (header) {
-    std::getline(infile, line);
-    nb_rows -= 1;
-  }
-
-  // load data
-  std::vector<long> timestamps;
-  size_t line_no = 0;
-  std::string element;
-
-  while (std::getline(infile, line)) {
-    std::istringstream ss(line);
-
-    // load data row
-    for (int i = 0; i < 1; i++) {
-      std::getline(ss, element, ',');
-      timestamps.push_back(atol(element.c_str()));
-    }
-
-    line_no++;
-  }
-
-  return timestamps;
-}
-
 static int load_marker_poses(const calib_config_t &config,
                              const aprilgrids_t &aprilgrids,
                              std::vector<long> &timestamps_filtered,
                              mat4s_t &T_WM) {
-  // Load marker pose data
-  // -- First get timestamps
-  const auto timestamps = get_timestamps(config.pose_file, true);
-  // -- Load marker pose data
-  matx_t pose_data;
-  if (csv2mat(config.pose_file, true, pose_data) != 0) {
-    LOG_ERROR("Failed to load pose data [%s]!", config.pose_file.c_str());
+  // Open pose file
+  const auto fp = fopen(config.pose_file.c_str(), "r");
+  if (fp == NULL) {
+    LOG_ERROR("Failed to open [%s] for loading!", config.pose_file.c_str());
     return -1;
   }
 
-  // -- Form transforms T_WM
+  // Skip first line
+  skip_line(fp);
+
+  // Parse data
+  std::vector<long> timestamps;
   mat4s_t marker_poses;
-  int grid_idx = 0;
-  int pose_idx = 0;
-  for (long i = 0; i < pose_data.rows(); i++) {
-    if (aprilgrids[grid_idx].timestamp == timestamps[pose_idx]) {
-      // Translation
-      const double rx = pose_data(i, 1);
-      const double ry = pose_data(i, 2);
-      const double rz = pose_data(i, 3);
-      const vec3_t r_WM{rx, ry, rz};
-      // Rotation
-      const double qw = pose_data(i, 4);
-      const double qx = pose_data(i, 5);
-      const double qy = pose_data(i, 6);
-      const double qz = pose_data(i, 7);
-      const quat_t q_WM{qw, qx, qy, qz};
-      // Add transform T_WM
-      marker_poses.emplace_back(tf(q_WM, r_WM));
-      pose_idx++;
-      grid_idx++;
+  int nb_rows = filerows(config.pose_file) - 1;
+  std::string str_format = "%ld,%lf,%lf,%lf,%lf,%lf,%lf,%lf";
+  for (int i = 0; i < nb_rows; i++) {
+    // Parse line
+    long ts = 0;
+    double rx, ry, rz = 0.0;
+    double qw, qx, qy, qz = 0.0;
+    fscanf(fp, str_format.c_str(), &ts, &rx, &ry, &rz, &qw, &qx, &qy, &qz);
 
-    } else if (aprilgrids[grid_idx].timestamp > timestamps[pose_idx]) {
-      pose_idx++;
-    } else if (aprilgrids[grid_idx].timestamp < timestamps[pose_idx]) {
-      grid_idx++;
-    }
+    // Form timestamps
+    timestamps.push_back(ts);
 
+    // Form transform T_WM
+    const vec3_t r_WM{rx, ry, rz};
+    const quat_t q_WM{qw, qx, qy, qz};
+    marker_poses.emplace_back(tf(q_WM, r_WM));
   }
+
+  // Close file
+  fclose(fp);
+
+  // Interpolate transforms against aprilgrids
   for (size_t i = 0; i < aprilgrids.size(); i++) {
     timestamps_filtered.push_back(aprilgrids[i].timestamp);
   }
-  T_WM = marker_poses;
-
-  // // -- Form transforms T_WM
-  // mat4s_t marker_poses;
-  // for (long i = 0; i < pose_data.rows(); i++) {
-  //   // Translation
-  //   const double rx = pose_data(i, 1);
-  //   const double ry = pose_data(i, 2);
-  //   const double rz = pose_data(i, 3);
-  //   const vec3_t r_WM{rx, ry, rz};
-  //   // Rotation
-  //   const double qw = pose_data(i, 4);
-  //   const double qx = pose_data(i, 5);
-  //   const double qy = pose_data(i, 6);
-  //   const double qz = pose_data(i, 7);
-  //   const quat_t q_WM{qw, qx, qy, qz};
-  //   // Add transform T_WM
-  //   marker_poses.emplace_back(tf(q_WM, r_WM));
-  // }
-
-  // Interpolate transforms against aprilgrids
-  // for (size_t i = 0; i < aprilgrids.size(); i++) {
-  //   timestamps_filtered.push_back(aprilgrids[i].timestamp);
-  // }
   // interp_poses(timestamps, marker_poses, timestamps_filtered, T_WM);
+  closest_poses(timestamps, marker_poses, timestamps_filtered, T_WM);
 
   return 0;
 }
@@ -260,7 +191,7 @@ static cv::Mat project_aprilgrid(
       const cv::Point2f p(pixel(0), pixel(1));
       cv::circle(image_rgb,              // Target image
                  p,                      // Center
-                 1,                      // Radius
+                 3,                      // Radius
                  cv::Scalar{0, 0, 255},  // Colour
                  CV_FILLED,              // Thickness
                  8);                     // Line type
@@ -383,8 +314,8 @@ int main(int argc, char *argv[]) {
   pinhole_t pinhole{config.intrinsics};
   radtan4_t radtan{config.distortion};
 
-  // const auto rpy_MC = deg2rad(vec3_t{-180.0, 0.0, -90.0});
-  const auto rpy_MC = deg2rad(vec3_t{0.0, 0.0, 0.0});
+  const auto rpy_MC = deg2rad(vec3_t{-180.0, 0.0, -90.0});
+  // const auto rpy_MC = deg2rad(vec3_t{0.0, 0.0, 0.0});
   const auto C_MC = euler321ToRot(rpy_MC);
   mat4_t T_MC = tf(C_MC, zeros(3, 1));
   mat4_t T_WF = T_WM[0] * T_MC * aprilgrids[0].T_CF;

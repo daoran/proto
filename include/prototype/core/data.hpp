@@ -1,6 +1,7 @@
 #ifndef PROTOTYPE_CORE_DATA_HPP
 #define PROTOTYPE_CORE_DATA_HPP
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <fstream>
 #include <iomanip>
@@ -13,6 +14,11 @@
 #include "prototype/core/tf.hpp"
 
 namespace prototype {
+
+/**
+ * Skip file line in file `fp`.
+ */
+void skip_line(FILE *fp);
 
 /**
  * Get number of rows in file.
@@ -78,6 +84,17 @@ void interp_poses(const std::vector<long> &timestamps,
                   const std::vector<long> &interp_ts,
                   mat4s_t &interped_poses,
                   const double threshold=0.001);
+
+/**
+ * Get the closest pose in `poses` where each pose has a timestamp in
+ * `timestamps` and the target points in time are in `target_ts`. The results
+ * are recorded in `result`.
+ * @returns 0 for success, -1 for failure
+ */
+void closest_poses(const std::vector<long> &timestamps,
+                   const mat4s_t &poses,
+                   const std::vector<long> &interp_ts,
+                   mat4s_t &result);
 
 /**
  * Pop front of an `std::vector`.

@@ -2,6 +2,11 @@
 
 namespace prototype {
 
+void skip_line(FILE *fp){
+  char header[BUFSIZ];
+  fgets(header, BUFSIZ, fp);
+}
+
 int filerows(const std::string &file_path) {
   // Load file
   std::ifstream infile(file_path);
@@ -248,6 +253,56 @@ void interp_poses(const std::vector<long> &timestamps,
 
     // Check if we're done
     if (interp_idx == interp_ts.size()) {
+      break;
+    }
+  }
+}
+
+void closest_poses(const std::vector<long> &timestamps,
+                   const mat4s_t &poses,
+                   const std::vector<long> &target_ts,
+                   mat4s_t &result) {
+  assert(timestamps.size() > 0);
+  assert(timestamps.size() == poses.size());
+  assert(target_ts.size() > 0);
+  assert(timestamps[0] < target_ts[0]);
+
+  // Variables
+  bool initialized = false;
+  double diff_closest = std::numeric_limits<double>::max();
+  mat4_t pose_closest = I(4);
+
+  size_t target_idx = 0;
+  for (size_t i = 0; i < timestamps.size(); i++) {
+    const long ts = timestamps[i];
+    const mat4_t T = poses[i];
+
+    // Find closest pose
+    const double diff = fabs((ts - target_ts[target_idx]) * 1e-9);
+    if (initialized == false) {
+      // Initialize closest pose
+      initialized = true;
+      pose_closest = T;
+      diff_closest = diff;
+
+    } else if (diff < diff_closest) {
+      // Update closest pose
+      pose_closest = T;
+      diff_closest = diff;
+
+    } else if (diff > diff_closest) {
+      // Add to results
+      result.push_back(pose_closest);
+      target_idx++;
+
+      // Reset closest pose
+      initialized = false;
+      diff_closest = std::numeric_limits<double>::max();
+      pose_closest = I(4);
+    }
+
+    // Check if we're done
+    if (target_idx == target_ts.size()) {
       break;
     }
   }

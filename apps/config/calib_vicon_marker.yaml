@@ -1,8 +1,8 @@
 calib:
   target_file: "config/aprilgrid_6x6.yaml"
-  image_path: "/data/calibration_target_2/cam0/data"
-  pose_file: "/data/calibration_target_2/vicon0/data.csv"
-  preprocess_path: "/data/calibration_target_2/aprilgrid0/data"
+  image_path: "/data/marker_calib_3/cam0/data"
+  pose_file: "/data/marker_calib_3/marker0/data.csv"
+  preprocess_path: "/data/marker_calib_3/aprilgrid0/data"
 
 #cam0:
 #  resolution: [640, 480]

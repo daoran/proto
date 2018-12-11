@@ -30,8 +30,8 @@ mkdir -p build
 cd build || return
 cmake ..
 make -j8
-sudo make install
-exit
+# sudo make install
+# exit
 
 # APPS
 cd apps

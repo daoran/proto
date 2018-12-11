@@ -466,6 +466,17 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
   }
   const int nb_rows = filerows(data_path);
 
+  // Create format string
+  std::string str_format;
+  // -- AprilGrid properties
+  str_format += "%d,%d,%d,%lf,%lf,";
+  // -- Timestamp, tag id and keypoint
+  str_format += "%ld,%d,%lf,%lf,";
+  // -- Corner point
+  str_format += "%d,%lf,%lf,%lf,";
+  // -- AprilGrid pose
+  str_format += "%lf,%lf,%lf,%lf,%lf,%lf,%lf";
+
   // Parse file
   grid.ids.clear();
   grid.keypoints.clear();
@@ -475,21 +486,9 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
   for (int i = 0; i < nb_rows; i++) {
     // Skip first line
     if (i == 0) {
-      char header[10000];
-      fscanf(fp, "%s", header);
+      skip_line(fp);
       continue;
     }
-
-    // Create format string
-    std::string str_format;
-    // -- AprilGrid properties
-    str_format += "%d,%d,%d,%lf,%lf,";
-    // -- Timestamp, tag id and keypoint
-    str_format += "%ld,%d,%lf,%lf,";
-    // -- Corner point
-    str_format += "%d,%lf,%lf,%lf,";
-    // -- AprilGrid pose
-    str_format += "%lf,%lf,%lf,%lf,%lf,%lf,%lf";
 
     // Parse line
     int configured = 0;
