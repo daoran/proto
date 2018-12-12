@@ -55,11 +55,11 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 intrinsics,
                                 distortion,
                                 T_MC->q.coeffs().data(),
-                                T_MC->t.data(),
+                                T_MC->r.data(),
                                 T_WM->q.coeffs().data(),
-                                T_WM->t.data(),
+                                T_WM->r.data(),
                                 T_WF->q.coeffs().data(),
-                                T_WF->t.data());
+                                T_WF->r.data());
     }
   }
 
@@ -106,7 +106,7 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
     // Fixing the marker pose - assume vicon is calibrated and accurate
     problem->SetParameterBlockConstant(T_WM_params[i].q.coeffs().data());
-    problem->SetParameterBlockConstant(T_WM_params[i].t.data());
+    problem->SetParameterBlockConstant(T_WM_params[i].r.data());
     problem->SetParameterization(T_WM_params[i].q.coeffs().data(),
                                  &quaternion_parameterization);
   }
@@ -132,12 +132,12 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
   // -- Marker pose
   T_WM.clear();
   for (const auto T_WM_param : T_WM_params) {
-    T_WM.push_back(tf(T_WM_param.q, T_WM_param.t));
+    T_WM.push_back(tf(T_WM_param.q, T_WM_param.r));
   }
   // -- Marker to camera extrinsics
-  T_MC = tf(T_MC_param.q, T_MC_param.t);
+  T_MC = tf(T_MC_param.q, T_MC_param.r);
   // -- Fiducial pose
-  T_WF = tf(T_WF_param.q, T_WF_param.t);
+  T_WF = tf(T_WF_param.q, T_WF_param.r);
 
   return 0;
 }

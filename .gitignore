@@ -20,6 +20,8 @@ build
 
 # matlab
 *.mat
+*.mex
+*.o
 octave-workspace
 
 # misc

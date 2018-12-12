@@ -4,8 +4,8 @@ script_path = strcat(script_path, "/../..");
 addpath(genpath(script_path));
 
 % Settings
-calib_data_dir = "/data/sync_data";
-aprilgrid_file = strcat(calib_data_dir, "/aprilgrid0/data/1544195072702115774.csv");
+calib_data_dir = "/data/marker_calib";
+aprilgrid_file = strcat(calib_data_dir, "/aprilgrid0/data/1544464038096008539.csv");
 grid_csv = strcat(calib_data_dir, "/aprilgrid0/data.csv");
 C_MC = euler321([deg2rad(-180.0), deg2rad(0.0), deg2rad(-90.0)]);
 r_MC = [0.0; 0.0; 0.1];

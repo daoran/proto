@@ -67,9 +67,9 @@ static int process_aprilgrid(const aprilgrid_t &cam0_aprilgrid,
                                 cam1_intrinsics,
                                 cam1_distortion,
                                 T_C0C1->q.coeffs().data(),
-                                T_C0C1->t.data(),
+                                T_C0C1->r.data(),
                                 T_C0F->q.coeffs().data(),
-                                T_C0F->t.data());
+                                T_C0F->r.data());
     }
   }
 
@@ -132,9 +132,9 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   std::cout << summary.FullReport() << std::endl;
 
   // Finish up
-  T_C0C1 = tf(extrinsic_param->q.toRotationMatrix(), extrinsic_param->t);
+  T_C0C1 = tf(extrinsic_param->q.toRotationMatrix(), extrinsic_param->r);
   for (auto pose_param : pose_params) {
-    T_C0F.emplace_back(tf(pose_param.q, pose_param.t));
+    T_C0F.emplace_back(tf(pose_param.q, pose_param.r));
   }
 
   return 0;

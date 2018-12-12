@@ -73,7 +73,7 @@ void parse(const config_t &config,
   }
 
   // Parse
-  const size_t vector_size = yaml_check_vector<vec2_t>(node, key, optional);
+  yaml_check_vector<vec2_t>(node, key, optional);
   vec = vec2_t{node[0].as<double>(), node[1].as<double>()};
 }
 
@@ -88,7 +88,7 @@ void parse(const config_t &config,
   }
 
   // Parse
-  const size_t vector_size = yaml_check_vector<vec3_t>(node, key, optional);
+  yaml_check_vector<vec3_t>(node, key, optional);
   vec =
       vec3_t{node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
 }
@@ -104,7 +104,7 @@ void parse(const config_t &config,
   }
 
   // Parse
-  const size_t vector_size = yaml_check_vector<vec4_t>(node, key, optional);
+  yaml_check_vector<vec4_t>(node, key, optional);
   vec = vec4_t{node[0].as<double>(),
                node[1].as<double>(),
                node[2].as<double>(),

@@ -210,7 +210,7 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 intrinsics,
                                 distortion,
                                 pose->q.coeffs().data(),
-                                pose->t.data());
+                                pose->r.data());
     }
   }
 
@@ -262,7 +262,7 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
   // Clean up
   T_CF.clear();
   for (auto pose_param : T_CF_params) {
-    T_CF.emplace_back(tf(pose_param.q, pose_param.t));
+    T_CF.emplace_back(tf(pose_param.q, pose_param.r));
   }
 
   return 0;

@@ -38,6 +38,8 @@ flags = [
     '-I',
     '/usr/local/include',
     '-I',
+    '/usr/include/octave-4.2.2/octave',
+    '-I',
     '/usr/include/eigen3',
     '-I',
     '/usr/include/suitesparse',

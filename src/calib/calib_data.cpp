@@ -3,10 +3,15 @@
 namespace prototype {
 
 calib_pose_param_t::calib_pose_param_t(const mat4_t &T)
-    : q{T.block<3, 3>(0, 0)}, t{T.block<3, 1>(0, 3)} {}
+    : q{T.block<3, 3>(0, 0)}, r{T.block<3, 1>(0, 3)} {}
+
+calib_pose_param_t::calib_pose_param_t(const mat3_t &C, const vec3_t &r)
+    : q{C}, r{r} {}
+
+calib_pose_param_t::calib_pose_param_t(const quat_t &q, const vec3_t &r)
+    : q{q}, r{r} {}
 
 calib_pose_param_t::~calib_pose_param_t() {}
-
 
 calib_target_t::calib_target_t() {}
 

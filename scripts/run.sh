@@ -20,17 +20,17 @@ cd octave
 # octave notes/equi4_point_jacobian.m
 # octave notes/radtan4_params_jacobian.m && exit 0
 # octave notes/radtan4_point_jacobian.m
-# octave tools/plot_calib_euroc && exit 0
-# octave tools/plot_calib_vicon && exit 0
-octave tools/plot_timestamps && exit 0
+# octave tools/plot_calib_euroc.m && exit 0
+octave tools/plot_calib_vicon.m && exit 0
+# octave tools/plot_timestamps.m && exit 0
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 
 # LIBRARY
-# mkdir -p build
-# cd build || return
-# cmake ..
-# make -j8
+mkdir -p build
+cd build || return
+cmake ..
+make -j8
 # sudo make install
 # exit
 
