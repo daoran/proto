@@ -87,7 +87,7 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   assert(cam0_aprilgrids.size() == cam1_aprilgrids.size());
 
   // Optimization variables
-  std::unique_ptr<calib_pose_param_t> extrinsic_param(new calib_pose_param_t(T_C0C1));
+  calib_pose_param_t extrinsic_param{T_C0C1};
   std::vector<calib_pose_param_t> pose_params;
   for (size_t i = 0; i < cam0_aprilgrids.size(); i++) {
     pose_params.emplace_back(cam0_aprilgrids[i].T_CF);
@@ -107,7 +107,7 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
                                    *cam0_radtan.data,
                                    *cam1_pinhole.data,
                                    *cam1_radtan.data,
-                                   extrinsic_param.get(),
+                                   &extrinsic_param,
                                    &pose_params[i],
                                    problem.get());
     if (retval != 0) {
@@ -118,7 +118,7 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
     problem->SetParameterization(pose_params[i].q.coeffs().data(),
                                  &quaternion_parameterization);
   }
-  problem->SetParameterization(extrinsic_param->q.coeffs().data(),
+  problem->SetParameterization(extrinsic_param.q.coeffs().data(),
                                &quaternion_parameterization);
 
   // Set solver options
@@ -132,7 +132,7 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   std::cout << summary.FullReport() << std::endl;
 
   // Finish up
-  T_C0C1 = tf(extrinsic_param->q.toRotationMatrix(), extrinsic_param->r);
+  T_C0C1 = tf(extrinsic_param.q.toRotationMatrix(), extrinsic_param.r);
   for (auto pose_param : pose_params) {
     T_C0F.emplace_back(tf(pose_param.q, pose_param.r));
   }

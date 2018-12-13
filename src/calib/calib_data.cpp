@@ -103,14 +103,6 @@ int preprocess_camera_data(const calib_target_t &target,
     return -1;
   }
 
-  // Check output dir
-  std::vector<std::string> data_paths;
-  if (list_dir(output_dir, data_paths) == 0 && data_paths.size() > 0) {
-    LOG_INFO("Data already exists in [%s]! Skipping preprocessing!",
-             output_dir.c_str());
-    return 0;
-  }
-
   // Detect AprilGrid
   LOG_INFO("Processing images:");
   aprilgrid_detector_t detector;
@@ -125,14 +117,24 @@ int preprocess_camera_data(const calib_target_t &target,
     output_file += ".csv";
     const auto save_path = paths_combine(output_dir, output_file);
 
+    // -- Setup AprilGrid
+    const int tag_rows = target.tag_rows;
+    const int tag_cols = target.tag_cols;
+    const double tag_size = target.tag_size;
+    const double tag_spacing = target.tag_spacing;
+    aprilgrid_t grid{ts, tag_rows, tag_cols, tag_size, tag_spacing};
+
+    // -- Skip if already preprocessed
+    if (file_exists(save_path) && aprilgrid_load(grid, save_path) == 0) {
+      continue;
+    } else {
+      // Reset AprilGrid
+      grid = aprilgrid_t{ts, tag_rows, tag_cols, tag_size, tag_spacing};
+    }
+
     // -- Detect
     const auto image_path = paths_combine(image_dir, image_paths[i]);
     const cv::Mat image = cv::imread(image_path);
-    aprilgrid_t grid{ts,
-                     target.tag_rows,
-                     target.tag_cols,
-                     target.tag_size,
-                     target.tag_spacing};
     aprilgrid_detect(grid, detector, image, cam_K, cam_D);
 
     // -- Save AprilGrid
@@ -140,6 +142,7 @@ int preprocess_camera_data(const calib_target_t &target,
       return -1;
     }
 
+    // -- Image show
     if (imshow) {
       aprilgrid_imshow(grid, "AprilGrid Detection", image);
     }

@@ -1,8 +1,7 @@
 calib:
-  target_file: "config/aprilgrid_6x6.yaml"
-  # image_path: "/data/euroc_mav/imu_april/mav0/cam0/data"
-  image_path: "/data/calibration_target/cam0/data"
-  preprocess_path: "/tmp/calib/vicon_marker_intrinsics"
+  target_file: "/data/configs/aprilgrid_6x6.yaml"
+  image_path: "/data/marker_calib/cam0/data"
+  preprocess_path: "/data/marker_calib/aprilgrid0/data"
   imshow: true
 
 cam0:

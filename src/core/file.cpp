@@ -2,16 +2,56 @@
 
 namespace prototype {
 
+FILE *file_open(const std::string &path,
+                const std::string &mode,
+                int *nb_rows) {
+  FILE *fp = fopen(path.c_str(), mode.c_str());
+  if (fp == NULL) {
+    return nullptr;
+  }
+
+  if (nb_rows != nullptr) {
+    *nb_rows = file_rows(path);
+  }
+
+  return fp;
+}
+
+void skip_line(FILE *fp){
+  char header[BUFSIZ];
+  fgets(header, BUFSIZ, fp);
+}
+
+int file_rows(const std::string &file_path) {
+  // Load file
+  std::ifstream infile(file_path);
+  if (infile.good() != true) {
+    return -1;
+  }
+
+  // Obtain number of lines
+  int nb_rows = 0;
+  std::string line;
+  while (std::getline(infile, line)) {
+    nb_rows++;
+  }
+
+  return nb_rows;
+}
+
 int file_copy(const std::string &src, const std::string &dest) {
   // Open input path
 	FILE *src_file = fopen(src.c_str(), "rb");
 	if (src_file == NULL) {
+	  fclose(src_file);
 		return -1;
 	}
 
   // Open output path
 	FILE *dest_file = fopen(dest.c_str(), "wb");
-	if (src_file == NULL) {
+	if (dest_file == NULL) {
+	  fclose(src_file);
+	  fclose(dest_file);
 		return -2;
 	}
 

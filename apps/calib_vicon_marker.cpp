@@ -99,10 +99,11 @@ static int load_marker_poses(const calib_config_t &config,
                              const aprilgrids_t &aprilgrids,
                              std::vector<long> &timestamps_filtered,
                              mat4s_t &T_WM) {
-  // Open pose file
-  const auto fp = fopen(config.pose_file.c_str(), "r");
-  if (fp == NULL) {
-    LOG_ERROR("Failed to open [%s] for loading!", config.pose_file.c_str());
+  // Open file for loading
+  int nb_rows = 0;
+  FILE *fp = file_open(config.pose_file, "r", &nb_rows);
+  if (fp == nullptr) {
+    LOG_ERROR("Failed to open [%s]!", config.pose_file.c_str());
     return -1;
   }
 
@@ -112,7 +113,6 @@ static int load_marker_poses(const calib_config_t &config,
   // Parse data
   std::vector<long> timestamps;
   mat4s_t marker_poses;
-  int nb_rows = filerows(config.pose_file) - 1;
   std::string str_format = "%ld,%lf,%lf,%lf,%lf,%lf,%lf,%lf";
   for (int i = 0; i < nb_rows; i++) {
     // Parse line
@@ -137,8 +137,8 @@ static int load_marker_poses(const calib_config_t &config,
   for (size_t i = 0; i < aprilgrids.size(); i++) {
     timestamps_filtered.push_back(aprilgrids[i].timestamp);
   }
-  // interp_poses(timestamps, marker_poses, timestamps_filtered, T_WM);
-  closest_poses(timestamps, marker_poses, timestamps_filtered, T_WM);
+  interp_poses(timestamps, marker_poses, timestamps_filtered, T_WM);
+  // closest_poses(timestamps, marker_poses, timestamps_filtered, T_WM);
 
   return 0;
 }
@@ -294,7 +294,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  // Load calibration data
+  // Load camera data
   std::vector<aprilgrid_t> aprilgrids;
   if (load_camera_calib_data(config.preprocess_path, aprilgrids) != 0) {
     LOG_ERROR("Failed to load camera calibration data!");
@@ -313,15 +313,10 @@ int main(int argc, char *argv[]) {
   LOG_INFO("Calibrating vicon marker!");
   pinhole_t pinhole{config.intrinsics};
   radtan4_t radtan{config.distortion};
-
   const auto rpy_MC = deg2rad(vec3_t{-180.0, 0.0, -90.0});
-  // const auto rpy_MC = deg2rad(vec3_t{0.0, 0.0, 0.0});
   const auto C_MC = euler321ToRot(rpy_MC);
   mat4_t T_MC = tf(C_MC, zeros(3, 1));
   mat4_t T_WF = T_WM[0] * T_MC * aprilgrids[0].T_CF;
-
-  std::cout << "aprilgrids: " << aprilgrids.size() << std::endl;
-  std::cout << "T_WM: " << T_WM.size() << std::endl;
 
   retval = calib_vicon_marker_solve(aprilgrids,
                                     T_WM,

@@ -16,7 +16,6 @@ struct euroc_imu_t {
 
   // Data
   std::vector<long> timestamps;
-  std::vector<double> time;
   vec3s_t w_B;
   vec3s_t a_B;
 
@@ -42,7 +41,6 @@ struct euroc_camera_t {
 
   // Data
   std::vector<long> timestamps;
-  std::vector<double> time;
   std::vector<std::string> image_paths;
 
   // Sensor properties
@@ -68,7 +66,6 @@ struct euroc_ground_truth_t {
 
   // Data
   std::vector<long> timestamps;
-  std::vector<double> time;
   vec3s_t p_RS_R;
   vec4s_t q_RS;
   vec3s_t v_RS_R;
@@ -154,12 +151,12 @@ int euroc_imu_load(euroc_imu_t &data, const std::string &data_dir);
 /**
  * Load Camera data
  *
- * @param[in,out] cd Camera data
+ * @param[in,out] data Camera data
  * @param[in] data_dir Data directory
  * @param[in] is_calib_data Is camera data for calibration?
  * @returns 0 for success, -1 for failure
  */
-int euroc_camera_load(euroc_camera_t &cd,
+int euroc_camera_load(euroc_camera_t &data,
                       const std::string &data_dir,
                       const bool is_calib_data = false);
 
@@ -175,32 +172,32 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
 /**
  * Load dataset
  *
- * @param[in,out] ds Dataset
+ * @param[in,out] data Dataset
  * @returns 0 for success, -1 for failure
  */
-int euroc_data_load(euroc_data_t &ds);
+int euroc_data_load(euroc_data_t &data);
 
 /**
  * Reset
  *
- * @param[in,out] ds Dataset
+ * @param[in,out] data Dataset
  * @returns 0 for success, -1 for failure
  */
-void euroc_data_reset(euroc_data_t &ds);
+void euroc_data_reset(euroc_data_t &data);
 
 /**
  * Return min timestamp
  *
- * @param[in] ds Dataset
+ * @param[in] data Dataset
  * @returns Minimum timestamp
  */
-long euroc_data_min_timestamp(const euroc_data_t &ds);
+long euroc_data_min_timestamp(const euroc_data_t &data);
 
 /**
  * Return max timestamp
  * @returns Maximum timestamp
  */
-long euroc_data_max_timestamp(const euroc_data_t &ds);
+long euroc_data_max_timestamp(const euroc_data_t &data);
 
 /**
  * Load calibration target settings

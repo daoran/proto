@@ -1,19 +1,19 @@
 calib:
-  target_file: "config/aprilgrid_6x6.yaml"
-  image_path: "/data/marker_calib_3/cam0/data"
-  pose_file: "/data/marker_calib_3/marker0/data.csv"
-  preprocess_path: "/data/marker_calib_3/aprilgrid0/data"
-
-#cam0:
-#  resolution: [640, 480]
-#  camera_model: "pinhole"
-#  distortion_model: "radtan"
-#  intrinsics: [630.043222, 630.362170, 327.615743, 238.386901]
-#  distortion: [0.139066, -0.349607, -0.000163,0.003016]
+  target_file: "/data/configs/aprilgrid_6x6.yaml"
+  image_path: "/data/marker_calib/cam0/data"
+  pose_file: "/data/marker_calib/marker0/data.csv"
+  preprocess_path: "/data/marker_calib/aprilgrid0/data"
 
 cam0:
-  camera_model: "pinhole"
-  distortion_model: "radtan"
-  resolution: [640.000000, 480.000000]
-  intrinsics: [618.292623, 619.719100, 328.796312, 236.726813]
-  distortion: [0.098084, -0.124203, -0.001879, 0.001630]
+ resolution: [640, 480]
+ camera_model: "pinhole"
+ distortion_model: "radtan"
+ intrinsics: [630.043222, 630.362170, 327.615743, 238.386901]
+ distortion: [0.139066, -0.349607, -0.000163,0.003016]
+
+# cam0:
+#   camera_model: "pinhole"
+#   distortion_model: "radtan"
+#   resolution: [640.000000, 480.000000]
+#   intrinsics: [618.292623, 619.719100, 328.796312, 236.726813]
+#   distortion: [0.098084, -0.124203, -0.001879, 0.001630]

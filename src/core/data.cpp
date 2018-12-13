@@ -2,28 +2,6 @@
 
 namespace prototype {
 
-void skip_line(FILE *fp){
-  char header[BUFSIZ];
-  fgets(header, BUFSIZ, fp);
-}
-
-int filerows(const std::string &file_path) {
-  // Load file
-  std::ifstream infile(file_path);
-  if (infile.good() != true) {
-    return -1;
-  }
-
-  // Obtain number of lines
-  int nb_rows = 0;
-  std::string line;
-  while (std::getline(infile, line)) {
-    nb_rows++;
-  }
-
-  return nb_rows;
-}
-
 int csvrows(const std::string &file_path) {
   // Load file
   std::ifstream infile(file_path);

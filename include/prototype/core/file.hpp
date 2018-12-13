@@ -8,12 +8,32 @@
 
 #include <iostream>
 #include <numeric>
+#include <fstream>
 #include <string>
 #include <vector>
 
 #include "prototype/core/log.hpp"
 
 namespace prototype {
+
+/**
+ * Open file in `path` with `mode` and set `nb_rows`.
+ * @returns File pointer on success, nullptr on failure.
+ */
+FILE *file_open(const std::string &path,
+                const std::string &mode,
+                int *nb_rows=nullptr);
+
+/**
+ * Skip file line in file `fp`.
+ */
+void skip_line(FILE *fp);
+
+/**
+ * Get number of rows in file.
+ * @returns Number of rows in file else -1 for failure.
+ */
+int file_rows(const std::string &file_path);
 
 /**
  * Copy file from path `src` to path `dest.

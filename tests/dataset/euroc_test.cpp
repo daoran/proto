@@ -15,7 +15,6 @@ int test_euroc_imu_constructor() {
 
   // Data
   MU_CHECK_EQ(0, imu_data.timestamps.size());
-  MU_CHECK_EQ(0, imu_data.time.size());
   MU_CHECK_EQ(0, imu_data.w_B.size());
   MU_CHECK_EQ(0, imu_data.a_B.size());
 
@@ -37,11 +36,18 @@ int test_euroc_imu_load() {
 
   int retval = euroc_imu_load(imu_data, TEST_IMU_DATA);
   MU_CHECK_EQ(0, retval);
-
   MU_CHECK(imu_data.timestamps.size());
-  MU_CHECK(imu_data.time.size());
   MU_CHECK(imu_data.w_B.size());
   MU_CHECK(imu_data.a_B.size());
+
+  const vec3_t w_B_gnd{-0.0020943951023931952,
+                       0.017453292519943295,
+                       0.07749261878854824};
+  const vec3_t a_B_gnd{9.0874956666666655,
+                       0.13075533333333333,
+                       -3.6938381666666662};
+  MU_CHECK((w_B_gnd - imu_data.w_B[0]).norm() < 1.0e-5);
+  MU_CHECK((a_B_gnd - imu_data.a_B[0]).norm() < 1.0e-5);
 
   MU_CHECK_EQ("imu", imu_data.sensor_type);
   MU_CHECK_EQ("VI-Sensor IMU (ADIS16448)", imu_data.comment);
@@ -57,7 +63,6 @@ int test_euroc_camera_constructor() {
   euroc_camera_t camera_data;
 
   MU_CHECK_EQ(0, camera_data.timestamps.size());
-  MU_CHECK_EQ(0, camera_data.time.size());
   MU_CHECK_EQ(0, camera_data.image_paths.size());
 
   MU_CHECK_EQ("", camera_data.sensor_type);
@@ -91,8 +96,8 @@ int test_euroc_camera_load() {
   int retval = euroc_camera_load(camera_data, TEST_CAM0_DATA);
   MU_CHECK_EQ(0.0, retval);
   MU_CHECK(camera_data.timestamps.size());
-  MU_CHECK(camera_data.time.size());
   MU_CHECK(camera_data.image_paths.size());
+  MU_CHECK(camera_data.timestamps[0] == 1403715273262142976);
 
   MU_CHECK_EQ("camera", camera_data.sensor_type);
   MU_CHECK_EQ("VI-Sensor cam0 (MT9M034)", camera_data.comment);
@@ -111,7 +116,6 @@ int test_euroc_ground_truth_constructor() {
   euroc_ground_truth_t ground_truth;
 
   MU_CHECK_EQ(0, ground_truth.timestamps.size());
-  MU_CHECK_EQ(0, ground_truth.time.size());
   MU_CHECK_EQ(0, ground_truth.p_RS_R.size());
   MU_CHECK_EQ(0, ground_truth.q_RS.size());
   MU_CHECK_EQ(0, ground_truth.v_RS_R.size());
@@ -127,12 +131,22 @@ int test_euroc_ground_truth_load() {
   int retval = euroc_ground_truth_load(ground_truth, TEST_GROUND_TRUTH_DATA);
   MU_CHECK_EQ(0, retval);
   MU_CHECK(ground_truth.timestamps.size());
-  MU_CHECK(ground_truth.time.size());
   MU_CHECK(ground_truth.p_RS_R.size());
   MU_CHECK(ground_truth.q_RS.size());
   MU_CHECK(ground_truth.v_RS_R.size());
   MU_CHECK(ground_truth.b_w_RS_S.size());
   MU_CHECK(ground_truth.b_a_RS_S.size());
+
+  const long ts_gnd = 1403715274302142976;
+  const vec3_t p_gnd{0.878612,2.142470,0.947262};
+  const vec3_t v_gnd{0.009474,-0.014009,-0.002145};
+  const vec3_t gyro_bias{-0.002229,0.020700,0.076350};
+  const vec3_t accel_bias{-0.012492,0.547666,0.069073};
+  MU_CHECK(ts_gnd == ground_truth.timestamps[0]);
+  MU_CHECK((p_gnd - ground_truth.p_RS_R[0]).norm() < 1e-5);
+  MU_CHECK((v_gnd - ground_truth.v_RS_R[0]).norm() < 1e-5);
+  MU_CHECK((gyro_bias - ground_truth.b_w_RS_S[0]).norm() < 1e-5);
+  MU_CHECK((accel_bias - ground_truth.b_a_RS_S[0]).norm() < 1e-5);
 
   return 0;
 }

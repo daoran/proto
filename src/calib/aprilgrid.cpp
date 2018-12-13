@@ -395,7 +395,6 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
     return -1;
   }
 
-
   // Output header
   // -- Configuration
   fprintf(fp, "configured,");
@@ -459,12 +458,12 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
 
 int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
   // Open file for loading
-  const auto fp = fopen(data_path.c_str(), "r");
-  if (fp == NULL) {
-    LOG_ERROR("Failed to open [%s] for loading!", data_path.c_str());
+  int nb_rows = 0;
+  FILE *fp = file_open(data_path, "r", &nb_rows);
+  if (fp == nullptr) {
+    LOG_ERROR("Failed to open [%s]!", data_path.c_str());
     return -1;
   }
-  const int nb_rows = filerows(data_path);
 
   // Create format string
   std::string str_format;

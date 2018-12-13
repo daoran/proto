@@ -8,7 +8,7 @@ export CXX=/usr/bin/clang++
 # cd scripts/api && python3 api.py
 
 # OCTAVE
-cd octave
+# cd octave
 # ./tools/calib_data_summary
 # octave notes/ba.m
 # octave notes/quaternion.m
@@ -21,7 +21,7 @@ cd octave
 # octave notes/radtan4_params_jacobian.m && exit 0
 # octave notes/radtan4_point_jacobian.m
 # octave tools/plot_calib_euroc.m && exit 0
-octave tools/plot_calib_vicon.m && exit 0
+# octave tools/plot_calib_vicon.m && exit 0
 # octave tools/plot_timestamps.m && exit 0
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
@@ -54,7 +54,7 @@ debug() {
 }
 
 # TESTS
-# cd tests
+cd tests
 # -- calib
 # ./calib-aprilgrid_test
 # ./calib-calib_camera_test

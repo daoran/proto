@@ -16,17 +16,6 @@
 namespace prototype {
 
 /**
- * Skip file line in file `fp`.
- */
-void skip_line(FILE *fp);
-
-/**
- * Get number of rows in file.
- * @returns Number of rows in file else -1 for failure.
- */
-int filerows(const std::string &file_path);
-
-/**
  * Get number of rows in CSV file.
  * @returns Number of rows in CSV file else -1 for failure.
  */
