@@ -1,6 +1,6 @@
 #include "prototype/dataset/euroc.hpp"
 
-namespace prototype {
+namespace proto {
 
 /*****************************************************************************
  * euroc_imu_t
@@ -452,4 +452,4 @@ int euroc_calib_load(euroc_calib_t &data, const std::string &data_path) {
   return 0;
 }
 
-} // namespace prototype
+} // namespace proto

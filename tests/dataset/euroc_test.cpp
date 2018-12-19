@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/dataset/euroc.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define TEST_DATA "test_data/dataset/euroc/V1_01_easy"
 #define TEST_IMU_DATA "test_data/dataset/euroc/V1_01_easy/mav0/imu0"
@@ -198,6 +198,6 @@ void test_suite() {
   MU_ADD_TEST(test_euroc_calib_load);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

@@ -1,6 +1,6 @@
 #include "prototype/dataset/kitti.hpp"
 
-namespace prototype {
+namespace proto {
 
 std::string kitti_parse_string(const std::string &line) {
   return strip(line.substr(line.find(":") + 1, line.size() - 1));
@@ -531,4 +531,4 @@ error:
   return -1;
 }
 
-} //  namespace prototype
+} //  namespace proto

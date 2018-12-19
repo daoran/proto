@@ -1,6 +1,6 @@
 #include "prototype/control/carrot_ctrl.hpp"
 
-namespace prototype {
+namespace proto {
 
 carrot_ctrl_t::carrot_ctrl_t() {}
 
@@ -80,4 +80,4 @@ int carrot_ctrl_update(carrot_ctrl_t &cc,
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

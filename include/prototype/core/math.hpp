@@ -11,7 +11,7 @@
 
 #include "prototype/core/log.hpp"
 
-namespace prototype {
+namespace proto {
 
 #ifndef __EIGEN_TYPEDEF__
 #define __EIGEN_TYPEDEF__
@@ -406,5 +406,5 @@ double closest_point(const vec2_t &p1,
  */
 vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CORE_MATH_HPP

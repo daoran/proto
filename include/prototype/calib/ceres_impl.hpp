@@ -3,7 +3,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 template <typename T>
 Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
@@ -85,6 +85,6 @@ pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
   return pixel;
 }
 
-}  // namespace prototype
+}  // namespace proto
 #include "ceres_impl.hpp"
 #endif // PROTOTYPE_CALIB_CERES_IMPL_HPP

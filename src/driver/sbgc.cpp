@@ -1,6 +1,6 @@
 #include "prototype/driver/sbgc.hpp"
 
-namespace prototype {
+namespace proto {
 
 void sbgc_frame_print(const sbgc_frame_t &frame) {
   int i;
@@ -632,4 +632,4 @@ int sbgc_set_speed_angle(const sbgc_t &sbgc,
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

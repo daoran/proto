@@ -6,7 +6,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/model/gimbal.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Gimbal calibration data
@@ -232,6 +232,6 @@ std::ostream &operator<<(std::ostream &os, const GimbalCalibResidual &residual);
  */
 std::ostream &operator<<(std::ostream &os, const GimbalCalibResidual *residual);
 
-} //  namespace prototype
+} //  namespace proto
 #include "calib_gimbal_impl.hpp"
 #endif // PROTOTYPE_CALIB_CALIB_GIMBAL_HPP

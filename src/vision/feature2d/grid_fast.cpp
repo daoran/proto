@@ -1,6 +1,6 @@
 #include "prototype/vision/feature2d/grid_fast.hpp"
 
-namespace prototype {
+namespace proto {
 
 std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
                                     const int max_corners,
@@ -56,4 +56,4 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
   return keypoints_all;
 }
 
-} //  namespace prototype
+} //  namespace proto

@@ -1,6 +1,6 @@
 #include "prototype/driver/pca9685.hpp"
 
-namespace prototype {
+namespace proto {
 
 int pca9685_configure(pca9685_t &pwm, const int freq) {
   // Setup
@@ -79,4 +79,4 @@ void pca9685_reset(const pca9685_t &pwm) {
   usleep(PCA9685_WAIT_MS);
 }
 
-} // namespace prototype
+} // namespace proto

@@ -1,6 +1,6 @@
 #include "prototype/mav/att_ctrl.hpp"
 
-namespace prototype {
+namespace proto {
 
 att_ctrl_t::att_ctrl_t() {}
 
@@ -90,4 +90,4 @@ vec4_t att_ctrl_update(att_ctrl_t &ac,
   return outputs;
 }
 
-} //  namespace prototype
+} //  namespace proto

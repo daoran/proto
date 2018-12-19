@@ -1,7 +1,7 @@
 #include "prototype/core/gps.hpp"
 #include "prototype/munit.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_latlon_offset() {
   // UWaterloo 110 yards Canadian Football field from one end to another
@@ -71,6 +71,6 @@ void test_suite() {
   MU_ADD_TEST(test_latlon_dist);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

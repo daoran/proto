@@ -1,6 +1,6 @@
 #include "prototype/vision/feature2d/grid_good.hpp"
 
-namespace prototype {
+namespace proto {
 
 std::vector<cv::Point2f> grid_good(const cv::Mat &image,
                                    const int max_corners,
@@ -66,4 +66,4 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
   return corners_all;
 }
 
-} //  namespace prototype
+} //  namespace proto

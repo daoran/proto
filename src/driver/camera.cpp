@@ -1,6 +1,6 @@
 #include "prototype/driver/camera.hpp"
 
-namespace prototype {
+namespace proto {
 
 int camera_config_load(camera_config_t &cc) {
   assert(cc.file_path != "");
@@ -66,4 +66,4 @@ int camera_get_frame(camera_t &cam) {
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

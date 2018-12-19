@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/control/carrot_ctrl.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_carrot_ctrl_constructor() {
   carrot_ctrl_t cc;
@@ -160,6 +160,6 @@ void test_suite() {
   MU_ADD_TEST(test_carrot_ctrl_update);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

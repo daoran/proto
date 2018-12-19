@@ -8,7 +8,7 @@
 #include "prototype/vision/camera/radtan.hpp"
 #include "prototype/vision/camera/equi.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Camera geometry
@@ -44,6 +44,6 @@ template <typename CM, typename DM>
 vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
                                const vec3_t &point);
 
-} //  namespace prototype
+} //  namespace proto
 #include "camera_geometry_impl.hpp"
 #endif // PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_HPP

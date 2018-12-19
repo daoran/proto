@@ -1,6 +1,6 @@
 #include "prototype/core/jpl.hpp"
 
-namespace prototype {
+namespace proto {
 
 double quatnorm(const vec4_t &q) {
   const double sum = pow(q(0), 2) + pow(q(1), 2) + pow(q(2), 2) + pow(q(3), 2);
@@ -212,4 +212,4 @@ vec4_t quatzoi(const vec4_t &q, const vec3_t &w, const double dt) {
   return dqdt;
 }
 
-} // namespace prototype
+} // namespace proto

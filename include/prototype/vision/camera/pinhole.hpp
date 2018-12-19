@@ -3,7 +3,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Pinhole camera model
@@ -167,5 +167,5 @@ vec2_t project(const pinhole_t &pinhole,
  */
 vec2_t pixel2ideal(const pinhole_t &pinhole, const vec2_t &pixel);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_VISION_CAMERA_PINHOLE_HPP

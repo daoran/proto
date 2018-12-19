@@ -5,7 +5,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Create DH transform from link n to link n-1 (end to front)
@@ -124,5 +124,5 @@ mat4_t gimbal_model_T_DS(gimbal_model_t &model, const vec2_t &theta);
  */
 std::ostream &operator<<(std::ostream &os, const gimbal_model_t &gimbal);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_MODEL_GIMBAL_HPP

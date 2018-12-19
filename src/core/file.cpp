@@ -1,6 +1,6 @@
 #include "prototype/core/file.hpp"
 
-namespace prototype {
+namespace proto {
 
 FILE *file_open(const std::string &path,
                 const std::string &mode,
@@ -41,32 +41,32 @@ int file_rows(const std::string &file_path) {
 
 int file_copy(const std::string &src, const std::string &dest) {
   // Open input path
-	FILE *src_file = fopen(src.c_str(), "rb");
-	if (src_file == NULL) {
-	  fclose(src_file);
-		return -1;
-	}
+  FILE *src_file = fopen(src.c_str(), "rb");
+  if (src_file == NULL) {
+    fclose(src_file);
+    return -1;
+  }
 
   // Open output path
-	FILE *dest_file = fopen(dest.c_str(), "wb");
-	if (dest_file == NULL) {
-	  fclose(src_file);
-	  fclose(dest_file);
-		return -2;
-	}
+  FILE *dest_file = fopen(dest.c_str(), "wb");
+  if (dest_file == NULL) {
+    fclose(src_file);
+    fclose(dest_file);
+    return -2;
+  }
 
-	// BUFSIZE default is 8192 bytes
-	// BUFSIZE of 1 means one chareter at time
-	char buf[BUFSIZ];
-	while (size_t size = fread(buf, 1, BUFSIZ, src_file)) {
-		fwrite(buf, 1, size, dest_file);
-	}
+  // BUFSIZE default is 8192 bytes
+  // BUFSIZE of 1 means one chareter at time
+  char buf[BUFSIZ];
+  while (size_t size = fread(buf, 1, BUFSIZ, src_file)) {
+    fwrite(buf, 1, size, dest_file);
+  }
 
   // Clean up
-	fclose(src_file);
-	fclose(dest_file);
+  fclose(src_file);
+  fclose(dest_file);
 
-	return 0;
+  return 0;
 }
 
 std::string basename(const std::string &path) {
@@ -263,4 +263,4 @@ std::string paths_combine(const std::string path1, const std::string path2) {
   return result;
 }
 
-} // namespace prototype
+} // namespace proto

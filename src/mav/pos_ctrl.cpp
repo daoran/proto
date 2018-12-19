@@ -1,6 +1,6 @@
 #include "prototype/mav/pos_ctrl.hpp"
 
-namespace prototype {
+namespace proto {
 
 int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file) {
   // Load config
@@ -105,4 +105,4 @@ void pos_ctrl_reset(pos_ctrl_t &pc) {
   pid_reset(pc.z_ctrl);
 }
 
-} //  namespace prototype
+} //  namespace proto

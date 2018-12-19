@@ -6,7 +6,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * MAV model
@@ -77,5 +77,5 @@ void mav_model_set_position(mav_model_t &qm, const vec3_t &p_G);
  */
 void mav_model_print(const mav_model_t &qm);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_MODEL_MAV_HPP

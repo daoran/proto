@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/model/two_wheel.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_two_wheel_constructor() {
   two_wheel_t model;
@@ -84,6 +84,6 @@ void test_suite() {
   MU_ADD_TEST(test_two_wheel_update);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

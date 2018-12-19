@@ -13,7 +13,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/vision/util.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Grid good
@@ -42,5 +42,5 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
                                    const bool use_harris_detector = false,
                                    const double k = 0.04);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_VISION_FEATURE2D_GRID_GOOD_HPP

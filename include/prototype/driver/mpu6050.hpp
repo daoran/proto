@@ -8,7 +8,7 @@
 
 #include "prototype/driver/i2c.hpp"
 
-namespace prototype {
+namespace proto {
 
 #ifndef DOXYGEN_IGNORE
 // GENERAL
@@ -282,5 +282,5 @@ int mpu6050_get_accel_range(const mpu6050_t &imu);
  */
 std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_MPU6050_HPP

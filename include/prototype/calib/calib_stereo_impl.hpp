@@ -1,7 +1,7 @@
 #ifndef PROTOTYPE_CALIB_CALIB_STEREO_IMPL_HPP
 #define PROTOTYPE_CALIB_CALIB_STEREO_IMPL_HPP
 
-namespace prototype {
+namespace proto {
 
 template <typename T>
 bool stereo_residual_t::operator()(const T *const cam0_intrinsics,
@@ -59,5 +59,5 @@ bool stereo_residual_t::operator()(const T *const cam0_intrinsics,
   return true;
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CALIB_CALIB_STEREO_IMPL_HPP

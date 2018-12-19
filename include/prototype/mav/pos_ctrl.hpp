@@ -4,7 +4,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/control/pid.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Position control
@@ -51,5 +51,5 @@ vec4_t pos_ctrl_update(pos_ctrl_t &pc,
  */
 void pos_ctrl_reset(pos_ctrl_t &pc);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_MAV_POS_CTRL_HPP

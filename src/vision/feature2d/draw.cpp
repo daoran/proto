@@ -1,6 +1,6 @@
 #include "prototype/vision/feature2d/draw.hpp"
 
-namespace prototype {
+namespace proto {
 
 cv::Mat draw_tracks(const cv::Mat &img_cur,
                     const std::vector<cv::Point2f> p0,
@@ -127,4 +127,4 @@ cv::Mat draw_grid_features(const cv::Mat &image,
   return draw_grid_features(image, grid_rows, grid_cols, points);
 }
 
-} //  namespace prototype
+} //  namespace proto

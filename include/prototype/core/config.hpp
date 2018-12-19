@@ -16,7 +16,7 @@
 #include "prototype/core/log.hpp"
 #include "prototype/core/math.hpp"
 
-namespace prototype {
+namespace proto {
 
 struct config_t {
   std::string file_path;
@@ -115,6 +115,6 @@ void parse(const config_t &config,
            cv::Mat &mat,
            const bool optional = false);
 
-} //  namespace prototype
+} //  namespace proto
 #include "prototype/core/config_impl.hpp"
 #endif // PROTOTYPE_CORE_CONFIG_HPP

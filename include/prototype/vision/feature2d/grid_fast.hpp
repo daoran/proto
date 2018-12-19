@@ -13,7 +13,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/vision/util.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Grid fast
@@ -34,5 +34,5 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
                                     const double threshold = 10.0,
                                     const bool nonmax_suppression = true);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_VISION_FEATURE2D_GRID_FAST_HPP

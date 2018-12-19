@@ -1,6 +1,6 @@
 #include "prototype/dataset/timeline.hpp"
 
-namespace prototype {
+namespace proto {
 
 timeline_event_t::timeline_event_t() {}
 
@@ -21,4 +21,4 @@ timeline_t::timeline_t() {}
 
 timeline_t::~timeline_t() {}
 
-} // namespace prototype
+} // namespace proto

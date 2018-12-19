@@ -4,7 +4,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-namespace prototype {
+namespace proto {
 
 /**
  * Start timer.
@@ -26,5 +26,5 @@ float mtoc(struct timespec *tic);
  */
 double time_now();
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CORE_TIME_HPP

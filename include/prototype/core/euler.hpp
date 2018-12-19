@@ -3,7 +3,7 @@
 
 #include "prototype/core/math.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Rotation matrix around x-axis (counter-clockwise, right-handed).
@@ -55,5 +55,5 @@ mat3_t euler123ToRot(const vec3_t &euler);
  */
 mat3_t euler321ToRot(const vec3_t &euler);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CORE_EULER_HPP

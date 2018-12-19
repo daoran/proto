@@ -3,7 +3,7 @@
 
 #include "prototype/core/math.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Zeros-matrix
@@ -115,5 +115,5 @@ matx_t enforce_psd(const matx_t &A);
  */
 matx_t nullspace(const matx_t &A);
 
-} // namespace prototype
+} // namespace proto
 #endif // PROTOTYPE_CORE_LINALG_HPP

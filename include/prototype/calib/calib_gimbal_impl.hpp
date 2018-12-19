@@ -6,7 +6,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/calib/calib_gimbal.hpp"
 
-namespace prototype {
+namespace proto {
 
 template <typename T>
 Eigen::Matrix<T, 4, 4> GimbalCalibResidual::dhTransform(const T theta,
@@ -261,5 +261,5 @@ bool GimbalCalibResidual::operator()(const T *const tau_s,
   // clang-format on
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CALIB_CALIB_GIMBAL_IMPL_HPP

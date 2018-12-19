@@ -1,6 +1,6 @@
 #include "prototype/core/data.hpp"
 
-namespace prototype {
+namespace proto {
 
 int csvrows(const std::string &file_path) {
   // Load file
@@ -119,47 +119,47 @@ void print_progress(const double percentage) {
 }
 
 quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
-	vec4_t q0{q_start.coeffs().data()};
-	vec4_t q1{q_end.coeffs().data()};
+  vec4_t q0{q_start.coeffs().data()};
+  vec4_t q1{q_end.coeffs().data()};
 
-	// Only unit quaternions are valid rotations.
-	// Normalize to avoid undefined behavior.
-	q0.normalize();
-	q1.normalize();
+  // Only unit quaternions are valid rotations.
+  // Normalize to avoid undefined behavior.
+  q0.normalize();
+  q1.normalize();
 
-	// Compute the cosine of the angle between the two vectors.
-	double dot = q0.dot(q1);
+  // Compute the cosine of the angle between the two vectors.
+  double dot = q0.dot(q1);
 
-	// If the dot product is negative, slerp won't take
-	// the shorter path. Note that q1 and -q1 are equivalent when
-	// the negation is applied to all four components. Fix by
-	// reversing one quaternion.
-	if (dot < 0.0f) {
-		q1 = -q1;
-		dot = -dot;
-	}
+  // If the dot product is negative, slerp won't take
+  // the shorter path. Note that q1 and -q1 are equivalent when
+  // the negation is applied to all four components. Fix by
+  // reversing one quaternion.
+  if (dot < 0.0f) {
+    q1 = -q1;
+    dot = -dot;
+  }
 
-	const double DOT_THRESHOLD = 0.9995;
-	if (dot > DOT_THRESHOLD) {
-		// If the inputs are too close for comfort, linearly interpolate
-		// and normalize the result.
-		vec4_t result = q0 + alpha * (q1 - q0);
-		result.normalize();
-		return quat_t{result(3), result(0), result(1), result(2)};
-	}
+  const double DOT_THRESHOLD = 0.9995;
+  if (dot > DOT_THRESHOLD) {
+    // If the inputs are too close for comfort, linearly interpolate
+    // and normalize the result.
+    vec4_t result = q0 + alpha * (q1 - q0);
+    result.normalize();
+    return quat_t{result(3), result(0), result(1), result(2)};
+  }
 
-	// Since dot is in range [0, DOT_THRESHOLD], acos is safe
-	const double theta_0 = acos(dot);        // theta_0 = angle between input vectors
-	const double theta = theta_0 * alpha;    // theta = angle between q0 and result
-	const double sin_theta = sin(theta);     // compute this value only once
-	const double sin_theta_0 = sin(theta_0); // compute this value only once
+  // Since dot is in range [0, DOT_THRESHOLD], acos is safe
+  const double theta_0 = acos(dot);        // theta_0 = angle between input vectors
+  const double theta = theta_0 * alpha;    // theta = angle between q0 and result
+  const double sin_theta = sin(theta);     // compute this value only once
+  const double sin_theta_0 = sin(theta_0); // compute this value only once
 
   // == sin(theta_0 - theta) / sin(theta_0)
-	const double s0 = cos(theta) - dot * sin_theta / sin_theta_0;
-	const double s1 = sin_theta / sin_theta_0;
+  const double s0 = cos(theta) - dot * sin_theta / sin_theta_0;
+  const double s1 = sin_theta / sin_theta_0;
 
-	const vec4_t result = (s0 * q0) + (s1 * q1);
-	return quat_t{result(3), result(0), result(1), result(2)};
+  const vec4_t result = (s0 * q0) + (s1 * q1);
+  return quat_t{result(3), result(0), result(1), result(2)};
 }
 
 mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha) {
@@ -174,7 +174,7 @@ mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha) {
   // Interpolate translation and rotation
   const auto trans_interp = lerp(trans0, trans1, alpha);
   const auto quat_interp = quat1.slerp(alpha, quat0);
-	// const auto quat_interp = slerp(quat0, quat1, alpha);
+  // const auto quat_interp = slerp(quat0, quat1, alpha);
 
   return tf(quat_interp, trans_interp);
 }
@@ -281,4 +281,4 @@ void closest_poses(const std::vector<long> &timestamps,
   }
 }
 
-} //  namespace prototype
+} //  namespace proto

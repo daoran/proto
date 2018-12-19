@@ -1,7 +1,7 @@
 #ifndef PROTOTYPE_CORE_LOG_HPP
 #define PROTOTYPE_CORE_LOG_HPP
 
-namespace prototype {
+namespace proto {
 
 #define __FILENAME__                                                           \
   (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
@@ -46,5 +46,5 @@ namespace prototype {
   } while (false)
 #endif
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CORE_LOG_HPP

@@ -2,7 +2,7 @@
 #include "prototype/model/mav.hpp"
 #include "prototype/munit.hpp"
 
-namespace prototype {
+namespace proto {
 
 int setup_output_files(std::ofstream &gnd_file,
                        std::ofstream &mea_file,
@@ -128,6 +128,6 @@ void test_suite() {
   MU_ADD_TEST(test_mav_model_update);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

@@ -6,7 +6,7 @@
 
 #include "prototype/driver/i2c.hpp"
 
-namespace prototype {
+namespace proto {
 
 // REGISTERS
 #define PCA9685_MODE1 0x00
@@ -142,5 +142,5 @@ void pca9685_set_pwm(const pca9685_t &pwm, const int16_t off);
  */
 void pca9685_reset(const pca9685_t &pwm);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_PCA9685_HPP

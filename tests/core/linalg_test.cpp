@@ -1,7 +1,7 @@
 #include "prototype/core/linalg.hpp"
 #include "prototype/munit.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_zeros() {
   matx_t A = zeros(2, 2);
@@ -180,6 +180,6 @@ void test_suite() {
   MU_ADD_TEST(test_nullspace);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

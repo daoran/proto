@@ -1,6 +1,6 @@
 #include "prototype/core/config.hpp"
 
-namespace prototype {
+namespace proto {
 
 config_t::config_t() {}
 
@@ -244,4 +244,4 @@ void parse(const config_t &config,
   }
 }
 
-} //  namespace prototype
+} //  namespace proto

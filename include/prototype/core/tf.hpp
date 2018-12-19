@@ -4,7 +4,7 @@
 #include "prototype/core/math.hpp"
 #include "prototype/core/linalg.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Extract rotation from transform
@@ -32,5 +32,5 @@ mat4_t tf(const mat3_t &C, const vec3_t &r);
  */
 mat4_t tf(const quat_t &q, const vec3_t &r);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_TF_HPP

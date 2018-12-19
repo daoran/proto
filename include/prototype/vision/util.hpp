@@ -10,7 +10,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/vision/camera/camera_geometry.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Compare `cv::Mat` whether they are equal
@@ -302,5 +302,5 @@ cv::Mat equi_undistort_image(const mat3_t &K,
                              cv::Mat &Knew,
                              const double balance);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_VISION_UTIL_HPP

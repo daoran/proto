@@ -13,7 +13,7 @@
 #include "prototype/core/linalg.hpp"
 #include "prototype/core/tf.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Get number of rows in CSV file.
@@ -160,5 +160,5 @@ T set_symmetric_diff(const T &a, const T &b) {
   return results;
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CORE_DATA_HPP

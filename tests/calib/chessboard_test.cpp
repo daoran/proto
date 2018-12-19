@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/calib/chessboard.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define TEST_CONFIG "test_data/calib/chessboard/chessboard.yaml"
 #define TEST_IMAGE "test_data/calib/chessboard/img0.jpg"
@@ -164,6 +164,6 @@ void test_suite() {
   MU_ADD_TEST(test_chessboard_project_points);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

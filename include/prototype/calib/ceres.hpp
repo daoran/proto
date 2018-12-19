@@ -3,7 +3,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
@@ -44,6 +44,6 @@ pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
                         const Eigen::Matrix<T, 4, 1> &D,
                         const Eigen::Matrix<T, 3, 1> &point);
 
-}  // namespace prototype
+}  // namespace proto
 #include "ceres_impl.hpp"
 #endif // PROTOTYPE_CALIB_CERES_HPP

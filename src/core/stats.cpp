@@ -1,6 +1,6 @@
 #include "prototype/core/stats.hpp"
 
-namespace prototype {
+namespace proto {
 
 inline static double sqr(double x) { return x * x; }
 
@@ -45,4 +45,4 @@ int linreg(vec2s_t pts, double *m, double *c, double *r) {
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

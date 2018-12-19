@@ -1,7 +1,7 @@
 #include "prototype/core/math.hpp"
 #include "prototype/munit.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_median() {
   std::vector<double> v;
@@ -203,6 +203,6 @@ void test_suite() {
   MU_ADD_TEST(test_lerp);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

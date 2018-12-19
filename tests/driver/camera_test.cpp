@@ -3,7 +3,7 @@
 
 #define TEST_CONFIG "test_configs/camera/webcam/config.yaml"
 
-namespace prototype {
+namespace proto {
 
 int test_camera_config() {
   camera_config_t config{TEST_CONFIG};
@@ -40,5 +40,5 @@ void test_suite() {
   MU_ADD_TEST(test_camera);
 }
 
-} // namespace prototype
-MU_RUN_TESTS(prototype::test_suite);
+} // namespace proto
+MU_RUN_TESTS(proto::test_suite);

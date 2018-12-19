@@ -1,7 +1,7 @@
 #include "prototype/core/stats.hpp"
 #include "prototype/munit.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_linreg() {
   vec2_t p;
@@ -33,6 +33,6 @@ int test_linreg() {
 
 void test_suite() { MU_ADD_TEST(test_linreg); }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

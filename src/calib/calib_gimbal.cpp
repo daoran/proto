@@ -1,6 +1,6 @@
 #include "prototype/calib/calib_gimbal.hpp"
 
-namespace prototype {
+namespace proto {
 
 calib_gimbal_data_t::calib_gimbal_data_t() {}
 
@@ -460,4 +460,4 @@ std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-} //  namespace prototype
+} //  namespace proto

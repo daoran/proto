@@ -1,6 +1,6 @@
 #include "prototype/driver/uart.hpp"
 
-namespace prototype {
+namespace proto {
 
 int uart_connect(uart_t &uart) {
   uart.connection = open(uart.port.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
@@ -82,4 +82,4 @@ int uart_set_blocking(const uart_t &uart, const bool blocking) {
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

@@ -2,7 +2,7 @@
 #include "prototype/vision/util.hpp"
 #include "prototype/vision/feature2d/grid_fast.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define TEST_IMAGE "test_data/vision/test_image.jpg"
 
@@ -37,6 +37,6 @@ int test_feature_mask() {
 
 void test_suite() { MU_ADD_TEST(test_feature_mask); }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

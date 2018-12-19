@@ -10,7 +10,7 @@
 #include "prototype/control/pid.hpp"
 #include "prototype/mav/mission.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Waypoint Control
@@ -71,5 +71,5 @@ int wp_ctrl_update(wp_ctrl_t &wc,
  */
 void wp_ctrl_reset(wp_ctrl_t &wc);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_MAV_WP_CTRL_HPP

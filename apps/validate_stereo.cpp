@@ -1,6 +1,6 @@
 #include <prototype/prototype.hpp>
 
-using namespace prototype;
+using namespace proto;
 
 struct calib_config_t {
   std::string target_file;
@@ -129,7 +129,7 @@ static pinhole_radtan4_t setup_camera(const vec4_t &intrinsics,
   const pinhole_t camera_model{intrinsics};
   const radtan4_t distortion_model{distortion};
   pinhole_radtan4_t camera{camera_model, distortion_model};
-	return camera;
+  return camera;
 }
 
 int main(int argc, char *argv[]) {
@@ -173,15 +173,15 @@ int main(int argc, char *argv[]) {
   // -- cam0 properties
   const auto cam0_intrinsics = config.cam0_intrinsics;
   const auto cam0_distortion = config.cam0_distortion;
-	const auto cam0_geometry = setup_camera(cam0_intrinsics, cam0_distortion);
-	const auto cam0_K = pinhole_K(cam0_intrinsics.data());
-	const auto cam0_D = config.cam0_distortion;
+  const auto cam0_geometry = setup_camera(cam0_intrinsics, cam0_distortion);
+  const auto cam0_K = pinhole_K(cam0_intrinsics.data());
+  const auto cam0_D = config.cam0_distortion;
   // -- cam1 properties
   const auto cam1_intrinsics = config.cam1_intrinsics;
   const auto cam1_distortion = config.cam1_distortion;
-	const auto cam1_geometry = setup_camera(cam1_intrinsics, cam1_distortion);
-	const auto cam1_K = pinhole_K(cam1_intrinsics.data());
-	const auto cam1_D = config.cam1_distortion;
+  const auto cam1_geometry = setup_camera(cam1_intrinsics, cam1_distortion);
+  const auto cam1_K = pinhole_K(cam1_intrinsics.data());
+  const auto cam1_D = config.cam1_distortion;
 
   // Detect AprilGrid
   // -- Double check number of images from each camera

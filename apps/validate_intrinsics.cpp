@@ -1,6 +1,6 @@
 #include <prototype/prototype.hpp>
 
-using namespace prototype;
+using namespace proto;
 
 struct calib_config_t {
   std::string target_file;
@@ -75,7 +75,7 @@ static pinhole_radtan4_t setup_camera_geometry(const calib_config_t &config) {
   const pinhole_t camera_model{config.intrinsics};
   const radtan4_t distortion_model{config.distortion};
   pinhole_radtan4_t camera{camera_model, distortion_model};
-	return camera;
+  return camera;
 }
 
 int main(int argc, char *argv[]) {
@@ -105,9 +105,9 @@ int main(int argc, char *argv[]) {
   // Detect AprilGrid
   LOG_INFO("Processing images:");
   const aprilgrid_detector_t detector;
-	const auto camera_geometry = setup_camera_geometry(config);
-	const auto cam_K = pinhole_K(config.intrinsics.data());
-	const auto cam_D = config.distortion;
+  const auto camera_geometry = setup_camera_geometry(config);
+  const auto cam_K = pinhole_K(config.intrinsics.data());
+  const auto cam_D = config.distortion;
 
   for (size_t i = 0; i < image_paths.size(); i++) {
     print_progress((double) i / image_paths.size());

@@ -1,6 +1,6 @@
 #include "prototype/calib/calib_camera.hpp"
 
-namespace prototype {
+namespace proto {
 
 pinhole_radtan4_residual_t::pinhole_radtan4_residual_t(const vec2_t &z,
                                                        const vec3_t &p_F)
@@ -268,4 +268,4 @@ int calib_camera_solve(const std::vector<aprilgrid_t> &aprilgrids,
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

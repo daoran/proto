@@ -3,7 +3,7 @@
 
 #include "prototype/calib/calib_vicon_marker.hpp"
 
-namespace prototype {
+namespace proto {
 
 template <typename T>
 bool vicon_marker_residual_t::operator()(const T *const intrinsics_,
@@ -50,5 +50,5 @@ bool vicon_marker_residual_t::operator()(const T *const intrinsics_,
   return true;
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CALIB_CALIB_VICON_MARKER_IMPL_HPP

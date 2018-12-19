@@ -3,7 +3,7 @@
 
 #include "prototype/core/config.hpp"
 
-namespace prototype {
+namespace proto {
 
 template <typename T>
 size_t yaml_check_vector(const YAML::Node &node,
@@ -122,5 +122,5 @@ void parse(const config_t &config,
   }
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CORE_CONFIG_IMPL_HPP

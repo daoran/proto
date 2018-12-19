@@ -1,6 +1,6 @@
 #include "prototype/core/time.hpp"
 
-namespace prototype {
+namespace proto {
 
 struct timespec tic() {
   struct timespec time_start;
@@ -27,4 +27,4 @@ double time_now() {
   return ((double) t.tv_sec + ((double) t.tv_usec) / 1000000.0);
 }
 
-} //  namespace prototype
+} //  namespace proto

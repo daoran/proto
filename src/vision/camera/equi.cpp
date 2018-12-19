@@ -1,6 +1,6 @@
 #include "prototype/vision/camera/equi.hpp"
 
-namespace prototype {
+namespace proto {
 
 equi4_t::equi4_t(const double k1_,
                  const double k2_,
@@ -140,4 +140,4 @@ vec2_t undistort(const equi4_t &equi, const vec2_t &p) {
   return p_ud;
 }
 
-} //  namespace prototype
+} //  namespace proto

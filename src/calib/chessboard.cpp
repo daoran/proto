@@ -1,6 +1,6 @@
 #include "prototype/calib/chessboard.hpp"
 
-namespace prototype {
+namespace proto {
 
 chessboard_t::chessboard_t() {}
 
@@ -156,4 +156,4 @@ void chessboard_project_points(const chessboard_t &cb,
   }
 }
 
-} //  namespace prototype
+} //  namespace proto

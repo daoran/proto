@@ -10,7 +10,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/vision/camera/camera_geometry.hpp"
 
-namespace prototype {
+namespace proto {
 
 template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
 void essential_matrix_outlier_rejection(
@@ -54,5 +54,5 @@ void essential_matrix_outlier_rejection(
   // }
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_VISION_UTIL_HPP

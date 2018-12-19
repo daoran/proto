@@ -3,7 +3,7 @@
 #include "prototype/vision/camera/pinhole.hpp"
 #include "prototype/vision/camera/equi.hpp"
 
-namespace prototype {
+namespace proto {
 
 struct test_config {
   const int image_width = 640;
@@ -117,6 +117,6 @@ void test_suite() {
   MU_ADD_TEST(test_equi_undistort_point);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

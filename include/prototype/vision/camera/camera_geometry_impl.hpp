@@ -1,7 +1,7 @@
 #ifndef PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_IMPL_HPP
 #define PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_IMPL_HPP
 
-namespace prototype {
+namespace proto {
 
 template <typename CM, typename DM>
 camera_geometry_t<CM, DM>::camera_geometry_t(const CM &camera_model_,
@@ -19,5 +19,5 @@ vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
   return project(cam.camera_model, point_distorted);
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_IMPL_HPP

@@ -1,6 +1,6 @@
 #include "prototype/model/two_wheel.hpp"
 
-namespace prototype {
+namespace proto {
 
 void circle_trajectory(const double r,
                        const double v,
@@ -31,4 +31,4 @@ void two_wheel_update(two_wheel_t &tm, const double dt) {
   }
 }
 
-} //  namespace prototype
+} //  namespace proto

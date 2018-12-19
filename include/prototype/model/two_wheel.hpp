@@ -4,7 +4,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/control/pid.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Calculate target angular velocity and time taken to traverse a desired
@@ -53,5 +53,5 @@ struct two_wheel_t {
  */
 void two_wheel_update(two_wheel_t &tm, const double dt);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_MODEL_TWOWHEEL_HPP

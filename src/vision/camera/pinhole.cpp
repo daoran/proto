@@ -1,6 +1,6 @@
 #include "prototype/vision/camera/pinhole.hpp"
 
-namespace prototype {
+namespace proto {
 
 pinhole_t::pinhole_t() {}
 
@@ -122,4 +122,4 @@ vec2_t pixel2ideal(const pinhole_t &pinhole, const vec2_t &pixel) {
   return pt;
 }
 
-} //  namespace prototype
+} //  namespace proto

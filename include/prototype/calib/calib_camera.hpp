@@ -12,7 +12,7 @@
 #include "prototype/calib/calib_data.hpp"
 #include "prototype/vision/camera/radtan.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Pinhole Radial-tangential calibration residual
@@ -79,6 +79,6 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
                        const mat4s_t &poses,
                        const std::string &output_path);
 
-} //  namespace prototype
+} //  namespace proto
 #include "calib_camera_impl.hpp"
 #endif // PROTOTYPE_CALIB_CALIB_CAMERA_HPP

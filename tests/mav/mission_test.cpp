@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/mav/mission.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define TEST_GPS_CONFIG "test_configs/missions/mission_gps.yaml"
 #define TEST_LOCAL_CONFIG "test_configs/missions/mission_local.yaml"
@@ -309,6 +309,6 @@ void test_suite() {
   // MU_ADD_TEST(test_wp_mission_update);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

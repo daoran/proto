@@ -5,7 +5,7 @@
 
 #define TEST_CONFIG "test_data/core/config/config.yaml"
 
-namespace prototype {
+namespace proto {
 
 int test_config_constructor() {
   config_t config{TEST_CONFIG};
@@ -278,6 +278,6 @@ void test_suite() {
   MU_ADD_TEST(test_config_parser_full_example);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

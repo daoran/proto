@@ -5,7 +5,7 @@
 
 #include "prototype/core/math.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define EARTH_RADIUS_M 6378137.0
 
@@ -56,5 +56,5 @@ void latlon_diff(double lat_ref,
  */
 double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
 
-} // namespace prototype
+} // namespace proto
 #endif // PROTOTYPE_CORE_GPS_HPP

@@ -3,9 +3,9 @@
 
 #include "prototype/core/math.hpp"
 
-namespace prototype {
+namespace proto {
 
 int linreg(vec2s_t pts, double *m, double *b, double *r);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CORE_STATS_HPP

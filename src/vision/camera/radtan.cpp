@@ -1,6 +1,6 @@
 #include "prototype/vision/camera/radtan.hpp"
 
-namespace prototype {
+namespace proto {
 
 radtan4_t::radtan4_t() {}
 
@@ -143,4 +143,4 @@ vec2_t undistort(const radtan4_t &radtan,
   return p;
 }
 
-} // namespace prototype
+} // namespace proto

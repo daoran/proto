@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 
-namespace prototype {
+namespace proto {
 
 struct test_config {
   const int image_width = 640;
@@ -110,6 +110,6 @@ void test_suite() {
   // MU_ADD_TEST(test_pinhole_pixel2ideal);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

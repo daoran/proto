@@ -4,7 +4,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/core/math.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Skew
@@ -182,6 +182,6 @@ mat4_t Omega(const vec3_t &w);
  */
 vec4_t quatzoi(const vec4_t &q, const vec3_t &w, const double dt);
 
-} //  namespace prototype
+} //  namespace proto
 #include "jpl_impl.hpp"
 #endif // PROTOTYPE_CORE_JPL_HPP

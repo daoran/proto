@@ -1,6 +1,6 @@
 #include "prototype/mav/wp_ctrl.hpp"
 
-namespace prototype {
+namespace proto {
 
 int wp_ctrl_update(wp_ctrl_t &wc,
                    wp_mission_t &m,
@@ -87,4 +87,4 @@ void wp_ctrl_reset(wp_ctrl_t &wc) {
   pid_reset(wc.yaw_controller);
 }
 
-} //  namespace prototype
+} //  namespace proto

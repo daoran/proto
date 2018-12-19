@@ -1,6 +1,6 @@
 #include "prototype/driver/mpu6050.hpp"
 
-namespace prototype {
+namespace proto {
 
 int mpu6050_configure(mpu6050_t imu, const std::string &config_file) {
   int retval = 0;
@@ -287,4 +287,4 @@ int mpu6050_get_accel_range(const mpu6050_t &imu) {
 
 std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu) { return os; }
 
-} //  namespace prototype
+} //  namespace proto

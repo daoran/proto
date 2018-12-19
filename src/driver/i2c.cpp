@@ -1,6 +1,6 @@
 #include "prototype/driver/i2c.hpp"
 
-namespace prototype {
+namespace proto {
 
 int i2c_setup(i2c_t &i2c) {
   int fd;
@@ -103,4 +103,4 @@ int i2c_write_bytes(const i2c_t &i2c,
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

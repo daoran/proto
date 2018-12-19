@@ -5,7 +5,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Equi-distant distortion
@@ -61,5 +61,5 @@ matx_t distort(const equi4_t &equi, const matx_t &points);
  */
 vec2_t undistort(const equi4_t &equi, const vec2_t &p);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_VISION_CAMERA_EQUI_HPP

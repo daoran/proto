@@ -1,6 +1,6 @@
 #include "prototype/core/math.hpp"
 
-namespace prototype {
+namespace proto {
 
 void print_shape(const std::string &name, const matx_t &A) {
   std::cout << name << ": " << A.rows() << "x" << A.cols() << std::endl;
@@ -403,4 +403,4 @@ vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu) {
   return a * (1 - mu) + b * mu;
 }
 
-} // namespace prototype
+} // namespace proto

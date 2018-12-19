@@ -13,7 +13,7 @@
 #include "prototype/vision/camera/radtan.hpp"
 #include "prototype/vision/camera/equi.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Pose parameter block
@@ -181,6 +181,6 @@ cv::Mat validate_stereo(const cv::Mat &image0,
  */
 std::ostream &operator<<(std::ostream &os, const calib_target_t &target);
 
-} // namespace prototype
+} // namespace proto
 #include "calib_data_impl.hpp"
 #endif // PROTOTYPE_CALIB_CALIB_DATA_HPP

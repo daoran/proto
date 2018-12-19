@@ -7,7 +7,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/dataset/timeline.hpp"
 
-namespace prototype {
+namespace proto {
 
 struct euroc_imu_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -231,5 +231,5 @@ std::ostream &operator<<(std::ostream &os, const euroc_camera_t &data);
 std::ostream &operator<<(std::ostream &os, const euroc_target_t &target);
 
 
-} // namespace prototype
+} // namespace proto
 #endif /* PROTOTYPE_DATASET_EUROC_HPP */

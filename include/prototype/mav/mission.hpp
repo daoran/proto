@@ -8,7 +8,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 // ERROR MESSAGES
 #define EDISTLATLON "Waypoint %d: (%f, %f) has dist > %f from prev waypoint!"
@@ -183,5 +183,5 @@ int wp_mission_waypoint_reached(const wp_mission_t &m, const vec3_t &p_G);
  */
 int wp_mission_update(wp_mission_t &m, const vec3_t &p_G, vec3_t &waypoint);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_MAV_MISSION_HPP

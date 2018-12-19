@@ -1,6 +1,6 @@
 #include "prototype/core/euler.hpp"
 
-namespace prototype {
+namespace proto {
 
 mat3_t rotx(const double theta) {
   mat3_t R;
@@ -94,4 +94,4 @@ mat3_t euler321ToRot(const vec3_t &euler) {
   return R;
 }
 
-} //  namespace prototype
+} //  namespace proto

@@ -3,7 +3,7 @@
 #include "prototype/core/time.hpp"
 #include "prototype/munit.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_ticAndToc() {
   struct timespec start = tic();
@@ -18,6 +18,6 @@ int test_ticAndToc() {
 
 void test_suite() { MU_ADD_TEST(test_ticAndToc); }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

@@ -11,7 +11,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 // GENERAL
 #define SBGC_CMD_MAX_BYTES 255
@@ -206,5 +206,5 @@ int sbgc_set_speed_angle(const sbgc_t &sbgc,
                          const double pitch_speed,
                          const double yaw_speed);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_GIMBAL_SBGC_HPP

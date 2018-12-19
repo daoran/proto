@@ -3,7 +3,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Camera to Camera calibration
@@ -284,5 +284,5 @@ int oxts_load(oxts_t &oxts);
  */
 int kitti_raw_load(kitti_raw_t &dataset);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_DATASET_KITTI_HPP

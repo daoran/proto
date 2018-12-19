@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/calib/calib_gimbal.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define TEST_DATA "/home/chutsu/Dropbox/measurements2"
 
@@ -181,6 +181,6 @@ void test_suite() {
   MU_ADD_TEST(test_GimbalCalibResidual_evaluate);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

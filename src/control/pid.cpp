@@ -1,6 +1,6 @@
 #include "prototype/control/pid.hpp"
 
-namespace prototype {
+namespace proto {
 
 pid_t::pid_t() {}
 
@@ -57,4 +57,4 @@ void pid_reset(pid_t &p) {
   p.error_d = 0.0;
 }
 
-} //  namespace prototype
+} //  namespace proto

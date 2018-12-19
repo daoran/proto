@@ -3,7 +3,7 @@
 #include "prototype/calib/aprilgrid.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define TEST_OUTPUT "/tmp/aprilgrid.csv"
 #define TEST_IMAGE "test_data/calib/aprilgrid/aprilgrid.png"
@@ -359,6 +359,6 @@ void test_suite() {
   MU_ADD_TEST(test_aprilgrid_detect);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

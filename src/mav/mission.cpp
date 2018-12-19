@@ -1,6 +1,6 @@
 #include "prototype/mav/mission.hpp"
 
-namespace prototype {
+namespace proto {
 
 waypoint_t waypoint_setup(const double latitude, const double longitude) {
   waypoint_t wp;
@@ -328,4 +328,4 @@ int wp_mission_update(wp_mission_t &m, const vec3_t &p_G, vec3_t &waypoint) {
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

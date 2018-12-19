@@ -3,7 +3,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /* Timeline type */
 #define NOT_SET 0
@@ -41,5 +41,5 @@ struct timeline_t {
   ~timeline_t();
 };
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_DATASET_TIMELINE_HPP

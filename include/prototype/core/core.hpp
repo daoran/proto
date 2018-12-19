@@ -11,7 +11,7 @@
 #include "prototype/core/tf.hpp"
 #include "prototype/core/time.hpp"
 
-namespace prototype {
+namespace proto {
 
 // MACROS
 #define UNUSED(expr)                                                           \
@@ -28,4 +28,4 @@ namespace prototype {
   }
 #endif
 
-} //  namespace prototype
+} //  namespace proto

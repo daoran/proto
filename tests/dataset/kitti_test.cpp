@@ -2,7 +2,7 @@
 #include "prototype/core/jpl.hpp"
 #include "prototype/dataset/kitti.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define TEST_DATA_BASEPATH "test_data/dataset/kitti/raw"
 #define TEST_DATA_PATH "test_data/dataset/kitti/raw/2011_09_26"
@@ -165,6 +165,6 @@ void test_suite() {
   MU_ADD_TEST(test_kitti_raw_load);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

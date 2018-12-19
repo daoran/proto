@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/calib/calib_data.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define APRILGRID_CONF "test_data/calib/aprilgrid/target.yaml"
 #define APRILGRID_IMAGE "test_data/calib/aprilgrid/aprilgrid.png"
@@ -326,6 +326,6 @@ void test_suite() {
   MU_ADD_TEST(test_validate_stereo);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

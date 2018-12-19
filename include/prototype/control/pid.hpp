@@ -5,7 +5,7 @@
 #include <iostream>
 #include <math.h>
 
-namespace prototype {
+namespace proto {
 
 /**
  * PID Controller
@@ -54,5 +54,5 @@ double pid_update(pid_t &p, const double error, const double dt);
  */
 void pid_reset(pid_t &p);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CONTROL_PID_HPP

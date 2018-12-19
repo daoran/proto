@@ -7,7 +7,7 @@
 #include "prototype/calib/ceres.hpp"
 #include "prototype/calib/calib_data.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Stereo camera calibration residual
@@ -53,6 +53,6 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
                              mat4_t &T_MC,
                              mat4_t &T_WF);
 
-} //  namespace prototype
+} //  namespace proto
 #include "calib_vicon_marker_impl.hpp"
 #endif // PROTOTYPE_CALIB_CALIB_VICON_MARKER_HPP

@@ -5,7 +5,7 @@
 #define TEST_DATA "test_data/core/data/matrix.dat"
 #define TEST_OUTPUT "/tmp/matrix.dat"
 
-namespace prototype {
+namespace proto {
 
 int test_csvrows() {
   int rows;
@@ -253,6 +253,6 @@ void test_suite() {
   MU_ADD_TEST(test_closest_poses);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

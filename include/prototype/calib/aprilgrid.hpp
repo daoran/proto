@@ -8,7 +8,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/vision/util.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * AprilGrid Detector
@@ -180,5 +180,5 @@ static bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
 /** aprilgrid_t to output stream */
 std::ostream &operator<<(std::ostream &os, const aprilgrid_t &april_grid);
 
-} // namespace prototype
+} // namespace proto
 #endif // PROTOTYPE_CALIB_APRILGRID_HPP

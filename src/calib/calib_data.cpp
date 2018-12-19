@@ -1,6 +1,6 @@
 #include "prototype/calib/calib_data.hpp"
 
-namespace prototype {
+namespace proto {
 
 calib_pose_param_t::calib_pose_param_t(const mat4_t &T)
     : q{T.block<3, 3>(0, 0)}, r{T.block<3, 1>(0, 3)} {}
@@ -361,4 +361,4 @@ std::ostream &operator<<(std::ostream &os, const calib_target_t &target) {
   return os;
 }
 
-} //  namespace prototype
+} //  namespace proto

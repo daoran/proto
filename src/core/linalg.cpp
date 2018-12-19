@@ -1,6 +1,6 @@
 #include "prototype/core/linalg.hpp"
 
-namespace prototype {
+namespace proto {
 
 matx_t zeros(const int rows, const int cols) {
   return matx_t::Zero(rows, cols);
@@ -82,4 +82,4 @@ matx_t nullspace(const matx_t &A) {
   return A_null_space;
 }
 
-} // namespace prototype
+} // namespace proto

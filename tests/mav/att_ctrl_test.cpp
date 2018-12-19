@@ -1,7 +1,7 @@
 #include "prototype/munit.hpp"
 #include "prototype/mav/att_ctrl.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define TEST_CONFIG "test_data/mav/att_ctrl.yaml"
 
@@ -65,6 +65,6 @@ void test_suite() {
   MU_ADD_TEST(test_att_ctrl_update);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

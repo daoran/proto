@@ -17,7 +17,7 @@ debug() {
 # cd scripts/api && python3 api.py
 
 # OCTAVE
-cd octave
+# cd octave
 # ./tools/calib_data_summary
 # octave notes/ba.m
 # octave notes/quaternion.m
@@ -31,7 +31,7 @@ cd octave
 # octave notes/radtan4_point_jacobian.m
 # octave tools/plot_calib_euroc.m && exit 0
 # octave tools/plot_calib_vicon.m && exit 0
-octave tools/plot_timestamps.m && exit 0
+# octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_marker_poses.m && exit 0
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
@@ -45,11 +45,11 @@ make -j8
 # exit
 
 # APPS
-cd apps
+# cd apps
 # ./scripts/octave/calib_data_summary
 # ./calib_camera config/calib_camera.yaml
 # ./calib_stereo config/calib_stereo.yaml
-./calib_vicon_marker config/calib_vicon_marker.yaml
+# ./calib_vicon_marker config/calib_vicon_marker.yaml
 # ./detect_aprilgrid config/detect_aprilgrid.yaml
 # ./validate_intrinsics config/validate_intrinsics.yaml
 # ./validate_stereo config/validate_stereo.yaml

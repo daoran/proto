@@ -5,7 +5,7 @@
 #include "prototype/core/euler.hpp"
 #include "prototype/core/time.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_tf_rot() {
   mat4_t T_WS = I(4);
@@ -32,6 +32,6 @@ void test_suite() {
   MU_ADD_TEST(test_tf_trans);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

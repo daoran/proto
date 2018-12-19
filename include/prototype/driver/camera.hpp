@@ -3,7 +3,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Camera config file
@@ -84,5 +84,5 @@ int camera_disconnect(camera_t &cam);
  */
 int camera_get_frame(camera_t &cam);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_DRIVER_CAMERA_HPP

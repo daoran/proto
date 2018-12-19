@@ -1,6 +1,6 @@
 #include "prototype/calib/calib_stereo.hpp"
 
-namespace prototype {
+namespace proto {
 
 stereo_residual_t::stereo_residual_t(const vec2_t &z_C0,
                                      const vec2_t &z_C1,
@@ -140,4 +140,4 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

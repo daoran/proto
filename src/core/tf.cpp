@@ -1,6 +1,6 @@
 #include "prototype/core/tf.hpp"
 
-namespace prototype {
+namespace proto {
 
 mat4_t tf(const mat3_t &C, const vec3_t &r) {
   mat4_t T = I(4);
@@ -13,4 +13,4 @@ mat4_t tf(const quat_t &q, const vec3_t &r) {
   return tf(q.toRotationMatrix(), r);
 }
 
-} // namespace prototype
+} // namespace proto

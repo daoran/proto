@@ -1,6 +1,6 @@
 #include "prototype/calib/aprilgrid.hpp"
 
-namespace prototype {
+namespace proto {
 
 aprilgrid_detector_t::aprilgrid_detector_t() {}
 
@@ -695,4 +695,4 @@ std::ostream &operator<<(std::ostream &os, const aprilgrid_t &aprilgrid) {
   return os;
 }
 
-} // namespace prototype
+} // namespace proto

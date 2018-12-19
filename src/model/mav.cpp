@@ -1,6 +1,6 @@
 #include "prototype/model/mav.hpp"
 
-namespace prototype {
+namespace proto {
 
 int mav_model_update(mav_model_t &qm,
                      const vec4_t &motor_inputs,
@@ -60,9 +60,9 @@ int mav_model_update(mav_model_t &qm,
   qm.p_G(1) = y + vy * dt;
   qm.p_G(2) = z + vz * dt;
 
-	qm.a_G(0) = ((-kt * vx / m) + (1 / m) * (cos(ph) * sin(th) * cos(ps) + sin(ph) * sin(ps)) * tauf);
-	qm.a_G(1) = ((-kt * vy / m) + (1 / m) * (cos(ph) * sin(th) * sin(ps) - sin(ph) * cos(ps)) * tauf);
-	qm.a_G(2) = (-(kt * vz / m) + (1 / m) * (cos(ph) * cos(th)) * tauf - g);
+  qm.a_G(0) = ((-kt * vx / m) + (1 / m) * (cos(ph) * sin(th) * cos(ps) + sin(ph) * sin(ps)) * tauf);
+  qm.a_G(1) = ((-kt * vy / m) + (1 / m) * (cos(ph) * sin(th) * sin(ps) - sin(ph) * cos(ps)) * tauf);
+  qm.a_G(2) = (-(kt * vz / m) + (1 / m) * (cos(ph) * cos(th)) * tauf - g);
 
   qm.v_G(0) = vx + qm.a_G(0) * dt;
   qm.v_G(1) = vy + qm.a_G(1) * dt;
@@ -102,4 +102,4 @@ void mav_model_print(const mav_model_t &qm) {
   printf("psi: %f\n", qm.rpy_G(2));
 }
 
-} //  namespace prototype
+} //  namespace proto

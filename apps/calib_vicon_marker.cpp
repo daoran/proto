@@ -3,7 +3,7 @@
 #include <prototype/prototype.hpp>
 
 
-using namespace prototype;
+using namespace proto;
 
 struct calib_config_t {
   std::string target_file;

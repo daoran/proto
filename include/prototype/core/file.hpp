@@ -14,7 +14,7 @@
 
 #include "prototype/core/log.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Open file in `path` with `mode` and set `nb_rows`.
@@ -148,5 +148,5 @@ std::vector<std::string> path_split(const std::string path);
  */
 std::string paths_combine(const std::string path1, const std::string path2);
 
-} // namespace prototype
+} // namespace proto
 #endif // PROTOTYPE_CORE_FILE_HPP

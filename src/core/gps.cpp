@@ -1,6 +1,6 @@
 #include "prototype/core/gps.hpp"
 
-namespace prototype {
+namespace proto {
 
 void latlon_offset(double lat_ref,
                    double lon_ref,
@@ -35,4 +35,4 @@ double latlon_dist(double lat_ref, double lon_ref, double lat, double lon) {
   return dist;
 }
 
-} // namespace prototype
+} // namespace proto

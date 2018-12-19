@@ -3,7 +3,7 @@
 
 #include "prototype/calib/calib_camera.hpp"
 
-namespace prototype {
+namespace proto {
 
 template <typename T>
 bool pinhole_radtan4_residual_t::operator()(const T *const intrinsics_,
@@ -97,5 +97,5 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CALIB_CALIB_CAMERA_IMPL_HPP

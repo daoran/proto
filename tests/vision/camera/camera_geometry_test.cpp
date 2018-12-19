@@ -4,7 +4,7 @@
 #include "prototype/vision/camera/radtan.hpp"
 #include "prototype/vision/camera/camera_geometry.hpp"
 
-namespace prototype {
+namespace proto {
 
 struct test_config {
   const int image_width = 640;
@@ -52,6 +52,6 @@ void test_suite() {
   MU_ADD_TEST(test_camera_geometry_project_pinhole_equi);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

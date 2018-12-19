@@ -5,7 +5,7 @@
 
 #include "prototype/core/core.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Radial-tangential distortion
@@ -71,5 +71,5 @@ vec2_t undistort(const radtan4_t &radtan,
                  const vec2_t &p0,
                  const int max_iter = 5);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_VISION_CAMERA_RADTAN_HPP

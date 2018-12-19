@@ -6,7 +6,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/vision/util.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Chessboard
@@ -70,5 +70,5 @@ void chessboard_project_points(const chessboard_t &cb,
                                const matx_t &X,
                                cv::Mat &image);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_VISION_CALIBRATION_CHESSBOARD_HPP

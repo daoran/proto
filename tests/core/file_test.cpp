@@ -1,7 +1,7 @@
 #include "prototype/core/file.hpp"
 #include "prototype/munit.hpp"
 
-namespace prototype {
+namespace proto {
 
 int test_file_exists() {
   MU_CHECK(file_exists("test_data/core/config/config.yaml"));
@@ -50,6 +50,6 @@ void test_suite() {
   MU_ADD_TEST(test_paths_combine);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

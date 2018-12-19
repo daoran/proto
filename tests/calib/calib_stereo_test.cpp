@@ -2,7 +2,7 @@
 #include "prototype/calib/calib.hpp"
 #include "prototype/calib/calib_stereo.hpp"
 
-namespace prototype {
+namespace proto {
 
 #define IMAGE_DIR "/data/euroc_mav/cam_april/mav0/cam0/data"
 #define APRILGRID_CONF "test_data/calib/aprilgrid/target.yaml"
@@ -227,6 +227,6 @@ void test_suite() {
   // MU_ADD_TEST(test_calib_stereo_stats);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);

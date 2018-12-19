@@ -1,6 +1,6 @@
 #include "prototype/calib/calib_vicon_marker.hpp"
 
-namespace prototype {
+namespace proto {
 
 vicon_marker_residual_t::vicon_marker_residual_t(const vec2_t &z,
                                                  const vec3_t &p_F)
@@ -183,4 +183,4 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
   return 0;
 }
 
-} //  namespace prototype
+} //  namespace proto

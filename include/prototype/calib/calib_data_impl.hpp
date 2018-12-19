@@ -3,7 +3,7 @@
 
 #include "calib_data.hpp"
 
-namespace prototype {
+namespace proto {
 
 template <typename CM, typename DM>
 cv::Mat validate_intrinsics(const cv::Mat &image,
@@ -88,5 +88,5 @@ cv::Mat validate_stereo(const cv::Mat &image0,
   return result;
 }
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_CALIB_CALIB_DATA_IMPL_HPP

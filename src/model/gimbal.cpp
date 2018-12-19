@@ -1,6 +1,6 @@
 #include "prototype/model/gimbal.hpp"
 
-namespace prototype {
+namespace proto {
 
 mat4_t dh_transform(const double theta,
                     const double d,
@@ -106,4 +106,4 @@ std::ostream &operator<<(std::ostream &os, const gimbal_model_t &model) {
   return os;
 }
 
-} //  namespace prototype
+} //  namespace proto

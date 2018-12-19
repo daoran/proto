@@ -4,7 +4,7 @@
 #include "prototype/core/core.hpp"
 #include "prototype/control/pid.hpp"
 
-namespace prototype {
+namespace proto {
 
 /**
  * Attitude controller
@@ -43,5 +43,5 @@ vec4_t att_ctrl_update(att_ctrl_t &controller,
                        const vec4_t &actual,
                        const double dt);
 
-} //  namespace prototype
+} //  namespace proto
 #endif // PROTOTYPE_MAV_ATT_CTRL_HPP

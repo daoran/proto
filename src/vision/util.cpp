@@ -1,6 +1,6 @@
 #include "prototype/vision/util.hpp"
 
-namespace prototype {
+namespace proto {
 
 bool is_equal(const cv::Mat &m1, const cv::Mat &m2) {
   // pre-check
@@ -360,4 +360,4 @@ cv::Mat equi_undistort_image(const mat3_t &K,
   return image_ud;
 }
 
-} //  namespace prototype
+} //  namespace proto

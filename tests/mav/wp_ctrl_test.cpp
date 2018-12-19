@@ -3,7 +3,7 @@
 
 #define TEST_CONFIG "tests/configs/control/waypoint_controller.yaml"
 
-namespace prototype {
+namespace proto {
 
 int test_wp_ctrl_constructor() {
   wp_ctrl_t controller;
@@ -102,6 +102,6 @@ void test_suite() {
   // MU_ADD_TEST(test_pos_ctrl_update2);
 }
 
-} // namespace prototype
+} // namespace proto
 
-MU_RUN_TESTS(prototype::test_suite);
+MU_RUN_TESTS(proto::test_suite);
