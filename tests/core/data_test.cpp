@@ -117,8 +117,6 @@ int test_interp_pose() {
 }
 
 int test_interp_poses() {
-  mat4s_t interped_poses;
-
   // Create timestamps
   std::vector<long> timestamps;
   timestamps.push_back(1500000000000000000);
@@ -164,19 +162,95 @@ int test_interp_poses() {
   // interp_ts.push_back(1500000001700000000);
 
   // Interpolate poses
+  mat4s_t interped_poses;
   interp_poses(timestamps, poses, interp_ts, interped_poses);
 
   return 0;
 }
 
+int test_closest_poses() {
+
+  // Create timestamps
+  std::vector<long> timestamps;
+  timestamps.push_back(1500000000000000000);
+  timestamps.push_back(1500000000200000000);
+  timestamps.push_back(1500000000400000000);
+  timestamps.push_back(1500000000600000000);
+  timestamps.push_back(1500000000800000000);
+  timestamps.push_back(1500000001000000000);
+  timestamps.push_back(1500000001200000000);
+  timestamps.push_back(1500000001400000000);
+  timestamps.push_back(1500000001600000000);
+  timestamps.push_back(1500000001800000000);
+
+  // Create poses
+  mat4s_t poses;
+  const vec3_t trans_start{0.0, 0.0, 0.0};
+  const vec3_t trans_end{1.0, 2.0, 3.0};
+  const vec3_t rpy_start{0.0, 0.0, 0.0};
+  const vec3_t rpy_end{deg2rad(1.0), deg2rad(2.0), deg2rad(3.0)};
+
+  const size_t nb_timestamps = timestamps.size();
+  const double step = 1.0 / nb_timestamps;
+  vec3s_t trans_interp_gnd;
+  for (size_t i = 0; i < nb_timestamps; i++) {
+    const auto trans_interp = lerp(trans_start, trans_end, step * i);
+    const auto rpy_interp = lerp(rpy_start, rpy_end, step * i);
+    const auto rot = euler321ToRot(rpy_interp);
+    const auto T = tf(rot, trans_interp);
+    poses.push_back(T);
+  }
+
+  // Create interpolate points in time
+  std::vector<long> target_ts;
+  target_ts.push_back(1500000000100000000);
+  // target_ts.push_back(1500000000300000000);
+  // target_ts.push_back(1500000000500000000);
+  target_ts.push_back(1500000000700000000);
+  // target_ts.push_back(1500000000900000000);
+  // target_ts.push_back(1500000001100000000);
+  // target_ts.push_back(1500000001300000000);
+  // target_ts.push_back(1500000001500000000);
+  // target_ts.push_back(1500000001700000000);
+
+  // Interpolate poses
+  mat4s_t result;
+  closest_poses(timestamps, poses, target_ts, result);
+
+  printf("Poses:\n");
+  printf("------------------------------------------------\n");
+  int index = 0;
+  for (const auto &tf : poses) {
+    printf("index[%d]\ttimestamp[%ld]\n", index, timestamps[index]);
+    print_quaternion("rot:", quat_t{tf_rot(tf)});
+    print_vector("trans: ", tf_trans(tf));
+    printf("\n");
+    index++;
+  }
+
+  printf("Result:\n");
+  printf("------------------------------------------------\n");
+  index = 0;
+  for (const auto &tf : result) {
+    printf("index[%d]\ttimestamp[%ld]\n", index, target_ts[index]);
+    print_quaternion("rot:", quat_t{tf_rot(tf)});
+    print_vector("trans: ", tf_trans(tf));
+    printf("\n");
+    index++;
+  }
+
+  return 0;
+}
+
 void test_suite() {
-  MU_ADD_TEST(test_csvrows);
-  MU_ADD_TEST(test_csvcols);
-  MU_ADD_TEST(test_csv2mat);
-  MU_ADD_TEST(test_mat2csv);
-  MU_ADD_TEST(test_slerp);
-  MU_ADD_TEST(test_interp_pose);
-  MU_ADD_TEST(test_interp_poses);
+  // MU_ADD_TEST(test_csvrows);
+  // MU_ADD_TEST(test_csvcols);
+  // MU_ADD_TEST(test_csv2mat);
+  // MU_ADD_TEST(test_mat2csv);
+  // MU_ADD_TEST(test_slerp);
+  // MU_ADD_TEST(test_interp_pose);
+  // MU_ADD_TEST(test_interp_poses);
+  MU_ADD_TEST(test_closest_poses);
 }
 
 } // namespace prototype

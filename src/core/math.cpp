@@ -45,6 +45,11 @@ void print_matrix(const std::string &name, const matx_t &m) {
   printf("\n");
 }
 
+void print_quaternion(const std::string &name, const quat_t &q) {
+  printf("%s: ", name.c_str());
+  printf("w:%f, x:%f, y:%f, z:%f\n", q.w(), q.x(), q.y(), q.z());
+}
+
 std::string array2str(const double *array, const size_t size) {
   std::stringstream os;
   for (size_t i = 0; i < (size - 1); i++) {

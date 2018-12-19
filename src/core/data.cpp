@@ -246,26 +246,21 @@ void closest_poses(const std::vector<long> &timestamps,
   assert(timestamps[0] < target_ts[0]);
 
   // Variables
-  bool initialized = false;
-  double diff_closest = std::numeric_limits<double>::max();
-  mat4_t pose_closest = I(4);
+  const long ts = timestamps[0];
+  double diff_closest = fabs((ts - target_ts[0]) * 1e-9);
+  mat4_t pose_closest = poses[0];
+  bool initialized = true;
 
   size_t target_idx = 0;
-  for (size_t i = 0; i < timestamps.size(); i++) {
+  for (size_t i = 1; i < timestamps.size(); i++) {
     const long ts = timestamps[i];
-    const mat4_t T = poses[i];
+    const mat4_t pose = poses[i];
 
     // Find closest pose
     const double diff = fabs((ts - target_ts[target_idx]) * 1e-9);
-    if (initialized == false) {
-      // Initialize closest pose
-      initialized = true;
-      pose_closest = T;
-      diff_closest = diff;
-
-    } else if (diff < diff_closest) {
+    if (diff < diff_closest) {
       // Update closest pose
-      pose_closest = T;
+      pose_closest = pose;
       diff_closest = diff;
 
     } else if (diff > diff_closest) {
@@ -273,10 +268,10 @@ void closest_poses(const std::vector<long> &timestamps,
       result.push_back(pose_closest);
       target_idx++;
 
-      // Reset closest pose
+      // Initialize closest pose with current ts and pose
       initialized = false;
-      diff_closest = std::numeric_limits<double>::max();
-      pose_closest = I(4);
+      diff_closest = fabs((ts - target_ts[target_idx]) * 1e-9);
+      pose_closest = pose;
     }
 
     // Check if we're done

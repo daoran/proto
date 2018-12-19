@@ -35,6 +35,15 @@ struct vicon_marker_residual_t {
 };
 
 /**
+ * Evaluate the vicon marker cost function
+ */
+double evaluate_vicon_marker_cost(const std::vector<aprilgrid_t> &aprilgrids,
+                                  mat4s_t &T_WM,
+                                  pinhole_t &pinhole,
+                                  radtan4_t &radtan,
+                                  mat4_t &T_MC);
+
+/**
  * Calibrate vicon marker to camera extrinsics
  */
 int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,

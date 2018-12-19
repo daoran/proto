@@ -84,6 +84,11 @@ void print_vector(const std::string &name, const vecx_t &v);
 void print_matrix(const std::string &name, const matx_t &m);
 
 /**
+ * Print quaternion `q` with a `name`.
+ */
+void print_quaternion(const std::string &name, const quat_t &q);
+
+/**
  * Array to string
  *
  * @param[in] array Target array
