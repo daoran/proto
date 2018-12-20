@@ -83,7 +83,6 @@ int detect_calib_data(const calib_target_t &target,
 
   // Print newline after print progress has finished
   print_progress(1.0);
-  std::cout << std::endl;
 
   // Destroy all opencv windows
   cv::destroyAllWindows();
@@ -150,7 +149,6 @@ int preprocess_camera_data(const calib_target_t &target,
 
   // Print newline after print progress has finished
   print_progress(1.0);
-  std::cout << std::endl;
 
   // Destroy all opencv windows
   cv::destroyAllWindows();

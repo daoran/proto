@@ -116,6 +116,10 @@ void print_progress(const double percentage) {
   int rpad = PBWIDTH - lpad;
   printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
   fflush(stdout);
+
+  if ((fabs(percentage - 1.0) < 1e-10)) {
+    printf("\n");
+  }
 }
 
 quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {

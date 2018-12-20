@@ -8,7 +8,9 @@ namespace proto {
 
 euroc_imu_t::euroc_imu_t() {}
 
-euroc_imu_t::euroc_imu_t(const std::string &data_dir_) : data_dir{data_dir_} {}
+euroc_imu_t::euroc_imu_t(const std::string &data_dir_) : data_dir{data_dir_} {
+  euroc_imu_load(*this, data_dir);
+}
 
 euroc_imu_t::~euroc_imu_t() {}
 
@@ -60,6 +62,7 @@ int euroc_imu_load(euroc_imu_t &data, const std::string &data_dir) {
   parse(config, "accelerometer_noise_density", data.accel_noise_density);
   parse(config, "accelerometer_random_walk", data.accel_random_walk);
 
+  data.ok = true;
   return 0;
 }
 
@@ -84,8 +87,10 @@ std::ostream &operator<<(std::ostream &os, const euroc_imu_t &data) {
 
 euroc_camera_t::euroc_camera_t() {}
 
-euroc_camera_t::euroc_camera_t(const std::string &data_dir_)
-    : data_dir{data_dir_} {}
+euroc_camera_t::euroc_camera_t(const std::string &data_dir_, bool is_calib_data_)
+    : data_dir{data_dir_} {
+  euroc_camera_load(*this, data_dir, is_calib_data_);
+}
 
 euroc_camera_t::~euroc_camera_t() {}
 
@@ -150,6 +155,7 @@ int euroc_camera_load(euroc_camera_t &data,
         data.distortion_coefficients,
         is_calib_data);
 
+  data.ok = true;
   return 0;
 }
 
@@ -176,7 +182,9 @@ std::ostream &operator<<(std::ostream &os, const euroc_camera_t &data) {
 euroc_ground_truth_t::euroc_ground_truth_t() {}
 
 euroc_ground_truth_t::euroc_ground_truth_t(const std::string data_dir_)
-    : data_dir{data_dir_} {}
+    : data_dir{data_dir_} {
+  euroc_ground_truth_load(*this, data_dir);
+}
 
 euroc_ground_truth_t::~euroc_ground_truth_t() {}
 
@@ -233,6 +241,7 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
   }
   fclose(fp);
 
+  data.ok = true;
   return 0;
 }
 
@@ -243,12 +252,15 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
 euroc_data_t::euroc_data_t() {}
 
 euroc_data_t::euroc_data_t(const std::string &data_path)
-    : data_path{strip_end(data_path, "/")} {}
+    : data_path{strip_end(data_path, "/")} {
+  euroc_data_load(*this, data_path);
+}
 
 euroc_data_t::~euroc_data_t() {}
 
-int euroc_data_load(euroc_data_t &data) {
+int euroc_data_load(euroc_data_t &data, const std::string &data_path) {
   // Load IMU data
+  data.data_path = strip_end(data_path, "/");
   const std::string imu_data_dir = data.data_path + "/mav0/imu0";
   if (euroc_imu_load(data.imu_data, imu_data_dir) != 0) {
     LOG_ERROR("Failed to load IMU data [%s]!", data.imu_data.data_dir.c_str());
@@ -258,7 +270,7 @@ int euroc_data_load(euroc_data_t &data) {
     const long ts = data.imu_data.timestamps[i];
     const vec3_t a_B = data.imu_data.a_B[i];
     const vec3_t w_B = data.imu_data.w_B[i];
-    const auto imu_event = timeline_event_t{ts, a_B, w_B};
+    const auto imu_event = timeline_event_t<long>{ts, a_B, w_B};
     data.timeline.insert({ts, imu_event});
   }
 
@@ -276,13 +288,13 @@ int euroc_data_load(euroc_data_t &data) {
   for (size_t i = 0; i < data.cam0_data.timestamps.size(); i++) {
     const long ts = data.cam0_data.timestamps[i];
     const auto image_path = data.cam0_data.image_paths[i];
-    const auto cam0_event = timeline_event_t(ts, 0, image_path);
+    const auto cam0_event = timeline_event_t<long>(ts, 0, image_path);
     data.timeline.insert({ts, cam0_event});
   }
   for (size_t i = 0; i < data.cam1_data.timestamps.size(); i++) {
     const long ts = data.cam1_data.timestamps[i];
     const auto image_path = data.cam1_data.image_paths[i];
-    const auto cam1_event = timeline_event_t(ts, 1, image_path);
+    const auto cam1_event = timeline_event_t<long>(ts, 1, image_path);
     data.timeline.insert({ts, cam1_event});
   }
   cv::Mat image = cv::imread(data.cam0_data.image_paths[0]);
@@ -360,9 +372,7 @@ euroc_target_t::euroc_target_t() {}
 
 euroc_target_t::euroc_target_t(const std::string &file_path)
     : file_path{file_path} {
-  if (euroc_target_load(*this, file_path) == 0) {
-    ok = true;
-  }
+  euroc_target_load(*this, file_path);
 }
 
 euroc_target_t::~euroc_target_t() {}
@@ -379,6 +389,7 @@ int euroc_target_load(euroc_target_t &target, const std::string &target_file) {
   parse(config, "tagSize", target.tag_size);
   parse(config, "tagSpacing", target.tag_spacing);
 
+  target.ok = true;
   return 0;
 }
 
@@ -398,7 +409,9 @@ std::ostream &operator<<(std::ostream &os, const euroc_target_t &target) {
 euroc_calib_t::euroc_calib_t() {}
 
 euroc_calib_t::euroc_calib_t(const std::string &data_path)
-    : data_path{strip_end(data_path, "/")} {}
+    : data_path{strip_end(data_path, "/")} {
+  euroc_calib_load(*this, data_path);
+}
 
 euroc_calib_t::~euroc_calib_t() {}
 
@@ -449,7 +462,138 @@ int euroc_calib_load(euroc_calib_t &data, const std::string &data_path) {
     return -1;
   }
 
+  data.ok = true;
   return 0;
+}
+
+void imu_init_attitude(const vec3s_t w_m, const vec3s_t a_m, mat3_t &C_WS) {
+  // Sample around 50 IMU measurements
+  vec3_t sum_angular_vel = vec3_t::Zero();
+  vec3_t sum_linear_acc = vec3_t::Zero();
+  size_t buffer_size = 50;
+  for (size_t i = 0; i < buffer_size; i++) {
+    sum_angular_vel += w_m[i];
+    sum_linear_acc += a_m[i];
+  }
+
+  // Initialize the initial orientation, so that the estimation
+  // is consistent with the inertial frame.
+  const vec3_t mean_accel = sum_linear_acc / buffer_size;
+  const vec3_t gravity{0.0, 0.0, -9.81};
+  C_WS = vecs2rot(mean_accel, -gravity);
+}
+
+int process_stereo_images(const euroc_calib_t &calib_data,
+                          const std::string &preprocess_path,
+                          aprilgrids_t &cam0_grids,
+                          aprilgrids_t &cam1_grids) {
+  // Calib target
+  calib_target_t target;
+  target.target_type = "AprilGrid";
+  target.tag_rows = calib_data.calib_target.tag_rows;
+  target.tag_cols = calib_data.calib_target.tag_cols;
+  target.tag_size = calib_data.calib_target.tag_size;
+  target.tag_spacing = calib_data.calib_target.tag_spacing;
+
+  // Preprocess cam0 images
+  const auto cam0_image_dir = calib_data.cam0_data.data_dir + "/data";
+  const auto cam0_K = pinhole_K(calib_data.cam0_data.intrinsics);
+  const auto cam0_D = calib_data.cam0_data.distortion_coefficients;
+  const auto cam0_output_dir = paths_combine(preprocess_path,  "cam0");
+  int retval = preprocess_camera_data(target,
+                                      cam0_image_dir,
+                                      cam0_K,
+                                      cam0_D,
+                                      cam0_output_dir);
+  if (retval != 0) {
+    LOG_ERROR("Failed to preprocess cam0 image data");
+  }
+
+  // Preprocess cam1 images
+  const auto cam1_image_dir = calib_data.cam1_data.data_dir + "/data";
+  const auto cam1_K = pinhole_K(calib_data.cam1_data.intrinsics);
+  const auto cam1_D = calib_data.cam1_data.distortion_coefficients;
+  const auto cam1_output_dir = paths_combine(preprocess_path,  "cam1");
+  retval = preprocess_camera_data(target,
+                                  cam1_image_dir,
+                                  cam1_K,
+                                  cam1_D,
+                                  cam1_output_dir);
+  if (retval != 0) {
+    LOG_ERROR("Failed to preprocess cam0 image data");
+  }
+
+  // Load preprocessed aprilgrids from both cam0 and cam1
+  retval = load_stereo_calib_data(cam0_output_dir,
+                           cam1_output_dir,
+                           cam0_grids,
+                           cam1_grids);
+  if (retval != 0) {
+    LOG_ERROR("Failed to load preprocessed aprilgrid data");
+  }
+
+  return 0;
+}
+
+timeline_t<long> create_timeline(const euroc_calib_t &calib_data,
+                                 const aprilgrids_t &cam0_grids,
+                                 const aprilgrids_t &cam1_grids,
+                                 const mat4_t &T_SC0,
+                                 mat4s_t &T_WS,
+                                 mat4_t &T_WF,
+                                 long &t0) {
+  // Get initial sensor attitude
+  mat3_t C_WS;
+  imu_init_attitude(calib_data.imu_data.w_B, calib_data.imu_data.a_B, C_WS);
+  const auto T_WS_init = tf(C_WS, zeros(3, 1));
+
+  // Get all AprilGrid corners in the first camera frame Note: It is assumed
+  // all tags in the AprilGrid is detected in 1st frame
+  const auto points_C0F = cam0_grids[0].points_CF;
+  assert(36 * 4 == points_C0F.size());
+
+  // Form T_WF, assumming sensor is at world origin in the first frame
+  const auto T_C0F = cam0_grids[0].T_CF;
+  T_WF = T_WS_init * T_SC0 * T_C0F;
+
+  // Calculate sensor pose throughout the whole dataset
+  // i.e. We are trying to obtain:
+  // T_WS = T_WF * inv(T_C0F) * inv(T_SC0)
+  for (const auto grid : cam0_grids) {
+    const mat4_t T_C0F = grid.T_CF;
+    if (grid.ids.size() > 3) {
+      const auto T_FC0 = T_C0F.inverse();
+      const auto T_C0S = T_SC0.inverse();
+      const auto T_WC0 = T_WF * T_FC0;
+      T_WS.emplace_back(T_WC0 * T_C0S);
+    }
+  }
+
+  // Create timeline
+  timeline_t<long> timeline;
+  // -- Add aprilgrid observed from cam0 events
+  for (const auto &grid : cam0_grids) {
+    const auto ts = grid.timestamp;
+    const timeline_event_t<long> event{ts, 0, grid};
+    timeline_add_event(timeline, event);
+  }
+  // -- Add aprilgrid observed from cam1 events
+  for (const auto &grid : cam1_grids) {
+    const auto ts = grid.timestamp;
+    const timeline_event_t<long> event{ts, 1, grid};
+    timeline_add_event(timeline, event);
+  }
+  // -- Add imu events
+  for (size_t i = 0; i < calib_data.imu_data.timestamps.size(); i++) {
+    const auto ts = calib_data.imu_data.timestamps[i];
+    const auto w_B= calib_data.imu_data.w_B[i];
+    const auto a_B= calib_data.imu_data.a_B[i];
+    const timeline_event_t<long> event{ts, w_B, a_B};
+    timeline_add_event(timeline, event);
+  }
+  t0 = timeline.data.begin()->first;
+
+  return timeline;
 }
 
 } // namespace proto

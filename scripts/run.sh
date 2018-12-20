@@ -41,7 +41,7 @@ mkdir -p build
 cd build || return
 cmake ..
 make -j8
-# sudo make install
+sudo make install
 # exit
 
 # APPS
@@ -55,7 +55,7 @@ make -j8
 # ./validate_stereo config/validate_stereo.yaml
 
 # TESTS
-# cd tests
+cd tests
 # -- calib
 # ./calib-aprilgrid_test
 # ./calib-calib_camera_test
@@ -83,7 +83,7 @@ make -j8
 # ./driver-camera-camera_test
 
 # -- dataset
-# ./dataset-euroc_test
+./dataset-euroc_test
 # ./dataset-kitti_test
 
 # -- mav

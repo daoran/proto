@@ -5,16 +5,18 @@
 #include <libgen.h>
 
 #include "prototype/core/core.hpp"
+#include "prototype/calib/aprilgrid.hpp"
+#include "prototype/calib/calib_data.hpp"
 #include "prototype/dataset/timeline.hpp"
 
 namespace proto {
 
 struct euroc_imu_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  std::string data_dir;
+  bool ok = false;
 
   // Data
+  std::string data_dir;
   std::vector<long> timestamps;
   vec3s_t w_B;
   vec3s_t a_B;
@@ -36,10 +38,10 @@ struct euroc_imu_t {
 
 struct euroc_camera_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  std::string data_dir;
+  bool ok = false;
 
   // Data
+  std::string data_dir;
   std::vector<long> timestamps;
   std::vector<std::string> image_paths;
 
@@ -55,16 +57,16 @@ struct euroc_camera_t {
   vec4_t distortion_coefficients = zeros(4, 1);
 
   euroc_camera_t();
-  euroc_camera_t(const std::string &data_dir_);
+  euroc_camera_t(const std::string &data_dir_, bool is_calib_data_=false);
   ~euroc_camera_t();
 };
 
 struct euroc_ground_truth_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  std::string data_dir;
+  bool ok = false;
 
   // Data
+  std::string data_dir;
   std::vector<long> timestamps;
   vec3s_t p_RS_R;
   vec4s_t q_RS;
@@ -98,7 +100,7 @@ struct euroc_data_t {
 
   std::set<long> timestamps;
   std::map<long, double> time;
-  std::multimap<long, timeline_event_t> timeline;
+  std::multimap<long, timeline_event_t<long>> timeline;
 
   euroc_data_t();
   euroc_data_t(const std::string &data_path);
@@ -164,6 +166,7 @@ int euroc_camera_load(euroc_camera_t &data,
  * Load ground truth data
  *
  * @param[in,out] data Ground truth data
+ * @param[in] data_dir Data directory
  * @returns 0 for success, -1 for failure
  */
 int euroc_ground_truth_load(euroc_ground_truth_t &data,
@@ -173,9 +176,10 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
  * Load dataset
  *
  * @param[in,out] data Dataset
+ * @param[in] data_dir Data directory
  * @returns 0 for success, -1 for failure
  */
-int euroc_data_load(euroc_data_t &data);
+int euroc_data_load(euroc_data_t &data, const std::string &data_path);
 
 /**
  * Reset
@@ -212,6 +216,32 @@ int euroc_target_load(euroc_target_t &target, const std::string &target_file);
  * @returns 0 for success, -1 for failure
  */
 int euroc_calib_load(euroc_calib_t &data, const std::string &data_path);
+
+/**
+ * Process EuRoC calibration data and detect the AprilGrid detected from both
+ * cameras. The detected AprilGrids will be outputted as files into the
+ * `preprocess_path`, and as `aprilgrids_t` in `cam0_grids` and `cam1_grids`.
+ */
+int process_stereo_images(const euroc_calib_t &calib_data,
+                          const std::string &preprocess_path,
+                          aprilgrids_t &cam0_grids,
+                          aprilgrids_t &cam1_grids);
+
+/**
+ * Create timeline from EuRoC calibration data `calib_data`. The timeline data
+ * will put the detected aprilgrids from cam0 and cam1 inplace of the cam0 and
+ * cam1 image paths. Using the aprilgrid data and initial sensor-camera
+ * extrinsics `T_SC0`, the initial sensor poses in world frame `T_WS`, fiducial
+ * pose in world frame `T_WF` and finally first timestamp `t0` will be
+ * calculated.
+ */
+timeline_t<long> create_timeline(const euroc_calib_t &calib_data,
+                                 const aprilgrids_t &cam0_grids,
+                                 const aprilgrids_t &cam1_grids,
+                                 const mat4_t &T_SC0,
+                                 mat4s_t &T_WS,
+                                 mat4_t &T_WF,
+                                 long &t0);
 
 /**
  * `euroc_imu_t` to output stream
