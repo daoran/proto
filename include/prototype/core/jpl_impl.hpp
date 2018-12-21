@@ -1,6 +1,7 @@
 #include "prototype/core/jpl.hpp"
 
 namespace proto {
+namespace jpl {
 
 template <typename Derived, typename OtherDerived>
 void skew(const Eigen::MatrixBase<Derived> &vector,
@@ -64,4 +65,5 @@ void positive_quatmul(const Eigen::MatrixBase<Derived1> &q1,
   }
 }
 
+} //  namespace jpl
 } //  namespace proto

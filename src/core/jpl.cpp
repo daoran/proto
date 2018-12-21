@@ -1,6 +1,17 @@
 #include "prototype/core/jpl.hpp"
 
 namespace proto {
+namespace jpl {
+
+mat3_t skew(const vec3_t &w) {
+  mat3_t S;
+  // clang-format off
+  S << 0.0, -w(2), w(1),
+       w(2), 0.0, -w(0),
+       -w(1), w(0), 0.0;
+  // clang-format on
+  return S;
+}
 
 double quatnorm(const vec4_t &q) {
   const double sum = pow(q(0), 2) + pow(q(1), 2) + pow(q(2), 2) + pow(q(3), 2);
@@ -212,4 +223,5 @@ vec4_t quatzoi(const vec4_t &q, const vec3_t &w, const double dt) {
   return dqdt;
 }
 
+} // namespace jpl
 } // namespace proto

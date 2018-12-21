@@ -28,7 +28,6 @@ int euroc_imu_load(euroc_imu_t &data, const std::string &data_dir) {
   }
 
   // Parse file
-  std::string str_format = "%ld,%lf,%lf,%lf,%lf,%lf,%lf";
   for (int i = 0; i < nb_rows; i++) {
     // Skip first line
     if (i == 0) {
@@ -37,10 +36,11 @@ int euroc_imu_load(euroc_imu_t &data, const std::string &data_dir) {
     }
 
     // Parse line
-    long ts = 0;
+    timestamp_t ts = 0;
     double w_x, w_y, w_z = 0.0;
     double a_x, a_y, a_z = 0.0;
-    fscanf(fp, str_format.c_str(), &ts, &w_x, &w_y, &w_z, &a_x, &a_y, &a_z);
+    fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf,%lf,%lf,%lf",
+           &ts, &w_x, &w_y, &w_z, &a_x, &a_y, &a_z);
     data.timestamps.push_back(ts);
     data.w_B.emplace_back(w_x, w_y, w_z);
     data.a_B.emplace_back(a_x, a_y, a_z);
@@ -118,9 +118,9 @@ int euroc_camera_load(euroc_camera_t &data,
     }
 
     // Parse line
-    long ts = 0;
+    timestamp_t ts = 0;
     char filename[50] = {0};
-    fscanf(fp, "%ld,%s", &ts, filename);
+    fscanf(fp, "%" SCNu64 ",%s", &ts, filename);
     const std::string image_file{filename};
     const auto image_path = data.data_dir + "/data/" + image_file;
 
@@ -203,7 +203,7 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
 
   // Parse file
   std::string str_format;
-  str_format += "%ld,";              // Timestamp
+  str_format += "%" SCNu64 ",";      // Timestamp
   str_format += "%lf,%lf,%lf,";      // Position
   str_format += "%lf,%lf,%lf,%lf,";  // Quaternion
   str_format += "%lf,%lf,%lf,";      // Velocity
@@ -218,7 +218,7 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
     }
 
     // Parse line
-    long ts = 0;
+    timestamp_t ts = 0;
     double p_x, p_y, p_z = 0.0;
     double q_x, q_y, q_z, q_w = 0.0;
     double v_x, v_y, v_z = 0.0;
@@ -267,10 +267,10 @@ int euroc_data_load(euroc_data_t &data, const std::string &data_path) {
     return -1;
   }
   for (size_t i = 0; i < data.imu_data.timestamps.size(); i++) {
-    const long ts = data.imu_data.timestamps[i];
+    const timestamp_t ts = data.imu_data.timestamps[i];
     const vec3_t a_B = data.imu_data.a_B[i];
     const vec3_t w_B = data.imu_data.w_B[i];
-    const auto imu_event = timeline_event_t<long>{ts, a_B, w_B};
+    const auto imu_event = timeline_event_t<timestamp_t>{ts, a_B, w_B};
     data.timeline.insert({ts, imu_event});
   }
 
@@ -286,15 +286,15 @@ int euroc_data_load(euroc_data_t &data, const std::string &data_path) {
     return -1;
   }
   for (size_t i = 0; i < data.cam0_data.timestamps.size(); i++) {
-    const long ts = data.cam0_data.timestamps[i];
+    const timestamp_t ts = data.cam0_data.timestamps[i];
     const auto image_path = data.cam0_data.image_paths[i];
-    const auto cam0_event = timeline_event_t<long>(ts, 0, image_path);
+    const auto cam0_event = timeline_event_t<timestamp_t>(ts, 0, image_path);
     data.timeline.insert({ts, cam0_event});
   }
   for (size_t i = 0; i < data.cam1_data.timestamps.size(); i++) {
-    const long ts = data.cam1_data.timestamps[i];
+    const timestamp_t ts = data.cam1_data.timestamps[i];
     const auto image_path = data.cam1_data.image_paths[i];
-    const auto cam1_event = timeline_event_t<long>(ts, 1, image_path);
+    const auto cam1_event = timeline_event_t<timestamp_t>(ts, 1, image_path);
     data.timeline.insert({ts, cam1_event});
   }
   cv::Mat image = cv::imread(data.cam0_data.image_paths[0]);
@@ -317,7 +317,7 @@ int euroc_data_load(euroc_data_t &data, const std::string &data_path) {
   auto it = data.timeline.begin();
   auto it_end = data.timeline.end();
   while (it != it_end) {
-    const long ts = it->first;
+    const timestamp_t ts = it->first;
     data.timestamps.insert(ts);
     data.time[ts] = ((double) ts - data.ts_start) * 1e-9;
 
@@ -340,26 +340,25 @@ void euroc_data_reset(euroc_data_t &data) {
   data.frame_index = 0;
 }
 
-long euroc_data_min_timestamp(const euroc_data_t &data) {
-  const long cam0_first_ts = data.cam0_data.timestamps.front();
-  const long imu_first_ts = data.imu_data.timestamps.front();
+timestamp_t euroc_data_min_timestamp(const euroc_data_t &data) {
+  const timestamp_t cam0_ts0 = data.cam0_data.timestamps.front();
+  const timestamp_t imu_ts0 = data.imu_data.timestamps.front();
 
-  std::vector<long> first_ts{cam0_first_ts, imu_first_ts};
-  auto first_result = std::min_element(first_ts.begin(), first_ts.end());
-  const long first_ts_index = std::distance(first_ts.begin(), first_result);
-  const long min_ts = first_ts[first_ts_index];
+  timestamps_t first_ts{cam0_ts0, imu_ts0};
+  auto ts0 = std::min_element(first_ts.begin(), first_ts.end());
+  const size_t first_ts_index = std::distance(first_ts.begin(), ts0);
 
-  return min_ts;
+  return first_ts[first_ts_index];
 }
 
-long euroc_data_max_timestamp(const euroc_data_t &data) {
-  const long cam0_last_ts = data.cam0_data.timestamps.back();
-  const long imu_last_ts = data.imu_data.timestamps.back();
+timestamp_t euroc_data_max_timestamp(const euroc_data_t &data) {
+  const timestamp_t cam0_last_ts = data.cam0_data.timestamps.back();
+  const timestamp_t imu_last_ts = data.imu_data.timestamps.back();
 
-  std::vector<long> last_ts{cam0_last_ts, imu_last_ts};
+  timestamps_t last_ts{cam0_last_ts, imu_last_ts};
   auto last_result = std::max_element(last_ts.begin(), last_ts.end());
-  const long last_ts_index = std::distance(last_ts.begin(), last_result);
-  const long max_ts = last_ts[last_ts_index];
+  const timestamp_t last_ts_index = std::distance(last_ts.begin(), last_result);
+  const timestamp_t max_ts = last_ts[last_ts_index];
 
   return max_ts;
 }
@@ -485,6 +484,10 @@ void imu_init_attitude(const vec3s_t w_m, const vec3s_t a_m, mat3_t &C_WS) {
 
 int process_stereo_images(const euroc_calib_t &calib_data,
                           const std::string &preprocess_path,
+                          const mat3_t &cam0_K,
+                          const vec4_t &cam0_D,
+                          const mat3_t &cam1_K,
+                          const vec4_t &cam1_D,
                           aprilgrids_t &cam0_grids,
                           aprilgrids_t &cam1_grids) {
   // Calib target
@@ -497,8 +500,6 @@ int process_stereo_images(const euroc_calib_t &calib_data,
 
   // Preprocess cam0 images
   const auto cam0_image_dir = calib_data.cam0_data.data_dir + "/data";
-  const auto cam0_K = pinhole_K(calib_data.cam0_data.intrinsics);
-  const auto cam0_D = calib_data.cam0_data.distortion_coefficients;
   const auto cam0_output_dir = paths_combine(preprocess_path,  "cam0");
   int retval = preprocess_camera_data(target,
                                       cam0_image_dir,
@@ -511,8 +512,6 @@ int process_stereo_images(const euroc_calib_t &calib_data,
 
   // Preprocess cam1 images
   const auto cam1_image_dir = calib_data.cam1_data.data_dir + "/data";
-  const auto cam1_K = pinhole_K(calib_data.cam1_data.intrinsics);
-  const auto cam1_D = calib_data.cam1_data.distortion_coefficients;
   const auto cam1_output_dir = paths_combine(preprocess_path,  "cam1");
   retval = preprocess_camera_data(target,
                                   cam1_image_dir,
@@ -525,9 +524,9 @@ int process_stereo_images(const euroc_calib_t &calib_data,
 
   // Load preprocessed aprilgrids from both cam0 and cam1
   retval = load_stereo_calib_data(cam0_output_dir,
-                           cam1_output_dir,
-                           cam0_grids,
-                           cam1_grids);
+                                  cam1_output_dir,
+                                  cam0_grids,
+                                  cam1_grids);
   if (retval != 0) {
     LOG_ERROR("Failed to load preprocessed aprilgrid data");
   }
@@ -535,13 +534,17 @@ int process_stereo_images(const euroc_calib_t &calib_data,
   return 0;
 }
 
-timeline_t<long> create_timeline(const euroc_calib_t &calib_data,
+timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
                                  const aprilgrids_t &cam0_grids,
                                  const aprilgrids_t &cam1_grids,
                                  const mat4_t &T_SC0,
                                  mat4s_t &T_WS,
                                  mat4_t &T_WF,
-                                 long &t0) {
+                                 timestamp_t &t0) {
+  assert(cam0_grids.size() > 0);
+  assert(cam1_grids.size() > 0);
+  assert(cam0_grids.size() == cam1_grids.size());
+
   // Get initial sensor attitude
   mat3_t C_WS;
   imu_init_attitude(calib_data.imu_data.w_B, calib_data.imu_data.a_B, C_WS);
@@ -561,34 +564,32 @@ timeline_t<long> create_timeline(const euroc_calib_t &calib_data,
   // T_WS = T_WF * inv(T_C0F) * inv(T_SC0)
   for (const auto grid : cam0_grids) {
     const mat4_t T_C0F = grid.T_CF;
-    if (grid.ids.size() > 3) {
-      const auto T_FC0 = T_C0F.inverse();
-      const auto T_C0S = T_SC0.inverse();
-      const auto T_WC0 = T_WF * T_FC0;
-      T_WS.emplace_back(T_WC0 * T_C0S);
-    }
+    const auto T_FC0 = T_C0F.inverse();
+    const auto T_C0S = T_SC0.inverse();
+    const auto T_WC0 = T_WF * T_FC0;
+    T_WS.emplace_back(T_WC0 * T_C0S);
   }
 
   // Create timeline
-  timeline_t<long> timeline;
+  timeline_t<timestamp_t> timeline;
   // -- Add aprilgrid observed from cam0 events
   for (const auto &grid : cam0_grids) {
     const auto ts = grid.timestamp;
-    const timeline_event_t<long> event{ts, 0, grid};
+    const timeline_event_t<timestamp_t> event{ts, 0, grid};
     timeline_add_event(timeline, event);
   }
   // -- Add aprilgrid observed from cam1 events
   for (const auto &grid : cam1_grids) {
     const auto ts = grid.timestamp;
-    const timeline_event_t<long> event{ts, 1, grid};
+    const timeline_event_t<timestamp_t> event{ts, 1, grid};
     timeline_add_event(timeline, event);
   }
   // -- Add imu events
   for (size_t i = 0; i < calib_data.imu_data.timestamps.size(); i++) {
     const auto ts = calib_data.imu_data.timestamps[i];
-    const auto w_B= calib_data.imu_data.w_B[i];
-    const auto a_B= calib_data.imu_data.a_B[i];
-    const timeline_event_t<long> event{ts, w_B, a_B};
+    const auto a_B = calib_data.imu_data.a_B[i];
+    const auto w_B = calib_data.imu_data.w_B[i];
+    const timeline_event_t<timestamp_t> event{ts, a_B, w_B};
     timeline_add_event(timeline, event);
   }
   t0 = timeline.data.begin()->first;

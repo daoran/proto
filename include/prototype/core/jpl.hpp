@@ -5,6 +5,15 @@
 #include "prototype/core/math.hpp"
 
 namespace proto {
+namespace jpl {
+
+/**
+ * Skew symmetric-matrix
+ *
+ * @param w Input vector
+ * @returns Skew symmetric matrix
+ */
+mat3_t skew(const vec3_t &w);
 
 /**
  * Skew
@@ -182,6 +191,7 @@ mat4_t Omega(const vec3_t &w);
  */
 vec4_t quatzoi(const vec4_t &q, const vec3_t &w, const double dt);
 
+} //  namespace jpl
 } //  namespace proto
 #include "jpl_impl.hpp"
 #endif // PROTOTYPE_CORE_JPL_HPP

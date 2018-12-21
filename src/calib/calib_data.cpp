@@ -111,7 +111,7 @@ int preprocess_camera_data(const calib_target_t &target,
 
     // -- Create output file path
     auto output_file = basename(image_paths[i]);
-    const long ts = std::stol(output_file);
+    const timestamp_t ts = std::stoull(output_file);
     output_file = remove_ext(output_file);
     output_file += ".csv";
     const auto save_path = paths_combine(output_dir, output_file);

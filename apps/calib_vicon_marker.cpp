@@ -101,7 +101,7 @@ int save_results(const std::string &save_path,
 static int load_marker_poses(const calib_config_t &config,
                              const aprilgrids_t &grids,
                              const std::vector<double> &time_delays,
-                             std::vector<long> &grid_ts,
+                             timestamps_t &grid_ts,
                              mat4s_t &T_WM) {
   // Open file for loading
   int nb_rows = 0;
@@ -127,18 +127,18 @@ static int load_marker_poses(const calib_config_t &config,
   skip_line(fp);
 
   // Parse data
-  std::vector<long> timestamps;
+  timestamps_t timestamps;
   mat4s_t marker_poses;
   std::string str_format = "%ld,%lf,%lf,%lf,%lf,%lf,%lf,%lf";
   for (int i = 0; i < nb_rows; i++) {
     // Parse line
-    long ts = 0;
+    timestamp_t ts = 0;
     double rx, ry, rz = 0.0;
     double qw, qx, qy, qz = 0.0;
     fscanf(fp, str_format.c_str(), &ts, &rx, &ry, &rz, &qw, &qx, &qy, &qz);
 
     // Form timestamps
-    timestamps.push_back(ts + (long) (time_delays[i] * 1e9));
+    timestamps.push_back(ts + (timestamp_t) (time_delays[i] * 1e9));
 
     // Form transform T_WM
     const vec3_t r_WM{rx, ry, rz};
@@ -161,7 +161,7 @@ static int load_marker_poses(const calib_config_t &config,
 
 static int load_marker_poses(const calib_config_t &config,
                              const aprilgrids_t &grids,
-                             std::vector<long> &grid_ts,
+                             timestamps_t &grid_ts,
                              mat4s_t &T_WM,
                              const double time_delay=0.0) {
   // Open file for loading
@@ -182,18 +182,18 @@ static int load_marker_poses(const calib_config_t &config,
   skip_line(fp);
 
   // Parse data
-  std::vector<long> timestamps;
+  timestamps_t timestamps;
   mat4s_t marker_poses;
   std::string str_format = "%ld,%lf,%lf,%lf,%lf,%lf,%lf,%lf";
   for (int i = 0; i < nb_rows; i++) {
     // Parse line
-    long ts = 0;
+    timestamp_t ts = 0;
     double rx, ry, rz = 0.0;
     double qw, qx, qy, qz = 0.0;
     fscanf(fp, str_format.c_str(), &ts, &rx, &ry, &rz, &qw, &qx, &qy, &qz);
 
     // Form timestamps
-    timestamps.push_back(ts + (long) (time_delay * 1e9));
+    timestamps.push_back(ts + (timestamp_t) (time_delay * 1e9));
 
     // Form transform T_WM
     const vec3_t r_WM{rx, ry, rz};
@@ -228,7 +228,7 @@ static int time_delay_search(const calib_config_t &config,
   while (time_delay <= time_delay_max) {
     // Load marker poses
     mat4s_t T_WM;
-    std::vector<long> timestamps;
+    timestamps_t timestamps;
     int retval = load_marker_poses(config,
                                    grids,
                                    timestamps,
@@ -292,7 +292,7 @@ static std::vector<double> time_delay_search2(
   for (int i = 0; i < max_iter; i++) {
     // Load marker poses
     mat4s_t T_WM;
-    std::vector<long> timestamps;
+    timestamps_t timestamps;
     int retval = load_marker_poses(config,
                                    grids,
                                    time_delays,
@@ -408,7 +408,7 @@ static cv::Mat project_aprilgrid(
 
 static int validate(const calib_config_t &config,
                     const calib_target_t &target,
-                    const std::vector<long> &timestamps,
+                    const timestamps_t &timestamps,
                     const mat4s_t &T_WM,
                     const mat4_t &T_MC,
                     const mat4_t &T_WF) {
@@ -426,7 +426,7 @@ static int validate(const calib_config_t &config,
   const camera_geometry_t<pinhole_t, radtan4_t> camera(pinhole, radtan);
 
   int pose_idx = 0;
-  std::deque<long int> ts_queue(timestamps.begin(), timestamps.end());
+  std::deque<timestamp_t> ts_queue(timestamps.begin(), timestamps.end());
   for (size_t i = 0; i < image_paths.size(); i++) {
     // Grab timestamp from file name
     std::string output = image_paths[i];
@@ -436,7 +436,7 @@ static int validate(const calib_config_t &config,
     }
 
     // Check to see if image timestamp is among the timestamps we optimized against
-    const long image_ts = std::stol(output);
+    const timestamp_t image_ts = std::stol(output);
     bool found = false;
     for (const auto &ts : ts_queue) {
       if (image_ts < ts) {
@@ -452,7 +452,7 @@ static int validate(const calib_config_t &config,
     // Detect AprilGrid
     const auto image_path = paths_combine(config.image_path, image_paths[i]);
     const cv::Mat image = cv::imread(image_path);
-    aprilgrid_t grid{(long) i,
+    aprilgrid_t grid{(timestamp_t) i,
                      target.tag_rows,
                      target.tag_cols,
                      target.tag_size,
@@ -543,7 +543,7 @@ int main(int argc, char *argv[]) {
 
   // // Load marker poses
   // mat4s_t T_WM;
-  // std::vector<long> timestamps;
+  // timestamps_t timestamps;
   // if (load_marker_poses(config, grids, time_delays, timestamps, T_WM) != 0) {
   //   LOG_ERROR("Failed to load marker poses!");
   //   return -1;
@@ -551,7 +551,7 @@ int main(int argc, char *argv[]) {
 
   // Load marker poses
   mat4s_t T_WM;
-  std::vector<long> timestamps;
+  timestamps_t timestamps;
   if (load_marker_poses(config, grids, timestamps, T_WM) != 0) {
     LOG_ERROR("Failed to load marker poses!");
     return -1;

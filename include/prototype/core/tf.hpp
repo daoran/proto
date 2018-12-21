@@ -33,10 +33,70 @@ mat4_t tf(const mat3_t &C, const vec3_t &r);
 mat4_t tf(const quat_t &q, const vec3_t &r);
 
 /**
+ * Rotation matrix around x-axis (counter-clockwise, right-handed).
+ * @returns Rotation matrix
+ */
+mat3_t rotx(const double theta);
+
+/**
+ * Rotation matrix around y-axis (counter-clockwise, right-handed).
+ * @returns Rotation matrix
+ */
+mat3_t roty(const double theta);
+
+/**
+ * Rotation matrix around z-axis (counter-clockwise, right-handed).
+ * @returns Rotation matrix
+ */
+mat3_t rotz(const double theta);
+
+/**
+ * Convert euler sequence 123 to rotation matrix R
+ * This function assumes we are performing a body fixed intrinsic rotation.
+ *
+ * Source:
+ *
+ *     Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
+ *     Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
+ *     Princeton University Press, 1999. Print.
+ *
+ *     Page 86.
+ *
+ * @returns Rotation matrix
+ */
+mat3_t euler123ToRot(const vec3_t &euler);
+
+/**
+ * Convert euler sequence 321 to rotation matrix R
+ * This function assumes we are performing a body fixed intrinsic rotation.
+ *
+ * Source:
+ *
+ *     Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
+ *     Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
+ *     Princeton University Press, 1999. Print.
+ *
+ *     Page 86.
+ *
+ * @returns Rotation matrix
+ */
+mat3_t euler321ToRot(const vec3_t &euler);
+
+/**
+ * Convert roll, pitch and yaw to quaternion.
+ */
+quat_t euler2quat(const vec3_t &euler);
+
+/**
  * Convert rotation vectors to rotation matrix using measured acceleration
  * `a_m` from an IMU and gravity vector `g`.
  */
 mat3_t vecs2rot(const vec3_t &a_m, const vec3_t &g);
+
+/**
+ * Convert quaternion to euler angles.
+ */
+vec3_t quat2euler(const quat_t &q);
 
 } //  namespace proto
 #endif // PROTOTYPE_TF_HPP

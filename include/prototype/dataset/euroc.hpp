@@ -3,6 +3,7 @@
 
 #include <string>
 #include <libgen.h>
+#include <inttypes.h>
 
 #include "prototype/core/core.hpp"
 #include "prototype/calib/aprilgrid.hpp"
@@ -17,7 +18,7 @@ struct euroc_imu_t {
 
   // Data
   std::string data_dir;
-  std::vector<long> timestamps;
+  timestamps_t timestamps;
   vec3s_t w_B;
   vec3s_t a_B;
 
@@ -42,7 +43,7 @@ struct euroc_camera_t {
 
   // Data
   std::string data_dir;
-  std::vector<long> timestamps;
+  timestamps_t timestamps;
   std::vector<std::string> image_paths;
 
   // Sensor properties
@@ -67,7 +68,7 @@ struct euroc_ground_truth_t {
 
   // Data
   std::string data_dir;
-  std::vector<long> timestamps;
+  timestamps_t timestamps;
   vec3s_t p_RS_R;
   vec4s_t q_RS;
   vec3s_t v_RS_R;
@@ -91,16 +92,16 @@ struct euroc_data_t {
   euroc_ground_truth_t ground_truth;
   cv::Size image_size;
 
-  long ts_start = 0;
-  long ts_end = 0;
-  long ts_now = 0;
+  timestamp_t ts_start = 0;
+  timestamp_t ts_end = 0;
+  timestamp_t ts_now = 0;
   long time_index = 0;
   long imu_index = 0;
   long frame_index = 0;
 
-  std::set<long> timestamps;
-  std::map<long, double> time;
-  std::multimap<long, timeline_event_t<long>> timeline;
+  std::set<timestamp_t> timestamps;
+  std::map<timestamp_t, double> time;
+  std::multimap<timestamp_t, timeline_event_t<timestamp_t>> timeline;
 
   euroc_data_t();
   euroc_data_t(const std::string &data_path);
@@ -195,13 +196,13 @@ void euroc_data_reset(euroc_data_t &data);
  * @param[in] data Dataset
  * @returns Minimum timestamp
  */
-long euroc_data_min_timestamp(const euroc_data_t &data);
+timestamp_t euroc_data_min_timestamp(const euroc_data_t &data);
 
 /**
  * Return max timestamp
  * @returns Maximum timestamp
  */
-long euroc_data_max_timestamp(const euroc_data_t &data);
+timestamp_t euroc_data_max_timestamp(const euroc_data_t &data);
 
 /**
  * Load calibration target settings
@@ -224,6 +225,10 @@ int euroc_calib_load(euroc_calib_t &data, const std::string &data_path);
  */
 int process_stereo_images(const euroc_calib_t &calib_data,
                           const std::string &preprocess_path,
+                          const mat3_t &cam0_K,
+                          const vec4_t &cam0_D,
+                          const mat3_t &cam1_K,
+                          const vec4_t &cam1_D,
                           aprilgrids_t &cam0_grids,
                           aprilgrids_t &cam1_grids);
 
@@ -235,13 +240,13 @@ int process_stereo_images(const euroc_calib_t &calib_data,
  * pose in world frame `T_WF` and finally first timestamp `t0` will be
  * calculated.
  */
-timeline_t<long> create_timeline(const euroc_calib_t &calib_data,
+timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
                                  const aprilgrids_t &cam0_grids,
                                  const aprilgrids_t &cam1_grids,
                                  const mat4_t &T_SC0,
                                  mat4s_t &T_WS,
                                  mat4_t &T_WF,
-                                 long &t0);
+                                 timestamp_t &t0);
 
 /**
  * `euroc_imu_t` to output stream

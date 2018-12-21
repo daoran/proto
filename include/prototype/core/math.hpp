@@ -15,7 +15,6 @@ namespace proto {
 
 #ifndef __EIGEN_TYPEDEF__
 #define __EIGEN_TYPEDEF__
-// clang-format off
 typedef Eigen::Vector2d vec2_t;
 typedef Eigen::Vector3d vec3_t;
 typedef Eigen::Vector4d vec4_t;
@@ -23,12 +22,12 @@ typedef Eigen::Matrix<double, 5, 1> vec5_t;
 typedef Eigen::Matrix<double, 6, 1> vec6_t;
 typedef Eigen::VectorXd vecx_t;
 
-typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>> vec2s_t;
-typedef std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> vec3s_t;
-typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> vec4s_t;
-typedef std::vector<Eigen::Matrix<double, 5, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 5, 1>>> vec5s_t;
-typedef std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> vec6s_t;
-typedef std::vector<Eigen::VectorXd> vecxs_t;
+typedef std::vector<vec2_t, Eigen::aligned_allocator<vec2_t>> vec2s_t;
+typedef std::vector<vec3_t, Eigen::aligned_allocator<vec3_t>> vec3s_t;
+typedef std::vector<vec4_t, Eigen::aligned_allocator<vec4_t>> vec4s_t;
+typedef std::vector<vec5_t, Eigen::aligned_allocator<vec5_t>> vec5s_t;
+typedef std::vector<vec6_t, Eigen::aligned_allocator<vec6_t>> vec6s_t;
+typedef std::vector<vecx_t> vecxs_t;
 
 typedef Eigen::Matrix2d mat2_t;
 typedef Eigen::Matrix3d mat3_t;
@@ -36,14 +35,13 @@ typedef Eigen::Matrix4d mat4_t;
 typedef Eigen::MatrixXd matx_t;
 typedef Eigen::Matrix<double, 3, 4> mat34_t;
 
-typedef std::vector<Eigen::Matrix2d, Eigen::aligned_allocator<Eigen::Matrix2d>> mat2s_t;
-typedef std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d>> mat3s_t;
-typedef std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> mat4s_t;
-typedef std::vector<Eigen::MatrixXd, Eigen::aligned_allocator<Eigen::MatrixXd>> matxs_t;
+typedef std::vector<mat2_t, Eigen::aligned_allocator<mat2_t>> mat2s_t;
+typedef std::vector<mat3_t, Eigen::aligned_allocator<mat3_t>> mat3s_t;
+typedef std::vector<mat4_t, Eigen::aligned_allocator<mat4_t>> mat4s_t;
+typedef std::vector<matx_t, Eigen::aligned_allocator<matx_t>> matxs_t;
 
 typedef Eigen::Quaterniond quat_t;
-typedef std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond>> quats_t;
-// clang-format on
+typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
 #endif
 
 /**

@@ -137,7 +137,7 @@ int test_euroc_ground_truth_load() {
   MU_CHECK(ground_truth.b_w_RS_S.size());
   MU_CHECK(ground_truth.b_a_RS_S.size());
 
-  const long ts_gnd = 1403715274302142976;
+  const timestamp_t ts_gnd = 1403715274302142976;
   const vec3_t p_gnd{0.878612,2.142470,0.947262};
   const vec3_t v_gnd{0.009474,-0.014009,-0.002145};
   const vec3_t gyro_bias{-0.002229,0.020700,0.076350};
@@ -189,54 +189,54 @@ int test_euroc_calib_load() {
   return 0;
 }
 
-int test_process_stereo_images() {
-  // Load calibration data
-  euroc_calib_t calib_data{"/data/euroc_mav/imu_april"};
-  MU_CHECK(calib_data.ok);
-
-  // Process stereo images
-  const std::string preprocess_path = "/tmp/stereo_data";
-  aprilgrids_t cam0_grids;
-  aprilgrids_t cam1_grids;
-  int retval = process_stereo_images(calib_data,
-                                     preprocess_path,
-                                     cam0_grids,
-                                     cam1_grids);
-  MU_CHECK(cam0_grids.size() > 0);
-  MU_CHECK(cam1_grids.size() > 0);
-  MU_CHECK(cam0_grids.size() == cam1_grids.size());
-  MU_CHECK(retval == 0);
-
-  return 0;
-}
-
-int test_create_timeline() {
-  // Load calibration data
-  euroc_calib_t calib_data{"/data/euroc_mav/imu_april"};
-  MU_CHECK(calib_data.ok);
-
-  // Process stereo images
-  const std::string preprocess_path = "/tmp/stereo_data";
-  aprilgrids_t cam0_grids;
-  aprilgrids_t cam1_grids;
-  process_stereo_images(calib_data, preprocess_path, cam0_grids, cam1_grids);
-
-  // Create timeline
-  mat4_t T_SC0;
-  mat4s_t T_WS;
-  mat4_t T_WF;
-  long t0;
-  const auto timeline = create_timeline(calib_data,
-                                        cam0_grids,
-                                        cam1_grids,
-                                        T_SC0,
-                                        T_WS,
-                                        T_WF,
-                                        t0);
-  MU_CHECK(timeline.data.size() > 0);
-
-  return 0;
-}
+// int test_process_stereo_images() {
+//   // Load calibration data
+//   euroc_calib_t calib_data{"/data/euroc_mav/imu_april"};
+//   MU_CHECK(calib_data.ok);
+//
+//   // Process stereo images
+//   const std::string preprocess_path = "/tmp/stereo_data";
+//   aprilgrids_t cam0_grids;
+//   aprilgrids_t cam1_grids;
+//   int retval = process_stereo_images(calib_data,
+//                                      preprocess_path,
+//                                      cam0_grids,
+//                                      cam1_grids);
+//   MU_CHECK(cam0_grids.size() > 0);
+//   MU_CHECK(cam1_grids.size() > 0);
+//   MU_CHECK(cam0_grids.size() == cam1_grids.size());
+//   MU_CHECK(retval == 0);
+//
+//   return 0;
+// }
+//
+// int test_create_timeline() {
+//   // Load calibration data
+//   euroc_calib_t calib_data{"/data/euroc_mav/imu_april"};
+//   MU_CHECK(calib_data.ok);
+//
+//   // Process stereo images
+//   const std::string preprocess_path = "/tmp/stereo_data";
+//   aprilgrids_t cam0_grids;
+//   aprilgrids_t cam1_grids;
+//   process_stereo_images(calib_data, preprocess_path, cam0_grids, cam1_grids);
+//
+//   // Create timeline
+//   mat4_t T_SC0;
+//   mat4s_t T_WS;
+//   mat4_t T_WF;
+//   timestamp_t t0;
+//   const auto timeline = create_timeline(calib_data,
+//                                         cam0_grids,
+//                                         cam1_grids,
+//                                         T_SC0,
+//                                         T_WS,
+//                                         T_WF,
+//                                         t0);
+//   MU_CHECK(timeline.data.size() > 0);
+//
+//   return 0;
+// }
 
 void test_suite() {
   MU_ADD_TEST(test_euroc_imu_constructor);

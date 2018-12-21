@@ -2,6 +2,10 @@
 
 namespace proto {
 
+double ts2sec(const timestamp_t &ts) { return ts * 1.0e-9; }
+
+double ns2sec(const uint64_t ns) { return ns * 1.0e-9; }
+
 struct timespec tic() {
   struct timespec time_start;
   clock_gettime(CLOCK_MONOTONIC, &time_start);

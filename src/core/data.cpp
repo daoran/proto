@@ -183,9 +183,9 @@ mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha) {
   return tf(quat_interp, trans_interp);
 }
 
-void interp_poses(const std::vector<long> &timestamps,
+void interp_poses(const timestamps_t &timestamps,
                   const mat4s_t &poses,
-                  const std::vector<long> &interp_ts,
+                  const timestamps_t &interp_ts,
                   mat4s_t &interped_poses,
                   const double threshold) {
   assert(timestamps.size() > 0);
@@ -194,14 +194,14 @@ void interp_poses(const std::vector<long> &timestamps,
   assert(timestamps[0] < interp_ts[0]);
 
   // Interpolation variables
-  long ts_start = 0;
-  long ts_end = 0;
+  timestamp_t ts_start = 0;
+  timestamp_t ts_end = 0;
   mat4_t pose0 = I(4);
   mat4_t pose1 = I(4);
 
   size_t interp_idx = 0;
   for (size_t i = 0; i < timestamps.size(); i++) {
-    const long ts = timestamps[i];
+    const timestamp_t ts = timestamps[i];
     const mat4_t T = poses[i];
 
     const double diff = (ts - interp_ts[interp_idx]) * 1e-9;
@@ -240,9 +240,9 @@ void interp_poses(const std::vector<long> &timestamps,
   }
 }
 
-void closest_poses(const std::vector<long> &timestamps,
+void closest_poses(const timestamps_t &timestamps,
                    const mat4s_t &poses,
-                   const std::vector<long> &target_ts,
+                   const timestamps_t &target_ts,
                    mat4s_t &result) {
   assert(timestamps.size() > 0);
   assert(timestamps.size() == poses.size());
@@ -250,14 +250,14 @@ void closest_poses(const std::vector<long> &timestamps,
   assert(timestamps[0] < target_ts[0]);
 
   // Variables
-  const long ts = timestamps[0];
+  const timestamp_t ts = timestamps[0];
   double diff_closest = fabs((ts - target_ts[0]) * 1e-9);
   mat4_t pose_closest = poses[0];
   bool initialized = true;
 
   size_t target_idx = 0;
   for (size_t i = 1; i < timestamps.size(); i++) {
-    const long ts = timestamps[i];
+    const timestamp_t ts = timestamps[i];
     const mat4_t pose = poses[i];
 
     // Find closest pose

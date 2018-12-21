@@ -2,7 +2,6 @@
 
 #include "prototype/munit.hpp"
 #include "prototype/core/tf.hpp"
-#include "prototype/core/euler.hpp"
 #include "prototype/core/time.hpp"
 
 namespace proto {

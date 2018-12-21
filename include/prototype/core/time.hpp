@@ -3,8 +3,23 @@
 
 #include <sys/time.h>
 #include <time.h>
+#include <vector>
+#include <cstdint>
 
 namespace proto {
+
+typedef uint64_t timestamp_t;
+typedef std::vector<timestamp_t> timestamps_t;
+
+/**
+ * Convert ts to second.
+ */
+double ts2sec(const timestamp_t &ts);
+
+/**
+ * Convert nano-second to second.
+ */
+double ns2sec(const uint64_t ns);
 
 /**
  * Start timer.

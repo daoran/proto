@@ -12,6 +12,7 @@
 #include "prototype/core/math.hpp"
 #include "prototype/core/linalg.hpp"
 #include "prototype/core/tf.hpp"
+#include "prototype/core/time.hpp"
 
 namespace proto {
 
@@ -68,9 +69,9 @@ mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha);
  * in `interp_poses`.
  * @returns 0 for success, -1 for failure
  */
-void interp_poses(const std::vector<long> &timestamps,
+void interp_poses(const timestamps_t &timestamps,
                   const mat4s_t &poses,
-                  const std::vector<long> &interp_ts,
+                  const timestamps_t &interp_ts,
                   mat4s_t &interped_poses,
                   const double threshold=0.001);
 
@@ -80,9 +81,9 @@ void interp_poses(const std::vector<long> &timestamps,
  * are recorded in `result`.
  * @returns 0 for success, -1 for failure
  */
-void closest_poses(const std::vector<long> &timestamps,
+void closest_poses(const timestamps_t &timestamps,
                    const mat4s_t &poses,
-                   const std::vector<long> &interp_ts,
+                   const timestamps_t &interp_ts,
                    mat4s_t &result);
 
 /**

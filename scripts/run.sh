@@ -55,7 +55,7 @@ sudo make install
 # ./validate_stereo config/validate_stereo.yaml
 
 # TESTS
-cd tests
+# cd tests
 # -- calib
 # ./calib-aprilgrid_test
 # ./calib-calib_camera_test
@@ -83,7 +83,7 @@ cd tests
 # ./driver-camera-camera_test
 
 # -- dataset
-./dataset-euroc_test
+# ./dataset-euroc_test
 # ./dataset-kitti_test
 
 # -- mav

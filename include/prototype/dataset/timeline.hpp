@@ -26,7 +26,7 @@ struct timeline_event_t {
   vec3_t w_m = zeros(3, 1);
 
   // Camera data
-  int camera_index = 0;
+  int camera_index = -1;
   std::string image_path;
 
   // Vicon data

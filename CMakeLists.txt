@@ -1,14 +1,12 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.3)
 PROJECT(prototype)
 
-
 # C++ COMPILER SETTINGS
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(BUILD_SHARED_LIBS ON)
 SET(CMAKE_BUILD_TYPE RELEASE)
 # SET(CMAKE_BUILD_TYPE DEBUG)
-
 
 # DEPENDENCIES
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -24,10 +22,8 @@ if (OPENMP_FOUND)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-
 # INCLUDES
 INCLUDE_DIRECTORIES(include ${EIGEN3_INCLUDE_DIR} ${SUITESPARSE_INCLUDE_DIRS})
-
 
 # LIBRARY
 ADD_LIBRARY(
@@ -46,13 +42,11 @@ ADD_LIBRARY(
   # core
   src/core/config.cpp
   src/core/data.cpp
-  src/core/euler.cpp
   src/core/file.cpp
   src/core/gps.cpp
   src/core/jpl.cpp
   src/core/linalg.cpp
   src/core/math.cpp
-  src/core/stats.cpp
   src/core/tf.cpp
   src/core/time.cpp
   # dataset
@@ -124,7 +118,6 @@ SET(
   core-gps_test
   core-linalg_test
   core-math_test
-  core-stats_test
   core-tf_test
   core-time_test
   dataset-euroc_test
@@ -149,7 +142,6 @@ FOREACH(TEST ${UNITTESTS})
   ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 ENDFOREACH(TEST)
-
 
 # APPS
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)

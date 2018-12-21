@@ -1,13 +1,10 @@
 #include "prototype/core/config.hpp"
 #include "prototype/core/data.hpp"
-#include "prototype/core/euler.hpp"
 #include "prototype/core/file.hpp"
 #include "prototype/core/gps.hpp"
-#include "prototype/core/jpl.hpp"
 #include "prototype/core/linalg.hpp"
 #include "prototype/core/log.hpp"
 #include "prototype/core/math.hpp"
-#include "prototype/core/stats.hpp"
 #include "prototype/core/tf.hpp"
 #include "prototype/core/time.hpp"
 

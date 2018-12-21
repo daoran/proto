@@ -8,7 +8,7 @@ aprilgrid_detector_t::~aprilgrid_detector_t() {}
 
 aprilgrid_t::aprilgrid_t() {}
 
-aprilgrid_t::aprilgrid_t(const long timestamp,
+aprilgrid_t::aprilgrid_t(const timestamp_t &timestamp,
                          const int tag_rows,
                          const int tag_cols,
                          const double tag_size,

@@ -1,6 +1,5 @@
 #include "prototype/munit.hpp"
 #include "prototype/core/data.hpp"
-#include "prototype/core/euler.hpp"
 
 #define TEST_DATA "test_data/core/data/matrix.dat"
 #define TEST_OUTPUT "/tmp/matrix.dat"
@@ -52,24 +51,6 @@ int test_mat2csv() {
   return 0;
 }
 
-static vec3_t quat2euler(const quat_t &q) {
-  const double qw = q.w();
-  const double qx = q.x();
-  const double qy = q.y();
-  const double qz = q.z();
-
-  const double qw2 = qw * qw;
-  const double qx2 = qx * qx;
-  const double qy2 = qy * qy;
-  const double qz2 = qz * qz;
-
-  const double t1 = atan2(2 * (qx * qw + qz * qy), (qw2 - qx2 - qy2 + qz2));
-  const double t2 = asin(2 * (qy * qw - qx * qz));
-  const double t3 = atan2(2 * (qx * qy + qz * qw), (qw2 + qx2 - qy2 - qz2));
-
-  return vec3_t{t1, t2, t3};
-}
-
 int test_slerp() {
   for (int i = 0; i < 1000; i++) {
     const double roll_start = randf(-1.0, 1.0);
@@ -118,7 +99,7 @@ int test_interp_pose() {
 
 int test_interp_poses() {
   // Create timestamps
-  std::vector<long> timestamps;
+  timestamps_t timestamps;
   timestamps.push_back(1500000000000000000);
   timestamps.push_back(1500000000200000000);
   timestamps.push_back(1500000000400000000);
@@ -150,7 +131,7 @@ int test_interp_poses() {
   }
 
   // Create interpolate points in time
-  std::vector<long> interp_ts;
+  timestamps_t interp_ts;
   // interp_ts.push_back(1500000000100000000);
   // interp_ts.push_back(1500000000300000000);
   // interp_ts.push_back(1500000000500000000);
@@ -171,7 +152,7 @@ int test_interp_poses() {
 int test_closest_poses() {
 
   // Create timestamps
-  std::vector<long> timestamps;
+  timestamps_t timestamps;
   timestamps.push_back(1500000000000000000);
   timestamps.push_back(1500000000200000000);
   timestamps.push_back(1500000000400000000);
@@ -202,7 +183,7 @@ int test_closest_poses() {
   }
 
   // Create interpolate points in time
-  std::vector<long> target_ts;
+  timestamps_t target_ts;
   target_ts.push_back(1500000000100000000);
   // target_ts.push_back(1500000000300000000);
   // target_ts.push_back(1500000000500000000);

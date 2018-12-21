@@ -36,7 +36,7 @@ struct aprilgrid_t {
   /// Detections
   bool detected = false;
   int nb_detections = 0;
-  long timestamp = 0;
+  timestamp_t timestamp = 0;
   std::vector<int> ids;
   vec2s_t keypoints;
 
@@ -46,7 +46,7 @@ struct aprilgrid_t {
   mat4_t T_CF = I(4);
 
   aprilgrid_t();
-  aprilgrid_t(const long timestamp,
+  aprilgrid_t(const timestamp_t &timestamp,
               const int tag_rows,
               const int tag_cols,
               const double tag_size,

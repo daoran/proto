@@ -32,7 +32,7 @@ void print_vector(const std::string &name, const vecx_t &v) {
 }
 
 void print_matrix(const std::string &name, const matx_t &m) {
-  printf("%s: ", name.c_str());
+  printf("%s:\n", name.c_str());
   for (long i = 0; i < m.rows(); i++) {
     for (long j = 0; j < m.cols(); j++) {
       printf("%f", m(i, j));
