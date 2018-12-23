@@ -17,7 +17,7 @@ debug() {
 # cd scripts/api && python3 api.py
 
 # OCTAVE
-# cd octave
+cd octave
 # ./tools/calib_data_summary
 # octave notes/ba.m
 # octave notes/quaternion.m
@@ -33,15 +33,18 @@ debug() {
 # octave tools/plot_calib_vicon.m && exit 0
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_marker_poses.m && exit 0
+# octave tests/camera/test_camera_create.m
+octave tests/camera/test_camera_measurements.m
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
+exit
 
 # LIBRARY
-mkdir -p build
-cd build || return
-cmake ..
-make -j8
-sudo make install
+# mkdir -p build
+# cd build || return
+# cmake ..
+# make -j8
+# sudo make install
 # exit
 
 # APPS

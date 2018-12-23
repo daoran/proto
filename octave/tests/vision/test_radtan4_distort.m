@@ -34,6 +34,6 @@ for i = 1:nb_tests
 	endif
 endfor
 
-if test_passed
-	printf("passed!\n");
+if test_passed == false
+  exit(-1);
 endif
