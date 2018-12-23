@@ -34,7 +34,12 @@ cd octave
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_marker_poses.m && exit 0
 # octave tests/camera/test_camera_create.m
-octave tests/camera/test_camera_measurements.m
+# octave tests/camera/test_camera_measurements.m
+# octave tests/os/test_join_paths.m
+# octave tests/os/test_list_dir.m
+# octave tests/plot/test_draw_camera.m
+# octave tests/plot/test_draw_frame.m
+# octave tests/plot/test_draw_points.m
 # octave tests/vision/test_radtan4_distort.m
 # octave tests/vision/test_radtan4_undistort.m
 exit
