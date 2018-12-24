@@ -18,7 +18,7 @@ debug() {
 
 # OCTAVE
 cd octave
-./run_tests.bash
+# ./run_tests.bash
 # ./tools/calib_data_summary
 # octave notes/ba.m
 # octave notes/quaternion.m
@@ -35,6 +35,8 @@ cd octave
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_marker_poses.m && exit 0
 
+# octave tests/dataset/test_load_aprilgrid.m
+octave tests/dataset/test_load_euroc.m
 # octave tests/os/test_join_paths.m
 # octave tests/os/test_list_dir.m
 # octave tests/plot/test_draw_camera.m

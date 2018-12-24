@@ -1,9 +1,9 @@
 function data = load_euroc(data_path)
-  cam0_data = strcat(data_path, "/mav0/cam0/data");
-  cam1_data = strcat(data_path, "/mav0/cam1/data");
-  cam0_csv = strcat(data_path, "/mav0/cam0/data.csv");
-  cam1_csv = strcat(data_path, "/mav0/cam1/data.csv");
-  imu_csv = strcat(data_path, "/mav0/imu0/data.csv");
+  cam0_data = join_paths(data_path, "/mav0/cam0/data");
+  cam1_data = join_paths(data_path, "/mav0/cam1/data");
+  cam0_csv = join_paths(data_path, "/mav0/cam0/data.csv");
+  cam1_csv = join_paths(data_path, "/mav0/cam1/data.csv");
+  imu_csv = join_paths(data_path, "/mav0/imu0/data.csv");
 
 	% Load camera data
   [cam0_ts, cam0_images] = textread(cam0_csv, ...
@@ -14,12 +14,10 @@ function data = load_euroc(data_path)
 																		"%f %s", ...
 																		"delimiter", ",", ...
 																		"headerlines", 1);
-
   nb_cam0_images = rows(cam0_images);
   for i = 1:nb_cam0_images
     cam0_images(i, 1) = strcat(cam0_data, "/", cam0_images{i});
   end
-
   nb_cam1_images = rows(cam1_images);
   for i = 1:nb_cam1_images
     cam1_images(i, 1) = strcat(cam1_data, "/", cam1_images{i});
