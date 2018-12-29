@@ -1,4 +1,4 @@
-function chessboard = chessboard_create(nb_rows=4, nb_cols=4, tag_size=0.2)
+function chessboard = chessboard_create(nb_rows=6, nb_cols=7, tag_size=0.2)
   # Create chessboard grid
   nb_corners = nb_rows * nb_cols;
   object_points = zeros(3, nb_corners);

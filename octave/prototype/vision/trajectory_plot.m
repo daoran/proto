@@ -6,9 +6,6 @@ function trajectory_plot(data)
   endfor
 
   % Draw chessboard
-  hp_F = homogeneous(data.chessboard.object_points);
-  hp_W = data.T_WF * hp_F;
-  p_W = dehomogeneous(hp_W);
-  draw_points(p_W);
+  draw_chessboard(data.T_WF, data.chessboard);
   draw_frame(data.T_WF, 0.2);
 endfunction

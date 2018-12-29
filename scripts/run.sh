@@ -41,6 +41,7 @@ cd octave
 # octave tests/os/test_join_paths.m && exit 0
 # octave tests/os/test_list_dir.m && exit 0
 # octave tests/plot/test_draw_camera.m && exit 0
+# octave tests/plot/test_draw_chessboard.m && exit 0
 # octave tests/plot/test_draw_frame.m && exit 0
 # octave tests/plot/test_draw_points.m && exit 0
 # octave tests/util/test_config.m && exit 0
@@ -67,7 +68,7 @@ cd octave
 # octave tests/vision/test_radtan4_distort.m && exit 0
 # octave tests/vision/test_radtan4_undistort.m && exit 0
 # octave tests/vision/test_trajectory_plot.m && exit 0
-octave tests/vision/test_trajectory_simulate.m && exit 0
+# octave tests/vision/test_trajectory_simulate.m && exit 0
 
 # LIBRARY
 # mkdir -p build

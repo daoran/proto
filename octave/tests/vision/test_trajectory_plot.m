@@ -1,7 +1,7 @@
 addpath(genpath("prototype"));
 
 camera = camera_create([680; 480], 90.0);
-chessboard = chessboard_create(nb_rows=4, nb_cols=4, tag_size=0.2);
+chessboard = chessboard_create();
 data = trajectory_simulate(camera, chessboard);
 
 figure(1);
