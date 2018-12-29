@@ -23,7 +23,7 @@ int wp_ctrl_update(wp_ctrl_t &wc,
 
   // // Calculate waypoint relative to quadrotor
   // mat4_t T_P_W = zeros(4, 4);
-  // T_P_W.block(0, 0, 3, 3) = euler123ToRot(yaw(rpy_G));
+  // T_P_W.block(0, 0, 3, 3) = euler123(yaw(rpy_G));
   // T_P_W(3, 3) = 1.0;
   // const vec4_t wp_B_homo{wp_G(0) - p_G(0),
   //                      wp_G(1) - p_G(1),
@@ -44,7 +44,7 @@ int wp_ctrl_update(wp_ctrl_t &wc,
   // Calculate RPY errors relative to quadrotor by incorporating yaw
   vec3_t errors{wp_G(0) - p_G(0), wp_G(1) - p_G(1), wp_G(2) - p_G(2)};
   const vec3_t euler{0.0, 0.0, rpy_G(2)};
-  const mat3_t R = euler123ToRot(euler);
+  const mat3_t R = euler123(euler);
   errors = R * errors;
 
   // Roll

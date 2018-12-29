@@ -64,8 +64,8 @@ int test_slerp() {
     const vec3_t rpy_end{roll_end, pitch_end, yaw_end};
 
     const double alpha = randf(0.0, 1.0);
-    const auto q0 = quat_t{euler321ToRot(rpy_start)};
-    const auto q1 = quat_t{euler321ToRot(rpy_end)};
+    const auto q0 = quat_t{euler321(rpy_start)};
+    const auto q1 = quat_t{euler321(rpy_end)};
     const auto expect = q0.slerp(alpha, q1);
     const auto actual = slerp(q0, q1, alpha);
 
@@ -84,8 +84,8 @@ int test_interp_pose() {
   const vec3_t rpy_start{0.0, 0.0, 0.0};
   const vec3_t rpy_end{deg2rad(10.0), deg2rad(0.0), deg2rad(0.0)};
 
-  const auto pose_start = tf(euler321ToRot(rpy_start), trans_start);
-  const auto pose_end = tf(euler321ToRot(rpy_end), trans_end);
+  const auto pose_start = tf(euler321(rpy_start), trans_start);
+  const auto pose_end = tf(euler321(rpy_end), trans_end);
   const auto pose_interp = interp_pose(pose_start, pose_end, 0.5);
 
   std::cout << "pose_start:\n" << pose_start << std::endl << std::endl;
@@ -124,7 +124,7 @@ int test_interp_poses() {
   for (size_t i = 0; i < nb_timestamps; i++) {
     const auto trans_interp = lerp(trans_start, trans_end, step * i);
     const auto rpy_interp = lerp(rpy_start, rpy_end, step * i);
-    const auto rot = euler321ToRot(rpy_interp);
+    const auto rot = euler321(rpy_interp);
     const auto T = tf(rot, trans_interp);
 
     poses.push_back(T);
@@ -177,7 +177,7 @@ int test_closest_poses() {
   for (size_t i = 0; i < nb_timestamps; i++) {
     const auto trans_interp = lerp(trans_start, trans_end, step * i);
     const auto rpy_interp = lerp(rpy_start, rpy_end, step * i);
-    const auto rot = euler321ToRot(rpy_interp);
+    const auto rot = euler321(rpy_interp);
     const auto T = tf(rot, trans_interp);
     poses.push_back(T);
   }

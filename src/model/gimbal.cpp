@@ -45,7 +45,7 @@ vec2_t gimbal_model_get_joint_angles(const gimbal_model_t &model) {
 
 mat4_t gimbal_model_T_BS(const gimbal_model_t &model) {
   mat4_t T_sb = zeros(4, 4);
-  T_sb.block(0, 0, 3, 3) = euler321ToRot(model.tau_s.tail(3));
+  T_sb.block(0, 0, 3, 3) = euler321(model.tau_s.tail(3));
   T_sb.block(0, 3, 3, 1) = model.tau_s.head(3);
   T_sb(3, 3) = 1.0;
 
@@ -72,7 +72,7 @@ mat4_t gimbal_model_T_EB(const gimbal_model_t &model) {
 
 mat4_t gimbal_model_T_DE(const gimbal_model_t &model) {
   mat4_t T_DE = zeros(4, 4);
-  T_DE.block(0, 0, 3, 3) = euler321ToRot(model.tau_d.tail(3));
+  T_DE.block(0, 0, 3, 3) = euler321(model.tau_d.tail(3));
   T_DE.block(0, 3, 3, 1) = model.tau_d.head(3);
   T_DE(3, 3) = 1.0;
 

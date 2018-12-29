@@ -39,7 +39,7 @@ Eigen::Matrix<T, 4, 4> GimbalCalibResidual::dhTransform(const T theta,
 }
 
 template <typename T>
-Eigen::Matrix<T, 3, 3> GimbalCalibResidual::euler321ToRot(const T phi,
+Eigen::Matrix<T, 3, 3> GimbalCalibResidual::euler321(const T phi,
                                                           const T theta,
                                                           const T psi) const {
   // i.e. ZYX rotation sequence (world to body)
@@ -107,7 +107,7 @@ Eigen::Matrix<T, 4, 4> GimbalCalibResidual::T_ds(const T *const tau_s,
                                                  const T *const Lambda2) const {
   // Form T_bs
   Eigen::Matrix<T, 4, 4> T_bs = Eigen::Matrix<T, 4, 4>::Zero();
-  T_bs.block(0, 0, 3, 3) = this->euler321ToRot(tau_s[3], tau_s[4], tau_s[5]);
+  T_bs.block(0, 0, 3, 3) = this->euler321(tau_s[3], tau_s[4], tau_s[5]);
   T_bs.block(0, 3, 3, 1) = Eigen::Matrix<T, 3, 1>{tau_s[0], tau_s[1], tau_s[2]};
   T_bs(3, 3) = T(1.0);
 
@@ -131,7 +131,7 @@ Eigen::Matrix<T, 4, 4> GimbalCalibResidual::T_ds(const T *const tau_s,
 
   // Form T_de
   Eigen::Matrix<T, 4, 4> T_de = Eigen::Matrix<T, 4, 4>::Zero();
-  T_de.block(0, 0, 3, 3) = this->euler321ToRot(tau_d[3], tau_d[4], tau_d[5]);
+  T_de.block(0, 0, 3, 3) = this->euler321(tau_d[3], tau_d[4], tau_d[5]);
   T_de.block(0, 3, 3, 1) = Eigen::Matrix<T, 3, 1>{tau_d[0], tau_d[1], tau_d[2]};
   T_de(3, 3) = T(1.0);
 

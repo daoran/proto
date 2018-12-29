@@ -20,7 +20,7 @@ int test_GimbalCalib_load() {
   // const double pitch = 0.2;
   // const double yaw = 0.1;
   //
-  // mat3_t R = euler321ToRot(vec3_t{roll, pitch, yaw});
+  // mat3_t R = euler321(vec3_t{roll, pitch, yaw});
   // std::cout << R << std::endl;
   //
   // Eigen::AngleAxisd roll_angle(roll, Eigen::Vector3d::UnitX());
@@ -43,10 +43,10 @@ int test_GimbalCalibResidual_dhTransform() {
   return 0;
 }
 
-int test_GimbalCalibResidual_euler321ToRot() {
+int test_GimbalCalibResidual_euler321() {
   GimbalCalibResidual err;
 
-  auto result = err.euler321ToRot(0.0, 0.0, 0.0);
+  auto result = err.euler321(0.0, 0.0, 0.0);
   std::cout << result << std::endl;
 
   return 0;
@@ -175,7 +175,7 @@ void test_suite() {
   MU_ADD_TEST(test_GimbalCalib_load);
 
   MU_ADD_TEST(test_GimbalCalibResidual_dhTransform);
-  MU_ADD_TEST(test_GimbalCalibResidual_euler321ToRot);
+  MU_ADD_TEST(test_GimbalCalibResidual_euler321);
   MU_ADD_TEST(test_GimbalCalibResidual_K);
   // MU_ADD_TEST(test_GimbalCalibResidual_T_sd);
   MU_ADD_TEST(test_GimbalCalibResidual_evaluate);

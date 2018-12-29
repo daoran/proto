@@ -16,13 +16,13 @@ void two_wheel_update(two_wheel_t &tm, const double dt) {
   const vec3_t v_G_prev = tm.v_G;
   const vec3_t rpy_G_prev = tm.rpy_G;
 
-  tm.p_G += euler321ToRot(tm.rpy_G) * tm.v_B * dt;
+  tm.p_G += euler321(tm.rpy_G) * tm.v_B * dt;
   tm.v_G = (tm.p_G - p_G_prev) / dt;
   tm.a_G = (tm.v_G - v_G_prev) / dt;
 
-  tm.rpy_G += euler321ToRot(tm.rpy_G) * tm.w_B * dt;
+  tm.rpy_G += euler321(tm.rpy_G) * tm.w_B * dt;
   tm.w_G = tm.rpy_G - rpy_G_prev;
-  tm.a_B = euler123ToRot(tm.rpy_G) * tm.a_G;
+  tm.a_B = euler123(tm.rpy_G) * tm.a_G;
 
   // Wrap angles to +/- pi
   for (int i = 0; i < 3; i++) {

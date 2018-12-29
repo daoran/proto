@@ -243,7 +243,7 @@ static int time_delay_search(const calib_config_t &config,
     pinhole_t pinhole{config.intrinsics};
     radtan4_t radtan{config.distortion};
     const auto rpy_MC = deg2rad(vec3_t{-180.0, 0.0, -90.0});
-    const auto C_MC = euler321ToRot(rpy_MC);
+    const auto C_MC = euler321(rpy_MC);
     mat4_t T_MC = tf(C_MC, zeros(3, 1));
 
     double cost = evaluate_vicon_marker_cost(grids,
@@ -307,7 +307,7 @@ static std::vector<double> time_delay_search2(
     pinhole_t pinhole{config.intrinsics};
     radtan4_t radtan{config.distortion};
     const auto rpy_MC = deg2rad(vec3_t{-180.0, 0.0, -90.0});
-    const auto C_MC = euler321ToRot(rpy_MC);
+    const auto C_MC = euler321(rpy_MC);
     mat4_t T_MC = tf(C_MC, zeros(3, 1));
     // -- Evaluate
     double cost = evaluate_vicon_marker_cost(grids,
@@ -575,7 +575,7 @@ int main(int argc, char *argv[]) {
   pinhole_t pinhole{config.intrinsics};
   radtan4_t radtan{config.distortion};
   const auto rpy_MC = deg2rad(vec3_t{-180.0, 0.0, -90.0});
-  const auto C_MC = euler321ToRot(rpy_MC);
+  const auto C_MC = euler321(rpy_MC);
   mat4_t T_MC = tf(C_MC, 1e-5 * ones(3, 1));
   mat4_t T_WF = T_WM[0] * T_MC * grids[0].T_CF;
 

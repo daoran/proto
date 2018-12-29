@@ -73,8 +73,8 @@ int mav_model_update(mav_model_t &qm,
   qm.rpy_G(2) = wrapToPi(qm.rpy_G(2));
 
   // Calculate body acceleration and angular velocity
-  const mat3_t R_BG = euler321ToRot(qm.rpy_G);
-  const vec3_t g_B = euler321ToRot(qm.rpy_G) * vec3_t{0.0, 0.0, qm.g};
+  const mat3_t R_BG = euler321(qm.rpy_G);
+  const vec3_t g_B = euler321(qm.rpy_G) * vec3_t{0.0, 0.0, qm.g};
   qm.w_B = R_BG * qm.w_G;
   qm.a_B = (R_BG * qm.a_G) + g_B;
 

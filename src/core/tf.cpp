@@ -49,7 +49,7 @@ mat3_t rotz(const double theta) {
   return R;
 }
 
-mat3_t euler123ToRot(const vec3_t &euler) {
+mat3_t euler123(const vec3_t &euler) {
   // i.e. XYZ rotation sequence (body to world)
   const double phi = euler(0);
   const double theta = euler(1);
@@ -77,7 +77,7 @@ mat3_t euler123ToRot(const vec3_t &euler) {
   return R;
 }
 
-mat3_t euler321ToRot(const vec3_t &euler) {
+mat3_t euler321(const vec3_t &euler) {
   // i.e. ZYX rotation sequence (world to body)
   const double phi = euler(0);
   const double theta = euler(1);

@@ -52,7 +52,7 @@ vec4_t pos_ctrl_update(pos_ctrl_t &pc,
                 setpoints(1) - actual(1),
                 setpoints(2) - actual(2)};
   const vec3_t euler{0.0, 0.0, actual(3)};
-  const mat3_t R = euler123ToRot(euler);
+  const mat3_t R = euler123(euler);
   errors = R * errors;
 
   // Roll, pitch, yaw and thrust

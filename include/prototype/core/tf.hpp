@@ -64,7 +64,7 @@ mat3_t rotz(const double theta);
  *
  * @returns Rotation matrix
  */
-mat3_t euler123ToRot(const vec3_t &euler);
+mat3_t euler123(const vec3_t &euler);
 
 /**
  * Convert euler sequence 321 to rotation matrix R
@@ -80,7 +80,7 @@ mat3_t euler123ToRot(const vec3_t &euler);
  *
  * @returns Rotation matrix
  */
-mat3_t euler321ToRot(const vec3_t &euler);
+mat3_t euler321(const vec3_t &euler);
 
 /**
  * Convert roll, pitch and yaw to quaternion.

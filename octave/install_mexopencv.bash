@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e  # Exit on first error
 PREFIX=/usr/local/src/mexopencv
-OPENCV_EXTRA_MODULES_PATH="${PREFIX}/opencv_contrib-3.4.0/modules ${INSTALL_PREFIX}/opencv-3.4.0"
+OPENCV_EXTRA_MODULES_PATH="${PREFIX}/opencv_contrib-3.4.0/modules"
 
 
 # Install system dependencies
@@ -29,6 +29,7 @@ unzip -o opencv_contrib-3.4.0.zip
 
 # Build and install OpenCV 3.4.0 to $PREFIX (defined above)
 cd opencv-3.4.0
+rm -rf build
 mkdir -p build && cd build
 cmake -G "Unix Makefiles" \
 	-DBUILD_DOCS=OFF \
@@ -36,6 +37,7 @@ cmake -G "Unix Makefiles" \
 	-DBUILD_PERF_TESTS=OFF \
 	-DBUILD_TESTS=OFF \
 	-DBUILD_JAVA=OFF \
+	-DFORCE_VTK=OFF \
 	-DWITH_CUDA=OFF \
 	-DWITH_CUBLAS:BOOL=OFF \
 	-DWITH_CUFFT:BOOL=OFF \

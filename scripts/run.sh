@@ -18,37 +18,56 @@ debug() {
 
 # OCTAVE
 cd octave
+# sudo bash ./install_mexopencv.bash
 # ./run_tests.bash
 # ./tools/calib_data_summary
-# octave notes/ba.m
-# octave notes/quaternion.m
-# octave notes/calibration/calibration.m
-# octave notes/calibration/sandbox.m
-# octave notes/frames.m
-# octave notes/quaternion.m
+# octave notes/ba.m && exit 0
+# octave notes/quaternion.m && exit 0
+# octave notes/calibration/calibration.m && exit 0
+# octave notes/calibration/sandbox.m && exit 0
+# octave notes/frames.m && exit 0
+# octave notes/quaternion.m && exit 0
 # octave notes/intrinsics_jacobian.m && exit 0
-# octave notes/equi4_point_jacobian.m
+# octave notes/equi4_point_jacobian.m && exit 0
 # octave notes/radtan4_params_jacobian.m && exit 0
-# octave notes/radtan4_point_jacobian.m
+# octave notes/radtan4_point_jacobian.m && exit 0
 # octave tools/plot_calib_euroc.m && exit 0
 # octave tools/plot_calib_vicon.m && exit 0
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_marker_poses.m && exit 0
 
-# octave tests/dataset/test_load_aprilgrid.m
-octave tests/dataset/test_load_euroc.m
-# octave tests/os/test_join_paths.m
-# octave tests/os/test_list_dir.m
-# octave tests/plot/test_draw_camera.m
-# octave tests/plot/test_draw_frame.m
-# octave tests/plot/test_draw_points.m
-# octave tests/util/test_config.m
-# octave tests/util/test_bezier_cubic.m
-# octave tests/vision/test_camera_measurements.m
-# octave tests/vision/test_chessboard_create.m
-# octave tests/vision/test_radtan4_distort.m
-# octave tests/vision/test_radtan4_undistort.m
-exit
+# octave tests/dataset/test_load_aprilgrid.m && exit 0
+# octave tests/dataset/test_load_euroc.m && exit 0
+# octave tests/os/test_join_paths.m && exit 0
+# octave tests/os/test_list_dir.m && exit 0
+# octave tests/plot/test_draw_camera.m && exit 0
+# octave tests/plot/test_draw_frame.m && exit 0
+# octave tests/plot/test_draw_points.m && exit 0
+# octave tests/util/test_config.m && exit 0
+# octave tests/util/test_bezier_cubic.m && exit 0
+# octave tests/util/test_check_jacobian.m && exit 0
+# octave tests/util/test_dehomogeneous.m && exit 0
+# octave tests/util/test_euler2quat.m && exit 0
+# octave tests/util/test_euler321.m && exit 0
+# octave tests/util/test_isapprox.m && exit 0
+# octave tests/util/test_normalize.m && exit 0
+# octave tests/util/test_perturb_rot.m && exit 0
+# octave tests/util/test_perturb_trans.m && exit 0
+# octave tests/util/test_skew.m && exit 0
+# octave tests/util/test_tf.m && exit 0
+# octave tests/util/test_tf_decompose.m && exit 0
+# octave tests/util/test_tf_inv.m && exit 0
+# octave tests/util/test_tf_trans.m && exit 0
+# octave tests/util/test_quat2euler.m && exit 0
+# octave tests/vision/test_camera_create.m && exit 0
+# octave tests/vision/test_camera_measurements.m && exit 0
+# octave tests/vision/test_chessboard_create.m && exit 0
+# octave tests/vision/test_focal_length.m && exit 0
+# octave tests/vision/test_pinhole_K.m && exit 0
+# octave tests/vision/test_radtan4_distort.m && exit 0
+# octave tests/vision/test_radtan4_undistort.m && exit 0
+# octave tests/vision/test_trajectory_plot.m && exit 0
+octave tests/vision/test_trajectory_simulate.m && exit 0
 
 # LIBRARY
 # mkdir -p build

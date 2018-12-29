@@ -43,7 +43,7 @@ int test_pinhole_P() {
   struct test_config config;
   pinhole_t pinhole = setup_pinhole_model();
 
-  mat3_t R = euler321ToRot(vec3_t{0.0, 0.0, 0.0});
+  mat3_t R = euler321(vec3_t{0.0, 0.0, 0.0});
   vec3_t t{1.0, 2.0, 3.0};
   mat34_t P = pinhole_P(pinhole_K(pinhole), R, t);
 
@@ -76,7 +76,7 @@ int test_pinhole_focal_length() {
 
 int test_pinhole_project() {
   pinhole_t pinhole = setup_pinhole_model();
-  mat3_t R = euler321ToRot(vec3_t{0.0, 0.0, 0.0});
+  mat3_t R = euler321(vec3_t{0.0, 0.0, 0.0});
   vec3_t t{0.0, 0.0, 0.0};
   vec3_t p{0.0, 0.0, 10.0};
 

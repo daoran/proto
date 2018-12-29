@@ -1,7 +1,7 @@
-function [tf_diff] = perturb_trans(tf, step_size, i)
+function [T_diff] = perturb_trans(T, step_size, i)
   dr = eye(3) * step_size;
-  C = tf_rot(tf);
-  r = tf_trans(tf);
+  C = tf_rot(T);
+  r = tf_trans(T);
   r_diff = r + dr(1:3, i);
-  tf_diff = transform(C, r_diff);
+  T_diff = tf(C, r_diff);
 endfunction
