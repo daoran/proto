@@ -79,6 +79,7 @@ if [ ! -d mexopencv ]; then
 fi
 
 cd mexopencv
+git checkout v3.4.0
 export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 export LD_LIBRARY_PATH=$PREFIX/lib
 make WITH_OCTAVE=true WITH_CONTRIB=true all contrib

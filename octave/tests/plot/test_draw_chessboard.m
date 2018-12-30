@@ -3,7 +3,7 @@ addpath(genpath("prototype"));
 chessboard = chessboard_create(5, 4);
 T_WF = tf(euler321(deg2rad([0.0; -90.0; 0.0])), [5.0; 0.0; 0.0]);
 
-debug = true;
+debug = false;
 if debug
   figure(1);
   hold on;

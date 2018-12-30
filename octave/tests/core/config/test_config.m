@@ -1,6 +1,6 @@
 addpath(genpath("prototype"));
 
-YAML_FILE = "prototype/util/config/test.yaml";
+YAML_FILE = "prototype/core/config/test.yaml";
 assert(strcmp(yaml_parse_str(YAML_FILE, "string"), "hello") == 1);
 assert(yaml_parse_int(YAML_FILE, "int") == 1);
 assert(yaml_parse_dbl(YAML_FILE, "double") == 2.0);

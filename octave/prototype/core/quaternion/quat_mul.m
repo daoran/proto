@@ -1,4 +1,4 @@
-function result = quatmul(p, q)
+function result = quat_mul(p, q)
   p_w = p(1);
   p_x = p(2);
   p_y = p(3);
