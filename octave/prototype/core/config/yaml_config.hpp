@@ -79,9 +79,9 @@ struct config_t {
  * Check number of arguments
  */
 inline void nargchk(bool cond) {
-	if (!cond) {
-		mexErrMsgIdAndTxt("prototype:error", "Wrong number of arguments!");
-	}
+  if (!cond) {
+    mexErrMsgIdAndTxt("prototype:error", "Wrong number of arguments!");
+  }
 }
 
 /**
@@ -93,11 +93,11 @@ void parse_args(int nlhs, mxArray *plhs[],
   UNUSED(plhs);
 
   // Parse args
-	nargchk(nlhs >= 0 && nrhs == 2);
-	// -- YAML file path
+  nargchk(nlhs >= 0 && nrhs == 2);
+  // -- YAML file path
   std::shared_ptr<char> arg(mxArrayToString(prhs[0]), &free);
   yaml_path = std::string{arg.get()};
-	// -- YAML key
+  // -- YAML key
   std::shared_ptr<char> key(mxArrayToString(prhs[1]), &free);
   yaml_key = std::string{key.get()};
 }
