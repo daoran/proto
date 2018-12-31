@@ -25,6 +25,9 @@ void parse_args(int nlhs, mxArray *plhs[],
   data_path = std::string{arg.get()};
 }
 
+/**
+ * Convert timestamps
+ */
 mxArray *convert(const proto::timestamps_t &timestamps) {
   const long nb_ts = timestamps.size();
   mxArray *out = mxCreateNumericMatrix(nb_ts, 1, mxUINT64_CLASS, mxREAL);
@@ -36,6 +39,9 @@ mxArray *convert(const proto::timestamps_t &timestamps) {
   return out;
 }
 
+/**
+ * Convert vector of strings
+ */
 mxArray *convert(const std::vector<std::string> &string_vector) {
   const int nb_elements = string_vector.size();
   const int dims[2] = {nb_elements, 1};
@@ -48,6 +54,9 @@ mxArray *convert(const std::vector<std::string> &string_vector) {
   return out;
 }
 
+/**
+ * Convert matrix
+ */
 mxArray *convert(const proto::matx_t &m) {
   const long nb_rows = m.rows();
   const long nb_cols = m.cols();
@@ -65,6 +74,9 @@ mxArray *convert(const proto::matx_t &m) {
   return out;
 }
 
+/**
+ * Convert a list of column vectors of size 3
+ */
 mxArray *convert(const proto::vec3s_t &m) {
   const long nb_rows = 3;
   const long nb_cols = m.size();
@@ -86,6 +98,9 @@ mxArray *convert(const proto::vec3s_t &m) {
   return out;
 }
 
+/**
+ * Convert integer
+ */
 mxArray *convert(const int &val) {
   mxArray *out = mxCreateNumericMatrix(1, 1, mxINT64_CLASS, mxREAL);
   int* data = (int*) mxGetData(out);
@@ -93,6 +108,9 @@ mxArray *convert(const int &val) {
   return out;
 }
 
+/**
+ * Convert double
+ */
 mxArray *convert(const double &val) {
   mxArray *out = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
   double* data = (double*) mxGetData(out);
@@ -100,10 +118,16 @@ mxArray *convert(const double &val) {
   return out;
 }
 
+/**
+ * Convert string
+ */
 mxArray *convert(const std::string &s) {
   return mxCreateString(s.c_str());
 }
 
+/**
+ * Convert imu data to octave-struct
+ */
 mxArray *convert_imu_data(const proto::euroc_imu_t &imu_data) {
   const char *keys[] = {
     // Data
@@ -139,6 +163,9 @@ mxArray *convert_imu_data(const proto::euroc_imu_t &imu_data) {
   return data;
 }
 
+/**
+ * Convert camera data to octave-struct
+ */
 mxArray *convert_camera_data(const proto::euroc_camera_t &cam_data) {
   const char *keys[] = {
     // Data
@@ -188,16 +215,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexErrMsgIdAndTxt("prototype:error", "Failed to load EuRoC dataset!");
   }
 
-  // Convert to octave struct
+  // Convert to octave structs
   mxArray *imu0 = convert_imu_data(data.imu_data);
   mxArray *cam0 = convert_camera_data(data.cam0_data);
   mxArray *cam1 = convert_camera_data(data.cam1_data);
 
+  // Create the main octave-struct
   const char *keys[] = {"imu0", "cam0", "cam1"};
   mxArray *euroc_data = mxCreateStructMatrix(1, 1, 3, keys);
   mxSetField(euroc_data, 0, keys[0], imu0);
   mxSetField(euroc_data, 0, keys[1], cam0);
   mxSetField(euroc_data, 0, keys[2], cam1);
 
+  // Return
   plhs[0] = euroc_data;
 }
