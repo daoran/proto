@@ -37,6 +37,19 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_marker_poses.m && exit 0
 
+# octave me597/5-BayesFilter/bayesfilter.m
+# octave me597/5-Ellipse/ellipse.m
+# octave EKF_omnibot_example.m
+# cd me597/5-KalmanFilter
+# octave kalmanI.m
+# octave kalmanII.m
+# cd me597/6-EKFSLAM
+# octave ekf_slam.m
+# cd me597/6-ParticleLocalization
+# octave particle_localization.m
+# cd me597/7-NonlinearSteering
+# octave cartraj.m
+
 # octave tests/core/config/test_config.m && exit 0
 # octave tests/core/os/test_join_paths.m && exit 0
 # octave tests/core/os/test_list_dir.m && exit 0
@@ -64,15 +77,14 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # cd prototype/dataset
 # make clean
 # make all
-octave-cli --eval "addpath(genpath('prototype')); tic; load_euroc('/data/euroc_mav/MH_01_easy'); toc;"
-octave-cli --eval "addpath(genpath('prototype')); tic; load_euroc2('/data/euroc_mav/MH_01_easy'); toc;"
+# exit 0
 # octave tests/dataset/test_load_aprilgrid.m && exit 0
 # octave tests/dataset/test_load_euroc.m && exit 0
 
-# octave tests/msckf/test_feature_tracker_create.m && exit 0
-# octave tests/msckf/test_feature_tracker_update.m && exit 0
-# octave tests/msckf/test_imu_create.m && exit 0
-# octave tests/msckf/test_imu_propagate.m && exit 0
+# octave tests/rovio/test_feature_tracker_create.m && exit 0
+# octave tests/rovio/test_feature_tracker_update.m && exit 0
+# octave tests/rovio/test_imu_create.m && exit 0
+# octave tests/rovio/test_imu_propagate.m && exit 0
 
 
 # octave tests/plot/test_draw_camera.m && exit 0

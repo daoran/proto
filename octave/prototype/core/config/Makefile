@@ -1,4 +1,4 @@
-INCLUDES=-I/usr/include/eigen3 -I/usr/include
+INCLUDES=-I/usr/include/eigen3
 LIBS=-lyaml-cpp
 CC=mkoctfile --mex
 SRCS=$(wildcard *.cpp)
