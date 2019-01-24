@@ -37,19 +37,10 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_marker_poses.m && exit 0
 
-# octave me597/5-BayesFilter/bayesfilter.m
-# octave me597/5-Ellipse/ellipse.m
-# octave EKF_omnibot_example.m
-# cd me597/5-KalmanFilter
-# octave kalmanI.m
-# octave kalmanII.m
-# cd me597/6-EKFSLAM
-# octave ekf_slam.m
-# cd me597/6-ParticleLocalization
-# octave particle_localization.m
-# cd me597/7-NonlinearSteering
-# octave cartraj.m
-
+# octave tests/control/test_pid_init.m && exit 0
+# octave tests/control/test_pid_update.m && exit 0
+# octave tests/model/test_bicycle_init.m && exit 0
+# octave tests/model/test_bicycle_update.m && exit 0
 # octave tests/core/config/test_config.m && exit 0
 # octave tests/core/os/test_join_paths.m && exit 0
 # octave tests/core/os/test_list_dir.m && exit 0
@@ -60,6 +51,9 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # octave tests/core/transform/test_perturb_rot.m && exit 0
 # octave tests/core/transform/test_perturb_trans.m && exit 0
 # octave tests/core/transform/test_quat2euler.m && exit 0
+# octave tests/core/transform/test_rotx.m && exit 0
+# octave tests/core/transform/test_roty.m && exit 0
+# octave tests/core/transform/test_rotz.m && exit 0
 # octave tests/core/transform/test_tf.m && exit 0
 # octave tests/core/transform/test_tf_decompose.m && exit 0
 # octave tests/core/transform/test_tf_inv.m && exit 0

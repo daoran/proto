@@ -29,17 +29,15 @@ double pid_update(pid_t &p,
                   const double input,
                   const double dt) {
   // Calculate errors
-  double error = setpoint - input;
+  const double error = setpoint - input;
   p.error_sum += error * dt;
+  p.error_prev = error;
 
   // Calculate output
   p.error_p = p.k_p * error;
   p.error_i = p.k_i * p.error_sum;
   p.error_d = p.k_d * (error - p.error_prev) / dt;
-  double output = p.error_p + p.error_i + p.error_d;
-
-  // Update error
-  p.error_prev = error;
+  const double output = p.error_p + p.error_i + p.error_d;
 
   return output;
 }

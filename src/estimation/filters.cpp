@@ -1,5 +1,4 @@
 
-
 void complementary_filter(const vec3_t &gyro,
                           const vec3_t &accel,
                           const double dt,
