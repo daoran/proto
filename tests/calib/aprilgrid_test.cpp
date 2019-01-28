@@ -275,6 +275,7 @@ int test_aprilgrid_save_and_load() {
   grid.estimated = true;
   grid.points_CF = {pos1, pos2, pos3, pos4};
   grid.T_CF = I(4);
+  grid.T_CF.block(0, 3, 3, 1) = vec3_t{1.0, 2.0, 3.0};
   MU_CHECK_EQ(0, aprilgrid_save(grid, TEST_OUTPUT));
 
   // Test load
@@ -294,6 +295,9 @@ int test_aprilgrid_save_and_load() {
   MU_CHECK_FLOAT(0.0, (grid2.points_CF[1] - pos2).norm());
   MU_CHECK_FLOAT(0.0, (grid2.points_CF[2] - pos3).norm());
   MU_CHECK_FLOAT(0.0, (grid2.points_CF[3] - pos4).norm());
+
+  const auto diff = grid2.T_CF.block(0, 3, 3, 1) - vec3_t{1.0, 2.0, 3.0};
+  MU_CHECK((diff).norm() < 1e-5);
 
   return 0;
 }

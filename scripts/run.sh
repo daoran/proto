@@ -17,8 +17,8 @@ debug() {
 # cd scripts/api && python3 api.py
 
 # OCTAVE
-cd octave
-export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
+# cd octave
+# export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # sudo bash ./install_mexopencv.bash
 # ./run_tests.bash
 # ./tools/calib_data_summary
@@ -100,10 +100,10 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 
 # LIBRARY
 # mkdir -p build
-# cd build || return
-# cmake ..
-# make -j8
-# sudo make install
+cd build || return
+cmake ..
+make -j8
+sudo make install
 # exit
 
 # APPS

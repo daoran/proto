@@ -465,23 +465,6 @@ int euroc_calib_load(euroc_calib_t &data, const std::string &data_path) {
   return 0;
 }
 
-void imu_init_attitude(const vec3s_t w_m, const vec3s_t a_m, mat3_t &C_WS) {
-  // Sample around 50 IMU measurements
-  vec3_t sum_angular_vel = vec3_t::Zero();
-  vec3_t sum_linear_acc = vec3_t::Zero();
-  size_t buffer_size = 50;
-  for (size_t i = 0; i < buffer_size; i++) {
-    sum_angular_vel += w_m[i];
-    sum_linear_acc += a_m[i];
-  }
-
-  // Initialize the initial orientation, so that the estimation
-  // is consistent with the inertial frame.
-  const vec3_t mean_accel = sum_linear_acc / buffer_size;
-  const vec3_t gravity{0.0, 0.0, -9.81};
-  C_WS = vecs2rot(mean_accel, -gravity);
-}
-
 int process_stereo_images(const euroc_calib_t &calib_data,
                           const std::string &preprocess_path,
                           const mat3_t &cam0_K,

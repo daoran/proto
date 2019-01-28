@@ -95,7 +95,8 @@ int preprocess_camera_data(const calib_target_t &target,
                            const mat3_t &cam_K,
                            const vec4_t &cam_D,
                            const std::string &output_dir,
-                           const bool imshow) {
+                           const bool imshow,
+                           const bool show_progress) {
   // Get camera image paths
   std::vector<std::string> image_paths;
   if (get_camera_image_paths(image_dir, image_paths) != 0) {
@@ -103,11 +104,13 @@ int preprocess_camera_data(const calib_target_t &target,
   }
 
   // Detect AprilGrid
-  LOG_INFO("Processing images:");
+  LOG_INFO("Processing images ...");
   aprilgrid_detector_t detector;
 
   for (size_t i = 0; i < image_paths.size(); i++) {
-    print_progress((double) i / image_paths.size());
+    if (show_progress) {
+      print_progress((double) i / image_paths.size());
+    }
 
     // -- Create output file path
     auto output_file = basename(image_paths[i]);
@@ -148,7 +151,9 @@ int preprocess_camera_data(const calib_target_t &target,
   }
 
   // Print newline after print progress has finished
-  print_progress(1.0);
+  if (show_progress) {
+    print_progress(1.0);
+  }
 
   // Destroy all opencv windows
   cv::destroyAllWindows();
@@ -162,7 +167,9 @@ int preprocess_camera_data(const calib_target_t &target,
                            const double lens_hfov,
                            const double lens_vfov,
                            const std::string &output_dir,
-                           const bool imshow) {
+                           const bool imshow,
+                           const bool show_progress) {
+  // Get camera image paths
   const mat3_t cam_K = pinhole_K(image_size, lens_hfov, lens_vfov);
   const vec4_t cam_D = zeros(4, 1);
 
@@ -171,7 +178,8 @@ int preprocess_camera_data(const calib_target_t &target,
                                 cam_K,
                                 cam_D,
                                 output_dir,
-                                imshow);
+                                imshow,
+                                show_progress);
 }
 
 int load_camera_calib_data(const std::string &data_dir,

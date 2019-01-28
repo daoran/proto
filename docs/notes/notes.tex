@@ -21,6 +21,9 @@
 \renewcommand{\Vec}[1]{{\mathbf{#1}}}
 \newcommand{\Mat}[1]{{\mathbf{#1}}}
 \newcommand{\real}{{\rm I\!R}}
+\newcommand{\ones}{{\Vec{1}}}
+\newcommand{\Ones}[2]{{\Vec{1}_{#1\times#2}}}
+\newcommand{\zeros}{{\Vec{0}}}
 \newcommand{\Zeros}[2]{{\Vec{0}_{#1\times#2}}}
 \newcommand{\Norm}[1]{{\|#1\|}}
 \newcommand{\I}{{\Mat{I}}}
@@ -43,29 +46,38 @@
 \newcommand{\fiducial}{{\text{F}}}
 % -- Kinematic Notation --
 % ---- Paul Furgale Kinematic Notation ----
-\newcommand{\KineNotationTransform}[3]{{{#1}_{#2#3}}}
 \newcommand{\KineNotation}[3]{{{{}_{#2}} {#1}_{#2#3}}}
+\newcommand{\KineNotationProper}[4]{{{{}_{#2}} {#1}_{#3#4}}}
 \newcommand{\KineNotationPart}[3]{{{{}_{#2}} {#1}_{#3}}}
 \newcommand{\KineNotationBare}[2]{{{{}_{#2}} {#1}}}
+\newcommand{\KineNotationTransform}[3]{{{#1}_{#2#3}}}
 % -- Translation --
 \newcommand{\trans}{{\Vec{r}}}
 \newcommand{\Trans}[2]{{\KineNotation{\trans}{#1}{#2}}}
 % -- Position --
 \newcommand{\pos}{{\Vec{r}}}
 \newcommand{\Pos}[2]{{\KineNotation{\pos}{#1}{#2}}}
+\newcommand{\DotPos}[2]{{\KineNotation{\dot{\pos}}{#1}{#2}}}
 % -- Velocity --
 \newcommand{\vel}{{\Vec{v}}}
 \newcommand{\Vel}[2]{{\KineNotation{\vel}{#1}{#2}}}
+\newcommand{\DotVel}[2]{{\KineNotation{\dot{\vel}}{#1}{#2}}}
 % -- Angular Velocity --
 \newcommand{\angvel}{{\boldsymbol{\omega}}}
 \newcommand{\AngVel}[2]{{\KineNotation{\angvel}{#1}{#2}}}
+\newcommand{\PAngVel}[3]{{\KineNotationProper{\angvel}{#1}{#2}{#3}}}
+\newcommand{\PAngVelMeas}[3]{{\KineNotationProper{\tilde{\angvel}}{#1}{#2}{#3}}}
 % -- Acceleration --
 \newcommand{\acc}{{\Vec{a}}}
 \newcommand{\Acc}[2]{{\KineNotation{\acc}{#1}{#2}}}
+\newcommand{\PAcc}[3]{{\KineNotationProper{\acc}{#1}{#2}{#3}}}
+\newcommand{\PAccMeas}[3]{{\KineNotationProper{\tilde{\acc}}{#1}{#2}{#3}}}
 % -- Rotation --
 \newcommand{\dtheta}{{\delta{\boldsymbol{\theta}}}}
 \newcommand{\rot}{{\Mat{C}}}
 \newcommand{\Rot}[2]{{\KineNotationTransform{\rot}{#1}{#2}}}
+\newcommand{\Quat}[2]{{\KineNotationTransform{\quat}{#1}{#2}}}
+\newcommand{\DotQuat}[2]{{\KineNotationTransform{\dot\quat}{#1}{#2}}}
 % -- Transforms --
 \newcommand{\tf}{{\Mat{T}}}
 \newcommand{\Tf}[2]{{\KineNotationTransform{\tf}{#1}{#2}}}
@@ -75,12 +87,25 @@
 \newcommand{\Point}[2]{{\KineNotationBare{\point}{#1}}}
 
 % Variables
+% -- Computer vision
 \newcommand{\error}{{\Vec{e}}}
 \newcommand{\camRot}{{\Rot{\world}{\cam}}}
 \newcommand{\camPos}{{\Pos{\world}{\cam}}}
 \newcommand{\projFunc}{{\Vec{h}}}
 \newcommand{\measurement}{{\Vec{z}}}
 \newcommand{\estimate}{{\tilde{\Vec{z}}}}
+% -- IMU
+\newcommand{\imuAccel}{{\PAcc{\sensor}{\world}{\sensor}}}
+\newcommand{\imuGyro}{{\PAngVel{\sensor}{\world}{\sensor}}}
+\newcommand{\imuAccelMeas}{{\PAccMeas{\sensor}{\world}{\sensor}}}
+\newcommand{\imuGyroMeas}{{\PAngVelMeas{\sensor}{\world}{\sensor}}}
+\newcommand{\noise}{{\mathbf{w}}}
+\newcommand{\noiseGyro}{{\noise_{g}}}
+\newcommand{\noiseAccel}{{\noise_{a}}}
+\newcommand{\bias}{{\mathbf{b}}}
+\newcommand{\biasGyro}{{\bias_{g}}}
+\newcommand{\biasAccel}{{\bias_{a}}}
+\newcommand{\gravity}{{\mathbf{g}_{\world}}}
 
 
 \begin{document}
@@ -93,6 +118,7 @@
 \input{chapters/2-rotations.tex}
 \input{chapters/3-computer_vision.tex}
 \input{chapters/4-calibration.tex}
+\input{chapters/5-imu.tex}
 
 % BIBLIOGRAPHY
 \newpage

@@ -98,5 +98,13 @@ mat3_t vecs2rot(const vec3_t &a_m, const vec3_t &g);
  */
 vec3_t quat2euler(const quat_t &q);
 
+/**
+ * Initialize attitude using IMU gyroscope `w_m` and accelerometer `a_m`
+ * measurements. The calculated attitude outputted into to `C_WS`. Note: this
+ * function does not calculate initial yaw angle in the world frame. Only the
+ * roll, and pitch are inferred from IMU measurements.
+ */
+void imu_init_attitude(const vec3s_t w_m, const vec3s_t a_m, mat3_t &C_WS);
+
 } //  namespace proto
 #endif // PROTOTYPE_TF_HPP

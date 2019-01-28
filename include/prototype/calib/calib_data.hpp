@@ -72,7 +72,8 @@ int preprocess_camera_data(const calib_target_t &target,
                            const mat3_t &cam_K,
                            const vec4_t &cam_D,
                            const std::string &output_dir,
-                           const bool imshow=false);
+                           const bool imshow=false,
+                           const bool show_progress=true);
 
 /**
  * Preprocess camera image data and output AprilGrid detection data as
@@ -89,7 +90,8 @@ int preprocess_camera_data(const calib_target_t &target,
                            const double lens_hfov,
                            const double lens_vfov,
                            const std::string &output_dir,
-                           const bool imshow=false);
+                           const bool imshow=false,
+                           const bool show_progress=true);
 
 /**
  * Load preprocess-ed camera calibration data.
