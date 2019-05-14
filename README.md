@@ -13,6 +13,7 @@ of the repo.
     cd build
     cmake ..
     make
+    sudo make install  # By default will install to /usr/local
 
 
 ## License
