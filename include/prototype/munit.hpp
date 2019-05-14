@@ -162,4 +162,10 @@ static int failed = 0;
     return -1;                                                                 \
   }
 
+#define OCTAVE_SCRIPT(A)                                                       \
+  if (system("octave " A) != 0) {                                              \
+    LOG_ERROR("Octave script [%s] failed !", A);                               \
+    return -1;                                                                 \
+  }
+
 #endif // MUNIT_HPP

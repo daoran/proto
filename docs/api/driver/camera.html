@@ -1,0 +1,111 @@
+<div class="header_path">prototype/driver/camera.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct camera_config_t {
+  bool ok;
+  std::string file_path;
+  int index;
+  int image_width;
+  int image_height;
+  std::string image_type;
+
+  camera_config_t();
+  camera_config_t(const std::string &amp;file_path_);
+};</code></pre>
+  
+  <div class="doc"><p><p>Camera config file</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct camera_t {
+  bool connected;
+  int camera_index;
+  cv::VideoCapture capture;
+  double last_tic;
+  cv::Mat image;
+
+  camera_t();
+  camera_t(const int camera_index_);
+};</code></pre>
+  
+  <div class="doc"><p><p>Generic camera</p></p></div>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const camera_config_t &amp;config);
+</code></pre>
+  
+  <div class="doc"><p><p>Camera config to output stream</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int camera_config_load(camera_config_t &amp;config);
+</code></pre>
+  
+  <div class="doc"><p><p>Load camera config</p>
+<ul>
+<li>[in,out] config Camera config</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int camera_configure(camera_t &amp;cam, const camera_config_t &amp;config);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure camera</p>
+<ul>
+<li>[in,out] cam Camera</li>
+<li>[in] config Camera config</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int camera_connect(camera_t &amp;cam);
+</code></pre>
+  
+  <div class="doc"><p><p>Connect camera</p>
+<ul>
+<li>[in] cam Camera</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int camera_disconnect(camera_t &amp;cam);
+</code></pre>
+  
+  <div class="doc"><p><p>Disconnect camera</p>
+<ul>
+<li>[in] cam Camera</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int camera_get_frame(camera_t &amp;cam);
+</code></pre>
+  
+  <div class="doc"><p><p>Get camera frame</p>
+<ul>
+<li>[in] cam Camera</li>
+</ul>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->

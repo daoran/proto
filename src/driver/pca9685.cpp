@@ -4,10 +4,6 @@ namespace proto {
 
 int pca9685_configure(pca9685_t &pwm, const int freq) {
   // Setup
-  if (i2c_setup(pwm.i2c) != 0) {
-    LOG_INFO("Failed to open i2c connection!");
-    return -1;
-  }
   i2c_set_slave(pwm.i2c, PCA9685_I2C_ADDR);
   pca9685_reset(pwm);
   pca9685_set_pwm(pwm, 0);

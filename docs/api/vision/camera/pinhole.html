@@ -7,7 +7,6 @@
   double fy;
   double cx;
   double cy;
-  mat3_t K;
 
   pinhole_t();
   pinhole_t(const vec4_t &amp;intrinsics);
@@ -50,12 +49,52 @@ pinhole_K(const double fx, const double fy, const double cx, const double cy);
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t pinhole_K(const pinhole_t &amp;pinhole);
+</code></pre>
+  
+  <div class="doc"><p><p>Form pinhole camera matrix K</p>
+<ul>
+<li>[in] pinhole Pinhole camera</li>
+</ul>
+<p><strong>Returns</strong> Camera matrix K</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t pinhole_K(const double *intrinsics);
+</code></pre>
+  
+  <div class="doc"><p><p>Form pinhole camera matrix K</p>
+<ul>
+<li>[in] intrinsics Intrinsics (fx, fy, cx, cy)</li>
+</ul>
+<p><strong>Returns</strong> Camera matrix K</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">mat3_t pinhole_K(const vec4_t &amp;intrinsics);
 </code></pre>
   
   <div class="doc"><p><p>Form pinhole camera matrix K</p>
 <ul>
 <li>[in] intrinsics Intrinsics (fx, fy, cx, cy)</li>
+</ul>
+<p><strong>Returns</strong> Camera matrix K</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t pinhole_K(const vec2_t &amp;image_size,
+                 const double lens_hfov,
+                 const double lens_vfov);
+</code></pre>
+  
+  <div class="doc"><p><p>Form pinhole camera matrix K</p>
+<ul>
+<li>[in] image_size Image width and height [px]</li>
+<li>[in] lens_hfov Lens horizontal field of view [deg]</li>
+<li>[in] lens_vfov Lens vertical field of view [deg]</li>
 </ul>
 <p><strong>Returns</strong> Camera matrix K</p></p></div>
   

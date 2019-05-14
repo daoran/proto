@@ -1,7 +1,5 @@
 #include <random>
-
 #include <prototype/prototype.hpp>
-
 
 using namespace proto;
 

@@ -5,9 +5,10 @@
 
 #include <opencv2/calib3d/calib3d.hpp>
 
+#include "prototype/core/math.hpp"
+#include "prototype/core/time.hpp"
 #include "prototype/calib/aprilgrid.hpp"
-#include "prototype/core/core.hpp"
-#include "prototype/vision/util.hpp"
+#include "prototype/vision/vision_common.hpp"
 #include "prototype/vision/camera/camera_geometry.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 #include "prototype/vision/camera/radtan.hpp"
@@ -47,7 +48,9 @@ struct calib_target_t {
  * Load calibration target.
  * @returns 0 or -1 for success or failure
  */
-int calib_target_load(calib_target_t &ct, const std::string &target_file);
+int calib_target_load(calib_target_t &ct,
+                      const std::string &target_file,
+                      const std::string &prefix = "");
 
 /**
  * Detect AprilGrid specified by `target` and given a directory of images in
@@ -94,11 +97,18 @@ int preprocess_camera_data(const calib_target_t &target,
                            const bool show_progress=true);
 
 /**
- * Load preprocess-ed camera calibration data.
+ * Load preprocess-ed camera calibration data located in `data_dir` where the
+ * data will be loaded in `aprilgrids`. By default, this function will only
+ * return aprilgrids that are detected. To return all calibration data
+ * including camera frames where aprilgrids were not detected, change
+ * `detected_only` to false.
+ *
  * @returns 0 or -1 for success or failure
  */
 int load_camera_calib_data(const std::string &data_dir,
-                           std::vector<aprilgrid_t> &aprilgrids);
+                           aprilgrids_t &aprilgrids,
+                           timestamps_t &timestamps,
+                           bool detected_only=true);
 
 /**
  * Preprocess stereo image data and output AprilGrid detection data as
@@ -129,19 +139,41 @@ int preprocess_stereo_data(const calib_target_t &target,
  * Load preprocessed stereo calibration data, where `cam0_data_dir` and
  * `cam1_data_dir` are preprocessed calibration data observed from cam0 and
  * cam1. The preprocessed calibration data will be loaded into
- * `cam0_aprilgrids` and `cam1_aprilgrids` respectively.
+ * `cam0_aprilgrids` and `cam1_aprilgrids` respectively, where the data
+ * contains AprilGrids observed by both cameras at the same timestamp.**
  *
  * This function assumes:
  *
  * - Stereo camera images are synchronized
- * - Number of images observed by both cameras are the same
+ * - Images that are synchronized are expected to have the **same exact
+ *   timestamp**
  *
  * @returns 0 or -1 for success or failure
  */
 int load_stereo_calib_data(const std::string &cam0_data_dir,
                            const std::string &cam1_data_dir,
-                           std::vector<aprilgrid_t> &cam0_aprilgrids,
-                           std::vector<aprilgrid_t> &cam1_aprilgrids);
+                           aprilgrids_t &cam0_aprilgrids,
+                           aprilgrids_t &cam1_aprilgrids);
+
+/**
+ * Load preprocessed multi-camera calibration data, where each data path in
+ * `data_dirs` are the preprocessed calibration data observed by each camera,
+ * and the preprocessed calibration data will be loaded into `calib_data` where
+ * the key is the camera index and the value is the detected aprilgrids. The
+ * data in `calib_data` contains AprilGrids observed by all cameras at the same
+ * timestamp.
+ *
+ * This function assumes:
+ *
+ * - Camera images are synchronized
+ * - Images that are synchronized are expected to have the **same exact
+ *   timestamp**
+ *
+ * @returns 0 or -1 for success or failure
+ */
+int load_multicam_calib_data(const int nb_cams,
+                             const std::vector<std::string> &data_dirs,
+                             std::map<int, aprilgrids_t> &calib_data);
 
 /**
  * Draw measured and projected pixel points.

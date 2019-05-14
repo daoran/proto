@@ -4,11 +4,8 @@ namespace proto {
 
 pid_t::pid_t() {}
 
-pid_t::pid_t(const double k_p_, const double k_i_, const double k_d_) {
-  k_p = k_p_;
-  k_i = k_i_;
-  k_d = k_d_;
-}
+pid_t::pid_t(const double k_p_, const double k_i_, const double k_d_)
+ : k_p{k_p_}, k_i{k_i_}, k_d{k_d_} {}
 
 pid_t::~pid_t() {}
 
@@ -26,12 +23,11 @@ std::ostream &operator<<(std::ostream &os, const pid_t &pid) {
 
 double pid_update(pid_t &p,
                   const double setpoint,
-                  const double input,
+                  const double actual,
                   const double dt) {
   // Calculate errors
-  const double error = setpoint - input;
+  const double error = setpoint - actual;
   p.error_sum += error * dt;
-  p.error_prev = error;
 
   // Calculate output
   p.error_p = p.k_p * error;
@@ -39,6 +35,7 @@ double pid_update(pid_t &p,
   p.error_d = p.k_d * (error - p.error_prev) / dt;
   const double output = p.error_p + p.error_i + p.error_d;
 
+  p.error_prev = error;
   return output;
 }
 
@@ -50,9 +47,9 @@ void pid_reset(pid_t &p) {
   p.error_prev = 0.0;
   p.error_sum = 0.0;
 
-  p.error_p = 0.0;
-  p.error_i = 0.0;
-  p.error_d = 0.0;
+  // p.error_p = 0.0;
+  // p.error_i = 0.0;
+  // p.error_d = 0.0;
 }
 
 } //  namespace proto

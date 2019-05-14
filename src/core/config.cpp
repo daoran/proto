@@ -20,7 +20,13 @@ int yaml_load_file(const std::string file_path, YAML::Node &root) {
   }
 
   // Load and parse file
-  root = YAML::LoadFile(file_path);
+  try {
+    root = YAML::LoadFile(file_path);
+  } catch (YAML::ParserException& e) {
+    LOG_ERROR("%s", e.what());
+    return -1;
+  }
+
   return 0;
 }
 
@@ -28,7 +34,7 @@ int yaml_get_node(const config_t &config,
                   const std::string &key,
                   const bool optional,
                   YAML::Node &node) {
-  ASSERT(config.ok == true, "Config file is not loaded!");
+  assert(config.ok == true);
 
   // Recurse down config key
   std::vector<YAML::Node> traversal;
@@ -60,6 +66,57 @@ int yaml_get_node(const config_t &config,
   }
 
   return 0;
+}
+
+int yaml_has_key(const config_t &config, const std::string &key) {
+  assert(config.ok == true);
+
+  // Recurse down config key
+  std::vector<YAML::Node> traversal;
+  traversal.push_back(config.root);
+
+  std::istringstream iss(key);
+  std::string element;
+
+  while (std::getline(iss, element, '.')) {
+    traversal.push_back(traversal.back()[element]);
+  }
+  auto node = traversal.back();
+  // Note:
+  //
+  //    yaml_node = yaml_node["some_level_deeper"];
+  //
+  // YAML::Node is mutable, by doing the above it destroys the parsed yaml
+  // tree/graph, to avoid this problem we store the visited YAML::Node into
+  // a std::vector and return the last visited YAML::Node
+
+  // Check key
+  if (node.IsDefined() == false) {
+    return -1;
+  }
+
+  return 0;
+}
+
+int yaml_has_key(const std::string &file_path, const std::string &key) {
+  const config_t config{file_path};
+  return yaml_has_key(config, key);
+}
+
+void yaml_check_matrix_fields(const YAML::Node &node,
+                              const std::string &key,
+                              size_t &rows,
+                              size_t &cols) {
+  const std::string targets[3] = {"rows", "cols", "data"};
+  for (int i = 0; i < 3; i++) {
+    if (!node[targets[i]]) {
+      FATAL("Key [%s] is missing for matrix [%s]!",
+            targets[i].c_str(),
+            key.c_str());
+    }
+  }
+  rows = node["rows"].as<int>();
+  cols = node["cols"].as<int>();
 }
 
 void parse(const config_t &config,
@@ -243,5 +300,6 @@ void parse(const config_t &config,
     }
   }
 }
+
 
 } //  namespace proto

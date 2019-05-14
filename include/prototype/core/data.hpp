@@ -8,13 +8,44 @@
 #include <iostream>
 #include <vector>
 #include <set>
+#include <unordered_map>
+#include <list>
 
 #include "prototype/core/math.hpp"
-#include "prototype/core/linalg.hpp"
 #include "prototype/core/tf.hpp"
 #include "prototype/core/time.hpp"
 
 namespace proto {
+
+/**
+ * Convert bytes to signed 8bit number
+ */
+int8_t s8bit(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to unsigned 8bit number
+ */
+uint8_t u8bit(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to signed 16bit number
+ */
+int16_t s16bit(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to unsigned 16bit number
+ */
+uint16_t u16bit(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to signed 32bit number
+ */
+int32_t s32bit(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to unsigned 32bit number
+ */
+uint32_t u32bit(const uint8_t *data, const size_t offset);
 
 /**
  * Get number of rows in CSV file.
@@ -87,79 +118,59 @@ void closest_poses(const timestamps_t &timestamps,
                    mat4s_t &result);
 
 /**
+ * Check if vector `x` is all true.
+ */
+bool all_true(const std::vector<bool> x);
+
+/**
  * Pop front of an `std::vector`.
  */
 template <typename T>
-void pop_front(std::vector<T> &vec) {
-  assert(!vec.empty());
-  vec.front() = std::move(vec.back());
-  vec.pop_back();
-}
+void pop_front(std::vector<T> &vec);
 
 /**
  * Pop front of an `std::vector`.
  */
 template <typename T1, typename T2>
-void pop_front(std::vector<T1, T2> &vec) {
-  assert(!vec.empty());
-  vec.front() = std::move(vec.back());
-  vec.pop_back();
-}
+void pop_front(std::vector<T1, T2> &vec);
 
 /**
  * Extend `std::vector`.
  */
 template <typename T>
-void extend(std::vector<T> &x, std::vector<T> &add) {
-  x.reserve(x.size() + add.size());
-  x.insert(x.end(), add.begin(), add.end());
-}
+void extend(std::vector<T> &x, std::vector<T> &add);
 
 /**
  * Extend `std::vector`.
  */
 template <typename T1, typename T2>
-void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add) {
-  x.reserve(x.size() + add.size());
-  x.insert(x.end(), add.begin(), add.end());
-}
+void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add);
 
 /**
  * Union between set `a` and set `b`.
  */
 template <typename T>
-T set_union(const T &s1, const T &s2) {
-  T result = s1;
-  result.insert(s2.begin(), s2.end());
-  return result;
-}
+T set_union(const T &s1, const T &s2);
 
 /**
  * Difference between `a` and set `b`.
  */
 template <typename T>
-T set_diff(const T &a, const T &b) {
-  T results;
-  std::set_difference(
-    a.begin(), a.end(),
-    b.begin(), b.end(),
-    std::inserter(results, results.end())
-  );
-  return results;
-}
+T set_diff(const T &a, const T &b);
 
 /**
  * Symmetric difference between `a` and `b`.
  */
 template <typename T>
-T set_symmetric_diff(const T &a, const T &b) {
-  T results;
-  std::set_symmetric_difference(
-      a.begin(), a.end(),
-      b.begin(), b.end(),
-      std::back_inserter(results));
-  return results;
-}
+T set_symmetric_diff(const T &a, const T &b);
+
+/**
+ * Intersection between std::vectors `vecs`.
+ * @returns Number of common elements
+ */
+template <typename T>
+std::set<T> intersection(const std::list<std::vector<T>> &vecs);
 
 } //  namespace proto
+#include "data_impl.hpp"
 #endif // PROTOTYPE_CORE_DATA_HPP

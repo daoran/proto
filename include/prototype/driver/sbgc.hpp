@@ -107,6 +107,7 @@ namespace proto {
 #define U16BIT(DATA, HI_BYTE, LOW_BYTE)                                        \
   (uint16_t)((DATA[HI_BYTE] << 8) | (DATA[LOW_BYTE] & 0xff))
 
+
 /**
  * SBGC UART protocol frame
  */

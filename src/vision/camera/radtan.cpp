@@ -14,7 +14,22 @@ radtan4_t::radtan4_t(const double k1_,
                      const double p2_)
     : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
 
+radtan4_t::radtan4_t(radtan4_t &radtan4)
+    : k1{radtan4.k1}, k2{radtan4.k2},
+      p1{radtan4.p1}, p2{radtan4.p2} {}
+
+radtan4_t::radtan4_t(const radtan4_t &radtan4)
+    : k1{radtan4.k1}, k2{radtan4.k2},
+      p1{radtan4.p1}, p2{radtan4.p2} {}
+
 radtan4_t::~radtan4_t() {}
+
+void radtan4_t::operator=(const radtan4_t &src) throw() {
+  k1 = src.k1;
+  k2 = src.k2;
+  p1 = src.p1;
+  p2 = src.p2;
+}
 
 std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4) {
   os << "k1: " << radtan4.k1 << std::endl;
@@ -22,6 +37,10 @@ std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4) {
   os << "p1: " << radtan4.p1 << std::endl;
   os << "p2: " << radtan4.p2 << std::endl;
   return os;
+}
+
+vec4_t distortion_coeffs(const radtan4_t &radtan) {
+  return vec4_t{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
 }
 
 vec2_t distort(const radtan4_t &radtan, const vec2_t &point) {
@@ -49,7 +68,7 @@ vec2_t distort(const radtan4_t &radtan, const vec2_t &point) {
   return vec2_t{x_ddash, y_ddash};
 }
 
-vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J) {
+vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J_point) {
   const double k1 = radtan.k1;
   const double k2 = radtan.k2;
   const double p1 = radtan.p1;
@@ -75,10 +94,10 @@ vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J) {
   // Let p' be the distorted p
   // The jacobian of p' w.r.t. p (or dp'/dp) is:
   // clang-format off
-  J(0, 0) = 1 + k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (2 * k1 * x + 4 * k2 * x * r2);
-  J(1, 0) = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
-  J(0, 1) = J(1, 0);
-  J(1, 1) = 1 + k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2);
+  J_point(0, 0) = 1 + k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (2 * k1 * x + 4 * k2 * x * r2);
+  J_point(1, 0) = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
+  J_point(0, 1) = J_point(1, 0);
+  J_point(1, 1) = 1 + k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2);
   // clang-format on
   // Above is generated using sympy
 
@@ -133,7 +152,7 @@ vec2_t undistort(const radtan4_t &radtan,
     distort(radtan, p, J);
     const mat2_t pinv = (J.transpose() * J).inverse() * J.transpose();
     const vec2_t dp = pinv * err;
-    p += dp;
+    p = p + dp;
 
     if ((err.transpose() * err) < 1.0e-15) {
       break;

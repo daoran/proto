@@ -68,6 +68,9 @@ void aprilgrid_remove(aprilgrid_t &grid, const int id) {
   points_CF.erase(points_CF.begin() + (index * 4));
   points_CF.erase(points_CF.begin() + (index * 4));
   points_CF.shrink_to_fit();
+
+  // Update nb_detections
+  grid.nb_detections--;
 }
 
 int aprilgrid_get(const aprilgrid_t &grid,
@@ -218,6 +221,17 @@ int aprilgrid_object_points(const aprilgrid_t &grid,
   object_points.emplace_back(x + tag_size, y, 0);
   object_points.emplace_back(x + tag_size, y + tag_size, 0);
   object_points.emplace_back(x, y + tag_size, 0);
+
+  return 0;
+}
+
+int aprilgrid_object_points(const aprilgrid_t &grid,
+                            vec3s_t &object_points) {
+  for (int i = 0; i < (grid.tag_rows * grid.tag_cols); i++) {
+    if (aprilgrid_object_points(grid, i, object_points) != 0) {
+      return -1;
+    }
+  }
 
   return 0;
 }
@@ -432,9 +446,9 @@ int aprilgrid_save(const aprilgrid_t &grid, const std::string &save_path) {
       fprintf(fp, "%f,", keypoint(0));
       fprintf(fp, "%f,", keypoint(1));
 
-      const vec3_t point_CF = grid.points_CF[(i * 4) + j];
       fprintf(fp, "%d,", grid.estimated);
       if (grid.estimated) {
+        const vec3_t point_CF = grid.points_CF[(i * 4) + j];
         fprintf(fp, "%f,", point_CF(0));
         fprintf(fp, "%f,", point_CF(1));
         fprintf(fp, "%f,", point_CF(2));
@@ -497,7 +511,7 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
     double p_x, p_y, p_z = 0.0;
     double q_w, q_x, q_y, q_z = 0.0;
     double r_x, r_y, r_z = 0.0;
-    fscanf(
+    int retval = fscanf(
       // File pointer
       fp,
       // String format
@@ -527,6 +541,9 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
       &r_y,
       &r_z
     );
+    if (retval != 20) {
+      LOG_INFO("Failed to parse line in [%s]", data_path.c_str());
+    }
 
     // Map variables back to AprilGrid
     // -- Grid configured, estimated
@@ -652,7 +669,7 @@ void aprilgrid_intersection(aprilgrid_t &grid0, aprilgrid_t &grid1) {
   // Find the symmetric difference of AprilTag ids
   std::vector<int> unique_ids = set_symmetric_diff(grid0.ids, grid1.ids);
 
-  // Remove AprilTag based on id
+  // Remove AprilTag based on unique ids, since we want common ids not unique
   for (const auto &id : unique_ids) {
     aprilgrid_remove(grid0, id);
     aprilgrid_remove(grid1, id);
@@ -660,31 +677,59 @@ void aprilgrid_intersection(aprilgrid_t &grid0, aprilgrid_t &grid1) {
   assert(grid0.ids.size() == grid1.ids.size());
 }
 
-std::ostream &operator<<(std::ostream &os, const aprilgrid_t &aprilgrid) {
+void aprilgrid_intersection(std::vector<aprilgrid_t *> &grids) {
+  // Find the symmetric difference of AprilTag ids
+  std::list<std::vector<int>> grid_ids;
+  for (const aprilgrid_t *grid : grids) {
+    grid_ids.push_back(grid->ids);
+  }
+  const std::set<int> common_ids = intersection(grid_ids);
+
+  // Remove AprilTag based on unique ids since we want common ids
+  for (size_t i = 0; i < grids.size(); i++) {
+    // Make a copy of ids while deleting them in-place, else std::vector would
+    // behave very weirdly
+    const auto ids = grids[i]->ids;
+
+    // Remove ids that are not common across all AprilGrids
+    for (auto &id : ids) {
+      if (common_ids.find(id) == common_ids.end()) {
+        aprilgrid_remove(*grids[i], id);
+      }
+    }
+  }
+}
+
+bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
+                         const AprilTags::TagDetection &b) {
+  return (a.id < b.id);
+}
+
+std::ostream &operator<<(std::ostream &os, const aprilgrid_t &grid) {
   // Relative rotation and translation
-  if (aprilgrid.estimated) {
+  if (grid.estimated) {
     os << "AprilGrid: " << std::endl;
-    os << "configured: " << aprilgrid.configured << std::endl;
-    os << "tag_rows: " << aprilgrid.tag_rows << std::endl;
-    os << "tag_cols: " << aprilgrid.tag_cols << std::endl;
-    os << "tag_size: " << aprilgrid.tag_size << std::endl;
-    os << "tag_spacing: " << aprilgrid.tag_spacing << std::endl;
+    os << "configured: " << grid.configured << std::endl;
+    os << "tag_rows: " << grid.tag_rows << std::endl;
+    os << "tag_cols: " << grid.tag_cols << std::endl;
+    os << "tag_size: " << grid.tag_size << std::endl;
+    os << "tag_spacing: " << grid.tag_spacing << std::endl;
     os << std::endl;
   }
 
-  for (size_t i = 0; i < aprilgrid.ids.size(); i++) {
+  for (size_t i = 0; i < grid.ids.size(); i++) {
     // Tag id
-    os << "tag_id: " << aprilgrid.ids[i] << std::endl;
-    os << "ts: " << aprilgrid.timestamp << std::endl;
+    os << "tag_id: " << grid.ids[i] << std::endl;
+    os << "ts: " << grid.timestamp << std::endl;
     os << "----------" << std::endl;
 
     // Keypoint and relative position
     for (size_t j = 0; j < 4; j++) {
-      os << "keypoint: " << aprilgrid.keypoints[(i * 4) + j].transpose();
+      os << "keypoint: " << grid.keypoints[(i * 4) + j].transpose();
       os << std::endl;
-      os << "estimated: " << aprilgrid.estimated << std::endl;
-      if (aprilgrid.estimated) {
-        os << "p_CF: " << aprilgrid.points_CF[(i * 4) + j].transpose();
+      os << "estimated: " << grid.estimated << std::endl;
+      if (grid.estimated) {
+        os << "p_CF: " << grid.points_CF[(i * 4) + j].transpose();
         os << std::endl;
       }
       os << std::endl;

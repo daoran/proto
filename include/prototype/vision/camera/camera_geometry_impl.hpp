@@ -1,7 +1,12 @@
 #ifndef PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_IMPL_HPP
 #define PROTOTYPE_CALIB_CAMERA_CAMERA_GEOMETRY_IMPL_HPP
 
+#include "prototype/vision/camera/camera_geometry.hpp"
+
 namespace proto {
+
+template <typename CM, typename DM>
+camera_geometry_t<CM, DM>::camera_geometry_t() {}
 
 template <typename CM, typename DM>
 camera_geometry_t<CM, DM>::camera_geometry_t(const CM &camera_model_,

@@ -47,23 +47,26 @@ int uart_connect(uart_t &uart);
 int uart_disconnect(uart_t &uart);
 
 /**
- * Set interface attributes
+ * Write packet to UART
  *
- * @param[in,out] uart UART
- * @param[in] speed UART speed
- * @param[in] parity UART parity
+ * @param[in] uart UART
+ * @param[in] payload Payload
+ * @param[in] length Payload length
  * @returns 0 or -1 for success or failure
  */
-int uart_configure(const uart_t &uart, const int speed, const int parity);
+int uart_write(const uart_t &uart,
+               const uint8_t *payload,
+               const size_t length);
 
 /**
- * Set blocking
+ * Read packet from UART
  *
- * @param[in,out] uart UART
- * @param[in] blocking Blocking
+ * @param[in] uart UART
+ * @param[in,out] payload Payload
+ * @param[in] length Payload length
  * @returns 0 or -1 for success or failure
  */
-void uart_set_blocking(uart_t &uart, const bool blocking);
+int uart_read(const uart_t &uart, uint8_t *payload, const size_t length);
 
 } //  namespace proto
 #endif // PROTOTYPE_DRIVER_UART_HPP

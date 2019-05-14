@@ -3,7 +3,6 @@
 using namespace proto;
 
 struct calib_config_t {
-  std::string target_file;
   std::string image_path;
   std::string preprocess_path;
   bool estimate_target = false;
@@ -22,12 +21,20 @@ Usage: detect_aprilgrid <config.yaml>
 
 The `config.yaml` file is expected to have the following format:
 
-  calib:
-    target_file: "aprilgrid_6x6.yaml"
-    image_path: "/data/cam0/"
-    preprocess_path: "/tmp/calib/mono"
+  settings:
+    image_path: "/data/calib_data/cam0/data"
+    preprocess_path: "/tmp/calib_data/aprilgrid0/data"
     estimate_target: true
     imshow: true
+
+  calib_target:
+    target_type: 'aprilgrid'  # Target type
+    tag_rows: 6               # Number of rows
+    tag_cols: 6               # Number of cols
+    tag_size: 0.085           # Size of apriltag, edge to edge [m]
+    tag_spacing: 0.3          # Ratio of space between tags to tagSize
+                              # Example: tagSize=2m, spacing=0.5m
+                              # --> tagSpacing=0.25[-]
 
   cam0:
     resolution: [752, 480]
@@ -44,11 +51,10 @@ calib_config_t parse_config(const std::string &config_file) {
   config_t config{config_file};
   calib_config_t calib_config;
 
-  parse(config, "calib.target_file", calib_config.target_file);
-  parse(config, "calib.image_path", calib_config.image_path);
-  parse(config, "calib.preprocess_path", calib_config.preprocess_path);
-  parse(config, "calib.estimate_target", calib_config.estimate_target, true);
-  parse(config, "calib.imshow", calib_config.imshow, true);
+  parse(config, "settings.image_path", calib_config.image_path);
+  parse(config, "settings.preprocess_path", calib_config.preprocess_path);
+  parse(config, "settings.estimate_target", calib_config.estimate_target, true);
+  parse(config, "settings.imshow", calib_config.imshow, true);
 
   if (calib_config.estimate_target) {
     parse(config, "cam0.resolution", calib_config.resolution);
@@ -74,8 +80,8 @@ int main(int argc, char *argv[]) {
 
   // Load calibration target
   calib_target_t calib_target;
-  if (calib_target_load(calib_target, config.target_file) != 0) {
-    LOG_ERROR("Failed to load calib target [%s]!", config.target_file.c_str());
+  if (calib_target_load(calib_target, config_file, "calib_target") != 0) {
+    LOG_ERROR("Failed to load calib target [%s]!", config_file.c_str());
     return -1;
   }
 

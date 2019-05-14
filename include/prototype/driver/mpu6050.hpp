@@ -134,7 +134,7 @@ namespace proto {
  */
 struct mpu6050_t {
   bool ok = false;
-  i2c_t &i2c;
+  const i2c_t &i2c;
 
   float accel_sensitivity = 0.0;
   float gyro_sensitivity = 0.0;
@@ -146,7 +146,7 @@ struct mpu6050_t {
   int8_t dplf_config = 0;
   clock_t last_updated = 0;
 
-  mpu6050_t(i2c_t &i2c_) : i2c{i2c_} {}
+  mpu6050_t(const i2c_t &i2c_) : i2c{i2c_} {}
   ~mpu6050_t() {}
 };
 
@@ -280,7 +280,7 @@ int mpu6050_get_accel_range(const mpu6050_t &imu);
 /**
  * mpu6050_t to output stream
  */
-std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu);
+// std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu);
 
 } //  namespace proto
 #endif // PROTOTYPE_MPU6050_HPP

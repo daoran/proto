@@ -3,11 +3,11 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_imu_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
   std::string data_dir;
-  std::vector&lt;long&gt; timestamps;
-  std::vector&lt;double&gt; time;
-  std::vector&lt;vec3_t&gt; w_B;
-  std::vector&lt;vec3_t&gt; a_B;
+  timestamps_t timestamps;
+  vec3s_t w_B;
+  vec3s_t a_B;
   std::string sensor_type;
   std::string comment;
   mat4_t T_BS;
@@ -26,9 +26,9 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_camera_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
   std::string data_dir;
-  std::vector&lt;long&gt; timestamps;
-  std::vector&lt;double&gt; time;
+  timestamps_t timestamps;
   std::vector&lt;std::string&gt; image_paths;
   std::string sensor_type;
   std::string comment;
@@ -41,7 +41,7 @@
   vec4_t distortion_coefficients;
 
   euroc_camera_t();
-  euroc_camera_t(const std::string &amp;data_dir_);
+  euroc_camera_t(const std::string &amp;data_dir_, bool is_calib_data_);
   ~euroc_camera_t();
 };</code></pre>
   
@@ -49,17 +49,17 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_ground_truth_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
   std::string data_dir;
-  std::vector&lt;long&gt; timestamps;
-  std::vector&lt;double&gt; time;
-  std::vector&lt;vec3_t&gt; p_RS_R;
-  std::vector&lt;vec4_t&gt; q_RS;
-  std::vector&lt;vec3_t&gt; v_RS_R;
-  std::vector&lt;vec3_t&gt; b_w_RS_S;
-  std::vector&lt;vec3_t&gt; b_a_RS_S;
+  timestamps_t timestamps;
+  vec3s_t p_RS_R;
+  vec4s_t q_RS;
+  vec3s_t v_RS_R;
+  vec3s_t b_w_RS_S;
+  vec3s_t b_a_RS_S;
 
   euroc_ground_truth_t();
-  euroc_ground_truth_t(const std::string data_dir_);
+  euroc_ground_truth_t(const std::string &amp;data_dir_);
   ~euroc_ground_truth_t();
 };</code></pre>
   
@@ -67,22 +67,22 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_data_t {
-  bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
   std::string data_path;
   euroc_imu_t imu_data;
   euroc_camera_t cam0_data;
   euroc_camera_t cam1_data;
   euroc_ground_truth_t ground_truth;
   cv::Size image_size;
-  long ts_start;
-  long ts_end;
-  long ts_now;
+  timestamp_t ts_start;
+  timestamp_t ts_end;
+  timestamp_t ts_now;
   long time_index;
   long imu_index;
   long frame_index;
-  std::set&lt;long&gt; timestamps;
-  std::map&lt;long, double&gt; time;
-  std::multimap&lt;long, timeline_event_t&gt; timeline;
+  std::set&lt;timestamp_t&gt; timestamps;
+  std::map&lt;timestamp_t, double&gt; time;
+  std::multimap&lt;timestamp_t, timeline_event_t&lt;timestamp_t&gt; &gt; timeline;
 
   euroc_data_t();
   euroc_data_t(const std::string &amp;data_path);
@@ -143,14 +143,14 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">int euroc_camera_load(euroc_camera_t &amp;cd,
+  <pre><code class="cpp">int euroc_camera_load(euroc_camera_t &amp;data,
                       const std::string &amp;data_dir,
                       const bool is_calib_data);
 </code></pre>
   
   <div class="doc"><p><p>Load Camera data</p>
 <ul>
-<li>[in,out] cd Camera data</li>
+<li>[in,out] data Camera data</li>
 <li>[in] data_dir Data directory</li>
 <li>[in] is_calib_data Is camera data for calibration?</li>
 </ul>
@@ -166,49 +166,51 @@
   <div class="doc"><p><p>Load ground truth data</p>
 <ul>
 <li>[in,out] data Ground truth data</li>
+<li>[in] data_dir Data directory</li>
 </ul>
 <p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">int euroc_data_load(euroc_data_t &amp;ds);
+  <pre><code class="cpp">int euroc_data_load(euroc_data_t &amp;data, const std::string &amp;data_path);
 </code></pre>
   
   <div class="doc"><p><p>Load dataset</p>
 <ul>
-<li>[in,out] ds Dataset</li>
+<li>[in,out] data Dataset</li>
+<li>[in] data_dir Data directory</li>
 </ul>
 <p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">void euroc_data_reset(euroc_data_t &amp;ds);
+  <pre><code class="cpp">void euroc_data_reset(euroc_data_t &amp;data);
 </code></pre>
   
   <div class="doc"><p><p>Reset</p>
 <ul>
-<li>[in,out] ds Dataset</li>
+<li>[in,out] data Dataset</li>
 </ul>
 <p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">long euroc_data_min_timestamp(const euroc_data_t &amp;ds);
+  <pre><code class="cpp">timestamp_t euroc_data_min_timestamp(const euroc_data_t &amp;data);
 </code></pre>
   
   <div class="doc"><p><p>Return min timestamp</p>
 <ul>
-<li>[in] ds Dataset</li>
+<li>[in] data Dataset</li>
 </ul>
 <p><strong>Returns</strong> Minimum timestamp</p></p></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">long euroc_data_max_timestamp(const euroc_data_t &amp;ds);
+  <pre><code class="cpp">timestamp_t euroc_data_max_timestamp(const euroc_data_t &amp;data);
 </code></pre>
   
   <div class="doc"><p><p>Return max timestamp</p>
@@ -234,6 +236,42 @@
   
   <div class="doc"><p><p>Load calibration data</p>
 <p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int process_stereo_images(const euroc_calib_t &amp;calib_data,
+                          const std::string &amp;preprocess_path,
+                          const mat3_t &amp;cam0_K,
+                          const vec4_t &amp;cam0_D,
+                          const mat3_t &amp;cam1_K,
+                          const vec4_t &amp;cam1_D,
+                          aprilgrids_t &amp;cam0_grids,
+                          aprilgrids_t &amp;cam1_grids);
+</code></pre>
+  
+  <div class="doc"><p><p>Process EuRoC calibration data and detect the AprilGrid detected from both
+cameras. The detected AprilGrids will be outputted as files into the
+<code>preprocess_path</code>, and as <code>aprilgrids_t</code> in <code>cam0_grids</code> and <code>cam1_grids</code>.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">timeline_t&lt;timestamp_t&gt; create_timeline(const euroc_calib_t &amp;calib_data,
+                                        const aprilgrids_t &amp;cam0_grids,
+                                        const aprilgrids_t &amp;cam1_grids,
+                                        const mat4_t &amp;T_SC0,
+                                        mat4s_t &amp;T_WS,
+                                        mat4_t &amp;T_WF,
+                                        timestamp_t &amp;t0);
+</code></pre>
+  
+  <div class="doc"><p><p>Create timeline from EuRoC calibration data <code>calib_data</code>. The timeline data
+will put the detected aprilgrids from cam0 and cam1 inplace of the cam0 and
+cam1 image paths. Using the aprilgrid data and initial sensor-camera
+extrinsics <code>T_SC0</code>, the initial sensor poses in world frame <code>T_WS</code>, fiducial
+pose in world frame <code>T_WF</code> and finally first timestamp <code>t0</code> will be
+calculated.</p></p></div>
   
 </div> <!-- .cpp_func -->
 

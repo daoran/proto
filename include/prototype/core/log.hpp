@@ -1,6 +1,9 @@
 #ifndef PROTOTYPE_CORE_LOG_HPP
 #define PROTOTYPE_CORE_LOG_HPP
 
+#include <stdio.h>
+#include <string.h>
+
 namespace proto {
 
 #define __FILENAME__                                                           \
@@ -29,21 +32,6 @@ namespace proto {
 #define DEBUG(M, ...)
 #else
 #define DEBUG(M, ...) fprintf(stdout, "[DEBUG] " M "\n", ##__VA_ARGS__)
-#endif
-
-#ifndef NDEBUG
-#define ASSERT(condition, message)                                             \
-  do {                                                                         \
-    if (!(condition)) {                                                        \
-      std::cerr << "Assertion `" #condition "` failed in " << __FILE__         \
-                << " line " << __LINE__ << ": " << message << std::endl;       \
-      std::terminate();                                                        \
-    }                                                                          \
-  } while (false)
-#else
-#define ASSERT(condition, message)                                             \
-  do {                                                                         \
-  } while (false)
 #endif
 
 } //  namespace proto

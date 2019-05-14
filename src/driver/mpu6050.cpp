@@ -17,10 +17,6 @@ int mpu6050_configure(mpu6050_t imu, const std::string &config_file) {
   parse(config, "accel_range", accel_range);
 
   // Setup i2c
-  if (i2c_setup(imu.i2c) != 0) {
-    LOG_INFO("Failed to open i2c connection!");
-    return -1;
-  }
   i2c_set_slave(imu.i2c, MPU6050_ADDRESS);
 
   // Set dplf
@@ -285,6 +281,6 @@ int mpu6050_get_accel_range(const mpu6050_t &imu) {
   return data;
 }
 
-std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu) { return os; }
+// std::ostream &operator<<(std::ostream &os, const mpu6050_t &imu) { return os; }
 
 } //  namespace proto

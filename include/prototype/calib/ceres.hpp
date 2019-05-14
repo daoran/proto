@@ -1,7 +1,7 @@
 #ifndef PROTOTYPE_CALIB_CERES_HPP
 #define PROTOTYPE_CALIB_CERES_HPP
 
-#include "prototype/core/core.hpp"
+#include "prototype/core/math.hpp"
 
 namespace proto {
 

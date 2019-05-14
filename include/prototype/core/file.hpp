@@ -44,6 +44,11 @@ int file_rows(const std::string &file_path);
 int file_copy(const std::string &src, const std::string &dest);
 
 /**
+ * Return file extension in `path`.
+ */
+std::string file_ext(const std::string &path);
+
+/**
  * Return basename
  */
 std::string basename(const std::string &path);

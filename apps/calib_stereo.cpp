@@ -3,11 +3,11 @@
 using namespace proto;
 
 struct calib_config_t {
-  std::string target_file;
   std::string cam0_image_path;
   std::string cam1_image_path;
   std::string cam0_preprocess_path;
   std::string cam1_preprocess_path;
+  std::string results_file;
 
   vec2_t cam0_resolution{0.0, 0.0};
   double cam0_lens_hfov = 0.0;
@@ -28,12 +28,22 @@ Usage: calib_stereo <calib_config.yaml>
 
 The `calib_config.yaml` file is expected to have the following format:
 
-  calib:
+  settings:
     target_file: "aprilgrid_6x6.yaml"
-    cam0_image_path: "/data/cam0"
-    cam1_image_path: "/data/cam1"
-    cam0_preprocess_path: "/tmp/calib/stereo/cam0"
-    cam1_preprocess_path: "/tmp/calib/stereo/cam1"
+    cam0_image_path: "/data/calib_data/cam0/data"
+    cam1_image_path: "/data/calib_data/cam1/data"
+    cam0_preprocess_path: "/data/calib_data/aprilgrid0/cam0/data"
+    cam1_preprocess_path: "/data/calib_data/aprilgrid0/cam1/data"
+    results_file: "/data/calib_data/calib.yaml"
+
+  calib_target:
+    target_type: 'aprilgrid'  # Target type
+    tag_rows: 6               # Number of rows
+    tag_cols: 6               # Number of cols
+    tag_size: 0.085           # Size of apriltag, edge to edge [m]
+    tag_spacing: 0.3          # Ratio of space between tags to tagSize
+                              # Example: tagSize=2m, spacing=0.5m
+                              # --> tagSpacing=0.25[-]
 
   cam0:
     resolution: [752, 480]
@@ -57,11 +67,11 @@ calib_config_t parse_config(const std::string &config_file) {
   config_t config{config_file};
   calib_config_t calib_conf;
 
-  parse(config, "calib.target_file", calib_conf.target_file);
-  parse(config, "calib.cam0_image_path", calib_conf.cam0_image_path);
-  parse(config, "calib.cam1_image_path", calib_conf.cam1_image_path);
-  parse(config, "calib.cam0_preprocess_path", calib_conf.cam0_preprocess_path);
-  parse(config, "calib.cam1_preprocess_path", calib_conf.cam1_preprocess_path);
+  parse(config, "settings.cam0_image_path", calib_conf.cam0_image_path);
+  parse(config, "settings.cam1_image_path", calib_conf.cam1_image_path);
+  parse(config, "settings.cam0_preprocess_path", calib_conf.cam0_preprocess_path);
+  parse(config, "settings.cam1_preprocess_path", calib_conf.cam1_preprocess_path);
+  parse(config, "settings.results_file", calib_conf.results_file);
 
   parse(config, "cam0.resolution", calib_conf.cam0_resolution);
   parse(config, "cam0.lens_hfov", calib_conf.cam0_lens_hfov);
@@ -123,7 +133,7 @@ int save_results(const std::string &save_path,
   }
 
   // Save camera extrinsics
-  outfile << "T_C0C1: " << std::endl;
+  outfile << "T_C0C1:" << std::endl;
   outfile << indent << "rows: 4" << std::endl;
   outfile << indent << "cols: 4" << std::endl;
   outfile << indent << "data: [" << std::endl;
@@ -151,8 +161,8 @@ int main(int argc, char *argv[]) {
 
   // Load calibration target
   calib_target_t calib_target;
-  if (calib_target_load(calib_target, config.target_file) != 0) {
-    LOG_ERROR("Failed to load calib target [%s]!", config.target_file.c_str());
+  if (calib_target_load(calib_target, config_file, "calib_target") != 0) {
+    LOG_ERROR("Failed to load calib target [%s]!", config_file.c_str());
     return -1;
   }
 
@@ -238,7 +248,7 @@ int main(int argc, char *argv[]) {
   std::cout << std::endl;
 
   // Save results
-  const std::string save_path{"./calib_results.yaml"};
+  const std::string save_path = config.results_file;
   LOG_INFO("Saving optimization results to [%s]", save_path.c_str());
   retval = save_results(save_path,
                         config.cam0_resolution,

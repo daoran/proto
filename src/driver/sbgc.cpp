@@ -489,7 +489,7 @@ int sbgc_get_realtime_data4(sbgc_t &sbgc) {
 }
 
 int sbgc_get_angles_ext(sbgc_t &sbgc) {
-  int retval;
+  // int retval;
 
   // Request real time data
   sbgc_frame_t frame;

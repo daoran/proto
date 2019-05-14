@@ -19,6 +19,7 @@ struct camera_geometry_t {
   CM camera_model;
   DM distortion_model;
 
+  camera_geometry_t();
   camera_geometry_t(const CM &camera_model_, const DM &distortion_model_);
   ~camera_geometry_t();
 };

@@ -5,10 +5,10 @@
   <pre><code class="cpp">struct calib_gimbal_data_t {
   bool ok;
   int nb_measurements;
-  std::vector&lt;matx_t&gt; P_s;
-  std::vector&lt;matx_t&gt; P_d;
-  std::vector&lt;matx_t&gt; Q_s;
-  std::vector&lt;matx_t&gt; Q_d;
+  matxs_t P_s;
+  matxs_t P_d;
+  matxs_t Q_s;
+  matxs_t Q_d;
   matx_t joint_data;
 
   calib_gimbal_data_t();

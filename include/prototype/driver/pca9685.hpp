@@ -91,8 +91,8 @@ namespace proto {
 #define PCA9685_WAIT_MS 5
 
 struct pca9685_t {
-  i2c_t &i2c;
-  pca9685_t(i2c_t &i2c_) : i2c{i2c_} {}
+  const i2c_t &i2c;
+  pca9685_t(const i2c_t &i2c_) : i2c{i2c_} {}
   virtual ~pca9685_t() {}
 };
 

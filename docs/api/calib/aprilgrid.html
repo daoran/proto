@@ -2,26 +2,35 @@
 
 <!-- CLASSES -->
 <div class="cpp_class">
+  <pre><code class="cpp">struct aprilgrid_detector_t {
+  AprilTags::AprilGridDetector det;
+
+  aprilgrid_detector_t();
+  ~aprilgrid_detector_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>AprilGrid Detector</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
   <pre><code class="cpp">struct aprilgrid_t {
-  AprilTags::TagDetector detector;
-  bool configured;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool configured;
   int tag_rows;
   int tag_cols;
   double tag_size;
   double tag_spacing;
   bool detected;
   int nb_detections;
-  long timestamp;
+  timestamp_t timestamp;
   std::vector&lt;int&gt; ids;
-  std::vector&lt;vec2_t&gt; keypoints;
+  vec2s_t keypoints;
   bool estimated;
-  std::vector&lt;vec3_t&gt; points_CF;
+  vec3s_t points_CF;
   mat4_t T_CF;
-  vec3_t rvec_CF;
-  vec3_t tvec_CF;
 
   aprilgrid_t();
-  aprilgrid_t(const long timestamp,
+  aprilgrid_t(const timestamp_t &amp;timestamp,
               const int tag_rows,
               const int tag_cols,
               const double tag_size,
@@ -47,9 +56,15 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">int aprilgrid_get(const aprilgrid_t &amp;grid,
-                  const int id,
-                  std::vector&lt;vec2_t&gt; &amp;keypoints);
+  <pre><code class="cpp">void aprilgrid_remove(aprilgrid_t &amp;grid, const int id);
+</code></pre>
+  
+  <div class="doc"><p><p>Remove AprilTag measurement from AprilGrid based on id. </p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_get(const aprilgrid_t &amp;grid, const int id, vec2s_t &amp;keypoints);
 </code></pre>
   
   <div class="doc"><p><p>Get AprilTag measurements based on tag id.</p>
@@ -60,12 +75,24 @@
 <div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int aprilgrid_get(const aprilgrid_t &amp;grid,
                   const int id,
-                  std::vector&lt;vec2_t&gt; &amp;keypoints,
-                  std::vector&lt;vec3_t&gt; &amp;points_CF);
+                  vec2s_t &amp;keypoints,
+                  vec3s_t &amp;points_CF);
 </code></pre>
   
   <div class="doc"><p><p>Get AprilTag measurements based on tag id.</p>
 <p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void aprilgrid_set_properties(aprilgrid_t &amp;grid,
+                              const int tag_rows,
+                              const int tag_cols,
+                              const double tag_size,
+                              const double tag_spacing);
+</code></pre>
+  
+  <div class="doc"><p><p>Set AprilGrid properties </p></p></div>
   
 </div> <!-- .cpp_func -->
 
@@ -94,7 +121,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 <div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int aprilgrid_object_points(const aprilgrid_t &amp;grid,
                             const int tag_id,
-                            std::vector&lt;vec3_t&gt; &amp;object_points);
+                            vec3s_t &amp;object_points);
 </code></pre>
   
   <div class="doc"><p><p>Calculate object points.</p>
@@ -160,7 +187,9 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">int aprilgrid_detect(aprilgrid_t &amp;grid, const cv::Mat &amp;image);
+  <pre><code class="cpp">int aprilgrid_detect(aprilgrid_t &amp;grid,
+                     const aprilgrid_detector_t &amp;detector,
+                     const cv::Mat &amp;image);
 </code></pre>
   
   <div class="doc"><p><p>Detect AprilGrid.</p>
@@ -170,6 +199,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 
 <div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int aprilgrid_detect(aprilgrid_t &amp;grid,
+                     const aprilgrid_detector_t &amp;detector,
                      const cv::Mat &amp;image,
                      const mat3_t &amp;cam_K,
                      const vec4_t &amp;cam_D);
@@ -177,6 +207,14 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
   
   <div class="doc"><p><p>Detect AprilGrid.</p>
 <p><strong>Returns</strong> number of AprilTags detected.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void aprilgrid_intersection(aprilgrid_t &amp;grid0, aprilgrid_t &amp;grid1);
+</code></pre>
+  
+  <div class="doc"><p><p>Find the intersection of two aprilgrids</p></p></div>
   
 </div> <!-- .cpp_func -->
 

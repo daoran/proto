@@ -1,14 +1,15 @@
-calib:
-  target_file: "config/aprilgrid_6x6.yaml"
-  image_path: "/data/calibration_target/cam0/data"
+settings:
+  image_path: "/data/intel_d435i/data/cam0/data"
   imshow: true
 
-# cam0:
-#   resolution: [640, 480]
-#   camera_model: "pinhole"
-#   distortion_model: "radtan"
-#   intrinsics: [630.043222, 630.362170, 327.615743, 238.386901]
-#   distortion: [0.139066, -0.349607, -0.000163,0.003016]
+calib_target:
+  target_type: 'aprilgrid'  # Target type
+  tag_rows: 6               # Number of rows
+  tag_cols: 6               # Number of cols
+  tag_size: 0.085           # Size of apriltag, edge to edge [m]
+  tag_spacing: 0.3          # Ratio of space between tags to tagSize
+                            # Example: tagSize=2m, spacing=0.5m
+                            # --> tagSpacing=0.25[-]
 
 cam0:
   camera_model: "pinhole"

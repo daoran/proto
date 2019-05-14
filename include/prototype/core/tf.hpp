@@ -2,7 +2,6 @@
 #define PROTOTYPE_TF_HPP
 
 #include "prototype/core/math.hpp"
-#include "prototype/core/linalg.hpp"
 
 namespace proto {
 
@@ -11,6 +10,13 @@ namespace proto {
  */
 inline mat3_t tf_rot(const mat4_t &tf) {
   return tf.block<3, 3>(0, 0);
+}
+
+/**
+ * Extract rotation and convert to quaternion from transform
+ */
+inline quat_t tf_quat(const mat4_t &tf) {
+  return quat_t{tf.block<3, 3>(0, 0)};
 }
 
 /**
@@ -104,7 +110,10 @@ vec3_t quat2euler(const quat_t &q);
  * function does not calculate initial yaw angle in the world frame. Only the
  * roll, and pitch are inferred from IMU measurements.
  */
-void imu_init_attitude(const vec3s_t w_m, const vec3s_t a_m, mat3_t &C_WS);
+void imu_init_attitude(const vec3s_t w_m,
+                       const vec3s_t a_m,
+                       mat3_t &C_WS,
+                       const size_t buffer_size=50);
 
 } //  namespace proto
 #endif // PROTOTYPE_TF_HPP

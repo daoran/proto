@@ -17,17 +17,20 @@ calib_target_t::calib_target_t() {}
 
 calib_target_t::~calib_target_t() {}
 
-int calib_target_load(calib_target_t &ct, const std::string &target_file) {
+int calib_target_load(calib_target_t &ct,
+                      const std::string &target_file,
+                      const std::string &prefix) {
   config_t config{target_file};
   if (config.ok == false) {
     LOG_ERROR("Failed to load target file [%s]!", target_file.c_str());
     return -1;
   }
-  parse(config, "target_type", ct.target_type);
-  parse(config, "tag_rows", ct.tag_rows);
-  parse(config, "tag_cols", ct.tag_cols);
-  parse(config, "tag_size", ct.tag_size);
-  parse(config, "tag_spacing", ct.tag_spacing);
+  const auto parent = (prefix == "") ? "" : prefix + ".";
+  parse(config, parent + "target_type", ct.target_type);
+  parse(config, parent + "tag_rows", ct.tag_rows);
+  parse(config, parent + "tag_cols", ct.tag_cols);
+  parse(config, parent + "tag_size", ct.tag_size);
+  parse(config, parent + "tag_spacing", ct.tag_spacing);
 
   return 0;
 }
@@ -104,7 +107,9 @@ int preprocess_camera_data(const calib_target_t &target,
   }
 
   // Detect AprilGrid
-  LOG_INFO("Processing images ...");
+  if (show_progress) {
+    LOG_INFO("Processing images ...");
+  }
   aprilgrid_detector_t detector;
 
   for (size_t i = 0; i < image_paths.size(); i++) {
@@ -183,7 +188,9 @@ int preprocess_camera_data(const calib_target_t &target,
 }
 
 int load_camera_calib_data(const std::string &data_dir,
-                           std::vector<aprilgrid_t> &aprilgrids) {
+                           aprilgrids_t &aprilgrids,
+                           timestamps_t &timestamps,
+                           bool detected_only) {
   // Check image dir
   if (dir_exists(data_dir) == false) {
     LOG_ERROR("Image dir [%s] does not exist!", data_dir.c_str());
@@ -198,6 +205,18 @@ int load_camera_calib_data(const std::string &data_dir,
   }
   std::sort(data_paths.begin(), data_paths.end());
 
+  // Get timestamps
+  for (size_t i = 0; i < data_paths.size(); i++) {
+    const auto ext = file_ext(basename(data_paths[i]));
+    const auto ts_str = strip_end(basename(data_paths[i]), ext);
+    std::string str_format = "%" SCNu64;
+
+    timestamp_t ts;
+    sscanf(ts_str.c_str(), str_format.c_str(), &ts);
+
+    timestamps.emplace_back(ts);
+  }
+
   // Load AprilGrid data
   for (size_t i = 0; i < data_paths.size(); i++) {
     // Load
@@ -209,7 +228,7 @@ int load_camera_calib_data(const std::string &data_dir,
     }
 
     // Make sure aprilgrid is actually detected
-    if (grid.detected) {
+    if (grid.detected || detected_only == false) {
       aprilgrids.emplace_back(grid);
     }
   }
@@ -257,20 +276,22 @@ int preprocess_stereo_data(const calib_target_t &target,
 
 int load_stereo_calib_data(const std::string &cam0_data_dir,
                            const std::string &cam1_data_dir,
-                           std::vector<aprilgrid_t> &cam0_aprilgrids,
-                           std::vector<aprilgrid_t> &cam1_aprilgrids) {
+                           aprilgrids_t &cam0_aprilgrids,
+                           aprilgrids_t &cam1_aprilgrids) {
   int retval = 0;
 
   // Load cam0 calibration data
-  std::vector<aprilgrid_t> grids0;
-  retval = load_camera_calib_data(cam0_data_dir, grids0);
+  aprilgrids_t grids0;
+  timestamps_t timestamps0;
+  retval = load_camera_calib_data(cam0_data_dir, grids0, timestamps0);
   if (retval != 0) {
     return -1;
   }
 
   // Load cam1 calibration data
-  std::vector<aprilgrid_t> grids1;
-  retval = load_camera_calib_data(cam1_data_dir, grids1);
+  aprilgrids_t grids1;
+  timestamps_t timestamps1;
+  retval = load_camera_calib_data(cam1_data_dir, grids1, timestamps1);
   if (retval != 0) {
     return -1;
   }
@@ -308,6 +329,116 @@ int load_stereo_calib_data(const std::string &cam0_data_dir,
     if (cam0_idx >= grids0.size()
         || cam1_idx >= grids1.size()) {
       break;
+    }
+  }
+
+  return 0;
+}
+
+int load_multicam_calib_data(const int nb_cams,
+                             const std::vector<std::string> &data_dirs,
+                             std::map<int, aprilgrids_t> &calib_data) {
+  // Double check nb_cams is equal to data_dirs.size()
+  if (nb_cams != (int) data_dirs.size()) {
+    LOG_ERROR("nb_cams != data_dirs");
+    return -1;
+  }
+
+  // Load calibration data for each camera
+  std::map<int, aprilgrids_t> grids;
+  size_t max_grids = 0;
+  for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
+    aprilgrids_t data;
+    timestamps_t ts;
+    const int retval = load_camera_calib_data(data_dirs[cam_idx], data, ts);
+    if (retval != 0) {
+      LOG_ERROR("Failed to load calib data [%s]!", data_dirs[cam_idx].c_str());
+      return -1;
+    }
+
+    grids[cam_idx] = data;
+    if (data.size() > max_grids) {
+      max_grids = data.size();
+    }
+  }
+
+  // Aggregate timestamps
+  std::map<timestamp_t, int> ts_count;
+  std::set<timestamp_t> timestamps;
+  for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
+    for (const auto &grid : grids[cam_idx]) {
+      ts_count[grid.timestamp]++;
+      timestamps.insert(grid.timestamp);
+    }
+  }
+
+  // Initialize grid indicies where key is cam_idx, value is grid_idx
+  std::map<int, size_t> grid_indicies;
+  for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
+    grid_indicies[cam_idx] = 0;
+  }
+
+  // Loop through timestamps
+  for (const auto &ts : timestamps) {
+    // If only a subset of cameras detected aprilgrids at this timestamp
+    // it means we need to update the grid index of those subset of cameras.
+    // We do this because we don't want missing data, we want **AprilGrid
+    // observed by all cameras at the same timestamp.**
+    if (ts_count[ts] != nb_cams) {
+      for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
+        auto &grid_idx = grid_indicies[cam_idx];
+        if (grids[cam_idx][grid_idx].timestamp == ts) {
+          grid_idx++;
+        }
+      }
+
+      // Skip this timestamp with continue
+      continue;
+    }
+
+try_again:
+    // Check if AprilGrids across cameras have same timestamp
+    std::vector<bool> ready(nb_cams, false);
+    for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
+      auto &grid_idx = grid_indicies[cam_idx];
+      if (grids[cam_idx][grid_idx].timestamp == ts) {
+        ready[cam_idx] = true;
+      }
+    }
+
+    // Check if aprilgrids are observed by all cameras
+    if (std::all_of(ready.begin(), ready.end(), [](bool x){return x;})) {
+      // Keep only common tags between all aprilgrids
+      std::vector<aprilgrid_t *> data;
+      for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
+        auto &grid_idx = grid_indicies[cam_idx];
+        aprilgrid_t *grid = &grids[cam_idx][grid_idx];
+        data.push_back(grid);
+      }
+      aprilgrid_intersection(data);
+
+      // Add to result and update grid indicies
+      for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
+        calib_data[cam_idx].push_back(*data[cam_idx]);
+        grid_indicies[cam_idx]++;
+      }
+
+    } else {
+      // Update grid indicies on those that do not the same timestamp
+      for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
+        // Update grid index
+        if (ready[cam_idx] == false) {
+          grid_indicies[cam_idx]++;
+        }
+
+        // Termination criteria
+        if (grid_indicies[cam_idx] >= grids[cam_idx].size()) {
+          return 0;
+        }
+      }
+
+      // Try again - don't change timestamp yet*
+      goto try_again;
     }
   }
 

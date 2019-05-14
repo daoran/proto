@@ -1,0 +1,142 @@
+\chapter{State Estimation}
+
+\section{2D Range Measurement Model}
+
+\begin{equation}
+  \boxed{
+    d = \sqrt{(m_x - x)^2 + (m_y - y)^2}
+  }
+\end{equation}
+
+\begin{equation}
+  \boxed{
+    \dfrac{\partial d}{\partial x}
+      = \dfrac{-(m_x - x)}{\sqrt{(m_x - x)^2 + (m_y - y)^2}}
+  }
+\end{equation}
+
+\begin{equation}
+  \boxed{
+    \dfrac{\partial d}{\partial y}
+      = \dfrac{-(m_y - y)}{\sqrt{(m_x - x)^2 + (m_y - y)^2}}
+  }
+\end{equation}
+
+Let $u = (m_x - x)^2 + (m_y - y)^2$,
+%
+\begin{equation}
+  \dfrac{\partial d}{\partial x} =
+    \dfrac{\partial d}{\partial u}
+    \dfrac{\partial u}{\partial x} \quad \quad \quad
+  \dfrac{\partial d}{\partial y} =
+    \dfrac{\partial d}{\partial u}
+    \dfrac{\partial u}{\partial y}
+\end{equation}
+%
+\begin{equation}
+  \dfrac{\partial d}{\partial u}
+    &= \sqrt{u} = \dfrac{1}{2 \sqrt{u}}
+\end{equation}
+%
+\begin{align}
+  \dfrac{\partial u}{\partial x}
+    &= (m_x - x)^2 \\
+    &= (m_x - x)(m_x - x) \\
+    &= m_x^2 - m_x x - x m_x + x^2 \\
+    &= - 2 m_x + 2 x \\
+    \nonumber \\ 
+  \dfrac{\partial u}{\partial y}
+    &= (m_y - y)^2 \\
+    &= (m_y - y)(m_y - y) \\
+    &= m_y^2 - m_y y - y m_y + y^2 \\
+    &= - 2 m_y + 2 y
+\end{align}
+%
+\begin{align}
+  \dfrac{\partial d}{\partial x}
+    &= \dfrac{\partial d}{\partial u} \dfrac{\partial u}{\partial x} \\
+    &= \left( \dfrac{1}{2 \sqrt{u}}  \right) \left( - 2 m_x + 2 x \right) \\
+    &= \dfrac{-(m_x - x)}{\sqrt{u}} \\
+    &= \dfrac{-(m_x - x)}{\sqrt{(m_x - x)^2 + (m_y - y)^2}} \\ 
+    \nonumber \\ 
+  \dfrac{\partial d}{\partial y}
+    &= \dfrac{\partial d}{\partial u} \dfrac{\partial u}{\partial y} \\
+    &= \left( -\dfrac{1}{2 \sqrt{u}}  \right) \left( - 2 m_y + 2 y \right) \\
+    &= \dfrac{-(m_y - y)}{\sqrt{u}} \\
+    &= \dfrac{-(m_y - y)}{\sqrt{(m_x - x)^2 + (m_y - y)^2}}
+\end{align}
+
+
+
+\newpage
+\section{2D Relative Bearing Measurement Model}
+
+\begin{equation}
+  \boxed{
+    \theta_{b} = \tan^{-1} \left( \dfrac{m_y - y}{m_x - x} \right) - \theta_{w}
+  }
+\end{equation}
+
+\begin{equation}
+  \boxed{
+    \dfrac{\partial \theta_b}{\partial x}
+      = \dfrac{(m_y - y)}{(m_x - x)^{2} + (m_y - y)^2}
+  }
+\end{equation}
+
+\begin{equation}
+  \boxed{
+    \dfrac{\partial \theta_b}{\partial y}
+      = \dfrac{-(m_x - x)}{(m_x - x)^2 + (m_y - y)^2}
+  }
+\end{equation}
+
+
+Let $u = \dfrac{m_y - y}{m_x - x}$,
+%
+\begin{align}
+  \dfrac{\partial \theta_{b}}{\partial u}
+  &= \tan^{-1} (u) - \theta_{w} \nonumber \\
+  &= \dfrac{1}{1 + u^2} \\
+  \nonumber \\
+  \dfrac{\partial u}{\partial dx}
+  &= \dfrac{m_y - y}{m_x - x} = \dfrac{m_y - y}{dx} \nonumber \\
+  &= (m_y - y) dx^{-1} \nonumber \\
+  &= - (m_y - y) dx^{-2} \\
+  &= \dfrac{- (m_y - y)}{dx^{2}} \\
+  \nonumber \\
+  \dfrac{\partial u}{\partial dy}
+  &= \dfrac{m_y - y}{m_x - x} = \dfrac{dy}{m_x - x} \nonumber \\
+  &= \dfrac{1}{mx - x}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial dx}{\partial x} = m_x - x = -1 \\
+  \dfrac{\partial dy}{\partial y} = m_y - y = -1
+\end{align}
+
+\begin{align}
+  \dfrac{\partial \theta_b}{\partial x}
+  &= \dfrac{\partial \theta_b}{\partial u}
+    \dfrac{\partial u}{\partial dx}
+    \dfrac{\partial dx}{\partial x} \nonumber \\
+  &= \left( \dfrac{1}{1 + u^2} \right)
+    \left( \dfrac{- (m_y - y)}{dx^{2}} \right)
+    \left( -1 \right) \nonumber \\
+  &= \dfrac{1}{\left(1 + \dfrac{(m_y - y)^2}{(m_x - x)^2} \right)}
+    \dfrac{(m_y - y)}{(m_x - x)^{2}} \nonumber \\
+  &= \dfrac{(m_y - y)}{(m_x - x)^{2} + (m_y - y)^2}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial \theta_b}{\partial y}
+  &= \dfrac{\partial \theta_b}{\partial u}
+    \dfrac{\partial u}{\partial dy}
+    \dfrac{\partial dy}{\partial x} \nonumber \\
+  &= \left( \dfrac{1}{1 + u^2} \right)
+    \left( \dfrac{1}{m_x - x} \right)
+    \left( -1 \right) \nonumber \\
+  &= \dfrac{1}{\left(1 + \dfrac{(m_y - y)^2}{(m_x - x)^2} \right)}
+    \dfrac{-1}{(m_x - x)} \nonumber \\
+  &= \dfrac{-(m_x - x)}{(m_x - x)^2 + (m_y - y)^2}
+\end{align}

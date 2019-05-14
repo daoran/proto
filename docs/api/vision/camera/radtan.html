@@ -8,6 +8,8 @@
   double p1;
   double p2;
 
+  radtan4_t();
+  radtan4_t(const vec4_t &amp;distortion_);
   radtan4_t(const double k1_,
             const double k2_,
             const double p1_,
@@ -26,7 +28,7 @@
   <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const radtan4_t &amp;radtan4);
 </code></pre>
   
-  <div class="doc"><p><p>Type to output stream</p></p></div>
+  <div class="doc"><p><p>Type to output stream.</p></p></div>
   
 </div> <!-- .cpp_func -->
 
@@ -34,7 +36,7 @@
   <pre><code class="cpp">vec2_t distort(const radtan4_t &amp;radtan, const vec2_t &amp;point);
 </code></pre>
   
-  <div class="doc"><p><p>Distort 3D points with the radial-tangential distortion model</p>
+  <div class="doc"><p><p>Distort 3D points with the radial-tangential distortion model.</p>
 <ul>
 <li>[in] radtan Radial tangential parameters</li>
 <li>[in] point Point</li>
@@ -47,7 +49,7 @@
   <pre><code class="cpp">vec2_t distort(const radtan4_t &amp;radtan, const vec2_t &amp;point, mat2_t &amp;J);
 </code></pre>
   
-  <div class="doc"><p><p>Distort 3D points with the radial-tangential distortion model</p>
+  <div class="doc"><p><p>Distort 3D points with the radial-tangential distortion model.</p>
 <ul>
 <li>[in] radtan Radial tangential parameters</li>
 <li>[in] point Point</li>
@@ -61,7 +63,7 @@
   <pre><code class="cpp">matx_t distort(const radtan4_t &amp;radtan, const matx_t &amp;points);
 </code></pre>
   
-  <div class="doc"><p><p>Distort 3D points with the radial-tangential distortion model</p>
+  <div class="doc"><p><p>Distort 3D points with the radial-tangential distortion model.</p>
 <ul>
 <li>[in] radtan Radial tangential parameters</li>
 <li>[in] points Points</li>
@@ -74,7 +76,7 @@
   <pre><code class="cpp">vec2_t undistort(const radtan4_t &amp;radtan, const vec2_t &amp;p0, const int max_iter);
 </code></pre>
   
-  <div class="doc"><p><p>Undistort point</p>
+  <div class="doc"><p><p>Undistort point.</p>
 <ul>
 <li>[in] radtan Radial tangential parameters</li>
 <li>[in] p0 Distorted point</li>

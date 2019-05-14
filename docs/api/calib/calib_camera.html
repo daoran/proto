@@ -2,33 +2,33 @@
 
 <!-- CLASSES -->
 <div class="cpp_class">
-  <pre><code class="cpp">struct pose_param_t {
-  quat_t q;
-  vec3_t t;
-
-  pose_param_t(const mat4_t &amp;T);
-  ~pose_param_t();
-};</code></pre>
-  
-  <div class="doc"><p><p>Pose parameter block</p></p></div>
-  
-</div> <!-- .cpp_class -->
-<!-- CLASSES -->
-<div class="cpp_class">
   <pre><code class="cpp">struct pinhole_radtan4_residual_t {
 
   pinhole_radtan4_residual_t(const vec2_t &amp;z, const vec3_t &amp;p_F);
   ~pinhole_radtan4_residual_t();
 
   template &lt;typename T&gt;
-  bool operator()(const T *const intrinsics,
-                  const T *const distortion,
-                  const T *const q_CF,
-                  const T *const t_CF,
-                  T *residual);
+  bool operator()(const T *const intrinsics_,
+                  const T *const distortion_,
+                  const T *const q_CF_,
+                  const T *const t_CF_,
+                  T *residual_);
 };</code></pre>
   
   <div class="doc"><p><p>Pinhole Radial-tangential calibration residual</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct intrinsics_residual_t {
+
+  intrinsics_residual_t(const vec2_t &amp;z, const vec3_t &amp;p_F);
+  ~intrinsics_residual_t();
+
+  bool Evaluate(double const *const *parameters,
+                double *residuals,
+                double **jacobians);
+};</code></pre>
   
 </div> <!-- .cpp_class -->
 
@@ -39,10 +39,11 @@
   <pre><code class="cpp">int calib_camera_solve(const std::vector&lt;aprilgrid_t&gt; &amp;aprilgrids,
                        pinhole_t &amp;pinhole,
                        radtan4_t &amp;radtan,
-                       std::vector&lt;mat4_t&gt; &amp;poses);
+                       mat4s_t &amp;poses);
 </code></pre>
   
-  <div class="doc"><p><p>Setup camera calibration problem.</p>
+  <div class="doc"><p><p>Calibrate camera intrinsics and relative pose between camera and fiducial
+calibration target.</p>
 <p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
   
 </div> <!-- .cpp_func -->
@@ -52,7 +53,7 @@
 int calib_camera_stats(const std::vector&lt;aprilgrid_t&gt; &amp;aprilgrids,
                        const double *intrinsics,
                        const double *distortion,
-                       const std::vector&lt;mat4_t&gt; &amp;poses,
+                       const mat4s_t &amp;poses,
                        const std::string &amp;output_path);
 </code></pre>
   

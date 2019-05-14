@@ -1,15 +1,25 @@
 #ifndef PROTOTYPE_CORE_TIME_HPP
 #define PROTOTYPE_CORE_TIME_HPP
 
-#include <sys/time.h>
+#include <stdio.h>
 #include <time.h>
+#include <sys/time.h>
+#include <inttypes.h>
+
 #include <vector>
 #include <cstdint>
+#include <string>
 
 namespace proto {
 
 typedef uint64_t timestamp_t;
 typedef std::vector<timestamp_t> timestamps_t;
+
+/**
+ * Print timestamp.
+ */
+void timestamp_print(const timestamp_t &ts,
+                     const std::string &prefix="");
 
 /**
  * Convert ts to second.

@@ -44,12 +44,32 @@ int yaml_get_node(const config_t &config,
                   YAML::Node &node);
 
 /**
+ * Check if yaml file has `key`.
+ * @returns 0 for success or -1 for failure.
+ */
+int yaml_has_key(const config_t &config, const std::string &key);
+
+/**
+ * Check if yaml file has `key`.
+ * @returns 0 for success or -1 for failure.
+ */
+int yaml_has_key(const std::string &file_path, const std::string &key);
+
+/**
  * Check size of vector in config file and returns the size.
  */
 template <typename T>
 size_t yaml_check_vector(const YAML::Node &node,
                          const std::string &key,
                          const bool optional);
+
+/**
+ * Check matrix fields.
+ */
+void yaml_check_matrix_fields(const YAML::Node &node,
+                              const std::string &key,
+                              size_t &rows,
+                              size_t &cols);
 
 /**
  * Check matrix to make sure that the parameter has the data field "rows",
@@ -113,6 +133,13 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            cv::Mat &mat,
+           const bool optional = false);
+template <typename T>
+void parse(const config_t &config,
+           const std::string &key,
+           const int rows,
+           const int cols,
+           T &mat,
            const bool optional = false);
 
 } //  namespace proto

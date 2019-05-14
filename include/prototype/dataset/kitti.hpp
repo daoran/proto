@@ -26,7 +26,7 @@ struct calib_cam2cam_t {
   std::array<mat34_t, 4> P_rect;
 
   calib_cam2cam_t() {}
-  calib_cam2cam_t(const std::string file_path_) : file_path{file_path_} {}
+  calib_cam2cam_t(const std::string &file_path_) : file_path{file_path_} {}
 };
 
 /**
@@ -44,7 +44,7 @@ struct calib_imu2velo_t {
   mat4_t T_velo_imu;
 
   calib_imu2velo_t() {}
-  calib_imu2velo_t(const std::string file_path_) : file_path{file_path_} {}
+  calib_imu2velo_t(const std::string &file_path_) : file_path{file_path_} {}
 };
 
 /**
@@ -64,7 +64,7 @@ struct calib_velo2cam_t {
   mat4_t T_cam_velo;
 
   calib_velo2cam_t() {}
-  calib_velo2cam_t(const std::string file_path_) : file_path{file_path_} {}
+  calib_velo2cam_t(const std::string &file_path_) : file_path{file_path_} {}
 };
 
 /**

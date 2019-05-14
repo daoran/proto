@@ -2,6 +2,7 @@
 \usepackage[utf8]{inputenc}
 
 \usepackage{cite}
+\usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage[dvipsnames]{xcolor}
@@ -17,6 +18,11 @@
   urlcolor=black
 }
 
+% Paragraph settings
+\setlength{\parindent}{1em}
+\setlength{\parskip}{1.0em}
+
+
 % Linear algebra
 \renewcommand{\Vec}[1]{{\mathbf{#1}}}
 \newcommand{\Mat}[1]{{\mathbf{#1}}}
@@ -26,13 +32,20 @@
 \newcommand{\zeros}{{\Vec{0}}}
 \newcommand{\Zeros}[2]{{\Vec{0}_{#1\times#2}}}
 \newcommand{\Norm}[1]{{\|#1\|}}
+\newcommand{\LargeNorm}[1]{{\left\lVert#1\right\rVert}}
 \newcommand{\I}{{\Mat{I}}}
 \newcommand{\quat}{{\Vec{q}}}
 \newcommand{\jac}{{\Mat{J}}}
 \newcommand{\Skew}[1]{{\lfloor #1 \enspace \times \rfloor}}
 \newcommand{\Argmin}[1]{\underset{#1}{{\text{argmin }}}}
-\newcommand{\Transpose}[1]{{{#1^{\top}}}}
+\newcommand{\transpose}{T}
+\newcommand{\Transpose}[1]{{{#1^{\transpose}}}}
 \newcommand{\Inv}[1]{{{#1^{-1}}}}
+\newcommand{\LargeNorm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\Trace}[1]{\text{tr}(#1)}
+\newcommand{\Rank}[1]{\text{rank}(#1)}
+\newcommand{\Bigslant}[2]{{\raisebox{.2em}{$#1$}\left/\raisebox{-.2em}{$#2$}\right.}}
+
 
 % Frames
 \newcommand{\tf}{\mathbf{T}}
@@ -87,11 +100,16 @@
 \newcommand{\Point}[2]{{\KineNotationBare{\point}{#1}}}
 
 % Variables
+% -- Probability
+\newcommand{\RV}[1]{\mathbf{#1}}
 % -- Computer vision
+\newcommand{\dalpha}{{\delta\boldsymbol{\alpha}}}
 \newcommand{\error}{{\Vec{e}}}
+\newcommand{\camQuat}{{\Quat{\world}{\cam}}}
 \newcommand{\camRot}{{\Rot{\world}{\cam}}}
 \newcommand{\camPos}{{\Pos{\world}{\cam}}}
 \newcommand{\projFunc}{{\Vec{h}}}
+\newcommand{\errFunc}{{\Vec{e}}}
 \newcommand{\measurement}{{\Vec{z}}}
 \newcommand{\estimate}{{\tilde{\Vec{z}}}}
 % -- IMU
@@ -114,11 +132,17 @@
 \tableofcontents
 
 % CHAPTERS
-\input{chapters/1-notations.tex}
-\input{chapters/2-rotations.tex}
-\input{chapters/3-computer_vision.tex}
-\input{chapters/4-calibration.tex}
-\input{chapters/5-imu.tex}
+\input{chapters/notations.tex}
+\input{chapters/stats.tex}
+\input{chapters/linalg.tex}
+\input{chapters/probability_theory.tex}
+\input{chapters/computer_vision.tex}
+\input{chapters/feature_detection.tex}
+\input{chapters/rotations.tex}
+\input{chapters/optimization.tex}
+\input{chapters/calibration.tex}
+\input{chapters/state_estimation.tex}
+\input{chapters/imu.tex}
 
 % BIBLIOGRAPHY
 \newpage

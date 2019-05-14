@@ -76,7 +76,7 @@ struct euroc_ground_truth_t {
   vec3s_t b_a_RS_S;
 
   euroc_ground_truth_t();
-  euroc_ground_truth_t(const std::string data_dir_);
+  euroc_ground_truth_t(const std::string &data_dir_);
   ~euroc_ground_truth_t();
 };
 

@@ -3,7 +3,7 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct calib_cam2cam_t {
-  bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
   std::string file_path;
   std::string calib_time;
   double corner_dist;
@@ -17,7 +17,7 @@
   std::array&lt;mat34_t, 4&gt; P_rect;
 
   calib_cam2cam_t();
-  calib_cam2cam_t(const std::string file_path_);
+  calib_cam2cam_t(const std::string &amp;file_path_);
 };</code></pre>
   
   <div class="doc"><p><p>Camera to Camera calibration</p></p></div>
@@ -26,7 +26,7 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct calib_imu2velo_t {
-  bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
   std::string file_path;
   std::string calib_time;
   mat3_t R;
@@ -34,7 +34,7 @@
   mat4_t T_velo_imu;
 
   calib_imu2velo_t();
-  calib_imu2velo_t(const std::string file_path_);
+  calib_imu2velo_t(const std::string &amp;file_path_);
 };</code></pre>
   
   <div class="doc"><p><p>IMU to Velo calibration</p></p></div>
@@ -43,7 +43,7 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct calib_velo2cam_t {
-  bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
   std::string file_path;
   std::string calib_time;
   mat3_t R;
@@ -53,7 +53,7 @@
   mat4_t T_cam_velo;
 
   calib_velo2cam_t();
-  calib_velo2cam_t(const std::string file_path_);
+  calib_velo2cam_t(const std::string &amp;file_path_);
 };</code></pre>
   
   <div class="doc"><p><p>Velo to Camera calibration</p></p></div>
@@ -87,15 +87,15 @@
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW std::string oxts_dir;
   std::vector&lt;long&gt; timestamps;
   std::vector&lt;double&gt; time;
-  std::vector&lt;vec3_t&gt; gps;
-  std::vector&lt;vec3_t&gt; rpy;
-  std::vector&lt;vec3_t&gt; p_G;
-  std::vector&lt;vec3_t&gt; v_G;
-  std::vector&lt;vec3_t&gt; v_B;
-  std::vector&lt;vec3_t&gt; a_G;
-  std::vector&lt;vec3_t&gt; a_B;
-  std::vector&lt;vec3_t&gt; w_G;
-  std::vector&lt;vec3_t&gt; w_B;
+  vec3s_t gps;
+  vec3s_t rpy;
+  vec3s_t p_G;
+  vec3s_t v_G;
+  vec3s_t v_B;
+  vec3s_t a_G;
+  vec3s_t a_B;
+  vec3s_t w_G;
+  vec3s_t w_B;
   std::vector&lt;double&gt; pos_accuracy;
   std::vector&lt;double&gt; vel_accuracy;
 

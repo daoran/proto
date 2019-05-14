@@ -42,10 +42,10 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point);
  *
  * @param[in] equi Equi-distance parameters
  * @param[in] point Point
- * @param[out] J Jacobian of equi w.r.t. point
+ * @param[out] J_point Jacobian of equi w.r.t. point
  * @returns Distorted point
  */
-vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J);
+vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J_point);
 
 /**
  * Distort point with equi-distant distortion model.

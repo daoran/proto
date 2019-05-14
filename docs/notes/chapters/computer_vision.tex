@@ -1,0 +1,548 @@
+\chapter{Computer Vision}
+
+\section{Fundamentals}
+
+\subsection{Point on Line}
+
+\begin{equation}
+  \Transpose{\Vec{x}} \Vec{l} = 0
+\end{equation}
+
+
+\subsection{Intersection of Lines}
+
+\begin{equation}
+  \Vec{l} (\Vec{l} \times \Vec{l}')
+  \Vec{l}' (\Vec{l} \times \Vec{l}')
+  = 0 \\
+  \Transpose{\Vec{l}} \Vec{x}
+  = \Transpose{\Vec{l}}' \Vec{x}
+  = 0
+\end{equation}
+
+\begin{equation}
+  x = \Vec{l} \times \Vec{l}'
+\end{equation}
+
+
+\subsection{Plane}
+
+\begin{itemize}
+  \item{A plane can be defined by the join between three points, or the join
+        between a line and a point in general}
+  \item{Two planes intersecting a unique line}
+  \item{Three planes intersecting a unique point}
+\end{itemize}
+
+\subsubsection{Three Points Define a Plane}
+
+Suppose you have three points $\Vec{X}_{1}$, $\Vec{X}_{2}$, $\Vec{X}_{3}$, and
+are incident with a plane, $\pi$ then each point satisfies
+%
+\begin{equation}
+  \Transpose{\pi} \Vec{X}_{i} = 0.
+\end{equation}
+%
+By stacking each point as a matrix
+%
+\begin{align}
+  \begin{bmatrix}
+    \Transpose{\Vec{X}_{1}} \\
+    \Transpose{\Vec{X}_{2}} \\
+    \Transpose{\Vec{X}_{3}}
+  \end{bmatrix} \pi = 0
+\end{align}
+%
+Since three points in general rare linearly independent, it follows that the
+$3x4$ matrix compsed of the points $\Vec{X}_{i}$ as rows has rank 3.
+
+
+\subsection{Fundamental Matrix}
+
+\subsection{Essential Matrix}
+
+
+
+% PINHOLE CAMERA MODEL
+\section{Pinhole Camera Model}
+
+The pinhole camera model describes how 3D scene points are projected onto the
+2D image plane of an ideal pinhole camera. The model makes the assumption that
+light rays emitted from an object in the scene pass through the pinhole of the
+camera, and projected onto the image plane. A 3D point $\mathbf{X}_{C} = (X, Y,
+Z)$ expressed in the camera frame, $\frame_{C}$, projected on to a camera's 2D
+image plane in homogeneous coordinates $\mathbf{x}_{C} = (u, v, 1)$ can be
+written as
+%
+\begin{equation}
+  u = \dfrac{X f_{x}}{Z} \quad v = \dfrac{Y f_{y}}{Z}
+\end{equation}
+%
+where $f_{x}$ and $f_{y}$ denote the focal length in the x and y-axis. Or, in
+matrix form
+%
+\begin{align}
+	\mathbf{x}_{C} &= \mathbf{K} \mathbf{X}_{C} \\
+	\begin{bmatrix}
+		u \\ v \\ 1
+	\end{bmatrix} &=
+	\begin{bmatrix}
+		f_{x} & 0 & c_{x} \\
+		0 & f_{x} & c_{y} \\
+		0 & 0 & 1
+	\end{bmatrix}
+	\begin{bmatrix}
+		X / Z \\ Y / Z \\ 1
+	\end{bmatrix}
+\end{align}
+%
+where $\mathbf{K}$ represents the intrinsic matrix, $c_{x}$ and $c_{y}$
+represents the principal point offset in the $x$ and $y$ direction.
+
+In practice, the pinhole camera model only serves as an approximation to modern
+cameras. The assumptions made in the model are often violated with factors such
+as large camera apertures (pinhole size), distortion effects in camera lenses,
+and other factors. That is why the pinhole camera model is often used in
+combination with a distortion model in the hope of minimizing projection errors
+from 3D to 2D.
+
+
+
+% Radial Tangential Distortion
+\section{Radial Tangential Distortion}
+
+Lens distortion generally exist in all camera lenses, therefore it is vital we
+model the distortions observed. The most common distortion model is the
+radial-tangential (or simply as radtan) distortion model. The two main
+distortion components, as the name suggests, are the radial and tangential
+distortion.
+
+The radial distortion occurs due to the shape of the lens. Light passing
+through the center undergoes no refraction. Light passing through the edges of
+the lens, on the other hand, undergoes through severe bending causing the
+radial distortion. The effects of a positive and negative radial distortion can
+be seen in Fig~\ref{fig:radial_distortion}.
+
+The tangential distortion is due to camera sensor misalignment during the
+manufacturing process. It occurs when the camera sensor is not in parallel with
+the lens. The cause of a tangential distortion can be seen in
+Fig~\ref{fig:tangential_distortion}.
+
+The combined radial-tangential distortion is modelled using a polynomial
+approximation with parameters $k_{1}, k_{2}$ and $p_{1}, p_{2}$ respectively.
+To apply the distortion the observed 3D point $(X, Y, Z)$ is first projected,
+distorted, and finally scaled and offset in the image plane $(u, v)$. The
+radial-tangential distortion model in combination with the pinhole camera model
+is given in Eq.~\eqref{eq:radtan_pinhole} as
+%
+\begin{align}
+  \begin{split}
+    x &= X / Z \\
+    y &= Y / Z \\
+    r^2 &= x^2 + y^2 \\ \\ 
+    x' &= x \cdot (1 + (k_1 r^2) + (k_2 r^4)) \\
+    y' &= y \cdot (1 + (k_1 r^2) + (k_2 r^4)) \\
+    x'' &= x' + (2 p_1 x y + p_2 (r^2 + 2 x^2)) \\
+    y'' &= y' + (p_1 (r^2 + 2 y^2) + 2 p_2 x y)
+  \end{split}
+\end{align}
+
+
+
+
+\subsection{Radial Tangential Point Jacobian}
+
+\begin{align}
+  \begin{split}
+    \dfrac{\partial{\Vec{d}_{\text{radtan}}}}{\partial{\Pt{\cam}}} &=
+      \begin{bmatrix}
+        J_{11} & J_{12} \\
+        J_{21} & J_{22}
+      \end{bmatrix} \\ \\
+      r^2 &= x^2 + y^2 \\ \\
+      J_{11} &= k_1 r^2 + k_2 r^4 + 2 p_1 y + 6 p_2 x + x (2 k_1 x + 4 k_2 x r^2) + 1 \\
+      J_{12} &= 2 x p_1 + 2 y p_2 + y (2 k_1 x + 4 k_2 x r^2) \\
+      J_{21} &= 2 x p_1 + 2 y p_2 + y (2 k_1 x + 4 k_2 x r^2) \\
+      J_{22} &= k_1 r^2 + k_2 r^4 + 6 p_1 y + 2 p_2 x + y (2 k_1 y + 4 k_2 y r^2) + 1
+    \end{split}
+\end{align}
+
+
+\subsection{Radial Tangential Parameter Jacobian}
+
+\begin{align}
+  \begin{split}
+    \dfrac{\partial{\Vec{d}_{\text{radtan}}}}{\partial{\Vec{d}_{\text{params}}}} &=
+      \begin{bmatrix}
+        J_{11} & J_{12} & J_{13} & J_{14} \\
+        J_{21} & J_{22} & J_{23} & J_{24}
+      \end{bmatrix} \\ \\
+      r^2 &= x^2 + y^2 \\ \\
+      J_{11} &= x r^2 \\
+      J_{12} &= x r^4 \\
+      J_{13} &= 2 x y \\
+      J_{14} &= 3 x^2 + y^2 \\ \\
+      J_{21} &= y r^2 \\
+      J_{22} &= y r^4 \\
+      J_{23} &= x^2 + 3 y^2 \\
+      J_{24} &= 2 x y
+    \end{split}
+\end{align}
+
+
+
+\section{Equi-distant Distortion}
+
+\begin{align}
+\begin{split}
+  r &= \sqrt{x^{2} + y^{2}} \\
+  \theta &= \arctan{(r)} \\
+  \theta_d &= \theta (1 + k_1 \theta^2 + k_2 \theta^4 + k_3 \theta^6 + k_4 \theta^8) \\
+  x' &= (\theta_d / r) \cdot x \\
+  y' &= (\theta_d / r) \cdot y
+\end{split}
+\end{align}
+
+
+\subsection{Equi-distant Point Jacobian}
+
+\begin{align}
+\begin{split}
+  \dfrac{\partial{\Vec{d}_{\text{equi}}}}{\partial{\Pt{\cam}}} &=
+    \begin{bmatrix}
+      J_{11} & J_{12} \\
+      J_{21} & J_{22}
+    \end{bmatrix} \\ \\
+    \theta &= \arctan(r) \\
+    \theta_d &= \theta (1 + k_1 \theta^2 + k_2 \theta^4 + k_3 \theta^6 + k_4 \theta^8) \\
+    %
+    \theta_d' &= 1 + 3 k_1 \theta^2 + 5 k_2 \theta^4 + 7 k_3 \theta^6 + 9 k_4 \theta^8 \\
+    \theta_r &= 1 / (r^2 + 1) \\
+    s &= \theta_d / r \\
+    s_r &= \theta_d' \theta_r / r - \theta_d / r^2 \\
+    r_x &= 1 / r x \\
+    r_y &= 1 / r y \\ \\
+    %
+    J_{11} &= s + x s_r r_x \\
+    J_{12} &= x s_r r_y \\
+    J_{21} &= y s_r r_x \\
+    J_{22} &= s + y s_r r_y
+\end{split}
+\end{align}
+
+
+\subsection{Equi-distant Parameter Jacobian}
+
+\begin{align}
+\begin{split}
+  \dfrac{\partial{\Vec{d}_{\text{equi}}}}{\partial{\Vec{d}_{\text{params}}}} &=
+    \begin{bmatrix}
+      J_{11} & J_{12} & J_{13} & J_{14} \\
+      J_{21} & J_{22} & J_{23} & J_{24}
+    \end{bmatrix} \\ \\
+  \theta &= \arctan(r) \\ \\
+  J_{11} &= x \theta^3 / r \\
+  J_{12} &= x \theta^5 / r \\
+  J_{13} &= x \theta^7 / r \\
+  J_{14} &= x \theta^9 / r \\ \\
+  J_{21} &= y \theta^3 / r \\
+  J_{22} &= y \theta^5 / r \\
+  J_{23} &= y \theta^7 / r \\
+  J_{24} &= y \theta^9 / r
+\end{split}
+\end{align}
+
+
+
+\section{Linear Triangulation}
+\label{subsec:linear_triangulation}
+
+There are various methods for triangulating a 3D point obeserved from at least
+two camera views. The linear triangulation method~\cite{Hartley2003} is
+frequently used. This method assumes a pair of homogeneous pixel measurements
+$\measurement$ and $\measurement' \in \real^{3}$ that observes the same 3D
+point, $\Vec{X} \in \real^{4}$, in homogeneous coordinates from two different
+camera frames. The homogeneous projection from 3D to 2D with a known camera
+matrix $\Mat{P} \in \real^{3 \times 4}$ for each measurement is given as,
+%
+\begin{align}
+\begin{split}
+	\measurement &= \mathbf{P} \mathbf{X} \\
+	\measurement' &= \mathbf{P}' \mathbf{X}.
+\end{split}
+\end{align}
+%
+These equations can be combined to form a system of equations of the form
+$\Mat{A} \Vec{x} = 0$. To eliminate the homogeneous scale factor we apply a
+cross product to give three equations for each image point, for example
+$\measurement \times (\Mat{P} \Mat{X}) = \Vec{0}$ writing this out gives
+%
+\begin{align}
+\label{eq:linear_triangulation_derivation}
+\begin{split}
+  x (\Vec{p}^{3T} \Vec{X}) - (\Vec{p}^{1T} \Vec{X}) = 0 \\
+  y (\Vec{p}^{3T} \Vec{X}) - (\Vec{p}^{2T} \Vec{X}) = 0 \\
+  x (\Vec{p}^{2T} \Vec{X}) - y (\Vec{p}^{1T} \Vec{X}) = 0
+\end{split}
+\end{align}
+%
+where $\Vec{p}^{iT}$ is the $i^{\mbox{th}}$ row of $\Vec{P}$.
+
+From Eq.~\eqref{eq:linear_triangulation_derivation}, an equation of the form
+$\Mat{A} \Vec{x} = \Vec{0}$ for each image point can be formed, where
+$\Vec{x}$ represents the unknown homogeneous feature location to be
+estimated, and $\Mat{A}$ is given as
+%
+\begin{align}
+  \mathbf{A} =
+  \begin{bmatrix}
+    x (\Vec{p}^{3T}) - (\Vec{p}^{1T}) \\
+    y (\Vec{p}^{3T}) - (\Vec{p}^{2T}) \\
+    x' (\Vec{p'}^{3T}) - (\Vec{p'}^{1T}) \\
+    y' (\Vec{p'}^{3T}) - (\Vec{p'}^{2T})
+  \end{bmatrix}
+  \label{eq:linear_triangulation_ derivation}
+\end{align}
+%
+giving a total of four equations in four homogeneous unknowns. Solving for
+$\Vec{A}$ using SVD allows us to estimate the initial feature location.
+
+In an ideal world, the position of 3D points can be solved as a system of
+equations using the linear triangulation method. In reality, however, errors
+are present in the camera poses and pixel measurements. The pixel measurements
+observing the same 3D point are generally noisy. In addition, the camera models
+and distortion models used often do not model the camera projection or
+distortion observed perfectly. Therefore an iterative method can be used to
+further refine the feature position. This problem is generally formulated as a
+non-linear least square problem and can be solved by numerical methods, such as
+the Gauss-Newton algorithm.
+
+
+
+\section{Bundle Adjustment}
+
+Let $\measurement \in \real^{2}$ be the image measurement and $\projFunc(\cdot)
+\in \real^{2}$ be the projection function that produces an image projection
+$\estimate$. The reprojection error $\Vec{e}$ is defined as the euclidean
+distance between $\measurement$ and $\estimate$.
+
+\begin{equation}
+  \error = \measurement - \estimate
+\end{equation}
+
+Our aim given image measurement $\measurement$ is to find the image projection
+$\estimate$ that minimizes the reprojection $\Vec{e}$. The image projection
+$\estimate$ in pixels can be represented in homogeneous coordinates with $u, v,
+w$ as
+%
+% Projection function
+\begin{align}
+  \Pt{\cam} &= \Tf{\cam}{\world} \enspace \Pt{\world} \\
+  &= \begin{bmatrix} x \\ y \\ z \end{bmatrix}
+\end{align}
+%
+\begin{equation}
+  \label{eq:projection_function}
+  \estimate
+  = \begin{bmatrix} x / z \\ y / z \end{bmatrix} \\
+  = \begin{bmatrix} u \\ v \end{bmatrix}
+\end{equation}
+%
+where $u, v, w$ is computed by projecting a landmark position $\Pt{\world}$ in
+the world frame to the camera's image plane with projection matrix $\Mat{P}$.
+The projection matrix, $\Mat{P}$, can be decomposed into the camera intrinsics
+matrix, $\Mat{K}$, the camera rotation, $\camRot$, and camera position,
+$\camPos$, expressed in the world frame.
+%
+The orientation of the camera in \eqref{eq:projection_function} is
+represented using a rotation matrix. To reduce the optimization parameters
+the rotation matrix can be parameterized by a quaternion by using the following
+formula,
+
+By parameterzing the rotation matrix with a quaternion, the optimization
+parameters for the camera's orientation is reduced from 9 to 4.
+
+Our objective is to optimize for the camera rotation $\camRot$, camera
+position $\camPos$ and 3D landmark position $\Pt{\world}$ in order to
+minimize the cost function,
+%
+\begin{align}
+  &\Argmin{\camRot, \, \camPos, \, \Pt{\world}} \Norm{
+    \measurement - \projFunc(\camRot, \camPos, \Pt{\world})
+  }^{2} .
+\end{align}
+%
+The cost function above assumes only a single measurement, if there are $N$
+measurements corresponding to $N$ unique landmarks the cost function can be
+rewritten as a maximum likelihood estimation problem as,
+%
+\begin{equation}
+  \Argmin{\camRot, \camPos, \Pt{\world}}
+  \sum_{j = 1}^{N}
+  \Norm{
+    \measurement_{j} - \projFunc(\camRot^{j}, \camPos^{j}, \Point{\world}{j})
+  }^{2}
+\end{equation}
+%
+under the assumption that the observed landmark, $\Pt{\world}$, measured in
+the image plane, $z$, are corrupted by a \textbf{zero-mean Gaussian noise}.
+
+For the general case of $M$ images taken at different camera poses the cost
+function can be further extended to,
+%
+\begin{equation}
+  \min_{\camRot, \camPos, \Pt{\world}}
+  \sum_{i = 1}^{M} \sum_{j = 1}^{N}
+  \Norm{
+    \measurement_{i, j}
+    - \projFunc(\camRot^{i}, \camPos^{i}, \Point{\world}{j})
+  }^{2}
+\end{equation}
+%
+The optimization process begins by setting the first image camera pose as world
+origin, and subsequent $\camRot_{i}$ and $\camPos_{i}$ will be relative to the
+first camera pose.
+
+
+\subsection*{Jacobians}
+
+The Jacobian for the optimization problem for a \textbf{single measurement} has
+the form:
+%
+\begin{equation}
+  \jac = \begin{bmatrix}
+    \dfrac{\partial{\errFunc}}{\partial \delta \boldsymbol{\alpha}} \quad
+    \dfrac{\partial{\errFunc}}{\partial \camPos} \quad
+    \dfrac{\partial{\errFunc}}{\partial \Pt{\world}}
+  \end{bmatrix} \\
+\end{equation}
+%
+If there are two measurements the Jacobian is stacked with the following
+pattern:
+%
+\begin{equation}
+  \jac = \begin{bmatrix}
+    \text{Pose}_{2 \times 7}
+      & \Zeros{2}{7}
+      & \text{3D Point}_{2 \times 3} \\
+    \Zeros{2}{7}
+      & \text{Pose}_{2 \times 7}
+      & \text{3D Point}_{2 \times 3}
+  \end{bmatrix}
+\end{equation}
+
+\begin{equation}
+  \errFunc
+    = \measurement - \Vec{h}(\tf^{-1}_{\world\cam} \enspace \Pt{\world})
+\end{equation}
+
+\begin{equation}
+  \Vec{h}(\tf^{-1}_{\world\cam} \enspace \Pt{\world})
+    = \Vec{k}(\Vec{p}(\tf^{-1}_{\world\cam} \enspace \Pt{\world}))
+\end{equation}
+
+
+\begin{align}
+  \Vec{p}_{\cam}
+    &= \tf^{-1}_{\world\cam} \enspace \Pt{\world} \\
+    &= \rot^{-1}_{\world\cam} (\Pt{\world} - \Pos{\world}{\cam})
+\end{align}
+
+\begin{equation}
+  \dfrac{\partial{\Vec{e}}}{\partial{\Vec{h}}}
+  \dfrac{\partial{\Vec{h}}}{\partial{\Vec{k}}}
+  \dfrac{\partial{\Vec{k}}}{\partial{\Vec{p}}}
+  \dfrac{\partial{\Vec{p}}}{\partial{\Vec{p}_{\cam}}}
+\end{equation}
+
+\begin{align}
+  \dfrac{\partial{\Vec{e}}}{\partial{\Vec{h}}} &=
+    - \Ones{2}{2} \\
+  \dfrac{\partial{\Vec{h}}}{\partial{\Vec{k}}} &=
+    \Ones{2}{2} \\
+  \dfrac{\partial{\Vec{k}}}{\partial{\Vec{p}}} &=
+    \begin{bmatrix}
+      f_x & 0 \\
+      0 & fy
+    \end{bmatrix} \\
+  \dfrac{\partial{\Vec{p}}}{\partial{\Vec{p}_{\cam}}} &=
+    \begin{bmatrix}
+      1 / z & 0 & -x / z^2 \\
+      0 & 1 / z & -y / z^2
+    \end{bmatrix}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\Vec{p}_{\cam}}}{\partial{\dalpha}} &=
+    \rot^{\transpose}_{\world\cam} \Skew{\Pt{\world} - \Pos{\world}{\cam}} \\
+  \dfrac{\partial{\Vec{p}_{\cam}}}{\partial{\Pos{\world}{\cam}}} &=
+    - \rot^{\transpose}_{\world\cam} \\
+  \dfrac{\partial{\Vec{p}_{\cam}}}{\partial{\Pt{\world}}} &=
+    \rot^{\transpose}_{\world\cam}
+\end{align}
+
+
+
+
+% ILLUMINATION INVARIANT TRANSFORM
+\newpage
+\section{Illumination Invariant Transform}
+
+Robust fast AprilTag detection emerged from experience with the standard black
+and white AprilTag during outdoor experiments, where the detection becomes
+unreliable in certain lighting conditions. In particular, detection fails when
+strong shadows cover tag features fully or partially. The cause of failure is
+due to how the detection process relies on image gradients to detect the edges
+and lines of the tag in order to extract the relative tag pose. Depending on
+the time of day or weather conditions, this can have a significant impact on
+reliable AprilTag detection. This sensitivity to illumination was addressed by
+using the illumination invariant transform by Maddern et al.
+(2014)~\cite{Maddern2014}.
+
+The illumination invariant transform takes three input channels from the
+image, and returns a single illumination adjusted channel, $I$, as follows,
+%
+\begin{equation}
+\label{eq:illlum_invar}
+I = \log(R_{2}) - \alpha \log(R_{1}) - (1 - \alpha) \log(R_{3})
+\end{equation}
+%
+where $R_{1}, R_{2}, R_{3}$ are sensor responses (or image channels)
+corresponding to peak sensitivities at ordered wavelengths $\lambda_{1} <
+\lambda_{2} < \lambda_{3}$, and $\alpha$ is determined by Eq.~\eqref{eq:Alpha}.
+
+\begin{equation}
+	\label{eq:Alpha}
+	\begin{split}
+		\dfrac{1}{\lambda_{2}} &=
+		\dfrac{\alpha}{\lambda_{1}}
+		+ \dfrac{\left(1 - \alpha \right)}{\lambda_{3}} \vspace{2.0em} \\ 
+		\alpha &= \dfrac{\lambda_{1} (\lambda_{2} - \lambda_{3})}
+		{\lambda_{2} (\lambda_{1} - \lambda_{3})}
+	\end{split}
+\end{equation}
+
+This transform, however, has a non-intuitive effect on black and white
+targets, as the three channels tend to be equally over and under exposed
+in RGB images. As a result, the transform leads to similar values for
+white and black pixels, eliminating the ability for the AprilTag library
+to detect edges. To resolve this issue, we designed a new AprilTag so
+that the single channel image produced by using
+Eq.~\eqref{eq:illlum_invar} produces a grey scale like image that is
+robust to shadows and changes in illumination. Examining
+Eq.~\eqref{eq:illlum_invar}, it can be observed the resulting pixel
+intensities are maximized when the camera observes green ($R_{2}$) and
+minimized when viewing a mixture of red and blue, ($R_{1}$ and $R_{3}$
+respectively). The proposed illumination invariant AprilTag shown in
+Fig.~\ref{fig:apriltag_illumination_invariant} is created by replacing
+the white and black portions of a typical AprilTag with green and
+magenta. This modification was tested under various lighting conditions.
+Fig.~\ref{fig:illum_invar_comparision} shows the tag's appearance after
+performing the illumination invariant transform, creating a single
+channel image that replaces the typical single channel, grey scale image
+that is typically used by the AprilTag library. The images shown in
+Fig.~\ref{fig:illum_invar_comparision} are taken using a PointGrey
+Chameleon3 (CM3-U3-28S4C-CS) with a Sony ICX818 image sensor. The
+corresponding values of $\lambda_{1},\lambda_{2}, \lambda_{3}$ and
+$\alpha $ are 480 nm, 510 nm, 640 nm and 0.56 respectively as noted in
+the sensor data sheets.}

@@ -137,6 +137,7 @@ void chessboard_project_points(const chessboard_t &cb,
                                const mat3_t &K,
                                const matx_t &X,
                                cv::Mat &image) {
+  UNUSED(cb);
   assert(cb.ok);
 
   // Project 3d point to image plane

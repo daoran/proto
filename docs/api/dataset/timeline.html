@@ -2,34 +2,56 @@
 
 <!-- CLASSES -->
 <div class="cpp_class">
-  <pre><code class="cpp">struct timeline_event_t {
-  int type;
-  long ts;
+  <pre><code class="cpp">template &lt;typename T&gt;
+struct timeline_event_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW int type;
+  T ts;
   vec3_t a_m;
   vec3_t w_m;
   int camera_index;
   std::string image_path;
+  std::string object_name;
+  vec3_t r_WM;
+  aprilgrid_t grid;
 
   timeline_event_t();
-  timeline_event_t(const long ts_, const vec3_t &amp;a_m_, const vec3_t &amp;w_m_);
-  timeline_event_t(const long ts_,
+  timeline_event_t(const T ts_, const vec3_t &amp;a_m_, const vec3_t &amp;w_m_);
+  timeline_event_t(const T ts_,
                    const int camera_index_,
                    const std::string &amp;image_path_);
+  timeline_event_t(const T ts_,
+                   const std::string &amp;object_name_,
+                   const vec3_t &amp;r_WM_,
+                   const quat_t &amp;q_WM_);
+  timeline_event_t(const T ts_, const int camera_index, const aprilgrid_t &amp;grid_);
   ~timeline_event_t();
 };</code></pre>
   
 </div> <!-- .cpp_class -->
 <!-- CLASSES -->
 <div class="cpp_class">
-  <pre><code class="cpp">struct timeline_t {
-  std::multimap&lt;long, timeline_event_t&gt; data;
-  std::set&lt;long&gt; timestamps;
+  <pre><code class="cpp">template &lt;typename T&gt;
+struct timeline_t {
+  std::multimap&lt;T, timeline_event_t&lt;T&gt; &gt; data;
+  std::set&lt;T&gt; timestamps;
 
   timeline_t();
   ~timeline_t();
 };</code></pre>
   
 </div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">template &lt;typename T&gt;
+void timeline_add_event(timeline_t&lt;T&gt; &amp;timeline,
+                        const timeline_event_t&lt;T&gt; &amp;event);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
 
 
 </div> <!-- #content -->

@@ -2,6 +2,38 @@
 
 namespace proto {
 
+int8_t s8bit(const uint8_t *data, const size_t offset) {
+  return (int8_t) (data[offset]);
+}
+
+uint8_t u8bit(const uint8_t *data, const size_t offset) {
+  return (uint8_t) (data[offset]);
+}
+
+int16_t s16bit(const uint8_t *data, const size_t offset) {
+  return (int16_t) ((data[offset + 1] << 8) | (data[offset]));
+}
+
+uint16_t u16bit(const uint8_t *data, const size_t offset) {
+  return (uint16_t) ((data[offset + 1] << 8) | (data[offset]));
+}
+
+int32_t s32bit(const uint8_t *data, const size_t offset) {
+  return (int32_t)
+    ((data[offset + 3] << 24)
+    | (data[offset + 2] << 16)
+    | (data[offset + 1] << 8)
+    | (data[offset]));
+}
+
+uint32_t u32bit(const uint8_t *data, const size_t offset) {
+  return (uint32_t)
+    ((data[offset + 3] << 24)
+    | (data[offset + 2] << 16)
+    | (data[offset + 1] << 8)
+    | (data[offset]));
+}
+
 int csvrows(const std::string &file_path) {
   // Load file
   std::ifstream infile(file_path);
@@ -253,7 +285,6 @@ void closest_poses(const timestamps_t &timestamps,
   const timestamp_t ts = timestamps[0];
   double diff_closest = fabs((ts - target_ts[0]) * 1e-9);
   mat4_t pose_closest = poses[0];
-  bool initialized = true;
 
   size_t target_idx = 0;
   for (size_t i = 1; i < timestamps.size(); i++) {
@@ -273,7 +304,6 @@ void closest_poses(const timestamps_t &timestamps,
       target_idx++;
 
       // Initialize closest pose with current ts and pose
-      initialized = false;
       diff_closest = fabs((ts - target_ts[target_idx]) * 1e-9);
       pose_closest = pose;
     }
@@ -283,6 +313,16 @@ void closest_poses(const timestamps_t &timestamps,
       break;
     }
   }
+}
+
+bool all_true(const std::vector<bool> x) {
+  for (const auto i: x) {
+    if (i == false) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 } //  namespace proto

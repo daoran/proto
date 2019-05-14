@@ -3,8 +3,8 @@
 
 #include <opencv2/calib3d/calib3d.hpp>
 
-#include "prototype/core/core.hpp"
-#include "prototype/vision/util.hpp"
+#include "prototype/core/math.hpp"
+#include "prototype/vision/vision_common.hpp"
 
 namespace proto {
 

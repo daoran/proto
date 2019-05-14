@@ -2,6 +2,21 @@
 
 <!-- CLASSES -->
 <div class="cpp_class">
+  <pre><code class="cpp">struct calib_pose_param_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW quat_t q;
+  vec3_t r;
+
+  calib_pose_param_t(const mat4_t &amp;T);
+  calib_pose_param_t(const mat3_t &amp;C, const vec3_t &amp;r);
+  calib_pose_param_t(const quat_t &amp;q, const vec3_t &amp;r);
+  ~calib_pose_param_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>Pose parameter block</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
   <pre><code class="cpp">struct calib_target_t {
   std::string target_type;
   int tag_rows;
@@ -30,17 +45,51 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int detect_calib_data(const calib_target_t &amp;target,
+                      const std::string &amp;image_dir,
+                      const bool imshow);
+</code></pre>
+  
+  <div class="doc"><p><p>Detect AprilGrid specified by <code>target</code> and given a directory of images in
+<code>image_dir</code>.</p>
+<p><strong>Returns</strong> 0 for Success, -1 for failure.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int preprocess_camera_data(const calib_target_t &amp;target,
+                           const std::string &amp;image_dir,
+                           const mat3_t &amp;cam_K,
+                           const vec4_t &amp;cam_D,
+                           const std::string &amp;output_dir,
+                           const bool imshow,
+                           const bool show_progress);
+</code></pre>
+  
+  <div class="doc"><p><p>Preprocess camera image data and output AprilGrid detection data as
+csv. The AprilGrid tag corners are estimated using the camera intrinsics
+matrix <code>cam_K</code> and distortion vector <code>cam_D</code>. Once the data is preprocessed
+the data is saved to <code>output_dir</code>.</p>
+<p><strong>Returns</strong> 0 for Success, -1 for failure, and 1 where the output directory
+contains data.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int preprocess_camera_data(const calib_target_t &amp;target,
                            const std::string &amp;image_dir,
                            const vec2_t &amp;image_size,
                            const double lens_hfov,
                            const double lens_vfov,
-                           const std::string &amp;output_dir);
+                           const std::string &amp;output_dir,
+                           const bool imshow,
+                           const bool show_progress);
 </code></pre>
   
   <div class="doc"><p><p>Preprocess camera image data and output AprilGrid detection data as
 csv. The data is initialized with <code>image_size</code> in pixels, the horizontal
-lens fov <code>lens_hfov</code> and vertical lens fov <code>lens_vfov</code> in degrees.</p>
+lens fov <code>lens_hfov</code> and vertical lens fov <code>lens_vfov</code> in degrees. Once the
+data is preprocessed the data is saved to <code>output_dir</code>.</p>
 <p><strong>Returns</strong> 0 for Success, -1 for failure, and 1 where the output directory
 contains data.</p></p></div>
   
@@ -57,9 +106,56 @@ contains data.</p></p></div>
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int preprocess_stereo_data(const calib_target_t &amp;target,
+                           const std::string &amp;cam0_image_dir,
+                           const std::string &amp;cam1_image_dir,
+                           const vec2_t &amp;cam0_image_size,
+                           const vec2_t &amp;cam1_image_size,
+                           const double cam0_lens_hfov,
+                           const double cam0_lens_vfov,
+                           const double cam1_lens_hfov,
+                           const double cam1_lens_vfov,
+                           const std::string &amp;cam0_output_dir,
+                           const std::string &amp;cam1_output_dir);
+</code></pre>
+  
+  <div class="doc"><p><p>Preprocess stereo image data and output AprilGrid detection data as
+csv. The data is initialized with <code>image_size</code> in pixels, the horizontal
+lens fov <code>lens_hfov</code> and vertical lens fov <code>lens_vfov</code> in degrees.</p>
+<p>This function assumes:</p>
+<ul>
+<li>Stereo camera images are synchronized</li>
+<li>Number of images observed by both cameras are the same</li>
+</ul>
+<p><strong>Returns</strong> 0 for Success, -1 for failure, and 1 where the output directory
+contains data.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int load_stereo_calib_data(const std::string &amp;cam0_data_dir,
+                           const std::string &amp;cam1_data_dir,
+                           std::vector&lt;aprilgrid_t&gt; &amp;cam0_aprilgrids,
+                           std::vector&lt;aprilgrid_t&gt; &amp;cam1_aprilgrids);
+</code></pre>
+  
+  <div class="doc"><p><p>Load preprocessed stereo calibration data, where <code>cam0_data_dir</code> and
+<code>cam1_data_dir</code> are preprocessed calibration data observed from cam0 and
+cam1. The preprocessed calibration data will be loaded into
+<code>cam0_aprilgrids</code> and <code>cam1_aprilgrids</code> respectively.</p>
+<p>This function assumes:</p>
+<ul>
+<li>Stereo camera images are synchronized</li>
+<li>Number of images observed by both cameras are the same</li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">cv::Mat draw_calib_validation(const cv::Mat &amp;image,
-                              const std::vector&lt;vec2_t&gt; &amp;measured,
-                              const std::vector&lt;vec2_t&gt; &amp;projected,
+                              const vec2s_t &amp;measured,
+                              const vec2s_t &amp;projected,
                               const cv::Scalar &amp;measured_color,
                               const cv::Scalar &amp;projected_color);
 </code></pre>
@@ -72,8 +168,8 @@ contains data.</p></p></div>
 <div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">template &lt;typename CM, typename DM&gt;
 cv::Mat validate_intrinsics(const cv::Mat &amp;image,
-                            const std::vector&lt;vec2_t&gt; &amp;keypoints,
-                            const std::vector&lt;vec3_t&gt; &amp;points,
+                            const vec2s_t &amp;keypoints,
+                            const vec3s_t &amp;points,
                             const camera_geometry_t&lt;CM, DM&gt; &amp;camera_geometry);
 </code></pre>
   
@@ -86,10 +182,10 @@ cv::Mat validate_intrinsics(const cv::Mat &amp;image,
   <pre><code class="cpp">template &lt;typename CM, typename DM&gt;
 cv::Mat validate_stereo(const cv::Mat &amp;image0,
                         const cv::Mat &amp;image1,
-                        const std::vector&lt;vec2_t&gt; &amp;kps0,
-                        const std::vector&lt;vec3_t&gt; &amp;points0,
-                        const std::vector&lt;vec2_t&gt; &amp;kps1,
-                        const std::vector&lt;vec3_t&gt; &amp;points1,
+                        const vec2s_t &amp;kps0,
+                        const vec3s_t &amp;points0,
+                        const vec2s_t &amp;kps1,
+                        const vec3s_t &amp;points1,
                         const camera_geometry_t&lt;CM, DM&gt; &amp;cam0,
                         const camera_geometry_t&lt;CM, DM&gt; &amp;cam1,
                         const mat4_t &amp;T_C1C0);

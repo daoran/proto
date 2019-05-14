@@ -19,7 +19,10 @@ FILE *file_open(const std::string &path,
 
 void skip_line(FILE *fp){
   char header[BUFSIZ];
-  fgets(header, BUFSIZ, fp);
+  char *retval = fgets(header, BUFSIZ, fp);
+  if (retval == NULL) {
+    FATAL("Failed to skip line!");
+  }
 }
 
 int file_rows(const std::string &file_path) {
@@ -67,6 +70,10 @@ int file_copy(const std::string &src, const std::string &dest) {
   fclose(dest_file);
 
   return 0;
+}
+
+std::string file_ext(const std::string &path) {
+  return path.substr(path.find_last_of("."));
 }
 
 std::string basename(const std::string &path) {

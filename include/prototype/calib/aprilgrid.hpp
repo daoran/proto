@@ -5,8 +5,10 @@
 #include <AprilTags/TagDetector.h>
 #include <AprilTags/Tag36h11.h>
 
-#include "prototype/core/core.hpp"
-#include "prototype/vision/util.hpp"
+#include "prototype/core/math.hpp"
+#include "prototype/core/time.hpp"
+#include "prototype/vision/vision.hpp"
+// #include "prototype/calib/calib_data.hpp"
 
 namespace proto {
 
@@ -97,7 +99,8 @@ void aprilgrid_set_properties(aprilgrid_t &grid,
 int aprilgrid_grid_index(const aprilgrid_t &grid, const int id, int &i, int &j);
 
 /**
- * Calculate object point.
+ * Get the object point for a specific `tag_id` and `corner_id` in the
+ * AprilGrid `grid`.
  * @returns 0 or -1 for success or failure.
  */
 int aprilgrid_object_point(const aprilgrid_t &grid,
@@ -106,12 +109,18 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
                            vec3_t &object_point);
 
 /**
- * Calculate object points.
+ * Get the object point for a specific `tag_id` in the AprilGrid `grid`.
  * @returns 0 or -1 for success or failure.
  */
 int aprilgrid_object_points(const aprilgrid_t &grid,
                             const int tag_id,
                             vec3s_t &object_points);
+
+/**
+ * Get all object points in the AprilGrid `grid`.
+ * @returns 0 or -1 for success or failure.
+ */
+int aprilgrid_object_points(const aprilgrid_t &grid, vec3s_t &object_points);
 
 /**
  * Calculate relative position between AprilGrid and camera using solvepnp.
@@ -171,14 +180,17 @@ int aprilgrid_detect(aprilgrid_t &grid,
  */
 void aprilgrid_intersection(aprilgrid_t &grid0, aprilgrid_t &grid1);
 
+/**
+ * Find the intersection of aprilgrids
+ */
+void aprilgrid_intersection(std::vector<aprilgrid_t *> &grids);
+
 /** Comparator to sort detected AprilTags by id */
-static bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
-                                const AprilTags::TagDetection &b) {
-  return (a.id < b.id);
-}
+bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
+                         const AprilTags::TagDetection &b);
 
 /** aprilgrid_t to output stream */
-std::ostream &operator<<(std::ostream &os, const aprilgrid_t &april_grid);
+std::ostream &operator<<(std::ostream &os, const aprilgrid_t &grid);
 
 } // namespace proto
 #endif // PROTOTYPE_CALIB_APRILGRID_HPP

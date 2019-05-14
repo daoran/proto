@@ -5,16 +5,17 @@ PROJECT(prototype)
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(BUILD_SHARED_LIBS ON)
-SET(CMAKE_BUILD_TYPE RELEASE)
-# SET(CMAKE_BUILD_TYPE DEBUG)
+# SET(CMAKE_BUILD_TYPE RELEASE)
+SET(CMAKE_BUILD_TYPE DEBUG)
 
 # DEPENDENCIES
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
 FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(Ceres REQUIRED)
-FIND_PACKAGE(Eigen3 REQUIRED)
 FIND_PACKAGE(SuiteSparse REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
+FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
+FIND_PACKAGE(Eigen3 REQUIRED)
 INCLUDE(cmake/ImportEigen3.cmake)
 if (OPENMP_FOUND)
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -22,8 +23,12 @@ if (OPENMP_FOUND)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+
 # INCLUDES
-INCLUDE_DIRECTORIES(include ${EIGEN3_INCLUDE_DIR} ${SUITESPARSE_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(include)
+INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(${SUITESPARSE_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
 
 # LIBRARY
 ADD_LIBRARY(
@@ -32,10 +37,13 @@ ADD_LIBRARY(
   src/calib/aprilgrid.cpp
   src/calib/calib_data.cpp
   src/calib/calib_camera.cpp
-  src/calib/calib_gimbal.cpp
+  src/calib/calib_camera_nbv.cpp
+  # src/calib/calib_gimbal.cpp
   src/calib/calib_stereo.cpp
   src/calib/calib_vicon_marker.cpp
   src/calib/chessboard.cpp
+  # comm
+  src/comm/tcp.cpp
   # control
   src/control/carrot_ctrl.cpp
   src/control/pid.cpp
@@ -45,7 +53,6 @@ ADD_LIBRARY(
   src/core/file.cpp
   src/core/gps.cpp
   src/core/jpl.cpp
-  src/core/linalg.cpp
   src/core/math.cpp
   src/core/tf.cpp
   src/core/time.cpp
@@ -59,16 +66,25 @@ ADD_LIBRARY(
   src/driver/mpu6050.cpp
   src/driver/pca9685.cpp
   src/driver/sbgc.cpp
+  src/driver/ublox.cpp
   src/driver/uart.cpp
+  # estimation
+  src/estimation/filter.cpp
+  src/estimation/measurement.cpp
   # mav
+  src/mav/atl.cpp
   src/mav/att_ctrl.cpp
+  src/mav/lz.cpp
   src/mav/mission.cpp
   src/mav/pos_ctrl.cpp
-  src/mav/wp_ctrl.cpp
+  src/mav/tk_ctrl.cpp
+  # src/mav/wp_ctrl.cpp
   # model
   src/model/gimbal.cpp
   src/model/mav.cpp
   src/model/two_wheel.cpp
+  # rovio
+  src/rovio/frontend.cpp
   # vision
   src/vision/camera/radtan.cpp
   src/vision/camera/equi.cpp
@@ -76,17 +92,19 @@ ADD_LIBRARY(
   src/vision/feature2d/draw.cpp
   src/vision/feature2d/grid_fast.cpp
   src/vision/feature2d/grid_good.cpp
-  src/vision/util.cpp
+  src/vision/vision_common.cpp
 )
 SET(
   ${PROJECT_NAME}_DEPS
   ${OpenCV_LIBS}
   ${SUITESPARSE_LIBRARIES}
+  ${CERES_LIBRARIES}
   yaml-cpp
   apriltags
-  ceres
+  ${GeographicLib_LIBRARIES}
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
+# TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
 INSTALL(
   TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
@@ -102,40 +120,46 @@ INSTALL(
 # UNIT TESTS
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
+FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
-  calib-aprilgrid_test
-  calib-calib_data_test
-  calib-calib_camera_test
-  # calib-calib_gimbal_test
-  calib-calib_stereo_test
-  calib-chessboard_test
-  control-carrot_ctrl_test
-  control-pid_test
-  core-config_test
-  core-data_test
-  core-file_test
-  core-gps_test
-  core-linalg_test
-  core-math_test
-  core-tf_test
-  core-time_test
-  dataset-euroc_test
-  dataset-kitti_test
-  driver-camera_test
-  model-mav_test
-  model-two_wheel_test
-  mav-att_ctrl_test
-  mav-mission_test
-  mav-pos_ctrl_test
-  mav-wp_ctrl_test
-  vision-camera-camera_geometry_test
-  vision-camera-equi_test
-  vision-camera-pinhole_test
-  vision-camera-radtan_test
-  vision-feature2d-grid_fast_test
-  vision-feature2d-grid_good_test
-  vision-util_test
+  # calib-test_aprilgrid
+  # calib-test_calib_camera
+  # calib-test_calib_camera_nbv
+  # calib-test_calib_data
+  # # calib-test_calib_gimbal
+  # calib-test_calib_stereo
+  # calib-test_chessboard
+  # control-test_carrot_ctrl
+  # control-test_pid
+  # core-test_config
+  # core-test_data
+  # core-test_file
+  # core-test_gps
+  # core-test_math
+  # core-test_tf
+  # core-test_time
+  # dataset-test_euroc
+  # dataset-test_kitti
+  # driver-test_camera
+  # driver-test_ublox
+  # driver-ublox_base_station_tester
+  # estimation-test_measurement
+  # # model-test_mav
+  # model-test_two_wheel
+  # mav-test_atl
+  # # mav-test_att_ctrl
+  # mav-test_lz
+  # mav-test_mission
+  # # mav-test_pos_ctrl
+  # mav-test_wp_ctrl
+  # vision-camera-test_camera_geometry
+  # vision-camera-test_equi
+  # vision-camera-test_pinhole
+  # vision-camera-test_radtan
+  # vision-feature2d-test_grid_fast
+  # vision-feature2d-test_grid_good
+  vision-test_vision_common
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
@@ -154,13 +178,16 @@ SET(
   yaml-cpp
   apriltags
   ceres
+  ${GeographicLib_LIBRARIES}
 )
 SET(
   APPS
   calib_camera
   calib_stereo
-  calib_vicon_marker
+  # calib_vicon_marker
   detect_aprilgrid
+  ublox_base_station
+  ublox_rover
   validate_intrinsics
   validate_stereo
 )

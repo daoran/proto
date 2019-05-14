@@ -2,7 +2,9 @@
 
 namespace proto {
 
-int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file) {
+int pos_ctrl_configure(pos_ctrl_t &ctrl,
+                       const std::string &config_file,
+                       const std::string &prefix) {
   // Load config
   config_t config{config_file};
   if (config.ok == false) {
@@ -10,99 +12,99 @@ int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file) {
     return -1;
   }
 
-  parse(config, "roll_ctrl.k_p", pc.x_ctrl.k_p);
-  parse(config, "roll_ctrl.k_i", pc.x_ctrl.k_i);
-  parse(config, "roll_ctrl.k_d", pc.x_ctrl.k_d);
-  parse(config, "roll_ctrl.min", pc.roll_limit[0]);
-  parse(config, "roll_ctrl.max", pc.roll_limit[1]);
-
-  parse(config, "pitch_ctrl.k_p", pc.y_ctrl.k_p);
-  parse(config, "pitch_ctrl.k_i", pc.y_ctrl.k_i);
-  parse(config, "pitch_ctrl.k_d", pc.y_ctrl.k_d);
-  parse(config, "pitch_ctrl.min", pc.pitch_limit[0]);
-  parse(config, "pitch_ctrl.max", pc.pitch_limit[1]);
-
-  parse(config, "throttle_ctrl.k_p", pc.z_ctrl.k_p);
-  parse(config, "throttle_ctrl.k_i", pc.z_ctrl.k_i);
-  parse(config, "throttle_ctrl.k_d", pc.z_ctrl.k_d);
-  parse(config, "throttle_ctrl.hover_throttle", pc.hover_throttle);
+  const std::string p = (prefix == "") ? "" : prefix + ".";
+  {
+    vec3_t gains;
+    parse(config, p + "roll_ctrl.gains", gains);
+    parse(config, p + "roll_ctrl.limits", ctrl.roll_limits);
+    ctrl.x_ctrl.k_p = gains(0);
+    ctrl.x_ctrl.k_i = gains(1);
+    ctrl.x_ctrl.k_d = gains(2);
+  }
+  {
+    vec3_t gains;
+    parse(config, p + "pitch_ctrl.gains", gains);
+    parse(config, p + "pitch_ctrl.limits", ctrl.pitch_limits);
+    ctrl.y_ctrl.k_p = gains(0);
+    ctrl.y_ctrl.k_i = gains(1);
+    ctrl.y_ctrl.k_d = gains(2);
+  }
+  {
+    vec3_t gains;
+    parse(config, p + "throttle_ctrl.gains", gains);
+    parse(config, p + "throttle_ctrl.hover_throttle", ctrl.hover_throttle);
+    ctrl.z_ctrl.k_p = gains(0);
+    ctrl.z_ctrl.k_i = gains(1);
+    ctrl.z_ctrl.k_d = gains(2);
+  }
 
   // Convert roll and pitch limits from degrees to radians
-  pc.roll_limit[0] = deg2rad(pc.roll_limit[0]);
-  pc.roll_limit[1] = deg2rad(pc.roll_limit[1]);
-  pc.pitch_limit[0] = deg2rad(pc.pitch_limit[0]);
-  pc.pitch_limit[1] = deg2rad(pc.pitch_limit[1]);
+  ctrl.roll_limits(0) = deg2rad(ctrl.roll_limits(0));
+  ctrl.roll_limits(1) = deg2rad(ctrl.roll_limits(1));
+  ctrl.pitch_limits(0) = deg2rad(ctrl.pitch_limits(0));
+  ctrl.pitch_limits(1) = deg2rad(ctrl.pitch_limits(1));
 
+  ctrl.ok = true;
   return 0;
 }
 
-vec4_t pos_ctrl_update(pos_ctrl_t &pc,
+vec4_t pos_ctrl_update(pos_ctrl_t &ctrl,
                        const vec3_t &setpoints,
-                       const vec4_t &actual,
-                       const double yaw,
+                       const mat4_t &T_WB,
+                       const double desired_yaw,
                        const double dt) {
+  assert(ctrl.ok);
+
   // Check rate
-  pc.dt += dt;
-  if (pc.dt < 0.01) {
-    return pc.outputs;
+  // ctrl.dt = dt;
+  ctrl.dt += dt;
+  if (ctrl.dt < 0.01) {
+    return ctrl.outputs;
   }
 
-  // Calculate RPY errors relative to quadrotor by incorporating yaw
-  vec3_t errors{setpoints(0) - actual(0),
-                setpoints(1) - actual(1),
-                setpoints(2) - actual(2)};
-  const vec3_t euler{0.0, 0.0, actual(3)};
-  const mat3_t R = euler123(euler);
-  errors = R * errors;
+  // Form actual position and yaw
+  const vec3_t actual_pos = tf_trans(T_WB);
+  const double actual_yaw = quat2euler(tf_quat(T_WB))(2);
+
+  // Transform errors in world frame to body frame (excluding roll and pitch)
+  const vec3_t errors_W{setpoints - actual_pos};
+  const vec3_t rpy_WB{0.0, 0.0, actual_yaw};
+  const mat3_t C_BW = euler123(rpy_WB);
+  const vec3_t errors_B = C_BW * errors_W;
 
   // Roll, pitch, yaw and thrust
-  double r = -pid_update(pc.x_ctrl, errors(1), dt);
-  double p = pid_update(pc.y_ctrl, errors(0), dt);
-  double y = yaw;
-  double t = 0.5 + pid_update(pc.z_ctrl, errors(2), dt);
-  vec4_t outputs{r, p, y, t};
+  double r = -pid_update(ctrl.x_ctrl, errors_B(1), dt);
+  double p = pid_update(ctrl.y_ctrl, errors_B(0), dt);
+  double y = desired_yaw;
+  double t = ctrl.hover_throttle + pid_update(ctrl.z_ctrl, errors_B(2), dt);
 
   // Limit roll, pitch
-  for (int i = 0; i < 2; i++) {
-    if (outputs(i) > deg2rad(30.0)) {
-      outputs(i) = deg2rad(30.0);
-    } else if (outputs(i) < deg2rad(-30.0)) {
-      outputs(i) = deg2rad(-30.0);
-    }
-  }
+  r = (r < ctrl.roll_limits(0)) ? ctrl.roll_limits(0) : r;
+  r = (r > ctrl.roll_limits(1)) ? ctrl.roll_limits(1) : r;
+  p = (p < ctrl.pitch_limits(0)) ? ctrl.pitch_limits(0) : p;
+  p = (p > ctrl.pitch_limits(1)) ? ctrl.pitch_limits(1) : p;
 
   // Limit yaw
-  while (outputs(2) > deg2rad(360.0)) {
-    outputs(2) -= deg2rad(360.0);
-  }
-  while (outputs(2) < deg2rad(0.0)) {
-    outputs(2) += deg2rad(360.0);
-  }
+  y = (y > M_PI) ? (y - 2 * M_PI) : y;
+  y = (y < -M_PI) ? (y + 2 * M_PI) : y;
 
   // Limit thrust
-  if (outputs(3) > 1.0) {
-    outputs(3) = 1.0;
-  } else if (outputs(3) < 0.0) {
-    outputs(3) = 0.0;
-  }
-
-  // Yaw first if threshold reached
-  if (fabs(yaw - actual(3)) > deg2rad(2)) {
-    outputs(0) = 0.0;
-    outputs(1) = 0.0;
-  }
+  t = (t > 1.0) ? 1.0 : t;
+  t = (t < 0.0) ? 0.0 : t;
 
   // Keep track of outputs
-  pc.outputs = outputs;
-  pc.dt = 0.0;
+  const vec4_t outputs{r, p, y, t};
+  ctrl.outputs = outputs;
+  ctrl.dt = 0.0;
 
   return outputs;
 }
 
-void pos_ctrl_reset(pos_ctrl_t &pc) {
-  pid_reset(pc.x_ctrl);
-  pid_reset(pc.y_ctrl);
-  pid_reset(pc.z_ctrl);
+void pos_ctrl_reset(pos_ctrl_t &ctrl) {
+  assert(ctrl.ok);
+  pid_reset(ctrl.x_ctrl);
+  pid_reset(ctrl.y_ctrl);
+  pid_reset(ctrl.z_ctrl);
 }
 
 } //  namespace proto

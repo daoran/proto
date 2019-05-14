@@ -3,7 +3,7 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct carrot_ctrl_t {
-  std::vector&lt;vec3_t&gt; waypoints;
+  vec3s_t waypoints;
   vec3_t wp_start;
   vec3_t wp_end;
   size_t wp_index;
@@ -22,7 +22,7 @@
 
 <div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int carrot_ctrl_configure(carrot_ctrl_t &amp;cc,
-                          const std::vector&lt;vec3_t&gt; &amp;waypoints,
+                          const vec3s_t &amp;waypoints,
                           const double look_ahead_dist);
 </code></pre>
   

@@ -1,8 +1,17 @@
-calib:
-  target_file: "/data/configs/aprilgrid_6x6.yaml"
-  image_path: "/data/marker_calib/cam0/data"
-  preprocess_path: "/data/marker_calib/aprilgrid0/data"
+settings:
+  image_path: "/data/intel_d435i/data/cam0/data"
+  preprocess_path: "/data/intel_d435i/data/aprilgrid0/data"
+  results_file: "/data/intel_d435i/calib.yaml"
   imshow: true
+
+calib_target:
+  target_type: 'aprilgrid'  # Target type
+  tag_rows: 6               # Number of rows
+  tag_cols: 6               # Number of cols
+  tag_size: 0.085           # Size of apriltag, edge to edge [m]
+  tag_spacing: 0.3          # Ratio of space between tags to tagSize
+                            # Example: tagSize=2m, spacing=0.5m
+                            # --> tagSpacing=0.25[-]
 
 cam0:
   resolution: [640, 480]

@@ -3,7 +3,8 @@
 
 #include <ceres/ceres.h>
 
-#include "prototype/core/core.hpp"
+#include "prototype/core/math.hpp"
+#include "prototype/core/time.hpp"
 #include "prototype/calib/ceres.hpp"
 #include "prototype/calib/calib_data.hpp"
 

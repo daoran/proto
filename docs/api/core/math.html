@@ -44,6 +44,30 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void print_vector(const std::string &amp;name, Eigen::VectorXd v);
+</code></pre>
+  
+  <div class="doc"><p><p>Print vector <code>v</code> with a <code>name</code>.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void print_matrix(const std::string &amp;name, Eigen::MatrixXd m);
+</code></pre>
+  
+  <div class="doc"><p><p>Print matrix <code>m</code> with a <code>name</code>.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void print_quaternion(const std::string &amp;name, Eigen::Quaterniond q);
+</code></pre>
+  
+  <div class="doc"><p><p>Print quaternion <code>q</code> with a <code>name</code>.</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">std::string array2str(const double *array, const size_t size);
 </code></pre>
   
@@ -144,7 +168,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::vector&lt;vec3_t&gt; mat2vec3(Eigen::MatrixXd m, const bool row_wise);
+  <pre><code class="cpp">vec3s_t mat2vec3(Eigen::MatrixXd m, const bool row_wise);
 </code></pre>
   
   <div class="doc"><p><p>Matrix to list of vectors of size 3</p>
@@ -157,7 +181,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::vector&lt;vec2_t&gt; mat2vec2(Eigen::MatrixXd m, const bool row_wise);
+  <pre><code class="cpp">vec2s_t mat2vec2(Eigen::MatrixXd m, const bool row_wise);
 </code></pre>
   
   <div class="doc"><p><p>Matrix to list of vectors of size 3</p>
@@ -179,6 +203,33 @@
 <li>[in] brackets Brakcets around vector string</li>
 </ul>
 <p><strong>Returns</strong> Vector as a string</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::string arr2str(const double *arr, const size_t len, bool brackets);
+</code></pre>
+  
+  <div class="doc"><p><p>Array to string</p>
+<ul>
+<li>[in] arr Array</li>
+<li>[in] len Length of array</li>
+<li>[in] brackets Brakcets around vector string</li>
+</ul>
+<p><strong>Returns</strong> Array as a string</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::string mat2str(Eigen::MatrixXd m, const std::string &amp;indent);
+</code></pre>
+  
+  <div class="doc"><p><p>Matrix to string</p>
+<ul>
+<li>[in] m Matrix</li>
+<li>[in] indent Indent string</li>
+</ul>
+<p><strong>Returns</strong> Array as a string</p></p></div>
   
 </div> <!-- .cpp_func -->
 
@@ -264,7 +315,31 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec3_t deg2rad(Eigen::Vector3d d);
+</code></pre>
+  
+  <div class="doc"><p><p>Degrees to radians</p>
+<ul>
+<li>[in] d Degree to be converted</li>
+</ul>
+<p><strong>Returns</strong> Degree in radians</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">double rad2deg(const double r);
+</code></pre>
+  
+  <div class="doc"><p><p>Radians to degree</p>
+<ul>
+<li>[in] r Radian to be converted</li>
+</ul>
+<p><strong>Returns</strong> Radian in degrees</p></p></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec3_t rad2deg(Eigen::Vector3d r);
 </code></pre>
   
   <div class="doc"><p><p>Radians to degree</p>
@@ -366,7 +441,7 @@
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">vec3_t mean(const std::vector&lt;vec3_t&gt; &amp;x);
+  <pre><code class="cpp">vec3_t mean(proto::vec3s_t x);
 </code></pre>
   
   <div class="doc"><p><p>Mean vector</p>

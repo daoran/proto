@@ -23,7 +23,11 @@ struct radtan4_t {
             const double k2_,
             const double p1_,
             const double p2_);
+  radtan4_t(radtan4_t &radtan);
+  radtan4_t(const radtan4_t &radtan);
   ~radtan4_t();
+
+  void operator=(const radtan4_t &src) throw();
 };
 
 /**
@@ -32,7 +36,12 @@ struct radtan4_t {
 std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4);
 
 /**
- * Distort 3D points with the radial-tangential distortion model.
+ * Return distortion coefficients of a Radial-Tangential distortion
+ */
+vec4_t distortion_coeffs(const radtan4_t &radtan);
+
+/**
+ * Distort points with the radial-tangential distortion model.
  *
  * @param[in] radtan Radial tangential parameters
  * @param[in] point Point
@@ -48,7 +57,7 @@ vec2_t distort(const radtan4_t &radtan, const vec2_t &point);
  * @param[out] J Jacobian of radtan w.r.t. point
  * @returns Distorted point
  */
-vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J);
+vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J_point);
 
 /**
  * Distort 3D points with the radial-tangential distortion model.

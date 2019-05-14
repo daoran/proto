@@ -244,7 +244,7 @@ void essential_matrix_outlier_rejection(
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">float rescale_points(std::vector&lt;vec2_t&gt; &amp;pts1, std::vector&lt;vec2_t&gt; &amp;pts2);
+  <pre><code class="cpp">float rescale_points(vec2s_t &amp;pts1, std::vector&lt;vec2_t&gt; &amp;pts2);
 </code></pre>
   
   <div class="doc"><p><p>Rescale points</p>
@@ -257,8 +257,7 @@ void essential_matrix_outlier_rejection(
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">double reprojection_error(const std::vector&lt;vec2_t&gt; &amp;measured,
-                          const std::vector&lt;vec2_t&gt; &amp;projected);
+  <pre><code class="cpp">double reprojection_error(const vec2s_t &amp;measured, const vec2s_t &amp;projected);
 </code></pre>
   
   <div class="doc"><p><p>Calculate reprojection error</p>
@@ -376,8 +375,8 @@ void essential_matrix_outlier_rejection(
   <pre><code class="cpp">cv::Mat equi_undistort_image(const mat3_t &amp;K,
                              const vecx_t &amp;D,
                              const cv::Mat &amp;image,
-                             cv::Mat &amp;Knew,
-                             const double balance);
+                             const double balance,
+                             cv::Mat &amp;Knew);
 </code></pre>
   
   <div class="doc"><p><p>Equi undistort image</p>
@@ -385,8 +384,8 @@ void essential_matrix_outlier_rejection(
 <li>[in] K Camera matrix K</li>
 <li>[in] D Distortion vector D</li>
 <li>[in] image Input image</li>
-<li>[in,out] Knew New camera matrix K</li>
 <li>[in] balance Balance</li>
+<li>[in,out] Knew New camera matrix K</li>
 </ul>
 <p><strong>Returns</strong> Undistorted image using equidistant distortion</p></p></div>
   

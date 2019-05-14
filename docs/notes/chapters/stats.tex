@@ -1,0 +1,291 @@
+\chapter{Statistics}
+
+
+
+% MEAN
+\section{Mean}
+
+\begin{equation}
+  \mu = \dfrac{1}{N} \sum_{i=1}^{N} x_{i}
+\end{equation}
+
+
+
+% VARIANCE
+\section{Variance}
+
+Variance is a measure of spread, it is the average squared distance between
+measurements and the mean.
+
+The Population variance is defined as,
+%
+\begin{equation}
+  \sigma^{2} = \dfrac{\sum_{i=1}^{N} (x_i - \mu)^{2}}{N}.
+\end{equation}
+
+The Sample variance is defined as,
+%
+\begin{equation}
+  \sigma^{2} = \dfrac{\sum_{i=1}^{n} (x_i - \mu)^{2}}{n - 1}.
+\end{equation}
+
+Where $N$ is the population size and $n$ is the sample size.
+
+In plain english, the population variance, standard deviation, etc, is when the
+whole population data is available. Sample variance, standard deviation, etc,
+on the other hand implies the availble data is only a subset of the population.
+
+The problem with sample data is that estimates without applying the $n - 1$
+correction will often underestimate the true value. This is particularly true
+if $n$ is small. By using $n - 1$ instead of $n$ as the divsor corrects the
+estimate by making the result slightly larger.
+
+The degrees of freedom is another perspective of why $n - 1$ should be use when
+estimating from sample data. In statistics the degrees of freedom describe the
+number variables that could affect the response or output of a model. (need
+more explaining)
+
+
+
+% STANDARD DEVIATION
+\section{Standard Deviation}
+
+The standard deviation $\sigma$ is defined as the square root of the variance
+$\sigma^{2}$. It is also a measure of spread in the data. However standard
+deviation is often more intuitive, because instead of the spread in terms of
+distance from the \textit{mean squared}, the standard deviation is simply the
+distance from the mean (not \textit{mean squared}).
+
+\begin{equation}
+  \sigma = \sqrt{\sigma^2}
+\end{equation}
+
+
+
+% STANDARD ERROR
+\section{Standard Error}
+
+Standard error of the regression, or standard error of the estimate is the
+average distance between observed values and the fitted model. This metric
+conveys objectively how wrong the regression model is on average using the
+units of the response variable. A small standard error indicates observations
+are closer to the fitted model. Conceptually it is similar to the standard
+deviation, the difference is standard deviation measures te average distance of
+the observed alues from the mean.
+
+The standard error (S) is defined as:
+%
+\begin{equation}
+  S = \sqrt{\dfrac{\sum_{i=1}^{n} (\hat{y}_{i} - y_{i})^{2}}{df}}
+\end{equation}
+
+
+
+% Pearson's Chi-Squared Test
+\section{Pearson's Chi-Squared Test}
+
+Pearson's chi-squared test $\chi^2$ is a statistical test applied to sets of
+\textit{categorial data} to quantify the likelihood that the observed
+difference between measured and predicted arose by chance. The test is used to
+assess three types of comparisons:
+%
+\begin{itemize}
+  \item{\textbf{Goodness of fit}: checks whether the observed frequency
+    distribution matches the theoretical distribution.}
+  \item{\textbf{Homogeneity}: compares the distribution of counts for two or
+    more groups using the same categorical variable.}
+  \item{\textbf{Independence}: checks whether the unparied observations on two
+    variables, expressed in a contingency table, are independent of each
+    other.}
+\end{itemize}
+
+
+\subsection{Goodness of Fit}
+
+\begin{equation}
+  \chi^2 = \sum^{n}_{i=1} \dfrac{(O_i - E_i)^2}{E_i} \\
+    = N \sum^{n}_{i=1} \dfrac{(O_i / N - p_i)^2}{p_i}
+\end{equation}
+%
+where $\chi^2$ is Pearson's cumulative test statistic, $O_i$ is the number of
+observations of type $i$, $N$ is the total number of observations, $E_i = N
+p_i$ is the expected (theoretical) count of type $i$, and $n$ is the number of
+cells in the table.
+
+Once the chi-squared test statistic is calculated, the $p$-value is obtained by
+comparing the value of the statistic to a chi-squared distribution. The number
+of degrees of freedom is equal to the number of cells $n$, minus the reduction
+in degrees of freedom, $p$.
+
+\subsubsection{Example: Fairness of dice}
+
+A 6-sided die is thrown 60 times. The number of times it lands with 1, 2, 3, 4,
+5 and 6 face up is 5, 8, 9, 8, 20 and 20, respectively. Is the die biased,
+according to the Pearson's chi-squared test at a significance level of 95\%,
+and, or 99\%?
+
+In this example $n = 6$ as there are 6 possible outcomes, 1 to 6. The null
+hypothesis is that the die is unbaised, hence each dice number is expected to
+occur the same number of times, in this case, $60 / n = 10$. The outcomes can
+be tabulated as follows:
+%
+\begin{table}[h]
+  \center
+  \begin{tabular}{cccccc}
+    \toprule
+    $i$
+    & $O_i$
+    & $E_i$
+    & $O_i - E_i$
+    & $(O_i - E_i)^2$
+    & $\dfrac{(O_i - E_i)^2}{E_i}$ \\
+    \hline
+    1 & 5 & 10 & -5 & 25 & 2.5 \\
+    2 & 8 & 10 & -2 & 4 & 0.4 \\
+    3 & 9 & 10 & -1 & 1 & 0.1 \\
+    4 & 8 & 10 & -2 & 4 & 0.4 \\
+    5 & 10 & 10 & 0 & 0 &  0 \\
+    6 & 20 & 10 & 10 & 100 & 10 \\
+    \hline
+    & & & & Sum: & 13.4 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The number of degrees of freedom is $n - 1 = 5$. The Upper tail critical values
+of chi-square distribution gives a critical value of 11.070 at 95\%
+significance level:
+%
+\begin{table}[h]
+  \center
+  \begin{tabular}{p{1.6cm} | ccccc}
+    Degrees of Freedom
+    & \multicolumn{5}{c}{Probability less than the critical value} \\
+    & \textbf{0.90}
+    & \textbf{0.95}
+    & \textbf{0.975}
+    & \textbf{0.99}
+    & \textbf{0.999} \\
+    \hline
+    5 & 9.236 & 11.070 & 12.833 & 15.086 & 20.515
+  \end{tabular}
+\end{table}
+%
+As the chi-squared statistic of 13.4 exceeds this critical value, the null
+hypothesis is rejected and conclude that the die is biased at 95\% significance
+level. At 99\% significance level, the critical value is 15.086. As the
+chi-squared statistic does not exceed it, the null hypothesis
+is not rejected and thus conclude that there is insufficient evidence to show
+that the die is biased at 99\% significance level.
+
+
+\subsection{Problems with Pearson's Chi-Squared Test~\cite{Andrae2010}}
+
+\begin{itemize}
+  \item{The degrees of freedom can only be estimated for \textit{linear
+    models}. It is non-trivial or near impossible to estimate the degrees of
+    freedom for a \textit{non-linear model}.}
+  \item{The value of chi-squared itself is subject to noise in the data, as
+    such the value is uncertain.}
+\end{itemize}
+
+Knowing the degrees of freedom of the model in question is required for
+chi-squared test. For $N$ data points and $P$ parameters, a naive guess is that
+the number of degrees of freedom is $N - P$. This, however, as will be
+demonstrated is not always the case.
+
+The chi-squared test statistic, $\chi^2$, for continuous data is defined as,
+%
+\begin{equation}
+  \chi^2 = \sum^{N}_{n = 1}
+    \left( \dfrac{(y_n - f(x_n, \theta))}{\sigma_n} \right)^2
+\end{equation}
+%
+which is equivalent to maximizing the liklihood function. For a linear model,
+the chi-squared statistic, $\chi^2$ can be written in matrix form as,
+%
+\begin{equation}
+  \chi^2 =
+    (\Vec{y} - \Mat{X} \boldsymbol{\theta})^{\transpose}
+    \Mat{\Sigma}^{-1}
+    (\Vec{y} - \Mat{X} \boldsymbol{\theta}) .
+\end{equation}
+%
+Rearranging in terms of the model parameters, $\boldsymbol{\theta}$, gives,
+\begin{equation}
+  \boldsymbol{\theta} =
+    (\Mat{X}^{\transpose} \Mat{\Sigma}^{-1} \Mat{X})^{-1}
+    \Mat{X}^{\transpose} \Mat{\Sigma}^{-1} \Vec{y} .
+\end{equation}
+%
+Finally, the prediction, $\hat{\Vec{y}}$, of the measurements, $\Vec{y}$, can
+be obtained by multiplying the design matrix, $\Mat{X}$, with the model
+parameters, $\boldsymbol{\theta}$, and further simplified to give us,
+%
+\begin{align}
+  \hat{\Vec{y}}
+    &= \Mat{X} \boldsymbol{\theta} \\
+    &= \Mat{X} (\Transpose{\Mat{X}} \Mat{\Sigma}^{-1} \Mat{X})^{-1}
+       \Transpose{\Mat{X}} \Mat{\Sigma}^{-1} \Vec{y} \\
+    &= \Mat{H} \Vec{y}
+\end{align}
+%
+where $\Mat{H}$ is an $N \times N$ matrix, sometimes called the ``hat matrix''
+because it translates the measurement data, $\Vec{y}$, into a model prediction,
+$\hat{\Vec{y}}$. The number of \textit{effecitve} model parameters,
+$P_{\text{eff}}$, is then given by the trace of $\Mat{H}$,
+%
+\begin{equation}
+  P_{\text{eff}} = \Trace{\Mat{H}} = \sum^{N}_{n = 1} H_{nn} = \Rank{\Mat{X}} .
+\end{equation}
+%
+which also equals the rank of the design matrix $\Mat{X}$. And so,
+$P_{\text{eff}} \leq P$, where the equality holds if and only if the design
+matrix $\Mat{X}$ has full rank. Consequently, for linear models the number of
+degrees of freedom is,
+%
+\begin{equation}
+  K = N - P_{\text{eff}} \geq N - P
+\end{equation}
+%
+For nonlinear models, the degrees of freedom is not as straight forward.
+
+
+\subsubsection{Example 1}
+
+Let us consider a nonlinear model with three free parameters, $A$, $B$, and $C$,
+%
+\begin{equation}
+  f(x) = A \cos(Bx + C) .
+\end{equation}
+%
+If we are given a set of $N$ measurement $(x_n, y_n, \sigma_n)$ such that no
+two data points have identical $x_n$, then the model $f(x)$ is capable of
+fitting any such data set perfectly. The way this works is by increasing the
+``frequency'' $B$ such that $f(x)$ can change on arbitrarily short scales. As $f(x)$
+provides a perfect fit in this case, $\chi^2$ is equal to zero for all possible
+noise realizations of the data. Evidently, this three-parameter model has
+infinite flexibility (if there are no priors) and $K = N - P$ is a poor estimate
+of the number of degrees of freedom, which actually is $K = 0$.
+
+
+\subsubsection{Example 2}
+
+To build upon the first example, three additional model parameters, $D$, $E$
+and $F$ are added,
+%
+\begin{equation}
+  f(x) = A \cos(Bx + C) + D \cos(Ex + F) .
+\end{equation}
+%
+If the fit parameter $D$ becomes small such that $|D| \leq |A|$, the second
+component cannot influence the fit anymore and the two model parameters $E$ and
+$F$ are ``lost''. In simple words: This model may change its flexibility during
+the fitting procedure.
+
+Hence, for nonlinear models, K may not even be constant. Of course, these two
+examples do not verify the claim that always $K \neq N - P$ for nonlinear
+models.  However, acting as counter-examples, they clearly falsify the claim
+that $K = N - P$ is always true for nonlinear models.
+
+

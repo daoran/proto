@@ -2,6 +2,11 @@
 
 namespace proto {
 
+void timestamp_print(const timestamp_t &ts,
+                     const std::string &prefix) {
+  printf("%s" "%" PRIu64 "\n", prefix.c_str(), ts);
+}
+
 double ts2sec(const timestamp_t &ts) { return ts * 1.0e-9; }
 
 double ns2sec(const uint64_t ns) { return ns * 1.0e-9; }

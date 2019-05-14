@@ -45,7 +45,7 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point) {
   return vec2_t{x_dash, y_dash};
 }
 
-vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J) {
+vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J_point) {
   const double k1 = equi.k1;
   const double k2 = equi.k2;
   const double k3 = equi.k3;
@@ -55,7 +55,7 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J) {
   const double r = sqrt(pow(x, 2) + pow(y, 2));
 
   if (r < 1e-8) {
-    J = I(2);
+    J_point = I(2);
     return point;
   }
 
@@ -77,10 +77,10 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J) {
   const double s_r = thd_th * th_r / r - thd / (r * r);
   const double r_x = 1.0 / r * x;
   const double r_y = 1.0 / r * y;
-  J(0,0) = s + x * s_r * r_x;
-  J(0,1) = x * s_r * r_y;
-  J(1,0) = y * s_r * r_x;
-  J(1,1) = s + y * s_r * r_y;
+  J_point(0,0) = s + x * s_r * r_x;
+  J_point(0,1) = x * s_r * r_y;
+  J_point(1,0) = y * s_r * r_x;
+  J_point(1,1) = s + y * s_r * r_y;
   // clang-format on
 
   // Project equi distorted point to image plane

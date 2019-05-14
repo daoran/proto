@@ -39,6 +39,7 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
                        const double *distortion,
                        const mat4s_t &poses,
                        const std::string &output_path) {
+  UNUSED(output_path);
   vec2s_t residuals;
 
   // Obtain residuals using optimized params

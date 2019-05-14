@@ -1,29 +1,37 @@
-calib:
-  target_file: "config/aprilgrid_6x6.yaml"
+settings:
   cam0_image_path: "/data/euroc_mav/cam_april/mav0/cam0/data"
   cam1_image_path: "/data/euroc_mav/cam_april/mav0/cam1/data"
   imshow: true
 
+calib_target:
+  target_type: 'aprilgrid'  # Target type
+  tag_rows: 6               # Number of rows
+  tag_cols: 6               # Number of cols
+  tag_size: 0.085           # Size of apriltag, edge to edge [m]
+  tag_spacing: 0.3          # Ratio of space between tags to tagSize
+                            # Example: tagSize=2m, spacing=0.5m
+                            # --> tagSpacing=0.25[-]
+
 cam0:
-  resolution: [752, 480]
   camera_model: "pinhole"
   distortion_model: "radtan"
-  intrinsics: [458.654, 457.296, 367.215, 248.375]
-  distortion: [-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05]
+  resolution: [752.000000, 480.000000]
+  intrinsics: [458.961682, 457.904611, 368.606239, 246.134561]
+  distortion: [-0.276829, 0.068337, 0.000591, -0.000229]
 
 cam1:
-  resolution: [752, 480]
   camera_model: "pinhole"
   distortion_model: "radtan"
-  intrinsics: [457.587, 456.134, 379.999, 255.238]
-  distortion: [-0.28368365, 0.07451284, -0.00010473, -3.55590700e-05]
+  resolution: [752.000000, 480.000000]
+  intrinsics: [458.001938, 456.790515, 378.901551, 253.067756]
+  distortion: [-0.277187, 0.068659, 0.000274, -0.000306]
 
 T_C0C1:
   rows: 4
   cols: 4
   data: [
-    0.999997, -0.00231714, -0.000343393, 0.110074,
-    0.002312, 0.999898, -0.0140907, -0.000156612,
-    0.000376008, 0.0140898, 0.999901, 0.000889383,
-    0.0, 0.0, 0.0, 1.0
+    0.999981, -0.002415, -0.005704, 0.106263,
+    0.002336, 0.999901, -0.013910, -0.000241,
+    0.005737, 0.013896, 0.999887, 0.000827,
+    0.000000, 0.000000, 0.000000, 1.000000
   ]

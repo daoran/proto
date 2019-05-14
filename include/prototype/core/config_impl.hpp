@@ -2,6 +2,7 @@
 #define PROTOTYPE_CORE_CONFIG_IMPL_HPP
 
 #include "prototype/core/config.hpp"
+#include "prototype/core/macros.hpp"
 
 namespace proto {
 
@@ -9,6 +10,7 @@ template <typename T>
 size_t yaml_check_vector(const YAML::Node &node,
                          const std::string &key,
                          const bool optional) {
+  UNUSED(optional);
   assert(node);
 
   // Get expected vector size
@@ -45,19 +47,9 @@ void yaml_check_matrix(const YAML::Node &node,
                        const bool optional,
                        size_t &rows,
                        size_t &cols) {
+  UNUSED(optional);
   assert(node);
-
-  // Check fields
-  const std::string targets[3] = {"rows", "cols", "data"};
-  for (int i = 0; i < 3; i++) {
-    if (!node[targets[i]]) {
-      FATAL("Key [%s] is missing for matrix [%s]!",
-            targets[i].c_str(),
-            key.c_str());
-    }
-  }
-  rows = node["rows"].as<int>();
-  cols = node["cols"].as<int>();
+  yaml_check_matrix_fields(node, key, rows, cols);
 
   // Check number of elements
   size_t nb_elements = 0;
@@ -69,6 +61,7 @@ void yaml_check_matrix(const YAML::Node &node,
     nb_elements = 16;
   } else if (std::is_same<T, matx_t>::value) {
     nb_elements = node["data"].size();
+
   } else if (std::is_same<T, cv::Mat>::value) {
     nb_elements = node["data"].size();
   } else {

@@ -3,12 +3,14 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct att_ctrl_t {
+  bool configured;
   double dt;
+  double max_thrust;
+  pid_t roll_ctrl;
+  pid_t pitch_ctrl;
+  pid_t yaw_ctrl;
 
   att_ctrl_t();
-  att_ctrl_t(const vec3_t &amp;roll_pid,
-             const vec3_t &amp;pitch_pid,
-             const vec3_t &amp;yaw_pid);
   ~att_ctrl_t();
 };</code></pre>
   
@@ -18,6 +20,15 @@
 
 <!-- FUNCTIONS -->
 <h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int att_ctrl_configure(att_ctrl_t &amp;ac, const std::string &amp;config_file);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure attitude controller with <code>config_file</code>.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  
+</div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">vec4_t att_ctrl_update(att_ctrl_t &amp;controller,

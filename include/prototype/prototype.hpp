@@ -3,7 +3,10 @@
 #include "prototype/core/core.hpp"
 #include "prototype/dataset/dataset.hpp"
 #include "prototype/driver/driver.hpp"
+#include "prototype/estimation/estimation.hpp"
+#include "prototype/mav/mav.hpp"
 #include "prototype/model/model.hpp"
+#include "prototype/vision/vision.hpp"
 
 /*<sidebar_doc>
 
@@ -17,39 +20,37 @@
     - [calib_camera.hpp](#calib.calib_camera)
     - [calib_data.hpp](#calib.calib_data)
     - [calib_gimbal.hpp](#calib.calib_gimbal)
+    - [calib_stereo.hpp](#calib.calib_stereo)
+    - [calib_vicon_marker.hpp](#calib.calib_vicon_marker)
 - control/
-    - [att_ctrl.hpp](#control.att_ctrl)
     - [carrot_ctrl.hpp](#control.carrot_ctrl)
-    - [mission.hpp](#control.mission)
     - [pid.hpp](#control.pid)
-    - [pos_ctrl.hpp](#control.pos_ctrl)
-    - [wp_ctrl.hpp](#control.wp_ctrl)
 - core/
     - [config.hpp](#core.config)
     - [data.hpp](#core.data)
-    - [euler.hpp](#core.euler)
     - [file.hpp](#core.file)
     - [gps.hpp](#core.gps)
     - [jpl.hpp](#core.jpl)
     - [linalg.hpp](#core.linalg)
     - [log.hpp](#core.log)
     - [math.hpp](#core.math)
-    - [stats.hpp](#core.stats)
+    - [tf.hpp](#core.tf)
     - [time.hpp](#core.time)
 - dataset/
     - [euroc.hpp](#dataset.euroc)
     - [kitti.hpp](#dataset.kitti)
+    - [timeline.hpp](#dataset.timeline)
 - driver/
-    - camera/
-        - [camera.hpp](#driver.camera.camera)
-    - gimbal/
-        - [sbgc.hpp](#driver.gimbal.sbgc)
-    - imu/
-        - [mpu6050.hpp](#driver.imu.mpu6050)
-    - pwm/
-        - [pca9685.hpp](#driver.pca9685)
+    - [camera.hpp](#driver.camera)
+    - [mpu6050.hpp](#driver.mpu6050)
+    - [pca9685.hpp](#driver.pca9685)
     - [i2c.cpp](#driver.i2c)
     - [uart.cpp](#driver.uart)
+- mav/
+    - [att_ctrl.hpp](#mav.att_ctrl)
+    - [mission.hpp](#mav.mission)
+    - [pos_ctrl.hpp](#mav.pos_ctrl)
+    - [wp_ctrl.hpp](#mav.wp_ctrl)
 - model/
     - [gimbal.hpp](#model.gimbal)
     - [mav.hpp](#model.mav)

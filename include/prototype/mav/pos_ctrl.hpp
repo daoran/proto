@@ -10,11 +10,13 @@ namespace proto {
  * Position control
  */
 struct pos_ctrl_t {
+  bool ok = false;
+
   double dt = 0.0;
   vec4_t outputs{0.0, 0.0, 0.0, 0.0};
 
-  double roll_limit[2] = {-30, 30};
-  double pitch_limit[2] = {-30, 30};
+  vec2_t roll_limits{-30, 30};
+  vec2_t pitch_limits{-30, 30};
   double hover_throttle = 0.5;
 
   // PID tunes for dt = 0.01 (i.e. 100Hz)
@@ -28,28 +30,30 @@ struct pos_ctrl_t {
  *
  * @returns 0 or -1 for success or failure
  */
-int pos_ctrl_configure(pos_ctrl_t &pc, const std::string &config_file);
+int pos_ctrl_configure(pos_ctrl_t &ctrl,
+                       const std::string &config_file,
+                       const std::string &prefix="");
 
 /**
  * Update position control
  *
  * - `setpoints`: Setpoints (x, y, z)
- * - `actual`: Actual (x, y, z)
- * - `yaw`: (radians)
- * - `dt`: Time step (s)
+ * - `actual`: Actual Pose T_WB
+ * - `yaw`: [rads]
+ * - `dt`: Time step [s]
  *
  * @returns Attitude command (roll, pitch, yaw, thrust)
  */
-vec4_t pos_ctrl_update(pos_ctrl_t &pc,
+vec4_t pos_ctrl_update(pos_ctrl_t &ctrl,
                        const vec3_t &setpoints,
-                       const vec4_t &actual,
-                       const double yaw,
+                       const mat4_t &T_WB,
+                       const double yaw_setpoint,
                        const double dt);
 
 /**
  * Reset position control
  */
-void pos_ctrl_reset(pos_ctrl_t &pc);
+void pos_ctrl_reset(pos_ctrl_t &ctrl);
 
 } //  namespace proto
 #endif // PROTOTYPE_MAV_POS_CTRL_HPP

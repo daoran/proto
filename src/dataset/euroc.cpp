@@ -39,8 +39,13 @@ int euroc_imu_load(euroc_imu_t &data, const std::string &data_dir) {
     timestamp_t ts = 0;
     double w_x, w_y, w_z = 0.0;
     double a_x, a_y, a_z = 0.0;
-    fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf,%lf,%lf,%lf",
-           &ts, &w_x, &w_y, &w_z, &a_x, &a_y, &a_z);
+    int retval = fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf,%lf,%lf,%lf",
+                        &ts, &w_x, &w_y, &w_z, &a_x, &a_y, &a_z);
+    if (retval != 7) {
+      LOG_ERROR("Failed to parse line in [%s]", data_path.c_str());
+      return -1;
+    }
+
     data.timestamps.push_back(ts);
     data.w_B.emplace_back(w_x, w_y, w_z);
     data.a_B.emplace_back(a_x, a_y, a_z);
@@ -120,11 +125,15 @@ int euroc_camera_load(euroc_camera_t &data,
     // Parse line
     timestamp_t ts = 0;
     char filename[50] = {0};
-    fscanf(fp, "%" SCNu64 ",%s", &ts, filename);
-    const std::string image_file{filename};
-    const auto image_path = data.data_dir + "/data/" + image_file;
+    int retval = fscanf(fp, "%" SCNu64 ",%s", &ts, filename);
+    if (retval != 2) {
+      LOG_INFO("Failed to parse line in [%s]", data_path.c_str());
+      return -1;
+    }
 
     // Check if file exists
+    const std::string image_file{filename};
+    const auto image_path = data.data_dir + "/data/" + image_file;
     if (file_exists(image_path) == false) {
       LOG_ERROR("File [%s] does not exist!", image_path.c_str());
       return -1;
@@ -181,7 +190,7 @@ std::ostream &operator<<(std::ostream &os, const euroc_camera_t &data) {
 
 euroc_ground_truth_t::euroc_ground_truth_t() {}
 
-euroc_ground_truth_t::euroc_ground_truth_t(const std::string data_dir_)
+euroc_ground_truth_t::euroc_ground_truth_t(const std::string &data_dir_)
     : data_dir{data_dir_} {
   euroc_ground_truth_load(*this, data_dir);
 }
@@ -224,7 +233,7 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
     double v_x, v_y, v_z = 0.0;
     double b_w_x, b_w_y, b_w_z = 0.0;
     double b_a_x, b_a_y, b_a_z = 0.0;
-    fscanf(fp, str_format.c_str(),
+    int retval = fscanf(fp, str_format.c_str(),
       &ts,
       &p_x, &p_y, &p_z,
       &q_x, &q_y, &q_z, &q_w,
@@ -232,6 +241,11 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
       &b_w_x, &b_w_y, &b_w_z,
       &b_a_x, &b_a_y, &b_a_z
     );
+    if (retval != 17) {
+      LOG_INFO("Failed to parse line in [%s]", data_path.c_str());
+      return -1;
+    }
+
     data.timestamps.push_back(ts);
     data.p_RS_R.emplace_back(p_x, p_y, p_z);
     data.q_RS.emplace_back(q_w, q_x, q_y, q_z);
@@ -488,7 +502,9 @@ int process_stereo_images(const euroc_calib_t &calib_data,
                                       cam0_image_dir,
                                       cam0_K,
                                       cam0_D,
-                                      cam0_output_dir);
+                                      cam0_output_dir,
+                                      false,
+                                      false);
   if (retval != 0) {
     LOG_ERROR("Failed to preprocess cam0 image data");
   }
@@ -532,11 +548,6 @@ timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
   mat3_t C_WS;
   imu_init_attitude(calib_data.imu_data.w_B, calib_data.imu_data.a_B, C_WS);
   const auto T_WS_init = tf(C_WS, zeros(3, 1));
-
-  // Get all AprilGrid corners in the first camera frame Note: It is assumed
-  // all tags in the AprilGrid is detected in 1st frame
-  const auto points_C0F = cam0_grids[0].points_CF;
-  assert(36 * 4 == points_C0F.size());
 
   // Form T_WF, assumming sensor is at world origin in the first frame
   const auto T_C0F = cam0_grids[0].T_CF;
