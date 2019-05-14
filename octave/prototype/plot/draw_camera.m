@@ -1,4 +1,4 @@
-function draw_camera(T_WC, scale=0.1, style="b-")
+function draw_camera(T_WC, scale=0.05, style="b-")
   fov = deg2rad(60.0);
 
   # Form the camera fov frame

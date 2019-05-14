@@ -20,22 +20,24 @@ T_WC = tf(C_WC, r_WC);
 points_W = 10.0 * rand(3, 100);
 
 # Get camera measurements
-[z_out, points_out] = camera_measurements(K, resolution, T_WC, points_W);
-assert(rows(z_out) == 2);
-assert(columns(z_out) > 0);
-assert(rows(points_out) == 3);
-assert(columns(points_out) > 0);
-assert(columns(z_out) == columns(points_out));
+[z, point_ids] = camera_measurements(K, resolution, T_WC, points_W);
+assert(rows(z) == 2);
+assert(columns(z) > 0);
+assert(rows(point_ids) == 1);
+assert(columns(point_ids) > 0);
+assert(columns(z) == columns(point_ids));
 
 # Plot
+% debug = true;
 debug = false;
 if debug
   figure(1);
   hold on;
   draw_points(points_W, color="b");
   draw_camera(T_WC, scale=0.1, style="r-");
-  for i = 1:columns(points_out)
-    p_W = points_out(1:3, i);
+  for i = 1:length(point_ids)
+    point_id = point_ids(i);
+    p_W = points_W(1:3, point_id);
     plot3([r_WC(1), p_W(1)], [r_WC(2), p_W(2)], [r_WC(3), p_W(3)], 'r-');
   end
   view(3);

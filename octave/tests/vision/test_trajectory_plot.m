@@ -1,8 +1,8 @@
 addpath(genpath("prototype"));
 
-camera = camera_create([680; 480], 90.0);
-chessboard = chessboard_create();
-data = trajectory_simulate(camera, chessboard);
+camera = camera_init([680; 480], 90.0);
+calib_target = calib_target_init();
+data = trajectory_simulate(camera, calib_target);
 
 debug = false;
 if debug

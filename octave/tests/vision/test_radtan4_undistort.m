@@ -17,7 +17,6 @@ for i = 1:nb_tests
   if norm(point1 - point2) > 1e-10
     test_passed = false;
   endif
-
 endfor
 
 if test_passed == false

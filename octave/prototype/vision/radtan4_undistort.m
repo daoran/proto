@@ -4,12 +4,13 @@ function point = radtan4_undistort(k1, k2, p1, p2, p0)
 
   for i = 1:max_iter
 		% Error
-    [p_distorted, J] = radtan4_distort(k1, k2, p1, p2, p);
+    p_distorted = radtan4_distort(k1, k2, p1, p2, p);
+    J = radtan4_point_jacobian(k1, k2, p1, p2, p);
     err = (p0 - p_distorted);
 
 		% Update
-    dp = inv(J' * J) * J' * err;  % Moore-Penrose pseudo inverse
-    % dp = pinv(J) * err;
+    % dp = inv(J' * J) * J' * err;
+    dp = pinv(J) * err;
     p = p + dp;
 
 		% Check threshold

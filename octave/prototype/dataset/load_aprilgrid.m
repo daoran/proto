@@ -12,7 +12,14 @@ function [retval, aprilgrid] = load_aprilgrid(data_path)
 
   % Parse file
   fid = fopen(data_path, "r");
+  % -- Check number of lines
   nb_lines = fskipl(fid, Inf);
+  if nb_lines < 2
+    retval = -1;
+    aprilgrid = {};
+    return;
+  endif
+  % -- Parse file
   frewind(fid);
   csv_data = textscan(fid, fmt_str, "delimiter", ",", "headerlines", 1);
   fclose(fid);
