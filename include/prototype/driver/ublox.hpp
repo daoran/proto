@@ -623,6 +623,7 @@ struct ublox_t {
   bool ok = false;
   uart_t uart;
   std::string mode = "NOT_SET";
+  std::vector<int> conns;
   int server_socket = -1;
   int client_socket = -1;
 

@@ -48,6 +48,9 @@ cd tests
 # ./calib-test_calib_stereo
 # ./calib-test_chessboard
 
+# -- comm
+# ./comm-test_tcp
+
 # -- control
 # ./control-test_carrot_ctrl
 # ./control-test_pid

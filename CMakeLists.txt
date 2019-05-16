@@ -130,6 +130,7 @@ SET(
   # # calib-test_calib_gimbal
   # calib-test_calib_stereo
   # calib-test_chessboard
+  # comm-test_tcp
   # control-test_carrot_ctrl
   # control-test_pid
   # core-test_config
@@ -142,8 +143,8 @@ SET(
   # dataset-test_euroc
   # dataset-test_kitti
   # driver-test_camera
-  # driver-test_ublox
-  # driver-ublox_base_station_tester
+  driver-test_ublox
+  driver-ublox_base_station_tester
   # estimation-test_measurement
   # # model-test_mav
   # model-test_two_wheel

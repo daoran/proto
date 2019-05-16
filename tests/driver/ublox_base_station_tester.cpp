@@ -37,6 +37,8 @@ int main() {
     uint8_t data = 0;
     if (read(sockfd, &data, 1) != 1) {
       LOG_ERROR("Failed to read byte from base station!");
+      LOG_ERROR("Shutting down ...");
+      return 0;
     }
     printf("Got byte 0x%02x\n", data);
   }

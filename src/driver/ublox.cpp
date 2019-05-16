@@ -580,20 +580,29 @@ int ublox_parse_ubx(ublox_t &ublox, uint8_t data) {
   return 0;
 }
 
+void ublox_broadcast_rtcm3(ublox_t &ublox) {
+  const uint8_t *msg_data = ublox.rtcm3_parser.buf_data;
+  const size_t msg_len = ublox.rtcm3_parser.msg_len;
+  const int msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+
+  auto &conns = ublox.conns;
+  for (const auto conn : conns) {
+    if (send(conn, msg_data, msg_len, msg_flags) == -1) {
+      conns.erase(std::remove(conns.begin(), conns.end(), conn), conns.end());
+      LOG_ERROR("Rover diconnected!");
+    }
+  }
+}
+
 int ublox_parse_rtcm3(ublox_t &ublox, uint8_t data) {
   if (rtcm3_parser_update(ublox.rtcm3_parser, data)) {
-    // RTCM3 callback
-    if (ublox.client_socket >= 0) {
-      const uint8_t *msg_data = ublox.rtcm3_parser.buf_data;
-      const size_t msg_len = ublox.rtcm3_parser.msg_len;
-      if (write(ublox.client_socket, msg_data, msg_len) == -1) {
-        LOG_ERROR("Rover diconnected!");
-        ublox.client_socket = -1;
-      }
-    }
-    DEBUG("[RTCM3]\t");
-    DEBUG("msg type: %zu\t", ublox.rtcm3_parser.msg_type);
-    DEBUG("msg length: %zu\n", ublox.rtcm3_parser.msg_len);
+    // Broadcast RTCM3 corrections
+    ublox_broadcast_rtcm3(ublox);
+
+    // Debug
+    DEBUG("[RTCM3]\tmsg type: %zu\tmsg length: %zu",
+          ublox.rtcm3_parser.msg_type,
+          ublox.rtcm3_parser.msg_len);
 
     // Reset parser and msg type
     rtcm3_parser_reset(ublox.rtcm3_parser);
@@ -607,6 +616,19 @@ int ublox_parse_rtcm3(ublox_t &ublox, uint8_t data) {
 
 void ublox_base_station_loop(ublox_t &ublox) {
   while (true) {
+    // Accept the data packet from client and verification
+    struct sockaddr_in client;
+    socklen_t len = sizeof(client);
+    const int flags = SOCK_NONBLOCK;
+    const int connfd = accept4(ublox.server_socket,
+                               (struct sockaddr *) &client,
+                               &len,
+                               flags);
+    if (connfd >= 0) {
+      DEBUG("Server connected with UBlox client!");
+      ublox.conns.push_back(connfd);
+    }
+
     // Read byte
     uint8_t data = 0;
     if (uart_read(ublox.uart, &data, 1) != 0) {
@@ -677,6 +699,9 @@ int ublox_base_station_run(ublox_t &base, const int port) {
     DEBUG("Socket created!");
   }
 
+  // Change server socket into non-blocking state
+  fcntl(base.server_socket, F_SETFL, O_NONBLOCK);
+
   // Socket options
   int enable = 1;
   if (setsockopt(base.server_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
@@ -706,22 +731,11 @@ int ublox_base_station_run(ublox_t &base, const int port) {
   }
 
   // Server is ready to listen
-  if ((listen(base.server_socket, 5)) != 0) {
+  if ((listen(base.server_socket, 20)) != 0) {
     LOG_ERROR("Listen failed...");
     return -1;
   } else {
     DEBUG("Server running");
-  }
-
-  // Accept the data packet from client and verification
-  struct sockaddr_in client;
-  socklen_t len = sizeof(client);
-  base.client_socket = accept(base.server_socket, (struct sockaddr *) &client, &len);
-  if (base.client_socket < 0) {
-    LOG_ERROR("Server acccept failed...");
-    return -1;
-  } else {
-    DEBUG("Server connected with UBlox client!");
   }
 
   // Obtain RTCM3 Messages from receiver and transmit them to rover
@@ -759,11 +773,13 @@ void ublox_rover_loop(ublox_t &ublox) {
     }
 
     // Read byte from server (assuming its the RTCM3)
-    if (fds[1].revents & POLLIN) {
+    if (fds[1].fd != -1 && (fds[1].revents & POLLIN)) {
       // Read byte
       uint8_t data = 0;
       if (read(ublox.client_socket, &data, 1) != 1) {
         LOG_ERROR("Failed to read RTCM3 byte from server!");
+        LOG_ERROR("Ignoring server for now!");
+        fds[1].fd = -1;
       }
 
       // Transmit RTCM3 packet if its ready
@@ -783,7 +799,7 @@ int ublox_rover_config(ublox_t &rover) {
   int retval = 0;
   // retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms = 1Hz
   retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 100, 2);  // 100ms = 10Hz
-  retval += ubx_val_set(rover, layer, CFG_USBOUTPROT_NMEA, 0, 1);
+  retval += ubx_val_set(rover, layer, CFG_USBOUTPROT_NMEA, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_CLOCK_USB, 0, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB, 0, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB, 1, 1);
@@ -800,27 +816,28 @@ int ublox_rover_config(ublox_t &rover) {
   return 0;
 }
 
+static void ublox_setup_hpposllh_output(ublox_t &ublox) {
+  ublox.hpposllh_data = fopen("./ublox_nav_hpposllh.csv", "w");
+  fprintf(ublox.hpposllh_data, "itow,");
+  fprintf(ublox.hpposllh_data, "lon,");
+  fprintf(ublox.hpposllh_data, "lat,");
+  fprintf(ublox.hpposllh_data, "height,");
+  fprintf(ublox.hpposllh_data, "hmsl,");
+  fprintf(ublox.hpposllh_data, "lon_hp,");
+  fprintf(ublox.hpposllh_data, "lat_hp,");
+  fprintf(ublox.hpposllh_data, "height_hp,");
+  fprintf(ublox.hpposllh_data, "hmsl_hp,");
+  fprintf(ublox.hpposllh_data, "hacc,");
+  fprintf(ublox.hpposllh_data, "vacc");
+  fprintf(ublox.hpposllh_data, "\n");
+}
+
 int ublox_rover_run(ublox_t &rover, const std::string &base_ip, const int base_port) {
   // Configure rover
   if (ublox_rover_config(rover) != 0) {
     LOG_ERROR("Failed to configure Ublox into ROVER mode!");
     return -1;
   }
-
-  // Setup output file
-  rover.hpposllh_data = fopen("./ublox_nav_hpposllh.csv", "w");
-  fprintf(rover.hpposllh_data, "itow,");
-  fprintf(rover.hpposllh_data, "lon,");
-  fprintf(rover.hpposllh_data, "lat,");
-  fprintf(rover.hpposllh_data, "height,");
-  fprintf(rover.hpposllh_data, "hmsl,");
-  fprintf(rover.hpposllh_data, "lon_hp,");
-  fprintf(rover.hpposllh_data, "lat_hp,");
-  fprintf(rover.hpposllh_data, "height_hp,");
-  fprintf(rover.hpposllh_data, "hmsl_hp,");
-  fprintf(rover.hpposllh_data, "hacc,");
-  fprintf(rover.hpposllh_data, "vacc");
-  fprintf(rover.hpposllh_data, "\n");
 
   // Create socket
   rover.mode = "ROVER";
@@ -845,7 +862,7 @@ int ublox_rover_run(ublox_t &rover, const std::string &base_ip, const int base_p
                        sizeof(server));
   if (retval != 0) {
     LOG_ERROR("Connection with the server failed!");
-    exit(0);
+    return -1;
   } else {
     DEBUG("Connected to the server!");
   }

@@ -240,19 +240,19 @@ int test_ublox_rover() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_ubx_msg_t);
-  MU_ADD_TEST(test_ubx_msg_parse_and_serialize);
-  MU_ADD_TEST(test_ubx_msg_checksum);
-  MU_ADD_TEST(test_ubx_msg_print);
+  // MU_ADD_TEST(test_ubx_msg_t);
+  // MU_ADD_TEST(test_ubx_msg_parse_and_serialize);
+  // MU_ADD_TEST(test_ubx_msg_checksum);
+  // MU_ADD_TEST(test_ubx_msg_print);
+  //
+  // MU_ADD_TEST(test_ublox_t);
+  // MU_ADD_TEST(test_ubx_val_set_and_get);
+  //
+  // MU_ADD_TEST(test_ublox_version);
+  // MU_ADD_TEST(test_ublox_parse_rtcm3);
 
-  MU_ADD_TEST(test_ublox_t);
-  MU_ADD_TEST(test_ubx_val_set_and_get);
-
-  MU_ADD_TEST(test_ublox_version);
-  MU_ADD_TEST(test_ublox_parse_rtcm3);
-
-  // MU_ADD_TEST(test_ublox_base);
-  MU_ADD_TEST(test_ublox_rover);
+  MU_ADD_TEST(test_ublox_base);
+  // MU_ADD_TEST(test_ublox_rover);
 }
 
 } // namespace proto
