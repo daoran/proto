@@ -10,6 +10,7 @@
 #include <sys/poll.h>
 
 #include "prototype/driver/uart.hpp"
+#include "prototype/comm/tcp.hpp"
 
 namespace proto {
 

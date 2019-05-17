@@ -64,5 +64,11 @@ int tcp_client_config(tcp_client_t &client);
  */
 int tcp_client_loop(tcp_client_t &client);
 
+/**
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
+ */
+int ip_port_info(const int sockfd, std::string &ip, int &port);
+
 } //  namespace proto
 #endif // PROTOTYPE_COMM_TCP_HPP

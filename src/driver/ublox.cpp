@@ -511,9 +511,9 @@ int ublox_parse_ubx(ublox_t &ublox, uint8_t data) {
   if (ubx_parser_update(ublox.ubx_parser, data) == 1) {
     uint8_t msg_class = ublox.ubx_parser.msg.msg_class;
     uint8_t msg_id = ublox.ubx_parser.msg.msg_id;
-    // printf("[UBX]\t");
-    // printf("msg class: %d\t", msg_class);
-    // printf("msg id: %d\n", msg_id);
+    // DEBUG("[UBX]\t");
+    // DEBUG("msg class: %d\t", msg_class);
+    // DEBUG("msg id: %d\n", msg_id);
 
     // UBX-NAV-SVIN
     if (msg_class == UBX_NAV && msg_id == UBX_NAV_SVIN) {
@@ -625,7 +625,10 @@ void ublox_base_station_loop(ublox_t &ublox) {
                                &len,
                                flags);
     if (connfd >= 0) {
-      DEBUG("Server connected with UBlox client!");
+      std::string ip;
+      int port = 0;
+      ip_port_info(connfd, ip, port);
+      DEBUG("Server connected with UBlox client [%s:%d]", ip.c_str(), port);
       ublox.conns.push_back(connfd);
     }
 
