@@ -514,6 +514,7 @@ int ublox_parse_ubx(ublox_t &ublox, uint8_t data) {
       ublox.nav_hpposllh = ubx_nav_hpposllh_t{ublox.ubx_parser.msg};
       // print_ubx_nav_hpposllh(ublox.nav_hpposllh);
 
+      // Record hpposllh data
       if (ublox.hpposllh_data) {
         fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.itow);
         fprintf(ublox.hpposllh_data, ",");
@@ -538,6 +539,11 @@ int ublox_parse_ubx(ublox_t &ublox, uint8_t data) {
         fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.vacc);
         fprintf(ublox.hpposllh_data, "\n");
         fflush(ublox.hpposllh_data);
+      }
+
+      // Position update callback
+      if (ublox.pos_update_cb) {
+        ublox.pos_update_cb(ublox);
       }
     }
 

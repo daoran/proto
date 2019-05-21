@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 
+#include <functional>
+
 #include "prototype/driver/uart.hpp"
 #include "prototype/comm/tcp.hpp"
 
@@ -605,6 +607,7 @@ struct ublox_t {
   ubx_rxm_rtcm_t rxm_rtcm;
 
   FILE *hpposllh_data = nullptr;
+  std::function<void(ublox_t &ublox)> pos_update_cb = nullptr;
 
   ublox_t(const std::string &port = "/dev/ttyACM0", const int speed = B57600);
   ublox_t(const uart_t &uart);
