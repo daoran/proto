@@ -1,8 +1,13 @@
-default: usage
+default:
 
-usage:
-	@echo "debug"
-	@echo "release"
+# usage:
+# 	@cat<<-EOF
+# 		debug:
+# 			build prototype in debug mode
+#
+# 		release:
+# 			build prototype in release mode
+# 	EOF
 
 deps:
 	@git submodule init
@@ -10,8 +15,11 @@ deps:
 
 debug: deps
 	@mkdir -p build
-	@cd build && cmake .. && make -s
+	@cd build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s
 
 release: deps
 	@mkdir -p build
-	@cd build && cmake .. && make -s
+	@cd build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s
+
+install:
+	@cd build && make -s install
