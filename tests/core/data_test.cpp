@@ -89,8 +89,8 @@ int test_interp_pose() {
   const auto pose_interp = interp_pose(pose_start, pose_end, 0.5);
 
   std::cout << "pose_start:\n" << pose_start << std::endl << std::endl;
-  std::cout << "pose_end:\n" << pose_end  << std::endl << std::endl;
-  std::cout << "pose_interp:\n" << pose_interp  << std::endl << std::endl;
+  std::cout << "pose_end:\n" << pose_end << std::endl << std::endl;
+  std::cout << "pose_interp:\n" << pose_interp << std::endl << std::endl;
 
   MU_CHECK((tf_trans(pose_interp) - vec3_t{0.5, 1.0, 1.5}).norm() - 1e-5);
 

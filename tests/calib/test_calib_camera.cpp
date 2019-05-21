@@ -158,65 +158,65 @@ int test_calib_generate_poses() {
     return -1;
   }
 
-	// Generate nbv poses
+  // Generate nbv poses
   mat4s_t nbv_poses = calib_generate_poses(target);
 
-	// Setup camera
+  // Setup camera
   cv::VideoCapture camera(0);
   if (camera.isOpened() == false) {
     return -1;
   }
-	sleep(2);
+  sleep(2);
 
-	// Guess the camera intrinsics and distortion
-	cv::Mat frame;
-	camera.read(frame);
+  // Guess the camera intrinsics and distortion
+  cv::Mat frame;
+  camera.read(frame);
   const auto detector = aprilgrid_detector_t();
-	const double fx = pinhole_focal_length(frame.cols, 120.0);
-	const double fy = pinhole_focal_length(frame.rows, 120.0);
-	const double cx = frame.cols / 2.0;
-	const double cy = frame.rows / 2.0;
+  const double fx = pinhole_focal_length(frame.cols, 120.0);
+  const double fy = pinhole_focal_length(frame.rows, 120.0);
+  const double cx = frame.cols / 2.0;
+  const double cy = frame.rows / 2.0;
   const mat3_t K = pinhole_K(fx, fy, cx, cy);
   const vec4_t D = zeros(4, 1);
 
-	// Loop camera feed
+  // Loop camera feed
   int pose_idx = randi(0, nbv_poses.size());
   while (true) {
-		// Get image
-		cv::Mat frame;
+    // Get image
+    cv::Mat frame;
     camera.read(frame);
 
     // Detect AprilGrid
-		aprilgrid_t grid;
-		aprilgrid_set_properties(grid,
+    aprilgrid_t grid;
+    aprilgrid_set_properties(grid,
                              target.tag_rows,
                              target.tag_cols,
                              target.tag_size,
                              target.tag_spacing);
-		aprilgrid_detect(grid, detector, frame, K, D);
+    aprilgrid_detect(grid, detector, frame, K, D);
 
     // Calculate calibration target from camera view
-		vec3s_t object_points;
-		aprilgrid_object_points(grid, object_points);
-		const size_t nb_pts = object_points.size();
-		const matx_t hp_T = vecs2mat(object_points);
-		const mat4_t T_TC = nbv_poses[pose_idx];
-		const mat4_t T_CT = T_TC.inverse();
-		const matx_t hp_C = T_CT * hp_T;
-		const matx_t p_C = hp_C.block(0, 0, 3, nb_pts);
+    vec3s_t object_points;
+    aprilgrid_object_points(grid, object_points);
+    const size_t nb_pts = object_points.size();
+    const matx_t hp_T = vecs2mat(object_points);
+    const mat4_t T_TC = nbv_poses[pose_idx];
+    const mat4_t T_CT = T_TC.inverse();
+    const matx_t hp_C = T_CT * hp_T;
+    const matx_t p_C = hp_C.block(0, 0, 3, nb_pts);
 
     // Project target corners to camera frame
-		for (size_t i = 0; i < nb_pts; i++) {
-			const vec3_t p = p_C.block(0, i, 3, 1);
-			const vec3_t pt{p(0) / p(2), p(1) / p(2), 1.0};
-			const vec2_t pixel = (K * pt).head(2);
-			cv::Point2f cv_pixel(pixel(0), pixel(1));
-			if (i < 4) {
+    for (size_t i = 0; i < nb_pts; i++) {
+      const vec3_t p = p_C.block(0, i, 3, 1);
+      const vec3_t pt{p(0) / p(2), p(1) / p(2), 1.0};
+      const vec2_t pixel = (K * pt).head(2);
+      cv::Point2f cv_pixel(pixel(0), pixel(1));
+      if (i < 4) {
         cv::circle(frame, cv_pixel, 3, cv::Scalar(0, 255, 0), -1);
       } else {
         cv::circle(frame, cv_pixel, 3, cv::Scalar(0, 0, 255), -1);
       }
-		}
+    }
 
     const vec3_t pos_desired = tf_trans(T_CT);
     const vec3_t pos_actual = tf_trans(grid.T_CF);
@@ -233,17 +233,17 @@ int test_calib_generate_poses() {
       pose_idx = randf(0, nbv_poses.size());
     }
 
-		// const std::string title = "AprilGrid";
-		// aprilgrid_imshow(grid, title, frame);
+    // const std::string title = "AprilGrid";
+    // aprilgrid_imshow(grid, title, frame);
 
-		// Show image and get user input
+    // Show image and get user input
     cv::Mat frame_flip;
     cv::flip(frame, frame_flip, 1);
-		cv::imshow("Image", frame_flip);
-		char key = (char) cv::waitKey(1);
-		if (key == 'q') {
-			break;
-		}
+    cv::imshow("Image", frame_flip);
+    char key = (char) cv::waitKey(1);
+    if (key == 'q') {
+      break;
+    }
   }
 
   return 0;

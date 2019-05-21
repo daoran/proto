@@ -68,7 +68,8 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
-  problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  problem_options.local_parameterization_ownership =
+      ceres::DO_NOT_TAKE_OWNERSHIP;
   std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 
@@ -113,7 +114,8 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
   //   double pinhole_radtan_covar[4 * 4];
   //   covar.GetCovarianceBlock(*pinhole.data, *pinhole.data, pinhole_covar);
   //   covar.GetCovarianceBlock(*radtan.data, *radtan.data, radtan_covar);
-  //   covar.GetCovarianceBlock(*pinhole.data, *radtan.data, pinhole_radtan_covar);
+  //   covar.GetCovarianceBlock(*pinhole.data, *radtan.data,
+  //   pinhole_radtan_covar);
   // }
 
   // Clean up

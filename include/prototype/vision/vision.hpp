@@ -9,4 +9,4 @@
 #include "prototype/vision/feature2d/grid_fast.hpp"
 #include "prototype/vision/feature2d/grid_good.hpp"
 
-#endif  // PROTOTYPE_VISION_HPP
+#endif // PROTOTYPE_VISION_HPP

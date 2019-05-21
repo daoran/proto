@@ -5,12 +5,11 @@ namespace proto {
 pinhole_t::pinhole_t() {}
 
 pinhole_t::pinhole_t(const vec4_t &intrinsics_)
-    : fx{intrinsics_(0)}, fy{intrinsics_(1)},
-      cx{intrinsics_(2)}, cy{intrinsics_(3)} {}
+    : fx{intrinsics_(0)}, fy{intrinsics_(1)}, cx{intrinsics_(2)},
+      cy{intrinsics_(3)} {}
 
 pinhole_t::pinhole_t(const mat3_t &K_)
-    : fx{K_(0, 0)}, fy{K_(1, 1)},
-      cx{K_(0, 2)}, cy{K_(1, 2)} {}
+    : fx{K_(0, 0)}, fy{K_(1, 1)}, cx{K_(0, 2)}, cy{K_(1, 2)} {}
 
 pinhole_t::pinhole_t(const double fx_,
                      const double fy_,
@@ -19,12 +18,10 @@ pinhole_t::pinhole_t(const double fx_,
     : fx{fx_}, fy{fy_}, cx{cx_}, cy{cy_} {}
 
 pinhole_t::pinhole_t(pinhole_t &pinhole)
-    : fx{pinhole.fx}, fy{pinhole.fy},
-      cx{pinhole.cx}, cy{pinhole.cy} {}
+    : fx{pinhole.fx}, fy{pinhole.fy}, cx{pinhole.cx}, cy{pinhole.cy} {}
 
 pinhole_t::pinhole_t(const pinhole_t &pinhole)
-    : fx{pinhole.fx}, fy{pinhole.fy},
-      cx{pinhole.cx}, cy{pinhole.cy} {}
+    : fx{pinhole.fx}, fy{pinhole.fy}, cx{pinhole.cx}, cy{pinhole.cy} {}
 
 pinhole_t::~pinhole_t() {}
 
@@ -63,9 +60,7 @@ mat3_t pinhole_K(const double *intrinsics) {
   return pinhole_K(fx, fy, cx, cy);
 }
 
-mat3_t pinhole_K(const pinhole_t &pinhole) {
-  return pinhole_K(*pinhole.data);
-}
+mat3_t pinhole_K(const pinhole_t &pinhole) { return pinhole_K(*pinhole.data); }
 
 mat3_t pinhole_K(const vec4_t &intrinsics) {
   const double fx = intrinsics(0);
@@ -105,9 +100,7 @@ vec2_t pinhole_focal_length(const vec2_t &image_size,
   return vec2_t{fx, fy};
 }
 
-vec2_t project(const vec3_t &p) {
-  return vec2_t{p(0) / p(2), p(1) / p(2)};
-}
+vec2_t project(const vec3_t &p) { return vec2_t{p(0) / p(2), p(1) / p(2)}; }
 
 vec2_t project(const pinhole_t &model, const vec3_t &p) {
   const double px = p(0) / p(2);

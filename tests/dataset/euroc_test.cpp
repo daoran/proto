@@ -6,7 +6,7 @@ namespace proto {
 #define TEST_DATA "test_data/dataset/euroc/V1_01_easy"
 #define TEST_IMU_DATA "test_data/dataset/euroc/V1_01_easy/mav0/imu0"
 #define TEST_CAM0_DATA "test_data/dataset/euroc/V1_01_easy/mav0/cam0"
-#define TEST_GROUND_TRUTH_DATA \
+#define TEST_GROUND_TRUTH_DATA                                                 \
   "test_data/dataset/euroc/V1_01_easy/mav0/state_groundtruth_estimate0"
 #define TEST_CALIB_DATA "test_data/dataset/euroc/cam_april"
 
@@ -138,10 +138,10 @@ int test_euroc_ground_truth_load() {
   MU_CHECK(ground_truth.b_a_RS_S.size());
 
   const timestamp_t ts_gnd = 1403715274302142976;
-  const vec3_t p_gnd{0.878612,2.142470,0.947262};
-  const vec3_t v_gnd{0.009474,-0.014009,-0.002145};
-  const vec3_t gyro_bias{-0.002229,0.020700,0.076350};
-  const vec3_t accel_bias{-0.012492,0.547666,0.069073};
+  const vec3_t p_gnd{0.878612, 2.142470, 0.947262};
+  const vec3_t v_gnd{0.009474, -0.014009, -0.002145};
+  const vec3_t gyro_bias{-0.002229, 0.020700, 0.076350};
+  const vec3_t accel_bias{-0.012492, 0.547666, 0.069073};
   MU_CHECK(ts_gnd == ground_truth.timestamps[0]);
   MU_CHECK((p_gnd - ground_truth.p_RS_R[0]).norm() < 1e-5);
   MU_CHECK((v_gnd - ground_truth.v_RS_R[0]).norm() < 1e-5);

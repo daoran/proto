@@ -62,7 +62,8 @@ struct timeline_t {
 };
 
 template <typename T>
-void timeline_add_event(timeline_t<T> &timeline, const timeline_event_t<T> &event);
+void timeline_add_event(timeline_t<T> &timeline,
+                        const timeline_event_t<T> &event);
 
 } //  namespace proto
 #include "timeline_impl.hpp"

@@ -13,15 +13,16 @@ static int set_interface_attribs(int fd, int speed) {
   cfsetospeed(&tty, (speed_t) speed);
   cfsetispeed(&tty, (speed_t) speed);
 
-  tty.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
+  tty.c_cflag |= (CLOCAL | CREAD); /* ignore modem controls */
   tty.c_cflag &= ~CSIZE;
-  tty.c_cflag |= CS8;         /* 8-bit characters */
-  tty.c_cflag &= ~PARENB;     /* no parity bit */
-  tty.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
-  tty.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
+  tty.c_cflag |= CS8;      /* 8-bit characters */
+  tty.c_cflag &= ~PARENB;  /* no parity bit */
+  tty.c_cflag &= ~CSTOPB;  /* only need 1 stop bit */
+  tty.c_cflag &= ~CRTSCTS; /* no hardware flowcontrol */
 
   /* Setup for non-canonical mode */
-  tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+  tty.c_iflag &=
+      ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
   tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
   tty.c_oflag &= ~OPOST;
 
@@ -44,8 +45,8 @@ int uart_connect(uart_t &uart) {
   }
   uart.connected = true;
 
-	// Set serial attributes
-  if (set_interface_attribs(uart.connection,  uart.speed) != 0) {
+  // Set serial attributes
+  if (set_interface_attribs(uart.connection, uart.speed) != 0) {
     return -1;
   }
 

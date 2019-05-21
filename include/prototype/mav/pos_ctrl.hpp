@@ -32,7 +32,7 @@ struct pos_ctrl_t {
  */
 int pos_ctrl_configure(pos_ctrl_t &ctrl,
                        const std::string &config_file,
-                       const std::string &prefix="");
+                       const std::string &prefix = "");
 
 /**
  * Update position control

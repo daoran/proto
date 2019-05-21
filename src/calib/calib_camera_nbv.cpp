@@ -2,10 +2,10 @@
 
 namespace proto {
 
-aprilgrid_t nbv_create_aprilgrid(
-    const calib_target_t &target,
-    const camera_geometry_t <pinhole_t, radtan4_t> &camera,
-    const mat4_t &T_CF) {
+aprilgrid_t
+nbv_create_aprilgrid(const calib_target_t &target,
+                     const camera_geometry_t<pinhole_t, radtan4_t> &camera,
+                     const mat4_t &T_CF) {
   // Create AprilGrid
   aprilgrid_t grid;
   grid.tag_rows = target.tag_rows;
@@ -92,7 +92,7 @@ void nbv_find(const calib_target_t &target,
               aprilgrid_t &nbv_grid) {
   // Evalute NBV
   double entropy_best = 0.0;
-  const camera_geometry_t <pinhole_t, radtan4_t> camera{pinhole, radtan};
+  const camera_geometry_t<pinhole_t, radtan4_t> camera{pinhole, radtan};
 
   // -- Loop over all NBV poses and find one with lowest entropy
   for (const auto &T_TC : calib_generate_poses(target)) {
@@ -108,10 +108,8 @@ void nbv_find(const calib_target_t &target,
     mat4s_t T_CT_ignore;
 
     // -- Evaluate NBV
-    const double entropy = calib_camera_nbv_solve(grids,
-                                                  pinhole_copy,
-                                                  radtan_copy,
-                                                  T_CT_ignore);
+    const double entropy =
+        calib_camera_nbv_solve(grids, pinhole_copy, radtan_copy, T_CT_ignore);
     if (entropy < entropy_best) {
       entropy_best = entropy;
       nbv_pose = T_CT;
@@ -125,48 +123,47 @@ static void initialize_intrinsics(cv::VideoCapture &camera,
                                   pinhole_t &pinhole,
                                   radtan4_t &radtan,
                                   mat4s_t &T_CT) {
-	// Guess the camera intrinsics and distortion
-	cv::Mat frame;
-	camera.read(frame);
+  // Guess the camera intrinsics and distortion
+  cv::Mat frame;
+  camera.read(frame);
   const auto detector = aprilgrid_detector_t();
-	const double fx = pinhole_focal_length(frame.cols, 120.0);
-	const double fy = pinhole_focal_length(frame.rows, 120.0);
-	const double cx = frame.cols / 2.0;
-	const double cy = frame.rows / 2.0;
+  const double fx = pinhole_focal_length(frame.cols, 120.0);
+  const double fy = pinhole_focal_length(frame.rows, 120.0);
+  const double cx = frame.cols / 2.0;
+  const double cy = frame.rows / 2.0;
   pinhole = pinhole_t{fx, fy, cx, cy};
   radtan = radtan4_t{0.0, 0.0, 0.0, 0.0};
   const mat3_t K = pinhole_K(pinhole);
   const vec4_t D = distortion_coeffs(radtan);
 
   while (aprilgrids.size() < 5) {
-		// Get image
-		cv::Mat frame;
+    // Get image
+    cv::Mat frame;
     camera.read(frame);
 
     // Detect AprilGrid
-		aprilgrid_t grid;
-		aprilgrid_set_properties(grid,
+    aprilgrid_t grid;
+    aprilgrid_set_properties(grid,
                              target.tag_rows,
                              target.tag_cols,
                              target.tag_size,
                              target.tag_spacing);
-		aprilgrid_detect(grid, detector, frame, K, D);
+    aprilgrid_detect(grid, detector, frame, K, D);
 
-		// Show image and get user input
-		cv::imshow("Image", frame);
-		char key = (char) cv::waitKey(1);
-		if (key == 'q') {
-			break;
-		} else if (key == 'c' && grid.detected) {
-		  aprilgrids.push_back(grid);
-		}
+    // Show image and get user input
+    cv::imshow("Image", frame);
+    char key = (char) cv::waitKey(1);
+    if (key == 'q') {
+      break;
+    } else if (key == 'c' && grid.detected) {
+      aprilgrids.push_back(grid);
+    }
   }
 
   calib_camera_nbv_solve(aprilgrids, pinhole, radtan, T_CT);
   std::cout << "pinhole: " << pinhole << std::endl;
   std::cout << "radtan: " << radtan << std::endl;
 }
-
 
 static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              double *intrinsics,
@@ -228,7 +225,8 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
-  problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  problem_options.local_parameterization_ownership =
+      ceres::DO_NOT_TAKE_OWNERSHIP;
   std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 
@@ -275,7 +273,9 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
     double pinhole_radtan_covar[4 * 4];
     covar_est.GetCovarianceBlock(*pinhole.data, *pinhole.data, pinhole_covar);
     covar_est.GetCovarianceBlock(*radtan.data, *radtan.data, radtan_covar);
-    covar_est.GetCovarianceBlock(*pinhole.data, *radtan.data, pinhole_radtan_covar);
+    covar_est.GetCovarianceBlock(*pinhole.data,
+                                 *radtan.data,
+                                 pinhole_radtan_covar);
 
     // Calculate shannon entropy
     matx_t covar;
@@ -311,12 +311,12 @@ static void validate_calibration(const calib_target_t &target,
   const auto detector = aprilgrid_detector_t();
 
   while (true) {
-		// Get image
-		cv::Mat frame;
+    // Get image
+    cv::Mat frame;
     camera.read(frame);
 
     aprilgrid_t grid;
-		aprilgrid_set_properties(grid,
+    aprilgrid_set_properties(grid,
                              target.tag_rows,
                              target.tag_cols,
                              target.tag_size,
@@ -334,12 +334,12 @@ static void validate_calibration(const calib_target_t &target,
       cv::imshow("Image", frame);
     }
 
-		// Show image and get user input
-		char key = (char) cv::waitKey(1);
-		if (key == 'q') {
-			break;
-		}
-	}
+    // Show image and get user input
+    char key = (char) cv::waitKey(1);
+    if (key == 'q') {
+      break;
+    }
+  }
 }
 
 int calib_camera_nbv(const std::string &target_path, const size_t max_frames) {
@@ -350,12 +350,12 @@ int calib_camera_nbv(const std::string &target_path, const size_t max_frames) {
     return -1;
   }
 
-	// Setup camera
+  // Setup camera
   cv::VideoCapture camera(2);
   if (camera.isOpened() == false) {
     return -1;
   }
-	sleep(2);
+  sleep(2);
 
   // Initialize intrinsics
   aprilgrids_t aprilgrids;
@@ -370,27 +370,27 @@ int calib_camera_nbv(const std::string &target_path, const size_t max_frames) {
                         target_poses);
   LOG_INFO("Initialized intrinsics and distortion!");
 
-	// Loop camera feed
+  // Loop camera feed
   const auto detector = aprilgrid_detector_t();
   mat4_t nbv_pose;
   aprilgrid_t nbv_grid;
   nbv_find(target, aprilgrids, pinhole, radtan, nbv_pose, nbv_grid);
 
   while (true) {
-		// Get image
-		cv::Mat frame;
+    // Get image
+    cv::Mat frame;
     camera.read(frame);
 
     // Detect AprilGrid
-		aprilgrid_t grid;
-		aprilgrid_set_properties(grid,
+    aprilgrid_t grid;
+    aprilgrid_set_properties(grid,
                              target.tag_rows,
                              target.tag_cols,
                              target.tag_size,
                              target.tag_spacing);
     const mat3_t K = pinhole_K(pinhole);
     const vec4_t D{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
-		aprilgrid_detect(grid, detector, frame, K, D);
+    aprilgrid_detect(grid, detector, frame, K, D);
 
     // Draw NBV
     nbv_draw_aprilgrid(nbv_grid, pinhole, radtan, nbv_pose, frame);
@@ -426,15 +426,15 @@ int calib_camera_nbv(const std::string &target_path, const size_t max_frames) {
       break;
     }
 
-		// Show image and get user input
-		cv::imshow("Image", frame);
+    // Show image and get user input
+    cv::imshow("Image", frame);
     // cv::Mat frame_flipped;
     // cv::flip(frame, frame_flipped, 1);
-		// cv::imshow("Image", frame_flipped);
-		char key = (char) cv::waitKey(1);
-		if (key == 'q') {
-			break;
-		}
+    // cv::imshow("Image", frame_flipped);
+    char key = (char) cv::waitKey(1);
+    if (key == 'q') {
+      break;
+    }
   }
 
   std::cout << pinhole << std::endl;
@@ -444,7 +444,8 @@ int calib_camera_nbv(const std::string &target_path, const size_t max_frames) {
   return 0;
 }
 
-int calib_camera_batch(const std::string &target_path, const size_t max_frames) {
+int calib_camera_batch(const std::string &target_path,
+                       const size_t max_frames) {
   // Setup calibration target
   calib_target_t target;
   if (calib_target_load(target, target_path) != 0) {
@@ -452,21 +453,21 @@ int calib_camera_batch(const std::string &target_path, const size_t max_frames) 
     return -1;
   }
 
-	// Setup camera
+  // Setup camera
   cv::VideoCapture camera(2);
   if (camera.isOpened() == false) {
     return -1;
   }
-	// sleep(2);
+  // sleep(2);
 
-	// Guess the camera intrinsics and distortion
-	cv::Mat frame;
-	camera.read(frame);
+  // Guess the camera intrinsics and distortion
+  cv::Mat frame;
+  camera.read(frame);
   const auto detector = aprilgrid_detector_t();
-	const double fx = pinhole_focal_length(frame.cols, 120.0);
-	const double fy = pinhole_focal_length(frame.rows, 120.0);
-	const double cx = frame.cols / 2.0;
-	const double cy = frame.rows / 2.0;
+  const double fx = pinhole_focal_length(frame.cols, 120.0);
+  const double fy = pinhole_focal_length(frame.rows, 120.0);
+  const double cx = frame.cols / 2.0;
+  const double cy = frame.rows / 2.0;
   pinhole_t pinhole{fx, fy, cx, cy};
   radtan4_t radtan{0.0, 0.0, 0.0, 0.0};
   const mat3_t K = pinhole_K(pinhole);
@@ -474,27 +475,27 @@ int calib_camera_batch(const std::string &target_path, const size_t max_frames) 
 
   aprilgrids_t aprilgrids;
   while (aprilgrids.size() < max_frames) {
-		// Get image
-		cv::Mat frame;
+    // Get image
+    cv::Mat frame;
     camera.read(frame);
 
     // Detect AprilGrid
-		aprilgrid_t grid;
-		aprilgrid_set_properties(grid,
+    aprilgrid_t grid;
+    aprilgrid_set_properties(grid,
                              target.tag_rows,
                              target.tag_cols,
                              target.tag_size,
                              target.tag_spacing);
-		aprilgrid_detect(grid, detector, frame, K, D);
+    aprilgrid_detect(grid, detector, frame, K, D);
 
-		// Show image and get user input
-		cv::imshow("Image", frame);
-		char key = (char) cv::waitKey(1);
-		if (key == 'q') {
-			break;
-		} else if (key == 'c' && grid.detected) {
-		  aprilgrids.push_back(grid);
-		}
+    // Show image and get user input
+    cv::imshow("Image", frame);
+    char key = (char) cv::waitKey(1);
+    if (key == 'q') {
+      break;
+    } else if (key == 'c' && grid.detected) {
+      aprilgrids.push_back(grid);
+    }
   }
 
   mat4s_t target_poses;

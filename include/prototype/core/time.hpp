@@ -18,8 +18,7 @@ typedef std::vector<timestamp_t> timestamps_t;
 /**
  * Print timestamp.
  */
-void timestamp_print(const timestamp_t &ts,
-                     const std::string &prefix="");
+void timestamp_print(const timestamp_t &ts, const std::string &prefix = "");
 
 /**
  * Convert ts to second.

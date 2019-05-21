@@ -64,7 +64,7 @@ vec4_t tk_ctrl_update(tk_ctrl_t &ctrl,
   // keep at a desired height at the moment
   const double actual_height = T_WB(2, 3);
   vec3_t r_BZ = tf_trans(T_BZ);
-	r_BZ(2) = desired_height - actual_height;
+  r_BZ(2) = desired_height - actual_height;
 
   // Adjust relative errors by incorporating yaw in world frame
   const double actual_yaw = quat2euler(tf_quat(T_WB))(2);

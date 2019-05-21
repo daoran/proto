@@ -13,7 +13,6 @@ namespace proto {
 #define MONO_OUTPUT_DIR "/tmp/aprilgrid_test/mono"
 #define STEREO_OUTPUT_DIR "/tmp/aprilgrid_test/stereo"
 
-
 int test_preprocess_and_load_camera_data() {
   // Setup calibration target
   calib_target_t target;
@@ -131,11 +130,9 @@ int test_load_multicam_calib_data() {
 
   // Test load
   std::map<int, aprilgrids_t> calib_data;
-  int retval = load_multicam_calib_data(
-    2,
-    {cam0_output_dir, cam1_output_dir},
-    calib_data
-  );
+  int retval = load_multicam_calib_data(2,
+                                        {cam0_output_dir, cam1_output_dir},
+                                        calib_data);
   MU_CHECK(retval == 0);
 
   // Assert

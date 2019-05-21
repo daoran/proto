@@ -14,13 +14,11 @@ namespace proto {
  * Stereo camera calibration residual
  */
 struct stereo_residual_t {
-  double z_C0_[2] = {0.0, 0.0};      ///< Measurement from cam0
-  double z_C1_[2] = {0.0, 0.0};      ///< Measurement from cam1
-  double p_F_[3] = {0.0, 0.0, 0.0};  ///< Object point
+  double z_C0_[2] = {0.0, 0.0};     ///< Measurement from cam0
+  double z_C1_[2] = {0.0, 0.0};     ///< Measurement from cam1
+  double p_F_[3] = {0.0, 0.0, 0.0}; ///< Object point
 
-  stereo_residual_t(const vec2_t &z_C0,
-                    const vec2_t &z_C1,
-                    const vec3_t &p_F);
+  stereo_residual_t(const vec2_t &z_C0, const vec2_t &z_C1, const vec3_t &p_F);
   ~stereo_residual_t();
 
   /**

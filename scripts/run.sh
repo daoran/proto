@@ -11,21 +11,14 @@ debug() {
     --args "$1" "$2"
 }
 
-# sudo bash scripts/install_deps/run.bash
-# sudo bash scripts/install_deps/install_realsense.bash
-# bash ./scripts/format_code.bash
-# cd scripts/api && python3 api.py
-
 # LIBRARY
-mkdir -p build
-cd build || return
-cmake ..
-make -j8
+make debug
+# make release
 sudo make install
 # exit
 
 # APPS
-# cd apps
+# cd build/apps
 # ./scripts/octave/calib_data_summary
 # ./calib_camera config/calib_camera.yaml
 # ./calib_stereo config/calib_stereo.yaml
@@ -38,7 +31,7 @@ sudo make install
 # exit
 
 # TESTS
-cd tests
+cd build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera

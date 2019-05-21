@@ -26,16 +26,15 @@ timeline_event_t<T>::timeline_event_t(const T ts_,
                                       const std::string &object_name_,
                                       const vec3_t &r_WM_,
                                       const quat_t &q_WM_)
-    : type{VICON_EVENT}, ts{ts_}, object_name{object_name_},
-      r_WM{r_WM_}, q_WM{q_WM_} {}
+    : type{VICON_EVENT}, ts{ts_},
+      object_name{object_name_}, r_WM{r_WM_}, q_WM{q_WM_} {}
 
 template <typename T>
 timeline_event_t<T>::timeline_event_t(const T ts_,
                                       const int camera_index_,
                                       const aprilgrid_t &grid_)
-    : type{APRILGRID_EVENT}, ts{ts_},
-      camera_index{camera_index_},
-      grid{grid_} {}
+    : type{APRILGRID_EVENT}, ts{ts_}, camera_index{camera_index_}, grid{grid_} {
+}
 
 template <typename T>
 timeline_event_t<T>::~timeline_event_t() {}

@@ -58,7 +58,7 @@ struct euroc_camera_t {
   vec4_t distortion_coefficients = zeros(4, 1);
 
   euroc_camera_t();
-  euroc_camera_t(const std::string &data_dir_, bool is_calib_data_=false);
+  euroc_camera_t(const std::string &data_dir_, bool is_calib_data_ = false);
   ~euroc_camera_t();
 };
 
@@ -241,30 +241,27 @@ int process_stereo_images(const euroc_calib_t &calib_data,
  * calculated.
  */
 timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
-                                 const aprilgrids_t &cam0_grids,
-                                 const aprilgrids_t &cam1_grids,
-                                 const mat4_t &T_SC0,
-                                 mat4s_t &T_WS,
-                                 mat4_t &T_WF,
-                                 timestamp_t &t0);
+                                        const aprilgrids_t &cam0_grids,
+                                        const aprilgrids_t &cam1_grids,
+                                        const mat4_t &T_SC0,
+                                        mat4s_t &T_WS,
+                                        mat4_t &T_WF,
+                                        timestamp_t &t0);
 
 /**
  * `euroc_imu_t` to output stream
  */
 std::ostream &operator<<(std::ostream &os, const euroc_imu_t &data);
 
-
 /**
  * `euroc_camera_t` to output stream
  */
 std::ostream &operator<<(std::ostream &os, const euroc_camera_t &data);
 
-
 /**
  * `calib_target_t` to output stream
  */
 std::ostream &operator<<(std::ostream &os, const euroc_target_t &target);
-
 
 } // namespace proto
 #endif /* PROTOTYPE_DATASET_EUROC_HPP */

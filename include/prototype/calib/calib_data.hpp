@@ -59,7 +59,7 @@ int calib_target_load(calib_target_t &ct,
  */
 int detect_calib_data(const calib_target_t &target,
                       const std::string &image_dir,
-                      const bool imshow=true);
+                      const bool imshow = true);
 
 /**
  * Preprocess camera image data and output AprilGrid detection data as
@@ -75,8 +75,8 @@ int preprocess_camera_data(const calib_target_t &target,
                            const mat3_t &cam_K,
                            const vec4_t &cam_D,
                            const std::string &output_dir,
-                           const bool imshow=false,
-                           const bool show_progress=true);
+                           const bool imshow = false,
+                           const bool show_progress = true);
 
 /**
  * Preprocess camera image data and output AprilGrid detection data as
@@ -93,8 +93,8 @@ int preprocess_camera_data(const calib_target_t &target,
                            const double lens_hfov,
                            const double lens_vfov,
                            const std::string &output_dir,
-                           const bool imshow=false,
-                           const bool show_progress=true);
+                           const bool imshow = false,
+                           const bool show_progress = true);
 
 /**
  * Load preprocess-ed camera calibration data located in `data_dir` where the
@@ -108,7 +108,7 @@ int preprocess_camera_data(const calib_target_t &target,
 int load_camera_calib_data(const std::string &data_dir,
                            aprilgrids_t &aprilgrids,
                            timestamps_t &timestamps,
-                           bool detected_only=true);
+                           bool detected_only = true);
 
 /**
  * Preprocess stereo image data and output AprilGrid detection data as

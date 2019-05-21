@@ -8,23 +8,17 @@ namespace proto {
 /**
  * Extract rotation from transform
  */
-inline mat3_t tf_rot(const mat4_t &tf) {
-  return tf.block<3, 3>(0, 0);
-}
+inline mat3_t tf_rot(const mat4_t &tf) { return tf.block<3, 3>(0, 0); }
 
 /**
  * Extract rotation and convert to quaternion from transform
  */
-inline quat_t tf_quat(const mat4_t &tf) {
-  return quat_t{tf.block<3, 3>(0, 0)};
-}
+inline quat_t tf_quat(const mat4_t &tf) { return quat_t{tf.block<3, 3>(0, 0)}; }
 
 /**
  * Extract translation from transform
  */
-inline vec3_t tf_trans(const mat4_t &tf) {
-  return tf.block<3, 1>(0, 3);
-}
+inline vec3_t tf_trans(const mat4_t &tf) { return tf.block<3, 1>(0, 3); }
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
@@ -113,7 +107,7 @@ vec3_t quat2euler(const quat_t &q);
 void imu_init_attitude(const vec3s_t w_m,
                        const vec3s_t a_m,
                        mat3_t &C_WS,
-                       const size_t buffer_size=50);
+                       const size_t buffer_size = 50);
 
 } //  namespace proto
 #endif // PROTOTYPE_TF_HPP

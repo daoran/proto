@@ -55,10 +55,17 @@ struct atl_t {
 int atl_configure(atl_t &atl, const std::string &config_file);
 int atl_detect_lz(atl_t &atl, const cv::Mat &image);
 vec4_t atl_step_hover_mode(atl_t &atl, const mat4_t &T_WB, const double dt);
-vec4_t atl_step_discover_mode(atl_t &atl, const mat4_t &T_WB, const lz_t &lz, const double dt);
-vec4_t atl_step_tracking_mode(atl_t &atl, const mat4_t &T_WB, const lz_t &lz, const double dt);
+vec4_t atl_step_discover_mode(atl_t &atl,
+                              const mat4_t &T_WB,
+                              const lz_t &lz,
+                              const double dt);
+vec4_t atl_step_tracking_mode(atl_t &atl,
+                              const mat4_t &T_WB,
+                              const lz_t &lz,
+                              const double dt);
 vec4_t atl_step_landing_mode(atl_t &atl, const double dt);
-int atl_step(atl_t &atl, const mat4_t T_WB, const lz_t &lz, const double dt, vec4_t &u);
+int atl_step(
+    atl_t &atl, const mat4_t T_WB, const lz_t &lz, const double dt, vec4_t &u);
 
 } //  namespace proto
 #endif // PROTOTYPE_MAV_ATL_HPP

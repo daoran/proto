@@ -28,20 +28,20 @@ struct tcp_server_t {
   std::vector<int> conns;
   void *(*conn_thread)(void *) = nullptr;
 
-  tcp_server_t(int port_=8080);
+  tcp_server_t(int port_ = 8080);
 };
 
 /**
  * TCP client
  */
-struct tcp_client_t{
+struct tcp_client_t {
   std::string server_ip;
   int server_port = 8080;
   int sockfd = -1;
   int (*loop_cb)(tcp_client_t &) = nullptr;
 
-  tcp_client_t(const std::string &server_ip_="127.0.0.1",
-               int server_port_=8080);
+  tcp_client_t(const std::string &server_ip_ = "127.0.0.1",
+               int server_port_ = 8080);
 };
 
 /**

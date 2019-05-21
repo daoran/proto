@@ -14,8 +14,8 @@ namespace proto {
  * Stereo camera calibration residual
  */
 struct vicon_marker_residual_t {
-  double z_[2] = {0.0, 0.0};         ///< Measurement from cam0
-  double p_F_[3] = {0.0, 0.0, 0.0};  ///< Object point
+  double z_[2] = {0.0, 0.0};        ///< Measurement from cam0
+  double p_F_[3] = {0.0, 0.0, 0.0}; ///< Object point
 
   vicon_marker_residual_t(const vec2_t &z, const vec3_t &p_F);
   ~vicon_marker_residual_t();

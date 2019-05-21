@@ -168,19 +168,19 @@ vec2s_t mat2vec2(const matx_t &m, bool row_wise) {
 }
 
 matx_t vecs2mat(const vec3s_t &vs) {
-	matx_t retval;
-	retval.resize(4, vs.size());
+  matx_t retval;
+  retval.resize(4, vs.size());
 
-	int idx = 0;
-	for (const auto &v : vs) {
-		const double x = v(0);
-		const double y = v(1);
-		const double z = v(2);
-		retval.block(0, idx, 4, 1) = vec4_t{x, y, z, 1.0};
-		idx++;
-	}
+  int idx = 0;
+  for (const auto &v : vs) {
+    const double x = v(0);
+    const double y = v(1);
+    const double z = v(2);
+    retval.block(0, idx, 4, 1) = vec4_t{x, y, z, 1.0};
+    idx++;
+  }
 
-	return retval;
+  return retval;
 }
 
 std::string vec2str(const vecx_t &v, bool brackets) {
@@ -287,9 +287,7 @@ double median(const std::vector<double> &v) {
 
 double deg2rad(const double d) { return d * (M_PI / 180.0); }
 
-vec3_t deg2rad(const vec3_t d) {
-  return d * (M_PI / 180.0);
-}
+vec3_t deg2rad(const vec3_t d) { return d * (M_PI / 180.0); }
 
 double rad2deg(const double r) { return r * (180.0 / M_PI); }
 
@@ -419,9 +417,7 @@ vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu) {
   return a * (1 - mu) + b * mu;
 }
 
-vec3_t normalize(const vec3_t &v) {
-  return v / v.norm();
-}
+vec3_t normalize(const vec3_t &v) { return v / v.norm(); }
 
 matx_t zeros(const int rows, const int cols) {
   return matx_t::Zero(rows, cols);
@@ -508,14 +504,16 @@ std::vector<double> linspace(const double start,
                              const double num) {
   std::vector<double> linspaced;
 
-  if (num == 0) { return linspaced; }
+  if (num == 0) {
+    return linspaced;
+  }
   if (num == 1) {
     linspaced.push_back(start);
     return linspaced;
   }
 
   double delta = (end - start) / (num - 1);
-  for(int i=0; i < num-1; ++i) {
+  for (int i = 0; i < num - 1; ++i) {
     linspaced.push_back(start + delta * i);
   }
   linspaced.push_back(end);

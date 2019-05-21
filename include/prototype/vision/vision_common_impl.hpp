@@ -32,12 +32,14 @@ namespace proto {
 //   const double cam0_fy = cam0.camera_model.fy;
 //   const double cam1_fx = cam1.camera_model.fx;
 //   const double cam1_fy = cam1.camera_model.fy;
-//   const double norm_pixel_unit = 4.0 / (cam0_fx + cam0_fy + cam1_fx + cam1_fy);
+//   const double norm_pixel_unit = 4.0 / (cam0_fx + cam0_fy + cam1_fx +
+//   cam1_fy);
 //   // -- Further remove outliers based on essential matrix
 //   // std::vector<cv::Point2f> cam0_points_ud = undistort(cam0_points);
 //   // std::vector<cv::Point2f> cam1_points_ud = undistort(cam1_points);
 //   // std::vector<cv::Point2f> cam0_points_ud =
-//   // cam0.undistortPoints(cam0_points); std::vector<cv::Point2f> cam1_points_ud
+//   // cam0.undistortPoints(cam0_points); std::vector<cv::Point2f>
+//   cam1_points_ud
 //   // = cam1.undistortPoints(cam1_points); for (size_t i = 0; i <
 //   // cam0_points_ud.size(); i++) {
 //   //   if (inlier_markers[i] == 0) {

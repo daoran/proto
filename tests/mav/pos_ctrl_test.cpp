@@ -73,8 +73,8 @@ int test_pos_ctrl_configure() {
 //   actual.position << 0, 0, 0;
 //   yaw_setpoint = 0;
 //   dt = 0.1;
-//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
-//   std::cout << outputs.transpose() << std::endl;
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual,
+//   yaw_setpoint, dt); std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK_FLOAT(0.0, controller.outputs(0));
 //   MU_CHECK_FLOAT(0.0, controller.outputs(1));
@@ -87,8 +87,8 @@ int test_pos_ctrl_configure() {
 //   dt = 0.1;
 //
 //   pos_ctrl_reset(p_ctrl);
-//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
-//   std::cout << outputs.transpose() << std::endl;
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual,
+//   yaw_setpoint, dt); std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK(controller.outputs(0) < 0.0);
 //   MU_CHECK_FLOAT(0.0, controller.outputs(1));
@@ -100,8 +100,8 @@ int test_pos_ctrl_configure() {
 //   dt = 0.1;
 //
 //   pos_ctrl_reset(p_ctrl);
-//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
-//   std::cout << outputs.transpose() << std::endl;
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual,
+//   yaw_setpoint, dt); std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK_FLOAT(0.0, controller.outputs(0));
 //   MU_CHECK(controller.outputs(1) > 0.0);
@@ -113,8 +113,8 @@ int test_pos_ctrl_configure() {
 //   dt = 0.1;
 //
 //   pos_ctrl_reset(p_ctrl);
-//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
-//   std::cout << outputs.transpose() << std::endl;
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual,
+//   yaw_setpoint, dt); std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK(controller.outputs(0) < 0.0);
 //   MU_CHECK(controller.outputs(1) > 0.0);
@@ -126,8 +126,8 @@ int test_pos_ctrl_configure() {
 //   dt = 0.1;
 //
 //   pos_ctrl_reset(p_ctrl);
-//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual, yaw_setpoint, dt);
-//   std::cout << outputs.transpose() << std::endl;
+//   const vec4_t outputs = pos_ctrl_update(p_ctrl, setpoint_nwu, actual,
+//   yaw_setpoint, dt); std::cout << outputs.transpose() << std::endl;
 //
 //   MU_CHECK_FLOAT(yaw_setpoint, controller.outputs(2));
 // }

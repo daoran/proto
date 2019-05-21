@@ -11,10 +11,10 @@
 
 namespace proto {
 
-aprilgrid_t nbv_create_aprilgrid(
-    const calib_target_t &target,
-    const camera_geometry_t <pinhole_t, radtan4_t> &camera,
-    const mat4_t &T_CF);
+aprilgrid_t
+nbv_create_aprilgrid(const calib_target_t &target,
+                     const camera_geometry_t<pinhole_t, radtan4_t> &camera,
+                     const mat4_t &T_CF);
 
 void nbv_draw_aprilgrid(const aprilgrid_t grid,
                         const pinhole_t &pinhole,
@@ -35,10 +35,10 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
                               mat4s_t &T_CF);
 
 int calib_camera_nbv(const std::string &target_path,
-                     const size_t max_frames=15);
+                     const size_t max_frames = 15);
 
 int calib_camera_batch(const std::string &target_path,
-                       const size_t max_frames=15);
+                       const size_t max_frames = 15);
 
 } //  namespace proto
 #endif // PROTOTYPE_CALIB_CALIB_CAMERA_NBV_HPP

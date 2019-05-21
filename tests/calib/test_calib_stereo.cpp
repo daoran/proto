@@ -150,9 +150,12 @@ int test_calib_stereo_solve() {
   // Test
   mat4_t T_C0C1 = I(4);
   mat4s_t poses;
-  retval = calib_stereo_solve(cam0_aprilgrids, cam1_aprilgrids,
-                              cam0_pinhole, cam0_radtan,
-                              cam1_pinhole, cam1_radtan,
+  retval = calib_stereo_solve(cam0_aprilgrids,
+                              cam1_aprilgrids,
+                              cam0_pinhole,
+                              cam0_radtan,
+                              cam1_pinhole,
+                              cam1_radtan,
                               T_C0C1,
                               poses);
   if (retval != 0) {

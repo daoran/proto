@@ -12,10 +12,10 @@ namespace proto {
  * MAV model
  */
 struct mav_model_t {
-  vec3_t attitude{0.0, 0.0, 0.0}; ///< Attitude in global frame
-  vec3_t angular_velocity{0.0, 0.0, 0.0};   ///< Angular velocity in global frame
-  vec3_t position{0.0, 0.0, 0.0};   ///< Position in global frame
-  vec3_t linear_velocity{0.0, 0.0, 0.0};   ///< Linear velocity in global frame
+  vec3_t attitude{0.0, 0.0, 0.0};         ///< Attitude in global frame
+  vec3_t angular_velocity{0.0, 0.0, 0.0}; ///< Angular velocity in global frame
+  vec3_t position{0.0, 0.0, 0.0};         ///< Position in global frame
+  vec3_t linear_velocity{0.0, 0.0, 0.0};  ///< Linear velocity in global frame
 
   double Ix = 0.0963; ///< Moment of inertia in x-axis
   double Iy = 0.0963; ///< Moment of inertia in y-axis

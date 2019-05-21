@@ -202,8 +202,7 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
   return scaling_factor;
 }
 
-double reprojection_error(const vec2s_t &measured,
-                          const vec2s_t &projected) {
+double reprojection_error(const vec2s_t &measured, const vec2s_t &projected) {
   assert(measured.size() == projected.size());
 
   double sse = 0.0;
@@ -361,9 +360,9 @@ cv::Mat equi_undistort_image(const mat3_t &K,
 }
 
 void illum_invar_transform(cv::Mat &image,
-												   const double lambda_1,
-													 const double lambda_2,
-													 const double lambda_3) {
+                           const double lambda_1,
+                           const double lambda_2,
+                           const double lambda_3) {
   // The following method is adapted from:
   // Illumination Invariant Imaging: Applications in Robust Vision-based
   // Localisation, Mapping and Classification for Autonomous Vehicles
@@ -395,54 +394,54 @@ void illum_invar_transform(cv::Mat &image,
   cv::normalize(image, image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 }
 
-double lapm(const cv::Mat& src) {
-	// 'LAPM' algorithm (Nayar89)
-	cv::Mat M = (cv::Mat_<double>(3, 1) << -1, 2, -1);
-	cv::Mat G = cv::getGaussianKernel(3, -1, CV_64F);
+double lapm(const cv::Mat &src) {
+  // 'LAPM' algorithm (Nayar89)
+  cv::Mat M = (cv::Mat_<double>(3, 1) << -1, 2, -1);
+  cv::Mat G = cv::getGaussianKernel(3, -1, CV_64F);
 
-	cv::Mat Lx;
-	cv::sepFilter2D(src, Lx, CV_64F, M, G);
+  cv::Mat Lx;
+  cv::sepFilter2D(src, Lx, CV_64F, M, G);
 
-	cv::Mat Ly;
-	cv::sepFilter2D(src, Ly, CV_64F, G, M);
+  cv::Mat Ly;
+  cv::sepFilter2D(src, Ly, CV_64F, G, M);
 
-	cv::Mat FM = cv::abs(Lx) + cv::abs(Ly);
+  cv::Mat FM = cv::abs(Lx) + cv::abs(Ly);
 
-	double measure = cv::mean(FM).val[0];
-	return measure;
+  double measure = cv::mean(FM).val[0];
+  return measure;
 }
 
-double lapv(const cv::Mat& src) {
-	// 'LAPV' algorithm (Pech2000)
-	cv::Mat lap;
-	cv::Laplacian(src, lap, CV_64F);
+double lapv(const cv::Mat &src) {
+  // 'LAPV' algorithm (Pech2000)
+  cv::Mat lap;
+  cv::Laplacian(src, lap, CV_64F);
 
-	cv::Scalar mu, sigma;
-	cv::meanStdDev(lap, mu, sigma);
+  cv::Scalar mu, sigma;
+  cv::meanStdDev(lap, mu, sigma);
 
-	double measure = sigma.val[0]*sigma.val[0];
-	return measure;
+  double measure = sigma.val[0] * sigma.val[0];
+  return measure;
 }
 
-double teng(const cv::Mat& src, int ksize) {
-	// 'TENG' algorithm (Krotkov86)
-	cv::Mat Gx, Gy;
-	cv::Sobel(src, Gx, CV_64F, 1, 0, ksize);
-	cv::Sobel(src, Gy, CV_64F, 0, 1, ksize);
+double teng(const cv::Mat &src, int ksize) {
+  // 'TENG' algorithm (Krotkov86)
+  cv::Mat Gx, Gy;
+  cv::Sobel(src, Gx, CV_64F, 1, 0, ksize);
+  cv::Sobel(src, Gy, CV_64F, 0, 1, ksize);
 
-	cv::Mat FM = Gx.mul(Gx) + Gy.mul(Gy);
+  cv::Mat FM = Gx.mul(Gx) + Gy.mul(Gy);
 
-	double measure = cv::mean(FM).val[0];
-	return measure;
+  double measure = cv::mean(FM).val[0];
+  return measure;
 }
 
-double glvn(const cv::Mat& src) {
-	// 'GLVN' algorithm (Santos97)
-	cv::Scalar mu, sigma;
-	cv::meanStdDev(src, mu, sigma);
+double glvn(const cv::Mat &src) {
+  // 'GLVN' algorithm (Santos97)
+  cv::Scalar mu, sigma;
+  cv::meanStdDev(src, mu, sigma);
 
-	double measure = (sigma.val[0]*sigma.val[0]) / mu.val[0];
-	return measure;
+  double measure = (sigma.val[0] * sigma.val[0]) / mu.val[0];
+  return measure;
 }
 
 } //  namespace proto

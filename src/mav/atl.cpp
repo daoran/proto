@@ -41,7 +41,8 @@ int atl_configure(atl_t &atl, const std::string &config_file) {
     return -1;
   }
 
-  if (lz_detector_configure(atl.lz_detector, config_file, "landing_zone") != 0) {
+  if (lz_detector_configure(atl.lz_detector, config_file, "landing_zone") !=
+      0) {
     LOG_ERROR("Failed to configure landing zone detector!");
     return -1;
   }
@@ -53,32 +54,23 @@ int atl_configure(atl_t &atl, const std::string &config_file) {
 }
 
 int atl_detect_lz(atl_t &atl, const cv::Mat &image) {
-  return lz_detector_detect(
-    atl.lz_detector,
-    image,
-    atl.cam0_pinhole,
-    atl.T_BC0,
-    atl.lz
-  );
+  return lz_detector_detect(atl.lz_detector,
+                            image,
+                            atl.cam0_pinhole,
+                            atl.T_BC0,
+                            atl.lz);
 }
 
 vec4_t atl_step_hover_mode(atl_t &atl, const mat4_t &T_WB, const double dt) {
   // Position control
-  const vec4_t att_setpoint = pos_ctrl_update(
-    atl.pos_ctrl,
-    atl.position_setpoint,
-    T_WB,
-    atl.yaw_setpoint,
-    dt
-  );
+  const vec4_t att_setpoint = pos_ctrl_update(atl.pos_ctrl,
+                                              atl.position_setpoint,
+                                              T_WB,
+                                              atl.yaw_setpoint,
+                                              dt);
 
   // Attitude control
-  const vec4_t u = att_ctrl_update(
-    atl.att_ctrl,
-    att_setpoint,
-    T_WB,
-    dt
-  );
+  const vec4_t u = att_ctrl_update(atl.att_ctrl, att_setpoint, T_WB, dt);
 
   return u;
 }
@@ -103,8 +95,8 @@ vec4_t atl_step_discover_mode(atl_t &atl,
     LOG_INFO("Transitioning to [TRACKING MODE]!");
     atl.mode = TRACKING_MODE;
     atl.discover_tic = (struct timespec){0, 0};
-		tk_ctrl_reset(atl.tk_ctrl);
-		pos_ctrl_reset(atl.pos_ctrl);
+    tk_ctrl_reset(atl.tk_ctrl);
+    pos_ctrl_reset(atl.pos_ctrl);
   }
 
   return u;
@@ -119,33 +111,24 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
   if (lz.detected) {
     // Tracking control
     const mat4_t T_BZ = lz.T_BC * lz.T_CZ;
-    att_setpoint = tk_ctrl_update(
-      atl.tk_ctrl,
-      T_BZ,
-      T_WB,
-      atl.recover_height,
-      atl.yaw_setpoint,
-      dt
-    );
+    att_setpoint = tk_ctrl_update(atl.tk_ctrl,
+                                  T_BZ,
+                                  T_WB,
+                                  atl.recover_height,
+                                  atl.yaw_setpoint,
+                                  dt);
 
   } else {
     // Position control
-    att_setpoint = pos_ctrl_update(
-      atl.pos_ctrl,
-      atl.position_setpoint,
-      T_WB,
-      atl.yaw_setpoint,
-      dt
-    );
+    att_setpoint = pos_ctrl_update(atl.pos_ctrl,
+                                   atl.position_setpoint,
+                                   T_WB,
+                                   atl.yaw_setpoint,
+                                   dt);
   }
 
   // Attitude control
-  const vec4_t u = att_ctrl_update(
-    atl.att_ctrl,
-    att_setpoint,
-    T_WB,
-    dt
-  );
+  const vec4_t u = att_ctrl_update(atl.att_ctrl, att_setpoint, T_WB, dt);
 
   // Update position setpoint and start tracking timer
   if (lz.detected) {
@@ -166,8 +149,8 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
     LOG_INFO("Transitioning to [LANDING MODE]!");
     atl.mode = LANDING_MODE;
     atl.tracking_tic = (struct timespec){0, 0};
-		tk_ctrl_reset(atl.tk_ctrl);
-		pos_ctrl_reset(atl.pos_ctrl);
+    tk_ctrl_reset(atl.tk_ctrl);
+    pos_ctrl_reset(atl.pos_ctrl);
 
   } else if (lz.detected == false) {
     // Transition back to discover mode
@@ -176,8 +159,8 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
     atl.mode = DISCOVER_MODE;
     atl.tracking_tic = (struct timespec){0, 0};
     atl.position_setpoint(2) = atl.recover_height;
-		tk_ctrl_reset(atl.tk_ctrl);
-		pos_ctrl_reset(atl.pos_ctrl);
+    tk_ctrl_reset(atl.tk_ctrl);
+    pos_ctrl_reset(atl.pos_ctrl);
   }
 
   return u;
@@ -225,7 +208,8 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
 //   return u;
 // }
 
-int atl_step(atl_t &atl, const mat4_t T_WB, const lz_t &lz, const double dt, vec4_t &u) {
+int atl_step(
+    atl_t &atl, const mat4_t T_WB, const lz_t &lz, const double dt, vec4_t &u) {
   switch (atl.mode) {
     case DISARM_MODE: return -1; break;
     case IDLE_MODE: return 0; break;
@@ -236,7 +220,7 @@ int atl_step(atl_t &atl, const mat4_t T_WB, const lz_t &lz, const double dt, vec
     default:
       LOG_ERROR("Invalid mode [%d]!", atl.mode);
       LOG_ERROR("Falling back into [HOVER_MODE]!");
-    	atl_step_hover_mode(atl, T_WB, dt);
+      atl_step_hover_mode(atl, T_WB, dt);
       break;
   }
 

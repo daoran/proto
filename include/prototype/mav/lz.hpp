@@ -23,7 +23,7 @@ struct lz_t {
   lz_t() {}
   ~lz_t() {}
   lz_t(const bool detected_, const mat4_t &T_BC_, const mat4_t &T_CZ_)
-    : detected{detected_}, T_BC{T_BC_}, T_CZ{T_CZ_} {}
+      : detected{detected_}, T_BC{T_BC_}, T_CZ{T_CZ_} {}
 };
 
 /**
@@ -38,8 +38,7 @@ struct lz_detector_t {
   lz_detector_t();
   lz_detector_t(const std::vector<int> &tag_ids,
                 const std::vector<double> &tag_sizes);
-  lz_detector_t(const std::string &config,
-                const std::string &prefix="");
+  lz_detector_t(const std::string &config, const std::string &prefix = "");
   ~lz_detector_t();
 };
 
@@ -60,7 +59,7 @@ int lz_detector_configure(lz_detector_t &lz,
  */
 int lz_detector_configure(lz_detector_t &lz,
                           const std::string &config_file,
-                          const std::string &prefix="");
+                          const std::string &prefix = "");
 
 /**
  * Detect landing zone
@@ -83,10 +82,10 @@ int lz_detector_detect(const lz_detector_t &det,
  * Calculate landing zone corners in pixels.
  */
 int lz_detector_calc_corners(const lz_detector_t &lz,
-										         const pinhole_t &pinhole,
-										         const cv::Mat &image,
+                             const pinhole_t &pinhole,
+                             const cv::Mat &image,
                              const mat4_t &T_CZ,
-										         const int tag_id,
+                             const int tag_id,
                              const double padding,
                              vec2_t &top_left,
                              vec2_t &btm_right);

@@ -5,7 +5,7 @@ namespace proto {
 image_t::image_t() {}
 
 image_t::image_t(const timestamp_t ts_, const int width_, const int height_)
-  : ts{ts_}, width{width_}, height{height_} {
+    : ts{ts_}, width{width_}, height{height_} {
   data = new double[width * height];
 }
 
@@ -13,7 +13,7 @@ image_t::image_t(const timestamp_t ts_,
                  const int width_,
                  const int height_,
                  double *data_)
-  : ts{ts_}, width{width_}, height{height_}, data{data_} {}
+    : ts{ts_}, width{width_}, height{height_}, data{data_} {}
 
 image_t::~image_t() {
   if (data) {

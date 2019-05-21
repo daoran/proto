@@ -73,9 +73,7 @@ void aprilgrid_remove(aprilgrid_t &grid, const int id) {
   grid.nb_detections--;
 }
 
-int aprilgrid_get(const aprilgrid_t &grid,
-                  const int id,
-                  vec2s_t &keypoints) {
+int aprilgrid_get(const aprilgrid_t &grid, const int id, vec2s_t &keypoints) {
   // Check if tag id was actually detected
   int index = -1;
   for (size_t i = 0; i < grid.ids.size(); i++) {
@@ -225,8 +223,7 @@ int aprilgrid_object_points(const aprilgrid_t &grid,
   return 0;
 }
 
-int aprilgrid_object_points(const aprilgrid_t &grid,
-                            vec3s_t &object_points) {
+int aprilgrid_object_points(const aprilgrid_t &grid, vec3s_t &object_points) {
   for (int i = 0; i < (grid.tag_rows * grid.tag_cols); i++) {
     if (aprilgrid_object_points(grid, i, object_points) != 0) {
       return -1;
@@ -512,35 +509,34 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
     double q_w, q_x, q_y, q_z = 0.0;
     double r_x, r_y, r_z = 0.0;
     int retval = fscanf(
-      // File pointer
-      fp,
-      // String format
-      str_format.c_str(),
-      // Configuration
-      &configured,
-      &grid.tag_rows,
-      &grid.tag_cols,
-      &grid.tag_size,
-      &grid.tag_spacing,
-      // Timestamp, tag id and keypoint
-      &grid.timestamp,
-      &tag_id,
-      &kp_x,
-      &kp_y,
-      // Corner point
-      &estimated,
-      &p_x,
-      &p_y,
-      &p_z,
-      // AprilGrid pose
-      &q_w,
-      &q_x,
-      &q_y,
-      &q_z,
-      &r_x,
-      &r_y,
-      &r_z
-    );
+        // File pointer
+        fp,
+        // String format
+        str_format.c_str(),
+        // Configuration
+        &configured,
+        &grid.tag_rows,
+        &grid.tag_cols,
+        &grid.tag_size,
+        &grid.tag_spacing,
+        // Timestamp, tag id and keypoint
+        &grid.timestamp,
+        &tag_id,
+        &kp_x,
+        &kp_y,
+        // Corner point
+        &estimated,
+        &p_x,
+        &p_y,
+        &p_z,
+        // AprilGrid pose
+        &q_w,
+        &q_x,
+        &q_y,
+        &q_z,
+        &r_x,
+        &r_y,
+        &r_z);
     if (retval != 20) {
       LOG_INFO("Failed to parse line in [%s]", data_path.c_str());
     }

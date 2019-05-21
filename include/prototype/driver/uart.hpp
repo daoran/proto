@@ -54,9 +54,7 @@ int uart_disconnect(uart_t &uart);
  * @param[in] length Payload length
  * @returns 0 or -1 for success or failure
  */
-int uart_write(const uart_t &uart,
-               const uint8_t *payload,
-               const size_t length);
+int uart_write(const uart_t &uart, const uint8_t *payload, const size_t length);
 
 /**
  * Read packet from UART

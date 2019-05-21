@@ -3,5 +3,4 @@
 
 #include "prototype/estimation/filter.hpp"
 
-
 #endif // PROTOTYPE_ESTIMATION_HPP

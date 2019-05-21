@@ -326,8 +326,7 @@ int load_stereo_calib_data(const std::string &cam0_data_dir,
     cam1_aprilgrids.emplace_back(grid1);
 
     // Check if there's more data to go though
-    if (cam0_idx >= grids0.size()
-        || cam1_idx >= grids1.size()) {
+    if (cam0_idx >= grids0.size() || cam1_idx >= grids1.size()) {
       break;
     }
   }
@@ -396,7 +395,7 @@ int load_multicam_calib_data(const int nb_cams,
       continue;
     }
 
-try_again:
+  try_again:
     // Check if AprilGrids across cameras have same timestamp
     std::vector<bool> ready(nb_cams, false);
     for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
@@ -407,7 +406,7 @@ try_again:
     }
 
     // Check if aprilgrids are observed by all cameras
-    if (std::all_of(ready.begin(), ready.end(), [](bool x){return x;})) {
+    if (std::all_of(ready.begin(), ready.end(), [](bool x) { return x; })) {
       // Keep only common tags between all aprilgrids
       std::vector<aprilgrid_t *> data;
       for (int cam_idx = 0; cam_idx < nb_cams; cam_idx++) {

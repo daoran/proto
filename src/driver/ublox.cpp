@@ -8,9 +8,7 @@ namespace proto {
 
 ubx_msg_t::ubx_msg_t() {}
 
-ubx_msg_t::ubx_msg_t(const uint8_t *data) {
-  ubx_msg_parse(*this, data);
-}
+ubx_msg_t::ubx_msg_t(const uint8_t *data) { ubx_msg_parse(*this, data); }
 
 ubx_msg_t::ubx_msg_t(const uint8_t msg_class_,
                      const uint8_t msg_id_,
@@ -27,12 +25,7 @@ ubx_msg_t::ubx_msg_t(const uint8_t msg_class_,
   }
 
   // Checksum
-  ubx_msg_checksum(msg_class,
-                   msg_id,
-                   length_,
-                   payload_,
-                   ck_a,
-                   ck_b);
+  ubx_msg_checksum(msg_class, msg_id, length_, payload_, ck_a, ck_b);
   ok = true;
 }
 
@@ -66,12 +59,12 @@ void ubx_msg_serialize(const ubx_msg_t &msg,
   frame_size = 6 + msg.payload_length + 2;
 
   // -- Form header
-  frame[0] = 0xB5;                              // Sync Char 1
-  frame[1] = 0x62;                              // Sync Char 2
-  frame[2] = msg.msg_class;                     // Message class
-  frame[3] = msg.msg_id;                        // Message id
-  frame[4] = msg.payload_length & 0xFF;         // Length
-  frame[5] = (msg.payload_length >> 8) & 0xFF;  // Length
+  frame[0] = 0xB5;                             // Sync Char 1
+  frame[1] = 0x62;                             // Sync Char 2
+  frame[2] = msg.msg_class;                    // Message class
+  frame[3] = msg.msg_id;                       // Message id
+  frame[4] = msg.payload_length & 0xFF;        // Length
+  frame[5] = (msg.payload_length >> 8) & 0xFF; // Length
 
   // -- Form payload
   for (size_t i = 0; i < msg.payload_length; i++) {
@@ -141,8 +134,6 @@ void ubx_msg_print(const ubx_msg_t &msg) {
   printf("ck_b: 0x%02x\n", msg.ck_b);
 }
 
-
-
 /*****************************************************************************
  * UBX Stream Parser
  ****************************************************************************/
@@ -154,7 +145,7 @@ void ubx_parser_reset(ubx_parser_t &parser) {
   for (size_t i = 0; i < 1024; i++) {
     parser.buf_data[i] = 0;
   }
-  parser.buf_pos= 0;
+  parser.buf_pos = 0;
 }
 
 int ubx_parser_update(ubx_parser_t &parser, uint8_t data) {
@@ -187,7 +178,8 @@ int ubx_parser_update(ubx_parser_t &parser, uint8_t data) {
       uint16_t payload_length = (length_hi << 8) | (length_low);
       if (parser.buf_pos == 6 + payload_length) {
         parser.state = CK_A;
-      } if (parser.buf_pos >= 1022) {
+      }
+      if (parser.buf_pos >= 1022) {
         ubx_parser_reset(parser);
         return -2;
       }
@@ -203,8 +195,6 @@ int ubx_parser_update(ubx_parser_t &parser, uint8_t data) {
 
   return 0;
 }
-
-
 
 /*****************************************************************************
  * RTCM3 Stream Parser
@@ -231,12 +221,12 @@ int rtcm3_parser_update(rtcm3_parser_t &parser, uint8_t data) {
     // Get the last two bits of this byte. Bits 8 and 9 of 10-bit length
     parser.msg_len = (data & 0x03) << 8;
   } else if (parser.buf_pos == 2) {
-    parser.msg_len |= data;  // Bits 0-7 of packet length
+    parser.msg_len |= data; // Bits 0-7 of packet length
     parser.msg_len += 6;
     // There are 6 additional bytes of what we presume is
     // header, msgType, CRC, and stuff
   } else if (parser.buf_pos == 3) {
-    parser.msg_type = data << 4;    // Message Type, most significant 4 bits
+    parser.msg_type = data << 4; // Message Type, most significant 4 bits
   } else if (parser.buf_pos == 4) {
     parser.msg_type |= (data >> 4); // Message Type, bits 0-7
   }
@@ -249,8 +239,6 @@ int rtcm3_parser_update(rtcm3_parser_t &parser, uint8_t data) {
 
   return 0;
 }
-
-
 
 /*****************************************************************************
  * Ublox
@@ -265,9 +253,7 @@ ublox_t::ublox_t(const std::string &port, const int speed) {
   }
 }
 
-ublox_t::ublox_t(const uart_t &uart_) : uart{uart_} {
-  ok = true;
-}
+ublox_t::ublox_t(const uart_t &uart_) : uart{uart_} { ok = true; }
 
 ublox_t::~ublox_t() {
   if (uart_disconnect(uart)) {
@@ -360,8 +346,8 @@ response:
     } else {
       return 0;
     }
-
-  } if (not msg_is_ack and not match_class and not match_id) {
+  }
+  if (not msg_is_ack and not match_class and not match_id) {
     // Get another message
     goto response;
 
@@ -386,7 +372,7 @@ int ubx_read_ack(const ublox_t &ublox,
   ubx_parser_t parser;
 
   // Get Ack
-  int counter = 0;  // Arbitrary counter for timeout
+  int counter = 0; // Arbitrary counter for timeout
   while (counter != 1024) {
     uint8_t data = 0;
     if (uart_read(ublox.uart, &data, 1) != 0) {
@@ -423,7 +409,7 @@ int ubx_val_get(const ublox_t &ublox,
   // Build message
   uint16_t payload_length = 4 + 4;
   uint8_t payload[1024] = {0};
-  payload[0] = 0;  // Version
+  payload[0] = 0; // Version
   payload[1] = layer;
   payload[4 + 0] = key >> 0;
   payload[4 + 1] = key >> 8;
@@ -431,12 +417,8 @@ int ubx_val_get(const ublox_t &ublox,
   payload[4 + 3] = key >> 24;
 
   // Poll
-  int retval = ubx_poll(ublox,
-                        UBX_CFG,
-                        UBX_CFG_VALGET,
-                        payload_length,
-                        payload,
-                        true);
+  int retval =
+      ubx_poll(ublox, UBX_CFG, UBX_CFG_VALGET, payload_length, payload, true);
   if (retval != 0) {
     return -1;
   }
@@ -450,17 +432,15 @@ int ubx_val_set(const ublox_t &ublox,
                 const uint32_t key,
                 const uint32_t val,
                 const uint8_t val_size) {
-  const uint32_t bit_masks[4] = {
-    0x000000FF,
-    0x0000FF00,
-    0x00FF0000,
-    0xFF000000
-  };
+  const uint32_t bit_masks[4] = {0x000000FF,
+                                 0x0000FF00,
+                                 0x00FF0000,
+                                 0xFF000000};
 
   // Build message
   uint16_t payload_length = 4 + 4 + val_size;
   uint8_t payload[1024] = {0};
-  payload[0] = 0;  // Version
+  payload[0] = 0; // Version
   payload[1] = layer;
   payload[2] = 0;
 
@@ -484,14 +464,10 @@ retry:
 
   ubx_write(ublox, UBX_CFG, UBX_CFG_VALSET, payload_length, payload);
   switch (ubx_read_ack(ublox, UBX_CFG, UBX_CFG_VALSET)) {
-    case 0:
-      return 0;
-    case 1:
-      goto retry;
+    case 0: return 0;
+    case 1: goto retry;
     case -1:
-    default:
-      LOG_ERROR("Failed to set configuration!");
-      return -1;
+    default: LOG_ERROR("Failed to set configuration!"); return -1;
   }
 }
 
@@ -614,18 +590,14 @@ int ublox_parse_rtcm3(ublox_t &ublox, uint8_t data) {
   return 0;
 }
 
-
-
 /*****************************************************************************
  * Ublox Base Station
  ****************************************************************************/
 
-ublox_base_station_t::ublox_base_station_t() {}
-
 int ublox_base_station_config(ublox_t &base) {
-  const uint8_t layer = 1;  // RAM
+  const uint8_t layer = 1; // RAM
   int retval = 0;
-  retval += ubx_val_set(base, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms = 1Hz
+  retval += ubx_val_set(base, layer, CFG_RATE_MEAS, 1000, 2); // 1000ms = 1Hz
   retval += ubx_val_set(base, layer, CFG_USBOUTPROT_NMEA, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_RTCM_3X_TYPE1005_USB, 1, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_RTCM_3X_TYPE1077_USB, 1, 1);
@@ -657,10 +629,8 @@ void ublox_base_station_loop(ublox_t &base) {
     struct sockaddr_in client;
     socklen_t len = sizeof(client);
     const int flags = SOCK_NONBLOCK;
-    const int connfd = accept4(base.server_socket,
-                               (struct sockaddr *) &client,
-                               &len,
-                               flags);
+    const int connfd =
+        accept4(base.sockfd, (struct sockaddr *) &client, &len, flags);
     if (connfd >= 0) {
       std::string ip;
       int port = 0;
@@ -679,7 +649,7 @@ void ublox_base_station_loop(ublox_t &base) {
     if (base.msg_type == "") {
       if (data == 0xB5) {
         base.msg_type = "UBX";
-      }  else if (data == 0xD3) {
+      } else if (data == 0xD3) {
         base.msg_type = "RTCM3";
       }
     }
@@ -701,8 +671,8 @@ int ublox_base_station_run(ublox_t &base, const int port) {
   }
 
   // Socket create and verification
-  base.server_socket = socket(AF_INET, SOCK_STREAM, 0);
-  if (base.server_socket == -1) {
+  base.sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (base.sockfd == -1) {
     LOG_ERROR("Socket creation failed...");
     return -1;
   } else {
@@ -710,14 +680,16 @@ int ublox_base_station_run(ublox_t &base, const int port) {
   }
 
   // Change server socket into non-blocking state
-  fcntl(base.server_socket, F_SETFL, O_NONBLOCK);
+  fcntl(base.sockfd, F_SETFL, O_NONBLOCK);
 
   // Socket options
   int enable = 1;
-  if (setsockopt(base.server_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+  if (setsockopt(base.sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) <
+      0) {
     LOG_ERROR("setsockopt(SO_REUSEADDR) failed");
   }
-  if (setsockopt(base.server_socket, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0) {
+  if (setsockopt(base.sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) <
+      0) {
     LOG_ERROR("setsockopt(SO_REUSEPORT) failed");
   }
 
@@ -729,9 +701,7 @@ int ublox_base_station_run(ublox_t &base, const int port) {
   server.sin_port = htons(port);
 
   // Bind newly created socket to given IP
-  int retval = bind(base.server_socket,
-                    (struct sockaddr *) &server,
-                    sizeof(server));
+  int retval = bind(base.sockfd, (struct sockaddr *) &server, sizeof(server));
   if (retval != 0) {
     LOG_ERROR("Socket bind failed...");
     LOG_ERROR("%s", strerror(errno));
@@ -741,7 +711,7 @@ int ublox_base_station_run(ublox_t &base, const int port) {
   }
 
   // Server is ready to listen
-  if ((listen(base.server_socket, 20)) != 0) {
+  if ((listen(base.sockfd, 20)) != 0) {
     LOG_ERROR("Listen failed...");
     return -1;
   } else {
@@ -752,26 +722,23 @@ int ublox_base_station_run(ublox_t &base, const int port) {
   ublox_base_station_loop(base);
 
   // Clean up
-  close(base.server_socket);
-  base.server_socket = -1;
+  close(base.sockfd);
+  base.sockfd = -1;
 
   return 0;
 }
-
-
 
 /*****************************************************************************
  * Ublox Rover
  ****************************************************************************/
 
-ublox_rover_t::ublox_rover_t() {}
-
 int ublox_rover_config(ublox_t &rover) {
   // Configure rover
-  const uint8_t layer = 1;  // RAM
+  const uint8_t layer = 1; // RAM
   int retval = 0;
-  // retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms = 1Hz
-  retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 100, 2);  // 100ms = 10Hz
+  // retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms =
+  // 1Hz
+  retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 100, 2); // 100ms = 10Hz
   retval += ubx_val_set(rover, layer, CFG_USBOUTPROT_NMEA, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_CLOCK_USB, 0, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB, 0, 1);
@@ -789,17 +756,16 @@ int ublox_rover_config(ublox_t &rover) {
   return 0;
 }
 
-
-void ublox_rover_loop(ublox_t &ublox) {
-  const int timeout = 1;  // 1ms
+void ublox_rover_loop(ublox_t &rover) {
+  const int timeout = 1; // 1ms
 
   // Setup poll file descriptors
   struct pollfd fds[2];
   // -- UART
-  fds[0].fd = ublox.uart.connection;
+  fds[0].fd = rover.uart.connection;
   fds[0].events = POLLIN;
   // -- Server
-  fds[1].fd = ublox.client_socket;
+  fds[1].fd = rover.sockfd;
   fds[1].events = POLLIN;
 
   // Poll
@@ -807,28 +773,28 @@ void ublox_rover_loop(ublox_t &ublox) {
     // Read byte from serial and parse
     if (fds[0].revents & POLLIN) {
       uint8_t data = 0;
-      if (uart_read(ublox.uart, &data, 1) != 0) {
+      if (uart_read(rover.uart, &data, 1) != 0) {
         continue;
       }
-      ublox_parse_ubx(ublox, data);
+      ublox_parse_ubx(rover, data);
     }
 
     // Read byte from server (assuming its the RTCM3)
     if (fds[1].fd != -1 && (fds[1].revents & POLLIN)) {
       // Read byte
       uint8_t data = 0;
-      if (read(ublox.client_socket, &data, 1) != 1) {
+      if (read(rover.sockfd, &data, 1) != 1) {
         LOG_ERROR("Failed to read RTCM3 byte from server!");
         LOG_ERROR("Ignoring server for now!");
         fds[1].fd = -1;
       }
 
       // Transmit RTCM3 packet if its ready
-      if (rtcm3_parser_update(ublox.rtcm3_parser, data)) {
-        const uint8_t *msg_data = ublox.rtcm3_parser.buf_data;
-        const size_t msg_len = ublox.rtcm3_parser.msg_len;
-        uart_write(ublox.uart, msg_data, msg_len);
-        rtcm3_parser_reset(ublox.rtcm3_parser);
+      if (rtcm3_parser_update(rover.rtcm3_parser, data)) {
+        const uint8_t *msg_data = rover.rtcm3_parser.buf_data;
+        const size_t msg_len = rover.rtcm3_parser.msg_len;
+        uart_write(rover.uart, msg_data, msg_len);
+        rtcm3_parser_reset(rover.rtcm3_parser);
       }
     }
   }
@@ -850,7 +816,9 @@ static void ublox_setup_hpposllh_output(ublox_t &ublox) {
   fprintf(ublox.hpposllh_data, "\n");
 }
 
-int ublox_rover_run(ublox_t &rover, const std::string &base_ip, const int base_port) {
+int ublox_rover_run(ublox_t &rover,
+                    const std::string &base_ip,
+                    const int base_port) {
   // Configure rover
   if (ublox_rover_config(rover) != 0) {
     LOG_ERROR("Failed to configure Ublox into ROVER mode!");
@@ -858,8 +826,8 @@ int ublox_rover_run(ublox_t &rover, const std::string &base_ip, const int base_p
   }
 
   // Create socket
-  rover.client_socket = socket(AF_INET, SOCK_STREAM, 0);
-  if (rover.client_socket == -1) {
+  rover.sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (rover.sockfd == -1) {
     LOG_ERROR("Socket creation failed!");
     return -1;
   } else {
@@ -874,9 +842,8 @@ int ublox_rover_run(ublox_t &rover, const std::string &base_ip, const int base_p
   server.sin_port = htons(base_port);
 
   // Connect to server
-  int retval = connect(rover.client_socket,
-                       (struct sockaddr *) &server,
-                       sizeof(server));
+  int retval =
+      connect(rover.sockfd, (struct sockaddr *) &server, sizeof(server));
   if (retval != 0) {
     LOG_ERROR("Connection with the server failed!");
     return -1;
@@ -888,8 +855,8 @@ int ublox_rover_run(ublox_t &rover, const std::string &base_ip, const int base_p
   ublox_rover_loop(rover);
 
   // Clean up
-  close(rover.client_socket);
-  rover.client_socket = -1;
+  close(rover.sockfd);
+  rover.sockfd = -1;
 
   return 0;
 }

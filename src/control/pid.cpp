@@ -5,7 +5,7 @@ namespace proto {
 pid_t::pid_t() {}
 
 pid_t::pid_t(const double k_p_, const double k_i_, const double k_d_)
- : k_p{k_p_}, k_i{k_i_}, k_d{k_d_} {}
+    : k_p{k_p_}, k_i{k_i_}, k_d{k_d_} {}
 
 pid_t::~pid_t() {}
 

@@ -199,8 +199,7 @@ float rescale_points(vec2s_t &pts1, std::vector<vec2_t> &pts2);
  * @param[in] projected Projected image pixels
  * @returns Reprojection error
  */
-double reprojection_error(const vec2s_t &measured,
-                          const vec2s_t &projected);
+double reprojection_error(const vec2s_t &measured, const vec2s_t &projected);
 
 /**
  * Calculate reprojection error

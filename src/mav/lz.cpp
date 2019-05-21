@@ -2,7 +2,7 @@
 
 namespace proto {
 
-lz_detector_t::lz_detector_t(){}
+lz_detector_t::lz_detector_t() {}
 
 lz_detector_t::lz_detector_t(const std::vector<int> &tag_ids,
                              const std::vector<double> &tag_sizes) {
@@ -110,14 +110,14 @@ int lz_detector_detect(const lz_detector_t &det,
 }
 
 int lz_calc_corners(const lz_detector_t &lz,
-										const pinhole_t &pinhole,
-										const cv::Mat &image,
+                    const pinhole_t &pinhole,
+                    const cv::Mat &image,
                     const mat4_t &T_CZ,
-										const int tag_id,
+                    const int tag_id,
                     const double padding,
                     vec2_t &top_left,
                     vec2_t &btm_right) {
-	// Tag size and camera intrinsics
+  // Tag size and camera intrinsics
   const double tag_size = lz.targets.at(tag_id);
   const double fx = pinhole.fx;
   const double fy = pinhole.fy;
@@ -125,7 +125,7 @@ int lz_calc_corners(const lz_detector_t &lz,
   const double cy = pinhole.cy;
 
   // Tag position in camera frame
-	const vec3_t r_CZ = tf_trans(T_CZ);
+  const vec3_t r_CZ = tf_trans(T_CZ);
   const double x = r_CZ(0);
   const double y = r_CZ(1);
   const double z = r_CZ(2);

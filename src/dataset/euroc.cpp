@@ -39,8 +39,15 @@ int euroc_imu_load(euroc_imu_t &data, const std::string &data_dir) {
     timestamp_t ts = 0;
     double w_x, w_y, w_z = 0.0;
     double a_x, a_y, a_z = 0.0;
-    int retval = fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf,%lf,%lf,%lf",
-                        &ts, &w_x, &w_y, &w_z, &a_x, &a_y, &a_z);
+    int retval = fscanf(fp,
+                        "%" SCNu64 ",%lf,%lf,%lf,%lf,%lf,%lf",
+                        &ts,
+                        &w_x,
+                        &w_y,
+                        &w_z,
+                        &a_x,
+                        &a_y,
+                        &a_z);
     if (retval != 7) {
       LOG_ERROR("Failed to parse line in [%s]", data_path.c_str());
       return -1;
@@ -92,7 +99,8 @@ std::ostream &operator<<(std::ostream &os, const euroc_imu_t &data) {
 
 euroc_camera_t::euroc_camera_t() {}
 
-euroc_camera_t::euroc_camera_t(const std::string &data_dir_, bool is_calib_data_)
+euroc_camera_t::euroc_camera_t(const std::string &data_dir_,
+                               bool is_calib_data_)
     : data_dir{data_dir_} {
   euroc_camera_load(*this, data_dir, is_calib_data_);
 }
@@ -212,12 +220,12 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
 
   // Parse file
   std::string str_format;
-  str_format += "%" SCNu64 ",";      // Timestamp
-  str_format += "%lf,%lf,%lf,";      // Position
-  str_format += "%lf,%lf,%lf,%lf,";  // Quaternion
-  str_format += "%lf,%lf,%lf,";      // Velocity
-  str_format += "%lf,%lf,%lf,";      // Gyro bias
-  str_format += "%lf,%lf,%lf";       // Accel bias
+  str_format += "%" SCNu64 ",";     // Timestamp
+  str_format += "%lf,%lf,%lf,";     // Position
+  str_format += "%lf,%lf,%lf,%lf,"; // Quaternion
+  str_format += "%lf,%lf,%lf,";     // Velocity
+  str_format += "%lf,%lf,%lf,";     // Gyro bias
+  str_format += "%lf,%lf,%lf";      // Accel bias
 
   for (int i = 0; i < nb_rows; i++) {
     // Skip first line
@@ -233,14 +241,25 @@ int euroc_ground_truth_load(euroc_ground_truth_t &data,
     double v_x, v_y, v_z = 0.0;
     double b_w_x, b_w_y, b_w_z = 0.0;
     double b_a_x, b_a_y, b_a_z = 0.0;
-    int retval = fscanf(fp, str_format.c_str(),
-      &ts,
-      &p_x, &p_y, &p_z,
-      &q_x, &q_y, &q_z, &q_w,
-      &v_x, &v_y, &v_z,
-      &b_w_x, &b_w_y, &b_w_z,
-      &b_a_x, &b_a_y, &b_a_z
-    );
+    int retval = fscanf(fp,
+                        str_format.c_str(),
+                        &ts,
+                        &p_x,
+                        &p_y,
+                        &p_z,
+                        &q_x,
+                        &q_y,
+                        &q_z,
+                        &q_w,
+                        &v_x,
+                        &v_y,
+                        &v_z,
+                        &b_w_x,
+                        &b_w_y,
+                        &b_w_z,
+                        &b_a_x,
+                        &b_a_y,
+                        &b_a_z);
     if (retval != 17) {
       LOG_INFO("Failed to parse line in [%s]", data_path.c_str());
       return -1;
@@ -291,12 +310,14 @@ int euroc_data_load(euroc_data_t &data, const std::string &data_path) {
   // Load camera data
   const std::string cam0_data_dir = data.data_path + "/mav0/cam0";
   if (euroc_camera_load(data.cam0_data, cam0_data_dir) != 0) {
-    LOG_ERROR("Failed to load cam0 data [%s]!", data.cam0_data.data_dir.c_str());
+    LOG_ERROR("Failed to load cam0 data [%s]!",
+              data.cam0_data.data_dir.c_str());
     return -1;
   }
   const std::string cam1_data_dir = data.data_path + "/mav0/cam1";
   if (euroc_camera_load(data.cam1_data, cam1_data_dir) != 0) {
-    LOG_ERROR("Failed to load cam1 data [%s]!", data.cam1_data.data_dir.c_str());
+    LOG_ERROR("Failed to load cam1 data [%s]!",
+              data.cam1_data.data_dir.c_str());
     return -1;
   }
   for (size_t i = 0; i < data.cam0_data.timestamps.size(); i++) {
@@ -497,7 +518,7 @@ int process_stereo_images(const euroc_calib_t &calib_data,
 
   // Preprocess cam0 images
   const auto cam0_image_dir = calib_data.cam0_data.data_dir + "/data";
-  const auto cam0_output_dir = paths_combine(preprocess_path,  "cam0");
+  const auto cam0_output_dir = paths_combine(preprocess_path, "cam0");
   int retval = preprocess_camera_data(target,
                                       cam0_image_dir,
                                       cam0_K,
@@ -511,7 +532,7 @@ int process_stereo_images(const euroc_calib_t &calib_data,
 
   // Preprocess cam1 images
   const auto cam1_image_dir = calib_data.cam1_data.data_dir + "/data";
-  const auto cam1_output_dir = paths_combine(preprocess_path,  "cam1");
+  const auto cam1_output_dir = paths_combine(preprocess_path, "cam1");
   retval = preprocess_camera_data(target,
                                   cam1_image_dir,
                                   cam1_K,
@@ -534,12 +555,12 @@ int process_stereo_images(const euroc_calib_t &calib_data,
 }
 
 timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
-                                 const aprilgrids_t &cam0_grids,
-                                 const aprilgrids_t &cam1_grids,
-                                 const mat4_t &T_SC0,
-                                 mat4s_t &T_WS,
-                                 mat4_t &T_WF,
-                                 timestamp_t &t0) {
+                                        const aprilgrids_t &cam0_grids,
+                                        const aprilgrids_t &cam1_grids,
+                                        const mat4_t &T_SC0,
+                                        mat4s_t &T_WS,
+                                        mat4_t &T_WF,
+                                        timestamp_t &t0) {
   assert(cam0_grids.size() > 0);
   assert(cam1_grids.size() > 0);
   assert(cam0_grids.size() == cam1_grids.size());

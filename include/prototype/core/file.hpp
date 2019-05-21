@@ -22,7 +22,7 @@ namespace proto {
  */
 FILE *file_open(const std::string &path,
                 const std::string &mode,
-                int *nb_rows=nullptr);
+                int *nb_rows = nullptr);
 
 /**
  * Skip file line in file `fp`.

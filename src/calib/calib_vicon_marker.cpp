@@ -4,8 +4,7 @@ namespace proto {
 
 vicon_marker_residual_t::vicon_marker_residual_t(const vec2_t &z,
                                                  const vec3_t &p_F)
-    : z_{z(0), z(1)},
-      p_F_{p_F(0), p_F(1), p_F(2)} {}
+    : z_{z(0), z(1)}, p_F_{p_F(0), p_F(1), p_F(2)} {}
 
 vicon_marker_residual_t::~vicon_marker_residual_t() {}
 
@@ -127,7 +126,8 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
-  problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  problem_options.local_parameterization_ownership =
+      ceres::DO_NOT_TAKE_OWNERSHIP;
   std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 

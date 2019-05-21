@@ -1,13 +1,30 @@
-default:
+define usage
+[TARGETS]:
+  deps:
+    Clone prototype dependencies
 
-# usage:
-# 	@cat<<-EOF
-# 		debug:
-# 			build prototype in debug mode
-#
-# 		release:
-# 			build prototype in release mode
-# 	EOF
+  debug:
+    Build prototype in debug mode
+
+  release:
+    Build prototype in release mode
+
+  install:
+    Install prototype
+
+  install_deps:
+    Install prototype dependencies
+
+  format_code:
+    Format prototype code using clang-format
+
+  docs:
+    Generate docs for prototype
+endef
+export usage
+
+default:
+	@echo "$$usage"
 
 deps:
 	@git submodule init
@@ -23,3 +40,12 @@ release: deps
 
 install:
 	@cd build && make -s install
+
+install_deps:
+	@bash ./scripts/deps/install.bash
+
+format_code:
+	@bash ./scripts/format_code.bash
+
+docs:
+	@cd scripts/api && python3 api.py

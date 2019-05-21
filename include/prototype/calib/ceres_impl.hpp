@@ -85,6 +85,6 @@ pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
   return pixel;
 }
 
-}  // namespace proto
+} // namespace proto
 #include "ceres_impl.hpp"
 #endif // PROTOTYPE_CALIB_CERES_IMPL_HPP

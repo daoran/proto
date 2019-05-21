@@ -40,8 +40,8 @@ Eigen::Matrix<T, 4, 4> GimbalCalibResidual::dhTransform(const T theta,
 
 template <typename T>
 Eigen::Matrix<T, 3, 3> GimbalCalibResidual::euler321(const T phi,
-                                                          const T theta,
-                                                          const T psi) const {
+                                                     const T theta,
+                                                     const T psi) const {
   // i.e. ZYX rotation sequence (world to body)
   const T R11 = cos(psi) * cos(theta);
   const T R12 = sin(psi) * cos(theta);

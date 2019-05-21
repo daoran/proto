@@ -30,8 +30,7 @@ void load_accel_data(const std::string &data_path,
     // Parse line
     timestamp_t ts = 0;
     double a_x, a_y, a_z = 0.0;
-    fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf",
-           &ts, &a_x, &a_y, &a_z);
+    fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf", &ts, &a_x, &a_y, &a_z);
     accel_ts.push_back(ts);
     accel_data.emplace_back(a_x, a_y, a_z);
   }
@@ -59,8 +58,7 @@ void load_gyro_data(const std::string &data_path,
     // Parse line
     timestamp_t ts = 0;
     double w_x, w_y, w_z = 0.0;
-    fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf",
-           &ts, &w_x, &w_y, &w_z);
+    fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf", &ts, &w_x, &w_y, &w_z);
     gyro_ts.push_back(ts);
     gyro_data.emplace_back(w_x, w_y, w_z);
   }

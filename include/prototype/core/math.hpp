@@ -564,7 +564,7 @@ std::vector<double> linspace(const double start,
  */
 mat4_t lookat(const vec3_t &cam_pos,
               const vec3_t &target,
-              const vec3_t &up_axis=vec3_t{0.0, -1.0, 0.0});
+              const vec3_t &up_axis = vec3_t{0.0, -1.0, 0.0});
 
 /**
  * Shannon Entropy of a given covariance matrix `covar`.

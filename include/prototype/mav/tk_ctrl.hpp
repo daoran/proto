@@ -30,7 +30,7 @@ struct tk_ctrl_t {
  */
 int tk_ctrl_configure(tk_ctrl_t &ctrl,
                       const std::string &config_file,
-                      const std::string &prefix="");
+                      const std::string &prefix = "");
 
 /**
  * Update tracking control

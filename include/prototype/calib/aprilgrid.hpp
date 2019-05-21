@@ -71,9 +71,7 @@ void aprilgrid_remove(aprilgrid_t &grid, const int id);
  * Get AprilTag measurements based on tag id.
  * @returns 0 or -1 for success or failure.
  */
-int aprilgrid_get(const aprilgrid_t &grid,
-                  const int id,
-                  vec2s_t &keypoints);
+int aprilgrid_get(const aprilgrid_t &grid, const int id, vec2s_t &keypoints);
 
 /**
  * Get AprilTag measurements based on tag id.

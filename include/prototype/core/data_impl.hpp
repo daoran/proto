@@ -41,21 +41,22 @@ T set_union(const T &s1, const T &s2) {
 template <typename T>
 T set_diff(const T &a, const T &b) {
   T results;
-  std::set_difference(
-    a.begin(), a.end(),
-    b.begin(), b.end(),
-    std::inserter(results, results.end())
-  );
+  std::set_difference(a.begin(),
+                      a.end(),
+                      b.begin(),
+                      b.end(),
+                      std::inserter(results, results.end()));
   return results;
 }
 
 template <typename T>
 T set_symmetric_diff(const T &a, const T &b) {
   T results;
-  std::set_symmetric_difference(
-      a.begin(), a.end(),
-      b.begin(), b.end(),
-      std::back_inserter(results));
+  std::set_symmetric_difference(a.begin(),
+                                a.end(),
+                                b.begin(),
+                                b.end(),
+                                std::back_inserter(results));
   return results;
 }
 
@@ -63,8 +64,8 @@ template <typename T>
 std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
   // Obtain element count across all vectors
   std::unordered_map<T, size_t> counter;
-  for(const auto &vec: vecs) {  // Loop over all vectors
-    for (const auto& p : vec) { // Loop over elements in vector
+  for (const auto &vec : vecs) { // Loop over all vectors
+    for (const auto &p : vec) {  // Loop over elements in vector
       counter[p] += 1;
     }
   }

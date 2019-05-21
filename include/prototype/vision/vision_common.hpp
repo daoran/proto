@@ -199,8 +199,7 @@ float rescale_points(vec2s_t &pts1, std::vector<vec2_t> &pts2);
  * @param[in] projected Projected image pixels
  * @returns Reprojection error
  */
-double reprojection_error(const vec2s_t &measured,
-                          const vec2s_t &projected);
+double reprojection_error(const vec2s_t &measured, const vec2s_t &projected);
 
 /**
  * Calculate reprojection error
@@ -310,17 +309,17 @@ cv::Mat equi_undistort_image(const mat3_t &K,
  * @param[in] lambda_3 Lambad 3
  */
 void illum_invar_transform(cv::Mat &image,
-												   const double lambda_1,
-													 const double lambda_2,
-													 const double lambda_3);
+                           const double lambda_1,
+                           const double lambda_2,
+                           const double lambda_3);
 
-double lapm(const cv::Mat& src);
+double lapm(const cv::Mat &src);
 
-double lapv(const cv::Mat& src);
+double lapv(const cv::Mat &src);
 
-double teng(const cv::Mat& src, int ksize);
+double teng(const cv::Mat &src, int ksize);
 
-double glvn(const cv::Mat& src);
+double glvn(const cv::Mat &src);
 
 } //  namespace proto
 #include "vision_common_impl.hpp"

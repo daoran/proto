@@ -22,7 +22,7 @@ int yaml_load_file(const std::string file_path, YAML::Node &root) {
   // Load and parse file
   try {
     root = YAML::LoadFile(file_path);
-  } catch (YAML::ParserException& e) {
+  } catch (YAML::ParserException &e) {
     LOG_ERROR("%s", e.what());
     return -1;
   }
@@ -300,6 +300,5 @@ void parse(const config_t &config,
     }
   }
 }
-
 
 } //  namespace proto

@@ -21,9 +21,7 @@ int main() {
   server.sin_port = htons(BASE_STATION_PORT);
 
   // Connect to server
-  int retval = connect(sockfd,
-                       (struct sockaddr *) &server,
-                       sizeof(server));
+  int retval = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
   if (retval != 0) {
     LOG_ERROR("Connection with the base station failed!");
     exit(0);

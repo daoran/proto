@@ -37,12 +37,7 @@ int tune_att_ctrl() {
 
     // Attitude control
     vec4_t att_setpoint{0.1, 0.2, 0.3, 0.0};
-    const vec4_t u = att_ctrl_update(
-      atl.att_ctrl,
-      att_setpoint,
-      T_WB,
-      dt
-    );
+    const vec4_t u = att_ctrl_update(atl.att_ctrl, att_setpoint, T_WB, dt);
     mav_model_update(model, u, dt);
 
     // Output to file
@@ -88,21 +83,11 @@ int tune_pos_ctrl() {
     t += dt;
 
     // Position control
-    const vec4_t att_setpoint = pos_ctrl_update(
-      atl.pos_ctrl,
-      pos_setpoint,
-      T_WB,
-      atl.yaw_setpoint,
-      dt
-    );
+    const vec4_t att_setpoint =
+        pos_ctrl_update(atl.pos_ctrl, pos_setpoint, T_WB, atl.yaw_setpoint, dt);
 
     // Attitude control
-    const vec4_t u = att_ctrl_update(
-      atl.att_ctrl,
-      att_setpoint,
-      T_WB,
-      dt
-    );
+    const vec4_t u = att_ctrl_update(atl.att_ctrl, att_setpoint, T_WB, dt);
     mav_model_update(model, u, dt);
 
     // Output to file
@@ -127,9 +112,7 @@ int test_atl_constructor() {
   return 0;
 }
 
-int test_atl_step_hover_mode() {
-  return 0;
-}
+int test_atl_step_hover_mode() { return 0; }
 
 void test_suite() {
   // MU_ADD_TEST(tune_att_ctrl);

@@ -17,15 +17,15 @@ namespace proto {
 /**
  * UBX Class IDs
  * -------------
- * NAV 0x01 Navigation Results: Position, Speed, Time, Acceleration, Heading, DOP, SVs used
- * RXM 0x02 Receiver Manager: Satellite Status, RTC Status
- * INF 0x04 Information: Printf-Style Messages, with IDs such as Error, Warning, Notice
- * ACK 0x05 Ack/Nak: Acknowledge or Reject messages to UBX-CFG input messages
- * CFG 0x06 Configuration Input: Set Dynamic Model, Set DOP Mask, Set Baud Rate, etc.
- * UPD 0x09 Firmware Update: Memory/Flash erase/write, Reboot, Flash identification, etc.
- * MON 0x0A Monitoring: Communication Status, CPU Load, Stack Usage, Task Status
- * TIM 0x0D Timing: Time Pulse Output, Time Mark Results
- * MGA 0x13 Multiple GNSS Assistance: Assistance data for various GNSS
+ * NAV 0x01 Navigation Results: Position, Speed, Time, Acceleration, Heading,
+ * DOP, SVs used RXM 0x02 Receiver Manager: Satellite Status, RTC Status INF
+ * 0x04 Information: Printf-Style Messages, with IDs such as Error, Warning,
+ * Notice ACK 0x05 Ack/Nak: Acknowledge or Reject messages to UBX-CFG input
+ * messages CFG 0x06 Configuration Input: Set Dynamic Model, Set DOP Mask, Set
+ * Baud Rate, etc. UPD 0x09 Firmware Update: Memory/Flash erase/write, Reboot,
+ * Flash identification, etc. MON 0x0A Monitoring: Communication Status, CPU
+ * Load, Stack Usage, Task Status TIM 0x0D Timing: Time Pulse Output, Time Mark
+ * Results MGA 0x13 Multiple GNSS Assistance: Assistance data for various GNSS
  * LOG 0x21 Logging: Log creation, deletion, info and retrieval
  * SEC 0x27 Security Feature
  */
@@ -68,21 +68,20 @@ namespace proto {
  * NAV-DOP 0x01 0x04 18 Periodic/Polled Dilution of precision
  * NAV-EOE 0x01 0x61 4 Periodic End Of Epoch
  * NAV-GEOFENCE 0x01 0x39 8 + 2*numFe... Periodic/Polled Geofencing status
- * NAV-HPPOSECEF 0x01 0x13 28 Periodic/Polled High Precision Position Solution in ECEF
- * NAV-HPPOSLLH 0x01 0x14 36 Periodic/Polled High Precision Geodetic Position Solution
- * NAV-ODO 0x01 0x09 20 Periodic/Polled Odometer Solution
+ * NAV-HPPOSECEF 0x01 0x13 28 Periodic/Polled High Precision Position Solution
+ * in ECEF NAV-HPPOSLLH 0x01 0x14 36 Periodic/Polled High Precision Geodetic
+ * Position Solution NAV-ODO 0x01 0x09 20 Periodic/Polled Odometer Solution
  * NAV-ORB 0x01 0x34 8 + 6*numSv Periodic/Polled GNSS Orbit Database Info
  * NAV-POSECEF 0x01 0x01 20 Periodic/Polled Position Solution in ECEF
  * NAV-POSLLH 0x01 0x02 28 Periodic/Polled Geodetic Position Solution
  * NAV-PVT 0x01 0x07 92 Periodic/Polled Navigation Position Velocity Time...
- * NAV-RELPOSNED 0x01 0x3C 64 Periodic/Polled Relative Positioning Information in...
- * NAV-RESETODO 0x01 0x10 0 Command Reset odometer
- * NAV-SAT 0x01 0x35 8 + 12*numSvs Periodic/Polled Satellite Information
- * NAV-SIG 0x01 0x43 8 + 16*numSi... Periodic/Polled Signal Information
- * NAV-STATUS 0x01 0x03 16 Periodic/Polled Receiver Navigation Status
- * NAV-SVIN 0x01 0x3B 40 Periodic/Polled Survey-in data
- * NAV-TIMEBDS 0x01 0x24 20 Periodic/Polled BDS Time Solution
- * NAV-TIMEGAL 0x01 0x25 20 Periodic/Polled Galileo Time Solution
+ * NAV-RELPOSNED 0x01 0x3C 64 Periodic/Polled Relative Positioning Information
+ * in... NAV-RESETODO 0x01 0x10 0 Command Reset odometer NAV-SAT 0x01 0x35 8 +
+ * 12*numSvs Periodic/Polled Satellite Information NAV-SIG 0x01 0x43 8 +
+ * 16*numSi... Periodic/Polled Signal Information NAV-STATUS 0x01 0x03 16
+ * Periodic/Polled Receiver Navigation Status NAV-SVIN 0x01 0x3B 40
+ * Periodic/Polled Survey-in data NAV-TIMEBDS 0x01 0x24 20 Periodic/Polled BDS
+ * Time Solution NAV-TIMEGAL 0x01 0x25 20 Periodic/Polled Galileo Time Solution
  * NAV-TIMEGLO 0x01 0x23 20 Periodic/Polled GLO Time Solution
  * NAV-TIMEGPS 0x01 0x20 16 Periodic/Polled GPS Time Solution
  * NAV-TIMELS 0x01 0x26 24 Periodic/Polled Leap second event information
@@ -119,14 +118,13 @@ namespace proto {
 /**
  * UBX Class RXM Receiver Manager Messages
  * ---------------------------------------
- * RXM-MEASX 0x02 0x14 44 + 24*num... Periodic/Polled Satellite Measurements for RRLP
- * RXM-PMREQ 0x02 0x41 8 Command Requests a Power Management task
- * RXM-PMREQ 0x02 0x41 16 Command Requests a Power Management task
- * RXM-RAWX 0x02 0x15 16 + 32*num... Periodic/Polled Multi-GNSS Raw Measurement Data
- * RXM-RLM 0x02 0x59 16 Output Galileo SAR Short-RLM report
- * RXM-RLM 0x02 0x59 28 Output Galileo SAR Long-RLM report
- * RXM-RTCM 0x02 0x32 8 Output RTCM input status
- * RXM-SFRBX 0x02 0x13 8 + 4*numW... Output
+ * RXM-MEASX 0x02 0x14 44 + 24*num... Periodic/Polled Satellite Measurements for
+ * RRLP RXM-PMREQ 0x02 0x41 8 Command Requests a Power Management task RXM-PMREQ
+ * 0x02 0x41 16 Command Requests a Power Management task RXM-RAWX 0x02 0x15 16 +
+ * 32*num... Periodic/Polled Multi-GNSS Raw Measurement Data RXM-RLM 0x02 0x59
+ * 16 Output Galileo SAR Short-RLM report RXM-RLM 0x02 0x59 28 Output Galileo
+ * SAR Long-RLM report RXM-RTCM 0x02 0x32 8 Output RTCM input status RXM-SFRBX
+ * 0x02 0x13 8 + 4*numW... Output
  */
 #define UBX_RXM_MEASX 0x14
 #define UBX_RXM_PMREQ 0x41
@@ -165,7 +163,6 @@ namespace proto {
 #define CFG_TMODE_SVIN_ACC_LIMIT 0x40030011
 
 #define CFG_NAVSPG_DYNMODEL 0x20110021
-
 
 /*****************************************************************************
  * UBX Message
@@ -209,7 +206,7 @@ void ubx_msg_print(const ubx_msg_t &msg);
 /**
  * UBX-NAV-SVIN
  */
-struct ubx_nav_svin_t{
+struct ubx_nav_svin_t {
   uint32_t itow = 0;
   uint32_t dur = 0;
   int32_t mean_x = 0;
@@ -288,25 +285,13 @@ void print_ubx_nav_status(const ubx_nav_status_t &msg) {
   printf("itow: %d", msg.itow);
 
   printf("\t");
-  switch(msg.fix) {
-  case 0x00:
-    printf("fix: no fix");
-    break;
-  case 0x01:
-    printf("fix: dead reckoning only");
-    break;
-  case 0x02:
-    printf("fix: 2D-fix");
-    break;
-  case 0x03:
-    printf("fix: 3D-fix");
-    break;
-  case 0x04:
-    printf("fix: GNSS + dead reckoning combined");
-    break;
-  case 0x05:
-    printf("fix: time only fix");
-    break;
+  switch (msg.fix) {
+    case 0x00: printf("fix: no fix"); break;
+    case 0x01: printf("fix: dead reckoning only"); break;
+    case 0x02: printf("fix: 2D-fix"); break;
+    case 0x03: printf("fix: 3D-fix"); break;
+    case 0x04: printf("fix: GNSS + dead reckoning combined"); break;
+    case 0x05: printf("fix: time only fix"); break;
   }
   printf("\t");
 
@@ -426,25 +411,13 @@ void print_ubx_nav_pvt(const ubx_nav_pvt_t &msg) {
   printf("\t");
   printf("height: %d", msg.height);
   printf("\t");
-  switch(msg.fix_type) {
-  case 0:
-    printf("Fix type: no fix");
-    break;
-  case 1:
-    printf("Fix type: dead reckoning only");
-    break;
-  case 2:
-    printf("Fix type: 2D-fix");
-    break;
-  case 3:
-    printf("Fix type: 3D-fix");
-    break;
-  case 4:
-    printf("Fix type: GNSS + dead reckoning combined");
-    break;
-  case 5:
-    printf("Fix type: time only fix");
-    break;
+  switch (msg.fix_type) {
+    case 0: printf("Fix type: no fix"); break;
+    case 1: printf("Fix type: dead reckoning only"); break;
+    case 2: printf("Fix type: 2D-fix"); break;
+    case 3: printf("Fix type: 3D-fix"); break;
+    case 4: printf("Fix type: GNSS + dead reckoning combined"); break;
+    case 5: printf("Fix type: time only fix"); break;
   }
   printf("\n");
 }
@@ -538,8 +511,6 @@ void print_ubx_rxm_rtcm(const ubx_rxm_rtcm_t &msg) {
   printf("\n");
 }
 
-
-
 /*****************************************************************************
  * UBX Stream Parser
  ****************************************************************************/
@@ -571,8 +542,6 @@ struct ubx_parser_t {
 
 void ubx_parser_reset(ubx_parser_t &parser);
 int ubx_parser_update(ubx_parser_t &parser, uint8_t data);
-
-
 
 /*****************************************************************************
  * RTCM3 Stream Parser
@@ -611,8 +580,6 @@ void rtcm3_parser_reset(rtcm3_parser_t &parser);
  */
 int rtcm3_parser_update(rtcm3_parser_t &parser, uint8_t data);
 
-
-
 /*****************************************************************************
  * UBlox
  ****************************************************************************/
@@ -624,11 +591,10 @@ struct ublox_t {
   bool ok = false;
 
   uart_t uart;
+  int sockfd = -1;
   std::vector<int> conns;
-  int server_socket = -1;
-  int client_socket = -1;
 
-  std::string msg_type = "";  // Current msg type
+  std::string msg_type = ""; // Current msg type
   ubx_parser_t ubx_parser;
   rtcm3_parser_t rtcm3_parser;
 
@@ -640,7 +606,7 @@ struct ublox_t {
 
   FILE *hpposllh_data = nullptr;
 
-  ublox_t(const std::string &port="/dev/ttyACM0", const int speed=B57600);
+  ublox_t(const std::string &port = "/dev/ttyACM0", const int speed = B57600);
   ublox_t(const uart_t &uart);
   ~ublox_t();
 };
@@ -655,8 +621,8 @@ int ubx_poll(const ublox_t &ublox,
              const uint8_t msg_id,
              uint16_t &payload_length,
              uint8_t *payload,
-             const bool expect_ack=false,
-             const int retry=5);
+             const bool expect_ack = false,
+             const int retry = 5);
 int ubx_read_ack(const ublox_t &ublox, uint8_t msg_class, uint8_t msg_id);
 int ubx_val_get(const ublox_t &ublox,
                 const uint8_t layer,
@@ -672,44 +638,15 @@ void ublox_version(const ublox_t &ublox);
 int ublox_parse_ubx(ublox_t &ublox, uint8_t data);
 int ublox_parse_rtcm3(ublox_t &ublox, uint8_t data);
 
-
-
-/*****************************************************************************
- * UBlox Base Station
- ****************************************************************************/
-
-/**
- * UBlox Base Station
- */
-struct ublox_base_station_t : public ublox_t {
-  std::vector<int> conns;
-  int sockfd = -1;
-  ublox_base_station_t();
-};
-
 int ublox_base_station_config(ublox_t &base);
 void ublox_base_station_loop(ublox_t &base);
-int ublox_base_station_run(ublox_t &base, const int port=8080);
-
-
-
-/*****************************************************************************
- * UBlox Rover
- ****************************************************************************/
-
-/**
- * UBlox Rover
- */
-struct ublox_rover_t : public ublox_t {
-  int sockfd = -1;
-  ublox_rover_t();
-};
+int ublox_base_station_run(ublox_t &base, const int port = 8080);
 
 int ublox_rover_config(ublox_t &rover);
 void ublox_rover_loop(ublox_t &rover);
 int ublox_rover_run(ublox_t &rover,
-                    const std::string &base_ip="127.0.0.1",
-                    const int base_port=8080);
+                    const std::string &base_ip = "127.0.0.1",
+                    const int base_port = 8080);
 
 } //  namespace proto
 #endif // PROTOTYPE_DRIVER_UBLOX_HPP

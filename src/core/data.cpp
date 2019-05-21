@@ -3,35 +3,29 @@
 namespace proto {
 
 int8_t s8bit(const uint8_t *data, const size_t offset) {
-  return (int8_t) (data[offset]);
+  return (int8_t)(data[offset]);
 }
 
 uint8_t u8bit(const uint8_t *data, const size_t offset) {
-  return (uint8_t) (data[offset]);
+  return (uint8_t)(data[offset]);
 }
 
 int16_t s16bit(const uint8_t *data, const size_t offset) {
-  return (int16_t) ((data[offset + 1] << 8) | (data[offset]));
+  return (int16_t)((data[offset + 1] << 8) | (data[offset]));
 }
 
 uint16_t u16bit(const uint8_t *data, const size_t offset) {
-  return (uint16_t) ((data[offset + 1] << 8) | (data[offset]));
+  return (uint16_t)((data[offset + 1] << 8) | (data[offset]));
 }
 
 int32_t s32bit(const uint8_t *data, const size_t offset) {
-  return (int32_t)
-    ((data[offset + 3] << 24)
-    | (data[offset + 2] << 16)
-    | (data[offset + 1] << 8)
-    | (data[offset]));
+  return (int32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
+                   (data[offset + 1] << 8) | (data[offset]));
 }
 
 uint32_t u32bit(const uint8_t *data, const size_t offset) {
-  return (uint32_t)
-    ((data[offset + 3] << 24)
-    | (data[offset + 2] << 16)
-    | (data[offset + 1] << 8)
-    | (data[offset]));
+  return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
+                    (data[offset + 1] << 8) | (data[offset]));
 }
 
 int csvrows(const std::string &file_path) {
@@ -185,9 +179,9 @@ quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
   }
 
   // Since dot is in range [0, DOT_THRESHOLD], acos is safe
-  const double theta_0 = acos(dot);        // theta_0 = angle between input vectors
-  const double theta = theta_0 * alpha;    // theta = angle between q0 and result
-  const double sin_theta = sin(theta);     // compute this value only once
+  const double theta_0 = acos(dot);     // theta_0 = angle between input vectors
+  const double theta = theta_0 * alpha; // theta = angle between q0 and result
+  const double sin_theta = sin(theta);  // compute this value only once
   const double sin_theta_0 = sin(theta_0); // compute this value only once
 
   // == sin(theta_0 - theta) / sin(theta_0)
@@ -316,7 +310,7 @@ void closest_poses(const timestamps_t &timestamps,
 }
 
 bool all_true(const std::vector<bool> x) {
-  for (const auto i: x) {
+  for (const auto i : x) {
     if (i == false) {
       return false;
     }

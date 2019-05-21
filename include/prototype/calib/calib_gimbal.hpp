@@ -171,8 +171,8 @@ struct GimbalCalibResidual {
   /// Euler 3-2-1 to rotation matrix
   template <typename T>
   Eigen::Matrix<T, 3, 3> euler321(const T phi,
-                                       const T theta,
-                                       const T psi) const;
+                                  const T theta,
+                                  const T psi) const;
 
   /// Form camera intrinsics matrix K
   template <typename T>

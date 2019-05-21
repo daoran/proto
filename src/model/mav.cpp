@@ -5,7 +5,7 @@ namespace proto {
 int mav_model_update(mav_model_t &model,
                      const vec4_t &motor_inputs,
                      const double dt) {
-	const double ph = model.attitude(0);
+  const double ph = model.attitude(0);
   const double th = model.attitude(1);
   const double ps = model.attitude(2);
 

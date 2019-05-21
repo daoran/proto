@@ -5,9 +5,9 @@ namespace proto {
 stereo_residual_t::stereo_residual_t(const vec2_t &z_C0,
                                      const vec2_t &z_C1,
                                      const vec3_t &p_F)
-    : z_C0_{z_C0(0), z_C0(1)},
-      z_C1_{z_C1(0), z_C1(1)},
-      p_F_{p_F(0), p_F(1), p_F(2)} {}
+    : z_C0_{z_C0(0), z_C0(1)}, z_C1_{z_C1(0), z_C1(1)}, p_F_{p_F(0),
+                                                             p_F(1),
+                                                             p_F(2)} {}
 
 stereo_residual_t::~stereo_residual_t() {}
 
@@ -95,7 +95,8 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
 
   // Setup optimization problem
   ceres::Problem::Options problem_options;
-  problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  problem_options.local_parameterization_ownership =
+      ceres::DO_NOT_TAKE_OWNERSHIP;
   std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 

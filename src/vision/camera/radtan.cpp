@@ -5,8 +5,8 @@ namespace proto {
 radtan4_t::radtan4_t() {}
 
 radtan4_t::radtan4_t(const vec4_t &distortion_)
-    : k1{distortion_(0)}, k2{distortion_(1)},
-      p1{distortion_(2)}, p2{distortion_(3)} {}
+    : k1{distortion_(0)}, k2{distortion_(1)}, p1{distortion_(2)},
+      p2{distortion_(3)} {}
 
 radtan4_t::radtan4_t(const double k1_,
                      const double k2_,
@@ -15,12 +15,10 @@ radtan4_t::radtan4_t(const double k1_,
     : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
 
 radtan4_t::radtan4_t(radtan4_t &radtan4)
-    : k1{radtan4.k1}, k2{radtan4.k2},
-      p1{radtan4.p1}, p2{radtan4.p2} {}
+    : k1{radtan4.k1}, k2{radtan4.k2}, p1{radtan4.p1}, p2{radtan4.p2} {}
 
 radtan4_t::radtan4_t(const radtan4_t &radtan4)
-    : k1{radtan4.k1}, k2{radtan4.k2},
-      p1{radtan4.p1}, p2{radtan4.p2} {}
+    : k1{radtan4.k1}, k2{radtan4.k2}, p1{radtan4.p1}, p2{radtan4.p2} {}
 
 radtan4_t::~radtan4_t() {}
 

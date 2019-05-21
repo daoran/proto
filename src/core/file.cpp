@@ -17,7 +17,7 @@ FILE *file_open(const std::string &path,
   return fp;
 }
 
-void skip_line(FILE *fp){
+void skip_line(FILE *fp) {
   char header[BUFSIZ];
   char *retval = fgets(header, BUFSIZ, fp);
   if (retval == NULL) {

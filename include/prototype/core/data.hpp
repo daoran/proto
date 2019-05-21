@@ -104,7 +104,7 @@ void interp_poses(const timestamps_t &timestamps,
                   const mat4s_t &poses,
                   const timestamps_t &interp_ts,
                   mat4s_t &interped_poses,
-                  const double threshold=0.001);
+                  const double threshold = 0.001);
 
 /**
  * Get the closest pose in `poses` where each pose has a timestamp in
