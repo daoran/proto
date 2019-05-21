@@ -622,13 +622,13 @@ int rtcm3_parser_update(rtcm3_parser_t &parser, uint8_t data);
  */
 struct ublox_t {
   bool ok = false;
+
   uart_t uart;
-  std::string mode = "NOT_SET";
   std::vector<int> conns;
   int server_socket = -1;
   int client_socket = -1;
 
-  std::string msg_type = "";
+  std::string msg_type = "";  // Current msg type
   ubx_parser_t ubx_parser;
   rtcm3_parser_t rtcm3_parser;
 
@@ -641,7 +641,6 @@ struct ublox_t {
   FILE *hpposllh_data = nullptr;
 
   ublox_t(const std::string &port="/dev/ttyACM0", const int speed=B57600);
-  // ublox_t(const std::string &port="/dev/ttyACM0", const int speed=B38400);
   ublox_t(const uart_t &uart);
   ~ublox_t();
 };
@@ -672,11 +671,42 @@ int ubx_val_set(const ublox_t &ublox,
 void ublox_version(const ublox_t &ublox);
 int ublox_parse_ubx(ublox_t &ublox, uint8_t data);
 int ublox_parse_rtcm3(ublox_t &ublox, uint8_t data);
-void ublox_base_station_loop(ublox_t &base);
+
+
+
+/*****************************************************************************
+ * UBlox Base Station
+ ****************************************************************************/
+
+/**
+ * UBlox Base Station
+ */
+struct ublox_base_station_t : public ublox_t {
+  std::vector<int> conns;
+  int sockfd = -1;
+  ublox_base_station_t();
+};
+
 int ublox_base_station_config(ublox_t &base);
+void ublox_base_station_loop(ublox_t &base);
 int ublox_base_station_run(ublox_t &base, const int port=8080);
-void ublox_rover_loop(ublox_t &rover);
+
+
+
+/*****************************************************************************
+ * UBlox Rover
+ ****************************************************************************/
+
+/**
+ * UBlox Rover
+ */
+struct ublox_rover_t : public ublox_t {
+  int sockfd = -1;
+  ublox_rover_t();
+};
+
 int ublox_rover_config(ublox_t &rover);
+void ublox_rover_loop(ublox_t &rover);
 int ublox_rover_run(ublox_t &rover,
                     const std::string &base_ip="127.0.0.1",
                     const int base_port=8080);

@@ -11,7 +11,8 @@ lz_detector_t::lz_detector_t(const std::vector<int> &tag_ids,
   }
 }
 
-lz_detector_t::lz_detector_t(const std::string &config_file, const std::string &prefix) {
+lz_detector_t::lz_detector_t(const std::string &config_file,
+                             const std::string &prefix) {
   if (lz_detector_configure(*this, config_file, prefix) != 0) {
     FATAL("Failed to configure landing zone!");
   }

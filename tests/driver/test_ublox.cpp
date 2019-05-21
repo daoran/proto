@@ -239,6 +239,31 @@ int test_ublox_rover() {
   return 0;
 }
 
+int test_ublox_timing() {
+  ublox_t ublox;
+
+  // Configure rover
+  const uint8_t layer = 1;  // RAM
+  int retval = 0;
+  retval += ubx_val_set(ublox, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms = 1Hz
+  // retval += ubx_val_set(ublox, layer, CFG_RATE_MEAS, 100, 2);  // 100ms = 10Hz
+  retval += ubx_val_set(ublox, layer, CFG_USBOUTPROT_NMEA, 1, 1);
+  retval += ubx_val_set(ublox, layer, CFG_MSGOUT_UBX_NAV_CLOCK_USB, 0, 1);
+  retval += ubx_val_set(ublox, layer, CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB, 0, 1);
+  retval += ubx_val_set(ublox, layer, CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB, 0, 1);
+  retval += ubx_val_set(ublox, layer, CFG_MSGOUT_UBX_NAV_STATUS_USB, 0, 1);
+  retval += ubx_val_set(ublox, layer, CFG_MSGOUT_UBX_NAV_SVIN_USB, 0, 1);
+  retval += ubx_val_set(ublox, layer, CFG_MSGOUT_UBX_NAV_PVT_USB, 0, 1);
+  retval += ubx_val_set(ublox, layer, CFG_MSGOUT_UBX_RXM_RTCM_USB, 0, 1);
+  retval += ubx_val_set(ublox, layer, CFG_TMODE_MODE, 0, 1);
+  // retval += ubx_val_set(rover, layer, CFG_NAVSPG_DYNMODEL, 6, 1);
+  if (retval != 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
 void test_suite() {
   // MU_ADD_TEST(test_ubx_msg_t);
   // MU_ADD_TEST(test_ubx_msg_parse_and_serialize);
@@ -251,8 +276,9 @@ void test_suite() {
   // MU_ADD_TEST(test_ublox_version);
   // MU_ADD_TEST(test_ublox_parse_rtcm3);
 
-  MU_ADD_TEST(test_ublox_base);
+  // MU_ADD_TEST(test_ublox_base);
   // MU_ADD_TEST(test_ublox_rover);
+  MU_ADD_TEST(test_ublox_timing);
 }
 
 } // namespace proto

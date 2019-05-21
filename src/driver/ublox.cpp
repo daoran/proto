@@ -253,7 +253,7 @@ int rtcm3_parser_update(rtcm3_parser_t &parser, uint8_t data) {
 
 
 /*****************************************************************************
- * UBX
+ * Ublox
  ****************************************************************************/
 
 ublox_t::ublox_t(const std::string &port, const int speed) {
@@ -614,52 +614,18 @@ int ublox_parse_rtcm3(ublox_t &ublox, uint8_t data) {
   return 0;
 }
 
-void ublox_base_station_loop(ublox_t &ublox) {
-  while (true) {
-    // Accept the data packet from client and verification
-    struct sockaddr_in client;
-    socklen_t len = sizeof(client);
-    const int flags = SOCK_NONBLOCK;
-    const int connfd = accept4(ublox.server_socket,
-                               (struct sockaddr *) &client,
-                               &len,
-                               flags);
-    if (connfd >= 0) {
-      std::string ip;
-      int port = 0;
-      ip_port_info(connfd, ip, port);
-      DEBUG("Server connected with UBlox client [%s:%d]", ip.c_str(), port);
-      ublox.conns.push_back(connfd);
-    }
 
-    // Read byte
-    uint8_t data = 0;
-    if (uart_read(ublox.uart, &data, 1) != 0) {
-      continue;
-    }
 
-    // Determine message type
-    if (ublox.msg_type == "") {
-      if (data == 0xB5) {
-        ublox.msg_type = "UBX";
-      }  else if (data == 0xD3) {
-        ublox.msg_type = "RTCM3";
-      }
-    }
+/*****************************************************************************
+ * Ublox Base Station
+ ****************************************************************************/
 
-    // Parse message
-    if (ublox.msg_type == "UBX") {
-      ublox_parse_ubx(ublox, data);
-    } else if (ublox.msg_type == "RTCM3") {
-      ublox_parse_rtcm3(ublox, data);
-    }
-  }
-}
+ublox_base_station_t::ublox_base_station_t() {}
 
 int ublox_base_station_config(ublox_t &base) {
   const uint8_t layer = 1;  // RAM
   int retval = 0;
-  // retval += ubx_val_set(base, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms = 1Hz
+  retval += ubx_val_set(base, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms = 1Hz
   retval += ubx_val_set(base, layer, CFG_USBOUTPROT_NMEA, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_RTCM_3X_TYPE1005_USB, 1, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_RTCM_3X_TYPE1077_USB, 1, 1);
@@ -685,6 +651,48 @@ int ublox_base_station_config(ublox_t &base) {
   return 0;
 }
 
+void ublox_base_station_loop(ublox_t &base) {
+  while (true) {
+    // Accept the data packet from client and verification
+    struct sockaddr_in client;
+    socklen_t len = sizeof(client);
+    const int flags = SOCK_NONBLOCK;
+    const int connfd = accept4(base.server_socket,
+                               (struct sockaddr *) &client,
+                               &len,
+                               flags);
+    if (connfd >= 0) {
+      std::string ip;
+      int port = 0;
+      ip_port_info(connfd, ip, port);
+      DEBUG("Server connected with UBlox client [%s:%d]", ip.c_str(), port);
+      base.conns.push_back(connfd);
+    }
+
+    // Read byte
+    uint8_t data = 0;
+    if (uart_read(base.uart, &data, 1) != 0) {
+      continue;
+    }
+
+    // Determine message type
+    if (base.msg_type == "") {
+      if (data == 0xB5) {
+        base.msg_type = "UBX";
+      }  else if (data == 0xD3) {
+        base.msg_type = "RTCM3";
+      }
+    }
+
+    // Parse message
+    if (base.msg_type == "UBX") {
+      ublox_parse_ubx(base, data);
+    } else if (base.msg_type == "RTCM3") {
+      ublox_parse_rtcm3(base, data);
+    }
+  }
+}
+
 int ublox_base_station_run(ublox_t &base, const int port) {
   // Configure base station
   if (ublox_base_station_config(base) != 0) {
@@ -693,7 +701,6 @@ int ublox_base_station_run(ublox_t &base, const int port) {
   }
 
   // Socket create and verification
-  base.mode = "BASE_STATION";
   base.server_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (base.server_socket == -1) {
     LOG_ERROR("Socket creation failed...");
@@ -746,11 +753,42 @@ int ublox_base_station_run(ublox_t &base, const int port) {
 
   // Clean up
   close(base.server_socket);
-  base.mode = "";
   base.server_socket = -1;
 
   return 0;
 }
+
+
+
+/*****************************************************************************
+ * Ublox Rover
+ ****************************************************************************/
+
+ublox_rover_t::ublox_rover_t() {}
+
+int ublox_rover_config(ublox_t &rover) {
+  // Configure rover
+  const uint8_t layer = 1;  // RAM
+  int retval = 0;
+  // retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms = 1Hz
+  retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 100, 2);  // 100ms = 10Hz
+  retval += ubx_val_set(rover, layer, CFG_USBOUTPROT_NMEA, 1, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_CLOCK_USB, 0, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB, 0, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB, 1, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_STATUS_USB, 1, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_SVIN_USB, 0, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_PVT_USB, 1, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_RXM_RTCM_USB, 1, 1);
+  retval += ubx_val_set(rover, layer, CFG_TMODE_MODE, 0, 1);
+  // retval += ubx_val_set(rover, layer, CFG_NAVSPG_DYNMODEL, 6, 1);
+  if (retval != 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
 
 void ublox_rover_loop(ublox_t &ublox) {
   const int timeout = 1;  // 1ms
@@ -796,29 +834,6 @@ void ublox_rover_loop(ublox_t &ublox) {
   }
 }
 
-int ublox_rover_config(ublox_t &rover) {
-  // Configure rover
-  const uint8_t layer = 1;  // RAM
-  int retval = 0;
-  // retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms = 1Hz
-  retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 100, 2);  // 100ms = 10Hz
-  retval += ubx_val_set(rover, layer, CFG_USBOUTPROT_NMEA, 1, 1);
-  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_CLOCK_USB, 0, 1);
-  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB, 0, 1);
-  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB, 1, 1);
-  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_STATUS_USB, 1, 1);
-  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_SVIN_USB, 0, 1);
-  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_PVT_USB, 1, 1);
-  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_RXM_RTCM_USB, 1, 1);
-  retval += ubx_val_set(rover, layer, CFG_TMODE_MODE, 0, 1);
-  // retval += ubx_val_set(rover, layer, CFG_NAVSPG_DYNMODEL, 6, 1);
-  if (retval != 0) {
-    return -1;
-  }
-
-  return 0;
-}
-
 static void ublox_setup_hpposllh_output(ublox_t &ublox) {
   ublox.hpposllh_data = fopen("./ublox_nav_hpposllh.csv", "w");
   fprintf(ublox.hpposllh_data, "itow,");
@@ -843,7 +858,6 @@ int ublox_rover_run(ublox_t &rover, const std::string &base_ip, const int base_p
   }
 
   // Create socket
-  rover.mode = "ROVER";
   rover.client_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (rover.client_socket == -1) {
     LOG_ERROR("Socket creation failed!");
@@ -875,7 +889,6 @@ int ublox_rover_run(ublox_t &rover, const std::string &base_ip, const int base_p
 
   // Clean up
   close(rover.client_socket);
-  rover.mode = "";
   rover.client_socket = -1;
 
   return 0;
