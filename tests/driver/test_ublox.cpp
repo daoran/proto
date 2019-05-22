@@ -1,6 +1,8 @@
 #include "prototype/munit.hpp"
 #include "prototype/driver/ublox.hpp"
 
+#include "imgui.h"
+
 namespace proto {
 
 int test_ubx_msg_t() {
@@ -119,6 +121,10 @@ int test_ublox_t() {
 
 int test_ubx_val_set_and_get() {
   ublox_t ublox;
+  if (ublox_connect(ublox) != 0) {
+    FATAL("Failed to connect to ublox!");
+  }
+
   uint32_t key = CFG_MSGOUT_RTCM_3X_TYPE1005_USB;
   uint32_t val = 1;
   uint8_t val_size = 1;
@@ -133,12 +139,20 @@ int test_ubx_val_set_and_get() {
 
 int test_ublox_version() {
   ublox_t ublox;
+  if (ublox_connect(ublox) != 0) {
+    FATAL("Failed to connect to ublox!");
+  }
+
   ublox_version(ublox);
   return 0;
 }
 
 int test_ublox_parse_rtcm3() {
   ublox_t base{"/dev/ttyACM0"};
+  if (ublox_connect(base) != 0) {
+    FATAL("Failed to connect to ublox!");
+  }
+
   // clang-format off
   uint8_t data[25 + 129 + 201 + 176 + 14] = {
       // RTCM3 1005
@@ -210,6 +224,10 @@ int test_ublox_parse_rtcm3() {
 
 int test_ublox_base() {
   ublox_t base;
+  if (ublox_connect(base) != 0) {
+    FATAL("Failed to connect to ublox!");
+  }
+
   ublox_base_station_run(base);
 
   return 0;
@@ -217,6 +235,10 @@ int test_ublox_base() {
 
 int test_ublox_rover() {
   ublox_t rover;
+  if (ublox_connect(rover) != 0) {
+    FATAL("Failed to connect to ublox!");
+  }
+
   ublox_rover_run(rover);
 
   return 0;
@@ -224,6 +246,9 @@ int test_ublox_rover() {
 
 int test_ublox_timing() {
   ublox_t ublox;
+  if (ublox_connect(ublox) != 0) {
+    FATAL("Failed to connect to ublox!");
+  }
 
   // Configure rover
   const uint8_t layer = 1; // RAM
@@ -248,6 +273,32 @@ int test_ublox_timing() {
   return 0;
 }
 
+// int test_ublox_gui() {
+//
+//   // ImGuiWindowFlags window_flags = 0;
+//   // // if (no_titlebar)        window_flags |= ImGuiWindowFlags_NoTitleBar;
+//   // // if (no_scrollbar)       window_flags |= ImGuiWindowFlags_NoScrollbar;
+//   // // if (!no_menu)           window_flags |= ImGuiWindowFlags_MenuBar;
+//   // // if (no_move)            window_flags |= ImGuiWindowFlags_NoMove;
+//   // // if (no_resize)          window_flags |= ImGuiWindowFlags_NoResize;
+//   // // if (no_collapse)        window_flags |= ImGuiWindowFlags_NoCollapse;
+//   // // if (no_nav)             window_flags |= ImGuiWindowFlags_NoNav;
+//   // // if (no_background)      window_flags |= ImGuiWindowFlags_NoBackground;
+//   // // if (no_bring_to_front)  window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+//   // // if (no_close)           p_open = NULL; // Don't pass our bool* to Begin
+//   // bool *p_open = NULL;
+//
+//   if (!ImGui::Begin("ImGui Demo")) {
+//     // Early out if the window is collapsed, as an optimization.
+//     ImGui::End();
+//     return -1;
+//   }
+//   ImGui::Text("Hello, world %d", 123);
+//   ImGui::End();
+//
+//   return 0;
+// }
+
 void test_suite() {
   // MU_ADD_TEST(test_ubx_msg_t);
   // MU_ADD_TEST(test_ubx_msg_parse_and_serialize);
@@ -260,9 +311,11 @@ void test_suite() {
   // MU_ADD_TEST(test_ublox_version);
   // MU_ADD_TEST(test_ublox_parse_rtcm3);
 
-  MU_ADD_TEST(test_ublox_base);
+  // MU_ADD_TEST(test_ublox_base);
   // MU_ADD_TEST(test_ublox_rover);
   // MU_ADD_TEST(test_ublox_timing);
+
+  // MU_ADD_TEST(test_ublox_gui);
 }
 
 } // namespace proto

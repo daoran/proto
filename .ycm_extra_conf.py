@@ -36,6 +36,8 @@ flags = [
     '-I',
     'include',
     '-I',
+    'deps/imgui',
+    '-I',
     '/usr/local/include',
     '-I',
     '/usr/include/octave-4.2.2/octave',

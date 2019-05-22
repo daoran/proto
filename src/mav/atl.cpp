@@ -211,17 +211,17 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
 int atl_step(
     atl_t &atl, const mat4_t T_WB, const lz_t &lz, const double dt, vec4_t &u) {
   switch (atl.mode) {
-    case DISARM_MODE: return -1; break;
-    case IDLE_MODE: return 0; break;
-    case HOVER_MODE: u = atl_step_hover_mode(atl, T_WB, dt); break;
-    case DISCOVER_MODE: u = atl_step_discover_mode(atl, T_WB, lz, dt); break;
-    case TRACKING_MODE: u = atl_step_tracking_mode(atl, T_WB, lz, dt); break;
-    // case LANDING_MODE: u = atl_step_landing_mode(atl, lz, dt); break;
-    default:
-      LOG_ERROR("Invalid mode [%d]!", atl.mode);
-      LOG_ERROR("Falling back into [HOVER_MODE]!");
-      atl_step_hover_mode(atl, T_WB, dt);
-      break;
+  case DISARM_MODE: return -1; break;
+  case IDLE_MODE: return 0; break;
+  case HOVER_MODE: u = atl_step_hover_mode(atl, T_WB, dt); break;
+  case DISCOVER_MODE: u = atl_step_discover_mode(atl, T_WB, lz, dt); break;
+  case TRACKING_MODE: u = atl_step_tracking_mode(atl, T_WB, lz, dt); break;
+  // case LANDING_MODE: u = atl_step_landing_mode(atl, lz, dt); break;
+  default:
+    LOG_ERROR("Invalid mode [%d]!", atl.mode);
+    LOG_ERROR("Falling back into [HOVER_MODE]!");
+    atl_step_hover_mode(atl, T_WB, dt);
+    break;
   }
 
   return 0;

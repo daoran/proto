@@ -288,12 +288,12 @@ void print_ubx_nav_status(const ubx_nav_status_t &msg) {
 
   printf("\t");
   switch (msg.fix) {
-    case 0x00: printf("fix: no fix"); break;
-    case 0x01: printf("fix: dead reckoning only"); break;
-    case 0x02: printf("fix: 2D-fix"); break;
-    case 0x03: printf("fix: 3D-fix"); break;
-    case 0x04: printf("fix: GNSS + dead reckoning combined"); break;
-    case 0x05: printf("fix: time only fix"); break;
+  case 0x00: printf("fix: no fix"); break;
+  case 0x01: printf("fix: dead reckoning only"); break;
+  case 0x02: printf("fix: 2D-fix"); break;
+  case 0x03: printf("fix: 3D-fix"); break;
+  case 0x04: printf("fix: GNSS + dead reckoning combined"); break;
+  case 0x05: printf("fix: time only fix"); break;
   }
   printf("\t");
 
@@ -414,12 +414,12 @@ void print_ubx_nav_pvt(const ubx_nav_pvt_t &msg) {
   printf("height: %d", msg.height);
   printf("\t");
   switch (msg.fix_type) {
-    case 0: printf("Fix type: no fix"); break;
-    case 1: printf("Fix type: dead reckoning only"); break;
-    case 2: printf("Fix type: 2D-fix"); break;
-    case 3: printf("Fix type: 3D-fix"); break;
-    case 4: printf("Fix type: GNSS + dead reckoning combined"); break;
-    case 5: printf("Fix type: time only fix"); break;
+  case 0: printf("Fix type: no fix"); break;
+  case 1: printf("Fix type: dead reckoning only"); break;
+  case 2: printf("Fix type: 2D-fix"); break;
+  case 3: printf("Fix type: 3D-fix"); break;
+  case 4: printf("Fix type: GNSS + dead reckoning combined"); break;
+  case 5: printf("Fix type: time only fix"); break;
   }
   printf("\n");
 }
@@ -600,19 +600,18 @@ struct ublox_t {
   ubx_parser_t ubx_parser;
   rtcm3_parser_t rtcm3_parser;
 
-  ubx_nav_svin_t nav_svin;
-  ubx_nav_status_t nav_status;
-  ubx_nav_pvt_t nav_pvt;
-  ubx_nav_hpposllh_t nav_hpposllh;
-  ubx_rxm_rtcm_t rxm_rtcm;
-
-  FILE *hpposllh_data = nullptr;
-  std::function<void(ublox_t &ublox)> pos_update_cb = nullptr;
+  std::function<void(ublox_t &ublox)> nav_svin_cb = nullptr;
+  std::function<void(ublox_t &ublox)> nav_status_cb = nullptr;
+  std::function<void(ublox_t &ublox)> nav_pvt_cb = nullptr;
+  std::function<void(ublox_t &ublox)> nav_hpposllh_cb = nullptr;
+  std::function<void(ublox_t &ublox)> rxm_rtcm_cb = nullptr;
 
   ublox_t(const std::string &port = "/dev/ttyACM0", const int speed = B57600);
   ublox_t(const uart_t &uart);
   ~ublox_t();
 };
+
+int ublox_connect(ublox_t &ublox);
 
 int ubx_write(const ublox_t &ublox,
               uint8_t msg_class,

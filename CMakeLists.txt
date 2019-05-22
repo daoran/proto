@@ -27,6 +27,7 @@ INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${SUITESPARSE_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(./deps/imgui)
 
 # LIBRARY
 ADD_LIBRARY(
@@ -91,6 +92,9 @@ ADD_LIBRARY(
   src/vision/feature2d/grid_fast.cpp
   src/vision/feature2d/grid_good.cpp
   src/vision/vision_common.cpp
+  # deps/imgui/imgui.cpp
+  # deps/imgui/imgui_draw.cpp
+  # deps/imgui/imgui_widgets.cpp
 )
 SET(
   ${PROJECT_NAME}_DEPS

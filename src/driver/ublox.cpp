@@ -154,43 +154,43 @@ int ubx_parser_update(ubx_parser_t &parser, uint8_t data) {
 
   // Parse byte
   switch (parser.state) {
-    case SYNC_1:
-      if (data == 0xB5) {
-        parser.state = SYNC_2;
-      } else {
-        ubx_parser_reset(parser);
-      }
-      break;
-    case SYNC_2:
-      if (data == 0x62) {
-        parser.state = MSG_CLASS;
-      } else {
-        ubx_parser_reset(parser);
-      }
-      break;
-    case MSG_CLASS: parser.state = MSG_ID; break;
-    case MSG_ID: parser.state = PAYLOAD_LENGTH_LOW; break;
-    case PAYLOAD_LENGTH_LOW: parser.state = PAYLOAD_LENGTH_HI; break;
-    case PAYLOAD_LENGTH_HI: parser.state = PAYLOAD_DATA; break;
-    case PAYLOAD_DATA: {
-      uint8_t length_low = parser.buf_data[4];
-      uint8_t length_hi = parser.buf_data[5];
-      uint16_t payload_length = (length_hi << 8) | (length_low);
-      if (parser.buf_pos == 6 + payload_length) {
-        parser.state = CK_A;
-      }
-      if (parser.buf_pos >= 1022) {
-        ubx_parser_reset(parser);
-        return -2;
-      }
-      break;
-    }
-    case CK_A: parser.state = CK_B; break;
-    case CK_B:
-      parser.msg = ubx_msg_t{parser.buf_data};
+  case SYNC_1:
+    if (data == 0xB5) {
+      parser.state = SYNC_2;
+    } else {
       ubx_parser_reset(parser);
-      return 1;
-    default: FATAL("Invalid Parser State!"); break;
+    }
+    break;
+  case SYNC_2:
+    if (data == 0x62) {
+      parser.state = MSG_CLASS;
+    } else {
+      ubx_parser_reset(parser);
+    }
+    break;
+  case MSG_CLASS: parser.state = MSG_ID; break;
+  case MSG_ID: parser.state = PAYLOAD_LENGTH_LOW; break;
+  case PAYLOAD_LENGTH_LOW: parser.state = PAYLOAD_LENGTH_HI; break;
+  case PAYLOAD_LENGTH_HI: parser.state = PAYLOAD_DATA; break;
+  case PAYLOAD_DATA: {
+    uint8_t length_low = parser.buf_data[4];
+    uint8_t length_hi = parser.buf_data[5];
+    uint16_t payload_length = (length_hi << 8) | (length_low);
+    if (parser.buf_pos == 6 + payload_length) {
+      parser.state = CK_A;
+    }
+    if (parser.buf_pos >= 1022) {
+      ubx_parser_reset(parser);
+      return -2;
+    }
+    break;
+  }
+  case CK_A: parser.state = CK_B; break;
+  case CK_B:
+    parser.msg = ubx_msg_t{parser.buf_data};
+    ubx_parser_reset(parser);
+    return 1;
+  default: FATAL("Invalid Parser State!"); break;
   }
 
   return 0;
@@ -246,21 +246,25 @@ int rtcm3_parser_update(rtcm3_parser_t &parser, uint8_t data) {
 
 ublox_t::ublox_t(const std::string &port, const int speed) {
   uart = uart_t{port, speed};
-  if (uart_connect(uart) != 0) {
-    LOG_ERROR("Failed to connect to serial");
-  } else {
-    ok = true;
-  }
 }
 
 ublox_t::ublox_t(const uart_t &uart_) : uart{uart_} { ok = true; }
 
 ublox_t::~ublox_t() {
-  if (uart_disconnect(uart)) {
+  if (uart.connection != -1 && uart_disconnect(uart)) {
     LOG_ERROR("Failed to disconnect from serial");
   } else {
     ok = false;
   }
+}
+
+int ublox_connect(ublox_t &ublox) {
+  if (uart_connect(ublox.uart) != 0) {
+    return -1;
+  }
+
+  ublox.ok = true;
+  return 0;
 }
 
 int ubx_write(const ublox_t &ublox,
@@ -464,10 +468,10 @@ retry:
 
   ubx_write(ublox, UBX_CFG, UBX_CFG_VALSET, payload_length, payload);
   switch (ubx_read_ack(ublox, UBX_CFG, UBX_CFG_VALSET)) {
-    case 0: return 0;
-    case 1: goto retry;
-    case -1:
-    default: LOG_ERROR("Failed to set configuration!"); return -1;
+  case 0: return 0;
+  case 1: goto retry;
+  case -1:
+  default: LOG_ERROR("Failed to set configuration!"); return -1;
   }
 }
 
@@ -485,72 +489,53 @@ void ublox_version(const ublox_t &ublox) {
 
 int ublox_parse_ubx(ublox_t &ublox, uint8_t data) {
   if (ubx_parser_update(ublox.ubx_parser, data) == 1) {
-    uint8_t msg_class = ublox.ubx_parser.msg.msg_class;
-    uint8_t msg_id = ublox.ubx_parser.msg.msg_id;
-    // DEBUG("[UBX]\t");
-    // DEBUG("msg class: %d\t", msg_class);
-    // DEBUG("msg id: %d\n", msg_id);
+    const uint8_t msg_class = ublox.ubx_parser.msg.msg_class;
+    const uint8_t msg_id = ublox.ubx_parser.msg.msg_id;
+    DEBUG("[UBX]\t");
+    DEBUG("msg class: %d\t", msg_class);
+    DEBUG("msg id: %d\n", msg_id);
 
-    // UBX-NAV-SVIN
-    if (msg_class == UBX_NAV && msg_id == UBX_NAV_SVIN) {
-      ublox.nav_svin = ubx_nav_svin_t{ublox.ubx_parser.msg};
-      // print_ubx_nav_svin(ublox.nav_svin);
-    }
-
-    // UBX-NAV-STATUS
-    if (msg_class == UBX_NAV && msg_id == UBX_NAV_STATUS) {
-      ublox.nav_status = ubx_nav_status_t{ublox.ubx_parser.msg};
-      // print_ubx_nav_status(ublox.nav_status);
-    }
-
-    // UBX-NAV-PVT
-    if (msg_class == UBX_NAV && msg_id == UBX_NAV_PVT) {
-      ublox.nav_pvt = ubx_nav_pvt_t{ublox.ubx_parser.msg};
-      // print_ubx_nav_pvt(ublox.nav_pvt);
-    }
-
-    // UBX-NAV-HPPOSLLH
-    if (msg_class == UBX_NAV && msg_id == UBX_NAV_HPPOSLLH) {
-      ublox.nav_hpposllh = ubx_nav_hpposllh_t{ublox.ubx_parser.msg};
-      // print_ubx_nav_hpposllh(ublox.nav_hpposllh);
-
-      // Record hpposllh data
-      if (ublox.hpposllh_data) {
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.itow);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.lon);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.lat);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.height);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.hmsl);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.lon_hp);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.lat_hp);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.height_hp);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.hmsl_hp);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.hacc);
-        fprintf(ublox.hpposllh_data, ",");
-        fprintf(ublox.hpposllh_data, "%d", ublox.nav_hpposllh.vacc);
-        fprintf(ublox.hpposllh_data, "\n");
-        fflush(ublox.hpposllh_data);
-      }
-
-      // Position update callback
-      if (ublox.pos_update_cb) {
-        ublox.pos_update_cb(ublox);
+    // UBX-NAV
+    if (msg_class == UBX_NAV) {
+      switch (msg_id) {
+      case UBX_NAV_SVIN:
+        if (ublox.nav_svin_cb) {
+          ublox.nav_svin_cb(ublox);
+        }
+        break;
+      case UBX_NAV_STATUS:
+        if (ublox.nav_status_cb) {
+          ublox.nav_status_cb(ublox);
+        }
+        break;
+      case UBX_NAV_PVT:
+        if (ublox.nav_pvt_cb) {
+          ublox.nav_pvt_cb(ublox);
+        }
+        break;
+      case UBX_NAV_HPPOSLLH:
+        if (ublox.nav_hpposllh_cb) {
+          ublox.nav_hpposllh_cb(ublox);
+        }
+        break;
+      default:
+        LOG_WARN("Unsupported [msg cls: %d - msg id: %d]", msg_class, msg_id);
+        break;
       }
     }
 
-    // UBX-RXM-RTCM
-    if (msg_class == UBX_RXM && msg_id == UBX_RXM_RTCM) {
-      ublox.rxm_rtcm = ubx_rxm_rtcm_t{ublox.ubx_parser.msg};
-      // print_ubx_rxm_rtcm(ublox.rxm_rtcm);
+    // UBX-RXM
+    if (msg_class == UBX_RXM) {
+      switch (msg_id) {
+      case UBX_RXM_RTCM:
+        if (ublox.rxm_rtcm_cb) {
+          ublox.rxm_rtcm_cb(ublox);
+        }
+        break;
+      default:
+        LOG_WARN("Unsupported [msg cls: %d - msg id: %d]", msg_class, msg_id);
+        break;
+      }
     }
 
     // Reset msg type
@@ -689,13 +674,13 @@ int ublox_base_station_run(ublox_t &base, const int port) {
   fcntl(base.sockfd, F_SETFL, O_NONBLOCK);
 
   // Socket options
-  int enable = 1;
-  if (setsockopt(base.sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) <
-      0) {
+  const int level = SOL_SOCKET;
+  const int val = 1;
+  const socklen_t len = sizeof(int);
+  if (setsockopt(base.sockfd, level, SO_REUSEADDR, &val, len) < 0) {
     LOG_ERROR("setsockopt(SO_REUSEADDR) failed");
   }
-  if (setsockopt(base.sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) <
-      0) {
+  if (setsockopt(base.sockfd, SOL_SOCKET, SO_REUSEPORT, &val, len) < 0) {
     LOG_ERROR("setsockopt(SO_REUSEPORT) failed");
   }
 
@@ -806,22 +791,6 @@ void ublox_rover_loop(ublox_t &rover) {
   }
 }
 
-static void ublox_setup_hpposllh_output(ublox_t &ublox) {
-  ublox.hpposllh_data = fopen("./ublox_nav_hpposllh.csv", "w");
-  fprintf(ublox.hpposllh_data, "itow,");
-  fprintf(ublox.hpposllh_data, "lon,");
-  fprintf(ublox.hpposllh_data, "lat,");
-  fprintf(ublox.hpposllh_data, "height,");
-  fprintf(ublox.hpposllh_data, "hmsl,");
-  fprintf(ublox.hpposllh_data, "lon_hp,");
-  fprintf(ublox.hpposllh_data, "lat_hp,");
-  fprintf(ublox.hpposllh_data, "height_hp,");
-  fprintf(ublox.hpposllh_data, "hmsl_hp,");
-  fprintf(ublox.hpposllh_data, "hacc,");
-  fprintf(ublox.hpposllh_data, "vacc");
-  fprintf(ublox.hpposllh_data, "\n");
-}
-
 int ublox_rover_run(ublox_t &rover,
                     const std::string &base_ip,
                     const int base_port) {
@@ -848,8 +817,8 @@ int ublox_rover_run(ublox_t &rover,
   server.sin_port = htons(base_port);
 
   // Connect to server
-  int retval =
-      connect(rover.sockfd, (struct sockaddr *) &server, sizeof(server));
+  const socklen_t len = sizeof(server);
+  int retval = connect(rover.sockfd, (struct sockaddr *) &server, len);
   if (retval != 0) {
     LOG_ERROR("Connection with the server failed!");
     return -1;

@@ -177,19 +177,19 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
 
   // Calculate the x and y of each corner
   switch (corner_id) {
-    case 0: // Bottom left
-      object_point = vec3_t(x, y, 0);
-      break;
-    case 1: // Bottom right
-      object_point = vec3_t(x + tag_size, y, 0);
-      break;
-    case 2: // Top right
-      object_point = vec3_t(x + tag_size, y + tag_size, 0);
-      break;
-    case 3: // Top left
-      object_point = vec3_t(x, y + tag_size, 0);
-      break;
-    default: FATAL("Incorrect corner id [%d]!", corner_id); break;
+  case 0: // Bottom left
+    object_point = vec3_t(x, y, 0);
+    break;
+  case 1: // Bottom right
+    object_point = vec3_t(x + tag_size, y, 0);
+    break;
+  case 2: // Top right
+    object_point = vec3_t(x + tag_size, y + tag_size, 0);
+    break;
+  case 3: // Top left
+    object_point = vec3_t(x, y + tag_size, 0);
+    break;
+  default: FATAL("Incorrect corner id [%d]!", corner_id); break;
   }
 
   return 0;

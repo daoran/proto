@@ -111,8 +111,8 @@ int tcp_client_loop(tcp_client_t &client) {
     if (client.loop_cb) {
       int retval = client.loop_cb(client);
       switch (retval) {
-        case -1: return -1;
-        case 1: break;
+      case -1: return -1;
+      case 1: break;
       }
     }
   }
