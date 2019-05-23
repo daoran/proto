@@ -28,14 +28,14 @@ INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${SUITESPARSE_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
 
-# IMGUI
-INCLUDE_DIRECTORIES(./deps/imgui)
-ADD_LIBRARY(
-  imgui
-  deps/imgui/imgui.cpp
-  deps/imgui/imgui_draw.cpp
-  deps/imgui/imgui_widgets.cpp
-)
+# # IMGUI
+# INCLUDE_DIRECTORIES(./deps/imgui)
+# ADD_LIBRARY(
+#   imgui
+#   deps/imgui/imgui.cpp
+#   deps/imgui/imgui_draw.cpp
+#   deps/imgui/imgui_widgets.cpp
+# )
 
 # LIBRARY
 ADD_LIBRARY(
@@ -109,7 +109,7 @@ SET(
   yaml-cpp
   apriltags
   ${GeographicLib_LIBRARIES}
-  imgui
+  # imgui
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
@@ -176,31 +176,31 @@ FOREACH(TEST ${UNITTESTS})
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 ENDFOREACH(TEST)
 
-# # APPS
-# SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
-# FILE(COPY apps/config DESTINATION ${PROJECT_BINARY_DIR}/apps)
-# SET(
-#   APP_DEPS
-#   prototype
-#   ${OpenCV_LIBS}
-#   ${SUITESPARSE_LIBRARIES}
-#   yaml-cpp
-#   apriltags
-#   ceres
-#   ${GeographicLib_LIBRARIES}
-# )
-# SET(
-#   APPS
-#   calib_camera
-#   calib_stereo
-#   # calib_vicon_marker
-#   detect_aprilgrid
-#   ublox_base_station
-#   ublox_rover
-#   validate_intrinsics
-#   validate_stereo
-# )
-# FOREACH(APP ${APPS})
-#   ADD_EXECUTABLE(${APP} apps/${APP}.cpp)
-#   TARGET_LINK_LIBRARIES(${APP} ${APP_DEPS})
-# ENDFOREACH(APP)
+# APPS
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
+FILE(COPY configs DESTINATION ${PROJECT_BINARY_DIR}/apps)
+SET(
+  APP_DEPS
+  prototype
+  ${OpenCV_LIBS}
+  ${SUITESPARSE_LIBRARIES}
+  yaml-cpp
+  apriltags
+  ceres
+  ${GeographicLib_LIBRARIES}
+)
+SET(
+  APPS
+  calib_camera
+  calib_stereo
+  # calib_vicon_marker
+  detect_aprilgrid
+  ublox_base_station
+  ublox_rover
+  validate_intrinsics
+  validate_stereo
+)
+FOREACH(APP ${APPS})
+  ADD_EXECUTABLE(${APP} src/apps/${APP}.cpp)
+  TARGET_LINK_LIBRARIES(${APP} ${APP_DEPS})
+ENDFOREACH(APP)

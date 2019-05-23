@@ -585,6 +585,7 @@ int ublox_parse_rtcm3(ublox_t &ublox, uint8_t data) {
 
 int ublox_base_station_config(ublox_t &base) {
   const uint8_t layer = 1; // RAM
+  // const uint8_t layer = 2; // BBR
   int retval = 0;
   retval += ubx_val_set(base, layer, CFG_RATE_MEAS, 1000, 2); // 1000ms = 1Hz
   retval += ubx_val_set(base, layer, CFG_USBOUTPROT_NMEA, 0, 1);
@@ -598,7 +599,7 @@ int ublox_base_station_config(ublox_t &base) {
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_STATUS_USB, 0, 1);
-  retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_SVIN_USB, 1, 1);
+  retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_SVIN_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_PVT_USB, 1, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_RXM_RTCM_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_TMODE_MODE, 1, 1);
@@ -624,7 +625,7 @@ void ublox_base_station_loop(ublox_t &base) {
       std::string ip;
       int port = 0;
       ip_port_info(connfd, ip, port);
-      DEBUG("Server connected with UBlox client [%s:%d]", ip.c_str(), port);
+      LOG_INFO("Server connected with UBlox client [%s:%d]", ip.c_str(), port);
       base.conns.push_back(connfd);
     }
 
