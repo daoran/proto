@@ -27,7 +27,15 @@ INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${SUITESPARSE_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
+
+# IMGUI
 INCLUDE_DIRECTORIES(./deps/imgui)
+ADD_LIBRARY(
+  imgui
+  deps/imgui/imgui.cpp
+  deps/imgui/imgui_draw.cpp
+  deps/imgui/imgui_widgets.cpp
+)
 
 # LIBRARY
 ADD_LIBRARY(
@@ -92,9 +100,6 @@ ADD_LIBRARY(
   src/vision/feature2d/grid_fast.cpp
   src/vision/feature2d/grid_good.cpp
   src/vision/vision_common.cpp
-  # deps/imgui/imgui.cpp
-  # deps/imgui/imgui_draw.cpp
-  # deps/imgui/imgui_widgets.cpp
 )
 SET(
   ${PROJECT_NAME}_DEPS
@@ -104,6 +109,7 @@ SET(
   yaml-cpp
   apriltags
   ${GeographicLib_LIBRARIES}
+  imgui
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
@@ -145,8 +151,8 @@ SET(
   # dataset-test_euroc
   # dataset-test_kitti
   # driver-test_camera
-  driver-test_ublox
-  driver-ublox_base_station_tester
+  # driver-test_ublox
+  # driver-ublox_base_station_tester
   # estimation-test_measurement
   # # model-test_mav
   # model-test_two_wheel
@@ -162,7 +168,7 @@ SET(
   # vision-camera-test_radtan
   # vision-feature2d-test_grid_fast
   # vision-feature2d-test_grid_good
-  vision-test_vision_common
+  # vision-test_vision_common
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
@@ -170,31 +176,31 @@ FOREACH(TEST ${UNITTESTS})
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 ENDFOREACH(TEST)
 
-# APPS
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
-FILE(COPY apps/config DESTINATION ${PROJECT_BINARY_DIR}/apps)
-SET(
-  APP_DEPS
-  prototype
-  ${OpenCV_LIBS}
-  ${SUITESPARSE_LIBRARIES}
-  yaml-cpp
-  apriltags
-  ceres
-  ${GeographicLib_LIBRARIES}
-)
-SET(
-  APPS
-  calib_camera
-  calib_stereo
-  # calib_vicon_marker
-  detect_aprilgrid
-  ublox_base_station
-  ublox_rover
-  validate_intrinsics
-  validate_stereo
-)
-FOREACH(APP ${APPS})
-  ADD_EXECUTABLE(${APP} apps/${APP}.cpp)
-  TARGET_LINK_LIBRARIES(${APP} ${APP_DEPS})
-ENDFOREACH(APP)
+# # APPS
+# SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
+# FILE(COPY apps/config DESTINATION ${PROJECT_BINARY_DIR}/apps)
+# SET(
+#   APP_DEPS
+#   prototype
+#   ${OpenCV_LIBS}
+#   ${SUITESPARSE_LIBRARIES}
+#   yaml-cpp
+#   apriltags
+#   ceres
+#   ${GeographicLib_LIBRARIES}
+# )
+# SET(
+#   APPS
+#   calib_camera
+#   calib_stereo
+#   # calib_vicon_marker
+#   detect_aprilgrid
+#   ublox_base_station
+#   ublox_rover
+#   validate_intrinsics
+#   validate_stereo
+# )
+# FOREACH(APP ${APPS})
+#   ADD_EXECUTABLE(${APP} apps/${APP}.cpp)
+#   TARGET_LINK_LIBRARIES(${APP} ${APP_DEPS})
+# ENDFOREACH(APP)

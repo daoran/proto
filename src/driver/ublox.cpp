@@ -491,9 +491,7 @@ int ublox_parse_ubx(ublox_t &ublox, uint8_t data) {
   if (ubx_parser_update(ublox.ubx_parser, data) == 1) {
     const uint8_t msg_class = ublox.ubx_parser.msg.msg_class;
     const uint8_t msg_id = ublox.ubx_parser.msg.msg_id;
-    DEBUG("[UBX]\t");
-    DEBUG("msg class: %d\t", msg_class);
-    DEBUG("msg id: %d\n", msg_id);
+    DEBUG("[UBX]\tmsg_class: %d\tmsg_id: %d", msg_class, msg_id);
 
     // UBX-NAV
     if (msg_class == UBX_NAV) {

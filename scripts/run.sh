@@ -12,8 +12,8 @@ debug() {
 }
 
 # LIBRARY
-make debug
-# make release
+# make debug
+make release
 sudo make install
 # exit
 
@@ -31,7 +31,7 @@ sudo make install
 # exit
 
 # TESTS
-cd build/tests
+# cd build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera
@@ -61,7 +61,7 @@ cd build/tests
 
 # -- driver
 # ./driver-test_camera-camera
-./driver-test_ublox
+# ./driver-test_ublox
 
 # -- dataset
 # ./dataset-test_euroc

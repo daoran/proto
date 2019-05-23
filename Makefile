@@ -1,5 +1,3 @@
-include config.mk
-
 define usage
 [TARGETS]:
   deps:
@@ -52,10 +50,3 @@ format_code:
 
 docs:
 	@cd scripts/api && python3 api.py
-
-${CATKIN_WS}:
-	@mkdir -p ${CATKIN_WS_SRC}
-
-${CATKIN_WS_SRC}/prototype_ros: ${CATKIN_WS}
-	@cd ${CATKIN_WS_SRC} && git clone ${PROTOTYPE_ROS_REPO}
-	@cd ${CATKIN_WS_SRC} && catkin build prototype_ros
