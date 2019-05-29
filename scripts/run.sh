@@ -12,8 +12,8 @@ debug() {
 }
 
 # LIBRARY
-# make debug
-make release
+# time make debug
+time make release
 sudo make install
 # exit
 
