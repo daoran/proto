@@ -625,11 +625,15 @@ int ublox_base_station_config(ublox_t &base) {
   retval += ubx_val_set(base, layer, CFG_MSGOUT_RTCM_3X_TYPE1127_USB, 1, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_RTCM_3X_TYPE1230_USB, 1, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_CLOCK_USB, 0, 1);
+  retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_DOP_USB, 0, 1);
+  retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_EOE_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_STATUS_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_SVIN_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_PVT_USB, 1, 1);
+  retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_NAV_VELNED_USB, 0, 1);
+  retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_MON_RF_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_MSGOUT_UBX_RXM_RTCM_USB, 0, 1);
   retval += ubx_val_set(base, layer, CFG_TMODE_MODE, 1, 1);
   retval += ubx_val_set(base, layer, CFG_TMODE_SVIN_MIN_DUR, 60, 4);
@@ -758,18 +762,20 @@ int ublox_rover_config(ublox_t &rover) {
   // retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 1000, 2);  // 1000ms =
   // 1Hz
   retval += ubx_val_set(rover, layer, CFG_RATE_MEAS, 100, 2); // 100ms = 10Hz
-  retval += ubx_val_set(rover, layer, CFG_USBOUTPROT_NMEA, 1, 1);
+  retval += ubx_val_set(rover, layer, CFG_USBOUTPROT_NMEA, 0, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_CLOCK_USB, 0, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_DOP_USB, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_EOE_USB, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB, 0, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB, 1, 1);
-  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_PVT_USB, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_STATUS_USB, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_SVIN_USB, 0, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_PVT_USB, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_NAV_VELNED_USB, 1, 1);
+  retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_MON_RF_USB, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_MSGOUT_UBX_RXM_RTCM_USB, 1, 1);
   retval += ubx_val_set(rover, layer, CFG_TMODE_MODE, 0, 1);
-  // retval += ubx_val_set(rover, layer, CFG_NAVSPG_DYNMODEL, 6, 1);
+  retval += ubx_val_set(rover, layer, CFG_NAVSPG_DYNMODEL, 6, 1);
   if (retval != 0) {
     return -1;
   }
