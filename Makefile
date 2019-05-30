@@ -1,8 +1,5 @@
 define usage
 [TARGETS]:
-  deps:
-    Clone prototype dependencies.
-
   debug:
     Build prototype in debug mode.
 
@@ -34,11 +31,9 @@ export usage
 default:
 	@echo "$$usage"
 
-deps:
+build_dir:
 	@git submodule init
 	@git submodule update
-
-build_dir:
 	@mkdir -p build
 
 debug: deps build_dir

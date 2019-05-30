@@ -9,9 +9,6 @@ robotics. From estimation, mapping to control and planning.
 For convenience there is a `Makefile` that automates the installation of
 dependencies and building of `prototype`, the make targets are as follows.
 
-    deps:
-      Clone prototype dependencies.
-
     debug:
       Build prototype in debug mode.
 
