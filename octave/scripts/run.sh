@@ -20,14 +20,15 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # octave notes/hessian.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
 # octave notes/quaternion.m && exit 0
-# octave notes/vi_sync.m && exit 0
+octave notes/vi_sync.m && exit 0
+# octave notes/vi_sync2.m && exit 0
 # octave tools/calib_data_summary.m && exit 0
 # octave tools/plot_calib_euroc.m && exit 0
 # octave tools/plot_calib_vicon.m && exit 0
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_marker_poses.m && exit 0
 # octave tools/plot_aprilgrid_data.m && exit 0
-octave tools/plot_ubx_nav_hpposllh.m
+# octave tools/plot_ubx_nav_hpposllh.m
 
 # octave tests/calib/test_calib_generate_poses.m && exit 0
 # octave tests/calib/test_calib_generate_random_poses.m && exit 0

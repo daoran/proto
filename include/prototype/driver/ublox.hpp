@@ -64,6 +64,37 @@ namespace proto {
 #define UBX_CFG_VALSET 0x8A
 
 /**
+ * UBX Class MON Monitoring Messages
+ * ---------------------------------
+ * MON-COMMS 0x0A 0x36 8 + 40*nPorts Periodic/Polled Comm port information
+ * MON-GNSS 0x0A 0x28 8 Polled Information message major GNSS...
+ * MON-HW2 0x0A 0x0B 28 Periodic/Polled Extended Hardware Status
+ * MON-HW3 0x0A 0x37 22 + 6*nPins Periodic/Polled HW I/O pin information
+ * MON-HW 0x0A 0x09 60 Periodic/Polled Hardware Status
+ * MON-IO 0x0A 0x02 0 + 20*N Periodic/Polled I/O Subsystem Status
+ * MON-MSGPP 0x0A 0x06 120 Periodic/Polled Message Parse and Process Status
+ * MON-PATCH 0x0A 0x27 4 + 16*nEntries Polled Output information about installed...
+ * MON-RF 0x0A 0x38 4 + 24*nBlocks Periodic/Polled RF information
+ * MON-RXBUF 0x0A 0x07 24 Periodic/Polled Receiver Buffer Status
+ * MON-RXR 0x0A 0x21 1 Output Receiver Status Information
+ * MON-TXBUF 0x0A 0x08 28 Periodic/Polled Transmitter Buffer Status
+ * MON-VER 0x0A 0x04 40 + 30*N Polled Receiver/Software Version
+ */
+#define UBX_MON_COMMS 0x36
+#define UBX_MON_GNSS 0x28
+#define UBX_MON_HW2 0x0B
+#define UBX_MON_HW3 0x37
+#define UBX_MON_HW 0x09
+#define UBX_MON_IO 0x02
+#define UBX_MON_MSGPP 0x06
+#define UBX_MON_PATCH 0x27
+#define UBX_MON_RF 0x38
+#define UBX_MON_RXBUF 0x07
+#define UBX_MON_RXR 0x21
+#define UBX_MON_TXBUF 0x08
+#define UBX_MON_VER 0x04
+
+/**
  * UBX Class NAV Navigation Results Messages
  * -----------------------------------------
  * NAV-CLOCK 0x01 0x22 20 Periodic/Polled Clock Solution
@@ -151,6 +182,7 @@ namespace proto {
 #define CFG_MSGOUT_RTCM_3X_TYPE1127_USB 0x209102d9
 #define CFG_MSGOUT_RTCM_3X_TYPE1230_USB 0x20910306
 
+#define CFG_MSGOUT_UBX_NAV_EOE_USB 0x20910162
 #define CFG_MSGOUT_UBX_NAV_CLOCK_USB 0x20910068
 #define CFG_MSGOUT_UBX_NAV_HPPOSEECF_USB 0x20910031
 #define CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB 0x20910036
@@ -158,6 +190,7 @@ namespace proto {
 #define CFG_MSGOUT_UBX_NAV_SVIN_USB 0x2091008b
 #define CFG_MSGOUT_UBX_NAV_STATUS_USB 0x2091001d
 #define CFG_MSGOUT_UBX_NAV_PVT_USB 0x20910009
+#define CFG_MSGOUT_UBX_NAV_VELNED_USB 0x20910045
 #define CFG_MSGOUT_UBX_RXM_RTCM_USB 0x2091026b
 
 #define CFG_TMODE_MODE 0x20030001
@@ -204,6 +237,17 @@ void ubx_msg_checksum(const uint8_t msg_class,
 void ubx_msg_checksum(const ubx_msg_t &msg, uint8_t &ck_a, uint8_t &ck_b);
 bool ubx_msg_is_valid(const ubx_msg_t &msg);
 void ubx_msg_print(const ubx_msg_t &msg);
+
+/**
+ * UBX-NAV-EOE
+ */
+struct ubx_nav_eoe_t {
+  uint32_t itow = 0;
+  ubx_nav_eoe_t() {}
+  ubx_nav_eoe_t(const ubx_msg_t &msg) {
+    itow = u32bit(msg.payload, 0);
+  }
+};
 
 /**
  * UBX-NAV-SVIN
@@ -425,6 +469,60 @@ void print_ubx_nav_pvt(const ubx_nav_pvt_t &msg) {
 }
 
 /**
+ * UBX-NAV-VELNED
+ */
+struct ubx_nav_velned_t {
+  uint32_t itow = 0;
+  int32_t veln = 0;
+  int32_t vele = 0;
+  int32_t veld = 0;
+  uint32_t speed = 0;
+  uint32_t gspeed = 0;
+  int32_t heading = 0;
+  uint32_t sacc = 0;
+  uint32_t cacc = 0;
+
+  ubx_nav_velned_t() {}
+  ubx_nav_velned_t(const ubx_msg_t &msg) {
+    itow = u32bit(msg.payload, 0);
+    veln = s32bit(msg.payload, 4);
+    vele = s32bit(msg.payload, 8);
+    veld = s32bit(msg.payload, 12);
+    speed = u32bit(msg.payload, 16);
+    gspeed = u32bit(msg.payload, 20);
+    heading = s32bit(msg.payload, 24);
+    sacc = u32bit(msg.payload, 28);
+    cacc = u32bit(msg.payload, 32);
+  }
+};
+
+/**
+ * UBX-NAV-DOP
+ */
+struct ubx_nav_dop_t {
+  uint32_t itow = 0;
+  uint16_t gdop = 0;
+  uint16_t pdop = 0;
+  uint16_t tdop = 0;
+  uint16_t vdop = 0;
+  uint16_t hdop = 0;
+  uint16_t ndop = 0;
+  uint16_t edop = 0;
+
+  ubx_nav_dop_t() {}
+  ubx_nav_dop_t(const ubx_msg_t &msg) {
+    itow = u32bit(msg.payload, 0);
+    gdop = s16bit(msg.payload, 4);
+    pdop = s16bit(msg.payload, 6);
+    tdop = s16bit(msg.payload, 8);
+    vdop = s16bit(msg.payload, 10);
+    hdop = s16bit(msg.payload, 12);
+    ndop = s16bit(msg.payload, 14);
+    edop = s16bit(msg.payload, 16);
+  }
+};
+
+/**
  * UBX-NAV-HPPOSLLH
  */
 struct ubx_nav_hpposllh_t {
@@ -483,6 +581,49 @@ void print_ubx_nav_hpposllh(const ubx_nav_hpposllh_t &msg) {
   printf("vacc: %d", msg.vacc);
   printf("\n");
 }
+
+/**
+ * UBX-MON-RF
+ */
+struct ubx_mon_rf_t {
+  uint8_t version = 0;
+  uint32_t nblocks = 0;
+
+  std::vector<uint8_t> block_id;
+  std::vector<uint8_t> flags;
+  std::vector<uint8_t> ant_status;
+  std::vector<uint8_t> ant_power;
+  std::vector<uint32_t> post_status;
+  std::vector<uint16_t> noise_per_ms;
+  std::vector<uint16_t> agc_cnt;
+  std::vector<uint8_t> jam_ind;
+  std::vector<int8_t> ofs_i;
+  std::vector<uint8_t> mag_i;
+  std::vector<int8_t> ofs_q;
+  std::vector<uint8_t> mag_q;
+
+  ubx_mon_rf_t() {}
+  ubx_mon_rf_t(const ubx_msg_t &msg) {
+    version = u8bit(msg.payload, 0);
+    nblocks = u8bit(msg.payload, 1);
+
+    for (uint32_t i = 0; i < nblocks; i++) {
+      const uint32_t offset = 24 * i;
+      block_id.push_back(u8bit(msg.payload, 4 + offset));
+      flags.push_back(u8bit(msg.payload, 5 + offset));
+      ant_status.push_back(u8bit(msg.payload, 6 + offset));
+      ant_power.push_back(u8bit(msg.payload, 7 + offset));
+      post_status.push_back(u8bit(msg.payload, 8 + offset));
+      noise_per_ms.push_back(u8bit(msg.payload, 16 + offset));
+      agc_cnt.push_back(u8bit(msg.payload, 18 + offset));
+      jam_ind.push_back(u8bit(msg.payload, 20 + offset));
+      ofs_i.push_back(u8bit(msg.payload, 21 + offset));
+      mag_i.push_back(u8bit(msg.payload, 22 + offset));
+      ofs_q.push_back(u8bit(msg.payload, 23 + offset));
+      mag_q.push_back(u8bit(msg.payload, 24 + offset));
+    }
+  }
+};
 
 /**
  * UBX-RXM-RTCM
@@ -600,10 +741,14 @@ struct ublox_t {
   ubx_parser_t ubx_parser;
   rtcm3_parser_t rtcm3_parser;
 
+  std::function<void(ublox_t &ublox)> nav_dop_cb = nullptr;
+  std::function<void(ublox_t &ublox)> nav_eoe_cb = nullptr;
+  std::function<void(ublox_t &ublox)> nav_hpposllh_cb = nullptr;
+  std::function<void(ublox_t &ublox)> nav_pvt_cb = nullptr;
   std::function<void(ublox_t &ublox)> nav_svin_cb = nullptr;
   std::function<void(ublox_t &ublox)> nav_status_cb = nullptr;
-  std::function<void(ublox_t &ublox)> nav_pvt_cb = nullptr;
-  std::function<void(ublox_t &ublox)> nav_hpposllh_cb = nullptr;
+  std::function<void(ublox_t &ublox)> nav_velned_cb = nullptr;
+  std::function<void(ublox_t &ublox)> mon_rf_cb = nullptr;
   std::function<void(ublox_t &ublox)> rxm_rtcm_cb = nullptr;
 
   ublox_t(const std::string &port = "/dev/ttyACM0", const int speed = B57600);

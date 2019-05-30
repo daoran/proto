@@ -237,6 +237,7 @@ function data = synchronize_measurements(timeline)
     ts = timeline(i).ts;
     event_type = timeline(i).type;
 
+    % Iterate over events at the same timestamp
     for j = 1:length(event_type)
       % cam0 event handler
       if event_type(j) == cam0_type && imu_started
@@ -252,43 +253,7 @@ function data = synchronize_measurements(timeline)
       if event_type(j) == accel0_type
         if accel0_started == false
           accel0_started = true;
-
-          accel0_t0 = {};
-          accel0_t0.ts = ts;
-          accel0_t0.data = timeline(i).accel0;
         endif
-
-        % Interpolate accel0
-        % reset_interp_buf = false;
-        for i = 1:length(interp_buf)
-          interp_ts = interp_buf(i);
-
-          % Set lerp end point
-          accel0_t1 = {};
-          accel0_t1.ts = ts;
-          accel0_t1.data = timeline(i).accel0;
-
-          % Lerp
-          if (interp_ts - accel0_t0.ts) > 0
-            t = (interp_ts - accel0_t0.ts) / (accel0_t1.ts - accel0_t0.ts);
-            accel0_lerped = lerp(accel0_t0.data, accel0_t1.data, t);
-          else
-            accel0_lerped = accel0_t0.data;
-          endif
-
-          % Shift end lerp point to start
-          accel0_t0 = accel0_t1;
-
-          % Add to buffer
-          accel0_ts = [accel0_ts, interp_ts];
-          accel0_data = [accel0_data, accel0_lerped];
-          % reset_interp_buf = true;
-        endfor
-
-        % % Reset interpolation buffer
-        % if reset_interp_buf
-        %   interp_buf = [];
-        % endif
 
         % Add to buffer
         accel0_ts = [accel0_ts, ts];
@@ -301,10 +266,6 @@ function data = synchronize_measurements(timeline)
           gyro0_started = true;
         endif
 
-        if accel0_ts(end) != ts
-          interp_buf = [interp_buf, ts];
-        endif
-
         % Add to buffer
         gyro0_ts = [gyro0_ts, ts];
         gyro0_data = [gyro0_data, timeline(i).gyro0];
@@ -313,7 +274,58 @@ function data = synchronize_measurements(timeline)
       if gyro0_started && accel0_started
         imu_started = true;
       endif
+
     endfor
+
+    % Add interp ts
+    if gyro0_ts(end) > accel0_ts(end)
+      interp_buf = [interp_buf; ts];
+    endif
+
+    % Interpolate accel0
+    interp_buf
+    if length(interp_buf) && (accel0_ts(end) > interp_buf(end))
+      % Interpolation start point
+      accel0_t0 = {};
+      accel0_t0.ts = accel0_ts(end-1);
+      accel0_t0.data = accel0_data(end-1);
+
+      % Interpolation end point
+      accel0_t1 = {};
+      accel0_t1.ts = accel0_ts(end);
+      accel0_t1.data = accel0_data(end);
+
+      % Remove last accel0 timestamp and data
+      accel0_ts = accel0_ts(1:end-1);
+      accel0_data = accel0_data(1:end-1);
+
+      % Interpolate
+      for i = 1:length(interp_buf)
+        interp_ts = interp_buf(i);
+
+        % Lerp
+        if (interp_ts - accel0_t0.ts) > 0
+          t = (interp_ts - accel0_t0.ts) / (accel0_t1.ts - accel0_t0.ts);
+          accel0_lerped = lerp(accel0_t0.data, accel0_t1.data, t);
+        else
+          accel0_lerped = accel0_t0.data;
+        endif
+
+        % % Shift end lerp point to start
+        % accel0_t0 = accel0_t1;
+
+        % Add to buffer
+        accel0_ts = [accel0_ts, interp_ts];
+        accel0_data = [accel0_data, accel0_lerped];
+        % reset_interp_buf = true;
+      endfor
+
+      accel0_ts = [accel0_ts, accel0_t1.ts];
+      accel0_data = [accel0_data, accel0_t1.data];
+
+      % Reset interpolation buffer
+      interp_buf = [];
+    endif
   endfor
 
   % Form return

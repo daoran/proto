@@ -4,8 +4,8 @@
 #include "prototype/core/math.hpp"
 #include "prototype/estimation/measurement.hpp"
 
-#define ACCEL0_CSV_PATH "/data/intel_d435i/data/accel0/data.csv"
-#define GYRO0_CSV_PATH "/data/intel_d435i/data/gyro0/data.csv"
+#define ACCEL0_CSV_PATH "/data/intel_d435i/calib_data/accel0/data.csv"
+#define GYRO0_CSV_PATH "/data/intel_d435i/calib_data/gyro0/data.csv"
 
 namespace proto {
 
@@ -131,10 +131,31 @@ int test_sync_data() {
   return 0;
 }
 
+int test_vi_aligner() {
+  vi_aligner_t vi_aligner;
+
+  std::deque<timestamp_t> accel_ts;
+  std::deque<vec3_t> accel_data;
+  std::deque<timestamp_t> gyro_ts;
+  std::deque<vec3_t> gyro_data;
+
+  load_gyro_data(GYRO0_CSV_PATH, gyro_ts, gyro_data);
+  load_accel_data(ACCEL0_CSV_PATH, accel_ts, accel_data);
+
+  std::cout << "accel ts: " << accel_ts.size() << std::endl;
+  std::cout << "gyro ts: " << gyro_ts.size() << std::endl;
+
+
+
+
+
+  return 0;
+}
+
 void test_suite() {
   MU_ADD_TEST(test_interp_timestamps);
   MU_ADD_TEST(test_interp_data);
-  MU_ADD_TEST(test_sync_data);
+  MU_ADD_TEST(test_vi_aligner);
 }
 
 } // namespace proto

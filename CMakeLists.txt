@@ -21,7 +21,6 @@ if (OPENMP_FOUND)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-
 # INCLUDES
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
@@ -153,7 +152,7 @@ SET(
   # driver-test_camera
   # driver-test_ublox
   # driver-ublox_base_station_tester
-  # estimation-test_measurement
+  estimation-test_measurement
   # # model-test_mav
   # model-test_two_wheel
   # mav-test_atl
@@ -176,31 +175,31 @@ FOREACH(TEST ${UNITTESTS})
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 ENDFOREACH(TEST)
 
-# APPS
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
-FILE(COPY configs DESTINATION ${PROJECT_BINARY_DIR}/apps)
-SET(
-  APP_DEPS
-  prototype
-  ${OpenCV_LIBS}
-  ${SUITESPARSE_LIBRARIES}
-  yaml-cpp
-  apriltags
-  ceres
-  ${GeographicLib_LIBRARIES}
-)
-SET(
-  APPS
-  calib_camera
-  calib_stereo
-  # calib_vicon_marker
-  detect_aprilgrid
-  ublox_base_station
-  ublox_rover
-  validate_intrinsics
-  validate_stereo
-)
-FOREACH(APP ${APPS})
-  ADD_EXECUTABLE(${APP} src/apps/${APP}.cpp)
-  TARGET_LINK_LIBRARIES(${APP} ${APP_DEPS})
-ENDFOREACH(APP)
+# # APPS
+# SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
+# FILE(COPY configs DESTINATION ${PROJECT_BINARY_DIR}/apps)
+# SET(
+#   APP_DEPS
+#   prototype
+#   ${OpenCV_LIBS}
+#   ${SUITESPARSE_LIBRARIES}
+#   yaml-cpp
+#   apriltags
+#   ceres
+#   ${GeographicLib_LIBRARIES}
+# )
+# SET(
+#   APPS
+#   calib_camera
+#   calib_stereo
+#   # calib_vicon_marker
+#   detect_aprilgrid
+#   ublox_base_station
+#   ublox_rover
+#   validate_intrinsics
+#   validate_stereo
+# )
+# FOREACH(APP ${APPS})
+#   ADD_EXECUTABLE(${APP} src/apps/${APP}.cpp)
+#   TARGET_LINK_LIBRARIES(${APP} ${APP_DEPS})
+# ENDFOREACH(APP)

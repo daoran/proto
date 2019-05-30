@@ -8,11 +8,11 @@
 
 namespace proto {
 
-struct imu_measurements_t {
-  std::deque<timestamp_t> ts;
-  std::deque<vec3_t> gyro;
-  std::deque<vec3_t> accel;
-};
+// struct imu_measurements_t {
+//   std::deque<timestamp_t> ts;
+//   std::deque<vec3_t> gyro;
+//   std::deque<vec3_t> accel;
+// };
 
 struct image_t {
   timestamp_t ts = 0;
@@ -27,6 +27,25 @@ struct image_t {
           const int height,
           double *data);
   ~image_t();
+};
+
+struct vi_aligner_t {
+  std::deque<timestamp_t> gyro_ts;
+  std::deque<vec3_t> gyro;
+  std::deque<timestamp_t> accel_ts;
+  std::deque<vec3_t> accel;
+
+  vi_aligner_t() {}
+
+  void addGyro(const timestamp_t &ts, const vec3_t &gyro_data) {
+    gyro_ts.push_back(ts);
+    gyro.push_back(gyro_data);
+  }
+
+  void addAccel(const timestamp_t &ts, const vec3_t &accel_data) {
+    accel_ts.push_back(ts);
+    accel.push_back(accel_data);
+  }
 };
 
 /**
