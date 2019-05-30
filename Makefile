@@ -1,25 +1,33 @@
 define usage
 [TARGETS]:
   deps:
-    Clone prototype dependencies
+    Clone prototype dependencies.
 
   debug:
-    Build prototype in debug mode
+    Build prototype in debug mode.
 
   release:
-    Build prototype in release mode
+    Build prototype in release mode.
 
   install:
-    Install prototype
+    Install prototype to $PREFIX. By default this is "/usr/local".
 
-  install_deps:
-    Install prototype dependencies
+  deps:
+    Install prototype dependencies. The dependencies are:
+    - apriltags
+    - boost
+    - ceres
+    - eigen
+    - geographiclib
+    - opencv3
+    - realsense
+    - yamlcpp
 
   format_code:
-    Format prototype code using clang-format
+    Format prototype code using clang-format.
 
   docs:
-    Generate docs for prototype
+    Generate docs for prototype.
 endef
 export usage
 
@@ -42,7 +50,7 @@ release: deps build_dir
 install:
 	@cd build && make -s install
 
-install_deps:
+deps:
 	@bash ./scripts/deps/install.bash
 
 format_code:

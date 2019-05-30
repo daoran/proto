@@ -6,15 +6,48 @@ robotics. From estimation, mapping to control and planning.
 
 ## Build
 
-To build the `prototype` library enter the following commands at the root
-of the repo.
+For convenience there is a `Makefile` that automates the installation of
+dependencies and building of `prototype`, the make targets are as follows.
+
+    deps:
+      Clone prototype dependencies.
+
+    debug:
+      Build prototype in debug mode.
+
+    release:
+      Build prototype in release mode.
+
+    install:
+      Install prototype to $PREFIX. By default this is "/usr/local".
+
+    deps:
+      Install prototype dependencies. The dependencies are:
+      - apriltags
+      - boost
+      - ceres
+      - eigen
+      - geographiclib
+      - opencv3
+      - realsense
+      - yamlcpp
+
+    format_code:
+      Format prototype code using clang-format.
+
+    docs:
+      Generate docs for prototype.
+
+The command one really needs to get started is `debug`, `release` and `install`.
+
+Or, if you're old-fashioned the standard way to build a C++ project is to enter
+the following commands at the root of the repo.
 
     mkdir -p build
     cd build
     cmake ..
     make
     sudo make install  # By default will install to /usr/local
-
 
 ## License
 
