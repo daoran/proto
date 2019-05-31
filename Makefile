@@ -1,5 +1,10 @@
+BUILD_DIR=${PWD}/build
+
 define usage
 [TARGETS]:
+  deps:
+    Install prototype dependencies.
+
   debug:
     Build prototype in debug mode.
 
@@ -8,17 +13,6 @@ define usage
 
   install:
     Install prototype to $PREFIX. By default this is "/usr/local".
-
-  deps:
-    Install prototype dependencies. The dependencies are:
-    - apriltags
-    - boost
-    - ceres
-    - eigen
-    - geographiclib
-    - opencv3
-    - realsense
-    - yamlcpp
 
   format_code:
     Format prototype code using clang-format.
@@ -31,22 +25,22 @@ export usage
 default:
 	@echo "$$usage"
 
-build_dir:
-	@git submodule init
-	@git submodule update
-	@mkdir -p build
+deps:
+	@echo "[Installing Dependencies]"
+	@sudo bash ./scripts/deps/install.bash
 
-debug: deps build_dir
+${BUILD_DIR}:
+	@mkdir -p ${BUILD_DIR}
+	@make -s deps
+
+debug: ${BUILD_DIR}
 	@cd build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s
 
-release: deps build_dir
+release: ${BUILD_DIR}
 	@cd build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s
 
-install:
+install: release
 	@cd build && make -s install
-
-deps:
-	@bash ./scripts/deps/install.bash
 
 format_code:
 	@bash ./scripts/format_code.bash

@@ -9,6 +9,9 @@ robotics. From estimation, mapping to control and planning.
 For convenience there is a `Makefile` that automates the installation of
 dependencies and building of `prototype`, the make targets are as follows.
 
+    deps:
+      Install prototype dependencies.
+
     debug:
       Build prototype in debug mode.
 
@@ -17,17 +20,6 @@ dependencies and building of `prototype`, the make targets are as follows.
 
     install:
       Install prototype to $PREFIX. By default this is "/usr/local".
-
-    deps:
-      Install prototype dependencies. The dependencies are:
-      - apriltags
-      - boost
-      - ceres
-      - eigen
-      - geographiclib
-      - opencv3
-      - realsense
-      - yamlcpp
 
     format_code:
       Format prototype code using clang-format.

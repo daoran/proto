@@ -14,8 +14,8 @@ debug() {
 # LIBRARY
 # time make debug
 time make release
-sudo make install
-# exit
+# sudo make install
+exit
 
 # APPS
 cd build/apps
