@@ -11,9 +11,9 @@ script_path = strcat(script_path, "/../..");
 addpath(genpath(script_path));
 
 % hpposllh_csv = "/data/ubx_nav_hpposllh.csv";
-% hpposllh_csv = "/data/rtkgps/hyde_park-gps_only.csv";
+hpposllh_csv = "/data/rtkgps/hyde_park-gps_only.csv";
 % hpposllh_csv = "/data/rtkgps/hyde_park-static_1.csv";
-hpposllh_csv = "/data/rtkgps/hyde_park-static_2.csv";
+% hpposllh_csv = "/data/rtkgps/hyde_park-static_2.csv";
 % hpposllh_csv = "/data/rtkgps/hyde_park-static_all.csv";
 % hpposllh_csv = "/data/rtkgps/hyde_park-circle_1.csv";
 % hpposllh_csv = "/data/rtkgps/hyde_park-circle_2.csv";

@@ -241,6 +241,32 @@ bool ubx_msg_is_valid(const ubx_msg_t &msg);
 void ubx_msg_print(const ubx_msg_t &msg);
 
 /**
+ * UBX-NAV-DOP
+ */
+struct ubx_nav_dop_t {
+  uint32_t itow = 0;
+  uint16_t gdop = 0;
+  uint16_t pdop = 0;
+  uint16_t tdop = 0;
+  uint16_t vdop = 0;
+  uint16_t hdop = 0;
+  uint16_t ndop = 0;
+  uint16_t edop = 0;
+
+  ubx_nav_dop_t() {}
+  ubx_nav_dop_t(const ubx_msg_t &msg) {
+    itow = u32bit(msg.payload, 0);
+    gdop = s16bit(msg.payload, 4);
+    pdop = s16bit(msg.payload, 6);
+    tdop = s16bit(msg.payload, 8);
+    vdop = s16bit(msg.payload, 10);
+    hdop = s16bit(msg.payload, 12);
+    ndop = s16bit(msg.payload, 14);
+    edop = s16bit(msg.payload, 16);
+  }
+};
+
+/**
  * UBX-NAV-EOE
  */
 struct ubx_nav_eoe_t {
@@ -252,128 +278,62 @@ struct ubx_nav_eoe_t {
 };
 
 /**
- * UBX-NAV-SVIN
+ * UBX-NAV-HPPOSLLH
  */
-struct ubx_nav_svin_t {
+struct ubx_nav_hpposllh_t {
+  uint8_t version = 0;
   uint32_t itow = 0;
-  uint32_t dur = 0;
-  int32_t mean_x = 0;
-  int32_t mean_y = 0;
-  int32_t mean_z = 0;
-  int8_t mean_xhp = 0;
-  int8_t mean_yhp = 0;
-  int8_t mean_zhp = 0;
-  uint32_t mean_acc = 0;
-  uint32_t obs = 0;
-  uint8_t valid = 0;
-  uint8_t active = 0;
+  int32_t lon = 0;
+  int32_t lat = 0;
+  int32_t height = 0;
+  int32_t hmsl = 0;
+  int8_t lon_hp = 0;
+  int8_t lat_hp = 0;
+  int8_t height_hp = 0;
+  int8_t hmsl_hp = 0;
+  uint32_t hacc = 0;
+  uint32_t vacc = 0;
 
-  ubx_nav_svin_t() {}
-  ubx_nav_svin_t(const ubx_msg_t &msg) {
-    // ubx_msg_print(msg);
+  ubx_nav_hpposllh_t() {}
+  ubx_nav_hpposllh_t(const ubx_msg_t &msg) {
+    version = u8bit(msg.payload, 0);
     itow = u32bit(msg.payload, 4);
-    dur = u32bit(msg.payload, 8);
-    mean_x = s32bit(msg.payload, 12);
-    mean_y = s32bit(msg.payload, 16);
-    mean_z = s32bit(msg.payload, 20);
-    mean_xhp = s8bit(msg.payload, 24);
-    mean_yhp = s8bit(msg.payload, 25);
-    mean_zhp = s8bit(msg.payload, 26);
-    mean_acc = u32bit(msg.payload, 28);
-    obs = u32bit(msg.payload, 32);
-    valid = u8bit(msg.payload, 36);
-    active = u8bit(msg.payload, 37);
+    lon = s32bit(msg.payload, 8);
+    lat = s32bit(msg.payload, 12);
+    height = s32bit(msg.payload, 16);
+    hmsl = s32bit(msg.payload, 20);
+    lon_hp = s8bit(msg.payload, 24);
+    lat_hp = s8bit(msg.payload, 25);
+    height_hp = s8bit(msg.payload, 26);
+    hmsl_hp = s8bit(msg.payload, 27);
+    hacc = u32bit(msg.payload, 28);
+    vacc = u32bit(msg.payload, 32);
   }
 };
 
-void print_ubx_nav_svin(const ubx_nav_svin_t &msg) {
-  printf("[nav-svin] ");
+void print_ubx_nav_hpposllh(const ubx_nav_hpposllh_t &msg) {
+  printf("[nav-hpposllh] ");
   printf("itow: %d", msg.itow);
   printf("\t");
-  printf("dur: %d", msg.dur);
+  printf("lon: %d", (int32_t) msg.lon);
   printf("\t");
-  printf("mean_x: %d", msg.mean_x);
+  printf("lat: %d", (int32_t) msg.lat);
   printf("\t");
-  printf("mean_y: %d", msg.mean_y);
+  printf("height: %d", msg.height);
   printf("\t");
-  printf("mean_z: %d", msg.mean_z);
+  printf("hmsl: %d", msg.hmsl);
   printf("\t");
-  printf("active: 0x%02x", msg.active);
+  printf("lon_hp: %d", msg.lon_hp);
   printf("\t");
-  printf("valid: 0x%02x", msg.valid);
-  printf("\n");
-}
-
-/**
- * UBX-NAV-STATUS
- */
-struct ubx_nav_status_t {
-  uint32_t itow = 0;
-  uint8_t fix = 0;
-  uint8_t flags = 0;
-  uint8_t fix_status = 0;
-  uint8_t flags2 = 0;
-  uint32_t ttff = 0;
-  uint32_t msss = 0;
-
-  ubx_nav_status_t() {}
-  ubx_nav_status_t(const ubx_msg_t &msg) {
-    itow = u32bit(msg.payload, 0);
-    fix = u8bit(msg.payload, 4);
-    flags = u8bit(msg.payload, 5);
-    fix_status = u8bit(msg.payload, 6);
-    flags2 = u8bit(msg.payload, 7);
-    ttff = u32bit(msg.payload, 8);
-    msss = u32bit(msg.payload, 12);
-  }
-};
-
-void print_ubx_nav_status(const ubx_nav_status_t &msg) {
-  printf("[nav-status] ");
-  printf("itow: %d", msg.itow);
-
+  printf("lat_hp: %d", msg.lat_hp);
   printf("\t");
-  switch (msg.fix) {
-  case 0x00: printf("fix: no fix"); break;
-  case 0x01: printf("fix: dead reckoning only"); break;
-  case 0x02: printf("fix: 2D-fix"); break;
-  case 0x03: printf("fix: 3D-fix"); break;
-  case 0x04: printf("fix: GNSS + dead reckoning combined"); break;
-  case 0x05: printf("fix: time only fix"); break;
-  }
+  printf("height_hp: %d", msg.height_hp);
   printf("\t");
-
-  printf("flags: %d", msg.flags);
+  printf("hmsl_hp: %d", msg.hmsl_hp);
   printf("\t");
-
-  const bool diff_corr = (msg.fix_status & 0b00000001);
-  if (diff_corr) {
-    printf("diff corr avail?: true");
-  } else {
-    printf("diff corr avail?: false");
-  }
+  printf("hacc: %d", msg.hacc);
   printf("\t");
-  printf("\t");
-
-  const uint8_t map_matching = (msg.fix_status & 0b11000000);
-  if (map_matching == 0b00) {
-    printf("map matching: none");
-  } else if (map_matching == 0b01) {
-    printf("map matching: valid but not used");
-  } else if (map_matching == 0b10) {
-    printf("map matching: valid and used");
-  } else if (map_matching == 0b11) {
-    printf("map matching: valid and used");
-  }
-  printf("\t");
-
-  printf("flags2: %d", msg.flags2);
-  printf("\t");
-
-  printf("ttff: %d", msg.ttff);
-  printf("\t");
-
-  printf("msss: %d", msg.msss);
+  printf("vacc: %d", msg.vacc);
   printf("\n");
 }
 
@@ -471,6 +431,132 @@ void print_ubx_nav_pvt(const ubx_nav_pvt_t &msg) {
 }
 
 /**
+ * UBX-NAV-STATUS
+ */
+struct ubx_nav_status_t {
+  uint32_t itow = 0;
+  uint8_t fix = 0;
+  uint8_t flags = 0;
+  uint8_t fix_status = 0;
+  uint8_t flags2 = 0;
+  uint32_t ttff = 0;
+  uint32_t msss = 0;
+
+  ubx_nav_status_t() {}
+  ubx_nav_status_t(const ubx_msg_t &msg) {
+    itow = u32bit(msg.payload, 0);
+    fix = u8bit(msg.payload, 4);
+    flags = u8bit(msg.payload, 5);
+    fix_status = u8bit(msg.payload, 6);
+    flags2 = u8bit(msg.payload, 7);
+    ttff = u32bit(msg.payload, 8);
+    msss = u32bit(msg.payload, 12);
+  }
+};
+
+void print_ubx_nav_status(const ubx_nav_status_t &msg) {
+  printf("[nav-status] ");
+  printf("itow: %d", msg.itow);
+
+  printf("\t");
+  switch (msg.fix) {
+  case 0x00: printf("fix: no fix"); break;
+  case 0x01: printf("fix: dead reckoning only"); break;
+  case 0x02: printf("fix: 2D-fix"); break;
+  case 0x03: printf("fix: 3D-fix"); break;
+  case 0x04: printf("fix: GNSS + dead reckoning combined"); break;
+  case 0x05: printf("fix: time only fix"); break;
+  }
+  printf("\t");
+
+  printf("flags: %d", msg.flags);
+  printf("\t");
+
+  const bool diff_corr = (msg.fix_status & 0b00000001);
+  if (diff_corr) {
+    printf("diff corr avail?: true");
+  } else {
+    printf("diff corr avail?: false");
+  }
+  printf("\t");
+  printf("\t");
+
+  const uint8_t map_matching = (msg.fix_status & 0b11000000);
+  if (map_matching == 0b00) {
+    printf("map matching: none");
+  } else if (map_matching == 0b01) {
+    printf("map matching: valid but not used");
+  } else if (map_matching == 0b10) {
+    printf("map matching: valid and used");
+  } else if (map_matching == 0b11) {
+    printf("map matching: valid and used");
+  }
+  printf("\t");
+
+  printf("flags2: %d", msg.flags2);
+  printf("\t");
+
+  printf("ttff: %d", msg.ttff);
+  printf("\t");
+
+  printf("msss: %d", msg.msss);
+  printf("\n");
+}
+
+/**
+ * UBX-NAV-SVIN
+ */
+struct ubx_nav_svin_t {
+  uint32_t itow = 0;
+  uint32_t dur = 0;
+  int32_t mean_x = 0;
+  int32_t mean_y = 0;
+  int32_t mean_z = 0;
+  int8_t mean_xhp = 0;
+  int8_t mean_yhp = 0;
+  int8_t mean_zhp = 0;
+  uint32_t mean_acc = 0;
+  uint32_t obs = 0;
+  uint8_t valid = 0;
+  uint8_t active = 0;
+
+  ubx_nav_svin_t() {}
+  ubx_nav_svin_t(const ubx_msg_t &msg) {
+    // ubx_msg_print(msg);
+    itow = u32bit(msg.payload, 4);
+    dur = u32bit(msg.payload, 8);
+    mean_x = s32bit(msg.payload, 12);
+    mean_y = s32bit(msg.payload, 16);
+    mean_z = s32bit(msg.payload, 20);
+    mean_xhp = s8bit(msg.payload, 24);
+    mean_yhp = s8bit(msg.payload, 25);
+    mean_zhp = s8bit(msg.payload, 26);
+    mean_acc = u32bit(msg.payload, 28);
+    obs = u32bit(msg.payload, 32);
+    valid = u8bit(msg.payload, 36);
+    active = u8bit(msg.payload, 37);
+  }
+};
+
+void print_ubx_nav_svin(const ubx_nav_svin_t &msg) {
+  printf("[nav-svin] ");
+  printf("itow: %d", msg.itow);
+  printf("\t");
+  printf("dur: %d", msg.dur);
+  printf("\t");
+  printf("mean_x: %d", msg.mean_x);
+  printf("\t");
+  printf("mean_y: %d", msg.mean_y);
+  printf("\t");
+  printf("mean_z: %d", msg.mean_z);
+  printf("\t");
+  printf("active: 0x%02x", msg.active);
+  printf("\t");
+  printf("valid: 0x%02x", msg.valid);
+  printf("\n");
+}
+
+/**
  * UBX-NAV-VELNED
  */
 struct ubx_nav_velned_t {
@@ -497,92 +583,6 @@ struct ubx_nav_velned_t {
     cacc = u32bit(msg.payload, 32);
   }
 };
-
-/**
- * UBX-NAV-DOP
- */
-struct ubx_nav_dop_t {
-  uint32_t itow = 0;
-  uint16_t gdop = 0;
-  uint16_t pdop = 0;
-  uint16_t tdop = 0;
-  uint16_t vdop = 0;
-  uint16_t hdop = 0;
-  uint16_t ndop = 0;
-  uint16_t edop = 0;
-
-  ubx_nav_dop_t() {}
-  ubx_nav_dop_t(const ubx_msg_t &msg) {
-    itow = u32bit(msg.payload, 0);
-    gdop = s16bit(msg.payload, 4);
-    pdop = s16bit(msg.payload, 6);
-    tdop = s16bit(msg.payload, 8);
-    vdop = s16bit(msg.payload, 10);
-    hdop = s16bit(msg.payload, 12);
-    ndop = s16bit(msg.payload, 14);
-    edop = s16bit(msg.payload, 16);
-  }
-};
-
-/**
- * UBX-NAV-HPPOSLLH
- */
-struct ubx_nav_hpposllh_t {
-  uint8_t version = 0;
-  uint32_t itow = 0;
-  int32_t lon = 0;
-  int32_t lat = 0;
-  int32_t height = 0;
-  int32_t hmsl = 0;
-  int8_t lon_hp = 0;
-  int8_t lat_hp = 0;
-  int8_t height_hp = 0;
-  int8_t hmsl_hp = 0;
-  uint32_t hacc = 0;
-  uint32_t vacc = 0;
-
-  ubx_nav_hpposllh_t() {}
-  ubx_nav_hpposllh_t(const ubx_msg_t &msg) {
-    version = u8bit(msg.payload, 0);
-    itow = u32bit(msg.payload, 4);
-    lon = s32bit(msg.payload, 8);
-    lat = s32bit(msg.payload, 12);
-    height = s32bit(msg.payload, 16);
-    hmsl = s32bit(msg.payload, 20);
-    lon_hp = s8bit(msg.payload, 24);
-    lat_hp = s8bit(msg.payload, 25);
-    height_hp = s8bit(msg.payload, 26);
-    hmsl_hp = s8bit(msg.payload, 27);
-    hacc = u32bit(msg.payload, 28);
-    vacc = u32bit(msg.payload, 32);
-  }
-};
-
-void print_ubx_nav_hpposllh(const ubx_nav_hpposllh_t &msg) {
-  printf("[nav-hpposllh] ");
-  printf("itow: %d", msg.itow);
-  printf("\t");
-  printf("lon: %d", (int32_t) msg.lon);
-  printf("\t");
-  printf("lat: %d", (int32_t) msg.lat);
-  printf("\t");
-  printf("height: %d", msg.height);
-  printf("\t");
-  printf("hmsl: %d", msg.hmsl);
-  printf("\t");
-  printf("lon_hp: %d", msg.lon_hp);
-  printf("\t");
-  printf("lat_hp: %d", msg.lat_hp);
-  printf("\t");
-  printf("height_hp: %d", msg.height_hp);
-  printf("\t");
-  printf("hmsl_hp: %d", msg.hmsl_hp);
-  printf("\t");
-  printf("hacc: %d", msg.hacc);
-  printf("\t");
-  printf("vacc: %d", msg.vacc);
-  printf("\n");
-}
 
 /**
  * UBX-MON-RF

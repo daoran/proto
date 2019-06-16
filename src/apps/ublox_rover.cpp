@@ -41,6 +41,7 @@ static void setup_rover_callbacks(
     ublox_t &rover,
     FILE *hpposllh_fp,
     std::map<std::string, ubx_msg_t> msg_registry) {
+
   rover.nav_svin_cb = [&msg_registry](ublox_t &rover) {
     msg_registry["UBX_NAV_SVIN"] = rover.ubx_parser.msg;
   };
