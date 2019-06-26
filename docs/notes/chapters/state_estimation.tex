@@ -1,5 +1,45 @@
 \chapter{State Estimation}
 
+\section{Bayes Filter}
+
+\begin{equation}
+  \text{bel}(\state_{0}) = p(\state_{0})
+\end{equation}
+
+\begin{align}
+  \text{bel}(\state_{t})
+    &=
+    p(\state_{t} | \measurement_{1:t}, \cinput_{1:t}) =
+    p(\state_{t} | \measurement_{1:t}, \measurement_{1:t-1}, \cinput_{1:t}) \\
+    &=
+    \dfrac{
+      p(\measurement_{t} | \state_{t}, \measurement_{1:t-1}, \cinput_{1:t})
+      \enspace
+      p(\state_{t} | \measurement_{1:t-1}, \cinput_{1:t})
+    }{
+      p(\measurement_{t} | \measurement_{1:t-1}, \cinput_{1:t})
+    } \\ 
+  \nonumber \\
+  \overline{\text{bel}}(\state_{t})
+    &=
+      p(\state_{t} | \measurement_{1:t-1}, \cinput_{1:t}) \\
+    &=
+      \int
+      p(\state_{t} | \state_{t-1}, \measurement_{1:t-1}, \cinput_{1:t})
+      \enspace
+      p(\state_{t} | \measurement_{1:t-1}, \cinput_{1:t})
+      \enspace
+      d\state_{t-1} \\
+    &=
+      \int
+      p(\state_{t} | \state_{t-1}, \cinput_{1:t})
+      \enspace
+      \text{bel}(\state_{t-1})
+      \enspace
+      d\state_{t-1}
+\end{align}
+
+
 \section{2D Range Measurement Model}
 
 \begin{equation}
