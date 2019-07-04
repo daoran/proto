@@ -15,14 +15,25 @@ inline void nargchk(bool cond) {
  */
 void parse_args(int nlhs, mxArray *plhs[],
                 int nrhs, const mxArray *prhs[],
-                std::string &data_path) {
+                std::string &data_path,
+                std::string &date,
+                std::string &seq) {
   UNUSED(plhs);
 
   // Parse args
-  nargchk(nlhs >= 0 && nrhs == 1);
-  // -- YAML file path
-  std::shared_ptr<char> arg(mxArrayToString(prhs[0]), &free);
-  data_path = std::string{arg.get()};
+  nargchk(nlhs >= 0 && nrhs == 3);
+
+  // -- KITTI RAW data base path
+  std::shared_ptr<char> arg0(mxArrayToString(prhs[0]), &free);
+  data_path = std::string{arg0.get()};
+
+  // -- Date
+  std::shared_ptr<char> arg1(mxArrayToString(prhs[1]), &free);
+  date = std::string{arg1.get()};
+
+  // -- Sequenece
+  std::shared_ptr<char> arg2(mxArrayToString(prhs[2]), &free);
+  seq = std::string{arg2.get()};
 }
 
 /**
@@ -58,15 +69,11 @@ mxArray *convert(const std::vector<std::string> &string_vector) {
  * Convert vector of long
  */
 mxArray *convert(const std::vector<long> &long_vector) {
-  const int nb_elements = long_vector.size();
-  const int dims[2] = {nb_elements, 1};
-  mxArray *out = mxCreateCellArray(1, dims);
-
-  for (int i = 0; i < nb_elements; i++) {
-    mxArray *out = mxCreateNumericMatrix(1, 1, mxINT64_CLASS, mxREAL);
-    long* data = (long*) mxGetData(out);
-    data[0] = long_vector[i];
-    mxSetCell(out, i, data);
+  const long nb_ts = long_vector.size();
+  mxArray *out = mxCreateNumericMatrix(nb_ts, 1, mxINT64_CLASS, mxREAL);
+  uint64_t *data = (uint64_t *) mxGetData(out);
+  for (long i = 0; i < nb_ts; i++) {
+    data[i] = long_vector[i];
   }
 
   return out;
@@ -76,15 +83,11 @@ mxArray *convert(const std::vector<long> &long_vector) {
  * Convert vector of double
  */
 mxArray *convert(const std::vector<double> &double_vector) {
-  const int nb_elements = double_vector.size();
-  const int dims[2] = {nb_elements, 1};
-  mxArray *out = mxCreateCellArray(1, dims);
-
-  for (int i = 0; i < nb_elements; i++) {
-    mxArray *out = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(out);
-    data[0] = double_vector[i];
-    mxSetCell(out, i, data);
+  const long nb_ts = double_vector.size();
+  mxArray *out = mxCreateNumericMatrix(nb_ts, 1, mxDOUBLE_CLASS, mxREAL);
+  double_t *data = (double *) mxGetData(out);
+  for (long i = 0; i < nb_ts; i++) {
+    data[i] = double_vector[i];
   }
 
   return out;
@@ -99,11 +102,11 @@ mxArray *convert(const std::array<proto::vec2_t, 4> &vec2_array) {
   mxArray *out = mxCreateCellArray(1, dims);
 
   for (int i = 0; i < nb_elements; i++) {
-    mxArray *out = mxCreateNumericMatrix(2, 1, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(out);
+    mxArray *tmp = mxCreateNumericMatrix(2, 1, mxDOUBLE_CLASS, mxREAL);
+    double *data = (double*) mxGetData(tmp);
     data[0] = vec2_array[i](0);
     data[1] = vec2_array[i](1);
-    mxSetCell(out, i, data);
+    mxSetCell(out, i, tmp);
   }
 
   return out;
@@ -118,12 +121,12 @@ mxArray *convert(const std::array<proto::vec3_t, 4> &vec3_array) {
   mxArray *out = mxCreateCellArray(1, dims);
 
   for (int i = 0; i < nb_elements; i++) {
-    mxArray *out = mxCreateNumericMatrix(3, 1, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(out);
+    mxArray *tmp = mxCreateNumericMatrix(3, 1, mxDOUBLE_CLASS, mxREAL);
+    double* data = (double*) mxGetData(tmp);
     data[0] = vec3_array[i](0);
     data[1] = vec3_array[i](1);
     data[2] = vec3_array[i](2);
-    mxSetCell(out, i, data);
+    mxSetCell(out, i, tmp);
   }
 
   return out;
@@ -139,13 +142,13 @@ mxArray *convert(const std::array<proto::vecx_t, 4> &vecx_array) {
 
   for (int i = 0; i < nb_elements; i++) {
     const proto::vecx_t &vec = vecx_array[i];
-    mxArray *out = mxCreateNumericMatrix(vec.size(), 1, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(out);
+    mxArray *tmp= mxCreateNumericMatrix(vec.size(), 1, mxDOUBLE_CLASS, mxREAL);
+    double* data = (double*) mxGetData(tmp);
     for (int j = 0; j < vec.size(); j++) {
       data[j] = vec(j);
     }
 
-    mxSetCell(out, i, data);
+    mxSetCell(out, i, tmp);
   }
 
   return out;
@@ -160,8 +163,8 @@ mxArray *convert(const std::array<proto::mat3_t, 4> &mat3_array) {
   mxArray *out = mxCreateCellArray(1, dims);
 
   for (int i = 0; i < nb_elements; i++) {
-    mxArray *out = mxCreateNumericMatrix(3, 3, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(out);
+    mxArray *tmp= mxCreateNumericMatrix(3, 3, mxDOUBLE_CLASS, mxREAL);
+    double* data = (double*) mxGetData(tmp);
     data[0] = mat3_array[i](0, 0);
     data[1] = mat3_array[i](0, 1);
     data[2] = mat3_array[i](0, 2);
@@ -174,7 +177,7 @@ mxArray *convert(const std::array<proto::mat3_t, 4> &mat3_array) {
     data[7] = mat3_array[i](2, 1);
     data[8] = mat3_array[i](2, 2);
 
-    mxSetCell(out, i, data);
+    mxSetCell(out, i, tmp);
   }
 
   return out;
@@ -189,8 +192,8 @@ mxArray *convert(const std::array<proto::mat34_t, 4> &mat34_array) {
   mxArray *out = mxCreateCellArray(1, dims);
 
   for (int i = 0; i < nb_elements; i++) {
-    mxArray *out = mxCreateNumericMatrix(3, 4, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(out);
+    mxArray *tmp = mxCreateNumericMatrix(3, 4, mxDOUBLE_CLASS, mxREAL);
+    double* data = (double*) mxGetData(tmp);
     data[0] = mat34_array[i](0, 0);
     data[1] = mat34_array[i](0, 1);
     data[2] = mat34_array[i](0, 2);
@@ -206,7 +209,7 @@ mxArray *convert(const std::array<proto::mat34_t, 4> &mat34_array) {
     data[10] = mat34_array[i](2, 2);
     data[11] = mat34_array[i](2, 3);
 
-    mxSetCell(out, i, data);
+    mxSetCell(out, i, tmp);
   }
 
   return out;
@@ -445,10 +448,12 @@ mxArray *convert_kitti_raw_data(const proto::kitti_raw_t &kitti_raw) {
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // Parse args
   std::string data_path;
-  parse_args(nlhs, plhs, nrhs, prhs, data_path);
+  std::string date;
+  std::string seq;
+  parse_args(nlhs, plhs, nrhs, prhs, data_path, date, seq);
 
   // Load EuRoC dataset
-  proto::kitti_raw_t data;
+  proto::kitti_raw_t data(data_path, date, seq);
   if (proto::kitti_raw_load(data) != 0) {
     mexErrMsgIdAndTxt("prototype:error", "Failed to load KITTI raw dataset!");
   }
