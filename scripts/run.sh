@@ -15,7 +15,7 @@ debug() {
 # time make debug
 # time make release
 sudo make install
-exit
+# exit
 
 # APPS
 # cd build/apps
@@ -31,7 +31,7 @@ exit
 # exit
 
 # TESTS
-# cd build/tests
+cd build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera
@@ -88,4 +88,5 @@ exit
 # ./vision-test_camera-radtan
 # ./vision-test_feature2d-grid_fast
 # ./vision-test_feature2d-grid_good
+./vision-test_frontend
 # ./vision-test_vision_common

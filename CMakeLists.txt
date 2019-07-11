@@ -89,8 +89,6 @@ ADD_LIBRARY(
   src/model/gimbal.cpp
   src/model/mav.cpp
   src/model/two_wheel.cpp
-  # rovio
-  src/rovio/frontend.cpp
   # vision
   src/vision/camera/radtan.cpp
   src/vision/camera/equi.cpp
@@ -98,6 +96,7 @@ ADD_LIBRARY(
   src/vision/feature2d/draw.cpp
   src/vision/feature2d/grid_fast.cpp
   src/vision/feature2d/grid_good.cpp
+  src/vision/frontend.cpp
   src/vision/vision_common.cpp
 )
 SET(
@@ -167,6 +166,7 @@ SET(
   # vision-camera-test_radtan
   # vision-feature2d-test_grid_fast
   # vision-feature2d-test_grid_good
+  vision-test_frontend
   # vision-test_vision_common
 )
 FOREACH(TEST ${UNITTESTS})

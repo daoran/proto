@@ -2,6 +2,7 @@ f = @(x) [ x(1)-.4; x(2)-.8 ; x(1)^2+x(2)^2-1 ];
 fp = @(x) [ 1,0 ; 0,1 ; 2*x(1),2*x(2) ];  % define Jacobian fp(x)
 
 format long g        % show all digits
+
 x = [0;0];           % initial guess
 while 1
   b = f(x);          % evaluate f

@@ -10,6 +10,10 @@ make
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
 # octave notes/calib/sandbox.m && exit 0
+# octave notes/imu_preintegration/ipm.m && exit 0
+# octave notes/imu_preintegration/ipm_jacobian.m && exit 0
+# octave notes/vi_sync/vi_sync.m && exit 0
+octave notes/frontend.m && exit 0
 # octave notes/jacobians.m && exit 0
 # octave notes/bpf.m && exit 0
 # octave notes/convolution.m && exit 0
@@ -18,12 +22,9 @@ make
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
 # octave notes/hessian.m && exit 0
-# octave notes/imu_preintegration/ipm.m && exit 0
-octave notes/imu_preintegration/ipm_jacobian.m && exit 0
-# octave notes/linear_triangulation.m && exit 0
+# octave notes/illum_invar.m && exit 0
 # octave notes/quaternion.m && exit 0
-# octave notes/vi_sync.m && exit 0
-# octave notes/vi_sync2.m && exit 0
+
 # octave tools/calib_data_summary.m && exit 0
 # octave tools/plot_calib_euroc.m && exit 0
 # octave tools/plot_calib_vicon.m && exit 0
