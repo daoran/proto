@@ -14,7 +14,7 @@ struct frontend_t {
   ~frontend_t();
 };
 
-int frontend_update(frontend_t &frontend, const cv::Mat &image);
+int frontend_update(frontend_t &fe, const cv::Mat &image, const bool debug=false);
 
 } //  namespace proto
 #endif // PROTOTYPE_VISION_FRONTEND_HPP

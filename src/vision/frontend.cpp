@@ -10,7 +10,7 @@ frontend_t::~frontend_t() {
 
 }
 
-int frontend_update(frontend_t &frontend, const cv::Mat &image) {
+int frontend_update(frontend_t &fe, const cv::Mat &image, const bool debug) {
   // Parameters for Shi-Tomasi algorithm
   std::vector<cv::Point2f> corners;
   const int max_corners = 100;
@@ -37,14 +37,15 @@ int frontend_update(frontend_t &frontend, const cv::Mat &image) {
                           k);
 
   // Draw corners detected
-  const int radius = 2;
-  const cv::Mat img = image.clone();
-  const cv::Scalar color(0, 255, 0);
-  for (size_t i = 0; i < corners.size(); i++ ) {
-    cv::circle(img, corners[i], radius, color, cv::FILLED);
+  if (debug) {
+    const int radius = 2;
+    const cv::Mat img = image.clone();
+    const cv::Scalar color(0, 255, 0);
+    for (size_t i = 0; i < corners.size(); i++ ) {
+      cv::circle(img, corners[i], radius, color, cv::FILLED);
+    }
+    cv::imshow("Frontend", img);
   }
-  cv::imshow("Frontend", img);
-  cv::waitKey(0);
 
   return 0;
 }
