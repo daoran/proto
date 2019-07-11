@@ -12,8 +12,8 @@ make
 # octave notes/calib/sandbox.m && exit 0
 # octave notes/imu_preintegration/ipm.m && exit 0
 # octave notes/imu_preintegration/ipm_jacobian.m && exit 0
-# octave notes/vi_sync/vi_sync.m && exit 0
-octave notes/frontend.m && exit 0
+octave notes/visync/main.m && exit 0
+# octave notes/frontend.m && exit 0
 # octave notes/jacobians.m && exit 0
 # octave notes/bpf.m && exit 0
 # octave notes/convolution.m && exit 0

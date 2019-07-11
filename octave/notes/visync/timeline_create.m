@@ -13,7 +13,8 @@ function timeline = timeline_create()
   gyro0_ts = 0:1.0/gyro0_hz:t_end;
 
   % Add noise to sensor timestamps
-  add_noise = false;
+  % add_noise = false;
+  add_noise = true;
   if add_noise
     % -- Camera
     cam_sigma = 0.001;
@@ -24,14 +25,16 @@ function timeline = timeline_create()
       cam1_ts(i) = cam1_ts(i) + normrnd(0.0, cam_sigma);
     endfor
     % -- Accelerometer
-    accel_sigma = 0.0001;
+    accel_sigma = 0.0005;
     for i = 2:length(accel0_ts)-1
-      accel0_ts(i) = accel0_ts(i) + normrnd(0.0, accel_sigma);
+      noise = normrnd(0.0, accel_sigma);
+      accel0_ts(i) = accel0_ts(i) + noise;
     endfor
     % -- Gyroscope
-    gyro_sigma = 0.0001;
+    gyro_sigma = 0.0005;
     for i = 2:length(gyro0_ts)-1
-      gyro0_ts(i) = gyro0_ts(i) + normrnd(0.0, gyro_sigma);
+      noise = normrnd(0.0, gyro_sigma);
+      gyro0_ts(i) = gyro0_ts(i) + noise;
     endfor
   endif
 
