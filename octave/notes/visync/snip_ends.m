@@ -8,7 +8,6 @@ function [accel, gyro] = snip_ends(accel, gyro)
     accel.ts = accel.ts(2:end);
     accel.data = accel.data(:, 2:end);
   endif
-  assert(accel.ts(1) == gyro.ts(1));
 
   % Trim the end
   if accel.ts(end) < gyro.ts(end)
@@ -19,9 +18,4 @@ function [accel, gyro] = snip_ends(accel, gyro)
     accel.ts = accel.ts(1:end-1);
     accel.data = accel.data(:, 1:end-1);
   endif
-  assert(accel.ts(end) == gyro.ts(end));
-
-  assert(length(accel.ts) == length(gyro.ts));
-  assert(length(accel.data) == length(gyro.data));
 endfunction
-

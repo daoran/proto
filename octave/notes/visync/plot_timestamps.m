@@ -19,7 +19,8 @@ function plot_timestamps(plot_title, cam0_ts, cam1_ts, accel0_ts, gyro0_ts)
   sensors = {"gyro0", "accel0", "cam1", "cam0"};
   y_tick = [gyro0_plot, accel0_plot, cam1_plot, cam0_plot];
   set(gca, "ytick", y_tick, "yticklabel", sensors);
-  xlim([0, 0.20]);
+  % xlim([0, 0.20]);
+  % xlim([0.04, 0.06]);
   ylim([0.15, 0.85]);
   % ylim([0, 0.5]);
   title(plot_title);

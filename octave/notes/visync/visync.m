@@ -1,4 +1,4 @@
-function data = visync(timeline)
+function data = visync(timeline, plot=false)
   % Interpolate data as it arrives
   cam0_type = 0;
   cam1_type = 1;
@@ -11,7 +11,8 @@ function data = visync(timeline)
   imu_started = false;
 
   % Buffer
-  interp_buf = [];
+  lerp_buf_accel = [];
+  lerp_buf_gyro = [];
 
   % Camera
   cam0_ts = [];
@@ -59,19 +60,6 @@ function data = visync(timeline)
 
       % Gyro event handler
       if event_type(j) == gyro0_type
-        % Interpolate gyro data
-        if imu_started && (gyro.ts(end) < accel.ts(end))
-          t0 = gyro.ts(end);
-          t1 = ts;
-          interp_ts = accel.ts(end);
-          t = (interp_ts - t0) / (t1 - t0);
-          if t < 1.0
-            gyro_lerped = lerp(gyro.data(:, end), timeline(i).gyro0, t);
-            gyro.ts = [gyro.ts, interp_ts];
-            gyro.data = [gyro.data, gyro_lerped];
-          endif
-        endif
-
         if gyro.started == false
           gyro.started = true;
         endif
@@ -88,24 +76,51 @@ function data = visync(timeline)
     endfor
 
     % Add interp ts
+    if accel.ts(end) > gyro.ts(end)
+      if length(lerp_buf_gyro) && (accel.ts(end) != lerp_buf_gyro(end))
+        lerp_buf_gyro = [lerp_buf_gyro; accel.ts(end)];
+      elseif length(lerp_buf_gyro) == 0
+        lerp_buf_gyro = [lerp_buf_gyro; accel.ts(end)];
+      endif
+    endif
     if gyro.ts(end) > accel.ts(end)
-      if length(interp_buf) && (gyro.ts(end) != interp_buf(end))
-        interp_buf = [interp_buf; gyro.ts(end)];
-      elseif length(interp_buf) == 0
-        interp_buf = [interp_buf; gyro.ts(end)];
+      if length(lerp_buf_accel) && (gyro.ts(end) != lerp_buf_accel(end))
+        lerp_buf_accel = [lerp_buf_accel; gyro.ts(end)];
+      elseif length(lerp_buf_accel) == 0
+        lerp_buf_accel = [lerp_buf_accel; gyro.ts(end)];
       endif
     endif
 
     % Interpolate
-    if length(interp_buf) && (accel.ts(end) > gyro.ts(end))
-      accel = lerp_batch(interp_buf, accel);
-      interp_buf = [];
+    if length(lerp_buf_gyro) && (gyro.ts(end) > accel.ts(end))
+      gyro = lerp_batch(lerp_buf_gyro, gyro);
+      lerp_buf_gyro = [];
+    endif
+    if length(lerp_buf_accel) && (accel.ts(end) > gyro.ts(end))
+      accel = lerp_batch(lerp_buf_accel, accel);
+      lerp_buf_accel = [];
+    endif
+
+    % Plot
+    if plot == true
+      data = {};
+      data.cam0_ts = cam0_ts;
+      data.cam1_ts = cam1_ts;
+      data.accel0 = accel;
+      data.gyro0 = gyro;
+      compare_timestamps(timeline, data);
+      ginput();
     endif
   endfor
 
+
   % Interpolate whats left in the buffer
-  accel = lerp_batch(interp_buf, accel);
+  accel = lerp_batch(lerp_buf_accel, accel);
   [accel, gyro] = snip_ends(accel, gyro);
+  assert(accel.ts(1) == gyro.ts(1));
+  assert(accel.ts(end) == gyro.ts(end));
+  assert(length(accel.ts) == length(gyro.ts));
+  assert(length(accel.data) == length(gyro.data));
 
   % Form return
   data = {};
