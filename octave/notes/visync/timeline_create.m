@@ -1,4 +1,4 @@
-function timeline = timeline_create()
+function timeline = timeline_create(add_noise=false)
   % Sensor rates
   cam0_hz = 20.0;
   cam1_hz = 20.0;
@@ -13,8 +13,6 @@ function timeline = timeline_create()
   gyro0_ts = 0:1.0/gyro0_hz:t_end;
 
   % Add noise to sensor timestamps
-  % add_noise = false;
-  add_noise = true;
   if add_noise
     % -- Camera
     cam_sigma = 0.001;

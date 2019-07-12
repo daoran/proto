@@ -92,11 +92,11 @@ function data = visync(timeline, plot=false)
     endif
 
     % Interpolate
-    if length(lerp_buf_gyro) && (gyro.ts(end) > accel.ts(end))
+    if length(lerp_buf_gyro) && (gyro.ts(end) >= accel.ts(end))
       gyro = lerp_batch(lerp_buf_gyro, gyro);
       lerp_buf_gyro = [];
     endif
-    if length(lerp_buf_accel) && (accel.ts(end) > gyro.ts(end))
+    if length(lerp_buf_accel) && (accel.ts(end) >= gyro.ts(end))
       accel = lerp_batch(lerp_buf_accel, accel);
       lerp_buf_accel = [];
     endif
@@ -112,7 +112,6 @@ function data = visync(timeline, plot=false)
       ginput();
     endif
   endfor
-
 
   % Interpolate whats left in the buffer
   accel = lerp_batch(lerp_buf_accel, accel);
