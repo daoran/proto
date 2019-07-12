@@ -10,8 +10,8 @@ function plot_timestamps(plot_title, cam0_ts, cam1_ts, accel0_ts, gyro0_ts)
   gyro0_y = gyro0_plot * ones(length(gyro0_ts), 1);
   % -- Plot sensor timestamps
   hold on;
-  % plot(cam0_ts, cam0_y, "rs", "linewidth", 2.0, "markerfacecolor", "r");
-  % plot(cam1_ts, cam1_y, "rs", "linewidth", 2.0, "markerfacecolor", "r");
+  plot(cam0_ts, cam0_y, "rs", "linewidth", 2.0, "markerfacecolor", "r");
+  plot(cam1_ts, cam1_y, "rs", "linewidth", 2.0, "markerfacecolor", "r");
   plot(accel0_ts, accel0_y, "bs", "linewidth", 2.0, "markerfacecolor", "b");
   plot(gyro0_ts, gyro0_y, "gs", "linewidth", 2.0, "markerfacecolor", "g");
   hold off;
@@ -19,9 +19,9 @@ function plot_timestamps(plot_title, cam0_ts, cam1_ts, accel0_ts, gyro0_ts)
   sensors = {"gyro0", "accel0", "cam1", "cam0"};
   y_tick = [gyro0_plot, accel0_plot, cam1_plot, cam0_plot];
   set(gca, "ytick", y_tick, "yticklabel", sensors);
-  % xlim([0, 0.12]);
-  % ylim([0, 1.0]);
-  ylim([0, 0.5]);
+  xlim([0, 0.20]);
+  ylim([0.15, 0.85]);
+  % ylim([0, 0.5]);
   title(plot_title);
   xlabel("Time [s]");
   ylabel("Sensors");

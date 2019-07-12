@@ -12,6 +12,10 @@ function accel = lerp_batch(interp_buf, accel)
   k1.ts = accel.ts(end);
   k1.data = accel.data(:, end);
 
+  % Get last accel0 timestamp and data
+  last_ts = accel.ts(end);
+  last_data = accel.data(:, end);
+
   % Remove last accel0 timestamp and data
   accel.ts = accel.ts(1:end-1);
   accel.data = accel.data(:, 1:end-1);
@@ -31,7 +35,9 @@ function accel = lerp_batch(interp_buf, accel)
     endif
   endfor
 
-  accel.ts = [accel.ts, lerped_ts];
-  accel.data = [accel.data, lerped_data];
+  % accel.ts = [accel.ts, lerped_ts];
+  % accel.data = [accel.data, lerped_data];
+  accel.ts = [accel.ts, lerped_ts, last_ts];
+  accel.data = [accel.data, lerped_data, last_data];
 endfunction
 
