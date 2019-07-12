@@ -11,6 +11,8 @@ function data = visync(timeline, plot=false)
   imu_started = false;
 
   % Buffer
+  lerp_cam0 = false;
+  lerp_cam1 = false;
   lerp_buf_accel = [];
   lerp_buf_gyro = [];
 
@@ -19,54 +21,60 @@ function data = visync(timeline, plot=false)
   cam1_ts = [];
 
   % Accelerometer
+  accel_event = false;
   accel = {};
   accel.started = false;
   accel.ts = [];
   accel.data = [];
 
   % Gyroscope
+  gyro_event = false;
   gyro = {};
   gyro.started = false;
   gyro.ts = [];
   gyro.data = [];
 
   % Synchronize measurements
-  for i = 1:length(timeline)
-    ts = timeline(i).ts;
-    event_type = timeline(i).type;
+  for k = 1:length(timeline)
+    ts = timeline(k).ts;
+    event_type = timeline(k).type;
 
     % Iterate over events at the same timestamp
-    for j = 1:length(event_type)
+    for i = 1:length(event_type)
       % cam0 event handler
-      if event_type(j) == cam0_type && imu_started
+      if event_type(i) == cam0_type && imu_started
         cam0_ts = [cam0_ts, ts];
+        lerp_cam0 = true;
       endif
 
       % cam1 event handler
-      if event_type(j) == cam1_type && imu_started
+      if event_type(i) == cam1_type && imu_started
         cam1_ts = [cam1_ts, ts];
+        lerp_cam1 = true;
       endif
 
       % Accel event handler
-      if event_type(j) == accel0_type
+      if event_type(i) == accel0_type
         if accel.started == false
           accel.started = true;
         endif
 
         % Add to buffer
         accel.ts = [accel.ts, ts];
-        accel.data = [accel.data, timeline(i).accel0];
+        accel.data = [accel.data, timeline(k).accel0];
+        accel_event = true;
       endif
 
       % Gyro event handler
-      if event_type(j) == gyro0_type
+      if event_type(i) == gyro0_type
         if gyro.started == false
           gyro.started = true;
         endif
 
         % Add to buffer
         gyro.ts = [gyro.ts, ts];
-        gyro.data = [gyro.data, timeline(i).gyro0];
+        gyro.data = [gyro.data, timeline(k).gyro0];
+        gyro_event = true;
       endif
 
 			% Check if we got the first gyro and accel measurement
@@ -77,29 +85,43 @@ function data = visync(timeline, plot=false)
 
     % Add interp ts
     if accel.ts(end) > gyro.ts(end)
-      if length(lerp_buf_gyro) && (accel.ts(end) != lerp_buf_gyro(end))
+      if length(lerp_buf_gyro) && (accel.ts(end) > lerp_buf_gyro(end))
         lerp_buf_gyro = [lerp_buf_gyro; accel.ts(end)];
       elseif length(lerp_buf_gyro) == 0
         lerp_buf_gyro = [lerp_buf_gyro; accel.ts(end)];
       endif
     endif
     if gyro.ts(end) > accel.ts(end)
-      if length(lerp_buf_accel) && (gyro.ts(end) != lerp_buf_accel(end))
+      if length(lerp_buf_accel) && (gyro.ts(end) > lerp_buf_accel(end))
         lerp_buf_accel = [lerp_buf_accel; gyro.ts(end)];
       elseif length(lerp_buf_accel) == 0
         lerp_buf_accel = [lerp_buf_accel; gyro.ts(end)];
       endif
     endif
+    if lerp_cam0
+      lerp_buf_gyro = [lerp_buf_gyro; ts];
+      lerp_buf_accel = [lerp_buf_accel; ts];
+      lerp_cam0 = false;
+    endif
+    if lerp_cam1
+      lerp_buf_gyro = [lerp_buf_gyro; ts];
+      lerp_buf_accel = [lerp_buf_accel; ts];
+      lerp_cam1 = false;
+    endif
 
     % Interpolate
-    if length(lerp_buf_gyro) && (gyro.ts(end) >= accel.ts(end))
+    if gyro_event && length(lerp_buf_gyro) && (gyro.ts(end) >= accel.ts(end))
       gyro = lerp_batch(lerp_buf_gyro, gyro);
       lerp_buf_gyro = [];
     endif
-    if length(lerp_buf_accel) && (accel.ts(end) >= gyro.ts(end))
+    if accel_event && length(lerp_buf_accel) && (accel.ts(end) >= gyro.ts(end))
       accel = lerp_batch(lerp_buf_accel, accel);
       lerp_buf_accel = [];
     endif
+
+    % Reset
+    gyro_event = false;
+    accel_event = false;
 
     % Plot
     if plot == true

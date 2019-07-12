@@ -6,6 +6,7 @@ function compare_timestamps(timeline, data)
                   timeline_flatten_cam1_ts(timeline),
                   timeline_flatten_accel0_ts(timeline),
                   timeline_flatten_gyro0_ts(timeline))
+
   subplot(212);
   plot_timestamps("Synchronized (Interpolated) Measurements",
                   data.cam0_ts,
