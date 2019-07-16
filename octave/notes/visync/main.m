@@ -3,7 +3,7 @@ graphics_toolkit("fltk");
 pkg load statistics;
 
 % Create timeline and synchronize measurements
-timeline = timeline_create(true);
+timeline = timeline_create();
 % data = visync(timeline, true);
 data = visync(timeline);
 

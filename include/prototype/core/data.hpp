@@ -10,6 +10,7 @@
 #include <set>
 #include <unordered_map>
 #include <list>
+#include <deque>
 
 #include "prototype/core/math.hpp"
 #include "prototype/core/tf.hpp"
@@ -72,6 +73,18 @@ int csv2mat(const std::string &file_path, const bool header, matx_t &data);
 int mat2csv(const std::string &file_path, const matx_t &data);
 
 /**
+ * Convert vector to csv file.
+ * @returns 0 for success, -1 for failure
+ */
+int vec2csv(const std::string &file_path, const std::deque<vec3_t> &data);
+
+/**
+ * Convert timestamps to csv file.
+ * @returns 0 for success, -1 for failure
+ */
+int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data);
+
+/**
  * Print progress to screen
  */
 void print_progress(const double percentage);
@@ -80,14 +93,6 @@ void print_progress(const double percentage);
  * Slerp
  */
 quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha);
-
-/**
- * Lerp
- */
-template <typename T>
-T lerp(const T &start, const T &end, const double &alpha) {
-  return start + alpha * (end - start);
-}
 
 /**
  * Interpolate between two poses `p0` and `p1` with parameter `alpha`.

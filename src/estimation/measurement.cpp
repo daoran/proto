@@ -22,8 +22,45 @@ image_t::~image_t() {
   }
 }
 
-std::deque<timestamp_t> interp_timestamps(const std::deque<timestamp_t> &t0,
-                                          const std::deque<timestamp_t> &t1) {
+void vi_data_add_gyro(vi_data_t &data,
+                      const timestamp_t &ts,
+                      const vec3_t &gyro_data) {
+  data.gyro_ts.push_back(ts);
+  data.gyro.push_back(gyro_data);
+}
+
+void vi_data_add_accel(vi_data_t &data,
+                       const timestamp_t &ts,
+                       const vec3_t &accel_data) {
+  data.accel_ts.push_back(ts);
+  data.accel.push_back(accel_data);
+}
+
+void vi_data_add_image(vi_data_t &data,
+                       const int cam_idx,
+                       const timestamp_t &ts) {
+  if (ts > data.accel_ts.front() && ts > data.gyro_ts.front()) {
+    return;
+  }
+
+  data.camera[cam_idx].push_back(ts);
+}
+
+void vi_data_lerp(vi_data_t &data) {
+  // Interpolate accelerometer and gyroscope against each other which ever has
+  // a faster rate. This is so that the accelerometer and gyroscope
+  // measurements are "synchronized" via linear interpolation
+  lerp_data(data.accel_ts, data.accel, data.gyro_ts, data.gyro);
+
+  // Interpoate more IMU measurements at the camera timestamps
+  for (size_t i = 0; i < data.camera.size(); i++) {
+    lerp_data(data.camera[i], data.gyro_ts, data.gyro, true);
+    lerp_data(data.camera[i], data.accel_ts, data.accel, true);
+  }
+}
+
+std::deque<timestamp_t> lerp_timestamps(const std::deque<timestamp_t> &t0,
+                                        const std::deque<timestamp_t> &t1) {
   // Determine whether t0 or t1 has a higher rate?
   // Then create interpolation timestamps
   timestamp_t ts_start = 0;
@@ -41,19 +78,20 @@ std::deque<timestamp_t> interp_timestamps(const std::deque<timestamp_t> &t0,
   }
 
   // Form interpolation timestamps
-  std::deque<timestamp_t> interp_ts;
+  std::deque<timestamp_t> lerp_ts;
   for (const auto ts : base_timestamps) {
-    if (ts > ts_start && ts < ts_end) {
-      interp_ts.push_back(ts);
+    if (ts >= ts_start && ts <= ts_end) {
+      lerp_ts.push_back(ts);
     }
   }
 
-  return interp_ts;
+  return lerp_ts;
 }
 
-void interp_data(const std::deque<timestamp_t> &interp_ts,
-                 std::deque<timestamp_t> &target_ts,
-                 std::deque<vec3_t> &target_data) {
+void lerp_data(const std::deque<timestamp_t> &lerp_ts,
+               std::deque<timestamp_t> &target_ts,
+               std::deque<vec3_t> &target_data,
+               const bool keep_old) {
   std::deque<timestamp_t> result_ts;
   std::deque<vec3_t> result_data;
 
@@ -62,37 +100,34 @@ void interp_data(const std::deque<timestamp_t> &interp_ts,
   vec3_t v0 = target_data.front();
   vec3_t v1 = zeros(3, 1);
 
-  size_t interp_idx = 0;
+  // Loop through target signal
+  size_t lerp_idx = 0;
   for (size_t i = 1; i < target_ts.size(); i++) {
     const timestamp_t ts = target_ts[i];
     const vec3_t data = target_data[i];
 
     // Interpolate
-    const bool do_interp = ((ts - interp_ts[interp_idx]) * 1e-9) > 0;
+    const bool do_interp = ((ts - lerp_ts[lerp_idx]) * 1e-9) > 0;
     if (do_interp) {
       t1 = ts;
       v1 = data;
 
       // Loop through interpolation points
-      while (interp_idx < interp_ts.size()) {
+      while (lerp_idx < lerp_ts.size()) {
         // Check if interp point is beyond interp end point
-        if (t1 < interp_ts[interp_idx]) {
+        if (t1 < lerp_ts[lerp_idx]) {
           break;
         }
 
         // Calculate interpolation parameter alpha
-        const double num = (interp_ts[interp_idx] - t0) * 1e-9;
+        const double num = (lerp_ts[lerp_idx] - t0) * 1e-9;
         const double den = (t1 - t0) * 1e-9;
         const double alpha = num / den;
 
-        // Linear interpolate vector
-        const double x = (1.0 - alpha) * v0(0) + alpha * v1(0);
-        const double y = (1.0 - alpha) * v0(1) + alpha * v1(1);
-        const double z = (1.0 - alpha) * v0(2) + alpha * v1(2);
-
-        result_data.emplace_back(x, y, z);
-        result_ts.emplace_back(interp_ts[interp_idx]);
-        interp_idx++;
+        // Lerp and add to results
+        result_data.push_back(lerp(v0, v1, alpha));
+        result_ts.push_back(lerp_ts[lerp_idx]);
+        lerp_idx++;
       }
 
       // Shift interpolation end point to start point
@@ -102,6 +137,12 @@ void interp_data(const std::deque<timestamp_t> &interp_ts,
       // Reset interpolation end point
       t1 = 0;
       v1 = zeros(3, 1);
+    }
+
+    // Add end point into results, since we are retaining the old data.
+    if (keep_old) {
+      result_ts.push_back(ts);
+      result_data.push_back(data);
     }
   }
 
@@ -137,25 +178,25 @@ static void align_back(const std::deque<timestamp_t> &reference,
   }
 }
 
-void sync_data(std::deque<timestamp_t> &ts0,
+void lerp_data(std::deque<timestamp_t> &ts0,
                std::deque<vec3_t> &vs0,
                std::deque<timestamp_t> &ts1,
                std::deque<vec3_t> &vs1) {
   // Create interpolate timestamps
-  auto interp_ts = interp_timestamps(ts0, ts1);
+  auto lerp_ts = lerp_timestamps(ts0, ts1);
 
   // Interpolate
   if (ts0.size() > ts1.size()) {
-    interp_data(interp_ts, ts1, vs1);
+    lerp_data(lerp_ts, ts1, vs1);
   } else {
-    interp_data(interp_ts, ts0, vs0);
+    lerp_data(lerp_ts, ts0, vs0);
   }
 
   // Chop the front and back so both timestamps and data are sync-ed
-  align_front(interp_ts, ts1, vs1);
-  align_front(interp_ts, ts0, vs0);
-  align_back(interp_ts, ts1, vs1);
-  align_back(interp_ts, ts0, vs0);
+  align_front(lerp_ts, ts1, vs1);
+  align_front(lerp_ts, ts0, vs0);
+  align_back(lerp_ts, ts1, vs1);
+  align_back(lerp_ts, ts0, vs0);
 }
 
 } // namespace proto

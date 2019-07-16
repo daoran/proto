@@ -99,13 +99,21 @@ function data = visync(timeline, plot=false)
       endif
     endif
     if lerp_cam0
-      lerp_buf_gyro = [lerp_buf_gyro; ts];
-      lerp_buf_accel = [lerp_buf_accel; ts];
+      if gyro.ts(end) != ts
+        lerp_buf_gyro = [lerp_buf_gyro; ts];
+      endif
+      if accel.ts(end) != ts
+        lerp_buf_accel = [lerp_buf_accel; ts];
+      endif
       lerp_cam0 = false;
     endif
     if lerp_cam1
-      lerp_buf_gyro = [lerp_buf_gyro; ts];
-      lerp_buf_accel = [lerp_buf_accel; ts];
+      if gyro.ts(end) != ts
+        lerp_buf_gyro = [lerp_buf_gyro; ts];
+      endif
+      if accel.ts(end) != ts
+        lerp_buf_accel = [lerp_buf_accel; ts];
+      endif
       lerp_cam1 = false;
     endif
 
@@ -142,6 +150,10 @@ function data = visync(timeline, plot=false)
   assert(accel.ts(end) == gyro.ts(end));
   assert(length(accel.ts) == length(gyro.ts));
   assert(length(accel.data) == length(gyro.data));
+
+  length(cam0_ts)
+  length(accel.ts)
+  length(gyro.ts)
 
   % Form return
   data = {};

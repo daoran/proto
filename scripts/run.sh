@@ -68,7 +68,7 @@ cd build/tests
 # ./dataset-test_kitti
 
 # -- estimation
-# ./estimation-test_measurement
+./estimation-test_measurement
 
 # -- mav
 # ./mav-test_atl
@@ -88,5 +88,5 @@ cd build/tests
 # ./vision-test_camera-radtan
 # ./vision-test_feature2d-grid_fast
 # ./vision-test_feature2d-grid_good
-./vision-test_frontend
+# ./vision-test_frontend
 # ./vision-test_vision_common

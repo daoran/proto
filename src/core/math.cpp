@@ -413,10 +413,6 @@ double closest_point(const vec2_t &a,
   return t;
 }
 
-vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu) {
-  return a * (1 - mu) + b * mu;
-}
-
 vec3_t normalize(const vec3_t &v) { return v / v.norm(); }
 
 matx_t zeros(const int rows, const int cols) {

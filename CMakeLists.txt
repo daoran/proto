@@ -58,7 +58,6 @@ ADD_LIBRARY(
   src/core/data.cpp
   src/core/file.cpp
   src/core/gps.cpp
-  src/core/jpl.cpp
   src/core/math.cpp
   src/core/tf.cpp
   src/core/time.cpp

@@ -132,6 +132,45 @@ int mat2csv(const std::string &file_path, const matx_t &data) {
   return 0;
 }
 
+int vec2csv(const std::string &file_path, const std::deque<vec3_t> &data) {
+  // Open file
+  std::ofstream outfile(file_path);
+  if (outfile.good() != true) {
+    return -1;
+  }
+
+  // Save vector
+  for (const auto &v: data) {
+    outfile << v(0);
+    outfile << ",";
+    outfile << v(1);
+    outfile << ",";
+    outfile << v(2);
+    outfile << std::endl;
+  }
+
+  // Close file
+  outfile.close();
+  return 0;
+}
+
+int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data) {
+  // Open file
+  std::ofstream outfile(file_path);
+  if (outfile.good() != true) {
+    return -1;
+  }
+
+  // Save vector
+  for (const auto &ts: data) {
+    outfile << ts << std::endl;
+  }
+
+  // Close file
+  outfile.close();
+  return 0;
+}
+
 void print_progress(const double percentage) {
   const char *PBSTR =
       "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";

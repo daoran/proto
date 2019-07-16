@@ -1,18 +1,13 @@
 #ifndef PROTOTYPE_ESTIMATION_MEASUREMENT_HPP
 #define PROTOTYPE_ESTIMATION_MEASUREMENT_HPP
 
+#include <map>
 #include <deque>
 
 #include "prototype/core/math.hpp"
 #include "prototype/core/time.hpp"
 
 namespace proto {
-
-// struct imu_measurements_t {
-//   std::deque<timestamp_t> ts;
-//   std::deque<vec3_t> gyro;
-//   std::deque<vec3_t> accel;
-// };
 
 struct image_t {
   timestamp_t ts = 0;
@@ -29,29 +24,54 @@ struct image_t {
   ~image_t();
 };
 
-struct vi_aligner_t {
+#define EVENT_CAM0 0
+#define EVENT_CAM1 1
+#define EVENT_ACCEL0 2
+#define EVENT_GYRO0 3
+
+struct imu_data_t {
+  bool gyro_started = false;
   std::deque<timestamp_t> gyro_ts;
   std::deque<vec3_t> gyro;
+
+  bool accel_started = false;
+  std::deque<timestamp_t> accel_ts;
+  std::deque<vec3_t> accel;
+};
+
+struct vi_data_t {
+  // Gyroscope
+  std::deque<timestamp_t> gyro_ts;
+  std::deque<vec3_t> gyro;
+
+  // Accelerometer
   std::deque<timestamp_t> accel_ts;
   std::deque<vec3_t> accel;
 
-  vi_aligner_t() {}
+  // Camera
+  std::map<int, std::deque<timestamp_t>> camera;
 
-  void addGyro(const timestamp_t &ts, const vec3_t &gyro_data) {
-    gyro_ts.push_back(ts);
-    gyro.push_back(gyro_data);
-  }
-
-  void addAccel(const timestamp_t &ts, const vec3_t &accel_data) {
-    accel_ts.push_back(ts);
-    accel.push_back(accel_data);
-  }
+  vi_data_t() {}
 };
+
+void vi_data_add_gyro(vi_data_t &data,
+                      const timestamp_t &ts,
+                      const vec3_t &gyro_data);
+
+void vi_data_add_accel(vi_data_t &data,
+                       const timestamp_t &ts,
+                       const vec3_t &accel_data);
+
+void vi_data_add_image(vi_data_t &data,
+                       const int cam_idx,
+                       const timestamp_t &ts);
+
+void vi_data_lerp(vi_data_t &data);
 
 /**
  * Let `t0` and `t1` be timestamps from two signals. If one of them is measured
- * at a higher rate, then inorder to synchronize both is to interpolate the
- * lower rate signal.
+ * at a higher rate, the goal is to interpolate the lower rate signal so that
+ * it aligns with the higher rate one.
  *
  * This function will determine which timestamp deque will become the reference
  * signal and the other will become the target signal. Based on this the
@@ -69,17 +89,18 @@ struct vi_aligner_t {
  *
  * @returns Interpolation timestamps from two timestamp deques `t0` and `t1`.
  */
-std::deque<timestamp_t> interp_timestamps(const std::deque<timestamp_t> &t0,
-                                          const std::deque<timestamp_t> &t1);
+std::deque<timestamp_t> lerp_timestamps(const std::deque<timestamp_t> &t0,
+                                        const std::deque<timestamp_t> &t1);
 
 /**
- * Given the interpolation timestamps `interp_ts`, target timestamps
+ * Given the interpolation timestamps `lerp_ts`, target timestamps
  * `target_ts` and target data `target_data`. This function will interpolate
  * the `target_data` at the interpolation points.
  */
-void interp_data(const std::deque<timestamp_t> &interp_ts,
-                 std::deque<timestamp_t> &target_ts,
-                 std::deque<vec3_t> &target_data);
+void lerp_data(const std::deque<timestamp_t> &lerp_ts,
+               std::deque<timestamp_t> &target_ts,
+               std::deque<vec3_t> &target_data,
+               const bool keep_old = false);
 
 /**
  * Given two data signals with timestamps `ts0`, `vs0`, `ts1`, and `vs1`, this
@@ -94,7 +115,7 @@ void interp_data(const std::deque<timestamp_t> &interp_ts,
  * **Note**: This function will drop values from the start and end of both
  * signals inorder to synchronize them.
  */
-void sync_data(std::deque<timestamp_t> &ts0,
+void lerp_data(std::deque<timestamp_t> &ts0,
                std::deque<vec3_t> &vs0,
                std::deque<timestamp_t> &ts1,
                std::deque<vec3_t> &vs1);

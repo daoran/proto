@@ -428,14 +428,15 @@ double closest_point(const vec2_t &p1,
                      vec2_t &closest);
 
 /**
- * Linear interpolation between two points
+ * Linear interpolation between two points.
  *
  * @param[in] a First point
  * @param[in] b Second point
- * @param[in] mu Unit number
+ * @param[in] t Unit number
  * @returns Linear interpolation
  */
-vec2_t lerp(const vec2_t &a, const vec2_t &b, const double mu);
+template <typename T>
+T lerp(const T &a, const T &b, const double t);
 
 /**
  * Normalize vector `v`.
@@ -572,4 +573,5 @@ mat4_t lookat(const vec3_t &cam_pos,
 double shannon_entropy(const matx_t &covar);
 
 } //  namespace proto
+#include "math_impl.hpp"
 #endif // PROTOTYPE_CORE_MATH_HPP
