@@ -44,7 +44,7 @@ function compare_timestamps(accel, gyro, lerped_accel, lerped_gyro)
   sensors = {"gyro", "accel"};
   y_tick = [gyro_plot, accel_plot];
   set(gca, "ytick", y_tick, "yticklabel", sensors);
-  xlim([0.0, 0.1]);
+  xlim([0.0, 0.01]);
   ylim([0.0, 0.6]);
   title("Raw data timestamps");
   xlabel("Time [s]");
@@ -65,7 +65,7 @@ function compare_timestamps(accel, gyro, lerped_accel, lerped_gyro)
   sensors = {"gyro", "accel"};
   y_tick = [gyro_plot, accel_plot];
   set(gca, "ytick", y_tick, "yticklabel", sensors);
-  xlim([0.0, 0.1]);
+  xlim([0.0, 0.01]);
   ylim([0.0, 0.6]);
   title("Interpolated data timestamps");
   xlabel("Time [s]");
@@ -97,11 +97,11 @@ lerped_gyro.data = transpose(csvread(lerped_gyro.data));
 lerped_accel.ts = csvread(lerped_accel.ts);
 lerped_accel.data = transpose(csvread(lerped_accel.data));
 % -- Load raw gyroscope data
-gyro.data = csvread(gyro.data, 1, 0);
+gyro.data = csvread(gyro.data);
 gyro.ts = gyro.data(:, 1);
 gyro.data = gyro.data(:, 2:4);
 % -- Load raw accelerometer data
-accel.data = csvread(accel.data, 1, 0);
+accel.data = csvread(accel.data);
 accel.ts = accel.data(:, 1);
 accel.data = accel.data(:, 2:4);
 
@@ -128,14 +128,14 @@ sensor.data = accel.data;
 yunit = "ms^-2";
 compare_measurements(sensor, lerped_accel, yunit);
 
-% Plot gyroscope measurements
-figure(2);
-figure(3);
-sensor = {};
-sensor.title = "Gyroscope";
-sensor.ts = gyro.ts;
-sensor.data = gyro.data;
-yunit = "rad s^{-1}";
-compare_measurements(sensor, lerped_gyro, yunit);
+% % Plot gyroscope measurements
+% figure(2);
+% figure(3);
+% sensor = {};
+% sensor.title = "Gyroscope";
+% sensor.ts = gyro.ts;
+% sensor.data = gyro.data;
+% yunit = "rad s^{-1}";
+% compare_measurements(sensor, lerped_gyro, yunit);
 
 ginput();

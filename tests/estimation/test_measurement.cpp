@@ -143,6 +143,54 @@ struct test_data_t {
     load_gyro_data(GYRO0_CSV_PATH, gyro_ts, gyro_data);
     load_accel_data(ACCEL0_CSV_PATH, accel_ts, accel_data);
   }
+
+  void flatten(std::deque<std::string> &buf_seq,
+               std::deque<timestamp_t> &buf_ts,
+               std::deque<vec3_t> &buf_data) {
+    size_t accel_idx = 0;
+    size_t gyro_idx = 0;
+
+    const auto add_gyro = [&]() {
+      buf_seq.push_back("G");
+      buf_ts.push_back(gyro_ts[gyro_idx]);
+      buf_data.push_back(gyro_data[gyro_idx]);
+      gyro_idx++;
+    };
+
+    const auto add_accel = [&]() {
+      buf_seq.push_back("A");
+      buf_ts.push_back(accel_ts[accel_idx]);
+      buf_data.push_back(accel_data[accel_idx]);
+      accel_idx++;
+    };
+
+    while (true) {
+      if (accel_idx >= accel_ts.size() && gyro_idx >= gyro_ts.size()) {
+        break;
+      } else if (accel_idx >= accel_ts.size()) {
+        add_gyro();
+      } else if (gyro_idx >= gyro_ts.size()) {
+        add_accel();
+      } else if (accel_ts[accel_idx] < gyro_ts[gyro_idx]) {
+        add_accel();
+      } else if (accel_ts[accel_idx] > gyro_ts[gyro_idx]) {
+        add_gyro();
+      } else if (accel_ts[accel_idx] == gyro_ts[gyro_idx]) {
+        add_gyro();
+        add_accel();
+      }
+    }
+
+    // Make sure the timestamps are not going backwards at any point
+    timestamp_t ts_prev = buf_ts.at(0);
+    for (size_t i = 1; i < buf_ts.size(); i++) {
+      const timestamp_t ts_now = buf_ts.at(i);
+      if (ts_now < ts_prev) {
+        printf("ERROR! [ts_now < ts_prev] timestamps are not correct!");
+      }
+      ts_prev = ts_now;
+    }
+  }
 };
 
 int test_lerp_timestamps() {
@@ -220,6 +268,97 @@ int test_lerp_data2() {
                   ACCEL0_CSV_PATH);
   }
 
+  return 0;
+}
+
+int test_lerp_data3() {
+  // Test data
+  std::deque<std::string> buf_seq;
+  std::deque<timestamp_t> buf_ts;
+  std::deque<vec3_t> buf_data;
+  test_data_t td;
+  td.flatten(buf_seq, buf_ts, buf_data);
+
+  // Lerp data
+  std::deque<timestamp_t> gyro_ts;
+  std::deque<vec3_t> gyro_data;
+  std::deque<timestamp_t> accel_ts;
+  std::deque<vec3_t> accel_data;
+
+  timestamp_t t0 = 0;
+  Eigen::Vector3d d0;
+  timestamp_t t1 = 0;
+  Eigen::Vector3d d1;
+  bool t0_set = false;
+
+  std::deque<timestamp_t> lerp_ts;
+  std::deque<vec3_t> lerp_data;
+
+  while (buf_ts.size()) {
+    // Timestamp
+    const timestamp_t ts = buf_ts.front();
+    buf_ts.pop_front();
+
+    // Sequence
+    const std::string seq = buf_seq.front();
+    buf_seq.pop_front();
+
+    // Data
+    const Eigen::Vector3d data = buf_data.front();
+    buf_data.pop_front();
+
+    if (t0_set == false && seq == "A") {
+      t0 = ts;
+      d0 = data;
+      t0_set = true;
+
+    } else if (t0_set && seq == "A") {
+      std::cout << std::endl;
+      t1 = ts;
+      d1 = data;
+
+      while (lerp_ts.size()) {
+        const timestamp_t lts = lerp_ts.front();
+        const vec3_t ldata = lerp_data.front();
+        const double dt = static_cast<double>(t1 - t0) * 1e-9;
+        const double alpha = static_cast<double>(lts - t0) * 1e-9 / dt;
+
+        accel_ts.push_back(lts);
+        accel_data.push_back(lerp(d0, d1, alpha));
+
+        gyro_ts.push_back(lts);
+        gyro_data.push_back(ldata);
+
+        lerp_ts.pop_front();
+        lerp_data.pop_front();
+      }
+
+      t0 = t1;
+      d0 = d1;
+
+    } else if (t0_set && ts >= t0 && seq == "G") {
+      lerp_ts.push_back(ts);
+      lerp_data.push_back(data);
+    }
+  }
+
+  std::cout << "gyro_ts size: " << gyro_ts.size() << std::endl;
+  std::cout << "accel_ts size: " << accel_ts.size() << std::endl;
+  save_interpolated_gyro_data(gyro_ts, gyro_data);
+  save_interpolated_accel_data(accel_ts, accel_data);
+
+  // Plot data
+  // const bool debug = false;
+  const bool debug = true;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/measurement/plot_lerp.m " \
+                  "/tmp/lerp_data-gyro_ts.csv " \
+                  "/tmp/lerp_data-gyro_data.csv " \
+                  "/tmp/lerp_data-accel_ts.csv " \
+                  "/tmp/lerp_data-accel_data.csv " \
+                  GYRO0_CSV_PATH " " \
+                  ACCEL0_CSV_PATH);
+  }
   return 0;
 }
 
@@ -326,9 +465,10 @@ int test_vi_data_lerp() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_lerp_timestamps);
-  MU_ADD_TEST(test_lerp_data);
+  // MU_ADD_TEST(test_lerp_timestamps);
+  // MU_ADD_TEST(test_lerp_data);
   // MU_ADD_TEST(test_lerp_data2);
+  MU_ADD_TEST(test_lerp_data3);
   // MU_ADD_TEST(test_vi_data);
   // MU_ADD_TEST(test_vi_data_add_gyro);
   // MU_ADD_TEST(test_vi_data_add_accel);

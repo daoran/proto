@@ -9,7 +9,29 @@
 
 namespace proto {
 
-struct image_t {
+struct measurement_t {
+  timestamp_t ts = 0;
+
+  measurement_t() {}
+};
+
+struct gyro_t {
+  double x = 0;
+  double y = 0;
+  double z = 0;
+
+  gyro_t() {}
+};
+
+struct accel_t {
+  double x = 0;
+  double y = 0;
+  double z = 0;
+
+  accel_t() {}
+};
+
+struct image_t : measurement_t {
   timestamp_t ts = 0;
   int width = 0;
   int height = 0;
