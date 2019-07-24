@@ -1,4 +1,6 @@
-#include "play/mesh.hpp"
+#include "prototype/viz/mesh.hpp"
+
+namespace proto {
 
 glmesh_t::glmesh_t(const std::vector<glvertex_t> &vertices_,
                    const std::vector<unsigned int> &indices_,
@@ -120,3 +122,5 @@ void glmesh_draw(const glmesh_t &mesh, const glprog_t &program) {
   // Set everything back to defaults once configured
   glActiveTexture(GL_TEXTURE0);
 }
+
+} // namespace proto

@@ -1,5 +1,5 @@
-#ifndef CAMERA_HPP
-#define CAMERA_HPP
+#ifndef PROTOTOYE_VIZ_CAMERA_HPP
+#define PROTOTOYE_VIZ_CAMERA_HPP
 
 #include <stdio.h>
 #include <vector>
@@ -7,6 +7,8 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+namespace proto {
 
 enum glcamera_movement_t {
   FORWARD,
@@ -54,4 +56,5 @@ void glcamera_keyboard_handler(glcamera_t &camera,
 void glcamera_mouse_handler(glcamera_t &camera, const float dx, const float dy);
 void glcamera_scroll_handler(glcamera_t &camera, const float dy);
 
+} // namespace proto
 #endif

@@ -1,4 +1,6 @@
-#include "play/shader.hpp"
+#include "prototype/viz/shader.hpp"
+
+namespace proto {
 
 int shader_compile(const char *shader_src, const int type) {
 	assert(shader_src != nullptr);
@@ -57,7 +59,7 @@ int shaders_link(const int vertex_shader,
   glGetProgramiv(program, GL_LINK_STATUS, &success);
   if (!success) {
     glGetProgramInfoLog(program, 1024, NULL, log);
-    printf("Failed to link shaders:\n%s\n", log);
+    printf("Failed to link shaders:\nReason: %s\n", log);
     exit(-1);
   }
 
@@ -116,6 +118,7 @@ int glprog_t::setInt(const std::string &key, const int value) const {
 	}
 
   glUniform1i(location, value);
+  return 0;
 }
 
 int glprog_t::setFloat(const std::string &key, const float value) const {
@@ -125,6 +128,7 @@ int glprog_t::setFloat(const std::string &key, const float value) const {
 	}
 
   glUniform1f(location, value);
+  return 0;
 }
 
 int glprog_t::setVec2(const std::string &key,
@@ -135,6 +139,7 @@ int glprog_t::setVec2(const std::string &key,
 	}
 
   glUniform2fv(location, 1, &value[0]);
+  return 0;
 }
 
 int glprog_t::setVec2(const std::string &key,
@@ -145,6 +150,7 @@ int glprog_t::setVec2(const std::string &key,
 	}
 
   glUniform2f(location, x, y);
+  return 0;
 }
 
 int glprog_t::setVec3(const std::string &key,
@@ -155,6 +161,7 @@ int glprog_t::setVec3(const std::string &key,
 	}
 
   glUniform3fv(location, 1, &value[0]);
+  return 0;
 }
 
 int glprog_t::setVec3(const std::string &key,
@@ -167,6 +174,7 @@ int glprog_t::setVec3(const std::string &key,
 	}
 
   glUniform3f(location, x, y, z);
+  return 0;
 }
 
 int glprog_t::setVec4(const std::string &key,
@@ -177,6 +185,7 @@ int glprog_t::setVec4(const std::string &key,
 	}
 
   glUniform4fv(location, 1, &value[0]);
+  return 0;
 }
 
 int glprog_t::setVec4(const std::string &key,
@@ -190,6 +199,7 @@ int glprog_t::setVec4(const std::string &key,
 	}
 
   glUniform4f(location, x, y, z, w);
+  return 0;
 }
 
 int glprog_t::setMat2(const std::string &key, const glm::mat2 &mat) const {
@@ -199,6 +209,7 @@ int glprog_t::setMat2(const std::string &key, const glm::mat2 &mat) const {
 	}
 
   glUniformMatrix2fv(location, 1, GL_FALSE, &mat[0][0]);
+  return 0;
 }
 
 int glprog_t::setMat3(const std::string &key, const glm::mat3 &mat) const {
@@ -208,6 +219,7 @@ int glprog_t::setMat3(const std::string &key, const glm::mat3 &mat) const {
 	}
 
   glUniformMatrix3fv(location, 1, GL_FALSE, &mat[0][0]);
+  return 0;
 }
 
 int glprog_t::setMat4(const std::string &key, const glm::mat4 &mat) const {
@@ -217,4 +229,7 @@ int glprog_t::setMat4(const std::string &key, const glm::mat4 &mat) const {
 	}
 
   glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]);
+  return 0;
 }
+
+} // namespace proto

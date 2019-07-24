@@ -1,4 +1,6 @@
-#include "play/draw/frame.hpp"
+#include "prototype/viz/draw/frame.hpp"
+
+namespace proto {
 
 glframe_t::glframe_t() : globj_t{shaders::glframe_vs, shaders::glframe_fs} {
   glframe_init(*this);
@@ -66,3 +68,5 @@ void glframe_draw(const glframe_t &grid, const glcamera_t &camera) {
   // Restore original line width
   glLineWidth(original_line_width);
 }
+
+} // namespace proto

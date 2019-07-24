@@ -1,5 +1,5 @@
-#ifndef MODEL_HPP
-#define MODEL_HPP
+#ifndef PROTOTYPE_VIZ_MODEL_HPP
+#define PROTOTYPE_VIZ_MODEL_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -8,11 +8,11 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include "play/common.hpp"
-#include "play/mesh.hpp"
-#include "play/shader.hpp"
-#include "play/texture.hpp"
-#include "play/camera.hpp"
+#include "prototype/viz/common.hpp"
+#include "prototype/viz/mesh.hpp"
+#include "prototype/viz/shader.hpp"
+#include "prototype/viz/texture.hpp"
+#include "prototype/viz/camera.hpp"
 
 #include <string>
 #include <fstream>
@@ -20,6 +20,8 @@
 #include <iostream>
 #include <map>
 #include <vector>
+
+namespace proto {
 
 struct glmodel_t {
   glprog_t program;
@@ -49,4 +51,5 @@ unsigned int texture_from_file(const std::string &dir,
                                const char *fp,
                                bool gamma = false);
 
-#endif // MODEL_HPP
+} // namespace proto
+#endif // PROTOTYPE_VIZ_MODEL_HPP

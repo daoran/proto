@@ -1,4 +1,6 @@
-#include "play/camera.hpp"
+#include "prototype/viz/camera.hpp"
+
+namespace proto {
 
 glcamera_t::glcamera_t(const int screen_width_,
                        const int screen_height_,
@@ -93,3 +95,5 @@ void glcamera_scroll_handler(glcamera_t &camera, const float dy) {
     camera.fov = 45.0f;
   }
 }
+
+} // namespace proto

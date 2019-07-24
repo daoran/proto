@@ -1,11 +1,13 @@
-#ifndef DRAW_OBJECT_HPP
-#define DRAW_OBJECT_HPP
+#ifndef PROTOTOYE_VIZ_DRAW_OBJECT_HPP
+#define PROTOTOYE_VIZ_DRAW_OBJECT_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include "play/camera.hpp"
-#include "play/shader.hpp"
+#include "prototype/viz/camera.hpp"
+#include "prototype/viz/shader.hpp"
+
+namespace proto {
 
 struct globj_t {
   glprog_t program;
@@ -21,4 +23,5 @@ struct globj_t {
   glm::mat3 rot();
 };
 
-#endif // DRAW_OBJECT_HPP
+} // namespace proto
+#endif // PROTOTOYE_VIZ_DRAW_OBJECT_HPP

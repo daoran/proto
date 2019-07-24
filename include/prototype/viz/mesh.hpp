@@ -1,5 +1,5 @@
-#ifndef MESH_HPP
-#define MESH_HPP
+#ifndef PROTOTYPE_VIZ_MESH_HPP
+#define PROTOTYPE_VIZ_MESH_HPP
 
 #include <string>
 #include <fstream>
@@ -10,8 +10,10 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include "play/shader.hpp"
-#include "play/texture.hpp"
+#include "prototype/viz/shader.hpp"
+#include "prototype/viz/texture.hpp"
+
+namespace proto {
 
 struct glvertex_t {
   glm::vec3 position;
@@ -37,4 +39,5 @@ struct glmesh_t {
 void glmesh_init(glmesh_t &mesh);
 void glmesh_draw(const glmesh_t &mesh, const glprog_t &program);
 
-#endif // MESH_HPP
+} // namespace proto
+#endif // PROTOTYPE_VIZ_MESH_HPP

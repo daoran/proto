@@ -1,4 +1,6 @@
-#include "play/draw/object.hpp"
+#include "prototype/viz/draw/object.hpp"
+
+namespace proto {
 
 globj_t::globj_t(const char *vs, const char *fs) : program{vs, fs} {}
 
@@ -17,3 +19,5 @@ glm::mat3 globj_t::rot() {
   glm::mat3 R(col_0, col_1, col_2);
   return R;
 }
+
+} // namespace proto

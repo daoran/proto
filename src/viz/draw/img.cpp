@@ -1,4 +1,6 @@
-#include "play/draw/img.hpp"
+#include "prototype/viz/draw/img.hpp"
+
+namespace proto {
 
 glimg_t::glimg_t(const std::string &image_path_)
     : globj_t{shaders::glimg_vs, shaders::glimg_fs}, image_path{image_path_} {
@@ -111,3 +113,5 @@ void glimg_draw(const glimg_t &img, const glcamera_t &camera) {
 	// glDisable(GL_DEPTH_TEST);
   // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
+} // namespace proto

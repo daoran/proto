@@ -1,14 +1,14 @@
-#ifndef DRAW_CUBE_HPP
-#define DRAW_CUBE_HPP
+#ifndef PROTOTYPE_VIZ_DRAW_CUBE_HPP
+#define PROTOTYPE_VIZ_DRAW_CUBE_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include "play/camera.hpp"
-#include "play/shader.hpp"
-#include "play/draw/object.hpp"
+#include "prototype/viz/camera.hpp"
+#include "prototype/viz/shader.hpp"
+#include "prototype/viz/draw/object.hpp"
 
-
+namespace proto {
 namespace shaders {
 
 const char* glcube_vs = R"glsl(
@@ -48,4 +48,5 @@ struct glcube_t : globj_t {
 void glcube_init(glcube_t &cube);
 void glcube_draw(const glcube_t &cube, const glcamera_t &camera);
 
-#endif // DRAW_CUBE_HPP
+} // namespace proto
+#endif // PROTOTYPE_VIZ_DRAW_CUBE_HPP

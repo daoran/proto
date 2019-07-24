@@ -1,4 +1,6 @@
-#include "play/model.hpp"
+#include "prototype/viz/model.hpp"
+
+namespace proto {
 
 glmodel_t::glmodel_t(const std::string &path,
                      const std::string &vs,
@@ -259,3 +261,5 @@ unsigned int texture_from_file(const std::string &dir,
   stbi_image_free(data);
   return texture_id;
 }
+
+} // namespace proto

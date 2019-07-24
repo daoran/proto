@@ -1,5 +1,7 @@
-#include "play/play.hpp"
-#include "play/draw/draw.hpp"
+#include "prototype/viz/play.hpp"
+#include "prototype/viz/draw/draw.hpp"
+
+using namespace proto;
 
 int main(void) {
   // Setup
@@ -14,9 +16,9 @@ int main(void) {
   glcube_t cube;
   glframe_t frame;
   glcf_t cf;
-  glmodel_t model("../assets/nanosuit/nanosuit.obj",
-                  "../assets/shaders/model.vs",
-                  "../assets/shaders/model.fs");
+  // glmodel_t model("../assets/nanosuit/nanosuit.obj",
+  //                 "../assets/shaders/model.vs",
+  //                 "../assets/shaders/model.fs");
 
   // Loop until the user closes the window
   while (play_loop(window)) {
@@ -26,7 +28,7 @@ int main(void) {
     // glframe_draw(frame, camera);
     // glcube_draw(cube, camera);
     glgrid_draw(grid, camera);
-    glmodel_draw(model, camera);
+    // glmodel_draw(model, camera);
     // glcf_draw(cf, camera);
 
     play_poll(window);

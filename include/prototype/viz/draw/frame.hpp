@@ -1,13 +1,14 @@
-#ifndef DRAW_FRAME_HPP
-#define DRAW_FRAME_HPP
+#ifndef PROTOTYPE_VIZ_DRAW_FRAME_HPP
+#define PROTOTYPE_VIZ_DRAW_FRAME_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include "play/camera.hpp"
-#include "play/shader.hpp"
-#include "play/draw/object.hpp"
+#include "prototype/viz/camera.hpp"
+#include "prototype/viz/shader.hpp"
+#include "prototype/viz/draw/object.hpp"
 
+namespace proto {
 namespace shaders {
 
 const char* glframe_vs = R"glsl(
@@ -46,4 +47,5 @@ struct glframe_t : globj_t {
 void glframe_init(glframe_t &grid);
 void glframe_draw(const glframe_t &grid, const glcamera_t &camera);
 
-#endif // DRAW_FRAME_HPP
+} // namespace proto
+#endif // PROTOTOYE_VIZ_DRAW_FRAME_HPP

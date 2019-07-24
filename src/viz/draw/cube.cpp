@@ -1,4 +1,6 @@
-#include "play/draw/cube.hpp"
+#include "prototype/viz/draw/cube.hpp"
+
+namespace proto {
 
 glcube_t::glcube_t() : globj_t{shaders::glcube_vs, shaders::glcube_fs} {
   glcube_init(*this);
@@ -113,3 +115,5 @@ void glcube_draw(const glcube_t &cube, const glcamera_t &camera) {
   glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0); // Unbind VAO
 }
+
+} // namespace proto

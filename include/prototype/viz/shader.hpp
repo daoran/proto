@@ -1,5 +1,5 @@
-#ifndef SHADER_HPP
-#define SHADER_HPP
+#ifndef PROTOTYPE_VIZ_SHADER_HPP
+#define PROTOTYPE_VIZ_SHADER_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -8,6 +8,8 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+
+namespace proto {
 
 int shader_compile(const char *shader_src, const int type);
 int shader_compile(const std::string &shader_path, const int type);
@@ -46,4 +48,5 @@ struct glprog_t {
   int setMat4(const std::string &key, const glm::mat4 &mat) const;
 };
 
-#endif // SHADER_HPP
+} // namespace proto
+#endif // PROTOTYPE_VIZ_SHADER_HPP

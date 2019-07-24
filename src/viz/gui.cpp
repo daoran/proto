@@ -1,4 +1,6 @@
-#include "play/gui.hpp"
+#include "prototype/viz/gui.hpp"
+
+namespace proto {
 
 static void glfw_error_callback(int error, const char* description) {
   fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -100,3 +102,5 @@ void gui_close(GLFWwindow *window) {
   glfwDestroyWindow(window);
   glfwTerminate();
 }
+
+} // namespace proto

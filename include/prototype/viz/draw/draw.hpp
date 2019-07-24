@@ -1,11 +1,11 @@
-#ifndef DRAW_DRAW_HPP
-#define DRAW_DRAW_HPP
+#ifndef PROTOTYPE_VIZ_DRAW_DRAW_HPP
+#define PROTOTYPE_VIZ_DRAW_DRAW_HPP
 
-#include "play/draw/cf.hpp"
-#include "play/draw/cube.hpp"
-#include "play/draw/frame.hpp"
-#include "play/draw/grid.hpp"
-#include "play/draw/img.hpp"
-#include "play/draw/object.hpp"
+#include "prototype/viz/draw/cf.hpp"
+#include "prototype/viz/draw/cube.hpp"
+#include "prototype/viz/draw/frame.hpp"
+#include "prototype/viz/draw/grid.hpp"
+#include "prototype/viz/draw/img.hpp"
+#include "prototype/viz/draw/object.hpp"
 
-#endif // DRAW_DRAW_HPP
+#endif // PROTOTYPE_VIZ_DRAW_DRAW_HPP

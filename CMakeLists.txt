@@ -14,6 +14,12 @@ FIND_PACKAGE(SuiteSparse REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
 FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
+
+FIND_PACKAGE(OpenGL REQUIRED)
+FIND_PACKAGE(glfw3 REQUIRED)
+FIND_PACKAGE(assimp REQUIRED)
+FIND_PACKAGE(glm REQUIRED)
+
 INCLUDE(cmake/ImportEigen3.cmake)
 if (OPENMP_FOUND)
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -27,14 +33,24 @@ INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${SUITESPARSE_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
 
-# # IMGUI
-# INCLUDE_DIRECTORIES(./deps/imgui)
-# ADD_LIBRARY(
-#   imgui
-#   deps/imgui/imgui.cpp
-#   deps/imgui/imgui_draw.cpp
-#   deps/imgui/imgui_widgets.cpp
-# )
+# GLAD
+INCLUDE_DIRECTORIES(/usr/local/src/glad/include)
+
+# IMGUI
+INCLUDE_DIRECTORIES(/usr/local/src/imgui /usr/local/src/imgui/examples)
+ADD_DEFINITIONS(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+ADD_LIBRARY(
+  imgui
+  /usr/local/src/imgui/imgui.cpp
+  /usr/local/src/imgui/imgui_draw.cpp
+  /usr/local/src/imgui/imgui_demo.cpp
+  /usr/local/src/imgui/imgui_widgets.cpp
+)
+ADD_LIBRARY(
+  imgui_impl
+  /usr/local/src/imgui/examples/imgui_impl_glfw.cpp
+  /usr/local/src/imgui/examples/imgui_impl_opengl3.cpp
+)
 
 # LIBRARY
 ADD_LIBRARY(
@@ -97,6 +113,20 @@ ADD_LIBRARY(
   src/vision/feature2d/grid_good.cpp
   src/vision/frontend.cpp
   src/vision/vision_common.cpp
+  # viz
+  src/viz/draw/cf.cpp
+  src/viz/draw/cube.cpp
+  src/viz/draw/frame.cpp
+  src/viz/draw/grid.cpp
+  src/viz/draw/img.cpp
+  src/viz/draw/object.cpp
+  src/viz/common.cpp
+  src/viz/camera.cpp
+  src/viz/gui.cpp
+  src/viz/model.cpp
+  src/viz/mesh.cpp
+  src/viz/shader.cpp
+  src/viz/texture.cpp
 )
 SET(
   ${PROJECT_NAME}_DEPS
@@ -106,10 +136,79 @@ SET(
   yaml-cpp
   apriltags
   ${GeographicLib_LIBRARIES}
-  # imgui
+
+  glad
+  glfw
+  dl
+  ${ASSIMP_LIBRARIES}
+  ${OPENGL_gl_LIBRARY}
+  imgui
+  imgui_impl
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
+
+# # UNIT TESTS
+# SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
+# FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
+# FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
+# SET(
+#   UNITTESTS
+#   # calib-test_aprilgrid
+#   # calib-test_calib_camera
+#   # calib-test_calib_camera_nbv
+#   # calib-test_calib_data
+#   # # calib-test_calib_gimbal
+#   # calib-test_calib_stereo
+#   # calib-test_chessboard
+#   # comm-test_tcp
+#   # control-test_carrot_ctrl
+#   # control-test_pid
+#   # core-test_config
+#   # core-test_data
+#   # core-test_file
+#   # core-test_gps
+#   # core-test_math
+#   # core-test_tf
+#   # core-test_time
+#   # dataset-test_euroc
+#   # dataset-test_kitti
+#   # driver-test_camera
+#   # driver-test_ublox
+#   # driver-ublox_base_station_tester
+#   estimation-test_measurement
+#   # # model-test_mav
+#   # model-test_two_wheel
+#   # mav-test_atl
+#   # # mav-test_att_ctrl
+#   # mav-test_lz
+#   # mav-test_mission
+#   # # mav-test_pos_ctrl
+#   # mav-test_wp_ctrl
+#   # vision-camera-test_camera_geometry
+#   # vision-camera-test_equi
+#   # vision-camera-test_pinhole
+#   # vision-camera-test_radtan
+#   # vision-feature2d-test_grid_fast
+#   # vision-feature2d-test_grid_good
+#   vision-test_frontend
+#   # vision-test_vision_common
+# )
+# FOREACH(TEST ${UNITTESTS})
+#   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
+#   ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
+#   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
+# ENDFOREACH(TEST)
+
+# # ADD_SUBDIRECTORY(src/apps)
+# ADD_SUBDIRECTORY(src/calib)
+# ADD_SUBDIRECTORY(src/control)
+# ADD_SUBDIRECTORY(src/core)
+# ADD_SUBDIRECTORY(src/dataset)
+# ADD_SUBDIRECTORY(src/driver)
+# ADD_SUBDIRECTORY(src/estimation)
+# ADD_SUBDIRECTORY(src/viz)
+
 INSTALL(
   TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
@@ -122,83 +221,5 @@ INSTALL(
   FILES_MATCHING PATTERN "*.hpp"
 )
 
-# UNIT TESTS
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
-FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
-FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
-SET(
-  UNITTESTS
-  # calib-test_aprilgrid
-  # calib-test_calib_camera
-  # calib-test_calib_camera_nbv
-  # calib-test_calib_data
-  # # calib-test_calib_gimbal
-  # calib-test_calib_stereo
-  # calib-test_chessboard
-  # comm-test_tcp
-  # control-test_carrot_ctrl
-  # control-test_pid
-  # core-test_config
-  # core-test_data
-  # core-test_file
-  # core-test_gps
-  # core-test_math
-  # core-test_tf
-  # core-test_time
-  # dataset-test_euroc
-  # dataset-test_kitti
-  # driver-test_camera
-  # driver-test_ublox
-  # driver-ublox_base_station_tester
-  estimation-test_measurement
-  # # model-test_mav
-  # model-test_two_wheel
-  # mav-test_atl
-  # # mav-test_att_ctrl
-  # mav-test_lz
-  # mav-test_mission
-  # # mav-test_pos_ctrl
-  # mav-test_wp_ctrl
-  # vision-camera-test_camera_geometry
-  # vision-camera-test_equi
-  # vision-camera-test_pinhole
-  # vision-camera-test_radtan
-  # vision-feature2d-test_grid_fast
-  # vision-feature2d-test_grid_good
-  vision-test_frontend
-  # vision-test_vision_common
-)
-FOREACH(TEST ${UNITTESTS})
-  STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
-  ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
-  TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
-ENDFOREACH(TEST)
-
-# # APPS
-# SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
-# FILE(COPY configs DESTINATION ${PROJECT_BINARY_DIR}/apps)
-# SET(
-#   APP_DEPS
-#   prototype
-#   ${OpenCV_LIBS}
-#   ${SUITESPARSE_LIBRARIES}
-#   yaml-cpp
-#   apriltags
-#   ceres
-#   ${GeographicLib_LIBRARIES}
-# )
-# SET(
-#   APPS
-#   calib_camera
-#   calib_stereo
-#   # calib_vicon_marker
-#   detect_aprilgrid
-#   ublox_base_station
-#   ublox_rover
-#   validate_intrinsics
-#   validate_stereo
-# )
-# FOREACH(APP ${APPS})
-#   ADD_EXECUTABLE(${APP} src/apps/${APP}.cpp)
-#   TARGET_LINK_LIBRARIES(${APP} ${APP_DEPS})
-# ENDFOREACH(APP)
+ADD_EXECUTABLE(play src/viz/play.cpp)
+TARGET_LINK_LIBRARIES(play ${${PROJECT_NAME}_DEPS} prototype)

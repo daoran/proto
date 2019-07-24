@@ -1,5 +1,5 @@
-#ifndef PLAY_GUI_HPP
-#define PLAY_GUI_HPP
+#ifndef PROTOTOYE_VIZ_GUI_HPP
+#define PROTOTOYE_VIZ_GUI_HPP
 
 #include <stdio.h>
 #include <string>
@@ -13,7 +13,9 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "play/texture.hpp"
+#include "prototype/viz/texture.hpp"
+
+namespace proto {
 
 struct gui_imshow_t {
   std::string title;
@@ -153,4 +155,5 @@ void gui_render(GLFWwindow *window,
 
 void gui_close(GLFWwindow *window);
 
-#endif  // PLAY_GUI_HPP
+} // namespace proto
+#endif  // PROTOTYPE_VIZ_GUI_HPP

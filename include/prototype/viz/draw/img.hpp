@@ -1,16 +1,16 @@
-#ifndef DRAW_IMG_HPP
-#define DRAW_IMG_HPP
+#ifndef PROTOTOYE_VIZ_DRAW_IMG_HPP
+#define PROTOTOYE_VIZ_DRAW_IMG_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include "play/common.hpp"
-#include "play/camera.hpp"
-#include "play/shader.hpp"
-#include "play/texture.hpp"
-#include "play/draw/object.hpp"
+#include "prototype/viz/common.hpp"
+#include "prototype/viz/camera.hpp"
+#include "prototype/viz/shader.hpp"
+#include "prototype/viz/texture.hpp"
+#include "prototype/viz/draw/object.hpp"
 
-
+namespace proto {
 namespace shaders {
 
 const char* glimg_vs = R"glsl(
@@ -65,4 +65,5 @@ void glimg_init(glimg_t &cube);
 void glimg_draw(const glimg_t &img);
 void glimg_draw(const glimg_t &img, const glcamera_t &camera);
 
-#endif // DRAW_IMG_HPP
+} // namespace proto
+#endif // PROTOTOYE_VIZ_DRAW_IMG_HPP

@@ -30,8 +30,11 @@ sudo make install
 # ./validate_stereo config/validate_stereo.yaml
 # exit
 
+cd build
+./play
+
 # TESTS
-cd build/tests
+# cd build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera
@@ -68,7 +71,7 @@ cd build/tests
 # ./dataset-test_kitti
 
 # -- estimation
-./estimation-test_measurement
+# ./estimation-test_measurement
 
 # -- mav
 # ./mav-test_atl

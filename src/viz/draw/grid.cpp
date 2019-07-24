@@ -1,4 +1,6 @@
-#include "play/draw/grid.hpp"
+#include "prototype/viz/draw/grid.hpp"
+
+namespace proto {
 
 glgrid_t::glgrid_t() : globj_t{shaders::glgrid_vs, shaders::glgrid_fs} {
   glgrid_init(*this);
@@ -90,3 +92,5 @@ void glgrid_draw(const glgrid_t &grid, const glcamera_t &camera) {
   glDrawArrays(GL_LINES, 0, nb_vertices);
   glBindVertexArray(0); // Unbind VAO
 }
+
+} // namespace proto

@@ -1,4 +1,6 @@
-#include "play/texture.hpp"
+#include "prototype/viz/texture.hpp"
+
+namespace proto {
 
 unsigned int load_texture(int img_width,
 													int img_height,
@@ -52,3 +54,5 @@ unsigned int load_texture(const std::string &texture_file) {
   int img_channels = 0;
   return load_texture(texture_file, img_width, img_height, img_channels);
 }
+
+} // namespace proto

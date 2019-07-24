@@ -1,4 +1,6 @@
-#include "play/draw/cf.hpp"
+#include "prototype/viz/draw/cf.hpp"
+
+namespace proto {
 
 glcf_t::glcf_t() : globj_t{shaders::glcf_vs, shaders::glcf_fs} {
   glcf_init(*this);
@@ -85,3 +87,5 @@ void glcf_draw(const glcf_t &grid, const glcamera_t &camera) {
   // Restore original line width
   glLineWidth(original_line_width);
 }
+
+} // namespace proto

@@ -1,13 +1,14 @@
-#ifndef DRAW_CF_HPP
-#define DRAW_CF_HPP
+#ifndef PROTOTYPE_VIZ_DRAW_CF_HPP
+#define PROTOTYPE_VIZ_DRAW_CF_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include "play/camera.hpp"
-#include "play/shader.hpp"
-#include "play/draw/object.hpp"
+#include "prototype/viz/camera.hpp"
+#include "prototype/viz/shader.hpp"
+#include "prototype/viz/draw/object.hpp"
 
+namespace proto {
 namespace shaders {
 
 const char* glcf_vs = R"glsl(
@@ -45,4 +46,5 @@ struct glcf_t : globj_t {
 void glcf_init(glcf_t &cf);
 void glcf_draw(const glcf_t &cf, const glcamera_t &camera);
 
-#endif // DRAW_CF_HPP
+} // namespace proto
+#endif // PROTOTYPE_VIZ_DRAW_CF_HPP

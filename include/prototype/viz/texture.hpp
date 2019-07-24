@@ -1,11 +1,13 @@
-#ifndef PLAY_TEXTURE_HPP
-#define PLAY_TEXTURE_HPP
+#ifndef PROTOTYPE_VIZ_TEXTURE_HPP
+#define PROTOTYPE_VIZ_TEXTURE_HPP
 
 #include <string>
 
 #include <glad/glad.h>
 
-#include "play/stb_image.h"
+#include "prototype/core/stb_image.h"
+
+namespace proto {
 
 struct gltexture_t {
   unsigned int id;
@@ -25,4 +27,5 @@ unsigned int load_texture(const std::string &texture_file,
 
 unsigned int load_texture(const std::string &texture_file);
 
+} // namespace proto
 #endif // TEXTURE_HPP

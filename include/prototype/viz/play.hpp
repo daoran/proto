@@ -1,5 +1,5 @@
-#ifndef PLAY_HPP
-#define PLAY_HPP
+#ifndef PROTOTYPE_VIZ_PLAY_HPP
+#define PROTOTYPE_VIZ_PLAY_HPP
 
 #include <iostream>
 #include <vector>
@@ -10,11 +10,13 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 
-#include "play/mesh.hpp"
-#include "play/shader.hpp"
-#include "play/model.hpp"
-#include "play/camera.hpp"
-#include "play/draw/draw.hpp"
+#include "prototype/viz/mesh.hpp"
+#include "prototype/viz/shader.hpp"
+#include "prototype/viz/model.hpp"
+#include "prototype/viz/camera.hpp"
+#include "prototype/viz/draw/draw.hpp"
+
+namespace proto {
 
 // GLOBAL VARIABLES
 #define SCREEN_WIDTH 1280
@@ -280,4 +282,5 @@ bool play_loop(GLFWwindow *window) {
   return (glfwWindowShouldClose(window)) ? false : true;
 }
 
-#endif // PLAY_HPP
+} // namespace proto
+#endif // PROTOTYPE_VIZ_PLAY_HPP

@@ -1,13 +1,14 @@
-#ifndef DRAW_GRID_HPP
-#define DRAW_GRID_HPP
+#ifndef PROTOTOYE_VIZ_DRAW_GRID_HPP
+#define PROTOTOYE_VIZ_DRAW_GRID_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include "play/camera.hpp"
-#include "play/shader.hpp"
-#include "play/draw/object.hpp"
+#include "prototype/viz/camera.hpp"
+#include "prototype/viz/shader.hpp"
+#include "prototype/viz/draw/object.hpp"
 
+namespace proto {
 namespace shaders {
 
 const char* glgrid_vs = R"glsl(
@@ -43,4 +44,5 @@ struct glgrid_t : globj_t {
 void glgrid_init(glgrid_t &grid);
 void glgrid_draw(const glgrid_t &grid, const glcamera_t &camera);
 
-#endif // DRAW_GRID_HPP
+} // namespace proto
+#endif // PROTOTOYE_VIZ_DRAW_GRID_HPP

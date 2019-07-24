@@ -1,7 +1,7 @@
-#ifndef PLAY_COMMON_HPP
-#define PLAY_COMMON_HPP
+#ifndef PROTOTOYE_VIZ_PLAY_COMMON_HPP
+#define PROTOTOYE_VIZ_PLAY_COMMON_HPP
 
-#include "play/stb_image.h"
-#include "play/stb_image_resize.h"
+#include "prototype/core/stb_image.h"
+#include "prototype/core/stb_image_resize.h"
 
-#endif // PLAY_COMMON_HPP
+#endif // PROTOTOYE_VIZ_PLAY_COMMON_HPP
