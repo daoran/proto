@@ -8,7 +8,8 @@ function data = calib_data_add_noise(data)
   % Add noise to camera position and rotation
   for i = 1:nb_poses
     % Position
-    data.r_WC{i} += normrnd([0; 0; 0], 1e-2);
+    % data.r_WC{i} += normrnd([0; 0; 0], 1e-2);
+    data.r_WC{i} += normrnd([0; 0; 0], 1e-1);
 
     % Rotation
     dq = quat_delta(normrnd([0; 0; 0], 1e-1));
@@ -297,7 +298,7 @@ function plot_data(data)
   pause;
 endfunction
 
-function plot_compare_data(data_gnd, data_est)
+function plot_compare_data(title_name, data_gnd, data_est)
   nb_poses = length(data_gnd.time);
   q_WT = data_gnd.q_WT;
   r_WT = data_gnd.r_WT;
@@ -334,6 +335,7 @@ function plot_compare_data(data_gnd, data_est)
 		   		 'b');
 
   % Plot settings
+  title(title_name);
   xlabel("x [m]");
   ylabel("y [m]");
   zlabel("z [m]");
@@ -360,7 +362,7 @@ data_gnd = calib_sim(calib_target, T_WT, camera, nb_poses);
 data = calib_data_add_noise(data_gnd);
 
 % Optimize
-% plot_compare_data(data_gnd, data);
+plot_compare_data("Before Bundle Adjustment", data_gnd, data);
 max_iter = 20;
 cost_prev = 0.0;
 for i = 1:max_iter
@@ -372,11 +374,11 @@ for i = 1:max_iter
 
   % Termination criteria
   cost_diff = abs(cost - cost_prev);
-  if cost_diff < 1e-4
+  if cost_diff < 1e-6
     printf("Done!\n");
     break;
   endif
   cost_prev = cost;
 endfor
-plot_compare_data(data_gnd, data);
+plot_compare_data("After Bundle Adjustment", data_gnd, data);
 ginput();

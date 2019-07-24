@@ -13,10 +13,9 @@ make
 # octave notes/imu_preintegration/ipm.m && exit 0
 # octave notes/imu_preintegration/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
-octave notes/visync2/visync2.m && exit 0
-# octave notes/frontend.m && exit 0
+# octave notes/visync2/visync2.m && exit 0
 # octave notes/jacobians.m && exit 0
-# octave notes/bpf.m && exit 0
+# octave notes/jacobians.m && exit 0
 # octave notes/convolution.m && exit 0
 # octave notes/euroc_frames.m && exit 0
 # octave notes/frames.m && exit 0
@@ -25,6 +24,7 @@ octave notes/visync2/visync2.m && exit 0
 # octave notes/hessian.m && exit 0
 # octave notes/illum_invar.m && exit 0
 # octave notes/quaternion.m && exit 0
+# octave notes/linear_triangulation.m && exit 0
 
 # octave tools/calib_data_summary.m && exit 0
 # octave tools/plot_calib_euroc.m && exit 0
