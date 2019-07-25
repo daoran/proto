@@ -22,7 +22,8 @@ enum glcamera_movement_t {
   PAN
 };
 
-struct glcamera_t {
+class glcamera_t {
+public:
   glm::vec3 world_up = glm::vec3(0.0f, 1.0f, 0.0f);
 
   // State
@@ -39,11 +40,11 @@ struct glcamera_t {
   float fov = 45.0f;
   float near = 0.1f;
   float far = 100.0f;
-	int screen_width = 0;
-	int screen_height = 0;
+	int &screen_width;
+	int &screen_height;
 
-  glcamera_t(const int screen_width_,
-						 const int screen_height_,
+  glcamera_t(int &screen_width_,
+						 int &screen_height_,
 						 const glm::vec3 position_);
 };
 

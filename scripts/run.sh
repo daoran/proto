@@ -30,11 +30,11 @@ sudo make install
 # ./validate_stereo config/validate_stereo.yaml
 # exit
 
-cd build
-./play
+# cd build
+# ./play
 
 # TESTS
-# cd build/tests
+cd build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera
@@ -93,3 +93,6 @@ cd build
 # ./vision-test_feature2d-grid_good
 # ./vision-test_frontend
 # ./vision-test_vision_common
+
+# -- viz
+./viz-test_gui

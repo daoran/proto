@@ -1,8 +1,6 @@
 #include "prototype/viz/play.hpp"
 #include "prototype/viz/draw/draw.hpp"
 
-using namespace proto;
-
 int main(void) {
   // Setup
   GLFWwindow *window = play_init();
@@ -10,27 +8,14 @@ int main(void) {
     printf("Failed to initialize play!");
     return -1;
   }
-
-  // Cube
-  glgrid_t grid;
-  glcube_t cube;
-  glframe_t frame;
-  glcf_t cf;
-  // glmodel_t model("../assets/nanosuit/nanosuit.obj",
-  //                 "../assets/shaders/model.vs",
-  //                 "../assets/shaders/model.fs");
+  // glimg_t img{"../assets/textures/awesomeface.png"};
+  glimg_t img{"../assets/textures/container.jpg"};
 
   // Loop until the user closes the window
   while (play_loop(window)) {
     play_event_handler(window, camera, play_get_dt());
     play_clear_screen();
-
-    // glframe_draw(frame, camera);
-    // glcube_draw(cube, camera);
-    glgrid_draw(grid, camera);
-    // glmodel_draw(model, camera);
-    // glcf_draw(cf, camera);
-
+		glimg_draw(img, camera);
     play_poll(window);
   }
 

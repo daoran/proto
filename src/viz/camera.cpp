@@ -2,12 +2,12 @@
 
 namespace proto {
 
-glcamera_t::glcamera_t(const int screen_width_,
-                       const int screen_height_,
-                       const glm::vec3 position_)
-  : screen_width{screen_width_},
-    screen_height{screen_height_},
-    position{position_} {
+glcamera_t::glcamera_t(int &screen_width,
+                       int &screen_height,
+                       const glm::vec3 position)
+  : position{position},
+    screen_width{screen_width},
+    screen_height{screen_height} {
   glcamera_update(*this);
 }
 
