@@ -94,11 +94,12 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   }
 
   // Setup optimization problem
+  // clang-format off
   ceres::Problem::Options problem_options;
-  problem_options.local_parameterization_ownership =
-      ceres::DO_NOT_TAKE_OWNERSHIP;
+  problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
   std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
   ceres::EigenQuaternionParameterization quaternion_parameterization;
+  // clang-format on
 
   // Process all aprilgrid data
   for (size_t i = 0; i < cam0_aprilgrids.size(); i++) {

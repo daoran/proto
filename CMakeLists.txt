@@ -63,7 +63,6 @@ ADD_LIBRARY(
   # src/calib/calib_gimbal.cpp
   src/calib/calib_stereo.cpp
   src/calib/calib_vicon_marker.cpp
-  src/calib/chessboard.cpp
   # comm
   src/comm/tcp.cpp
   # control
@@ -150,7 +149,7 @@ INSTALL(
 INSTALL(
   DIRECTORY include/
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include
-  FILES_MATCHING PATTERN "*.hpp"
+  FILES_MATCHING PATTERN "*.h*"
 )
 INSTALL(
   FILES cmake/PrototypeConfig.cmake
@@ -169,45 +168,44 @@ FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
-  # calib-test_aprilgrid
-  # calib-test_calib_camera
-  # calib-test_calib_camera_nbv
-  # calib-test_calib_data
-  # # calib-test_calib_gimbal
-  # calib-test_calib_stereo
-  # calib-test_chessboard
-  # comm-test_tcp
-  # control-test_carrot_ctrl
-  # control-test_pid
-  # core-test_config
-  # core-test_data
-  # core-test_file
-  # core-test_gps
-  # core-test_math
-  # core-test_tf
-  # core-test_time
-  # dataset-test_euroc
-  # dataset-test_kitti
-  # driver-test_camera
-  # driver-test_ublox
-  # driver-ublox_base_station_tester
-  # estimation-test_measurement
-  # # model-test_mav
-  # model-test_two_wheel
-  # mav-test_atl
-  # # mav-test_att_ctrl
-  # mav-test_lz
-  # mav-test_mission
-  # # mav-test_pos_ctrl
-  # mav-test_wp_ctrl
-  # vision-camera-test_camera_geometry
-  # vision-camera-test_equi
+  calib-test_aprilgrid
+  calib-test_calib_camera
+  calib-test_calib_camera_nbv
+  calib-test_calib_data
+  # calib-test_calib_gimbal
+  calib-test_calib_stereo
+  comm-test_tcp
+  control-test_carrot_ctrl
+  control-test_pid
+  core-test_config
+  core-test_data
+  core-test_file
+  core-test_gps
+  core-test_math
+  core-test_tf
+  core-test_time
+  dataset-test_euroc
+  dataset-test_kitti
+  driver-test_camera
+  driver-test_ublox
+  driver-ublox_base_station_tester
+  estimation-test_measurement
+  # model-test_mav
+  model-test_two_wheel
+  mav-test_atl
+  # mav-test_att_ctrl
+  mav-test_lz
+  mav-test_mission
+  # mav-test_pos_ctrl
+  mav-test_wp_ctrl
+  vision-camera-test_camera_geometry
+  vision-camera-test_equi
   # vision-camera-test_pinhole
-  # vision-camera-test_radtan
-  # vision-feature2d-test_grid_fast
-  # vision-feature2d-test_grid_good
-  # vision-test_frontend
-  # vision-test_vision_common
+  vision-camera-test_radtan
+  vision-feature2d-test_grid_fast
+  vision-feature2d-test_grid_good
+  vision-test_frontend
+  vision-test_vision_common
   viz-test_gui
 )
 FOREACH(TEST ${UNITTESTS})

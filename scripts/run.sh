@@ -15,6 +15,7 @@ debug() {
 # time make debug
 # time make release
 sudo make install
+# sudo make debug_install
 # exit
 
 # APPS

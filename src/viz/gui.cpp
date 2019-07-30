@@ -139,44 +139,46 @@ void gui_t::close() {
   glfwTerminate();
 }
 
+gui_imshow_t::gui_imshow_t(const std::string &title)
+  :title_{title} {}
+
 gui_imshow_t::gui_imshow_t(const std::string &title,
                            const std::string &img_path)
       : title_{title}, img_path_{img_path} {
-  // Frame buffer
-  glGenFramebuffers(1, &FBO_);
-  glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-
-  // Load and create a texture
-  img_id_ = load_texture(img_path, img_width_, img_height_, img_channels_);
-  glFramebufferTexture2D(GL_FRAMEBUFFER,
-                          GL_COLOR_ATTACHMENT0,
-                          GL_TEXTURE_2D,
-                          img_id_,
-                          0);
-
-  // Render buffer
-  glGenRenderbuffers(1, &RBO_);
-  glBindRenderbuffer(GL_RENDERBUFFER, RBO_);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, img_width_, img_height_);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO_);
-
-  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    printf("Framebuffer is not complete!\n");
-  }
-
-  // Clean up
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);  // Unbind FBO
+  unsigned char *data = stbi_load(img_path.c_str(),
+                                  &img_width_,
+                                  &img_height_,
+                                  &img_channels_,
+                                  0);
+	if (!data) {
+		FATAL("Failed to load texture at path [%s]!\n", img_path.c_str());
+	}
+  init(title, img_width_, img_height_, img_channels_, data);
+	stbi_image_free(data);
 }
 
 gui_imshow_t::gui_imshow_t(const std::string &title,
                            const int img_width,
                            const int img_height,
                            const int img_channels,
-                           const unsigned char *data)
-    : title_{title},
-      img_width_{img_width},
-      img_height_{img_height},
-      img_channels_{img_channels} {
+                           const unsigned char *data) {
+  init(title, img_width, img_height, img_channels, data);
+}
+
+bool gui_imshow_t::ok() {
+  return ok_;
+}
+
+void gui_imshow_t::init(const std::string &title,
+                        const int img_width,
+                        const int img_height,
+                        const int img_channels,
+                        const unsigned char *data) {
+  title_ = title;
+  img_width_ = img_width;
+  img_height_ = img_height;
+  img_channels_ = img_channels;
+
   // FBO
   glGenFramebuffers(1, &FBO_);
   glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
@@ -194,13 +196,13 @@ gui_imshow_t::gui_imshow_t(const std::string &title,
   glBindRenderbuffer(GL_RENDERBUFFER, RBO_);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, img_width, img_height);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO_);
-
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    printf("Framebuffer is not complete!\n");
+    FATAL("Framebuffer is not complete!\n");
   }
 
   // Clean up
   glBindFramebuffer(GL_FRAMEBUFFER, 0);  // Unbind FBO
+  ok_ = true;
 }
 
 void gui_imshow_t::update(void *pixels) {
@@ -253,6 +255,18 @@ void gui_imshow_t::show() {
 
   // End window
   ImGui::End();
+}
+
+void gui_imshow_t::show(const int img_width,
+                        const int img_height,
+                        const int img_channels,
+                        const unsigned char *data) {
+  if (ok_ == false) {
+    init(title_, img_width, img_height, img_channels, data);
+  }
+
+  update((void *) data);
+  show();
 }
 
 } // namespace proto

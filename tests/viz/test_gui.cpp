@@ -167,27 +167,21 @@ int test_gui_imshow_update() {
     return -1;
   }
 
-  // Convert frame from BGR to RGB
-  cv::Mat frame;
-  capture >> frame;
-  cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
-
   // Create imshow gui
-	int img_w = 320;
-	int img_h = 240;
-  cv::resize(frame, frame, cv::Size(img_w, img_h));
-  gui_imshow_t imshow{"Camera", img_w, img_h, frame.channels(), frame.data};
+  gui_imshow_t imshow{"Camera"};
 
   // Show GUI
+  cv::Mat frame;
   while (gui.ok()) {
     gui.poll();
 
     // Get new frame and update the window
     capture >> frame;
     cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
+    const int img_w = 320;
+    const int img_h = 240;
     cv::resize(frame, frame, cv::Size(img_w, img_h));
-    imshow.update(frame.data);
-    imshow.show();
+    imshow.show(img_w, img_h, frame.channels(), frame.data);
 
     gui.clear();
 		gui.render();
@@ -198,9 +192,9 @@ int test_gui_imshow_update() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_gui);
+  // MU_ADD_TEST(test_gui);
   // MU_ADD_TEST(test_gui_imshow);
-  // MU_ADD_TEST(test_gui_imshow_update);
+  MU_ADD_TEST(test_gui_imshow_update);
 }
 
 MU_RUN_TESTS(test_suite);

@@ -50,6 +50,8 @@ public:
 
 class gui_imshow_t {
 public:
+  bool ok_ = false;
+
   std::string title_;
   GLuint FBO_;
   GLuint RBO_;
@@ -60,6 +62,7 @@ public:
   int img_channels_ = 0;
   GLuint img_id_;
 
+  gui_imshow_t(const std::string &title);
   gui_imshow_t(const std::string &title, const std::string &img_path);
   gui_imshow_t(const std::string &title,
                const int img_width,
@@ -67,8 +70,19 @@ public:
                const int img_channels,
                const unsigned char *data);
 
+  void init(const std::string &title,
+            const int img_width,
+            const int img_height,
+            const int img_channels,
+            const unsigned char *data);
+
+  bool ok();
   void update(void *pixels);
   void show();
+  void show(const int img_width,
+            const int img_height,
+            const int img_channels,
+            const unsigned char *data);
 };
 
 } // namespace proto

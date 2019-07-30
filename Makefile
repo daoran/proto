@@ -42,6 +42,9 @@ release: ${BUILD_DIR}
 install: release
 	@cd build && make -s install
 
+debug_install: debug
+	@cd build && make -s install
+
 format_code:
 	@bash ./scripts/format_code.bash
 
