@@ -188,7 +188,7 @@ SET(
   dataset-test_kitti
   driver-test_camera
   driver-test_ublox
-  driver-ublox_base_station_tester
+  driver-tester_ublox_base_station
   estimation-test_measurement
   # model-test_mav
   model-test_two_wheel
