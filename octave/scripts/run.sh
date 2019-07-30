@@ -9,22 +9,22 @@ make
 # octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
-# octave notes/calib/sandbox.m && exit 0
+# octave notes/camera/equi4_point_jacobian.m && exit 0
+# octave notes/camera/intrinsics_jacobian.m && exit 0
+# octave notes/camera/radtan4_params_jacobian.m && exit 0
+# octave notes/camera/radtan4_point_jacobian.m && exit 0
 # octave notes/imu_preintegration/ipm.m && exit 0
 # octave notes/imu_preintegration/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
-# octave notes/visync2/visync2.m && exit 0
-# octave notes/jacobians.m && exit 0
-# octave notes/jacobians.m && exit 0
+# octave notes/back_substitution.m && exit 0
 # octave notes/convolution.m && exit 0
 # octave notes/euroc_frames.m && exit 0
-# octave notes/frames.m && exit 0
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
-# octave notes/hessian.m && exit 0
 # octave notes/illum_invar.m && exit 0
-# octave notes/quaternion.m && exit 0
+# octave notes/jacobians.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
+# octave notes/quaternion.m && exit 0
 
 # octave tools/calib_data_summary.m && exit 0
 # octave tools/plot_calib_euroc.m && exit 0
@@ -81,13 +81,6 @@ make
 # octave tests/plot/test_draw_frame.m && exit 0
 # octave tests/plot/test_draw_points.m && exit 0
 
-# octave tests/rovio/test_patch_init.m && exit 0
-# octave tests/rovio/test_feature_init.m && exit 0
-# octave tests/rovio/test_frontend_init.m && exit 0
-# octave tests/rovio/test_frontend_update.m && exit 0
-# octave tests/rovio/test_rovio_init.m && exit 0
-# octave tests/rovio/test_rovio_prediction_update.m && exit 0
-
 # octave tests/vision/test_camera_init.m && exit 0
 # octave tests/vision/test_camera_measurements.m && exit 0
 # octave tests/vision/test_chessboard_create.m && exit 0
@@ -104,5 +97,3 @@ make
 # octave tests/vision/test_trajectory_plot.m && exit 0
 # octave tests/vision/test_trajectory_simulate.m && exit 0
 # octave tests/vision/test_webcam.m && exit 0
-# octave tests/vision/test_sandbox.m && exit 0
-# octave tests/vision/test_sandbox2.m && exit 0

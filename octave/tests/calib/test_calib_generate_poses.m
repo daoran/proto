@@ -13,8 +13,8 @@ assert(size(calib_center) == [3, 1]);
 assert(length(poses) > 1);
 
 % Visualize
-% debug = false;
-debug = true;
+debug = false;
+% debug = true;
 if debug == true
   figure();
   hold on;

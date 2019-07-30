@@ -33,10 +33,10 @@ char(J(2, 3))
 char(J(2, 4))
 
 
-function check_radtan4_param_jacobian(k1, k2, p1, p2)
+function retval = check_radtan4_param_jacobian(k1, k2, p1, p2)
   % Radtan distort
   p = [unifrnd(-0.1, 0.1); unifrnd(-0.1, 0.1)];
-  [z, _] = radtan4_distort(k1, k2, p1, p2, p);
+  z = radtan4_distort(k1, k2, p1, p2, p);
 
   % Jacobian w.r.t. k1, k2, p1, p2
   x = p(1);
@@ -51,19 +51,19 @@ function check_radtan4_param_jacobian(k1, k2, p1, p2)
   step_size = 1.0e-8;
 
   k1_diff = k1 + step_size;
-  [z_prime, _] = radtan4_distort(k1_diff, k2, p1, p2, p);
+  z_prime = radtan4_distort(k1_diff, k2, p1, p2, p);
   fdiff(1:2, 1) = (z_prime - z) / step_size;
 
   k2_diff = k2 + step_size;
-  [z_prime, _] = radtan4_distort(k1, k2_diff, p1, p2, p);
+  z_prime = radtan4_distort(k1, k2_diff, p1, p2, p);
   fdiff(1:2, 2) = (z_prime - z) / step_size;
 
   p1_diff = p1 + step_size;
-  [z_prime, _] = radtan4_distort(k1, k2, p1_diff, p2, p);
+  z_prime = radtan4_distort(k1, k2, p1_diff, p2, p);
   fdiff(1:2, 3) = (z_prime - z) / step_size;
 
   p2_diff = p2 + step_size;
-  [z_prime, _] = radtan4_distort(k1, k2, p1, p2_diff, p);
+  z_prime = radtan4_distort(k1, k2, p1, p2_diff, p);
   fdiff(1:2, 4) = (z_prime - z) / step_size;
 
   threshold = 1e-5;
@@ -75,4 +75,4 @@ k1 = 0.01;
 k2 = 0.001;
 p1 = 0.01;
 p2 = 0.001;
-check_radtan4_param_jacobian(k1, k2, p1, p2);
+check_radtan4_param_jacobian(k1, k2, p1, p2)

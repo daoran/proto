@@ -32,7 +32,7 @@ J = jacobian([x_ddash, y_ddash], [x, y])
 function check_radtan4_point_jacobian(k1, k2, p1, p2)
   % Radtan distort
   p = [unifrnd(-0.1, 0.1); unifrnd(-0.1, 0.1)];
-  [z, J] = radtan4_distort(k1, k2, p1, p2, p);
+  z = radtan4_distort(k1, k2, p1, p2, p);
 
   % Jacobian w.r.t. point x and y
   x = p(1);
@@ -49,11 +49,11 @@ function check_radtan4_point_jacobian(k1, k2, p1, p2)
   step_size = 1.0e-8;
 
   x_diff = x + step_size;
-  [z_prime, _] = radtan4_distort(k1, k2, p1, p2, [x_diff, y]);
+  z_prime = radtan4_distort(k1, k2, p1, p2, [x_diff, y]);
   fdiff(1:2, 1) = (z_prime - z) / step_size;
 
   y_diff = y + step_size;
-  [z_prime, _] = radtan4_distort(k1, k2, p1, p2, [x, y_diff]);
+  z_prime = radtan4_distort(k1, k2, p1, p2, [x, y_diff]);
   fdiff(1:2, 2) = (z_prime - z) / step_size;
 
   % Check jacobian

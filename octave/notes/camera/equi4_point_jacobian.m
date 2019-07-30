@@ -16,7 +16,6 @@ s = thd / r;
 x_dash = s * x;
 y_dash = s * y;
 
-
 % Jacobian of radtan w.r.t input x, y
 J = jacobian([x_dash, y_dash], [x, y]);
 x_func = function_handle(x_dash);
@@ -51,4 +50,4 @@ for i = 1:2
 endfor
 
 threshold = 1e-6;
-check_jacobian("J", finite_diff, J, threshold);
+check_jacobian("J", finite_diff, J, threshold)

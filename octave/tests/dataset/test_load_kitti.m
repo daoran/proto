@@ -7,12 +7,16 @@ p_G = data.oxts.p_G;
 ts = data.oxts.timestamps;
 t = data.oxts.time;
 
-figure()
-subplot(211);
-plot(p_G(1, :), p_G(2, :), 'r.')
-axis("equal");
+debug = false;
+% debug = true;
+if debug
+  figure()
+  subplot(211);
+  plot(p_G(1, :), p_G(2, :), 'r.')
+  axis("equal");
 
-subplot(212);
-plot(t, p_G(3, :), 'r-')
-xlim([0, t(end)]);
-ginput()
+  subplot(212);
+  plot(t, p_G(3, :), 'r-')
+  xlim([0, t(end)]);
+  ginput()
+endif

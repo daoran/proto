@@ -5,7 +5,8 @@ step_size = 1.0e-9;
 threshold = 1.0e-5;
 
 % IMU to cam0 T_SC0
-C_SC0 = euler321(deg2rad([0.0, 0.0, 90.0]));
+rpy_SC0 = randf([-1.0, 1.0], 3);
+C_SC0 = euler321(deg2rad(rpy_SC0));
 r_SC0 = [0.05; 0.0; 0.0];
 T_SC0 = tf(C_SC0, r_SC0);
 
@@ -19,9 +20,9 @@ r_WS = [0.01; 0.02; 0.03];
 T_WS = tf(C_WS, r_WS);
 
 % Fiducial pose T_WF
-rpy_WF = [randf([-1.0, 1.0]); randf([-1.0, 1.0]); randf([-1.0, 1.0])];
+rpy_WF = randf([-1.0, 1.0], 3);
 C_WF = euler321(deg2rad(rpy_WF));
-r_WF = [randf([-1.0, 1.0]); randf([-1.0, 1.0]); randf([-1.0, 1.0])];
+r_WF = randf([-1.0, 1.0], 3);
 T_WF = tf(C_WF, r_WF);
 
 % General
