@@ -2,6 +2,7 @@
 script_path = fileparts(mfilename('fullpath'));
 script_path = strcat(script_path, "/../..");
 addpath(genpath(script_path));
+graphics_toolkit("fltk");
 
 data_path = "/data/euroc_mav/imu_april/mav0/aprilgrid0/cam0/data";
 paths = list_dir(data_path);
@@ -28,20 +29,22 @@ for i = 1:length(paths)
 endfor
 
 
-cam0_kps = []
+cam0_kps = [];
 for i = 1:length(cam0_grids)
   cam0_kps = [cam0_kps, cam0_grids(i).keypoints];
 endfor
 
-cam1_kps = []
+cam1_kps = [];
 for i = 1:length(cam1_grids)
   cam1_kps = [cam1_kps, cam1_grids(i).keypoints];
 endfor
 
 figure();
 hold on;
-plot(cam0_kps(1, :), cam0_kps(2, :), "r.")
-plot(cam1_kps(1, :), cam1_kps(2, :), "r.")
+subplot(121)
+plot(cam0_kps(1, :), cam0_kps(2, :), "r.", "linewidth", 5.0)
+subplot(122)
+plot(cam1_kps(1, :), cam1_kps(2, :), "b.", "linewidth", 5.0)
 ginput();
 
 cam0_pos = [];
@@ -62,7 +65,10 @@ endfor
 
 figure();
 hold on;
-plot3(cam0_pos(1, :), cam0_pos(2, :), cam0_pos(3, :));
-plot3(cam1_pos(1, :), cam1_pos(2, :), cam1_pos(3, :));
+plot3(cam0_pos(1, :), cam0_pos(2, :), cam0_pos(3, :), "linewidth", 2.0);
+plot3(cam1_pos(1, :), cam1_pos(2, :), cam1_pos(3, :), "linewidth", 2.0);
+xlabel("x [m]");
+ylabel("y [m]");
+zlabel("z [m]");
 view(3)
 ginput();
