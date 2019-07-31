@@ -1,0 +1,18 @@
+dist: bionic
+
+language:
+    c++
+
+compiler:
+    - gcc
+    - clang
+
+script:
+    make deps && make release
+
+notifications:
+  recipients:
+    - chutsu@gmail.com
+  email:
+    on_success: change
+    on_failure: always
