@@ -1,5 +1,4 @@
 #include "prototype/munit.hpp"
-#include "prototype/core/jpl.hpp"
 #include "prototype/dataset/kitti.hpp"
 
 namespace proto {

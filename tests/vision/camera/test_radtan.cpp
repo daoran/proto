@@ -1,5 +1,5 @@
 #include "prototype/munit.hpp"
-#include "prototype/vision/util.hpp"
+#include "prototype/vision/vision_common.hpp"
 #include "prototype/vision/camera/pinhole.hpp"
 #include "prototype/vision/camera/radtan.hpp"
 
