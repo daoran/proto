@@ -17,6 +17,7 @@ echo "Installing eigen ..." && "$BASEDIR"/install_eigen.bash
 echo "Installing geographiclib ..." && "$BASEDIR"/install_geographiclib.bash
 echo "Installing glfw3 ..." && "$BASEDIR"/install_glfw3.bash
 echo "Installing glm ..." && "$BASEDIR"/install_glm.bash
+echo "Installing imgui ..." && "$BASEDIR"/install_imgui.bash
 echo "Installing opencv3 ..." && "$BASEDIR"/install_opencv3.bash
 echo "Installing apriltags ..." && "$BASEDIR"/install_apriltags.bash
 echo "Installing opengl ..." && "$BASEDIR"/install_opengl.bash
