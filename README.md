@@ -1,4 +1,4 @@
-# prototype
+# prototype [![Build Status](https://travis-ci.org/chutsu/prototype.svg)][1]
 
 `prototype` contain notes and code used to learn about different aspects of
 robotics. From estimation, mapping to control and planning.
@@ -41,3 +41,5 @@ the following commands at the root of the repo.
 ## License
 
 The source code is released under GPLv3 license.
+
+[1]: https://travis-ci.org/chutsu/prototype
