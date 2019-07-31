@@ -8,4 +8,4 @@ source $BASEDIR/config.bash
 #   https://bitbucket.org/eigen/eigen/ \
 #   eigen
 
-apt-get install -qq libeigen3-dev libeigen3-doc -y
+apt-get install -qqq libeigen3-dev libeigen3-doc -y

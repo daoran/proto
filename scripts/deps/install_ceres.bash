@@ -23,4 +23,4 @@ source $BASEDIR/config.bash
 #   https://github.com/ceres-solver/ceres-solver.git \
 #   ceres-solver
 
-apt-get install -qq libceres-dev -y
+apt-get install -qqq libceres-dev -y

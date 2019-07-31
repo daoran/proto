@@ -51,4 +51,4 @@ source $BASEDIR/config.bash
 #   $OPENCV_URL \
 #   opencv-$OPENCV_VERSION
 
-apt-get install -qq libopencv-* -y
+apt-get install -qqq libopencv-* -y
