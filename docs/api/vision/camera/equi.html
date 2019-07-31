@@ -23,7 +23,7 @@
   <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const equi4_t &amp;equi4);
 </code></pre>
   
-  <div class="doc"><p><p>Type to output stream.</p></p></div>
+  <div class="doc"><p><p>Type to output stream.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -36,21 +36,21 @@
 <li>[in] equi Equi-distance parameters</li>
 <li>[in] point Point</li>
 </ul>
-<p><strong>Returns</strong> Distorted point</p></p></div>
+<p><strong>Returns</strong> Distorted point</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">vec2_t distort(const equi4_t &amp;equi, const vec2_t &amp;point, mat2_t &amp;J);
+  <pre><code class="cpp">vec2_t distort(const equi4_t &amp;equi, const vec2_t &amp;point, mat2_t &amp;J_point);
 </code></pre>
   
   <div class="doc"><p><p>Distort point with equi-distant distortion model.</p>
 <ul>
 <li>[in] equi Equi-distance parameters</li>
 <li>[in] point Point</li>
-<li>[out] J Jacobian of equi w.r.t. point</li>
+<li>[out] J_point Jacobian of equi w.r.t. point</li>
 </ul>
-<p><strong>Returns</strong> Distorted point</p></p></div>
+<p><strong>Returns</strong> Distorted point</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -63,7 +63,7 @@
 <li>[in] equi Equi-distance parameters</li>
 <li>[in] points Points</li>
 </ul>
-<p><strong>Returns</strong> Distorted points</p></p></div>
+<p><strong>Returns</strong> Distorted points</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -71,7 +71,7 @@
   <pre><code class="cpp">vec2_t undistort(const equi4_t &amp;equi, const vec2_t &amp;p);
 </code></pre>
   
-  <div class="doc"><p><p>Un-distort a 2D point with the equi-distant distortion model.</p></p></div>
+  <div class="doc"><p><p>Un-distort a 2D point with the equi-distant distortion model.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

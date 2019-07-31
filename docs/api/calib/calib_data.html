@@ -36,11 +36,13 @@
 <h2>Functions</h2>
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">int calib_target_load(calib_target_t &amp;ct, const std::string &amp;target_file);
+  <pre><code class="cpp">int calib_target_load(calib_target_t &amp;ct,
+                      const std::string &amp;target_file,
+                      const std::string &amp;prefix);
 </code></pre>
   
   <div class="doc"><p><p>Load calibration target.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -52,7 +54,7 @@
   
   <div class="doc"><p><p>Detect AprilGrid specified by <code>target</code> and given a directory of images in
 <code>image_dir</code>.</p>
-<p><strong>Returns</strong> 0 for Success, -1 for failure.</p></p></div>
+<p><strong>Returns</strong> 0 for Success, -1 for failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -71,7 +73,7 @@ csv. The AprilGrid tag corners are estimated using the camera intrinsics
 matrix <code>cam_K</code> and distortion vector <code>cam_D</code>. Once the data is preprocessed
 the data is saved to <code>output_dir</code>.</p>
 <p><strong>Returns</strong> 0 for Success, -1 for failure, and 1 where the output directory
-contains data.</p></p></div>
+contains data.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -91,17 +93,23 @@ csv. The data is initialized with <code>image_size</code> in pixels, the horizon
 lens fov <code>lens_hfov</code> and vertical lens fov <code>lens_vfov</code> in degrees. Once the
 data is preprocessed the data is saved to <code>output_dir</code>.</p>
 <p><strong>Returns</strong> 0 for Success, -1 for failure, and 1 where the output directory
-contains data.</p></p></div>
+contains data.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int load_camera_calib_data(const std::string &amp;data_dir,
-                           std::vector&lt;aprilgrid_t&gt; &amp;aprilgrids);
+                           aprilgrids_t &amp;aprilgrids,
+                           timestamps_t &amp;timestamps,
+                           bool detected_only);
 </code></pre>
   
-  <div class="doc"><p><p>Load preprocess-ed camera calibration data.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+  <div class="doc"><p><p>Load preprocess-ed camera calibration data located in <code>data_dir</code> where the
+data will be loaded in <code>aprilgrids</code>. By default, this function will only
+return aprilgrids that are detected. To return all calibration data
+including camera frames where aprilgrids were not detected, change
+<code>detected_only</code> to false.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -128,27 +136,51 @@ lens fov <code>lens_hfov</code> and vertical lens fov <code>lens_vfov</code> in 
 <li>Number of images observed by both cameras are the same</li>
 </ul>
 <p><strong>Returns</strong> 0 for Success, -1 for failure, and 1 where the output directory
-contains data.</p></p></div>
+contains data.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">int load_stereo_calib_data(const std::string &amp;cam0_data_dir,
                            const std::string &amp;cam1_data_dir,
-                           std::vector&lt;aprilgrid_t&gt; &amp;cam0_aprilgrids,
-                           std::vector&lt;aprilgrid_t&gt; &amp;cam1_aprilgrids);
+                           aprilgrids_t &amp;cam0_aprilgrids,
+                           aprilgrids_t &amp;cam1_aprilgrids);
 </code></pre>
   
   <div class="doc"><p><p>Load preprocessed stereo calibration data, where <code>cam0_data_dir</code> and
 <code>cam1_data_dir</code> are preprocessed calibration data observed from cam0 and
 cam1. The preprocessed calibration data will be loaded into
-<code>cam0_aprilgrids</code> and <code>cam1_aprilgrids</code> respectively.</p>
+<code>cam0_aprilgrids</code> and <code>cam1_aprilgrids</code> respectively, where the data
+contains AprilGrids observed by both cameras at the same timestamp.**</p>
 <p>This function assumes:</p>
 <ul>
 <li>Stereo camera images are synchronized</li>
-<li>Number of images observed by both cameras are the same</li>
+<li>Images that are synchronized are expected to have the <strong>same exact
+  timestamp</strong></li>
 </ul>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int load_multicam_calib_data(const int nb_cams,
+                             const std::vector&lt;std::string&gt; &amp;data_dirs,
+                             std::map&lt;int, aprilgrids_t&gt; &amp;calib_data);
+</code></pre>
+  
+  <div class="doc"><p><p>Load preprocessed multi-camera calibration data, where each data path in
+<code>data_dirs</code> are the preprocessed calibration data observed by each camera,
+and the preprocessed calibration data will be loaded into <code>calib_data</code> where
+the key is the camera index and the value is the detected aprilgrids. The
+data in <code>calib_data</code> contains AprilGrids observed by all cameras at the same
+timestamp.</p>
+<p>This function assumes:</p>
+<ul>
+<li>Camera images are synchronized</li>
+<li>Images that are synchronized are expected to have the <strong>same exact
+  timestamp</strong></li>
+</ul>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -161,7 +193,7 @@ cam1. The preprocessed calibration data will be loaded into
 </code></pre>
   
   <div class="doc"><p><p>Draw measured and projected pixel points.</p>
-<p><strong>Returns</strong> Image</p></p></div>
+<p><strong>Returns</strong> Image</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -174,7 +206,7 @@ cv::Mat validate_intrinsics(const cv::Mat &amp;image,
 </code></pre>
   
   <div class="doc"><p><p>Validate calibration.</p>
-<p><strong>Returns</strong> Validation image for visual inspection</p></p></div>
+<p><strong>Returns</strong> Validation image for visual inspection</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -192,7 +224,7 @@ cv::Mat validate_stereo(const cv::Mat &amp;image0,
 </code></pre>
   
   <div class="doc"><p><p>Validate stereo extrinsics.</p>
-<p><strong>Returns</strong> Validation image for visual inspection</p></p></div>
+<p><strong>Returns</strong> Validation image for visual inspection</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -200,7 +232,7 @@ cv::Mat validate_stereo(const cv::Mat &amp;image0,
   <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const calib_target_t &amp;target);
 </code></pre>
   
-  <div class="doc"><p><p><code>calib_target_t</code> to output stream.</p></p></div>
+  <div class="doc"><p><p><code>calib_target_t</code> to output stream.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

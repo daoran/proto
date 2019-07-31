@@ -15,7 +15,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct aprilgrid_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool configured;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  bool configured;
   int tag_rows;
   int tag_cols;
   double tag_size;
@@ -51,7 +52,7 @@
                    const std::vector&lt;cv::Point2f&gt; &amp;keypoints);
 </code></pre>
   
-  <div class="doc"><p><p>Add AprilTag measurement to AprilGrid. </p></p></div>
+  <div class="doc"><p><p>Add AprilTag measurement to AprilGrid. </p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -59,7 +60,7 @@
   <pre><code class="cpp">void aprilgrid_remove(aprilgrid_t &amp;grid, const int id);
 </code></pre>
   
-  <div class="doc"><p><p>Remove AprilTag measurement from AprilGrid based on id. </p></p></div>
+  <div class="doc"><p><p>Remove AprilTag measurement from AprilGrid based on id. </p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -68,7 +69,7 @@
 </code></pre>
   
   <div class="doc"><p><p>Get AprilTag measurements based on tag id.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -80,7 +81,7 @@
 </code></pre>
   
   <div class="doc"><p><p>Get AprilTag measurements based on tag id.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -92,7 +93,7 @@
                               const double tag_spacing);
 </code></pre>
   
-  <div class="doc"><p><p>Set AprilGrid properties </p></p></div>
+  <div class="doc"><p><p>Set AprilGrid properties </p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -102,7 +103,7 @@
   
   <div class="doc"><p><p>Get the tag's grid index using the tag id
 Note: The origin of the grid is bottom left corner rather than top left.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -113,8 +114,9 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
                            vec3_t &amp;object_point);
 </code></pre>
   
-  <div class="doc"><p><p>Calculate object point.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  <div class="doc"><p><p>Get the object point for a specific <code>tag_id</code> and <code>corner_id</code> in the
+AprilGrid <code>grid</code>.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -124,8 +126,17 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
                             vec3s_t &amp;object_points);
 </code></pre>
   
-  <div class="doc"><p><p>Calculate object points.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+  <div class="doc"><p><p>Get the object point for a specific <code>tag_id</code> in the AprilGrid <code>grid</code>.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int aprilgrid_object_points(const aprilgrid_t &amp;grid, vec3s_t &amp;object_points);
+</code></pre>
+  
+  <div class="doc"><p><p>Get all object points in the AprilGrid <code>grid</code>.</p>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -136,7 +147,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 </code></pre>
   
   <div class="doc"><p><p>Calculate relative position between AprilGrid and camera using solvepnp.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -146,7 +157,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
                       const cv::Mat &amp;image);
 </code></pre>
   
-  <div class="doc"><p><p>Show detection. </p></p></div>
+  <div class="doc"><p><p>Show detection. </p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -155,7 +166,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 </code></pre>
   
   <div class="doc"><p><p>Save AprilGrid detection.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -164,7 +175,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 </code></pre>
   
   <div class="doc"><p><p>Load AprilGrid detection.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -173,7 +184,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 </code></pre>
   
   <div class="doc"><p><p>Configure AprilGrid detector.</p>
-<p><strong>Returns</strong> 0 or 1 for success or failure.</p></p></div>
+<p><strong>Returns</strong> 0 or 1 for success or failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -182,7 +193,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
                            std::vector&lt;AprilTags::TagDetection&gt; &amp;tags);
 </code></pre>
   
-  <div class="doc"><p><p>Filter tags detected </p></p></div>
+  <div class="doc"><p><p>Filter tags detected </p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -193,7 +204,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 </code></pre>
   
   <div class="doc"><p><p>Detect AprilGrid.</p>
-<p><strong>Returns</strong> number of AprilTags detected</p></p></div>
+<p><strong>Returns</strong> number of AprilTags detected</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -206,7 +217,7 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
 </code></pre>
   
   <div class="doc"><p><p>Detect AprilGrid.</p>
-<p><strong>Returns</strong> number of AprilTags detected.</p></p></div>
+<p><strong>Returns</strong> number of AprilTags detected.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -214,7 +225,15 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
   <pre><code class="cpp">void aprilgrid_intersection(aprilgrid_t &amp;grid0, aprilgrid_t &amp;grid1);
 </code></pre>
   
-  <div class="doc"><p><p>Find the intersection of two aprilgrids</p></p></div>
+  <div class="doc"><p><p>Find the intersection of two aprilgrids</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void aprilgrid_intersection(std::vector&lt;aprilgrid_t *&gt; &amp;grids);
+</code></pre>
+  
+  <div class="doc"><p><p>Find the intersection of aprilgrids</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -223,15 +242,15 @@ Note: The origin of the grid is bottom left corner rather than top left.</p>
                          const AprilTags::TagDetection &amp;b);
 </code></pre>
   
-  <div class="doc"><p><p>Comparator to sort detected AprilTags by id </p></p></div>
+  <div class="doc"><p><p>Comparator to sort detected AprilTags by id </p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const aprilgrid_t &amp;april_grid);
+  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const aprilgrid_t &amp;grid);
 </code></pre>
   
-  <div class="doc"><p><p>aprilgrid_t to output stream </p></p></div>
+  <div class="doc"><p><p>aprilgrid_t to output stream </p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

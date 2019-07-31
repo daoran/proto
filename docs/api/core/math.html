@@ -12,7 +12,7 @@
 <ul>
 <li>[in] name Name of matrix</li>
 <li>[in] A Matrix</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -24,7 +24,7 @@
 <ul>
 <li>[in] name Name of vector</li>
 <li>[in] v Vector</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -39,7 +39,7 @@
 <li>[in] name Name of array</li>
 <li>[in] array Target array</li>
 <li>[in] size Size of target array</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -47,7 +47,7 @@
   <pre><code class="cpp">void print_vector(const std::string &amp;name, Eigen::VectorXd v);
 </code></pre>
   
-  <div class="doc"><p><p>Print vector <code>v</code> with a <code>name</code>.</p></p></div>
+  <div class="doc"><p><p>Print vector <code>v</code> with a <code>name</code>.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -55,7 +55,7 @@
   <pre><code class="cpp">void print_matrix(const std::string &amp;name, Eigen::MatrixXd m);
 </code></pre>
   
-  <div class="doc"><p><p>Print matrix <code>m</code> with a <code>name</code>.</p></p></div>
+  <div class="doc"><p><p>Print matrix <code>m</code> with a <code>name</code>.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -63,7 +63,7 @@
   <pre><code class="cpp">void print_quaternion(const std::string &amp;name, Eigen::Quaterniond q);
 </code></pre>
   
-  <div class="doc"><p><p>Print quaternion <code>q</code> with a <code>name</code>.</p></p></div>
+  <div class="doc"><p><p>Print quaternion <code>q</code> with a <code>name</code>.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -76,7 +76,7 @@
 <li>[in] array Target array</li>
 <li>[in] size Size of target array</li>
 </ul>
-<p><strong>Returns</strong> String of array</p></p></div>
+<p><strong>Returns</strong> String of array</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -89,7 +89,7 @@
 <li>[in] x Input array</li>
 <li>[in] size Size of input array</li>
 <li>[out] y Output vector</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -101,7 +101,7 @@
 <ul>
 <li>[in] v Vector</li>
 </ul>
-<p><strong>Returns</strong> Array</p></p></div>
+<p><strong>Returns</strong> Array</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -113,7 +113,7 @@
 <ul>
 <li>[in] m Matrix</li>
 </ul>
-<p><strong>Returns</strong> Array</p></p></div>
+<p><strong>Returns</strong> Array</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -126,7 +126,7 @@
 <ul>
 <li>[in] q Quaternion</li>
 </ul>
-<p><strong>Returns</strong> Array</p></p></div>
+<p><strong>Returns</strong> Array</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -138,7 +138,7 @@
 <ul>
 <li>[in] v Vector</li>
 <li>[out] out Output array</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -150,7 +150,7 @@
 <ul>
 <li>[in] m Matrix</li>
 <li>[in] out Output array</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -163,7 +163,7 @@
 <li>[in] m Matrix</li>
 <li>[in] row_wise Row wise</li>
 </ul>
-<p><strong>Returns</strong> Vectors</p></p></div>
+<p><strong>Returns</strong> Vectors</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -176,7 +176,7 @@
 <li>[in] m Matrix</li>
 <li>[in] row_wise Row wise</li>
 </ul>
-<p><strong>Returns</strong> Vectors</p></p></div>
+<p><strong>Returns</strong> Vectors</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -189,7 +189,15 @@
 <li>[in] m Matrix</li>
 <li>[in] row_wise Row wise</li>
 </ul>
-<p><strong>Returns</strong> Vectors</p></p></div>
+<p><strong>Returns</strong> Vectors</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t vecs2mat(proto::vec3s_t vs);
+</code></pre>
+  
+  <div class="doc"><p><p>Vectors to matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -202,7 +210,7 @@
 <li>[in] v Vector</li>
 <li>[in] brackets Brakcets around vector string</li>
 </ul>
-<p><strong>Returns</strong> Vector as a string</p></p></div>
+<p><strong>Returns</strong> Vector as a string</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -216,7 +224,7 @@
 <li>[in] len Length of array</li>
 <li>[in] brackets Brakcets around vector string</li>
 </ul>
-<p><strong>Returns</strong> Array as a string</p></p></div>
+<p><strong>Returns</strong> Array as a string</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -229,7 +237,7 @@
 <li>[in] m Matrix</li>
 <li>[in] indent Indent string</li>
 </ul>
-<p><strong>Returns</strong> Array as a string</p></p></div>
+<p><strong>Returns</strong> Array as a string</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -242,7 +250,7 @@
 <li>[in] ub Upper bound</li>
 <li>[in] lb Lower bound</li>
 </ul>
-<p><strong>Returns</strong> Random integer</p></p></div>
+<p><strong>Returns</strong> Random integer</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -255,7 +263,7 @@
 <li>[in] ub Upper bound</li>
 <li>[in] lb Lower bound</li>
 </ul>
-<p><strong>Returns</strong> Random floating point</p></p></div>
+<p><strong>Returns</strong> Random floating point</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -270,7 +278,7 @@
 <p><strong>Returns</strong>
    - 0: Number is zero
    - 1: Positive number
-   - -1: Negative number</p></p></div>
+   - -1: Negative number</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -286,7 +294,7 @@
 <p><strong>Returns</strong>
    - 0: if equal
    - 1: if f1 &gt; f2
-   - -1: if f1 &lt; f2</p></p></div>
+   - -1: if f1 &lt; f2</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -298,7 +306,7 @@
 <ul>
 <li>[in] v Array of numbers</li>
 </ul>
-<p><strong>Returns</strong> Median of given array</p></p></div>
+<p><strong>Returns</strong> Median of given array</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -310,7 +318,7 @@
 <ul>
 <li>[in] d Degree to be converted</li>
 </ul>
-<p><strong>Returns</strong> Degree in radians</p></p></div>
+<p><strong>Returns</strong> Degree in radians</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -322,7 +330,7 @@
 <ul>
 <li>[in] d Degree to be converted</li>
 </ul>
-<p><strong>Returns</strong> Degree in radians</p></p></div>
+<p><strong>Returns</strong> Degree in radians</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -334,7 +342,7 @@
 <ul>
 <li>[in] r Radian to be converted</li>
 </ul>
-<p><strong>Returns</strong> Radian in degrees</p></p></div>
+<p><strong>Returns</strong> Radian in degrees</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -346,7 +354,7 @@
 <ul>
 <li>[in] r Radian to be converted</li>
 </ul>
-<p><strong>Returns</strong> Radian in degrees</p></p></div>
+<p><strong>Returns</strong> Radian in degrees</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -363,7 +371,7 @@
 <li>[in] rows Number of matrix rows</li>
 <li>[in] cols Number of matrix colums</li>
 <li>[out] y Output matrix</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -375,7 +383,7 @@
 <ul>
 <li>[in] A Matrix</li>
 <li>[out] x Output vector of matrix values</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -388,55 +396,55 @@
 <li>[in] n</li>
 <li>[in] k</li>
 </ul>
-<p><strong>Returns</strong> Binomial coefficient</p></p></div>
+<p><strong>Returns</strong> Binomial coefficient</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">double wrapTo180(const double d);
+  <pre><code class="cpp">double wrap180(const double d);
 </code></pre>
   
   <div class="doc"><p><p>Wrap angle in degrees to 180</p>
 <ul>
 <li>[in] d Degrees</li>
 </ul>
-<p><strong>Returns</strong> Angle wraped to 180</p></p></div>
+<p><strong>Returns</strong> Angle wraped to 180</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">double wrapTo360(const double d);
+  <pre><code class="cpp">double wrap360(const double d);
 </code></pre>
   
   <div class="doc"><p><p>Wrap angle in degrees to 360</p>
 <ul>
 <li>[in] d Degrees</li>
 </ul>
-<p><strong>Returns</strong> Angle wraped to 360</p></p></div>
+<p><strong>Returns</strong> Angle wraped to 360</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">double wrapToPi(const double r);
+  <pre><code class="cpp">double wrapPi(const double r);
 </code></pre>
   
   <div class="doc"><p><p>Wrap angle in radians to PI</p>
 <ul>
 <li>[in] r Radians</li>
 </ul>
-<p><strong>Returns</strong> Angle wraped to PI</p></p></div>
+<p><strong>Returns</strong> Angle wraped to PI</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">double wrapTo2Pi(const double r);
+  <pre><code class="cpp">double wrap2Pi(const double r);
 </code></pre>
   
   <div class="doc"><p><p>Wrap angle in radians to 2 PI</p>
 <ul>
 <li>[in] r Radians</li>
 </ul>
-<p><strong>Returns</strong> Angle wraped to 2 PI</p></p></div>
+<p><strong>Returns</strong> Angle wraped to 2 PI</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -448,7 +456,7 @@
 <ul>
 <li>[in] x List of vectors</li>
 </ul>
-<p><strong>Returns</strong> Mean vector</p></p></div>
+<p><strong>Returns</strong> Mean vector</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -464,7 +472,7 @@
 <li>[in] p2 Waypoint 2</li>
 <li>[in] pos Robot position</li>
 </ul>
-<p><strong>Returns</strong> Cross track error</p></p></div>
+<p><strong>Returns</strong> Cross track error</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -483,7 +491,7 @@
 <p><strong>Returns</strong>
    - 1: Point is left of waypoint line formed by <code>p1</code> and <code>p2</code>
    - 2: Point is right of waypoint line formed by <code>p1</code> and <code>p2</code>
-   - 0: Point is colinear with waypoint line formed by <code>p1</code> and <code>p2</code></p></p></div>
+   - 0: Point is colinear with waypoint line formed by <code>p1</code> and <code>p2</code></p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -506,21 +514,210 @@ position</p>
    Unit number denoting where the closest point is on waypoint line. For
    example, a return value of 0.5 denotes the closest point is half-way
    (50%) of the waypoint line, alternatively a negative number denotes the
-   closest point is behind the first waypoint.</p></p></div>
+   closest point is behind the first waypoint.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">vec2_t lerp(Eigen::Vector2d a, Eigen::Vector2d b, const double mu);
+  <pre><code class="cpp">template &lt;typename T&gt;
+T lerp(const T &amp;a, const T &amp;b, const double t);
 </code></pre>
   
-  <div class="doc"><p><p>Linear interpolation between two points</p>
+  <div class="doc"><p><p>Linear interpolation between two points.</p>
 <ul>
 <li>[in] a First point</li>
 <li>[in] b Second point</li>
-<li>[in] mu Unit number</li>
+<li>[in] t Unit number</li>
 </ul>
-<p><strong>Returns</strong> Linear interpolation</p></p></div>
+<p><strong>Returns</strong> Linear interpolation</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">vec3_t normalize(Eigen::Vector3d v);
+</code></pre>
+  
+  <div class="doc"><p><p>Normalize vector <code>v</code>.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t zeros(const int rows, const int cols);
+</code></pre>
+  
+  <div class="doc"><p><p>Zeros-matrix</p>
+<ul>
+<li>rows Number of rows</li>
+<li>cols Number of cols</li>
+</ul>
+<p><strong>Returns</strong> Zeros matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t zeros(const int size);
+</code></pre>
+  
+  <div class="doc"><p><p>Zeros square matrix</p>
+<ul>
+<li>size Square size of matrix</li>
+</ul>
+<p><strong>Returns</strong> Zeros matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t I(const int rows, const int cols);
+</code></pre>
+  
+  <div class="doc"><p><p>Identity-matrix</p>
+<ul>
+<li>rows Number of rows</li>
+<li>cols Number of cols</li>
+</ul>
+<p><strong>Returns</strong> Identity matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t I(const int size);
+</code></pre>
+  
+  <div class="doc"><p><p>Identity square matrix</p>
+<ul>
+<li>size Square size of matrix</li>
+</ul>
+<p><strong>Returns</strong> Identity square matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t ones(const int rows, const int cols);
+</code></pre>
+  
+  <div class="doc"><p><p>Ones-matrix</p>
+<ul>
+<li>rows Number of rows</li>
+<li>cols Number of cols</li>
+</ul>
+<p><strong>Returns</strong> Ones square matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t ones(const int size);
+</code></pre>
+  
+  <div class="doc"><p><p>Ones square matrix</p>
+<ul>
+<li>size Square size of matrix</li>
+</ul>
+<p><strong>Returns</strong> Ones square matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t hstack(Eigen::MatrixXd A, Eigen::MatrixXd B);
+</code></pre>
+  
+  <div class="doc"><p><p>Horizontally stack matrices A and B</p>
+<ul>
+<li>A Matrix A</li>
+<li>B Matrix B</li>
+</ul>
+<p><strong>Returns</strong> Stacked matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t vstack(Eigen::MatrixXd A, Eigen::MatrixXd B);
+</code></pre>
+  
+  <div class="doc"><p><p>Vertically stack matrices A and B</p>
+<ul>
+<li>A Matrix A</li>
+<li>B Matrix B</li>
+</ul>
+<p><strong>Returns</strong> Stacked matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t dstack(Eigen::MatrixXd A, Eigen::MatrixXd B);
+</code></pre>
+  
+  <div class="doc"><p><p>Diagonally stack matrices A and B</p>
+<ul>
+<li>A Matrix A</li>
+<li>B Matrix B</li>
+</ul>
+<p><strong>Returns</strong> Stacked matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t skew(Eigen::Vector3d w);
+</code></pre>
+  
+  <div class="doc"><p><p>Skew symmetric-matrix</p>
+<ul>
+<li>w Input vector</li>
+</ul>
+<p><strong>Returns</strong> Skew symmetric matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">mat3_t skewsq(Eigen::Vector3d w);
+</code></pre>
+  
+  <div class="doc"><p><p>Skew symmetric-matrix squared</p>
+<ul>
+<li>w Input vector</li>
+</ul>
+<p><strong>Returns</strong> Skew symmetric matrix squared</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t enforce_psd(Eigen::MatrixXd A);
+</code></pre>
+  
+  <div class="doc"><p><p>Enforce Positive Semi-Definite</p>
+<ul>
+<li>A Input matrix</li>
+</ul>
+<p><strong>Returns</strong> Positive semi-definite matrix</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">matx_t nullspace(Eigen::MatrixXd A);
+</code></pre>
+  
+  <div class="doc"><p><p>Null-space of A</p>
+<ul>
+<li>A Input matrix</li>
+</ul>
+<p><strong>Returns</strong> Null space of A</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::vector&lt;double&gt; linspace(const double start,
+                             const double end,
+                             const double num);
+</code></pre>
+  
+  <div class="doc"><p><p>Return evenly spaced numbers over a specified interval.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double shannon_entropy(Eigen::MatrixXd covar);
+</code></pre>
+  
+  <div class="doc"><p><p>Shannon Entropy of a given covariance matrix <code>covar</code>.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

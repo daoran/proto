@@ -1,0 +1,69 @@
+<div class="header_path">prototype/viz/camera.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">class glcamera_t {
+  glm::vec3 world_up;
+  glm::vec3 position;
+  glm::vec3 right;
+  glm::vec3 up;
+  glm::vec3 front;
+  float yaw;
+  float pitch;
+  float movement_speed;
+  float mouse_sensitivity;
+  float fov;
+  float near;
+  float far;
+  int &amp; screen_width;
+  int &amp; screen_height;
+
+  glcamera_t(int &amp;screen_width_, int &amp;screen_height_, const glm::vec3 position_);
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">glm::mat4 glcamera_projection(const glcamera_t &amp;camera);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">glm::mat4 glcamera_view_matrix(const glcamera_t &amp;camera);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void glcamera_update(glcamera_t &amp;camera);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void glcamera_keyboard_handler(glcamera_t &amp;camera,
+                               const glcamera_movement_t &amp;direction,
+                               const float dt);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void glcamera_mouse_handler(glcamera_t &amp;camera, const float dx, const float dy);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void glcamera_scroll_handler(glcamera_t &amp;camera, const float dy);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->

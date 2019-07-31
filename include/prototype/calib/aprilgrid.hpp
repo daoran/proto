@@ -26,7 +26,7 @@ struct aprilgrid_detector_t {
  * AprilGrid detection
  */
 struct aprilgrid_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   /// Grid properties
   bool configured = false;

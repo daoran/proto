@@ -1,4 +1,4 @@
-function [J_params] = radtan4_params_jacobian(k1, k2, p1, p2, p)
+function J_params = radtan4_params_jacobian(k1, k2, p1, p2, p)
   % Point
   x = p(1);
   y = p(2);

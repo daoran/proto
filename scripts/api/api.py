@@ -65,6 +65,7 @@ class CppObj:
         # Member variables
         self.properties = []
         for prop in cl["properties"]["public"]:
+            print(prop)
             self.properties.append({"type": prop["type"],
                                     "name": prop["name"]})
 
@@ -123,7 +124,10 @@ class CppObj:
         output += self.cls_template + "\n" if self.cls_template else ""
         output += self.cls_type + " " + self.cls_name + " {\n"
         for var in self.properties:
-            output += "  " + var["type"] + " " + var["name"] + ";\n"
+            if var["name"]:
+                output += "  " + var["type"] + " " + var["name"] + ";\n"
+            else:
+                output += "  " + var["type"] + ";\n"
 
         if len(self.methods):
             output += "\n"
@@ -338,6 +342,6 @@ render_sidebar(include_path + "/prototype.hpp", docs_path, header_files)
 render_readme(readme_file, docs_path)
 render_index(index_file, docs_path)
 
-# header = "../../include/prototype/vision/feature2d/grid_fast.hpp"
-# dest = "../../docs/api/vision/feature2d/grid_fast.html"
+# header = "../../include/prototype/calib/aprilgrid.hpp"
+# dest = "../../docs/api/calib/aprilgrid.html"
 # render_api(header, dest)

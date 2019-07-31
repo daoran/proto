@@ -1,0 +1,108 @@
+<div class="header_path">prototype/mav/lz.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct lz_t {
+  bool detected;
+  mat4_t T_BC;
+  mat4_t T_CZ;
+
+  lz_t();
+  ~lz_t();
+
+  lz_t(const bool detected_, const mat4_t &amp;T_BC_, const mat4_t &amp;T_CZ_);
+};</code></pre>
+  
+  <div class="doc"><p><p>Landing zone</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct lz_detector_t {
+  bool ok;
+  AprilTags::TagDetector * det;
+  std::map&lt;int, double&gt; targets;
+
+  lz_detector_t();
+  lz_detector_t(const std::vector&lt;int&gt; &amp;tag_ids,
+                const std::vector&lt;double&gt; &amp;tag_sizes);
+  lz_detector_t(const std::string &amp;config, const std::string &amp;prefix);
+  ~lz_detector_t();
+};</code></pre>
+  
+  <div class="doc"><p><p>Landing zone detector</p></p></div>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void lz_print(const lz_t &amp;lz);
+</code></pre>
+  
+  <div class="doc"><p><p>Print landing zone</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int lz_detector_configure(lz_detector_t &amp;lz,
+                          const std::vector&lt;int&gt; &amp;tag_ids,
+                          const std::vector&lt;double&gt; &amp;tag_sizes);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure landing zone</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int lz_detector_configure(lz_detector_t &amp;lz,
+                          const std::string &amp;config_file,
+                          const std::string &amp;prefix);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure landing zone</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int lz_detector_detect(const lz_detector_t &amp;det,
+                       const cv::Mat &amp;image,
+                       const pinhole_t &amp;pinhole,
+                       mat4_t &amp;T_CZ);
+</code></pre>
+  
+  <div class="doc"><p><p>Detect landing zone</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int lz_detector_detect(const lz_detector_t &amp;det,
+                       const cv::Mat &amp;image,
+                       const pinhole_t &amp;pinhole,
+                       const mat4_t &amp;T_BC,
+                       lz_t &amp;lz);
+</code></pre>
+  
+  <div class="doc"><p><p>Detect landing zone</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int lz_detector_calc_corners(const lz_detector_t &amp;lz,
+                             const pinhole_t &amp;pinhole,
+                             const cv::Mat &amp;image,
+                             const mat4_t &amp;T_CZ,
+                             const int tag_id,
+                             const double padding,
+                             vec2_t &amp;top_left,
+                             vec2_t &amp;btm_right);
+</code></pre>
+  
+  <div class="doc"><p><p>Calculate landing zone corners in pixels.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->

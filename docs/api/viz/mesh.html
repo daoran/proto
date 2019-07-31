@@ -1,0 +1,48 @@
+<div class="header_path">prototype/viz/mesh.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct glvertex_t {
+  glm::vec3 position;
+  glm::vec3 normal;
+  glm::vec2 texcoords;
+  glm::vec3 tangent;
+  glm::vec3 bitangent;
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct glmesh_t {
+  std::vector&lt;glvertex_t&gt; vertices;
+  std::vector&lt;unsigned int&gt; indices;
+  std::vector&lt;gltexture_t&gt; textures;
+  unsigned int VAO;
+  unsigned int VBO;
+  unsigned int EBO;
+
+  glmesh_t(const std::vector&lt;glvertex_t&gt; &amp;vertices_,
+           const std::vector&lt;unsigned int&gt; &amp;indices_,
+           const std::vector&lt;gltexture_t&gt; &amp;textures_);
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void glmesh_init(glmesh_t &amp;mesh);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void glmesh_draw(const glmesh_t &amp;mesh, const glprog_t &amp;program);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->

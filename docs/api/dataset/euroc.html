@@ -138,7 +138,7 @@
 <li>[in] data IMU data</li>
 <li>[in] data_dir Data directory</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -154,7 +154,7 @@
 <li>[in] data_dir Data directory</li>
 <li>[in] is_calib_data Is camera data for calibration?</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -168,7 +168,7 @@
 <li>[in,out] data Ground truth data</li>
 <li>[in] data_dir Data directory</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -181,7 +181,7 @@
 <li>[in,out] data Dataset</li>
 <li>[in] data_dir Data directory</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -193,7 +193,7 @@
 <ul>
 <li>[in,out] data Dataset</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -205,7 +205,7 @@
 <ul>
 <li>[in] data Dataset</li>
 </ul>
-<p><strong>Returns</strong> Minimum timestamp</p></p></div>
+<p><strong>Returns</strong> Minimum timestamp</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -214,7 +214,7 @@
 </code></pre>
   
   <div class="doc"><p><p>Return max timestamp</p>
-<p><strong>Returns</strong> Maximum timestamp</p></p></div>
+<p><strong>Returns</strong> Maximum timestamp</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -226,7 +226,7 @@
 <ul>
 <li>target_file Path to target yaml file</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -235,7 +235,7 @@
 </code></pre>
   
   <div class="doc"><p><p>Load calibration data</p>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -252,7 +252,7 @@
   
   <div class="doc"><p><p>Process EuRoC calibration data and detect the AprilGrid detected from both
 cameras. The detected AprilGrids will be outputted as files into the
-<code>preprocess_path</code>, and as <code>aprilgrids_t</code> in <code>cam0_grids</code> and <code>cam1_grids</code>.</p></p></div>
+<code>preprocess_path</code>, and as <code>aprilgrids_t</code> in <code>cam0_grids</code> and <code>cam1_grids</code>.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -271,7 +271,7 @@ will put the detected aprilgrids from cam0 and cam1 inplace of the cam0 and
 cam1 image paths. Using the aprilgrid data and initial sensor-camera
 extrinsics <code>T_SC0</code>, the initial sensor poses in world frame <code>T_WS</code>, fiducial
 pose in world frame <code>T_WF</code> and finally first timestamp <code>t0</code> will be
-calculated.</p></p></div>
+calculated.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -279,7 +279,7 @@ calculated.</p></p></div>
   <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_imu_t &amp;data);
 </code></pre>
   
-  <div class="doc"><p><p><code>euroc_imu_t</code> to output stream</p></p></div>
+  <div class="doc"><p><p><code>euroc_imu_t</code> to output stream</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -287,7 +287,7 @@ calculated.</p></p></div>
   <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_camera_t &amp;data);
 </code></pre>
   
-  <div class="doc"><p><p><code>euroc_camera_t</code> to output stream</p></p></div>
+  <div class="doc"><p><p><code>euroc_camera_t</code> to output stream</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -295,7 +295,7 @@ calculated.</p></p></div>
   <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const euroc_target_t &amp;target);
 </code></pre>
   
-  <div class="doc"><p><p><code>calib_target_t</code> to output stream</p></p></div>
+  <div class="doc"><p><p><code>calib_target_t</code> to output stream</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

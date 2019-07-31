@@ -3,15 +3,12 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct att_ctrl_t {
-  bool configured;
+  bool ok;
   double dt;
   double max_thrust;
   pid_t roll_ctrl;
   pid_t pitch_ctrl;
   pid_t yaw_ctrl;
-
-  att_ctrl_t();
-  ~att_ctrl_t();
 };</code></pre>
   
   <div class="doc"><p><p>Attitude controller</p></p></div>
@@ -22,24 +19,34 @@
 <h2>Functions</h2>
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">int att_ctrl_configure(att_ctrl_t &amp;ac, const std::string &amp;config_file);
+  <pre><code class="cpp">int att_ctrl_configure(att_ctrl_t &amp;ctrl,
+                       const std::string &amp;config_file,
+                       const std::string &amp;prefix);
 </code></pre>
   
   <div class="doc"><p><p>Configure attitude controller with <code>config_file</code>.</p>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">vec4_t att_ctrl_update(att_ctrl_t &amp;controller,
+  <pre><code class="cpp">vec4_t att_ctrl_update(att_ctrl_t &amp;ctrl,
                        const vec4_t &amp;setpoints,
-                       const vec4_t &amp;actual,
+                       const mat4_t &amp;T_WB,
                        const double dt);
 </code></pre>
   
-  <div class="doc"><p><p>Update attitude controller with <code>setpoints</code> (roll, pitch, yaw, z), <code>actual</code>
-(roll, pitch, yaw, z) and time step <code>dt</code> in seconds [s].</p>
-<p><strong>Returns</strong> Motor command (m1, m2, m3, m4)</p></p></div>
+  <div class="doc"><p><p>Update attitude controller with <code>setpoints</code> (roll, pitch, yaw, z), actual
+pose of the robot <code>T_WB</code> and time step <code>dt</code> in seconds [s].</p>
+<p><strong>Returns</strong> Motor command (m1, m2, m3, m4)</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void att_ctrl_reset(att_ctrl_t &amp;ctrl);
+</code></pre>
+  
+  <div class="doc"><p><p>Reset position control</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

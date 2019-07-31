@@ -8,7 +8,15 @@
   <pre><code class="cpp">mat3_t tf_rot(const mat4_t &amp;tf);
 </code></pre>
   
-  <div class="doc"><p><p>Extract rotation from transform</p></p></div>
+  <div class="doc"><p><p>Extract rotation from transform</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">quat_t tf_quat(const mat4_t &amp;tf);
+</code></pre>
+  
+  <div class="doc"><p><p>Extract rotation and convert to quaternion from transform</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -16,7 +24,7 @@
   <pre><code class="cpp">vec3_t tf_trans(const mat4_t &amp;tf);
 </code></pre>
   
-  <div class="doc"><p><p>Extract translation from transform</p></p></div>
+  <div class="doc"><p><p>Extract translation from transform</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -25,7 +33,7 @@
 </code></pre>
   
   <div class="doc"><p><p>Form a 4x4 homogeneous transformation matrix from a
-rotation matrix <code>C</code> and translation vector <code>r</code>.</p></p></div>
+rotation matrix <code>C</code> and translation vector <code>r</code>.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -34,7 +42,7 @@ rotation matrix <code>C</code> and translation vector <code>r</code>.</p></p></d
 </code></pre>
   
   <div class="doc"><p><p>Form a 4x4 homogeneous transformation matrix from a
-Hamiltonian quaternion <code>q</code> and translation vector <code>r</code>.</p></p></div>
+Hamiltonian quaternion <code>q</code> and translation vector <code>r</code>.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -43,7 +51,7 @@ Hamiltonian quaternion <code>q</code> and translation vector <code>r</code>.</p>
 </code></pre>
   
   <div class="doc"><p><p>Rotation matrix around x-axis (counter-clockwise, right-handed).</p>
-<p><strong>Returns</strong> Rotation matrix</p></p></div>
+<p><strong>Returns</strong> Rotation matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -52,7 +60,7 @@ Hamiltonian quaternion <code>q</code> and translation vector <code>r</code>.</p>
 </code></pre>
   
   <div class="doc"><p><p>Rotation matrix around y-axis (counter-clockwise, right-handed).</p>
-<p><strong>Returns</strong> Rotation matrix</p></p></div>
+<p><strong>Returns</strong> Rotation matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -61,7 +69,7 @@ Hamiltonian quaternion <code>q</code> and translation vector <code>r</code>.</p>
 </code></pre>
   
   <div class="doc"><p><p>Rotation matrix around z-axis (counter-clockwise, right-handed).</p>
-<p><strong>Returns</strong> Rotation matrix</p></p></div>
+<p><strong>Returns</strong> Rotation matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -78,7 +86,7 @@ Princeton University Press, 1999. Print.
 
 Page 86.
 </code></pre>
-<p><strong>Returns</strong> Rotation matrix</p></p></div>
+<p><strong>Returns</strong> Rotation matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -95,7 +103,7 @@ Princeton University Press, 1999. Print.
 
 Page 86.
 </code></pre>
-<p><strong>Returns</strong> Rotation matrix</p></p></div>
+<p><strong>Returns</strong> Rotation matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -103,7 +111,7 @@ Page 86.
   <pre><code class="cpp">quat_t euler2quat(const vec3_t &amp;euler);
 </code></pre>
   
-  <div class="doc"><p><p>Convert roll, pitch and yaw to quaternion.</p></p></div>
+  <div class="doc"><p><p>Convert roll, pitch and yaw to quaternion.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -112,7 +120,7 @@ Page 86.
 </code></pre>
   
   <div class="doc"><p><p>Convert rotation vectors to rotation matrix using measured acceleration
-<code>a_m</code> from an IMU and gravity vector <code>g</code>.</p></p></div>
+<code>a_m</code> from an IMU and gravity vector <code>g</code>.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -120,18 +128,21 @@ Page 86.
   <pre><code class="cpp">vec3_t quat2euler(const quat_t &amp;q);
 </code></pre>
   
-  <div class="doc"><p><p>Convert quaternion to euler angles.</p></p></div>
+  <div class="doc"><p><p>Convert quaternion to euler angles.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">void imu_init_attitude(const vec3s_t w_m, const vec3s_t a_m, mat3_t &amp;C_WS);
+  <pre><code class="cpp">void imu_init_attitude(const vec3s_t w_m,
+                       const vec3s_t a_m,
+                       mat3_t &amp;C_WS,
+                       const size_t buffer_size);
 </code></pre>
   
   <div class="doc"><p><p>Initialize attitude using IMU gyroscope <code>w_m</code> and accelerometer <code>a_m</code>
 measurements. The calculated attitude outputted into to <code>C_WS</code>. Note: this
 function does not calculate initial yaw angle in the world frame. Only the
-roll, and pitch are inferred from IMU measurements.</p></p></div>
+roll, and pitch are inferred from IMU measurements.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

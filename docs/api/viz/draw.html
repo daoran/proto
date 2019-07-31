@@ -1,0 +1,90 @@
+<div class="header_path">prototype/viz/draw.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">class globj_t {
+  glprog_t program_;
+  unsigned int VAO_;
+  unsigned int VBO_;
+  unsigned int EBO_;
+  glm::mat4 T_SM_;
+
+  globj_t(const char *vs, const char *fs);
+  void pos(const glm::vec3 &amp;pos);
+
+  glm::vec3 pos();
+
+  glm::mat3 rot();
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">class glcf_t {
+  float fov_;
+  float scale_;
+  float line_width_;
+
+  glcf_t();
+  ~glcf_t();
+
+  void draw(const glcamera_t &amp;camera);
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">class glcube_t {
+  float cube_size_;
+
+  glcube_t();
+  ~glcube_t();
+
+  void draw(const glcamera_t &amp;camera);
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">class glframe_t {
+  float line_width_;
+
+  glframe_t();
+  ~glframe_t();
+
+  void draw(const glcamera_t &amp;camera);
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">class glgrid_t {
+  int grid_size_;
+
+  glgrid_t();
+  ~glgrid_t();
+
+  void draw(const glcamera_t &amp;camera);
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">class glplane_t {
+  std::string image_path_;
+  float width_;
+  float height_;
+  int img_width_;
+  int img_height_;
+  int img_channels_;
+  unsigned int texture_;
+  GLuint FBO_;
+
+  glplane_t(const std::string &amp;image_path);
+  void draw(const glcamera_t &amp;camera);
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+
+
+</div> <!-- #content -->

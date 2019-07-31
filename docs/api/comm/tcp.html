@@ -1,0 +1,78 @@
+<div class="header_path">prototype/comm/tcp.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct tcp_server_t {
+  int port;
+  int sockfd;
+  std::vector&lt;int&gt; conns;
+  void * ( * ) ( void * ) = nullptr conn_thread;
+
+  tcp_server_t(int port_);
+};</code></pre>
+  
+  <div class="doc"><p><p>TCP server</p></p></div>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct tcp_client_t {
+  std::string server_ip;
+  int server_port;
+  int sockfd;
+  int ( * ) ( tcp_client_t &amp; ) = nullptr loop_cb;
+
+  tcp_client_t(const std::string &amp;server_ip_, int server_port_);
+};</code></pre>
+  
+  <div class="doc"><p><p>TCP client</p></p></div>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int tcp_server_config(tcp_server_t &amp;server);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure TCP server</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int tcp_server_loop(tcp_server_t &amp;server);
+</code></pre>
+  
+  <div class="doc"><p><p>Loop TCP server</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int tcp_client_config(tcp_client_t &amp;client);
+</code></pre>
+  
+  <div class="doc"><p><p>Configure TCP client</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int tcp_client_loop(tcp_client_t &amp;client);
+</code></pre>
+  
+  <div class="doc"><p><p>Loop TCP client</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int ip_port_info(const int sockfd, std::string &amp;ip, int &amp;port);
+</code></pre>
+  
+  <div class="doc"><p><p>Return IP and Port info from socket file descriptor <code>sockfd</code> to <code>ip</code> and
+<code>port</code>. Returns <code>0</code> for success and <code>-1</code> for failure.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->

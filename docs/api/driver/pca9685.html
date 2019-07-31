@@ -3,9 +3,9 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct pca9685_t {
-  i2c_t &amp; i2c;
+  const i2c_t &amp; i2c;
 
-  pca9685_t(i2c_t &amp;i2c_);
+  pca9685_t(const i2c_t &amp;i2c_);
 };</code></pre>
   
 </div> <!-- .cpp_class -->
@@ -22,7 +22,7 @@
 <li>[in] pwm PWM controller</li>
 <li>[in] freq Frequency (Hz)</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -35,7 +35,7 @@
 <li>[in] pwm PWM controller</li>
 <li>[in] freq Frequency (Hz)</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -51,7 +51,7 @@
 <li>[in] channel (starting from 0)</li>
 <li>[in] off PWM off duty cycle (out of 4096)</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -64,7 +64,7 @@
 <li>[in] pwm PWM controller</li>
 <li>[in] off PWM off duty cycle (out of 4096)</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -75,7 +75,7 @@
   <div class="doc"><p><p>Reset pca9685_t</p>
 <ul>
 <li>[in] pwm PWM controller</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

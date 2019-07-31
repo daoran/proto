@@ -8,6 +8,7 @@ struct camera_geometry_t {
   CM camera_model;
   DM distortion_model;
 
+  camera_geometry_t();
   camera_geometry_t(const CM &amp;camera_model_, const DM &amp;distortion_model_);
   ~camera_geometry_t();
 };</code></pre>
@@ -32,7 +33,7 @@ vec2_t camera_geometry_project(const camera_geometry_t&lt;CM, DM&gt; &amp;cam,
 <li>[in] cam Camera geometry</li>
 <li>[in] point Point</li>
 </ul>
-<p><strong>Returns</strong> Point to image plane projection in pixel coordinates</p></p></div>
+<p><strong>Returns</strong> Point to image plane projection in pixel coordinates</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

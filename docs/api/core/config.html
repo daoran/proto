@@ -22,7 +22,7 @@
 </code></pre>
   
   <div class="doc"><p><p>Load YAML file.</p>
-<p><strong>Returns</strong> 0 for success or -1 for failure.</p></p></div>
+<p><strong>Returns</strong> 0 for success or -1 for failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -34,7 +34,25 @@
 </code></pre>
   
   <div class="doc"><p><p>Get YAML node containing the parameter value.</p>
-<p><strong>Returns</strong> 0 for success or -1 for failure.</p></p></div>
+<p><strong>Returns</strong> 0 for success or -1 for failure.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int yaml_has_key(const config_t &amp;config, const std::string &amp;key);
+</code></pre>
+  
+  <div class="doc"><p><p>Check if yaml file has <code>key</code>.</p>
+<p><strong>Returns</strong> 0 for success or -1 for failure.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int yaml_has_key(const std::string &amp;file_path, const std::string &amp;key);
+</code></pre>
+  
+  <div class="doc"><p><p>Check if yaml file has <code>key</code>.</p>
+<p><strong>Returns</strong> 0 for success or -1 for failure.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -45,7 +63,18 @@ size_t yaml_check_vector(const YAML::Node &amp;node,
                          const bool optional);
 </code></pre>
   
-  <div class="doc"><p><p>Check size of vector in config file and returns the size.</p></p></div>
+  <div class="doc"><p><p>Check size of vector in config file and returns the size.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void yaml_check_matrix_fields(const YAML::Node &amp;node,
+                              const std::string &amp;key,
+                              size_t &amp;rows,
+                              size_t &amp;cols);
+</code></pre>
+  
+  <div class="doc"><p><p>Check matrix fields.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -60,7 +89,7 @@ void yaml_check_matrix(const YAML::Node &amp;node,
   
   <div class="doc"><p><p>Check matrix to make sure that the parameter has the data field "rows",
 "cols" and "data". It also checks to make sure the number of values is the
-same size as the matrix.</p></p></div>
+same size as the matrix.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -169,6 +198,18 @@ void parse(const config_t &amp;config,
   <pre><code class="cpp">void parse(const config_t &amp;config,
            const std::string &amp;key,
            cv::Mat &amp;mat,
+           const bool optional);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">template &lt;typename T&gt;
+void parse(const config_t &amp;config,
+           const std::string &amp;key,
+           const int rows,
+           const int cols,
+           T &amp;mat,
            const bool optional);
 </code></pre>
   

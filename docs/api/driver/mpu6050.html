@@ -4,7 +4,7 @@
 <div class="cpp_class">
   <pre><code class="cpp">struct mpu6050_t {
   bool ok;
-  i2c_t &amp; i2c;
+  const i2c_t &amp; i2c;
   float accel_sensitivity;
   float gyro_sensitivity;
   vec3_t accel;
@@ -14,7 +14,7 @@
   int8_t dplf_config;
   clock_t last_updated;
 
-  mpu6050_t(i2c_t &amp;i2c_);
+  mpu6050_t(const i2c_t &amp;i2c_);
 };</code></pre>
   
   <div class="doc"><p><p>Invensense MPU6050 I2C Driver</p></p></div>
@@ -33,7 +33,7 @@
 <li>[in,out] imu IMU</li>
 <li>[in] config_file Path to configuration file</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -45,7 +45,7 @@
 <ul>
 <li>[in] imu IMU</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -57,7 +57,7 @@
 <ul>
 <li>[in,out] imu IMU</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -95,7 +95,7 @@ DPLF_CFG    Gyroscope
 <li>[in] imu IMU</li>
 <li>[in] setting</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -107,7 +107,7 @@ DPLF_CFG    Gyroscope
 <ul>
 <li>[in] imu IMU</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -120,7 +120,7 @@ DPLF_CFG    Gyroscope
 <li>[in] imu IMU</li>
 <li>[in] setting Setting</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -132,7 +132,7 @@ DPLF_CFG    Gyroscope
 <ul>
 <li>[in] imu IMU</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -144,7 +144,7 @@ DPLF_CFG    Gyroscope
 <ul>
 <li>[in] imu IMU</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -157,7 +157,7 @@ DPLF_CFG    Gyroscope
 <li>[in] imu IMU</li>
 <li>[in] setting Setting</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -169,7 +169,7 @@ DPLF_CFG    Gyroscope
 <ul>
 <li>[in] imu IMU</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -182,7 +182,7 @@ DPLF_CFG    Gyroscope
 <li>[in] imu IMU</li>
 <li>[in] setting Setting</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -194,15 +194,7 @@ DPLF_CFG    Gyroscope
 <ul>
 <li>[in] imu IMU</li>
 </ul>
-<p><strong>Returns</strong> 0 for success, -1 for failure</p></p></div>
-  
-</div> <!-- .cpp_func -->
-
-<div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">std::ostream operator&lt;&lt;(std::ostream &amp;os, const mpu6050_t &amp;imu);
-</code></pre>
-  
-  <div class="doc"><p><p>mpu6050_t to output stream</p></p></div>
+<p><strong>Returns</strong> 0 for success, -1 for failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

@@ -5,10 +5,18 @@
 <h2>Functions</h2>
 
 <div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void timestamp_print(proto::uint64_t ts, const std::string &amp;prefix);
+</code></pre>
+  
+  <div class="doc"><p><p>Print timestamp.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
   <pre><code class="cpp">double ts2sec(proto::uint64_t ts);
 </code></pre>
   
-  <div class="doc"><p><p>Convert ts to second.</p></p></div>
+  <div class="doc"><p><p>Convert ts to second.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -16,7 +24,7 @@
   <pre><code class="cpp">double ns2sec(const uint64_t ns);
 </code></pre>
   
-  <div class="doc"><p><p>Convert nano-second to second.</p></p></div>
+  <div class="doc"><p><p>Convert nano-second to second.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -24,7 +32,7 @@
   <pre><code class="cpp">struct timespec tic();
 </code></pre>
   
-  <div class="doc"><p><p>Start timer.</p></p></div>
+  <div class="doc"><p><p>Start timer.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -32,7 +40,7 @@
   <pre><code class="cpp">float toc(struct timespec *tic);
 </code></pre>
   
-  <div class="doc"><p><p>Stop timer and return number of seconds.</p></p></div>
+  <div class="doc"><p><p>Stop timer and return number of seconds.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -40,7 +48,7 @@
   <pre><code class="cpp">float mtoc(struct timespec *tic);
 </code></pre>
   
-  <div class="doc"><p><p>Stop timer and return miliseconds elasped.</p></p></div>
+  <div class="doc"><p><p>Stop timer and return miliseconds elasped.</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -48,7 +56,7 @@
   <pre><code class="cpp">double time_now();
 </code></pre>
   
-  <div class="doc"><p><p>Get time now in milliseconds since epoch</p></p></div>
+  <div class="doc"><p><p>Get time now in milliseconds since epoch</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 

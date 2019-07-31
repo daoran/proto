@@ -1,3 +1,3 @@
-function b = bearing2d(mx, my, x1, x2, x3)
-  b = mod(atan2(my - x2, mx - x1) - x3 + pi, 2 * pi) - pi;
+function b = bearing2d(mx, my, x, y, theta)
+  b = mod(atan2(my - y, mx - x) - theta + pi, 2 * pi) - pi;
 end

@@ -16,12 +16,10 @@
 ## API
 - calib/
     - [aprilgrid.hpp](#calib.aprilgrid)
-    - [chessboard.hpp](#calib.chessboard)
     - [calib_camera.hpp](#calib.calib_camera)
     - [calib_data.hpp](#calib.calib_data)
     - [calib_gimbal.hpp](#calib.calib_gimbal)
     - [calib_stereo.hpp](#calib.calib_stereo)
-    - [calib_vicon_marker.hpp](#calib.calib_vicon_marker)
 - control/
     - [carrot_ctrl.hpp](#control.carrot_ctrl)
     - [pid.hpp](#control.pid)
@@ -30,8 +28,6 @@
     - [data.hpp](#core.data)
     - [file.hpp](#core.file)
     - [gps.hpp](#core.gps)
-    - [jpl.hpp](#core.jpl)
-    - [linalg.hpp](#core.linalg)
     - [log.hpp](#core.log)
     - [math.hpp](#core.math)
     - [tf.hpp](#core.tf)
@@ -44,6 +40,7 @@
     - [camera.hpp](#driver.camera)
     - [mpu6050.hpp](#driver.mpu6050)
     - [pca9685.hpp](#driver.pca9685)
+    - [sbgc.hpp](#driver.sbgc)
     - [i2c.cpp](#driver.i2c)
     - [uart.cpp](#driver.uart)
 - mav/
@@ -65,6 +62,5 @@
         - [draw.hpp](#vision.feature2d.draw)
         - [grid_fast.hpp](#vision.feature2d.grid_fast)
         - [grid_good.hpp](#vision.feature2d.grid_good)
-    - [util.hpp](#vision.util)
 
 <sidebar_doc>*/

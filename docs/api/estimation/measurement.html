@@ -1,0 +1,167 @@
+<div class="header_path">prototype/estimation/measurement.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct measurement_t {
+  timestamp_t ts;
+
+  measurement_t();
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct gyro_t {
+  double x;
+  double y;
+  double z;
+
+  gyro_t();
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct accel_t {
+  double x;
+  double y;
+  double z;
+
+  accel_t();
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct image_t {
+  timestamp_t ts;
+  int width;
+  int height;
+  double * data;
+
+  image_t();
+  image_t(const timestamp_t ts, const int width, const int height);
+  image_t(const timestamp_t ts, const int width, const int height, double *data);
+  ~image_t();
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct imu_data_t {
+  bool gyro_started;
+  std::deque&lt;timestamp_t&gt; gyro_ts;
+  std::deque&lt;vec3_t&gt; gyro;
+  bool accel_started;
+  std::deque&lt;timestamp_t&gt; accel_ts;
+  std::deque&lt;vec3_t&gt; accel;
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct vi_data_t {
+  std::deque&lt;timestamp_t&gt; gyro_ts;
+  std::deque&lt;vec3_t&gt; gyro;
+  std::deque&lt;timestamp_t&gt; accel_ts;
+  std::deque&lt;vec3_t&gt; accel;
+  std::map&lt;int, std::deque&lt;timestamp_t&gt; &gt; camera;
+
+  vi_data_t();
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void vi_data_add_gyro(vi_data_t &amp;data,
+                      const timestamp_t &amp;ts,
+                      const vec3_t &amp;gyro_data);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void vi_data_add_accel(vi_data_t &amp;data,
+                       const timestamp_t &amp;ts,
+                       const vec3_t &amp;accel_data);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void vi_data_add_image(vi_data_t &amp;data,
+                       const int cam_idx,
+                       const timestamp_t &amp;ts);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void vi_data_lerp(vi_data_t &amp;data);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">std::deque&lt;timestamp_t&gt; lerp_timestamps(const std::deque&lt;timestamp_t&gt; &amp;t0,
+                                        const std::deque&lt;timestamp_t&gt; &amp;t1);
+</code></pre>
+  
+  <div class="doc"><p><p>Let <code>t0</code> and <code>t1</code> be timestamps from two signals. If one of them is measured
+at a higher rate, the goal is to interpolate the lower rate signal so that
+it aligns with the higher rate one.</p>
+<p>This function will determine which timestamp deque will become the reference
+signal and the other will become the target signal. Based on this the
+interpolation points will be based on the reference signal.</p>
+<p>Additionally, this function ensures the interpolation timestamps are
+achievable by:</p>
+<ul>
+<li>interp start &gt; target start</li>
+<li>interp end &lt; target end</li>
+</ul>
+<p><strong>Note</strong>: This function will not include timestamps from the target
+(lower-rate) signal. The returned interpolation timestamps only returns
+<strong>interpolation points</strong> to match the reference signal (higher-rate).</p>
+<p><strong>Returns</strong> Interpolation timestamps from two timestamp deques <code>t0</code> and <code>t1</code>.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void lerp_data(const std::deque&lt;timestamp_t&gt; &amp;lerp_ts,
+               std::deque&lt;timestamp_t&gt; &amp;target_ts,
+               std::deque&lt;vec3_t&gt; &amp;target_data,
+               const bool keep_old);
+</code></pre>
+  
+  <div class="doc"><p><p>Given the interpolation timestamps <code>lerp_ts</code>, target timestamps
+<code>target_ts</code> and target data <code>target_data</code>. This function will interpolate
+the <code>target_data</code> at the interpolation points.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void lerp_data(std::deque&lt;timestamp_t&gt; &amp;ts0,
+               std::deque&lt;vec3_t&gt; &amp;vs0,
+               std::deque&lt;timestamp_t&gt; &amp;ts1,
+               std::deque&lt;vec3_t&gt; &amp;vs1);
+</code></pre>
+  
+  <div class="doc"><p><p>Given two data signals with timestamps <code>ts0</code>, <code>vs0</code>, <code>ts1</code>, and <code>vs1</code>, this
+function determines which data signal is at a lower rate and performs linear
+interpolation inorder to synchronize against the higher rate data signal.</p>
+<p>The outcome of this function is that both data signals will have:</p>
+<ul>
+<li>Same number of timestamps.</li>
+<li>Lower-rate data will be interpolated against the higher rate data.</li>
+</ul>
+<p><strong>Note</strong>: This function will drop values from the start and end of both
+signals inorder to synchronize them.</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->

@@ -1,4 +1,4 @@
-function [J_params] = equi4_params_jacobian(k1, k2, k3, k4, p)
+function J_params = equi4_params_jacobian(k1, k2, k3, k4, p)
   x = p(1);
   y = p(2);
   r = sqrt(x**2 + y**2);

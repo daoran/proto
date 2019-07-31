@@ -1,4 +1,4 @@
-<div class="header_path">prototype/vision/util.hpp</div>
+<div class="header_path">prototype/vision/vision_common.hpp</div>
 
 
 <!-- FUNCTIONS -->
@@ -13,7 +13,7 @@
 <li>m1 First matrix</li>
 <li>m2 Second matrix</li>
 </ul>
-<p><strong>Returns</strong> true or false</p></p></div>
+<p><strong>Returns</strong> true or false</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -25,7 +25,7 @@
 <ul>
 <li>x Input matrix</li>
 <li>y Output matrix</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -37,7 +37,7 @@
 <ul>
 <li>x Input matrix</li>
 <li>y Output matrix</li>
-</ul></p></div>
+</ul></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -49,7 +49,7 @@
 <ul>
 <li>x Input matrix</li>
 </ul>
-<p><strong>Returns</strong> Matrix as Eigen::Matrix</p></p></div>
+<p><strong>Returns</strong> Matrix as Eigen::Matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -61,7 +61,7 @@
 <ul>
 <li>x Input matrix</li>
 </ul>
-<p><strong>Returns</strong> Matrix as cv::Mat</p></p></div>
+<p><strong>Returns</strong> Matrix as cv::Mat</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -73,7 +73,7 @@
 <ul>
 <li>x Input vector</li>
 </ul>
-<p><strong>Returns</strong> Output vector in homogeneous coordinates</p></p></div>
+<p><strong>Returns</strong> Output vector in homogeneous coordinates</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -85,7 +85,7 @@
 <ul>
 <li>x Input vector</li>
 </ul>
-<p><strong>Returns</strong> Output vector in homogeneous coordinates</p></p></div>
+<p><strong>Returns</strong> Output vector in homogeneous coordinates</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -93,7 +93,7 @@
   <pre><code class="cpp">vec2_t normalize(const vec2_t &amp;x);
 </code></pre>
   
-  <div class="doc"><p><p>Normalize vector of</p></p></div>
+  <div class="doc"><p><p>Normalize vector of</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -106,7 +106,7 @@
 <li>rvec Rodrigues rotation vector</li>
 <li>tvec Translation vector</li>
 </ul>
-<p><strong>Returns</strong> Transform matrix</p></p></div>
+<p><strong>Returns</strong> Transform matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -118,7 +118,7 @@
 <ul>
 <li>v Vector</li>
 </ul>
-<p><strong>Returns</strong> Skew symmetric matrix</p></p></div>
+<p><strong>Returns</strong> Skew symmetric matrix</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -132,7 +132,7 @@ sort_keypoints(const std::vector&lt;cv::KeyPoint&gt; keypoints, const size_t lim
 <li>keypoints</li>
 <li>limit</li>
 </ul>
-<p><strong>Returns</strong> Sorted keypoints by response</p></p></div>
+<p><strong>Returns</strong> Sorted keypoints by response</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -144,7 +144,7 @@ sort_keypoints(const std::vector&lt;cv::KeyPoint&gt; keypoints, const size_t lim
 <ul>
 <li>image</li>
 </ul>
-<p><strong>Returns</strong> RGB image</p></p></div>
+<p><strong>Returns</strong> RGB image</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -156,7 +156,7 @@ sort_keypoints(const std::vector&lt;cv::KeyPoint&gt; keypoints, const size_t lim
 <ul>
 <li>image</li>
 </ul>
-<p><strong>Returns</strong> Gray-scale image</p></p></div>
+<p><strong>Returns</strong> Gray-scale image</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -176,7 +176,7 @@ sort_keypoints(const std::vector&lt;cv::KeyPoint&gt; keypoints, const size_t lim
 <li>[in] cx ROI center x-axis</li>
 <li>[in] cy ROI center y-axis</li>
 </ul>
-<p><strong>Returns</strong> ROI</p></p></div>
+<p><strong>Returns</strong> ROI</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -190,7 +190,7 @@ sort_keypoints(const std::vector&lt;cv::KeyPoint&gt; keypoints, const size_t lim
 <li>[in] kp1 First keypoint</li>
 <li>[in] kp2 Second keypoint</li>
 </ul>
-<p><strong>Returns</strong> Boolean to denote if first keypoint repose is larger than second</p></p></div>
+<p><strong>Returns</strong> Boolean to denote if first keypoint repose is larger than second</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -202,7 +202,7 @@ sort_keypoints(const std::vector&lt;cv::KeyPoint&gt; keypoints, const size_t lim
 <ul>
 <li>[in] R Rotation matrix</li>
 </ul>
-<p><strong>Returns</strong> Boolean to denote whether rotation matrix is valid</p></p></div>
+<p><strong>Returns</strong> Boolean to denote whether rotation matrix is valid</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -214,32 +214,7 @@ sort_keypoints(const std::vector&lt;cv::KeyPoint&gt; keypoints, const size_t lim
 <ul>
 <li>[in] R Rotation matrix</li>
 </ul>
-<p><strong>Returns</strong> Euler angles</p></p></div>
-  
-</div> <!-- .cpp_func -->
-
-<div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">template &lt;typename CAMERA_MODEL, typename DISTORTION_MODEL&gt;
-void essential_matrix_outlier_rejection(
-    const camera_geometry_t&lt;CAMERA_MODEL, DISTORTION_MODEL&gt; &amp;cam0,
-    const camera_geometry_t&lt;CAMERA_MODEL, DISTORTION_MODEL&gt; &amp;cam1,
-    const mat4_t &amp;T_cam1_cam0,
-    const std::vector&lt;cv::Point2f&gt; &amp;cam0_points,
-    const std::vector&lt;cv::Point2f&gt; &amp;cam1_points,
-    const double threshold,
-    std::vector&lt;uchar&gt; &amp;inlier_markers);
-</code></pre>
-  
-  <div class="doc"><p><p>Outlier rejection using essential matrix</p>
-<ul>
-<li>[in] cam0 Camera 0 geometry</li>
-<li>[in] cam1 Camera 1 geometry</li>
-<li>[in] T_cam1_cam0 Transform between cam1 and cam0</li>
-<li>[in] cam0_points Points observed from camera 0</li>
-<li>[in] cam1_points Points observed from camera 1</li>
-<li>[in] threshold Threshold</li>
-<li>[out] inlier_markers</li>
-</ul></p></div>
+<p><strong>Returns</strong> Euler angles</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -252,7 +227,7 @@ void essential_matrix_outlier_rejection(
 <li>[in] pts1 Points 1</li>
 <li>[in] pts2 Points 2</li>
 </ul>
-<p><strong>Returns</strong> scaling_factor Scaling factor</p></p></div>
+<p><strong>Returns</strong> scaling_factor Scaling factor</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -265,7 +240,7 @@ void essential_matrix_outlier_rejection(
 <li>[in] measured Measured image pixels</li>
 <li>[in] projected Projected image pixels</li>
 </ul>
-<p><strong>Returns</strong> Reprojection error</p></p></div>
+<p><strong>Returns</strong> Reprojection error</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -279,7 +254,7 @@ void essential_matrix_outlier_rejection(
 <li>[in] measured Measured image pixels</li>
 <li>[in] projected Projected image pixels</li>
 </ul>
-<p><strong>Returns</strong> Reprojection error</p></p></div>
+<p><strong>Returns</strong> Reprojection error</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -297,7 +272,7 @@ void essential_matrix_outlier_rejection(
 <li>[in] points Points</li>
 <li>[in] patch_width Patch width</li>
 </ul>
-<p><strong>Returns</strong> Feature mask</p></p></div>
+<p><strong>Returns</strong> Feature mask</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -315,7 +290,7 @@ void essential_matrix_outlier_rejection(
 <li>[in] keypoints Keypoints</li>
 <li>[in] patch_width Patch width</li>
 </ul>
-<p><strong>Returns</strong> Feature mask</p></p></div>
+<p><strong>Returns</strong> Feature mask</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -333,7 +308,7 @@ void essential_matrix_outlier_rejection(
 <li>[in] points Points</li>
 <li>[in] patch_width Patch width</li>
 </ul>
-<p><strong>Returns</strong> Feature mask</p></p></div>
+<p><strong>Returns</strong> Feature mask</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -351,7 +326,7 @@ void essential_matrix_outlier_rejection(
 <li>[in] keypoints Keypoints</li>
 <li>[in] patch_width Patch width</li>
 </ul>
-<p><strong>Returns</strong> Feature mask</p></p></div>
+<p><strong>Returns</strong> Feature mask</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -367,7 +342,7 @@ void essential_matrix_outlier_rejection(
 <li>[in] D Distortion vector D</li>
 <li>[in] image Input image</li>
 </ul>
-<p><strong>Returns</strong> Undistorted image using radial-tangential distortion</p></p></div>
+<p><strong>Returns</strong> Undistorted image using radial-tangential distortion</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -387,7 +362,48 @@ void essential_matrix_outlier_rejection(
 <li>[in] balance Balance</li>
 <li>[in,out] Knew New camera matrix K</li>
 </ul>
-<p><strong>Returns</strong> Undistorted image using equidistant distortion</p></p></div>
+<p><strong>Returns</strong> Undistorted image using equidistant distortion</p></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">void illum_invar_transform(cv::Mat &amp;image,
+                           const double lambda_1,
+                           const double lambda_2,
+                           const double lambda_3);
+</code></pre>
+  
+  <div class="doc"><p><p>Illumination invariant transform.</p>
+<ul>
+<li>[in] image Image</li>
+<li>[in] lambda_1 Lambad 1</li>
+<li>[in] lambda_2 Lambad 2</li>
+<li>[in] lambda_3 Lambad 3</li>
+</ul></p><hr></div>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double lapm(const cv::Mat &amp;src);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double lapv(const cv::Mat &amp;src);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double teng(const cv::Mat &amp;src, int ksize);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">double glvn(const cv::Mat &amp;src);
+</code></pre>
   
 </div> <!-- .cpp_func -->
 

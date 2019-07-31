@@ -43,10 +43,10 @@ struct atl_t {
   double yaw_setpoint = 0.0;
   lz_t lz;
 
-  struct timespec discover_tic = {0, 0};
-  struct timespec tracking_tic = {0, 0};
-  struct timespec landing_tic = {0, 0};
-  struct timespec waypoint_tic = {0, 0};
+  struct timespec discover_tic;
+  struct timespec tracking_tic;
+  struct timespec landing_tic;
+  struct timespec waypoint_tic;
 
   atl_t();
   atl_t(const std::string &config_file);

@@ -1,0 +1,74 @@
+<div class="header_path">prototype/viz/shader.hpp</div>
+
+<!-- CLASSES -->
+<div class="cpp_class">
+  <pre><code class="cpp">struct glprog_t {
+  unsigned int program_id;
+
+  glprog_t(const std::string &amp;vs_path, const std::string &amp;fs_path);
+  glprog_t(const std::string &amp;vs_path,
+           const std::string &amp;fs_path,
+           const std::string &amp;gs_path);
+  glprog_t(const char *vs_src, const char *fs_var);
+  void use();
+
+  int setBool(const std::string &amp;key, const bool value);
+
+  int setInt(const std::string &amp;key, const int value);
+
+  int setFloat(const std::string &amp;key, const float value);
+
+  int setVec2(const std::string &amp;key, const glm::vec2 &amp;value);
+
+  int setVec2(const std::string &amp;key, const float x, const float y);
+
+  int setVec3(const std::string &amp;key, const glm::vec3 &amp;value);
+
+  int setVec3(const std::string &amp;key,
+              const float x,
+              const float y,
+              const float z);
+
+  int setVec4(const std::string &amp;key, const glm::vec4 &amp;value);
+
+  int setVec4(const std::string &amp;key,
+              const float x,
+              const float y,
+              const float z,
+              const float w);
+
+  int setMat2(const std::string &amp;key, const glm::mat2 &amp;mat);
+
+  int setMat3(const std::string &amp;key, const glm::mat3 &amp;mat);
+
+  int setMat4(const std::string &amp;key, const glm::mat4 &amp;mat);
+};</code></pre>
+  
+</div> <!-- .cpp_class -->
+
+<!-- FUNCTIONS -->
+<h2>Functions</h2>
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int shader_compile(const char *shader_src, const int type);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int shader_compile(const std::string &amp;shader_path, const int type);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+<div class="cpp_func" onclick=show_doc(this)>
+  <pre><code class="cpp">int shaders_link(const int vertex_shader,
+                 const int fragment_shader,
+                 const int geometry_shader);
+</code></pre>
+  
+</div> <!-- .cpp_func -->
+
+
+
+</div> <!-- #content -->

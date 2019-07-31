@@ -18,6 +18,9 @@ debug() {
 # sudo make debug_install
 # exit
 
+cd scripts/api/
+python3 api.py
+
 # APPS
 # cd build/apps
 # ./scripts/octave/calib_data_summary
@@ -96,4 +99,4 @@ debug() {
 # ./vision-test_vision_common
 
 # -- viz
-./viz-test_gui
+# ./viz-test_gui

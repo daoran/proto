@@ -29,7 +29,7 @@
 <ul>
 <li>[in,out] uart UART</li>
 </ul>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
@@ -41,34 +41,35 @@
 <ul>
 <li>[in,out] uart UART</li>
 </ul>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">int uart_configure(const uart_t &amp;uart, const int speed, const int parity);
+  <pre><code class="cpp">int uart_write(const uart_t &amp;uart, const uint8_t *payload, const size_t length);
 </code></pre>
   
-  <div class="doc"><p><p>Set interface attributes</p>
+  <div class="doc"><p><p>Write packet to UART</p>
 <ul>
-<li>[in,out] uart UART</li>
-<li>[in] speed UART speed</li>
-<li>[in] parity UART parity</li>
+<li>[in] uart UART</li>
+<li>[in] payload Payload</li>
+<li>[in] length Payload length</li>
 </ul>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
 <div class="cpp_func" onclick=show_doc(this)>
-  <pre><code class="cpp">void uart_set_blocking(uart_t &amp;uart, const bool blocking);
+  <pre><code class="cpp">int uart_read(const uart_t &amp;uart, uint8_t *payload, const size_t length);
 </code></pre>
   
-  <div class="doc"><p><p>Set blocking</p>
+  <div class="doc"><p><p>Read packet from UART</p>
 <ul>
-<li>[in,out] uart UART</li>
-<li>[in] blocking Blocking</li>
+<li>[in] uart UART</li>
+<li>[in,out] payload Payload</li>
+<li>[in] length Payload length</li>
 </ul>
-<p><strong>Returns</strong> 0 or -1 for success or failure</p></p></div>
+<p><strong>Returns</strong> 0 or -1 for success or failure</p></p><hr></div>
   
 </div> <!-- .cpp_func -->
 
