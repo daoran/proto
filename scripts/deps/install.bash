@@ -12,7 +12,7 @@ install() {
 }
 
 install_base() {
-  apt_install git mercurial cmake g++
+  apt_install git mercurial cmake g++ clang
 }
 
 apt_update
