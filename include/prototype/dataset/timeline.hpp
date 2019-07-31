@@ -15,7 +15,7 @@ namespace proto {
 
 template <typename T>
 struct timeline_event_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   // General
   int type = 0;

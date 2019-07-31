@@ -18,8 +18,8 @@ debug() {
 # sudo make debug_install
 # exit
 
-cd scripts/api/
-python3 api.py
+# cd scripts/api/
+# python3 api.py
 
 # APPS
 # cd build/apps

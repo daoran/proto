@@ -3,7 +3,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct calib_pose_param_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW quat_t q;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  quat_t q;
   vec3_t r;
 
   calib_pose_param_t(const mat4_t &amp;T);

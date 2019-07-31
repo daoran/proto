@@ -4,7 +4,8 @@
 <div class="cpp_class">
   <pre><code class="cpp">template &lt;typename T&gt;
 struct timeline_event_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW int type;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  int type;
   T ts;
   vec3_t a_m;
   vec3_t w_m;

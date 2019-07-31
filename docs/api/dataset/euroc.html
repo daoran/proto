@@ -26,7 +26,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_camera_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  bool ok;
   std::string data_dir;
   timestamps_t timestamps;
   std::vector&lt;std::string&gt; image_paths;
@@ -49,7 +50,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_ground_truth_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  bool ok;
   std::string data_dir;
   timestamps_t timestamps;
   vec3s_t p_RS_R;
@@ -67,7 +69,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct euroc_data_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  bool ok;
   std::string data_path;
   euroc_imu_t imu_data;
   euroc_camera_t cam0_data;

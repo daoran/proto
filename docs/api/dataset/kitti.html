@@ -3,7 +3,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct calib_cam2cam_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  bool ok;
   std::string file_path;
   std::string calib_time;
   double corner_dist;
@@ -26,7 +27,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct calib_imu2velo_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  bool ok;
   std::string file_path;
   std::string calib_time;
   mat3_t R;
@@ -43,7 +45,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct calib_velo2cam_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW bool ok;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  bool ok;
   std::string file_path;
   std::string calib_time;
   mat3_t R;
@@ -62,7 +65,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct oxts_entry_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW std::string file_path;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  std::string file_path;
   vec3_t gps;
   vec3_t rpy;
   vec3_t v_G;
@@ -84,7 +88,8 @@
 <!-- CLASSES -->
 <div class="cpp_class">
   <pre><code class="cpp">struct oxts_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW std::string oxts_dir;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  std::string oxts_dir;
   std::vector&lt;long&gt; timestamps;
   std::vector&lt;double&gt; time;
   vec3s_t gps;

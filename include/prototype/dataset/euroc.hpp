@@ -38,7 +38,7 @@ struct euroc_imu_t {
 };
 
 struct euroc_camera_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   bool ok = false;
 
   // Data
@@ -63,7 +63,7 @@ struct euroc_camera_t {
 };
 
 struct euroc_ground_truth_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   bool ok = false;
 
   // Data
@@ -81,7 +81,7 @@ struct euroc_ground_truth_t {
 };
 
 struct euroc_data_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   bool ok = false;
   std::string data_path;

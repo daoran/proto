@@ -84,11 +84,9 @@ int test_aprilgrid_add() {
   keypoints.emplace_back(kp3(0), kp3(1));
   keypoints.emplace_back(kp4(0), kp4(1));
 
-  // Test save
+  // Test add
   const int tag_id = 1;
   aprilgrid_add(grid, tag_id, keypoints);
-
-  // Test load
   MU_CHECK_FLOAT(0.0, (grid.keypoints[0] - kp1).norm());
   MU_CHECK_FLOAT(0.0, (grid.keypoints[1] - kp2).norm());
   MU_CHECK_FLOAT(0.0, (grid.keypoints[2] - kp3).norm());

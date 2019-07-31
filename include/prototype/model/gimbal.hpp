@@ -26,7 +26,7 @@ mat4_t dh_transform(const double theta,
  * 2-DOF Gimbal Model
  */
 struct gimbal_model_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   // Parameter vector of transform from
   // static camera to base-mechanism
