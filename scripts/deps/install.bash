@@ -7,6 +7,7 @@ export DOWNLOAD_PATH=$DOWNLOAD_PATH
 mkdir -p "$PREFIX"
 mkdir -p "$DOWNLOAD_PATH"
 
+apt-get update
 apt-get install -qq -y git mercurial cmake g++
 
 echo "Installing boost ..." && "$BASEDIR"/install_boost.bash
