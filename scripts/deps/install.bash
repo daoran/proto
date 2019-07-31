@@ -7,18 +7,26 @@ export DOWNLOAD_PATH=$DOWNLOAD_PATH
 mkdir -p "$PREFIX"
 mkdir -p "$DOWNLOAD_PATH"
 
-apt-get update -qqq
-apt-get install -qqq -y git mercurial cmake g++
+install() {
+  echo "Installing $1 ..." && "$BASEDIR"/install_"$1".bash > /dev/null
+}
 
-echo "Installing assimp ..." && "$BASEDIR"/install_assimp.bash
-echo "Installing boost ..." && "$BASEDIR"/install_boost.bash
-echo "Installing ceres ..." && "$BASEDIR"/install_ceres.bash
-echo "Installing eigen ..." && "$BASEDIR"/install_eigen.bash
-echo "Installing geographiclib ..." && "$BASEDIR"/install_geographiclib.bash
-echo "Installing glfw3 ..." && "$BASEDIR"/install_glfw3.bash
-echo "Installing glm ..." && "$BASEDIR"/install_glm.bash
-echo "Installing imgui ..." && "$BASEDIR"/install_imgui.bash
-echo "Installing opencv3 ..." && "$BASEDIR"/install_opencv3.bash
-echo "Installing apriltags ..." && "$BASEDIR"/install_apriltags.bash
-echo "Installing opengl ..." && "$BASEDIR"/install_opengl.bash
-echo "Installing yamlcpp ..." && "$BASEDIR"/install_yamlcpp.bash
+install_base() {
+  apt_install git mercurial cmake g++
+}
+
+apt_update
+install_base
+install assimp
+install boost
+install ceres
+install eigen
+install geographiclib
+install glad
+install glfw3
+install glm
+install imgui
+install opencv3
+install apriltags
+install opengl
+install yamlcpp

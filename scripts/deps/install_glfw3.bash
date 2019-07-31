@@ -1,1 +1,6 @@
-apt-get install -qqq libglfw3-* -y
+#!/bin/bash
+set -e  # halt on first error
+BASEDIR=$(dirname "$0")
+source "$BASEDIR/config.bash"
+
+apt_install libglfw3-*

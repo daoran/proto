@@ -12,6 +12,7 @@ debug() {
 }
 
 # LIBRARY
+make deps
 # time make debug
 # time make release
 # sudo make install

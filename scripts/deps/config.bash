@@ -3,6 +3,15 @@ PREFIX="/usr/local"
 DOWNLOAD_PATH="$PREFIX/src"
 BUILD_TYPE="Release"
 
+apt_update() {
+  echo "[Updating APT package list]";
+  apt-get update -qqq;
+}
+
+apt_install() {
+  apt-get install -qqq -y "$@";
+}
+
 # $1 - Git Repo URL
 # $2 - Repo folder name
 install_git_repo() {
