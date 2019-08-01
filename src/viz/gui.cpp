@@ -79,6 +79,11 @@ gui_t::gui_t(const std::string &title)
   : gui_t{title, 1280, 720} {}
 
 gui_t::~gui_t() {
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+
+  glfwDestroyWindow(gui_);
   glfwTerminate();
 }
 

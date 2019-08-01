@@ -12,7 +12,7 @@ define usage
     Build prototype in release mode.
 
   install:
-    Install prototype to $PREFIX. By default this is "/usr/local".
+    Install prototype to '$$PREFIX'. By default this is "/usr/local".
 
   format_code:
     Format prototype code using clang-format.

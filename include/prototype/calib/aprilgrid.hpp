@@ -1,14 +1,13 @@
 #ifndef PROTOTYPE_CALIB_APRILGRID_HPP
 #define PROTOTYPE_CALIB_APRILGRID_HPP
 
-// Order matters with the AprilTags lib. The detector has to be first.
+/// Order matters with the AprilTags lib. The detector has to be first.
 #include <AprilTags/TagDetector.h>
 #include <AprilTags/Tag36h11.h>
 
 #include "prototype/core/math.hpp"
 #include "prototype/core/time.hpp"
 #include "prototype/vision/vision.hpp"
-// #include "prototype/calib/calib_data.hpp"
 
 namespace proto {
 

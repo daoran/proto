@@ -175,6 +175,7 @@ SET(
   calib-test_calib_data
   # calib-test_calib_gimbal
   calib-test_calib_stereo
+  calib-test_sandbox
   comm-test_tcp
   control-test_carrot_ctrl
   control-test_pid

@@ -2,7 +2,6 @@
 
 namespace proto {
 
-
 image_t::image_t() {}
 
 image_t::image_t(const timestamp_t ts_, const int width_, const int height_)

@@ -99,25 +99,6 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
   ceres::Solve(options, problem.get(), &summary);
   std::cout << summary.FullReport() << std::endl;
 
-  // {
-  //   ceres::Covariance::Options options;
-  //   ceres::Covariance covar(options);
-  //
-  //   std::vector<std::pair<const double *, const double *>> covar_blocks;
-  //   covar_blocks.push_back({*pinhole.data, *pinhole.data});
-  //   covar_blocks.push_back({*radtan.data, *radtan.data});
-  //   covar_blocks.push_back({*pinhole.data, *radtan.data});
-  //   covar.Compute(covar_blocks, problem.get());
-  //
-  //   double pinhole_covar[4 * 4];
-  //   double radtan_covar[4 * 4];
-  //   double pinhole_radtan_covar[4 * 4];
-  //   covar.GetCovarianceBlock(*pinhole.data, *pinhole.data, pinhole_covar);
-  //   covar.GetCovarianceBlock(*radtan.data, *radtan.data, radtan_covar);
-  //   covar.GetCovarianceBlock(*pinhole.data, *radtan.data,
-  //   pinhole_radtan_covar);
-  // }
-
   // Clean up
   T_CF.clear();
   for (auto pose_param : T_CF_params) {

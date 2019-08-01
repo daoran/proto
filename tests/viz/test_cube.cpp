@@ -3,7 +3,7 @@
 #include "prototype/viz/draw.hpp"
 
 int test_cube() {
-  gui_t gui{"Play"};
+  proto::gui_t gui{"Play"};
 
   while (gui.ok()) {
     gui.poll();
@@ -12,7 +12,6 @@ int test_cube() {
 		gui.render();
   }
 
-  gui.close();
   return 0;
 }
 
