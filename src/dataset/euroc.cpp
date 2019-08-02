@@ -1,4 +1,4 @@
-#include "prototype/dataset/euroc.hpp"
+#include "proto/dataset/euroc.hpp"
 
 namespace proto {
 

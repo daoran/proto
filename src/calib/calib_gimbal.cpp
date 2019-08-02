@@ -1,4 +1,4 @@
-#include "prototype/calib/calib_gimbal.hpp"
+#include "proto/calib/calib_gimbal.hpp"
 
 namespace proto {
 

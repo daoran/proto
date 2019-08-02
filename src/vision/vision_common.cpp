@@ -1,4 +1,4 @@
-#include "prototype/vision/vision_common.hpp"
+#include "proto/vision/vision_common.hpp"
 
 namespace proto {
 

@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 x = 0.1;
 y = 0.2;

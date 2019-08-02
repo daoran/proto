@@ -1,3 +1,3 @@
-#include "prototype/dataset/timeline.hpp"
+#include "proto/dataset/timeline.hpp"
 
 namespace proto {} // namespace proto

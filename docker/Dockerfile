@@ -14,8 +14,8 @@ RUN apt-get update && \
     libeigen3-dev libeigen3-doc \
     libopencv-*
 
-RUN git clone https://github.com/chutsu/prototype
-RUN cd prototype
+RUN git clone https://github.com/chutsu/proto
+RUN cd proto
 RUN mkdir -p build
 RUN cmake ..
 RUN make

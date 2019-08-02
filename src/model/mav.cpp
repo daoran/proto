@@ -1,4 +1,4 @@
-#include "prototype/model/mav.hpp"
+#include "proto/model/mav.hpp"
 
 namespace proto {
 

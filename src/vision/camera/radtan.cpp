@@ -1,4 +1,4 @@
-#include "prototype/vision/camera/radtan.hpp"
+#include "proto/vision/camera/radtan.hpp"
 
 namespace proto {
 

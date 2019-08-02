@@ -30,7 +30,7 @@
 #include <ceres/ceres.h>
 #include <glog/logging.h>
 
-#include "prototype/core/macros.hpp"
+#include "proto/core/macros.hpp"
 
 using ceres::AutoDiffCostFunction;
 using ceres::CostFunction;

@@ -1,8 +1,8 @@
-#include "prototype/munit.hpp"
-#include "prototype/viz/gui.hpp"
-#include "prototype/viz/model.hpp"
-#include "prototype/viz/camera.hpp"
-#include "prototype/viz/draw.hpp"
+#include "proto/munit.hpp"
+#include "proto/viz/gui.hpp"
+#include "proto/viz/model.hpp"
+#include "proto/viz/camera.hpp"
+#include "proto/viz/draw.hpp"
 
 #include "opencv2/opencv.hpp"
 

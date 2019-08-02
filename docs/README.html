@@ -1,26 +1,26 @@
-<h1>prototype</h1>
-<p><code>prototype</code> contain notes and code used to learn about different aspects of
+<h1>proto</h1>
+<p><code>proto</code> contain notes and code used to learn about different aspects of
 robotics. From estimation, mapping to control and planning.</p>
 <h2>Build</h2>
 <p>For convenience there is a <code>Makefile</code> that automates the installation of
-dependencies and building of <code>prototype</code>, the make targets are as follows.</p>
+dependencies and building of <code>proto</code>, the make targets are as follows.</p>
 <pre><code>deps:
-  Install prototype dependencies.
+  Install proto dependencies.
 
 debug:
-  Build prototype in debug mode.
+  Build proto in debug mode.
 
 release:
-  Build prototype in release mode.
+  Build proto in release mode.
 
 install:
-  Install prototype to $PREFIX. By default this is "/usr/local".
+  Install proto to $PREFIX. By default this is "/usr/local".
 
 format_code:
-  Format prototype code using clang-format.
+  Format proto code using clang-format.
 
 docs:
-  Generate docs for prototype.
+  Generate docs for proto.
 </code></pre>
 <p>The commands you usually care about are <code>debug</code>, <code>release</code> and <code>install</code>.</p>
 <p>Or, if you're old-fashioned the standard way to build a C++ project is to enter

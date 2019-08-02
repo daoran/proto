@@ -1,4 +1,4 @@
-set -e
+# set -e
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
@@ -11,11 +11,19 @@ debug() {
     --args "$1" "$2"
 }
 
+# echo "-------------"
+# for FILE in `find . -type d -name ".git" -prune -o    -type f`
+# do
+#   # grep "PROTO" $FILE
+#   echo "Processing [$FILE]"
+#   sed -i 's/proto/proto/g' $FILE
+# done
+
 # LIBRARY
 # make deps
 # time make debug
 # time make release
-# sudo make install
+sudo make install
 # sudo make debug_install
 # exit
 
@@ -39,7 +47,7 @@ debug() {
 # ./play
 
 # TESTS
-cd build/tests
+# cd build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera
@@ -47,7 +55,7 @@ cd build/tests
 # ./calib-test_calib_data
 # ./calib-test_calib_gimbal
 # ./calib-test_calib_stereo
-./calib-test_sandbox
+# ./calib-test_sandbox
 
 # -- comm
 # ./comm-test_tcp

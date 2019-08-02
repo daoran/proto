@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 pkg load image;
 graphics_toolkit("fltk");
 

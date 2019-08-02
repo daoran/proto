@@ -1,31 +1,31 @@
-# prototype [![Build Status](https://travis-ci.org/chutsu/prototype.svg)][1]
+# proto [![Build Status](https://travis-ci.org/chutsu/proto.svg)][1]
 
-`prototype` contain notes and code used to learn about different aspects of
+`proto` contain notes and code used to learn about different aspects of
 robotics. From estimation, mapping to control and planning.
 
 
 ## Build
 
 For convenience there is a `Makefile` that automates the installation of
-dependencies and building of `prototype`, the make targets are as follows.
+dependencies and building of `proto`, the make targets are as follows.
 
     deps:
-      Install prototype dependencies.
+      Install proto dependencies.
 
     debug:
-      Build prototype in debug mode.
+      Build proto in debug mode.
 
     release:
-      Build prototype in release mode.
+      Build proto in release mode.
 
     install:
-      Install prototype to $PREFIX. By default this is "/usr/local".
+      Install proto to $PREFIX. By default this is "/usr/local".
 
     format_code:
-      Format prototype code using clang-format.
+      Format proto code using clang-format.
 
     docs:
-      Generate docs for prototype.
+      Generate docs for proto.
 
 The commands you usually care about are `debug`, `release` and `install`.
 
@@ -42,4 +42,4 @@ the following commands at the root of the repo.
 
 The source code is released under GPLv3 license.
 
-[1]: https://travis-ci.org/chutsu/prototype
+[1]: https://travis-ci.org/chutsu/proto

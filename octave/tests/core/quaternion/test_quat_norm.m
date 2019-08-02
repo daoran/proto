@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 q = [1.0; 0.0; 0.0; 0.0];
 n = quat_norm(q);

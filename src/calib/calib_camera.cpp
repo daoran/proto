@@ -1,4 +1,4 @@
-#include "prototype/calib/calib_camera.hpp"
+#include "proto/calib/calib_camera.hpp"
 
 namespace proto {
 

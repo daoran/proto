@@ -1,5 +1,5 @@
-#include "prototype/control/pid.hpp"
-#include "prototype/munit.hpp"
+#include "proto/control/pid.hpp"
+#include "proto/munit.hpp"
 
 namespace proto {
 

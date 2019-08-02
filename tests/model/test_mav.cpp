@@ -1,6 +1,6 @@
-#include "prototype/control/carrot_ctrl.hpp"
-#include "prototype/model/mav.hpp"
-#include "prototype/munit.hpp"
+#include "proto/control/carrot_ctrl.hpp"
+#include "proto/model/mav.hpp"
+#include "proto/munit.hpp"
 
 namespace proto {
 

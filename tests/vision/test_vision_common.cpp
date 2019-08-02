@@ -1,6 +1,6 @@
-#include "prototype/munit.hpp"
-#include "prototype/vision/vision_common.hpp"
-#include "prototype/vision/feature2d/grid_fast.hpp"
+#include "proto/munit.hpp"
+#include "proto/vision/vision_common.hpp"
+#include "proto/vision/feature2d/grid_fast.hpp"
 
 namespace proto {
 

@@ -1,4 +1,4 @@
-#include "prototype/driver/ublox.hpp"
+#include "proto/driver/ublox.hpp"
 
 namespace proto {
 

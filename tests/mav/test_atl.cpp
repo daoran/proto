@@ -1,9 +1,9 @@
 #include <iostream>
 #include <fstream>
 
-#include "prototype/munit.hpp"
-#include "prototype/mav/atl.hpp"
-#include "prototype/model/mav.hpp"
+#include "proto/munit.hpp"
+#include "proto/mav/atl.hpp"
+#include "proto/model/mav.hpp"
 
 namespace proto {
 

@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 P0 = [0; 0];
 C0 = [3; -3];

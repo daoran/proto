@@ -1,7 +1,7 @@
 #include <unistd.h>
 
-#include "prototype/core/time.hpp"
-#include "prototype/munit.hpp"
+#include "proto/core/time.hpp"
+#include "proto/munit.hpp"
 
 namespace proto {
 

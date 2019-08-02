@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 % % Connect to a camera
 % camera = cv.VideoCapture();

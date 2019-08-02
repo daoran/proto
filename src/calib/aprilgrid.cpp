@@ -1,4 +1,4 @@
-#include "prototype/calib/aprilgrid.hpp"
+#include "proto/calib/aprilgrid.hpp"
 
 namespace proto {
 

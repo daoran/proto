@@ -1,7 +1,7 @@
 #include <limits>
-#include "prototype/munit.hpp"
-#include "prototype/calib/aprilgrid.hpp"
-#include "prototype/vision/camera/pinhole.hpp"
+#include "proto/munit.hpp"
+#include "proto/calib/aprilgrid.hpp"
+#include "proto/vision/camera/pinhole.hpp"
 
 namespace proto {
 

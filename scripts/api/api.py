@@ -9,7 +9,7 @@ import markdown
 from jinja2 import Template
 
 # GLOBAL VARIABLES
-include_path = "../../include/prototype"
+include_path = "../../include/proto"
 docs_path = "../../docs"
 api_path = os.path.join(docs_path, "api")
 header_impl_pattern = "_impl.hpp"
@@ -338,10 +338,10 @@ def prepare_destination(header_files, include_path, api_path):
 header_files = get_header_files(include_path)
 output_paths = prepare_destination(header_files, include_path, api_path)
 render_headers(header_files, output_paths)
-render_sidebar(include_path + "/prototype.hpp", docs_path, header_files)
+render_sidebar(include_path + "/proto.hpp", docs_path, header_files)
 render_readme(readme_file, docs_path)
 render_index(index_file, docs_path)
 
-# header = "../../include/prototype/calib/aprilgrid.hpp"
+# header = "../../include/proto/calib/aprilgrid.hpp"
 # dest = "../../docs/api/calib/aprilgrid.html"
 # render_api(header, dest)

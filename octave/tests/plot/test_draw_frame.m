@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 # Camera pose
 C_WC = euler321(deg2rad([-90.0, 0.0, -90.0]));

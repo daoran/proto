@@ -1,4 +1,4 @@
-#include "prototype/vision/feature2d/grid_fast.hpp"
+#include "proto/vision/feature2d/grid_fast.hpp"
 
 namespace proto {
 

@@ -1,5 +1,5 @@
-#include "prototype/core/file.hpp"
-#include "prototype/munit.hpp"
+#include "proto/core/file.hpp"
+#include "proto/munit.hpp"
 
 namespace proto {
 

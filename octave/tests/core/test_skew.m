@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 M = skew([1.0; 2.0; 3.0]);
 expected = [0.0, -3.0, 2.0;

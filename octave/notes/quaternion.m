@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 % pkg load symbolic;
 %
 % syms qx qy qz qw;

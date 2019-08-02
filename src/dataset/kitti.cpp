@@ -1,4 +1,4 @@
-#include "prototype/dataset/kitti.hpp"
+#include "proto/dataset/kitti.hpp"
 
 namespace proto {
 

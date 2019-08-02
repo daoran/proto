@@ -1,4 +1,4 @@
-#include "prototype/vision/feature2d/draw.hpp"
+#include "proto/vision/feature2d/draw.hpp"
 
 namespace proto {
 

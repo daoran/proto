@@ -1,4 +1,4 @@
-#include "prototype/vision/frontend.hpp"
+#include "proto/vision/frontend.hpp"
 
 namespace proto {
 

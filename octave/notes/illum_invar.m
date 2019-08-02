@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 function [ii_image] = illum_invar(image, alpha)
   red = image(:, :, 1);

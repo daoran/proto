@@ -14,7 +14,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     int* data = (int*) mxGetData(plhs[0]);
     data[0] = value;
   } catch (const YAML::Exception& e) {
-    mexErrMsgIdAndTxt("prototype:error", e.msg.c_str());
+    mexErrMsgIdAndTxt("proto:error", e.msg.c_str());
   }
 
 

@@ -1,6 +1,6 @@
-#include "prototype/munit.hpp"
-#include "prototype/calib/calib.hpp"
-#include "prototype/calib/calib_stereo.hpp"
+#include "proto/munit.hpp"
+#include "proto/calib/calib.hpp"
+#include "proto/calib/calib_stereo.hpp"
 
 namespace proto {
 

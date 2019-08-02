@@ -1,4 +1,4 @@
-#include "prototype/calib/calib_stereo.hpp"
+#include "proto/calib/calib_stereo.hpp"
 
 namespace proto {
 

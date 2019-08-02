@@ -1,4 +1,4 @@
-#include "prototype/core/gps.hpp"
+#include "proto/core/gps.hpp"
 
 namespace proto {
 

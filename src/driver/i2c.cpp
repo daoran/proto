@@ -1,4 +1,4 @@
-#include "prototype/driver/i2c.hpp"
+#include "proto/driver/i2c.hpp"
 
 namespace proto {
 

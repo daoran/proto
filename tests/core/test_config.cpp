@@ -1,7 +1,7 @@
-// #include "prototype/core/config.hpp"
-// #include "prototype/core/data.hpp"
-#include "prototype/munit.hpp"
-#include "prototype/prototype.hpp"
+// #include "proto/core/config.hpp"
+// #include "proto/core/data.hpp"
+#include "proto/munit.hpp"
+#include "proto/proto.hpp"
 
 #define TEST_CONFIG "test_data/core/config/config.yaml"
 

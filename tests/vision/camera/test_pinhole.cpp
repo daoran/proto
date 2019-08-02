@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/vision/camera/pinhole.hpp"
+#include "proto/munit.hpp"
+#include "proto/vision/camera/pinhole.hpp"
 
 namespace proto {
 

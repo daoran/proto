@@ -1,5 +1,5 @@
-#include "prototype/core/gps.hpp"
-#include "prototype/munit.hpp"
+#include "proto/core/gps.hpp"
+#include "proto/munit.hpp"
 
 namespace proto {
 

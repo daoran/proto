@@ -1,8 +1,8 @@
 #include <unistd.h>
 
-#include "prototype/munit.hpp"
-#include "prototype/core/macros.hpp"
-#include "prototype/comm/tcp.hpp"
+#include "proto/munit.hpp"
+#include "proto/core/macros.hpp"
+#include "proto/comm/tcp.hpp"
 
 namespace proto {
 

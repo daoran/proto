@@ -1,4 +1,4 @@
-#include "prototype/viz/texture.hpp"
+#include "proto/viz/texture.hpp"
 
 namespace proto {
 

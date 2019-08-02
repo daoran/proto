@@ -1,12 +1,12 @@
 #include <mex.h>
-#include <prototype/prototype.hpp>
+#include <proto/proto.hpp>
 
 /**
  * Check number of arguments
  */
 inline void nargchk(bool cond) {
   if (!cond) {
-    mexErrMsgIdAndTxt("prototype:error", "Wrong number of arguments!");
+    mexErrMsgIdAndTxt("proto:error", "Wrong number of arguments!");
   }
 }
 
@@ -212,7 +212,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // Load EuRoC dataset
   proto::euroc_data_t data(data_path);
   if (data.ok == false) {
-    mexErrMsgIdAndTxt("prototype:error", "Failed to load EuRoC dataset!");
+    mexErrMsgIdAndTxt("proto:error", "Failed to load EuRoC dataset!");
   }
 
   // Convert to octave structs

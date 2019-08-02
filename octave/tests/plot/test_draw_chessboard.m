@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 chessboard = chessboard_create(5, 4);
 T_WF = tf(euler321(deg2rad([0.0; -90.0; 0.0])), [5.0; 0.0; 0.0]);

@@ -29,7 +29,7 @@ typedef Eigen::Matrix<double, 3, 4> mat34_t;
 
 #define ASSERT(X, Y) \
   if (!(X)) { \
-    mexErrMsgIdAndTxt("prototype:error", #Y); \
+    mexErrMsgIdAndTxt("proto:error", #Y); \
   }
 
 #define UNUSED(expr)                                                           \
@@ -63,7 +63,7 @@ struct config_t {
   config_t() {}
   config_t(const std::string &file_path_) : file_path{file_path_} {
     if (file_exists(file_path) == false) {
-      mexErrMsgIdAndTxt("prototype:error",
+      mexErrMsgIdAndTxt("proto:error",
                         "File not found: %s", file_path.c_str());
       return;
     }
@@ -80,7 +80,7 @@ struct config_t {
  */
 inline void nargchk(bool cond) {
   if (!cond) {
-    mexErrMsgIdAndTxt("prototype:error", "Wrong number of arguments!");
+    mexErrMsgIdAndTxt("proto:error", "Wrong number of arguments!");
   }
 }
 
@@ -129,7 +129,7 @@ int yaml_get_node(const config_t &config,
 
   // Check key
   if (node.IsDefined() == false && optional == false) {
-    mexErrMsgIdAndTxt("prototype:error",
+    mexErrMsgIdAndTxt("proto:error",
                       "Opps [%s] missing in yaml file [%s]!",
                       key.c_str(),
                       config.file_path.c_str());
@@ -160,13 +160,13 @@ size_t yaml_check_vector(const YAML::Node &node,
     vector_size = node.size();
     return vector_size; // Don't bother, it could be anything
   } else {
-    mexErrMsgIdAndTxt("prototype:error", "Unsportted vector type!");
+    mexErrMsgIdAndTxt("proto:error", "Unsportted vector type!");
   }
 
   // Check number of values in the param
   if (node.size() == 0 && node.size() != vector_size) {
     mexErrMsgIdAndTxt(
-          "prototype:error"
+          "proto:error"
           "Vector [%s] should have %d values but config has %d!",
           key.c_str(),
           static_cast<int>(vector_size),
@@ -188,7 +188,7 @@ void yaml_check_matrix(const YAML::Node &node,
   for (int i = 0; i < 3; i++) {
     if (!node[targets[i]]) {
       mexErrMsgIdAndTxt(
-            "prototype:error"
+            "proto:error"
             "Key [%s] is missing for matrix [%s]!",
             targets[i].c_str(),
             key.c_str());
@@ -208,11 +208,11 @@ void yaml_check_matrix(const YAML::Node &node,
   } else if (std::is_same<T, matx_t>::value) {
     nb_elements = node["data"].size();
   } else {
-    mexErrMsgIdAndTxt("prototype:error", "Unsportted matrix type!");
+    mexErrMsgIdAndTxt("proto:error", "Unsportted matrix type!");
   }
   if (node["data"].size() != nb_elements) {
     mexErrMsgIdAndTxt(
-          "prototype:error"
+          "proto:error"
           "Matrix [%s] rows and cols do not match number of values!",
           key.c_str());
   }

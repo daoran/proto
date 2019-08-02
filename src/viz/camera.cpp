@@ -1,4 +1,4 @@
-#include "prototype/viz/camera.hpp"
+#include "proto/viz/camera.hpp"
 
 namespace proto {
 

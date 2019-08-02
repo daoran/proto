@@ -1,4 +1,4 @@
-#include "prototype/calib/calib_vicon_marker.hpp"
+#include "proto/calib/calib_vicon_marker.hpp"
 
 namespace proto {
 

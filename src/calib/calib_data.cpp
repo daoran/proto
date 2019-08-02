@@ -1,4 +1,4 @@
-#include "prototype/calib/calib_data.hpp"
+#include "proto/calib/calib_data.hpp"
 
 namespace proto {
 

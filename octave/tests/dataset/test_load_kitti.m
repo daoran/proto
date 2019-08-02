@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 DATA_PATH = "/data/kitti";
 data = load_kitti(DATA_PATH, "2011_09_26", "0005");

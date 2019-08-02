@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 APRILGRID_CSV = "tests/dataset/1544716471496990204.csv";
 [retval, grid] = load_aprilgrid(APRILGRID_CSV);

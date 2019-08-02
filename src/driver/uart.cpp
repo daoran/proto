@@ -1,4 +1,4 @@
-#include "prototype/driver/uart.hpp"
+#include "proto/driver/uart.hpp"
 
 namespace proto {
 

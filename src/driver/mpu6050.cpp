@@ -1,4 +1,4 @@
-#include "prototype/driver/mpu6050.hpp"
+#include "proto/driver/mpu6050.hpp"
 
 namespace proto {
 

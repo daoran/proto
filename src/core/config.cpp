@@ -1,4 +1,4 @@
-#include "prototype/core/config.hpp"
+#include "proto/core/config.hpp"
 
 namespace proto {
 

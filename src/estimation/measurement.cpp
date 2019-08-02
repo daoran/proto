@@ -1,4 +1,4 @@
-#include "prototype/estimation/measurement.hpp"
+#include "proto/estimation/measurement.hpp"
 
 namespace proto {
 

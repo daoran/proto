@@ -1,4 +1,4 @@
-#include "prototype/driver/camera.hpp"
+#include "proto/driver/camera.hpp"
 
 namespace proto {
 

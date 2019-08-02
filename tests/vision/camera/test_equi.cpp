@@ -1,7 +1,7 @@
-#include "prototype/munit.hpp"
-#include "prototype/vision/vision_common.hpp"
-#include "prototype/vision/camera/pinhole.hpp"
-#include "prototype/vision/camera/equi.hpp"
+#include "proto/munit.hpp"
+#include "proto/vision/vision_common.hpp"
+#include "proto/vision/camera/pinhole.hpp"
+#include "proto/vision/camera/equi.hpp"
 
 namespace proto {
 

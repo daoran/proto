@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/model/two_wheel.hpp"
+#include "proto/munit.hpp"
+#include "proto/model/two_wheel.hpp"
 
 namespace proto {
 

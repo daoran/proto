@@ -1,4 +1,4 @@
-#include "prototype/core/time.hpp"
+#include "proto/core/time.hpp"
 
 namespace proto {
 

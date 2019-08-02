@@ -7,11 +7,11 @@ deps:
 	pkg install -forge symbolic;
 
 dataset:
-	@make -s -C prototype/dataset
+	@make -s -C proto/dataset
 
 config:
-	@make -s -C prototype/core/config
+	@make -s -C proto/core/config
 
 clean:
-	@make -s -C prototype/dataset clean
-	@make -s -C prototype/core/config clean
+	@make -s -C proto/dataset clean
+	@make -s -C proto/core/config clean

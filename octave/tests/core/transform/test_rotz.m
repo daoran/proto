@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 x = [1.0; 0.0; 0.0];
 R = rotz(deg2rad(90.0));

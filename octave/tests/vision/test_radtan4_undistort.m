@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 test_passed = true;
 nb_tests = 100;
 

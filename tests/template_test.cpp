@@ -1,4 +1,4 @@
-#include "prototype/munit.hpp"
+#include "proto/munit.hpp"
 
 namespace proto {
 

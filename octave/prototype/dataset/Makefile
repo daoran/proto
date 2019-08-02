@@ -1,5 +1,5 @@
 INCLUDES=-I/usr/include/eigen3
-LIBS=-lyaml-cpp -lapriltags -lprototype
+LIBS=-lyaml-cpp -lapriltags -lproto
 CC=mkoctfile --mex
 SRCS=$(wildcard *.cpp)
 OBJS=$(SRCS:.cpp=.o)

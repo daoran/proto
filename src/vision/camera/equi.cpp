@@ -1,4 +1,4 @@
-#include "prototype/vision/camera/equi.hpp"
+#include "proto/vision/camera/equi.hpp"
 
 namespace proto {
 

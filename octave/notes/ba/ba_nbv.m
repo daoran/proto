@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 graphics_toolkit("fltk");
 pkg load statistics;
 % profile on;

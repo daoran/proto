@@ -1,4 +1,4 @@
-#include "prototype/comm/tcp.hpp"
+#include "proto/comm/tcp.hpp"
 
 namespace proto {
 

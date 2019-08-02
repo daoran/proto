@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 resolution = [680; 480];
 fov = 90.0;

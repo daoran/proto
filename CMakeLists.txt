@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.3)
-PROJECT(prototype)
+PROJECT(proto)
 
 # C++ COMPILER SETTINGS
 SET(CMAKE_CXX_STANDARD 11)
@@ -153,8 +153,8 @@ INSTALL(
   FILES_MATCHING PATTERN "*.h*"
 )
 INSTALL(
-  FILES cmake/PrototypeConfig.cmake
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/Prototype
+  FILES cmake/ProtoConfig.cmake
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/Proto
 )
 INSTALL(
   FILES cmake/SuiteSparseConfig.cmake

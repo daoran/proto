@@ -1,4 +1,4 @@
-#include "prototype/viz/shader.hpp"
+#include "proto/viz/shader.hpp"
 
 namespace proto {
 

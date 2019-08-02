@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 % Setup calibration target
 calib_target = calib_target_init();

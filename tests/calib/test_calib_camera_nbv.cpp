@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/calib/calib_camera_nbv.hpp"
+#include "proto/munit.hpp"
+#include "proto/calib/calib_camera_nbv.hpp"
 
 namespace proto {
 

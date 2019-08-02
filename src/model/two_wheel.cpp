@@ -1,4 +1,4 @@
-#include "prototype/model/two_wheel.hpp"
+#include "proto/model/two_wheel.hpp"
 
 namespace proto {
 

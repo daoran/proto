@@ -1,8 +1,8 @@
-#include "prototype/munit.hpp"
-#include "prototype/vision/camera/pinhole.hpp"
-#include "prototype/vision/camera/equi.hpp"
-#include "prototype/vision/camera/radtan.hpp"
-#include "prototype/vision/camera/camera_geometry.hpp"
+#include "proto/munit.hpp"
+#include "proto/vision/camera/pinhole.hpp"
+#include "proto/vision/camera/equi.hpp"
+#include "proto/vision/camera/radtan.hpp"
+#include "proto/vision/camera/camera_geometry.hpp"
 
 namespace proto {
 

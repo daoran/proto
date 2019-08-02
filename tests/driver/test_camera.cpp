@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/driver/camera.hpp"
+#include "proto/munit.hpp"
+#include "proto/driver/camera.hpp"
 
 #define TEST_CONFIG "test_configs/camera/webcam/config.yaml"
 

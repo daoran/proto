@@ -1,4 +1,4 @@
-#include "prototype/viz/mesh.hpp"
+#include "proto/viz/mesh.hpp"
 
 namespace proto {
 

@@ -1,4 +1,4 @@
-#include <prototype/prototype.hpp>
+#include <proto/proto.hpp>
 #include <map>
 
 using namespace proto;

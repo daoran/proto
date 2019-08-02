@@ -1,4 +1,4 @@
-#include "prototype/core/math.hpp"
+#include "proto/core/math.hpp"
 
 namespace proto {
 

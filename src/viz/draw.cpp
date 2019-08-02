@@ -1,4 +1,4 @@
-#include "prototype/viz/draw.hpp"
+#include "proto/viz/draw.hpp"
 
 namespace proto {
 

@@ -1,4 +1,4 @@
-#include "prototype/viz/model.hpp"
+#include "proto/viz/model.hpp"
 
 namespace proto {
 

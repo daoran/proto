@@ -1,24 +1,27 @@
-BUILD_DIR=${PWD}/build
+MKFILE_PATH=$(abspath $(lastword $(MAKEFILE_LIST)))
+PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
+BUILD_DIR=${PROJ_PATH}/build
+
 
 define usage
 [TARGETS]:
   deps:
-    Install prototype dependencies.
+    Install proto dependencies.
 
   debug:
-    Build prototype in debug mode.
+    Build proto in debug mode.
 
   release:
-    Build prototype in release mode.
+    Build proto in release mode.
 
   install:
-    Install prototype to '$$PREFIX'. By default this is "/usr/local".
+    Install proto to '$$PREFIX'. By default this is "/usr/local".
 
   format_code:
-    Format prototype code using clang-format.
+    Format proto code using clang-format.
 
   docs:
-    Generate docs for prototype.
+    Generate docs for proto.
 endef
 export usage
 

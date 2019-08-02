@@ -1,4 +1,4 @@
-#include "prototype/model/gimbal.hpp"
+#include "proto/model/gimbal.hpp"
 
 namespace proto {
 

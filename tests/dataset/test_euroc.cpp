@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/dataset/euroc.hpp"
+#include "proto/munit.hpp"
+#include "proto/dataset/euroc.hpp"
 
 namespace proto {
 

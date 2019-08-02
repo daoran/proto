@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 camera = camera_init([680; 480], 90.0);
 calib_target = calib_target_init();

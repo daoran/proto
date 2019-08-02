@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/mav/att_ctrl.hpp"
+#include "proto/munit.hpp"
+#include "proto/mav/att_ctrl.hpp"
 
 namespace proto {
 

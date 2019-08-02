@@ -1,4 +1,4 @@
-#include "prototype/driver/ublox.hpp"
+#include "proto/driver/ublox.hpp"
 
 #define BASE_STATION_IP "127.0.0.1"
 #define BASE_STATION_PORT 8080

@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/control/carrot_ctrl.hpp"
+#include "proto/munit.hpp"
+#include "proto/control/carrot_ctrl.hpp"
 
 namespace proto {
 

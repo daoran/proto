@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 T = eye(4);
 T_diff = perturb_rot(T, 1e-5, 1);

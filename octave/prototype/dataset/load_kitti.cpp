@@ -1,12 +1,12 @@
 #include <mex.h>
-#include <prototype/prototype.hpp>
+#include <proto/proto.hpp>
 
 /**
  * Check number of arguments
  */
 inline void nargchk(bool cond) {
   if (!cond) {
-    mexErrMsgIdAndTxt("prototype:error", "Wrong number of arguments!");
+    mexErrMsgIdAndTxt("proto:error", "Wrong number of arguments!");
   }
 }
 
@@ -455,7 +455,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // Load EuRoC dataset
   proto::kitti_raw_t data(data_path, date, seq);
   if (proto::kitti_raw_load(data) != 0) {
-    mexErrMsgIdAndTxt("prototype:error", "Failed to load KITTI raw dataset!");
+    mexErrMsgIdAndTxt("proto:error", "Failed to load KITTI raw dataset!");
   }
 
   // Return

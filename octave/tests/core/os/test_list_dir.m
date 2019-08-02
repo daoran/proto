@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 listings = list_dir(".");
 assert(size(listings) > 0);

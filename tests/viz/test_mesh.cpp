@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/viz/mesh.hpp"
+#include "proto/munit.hpp"
+#include "proto/viz/mesh.hpp"
 
 int test_glmesh() {
 

@@ -1,4 +1,4 @@
-#include "prototype/driver/sbgc.hpp"
+#include "proto/driver/sbgc.hpp"
 
 namespace proto {
 

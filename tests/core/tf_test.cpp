@@ -1,8 +1,8 @@
 #include <unistd.h>
 
-#include "prototype/munit.hpp"
-#include "prototype/core/tf.hpp"
-#include "prototype/core/time.hpp"
+#include "proto/munit.hpp"
+#include "proto/core/tf.hpp"
+#include "proto/core/time.hpp"
 
 namespace proto {
 

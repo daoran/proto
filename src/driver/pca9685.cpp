@@ -1,4 +1,4 @@
-#include "prototype/driver/pca9685.hpp"
+#include "proto/driver/pca9685.hpp"
 
 namespace proto {
 

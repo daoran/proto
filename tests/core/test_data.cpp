@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/core/data.hpp"
+#include "proto/munit.hpp"
+#include "proto/core/data.hpp"
 
 #define TEST_DATA "test_data/core/data/matrix.dat"
 #define TEST_OUTPUT "/tmp/matrix.dat"

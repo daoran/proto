@@ -1,5 +1,5 @@
-#include "prototype/munit.hpp"
-#include "prototype/viz/camera.hpp"
+#include "proto/munit.hpp"
+#include "proto/viz/camera.hpp"
 
 using namespace proto;
 

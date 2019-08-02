@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 % Test vector
 p = [1.0; 2.0; 3.0];

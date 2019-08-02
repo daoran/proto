@@ -1,6 +1,6 @@
-#include "prototype/munit.hpp"
-#include "prototype/vision/feature2d/draw.hpp"
-#include "prototype/vision/feature2d/grid_good.hpp"
+#include "proto/munit.hpp"
+#include "proto/vision/feature2d/draw.hpp"
+#include "proto/vision/feature2d/grid_good.hpp"
 
 namespace proto {
 

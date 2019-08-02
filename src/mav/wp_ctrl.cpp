@@ -1,4 +1,4 @@
-#include "prototype/mav/wp_ctrl.hpp"
+#include "proto/mav/wp_ctrl.hpp"
 
 namespace proto {
 

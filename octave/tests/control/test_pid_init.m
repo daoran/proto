@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 pid = pid_init(0.1, 0.2, 0.3);
 

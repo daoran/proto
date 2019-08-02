@@ -1,4 +1,4 @@
-addpath(genpath("prototype"));
+addpath(genpath("proto"));
 
 % IMU to cam0 and cam1 transforms
 T_SC0 = [0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975;
