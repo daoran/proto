@@ -32,7 +32,7 @@ public:
   gui_t(const std::string &title);
   ~gui_t();
 
-  static void error_callback(int error, const char* description);
+  static void error_callback(int error, const char *description);
   static void window_callback(GLFWwindow *window,
                               const int width,
                               const int height);
@@ -44,7 +44,7 @@ public:
   bool ok();
   void poll();
   void clear();
-  void render(const bool clear_gui=false);
+  void render(const bool clear_gui = false);
   void close();
 };
 
@@ -86,4 +86,4 @@ public:
 };
 
 } // namespace proto
-#endif  // PROTO_VIZ_GUI_HPP
+#endif // PROTO_VIZ_GUI_HPP

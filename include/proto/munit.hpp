@@ -158,13 +158,14 @@ static int failed = 0;
 
 #define PYTHON_SCRIPT(A)                                                       \
   if (system("python3 " A) != 0) {                                             \
-    LOG_ERROR("Python script [%s] failed !", A);                               \
+    printf("Python script [%s] failed !", A);                                  \
     return -1;                                                                 \
   }
 
 #define OCTAVE_SCRIPT(A)                                                       \
   if (system("octave " A) != 0) {                                              \
-    FATAL("Octave script [%s] failed !", A);                                   \
+    printf("Octave script [%s] failed !", A);                                  \
+    exit(-1);                                                                  \
   }
 
 #endif // MUNIT_HPP

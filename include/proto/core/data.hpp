@@ -21,32 +21,32 @@ namespace proto {
 /**
  * Convert bytes to signed 8bit number
  */
-int8_t s8bit(const uint8_t *data, const size_t offset);
+int8_t int8(const uint8_t *data, const size_t offset);
 
 /**
  * Convert bytes to unsigned 8bit number
  */
-uint8_t u8bit(const uint8_t *data, const size_t offset);
+uint8_t uint8(const uint8_t *data, const size_t offset);
 
 /**
  * Convert bytes to signed 16bit number
  */
-int16_t s16bit(const uint8_t *data, const size_t offset);
+int16_t int16(const uint8_t *data, const size_t offset);
 
 /**
  * Convert bytes to unsigned 16bit number
  */
-uint16_t u16bit(const uint8_t *data, const size_t offset);
+uint16_t uint16(const uint8_t *data, const size_t offset);
 
 /**
  * Convert bytes to signed 32bit number
  */
-int32_t s32bit(const uint8_t *data, const size_t offset);
+int32_t int32(const uint8_t *data, const size_t offset);
 
 /**
  * Convert bytes to unsigned 32bit number
  */
-uint32_t u32bit(const uint8_t *data, const size_t offset);
+uint32_t uint32(const uint8_t *data, const size_t offset);
 
 /**
  * Get number of rows in CSV file.

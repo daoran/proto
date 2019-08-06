@@ -40,12 +40,12 @@ public:
   float fov = 45.0f;
   float near = 0.1f;
   float far = 100.0f;
-	int &screen_width;
-	int &screen_height;
+  int &screen_width;
+  int &screen_height;
 
   glcamera_t(int &screen_width_,
-						 int &screen_height_,
-						 const glm::vec3 position_);
+             int &screen_height_,
+             const glm::vec3 position_);
 };
 
 glm::mat4 glcamera_projection(const glcamera_t &camera);

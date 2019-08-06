@@ -8,14 +8,13 @@
 #include "proto/core/stb_image.h"
 #include "proto/core/stb_image_resize.h"
 
-
 void print_vec3(const std::string &title, const glm::vec3 &v) {
   printf("%s: ", title.c_str());
   printf("%f, %f, %f\n", v.x, v.y, v.z);
 }
 
 void print_vec4(const std::string &title, const glm::vec4 &v) {
-  printf("%s: " , title.c_str());
+  printf("%s: ", title.c_str());
   printf("%f, %f, %f, %f\n", v.x, v.y, v.z, v.w);
 }
 

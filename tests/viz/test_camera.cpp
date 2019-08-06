@@ -42,25 +42,15 @@ int test_glcamera_projection() {
   return 0;
 }
 
-int test_glcamera_view_matrix() {
-  return 0;
-}
+int test_glcamera_view_matrix() { return 0; }
 
-int test_glcamera_update() {
-  return 0;
-}
+int test_glcamera_update() { return 0; }
 
-int test_glcamera_keyboard_handler() {
-  return 0;
-}
+int test_glcamera_keyboard_handler() { return 0; }
 
-int test_glcamera_mouse_handler() {
-  return 0;
-}
+int test_glcamera_mouse_handler() { return 0; }
 
-int test_glcamera_scroll_handler() {
-  return 0;
-}
+int test_glcamera_scroll_handler() { return 0; }
 
 void test_suite() {
   MU_ADD_TEST(test_glcamera);

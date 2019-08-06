@@ -100,14 +100,12 @@ int main(int argc, char *argv[]) {
 
   } else {
     // Detect AprilGrid without estimating
-    int retval = detect_calib_data(calib_target,
-                                   config.image_path,
-                                   config.imshow);
+    int retval =
+        detect_calib_data(calib_target, config.image_path, config.imshow);
     if (retval != 0) {
       LOG_ERROR("Failed to process calibration data!");
       return -1;
     }
-
   }
 
   return 0;

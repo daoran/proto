@@ -8,14 +8,13 @@ static void glfw_cursor_cb(GLFWwindow *window, double xpos, double ypos) {
   // cursor_y = ypos;
 }
 
-// static void glfw_scroll_cb(GLFWwindow *window, double xoffset, double yoffset) {
+// static void glfw_scroll_cb(GLFWwindow *window, double xoffset, double
+// yoffset) {
 //   glcamera_scroll_handler(camera, yoffset);
 // }
 
-gui_t::gui_t(const std::string &title,
-             const int width,
-             const int height)
-  : title_{title}, width_{width}, height_{height} {
+gui_t::gui_t(const std::string &title, const int width, const int height)
+    : title_{title}, width_{width}, height_{height} {
   // Setup window
   if (!glfwInit()) {
     FATAL("Failed to set GLFW error callback!");
@@ -23,20 +22,14 @@ gui_t::gui_t(const std::string &title,
 
   // Decide GL+GLSL versions
   // GL 3.0 + GLSL 130
-  const char* glsl_version = "#version 130";
+  const char *glsl_version = "#version 130";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-  //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-  //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
+  // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+
+  // only glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // 3.0+ only
 
   // Create window with graphics context
-  gui_ = glfwCreateWindow(
-    width_,
-    height_,
-    title_.c_str(),
-    NULL,
-    NULL
-  );
+  gui_ = glfwCreateWindow(width_, height_, title_.c_str(), NULL, NULL);
   if (gui_ == NULL) {
     FATAL("Failed to create a GLFW window!");
   }
@@ -75,8 +68,7 @@ gui_t::gui_t(const std::string &title,
   ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-gui_t::gui_t(const std::string &title)
-  : gui_t{title, 1280, 720} {}
+gui_t::gui_t(const std::string &title) : gui_t{title, 1280, 720} {}
 
 gui_t::~gui_t() {
   ImGui_ImplOpenGL3_Shutdown();
@@ -105,9 +97,7 @@ float gui_t::dt() {
   return dt;
 }
 
-bool gui_t::ok() {
-  return !glfwWindowShouldClose(gui_);
-}
+bool gui_t::ok() { return !glfwWindowShouldClose(gui_); }
 
 void gui_t::poll() {
   glfwPollEvents();
@@ -144,22 +134,18 @@ void gui_t::close() {
   glfwTerminate();
 }
 
-gui_imshow_t::gui_imshow_t(const std::string &title)
-  :title_{title} {}
+gui_imshow_t::gui_imshow_t(const std::string &title) : title_{title} {}
 
 gui_imshow_t::gui_imshow_t(const std::string &title,
                            const std::string &img_path)
-      : title_{title}, img_path_{img_path} {
-  unsigned char *data = stbi_load(img_path.c_str(),
-                                  &img_width_,
-                                  &img_height_,
-                                  &img_channels_,
-                                  0);
-	if (!data) {
-		FATAL("Failed to load texture at path [%s]!\n", img_path.c_str());
-	}
+    : title_{title}, img_path_{img_path} {
+  unsigned char *data =
+      stbi_load(img_path.c_str(), &img_width_, &img_height_, &img_channels_, 0);
+  if (!data) {
+    FATAL("Failed to load texture at path [%s]!\n", img_path.c_str());
+  }
   init(title, img_width_, img_height_, img_channels_, data);
-	stbi_image_free(data);
+  stbi_image_free(data);
 }
 
 gui_imshow_t::gui_imshow_t(const std::string &title,
@@ -170,9 +156,7 @@ gui_imshow_t::gui_imshow_t(const std::string &title,
   init(title, img_width, img_height, img_channels, data);
 }
 
-bool gui_imshow_t::ok() {
-  return ok_;
-}
+bool gui_imshow_t::ok() { return ok_; }
 
 void gui_imshow_t::init(const std::string &title,
                         const int img_width,
@@ -191,22 +175,28 @@ void gui_imshow_t::init(const std::string &title,
   // Load and create a texture
   img_id_ = load_texture(img_width_, img_height_, img_channels_, data);
   glFramebufferTexture2D(GL_FRAMEBUFFER,
-                          GL_COLOR_ATTACHMENT0,
-                          GL_TEXTURE_2D,
-                          img_id_,
-                          0);
+                         GL_COLOR_ATTACHMENT0,
+                         GL_TEXTURE_2D,
+                         img_id_,
+                         0);
 
   // Render buffer
   glGenRenderbuffers(1, &RBO_);
   glBindRenderbuffer(GL_RENDERBUFFER, RBO_);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, img_width, img_height);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO_);
+  glRenderbufferStorage(GL_RENDERBUFFER,
+                        GL_DEPTH24_STENCIL8,
+                        img_width,
+                        img_height);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                            GL_DEPTH_STENCIL_ATTACHMENT,
+                            GL_RENDERBUFFER,
+                            RBO_);
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     FATAL("Framebuffer is not complete!\n");
   }
 
   // Clean up
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);  // Unbind FBO
+  glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind FBO
   ok_ = true;
 }
 
@@ -219,17 +209,15 @@ void gui_imshow_t::update(void *pixels) {
   }
 
   glBindTexture(GL_TEXTURE_2D, img_id_);
-  glTexSubImage2D(
-    GL_TEXTURE_2D,
-    0,
-    0,
-    0,
-    img_width_,
-    img_height_,
-    img_format,
-    GL_UNSIGNED_BYTE,
-    pixels
-  );
+  glTexSubImage2D(GL_TEXTURE_2D,
+                  0,
+                  0,
+                  0,
+                  img_width_,
+                  img_height_,
+                  img_format,
+                  GL_UNSIGNED_BYTE,
+                  pixels);
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -252,11 +240,9 @@ void gui_imshow_t::show() {
   const auto end_x = start.x + img_width_;
   const auto end_y = start.y + img_height_;
   const auto end = ImVec2(end_x, end_y);
-  ImGui::GetWindowDrawList()->AddImage(
-    (void*)(intptr_t) img_id_,
-    ImVec2(start.x, start.y),
-    end
-  );
+  ImGui::GetWindowDrawList()->AddImage((void *) (intptr_t) img_id_,
+                                       ImVec2(start.x, start.y),
+                                       end);
 
   // End window
   ImGui::End();

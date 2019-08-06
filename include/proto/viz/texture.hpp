@@ -16,14 +16,14 @@ struct gltexture_t {
 };
 
 unsigned int load_texture(int img_width,
-													int img_height,
-													int img_channels,
-													const unsigned char *data);
+                          int img_height,
+                          int img_channels,
+                          const unsigned char *data);
 
 unsigned int load_texture(const std::string &texture_file,
-													int &img_width,
-													int &img_height,
-													int &img_channels);
+                          int &img_width,
+                          int &img_height,
+                          int &img_channels);
 
 unsigned int load_texture(const std::string &texture_file);
 

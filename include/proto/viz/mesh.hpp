@@ -32,8 +32,8 @@ struct glmesh_t {
   unsigned int EBO;
 
   glmesh_t(const std::vector<glvertex_t> &vertices_,
-         const std::vector<unsigned int> &indices_,
-         const std::vector<gltexture_t> &textures_);
+           const std::vector<unsigned int> &indices_,
+           const std::vector<gltexture_t> &textures_);
 };
 
 void glmesh_init(glmesh_t &mesh);

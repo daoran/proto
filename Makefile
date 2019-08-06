@@ -42,11 +42,13 @@ debug: ${BUILD_DIR}
 release: ${BUILD_DIR}
 	@cd build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s
 
-install: release
-	@cd build && make -s install
-
-debug_install: debug
-	@cd build && make -s install
+install:
+	@if [ ! -d build ]; then \
+		echo "Error: Not built yet!"; \
+		exit 1; \
+	else \
+		cd build && make -s install; \
+	fi
 
 format_code:
 	@bash ./scripts/format_code.bash

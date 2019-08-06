@@ -2,13 +2,9 @@
 
 namespace proto {
 
-frontend_t::frontend_t() {
+frontend_t::frontend_t() {}
 
-}
-
-frontend_t::~frontend_t() {
-
-}
+frontend_t::~frontend_t() {}
 
 int frontend_update(frontend_t &fe, const cv::Mat &image, const bool debug) {
   // Parameters for Shi-Tomasi algorithm
@@ -41,7 +37,7 @@ int frontend_update(frontend_t &fe, const cv::Mat &image, const bool debug) {
     const int radius = 2;
     const cv::Mat img = image.clone();
     const cv::Scalar color(0, 255, 0);
-    for (size_t i = 0; i < corners.size(); i++ ) {
+    for (size_t i = 0; i < corners.size(); i++) {
       cv::circle(img, corners[i], radius, color, cv::FILLED);
     }
     cv::imshow("Frontend", img);

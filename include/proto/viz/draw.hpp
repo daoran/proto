@@ -12,7 +12,7 @@
 namespace proto {
 namespace shaders {
 
-const char* glcf_vs = R"glsl(
+const char *glcf_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 
@@ -25,7 +25,7 @@ void main() {
 }
 )glsl";
 
-const char* glcf_fs = R"glsl(
+const char *glcf_fs = R"glsl(
 #version 150 core
 
 out vec4 FragColor;
@@ -35,7 +35,7 @@ void main() {
 }
 )glsl";
 
-const char* glcube_vs = R"glsl(
+const char *glcube_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 in_pos;
 layout (location = 1) in vec3 in_color;
@@ -51,7 +51,7 @@ void main() {
 }
 )glsl";
 
-const char* glcube_fs = R"glsl(
+const char *glcube_fs = R"glsl(
 #version 150 core
 in vec3 color;
 out vec4 frag_color;
@@ -61,7 +61,7 @@ void main() {
 }
 )glsl";
 
-const char* glframe_vs = R"glsl(
+const char *glframe_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 in_pos;
 layout (location = 1) in vec3 in_color;
@@ -77,7 +77,7 @@ void main() {
 }
 )glsl";
 
-const char* glframe_fs = R"glsl(
+const char *glframe_fs = R"glsl(
 #version 150 core
 in vec3 color;
 out vec4 frag_color;
@@ -87,7 +87,7 @@ void main() {
 }
 )glsl";
 
-const char* glgrid_vs = R"glsl(
+const char *glgrid_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 
@@ -100,7 +100,7 @@ void main() {
 }
 )glsl";
 
-const char* glgrid_fs = R"glsl(
+const char *glgrid_fs = R"glsl(
 #version 150 core
 
 out vec4 FragColor;
@@ -110,7 +110,7 @@ void main() {
 }
 )glsl";
 
-const char* glplane_vs = R"glsl(
+const char *glplane_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aColor;
@@ -126,7 +126,7 @@ void main() {
 }
 )glsl";
 
-const char* glplane_fs = R"glsl(
+const char *glplane_fs = R"glsl(
 #version 330 core
 
 in vec3 ourColor;
@@ -203,16 +203,16 @@ public:
   float height_ = 0.5;
   glm::vec3 color_{0.9, 0.4, 0.2};
 
-	int img_width_ = 0;
-	int img_height_ = 0;
-	int img_channels_ = 0;
+  int img_width_ = 0;
+  int img_height_ = 0;
+  int img_channels_ = 0;
 
   unsigned int texture_;
-	GLuint FBO_;
+  GLuint FBO_;
 
   glplane_t(const std::string &image_path);
   void draw(const glcamera_t &camera);
 };
 
-}  // namespace proto
+} // namespace proto
 #endif // PROTO_VIZ_DRAW_HPP

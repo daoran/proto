@@ -17,6 +17,7 @@ make
 # octave notes/imu_preintegration/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0
+# octave notes/bspline.m && exit 0
 # octave notes/convolution.m && exit 0
 # octave notes/error_ellipse.m && exit 0
 octave notes/error_propagation.m && exit 0

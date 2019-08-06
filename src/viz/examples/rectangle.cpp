@@ -29,10 +29,10 @@ void main() {
 )glsl";
 
 void process_input(GLFWwindow *window) {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS){
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
 }
@@ -59,7 +59,7 @@ GLFWwindow *create_window() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   // Load all OpenGL function pointers
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+  if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
     printf("Failed to initialize GLAD\n");
     return NULL;
   }
@@ -110,7 +110,7 @@ int link_shaders(const int vertex_shader, const int fragment_shader) {
 
 int main() {
   // Create window
-  GLFWwindow* window = create_window();
+  GLFWwindow *window = create_window();
   if (!window) {
     glfwTerminate();
     return -1;
@@ -123,14 +123,27 @@ int main() {
 
   // Set up vertex data (and buffer(s)) and configure vertex attributes
   float vertices[] = {
-    0.5f,  0.5f, 0.0f,   // top right
-    0.5f, -0.5f, 0.0f,   // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left
+      0.5f,
+      0.5f,
+      0.0f, // top right
+      0.5f,
+      -0.5f,
+      0.0f, // bottom right
+      -0.5f,
+      -0.5f,
+      0.0f, // bottom left
+      -0.5f,
+      0.5f,
+      0.0f // top left
   };
-  unsigned int indices[] = {  // Note that we start from 0!
-    0, 1, 3,                  // first Triangle
-    1, 2, 3                   // second Triangle
+  unsigned int indices[] = {
+      // Note that we start from 0!
+      0,
+      1,
+      3, // first Triangle
+      1,
+      2,
+      3 // second Triangle
   };
 
   // -- VAO
@@ -142,19 +155,27 @@ int main() {
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        3 * sizeof(float),
+                        (void *) 0);
   glEnableVertexAttribArray(0);
   // -- EBO
   unsigned int EBO;
   glGenBuffers(1, &EBO);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               sizeof(indices),
+               indices,
+               GL_STATIC_DRAW);
   // -- Clean up
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
   // Uncomment this call to draw in wireframe polygons.
-  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   // Render loop
   while (!glfwWindowShouldClose(window)) {

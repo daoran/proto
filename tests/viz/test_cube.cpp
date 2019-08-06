@@ -9,14 +9,12 @@ int test_cube() {
     gui.poll();
 
     gui.clear();
-		gui.render();
+    gui.render();
   }
 
   return 0;
 }
 
-void test_suite() {
-  MU_ADD_TEST(test_cube);
-}
+void test_suite() { MU_ADD_TEST(test_cube); }
 
 MU_RUN_TESTS(test_suite);

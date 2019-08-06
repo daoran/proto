@@ -12,7 +12,7 @@ int main(void) {
     gui.poll();
 
     gui.clear();
-		gui.render();
+    gui.render();
   }
 
   gui.close();

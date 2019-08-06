@@ -4,13 +4,9 @@ namespace proto {
 
 globj_t::globj_t(const char *vs, const char *fs) : program_{vs, fs} {}
 
-void globj_t::pos(const glm::vec3 &pos) {
-  T_SM_ = glm::translate(T_SM_, pos);
-}
+void globj_t::pos(const glm::vec3 &pos) { T_SM_ = glm::translate(T_SM_, pos); }
 
-glm::vec3 globj_t::pos() {
-  return glm::vec3(T_SM_[3]);
-}
+glm::vec3 globj_t::pos() { return glm::vec3(T_SM_[3]); }
 
 glm::mat3 globj_t::rot() {
   glm::vec3 col_0(T_SM_[0]);
@@ -22,44 +18,74 @@ glm::mat3 globj_t::rot() {
 
 glcf_t::glcf_t() : globj_t{shaders::glcf_vs, shaders::glcf_fs} {
   // Form the camera fov frame
-	float hfov = fov_ / 2.0f;
+  float hfov = fov_ / 2.0f;
   float z = scale_;
-	float hwidth = z * glm::tan(hfov);
-  const glm::vec3 lb{-hwidth, hwidth, z};   // Left bottom
-  const glm::vec3 lt{-hwidth, -hwidth, z};  // Left top
-  const glm::vec3 rt{hwidth, -hwidth, z};		// Right top
-  const glm::vec3 rb{hwidth, hwidth, z};		// Right bottom
+  float hwidth = z * glm::tan(hfov);
+  const glm::vec3 lb{-hwidth, hwidth, z};  // Left bottom
+  const glm::vec3 lt{-hwidth, -hwidth, z}; // Left top
+  const glm::vec3 rt{hwidth, -hwidth, z};  // Right top
+  const glm::vec3 rb{hwidth, hwidth, z};   // Right bottom
 
-  static const GLfloat vertices[] = {
-		// Rectangle frame
-		// -- Left bottom to left top
-		lb.x, lb.y, lb.z,
-		lt.x, lt.y, lt.z,
-		// -- Left top to right top
-		lt.x, lt.y, lt.z,
-		rt.x, rt.y, rt.z,
-		// -- Right top to right bottom
-		rt.x, rt.y, rt.z,
-		rb.x, rb.y, rb.z,
-		// -- Right bottom to left bottom
-		rb.x, rb.y, rb.z,
-		lb.x, lb.y, lb.z,
-		// Rectangle frame to origin
-		// -- Origin to left bottom
-		0.0f, 0.0f, 0.0f,
-		lb.x, lb.y, lb.z,
-		// -- Origin to left top
-		0.0f, 0.0f, 0.0f,
-		lt.x, lt.y, lt.z,
-		// -- Origin to right top
-		0.0f, 0.0f, 0.0f,
-		rt.x, rt.y, rt.z,
-		// -- Origin to right bottom
-		0.0f, 0.0f, 0.0f,
-		rb.x, rb.y, rb.z
-  };
-	const size_t nb_lines = 8;
-	const size_t nb_vertices = nb_lines * 2;
+  static const GLfloat vertices[] = {// Rectangle frame
+                                     // -- Left bottom to left top
+                                     lb.x,
+                                     lb.y,
+                                     lb.z,
+                                     lt.x,
+                                     lt.y,
+                                     lt.z,
+                                     // -- Left top to right top
+                                     lt.x,
+                                     lt.y,
+                                     lt.z,
+                                     rt.x,
+                                     rt.y,
+                                     rt.z,
+                                     // -- Right top to right bottom
+                                     rt.x,
+                                     rt.y,
+                                     rt.z,
+                                     rb.x,
+                                     rb.y,
+                                     rb.z,
+                                     // -- Right bottom to left bottom
+                                     rb.x,
+                                     rb.y,
+                                     rb.z,
+                                     lb.x,
+                                     lb.y,
+                                     lb.z,
+                                     // Rectangle frame to origin
+                                     // -- Origin to left bottom
+                                     0.0f,
+                                     0.0f,
+                                     0.0f,
+                                     lb.x,
+                                     lb.y,
+                                     lb.z,
+                                     // -- Origin to left top
+                                     0.0f,
+                                     0.0f,
+                                     0.0f,
+                                     lt.x,
+                                     lt.y,
+                                     lt.z,
+                                     // -- Origin to right top
+                                     0.0f,
+                                     0.0f,
+                                     0.0f,
+                                     rt.x,
+                                     rt.y,
+                                     rt.z,
+                                     // -- Origin to right bottom
+                                     0.0f,
+                                     0.0f,
+                                     0.0f,
+                                     rb.x,
+                                     rb.y,
+                                     rb.z};
+  const size_t nb_lines = 8;
+  const size_t nb_vertices = nb_lines * 2;
   const size_t buffer_size = sizeof(GLfloat) * nb_vertices * 3;
 
   // VAO
@@ -70,12 +96,17 @@ glcf_t::glcf_t() : globj_t{shaders::glcf_vs, shaders::glcf_fs} {
   glGenBuffers(1, &VBO_);
   glBindBuffer(GL_ARRAY_BUFFER, VBO_);
   glBufferData(GL_ARRAY_BUFFER, buffer_size, vertices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        3 * sizeof(float),
+                        (void *) 0);
   glEnableVertexAttribArray(0);
 
   // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0);  // Unbind VBO
-  glBindVertexArray(0);  // Unbind VAO
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
 }
 
 glcf_t::~glcf_t() {
@@ -97,8 +128,8 @@ void glcf_t::draw(const glcamera_t &camera) {
   glLineWidth(line_width_);
 
   // Draw frame
-	const size_t nb_lines = 8;
-	const size_t nb_vertices = nb_lines * 2;
+  const size_t nb_lines = 8;
+  const size_t nb_vertices = nb_lines * 2;
   glBindVertexArray(VAO_);
   glDrawArrays(GL_LINES, 0, nb_vertices);
   glBindVertexArray(0); // Unbind VAO
@@ -196,13 +227,13 @@ glcube_t::glcube_t() : globj_t{shaders::glcube_vs, shaders::glcube_fs} {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
   glEnableVertexAttribArray(0);
   // -- Color attribute
-  void *color_offset = (void *)(3 * sizeof(float));
+  void *color_offset = (void *) (3 * sizeof(float));
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
   glEnableVertexAttribArray(1);
 
   // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0);  // Unbind VBO
-  glBindVertexArray(0);  // Unbind VAO
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
 }
 
 glcube_t::~glcube_t() {
@@ -254,13 +285,13 @@ glframe_t::glframe_t() : globj_t{shaders::glframe_vs, shaders::glframe_fs} {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
   glEnableVertexAttribArray(0);
   // -- Color attribute
-  void *color_offset = (void *)(3 * sizeof(float));
+  void *color_offset = (void *) (3 * sizeof(float));
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
   glEnableVertexAttribArray(1);
 
   // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0);  // Unbind VBO
-  glBindVertexArray(0);  // Unbind VAO
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
 }
 
 glframe_t::~glframe_t() {
@@ -339,7 +370,6 @@ static GLfloat *glgrid_create_vertices(int grid_size) {
   return vertices;
 }
 
-
 glgrid_t::glgrid_t() : globj_t{shaders::glgrid_vs, shaders::glgrid_fs} {
   // Create vertices
   const int nb_lines = (grid_size_ + 1) * 2;
@@ -355,12 +385,17 @@ glgrid_t::glgrid_t() : globj_t{shaders::glgrid_vs, shaders::glgrid_fs} {
   glGenBuffers(1, &VBO_);
   glBindBuffer(GL_ARRAY_BUFFER, VBO_);
   glBufferData(GL_ARRAY_BUFFER, buffer_size, vertices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        3 * sizeof(float),
+                        (void *) 0);
   glEnableVertexAttribArray(0);
 
   // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0);  // Unbind VBO
-  glBindVertexArray(0);  // Unbind VAO
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
   free(vertices);
 }
 
@@ -384,8 +419,8 @@ void glgrid_t::draw(const glcamera_t &camera) {
 }
 
 glplane_t::glplane_t(const std::string &image_path)
-    : globj_t{shaders::glplane_vs, shaders::glplane_fs},
-      image_path_{image_path} {
+    : globj_t{shaders::glplane_vs, shaders::glplane_fs}, image_path_{
+                                                             image_path} {
   // clang-format off
   const float vertices[] = {
     // Positions         // Colors           // Texture coords
@@ -410,65 +445,93 @@ glplane_t::glplane_t(const std::string &image_path)
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
   // -- Position attribute
   const void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), pos_offset);
+  glVertexAttribPointer(0,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        8 * sizeof(float),
+                        pos_offset);
   glEnableVertexAttribArray(0);
   // -- Color attribute
-  void *color_offset = (void *)(3 * sizeof(float));
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), color_offset);
+  void *color_offset = (void *) (3 * sizeof(float));
+  glVertexAttribPointer(1,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        8 * sizeof(float),
+                        color_offset);
   glEnableVertexAttribArray(1);
   // -- Texture coord attribute
-  void *texture_offset = (void *)(6 * sizeof(float));
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), texture_offset);
+  void *texture_offset = (void *) (6 * sizeof(float));
+  glVertexAttribPointer(2,
+                        2,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        8 * sizeof(float),
+                        texture_offset);
   glEnableVertexAttribArray(2);
 
   // EBO
   glGenBuffers(1, &EBO_);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               sizeof(indices),
+               indices,
+               GL_STATIC_DRAW);
 
-	// FBO
-	glGenFramebuffers(1, &FBO_);
+  // FBO
+  glGenFramebuffers(1, &FBO_);
   glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
 
-	// Load and create a texture
-	texture_ = load_texture(image_path_, img_width_, img_height_, img_channels_);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
+  // Load and create a texture
+  texture_ = load_texture(image_path_, img_width_, img_height_, img_channels_);
+  glFramebufferTexture2D(GL_FRAMEBUFFER,
+                         GL_COLOR_ATTACHMENT0,
+                         GL_TEXTURE_2D,
+                         texture_,
+                         0);
 
-	// Render buffer
-	unsigned int rbo;
-	glGenRenderbuffers(1, &rbo);
-	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, img_width_, img_height_);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+  // Render buffer
+  unsigned int rbo;
+  glGenRenderbuffers(1, &rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER,
+                        GL_DEPTH24_STENCIL8,
+                        img_width_,
+                        img_height_);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                            GL_DEPTH_STENCIL_ATTACHMENT,
+                            GL_RENDERBUFFER,
+                            rbo);
 
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		printf("Framebuffer is not complete!\n");
-	}
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    printf("Framebuffer is not complete!\n");
+  }
 
   // Clean up
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);  // Unbind FBO
-  glBindBuffer(GL_ARRAY_BUFFER, 0);  // Unbind VBO
-  glBindVertexArray(0);  // Unbind VAO
+  glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind FBO
+  glBindBuffer(GL_ARRAY_BUFFER, 0);     // Unbind VBO
+  glBindVertexArray(0);                 // Unbind VAO
 }
 
 void glplane_t::draw(const glcamera_t &camera) {
   UNUSED(camera);
-	// glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-	// glEnable(GL_DEPTH_TEST);
-	// glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  // glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
+  // glEnable(GL_DEPTH_TEST);
+  // glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+  // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   program_.use();
   // program.setMat4("projection", glcamera_projection(camera));
   // program.setMat4("view", glcamera_view_matrix(camera));
   // program.setMat4("model", T_SM);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindVertexArray(VAO_);
+  glActiveTexture(GL_TEXTURE0);
+  glBindVertexArray(VAO_);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
   glBindVertexArray(0); // Unbind VAO
 
-	// glDisable(GL_DEPTH_TEST);
+  // glDisable(GL_DEPTH_TEST);
   // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 

@@ -37,10 +37,10 @@ void main() {
 )glsl";
 
 void process_input(GLFWwindow *window) {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS){
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
 }
@@ -67,7 +67,7 @@ GLFWwindow *create_window() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   // Load all OpenGL function pointers
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+  if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
     printf("Failed to initialize GLAD\n");
     return NULL;
   }
@@ -86,7 +86,7 @@ int compile_shader(const char *shader_src, const int &type) {
     char log[512];
     glGetShaderInfoLog(shader, 512, NULL, log);
     printf("Failed to compile shader:\n%s\n", log);
-		exit(-1);
+    exit(-1);
   }
 
   return shader;
@@ -106,7 +106,7 @@ int link_shaders(const int vertex_shader, const int fragment_shader) {
   if (!success) {
     glGetProgramInfoLog(program, 512, NULL, log);
     printf("Failed to link shaders: %s\n", log);
-		exit(-1);
+    exit(-1);
   }
 
   // Delete shaders
@@ -118,7 +118,7 @@ int link_shaders(const int vertex_shader, const int fragment_shader) {
 
 int main() {
   // Create window
-  GLFWwindow* window = create_window();
+  GLFWwindow *window = create_window();
   if (!window) {
     glfwTerminate();
     return -1;
@@ -154,12 +154,12 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
   glEnableVertexAttribArray(0);
   // ---- Color attribute
-  void *color_offset = (void *)(3 * sizeof(float));
+  void *color_offset = (void *) (3 * sizeof(float));
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
   glEnableVertexAttribArray(1);
   // -- Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0);  // Unbind VBO
-  glBindVertexArray(0);              // Unbind VAO
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
 
   // Render loop
   while (!glfwWindowShouldClose(window)) {

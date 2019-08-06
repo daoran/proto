@@ -2,28 +2,28 @@
 
 namespace proto {
 
-int8_t s8bit(const uint8_t *data, const size_t offset) {
+int8_t int8(const uint8_t *data, const size_t offset) {
   return (int8_t)(data[offset]);
 }
 
-uint8_t u8bit(const uint8_t *data, const size_t offset) {
+uint8_t uint8(const uint8_t *data, const size_t offset) {
   return (uint8_t)(data[offset]);
 }
 
-int16_t s16bit(const uint8_t *data, const size_t offset) {
+int16_t int16(const uint8_t *data, const size_t offset) {
   return (int16_t)((data[offset + 1] << 8) | (data[offset]));
 }
 
-uint16_t u16bit(const uint8_t *data, const size_t offset) {
+uint16_t uint16(const uint8_t *data, const size_t offset) {
   return (uint16_t)((data[offset + 1] << 8) | (data[offset]));
 }
 
-int32_t s32bit(const uint8_t *data, const size_t offset) {
+int32_t sint32(const uint8_t *data, const size_t offset) {
   return (int32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
                    (data[offset + 1] << 8) | (data[offset]));
 }
 
-uint32_t u32bit(const uint8_t *data, const size_t offset) {
+uint32_t uint32(const uint8_t *data, const size_t offset) {
   return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
                     (data[offset + 1] << 8) | (data[offset]));
 }
@@ -140,7 +140,7 @@ int vec2csv(const std::string &file_path, const std::deque<vec3_t> &data) {
   }
 
   // Save vector
-  for (const auto &v: data) {
+  for (const auto &v : data) {
     outfile << v(0);
     outfile << ",";
     outfile << v(1);
@@ -162,7 +162,7 @@ int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data) {
   }
 
   // Save vector
-  for (const auto &ts: data) {
+  for (const auto &ts : data) {
     outfile << ts << std::endl;
   }
 

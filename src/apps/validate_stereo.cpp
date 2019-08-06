@@ -120,9 +120,9 @@ static int get_camera_image_paths(const std::string &image_dir,
   return 0;
 }
 
-static void sychronize_stereo_images(
-    std::vector<std::string> &cam0_image_paths,
-    std::vector<std::string> &cam1_image_paths) {
+static void
+sychronize_stereo_images(std::vector<std::string> &cam0_image_paths,
+                         std::vector<std::string> &cam1_image_paths) {
   if (cam0_image_paths.size() > cam1_image_paths.size()) {
     cam0_image_paths.pop_back();
   } else if (cam0_image_paths.size() < cam1_image_paths.size()) {
@@ -204,8 +204,16 @@ int main(int argc, char *argv[]) {
     // Detect
     const cv::Mat cam0_image = cv::imread(cam0_image_paths[i]);
     const cv::Mat cam1_image = cv::imread(cam1_image_paths[i]);
-    aprilgrid_t grid0{(unsigned long) i, tag_rows, tag_cols, tag_size, tag_spacing};
-    aprilgrid_t grid1{(unsigned long) i, tag_rows, tag_cols, tag_size, tag_spacing};
+    aprilgrid_t grid0{(unsigned long) i,
+                      tag_rows,
+                      tag_cols,
+                      tag_size,
+                      tag_spacing};
+    aprilgrid_t grid1{(unsigned long) i,
+                      tag_rows,
+                      tag_cols,
+                      tag_size,
+                      tag_spacing};
     aprilgrid_detect(grid0, detector, cam0_image, cam0_K, cam0_D);
     aprilgrid_detect(grid1, detector, cam1_image, cam1_K, cam1_D);
     aprilgrid_intersection(grid0, grid1);

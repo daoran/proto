@@ -12,10 +12,10 @@ float frame_last = 0.0f;
 bool first_mouse = true;
 
 void process_input(GLFWwindow *window) {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS){
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
 }
@@ -35,10 +35,8 @@ GLFWwindow *setup() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   // Create a windowed mode window and its OpenGL context
-  GLFWwindow *window = glfwCreateWindow(SCREEN_WIDTH,
-                                        SCREEN_HEIGHT,
-                                        TITLE,
-                                        NULL, NULL);
+  GLFWwindow *window =
+      glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE, NULL, NULL);
   if (!window) {
     glfwTerminate();
     return NULL;
@@ -47,7 +45,7 @@ GLFWwindow *setup() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   // Load all OpenGL function pointers
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+  if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
     return NULL;
   }

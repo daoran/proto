@@ -13,7 +13,7 @@ namespace proto {
 
 void load_camera_data(const std::string &data_path,
                       std::deque<timestamp_t> &camera_ts,
-                      const bool skip_header=false) {
+                      const bool skip_header = false) {
   // Open file for loading
   int nb_rows = 0;
   FILE *fp = file_open(data_path, "r", &nb_rows);
@@ -22,16 +22,20 @@ void load_camera_data(const std::string &data_path,
   }
 
   // Parse file
-  for (int i = 0; i < nb_rows; i++) {
+  for (int line_no = 0; line_no < nb_rows; line_no++) {
     // Skip first line
-    if (i == 0 && skip_header) {
+    if (line_no == 0 && skip_header) {
       skip_line(fp);
       continue;
     }
 
     // Parse line
     timestamp_t ts = 0;
-    fscanf(fp, "%" SCNu64, &ts);
+    int retval = fscanf(fp, "%" SCNu64, &ts);
+    if (retval != 1) {
+      FATAL("Failed to parse line [%d]", line_no);
+    }
+
     camera_ts.push_back(ts);
   }
   fclose(fp);
@@ -40,7 +44,7 @@ void load_camera_data(const std::string &data_path,
 void load_accel_data(const std::string &data_path,
                      std::deque<timestamp_t> &accel_ts,
                      std::deque<vec3_t> &accel_data,
-                     const bool skip_header=false) {
+                     const bool skip_header = false) {
   // Open file for loading
   int nb_rows = 0;
   FILE *fp = file_open(data_path, "r", &nb_rows);
@@ -49,9 +53,9 @@ void load_accel_data(const std::string &data_path,
   }
 
   // Parse file
-  for (int i = 0; i < nb_rows; i++) {
+  for (int line_no = 0; line_no < nb_rows; line_no++) {
     // Skip first line
-    if (i == 0 && skip_header) {
+    if (line_no == 0 && skip_header) {
       skip_line(fp);
       continue;
     }
@@ -59,7 +63,11 @@ void load_accel_data(const std::string &data_path,
     // Parse line
     timestamp_t ts = 0;
     double a_x, a_y, a_z = 0.0;
-    fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf", &ts, &a_x, &a_y, &a_z);
+    int retval = fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf", &ts, &a_x, &a_y, &a_z);
+    if (retval != 4) {
+      FATAL("Failed to parse line [%d]", line_no);
+    }
+
     accel_ts.push_back(ts);
     accel_data.emplace_back(a_x, a_y, a_z);
   }
@@ -69,7 +77,7 @@ void load_accel_data(const std::string &data_path,
 void load_gyro_data(const std::string &data_path,
                     std::deque<timestamp_t> &gyro_ts,
                     std::deque<vec3_t> &gyro_data,
-                    const bool skip_header=false) {
+                    const bool skip_header = false) {
   // Open file for loading
   int nb_rows = 0;
   FILE *fp = file_open(data_path, "r", &nb_rows);
@@ -78,9 +86,9 @@ void load_gyro_data(const std::string &data_path,
   }
 
   // Parse file
-  for (int i = 0; i < nb_rows; i++) {
+  for (int line_no = 0; line_no < nb_rows; line_no++) {
     // Skip first line
-    if (i == 0 && skip_header) {
+    if (line_no == 0 && skip_header) {
       skip_line(fp);
       continue;
     }
@@ -88,7 +96,11 @@ void load_gyro_data(const std::string &data_path,
     // Parse line
     timestamp_t ts = 0;
     double w_x, w_y, w_z = 0.0;
-    fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf", &ts, &w_x, &w_y, &w_z);
+    int retval = fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf", &ts, &w_x, &w_y, &w_z);
+    if (retval != 4) {
+      FATAL("Failed to parse line [%d]", line_no);
+    }
+
     gyro_ts.push_back(ts);
     gyro_data.emplace_back(w_x, w_y, w_z);
   }
@@ -225,13 +237,12 @@ int test_lerp_data() {
   // const bool debug = false;
   const bool debug = true;
   if (debug) {
-    OCTAVE_SCRIPT("scripts/measurement/plot_lerp.m " \
-                  "/tmp/lerp_data-gyro_ts.csv " \
-                  "/tmp/lerp_data-gyro_data.csv " \
-                  "/tmp/lerp_data-accel_ts.csv " \
-                  "/tmp/lerp_data-accel_data.csv " \
-                  GYRO0_CSV_PATH " " \
-                  ACCEL0_CSV_PATH);
+    OCTAVE_SCRIPT("scripts/measurement/plot_lerp.m "
+                  "/tmp/lerp_data-gyro_ts.csv "
+                  "/tmp/lerp_data-gyro_data.csv "
+                  "/tmp/lerp_data-accel_ts.csv "
+                  "/tmp/lerp_data-accel_data.csv " GYRO0_CSV_PATH
+                  " " ACCEL0_CSV_PATH);
   }
 
   return 0;
@@ -259,13 +270,12 @@ int test_lerp_data2() {
   const bool debug = false;
   // const bool debug = true;
   if (debug) {
-    OCTAVE_SCRIPT("scripts/measurement/plot_lerp.m " \
-                  "/tmp/lerp_data-gyro_ts.csv " \
-                  "/tmp/lerp_data-gyro_data.csv " \
-                  "/tmp/lerp_data-accel_ts.csv " \
-                  "/tmp/lerp_data-accel_data.csv " \
-                  GYRO0_CSV_PATH " " \
-                  ACCEL0_CSV_PATH);
+    OCTAVE_SCRIPT("scripts/measurement/plot_lerp.m "
+                  "/tmp/lerp_data-gyro_ts.csv "
+                  "/tmp/lerp_data-gyro_data.csv "
+                  "/tmp/lerp_data-accel_ts.csv "
+                  "/tmp/lerp_data-accel_data.csv " GYRO0_CSV_PATH
+                  " " ACCEL0_CSV_PATH);
   }
 
   return 0;
@@ -351,13 +361,12 @@ int test_lerp_data3() {
   // const bool debug = false;
   const bool debug = true;
   if (debug) {
-    OCTAVE_SCRIPT("scripts/measurement/plot_lerp.m " \
-                  "/tmp/lerp_data-gyro_ts.csv " \
-                  "/tmp/lerp_data-gyro_data.csv " \
-                  "/tmp/lerp_data-accel_ts.csv " \
-                  "/tmp/lerp_data-accel_data.csv " \
-                  GYRO0_CSV_PATH " " \
-                  ACCEL0_CSV_PATH);
+    OCTAVE_SCRIPT("scripts/measurement/plot_lerp.m "
+                  "/tmp/lerp_data-gyro_ts.csv "
+                  "/tmp/lerp_data-gyro_data.csv "
+                  "/tmp/lerp_data-accel_ts.csv "
+                  "/tmp/lerp_data-accel_data.csv " GYRO0_CSV_PATH
+                  " " ACCEL0_CSV_PATH);
   }
   return 0;
 }
@@ -450,15 +459,13 @@ int test_vi_data_lerp() {
   // const bool debug = false;
   const bool debug = true;
   if (debug) {
-    OCTAVE_SCRIPT("scripts/measurement/plot_vi_lerp.m " \
-                  "/tmp/lerp_data-cam0_ts.csv " \
-                  "/tmp/lerp_data-gyro_ts.csv " \
-                  "/tmp/lerp_data-gyro_data.csv " \
-                  "/tmp/lerp_data-accel_ts.csv " \
-                  "/tmp/lerp_data-accel_data.csv " \
-                  CAM0_CSV_PATH " " \
-                  GYRO0_CSV_PATH " " \
-                  ACCEL0_CSV_PATH);
+    OCTAVE_SCRIPT("scripts/measurement/plot_vi_lerp.m "
+                  "/tmp/lerp_data-cam0_ts.csv "
+                  "/tmp/lerp_data-gyro_ts.csv "
+                  "/tmp/lerp_data-gyro_data.csv "
+                  "/tmp/lerp_data-accel_ts.csv "
+                  "/tmp/lerp_data-accel_data.csv " CAM0_CSV_PATH
+                  " " GYRO0_CSV_PATH " " ACCEL0_CSV_PATH);
   }
 
   return 0;

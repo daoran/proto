@@ -40,7 +40,12 @@ void glmesh_init(glmesh_t &mesh) {
   // Set vertex attribute pointers
   // Vertex positions
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glvertex_t), (void *) 0);
+  glVertexAttribPointer(0,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(glvertex_t),
+                        (void *) 0);
 
   // Vertex normals
   glEnableVertexAttribArray(1);
@@ -110,7 +115,8 @@ void glmesh_draw(const glmesh_t &mesh, const glprog_t &program) {
 
     // Set the sampler to the correct texture unit and bind texture
     program.setInt((name + number), i);
-    // glUniform1i(glGetUniformLocation(program.program_id, (name + number).c_str()), i);
+    // glUniform1i(glGetUniformLocation(program.program_id, (name +
+    // number).c_str()), i);
     glBindTexture(GL_TEXTURE_2D, mesh.textures[i].id);
   }
 

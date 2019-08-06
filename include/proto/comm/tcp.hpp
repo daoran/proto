@@ -2,6 +2,7 @@
 #define PROTO_COMM_TCP_HPP
 
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <pthread.h>
 #include <netdb.h>
@@ -18,6 +19,18 @@
 #include "proto/core/log.hpp"
 
 namespace proto {
+
+/**
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
+ */
+int ip_port_info(const int sockfd, char *ip, int *port);
+
+/**
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
+ */
+int ip_port_info(const int sockfd, std::string &ip, int &port);
 
 /**
  * TCP server
@@ -63,12 +76,6 @@ int tcp_client_config(tcp_client_t &client);
  * Loop TCP client
  */
 int tcp_client_loop(tcp_client_t &client);
-
-/**
- * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
- * `port`. Returns `0` for success and `-1` for failure.
- */
-int ip_port_info(const int sockfd, std::string &ip, int &port);
 
 } //  namespace proto
 #endif // PROTO_COMM_TCP_HPP

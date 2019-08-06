@@ -82,14 +82,6 @@ ADD_LIBRARY(
   src/dataset/euroc.cpp
   src/dataset/kitti.cpp
   src/dataset/timeline.cpp
-  # driver
-  src/driver/camera.cpp
-  src/driver/i2c.cpp
-  src/driver/mpu6050.cpp
-  src/driver/pca9685.cpp
-  src/driver/sbgc.cpp
-  src/driver/ublox.cpp
-  src/driver/uart.cpp
   # estimation
   src/estimation/filter.cpp
   src/estimation/measurement.cpp
@@ -162,7 +154,6 @@ INSTALL(
 )
 
 
-
 # UNIT TESTS
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
@@ -176,6 +167,7 @@ SET(
   # calib-test_calib_gimbal
   calib-test_calib_stereo
   calib-test_sandbox
+  calib-test_sandbox2
   comm-test_tcp
   control-test_carrot_ctrl
   control-test_pid
@@ -188,9 +180,6 @@ SET(
   core-test_time
   dataset-test_euroc
   dataset-test_kitti
-  driver-test_camera
-  driver-test_ublox
-  driver-tester_ublox_base_station
   estimation-test_measurement
   # model-test_mav
   model-test_two_wheel

@@ -136,7 +136,7 @@ static int load_marker_poses(const calib_config_t &config,
     fscanf(fp, str_format.c_str(), &ts, &rx, &ry, &rz, &qw, &qx, &qy, &qz);
 
     // Form timestamps
-    timestamps.push_back(ts + (timestamp_t) (time_delays[i] * 1e9));
+    timestamps.push_back(ts + (timestamp_t)(time_delays[i] * 1e9));
 
     // Form transform T_WM
     const vec3_t r_WM{rx, ry, rz};
@@ -161,7 +161,7 @@ static int load_marker_poses(const calib_config_t &config,
                              const aprilgrids_t &grids,
                              timestamps_t &grid_ts,
                              mat4s_t &T_WM,
-                             const double time_delay=0.0) {
+                             const double time_delay = 0.0) {
   // Open file for loading
   int nb_rows = 0;
   FILE *fp = file_open(config.pose_file, "r", &nb_rows);
@@ -191,7 +191,7 @@ static int load_marker_poses(const calib_config_t &config,
     fscanf(fp, str_format.c_str(), &ts, &rx, &ry, &rz, &qw, &qx, &qy, &qz);
 
     // Form timestamps
-    timestamps.push_back(ts + (timestamp_t) (time_delay * 1e9));
+    timestamps.push_back(ts + (timestamp_t)(time_delay * 1e9));
 
     // Form transform T_WM
     const vec3_t r_WM{rx, ry, rz};
@@ -227,11 +227,7 @@ static int time_delay_search(const calib_config_t &config,
     // Load marker poses
     mat4s_t T_WM;
     timestamps_t timestamps;
-    int retval = load_marker_poses(config,
-                                   grids,
-                                   timestamps,
-                                   T_WM,
-                                   time_delay);
+    int retval = load_marker_poses(config, grids, timestamps, T_WM, time_delay);
     if (retval != 0) {
       LOG_ERROR("Failed to load marker poses!");
       return -1;
@@ -244,11 +240,8 @@ static int time_delay_search(const calib_config_t &config,
     const auto C_MC = euler321(rpy_MC);
     mat4_t T_MC = tf(C_MC, zeros(3, 1));
 
-    double cost = evaluate_vicon_marker_cost(grids,
-                                             T_WM,
-                                             pinhole,
-                                             radtan,
-                                             T_MC);
+    double cost =
+        evaluate_vicon_marker_cost(grids, T_WM, pinhole, radtan, T_MC);
     if (cost_best > cost) {
       cost_best = cost;
       time_delay_best = time_delay;
@@ -265,15 +258,14 @@ static int time_delay_search(const calib_config_t &config,
   return 0;
 }
 
-static std::vector<double> time_delay_search2(
-    const calib_config_t &config,
-    const aprilgrids_t &grids,
-    const double time_delay_init) {
+static std::vector<double> time_delay_search2(const calib_config_t &config,
+                                              const aprilgrids_t &grids,
+                                              const double time_delay_init) {
   // Get number of marker poses
   int nb_rows = 0;
   FILE *fp = file_open(config.pose_file, "r", &nb_rows);
   fclose(fp);
-  nb_rows -= 1;  // Because of header
+  nb_rows -= 1; // Because of header
 
   // Initialize time delays
   std::vector<double> time_delays;
@@ -291,11 +283,8 @@ static std::vector<double> time_delay_search2(
     // Load marker poses
     mat4s_t T_WM;
     timestamps_t timestamps;
-    int retval = load_marker_poses(config,
-                                   grids,
-                                   time_delays,
-                                   timestamps,
-                                   T_WM);
+    int retval =
+        load_marker_poses(config, grids, time_delays, timestamps, T_WM);
     if (retval != 0) {
       FATAL("Failed to load marker poses!");
     }
@@ -308,11 +297,8 @@ static std::vector<double> time_delay_search2(
     const auto C_MC = euler321(rpy_MC);
     mat4_t T_MC = tf(C_MC, zeros(3, 1));
     // -- Evaluate
-    double cost = evaluate_vicon_marker_cost(grids,
-                                             T_WM,
-                                             pinhole,
-                                             radtan,
-                                             T_MC);
+    double cost =
+        evaluate_vicon_marker_cost(grids, T_WM, pinhole, radtan, T_MC);
 
     // Keep best results
     if (cost_best > cost) {
@@ -326,8 +312,9 @@ static std::vector<double> time_delay_search2(
     std::cout << "Best Cost: " << cost_best << "\n";
 
     // Perturbe the time delays a little
-    std::random_device rd;     // Only used once to initialise (seed) engine
-    std::mt19937 rng(rd());    // Random-number engine used (Mersenne-Twister in this case)
+    std::random_device rd; // Only used once to initialise (seed) engine
+    std::mt19937 rng(
+        rd()); // Random-number engine used (Mersenne-Twister in this case)
     std::uniform_real_distribution<double> random_sample(0, 0.2);
     std::uniform_int_distribution<int> random_element(0, nb_rows - 1);
     std::uniform_real_distribution<double> random_value(-0.1, 0.1);
@@ -337,14 +324,13 @@ static std::vector<double> time_delay_search2(
   }
   std::cout << "Best Cost: " << cost_best << std::endl;
   std::cout << "Best result: " << std::endl;
-  for (const auto &t: time_delays) {
+  for (const auto &t : time_delays) {
     std::cout << t << std::endl;
   }
   std::cout << std::endl;
 
   return time_delays_best;
 }
-
 
 static int get_image_paths(const std::string &image_dir,
                            std::vector<std::string> &image_paths) {
@@ -364,13 +350,13 @@ static int get_image_paths(const std::string &image_dir,
   return 0;
 }
 
-static cv::Mat project_aprilgrid(
-    const aprilgrid_t &grid,
-    const camera_geometry_t<pinhole_t, radtan4_t> &camera,
-    const cv::Mat &image,
-    const mat4_t &T_WM,
-    const mat4_t &T_MC,
-    const mat4_t &T_WF) {
+static cv::Mat
+project_aprilgrid(const aprilgrid_t &grid,
+                  const camera_geometry_t<pinhole_t, radtan4_t> &camera,
+                  const cv::Mat &image,
+                  const mat4_t &T_WM,
+                  const mat4_t &T_MC,
+                  const mat4_t &T_WF) {
   const auto T_MW = T_WM.inverse();
   const auto T_CM = T_MC.inverse();
 
@@ -392,12 +378,12 @@ static cv::Mat project_aprilgrid(
       const auto pixel = camera_geometry_project(camera, hp_C.head(3));
 
       const cv::Point2f p(pixel(0), pixel(1));
-      cv::circle(image_rgb,              // Target image
-                 p,                      // Center
-                 3,                      // Radius
-                 cv::Scalar{0, 0, 255},  // Colour
-                 CV_FILLED,              // Thickness
-                 8);                     // Line type
+      cv::circle(image_rgb,             // Target image
+                 p,                     // Center
+                 3,                     // Radius
+                 cv::Scalar{0, 0, 255}, // Colour
+                 CV_FILLED,             // Thickness
+                 8);                    // Line type
     }
   }
 
@@ -433,7 +419,8 @@ static int validate(const calib_config_t &config,
       output.erase(0, last_slash_idx + 1);
     }
 
-    // Check to see if image timestamp is among the timestamps we optimized against
+    // Check to see if image timestamp is among the timestamps we optimized
+    // against
     const timestamp_t image_ts = std::stol(output);
     bool found = false;
     for (const auto &ts : ts_queue) {
@@ -447,26 +434,22 @@ static int validate(const calib_config_t &config,
     }
     if (found) {
 
-    // Detect AprilGrid
-    const auto image_path = paths_combine(config.image_path, image_paths[i]);
-    const cv::Mat image = cv::imread(image_path);
-    aprilgrid_t grid{(timestamp_t) i,
-                     target.tag_rows,
-                     target.tag_cols,
-                     target.tag_size,
-                     target.tag_spacing};
-    aprilgrid_detect(grid, detector, image);
+      // Detect AprilGrid
+      const auto image_path = paths_combine(config.image_path, image_paths[i]);
+      const cv::Mat image = cv::imread(image_path);
+      aprilgrid_t grid{(timestamp_t) i,
+                       target.tag_rows,
+                       target.tag_cols,
+                       target.tag_size,
+                       target.tag_spacing};
+      aprilgrid_detect(grid, detector, image);
 
-    // Project AprilGrid
-    const auto image_rgb = project_aprilgrid(grid,
-                                             camera,
-                                             image,
-                                             T_WM[pose_idx],
-                                             T_MC,
-                                             T_WF);
-    pose_idx++;
-    cv::imshow("Validate:", image_rgb);
-    cv::waitKey(1);
+      // Project AprilGrid
+      const auto image_rgb =
+          project_aprilgrid(grid, camera, image, T_WM[pose_idx], T_MC, T_WF);
+      pose_idx++;
+      cv::imshow("Validate:", image_rgb);
+      cv::waitKey(1);
     }
   }
 
@@ -561,10 +544,16 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < timestamps.size(); i++) {
     const vec3_t r = tf_trans(T_WM[i]);
     const quat_t q = quat_t{tf_rot(T_WM[i])};
-    fprintf(fp, "%ld,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+    fprintf(fp,
+            "%ld,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
             timestamps[i],
-            q.w(), q.x(), q.y(), q.z(),
-            r(0), r(1), r(2));
+            q.w(),
+            q.x(),
+            q.y(),
+            q.z(),
+            r(0),
+            r(1),
+            r(2));
   }
   fclose(fp);
 
@@ -578,12 +567,7 @@ int main(int argc, char *argv[]) {
   mat4_t T_WF = T_WM[0] * T_MC * grids[0].T_CF;
 
   // -- Solve
-  retval = calib_vicon_marker_solve(grids,
-                                    T_WM,
-                                    pinhole,
-                                    radtan,
-                                    T_MC,
-                                    T_WF);
+  retval = calib_vicon_marker_solve(grids, T_WM, pinhole, radtan, T_MC, T_WF);
   if (retval != 0) {
     LOG_ERROR("Failed to calibrate camera data!");
     return -1;

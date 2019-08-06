@@ -3,7 +3,7 @@
 namespace proto {
 
 int shader_compile(const char *shader_src, const int type) {
-	assert(shader_src != nullptr);
+  assert(shader_src != nullptr);
 
   int shader = glCreateShader(type);
   glShaderSource(shader, 1, &shader_src, NULL);
@@ -73,11 +73,10 @@ int shaders_link(const int vertex_shader,
   return program;
 }
 
-glprog_t::glprog_t(const std::string &vs_path,
-                   const std::string &fs_path) {
+glprog_t::glprog_t(const std::string &vs_path, const std::string &fs_path) {
   const int vs = shader_compile(vs_path, GL_VERTEX_SHADER);
   const int fs = shader_compile(fs_path, GL_FRAGMENT_SHADER);
-    program_id = shaders_link(vs, fs);
+  program_id = shaders_link(vs, fs);
 }
 
 glprog_t::glprog_t(const std::string &vs_path,
@@ -97,25 +96,23 @@ glprog_t::glprog_t(const char *vs_src, const char *fs_src) {
   program_id = shaders_link(vs, fs);
 }
 
-void glprog_t::use() const {
-  glUseProgram(program_id);
-}
+void glprog_t::use() const { glUseProgram(program_id); }
 
 int glprog_t::setBool(const std::string &key, const bool value) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform1i(location, (int) value);
-	return 0;
+  return 0;
 }
 
 int glprog_t::setInt(const std::string &key, const int value) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform1i(location, value);
   return 0;
@@ -123,42 +120,41 @@ int glprog_t::setInt(const std::string &key, const int value) const {
 
 int glprog_t::setFloat(const std::string &key, const float value) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform1f(location, value);
   return 0;
 }
 
-int glprog_t::setVec2(const std::string &key,
-                      const glm::vec2 &value) const {
+int glprog_t::setVec2(const std::string &key, const glm::vec2 &value) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform2fv(location, 1, &value[0]);
   return 0;
 }
 
 int glprog_t::setVec2(const std::string &key,
-                      const float x, const float y) const {
+                      const float x,
+                      const float y) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform2f(location, x, y);
   return 0;
 }
 
-int glprog_t::setVec3(const std::string &key,
-                      const glm::vec3 &value) const {
+int glprog_t::setVec3(const std::string &key, const glm::vec3 &value) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform3fv(location, 1, &value[0]);
   return 0;
@@ -169,20 +165,19 @@ int glprog_t::setVec3(const std::string &key,
                       const float y,
                       const float z) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform3f(location, x, y, z);
   return 0;
 }
 
-int glprog_t::setVec4(const std::string &key,
-                      const glm::vec4 &value) const {
+int glprog_t::setVec4(const std::string &key, const glm::vec4 &value) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform4fv(location, 1, &value[0]);
   return 0;
@@ -194,9 +189,9 @@ int glprog_t::setVec4(const std::string &key,
                       const float z,
                       const float w) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniform4f(location, x, y, z, w);
   return 0;
@@ -204,9 +199,9 @@ int glprog_t::setVec4(const std::string &key,
 
 int glprog_t::setMat2(const std::string &key, const glm::mat2 &mat) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniformMatrix2fv(location, 1, GL_FALSE, &mat[0][0]);
   return 0;
@@ -214,9 +209,9 @@ int glprog_t::setMat2(const std::string &key, const glm::mat2 &mat) const {
 
 int glprog_t::setMat3(const std::string &key, const glm::mat3 &mat) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniformMatrix3fv(location, 1, GL_FALSE, &mat[0][0]);
   return 0;
@@ -224,9 +219,9 @@ int glprog_t::setMat3(const std::string &key, const glm::mat3 &mat) const {
 
 int glprog_t::setMat4(const std::string &key, const glm::mat4 &mat) const {
   const auto location = glGetUniformLocation(program_id, key.c_str());
-	if (location == -1) {
-		return -1;
-	}
+  if (location == -1) {
+    return -1;
+  }
 
   glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]);
   return 0;

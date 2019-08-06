@@ -28,7 +28,7 @@ public:
     ImGui::Checkbox("Demo Window", &show_demo_window);
     ImGui::Checkbox("Another Window", &show_another_window);
     ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-    ImGui::ColorEdit3("clear color", (float*)&clear_color);
+    ImGui::ColorEdit3("clear color", (float *) &clear_color);
 
     ImGui::End();
   }
@@ -42,70 +42,76 @@ public:
   int height_ = 800;
 
   float alpha_ = 2.0f;
-	bool open_ = false;
-	ImGuiWindowFlags flags_ = ImGuiWindowFlags_NoResize;
+  bool open_ = false;
+  ImGuiWindowFlags flags_ = ImGuiWindowFlags_NoResize;
 
   GLuint FBO_ = 0;
-	GLuint texture_id_ = 0;
+  GLuint texture_id_ = 0;
 
   glcamera_t camera_;
-	glgrid_t grid_;
+  glgrid_t grid_;
 
   scene_window_t() : camera_{width_, height_, glm::vec3(0.0f, 5.0f, 30.0f)} {
-  // scene_window_t() {
-		ImGui::SetNextWindowBgAlpha(alpha_);
-		ImGui::SetNextWindowSize(ImVec2(width_, height_));
-		ImGui::Begin(title_.c_str(), &open_, flags_);
+    // scene_window_t() {
+    ImGui::SetNextWindowBgAlpha(alpha_);
+    ImGui::SetNextWindowSize(ImVec2(width_, height_));
+    ImGui::Begin(title_.c_str(), &open_, flags_);
 
-		// Frame buffer
-		glGenFramebuffers(1, &FBO_);
-		glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
+    // Frame buffer
+    glGenFramebuffers(1, &FBO_);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
 
-		// Texture
-		glGenTextures(1, &texture_id_);
-		glBindTexture(GL_TEXTURE_2D, texture_id_);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_, height_, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // Texture
+    glGenTextures(1, &texture_id_);
+    glBindTexture(GL_TEXTURE_2D, texture_id_);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGB,
+                 width_,
+                 height_,
+                 0,
+                 GL_RGB,
+                 GL_UNSIGNED_BYTE,
+                 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-		// Add texture to frame buffer
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture_id_, 0);
+    // Add texture to frame buffer
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture_id_, 0);
 
-		// Set the list of draw buffers.
-		GLenum draw_buffer[1] = {GL_COLOR_ATTACHMENT0};
-		glDrawBuffers(1, draw_buffer);
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-			FATAL("Frame buffer is not ready!");
-		}
+    // Set the list of draw buffers.
+    GLenum draw_buffer[1] = {GL_COLOR_ATTACHMENT0};
+    glDrawBuffers(1, draw_buffer);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+      FATAL("Frame buffer is not ready!");
+    }
 
-		// Attach frame buffer
-		glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-		glViewport(0, 0, width_, height_);
+    // Attach frame buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
+    glViewport(0, 0, width_, height_);
 
-		// Draw scene
-		glEnable(GL_CULL_FACE);
-		grid_.draw(camera_);
-		// glmodel_draw(model, camera);
-		glDisable(GL_CULL_FACE);
+    // Draw scene
+    glEnable(GL_CULL_FACE);
+    grid_.draw(camera_);
+    // glmodel_draw(model, camera);
+    glDisable(GL_CULL_FACE);
 
     // Detach frame buffer
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Draw ImGui window
 
-		const auto start = ImGui::GetCursorScreenPos();
-		const auto end_x = start.x + width_;
-		const auto end_y = start.y + height_;
-		const auto end = ImVec2(end_x, end_y);
-		ImGui::GetWindowDrawList()->AddImage(
-			(void*)(intptr_t) texture_id_,
-			ImVec2(start.x, start.y),
-			end,
-			ImVec2(0, 1),
-			ImVec2(1, 0)
-		);
+    const auto start = ImGui::GetCursorScreenPos();
+    const auto end_x = start.x + width_;
+    const auto end_y = start.y + height_;
+    const auto end = ImVec2(end_x, end_y);
+    ImGui::GetWindowDrawList()->AddImage((void *) (intptr_t) texture_id_,
+                                         ImVec2(start.x, start.y),
+                                         end,
+                                         ImVec2(0, 1),
+                                         ImVec2(1, 0));
 
-		ImGui::End();
+    ImGui::End();
   }
 
   ~scene_window_t() {
@@ -129,13 +135,13 @@ int test_gui() {
 
     // demo_window_t demo;
     // scene_window_t scene;
-		// gui.render(true);
+    // gui.render(true);
 
     gui.clear();
-		glEnable(GL_CULL_FACE);
-		grid.draw(camera);
-		glDisable(GL_CULL_FACE);
-		gui.render();
+    glEnable(GL_CULL_FACE);
+    grid.draw(camera);
+    glDisable(GL_CULL_FACE);
+    gui.render();
   }
 
   gui.close();
@@ -150,7 +156,7 @@ int test_gui_imshow() {
     gui.poll();
     imshow.show();
     gui.clear();
-		gui.render();
+    gui.render();
   }
 
   gui.close();
@@ -184,7 +190,7 @@ int test_gui_imshow_update() {
     imshow.show(img_w, img_h, frame.channels(), frame.data);
 
     gui.clear();
-		gui.render();
+    gui.render();
   }
   gui.close();
 

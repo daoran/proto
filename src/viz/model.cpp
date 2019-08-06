@@ -25,7 +25,8 @@ void glmodel_draw(glmodel_t &model, const glcamera_t &camera) {
 void glmodel_load(glmodel_t &model, const std::string &path) {
   // Read
   Assimp::Importer importer;
-  const auto options = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace;
+  const auto options =
+      aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace;
   const aiScene *scene = importer.ReadFile(path, options);
 
   // Check for errors
@@ -42,7 +43,9 @@ void glmodel_load(glmodel_t &model, const std::string &path) {
   glmodel_process_node(model, scene->mRootNode, scene);
 }
 
-void glmodel_process_node(glmodel_t &model, aiNode *node, const aiScene *scene) {
+void glmodel_process_node(glmodel_t &model,
+                          aiNode *node,
+                          const aiScene *scene) {
   // Process each mesh located at the current node
   for (unsigned int i = 0; i < node->mNumMeshes; i++) {
     // The node object only contains indices to index the actual objects in the
@@ -59,7 +62,9 @@ void glmodel_process_node(glmodel_t &model, aiNode *node, const aiScene *scene) 
   }
 }
 
-glmesh_t glmodel_process_mesh(glmodel_t &model, aiMesh *mesh, const aiScene *scene) {
+glmesh_t glmodel_process_mesh(glmodel_t &model,
+                              aiMesh *mesh,
+                              const aiScene *scene) {
   // Data to fill
   std::vector<glvertex_t> vertices;
   std::vector<unsigned int> indices;
@@ -231,9 +236,9 @@ unsigned int texture_from_file(const std::string &dir,
   if (data) {
     GLenum format;
     switch (nb_components) {
-      case 1: format = GL_RED; break;
-      case 3: format = GL_RGB; break;
-      case 4: format = GL_RGBA; break;
+    case 1: format = GL_RED; break;
+    case 3: format = GL_RGB; break;
+    case 4: format = GL_RGBA; break;
     }
 
     glBindTexture(GL_TEXTURE_2D, texture_id);

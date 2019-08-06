@@ -27,9 +27,7 @@ int test_frontend_update() {
   return 0;
 }
 
-void test_suite() {
-  MU_ADD_TEST(test_frontend_update);
-}
+void test_suite() { MU_ADD_TEST(test_frontend_update); }
 
 } // namespace proto
 

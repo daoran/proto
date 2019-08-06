@@ -5,15 +5,15 @@ namespace proto {
 glcamera_t::glcamera_t(int &screen_width,
                        int &screen_height,
                        const glm::vec3 position)
-  : position{position},
-    screen_width{screen_width},
-    screen_height{screen_height} {
+    : position{position}, screen_width{screen_width}, screen_height{
+                                                          screen_height} {
   glcamera_update(*this);
 }
 
 glm::mat4 glcamera_projection(const glcamera_t &camera) {
   const float fov = glm::radians(camera.fov);
-  const float ratio = (float) camera.screen_width / (float) camera.screen_height;
+  const float ratio =
+      (float) camera.screen_width / (float) camera.screen_height;
   const float near = camera.near;
   const float far = camera.far;
   glm::mat4 projection = glm::perspective(fov, ratio, near, far);

@@ -42,7 +42,9 @@ struct glmodel_t {
 void glmodel_draw(glmodel_t &model, const glcamera_t &camera);
 void glmodel_load(glmodel_t &model, const std::string &path);
 void glmodel_process_node(glmodel_t &model, aiNode *node, const aiScene *scene);
-glmesh_t glmodel_process_mesh(glmodel_t &model, aiMesh *mesh, const aiScene *scene);
+glmesh_t glmodel_process_mesh(glmodel_t &model,
+                              aiMesh *mesh,
+                              const aiScene *scene);
 std::vector<gltexture_t> glmodel_load_textures(glmodel_t &model,
                                                aiMaterial *mat,
                                                aiTextureType type,

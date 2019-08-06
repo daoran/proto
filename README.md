@@ -27,10 +27,8 @@ dependencies and building of `proto`, the make targets are as follows.
     docs:
       Generate docs for proto.
 
-The commands you usually care about are `debug`, `release` and `install`.
-
-Or, if you're old-fashioned the standard way to build a C++ project is to enter
-the following commands at the root of the repo.
+Or, the standard way to build a C++ project is to enter the following commands
+at the root of the repo.
 
     mkdir -p build
     cd build

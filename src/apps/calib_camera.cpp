@@ -131,7 +131,8 @@ int main(int argc, char *argv[]) {
   // Load calibration data
   aprilgrids_t aprilgrids;
   timestamps_t timestamps;
-  retval = load_camera_calib_data(config.preprocess_path, aprilgrids, timestamps);
+  retval =
+      load_camera_calib_data(config.preprocess_path, aprilgrids, timestamps);
   if (retval != 0) {
     LOG_ERROR("Failed to load camera calibration data!");
     return -1;

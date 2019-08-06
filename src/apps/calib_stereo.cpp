@@ -69,8 +69,12 @@ calib_config_t parse_config(const std::string &config_file) {
 
   parse(config, "settings.cam0_image_path", calib_conf.cam0_image_path);
   parse(config, "settings.cam1_image_path", calib_conf.cam1_image_path);
-  parse(config, "settings.cam0_preprocess_path", calib_conf.cam0_preprocess_path);
-  parse(config, "settings.cam1_preprocess_path", calib_conf.cam1_preprocess_path);
+  parse(config,
+        "settings.cam0_preprocess_path",
+        calib_conf.cam0_preprocess_path);
+  parse(config,
+        "settings.cam1_preprocess_path",
+        calib_conf.cam1_preprocess_path);
   parse(config, "settings.results_file", calib_conf.results_file);
 
   parse(config, "cam0.resolution", calib_conf.cam0_resolution);
@@ -200,7 +204,8 @@ int main(int argc, char *argv[]) {
   const double cam0_img_w = config.cam0_resolution(0);
   const double cam0_img_h = config.cam0_resolution(1);
   const double cam0_lens_hfov = config.cam0_lens_hfov;
-  const double cam0_lens_vfov = config.cam0_lens_vfov;;
+  const double cam0_lens_vfov = config.cam0_lens_vfov;
+  ;
   const double cam0_fx = pinhole_focal_length(cam0_img_w, cam0_lens_hfov);
   const double cam0_fy = pinhole_focal_length(cam0_img_h, cam0_lens_vfov);
   const double cam0_cx = cam0_img_w / 2.0;
@@ -211,7 +216,8 @@ int main(int argc, char *argv[]) {
   const double cam1_img_w = config.cam1_resolution(0);
   const double cam1_img_h = config.cam1_resolution(1);
   const double cam1_lens_hfov = config.cam1_lens_hfov;
-  const double cam1_lens_vfov = config.cam1_lens_vfov;;
+  const double cam1_lens_vfov = config.cam1_lens_vfov;
+  ;
   const double cam1_fx = pinhole_focal_length(cam1_img_w, cam1_lens_hfov);
   const double cam1_fy = pinhole_focal_length(cam1_img_h, cam1_lens_vfov);
   const double cam1_cx = cam1_img_w / 2.0;
@@ -223,9 +229,12 @@ int main(int argc, char *argv[]) {
   LOG_INFO("Calibrating stereo camera!");
   mat4_t T_C0C1 = I(4);
   mat4s_t poses;
-  retval = calib_stereo_solve(cam0_aprilgrids, cam1_aprilgrids,
-                              cam0_pinhole, cam0_radtan,
-                              cam1_pinhole, cam1_radtan,
+  retval = calib_stereo_solve(cam0_aprilgrids,
+                              cam1_aprilgrids,
+                              cam0_pinhole,
+                              cam0_radtan,
+                              cam1_pinhole,
+                              cam1_radtan,
                               T_C0C1,
                               poses);
   if (retval != 0) {
