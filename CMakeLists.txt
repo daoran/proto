@@ -76,6 +76,7 @@ ADD_LIBRARY(
   src/core/gps.cpp
   src/core/math.cpp
   src/core/stb.cpp
+  src/core/spline.cpp
   src/core/tf.cpp
   src/core/time.cpp
   # dataset
@@ -160,44 +161,45 @@ FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
-  calib-test_aprilgrid
-  calib-test_calib_camera
-  calib-test_calib_camera_nbv
-  calib-test_calib_data
-  # calib-test_calib_gimbal
-  calib-test_calib_stereo
-  calib-test_sandbox
-  calib-test_sandbox2
-  comm-test_tcp
-  control-test_carrot_ctrl
-  control-test_pid
-  core-test_config
-  core-test_data
-  core-test_file
-  core-test_gps
-  core-test_math
-  core-test_tf
-  core-test_time
-  dataset-test_euroc
-  dataset-test_kitti
-  estimation-test_measurement
-  # model-test_mav
-  model-test_two_wheel
-  mav-test_atl
-  # mav-test_att_ctrl
-  mav-test_lz
-  mav-test_mission
-  # mav-test_pos_ctrl
-  mav-test_wp_ctrl
-  vision-camera-test_camera_geometry
-  vision-camera-test_equi
-  # vision-camera-test_pinhole
-  vision-camera-test_radtan
-  vision-feature2d-test_grid_fast
-  vision-feature2d-test_grid_good
-  vision-test_frontend
-  vision-test_vision_common
-  viz-test_gui
+  # calib-test_aprilgrid
+  # calib-test_calib_camera
+  # calib-test_calib_camera_nbv
+  # calib-test_calib_data
+  # # calib-test_calib_gimbal
+  # calib-test_calib_stereo
+  # calib-test_sandbox
+  # calib-test_sandbox2
+  # comm-test_tcp
+  # control-test_carrot_ctrl
+  # control-test_pid
+  # core-test_config
+  # core-test_data
+  # core-test_file
+  # core-test_gps
+  # core-test_math
+  core-test_spline
+  # core-test_tf
+  # core-test_time
+  # dataset-test_euroc
+  # dataset-test_kitti
+  # estimation-test_measurement
+  # # model-test_mav
+  # model-test_two_wheel
+  # mav-test_atl
+  # # mav-test_att_ctrl
+  # mav-test_lz
+  # mav-test_mission
+  # # mav-test_pos_ctrl
+  # mav-test_wp_ctrl
+  # vision-camera-test_camera_geometry
+  # vision-camera-test_equi
+  # # vision-camera-test_pinhole
+  # vision-camera-test_radtan
+  # vision-feature2d-test_grid_fast
+  # vision-feature2d-test_grid_good
+  # vision-test_frontend
+  # vision-test_vision_common
+  # viz-test_gui
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})

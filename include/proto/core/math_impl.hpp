@@ -9,4 +9,4 @@ T lerp(const T &a, const T &b, const double t) {
 }
 
 } //  namespace proto
-#endif // PROTO_CORE_MATH_HPP
+#endif // PROTO_CORE_MATH_IMPL_HPP

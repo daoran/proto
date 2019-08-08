@@ -48,7 +48,7 @@ cd build/tests
 # ./calib-test_calib_gimbal
 # ./calib-test_calib_stereo
 # ./calib-test_sandbox
-./calib-test_sandbox2
+# ./calib-test_sandbox2
 # ./calib-test_sandbox3
 
 # -- comm
@@ -66,6 +66,7 @@ cd build/tests
 # ./core-test_linalg
 # ./core-test_math
 # ./core-test_stats
+./core-test_spline
 # ./core-test_tf
 # ./core-test_time
 

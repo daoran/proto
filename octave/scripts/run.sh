@@ -17,10 +17,10 @@ make
 # octave notes/imu_preintegration/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0
-# octave notes/bspline.m && exit 0
+octave notes/bspline.m && exit 0
 # octave notes/convolution.m && exit 0
 # octave notes/error_ellipse.m && exit 0
-octave notes/error_propagation.m && exit 0
+# octave notes/error_propagation.m && exit 0
 # octave notes/euroc_frames.m && exit 0
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
