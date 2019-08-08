@@ -45,10 +45,29 @@ struct ctraj_t {
           const quats_t &orientations);
 };
 
+/**
+ * Initialize continuous trajectory.
+ */
 void ctraj_init(ctraj_t &ctraj);
+
+/**
+ * Calculate pose `T_WB` at timestamp `ts`.
+ */
 mat4_t ctraj_get_pose(const ctraj_t &ctraj, const timestamp_t ts);
+
+/**
+ * Calculate velocity `v_WB` at timestamp `ts`.
+ */
 vec3_t ctraj_get_velocity(const ctraj_t &ctraj, const timestamp_t ts);
+
+/**
+ * Calculate acceleration `a_WB` at timestamp `ts`.
+ */
 vec3_t ctraj_get_acceleration(const ctraj_t &ctraj, const timestamp_t ts);
+
+/**
+ * Calculate angular velocity `w_WB` at timestamp `ts`.
+ */
 vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts);
 
 } //  namespace proto

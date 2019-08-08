@@ -10,7 +10,7 @@ void generate_trajectory(timestamps_t &timestamps,
                          vec3s_t &positions,
                          quats_t &orientations) {
   timestamp_t ts_k = 0;
-  const timestamp_t ts_end = 10.0 * 1e9;
+  const timestamp_t ts_end = 5.0 * 1e9;
   const double f = 100.0;
   const timestamp_t dt = (1 / f) * 1e9;
 
@@ -82,16 +82,6 @@ void save_data(const std::string &save_path,
   file.close();
 }
 
-// function C = so3_exp(phi)
-//   if (phi < 1e-3)
-//     C = eye(3) + skew(phi);
-//   else
-//     C = eye(3);
-//     C += (sin(norm(phi)) / norm(phi)) * skew(phi);
-//     C += ((1 - cos(norm(phi))) / norm(phi)^2) * skew(phi)^2;
-//   endif
-// endfunction
-
 static mat3_t so3_exp(const vec3_t &phi) {
   const double norm = phi.norm();
   if (norm < 1e-3) {
@@ -106,22 +96,6 @@ static mat3_t so3_exp(const vec3_t &phi) {
   return C;
 }
 
-// function x_imu = imu_update(x_imu, a_B, w_B, dt)
-//   b_a = x_imu.b_a;
-//   b_g = x_imu.b_g;
-//   g = x_imu.g;
-//   n_a = zeros(3, 1);
-//   n_g = zeros(3, 1);
-//
-//   C_WS = x_imu.C_WS;
-//   v_WS = x_imu.v_WS;
-//   p_WS = x_imu.p_WS;
-//
-//   x_imu.C_WS = C_WS * so3_exp((w_B - b_g - n_g) * dt);
-//   x_imu.v_WS += (g * dt) + (C_WS * (a_B - b_a - n_a) * dt);
-//   x_imu.p_WS += (v_WS * dt) + (0.5 * g * dt^2) + (0.5 * C_WS * (a_B - b_a - n_a) * dt^2);
-// endfunction
-
 int test_ctraj() {
   timestamps_t timestamps;
   vec3s_t positions;
@@ -129,15 +103,16 @@ int test_ctraj() {
 
   generate_trajectory(timestamps, positions, orientations);
   ctraj_t ctraj(timestamps, positions, orientations);
-  save_data("/tmp/desired_positions.csv", timestamps, positions);
-  save_data("/tmp/desired_orientations.csv", timestamps, orientations);
+  save_data("/tmp/positions.csv", timestamps, positions);
+  save_data("/tmp/orientations.csv", timestamps, orientations);
 
+  // Debug
   // const bool debug = true;
   const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_spline_data.m "
-                  "/tmp/desired_positions.csv "
-                  "/tmp/desired_orientations.csv ");
+                  "/tmp/pos_data.csv "
+                  "/tmp/att_data.csv ");
   }
 
   return 0;
@@ -150,8 +125,8 @@ int test_ctraj_get_pose() {
 
   generate_trajectory(timestamps, positions, orientations);
   ctraj_t ctraj(timestamps, positions, orientations);
-  save_data("/tmp/desired_positions.csv", timestamps, positions);
-  save_data("/tmp/desired_orientations.csv", timestamps, orientations);
+  save_data("/tmp/pos_data.csv", timestamps, positions);
+  save_data("/tmp/att_data.csv", timestamps, orientations);
 
   {
     timestamps_t t;
@@ -159,7 +134,7 @@ int test_ctraj_get_pose() {
     quats_t q;
 
     timestamp_t ts_k = 0;
-    const timestamp_t ts_end = 10.0 * 1e9;
+    const timestamp_t ts_end = timestamps.back();
     const double f = 1000.0;
     const timestamp_t dt = (1 / f) * 1e9;
 
@@ -173,18 +148,19 @@ int test_ctraj_get_pose() {
       ts_k += dt;
     }
 
-    save_data("/tmp/interp_positions.csv", t, r);
-    save_data("/tmp/interp_orientations.csv", t, q);
+    save_data("/tmp/pos_interp.csv", t, r);
+    save_data("/tmp/att_interp.csv", t, q);
   }
 
+  // Debug
   const bool debug = true;
   // const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_spline_pose.m "
-                  "/tmp/desired_positions.csv "
-                  "/tmp/desired_orientations.csv "
-                  "/tmp/interp_positions.csv "
-                  "/tmp/interp_orientations.csv ");
+                  "/tmp/pos_data.csv "
+                  "/tmp/att_data.csv "
+                  "/tmp/pos_interp.csv "
+                  "/tmp/att_interp.csv ");
   }
 
   return 0;
@@ -197,15 +173,14 @@ int test_ctraj_get_velocity() {
 
   generate_trajectory(timestamps, positions, orientations);
   ctraj_t ctraj(timestamps, positions, orientations);
-  save_data("/tmp/desired_positions.csv", timestamps, positions);
-  save_data("/tmp/desired_orientations.csv", timestamps, orientations);
+  save_data("/tmp/pos_data.csv", timestamps, positions);
 
   {
     timestamps_t t;
     vec3s_t v;
 
     timestamp_t ts_k = 0;
-    const timestamp_t ts_end = 10.0 * 1e9;
+    const timestamp_t ts_end = timestamps.back();
     const double f = 1000.0;
     const timestamp_t dt = (1 / f) * 1e9;
 
@@ -215,15 +190,16 @@ int test_ctraj_get_velocity() {
       ts_k += dt;
     }
 
-    save_data("/tmp/velocity.csv", t, v);
+    save_data("/tmp/vel_interp.csv", t, v);
   }
 
+  // Debug
   // const bool debug = true;
   const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_spline_velocity.m "
-                  "/tmp/desired_positions.csv "
-                  "/tmp/velocity.csv ");
+                  "/tmp/pos.csv "
+                  "/tmp/vel_interp.csv ");
   }
 
   return 0;
@@ -236,15 +212,15 @@ int test_ctraj_get_acceleration() {
 
   generate_trajectory(timestamps, positions, orientations);
   ctraj_t ctraj(timestamps, positions, orientations);
-  save_data("/tmp/desired_positions.csv", timestamps, positions);
-  save_data("/tmp/desired_orientations.csv", timestamps, orientations);
+  save_data("/tmp/pos_data.csv", timestamps, positions);
+  save_data("/tmp/att_data.csv", timestamps, orientations);
 
   {
     timestamps_t t;
     vec3s_t a;
 
     timestamp_t ts_k = 0;
-    const timestamp_t ts_end = 10.0 * 1e9;
+    const timestamp_t ts_end = timestamps.back();
     const double f = 1000.0;
     const timestamp_t dt = (1 / f) * 1e9;
 
@@ -254,15 +230,16 @@ int test_ctraj_get_acceleration() {
       ts_k += dt;
     }
 
-    save_data("/tmp/acceleration.csv", t, a);
+    save_data("/tmp/acc_interp.csv", t, a);
   }
 
+  // Debug
   // const bool debug = true;
   const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_spline_acceleration.m "
-                  "/tmp/desired_positions.csv "
-                  "/tmp/acceleration.csv ");
+                  "/tmp/pos_data.csv "
+                  "/tmp/acc_interp.csv ");
   }
 
   return 0;
@@ -275,62 +252,69 @@ int test_ctraj_get_angular_velocity() {
 
   generate_trajectory(timestamps, positions, orientations);
   ctraj_t ctraj(timestamps, positions, orientations);
-  save_data("/tmp/desired_orientations.csv", timestamps, orientations);
+  save_data("/tmp/att_data.csv", timestamps, orientations);
 
   {
+    // Setup
     timestamps_t t_hist;
     quats_t q_hist;
     quats_t q_prop_hist;
     vec3s_t w_hist;
 
     timestamp_t ts_k = 0;
-    const timestamp_t ts_end = 10.0 * 1e9;
+    const timestamp_t ts_end = timestamps.back();
     const double f = 1000.0;
     const timestamp_t dt = (1 / f) * 1e9;
 
-    const auto pose = ctraj_get_pose(ctraj, 0.0);
-    mat3_t C = tf_rot(pose);
+    // Initialize first attitude
+    auto T_WB = ctraj_get_pose(ctraj, 0.0);
+    mat3_t C_WB = tf_rot(T_WB);
 
+    // Interpolate pose, angular velocity
     while (ts_k <= ts_end) {
       t_hist.push_back(ts_k);
 
-      const auto pose = ctraj_get_pose(ctraj, ts_k);
-      q_hist.push_back(tf_quat(pose));
+      // Attitude at time k
+      T_WB = ctraj_get_pose(ctraj, ts_k);
+      const auto q_WB_k = tf_quat(T_WB);
+      q_hist.push_back(q_WB_k);
 
-      const auto w = ctraj_get_angular_velocity(ctraj, ts_k);
-      w_hist.push_back(w);
+      // Angular velocity at time k
+      const auto w_WB_k = ctraj_get_angular_velocity(ctraj, ts_k);
+      w_hist.push_back(w_WB_k);
 
-      C = C * so3_exp(tf_rot(pose).inverse() * w * ts2sec(dt));
-      q_prop_hist.push_back(quat_t{C});
+      // Propagate angular velocity to obtain attitude at time k
+      const mat3_t C_BW = tf_rot(T_WB).inverse();
+      C_WB = C_WB * so3_exp(C_BW * w_WB_k * ts2sec(dt));
+      q_prop_hist.emplace_back(quat_t{C_WB});
 
       ts_k += dt;
     }
 
-    save_data("/tmp/orientations.csv", t_hist, q_hist);
-    save_data("/tmp/orientations_prop.csv", t_hist, q_prop_hist);
-    save_data("/tmp/angular_velocity.csv", t_hist, w_hist);
+    save_data("/tmp/att_interp.csv", t_hist, q_hist);
+    save_data("/tmp/att_prop.csv", t_hist, q_prop_hist);
+    save_data("/tmp/avel_interp.csv", t_hist, w_hist);
   }
 
+  // Debug
   const bool debug = true;
   // const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_spline_angular_velocity.m "
-                  "/tmp/desired_orientations.csv "
-                  "/tmp/orientations.csv "
-                  "/tmp/angular_velocity.csv ");
-    OCTAVE_SCRIPT("scripts/core/plot_spline_prop.m "
-                  "/tmp/orientations.csv "
-                  "/tmp/orientations_prop.csv ");
+                  "/tmp/att_data.csv "
+                  "/tmp/att_interp.csv "
+                  "/tmp/att_prop.csv "
+                  "/tmp/avel_interp.csv ");
   }
 
   return 0;
 }
 
 void test_suite() {
-  // MU_ADD_TEST(test_ctraj);
-  // MU_ADD_TEST(test_ctraj_get_pose);
-  // MU_ADD_TEST(test_ctraj_get_velocity);
-  // MU_ADD_TEST(test_ctraj_get_acceleration);
+  MU_ADD_TEST(test_ctraj);
+  MU_ADD_TEST(test_ctraj_get_pose);
+  MU_ADD_TEST(test_ctraj_get_velocity);
+  MU_ADD_TEST(test_ctraj_get_acceleration);
   MU_ADD_TEST(test_ctraj_get_angular_velocity);
 }
 

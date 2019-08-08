@@ -3,14 +3,16 @@ graphics_toolkit("fltk");
 
 % Parser command line args
 arg_list = argv();
-att_csv = arg_list{1}
-att_spline_csv = arg_list{2}
-ang_vel_spline_csv = arg_list{3}
+att_data_csv = arg_list{1};
+att_interp_csv = arg_list{2};
+att_prop_csv = arg_list{3};
+avel_interp_csv = arg_list{4};
 
 % Parse data
-att_data = csvread(att_csv, 0, 0);
-att_spline_data = csvread(att_spline_csv, 0, 0);
-ang_vel_spline_data = csvread(ang_vel_spline_csv, 0, 0);
+att_data = csvread(att_data_csv, 0, 0);
+att_interp_data = csvread(att_interp_csv, 0, 0);
+att_prop_data = csvread(att_prop_csv, 0, 0);
+avel_interp_data = csvread(avel_interp_csv, 0, 0);
 
 function euler = quat2euler(q)
   qw = q(1);
@@ -32,7 +34,7 @@ endfunction
 % Plot figure
 figure();
 
-subplot(311);
+subplot(411);
 hold on;
 t = att_data(:, 1) * 1e-9;
 
@@ -50,15 +52,17 @@ legend("x", "y", "z");
 xlabel("Time [s]");
 ylabel("Attitude [rad]");
 xlim([0, max(t)]);
+ylim([-1.0, 1.0]);
 title("Attitude Data points");
 
-subplot(312);
-hold on;
-t = att_spline_data(:, 1) * 1e-9;
 
-rpy_data = zeros(rows(att_spline_data), 3);
-for i = 1:rows(att_spline_data)
-  rpy = quat2euler(att_spline_data(i, 2:end));
+subplot(412);
+hold on;
+t = att_interp_data(:, 1) * 1e-9;
+
+rpy_data = zeros(rows(att_interp_data), 3);
+for i = 1:rows(att_interp_data)
+  rpy = quat2euler(att_interp_data(i, 2:end));
   assert(columns(rpy) == 1);
   rpy_data(i, :) = rpy';
 endfor
@@ -70,14 +74,38 @@ legend("x", "y", "z");
 xlabel("Time [s]");
 ylabel("Attitude [rad]");
 xlim([0, max(t)]);
+ylim([-1.0, 1.0]);
 title("Interpolated Attitude");
 
-subplot(313);
+
+subplot(413);
 hold on;
-t = ang_vel_spline_data(:, 1) * 1e-9;
-plot(t, ang_vel_spline_data(:, 2), "r.", "markersize", 10);
-plot(t, ang_vel_spline_data(:, 3), "b.", "markersize", 10);
-plot(t, ang_vel_spline_data(:, 4), "g.", "markersize", 10);
+t = att_prop_data(:, 1) * 1e-9;
+
+rpy_data = zeros(rows(att_prop_data), 3);
+for i = 1:rows(att_prop_data)
+  rpy = quat2euler(att_prop_data(i, 2:end));
+  assert(columns(rpy) == 1);
+  rpy_data(i, :) = rpy';
+endfor
+
+plot(t, rpy_data(:, 1), "r.", "markersize", 10);
+plot(t, rpy_data(:, 2), "b.", "markersize", 10);
+plot(t, rpy_data(:, 3), "g.", "markersize", 10);
+legend("x", "y", "z");
+xlabel("Time [s]");
+ylabel("Attitude [rad]");
+xlim([0, max(t)]);
+ylim([-1.0, 1.0]);
+title("Propagated Attitude");
+
+
+subplot(414);
+hold on;
+t = avel_interp_data(:, 1) * 1e-9;
+plot(t, avel_interp_data(:, 2), "r.", "markersize", 10);
+plot(t, avel_interp_data(:, 3), "b.", "markersize", 10);
+plot(t, avel_interp_data(:, 4), "g.", "markersize", 10);
 legend("x", "y", "z");
 xlabel("Time [s]");
 ylabel("Angular Velocity [rad s^-1]");
