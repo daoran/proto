@@ -46,9 +46,10 @@ struct ctraj_t {
 };
 
 void ctraj_init(ctraj_t &ctraj);
-mat4_t ctraj_get_pose(ctraj_t &ctraj, const timestamp_t ts);
-vec3_t ctraj_get_velocity(ctraj_t &ctraj, const timestamp_t ts);
-vec3_t ctraj_get_acceleration(ctraj_t &ctraj, const timestamp_t ts);
+mat4_t ctraj_get_pose(const ctraj_t &ctraj, const timestamp_t ts);
+vec3_t ctraj_get_velocity(const ctraj_t &ctraj, const timestamp_t ts);
+vec3_t ctraj_get_acceleration(const ctraj_t &ctraj, const timestamp_t ts);
+vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts);
 
 } //  namespace proto
 #endif // PROTO_CORE_SPLINE_HPP

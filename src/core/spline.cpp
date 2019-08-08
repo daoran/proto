@@ -68,7 +68,7 @@ void ctraj_init(ctraj_t &ctraj) {
   ctraj.rvec_spline = SPLINE3D(rvec, knots, spline_degree);
 }
 
-mat4_t ctraj_get_pose(ctraj_t &ctraj, const timestamp_t ts) {
+mat4_t ctraj_get_pose(const ctraj_t &ctraj, const timestamp_t ts) {
   const double u = ts_normalize(ctraj, ts);
 
   // Translation
@@ -85,9 +85,9 @@ mat4_t ctraj_get_pose(ctraj_t &ctraj, const timestamp_t ts) {
   return tf(q, r);
 }
 
-vec3_t ctraj_get_velocity(ctraj_t &ctraj, const timestamp_t ts) {
-  assert(ts > ctraj.timestamps.front());
-  assert(ts < ctraj.timestamps.back());
+vec3_t ctraj_get_velocity(const ctraj_t &ctraj, const timestamp_t ts) {
+  assert(ts >= ctraj.timestamps.front());
+  assert(ts <= ctraj.timestamps.back());
 
   const double u = ts_normalize(ctraj, ts);
   const double scale = (1 / ctraj.ts_s_gap);
@@ -95,14 +95,55 @@ vec3_t ctraj_get_velocity(ctraj_t &ctraj, const timestamp_t ts) {
   return ctraj.pos_spline.derivatives(u, 1).col(1) * scale;
 }
 
-vec3_t ctraj_get_acceleration(ctraj_t &ctraj, const timestamp_t ts) {
-  assert(ts > ctraj.timestamps.front());
-  assert(ts < ctraj.timestamps.back());
+vec3_t ctraj_get_acceleration(const ctraj_t &ctraj, const timestamp_t ts) {
+  assert(ts >= ctraj.timestamps.front());
+  assert(ts <= ctraj.timestamps.back());
 
   const double u = ts_normalize(ctraj, ts);
   const double scale = pow(1 / ctraj.ts_s_gap, 2);
 
   return ctraj.pos_spline.derivatives(u, 2).col(2) * scale;
+}
+
+static mat3_t so3_exp(const vec3_t &phi) {
+  const double norm = phi.norm();
+  if (norm < 1e-3) {
+    return mat3_t{I(3) + skew(phi)};
+  }
+
+  const mat3_t phi_skew = skew(phi);
+  mat3_t C = I(3);
+  C += (sin(norm) / norm) * phi_skew;
+  C += ((1 - cos(norm)) / (norm * norm)) * (phi_skew * phi_skew);
+
+  return C;
+}
+
+vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts) {
+  assert(ts >= ctraj.timestamps.front());
+  assert(ts <= ctraj.timestamps.back());
+
+  const double u = ts_normalize(ctraj, ts);
+  const double scale = 1 / ctraj.ts_s_gap;
+
+  const auto rvec_spline_deriv = ctraj.rvec_spline.derivatives(u, 1);
+  const vec3_t rvec = rvec_spline_deriv.col(0);
+  const vec3_t rvec_deriv = rvec_spline_deriv.col(1) * scale;
+
+  // Check magnitude of the rotation vector
+  const double rvec_norm = rvec.norm();
+  if (rvec_norm < 1e-12) {
+    return vec3_t{rvec_deriv};
+  }
+
+  // Calculate angular velocity
+  const mat3_t axis_skew = skew(rvec.normalized());
+  vec3_t w =
+    (I(3) + axis_skew * (1.0 - cos(rvec_norm)) / rvec_norm
+    + axis_skew * axis_skew * (rvec_norm - sin(rvec_norm)) / rvec_norm)
+    * rvec_deriv;
+
+  return w;
 }
 
 } // namespace proto
