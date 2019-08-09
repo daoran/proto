@@ -8,6 +8,7 @@
 #include "proto/core/log.hpp"
 #include "proto/core/macros.hpp"
 #include "proto/core/math.hpp"
+#include "proto/core/spline.hpp"
 #include "proto/core/tf.hpp"
 #include "proto/core/time.hpp"
 

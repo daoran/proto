@@ -73,6 +73,19 @@ typedef std::vector<quatf_t, Eigen::aligned_allocator<quat_t>> quatfs_t;
 #endif
 
 /**
+ * Create a circle point of radius `r` at angle `theta` radians.
+ */
+vec2_t circle(const double r, const double theta);
+
+/**
+ * Create the sphere point with sphere radius `rho` at longitude `theta`
+ * [radians] and latitude `phi` [radians].
+ */
+vec3_t sphere(const double rho,
+              const double theta,
+              const double phi);
+
+/**
  * Print shape of a matrix
  *
  * @param[in] name Name of matrix

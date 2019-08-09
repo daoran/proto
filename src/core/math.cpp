@@ -2,6 +2,17 @@
 
 namespace proto {
 
+vec2_t circle(const double r, const double theta) {
+  return vec2_t{r * cos(theta), r * sin(theta)};
+}
+
+vec3_t sphere(const double rho, const double theta, const double phi) {
+  const double x = rho * sin(theta) * cos(phi);
+  const double y = rho * sin(theta) * sin(phi);
+  const double z = rho * cos(theta);
+  return vec3_t{x, y, z};
+}
+
 void print_shape(const std::string &name, const matx_t &A) {
   std::cout << name << ": " << A.rows() << "x" << A.cols() << std::endl;
 }

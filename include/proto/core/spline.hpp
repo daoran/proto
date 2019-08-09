@@ -2,6 +2,7 @@
 #define PROTO_CORE_SPLINE_HPP
 
 #include <vector>
+#include <fstream>
 
 #include <Eigen/Dense>
 #include <unsupported/Eigen/Splines>
@@ -46,6 +47,11 @@ struct ctraj_t {
 };
 
 /**
+ * Container for multiple continuous trajectories
+ */
+typedef std::vector<ctraj_t> ctrajs_t;
+
+/**
  * Initialize continuous trajectory.
  */
 void ctraj_init(ctraj_t &ctraj);
@@ -69,6 +75,11 @@ vec3_t ctraj_get_acceleration(const ctraj_t &ctraj, const timestamp_t ts);
  * Calculate angular velocity `w_WB` at timestamp `ts`.
  */
 vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts);
+
+/**
+ * Save trajectory to file
+ */
+int ctraj_save(const ctraj_t &ctraj, const std::string &save_path);
 
 } //  namespace proto
 #endif // PROTO_CORE_SPLINE_HPP

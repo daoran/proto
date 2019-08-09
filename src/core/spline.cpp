@@ -146,4 +146,29 @@ vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts) {
   return w;
 }
 
+int ctraj_save(const ctraj_t &ctraj, const std::string &save_path) {
+  // Setup output file
+  std::ofstream file{save_path};
+  if (file.good() != true) {
+    LOG_ERROR("Failed to open file for output!");
+    return -1;
+  }
+
+  // Output trajectory timestamps, positions and orientations as csv
+  for (size_t i = 0; i < ctraj.timestamps.size(); i++) {
+    file << ctraj.timestamps[i] << ",";
+    file << ctraj.positions[i](0) << ",";
+    file << ctraj.positions[i](1) << ",";
+    file << ctraj.positions[i](2) << ",";
+    file << ctraj.orientations[i].w() << ",";
+    file << ctraj.orientations[i].x() << ",";
+    file << ctraj.orientations[i].y() << ",";
+    file << ctraj.orientations[i].z() << std::endl;
+  }
+
+  // Close file
+  file.close();
+  return 0;
+}
+
 } // namespace proto

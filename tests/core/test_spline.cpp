@@ -29,10 +29,6 @@ void generate_trajectory(timestamps_t &timestamps,
     // Orientation
     const vec3_t rpy{
       sin(2 * M_PI * 2 * ts_s_k),
-      // sin(2 * M_PI * 2 * ts_s_k + M_PI),
-      // sin(2 * M_PI * 2 * ts_s_k + M_PI / 2)
-      // 0, 0
-      // 0, 0
       sin(2 * M_PI * 2 * ts_s_k + M_PI / 4),
       sin(2 * M_PI * 2 * ts_s_k + M_PI / 2)
     };
@@ -153,8 +149,8 @@ int test_ctraj_get_pose() {
   }
 
   // Debug
-  const bool debug = true;
-  // const bool debug = false;
+  // const bool debug = true;
+  const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_spline_pose.m "
                   "/tmp/pos_data.csv "
@@ -254,51 +250,48 @@ int test_ctraj_get_angular_velocity() {
   ctraj_t ctraj(timestamps, positions, orientations);
   save_data("/tmp/att_data.csv", timestamps, orientations);
 
-  {
-    // Setup
-    timestamps_t t_hist;
-    quats_t q_hist;
-    quats_t q_prop_hist;
-    vec3s_t w_hist;
+  // Setup
+  timestamps_t t_hist;
+  quats_t q_hist;
+  quats_t q_prop_hist;
+  vec3s_t w_hist;
 
-    timestamp_t ts_k = 0;
-    const timestamp_t ts_end = timestamps.back();
-    const double f = 1000.0;
-    const timestamp_t dt = (1 / f) * 1e9;
+  timestamp_t ts_k = 0;
+  const timestamp_t ts_end = timestamps.back();
+  const double f = 1000.0;
+  const timestamp_t dt = (1 / f) * 1e9;
 
-    // Initialize first attitude
-    auto T_WB = ctraj_get_pose(ctraj, 0.0);
-    mat3_t C_WB = tf_rot(T_WB);
+  // Initialize first attitude
+  auto T_WB = ctraj_get_pose(ctraj, 0.0);
+  mat3_t C_WB = tf_rot(T_WB);
 
-    // Interpolate pose, angular velocity
-    while (ts_k <= ts_end) {
-      t_hist.push_back(ts_k);
+  // Interpolate pose, angular velocity
+  while (ts_k <= ts_end) {
+    t_hist.push_back(ts_k);
 
-      // Attitude at time k
-      T_WB = ctraj_get_pose(ctraj, ts_k);
-      const auto q_WB_k = tf_quat(T_WB);
-      q_hist.push_back(q_WB_k);
+    // Attitude at time k
+    T_WB = ctraj_get_pose(ctraj, ts_k);
+    const auto q_WB_k = tf_quat(T_WB);
+    q_hist.push_back(q_WB_k);
 
-      // Angular velocity at time k
-      const auto w_WB_k = ctraj_get_angular_velocity(ctraj, ts_k);
-      w_hist.push_back(w_WB_k);
+    // Angular velocity at time k
+    const auto w_WB_k = ctraj_get_angular_velocity(ctraj, ts_k);
+    w_hist.push_back(w_WB_k);
 
-      // Propagate angular velocity to obtain attitude at time k
-      const mat3_t C_BW = tf_rot(T_WB).inverse();
-      C_WB = C_WB * so3_exp(C_BW * w_WB_k * ts2sec(dt));
-      q_prop_hist.emplace_back(quat_t{C_WB});
+    // Propagate angular velocity to obtain attitude at time k
+    const mat3_t C_BW = tf_rot(T_WB).inverse();
+    C_WB = C_WB * so3_exp(C_BW * w_WB_k * ts2sec(dt));
+    q_prop_hist.emplace_back(quat_t{C_WB});
 
-      ts_k += dt;
-    }
-
-    save_data("/tmp/att_interp.csv", t_hist, q_hist);
-    save_data("/tmp/att_prop.csv", t_hist, q_prop_hist);
-    save_data("/tmp/avel_interp.csv", t_hist, w_hist);
+    ts_k += dt;
   }
+  save_data("/tmp/att_interp.csv", t_hist, q_hist);
+  save_data("/tmp/att_prop.csv", t_hist, q_prop_hist);
+  save_data("/tmp/avel_interp.csv", t_hist, w_hist);
 
   // Debug
-  const bool debug = true;
-  // const bool debug = false;
+  // const bool debug = true;
+  const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_spline_angular_velocity.m "
                   "/tmp/att_data.csv "
