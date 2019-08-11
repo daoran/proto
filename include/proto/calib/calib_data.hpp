@@ -136,6 +136,11 @@ int preprocess_stereo_data(const calib_target_t &target,
                            const std::string &cam1_output_dir);
 
 /**
+ * Extract and only keep common aprilgrid corners between `grids0` and `grids1`.
+ */
+void extract_common_calib_data(aprilgrids_t &grids0, aprilgrids_t &grids1);
+
+/**
  * Load preprocessed stereo calibration data, where `cam0_data_dir` and
  * `cam1_data_dir` are preprocessed calibration data observed from cam0 and
  * cam1. The preprocessed calibration data will be loaded into

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <random>
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -584,6 +585,13 @@ mat4_t lookat(const vec3_t &cam_pos,
  * Shannon Entropy of a given covariance matrix `covar`.
  */
 double shannon_entropy(const matx_t &covar);
+
+/**
+ * Multivariate normal.
+ */
+vec3_t mvn(std::default_random_engine &engine,
+           const vec3_t &mu = vec3_t{0.0, 0.0, 0.0},
+           const vec3_t &stdev = vec3_t{1.0, 1.0, 1.0});
 
 } //  namespace proto
 #include "math_impl.hpp"

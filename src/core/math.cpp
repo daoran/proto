@@ -565,4 +565,13 @@ double shannon_entropy(const matx_t &covar) {
   return entropy;
 }
 
+vec3_t mvn(std::default_random_engine &engine,
+           const vec3_t &mu,
+           const vec3_t &stdev) {
+  std::normal_distribution<double> normal_x(mu(0), stdev(0));
+  std::normal_distribution<double> normal_y(mu(1), stdev(1));
+  std::normal_distribution<double> normal_z(mu(2), stdev(2));
+  return vec3_t {normal_x(engine), normal_y(engine), normal_z(engine)};
+}
+
 } // namespace proto

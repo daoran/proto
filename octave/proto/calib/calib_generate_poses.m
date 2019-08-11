@@ -1,6 +1,6 @@
 function [poses, calib_center] = calib_generate_poses(calib_target)
-  calib_width = (calib_target.nb_rows - 1.0) * calib_target.tag_size;
-  calib_height = (calib_target.nb_cols - 1.0) * calib_target.tag_size;
+  calib_width = (calib_target.nb_cols - 1.0) * calib_target.tag_size;
+  calib_height = (calib_target.nb_rows - 1.0) * calib_target.tag_size;
   calib_center = [calib_width / 2.0; calib_height / 2.0; 0.0];
 
   % Pose settings
@@ -28,10 +28,8 @@ function [poses, calib_center] = calib_generate_poses(calib_target)
   % For each position create a camera pose that "looks at" the AprilGrid
   % center in the target frame, T_TC.
   poses = {};
-  pose_idx = 1;
   for i = 1:length(cam_positions)
     T_TC = lookat(cam_positions(:, i), calib_center);
-    poses{pose_idx} = T_TC;
-    pose_idx++;
+    poses{end + 1} = T_TC;
   endfor
 endfunction

@@ -176,7 +176,7 @@ SET(
   # core-test_data
   # core-test_file
   # core-test_gps
-  # core-test_math
+  core-test_math
   core-test_spline
   # core-test_tf
   # core-test_time

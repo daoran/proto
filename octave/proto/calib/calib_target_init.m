@@ -15,5 +15,9 @@ function calib_target = calib_target_init(nb_rows=6, nb_cols=7, tag_size=0.2)
   calib_target.nb_cols = nb_cols;
   calib_target.nb_corners = nb_corners;
   calib_target.tag_size = tag_size;
+  calib_target.width = calib_target.nb_cols * calib_target.tag_size;
+  calib_target.height = calib_target.nb_rows * calib_target.tag_size;
+  calib_target.center = [((nb_cols - 1.0) / 2.0) * tag_size,
+                         ((nb_rows - 1.0) / 2.0) * tag_size];
   calib_target.object_points = tag_size * object_points;
 endfunction

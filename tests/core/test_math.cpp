@@ -1,5 +1,6 @@
-#include "proto/core/math.hpp"
 #include "proto/munit.hpp"
+#include "proto/core/math.hpp"
+#include "proto/core/data.hpp"
 
 namespace proto {
 
@@ -356,6 +357,26 @@ int test_nullspace() {
   return 0;
 }
 
+int test_mvn() {
+  std::default_random_engine engine;
+  const int nb_tests = 10000;  // number of experiments
+
+  matx_t results{3, nb_tests};
+  for (int i = 0; i < nb_tests; i++) {
+    results.block<3, 1>(0, i) = mvn(engine);
+  }
+  mat2csv("/tmp/mvn.csv", results);
+
+  // Debug
+  const bool debug = true;
+  // const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/core/plot_mvn.m /tmp/mvn.csv");
+  }
+
+  return 0;
+}
+
 void test_suite() {
   MU_ADD_TEST(test_median);
   MU_ADD_TEST(test_deg2radAndrad2deg);
@@ -375,6 +396,7 @@ void test_suite() {
   MU_ADD_TEST(test_skewsq);
   MU_ADD_TEST(test_enforce_psd);
   MU_ADD_TEST(test_nullspace);
+  MU_ADD_TEST(test_mvn);
 }
 
 } // namespace proto

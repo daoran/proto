@@ -274,6 +274,50 @@ int preprocess_stereo_data(const calib_target_t &target,
   return 0;
 }
 
+void extract_common_calib_data(aprilgrids_t &grids0, aprilgrids_t &grids1) {
+  // Loop through both sets of calibration data and only keep apriltags that
+  // are seen by both cameras
+  size_t nb_detections = std::max(grids0.size(), grids1.size());
+  size_t cam0_idx = 0;
+  size_t cam1_idx = 0;
+
+  aprilgrids_t final_grids0;
+  aprilgrids_t final_grids1;
+  for (size_t i = 0; i < nb_detections; i++) {
+    // Get grid
+    aprilgrid_t &grid0 = grids0[cam0_idx];
+    aprilgrid_t &grid1 = grids1[cam1_idx];
+    if (grid0.timestamp == grid1.timestamp) {
+      cam0_idx++;
+      cam1_idx++;
+    } else if (grid0.timestamp > grid1.timestamp) {
+      cam1_idx++;
+      continue;
+    } else if (grid0.timestamp < grid1.timestamp) {
+      cam0_idx++;
+      continue;
+    }
+
+    // Keep only common tags between grid0 and grid1
+    aprilgrid_intersection(grid0, grid1);
+    assert(grid0.ids.size() == grid1.ids.size());
+
+    // Add to results
+    final_grids0.emplace_back(grid0);
+    final_grids1.emplace_back(grid1);
+
+    // Check if there's more data to go though
+    if (cam0_idx >= grids0.size() || cam1_idx >= grids1.size()) {
+      break;
+    }
+  }
+
+  grids0.clear();
+  grids1.clear();
+  grids0 = final_grids0;
+  grids1 = final_grids1;
+}
+
 int load_stereo_calib_data(const std::string &cam0_data_dir,
                            const std::string &cam1_data_dir,
                            aprilgrids_t &cam0_aprilgrids,

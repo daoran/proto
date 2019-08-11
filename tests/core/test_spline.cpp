@@ -303,12 +303,115 @@ int test_ctraj_get_angular_velocity() {
   return 0;
 }
 
+int test_sim_imu_measurement() {
+  // Setup imu sim
+  sim_imu_t imu;
+  imu.rate = 400;
+  imu.tau_a = 3600;
+  imu.tau_g = 3600;
+  imu.sigma_g_c = 0.00275;
+  imu.sigma_a_c = 0.0250;
+  imu.sigma_gw_c = 1.65e-05;
+  imu.sigma_aw_c = 0.000441;
+  imu.g = 9.81007;
+
+  // Generate trajectory
+  timestamps_t timestamps;
+  vec3s_t positions;
+  quats_t orientations;
+  generate_trajectory(timestamps, positions, orientations);
+  ctraj_t ctraj(timestamps, positions, orientations);
+  save_data("/tmp/pos_data.csv", timestamps, positions);
+  save_data("/tmp/att_data.csv", timestamps, orientations);
+
+  // Simulate IMU measurements
+  std::default_random_engine rndeng;
+  timestamps_t imu_ts;
+  vec3s_t imu_accel;
+  vec3s_t imu_gyro;
+  vec3s_t pos_prop;
+  vec3s_t vel_prop;
+  quats_t att_prop;
+
+  timestamp_t ts_k = 0;
+  const timestamp_t ts_end = timestamps.back();
+  const timestamp_t dt = (1 / imu.rate) * 1e9;
+
+  // -- Initialize position, velocity and attidue
+  auto T_WS = ctraj_get_pose(ctraj, 0.0);
+  vec3_t r_WS = tf_trans(T_WS);
+  mat3_t C_WS = tf_rot(T_WS);
+  vec3_t v_WS = ctraj_get_velocity(ctraj, 0.0);
+
+  // -- Simulate imu measurements
+  while (ts_k <= ts_end) {
+    const auto T_WS_W = ctraj_get_pose(ctraj, ts_k);
+    const auto w_WS_W = ctraj_get_angular_velocity(ctraj, ts_k);
+    const auto a_WS_W = ctraj_get_acceleration(ctraj, ts_k);
+    vec3_t a_WS_S;
+    vec3_t w_WS_S;
+    sim_imu_measurement(
+      imu,
+      rndeng,
+      ts_k,
+      T_WS_W,
+      w_WS_W,
+      a_WS_W,
+      a_WS_S,
+      w_WS_S
+    );
+
+    // Calculate position and velocity at time k
+    const double dt_s = ts2sec(dt);
+    const double dt_s_sq = dt_s * dt_s;
+    const vec3_t g{0.0, 0.0, -imu.g};
+    const vec3_t b_a = ones(3, 1) * imu.b_a;
+    const vec3_t n_a = ones(3, 1) * imu.sigma_a_c;
+    r_WS += v_WS * dt_s + (0.5 * g * dt_s_sq) + (0.5 * C_WS * (a_WS_S - b_a - n_a) * dt_s_sq);
+    v_WS += C_WS * (a_WS_S - b_a - n_a) * dt_s + g * dt_s;
+
+    // Calculate attitude at time k
+    const mat3_t C_BW = tf_rot(T_WS_W).inverse();
+    C_WS = C_WS * so3_exp(C_BW * w_WS_W * ts2sec(dt));
+    att_prop.emplace_back(quat_t{C_WS});
+
+    // Reocord IMU measurments
+    pos_prop.push_back(r_WS);
+    vel_prop.push_back(v_WS);
+    imu_ts.push_back(ts_k);
+    imu_accel.push_back(a_WS_S);
+    imu_gyro.push_back(w_WS_S);
+
+    ts_k += dt;
+  }
+  save_data("/tmp/att_prop.csv", imu_ts, att_prop);
+  save_data("/tmp/pos_prop.csv", imu_ts, pos_prop);
+  save_data("/tmp/imu_accel.csv", imu_ts, imu_accel);
+  save_data("/tmp/imu_gyro.csv", imu_ts, imu_gyro);
+
+  // Debug
+  const bool debug = true;
+  // const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/core/plot_imu_measurements.m "
+                  "/tmp/pos_data.csv "
+                  "/tmp/pos_prop.csv "
+                  "/tmp/att_data.csv "
+                  "/tmp/att_prop.csv "
+                  "/tmp/imu_accel.csv "
+                  "/tmp/imu_gyro.csv ");
+  }
+
+  return 0;
+}
+
 void test_suite() {
-  MU_ADD_TEST(test_ctraj);
-  MU_ADD_TEST(test_ctraj_get_pose);
-  MU_ADD_TEST(test_ctraj_get_velocity);
-  MU_ADD_TEST(test_ctraj_get_acceleration);
-  MU_ADD_TEST(test_ctraj_get_angular_velocity);
+  // MU_ADD_TEST(test_ctraj);
+  // MU_ADD_TEST(test_ctraj_get_pose);
+  // MU_ADD_TEST(test_ctraj_get_velocity);
+  // MU_ADD_TEST(test_ctraj_get_acceleration);
+  // MU_ADD_TEST(test_ctraj_get_angular_velocity);
+  MU_ADD_TEST(test_sim_imu_measurement);
 }
 
 } // namespace proto

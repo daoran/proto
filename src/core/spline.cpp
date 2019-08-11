@@ -2,6 +2,10 @@
 
 namespace proto {
 
+/*****************************************************************************
+ * Continuous trajectory generator
+ *****************************************************************************/
+
 ctraj_t::ctraj_t(const timestamps_t &timestamps,
                  const vec3s_t &positions,
                  const quats_t &orientations)
@@ -169,6 +173,66 @@ int ctraj_save(const ctraj_t &ctraj, const std::string &save_path) {
   // Close file
   file.close();
   return 0;
+}
+
+/*****************************************************************************
+ * IMU measurements generator
+ *****************************************************************************/
+
+void sim_imu_measurement(
+    sim_imu_t &imu,
+    std::default_random_engine &rndeng,
+    const timestamp_t &ts,
+    const mat4_t &T_WS_W,
+    const vec3_t &w_WS_W,
+    const vec3_t &a_WS_W,
+    vec3_t &a_WS_S,
+    vec3_t &w_WS_S) {
+  // Delta time according to sample rate
+  double dt = 1.0 / imu.rate;
+
+  // Check consistency of time increments:
+  if (imu.started == false) {
+    if (fabs(ts2sec(ts - imu.ts_prev) - dt) < (dt / 2.0)) {
+      FATAL("Inconsisten sample rate with parameter setting: %f < %f",
+            fabs(double(ts - imu.ts_prev) * 1.0e-9 - dt),
+            dt / 2.0);
+    }
+  }
+
+  // IMU initialised?
+  if (imu.started == false) {
+    // Stationary properties of an Ornstein-Uhlenbeck process
+    imu.b_g = mvn(rndeng);
+    imu.b_a = mvn(rndeng);
+    imu.b_g *= imu.sigma_gw_c * sqrt(imu.tau_g / 2.0);
+    imu.b_a *= imu.sigma_aw_c * sqrt(imu.tau_a / 2.0);
+    imu.started = true;
+
+  } else {
+    // Propagate biases
+    const vec3_t w_a = mvn(rndeng);  // Accel white noie
+    imu.b_a += -imu.b_a / imu.tau_a * dt + w_a * imu.sigma_aw_c * sqrt(dt);
+
+    const vec3_t w_g = mvn(rndeng);  // Gyro white noie
+    imu.b_g += -imu.b_g / imu.tau_g * dt + w_g * imu.sigma_gw_c * sqrt(dt);
+  }
+
+  // Compute noisy gyro measurements
+  const mat3_t C_SW = tf_rot(T_WS_W).transpose();
+  const vec3_t w_g = mvn(rndeng);  // Gyro white noise
+  w_WS_S = C_SW * w_WS_W + imu.b_g + w_g * imu.sigma_g_c * sqrt(dt);
+
+  // Compute noisy accel measurements
+  const vec3_t g{0.0, 0.0, -imu.g}; // Gravity vector
+  const vec3_t w_a = mvn(rndeng); // Accel white noise
+  a_WS_S = C_SW * (a_WS_W - g) + imu.b_a + w_a * imu.sigma_a_c * sqrt(dt);
+  // TODO: check global gravity direction!
+
+  // Saturate
+  // elementwiseSaturate(imu.g_max, w_WS_S);
+  // elementwiseSaturate(imu.a_max, a_WS_S);
+  imu.ts_prev = ts;
 }
 
 } // namespace proto

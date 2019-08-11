@@ -1,4 +1,4 @@
-function draw_frame(T_WS, scale=1.0)
+function draw_frame(T_WS, scale=0.1)
   r_WS = tf_trans(T_WS);
 	origin = r_WS;
 

@@ -188,8 +188,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Load stereo calibration data
-  std::vector<aprilgrid_t> cam0_aprilgrids;
-  std::vector<aprilgrid_t> cam1_aprilgrids;
+  aprilgrids_t cam0_aprilgrids;
+  aprilgrids_t cam1_aprilgrids;
   retval = load_stereo_calib_data(config.cam0_preprocess_path,
                                   config.cam1_preprocess_path,
                                   cam0_aprilgrids,

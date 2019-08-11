@@ -24,8 +24,8 @@ function x_imu = imu_update(x_imu, a_B, w_B, dt)
   p_WS = x_imu.p_WS;
 
   x_imu.C_WS = C_WS * so3_exp((w_B - b_g - n_g) * dt);
-  x_imu.v_WS += (g * dt) + (C_WS * (a_B - b_a - n_a) * dt);
-  x_imu.p_WS += (v_WS * dt) + (0.5 * g * dt^2) + (0.5 * C_WS * (a_B - b_a - n_a) * dt^2);
+  x_imu.v_WS += (C_WS * (a_B - b_a - n_a) * dt) + (g * dt);
+  x_imu.p_WS += (v_WS * dt) + (0.5 * C_WS * (a_B - b_a - n_a) * dt^2) + (0.5 * g * dt^2);
 endfunction
 
 % Load KITTI Raw data sequence
