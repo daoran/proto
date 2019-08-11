@@ -73,6 +73,117 @@ typedef Eigen::Quaternionf quatf_t;
 typedef std::vector<quatf_t, Eigen::aligned_allocator<quat_t>> quatfs_t;
 #endif
 
+/******************************************************************************
+ * Algebra
+ *****************************************************************************/
+
+/**
+ * Sign of number
+ *
+ * @param[in] x Number to check sign
+ * @return
+ *    - 0: Number is zero
+ *    - 1: Positive number
+ *    - -1: Negative number
+ */
+int sign(const double x);
+
+/**
+ * Floating point comparator
+ *
+ * @param[in] f1 First value
+ * @param[in] f2 Second value
+ * @return
+ *    - 0: if equal
+ *    - 1: if f1 > f2
+ *    - -1: if f1 < f2
+ */
+int fltcmp(const double f1, const double f2);
+
+/**
+ * Calculate binomial coefficient
+ *
+ * @param[in] n
+ * @param[in] k
+ * @returns Binomial coefficient
+ */
+double binomial(const double n, const double k);
+
+/**
+ * Return evenly spaced numbers over a specified interval.
+ */
+std::vector<double> linspace(const double start,
+                             const double end,
+                             const double num);
+
+/******************************************************************************
+ * Geometry
+ *****************************************************************************/
+
+/**
+ * Degrees to radians
+ *
+ * @param[in] d Degree to be converted
+ * @return Degree in radians
+ */
+double deg2rad(const double d);
+
+/**
+ * Degrees to radians
+ *
+ * @param[in] d Degree to be converted
+ * @return Degree in radians
+ */
+vec3_t deg2rad(const vec3_t d);
+
+/**
+ * Radians to degree
+ *
+ * @param[in] r Radian to be converted
+ * @return Radian in degrees
+ */
+double rad2deg(const double r);
+
+/**
+ * Radians to degree
+ *
+ * @param[in] r Radian to be converted
+ * @return Radian in degrees
+ */
+vec3_t rad2deg(const vec3_t &r);
+
+/**
+ * Wrap angle in degrees to 180
+ *
+ * @param[in] d Degrees
+ * @return Angle wraped to 180
+ */
+double wrap180(const double d);
+
+/**
+ * Wrap angle in degrees to 360
+ *
+ * @param[in] d Degrees
+ * @return Angle wraped to 360
+ */
+double wrap360(const double d);
+
+/**
+ * Wrap angle in radians to PI
+ *
+ * @param[in] r Radians
+ * @return Angle wraped to PI
+ */
+double wrapPi(const double r);
+
+/**
+ * Wrap angle in radians to 2 PI
+ *
+ * @param[in] r Radians
+ * @return Angle wraped to 2 PI
+ */
+double wrap2Pi(const double r);
+
 /**
  * Create a circle point of radius `r` at angle `theta` radians.
  */
@@ -85,6 +196,70 @@ vec2_t circle(const double r, const double theta);
 vec3_t sphere(const double rho,
               const double theta,
               const double phi);
+
+/**
+ * Create look at matrix.
+ */
+mat4_t lookat(const vec3_t &cam_pos,
+              const vec3_t &target,
+              const vec3_t &up_axis = vec3_t{0.0, -1.0, 0.0});
+
+/**
+ * Cross-Track error based on waypoint line between p1, p2, and robot position
+ *
+ * @param[in] p1 Waypoint 1
+ * @param[in] p2 Waypoint 2
+ * @param[in] pos Robot position
+ * @return Cross track error
+ */
+double cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
+
+/**
+ * Check if point `pos` is left or right of line formed by `p1` and `p2`
+ *
+ * @param[in] p1 Waypoint 1
+ * @param[in] p2 Waypoint 2
+ * @param[in] pos Robot position
+ * @returns
+ *    - 1: Point is left of waypoint line formed by `p1` and `p2`
+ *    - 2: Point is right of waypoint line formed by `p1` and `p2`
+ *    - 0: Point is colinear with waypoint line formed by `p1` and `p2`
+ */
+int point_left_right(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
+
+/**
+ * Calculate closest point given waypoint line between `p1`, `p2` and robot
+ * position
+ *
+ * @param[in] p1 Waypoint 1
+ * @param[in] p2 Waypoint 2
+ * @param[in] p3 Robot position
+ * @param[out] closest Closest point
+ * @returns
+ *    Unit number denoting where the closest point is on waypoint line. For
+ *    example, a return value of 0.5 denotes the closest point is half-way
+ *    (50%) of the waypoint line, alternatively a negative number denotes the
+ *    closest point is behind the first waypoint.
+ */
+double closest_point(const vec2_t &p1,
+                     const vec2_t &p2,
+                     const vec2_t &p3,
+                     vec2_t &closest);
+
+/**
+ * Linear interpolation between two points.
+ *
+ * @param[in] a First point
+ * @param[in] b Second point
+ * @param[in] t Unit number
+ * @returns Linear interpolation
+ */
+template <typename T>
+T lerp(const T &a, const T &b, const double t);
+
+/******************************************************************************
+ * Linear Algebra
+ *****************************************************************************/
 
 /**
  * Print shape of a matrix
@@ -249,210 +424,6 @@ std::string arr2str(const double *arr, const size_t len, bool brackets = true);
 std::string mat2str(const matx_t &m, const std::string &indent = "  ");
 
 /**
- * Create random integer
- *
- * @param[in] ub Upper bound
- * @param[in] lb Lower bound
- * @return Random integer
- */
-int randi(const int ub, const int lb);
-
-/**
- * Create random double
- *
- * @param[in] ub Upper bound
- * @param[in] lb Lower bound
- * @return Random floating point
- */
-double randf(const double ub, const double lb);
-
-/**
- * Sign of number
- *
- * @param[in] x Number to check sign
- * @return
- *    - 0: Number is zero
- *    - 1: Positive number
- *    - -1: Negative number
- */
-int sign(const double x);
-
-/**
- * Floating point comparator
- *
- * @param[in] f1 First value
- * @param[in] f2 Second value
- * @return
- *    - 0: if equal
- *    - 1: if f1 > f2
- *    - -1: if f1 < f2
- */
-int fltcmp(const double f1, const double f2);
-
-/**
- * Calculate median given an array of numbers
- *
- * @param[in] v Array of numbers
- * @return Median of given array
- */
-double median(const std::vector<double> &v);
-
-/**
- * Degrees to radians
- *
- * @param[in] d Degree to be converted
- * @return Degree in radians
- */
-double deg2rad(const double d);
-
-/**
- * Degrees to radians
- *
- * @param[in] d Degree to be converted
- * @return Degree in radians
- */
-vec3_t deg2rad(const vec3_t d);
-
-/**
- * Radians to degree
- *
- * @param[in] r Radian to be converted
- * @return Radian in degrees
- */
-double rad2deg(const double r);
-
-/**
- * Radians to degree
- *
- * @param[in] r Radian to be converted
- * @return Radian in degrees
- */
-vec3_t rad2deg(const vec3_t &r);
-
-/**
- * Load std::vector of doubles to an Eigen::Matrix
- *
- * @param[in] x Matrix values
- * @param[in] rows Number of matrix rows
- * @param[in] cols Number of matrix colums
- * @param[out] y Output matrix
- */
-void load_matrix(const std::vector<double> &x,
-                 const int rows,
-                 const int cols,
-                 matx_t &y);
-
-/**
- * Load an Eigen::Matrix into a std::vector of doubles
- *
- * @param[in] A Matrix
- * @param[out] x Output vector of matrix values
- */
-void load_matrix(const matx_t A, std::vector<double> &x);
-
-/**
- * Calculate binomial coefficient
- *
- * @param[in] n
- * @param[in] k
- * @returns Binomial coefficient
- */
-double binomial(const double n, const double k);
-
-/**
- * Wrap angle in degrees to 180
- *
- * @param[in] d Degrees
- * @return Angle wraped to 180
- */
-double wrap180(const double d);
-
-/**
- * Wrap angle in degrees to 360
- *
- * @param[in] d Degrees
- * @return Angle wraped to 360
- */
-double wrap360(const double d);
-
-/**
- * Wrap angle in radians to PI
- *
- * @param[in] r Radians
- * @return Angle wraped to PI
- */
-double wrapPi(const double r);
-
-/**
- * Wrap angle in radians to 2 PI
- *
- * @param[in] r Radians
- * @return Angle wraped to 2 PI
- */
-double wrap2Pi(const double r);
-
-/**
- * Mean vector
- *
- * @param[in] x List of vectors
- * @return Mean vector
- */
-vec3_t mean(const vec3s_t &x);
-
-/**
- * Cross-Track error based on waypoint line between p1, p2, and robot position
- *
- * @param[in] p1 Waypoint 1
- * @param[in] p2 Waypoint 2
- * @param[in] pos Robot position
- * @return Cross track error
- */
-double cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
-
-/**
- * Check if point `pos` is left or right of line formed by `p1` and `p2`
- *
- * @param[in] p1 Waypoint 1
- * @param[in] p2 Waypoint 2
- * @param[in] pos Robot position
- * @returns
- *    - 1: Point is left of waypoint line formed by `p1` and `p2`
- *    - 2: Point is right of waypoint line formed by `p1` and `p2`
- *    - 0: Point is colinear with waypoint line formed by `p1` and `p2`
- */
-int point_left_right(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
-
-/**
- * Calculate closest point given waypoint line between `p1`, `p2` and robot
- * position
- *
- * @param[in] p1 Waypoint 1
- * @param[in] p2 Waypoint 2
- * @param[in] p3 Robot position
- * @param[out] closest Closest point
- * @returns
- *    Unit number denoting where the closest point is on waypoint line. For
- *    example, a return value of 0.5 denotes the closest point is half-way
- *    (50%) of the waypoint line, alternatively a negative number denotes the
- *    closest point is behind the first waypoint.
- */
-double closest_point(const vec2_t &p1,
-                     const vec2_t &p2,
-                     const vec2_t &p3,
-                     vec2_t &closest);
-
-/**
- * Linear interpolation between two points.
- *
- * @param[in] a First point
- * @param[in] b Second point
- * @param[in] t Unit number
- * @returns Linear interpolation
- */
-template <typename T>
-T lerp(const T &a, const T &b, const double t);
-
-/**
  * Normalize vector `v`.
  */
 vec3_t normalize(const vec3_t &v);
@@ -568,18 +539,63 @@ matx_t enforce_psd(const matx_t &A);
 matx_t nullspace(const matx_t &A);
 
 /**
- * Return evenly spaced numbers over a specified interval.
+ * Load std::vector of doubles to an Eigen::Matrix
+ *
+ * @param[in] x Matrix values
+ * @param[in] rows Number of matrix rows
+ * @param[in] cols Number of matrix colums
+ * @param[out] y Output matrix
  */
-std::vector<double> linspace(const double start,
-                             const double end,
-                             const double num);
+void load_matrix(const std::vector<double> &x,
+                 const int rows,
+                 const int cols,
+                 matx_t &y);
 
 /**
- * Create look at matrix.
+ * Load an Eigen::Matrix into a std::vector of doubles
+ *
+ * @param[in] A Matrix
+ * @param[out] x Output vector of matrix values
  */
-mat4_t lookat(const vec3_t &cam_pos,
-              const vec3_t &target,
-              const vec3_t &up_axis = vec3_t{0.0, -1.0, 0.0});
+void load_matrix(const matx_t A, std::vector<double> &x);
+
+/******************************************************************************
+ * Statistics
+ *****************************************************************************/
+
+/**
+ * Create random integer
+ *
+ * @param[in] ub Upper bound
+ * @param[in] lb Lower bound
+ * @return Random integer
+ */
+int randi(const int ub, const int lb);
+
+/**
+ * Create random double
+ *
+ * @param[in] ub Upper bound
+ * @param[in] lb Lower bound
+ * @return Random floating point
+ */
+double randf(const double ub, const double lb);
+
+/**
+ * Calculate median given an array of numbers
+ *
+ * @param[in] v Array of numbers
+ * @return Median of given array
+ */
+double median(const std::vector<double> &v);
+
+/**
+ * Mean vector
+ *
+ * @param[in] x List of vectors
+ * @return Mean vector
+ */
+vec3_t mean(const vec3s_t &x);
 
 /**
  * Shannon Entropy of a given covariance matrix `covar`.

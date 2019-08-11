@@ -4,21 +4,14 @@
 
 namespace proto {
 
-int test_median() {
-  std::vector<double> v;
+/******************************************************************************
+ * Algebra
+ *****************************************************************************/
 
-  v.push_back(6);
-  v.push_back(3);
-  v.push_back(4);
-  v.push_back(1);
-  v.push_back(5);
-  v.push_back(8);
-
-  MU_CHECK_FLOAT(4.5, median(v));
-
-  v.push_back(9);
-  MU_CHECK_FLOAT(5.0, median(v));
-
+int test_sign() {
+  MU_CHECK(sign(1.0) == 1);
+  MU_CHECK(fltcmp(sign(0.0), 0.0) == 0);
+  MU_CHECK(sign(-1.0) == -1);
   return 0;
 }
 
@@ -357,6 +350,28 @@ int test_nullspace() {
   return 0;
 }
 
+/******************************************************************************
+ * Statistics
+ *****************************************************************************/
+
+int test_median() {
+  std::vector<double> v;
+
+  v.push_back(6);
+  v.push_back(3);
+  v.push_back(4);
+  v.push_back(1);
+  v.push_back(5);
+  v.push_back(8);
+
+  MU_CHECK_FLOAT(4.5, median(v));
+
+  v.push_back(9);
+  MU_CHECK_FLOAT(5.0, median(v));
+
+  return 0;
+}
+
 int test_mvn() {
   std::default_random_engine engine;
   const int nb_tests = 10000;  // number of experiments
@@ -378,7 +393,10 @@ int test_mvn() {
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_median);
+  // Algebra
+  MU_ADD_TEST(test_sign);
+
+  // Geometry
   MU_ADD_TEST(test_deg2radAndrad2deg);
   MU_ADD_TEST(test_wrap180);
   MU_ADD_TEST(test_wrap360);
@@ -386,6 +404,8 @@ void test_suite() {
   MU_ADD_TEST(test_point_left_right);
   MU_ADD_TEST(test_closest_point);
   MU_ADD_TEST(test_lerp);
+
+  // Linear algebra
   MU_ADD_TEST(test_zeros);
   MU_ADD_TEST(test_I);
   MU_ADD_TEST(test_ones);
@@ -396,6 +416,9 @@ void test_suite() {
   MU_ADD_TEST(test_skewsq);
   MU_ADD_TEST(test_enforce_psd);
   MU_ADD_TEST(test_nullspace);
+
+  // Statistics
+  MU_ADD_TEST(test_median);
   MU_ADD_TEST(test_mvn);
 }
 

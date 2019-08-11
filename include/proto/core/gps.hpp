@@ -11,7 +11,10 @@ namespace proto {
 
 /**
  * Calculate new latitude and logitude coordinates with an offset in North and
- * East direction
+ * East direction.
+ *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude offsets.
  *
  * @param lat_ref Latitude of origin (decimal format)
  * @param lon_ref Longitude of origin (decimal format)
@@ -30,6 +33,9 @@ void latlon_offset(double lat_ref,
 /**
  * Calculate difference in distance in North and East from two GPS coordinates
  *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude diffs.
+ *
  * @param lat_ref Latitude of origin (decimal format)
  * @param lon_ref Longitude of origin (decimal format)
  * @param lat Latitude of point of interest (decimal format)
@@ -46,6 +52,9 @@ void latlon_diff(double lat_ref,
 
 /**
  * Calculate Euclidean distance between two GPS coordintes
+ *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude distance.
  *
  * @param lat_ref Latitude of origin (decimal format)
  * @param lon_ref Longitude of origin (decimal format)
