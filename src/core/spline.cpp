@@ -203,27 +203,24 @@ void sim_imu_measurement(
   // IMU initialised?
   if (imu.started == false) {
     // Stationary properties of an Ornstein-Uhlenbeck process
-    imu.b_g = mvn(rndeng);
-    imu.b_a = mvn(rndeng);
-    imu.b_g *= imu.sigma_gw_c * sqrt(imu.tau_g / 2.0);
-    imu.b_a *= imu.sigma_aw_c * sqrt(imu.tau_a / 2.0);
+    imu.b_g = mvn(rndeng) * imu.sigma_gw_c * sqrt(imu.tau_g / 2.0);
+    imu.b_a = mvn(rndeng) * imu.sigma_aw_c * sqrt(imu.tau_a / 2.0);
     imu.started = true;
 
   } else {
-    // Propagate biases
-    const vec3_t w_a = mvn(rndeng);  // Accel white noie
+    // Propagate biases (slow moving signal)
+    const vec3_t w_a = mvn(rndeng);  // Accel white noise
     imu.b_a += -imu.b_a / imu.tau_a * dt + w_a * imu.sigma_aw_c * sqrt(dt);
-
-    const vec3_t w_g = mvn(rndeng);  // Gyro white noie
+    const vec3_t w_g = mvn(rndeng);  // Gyro white noise
     imu.b_g += -imu.b_g / imu.tau_g * dt + w_g * imu.sigma_gw_c * sqrt(dt);
   }
 
-  // Compute noisy gyro measurements
+  // Compute gyro measurement
   const mat3_t C_SW = tf_rot(T_WS_W).transpose();
   const vec3_t w_g = mvn(rndeng);  // Gyro white noise
   w_WS_S = C_SW * w_WS_W + imu.b_g + w_g * imu.sigma_g_c * sqrt(dt);
 
-  // Compute noisy accel measurements
+  // Compute accel measurement
   const vec3_t g{0.0, 0.0, -imu.g}; // Gravity vector
   const vec3_t w_a = mvn(rndeng); // Accel white noise
   a_WS_S = C_SW * (a_WS_W - g) + imu.b_a + w_a * imu.sigma_a_c * sqrt(dt);

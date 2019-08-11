@@ -361,23 +361,27 @@ int test_sim_imu_measurement() {
       w_WS_S
     );
 
-    // Calculate position and velocity at time k
+    // Propagate simulated IMU measurements
     const double dt_s = ts2sec(dt);
     const double dt_s_sq = dt_s * dt_s;
     const vec3_t g{0.0, 0.0, -imu.g};
+    // -- Position at time k
     const vec3_t b_a = ones(3, 1) * imu.b_a;
     const vec3_t n_a = ones(3, 1) * imu.sigma_a_c;
-    r_WS += v_WS * dt_s + (0.5 * g * dt_s_sq) + (0.5 * C_WS * (a_WS_S - b_a - n_a) * dt_s_sq);
+    r_WS += v_WS * dt_s;
+    r_WS += 0.5 * g * dt_s_sq;
+    r_WS += 0.5 * C_WS * (a_WS_S - b_a - n_a) * dt_s_sq;
+    // -- velocity at time k
     v_WS += C_WS * (a_WS_S - b_a - n_a) * dt_s + g * dt_s;
-
-    // Calculate attitude at time k
-    const mat3_t C_BW = tf_rot(T_WS_W).inverse();
-    C_WS = C_WS * so3_exp(C_BW * w_WS_W * ts2sec(dt));
-    att_prop.emplace_back(quat_t{C_WS});
+    // -- Attitude at time k
+    const vec3_t b_g = ones(3, 1) * imu.b_g;
+    const vec3_t n_g = ones(3, 1) * imu.sigma_g_c;
+    C_WS = C_WS * so3_exp((w_WS_S - b_g - n_g) * ts2sec(dt));
 
     // Reocord IMU measurments
     pos_prop.push_back(r_WS);
     vel_prop.push_back(v_WS);
+    att_prop.emplace_back(quat_t{C_WS});
     imu_ts.push_back(ts_k);
     imu_accel.push_back(a_WS_S);
     imu_gyro.push_back(w_WS_S);
@@ -390,8 +394,8 @@ int test_sim_imu_measurement() {
   save_data("/tmp/imu_gyro.csv", imu_ts, imu_gyro);
 
   // Debug
-  const bool debug = true;
-  // const bool debug = false;
+  // const bool debug = true;
+  const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_imu_measurements.m "
                   "/tmp/pos_data.csv "
@@ -406,11 +410,11 @@ int test_sim_imu_measurement() {
 }
 
 void test_suite() {
-  // MU_ADD_TEST(test_ctraj);
-  // MU_ADD_TEST(test_ctraj_get_pose);
-  // MU_ADD_TEST(test_ctraj_get_velocity);
-  // MU_ADD_TEST(test_ctraj_get_acceleration);
-  // MU_ADD_TEST(test_ctraj_get_angular_velocity);
+  MU_ADD_TEST(test_ctraj);
+  MU_ADD_TEST(test_ctraj_get_pose);
+  MU_ADD_TEST(test_ctraj_get_velocity);
+  MU_ADD_TEST(test_ctraj_get_acceleration);
+  MU_ADD_TEST(test_ctraj_get_angular_velocity);
   MU_ADD_TEST(test_sim_imu_measurement);
 }
 

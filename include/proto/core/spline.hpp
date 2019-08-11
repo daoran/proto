@@ -96,7 +96,7 @@ struct sim_imu_t {
   double tau_a = 0.0;       // Reversion time constant for accel [s]
   double tau_g = 0.0;       // Reversion time constant for gyro [s]
   double sigma_g_c = 0.0;   // Gyro noise density [rad/s/sqrt(Hz)]
-  double sigma_a_c = 0.0;   // Accel noise density [m/s^2/sqrt(Hz)]
+  double sigma_a_c = 0.0;   // Accel noise density [m/s^s/sqrt(Hz)]
   double sigma_gw_c = 0.0;  // Gyro drift noise density [rad/s^s/sqrt(Hz)]
   double sigma_aw_c = 0.0;  // Accel drift noise density [m/s^2/sqrt(Hz)]
   double g = 0.0;           // Gravity vector [ms-2]
