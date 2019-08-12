@@ -609,6 +609,11 @@ vec3_t mvn(std::default_random_engine &engine,
            const vec3_t &mu = vec3_t{0.0, 0.0, 0.0},
            const vec3_t &stdev = vec3_t{1.0, 1.0, 1.0});
 
+/**
+ * Gassian normal.
+ */
+double gauss_normal();
+
 } //  namespace proto
 #include "math_impl.hpp"
 #endif // PROTO_CORE_MATH_HPP

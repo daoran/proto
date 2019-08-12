@@ -383,10 +383,29 @@ int test_mvn() {
   mat2csv("/tmp/mvn.csv", results);
 
   // Debug
+  // const bool debug = true;
+  const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/core/plot_mvn.m /tmp/mvn.csv");
+  }
+
+  return 0;
+}
+
+int test_gauss_normal() {
+  const int nb_tests = 10000;  // number of experiments
+
+  vecx_t results{nb_tests};
+  for (int i = 0; i < nb_tests; i++) {
+    results(i) = gauss_normal();
+  }
+  mat2csv("/tmp/gauss_normal.csv", results);
+
+  // Debug
   const bool debug = true;
   // const bool debug = false;
   if (debug) {
-    OCTAVE_SCRIPT("scripts/core/plot_mvn.m /tmp/mvn.csv");
+    OCTAVE_SCRIPT("scripts/core/plot_gauss_normal.m /tmp/gauss_normal.csv");
   }
 
   return 0;
@@ -420,6 +439,7 @@ void test_suite() {
   // Statistics
   MU_ADD_TEST(test_median);
   MU_ADD_TEST(test_mvn);
+  MU_ADD_TEST(test_gauss_normal);
 }
 
 } // namespace proto

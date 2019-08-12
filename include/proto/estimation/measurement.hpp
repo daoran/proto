@@ -15,12 +15,16 @@ struct measurement_t {
   measurement_t() {}
 };
 
-struct gyro_t {
+struct gyro_t : measurement_t {
   double x = 0;
   double y = 0;
   double z = 0;
 
   gyro_t() {}
+
+  vec3_t data() {
+    return vec3_t{x, y, z};
+  }
 };
 
 struct accel_t {
@@ -29,6 +33,10 @@ struct accel_t {
   double z = 0;
 
   accel_t() {}
+
+  vec3_t data() {
+    return vec3_t{x, y, z};
+  }
 };
 
 struct image_t : measurement_t {
