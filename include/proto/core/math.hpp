@@ -611,6 +611,7 @@ vec3_t mvn(std::default_random_engine &engine,
 
 /**
  * Gassian normal.
+ * http://c-faq.com/lib/gaussian.html
  */
 double gauss_normal();
 

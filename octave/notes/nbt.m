@@ -1,6 +1,63 @@
 addpath(genpath("proto"));
 graphics_toolkit("fltk");
 
+function points = points_inview(calib_target, T_WT, cam, T_WC)
+  hp_T = homogeneous(calib_target.object_points);
+  hp_C = inv(T_WC) * T_WT * hp_T;
+  p_C = dehomogeneous(hp_C);
+
+  points = [];
+  for i = 1:length(p_C)
+    p = p_C(1:3, i);
+
+    % Project
+    x = p(1) / p(3);
+    y = p(2) / p(3);
+    p = [x; y];
+
+    % Distort
+    p_d = radtan4_distort(cam.k1, cam.k2, cam.p1, cam.p2, p);
+    pixel_x = cam.fx * p_d(1) + cam.cx;
+    pixel_y = cam.fy * p_d(2) + cam.cy;
+
+    if pixel_x < cam.resolution(1) && pixel_y < cam.resolution(2)
+      p_W = dehomogeneous(T_WC * [p_C(:, i); 1.0]);
+      points = [points, p_W];
+    end
+  endfor
+endfunction
+
+function plot_camera_view(cam, T_WC, calib_target, T_WT)
+  hp_T = homogeneous(calib_target.object_points);
+  hp_C = inv(T_WC) * T_WT * hp_T;
+  p_C = dehomogeneous(hp_C);
+
+  points = [];
+  for i = 1:length(p_C)
+    p = p_C(1:3, i);
+
+    % Project
+    x = p(1) / p(3);
+    y = p(2) / p(3);
+    p = [x; y];
+
+    % Distort
+    p_d = radtan4_distort(cam.k1, cam.k2, cam.p1, cam.p2, p);
+    pixel_x = cam.fx * p_d(1) + cam.cx;
+    pixel_y = cam.fy * p_d(2) + cam.cy;
+
+    if pixel_x < cam.resolution(1) && pixel_y < cam.resolution(2)
+      plot(pixel_x, pixel_y, "rx", "linewidth", 2.0);
+    end
+  endfor
+
+  axis("equal");
+  xlabel("x [px]");
+  ylabel("y [px]");
+  xlim([0, cam.resolution(1)]);
+  ylim([0, cam.resolution(2)]);
+endfunction
+
 function l_trajs = generate_linear_trajectories(calib_target, T_WT, T_TO)
   % Trajectory parameters
   circle_radius = calib_target.width / 2.0;
@@ -68,6 +125,17 @@ function s_trajs = generate_spherical_trajectories(calib_target, T_WT, T_TO, r_T
   endfor
 endfunction
 
+% Setup camera
+cam.resolution = [640; 480];
+cam.fx = focal_length(cam.resolution(1), 90);
+cam.fy = focal_length(cam.resolution(2), 75);
+cam.cx = cam.resolution(1) / 2.0;
+cam.cy = cam.resolution(2) / 2.0;
+cam.k1 = 0.01;
+cam.k2 = 0.001;
+cam.p1 = 0.001;
+cam.p2 = 0.001;
+
 % Setup calibration target
 calib_rows = 6;
 calib_cols = 7;
@@ -91,31 +159,41 @@ T_TO = tf(C_TO, r_TO);
 
 % Generate trajectories
 l_trajs = generate_linear_trajectories(calib_target, T_WT, T_TO);
-s_trajs = generate_spherical_trajectories(calib_target, T_WT, T_TO, r_TTc);
+% s_trajs = generate_spherical_trajectories(calib_target, T_WT, T_TO, r_TTc);
 
-% Plot scene
 figure();
 hold on;
-
-for i = 1:length(l_trajs)
-  traj = l_trajs{i};
-  for j = 1:length(traj)
-    draw_frame(traj{j}, 0.1);
-  endfor
-endfor
-
-for i = 1:length(s_trajs)
-  traj = s_trajs{i};
-  for j = 1:length(traj)
-    draw_frame(traj{j}, 0.1);
-  endfor
-endfor
-
-calib_target_draw(calib_target, T_WT);
-
-view(3);
-xlabel("x [m]");
-ylabel("y [m]");
-zlabel("z [m]");
-axis "equal";
+traj = l_trajs{1};
+T_WC = traj{1};
+T_WC(1:3, 4) = [-3.0; 0.0; 0.0];
+plot_camera_view(cam, T_WC, calib_target, T_WT);
 ginput();
+
+% % Plot scene
+% figure();
+% hold on;
+%
+% for i = 1:length(l_trajs)
+%   traj = l_trajs{i};
+%   for j = 1:length(traj)
+%     T_WC = traj{j};
+%     points = points_inview(calib_target, T_WT, cam, T_WC)
+%     draw_frame(T_WC, 0.1);
+%   endfor
+% endfor
+%
+% % for i = 1:length(s_trajs)
+% %   traj = s_trajs{i};
+% %   for j = 1:length(traj)
+% %     draw_frame(traj{j}, 0.1);
+% %   endfor
+% % endfor
+%
+% calib_target_draw(calib_target, T_WT);
+%
+% view(3);
+% xlabel("x [m]");
+% ylabel("y [m]");
+% zlabel("z [m]");
+% axis "equal";
+% ginput();
