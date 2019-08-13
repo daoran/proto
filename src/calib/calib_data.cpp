@@ -161,7 +161,9 @@ int preprocess_camera_data(const calib_target_t &target,
   }
 
   // Destroy all opencv windows
-  cv::destroyAllWindows();
+  if (imshow) {
+    cv::destroyAllWindows();
+  }
 
   return 0;
 }

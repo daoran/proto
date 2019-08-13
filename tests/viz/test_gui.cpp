@@ -198,9 +198,9 @@ int test_gui_imshow_update() {
 }
 
 void test_suite() {
-  // MU_ADD_TEST(test_gui);
+  MU_ADD_TEST(test_gui);
   // MU_ADD_TEST(test_gui_imshow);
-  MU_ADD_TEST(test_gui_imshow_update);
+  // MU_ADD_TEST(test_gui_imshow_update);
 }
 
 MU_RUN_TESTS(test_suite);

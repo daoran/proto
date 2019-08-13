@@ -129,10 +129,9 @@ int main(int argc, char *argv[]) {
   }
 
   // Load calibration data
-  aprilgrids_t aprilgrids;
+  aprilgrids_t grids;
   timestamps_t timestamps;
-  retval =
-      load_camera_calib_data(config.preprocess_path, aprilgrids, timestamps);
+  retval = load_camera_calib_data(config.preprocess_path, grids, timestamps);
   if (retval != 0) {
     LOG_ERROR("Failed to load camera calibration data!");
     return -1;
@@ -151,7 +150,7 @@ int main(int argc, char *argv[]) {
   // Calibrate camera
   LOG_INFO("Calibrating camera!");
   mat4s_t T_CF;
-  if (calib_camera_solve(aprilgrids, pinhole, radtan, T_CF) != 0) {
+  if (calib_camera_solve(grids, pinhole, radtan, T_CF) != 0) {
     LOG_ERROR("Failed to calibrate camera data!");
     return -1;
   }

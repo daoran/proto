@@ -122,29 +122,19 @@ int main() {
   int shader_program = link_shaders(vertex_shader, fragment_shader);
 
   // Set up vertex data (and buffer(s)) and configure vertex attributes
+  // clang-format off
   float vertices[] = {
-      0.5f,
-      0.5f,
-      0.0f, // top right
-      0.5f,
-      -0.5f,
-      0.0f, // bottom right
-      -0.5f,
-      -0.5f,
-      0.0f, // bottom left
-      -0.5f,
-      0.5f,
-      0.0f // top left
+    0.5f, 0.5f, 0.0f, // top right
+    0.5f, -0.5f, 0.0f, // bottom right
+    -0.5f, -0.5f, 0.0f, // bottom left
+    -0.5f, 0.5f, 0.0f // top left
   };
   unsigned int indices[] = {
-      // Note that we start from 0!
-      0,
-      1,
-      3, // first Triangle
-      1,
-      2,
-      3 // second Triangle
+    // Note that we start from 0!
+    0, 1, 3, // first Triangle
+    1, 2, 3 // second Triangle
   };
+  // clang-format on
 
   // -- VAO
   unsigned int VAO;

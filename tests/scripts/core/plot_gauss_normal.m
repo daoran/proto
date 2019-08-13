@@ -10,9 +10,6 @@ data = csvread(csv, 0, 0);
 
 % Plot figure
 figure();
-
-subplot(311);
 hist(data);
 title("Gauss Normal");
-
 ginput()

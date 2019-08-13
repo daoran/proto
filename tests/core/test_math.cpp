@@ -15,6 +15,47 @@ int test_sign() {
   return 0;
 }
 
+int test_fltcmp() {
+  MU_CHECK(fltcmp(1.0, 1.0) == 0);
+  MU_CHECK(fltcmp(1.0, 0.9999) == 1);
+  MU_CHECK(fltcmp(1.0, 0.0) == 1);
+  MU_CHECK(fltcmp(0.0, 1.0) == -1);
+  return 0;
+}
+
+int test_linspace() {
+  const auto range = linspace(0, 5, 10);
+
+  for (const auto &el : range) {
+    std::cout << el << std::endl;
+  }
+
+  MU_CHECK(fltcmp(range.front(), 0.0) == 0);
+  MU_CHECK(fltcmp(range.back(), 5.0) == 0);
+  MU_CHECK(range.size() == 10);
+
+  return 0;
+}
+
+int test_linspace_timestamps() {
+  const auto range = linspace_timestamps(0, 5e9, 10);
+
+  for (const auto &el : range) {
+    std::cout << el << std::endl;
+  }
+
+  MU_CHECK(range.front() == 0);
+  MU_CHECK(range.back() == 5e9);
+  MU_CHECK(range.size() == 10);
+
+  return 0;
+}
+
+
+/******************************************************************************
+ * Geometry
+ *****************************************************************************/
+
 int test_deg2radAndrad2deg() {
   double d_deg;
   double d_rad;
@@ -151,28 +192,28 @@ int test_closest_point() {
   MU_CHECK_FLOAT(2.0, closest(0));
   MU_CHECK_FLOAT(0.0, closest(1));
 
-  // // point before of point a
-  // p3 << -1, 2;
-  // retval = closest_point(p1, p2, p3, closest);
-  // MU_CHECK_EQ(1, retval);
-  // MU_CHECK_FLOAT(-1.0, closest(0));
-  // MU_CHECK_FLOAT(0.0, closest(1));
-  //
-  // // point after point b
-  // p3 << 6, 2;
-  // retval = closest_point(p1, p2, p3, closest);
-  // MU_CHECK_EQ(2, retval);
-  // MU_CHECK_FLOAT(6.0, closest(0));
-  // MU_CHECK_FLOAT(0.0, closest(1));
-  //
-  // // if point 1 and 2 are same
-  // p1 << 0, 0;
-  // p2 << 0, 0;
-  // p3 << 0, 2;
-  // retval = closest_point(p1, p2, p3, closest);
-  // MU_CHECK_EQ(-1, retval);
-  // MU_CHECK_FLOAT(0.0, closest(0));
-  // MU_CHECK_FLOAT(0.0, closest(1));
+  // point before of point a
+  p3 << -1, 2;
+  retval = closest_point(p1, p2, p3, closest);
+  MU_CHECK_EQ(1, retval);
+  MU_CHECK_FLOAT(-1.0, closest(0));
+  MU_CHECK_FLOAT(0.0, closest(1));
+
+  // point after point b
+  p3 << 6, 2;
+  retval = closest_point(p1, p2, p3, closest);
+  MU_CHECK_EQ(2, retval);
+  MU_CHECK_FLOAT(6.0, closest(0));
+  MU_CHECK_FLOAT(0.0, closest(1));
+
+  // if point 1 and 2 are same
+  p1 << 0, 0;
+  p2 << 0, 0;
+  p3 << 0, 2;
+  retval = closest_point(p1, p2, p3, closest);
+  MU_CHECK_EQ(-1, retval);
+  MU_CHECK_FLOAT(0.0, closest(0));
+  MU_CHECK_FLOAT(0.0, closest(1));
 
   return 0;
 }
@@ -185,6 +226,10 @@ int test_lerp() {
 
   return 0;
 }
+
+/******************************************************************************
+ * Linear Algebra
+ *****************************************************************************/
 
 int test_zeros() {
   matx_t A = zeros(2, 2);
@@ -402,8 +447,8 @@ int test_gauss_normal() {
   mat2csv("/tmp/gauss_normal.csv", results);
 
   // Debug
-  const bool debug = true;
-  // const bool debug = false;
+  // const bool debug = true;
+  const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_gauss_normal.m /tmp/gauss_normal.csv");
   }
@@ -414,6 +459,8 @@ int test_gauss_normal() {
 void test_suite() {
   // Algebra
   MU_ADD_TEST(test_sign);
+  MU_ADD_TEST(test_linspace);
+  MU_ADD_TEST(test_linspace_timestamps);
 
   // Geometry
   MU_ADD_TEST(test_deg2radAndrad2deg);

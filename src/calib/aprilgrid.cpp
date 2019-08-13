@@ -538,7 +538,8 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
         &r_y,
         &r_z);
     if (retval != 20) {
-      LOG_INFO("Failed to parse line in [%s]", data_path.c_str());
+      LOG_INFO("Failed to parse line in [%s:%d]", data_path.c_str(), i);
+      return -1;
     }
 
     // Map variables back to AprilGrid

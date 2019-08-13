@@ -26,64 +26,28 @@ glcf_t::glcf_t() : globj_t{shaders::glcf_vs, shaders::glcf_fs} {
   const glm::vec3 rt{hwidth, -hwidth, z};  // Right top
   const glm::vec3 rb{hwidth, hwidth, z};   // Right bottom
 
-  static const GLfloat vertices[] = {// Rectangle frame
-                                     // -- Left bottom to left top
-                                     lb.x,
-                                     lb.y,
-                                     lb.z,
-                                     lt.x,
-                                     lt.y,
-                                     lt.z,
-                                     // -- Left top to right top
-                                     lt.x,
-                                     lt.y,
-                                     lt.z,
-                                     rt.x,
-                                     rt.y,
-                                     rt.z,
-                                     // -- Right top to right bottom
-                                     rt.x,
-                                     rt.y,
-                                     rt.z,
-                                     rb.x,
-                                     rb.y,
-                                     rb.z,
-                                     // -- Right bottom to left bottom
-                                     rb.x,
-                                     rb.y,
-                                     rb.z,
-                                     lb.x,
-                                     lb.y,
-                                     lb.z,
-                                     // Rectangle frame to origin
-                                     // -- Origin to left bottom
-                                     0.0f,
-                                     0.0f,
-                                     0.0f,
-                                     lb.x,
-                                     lb.y,
-                                     lb.z,
-                                     // -- Origin to left top
-                                     0.0f,
-                                     0.0f,
-                                     0.0f,
-                                     lt.x,
-                                     lt.y,
-                                     lt.z,
-                                     // -- Origin to right top
-                                     0.0f,
-                                     0.0f,
-                                     0.0f,
-                                     rt.x,
-                                     rt.y,
-                                     rt.z,
-                                     // -- Origin to right bottom
-                                     0.0f,
-                                     0.0f,
-                                     0.0f,
-                                     rb.x,
-                                     rb.y,
-                                     rb.z};
+  // Rectangle frame
+  // clang-format off
+  static const GLfloat vertices[] = {
+    // -- Left bottom to left top
+    lb.x, lb.y, lb.z, lt.x, lt.y, lt.z,
+    // -- Left top to right top
+    lt.x, lt.y, lt.z, rt.x, rt.y, rt.z,
+    // -- Right top to right bottom
+    rt.x, rt.y, rt.z, rb.x, rb.y, rb.z,
+    // -- Right bottom to left bottom
+    rb.x, rb.y, rb.z, lb.x, lb.y, lb.z,
+    // Rectangle frame to origin
+    // -- Origin to left bottom
+    0.0f, 0.0f, 0.0f, lb.x, lb.y, lb.z,
+    // -- Origin to left top
+    0.0f, 0.0f, 0.0f, lt.x, lt.y, lt.z,
+    // -- Origin to right top
+    0.0f, 0.0f, 0.0f, rt.x, rt.y, rt.z,
+    // -- Origin to right bottom
+    0.0f, 0.0f, 0.0f, rb.x, rb.y, rb.z
+  };
+  // clang-format on
   const size_t nb_lines = 8;
   const size_t nb_vertices = nb_lines * 2;
   const size_t buffer_size = sizeof(GLfloat) * nb_vertices * 3;

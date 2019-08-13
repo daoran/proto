@@ -1,17 +1,22 @@
 #include "proto/viz/gui.hpp"
+#include "proto/viz/camera.hpp"
 #include "proto/viz/draw.hpp"
 
 int main(void) {
   // Setup
   proto::gui_t gui{"Play"};
+  proto::glcamera_t camera{gui.width_, gui.height_, glm::vec3(0.0f, 5.0f, 30.0f)};
 
-  // glimg_t img{"../assets/textures/awesomeface.png"};
-  proto::glplane_t plane{"../assets/textures/container.jpg"};
+  // proto::glplane_t plane{"test_data/viz/container.jpg"};
+  proto::glplane_t plane{"test_data/viz/awesomeface.png"};
+  proto::glgrid_t grid;
 
   while (gui.ok()) {
     gui.poll();
 
     gui.clear();
+    plane.draw(camera);
+    grid.draw(camera);
     gui.render();
   }
 

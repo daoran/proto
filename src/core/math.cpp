@@ -54,6 +54,29 @@ std::vector<double> linspace(const double start,
   return linspaced;
 }
 
+std::vector<timestamp_t> linspace_timestamps(const timestamp_t start,
+                                             const timestamp_t end,
+                                             const int num) {
+  std::vector<timestamp_t> linspaced;
+
+  if (num == 0) {
+    return linspaced;
+  }
+
+  if (num == 1) {
+    linspaced.push_back(start);
+    return linspaced;
+  }
+
+  double delta = static_cast<double>(end - start) / (num - 1);
+  for (int i = 0; i < num - 1; ++i) {
+    linspaced.push_back(start + delta * i);
+  }
+  linspaced.push_back(end);
+
+  return linspaced;
+}
+
 /******************************************************************************
  * Geometry
  *****************************************************************************/

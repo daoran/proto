@@ -68,7 +68,7 @@ gui_t::gui_t(const std::string &title, const int width, const int height)
   ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-gui_t::gui_t(const std::string &title) : gui_t{title, 1280, 720} {}
+gui_t::gui_t(const std::string &title) : gui_t{title, 1280, 1080} {}
 
 gui_t::~gui_t() {
   ImGui_ImplOpenGL3_Shutdown();

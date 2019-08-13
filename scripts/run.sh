@@ -63,7 +63,7 @@ cd build/tests
 # ./core-test_data
 # ./core-test_file
 # ./core-test_gps
-./core-test_math
+# ./core-test_math
 # ./core-test_spline
 # ./core-test_tf
 # ./core-test_time
@@ -102,3 +102,4 @@ cd build/tests
 
 # -- viz
 # ./viz-test_gui
+# ./viz-test_plane

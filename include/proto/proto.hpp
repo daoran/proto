@@ -2,7 +2,6 @@
 #include "proto/control/control.hpp"
 #include "proto/core/core.hpp"
 #include "proto/dataset/dataset.hpp"
-#include "proto/driver/driver.hpp"
 #include "proto/estimation/estimation.hpp"
 #include "proto/mav/mav.hpp"
 #include "proto/model/model.hpp"
@@ -36,13 +35,6 @@
     - [euroc.hpp](#dataset.euroc)
     - [kitti.hpp](#dataset.kitti)
     - [timeline.hpp](#dataset.timeline)
-- driver/
-    - [camera.hpp](#driver.camera)
-    - [mpu6050.hpp](#driver.mpu6050)
-    - [pca9685.hpp](#driver.pca9685)
-    - [sbgc.hpp](#driver.sbgc)
-    - [i2c.cpp](#driver.i2c)
-    - [uart.cpp](#driver.uart)
 - mav/
     - [att_ctrl.hpp](#mav.att_ctrl)
     - [mission.hpp](#mav.mission)

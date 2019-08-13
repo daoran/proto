@@ -65,31 +65,27 @@ The `calib_config.yaml` file is expected to have the following format:
 
 calib_config_t parse_config(const std::string &config_file) {
   config_t config{config_file};
-  calib_config_t calib_conf;
+  calib_config_t calib;
 
-  parse(config, "settings.cam0_image_path", calib_conf.cam0_image_path);
-  parse(config, "settings.cam1_image_path", calib_conf.cam1_image_path);
-  parse(config,
-        "settings.cam0_preprocess_path",
-        calib_conf.cam0_preprocess_path);
-  parse(config,
-        "settings.cam1_preprocess_path",
-        calib_conf.cam1_preprocess_path);
-  parse(config, "settings.results_file", calib_conf.results_file);
+  parse(config, "settings.cam0_image_path", calib.cam0_image_path);
+  parse(config, "settings.cam1_image_path", calib.cam1_image_path);
+  parse(config, "settings.cam0_preprocess_path", calib.cam0_preprocess_path);
+  parse(config, "settings.cam1_preprocess_path", calib.cam1_preprocess_path);
+  parse(config, "settings.results_file", calib.results_file);
 
-  parse(config, "cam0.resolution", calib_conf.cam0_resolution);
-  parse(config, "cam0.lens_hfov", calib_conf.cam0_lens_hfov);
-  parse(config, "cam0.lens_vfov", calib_conf.cam0_lens_vfov);
-  parse(config, "cam0.camera_model", calib_conf.cam0_camera_model);
-  parse(config, "cam0.distortion_model", calib_conf.cam0_distortion_model);
+  parse(config, "cam0.resolution", calib.cam0_resolution);
+  parse(config, "cam0.lens_hfov", calib.cam0_lens_hfov);
+  parse(config, "cam0.lens_vfov", calib.cam0_lens_vfov);
+  parse(config, "cam0.camera_model", calib.cam0_camera_model);
+  parse(config, "cam0.distortion_model", calib.cam0_distortion_model);
 
-  parse(config, "cam1.resolution", calib_conf.cam1_resolution);
-  parse(config, "cam1.lens_hfov", calib_conf.cam1_lens_hfov);
-  parse(config, "cam1.lens_vfov", calib_conf.cam1_lens_vfov);
-  parse(config, "cam1.camera_model", calib_conf.cam1_camera_model);
-  parse(config, "cam1.distortion_model", calib_conf.cam1_distortion_model);
+  parse(config, "cam1.resolution", calib.cam1_resolution);
+  parse(config, "cam1.lens_hfov", calib.cam1_lens_hfov);
+  parse(config, "cam1.lens_vfov", calib.cam1_lens_vfov);
+  parse(config, "cam1.camera_model", calib.cam1_camera_model);
+  parse(config, "cam1.distortion_model", calib.cam1_distortion_model);
 
-  return calib_conf;
+  return calib;
 }
 
 int save_results(const std::string &save_path,
@@ -205,7 +201,7 @@ int main(int argc, char *argv[]) {
   const double cam0_img_h = config.cam0_resolution(1);
   const double cam0_lens_hfov = config.cam0_lens_hfov;
   const double cam0_lens_vfov = config.cam0_lens_vfov;
-  ;
+
   const double cam0_fx = pinhole_focal_length(cam0_img_w, cam0_lens_hfov);
   const double cam0_fy = pinhole_focal_length(cam0_img_h, cam0_lens_vfov);
   const double cam0_cx = cam0_img_w / 2.0;
@@ -217,7 +213,7 @@ int main(int argc, char *argv[]) {
   const double cam1_img_h = config.cam1_resolution(1);
   const double cam1_lens_hfov = config.cam1_lens_hfov;
   const double cam1_lens_vfov = config.cam1_lens_vfov;
-  ;
+
   const double cam1_fx = pinhole_focal_length(cam1_img_w, cam1_lens_hfov);
   const double cam1_fy = pinhole_focal_length(cam1_img_h, cam1_lens_vfov);
   const double cam1_cx = cam1_img_w / 2.0;

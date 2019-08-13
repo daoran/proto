@@ -11,6 +11,7 @@
 #include <Eigen/Geometry>
 
 #include "proto/core/log.hpp"
+#include "proto/core/time.hpp"
 
 namespace proto {
 
@@ -115,6 +116,13 @@ double binomial(const double n, const double k);
 std::vector<double> linspace(const double start,
                              const double end,
                              const double num);
+
+/**
+ * Return evenly spaced timestamps over a specified interval.
+ */
+std::vector<timestamp_t> linspace_timestamps(const timestamp_t start,
+                                             const timestamp_t end,
+                                             const int num);
 
 /******************************************************************************
  * Geometry
