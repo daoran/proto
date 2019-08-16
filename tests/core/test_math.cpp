@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "proto/munit.hpp"
 #include "proto/core/math.hpp"
 #include "proto/core/data.hpp"
@@ -544,6 +546,21 @@ int test_tf_trans() {
   return 0;
 }
 
+/******************************************************************************
+ * Time
+ *****************************************************************************/
+
+int test_ticAndToc() {
+  struct timespec start = tic();
+  usleep(10 * 1000);
+  MU_CHECK(toc(&start) < 0.011);
+  MU_CHECK(toc(&start) > 0.009);
+  MU_CHECK(mtoc(&start) < 11.0);
+  MU_CHECK(mtoc(&start) > 9.0);
+
+  return 0;
+}
+
 void test_suite() {
   // Algebra
   MU_ADD_TEST(test_sign);
@@ -582,6 +599,9 @@ void test_suite() {
   // Transform
   MU_ADD_TEST(test_tf_rot);
   MU_ADD_TEST(test_tf_trans);
+
+  // Time
+  MU_ADD_TEST(test_ticAndToc);
 }
 
 } // namespace proto
