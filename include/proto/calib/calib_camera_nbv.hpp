@@ -14,6 +14,7 @@ namespace proto {
 aprilgrid_t
 nbv_create_aprilgrid(const calib_target_t &target,
                      const camera_geometry_t<pinhole_t, radtan4_t> &camera,
+                     const vec2_t &resolution,
                      const mat4_t &T_CF);
 
 void nbv_draw_aprilgrid(const aprilgrid_t grid,

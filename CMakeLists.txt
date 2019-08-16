@@ -73,12 +73,9 @@ ADD_LIBRARY(
   src/core/config.cpp
   src/core/data.cpp
   src/core/file.cpp
-  src/core/gps.cpp
   src/core/math.cpp
   src/core/stb.cpp
   src/core/spline.cpp
-  src/core/tf.cpp
-  src/core/time.cpp
   # dataset
   src/dataset/euroc.cpp
   src/dataset/kitti.cpp
@@ -175,10 +172,8 @@ SET(
   # core-test_config
   # core-test_data
   # core-test_file
-  # core-test_gps
   # core-test_math
   # core-test_spline
-  # core-test_tf
   # core-test_time
   # dataset-test_euroc
   # dataset-test_kitti
@@ -193,14 +188,14 @@ SET(
   # mav-test_wp_ctrl
   # vision-camera-test_camera_geometry
   # vision-camera-test_equi
-  # # vision-camera-test_pinhole
+  # vision-camera-test_pinhole
   # vision-camera-test_radtan
   # vision-feature2d-test_grid_fast
   # vision-feature2d-test_grid_good
   # vision-test_frontend
   # vision-test_vision_common
-  viz-test_gui
-  viz-test_plane
+  # viz-test_gui
+  # viz-test_plane
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})

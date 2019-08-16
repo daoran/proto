@@ -1,6 +1,11 @@
 #ifndef PROTO_CORE_MATH_HPP
 #define PROTO_CORE_MATH_HPP
 
+#include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
+#include <inttypes.h>
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -10,8 +15,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#include "proto/core/log.hpp"
-#include "proto/core/time.hpp"
+// #include "proto/core/time.hpp"
 
 namespace proto {
 
@@ -113,16 +117,28 @@ double binomial(const double n, const double k);
 /**
  * Return evenly spaced numbers over a specified interval.
  */
-std::vector<double> linspace(const double start,
-                             const double end,
-                             const double num);
+template <typename T>
+std::vector<T> linspace(const T start,
+                        const T end,
+                        const int num) {
+  std::vector<T> linspaced;
 
-/**
- * Return evenly spaced timestamps over a specified interval.
- */
-std::vector<timestamp_t> linspace_timestamps(const timestamp_t start,
-                                             const timestamp_t end,
-                                             const int num);
+  if (num == 0) {
+    return linspaced;
+  }
+  if (num == 1) {
+    linspaced.push_back(start);
+    return linspaced;
+  }
+
+  const double diff = static_cast<double>(end - start);
+  const double delta = diff / static_cast<double>(num - 1);
+  for (int i = 0; i < num - 1; ++i) {
+    linspaced.push_back(start + delta * i);
+  }
+  linspaced.push_back(end);
+  return linspaced;
+}
 
 /******************************************************************************
  * Geometry
@@ -263,7 +279,67 @@ double closest_point(const vec2_t &p1,
  * @returns Linear interpolation
  */
 template <typename T>
-T lerp(const T &a, const T &b, const double t);
+T lerp(const T &a, const T &b, const double t) {
+  return a * (1.0 - t) + b * t;
+}
+
+#define EARTH_RADIUS_M 6378137.0
+
+/**
+ * Calculate new latitude and logitude coordinates with an offset in North and
+ * East direction.
+ *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude offsets.
+ *
+ * @param lat_ref Latitude of origin (decimal format)
+ * @param lon_ref Longitude of origin (decimal format)
+ * @param offset_N Offset in North direction (meters)
+ * @param offset_E Offset in East direction (meters)
+ * @param lat_new New latitude (decimal format)
+ * @param lon_new New longitude (decimal format)
+ */
+void latlon_offset(double lat_ref,
+                   double lon_ref,
+                   double offset_N,
+                   double offset_E,
+                   double *lat_new,
+                   double *lon_new);
+
+/**
+ * Calculate difference in distance in North and East from two GPS coordinates
+ *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude diffs.
+ *
+ * @param lat_ref Latitude of origin (decimal format)
+ * @param lon_ref Longitude of origin (decimal format)
+ * @param lat Latitude of point of interest (decimal format)
+ * @param lon Longitude of point of interest (decimal format)
+ * @param dist_N Distance of point of interest in North axis [m]
+ * @param dist_E Distance of point of interest in East axis [m]
+ */
+void latlon_diff(double lat_ref,
+                 double lon_ref,
+                 double lat,
+                 double lon,
+                 double *dist_N,
+                 double *dist_E);
+
+/**
+ * Calculate Euclidean distance between two GPS coordintes
+ *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude distance.
+ *
+ * @param lat_ref Latitude of origin (decimal format)
+ * @param lon_ref Longitude of origin (decimal format)
+ * @param lat Latitude of point of interest (decimal format)
+ * @param lon Longitude of point of interest (decimal format)
+ *
+ * @returns Euclidean distance between two GPS coordinates [m]
+ */
+double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
 
 /******************************************************************************
  * Linear Algebra
@@ -623,6 +699,155 @@ vec3_t mvn(std::default_random_engine &engine,
  */
 double gauss_normal();
 
+/*****************************************************************************
+ * Transform
+ *****************************************************************************/
+
+/**
+ * Extract rotation from transform
+ */
+inline mat3_t tf_rot(const mat4_t &tf) { return tf.block<3, 3>(0, 0); }
+
+/**
+ * Extract rotation and convert to quaternion from transform
+ */
+inline quat_t tf_quat(const mat4_t &tf) { return quat_t{tf.block<3, 3>(0, 0)}; }
+
+/**
+ * Extract translation from transform
+ */
+inline vec3_t tf_trans(const mat4_t &tf) { return tf.block<3, 1>(0, 3); }
+
+/**
+ * Form a 4x4 homogeneous transformation matrix from a
+ * rotation matrix `C` and translation vector `r`.
+ */
+mat4_t tf(const mat3_t &C, const vec3_t &r);
+
+/**
+ * Form a 4x4 homogeneous transformation matrix from a
+ * Hamiltonian quaternion `q` and translation vector `r`.
+ */
+mat4_t tf(const quat_t &q, const vec3_t &r);
+
+/**
+ * Rotation matrix around x-axis (counter-clockwise, right-handed).
+ * @returns Rotation matrix
+ */
+mat3_t rotx(const double theta);
+
+/**
+ * Rotation matrix around y-axis (counter-clockwise, right-handed).
+ * @returns Rotation matrix
+ */
+mat3_t roty(const double theta);
+
+/**
+ * Rotation matrix around z-axis (counter-clockwise, right-handed).
+ * @returns Rotation matrix
+ */
+mat3_t rotz(const double theta);
+
+/**
+ * Convert euler sequence 123 to rotation matrix R
+ * This function assumes we are performing a body fixed intrinsic rotation.
+ *
+ * Source:
+ *
+ *     Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
+ *     Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
+ *     Princeton University Press, 1999. Print.
+ *
+ *     Page 86.
+ *
+ * @returns Rotation matrix
+ */
+mat3_t euler123(const vec3_t &euler);
+
+/**
+ * Convert euler sequence 321 to rotation matrix R
+ * This function assumes we are performing a body fixed intrinsic rotation.
+ *
+ * Source:
+ *
+ *     Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
+ *     Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
+ *     Princeton University Press, 1999. Print.
+ *
+ *     Page 86.
+ *
+ * @returns Rotation matrix
+ */
+mat3_t euler321(const vec3_t &euler);
+
+/**
+ * Convert roll, pitch and yaw to quaternion.
+ */
+quat_t euler2quat(const vec3_t &euler);
+
+/**
+ * Convert rotation vectors to rotation matrix using measured acceleration
+ * `a_m` from an IMU and gravity vector `g`.
+ */
+mat3_t vecs2rot(const vec3_t &a_m, const vec3_t &g);
+
+/**
+ * Convert quaternion to euler angles.
+ */
+vec3_t quat2euler(const quat_t &q);
+
+/**
+ * Initialize attitude using IMU gyroscope `w_m` and accelerometer `a_m`
+ * measurements. The calculated attitude outputted into to `C_WS`. Note: this
+ * function does not calculate initial yaw angle in the world frame. Only the
+ * roll, and pitch are inferred from IMU measurements.
+ */
+void imu_init_attitude(const vec3s_t w_m,
+                       const vec3s_t a_m,
+                       mat3_t &C_WS,
+                       const size_t buffer_size = 50);
+
+/*****************************************************************************
+ * Time
+ *****************************************************************************/
+
+typedef uint64_t timestamp_t;
+typedef std::vector<timestamp_t> timestamps_t;
+
+/**
+ * Print timestamp.
+ */
+void timestamp_print(const timestamp_t &ts, const std::string &prefix = "");
+
+/**
+ * Convert ts to second.
+ */
+double ts2sec(const timestamp_t &ts);
+
+/**
+ * Convert nano-second to second.
+ */
+double ns2sec(const uint64_t ns);
+
+/**
+ * Start timer.
+ */
+struct timespec tic();
+
+/**
+ * Stop timer and return number of seconds.
+ */
+float toc(struct timespec *tic);
+
+/**
+ * Stop timer and return miliseconds elasped.
+ */
+float mtoc(struct timespec *tic);
+
+/**
+ * Get time now in milliseconds since epoch
+ */
+double time_now();
+
 } //  namespace proto
-#include "math_impl.hpp"
 #endif // PROTO_CORE_MATH_HPP

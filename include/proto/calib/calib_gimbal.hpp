@@ -4,7 +4,6 @@
 #include <ceres/ceres.h>
 
 #include "proto/core/math.hpp"
-#include "proto/core/time.hpp"
 #include "proto/model/gimbal.hpp"
 
 namespace proto {

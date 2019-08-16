@@ -18,8 +18,9 @@ int test_nbv_create_aprilgrid() {
   pinhole_t pinhole;
   radtan4_t radtan;
   camera_geometry_t<pinhole_t, radtan4_t> camera{pinhole, radtan};
+  vec2_t resolution{640, 480};
   mat4_t T_CF;
-  aprilgrid_t aprilgrid = nbv_create_aprilgrid(target, camera, T_CF);
+  aprilgrid_t aprilgrid = nbv_create_aprilgrid(target, camera, resolution, T_CF);
 
   return 0;
 }

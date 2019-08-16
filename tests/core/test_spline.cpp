@@ -1,7 +1,6 @@
 #include <fstream>
 
 #include "proto/munit.hpp"
-#include "proto/core/tf.hpp"
 #include "proto/core/spline.hpp"
 
 namespace proto {

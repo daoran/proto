@@ -14,8 +14,8 @@ debug() {
 # LIBRARY
 # make deps
 # time make debug
-make release
-sudo make install
+# time make release
+# sudo make install
 # sudo make debug_install
 # exit
 
@@ -39,7 +39,7 @@ sudo make install
 # ./play
 
 # TESTS
-cd build/tests
+# cd build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera

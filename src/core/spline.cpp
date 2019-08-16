@@ -81,7 +81,7 @@ mat4_t ctraj_get_pose(const ctraj_t &ctraj, const timestamp_t ts) {
   // Orientation
   const vec3_t rvec = ctraj.rvec_spline(u);
   if (rvec.norm() < 1e-12) { // Check angle is not zero
-    return tf(quat_t(), r);
+    return tf(I(3), r);
   }
   const Eigen::AngleAxisd aa{rvec.norm(), rvec.normalized()};
   const quat_t q{aa};
@@ -178,6 +178,13 @@ int ctraj_save(const ctraj_t &ctraj, const std::string &save_path) {
 /*****************************************************************************
  * IMU measurements generator
  *****************************************************************************/
+
+void sim_imu_reset(sim_imu_t &imu) {
+  imu.started = false;
+  imu.b_g = zeros(3, 1);
+  imu.b_a = zeros(3, 1);
+  imu.ts_prev = 0;
+}
 
 void sim_imu_measurement(
     sim_imu_t &imu,

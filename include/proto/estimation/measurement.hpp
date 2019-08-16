@@ -5,7 +5,6 @@
 #include <deque>
 
 #include "proto/core/math.hpp"
-#include "proto/core/time.hpp"
 
 namespace proto {
 

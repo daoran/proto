@@ -76,38 +76,21 @@ int test_pinhole_focal_length() {
 
 int test_pinhole_project() {
   pinhole_t pinhole = setup_pinhole_model();
-  mat3_t R = euler321(vec3_t{0.0, 0.0, 0.0});
-  vec3_t t{0.0, 0.0, 0.0};
   vec3_t p{0.0, 0.0, 10.0};
 
   vec2_t x = project(pinhole, p);
   MU_CHECK_FLOAT(320.0, x(0));
   MU_CHECK_FLOAT(320.0, x(1));
 
-  vec2_t y = project(pinhole, R, t, p);
-  MU_CHECK_FLOAT(320.0, y(0));
-  MU_CHECK_FLOAT(320.0, y(1));
-
-  return 0;
-}
-
-int test_pinhole_pixel2ideal() {
-  pinhole_t pinhole = setup_pinhole_model();
-  vec2_t point = pixel2ideal(pinhole, vec2_t{320, 320});
-
-  MU_CHECK_FLOAT(0.0, point(0));
-  MU_CHECK_FLOAT(0.0, point(1));
-
   return 0;
 }
 
 void test_suite() {
   MU_ADD_TEST(test_pinhole_constructor);
-  // MU_ADD_TEST(test_pinhole_K);
-  // MU_ADD_TEST(test_pinhole_P);
-  // MU_ADD_TEST(test_pinhole_focal_length);
-  // MU_ADD_TEST(test_pinhole_project);
-  // MU_ADD_TEST(test_pinhole_pixel2ideal);
+  MU_ADD_TEST(test_pinhole_K);
+  MU_ADD_TEST(test_pinhole_P);
+  MU_ADD_TEST(test_pinhole_focal_length);
+  MU_ADD_TEST(test_pinhole_project);
 }
 
 } // namespace proto

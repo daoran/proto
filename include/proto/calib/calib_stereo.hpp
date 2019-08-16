@@ -4,7 +4,6 @@
 #include <ceres/ceres.h>
 
 #include "proto/core/math.hpp"
-#include "proto/core/time.hpp"
 #include "proto/calib/ceres.hpp"
 #include "proto/calib/calib_data.hpp"
 

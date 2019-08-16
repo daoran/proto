@@ -6,7 +6,6 @@
 #include <opencv2/calib3d/calib3d.hpp>
 
 #include "proto/core/math.hpp"
-#include "proto/core/time.hpp"
 #include "proto/calib/aprilgrid.hpp"
 #include "proto/vision/vision_common.hpp"
 #include "proto/vision/camera/camera_geometry.hpp"

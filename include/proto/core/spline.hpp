@@ -7,9 +7,8 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/Splines>
 
+#include "proto/core/log.hpp"
 #include "proto/core/math.hpp"
-#include "proto/core/time.hpp"
-#include "proto/core/tf.hpp"
 
 namespace proto {
 
@@ -25,7 +24,6 @@ typedef Eigen::Spline<double, 3> Spline3D;
 
 #define SPLINE3D(X, Y, DEG) \
   Eigen::SplineFitting<Spline3D>::Interpolate(X, DEG, Y)
-
 
 /*****************************************************************************
  * Continuous trajectory generator
@@ -107,6 +105,8 @@ struct sim_imu_t {
   vec3_t b_a = zeros(3, 1);
   timestamp_t ts_prev = 0;
 };
+
+void sim_imu_reset(sim_imu_t &imu);
 
 void sim_imu_measurement(
     sim_imu_t &imu,

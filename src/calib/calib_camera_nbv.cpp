@@ -5,6 +5,7 @@ namespace proto {
 aprilgrid_t
 nbv_create_aprilgrid(const calib_target_t &target,
                      const camera_geometry_t<pinhole_t, radtan4_t> &camera,
+                     const vec2_t &resolution,
                      const mat4_t &T_CF) {
   // Create AprilGrid
   aprilgrid_t grid;
@@ -17,17 +18,32 @@ nbv_create_aprilgrid(const calib_target_t &target,
   grid.detected = true;
   grid.nb_detections = (grid.tag_rows * grid.tag_cols);
   for (int i = 0; i < grid.nb_detections; i++) {
-    grid.ids.push_back(i);
-
-    // Add keypoints and points
+    // Check if object points are observable
     vec3s_t object_points;
     aprilgrid_object_points(grid, i, object_points);
+    vec2s_t observed_keypoints;
+    vec3s_t observed_points_CF;
+
     for (const auto &p_F : object_points) {
-      const vec4_t hp_F = homogeneous(p_F);
+      const vec4_t hp_F = p_F.homogeneous();
       const vec3_t p_C = (T_CF * hp_F).head(3);
       const vec2_t kp = camera_geometry_project(camera, p_C);
-      grid.keypoints.push_back(kp);
-      grid.points_CF.push_back(p_C);
+
+      const bool x_ok = (kp(0) >= 0 && kp(0) <= resolution(0));
+      const bool y_ok = (kp(1) >= 0 && kp(1) <= resolution(1));
+      if (x_ok && y_ok) {
+        observed_keypoints.push_back(kp);
+        observed_points_CF.push_back(p_C);
+      }
+    }
+
+    // Add keypoints and points
+    if (observed_keypoints.size() == 4) {
+      grid.ids.push_back(i);
+      for (size_t i = 0; i < 4; i++) {
+        grid.keypoints.push_back(observed_keypoints[i]);
+        grid.points_CF.push_back(observed_points_CF[i]);
+      }
     }
   }
 
@@ -93,13 +109,14 @@ void nbv_find(const calib_target_t &target,
   // Evalute NBV
   double entropy_best = 0.0;
   const camera_geometry_t<pinhole_t, radtan4_t> camera{pinhole, radtan};
+  const vec2_t resolution{pinhole.cx * 2.0, pinhole.cy * 2.0};
 
   // -- Loop over all NBV poses and find one with lowest entropy
   for (const auto &T_TC : calib_generate_poses(target)) {
     // -- Setup AprilGrids with added NBV grid
     aprilgrids_t grids = aprilgrids;
     const mat4_t T_CT = T_TC.inverse();
-    nbv_grid = nbv_create_aprilgrid(target, camera, T_CT);
+    nbv_grid = nbv_create_aprilgrid(target, camera, resolution, T_CT);
     grids.push_back(nbv_grid);
 
     // -- Setup camera and distortion model

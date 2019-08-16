@@ -6,7 +6,6 @@
 #include <AprilTags/Tag36h11.h>
 
 #include "proto/core/math.hpp"
-#include "proto/core/time.hpp"
 #include "proto/vision/vision.hpp"
 
 namespace proto {
