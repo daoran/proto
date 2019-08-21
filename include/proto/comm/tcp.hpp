@@ -16,7 +16,7 @@
 #include <string>
 #include <map>
 
-#include "proto/core/log.hpp"
+#include "proto/core/core.hpp"
 
 namespace proto {
 

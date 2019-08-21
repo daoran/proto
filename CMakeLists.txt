@@ -70,12 +70,8 @@ ADD_LIBRARY(
   src/control/carrot_ctrl.cpp
   src/control/pid.cpp
   # core
-  src/core/config.cpp
-  src/core/data.cpp
-  src/core/file.cpp
-  src/core/math.cpp
+  src/core/core.cpp
   src/core/stb.cpp
-  src/core/spline.cpp
   # dataset
   src/dataset/euroc.cpp
   src/dataset/kitti.cpp

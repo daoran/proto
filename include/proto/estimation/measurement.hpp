@@ -4,7 +4,7 @@
 #include <map>
 #include <deque>
 
-#include "proto/core/math.hpp"
+#include "proto/core/core.hpp"
 
 namespace proto {
 

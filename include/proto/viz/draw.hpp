@@ -4,7 +4,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include "proto/core/macros.hpp"
+#include "proto/core/core.hpp"
 #include "proto/viz/camera.hpp"
 #include "proto/viz/shader.hpp"
 #include "proto/viz/texture.hpp"

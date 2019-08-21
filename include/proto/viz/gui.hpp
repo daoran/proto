@@ -13,8 +13,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "proto/core/log.hpp"
-#include "proto/core/macros.hpp"
+#include "proto/core/core.hpp"
 #include "proto/viz/texture.hpp"
 
 namespace proto {

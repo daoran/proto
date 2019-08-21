@@ -5,7 +5,7 @@
 #include <AprilTags/TagDetector.h>
 #include <AprilTags/Tag36h11.h>
 
-#include "proto/core/math.hpp"
+#include "proto/core/core.hpp"
 #include "proto/vision/vision.hpp"
 
 namespace proto {

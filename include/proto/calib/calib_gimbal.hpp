@@ -3,7 +3,7 @@
 
 #include <ceres/ceres.h>
 
-#include "proto/core/math.hpp"
+#include "proto/core/core.hpp"
 #include "proto/model/gimbal.hpp"
 
 namespace proto {
