@@ -3,16 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>proto docs</title>
-
-  <link rel="stylesheet"
-        href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/dracula.min.css">
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script>
-
-  <script
-      src="https://code.jquery.com/jquery-3.3.1.min.js"
-      integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
-      crossorigin="anonymous"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
 
   <style>
     body {
@@ -26,169 +17,99 @@
       font-family: times;
     }
 
-    #sidebar {
-      position: fixed;
-      width: 220px;
-      height: 100%;
-
-      overflow-y: scroll;
-      overflow: -moz-scrollbars-vertical;
-
-      margin-right: 20px;
-      margin-top: 0;
-      padding-left: 25px;
-      padding-top: 0;
-
-      box-shadow: 0 0 40px #CCC;
-      -webkit-box-shadow: 0 0 40px #CCC;
-      -moz-box-shadow: 0 0 40px #CCC;
-      border-right: 1px solid #BBB;
-    }
-
-    #sidebar h1 {
-      font-size: 25px;
-      margin-bottom: 0px;
-      padding-bottom: 0px;
-    }
-
-    h1 a:link, #sidebar h1 a:visited {
+    1 a:link, a:visited {
       color: #333;
     }
 
-    #sidebar h2 {
-      font-size: 18px;
-    }
-
-    #sidebar h5 {
-      margin-top: 20px;
-      margin-bottom: 0;
-    }
-
-    a:visited, #sidebar a:link {
-      color: #4682BE;
-      text-decoration: none;
-    }
-
-    #sidebar ul {
-      list-style-type: none;
-      margin: 0;
-      padding-left: 10px;
-      padding-top: 0;
-    }
-
-    #sidebar ul li:before {  /* a hack to have dashes as a list style */
-      content: "-";
-      position: relative;
-      left: -5px;
-    }
-
-    #sidebar ul li {
-      margin-top: 0;
-      margin-bottom: 2px;
-      margin-left: 5px;
-      padding: 0;
-
-      text-indent: -5px;  /* to compensate for the padding for the dash */
-      font-size: 14px;
+    #content_md {
+      display: none;
     }
 
     #content {
-      width: 660px;
-
-      margin-left: 290px;
-      padding-top: 20px;
-      padding-bottom: 150px;
-      padding-left: 0;
-      padding-right: 0;
-    }
-
-    .cpp_class_properties {
-      list-style-type: "-";
-    }
-
-    .cpp_func {
-      margin-top: 10px;
-      margin-bottom: 10px;
-      margin-left: 0;
-      margin-right: 0;
-    }
-
-    .cpp_func:hover {
-      cursor: pointer;
-    }
-
-    .cpp_func .doc {
-      display: none;
-      width: 95%;
+      width: 600px;
       margin-left: auto;
       margin-right: auto;
-      margin-bottom: 40px;
+      margin-top: 5%;
+      font-family: times;
+      text-align: justify;
     }
 
-    .hljs {
-      border-radius: 2px;
-      padding-left: 7px;
-      padding-right: 7px;
-      padding-top: 5px;
-      padding-bottom: 5px;
+    pre code {
+      display: block;
+      width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 10px;
+
+      color: #FFF;
+      background: #333;
+      border: 1px solid #333;
+      border-radius: 5px;
     }
 
-    .header_path {
-      font-size: 1.2em;
-      font-family: monospace;
-      white-space: pre;
+    code {
+      padding-left: 2px;
+      padding-right: 2px;
+
+      color: #FFF;
+      background: #333;
+      border: 1px solid #333;
+      border-radius: 3px;
     }
   </style>
-
-  <script>
-    function show_doc(caller) {
-      var doc = caller.getElementsByClassName("doc")[0];
-      if (doc.style.display === "none" || doc.style.display == "") {
-        doc.style.display = "block";
-      } else {
-        doc.style.display = "none";
-      }
-    }
-  </script>
 </head>
 <body>
-  <div id="sidebar"></div>
-  <div id="content"></div>
+  <div id="content">
+# proto [![Build Status](https://travis-ci.org/chutsu/proto.svg)][1]
+
+`proto` contain notes and code used to learn about different aspects of
+robotics. From estimation, mapping to control and planning.
+
+
+## Build
+
+For convenience there is a `Makefile` that automates the installation of
+dependencies and building of `proto`, the make targets are as follows.
+
+    deps:
+      Install proto dependencies.
+
+    debug:
+      Build proto in debug mode.
+
+    release:
+      Build proto in release mode.
+
+    install:
+      Install proto to $PREFIX. By default this is "/usr/local".
+
+    format_code:
+      Format proto code using clang-format.
+
+    docs:
+      Generate docs for proto.
+
+Or, the standard way to build a C++ project is to enter the following commands
+at the root of the repo.
+
+    mkdir -p build
+    cd build
+    cmake ..
+    make
+    sudo make install  # By default will install to /usr/local
+
+## License
+
+The source code is released under GPLv3 license.
+
+[1]: https://travis-ci.org/chutsu/proto
+  </div>
 
   <script>
-    function load_content(html_file) {
-      $("#content").load(html_file, function() {
-        $(document).ready(function() {
-          $('pre code').each(function(i, block) {
-            hljs.highlightBlock(block);
-          });
-        });
-      });
-    }
-
-    function location_hash() {
-      var hash = location.hash;
-      if (hash != '') {
-        return "api/" + hash.replace(/\./g, "/").slice(1) + ".html";
-      } else {
-        return "README.html";
-      }
-    }
-
-    // Load sidebar
-    $("#sidebar").load("sidebar.html");
-
-    // Load content
-    $(document).ready(function() {
-      var html_file = location_hash();
-      load_content(html_file);
-    });
-
-    // Update content on hashchange
-    $(window).on("hashchange", function(e) {
-      var html_file = location_hash();
-      load_content(html_file);
-    });
+    var content_md = document.getElementById("content").innerHTML;
+    var converter = new showdown.Converter();
+    var html = converter.makeHtml(content_md);
+    document.getElementById("content").innerHTML = html;
   </script>
 </body>
 </html>
