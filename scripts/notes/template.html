@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <!-- MATHJAX -->
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      config: ["MMLorHTML.js"],
+      tex2jax: {
+        inlineMath: [['$','$']],
+        processRefs: true
+      },
+      TeX: {
+        equationNumbers: {
+          autoNumber: "AMS",
+          formatID: function(id) { return "(" + id  + ")"},
+          formatURL: function(id) { return null }
+        },
+        extensions: ["AMSmath.js", "AMSsymbols.js"]
+      }
+    });
+  </script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.6/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  <style>
+    body {
+      color: #111;
+      margin: 0;
+      padding: 0;
+      font-family: times;
+    }
+
+    a:link, a:visited {
+      color: #333;
+    }
+
+    pre code {
+      display: block;
+      width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 10px;
+
+      color: #FFF;
+      background: #333;
+      border: 1px solid #333;
+      border-radius: 5px;
+    }
+
+    code {
+      padding-left: 2px;
+      padding-right: 2px;
+
+      color: #FFF;
+      background: #333;
+      border: 1px solid #333;
+      border-radius: 3px;
+    }
+
+    #content {
+      width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #content p {
+      text-indent: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="content">{{content}}</div>
+</body>
+</html>

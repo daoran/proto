@@ -2,7 +2,6 @@ MKFILE_PATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
 BUILD_DIR=${PROJ_PATH}/build
 
-
 define usage
 [TARGETS]:
   deps:
@@ -20,8 +19,8 @@ define usage
   format_code:
     Format proto code using clang-format.
 
-  docs:
-    Generate docs for proto.
+  notes:
+    Generate notes for proto.
 endef
 export usage
 
@@ -53,5 +52,5 @@ install:
 format_code:
 	@bash ./scripts/format_code.bash
 
-docs:
-	@cd scripts/api && python3 api.py
+notes:
+	@python3 ./scripts/notes/notes.py
