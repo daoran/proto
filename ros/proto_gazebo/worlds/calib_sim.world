@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="default">
+    <!-- GUI -->
+		<gui>
+			<camera name="gui_camera">
+				<pose>-1.0 0.0 2.0 0.0 0.3 0.0</pose>
+			</camera>
+		</gui>
+
+		<!-- Lighting -->
+    <light type="point" name="point_light">
+      <pose>-2 0 4 0 -1 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <cast_shadows>false</cast_shadows>
+
+      <attenuation>
+        <range>1000</range>
+        <constant>0.1</constant>
+        <linear>0.01</linear>
+        <quadratic>0.00</quadratic>
+      </attenuation>
+    </light>
+
+    <!-- AprilGrid -->
+    <include>
+      <uri>model://aprilgrid</uri>
+      <pose>3.0 0.0 0.5945 1.5708 0.0 -1.5708</pose>
+    </include>
+
+    <!-- VI-Sensor -->
+    <include>
+      <uri>model://visensor</uri>
+      <pose>0.0 0.0 1.0 0.0 0.0 0.0</pose>
+    </include>
+  </world>
+</sdf>

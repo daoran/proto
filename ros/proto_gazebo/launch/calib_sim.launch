@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Sync gazebo time with ros -->
+  <param name="use_sim_time" value="true" />
+
+  <!-- Settings -->
+  <param name="sim_mode" value="true" />
+  <param name="debug_mode" value="false" />
+
+  <!-- Gazebo -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find proto_gazebo)/worlds/calib_sim.world" />
+    <arg name="use_sim_time" value="true" />
+    <arg name="verbose" value="true" />
+    <arg name="headless" value="false" />
+    <arg name="debug" value="false" />
+    <arg name="paused" value="false" />
+    <arg name="gui" value="true" />
+  </include>
+</launch>

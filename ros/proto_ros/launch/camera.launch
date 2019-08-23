@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="proto_ros"
+    type="camera_node"
+    name="camera_node"
+    required="true"
+    output="screen">
+      <param name="topic" value="/camera/image" />
+  </node>
+</launch>

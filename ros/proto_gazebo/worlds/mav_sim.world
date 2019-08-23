@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="default">
+
+    <!-- Ground Plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Sun -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- MAV -->
+    <model name="mav">
+      <pose>0.0 0.0 4.0 0.0 0.0 0.0</pose>
+      <include>
+        <uri>model://mav</uri>
+      </include>
+    </model>
+
+    <!-- Landing target -->
+    <include>
+      <uri>model://landing_target</uri>
+    </include>
+  </world>
+</sdf>
