@@ -25,13 +25,13 @@ int test_wp_mission_configure_GPS() {
   int retval = wp_mission_configure(mission, TEST_GPS_CONFIG);
   wp_mission_set_gps_homepoint(mission, 43.474024, -80.540287);
 
-  MU_CHECK_EQ(0, retval);
+  MU_CHECK(retval == 0);
 
   MU_CHECK(mission.check_waypoints);
   MU_CHECK_FLOAT(20.0, mission.threshold_waypoint_gap);
 
   MU_CHECK_FLOAT(0.5, mission.desired_velocity);
-  MU_CHECK_EQ(4, (size_t) mission.local_waypoints.size());
+  MU_CHECK(4 == (size_t) mission.local_waypoints.size());
 
   MU_CHECK_NEAR(0.0, mission.local_waypoints[0](0), 0.001);
   MU_CHECK_NEAR(0.0, mission.local_waypoints[0](1), 0.001);

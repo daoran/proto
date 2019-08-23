@@ -1,7 +1,5 @@
 #include "proto/munit.hpp"
-#include "proto/core/file.hpp"
-#include "proto/core/time.hpp"
-#include "proto/core/math.hpp"
+#include "proto/core/core.hpp"
 #include "proto/dataset/timeline.hpp"
 #include "proto/estimation/measurement.hpp"
 
@@ -472,14 +470,14 @@ int test_vi_data_lerp() {
 }
 
 void test_suite() {
-  // MU_ADD_TEST(test_lerp_timestamps);
-  // MU_ADD_TEST(test_lerp_data);
-  // MU_ADD_TEST(test_lerp_data2);
+  MU_ADD_TEST(test_lerp_timestamps);
+  MU_ADD_TEST(test_lerp_data);
+  MU_ADD_TEST(test_lerp_data2);
   MU_ADD_TEST(test_lerp_data3);
-  // MU_ADD_TEST(test_vi_data);
-  // MU_ADD_TEST(test_vi_data_add_gyro);
-  // MU_ADD_TEST(test_vi_data_add_accel);
-  // MU_ADD_TEST(test_vi_data_lerp);
+  MU_ADD_TEST(test_vi_data);
+  MU_ADD_TEST(test_vi_data_add_gyro);
+  MU_ADD_TEST(test_vi_data_add_accel);
+  MU_ADD_TEST(test_vi_data_lerp);
 }
 
 } // namespace proto

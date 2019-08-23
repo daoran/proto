@@ -24,6 +24,19 @@ struct equi4_t {
 };
 
 /**
+ * Create Equidistant distortion vector
+ */
+template <typename T>
+Eigen::Matrix<T, 4, 1> equi4_D(const T *distortion) {
+  const T k1 = distortion[0];
+  const T k2 = distortion[1];
+  const T k3 = distortion[2];
+  const T k4 = distortion[3];
+  Eigen::Matrix<T, 4, 1> D{k1, k2, k3, k4};
+  return D;
+}
+
+/**
  * Type to output stream.
  */
 std::ostream &operator<<(std::ostream &os, const equi4_t &equi4);

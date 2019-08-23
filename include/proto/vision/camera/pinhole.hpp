@@ -72,6 +72,25 @@ mat3_t pinhole_K(const double *intrinsics);
 mat3_t pinhole_K(const vec4_t &intrinsics);
 
 /**
+ * Pinhole camera matrix K
+ */
+template <typename T>
+static Eigen::Matrix<T, 3, 3> pinhole_K(const T *intrinsics) {
+  const T fx = intrinsics[0];
+  const T fy = intrinsics[1];
+  const T cx = intrinsics[2];
+  const T cy = intrinsics[3];
+
+  // clang-format off
+  Eigen::Matrix<T, 3, 3> K;
+  K << fx, T(0.0), cx,
+       T(0.0), fy, cy,
+       T(0.0), T(0.0), T(1.0);
+  // clang-format on
+  return K;
+}
+
+/**
  * Form **theoretical** pinhole camera matrix K
  *
  * @param[in] image_size Image width and height [px]

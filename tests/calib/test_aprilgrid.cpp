@@ -60,11 +60,11 @@ int test_aprilgrid_constructor() {
   aprilgrid_t grid(0, 6, 6, 0.088, 0.3);
 
   MU_CHECK(grid.detected == false);
-  MU_CHECK_EQ(0, grid.ids.size());
-  MU_CHECK_EQ(0, grid.keypoints.size());
+  MU_CHECK(grid.ids.size() == 0);
+  MU_CHECK(grid.keypoints.size() == 0);
 
   MU_CHECK(grid.estimated == false);
-  MU_CHECK_EQ(0, grid.points_CF.size());
+  MU_CHECK(grid.points_CF.size() == 0);
   MU_CHECK((I(4) - grid.T_CF).norm() < 1e-5);
 
   return 0;
@@ -91,7 +91,7 @@ int test_aprilgrid_add() {
   MU_CHECK_FLOAT(0.0, (grid.keypoints[1] - kp2).norm());
   MU_CHECK_FLOAT(0.0, (grid.keypoints[2] - kp3).norm());
   MU_CHECK_FLOAT(0.0, (grid.keypoints[3] - kp4).norm());
-  MU_CHECK_EQ(0, grid.points_CF.size());
+  MU_CHECK(grid.points_CF.size() == 0);
 
   return 0;
 }
@@ -202,25 +202,25 @@ int test_aprilgrid_grid_index() {
   int j = 0;
   aprilgrid_t grid(0, 6, 6, 0.088, 0.3);
 
-  MU_CHECK_EQ(0, aprilgrid_grid_index(grid, 0, i, j));
-  MU_CHECK_EQ(0, i);
-  MU_CHECK_EQ(0, j);
+  MU_CHECK(aprilgrid_grid_index(grid, 0, i, j) == 0);
+  MU_CHECK(i == 0);
+  MU_CHECK(j == 0);
 
-  MU_CHECK_EQ(0, aprilgrid_grid_index(grid, 1, i, j));
-  MU_CHECK_EQ(0, i);
-  MU_CHECK_EQ(1, j);
+  MU_CHECK(aprilgrid_grid_index(grid, 1, i, j) == 0);
+  MU_CHECK(i == 0);
+  MU_CHECK(j == 1);
 
-  MU_CHECK_EQ(0, aprilgrid_grid_index(grid, 5, i, j));
-  MU_CHECK_EQ(0, i);
-  MU_CHECK_EQ(5, j);
+  MU_CHECK(aprilgrid_grid_index(grid, 5, i, j) == 0);
+  MU_CHECK(i == 0);
+  MU_CHECK(j == 5);
 
-  MU_CHECK_EQ(0, aprilgrid_grid_index(grid, 7, i, j));
-  MU_CHECK_EQ(1, i);
-  MU_CHECK_EQ(1, j);
+  MU_CHECK(aprilgrid_grid_index(grid, 7, i, j) == 0);
+  MU_CHECK(i == 1);
+  MU_CHECK(j == 1);
 
-  MU_CHECK_EQ(0, aprilgrid_grid_index(grid, 17, i, j));
-  MU_CHECK_EQ(2, i);
-  MU_CHECK_EQ(5, j);
+  MU_CHECK(aprilgrid_grid_index(grid, 17, i, j) == 0);
+  MU_CHECK(i == 2);
+  MU_CHECK(j == 5);
 
   return 0;
 }
@@ -284,17 +284,17 @@ int test_aprilgrid_save_and_load() {
   grid.points_CF = {pos1, pos2, pos3, pos4};
   grid.T_CF = I(4);
   grid.T_CF.block(0, 3, 3, 1) = vec3_t{1.0, 2.0, 3.0};
-  MU_CHECK_EQ(0, aprilgrid_save(grid, TEST_OUTPUT));
+  MU_CHECK(aprilgrid_save(grid, TEST_OUTPUT) == 0);
 
   // Test load
   aprilgrid_t grid2(0, 6, 6, 0.088, 0.3);
-  MU_CHECK_EQ(0, aprilgrid_load(grid2, TEST_OUTPUT));
+  MU_CHECK(aprilgrid_load(grid2, TEST_OUTPUT) == 0);
   std::cout << grid2 << std::endl;
 
-  MU_CHECK_EQ(1, grid2.ids.size());
-  MU_CHECK_EQ(4, grid2.keypoints.size());
-  MU_CHECK_EQ(4, grid2.points_CF.size());
-  MU_CHECK_EQ(grid.timestamp, grid2.timestamp);
+  MU_CHECK(grid2.ids.size() == 1);
+  MU_CHECK(grid2.keypoints.size() == 4);
+  MU_CHECK(grid2.points_CF.size() == 4);
+  MU_CHECK(grid.timestamp == grid2.timestamp);
   MU_CHECK_FLOAT(0.0, (grid2.keypoints[0] - kp1).norm());
   MU_CHECK_FLOAT(0.0, (grid2.keypoints[1] - kp2).norm());
   MU_CHECK_FLOAT(0.0, (grid2.keypoints[2] - kp3).norm());
@@ -339,7 +339,7 @@ int test_aprilgrid_print() {
 
 int test_aprilgrid_detect() {
   aprilgrid_t grid;
-  MU_CHECK_EQ(0, aprilgrid_configure(grid, TEST_CONF));
+  MU_CHECK(aprilgrid_configure(grid, TEST_CONF) == 0);
 
   const auto detector = aprilgrid_detector_t();
   const cv::Mat image = cv::imread(TEST_IMAGE);
@@ -362,8 +362,8 @@ int test_aprilgrid_detect() {
 int test_aprilgrid_intersection() {
   aprilgrid_t grid0;
   aprilgrid_t grid1;
-  MU_CHECK_EQ(0, aprilgrid_configure(grid0, TEST_CONF));
-  MU_CHECK_EQ(0, aprilgrid_configure(grid1, TEST_CONF));
+  MU_CHECK(aprilgrid_configure(grid0, TEST_CONF) == 0);
+  MU_CHECK(aprilgrid_configure(grid1, TEST_CONF) == 0);
 
   const auto detector = aprilgrid_detector_t();
   const cv::Mat image = cv::imread(TEST_IMAGE);
@@ -395,9 +395,9 @@ int test_aprilgrid_intersection2() {
   aprilgrid_t grid0;
   aprilgrid_t grid1;
   aprilgrid_t grid2;
-  MU_CHECK_EQ(0, aprilgrid_configure(grid0, TEST_CONF));
-  MU_CHECK_EQ(0, aprilgrid_configure(grid1, TEST_CONF));
-  MU_CHECK_EQ(0, aprilgrid_configure(grid2, TEST_CONF));
+  MU_CHECK(aprilgrid_configure(grid0, TEST_CONF) == 0);
+  MU_CHECK(aprilgrid_configure(grid1, TEST_CONF) == 0);
+  MU_CHECK(aprilgrid_configure(grid2, TEST_CONF) == 0);
 
   const auto detector = aprilgrid_detector_t();
   const cv::Mat image = cv::imread(TEST_IMAGE);

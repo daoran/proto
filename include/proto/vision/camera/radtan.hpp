@@ -31,6 +31,19 @@ struct radtan4_t {
 };
 
 /**
+ * Create Radial-tangential distortion vector
+ */
+template <typename T>
+Eigen::Matrix<T, 4, 1> radtan4_D(const T *distortion) {
+  const T k1 = distortion[0];
+  const T k2 = distortion[1];
+  const T p1 = distortion[2];
+  const T p2 = distortion[3];
+  Eigen::Matrix<T, 4, 1> D{k1, k2, p1, p2};
+  return D;
+}
+
+/**
  * Type to output stream.
  */
 std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4);

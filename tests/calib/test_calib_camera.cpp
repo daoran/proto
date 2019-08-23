@@ -105,8 +105,8 @@ int test_calib_camera_solve() {
 
   // Test
   mat4s_t poses;
-  MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, poses));
-  MU_CHECK_EQ(aprilgrids.size(), poses.size());
+  MU_CHECK(calib_camera_solve(aprilgrids, pinhole, radtan, poses) == 0);
+  MU_CHECK(aprilgrids.size() == poses.size());
 
   // Show results
   std::cout << "Optimized intrinsics and distortions:" << std::endl;
@@ -138,8 +138,8 @@ int test_calib_camera_stats() {
 
   // Test
   mat4s_t T_CF;
-  MU_CHECK_EQ(0, calib_camera_solve(aprilgrids, pinhole, radtan, T_CF));
-  MU_CHECK_EQ(aprilgrids.size(), T_CF.size());
+  MU_CHECK(calib_camera_solve(aprilgrids, pinhole, radtan, T_CF) == 0);
+  MU_CHECK(aprilgrids.size() == T_CF.size());
 
   calib_camera_stats<pinhole_radtan4_residual_t>(aprilgrids,
                                                  *pinhole.data,
@@ -252,10 +252,9 @@ int test_calib_generate_poses() {
 void test_suite() {
   test_setup();
   MU_ADD_TEST(test_pinhole_radtan4_residual);
-  MU_ADD_TEST(test_pinhole_radtan4_residual);
-  MU_ADD_TEST(test_calib_camera_solve);
-  MU_ADD_TEST(test_calib_camera_stats);
   MU_ADD_TEST(test_calib_generate_poses);
+  MU_ADD_TEST(test_calib_camera_stats);
+  MU_ADD_TEST(test_calib_camera_solve);
 }
 
 } // namespace proto

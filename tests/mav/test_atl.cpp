@@ -115,7 +115,7 @@ int test_atl_constructor() {
 int test_atl_step_hover_mode() { return 0; }
 
 void test_suite() {
-  // MU_ADD_TEST(tune_att_ctrl);
+  MU_ADD_TEST(tune_att_ctrl);
   MU_ADD_TEST(tune_pos_ctrl);
   MU_ADD_TEST(test_atl_constructor);
   MU_ADD_TEST(test_atl_step_hover_mode);

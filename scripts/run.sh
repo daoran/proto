@@ -15,7 +15,8 @@ debug() {
 # make deps
 # time make debug
 # time make release
-make notes
+time make ros
+# make notes
 # sudo make install
 # sudo make debug_install
 # exit
@@ -40,7 +41,7 @@ make notes
 # ./play
 
 # TESTS
-# cd build/tests
+cd build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera
@@ -60,14 +61,7 @@ make notes
 # ./control-test_pid
 
 # -- core
-# ./core-test_config
-# ./core-test_data
-# ./core-test_file
-# ./core-test_gps
-# ./core-test_math
-# ./core-test_spline
-# ./core-test_tf
-# ./core-test_time
+# ./core-test_core
 
 # -- driver
 # ./driver-test_camera-camera

@@ -1,7 +1,7 @@
 #include <unistd.h>
 
 #include "proto/munit.hpp"
-#include "proto/core/macros.hpp"
+#include "proto/core/core.hpp"
 #include "proto/comm/tcp.hpp"
 
 namespace proto {
@@ -136,10 +136,10 @@ int test_tcp_server_client_loop() {
 }
 
 void test_suite() {
-  // MU_ADD_TEST(test_tcp_server);
-  // MU_ADD_TEST(test_tcp_client);
-  // MU_ADD_TEST(test_tcp_server_config);
-  // MU_ADD_TEST(test_tcp_client_config);
+  MU_ADD_TEST(test_tcp_server);
+  MU_ADD_TEST(test_tcp_client);
+  MU_ADD_TEST(test_tcp_server_config);
+  MU_ADD_TEST(test_tcp_client_config);
   MU_ADD_TEST(test_tcp_server_client_loop);
 }
 

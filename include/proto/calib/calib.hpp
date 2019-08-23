@@ -7,6 +7,5 @@
 #include "proto/calib/calib_gimbal.hpp"
 #include "proto/calib/calib_stereo.hpp"
 #include "proto/calib/calib_vicon_marker.hpp"
-#include "proto/calib/ceres.hpp"
 
 #endif // PROTO_CALIB_HPP

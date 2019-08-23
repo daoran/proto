@@ -8,7 +8,7 @@ int test_carrot_ctrl_constructor() {
 
   MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
   MU_CHECK(cc.wp_end.isApprox(vec3_t::Zero()));
-  MU_CHECK_EQ(0, cc.wp_index);
+  MU_CHECK(cc.wp_index == 0);
   MU_CHECK_FLOAT(0.0, cc.look_ahead_dist);
 
   return 0;
@@ -26,7 +26,7 @@ int test_carrot_ctrl_configure() {
 
   MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
   MU_CHECK(cc.wp_end.isApprox(vec3_t{1.0, 1.0, 0.0}));
-  MU_CHECK_EQ(1, cc.wp_index);
+  MU_CHECK(cc.wp_index == 1);
   MU_CHECK_FLOAT(0.1, cc.look_ahead_dist);
 
   return 0;
@@ -44,7 +44,7 @@ int test_carrot_ctrl_closest_point() {
 
   MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
   MU_CHECK(cc.wp_end.isApprox(vec3_t{1.0, 1.0, 0.0}));
-  MU_CHECK_EQ(1, cc.wp_index);
+  MU_CHECK(cc.wp_index == 1);
   MU_CHECK_FLOAT(0.1, cc.look_ahead_dist);
 
   // Test before waypoint start
@@ -52,21 +52,21 @@ int test_carrot_ctrl_closest_point() {
   vec3_t res0;
   int s0 = carrot_ctrl_closest_point(cc, pos0, res0);
   MU_CHECK(res0.isApprox(vec3_t{-1.0, -1.0, 0.0}));
-  MU_CHECK_EQ(-1, s0);
+  MU_CHECK(s0 == -1);
 
   // Test between waypoint start and end
   vec3_t pos1{0.5, 0.5, 0.0};
   vec3_t res1;
   int s1 = carrot_ctrl_closest_point(cc, pos1, res1);
   MU_CHECK(res1.isApprox(vec3_t{0.5, 0.5, 0.0}));
-  MU_CHECK_EQ(0, s1);
+  MU_CHECK(s1 == 0);
 
   // Test after waypoint end
   vec3_t pos2{1.5, 1.5, 0.0};
   vec3_t res2;
   int s2 = carrot_ctrl_closest_point(cc, pos2, res2);
   MU_CHECK(res2.isApprox(vec3_t{1.5, 1.5, 0.0}));
-  MU_CHECK_EQ(1, s2);
+  MU_CHECK(s2 == 1);
 
   return 0;
 }
@@ -83,7 +83,7 @@ int test_carrot_ctrl_carrot_point() {
 
   MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
   MU_CHECK(cc.wp_end.isApprox(vec3_t{1.0, 0.0, 0.0}));
-  MU_CHECK_EQ(1, cc.wp_index);
+  MU_CHECK(cc.wp_index == 1);
   MU_CHECK_FLOAT(0.1, cc.look_ahead_dist);
 
   // Test before waypoint start
@@ -91,21 +91,21 @@ int test_carrot_ctrl_carrot_point() {
   vec3_t res0;
   int s0 = carrot_ctrl_carrot_point(cc, pos0, res0);
   MU_CHECK(res0.isApprox(vec3_t{0.0, 0.0, 0.0}));
-  MU_CHECK_EQ(-1, s0);
+  MU_CHECK(s0 == 01);
 
   // Test between waypoint start and end
   vec3_t pos1{0.5, 0.0, 0.0};
   vec3_t res1;
   int s1 = carrot_ctrl_carrot_point(cc, pos1, res1);
   MU_CHECK(res1.isApprox(vec3_t{0.6, 0.0, 0.0}));
-  MU_CHECK_EQ(0, s1);
+  MU_CHECK(s1 == 0);
 
   // Test after waypoint end
   vec3_t pos2{1.5, 0.0, 0.0};
   vec3_t res2;
   int s2 = carrot_ctrl_carrot_point(cc, pos2, res2);
   MU_CHECK(res2.isApprox(vec3_t{1.0, 0.0, 0.0}));
-  MU_CHECK_EQ(1, s2);
+  MU_CHECK(s2 == 1);
 
   return 0;
 }
@@ -122,7 +122,7 @@ int test_carrot_ctrl_update() {
 
   MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
   MU_CHECK(cc.wp_end.isApprox(vec3_t{1.0, 0.0, 0.0}));
-  MU_CHECK_EQ(1, cc.wp_index);
+  MU_CHECK(cc.wp_index == 1);
   MU_CHECK_FLOAT(0.1, cc.look_ahead_dist);
 
   // Test before waypoint start
@@ -130,22 +130,22 @@ int test_carrot_ctrl_update() {
   vec3_t res0;
   int s0 = carrot_ctrl_update(cc, pos0, res0);
   MU_CHECK(res0.isApprox(vec3_t{0.0, 0.0, 0.0}));
-  MU_CHECK_EQ(0, s0);
+  MU_CHECK(s0 == 0);
 
   // Test between waypoint start and end
   vec3_t pos1{0.5, 0.0, 0.0};
   vec3_t res1;
   int s1 = carrot_ctrl_update(cc, pos1, res1);
   MU_CHECK(res1.isApprox(vec3_t{0.6, 0.0, 0.0}));
-  MU_CHECK_EQ(0, s1);
+  MU_CHECK(s1 == 0);
 
   // Test after waypoint end
   vec3_t pos2{1.5, 0.0, 0.0};
   vec3_t res2;
   int s2 = carrot_ctrl_update(cc, pos2, res2);
   MU_CHECK(res2.isApprox(vec3_t{1.0, 0.0, 0.0}));
-  MU_CHECK_EQ(0, s2);
-  MU_CHECK_EQ(2, cc.wp_index);
+  MU_CHECK(s2 == 0);
+  MU_CHECK(cc.wp_index == 2);
   MU_CHECK(cc.wp_start.isApprox(vec3_t{1.0, 0.0, 0.0}));
   MU_CHECK(cc.wp_end.isApprox(vec3_t{2.0, 0.0, 0.0}));
 

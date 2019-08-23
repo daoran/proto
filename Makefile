@@ -1,6 +1,9 @@
 MKFILE_PATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
 BUILD_DIR=${PROJ_PATH}/build
+CATKIN_WS=~/catkin_ws
+
+.PHONY: ros
 
 define usage
 [TARGETS]:
@@ -48,6 +51,9 @@ install:
 	else \
 		cd build && make -s install; \
 	fi
+
+ros:
+	@cd ${CATKIN_WS} && catkin build proto_gazebo proto_ros
 
 format_code:
 	@bash ./scripts/format_code.bash

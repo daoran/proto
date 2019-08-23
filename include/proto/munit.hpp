@@ -2,11 +2,14 @@
 #define MUNIT_HPP
 
 #include <stdio.h>
+#include <string.h>
+#include <string>
 
 /* GLOBAL VARIABLES */
 static int tests = 0;
 static int passed = 0;
 static int failed = 0;
+static std::string test_target = "";
 
 /* MACROS */
 #define KNRM "\x1B[1;0m"
@@ -19,54 +22,10 @@ static int failed = 0;
 #define KWHT "\x1B[1;37m"
 
 /* MUNIT */
-#define MU_ASSERT(TEST, MESSAGE)                                               \
-  do {                                                                         \
-    if (!(TEST)) {                                                             \
-      printf("%sERROR!%s [%s:%d] %s\n",                                        \
-             KRED,                                                             \
-             KNRM,                                                             \
-             __func__,                                                         \
-             __LINE__,                                                         \
-             MESSAGE);                                                         \
-      return -1;                                                               \
-    }                                                                          \
-  } while (0)
-
 #define MU_CHECK(TEST)                                                         \
   do {                                                                         \
     if ((TEST) == false) {                                                     \
       printf("%sERROR!%s [%s:%d] %s %sFAILED!%s\n",                            \
-             KRED,                                                             \
-             KNRM,                                                             \
-             __func__,                                                         \
-             __LINE__,                                                         \
-             #TEST,                                                            \
-             KRED,                                                             \
-             KNRM);                                                            \
-      return -1;                                                               \
-    }                                                                          \
-  } while (0)
-
-#define MU_CHECK_EQ(expected, actual)                                          \
-  do {                                                                         \
-    if (!(expected == actual)) {                                               \
-      printf("%sERROR!%s [%s:%d] %s != %s %sFAILED!%s\n",                      \
-             KRED,                                                             \
-             KNRM,                                                             \
-             __func__,                                                         \
-             __LINE__,                                                         \
-             #expected,                                                        \
-             #actual,                                                          \
-             KRED,                                                             \
-             KNRM);                                                            \
-      return -1;                                                               \
-    }                                                                          \
-  } while (0)
-
-#define MU_FALSE(TEST)                                                         \
-  do {                                                                         \
-    if (TEST != false) {                                                       \
-      printf("%sERROR!%s [%s:%d] %s != false %sFAILED!%s\n",                   \
              KRED,                                                             \
              KNRM,                                                             \
              __func__,                                                         \
@@ -113,7 +72,10 @@ static int failed = 0;
 
 #define MU_ADD_TEST(TEST)                                                      \
   do {                                                                         \
-    tests++;                                                                   \
+    if (test_target != "" && test_target != #TEST) {                           \
+      continue;                                                                \
+    }                                                                          \
+                                                                               \
     printf("%s-> %s %s\n", KBLU, #TEST, KNRM);                                 \
     fflush(stdout);                                                            \
     if (TEST() == -1) {                                                        \
@@ -123,17 +85,8 @@ static int failed = 0;
       printf("%sTEST PASSED!%s\n\n", KGRN, KNRM);                              \
       passed++;                                                                \
     }                                                                          \
+    tests++;                                                                   \
   } while (0)
-
-#if defined(MU_PRINT)
-#if MU_PRINT == 1
-#define MU_PRINT(MESSAGE, ...) printf(MESSAGE, ##__VA_ARGS__)
-#elif MU_PRINT == 0
-#define MU_PRINT(MESSAGE, ...)
-#endif
-#else
-#define MU_PRINT(MESSAGE, ...) printf(MESSAGE, ##__VA_ARGS__)
-#endif
 
 #define MU_REPORT()                                                            \
   do {                                                                         \
@@ -150,7 +103,12 @@ static int failed = 0;
   } while (0)
 
 #define MU_RUN_TESTS(TEST_SUITE)                                               \
-  int main(void) {                                                             \
+  int main(int argc, char *argv[]) {                                           \
+    if (argc == 3 && strcmp(argv[1], "--target") == 0) {                       \
+      test_target = std::string{argv[2]};                                      \
+      printf("%sTEST TARGET [%s]%s\n", KYEL, test_target.c_str(), KNRM);       \
+    }                                                                          \
+                                                                               \
     TEST_SUITE();                                                              \
     MU_REPORT();                                                               \
     return 0;                                                                  \

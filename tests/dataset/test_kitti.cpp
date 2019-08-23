@@ -8,7 +8,7 @@ namespace proto {
 
 int test_kitti_parse_string() {
   std::string value = kitti_parse_string("X: Hello World");
-  MU_CHECK_EQ("Hello World", value);
+  MU_CHECK("Hello World" == value);
   return 0;
 }
 
@@ -21,7 +21,7 @@ int test_kitti_parse_double() {
 int test_kitti_parse_array() {
   std::vector<double> value = kitti_parse_array("X: 1.0 2.0 3.0");
 
-  MU_CHECK_EQ(3, (int) value.size());
+  MU_CHECK((int) value.size() == 3);
   MU_CHECK_FLOAT(1.0, value[0]);
   MU_CHECK_FLOAT(2.0, value[1]);
   MU_CHECK_FLOAT(3.0, value[2]);
@@ -102,10 +102,10 @@ int test_calib_cam2cam_load() {
   calib_cam2cam_t calib{TEST_DATA_PATH "/calib_cam_to_cam.txt"};
 
   int retval = calib_cam2cam_load(calib);
-  MU_CHECK_EQ(retval, 0);
+  MU_CHECK(retval == 0);
 
   const vec2_t S_00_exp{1.392000e+03, 5.120000e+02};
-  MU_CHECK_EQ("09-Jan-2012 13:57:47", calib.calib_time);
+  MU_CHECK("09-Jan-2012 13:57:47" == calib.calib_time);
   MU_CHECK_FLOAT(9.950000e-02, calib.corner_dist);
 
   return 0;
@@ -115,7 +115,7 @@ int test_calib_imu2velo_load() {
   calib_imu2velo_t calib{TEST_DATA_PATH "/calib_imu_to_velo.txt"};
 
   int retval = calib_imu2velo_load(calib);
-  MU_CHECK_EQ(retval, 0);
+  MU_CHECK(retval == 0);
 
   return 0;
 }
@@ -124,7 +124,7 @@ int test_calib_velo2cam_load() {
   calib_velo2cam_t calib{TEST_DATA_PATH "/calib_velo_to_cam.txt"};
 
   int retval = calib_velo2cam_load(calib);
-  MU_CHECK_EQ(retval, 0);
+  MU_CHECK(retval == 0);
 
   return 0;
 }

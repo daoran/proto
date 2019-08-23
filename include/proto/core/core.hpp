@@ -1,6 +1,8 @@
 #ifndef PROTO_CORE_HPP
 #define PROTO_CORE_HPP
 
+#define ENABLE_MACROS 1
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +36,7 @@
 /******************************************************************************
  * MACROS
  *****************************************************************************/
+#ifdef ENABLE_MACROS
 
 #define __FILENAME__                                                           \
   (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
@@ -75,6 +78,8 @@
     goto error;                                                                \
   }
 #endif
+
+#endif  // ENABLE_MACROS ------------------------------------------------------
 
 namespace proto {
 
@@ -917,6 +922,19 @@ inline quat_t tf_quat(const mat4_t &tf) { return quat_t{tf.block<3, 3>(0, 0)}; }
  * Extract translation from transform
  */
 inline vec3_t tf_trans(const mat4_t &tf) { return tf.block<3, 1>(0, 3); }
+
+/**
+ * Form a 4x4 homogeneous transformation matrix from a
+ * rotation matrix `C` and translation vector `r`.
+ */
+template <typename T>
+Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
+                          const Eigen::Matrix<T, 3, 1> &r) {
+  Eigen::Matrix<T, 4, 4> transform = Eigen::Matrix<T, 4, 4>::Identity();
+  transform.block(0, 0, 3, 3) = C;
+  transform.block(0, 3, 3, 1) = r;
+  return transform;
+}
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a

@@ -14,13 +14,13 @@ int test_euroc_imu_constructor() {
   euroc_imu_t imu_data;
 
   // Data
-  MU_CHECK_EQ(0, imu_data.timestamps.size());
-  MU_CHECK_EQ(0, imu_data.w_B.size());
-  MU_CHECK_EQ(0, imu_data.a_B.size());
+  MU_CHECK(0 == imu_data.timestamps.size());
+  MU_CHECK(0 == imu_data.w_B.size());
+  MU_CHECK(0 == imu_data.a_B.size());
 
   // Sensor properties
-  MU_CHECK_EQ("", imu_data.sensor_type);
-  MU_CHECK_EQ("", imu_data.comment);
+  MU_CHECK("" == imu_data.sensor_type);
+  MU_CHECK("" == imu_data.comment);
   MU_CHECK(imu_data.T_BS.isApprox(I(4)));
   MU_CHECK_FLOAT(0.0, imu_data.rate_hz);
   MU_CHECK_FLOAT(0.0, imu_data.gyro_noise_density);
@@ -35,7 +35,7 @@ int test_euroc_imu_load() {
   euroc_imu_t imu_data;
 
   int retval = euroc_imu_load(imu_data, TEST_IMU_DATA);
-  MU_CHECK_EQ(0, retval);
+  MU_CHECK(0 == retval);
   MU_CHECK(imu_data.timestamps.size());
   MU_CHECK(imu_data.w_B.size());
   MU_CHECK(imu_data.a_B.size());
@@ -49,8 +49,8 @@ int test_euroc_imu_load() {
   MU_CHECK((w_B_gnd - imu_data.w_B[0]).norm() < 1.0e-5);
   MU_CHECK((a_B_gnd - imu_data.a_B[0]).norm() < 1.0e-5);
 
-  MU_CHECK_EQ("imu", imu_data.sensor_type);
-  MU_CHECK_EQ("VI-Sensor IMU (ADIS16448)", imu_data.comment);
+  MU_CHECK("imu" == imu_data.sensor_type);
+  MU_CHECK("VI-Sensor IMU (ADIS16448)" == imu_data.comment);
   MU_CHECK_FLOAT(1.6968e-04, imu_data.gyro_noise_density);
   MU_CHECK_FLOAT(1.9393e-05, imu_data.gyro_random_walk);
   MU_CHECK_FLOAT(2.0000e-3, imu_data.accel_noise_density);
@@ -62,17 +62,17 @@ int test_euroc_imu_load() {
 int test_euroc_camera_constructor() {
   euroc_camera_t camera_data;
 
-  MU_CHECK_EQ(0, camera_data.timestamps.size());
-  MU_CHECK_EQ(0, camera_data.image_paths.size());
+  MU_CHECK(0 == camera_data.timestamps.size());
+  MU_CHECK(0 == camera_data.image_paths.size());
 
-  MU_CHECK_EQ("", camera_data.sensor_type);
-  MU_CHECK_EQ("", camera_data.comment);
+  MU_CHECK("" == camera_data.sensor_type);
+  MU_CHECK("" == camera_data.comment);
   MU_CHECK(camera_data.T_BS.isApprox(I(4)));
   MU_CHECK_FLOAT(0.0, camera_data.rate_hz);
   MU_CHECK(vec2_t::Zero().isApprox(camera_data.resolution));
-  MU_CHECK_EQ("", camera_data.camera_model);
+  MU_CHECK("" == camera_data.camera_model);
   MU_CHECK(vec4_t::Zero().isApprox(camera_data.intrinsics));
-  MU_CHECK_EQ("", camera_data.distortion_model);
+  MU_CHECK("" == camera_data.distortion_model);
   MU_CHECK(vec4_t::Zero().isApprox(camera_data.distortion_coefficients));
 
   return 0;
@@ -94,19 +94,19 @@ int test_euroc_camera_load() {
   // clang-format on
 
   int retval = euroc_camera_load(camera_data, TEST_CAM0_DATA);
-  MU_CHECK_EQ(0.0, retval);
+  MU_CHECK(0.0 == retval);
   MU_CHECK(camera_data.timestamps.size());
   MU_CHECK(camera_data.image_paths.size());
   MU_CHECK(camera_data.timestamps[0] == 1403715273262142976);
 
-  MU_CHECK_EQ("camera", camera_data.sensor_type);
-  MU_CHECK_EQ("VI-Sensor cam0 (MT9M034)", camera_data.comment);
+  MU_CHECK("camera" == camera_data.sensor_type);
+  MU_CHECK("VI-Sensor cam0 (MT9M034)" == camera_data.comment);
   MU_CHECK(T_BS_expected.isApprox(camera_data.T_BS));
   MU_CHECK_FLOAT(20.0, camera_data.rate_hz);
   MU_CHECK(resolution_expected.isApprox(camera_data.resolution));
-  MU_CHECK_EQ("pinhole", camera_data.camera_model);
+  MU_CHECK("pinhole" == camera_data.camera_model);
   MU_CHECK(intrinsics_expected.isApprox(camera_data.intrinsics));
-  MU_CHECK_EQ("radial-tangential", camera_data.distortion_model);
+  MU_CHECK("radial-tangential" == camera_data.distortion_model);
   MU_CHECK(distortion_expected.isApprox(camera_data.distortion_coefficients));
 
   return 0;
@@ -115,12 +115,12 @@ int test_euroc_camera_load() {
 int test_euroc_ground_truth_constructor() {
   euroc_ground_truth_t ground_truth;
 
-  MU_CHECK_EQ(0, ground_truth.timestamps.size());
-  MU_CHECK_EQ(0, ground_truth.p_RS_R.size());
-  MU_CHECK_EQ(0, ground_truth.q_RS.size());
-  MU_CHECK_EQ(0, ground_truth.v_RS_R.size());
-  MU_CHECK_EQ(0, ground_truth.b_w_RS_S.size());
-  MU_CHECK_EQ(0, ground_truth.b_a_RS_S.size());
+  MU_CHECK(0 == ground_truth.timestamps.size());
+  MU_CHECK(0 == ground_truth.p_RS_R.size());
+  MU_CHECK(0 == ground_truth.q_RS.size());
+  MU_CHECK(0 == ground_truth.v_RS_R.size());
+  MU_CHECK(0 == ground_truth.b_w_RS_S.size());
+  MU_CHECK(0 == ground_truth.b_a_RS_S.size());
 
   return 0;
 }
@@ -129,7 +129,7 @@ int test_euroc_ground_truth_load() {
   euroc_ground_truth_t ground_truth;
 
   int retval = euroc_ground_truth_load(ground_truth, TEST_GROUND_TRUTH_DATA);
-  MU_CHECK_EQ(0, retval);
+  MU_CHECK(0 == retval);
   MU_CHECK(ground_truth.timestamps.size());
   MU_CHECK(ground_truth.p_RS_R.size());
   MU_CHECK(ground_truth.q_RS.size());
@@ -154,21 +154,21 @@ int test_euroc_ground_truth_load() {
 int test_euroc_data_constructor() {
   euroc_data_t data("/tmp");
   MU_CHECK(data.ok == false);
-  MU_CHECK_EQ("/tmp", data.data_path);
+  MU_CHECK("/tmp" == data.data_path);
 
   return 0;
 }
 
 int test_euroc_data_load() {
   euroc_data_t data;
-  MU_CHECK_EQ(0, euroc_data_load(data, TEST_DATA));
+  MU_CHECK(0 == euroc_data_load(data, TEST_DATA));
 
   return 0;
 }
 
 int test_euroc_calib_constructor() {
   euroc_calib_t data(TEST_CALIB_DATA);
-  MU_CHECK_EQ(TEST_CALIB_DATA, data.data_path);
+  MU_CHECK(TEST_CALIB_DATA == data.data_path);
 
   return 0;
 }
@@ -177,7 +177,7 @@ int test_euroc_calib_load() {
   {
     euroc_calib_t data;
     MU_CHECK(data.ok == false);
-    MU_CHECK_EQ(0, euroc_calib_load(data, TEST_CALIB_DATA));
+    MU_CHECK(0 == euroc_calib_load(data, TEST_CALIB_DATA));
     MU_CHECK(data.ok);
   }
 
