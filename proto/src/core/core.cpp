@@ -1816,7 +1816,7 @@ ctraj_t::ctraj_t(const timestamps_t &timestamps,
       ts_s_gap{ts_s_end - ts_s_start} {
   assert(timestamps.size() == positions.size());
   assert(timestamps.size() == orientations.size());
-  assert(timestamps.size() > (spline_degree + 1));
+  assert(timestamps.size() > 4);
   ctraj_init(*this);
 }
 
@@ -1828,9 +1828,9 @@ inline static double ts_normalize(const ctraj_t &ctraj, const timestamp_t ts) {
 }
 
 void ctraj_init(ctraj_t &ctraj) {
-  assert(timestamps.size() == positions.size());
-  assert(timestamps.size() == orientations.size());
-  assert(ctraj.timestamps.size() > (ctraj.spline_degree + 1));
+  assert(ctraj.timestamps.size() == ctraj.positions.size());
+  assert(ctraj.timestamps.size() == ctraj.orientations.size());
+  assert(ctraj.timestamps.size() > (3 + 1));
 
   // Create knots
   const size_t nb_knots = ctraj.timestamps.size();

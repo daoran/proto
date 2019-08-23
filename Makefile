@@ -53,7 +53,7 @@ install:
 	fi
 
 ros:
-	@cd ${CATKIN_WS} && catkin build proto_ros
+	@cd ${CATKIN_WS} && catkin build proto proto_ros
 
 format_code:
 	@bash ./scripts/format_code.bash

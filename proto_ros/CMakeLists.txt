@@ -3,7 +3,6 @@ PROJECT(proto_ros)
 
 # DEPENDENCIES
 CMAKE_POLICY(SET CMP0054 NEW)
-FIND_PACKAGE(Proto REQUIRED)
 FIND_PACKAGE(gazebo REQUIRED QUIET)
 FIND_PACKAGE(
   catkin
@@ -18,18 +17,20 @@ FIND_PACKAGE(
     message_runtime
     image_transport
     cv_bridge
+    proto
 )
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${catkin_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${GAZEBO_INCLUDE_DIRS})
+INCLUDE(cmake/ImportProto.cmake)
 INCLUDE_DIRECTORIES(${PROTO_INCLUDE_DIRS})
 
 # LINK
 SET(
   DEPS
   proto_ros
-  ${PROTO_LIBRARIES}
   ${catkin_LIBRARIES}
+  ${PROTO_LIBRARIES}
 )
 
 # ROS MESSAGE
@@ -53,6 +54,7 @@ CATKIN_PACKAGE(
     message_runtime
     image_transport
     cv_bridge
+    proto
   INCLUDE_DIRS
     include
   LIBRARIES

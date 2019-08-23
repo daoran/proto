@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package>
+  <name>proto</name>
+  <version>0.0.1</version>
+  <description>Proto</description>
+
+  <!-- Contact info -->
+  <maintainer email="chutsu@gmail.com">Chris Choi</maintainer>
+
+  <!-- Build tool dependencies -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>roscpp</buildtool_depend>
+  <run_depend>roscpp</run_depend>
+
+  <!-- License -->
+  <license>GPLv3</license>
+</package>

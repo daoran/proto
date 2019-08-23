@@ -14,6 +14,7 @@ FIND_PACKAGE(SuiteSparse REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
 FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
+INCLUDE(cmake/ImportEigen3.cmake)
 
 SET(OpenGL_GL_PREFERENCE GLVND)
 FIND_PACKAGE(OpenGL REQUIRED)
@@ -21,7 +22,6 @@ FIND_PACKAGE(glfw3 REQUIRED)
 FIND_PACKAGE(assimp REQUIRED)
 FIND_PACKAGE(glm REQUIRED)
 
-INCLUDE(cmake/ImportEigen3.cmake)
 if (OPENMP_FOUND)
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -51,6 +51,26 @@ ADD_LIBRARY(
   imgui_impl
   /usr/local/src/imgui/examples/imgui_impl_glfw.cpp
   /usr/local/src/imgui/examples/imgui_impl_opengl3.cpp
+)
+
+FIND_PACKAGE(catkin REQUIRED)
+CATKIN_PACKAGE(CATKIN_DEPENDS roscpp INCLUDE_DIRS include LIBRARIES proto)
+
+SET(
+  ${PROJECT_NAME}_DEPS
+  ${OpenCV_LIBS}
+  ${SUITESPARSE_LIBRARIES}
+  ${CERES_LIBRARIES}
+  yaml-cpp
+  apriltags
+  ${GeographicLib_LIBRARIES}
+  glad
+  glfw
+  dl
+  ${ASSIMP_LIBRARIES}
+  ${OPENGL_gl_LIBRARY}
+  imgui
+  imgui_impl
 )
 
 # LIBRARY
@@ -108,22 +128,6 @@ ADD_LIBRARY(
   src/viz/mesh.cpp
   src/viz/shader.cpp
   src/viz/texture.cpp
-)
-SET(
-  ${PROJECT_NAME}_DEPS
-  ${OpenCV_LIBS}
-  ${SUITESPARSE_LIBRARIES}
-  ${CERES_LIBRARIES}
-  yaml-cpp
-  apriltags
-  ${GeographicLib_LIBRARIES}
-  glad
-  glfw
-  dl
-  ${ASSIMP_LIBRARIES}
-  ${OPENGL_gl_LIBRARY}
-  imgui
-  imgui_impl
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
