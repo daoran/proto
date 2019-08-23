@@ -119,7 +119,7 @@ struct camera_plugin_t : public SensorPlugin {
 
     // Publish image and clean up
     img_pub_.publish(img_msg);
-    delete buffer;
+    delete []buffer;
   }
 };
 

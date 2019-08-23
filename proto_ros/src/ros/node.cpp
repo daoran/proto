@@ -64,6 +64,8 @@ int ros_node_t::add_shutdown_subscriber(const std::string &topic) {
   // Register subscriber
   sub = ros_nh_->subscribe(topic, 1, &ros_node_t::shutdown_callback, this);
   ros_subs_[topic] = sub;
+
+  return 0;
 }
 
 int ros_node_t::add_image_publisher(const std::string &topic) {
