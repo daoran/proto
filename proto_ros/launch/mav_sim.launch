@@ -9,7 +9,7 @@
 
   <!-- Gazebo -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find proto_gazebo)/worlds/mav_sim.world" />
+    <arg name="world_name" value="$(find proto_ros)/worlds/mav_sim.world" />
     <arg name="use_sim_time" value="true" />
     <arg name="verbose" value="false" />
     <arg name="headless" value="false" />

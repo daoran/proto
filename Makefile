@@ -45,11 +45,11 @@ release: ${BUILD_DIR}
 	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s
 
 install:
-	@if [ ! -d build ]; then \
+	@if [ ! -d proto/build ]; then \
 		echo "Error: Not built yet!"; \
 		exit 1; \
 	else \
-		cd build && make -s install; \
+		cd proto/build && make -s install; \
 	fi
 
 ros:
