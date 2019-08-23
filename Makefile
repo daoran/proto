@@ -1,6 +1,6 @@
 MKFILE_PATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
-BUILD_DIR=${PROJ_PATH}/build
+BUILD_DIR=${PROJ_PATH}/proto/build
 CATKIN_WS=~/catkin_ws
 
 .PHONY: ros
@@ -39,10 +39,10 @@ ${BUILD_DIR}:
 	@make -s deps
 
 debug: ${BUILD_DIR}
-	@cd build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s
+	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s
 
 release: ${BUILD_DIR}
-	@cd build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s
+	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s
 
 install:
 	@if [ ! -d build ]; then \
