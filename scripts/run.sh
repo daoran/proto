@@ -16,8 +16,8 @@ debug() {
 # time make debug
 # time make release
 # time make ros
-# make notes
-sudo make install
+make notes
+# sudo make install
 # sudo make debug_install
 # exit
 
@@ -61,7 +61,7 @@ cd proto/build/tests
 # ./control-test_pid
 
 # -- core
-./core-test_core
+# ./core-test_core
 
 # -- driver
 # ./driver-test_camera-camera

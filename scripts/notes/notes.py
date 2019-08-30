@@ -28,7 +28,7 @@ def unescape_html(s):
     return s.replace("&amp;#92;", "\\") .replace("&amp;#95;", "_")
 
 
-def render_note(docs_path, template_file, macros_file, note_file):
+def render_note(docs_path, template_file, macros_file, note_file, sidebar):
     # Macros
     macros = open(macros_file, mode="r", encoding="utf-8").read()
     macros = "$$" + macros + "$$"
@@ -41,7 +41,7 @@ def render_note(docs_path, template_file, macros_file, note_file):
 
     # Render template
     template = Template(open(template_file).read())
-    html = template.render(content=content)
+    html = template.render(sidebar=sidebar, content=content)
 
     # Output rendered html
     docs_path += "/" if docs_path[-1] != "/" else ""
@@ -52,10 +52,11 @@ def render_note(docs_path, template_file, macros_file, note_file):
     output_file.close()
 
 
-note_files = get_notes(docs_path)
-import pprint
-pprint.pprint(note_files)
+sidebar = open(os.path.join(docs_path, "sidebar.md")).read()
+sidebar = md.convert(escape_html(sidebar))
+sidebar = unescape_html(sidebar)
 
+note_files = get_notes(docs_path)
 for note_file in note_files:
     print("processing [%s]" % note_file)
-    render_note(docs_path, template_file, macros_file, note_file)
+    render_note(docs_path, template_file, macros_file, note_file, sidebar)

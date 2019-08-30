@@ -100,8 +100,9 @@ product of the two operator norms as follows:
 \end{align}
 The same definition is used for any matrix norm, i.e. one that satisfies
 \begin{equation}
-  \kappa(\Mat{A}) = \Norm{\Mat{A}^{-1}} \cdot \Norm{\Mat{A}}
-    \geq \Norm{\Mat{A}^{-1} \cdot \Mat{A}} = 1 .
+  \kappa(\Mat{A}) =
+    \Norm{\Mat{A}^{-1}} \cdot \Norm{\Mat{A}}
+    \geq \Norm{\Mat{A}^{-1} \cdot \Mat{A}} = 1.
 \end{equation}
 When the condition number is exactly one (which can only happen if $\Mat{A}$ is
 a scalar multiple of a linear isometry), then a solution algorithm can find (in

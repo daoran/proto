@@ -155,8 +155,10 @@ function J = ba_jacobian(data, check_jacobians=false)
       % -- Form jacobians
       J_K = intrinsics_point_jacobian(K);
       J_P = project_jacobian(p_C);
-      J_cam_rot = -1 * J_K * J_P * camera_rotation_jacobian(q_WC, r_WC, p_W);
-      J_cam_pos = -1 * J_K * J_P * camera_translation_jacobian(q_WC);
+      J_C = camera_rotation_jacobian(q_WC, r_WC, p_W);
+      J_r = camera_translation_jacobian(q_WC);
+      J_cam_rot = -1 * J_K * J_P * J_C;
+      J_cam_pos = -1 * J_K * J_P * J_r;
       % -- Fill in the big jacobian
       J(rs:re, cs:ce) = [J_cam_rot, J_cam_pos];
       % J(rs:re, cs:ce) = 255 * ones(2, 6);
@@ -238,16 +240,17 @@ function data = ba_update(data, e, E, sigma=[1.0; 1.0])
   nb_measurements = ba_nb_measurements(data);
   W = diag(repmat(sigma, nb_measurements, 1));
 
-  % Calculate update
-  EWE = (E' * W * E);
-  dx = pinv(EWE) * (-E' * W * e);
+  % Solve Gauss-Newton system [H dx = g]: Solve for dx
+  H = (E' * W * E);
+  g = -E' * W * e;
+  dx = pinv(H) * g;
 
-  % EWE = EWE + 0.1 * eye(size(EWE));
-  % dx = EWE \ (-E' * e);
+  % H = H + 0.1 * eye(size(H));
+  % dx = H \ (-E' * e);
 
-  % dx = (EWE) \ (-E' * W * e);
-  % dx = inv(EWE) * (-E' * W * e);
-  % dx = (EWE)^-1 * (-E' * W * e);
+  % dx = (H) \ (-E' * W * e);
+  % dx = inv(H) * (-E' * W * e);
+  % dx = (H)^-1 * (-E' * W * e);
 
   % Update camera poses
   nb_poses = length(data.time);
@@ -347,7 +350,7 @@ endfunction
 
 % Setup data
 % -- Create calibration target
-calib_target = calib_target_init(4, 4);
+calib_target = calib_target_init(5, 5);
 C_WT = euler321(deg2rad([90.0, 0.0, -90.0]));
 r_WT = [1.0; 0.0; 0.0];
 T_WT = tf(C_WT, r_WT);

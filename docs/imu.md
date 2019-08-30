@@ -1,61 +1,23 @@
-Inertial Measurement Unit (IMU)
-===============================
+# Inertial Measurement Unit (IMU)
 
-IMU kinematics
---------------
+## IMU Motion Model
 
 \begin{align}
   % Position
-  \DotPos{\world}{\sensor} &= \Vel{\world}{\sensor} \\
+  \dot\pos_{WS} &= \vel_{WS} \\
   % Orientation
-  \DotQuat{\world}{\sensor} &=
+  \dot\quat_{WS} &=
     \dfrac{1}{2} \mathbf{\Omega}
-    (\imuGyroMeas, \noiseGyro, \biasGyro)
-    \Quat{\world}{\sensor} \\
+    (\gyrMeas, \gyrNoise, \gyrBias)
+    \quat_{WS} \\
   % Velocity
-  \DotVel{\world}{\sensor} &=
-    \Rot{\world}{\sensor}
-    (\imuAccelMeas + \noiseAccel - \biasAccel) + \gravity \\
+  \dot\vel_{WS} &=
+    \rot_{WS}
+    (\accMeas + \accNoise - \accBias) + \gravity \\
   % Gyro Bias
-  \dot{\biasGyro} &= \noise_{\biasGyro} \\
+  \dot{\gyrBias} &= \noise_{\gyrBias} \\
   % Accel Bias
-  \dot{\biasAccel} &= - \dfrac{1}{\tau} \biasAccel + \noise_{\biasGyro}
+  \dot{\accBias} &= -\dfrac{1}{\tau} \accBias + \noise_{\gyrBias}
 \end{align}
-
 The matrix $\mathbf{\Omega}$ is formed from the estimated angular rate
-$\imuGyro = \imuGyroMeas + \noiseGyro - \biasGyro$
-
-\begin{equation}
-  \mathbf{F}_{c} = \begin{bmatrix}
-    % Row 1
-    \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & \I_{3}
-    & \Zeros{3}{3}
-    & \Zeros{3}{3} \\
-    % Row 2
-    \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & \Rot{\world}{\sensor}
-    & \Zeros{3}{3} \\
-    % Row 3
-    \Zeros{3}{3}
-    & \Skew{\Rot{\world}{\sensor}(\imuAccelMeas - \biasAccel)}
-    & \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & -\Rot{\world}{\sensor} \\
-    % Row 4
-    \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & \Zeros{3}{3} \\
-    % Row 5
-    \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & \Zeros{3}{3}
-    & -\dfrac{1}{\tau} \ones_{3}
-  \end{bmatrix}
-\end{equation}
+$\gyr = \gyrMeas + \gyrNoise - \gyrBias$
