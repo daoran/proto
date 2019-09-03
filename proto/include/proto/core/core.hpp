@@ -1642,5 +1642,50 @@ void sim_imu_measurement(
     vec3_t &a_WS_S,
     vec3_t &w_WS_S);
 
+/******************************************************************************
+ * Measurements
+ *****************************************************************************/
+
+struct meas_t {
+  timestamp_t ts = 0;
+
+  meas_t() {}
+  meas_t(const timestamp_t &ts_) : ts{ts_} {}
+  virtual ~meas_t() {}
+};
+
+struct imu_data_t : meas_t {
+  vec3_t gyro;
+  vec3_t accel;
+
+  imu_data_t() {}
+  imu_data_t(const vec3_t &gyro_, const vec3_t &accel_) :
+    gyro{gyro_}, accel{accel_} {}
+  virtual ~imu_data_t() {}
+};
+
+struct image_t : meas_t {
+  timestamp_t ts = 0;
+  int width = 0;
+  int height = 0;
+  float *data = nullptr;
+
+  image_t() {}
+  image_t(const timestamp_t ts_, const int width_, const int height_)
+      : ts{ts_}, width{width_}, height{height_} {
+    data = new float[width * height];
+  }
+  image_t(const timestamp_t ts_,
+                  const int width_,
+                  const int height_,
+                  float *data_)
+      : ts{ts_}, width{width_}, height{height_}, data{data_} {}
+  virtual ~image_t() {
+    if (data) {
+      free(data);
+    }
+  }
+};
+
 } //  namespace proto
 #endif // PROTO_CORE_HPP

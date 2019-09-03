@@ -3,6 +3,15 @@
 <head>
   <meta charset="utf-8">
 
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.css" integrity="sha384-BdGj8xC2eZkQaxoQ8nSLefg4AV4/AwB3Fj+8SUSo7pnKP6Eoy18liIKTPn9oBYNG" crossorigin="anonymous">
+
+	<!-- The loading of KaTeX is deferred to speed up page rendering -->
+	<!-- <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.js" integrity="sha384&#45;JiKN5O8x9Hhs/UE5cT5AAJqieYlOZbGT3CHws/y97o3ty4R7/O5poG9F3JoiOYw1" crossorigin="anonymous"></script> -->
+  <!--  -->
+	<!-- <!&#45;&#45; To automatically render math in text elements, include the auto&#45;render extension: &#45;&#45;> -->
+	<!-- <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/contrib/auto&#45;render.min.js" integrity="sha384&#45;kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous" -->
+  <!--       onload="renderMathInElement(document.body);"></script> -->
+
   <!-- MATHJAX -->
   <script type="text/x-mathjax-config">
     MathJax.Hub.Config({
@@ -31,6 +40,7 @@
       /* font-family: Helvetica Neue, Helvetica, Arial; */
       font-family: Times;
 			font-size: 0.95em;
+			text-align: justify;
     }
 
     a:link, a:visited {
@@ -78,6 +88,14 @@
 			-moz-box-shadow: 0 0 20px #ccc;
     }
 
+    #sidebar h1 {
+      font-size: 1.2em;
+    }
+
+    #sidebar h2 {
+      font-size: 0.95em;
+    }
+
     #sidebar ul {
 			display: block;
       padding: 0px 0px 0px 20px;
@@ -87,11 +105,20 @@
     #content {
 			position: relative;
       width: 600px;
-      margin: 0px 0px 0px 300px;
+      margin: 0px 0px 10% 300px;
     }
 
     #content p {
       text-indent: 20px;
+    }
+
+    #content img {
+      display: block;
+      width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 2em;
+      margin-bottom: 2em;
     }
   </style>
 </head>

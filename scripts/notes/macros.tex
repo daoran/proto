@@ -1,7 +1,6 @@
-% Linear algebra
-\renewcommand{\Vec}[1]{{\mathbf{#1}}}
+\newcommand{\Vec}[1]{{\mathbf{#1}}}
 \newcommand{\Mat}[1]{{\mathbf{#1}}}
-\newcommand{\real}{{\rm I\!R}}
+\renewcommand{\real}{{\rm I\!R}}
 \newcommand{\ones}{{\Vec{1}}}
 \newcommand{\Ones}[2]{{\Vec{1}_{#1\times#2}}}
 \newcommand{\zeros}{{\Vec{0}}}
@@ -14,15 +13,18 @@
 \newcommand{\transpose}{T}
 \newcommand{\Transpose}[1]{{{#1^{\transpose}}}}
 \newcommand{\Inv}[1]{{{#1^{-1}}}}
-\newcommand{\LargeNorm}[1]{\left\lVert#1\right\rVert}
+\renewcommand{\LargeNorm}[1]{\left\lVert#1\right\rVert}
 \newcommand{\Trace}[1]{\text{tr}(#1)}
 \newcommand{\Rank}[1]{\text{rank}(#1)}
 \newcommand{\Bigslant}[2]{{\left/\right}}
 % -- Transforms
+\newcommand{\frame}{{\mathcal{F}}}
 \newcommand{\rot}{{\Mat{C}}}
+\newcommand{\trans}{{\Vec{r}}}
 \newcommand{\quat}{{\Vec{q}}}
 \newcommand{\tf}{{\Mat{T}}}
 % -- Standard terms
+\newcommand{\state}{{\Vec{x}}}
 \newcommand{\pos}{{\Vec{r}}}
 \newcommand{\vel}{{\Vec{v}}}
 \newcommand{\acc}{{\Vec{a}}}

@@ -100,6 +100,7 @@ ADD_LIBRARY(
   src/dataset/kitti.cpp
   src/dataset/timeline.cpp
   # estimation
+  src/estimation/factor.cpp
   src/estimation/filter.cpp
   src/estimation/measurement.cpp
   # mav
@@ -154,46 +155,46 @@ INSTALL(
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/SuiteSparse
 )
 
-
 # UNIT TESTS
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
-  calib-test_aprilgrid
-  calib-test_calib_camera
-  calib-test_calib_camera_nbv
-  calib-test_calib_data
-  # calib-test_calib_gimbal
-  calib-test_calib_stereo
-  calib-test_sandbox
-  calib-test_sandbox2
-  comm-test_tcp
-  control-test_carrot_ctrl
-  control-test_pid
-  core-test_core
-  dataset-test_euroc
-  dataset-test_kitti
-  estimation-test_measurement
-  # model-test_mav
-  model-test_two_wheel
-  mav-test_atl
-  # mav-test_att_ctrl
-  mav-test_lz
-  mav-test_mission
-  # mav-test_pos_ctrl
-  mav-test_wp_ctrl
-  vision-camera-test_camera_geometry
-  vision-camera-test_equi
-  vision-camera-test_pinhole
-  vision-camera-test_radtan
-  vision-feature2d-test_grid_fast
-  vision-feature2d-test_grid_good
-  vision-test_frontend
-  vision-test_vision_common
-  viz-test_gui
-  viz-test_plane
+  # calib-test_aprilgrid
+  # calib-test_calib_camera
+  # calib-test_calib_camera_nbv
+  # calib-test_calib_data
+  # # calib-test_calib_gimbal
+  # calib-test_calib_stereo
+  # calib-test_sandbox
+  # calib-test_sandbox2
+  # comm-test_tcp
+  # control-test_carrot_ctrl
+  # control-test_pid
+  # core-test_core
+  # dataset-test_euroc
+  # dataset-test_kitti
+  estimation-test_factor
+  # estimation-test_measurement
+  # # model-test_mav
+  # model-test_two_wheel
+  # mav-test_atl
+  # # mav-test_att_ctrl
+  # mav-test_lz
+  # mav-test_mission
+  # # mav-test_pos_ctrl
+  # mav-test_wp_ctrl
+  # vision-camera-test_camera_geometry
+  # vision-camera-test_equi
+  # vision-camera-test_pinhole
+  # vision-camera-test_radtan
+  # vision-feature2d-test_grid_fast
+  # vision-feature2d-test_grid_good
+  # vision-test_frontend
+  # vision-test_vision_common
+  # viz-test_gui
+  # viz-test_plane
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})

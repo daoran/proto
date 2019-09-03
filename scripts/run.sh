@@ -14,9 +14,9 @@ debug() {
 # LIBRARY
 # make deps
 # time make debug
-# time make release
+time make release
 # time make ros
-make notes
+# make notes
 # sudo make install
 # sudo make debug_install
 # exit
@@ -72,6 +72,7 @@ cd proto/build/tests
 # ./dataset-test_kitti
 
 # -- estimation
+./estimation-test_factor
 # ./estimation-test_measurement
 
 # -- mav

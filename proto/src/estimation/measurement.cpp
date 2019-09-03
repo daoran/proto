@@ -2,25 +2,6 @@
 
 namespace proto {
 
-image_t::image_t() {}
-
-image_t::image_t(const timestamp_t ts_, const int width_, const int height_)
-    : ts{ts_}, width{width_}, height{height_} {
-  data = new double[width * height];
-}
-
-image_t::image_t(const timestamp_t ts_,
-                 const int width_,
-                 const int height_,
-                 double *data_)
-    : ts{ts_}, width{width_}, height{height_}, data{data_} {}
-
-image_t::~image_t() {
-  if (data) {
-    free(data);
-  }
-}
-
 void vi_data_add_gyro(vi_data_t &data,
                       const timestamp_t &ts,
                       const vec3_t &gyro_data) {

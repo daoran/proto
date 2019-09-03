@@ -8,65 +8,10 @@
 
 namespace proto {
 
-struct measurement_t {
-  timestamp_t ts = 0;
-
-  measurement_t() {}
-};
-
-struct gyro_t : measurement_t {
-  double x = 0;
-  double y = 0;
-  double z = 0;
-
-  gyro_t() {}
-
-  vec3_t data() {
-    return vec3_t{x, y, z};
-  }
-};
-
-struct accel_t {
-  double x = 0;
-  double y = 0;
-  double z = 0;
-
-  accel_t() {}
-
-  vec3_t data() {
-    return vec3_t{x, y, z};
-  }
-};
-
-struct image_t : measurement_t {
-  timestamp_t ts = 0;
-  int width = 0;
-  int height = 0;
-  double *data = nullptr;
-
-  image_t();
-  image_t(const timestamp_t ts, const int width, const int height);
-  image_t(const timestamp_t ts,
-          const int width,
-          const int height,
-          double *data);
-  ~image_t();
-};
-
 #define EVENT_CAM0 0
 #define EVENT_CAM1 1
 #define EVENT_ACCEL0 2
 #define EVENT_GYRO0 3
-
-struct imu_data_t {
-  bool gyro_started = false;
-  std::deque<timestamp_t> gyro_ts;
-  std::deque<vec3_t> gyro;
-
-  bool accel_started = false;
-  std::deque<timestamp_t> accel_ts;
-  std::deque<vec3_t> accel;
-};
 
 struct vi_data_t {
   // Gyroscope
