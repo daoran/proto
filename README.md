@@ -1,4 +1,4 @@
-# proto [![Build Status](https://travis-ci.org/chutsu/proto.svg)][1]
+# proto [![Build Status](https://github.com/chutsu/proto/workflows/C/C++%20CI/badge.svg)][1]
 
 `proto` contain notes and code used to learn about different aspects of
 robotics. From estimation, mapping to control and planning.
@@ -40,4 +40,4 @@ at the root of the repo.
 
 The source code is released under GPLv3 license.
 
-[1]: https://travis-ci.org/chutsu/proto
+[1]: https://github.com/chutsu/proto/actions

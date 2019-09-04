@@ -8,7 +8,7 @@
 
 # make
 cd ~/catkin_ws/
-catkin build proto_ros proto_gazebo
+catkin build proto_ros
 source "$HOME/catkin_ws/devel/setup.bash"
 # roslaunch proto_ros bag2ds.launch
 # roslaunch proto_ros camera.launch
@@ -16,6 +16,6 @@ source "$HOME/catkin_ws/devel/setup.bash"
 # roslaunch proto_ros drone_hunt.launch
 
 export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$HOME/catkin_ws/devel/lib
-export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$HOME/catkin_ws/src/proto_ros/proto_gazebo/models
-roslaunch proto_gazebo calib_sim.launch
-# roslaunch proto_gazebo mav_sim.launch
+export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$HOME/catkin_ws/src/proto/proto_ros/models
+# roslaunch proto_ros calib_sim.launch
+roslaunch proto_ros mav_sim.launch

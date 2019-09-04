@@ -17,7 +17,6 @@ FIND_PACKAGE(
     message_runtime
     image_transport
     cv_bridge
-    proto
 )
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${catkin_INCLUDE_DIRS})
@@ -28,6 +27,7 @@ INCLUDE_DIRECTORIES(${PROTO_INCLUDE_DIRS})
 # LINK
 SET(
   DEPS
+  proto
   proto_ros
   ${catkin_LIBRARIES}
   ${PROTO_LIBRARIES}

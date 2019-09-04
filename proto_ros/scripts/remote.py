@@ -108,7 +108,7 @@ if __name__ == "__main__":
     rospy.sleep(1.0)
     # rospy.spin()
 
-    vi_sensor.set_position([1.0, 0.0, 1.0])
+    # vi_sensor.set_position([1.0, 0.0, 1.0])
 
-    # lz.set_velocity([1.0, 0.0, 0.0]);
+    lz.set_velocity([1.0, 0.0, 0.0]);
     # lz.set_position([1.0, 0.0, 0.0]);

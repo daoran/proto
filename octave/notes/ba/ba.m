@@ -346,8 +346,6 @@ function plot_compare_data(title_name, data_gnd, data_est)
   axis 'equal';
 endfunction
 
-
-
 % Setup data
 % -- Create calibration target
 calib_target = calib_target_init(5, 5);
@@ -365,7 +363,7 @@ data_gnd = calib_sim(calib_target, T_WT, camera, nb_poses);
 data = calib_data_add_noise(data_gnd);
 
 % Optimize
-plot_compare_data("Before Bundle Adjustment", data_gnd, data);
+% plot_compare_data("Before Bundle Adjustment", data_gnd, data);
 max_iter = 20;
 cost_prev = 0.0;
 for i = 1:max_iter
@@ -383,5 +381,5 @@ for i = 1:max_iter
   endif
   cost_prev = cost;
 endfor
-plot_compare_data("After Bundle Adjustment", data_gnd, data);
-ginput();
+% plot_compare_data("After Bundle Adjustment", data_gnd, data);
+% ginput();
