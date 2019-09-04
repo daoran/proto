@@ -21,6 +21,9 @@ dependencies and building of `proto`, the make targets are as follows.
     install:
       Install proto to $PREFIX. By default this is "/usr/local".
 
+    ros:
+      Build the ROS interface to `proto` (a.k.a `proto_ros`).
+
     format_code:
       Format proto code using clang-format.
 

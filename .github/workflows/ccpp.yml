@@ -3,24 +3,19 @@ name: C/C++ CI
 on: [push]
 
 jobs:
-  build:
+  build_proto:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@master
+
     - name: Install Dependencies
       run: make deps
+
     - name: Build libproto
       run: make release
-      
-  build_ros_interface:
-    runs-on: ubuntu-18.04
-    steps:
-    - uses: actions/checkout@master
-    - name: Install Dependencies
-      run: make deps
-    - name: Build libproto
-      run: make release
+
     - name: Install libproto
-      run: make install
+      run: sudo make install
+
     - name: Build ROS interface
       run: make ros
