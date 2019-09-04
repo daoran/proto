@@ -3,7 +3,22 @@
 
 #include "proto/core/core.hpp"
 
-using namespace proto;
+namespace proto {
+
+template< typename K, typename V>
+const V* lookup(const std::map<K, V> & map, K key) {
+  typename std::map<K, V>::const_iterator iter = map.find(key);
+  if (iter != map.end()) {
+    return &iter->second;
+  } else {
+    return nullptr;
+  }
+}
+
+template< typename K, typename V>
+V* lookup(std::map<K, V> &map, K key) {
+  return const_cast<V*>(lookup(const_cast<const std::map<K, V> &>(map), key));
+}
 
 struct variable_t {
   timestamp_t ts = 0;
@@ -68,22 +83,22 @@ struct factor_t {
   factor_t(const timestamp_t &ts_, const size_t id_) :
     ts{ts_}, id{id_} {}
   virtual ~factor_t() {}
-  virtual void eval(vecx_t &r, matx_t &J) const = 0;
+  virtual int eval(double *residuals, double **jacobians) const = 0;
 };
 
 struct cam_error_t : factor_t {
-  vec2s_t z;
-  const landmarks_t &landmarks;
+  vec2_t z;
+  landmark_t *landmark = nullptr;
   pose_t *sensor_pose = nullptr;
   pose_t *sensor_camera_extrinsic = nullptr;
 
   cam_error_t(const timestamp_t &ts_,
               const size_t id_,
-              const vec2s_t &z_,
-              landmarks_t &landmarks_) :
+              const vec2_t &z_,
+              landmark_t *landmark_) :
     factor_t{ts_, id_},
     z{z_},
-    landmarks{landmarks_} {}
+    landmark{landmark_} {}
 
   /**
    * Intrinsics Jacobian: dK / dx_C
@@ -115,7 +130,7 @@ struct cam_error_t : factor_t {
   /**
    * Evaluate
    */
-  void eval(vecx_t &r, matx_t &J) const;
+  int eval(double *residuals, double **jacobians) const;
 };
 
 // struct imu_error_t : factor_t {
@@ -131,25 +146,25 @@ struct cam_error_t : factor_t {
 // };
 
 struct graph_t {
-  std::map<size_t, landmark_t *> landmarks;
-  std::map<size_t, pose_t *> T_WS;
-  std::map<size_t, pose_t *> T_SC;
-  std::map<int, std::map<size_t, const cam_error_t *>> cam_errors;
+  std::map<size_t, landmark_t> landmarks;
+  std::map<size_t, pose_t> T_WS;
+  std::map<int, pose_t> T_SC;
+  std::map<int, std::map<size_t, cam_error_t>> cam_errors;
 
   graph_t() {}
   virtual ~graph_t() {}
 };
 
-void graph_delete(graph_t &graph);
 void graph_set_sensor_camera_extrinsic(graph_t &graph,
                                        const int cam_idx,
                                        const mat4_t &T_SC);
-size_t graph_add_cam_error(graph_t &graph,
-                           const timestamp_t &ts,
-                           const int cam_idx,
-                           const vec2s_t &z,
-                           const vec3s_t &p_W,
-                           const mat4_t &T_WS);
-void graph_solve(graph_t &graph, int max_iter=30);
+size_t graph_add_camera_error(graph_t &graph,
+                              const timestamp_t &ts,
+                              const int cam_idx,
+                              const vec2_t &z,
+                              const vec3_t &p_W,
+                              const mat4_t &T_WS);
+int graph_solve(graph_t &graph, int max_iter=30);
 
+} // namespace proto
 #endif // PROTO_ESTIMATION_FACTOR_HPP
