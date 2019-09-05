@@ -8,9 +8,6 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    - name: Install Dependencies
-      run: make deps
-
     - name: Build libproto
       run: make release
 

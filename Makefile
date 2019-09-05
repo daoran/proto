@@ -3,7 +3,7 @@ PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
 BUILD_DIR=${PROJ_PATH}/proto/build
 CATKIN_WS=~/catkin_ws
 
-.PHONY: ros
+.PHONY: default deps debug release install ros format_code notes
 
 define usage
 [TARGETS]:
@@ -53,9 +53,11 @@ install:
 	fi
 
 ros:
-	@bash ./scripts/deps/install_ros.bash
-	@mkdir -p ${CATKIN_WS}
-	@cd ${CATKIN_WS} && catkin build proto_ros
+	@mkdir -p ${CATKIN_WS}/src
+	@cd ${CATKIN_WS}/src \
+		&& ln -sf ${PWD}/proto_ros . \
+		&& . /opt/ros/melodic/setup.sh \
+		&& catkin build proto_ros
 
 format_code:
 	@bash ./scripts/format_code.bash
