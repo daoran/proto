@@ -54,10 +54,8 @@ install:
 
 ros:
 	@mkdir -p ${CATKIN_WS}/src
-	@cd ${CATKIN_WS}/src \
-		&& ln -sf ${PROJ_PATH}/proto_ros . \
-		&& . /opt/ros/melodic/setup.sh \
-		&& catkin build proto_ros
+	@cd ${CATKIN_WS}/src && ln -sf ${PROJ_PATH}/proto_ros . \
+		&& . /opt/ros/melodic/setup.sh && cd .. && catkin build proto_ros
 
 format_code:
 	@bash ./scripts/format_code.bash
