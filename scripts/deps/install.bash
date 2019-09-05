@@ -17,6 +17,7 @@ install_base() {
 
 apt_update
 install_base
+install ros
 install assimp
 install boost
 install ceres

@@ -14,10 +14,10 @@ debug() {
 # LIBRARY
 # make deps
 # time make debug
-# time make release
+time make release
 # time make ros
 # make notes
-# sudo make install
+sudo make install
 # sudo make debug_install
 # exit
 
@@ -41,7 +41,7 @@ debug() {
 # ./play
 
 # TESTS
-# cd proto/build/tests
+cd proto/build/tests
 # -- calib
 # ./calib-test_aprilgrid
 # ./calib-test_calib_camera
@@ -72,7 +72,7 @@ debug() {
 # ./dataset-test_kitti
 
 # -- estimation
-# ./estimation-test_factor
+./estimation-test_factor
 # ./estimation-test_measurement
 
 # -- mav

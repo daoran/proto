@@ -21,5 +21,6 @@ g++ -I"$INC_DIR" -fPIC -c "$SRC_DIR/glad.c" -o "$BLD_DIR/glad.o";
 ar rs "$BLD_DIR/libglad.a" "$BLD_DIR/glad.o";
 
 # Install glad
-cp -r "$INC_DIR" "$PREFIX/include";
+cp -r "$INC_DIR/glad" "$PREFIX/include";
+cp -r "$INC_DIR/KHR" "$PREFIX/include";
 cp "$BLD_DIR/libglad.a" "$PREFIX/lib/libglad.a";
