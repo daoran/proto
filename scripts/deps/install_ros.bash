@@ -1,4 +1,6 @@
 set -e
+BASEDIR=$(dirname "$0")
+source "$BASEDIR/config.bash"
 
 # Check if ROS is installed
 if [ -f "/etc/apt/sources.list.d/ros-latest.list" ]; then
