@@ -2,41 +2,25 @@
 
 namespace proto {
 
-mat2_t cam_error_t::intrinsics_point_jacobian(const mat3_t &K) const {
-  mat2_t J = zeros(2, 2);
-  J(1, 1) = K(1, 1);
-  J(2, 2) = K(2, 2);
-  return J;
-}
+/*****************************************************************************
+ * Camera Factor
+ ****************************************************************************/
 
-matx_t cam_error_t::project_jacobian(const vec3_t &p_C) const {
-  const double x = p_C(1);
-  const double y = p_C(2);
-  const double z = p_C(3);
-
-  matx_t J = zeros(2, 3);
-  J(1, 1) = 1.0 / z;
-  J(2, 2) = 1.0 / z;
-  J(1, 3) = -x / z*z;
-  J(2, 3) = -y / z*z;
-  return J;
-}
-
-mat3_t cam_error_t::camera_rotation_jacobian(const quat_t &q_WC,
-                                const vec3_t &r_WC,
-                                const vec3_t &p_W) const {
+static mat3_t camera_rotation_jacobian(const quat_t &q_WC,
+																							const vec3_t &r_WC,
+																							const vec3_t &p_W) {
   return q_WC.toRotationMatrix().transpose() * skew(p_W - r_WC);
 }
 
-mat3_t cam_error_t::camera_translation_jacobian(const quat_t &q_WC) const {
+static mat3_t camera_translation_jacobian(const quat_t &q_WC) {
   return -q_WC.toRotationMatrix().transpose();
 }
 
-mat3_t cam_error_t::target_point_jacobian(const quat_t &q_WC) const {
+static mat3_t target_point_jacobian(const quat_t &q_WC) {
   return q_WC.toRotationMatrix().transpose();
 }
 
-int cam_error_t::eval(double *residuals, double **jacobians) const {
+int cam_factor_t::eval(double *residuals, double **jacobians) const {
   // Transform point from world to camera frame
   const mat4_t T_WS = sensor_pose->T();
   const mat4_t T_SC = sensor_camera_extrinsic->T();
@@ -52,13 +36,90 @@ int cam_error_t::eval(double *residuals, double **jacobians) const {
   Eigen::Map<Eigen::Matrix<double, 2, 1>> r(residuals);
   r.segment<2>(0) = z - pixel;
 
+  // // Weight
+  // measurement_t weighted_error = squareRootInformation_ * error;
+  // residuals[0] = weighted_error[0];
+  // residuals[1] = weighted_error[1];
+
   // Calculate Jacobian
   if (jacobians == nullptr) {
     return 0;
   }
 
+  // Check validity of the point, simple depth test.
+  // bool valid = true;
+  // if (fabs(hp_C[3]) > 1.0e-8) {
+  //   Eigen::Vector3d p_C = hp_C.template head<3>() / hp_C[3];
+  //   // if (p_C[2] < 0.2) { // 20 cm - not very generic... but reasonable
+  //   if (p_C[2] < 0.0) { // 20 cm - not very generic... but reasonable
+  //     // std::cout<<"INVALID POINT"<<std::endl;
+  //     valid = false;
+  //   }
+  // }
+
+	// // Jacobian w.r.t. sensor pose T_WS
+	// if (jacobians[0] != NULL) {
+	// 	Eigen::Matrix<double, 3, 3> dp_C__dp_W = C_SC.transpose() * C_WS.transpose();
+	// 	Eigen::Matrix<double, 3, 3> dp_W__dr_WS = I(3);
+	// 	Eigen::Matrix<double, 3, 3> dp_W__dtheta = -skew(C_WS * hp_S.head(3));
+	// 	Eigen::Matrix<double, 2, 3> dh_dr_WS = Jh_weighted * dp_C__dp_W * dp_W__dr_WS;
+	// 	Eigen::Matrix<double, 2, 3> dh_dtheta = Jh_weighted * dp_C__dp_W * dp_W__dtheta;
+  //
+	// 	// Compute the minimal version
+	// 	Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J0(jacobians[0]);
+	// 	J0.block(0, 0, 2, 3) = dh_dr_WS;
+	// 	J0.block(0, 3, 2, 3) = dh_dtheta;
+	// 	if (!valid) {
+	// 		J0.setZero();
+	// 	}
+	// }
+
+  // // Jacobian w.r.t. fiducial pose T_WF
+  // if (jacobians[1] != NULL) {
+	// 	Eigen::Matrix<double, 3, 3> dp_C__dp_W = C_SC.transpose() * C_WS.transpose();
+	// 	Eigen::Matrix<double, 3, 3> dp_W__dr_WF = I(3);
+	// 	Eigen::Matrix<double, 3, 3> dp_W__dtheta = -skew(C_WF * p_F_);
+	// 	Eigen::Matrix<double, 2, 3> dh__dr_WF = -1 * Jh_weighted * dp_C__dp_W * dp_W__dr_WF;
+	// 	Eigen::Matrix<double, 2, 3> dh__dtheta = -1 * Jh_weighted * dp_C__dp_W * dp_W__dtheta;
+  //
+	// 	// Compute the minimal version
+	// 	Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J1(jacobians[1]);
+	// 	J1.block(0, 0, 2, 3) = dh__dr_WF;
+	// 	J1.block(0, 3, 2, 3) = dh__dtheta;
+	// 	if (!valid) {
+	// 		J1.setZero();
+	// 	}
+	// }
+
+	// // Jacobian w.r.t. sensor-camera extrinsic pose T_SCi
+	// if (jacobians[2] != NULL) {
+	// 	Eigen::Matrix<double, 3, 3> dp_C__dp_S = C_SC.transpose();
+	// 	Eigen::Matrix<double, 3, 3> dp_S__dr_SC = I(3);
+	// 	Eigen::Matrix<double, 3, 3> dp_S__dtheta = -skew(C_SC * hp_C.head(3));
+	// 	Eigen::Matrix<double, 2, 3> dh__dr_SC = Jh_weighted * dp_C__dp_S * dp_S__dr_SC;
+	// 	Eigen::Matrix<double, 2, 3> dh__dtheta = Jh_weighted * dp_C__dp_S * dp_S__dtheta;
+  //
+	// 	// Compute the minimal version
+	// 	Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J2(jacobians[2]);
+	// 	J2.block(0, 0, 2, 3) = dh__dr_SC;
+	// 	J2.block(0, 3, 2, 3) = dh__dtheta;
+	// 	if (!valid) {
+	// 		J2.setZero();
+	// 	}
+	// }
+
+	// // Jacobian w.r.t. camera intrinsics + distortion params
+	// if (jacobians[3] != NULL) {
+	// 	Eigen::Map<Eigen::Matrix<double, 2, 8, Eigen::RowMajor>> J3(jacobians[3]);
+	// 	J3 = -1 * J_cam_params;
+	// }
+
   return 0;
 }
+
+/*****************************************************************************
+ * Factor Graph
+ ****************************************************************************/
 
 void graph_set_sensor_camera_extrinsic(graph_t &graph,
                                        const int cam_idx,
@@ -66,7 +127,7 @@ void graph_set_sensor_camera_extrinsic(graph_t &graph,
   graph.T_SC[0] = pose_t(0, cam_idx, T_SC);
 }
 
-size_t graph_add_camera_error(graph_t &graph,
+size_t graph_add_camera_factor(graph_t &graph,
                               const timestamp_t &ts,
                               const int cam_idx,
                               const vec2_t &z,
@@ -81,8 +142,8 @@ size_t graph_add_camera_error(graph_t &graph,
   graph.T_WS.insert({pose_id, {ts, pose_id, T_WS}});
 
   // Add cam error
-  const size_t error_id = graph.cam_errors[cam_idx].size();
-  graph.cam_errors[cam_idx].insert(
+  const size_t error_id = graph.cam_factors[cam_idx].size();
+  graph.cam_factors[cam_idx].insert(
     {error_id, {ts, error_id, z, lookup(graph.landmarks, lm_id)}}
   );
   return error_id;
@@ -94,7 +155,7 @@ int graph_solve(graph_t &graph, int max_iter) {
   size_t nb_cams = graph.T_SC.size();
   size_t nb_poses = graph.T_WS.size();
   for (size_t cam_idx = 0; cam_idx < nb_cams; cam_idx++) {
-    nb_meas += graph.cam_errors[cam_idx].size();
+    nb_meas += graph.cam_factors[cam_idx].size();
   }
 
   // Setup residuals
@@ -109,9 +170,9 @@ int graph_solve(graph_t &graph, int max_iter) {
   // Gauss-Newton
   for (int iter = 0; iter < max_iter; iter++) {
     // Evaluate and form global Jacobian
-    // for (const auto &cam_errors : graph.cam_errors) {
-    //   for (const auto &kv : cam_errors.second) {
-    //     const cam_error_t &error = kv.second;
+    // for (const auto &cam_factors : graph.cam_factors) {
+    //   for (const auto &kv : cam_factors.second) {
+    //     const cam_factor_t &error = kv.second;
     //     // error.eval(r, J);
     //   }
     // }

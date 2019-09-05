@@ -52,23 +52,7 @@ pinhole_K(const double fx, const double fy, const double cx, const double cy) {
   return K;
 }
 
-mat3_t pinhole_K(const double *intrinsics) {
-  const double fx = intrinsics[0];
-  const double fy = intrinsics[1];
-  const double cx = intrinsics[2];
-  const double cy = intrinsics[3];
-  return pinhole_K(fx, fy, cx, cy);
-}
-
 mat3_t pinhole_K(const pinhole_t &pinhole) { return pinhole_K(*pinhole.data); }
-
-mat3_t pinhole_K(const vec4_t &intrinsics) {
-  const double fx = intrinsics(0);
-  const double fy = intrinsics(1);
-  const double cx = intrinsics(2);
-  const double cy = intrinsics(3);
-  return pinhole_K(fx, fy, cx, cy);
-}
 
 mat3_t pinhole_K(const vec2_t &image_size,
                  const double lens_hfov,
@@ -102,14 +86,56 @@ vec2_t pinhole_focal_length(const vec2_t &image_size,
 
 vec2_t project(const vec3_t &p) { return vec2_t{p(0) / p(2), p(1) / p(2)}; }
 
+vec2_t project(const vec3_t &p, mat_t<2, 3> &J_P) {
+  const double x = p(0);
+  const double y = p(1);
+  const double z = p(2);
+
+  // Projection Jacobian
+  J_P = zeros(2, 3);
+  J_P(0, 0) = 1.0 / z;
+  J_P(1, 1) = 1.0 / z;
+  J_P(0, 2) = -x / z*z;
+  J_P(1, 3) = -y / z*z;
+
+  return vec2_t{x / z, x / z};
+}
+
+vec2_t project(const pinhole_t &model, const vec2_t &p) {
+  return vec2_t{p(0) * model.fx + model.cx, p(1) * model.fy + model.cy};
+}
+
 vec2_t project(const pinhole_t &model, const vec3_t &p) {
   const double px = p(0) / p(2);
   const double py = p(1) / p(2);
   return vec2_t{px * model.fx + model.cx, py * model.fy + model.cy};
 }
 
-vec2_t project(const pinhole_t &model, const vec2_t &p) {
-  return vec2_t{p(0) * model.fx + model.cx, p(1) * model.fy + model.cy};
+vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h) {
+  const double x = p(0);
+  const double y = p(1);
+  const double z = p(2);
+
+  const double px = x / z;
+  const double py = y / z;
+
+  // Projection Jacobian
+  mat_t<2, 3> J_P = zeros(2, 3);
+  J_P(0, 0) = 1.0 / z;
+  J_P(1, 1) = 1.0 / z;
+  J_P(0, 2) = -x / z*z;
+  J_P(1, 3) = -y / z*z;
+
+  // Intrinsics Jacobian
+  mat2_t J_K = zeros(2, 2);
+  J_K(0, 0) = model.fx;
+  J_K(1, 1) = model.fy;
+
+  // Measurement Jacobian
+  J_h = J_K * J_P;
+
+  return vec2_t{px * model.fx + model.cx, py * model.fy + model.cy};
 }
+
 
 } //  namespace proto

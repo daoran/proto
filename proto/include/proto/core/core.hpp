@@ -140,6 +140,12 @@ typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
 
 typedef Eigen::Quaternionf quatf_t;
 typedef std::vector<quatf_t, Eigen::aligned_allocator<quat_t>> quatfs_t;
+
+template <int ROWS, int COLS>
+using mat_t = Eigen::Matrix<double, ROWS, COLS>;
+
+template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::RowMajor>
+using map_mat_t = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
 #endif
 
 /******************************************************************************
@@ -1216,6 +1222,27 @@ template <typename T1, typename T2>
 void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add) {
   x.reserve(x.size() + add.size());
   x.insert(x.end(), add.begin(), add.end());
+}
+
+/**
+ * Get raw pointer of a value in a `std::map`.
+ */
+template< typename K, typename V>
+const V* lookup(const std::map<K, V> & map, K key) {
+  typename std::map<K, V>::const_iterator iter = map.find(key);
+  if (iter != map.end()) {
+    return &iter->second;
+  } else {
+    return nullptr;
+  }
+}
+
+/**
+ * Get raw pointer of a value in a `std::map`.
+ */
+template< typename K, typename V>
+V* lookup(std::map<K, V> &map, K key) {
+  return const_cast<V*>(lookup(const_cast<const std::map<K, V> &>(map), key));
 }
 
 /**

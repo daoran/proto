@@ -14,5 +14,6 @@ sudo apt-get update
 sudo apt-get install dpkg
 sudo dpkg --configure -a
 sudo apt-get install ros-melodic-desktop
+sudo apt-get install python-catkin-tools
 sudo rosdep init
 rosdep update

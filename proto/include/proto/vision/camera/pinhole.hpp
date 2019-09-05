@@ -2,6 +2,8 @@
 #define PROTO_VISION_CAMERA_PINHOLE_HPP
 
 #include "proto/core/core.hpp"
+#include "proto/vision/camera/radtan.hpp"
+#include "proto/vision/camera/equi.hpp"
 
 namespace proto {
 
@@ -54,22 +56,6 @@ pinhole_K(const double fx, const double fy, const double cx, const double cy);
  * @returns Camera matrix K
  */
 mat3_t pinhole_K(const pinhole_t &pinhole);
-
-/**
- * Form pinhole camera matrix K
- *
- * @param[in] intrinsics Intrinsics (fx, fy, cx, cy)
- * @returns Camera matrix K
- */
-mat3_t pinhole_K(const double *intrinsics);
-
-/**
- * Form pinhole camera matrix K
- *
- * @param[in] intrinsics Intrinsics (fx, fy, cx, cy)
- * @returns Camera matrix K
- */
-mat3_t pinhole_K(const vec4_t &intrinsics);
 
 /**
  * Pinhole camera matrix K
@@ -135,16 +121,35 @@ vec2_t pinhole_focal_length(const vec2_t &image_size,
                             const double vfov);
 
 /**
- * Project point to image plane (not in pixels)
+ * Project 3D point to image plane (not in pixels)
  *
  * @param[in] pinhole Pinhole camera model
  * @param[in] p Point in 3D
- * @returns Point in image plane
+ * @returns Point in image plane (not in pixels)
  */
 vec2_t project(const vec3_t &p);
 
 /**
- * Project point, scale and center to pixel coordinates
+ * Project 3D point to image plane (not in pixels)
+ *
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] p Point in 3D
+ * @param[out] J_P Project Jacobian.
+ * @returns Point in image plane (not in pixels)
+ */
+vec2_t project(const vec3_t &p, mat_t<2, 3> &J_P);
+
+/**
+ * Scale and center projected point to pixel coordinates
+ *
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] p Point
+ * @returns Point in pixel coordinates
+ */
+vec2_t project(const pinhole_t &pinhole, const vec2_t &p);
+
+/**
+ * Project 3D point, scale and center to pixel coordinates
  *
  * @param[in] pinhole Pinhole camera model
  * @param[in] p Point in 3D
@@ -153,13 +158,16 @@ vec2_t project(const vec3_t &p);
 vec2_t project(const pinhole_t &pinhole, const vec3_t &p);
 
 /**
- * Project point, scale and center to pixel coordinates
+ * Project 3D point, scale and center to pixel coordinates
  *
- * @param[in] pinhole Pinhole camera model
- * @param[in] p Point
+ * @param[in] pinhole Pinhole camera model.
+ * @param[in] p Point in 3D.
+ * @param[out] J_h Measurement Jacobian.
  * @returns Point in pixel coordinates
  */
-vec2_t project(const pinhole_t &pinhole, const vec2_t &p);
+vec2_t project(const pinhole_t &model,
+               const vec3_t &p,
+               mat_t<2, 3> &J_h);
 
 } //  namespace proto
 #endif // PROTO_VISION_CAMERA_PINHOLE_HPP

@@ -1,5 +1,5 @@
-#ifndef PROTOTOYE_VIZ_PLAY_COMMON_HPP
-#define PROTOTOYE_VIZ_PLAY_COMMON_HPP
+#ifndef PROTOTOYE_VIZ_COMMON_HPP
+#define PROTOTOYE_VIZ_COMMON_HPP
 
 #include <iostream>
 
@@ -42,4 +42,4 @@ void print_mat4(const std::string &title, const glm::mat4 &m) {
   printf("%f, %f, %f, %f\n", c1.w, c2.w, c3.w, c4.w);
 }
 
-#endif // PROTOTOYE_VIZ_PLAY_COMMON_HPP
+#endif // PROTOTOYE_VIZ_COMMON_HPP

@@ -2,23 +2,13 @@
 #define PROTO_ESTIMATION_FACTOR_HPP
 
 #include "proto/core/core.hpp"
+#include "proto/vision/camera/camera_geometry.hpp"
 
 namespace proto {
 
-template< typename K, typename V>
-const V* lookup(const std::map<K, V> & map, K key) {
-  typename std::map<K, V>::const_iterator iter = map.find(key);
-  if (iter != map.end()) {
-    return &iter->second;
-  } else {
-    return nullptr;
-  }
-}
-
-template< typename K, typename V>
-V* lookup(std::map<K, V> &map, K key) {
-  return const_cast<V*>(lookup(const_cast<const std::map<K, V> &>(map), key));
-}
+/*****************************************************************************
+ * Variable
+ ****************************************************************************/
 
 struct variable_t {
   timestamp_t ts = 0;
@@ -31,6 +21,10 @@ struct variable_t {
   virtual double *data() = 0;
 };
 
+/*****************************************************************************
+ * Landmark Variable
+ ****************************************************************************/
+
 struct landmark_t : variable_t {
   vec3_t p_W;
 
@@ -40,6 +34,10 @@ struct landmark_t : variable_t {
   double *data() { return p_W.data(); };
 };
 typedef std::vector<landmark_t *> landmarks_t;
+
+/*****************************************************************************
+ * Pose Variable
+ ****************************************************************************/
 
 struct pose_t : variable_t {
   // qw, qx, qy, qz, x, y, z
@@ -75,6 +73,10 @@ struct pose_t : variable_t {
   double *data() { return param; }
 };
 
+/*****************************************************************************
+ * Factor
+ ****************************************************************************/
+
 struct factor_t {
   timestamp_t ts = 0;
   size_t id = 0;
@@ -86,13 +88,20 @@ struct factor_t {
   virtual int eval(double *residuals, double **jacobians) const = 0;
 };
 
-struct cam_error_t : factor_t {
+/*****************************************************************************
+ * Camera Factor
+ ****************************************************************************/
+
+// template <typename CM, typename DM>
+struct cam_factor_t : factor_t {
+	// camera_geometry_t<CM, DM> camera;
+
   vec2_t z;
   landmark_t *landmark = nullptr;
   pose_t *sensor_pose = nullptr;
   pose_t *sensor_camera_extrinsic = nullptr;
 
-  cam_error_t(const timestamp_t &ts_,
+  cam_factor_t(const timestamp_t &ts_,
               const size_t id_,
               const vec2_t &z_,
               landmark_t *landmark_) :
@@ -101,37 +110,14 @@ struct cam_error_t : factor_t {
     landmark{landmark_} {}
 
   /**
-   * Intrinsics Jacobian: dK / dx_C
-   */
-  mat2_t intrinsics_point_jacobian(const mat3_t &K) const;
-
-  /**
-   * Project Jacobian: dp(p_C) / dp_C
-   */
-  matx_t project_jacobian(const vec3_t &p_C) const;
-
-  /**
-   * Camera Rotation Jacobian: dC_WC / dp_W
-   */
-  mat3_t camera_rotation_jacobian(const quat_t &q_WC,
-                                  const vec3_t &r_WC,
-                                  const vec3_t &p_W) const;
-
-  /**
-   * Camera Translation Jacobian: dr_WC / dp_W
-   */
-  mat3_t camera_translation_jacobian(const quat_t &q_WC) const;
-
-  /**
-   * Target Point Jacobian: dp_C / dp_W
-   */
-  mat3_t target_point_jacobian(const quat_t &q_WC) const;
-
-  /**
    * Evaluate
    */
   int eval(double *residuals, double **jacobians) const;
 };
+
+/*****************************************************************************
+ * IMU Factor
+ ****************************************************************************/
 
 // struct imu_error_t : factor_t {
 //   timestamps_t ts;
@@ -145,11 +131,15 @@ struct cam_error_t : factor_t {
 //   virtual ~imu_error_t() {}
 // };
 
+/*****************************************************************************
+ * Factor Graph
+ ****************************************************************************/
+
 struct graph_t {
   std::map<size_t, landmark_t> landmarks;
   std::map<size_t, pose_t> T_WS;
   std::map<int, pose_t> T_SC;
-  std::map<int, std::map<size_t, cam_error_t>> cam_errors;
+  std::map<int, std::map<size_t, cam_factor_t>> cam_factors;
 
   graph_t() {}
   virtual ~graph_t() {}
@@ -158,12 +148,12 @@ struct graph_t {
 void graph_set_sensor_camera_extrinsic(graph_t &graph,
                                        const int cam_idx,
                                        const mat4_t &T_SC);
-size_t graph_add_camera_error(graph_t &graph,
-                              const timestamp_t &ts,
-                              const int cam_idx,
-                              const vec2_t &z,
-                              const vec3_t &p_W,
-                              const mat4_t &T_WS);
+size_t graph_add_camera_factor(graph_t &graph,
+                               const timestamp_t &ts,
+                               const int cam_idx,
+                               const vec2_t &z,
+                               const vec3_t &p_W,
+                               const mat4_t &T_WS);
 int graph_solve(graph_t &graph, int max_iter=30);
 
 } // namespace proto

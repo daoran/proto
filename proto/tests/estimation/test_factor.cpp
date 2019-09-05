@@ -25,7 +25,7 @@ int test_graph_set_sensor_camera_extrinsics() {
   return 0;
 }
 
-int test_graph_add_camera_error() {
+int test_graph_add_camera_factor() {
   graph_t graph;
 
   timestamp_t ts = 0;
@@ -33,7 +33,7 @@ int test_graph_add_camera_error() {
   vec2_t z;
   vec3_t p_W;
   mat4_t T_WS = I(4);
-  graph_add_camera_error(graph, ts, cam_idx, z, p_W, T_WS);
+  graph_add_camera_factor(graph, ts, cam_idx, z, p_W, T_WS);
 
   return 0;
 }
@@ -42,7 +42,7 @@ void test_suite() {
   MU_ADD_TEST(test_variable);
   MU_ADD_TEST(test_graph);
   MU_ADD_TEST(test_graph_set_sensor_camera_extrinsics);
-  MU_ADD_TEST(test_graph_add_camera_error);
+  MU_ADD_TEST(test_graph_add_camera_factor);
 }
 
 } // namespace proto

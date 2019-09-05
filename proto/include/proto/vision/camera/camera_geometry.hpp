@@ -46,6 +46,34 @@ vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
                                const vec3_t &point);
 
 /**
+ * Project point to image plane in pixels
+ *
+ * @param[in] cam Camera geometry
+ * @param[in] p_C 3D Point observed from camera frame
+ * @param[out] J_h Measurement model jacobian
+ * @returns Point to image plane projection in pixel coordinates
+ */
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &p_C,
+                               matx_t &J_h);
+
+/**
+ * Project point to image plane in pixels
+ *
+ * @param[in] cam Camera geometry
+ * @param[in] p_C 3D Point observed from camera frame
+ * @param[out] J_h Measurement model jacobian
+ * @param[out] J_params jacobian
+ * @returns Point to image plane projection in pixel coordinates
+ */
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &p_C,
+                               matx_t &J_h,
+															 matx_t &J_params);
+
+/**
  * Project point using pinhole radial-tangential
  */
 template <typename T>
@@ -75,6 +103,41 @@ vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
   const vec2_t p{point(0) / point(2), point(1) / point(2)};
   const vec2_t point_distorted = distort(cam.distortion_model, p);
   return project(cam.camera_model, point_distorted);
+}
+
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &p_C,
+                               matx_t &J_h) {
+  mat_t<2, 3> J_P;
+  mat2_t J_K;
+  mat2_t J_D;
+
+  const vec2_t p = project(p_C, J_P);
+  const vec2_t p_distorted = distort(cam.distortion_model, p, J_D);
+  const vec2_t pixel = project(cam.camera_model, p_distorted);
+
+  J_h = J_K * J_D * J_P;
+
+  return pixel;
+}
+
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &p_C,
+                               matx_t &J_h,
+															 matx_t &J_params) {
+  mat_t<2, 3> J_P;
+  mat2_t J_K;
+  mat2_t J_D;
+
+  const vec2_t p = project(p_C, J_P);
+  const vec2_t p_distorted = distort(cam.distortion_model, p, J_D, J_params);
+  const vec2_t pixel = project(cam.camera_model, p_distorted);
+
+  J_h = J_K * J_D * J_P;
+
+  return pixel;
 }
 
 template <typename T>

@@ -66,13 +66,13 @@ vec2_t distort(const radtan4_t &radtan, const vec2_t &point) {
   return vec2_t{x_ddash, y_ddash};
 }
 
-vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J_point) {
+vec2_t distort(const radtan4_t &radtan, const vec2_t &p, mat2_t &J_point) {
   const double k1 = radtan.k1;
   const double k2 = radtan.k2;
   const double p1 = radtan.p1;
   const double p2 = radtan.p2;
-  const double x = point(0);
-  const double y = point(1);
+  const double x = p(0);
+  const double y = p(1);
 
   // Apply radial distortion
   const double x2 = x * x;
@@ -100,6 +100,34 @@ vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J_point) {
   // Above is generated using sympy
 
   return vec2_t{x_ddash, y_ddash};
+}
+
+vec2_t distort(const radtan4_t &radtan,
+               const vec2_t &p,
+               mat2_t &J_point,
+               mat_t<2, 4> &J_params) {
+	const vec2_t p_distorted = distort(radtan, p, J_point);
+
+	const double x = p(0);
+	const double y = p(1);
+
+	const double xy = x * y;
+	const double x2 = x * x;
+	const double y2 = y * y;
+	const double r2 = x2 + y2;
+	const double r4 = r2 * r2;
+
+  J_params(0, 0) = x * r2;
+  J_params(0, 1) = x * r4;
+  J_params(0, 2) = 2 * xy;
+  J_params(0, 3) = 3 * x2 + y2;
+
+  J_params(1, 0) = y * r2;
+  J_params(1, 1) = y * r4;
+  J_params(1, 2) = x2 + 3 * y2;
+  J_params(1, 3) = 2 * xy;
+
+	return p_distorted;
 }
 
 matx_t distort(const radtan4_t &radtan, const matx_t &points) {
