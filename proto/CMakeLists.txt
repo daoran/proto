@@ -102,6 +102,7 @@ ADD_LIBRARY(
   # estimation
   src/estimation/factor.cpp
   src/estimation/filter.cpp
+  src/estimation/frontend.cpp
   src/estimation/measurement.cpp
   # mav
   src/mav/atl.cpp
@@ -122,7 +123,6 @@ ADD_LIBRARY(
   src/vision/feature2d/draw.cpp
   src/vision/feature2d/grid_fast.cpp
   src/vision/feature2d/grid_good.cpp
-  src/vision/frontend.cpp
   src/vision/vision_common.cpp
   # viz
   src/viz/draw.cpp

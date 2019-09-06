@@ -11,13 +11,18 @@ debug() {
     --args "$1" "$2"
 }
 
+# cd docs/se
+# rst2html5 gauss_newton.rst gauss_newton.html
+# pandoc --mathjax -s gauss_newton.rst -o gauss_newton.html
+# pandoc --mathjax -s gauss_newton.latex -o gauss_newton.html
+
 # LIBRARY
 # make deps
 # time make debug
-time make release
+# time make release
 # time make ros
-# make notes
-sudo make install
+make notes
+# sudo make install
 # sudo make debug_install
 # exit
 

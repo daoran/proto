@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <!-- JQUERY -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+  <!-- SHOWDOWN -->
+  <script src="//cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.js"></script>
+
+  <style>
+    body {
+      color: #111;
+      margin: 0;
+      padding: 0;
+      /* font-family: Helvetica Neue, Helvetica, Arial; */
+      font-family: Times;
+			font-size: 0.95em;
+			text-align: justify;
+    }
+
+    a:link, a:visited {
+      color: #333;
+			text-decoration: none;
+    }
+
+    pre code {
+      display: block;
+      width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 10px;
+
+      color: #FFF;
+      background: #333;
+      border: 1px solid #333;
+      border-radius: 5px;
+    }
+
+    code {
+      padding-left: 2px;
+      padding-right: 2px;
+
+      color: #FFF;
+      background: #333;
+      border: 1px solid #333;
+      border-radius: 3px;
+    }
+
+    #sidebar {
+      background: #fff;
+      position: fixed;
+      z-index: 10;
+      top: 0; left: 0; bottom: 0;
+      width: 200px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0px 0px 0px 20px;
+      border-right: 1px solid #bbb;
+      box-shadow: 0 0 20px #ccc;
+
+      -webkit-overflow-scrolling: touch;
+			-webkit-box-shadow: 0 0 20px #ccc;
+			-moz-box-shadow: 0 0 20px #ccc;
+    }
+
+    #sidebar h1 {
+      font-size: 1.2em;
+    }
+
+    #sidebar h2 {
+      font-size: 0.95em;
+    }
+
+    #sidebar ul {
+			display: block;
+      padding: 0px 0px 0px 20px;
+			margin: 0;
+		}
+
+    #content {
+			position: relative;
+      width: 600px;
+      margin: 0px 0px 10% 300px;
+    }
+
+    #content p {
+      text-indent: 20px;
+    }
+
+    #content img {
+      display: block;
+      width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 2em;
+      margin-bottom: 2em;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar"></div>
+  <div id="content">
+  </div>
+
+  <script>
+		function escape_html(string) {
+			return string
+				.replace(/\\/g, "&#92;")
+				.replace(/\_/g, "&#95;");
+		}
+
+		function unescape_html(string) {
+			return string
+				.replace(/&amp;#92;/g, "\\")
+				.replace(/&amp;#95;/g, "_");
+		}
+
+    var md = new showdown.Converter();
+    $.get("se/gauss_newton.md", function(data) {
+      var html = md.makeHtml(escape_html(data));
+      $("#content").html(unescape_html(data));
+    });
+
+    $.get("sidebar.md", function(data) {
+      var html = md.makeHtml(escape_html(data));
+      $("#sidebar").html(unescape_html(html));
+    });
+  </script>
+
+  <!-- KATEX -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.css" integrity="sha384-BdGj8xC2eZkQaxoQ8nSLefg4AV4/AwB3Fj+8SUSo7pnKP6Eoy18liIKTPn9oBYNG" crossorigin="anonymous">
+
+  <!-- The loading of KaTeX is deferred to speed up page rendering -->
+	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.js" integrity="sha384-JiKN5O8x9Hhs/UE5cT5AAJqieYlOZbGT3CHws/y97o3ty4R7/O5poG9F3JoiOYw1" crossorigin="anonymous"></script>
+
+	<!-- To automatically render math in text elements, include the auto-render extension: -->
+	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</body>
+</html>
