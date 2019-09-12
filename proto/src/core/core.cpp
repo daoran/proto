@@ -913,6 +913,22 @@ mat4_t tf(const quat_t &q, const vec3_t &r) {
   return tf(q.toRotationMatrix(), r);
 }
 
+mat4_t tf_perturb_rot(const mat4_t &T, double step_size, const int i) {
+  const mat3_t drvec = I(3) * step_size;
+  const mat3_t C = tf_rot(T);
+  const vec3_t r = tf_trans(T);
+  const mat3_t C_diff = rvec2rot(drvec.col(i), 1e-8) * C;
+  return tf(C_diff, r);
+}
+
+mat4_t tf_perturb_trans(const mat4_t &T, const double step_size, const int i) {
+  const mat3_t dr = I(3) * step_size;
+  const mat3_t C = tf_rot(T);
+  const vec3_t r = tf_trans(T);
+  const vec3_t r_diff = r + dr.col(i);
+  return tf(C, r_diff);
+}
+
 mat3_t rotx(const double theta) {
   mat3_t R;
 
@@ -1059,6 +1075,53 @@ mat3_t vecs2rot(const vec3_t &a_B, const vec3_t &g) {
   mat3_t R;
   R << R11, R12, R13, R21, R22, R23, R31, R32, R33;
   return R;
+}
+
+mat3_t rvec2rot(const vec3_t &rvec, const double eps) {
+  // Magnitude of rvec
+  const double theta = sqrt(rvec.transpose() * rvec);
+  // ^ basically norm(rvec), but faster
+
+  // Check if rotation is too small
+  if (theta < eps) {
+    // clang-format off
+    mat3_t R;
+    R << 1, -rvec(2), rvec(1),
+         rvec(2), 1, -rvec(0),
+         -rvec(1), rvec(0), 1;
+    return R;
+    // clang-format on
+  }
+
+  // Convert rvec to rotation matrix
+  const vec3_t rvec_normalized = rvec / theta;
+  const double x = rvec_normalized(0);
+  const double y = rvec_normalized(1);
+  const double z = rvec_normalized(2);
+
+  const double c = cos(theta);
+  const double s = sin(theta);
+  const double C = 1 - c;
+
+  const double xs = x * s;
+  const double ys = y * s;
+  const double zs = z * s;
+
+  const double xC = x * C;
+  const double yC = y * C;
+  const double zC = z * C;
+
+  const double xyC = x * yC;
+  const double yzC = y * zC;
+  const double zxC = z * xC;
+
+  // clang-format off
+  mat3_t R;
+  R << x * xC + c, xyC - zs, zxC + ys,
+       xyC + zs, y * yC + c, yzC - xs,
+       zxC - ys, yzC + xs, z * zC + c;
+  return R;
+  // clang-format on
 }
 
 vec3_t quat2euler(const quat_t &q) {

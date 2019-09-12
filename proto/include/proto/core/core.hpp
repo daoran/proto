@@ -85,6 +85,10 @@ namespace proto {
 
 #ifndef __EIGEN_TYPEDEF__
 #define __EIGEN_TYPEDEF__
+
+#define col_major_t Eigen::ColMajor
+#define row_major_t Eigen::RowMajor
+
 typedef Eigen::Vector2d vec2_t;
 typedef Eigen::Vector3d vec3_t;
 typedef Eigen::Vector4d vec4_t;
@@ -141,11 +145,14 @@ typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
 typedef Eigen::Quaternionf quatf_t;
 typedef std::vector<quatf_t, Eigen::aligned_allocator<quat_t>> quatfs_t;
 
-template <int ROWS, int COLS>
-using mat_t = Eigen::Matrix<double, ROWS, COLS>;
+template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+using mat_t = Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>;
 
-template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::RowMajor>
+template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
 using map_mat_t = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
+
+template <int ROWS>
+using map_vec_t = Eigen::Map<Eigen::Matrix<double, ROWS, 1>>;
 #endif
 
 /******************************************************************************
@@ -955,6 +962,18 @@ mat4_t tf(const mat3_t &C, const vec3_t &r);
 mat4_t tf(const quat_t &q, const vec3_t &r);
 
 /**
+ * Perturb the rotation element in the tranform `T` by `step_size` at index
+ * `i`. Where i = 0 for x-axis, i = 1 for y-axis, and i = 2 for z-axis.
+ */
+mat4_t tf_perturb_rot(const mat4_t &T, double step_size, const int i);
+
+/**
+ * Perturb the translation element in the tranform `T` by `step_size` at index
+ * `i`. Where i = 0 for x-axis, i = 1 for y-axis, and i = 2 for z-axis.
+ */
+mat4_t tf_perturb_trans(const mat4_t &T, double step_size, const int i);
+
+/**
  * Rotation matrix around x-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
@@ -1014,6 +1033,11 @@ quat_t euler2quat(const vec3_t &euler);
  * `a_m` from an IMU and gravity vector `g`.
  */
 mat3_t vecs2rot(const vec3_t &a_m, const vec3_t &g);
+
+/**
+ * Convert rotation vector `rvec` to rotation matrix.
+ */
+mat3_t rvec2rot(const vec3_t &rvec, const double eps=1e-5);
 
 /**
  * Convert quaternion to euler angles.
@@ -1243,6 +1267,28 @@ const V* lookup(const std::map<K, V> & map, K key) {
 template< typename K, typename V>
 V* lookup(std::map<K, V> &map, K key) {
   return const_cast<V*>(lookup(const_cast<const std::map<K, V> &>(map), key));
+}
+
+/**
+ * Get raw pointer of a value in a `std::map`.
+ */
+template< typename K, typename V>
+const V* lookup(const std::unordered_map<K, V> & map, K key) {
+  typename std::unordered_map<K, V>::const_iterator iter = map.find(key);
+  if (iter != map.end()) {
+    return &iter->second;
+  } else {
+    return nullptr;
+  }
+}
+
+/**
+ * Get raw pointer of a value in a `std::map`.
+ */
+template< typename K, typename V>
+V* lookup(std::unordered_map<K, V> &map, K key) {
+  return const_cast<V*>(
+    lookup(const_cast<const std::unordered_map<K, V> &>(map), key));
 }
 
 /**

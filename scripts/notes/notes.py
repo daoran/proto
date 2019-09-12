@@ -15,7 +15,7 @@ md = markdown.Markdown(extensions=["fenced_code"])
 def get_notes(docs_path):
     note_files = []
     for x in os.walk(docs_path):
-        for y in glob.glob(os.path.join(x[0], '*.md')):
+        for y in glob.glob(os.path.join(x[0], '*.html')):
             note_files.append(y)
     return sorted(note_files)
 
@@ -36,8 +36,6 @@ def render_note(docs_path, template_file, macros_file, note_file, sidebar):
     # Convert note file to html
     content = macros + "\n"
     content += open(note_file, mode="r", encoding="utf-8").read()
-    content = md.convert(escape_html(content))
-    content = unescape_html(content)
 
     # Render template
     template = Template(open(template_file).read())
@@ -45,7 +43,8 @@ def render_note(docs_path, template_file, macros_file, note_file, sidebar):
 
     # Output rendered html
     docs_path += "/" if docs_path[-1] != "/" else ""
-    fname = note_file.replace(docs_path, "").replace("md", "html")
+    fname = note_file.replace(docs_path, "")
+    print(fname)
     output_path = os.path.join(build_path, fname)
     output_file = open(output_path, "w")
     output_file.write(html)
@@ -59,4 +58,4 @@ sidebar = unescape_html(sidebar)
 note_files = get_notes(docs_path)
 for note_file in note_files:
     print("processing [%s]" % note_file)
-    render_note(docs_path, template_file, macros_file, note_file, sidebar)
+    # render_note(build_path, template_file, macros_file, note_file, sidebar)

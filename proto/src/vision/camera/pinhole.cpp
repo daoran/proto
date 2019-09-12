@@ -95,8 +95,8 @@ vec2_t project(const vec3_t &p, mat_t<2, 3> &J_P) {
   J_P = zeros(2, 3);
   J_P(0, 0) = 1.0 / z;
   J_P(1, 1) = 1.0 / z;
-  J_P(0, 2) = -x / z*z;
-  J_P(1, 3) = -y / z*z;
+  J_P(0, 2) = -x / (z*z);
+  J_P(1, 2) = -y / (z*z);
 
   return vec2_t{x / z, x / z};
 }
@@ -123,8 +123,8 @@ vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h) {
   mat_t<2, 3> J_P = zeros(2, 3);
   J_P(0, 0) = 1.0 / z;
   J_P(1, 1) = 1.0 / z;
-  J_P(0, 2) = -x / z*z;
-  J_P(1, 3) = -y / z*z;
+  J_P(0, 2) = -x / (z*z);
+  J_P(1, 3) = -y / (z*z);
 
   // Intrinsics Jacobian
   mat2_t J_K = zeros(2, 2);

@@ -33,7 +33,7 @@ The `calib_config.yaml` file is expected to have the following format:
 
 int main(int argc, char *argv[]) {
   // Parse command line arguments
-  if (argc != 2) {
+  if (argc != 2)
     print_usage();
     return -1;
   }

@@ -1,5 +1,6 @@
-# Gauss Newton
+<h1>Gauss Newton</h1>
 
+<div class="latex">
 \begin{align}
   \min_{\Vec{x}} J(\Vec{x})
 		&=
@@ -12,24 +13,30 @@
 			\Mat{W}
 			\Vec{e}_{i}(\Vec{x})
 \end{align}
+</div>
 
 Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
 approximated with the first-order Taylor series,
+<div class="latex">
 \begin{equation}
 	\Vec{e}(\Vec{x})
 		\approx
 			\Vec{e}(\bar{\Vec{x}}) +
 			\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
 \end{equation}
+</div>
 where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 \bigg\rvert_{\Vec{x}_{k}}$ and $\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}$.
 
+<div class="latex">
 \begin{equation}
 	\dfrac{\delta{J}}{\delta{\Vec{x}}} =
 		\dfrac{\delta{J}}{\delta{\Vec{e}}}
 		\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
 \end{equation}
+</div>
 
+<div class="latex">
 \begin{align}
 	\dfrac{\delta{J}}{\delta{\Vec{e}}} &=
 		\dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
@@ -40,7 +47,9 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 		\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
 		\Mat{E}(\bar{\Vec{x}})
 \end{align}
+</div>
 
+<div class="latex">
 \begin{align}
 	\dfrac{\delta{J}}{\delta{\Vec{x}}}
 		&=
@@ -58,7 +67,9 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 				\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
 			= 0 \\
 \end{align}
+</div>
 
+<div class="latex">
 \begin{align}
 		% Line 4
 		\Delta\Vec{x}^{\transpose}
@@ -75,10 +86,13 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 			- \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
 		}_{\Vec{b}}
 \end{align}
+</div>
 
 Solve the normal equations $\Mat{H}\Delta\Vec{x} = \Vec{b}$ for $\Delta\Vec{x}$
 using the Cholesky or QR-decompositon. Once $\Delta\Vec{x}$ is found the best
 estimate $\bar{\Vec{x}}$ can be updated via,
+<div class="latex">
 \begin{equation}
 	\bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x} .
 \end{equation}
+</div>

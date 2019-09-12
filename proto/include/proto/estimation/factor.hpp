@@ -13,11 +13,30 @@ namespace proto {
 struct variable_t {
   timestamp_t ts = 0;
   size_t id = 0;
+  size_t size = 0;
+  size_t local_size = 0;
 
   variable_t() {}
-  variable_t(const timestamp_t &ts_, const size_t id_) :
-    ts{ts_}, id{id_} {}
+
+  variable_t(const size_t id_, const size_t size_)
+    : id{id_}, size{size_}, local_size{size_} {}
+
+  variable_t(const size_t id_,
+             const size_t size_,
+             const size_t local_size_)
+    : id{id_}, size{size_}, local_size{local_size_} {}
+
+  variable_t(const timestamp_t &ts_, const size_t id_, const size_t size_)
+    : ts{ts_}, id{id_}, size{size_}, local_size{size_} {}
+
+  variable_t(const timestamp_t &ts_,
+             const size_t id_,
+             const size_t size_,
+             const size_t local_size_)
+    : ts{ts_}, id{id_}, size{size_}, local_size{local_size_} {}
+
   virtual ~variable_t() {}
+
   virtual double *data() = 0;
 };
 
@@ -26,12 +45,14 @@ struct variable_t {
  ****************************************************************************/
 
 struct landmark_t : variable_t {
-  vec3_t p_W;
+  double param[3] = {0.0, 0.0, 0.0};
 
-  landmark_t(const timestamp_t &ts_, const size_t id_, const vec3_t &p_W_) :
-    variable_t{ts_, id_}, p_W{p_W_} {}
+  landmark_t(const size_t id_, const vec3_t &p_W_) :
+    variable_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
 
-  double *data() { return p_W.data(); };
+  vec3_t vec() { return map_vec_t<3>(param); };
+
+  double *data() { return param; };
 };
 typedef std::vector<landmark_t *> landmarks_t;
 
@@ -40,12 +61,12 @@ typedef std::vector<landmark_t *> landmarks_t;
  ****************************************************************************/
 
 struct pose_t : variable_t {
-  // qw, qx, qy, qz, x, y, z
-  double param[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  // (qw, qx, qy, qz), (x, y, z)
+  double param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   pose_t() {}
   pose_t(const timestamp_t &ts_, const size_t id_, const mat4_t &pose_)
-      : variable_t{ts_, id_} {
+      : variable_t{ts_, id_, 7, 6} {
     const quat_t q{pose_.block<3, 3>(0, 0)};
     param[0] = q.w();
     param[1] = q.x();
@@ -57,7 +78,6 @@ struct pose_t : variable_t {
     param[5] = r(1);
     param[6] = r(2);
   }
-  virtual ~pose_t() {}
 
   mat3_t rot() {
     const quat_t q{param[0], param[1], param[2], param[3]};
@@ -80,12 +100,54 @@ struct pose_t : variable_t {
 struct factor_t {
   timestamp_t ts = 0;
   size_t id = 0;
+  size_t residual_size = 0;
+  std::vector<variable_t *> param_blocks;
+  std::vector<size_t> param_sizes;
 
   factor_t() {}
-  factor_t(const timestamp_t &ts_, const size_t id_) :
-    ts{ts_}, id{id_} {}
+  factor_t(const timestamp_t &ts_,
+           const size_t id_,
+           const size_t residual_size_,
+           const std::vector<variable_t *> param_blocks_,
+           const std::vector<size_t> param_sizes_) :
+    ts{ts_}, id{id_}, residual_size{residual_size_},
+    param_blocks{param_blocks_}, param_sizes{param_sizes_}  {}
   virtual ~factor_t() {}
+
   virtual int eval(double *residuals, double **jacobians) const = 0;
+};
+
+/*****************************************************************************
+ * Bundle Adjustment Factor
+ ****************************************************************************/
+
+struct ba_factor_t : factor_t {
+  vec2_t z = zeros(2, 1);
+  landmark_t *p_W = nullptr;
+  pose_t *T_WC = nullptr;
+
+  mat2_t info = I(2);
+  mat2_t sq_info = zeros(2, 2);
+
+  ba_factor_t(const timestamp_t &ts_,
+              const size_t id_,
+              const vec2_t &z_,
+              landmark_t *p_W_,
+              pose_t *T_WC_,
+              mat2_t info_=I(2))
+      : factor_t{ts_, id_, 2, {p_W_, T_WC_}, {3, 6}},
+        z{z_},
+        p_W{p_W_},
+        T_WC{T_WC_},
+        info{info_} {
+    Eigen::LLT<mat2_t> llt_info(info);
+    sq_info = llt_info.matrixL().transpose();
+  }
+
+  /**
+   * Evaluate
+   */
+  int eval(double *residuals, double **jacobians) const;
 };
 
 /*****************************************************************************
@@ -95,19 +157,30 @@ struct factor_t {
 // template <typename CM, typename DM>
 struct cam_factor_t : factor_t {
 	// camera_geometry_t<CM, DM> camera;
+  vec2_t z = zeros(2, 1);
+  landmark_t *p_W = nullptr;
+  pose_t *T_WS = nullptr;
+  pose_t *T_SC = nullptr;
 
-  vec2_t z;
-  landmark_t *landmark = nullptr;
-  pose_t *sensor_pose = nullptr;
-  pose_t *sensor_camera_extrinsic = nullptr;
+  mat2_t info = I(2);
+  mat2_t sq_info = zeros(2, 2);
 
   cam_factor_t(const timestamp_t &ts_,
-              const size_t id_,
-              const vec2_t &z_,
-              landmark_t *landmark_) :
-    factor_t{ts_, id_},
-    z{z_},
-    landmark{landmark_} {}
+               const size_t id_,
+               const vec2_t &z_,
+               landmark_t *p_W_,
+               pose_t *T_WS_=nullptr,
+               pose_t *T_SC_=nullptr,
+               mat2_t info_=I(2))
+      : factor_t{ts_, id_, 2, {p_W_, T_WS_, T_SC_}, {3, 6, 6}},
+        z{z_},
+        p_W{p_W_},
+        T_WS{T_WS_},
+        T_SC{T_SC_},
+        info{info_} {
+    Eigen::LLT<mat2_t> llt_info(info);
+    sq_info = llt_info.matrixL().transpose();
+  }
 
   /**
    * Evaluate
@@ -136,25 +209,39 @@ struct cam_factor_t : factor_t {
  ****************************************************************************/
 
 struct graph_t {
-  std::map<size_t, landmark_t> landmarks;
-  std::map<size_t, pose_t> T_WS;
-  std::map<int, pose_t> T_SC;
-  std::map<int, std::map<size_t, cam_factor_t>> cam_factors;
+  std::unordered_map<size_t, variable_t *> variables;
+  std::vector<factor_t *> factors;
+  size_t residual_size = 0;
+  size_t param_size = 0;
+
+  std::unordered_map<double *, variable_t *> param_blocks;
 
   graph_t() {}
-  virtual ~graph_t() {}
+  virtual ~graph_t() {
+    // for (const auto &kv: variables) {
+    //   delete kv.second;
+    // }
+    // for (const auto &factor: factors) {
+    //   delete factor;
+    // }
+  }
 };
 
-void graph_set_sensor_camera_extrinsic(graph_t &graph,
-                                       const int cam_idx,
-                                       const mat4_t &T_SC);
+size_t graph_add_pose(graph_t &graph, const timestamp_t &ts, const mat4_t &pose);
+size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark);
+size_t graph_add_factor(graph_t &graph, factor_t *factor);
+size_t graph_add_ba_factor(graph_t &graph,
+                           const timestamp_t &ts,
+                           const vec2_t &z,
+                           const vec3_t &p_W,
+                           const mat4_t &T_WC);
 size_t graph_add_camera_factor(graph_t &graph,
                                const timestamp_t &ts,
                                const int cam_idx,
                                const vec2_t &z,
                                const vec3_t &p_W,
-                               const mat4_t &T_WS);
-int graph_solve(graph_t &graph, int max_iter=30);
+                               const mat4_t &T_WC);
+// int graph_solve(graph_t &graph, int max_iter=30);
 
 } // namespace proto
 #endif // PROTO_ESTIMATION_FACTOR_HPP
