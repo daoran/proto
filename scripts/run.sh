@@ -77,7 +77,8 @@ cd proto/build/tests
 # ./dataset-test_kitti
 
 # -- estimation
-./estimation-test_factor --target test_ba_factor
+# ./estimation-test_factor
+./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement
 
 # -- mav

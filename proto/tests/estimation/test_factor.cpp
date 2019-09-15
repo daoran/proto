@@ -144,31 +144,176 @@ int test_ba_factor() {
 int test_graph() {
   graph_t graph;
 
+  MU_CHECK(graph.variables.size() == 0);
+  MU_CHECK(graph.factors.size() == 0);
+
   return 0;
 }
 
-// int test_graph_set_sensor_camera_extrinsics() {
-//   graph_t graph;
-//
-//   int cam_idx = 0;
-//   mat4_t T_SC = I(4);
-//   graph_set_sensor_camera_extrinsic(graph, cam_idx, T_SC);
-//
-//   return 0;
-// }
+int test_graph_free() {
+  graph_t graph;
 
-// int test_graph_add_camera_factor() {
+  timestamp_t ts = 0;
+  mat4_t T_WS = I(4);
+  graph_add_pose(graph, ts, T_WS);
+  graph_add_pose(graph, ts, T_WS);
+  graph_add_pose(graph, ts, T_WS);
+
+  MU_CHECK(graph.variables.size() == 3);
+  MU_CHECK(graph.factors.size() == 0);
+
+  graph_free(graph);
+  MU_CHECK(graph.variables.size() == 0);
+  MU_CHECK(graph.factors.size() == 0);
+
+  return 0;
+}
+
+int test_graph_add_pose() {
+  graph_t graph;
+
+  timestamp_t ts = 0;
+  mat4_t T_WS = I(4);
+  graph_add_pose(graph, ts, T_WS);
+
+  MU_CHECK(graph.variables.size() == 1);
+  MU_CHECK(graph.variables[0] != nullptr);
+  graph_free(graph);
+
+  return 0;
+}
+
+int test_graph_add_landmark() {
+  graph_t graph;
+
+  vec3_t landmark = zeros(3, 1);
+  graph_add_landmark(graph, landmark);
+
+  MU_CHECK(graph.variables.size() == 1);
+  MU_CHECK(graph.variables[0] != nullptr);
+  graph_free(graph);
+
+  return 0;
+}
+
+int test_graph_add_ba_factor() {
+  graph_t graph;
+
+  const timestamp_t ts = 0;
+  const vec2_t z{0.0, 0.0};
+  const vec3_t p_W{0.0, 0.0, 0.0};
+  const mat4_t T_WC = I(4);
+
+  size_t id = graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  MU_CHECK(id == 0);
+  MU_CHECK(graph.factors.size() == 1);
+  MU_CHECK(graph.variables.size() == 2);
+
+  return 0;
+}
+
+int test_graph_eval() {
+  graph_t graph;
+
+  const timestamp_t ts = 0;
+  const vec2_t z{0.0, 0.0};
+  const vec3_t p_W{1.0, 0.0, 0.0};
+  const vec3_t rpy_WC{-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const mat3_t C_WC = euler321(rpy_WC);
+  const vec3_t r_WC = zeros(3, 1);
+  const mat4_t T_WC = tf(C_WC, r_WC);
+
+  size_t id = graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  MU_CHECK(id == 0);
+  MU_CHECK(graph.factors.size() == 1);
+  MU_CHECK(graph.variables.size() == 2);
+
+  graph_eval(graph);
+  MU_CHECK(graph.residuals.size() == 1);
+  MU_CHECK(graph.jacobians.size() == 2);
+
+  return 0;
+}
+
+int test_graph_setup_problem() {
+  graph_t graph;
+
+  // Add and evaluate bundle adjustment factors
+  const timestamp_t ts = 0;
+  const vec2_t z{0.0, 0.0};
+  const vec3_t p_W{1.0, 0.1, 0.3};
+  const vec3_t rpy_WC{-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const mat3_t C_WC = euler321(rpy_WC);
+  const vec3_t r_WC = zeros(3, 1);
+  const mat4_t T_WC = tf(C_WC, r_WC);
+
+  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  graph_eval(graph);
+
+  // Setup problem
+  matx_t J;
+  vecx_t r;
+  graph_setup_problem(graph, J, r);
+
+  // Plot matrix J
+  mat2csv("/tmp/J.csv", J);
+  bool debug = true;
+  // bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
+  }
+
+  return 0;
+}
+
+int test_graph_update() {
+  graph_t graph;
+
+  // Add and evaluate bundle adjustment factors
+  const timestamp_t ts = 0;
+  const vec2_t z{0.0, 0.0};
+  const vec3_t p_W{1.0, 0.1, 0.3};
+  const vec3_t rpy_WC{-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const mat3_t C_WC = euler321(rpy_WC);
+  const vec3_t r_WC = zeros(3, 1);
+  const mat4_t T_WC = tf(C_WC, r_WC);
+
+  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  graph_eval(graph);
+
+  // Setup problem
+  matx_t J;
+  vecx_t r;
+  graph_setup_problem(graph, J, r);
+
+  const matx_t H = J.transpose() * J;
+  const vecx_t b = -J.transpose() * r;
+  const vecx_t dx = -H.inverse() * b;
+  graph_update(graph, dx);
+
+  return 0;
+}
+
+// int test_graph_solve() {
 //   graph_t graph;
 //
-//   timestamp_t ts = 0;
-//   int cam_idx = 0;
-//   vec2_t z;
-//   vec3_t p_W;
-//   mat4_t T_WS = I(4);
-//   graph_add_camera_factor(graph, ts, cam_idx, z, p_W, T_WS);
+//   // Add and evaluate bundle adjustment factors
+//   const timestamp_t ts = 0;
+//   const vec2_t z{0.0, 0.0};
+//   const vec3_t p_W{1.0, 0.1, 0.3};
+//   const vec3_t rpy_WC{-M_PI / 2.0, 0.0, -M_PI / 2.0};
+//   const mat3_t C_WC = euler321(rpy_WC);
+//   const vec3_t r_WC = zeros(3, 1);
+//   const mat4_t T_WC = tf(C_WC, r_WC);
 //
-//   double error[2] = {0.0, 0.0};
-//   map_vec_t<2> r(error);
+//   graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+//   graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+//   graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+//   graph_solve(graph);
 //
 //   return 0;
 // }
@@ -178,8 +323,14 @@ void test_suite() {
   MU_ADD_TEST(test_landmark);
   MU_ADD_TEST(test_ba_factor);
   MU_ADD_TEST(test_graph);
-  // MU_ADD_TEST(test_graph_set_sensor_camera_extrinsics);
-  // MU_ADD_TEST(test_graph_add_camera_factor);
+  MU_ADD_TEST(test_graph_free);
+  MU_ADD_TEST(test_graph_add_pose);
+  MU_ADD_TEST(test_graph_add_landmark);
+  MU_ADD_TEST(test_graph_add_ba_factor);
+  MU_ADD_TEST(test_graph_eval);
+  MU_ADD_TEST(test_graph_setup_problem);
+  // MU_ADD_TEST(test_graph_update);
+  // MU_ADD_TEST(test_graph_solve);
 }
 
 } // namespace proto

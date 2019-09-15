@@ -144,9 +144,6 @@ struct ba_factor_t : factor_t {
     sq_info = llt_info.matrixL().transpose();
   }
 
-  /**
-   * Evaluate
-   */
   int eval(double *residuals, double **jacobians) const;
 };
 
@@ -211,22 +208,12 @@ struct cam_factor_t : factor_t {
 struct graph_t {
   std::unordered_map<size_t, variable_t *> variables;
   std::vector<factor_t *> factors;
-  size_t residual_size = 0;
-  size_t param_size = 0;
 
-  std::unordered_map<double *, variable_t *> param_blocks;
-
-  graph_t() {}
-  virtual ~graph_t() {
-    // for (const auto &kv: variables) {
-    //   delete kv.second;
-    // }
-    // for (const auto &factor: factors) {
-    //   delete factor;
-    // }
-  }
+  std::unordered_map<factor_t *, vecx_t> residuals;
+  std::unordered_map<factor_t *, std::vector<matx_t>> jacobians;
 };
 
+void graph_free(graph_t &graph);
 size_t graph_add_pose(graph_t &graph, const timestamp_t &ts, const mat4_t &pose);
 size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark);
 size_t graph_add_factor(graph_t &graph, factor_t *factor);
@@ -241,7 +228,10 @@ size_t graph_add_camera_factor(graph_t &graph,
                                const vec2_t &z,
                                const vec3_t &p_W,
                                const mat4_t &T_WC);
-// int graph_solve(graph_t &graph, int max_iter=30);
+int graph_eval(graph_t &graph);
+void graph_setup_problem(graph_t &graph, matx_t &J, vecx_t &r);
+void graph_update(graph_t &graph, const vecx_t &dx);
+int graph_solve(graph_t &graph, int max_iter=30);
 
 } // namespace proto
 #endif // PROTO_ESTIMATION_FACTOR_HPP

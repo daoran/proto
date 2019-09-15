@@ -157,13 +157,21 @@ int cam_factor_t::eval(double *residuals, double **jacobians) const {
  * Factor Graph
  ****************************************************************************/
 
+void graph_free(graph_t &graph) {
+  for (const auto &factor: graph.factors) {
+    delete factor;
+  }
+  graph.factors.clear();
+
+  for (const auto &kv: graph.variables) {
+    delete kv.second;
+  }
+  graph.variables.clear();
+}
+
 size_t graph_add_pose(graph_t &graph,
                       const timestamp_t &ts,
                       const mat4_t &pose) {
-  // if (graph.variables) {
-  //
-  // }
-
   const auto id = graph.variables.size();
   graph.variables.insert({id, new pose_t{ts, id, pose}});
   return id;
@@ -191,68 +199,124 @@ size_t graph_add_ba_factor(graph_t &graph,
   const auto factor = new ba_factor_t{ts, id, z, landmark, pose};
   graph.factors.push_back(factor);
 
-  // Keep track of sizes
-  graph.residual_size += factor->residual_size;
-  graph.param_size += factor->param_sizes[0];
-
   return id;
 }
 
-int graph_solve(graph_t &graph, int max_iter) {
-  // Setup residuals
-  vecx_t r = zeros(graph.residual_size, 1);
+int graph_eval(graph_t &graph) {
+  // Evaluate factors
+  for (size_t i = 0; i < graph.factors.size(); i++) {
+    const auto &factor = graph.factors[i];
 
-  // Setup Jacobian
-  matx_t H = zeros(graph.param_size, graph.param_size);
-
-  // Form Hessian matrix H
-  for (const auto &factor : graph.factors) {
-
+    // Prepare residual and jacobian memory
+    vecx_t r_i(factor->residual_size);
+    std::vector<matx_t> J(factor->param_blocks.size());
+    std::vector<double *> J_ptrs(factor->param_blocks.size());
     for (size_t i = 0; i < factor->param_blocks.size(); i++) {
-      for (size_t j = i + 1; j < factor->param_blocks.size(); j++) {
+      const size_t rows = factor->residual_size;
+      const size_t cols = factor->param_sizes[i];
+      J[i].resize(rows, cols);
+      J_ptrs[i] = J[i].data();
+    }
 
+    // Evaluate
+    if (factor->eval(r_i.data(), J_ptrs.data()) == 0) {
+      graph.residuals.insert({factor, r_i});
+      for (size_t i = 0; i < factor->param_blocks.size(); i++) {
+        graph.jacobians[factor].emplace_back(J[i]);
+      }
+    }
+  }
+
+  return 0;
+}
+
+void graph_setup_problem(graph_t &graph, matx_t &J, vecx_t &r) {
+  // Obtain number of pose and landmark parameters
+  size_t nb_poses = 0;
+  size_t nb_landmarks = 0;
+  for (const auto &kv : graph.variables) {
+    auto *var = kv.second;
+    if (dynamic_cast<landmark_t *>(var)) {
+      nb_landmarks++;
+    } else if (dynamic_cast<pose_t *>(var)) {
+      nb_poses++;
+    }
+  }
+
+  // Form Jacobian J and residual r
+  size_t m = 6;
+  size_t n = (nb_poses * 6) + (nb_landmarks * 3);
+  J.resize(m, n);
+  J.setZero();
+  r.resize(n);
+  r.setZero();
+
+  size_t row_index = 0;
+  size_t pose_idx = 0;
+  size_t landmark_idx = nb_poses * 6;
+
+  for (auto *factor: graph.factors) {
+    for (size_t i = 0; i < factor->param_blocks.size(); i++) {
+      auto *param_block = factor->param_blocks[i];
+
+      // Stack Jacobian J
+      if (auto *var = dynamic_cast<landmark_t *>(param_block)) {
+        J.block(row_index, landmark_idx, 2, 3) = graph.jacobians[factor][i];
+        // J.block(rs, landmark_idx, 2, 3) = ones(2, 3); // <- for debug only
+        landmark_idx += 3;
+      }
+      if (auto *var = dynamic_cast<pose_t *>(param_block)) {
+        J.block(row_index, pose_idx, 2, 6) = graph.jacobians[factor][i];
+        // J.block(rs, pose_idx, 2, 6) = 2 * ones(2, 6); // <- for debug only
+        pose_idx += 6;
       }
     }
 
+    // Stack residual
+    r.segment(row_index, factor->residual_size) = graph.residuals[factor];
 
+    // Update row index
+    row_index += factor->residual_size;
   }
+}
 
-  // // Gauss-Newton
-  // for (int iter = 0; iter < max_iter; iter++) {
-  //   // Evaluate and form global Jacobian
-  //   // for (const auto &cam_factors : graph.cam_factors) {
-  //   //   for (const auto &kv : cam_factors.second) {
-  //   //     const cam_factor_t &error = kv.second;
-  //   //     // error.eval(r, J);
-  //   //   }
-  //   // }
+void graph_update(graph_t &graph, const vecx_t &dx) {
+  // Update state vector
+  // -- Sensor poses
+  // for (size_t k = 0; k < nb_poses; k+=6) {
+  //   // Update sensor rotation
+  //   // const vec3_t dalpha = dx.segment<3>(k);
+  //   // const quat_t dq = quat_delta(dalpha);
+  //   // graph.T_WS[k]->q = dq * graph.T_WS[k]->q;
   //
-  //   // Calculate state update dx
-  //   const matx_t H = J.transpose() * J;
-  //   const vecx_t b = -J.transpose() * r;
-  //   const vecx_t dx = -H.inverse() * b;
-  //   const double cost = 0.5 * r.transpose() * r;
-  //   printf("iter: %d\tcost: %f\n", iter, cost);
-  //
-  //   // Update state vector
-  //   // -- Sensor poses
-  //   // for (size_t k = 0; k < nb_poses; k+=6) {
-  //   //   // Update sensor rotation
-  //   //   // const vec3_t dalpha = dx.segment<3>(k);
-  //   //   // const quat_t dq = quat_delta(dalpha);
-  //   //   // graph.T_WS[k]->q = dq * graph.T_WS[k]->q;
-  //   //
-  //   //   // Update sensor position
-  //   //   // const vec3_t dr_WS = dx.segment<3>(k + 3);
-  //   //   // graph.T_WS[k]->r += dr_WS;
-  //   // }
-  //   // -- Landmarks
-  //   // for (size_t i = 0; i < nb_landmarks; i++) {
-  //   //   const vec3_t dp_W = dx.segment<3>(i);
-  //   //   graph.landmarks[i]->p_W += dp_W;
-  //   // }
-  //
+  //   // Update sensor position
+  //   // const vec3_t dr_WS = dx.segment<3>(k + 3);
+  //   // graph.T_WS[k]->r += dr_WS;
   // }
+  // -- Landmarks
+  // for (size_t i = 0; i < nb_landmarks; i++) {
+  //   const vec3_t dp_W = dx.segment<3>(i);
+  //   graph.landmarks[i]->p_W += dp_W;
+  // }
+
+
+}
+
+int graph_solve(graph_t &graph, int max_iter) {
+  // Solve graph with Gause-Newton
+  for (int iter = 0; iter < max_iter; iter++) {
+    matx_t J;
+    vecx_t r;
+    graph_eval(graph);
+    graph_setup_problem(graph, J, r);
+
+    // Calculate state update dx
+    const matx_t H = J.transpose() * J;
+    const vecx_t b = -J.transpose() * r;
+    const vecx_t dx = -H.inverse() * b;
+    const double cost = 0.5 * r.transpose() * r;
+    printf("iter: %d\tcost: %f\n", iter, cost);
+  }
 
   return 0;
 }
