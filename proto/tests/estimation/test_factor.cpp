@@ -199,15 +199,25 @@ int test_graph_add_landmark() {
 int test_graph_add_ba_factor() {
   graph_t graph;
 
+  // Setup variables
   const timestamp_t ts = 0;
   const vec2_t z{0.0, 0.0};
   const vec3_t p_W{0.0, 0.0, 0.0};
   const mat4_t T_WC = I(4);
 
-  size_t id = graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  const size_t lm_id = graph_add_landmark(graph, p_W);
+  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
+  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
+  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
+
+  // Add factor
+  size_t id = graph_add_ba_factor(graph, ts, z, landmark, pose);
   MU_CHECK(id == 0);
   MU_CHECK(graph.factors.size() == 1);
   MU_CHECK(graph.variables.size() == 2);
+
+  // Cleanup
+  graph_free(graph);
 
   return 0;
 }
@@ -215,6 +225,7 @@ int test_graph_add_ba_factor() {
 int test_graph_eval() {
   graph_t graph;
 
+  // Setup variables and factors
   const timestamp_t ts = 0;
   const vec2_t z{0.0, 0.0};
   const vec3_t p_W{1.0, 0.0, 0.0};
@@ -223,14 +234,23 @@ int test_graph_eval() {
   const vec3_t r_WC = zeros(3, 1);
   const mat4_t T_WC = tf(C_WC, r_WC);
 
-  size_t id = graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  const size_t lm_id = graph_add_landmark(graph, p_W);
+  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
+  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
+  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
+
+  size_t id = graph_add_ba_factor(graph, ts, z, landmark, pose);
   MU_CHECK(id == 0);
   MU_CHECK(graph.factors.size() == 1);
   MU_CHECK(graph.variables.size() == 2);
 
+  // Evaluate
   graph_eval(graph);
   MU_CHECK(graph.residuals.size() == 1);
-  MU_CHECK(graph.jacobians.size() == 2);
+  MU_CHECK(graph.jacobians[graph.factors[0]].size() == 2);
+
+  // Clean up
+  graph_free(graph);
 
   return 0;
 }
@@ -247,9 +267,13 @@ int test_graph_setup_problem() {
   const vec3_t r_WC = zeros(3, 1);
   const mat4_t T_WC = tf(C_WC, r_WC);
 
-  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
-  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
-  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  const size_t lm_id = graph_add_landmark(graph, p_W);
+  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
+  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
+  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
+  graph_add_ba_factor(graph, ts, z, landmark, pose);
+  graph_add_ba_factor(graph, ts, z, landmark, pose);
+  graph_add_ba_factor(graph, ts, z, landmark, pose);
   graph_eval(graph);
 
   // Setup problem
@@ -259,11 +283,14 @@ int test_graph_setup_problem() {
 
   // Plot matrix J
   mat2csv("/tmp/J.csv", J);
-  bool debug = true;
-  // bool debug = false;
+  // bool debug = true;
+  bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
   }
+
+  // Clean up
+  graph_free(graph);
 
   return 0;
 }
@@ -280,9 +307,14 @@ int test_graph_update() {
   const vec3_t r_WC = zeros(3, 1);
   const mat4_t T_WC = tf(C_WC, r_WC);
 
-  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
-  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
-  graph_add_ba_factor(graph, ts, z, p_W, T_WC);
+  const size_t lm_id = graph_add_landmark(graph, p_W);
+  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
+  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
+  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
+
+  graph_add_ba_factor(graph, ts, z, landmark, pose);
+  graph_add_ba_factor(graph, ts, z, landmark, pose);
+  graph_add_ba_factor(graph, ts, z, landmark, pose);
   graph_eval(graph);
 
   // Setup problem
@@ -293,7 +325,11 @@ int test_graph_update() {
   const matx_t H = J.transpose() * J;
   const vecx_t b = -J.transpose() * r;
   const vecx_t dx = -H.inverse() * b;
-  graph_update(graph, dx);
+  std::cout << dx << std::endl;
+  // graph_update(graph, dx);
+
+  // Clean up
+  graph_free(graph);
 
   return 0;
 }
@@ -329,7 +365,7 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_ba_factor);
   MU_ADD_TEST(test_graph_eval);
   MU_ADD_TEST(test_graph_setup_problem);
-  // MU_ADD_TEST(test_graph_update);
+  MU_ADD_TEST(test_graph_update);
   // MU_ADD_TEST(test_graph_solve);
 }
 

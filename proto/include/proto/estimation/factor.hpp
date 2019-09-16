@@ -38,6 +38,8 @@ struct variable_t {
   virtual ~variable_t() {}
 
   virtual double *data() = 0;
+
+  virtual void plus(const vecx_t &) = 0;
 };
 
 /*****************************************************************************
@@ -53,6 +55,12 @@ struct landmark_t : variable_t {
   vec3_t vec() { return map_vec_t<3>(param); };
 
   double *data() { return param; };
+
+  void plus(const vecx_t &delta) {
+    param[0] = param[0] + delta[0];
+    param[1] = param[1] + delta[1];
+    param[2] = param[2] + delta[2];
+  }
 };
 typedef std::vector<landmark_t *> landmarks_t;
 
@@ -91,6 +99,27 @@ struct pose_t : variable_t {
   }
 
   double *data() { return param; }
+
+  void plus(const vecx_t &delta) {
+    // Rotation component
+    double half_norm = 0.5 * delta.head<3>().norm();
+    double dq_w = cos(half_norm);
+    double dq_x = sinc(half_norm) * 0.5 * delta(0);
+    double dq_y = sinc(half_norm) * 0.5 * delta(1);
+    double dq_z = sinc(half_norm) * 0.5 * delta(2);
+    quat_t dq{dq_w, dq_x, dq_y, dq_z};
+    quat_t q{param[0], param[1], param[2], param[3]};
+    quat_t q_updated = q * dq;
+    param[0] = q_updated.w();
+    param[1] = q_updated.x();
+    param[2] = q_updated.y();
+    param[3] = q_updated.z();
+
+    // Translation component
+    param[3] = param[3] - delta[3];
+    param[4] = param[4] - delta[4];
+    param[5] = param[5] - delta[5];
+  }
 };
 
 /*****************************************************************************
@@ -209,25 +238,32 @@ struct graph_t {
   std::unordered_map<size_t, variable_t *> variables;
   std::vector<factor_t *> factors;
 
+  size_t residual_size = 0;
+  size_t nb_poses = 0;
+  size_t nb_landmarks = 0;
+
   std::unordered_map<factor_t *, vecx_t> residuals;
   std::unordered_map<factor_t *, std::vector<matx_t>> jacobians;
+  std::unordered_map<variable_t *, size_t> param_index;
 };
 
 void graph_free(graph_t &graph);
+size_t graph_next_variable_id(graph_t &graph);
+size_t graph_next_factor_id(graph_t &graph);
 size_t graph_add_pose(graph_t &graph, const timestamp_t &ts, const mat4_t &pose);
 size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark);
 size_t graph_add_factor(graph_t &graph, factor_t *factor);
 size_t graph_add_ba_factor(graph_t &graph,
                            const timestamp_t &ts,
                            const vec2_t &z,
-                           const vec3_t &p_W,
-                           const mat4_t &T_WC);
-size_t graph_add_camera_factor(graph_t &graph,
-                               const timestamp_t &ts,
-                               const int cam_idx,
-                               const vec2_t &z,
-                               const vec3_t &p_W,
-                               const mat4_t &T_WC);
+                           landmark_t *p_W,
+                           pose_t *T_WS);
+// size_t graph_add_camera_factor(graph_t &graph,
+//                                const timestamp_t &ts,
+//                                const int cam_idx,
+//                                const vec2_t &z,
+//                                const vec3_t &p_W,
+//                                const mat4_t &T_WC);
 int graph_eval(graph_t &graph);
 void graph_setup_problem(graph_t &graph, matx_t &J, vecx_t &r);
 void graph_update(graph_t &graph, const vecx_t &dx);

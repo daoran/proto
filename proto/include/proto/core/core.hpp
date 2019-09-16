@@ -363,6 +363,11 @@ std::vector<T> linspace(const T start,
  *****************************************************************************/
 
 /**
+ * Sinc function.
+ */
+double sinc(const double x);
+
+/**
  * Degrees to radians
  *
  * @param[in] d Degree to be converted

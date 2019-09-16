@@ -169,36 +169,47 @@ void graph_free(graph_t &graph) {
   graph.variables.clear();
 }
 
+size_t graph_next_variable_id(graph_t &graph) {
+  const size_t id = graph.variables.size();
+  return id;
+}
+
+size_t graph_next_factor_id(graph_t &graph) {
+  const size_t id = graph.factors.size();
+  return id;
+}
+
 size_t graph_add_pose(graph_t &graph,
                       const timestamp_t &ts,
                       const mat4_t &pose) {
-  const auto id = graph.variables.size();
+  const auto id = graph_next_variable_id(graph);
   graph.variables.insert({id, new pose_t{ts, id, pose}});
+  graph.nb_poses++;
   return id;
 }
 
 size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
-  const auto id = graph.variables.size();
+  const auto id = graph_next_variable_id(graph);
   graph.variables.insert({id, new landmark_t{id, landmark}});
+  graph.nb_landmarks++;
+  return id;
+}
+
+size_t graph_add_factor(graph_t &graph, factor_t *factor) {
+  const size_t id = graph_next_factor_id(graph);
+  graph.factors.push_back(factor);
+  graph.residual_size += factor->residual_size;;
   return id;
 }
 
 size_t graph_add_ba_factor(graph_t &graph,
                            const timestamp_t &ts,
                            const vec2_t &z,
-                           const vec3_t &p_W,
-                           const mat4_t &T_WC) {
-  // Add variables
-  const size_t lm_id = graph_add_landmark(graph, p_W);
-  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
-
-  // Add factor
-  const size_t id = graph.factors.size();
-  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
-  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
-  const auto factor = new ba_factor_t{ts, id, z, landmark, pose};
-  graph.factors.push_back(factor);
-
+                           landmark_t *p_W,
+                           pose_t *T_WS) {
+  const size_t id = graph_next_factor_id(graph);
+  const auto factor = new ba_factor_t{ts, id, z, p_W, T_WS};
+  graph_add_factor(graph, factor);
   return id;
 }
 
@@ -231,75 +242,75 @@ int graph_eval(graph_t &graph) {
 }
 
 void graph_setup_problem(graph_t &graph, matx_t &J, vecx_t &r) {
-  // Obtain number of pose and landmark parameters
-  size_t nb_poses = 0;
-  size_t nb_landmarks = 0;
-  for (const auto &kv : graph.variables) {
-    auto *var = kv.second;
-    if (dynamic_cast<landmark_t *>(var)) {
-      nb_landmarks++;
-    } else if (dynamic_cast<pose_t *>(var)) {
-      nb_poses++;
+  // Calculate parameter block column indices
+  size_t pose_idx = 0;
+  size_t landmark_idx = graph.nb_poses * 6;
+
+  for (auto *factor : graph.factors) {
+    for (auto *var : factor->param_blocks) {
+
+      // Check if variable already has an index
+      if (graph.param_index.find(var) != graph.param_index.end()) {
+        continue;
+      }
+
+      // Set parameter block index
+      if (dynamic_cast<landmark_t *>(var)) {
+        graph.param_index[var] = landmark_idx;
+        landmark_idx += 3;
+      } else if (dynamic_cast<pose_t *>(var)) {
+        graph.param_index[var] = pose_idx;
+        pose_idx += 6;
+      }
     }
   }
 
   // Form Jacobian J and residual r
-  size_t m = 6;
-  size_t n = (nb_poses * 6) + (nb_landmarks * 3);
+  assert(graph.residual_size != 0);
+  assert((graph.nb_poses + graph.nb_landmarks) != 0);
+  size_t m = graph.residual_size;
+  size_t n = (graph.nb_poses * 6) + (graph.nb_landmarks * 3);
   J.resize(m, n);
   J.setZero();
-  r.resize(n);
+  r.resize(m);
   r.setZero();
 
-  size_t row_index = 0;
-  size_t pose_idx = 0;
-  size_t landmark_idx = nb_poses * 6;
-
+  size_t row_idx = 0;
   for (auto *factor: graph.factors) {
     for (size_t i = 0; i < factor->param_blocks.size(); i++) {
       auto *param_block = factor->param_blocks[i];
 
       // Stack Jacobian J
-      if (auto *var = dynamic_cast<landmark_t *>(param_block)) {
-        J.block(row_index, landmark_idx, 2, 3) = graph.jacobians[factor][i];
-        // J.block(rs, landmark_idx, 2, 3) = ones(2, 3); // <- for debug only
-        landmark_idx += 3;
-      }
       if (auto *var = dynamic_cast<pose_t *>(param_block)) {
-        J.block(row_index, pose_idx, 2, 6) = graph.jacobians[factor][i];
-        // J.block(rs, pose_idx, 2, 6) = 2 * ones(2, 6); // <- for debug only
-        pose_idx += 6;
+        const auto col_idx = graph.param_index[var];
+        J.block(row_idx, col_idx, 2, 6) = graph.jacobians[factor][i];
+        // J.block(row_idx, col_idx, 2, 6) = 2 * ones(2, 6); //< debug
+      }
+      if (auto *var = dynamic_cast<landmark_t *>(param_block)) {
+        const auto col_idx = graph.param_index[var];
+        J.block(row_idx, col_idx, 2, 3) = graph.jacobians[factor][i];
+        // J.block(row_idx, col_idx, 2, 3) = ones(2, 3); //< debug
       }
     }
 
     // Stack residual
-    r.segment(row_index, factor->residual_size) = graph.residuals[factor];
+    r.segment(row_idx, factor->residual_size) = graph.residuals[factor];
 
     // Update row index
-    row_index += factor->residual_size;
+    row_idx += factor->residual_size;
   }
 }
 
 void graph_update(graph_t &graph, const vecx_t &dx) {
-  // Update state vector
-  // -- Sensor poses
-  // for (size_t k = 0; k < nb_poses; k+=6) {
-  //   // Update sensor rotation
-  //   // const vec3_t dalpha = dx.segment<3>(k);
-  //   // const quat_t dq = quat_delta(dalpha);
-  //   // graph.T_WS[k]->q = dq * graph.T_WS[k]->q;
-  //
-  //   // Update sensor position
-  //   // const vec3_t dr_WS = dx.segment<3>(k + 3);
-  //   // graph.T_WS[k]->r += dr_WS;
-  // }
-  // -- Landmarks
-  // for (size_t i = 0; i < nb_landmarks; i++) {
-  //   const vec3_t dp_W = dx.segment<3>(i);
-  //   graph.landmarks[i]->p_W += dp_W;
-  // }
-
-
+  for (auto *factor : graph.factors) {
+    for (size_t i = 0; i < factor->param_blocks.size(); i++) {
+      auto *param_block = factor->param_blocks[i];
+      size_t param_size = param_block->local_size;
+      size_t param_index = graph.param_index[param_block];
+      const vecx_t dx_i = dx.segment(param_index, param_size);
+      param_block->plus(dx_i);
+    }
+  }
 }
 
 int graph_solve(graph_t &graph, int max_iter) {
@@ -316,6 +327,8 @@ int graph_solve(graph_t &graph, int max_iter) {
     const vecx_t dx = -H.inverse() * b;
     const double cost = 0.5 * r.transpose() * r;
     printf("iter: %d\tcost: %f\n", iter, cost);
+
+    graph_update(graph, dx);
   }
 
   return 0;

@@ -309,6 +309,20 @@ double binomial(const double n, const double k) {
  * Geometry
  *****************************************************************************/
 
+double sinc(const double x) {
+  if (fabs(x) > 1e-6) {
+    return sin(x) / x;
+  } else {
+    static const double c_2 = 1.0 / 6.0;
+    static const double c_4 = 1.0 / 120.0;
+    static const double c_6 = 1.0 / 5040.0;
+    const double x_2 = x * x;
+    const double x_4 = x_2 * x_2;
+    const double x_6 = x_2 * x_2 * x_2;
+    return 1.0 - c_2 * x_2 + c_4 * x_4 - c_6 * x_6;
+  }
+}
+
 double deg2rad(const double d) { return d * (M_PI / 180.0); }
 
 vec3_t deg2rad(const vec3_t d) { return d * (M_PI / 180.0); }
