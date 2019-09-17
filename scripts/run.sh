@@ -18,8 +18,8 @@ debug() {
 
 # LIBRARY
 # make deps
-time make debug
-# time make release
+# time make debug
+time make release
 # time make ros
 # make notes
 # sudo make install
@@ -48,7 +48,8 @@ time make debug
 # TESTS
 cd proto/build/tests
 # -- calib
-# ./calib-test_aprilgrid
+./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose
+./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose2
 # ./calib-test_calib_camera
 # ./calib-test_calib_camera_nbv
 # ./calib-test_calib_data
@@ -77,7 +78,7 @@ cd proto/build/tests
 # ./dataset-test_kitti
 
 # -- estimation
-./estimation-test_factor
+# ./estimation-test_factor
 # ./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement
 

@@ -5,6 +5,7 @@ PROJECT(proto)
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(BUILD_SHARED_LIBS ON)
+ADD_DEFINITIONS(-march=native)
 
 # DEPENDENCIES
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -12,6 +13,7 @@ FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(Ceres REQUIRED)
 FIND_PACKAGE(SuiteSparse REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
+FIND_PACKAGE(opengv REQUIRED)
 FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
 INCLUDE(cmake/ImportEigen3.cmake)
@@ -72,6 +74,7 @@ SET(
   dl
   ${ASSIMP_LIBRARIES}
   ${OPENGL_gl_LIBRARY}
+	opengv
   imgui
   imgui_impl
 )
@@ -161,7 +164,7 @@ FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
-  # calib-test_aprilgrid
+  calib-test_aprilgrid
   # calib-test_calib_camera
   # calib-test_calib_camera_nbv
   # calib-test_calib_data
@@ -175,7 +178,7 @@ SET(
   # core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
-  estimation-test_factor
+  # estimation-test_factor
   # estimation-test_measurement
   # # model-test_mav
   # model-test_two_wheel
