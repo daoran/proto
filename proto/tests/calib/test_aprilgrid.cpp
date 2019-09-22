@@ -1,7 +1,12 @@
 #include <limits>
+
 #include "proto/munit.hpp"
 #include "proto/calib/aprilgrid.hpp"
 #include "proto/vision/camera/pinhole.hpp"
+
+// #include <apriltag/apriltag.h>
+// #include <apriltag/tag36h11.h>
+// #include <apriltag/apriltag_math.h>
 
 #include <opengv/absolute_pose/methods.hpp>
 #include <opengv/absolute_pose/CentralAbsoluteAdapter.hpp>
@@ -234,12 +239,9 @@ int test_aprilgrid_grid_index() {
 
 int test_aprilgrid_calc_relative_pose() {
   // Detect tags
-	auto t = proto::tic();
-  const cv::Mat image = cv::imread(TEST_IMAGE);
-  const cv::Mat image_gray = rgb2gray(image);
+  const cv::Mat image = cv::imread(TEST_IMAGE, cv::IMREAD_GRAYSCALE);
   const auto detector = aprilgrid_detector_t();
-  auto tags = detector.det.extractTags(image_gray);
-	printf("AprilGrid detect time elasped: %fs\n", proto::toc(&t));
+  auto tags = detector.det.extractTags(image);
 
   // Extract relative pose
   const mat3_t K = pinhole_K(458.654, 457.296, 367.215, 248.375);
@@ -266,7 +268,7 @@ int test_aprilgrid_calc_relative_pose() {
 		aprilgrid_calc_relative_pose(grid, K, D);
 		printf("OpenCV solvePnP time elasped: %fs\n", proto::toc(&t));
 		print_matrix("T_CF", grid.T_CF);
-	}
+  }
 
   return 0;
 }
@@ -353,8 +355,7 @@ int test_aprilgrid_calc_relative_pose2() {
 	// Solve via LMedS
 	{
 		opengv::sac::Lmeds<opengv::sac_problems::absolute_pose::AbsolutePoseSacProblem> lmeds;
-		std::shared_ptr<
-				opengv::sac_problems::absolute_pose::AbsolutePoseSacProblem> absposeproblem_ptr(
+		std::shared_ptr< opengv::sac_problems::absolute_pose::AbsolutePoseSacProblem> absposeproblem_ptr(
 				new opengv::sac_problems::absolute_pose::AbsolutePoseSacProblem(
 				adapter,
 				opengv::sac_problems::absolute_pose::AbsolutePoseSacProblem::KNEIP));
@@ -478,6 +479,51 @@ int test_aprilgrid_detect() {
   return 0;
 }
 
+// int test_aprilgrid_detect2() {
+//   // aprilgrid_t grid;
+//   // MU_CHECK(aprilgrid_configure(grid, TEST_CONF) == 0);
+//
+//   const auto detector = aprilgrid_detector_t();
+//   const cv::Mat image = cv::imread(TEST_IMAGE, cv::IMREAD_GRAYSCALE);
+//   // const mat3_t K = pinhole_K(458.654, 457.296, 367.215, 248.375);
+//   // const vec4_t D{-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05};
+//
+//   apriltag_detector_t *td = apriltag_detector_create();
+// 	td->debug = 1;
+//   apriltag_family_t *tf = tag36h11_create();
+// 	// tf->width_at_border = 4;
+// 	tf->total_width = 6;
+// 	// tf->reversed_border = true;
+//   apriltag_detector_add_family(td, tf);
+//
+// 	image_u8_t im = {
+// 		.width = image.cols,
+// 		.height = image.rows,
+// 		.stride = image.cols,
+// 		.buf = image.data
+// 	};
+// 	// zarray_t *detections = apriltag_detector_detect(td, &im);
+// 	// for (int i = 0; i < zarray_size(detections); i++) {
+// 	// 	apriltag_detection_t *det;
+// 	// 	zarray_get(detections, i, &det);
+// 	// 	// Do something with det here
+// 	// }
+// 	// printf("detected: %d\n", zarray_size(detections));
+// 	zarray_t *quads = apriltag_quad_thresh(td, &im);
+// 	printf("quads: %d\n", zarray_size(quads));
+// 	apriltag_detections_destroy(quads);
+//
+// 	// apriltag_detections_destroy(detections);
+// 	tag36h11_destroy(tf);
+// 	apriltag_detector_destroy(td);
+//
+// 	// cv::imshow("image", image);
+// 	// cv::waitKey(0);
+//
+//
+//   return 0;
+// }
+
 int test_aprilgrid_intersection() {
   aprilgrid_t grid0;
   aprilgrid_t grid1;
@@ -562,6 +608,7 @@ void test_suite() {
   MU_ADD_TEST(test_aprilgrid_save_and_load);
   MU_ADD_TEST(test_aprilgrid_print);
   MU_ADD_TEST(test_aprilgrid_detect);
+  // MU_ADD_TEST(test_aprilgrid_detect2);
   MU_ADD_TEST(test_aprilgrid_intersection);
   MU_ADD_TEST(test_aprilgrid_intersection2);
 }

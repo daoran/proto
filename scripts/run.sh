@@ -22,7 +22,7 @@ debug() {
 time make release
 # time make ros
 # make notes
-# sudo make install
+sudo make install
 # sudo make debug_install
 # exit
 
@@ -48,8 +48,11 @@ time make release
 # TESTS
 cd proto/build/tests
 # -- calib
-./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose
-./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose2
+# valgrind --leak-check=full
+# ./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose
+# ./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose2
+# ./calib-test_aprilgrid --target test_aprilgrid_detect
+./calib-test_aprilgrid --target test_aprilgrid_detect2
 # ./calib-test_calib_camera
 # ./calib-test_calib_camera_nbv
 # ./calib-test_calib_data

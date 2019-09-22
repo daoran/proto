@@ -18,6 +18,42 @@ aprilgrid_t::aprilgrid_t(const timestamp_t &timestamp,
 
 aprilgrid_t::~aprilgrid_t() {}
 
+aprilgrid_t aprilgrid_detector_detect(const aprilgrid_detector_t &detector,
+                                      const cv::Mat &image) {
+  // Convert image to gray-scale
+  const cv::Mat image_gray = rgb2gray(image);
+
+  // Extract tags
+  std::vector<apriltag_t> tags = detector.det.extractTags(image_gray);
+  aprilgrid_filter_tags(image, tags);
+  std::sort(tags.begin(), tags.end(), sort_apriltag_by_id);
+
+  // Form results
+  aprilgrid_t grid;
+  for (const auto tag : tags) {
+    std::vector<cv::Point2f> img_pts;
+    img_pts.emplace_back(tag.p[0].first, tag.p[0].second); // Bottom left
+    img_pts.emplace_back(tag.p[1].first, tag.p[1].second); // Top left
+    img_pts.emplace_back(tag.p[2].first, tag.p[2].second); // Top right
+    img_pts.emplace_back(tag.p[3].first, tag.p[3].second); // Bottom right
+    aprilgrid_add(grid, tag.id, img_pts);
+  }
+
+  return grid;
+}
+
+aprilgrid_t aprilgrid_detector_detect(const aprilgrid_detector_t &detector,
+                                      const cv::Mat &image,
+                                      const mat3_t &cam_K,
+                                      const vec4_t &cam_D) {
+  auto grid = aprilgrid_detector_detect(detector, image);
+  if (grid.detected) {
+    aprilgrid_calc_relative_pose(grid, cam_K, cam_D);
+  }
+
+  return grid;
+}
+
 void aprilgrid_add(aprilgrid_t &grid,
                    const int id,
                    const std::vector<cv::Point2f> &keypoints) {
@@ -71,6 +107,20 @@ void aprilgrid_remove(aprilgrid_t &grid, const int id) {
 
   // Update nb_detections
   grid.nb_detections--;
+}
+
+void aprilgrid_clear(aprilgrid_t &grid) {
+  grid.configured = false;
+
+  grid.detected = false;
+  grid.nb_detections = 0;
+  grid.timestamp = 0;
+  grid.ids.clear();
+  grid.keypoints.clear();
+
+  grid.estimated = false;
+  grid.points_CF.clear();
+  grid.T_CF = I(4);
 }
 
 int aprilgrid_get(const aprilgrid_t &grid, const int id, vec2s_t &keypoints) {
@@ -626,6 +676,7 @@ int aprilgrid_detect(aprilgrid_t &grid,
                      const aprilgrid_detector_t &detector,
                      const cv::Mat &image) {
   assert(grid.configured);
+  aprilgrid_clear(grid);
 
   // Convert image to gray-scale
   const cv::Mat image_gray = rgb2gray(image);
@@ -703,10 +754,10 @@ bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
 }
 
 std::ostream &operator<<(std::ostream &os, const aprilgrid_t &grid) {
-  // Relative rotation and translation
-  if (grid.estimated) {
-    os << "AprilGrid: " << std::endl;
-    os << "configured: " << grid.configured << std::endl;
+  os << "AprilGrid: " << std::endl;
+  os << "ts: " << grid.timestamp << std::endl;
+  os << "configured: " << grid.configured << std::endl;
+  if (grid.configured) {
     os << "tag_rows: " << grid.tag_rows << std::endl;
     os << "tag_cols: " << grid.tag_cols << std::endl;
     os << "tag_size: " << grid.tag_size << std::endl;
@@ -714,22 +765,26 @@ std::ostream &operator<<(std::ostream &os, const aprilgrid_t &grid) {
     os << std::endl;
   }
 
+  os << "estimated: " << grid.estimated << std::endl;
+  if (grid.estimated) {
+    os << "T_CF: " << grid.T_CF << std::endl;
+    os << std::endl;
+  }
+
+  os << "tags: " << std::endl;
   for (size_t i = 0; i < grid.ids.size(); i++) {
     // Tag id
     os << "tag_id: " << grid.ids[i] << std::endl;
-    os << "ts: " << grid.timestamp << std::endl;
     os << "----------" << std::endl;
 
     // Keypoint and relative position
     for (size_t j = 0; j < 4; j++) {
       os << "keypoint: " << grid.keypoints[(i * 4) + j].transpose();
       os << std::endl;
-      os << "estimated: " << grid.estimated << std::endl;
       if (grid.estimated) {
         os << "p_CF: " << grid.points_CF[(i * 4) + j].transpose();
         os << std::endl;
       }
-      os << std::endl;
     }
     os << std::endl;
   }

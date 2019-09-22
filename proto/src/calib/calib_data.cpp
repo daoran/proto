@@ -143,6 +143,7 @@ int preprocess_camera_data(const calib_target_t &target,
     const auto image_path = paths_combine(image_dir, image_paths[i]);
     const cv::Mat image = cv::imread(image_path);
     aprilgrid_detect(grid, detector, image, cam_K, cam_D);
+    grid.timestamp = ts;
 
     // -- Save AprilGrid
     if (aprilgrid_save(grid, save_path) != 0) {

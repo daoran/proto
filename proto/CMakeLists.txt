@@ -5,7 +5,6 @@ PROJECT(proto)
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(BUILD_SHARED_LIBS ON)
-ADD_DEFINITIONS(-march=native)
 
 # DEPENDENCIES
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -196,7 +195,7 @@ SET(
   # vision-feature2d-test_grid_good
   # vision-test_frontend
   # vision-test_vision_common
-  # viz-test_gui
+  viz-test_gui
   # viz-test_plane
 )
 FOREACH(TEST ${UNITTESTS})

@@ -16,8 +16,9 @@ static void glfw_cursor_cb(GLFWwindow *window, double xpos, double ypos) {
 gui_t::gui_t(const std::string &title, const int width, const int height)
     : title_{title}, width_{width}, height_{height} {
   // Setup window
+  glfwSetErrorCallback(error_callback);
   if (!glfwInit()) {
-    FATAL("Failed to set GLFW error callback!");
+    FATAL("Failed to set initialize GLFW!");
   }
 
   // Decide GL+GLSL versions
@@ -38,8 +39,6 @@ gui_t::gui_t(const std::string &title, const int width, const int height)
   glfwSwapInterval(1); // Enable vsync
 
   // Event handlers
-  // -- Error
-  glfwSetErrorCallback(error_callback);
   // -- Keyboard
   // glfwSetKeyCallback(gui_, keyboard_callback);
   // -- Mouse
@@ -80,7 +79,7 @@ gui_t::~gui_t() {
 }
 
 void gui_t::error_callback(int error, const char *description) {
-  fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+  fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
 void gui_t::window_callback(GLFWwindow *window,

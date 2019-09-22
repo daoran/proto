@@ -65,6 +65,9 @@ void aprilgrid_add(aprilgrid_t &grid,
 /** Remove AprilTag measurement from AprilGrid based on id. */
 void aprilgrid_remove(aprilgrid_t &grid, const int id);
 
+/** Clear AprilGrid **/
+void aprilgrid_clear(aprilgrid_t &grid);
+
 /**
  * Get AprilTag measurements based on tag id.
  * @returns 0 or -1 for success or failure.
