@@ -27,8 +27,8 @@ INCLUDE_DIRECTORIES(${PROTO_INCLUDE_DIRS})
 # LINK
 SET(
   DEPS
-  proto
   proto_ros
+  proto
   ${catkin_LIBRARIES}
   ${PROTO_LIBRARIES}
 )
@@ -95,6 +95,9 @@ TARGET_LINK_LIBRARIES(atl_node ${DEPS})
 
 ADD_EXECUTABLE(calib_camera_node src/ros/nodes/calib_camera_node.cpp)
 TARGET_LINK_LIBRARIES(calib_camera_node ${DEPS})
+
+ADD_EXECUTABLE(calib_stereo_node src/ros/nodes/calib_stereo_node.cpp)
+TARGET_LINK_LIBRARIES(calib_stereo_node ${DEPS})
 
 ADD_EXECUTABLE(calib_validate_mono_node src/ros/nodes/calib_validate_mono_node.cpp)
 TARGET_LINK_LIBRARIES(calib_validate_mono_node ${DEPS})

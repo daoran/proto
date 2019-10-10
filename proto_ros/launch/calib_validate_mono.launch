@@ -1,4 +1,3 @@
-<?xml version="1.0"?>
 <launch>
   <node pkg="proto_ros"
 			type="camera_node"

@@ -148,9 +148,8 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
  * is a yaml file of the form:
  *
  *     settings:
- *       image_path: "/data/calib_data/cam0/data"
- *       preprocess_path: "/data/calib_data/cam0/aprilgrid0/data"
- *       results_file: "/data/calib_data/calib.yaml"
+ *       data_path: "/data"
+ *       results_fpath: "/data/calib_results.yaml"
  *       imshow: true
  *
  *     calib_target:

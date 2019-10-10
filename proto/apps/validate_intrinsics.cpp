@@ -3,7 +3,7 @@
 using namespace proto;
 
 struct calib_config_t {
-  std::string image_path;
+  std::string data_path;
   bool imshow = true;
 
   vec2_t resolution{0.0, 0.0};
@@ -20,7 +20,7 @@ Usage: validate_intrinsics <config.yaml>
 The `config.yaml` file is expected to have the following format:
 
   settings:
-    image_path: "/data/calib_Data/cam0/data"
+    data_path: "/data"
     imshow: true
 
   calib_target:
@@ -47,7 +47,7 @@ calib_config_t parse_config(const std::string &config_file) {
   config_t config{config_file};
   calib_config_t calib_config;
 
-  parse(config, "settings.image_path", calib_config.image_path);
+  parse(config, "settings.data_path", calib_config.data_path);
   parse(config, "settings.imshow", calib_config.imshow);
 
   parse(config, "cam0.resolution", calib_config.resolution);
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 
   // Get camera image paths
   std::vector<std::string> image_paths;
-  if (get_camera_image_paths(config.image_path, image_paths) != 0) {
+  if (get_camera_image_paths(config.data_path, image_paths) != 0) {
     return -1;
   }
 
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     print_progress((double) i / image_paths.size());
 
     // Detect
-    const auto image_path = paths_combine(config.image_path, image_paths[i]);
+    const auto image_path = paths_combine(config.data_path, image_paths[i]);
     const cv::Mat image = cv::imread(image_path);
     aprilgrid_t grid{0,
                      calib_target.tag_rows,

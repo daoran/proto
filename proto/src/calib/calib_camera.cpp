@@ -179,7 +179,7 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
 int calib_camera_solve(const std::string &config_file) {
   // Calibration config data
   std::string data_path;
-  std::string results_path;
+  std::string results_fpath;
   bool imshow = false;
   vec2_t resolution{0.0, 0.0};
   double lens_hfov = 0.0;
@@ -190,7 +190,7 @@ int calib_camera_solve(const std::string &config_file) {
   // Parse calib config file
   config_t config{config_file};
   parse(config, "settings.data_path", data_path);
-  parse(config, "settings.results_path", results_path);
+  parse(config, "settings.results_fpath", results_fpath);
   parse(config, "settings.imshow", imshow, true);
   parse(config, "cam0.resolution", resolution);
   parse(config, "cam0.lens_hfov", lens_hfov);
@@ -206,7 +206,7 @@ int calib_camera_solve(const std::string &config_file) {
   }
 
   // Prepare aprilgrid data directory
-  const auto grid_data_path = data_path + "/grid0/data";
+  const auto grid_data_path = data_path + "/grid0/cam0/data";
   if (dir_exists(grid_data_path) == false) {
     dir_create(grid_data_path);
   }
@@ -266,9 +266,9 @@ int calib_camera_solve(const std::string &config_file) {
 
   // Save results
   printf("\x1B[92mSaving optimization results to [%s]\033[0m\n",
-         results_path.c_str());
-  if (save_results(results_path, resolution, pinhole, radtan) != 0) {
-    LOG_ERROR("Failed to save results to [%s]!", results_path.c_str());
+         results_fpath.c_str());
+  if (save_results(results_fpath, resolution, pinhole, radtan) != 0) {
+    LOG_ERROR("Failed to save results to [%s]!", results_fpath.c_str());
     return -1;
   }
 

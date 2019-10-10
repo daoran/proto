@@ -250,31 +250,26 @@ int preprocess_stereo_data(const calib_target_t &target,
                            const double cam1_lens_vfov,
                            const std::string &cam0_output_dir,
                            const std::string &cam1_output_dir) {
-  int retval = 0;
+  std::vector<std::string> data_paths = {cam0_image_dir, cam1_image_dir};
+  std::vector<vec2_t> resolutions = {cam0_image_size, cam1_image_size};
+  std::vector<double> hfovs = {cam0_lens_hfov, cam1_lens_hfov};
+  std::vector<double> vfovs = {cam0_lens_vfov, cam1_lens_vfov};
+  std::vector<std::string> output_paths = {cam0_output_dir, cam1_output_dir};
 
-  // Process cam0 image data
-  retval = preprocess_camera_data(target,
-                                  cam0_image_dir,
-                                  cam0_image_size,
-                                  cam0_lens_hfov,
-                                  cam0_lens_vfov,
-                                  cam0_output_dir);
-  if (retval != 0) {
-    return -1;
+  int retvals[2] = {0, 0};
+  #pragma omp parallel for
+  for (size_t i = 0; i < 2; i++) {
+    retvals[i] = preprocess_camera_data(target,
+                                        data_paths[i],
+                                        resolutions[i],
+                                        hfovs[i],
+                                        vfovs[i],
+                                        output_paths[i],
+                                        false,
+                                        (i == 0) ? true : false);
   }
 
-  // Process cam1 image data
-  retval = preprocess_camera_data(target,
-                                  cam1_image_dir,
-                                  cam1_image_size,
-                                  cam1_lens_hfov,
-                                  cam1_lens_vfov,
-                                  cam1_output_dir);
-  if (retval != 0) {
-    return -1;
-  }
-
-  return 0;
+  return (retvals[0] == 0 && retvals[1] == 0) ? 0 : -1;
 }
 
 void extract_common_calib_data(aprilgrids_t &grids0, aprilgrids_t &grids1) {

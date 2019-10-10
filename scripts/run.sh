@@ -27,7 +27,8 @@ sudo make install
 # exit
 
 cd ~/catkin_ws/ && source devel/setup.bash
-roslaunch proto_ros calib_camera.launch
+# roslaunch proto_ros calib_camera.launch
+# roslaunch proto_ros calib_stereo.launch
 
 # cd scripts/api/
 # python3 api.py

@@ -100,11 +100,8 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
  * function assumes that the path to `config_file` is a yaml file of the form:
  *
  *     settings:
- *       cam0_image_path: "/data/calib_data/cam0/data"
- *       cam1_image_path: "/data/calib_data/cam1/data"
- *       cam0_preprocess_path: "/data/calib_data/aprilgrid0/cam0/data"
- *       cam1_preprocess_path: "/data/calib_data/aprilgrid0/cam1/data"
- *       results_file: "/data/calib_data/calib.yaml"
+ *       data_path: "/data"
+ *       results_fpath: "/data/calib_results.yaml"
  *
  *     calib_target:
  *       target_type: 'aprilgrid'  # Target type

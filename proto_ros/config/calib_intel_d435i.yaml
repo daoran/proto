@@ -1,6 +1,6 @@
 settings:
   data_path: "/data/intel_d435i/calib_data"
-  results_path: "/data/intel_d435i/calib_data/calib_results.yaml"
+  results_fpath: "/data/intel_d435i/calib_data/calib_results.yaml"
   imshow: true
 
 calib_target:
@@ -12,8 +12,17 @@ calib_target:
                             # Example: tagSize=2m, spacing=0.5m --> tagSpacing=0.25[-]
 
 cam0:
-  resolution: [640, 480]
-  lens_hfov: 90
-  lens_vfov: 60
   camera_model: "pinhole"
   distortion_model: "radtan"
+  lens_hfov: 69.4
+  lens_vfov: 42.5
+  resolution: [640.0, 480.0]
+  rate: 30.0
+
+cam1:
+  camera_model: "pinhole"
+  distortion_model: "radtan"
+  lens_hfov: 69.4
+  lens_vfov: 42.5
+  resolution: [640.0, 480.0]
+  rate: 30.0
