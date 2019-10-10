@@ -40,7 +40,6 @@ calib_config_t parse_calib_file(const std::string &calib_file) {
 struct calib_validate_mono_node_t : ros_node_t {
   cv::VideoCapture capture_;
   std::string image_topic_;
-  int image_type_ = -1;
   const aprilgrid_detector_t detector_;
 	calib_config_t calib_config_;
 	calib_target_t calib_target_;
@@ -50,22 +49,12 @@ struct calib_validate_mono_node_t : ros_node_t {
   int configure() {
     std::string calib_file;
     std::string target_file;
-    std::string type;
 
     // Setup ROS
     ros_node_t::configure();
     ROS_GET_PARAM(node_name_ + "/calib_file", calib_file);
     ROS_GET_PARAM(node_name_ + "/target_file", target_file);
     ROS_GET_PARAM(node_name_ + "/image_topic", image_topic_);
-    ROS_GET_PARAM(node_name_ + "/image_type", type);
-    if (type == "8UC3") {
-      image_type_ = CV_8UC3;
-    } else if (type == "8UC1") {
-      image_type_ = CV_8UC1;
-    } else {
-      ROS_FATAL("Invalid image type [%s]!", type.c_str());
-      return -1;
-    }
     // -- Configure ROS subscribers
     add_image_subscriber(
       image_topic_,
@@ -87,7 +76,7 @@ struct calib_validate_mono_node_t : ros_node_t {
 
   void image_callback(const sensor_msgs::ImageConstPtr &msg) {
     // Convert ROS message to cv::Mat
-    const cv::Mat image = msg_convert(msg, image_type_);
+    const cv::Mat image = msg_convert(msg);
 
     // Detect calib target
     aprilgrid_t grid{0,

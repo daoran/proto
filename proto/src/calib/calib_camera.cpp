@@ -6,7 +6,7 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              double *intrinsics,
                              double *distortion,
                              calib_pose_param_t *pose,
-                             ceres::Problem *problem) {
+                             ceres::Problem &problem) {
   for (const auto &tag_id : aprilgrid.ids) {
     // Get keypoints
     vec2s_t keypoints;
@@ -38,12 +38,12 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                           >(residual);
 
       // const auto cost_func = new intrinsics_residual_t{kp, obj_pt};
-      problem->AddResidualBlock(cost_func, // Cost function
-                                NULL,      // Loss function
-                                intrinsics,
-                                distortion,
-                                pose->q.coeffs().data(),
-                                pose->r.data());
+      problem.AddResidualBlock(cost_func, // Cost function
+                               NULL,      // Loss function
+                               intrinsics,
+                               distortion,
+                               pose->q.coeffs().data(),
+                               pose->r.data());
     }
   }
 
@@ -138,7 +138,7 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
   ceres::Problem::Options problem_options;
   problem_options.local_parameterization_ownership =
       ceres::DO_NOT_TAKE_OWNERSHIP;
-  std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
+  ceres::Problem problem(problem_options);
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 
   // Process all aprilgrid data
@@ -147,13 +147,13 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
                                    *pinhole.data,
                                    *radtan.data,
                                    &T_CF_params[i],
-                                   problem.get());
+                                   problem);
     if (retval != 0) {
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
-    problem->SetParameterization(T_CF_params[i].q.coeffs().data(),
-                                 &quaternion_parameterization);
+    problem.SetParameterization(T_CF_params[i].q.coeffs().data(),
+                                &quaternion_parameterization);
   }
 
   // Set solver options
@@ -164,7 +164,7 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
 
   // Solve
   ceres::Solver::Summary summary;
-  ceres::Solve(options, problem.get(), &summary);
+  ceres::Solve(options, &problem, &summary);
   std::cout << summary.FullReport() << std::endl;
 
   // Clean up
@@ -177,32 +177,26 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
 }
 
 int calib_camera_solve(const std::string &config_file) {
-  // Calibration config
-  struct calib_config_t {
-    std::string image_path;
-    std::string preprocess_path;
-    std::string results_file;
-    bool imshow = false;
-
-    vec2_t resolution{0.0, 0.0};
-    double lens_hfov = 0.0;
-    double lens_vfov = 0.0;
-    std::string camera_model;
-    std::string distortion_model;
-  };
+  // Calibration config data
+  std::string data_path;
+  std::string results_path;
+  bool imshow = false;
+  vec2_t resolution{0.0, 0.0};
+  double lens_hfov = 0.0;
+  double lens_vfov = 0.0;
+  std::string camera_model;
+  std::string distortion_model;
 
   // Parse calib config file
-  config_t yaml_config{config_file};
-  calib_config_t config;
-  parse(yaml_config, "settings.image_path", config.image_path);
-  parse(yaml_config, "settings.preprocess_path", config.preprocess_path);
-  parse(yaml_config, "settings.results_file", config.results_file);
-  parse(yaml_config, "settings.imshow", config.imshow, true);
-  parse(yaml_config, "cam0.resolution", config.resolution);
-  parse(yaml_config, "cam0.lens_hfov", config.lens_hfov);
-  parse(yaml_config, "cam0.lens_vfov", config.lens_vfov);
-  parse(yaml_config, "cam0.camera_model", config.camera_model);
-  parse(yaml_config, "cam0.distortion_model", config.distortion_model);
+  config_t config{config_file};
+  parse(config, "settings.data_path", data_path);
+  parse(config, "settings.results_path", results_path);
+  parse(config, "settings.imshow", imshow, true);
+  parse(config, "cam0.resolution", resolution);
+  parse(config, "cam0.lens_hfov", lens_hfov);
+  parse(config, "cam0.lens_vfov", lens_vfov);
+  parse(config, "cam0.camera_model", camera_model);
+  parse(config, "cam0.distortion_model", distortion_model);
 
   // Load calibration target
   calib_target_t calib_target;
@@ -211,14 +205,21 @@ int calib_camera_solve(const std::string &config_file) {
     return -1;
   }
 
+  // Prepare aprilgrid data directory
+  const auto grid_data_path = data_path + "/grid0/data";
+  if (dir_exists(grid_data_path) == false) {
+    dir_create(grid_data_path);
+  }
+
   // Preprocess calibration data
+  const auto cam_data_path = data_path + "/cam0/data";
   int retval = preprocess_camera_data(calib_target,
-                                      config.image_path,
-                                      config.resolution,
-                                      config.lens_hfov,
-                                      config.lens_vfov,
-                                      config.preprocess_path,
-                                      config.imshow);
+                                      cam_data_path,
+                                      resolution,
+                                      lens_hfov,
+                                      lens_vfov,
+                                      grid_data_path,
+                                      imshow);
   if (retval != 0) {
     LOG_ERROR("Failed to preprocess calibration data!");
     return -1;
@@ -227,19 +228,19 @@ int calib_camera_solve(const std::string &config_file) {
   // Load calibration data
   aprilgrids_t grids;
   timestamps_t timestamps;
-  retval = load_camera_calib_data(config.preprocess_path, grids, timestamps);
+  retval = load_camera_calib_data(grid_data_path, grids, timestamps);
   if (retval != 0) {
     LOG_ERROR("Failed to load camera calibration data!");
     return -1;
   }
 
   // Setup initial camera intrinsics and distortion for optimization
-  const double image_width = config.resolution(0);
-  const double image_height = config.resolution(1);
-  const double fx = pinhole_focal_length(image_width, config.lens_hfov);
-  const double fy = pinhole_focal_length(image_height, config.lens_vfov);
-  const double cx = config.resolution(0) / 2.0;
-  const double cy = config.resolution(1) / 2.0;
+  const double image_width = resolution(0);
+  const double image_height = resolution(1);
+  const double fx = pinhole_focal_length(image_width, lens_hfov);
+  const double fy = pinhole_focal_length(image_height, lens_vfov);
+  const double cx = resolution(0) / 2.0;
+  const double cy = resolution(1) / 2.0;
   pinhole_t pinhole{fx, fy, cx, cy};
   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
 
@@ -255,14 +256,22 @@ int calib_camera_solve(const std::string &config_file) {
   std::cout << "Optimization results:" << std::endl;
   std::cout << pinhole << std::endl;
   std::cout << radtan << std::endl;
+  calib_camera_stats<pinhole_radtan4_residual_t>(
+    grids,
+    *pinhole.data,
+    *radtan.data,
+    T_CF,
+    ""
+  );
 
   // Save results
-  const std::string save_path = config.results_file;
-  LOG_INFO("Saving optimization results to [%s]", save_path.c_str());
-  if (save_results(save_path, config.resolution, pinhole, radtan) != 0) {
-    LOG_ERROR("Failed to save results to [%s]!", save_path.c_str());
+  printf("\x1B[92mSaving optimization results to [%s]\033[0m\n",
+         results_path.c_str());
+  if (save_results(results_path, resolution, pinhole, radtan) != 0) {
+    LOG_ERROR("Failed to save results to [%s]!", results_path.c_str());
     return -1;
   }
+
 
   return 0;
 }

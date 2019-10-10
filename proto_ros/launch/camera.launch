@@ -6,5 +6,6 @@
     required="true"
     output="screen">
       <param name="topic" value="/camera/image" />
+      <param name="camera_index" value="0" />
   </node>
 </launch>

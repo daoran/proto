@@ -128,13 +128,9 @@ proto::quat_t msg_convert(const geometry_msgs::Quaternion &msg) {
   return proto::quat_t{msg.w, msg.x, msg.y, msg.z};
 }
 
-cv::Mat msg_convert(const sensor_msgs::ImageConstPtr &msg, const int cv_type) {
+cv::Mat msg_convert(const sensor_msgs::ImageConstPtr &msg) {
 	cv_bridge::CvImagePtr image_ptr = cv_bridge::toCvCopy(msg);
-	size_t size = image_ptr->image.total() * image_ptr->image.elemSize();
-	size_t rows = image_ptr->image.rows;
-	size_t cols = image_ptr->image.cols;
-	size_t row_bytes = size / rows;
-	return cv::Mat(rows, cols, cv_type, image_ptr->image.data, row_bytes);
+	return image_ptr->image;
 }
 
 } // namespace proto

@@ -64,7 +64,7 @@ struct pinhole_radtan4_residual_t {
  * @returns 0 or -1 for success or failure
  */
 template <typename RESIDUAL>
-int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
+int calib_camera_stats(const aprilgrids_t &aprilgrids,
                        const double *intrinsics,
                        const double *distortion,
                        const mat4s_t &poses,
@@ -112,17 +112,15 @@ int calib_camera_stats(const std::vector<aprilgrid_t> &aprilgrids,
   }
 
   // Calculate RMSE reprojection error
-  double sum = 0.0;
+  double err_sum = 0.0;
   for (auto &residual : residuals) {
-    const double norm = residual.norm();
-    const double err_sq = norm * norm;
-    sum += err_sq;
+    const double err = residual.norm();
+    const double err_sq = err * err;
+    err_sum += err_sq;
   }
-  const double mean = sum / (double) residuals.size();
-  const double rmse = sqrt(mean);
+  const double err_mean = err_sum / (double) residuals.size();
+  const double rmse = sqrt(err_mean);
   std::cout << "nb_residuals: " << residuals.size() << std::endl;
-  std::cout << "sum: " << sum << std::endl;
-  std::cout << "mean: " << mean << std::endl;
   std::cout << "RMSE Reprojection Error [px]: " << rmse << std::endl;
 
   return 0;

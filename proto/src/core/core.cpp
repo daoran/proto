@@ -1592,8 +1592,7 @@ config_t::~config_t() {}
 int yaml_load_file(const std::string file_path, YAML::Node &root) {
   // Pre-check
   if (file_exists(file_path) == false) {
-    LOG_ERROR("File not found: %s", file_path.c_str());
-    return -1;
+    FATAL("File not found: %s", file_path.c_str());
   }
 
   // Load and parse file

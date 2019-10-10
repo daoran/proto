@@ -11,6 +11,15 @@
 
 namespace proto {
 
+#define ROS_GET_NODE_NAME(argc, argv, NODE_NAME)                               \
+  for (int i = 1; i < argc; i++) {                                             \
+    std::string arg(argv[i]);                                                  \
+    if (arg.find("__name:=") != std::string::npos) {                           \
+      NODE_NAME = arg.substr(8);                                               \
+      break;                                                                   \
+    }                                                                          \
+  }
+
 #define ROS_GET_PARAM(X, Y)                                                    \
   if (ros_nh_ == NULL) {                                                       \
     ROS_ERROR("You did not do ros_node_t::configure() first!");                \

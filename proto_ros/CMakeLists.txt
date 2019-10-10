@@ -64,6 +64,7 @@ CATKIN_PACKAGE(
 # PROTO ROS LIB
 ADD_LIBRARY(
   proto_ros
+  src/ros/bag.cpp
   src/ros/node.cpp
   src/ros/msgs.cpp
 )
@@ -91,6 +92,9 @@ TARGET_LINK_LIBRARIES(proto_pose_plugin ${DEPS})
 # ROS NODES
 ADD_EXECUTABLE(atl_node src/ros/nodes/atl_node.cpp)
 TARGET_LINK_LIBRARIES(atl_node ${DEPS})
+
+ADD_EXECUTABLE(calib_camera_node src/ros/nodes/calib_camera_node.cpp)
+TARGET_LINK_LIBRARIES(calib_camera_node ${DEPS})
 
 ADD_EXECUTABLE(calib_validate_mono_node src/ros/nodes/calib_validate_mono_node.cpp)
 TARGET_LINK_LIBRARIES(calib_validate_mono_node ${DEPS})

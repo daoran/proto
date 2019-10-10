@@ -16,6 +16,5 @@
 		<param name="calib_file" value="8UC3" />
     <param name="target_file" value="${find proto_ros}/config/apriltag.yaml" />
 		<param name="image_topic" value="/camera/image" />
-		<param name="image_type" value="8UC3" />
   </node>
 </launch>

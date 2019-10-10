@@ -17,6 +17,7 @@
 
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/Imu.h>
 
 #include <cv_bridge/cv_bridge.h>
 
@@ -52,7 +53,7 @@ std::string msg_convert(const std_msgs::String &msg);
 proto::vec3_t msg_convert(const geometry_msgs::Vector3 &msg);
 proto::vec3_t msg_convert(const geometry_msgs::Point &msg);
 proto::quat_t msg_convert(const geometry_msgs::Quaternion &msg);
-cv::Mat msg_convert(const sensor_msgs::ImageConstPtr &msg, const int cv_type=CV_8UC3);
+cv::Mat msg_convert(const sensor_msgs::ImageConstPtr &msg);
 
 } // namespace proto
 #endif // PROTO_ROS_MSGS_HPP
