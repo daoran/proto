@@ -22,6 +22,7 @@ INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${catkin_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${GAZEBO_INCLUDE_DIRS})
 INCLUDE(cmake/ImportProto.cmake)
+FIND_PACKAGE(Proto REQUIRED)
 INCLUDE_DIRECTORIES(${PROTO_INCLUDE_DIRS})
 
 # LINK
@@ -54,7 +55,6 @@ CATKIN_PACKAGE(
     message_runtime
     image_transport
     cv_bridge
-    proto
   INCLUDE_DIRS
     include
   LIBRARIES
@@ -66,7 +66,7 @@ ADD_LIBRARY(
   proto_ros
   src/ros/bag.cpp
   src/ros/node.cpp
-  src/ros/msgs.cpp
+  src/ros/msg.cpp
 )
 INSTALL(
   DIRECTORY launch/

@@ -1,5 +1,5 @@
 #include "proto/ros/node.hpp"
-#include "proto/ros/msgs.hpp"
+#include "proto/ros/msg.hpp"
 
 // NODE SETTINGS
 static const double NODE_RATE = 1.0;

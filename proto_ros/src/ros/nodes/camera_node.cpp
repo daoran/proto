@@ -3,7 +3,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "proto/ros/node.hpp"
-#include "proto/ros/msgs.hpp"
+#include "proto/ros/msg.hpp"
 
 namespace proto {
 
@@ -17,8 +17,8 @@ struct camera_node_t : ros_node_t {
   int configure() {
     // Setup ROS
     ros_node_t::configure();
-    ROS_GET_PARAM(node_name_ + "/topic", topic_);
-    ROS_GET_OPTIONAL_PARAM(node_name_ + "/camera_index", camera_index_, 0);
+    ROS_PARAM(ros_nh_, node_name_ + "/topic", topic_);
+    ROS_OPTIONAL_PARAM(ros_nh_, node_name_ + "/camera_index", camera_index_, 0);
 
     // Configure publishers and loop callbacks
     add_image_publisher(topic_);

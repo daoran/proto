@@ -10,7 +10,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <proto/proto.hpp>
-#include "proto/ros/msgs.hpp"
+#include "proto/ros/msg.hpp"
 
 namespace proto {
 

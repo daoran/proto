@@ -1,4 +1,4 @@
-#include "proto/ros/msgs.hpp"
+#include "proto/ros/msg.hpp"
 
 namespace proto {
 

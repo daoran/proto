@@ -50,24 +50,21 @@ void process_rosbag(const std::string &rosbag_path,
 
 int main(int argc, char *argv[]) {
   // Setup ROS Node
-  // -- Parse node name
-  std::string node_name;
-  ROS_GET_NODE_NAME(argc, argv, node_name);
-  // -- Start ROS node
+  const std::string node_name = proto::ros_node_name(argc, argv);
   if (ros::isInitialized() == false) {
     ros::init(argc, argv, node_name, ros::init_options::NoSigintHandler);
   }
-  const auto ros_nh_ = new ros::NodeHandle();
 
   // Get ROS params
+  const ros::NodeHandle ros_nh;
   std::string config_file;
   std::string rosbag_path;
   std::string cam0_topic;
   std::string cam1_topic;
-  ROS_GET_PARAM(node_name + "/config_file", config_file);
-  ROS_GET_PARAM(node_name + "/rosbag", rosbag_path);
-  ROS_GET_PARAM(node_name + "/cam0_topic", cam0_topic);
-  ROS_GET_PARAM(node_name + "/cam1_topic", cam1_topic);
+  ROS_PARAM(ros_nh, node_name + "/config_file", config_file);
+  ROS_PARAM(ros_nh, node_name + "/rosbag", rosbag_path);
+  ROS_PARAM(ros_nh, node_name + "/cam0_topic", cam0_topic);
+  ROS_PARAM(ros_nh, node_name + "/cam1_topic", cam1_topic);
 
 	// Parse config file
 	std::string data_path;
@@ -82,6 +79,5 @@ int main(int argc, char *argv[]) {
     FATAL("Failed to calibrate camera!");
   }
 
-  delete ros_nh_;
   return 0;
 }

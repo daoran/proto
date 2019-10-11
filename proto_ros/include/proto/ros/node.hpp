@@ -9,37 +9,21 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 
+#include <proto/proto.hpp>
+
 namespace proto {
 
-#define ROS_GET_NODE_NAME(argc, argv, NODE_NAME)                               \
-  for (int i = 1; i < argc; i++) {                                             \
-    std::string arg(argv[i]);                                                  \
-    if (arg.find("__name:=") != std::string::npos) {                           \
-      NODE_NAME = arg.substr(8);                                               \
-      break;                                                                   \
-    }                                                                          \
+#define ROS_PARAM(NH, X, Y)                                                    \
+  if (NH.getParam(X, Y) == false) {                                            \
+    ROS_FATAL_STREAM("Failed to get ROS param [" << X << "]!");                \
   }
 
-#define ROS_GET_PARAM(X, Y)                                                    \
-  if (ros_nh_ == NULL) {                                                       \
-    ROS_ERROR("You did not do ros_node_t::configure() first!");                \
-    ROS_ERROR("Can only call ROS_GET_PARAM() after configure!");               \
-    return -1;                                                                 \
-  }                                                                            \
-  if (ros_nh_->getParam(X, Y) == false) {                                      \
-    ROS_ERROR("Failed to get ROS param [%s]!", (X).c_str());                   \
-    return -1;                                                                 \
-  }
-
-#define ROS_GET_OPTIONAL_PARAM(X, Y, DEFAULT_VALUE)													   \
-  if (ros_nh_ == NULL) {                                                       \
-    ROS_ERROR("You did not do ros_node_t::configure() first!");                \
-    ROS_ERROR("Can only call ROS_GET_PARAM() after configure!");               \
-    return -1;                                                                 \
-  }                                                                            \
-  if (ros_nh_->getParam(X, Y) == false) {                                      \
+#define ROS_OPTIONAL_PARAM(NH, X, Y, DEFAULT)													         \
+  if (NH.getParam(X, Y) == false) {                                            \
     ROS_INFO("ROS param [%s] not found, setting defaults!", (X).c_str());      \
-		Y = DEFAULT_VALUE;																											   \
+    ROS_INFO_STREAM("ROS param [" << X << "] not configured!");                \
+    ROS_INFO_STREAM("Setting [" << X << "] to [" << DEFAULT << "]!");          \
+		Y = DEFAULT;																											         \
   }
 
 #define RUN_ROS_NODE(NODE_CLASS)                                               \
@@ -64,6 +48,17 @@ namespace proto {
     return 0;                                                                  \
   }
 
+std::string ros_node_name(int argc, char *argv[]) {
+  for (int i = 1; i < argc; i++) {
+    std::string arg(argv[i]);
+    if (arg.find("__name:=") != std::string::npos) {
+      return arg.substr(8);
+    }
+  }
+
+  FATAL("Failed to find node name?");
+}
+
 struct ros_node_t {
   bool configured_ = false;
   bool debug_mode_ = false;
@@ -74,7 +69,7 @@ struct ros_node_t {
 
   std::string node_name_;
   size_t ros_seq_ = 0;
-  ros::NodeHandle *ros_nh_ = nullptr;
+  ros::NodeHandle ros_nh_;
   ros::Rate *ros_rate_ = nullptr;
   ros::Time ros_last_updated_;
 
@@ -109,7 +104,7 @@ struct ros_node_t {
     }
 
     // image transport
-    image_transport::ImageTransport it(*ros_nh_);
+    image_transport::ImageTransport it(ros_nh_);
     img_subs_[topic] = it.subscribe(topic, queue_size, fp, obj);
 
     return 0;
@@ -127,7 +122,7 @@ struct ros_node_t {
     }
 
     // add publisher
-    publisher = ros_nh_->advertise<M>(topic, queue_size, latch);
+    publisher = ros_nh_.advertise<M>(topic, queue_size, latch);
     ros_pubs_[topic] = publisher;
 
     return 0;
@@ -146,7 +141,7 @@ struct ros_node_t {
     }
 
     // add subscriber
-    subscriber = ros_nh_->subscribe(topic, queue_size, fp, obj);
+    subscriber = ros_nh_.subscribe(topic, queue_size, fp, obj);
     ros_subs_[topic] = subscriber;
 
     return 0;
@@ -164,7 +159,7 @@ struct ros_node_t {
     }
 
     // register service server
-    server = ros_nh_->advertiseService(service_topic, fp, obj);
+    server = ros_nh_.advertiseService(service_topic, fp, obj);
     ros_services_[service_topic] = server;
 
     return 0;
@@ -180,7 +175,7 @@ struct ros_node_t {
     }
 
     // register service server
-    client = ros_nh_->serviceClient<M>(service_topic);
+    client = ros_nh_.serviceClient<M>(service_topic);
     ros_clients_[service_topic] = client;
 
     return 0;

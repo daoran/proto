@@ -4,7 +4,7 @@
 #include <sensor_msgs/Joy.h>
 
 #include "proto/ros/node.hpp"
-#include "proto/ros/msgs.hpp"
+#include "proto/ros/msg.hpp"
 
 // NODE SETTINGS
 static const double NODE_RATE = 1000.0;
@@ -50,7 +50,7 @@ struct atl_node_t : ros_node_t {
 
     // ATL
     std::string config;
-    ROS_GET_PARAM(node_name_ + "/config", config);
+    ROS_PARAM(ros_nh_, node_name_ + "/config", config);
     if (atl_configure(atl, config) != 0) {
       ROS_FATAL("Failed to configure ATL!");
     }

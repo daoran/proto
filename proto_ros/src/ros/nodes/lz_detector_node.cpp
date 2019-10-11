@@ -4,7 +4,7 @@
 
 #include <proto/proto.hpp>
 #include "proto/ros/node.hpp"
-#include "proto/ros/msgs.hpp"
+#include "proto/ros/msg.hpp"
 
 // NODE SETTINGS
 static const double NODE_RATE = 60.0;
@@ -34,7 +34,7 @@ struct lz_detector_node_t : ros_node_t {
 
     // Configure landing zone detector
     std::string config_file;
-    ROS_GET_PARAM(node_name_ + "/config", config_file);
+    ROS_PARAM(ros_nh_, node_name_ + "/config", config_file);
     if (lz_detector_configure(lz_detector, config_file, "landing_zone") != 0) {
       ROS_FATAL("Failed to configure landing zone detector!");
     }

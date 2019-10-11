@@ -1,6 +1,6 @@
 #include <proto/proto.hpp>
 #include "proto/ros/node.hpp"
-#include "proto/ros/msgs.hpp"
+#include "proto/ros/msg.hpp"
 
 namespace proto {
 
@@ -52,9 +52,9 @@ struct calib_validate_mono_node_t : ros_node_t {
 
     // Setup ROS
     ros_node_t::configure();
-    ROS_GET_PARAM(node_name_ + "/calib_file", calib_file);
-    ROS_GET_PARAM(node_name_ + "/target_file", target_file);
-    ROS_GET_PARAM(node_name_ + "/image_topic", image_topic_);
+    ROS_PARAM(ros_nh_, node_name_ + "/calib_file", calib_file);
+    ROS_PARAM(ros_nh_, node_name_ + "/target_file", target_file);
+    ROS_PARAM(ros_nh_, node_name_ + "/image_topic", image_topic_);
     // -- Configure ROS subscribers
     add_image_subscriber(
       image_topic_,

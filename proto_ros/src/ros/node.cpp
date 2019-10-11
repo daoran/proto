@@ -21,7 +21,6 @@ ros_node_t::ros_node_t(int argc, char **argv) {
 
 ros_node_t::~ros_node_t() {
   ros::shutdown();
-  delete ros_nh_;
   if (ros_rate_) {
     delete ros_rate_;
   }
@@ -31,10 +30,8 @@ int ros_node_t::configure() {
   if (ros::isInitialized() == false) {
     ros::init(argc_, argv_, node_name_, ros::init_options::NoSigintHandler);
   }
-
-  ros_nh_ = new ros::NodeHandle();
-  ros_nh_->getParam("/debug_mode", debug_mode_);
-  ros_nh_->getParam("/sim_mode", sim_mode_);
+  ros_nh_.getParam("/debug_mode", debug_mode_);
+  ros_nh_.getParam("/sim_mode", sim_mode_);
   configured_ = true;
 
   return 0;
@@ -53,7 +50,6 @@ void ros_node_t::shutdown_callback(const std_msgs::Bool &msg) {
 }
 
 int ros_node_t::add_shutdown_subscriber(const std::string &topic) {
-  bool retval;
   ros::Subscriber sub;
 
   // Pre-check
@@ -62,7 +58,7 @@ int ros_node_t::add_shutdown_subscriber(const std::string &topic) {
   }
 
   // Register subscriber
-  sub = ros_nh_->subscribe(topic, 1, &ros_node_t::shutdown_callback, this);
+  sub = ros_nh_.subscribe(topic, 1, &ros_node_t::shutdown_callback, this);
   ros_subs_[topic] = sub;
 
   return 0;
@@ -75,7 +71,7 @@ int ros_node_t::add_image_publisher(const std::string &topic) {
   }
 
   // Image transport
-  image_transport::ImageTransport it(*ros_nh_);
+  image_transport::ImageTransport it(ros_nh_);
   img_pubs_[topic] = it.advertise(topic, 1);
 
   return 0;
