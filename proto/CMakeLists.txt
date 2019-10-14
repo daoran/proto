@@ -174,7 +174,7 @@ SET(
   # comm-test_tcp
   # control-test_carrot_ctrl
   # control-test_pid
-  # core-test_core
+  core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
   # estimation-test_factor

@@ -1434,69 +1434,69 @@ void yaml_check_matrix(const YAML::Node &node,
                        const bool optional);
 
 template <typename T>
-void parse(const config_t &config,
-           const std::string &key,
-           T &out,
-           const bool optional=false);
+int parse(const config_t &config,
+          const std::string &key,
+          T &out,
+          const bool optional=false);
 
 template <typename T>
-void parse(const config_t &config,
-           const std::string &key,
-           std::vector<T> &out,
-           const bool optional);
+int parse(const config_t &config,
+          const std::string &key,
+          std::vector<T> &out,
+          const bool optional);
 
-void parse(const config_t &config,
-           const std::string &key,
-           vec2_t &vec,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          vec2_t &vec,
+          const bool optional = false);
 
-void parse(const config_t &config,
-           const std::string &key,
-           vec3_t &vec,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          vec3_t &vec,
+          const bool optional = false);
 
-void parse(const config_t &config,
-           const std::string &key,
-           vec4_t &vec,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          vec4_t &vec,
+          const bool optional = false);
 
-void parse(const config_t &config,
-           const std::string &key,
-           vecx_t &vec,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          vecx_t &vec,
+          const bool optional = false);
 
-void parse(const config_t &config,
-           const std::string &key,
-           mat2_t &mat,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          mat2_t &mat,
+          const bool optional = false);
 
-void parse(const config_t &config,
-           const std::string &key,
-           mat3_t &mat,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          mat3_t &mat,
+          const bool optional = false);
 
-void parse(const config_t &config,
-           const std::string &key,
-           mat4_t &mat,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          mat4_t &mat,
+          const bool optional = false);
 
-void parse(const config_t &config,
-           const std::string &key,
-           matx_t &mat,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          matx_t &mat,
+          const bool optional = false);
 
-void parse(const config_t &config,
-           const std::string &key,
-           cv::Mat &mat,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          cv::Mat &mat,
+          const bool optional = false);
 
 template <typename T>
-void parse(const config_t &config,
-           const std::string &key,
-           const int rows,
-           const int cols,
-           T &mat,
-           const bool optional = false);
+int parse(const config_t &config,
+          const std::string &key,
+          const int rows,
+          const int cols,
+          T &mat,
+          const bool optional = false);
 
 ////////// CONFIG IMPLEMENTATION
 
@@ -1577,29 +1577,30 @@ void yaml_check_matrix(const YAML::Node &node,
 }
 
 template <typename T>
-void parse(const config_t &config,
-           const std::string &key,
-           T &out,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          T &out,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
   out = node.as<T>();
+	return 0;
 }
 
 template <typename T>
-void parse(const config_t &config,
-           const std::string &key,
-           std::vector<T> &out,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          std::vector<T> &out,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
@@ -1607,6 +1608,8 @@ void parse(const config_t &config,
   for (auto n : node) {
     out.push_back(n.as<T>());
   }
+
+	return 0;
 }
 
 /******************************************************************************

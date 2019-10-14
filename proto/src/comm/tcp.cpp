@@ -121,20 +121,18 @@ int tcp_client_config(tcp_client_t &client) {
 
   // Assign IP, PORT
   struct sockaddr_in server;
-  bzero(&server, sizeof(server));
+  size_t server_size = sizeof(server);
+  bzero(&server, server_size);
   server.sin_family = AF_INET;
   server.sin_addr.s_addr = inet_addr(client.server_ip.c_str());
   server.sin_port = htons(client.server_port);
 
   // Connect to server
-  int retval =
-      connect(client.sockfd, (struct sockaddr *) &server, sizeof(server));
-  if (retval != 0) {
+  if (connect(client.sockfd, (struct sockaddr *) &server, server_size) != 0) {
     LOG_ERROR("Failed to connect to server!");
     return -1;
-  } else {
-    DEBUG("Connected to the server!");
   }
+  DEBUG("Connected to the server!");
 
   return 0;
 }

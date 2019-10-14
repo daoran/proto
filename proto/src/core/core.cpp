@@ -1,5 +1,11 @@
 #include "proto/core/core.hpp"
 
+#include <stdio.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 namespace proto {
 
 /******************************************************************************
@@ -889,27 +895,27 @@ vec3_t mvn(std::default_random_engine &engine,
 }
 
 double gauss_normal() {
-	static double V1, V2, S;
-	static int phase = 0;
-	double X;
+  static double V1, V2, S;
+  static int phase = 0;
+  double X;
 
-	if (phase == 0) {
-		do {
-			double U1 = (double)rand() / RAND_MAX;
-			double U2 = (double)rand() / RAND_MAX;
+  if (phase == 0) {
+    do {
+      double U1 = (double)rand() / RAND_MAX;
+      double U2 = (double)rand() / RAND_MAX;
 
-			V1 = 2 * U1 - 1;
-			V2 = 2 * U2 - 1;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1 || S == 0);
+      V1 = 2 * U1 - 1;
+      V2 = 2 * U2 - 1;
+      S = V1 * V1 + V2 * V2;
+    } while (S >= 1 || S == 0);
 
-		X = V1 * sqrt(-2 * log(S) / S);
-	} else {
-		X = V2 * sqrt(-2 * log(S) / S);
-	}
+    X = V1 * sqrt(-2 * log(S) / S);
+  } else {
+    X = V2 * sqrt(-2 * log(S) / S);
+  }
 
-	phase = 1 - phase;
-	return X;
+  phase = 1 - phase;
+  return X;
 }
 
 /*****************************************************************************
@@ -1633,9 +1639,9 @@ int yaml_get_node(const config_t &config,
 
   // Check key
   if (node.IsDefined() == false && optional == false) {
-    FATAL("Opps [%s] missing in yaml file [%s]!",
-          key.c_str(),
-          config.file_path.c_str());
+    LOG_ERROR("Opps [%s] missing in yaml file [%s]!",
+              key.c_str(),
+              config.file_path.c_str());
     return -1;
   } else if (node.IsDefined() == false && optional == true) {
     return -1;
@@ -1695,45 +1701,47 @@ void yaml_check_matrix_fields(const YAML::Node &node,
   cols = node["cols"].as<int>();
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           vec2_t &vec,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          vec2_t &vec,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
   yaml_check_vector<vec2_t>(node, key, optional);
   vec = vec2_t{node[0].as<double>(), node[1].as<double>()};
+  return 0;
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           vec3_t &vec,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          vec3_t &vec,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
   yaml_check_vector<vec3_t>(node, key, optional);
   vec =
       vec3_t{node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
+  return 0;
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           vec4_t &vec,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          vec4_t &vec,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
@@ -1742,16 +1750,17 @@ void parse(const config_t &config,
                node[1].as<double>(),
                node[2].as<double>(),
                node[3].as<double>()};
+  return 0;
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           vecx_t &vec,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          vecx_t &vec,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
@@ -1760,16 +1769,17 @@ void parse(const config_t &config,
   for (size_t i = 0; i < node.size(); i++) {
     vec(i) = node[i].as<double>();
   }
+  return 0;
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           mat2_t &mat,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          mat2_t &mat,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
@@ -1778,16 +1788,17 @@ void parse(const config_t &config,
   mat(0, 1) = node["data"][1].as<double>();
   mat(1, 0) = node["data"][2].as<double>();
   mat(1, 1) = node["data"][3].as<double>();
+  return 0;
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           mat3_t &mat,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          mat3_t &mat,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
@@ -1804,16 +1815,17 @@ void parse(const config_t &config,
   mat(2, 0) = node["data"][6].as<double>();
   mat(2, 1) = node["data"][7].as<double>();
   mat(2, 2) = node["data"][8].as<double>();
+  return 0;
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           mat4_t &mat,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          mat4_t &mat,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
@@ -1825,16 +1837,18 @@ void parse(const config_t &config,
       index++;
     }
   }
+
+  return 0;
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           matx_t &mat,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          matx_t &mat,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
@@ -1850,16 +1864,18 @@ void parse(const config_t &config,
       index++;
     }
   }
+
+  return 0;
 }
 
-void parse(const config_t &config,
-           const std::string &key,
-           cv::Mat &mat,
-           const bool optional) {
+int parse(const config_t &config,
+          const std::string &key,
+          cv::Mat &mat,
+          const bool optional) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
-    return;
+    return -1;
   }
 
   // Parse
@@ -1875,6 +1891,8 @@ void parse(const config_t &config,
       index++;
     }
   }
+
+  return 0;
 }
 
 /*****************************************************************************

@@ -2,7 +2,7 @@
 
 <div class="latex">
 \begin{align}
-  \min_{\Vec{x}} J(\Vec{x})
+  \min_{\Vec{x}} \cost(\Vec{x})
 		&=
 			\dfrac{1}{2}
 			\sum_{i}
@@ -30,15 +30,15 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 
 <div class="latex">
 \begin{equation}
-	\dfrac{\delta{J}}{\delta{\Vec{x}}} =
-		\dfrac{\delta{J}}{\delta{\Vec{e}}}
+	\dfrac{\delta{\cost}}{\delta{\Vec{x}}} =
+		\dfrac{\delta{\cost}}{\delta{\Vec{e}}}
 		\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
 \end{equation}
 </div>
 
 <div class="latex">
 \begin{align}
-	\dfrac{\delta{J}}{\delta{\Vec{e}}} &=
+	\dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
 		\dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
 		\Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
 	%
@@ -51,7 +51,7 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 
 <div class="latex">
 \begin{align}
-	\dfrac{\delta{J}}{\delta{\Vec{x}}}
+	\dfrac{\delta{\cost}}{\delta{\Vec{x}}}
 		&=
 			(\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
 		% Line 2

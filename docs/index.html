@@ -2,32 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>proto</title>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
+
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.css" integrity="sha384-BdGj8xC2eZkQaxoQ8nSLefg4AV4/AwB3Fj+8SUSo7pnKP6Eoy18liIKTPn9oBYNG" crossorigin="anonymous">
+
+  <!-- MATHJAX -->
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      config: ["MMLorHTML.js"],
+      tex2jax: {
+        inlineMath: [['$','$']],
+        processRefs: true
+      },
+      TeX: {
+        equationNumbers: {
+          autoNumber: "AMS",
+          formatID: function(id) { return "(" + id  + ")"},
+          formatURL: function(id) { return null }
+        },
+        extensions: ["AMSmath.js", "AMSsymbols.js"]
+      }
+    });
+  </script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.6/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   <style>
     body {
       color: #111;
       margin: 0;
       padding: 0;
-
-      overflow-y: scroll;
-      overflow-x: hidden;
-
-      font-family: times;
+      /* font-family: Helvetica Neue, Helvetica, Arial; */
+      font-family: Times;
+			font-size: 0.95em;
+			text-align: justify;
     }
 
     a:link, a:visited {
       color: #333;
-    }
-
-    #content {
-      width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      margin-top: 5%;
-      font-family: times;
-      text-align: justify;
+			text-decoration: none;
     }
 
     pre code {
@@ -52,59 +63,454 @@
       border: 1px solid #333;
       border-radius: 3px;
     }
+
+    #sidebar {
+      background: #fff;
+      position: fixed;
+      z-index: 10;
+      top: 0; left: 0; bottom: 0;
+      width: 200px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0px 0px 0px 20px;
+      border-right: 1px solid #bbb;
+      box-shadow: 0 0 20px #ccc;
+
+      -webkit-overflow-scrolling: touch;
+			-webkit-box-shadow: 0 0 20px #ccc;
+			-moz-box-shadow: 0 0 20px #ccc;
+    }
+
+    h1 {
+      font-size: 1.2em;
+    }
+
+    h2 {
+      font-size: 0.95em;
+    }
+
+    #sidebar ul {
+			display: block;
+      padding: 0px 0px 0px 20px;
+			margin: 0;
+		}
+
+    #content {
+			position: relative;
+      width: 600px;
+      margin: 0px 0px 10% 300px;
+    }
+
+    #content p {
+      text-indent: 20px;
+    }
+
+    #content img {
+      display: block;
+      width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 2em;
+      margin-bottom: 2em;
+    }
   </style>
 </head>
 <body>
-  <div id="content">
-# proto [![Build Status](https://travis-ci.org/chutsu/proto.svg)][1]
+<div class="latex" style="display:none">
+\begin{equation}
+  \newcommand{\Vec}[1]{{\mathbf{#1}}}
+  \newcommand{\Mat}[1]{{\mathbf{#1}}}
+  \renewcommand{\real}{{\rm I\!R}}
+  \newcommand{\ones}{{\Vec{1}}}
+  \newcommand{\Ones}[2]{{\Vec{1}_{#1\times#2}}}
+  \newcommand{\zeros}{{\Vec{0}}}
+  \newcommand{\Zeros}[2]{{\Vec{0}_{#1\times#2}}}
+  \newcommand{\Norm}[1]{{\|#1\|}}
+  \newcommand{\LargeNorm}[1]{{\left\lVert#1\right\rVert}}
+  \newcommand{\I}{{\Mat{I}}}
+  \newcommand{\Skew}[1]{{\lfloor #1 \enspace \times \rfloor}}
+  \newcommand{\Argmin}[1]{\underset{#1}{{\text{argmin }}}}
+  \newcommand{\transpose}{T}
+  \newcommand{\Transpose}[1]{{{#1^{\transpose}}}}
+  \newcommand{\Inv}[1]{{{#1^{-1}}}}
+  \renewcommand{\LargeNorm}[1]{\left\lVert#1\right\rVert}
+  \newcommand{\Trace}[1]{\text{tr}(#1)}
+  \newcommand{\Rank}[1]{\text{rank}(#1)}
+  \newcommand{\Bigslant}[2]{{\left/\right}}
+  \newcommand{\cost}{{\Vec{J}}}
+  % -- Transforms
+  \newcommand{\frame}{{\mathcal{F}}}
+  \newcommand{\rot}{{\Mat{C}}}
+  \newcommand{\trans}{{\Vec{r}}}
+  \newcommand{\quat}{{\Vec{q}}}
+  \newcommand{\tf}{{\Mat{T}}}
+  % -- Standard terms
+  \newcommand{\state}{{\Vec{x}}}
+  \newcommand{\pos}{{\Vec{r}}}
+  \newcommand{\vel}{{\Vec{v}}}
+  \newcommand{\acc}{{\Vec{a}}}
+  \newcommand{\angvel}{{\boldsymbol{\omega}}}
+  \newcommand{\gravity}{{\Vec{g}}}
+  \newcommand{\noise}{{\Vec{n}}}
+  \newcommand{\bias}{{\Vec{b}}}
+  % -- Gyroscope
+  \newcommand{\gyr}{{\angvel}}
+  \newcommand{\gyrMeas}{{\angvel_{m}}}
+  \newcommand{\gyrNoise}{{\noise_{g}}}
+  \newcommand{\gyrBias}{{\bias_{g}}}
+  % -- Accelerometer
+  \newcommand{\accMeas}{{\acc_{m}}}
+  \newcommand{\accNoise}{{\noise_{a}}}
+  \newcommand{\accBias}{{\bias_{a}}}
+\end{equation}
+</div>
 
-`proto` contain notes and code used to learn about different aspects of
-robotics. From estimation, mapping to control and planning.
+<div id="sidebar">
+  <h1>proto</h1>
+  <h2>State Estimation</h2>
+  <ul>
+    <li><a href="/se/notations.html">Notations</a></li>
+    <li><a href="/se/imu.html">IMU</a></li>
+    <li><a href="/se/gauss_newton.html">Gauss Newton</a></li>
+    <li><a href="/se/marginalization.html">Marginalization</a></li>
+  </ul>
 
+  <h2>Computer Vision</h2>
+  <ul>
+    <li><a href="/cv/pinhole.html">Pinhole</a></li>
+    <li><a href="/cv/radtan.html">Radtan</a></li>
+    <li><a href="/cv/equi.html">Equi</a></li>
+    <li><a href="/cv/optical_flow.html">Optical Flow</a></li>
+    <li><a href="/cv/linear_triangulation.html">Linear Triangulation</a></li>
+    <li><a href="/cv/illum_invar.html">Illumination Invariant</a></li>
+  </ul>
 
-## Build
+  <h2>Maths</h2>
+  <ul>
+    <li><a href="/maths/linalg.html">linalg</a></li>
+    <li><a href="/maths/svd.html">SVD</a></li>
+    <li><a href="/maths/qr.html">QR</a></li>
+  </ul>
+</div>
 
-For convenience there is a `Makefile` that automates the installation of
-dependencies and building of `proto`, the make targets are as follows.
+<div id="content">
 
-    deps:
-      Install proto dependencies.
+<section id="gauss_newton">
+<h1>Gauss Newton</h1>
 
-    debug:
-      Build proto in debug mode.
+<div class="latex">
+\begin{align}
+  \min_{\Vec{x}} \cost(\Vec{x})
+		&=
+			\dfrac{1}{2}
+			\sum_{i}
+		  \Vec{e}_{i}^{\transpose} \Mat{W} \Vec{e}_{i} \\
+		&=
+			\dfrac{1}{2} \enspace
+			\Vec{e}_{i}^{\transpose}(\Vec{x})
+			\Mat{W}
+			\Vec{e}_{i}(\Vec{x})
+\end{align}
+</div>
 
-    release:
-      Build proto in release mode.
+Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
+approximated with the first-order Taylor series,
+<div class="latex">
+\begin{equation}
+	\Vec{e}(\Vec{x})
+		\approx
+			\Vec{e}(\bar{\Vec{x}}) +
+			\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+\end{equation}
+</div>
+where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
+\bigg\rvert_{\Vec{x}_{k}}$ and $\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}$.
 
-    install:
-      Install proto to $PREFIX. By default this is "/usr/local".
+<div class="latex">
+\begin{equation}
+	\dfrac{\delta{\cost}}{\delta{\Vec{x}}} =
+		\dfrac{\delta{\cost}}{\delta{\Vec{e}}}
+		\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
+\end{equation}
+</div>
 
-    format_code:
-      Format proto code using clang-format.
+<div class="latex">
+\begin{align}
+	\dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
+		\dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
+		\Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
+	%
+	\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}} &=
+		\Vec{e}(\bar{\Vec{x}}) +
+		\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
+		\Mat{E}(\bar{\Vec{x}})
+\end{align}
+</div>
 
-    docs:
-      Generate docs for proto.
+<div class="latex">
+\begin{align}
+	\dfrac{\delta{\cost}}{\delta{\Vec{x}}}
+		&=
+			(\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
+		% Line 2
+		&=
+			(
+				\Vec{e}(\bar{\Vec{x}}) + \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+			)^{\transpose} \Mat{W}
+			\Mat{E}(\bar{\Vec{x}}) \\
+		% Line 3
+		&=
+			\Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}})
+			+ \Delta\Vec{x}^{\transpose}
+				\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+			= 0 \\
+\end{align}
+</div>
 
-Or, the standard way to build a C++ project is to enter the following commands
-at the root of the repo.
+<div class="latex">
+\begin{align}
+		% Line 4
+		\Delta\Vec{x}^{\transpose}
+			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+		&=
+			- \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}}) \\
+		% Line 5
+		\underbrace{
+			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+		}_{\Mat{H}}
+			\Delta\Vec{x}
+		&=
+		\underbrace{
+			- \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
+		}_{\Vec{b}}
+\end{align}
+</div>
 
-    mkdir -p build
-    cd build
-    cmake ..
-    make
-    sudo make install  # By default will install to /usr/local
+Solve the normal equations $\Mat{H}\Delta\Vec{x} = \Vec{b}$ for $\Delta\Vec{x}$
+using the Cholesky or QR-decompositon. Once $\Delta\Vec{x}$ is found the best
+estimate $\bar{\Vec{x}}$ can be updated via,
+<div class="latex">
+\begin{equation}
+	\bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x} .
+\end{equation}
+</div>
 
-## License
+</section> <!-- #gauss_newton -->
 
-The source code is released under GPLv3 license.
+<section id="imu">
+<h1>Inertial Measurement Unit (IMU)<h1>
+<h2>IMU Motion Model</h2>
 
-[1]: https://travis-ci.org/chutsu/proto
-  </div>
-  <script>
-    var content_md = document.getElementById("content").innerHTML;
-    var converter = new showdown.Converter();
-    var html = converter.makeHtml(content_md);
-    document.getElementById("content").innerHTML = html;
-  </script>
+\begin{align}
+  % Position
+  \dot\pos_{WS} &= \vel_{WS} \\
+  % Orientation
+  \dot\quat_{WS} &=
+    \dfrac{1}{2} \mathbf{\Omega}
+    (\gyrMeas, \gyrNoise, \gyrBias)
+    \quat_{WS} \\
+  % Velocity
+  \dot\vel_{WS} &=
+    \rot_{WS}
+    (\accMeas + \accNoise - \accBias) + \gravity \\
+  % Gyro Bias
+  \dot{\gyrBias} &= \noise_{\gyrBias} \\
+  % Accel Bias
+  \dot{\accBias} &= -\dfrac{1}{\tau} \accBias + \noise_{\gyrBias}
+\end{align}
+The matrix $\mathbf{\Omega}$ is formed from the estimated angular rate
+$\gyr = \gyrMeas + \gyrNoise - \gyrBias$
+</section> <!-- #imu -->
+
+<section id="marginalization">
+<h1>Marginalization</h2>
+
+<h2>Shur's Complement</h2>
+
+Let $\Mat{M}$ be a matrix that consists of block matrices $\Mat{A}$, $\Mat{B}$,
+$\Mat{C}$, $\Mat{D}$,
+\begin{equation}
+	\Mat{M} =
+	\begin{bmatrix}
+		\Mat{A} & \Mat{B} \\
+		\Mat{C} & \Mat{D}
+	\end{bmatrix}
+\end{equation}
+if $\Mat{A}$ is invertible, the Schur's complement of the block $\Mat{A}$ of the
+matrix $\Mat{B}$ is the defined by
+\begin{equation}
+	\Mat{M}/\Mat{A} = \Mat{D} - \Mat{C} \Mat{A}^{-1} \Mat{B}.
+\end{equation}
+\begin{equation}
+	\Mat{M}/\Mat{D} = \Mat{A} - \Mat{B} \Mat{D}^{-1} \Mat{C}.
+\end{equation}
+
+---
+
+<h2>Using Shur's Complement for marginalization</h2>
+
+In a Gauss-Newton system,
+\begin{equation}
+  \Mat{H} \delta\state = \Vec{b} ,
+\end{equation}
+it so happens that Schur's complement can be used to both invert and
+marginalize out the old states. First let $\state_\mu$ be the states to be
+marginalized out, $\state_{\lambda}$ be the set of states related to those by
+error terms, and $\state_{\rho}$ be the set of remaining states. Partitioning
+the Hessian, error state and R.H.S of the Gauss-Newton system gives:
+\begin{equation}
+  \begin{bmatrix}
+    \Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
+    \Mat{H}_{\lambda_{1}\mu} & \Mat{H}_{\lambda_{1}\lambda_{1}}
+  \end{bmatrix}
+  \begin{bmatrix}
+    \delta\state_{\mu} \\
+    \delta\state_{\lambda}
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    \Vec{b}_{\mu} \\
+    \Vec{b}_{\lambda}
+  \end{bmatrix}
+\end{equation}
+and applying the Shur complement operation yields:
+\begin{align}
+  \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
+  &=
+  \Mat{H}_{\lambda_{1}\lambda_{1}} -
+  \Mat{H}_{\lambda_{1}\mu}
+  \Mat{H}_{\mu\mu}^{-1}
+  \Mat{H}_{\mu\lambda_{1}}
+	\\
+	\Vec{b}^{\ast}_{\lambda_{1}}
+  &=
+  \Vec{b}_{\lambda_{1}} -
+  \Mat{H}_{\lambda_{1}\mu}
+  \Mat{H}_{\mu\mu}^{-1}
+  \Vec{b}_{\mu}
+\end{align}
+where $\Vec{b}^{\ast}_{\lambda_{1}}$ and
+$\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}$ are non-linear functions of
+$\state_\lambda$ and $\state_\mu$.
+
+The finite deviation $\Delta{\chi}= \Phi^{-1}(\log(\bar{\state} \boxplus
+\state_{0}^{-1}))$ represents state updates that occur after marginalization,
+where $\bar{\state}$ is our current estimate for $\state$. Introducing and
+approximating the R.H.S of the Gauss-Newton equation with $\Delta{\chi}$ and
+the first order Taylor series results in,
+\begin{equation}
+	\label{eq:gn_rhs_v2}
+	\Vec{b} + \dfrac{\delta{b}}{\delta{\Delta{\chi}}} \bigg\rvert_{\state_{0}}
+    = \Vec{b} - \Mat{H} \Delta{\chi}.
+\end{equation}
+Partioning \eqref{eq:gn_rhs_v2} into $\mu$ and $\lambda$,
+\begin{equation}
+	\label{eq:gn_rhs_v2_partitioned}
+	\begin{bmatrix}
+		\Vec{b}_{\mu} \\ \Vec{b}_{\lambda_{1}}
+	\end{bmatrix}
+		=
+		\begin{bmatrix}
+			\Vec{b}_{\mu, 0} \\ \Vec{b}_{\lambda_{1}, 0}
+		\end{bmatrix}
+		-
+		\begin{bmatrix}
+			\Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
+			\Mat{H}_{\lambda_{1}\mu} & \Mat{H}_{\lambda_{1}\lambda_{1}}
+		\end{bmatrix}
+		\begin{bmatrix}
+			\Delta{\chi}_{\mu} \\
+			\Delta{\chi}_{\lambda_{1}}
+		\end{bmatrix}.
+\end{equation}
+Substituting in \eqref{eq:gn_rhs_v2_partitioned} to the R.H.S of the
+Gauss-Newton system, $\Mat{H} \delta{\state} = \Vec{b}$, results in,
+\begin{equation}
+	\Vec{b}^{\ast}_{\lambda_{1}} =
+		\underbrace{
+			\Vec{b}_{\lambda_{1}, 0} -
+			\Mat{H}_{\lambda_{1}\mu}
+			\Mat{H}_{\mu\mu}^{-1}
+			\Vec{b}_{\mu, 0}
+		}_{\Vec{b}^{\ast}_{\lambda_{1}, 0}}
+		-
+		\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
+		\Delta{\chi}_{\lambda_{1}}.
+\end{equation}
+
+---
+
+Let us consider the following scenario. A state vector, $\state$, during the
+time interval $[0, k]$ will contain $m$ old states to be marginalized out and
+$r$ remain states which we wish to keep. i.e. $\state =
+[\state_{m}^{\transpose} \quad \state_{r}^{\transpose}]^{\transpose}$. Then the
+cost function, $c(\cdot)$, can be written as a function of $\state$ at time $k$
+as,
+\begin{align}
+	\begin{split}
+		c(\state_{k}) &= c(\state_{m}, \state_{r}) \\
+									&= c(\state_{m}) + c(\state_{r}).
+	\end{split}
+	\label{eq:ba_cost_fn}
+\end{align}
+The intuition behind \eqref{eq:ba_cost_fn} is since the state at time $k$ can
+be partitioned into $m$ and $r$, the cost can also be decomposed. Utilizing
+this property, the multi-variate optimization can also be decomposed as
+follows,
+\begin{align}
+	\min_{\state_{m}, \state_{r}} c(\state_{m}, \state_{r})
+		&= \min_{\state_{r}} (\min_{\state_{m}} c(\state_{m}, \state_{r})) \\
+		&= \min_{\state_{r}} (c(\state_{r}) + \min_{\state_{m}} c(\state_{m})) .
+		\label{eq:ba_cost_decomposed}
+\end{align}
+Equation \eqref{eq:ba_cost_decomposed} shows the minimization problem can be
+solved by first optimizing for the states $\state_{m}$, and then forming a
+prior towards the problem of solving for $\state_{r}$. The reformulation of the
+minimization problem entails no approximation.
+
+The Gauss Newton system for solving \eqref{eq:ba_cost_decomposed} is,
+\begin{equation}
+	\Mat{H} \Delta{\state} = \Vec{b}.
+\end{equation}
+Partitioning the $\Mat{H}$ matrix into $\mu$ for states to be marginalized out,
+and $\lambda$ for states to remain,
+\begin{equation}
+  \begin{bmatrix}
+    \Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
+    \Mat{H}_{\lambda_{1}\mu} & \Mat{H}_{\lambda_{1}\lambda_{1}}
+  \end{bmatrix}
+  \begin{bmatrix}
+    \delta\state_{\mu} \\
+    \delta\state_{\lambda}
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    \Vec{b}_{\mu} \\
+    \Vec{b}_{\lambda}
+  \end{bmatrix}
+\end{equation}
+Solving for $\Delta{\state}$ via the Schur's Complement operation,
+\begin{align}
+  \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
+  &=
+  \Mat{H}_{\lambda_{1}\lambda_{1}} -
+  \Mat{H}_{\lambda_{1}\mu}
+  \Mat{H}_{\mu\mu}^{-1}
+  \Mat{H}_{\mu\lambda_{1}}
+	\\
+	\Vec{b}^{\ast}_{\lambda_{1}}
+  &=
+  \Vec{b}_{\lambda_{1}} -
+  \Mat{H}_{\lambda_{1}\mu}
+  \Mat{H}_{\mu\mu}^{-1}
+  \Vec{b}_{\mu}
+\end{align}
+where $\Vec{b}^{\ast}_{\lambda_{1}}$ and
+$\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}$ are non-linear functions of
+$\state_\lambda$ and $\state_\mu$.
+
+</section> <!-- #marginalization -->
+
+</div> <!-- #content -->
 </body>
 </html>

@@ -1574,6 +1574,14 @@ void test_suite() {
   MU_ADD_TEST(test_closest_poses);
   MU_ADD_TEST(test_intersection);
 
+  // Config
+  MU_ADD_TEST(test_config_constructor);
+  MU_ADD_TEST(test_config_parse_primitive);
+  MU_ADD_TEST(test_config_parse_array);
+  MU_ADD_TEST(test_config_parse_vector);
+  MU_ADD_TEST(test_config_parse_matrix);
+  MU_ADD_TEST(test_config_parser_full_example);
+
   // Spline
   MU_ADD_TEST(test_ctraj);
   MU_ADD_TEST(test_ctraj_get_pose);

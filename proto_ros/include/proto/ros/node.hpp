@@ -48,6 +48,7 @@ namespace proto {
     return 0;                                                                  \
   }
 
+
 std::string ros_node_name(int argc, char *argv[]) {
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]);

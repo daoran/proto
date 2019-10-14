@@ -20,15 +20,15 @@ debug() {
 # make deps
 # time make debug
 time make release
-time make ros
+# time make ros
 # make notes
 sudo make install
 # sudo make debug_install
 # exit
 
-cd ~/catkin_ws/ && source devel/setup.bash
+# cd ~/catkin_ws/ && source devel/setup.bash
 # roslaunch proto_ros calib_camera.launch
-roslaunch proto_ros calib_stereo.launch
+# roslaunch proto_ros calib_stereo.launch
 
 # cd scripts/api/
 # python3 api.py
@@ -50,7 +50,7 @@ roslaunch proto_ros calib_stereo.launch
 # ./play
 
 # TESTS
-# cd proto/build/tests
+cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
 # ./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose
