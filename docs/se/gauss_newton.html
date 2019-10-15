@@ -1,7 +1,7 @@
 <h1>Gauss Newton</h1>
 
-<div class="latex">
-\begin{align}
+<equation>
+\begin{aligned}
   \min_{\Vec{x}} \cost(\Vec{x})
 		&=
 			\dfrac{1}{2}
@@ -12,32 +12,28 @@
 			\Vec{e}_{i}^{\transpose}(\Vec{x})
 			\Mat{W}
 			\Vec{e}_{i}(\Vec{x})
-\end{align}
-</div>
+\end{aligned}
+</equation>
 
-Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
+<p>Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
 approximated with the first-order Taylor series,
-<div class="latex">
-\begin{equation}
+<equation>
 	\Vec{e}(\Vec{x})
 		\approx
 			\Vec{e}(\bar{\Vec{x}}) +
 			\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
-\end{equation}
-</div>
+</equation>
 where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
-\bigg\rvert_{\Vec{x}_{k}}$ and $\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}$.
+\bigg\rvert_{\Vec{x}_{k}}$ and $\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}$.</p>
 
-<div class="latex">
-\begin{equation}
+<equation>
 	\dfrac{\delta{\cost}}{\delta{\Vec{x}}} =
 		\dfrac{\delta{\cost}}{\delta{\Vec{e}}}
 		\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
-\end{equation}
-</div>
+</equation>
 
-<div class="latex">
-\begin{align}
+<equation>
+\begin{aligned}
 	\dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
 		\dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
 		\Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
@@ -46,11 +42,11 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 		\Vec{e}(\bar{\Vec{x}}) +
 		\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
 		\Mat{E}(\bar{\Vec{x}})
-\end{align}
-</div>
+\end{aligned}
+</equation>
 
-<div class="latex">
-\begin{align}
+<equation>
+\begin{aligned}
 	\dfrac{\delta{\cost}}{\delta{\Vec{x}}}
 		&=
 			(\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
@@ -66,11 +62,11 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 			+ \Delta\Vec{x}^{\transpose}
 				\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
 			= 0 \\
-\end{align}
-</div>
+\end{aligned}
+</equation>
 
-<div class="latex">
-\begin{align}
+<equation>
+\begin{aligned}
 		% Line 4
 		\Delta\Vec{x}^{\transpose}
 			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
@@ -85,14 +81,13 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 		\underbrace{
 			- \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
 		}_{\Vec{b}}
-\end{align}
-</div>
+\end{aligned}
+</equation>
 
-Solve the normal equations $\Mat{H}\Delta\Vec{x} = \Vec{b}$ for $\Delta\Vec{x}$
-using the Cholesky or QR-decompositon. Once $\Delta\Vec{x}$ is found the best
-estimate $\bar{\Vec{x}}$ can be updated via,
-<div class="latex">
-\begin{equation}
-	\bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x} .
-\end{equation}
-</div>
+<p>Solve the normal equations $\Mat{H}\Delta\Vec{x} = \Vec{b}$ for
+$\Delta\Vec{x}$ using the Cholesky or QR-decompositon. Once $\Delta\Vec{x}$ is
+found the best estimate $\bar{\Vec{x}}$ can be updated via,
+<equation>
+	\bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x}.
+</equation>
+</p>

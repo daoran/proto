@@ -6,7 +6,7 @@ make
 
 # sudo bash ./scripts/install_mexopencv.bash
 # ./scripts/run_tests.bash && exit 0
-octave notes/ba/ba.m && exit 0
+# octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
 # octave notes/camera/equi4_point_jacobian.m && exit 0
@@ -29,6 +29,7 @@ octave notes/ba/ba.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
 # octave notes/quaternion.m && exit 0
 # octave notes/nbt.m && exit 0
+octave notes/rand_inv_matrix.m && exit 0
 
 # octave tools/calib_data_summary.m && exit 0
 # octave tools/plot_aprilgrid_data.m && exit 0

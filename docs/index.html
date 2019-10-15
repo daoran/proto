@@ -2,29 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.css" integrity="sha384-BdGj8xC2eZkQaxoQ8nSLefg4AV4/AwB3Fj+8SUSo7pnKP6Eoy18liIKTPn9oBYNG" crossorigin="anonymous">
-
-  <!-- MATHJAX -->
-  <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      config: ["MMLorHTML.js"],
-      tex2jax: {
-        inlineMath: [['$','$']],
-        processRefs: true
-      },
-      TeX: {
-        equationNumbers: {
-          autoNumber: "AMS",
-          formatID: function(id) { return "(" + id  + ")"},
-          formatURL: function(id) { return null }
-        },
-        extensions: ["AMSmath.js", "AMSsymbols.js"]
-      }
-    });
-  </script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.6/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
   <style>
     body {
       color: #111;
@@ -32,7 +9,7 @@
       padding: 0;
       /* font-family: Helvetica Neue, Helvetica, Arial; */
       font-family: Times;
-			font-size: 0.95em;
+			font-size: 0.96em;
 			text-align: justify;
     }
 
@@ -82,11 +59,11 @@
     }
 
     h1 {
-      font-size: 1.2em;
+      font-size: 1.6em;
     }
 
     h2 {
-      font-size: 0.95em;
+      font-size: 1.2em;
     }
 
     #sidebar ul {
@@ -98,8 +75,13 @@
     #content {
 			position: relative;
       width: 600px;
+			padding-top: 20px;
       margin: 0px 0px 10% 300px;
     }
+
+    <!-- #content section { -->
+		<!-- 	display: none; -->
+		<!-- } -->
 
     #content p {
       text-indent: 20px;
@@ -113,195 +95,110 @@
       margin-top: 2em;
       margin-bottom: 2em;
     }
+
+		#content img.badge {
+			display: block;
+			margin: 0;
+			width: auto;
+		}
   </style>
 </head>
 <body>
 <div class="latex" style="display:none">
-\begin{equation}
-  \newcommand{\Vec}[1]{{\mathbf{#1}}}
-  \newcommand{\Mat}[1]{{\mathbf{#1}}}
-  \renewcommand{\real}{{\rm I\!R}}
-  \newcommand{\ones}{{\Vec{1}}}
-  \newcommand{\Ones}[2]{{\Vec{1}_{#1\times#2}}}
-  \newcommand{\zeros}{{\Vec{0}}}
-  \newcommand{\Zeros}[2]{{\Vec{0}_{#1\times#2}}}
-  \newcommand{\Norm}[1]{{\|#1\|}}
-  \newcommand{\LargeNorm}[1]{{\left\lVert#1\right\rVert}}
-  \newcommand{\I}{{\Mat{I}}}
-  \newcommand{\Skew}[1]{{\lfloor #1 \enspace \times \rfloor}}
-  \newcommand{\Argmin}[1]{\underset{#1}{{\text{argmin }}}}
-  \newcommand{\transpose}{T}
-  \newcommand{\Transpose}[1]{{{#1^{\transpose}}}}
-  \newcommand{\Inv}[1]{{{#1^{-1}}}}
-  \renewcommand{\LargeNorm}[1]{\left\lVert#1\right\rVert}
-  \newcommand{\Trace}[1]{\text{tr}(#1)}
-  \newcommand{\Rank}[1]{\text{rank}(#1)}
-  \newcommand{\Bigslant}[2]{{\left/\right}}
-  \newcommand{\cost}{{\Vec{J}}}
-  % -- Transforms
-  \newcommand{\frame}{{\mathcal{F}}}
-  \newcommand{\rot}{{\Mat{C}}}
-  \newcommand{\trans}{{\Vec{r}}}
-  \newcommand{\quat}{{\Vec{q}}}
-  \newcommand{\tf}{{\Mat{T}}}
-  % -- Standard terms
-  \newcommand{\state}{{\Vec{x}}}
-  \newcommand{\pos}{{\Vec{r}}}
-  \newcommand{\vel}{{\Vec{v}}}
-  \newcommand{\acc}{{\Vec{a}}}
-  \newcommand{\angvel}{{\boldsymbol{\omega}}}
-  \newcommand{\gravity}{{\Vec{g}}}
-  \newcommand{\noise}{{\Vec{n}}}
-  \newcommand{\bias}{{\Vec{b}}}
-  % -- Gyroscope
-  \newcommand{\gyr}{{\angvel}}
-  \newcommand{\gyrMeas}{{\angvel_{m}}}
-  \newcommand{\gyrNoise}{{\noise_{g}}}
-  \newcommand{\gyrBias}{{\bias_{g}}}
-  % -- Accelerometer
-  \newcommand{\accMeas}{{\acc_{m}}}
-  \newcommand{\accNoise}{{\noise_{a}}}
-  \newcommand{\accBias}{{\bias_{a}}}
-\end{equation}
 </div>
 
 <div id="sidebar">
   <h1>proto</h1>
   <h2>State Estimation</h2>
   <ul>
-    <li><a href="/se/notations.html">Notations</a></li>
-    <li><a href="/se/imu.html">IMU</a></li>
-    <li><a href="/se/gauss_newton.html">Gauss Newton</a></li>
-    <li><a href="/se/marginalization.html">Marginalization</a></li>
+    <li><a href="#se-notations">Notations</a></li>
+    <li><a href="#se-imu">IMU</a></li>
+    <li><a href="#se-gauss_newton">Gauss Newton</a></li>
+    <li><a href="#se-marginalization">Marginalization</a></li>
   </ul>
 
   <h2>Computer Vision</h2>
   <ul>
-    <li><a href="/cv/pinhole.html">Pinhole</a></li>
-    <li><a href="/cv/radtan.html">Radtan</a></li>
-    <li><a href="/cv/equi.html">Equi</a></li>
-    <li><a href="/cv/optical_flow.html">Optical Flow</a></li>
-    <li><a href="/cv/linear_triangulation.html">Linear Triangulation</a></li>
-    <li><a href="/cv/illum_invar.html">Illumination Invariant</a></li>
+    <li><a href="#cv-pinhole">Pinhole</a></li>
+    <li><a href="#cv-radtan">Radtan</a></li>
+    <li><a href="#cv-equi">Equi</a></li>
+    <li><a href="#cv-optical_flow">Optical Flow</a></li>
+    <li><a href="#cv-linear_triangulation">Linear Triangulation</a></li>
+    <li><a href="#cv-illum_invar">Illumination Invariant</a></li>
   </ul>
 
   <h2>Maths</h2>
   <ul>
-    <li><a href="/maths/linalg.html">linalg</a></li>
-    <li><a href="/maths/svd.html">SVD</a></li>
-    <li><a href="/maths/qr.html">QR</a></li>
+    <li><a href="#maths-linalg">linalg</a></li>
+    <li><a href="#maths-svd">SVD</a></li>
+    <li><a href="#maths-qr">QR</a></li>
   </ul>
 </div>
 
+
 <div id="content">
 
-<section id="gauss_newton">
-<h1>Gauss Newton</h1>
+<!-- ########################### README #####################################-->
+<section id="readme"></section>
+<!-- ####################################################################### -->
 
-<div class="latex">
-\begin{align}
-  \min_{\Vec{x}} \cost(\Vec{x})
-		&=
-			\dfrac{1}{2}
-			\sum_{i}
-		  \Vec{e}_{i}^{\transpose} \Mat{W} \Vec{e}_{i} \\
-		&=
-			\dfrac{1}{2} \enspace
-			\Vec{e}_{i}^{\transpose}(\Vec{x})
-			\Mat{W}
-			\Vec{e}_{i}(\Vec{x})
-\end{align}
-</div>
+<!-- ########################### NOTATIONS ################################# -->
+<section id="se-notations">
+<h1>Notations</h1>
 
-Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
-approximated with the first-order Taylor series,
-<div class="latex">
-\begin{equation}
-	\Vec{e}(\Vec{x})
-		\approx
-			\Vec{e}(\bar{\Vec{x}}) +
-			\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
-\end{equation}
-</div>
-where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
-\bigg\rvert_{\Vec{x}_{k}}$ and $\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}$.
+<p>A large part of robotics is about developing machines that perceives and
+interact with the environment. For that robots use sensors to collect and
+process data, and knowing what the data describes is of utmost importance.
+Imagine obtaining the position of the robot but not knowing what that position
+is with respect to. Missing data descriptions such as what a position vector is
+expressing, what is it with respect to and more causes many hours of painful
+trail and error to extract that information.</p>
 
-<div class="latex">
-\begin{equation}
-	\dfrac{\delta{\cost}}{\delta{\Vec{x}}} =
-		\dfrac{\delta{\cost}}{\delta{\Vec{e}}}
-		\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
-\end{equation}
-</div>
+<p>The notes will be closly following the frame notation as described by Paul
+Furgale. The aim is to mitigate the ambiguity that arises when describing
+robot poses, sensor data and more.</p>
 
-<div class="latex">
-\begin{align}
-	\dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
-		\dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
-		\Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
-	%
-	\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}} &=
-		\Vec{e}(\bar{\Vec{x}}) +
-		\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
-		\Mat{E}(\bar{\Vec{x}})
-\end{align}
-</div>
+<p>A vector expressed in the world frame, $\frame_{W}$, is written as $\pos_{W}$.
+Or more precisely if the vector describes the position of the camera frame,
+$\frame_{C}$, expressed in $\frame_{W}$, the vector can be written as
+$\pos_{WC}$. The left hand subscripts indicates the coordinate system the
+vector is expressed in, while the right-hand subscripts indicate the start and
+end points. For brevity if the vector has the same start point as the frame to
+which it is expressed in, the same vector can be written as $\pos_{WC}$.
+Similarly a transformation of a point from $\frame_{W}$ to $\frame_{C}$ can be
+represented by a homogeneous transform matrix, $\tf_{WC}$, where its rotation
+matrix component is written as $\rot_{WC}$ and the translation component
+written as $\trans_{WC}$. A rotation matrix that is parametrized by quaternion
+$\quat_{WC}$ is written as $\rot\{\quat_{WC}\}$.</p>
 
-<div class="latex">
-\begin{align}
-	\dfrac{\delta{\cost}}{\delta{\Vec{x}}}
-		&=
-			(\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
-		% Line 2
-		&=
-			(
-				\Vec{e}(\bar{\Vec{x}}) + \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
-			)^{\transpose} \Mat{W}
-			\Mat{E}(\bar{\Vec{x}}) \\
-		% Line 3
-		&=
-			\Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}})
-			+ \Delta\Vec{x}^{\transpose}
-				\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
-			= 0 \\
-\end{align}
-</div>
+<equation>
+\begin{aligned}
+  &\text{Position:} \enspace & \pos_{WB} \\
+  &\text{Velocity:} \enspace & \vel_{WB} \\
+  &\text{Acceleration:} \enspace & \acc_{WB} \\
+  &\text{Angular velocity:} \enspace & \angvel_{WB} \\
+  &\text{Rotation:} \enspace & \rot_{WB} \\
+  &\text{Transform:} \enspace & \tf_{WB} \\
+\end{aligned}
+</equation>
 
-<div class="latex">
-\begin{align}
-		% Line 4
-		\Delta\Vec{x}^{\transpose}
-			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
-		&=
-			- \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}}) \\
-		% Line 5
-		\underbrace{
-			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
-		}_{\Mat{H}}
-			\Delta\Vec{x}
-		&=
-		\underbrace{
-			- \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
-		}_{\Vec{b}}
-\end{align}
-</div>
+<img src="se/imgs/frame_dia_example.png" alt="Frame Diagram Example">
+<img src="se/imgs/notation_translation.png" alt="Translation Example">
+<img src="se/imgs/notation_angular_velocity.png" alt="Angular Velocity Example">
+<img src="se/imgs/notation_rotation.png" alt="Rotation Example">
+<img src="se/imgs/notation_transform.png" alt="Transform Example">
+</section>
+<!-- ####################################################################### -->
 
-Solve the normal equations $\Mat{H}\Delta\Vec{x} = \Vec{b}$ for $\Delta\Vec{x}$
-using the Cholesky or QR-decompositon. Once $\Delta\Vec{x}$ is found the best
-estimate $\bar{\Vec{x}}$ can be updated via,
-<div class="latex">
-\begin{equation}
-	\bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x} .
-\end{equation}
-</div>
 
-</section> <!-- #gauss_newton -->
+<!-- ############################## IMU #################################### -->
+<section id="se-imu">
+<h1>Inertial Measurement Unit (IMU)</h1>
 
-<section id="imu">
-<h1>Inertial Measurement Unit (IMU)<h1>
 <h2>IMU Motion Model</h2>
 
-\begin{align}
+<equation>
+\begin{aligned}
   % Position
   \dot\pos_{WS} &= \vel_{WS} \\
   % Orientation
@@ -317,48 +214,154 @@ estimate $\bar{\Vec{x}}$ can be updated via,
   \dot{\gyrBias} &= \noise_{\gyrBias} \\
   % Accel Bias
   \dot{\accBias} &= -\dfrac{1}{\tau} \accBias + \noise_{\gyrBias}
-\end{align}
-The matrix $\mathbf{\Omega}$ is formed from the estimated angular rate
-$\gyr = \gyrMeas + \gyrNoise - \gyrBias$
-</section> <!-- #imu -->
+\end{aligned}
+</equation>
 
-<section id="marginalization">
-<h1>Marginalization</h2>
+<p>The matrix $\mathbf{\Omega}$ is formed from the estimated angular rate
+$\gyr = \gyrMeas + \gyrNoise - \gyrBias$</p>
+</section>
+<!-- ####################################################################### -->
 
+
+<!-- ############################ GAUSS NEWTON ############################# -->
+<section id="se-gauss_newton">
+<h1>Gauss Newton</h1>
+
+<equation>
+\begin{aligned}
+  \min_{\Vec{x}} \cost(\Vec{x})
+		&=
+			\dfrac{1}{2}
+			\sum_{i}
+		  \Vec{e}_{i}^{\transpose} \Mat{W} \Vec{e}_{i} \\
+		&=
+			\dfrac{1}{2} \enspace
+			\Vec{e}_{i}^{\transpose}(\Vec{x})
+			\Mat{W}
+			\Vec{e}_{i}(\Vec{x})
+\end{aligned}
+</equation>
+
+<p>Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
+approximated with the first-order Taylor series,
+<equation>
+	\Vec{e}(\Vec{x})
+		\approx
+			\Vec{e}(\bar{\Vec{x}}) +
+			\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+</equation>
+where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
+\bigg\rvert_{\Vec{x}_{k}}$ and $\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}$.</p>
+
+<equation>
+	\dfrac{\delta{\cost}}{\delta{\Vec{x}}} =
+		\dfrac{\delta{\cost}}{\delta{\Vec{e}}}
+		\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
+</equation>
+
+<equation>
+\begin{aligned}
+	\dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
+		\dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
+		\Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
+	%
+	\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}} &=
+		\Vec{e}(\bar{\Vec{x}}) +
+		\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
+		\Mat{E}(\bar{\Vec{x}})
+\end{aligned}
+</equation>
+
+<equation>
+\begin{aligned}
+	\dfrac{\delta{\cost}}{\delta{\Vec{x}}}
+		&=
+			(\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
+		% Line 2
+		&=
+			(
+				\Vec{e}(\bar{\Vec{x}}) + \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+			)^{\transpose} \Mat{W}
+			\Mat{E}(\bar{\Vec{x}}) \\
+		% Line 3
+		&=
+			\Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}})
+			+ \Delta\Vec{x}^{\transpose}
+				\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+			= 0 \\
+\end{aligned}
+</equation>
+
+<equation>
+\begin{aligned}
+		% Line 4
+		\Delta\Vec{x}^{\transpose}
+			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+		&=
+			- \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}}) \\
+		% Line 5
+		\underbrace{
+			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+		}_{\Mat{H}}
+			\Delta\Vec{x}
+		&=
+		\underbrace{
+			- \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
+		}_{\Vec{b}}
+\end{aligned}
+</equation>
+
+<p>Solve the normal equations $\Mat{H}\Delta\Vec{x} = \Vec{b}$ for
+$\Delta\Vec{x}$ using the Cholesky or QR-decompositon. Once $\Delta\Vec{x}$ is
+found the best estimate $\bar{\Vec{x}}$ can be updated via,
+<equation>
+	\bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x}.
+</equation>
+</p>
+</section>
+<!-- ####################################################################### -->
+
+
+<!-- ######################### Marginalization ############################# -->
+<section id="se-marginalization">
+<h1>Marginalization</h1>
 <h2>Shur's Complement</h2>
 
-Let $\Mat{M}$ be a matrix that consists of block matrices $\Mat{A}$, $\Mat{B}$,
+<p>But there are something happening</p>
+
+<p>Let $\Mat{M}$ be a matrix that consists of block matrices $\Mat{A}$, $\Mat{B}$,
 $\Mat{C}$, $\Mat{D}$,
-\begin{equation}
+<equation>
 	\Mat{M} =
 	\begin{bmatrix}
 		\Mat{A} & \Mat{B} \\
 		\Mat{C} & \Mat{D}
 	\end{bmatrix}
-\end{equation}
+</equation>
 if $\Mat{A}$ is invertible, the Schur's complement of the block $\Mat{A}$ of the
 matrix $\Mat{B}$ is the defined by
-\begin{equation}
+<equation>
 	\Mat{M}/\Mat{A} = \Mat{D} - \Mat{C} \Mat{A}^{-1} \Mat{B}.
-\end{equation}
-\begin{equation}
+</equation>
+<equation>
 	\Mat{M}/\Mat{D} = \Mat{A} - \Mat{B} \Mat{D}^{-1} \Mat{C}.
-\end{equation}
+</equation>
+</p>
 
 ---
 
 <h2>Using Shur's Complement for marginalization</h2>
 
-In a Gauss-Newton system,
-\begin{equation}
+<p>In a Gauss-Newton system,
+<equation>
   \Mat{H} \delta\state = \Vec{b} ,
-\end{equation}
+</equation>
 it so happens that Schur's complement can be used to both invert and
 marginalize out the old states. First let $\state_\mu$ be the states to be
 marginalized out, $\state_{\lambda}$ be the set of states related to those by
 error terms, and $\state_{\rho}$ be the set of remaining states. Partitioning
 the Hessian, error state and R.H.S of the Gauss-Newton system gives:
-\begin{equation}
+<equation>
   \begin{bmatrix}
     \Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
     \Mat{H}_{\lambda_{1}\mu} & \Mat{H}_{\lambda_{1}\lambda_{1}}
@@ -372,9 +375,10 @@ the Hessian, error state and R.H.S of the Gauss-Newton system gives:
     \Vec{b}_{\mu} \\
     \Vec{b}_{\lambda}
   \end{bmatrix}
-\end{equation}
+</equation>
 and applying the Shur complement operation yields:
-\begin{align}
+<equation>
+\begin{aligned}
   \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
   &=
   \Mat{H}_{\lambda_{1}\lambda_{1}} -
@@ -388,24 +392,25 @@ and applying the Shur complement operation yields:
   \Mat{H}_{\lambda_{1}\mu}
   \Mat{H}_{\mu\mu}^{-1}
   \Vec{b}_{\mu}
-\end{align}
+\end{aligned}
+</equation>
 where $\Vec{b}^{\ast}_{\lambda_{1}}$ and
 $\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}$ are non-linear functions of
-$\state_\lambda$ and $\state_\mu$.
+$\state_\lambda$ and $\state_\mu$.</p>
 
-The finite deviation $\Delta{\chi}= \Phi^{-1}(\log(\bar{\state} \boxplus
+<p>The finite deviation $\Delta{\chi}= \Phi^{-1}(\log(\bar{\state} \boxplus
 \state_{0}^{-1}))$ represents state updates that occur after marginalization,
 where $\bar{\state}$ is our current estimate for $\state$. Introducing and
 approximating the R.H.S of the Gauss-Newton equation with $\Delta{\chi}$ and
 the first order Taylor series results in,
-\begin{equation}
-	\label{eq:gn_rhs_v2}
+<equation>
+	<!-- \label{eq:gn_rhs_v2} -->
 	\Vec{b} + \dfrac{\delta{b}}{\delta{\Delta{\chi}}} \bigg\rvert_{\state_{0}}
     = \Vec{b} - \Mat{H} \Delta{\chi}.
-\end{equation}
+</equation>
 Partioning \eqref{eq:gn_rhs_v2} into $\mu$ and $\lambda$,
-\begin{equation}
-	\label{eq:gn_rhs_v2_partitioned}
+<equation>
+	<!-- \label{eq:gn_rhs_v2_partitioned} -->
 	\begin{bmatrix}
 		\Vec{b}_{\mu} \\ \Vec{b}_{\lambda_{1}}
 	\end{bmatrix}
@@ -422,10 +427,10 @@ Partioning \eqref{eq:gn_rhs_v2} into $\mu$ and $\lambda$,
 			\Delta{\chi}_{\mu} \\
 			\Delta{\chi}_{\lambda_{1}}
 		\end{bmatrix}.
-\end{equation}
-Substituting in \eqref{eq:gn_rhs_v2_partitioned} to the R.H.S of the
-Gauss-Newton system, $\Mat{H} \delta{\state} = \Vec{b}$, results in,
-\begin{equation}
+</equation>
+Substituting in the above  to the R.H.S of the Gauss-Newton system, $\Mat{H}
+\delta{\state} = \Vec{b}$, results in,
+<equation>
 	\Vec{b}^{\ast}_{\lambda_{1}} =
 		\underbrace{
 			\Vec{b}_{\lambda_{1}, 0} -
@@ -436,45 +441,46 @@ Gauss-Newton system, $\Mat{H} \delta{\state} = \Vec{b}$, results in,
 		-
 		\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
 		\Delta{\chi}_{\lambda_{1}}.
-\end{equation}
+</equation>
+</p>
 
 ---
 
-Let us consider the following scenario. A state vector, $\state$, during the
+<p>Let us consider the following scenario. A state vector, $\state$, during the
 time interval $[0, k]$ will contain $m$ old states to be marginalized out and
 $r$ remain states which we wish to keep. i.e. $\state =
 [\state_{m}^{\transpose} \quad \state_{r}^{\transpose}]^{\transpose}$. Then the
 cost function, $c(\cdot)$, can be written as a function of $\state$ at time $k$
 as,
-\begin{align}
-	\begin{split}
-		c(\state_{k}) &= c(\state_{m}, \state_{r}) \\
-									&= c(\state_{m}) + c(\state_{r}).
-	\end{split}
-	\label{eq:ba_cost_fn}
-\end{align}
+<equation>
+\begin{aligned}
+	c(\state_{k}) &= c(\state_{m}, \state_{r}) \\
+								&= c(\state_{m}) + c(\state_{r}).
+\end{aligned}
+</equation>
 The intuition behind \eqref{eq:ba_cost_fn} is since the state at time $k$ can
 be partitioned into $m$ and $r$, the cost can also be decomposed. Utilizing
 this property, the multi-variate optimization can also be decomposed as
 follows,
-\begin{align}
+<equation>
+\begin{aligned}
 	\min_{\state_{m}, \state_{r}} c(\state_{m}, \state_{r})
 		&= \min_{\state_{r}} (\min_{\state_{m}} c(\state_{m}, \state_{r})) \\
 		&= \min_{\state_{r}} (c(\state_{r}) + \min_{\state_{m}} c(\state_{m})) .
-		\label{eq:ba_cost_decomposed}
-\end{align}
-Equation \eqref{eq:ba_cost_decomposed} shows the minimization problem can be
-solved by first optimizing for the states $\state_{m}$, and then forming a
-prior towards the problem of solving for $\state_{r}$. The reformulation of the
-minimization problem entails no approximation.
+\end{aligned}
+</equation>
+The equation above shows the minimization problem can be solved by first
+optimizing for the states $\state_{m}$, and then forming a prior towards the
+problem of solving for $\state_{r}$. The reformulation of the minimization
+problem entails no approximation.</p>
 
-The Gauss Newton system for solving \eqref{eq:ba_cost_decomposed} is,
-\begin{equation}
+<p>The Gauss Newton system for solving the minimization problem is,
+<equation>
 	\Mat{H} \Delta{\state} = \Vec{b}.
-\end{equation}
+</equation>
 Partitioning the $\Mat{H}$ matrix into $\mu$ for states to be marginalized out,
 and $\lambda$ for states to remain,
-\begin{equation}
+<equation>
   \begin{bmatrix}
     \Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
     \Mat{H}_{\lambda_{1}\mu} & \Mat{H}_{\lambda_{1}\lambda_{1}}
@@ -488,9 +494,10 @@ and $\lambda$ for states to remain,
     \Vec{b}_{\mu} \\
     \Vec{b}_{\lambda}
   \end{bmatrix}
-\end{equation}
+</equation>
 Solving for $\Delta{\state}$ via the Schur's Complement operation,
-\begin{align}
+<equation>
+\begin{aligned}
   \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
   &=
   \Mat{H}_{\lambda_{1}\lambda_{1}} -
@@ -504,13 +511,153 @@ Solving for $\Delta{\state}$ via the Schur's Complement operation,
   \Mat{H}_{\lambda_{1}\mu}
   \Mat{H}_{\mu\mu}^{-1}
   \Vec{b}_{\mu}
-\end{align}
+\end{aligned}
+</equation>
 where $\Vec{b}^{\ast}_{\lambda_{1}}$ and
 $\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}$ are non-linear functions of
-$\state_\lambda$ and $\state_\mu$.
-
-</section> <!-- #marginalization -->
+$\state_\lambda$ and $\state_\mu$.</p>
+</section>
+<!-- ####################################################################### -->
 
 </div> <!-- #content -->
+
+	<!-- KATEX -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"></script>
+	<style>
+		.katex { font-size: 1.1em; }
+	</style>
+
+	<!-- SHOWDOWN -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
+
+  <script>
+		document.addEventListener("DOMContentLoaded", function() {
+			function http_get(url) {
+				var xmlHttp = new XMLHttpRequest();
+				xmlHttp.open( "GET", url, false ); // false for synchronous request
+				xmlHttp.send( null );
+				return xmlHttp.responseText;
+			}
+
+			function http_get_async(url, callback) {
+				var xmlHttp = new XMLHttpRequest();
+				xmlHttp.onreadystatechange = function() {
+					if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+						callback(xmlHttp.responseText);
+				}
+				xmlHttp.open("GET", url, true); // true for asynchronous
+				xmlHttp.send(null);
+			}
+
+			// Load README
+			http_get_async("https://raw.githubusercontent.com/chutsu/proto/master/README.md", function(data) {
+				var readme_section = document.getElementById("readme");
+				var md = new showdown.Converter();
+				readme_section.innerHTML = md.makeHtml(data);
+			});
+
+			// Render latex
+			var katex_options = {
+				throwOnError: true,
+				delimiters: [
+					{left: "$$", right: "$$", display: true},
+					{left: "$", right: "$", display: false}
+				],
+				macros: {
+					"\\Vec": "\\mathbf{#1}",
+					"\\Mat": "\\mathbf{#1}",
+					"\\real": "\\rm I\\!R",
+					"\\ones": "{\\Vec{1}}",
+					"\\Ones": "{\\Vec{1}_{#1\\times#2}}",
+					"\\zeros": "{\\Vec{0}}",
+					"\\Zeros": "{\\Vec{0}_{#1\\times#2}}",
+					"\\Norm": "{\\|#1\\|}",
+					"\\LargeNorm": "{\\left\\lVert#1\\right\\rVert}",
+					"\\I": "{\Mat{I}}",
+					"\\Skew": "{\\lfloor #1 \\enspace \\times \\rfloor}",
+					"\\Argmin": "\\underset{#1}{\\text{argmin }}",
+					"\\transpose": "T",
+					"\\Transpose": "{#1^{\\transpose}}",
+					"\\Inv": "{#1^{-1}}",
+					"\\LargeNorm": "\\left\\lVert#1\\right\\rVert}",
+					"\\Trace": "\\text{tr}(#1)",
+					"\\Rank": "\\text{rank}(#1)}",
+					"\\Bigslant": "{\\left/\\right}",
+					"\\cost": "\\Vec{J}",
+					// Transforms
+					"\\frame": "{\\mathcal{F}}",
+					"\\rot": "{\\Mat{C}}",
+					"\\trans": "{\\Vec{r}}",
+					"\\quat": "{\\Vec{q}}",
+					"\\tf": "{\\Mat{T}}",
+					// Standard terms
+          "\\state": "{\\Vec{x}}",
+          "\\pos": "{\\Vec{r}}",
+          "\\vel": "{\\Vec{v}}",
+          "\\acc": "{\\Vec{a}}",
+          "\\angvel": "{\\boldsymbol{\\omega}}",
+          "\\gravity": "{\\Vec{g}}",
+          "\\noise": "{\\Vec{n}}",
+					"\\bias": "{\\Vec{b}}",
+					// Gyroscope
+					"\\gyr": "{\\angvel}",
+					"\\gyrMeas": "{\\angvel_{m}}",
+					"\\gyrNoise": "{\\noise_{g}}",
+					"\\gyrBias": "{\\bias_{g}}",
+					// Accelerometer
+					"\\accMeas": "{\\acc_{m}}",
+					"\\accNoise": "{\\noise_{a}}",
+					"\\accBias": "{\\bias_{a}}"
+				}
+			};
+			renderMathInElement(document.body, katex_options);
+
+			// Enumerate equations
+			var equations = document.getElementsByTagName("equation");
+			for (var i = 0; i < equations.length; i++) {
+				var eq = equations[i];
+				var eq_num = (i + 1);
+				var html = "<div style='text-align:center;margin-top:20px;margin-bottom:20px'>";
+				html += katex.renderToString(eq.textContent, katex_options);
+				html += "<span style='float:right;'>(" + eq_num + ")</span>";
+				html += "</div>";
+				eq.innerHTML = html;
+			}
+
+			// Hide all sections
+			var sections = document.getElementsByTagName("section");
+			for (var i = 0; i < sections.length; i++) {
+				var section = sections[i];
+				if (section.id != "readme") {
+					section.setAttribute("style", "display:none;");
+				}
+			}
+
+			if (window.location.hash) {
+				var hash = window.location.hash;
+				var section = document.getElementById(hash.replace("#", ""));
+				section.setAttribute("style", "display:show;");
+				readme.setAttribute("style", "display:none;");
+			}
+
+			window.addEventListener("hashchange", function() {
+				var sections = document.getElementsByTagName("section");
+				for (var i = 0; i < sections.length; i++) {
+					var section = sections[i];
+					if (section.id != "readme") {
+						section.setAttribute("style", "display:none;");
+					}
+				}
+
+				var hash = window.location.hash;
+				var section = document.getElementById(hash.replace("#", ""));
+				section.setAttribute("style", "display:show;");
+				readme.setAttribute("style", "display:none;");
+			});
+
+		});
+  </script>
 </body>
 </html>
