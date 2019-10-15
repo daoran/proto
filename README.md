@@ -1,4 +1,8 @@
-# proto [![Build Status](https://github.com/chutsu/proto/workflows/C/C++%20CI/badge.svg)][1]
+# proto 
+
+<a href="https://github.com/chutsu/proto/actions">
+  <img class="badage" src="https://github.com/chutsu/proto/workflows/C/C++%20CI/badge.svg">
+</a>
 
 `proto` contain notes and code used to learn about different aspects of
 robotics. From estimation, mapping to control and planning.
@@ -42,5 +46,3 @@ at the root of the repo.
 ## License
 
 The source code is released under GPLv3 license.
-
-[1]: https://github.com/chutsu/proto/actions
