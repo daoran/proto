@@ -1,7 +1,7 @@
 # proto 
 
 <a href="https://github.com/chutsu/proto/actions">
-  <img class="badage" src="https://github.com/chutsu/proto/workflows/C/C++%20CI/badge.svg">
+  <img class="badge" src="https://github.com/chutsu/proto/workflows/C/C++%20CI/badge.svg">
 </a>
 
 `proto` contain notes and code used to learn about different aspects of
