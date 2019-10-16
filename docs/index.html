@@ -9,13 +9,13 @@
       padding: 0;
       /* font-family: Helvetica Neue, Helvetica, Arial; */
       font-family: Times;
-			font-size: 0.96em;
-			text-align: justify;
+      font-size: 0.96em;
+      text-align: justify;
     }
 
     a:link, a:visited {
       color: #333;
-			text-decoration: none;
+      text-decoration: none;
     }
 
     pre code {
@@ -52,10 +52,11 @@
       padding: 0px 0px 0px 20px;
       border-right: 1px solid #bbb;
       box-shadow: 0 0 20px #ccc;
+      text-align: left;
 
       -webkit-overflow-scrolling: touch;
-			-webkit-box-shadow: 0 0 20px #ccc;
-			-moz-box-shadow: 0 0 20px #ccc;
+      -webkit-box-shadow: 0 0 20px #ccc;
+      -moz-box-shadow: 0 0 20px #ccc;
     }
 
     h1 {
@@ -67,21 +68,33 @@
     }
 
     #sidebar ul {
-			display: block;
+      display: block;
       padding: 0px 0px 0px 20px;
-			margin: 0;
-		}
+      margin: 0;
+    }
 
     #content {
-			position: relative;
+      position: relative;
       width: 600px;
-			padding-top: 20px;
+      padding-top: 20px;
       margin: 0px 0px 10% 300px;
     }
 
-    <!-- #content section { -->
-		<!-- 	display: none; -->
-		<!-- } -->
+    #content section {
+      border-top: 1px solid #AAA;
+      border-bottom: 1px solid #AAA;
+      padding-bottom: 5%;
+    }
+
+    #content section#readme {
+      border-top: none;
+      border-bottom: none;
+      margin-bottom: 10px;
+    }
+
+    #content a {
+      color: #005b96;
+    }
 
     #content p {
       text-indent: 20px;
@@ -89,18 +102,18 @@
 
     #content img {
       display: block;
-      width: 90%;
+      max-width: 90%;
       margin-left: auto;
       margin-right: auto;
       margin-top: 2em;
       margin-bottom: 2em;
     }
 
-		#content img.badge {
-			display: block;
-			margin: 0;
-			width: auto;
-		}
+    #content img.badge {
+      display: block;
+      margin: 0;
+      width: auto;
+    }
   </style>
 </head>
 <body>
@@ -109,29 +122,23 @@
 
 <div id="sidebar">
   <h1>proto</h1>
-  <h2>State Estimation</h2>
-  <ul>
-    <li><a href="#se-notations">Notations</a></li>
-    <li><a href="#se-imu">IMU</a></li>
-    <li><a href="#se-gauss_newton">Gauss Newton</a></li>
-    <li><a href="#se-marginalization">Marginalization</a></li>
-  </ul>
 
   <h2>Computer Vision</h2>
   <ul>
     <li><a href="#cv-pinhole">Pinhole</a></li>
     <li><a href="#cv-radtan">Radtan</a></li>
     <li><a href="#cv-equi">Equi</a></li>
-    <li><a href="#cv-optical_flow">Optical Flow</a></li>
     <li><a href="#cv-linear_triangulation">Linear Triangulation</a></li>
-    <li><a href="#cv-illum_invar">Illumination Invariant</a></li>
+    <li><a href="#cv-illum_invar">Illumination Invariant Transform</a></li>
+    <li><a href="#cv-optical_flow">Optical Flow</a></li>
   </ul>
 
-  <h2>Maths</h2>
+  <h2>State Estimation</h2>
   <ul>
-    <li><a href="#maths-linalg">linalg</a></li>
-    <li><a href="#maths-svd">SVD</a></li>
-    <li><a href="#maths-qr">QR</a></li>
+    <li><a href="#se-notations">Notations</a></li>
+    <li><a href="#se-imu">IMU</a></li>
+    <li><a href="#se-gauss_newton">Gauss Newton</a></li>
+    <li><a href="#se-marginalization">Marginalization</a></li>
   </ul>
 </div>
 
@@ -142,21 +149,548 @@
 <section id="readme"></section>
 <!-- ####################################################################### -->
 
+
+<!-- #################### COMPUTER VISION FUNDAMENTALS ##################### -->
+<section id="cv-fundamentals">
+
+<h1>Computer Vision Fundamentals</h1>
+
+<h2>Point on Line</h2>
+
+<equation>
+  \Transpose{\Vec{x}} \Vec{l} = 0
+</equation>
+
+
+<h2>Intersection of Lines</h2>
+
+<equation>
+\begin{aligned}
+  \Vec{l} (\Vec{l} \times \Vec{l}') \Vec{l}' (\Vec{l} \times \Vec{l}') &= 0 \\
+  \Transpose{\Vec{l}} \Vec{x} = \Transpose{\Vec{l}}' \Vec{x} &= 0 \\
+  \Vec{x} &= \Vec{l} \times \Vec{l}'
+\end{aligned}
+</equation>
+
+<h2>Plane</h2>
+<ul>
+  <li>A plane can be defined by the join between three points, or the join
+      between a line and a point in general</li>
+  <li>Two planes intersecting a unique line</li>
+  <li>Three planes intersecting a unique point</li>
+</ul>
+
+<h2>Three Points Define a Plane</h2>
+
+<p>Suppose you have three points $\Vec{p}_{1}$, $\Vec{p}_{2}$, $\Vec{p}_{3}$,
+and are incident with a plane, $\boldsymbol{\pi}$ then each point satisfies
+<equation>
+  \Transpose{\boldsymbol{\pi}} \Vec{p}_{i} = 0.
+</equation>
+By stacking each point as a matrix
+<equation>
+\begin{aligned}
+  \begin{bmatrix}
+    \Transpose{\Vec{p}_{1}} \\
+    \Transpose{\Vec{p}_{2}} \\
+    \Transpose{\Vec{p}_{3}}
+  \end{bmatrix} \boldsymbol{\pi} = 0
+\end{aligned}
+</equation>
+Since three points in general are rarely linearly independent, it follows that
+the $3 \times 4$ matrix compsed of the points $\Vec{p}_{i}$ as rows has rank
+3.</p>
+</section>
+<!-- ####################################################################### -->
+
+<!-- ###################### Pinhole Camera Model ########################### -->
+<section id="cv-pinhole">
+<h1>Pinhole Camera Model</h1>
+
+<p>The pinhole camera model describes how 3D scene points are projected onto
+the 2D image plane of an ideal pinhole camera. The model makes the assumption
+that light rays emitted from an object in the scene pass through the pinhole of
+the camera, and projected onto the image plane.</p>
+
+<p>A 3D point $\Vec{p}_{C} = [p_x \quad p_y \quad p_z]^{\transpose}$ expressed
+in the camera frame, $\frame_{C}$, projected on to the camera's 2D image plane
+$(u, v)$ is written as,
+<equation>
+  u = \dfrac{p_x f_{x}}{p_z} + c_x \quad v = \dfrac{p_y f_{y}}{p_z} + c_y
+</equation>
+where $f_{x}$ and $f_{y}$ denote the focal lengths, $c_{x}$ and $c_{y}$
+represents the principal point offset in the $x$ and $y$ direction. Or, in
+matrix form
+<equation>
+	\Vec{x}_{C} = \Mat{K} \Vec{p}_{C} \\
+	\begin{bmatrix}
+		u \\ v \\ 1
+	\end{bmatrix} =
+	\begin{bmatrix}
+		f_{x} & 0 & c_{x} \\
+		0 & f_{x} & c_{y} \\
+		0 & 0 & 1
+	\end{bmatrix}
+	\begin{bmatrix}
+		p_x / p_z \\ p_y / p_z \\ 1
+	\end{bmatrix}
+</equation>
+</p>
+
+<p>In practice, the pinhole camera model only serves as an approximation to
+modern cameras. The assumptions made in the model are often violated with
+factors such as large camera apertures (pinhole size), distortion effects in
+camera lenses, and other factors. That is why the pinhole camera model is often
+used in combination with a distortion model in the hope of minimizing
+projection errors from 3D to 2D.</p>
+
+<p>Common distortion models used in conjuction with the pinhole camera model
+includes:</p>
+
+<ul>
+  <li><a href="#cv-radtan">Radial-tangential distortion model (radtan)</a></li>
+  <li><a href="#cv-equi">Equi-distant distortion model (equi)</a></li>
+</ul>
+
+<h2>Guessing the focal length from the camera's field of view</h2>
+
+Using basic trigonometry, if we know the len's field of views we can obtain the
+focal length in the $x$ and/or $y$ direction.
+</section>
+<!-- ####################################################################### -->
+
+
+<!-- ################# Radial Tangential Distortion ######################## -->
+<section id="cv-radtan">
+<h1>Radial Tangential Distortion</h1>
+
+<p>Lens distortion generally exist in all camera lenses, therefore it is vital
+we model the distortions observed. The most common distortion model is the
+radial-tangential (or simply as radtan) distortion model. The two main
+distortion components, as the name suggests, are the radial and tangential
+distortion.</p>
+
+<p>Radial distortion occurs due to the shape of the lens, where light passing
+through the center undergoes no refraction, and light passing through the edges
+of the lens, undergoes through severe bending causing the radial
+distortion.</p>
+
+<img src="cv/imgs/radial_distortion.png" alt="Radial Distortion">
+
+<p>Tangential distortion, on the other hand, is mainly due to camera sensor
+misalignment during the manufacturing process. It occurs when the camera sensor
+is not in parallel with the lens.</p>
+
+<img src="cv/imgs/tangential_distortion.png" alt="Tangential Distortion">
+
+<p>The combined radial-tangential distortion is modelled using a polynomial
+approximation with parameters $k_{1}, k_{2}$ and $p_{1}, p_{2}$ respectively.
+To apply the distortion the observed 3D point $\Vec{p} = [x \enspace y \enspace
+z]^{\transpose}$ is first projected, distorted, and finally scaled and offset
+in the image plane $(u, v)$.</p>
+
+<equation>
+\begin{aligned}
+  x &= X / Z \\
+  y &= Y / Z \\
+  r^2 &= x^2 + y^2 \\ \\
+  x' &= x \cdot (1 + (k_1 r^2) + (k_2 r^4)) \\
+  y' &= y \cdot (1 + (k_1 r^2) + (k_2 r^4)) \\
+  x'' &= x' + (2 p_1 x y + p_2 (r^2 + 2 x^2)) \\
+  y'' &= y' + (p_1 (r^2 + 2 y^2) + 2 p_2 x y)
+\end{aligned}
+</equation>
+
+
+<h2>Radial Tangential Point Jacobian</h2>
+
+<equation>
+\begin{aligned}
+  \dfrac{\partial{\Vec{d}_{\text{radtan}}}}{\partial{\Vec{p}_{C}}} &=
+    \begin{bmatrix}
+      J_{11} & J_{12} \\
+      J_{21} & J_{22}
+    \end{bmatrix} \\ \\
+    r^2 &= x^2 + y^2 \\ \\
+    J_{11} &= k_1 r^2 + k_2 r^4 + 2 p_1 y + 6 p_2 x
+      + x (2 k_1 x + 4 k_2 x r^2) + 1 \\
+    J_{12} &= 2 x p_1 + 2 y p_2 + y (2 k_1 x + 4 k_2 x r^2) \\
+    J_{21} &= 2 x p_1 + 2 y p_2 + y (2 k_1 x + 4 k_2 x r^2) \\
+    J_{22} &= k_1 r^2 + k_2 r^4 + 6 p_1 y + 2 p_2 x
+      + y (2 k_1 y + 4 k_2 y r^2) + 1
+\end{aligned}
+</equation>
+
+
+<h2>Radial Tangential Parameter Jacobian</h2>
+
+<equation>
+\begin{aligned}
+  \dfrac{\partial{\Vec{d}_{\text{radtan}}}}{\partial{\Vec{d}_{\text{params}}}} &=
+    \begin{bmatrix}
+      J_{11} & J_{12} & J_{13} & J_{14} \\
+      J_{21} & J_{22} & J_{23} & J_{24}
+    \end{bmatrix} \\ \\
+    r^2 &= x^2 + y^2 \\ \\
+    J_{11} &= x r^2 \\
+    J_{12} &= x r^4 \\
+    J_{13} &= 2 x y \\
+    J_{14} &= 3 x^2 + y^2 \\ \\
+    J_{21} &= y r^2 \\
+    J_{22} &= y r^4 \\
+    J_{23} &= x^2 + 3 y^2 \\
+    J_{24} &= 2 x y
+\end{aligned}
+</equation>
+</section>
+<!-- ####################################################################### -->
+
+<!-- ########################## EQUI DISTORTION ############################ -->
+<section id="cv-equi">
+<h1>Equi-distant Distortion</h1>
+
+<equation>
+\begin{aligned}
+  r &= \sqrt{x^{2} + y^{2}} \\
+  \theta &= \arctan{(r)} \\
+  \theta_d &= \theta (1 + k_1 \theta^2 + k_2 \theta^4
+    + k_3 \theta^6 + k_4 \theta^8) \\
+  x' &= (\theta_d / r) \cdot x \\
+  y' &= (\theta_d / r) \cdot y
+\end{aligned}
+</equation>
+
+
+<h2>Equi-distant Point Jacobian</h2>
+
+<equation>
+\begin{aligned}
+  \dfrac{\partial{\Vec{d}_{\text{equi}}}}{\partial{\Vec{p}_{C}}} &=
+    \begin{bmatrix}
+      J_{11} & J_{12} \\
+      J_{21} & J_{22}
+    \end{bmatrix} \\ \\
+    %
+    r &= \sqrt{x^{2} + y^{2}} \\
+    \theta &= \arctan(r) \\
+    \theta_d &= \theta (1 + k_1 \theta^2 + k_2 \theta^4
+      + k_3 \theta^6 + k_4 \theta^8) \\
+    \theta_d' &= 1 + 3 k_1 \theta^2 + 5 k_2 \theta^4
+      + 7 k_3 \theta^6 + 9 k_4 \theta^8 \\
+    \theta_r &= 1 / (r^2 + 1) \\ \\
+    %
+    s &= \theta_d / r \\
+    s_r &= \theta_d' \theta_r / r - \theta_d / r^2 \\ \\
+    %
+    r_x &= 1 / r x \\
+    r_y &= 1 / r y \\ \\
+    %
+    J_{11} &= s + x s_r r_x \\
+    J_{12} &= x s_r r_y \\
+    J_{21} &= y s_r r_x \\
+    J_{22} &= s + y s_r r_y
+\end{aligned}
+</equation>
+
+
+<h2>Equi-distant Parameter Jacobian</h2>
+
+<equation>
+\begin{aligned}
+  \dfrac{\partial{\Vec{d}_{\text{equi}}}}
+        {\partial{\Vec{d}_{\text{params}}}} &=
+    \begin{bmatrix}
+      J_{11} & J_{12} & J_{13} & J_{14} \\
+      J_{21} & J_{22} & J_{23} & J_{24}
+    \end{bmatrix} \\ \\
+  r &= \sqrt{x^{2} + y^{2}} \\
+  \theta &= \arctan(r) \\ \\
+  J_{11} &= x \theta^3 / r \\
+  J_{12} &= x \theta^5 / r \\
+  J_{13} &= x \theta^7 / r \\
+  J_{14} &= x \theta^9 / r \\ \\
+  J_{21} &= y \theta^3 / r \\
+  J_{22} &= y \theta^5 / r \\
+  J_{23} &= y \theta^7 / r \\
+  J_{24} &= y \theta^9 / r
+\end{aligned}
+</equation>
+</section>
+<!-- ####################################################################### -->
+
+<!-- ######################## Linear Triangulation ######################### -->
+<section id="cv-linear_triangulation">
+<h1>Linear Triangulation</h1>
+
+<p>There are various methods for triangulating a 3D point obeserved from at
+least two camera views. The linear triangulation method [Hartley2003] is
+frequently used. This method assumes a pair of homogeneous pixel measurements
+$\Vec{z}$ and $\Vec{z}' \in \real^{3}$ that observes the same 3D point,
+$\Vec{X} \in \real^{4}$, in homogeneous coordinates from two different camera
+frames. The homogeneous projection from 3D to 2D with a known camera matrix
+$\Mat{P} \in \real^{3 \times 4}$ for each measurement is given as,
+<equation>
+\begin{aligned}
+  \Vec{z} &= \mathbf{P} \mathbf{X} \\
+  \Vec{z}' &= \mathbf{P}' \mathbf{X}.
+\end{aligned}
+</equation>
+These equations can be combined to form a system of equations of the form
+$\Mat{A} \Vec{x} = \Vec{0}$. To eliminate the homogeneous scale factor we apply
+a cross product to give three equations for each image point, for example
+$\Vec{z} \times (\Mat{P} \Mat{X}) = \Vec{0}$ writing this out gives
+<equation>
+\begin{aligned}
+		x (\Vec{p}^{3T} \Vec{X}) - (\Vec{p}^{1T} \Vec{X}) = 0 \\
+		y (\Vec{p}^{3T} \Vec{X}) - (\Vec{p}^{2T} \Vec{X}) = 0 \\
+		x (\Vec{p}^{2T} \Vec{X}) - y (\Vec{p}^{1T} \Vec{X}) = 0
+\end{aligned}
+</equation>
+where $\Vec{p}^{iT}$ is the $i^{\text{th}}$ row of $\Vec{P}$.</p>
+
+<p>From , an equation of the form
+$\Mat{A} \Vec{x} = \Vec{0}$ for each image point can be formed, where
+$\Vec{x}$ represents the unknown homogeneous feature location to be
+estimated, and $\Mat{A}$ is given as
+<equation>
+\begin{aligned}
+  \mathbf{A} =
+  \begin{bmatrix}
+    x (\Vec{p}^{3T}) - (\Vec{p}^{1T}) \\
+    y (\Vec{p}^{3T}) - (\Vec{p}^{2T}) \\
+    x' (\Vec{p'}^{3T}) - (\Vec{p'}^{1T}) \\
+    y' (\Vec{p'}^{3T}) - (\Vec{p'}^{2T})
+  \end{bmatrix}
+\end{aligned}
+</equation>
+giving a total of four equations in four homogeneous unknowns. Solving for
+$\Vec{A}$ using SVD allows us to estimate the initial feature location.</p>
+
+<p>In an ideal world, the position of 3D points can be solved as a system of
+equations using the linear triangulation method. In reality, however, errors
+are present in the camera poses and pixel measurements. The pixel measurements
+observing the same 3D point are generally noisy. In addition, the camera models
+and distortion models used often do not model the camera projection or
+distortion observed perfectly. Therefore to obtain the best results an
+iterative method should be used. This problem is generally formulated as a
+non-linear least square problem and can be solved by numerical methods, such as
+the Gauss-Newton algorithm.</p>
+
+<h3>References</h3>
+
+[Hartley2003]: Hartley, Richard, and Andrew Zisserman. Multiple view geometry
+in computer vision. Cambridge university press, 2003.
+</section>
+<!-- ####################################################################### -->
+
+
+<!-- ################## ILLUMINATION INVARIANT TRANSFORM ################### -->
+<section id="cv-illum_invar">
+<h1>Illumination Invariant Transform</h1>
+
+<p>Robust fast AprilTag detection emerged from experience with the standard
+black and white AprilTag during outdoor experiments, where the detection
+becomes unreliable in certain lighting conditions. In particular, detection
+fails when strong shadows cover tag features fully or partially. The cause of
+failure is due to how the detection process relies on image gradients to detect
+the edges and lines of the tag in order to extract the relative tag pose.
+Depending on the time of day or weather conditions, this can have a significant
+impact on reliable AprilTag detection. This sensitivity to illumination was
+addressed by using the illumination invariant transform by [Maddern2014].</p>
+
+<p>The illumination invariant transform takes three input channels from the
+image, and returns a single illumination adjusted channel, $I$, as follows,
+<equation>
+	I = \log(R_{2}) - \alpha \log(R_{1}) - (1 - \alpha) \log(R_{3})
+</equation>
+where $R_{1}, R_{2}, R_{3}$ are sensor responses (or image channels)
+corresponding to peak sensitivities at ordered wavelengths $\lambda_{1} <
+\lambda_{2} < \lambda_{3}$, and $\alpha$ is determined by the following
+equations,
+<equation>
+  \begin{aligned}
+  \dfrac{1}{\lambda_{2}} &=
+    \dfrac{\alpha}{\lambda_{1}}
+    + \dfrac{\left(1 - \alpha \right)}{\lambda_{3}} \\
+    \alpha &= \dfrac{\lambda_{1} (\lambda_{2} - \lambda_{3})}
+    {\lambda_{2} (\lambda_{1} - \lambda_{3})}
+  \end{aligned}
+</equation>
+</p>
+
+<p>This transform, however, has a non-intuitive effect on black and white
+targets, as the three channels tend to be equally over and under exposed in RGB
+images. As a result, the transform leads to similar values for white and black
+pixels, eliminating the ability for the AprilTag library to detect edges. To
+resolve this issue, we designed a new AprilTag so that the single channel image
+produced by using the equation introduced above produces a grey scale like
+image that is robust to shadows and changes in illumination. Examining
+\eqref{eq:illlum_invar}, it can be observed the resulting pixel intensities are
+maximized when the camera observes green ($R_{2}$) and minimized when viewing a
+mixture of red and blue, ($R_{1}$ and $R_{3}$ respectively). The proposed
+illumination invariant AprilTag shown in is created by replacing the white and
+black portions of a typical AprilTag with green and magenta. This modification
+was tested under various lighting conditions.
+Fig.~\ref{fig:illum_invar_comparision} shows the tag's appearance after
+performing the illumination invariant transform, creating a single channel
+image that replaces the typical single channel, grey scale image that is
+typically used by the AprilTag library. The images shown in
+Fig.~\ref{fig:illum_invar_comparision} are taken using a PointGrey Chameleon3
+(CM3-U3-28S4C-CS) with a Sony ICX818 image sensor. The corresponding values of
+$\lambda_{1},\lambda_{2}, \lambda_{3}$ and $\alpha $ are 480 nm, 510 nm, 640 nm
+and 0.56 respectively as noted in the sensor data sheets.</p>
+
+
+<h3>References</h3>
+
+[Maddern2014]: Maddern, Will, et al. "Illumination invariant imaging:
+Applications in robust vision-based localisation, mapping and classification
+for autonomous vehicles." Proceedings of the Visual Place Recognition in
+Changing Environments Workshop, IEEE International Conference on Robotics and
+Automation (ICRA), Hong Kong, China. Vol. 2. 2014.
+</section>
+<!-- ####################################################################### -->
+
+
+<!-- ########################### OPTICAL FLOW ############################## -->
+<section id="cv-optical_flow">
+<h1>Optical Flow</h1>
+
+<p>Optical flow estimates the velocity of each image feature in successive
+images of a scene. It makes the following explicit assumptions:
+<ul>
+  <li>Pixel intensity does not change between consecutive frames</li>
+  <li>Displacement of features is small</li>
+  <li>Features are within the same local neighbourhood</li>
+</ul>
+Let us consider a pixel, $p$, in the first frame which has an intensity, $I(x,
+y, t)$, where it is a function of the pixel location, $x$ and $y$, and time,
+$t$. If we apply the aforementioned assumptions, we can say that the intensity
+of said pixel in the first frame to the second does not change. Additionally,
+if there was a small displacement, $dx$ and $dy$, and small time difference,
+$dt$, between images this can be written in mathematical form as,
+<equation>
+  I(x, y, t) = I(x + dx, y + dy, t + dt).
+</equation>
+This is known as the brightness constancy equation. To obtain the image
+gradient and velocity of the pixel, we can use Taylor series approximation of
+right-hand side of \eqref{eq:brightness_constancy} to get,
+<equation>
+  I(x + dx, y + dy, t + dt) = I(x, y, t)
+    + \dfrac{\partial{I}}{\partial{x}} dx
+    + \dfrac{\partial{I}}{\partial{y}} dy
+    + \dfrac{\partial{I}}{\partial{t}} dt
+    + \text{H.O.T},
+</equation>
+removing common terms and dividing by $dt$ we get,
+<equation>
+  I_{x} v_{x} + I_{y} v_y + I_{t} = 0
+</equation>
+or,
+<equation>
+  I_{x} v_{x} + I_{y} v_y = -I_{t}
+</equation>
+where:
+<equation>
+\begin{aligned}
+  I_{x} = \dfrac{\partial I}{\partial x}
+  ; \quad
+  I_{y} = \dfrac{\partial I}{\partial y} \\
+  v_{x} = \dfrac{dx}{dt}
+  ; \quad
+  v_y = \dfrac{dy}{dt}.
+\end{aligned}
+</equation>
+The image gradients along the x and y directions are $I_{x}$ and $I_{y}$, where
+$I_{t}$ is the image gradient along time, finally, $v_{x}$ and $v_{y}$ are the
+pixel velocity in $x$ and $y$ directions, which is unknown. The problem with
+\eqref{eq:optical_flow_2} is that it provides a single constraint with two
+degrees of freedom, and as such requires at least one additional constraint to
+identify a solution.</p>
+
+<p>The Lucas-Kanade method solves the aperture problem by introducing additional
+conditions. This method assumes all pixels within a window centered around a
+pixel $p$ will have similar motion, and that the window size is configurable.
+For example, a window size of $3 \times 3$ around the pixel $p$, the $9$ points
+within the window should have a similar motion. Using
+\eqref{eq:optical_flow_2}, the intensity inside the window must therefore
+satisfy,
+<equation>
+\begin{aligned}
+  I_{x}(p_1) v_{x}(p_1) &+ I_{y}(p_1) v_y = -I_{t}(p_1) \\
+  I_{x}(p_1) v_{x}(p_2) &+ I_{y}(p_2) v_y = -I_{t}(p_2) \\
+  & \enspace \vdots \\
+  I_{x}(p_1) v_{x}(p_n) &+ I_{y}(p_n) v_y = -I_{t}(p_n)
+  \end{aligned}
+</equation>
+where $p_{1}, p_{2} ,\dots , p_{n}$ are the pixels in the window. This can be
+re-written in matrix form $\mathbf{A} \mathbf{x} = \mathbf{b}$ as,
+<equation>
+    \mathbf{A} = \begin{bmatrix}
+        I_{x}(p_{1}) & I_{y}(p_{1}) \\
+        I_{x}(p_{2}) & I_{y}(p_{2}) \\
+        \vdots & \vdots \\
+        I_{x}(p_{n}) & I_{y}(p_{n})
+    \end{bmatrix}
+    \quad
+    \mathbf{x} = \begin{bmatrix}
+      v_{x} \\ v_{y} \\
+    \end{bmatrix}
+    \quad
+    \mathbf{b} = \begin{bmatrix}
+      -I_{t}(p_{1}) \\
+      -I_{t}(p_{2}) \\
+      \vdots \\
+      -I_{t}(p_{n})
+    \end{bmatrix}.
+</equation>
+The linear system of equations of \eqref{eq:lucas_kanade_1} is over-determined,
+therefore there is no exact solution. To address this issue, a least squares
+method can be used to approximate the solution by applying the ordinary least
+squares. For the system $\mathbf{A} \mathbf{x} = \mathbf{b}$, the least squares
+formula is obtained by minimizing the following,
+<equation>
+  \underset{\mathbf{x}}{\text{argmin }} || \mathbf{A} \mathbf{x} - \mathbf{b} ||,
+</equation>
+the solution of which can be obtained by using *normal equations*,
+<equation>
+\begin{aligned}
+  \mathbf{A}^{T} \mathbf{A} \mathbf{x} &= \mathbf{A}^{T} \mathbf{b} \\
+  \mathbf{x} &= (\mathbf{A}^{T} \mathbf{A})^{-1} \mathbf{A}^{T} \mathbf{b}.
+\end{aligned}
+</equation>
+Rewriting \eqref{eq:lucas_kanade_1} in the form of
+\eqref{eq:normal_equations_2} we get,
+<equation>
+  \begin{bmatrix}
+  v_{x} \\ v_{y}
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    \sum_{i}{I_{x}(p_{i})}^2 & \sum_{i}{I_{x}(p_{i}) I_{y}(p_{i}) } \\
+    \sum_{i}{I_{x}(p_{i}) I_{y}(p_{i})} & \sum_{i}{I_{y}(p_{i})}^2
+  \end{bmatrix}^{-1}
+  \begin{bmatrix}
+    - \sum_{i}{I_{x}(p_{i}) I_{t}(p_{i})} \\
+    - \sum_{i}{I_{y}(p_{i}) I_{t}(p_{i})}
+  \end{bmatrix}
+</equation>
+which is finally used to obtain the optical flow of pixel $p$.</p>
+</section>
+<!-- ####################################################################### -->
+
+
 <!-- ########################### NOTATIONS ################################# -->
 <section id="se-notations">
 <h1>Notations</h1>
 
 <p>A large part of robotics is about developing machines that perceives and
 interact with the environment. For that robots use sensors to collect and
-process data, and knowing what the data describes is of utmost importance.
-Imagine obtaining the position of the robot but not knowing what that position
-is with respect to. Missing data descriptions such as what a position vector is
-expressing, what is it with respect to and more causes many hours of painful
-trail and error to extract that information.</p>
-
-<p>The notes will be closly following the frame notation as described by Paul
-Furgale. The aim is to mitigate the ambiguity that arises when describing
-robot poses, sensor data and more.</p>
+process data, and knowing what the data describes is of important for the robot
+to navigate and interact with the environment. The following notes will be
+using the frame notation as described by Paul Furgale (see <a
+href="https://tinyurl.com/y635m93l">link</a>). The aim is to mitigate the
+ambiguity that arises when describing robot poses, sensor data and more.</p>
 
 <p>A vector expressed in the world frame, $\frame_{W}$, is written as $\pos_{W}$.
 Or more precisely if the vector describes the position of the camera frame,
@@ -230,84 +764,84 @@ $\gyr = \gyrMeas + \gyrNoise - \gyrBias$</p>
 <equation>
 \begin{aligned}
   \min_{\Vec{x}} \cost(\Vec{x})
-		&=
-			\dfrac{1}{2}
-			\sum_{i}
-		  \Vec{e}_{i}^{\transpose} \Mat{W} \Vec{e}_{i} \\
-		&=
-			\dfrac{1}{2} \enspace
-			\Vec{e}_{i}^{\transpose}(\Vec{x})
-			\Mat{W}
-			\Vec{e}_{i}(\Vec{x})
+    &=
+      \dfrac{1}{2}
+      \sum_{i}
+      \Vec{e}_{i}^{\transpose} \Mat{W} \Vec{e}_{i} \\
+    &=
+      \dfrac{1}{2} \enspace
+      \Vec{e}_{i}^{\transpose}(\Vec{x})
+      \Mat{W}
+      \Vec{e}_{i}(\Vec{x})
 \end{aligned}
 </equation>
 
 <p>Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
 approximated with the first-order Taylor series,
 <equation>
-	\Vec{e}(\Vec{x})
-		\approx
-			\Vec{e}(\bar{\Vec{x}}) +
-			\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+  \Vec{e}(\Vec{x})
+    \approx
+      \Vec{e}(\bar{\Vec{x}}) +
+      \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
 </equation>
 where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 \bigg\rvert_{\Vec{x}_{k}}$ and $\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}$.</p>
 
 <equation>
-	\dfrac{\delta{\cost}}{\delta{\Vec{x}}} =
-		\dfrac{\delta{\cost}}{\delta{\Vec{e}}}
-		\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
+  \dfrac{\delta{\cost}}{\delta{\Vec{x}}} =
+    \dfrac{\delta{\cost}}{\delta{\Vec{e}}}
+    \dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
 </equation>
 
 <equation>
 \begin{aligned}
-	\dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
-		\dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
-		\Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
-	%
-	\dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}} &=
-		\Vec{e}(\bar{\Vec{x}}) +
-		\Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
-		\Mat{E}(\bar{\Vec{x}})
+  \dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
+    \dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
+    \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
+  %
+  \dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}} &=
+    \Vec{e}(\bar{\Vec{x}}) +
+    \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
+    \Mat{E}(\bar{\Vec{x}})
 \end{aligned}
 </equation>
 
 <equation>
 \begin{aligned}
-	\dfrac{\delta{\cost}}{\delta{\Vec{x}}}
-		&=
-			(\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
-		% Line 2
-		&=
-			(
-				\Vec{e}(\bar{\Vec{x}}) + \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
-			)^{\transpose} \Mat{W}
-			\Mat{E}(\bar{\Vec{x}}) \\
-		% Line 3
-		&=
-			\Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}})
-			+ \Delta\Vec{x}^{\transpose}
-				\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
-			= 0 \\
+  \dfrac{\delta{\cost}}{\delta{\Vec{x}}}
+    &=
+      (\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
+    % Line 2
+    &=
+      (
+        \Vec{e}(\bar{\Vec{x}}) + \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+      )^{\transpose} \Mat{W}
+      \Mat{E}(\bar{\Vec{x}}) \\
+    % Line 3
+    &=
+      \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}})
+      + \Delta\Vec{x}^{\transpose}
+        \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+      = 0 \\
 \end{aligned}
 </equation>
 
 <equation>
 \begin{aligned}
-		% Line 4
-		\Delta\Vec{x}^{\transpose}
-			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
-		&=
-			- \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}}) \\
-		% Line 5
-		\underbrace{
-			\Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
-		}_{\Mat{H}}
-			\Delta\Vec{x}
-		&=
-		\underbrace{
-			- \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
-		}_{\Vec{b}}
+    % Line 4
+    \Delta\Vec{x}^{\transpose}
+      \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+    &=
+      - \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}}) \\
+    % Line 5
+    \underbrace{
+      \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+    }_{\Mat{H}}
+      \Delta\Vec{x}
+    &=
+    \underbrace{
+      - \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
+    }_{\Vec{b}}
 \end{aligned}
 </equation>
 
@@ -315,7 +849,7 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 $\Delta\Vec{x}$ using the Cholesky or QR-decompositon. Once $\Delta\Vec{x}$ is
 found the best estimate $\bar{\Vec{x}}$ can be updated via,
 <equation>
-	\bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x}.
+  \bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x}.
 </equation>
 </p>
 </section>
@@ -332,19 +866,19 @@ found the best estimate $\bar{\Vec{x}}$ can be updated via,
 <p>Let $\Mat{M}$ be a matrix that consists of block matrices $\Mat{A}$, $\Mat{B}$,
 $\Mat{C}$, $\Mat{D}$,
 <equation>
-	\Mat{M} =
-	\begin{bmatrix}
-		\Mat{A} & \Mat{B} \\
-		\Mat{C} & \Mat{D}
-	\end{bmatrix}
+  \Mat{M} =
+  \begin{bmatrix}
+    \Mat{A} & \Mat{B} \\
+    \Mat{C} & \Mat{D}
+  \end{bmatrix}
 </equation>
 if $\Mat{A}$ is invertible, the Schur's complement of the block $\Mat{A}$ of the
 matrix $\Mat{B}$ is the defined by
 <equation>
-	\Mat{M}/\Mat{A} = \Mat{D} - \Mat{C} \Mat{A}^{-1} \Mat{B}.
+  \Mat{M}/\Mat{A} = \Mat{D} - \Mat{C} \Mat{A}^{-1} \Mat{B}.
 </equation>
 <equation>
-	\Mat{M}/\Mat{D} = \Mat{A} - \Mat{B} \Mat{D}^{-1} \Mat{C}.
+  \Mat{M}/\Mat{D} = \Mat{A} - \Mat{B} \Mat{D}^{-1} \Mat{C}.
 </equation>
 </p>
 
@@ -385,8 +919,8 @@ and applying the Shur complement operation yields:
   \Mat{H}_{\lambda_{1}\mu}
   \Mat{H}_{\mu\mu}^{-1}
   \Mat{H}_{\mu\lambda_{1}}
-	\\
-	\Vec{b}^{\ast}_{\lambda_{1}}
+  \\
+  \Vec{b}^{\ast}_{\lambda_{1}}
   &=
   \Vec{b}_{\lambda_{1}} -
   \Mat{H}_{\lambda_{1}\mu}
@@ -404,43 +938,43 @@ where $\bar{\state}$ is our current estimate for $\state$. Introducing and
 approximating the R.H.S of the Gauss-Newton equation with $\Delta{\chi}$ and
 the first order Taylor series results in,
 <equation>
-	<!-- \label{eq:gn_rhs_v2} -->
-	\Vec{b} + \dfrac{\delta{b}}{\delta{\Delta{\chi}}} \bigg\rvert_{\state_{0}}
+  <!-- \label{eq:gn_rhs_v2} -->
+  \Vec{b} + \dfrac{\delta{b}}{\delta{\Delta{\chi}}} \bigg\rvert_{\state_{0}}
     = \Vec{b} - \Mat{H} \Delta{\chi}.
 </equation>
 Partioning \eqref{eq:gn_rhs_v2} into $\mu$ and $\lambda$,
 <equation>
-	<!-- \label{eq:gn_rhs_v2_partitioned} -->
-	\begin{bmatrix}
-		\Vec{b}_{\mu} \\ \Vec{b}_{\lambda_{1}}
-	\end{bmatrix}
-		=
-		\begin{bmatrix}
-			\Vec{b}_{\mu, 0} \\ \Vec{b}_{\lambda_{1}, 0}
-		\end{bmatrix}
-		-
-		\begin{bmatrix}
-			\Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
-			\Mat{H}_{\lambda_{1}\mu} & \Mat{H}_{\lambda_{1}\lambda_{1}}
-		\end{bmatrix}
-		\begin{bmatrix}
-			\Delta{\chi}_{\mu} \\
-			\Delta{\chi}_{\lambda_{1}}
-		\end{bmatrix}.
+  <!-- \label{eq:gn_rhs_v2_partitioned} -->
+  \begin{bmatrix}
+    \Vec{b}_{\mu} \\ \Vec{b}_{\lambda_{1}}
+  \end{bmatrix}
+    =
+    \begin{bmatrix}
+      \Vec{b}_{\mu, 0} \\ \Vec{b}_{\lambda_{1}, 0}
+    \end{bmatrix}
+    -
+    \begin{bmatrix}
+      \Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
+      \Mat{H}_{\lambda_{1}\mu} & \Mat{H}_{\lambda_{1}\lambda_{1}}
+    \end{bmatrix}
+    \begin{bmatrix}
+      \Delta{\chi}_{\mu} \\
+      \Delta{\chi}_{\lambda_{1}}
+    \end{bmatrix}.
 </equation>
 Substituting in the above  to the R.H.S of the Gauss-Newton system, $\Mat{H}
 \delta{\state} = \Vec{b}$, results in,
 <equation>
-	\Vec{b}^{\ast}_{\lambda_{1}} =
-		\underbrace{
-			\Vec{b}_{\lambda_{1}, 0} -
-			\Mat{H}_{\lambda_{1}\mu}
-			\Mat{H}_{\mu\mu}^{-1}
-			\Vec{b}_{\mu, 0}
-		}_{\Vec{b}^{\ast}_{\lambda_{1}, 0}}
-		-
-		\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
-		\Delta{\chi}_{\lambda_{1}}.
+  \Vec{b}^{\ast}_{\lambda_{1}} =
+    \underbrace{
+      \Vec{b}_{\lambda_{1}, 0} -
+      \Mat{H}_{\lambda_{1}\mu}
+      \Mat{H}_{\mu\mu}^{-1}
+      \Vec{b}_{\mu, 0}
+    }_{\Vec{b}^{\ast}_{\lambda_{1}, 0}}
+    -
+    \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
+    \Delta{\chi}_{\lambda_{1}}.
 </equation>
 </p>
 
@@ -454,8 +988,8 @@ cost function, $c(\cdot)$, can be written as a function of $\state$ at time $k$
 as,
 <equation>
 \begin{aligned}
-	c(\state_{k}) &= c(\state_{m}, \state_{r}) \\
-								&= c(\state_{m}) + c(\state_{r}).
+  c(\state_{k}) &= c(\state_{m}, \state_{r}) \\
+                &= c(\state_{m}) + c(\state_{r}).
 \end{aligned}
 </equation>
 The intuition behind \eqref{eq:ba_cost_fn} is since the state at time $k$ can
@@ -464,9 +998,9 @@ this property, the multi-variate optimization can also be decomposed as
 follows,
 <equation>
 \begin{aligned}
-	\min_{\state_{m}, \state_{r}} c(\state_{m}, \state_{r})
-		&= \min_{\state_{r}} (\min_{\state_{m}} c(\state_{m}, \state_{r})) \\
-		&= \min_{\state_{r}} (c(\state_{r}) + \min_{\state_{m}} c(\state_{m})) .
+  \min_{\state_{m}, \state_{r}} c(\state_{m}, \state_{r})
+    &= \min_{\state_{r}} (\min_{\state_{m}} c(\state_{m}, \state_{r})) \\
+    &= \min_{\state_{r}} (c(\state_{r}) + \min_{\state_{m}} c(\state_{m})) .
 \end{aligned}
 </equation>
 The equation above shows the minimization problem can be solved by first
@@ -476,7 +1010,7 @@ problem entails no approximation.</p>
 
 <p>The Gauss Newton system for solving the minimization problem is,
 <equation>
-	\Mat{H} \Delta{\state} = \Vec{b}.
+  \Mat{H} \Delta{\state} = \Vec{b}.
 </equation>
 Partitioning the $\Mat{H}$ matrix into $\mu$ for states to be marginalized out,
 and $\lambda$ for states to remain,
@@ -504,8 +1038,8 @@ Solving for $\Delta{\state}$ via the Schur's Complement operation,
   \Mat{H}_{\lambda_{1}\mu}
   \Mat{H}_{\mu\mu}^{-1}
   \Mat{H}_{\mu\lambda_{1}}
-	\\
-	\Vec{b}^{\ast}_{\lambda_{1}}
+  \\
+  \Vec{b}^{\ast}_{\lambda_{1}}
   &=
   \Vec{b}_{\lambda_{1}} -
   \Mat{H}_{\lambda_{1}\mu}
@@ -519,80 +1053,81 @@ $\state_\lambda$ and $\state_\mu$.</p>
 </section>
 <!-- ####################################################################### -->
 
+
 </div> <!-- #content -->
 
-	<!-- KATEX -->
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
-	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
-	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"></script>
-	<style>
-		.katex { font-size: 1.1em; }
-	</style>
+  <!-- KATEX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"></script>
+  <style>
+    .katex { font-size: 1.1em; }
+  </style>
 
-	<!-- SHOWDOWN -->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
+  <!-- SHOWDOWN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
 
   <script>
-		document.addEventListener("DOMContentLoaded", function() {
-			function http_get(url) {
-				var xmlHttp = new XMLHttpRequest();
-				xmlHttp.open( "GET", url, false ); // false for synchronous request
-				xmlHttp.send( null );
-				return xmlHttp.responseText;
-			}
+    document.addEventListener("DOMContentLoaded", function() {
+      function http_get(url) {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open( "GET", url, false ); // false for synchronous request
+        xmlHttp.send( null );
+        return xmlHttp.responseText;
+      }
 
-			function http_get_async(url, callback) {
-				var xmlHttp = new XMLHttpRequest();
-				xmlHttp.onreadystatechange = function() {
-					if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-						callback(xmlHttp.responseText);
-				}
-				xmlHttp.open("GET", url, true); // true for asynchronous
-				xmlHttp.send(null);
-			}
+      function http_get_async(url, callback) {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function() {
+          if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+            callback(xmlHttp.responseText);
+        }
+        xmlHttp.open("GET", url, true); // true for asynchronous
+        xmlHttp.send(null);
+      }
 
-			// Load README
-			http_get_async("https://raw.githubusercontent.com/chutsu/proto/master/README.md", function(data) {
-				var readme_section = document.getElementById("readme");
-				var md = new showdown.Converter();
-				readme_section.innerHTML = md.makeHtml(data);
-			});
+      // Load README
+      http_get_async("https://raw.githubusercontent.com/chutsu/proto/master/README.md", function(data) {
+        var readme_section = document.getElementById("readme");
+        var md = new showdown.Converter();
+        readme_section.innerHTML = md.makeHtml(data);
+      });
 
-			// Render latex
-			var katex_options = {
-				throwOnError: true,
-				delimiters: [
-					{left: "$$", right: "$$", display: true},
-					{left: "$", right: "$", display: false}
-				],
-				macros: {
-					"\\Vec": "\\mathbf{#1}",
-					"\\Mat": "\\mathbf{#1}",
-					"\\real": "\\rm I\\!R",
-					"\\ones": "{\\Vec{1}}",
-					"\\Ones": "{\\Vec{1}_{#1\\times#2}}",
-					"\\zeros": "{\\Vec{0}}",
-					"\\Zeros": "{\\Vec{0}_{#1\\times#2}}",
-					"\\Norm": "{\\|#1\\|}",
-					"\\LargeNorm": "{\\left\\lVert#1\\right\\rVert}",
-					"\\I": "{\Mat{I}}",
-					"\\Skew": "{\\lfloor #1 \\enspace \\times \\rfloor}",
-					"\\Argmin": "\\underset{#1}{\\text{argmin }}",
-					"\\transpose": "T",
-					"\\Transpose": "{#1^{\\transpose}}",
-					"\\Inv": "{#1^{-1}}",
-					"\\LargeNorm": "\\left\\lVert#1\\right\\rVert}",
-					"\\Trace": "\\text{tr}(#1)",
-					"\\Rank": "\\text{rank}(#1)}",
-					"\\Bigslant": "{\\left/\\right}",
-					"\\cost": "\\Vec{J}",
-					// Transforms
-					"\\frame": "{\\mathcal{F}}",
-					"\\rot": "{\\Mat{C}}",
-					"\\trans": "{\\Vec{r}}",
-					"\\quat": "{\\Vec{q}}",
-					"\\tf": "{\\Mat{T}}",
-					// Standard terms
+      // Render latex
+      var katex_options = {
+        throwOnError: true,
+        delimiters: [
+          {left: "$$", right: "$$", display: true},
+          {left: "$", right: "$", display: false}
+        ],
+        macros: {
+          "\\Vec": "\\mathbf{#1}",
+          "\\Mat": "\\mathbf{#1}",
+          "\\real": "\\rm I\\!R",
+          "\\ones": "{\\Vec{1}}",
+          "\\Ones": "{\\Vec{1}_{#1\\times#2}}",
+          "\\zeros": "{\\Vec{0}}",
+          "\\Zeros": "{\\Vec{0}_{#1\\times#2}}",
+          "\\Norm": "{\\|#1\\|}",
+          "\\LargeNorm": "{\\left\\lVert#1\\right\\rVert}",
+          "\\I": "{\Mat{I}}",
+          "\\Skew": "{\\lfloor #1 \\enspace \\times \\rfloor}",
+          "\\Argmin": "\\underset{#1}{\\text{argmin }}",
+          "\\transpose": "T",
+          "\\Transpose": "{#1^{\\transpose}}",
+          "\\Inv": "{#1^{-1}}",
+          "\\LargeNorm": "\\left\\lVert#1\\right\\rVert}",
+          "\\Trace": "\\text{tr}(#1)",
+          "\\Rank": "\\text{rank}(#1)}",
+          "\\Bigslant": "{\\left/\\right}",
+          "\\cost": "\\Vec{J}",
+          // Transforms
+          "\\frame": "{\\mathcal{F}}",
+          "\\rot": "{\\Mat{C}}",
+          "\\trans": "{\\Vec{r}}",
+          "\\quat": "{\\Vec{q}}",
+          "\\tf": "{\\Mat{T}}",
+          // Standard terms
           "\\state": "{\\Vec{x}}",
           "\\pos": "{\\Vec{r}}",
           "\\vel": "{\\Vec{v}}",
@@ -600,64 +1135,64 @@ $\state_\lambda$ and $\state_\mu$.</p>
           "\\angvel": "{\\boldsymbol{\\omega}}",
           "\\gravity": "{\\Vec{g}}",
           "\\noise": "{\\Vec{n}}",
-					"\\bias": "{\\Vec{b}}",
-					// Gyroscope
-					"\\gyr": "{\\angvel}",
-					"\\gyrMeas": "{\\angvel_{m}}",
-					"\\gyrNoise": "{\\noise_{g}}",
-					"\\gyrBias": "{\\bias_{g}}",
-					// Accelerometer
-					"\\accMeas": "{\\acc_{m}}",
-					"\\accNoise": "{\\noise_{a}}",
-					"\\accBias": "{\\bias_{a}}"
-				}
-			};
-			renderMathInElement(document.body, katex_options);
+          "\\bias": "{\\Vec{b}}",
+          // Gyroscope
+          "\\gyr": "{\\angvel}",
+          "\\gyrMeas": "{\\angvel_{m}}",
+          "\\gyrNoise": "{\\noise_{g}}",
+          "\\gyrBias": "{\\bias_{g}}",
+          // Accelerometer
+          "\\accMeas": "{\\acc_{m}}",
+          "\\accNoise": "{\\noise_{a}}",
+          "\\accBias": "{\\bias_{a}}"
+        }
+      };
+      renderMathInElement(document.body, katex_options);
 
-			// Enumerate equations
-			var equations = document.getElementsByTagName("equation");
-			for (var i = 0; i < equations.length; i++) {
-				var eq = equations[i];
-				var eq_num = (i + 1);
-				var html = "<div style='text-align:center;margin-top:20px;margin-bottom:20px'>";
-				html += katex.renderToString(eq.textContent, katex_options);
-				html += "<span style='float:right;'>(" + eq_num + ")</span>";
-				html += "</div>";
-				eq.innerHTML = html;
-			}
+      // Enumerate equations
+      var equations = document.getElementsByTagName("equation");
+      for (var i = 0; i < equations.length; i++) {
+        var eq = equations[i];
+        var eq_num = (i + 1);
+        var html = "<div style='text-align:center;margin-top:20px;margin-bottom:20px'>";
+        html += katex.renderToString(eq.textContent, katex_options);
+        html += "<span style='float:right;'>(" + eq_num + ")</span>";
+        html += "</div>";
+        eq.innerHTML = html;
+      }
 
-			// Hide all sections
-			var sections = document.getElementsByTagName("section");
-			for (var i = 0; i < sections.length; i++) {
-				var section = sections[i];
-				if (section.id != "readme") {
-					section.setAttribute("style", "display:none;");
-				}
-			}
+      //// Hide all sections
+      //var sections = document.getElementsByTagName("section");
+      //for (var i = 0; i < sections.length; i++) {
+      //  var section = sections[i];
+      //  if (section.id != "readme") {
+      //    section.setAttribute("style", "display:none;");
+      //  }
+      //}
 
-			if (window.location.hash) {
-				var hash = window.location.hash;
-				var section = document.getElementById(hash.replace("#", ""));
-				section.setAttribute("style", "display:show;");
-				readme.setAttribute("style", "display:none;");
-			}
+      //if (window.location.hash) {
+      //  var hash = window.location.hash;
+      //  var section = document.getElementById(hash.replace("#", ""));
+      //  section.setAttribute("style", "display:show;");
+      //  readme.setAttribute("style", "display:none;");
+      //}
 
-			window.addEventListener("hashchange", function() {
-				var sections = document.getElementsByTagName("section");
-				for (var i = 0; i < sections.length; i++) {
-					var section = sections[i];
-					if (section.id != "readme") {
-						section.setAttribute("style", "display:none;");
-					}
-				}
+      //window.addEventListener("hashchange", function() {
+      //  window.scrollTo({ top: 0, behavior: 'smooth' });
+      //  var sections = document.getElementsByTagName("section");
+      //  for (var i = 0; i < sections.length; i++) {
+      //    var section = sections[i];
+      //    if (section.id != "readme") {
+      //      section.setAttribute("style", "display:none;");
+      //    }
+      //  }
 
-				var hash = window.location.hash;
-				var section = document.getElementById(hash.replace("#", ""));
-				section.setAttribute("style", "display:show;");
-				readme.setAttribute("style", "display:none;");
-			});
-
-		});
+      //  var hash = window.location.hash;
+      //  var section = document.getElementById(hash.replace("#", ""));
+      //  section.setAttribute("style", "display:show;");
+      //  readme.setAttribute("style", "display:none;");
+      //});
+    });
   </script>
 </body>
 </html>
