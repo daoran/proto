@@ -42,7 +42,7 @@ debug: ${BUILD_DIR}
 	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s
 
 release: ${BUILD_DIR}
-	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s
+	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s -j4
 
 install:
 	@if [ ! -d proto/build ]; then \

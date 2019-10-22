@@ -119,24 +119,27 @@ int test_ba_factor() {
   // Create factor
   const timestamp_t ts = 0;
   const size_t id = 0;
-  const vec2_t measurement;
-  landmark_t landmark{0, vec3_t{1.0, 2.0, 3.0}};
+  const vec2_t measurement{0.0, 0.0};
+  const vec3_t landmark{1.0, 2.0, 3.0};
 
   const mat3_t C_WC = I(3);
+  const quat_t q_WC{C_WC};
   const vec3_t r_WC = zeros(3, 1);
-  pose_t T_WC{ts, 0, tf(C_WC, r_WC)};
-  ba_factor_t factor(ts, id, measurement, &landmark, &T_WC);
+  ba_factor_t factor(ts, id, measurement);
 
   // Evaluate factor
   vec2_t residuals;
   mat_t<2, 3, row_major_t> J_point;
   mat_t<2, 6, row_major_t> J_cam_pose;
+	double cam_pose[7] = {q_WC.w(), q_WC.x(), q_WC.y(), q_WC.z(),
+												r_WC(0), r_WC(1), r_WC(2)};
+	const double *parameters[2] = {landmark.data(), cam_pose};
   double *jacobians[2] = {J_point.data(), J_cam_pose.data()};
-  factor.eval(residuals.data(), jacobians);
+  factor.Evaluate(parameters, residuals.data(), jacobians);
 
   // Check factor jacobians
-  check_J_cam_pose(tf(C_WC, r_WC), landmark.vec(), J_cam_pose);
-  check_J_point(tf(C_WC, r_WC), landmark.vec(), J_point);
+  check_J_cam_pose(tf(C_WC, r_WC), landmark, J_cam_pose);
+  check_J_point(tf(C_WC, r_WC), landmark, J_point);
 
   return 0;
 }
@@ -205,13 +208,10 @@ int test_graph_add_ba_factor() {
   const vec3_t p_W{0.0, 0.0, 0.0};
   const mat4_t T_WC = I(4);
 
-  const size_t lm_id = graph_add_landmark(graph, p_W);
-  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
-  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
-  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
-
   // Add factor
-  size_t id = graph_add_ba_factor(graph, ts, z, landmark, pose);
+	const size_t p_id = graph_add_landmark(graph, p_W);
+	const size_t pose_id = graph_add_pose(graph, ts, T_WC);
+  size_t id = graph_add_ba_factor(graph, ts, z, p_id, pose_id);
   MU_CHECK(id == 0);
   MU_CHECK(graph.factors.size() == 1);
   MU_CHECK(graph.variables.size() == 2);
@@ -222,137 +222,38 @@ int test_graph_add_ba_factor() {
   return 0;
 }
 
-int test_graph_eval() {
+int test_graph_solve() {
   graph_t graph;
 
-  // Setup variables and factors
+  // Add landmarks
+  const vec3_t p0_W{1.0, 2.0, 3.0};
+  const vec3_t p1_W{4.0, 5.0, 6.0};
+  const vec3_t p2_W{7.0, 8.0, 9.0};
+	const size_t p0_id = graph_add_landmark(graph, p0_W);
+	const size_t p1_id = graph_add_landmark(graph, p1_W);
+	const size_t p2_id = graph_add_landmark(graph, p2_W);
+
+  // Add pose
   const timestamp_t ts = 0;
   const vec2_t z{0.0, 0.0};
-  const vec3_t p_W{1.0, 0.0, 0.0};
   const vec3_t rpy_WC{-M_PI / 2.0, 0.0, -M_PI / 2.0};
   const mat3_t C_WC = euler321(rpy_WC);
   const vec3_t r_WC = zeros(3, 1);
   const mat4_t T_WC = tf(C_WC, r_WC);
+	const size_t pose_id = graph_add_pose(graph, ts, T_WC);
 
-  const size_t lm_id = graph_add_landmark(graph, p_W);
-  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
-  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
-  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
+//   pose_t *T_WS_0 = nullptr;
+//   pose_t *T_WS_1 = nullptr;
+  // Add Factors
+  graph_add_ba_factor(graph, ts, z, p0_id, pose_id);
+  graph_add_ba_factor(graph, ts, z, p1_id, pose_id);
+  graph_add_ba_factor(graph, ts, z, p2_id, pose_id);
 
-  size_t id = graph_add_ba_factor(graph, ts, z, landmark, pose);
-  MU_CHECK(id == 0);
-  MU_CHECK(graph.factors.size() == 1);
-  MU_CHECK(graph.variables.size() == 2);
-
-  // Evaluate
-  graph_eval(graph);
-  MU_CHECK(graph.residuals.size() == 1);
-  MU_CHECK(graph.jacobians[graph.factors[0]].size() == 2);
-
-  // Clean up
+  graph_solve(graph);
   graph_free(graph);
 
   return 0;
 }
-
-int test_graph_setup_problem() {
-  graph_t graph;
-
-  // Add and evaluate bundle adjustment factors
-  const timestamp_t ts = 0;
-  const vec2_t z{0.0, 0.0};
-  const vec3_t p_W{1.0, 0.1, 0.3};
-  const vec3_t rpy_WC{-M_PI / 2.0, 0.0, -M_PI / 2.0};
-  const mat3_t C_WC = euler321(rpy_WC);
-  const vec3_t r_WC = zeros(3, 1);
-  const mat4_t T_WC = tf(C_WC, r_WC);
-
-  const size_t lm_id = graph_add_landmark(graph, p_W);
-  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
-  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
-  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
-  graph_add_ba_factor(graph, ts, z, landmark, pose);
-  graph_add_ba_factor(graph, ts, z, landmark, pose);
-  graph_add_ba_factor(graph, ts, z, landmark, pose);
-  graph_eval(graph);
-
-  // Setup problem
-  matx_t J;
-  vecx_t r;
-  graph_setup_problem(graph, J, r);
-
-  // Plot matrix J
-  mat2csv("/tmp/J.csv", J);
-  // bool debug = true;
-  bool debug = false;
-  if (debug) {
-    OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
-  }
-
-  // Clean up
-  graph_free(graph);
-
-  return 0;
-}
-
-int test_graph_update() {
-  graph_t graph;
-
-  // Add and evaluate bundle adjustment factors
-  const timestamp_t ts = 0;
-  const vec2_t z{0.0, 0.0};
-  const vec3_t p_W{1.0, 0.1, 0.3};
-  const vec3_t rpy_WC{-M_PI / 2.0, 0.0, -M_PI / 2.0};
-  const mat3_t C_WC = euler321(rpy_WC);
-  const vec3_t r_WC = zeros(3, 1);
-  const mat4_t T_WC = tf(C_WC, r_WC);
-
-  const size_t lm_id = graph_add_landmark(graph, p_W);
-  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
-  const auto landmark = static_cast<landmark_t *>(graph.variables[lm_id]);
-  const auto pose = static_cast<pose_t *>(graph.variables[pose_id]);
-
-  graph_add_ba_factor(graph, ts, z, landmark, pose);
-  graph_add_ba_factor(graph, ts, z, landmark, pose);
-  graph_add_ba_factor(graph, ts, z, landmark, pose);
-  graph_eval(graph);
-
-  // Setup problem
-  matx_t J;
-  vecx_t r;
-  graph_setup_problem(graph, J, r);
-
-  const matx_t H = J.transpose() * J;
-  const vecx_t b = -J.transpose() * r;
-  const vecx_t dx = -H.inverse() * b;
-  std::cout << dx << std::endl;
-  // graph_update(graph, dx);
-
-  // Clean up
-  graph_free(graph);
-
-  return 0;
-}
-
-// int test_graph_solve() {
-//   graph_t graph;
-//
-//   // Add and evaluate bundle adjustment factors
-//   const timestamp_t ts = 0;
-//   const vec2_t z{0.0, 0.0};
-//   const vec3_t p_W{1.0, 0.1, 0.3};
-//   const vec3_t rpy_WC{-M_PI / 2.0, 0.0, -M_PI / 2.0};
-//   const mat3_t C_WC = euler321(rpy_WC);
-//   const vec3_t r_WC = zeros(3, 1);
-//   const mat4_t T_WC = tf(C_WC, r_WC);
-//
-//   graph_add_ba_factor(graph, ts, z, p_W, T_WC);
-//   graph_add_ba_factor(graph, ts, z, p_W, T_WC);
-//   graph_add_ba_factor(graph, ts, z, p_W, T_WC);
-//   graph_solve(graph);
-//
-//   return 0;
-// }
 
 void test_suite() {
   MU_ADD_TEST(test_pose);
@@ -363,10 +264,7 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_pose);
   MU_ADD_TEST(test_graph_add_landmark);
   MU_ADD_TEST(test_graph_add_ba_factor);
-  MU_ADD_TEST(test_graph_eval);
-  MU_ADD_TEST(test_graph_setup_problem);
-  MU_ADD_TEST(test_graph_update);
-  // MU_ADD_TEST(test_graph_solve);
+  MU_ADD_TEST(test_graph_solve);
 }
 
 } // namespace proto

@@ -53,7 +53,6 @@ struct aprilgrid_t {
               const double tag_spacing);
   ~aprilgrid_t();
 };
-
 typedef AprilTags::TagDetection apriltag_t;
 typedef std::vector<aprilgrid_t> aprilgrids_t;
 

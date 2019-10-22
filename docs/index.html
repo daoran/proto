@@ -152,18 +152,15 @@
 
 <!-- #################### COMPUTER VISION FUNDAMENTALS ##################### -->
 <section id="cv-fundamentals">
-
 <h1>Computer Vision Fundamentals</h1>
 
 <h2>Point on Line</h2>
-
 <equation>
   \Transpose{\Vec{x}} \Vec{l} = 0
 </equation>
 
 
 <h2>Intersection of Lines</h2>
-
 <equation>
 \begin{aligned}
   \Vec{l} (\Vec{l} \times \Vec{l}') \Vec{l}' (\Vec{l} \times \Vec{l}') &= 0 \\
@@ -175,7 +172,7 @@
 <h2>Plane</h2>
 <ul>
   <li>A plane can be defined by the join between three points, or the join
-      between a line and a point in general</li>
+  between a line and a point in general</li>
   <li>Two planes intersecting a unique line</li>
   <li>Three planes intersecting a unique point</li>
 </ul>
@@ -222,7 +219,9 @@ where $f_{x}$ and $f_{y}$ denote the focal lengths, $c_{x}$ and $c_{y}$
 represents the principal point offset in the $x$ and $y$ direction. Or, in
 matrix form
 <equation>
-	\Vec{x}_{C} = \Mat{K} \Vec{p}_{C} \\
+	\Vec{x}_{C} = \Mat{K} \Vec{p}_{C}
+</equation>
+<equation>
 	\begin{bmatrix}
 		u \\ v \\ 1
 	\end{bmatrix} =
@@ -242,14 +241,12 @@ modern cameras. The assumptions made in the model are often violated with
 factors such as large camera apertures (pinhole size), distortion effects in
 camera lenses, and other factors. That is why the pinhole camera model is often
 used in combination with a distortion model in the hope of minimizing
-projection errors from 3D to 2D.</p>
-
-<p>Common distortion models used in conjuction with the pinhole camera model
-includes:</p>
+projection errors from 3D to 2D. Common distortion models used in conjuction
+with the pinhole camera model includes:</p>
 
 <ul>
-  <li><a href="#cv-radtan">Radial-tangential distortion model (radtan)</a></li>
-  <li><a href="#cv-equi">Equi-distant distortion model (equi)</a></li>
+  <li><a href="#cv-radtan">Radial-tangential distortion</a></li>
+  <li><a href="#cv-equi">Equi-distant distortion</a></li>
 </ul>
 
 <h2>Guessing the focal length from the camera's field of view</h2>

@@ -177,7 +177,7 @@ SET(
   core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
-  # estimation-test_factor
+  estimation-test_factor
   # estimation-test_measurement
   # # model-test_mav
   # model-test_two_wheel
