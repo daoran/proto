@@ -5,6 +5,7 @@
 
 #include "proto/core/core.hpp"
 #include "proto/calib/calib_data.hpp"
+#include "proto/calib/calib_camera.hpp"
 
 namespace proto {
 
@@ -80,9 +81,9 @@ double evaluate_vicon_marker_cost(const std::vector<aprilgrid_t> &aprilgrids,
  * Calibrate vicon marker to camera extrinsics
  */
 int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
-                             mat4s_t &T_WM,
                              pinhole_t &pinhole,
                              radtan4_t &radtan,
+                             mat4s_t &T_WM,
                              mat4_t &T_MC,
                              mat4_t &T_WF);
 

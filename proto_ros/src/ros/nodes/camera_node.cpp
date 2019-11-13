@@ -12,7 +12,7 @@ struct camera_node_t : ros_node_t {
 	int camera_index_ = 0;
   std::string topic_;
 
-  camera_node_t(int argc, char **argv) : ros_node_t(argc, argv) {}
+  camera_node_t() : ros_node_t() {}
 
   int configure() {
     // Setup ROS

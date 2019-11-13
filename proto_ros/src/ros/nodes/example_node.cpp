@@ -10,7 +10,7 @@ static const std::string SAY_TOPIC = "/example/say";
 namespace proto {
 
 struct example_node_t : ros_node_t {
-  example_node_t(int argc, char **argv) : ros_node_t(argc, argv) {}
+  example_node_t() : ros_node_t() {}
 
   int configure(const int hz) {
     ros_node_t::configure(hz);

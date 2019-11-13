@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="proto_ros" type="calib_vicon_validate_node" name="calib_vicon_validate_node" required="true" output="screen">
+    <param name="rosbag_path" value="/data/vicon_capture.bag" />
+    <param name="calib_file" value="/tmp/vicon_calib.yaml" />
+    <param name="cam0_topic" value="/camera/color/image_raw" />
+    <!-- <param name="cam0_topic" value="/stereo/camera0/image" /> -->
+    <param name="body0_topic" value="/vicon/f450/pose" />
+  </node>
+</launch>

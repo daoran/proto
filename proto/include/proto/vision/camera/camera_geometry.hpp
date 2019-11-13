@@ -82,6 +82,15 @@ pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
                         const Eigen::Matrix<T, 4, 1> &D,
                         const Eigen::Matrix<T, 3, 1> &point);
 
+/**
+ * Project point using pinhole equidistant
+ */
+template <typename T>
+static Eigen::Matrix<T, 2, 1>
+pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
+                      const Eigen::Matrix<T, 4, 1> &D,
+                      const Eigen::Matrix<T, 3, 1> &point);
+
 /******************************************************************************
  * IMPLEMENTATION
  *****************************************************************************/
@@ -170,6 +179,43 @@ pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
 
   // Scale distorted point
   Eigen::Matrix<T, 2, 1> x_distorted{x_ddash, y_ddash};
+  const Eigen::Matrix<T, 2, 1> pixel = (K * x_distorted.homogeneous()).head(2);
+
+  return pixel;
+}
+
+template <typename T>
+static Eigen::Matrix<T, 2, 1>
+pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
+                      const Eigen::Matrix<T, 4, 1> &D,
+                      const Eigen::Matrix<T, 3, 1> &point) {
+  // Project
+  const T x = point(0) / point(2);
+  const T y = point(1) / point(2);
+
+  // Radial distortion factor
+  const T k1 = D(0);
+  const T k2 = D(1);
+  const T k3 = D(2);
+  const T k4 = D(3);
+  const T r = sqrt(pow(x, 2) + pow(y, 2));
+
+  // if (r < 1e-8) {
+  //   return point;
+  // }
+
+  // Apply equi distortion
+  const T th = atan(r);
+  const T th2 = th * th;
+  const T th4 = th2 * th2;
+  const T th6 = th4 * th2;
+  const T th8 = th4 * th4;
+  const T th_d = th * (T(1) + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  const T x_dash = (th_d / r) * x;
+  const T y_dash = (th_d / r) * y;
+
+  // Scale distorted point
+  Eigen::Matrix<T, 2, 1> x_distorted{x_dash, y_dash};
   const Eigen::Matrix<T, 2, 1> pixel = (K * x_distorted.homogeneous()).head(2);
 
   return pixel;

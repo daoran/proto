@@ -19,16 +19,25 @@ debug() {
 # LIBRARY
 # make deps
 # time make debug
-time make release
-# time make ros
-# make notes
+# time make release
 sudo make install
+time make ros
+# make notes
 # sudo make debug_install
 # exit
 
-# cd ~/catkin_ws/ && source devel/setup.bash
+source ~/.bashrc
+cd ~/catkin_ws/ && source devel/setup.bash
 # roslaunch proto_ros calib_camera.launch
 # roslaunch proto_ros calib_stereo.launch
+# export ROS_MASTER_URI=http://192.168.1.201:11311; roslaunch proto_ros calib_vicon_capture.launch
+# rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
+
+rm -rf /data/intel_d435i/calib_vicon_data
+rm -rf /tmp/vicon_validation
+roslaunch proto_ros calib_vicon.launch
+# export ROS_MASTER_URI=http://192.168.1.201:11311; roslaunch proto_ros calib_vicon_validate.launch
+
 
 # cd scripts/api/
 # python3 api.py

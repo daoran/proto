@@ -2,6 +2,61 @@
 
 namespace proto {
 
+bool check_ros_topics(const std::string &rosbag_path,
+                      const std::vector<std::string> &target_topics) {
+  // Get all ros topics in bag
+  rosbag::Bag bag;
+  bag.open(rosbag_path, rosbag::bagmode::Read);
+  rosbag::View bag_view(bag);
+  std::set<std::string> topics;
+  for (const rosbag::ConnectionInfo *info : bag_view.getConnections()) {
+    if (topics.find(info->topic) == topics.end()) {
+      topics.insert(info->topic);
+    }
+  }
+
+  // Make sure all target topics exist in bag
+  for (const auto &target_topic : target_topics) {
+    if (topics.find(target_topic) == topics.end()) {
+      LOG_ERROR("Topic [%s] does not exist in ros bag [%s]!",
+                target_topic.c_str(),
+                rosbag_path.c_str());
+      return false;
+    }
+  }
+
+  return true;
+}
+
+std::ofstream pose_init_output_file(const std::string &output_path) {
+  const std::string save_path{output_path + "/data.csv"};
+
+  // Check save dir
+  if (dir_exists(output_path) == false) {
+     if (dir_create(output_path) != 0) {
+        FATAL("Failed to create dir [%s]", output_path.c_str());
+     }
+  }
+
+  // Create output csv file
+  std::ofstream data_file(save_path);
+  if (data_file.good() == false) {
+    FATAL("Failed to create output file [%s]", save_path.c_str());
+  }
+
+  // Write data file header
+  data_file << "timestamp [ns],";
+  data_file << "qw,";
+  data_file << "qx,";
+  data_file << "qy,";
+  data_file << "qz,";
+  data_file << "x,";
+  data_file << "y,";
+  data_file << "z" << std::endl;
+
+  return data_file;
+}
+
 std::ofstream camera_init_output_file(const std::string &output_path) {
   const std::string save_path{output_path + "/data.csv"};
 
@@ -137,6 +192,24 @@ void load_imu_data(const std::string &csv_file,
     accel.emplace_back(a_x, a_y, a_z);
   }
   fclose(fp);
+}
+
+void pose_message_handler(const rosbag::MessageInstance &msg,
+                          const std::string &output_path,
+                          std::ofstream &pose_data) {
+  const auto pose_msg = msg.instantiate<geometry_msgs::PoseStamped>();
+  const auto ts = ros::Time(pose_msg->header.stamp);
+  const auto ts_str = std::to_string(ts.toNSec());
+
+  // Save pose to data.csv
+  pose_data << ts.toNSec() << ",";
+  pose_data << pose_msg->pose.orientation.w << ",";
+  pose_data << pose_msg->pose.orientation.x << ",";
+  pose_data << pose_msg->pose.orientation.y << ",";
+  pose_data << pose_msg->pose.orientation.z << ",";
+  pose_data << pose_msg->pose.position.x << ",";
+  pose_data << pose_msg->pose.position.y << ",";
+  pose_data << pose_msg->pose.position.z << std::endl;
 }
 
 void image_message_handler(const rosbag::MessageInstance &msg,

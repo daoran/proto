@@ -4,21 +4,6 @@ namespace proto {
 
 ros_node_t::ros_node_t() {}
 
-ros_node_t::ros_node_t(int argc, char **argv) {
-  argc_ = argc;
-  argv_ = argv;
-
-  // parse args
-  for (int i = 1; i < argc; i++) {
-    std::string arg(argv[i]);
-
-    // ros node name
-    if (arg.find("__name:=") != std::string::npos) {
-      node_name_ = arg.substr(8);
-    }
-  }
-}
-
 ros_node_t::~ros_node_t() {
   ros::shutdown();
   if (ros_rate_) {
@@ -27,9 +12,6 @@ ros_node_t::~ros_node_t() {
 }
 
 int ros_node_t::configure() {
-  if (ros::isInitialized() == false) {
-    ros::init(argc_, argv_, node_name_, ros::init_options::NoSigintHandler);
-  }
   ros_nh_.getParam("/debug_mode", debug_mode_);
   ros_nh_.getParam("/sim_mode", sim_mode_);
   configured_ = true;

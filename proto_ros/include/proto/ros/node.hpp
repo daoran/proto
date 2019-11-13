@@ -16,19 +16,25 @@ namespace proto {
 #define ROS_PARAM(NH, X, Y)                                                    \
   if (NH.getParam(X, Y) == false) {                                            \
     ROS_FATAL_STREAM("Failed to get ROS param [" << X << "]!");                \
+    exit(0);                                                                   \
   }
 
 #define ROS_OPTIONAL_PARAM(NH, X, Y, DEFAULT)													         \
   if (NH.getParam(X, Y) == false) {                                            \
     ROS_INFO("ROS param [%s] not found, setting defaults!", (X).c_str());      \
-    ROS_INFO_STREAM("ROS param [" << X << "] not configured!");                \
-    ROS_INFO_STREAM("Setting [" << X << "] to [" << DEFAULT << "]!");          \
 		Y = DEFAULT;																											         \
   }
 
 #define RUN_ROS_NODE(NODE_CLASS)                                               \
   int main(int argc, char **argv) {                                            \
-    NODE_CLASS node(argc, argv);                                               \
+    std::string node_name;                                                     \
+    if (ros::isInitialized() == false) {                                       \
+      node_name = proto::ros_node_name(argc, argv);                            \
+      ros::init(argc, argv, node_name, ros::init_options::NoSigintHandler);    \
+    }                                                                          \
+                                                                               \
+    NODE_CLASS node;                                                           \
+    node.node_name_ = node_name;                                               \
     if (node.configure() != 0) {                                               \
       ROS_ERROR("Failed to configure [%s]!", #NODE_CLASS);                     \
       return -1;                                                               \
@@ -39,7 +45,14 @@ namespace proto {
 
 #define RUN_ROS_NODE_RATE(NODE_CLASS, NODE_RATE)                               \
   int main(int argc, char **argv) {                                            \
-    NODE_CLASS node(argc, argv);                                               \
+    std::string node_name;                                                     \
+    if (ros::isInitialized() == false) {                                       \
+      node_name = proto::ros_node_name(argc, argv);                            \
+      ros::init(argc, argv, node_name, ros::init_options::NoSigintHandler);    \
+    }                                                                          \
+                                                                               \
+    NODE_CLASS node;                                                           \
+    node.node_name_ = node_name;                                               \
     if (node.configure(NODE_RATE) != 0) {                                      \
       ROS_ERROR("Failed to configure [%s]!", #NODE_CLASS);                     \
       return -1;                                                               \
@@ -47,7 +60,6 @@ namespace proto {
     node.loop();                                                               \
     return 0;                                                                  \
   }
-
 
 std::string ros_node_name(int argc, char *argv[]) {
   for (int i = 1; i < argc; i++) {
@@ -84,7 +96,6 @@ struct ros_node_t {
   std::function<int()> loop_cb_;
 
   ros_node_t();
-  ros_node_t(int argc, char **argv);
   ~ros_node_t();
 
   int configure();

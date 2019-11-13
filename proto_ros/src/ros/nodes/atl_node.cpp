@@ -32,7 +32,7 @@ struct atl_node_t : ros_node_t {
   bool lz_detected = false;
   proto::mat4_t T_CZ = proto::I(4);
 
-  atl_node_t(int argc, char **argv) : ros_node_t(argc, argv) {}
+  atl_node_t() : ros_node_t() {}
 
   int configure(const int hz) {
     // ROS

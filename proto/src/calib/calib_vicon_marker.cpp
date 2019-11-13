@@ -106,10 +106,10 @@ double evaluate_vicon_marker_cost(const std::vector<aprilgrid_t> &aprilgrids,
   return cost;
 }
 
-int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
-                             mat4s_t &T_WM,
+int calib_vicon_marker_solve(const aprilgrids_t &aprilgrids,
                              pinhole_t &pinhole,
                              radtan4_t &radtan,
+                             mat4s_t &T_WM,
                              mat4_t &T_MC,
                              mat4_t &T_WF) {
   assert(aprilgrids.size() > 0);
@@ -118,17 +118,16 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
 
   // Optimization variables
   calib_pose_param_t T_MC_param{T_MC};
-  calib_pose_param_t T_WF_param{T_WM[0] * T_MC * aprilgrids[0].T_CF};
+  calib_pose_param_t T_WF_param{T_WF};
   std::vector<calib_pose_param_t> T_WM_params;
   for (size_t i = 0; i < T_WM.size(); i++) {
     T_WM_params.push_back(T_WM[i]);
   }
 
   // Setup optimization problem
-  ceres::Problem::Options problem_options;
-  problem_options.local_parameterization_ownership =
-      ceres::DO_NOT_TAKE_OWNERSHIP;
-  std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
+  ceres::Problem::Options problem_opts;
+  problem_opts.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_opts));
   ceres::EigenQuaternionParameterization quaternion_parameterization;
 
   // Process all aprilgrid data
@@ -145,14 +144,24 @@ int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
       return -1;
     }
 
+    // Set quaternion parameterization for T_WM
+    problem->SetParameterization(T_WM_params[i].q.coeffs().data(),
+                                 &quaternion_parameterization);
+
     // Fixing the marker pose - assume vicon is calibrated and accurate
     problem->SetParameterBlockConstant(T_WM_params[i].q.coeffs().data());
     problem->SetParameterBlockConstant(T_WM_params[i].r.data());
-    problem->SetParameterization(T_WM_params[i].q.coeffs().data(),
-                                 &quaternion_parameterization);
   }
-  problem->SetParameterBlockConstant(*pinhole.data);
-  problem->SetParameterBlockConstant(*radtan.data);
+
+  // Fix camera parameters
+  // problem->SetParameterBlockConstant(*pinhole.data);
+  // problem->SetParameterBlockConstant(*radtan.data);
+
+  // Fix T_WF parameters
+  // problem->SetParameterBlockConstant(T_WF_param.q.coeffs().data());
+  // problem->SetParameterBlockConstant(T_WF_param.r.data());
+
+  // Set quaternion parameterization for T_MC
   problem->SetParameterization(T_MC_param.q.coeffs().data(),
                                &quaternion_parameterization);
   problem->SetParameterization(T_WF_param.q.coeffs().data(),

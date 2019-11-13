@@ -32,7 +32,7 @@ struct pinhole_radtan4_residual_t {
   bool operator()(const T *const intrinsics_,
                   const T *const distortion_,
                   const T *const q_CF_,
-                  const T *const t_CF_,
+                  const T *const r_CF_,
                   T *residuals_) const {
     // Map variables to Eigen
     const Eigen::Matrix<T, 3, 3> K = pinhole_K(intrinsics_);
@@ -42,12 +42,13 @@ struct pinhole_radtan4_residual_t {
     // Form tf
     const Eigen::Quaternion<T> q_CF(q_CF_[3], q_CF_[0], q_CF_[1], q_CF_[2]);
     const Eigen::Matrix<T, 3, 3> R_CF = q_CF.toRotationMatrix();
-    const Eigen::Matrix<T, 3, 1> t_CF{t_CF_[0], t_CF_[1], t_CF_[2]};
-    Eigen::Matrix<T, 4, 4> T_CF = tf(R_CF, t_CF);
+    const Eigen::Matrix<T, 3, 1> r_CF{r_CF_[0], r_CF_[1], r_CF_[2]};
+    Eigen::Matrix<T, 4, 4> T_CF = tf(R_CF, r_CF);
 
     // Project
     const Eigen::Matrix<T, 3, 1> p_C = (T_CF * p_F.homogeneous()).head(3);
     const Eigen::Matrix<T, 2, 1> z_hat = pinhole_radtan4_project(K, D, p_C);
+    // const Eigen::Matrix<T, 2, 1> z_hat = pinhole_equi4_project(K, D, p_C);
 
     // Residual
     residuals_[0] = T(z_[0]) - z_hat(0);
@@ -78,8 +79,8 @@ int calib_camera_stats(const aprilgrids_t &aprilgrids,
 
     // Form relative pose
     const mat4_t T_CF = poses[i];
-    const quat_t q_CF{T_CF.block<3, 3>(0, 0)};
-    const vec3_t t_CF{T_CF.block<3, 1>(0, 3)};
+    const quat_t q_CF = tf_quat(T_CF);
+    const vec3_t r_CF = tf_trans(T_CF);
 
     // Iterate over all tags in AprilGrid
     for (const auto &tag_id : aprilgrid.ids) {
@@ -104,7 +105,7 @@ int calib_camera_stats(const aprilgrids_t &aprilgrids,
         residual(intrinsics,
                  distortion,
                  q_CF.coeffs().data(),
-                 t_CF.data(),
+                 r_CF.data(),
                  res);
         residuals.emplace_back(res[0], res[1]);
       }

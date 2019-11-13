@@ -688,6 +688,10 @@ int aprilgrid_detect(aprilgrid_t &grid,
 
   // Form results
   for (const auto tag : tags) {
+    if (tag.good == false) {
+      continue;
+    }
+
     std::vector<cv::Point2f> img_pts;
     img_pts.emplace_back(tag.p[0].first, tag.p[0].second); // Bottom left
     img_pts.emplace_back(tag.p[1].first, tag.p[1].second); // Top left

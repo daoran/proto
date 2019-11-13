@@ -22,7 +22,7 @@ struct lz_detector_node_t : ros_node_t {
   lz_detector_t lz_detector;
   pinhole_t pinhole;
 
-  lz_detector_node_t(int argc, char **argv) : ros_node_t(argc, argv) {}
+  lz_detector_node_t() : ros_node_t() {}
 
   int configure(const int hz) {
     // ROS

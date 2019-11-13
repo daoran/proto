@@ -44,7 +44,7 @@ struct calib_validate_mono_node_t : ros_node_t {
 	calib_config_t calib_config_;
 	calib_target_t calib_target_;
 
-  calib_validate_mono_node_t(int argc, char **argv) : ros_node_t(argc, argv) {}
+  calib_validate_mono_node_t() : ros_node_t() {}
 
   int configure() {
     std::string calib_file;

@@ -14,6 +14,10 @@
 
 namespace proto {
 
+bool check_ros_topics(const std::string &rosbag_path,
+                      const std::vector<std::string> &target_topics);
+
+std::ofstream pose_init_output_file(const std::string &output_path);
 std::ofstream camera_init_output_file(const std::string &output_path);
 std::ofstream imu_init_output_file(const std::string &output_path);
 std::ofstream accel_init_output_file(const std::string &output_path);
@@ -22,6 +26,9 @@ void load_imu_data(const std::string &csv_file,
                    timestamps_t &timestamps,
                    vec3s_t &gyro,
                    vec3s_t &accel);
+void pose_message_handler(const rosbag::MessageInstance &msg,
+                          const std::string &output_path,
+                          std::ofstream &pose_data);
 void image_message_handler(const rosbag::MessageInstance &msg,
                            const std::string &output_path,
                            std::ofstream &camera_data);
