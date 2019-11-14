@@ -13,6 +13,7 @@ std::string body0_topic;
 std::string target0_topic;
 
 void signal_handler(int sig) {
+  UNUSED(sig);
   bag.close();
   ros::shutdown();
 }

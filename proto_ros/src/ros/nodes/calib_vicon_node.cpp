@@ -1,9 +1,20 @@
+#include <signal.h>
 #include "proto/proto.hpp"
-#include "proto/calib/calib_vicon_marker.hpp"
 #include "proto/ros/node.hpp"
 #include "proto/ros/bag.hpp"
 
 using namespace proto;
+std::string valid_out_path = "/tmp/vicon_validation";
+
+void clear_validation_output() {
+  std::string cmd = "rm -rf " + valid_out_path;
+  system(cmd.c_str());
+}
+
+void signal_handler(int sig) {
+  UNUSED(sig);
+  clear_validation_output();
+}
 
 std::string basename(const std::string &path) {
   auto output = path;
@@ -30,7 +41,6 @@ void process_rosbag(const std::string &rosbag_path,
   }
 
   // Check output dir
-  std::cout << "[" << out_path << "]" << std::endl;
   if (dir_exists(out_path) == false) {
     if (dir_create(out_path) != 0) {
       FATAL("Failed to create dir [%s]", out_path.c_str());
@@ -290,105 +300,381 @@ void lerp_body_poses(const aprilgrids_t &grids,
   }
 }
 
+struct dataset_t {
+  aprilgrids_t grids;
+  pinhole_t pinhole;
+  radtan4_t radtan;
+  mat4s_t T_WM;
+  mat4_t T_MC;
+  mat4_t T_WF;
+};
+
+dataset_t process_dataset(const std::string &data_path,
+                          const std::string &calib_file) {
+  LOG_INFO("Processing dataset");
+  const auto grid0_path = data_path + "/grid0/cam0/data";
+  const auto body0_csv_path = data_path + "/body0/data.csv";
+  const auto target0_csv_path = data_path + "/target0/data.csv";
+
+  // Load camera calibration parameters
+  LOG_INFO("-- Loading camera calibration parameters");
+  vec2_t resolution;
+  vec4_t intrinsics;
+  vec4_t distortion;
+  config_t calib{calib_file};
+  parse(calib, "cam0.resolution", resolution);
+  parse(calib, "cam0.intrinsics", intrinsics);
+  parse(calib, "cam0.distortion", distortion);
+
+  // Load dataset
+  LOG_INFO("-- Loading dataset");
+  dataset_t ds;
+  // -- April Grid
+  aprilgrids_t aprilgrids = load_aprilgrids(grid0_path);
+  // -- Camera intrinsics and distortion
+  ds.pinhole = pinhole_t{intrinsics};
+  ds.radtan = radtan4_t{distortion};
+  // -- Vicon marker pose
+  timestamps_t body_timestamps;
+  mat4s_t body_poses;
+  load_body_poses(body0_csv_path, body_timestamps, body_poses);
+  // -- Synchronize aprilgrids and body poses
+  lerp_body_poses(aprilgrids, body_timestamps, body_poses,
+                  ds.grids, ds.T_WM);
+  // -- Vicon Marker to Camera transform
+  const vec3_t euler{-90.0, 0.0, -90.0};
+  const mat3_t C = euler321(deg2rad(euler));
+  ds.T_MC = tf(C, zeros(3, 1));
+  // ds.T_MC << 0.0, 0.0, 1.0, 0.10,
+  //            -1.0, 0.0, 0.0, 0.07,
+  //            0.0, -1.0, -0.0, -0.15,
+  //            0.0, 0.0, 0.0, 1.0;
+  // -- Fiducial target pose
+  ds.T_WF = load_fiducial_pose(target0_csv_path);
+  ds.T_WF(0, 3) += 0.07;
+  ds.T_WF(1, 3) += 0.07;
+
+  // Show dataset stats
+  std::cout << std::endl;
+  std::cout << "Vicon Calibration dataset: " << std::endl;
+  std::cout << "---------------------------------------------" << std::endl;
+  std::cout << "nb grids: " << ds.grids.size() << std::endl;
+  std::cout << "nb poses: " << ds.T_WM.size() << std::endl;
+  std::cout << std::endl;
+  std::cout << "Pinhole:\n" << ds.pinhole << std::endl;
+  std::cout << "Radtan:\n" << ds.radtan << std::endl;
+  print_matrix("T_MC", ds.T_MC);
+  print_matrix("T_WF", ds.T_WF);
+
+  return ds;
+}
+
+void detect_aprilgrids(const calib_target_t &calib_target,
+                       const std::string &cam0_path,
+                       const std::string &grid_path,
+                       const std::vector<std::string> &image_paths) {
+  aprilgrid_detector_t detector;
+  for (size_t i = 0; i < image_paths.size(); i++) {
+    // -- Create output file path
+    auto output_file = basename(image_paths[i]);
+    const timestamp_t ts = std::stoull(output_file);
+    output_file = remove_ext(output_file);
+    output_file += ".csv";
+    const auto save_path = paths_combine(grid_path, output_file);
+
+    // -- Setup AprilGrid
+    const int tag_rows = calib_target.tag_rows;
+    const int tag_cols = calib_target.tag_cols;
+    const double tag_size = calib_target.tag_size;
+    const double tag_spacing = calib_target.tag_spacing;
+    aprilgrid_t grid{ts, tag_rows, tag_cols, tag_size, tag_spacing};
+
+    // -- Skip if already preprocessed
+    if (file_exists(save_path) && aprilgrid_load(grid, save_path) == 0) {
+      continue;
+    } else {
+      // Reset AprilGrid
+      grid = aprilgrid_t{ts, tag_rows, tag_cols, tag_size, tag_spacing};
+    }
+
+    // -- Detect
+    const auto image_path = paths_combine(cam0_path, image_paths[i]);
+    const cv::Mat image = cv::imread(image_path);
+    aprilgrid_detect(grid, detector, image);
+    grid.timestamp = ts;
+
+    // -- Save AprilGrid
+    if (aprilgrid_save(grid, save_path) != 0) {
+      FATAL("Failed to save aprilgrid to [%s]!", save_path.c_str());
+    }
+  }
+}
+
+void loop_validation_dataset(const std::string validate_path,
+                             const calib_target_t &calib_target,
+                             const dataset_t &ds) {
+  const auto cam0_path = validate_path + "/cam0/data";
+  const auto grids_path = validate_path + "/grid0/cam0/data";
+
+  // Detect Aprilgrids in validation set
+  std::vector<std::string> image_paths;
+  if (list_dir(cam0_path, image_paths) != 0) {
+    FATAL("Failed to list dir [%s]!", cam0_path.c_str());
+  }
+  sort(image_paths.begin(), image_paths.end());
+  detect_aprilgrids(calib_target, cam0_path, grids_path, image_paths);
+  const aprilgrids_t aprilgrids = load_aprilgrids(grids_path);
+
+  // Vicon marker pose
+  const auto body0_csv_path = validate_path + "/body0/data.csv";
+  timestamps_t body_timestamps;
+  mat4s_t body_poses;
+  load_body_poses(body0_csv_path, body_timestamps, body_poses);
+
+  // Synchronize grids and body poses
+  aprilgrids_t grids_sync;
+  mat4s_t body_poses_sync;
+  lerp_body_poses(aprilgrids, body_timestamps, body_poses,
+                  grids_sync, body_poses_sync);
+
+  // Optimized parameters
+  const mat3_t K = pinhole_K(ds.pinhole);
+  const vec4_t D{ds.radtan.k1, ds.radtan.k2, ds.radtan.p1, ds.radtan.p2};
+  const mat4_t T_MC = ds.T_MC;
+  const mat4_t T_WF = ds.T_WF;
+
+  // Loop over validation dataset
+  size_t pose_idx = 0;
+  for (const auto &image_file : image_paths) {
+    LOG_INFO("Image [%s]", image_file.c_str());
+
+    // Load image
+    auto image = cv::imread(paths_combine(cam0_path, image_file));
+    const auto img_w = image.cols;
+    const auto img_h = image.rows;
+
+    // Predict where aprilgrid points should be
+    const mat4_t T_WM_ = body_poses_sync[pose_idx];
+    const mat4_t T_WC = T_WM_ * T_MC;
+    const mat4_t T_CW = T_WC.inverse();
+
+    // Setup grid
+    aprilgrid_t grid;
+    grid.tag_rows = calib_target.tag_rows;
+    grid.tag_cols = calib_target.tag_cols;
+    grid.tag_size = calib_target.tag_size;
+    grid.tag_spacing = calib_target.tag_spacing;
+
+    // Project object point in fiducial frame to image plane
+    vec3s_t object_points;
+    vec2s_t image_points;
+    aprilgrid_object_points(grid, object_points);
+    for (const auto &p_F : object_points) {
+      const vec3_t p_C = (T_CW * T_WF * p_F.homogeneous()).head(3);
+
+      vec2_t img_pt;
+      if (pinhole_radtan4_project(K, D, p_C, img_pt) != 0) {
+        continue;
+      }
+
+      const bool x_ok = (img_pt(0) > 0 && img_pt(0) < img_w);
+      const bool y_ok = (img_pt(1) > 0 && img_pt(1) < img_h);
+      if (x_ok && y_ok) {
+        image_points.push_back(img_pt);
+      }
+    }
+
+    // Draw on image
+    for (const auto &img_pt : image_points) {
+      cv::Point2f p(img_pt(0), img_pt(1));
+      cv::circle(image, p, 3, cv::Scalar(0, 0, 255), -1);
+    }
+    cv::imshow("Image", image);
+    cv::waitKey(0);
+
+    pose_idx++;
+  }
+}
+
+void show_results(const dataset_t &ds) {
+  std::cout << std::endl;
+  std::cout << "Calibration Results:" << std::endl;
+  std::cout << "----------------------------------------" << std::endl;
+
+  // -- Reprojection Error
+  mat4s_t T_CF;
+  {
+    const mat4_t T_CM = ds.T_MC.inverse();
+    for (size_t i = 0; i < ds.grids.size(); i++) {
+      const mat4_t T_MW = ds.T_WM[i].inverse();
+      T_CF.emplace_back(T_CM * T_MW * ds.T_WF);
+    }
+  }
+  calib_camera_stats<pinhole_radtan4_residual_t>(
+    ds.grids,
+    *ds.pinhole.data,
+    *ds.radtan.data,
+    T_CF,
+    ""
+  );
+  std::cout << std::endl;
+
+  // -- Optimized Parameters
+  std::cout << "Pinhole:\n" << ds.pinhole << std::endl;
+  std::cout << "Radtan:\n" << ds.radtan << std::endl;
+  print_matrix("T_WF", ds.T_WF);
+  print_matrix("T_WM", ds.T_WM[0]);
+  print_matrix("T_MC", ds.T_MC);
+}
+
 void save_results(const std::string &output_path,
-                  const aprilgrid_t &grid,
-                  const pinhole_t &pinhole,
-                  const radtan4_t &radtan,
-                  const mat4_t &T_WF,
-                  const mat4_t &T_MC) {
+                  const dataset_t &ds) {
   LOG_INFO("Saving results to [%s]!", output_path.c_str());
-  FILE *fp = fopen(output_path.c_str(), "w");
+  const aprilgrid_t grid = ds.grids[0];
+  const pinhole_t pinhole = ds.pinhole;
+  const radtan4_t radtan = ds.radtan;
+  const mat4_t T_WF = ds.T_WF;
+  const mat4_t T_MC = ds.T_MC;
 
-  // Aprilgrid parameters
-  fprintf(fp, "calib_target:\n");
-  fprintf(fp, "  target_type: \"aprilgrid\"\n");
-  fprintf(fp, "  tag_rows: %d\n", grid.tag_rows);
-  fprintf(fp, "  tag_cols: %d\n", grid.tag_cols);
-  fprintf(fp, "  tag_size: %f\n", grid.tag_size);
-  fprintf(fp, "  tag_spacing: %f\n", grid.tag_spacing);
-  fprintf(fp, "\n");
+  // Save calibration results to yaml file
+  {
+    // Aprilgrid parameters
+    FILE *fp = fopen(output_path.c_str(), "w");
+    fprintf(fp, "calib_target:\n");
+    fprintf(fp, "  target_type: \"aprilgrid\"\n");
+    fprintf(fp, "  tag_rows: %d\n", grid.tag_rows);
+    fprintf(fp, "  tag_cols: %d\n", grid.tag_cols);
+    fprintf(fp, "  tag_size: %f\n", grid.tag_size);
+    fprintf(fp, "  tag_spacing: %f\n", grid.tag_spacing);
+    fprintf(fp, "\n");
 
-  // Camera parameters
-  fprintf(fp, "cam0:\n");
-  fprintf(fp, "  camera_model: \"pinhole\"\n");
-  fprintf(fp, "  distortion_model: \"radtan\"\n");
-  fprintf(fp, "  intrinsics: ");
-  fprintf(fp, "[");
-  fprintf(fp, "%lf, ", pinhole.fx);
-  fprintf(fp, "%lf, ", pinhole.fy);
-  fprintf(fp, "%lf, ", pinhole.cx);
-  fprintf(fp, "%lf", pinhole.cy);
-  fprintf(fp, "]\n");
-  fprintf(fp, "  distortion: ");
-  fprintf(fp, "[");
-  fprintf(fp, "%lf, ", radtan.k1);
-  fprintf(fp, "%lf, ", radtan.k2);
-  fprintf(fp, "%lf, ", radtan.p1);
-  fprintf(fp, "%lf", radtan.p2);
-  fprintf(fp, "]\n");
-  fprintf(fp, "\n");
+    // Camera parameters
+    fprintf(fp, "cam0:\n");
+    fprintf(fp, "  camera_model: \"pinhole\"\n");
+    fprintf(fp, "  distortion_model: \"radtan\"\n");
+    fprintf(fp, "  intrinsics: ");
+    fprintf(fp, "[");
+    fprintf(fp, "%lf, ", pinhole.fx);
+    fprintf(fp, "%lf, ", pinhole.fy);
+    fprintf(fp, "%lf, ", pinhole.cx);
+    fprintf(fp, "%lf", pinhole.cy);
+    fprintf(fp, "]\n");
+    fprintf(fp, "  distortion: ");
+    fprintf(fp, "[");
+    fprintf(fp, "%lf, ", radtan.k1);
+    fprintf(fp, "%lf, ", radtan.k2);
+    fprintf(fp, "%lf, ", radtan.p1);
+    fprintf(fp, "%lf", radtan.p2);
+    fprintf(fp, "]\n");
+    fprintf(fp, "\n");
 
-  // T_WF
-  fprintf(fp, "T_WF:\n");
-  fprintf(fp, "  rows: 4\n");
-  fprintf(fp, "  cols: 4\n");
-  fprintf(fp, "  data: [\n");
-  fprintf(fp, "    ");
-  fprintf(fp, "%lf, ", T_WF(0, 0));
-  fprintf(fp, "%lf, ", T_WF(0, 1));
-  fprintf(fp, "%lf, ", T_WF(0, 2));
-  fprintf(fp, "%lf,\n", T_WF(0, 3));
-  fprintf(fp, "    ");
-  fprintf(fp, "%lf, ", T_WF(1, 0));
-  fprintf(fp, "%lf, ", T_WF(1, 1));
-  fprintf(fp, "%lf, ", T_WF(1, 2));
-  fprintf(fp, "%lf,\n", T_WF(1, 3));
-  fprintf(fp, "    ");
-  fprintf(fp, "%lf, ", T_WF(2, 0));
-  fprintf(fp, "%lf, ", T_WF(2, 1));
-  fprintf(fp, "%lf, ", T_WF(2, 2));
-  fprintf(fp, "%lf,\n", T_WF(2, 3));
-  fprintf(fp, "    ");
-  fprintf(fp, "%lf, ", T_WF(3, 0));
-  fprintf(fp, "%lf, ", T_WF(3, 1));
-  fprintf(fp, "%lf, ", T_WF(3, 2));
-  fprintf(fp, "%lf\n", T_WF(3, 3));
-  fprintf(fp, "  ]\n");
-  fprintf(fp, "\n");
+    // T_WF
+    fprintf(fp, "T_WF:\n");
+    fprintf(fp, "  rows: 4\n");
+    fprintf(fp, "  cols: 4\n");
+    fprintf(fp, "  data: [\n");
+    fprintf(fp, "    ");
+    fprintf(fp, "%lf, ", T_WF(0, 0));
+    fprintf(fp, "%lf, ", T_WF(0, 1));
+    fprintf(fp, "%lf, ", T_WF(0, 2));
+    fprintf(fp, "%lf,\n", T_WF(0, 3));
+    fprintf(fp, "    ");
+    fprintf(fp, "%lf, ", T_WF(1, 0));
+    fprintf(fp, "%lf, ", T_WF(1, 1));
+    fprintf(fp, "%lf, ", T_WF(1, 2));
+    fprintf(fp, "%lf,\n", T_WF(1, 3));
+    fprintf(fp, "    ");
+    fprintf(fp, "%lf, ", T_WF(2, 0));
+    fprintf(fp, "%lf, ", T_WF(2, 1));
+    fprintf(fp, "%lf, ", T_WF(2, 2));
+    fprintf(fp, "%lf,\n", T_WF(2, 3));
+    fprintf(fp, "    ");
+    fprintf(fp, "%lf, ", T_WF(3, 0));
+    fprintf(fp, "%lf, ", T_WF(3, 1));
+    fprintf(fp, "%lf, ", T_WF(3, 2));
+    fprintf(fp, "%lf\n", T_WF(3, 3));
+    fprintf(fp, "  ]\n");
+    fprintf(fp, "\n");
 
-  // T_MC
-  fprintf(fp, "T_MC:\n");
-  fprintf(fp, "  rows: 4\n");
-  fprintf(fp, "  cols: 4\n");
-  fprintf(fp, "  data: [\n");
-  fprintf(fp, "    ");
-  fprintf(fp, "%lf, ", T_MC(0, 0));
-  fprintf(fp, "%lf, ", T_MC(0, 1));
-  fprintf(fp, "%lf, ", T_MC(0, 2));
-  fprintf(fp, "%lf,\n", T_MC(0, 3));
-  fprintf(fp, "    ");
-  fprintf(fp, "%lf, ", T_MC(1, 0));
-  fprintf(fp, "%lf, ", T_MC(1, 1));
-  fprintf(fp, "%lf, ", T_MC(1, 2));
-  fprintf(fp, "%lf,\n", T_MC(1, 3));
-  fprintf(fp, "    ");
-  fprintf(fp, "%lf, ", T_MC(2, 0));
-  fprintf(fp, "%lf, ", T_MC(2, 1));
-  fprintf(fp, "%lf, ", T_MC(2, 2));
-  fprintf(fp, "%lf,\n", T_MC(2, 3));
-  fprintf(fp, "    ");
-  fprintf(fp, "%lf, ", T_MC(3, 0));
-  fprintf(fp, "%lf, ", T_MC(3, 1));
-  fprintf(fp, "%lf, ", T_MC(3, 2));
-  fprintf(fp, "%lf\n", T_MC(3, 3));
-  fprintf(fp, "  ]\n");
-  fprintf(fp, "\n");
+    // T_MC
+    fprintf(fp, "T_MC:\n");
+    fprintf(fp, "  rows: 4\n");
+    fprintf(fp, "  cols: 4\n");
+    fprintf(fp, "  data: [\n");
+    fprintf(fp, "    ");
+    fprintf(fp, "%lf, ", T_MC(0, 0));
+    fprintf(fp, "%lf, ", T_MC(0, 1));
+    fprintf(fp, "%lf, ", T_MC(0, 2));
+    fprintf(fp, "%lf,\n", T_MC(0, 3));
+    fprintf(fp, "    ");
+    fprintf(fp, "%lf, ", T_MC(1, 0));
+    fprintf(fp, "%lf, ", T_MC(1, 1));
+    fprintf(fp, "%lf, ", T_MC(1, 2));
+    fprintf(fp, "%lf,\n", T_MC(1, 3));
+    fprintf(fp, "    ");
+    fprintf(fp, "%lf, ", T_MC(2, 0));
+    fprintf(fp, "%lf, ", T_MC(2, 1));
+    fprintf(fp, "%lf, ", T_MC(2, 2));
+    fprintf(fp, "%lf,\n", T_MC(2, 3));
+    fprintf(fp, "    ");
+    fprintf(fp, "%lf, ", T_MC(3, 0));
+    fprintf(fp, "%lf, ", T_MC(3, 1));
+    fprintf(fp, "%lf, ", T_MC(3, 2));
+    fprintf(fp, "%lf\n", T_MC(3, 3));
+    fprintf(fp, "  ]\n");
+    fprintf(fp, "\n");
+    fclose(fp);
+  }
 
-  fclose(fp);
+  // Record poses
+  {
+    FILE *fp = fopen("/tmp/poses.csv", "w");
+    for (const auto &pose: ds.T_WM) {
+      const auto q = tf_quat(pose);
+      const auto r = tf_trans(pose);
+      fprintf(fp, "%lf,%lf,%lf,%lf,", q.w(), q.x(), q.y(), q.z());
+      fprintf(fp, "%lf,%lf,%lf", r(0), r(1), r(2));
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+  }
+
+  {
+    FILE *fp = fopen("/tmp/T_WF.csv", "w");
+    const auto q = tf_quat(ds.T_WF);
+    const auto r = tf_trans(ds.T_WF);
+    fprintf(fp, "%lf,%lf,%lf,%lf,", q.w(), q.x(), q.y(), q.z());
+    fprintf(fp, "%lf,%lf,%lf", r(0), r(1), r(2));
+    fprintf(fp, "\n");
+    fclose(fp);
+  }
+
+  {
+    FILE *fp = fopen("/tmp/T_MC.csv", "w");
+    const auto q = tf_quat(ds.T_MC);
+    const auto r = tf_trans(ds.T_MC);
+    fprintf(fp, "%lf,%lf,%lf,%lf,", q.w(), q.x(), q.y(), q.z());
+    fprintf(fp, "%lf,%lf,%lf", r(0), r(1), r(2));
+    fprintf(fp, "\n");
+    fclose(fp);
+  }
+
+  {
+    FILE *fp = fopen("/tmp/T_CM.csv", "w");
+    const auto T_CM = ds.T_MC.inverse();
+    const auto q = tf_quat(T_CM);
+    const auto r = tf_trans(T_CM);
+    fprintf(fp, "%lf,%lf,%lf,%lf,", q.w(), q.x(), q.y(), q.z());
+    fprintf(fp, "%lf,%lf,%lf", r(0), r(1), r(2));
+    fprintf(fp, "\n");
+    fclose(fp);
+  }
+
 }
 
 int main(int argc, char *argv[]) {
   // Setup ROS Node
+  signal(SIGINT, signal_handler);
   const std::string node_name = ros_node_name(argc, argv);
   if (ros::isInitialized() == false) {
     ros::init(argc, argv, node_name, ros::init_options::NoSigintHandler);
@@ -396,20 +682,19 @@ int main(int argc, char *argv[]) {
 
   // Get ROS params
   const ros::NodeHandle ros_nh;
-  std::string rosbag_path;
+  std::string train_bag_path;
+  std::string valid_bag_path;
   std::string config_file;
   std::string cam0_topic;
   std::string body0_topic;
   std::string target0_topic;
-  ROS_PARAM(ros_nh, node_name + "/rosbag", rosbag_path);
+  ROS_PARAM(ros_nh, node_name + "/training_bag", train_bag_path);
+  ROS_PARAM(ros_nh, node_name + "/validation_bag", valid_bag_path);
   ROS_PARAM(ros_nh, node_name + "/config_file", config_file);
   ROS_PARAM(ros_nh, node_name + "/cam0_topic", cam0_topic);
   ROS_PARAM(ros_nh, node_name + "/body0_topic", body0_topic);
   ROS_PARAM(ros_nh, node_name + "/target0_topic", target0_topic);
 
-  std::string rosbag_validate_path;
-  std::string validate_path = "/tmp/vicon_validation";
-  ROS_PARAM(ros_nh, node_name + "/rosbag_validate", rosbag_validate_path);
 
   // Parse calibration target params
   calib_target_t calib_target;
@@ -424,268 +709,35 @@ int main(int argc, char *argv[]) {
   parse(config, "settings.data_path", data_path);
   parse(config, "settings.results_fpath", calib_results_path);
 
-	// Process rosbag
-	process_rosbag(rosbag_path,
+  // Calibrate camera intrinsics
+	process_rosbag(train_bag_path,
 	               data_path,
 	               cam0_topic,
 	               body0_topic,
 	               target0_topic);
-
-  // Calibrate camera intrinsics
   if (calib_camera_solve(config_file) != 0) {
     FATAL("Failed to calibrate camera!");
   }
 
-  // Load camera calibration results
-  vec2_t resolution;
-  vec4_t intrinsics;
-  vec4_t distortion;
-  config_t calib_results{calib_results_path};
-  parse(calib_results, "cam0.resolution", resolution);
-  parse(calib_results, "cam0.intrinsics", intrinsics);
-  parse(calib_results, "cam0.distortion", distortion);
-
-  // -- April Grid
-  const auto grid0_path = data_path + "/grid0/cam0/data";
-  aprilgrids_t aprilgrids = load_aprilgrids(grid0_path);
-
-  // -- Camera intrinsics and distortion
-  pinhole_t pinhole{intrinsics};
-  radtan4_t radtan{distortion};
-
-  // -- Vicon marker pose
-  const auto body0_csv_path = data_path + "/body0/data.csv";
-  timestamps_t body_timestamps;
-  mat4s_t body_poses;
-  load_body_poses(body0_csv_path, body_timestamps, body_poses);
-
-  aprilgrids_t lerped_grids;
-  mat4s_t lerped_body_poses;
-  lerp_body_poses(aprilgrids, body_timestamps, body_poses,
-                  lerped_grids, lerped_body_poses);
-
-  // -- Vicon Marker to Camera transform
-  // const vec3_t euler{-90.0, 0.0, -90.0};
-  // const mat3_t C = euler321(deg2rad(euler));
-  // mat4_t T_MC = tf(C, zeros(3, 1));
-  mat4_t T_MC;
-  T_MC << 0.0, 0.0, 1.0, 0.10,
-          -1.0, 0.0, 0.0, 0.07,
-          0.0, -1.0, -0.0, -0.15,
-          0.0, 0.0, 0.0, 1.0;
-
-
-  // -- Fiducial target pose
-  const auto target0_csv_path = data_path + "/target0/data.csv";
-  mat4_t T_WF = load_fiducial_pose(target0_csv_path);
-  // T_WF(0, 3) += 0.07;
-  // T_WF(1, 3) += 0.07;
-  print_matrix("Initial T_WF", T_WF);
-
-  // Save vicon calibration problem
-  calib_vicon_marker_solve(lerped_grids,
-                           pinhole,
-                           radtan,
-                           lerped_body_poses,
-                           T_MC,
-                           T_WF);
-
-  mat4s_t T_CF;
-  {
-    const mat4_t T_CM = T_MC.inverse();
-    for (size_t i = 0; i < lerped_grids.size(); i++) {
-      const mat4_t T_MW = lerped_body_poses[i].inverse();
-      T_CF.emplace_back(T_CM * T_MW * T_WF);
-    }
-  }
-
-  // Show and save results
-  std::cout << std::endl;
-  std::cout << "Calibration Results:" << std::endl;
-  std::cout << "----------------------------------------" << std::endl;
-  calib_camera_stats<pinhole_radtan4_residual_t>(
-    lerped_grids,
-    *pinhole.data,
-    *radtan.data,
-    T_CF,
-    ""
-  );
-  std::cout << std::endl;
-  std::cout << "Pinhole:\n" << pinhole << std::endl;
-  std::cout << "Radtan:\n" << radtan << std::endl;
-  print_matrix("T_WF", T_WF);
-  print_matrix("T_WM", lerped_body_poses[0]);
-  print_matrix("T_MC", T_MC);
-  save_results("/tmp/vicon_calib.yaml",
-               lerped_grids[0],
-               pinhole,
-               radtan,
-               T_WF,
-               T_MC);
-
-  // Record poses
-  {
-    FILE *fp = fopen("/tmp/poses.csv", "w");
-    for (const auto &pose: lerped_body_poses) {
-      const auto q = tf_quat(pose);
-      const auto r = tf_trans(pose);
-      fprintf(fp, "%lf,%lf,%lf,%lf,", q.w(), q.x(), q.y(), q.z());
-      fprintf(fp, "%lf,%lf,%lf", r(0), r(1), r(2));
-      fprintf(fp, "\n");
-    }
-    fclose(fp);
-  }
-
-  {
-    FILE *fp = fopen("/tmp/T_WF.csv", "w");
-    const auto q = tf_quat(T_WF);
-    const auto r = tf_trans(T_WF);
-    fprintf(fp, "%lf,%lf,%lf,%lf,", q.w(), q.x(), q.y(), q.z());
-    fprintf(fp, "%lf,%lf,%lf", r(0), r(1), r(2));
-    fprintf(fp, "\n");
-    fclose(fp);
-  }
-
-  {
-    FILE *fp = fopen("/tmp/T_MC.csv", "w");
-    const auto q = tf_quat(T_MC);
-    const auto r = tf_trans(T_MC);
-    fprintf(fp, "%lf,%lf,%lf,%lf,", q.w(), q.x(), q.y(), q.z());
-    fprintf(fp, "%lf,%lf,%lf", r(0), r(1), r(2));
-    fprintf(fp, "\n");
-    fclose(fp);
-  }
+  // Calibrate vicon object to camera transform
+  dataset_t ds = process_dataset(data_path, calib_results_path);
+  calib_vicon_marker_solve(ds.grids,
+                           ds.pinhole,
+                           ds.radtan,
+                           ds.T_WM,
+                           ds.T_MC,
+                           ds.T_WF);
+  show_results(ds);
+  save_results(calib_results_path, ds);
 
   // Process validation ROS bag
-	process_rosbag(rosbag_validate_path,
-	               validate_path,
+	process_rosbag(valid_bag_path,
+	               valid_out_path,
 	               cam0_topic,
 	               body0_topic,
 	               target0_topic);
-
-  // Detect Aprilgrids in validation set
-  {
-    const auto cam0_path = validate_path + "/cam0/data";
-    const auto grid_path = validate_path + "/grid0/cam0/data";
-
-    std::vector<std::string> image_paths;
-    if (list_dir(cam0_path, image_paths) != 0) {
-      FATAL("Failed to list dir [%s]!", cam0_path.c_str());
-    }
-    sort(image_paths.begin(), image_paths.end());
-
-    // Detect AprilGrid
-    aprilgrid_detector_t detector;
-    for (size_t i = 0; i < image_paths.size(); i++) {
-      // -- Create output file path
-      auto output_file = basename(image_paths[i]);
-      const timestamp_t ts = std::stoull(output_file);
-      output_file = remove_ext(output_file);
-      output_file += ".csv";
-      const auto save_path = paths_combine(grid_path, output_file);
-
-      // -- Setup AprilGrid
-      const int tag_rows = calib_target.tag_rows;
-      const int tag_cols = calib_target.tag_cols;
-      const double tag_size = calib_target.tag_size;
-      const double tag_spacing = calib_target.tag_spacing;
-      aprilgrid_t grid{ts, tag_rows, tag_cols, tag_size, tag_spacing};
-
-      // -- Skip if already preprocessed
-      if (file_exists(save_path) && aprilgrid_load(grid, save_path) == 0) {
-        continue;
-      } else {
-        // Reset AprilGrid
-        grid = aprilgrid_t{ts, tag_rows, tag_cols, tag_size, tag_spacing};
-      }
-
-      // -- Detect
-      const auto image_path = paths_combine(cam0_path, image_paths[i]);
-      const cv::Mat image = cv::imread(image_path);
-      aprilgrid_detect(grid, detector, image);
-      grid.timestamp = ts;
-
-      // -- Save AprilGrid
-      if (aprilgrid_save(grid, save_path) != 0) {
-        return -1;
-      }
-    }
-  }
-
-  {
-    // -- Camera
-    const auto cam0_path = validate_path + "/cam0/data";
-    std::vector<std::string> cam0_files;
-    if (list_dir(cam0_path, cam0_files) != 0) {
-      FATAL("Failed to list dir [%s]!", cam0_path.c_str());
-    }
-    sort(cam0_files.begin(), cam0_files.end());
-
-    // -- Aprilgrids
-    const auto grids_path = validate_path + "/grid0/cam0/data";
-    aprilgrids_t aprilgrids = load_aprilgrids(grids_path);
-
-    // -- Vicon marker pose
-    const auto body0_csv_path = validate_path + "/body0/data.csv";
-    timestamps_t body_timestamps;
-    mat4s_t body_poses;
-    load_body_poses(body0_csv_path, body_timestamps, body_poses);
-
-    aprilgrids_t lerped_grids;
-    mat4s_t lerped_body_poses;
-    lerp_body_poses(aprilgrids, body_timestamps, body_poses,
-                    lerped_grids, lerped_body_poses);
-
-    mat3_t K = pinhole_K(pinhole);
-    vec4_t D{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
-
-    // -- Loop over validation images
-    size_t pose_idx = 0;
-    for (const auto &image_file : cam0_files) {
-      LOG_INFO("Image [%s]", image_file.c_str());
-      auto image = cv::imread(paths_combine(cam0_path, image_file));
-      const auto img_w = image.cols;
-      const auto img_h = image.rows;
-
-      // Predict where aprilgrid points should be
-      const mat4_t T_WM = lerped_body_poses[pose_idx];
-      const mat4_t T_WC = T_WM * T_MC;
-      const mat4_t T_CW = T_WC.inverse();
-
-      aprilgrid_t grid;
-      grid.tag_rows = calib_target.tag_rows;
-      grid.tag_cols = calib_target.tag_cols;
-      grid.tag_size = calib_target.tag_size;
-      grid.tag_spacing = calib_target.tag_spacing;
-
-      vec3s_t object_points;
-      vec2s_t image_points;
-      aprilgrid_object_points(grid, object_points);
-      for (const auto &p_F : object_points) {
-        const vec3_t p_C = (T_CW * T_WF * p_F.homogeneous()).head(3);
-        if (p_C(2) < 0) {
-          break;
-        }
-
-        const vec2_t img_pt = pinhole_radtan4_project(K, D, p_C);
-        const bool x_ok = (img_pt(0) > 0 && img_pt(0) < img_w);
-        const bool y_ok = (img_pt(1) > 0 && img_pt(1) < img_h);
-        if (x_ok && y_ok) {
-          image_points.push_back(img_pt);
-        }
-      }
-
-      // Draw on image
-      for (const auto &img_pt : image_points) {
-        cv::Point2f p(img_pt(0), img_pt(1));
-        cv::circle(image, p, 3, cv::Scalar(0, 0, 255), -1);
-      }
-
-      cv::imshow("Image", image);
-      cv::waitKey(0);
-      pose_idx++;
-    }
-  }
+  loop_validation_dataset(valid_out_path, calib_target, ds);
+  clear_validation_output();
 
   return 0;
 }

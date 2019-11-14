@@ -58,7 +58,10 @@ struct vicon_marker_residual_t {
     const Eigen::Matrix<T, 4, 4> T_MW = T_WM.inverse();
     const Eigen::Matrix<T, 4, 1> hp_C = T_CM * T_MW * T_WF * p_F.homogeneous();
     const Eigen::Matrix<T, 3, 1> p_C = hp_C.head(3);
-    const Eigen::Matrix<T, 2, 1> z_hat = pinhole_radtan4_project(K, D, p_C);
+    Eigen::Matrix<T, 2, 1> z_hat;
+    if (pinhole_radtan4_project(K, D, p_C, z_hat) != 0) {
+      return false;
+    }
 
     // Residual
     residual[0] = T(z_[0]) - z_hat(0);
@@ -80,7 +83,7 @@ double evaluate_vicon_marker_cost(const std::vector<aprilgrid_t> &aprilgrids,
 /**
  * Calibrate vicon marker to camera extrinsics
  */
-int calib_vicon_marker_solve(const std::vector<aprilgrid_t> &aprilgrids,
+int calib_vicon_marker_solve(const aprilgrids_t &aprilgrids,
                              pinhole_t &pinhole,
                              radtan4_t &radtan,
                              mat4s_t &T_WM,

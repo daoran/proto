@@ -81,11 +81,26 @@ struct node_t : ros_node_t {
     aprilgrid_object_points(grid, object_points);
     for (const auto &p_F : object_points) {
       const vec3_t p_C = (T_CW * T_WF_ * p_F.homogeneous()).head(3);
-      if (p_C(2) < 0) {
-        break;
+
+      {
+        double fx = K(0, 0);
+        double fy = K(1, 1);
+        double cx = K(0, 2);
+        double cy = K(1, 2);
+        double x = fx * (p_C(0) / p_C(2)) + cx;
+        double y = fy * (p_C(1) / p_C(2)) + cy;
+        const bool x_ok = (x > 0 && x < img_w);
+        const bool y_ok = (y > 0 && y < img_h);
+        if (!x_ok && !y_ok) {
+          continue;
+        }
       }
 
-      const vec2_t img_pt = pinhole_radtan4_project(K, cam0_D_, p_C);
+      vec2_t img_pt;
+      if (pinhole_radtan4_project(K, cam0_D_, p_C, img_pt) != 0) {
+        continue;
+      }
+
       const bool x_ok = (img_pt(0) > 0 && img_pt(0) < img_w);
       const bool y_ok = (img_pt(1) > 0 && img_pt(1) < img_h);
       if (x_ok && y_ok) {

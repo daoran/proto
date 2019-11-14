@@ -77,10 +77,10 @@ vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
  * Project point using pinhole radial-tangential
  */
 template <typename T>
-static Eigen::Matrix<T, 2, 1>
-pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
-                        const Eigen::Matrix<T, 4, 1> &D,
-                        const Eigen::Matrix<T, 3, 1> &point);
+int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
+                            const Eigen::Matrix<T, 4, 1> &D,
+                            const Eigen::Matrix<T, 3, 1> &point,
+                            Eigen::Matrix<T, 2, 1> &image_point);
 
 /**
  * Project point using pinhole equidistant
@@ -150,10 +150,17 @@ vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
 }
 
 template <typename T>
-static Eigen::Matrix<T, 2, 1>
-pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
-                        const Eigen::Matrix<T, 4, 1> &D,
-                        const Eigen::Matrix<T, 3, 1> &point) {
+int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
+                            const Eigen::Matrix<T, 4, 1> &D,
+                            const Eigen::Matrix<T, 3, 1> &point,
+                            Eigen::Matrix<T, 2, 1> &image_point) {
+  // Check for singularity
+  const T z_norm = sqrt(point(2) * point(2));  // std::abs doesn't work for all T
+  if (z_norm < 1.0e-12) {
+    return -1;
+  }
+
+  // Extract distortion params
   const T k1 = D(0);
   const T k2 = D(1);
   const T p1 = D(2);
@@ -162,8 +169,22 @@ pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
   // Project
   const T x = point(0) / point(2);
   const T y = point(1) / point(2);
+  // const T fx = K(0, 0);
+  // const T fy = K(1, 1);
+  // const T cx = K(0, 2);
+  // const T cy = K(1, 2);
+  // const T x = fx * (point(0) / point(2)) + cx;
+  // const T y = fy * (point(1) / point(2)) + cy;
 
-  // Radial distortion factor
+  // // Scale and center
+  // const T fx = K(0, 0);
+  // const T fy = K(1, 1);
+  // const T cx = K(0, 2);
+  // const T cy = K(1, 2);
+  // x = fx * x + cx;
+  // y = fy * y + cy;
+
+  // Apply Radial distortion factor
   const T x2 = x * x;
   const T y2 = y * y;
   const T r2 = x2 + y2;
@@ -172,16 +193,28 @@ pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
   const T x_dash = x * radial_factor;
   const T y_dash = y * radial_factor;
 
-  // Tangential distortion factor
+  // Apply Tangential distortion factor
   const T xy = x * y;
   const T x_ddash = x_dash + (T(2) * p1 * xy + p2 * (r2 + T(2) * x2));
   const T y_ddash = y_dash + (p1 * (r2 + T(2) * y2) + T(2) * p2 * xy);
 
-  // Scale distorted point
-  Eigen::Matrix<T, 2, 1> x_distorted{x_ddash, y_ddash};
-  const Eigen::Matrix<T, 2, 1> pixel = (K * x_distorted.homogeneous()).head(2);
+  // Scale and center
+  const T fx = K(0, 0);
+  const T fy = K(1, 1);
+  const T cx = K(0, 2);
+  const T cy = K(1, 2);
+  image_point(0) = fx * x_ddash + cx;
+  image_point(1) = fy * y_ddash + cy;
 
-  return pixel;
+  // // Set result
+  // image_point(0) = x_ddash;
+  // image_point(1) = y_ddash;
+
+  if (point(2) > T(0.0)) {
+    return 0;  // Point is infront of camera
+  } else {
+    return 1;  // Point is behind camera
+  }
 }
 
 template <typename T>

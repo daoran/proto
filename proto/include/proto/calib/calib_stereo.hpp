@@ -65,10 +65,16 @@ struct stereo_residual_t {
     // clang-format off
     // -- Project point observed from cam0 to cam0 image plane
     const Eigen::Matrix<T, 3, 1> p_C0 = (T_C0F * p_F.homogeneous()).head(3);
-    const Eigen::Matrix<T, 2, 1> z_C0_hat = pinhole_radtan4_project(cam0_K, cam0_D, p_C0);
+    Eigen::Matrix<T, 2, 1> z_C0_hat;
+    if (pinhole_radtan4_project(cam0_K, cam0_D, p_C0, z_C0_hat) != 0) {
+      return false;
+    }
     // -- Project point observed from cam0 to cam1 image plane
     const Eigen::Matrix<T, 3, 1> p_C1 = (T_C1C0 * p_C0.homogeneous()).head(3);
-    const Eigen::Matrix<T, 2, 1> z_C1_hat = pinhole_radtan4_project(cam1_K, cam1_D, p_C1);
+    Eigen::Matrix<T, 2, 1> z_C1_hat;
+    if (pinhole_radtan4_project(cam1_K, cam1_D, p_C1, z_C1_hat) != 0) {
+      return false;
+    }
     // clang-format on
 
     // Residual

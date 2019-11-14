@@ -30,7 +30,7 @@ make
 # octave notes/quaternion.m && exit 0
 # octave notes/nbt.m && exit 0
 # octave notes/rand_inv_matrix.m && exit 0
-octave notes/vicon_frames.m && exit 0
+# octave notes/vicon_frames.m && exit 0
 
 # octave tools/calib_data_summary.m && exit 0
 # octave tools/plot_aprilgrid_data.m && exit 0
@@ -50,6 +50,7 @@ octave notes/vicon_frames.m && exit 0
 # octave tests/control/test_pid_update.m && exit 0
 
 # octave tests/core/config/test_config.m && exit 0
+octave tests/core/ctraj/test_ctraj_init.m && exit 0
 # octave tests/core/os/test_join_paths.m && exit 0
 # octave tests/core/os/test_list_dir.m && exit 0
 # octave tests/core/quat/test_quat_mul.m && exit 0

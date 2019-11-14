@@ -45,10 +45,12 @@ struct pinhole_radtan4_residual_t {
     const Eigen::Matrix<T, 3, 1> r_CF{r_CF_[0], r_CF_[1], r_CF_[2]};
     Eigen::Matrix<T, 4, 4> T_CF = tf(R_CF, r_CF);
 
-    // Project
+    // Transform and project point to image plane
     const Eigen::Matrix<T, 3, 1> p_C = (T_CF * p_F.homogeneous()).head(3);
-    const Eigen::Matrix<T, 2, 1> z_hat = pinhole_radtan4_project(K, D, p_C);
-    // const Eigen::Matrix<T, 2, 1> z_hat = pinhole_equi4_project(K, D, p_C);
+    Eigen::Matrix<T, 2, 1> z_hat;
+    if (pinhole_radtan4_project(K, D, p_C, z_hat) != 0) {
+      return false;
+    }
 
     // Residual
     residuals_[0] = T(z_[0]) - z_hat(0);
