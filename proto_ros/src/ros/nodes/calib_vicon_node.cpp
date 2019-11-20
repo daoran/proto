@@ -4,16 +4,16 @@
 #include "proto/ros/bag.hpp"
 
 using namespace proto;
-std::string valid_out_path = "/tmp/vicon_validation";
+std::string test_out_path = "/tmp/vicon_test";
 
-void clear_validation_output() {
-  std::string cmd = "rm -rf " + valid_out_path;
+void clear_test_output() {
+  std::string cmd = "rm -rf " + test_out_path;
   system(cmd.c_str());
 }
 
 void signal_handler(int sig) {
   UNUSED(sig);
-  clear_validation_output();
+  clear_test_output();
 }
 
 std::string basename(const std::string &path) {
@@ -246,7 +246,8 @@ void lerp_body_poses(const aprilgrids_t &grids,
                      const timestamps_t &body_timestamps,
                      const mat4s_t &body_poses,
                      aprilgrids_t &lerped_grids,
-                     mat4s_t &lerped_poses) {
+                     mat4s_t &lerped_poses,
+                     timestamp_t ts_offset=0) {
   // Make sure AprilGrids are between body poses else we can't lerp poses
   timestamps_t grid_timestamps;
   for (const auto &grid : grids) {
@@ -273,7 +274,7 @@ void lerp_body_poses(const aprilgrids_t &grids,
     }
 
     // Get time now and desired lerp time
-    const auto t_now = body_timestamps[i];
+    const auto t_now = body_timestamps[i] + ts_offset;
     const auto t_lerp = grid_timestamps[grid_idx];
 
     // Update t0
@@ -341,14 +342,11 @@ dataset_t process_dataset(const std::string &data_path,
   // -- Synchronize aprilgrids and body poses
   lerp_body_poses(aprilgrids, body_timestamps, body_poses,
                   ds.grids, ds.T_WM);
+                  // ds.grids, ds.T_WM, 0.05e9);
   // -- Vicon Marker to Camera transform
   const vec3_t euler{-90.0, 0.0, -90.0};
   const mat3_t C = euler321(deg2rad(euler));
   ds.T_MC = tf(C, zeros(3, 1));
-  // ds.T_MC << 0.0, 0.0, 1.0, 0.10,
-  //            -1.0, 0.0, 0.0, 0.07,
-  //            0.0, -1.0, -0.0, -0.15,
-  //            0.0, 0.0, 0.0, 1.0;
   // -- Fiducial target pose
   ds.T_WF = load_fiducial_pose(target0_csv_path);
   ds.T_WF(0, 3) += 0.07;
@@ -410,13 +408,15 @@ void detect_aprilgrids(const calib_target_t &calib_target,
   }
 }
 
-void loop_validation_dataset(const std::string validate_path,
-                             const calib_target_t &calib_target,
-                             const dataset_t &ds) {
-  const auto cam0_path = validate_path + "/cam0/data";
-  const auto grids_path = validate_path + "/grid0/cam0/data";
+double loop_test_dataset(const std::string test_path,
+                         const calib_target_t &calib_target,
+                         const dataset_t &ds,
+                         long long ts_offset=0) {
+  const auto cam0_path = test_path + "/cam0/data";
+  const auto grids_path = test_path + "/grid0/cam0/data";
+  const auto body0_csv_path = test_path + "/body0/data.csv";
 
-  // Detect Aprilgrids in validation set
+  // Detect Aprilgrids in test set
   std::vector<std::string> image_paths;
   if (list_dir(cam0_path, image_paths) != 0) {
     FATAL("Failed to list dir [%s]!", cam0_path.c_str());
@@ -426,7 +426,6 @@ void loop_validation_dataset(const std::string validate_path,
   const aprilgrids_t aprilgrids = load_aprilgrids(grids_path);
 
   // Vicon marker pose
-  const auto body0_csv_path = validate_path + "/body0/data.csv";
   timestamps_t body_timestamps;
   mat4s_t body_poses;
   load_body_poses(body0_csv_path, body_timestamps, body_poses);
@@ -435,7 +434,7 @@ void loop_validation_dataset(const std::string validate_path,
   aprilgrids_t grids_sync;
   mat4s_t body_poses_sync;
   lerp_body_poses(aprilgrids, body_timestamps, body_poses,
-                  grids_sync, body_poses_sync);
+                  grids_sync, body_poses_sync, ts_offset);
 
   // Optimized parameters
   const mat3_t K = pinhole_K(ds.pinhole);
@@ -443,10 +442,12 @@ void loop_validation_dataset(const std::string validate_path,
   const mat4_t T_MC = ds.T_MC;
   const mat4_t T_WF = ds.T_WF;
 
-  // Loop over validation dataset
+  // Loop over test dataset
   size_t pose_idx = 0;
+  vec2s_t residuals;
+
   for (const auto &image_file : image_paths) {
-    LOG_INFO("Image [%s]", image_file.c_str());
+    // LOG_INFO("Image [%s]", image_file.c_str());
 
     // Load image
     auto image = cv::imread(paths_combine(cam0_path, image_file));
@@ -459,11 +460,33 @@ void loop_validation_dataset(const std::string validate_path,
     const mat4_t T_CW = T_WC.inverse();
 
     // Setup grid
-    aprilgrid_t grid;
-    grid.tag_rows = calib_target.tag_rows;
-    grid.tag_cols = calib_target.tag_cols;
-    grid.tag_size = calib_target.tag_size;
-    grid.tag_spacing = calib_target.tag_spacing;
+    const auto grid = grids_sync[pose_idx];
+
+    for (const auto tag_id : grid.ids) {
+      // Get keypoints
+      vec2s_t keypoints;
+      if (aprilgrid_get(grid, tag_id, keypoints) != 0) {
+        FATAL("Failed to get AprilGrid keypoints!");
+      }
+
+      // Get object points
+      vec3s_t object_points;
+      if (aprilgrid_object_points(grid, tag_id, object_points) != 0) {
+        FATAL("Failed to calculate AprilGrid object points!");
+      }
+
+      // Calculate reprojection error
+      for (size_t i = 0; i < 4; i++) {
+        const vec3_t p_F = object_points[i];
+        const vec3_t p_C = (T_CW * T_WF * p_F.homogeneous()).head(3);
+
+        vec2_t z_hat;
+        if (pinhole_radtan4_project(K, D, p_C, z_hat) != 0) {
+          continue;
+        }
+        residuals.emplace_back(keypoints[i] - z_hat);
+      }
+    }
 
     // Project object point in fiducial frame to image plane
     vec3s_t object_points;
@@ -471,6 +494,20 @@ void loop_validation_dataset(const std::string validate_path,
     aprilgrid_object_points(grid, object_points);
     for (const auto &p_F : object_points) {
       const vec3_t p_C = (T_CW * T_WF * p_F.homogeneous()).head(3);
+
+      {
+        double fx = K(0, 0);
+        double fy = K(1, 1);
+        double cx = K(0, 2);
+        double cy = K(1, 2);
+        double x = fx * (p_C(0) / p_C(2)) + cx;
+        double y = fy * (p_C(1) / p_C(2)) + cy;
+        const bool x_ok = (x > 0 && x < img_w);
+        const bool y_ok = (y > 0 && y < img_h);
+        if (!x_ok && !y_ok) {
+          continue;
+        }
+      }
 
       vec2_t img_pt;
       if (pinhole_radtan4_project(K, D, p_C, img_pt) != 0) {
@@ -494,6 +531,20 @@ void loop_validation_dataset(const std::string validate_path,
 
     pose_idx++;
   }
+
+  // Calculate RMSE reprojection error
+  double err_sum = 0.0;
+  for (auto &residual : residuals) {
+    const double err = residual.norm();
+    const double err_sq = err * err;
+    err_sum += err_sq;
+  }
+  const double err_mean = err_sum / (double) residuals.size();
+  const double rmse = sqrt(err_mean);
+  std::cout << "TS OFFSET: " << ts_offset * 1e-9 << "s\t";
+  std::cout << "RMSE Reprojection Error [px]: " << rmse << std::endl;
+
+  return rmse;
 }
 
 void show_results(const dataset_t &ds) {
@@ -501,7 +552,7 @@ void show_results(const dataset_t &ds) {
   std::cout << "Calibration Results:" << std::endl;
   std::cout << "----------------------------------------" << std::endl;
 
-  // -- Reprojection Error
+  // Reprojection Error
   mat4s_t T_CF;
   {
     const mat4_t T_CM = ds.T_MC.inverse();
@@ -519,7 +570,7 @@ void show_results(const dataset_t &ds) {
   );
   std::cout << std::endl;
 
-  // -- Optimized Parameters
+  // Optimized Parameters
   std::cout << "Pinhole:\n" << ds.pinhole << std::endl;
   std::cout << "Radtan:\n" << ds.radtan << std::endl;
   print_matrix("T_WF", ds.T_WF);
@@ -683,18 +734,17 @@ int main(int argc, char *argv[]) {
   // Get ROS params
   const ros::NodeHandle ros_nh;
   std::string train_bag_path;
-  std::string valid_bag_path;
+  std::string test_bag_path;
   std::string config_file;
   std::string cam0_topic;
   std::string body0_topic;
   std::string target0_topic;
-  ROS_PARAM(ros_nh, node_name + "/training_bag", train_bag_path);
-  ROS_PARAM(ros_nh, node_name + "/validation_bag", valid_bag_path);
+  ROS_PARAM(ros_nh, node_name + "/train_bag", train_bag_path);
+  ROS_PARAM(ros_nh, node_name + "/test_bag", test_bag_path);
   ROS_PARAM(ros_nh, node_name + "/config_file", config_file);
   ROS_PARAM(ros_nh, node_name + "/cam0_topic", cam0_topic);
   ROS_PARAM(ros_nh, node_name + "/body0_topic", body0_topic);
   ROS_PARAM(ros_nh, node_name + "/target0_topic", target0_topic);
-
 
   // Parse calibration target params
   calib_target_t calib_target;
@@ -730,14 +780,21 @@ int main(int argc, char *argv[]) {
   show_results(ds);
   save_results(calib_results_path, ds);
 
-  // Process validation ROS bag
-	process_rosbag(valid_bag_path,
-	               valid_out_path,
+  // Process test ROS bag
+	process_rosbag(test_bag_path,
+	               test_out_path,
 	               cam0_topic,
 	               body0_topic,
 	               target0_topic);
-  loop_validation_dataset(valid_out_path, calib_target, ds);
-  clear_validation_output();
+
+	// long long ts_offset = -1e4;
+	// for (int i = 0; i < 10000; i++) {
+	//   ts_offset += 1e5;
+  //   loop_test_dataset(test_out_path, calib_target, ds, ts_offset);
+  // }
+  loop_test_dataset(test_out_path, calib_target, ds, 0.0);
+
+  clear_test_output();
 
   return 0;
 }

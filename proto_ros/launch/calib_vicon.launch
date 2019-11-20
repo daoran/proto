@@ -1,7 +1,7 @@
 <launch>
   <node pkg="proto_ros" type="calib_vicon_node" name="calib_vicon_node" required="true" output="screen">
-    <param name="training_bag" value="/data/vicon_capture_keep_good.bag" />
-    <param name="validation_bag" value="/data/vicon_capture_keep_good_2.bag" />
+    <param name="train_bag" value="/data/vicon_capture_keep_good.bag" />
+    <param name="test_bag" value="/data/vicon_capture_keep_good_2.bag" />
     <param name="config_file" value="$(find proto_ros)/config/calib_vicon-intel_d435i.yaml" />
     <param name="cam0_topic" value="/camera/color/image_raw" />
     <param name="body0_topic" value="/vicon/f450/pose" />
