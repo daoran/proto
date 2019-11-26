@@ -311,7 +311,8 @@ struct dataset_t {
 };
 
 dataset_t process_dataset(const std::string &data_path,
-                          const std::string &calib_file) {
+                          const std::string &calib_file,
+                          const calib_target_t &calib_target) {
   LOG_INFO("Processing dataset");
   const auto grid0_path = data_path + "/grid0/cam0/data";
   const auto body0_csv_path = data_path + "/body0/data.csv";
@@ -326,6 +327,39 @@ dataset_t process_dataset(const std::string &data_path,
   parse(calib, "cam0.resolution", resolution);
   parse(calib, "cam0.intrinsics", intrinsics);
   parse(calib, "cam0.distortion", distortion);
+
+  // // Redetect AprilGrid
+  // LOG_INFO("-- Re-estimating the AprilGrids data");
+  // {
+  //   // Remove previously estimated aprilgrid
+  //   const auto grid_path = data_path + "/grid0";
+  //   const std::string cmd = "rm -rf " + data_path + "/grid0";
+  //   if (system(cmd.c_str()) == -1) {
+  //     FATAL("Failed to delete [%s]!", grid_path.c_str());
+  //   }
+  //
+  //   // Prepare aprilgrid data directory
+  //   const auto grid_data_path = data_path + "/grid0/cam0/data";
+  //   if (dir_exists(grid_data_path) == false) {
+  //     dir_create(grid_data_path);
+  //   }
+  //
+  //   // Preprocess calibration data
+  //   const auto cam_data_path = data_path + "/cam0/data";
+  //   const pinhole_t pinhole{intrinsics};
+  //   const radtan4_t radtan{distortion};
+  //   mat3_t cam_K = pinhole_K(pinhole);
+  //   vec4_t cam_D{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
+  //   int retval = preprocess_camera_data(calib_target,
+  //                                       cam_data_path,
+  //                                       cam_K,
+  //                                       cam_D,
+  //                                       grid_data_path,
+  //                                       true);
+  //   if (retval != 0) {
+  //     FATAL("Failed to preprocess calibration data!");
+  //   }
+  // }
 
   // Load dataset
   LOG_INFO("-- Loading dataset");
@@ -349,8 +383,13 @@ dataset_t process_dataset(const std::string &data_path,
   ds.T_MC = tf(C, zeros(3, 1));
   // -- Fiducial target pose
   ds.T_WF = load_fiducial_pose(target0_csv_path);
-  ds.T_WF(0, 3) += 0.07;
-  ds.T_WF(1, 3) += 0.07;
+  // ds.T_WF(0, 3) += 0.07;
+  // ds.T_WF(1, 3) += 0.07;
+  // ds.T_WF = ds.T_WM[0] * ds.T_MC * ds.grids[0].T_CF;
+  // print_matrix("T_WM", ds.T_WM[0]);
+  // print_matrix("T_MC", ds.T_MC);
+  // print_matrix("T_CF", ds.grids[0].T_CF);
+  // print_matrix("T_WF", ds.T_WF);
 
   // Show dataset stats
   std::cout << std::endl;
@@ -411,6 +450,7 @@ void detect_aprilgrids(const calib_target_t &calib_target,
 double loop_test_dataset(const std::string test_path,
                          const calib_target_t &calib_target,
                          const dataset_t &ds,
+                         bool imshow,
                          long long ts_offset=0) {
   const auto cam0_path = test_path + "/cam0/data";
   const auto grids_path = test_path + "/grid0/cam0/data";
@@ -522,12 +562,14 @@ double loop_test_dataset(const std::string test_path,
     }
 
     // Draw on image
-    for (const auto &img_pt : image_points) {
-      cv::Point2f p(img_pt(0), img_pt(1));
-      cv::circle(image, p, 3, cv::Scalar(0, 0, 255), -1);
+    if (imshow) {
+      for (const auto &img_pt : image_points) {
+        cv::Point2f p(img_pt(0), img_pt(1));
+        cv::circle(image, p, 3, cv::Scalar(0, 0, 255), -1);
+      }
+      cv::imshow("Image", image);
+      cv::waitKey(0);
     }
-    cv::imshow("Image", image);
-    cv::waitKey(0);
 
     pose_idx++;
   }
@@ -770,7 +812,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Calibrate vicon object to camera transform
-  dataset_t ds = process_dataset(data_path, calib_results_path);
+  dataset_t ds = process_dataset(data_path, calib_results_path, calib_target);
   calib_vicon_marker_solve(ds.grids,
                            ds.pinhole,
                            ds.radtan,
@@ -787,13 +829,12 @@ int main(int argc, char *argv[]) {
 	               body0_topic,
 	               target0_topic);
 
-	// long long ts_offset = -1e4;
+	// long long ts_offset = -1e2;
 	// for (int i = 0; i < 10000; i++) {
 	//   ts_offset += 1e5;
-  //   loop_test_dataset(test_out_path, calib_target, ds, ts_offset);
+  //   loop_test_dataset(test_out_path, calib_target, ds, false, ts_offset);
   // }
-  loop_test_dataset(test_out_path, calib_target, ds, 0.0);
-
+  loop_test_dataset(test_out_path, calib_target, ds, true, 0.0);
   clear_test_output();
 
   return 0;

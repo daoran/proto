@@ -154,8 +154,8 @@ int calib_vicon_marker_solve(const aprilgrids_t &aprilgrids,
   }
 
   // Fix camera parameters
-  // problem->SetParameterBlockConstant(*pinhole.data);
-  // problem->SetParameterBlockConstant(*radtan.data);
+  problem->SetParameterBlockConstant(*pinhole.data);
+  problem->SetParameterBlockConstant(*radtan.data);
 
   // Fix T_WF parameters
   // problem->SetParameterBlockConstant(T_WF_param.q.coeffs().data());

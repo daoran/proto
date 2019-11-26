@@ -33,8 +33,17 @@ hold on;
 grid on;
 view(3);
 draw_frame(T_WF, 0.1);
+text(T_WF(1, 4), T_WF(2, 4), T_WF(3, 4) - 0.04, "T_{WF}");
+
+C = euler321(deg2rad([-90.0, 0.0, 0.0]));
+r = zeros(3, 1);
+T_hack = tf(C, r);
+
 draw_frame(T_WM{1}, 0.1);
-draw_frame(T_WC, 0.1);
+text(T_WM{1}(1, 4), T_WM{1}(2, 4), T_WM{1}(3, 4) - 0.04, "T_{WM}");
+
+% draw_frame(T_WC, 0.1);
+% text(T_WC(1, 4), T_WC(2, 4), T_WC(3, 4) - 0.04, "T_{WC}");
 
 % for i = 1:rows(poses)
 %   if norm(T_WM{i}(1:3, 4)) < 100

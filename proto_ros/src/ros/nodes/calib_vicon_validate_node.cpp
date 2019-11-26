@@ -7,6 +7,7 @@ using namespace proto;
 
 struct node_t : ros_node_t {
   calib_target_t calib_target_;
+  aprilgrid_detector_t detector_;
   vec4_t cam0_K_;
   vec4_t cam0_D_;
   mat4_t T_WF_;
@@ -46,7 +47,6 @@ struct node_t : ros_node_t {
     std::cout << "----------------------------------------" << std::endl;
     std::cout << "Pinhole: " << cam0_K_.transpose() << std::endl;
     std::cout << "Radtan: " << cam0_D_.transpose() << std::endl;
-    print_matrix("T_WF", T_WF_);
     print_matrix("T_MC", T_MC_);
 
     // Configure subscribers and loop callbacks
@@ -69,11 +69,19 @@ struct node_t : ros_node_t {
     const mat4_t T_WC = T_WM_ * T_MC_;
     const mat4_t T_CW = T_WC.inverse();
 
+    // Detect AprilGrid
     aprilgrid_t grid;
     grid.tag_rows = calib_target_.tag_rows;
     grid.tag_cols = calib_target_.tag_cols;
     grid.tag_size = calib_target_.tag_size;
     grid.tag_spacing = calib_target_.tag_spacing;
+    // const mat3_t cam0_K = pinhole_K(cam0_K_);
+    // aprilgrid_detect(grid, detector_, image, cam0_K, cam0_D_);
+    // if (grid.detected == false) {
+    //   std::cout << "AprilGrid not detected!" << std::endl;
+    //   return;
+    // }
+    // const mat4_t T_WF = T_WC * grid.T_CF;
 
     mat3_t K = pinhole_K(cam0_K_);
     vec3s_t object_points;
@@ -119,9 +127,15 @@ struct node_t : ros_node_t {
     cv::waitKey(1);
   }
 
-  void body_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
-    const quat_t q = msg_convert(msg->pose.orientation);
-    const vec3_t r = msg_convert(msg->pose.position);
+  // void body_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
+  //   const quat_t q = msg_convert(msg->pose.orientation);
+  //   const vec3_t r = msg_convert(msg->pose.position);
+  //   T_WM_ = tf(q, r);
+  // }
+
+  void body_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg) {
+    const quat_t q = msg_convert(msg->pose.pose.orientation);
+    const vec3_t r = msg_convert(msg->pose.pose.position);
     T_WM_ = tf(q, r);
   }
 };

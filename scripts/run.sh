@@ -31,9 +31,11 @@ cd ~/catkin_ws/ && source devel/setup.bash
 # roslaunch proto_ros calib_camera.launch
 # roslaunch proto_ros calib_stereo.launch
 # export ROS_MASTER_URI=http://192.168.1.201:11311 && roslaunch proto_ros calib_vicon_capture.launch
-# rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
-roslaunch proto_ros calib_vicon.launch
+# export ROS_MASTER_URI=http://137.137.1.5:11311 && roslaunch proto_ros calib_vicon_capture.launch
+rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
+# export ROS_MASTER_URI=http://localhost:11311 && roslaunch proto_ros calib_vicon.launch
 # export ROS_MASTER_URI=http://192.168.1.201:11311; roslaunch proto_ros calib_vicon_validate.launch
+# roslaunch proto_ros calib_vicon_validate.launch
 
 # rm -rf /data/intel_d435i/calib_vicon_data
 # rm -rf /tmp/vicon_validation

@@ -1,10 +1,10 @@
-function draw_frame(T_WS, scale=0.1)
-  r_WS = tf_trans(T_WS);
-	origin = r_WS;
+function draw_frame(T_WB, scale=0.1)
+  r_WB = tf_trans(T_WB);
+	origin = r_WB;
 
-	x_axis = T_WS * homogeneous(scale * [1; 0; 0]);
-	y_axis = T_WS * homogeneous(scale * [0; 1; 0]);
-	z_axis = T_WS * homogeneous(scale * [0; 0; 1]);
+	x_axis = T_WB * homogeneous(scale * [1; 0; 0]);
+	y_axis = T_WB * homogeneous(scale * [0; 1; 0]);
+	z_axis = T_WB * homogeneous(scale * [0; 0; 1]);
 
 	% Draw x-axis
 	plot3([origin(1), x_axis(1)], ...

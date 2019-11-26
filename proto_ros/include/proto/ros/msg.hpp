@@ -13,7 +13,10 @@
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/TwistStamped.h>
+
+#include <nav_msgs/Odometry.h>
 
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/NavSatFix.h>

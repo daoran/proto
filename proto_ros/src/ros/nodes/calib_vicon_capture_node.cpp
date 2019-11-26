@@ -28,16 +28,37 @@ void image_callback(const sensor_msgs::ImageConstPtr &msg) {
   char key = (char) cv::waitKey(1);
   if (key == 'c') {
     std::cout << "Capturing" << std::endl;
-    bag.write(cam0_topic, ts, msg);
+    bag.write("/cam0/image", ts, msg);
   }
 }
 
-void body_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
-  bag.write(body0_topic, msg->header.stamp, msg);
+// void body_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg) {
+//   geometry_msgs::PoseStamped pose;
+//   pose.header = msg->header;
+//   pose.pose = msg->pose.pose;
+//   bag.write("/body0/pose", msg->header.stamp, pose);
+// }
+
+// void body_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
+//   bag.write(body0_topic, msg->header.stamp, msg);
+// }
+
+void body_callback(const nav_msgs::OdometryConstPtr &msg) {
+  geometry_msgs::PoseStamped pose;
+  pose.header = msg->header;
+  pose.pose = msg->pose.pose;
+  bag.write("/body0/pose", msg->header.stamp, pose);
 }
 
-void target_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
-  bag.write(target0_topic, msg->header.stamp, msg);
+// void target_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
+//   bag.write(target0_topic, msg->header.stamp, msg);
+// }
+
+void target_callback(const nav_msgs::OdometryConstPtr &msg) {
+  geometry_msgs::PoseStamped pose;
+  pose.header = msg->header;
+  pose.pose = msg->pose.pose;
+  bag.write("/target0/pose", msg->header.stamp, pose);
 }
 
 int main(int argc, char *argv[]) {
@@ -60,9 +81,9 @@ int main(int argc, char *argv[]) {
   bag.open(rosbag_path, rosbag::bagmode::Write);
 
   // Setup subscribers
-  const auto cam0_sub = ros_nh.subscribe(cam0_topic, 1, image_callback);
-  const auto body0_sub = ros_nh.subscribe(body0_topic, 1, body_callback);
-  const auto target0_sub = ros_nh.subscribe(target0_topic, 1, target_callback);
+  const auto cam0_sub = ros_nh.subscribe(cam0_topic, 100, image_callback);
+  const auto body0_sub = ros_nh.subscribe(body0_topic, 100, body_callback);
+  const auto target0_sub = ros_nh.subscribe(target0_topic, 100, target_callback);
 
   // Loop
   ros::spin();
