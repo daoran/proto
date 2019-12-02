@@ -383,8 +383,6 @@ dataset_t process_dataset(const std::string &data_path,
   ds.T_MC = tf(C, zeros(3, 1));
   // -- Fiducial target pose
   ds.T_WF = load_fiducial_pose(target0_csv_path);
-  // ds.T_WF(0, 3) += 0.07;
-  // ds.T_WF(1, 3) += 0.07;
   // ds.T_WF = ds.T_WM[0] * ds.T_MC * ds.grids[0].T_CF;
   // print_matrix("T_WM", ds.T_WM[0]);
   // print_matrix("T_MC", ds.T_MC);
@@ -618,6 +616,12 @@ void show_results(const dataset_t &ds) {
   print_matrix("T_WF", ds.T_WF);
   print_matrix("T_WM", ds.T_WM[0]);
   print_matrix("T_MC", ds.T_MC);
+
+  const auto r_MC = tf_trans(ds.T_MC);
+  const auto q_MC = tf_quat(ds.T_MC);
+  printf("r_MC: %f, %f, %f\n", r_MC(0), r_MC(1), r_MC(2));
+  printf("q_MC (x, y, z, w): %f, %f, %f, %f\n",
+         q_MC.x(), q_MC.y(), q_MC.z(), q_MC.w());
 }
 
 void save_results(const std::string &output_path,

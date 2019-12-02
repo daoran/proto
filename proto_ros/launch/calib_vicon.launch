@@ -1,17 +1,17 @@
 <launch>
   <node pkg="proto_ros" type="calib_vicon_node" name="calib_vicon_node" required="true" output="screen">
-    <param name="train_bag" value="/data/vicon/vicon-ucl-3.bag" />
-    <param name="test_bag" value="/data/vicon/vicon-ucl-3.bag" />
+    <!-- <param name="train_bag" value="/data/vicon/vicon&#45;ucl&#45;3.bag" /> -->
+    <!-- <param name="test_bag" value="/data/vicon/vicon&#45;ucl&#45;3.bag" /> -->
+
+    <!-- <param name="train_bag" value="/data/vicon/vicon_capture_keep_good_2.bag" /> -->
+    <!-- <param name="test_bag" value="/data/vicon/vicon_capture_keep_good_2.bag" /> -->
+
+    <param name="train_bag" value="/data/vicon/srl-0.bag" />
+    <param name="test_bag" value="/data/vicon/srl-1.bag" />
+
     <param name="config_file" value="$(find proto_ros)/config/calib_vicon-intel_d435i.yaml" />
     <param name="cam0_topic" value="/cam0/image" />
     <param name="body0_topic" value="/body0/pose" />
     <param name="target0_topic" value="/target0/pose" />
-
-    <!-- <param name="train_bag" value="/data/vicon/vicon_capture_keep_good_2.bag" /> -->
-    <!-- <param name="test_bag" value="/data/vicon/vicon_capture_keep_good_2.bag" /> -->
-    <!-- <param name="config_file" value="$(find proto_ros)/config/calib_vicon&#45;intel_d435i.yaml" /> -->
-    <!-- <param name="cam0_topic" value="/camera/color/image_raw" /> -->
-    <!-- <param name="body0_topic" value="/vicon/f450/pose" /> -->
-    <!-- <param name="target0_topic" value="/vicon/AprilGrid/pose" /> -->
   </node>
 </launch>

@@ -29,12 +29,10 @@ def quaternion_str(msg):
 
 
 def transform_str(msg):
-    header = "rx,ry,rz,qw,qw,qx,qy,qz"
-
+    header = "rx,ry,rz,qw,qx,qy,qz"
     translation = vector3_str(msg.translation)
     rotation = quaternion_str(msg.rotation)
     data = translation + "," + rotation
-
     return [header, data]
 
 
@@ -58,11 +56,9 @@ def header_str(msg):
 
 def transform_stamped_str(msg):
     header, data = header_str(msg.header)
-
     tf_header, tf_data = transform_str(msg.transform)
     header += "," + tf_header
     data += "," + tf_data
-
     return [header, data]
 
 

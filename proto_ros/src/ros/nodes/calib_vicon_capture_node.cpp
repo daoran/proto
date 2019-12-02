@@ -32,6 +32,10 @@ void image_callback(const sensor_msgs::ImageConstPtr &msg) {
   }
 }
 
+void body_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
+  bag.write("/body0/pose", msg->header.stamp, msg);
+}
+
 // void body_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg) {
 //   geometry_msgs::PoseStamped pose;
 //   pose.header = msg->header;
@@ -39,27 +43,23 @@ void image_callback(const sensor_msgs::ImageConstPtr &msg) {
 //   bag.write("/body0/pose", msg->header.stamp, pose);
 // }
 
-// void body_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
-//   bag.write(body0_topic, msg->header.stamp, msg);
+// void body_callback(const nav_msgs::OdometryConstPtr &msg) {
+//   geometry_msgs::PoseStamped pose;
+//   pose.header = msg->header;
+//   pose.pose = msg->pose.pose;
+//   bag.write("/body0/pose", msg->header.stamp, pose);
 // }
 
-void body_callback(const nav_msgs::OdometryConstPtr &msg) {
-  geometry_msgs::PoseStamped pose;
-  pose.header = msg->header;
-  pose.pose = msg->pose.pose;
-  bag.write("/body0/pose", msg->header.stamp, pose);
+void target_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
+  bag.write("/target0/pose", msg->header.stamp, msg);
 }
 
-// void target_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
-//   bag.write(target0_topic, msg->header.stamp, msg);
+// void target_callback(const nav_msgs::OdometryConstPtr &msg) {
+//   geometry_msgs::PoseStamped pose;
+//   pose.header = msg->header;
+//   pose.pose = msg->pose.pose;
+//   bag.write("/target0/pose", msg->header.stamp, pose);
 // }
-
-void target_callback(const nav_msgs::OdometryConstPtr &msg) {
-  geometry_msgs::PoseStamped pose;
-  pose.header = msg->header;
-  pose.pose = msg->pose.pose;
-  bag.write("/target0/pose", msg->header.stamp, pose);
-}
 
 int main(int argc, char *argv[]) {
   // Setup ROS Node
