@@ -36,7 +36,8 @@ void body_callback(const geometry_msgs::PoseStampedConstPtr &msg) {
   bag.write("/body0/pose", msg->header.stamp, msg);
 }
 
-// void body_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg) {
+// void body_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr
+// &msg) {
 //   geometry_msgs::PoseStamped pose;
 //   pose.header = msg->header;
 //   pose.pose = msg->pose.pose;
@@ -83,7 +84,8 @@ int main(int argc, char *argv[]) {
   // Setup subscribers
   const auto cam0_sub = ros_nh.subscribe(cam0_topic, 100, image_callback);
   const auto body0_sub = ros_nh.subscribe(body0_topic, 100, body_callback);
-  const auto target0_sub = ros_nh.subscribe(target0_topic, 100, target_callback);
+  const auto target0_sub =
+      ros_nh.subscribe(target0_topic, 100, target_callback);
 
   // Loop
   ros::spin();

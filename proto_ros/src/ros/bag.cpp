@@ -33,9 +33,9 @@ std::ofstream pose_init_output_file(const std::string &output_path) {
 
   // Check save dir
   if (dir_exists(output_path) == false) {
-     if (dir_create(output_path) != 0) {
-        FATAL("Failed to create dir [%s]", output_path.c_str());
-     }
+    if (dir_create(output_path) != 0) {
+      FATAL("Failed to create dir [%s]", output_path.c_str());
+    }
   }
 
   // Create output csv file
@@ -84,9 +84,9 @@ std::ofstream imu_init_output_file(const std::string &output_path) {
 
   // Check save dir
   if (dir_exists(output_path) == false) {
-     if (dir_create(output_path) != 0) {
-        FATAL("Failed to create dir [%s]", output_path.c_str());
-     }
+    if (dir_create(output_path) != 0) {
+      FATAL("Failed to create dir [%s]", output_path.c_str());
+    }
   }
 
   // Create output csv file
@@ -112,9 +112,9 @@ std::ofstream accel_init_output_file(const std::string &output_path) {
 
   // Check save dir
   if (dir_exists(output_path) == false) {
-     if (dir_create(output_path) != 0) {
-        FATAL("Failed to create dir [%s]", output_path.c_str());
-     }
+    if (dir_create(output_path) != 0) {
+      FATAL("Failed to create dir [%s]", output_path.c_str());
+    }
   }
 
   // Create output csv file
@@ -137,9 +137,9 @@ std::ofstream gyro_init_output_file(const std::string &output_path) {
 
   // Check save dir
   if (dir_exists(output_path) == false) {
-     if (dir_create(output_path) != 0) {
-        FATAL("Failed to create dir [%s]", output_path.c_str());
-     }
+    if (dir_create(output_path) != 0) {
+      FATAL("Failed to create dir [%s]", output_path.c_str());
+    }
   }
 
   // Create output csv file
@@ -181,8 +181,15 @@ void load_imu_data(const std::string &csv_file,
     timestamp_t ts = 0;
     double w_x, w_y, w_z = 0.0;
     double a_x, a_y, a_z = 0.0;
-    const int retval = fscanf(fp, "%" SCNu64 ",%lf,%lf,%lf,%lf,%lf,%lf",
-                              &ts, &w_x, &w_y, &w_z, &a_x, &a_y, &a_z);
+    const int retval = fscanf(fp,
+                              "%" SCNu64 ",%lf,%lf,%lf,%lf,%lf,%lf",
+                              &ts,
+                              &w_x,
+                              &w_y,
+                              &w_z,
+                              &a_x,
+                              &a_y,
+                              &a_z);
     if (retval != 6) {
       LOG_ERROR("Failed to parse line [%d] in [%s]!", i, csv_file.c_str());
       return;
@@ -227,9 +234,9 @@ void image_message_handler(const rosbag::MessageInstance &msg,
 
   // Check save dir
   if (dir_exists(output_path) == false) {
-     if (dir_create(output_path) != 0) {
-        FATAL("Failed to create dir [%s]", output_path.c_str());
-     }
+    if (dir_create(output_path) != 0) {
+      FATAL("Failed to create dir [%s]", output_path.c_str());
+    }
   }
 
   // Convert ROS message to cv image
@@ -318,4 +325,4 @@ void gyro_message_handler(const rosbag::MessageInstance &msg,
   gyro_data.push_back(gyro);
 }
 
-}  // namespace proto
+} // namespace proto

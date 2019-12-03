@@ -21,7 +21,7 @@ struct pinhole_radtan4_residual_t {
   double p_F_[3] = {0.0, 0.0, 0.0}; ///< Object point
 
   pinhole_radtan4_residual_t(const vec2_t &z, const vec3_t &p_F)
-    : z_{z(0), z(1)}, p_F_{p_F(0), p_F(1), p_F(2)} {}
+      : z_{z(0), z(1)}, p_F_{p_F(0), p_F(1), p_F(2)} {}
 
   ~pinhole_radtan4_residual_t() {}
 

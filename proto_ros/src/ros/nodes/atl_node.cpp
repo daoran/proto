@@ -106,9 +106,7 @@ struct atl_node_t : ros_node_t {
     T_CZ = proto::tf(q_CZ, r_CZ);
   }
 
-  void detected_callback(const std_msgs::Bool &msg) {
-    lz_detected = msg.data;
-  }
+  void detected_callback(const std_msgs::Bool &msg) { lz_detected = msg.data; }
 
   int loop_callback() {
     // Calculate dt

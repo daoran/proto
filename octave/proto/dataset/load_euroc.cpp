@@ -13,8 +13,10 @@ inline void nargchk(bool cond) {
 /**
  * Parse args
  */
-void parse_args(int nlhs, mxArray *plhs[],
-                int nrhs, const mxArray *prhs[],
+void parse_args(int nlhs,
+                mxArray *plhs[],
+                int nrhs,
+                const mxArray *prhs[],
                 std::string &data_path) {
   UNUSED(plhs);
 
@@ -60,8 +62,9 @@ mxArray *convert(const std::vector<std::string> &string_vector) {
 mxArray *convert(const proto::matx_t &m) {
   const long nb_rows = m.rows();
   const long nb_cols = m.cols();
-  mxArray *out = mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
-  double* data = (double*) mxGetData(out);
+  mxArray *out =
+      mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
+  double *data = (double *) mxGetData(out);
 
   long el_idx = 0;
   for (long i = 0; i < nb_rows; i++) {
@@ -80,8 +83,9 @@ mxArray *convert(const proto::matx_t &m) {
 mxArray *convert(const proto::vec3s_t &m) {
   const long nb_rows = 3;
   const long nb_cols = m.size();
-  mxArray *out = mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
-  double* data = (double*) mxGetData(out);
+  mxArray *out =
+      mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
+  double *data = (double *) mxGetData(out);
 
   long el_idx = 0;
   for (size_t k = 0; k < m.size(); k++) {
@@ -103,7 +107,7 @@ mxArray *convert(const proto::vec3s_t &m) {
  */
 mxArray *convert(const int &val) {
   mxArray *out = mxCreateNumericMatrix(1, 1, mxINT64_CLASS, mxREAL);
-  int* data = (int*) mxGetData(out);
+  int *data = (int *) mxGetData(out);
   data[0] = val;
   return out;
 }
@@ -113,7 +117,7 @@ mxArray *convert(const int &val) {
  */
 mxArray *convert(const double &val) {
   mxArray *out = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
-  double* data = (double*) mxGetData(out);
+  double *data = (double *) mxGetData(out);
   data[0] = val;
   return out;
 }
@@ -121,30 +125,26 @@ mxArray *convert(const double &val) {
 /**
  * Convert string
  */
-mxArray *convert(const std::string &s) {
-  return mxCreateString(s.c_str());
-}
+mxArray *convert(const std::string &s) { return mxCreateString(s.c_str()); }
 
 /**
  * Convert imu data to octave-struct
  */
 mxArray *convert_imu_data(const proto::euroc_imu_t &imu_data) {
-  const char *keys[] = {
-    // Data
-    "data_dir",
-    "timestamps",
-    "w_B",
-    "a_B",
-    // Sensor properties
-    "sensor_type",
-    "comment",
-    "T_BS",
-    "rate_hz",
-    "gyro_noise_density",
-    "gyro_random_walk",
-    "accel_noise_density",
-    "accel_random_walk"
-  };
+  const char *keys[] = {// Data
+                        "data_dir",
+                        "timestamps",
+                        "w_B",
+                        "a_B",
+                        // Sensor properties
+                        "sensor_type",
+                        "comment",
+                        "T_BS",
+                        "rate_hz",
+                        "gyro_noise_density",
+                        "gyro_random_walk",
+                        "accel_noise_density",
+                        "accel_random_walk"};
 
   mxArray *data = mxCreateStructMatrix(1, 1, 12, keys);
   mxSetField(data, 0, keys[0], convert(imu_data.data_dir.c_str()));
@@ -168,20 +168,20 @@ mxArray *convert_imu_data(const proto::euroc_imu_t &imu_data) {
  */
 mxArray *convert_camera_data(const proto::euroc_camera_t &cam_data) {
   const char *keys[] = {
-    // Data
-    "data_dir",
-    "timestamps",
-    "image_paths",
-    // Sensor properties
-    "sensor_type",
-    "comment",
-    "T_BS",
-    "rate_hz",
-    "resolution",
-    "camera_model",
-    "intrinsics",
-    "distortion_model",
-    "distortion",
+      // Data
+      "data_dir",
+      "timestamps",
+      "image_paths",
+      // Sensor properties
+      "sensor_type",
+      "comment",
+      "T_BS",
+      "rate_hz",
+      "resolution",
+      "camera_model",
+      "intrinsics",
+      "distortion_model",
+      "distortion",
   };
 
   mxArray *data = mxCreateStructMatrix(1, 1, 12, keys);

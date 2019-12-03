@@ -103,7 +103,6 @@ int test_linspace_timestamps() {
   return 0;
 }
 
-
 /******************************************************************************
  * GEOMETRY
  *****************************************************************************/
@@ -533,7 +532,7 @@ int test_median() {
 
 int test_mvn() {
   std::default_random_engine engine;
-  const int nb_tests = 10000;  // number of experiments
+  const int nb_tests = 10000; // number of experiments
 
   matx_t results{3, nb_tests};
   for (int i = 0; i < nb_tests; i++) {
@@ -552,7 +551,7 @@ int test_mvn() {
 }
 
 int test_gauss_normal() {
-  const int nb_tests = 10000;  // number of experiments
+  const int nb_tests = 10000; // number of experiments
 
   vecx_t results{nb_tests};
   for (int i = 0; i < nb_tests; i++) {
@@ -1127,18 +1126,14 @@ void generate_trajectory(timestamps_t &timestamps,
 
     // Position
     const double ts_s_k = ts2sec(ts_k);
-    positions.emplace_back(
-      sin(2 * M_PI * 2 * ts_s_k) + 1.0,
-      sin(2 * M_PI * 2 * ts_s_k) + 2.0,
-      sin(2 * M_PI * 2 * ts_s_k) + 3.0
-    );
+    positions.emplace_back(sin(2 * M_PI * 2 * ts_s_k) + 1.0,
+                           sin(2 * M_PI * 2 * ts_s_k) + 2.0,
+                           sin(2 * M_PI * 2 * ts_s_k) + 3.0);
 
     // Orientation
-    const vec3_t rpy{
-      sin(2 * M_PI * 2 * ts_s_k),
-      sin(2 * M_PI * 2 * ts_s_k + M_PI / 4),
-      sin(2 * M_PI * 2 * ts_s_k + M_PI / 2)
-    };
+    const vec3_t rpy{sin(2 * M_PI * 2 * ts_s_k),
+                     sin(2 * M_PI * 2 * ts_s_k + M_PI / 4),
+                     sin(2 * M_PI * 2 * ts_s_k + M_PI / 2)};
     orientations.emplace_back(euler321(rpy));
 
     // Update
@@ -1457,16 +1452,14 @@ int test_sim_imu_measurement() {
     const auto a_WS_W = ctraj_get_acceleration(ctraj, ts_k);
     vec3_t a_WS_S;
     vec3_t w_WS_S;
-    sim_imu_measurement(
-      imu,
-      rndeng,
-      ts_k,
-      T_WS_W,
-      w_WS_W,
-      a_WS_W,
-      a_WS_S,
-      w_WS_S
-    );
+    sim_imu_measurement(imu,
+                        rndeng,
+                        ts_k,
+                        T_WS_W,
+                        w_WS_W,
+                        a_WS_W,
+                        a_WS_S,
+                        w_WS_S);
 
     // Propagate simulated IMU measurements
     const double dt_s = ts2sec(dt);

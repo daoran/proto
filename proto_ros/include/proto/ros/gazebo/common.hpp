@@ -29,5 +29,5 @@ proto::mat4_t convert(const ignition::math::Pose3d &pose) {
   return proto::tf(q_WR, r_WR);
 }
 
-}  // namespace gazebo
+} // namespace gazebo
 #endif // PROTO_GAZEBO_COMMON_HPP

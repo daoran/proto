@@ -7,7 +7,7 @@ static int check_jacobian(const std::string &jac_name,
                           const matx_t &fdiff,
                           const matx_t &jac,
                           const double threshold,
-                          const bool print=false) {
+                          const bool print = false) {
   int retval = 0;
   const matx_t delta = (fdiff - jac);
   bool failed = false;
@@ -47,8 +47,8 @@ static int check_jacobian(const std::string &jac_name,
 int check_J_point(const mat4_t &T_WC,
                   const vec3_t &p_W,
                   const mat_t<2, 3> &J_point,
-                  const double step_size=1e-5,
-                  const double threshold=1e-5) {
+                  const double step_size = 1e-5,
+                  const double threshold = 1e-5) {
   const vec2_t z{0.0, 0.0};
   const vec3_t p_C = (T_WC * p_W.homogeneous()).head(3);
   const vec2_t z_hat{p_C(0) / p_C(2), p_C(1) / p_C(2)};
@@ -72,8 +72,8 @@ int check_J_point(const mat4_t &T_WC,
 int check_J_cam_pose(const mat4_t &T_WC,
                      const vec3_t &p_W,
                      const mat_t<2, 6> &J_cam_pose,
-                     const double step_size=1e-5,
-                     const double threshold=1e-5) {
+                     const double step_size = 1e-5,
+                     const double threshold = 1e-5) {
   const vec2_t z{0.0, 0.0};
   const vec3_t p_C = (T_WC * p_W.homogeneous()).head(3);
   const vec2_t z_hat{p_C(0) / p_C(2), p_C(1) / p_C(2)};
@@ -131,9 +131,9 @@ int test_ba_factor() {
   vec2_t residuals;
   mat_t<2, 3, row_major_t> J_point;
   mat_t<2, 6, row_major_t> J_cam_pose;
-	double cam_pose[7] = {q_WC.w(), q_WC.x(), q_WC.y(), q_WC.z(),
-												r_WC(0), r_WC(1), r_WC(2)};
-	const double *parameters[2] = {landmark.data(), cam_pose};
+  double cam_pose[7] =
+      {q_WC.w(), q_WC.x(), q_WC.y(), q_WC.z(), r_WC(0), r_WC(1), r_WC(2)};
+  const double *parameters[2] = {landmark.data(), cam_pose};
   double *jacobians[2] = {J_point.data(), J_cam_pose.data()};
   factor.Evaluate(parameters, residuals.data(), jacobians);
 
@@ -209,8 +209,8 @@ int test_graph_add_ba_factor() {
   const mat4_t T_WC = I(4);
 
   // Add factor
-	const size_t p_id = graph_add_landmark(graph, p_W);
-	const size_t pose_id = graph_add_pose(graph, ts, T_WC);
+  const size_t p_id = graph_add_landmark(graph, p_W);
+  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
   size_t id = graph_add_ba_factor(graph, ts, z, p_id, pose_id);
   MU_CHECK(id == 0);
   MU_CHECK(graph.factors.size() == 1);
@@ -229,9 +229,9 @@ int test_graph_solve() {
   const vec3_t p0_W{1.0, 2.0, 3.0};
   const vec3_t p1_W{4.0, 5.0, 6.0};
   const vec3_t p2_W{7.0, 8.0, 9.0};
-	const size_t p0_id = graph_add_landmark(graph, p0_W);
-	const size_t p1_id = graph_add_landmark(graph, p1_W);
-	const size_t p2_id = graph_add_landmark(graph, p2_W);
+  const size_t p0_id = graph_add_landmark(graph, p0_W);
+  const size_t p1_id = graph_add_landmark(graph, p1_W);
+  const size_t p2_id = graph_add_landmark(graph, p2_W);
 
   // Add pose
   const timestamp_t ts = 0;
@@ -240,10 +240,10 @@ int test_graph_solve() {
   const mat3_t C_WC = euler321(rpy_WC);
   const vec3_t r_WC = zeros(3, 1);
   const mat4_t T_WC = tf(C_WC, r_WC);
-	const size_t pose_id = graph_add_pose(graph, ts, T_WC);
+  const size_t pose_id = graph_add_pose(graph, ts, T_WC);
 
-//   pose_t *T_WS_0 = nullptr;
-//   pose_t *T_WS_1 = nullptr;
+  //   pose_t *T_WS_0 = nullptr;
+  //   pose_t *T_WS_1 = nullptr;
   // Add Factors
   graph_add_ba_factor(graph, ts, z, p0_id, pose_id);
   graph_add_ba_factor(graph, ts, z, p1_id, pose_id);

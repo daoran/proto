@@ -21,21 +21,19 @@ struct variable_t {
   variable_t() {}
 
   variable_t(const size_t id_, const size_t size_)
-    : id{id_}, size{size_}, local_size{size_} {}
+      : id{id_}, size{size_}, local_size{size_} {}
 
-  variable_t(const size_t id_,
-             const size_t size_,
-             const size_t local_size_)
-    : id{id_}, size{size_}, local_size{local_size_} {}
+  variable_t(const size_t id_, const size_t size_, const size_t local_size_)
+      : id{id_}, size{size_}, local_size{local_size_} {}
 
   variable_t(const timestamp_t &ts_, const size_t id_, const size_t size_)
-    : ts{ts_}, id{id_}, size{size_}, local_size{size_} {}
+      : ts{ts_}, id{id_}, size{size_}, local_size{size_} {}
 
   variable_t(const timestamp_t &ts_,
              const size_t id_,
              const size_t size_,
              const size_t local_size_)
-    : ts{ts_}, id{id_}, size{size_}, local_size{local_size_} {}
+      : ts{ts_}, id{id_}, size{size_}, local_size{local_size_} {}
 
   virtual ~variable_t() {}
 
@@ -53,8 +51,8 @@ struct variable_t {
 struct landmark_t : variable_t {
   double param[3] = {0.0, 0.0, 0.0};
 
-  landmark_t(const size_t id_, const vec3_t &p_W_) :
-    variable_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
+  landmark_t(const size_t id_, const vec3_t &p_W_)
+      : variable_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
 
   vec3_t vec() { return map_vec_t<3>(param); };
 
@@ -155,13 +153,13 @@ struct ba_factor_t : public factor_t {
   ba_factor_t(const timestamp_t &ts_,
               const size_t id_,
               const vec2_t &z_,
-              mat2_t info_=I(2))
+              mat2_t info_ = I(2))
       : factor_t{ts_, id_}, z{z_}, info{info_} {
     Eigen::LLT<mat2_t> llt_info(info);
     sq_info = llt_info.matrixL().transpose();
   }
 
-  virtual bool Evaluate(double const * const * parameters,
+  virtual bool Evaluate(double const *const *parameters,
                         double *residuals,
                         double **jacobians) const;
 };
@@ -172,7 +170,7 @@ struct ba_factor_t : public factor_t {
 
 // template <typename CM, typename DM>
 struct cam_factor_t : factor_t {
-	// camera_geometry_t<CM, DM> camera;
+  // camera_geometry_t<CM, DM> camera;
   vec2_t z = zeros(2, 1);
   mat2_t info = I(2);
   mat2_t sq_info = zeros(2, 2);
@@ -180,13 +178,13 @@ struct cam_factor_t : factor_t {
   cam_factor_t(const timestamp_t &ts_,
                const size_t id_,
                const vec2_t &z_,
-               mat2_t info_=I(2))
+               mat2_t info_ = I(2))
       : factor_t{ts_, id_}, z{z_}, info{info_} {
     Eigen::LLT<mat2_t> llt_info(info);
     sq_info = llt_info.matrixL().transpose();
   }
 
-  virtual bool Evaluate(double const * const * parameters,
+  virtual bool Evaluate(double const *const *parameters,
                         double *residuals,
                         double **jacobians) const;
 };
@@ -221,10 +219,13 @@ struct graph_t {
 void graph_free(graph_t &graph);
 size_t graph_next_variable_id(graph_t &graph);
 size_t graph_next_factor_id(graph_t &graph);
-size_t graph_add_pose(graph_t &graph, const timestamp_t &ts, const mat4_t &pose);
+size_t graph_add_pose(graph_t &graph,
+                      const timestamp_t &ts,
+                      const mat4_t &pose);
 size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark);
-size_t graph_add_factor(graph_t &graph, factor_t *factor,
-												const std::vector<size_t> param_block_ids);
+size_t graph_add_factor(graph_t &graph,
+                        factor_t *factor,
+                        const std::vector<size_t> param_block_ids);
 size_t graph_add_ba_factor(graph_t &graph,
                            const timestamp_t &ts,
                            const vec2_t &z,

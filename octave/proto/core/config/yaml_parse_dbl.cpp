@@ -11,10 +11,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     parse(config, yaml_key, value);
 
     plhs[0] = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(plhs[0]);
+    double *data = (double *) mxGetData(plhs[0]);
     data[0] = value;
 
-  } catch (const YAML::Exception& e) {
+  } catch (const YAML::Exception &e) {
     mexErrMsgIdAndTxt("proto:error", e.msg.c_str());
   }
 

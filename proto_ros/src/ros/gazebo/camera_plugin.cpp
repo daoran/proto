@@ -64,14 +64,14 @@ struct camera_plugin_t : public SensorPlugin {
     image_format_ = camera_->ImageFormat();
 
     // Register image callback
-    conn_ = camera_->ConnectNewImageFrame(
-        std::bind(&camera_plugin_t::on_new_frame,
-                  this,
-                  std::placeholders::_1,
-                  std::placeholders::_2,
-                  std::placeholders::_3,
-                  std::placeholders::_4,
-                  std::placeholders::_5));
+    conn_ =
+        camera_->ConnectNewImageFrame(std::bind(&camera_plugin_t::on_new_frame,
+                                                this,
+                                                std::placeholders::_1,
+                                                std::placeholders::_2,
+                                                std::placeholders::_3,
+                                                std::placeholders::_4,
+                                                std::placeholders::_5));
 
     // Create ROS thread
     ros_thread_ = std::thread(&camera_plugin_t::ros_thread, this);
@@ -119,7 +119,7 @@ struct camera_plugin_t : public SensorPlugin {
 
     // Publish image and clean up
     img_pub_.publish(img_msg);
-    delete []buffer;
+    delete[] buffer;
   }
 };
 

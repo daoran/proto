@@ -56,9 +56,7 @@ void generate_signal(const size_t size,
   signal(size) = sin(2 * M_PI * f * t_end);
 }
 
-double scale_knot(const double t, const double t_end) {
-  return t / t_end;
-}
+double scale_knot(const double t, const double t_end) { return t / t_end; }
 
 void traverse_spline(const Spline1D &spline,
                      const size_t size,

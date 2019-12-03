@@ -71,7 +71,7 @@ template <typename CM, typename DM>
 vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
                                const vec3_t &p_C,
                                matx_t &J_h,
-															 matx_t &J_params);
+                               matx_t &J_params);
 
 /**
  * Project point using pinhole radial-tangential
@@ -135,7 +135,7 @@ template <typename CM, typename DM>
 vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
                                const vec3_t &p_C,
                                matx_t &J_h,
-															 matx_t &J_params) {
+                               matx_t &J_params) {
   mat_t<2, 3> J_P;
   mat2_t J_K;
   mat2_t J_D;
@@ -155,7 +155,7 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
                             const Eigen::Matrix<T, 3, 1> &point,
                             Eigen::Matrix<T, 2, 1> &image_point) {
   // Check for singularity
-  const T z_norm = sqrt(point(2) * point(2));  // std::abs doesn't work for all T
+  const T z_norm = sqrt(point(2) * point(2)); // std::abs doesn't work for all T
   if (z_norm < 1.0e-12) {
     return -1;
   }
@@ -211,9 +211,9 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
   // image_point(1) = y_ddash;
 
   if (point(2) > T(0.0)) {
-    return 0;  // Point is infront of camera
+    return 0; // Point is infront of camera
   } else {
-    return 1;  // Point is behind camera
+    return 1; // Point is behind camera
   }
 }
 

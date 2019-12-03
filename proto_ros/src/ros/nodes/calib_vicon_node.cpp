@@ -27,11 +27,11 @@ std::string basename(const std::string &path) {
 }
 
 void process_rosbag(const std::string &rosbag_path,
-										const std::string &out_path,
-										const std::string &cam0_topic,
-										const std::string &body0_topic,
-										const std::string &target0_topic) {
-	// Check whether ros topics are in bag
+                    const std::string &out_path,
+                    const std::string &cam0_topic,
+                    const std::string &body0_topic,
+                    const std::string &target0_topic) {
+  // Check whether ros topics are in bag
   std::vector<std::string> target_topics;
   target_topics.push_back(cam0_topic);
   target_topics.push_back(body0_topic);
@@ -70,29 +70,17 @@ void process_rosbag(const std::string &rosbag_path,
 
     // Process camera data
     if (msg.getTopic() == cam0_topic) {
-      image_message_handler(
-        msg,
-        cam0_output_path + "/data/",
-        cam0_csv
-      );
+      image_message_handler(msg, cam0_output_path + "/data/", cam0_csv);
     }
 
     // Process body data
     if (msg.getTopic() == body0_topic) {
-      pose_message_handler(
-        msg,
-        body0_output_path + "/data/",
-        body0_csv
-      );
+      pose_message_handler(msg, body0_output_path + "/data/", body0_csv);
     }
 
     // Process target data
     if (msg.getTopic() == target0_topic) {
-      pose_message_handler(
-        msg,
-        target0_output_path + "/data/",
-        target0_csv
-      );
+      pose_message_handler(msg, target0_output_path + "/data/", target0_csv);
     }
   }
 
@@ -136,9 +124,9 @@ static void load_body_poses(const std::string &fpath,
 
   // Create format string
   std::string str_format;
-  str_format = "%ld,";               // Timestamp[ns]
-  str_format += "%lf,%lf,%lf,%lf,";  // Quaternion
-  str_format += "%lf,%lf,%lf";       // Position
+  str_format = "%ld,";              // Timestamp[ns]
+  str_format += "%lf,%lf,%lf,%lf,"; // Quaternion
+  str_format += "%lf,%lf,%lf";      // Position
 
   // Parse file
   for (int i = 0; i < nb_rows; i++) {
@@ -152,13 +140,8 @@ static void load_body_poses(const std::string &fpath,
     timestamp_t ts = 0;
     double qw, qx, qy, qz = 0.0;
     double px, py, pz = 0.0;
-    int retval = fscanf(
-      fp,
-      str_format.c_str(),
-      &ts,
-      &qw, &qx, &qy, &qz,
-      &px, &py, &pz
-    );
+    int retval =
+        fscanf(fp, str_format.c_str(), &ts, &qw, &qx, &qy, &qz, &px, &py, &pz);
     if (retval != 8) {
       FATAL("Failed to parse line in [%s:%d]", fpath.c_str(), i);
     }
@@ -183,9 +166,9 @@ static mat4_t load_fiducial_pose(const std::string &fpath) {
 
   // Create format string
   std::string str_format;
-  str_format = "%ld,";               // Timestamp[ns]
-  str_format += "%lf,%lf,%lf,%lf,";  // Quaternion
-  str_format += "%lf,%lf,%lf";       // Position
+  str_format = "%ld,";              // Timestamp[ns]
+  str_format += "%lf,%lf,%lf,%lf,"; // Quaternion
+  str_format += "%lf,%lf,%lf";      // Position
 
   // Parse file
   for (int i = 0; i < nb_rows; i++) {
@@ -199,13 +182,8 @@ static mat4_t load_fiducial_pose(const std::string &fpath) {
     timestamp_t ts = 0;
     double qw, qx, qy, qz = 0.0;
     double px, py, pz = 0.0;
-    int retval = fscanf(
-      fp,
-      str_format.c_str(),
-      &ts,
-      &qw, &qx, &qy, &qz,
-      &px, &py, &pz
-    );
+    int retval =
+        fscanf(fp, str_format.c_str(), &ts, &qw, &qx, &qy, &qz, &px, &py, &pz);
     if (retval != 8) {
       FATAL("Failed to parse line in [%s:%d]", fpath.c_str(), i);
     }
@@ -247,7 +225,7 @@ void lerp_body_poses(const aprilgrids_t &grids,
                      const mat4s_t &body_poses,
                      aprilgrids_t &lerped_grids,
                      mat4s_t &lerped_poses,
-                     timestamp_t ts_offset=0) {
+                     timestamp_t ts_offset = 0) {
   // Make sure AprilGrids are between body poses else we can't lerp poses
   timestamps_t grid_timestamps;
   for (const auto &grid : grids) {
@@ -374,9 +352,8 @@ dataset_t process_dataset(const std::string &data_path,
   mat4s_t body_poses;
   load_body_poses(body0_csv_path, body_timestamps, body_poses);
   // -- Synchronize aprilgrids and body poses
-  lerp_body_poses(aprilgrids, body_timestamps, body_poses,
-                  ds.grids, ds.T_WM);
-                  // ds.grids, ds.T_WM, 0.05e9);
+  lerp_body_poses(aprilgrids, body_timestamps, body_poses, ds.grids, ds.T_WM);
+  // ds.grids, ds.T_WM, 0.05e9);
   // -- Vicon Marker to Camera transform
   const vec3_t euler{-90.0, 0.0, -90.0};
   const mat3_t C = euler321(deg2rad(euler));
@@ -449,7 +426,7 @@ double loop_test_dataset(const std::string test_path,
                          const calib_target_t &calib_target,
                          const dataset_t &ds,
                          bool imshow,
-                         long long ts_offset=0) {
+                         long long ts_offset = 0) {
   const auto cam0_path = test_path + "/cam0/data";
   const auto grids_path = test_path + "/grid0/cam0/data";
   const auto body0_csv_path = test_path + "/body0/data.csv";
@@ -471,8 +448,12 @@ double loop_test_dataset(const std::string test_path,
   // Synchronize grids and body poses
   aprilgrids_t grids_sync;
   mat4s_t body_poses_sync;
-  lerp_body_poses(aprilgrids, body_timestamps, body_poses,
-                  grids_sync, body_poses_sync, ts_offset);
+  lerp_body_poses(aprilgrids,
+                  body_timestamps,
+                  body_poses,
+                  grids_sync,
+                  body_poses_sync,
+                  ts_offset);
 
   // Optimized parameters
   const mat3_t K = pinhole_K(ds.pinhole);
@@ -601,13 +582,11 @@ void show_results(const dataset_t &ds) {
       T_CF.emplace_back(T_CM * T_MW * ds.T_WF);
     }
   }
-  calib_camera_stats<pinhole_radtan4_residual_t>(
-    ds.grids,
-    *ds.pinhole.data,
-    *ds.radtan.data,
-    T_CF,
-    ""
-  );
+  calib_camera_stats<pinhole_radtan4_residual_t>(ds.grids,
+                                                 *ds.pinhole.data,
+                                                 *ds.radtan.data,
+                                                 T_CF,
+                                                 "");
   std::cout << std::endl;
 
   // Optimized Parameters
@@ -621,11 +600,13 @@ void show_results(const dataset_t &ds) {
   const auto q_MC = tf_quat(ds.T_MC);
   printf("r_MC: %f, %f, %f\n", r_MC(0), r_MC(1), r_MC(2));
   printf("q_MC (x, y, z, w): %f, %f, %f, %f\n",
-         q_MC.x(), q_MC.y(), q_MC.z(), q_MC.w());
+         q_MC.x(),
+         q_MC.y(),
+         q_MC.z(),
+         q_MC.w());
 }
 
-void save_results(const std::string &output_path,
-                  const dataset_t &ds) {
+void save_results(const std::string &output_path, const dataset_t &ds) {
   LOG_INFO("Saving results to [%s]!", output_path.c_str());
   const aprilgrid_t grid = ds.grids[0];
   const pinhole_t pinhole = ds.pinhole;
@@ -726,7 +707,7 @@ void save_results(const std::string &output_path,
   // Record poses
   {
     FILE *fp = fopen("/tmp/poses.csv", "w");
-    for (const auto &pose: ds.T_WM) {
+    for (const auto &pose : ds.T_WM) {
       const auto q = tf_quat(pose);
       const auto r = tf_trans(pose);
       fprintf(fp, "%lf,%lf,%lf,%lf,", q.w(), q.x(), q.y(), q.z());
@@ -766,7 +747,6 @@ void save_results(const std::string &output_path,
     fprintf(fp, "\n");
     fclose(fp);
   }
-
 }
 
 int main(int argc, char *argv[]) {
@@ -798,19 +778,19 @@ int main(int argc, char *argv[]) {
     FATAL("Failed to parse calib file [%s]!", config_file.c_str());
   }
 
-	// Parse config file
-	std::string data_path;
-	std::string calib_results_path;
+  // Parse config file
+  std::string data_path;
+  std::string calib_results_path;
   config_t config{config_file};
   parse(config, "settings.data_path", data_path);
   parse(config, "settings.results_fpath", calib_results_path);
 
   // Calibrate camera intrinsics
-	process_rosbag(train_bag_path,
-	               data_path,
-	               cam0_topic,
-	               body0_topic,
-	               target0_topic);
+  process_rosbag(train_bag_path,
+                 data_path,
+                 cam0_topic,
+                 body0_topic,
+                 target0_topic);
   if (calib_camera_solve(config_file) != 0) {
     FATAL("Failed to calibrate camera!");
   }
@@ -827,15 +807,15 @@ int main(int argc, char *argv[]) {
   save_results(calib_results_path, ds);
 
   // Process test ROS bag
-	process_rosbag(test_bag_path,
-	               test_out_path,
-	               cam0_topic,
-	               body0_topic,
-	               target0_topic);
+  process_rosbag(test_bag_path,
+                 test_out_path,
+                 cam0_topic,
+                 body0_topic,
+                 target0_topic);
 
-	// long long ts_offset = -1e2;
-	// for (int i = 0; i < 10000; i++) {
-	//   ts_offset += 1e5;
+  // long long ts_offset = -1e2;
+  // for (int i = 0; i < 10000; i++) {
+  //   ts_offset += 1e5;
   //   loop_test_dataset(test_out_path, calib_target, ds, false, ts_offset);
   // }
   loop_test_dataset(test_out_path, calib_target, ds, true, 0.0);

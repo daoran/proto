@@ -3,9 +3,9 @@
 #include "proto/ros/bag.hpp"
 
 void process_rosbag(const std::string &rosbag_path,
-										const std::string &cam0_topic,
-										const std::string &cam1_topic,
-										const std::string &out_path) {
+                    const std::string &cam0_topic,
+                    const std::string &cam1_topic,
+                    const std::string &out_path) {
   // Check output dir
   if (proto::dir_exists(out_path) == false) {
     if (proto::dir_create(out_path) != 0) {
@@ -66,13 +66,13 @@ int main(int argc, char *argv[]) {
   ROS_PARAM(ros_nh, node_name + "/cam0_topic", cam0_topic);
   ROS_PARAM(ros_nh, node_name + "/cam1_topic", cam1_topic);
 
-	// Parse config file
-	std::string data_path;
+  // Parse config file
+  std::string data_path;
   proto::config_t config{config_file};
   proto::parse(config, "settings.data_path", data_path);
 
-	// Process rosbag
-	process_rosbag(rosbag_path, cam0_topic, cam1_topic, data_path);
+  // Process rosbag
+  process_rosbag(rosbag_path, cam0_topic, cam1_topic, data_path);
 
   // Calibrate camera intrinsics
   if (proto::calib_stereo_solve(config_file) != 0) {

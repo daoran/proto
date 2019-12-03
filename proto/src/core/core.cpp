@@ -891,7 +891,7 @@ vec3_t mvn(std::default_random_engine &engine,
   std::normal_distribution<double> normal_x(mu(0), stdev(0));
   std::normal_distribution<double> normal_y(mu(1), stdev(1));
   std::normal_distribution<double> normal_z(mu(2), stdev(2));
-  return vec3_t {normal_x(engine), normal_y(engine), normal_z(engine)};
+  return vec3_t{normal_x(engine), normal_y(engine), normal_z(engine)};
 }
 
 double gauss_normal() {
@@ -901,8 +901,8 @@ double gauss_normal() {
 
   if (phase == 0) {
     do {
-      double U1 = (double)rand() / RAND_MAX;
-      double U2 = (double)rand() / RAND_MAX;
+      double U1 = (double) rand() / RAND_MAX;
+      double U2 = (double) rand() / RAND_MAX;
 
       V1 = 2 * U1 - 1;
       V2 = 2 * U2 - 1;
@@ -1902,12 +1902,9 @@ int parse(const config_t &config,
 ctraj_t::ctraj_t(const timestamps_t &timestamps,
                  const vec3s_t &positions,
                  const quats_t &orientations)
-    : timestamps{timestamps},
-      positions{positions},
-      orientations{orientations},
+    : timestamps{timestamps}, positions{positions}, orientations{orientations},
       ts_s_start{ts2sec(timestamps.front())},
-      ts_s_end{ts2sec(timestamps.back())},
-      ts_s_gap{ts_s_end - ts_s_start} {
+      ts_s_end{ts2sec(timestamps.back())}, ts_s_gap{ts_s_end - ts_s_start} {
   assert(timestamps.size() == positions.size());
   assert(timestamps.size() == orientations.size());
   assert(timestamps.size() > 4);
@@ -2036,9 +2033,9 @@ vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts) {
   // Calculate angular velocity
   const mat3_t axis_skew = skew(rvec.normalized());
   vec3_t w =
-    (I(3) + axis_skew * (1.0 - cos(rvec_norm)) / rvec_norm
-    + axis_skew * axis_skew * (rvec_norm - sin(rvec_norm)) / rvec_norm)
-    * rvec_deriv;
+      (I(3) + axis_skew * (1.0 - cos(rvec_norm)) / rvec_norm +
+       axis_skew * axis_skew * (rvec_norm - sin(rvec_norm)) / rvec_norm) *
+      rvec_deriv;
 
   return w;
 }
@@ -2075,15 +2072,14 @@ void sim_imu_reset(sim_imu_t &imu) {
   imu.ts_prev = 0;
 }
 
-void sim_imu_measurement(
-    sim_imu_t &imu,
-    std::default_random_engine &rndeng,
-    const timestamp_t &ts,
-    const mat4_t &T_WS_W,
-    const vec3_t &w_WS_W,
-    const vec3_t &a_WS_W,
-    vec3_t &a_WS_S,
-    vec3_t &w_WS_S) {
+void sim_imu_measurement(sim_imu_t &imu,
+                         std::default_random_engine &rndeng,
+                         const timestamp_t &ts,
+                         const mat4_t &T_WS_W,
+                         const vec3_t &w_WS_W,
+                         const vec3_t &a_WS_W,
+                         vec3_t &a_WS_S,
+                         vec3_t &w_WS_S) {
   // Delta time according to sample rate
   double dt = 1.0 / imu.rate;
 
@@ -2105,20 +2101,20 @@ void sim_imu_measurement(
 
   } else {
     // Propagate biases (slow moving signal)
-    const vec3_t w_a = mvn(rndeng);  // Accel white noise
+    const vec3_t w_a = mvn(rndeng); // Accel white noise
     imu.b_a += -imu.b_a / imu.tau_a * dt + w_a * imu.sigma_aw_c * sqrt(dt);
-    const vec3_t w_g = mvn(rndeng);  // Gyro white noise
+    const vec3_t w_g = mvn(rndeng); // Gyro white noise
     imu.b_g += -imu.b_g / imu.tau_g * dt + w_g * imu.sigma_gw_c * sqrt(dt);
   }
 
   // Compute gyro measurement
   const mat3_t C_SW = tf_rot(T_WS_W).transpose();
-  const vec3_t w_g = mvn(rndeng);  // Gyro white noise
+  const vec3_t w_g = mvn(rndeng); // Gyro white noise
   w_WS_S = C_SW * w_WS_W + imu.b_g + w_g * imu.sigma_g_c * sqrt(dt);
 
   // Compute accel measurement
   const vec3_t g{0.0, 0.0, -imu.g}; // Gravity vector
-  const vec3_t w_a = mvn(rndeng); // Accel white noise
+  const vec3_t w_a = mvn(rndeng);   // Accel white noise
   a_WS_S = C_SW * (a_WS_W - g) + imu.b_a + w_a * imu.sigma_a_c * sqrt(dt);
   // TODO: check global gravity direction!
 

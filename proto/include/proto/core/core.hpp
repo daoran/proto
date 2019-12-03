@@ -79,7 +79,7 @@
   }
 #endif
 
-#endif  // ENABLE_MACROS ------------------------------------------------------
+#endif // ENABLE_MACROS ------------------------------------------------------
 
 namespace proto {
 
@@ -145,10 +145,14 @@ typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
 typedef Eigen::Quaternionf quatf_t;
 typedef std::vector<quatf_t, Eigen::aligned_allocator<quat_t>> quatfs_t;
 
-template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+template <int ROWS,
+          int COLS,
+          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
 using mat_t = Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>;
 
-template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+template <int ROWS,
+          int COLS,
+          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
 using map_mat_t = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
 
 template <int ROWS>
@@ -336,9 +340,7 @@ double binomial(const double n, const double k);
  * Return evenly spaced numbers over a specified interval.
  */
 template <typename T>
-std::vector<T> linspace(const T start,
-                        const T end,
-                        const int num) {
+std::vector<T> linspace(const T start, const T end, const int num) {
   std::vector<T> linspaced;
 
   if (num == 0) {
@@ -440,9 +442,7 @@ vec2_t circle(const double r, const double theta);
  * Create the sphere point with sphere radius `rho` at longitude `theta`
  * [radians] and latitude `phi` [radians].
  */
-vec3_t sphere(const double rho,
-              const double theta,
-              const double phi);
+vec3_t sphere(const double rho, const double theta, const double phi);
 
 /**
  * Create look at matrix.
@@ -1042,7 +1042,7 @@ mat3_t vecs2rot(const vec3_t &a_m, const vec3_t &g);
 /**
  * Convert rotation vector `rvec` to rotation matrix.
  */
-mat3_t rvec2rot(const vec3_t &rvec, const double eps=1e-5);
+mat3_t rvec2rot(const vec3_t &rvec, const double eps = 1e-5);
 
 /**
  * Convert quaternion to euler angles.
@@ -1256,8 +1256,8 @@ void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add) {
 /**
  * Get raw pointer of a value in a `std::map`.
  */
-template< typename K, typename V>
-const V* lookup(const std::map<K, V> & map, K key) {
+template <typename K, typename V>
+const V *lookup(const std::map<K, V> &map, K key) {
   typename std::map<K, V>::const_iterator iter = map.find(key);
   if (iter != map.end()) {
     return &iter->second;
@@ -1269,16 +1269,16 @@ const V* lookup(const std::map<K, V> & map, K key) {
 /**
  * Get raw pointer of a value in a `std::map`.
  */
-template< typename K, typename V>
-V* lookup(std::map<K, V> &map, K key) {
-  return const_cast<V*>(lookup(const_cast<const std::map<K, V> &>(map), key));
+template <typename K, typename V>
+V *lookup(std::map<K, V> &map, K key) {
+  return const_cast<V *>(lookup(const_cast<const std::map<K, V> &>(map), key));
 }
 
 /**
  * Get raw pointer of a value in a `std::map`.
  */
-template< typename K, typename V>
-const V* lookup(const std::unordered_map<K, V> & map, K key) {
+template <typename K, typename V>
+const V *lookup(const std::unordered_map<K, V> &map, K key) {
   typename std::unordered_map<K, V>::const_iterator iter = map.find(key);
   if (iter != map.end()) {
     return &iter->second;
@@ -1290,10 +1290,10 @@ const V* lookup(const std::unordered_map<K, V> & map, K key) {
 /**
  * Get raw pointer of a value in a `std::map`.
  */
-template< typename K, typename V>
-V* lookup(std::unordered_map<K, V> &map, K key) {
-  return const_cast<V*>(
-    lookup(const_cast<const std::unordered_map<K, V> &>(map), key));
+template <typename K, typename V>
+V *lookup(std::unordered_map<K, V> &map, K key) {
+  return const_cast<V *>(
+      lookup(const_cast<const std::unordered_map<K, V> &>(map), key));
 }
 
 /**
@@ -1437,7 +1437,7 @@ template <typename T>
 int parse(const config_t &config,
           const std::string &key,
           T &out,
-          const bool optional=false);
+          const bool optional = false);
 
 template <typename T>
 int parse(const config_t &config,
@@ -1589,7 +1589,7 @@ int parse(const config_t &config,
 
   // Parse
   out = node.as<T>();
-	return 0;
+  return 0;
 }
 
 template <typename T>
@@ -1609,7 +1609,7 @@ int parse(const config_t &config,
     out.push_back(n.as<T>());
   }
 
-	return 0;
+  return 0;
 }
 
 /******************************************************************************
@@ -1620,13 +1620,13 @@ typedef Eigen::Spline<double, 1> Spline1D;
 typedef Eigen::Spline<double, 2> Spline2D;
 typedef Eigen::Spline<double, 3> Spline3D;
 
-#define SPLINE1D(X, Y, DEG) \
+#define SPLINE1D(X, Y, DEG)                                                    \
   Eigen::SplineFitting<Spline1D>::Interpolate(X, DEG, Y)
 
-#define SPLINE2D(X, Y, DEG) \
+#define SPLINE2D(X, Y, DEG)                                                    \
   Eigen::SplineFitting<Spline2D>::Interpolate(X, DEG, Y)
 
-#define SPLINE3D(X, Y, DEG) \
+#define SPLINE3D(X, Y, DEG)                                                    \
   Eigen::SplineFitting<Spline3D>::Interpolate(X, DEG, Y)
 
 /**
@@ -1689,14 +1689,14 @@ int ctraj_save(const ctraj_t &ctraj, const std::string &save_path);
  */
 struct sim_imu_t {
   // IMU parameters
-  double rate = 0.0;        // IMU rate [Hz]
-  double tau_a = 0.0;       // Reversion time constant for accel [s]
-  double tau_g = 0.0;       // Reversion time constant for gyro [s]
-  double sigma_g_c = 0.0;   // Gyro noise density [rad/s/sqrt(Hz)]
-  double sigma_a_c = 0.0;   // Accel noise density [m/s^s/sqrt(Hz)]
-  double sigma_gw_c = 0.0;  // Gyro drift noise density [rad/s^s/sqrt(Hz)]
-  double sigma_aw_c = 0.0;  // Accel drift noise density [m/s^2/sqrt(Hz)]
-  double g = 0.0;           // Gravity vector [ms-2]
+  double rate = 0.0;       // IMU rate [Hz]
+  double tau_a = 0.0;      // Reversion time constant for accel [s]
+  double tau_g = 0.0;      // Reversion time constant for gyro [s]
+  double sigma_g_c = 0.0;  // Gyro noise density [rad/s/sqrt(Hz)]
+  double sigma_a_c = 0.0;  // Accel noise density [m/s^s/sqrt(Hz)]
+  double sigma_gw_c = 0.0; // Gyro drift noise density [rad/s^s/sqrt(Hz)]
+  double sigma_aw_c = 0.0; // Accel drift noise density [m/s^2/sqrt(Hz)]
+  double g = 0.0;          // Gravity vector [ms-2]
 
   // IMU flags and biases
   bool started = false;
@@ -1713,15 +1713,14 @@ void sim_imu_reset(sim_imu_t &imu);
 /**
  * Simulate IMU measurement
  */
-void sim_imu_measurement(
-    sim_imu_t &imu,
-    std::default_random_engine &rndeng,
-    const timestamp_t &ts,
-    const mat4_t &T_WS_W,
-    const vec3_t &w_WS_W,
-    const vec3_t &a_WS_W,
-    vec3_t &a_WS_S,
-    vec3_t &w_WS_S);
+void sim_imu_measurement(sim_imu_t &imu,
+                         std::default_random_engine &rndeng,
+                         const timestamp_t &ts,
+                         const mat4_t &T_WS_W,
+                         const vec3_t &w_WS_W,
+                         const vec3_t &a_WS_W,
+                         vec3_t &a_WS_S,
+                         vec3_t &w_WS_S);
 
 /******************************************************************************
  * Measurements
@@ -1740,8 +1739,8 @@ struct imu_data_t : meas_t {
   vec3_t accel;
 
   imu_data_t() {}
-  imu_data_t(const vec3_t &gyro_, const vec3_t &accel_) :
-    gyro{gyro_}, accel{accel_} {}
+  imu_data_t(const vec3_t &gyro_, const vec3_t &accel_)
+      : gyro{gyro_}, accel{accel_} {}
   virtual ~imu_data_t() {}
 };
 
@@ -1757,9 +1756,9 @@ struct image_t : meas_t {
     data = new float[width * height];
   }
   image_t(const timestamp_t ts_,
-                  const int width_,
-                  const int height_,
-                  float *data_)
+          const int width_,
+          const int height_,
+          float *data_)
       : ts{ts_}, width{width_}, height{height_}, data{data_} {}
   virtual ~image_t() {
     if (data) {

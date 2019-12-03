@@ -100,21 +100,13 @@ void msg_convert(const std_msgs::Header &msg,
   frame_id = msg.frame_id;
 }
 
-uint8_t msg_convert(const std_msgs::UInt8 &msg) {
-  return msg.data;
-}
+uint8_t msg_convert(const std_msgs::UInt8 &msg) { return msg.data; }
 
-bool msg_convert(const std_msgs::Bool &msg) {
-  return msg.data;
-}
+bool msg_convert(const std_msgs::Bool &msg) { return msg.data; }
 
-float msg_convert(const std_msgs::Float64 &msg) {
-  return msg.data;
-}
+float msg_convert(const std_msgs::Float64 &msg) { return msg.data; }
 
-std::string msg_convert(const std_msgs::String &msg) {
-  return msg.data;
-}
+std::string msg_convert(const std_msgs::String &msg) { return msg.data; }
 
 proto::vec3_t msg_convert(const geometry_msgs::Vector3 &msg) {
   return proto::vec3_t{msg.x, msg.y, msg.z};
@@ -129,8 +121,8 @@ proto::quat_t msg_convert(const geometry_msgs::Quaternion &msg) {
 }
 
 cv::Mat msg_convert(const sensor_msgs::ImageConstPtr &msg) {
-	cv_bridge::CvImagePtr image_ptr = cv_bridge::toCvCopy(msg);
-	return image_ptr->image;
+  cv_bridge::CvImagePtr image_ptr = cv_bridge::toCvCopy(msg);
+  return image_ptr->image;
 }
 
 } // namespace proto

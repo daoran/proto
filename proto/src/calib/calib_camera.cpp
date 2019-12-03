@@ -256,13 +256,11 @@ int calib_camera_solve(const std::string &config_file) {
   std::cout << "Optimization results:" << std::endl;
   std::cout << pinhole << std::endl;
   std::cout << radtan << std::endl;
-  calib_camera_stats<pinhole_radtan4_residual_t>(
-    grids,
-    *pinhole.data,
-    *radtan.data,
-    T_CF,
-    ""
-  );
+  calib_camera_stats<pinhole_radtan4_residual_t>(grids,
+                                                 *pinhole.data,
+                                                 *radtan.data,
+                                                 T_CF,
+                                                 "");
 
   // Save results
   printf("\x1B[92mSaving optimization results to [%s]\033[0m\n",
@@ -271,7 +269,6 @@ int calib_camera_solve(const std::string &config_file) {
     LOG_ERROR("Failed to save results to [%s]!", results_fpath.c_str());
     return -1;
   }
-
 
   return 0;
 }

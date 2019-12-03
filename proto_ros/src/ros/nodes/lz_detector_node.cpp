@@ -81,9 +81,7 @@ struct lz_detector_node_t : ros_node_t {
     ros_pubs_[DETECTED_TOPIC].publish(msg);
   }
 
-  int loop_callback() {
-    return 0;
-  }
+  int loop_callback() { return 0; }
 };
 
 } // namespace proto

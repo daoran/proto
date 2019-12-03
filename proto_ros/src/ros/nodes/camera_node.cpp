@@ -9,7 +9,7 @@ namespace proto {
 
 struct camera_node_t : ros_node_t {
   cv::VideoCapture capture_;
-	int camera_index_ = 0;
+  int camera_index_ = 0;
   std::string topic_;
 
   camera_node_t() : ros_node_t() {}

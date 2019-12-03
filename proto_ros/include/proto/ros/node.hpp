@@ -19,10 +19,10 @@ namespace proto {
     exit(0);                                                                   \
   }
 
-#define ROS_OPTIONAL_PARAM(NH, X, Y, DEFAULT)													         \
+#define ROS_OPTIONAL_PARAM(NH, X, Y, DEFAULT)                                  \
   if (NH.getParam(X, Y) == false) {                                            \
     ROS_INFO("ROS param [%s] not found, setting defaults!", (X).c_str());      \
-		Y = DEFAULT;																											         \
+    Y = DEFAULT;                                                               \
   }
 
 #define RUN_ROS_NODE(NODE_CLASS)                                               \
@@ -197,4 +197,4 @@ struct ros_node_t {
 };
 
 } // namespace proto
-#endif  // PROTO_ROS_NODE_HPP
+#endif // PROTO_ROS_NODE_HPP

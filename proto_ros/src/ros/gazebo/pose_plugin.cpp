@@ -58,17 +58,17 @@ struct pose_plugin_t : ModelPlugin {
     }
 
     // Register pose subscriber
-		{
-			std::string topic_name = "pose/set";
-			int queue_size = 1;
-			if (sdf_->HasElement("pose_set_topic")) {
-				topic_name = sdf_->Get<std::string>("pose_set_topic");
-			}
-			pose_sub_ = ros_nh_->subscribe(topic_name,
-																		queue_size,
-																		&pose_plugin_t::pose_callback,
-																		this);
-		}
+    {
+      std::string topic_name = "pose/set";
+      int queue_size = 1;
+      if (sdf_->HasElement("pose_set_topic")) {
+        topic_name = sdf_->Get<std::string>("pose_set_topic");
+      }
+      pose_sub_ = ros_nh_->subscribe(topic_name,
+                                     queue_size,
+                                     &pose_plugin_t::pose_callback,
+                                     this);
+    }
   }
 
   void publish_pose() {

@@ -165,9 +165,7 @@ vec2_t project(const pinhole_t &pinhole, const vec3_t &p);
  * @param[out] J_h Measurement Jacobian.
  * @returns Point in pixel coordinates
  */
-vec2_t project(const pinhole_t &model,
-               const vec3_t &p,
-               mat_t<2, 3> &J_h);
+vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h);
 
 } //  namespace proto
 #endif // PROTO_VISION_CAMERA_PINHOLE_HPP

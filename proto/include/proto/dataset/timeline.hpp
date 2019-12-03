@@ -117,7 +117,5 @@ void timeline_add_event(timeline_t<T> &timeline,
   timeline.timestamps.insert(ts);
 }
 
-
-
 } //  namespace proto
 #endif // PROTO_DATASET_TIMELINE_HPP

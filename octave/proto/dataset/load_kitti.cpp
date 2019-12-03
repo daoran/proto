@@ -13,8 +13,10 @@ inline void nargchk(bool cond) {
 /**
  * Parse args
  */
-void parse_args(int nlhs, mxArray *plhs[],
-                int nrhs, const mxArray *prhs[],
+void parse_args(int nlhs,
+                mxArray *plhs[],
+                int nrhs,
+                const mxArray *prhs[],
                 std::string &data_path,
                 std::string &date,
                 std::string &seq) {
@@ -103,7 +105,7 @@ mxArray *convert(const std::array<proto::vec2_t, 4> &vec2_array) {
 
   for (int i = 0; i < nb_elements; i++) {
     mxArray *tmp = mxCreateNumericMatrix(2, 1, mxDOUBLE_CLASS, mxREAL);
-    double *data = (double*) mxGetData(tmp);
+    double *data = (double *) mxGetData(tmp);
     data[0] = vec2_array[i](0);
     data[1] = vec2_array[i](1);
     mxSetCell(out, i, tmp);
@@ -122,7 +124,7 @@ mxArray *convert(const std::array<proto::vec3_t, 4> &vec3_array) {
 
   for (int i = 0; i < nb_elements; i++) {
     mxArray *tmp = mxCreateNumericMatrix(3, 1, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(tmp);
+    double *data = (double *) mxGetData(tmp);
     data[0] = vec3_array[i](0);
     data[1] = vec3_array[i](1);
     data[2] = vec3_array[i](2);
@@ -142,8 +144,8 @@ mxArray *convert(const std::array<proto::vecx_t, 4> &vecx_array) {
 
   for (int i = 0; i < nb_elements; i++) {
     const proto::vecx_t &vec = vecx_array[i];
-    mxArray *tmp= mxCreateNumericMatrix(vec.size(), 1, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(tmp);
+    mxArray *tmp = mxCreateNumericMatrix(vec.size(), 1, mxDOUBLE_CLASS, mxREAL);
+    double *data = (double *) mxGetData(tmp);
     for (int j = 0; j < vec.size(); j++) {
       data[j] = vec(j);
     }
@@ -163,8 +165,8 @@ mxArray *convert(const std::array<proto::mat3_t, 4> &mat3_array) {
   mxArray *out = mxCreateCellArray(1, dims);
 
   for (int i = 0; i < nb_elements; i++) {
-    mxArray *tmp= mxCreateNumericMatrix(3, 3, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(tmp);
+    mxArray *tmp = mxCreateNumericMatrix(3, 3, mxDOUBLE_CLASS, mxREAL);
+    double *data = (double *) mxGetData(tmp);
     data[0] = mat3_array[i](0, 0);
     data[1] = mat3_array[i](0, 1);
     data[2] = mat3_array[i](0, 2);
@@ -193,7 +195,7 @@ mxArray *convert(const std::array<proto::mat34_t, 4> &mat34_array) {
 
   for (int i = 0; i < nb_elements; i++) {
     mxArray *tmp = mxCreateNumericMatrix(3, 4, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(tmp);
+    double *data = (double *) mxGetData(tmp);
     data[0] = mat34_array[i](0, 0);
     data[1] = mat34_array[i](0, 1);
     data[2] = mat34_array[i](0, 2);
@@ -221,8 +223,9 @@ mxArray *convert(const std::array<proto::mat34_t, 4> &mat34_array) {
 mxArray *convert(const proto::matx_t &m) {
   const long nb_rows = m.rows();
   const long nb_cols = m.cols();
-  mxArray *out = mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
-  double* data = (double*) mxGetData(out);
+  mxArray *out =
+      mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
+  double *data = (double *) mxGetData(out);
 
   long el_idx = 0;
   for (long i = 0; i < nb_rows; i++) {
@@ -241,8 +244,9 @@ mxArray *convert(const proto::matx_t &m) {
 mxArray *convert(const proto::vec3s_t &m) {
   const long nb_rows = 3;
   const long nb_cols = m.size();
-  mxArray *out = mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
-  double* data = (double*) mxGetData(out);
+  mxArray *out =
+      mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
+  double *data = (double *) mxGetData(out);
 
   long el_idx = 0;
   for (size_t k = 0; k < m.size(); k++) {
@@ -264,7 +268,7 @@ mxArray *convert(const proto::vec3s_t &m) {
  */
 mxArray *convert(const int &val) {
   mxArray *out = mxCreateNumericMatrix(1, 1, mxINT64_CLASS, mxREAL);
-  int* data = (int*) mxGetData(out);
+  int *data = (int *) mxGetData(out);
   data[0] = val;
   return out;
 }
@@ -274,7 +278,7 @@ mxArray *convert(const int &val) {
  */
 mxArray *convert(const double &val) {
   mxArray *out = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
-  double* data = (double*) mxGetData(out);
+  double *data = (double *) mxGetData(out);
   data[0] = val;
   return out;
 }
@@ -282,27 +286,23 @@ mxArray *convert(const double &val) {
 /**
  * Convert string
  */
-mxArray *convert(const std::string &s) {
-  return mxCreateString(s.c_str());
-}
+mxArray *convert(const std::string &s) { return mxCreateString(s.c_str()); }
 
 /**
  * Convert cam2cam_t to octave-struct
  */
 mxArray *convert_cam2cam_data(const proto::calib_cam2cam_t &cam2cam) {
-  const char *keys[] = {
-    "file_path",
-    "calib_time",
-    "corner_dist",
-    "S",
-    "K",
-    "D",
-    "R",
-    "T",
-    "S_rect",
-    "R_rect",
-    "P_rect"
-  };
+  const char *keys[] = {"file_path",
+                        "calib_time",
+                        "corner_dist",
+                        "S",
+                        "K",
+                        "D",
+                        "R",
+                        "T",
+                        "S_rect",
+                        "R_rect",
+                        "P_rect"};
   mxArray *data = mxCreateStructMatrix(1, 1, 11, keys);
   mxSetField(data, 0, keys[0], convert(cam2cam.file_path.c_str()));
   mxSetField(data, 0, keys[1], convert(cam2cam.calib_time.c_str()));
@@ -323,13 +323,7 @@ mxArray *convert_cam2cam_data(const proto::calib_cam2cam_t &cam2cam) {
  * Convert imu2velo_t to octave-struct
  */
 mxArray *convert_imu2velo_data(const proto::calib_imu2velo_t &imu2velo) {
-  const char *keys[] = {
-    "file_path",
-    "calib_time",
-    "R",
-    "t",
-    "T_velo_imu"
-  };
+  const char *keys[] = {"file_path", "calib_time", "R", "t", "T_velo_imu"};
   mxArray *data = mxCreateStructMatrix(1, 1, 5, keys);
   mxSetField(data, 0, keys[0], convert(imu2velo.file_path.c_str()));
   mxSetField(data, 0, keys[1], convert(imu2velo.calib_time.c_str()));
@@ -344,15 +338,8 @@ mxArray *convert_imu2velo_data(const proto::calib_imu2velo_t &imu2velo) {
  * Convert velo2cam_t to octave-struct
  */
 mxArray *convert_velo2cam_data(const proto::calib_velo2cam_t &velo2cam) {
-  const char *keys[] = {
-    "file_path",
-    "calib_time",
-    "R",
-    "t",
-    "df",
-    "dc",
-    "T_cam_velo"
-  };
+  const char *keys[] =
+      {"file_path", "calib_time", "R", "t", "df", "dc", "T_cam_velo"};
   mxArray *data = mxCreateStructMatrix(1, 1, 7, keys);
   mxSetField(data, 0, keys[0], convert(velo2cam.file_path.c_str()));
   mxSetField(data, 0, keys[1], convert(velo2cam.calib_time.c_str()));
@@ -369,22 +356,20 @@ mxArray *convert_velo2cam_data(const proto::calib_velo2cam_t &velo2cam) {
  * Convert oxts_t to octave-struct
  */
 mxArray *convert_oxts_data(const proto::oxts_t &oxts) {
-  const char *keys[] = {
-    "oxts_dir",
-    "timestamps",
-    "time",
-    "gps",
-    "rpy",
-    "p_G",
-    "v_G",
-    "v_B",
-    "a_G",
-    "a_B",
-    "w_G",
-    "w_B",
-    "pos_accuracy",
-    "vel_accuracy"
-  };
+  const char *keys[] = {"oxts_dir",
+                        "timestamps",
+                        "time",
+                        "gps",
+                        "rpy",
+                        "p_G",
+                        "v_G",
+                        "v_B",
+                        "a_G",
+                        "a_B",
+                        "w_G",
+                        "w_B",
+                        "pos_accuracy",
+                        "vel_accuracy"};
   mxArray *data = mxCreateStructMatrix(1, 1, 14, keys);
   mxSetField(data, 0, keys[0], convert(oxts.oxts_dir.c_str()));
   mxSetField(data, 0, keys[1], convert(oxts.timestamps));
@@ -408,21 +393,19 @@ mxArray *convert_oxts_data(const proto::oxts_t &oxts) {
  * Convert kitti_raw_t to octave-struct
  */
 mxArray *convert_kitti_raw_data(const proto::kitti_raw_t &kitti_raw) {
-  const char *keys[] = {
-    "raw_dir",
-    "date",
-    "seq",
-    "date_dir",
-    "drive_dir",
-    "cam2cam",
-    "imu2velo",
-    "velo2cam",
-    "oxts",
-    "cam0",
-    "cam1",
-    "cam2",
-    "cam3"
-  };
+  const char *keys[] = {"raw_dir",
+                        "date",
+                        "seq",
+                        "date_dir",
+                        "drive_dir",
+                        "cam2cam",
+                        "imu2velo",
+                        "velo2cam",
+                        "oxts",
+                        "cam0",
+                        "cam1",
+                        "cam2",
+                        "cam3"};
 
   mxArray *data = mxCreateStructMatrix(1, 1, 13, keys);
   mxSetField(data, 0, keys[0], convert(kitti_raw.raw_dir.c_str()));

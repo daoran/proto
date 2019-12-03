@@ -6,29 +6,29 @@ namespace proto {
  * Bundle Adjustment Factor
  ****************************************************************************/
 
-bool ba_factor_t::Evaluate(double const* const *parameters,
+bool ba_factor_t::Evaluate(double const *const *parameters,
                            double *residuals,
                            double **jacobians) const {
   // Pose of sensor in world frame
   // pose = (qw, qx, qy, qz), (x, y, z)
-	const double *cam_pose = parameters[0];
+  const double *cam_pose = parameters[0];
   const quat_t q_WC(cam_pose[0], cam_pose[1], cam_pose[2], cam_pose[3]);
   const vec3_t r_WC(cam_pose[4], cam_pose[5], cam_pose[6]);
-	const mat4_t T_WC = tf(q_WC, r_WC);
+  const mat4_t T_WC = tf(q_WC, r_WC);
 
-	// Landmark
-	const double *point = parameters[1];
-	const vec3_t p_W{point[0], point[1], point[2]};
+  // Landmark
+  const double *point = parameters[1];
+  const vec3_t p_W{point[0], point[1], point[2]};
 
   // Transform point from world to camera frame
   const mat4_t T_CW = T_WC.inverse();
   const mat3_t C_CW = tf_rot(T_CW);
   const vec4_t hp_C = T_CW * p_W.homogeneous();
-  const vec3_t p_C{hp_C(0)/hp_C(3), hp_C(1)/hp_C(3), hp_C(2)/hp_C(3)};
+  const vec3_t p_C{hp_C(0) / hp_C(3), hp_C(1) / hp_C(3), hp_C(2) / hp_C(3)};
 
   // Check validity of the point, simple depth test.
   if (fabs(p_C(2)) < 0.05) { // 5cm
-   return -1;
+    return -1;
   }
 
   // Calculate residual
@@ -51,11 +51,11 @@ bool ba_factor_t::Evaluate(double const* const *parameters,
 
   // Camera pose jacobian
   if (jacobians[1]) {
-		const mat_t<3, 3> dp_C__dp_W = C_CW;
-	  const mat_t<3, 3> dp_W__dr_WC = I(3);
-		const mat_t<3, 3> dp_W__dtheta = -skew(C_CW.transpose() * hp_C.head(3));
-		const mat_t<2, 3> dh_dr_WC = J_project * dp_C__dp_W * dp_W__dr_WC;
-		const mat_t<2, 3> dh_dtheta = J_project * dp_C__dp_W * dp_W__dtheta;
+    const mat_t<3, 3> dp_C__dp_W = C_CW;
+    const mat_t<3, 3> dp_W__dr_WC = I(3);
+    const mat_t<3, 3> dp_W__dtheta = -skew(C_CW.transpose() * hp_C.head(3));
+    const mat_t<2, 3> dh_dr_WC = J_project * dp_C__dp_W * dp_W__dr_WC;
+    const mat_t<2, 3> dh_dtheta = J_project * dp_C__dp_W * dp_W__dtheta;
 
     map_mat_t<2, 6, row_major_t> J(jacobians[1]);
     J.block(0, 0, 2, 3) = -1 * dh_dtheta;
@@ -115,11 +115,14 @@ bool ba_factor_t::Evaluate(double const* const *parameters,
 //
 //   // // Jacobian w.r.t. fiducial pose T_WF
 //   // if (jacobians[1] != nullptr) {
-// 	// 	Eigen::Matrix<double, 3, 3> dp_C__dp_W = C_SC.transpose() * C_WS.transpose();
+// 	// 	Eigen::Matrix<double, 3, 3> dp_C__dp_W = C_SC.transpose() *
+// C_WS.transpose();
 // 	// 	Eigen::Matrix<double, 3, 3> dp_W__dr_WF = I(3);
 // 	// 	Eigen::Matrix<double, 3, 3> dp_W__dtheta = -skew(C_WF * p_F_);
-// 	// 	Eigen::Matrix<double, 2, 3> dh__dr_WF = -1 * Jh_weighted * dp_C__dp_W * dp_W__dr_WF;
-// 	// 	Eigen::Matrix<double, 2, 3> dh__dtheta = -1 * Jh_weighted * dp_C__dp_W * dp_W__dtheta;
+// 	// 	Eigen::Matrix<double, 2, 3> dh__dr_WF = -1 * Jh_weighted *
+// dp_C__dp_W * dp_W__dr_WF;
+// 	// 	Eigen::Matrix<double, 2, 3> dh__dtheta = -1 * Jh_weighted *
+// dp_C__dp_W * dp_W__dtheta;
 //   //
 // 	// 	map_mat_t<2, 6, row_major_t> J1(jacobians[1]);
 // 	// 	J1.block(0, 0, 2, 3) = dh__dr_WF;
@@ -135,7 +138,8 @@ bool ba_factor_t::Evaluate(double const* const *parameters,
 // 	// 	mat_t<3, 3> dp_S__dr_SC = I(3);
 // 	// 	mat_t<3, 3> dp_S__dtheta = -skew(C_SC * hp_C.head(3));
 // 	// 	mat_t<2, 3> dh__dr_SC = Jh_weighted * dp_C__dp_S * dp_S__dr_SC;
-// 	// 	mat_t<2, 3> dh__dtheta = Jh_weighted * dp_C__dp_S * dp_S__dtheta;
+// 	// 	mat_t<2, 3> dh__dtheta = Jh_weighted * dp_C__dp_S *
+// dp_S__dtheta;
 //   //
 // 	// 	map_mat_t<2, 6> J2(jacobians[2]);
 // 	// 	J2.block(0, 0, 2, 3) = dh__dr_SC;
@@ -159,12 +163,12 @@ bool ba_factor_t::Evaluate(double const* const *parameters,
  ****************************************************************************/
 
 void graph_free(graph_t &graph) {
-  for (const auto &factor: graph.factors) {
+  for (const auto &factor : graph.factors) {
     delete factor;
   }
   graph.factors.clear();
 
-  for (const auto &kv: graph.variables) {
+  for (const auto &kv : graph.variables) {
     delete kv.second;
   }
   graph.variables.clear();
@@ -199,7 +203,8 @@ size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
   return id;
 }
 
-size_t graph_add_factor(graph_t &graph, factor_t *factor,
+size_t graph_add_factor(graph_t &graph,
+                        factor_t *factor,
                         const std::vector<size_t> param_block_ids) {
   const size_t factor_id = graph_next_factor_id(graph);
   graph.factors.push_back(factor);

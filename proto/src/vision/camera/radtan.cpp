@@ -106,16 +106,16 @@ vec2_t distort(const radtan4_t &radtan,
                const vec2_t &p,
                mat2_t &J_point,
                mat_t<2, 4> &J_params) {
-	const vec2_t p_distorted = distort(radtan, p, J_point);
+  const vec2_t p_distorted = distort(radtan, p, J_point);
 
-	const double x = p(0);
-	const double y = p(1);
+  const double x = p(0);
+  const double y = p(1);
 
-	const double xy = x * y;
-	const double x2 = x * x;
-	const double y2 = y * y;
-	const double r2 = x2 + y2;
-	const double r4 = r2 * r2;
+  const double xy = x * y;
+  const double x2 = x * x;
+  const double y2 = y * y;
+  const double r2 = x2 + y2;
+  const double r4 = r2 * r2;
 
   J_params(0, 0) = x * r2;
   J_params(0, 1) = x * r4;
@@ -127,7 +127,7 @@ vec2_t distort(const radtan4_t &radtan,
   J_params(1, 2) = x2 + 3 * y2;
   J_params(1, 3) = 2 * xy;
 
-	return p_distorted;
+  return p_distorted;
 }
 
 matx_t distort(const radtan4_t &radtan, const matx_t &points) {

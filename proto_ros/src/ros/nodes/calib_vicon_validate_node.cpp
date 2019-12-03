@@ -133,7 +133,8 @@ struct node_t : ros_node_t {
   //   T_WM_ = tf(q, r);
   // }
 
-  void body_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg) {
+  void
+  body_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg) {
     const quat_t q = msg_convert(msg->pose.pose.orientation);
     const vec3_t r = msg_convert(msg->pose.pose.position);
     T_WM_ = tf(q, r);

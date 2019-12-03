@@ -13,7 +13,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     const long nb_rows = value.rows();
     const long nb_cols = value.cols();
     plhs[0] = mxCreateNumericMatrix(nb_rows, nb_cols, mxDOUBLE_CLASS, mxREAL);
-    double* data = (double*) mxGetData(plhs[0]);
+    double *data = (double *) mxGetData(plhs[0]);
 
     int el_idx = 0;
     for (int i = 0; i < nb_rows; i++) {
@@ -22,7 +22,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         el_idx++;
       }
     }
-  } catch (const YAML::Exception& e) {
+  } catch (const YAML::Exception &e) {
     mexErrMsgIdAndTxt("proto:error", e.msg.c_str());
   }
 

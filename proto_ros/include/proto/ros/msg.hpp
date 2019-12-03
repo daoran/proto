@@ -24,7 +24,6 @@
 
 #include <cv_bridge/cv_bridge.h>
 
-
 namespace proto {
 
 std_msgs::UInt8 msg_build(const uint8_t i);

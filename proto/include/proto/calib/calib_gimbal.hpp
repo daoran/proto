@@ -232,7 +232,6 @@ std::ostream &operator<<(std::ostream &os, const GimbalCalibResidual &residual);
  */
 std::ostream &operator<<(std::ostream &os, const GimbalCalibResidual *residual);
 
-
 /// CALIB GIMBAL IMPLEMENTATION
 template <typename T>
 Eigen::Matrix<T, 4, 4> GimbalCalibResidual::dhTransform(const T theta,

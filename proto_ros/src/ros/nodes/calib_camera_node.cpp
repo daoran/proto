@@ -5,8 +5,8 @@
 using namespace proto;
 
 void process_rosbag(const std::string &rosbag_path,
-										const std::string &cam0_topic,
-										const std::string &out_path) {
+                    const std::string &cam0_topic,
+                    const std::string &out_path) {
   // Check output dir
   if (dir_exists(out_path) == false) {
     if (dir_create(out_path) != 0) {
@@ -58,13 +58,13 @@ int main(int argc, char *argv[]) {
   ROS_PARAM(ros_nh, node_name + "/rosbag", rosbag_path);
   ROS_PARAM(ros_nh, node_name + "/cam0_topic", cam0_topic);
 
-	// Parse config file
-	std::string data_path;
+  // Parse config file
+  std::string data_path;
   config_t config{config_file};
   parse(config, "settings.data_path", data_path);
 
-	// Process rosbag
-	process_rosbag(rosbag_path, cam0_topic, data_path);
+  // Process rosbag
+  process_rosbag(rosbag_path, cam0_topic, data_path);
 
   // Calibrate camera intrinsics
   if (calib_camera_solve(config_file) != 0) {

@@ -61,11 +61,10 @@ struct landing_target_plugin_t : ModelPlugin {
       if (sdf_->HasElement("set_position_topic")) {
         topic_name = sdf_->Get<std::string>("set_position_topic");
       }
-      pos_sub_ =
-          ros_nh_->subscribe(topic_name,
-                             1,
-                             &landing_target_plugin_t::position_callback,
-                             this);
+      pos_sub_ = ros_nh_->subscribe(topic_name,
+                                    1,
+                                    &landing_target_plugin_t::position_callback,
+                                    this);
     }
 
     // Register vel subscriber
@@ -74,11 +73,10 @@ struct landing_target_plugin_t : ModelPlugin {
       if (sdf_->HasElement("set_velocity_topic")) {
         topic_name = sdf_->Get<std::string>("set_velocity_topic");
       }
-      vel_sub_ =
-          ros_nh_->subscribe(topic_name,
-                             1,
-                             &landing_target_plugin_t::velocity_callback,
-                             this);
+      vel_sub_ = ros_nh_->subscribe(topic_name,
+                                    1,
+                                    &landing_target_plugin_t::velocity_callback,
+                                    this);
     }
 
     // Register pose publisher

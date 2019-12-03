@@ -43,5 +43,5 @@ void gyro_message_handler(const rosbag::MessageInstance &msg,
                           timestamps_t &gyro_ts,
                           vec3s_t &gyro_data);
 
-}  // namespace proto
-#endif  // PROTO_ROS_BAG_HPP
+} // namespace proto
+#endif // PROTO_ROS_BAG_HPP

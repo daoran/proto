@@ -27,9 +27,9 @@ typedef Eigen::Matrix<double, 3, 4> mat34_t;
 // clang-format on
 #endif
 
-#define ASSERT(X, Y) \
-  if (!(X)) { \
-    mexErrMsgIdAndTxt("proto:error", #Y); \
+#define ASSERT(X, Y)                                                           \
+  if (!(X)) {                                                                  \
+    mexErrMsgIdAndTxt("proto:error", #Y);                                      \
   }
 
 #define UNUSED(expr)                                                           \
@@ -63,8 +63,7 @@ struct config_t {
   config_t() {}
   config_t(const std::string &file_path_) : file_path{file_path_} {
     if (file_exists(file_path) == false) {
-      mexErrMsgIdAndTxt("proto:error",
-                        "File not found: %s", file_path.c_str());
+      mexErrMsgIdAndTxt("proto:error", "File not found: %s", file_path.c_str());
       return;
     }
 
@@ -87,9 +86,12 @@ inline void nargchk(bool cond) {
 /**
  * Parse args
  */
-void parse_args(int nlhs, mxArray *plhs[],
-                int nrhs, const mxArray *prhs[],
-                std::string &yaml_path, std::string &yaml_key) {
+void parse_args(int nlhs,
+                mxArray *plhs[],
+                int nrhs,
+                const mxArray *prhs[],
+                std::string &yaml_path,
+                std::string &yaml_key) {
   UNUSED(plhs);
 
   // Parse args
@@ -142,8 +144,7 @@ int yaml_get_node(const config_t &config,
 }
 
 template <typename T>
-size_t yaml_check_vector(const YAML::Node &node,
-                         const std::string &key) {
+size_t yaml_check_vector(const YAML::Node &node, const std::string &key) {
   assert(node);
 
   // Get expected vector size
@@ -165,12 +166,11 @@ size_t yaml_check_vector(const YAML::Node &node,
 
   // Check number of values in the param
   if (node.size() == 0 && node.size() != vector_size) {
-    mexErrMsgIdAndTxt(
-          "proto:error"
-          "Vector [%s] should have %d values but config has %d!",
-          key.c_str(),
-          static_cast<int>(vector_size),
-          static_cast<int>(node.size()));
+    mexErrMsgIdAndTxt("proto:error"
+                      "Vector [%s] should have %d values but config has %d!",
+                      key.c_str(),
+                      static_cast<int>(vector_size),
+                      static_cast<int>(node.size()));
   }
 
   return vector_size;
@@ -187,11 +187,10 @@ void yaml_check_matrix(const YAML::Node &node,
   const std::string targets[3] = {"rows", "cols", "data"};
   for (int i = 0; i < 3; i++) {
     if (!node[targets[i]]) {
-      mexErrMsgIdAndTxt(
-            "proto:error"
-            "Key [%s] is missing for matrix [%s]!",
-            targets[i].c_str(),
-            key.c_str());
+      mexErrMsgIdAndTxt("proto:error"
+                        "Key [%s] is missing for matrix [%s]!",
+                        targets[i].c_str(),
+                        key.c_str());
     }
   }
   rows = node["rows"].as<int>();
@@ -211,16 +210,15 @@ void yaml_check_matrix(const YAML::Node &node,
     mexErrMsgIdAndTxt("proto:error", "Unsportted matrix type!");
   }
   if (node["data"].size() != nb_elements) {
-    mexErrMsgIdAndTxt(
-          "proto:error"
-          "Matrix [%s] rows and cols do not match number of values!",
-          key.c_str());
+    mexErrMsgIdAndTxt("proto:error"
+                      "Matrix [%s] rows and cols do not match number of "
+                      "values!",
+                      key.c_str());
   }
 }
 
 template <typename T>
-void yaml_check_matrix(const YAML::Node &node,
-                       const std::string &key) {
+void yaml_check_matrix(const YAML::Node &node, const std::string &key) {
   size_t rows;
   size_t cols;
   yaml_check_matrix<T>(node, key, rows, cols);
@@ -230,7 +228,7 @@ template <typename T>
 void parse(const config_t &config,
            const std::string &key,
            T &out,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -245,7 +243,7 @@ template <typename T>
 void parse(const config_t &config,
            const std::string &key,
            std::vector<T> &out,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -262,7 +260,7 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            vec2_t &vec,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -277,7 +275,7 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            vec3_t &vec,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -293,7 +291,7 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            vec4_t &vec,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -311,7 +309,7 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            vecx_t &vec,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -329,7 +327,7 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            mat2_t &mat,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -347,7 +345,7 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            mat3_t &mat,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -373,7 +371,7 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            mat4_t &mat,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {
@@ -394,7 +392,7 @@ void parse(const config_t &config,
 void parse(const config_t &config,
            const std::string &key,
            matx_t &mat,
-           const bool optional=false) {
+           const bool optional = false) {
   // Get node
   YAML::Node node;
   if (yaml_get_node(config, key, optional, node) != 0) {

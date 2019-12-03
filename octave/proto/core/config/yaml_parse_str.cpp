@@ -11,7 +11,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     parse(config, yaml_key, value);
     plhs[0] = mxCreateString(value.c_str());
 
-  } catch (const YAML::Exception& e) {
+  } catch (const YAML::Exception &e) {
     mexErrMsgIdAndTxt("proto:error", e.msg.c_str());
   }
 

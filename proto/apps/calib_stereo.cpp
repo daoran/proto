@@ -37,7 +37,6 @@ The `calib_config.yaml` file is expected to have the following format:
   std::cout << usage << std::endl;
 }
 
-
 int main(int argc, char *argv[]) {
   // Parse command line arguments
   if (argc != 2) {
@@ -50,7 +49,6 @@ int main(int argc, char *argv[]) {
   if (proto::calib_stereo_solve(config_file) != 0) {
     FATAL("Failed to calibrate camera!");
   }
-
 
   return 0;
 }
