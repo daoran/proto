@@ -19,6 +19,7 @@ if __name__ == "__main__":
     bag_path = sys.argv[1]
     target_topic = sys.argv[2]
     repair_path = bag_path.replace(".bag", "-repaired.bag")
+    print("Output saved to [%s]" % repair_path)
 
     # Open bag
     bag = rosbag.Bag(bag_path, 'r')
@@ -35,7 +36,6 @@ if __name__ == "__main__":
         if topic == target_topic:
             msg.header.stamp.secs = t.secs
             msg.header.stamp.nsecs = t.nsecs
-
         fix_bag.write(topic, msg, t)
 
     # Close bag - very important else bag is invalid

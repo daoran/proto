@@ -11,7 +11,7 @@ from cv_bridge import CvBridge
 
 def print_usage():
     print("Usage: bag2imgs.py <ros bag> <ros topic> <output path>")
-    print("Example: bag2imgs.py record.bag /robot/camera robot_images/")
+    print("Example: bag2imgs.py record.bag /robot/camera /tmp/images/")
 
 
 if __name__ == "__main__":
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     msg_type = info.topics[topic].msg_type
     supported_msgs = ["sensor_msgs/CompressedImage", "sensor_msgs/Image"]
     if msg_type not in supported_msgs:
-        err_msg = "bag2vid only supports %s!" % " or ".join(supported_msgs)
+        err_msg = "Script only supports %s!" % " or ".join(supported_msgs)
         raise RuntimeError(err_msg)
 
     # Convert bag to images

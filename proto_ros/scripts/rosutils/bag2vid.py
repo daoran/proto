@@ -7,16 +7,8 @@ from cv_bridge import CvBridge
 
 
 def print_usage():
-    print("""\
-Usage:
-
-    bag2vid.py <ros bag> <ros image topic> <video output path>
-
-Example:
-
-    bag2vid.py test.bag /atl/camera/image video.avi
-
-    """)
+    print("Usage: bag2vid.py <ros bag> <image topic> <video output path>")
+    print("Example: bag2vid.py test.bag /camera/image video.avi")
 
 
 def bag2vid(bag_path, topic, output_path, preview=False):
@@ -31,7 +23,7 @@ def bag2vid(bag_path, topic, output_path, preview=False):
     msg_type = info.topics[topic].msg_type
     supported_msgs = ["sensor_msgs/CompressedImage", "sensor_msgs/Image"]
     if msg_type not in supported_msgs:
-        err_msg = "bag2vid only supports %s!" % " or ".join(supported_msgs)
+        err_msg = "Script only supports %s!" % " or ".join(supported_msgs)
         raise RuntimeError(err_msg)
 
     # Get image shape
