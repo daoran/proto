@@ -6,12 +6,14 @@
 
     <!-- Imperial SRL -->
     <param name="body0_topic" value="/vicon/f450/pose" />
+    <param name="body0_topic_type" value="geometry_msgs/PoseStamped" />
     <param name="target0_topic" value="/vicon/AprilGrid/pose" />
+    <param name="target0_topic_type" value="geometry_msgs/PoseStamped" />
 
     <!-- <!&#45;&#45; UCL AML &#45;&#45;> -->
     <!-- <param name="body0_topic" value="/ucl_0/vrpn_client/estimated_odometry" /> -->
-    <!-- <param name="body0_topic_type" value="nav/odmetry" /> -->
+    <!-- <param name="body0_topic_type" value="nav_msgs/Odmetry" /> -->
     <!-- <param name="target0_topic" value="/ucl_1/vrpn_client/estimated_odometry" /> -->
-    <!-- <param name="target0_topic_type" value="nav/odmetry" /> -->
+    <!-- <param name="target0_topic_type" value="nav_msgs/Odmetry" /> -->
   </node>
 </launch>
