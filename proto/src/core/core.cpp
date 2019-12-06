@@ -312,181 +312,6 @@ double binomial(const double n, const double k) {
 }
 
 /******************************************************************************
- * Geometry
- *****************************************************************************/
-
-double sinc(const double x) {
-  if (fabs(x) > 1e-6) {
-    return sin(x) / x;
-  } else {
-    static const double c_2 = 1.0 / 6.0;
-    static const double c_4 = 1.0 / 120.0;
-    static const double c_6 = 1.0 / 5040.0;
-    const double x_2 = x * x;
-    const double x_4 = x_2 * x_2;
-    const double x_6 = x_2 * x_2 * x_2;
-    return 1.0 - c_2 * x_2 + c_4 * x_4 - c_6 * x_6;
-  }
-}
-
-double deg2rad(const double d) { return d * (M_PI / 180.0); }
-
-vec3_t deg2rad(const vec3_t d) { return d * (M_PI / 180.0); }
-
-double rad2deg(const double r) { return r * (180.0 / M_PI); }
-
-vec3_t rad2deg(const vec3_t &r) { return r * (180.0 / M_PI); }
-
-double wrap180(const double euler_angle) {
-  return fmod((euler_angle + 180.0), 360.0) - 180.0;
-}
-
-double wrap360(const double euler_angle) {
-  if (euler_angle > 0) {
-    return fmod(euler_angle, 360.0);
-  } else {
-    return fmod(euler_angle + 360, 360.0);
-  }
-}
-
-double wrapPi(const double r) { return deg2rad(wrap180(rad2deg(r))); }
-
-double wrap2Pi(const double r) { return deg2rad(wrap360(rad2deg(r))); }
-
-vec2_t circle(const double r, const double theta) {
-  return vec2_t{r * cos(theta), r * sin(theta)};
-}
-
-vec3_t sphere(const double rho, const double theta, const double phi) {
-  const double x = rho * sin(theta) * cos(phi);
-  const double y = rho * sin(theta) * sin(phi);
-  const double z = rho * cos(theta);
-  return vec3_t{x, y, z};
-}
-
-mat4_t lookat(const vec3_t &cam_pos,
-              const vec3_t &target,
-              const vec3_t &up_axis) {
-  // Note: If we were using OpenGL the cam_dir would be the opposite direction,
-  // since in OpenGL the camera forward is -z. In robotics however our camera
-  // is +z forward.
-  const vec3_t cam_dir = normalize(target - cam_pos);
-  const vec3_t cam_right = normalize(up_axis.cross(cam_dir));
-  const vec3_t cam_up = cam_dir.cross(cam_right);
-
-  // clang-format off
-  mat4_t A;
-  A << cam_right(0), cam_right(1), cam_right(2), 0.0,
-       cam_up(0), cam_up(1), cam_up(2), 0.0,
-       cam_dir(0), cam_dir(1), cam_dir(2), 0.0,
-       0.0, 0.0, 0.0, 1.0;
-  // clang-format on
-
-  // clang-format off
-  mat4_t B;
-  B << 1.0, 0.0, 0.0, -cam_pos(0),
-       0.0, 1.0, 0.0, -cam_pos(1),
-       0.0, 0.0, 1.0, -cam_pos(2),
-       0.0, 0.0, 0.0, 1.0;
-  // clang-format on
-
-  mat4_t T_camera_target = A * B;
-  mat4_t T_target_camera = T_camera_target.inverse();
-  return T_target_camera;
-}
-
-double cross_track_error(const vec2_t &p1,
-                         const vec2_t &p2,
-                         const vec2_t &pos) {
-  const double x0 = pos(0);
-  const double y0 = pos(1);
-
-  const double x1 = p1(0);
-  const double y1 = p1(0);
-
-  const double x2 = p2(0);
-  const double y2 = p2(0);
-
-  // calculate perpendicular distance between line (p1, p2) and point (pos)
-  const double n = ((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
-  const double d = sqrt(pow(y2 - y1, 2) + pow(x2 - x1, 2));
-
-  return fabs(n) / d;
-}
-
-int point_left_right(const vec2_t &a, const vec2_t &b, const vec2_t &c) {
-  const double a0 = a(0);
-  const double a1 = a(1);
-  const double b0 = b(0);
-  const double b1 = b(1);
-  const double c0 = c(0);
-  const double c1 = c(1);
-  const double x = (b0 - a0) * (c1 - a1) - (b1 - a1) * (c0 - a0);
-
-  if (x > 0) {
-    return 1; // left
-  } else if (x < 0) {
-    return 2; // right
-  } else if (x == 0) {
-    return 0; // parallel
-  }
-
-  return -1;
-}
-
-double closest_point(const vec2_t &a,
-                     const vec2_t &b,
-                     const vec2_t &p,
-                     vec2_t &closest) {
-  // pre-check
-  if ((a - b).norm() == 0) {
-    closest = a;
-    return -1;
-  }
-
-  // calculate closest point
-  const vec2_t v1 = p - a;
-  const vec2_t v2 = b - a;
-  const double t = v1.dot(v2) / v2.squaredNorm();
-  closest = a + t * v2;
-
-  return t;
-}
-
-void latlon_offset(double lat_ref,
-                   double lon_ref,
-                   double offset_N,
-                   double offset_E,
-                   double *lat_new,
-                   double *lon_new) {
-  *lat_new = lat_ref + (offset_E / EARTH_RADIUS_M);
-  *lon_new = lon_ref + (offset_N / EARTH_RADIUS_M) / cos(deg2rad(lat_ref));
-}
-
-void latlon_diff(double lat_ref,
-                 double lon_ref,
-                 double lat,
-                 double lon,
-                 double *dist_N,
-                 double *dist_E) {
-  double d_lon = lon - lon_ref;
-  double d_lat = lat - lat_ref;
-
-  *dist_N = deg2rad(d_lat) * EARTH_RADIUS_M;
-  *dist_E = deg2rad(d_lon) * EARTH_RADIUS_M * cos(deg2rad(lat));
-}
-
-double latlon_dist(double lat_ref, double lon_ref, double lat, double lon) {
-  double dist_N = 0.0;
-  double dist_E = 0.0;
-
-  latlon_diff(lat_ref, lon_ref, lat, lon, &dist_N, &dist_E);
-  double dist = sqrt(pow(dist_N, 2) + pow(dist_E, 2));
-
-  return dist;
-}
-
-/******************************************************************************
  * Linear Algebra
  *****************************************************************************/
 
@@ -836,6 +661,181 @@ void load_matrix(const matx_t &A, std::vector<double> &x) {
       x.push_back(A(j, i));
     }
   }
+}
+
+/******************************************************************************
+ * Geometry
+ *****************************************************************************/
+
+double sinc(const double x) {
+  if (fabs(x) > 1e-6) {
+    return sin(x) / x;
+  } else {
+    static const double c_2 = 1.0 / 6.0;
+    static const double c_4 = 1.0 / 120.0;
+    static const double c_6 = 1.0 / 5040.0;
+    const double x_2 = x * x;
+    const double x_4 = x_2 * x_2;
+    const double x_6 = x_2 * x_2 * x_2;
+    return 1.0 - c_2 * x_2 + c_4 * x_4 - c_6 * x_6;
+  }
+}
+
+double deg2rad(const double d) { return d * (M_PI / 180.0); }
+
+vec3_t deg2rad(const vec3_t d) { return d * (M_PI / 180.0); }
+
+double rad2deg(const double r) { return r * (180.0 / M_PI); }
+
+vec3_t rad2deg(const vec3_t &r) { return r * (180.0 / M_PI); }
+
+double wrap180(const double euler_angle) {
+  return fmod((euler_angle + 180.0), 360.0) - 180.0;
+}
+
+double wrap360(const double euler_angle) {
+  if (euler_angle > 0) {
+    return fmod(euler_angle, 360.0);
+  } else {
+    return fmod(euler_angle + 360, 360.0);
+  }
+}
+
+double wrapPi(const double r) { return deg2rad(wrap180(rad2deg(r))); }
+
+double wrap2Pi(const double r) { return deg2rad(wrap360(rad2deg(r))); }
+
+vec2_t circle(const double r, const double theta) {
+  return vec2_t{r * cos(theta), r * sin(theta)};
+}
+
+vec3_t sphere(const double rho, const double theta, const double phi) {
+  const double x = rho * sin(theta) * cos(phi);
+  const double y = rho * sin(theta) * sin(phi);
+  const double z = rho * cos(theta);
+  return vec3_t{x, y, z};
+}
+
+mat4_t lookat(const vec3_t &cam_pos,
+              const vec3_t &target,
+              const vec3_t &up_axis) {
+  // Note: If we were using OpenGL the cam_dir would be the opposite direction,
+  // since in OpenGL the camera forward is -z. In robotics however our camera
+  // is +z forward.
+  const vec3_t cam_dir = normalize(target - cam_pos);
+  const vec3_t cam_right = normalize(up_axis.cross(cam_dir));
+  const vec3_t cam_up = cam_dir.cross(cam_right);
+
+  // clang-format off
+  mat4_t A;
+  A << cam_right(0), cam_right(1), cam_right(2), 0.0,
+       cam_up(0), cam_up(1), cam_up(2), 0.0,
+       cam_dir(0), cam_dir(1), cam_dir(2), 0.0,
+       0.0, 0.0, 0.0, 1.0;
+  // clang-format on
+
+  // clang-format off
+  mat4_t B;
+  B << 1.0, 0.0, 0.0, -cam_pos(0),
+       0.0, 1.0, 0.0, -cam_pos(1),
+       0.0, 0.0, 1.0, -cam_pos(2),
+       0.0, 0.0, 0.0, 1.0;
+  // clang-format on
+
+  mat4_t T_camera_target = A * B;
+  mat4_t T_target_camera = T_camera_target.inverse();
+  return T_target_camera;
+}
+
+double cross_track_error(const vec2_t &p1,
+                         const vec2_t &p2,
+                         const vec2_t &pos) {
+  const double x0 = pos(0);
+  const double y0 = pos(1);
+
+  const double x1 = p1(0);
+  const double y1 = p1(0);
+
+  const double x2 = p2(0);
+  const double y2 = p2(0);
+
+  // calculate perpendicular distance between line (p1, p2) and point (pos)
+  const double n = ((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
+  const double d = sqrt(pow(y2 - y1, 2) + pow(x2 - x1, 2));
+
+  return fabs(n) / d;
+}
+
+int point_left_right(const vec2_t &a, const vec2_t &b, const vec2_t &c) {
+  const double a0 = a(0);
+  const double a1 = a(1);
+  const double b0 = b(0);
+  const double b1 = b(1);
+  const double c0 = c(0);
+  const double c1 = c(1);
+  const double x = (b0 - a0) * (c1 - a1) - (b1 - a1) * (c0 - a0);
+
+  if (x > 0) {
+    return 1; // left
+  } else if (x < 0) {
+    return 2; // right
+  } else if (x == 0) {
+    return 0; // parallel
+  }
+
+  return -1;
+}
+
+double closest_point(const vec2_t &a,
+                     const vec2_t &b,
+                     const vec2_t &p,
+                     vec2_t &closest) {
+  // pre-check
+  if ((a - b).norm() == 0) {
+    closest = a;
+    return -1;
+  }
+
+  // calculate closest point
+  const vec2_t v1 = p - a;
+  const vec2_t v2 = b - a;
+  const double t = v1.dot(v2) / v2.squaredNorm();
+  closest = a + t * v2;
+
+  return t;
+}
+
+void latlon_offset(double lat_ref,
+                   double lon_ref,
+                   double offset_N,
+                   double offset_E,
+                   double *lat_new,
+                   double *lon_new) {
+  *lat_new = lat_ref + (offset_E / EARTH_RADIUS_M);
+  *lon_new = lon_ref + (offset_N / EARTH_RADIUS_M) / cos(deg2rad(lat_ref));
+}
+
+void latlon_diff(double lat_ref,
+                 double lon_ref,
+                 double lat,
+                 double lon,
+                 double *dist_N,
+                 double *dist_E) {
+  double d_lon = lon - lon_ref;
+  double d_lat = lat - lat_ref;
+
+  *dist_N = deg2rad(d_lat) * EARTH_RADIUS_M;
+  *dist_E = deg2rad(d_lon) * EARTH_RADIUS_M * cos(deg2rad(lat));
+}
+
+double latlon_dist(double lat_ref, double lon_ref, double lat, double lon) {
+  double dist_N = 0.0;
+  double dist_E = 0.0;
+
+  latlon_diff(lat_ref, lon_ref, lat, lon, &dist_N, &dist_E);
+  double dist = sqrt(pow(dist_N, 2) + pow(dist_E, 2));
+
+  return dist;
 }
 
 /******************************************************************************

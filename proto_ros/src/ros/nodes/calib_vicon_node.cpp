@@ -8,7 +8,9 @@ std::string test_out_path = "/tmp/vicon_test";
 
 void clear_test_output() {
   std::string cmd = "rm -rf " + test_out_path;
-  system(cmd.c_str());
+  if (system(cmd.c_str()) != 0) {
+    FATAL("Failed to execute system('%s')!", cmd.c_str());
+  }
 }
 
 void signal_handler(int sig) {

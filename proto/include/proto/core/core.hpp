@@ -83,82 +83,6 @@
 
 namespace proto {
 
-#ifndef __EIGEN_TYPEDEF__
-#define __EIGEN_TYPEDEF__
-
-#define col_major_t Eigen::ColMajor
-#define row_major_t Eigen::RowMajor
-
-typedef Eigen::Vector2d vec2_t;
-typedef Eigen::Vector3d vec3_t;
-typedef Eigen::Vector4d vec4_t;
-typedef Eigen::Matrix<double, 5, 1> vec5_t;
-typedef Eigen::Matrix<double, 6, 1> vec6_t;
-typedef Eigen::VectorXd vecx_t;
-
-typedef Eigen::Vector2f vec2f_t;
-typedef Eigen::Vector3f vec3f_t;
-typedef Eigen::Vector4f vec4f_t;
-typedef Eigen::Matrix<float, 5, 1> vec5f_t;
-typedef Eigen::Matrix<float, 6, 1> vec6f_t;
-typedef Eigen::VectorXf vecxf_t;
-
-typedef Eigen::Matrix2d mat2_t;
-typedef Eigen::Matrix3d mat3_t;
-typedef Eigen::Matrix4d mat4_t;
-typedef Eigen::MatrixXd matx_t;
-typedef Eigen::Matrix<double, 3, 4> mat34_t;
-
-typedef Eigen::Matrix2f mat2f_t;
-typedef Eigen::Matrix3f mat3f_t;
-typedef Eigen::Matrix4f mat4f_t;
-typedef Eigen::MatrixXf matxf_t;
-typedef Eigen::Matrix<float, 3, 4> mat34f_t;
-
-typedef std::vector<vec2_t, Eigen::aligned_allocator<vec2_t>> vec2s_t;
-typedef std::vector<vec3_t, Eigen::aligned_allocator<vec3_t>> vec3s_t;
-typedef std::vector<vec4_t, Eigen::aligned_allocator<vec4_t>> vec4s_t;
-typedef std::vector<vec5_t, Eigen::aligned_allocator<vec5_t>> vec5s_t;
-typedef std::vector<vec6_t, Eigen::aligned_allocator<vec6_t>> vec6s_t;
-typedef std::vector<vecx_t> vecxs_t;
-
-typedef std::vector<vec2f_t, Eigen::aligned_allocator<vec2f_t>> vec2fs_t;
-typedef std::vector<vec3f_t, Eigen::aligned_allocator<vec3f_t>> vec3fs_t;
-typedef std::vector<vec4f_t, Eigen::aligned_allocator<vec4f_t>> vec4fs_t;
-typedef std::vector<vec5f_t, Eigen::aligned_allocator<vec5f_t>> vec5fs_t;
-typedef std::vector<vec6f_t, Eigen::aligned_allocator<vec6f_t>> vec6fs_t;
-typedef std::vector<vecxf_t> vecxfs_t;
-
-typedef std::vector<mat2_t, Eigen::aligned_allocator<mat2_t>> mat2s_t;
-typedef std::vector<mat3_t, Eigen::aligned_allocator<mat3_t>> mat3s_t;
-typedef std::vector<mat4_t, Eigen::aligned_allocator<mat4_t>> mat4s_t;
-typedef std::vector<matx_t, Eigen::aligned_allocator<matx_t>> matxs_t;
-
-typedef std::vector<mat2f_t, Eigen::aligned_allocator<mat2f_t>> mat2fs_t;
-typedef std::vector<mat3f_t, Eigen::aligned_allocator<mat3f_t>> mat3fs_t;
-typedef std::vector<mat4f_t, Eigen::aligned_allocator<mat4f_t>> mat4fs_t;
-typedef std::vector<matxf_t, Eigen::aligned_allocator<matxf_t>> matxfs_t;
-
-typedef Eigen::Quaterniond quat_t;
-typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
-
-typedef Eigen::Quaternionf quatf_t;
-typedef std::vector<quatf_t, Eigen::aligned_allocator<quat_t>> quatfs_t;
-
-template <int ROWS,
-          int COLS,
-          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using mat_t = Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>;
-
-template <int ROWS,
-          int COLS,
-          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using map_mat_t = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
-
-template <int ROWS>
-using map_vec_t = Eigen::Map<Eigen::Matrix<double, ROWS, 1>>;
-#endif
-
 /******************************************************************************
  * FILESYSTEM
  *****************************************************************************/
@@ -361,212 +285,80 @@ std::vector<T> linspace(const T start, const T end, const int num) {
 }
 
 /******************************************************************************
- * Geometry
- *****************************************************************************/
-
-/**
- * Sinc function.
- */
-double sinc(const double x);
-
-/**
- * Degrees to radians
- *
- * @param[in] d Degree to be converted
- * @return Degree in radians
- */
-double deg2rad(const double d);
-
-/**
- * Degrees to radians
- *
- * @param[in] d Degree to be converted
- * @return Degree in radians
- */
-vec3_t deg2rad(const vec3_t d);
-
-/**
- * Radians to degree
- *
- * @param[in] r Radian to be converted
- * @return Radian in degrees
- */
-double rad2deg(const double r);
-
-/**
- * Radians to degree
- *
- * @param[in] r Radian to be converted
- * @return Radian in degrees
- */
-vec3_t rad2deg(const vec3_t &r);
-
-/**
- * Wrap angle in degrees to 180
- *
- * @param[in] d Degrees
- * @return Angle wraped to 180
- */
-double wrap180(const double d);
-
-/**
- * Wrap angle in degrees to 360
- *
- * @param[in] d Degrees
- * @return Angle wraped to 360
- */
-double wrap360(const double d);
-
-/**
- * Wrap angle in radians to PI
- *
- * @param[in] r Radians
- * @return Angle wraped to PI
- */
-double wrapPi(const double r);
-
-/**
- * Wrap angle in radians to 2 PI
- *
- * @param[in] r Radians
- * @return Angle wraped to 2 PI
- */
-double wrap2Pi(const double r);
-
-/**
- * Create a circle point of radius `r` at angle `theta` radians.
- */
-vec2_t circle(const double r, const double theta);
-
-/**
- * Create the sphere point with sphere radius `rho` at longitude `theta`
- * [radians] and latitude `phi` [radians].
- */
-vec3_t sphere(const double rho, const double theta, const double phi);
-
-/**
- * Create look at matrix.
- */
-mat4_t lookat(const vec3_t &cam_pos,
-              const vec3_t &target,
-              const vec3_t &up_axis = vec3_t{0.0, -1.0, 0.0});
-
-/**
- * Cross-Track error based on waypoint line between p1, p2, and robot position
- *
- * @param[in] p1 Waypoint 1
- * @param[in] p2 Waypoint 2
- * @param[in] pos Robot position
- * @return Cross track error
- */
-double cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
-
-/**
- * Check if point `pos` is left or right of line formed by `p1` and `p2`
- *
- * @param[in] p1 Waypoint 1
- * @param[in] p2 Waypoint 2
- * @param[in] pos Robot position
- * @returns
- *    - 1: Point is left of waypoint line formed by `p1` and `p2`
- *    - 2: Point is right of waypoint line formed by `p1` and `p2`
- *    - 0: Point is colinear with waypoint line formed by `p1` and `p2`
- */
-int point_left_right(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
-
-/**
- * Calculate closest point given waypoint line between `p1`, `p2` and robot
- * position
- *
- * @param[in] p1 Waypoint 1
- * @param[in] p2 Waypoint 2
- * @param[in] p3 Robot position
- * @param[out] closest Closest point
- * @returns
- *    Unit number denoting where the closest point is on waypoint line. For
- *    example, a return value of 0.5 denotes the closest point is half-way
- *    (50%) of the waypoint line, alternatively a negative number denotes the
- *    closest point is behind the first waypoint.
- */
-double closest_point(const vec2_t &p1,
-                     const vec2_t &p2,
-                     const vec2_t &p3,
-                     vec2_t &closest);
-
-/**
- * Linear interpolation between two points.
- *
- * @param[in] a First point
- * @param[in] b Second point
- * @param[in] t Unit number
- * @returns Linear interpolation
- */
-template <typename T>
-T lerp(const T &a, const T &b, const double t) {
-  return a * (1.0 - t) + b * t;
-}
-
-#define EARTH_RADIUS_M 6378137.0
-
-/**
- * Calculate new latitude and logitude coordinates with an offset in North and
- * East direction.
- *
- * IMPORTANT NOTE: This function is only an approximation. As such do not rely
- * on this function for precise latitude, longitude offsets.
- *
- * @param lat_ref Latitude of origin (decimal format)
- * @param lon_ref Longitude of origin (decimal format)
- * @param offset_N Offset in North direction (meters)
- * @param offset_E Offset in East direction (meters)
- * @param lat_new New latitude (decimal format)
- * @param lon_new New longitude (decimal format)
- */
-void latlon_offset(double lat_ref,
-                   double lon_ref,
-                   double offset_N,
-                   double offset_E,
-                   double *lat_new,
-                   double *lon_new);
-
-/**
- * Calculate difference in distance in North and East from two GPS coordinates
- *
- * IMPORTANT NOTE: This function is only an approximation. As such do not rely
- * on this function for precise latitude, longitude diffs.
- *
- * @param lat_ref Latitude of origin (decimal format)
- * @param lon_ref Longitude of origin (decimal format)
- * @param lat Latitude of point of interest (decimal format)
- * @param lon Longitude of point of interest (decimal format)
- * @param dist_N Distance of point of interest in North axis [m]
- * @param dist_E Distance of point of interest in East axis [m]
- */
-void latlon_diff(double lat_ref,
-                 double lon_ref,
-                 double lat,
-                 double lon,
-                 double *dist_N,
-                 double *dist_E);
-
-/**
- * Calculate Euclidean distance between two GPS coordintes
- *
- * IMPORTANT NOTE: This function is only an approximation. As such do not rely
- * on this function for precise latitude, longitude distance.
- *
- * @param lat_ref Latitude of origin (decimal format)
- * @param lon_ref Longitude of origin (decimal format)
- * @param lat Latitude of point of interest (decimal format)
- * @param lon Longitude of point of interest (decimal format)
- *
- * @returns Euclidean distance between two GPS coordinates [m]
- */
-double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
-
-/******************************************************************************
  * Linear Algebra
  *****************************************************************************/
+
+#define col_major_t Eigen::ColMajor
+#define row_major_t Eigen::RowMajor
+
+typedef Eigen::Vector2d vec2_t;
+typedef Eigen::Vector3d vec3_t;
+typedef Eigen::Vector4d vec4_t;
+typedef Eigen::Matrix<double, 5, 1> vec5_t;
+typedef Eigen::Matrix<double, 6, 1> vec6_t;
+typedef Eigen::VectorXd vecx_t;
+
+typedef Eigen::Vector2f vec2f_t;
+typedef Eigen::Vector3f vec3f_t;
+typedef Eigen::Vector4f vec4f_t;
+typedef Eigen::Matrix<float, 5, 1> vec5f_t;
+typedef Eigen::Matrix<float, 6, 1> vec6f_t;
+typedef Eigen::VectorXf vecxf_t;
+
+typedef Eigen::Matrix2d mat2_t;
+typedef Eigen::Matrix3d mat3_t;
+typedef Eigen::Matrix4d mat4_t;
+typedef Eigen::MatrixXd matx_t;
+typedef Eigen::Matrix<double, 3, 4> mat34_t;
+
+typedef Eigen::Matrix2f mat2f_t;
+typedef Eigen::Matrix3f mat3f_t;
+typedef Eigen::Matrix4f mat4f_t;
+typedef Eigen::MatrixXf matxf_t;
+typedef Eigen::Matrix<float, 3, 4> mat34f_t;
+
+typedef std::vector<vec2_t, Eigen::aligned_allocator<vec2_t>> vec2s_t;
+typedef std::vector<vec3_t, Eigen::aligned_allocator<vec3_t>> vec3s_t;
+typedef std::vector<vec4_t, Eigen::aligned_allocator<vec4_t>> vec4s_t;
+typedef std::vector<vec5_t, Eigen::aligned_allocator<vec5_t>> vec5s_t;
+typedef std::vector<vec6_t, Eigen::aligned_allocator<vec6_t>> vec6s_t;
+typedef std::vector<vecx_t> vecxs_t;
+
+typedef std::vector<vec2f_t, Eigen::aligned_allocator<vec2f_t>> vec2fs_t;
+typedef std::vector<vec3f_t, Eigen::aligned_allocator<vec3f_t>> vec3fs_t;
+typedef std::vector<vec4f_t, Eigen::aligned_allocator<vec4f_t>> vec4fs_t;
+typedef std::vector<vec5f_t, Eigen::aligned_allocator<vec5f_t>> vec5fs_t;
+typedef std::vector<vec6f_t, Eigen::aligned_allocator<vec6f_t>> vec6fs_t;
+typedef std::vector<vecxf_t> vecxfs_t;
+
+typedef std::vector<mat2_t, Eigen::aligned_allocator<mat2_t>> mat2s_t;
+typedef std::vector<mat3_t, Eigen::aligned_allocator<mat3_t>> mat3s_t;
+typedef std::vector<mat4_t, Eigen::aligned_allocator<mat4_t>> mat4s_t;
+typedef std::vector<matx_t, Eigen::aligned_allocator<matx_t>> matxs_t;
+
+typedef std::vector<mat2f_t, Eigen::aligned_allocator<mat2f_t>> mat2fs_t;
+typedef std::vector<mat3f_t, Eigen::aligned_allocator<mat3f_t>> mat3fs_t;
+typedef std::vector<mat4f_t, Eigen::aligned_allocator<mat4f_t>> mat4fs_t;
+typedef std::vector<matxf_t, Eigen::aligned_allocator<matxf_t>> matxfs_t;
+
+typedef Eigen::Quaterniond quat_t;
+typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
+
+typedef Eigen::Quaternionf quatf_t;
+typedef std::vector<quatf_t, Eigen::aligned_allocator<quat_t>> quatfs_t;
+
+template <int ROWS,
+          int COLS,
+          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+using mat_t = Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>;
+
+template <int ROWS,
+          int COLS,
+          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+using map_mat_t = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
+
+template <int ROWS>
+using map_vec_t = Eigen::Map<Eigen::Matrix<double, ROWS, 1>>;
 
 /**
  * Print shape of a matrix
@@ -865,6 +657,210 @@ void load_matrix(const std::vector<double> &x,
  * @param[out] x Output vector of matrix values
  */
 void load_matrix(const matx_t A, std::vector<double> &x);
+
+/******************************************************************************
+ * Geometry
+ *****************************************************************************/
+
+/**
+ * Sinc function.
+ */
+double sinc(const double x);
+
+/**
+ * Degrees to radians
+ *
+ * @param[in] d Degree to be converted
+ * @return Degree in radians
+ */
+double deg2rad(const double d);
+
+/**
+ * Degrees to radians
+ *
+ * @param[in] d Degree to be converted
+ * @return Degree in radians
+ */
+vec3_t deg2rad(const vec3_t d);
+
+/**
+ * Radians to degree
+ *
+ * @param[in] r Radian to be converted
+ * @return Radian in degrees
+ */
+double rad2deg(const double r);
+
+/**
+ * Radians to degree
+ *
+ * @param[in] r Radian to be converted
+ * @return Radian in degrees
+ */
+vec3_t rad2deg(const vec3_t &r);
+
+/**
+ * Wrap angle in degrees to 180
+ *
+ * @param[in] d Degrees
+ * @return Angle wraped to 180
+ */
+double wrap180(const double d);
+
+/**
+ * Wrap angle in degrees to 360
+ *
+ * @param[in] d Degrees
+ * @return Angle wraped to 360
+ */
+double wrap360(const double d);
+
+/**
+ * Wrap angle in radians to PI
+ *
+ * @param[in] r Radians
+ * @return Angle wraped to PI
+ */
+double wrapPi(const double r);
+
+/**
+ * Wrap angle in radians to 2 PI
+ *
+ * @param[in] r Radians
+ * @return Angle wraped to 2 PI
+ */
+double wrap2Pi(const double r);
+
+/**
+ * Create a circle point of radius `r` at angle `theta` radians.
+ */
+vec2_t circle(const double r, const double theta);
+
+/**
+ * Create the sphere point with sphere radius `rho` at longitude `theta`
+ * [radians] and latitude `phi` [radians].
+ */
+vec3_t sphere(const double rho, const double theta, const double phi);
+
+/**
+ * Create look at matrix.
+ */
+mat4_t lookat(const vec3_t &cam_pos,
+              const vec3_t &target,
+              const vec3_t &up_axis = vec3_t{0.0, -1.0, 0.0});
+
+/**
+ * Cross-Track error based on waypoint line between p1, p2, and robot position
+ *
+ * @param[in] p1 Waypoint 1
+ * @param[in] p2 Waypoint 2
+ * @param[in] pos Robot position
+ * @return Cross track error
+ */
+double cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
+
+/**
+ * Check if point `pos` is left or right of line formed by `p1` and `p2`
+ *
+ * @param[in] p1 Waypoint 1
+ * @param[in] p2 Waypoint 2
+ * @param[in] pos Robot position
+ * @returns
+ *    - 1: Point is left of waypoint line formed by `p1` and `p2`
+ *    - 2: Point is right of waypoint line formed by `p1` and `p2`
+ *    - 0: Point is colinear with waypoint line formed by `p1` and `p2`
+ */
+int point_left_right(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
+
+/**
+ * Calculate closest point given waypoint line between `p1`, `p2` and robot
+ * position
+ *
+ * @param[in] p1 Waypoint 1
+ * @param[in] p2 Waypoint 2
+ * @param[in] p3 Robot position
+ * @param[out] closest Closest point
+ * @returns
+ *    Unit number denoting where the closest point is on waypoint line. For
+ *    example, a return value of 0.5 denotes the closest point is half-way
+ *    (50%) of the waypoint line, alternatively a negative number denotes the
+ *    closest point is behind the first waypoint.
+ */
+double closest_point(const vec2_t &p1,
+                     const vec2_t &p2,
+                     const vec2_t &p3,
+                     vec2_t &closest);
+
+/**
+ * Linear interpolation between two points.
+ *
+ * @param[in] a First point
+ * @param[in] b Second point
+ * @param[in] t Unit number
+ * @returns Linear interpolation
+ */
+template <typename T>
+T lerp(const T &a, const T &b, const double t) {
+  return a * (1.0 - t) + b * t;
+}
+
+#define EARTH_RADIUS_M 6378137.0
+
+/**
+ * Calculate new latitude and logitude coordinates with an offset in North and
+ * East direction.
+ *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude offsets.
+ *
+ * @param lat_ref Latitude of origin (decimal format)
+ * @param lon_ref Longitude of origin (decimal format)
+ * @param offset_N Offset in North direction (meters)
+ * @param offset_E Offset in East direction (meters)
+ * @param lat_new New latitude (decimal format)
+ * @param lon_new New longitude (decimal format)
+ */
+void latlon_offset(double lat_ref,
+                   double lon_ref,
+                   double offset_N,
+                   double offset_E,
+                   double *lat_new,
+                   double *lon_new);
+
+/**
+ * Calculate difference in distance in North and East from two GPS coordinates
+ *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude diffs.
+ *
+ * @param lat_ref Latitude of origin (decimal format)
+ * @param lon_ref Longitude of origin (decimal format)
+ * @param lat Latitude of point of interest (decimal format)
+ * @param lon Longitude of point of interest (decimal format)
+ * @param dist_N Distance of point of interest in North axis [m]
+ * @param dist_E Distance of point of interest in East axis [m]
+ */
+void latlon_diff(double lat_ref,
+                 double lon_ref,
+                 double lat,
+                 double lon,
+                 double *dist_N,
+                 double *dist_E);
+
+/**
+ * Calculate Euclidean distance between two GPS coordintes
+ *
+ * IMPORTANT NOTE: This function is only an approximation. As such do not rely
+ * on this function for precise latitude, longitude distance.
+ *
+ * @param lat_ref Latitude of origin (decimal format)
+ * @param lon_ref Longitude of origin (decimal format)
+ * @param lat Latitude of point of interest (decimal format)
+ * @param lon Longitude of point of interest (decimal format)
+ *
+ * @returns Euclidean distance between two GPS coordinates [m]
+ */
+double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
 
 /******************************************************************************
  * Statistics
