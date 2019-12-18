@@ -1,19 +1,10 @@
 <launch>
   <node pkg="proto_ros" type="calib_vicon_node" name="calib_vicon_node" required="true" output="screen">
-    <!-- <param name="train_bag" value="/data/vicon/vicon&#45;ucl&#45;3.bag" /> -->
-    <!-- <param name="test_bag" value="/data/vicon/vicon&#45;ucl&#45;3.bag" /> -->
+    <param name="train_bag" value="/data/ucl/191213-vicon_calib-train.bag" />
+    <param name="test_bag" value="/data/ucl/191213-vicon_calib-test.bag" />
 
-    <!-- <param name="train_bag" value="/data/vicon/vicon_capture_keep_good_2.bag" /> -->
-    <!-- <param name="test_bag" value="/data/vicon/vicon_capture_keep_good_2.bag" /> -->
-
-    <!-- <param name="train_bag" value="/data/vicon/srl&#45;0.bag" /> -->
-    <!-- <param name="test_bag" value="/data/vicon/srl&#45;1.bag" /> -->
-
-    <!-- <param name="train_bag" value="/data/vicon/srl&#45;191203&#45;test.bag" /> -->
-    <!-- <param name="test_bag" value="/data/vicon/srl&#45;191203&#45;train.bag" /> -->
-
-    <param name="train_bag" value="/data/vicon/srl-191205-test.bag" />
-    <param name="test_bag" value="/data/vicon/srl-191205-train.bag" />
+    <!-- <param name="train_bag" value="/data/vicon&#45;train.bag" /> -->
+    <!-- <param name="test_bag" value="/data/vicon&#45;test.bag" /> -->
 
     <param name="config_file" value="$(find proto_ros)/config/calib_vicon-intel_d435i.yaml" />
     <param name="cam0_topic" value="/cam0/image" />

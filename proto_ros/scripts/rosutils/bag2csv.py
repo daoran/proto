@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 import sys
+from math import atan2
+from math import asin
+from math import degrees
+
 import rosbag
 import rospy
 
@@ -9,72 +13,228 @@ def print_usage():
     print("Example: bag2csv.py record.bag /robot/pose robot_images.csv")
 
 
-def check_topic_type(bag):
+def quat2euler(q):
+    qw = q[0]
+    qx = q[1]
+    qy = q[2]
+    qz = q[3]
+
+    qw2 = qw * qw
+    qx2 = qx * qx
+    qy2 = qy * qy
+    qz2 = qz * qz
+
+    x = atan2(2 * (qx * qw + qz * qy), (qw2 - qx2 - qy2 + qz2))
+    y = asin(2 * (qy * qw - qx * qz))
+    z = atan2(2 * (qx * qy + qz * qw), (qw2 + qx2 - qy2 - qz2))
+
+    return [x, y, z]
+
+
+class std_msgs:
+    supported_msgs = [
+        "std_msgs/Header"
+        "std_msgs/String"
+    ]
+
+    @staticmethod
+    def header_to_str(msg):
+        header = "seq,frame_id,secs,nsecs"
+
+        seq = msg.seq
+        frame_id = msg.frame_id
+        secs = msg.stamp.secs
+        nsecs = msg.stamp.nsecs
+        timestamp = rospy.Time(secs, nsecs)
+
+        ts = str(timestamp.to_nsec())
+        secs = str(ts[0:10])
+        nsecs = str(ts[10:19])
+
+        data = ",".join([str(seq), str(frame_id), secs, nsecs])
+        return (header, data)
+
+    @staticmethod
+    def string_to_str(field_name, data):
+        header = field_name
+        return (header, data)
+
+class geometry_msgs:
+    supported_msgs = [
+        "geometry_msgs/Point",
+        "geometry_msgs/Vector3",
+        "geometry_msgs/Quaternion",
+        "geometry_msgs/Pose",
+        "geometry_msgs/PoseStamped",
+        "geometry_msgs/PoseWithCovarianceStamped"
+        "geometry_msgs/Twist"
+        "geometry_msgs/TwistStamped"
+        "geometry_msgs/TwistWithCovarianceStamped"
+    ]
+
+    @staticmethod
+    def point_to_str(msg, prefix=""):
+        axis = ["x", "y", "z"]
+        header = ",".join([prefix + ax for ax in axis])
+        data = ",".join([str(msg.x), str(msg.y), str(msg.z)])
+        return (header, data)
+
+    @staticmethod
+    def vector3_to_str(msg, prefix=""):
+        axis = ["x", "y", "z"]
+        header = ",".join([prefix + ax for ax in axis])
+        data = ",".join([str(msg.x), str(msg.y), str(msg.z)])
+        return (header, data)
+
+    @staticmethod
+    def quaternion_to_str(msg):
+        header = "qw,qx,qy,qz,roll,pitch,yaw"
+        rpy = quat2euler([msg.w, msg.x, msg.y, msg.z])
+        data = ",".join([str(msg.w), str(msg.x), str(msg.y), str(msg.z),
+                         str(degrees(rpy[0])), str(degrees(rpy[1])), str(degrees(rpy[2]))])
+        return (header, data)
+
+    @staticmethod
+    def covariance_to_str(covar_data, prefix=""):
+        header = ",".join([prefix + "covar_" + str(i) for i in range(36)])
+        data = ",".join([str(x) for x in covar_data])
+        return (header, data)
+
+    @staticmethod
+    def pose_to_str(msg):
+        pos_header, pos_data = geometry_msgs.point_to_str(msg.position)
+        rot_header, rot_data = geometry_msgs.quaternion_to_str(msg.orientation)
+
+        header = pos_header + "," + rot_header
+        data = pos_data + "," + rot_data
+        return (header, data)
+
+    @staticmethod
+    def pose_with_covariance_to_str(msg):
+        pose_header, pose_data = geometry_msgs.pose_to_str(msg.pose)
+        covar_header, covar_data = geometry_msgs.covariance_to_str(msg.covariance, "pose_")
+
+        header = pose_header + "," + covar_header
+        data = pose_data + "," + covar_data
+        return (header, data)
+
+    @staticmethod
+    def pose_stamped_to_str(msg):
+        msg_header, header_data = std_msgs.header_to_str(msg.header)
+        pose_header, pose_data = geometry_msgs.pose_to_str(msg.pose)
+
+        header = msg_header + "," + pose_header
+        data = header_data + "," + pose_data
+        return (header, data)
+
+    @staticmethod
+    def pose_with_covariance_stamped_to_str(msg):
+        msg_header, header_data = std_msgs.header_to_str(msg.header)
+        pose_header, pose_data = geometry_msgs.pose_with_covariance_to_str(msg.pose, "pose_")
+
+        header = msg_header + "," + pose_header
+        data = header_data + "," + pose_data
+        return (header, data)
+
+    @staticmethod
+    def twist_to_str(msg):
+        linear_header, linear_data = geometry_msgs.vector3_to_str(msg.linear, "a")
+        angular_header, angular_data = geometry_msgs.vector3_to_str(msg.angular, "w")
+
+        header = linear_header + "," + angular_header
+        data = linear_data + "," + angular_data
+        return (header, data)
+
+    @staticmethod
+    def twist_with_covariance_to_str(msg):
+        twist_header, twist_data = geometry_msgs.twist_to_str(msg.twist)
+        covar_header, covar_data = geometry_msgs.covariance_to_str(msg.covariance, "twist_")
+
+        header = twist_header + "," + covar_header
+        data = twist_data + "," + covar_data
+        return (header, data)
+
+    @staticmethod
+    def twist_stamped_to_str(msg):
+        msg_header, header_data = std_msgs.header_to_str(msg.header)
+        twist_header, twist_data = geometry_msgs.twist_to_str(msg.twist)
+
+        header = msg_header + "," + twist_header
+        data = msg_data + "," + twist_data
+        return (header, data)
+
+    @staticmethod
+    def twist_with_covariance_stamped_to_str(msg):
+        msg_header, header_data = std_msgs.header_to_str(msg.header)
+        twist_header, twist_data = geometry_msgs.twist_to_str(msg.twist)
+        covar_header, covar_data = geometry_msgs.covariance_to_str(msg.covariance, "twist_")
+
+        header = msg_header + "," + twist_header + "," + covar_header
+        data = msg_data + "," + twist_data + "," + covar_data
+        return (header, data)
+
+class nav_msgs:
+    supported_msgs = [
+        "nav_msgs/Odometry",
+    ]
+
+    @staticmethod
+    def odometry_to_str(msg):
+        msg_header, msg_data = std_msgs.header_to_str(msg.header)
+        _, str_data = std_msgs.string_to_str("child_frame_id", msg.child_frame_id)
+        pose_header, pose_data = geometry_msgs.pose_with_covariance_to_str(msg.pose)
+        twist_header, twist_data = geometry_msgs.twist_with_covariance_to_str(msg.twist)
+
+        header = msg_header + "," + "child_frame_id" + "," + pose_header + "," + twist_header
+        data = msg_data + "," + str_data + "," + pose_data + "," + twist_data
+        return (header, data)
+
+
+def check_topic_exists(bag, topic):
+    info = bag.get_type_and_topic_info()
+    if topic not in info.topics:
+        raise RuntimeError("Opps! topic not in bag!")
+
+
+def check_topic_type(bag, topic):
     info = bag.get_type_and_topic_info()
     msg_type = info.topics[topic].msg_type
-    supported_msgs = ["geometry_msgs/TransformStamped",
-                      "geometry_msgs/PoseStamped"]
+    supported_msgs = std_msgs.supported_msgs
+    supported_msgs += geometry_msgs.supported_msgs
+    supported_msgs += nav_msgs.supported_msgs
 
     if msg_type not in supported_msgs:
-        err_msg = "bag2csv only supports %s!" % " or ".join(supported_msgs)
+        supported_list = ""
+        for x in supported_msgs:
+            supported_list += "  - " + str(x) + "\n"
+
+        err_msg = "bag2csv does not support msg type: [%s]\n" % msg_type
+        err_msg += "bag2csv currently only supports:\n%s" % supported_list
         raise RuntimeError(err_msg)
 
 
-def vector3_str(msg):
-    return ",".join([str(msg.x), str(msg.y), str(msg.z)])
+def get_msg_converter(bag, topic):
+    info = bag.get_type_and_topic_info()
+    msg_type = info.topics[topic].msg_type
 
+    if msg_type == "std_msgs/Header":
+        return std_msgs.header_to_str
 
-def quaternion_str(msg):
-    return ",".join([str(msg.w), str(msg.x), str(msg.y), str(msg.z)])
+    if msg_type == "geometry_msgs/Point":
+        return geometry_msgs.point_to_str
+    if msg_type == "geometry_msgs/Vector3":
+        return geometry_msgs.vector3_to_str
+    if msg_type == "geometry_msgs/Quaternion":
+        return geometry_msgs.quaternion_to_str
+    if msg_type == "geometry_msgs/Pose":
+        return geometry_msgs.pose_to_str
+    if msg_type == "geometry_msgs/PoseStamped":
+        return geometry_msgs.pose_stamped_to_str
+    if msg_type == "geometry_msgs/PoseWithCovarianceStamped":
+        return geometry_msgs.pose_with_covariance_stamped_to_str
 
-
-def transform_str(msg):
-    header = "rx,ry,rz,qw,qx,qy,qz"
-    translation = vector3_str(msg.translation)
-    rotation = quaternion_str(msg.rotation)
-    data = translation + "," + rotation
-    return [header, data]
-
-
-def header_str(msg):
-    header = "seq,frame_id,secs,nsecs"
-
-    seq = msg.seq
-    frame_id = msg.frame_id
-    secs = msg.stamp.secs
-    nsecs = msg.stamp.nsecs
-    timestamp = rospy.Time(secs, nsecs)
-
-    ts = str(timestamp.to_nsec())
-    secs = str(ts[0:10])
-    nsecs = str(ts[10:19])
-
-    data = ",".join([str(seq), str(frame_id), secs, nsecs])
-
-    return [header, data]
-
-
-def transform_stamped_str(msg):
-    header, data = header_str(msg.header)
-    tf_header, tf_data = transform_str(msg.transform)
-    header += "," + tf_header
-    data += "," + tf_data
-    return [header, data]
-
-
-def pose_stamped_str(msg):
-    header, data = header_str(msg.header)
-
-    header += "px,py,pz,qw,qx,qy,qz"
-    data += str(msg.position.x)
-    data += str(msg.position.y)
-    data += str(msg.position.z)
-    data += str(msg.orientation.w)
-    data += str(msg.orientation.x)
-    data += str(msg.orientation.y)
-    data += str(msg.orientation.z)
-
-    return [header, data]
+    if msg_type == "nav_msgs/Odometry":
+        return nav_msgs.odometry_to_str
 
 
 if __name__ == "__main__":
@@ -88,24 +248,21 @@ if __name__ == "__main__":
     topic = sys.argv[2]
     output_path = sys.argv[3]
 
-    # Check if topic is in bag
-    info = bag.get_type_and_topic_info()
-    if topic not in info.topics:
-        raise RuntimeError("Opps! topic not in bag!")
+    # Checks
+    check_topic_exists(bag, topic)
+    check_topic_type(bag, topic)
+    msg_converter = get_msg_converter(bag, topic)
 
-    # Check if topic type is supported
-    check_topic_type(bag)
     # Output csv file
     # -- Output header
     csv_file = open(output_path, "w")
     topic, msg, t = next(bag.read_messages(topics=[topic]))
-    # header, data = transform_stamped_str(msg)
-    # csv_file.write(header + "\n")
+    header, data = msg_converter(msg)
+    csv_file.write("#" + header + "\n")
+    csv_file.write(data + "\n")
     # -- Output data
-    time = []
     for topic, msg, t in bag.read_messages(topics=[topic]):
-        print(msg)
-        # header, data = transform_stamped_str(msg)
-        # csv_file.write(data + "\n")
-        # csv_file.flush()
+        _, data = msg_converter(msg)
+        csv_file.write(data + "\n")
+        csv_file.flush()
     csv_file.close()

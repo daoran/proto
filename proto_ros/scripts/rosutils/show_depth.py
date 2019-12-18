@@ -3,14 +3,16 @@ import sys
 
 import numpy as np
 import cv2
-import roslib
 import rospy
+import roslib
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
 # DEPTH_TOPIC = "/camera/depth/image_rect_raw"
-DEPTH_TOPIC = "/camera/aligned_depth_to_color/image_raw"
-RGB_TOPIC = "/camera/color/image_raw"
+# DEPTH_TOPIC = "/camera/aligned_depth_to_color/image_raw"
+# RGB_TOPIC = "/camera/color/image_raw"
+DEPTH_TOPIC = "/rs/depth0/image"
+RGB_TOPIC = "/rs/rgb0/image"
 
 depth_image = None
 rgb_image = None

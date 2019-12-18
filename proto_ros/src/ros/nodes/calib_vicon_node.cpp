@@ -345,15 +345,18 @@ dataset_t process_dataset(const std::string &data_path,
   LOG_INFO("-- Loading dataset");
   dataset_t ds;
   // -- April Grid
+  std::cout << "---- Loading AprilGrids" << std::endl;
   aprilgrids_t aprilgrids = load_aprilgrids(grid0_path);
   // -- Camera intrinsics and distortion
   ds.pinhole = pinhole_t{intrinsics};
   ds.radtan = radtan4_t{distortion};
   // -- Vicon marker pose
+  std::cout << "---- Loading body poses" << std::endl;
   timestamps_t body_timestamps;
   mat4s_t body_poses;
   load_body_poses(body0_csv_path, body_timestamps, body_poses);
   // -- Synchronize aprilgrids and body poses
+  std::cout << "---- Synchronizing ApilGrids" << std::endl;
   lerp_body_poses(aprilgrids, body_timestamps, body_poses, ds.grids, ds.T_WM);
   // ds.grids, ds.T_WM, 0.05e9);
   // -- Vicon Marker to Camera transform
@@ -361,6 +364,7 @@ dataset_t process_dataset(const std::string &data_path,
   const mat3_t C = euler321(deg2rad(euler));
   ds.T_MC = tf(C, zeros(3, 1));
   // -- Fiducial target pose
+  std::cout << "---- Loading fiducial pose" << std::endl;
   ds.T_WF = load_fiducial_pose(target0_csv_path);
   // ds.T_WF = ds.T_WM[0] * ds.T_MC * ds.grids[0].T_CF;
   // print_matrix("T_WM", ds.T_WM[0]);
