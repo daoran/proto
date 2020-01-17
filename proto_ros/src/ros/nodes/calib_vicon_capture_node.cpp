@@ -170,11 +170,11 @@ int main(int argc, char *argv[]) {
         // std::cout << "key: " << key << std::endl;
 
         switch (key) {
-        case 113: // 'q' key pressed
+        case 113: // 'q' key
           keep_running = false;
           break;
-        case 27: // 'ESC' key pressed
-        case 99: // 'c' key pressed
+        case 126: // Presentation clicker up / down key
+        case 99:  // 'c' key
           capture_event = true;
           break;
         }

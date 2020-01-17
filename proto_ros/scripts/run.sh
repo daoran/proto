@@ -21,7 +21,7 @@
 # roslaunch proto_ros mav_sim.launch
 
 python scripts/rosutils/bag2csv.py \
-  /data/ucl/191211-flight_test-0.bag \
+  /data/ucl/191213-scan-0.bag \
   /ucl_0/vrpn_client/estimated_odometry \
   /tmp/nav_odometry.csv
   # /vrpn_client_node/ucl_0/pose \

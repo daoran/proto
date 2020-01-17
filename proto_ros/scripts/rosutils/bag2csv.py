@@ -217,9 +217,11 @@ def get_msg_converter(bag, topic):
     info = bag.get_type_and_topic_info()
     msg_type = info.topics[topic].msg_type
 
+    # STD MSGS
     if msg_type == "std_msgs/Header":
         return std_msgs.header_to_str
 
+    # GEOMETRY MSGS
     if msg_type == "geometry_msgs/Point":
         return geometry_msgs.point_to_str
     if msg_type == "geometry_msgs/Vector3":
@@ -233,6 +235,7 @@ def get_msg_converter(bag, topic):
     if msg_type == "geometry_msgs/PoseWithCovarianceStamped":
         return geometry_msgs.pose_with_covariance_stamped_to_str
 
+    # ODOMETRY MSGS
     if msg_type == "nav_msgs/Odometry":
         return nav_msgs.odometry_to_str
 
@@ -244,9 +247,10 @@ if __name__ == "__main__":
         exit(-1)
 
     # Parse CLI args
-    bag = rosbag.Bag(sys.argv[1], 'r')
+    bag_path = sys.argv[1]
     topic = sys.argv[2]
     output_path = sys.argv[3]
+    bag = rosbag.Bag(bag_path, 'r')
 
     # Checks
     check_topic_exists(bag, topic)
@@ -254,6 +258,9 @@ if __name__ == "__main__":
     msg_converter = get_msg_converter(bag, topic)
 
     # Output csv file
+    print("Processing rosbag: [%s]" % (bag_path))
+    print("Extracting rostopic: [%s]" % (topic))
+    print("Saving to: [%s]" % (output_path))
     # -- Output header
     csv_file = open(output_path, "w")
     topic, msg, t = next(bag.read_messages(topics=[topic]))
@@ -266,3 +273,4 @@ if __name__ == "__main__":
         csv_file.write(data + "\n")
         csv_file.flush()
     csv_file.close()
+    print("Done!")

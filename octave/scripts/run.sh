@@ -22,6 +22,7 @@ make
 # octave notes/error_ellipse.m && exit 0
 # octave notes/error_propagation.m && exit 0
 # octave notes/euroc_frames.m && exit 0
+# octave notes/frames_sandbox.m && exit 0
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
 # octave notes/illum_invar.m && exit 0
@@ -32,7 +33,7 @@ make
 # octave notes/rand_inv_matrix.m && exit 0
 # octave notes/vicon_frames.m && exit 0
 # octave notes/vicon_f450.m && exit 0
-octave notes/vicon_ucl.m && exit 0
+# octave notes/vicon_ucl.m && exit 0
 
 # octave tools/calib_data_summary.m && exit 0
 # octave tools/plot_aprilgrid_data.m && exit 0

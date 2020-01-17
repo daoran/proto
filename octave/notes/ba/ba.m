@@ -243,14 +243,12 @@ function data = ba_update(data, e, E, sigma=[1.0; 1.0])
   % Solve Gauss-Newton system [H dx = g]: Solve for dx
   H = (E' * W * E);
   g = -E' * W * e;
-  dx = pinv(H) * g;
-
-  % H = H + 0.1 * eye(size(H));
-  % dx = H \ (-E' * e);
-
-  % dx = (H) \ (-E' * W * e);
-  % dx = inv(H) * (-E' * W * e);
-  % dx = (H)^-1 * (-E' * W * e);
+	% cond(H)
+	H = nearestSPD(H);
+  H = H + 0.1 * eye(size(H));
+	% cond(H)
+  dx = H \ g;
+  % dx = pinv(H) * g;
 
   % Update camera poses
   nb_poses = length(data.time);
@@ -362,6 +360,183 @@ nb_poses = 20;
 data_gnd = calib_sim(calib_target, T_WT, camera, nb_poses);
 data = calib_data_add_noise(data_gnd);
 
+function save_dataset(save_path="/tmp/ba_data/", data)
+  % Create directory to save dataset
+  mkdir(save_path);
+
+  % fieldnames(data)
+  % fieldnames(data.camera)
+  % fieldnames(data.target)
+
+  % -- Save camera matrix
+  % cam_file = fopen(strcat(save_path, "cam.csv"), "w");
+  % fprintf(cam_file, "%f,%f,%f\n", data.cam_K(0));
+  % fclose(cam_file);
+  cam_file = fopen(strcat(save_path, "camera.csv"), "w");
+  K = data.camera.K;
+  fprintf(cam_file, "#camera_K\n");
+  fprintf(cam_file, "%f,%f,%f\n", K(1, 1), K(1, 2), K(1, 3));
+  fprintf(cam_file, "%f,%f,%f\n", K(2, 1), K(2, 2), K(2, 3));
+  fprintf(cam_file, "%f,%f,%f\n", K(3, 1), K(3, 2), K(3, 3));
+  fclose(cam_file);
+
+  % -- Save camera poses
+  cam_poses_file = fopen(strcat(save_path, "camera_poses.csv"), "w");
+  fprintf(cam_poses_file, "#qw,qx,qy,qz,rx,ry,rz\n");
+  for k = 1:length(data.q_WC)
+    q = data.q_WC{k};
+    r = data.r_WC{k};
+    fprintf(cam_poses_file, "%f,%f,%f,%f,", q(1), q(2), q(3), q(4));
+    fprintf(cam_poses_file, "%f,%f,%f", r(1), r(2), r(3));
+    fprintf(cam_poses_file, "\n");
+  endfor
+  fclose(cam_poses_file);
+
+  % -- Save target pose
+  target_pose_file = fopen(strcat(save_path, "target_pose.csv"), "w");
+  fprintf(target_pose_file, "#qw,qx,qy,qz,rx,ry,rz\n");
+  q = data.q_WT;
+  r = data.r_WT;
+  fprintf(target_pose_file, "%f,%f,%f,%f,", q(1), q(2), q(3), q(4));
+  fprintf(target_pose_file, "%f,%f,%f", r(1), r(2), r(3));
+  fprintf(target_pose_file, "\n");
+  fclose(target_pose_file);
+
+  % -- Save measured keypoints
+  keypoints_file = fopen(strcat(save_path, "keypoints.csv"), "w");
+  fprintf(keypoints_file, "#size,keypoints\n");
+  for i = 1:length(data.z_data)
+    z_data = data.z_data{i};
+    fprintf(keypoints_file, "%d,", length(z_data) * 2);
+    for j = 1:length(z_data)
+      fprintf(keypoints_file, "%f,%f", z_data(1, j), z_data(2, j));
+      if j != length(z_data)
+        fprintf(keypoints_file, ",");
+      end
+    endfor
+    fprintf(keypoints_file, "\n");
+  endfor
+  fclose(keypoints_file);
+
+  % -- Save point ids
+  point_ids_file = fopen(strcat(save_path, "point_ids.csv"), "w");
+  fprintf(point_ids_file, "#size,point_ids\n");
+  for i = 1:length(data.point_ids_data)
+    id = data.point_ids_data{i};
+    fprintf(point_ids_file, "%d,", length(id));
+    for j = 1:length(id)
+      fprintf(point_ids_file, "%d", id(j) - 1);  # to correct for 0-index
+      if j != length(id)
+        fprintf(point_ids_file, ",");
+      end
+    endfor
+    fprintf(point_ids_file, "\n");
+  endfor
+  fclose(point_ids_file);
+
+  % -- Save points
+  points_file = fopen(strcat(save_path, "points.csv"), "w");
+  fprintf(points_file, "#x,y,z\n");
+  for i = 1:length(data.p_data)
+    p = data.p_data(1:3, i);
+    fprintf(points_file, "%f,%f,%f", p(1), p(2), p(3));
+    if j != length(id)
+      fprintf(points_file, ",");
+    end
+    fprintf(points_file, "\n");
+  endfor
+  fclose(points_file);
+end
+
+function Ahat = nearestSPD(A)
+% nearestSPD - the nearest (in Frobenius norm) Symmetric Positive Definite matrix to A
+% usage: Ahat = nearestSPD(A)
+%
+% From Higham: "The nearest symmetric positive semidefinite matrix in the
+% Frobenius norm to an arbitrary real matrix A is shown to be (B + H)/2,
+% where H is the symmetric polar factor of B=(A + A')/2."
+%
+% http://www.sciencedirect.com/science/article/pii/0024379588902236
+%
+% arguments: (input)
+%  A - square matrix, which will be converted to the nearest Symmetric
+%    Positive Definite Matrix.
+%
+% Arguments: (output)
+%  Ahat - The matrix chosen as the nearest SPD matrix to A.
+if nargin ~= 1
+  error('Exactly one argument must be provided.')
+end
+% test for a square matrix A
+[r,c] = size(A);
+if r ~= c
+  error('A must be a square matrix.')
+elseif (r == 1) && (A <= 0)
+  % A was scalar and non-positive, so just return eps
+  Ahat = eps;
+  return
+end
+% symmetrize A into B
+B = (A + A')/2;
+% Compute the symmetric polar factor of B. Call it H.
+% Clearly H is itself SPD.
+[U,Sigma,V] = svd(B);
+H = V*Sigma*V';
+% get Ahat in the above formula
+Ahat = (B+H)/2;
+% ensure symmetry
+Ahat = (Ahat + Ahat')/2;
+% test that Ahat is in fact PD. if it is not so, then tweak it just a bit.
+p = 1;
+k = 0;
+while p ~= 0
+  [R,p] = chol(Ahat);
+  k = k + 1;
+  if p ~= 0
+    % Ahat failed the chol test. It must have been just a hair off,
+    % due to floating point trash, so it is simplest now just to
+    % tweak by adding a tiny multiple of an identity matrix.
+    mineig = min(eig(Ahat));
+    Ahat = Ahat + (-mineig*k.^2 + eps(mineig))*eye(size(A));
+  end
+end
+end
+
+
+% save_dataset(save_path="/tmp/ba_data/", data_gnd);
+% e = ba_residuals(data_gnd);
+% E = ba_jacobian(data);
+% H = E' * E;
+% g = -E' * e;
+% rcond(H)
+% H_hat = nearestSPD(H);
+% dx = H_hat \ g
+% dx = H \ g
+% rcond(H_hat)
+% chol(H_hat);
+% chol(H);
+% min(min(H))
+% figure(1);
+% imagesc(H);
+% ginput();
+
+% cost = ba_cost(e)
+
+% E = ba_jacobian(data);
+% H = E' * E;
+% try chol(H)
+%   disp('Matrix is symmetric positive definite.')
+% catch ME
+%   disp('Matrix is not symmetric positive definite')
+% end
+
+% # For small matrices
+% d = eig(H);
+% tol = eps;
+% isposdef = all(d) > tol
+% issemidef = all(d) > -tol
+
+
 % Optimize
 % plot_compare_data("Before Bundle Adjustment", data_gnd, data);
 max_iter = 20;
@@ -369,6 +544,7 @@ cost_prev = 0.0;
 for i = 1:max_iter
   E = ba_jacobian(data);
   e = ba_residuals(data);
+
   data = ba_update(data, e, E);
   cost = ba_cost(e);
   printf("iter: %d\t cost: %.4e\n", i, cost);

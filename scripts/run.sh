@@ -19,7 +19,7 @@ debug() {
 # LIBRARY
 # make deps
 # time make debug
-# time make release
+time make release
 sudo make install
 time make ros
 # make notes
@@ -31,11 +31,11 @@ cd ~/catkin_ws/ && source devel/setup.bash
 # roslaunch proto_ros calib_camera.launch
 # roslaunch proto_ros calib_stereo.launch
 
-export ROS_MASTER_URI=http://localhost:11311; roslaunch proto_ros calib_vicon_capture.launch
+# roslaunch proto_ros calib_vicon_capture.launch
 # mv /data/vicon_capture.bag /data/vicon-train.bag
 # roslaunch proto_ros calib_vicon_capture.launch
 # mv /data/vicon_capture.bag /data/vicon-test.bag
-# rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
+rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
 
 # roslaunch proto_ros calib_vicon.launch
 # roslaunch proto_ros calib_vicon_validate.launch

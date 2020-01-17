@@ -1,10 +1,10 @@
 <launch>
   <node pkg="proto_ros" type="calib_vicon_node" name="calib_vicon_node" required="true" output="screen">
-    <param name="train_bag" value="/data/ucl/191213-vicon_calib-train.bag" />
-    <param name="test_bag" value="/data/ucl/191213-vicon_calib-test.bag" />
+    <param name="train_bag" value="/data/vicon-train.bag" />
+    <param name="test_bag" value="/data/vicon-test.bag" />
 
-    <!-- <param name="train_bag" value="/data/vicon&#45;train.bag" /> -->
-    <!-- <param name="test_bag" value="/data/vicon&#45;test.bag" /> -->
+    <!-- <param name="train_bag" value="/data/srl/srl&#45;191205&#45;train.bag" /> -->
+    <!-- <param name="test_bag" value="/data/srl/srl&#45;191205&#45;test.bag" /> -->
 
     <param name="config_file" value="$(find proto_ros)/config/calib_vicon-intel_d435i.yaml" />
     <param name="cam0_topic" value="/cam0/image" />
