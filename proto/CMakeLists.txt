@@ -110,7 +110,6 @@ ADD_LIBRARY(
   src/mav/atl.cpp
   src/mav/lz.cpp
   src/mav/mission.cpp
-  src/mav/pos_ctrl.cpp
   src/mav/tk_ctrl.cpp
   # src/mav/wp_ctrl.cpp
   # model
@@ -184,7 +183,6 @@ SET(
   # mav-test_atl
   # mav-test_lz
   # mav-test_mission
-  # # mav-test_pos_ctrl
   # mav-test_wp_ctrl
   # vision-camera-test_camera_geometry
   # vision-camera-test_equi
