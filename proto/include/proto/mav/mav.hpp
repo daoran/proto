@@ -2,7 +2,6 @@
 #define PROTO_MAV_HPP
 
 #include "proto/mav/atl.hpp"
-#include "proto/mav/att_ctrl.hpp"
 #include "proto/mav/lz.hpp"
 #include "proto/mav/mav.hpp"
 #include "proto/mav/mission.hpp"

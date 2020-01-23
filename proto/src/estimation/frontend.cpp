@@ -6,7 +6,7 @@ frontend_t::frontend_t() {}
 
 frontend_t::~frontend_t() {}
 
-int frontend_update(frontend_t &fe, const cv::Mat &image, const bool debug) {
+int frontend_update(frontend_t &fend, const cv::Mat &image, const bool debug) {
   // Parameters for Shi-Tomasi algorithm
   std::vector<cv::Point2f> corners;
   const int max_corners = 100;

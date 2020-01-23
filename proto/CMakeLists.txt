@@ -108,7 +108,6 @@ ADD_LIBRARY(
   src/estimation/measurement.cpp
   # mav
   src/mav/atl.cpp
-  src/mav/att_ctrl.cpp
   src/mav/lz.cpp
   src/mav/mission.cpp
   src/mav/pos_ctrl.cpp
@@ -183,7 +182,6 @@ SET(
   # # model-test_mav
   # model-test_two_wheel
   # mav-test_atl
-  # # mav-test_att_ctrl
   # mav-test_lz
   # mav-test_mission
   # # mav-test_pos_ctrl
