@@ -2,7 +2,6 @@
 #define PROTO_MODEL_TWOWHEEL_HPP
 
 #include "proto/core/core.hpp"
-#include "proto/control/pid.hpp"
 
 namespace proto {
 

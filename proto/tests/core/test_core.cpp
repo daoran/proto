@@ -1509,6 +1509,232 @@ int test_sim_imu_measurement() {
   return 0;
 }
 
+/*****************************************************************************
+ *                              CONTROL
+ *****************************************************************************/
+
+int test_pid_construct() {
+  pid_t p;
+
+  MU_CHECK_FLOAT(0.0, p.error_prev);
+  MU_CHECK_FLOAT(0.0, p.error_sum);
+
+  MU_CHECK_FLOAT(0.0, p.error_p);
+  MU_CHECK_FLOAT(0.0, p.error_i);
+  MU_CHECK_FLOAT(0.0, p.error_d);
+
+  MU_CHECK_FLOAT(0.0, p.k_p);
+  MU_CHECK_FLOAT(0.0, p.k_i);
+  MU_CHECK_FLOAT(0.0, p.k_d);
+
+  return 0;
+}
+
+int test_pid_setup() {
+  pid_t p(1.0, 2.0, 3.0);
+
+  MU_CHECK_FLOAT(0.0, p.error_prev);
+  MU_CHECK_FLOAT(0.0, p.error_sum);
+
+  MU_CHECK_FLOAT(0.0, p.error_p);
+  MU_CHECK_FLOAT(0.0, p.error_i);
+  MU_CHECK_FLOAT(0.0, p.error_d);
+
+  MU_CHECK_FLOAT(1.0, p.k_p);
+  MU_CHECK_FLOAT(2.0, p.k_i);
+  MU_CHECK_FLOAT(3.0, p.k_d);
+
+  return 0;
+}
+
+int test_pid_update() {
+  pid_t p(1.0, 2.0, 3.0);
+
+  // test and assert
+  double output = pid_update(p, 10.0, 0.0, 0.1);
+  std::cout << p << std::endl;
+
+  // MU_CHECK_FLOAT(1.0, p.error_sum);
+  // MU_CHECK_FLOAT(10.0, p.error_p);
+  // MU_CHECK_FLOAT(2.0, p.error_i);
+  // MU_CHECK_FLOAT(300.0, p.error_d);
+  // MU_CHECK_FLOAT(10.0, p.error_prev);
+  // MU_CHECK_FLOAT(111.0, output);
+
+  return 0;
+}
+
+int test_pid_reset() {
+  pid_t p;
+
+  p.error_prev = 0.1;
+  p.error_sum = 0.2;
+
+  p.error_p = 0.3;
+  p.error_i = 0.4;
+  p.error_d = 0.5;
+
+  pid_reset(p);
+
+  MU_CHECK_FLOAT(0.0, p.error_prev);
+  MU_CHECK_FLOAT(0.0, p.error_sum);
+
+  MU_CHECK_FLOAT(0.0, p.error_p);
+  MU_CHECK_FLOAT(0.0, p.error_i);
+  MU_CHECK_FLOAT(0.0, p.error_d);
+
+  return 0;
+}
+
+int test_carrot_ctrl_constructor() {
+  carrot_ctrl_t cc;
+
+  MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
+  MU_CHECK(cc.wp_end.isApprox(vec3_t::Zero()));
+  MU_CHECK(cc.wp_index == 0);
+  MU_CHECK_FLOAT(0.0, cc.look_ahead_dist);
+
+  return 0;
+}
+
+int test_carrot_ctrl_configure() {
+  carrot_ctrl_t cc;
+
+  vec3s_t waypoints;
+  waypoints.emplace_back(0.0, 0.0, 0.0);
+  waypoints.emplace_back(1.0, 1.0, 0.0);
+  waypoints.emplace_back(2.0, 2.0, 0.0);
+  waypoints.emplace_back(3.0, 3.0, 0.0);
+  carrot_ctrl_configure(cc, waypoints, 0.1);
+
+  MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
+  MU_CHECK(cc.wp_end.isApprox(vec3_t{1.0, 1.0, 0.0}));
+  MU_CHECK(cc.wp_index == 1);
+  MU_CHECK_FLOAT(0.1, cc.look_ahead_dist);
+
+  return 0;
+}
+
+int test_carrot_ctrl_closest_point() {
+  carrot_ctrl_t cc;
+
+  vec3s_t wps;
+  wps.emplace_back(0.0, 0.0, 0.0);
+  wps.emplace_back(1.0, 1.0, 0.0);
+  wps.emplace_back(2.0, 2.0, 0.0);
+  wps.emplace_back(3.0, 3.0, 0.0);
+  carrot_ctrl_configure(cc, wps, 0.1);
+
+  MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
+  MU_CHECK(cc.wp_end.isApprox(vec3_t{1.0, 1.0, 0.0}));
+  MU_CHECK(cc.wp_index == 1);
+  MU_CHECK_FLOAT(0.1, cc.look_ahead_dist);
+
+  // Test before waypoint start
+  vec3_t pos0{-1.0, -1.0, 0.0};
+  vec3_t res0;
+  int s0 = carrot_ctrl_closest_point(cc, pos0, res0);
+  MU_CHECK(res0.isApprox(vec3_t{-1.0, -1.0, 0.0}));
+  MU_CHECK(s0 == -1);
+
+  // Test between waypoint start and end
+  vec3_t pos1{0.5, 0.5, 0.0};
+  vec3_t res1;
+  int s1 = carrot_ctrl_closest_point(cc, pos1, res1);
+  MU_CHECK(res1.isApprox(vec3_t{0.5, 0.5, 0.0}));
+  MU_CHECK(s1 == 0);
+
+  // Test after waypoint end
+  vec3_t pos2{1.5, 1.5, 0.0};
+  vec3_t res2;
+  int s2 = carrot_ctrl_closest_point(cc, pos2, res2);
+  MU_CHECK(res2.isApprox(vec3_t{1.5, 1.5, 0.0}));
+  MU_CHECK(s2 == 1);
+
+  return 0;
+}
+
+int test_carrot_ctrl_carrot_point() {
+  carrot_ctrl_t cc;
+
+  vec3s_t wps;
+  wps.emplace_back(0.0, 0.0, 0.0);
+  wps.emplace_back(1.0, 0.0, 0.0);
+  wps.emplace_back(2.0, 0.0, 0.0);
+  wps.emplace_back(3.0, 0.0, 0.0);
+  carrot_ctrl_configure(cc, wps, 0.1);
+
+  MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
+  MU_CHECK(cc.wp_end.isApprox(vec3_t{1.0, 0.0, 0.0}));
+  MU_CHECK(cc.wp_index == 1);
+  MU_CHECK_FLOAT(0.1, cc.look_ahead_dist);
+
+  // Test before waypoint start
+  vec3_t pos0{-1.0, 0.0, 0.0};
+  vec3_t res0;
+  int s0 = carrot_ctrl_carrot_point(cc, pos0, res0);
+  MU_CHECK(res0.isApprox(vec3_t{0.0, 0.0, 0.0}));
+  MU_CHECK(s0 == 01);
+
+  // Test between waypoint start and end
+  vec3_t pos1{0.5, 0.0, 0.0};
+  vec3_t res1;
+  int s1 = carrot_ctrl_carrot_point(cc, pos1, res1);
+  MU_CHECK(res1.isApprox(vec3_t{0.6, 0.0, 0.0}));
+  MU_CHECK(s1 == 0);
+
+  // Test after waypoint end
+  vec3_t pos2{1.5, 0.0, 0.0};
+  vec3_t res2;
+  int s2 = carrot_ctrl_carrot_point(cc, pos2, res2);
+  MU_CHECK(res2.isApprox(vec3_t{1.0, 0.0, 0.0}));
+  MU_CHECK(s2 == 1);
+
+  return 0;
+}
+
+int test_carrot_ctrl_update() {
+  carrot_ctrl_t cc;
+
+  vec3s_t wps;
+  wps.emplace_back(0.0, 0.0, 0.0);
+  wps.emplace_back(1.0, 0.0, 0.0);
+  wps.emplace_back(2.0, 0.0, 0.0);
+  wps.emplace_back(3.0, 0.0, 0.0);
+  carrot_ctrl_configure(cc, wps, 0.1);
+
+  MU_CHECK(cc.wp_start.isApprox(vec3_t::Zero()));
+  MU_CHECK(cc.wp_end.isApprox(vec3_t{1.0, 0.0, 0.0}));
+  MU_CHECK(cc.wp_index == 1);
+  MU_CHECK_FLOAT(0.1, cc.look_ahead_dist);
+
+  // Test before waypoint start
+  vec3_t pos0{-1.0, 0.0, 0.0};
+  vec3_t res0;
+  int s0 = carrot_ctrl_update(cc, pos0, res0);
+  MU_CHECK(res0.isApprox(vec3_t{0.0, 0.0, 0.0}));
+  MU_CHECK(s0 == 0);
+
+  // Test between waypoint start and end
+  vec3_t pos1{0.5, 0.0, 0.0};
+  vec3_t res1;
+  int s1 = carrot_ctrl_update(cc, pos1, res1);
+  MU_CHECK(res1.isApprox(vec3_t{0.6, 0.0, 0.0}));
+  MU_CHECK(s1 == 0);
+
+  // Test after waypoint end
+  vec3_t pos2{1.5, 0.0, 0.0};
+  vec3_t res2;
+  int s2 = carrot_ctrl_update(cc, pos2, res2);
+  MU_CHECK(res2.isApprox(vec3_t{1.0, 0.0, 0.0}));
+  MU_CHECK(s2 == 0);
+  MU_CHECK(cc.wp_index == 2);
+  MU_CHECK(cc.wp_start.isApprox(vec3_t{1.0, 0.0, 0.0}));
+  MU_CHECK(cc.wp_end.isApprox(vec3_t{2.0, 0.0, 0.0}));
+
+  return 0;
+}
+
 void test_suite() {
   // Filesystem
   MU_ADD_TEST(test_file_exists);
@@ -1582,6 +1808,17 @@ void test_suite() {
   MU_ADD_TEST(test_ctraj_get_acceleration);
   MU_ADD_TEST(test_ctraj_get_angular_velocity);
   MU_ADD_TEST(test_sim_imu_measurement);
+
+  // Control
+  MU_ADD_TEST(test_pid_construct);
+  MU_ADD_TEST(test_pid_setup);
+  MU_ADD_TEST(test_pid_update);
+  MU_ADD_TEST(test_pid_reset);
+  MU_ADD_TEST(test_carrot_ctrl_constructor);
+  MU_ADD_TEST(test_carrot_ctrl_configure);
+  MU_ADD_TEST(test_carrot_ctrl_closest_point);
+  MU_ADD_TEST(test_carrot_ctrl_carrot_point);
+  MU_ADD_TEST(test_carrot_ctrl_update);
 }
 
 } // namespace proto

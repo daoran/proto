@@ -91,9 +91,6 @@ ADD_LIBRARY(
   src/calib/calib_vicon_marker.cpp
   # comm
   src/comm/tcp.cpp
-  # control
-  src/control/carrot_ctrl.cpp
-  src/control/pid.cpp
   # core
   src/core/core.cpp
   src/core/stb.cpp
@@ -164,8 +161,6 @@ SET(
   calib-test_sandbox
   calib-test_sandbox2
   comm-test_tcp
-  control-test_carrot_ctrl
-  control-test_pid
   core-test_core
   dataset-test_euroc
   dataset-test_kitti

@@ -11,7 +11,6 @@
 #include <AprilTags/Tag16h5.h>
 
 #include "proto/core/core.hpp"
-#include "proto/control/pid.hpp"
 #include "proto/vision/camera/camera.hpp"
 
 namespace proto {
