@@ -195,6 +195,8 @@ static mat4_t load_fiducial_pose(const std::string &fpath) {
     vec3_t r{px, py, pz};
     return tf(q, r);
   }
+
+  return I(4);
 }
 
 mat4_t lerp_pose(const timestamp_t &t0,

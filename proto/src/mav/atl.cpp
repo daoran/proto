@@ -230,6 +230,359 @@ void pos_ctrl_reset(pos_ctrl_t &ctrl) {
 }
 
 /*****************************************************************************
+ *                          TRACKING CONTROLLER
+ ****************************************************************************/
+
+int tk_ctrl_configure(tk_ctrl_t &ctrl,
+                      const std::string &config_file,
+                      const std::string &prefix) {
+  // Load config
+  config_t config{config_file};
+  if (config.ok == false) {
+    LOG_ERROR("Failed to load config [%s]!", config_file.c_str());
+    return -1;
+  }
+
+  const std::string p = (prefix == "") ? "" : prefix + ".";
+  {
+    vec3_t gains;
+    parse(config, p + "roll_ctrl.gains", gains);
+    parse(config, p + "roll_ctrl.limits", ctrl.roll_limits);
+    ctrl.x_ctrl.k_p = gains(0);
+    ctrl.x_ctrl.k_i = gains(1);
+    ctrl.x_ctrl.k_d = gains(2);
+  }
+  {
+    vec3_t gains;
+    parse(config, p + "pitch_ctrl.gains", gains);
+    parse(config, p + "pitch_ctrl.limits", ctrl.pitch_limits);
+    ctrl.y_ctrl.k_p = gains(0);
+    ctrl.y_ctrl.k_i = gains(1);
+    ctrl.y_ctrl.k_d = gains(2);
+  }
+  {
+    vec3_t gains;
+    parse(config, p + "throttle_ctrl.gains", gains);
+    parse(config, p + "throttle_ctrl.hover_throttle", ctrl.hover_throttle);
+    ctrl.z_ctrl.k_p = gains(0);
+    ctrl.z_ctrl.k_i = gains(1);
+    ctrl.z_ctrl.k_d = gains(2);
+  }
+
+  // Convert roll and pitch limits from degrees to radians
+  ctrl.roll_limits(0) = deg2rad(ctrl.roll_limits(0));
+  ctrl.roll_limits(1) = deg2rad(ctrl.roll_limits(1));
+  ctrl.pitch_limits(0) = deg2rad(ctrl.pitch_limits(0));
+  ctrl.pitch_limits(1) = deg2rad(ctrl.pitch_limits(1));
+
+  return 0;
+}
+
+vec4_t tk_ctrl_update(tk_ctrl_t &ctrl,
+                      const mat4_t &T_BZ,
+                      const mat4_t &T_WB,
+                      const double desired_height,
+                      const double desired_yaw,
+                      const double dt) {
+  // Check rate
+  ctrl.dt += dt;
+  if (ctrl.dt < 0.01) {
+    return ctrl.outputs;
+  }
+
+  // Form landing zone to body relative error
+  // Note: Key important thing here is we don't want to land just yet, so lets
+  // keep at a desired height at the moment
+  const double actual_height = T_WB(2, 3);
+  vec3_t r_BZ = tf_trans(T_BZ);
+  r_BZ(2) = desired_height - actual_height;
+
+  // Adjust relative errors by incorporating yaw in world frame
+  const double actual_yaw = quat2euler(tf_quat(T_WB))(2);
+  const vec3_t rpy_WB{0.0, 0.0, actual_yaw};
+  const mat3_t C_BW = euler123(rpy_WB);
+  const vec3_t errors_B = C_BW * r_BZ;
+
+  // Roll, pitch, yaw and thrust
+  double r = -pid_update(ctrl.x_ctrl, errors_B(1), dt);
+  double p = pid_update(ctrl.y_ctrl, errors_B(0), dt);
+  double y = desired_yaw;
+  double t = ctrl.hover_throttle + pid_update(ctrl.z_ctrl, errors_B(2), dt);
+
+  // Limit roll, pitch
+  r = (r < ctrl.roll_limits(0)) ? ctrl.roll_limits(0) : r;
+  r = (r > ctrl.roll_limits(1)) ? ctrl.roll_limits(1) : r;
+  p = (p < ctrl.pitch_limits(0)) ? ctrl.pitch_limits(0) : p;
+  p = (p > ctrl.pitch_limits(1)) ? ctrl.pitch_limits(1) : p;
+
+  // Limit yaw
+  y = (y > M_PI) ? (y - 2 * M_PI) : y;
+  y = (y < -M_PI) ? (y + 2 * M_PI) : y;
+
+  // Limit thrust
+  t = (t > 1.0) ? 1.0 : t;
+  t = (t < 0.0) ? 0.0 : t;
+
+  // Keep track of outputs
+  const vec4_t outputs{r, p, y, t};
+  ctrl.outputs = outputs;
+  ctrl.dt = 0.0;
+
+  return outputs;
+}
+
+void tk_ctrl_reset(tk_ctrl_t &ctrl) {
+  // assert(ctrl.ok);
+  pid_reset(ctrl.x_ctrl);
+  pid_reset(ctrl.y_ctrl);
+  pid_reset(ctrl.z_ctrl);
+}
+
+// /*****************************************************************************
+//  *                          WAYPOINT CONTROLLER
+//  ****************************************************************************/
+//
+// int wp_ctrl_update(wp_ctrl_t &wc,
+//                    wp_mission_t &m,
+//                    const vec3_t &p_G,
+//                    const vec3_t &v_G,
+//                    const vec3_t &rpy_G,
+//                    const double dt) {
+//   // Check rate
+//   wc.dt += dt;
+//   if (wc.dt < 0.01) {
+//     return 0;
+//   }
+//
+//   // Current waypoint
+//   vec3_t wp_G = vec3_t::Zero();
+//   int retval = wp_mission_update(m, p_G, wp_G);
+//   if (retval != 0) {
+//     return retval;
+//   }
+//
+//   // // Calculate waypoint relative to quadrotor
+//   // mat4_t T_P_W = zeros(4, 4);
+//   // T_P_W.block(0, 0, 3, 3) = euler123(yaw(rpy_G));
+//   // T_P_W(3, 3) = 1.0;
+//   // const vec4_t wp_B_homo{wp_G(0) - p_G(0),
+//   //                      wp_G(1) - p_G(1),
+//   //                      wp_G(2) - p_G(2),
+//   //                      1.0};
+//   // const vec4_t errors = T_P_W * wp_B_homo;
+//
+//   // std::cout << "T_P_W:\n" << T_P_W << std::endl;
+//   // std::cout << "wp_G: " << wp_G.transpose() << std::endl;
+//   // std::cout << "p_G: " << p_G.transpose() << std::endl;
+//   // std::cout << "wp_B_homo: " << wp_B_homo.transpose() << std::endl;
+//   // std::cout << std::endl;
+//
+//   // // Calculate velocity relative to quadrotor
+//   // const vec4_t v_G_homo{v_G(0), v_G(1), v_G(2), 1.0};
+//   // const vec4_t v_B = T_P_W * v_G_homo;
+//
+//   // Calculate RPY errors relative to quadrotor by incorporating yaw
+//   vec3_t errors{wp_G(0) - p_G(0), wp_G(1) - p_G(1), wp_G(2) - p_G(2)};
+//   const vec3_t euler{0.0, 0.0, rpy_G(2)};
+//   const mat3_t R = euler123(euler);
+//   errors = R * errors;
+//
+//   // Roll
+//   double r = -pid_update(wc.ct_controller, errors(1), wc.dt);
+//
+//   // Pitch
+//   // double error_forward = m.desired_velocity - v_B(0);
+//   // double p = wc.at_controller.update(error_forward, wc.dt);
+//   double p = pid_update(wc.at_controller, errors(0), wc.dt);
+//
+//   // Yaw
+//   // double y = 0.2 * mission_waypoint_heading(m);
+//   double y = 0.0;
+//
+//   // Throttle
+//   double t = wc.hover_throttle;
+//   t += pid_update(wc.z_controller, errors(2), wc.dt);
+//   t /= fabs(cos(r) * cos(p)); // adjust throttle for roll and pitch
+//
+//   // Limit roll, pitch and throttle
+//   r = (r < wc.roll_limit[0]) ? wc.roll_limit[0] : r;
+//   r = (r > wc.roll_limit[1]) ? wc.roll_limit[1] : r;
+//   p = (p < wc.pitch_limit[0]) ? wc.pitch_limit[0] : p;
+//   p = (p > wc.pitch_limit[1]) ? wc.pitch_limit[1] : p;
+//   t = (t < 0.0) ? 0.0 : t;
+//   t = (t > 1.0) ? 1.0 : t;
+//
+//   // Keep track of setpoints and outputs
+//   wc.setpoints = wp_G;
+//   wc.outputs << r, p, y, t;
+//   wc.dt = 0.0;
+//
+//   return 0;
+// }
+//
+// void wp_ctrl_reset(wp_ctrl_t &wc) {
+//   pid_reset(wc.at_controller);
+//   pid_reset(wc.ct_controller);
+//   pid_reset(wc.z_controller);
+//   pid_reset(wc.yaw_controller);
+// }
+
+/*****************************************************************************
+ *                              LANDING ZONE
+ ****************************************************************************/
+
+lz_detector_t::lz_detector_t() {}
+
+lz_detector_t::lz_detector_t(const std::vector<int> &tag_ids,
+                             const std::vector<double> &tag_sizes) {
+  if (lz_detector_configure(*this, tag_ids, tag_sizes) != 0) {
+    FATAL("Failed to configure landing zone!");
+  }
+}
+
+lz_detector_t::lz_detector_t(const std::string &config_file,
+                             const std::string &prefix) {
+  if (lz_detector_configure(*this, config_file, prefix) != 0) {
+    FATAL("Failed to configure landing zone!");
+  }
+}
+
+lz_detector_t::~lz_detector_t() {
+  if (det != nullptr) {
+    delete det;
+  }
+}
+
+void lz_print(const lz_t &lz) {
+  printf("detected: %s\n", (lz.detected) ? "true" : "false");
+  print_matrix("T_CZ", lz.T_CZ);
+  printf("\n");
+}
+
+int lz_detector_configure(lz_detector_t &lz,
+                          const std::vector<int> &tag_ids,
+                          const std::vector<double> &tag_sizes) {
+  if (tag_ids.size() != tag_sizes.size()) {
+    LOG_ERROR("tag_ids.size() != tag_sizes.size()");
+    return -1;
+  }
+
+  for (size_t i = 0; i < tag_ids.size(); i++) {
+    const int tag_id = tag_ids[i];
+    const double tag_sz = tag_sizes[i];
+    lz.targets[tag_id] = tag_sz;
+  }
+  lz.det = new AprilTags::TagDetector(AprilTags::tagCodes16h5);
+  lz.ok = true;
+
+  return 0;
+}
+
+int lz_detector_configure(lz_detector_t &lz,
+                          const std::string &config_file,
+                          const std::string &prefix) {
+  std::vector<int> tag_ids;
+  std::vector<double> tag_sizes;
+
+  const std::string p = (prefix == "") ? "" : prefix + ".";
+  config_t config{config_file};
+  parse(config, p + "tag_ids", tag_ids);
+  parse(config, p + "tag_sizes", tag_sizes);
+
+  return lz_detector_configure(lz, tag_ids, tag_sizes);
+}
+
+int lz_detector_detect(const lz_detector_t &lz,
+                       const cv::Mat &image,
+                       const pinhole_t &pinhole,
+                       proto::mat4_t &T_CZ) {
+  // Convert colour image to gray
+  cv::Mat gray_image;
+  cvtColor(image, gray_image, CV_BGR2GRAY);
+
+  // Extract camera intrinsics
+  const double fx = pinhole.fx;
+  const double fy = pinhole.fy;
+  const double cx = pinhole.cx;
+  const double cy = pinhole.cy;
+
+  // Calculate relative pose
+  bool detected = false;
+  const auto detections = lz.det->extractTags(gray_image);
+  for (const AprilTags::TagDetection &tag : detections) {
+    if (lz.targets.count(tag.id) == 0) {
+      continue;
+    }
+
+    const double tag_size = lz.targets.at(tag.id);
+    T_CZ = tag.getRelativeTransform(tag_size, fx, fy, cx, cy);
+    detected = true;
+    break;
+  }
+
+  return (detected) ? 1 : 0;
+}
+
+int lz_detector_detect(const lz_detector_t &det,
+                       const cv::Mat &image,
+                       const pinhole_t &pinhole,
+                       const mat4_t &T_BC,
+                       lz_t &lz) {
+  mat4_t T_CZ = I(4);
+  if (lz_detector_detect(det, image, pinhole, T_CZ) == 0) {
+    lz = lz_t{false, T_BC, T_CZ};
+    return 0;
+  }
+
+  lz = lz_t{true, T_BC, T_CZ};
+  return 1;
+}
+
+int lz_calc_corners(const lz_detector_t &lz,
+                    const pinhole_t &pinhole,
+                    const cv::Mat &image,
+                    const mat4_t &T_CZ,
+                    const int tag_id,
+                    const double padding,
+                    vec2_t &top_left,
+                    vec2_t &btm_right) {
+  // Tag size and camera intrinsics
+  const double tag_size = lz.targets.at(tag_id);
+  const double fx = pinhole.fx;
+  const double fy = pinhole.fy;
+  const double cx = pinhole.cx;
+  const double cy = pinhole.cy;
+
+  // Tag position in camera frame
+  const vec3_t r_CZ = tf_trans(T_CZ);
+  const double x = r_CZ(0);
+  const double y = r_CZ(1);
+  const double z = r_CZ(2);
+
+  // Calculate top left and bottom right corners of tag in object frame
+  top_left(0) = x - (tag_size / 2.0) - padding;
+  top_left(1) = y - (tag_size / 2.0) - padding;
+  btm_right(0) = x + (tag_size / 2.0) + padding;
+  btm_right(1) = y + (tag_size / 2.0) + padding;
+
+  // Project back to image frame (what it would look like in image)
+  top_left(0) = (fx * top_left(0) / z) + cx;
+  top_left(1) = (fy * top_left(1) / z) + cy;
+  btm_right(0) = (fx * btm_right(0) / z) + cx;
+  btm_right(1) = (fy * btm_right(1) / z) + cy;
+
+  // Check corner bounds
+  top_left(0) = (top_left(0) > image.cols) ? image.cols : top_left(0);
+  top_left(1) = (top_left(1) > image.rows) ? image.rows : top_left(1);
+  top_left(0) = (top_left(0) < 0) ? 0 : top_left(0);
+  top_left(1) = (top_left(1) < 0) ? 0 : top_left(1);
+  btm_right(0) = (btm_right(0) > image.cols) ? image.cols : btm_right(0);
+  btm_right(1) = (btm_right(1) > image.rows) ? image.rows : btm_right(1);
+
+  return 0;
+}
+
+/*****************************************************************************
  *                                 ATL
  ****************************************************************************/
 

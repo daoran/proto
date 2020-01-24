@@ -1,10 +1,12 @@
 #ifndef PROTO_MAV_ATL_HPP
 #define PROTO_MAV_ATL_HPP
 
+// Order matters with the AprilTags lib. The detector has to be first.
+#include <AprilTags/TagDetector.h>
+#include <AprilTags/Tag16h5.h>
+
 #include "proto/core/core.hpp"
 #include "proto/control/pid.hpp"
-#include "proto/mav/lz.hpp"
-#include "proto/mav/tk_ctrl.hpp"
 #include "proto/vision/camera/pinhole.hpp"
 
 namespace proto {
@@ -106,6 +108,201 @@ vec4_t pos_ctrl_update(pos_ctrl_t &ctrl,
  * Reset position control
  */
 void pos_ctrl_reset(pos_ctrl_t &ctrl);
+
+/*****************************************************************************
+ *                          TRACKING CONTROLLER
+ ****************************************************************************/
+
+/**
+ * Tracking control
+ */
+struct tk_ctrl_t {
+  double dt = 0.0;
+  vec4_t outputs{0.0, 0.0, 0.0, 0.0};
+
+  vec2_t roll_limits{-30, 30};
+  vec2_t pitch_limits{-30, 30};
+  double hover_throttle = 0.5;
+
+  pid_t x_ctrl;
+  pid_t y_ctrl;
+  pid_t z_ctrl;
+};
+
+/**
+ * Configure tracking control
+ *
+ * @returns 0 or -1 for success or failure
+ */
+int tk_ctrl_configure(tk_ctrl_t &ctrl,
+                      const std::string &config_file,
+                      const std::string &prefix = "");
+
+/**
+ * Update tracking control
+ *
+ * - `setpoints`: Setpoints (x, y, z)
+ * - `actual`: Actual Pose T_WB
+ * - `dt`: Time step [s]
+ *
+ * @returns Attitude command (roll, pitch, yaw, thrust)
+ */
+vec4_t tk_ctrl_update(tk_ctrl_t &ctrl,
+                      const mat4_t &T_WZ,
+                      const mat4_t &T_WB,
+                      const double desired_height,
+                      const double desired_yaw,
+                      const double dt);
+
+/**
+ * Reset tk control
+ */
+void tk_ctrl_reset(tk_ctrl_t &ctrl);
+
+// /*****************************************************************************
+//  *                          WAYPOINT CONTROLLER
+//  ****************************************************************************/
+//
+// /**
+//  * Waypoint Control
+//  */
+// struct wp_ctrl_t {
+//   bool configured = false;
+//   double dt = 0.0;
+//
+//   pid_t at_controller{0.5, 0.0, 0.035};
+//   pid_t ct_controller{0.5, 0.0, 0.035};
+//   pid_t z_controller{0.3, 0.0, 0.1};
+//   pid_t yaw_controller{2.0, 0.0, 0.1};
+//
+//   double roll_limit[2] = {deg2rad(-30.0), deg2rad(30.0)};
+//   double pitch_limit[2] = {deg2rad(-30.0), deg2rad(30.0)};
+//   double hover_throttle = 0.5;
+//
+//   vec3_t setpoints{0.0, 0.0, 0.0};
+//   vec4_t outputs{0.0, 0.0, 0.0, 0.0};
+// };
+//
+// /**
+//  * Configure waypoint control
+//  *
+//  * @param[in,out] wc Waypoint controller
+//  * @param[in] config_file Path to config file
+//  * @return
+//  *    - 0: Success
+//  *    - -1: Failed to load config file
+//  *    - -2: Failed to load mission file
+//  */
+// int wp_ctrl_configure(wp_ctrl_t &wc, const std::string &config_file);
+//
+// /**
+//  * Update controller
+//  *
+//  * @param[in,out] wc Waypoint controller
+//  * @param[in,out] m Mission
+//  * @param[in] p_G Actual position in global frame
+//  * @param[in] v_G Actual velocity in global frame
+//  * @param[in] rpy_G Actual roll, pitch and yaw in global frame
+//  * @param[in] dt Time difference in seconds
+//  *
+//  * @return
+//  *   - 0: Success
+//  *   - -1: Not configured
+//  *   - -2: No more waypoints
+//  */
+// int wp_ctrl_update(wp_ctrl_t &wc,
+//                    wp_mission_t &m,
+//                    const vec3_t &p_G,
+//                    const vec3_t &v_G,
+//                    const vec3_t &rpy_G,
+//                    const double dt);
+//
+// /**
+//  * Reset controller errors to 0
+//  */
+// void wp_ctrl_reset(wp_ctrl_t &wc);
+
+/*****************************************************************************
+ *                            LANDING ZONE
+ ****************************************************************************/
+
+/**
+ * Landing zone
+ */
+struct lz_t {
+  bool detected = false;
+  mat4_t T_BC = I(4);
+  mat4_t T_CZ = I(4);
+
+  lz_t() {}
+  ~lz_t() {}
+  lz_t(const bool detected_, const mat4_t &T_BC_, const mat4_t &T_CZ_)
+      : detected{detected_}, T_BC{T_BC_}, T_CZ{T_CZ_} {}
+};
+
+/**
+ * Landing zone detector
+ */
+struct lz_detector_t {
+  bool ok = false;
+
+  AprilTags::TagDetector *det = nullptr;
+  std::map<int, double> targets;
+
+  lz_detector_t();
+  lz_detector_t(const std::vector<int> &tag_ids,
+                const std::vector<double> &tag_sizes);
+  lz_detector_t(const std::string &config, const std::string &prefix = "");
+  ~lz_detector_t();
+};
+
+/**
+ * Print landing zone
+ */
+void lz_print(const lz_t &lz);
+
+/**
+ * Configure landing zone
+ */
+int lz_detector_configure(lz_detector_t &lz,
+                          const std::vector<int> &tag_ids,
+                          const std::vector<double> &tag_sizes);
+
+/**
+ * Configure landing zone
+ */
+int lz_detector_configure(lz_detector_t &lz,
+                          const std::string &config_file,
+                          const std::string &prefix = "");
+
+/**
+ * Detect landing zone
+ */
+int lz_detector_detect(const lz_detector_t &det,
+                       const cv::Mat &image,
+                       const pinhole_t &pinhole,
+                       mat4_t &T_CZ);
+
+/**
+ * Detect landing zone
+ */
+int lz_detector_detect(const lz_detector_t &det,
+                       const cv::Mat &image,
+                       const pinhole_t &pinhole,
+                       const mat4_t &T_BC,
+                       lz_t &lz);
+
+/**
+ * Calculate landing zone corners in pixels.
+ */
+int lz_detector_calc_corners(const lz_detector_t &lz,
+                             const pinhole_t &pinhole,
+                             const cv::Mat &image,
+                             const mat4_t &T_CZ,
+                             const int tag_id,
+                             const double padding,
+                             vec2_t &top_left,
+                             vec2_t &btm_right);
 
 /*****************************************************************************
  *                                 ATL

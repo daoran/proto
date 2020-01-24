@@ -108,10 +108,7 @@ ADD_LIBRARY(
   src/estimation/measurement.cpp
   # mav
   src/mav/atl.cpp
-  src/mav/lz.cpp
   src/mav/mission.cpp
-  src/mav/tk_ctrl.cpp
-  # src/mav/wp_ctrl.cpp
   # model
   src/model/gimbal.cpp
   src/model/mav.cpp
@@ -181,9 +178,7 @@ SET(
   # # model-test_mav
   # model-test_two_wheel
   # mav-test_atl
-  # mav-test_lz
   # mav-test_mission
-  # mav-test_wp_ctrl
   # vision-camera-test_camera_geometry
   # vision-camera-test_equi
   # vision-camera-test_pinhole
