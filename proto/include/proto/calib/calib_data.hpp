@@ -8,10 +8,7 @@
 #include "proto/core/core.hpp"
 #include "proto/calib/aprilgrid.hpp"
 #include "proto/vision/vision_common.hpp"
-#include "proto/vision/camera/camera_geometry.hpp"
-#include "proto/vision/camera/pinhole.hpp"
-#include "proto/vision/camera/radtan.hpp"
-#include "proto/vision/camera/equi.hpp"
+#include "proto/vision/camera/camera.hpp"
 
 namespace proto {
 

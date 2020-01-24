@@ -4,7 +4,7 @@
 #include <ceres/ceres.h>
 
 #include "proto/core/core.hpp"
-#include "proto/vision/camera/camera_geometry.hpp"
+#include "proto/vision/camera/camera.hpp"
 
 namespace proto {
 

@@ -6,9 +6,10 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
 
 #include "proto/core/core.hpp"
-#include "proto/vision/camera/camera_geometry.hpp"
+#include "proto/vision/camera/camera.hpp"
 
 namespace proto {
 

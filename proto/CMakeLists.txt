@@ -113,9 +113,7 @@ ADD_LIBRARY(
   src/model/mav.cpp
   src/model/two_wheel.cpp
   # vision
-  src/vision/camera/radtan.cpp
-  src/vision/camera/equi.cpp
-  src/vision/camera/pinhole.cpp
+  src/vision/camera/camera.cpp
   src/vision/feature2d/draw.cpp
   src/vision/feature2d/grid_fast.cpp
   src/vision/feature2d/grid_good.cpp
