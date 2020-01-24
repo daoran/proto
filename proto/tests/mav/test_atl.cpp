@@ -383,6 +383,303 @@ int test_lz_detector_detect() {
 }
 
 /*****************************************************************************
+ *                               MISSION
+ ****************************************************************************/
+
+#define TEST_GPS_CONFIG "test_configs/missions/mission_gps.yaml"
+#define TEST_LOCAL_CONFIG "test_configs/missions/mission_local.yaml"
+#define WAYPOINTS_FILE "/tmp/waypoints.dat"
+#define STATE_FILE "/tmp/state.dat"
+
+int test_wp_mission_constructor() {
+  wp_mission_t mission;
+
+  MU_CHECK(mission.configured == false);
+  MU_CHECK(mission.check_waypoints);
+  MU_CHECK_FLOAT(20.0, mission.threshold_waypoint_gap);
+  MU_CHECK_FLOAT(0.5, mission.desired_velocity);
+
+  return 0;
+}
+
+int test_wp_mission_configure_GPS() {
+  wp_mission_t mission;
+
+  int retval = wp_mission_configure(mission, TEST_GPS_CONFIG);
+  wp_mission_set_gps_homepoint(mission, 43.474024, -80.540287);
+
+  MU_CHECK(retval == 0);
+
+  MU_CHECK(mission.check_waypoints);
+  MU_CHECK_FLOAT(20.0, mission.threshold_waypoint_gap);
+
+  MU_CHECK_FLOAT(0.5, mission.desired_velocity);
+  MU_CHECK(4 == (size_t) mission.local_waypoints.size());
+
+  MU_CHECK_NEAR(0.0, mission.local_waypoints[0](0), 0.001);
+  MU_CHECK_NEAR(0.0, mission.local_waypoints[0](1), 0.001);
+  MU_CHECK_NEAR(10.0, mission.local_waypoints[0](2), 0.001);
+
+  MU_CHECK_NEAR(6.01125, mission.local_waypoints[1](0), 0.001);
+  MU_CHECK_NEAR(-10.1787, mission.local_waypoints[1](1), 0.001);
+  MU_CHECK_NEAR(10.0, mission.local_waypoints[1](2), 0.001);
+
+  MU_CHECK_NEAR(-7.45841, mission.local_waypoints[2](0), 0.001);
+  MU_CHECK_NEAR(-17.2876, mission.local_waypoints[2](1), 0.001);
+  MU_CHECK_NEAR(10.0, mission.local_waypoints[2](2), 0.001);
+
+  MU_CHECK_NEAR(-10.5754, mission.local_waypoints[3](0), 0.001);
+  MU_CHECK_NEAR(-9.20928, mission.local_waypoints[3](1), 0.001);
+  MU_CHECK_NEAR(10.0, mission.local_waypoints[3](2), 0.001);
+
+  return 0;
+}
+
+// int test_wp_mission_configure_LOCAL() {
+//   Mission mission;
+//
+//   int retval = mission.configure(TEST_LOCAL_CONFIG);
+//   MU_CHECK_EQ(0, retval);
+//
+//   MU_CHECK(mission.check_waypoints);
+//   MU_CHECK_FLOAT(20.0, mission.threshold_waypoint_gap);
+//
+//   MU_CHECK_FLOAT(0.5, mission.desired_velocity);
+//   MU_CHECK_EQ(4, (size_t) mission.local_waypoints.size());
+//
+//   MU_CHECK_NEAR(0.0, mission.local_waypoints[0](0), 0.001);
+//   MU_CHECK_NEAR(0.0, mission.local_waypoints[0](1), 0.001);
+//   MU_CHECK_NEAR(10.0, mission.local_waypoints[0](2), 0.001);
+//
+//   MU_CHECK_NEAR(5.0, mission.local_waypoints[1](0), 0.001);
+//   MU_CHECK_NEAR(0.0, mission.local_waypoints[1](1), 0.001);
+//   MU_CHECK_NEAR(10.0, mission.local_waypoints[1](2), 0.001);
+//
+//   MU_CHECK_NEAR(5.0, mission.local_waypoints[2](0), 0.001);
+//   MU_CHECK_NEAR(5.0, mission.local_waypoints[2](1), 0.001);
+//   MU_CHECK_NEAR(10.0, mission.local_waypoints[2](2), 0.001);
+//
+//   MU_CHECK_NEAR(0.0, mission.local_waypoints[3](0), 0.001);
+//   MU_CHECK_NEAR(5.0, mission.local_waypoints[3](1), 0.001);
+//   MU_CHECK_NEAR(10.0, mission.local_waypoints[3](2), 0.001);
+//
+//   return 0;
+// }
+//
+// int test_wp_mission_closestPoint() {
+//   Mission mission;
+//
+//   // setup
+//   vec3_t wp_start{1.0, 1.0, 1.0};
+//   vec3_t wp_end{10.0, 10.0, 10.0};
+//   vec3_t position{5.0, 5.0, 5.0};
+//   vec3_t expected{5.0, 5.0, 5.0};
+//
+//   // test and assert
+//   mission.wp_start = wp_start;
+//   mission.wp_end = wp_end;
+//   vec3_t point = mission.closestPoint(position);
+//   MU_CHECK(point.isApprox(expected));
+//
+//   return 0;
+// }
+//
+// int test_wp_mission_pointLineSide() {
+//   Mission mission;
+//
+//   vec3_t wp_start{0.0, 0.0, 0.0};
+//   vec3_t wp_end{5.0, 0.0, 0.0};
+//
+//   // test colinear
+//   vec3_t position{0.0, 0.0, 0.0};
+//   mission.wp_start = wp_start;
+//   mission.wp_end = wp_end;
+//   double s = mission.pointLineSide(position);
+//   MU_CHECK_EQ(0, s);
+//
+//   // test left side
+//   position << 0.0, 3.0, 0.0;
+//   s = mission.pointLineSide(position);
+//   MU_CHECK_EQ(1, s);
+//
+//   // test right side
+//   position << 0.0, -3.0, 0.0;
+//   s = mission.pointLineSide(position);
+//   MU_CHECK_EQ(-1, s);
+//
+//   return 0;
+// }
+//
+// int test_wp_mission_crossTrackError() {
+//   Mission mission;
+//
+//   // setup
+//   mission.wp_start = vec3_t{0.0, 0.0, 10.0};
+//   mission.wp_end = vec3_t{10.0, 0.0, 10.0};
+//   vec3_t position = vec3_t::Zero();
+//   double e = 0.0;
+//
+//   // test position to the right of waypoint track
+//   position << 2.0, -3.0, 1.0;
+//   e = mission.crossTrackError(position);
+//   MU_CHECK_FLOAT(-3.0, e);
+//
+//   // test position to the left of waypoint track
+//   position << 2.0, 3.0, 1.0;
+//   e = mission.crossTrackError(position);
+//   MU_CHECK_FLOAT(3.0, e);
+//
+//   return 0;
+// }
+//
+// int test_wp_mission_waypointInterpolate() {
+//   Mission mission;
+//
+//   // setup
+//   double r = 0.0;
+//   mission.wp_start = vec3_t{0.0, 0.0, 10.0};
+//   mission.wp_end = vec3_t{10.0, 10.0, 10.0};
+//   vec3_t pos{5.0, 8.0, 0.0};
+//   vec3_t exp{6.5, 6.5, 10.0};
+//
+//   // test and assert
+//   vec3_t point = mission.waypointInterpolate(pos, r);
+//   MU_CHECK(point.isApprox(exp));
+//
+//   return 0;
+// }
+//
+// int test_wp_mission_waypointHeading() {
+//   Mission mission;
+//
+//   // setup
+//   mission.wp_start = vec3_t{0.0, 0.0, 0.0};
+//   double heading = 0.0;
+//
+//   // test 45 degree
+//   mission.wp_end = vec3_t{1.0, 1.0, 0.0};
+//   heading = mission.waypointHeading();
+//   MU_CHECK_FLOAT(deg2rad(45.0), heading);
+//
+//   // test 90 degree
+//   mission.wp_end = vec3_t{0.0, 1.0, 0.0};
+//   heading = mission.waypointHeading();
+//   MU_CHECK_FLOAT(deg2rad(90.0), heading);
+//
+//   // test 135 degree
+//   mission.wp_end = vec3_t{-1.0, 1.0, 0.0};
+//   heading = mission.waypointHeading();
+//   MU_CHECK_FLOAT(deg2rad(135.0), heading);
+//
+//   // test 180 degree
+//   mission.wp_end = vec3_t{-1.0, 0.0, 0.0};
+//   heading = mission.waypointHeading();
+//   MU_CHECK_FLOAT(deg2rad(180.0), heading);
+//
+//   // test -45 degree
+//   mission.wp_end = vec3_t{1.0, -1.0, 0.0};
+//   heading = mission.waypointHeading();
+//   MU_CHECK_FLOAT(deg2rad(-45.0), heading);
+//
+//   // test -90 degree
+//   mission.wp_end = vec3_t{0.0, -1.0, 0.0};
+//   heading = mission.waypointHeading();
+//   MU_CHECK_FLOAT(deg2rad(-90.0), heading);
+//
+//   // test -135 degree
+//   mission.wp_end = vec3_t{-1.0, -1.0, 0.0};
+//   heading = mission.waypointHeading();
+//   MU_CHECK_FLOAT(deg2rad(-135.0), heading);
+//
+//   return 0;
+// }
+//
+// int test_wp_mission_waypointReached() {
+//   Mission mission;
+//
+//   // setup
+//   mission.configured = true;
+//   mission.wp_end = vec3_t{10.0, 10.0, 0.0};
+//   mission.threshold_waypoint_reached = 2.0;
+//
+//   // test waypoint not reached
+//   vec3_t pos{0.0, 0.0, 0.0};
+//   int retval = mission.waypointReached(pos);
+//   MU_CHECK_EQ(0, retval);
+//
+//   // test waypoint reached
+//   pos << 9.0, 10.0, 0.0;
+//   retval = mission.waypointReached(pos);
+//   MU_CHECK_EQ(1, retval);
+//
+//   return 0;
+// }
+//
+// int test_wp_mission_update() {
+//   Mission mission;
+//
+//   // setup
+//   vec3_t position{2.0, 3.0, 0.0};
+//   mission.look_ahead_dist = 1;
+//   mission.threshold_waypoint_reached = 1.0;
+//   mission.configured = true;
+//
+//   // push waypoints
+//   vec3_t wp;
+//   wp << 0.0, 0.0, 0.0;
+//   mission.wp_start = wp;
+//   mission.local_waypoints.push_back(wp);
+//
+//   wp << 10.0, 10.0, 0.0;
+//   mission.wp_end = wp;
+//   mission.local_waypoints.push_back(wp);
+//
+//   wp << 15.0, 15.0, 0.0;
+//   mission.local_waypoints.push_back(wp);
+//
+//   // record waypoints
+//   std::ofstream waypoints_file(WAYPOINTS_FILE);
+//   for (auto wp : mission.local_waypoints) {
+//     waypoints_file << wp(0) << ", ";
+//     waypoints_file << wp(1) << ", ";
+//     waypoints_file << wp(2) << std::endl;
+//   }
+//   waypoints_file.close();
+//
+//   // record robot state
+//   std::ofstream state_file(STATE_FILE);
+//   for (int i = 0; i < 40; i++) {
+//     // waypoint update
+//     vec3_t waypoint;
+//     int retval = mission.update(position, waypoint);
+//     if (retval != 0) {
+//       MU_CHECK_EQ(-2, retval);
+//       break;
+//     }
+//
+//     // record position
+//     state_file << position(0) << ", ";
+//     state_file << position(1) << ", ";
+//     state_file << position(2) << ", ";
+//
+//     // record interpolated waypoint
+//     state_file << waypoint(0) << ", ";
+//     state_file << waypoint(1) << ", ";
+//     state_file << waypoint(2) << std::endl;
+//
+//     // update position
+//     position(0) = position(0) + 0.5;
+//     position(1) = position(1) + 0.5;
+//   }
+//   state_file.close();
+//
+//   // assert
+//   MU_CHECK_EQ(3, mission.local_waypoints.size());
+//
+//   return 0;
+// }
+
+/*****************************************************************************
  *                                 ATL
  ****************************************************************************/
 
@@ -510,6 +807,17 @@ void test_suite() {
   MU_ADD_TEST(test_lz_detector_detector_contrustor);
   MU_ADD_TEST(test_lz_detector_detector_configure);
   MU_ADD_TEST(test_lz_detector_detect);
+
+  MU_ADD_TEST(test_wp_mission_constructor);
+  // MU_ADD_TEST(test_wp_mission_configure_GPS);
+  // MU_ADD_TEST(test_wp_mission_configure_LOCAL);
+  // MU_ADD_TEST(test_wp_mission_closestPoint);
+  // MU_ADD_TEST(test_wp_mission_pointLineSide);
+  // MU_ADD_TEST(test_wp_mission_crossTrackError);
+  // MU_ADD_TEST(test_wp_mission_waypointInterpolate);
+  // MU_ADD_TEST(test_wp_mission_waypointHeading);
+  // MU_ADD_TEST(test_wp_mission_waypointReached);
+  // MU_ADD_TEST(test_wp_mission_update);
 
   MU_ADD_TEST(tune_att_ctrl);
   MU_ADD_TEST(tune_pos_ctrl);
