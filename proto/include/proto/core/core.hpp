@@ -10,18 +10,29 @@
 #include <sys/time.h>
 #include <inttypes.h>
 #include <dirent.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/poll.h>
 
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <string>
-#include <vector>
 #include <random>
-#include <type_traits>
 #include <set>
 #include <list>
 #include <deque>
+#include <vector>
 #include <unordered_map>
+#include <type_traits>
 
 #include <yaml-cpp/yaml.h>
 
@@ -34,7 +45,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 /******************************************************************************
- * MACROS
+ *                                MACROS
  *****************************************************************************/
 #ifdef ENABLE_MACROS
 
@@ -84,7 +95,7 @@
 namespace proto {
 
 /******************************************************************************
- * FILESYSTEM
+ *                              FILESYSTEM
  *****************************************************************************/
 
 /**
@@ -225,7 +236,7 @@ std::vector<std::string> path_split(const std::string path);
 std::string paths_combine(const std::string path1, const std::string path2);
 
 /******************************************************************************
- * Algebra
+ *                                 ALGEBRA
  *****************************************************************************/
 
 /**
@@ -285,7 +296,7 @@ std::vector<T> linspace(const T start, const T end, const int num) {
 }
 
 /******************************************************************************
- * Linear Algebra
+ *                            LINEAR ALGEBRA
  *****************************************************************************/
 
 #define col_major_t Eigen::ColMajor
@@ -659,7 +670,7 @@ void load_matrix(const std::vector<double> &x,
 void load_matrix(const matx_t A, std::vector<double> &x);
 
 /******************************************************************************
- * Geometry
+ *                                Geometry
  *****************************************************************************/
 
 /**
@@ -863,7 +874,7 @@ void latlon_diff(double lat_ref,
 double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
 
 /******************************************************************************
- * Statistics
+ *                              Statistics
  *****************************************************************************/
 
 /**
@@ -919,7 +930,7 @@ vec3_t mvn(std::default_random_engine &engine,
 double gauss_normal();
 
 /*****************************************************************************
- * Transform
+ *                              Transform
  *****************************************************************************/
 
 /**
@@ -1057,7 +1068,7 @@ void imu_init_attitude(const vec3s_t w_m,
                        const size_t buffer_size = 50);
 
 /*****************************************************************************
- * Time
+ *                                 Time
  *****************************************************************************/
 
 typedef uint64_t timestamp_t;
@@ -1099,7 +1110,7 @@ float mtoc(struct timespec *tic);
 double time_now();
 
 /******************************************************************************
- * DATA
+ *                                  DATA
  *****************************************************************************/
 
 /**
@@ -1356,7 +1367,7 @@ std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
 }
 
 /******************************************************************************
- * CONFIG
+ *                                CONFIG
  *****************************************************************************/
 
 struct config_t {
@@ -1665,7 +1676,7 @@ void lerp_data(std::deque<timestamp_t> &ts0,
                std::deque<vec3_t> &vs1);
 
 /******************************************************************************
- * SPLINE
+ *                                 SPLINE
  *****************************************************************************/
 
 typedef Eigen::Spline<double, 1> Spline1D;
@@ -1775,7 +1786,7 @@ void sim_imu_measurement(sim_imu_t &imu,
                          vec3_t &w_WS_S);
 
 /*****************************************************************************
- *                              CONTROL
+ *                               CONTROL
  *****************************************************************************/
 
 /**
@@ -1882,7 +1893,7 @@ int carrot_ctrl_carrot_point(const carrot_ctrl_t &cc,
 int carrot_ctrl_update(carrot_ctrl_t &cc, const vec3_t &pos, vec3_t &carrot_pt);
 
 /******************************************************************************
- * Measurements
+ *                              Measurements
  *****************************************************************************/
 
 struct meas_t {
@@ -1925,6 +1936,67 @@ struct image_t : meas_t {
     }
   }
 };
+
+/*****************************************************************************
+ *                               NETWORKING
+ ****************************************************************************/
+
+/**
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
+ */
+int ip_port_info(const int sockfd, char *ip, int *port);
+
+/**
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
+ */
+int ip_port_info(const int sockfd, std::string &ip, int &port);
+
+/**
+ * TCP server
+ */
+struct tcp_server_t {
+  int port = 8080;
+  int sockfd = -1;
+  std::vector<int> conns;
+  void *(*conn_thread)(void *) = nullptr;
+
+  tcp_server_t(int port_ = 8080);
+};
+
+/**
+ * TCP client
+ */
+struct tcp_client_t {
+  std::string server_ip;
+  int server_port = 8080;
+  int sockfd = -1;
+  int (*loop_cb)(tcp_client_t &) = nullptr;
+
+  tcp_client_t(const std::string &server_ip_ = "127.0.0.1",
+               int server_port_ = 8080);
+};
+
+/**
+ * Configure TCP server
+ */
+int tcp_server_config(tcp_server_t &server);
+
+/**
+ * Loop TCP server
+ */
+int tcp_server_loop(tcp_server_t &server);
+
+/**
+ * Configure TCP client
+ */
+int tcp_client_config(tcp_client_t &client);
+
+/**
+ * Loop TCP client
+ */
+int tcp_client_loop(tcp_client_t &client);
 
 } //  namespace proto
 #endif // PROTO_CORE_HPP

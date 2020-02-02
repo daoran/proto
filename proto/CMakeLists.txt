@@ -89,8 +89,6 @@ ADD_LIBRARY(
   # src/calib/calib_gimbal.cpp
   src/calib/calib_stereo.cpp
   src/calib/calib_vicon_marker.cpp
-  # comm
-  src/comm/tcp.cpp
   # core
   src/core/core.cpp
   src/core/stb.cpp
@@ -159,7 +157,6 @@ SET(
   calib-test_calib_stereo
   calib-test_sandbox
   calib-test_sandbox2
-  comm-test_tcp
   core-test_core
   dataset-test_euroc
   dataset-test_kitti
