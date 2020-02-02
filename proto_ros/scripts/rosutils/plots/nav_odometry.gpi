@@ -19,16 +19,16 @@ set style line 4 \
 
 # Plot pose data
 set terminal qt 0 enhanced font 'Verdana,7'
-set multiplot layout 2,1
-set title ""
+# set multiplot layout 2,1
+# set title ""
 # set font ",8"
 
-set title "Displacement"
-# set xlabel "Time [s]"
-set ylabel "Displacement [m]"
-plot "/tmp/nav_odometry.csv" using 1:6 with lines linestyle 1 title "x", \
-     "/tmp/nav_odometry.csv" using 1:7 with lines linestyle 2 title "y", \
-     "/tmp/nav_odometry.csv" using 1:8 with lines linestyle 3 title "z"
+# set title "Displacement"
+# # set xlabel "Time [s]"
+# set ylabel "Displacement [m]"
+# plot "/tmp/nav_odometry.csv" using 1:6 with lines linestyle 1 title "x", \
+#      "/tmp/nav_odometry.csv" using 1:7 with lines linestyle 2 title "y", \
+#      "/tmp/nav_odometry.csv" using 1:8 with lines linestyle 3 title "z"
 
 set title "Orientation"
 set xlabel "Time [s]"
@@ -42,7 +42,7 @@ set ylabel "Attitude [deg]"
 plot "/tmp/nav_odometry.csv" using 1:13 with lines linestyle 1 title "x", \
      "/tmp/nav_odometry.csv" using 1:14 with lines linestyle 2 title "y", \
      "/tmp/nav_odometry.csv" using 1:15 with lines linestyle 3 title "z",
-unset multiplot
+# unset multiplot
 
 # # Plot twist data
 # set terminal qt 1 enhanced font 'Verdana,7'

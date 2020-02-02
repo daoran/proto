@@ -39,10 +39,10 @@ ${BUILD_DIR}:
 	@make -s deps
 
 debug: ${BUILD_DIR}
-	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s
+	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s -j2
 
 release: ${BUILD_DIR}
-	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s -j4
+	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s -j2
 
 install:
 	@if [ ! -d proto/build ]; then \
@@ -55,7 +55,9 @@ install:
 ros:
 	@mkdir -p ${CATKIN_WS}/src
 	@cd ${CATKIN_WS}/src && ln -sf ${PROJ_PATH}/proto_ros . \
-		&& . /opt/ros/melodic/setup.sh && cd .. && catkin build proto_ros
+		&& . /opt/ros/melodic/setup.sh \
+		&& cd .. \
+		&& catkin build proto_ros -DCMAKE_BUILD_TYPE=Release -j2
 
 format_code:
 	@bash ./scripts/format_code.bash

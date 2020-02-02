@@ -20,12 +20,19 @@
 # roslaunch proto_ros calib_sim.launch
 # roslaunch proto_ros mav_sim.launch
 
-python scripts/rosutils/bag2csv.py \
-  /data/ucl/191213-scan-0.bag \
-  /ucl_0/vrpn_client/estimated_odometry \
-  /tmp/nav_odometry.csv
+# python scripts/rosutils/bag2csv.py \
+#   /data/ucl/191213-scan-0.bag \
+#   /ucl_0/vrpn_client/estimated_odometry \
+#   /tmp/nav_odometry.csv
   # /vrpn_client_node/ucl_0/pose \
   # /ucl_0/mavros/local_position/pose \
 # python scripts/rosutils/show_depth.py
 
-gnuplot -persist scripts/rosutils/plots/nav_odometry.gpi
+# python scripts/rosutils/bag2csv.py \
+#   ~/Downloads/bags/OscillationTest.bag \
+#   /ucl_0/vrpn_client/estimated_odometry \
+#   /tmp/nav_odometry.csv
+
+python scripts/rosutils/aabm_debug.py ~/Downloads/bags/OscillationTest.bag
+
+# gnuplot -persist scripts/rosutils/plots/nav_odometry.gpi

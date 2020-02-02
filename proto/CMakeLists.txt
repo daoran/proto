@@ -102,7 +102,6 @@ ADD_LIBRARY(
   src/estimation/factor.cpp
   src/estimation/filter.cpp
   src/estimation/frontend.cpp
-  src/estimation/measurement.cpp
   # mav
   src/mav/atl.cpp
   # model
@@ -165,7 +164,6 @@ SET(
   dataset-test_euroc
   dataset-test_kitti
   estimation-test_factor
-  estimation-test_measurement
   # model-test_mav
   model-test_two_wheel
   mav-test_atl
