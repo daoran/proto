@@ -113,13 +113,7 @@ ADD_LIBRARY(
   src/vision/feature2d/grid_good.cpp
   src/vision/vision_common.cpp
   # viz
-  src/viz/draw.cpp
-  src/viz/camera.cpp
-  src/viz/gui.cpp
-  src/viz/model.cpp
-  src/viz/mesh.cpp
-  src/viz/shader.cpp
-  src/viz/texture.cpp
+  src/viz/viz.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)

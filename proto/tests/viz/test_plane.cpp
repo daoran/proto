@@ -1,6 +1,4 @@
-#include "proto/viz/gui.hpp"
-#include "proto/viz/camera.hpp"
-#include "proto/viz/draw.hpp"
+#include "proto/viz/viz.hpp"
 
 int main(void) {
   // Setup

@@ -1,5 +1,5 @@
 #include "proto/munit.hpp"
-#include "proto/viz/mesh.hpp"
+#include "proto/viz/viz.hpp"
 
 int test_glmesh() { return 0; }
 

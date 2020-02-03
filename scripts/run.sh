@@ -21,13 +21,13 @@ debug() {
 # time make debug
 time make release
 sudo make install
-time make ros
+# time make ros
 # make notes
 # sudo make debug_install
 # exit
 
-source ~/.bashrc
-cd ~/catkin_ws/ && source devel/setup.bash
+# source ~/.bashrc
+# cd ~/catkin_ws/ && source devel/setup.bash
 # roslaunch proto_ros calib_camera.launch
 # roslaunch proto_ros calib_stereo.launch
 
@@ -60,7 +60,7 @@ cd ~/catkin_ws/ && source devel/setup.bash
 # ./play
 
 # TESTS
-# cd proto/build/tests
+cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
 # ./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose
@@ -121,5 +121,5 @@ cd ~/catkin_ws/ && source devel/setup.bash
 # ./vision-test_vision_common
 
 # -- viz
-# ./viz-test_gui
+./viz-test_gui
 # ./viz-test_plane

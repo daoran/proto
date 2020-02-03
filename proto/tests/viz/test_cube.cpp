@@ -1,6 +1,5 @@
 #include "proto/munit.hpp"
-#include "proto/viz/gui.hpp"
-#include "proto/viz/draw.hpp"
+#include "proto/viz/viz.hpp"
 
 int test_cube() {
   proto::gui_t gui{"Play"};

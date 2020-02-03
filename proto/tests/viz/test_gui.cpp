@@ -1,8 +1,5 @@
 #include "proto/munit.hpp"
-#include "proto/viz/gui.hpp"
-#include "proto/viz/model.hpp"
-#include "proto/viz/camera.hpp"
-#include "proto/viz/draw.hpp"
+#include "proto/viz/viz.hpp"
 
 #include "opencv2/opencv.hpp"
 
@@ -199,8 +196,8 @@ int test_gui_imshow_update() {
 
 void test_suite() {
   MU_ADD_TEST(test_gui);
-  MU_ADD_TEST(test_gui_imshow);
-  MU_ADD_TEST(test_gui_imshow_update);
+  // MU_ADD_TEST(test_gui_imshow);
+  // MU_ADD_TEST(test_gui_imshow_update);
 }
 
 MU_RUN_TESTS(test_suite);
