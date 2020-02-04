@@ -1,4 +1,4 @@
-# proto 
+# proto
 
 <a href="https://github.com/chutsu/proto/actions">
   <img class="badge" src="https://github.com/chutsu/proto/workflows/C/C++%20CI/badge.svg">
@@ -30,9 +30,6 @@ dependencies and building of `proto`, the make targets are as follows.
 
     format_code:
       Format proto code using clang-format.
-
-    docs:
-      Generate docs for proto.
 
 Or, the standard way to build a C++ project is to enter the following commands
 at the root of the repo.
