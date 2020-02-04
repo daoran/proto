@@ -1,6 +1,8 @@
 set -e
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
+SCRIPT_PATH="`dirname \"$0\"`"
+SCRIPT_PATH="`( cd \"$SCRIPT_PATH\" && pwd )`"
 
 debug() {
   gdb \
@@ -11,23 +13,23 @@ debug() {
     --args "$1" "$2"
 }
 
-# cd docs/se
-# rst2html5 gauss_newton.rst gauss_newton.html
-# pandoc --mathjax -s gauss_newton.rst -o gauss_newton.html
-# pandoc --mathjax -s gauss_newton.latex -o gauss_newton.html
+# CLEAN CATKIN
+# cd ~/catkin_ws/
+# catkin clean
+# cd -
 
 # LIBRARY
 # make deps
 # time make debug
 time make release
 sudo make install
-# time make ros
-# make notes
+time make ros
 # sudo make debug_install
 # exit
 
-# source ~/.bashrc
-# cd ~/catkin_ws/ && source devel/setup.bash
+source ~/.bashrc
+cd ~/catkin_ws/ && source devel/setup.bash
+roslaunch proto_ros sim_calib.launch
 # roslaunch proto_ros calib_camera.launch
 # roslaunch proto_ros calib_stereo.launch
 

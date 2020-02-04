@@ -3,7 +3,7 @@
 
 #include "proto/munit.hpp"
 #include "proto/mav/atl.hpp"
-#include "proto/model/mav.hpp"
+#include "proto/model/model.hpp"
 
 namespace proto {
 

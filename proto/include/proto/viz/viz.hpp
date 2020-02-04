@@ -1,5 +1,5 @@
-#ifndef PROTOTOYE_VIZ_VIZ_HPP
-#define PROTOTOYE_VIZ_VIZ_HPP
+#ifndef PROTO_VIZ_VIZ_HPP
+#define PROTO_VIZ_VIZ_HPP
 
 #include <iostream>
 #include <string>
@@ -25,39 +25,10 @@
 
 namespace proto {
 
-void print_vec3(const std::string &title, const glm::vec3 &v) {
-  printf("%s: ", title.c_str());
-  printf("%f, %f, %f\n", v.x, v.y, v.z);
-}
-
-void print_vec4(const std::string &title, const glm::vec4 &v) {
-  printf("%s: ", title.c_str());
-  printf("%f, %f, %f, %f\n", v.x, v.y, v.z, v.w);
-}
-
-void print_mat3(const std::string &title, const glm::mat3 &m) {
-  const glm::vec3 c1 = m[0];
-  const glm::vec3 c2 = m[1];
-  const glm::vec3 c3 = m[2];
-
-  printf("%s:\n", title.c_str());
-  printf("%f, %f, %f\n", c1.x, c2.x, c3.x);
-  printf("%f, %f, %f\n", c1.y, c2.y, c3.y);
-  printf("%f, %f, %f\n", c1.z, c2.z, c3.z);
-}
-
-void print_mat4(const std::string &title, const glm::mat4 &m) {
-  const glm::vec4 c1 = m[0];
-  const glm::vec4 c2 = m[1];
-  const glm::vec4 c3 = m[2];
-  const glm::vec4 c4 = m[3];
-
-  printf("%s:\n", title.c_str());
-  printf("%f, %f, %f, %f\n", c1.x, c2.x, c3.x, c4.x);
-  printf("%f, %f, %f, %f\n", c1.y, c2.y, c3.y, c4.y);
-  printf("%f, %f, %f, %f\n", c1.z, c2.z, c3.z, c4.z);
-  printf("%f, %f, %f, %f\n", c1.w, c2.w, c3.w, c4.w);
-}
+void print_vec3(const std::string &title, const glm::vec3 &v);
+void print_vec4(const std::string &title, const glm::vec4 &v);
+void print_mat3(const std::string &title, const glm::mat3 &m);
+void print_mat4(const std::string &title, const glm::mat4 &m);
 
 /****************************************************************************
  *                                SHADER
@@ -242,7 +213,7 @@ unsigned int texture_from_file(const std::string &dir,
 
 namespace shaders {
 
-const char *glcf_vs = R"glsl(
+static const char *glcf_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 
@@ -255,7 +226,7 @@ void main() {
 }
 )glsl";
 
-const char *glcf_fs = R"glsl(
+static const char *glcf_fs = R"glsl(
 #version 150 core
 
 out vec4 FragColor;
@@ -265,7 +236,7 @@ void main() {
 }
 )glsl";
 
-const char *glcube_vs = R"glsl(
+static const char *glcube_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 in_pos;
 layout (location = 1) in vec3 in_color;
@@ -281,7 +252,7 @@ void main() {
 }
 )glsl";
 
-const char *glcube_fs = R"glsl(
+static const char *glcube_fs = R"glsl(
 #version 150 core
 in vec3 color;
 out vec4 frag_color;
@@ -291,7 +262,7 @@ void main() {
 }
 )glsl";
 
-const char *glframe_vs = R"glsl(
+static const char *glframe_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 in_pos;
 layout (location = 1) in vec3 in_color;
@@ -307,7 +278,7 @@ void main() {
 }
 )glsl";
 
-const char *glframe_fs = R"glsl(
+static const char *glframe_fs = R"glsl(
 #version 150 core
 in vec3 color;
 out vec4 frag_color;
@@ -317,7 +288,7 @@ void main() {
 }
 )glsl";
 
-const char *glgrid_vs = R"glsl(
+static const char *glgrid_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 
@@ -330,7 +301,7 @@ void main() {
 }
 )glsl";
 
-const char *glgrid_fs = R"glsl(
+static const char *glgrid_fs = R"glsl(
 #version 150 core
 
 out vec4 FragColor;
@@ -340,7 +311,7 @@ void main() {
 }
 )glsl";
 
-const char *glplane_vs = R"glsl(
+static const char *glplane_vs = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aColor;
@@ -356,7 +327,7 @@ void main() {
 }
 )glsl";
 
-const char *glplane_fs = R"glsl(
+static const char *glplane_fs = R"glsl(
 #version 330 core
 
 in vec3 ourColor;
@@ -515,4 +486,4 @@ public:
 };
 
 } // namespace proto
-#endif // PROTOTYPE_VIZ_VIZ_HPP
+#endif // PROTO_VIZ_VIZ_HPP

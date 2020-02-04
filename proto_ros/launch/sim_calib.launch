@@ -1,10 +1,7 @@
 <launch>
-  <!-- Sync gazebo time with ros -->
-  <param name="use_sim_time" value="true" />
-
   <!-- Settings -->
-  <param name="sim_mode" value="true" />
-  <param name="debug_mode" value="false" />
+  <env name="GAZEBO_MODEL_PATH" value="$(find proto_ros)/models:$(optenv GAZEBO_MODEL_PATH)" />
+  <env name="GAZEBO_RESOURCE_PATH" value="$(find proto_ros)/worlds:$(optenv GAZEBO_RESOURCE_PATH)" />
 
   <!-- Gazebo -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">

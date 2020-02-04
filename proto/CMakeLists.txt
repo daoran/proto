@@ -103,9 +103,7 @@ ADD_LIBRARY(
   # mav
   src/mav/atl.cpp
   # model
-  src/model/gimbal.cpp
-  src/model/mav.cpp
-  src/model/two_wheel.cpp
+  src/model/model.cpp
   # vision
   src/vision/camera/camera.cpp
   src/vision/feature2d/draw.cpp
@@ -155,8 +153,7 @@ SET(
   dataset-test_euroc
   dataset-test_kitti
   estimation-test_factor
-  # model-test_mav
-  model-test_two_wheel
+  model-test_model
   mav-test_atl
   vision-camera-test_camera
   vision-feature2d-test_grid_fast
