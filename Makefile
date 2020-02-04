@@ -21,9 +21,6 @@ define usage
 
   format_code:
     Format proto code using clang-format.
-
-  notes:
-    Generate notes for proto.
 endef
 export usage
 
@@ -57,10 +54,7 @@ ros:
 	@cd ${CATKIN_WS}/src && ln -sf ${PROJ_PATH}/proto_ros . \
 		&& . /opt/ros/melodic/setup.sh \
 		&& cd .. \
-		&& catkin build proto_ros -DCMAKE_BUILD_TYPE=Release -j2
+		&& catkin build proto_ros -DCMAKE_BUILD_TYPE=DEBUG -j2
 
 format_code:
 	@bash ./scripts/format_code.bash
-
-notes:
-	@python3 ./scripts/notes/notes.py
