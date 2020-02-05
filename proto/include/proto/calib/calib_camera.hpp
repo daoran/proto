@@ -9,7 +9,7 @@
 
 #include "proto/core/core.hpp"
 #include "proto/calib/calib_data.hpp"
-#include "proto/vision/camera/camera.hpp"
+#include "proto/vision/vision.hpp"
 
 namespace proto {
 

@@ -29,7 +29,7 @@ time make ros
 
 source ~/.bashrc
 cd ~/catkin_ws/ && source devel/setup.bash
-roslaunch proto_ros sim_calib.launch
+# roslaunch proto_ros sim_calib.launch
 # roslaunch proto_ros calib_camera.launch
 # roslaunch proto_ros calib_stereo.launch
 
@@ -123,5 +123,5 @@ cd proto/build/tests
 # ./vision-test_vision_common
 
 # -- viz
-./viz-test_gui
+# ./viz-test_gui
 # ./viz-test_plane

@@ -81,6 +81,8 @@ SET(
 # LIBRARY
 ADD_LIBRARY(
   ${PROJECT_NAME}
+  # atl
+  src/atl/atl.cpp
   # calib
   src/calib/aprilgrid.cpp
   src/calib/calib_data.cpp
@@ -100,16 +102,10 @@ ADD_LIBRARY(
   src/estimation/factor.cpp
   src/estimation/filter.cpp
   src/estimation/frontend.cpp
-  # mav
-  src/mav/atl.cpp
   # model
   src/model/model.cpp
   # vision
-  src/vision/camera/camera.cpp
-  src/vision/feature2d/draw.cpp
-  src/vision/feature2d/grid_fast.cpp
-  src/vision/feature2d/grid_good.cpp
-  src/vision/vision_common.cpp
+  src/vision/vision.cpp
   # viz
   src/viz/viz.cpp
 )
@@ -141,6 +137,7 @@ FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
+  atl-test_atl
   calib-test_aprilgrid
   calib-test_calib_camera
   calib-test_calib_camera_nbv
@@ -153,13 +150,9 @@ SET(
   dataset-test_euroc
   dataset-test_kitti
   estimation-test_factor
+  # estimation-test_frontend
   model-test_model
-  mav-test_atl
-  vision-camera-test_camera
-  vision-feature2d-test_grid_fast
-  vision-feature2d-test_grid_good
-  # vision-test_frontend
-  vision-test_vision_common
+  vision-test_vision
   viz-test_gui
   viz-test_plane
 )

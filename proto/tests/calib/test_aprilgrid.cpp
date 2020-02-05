@@ -2,7 +2,7 @@
 
 #include "proto/munit.hpp"
 #include "proto/calib/aprilgrid.hpp"
-#include "proto/vision/camera/camera.hpp"
+#include "proto/vision/vision.hpp"
 
 // #include <apriltag/apriltag.h>
 // #include <apriltag/tag36h11.h>

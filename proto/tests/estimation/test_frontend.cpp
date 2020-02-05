@@ -1,6 +1,6 @@
 #include "proto/munit.hpp"
 #include "proto/dataset/kitti.hpp"
-#include "proto/vision/frontend.hpp"
+#include "proto/vision/vision.hpp"
 
 namespace proto {
 
