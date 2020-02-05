@@ -128,12 +128,12 @@ int file_copy(const std::string &src, const std::string &dest);
 /**
  * Return file extension in `path`.
  */
-std::string file_ext(const std::string &path);
+std::string parse_fext(const std::string &path);
 
 /**
  * Return basename
  */
-std::string basename(const std::string &path);
+std::string parse_fname(const std::string &path);
 
 /**
  * Check if file exists
@@ -1895,6 +1895,24 @@ int carrot_ctrl_update(carrot_ctrl_t &cc, const vec3_t &pos, vec3_t &carrot_pt);
 /******************************************************************************
  *                              Measurements
  *****************************************************************************/
+
+// struct pose_t {
+//   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+//   timestamp_t ts = 0;
+//   quat_t q{1.0, 0.0, 0.0, 0.0};
+//   vec3_t r{0.0, 0.0, 0.0};
+//
+//   pose_t(const mat4_t &T) : q{tf_quat(T)}, r{tf_trans(T)} {}
+//   pose_t(const mat3_t &C, const vec3_t &r) : q{quat_t{C}}, r{r} {}
+//   pose_t(const quat_t &q, const vec3_t &r) :q{q}, r{r} {}
+//   pose_t(const timestamp_t &ts, const mat4_t &T)
+//     : ts{ts}, q{tf_quat(T)}, r{tf_trans(T)} {}
+//   pose_t(const timestamp_t &ts, const mat3_t &C, const vec3_t &r)
+//     : ts{ts}, q{quat_t{C}}, r{r} {}
+//   pose_t(const timestamp_t &ts, const quat_t &q, const vec3_t &r)
+//     : ts{ts}, q{q}, r{r} {}
+//   ~pose_t() {}
+// };
 
 struct meas_t {
   timestamp_t ts = 0;

@@ -62,7 +62,7 @@ cd ~/catkin_ws/ && source devel/setup.bash
 # ./play
 
 # TESTS
-cd proto/build/tests
+# cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
 # ./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose

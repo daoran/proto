@@ -118,7 +118,7 @@ int preprocess_camera_data(const calib_target_t &target,
     }
 
     // -- Create output file path
-    auto output_file = basename(image_paths[i]);
+    auto output_file = parse_fname(image_paths[i]);
     const timestamp_t ts = std::stoull(output_file);
     output_file = remove_ext(output_file);
     output_file += ".csv";
@@ -210,8 +210,8 @@ int load_camera_calib_data(const std::string &data_dir,
 
   // Get timestamps
   for (size_t i = 0; i < data_paths.size(); i++) {
-    const auto ext = file_ext(basename(data_paths[i]));
-    const auto ts_str = strip_end(basename(data_paths[i]), ext);
+    const auto ext = parse_fext(parse_fname(data_paths[i]));
+    const auto ts_str = strip_end(parse_fname(data_paths[i]), ext);
     std::string str_format = "%" SCNu64;
 
     timestamp_t ts;

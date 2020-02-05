@@ -76,11 +76,11 @@ int file_copy(const std::string &src, const std::string &dest) {
   return 0;
 }
 
-std::string file_ext(const std::string &path) {
+std::string parse_fext(const std::string &path) {
   return path.substr(path.find_last_of("."));
 }
 
-std::string basename(const std::string &path) {
+std::string parse_fname(const std::string &path) {
   auto output = path;
   const size_t last_slash_idx = output.find_last_of("\\/");
   if (std::string::npos != last_slash_idx) {

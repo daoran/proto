@@ -1,5 +1,5 @@
 #include <proto/core/core.hpp>
-#include <proto/mav/atl.hpp>
+#include <proto/atl/atl.hpp>
 
 #include <sensor_msgs/Joy.h>
 

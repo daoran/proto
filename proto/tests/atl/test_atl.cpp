@@ -2,7 +2,7 @@
 #include <fstream>
 
 #include "proto/munit.hpp"
-#include "proto/mav/atl.hpp"
+#include "proto/atl/atl.hpp"
 #include "proto/model/model.hpp"
 
 namespace proto {

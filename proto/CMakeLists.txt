@@ -87,7 +87,6 @@ ADD_LIBRARY(
   src/calib/aprilgrid.cpp
   src/calib/calib_data.cpp
   src/calib/calib_camera.cpp
-  src/calib/calib_camera_nbv.cpp
   # src/calib/calib_gimbal.cpp
   src/calib/calib_stereo.cpp
   src/calib/calib_vicon_marker.cpp
@@ -140,7 +139,6 @@ SET(
   atl-test_atl
   calib-test_aprilgrid
   calib-test_calib_camera
-  calib-test_calib_camera_nbv
   calib-test_calib_data
   # calib-test_calib_gimbal
   calib-test_calib_stereo

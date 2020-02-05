@@ -9,29 +9,37 @@ calib_gimbal_data_t::~calib_gimbal_data_t() {}
 calib_gimbal_params_t::calib_gimbal_params_t() {}
 
 calib_gimbal_params_t::~calib_gimbal_params_t() {
-  if (this->tau_s != nullptr)
+  if (this->tau_s != nullptr) {
     free(this->tau_s);
+  }
 
-  if (this->tau_d != nullptr)
+  if (this->tau_d != nullptr) {
     free(this->tau_d);
+  }
 
-  if (this->w1 != nullptr)
+  if (this->w1 != nullptr) {
     free(this->w1);
+  }
 
-  if (this->w2 != nullptr)
+  if (this->w2 != nullptr) {
     free(this->w2);
+  }
 
-  if (this->theta1_offset != nullptr)
+  if (this->theta1_offset != nullptr) {
     free(this->theta1_offset);
+  }
 
-  if (this->theta2_offset != nullptr)
+  if (this->theta2_offset != nullptr) {
     free(this->theta2_offset);
+  }
 
-  if (this->Lambda1 != nullptr)
+  if (this->Lambda1 != nullptr) {
     free(this->Lambda1);
+  }
 
-  if (this->Lambda2 != nullptr)
+  if (this->Lambda2 != nullptr) {
     free(this->Lambda2);
+  }
 }
 
 calib_gimbal_t::calib_gimbal_t() {}
