@@ -1,17 +1,107 @@
-#ifndef PROTO_ROS_NODE_HPP
-#define PROTO_ROS_NODE_HPP
+#ifndef PROTO_ROS_ROS_HPP
+#define PROTO_ROS_ROS_HPP
 
 #include <functional>
 
 #include <ros/ros.h>
-#include <std_msgs/Bool.h>
-#include <sensor_msgs/CameraInfo.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
+
+#include <std_msgs/UInt8.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
+#include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/TwistStamped.h>
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/Joy.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/CameraInfo.h>
 
 #include <proto/proto.hpp>
 
 namespace proto {
+
+/*****************************************************************************
+ *                                  MSG
+ ****************************************************************************/
+
+std_msgs::UInt8 msg_build(const uint8_t i);
+std_msgs::Bool msg_build(const bool b);
+std_msgs::String msg_build(const std::string &s);
+std_msgs::Float64 msg_build(const double d);
+
+geometry_msgs::Vector3 msg_build(const proto::vec3_t &vec);
+geometry_msgs::Quaternion msg_build(const proto::quat_t &q);
+geometry_msgs::PoseStamped msg_build(const size_t seq,
+                                     const ros::Time &time,
+                                     const std::string &frame_id,
+                                     const proto::mat4_t &pose);
+geometry_msgs::TwistStamped msg_build(const size_t seq,
+                                      const ros::Time &time,
+                                      const std::string &frame_id,
+                                      const proto::vec3_t &linear_velocity,
+                                      const proto::vec3_t &angular_velocity);
+
+void msg_convert(const std_msgs::Header &msg,
+                 size_t seq,
+                 proto::timestamp_t &ts,
+                 std::string &frame_id);
+uint8_t msg_convert(const std_msgs::UInt8 &msg);
+bool msg_convert(const std_msgs::Bool &msg);
+float msg_convert(const std_msgs::Float64 &msg);
+std::string msg_convert(const std_msgs::String &msg);
+
+proto::vec3_t msg_convert(const geometry_msgs::Vector3 &msg);
+proto::vec3_t msg_convert(const geometry_msgs::Point &msg);
+proto::quat_t msg_convert(const geometry_msgs::Quaternion &msg);
+cv::Mat msg_convert(const sensor_msgs::ImageConstPtr &msg);
+
+/*****************************************************************************
+ *                                  BAG
+ *****************************************************************************/
+
+bool check_ros_topics(const std::string &rosbag_path,
+                      const std::vector<std::string> &target_topics);
+
+std::ofstream pose_init_output_file(const std::string &output_path);
+std::ofstream camera_init_output_file(const std::string &output_path);
+std::ofstream imu_init_output_file(const std::string &output_path);
+std::ofstream accel_init_output_file(const std::string &output_path);
+std::ofstream gyro_init_output_file(const std::string &output_path);
+
+void load_imu_data(const std::string &csv_file,
+                   timestamps_t &timestamps,
+                   vec3s_t &gyro,
+                   vec3s_t &accel);
+void pose_message_handler(const rosbag::MessageInstance &msg,
+                          const std::string &output_path,
+                          std::ofstream &pose_data);
+void image_message_handler(const rosbag::MessageInstance &msg,
+                           const std::string &output_path,
+                           std::ofstream &camera_data);
+void imu_message_handler(const rosbag::MessageInstance &msg,
+                         std::ofstream &imu_data);
+void accel_message_handler(const rosbag::MessageInstance &msg,
+                           std::ofstream &accel_csv,
+                           timestamps_t &accel_ts,
+                           vec3s_t &accel_data);
+void gyro_message_handler(const rosbag::MessageInstance &msg,
+                          std::ofstream &gyro_csv,
+                          timestamps_t &gyro_ts,
+                          vec3s_t &gyro_data);
+
+/*****************************************************************************
+ *                                NODE
+ ****************************************************************************/
 
 #define ROS_PARAM(NH, X, Y)                                                    \
   if (NH.getParam(X, Y) == false) {                                            \
@@ -197,4 +287,4 @@ struct ros_node_t {
 };
 
 } // namespace proto
-#endif // PROTO_ROS_NODE_HPP
+#endif // PROTO_ROS_ROS_HPP

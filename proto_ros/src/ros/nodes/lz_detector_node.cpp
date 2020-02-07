@@ -3,8 +3,7 @@
 #include <sensor_msgs/Joy.h>
 
 #include <proto/proto.hpp>
-#include "proto/ros/node.hpp"
-#include "proto/ros/msg.hpp"
+#include "proto/ros/ros.hpp"
 
 // NODE SETTINGS
 static const double NODE_RATE = 60.0;

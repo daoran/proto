@@ -1,7 +1,6 @@
 #include "proto/proto.hpp"
 #include "proto/calib/calib_vicon_marker.hpp"
-#include "proto/ros/node.hpp"
-#include "proto/ros/bag.hpp"
+#include "proto/ros/ros.hpp"
 
 using namespace proto;
 

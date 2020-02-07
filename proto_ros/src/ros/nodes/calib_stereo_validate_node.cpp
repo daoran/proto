@@ -1,6 +1,5 @@
 #include <proto/proto.hpp>
-#include "proto/ros/node.hpp"
-#include "proto/ros/msg.hpp"
+#include "proto/ros/ros.hpp"
 
 namespace proto {
 

@@ -1,6 +1,5 @@
 #include "proto/proto.hpp"
-#include "proto/ros/node.hpp"
-#include "proto/ros/bag.hpp"
+#include "proto/ros/ros.hpp"
 
 void process_rosbag(const std::string &rosbag_path,
                     const std::string &cam0_topic,

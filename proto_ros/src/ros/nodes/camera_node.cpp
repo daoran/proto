@@ -2,8 +2,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "proto/ros/node.hpp"
-#include "proto/ros/msg.hpp"
+#include "proto/ros/ros.hpp"
 
 namespace proto {
 

@@ -12,7 +12,7 @@
 #include <geometry_msgs/TwistStamped.h>
 
 #include <proto/proto.hpp>
-#include "proto/ros/gazebo/common.hpp"
+#include "proto/ros/gazebo.hpp"
 
 namespace gazebo {
 

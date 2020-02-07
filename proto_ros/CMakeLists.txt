@@ -64,9 +64,7 @@ CATKIN_PACKAGE(
 # PROTO ROS LIB
 ADD_LIBRARY(
   proto_ros
-  src/ros/bag.cpp
-  src/ros/node.cpp
-  src/ros/msg.cpp
+  src/ros/ros.cpp
 )
 INSTALL(
   DIRECTORY launch/
