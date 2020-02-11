@@ -27,6 +27,8 @@ flags = [
     '-isystem', get_python_inc(),
     '-isystem', '../llvm/include',
     '-isystem', '../llvm/tools/clang/include',
+    '-I', '/opt/ros/melodic/include',
+    '-I', '/usr/include/gazebo-9',
     '-I', 'proto/include',
     '-I', 'proto_ros/include',
     '-I', '.',

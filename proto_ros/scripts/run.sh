@@ -33,6 +33,8 @@
 #   /ucl_0/vrpn_client/estimated_odometry \
 #   /tmp/nav_odometry.csv
 
-python scripts/rosutils/aabm_debug.py ~/Downloads/bags/OscillationTest.bag
+# python scripts/rosutils/aabm_debug.py ~/Downloads/bags/OscillationTest.bag
+# python scripts/sysid/battery_model_id.py /data/ucl/sysid/ucl_hover.bag
+python scripts/sysid/mav_model_id.py /data/ucl/sysid/pitch_1.bag
 
 # gnuplot -persist scripts/rosutils/plots/nav_odometry.gpi
