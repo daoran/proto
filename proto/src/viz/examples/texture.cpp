@@ -5,7 +5,7 @@
 #include <assert.h>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "play/stb_image.h"
+#include "proto/core/stb_image.h"
 
 // GLOBAL VARIABLES
 const unsigned int SCREEN_WIDTH = 800;

@@ -67,6 +67,10 @@
       font-size: 1.2em;
     }
 
+    p {
+      margin-bottom: 1.2em;
+    }
+
     #sidebar ul {
       display: block;
       padding: 0px 0px 0px 20px;
@@ -149,6 +153,114 @@
 <section id="readme"></section>
 <!-- ####################################################################### -->
 
+<!-- ######################### LINEAR ALGEBRA  ############################# -->
+<section id="linalg-svd">
+
+<h1>SVD</h1>
+
+<equation>
+  \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\ast}
+</equation>
+
+<h2>How to compute SVD</h2>
+<ol>
+  <li>Compute eigenvalues and eigenvectors of $\Mat{A}^{\transpose} \Mat{A}$
+    <equation>
+    \begin{aligned}
+      \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{1} &= \lambda_{1} \Vec{v}_{1} \\
+      &\vdots \\
+      \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{1} &= \lambda_{1} \Vec{v}_{1} \\
+    \end{aligned}
+    </equation>
+  </li>
+
+  <li>Make matrix $\Mat{V}$ from the vectors $\Vec{v}_{i}$
+    <equation>
+    \Mat{V} = 
+    \begin{bmatrix}
+      \vert &  & \vert \\
+      \Vec{v}_{1} & \dots  & \Vec{v}_{n} \\
+      \vert &  & \vert \\
+    \end{bmatrix}
+    </equation>
+  </li>
+
+  <li>Make a diagonal matrix $\Mat{\Sigma}$ from the square roots of the eigen
+    values.
+    <equation>
+    \Mat{\Sigma} = 
+    \begin{bmatrix}
+      \vert &  & \vert \\
+      \Vec{v}_{1} & \dots  & \Vec{v}_{n} \\
+      \vert &  & \vert \\
+    \end{bmatrix}
+    </equation>
+  </li>
+
+  <li>Find $\Mat{U}$ from
+    <equation>
+      \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}
+    </equation>
+    <equation>
+      \Mat{U} \Mat{\Sigma} = \Mat{A} \Mat{V}
+    </equation>
+  In the simplest case:
+    <equation>
+      \Mat{U} = \Mat{A} \Mat{V} \Mat{\Sigma}^{-1}
+    </equation>
+  </li>
+</ol>
+
+
+<h2>Pseudo Inverse with SVD</h2>
+
+<p>
+<equation>
+  \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}
+</equation>
+
+<equation>
+\begin{aligned}
+\Mat{A}^{\dagger} &= (\Mat{A}^{\transpose} \Mat{A})^{-1} \Mat{A}^{\transpose} \\
+  &= ((\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose}
+      (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}))^{-1}
+     (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
+  &= ((\Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose}
+       \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{-1}
+     (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
+  &= (\Mat{V} \Mat{\Sigma}^{2} \Mat{V}^{\transpose})^{-1}
+      \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= (\Mat{V}^{\transpose})^{-1} \Mat{\Sigma}^{-2} \Mat{V}^{-1}
+      \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= \Mat{V} \Mat{\Sigma}^{-2} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= \Mat{V} \Mat{\Sigma}^{-1} \Mat{U}^{\transpose} \\
+\end{aligned}
+</equation>
+where $\Mat{\Sigma}^{-1}$ is the pseudo inverse of $\Mat{\Sigma}$, which
+is formed by replaceing everey non-zero diagonal entry bu its reciprocal and
+transposing the resulting matrix.</p>
+
+
+<h2>Linear Least Squares with SVD</h2>
+
+<equation>
+\begin{aligned}
+  \Mat{A} \Vec{x} &= \Vec{b} \\
+  \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose} \Vec{x} &= \Vec{b} \\
+  \Mat{\Sigma} \Mat{V}^{\transpose} \Vec{x} &= \Mat{U}^{\transpose} \Vec{b} \\
+\end{aligned}
+</equation>
+Let $\Vec{y} = \Vec{V}^{\transpose} \Vec{x}$ and subbing into the above gives,
+<equation>
+  \Vec{y} = \Mat{U}^{\transpose} \Vec{b} \Mat{\Sigma}^{-1}.
+</equation>
+Solve for $\Vec{y}$ via forward substition and backward substitution to find $\Vec{x}$,
+<equation>
+  \Vec{x} = \Mat{V} \Vec{y}
+</equation>
+
+</section>
+<!-- ####################################################################### -->
 
 <!-- #################### COMPUTER VISION FUNDAMENTALS ##################### -->
 <section id="cv-fundamentals">
@@ -200,7 +312,7 @@ the $3 \times 4$ matrix compsed of the points $\Vec{p}_{i}$ as rows has rank
 </section>
 <!-- ####################################################################### -->
 
-<!-- ###################### Pinhole Camera Model ########################### -->
+<!-- ###################### PINHOLE CAMERA MODEL ########################### -->
 <section id="cv-pinhole">
 <h1>Pinhole Camera Model</h1>
 
@@ -257,7 +369,7 @@ focal length in the $x$ and/or $y$ direction.
 <!-- ####################################################################### -->
 
 
-<!-- ################# Radial Tangential Distortion ######################## -->
+<!-- ################# RADIAL TANGENTIAL DISTORTION ######################## -->
 <section id="cv-radtan">
 <h1>Radial Tangential Distortion</h1>
 
@@ -415,7 +527,7 @@ in the image plane $(u, v)$.</p>
 </section>
 <!-- ####################################################################### -->
 
-<!-- ######################## Linear Triangulation ######################### -->
+<!-- ######################## LINEAR TRIANGULATION ######################### -->
 <section id="cv-linear_triangulation">
 <h1>Linear Triangulation</h1>
 
@@ -1052,7 +1164,6 @@ $\state_\lambda$ and $\state_\mu$.</p>
 
 
 </div> <!-- #content -->
-
   <!-- KATEX -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
@@ -1061,8 +1172,10 @@ $\state_\lambda$ and $\state_\mu$.</p>
     .katex { font-size: 1.1em; }
   </style>
 
-  <!-- SHOWDOWN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
+  <!-- <!&#45;&#45; SHOWDOWN &#45;&#45;> -->
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script> -->
+
+  <script src="http://livejs.com/live.js"></script>
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -1083,12 +1196,12 @@ $\state_\lambda$ and $\state_\mu$.</p>
         xmlHttp.send(null);
       }
 
-      // Load README
-      http_get_async("https://raw.githubusercontent.com/chutsu/proto/master/README.md", function(data) {
-        var readme_section = document.getElementById("readme");
-        var md = new showdown.Converter();
-        readme_section.innerHTML = md.makeHtml(data);
-      });
+      // // Load README
+      // http_get_async("https://raw.githubusercontent.com/chutsu/proto/master/README.md", function(data) {
+      //   var readme_section = document.getElementById("readme");
+      //   var md = new showdown.Converter();
+      //   readme_section.innerHTML = md.makeHtml(data);
+      // });
 
       // Render latex
       var katex_options = {
