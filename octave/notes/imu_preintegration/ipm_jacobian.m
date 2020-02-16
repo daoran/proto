@@ -7,7 +7,6 @@ data_date = "2011_09_26";
 data_seq = "0005";
 data = load_kitti(data_path, data_date, data_seq);
 
-
 dt = data.oxts.time(2) - data.oxts.time(1);
 g = [0.0; 0.0; -10.0];
 

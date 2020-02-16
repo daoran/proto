@@ -12,6 +12,15 @@ function C = so3_exp(phi)
   endif
 endfunction
 
+function x_imu = imu_state_init()
+  x_imu.p_WS = zeros(3, 1);
+  x_imu.v_WS = zeros(3, 1);
+  x_imu.C_WS = eye(3);
+  x_imu.b_a = zeros(3, 1);
+  x_imu.b_g = zeros(3, 1);
+  x_imu.g = [0; 0; -9.81];
+endfunction
+
 function x_imu = imu_update(x_imu, a_B, w_B, dt)
   b_a = x_imu.b_a;
   b_g = x_imu.b_g;
@@ -42,6 +51,7 @@ x_imu.C_WS = euler321(data.oxts.rpy(:, 1));
 
 traj_pos = [x_imu.p_WS];
 traj_vel = [x_imu.v_WS];
+traj_att = [rot2euler(x_imu.C_WS)];
 t_prev = data.oxts.time(1);
 for k = 2:length(data.oxts.time)
   % Calculate dt
@@ -56,11 +66,12 @@ for k = 2:length(data.oxts.time)
   % Keep track of t_prev
   traj_pos = [traj_pos, x_imu.p_WS];
   traj_vel = [traj_vel, x_imu.v_WS];
+  traj_att = [traj_att, rot2euler(x_imu.C_WS)];
   t_prev = t;
 endfor
 
-
 % plot_imu(data);
 plot_pos(data, traj_pos);
-% plot_vel(data, traj_vel);
+plot_vel(data, traj_vel);
+plot_att(data, traj_att);
 ginput();

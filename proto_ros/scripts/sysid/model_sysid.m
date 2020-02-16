@@ -17,7 +17,7 @@ r_dot = csvread("/tmp/r_dot.csv");
 % plot(ref(:, 1), ref(:, 3), 'g-', 'linewidth', 2.0);
 % ginput();
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%% Pitch subsystem ID %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Pitch subsystem ID %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 sys_order = 1;
 pitch = [mav(:, 1), mav(:, 5)];
 ref_pitch = [ref(:, 1), ref(:, 2)];

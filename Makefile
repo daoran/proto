@@ -3,7 +3,7 @@ PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
 BUILD_DIR=${PROJ_PATH}/proto/build
 CATKIN_WS=~/catkin_ws
 
-.PHONY: default deps debug release install ros format_code notes
+.PHONY: default deps debug release install ros format_code docs
 
 define usage
 [TARGETS]:
@@ -21,6 +21,9 @@ define usage
 
   format_code:
     Format proto code using clang-format.
+
+	docs:
+		Start a webserver to write docs.
 endef
 export usage
 
@@ -58,3 +61,6 @@ ros:
 
 format_code:
 	@bash ./scripts/format_code.bash
+
+docs:
+	@cd docs && python -m SimpleHTTPServer 8000

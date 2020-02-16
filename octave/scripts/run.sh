@@ -29,7 +29,8 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # octave notes/jacobians.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
 # octave notes/quaternion.m && exit 0
-octave notes/mav.m && exit 0
+# octave notes/mav.m && exit 0
+octave notes/msckf.m && exit 0
 # octave notes/nbt.m && exit 0
 # octave notes/rand_inv_matrix.m && exit 0
 # octave notes/vicon_frames.m && exit 0

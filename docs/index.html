@@ -2,123 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <style>
-    body {
-      color: #111;
-      margin: 0;
-      padding: 0;
-      /* font-family: Helvetica Neue, Helvetica, Arial; */
-      font-family: Times;
-      font-size: 0.96em;
-      text-align: justify;
-    }
-
-    a:link, a:visited {
-      color: #333;
-      text-decoration: none;
-    }
-
-    pre code {
-      display: block;
-      width: 500px;
-      margin-left: auto;
-      margin-right: auto;
-      padding: 10px;
-
-      color: #FFF;
-      background: #333;
-      border: 1px solid #333;
-      border-radius: 5px;
-    }
-
-    code {
-      padding-left: 2px;
-      padding-right: 2px;
-
-      color: #FFF;
-      background: #333;
-      border: 1px solid #333;
-      border-radius: 3px;
-    }
-
-    #sidebar {
-      background: #fff;
-      position: fixed;
-      z-index: 10;
-      top: 0; left: 0; bottom: 0;
-      width: 200px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 0px 0px 0px 20px;
-      border-right: 1px solid #bbb;
-      box-shadow: 0 0 20px #ccc;
-      text-align: left;
-
-      -webkit-overflow-scrolling: touch;
-      -webkit-box-shadow: 0 0 20px #ccc;
-      -moz-box-shadow: 0 0 20px #ccc;
-    }
-
-    h1 {
-      font-size: 1.6em;
-    }
-
-    h2 {
-      font-size: 1.2em;
-    }
-
-    p {
-      margin-bottom: 1.2em;
-    }
-
-    #sidebar ul {
-      display: block;
-      padding: 0px 0px 0px 20px;
-      margin: 0;
-    }
-
-    #content {
-      position: relative;
-      width: 600px;
-      padding-top: 20px;
-      margin: 0px 0px 10% 300px;
-    }
-
-    #content section {
-      border-top: 1px solid #AAA;
-      border-bottom: 1px solid #AAA;
-      padding-bottom: 5%;
-    }
-
-    #content section#readme {
-      border-top: none;
-      border-bottom: none;
-      margin-bottom: 10px;
-    }
-
-    #content a {
-      color: #005b96;
-    }
-
-    #content p {
-      text-indent: 20px;
-    }
-
-    #content img {
-      display: block;
-      max-width: 90%;
-      margin-left: auto;
-      margin-right: auto;
-      margin-top: 2em;
-      margin-bottom: 2em;
-    }
-
-    #content img.badge {
-      display: block;
-      margin: 0;
-      width: auto;
-    }
-  </style>
 </head>
 <body>
 <div class="latex" style="display:none">
@@ -126,6 +9,17 @@
 
 <div id="sidebar">
   <h1>proto</h1>
+
+  <p>- <a href="#notations">Notations</a></p>
+
+  <h2>Linear Algebra</h2>
+  <ul>
+    <li><a href="#linalg-trace">Trace</a></li>
+    <li><a href="#linalg-rank">Rank</a></li>
+    <li><a href="#linalg-cond">Condition Number</a></li>
+    <li><a href="#linalg-qr">QR</a></li>
+    <li><a href="#linalg-svd">SVD</a></li>
+  </ul>
 
   <h2>Computer Vision</h2>
   <ul>
@@ -139,7 +33,6 @@
 
   <h2>State Estimation</h2>
   <ul>
-    <li><a href="#se-notations">Notations</a></li>
     <li><a href="#se-imu">IMU</a></li>
     <li><a href="#se-gauss_newton">Gauss Newton</a></li>
     <li><a href="#se-marginalization">Marginalization</a></li>
@@ -153,7 +46,193 @@
 <section id="readme"></section>
 <!-- ####################################################################### -->
 
+<!-- ########################### NOTATIONS ################################# -->
+<section id="notations">
+<h1>Notations</h1>
+
+<p>A large part of robotics is about developing machines that perceives and
+interact with the environment. For that robots use sensors to collect and
+process data, and knowing what the data describes is of important for the robot
+to navigate and interact with the environment. The following notes will be
+using the frame notation as described by Paul Furgale (see <a
+href="https://tinyurl.com/y635m93l">link</a>). The aim is to mitigate the
+ambiguity that arises when describing robot poses, sensor data and more.</p>
+
+<p>A vector expressed in the world frame, $\frame_{W}$, is written as $\pos_{W}$.
+Or more precisely if the vector describes the position of the camera frame,
+$\frame_{C}$, expressed in $\frame_{W}$, the vector can be written as
+$\pos_{WC}$. The left hand subscripts indicates the coordinate system the
+vector is expressed in, while the right-hand subscripts indicate the start and
+end points. For brevity if the vector has the same start point as the frame to
+which it is expressed in, the same vector can be written as $\pos_{WC}$.
+Similarly a transformation of a point from $\frame_{W}$ to $\frame_{C}$ can be
+represented by a homogeneous transform matrix, $\tf_{WC}$, where its rotation
+matrix component is written as $\rot_{WC}$ and the translation component
+written as $\trans_{WC}$. A rotation matrix that is parametrized by quaternion
+$\quat_{WC}$ is written as $\rot\{\quat_{WC}\}$.</p>
+
+<equation>
+\begin{aligned}
+  &\text{Position:} \enspace & \pos_{WB} \\
+  &\text{Velocity:} \enspace & \vel_{WB} \\
+  &\text{Acceleration:} \enspace & \acc_{WB} \\
+  &\text{Angular velocity:} \enspace & \angvel_{WB} \\
+  &\text{Rotation:} \enspace & \rot_{WB} \\
+  &\text{Transform:} \enspace & \tf_{WB} \\
+\end{aligned}
+</equation>
+
+<img src="imgs/se/frame_dia_example.png" alt="Frame Diagram Example">
+<img src="imgs/se/notation_translation.png" alt="Translation Example">
+<img src="imgs/se/notation_angular_velocity.png" alt="Angular Velocity Example">
+<img src="imgs/se/notation_rotation.png" alt="Rotation Example">
+<img src="imgs/se/notation_transform.png" alt="Transform Example">
+
+</section>
+<!-- ####################################################################### -->
+
 <!-- ######################### LINEAR ALGEBRA  ############################# -->
+<section id="linalg-trace">
+<h1>Trace</h1>
+
+<p>
+<equation>
+  \text{tr}(\Mat{A}) = \sum_{i} \Mat{A}_{ii}
+</equation>
+The trace of a matrix $A$ is simply the sum of all of its diagonal.
+</p>
+</section> <!-- linalg-trace -->
+
+<section id="linalg-rank">
+<h1>Rank</h1>
+
+The rank $\rho(\Mat{A})$ of a matrix $\Mat{A}$ of $n$ rows and $m$ columns is
+defined as <b>the number of independent rows or columns</b>.
+
+<ul>
+  <li>Full rank (non-singular): $\rho(\Mat{A}) = \min(n, m)$</li>
+  <li>Not full rank (singular): $\rho(\Mat{A}) < \min(n, m)$</li>
+</ul>
+</section> <!-- linalg-rank-->
+
+<!-- ####################### CONDITION NUMBER ############################ -->
+<section id="linalg-cond">
+<h1>Condition Number</h1>
+
+<p>There are different condition numbers. In the following the condition number
+for the problem $\Mat{A} \Vec{x} = \Vec{b}$ and matrix inversion are discussed.
+In general, the condition number, $\kappa(\cdot)$, for a matrix, $\Mat{A}$, or
+computational task such as $\Mat{A} \Vec{x} = \Vec{b}$ measures how sensitive
+the output is to perturbations in the input data and to round off errors. If
+the condition number is large, even a small error in $\Vec{x}$ would cause a
+large error in $\Vec{x}$. On the other hand, if the condition number is small
+then the error in $\Vec{x}$ will not be much bigger than the error in
+$\Vec{b}$.</p>
+
+<equation>
+\begin{aligned}
+  \kappa(\Mat{A}) &\approx 1 \quad \text{well-Conditioned} \\
+  \kappa(\Mat{A}) &> 1 \quad \text{ill-Conditioned}
+\end{aligned}
+</equation>
+
+The condition number is defined more precisely to be the maximum ratio of the
+relative error in $\Vec{x}$ to the relative error in $\Vec{b}$.
+
+Let $\Vec{e}$ be the error in $\Vec{b}$. Assuming that $\Mat{A}$ is a
+nonsingular matrix, the error in the solution $\Mat{A}^{-1} \Vec{b}$ is
+$\Mat{A}^{-1} \Vec{e}$. The ratio of the relative error in the solution to the
+relative error in $\Vec{b}$ is
+<!-- <equation> -->
+<!--   \Bigslant{ -->
+<!--     \dfrac{\Norm{\Mat{A}^{&#45;1} \Vec{e}}}{\Norm{\Mat{A}^{&#45;1} \Vec{b}}} -->
+<!--   }{ -->
+<!--     \dfrac{\Norm{\Vec{e}}}{\Norm{\Vec{b}}} -->
+<!--   } -->
+<!-- </equation> -->
+which can be rewritten as,
+<equation>
+  \left(
+    \dfrac{\Norm{\Mat{A}^{-1} \Vec{e}}}{\Norm{\Vec{e}}}
+  \right)
+  \cdot
+  \left(
+    \dfrac{\Norm{\Vec{b}}}{\Norm{\Mat{A}^{-1} \Vec{b}}}
+  \right)
+</equation>
+The maximum value (for nonzero $\Vec{b}$ and $\Vec{e}$) is then seen to be the
+product of the two operator norms as follows:
+<equation>
+\begin{aligned}
+  % -- LINE 1
+  &\max_{\Vec{e}, \Vec{b} \neq 0}
+  \left\{
+    \left(
+      \dfrac{\Norm{\Mat{A}^{-1} \Vec{e}}}{\Norm{\Vec{e}}}
+      \cdot
+      \dfrac{\Norm{\Vec{b}}}{\Norm{\Mat{A}^{-1} \Vec{b}}}
+    \right)
+  \right\} \\
+  % -- LINE 2
+  &= \max_{\Vec{e}, \Vec{b} \neq 0}
+  \left\{
+    \left(
+      \dfrac{\Norm{\Mat{A}^{-1} \Vec{e}}}{\Norm{\Vec{e}}}
+    \right)
+  \right\}
+  \cdot
+  \max_{\Vec{e}, \Vec{b} \neq 0}
+  \left\{
+    \left(
+      \dfrac{\Norm{\Vec{b}}}{\Norm{\Mat{A}^{-1} \Vec{b}}}
+    \right)
+  \right\} \\
+  % -- LINE 3
+  &= \max_{\Vec{e}, \Vec{b} \neq 0}
+  \left\{
+    \left(
+      \dfrac{\Norm{\Mat{A}^{-1} \Vec{e}}}{\Norm{\Vec{e}}}
+    \right)
+  \right\}
+  \cdot
+  \max_{\Vec{e}, \Vec{b} \neq 0}
+  \left\{
+    \left(
+      \dfrac{\Norm{\Mat{A} \Vec{x}}}{\Norm{\Vec{x}}}
+    \right)
+  \right\} \\
+  % -- LINE 4
+  &= \Norm{\Mat{A}^{-1}} \cdot \Norm{\Mat{A}}
+\end{aligned}
+</equation>
+The same definition is used for any matrix norm, i.e. one that satisfies
+<equation>
+  \kappa(\Mat{A}) = \Norm{\Mat{A}^{-1}} \cdot \Norm{\Mat{A}}
+    \geq \Norm{\Mat{A}^{-1} \cdot \Mat{A}} = 1 .
+</equation>
+When the condition number is exactly one (which can only happen if $\Mat{A}$ is
+a scalar multiple of a linear isometry), then a solution algorithm can find (in
+principle, meaning if the algorithm introduces no errors of its own) an
+approximation of the solution whose precision is no worse than that of the
+data.
+
+However, it does not mean that the algorithm will converge rapidly to this
+solution, just that it won't diverge arbitrarily because of inaccuracy on the
+source data (backward error), provided that the forward error introduced by the
+algorithm does not diverge as well because of accumulating intermediate
+rounding errors.
+
+The condition number may also be infinite, but this implies that the problem is
+ill-posed (does not possess a unique, well-defined solution for each choice of
+data -- that is, the matrix is not invertible), and no algorithm can be
+expected to reliably find a solution.
+
+The definition of the condition number depends on the choice of norm, as can be
+illustrated by two examples.
+</section> <!-- linalg-inverse_cond -->
+<!-- ####################################################################### -->
+
+<!-- ################################ SVD ################################## -->
 <section id="linalg-svd">
 
 <h1>SVD</h1>
@@ -176,7 +255,7 @@
 
   <li>Make matrix $\Mat{V}$ from the vectors $\Vec{v}_{i}$
     <equation>
-    \Mat{V} = 
+    \Mat{V} =
     \begin{bmatrix}
       \vert &  & \vert \\
       \Vec{v}_{1} & \dots  & \Vec{v}_{n} \\
@@ -188,7 +267,7 @@
   <li>Make a diagonal matrix $\Mat{\Sigma}$ from the square roots of the eigen
     values.
     <equation>
-    \Mat{\Sigma} = 
+    \Mat{\Sigma} =
     \begin{bmatrix}
       \vert &  & \vert \\
       \Vec{v}_{1} & \dots  & \Vec{v}_{n} \\
@@ -221,7 +300,8 @@
 
 <equation>
 \begin{aligned}
-\Mat{A}^{\dagger} &= (\Mat{A}^{\transpose} \Mat{A})^{-1} \Mat{A}^{\transpose} \\
+\Mat{A}^{\dagger} 
+  &= (\Mat{A}^{\transpose} \Mat{A})^{-1} \Mat{A}^{\transpose} \\
   &= ((\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose}
       (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}))^{-1}
      (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
@@ -254,7 +334,8 @@ Let $\Vec{y} = \Vec{V}^{\transpose} \Vec{x}$ and subbing into the above gives,
 <equation>
   \Vec{y} = \Mat{U}^{\transpose} \Vec{b} \Mat{\Sigma}^{-1}.
 </equation>
-Solve for $\Vec{y}$ via forward substition and backward substitution to find $\Vec{x}$,
+Solve for $\Vec{y}$ via forward substition and backward substitution to find
+$\Vec{x}$,
 <equation>
   \Vec{x} = \Mat{V} \Vec{y}
 </equation>
@@ -368,7 +449,6 @@ focal length in the $x$ and/or $y$ direction.
 </section>
 <!-- ####################################################################### -->
 
-
 <!-- ################# RADIAL TANGENTIAL DISTORTION ######################## -->
 <section id="cv-radtan">
 <h1>Radial Tangential Distortion</h1>
@@ -384,13 +464,13 @@ through the center undergoes no refraction, and light passing through the edges
 of the lens, undergoes through severe bending causing the radial
 distortion.</p>
 
-<img src="cv/imgs/radial_distortion.png" alt="Radial Distortion">
+<img src="/imgs/cv/radial_distortion.png" alt="Radial Distortion">
 
 <p>Tangential distortion, on the other hand, is mainly due to camera sensor
 misalignment during the manufacturing process. It occurs when the camera sensor
 is not in parallel with the lens.</p>
 
-<img src="cv/imgs/tangential_distortion.png" alt="Tangential Distortion">
+<img src="/imgs/cv/tangential_distortion.png" alt="Tangential Distortion">
 
 <p>The combined radial-tangential distortion is modelled using a polynomial
 approximation with parameters $k_{1}, k_{2}$ and $p_{1}, p_{2}$ respectively.
@@ -592,7 +672,6 @@ in computer vision. Cambridge university press, 2003.
 </section>
 <!-- ####################################################################### -->
 
-
 <!-- ################## ILLUMINATION INVARIANT TRANSFORM ################### -->
 <section id="cv-illum_invar">
 <h1>Illumination Invariant Transform</h1>
@@ -649,9 +728,7 @@ Fig.~\ref{fig:illum_invar_comparision} are taken using a PointGrey Chameleon3
 $\lambda_{1},\lambda_{2}, \lambda_{3}$ and $\alpha $ are 480 nm, 510 nm, 640 nm
 and 0.56 respectively as noted in the sensor data sheets.</p>
 
-
 <h3>References</h3>
-
 [Maddern2014]: Maddern, Will, et al. "Illumination invariant imaging:
 Applications in robust vision-based localisation, mapping and classification
 for autonomous vehicles." Proceedings of the Visual Place Recognition in
@@ -659,7 +736,6 @@ Changing Environments Workshop, IEEE International Conference on Robotics and
 Automation (ICRA), Hong Kong, China. Vol. 2. 2014.
 </section>
 <!-- ####################################################################### -->
-
 
 <!-- ########################### OPTICAL FLOW ############################## -->
 <section id="cv-optical_flow">
@@ -713,7 +789,7 @@ where:
 The image gradients along the x and y directions are $I_{x}$ and $I_{y}$, where
 $I_{t}$ is the image gradient along time, finally, $v_{x}$ and $v_{y}$ are the
 pixel velocity in $x$ and $y$ directions, which is unknown. The problem with
-\eqref{eq:optical_flow_2} is that it provides a single constraint with two
+with the above is that it provides a single constraint with two
 degrees of freedom, and as such requires at least one additional constraint to
 identify a solution.</p>
 
@@ -721,9 +797,8 @@ identify a solution.</p>
 conditions. This method assumes all pixels within a window centered around a
 pixel $p$ will have similar motion, and that the window size is configurable.
 For example, a window size of $3 \times 3$ around the pixel $p$, the $9$ points
-within the window should have a similar motion. Using
-\eqref{eq:optical_flow_2}, the intensity inside the window must therefore
-satisfy,
+within the window should have a similar motion. Using the intensity inside the
+window must therefore satisfy,
 <equation>
 \begin{aligned}
   I_{x}(p_1) v_{x}(p_1) &+ I_{y}(p_1) v_y = -I_{t}(p_1) \\
@@ -753,15 +828,16 @@ re-written in matrix form $\mathbf{A} \mathbf{x} = \mathbf{b}$ as,
       -I_{t}(p_{n})
     \end{bmatrix}.
 </equation>
-The linear system of equations of \eqref{eq:lucas_kanade_1} is over-determined,
-therefore there is no exact solution. To address this issue, a least squares
-method can be used to approximate the solution by applying the ordinary least
-squares. For the system $\mathbf{A} \mathbf{x} = \mathbf{b}$, the least squares
-formula is obtained by minimizing the following,
+The linear system of equations above is over-determined, therefore there is no
+exact solution. To address this issue, a least squares method can be used to
+approximate the solution by applying the ordinary least squares. For the system
+$\mathbf{A} \mathbf{x} = \mathbf{b}$, the least squares formula is obtained by
+minimizing the following,
 <equation>
-  \underset{\mathbf{x}}{\text{argmin }} || \mathbf{A} \mathbf{x} - \mathbf{b} ||,
+  \underset{\mathbf{x}}{\text{argmin }}
+    || \mathbf{A} \mathbf{x} - \mathbf{b} ||,
 </equation>
-the solution of which can be obtained by using *normal equations*,
+the solution of which can be obtained by using <i>normal equations</i>,
 <equation>
 \begin{aligned}
   \mathbf{A}^{T} \mathbf{A} \mathbf{x} &= \mathbf{A}^{T} \mathbf{b} \\
@@ -787,52 +863,6 @@ Rewriting \eqref{eq:lucas_kanade_1} in the form of
 which is finally used to obtain the optical flow of pixel $p$.</p>
 </section>
 <!-- ####################################################################### -->
-
-
-<!-- ########################### NOTATIONS ################################# -->
-<section id="se-notations">
-<h1>Notations</h1>
-
-<p>A large part of robotics is about developing machines that perceives and
-interact with the environment. For that robots use sensors to collect and
-process data, and knowing what the data describes is of important for the robot
-to navigate and interact with the environment. The following notes will be
-using the frame notation as described by Paul Furgale (see <a
-href="https://tinyurl.com/y635m93l">link</a>). The aim is to mitigate the
-ambiguity that arises when describing robot poses, sensor data and more.</p>
-
-<p>A vector expressed in the world frame, $\frame_{W}$, is written as $\pos_{W}$.
-Or more precisely if the vector describes the position of the camera frame,
-$\frame_{C}$, expressed in $\frame_{W}$, the vector can be written as
-$\pos_{WC}$. The left hand subscripts indicates the coordinate system the
-vector is expressed in, while the right-hand subscripts indicate the start and
-end points. For brevity if the vector has the same start point as the frame to
-which it is expressed in, the same vector can be written as $\pos_{WC}$.
-Similarly a transformation of a point from $\frame_{W}$ to $\frame_{C}$ can be
-represented by a homogeneous transform matrix, $\tf_{WC}$, where its rotation
-matrix component is written as $\rot_{WC}$ and the translation component
-written as $\trans_{WC}$. A rotation matrix that is parametrized by quaternion
-$\quat_{WC}$ is written as $\rot\{\quat_{WC}\}$.</p>
-
-<equation>
-\begin{aligned}
-  &\text{Position:} \enspace & \pos_{WB} \\
-  &\text{Velocity:} \enspace & \vel_{WB} \\
-  &\text{Acceleration:} \enspace & \acc_{WB} \\
-  &\text{Angular velocity:} \enspace & \angvel_{WB} \\
-  &\text{Rotation:} \enspace & \rot_{WB} \\
-  &\text{Transform:} \enspace & \tf_{WB} \\
-\end{aligned}
-</equation>
-
-<img src="se/imgs/frame_dia_example.png" alt="Frame Diagram Example">
-<img src="se/imgs/notation_translation.png" alt="Translation Example">
-<img src="se/imgs/notation_angular_velocity.png" alt="Angular Velocity Example">
-<img src="se/imgs/notation_rotation.png" alt="Rotation Example">
-<img src="se/imgs/notation_transform.png" alt="Transform Example">
-</section>
-<!-- ####################################################################### -->
-
 
 <!-- ############################## IMU #################################### -->
 <section id="se-imu">
@@ -864,7 +894,6 @@ $\quat_{WC}$ is written as $\rot\{\quat_{WC}\}$.</p>
 $\gyr = \gyrMeas + \gyrNoise - \gyrBias$</p>
 </section>
 <!-- ####################################################################### -->
-
 
 <!-- ############################ GAUSS NEWTON ############################# -->
 <section id="se-gauss_newton">
@@ -963,7 +992,6 @@ found the best estimate $\bar{\Vec{x}}$ can be updated via,
 </p>
 </section>
 <!-- ####################################################################### -->
-
 
 <!-- ######################### Marginalization ############################# -->
 <section id="se-marginalization">
@@ -1162,21 +1190,18 @@ $\state_\lambda$ and $\state_\mu$.</p>
 </section>
 <!-- ####################################################################### -->
 
-
 </div> <!-- #content -->
   <!-- KATEX -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"></script>
-  <style>
-    .katex { font-size: 1.1em; }
-  </style>
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" >
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js"></script>
 
-  <!-- <!&#45;&#45; SHOWDOWN &#45;&#45;> -->
-  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script> -->
-
+  <!-- SHOWDOWN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
   <script src="http://livejs.com/live.js"></script>
 
+  <!-- JS -->
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       function http_get(url) {
@@ -1196,12 +1221,13 @@ $\state_\lambda$ and $\state_\mu$.</p>
         xmlHttp.send(null);
       }
 
-      // // Load README
-      // http_get_async("https://raw.githubusercontent.com/chutsu/proto/master/README.md", function(data) {
-      //   var readme_section = document.getElementById("readme");
-      //   var md = new showdown.Converter();
-      //   readme_section.innerHTML = md.makeHtml(data);
-      // });
+      // Load README
+      var readme_url = "https://raw.githubusercontent.com/chutsu/proto/master/README.md";
+      http_get_async(readme_url, function(data) {
+        var readme_section = document.getElementById("readme");
+        var md = new showdown.Converter();
+        readme_section.innerHTML = md.makeHtml(data);
+      });
 
       // Render latex
       var katex_options = {
@@ -1264,45 +1290,135 @@ $\state_\lambda$ and $\state_\mu$.</p>
       for (var i = 0; i < equations.length; i++) {
         var eq = equations[i];
         var eq_num = (i + 1);
-        var html = "<div style='text-align:center;margin-top:20px;margin-bottom:20px'>";
+        var html = "<div style='text&#45;align:center;margin&#45;top:20px;margin&#45;bottom:20px'>";
         html += katex.renderToString(eq.textContent, katex_options);
-        html += "<span style='float:right;'>(" + eq_num + ")</span>";
         html += "</div>";
         eq.innerHTML = html;
       }
-
-      //// Hide all sections
-      //var sections = document.getElementsByTagName("section");
-      //for (var i = 0; i < sections.length; i++) {
-      //  var section = sections[i];
-      //  if (section.id != "readme") {
-      //    section.setAttribute("style", "display:none;");
-      //  }
-      //}
-
-      //if (window.location.hash) {
-      //  var hash = window.location.hash;
-      //  var section = document.getElementById(hash.replace("#", ""));
-      //  section.setAttribute("style", "display:show;");
-      //  readme.setAttribute("style", "display:none;");
-      //}
-
-      //window.addEventListener("hashchange", function() {
-      //  window.scrollTo({ top: 0, behavior: 'smooth' });
-      //  var sections = document.getElementsByTagName("section");
-      //  for (var i = 0; i < sections.length; i++) {
-      //    var section = sections[i];
-      //    if (section.id != "readme") {
-      //      section.setAttribute("style", "display:none;");
-      //    }
-      //  }
-
-      //  var hash = window.location.hash;
-      //  var section = document.getElementById(hash.replace("#", ""));
-      //  section.setAttribute("style", "display:show;");
-      //  readme.setAttribute("style", "display:none;");
-      //});
     });
   </script>
+
+  <!-- CSS -->
+  <style>
+    .katex {
+      font-size: 1.1em;
+    }
+
+    body {
+      color: #111;
+      margin: 0;
+      padding: 0;
+      /* font-family: Helvetica Neue, Helvetica, Arial; */
+      font-family: Times;
+      font-size: 0.96em;
+      text-align: justify;
+    }
+
+    a:link, a:visited {
+      color: #333;
+      text-decoration: none;
+    }
+
+    pre code {
+      display: block;
+      width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 10px;
+
+      color: #FFF;
+      background: #333;
+      border: 1px solid #333;
+      border-radius: 5px;
+    }
+
+    code {
+      padding-left: 2px;
+      padding-right: 2px;
+
+      color: #FFF;
+      background: #333;
+      border: 1px solid #333;
+      border-radius: 3px;
+    }
+
+    #sidebar {
+      background: #fff;
+      position: fixed;
+      z-index: 10;
+      top: 0; left: 0; bottom: 0;
+      width: 200px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0px 0px 0px 20px;
+      border-right: 1px solid #bbb;
+      box-shadow: 0 0 20px #ccc;
+      text-align: left;
+
+      -webkit-overflow-scrolling: touch;
+      -webkit-box-shadow: 0 0 20px #ccc;
+      -moz-box-shadow: 0 0 20px #ccc;
+    }
+
+    h1 {
+      font-size: 1.6em;
+    }
+
+    h2 {
+      font-size: 1.2em;
+    }
+
+    p {
+      margin-bottom: 1.2em;
+    }
+
+    #sidebar ul {
+      display: block;
+      padding: 0px 0px 0px 20px;
+      margin: 0;
+    }
+
+    #content {
+      position: relative;
+      width: 600px;
+      padding-top: 20px;
+      margin: 0px 0px 10% 300px;
+    }
+
+    #content section {
+      border-top: 1px solid #AAA;
+      border-bottom: 1px solid #AAA;
+      padding-bottom: 5%;
+    }
+
+    #content section#readme {
+      border-top: none;
+      border-bottom: none;
+      margin-bottom: 10px;
+    }
+
+    #content a {
+      color: #005b96;
+    }
+
+    #content p {
+      text-indent: 20px;
+    }
+
+    #content img {
+      display: block;
+      max-width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 2em;
+      margin-bottom: 2em;
+    }
+
+    #content img.badge {
+      display: block;
+      margin: 0;
+      width: auto;
+    }
+  </style>
 </body>
 </html>

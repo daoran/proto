@@ -26,7 +26,7 @@ endfunction
 
 function N = coeffs(n, p, m, i, knots)
   N = 0;
-  u = 
+  u = 2;
 
   % Special case
   u_0 = knots(1);
@@ -34,7 +34,7 @@ function N = coeffs(n, p, m, i, knots)
   if u == u_0
     N = 1.0;
     return;
-  elseif u == u_m:
+  elseif u == u_m
     N = 1.0;
     return;
   endif
@@ -43,9 +43,8 @@ function N = coeffs(n, p, m, i, knots)
   % N(k) = 1.0;
   for d = 1:p
     N
+  endfor
 endfunction
-
-
 
 # Signal
 f = 1.0;
