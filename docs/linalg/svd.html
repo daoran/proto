@@ -1,0 +1,104 @@
+<h1>SVD</h1>
+
+<equation>
+  \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\ast}
+</equation>
+
+<h2>How to compute SVD</h2>
+<ol>
+  <li>Compute eigenvalues and eigenvectors of $\Mat{A}^{\transpose} \Mat{A}$
+    <equation>
+    \begin{aligned}
+      \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{1} &= \lambda_{1} \Vec{v}_{1} \\
+      &\vdots \\
+      \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{1} &= \lambda_{1} \Vec{v}_{1} \\
+    \end{aligned}
+    </equation>
+  </li>
+
+  <li>Make matrix $\Mat{V}$ from the vectors $\Vec{v}_{i}$
+    <equation>
+    \Mat{V} =
+    \begin{bmatrix}
+      \vert &  & \vert \\
+      \Vec{v}_{1} & \dots  & \Vec{v}_{n} \\
+      \vert &  & \vert \\
+    \end{bmatrix}
+    </equation>
+  </li>
+
+  <li>Make a diagonal matrix $\Mat{\Sigma}$ from the square roots of the eigen
+    values.
+    <equation>
+    \Mat{\Sigma} =
+    \begin{bmatrix}
+      \vert &  & \vert \\
+      \Vec{v}_{1} & \dots  & \Vec{v}_{n} \\
+      \vert &  & \vert \\
+    \end{bmatrix}
+    </equation>
+  </li>
+
+  <li>Find $\Mat{U}$ from
+    <equation>
+      \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}
+    </equation>
+    <equation>
+      \Mat{U} \Mat{\Sigma} = \Mat{A} \Mat{V}
+    </equation>
+  In the simplest case:
+    <equation>
+      \Mat{U} = \Mat{A} \Mat{V} \Mat{\Sigma}^{-1}
+    </equation>
+  </li>
+</ol>
+
+
+<h2>Pseudo Inverse with SVD</h2>
+
+<p>
+<equation>
+  \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}
+</equation>
+
+<equation>
+\begin{aligned}
+\Mat{A}^{\dagger} 
+  &= (\Mat{A}^{\transpose} \Mat{A})^{-1} \Mat{A}^{\transpose} \\
+  &= ((\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose}
+      (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}))^{-1}
+     (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
+  &= ((\Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose}
+       \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{-1}
+     (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
+  &= (\Mat{V} \Mat{\Sigma}^{2} \Mat{V}^{\transpose})^{-1}
+      \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= (\Mat{V}^{\transpose})^{-1} \Mat{\Sigma}^{-2} \Mat{V}^{-1}
+      \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= \Mat{V} \Mat{\Sigma}^{-2} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= \Mat{V} \Mat{\Sigma}^{-1} \Mat{U}^{\transpose} \\
+\end{aligned}
+</equation>
+where $\Mat{\Sigma}^{-1}$ is the pseudo inverse of $\Mat{\Sigma}$, which
+is formed by replaceing everey non-zero diagonal entry bu its reciprocal and
+transposing the resulting matrix.</p>
+
+
+<h2>Linear Least Squares with SVD</h2>
+
+<equation>
+\begin{aligned}
+  \Mat{A} \Vec{x} &= \Vec{b} \\
+  \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose} \Vec{x} &= \Vec{b} \\
+  \Mat{\Sigma} \Mat{V}^{\transpose} \Vec{x} &= \Mat{U}^{\transpose} \Vec{b} \\
+\end{aligned}
+</equation>
+Let $\Vec{y} = \Vec{V}^{\transpose} \Vec{x}$ and subbing into the above gives,
+<equation>
+  \Vec{y} = \Mat{U}^{\transpose} \Vec{b} \Mat{\Sigma}^{-1}.
+</equation>
+Solve for $\Vec{y}$ via forward substition and backward substitution to find
+$\Vec{x}$,
+<equation>
+  \Vec{x} = \Mat{V} \Vec{y}
+</equation>

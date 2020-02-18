@@ -27,8 +27,8 @@ time make ros
 # sudo make debug_install
 # exit
 
-source ~/.bashrc
-cd ~/catkin_ws/ && source devel/setup.bash
+# source ~/.bashrc
+# cd ~/catkin_ws/ && source devel/setup.bash
 # roslaunch proto_ros sim_calib.launch
 # roslaunch proto_ros calib_camera.launch
 # roslaunch proto_ros calib_stereo.launch
@@ -62,7 +62,7 @@ cd ~/catkin_ws/ && source devel/setup.bash
 # ./play
 
 # TESTS
-# cd proto/build/tests
+cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
 # ./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose
@@ -87,6 +87,7 @@ cd ~/catkin_ws/ && source devel/setup.bash
 
 # -- core
 # ./core-test_core
+./core-test_core --target test_sim_imu_measurement
 
 # -- driver
 # ./driver-test_camera-camera

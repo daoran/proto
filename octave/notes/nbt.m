@@ -197,6 +197,46 @@ function plot_camera_view_straj(s_trajs, cam, calib_target, T_WT)
   system(cmd)
 endfunction
 
+function plot_l_trajs(l_trajs, calib_target, T_WT)
+  figure();
+  hold on;
+
+  for i = 1:length(l_trajs)
+    traj = l_trajs{i};
+    for j = 1:length(traj)
+      T_WC = traj{j};
+      draw_frame(T_WC, 0.1);
+    endfor
+  endfor
+  calib_target_draw(calib_target, T_WT);
+
+  view(3);
+  xlabel("x [m]");
+  ylabel("y [m]");
+  zlabel("z [m]");
+  axis "equal";
+endfunction
+
+function plot_s_trajs(s_trajs, calib_target, T_WT)
+  figure();
+  hold on;
+
+  for i = 1:length(s_trajs)
+    traj = s_trajs{i};
+    for j = 1:length(traj)
+      T_WC = traj{j};
+      draw_frame(T_WC, 0.1);
+    endfor
+  endfor
+  calib_target_draw(calib_target, T_WT);
+
+  view(3);
+  xlabel("x [m]");
+  ylabel("y [m]");
+  zlabel("z [m]");
+  axis "equal";
+endfunction
+
 function plot_scene(l_trajs, s_trajs, calib_target, T_WT)
   figure();
   hold on;
@@ -251,7 +291,7 @@ T_WT(1:3, 4) = zeros(3, 1);
 r_TTc = [calib_target.center; 0.0];
 
 % Create trajectory origin infront relative to target
-% T_TO = calc_calib_origin(calib_target, cam);
+T_TO = calc_calib_origin(calib_target, cam);
 
 
 % [calib_target.width; 0.0; z_TO];                         % Bottom right
@@ -281,21 +321,17 @@ r_TTc = [calib_target.center; 0.0];
 % zlabel("z [m]");
 % ginput();
 
+% Generate trajectories
+l_trajs = generate_linear_trajectories(calib_target, T_WT, T_TO);
+s_trajs = generate_spherical_trajectories(calib_target, T_WT, T_TO, r_TTc);
 
+% Plot camera view during the trajectories
+% graphics_toolkit("gnuplot");
+% plot_camera_view_ltraj(l_trajs, cam, calib_target, T_WT);
+% plot_camera_view_straj(s_trajs, cam, calib_target, T_WT);
 
-
-
-
-% % Generate trajectories
-% l_trajs = generate_linear_trajectories(calib_target, T_WT, T_TO);
-% s_trajs = generate_spherical_trajectories(calib_target, T_WT, T_TO, r_TTc);
-%
-% % Plot camera view during the trajectories
-% % graphics_toolkit("gnuplot");
-% % plot_camera_view_ltraj(l_trajs, cam, calib_target, T_WT);
-% % plot_camera_view_straj(s_trajs, cam, calib_target, T_WT);
-%
-% % Plot scene
-% graphics_toolkit("fltk");
+% Plot scene
+graphics_toolkit("fltk");
 % plot_scene(l_trajs, s_trajs, calib_target, T_WT);
-% ginput();
+plot_s_trajs(s_trajs, calib_target, T_WT);
+ginput();

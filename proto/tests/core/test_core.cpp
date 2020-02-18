@@ -1862,8 +1862,8 @@ int test_sim_imu_measurement() {
   save_data("/tmp/imu_gyro.csv", imu_ts, imu_gyro);
 
   // Debug
-  // const bool debug = true;
-  const bool debug = false;
+  const bool debug = true;
+  // const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/core/plot_imu_measurements.m "
                   "/tmp/pos_data.csv "

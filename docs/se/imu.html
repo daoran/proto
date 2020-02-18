@@ -1,0 +1,26 @@
+<h1>Inertial Measurement Unit (IMU)</h1>
+
+<h2>IMU Motion Model</h2>
+
+<equation>
+\begin{aligned}
+  % Position
+  \dot\pos_{WS} &= \vel_{WS} \\
+  % Orientation
+  \dot\quat_{WS} &=
+    \dfrac{1}{2} \mathbf{\Omega}
+    (\gyrMeas, \gyrNoise, \gyrBias)
+    \quat_{WS} \\
+  % Velocity
+  \dot\vel_{WS} &=
+    \rot_{WS}
+    (\accMeas + \accNoise - \accBias) + \gravity \\
+  % Gyro Bias
+  \dot{\gyrBias} &= \noise_{\gyrBias} \\
+  % Accel Bias
+  \dot{\accBias} &= -\dfrac{1}{\tau} \accBias + \noise_{\gyrBias}
+\end{aligned}
+</equation>
+
+<p>The matrix $\mathbf{\Omega}$ is formed from the estimated angular rate
+$\gyr = \gyrMeas + \gyrNoise - \gyrBias$</p>

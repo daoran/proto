@@ -2239,10 +2239,10 @@ void sim_imu_measurement(sim_imu_t &imu,
 
   } else {
     // Propagate biases (slow moving signal)
-    const vec3_t w_a = mvn(rndeng); // Accel white noise
-    imu.b_a += -imu.b_a / imu.tau_a * dt + w_a * imu.sigma_aw_c * sqrt(dt);
     const vec3_t w_g = mvn(rndeng); // Gyro white noise
     imu.b_g += -imu.b_g / imu.tau_g * dt + w_g * imu.sigma_gw_c * sqrt(dt);
+    const vec3_t w_a = mvn(rndeng); // Accel white noise
+    imu.b_a += -imu.b_a / imu.tau_a * dt + w_a * imu.sigma_aw_c * sqrt(dt);
   }
 
   // Compute gyro measurement
