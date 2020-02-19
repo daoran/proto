@@ -8,21 +8,17 @@ $\Vec{X} \in \real^{4}$, in homogeneous coordinates from two different camera
 frames. The homogeneous projection from 3D to 2D with a known camera matrix
 $\Mat{P} \in \real^{3 \times 4}$ for each measurement is given as,
 <equation>
-\begin{aligned}
   \Vec{z} &= \mathbf{P} \mathbf{X} \\
   \Vec{z}' &= \mathbf{P}' \mathbf{X}.
-\end{aligned}
 </equation>
 These equations can be combined to form a system of equations of the form
 $\Mat{A} \Vec{x} = \Vec{0}$. To eliminate the homogeneous scale factor we apply
 a cross product to give three equations for each image point, for example
 $\Vec{z} \times (\Mat{P} \Mat{X}) = \Vec{0}$ writing this out gives
 <equation>
-\begin{aligned}
 		x (\Vec{p}^{3T} \Vec{X}) - (\Vec{p}^{1T} \Vec{X}) = 0 \\
 		y (\Vec{p}^{3T} \Vec{X}) - (\Vec{p}^{2T} \Vec{X}) = 0 \\
 		x (\Vec{p}^{2T} \Vec{X}) - y (\Vec{p}^{1T} \Vec{X}) = 0
-\end{aligned}
 </equation>
 where $\Vec{p}^{iT}$ is the $i^{\text{th}}$ row of $\Vec{P}$.</p>
 
@@ -31,7 +27,6 @@ $\Mat{A} \Vec{x} = \Vec{0}$ for each image point can be formed, where
 $\Vec{x}$ represents the unknown homogeneous feature location to be
 estimated, and $\Mat{A}$ is given as
 <equation>
-\begin{aligned}
   \mathbf{A} =
   \begin{bmatrix}
     x (\Vec{p}^{3T}) - (\Vec{p}^{1T}) \\
@@ -39,7 +34,6 @@ estimated, and $\Mat{A}$ is given as
     x' (\Vec{p'}^{3T}) - (\Vec{p'}^{1T}) \\
     y' (\Vec{p'}^{3T}) - (\Vec{p'}^{2T})
   \end{bmatrix}
-\end{aligned}
 </equation>
 giving a total of four equations in four homogeneous unknowns. Solving for
 $\Vec{A}$ using SVD allows us to estimate the initial feature location.</p>

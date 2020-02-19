@@ -36,14 +36,14 @@ or,
 </equation>
 where:
 <equation>
-\begin{aligned}
+
   I_{x} = \dfrac{\partial I}{\partial x}
   ; \quad
   I_{y} = \dfrac{\partial I}{\partial y} \\
   v_{x} = \dfrac{dx}{dt}
   ; \quad
   v_y = \dfrac{dy}{dt}.
-\end{aligned}
+
 </equation>
 The image gradients along the x and y directions are $I_{x}$ and $I_{y}$, where
 $I_{t}$ is the image gradient along time, finally, $v_{x}$ and $v_{y}$ are the
@@ -59,12 +59,12 @@ For example, a window size of $3 \times 3$ around the pixel $p$, the $9$ points
 within the window should have a similar motion. Using the intensity inside the
 window must therefore satisfy,
 <equation>
-\begin{aligned}
+
   I_{x}(p_1) v_{x}(p_1) &+ I_{y}(p_1) v_y = -I_{t}(p_1) \\
   I_{x}(p_1) v_{x}(p_2) &+ I_{y}(p_2) v_y = -I_{t}(p_2) \\
   & \enspace \vdots \\
   I_{x}(p_1) v_{x}(p_n) &+ I_{y}(p_n) v_y = -I_{t}(p_n)
-  \end{aligned}
+  
 </equation>
 where $p_{1}, p_{2} ,\dots , p_{n}$ are the pixels in the window. This can be
 re-written in matrix form $\mathbf{A} \mathbf{x} = \mathbf{b}$ as,
@@ -98,10 +98,10 @@ minimizing the following,
 </equation>
 the solution of which can be obtained by using <i>normal equations</i>,
 <equation>
-\begin{aligned}
+
   \mathbf{A}^{T} \mathbf{A} \mathbf{x} &= \mathbf{A}^{T} \mathbf{b} \\
   \mathbf{x} &= (\mathbf{A}^{T} \mathbf{A})^{-1} \mathbf{A}^{T} \mathbf{b}.
-\end{aligned}
+
 </equation>
 Rewriting \eqref{eq:lucas_kanade_1} in the form of
 \eqref{eq:normal_equations_2} we get,

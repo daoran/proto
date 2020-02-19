@@ -8,11 +8,11 @@
 <ol>
   <li>Compute eigenvalues and eigenvectors of $\Mat{A}^{\transpose} \Mat{A}$
     <equation>
-    \begin{aligned}
+    
       \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{1} &= \lambda_{1} \Vec{v}_{1} \\
       &\vdots \\
       \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{1} &= \lambda_{1} \Vec{v}_{1} \\
-    \end{aligned}
+    
     </equation>
   </li>
 
@@ -62,7 +62,7 @@
 </equation>
 
 <equation>
-\begin{aligned}
+
 \Mat{A}^{\dagger} 
   &= (\Mat{A}^{\transpose} \Mat{A})^{-1} \Mat{A}^{\transpose} \\
   &= ((\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose}
@@ -77,7 +77,7 @@
       \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
   &= \Mat{V} \Mat{\Sigma}^{-2} \Mat{\Sigma} \Mat{U}^{\transpose} \\
   &= \Mat{V} \Mat{\Sigma}^{-1} \Mat{U}^{\transpose} \\
-\end{aligned}
+
 </equation>
 where $\Mat{\Sigma}^{-1}$ is the pseudo inverse of $\Mat{\Sigma}$, which
 is formed by replaceing everey non-zero diagonal entry bu its reciprocal and
@@ -87,11 +87,11 @@ transposing the resulting matrix.</p>
 <h2>Linear Least Squares with SVD</h2>
 
 <equation>
-\begin{aligned}
+
   \Mat{A} \Vec{x} &= \Vec{b} \\
   \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose} \Vec{x} &= \Vec{b} \\
   \Mat{\Sigma} \Mat{V}^{\transpose} \Vec{x} &= \Mat{U}^{\transpose} \Vec{b} \\
-\end{aligned}
+
 </equation>
 Let $\Vec{y} = \Vec{V}^{\transpose} \Vec{x}$ and subbing into the above gives,
 <equation>

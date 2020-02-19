@@ -11,10 +11,10 @@ then the error in $\Vec{x}$ will not be much bigger than the error in
 $\Vec{b}$.</p>
 
 <equation>
-\begin{aligned}
+
   \kappa(\Mat{A}) &\approx 1 \quad \text{well-Conditioned} \\
   \kappa(\Mat{A}) &> 1 \quad \text{ill-Conditioned}
-\end{aligned}
+
 </equation>
 
 The condition number is defined more precisely to be the maximum ratio of the
@@ -44,7 +44,7 @@ which can be rewritten as,
 The maximum value (for nonzero $\Vec{b}$ and $\Vec{e}$) is then seen to be the
 product of the two operator norms as follows:
 <equation>
-\begin{aligned}
+
   % -- LINE 1
   &\max_{\Vec{e}, \Vec{b} \neq 0}
   \left\{
@@ -84,7 +84,7 @@ product of the two operator norms as follows:
   \right\} \\
   % -- LINE 4
   &= \Norm{\Mat{A}^{-1}} \cdot \Norm{\Mat{A}}
-\end{aligned}
+
 </equation>
 The same definition is used for any matrix norm, i.e. one that satisfies
 <equation>

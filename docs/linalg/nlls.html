@@ -22,7 +22,7 @@ estimated value calculated using the measurement function, $\Vec{h}(\cdot)$.
 A local minima for the problem is found when the gradient of the cost,
 $\cost$, is zero
 <equation>
-\begin{aligned}
+
   \dfrac{\partial{\cost}}{\partial{\Vec{x}}}
   &=
     \dfrac{\partial{\cost}}{\partial{\Vec{e}}}
@@ -35,13 +35,13 @@ $\cost$, is zero
     \Vec{e}(\Vec{x})^{\transpose}
     \Mat{W}
     \Vec{E}(\Vec{x})
-\end{aligned}
+
 </equation>
 linearizing $\Vec{e}(\Vec{x})$ with the first-order Taylor series,
 $\Vec{e}(\Vec{x}) \approx \Vec{e}(\bar{\Vec{x}}) + \Vec{E}(\bar{\Vec{x}})
 \Delta\Vec{x}$, gives,
 <equation>
-\begin{aligned}
+
   \dfrac{\partial{\cost}}{\partial{\Vec{x}}}
   &=
     (\Vec{e}(\bar{\Vec{x}}) + \Vec{E}(\bar{\Vec{x}})\Delta\Vec{x})^{\transpose}
@@ -77,7 +77,7 @@ $\Vec{e}(\Vec{x}) \approx \Vec{e}(\bar{\Vec{x}}) + \Vec{E}(\bar{\Vec{x}})
     \Mat{W} \,
     \Vec{e}(\bar{\Vec{x}})
   }_{\Vec{b}}
-\end{aligned}
+
 </equation>
 solve the normal equations for $\Delta\Vec{x}$ and update $\Vec{x}$ using,
 <equation>

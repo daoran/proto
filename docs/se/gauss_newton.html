@@ -1,7 +1,7 @@
 <h1>Gauss Newton</h1>
 
 <equation>
-\begin{aligned}
+
   \min_{\Vec{x}} \cost(\Vec{x})
     &=
       \dfrac{1}{2}
@@ -12,7 +12,7 @@
       \Vec{e}_{i}^{\transpose}(\Vec{x})
       \Mat{W}
       \Vec{e}_{i}(\Vec{x})
-\end{aligned}
+
 </equation>
 
 <p>Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
@@ -33,7 +33,7 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 </equation>
 
 <equation>
-\begin{aligned}
+
   \dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
     \dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
     \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
@@ -42,11 +42,11 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
     \Vec{e}(\bar{\Vec{x}}) +
     \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
     \Mat{E}(\bar{\Vec{x}})
-\end{aligned}
+
 </equation>
 
 <equation>
-\begin{aligned}
+
   \dfrac{\delta{\cost}}{\delta{\Vec{x}}}
     &=
       (\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
@@ -62,11 +62,11 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
       + \Delta\Vec{x}^{\transpose}
         \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
       = 0 \\
-\end{aligned}
+
 </equation>
 
 <equation>
-\begin{aligned}
+
     % Line 4
     \Delta\Vec{x}^{\transpose}
       \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
@@ -81,7 +81,7 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
     \underbrace{
       - \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
     }_{\Vec{b}}
-\end{aligned}
+
 </equation>
 
 <p>Solve the normal equations $\Mat{H}\Delta\Vec{x} = \Vec{b}$ for

@@ -88,7 +88,7 @@ function render_note() {
     var eq = equations[i];
     var eq_num = (i + 1);
     var html = "<div style='text&#45;align:center;margin&#45;top:20px;margin&#45;bottom:20px'>";
-    html += katex.renderToString(eq.textContent, katex_options);
+    html += katex.renderToString("\\begin{aligned}" + eq.textContent + "\\end{aligned}", katex_options);
     html += "</div>";
     eq.innerHTML = html;
   }

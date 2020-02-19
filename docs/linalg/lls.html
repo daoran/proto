@@ -16,19 +16,19 @@ where the goal is to find an \textit{approximate} solution.
 The local minima can be found when the derivative of the squared error is zero.
 First the squared error is expanded to give:
 <equation>
-\begin{aligned}
+
   & (\Mat{A} \Vec{x} - \Vec{b})^{\transpose}
     (\Mat{A} \Vec{x} - \Vec{b}) \\
   & (\Transpose{\Vec{x}} \Transpose{\Mat{A}} \Mat{A} \Vec{x}
     - 2 \Transpose{\Vec{b}} \Mat{A} \Vec{x}
     + \Transpose{\Vec{b}} \Vec{b})
-\end{aligned}
+
 </equation>
 then by differentiating the expanded squared error with respect to $\Vec{x}$,
 setting the derivative to zero, and rearranging the equation with respect to
 $\Vec{x}$ gives the following:
 <equation>
-\begin{aligned}
+
   % Line 1
   2 \Transpose{\Vec{x}} \Transpose{\Mat{A}} \Mat{A}
     - 2 \Transpose{\Vec{b}} \Mat{A} &= 0 \\
@@ -45,7 +45,7 @@ $\Vec{x}$ gives the following:
   % Line 5
   \Vec{x}
     &= \Mat{A}^{\dagger} \Vec{b} \enspace,
-\end{aligned}
+
 </equation>
 where $\left( \Transpose{\Mat{A}} \Mat{A} \right)^{-1} \Transpose{\Mat{A}}$ is
 known as the pseudo inverse $\Mat{A}^{\dagger}$.

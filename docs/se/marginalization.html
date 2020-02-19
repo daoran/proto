@@ -52,7 +52,6 @@ the Hessian, error state and R.H.S of the Gauss-Newton system gives:
 </equation>
 and applying the Shur complement operation yields:
 <equation>
-\begin{aligned}
   \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
   &=
   \Mat{H}_{\lambda_{1}\lambda_{1}} -
@@ -66,7 +65,6 @@ and applying the Shur complement operation yields:
   \Mat{H}_{\lambda_{1}\mu}
   \Mat{H}_{\mu\mu}^{-1}
   \Vec{b}_{\mu}
-\end{aligned}
 </equation>
 where $\Vec{b}^{\ast}_{\lambda_{1}}$ and
 $\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}$ are non-linear functions of
@@ -127,21 +125,19 @@ $r$ remain states which we wish to keep. i.e. $\state =
 cost function, $c(\cdot)$, can be written as a function of $\state$ at time $k$
 as,
 <equation>
-\begin{aligned}
   c(\state_{k}) &= c(\state_{m}, \state_{r}) \\
                 &= c(\state_{m}) + c(\state_{r}).
-\end{aligned}
 </equation>
 The intuition behind \eqref{eq:ba_cost_fn} is since the state at time $k$ can
 be partitioned into $m$ and $r$, the cost can also be decomposed. Utilizing
 this property, the multi-variate optimization can also be decomposed as
 follows,
 <equation>
-\begin{aligned}
+
   \min_{\state_{m}, \state_{r}} c(\state_{m}, \state_{r})
     &= \min_{\state_{r}} (\min_{\state_{m}} c(\state_{m}, \state_{r})) \\
     &= \min_{\state_{r}} (c(\state_{r}) + \min_{\state_{m}} c(\state_{m})) .
-\end{aligned}
+
 </equation>
 The equation above shows the minimization problem can be solved by first
 optimizing for the states $\state_{m}$, and then forming a prior towards the
@@ -171,7 +167,6 @@ and $\lambda$ for states to remain,
 </equation>
 Solving for $\Delta{\state}$ via the Schur's Complement operation,
 <equation>
-\begin{aligned}
   \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
   &=
   \Mat{H}_{\lambda_{1}\lambda_{1}} -
@@ -185,7 +180,6 @@ Solving for $\Delta{\state}$ via the Schur's Complement operation,
   \Mat{H}_{\lambda_{1}\mu}
   \Mat{H}_{\mu\mu}^{-1}
   \Vec{b}_{\mu}
-\end{aligned}
 </equation>
 where $\Vec{b}^{\ast}_{\lambda_{1}}$ and
 $\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}$ are non-linear functions of

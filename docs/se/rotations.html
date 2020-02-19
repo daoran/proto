@@ -27,7 +27,6 @@ A quaternion, $\Vec{q} \in \real^{4}$, generally has the following form
 where $\{ q_{w}, q_{x}, q_{y}, q_{z} \} \in \real$ and $\{ \mathbf{i}, \mathbf{j},
 \mathbf{k} \}$ are the imaginary numbers satisfying
 <equation>
-\begin{aligned}
   &\mathbf{i}^{2}
   = \mathbf{j}^{2}
   = \mathbf{k}^{2}
@@ -36,7 +35,7 @@ where $\{ q_{w}, q_{x}, q_{y}, q_{z} \} \in \real$ and $\{ \mathbf{i}, \mathbf{j
   \mathbf{ij} = -\mathbf{ji} &= \mathbf{k}, \enspace
   \mathbf{jk} = -\mathbf{kj} = \mathbf{i}, \enspace
   \mathbf{ki} = -\mathbf{ik} = \mathbf{j}
-  \end{aligned}
+
 </equation>
 corresponding to the Hamiltonian convention. The quaternion can be written as a
 4 element vector consisting of a \textit{real} (\textit{scalar}) part, $q_{w}$,
@@ -77,7 +76,6 @@ and <b>associative</b>.
 The quaternion multiplication (or product) of two quaternions $\Vec{p}$ and
 $\Vec{q}$, denoted by $\otimes$ is defined as
 <equation>
-\begin{aligned}
   \Vec{p} \otimes \Vec{q}
     &=
     (p_w + p_x \mathbf{i} + p_y \mathbf{j} + p_z \mathbf{k})
@@ -101,7 +99,6 @@ $\Vec{q}$, denoted by $\otimes$ is defined as
       p_w q_w - \Transpose{\Vec{p}_{v}} \Vec{q}_{v} \\
       p_w \Vec{q}_{v} + q_w \Vec{p}_{v} + \Vec{p}_{v} \times \Vec{q}_{v}
     \end{bmatrix}.
-\end{aligned}
 </equation>
 The quaternion product is <b>not commutative</b> in the general
 case. There are exceptions to the general non-commutative rule, where
@@ -238,22 +235,18 @@ and
 The norm of a quaternion is defined by
 
 <equation>
-\begin{aligned}
   \Norm{\quat} &= \sqrt{\quat \otimes \quat^{\ast}} \\
     &= \sqrt{\quat^{\ast} \otimes \quat} \\
     &= \sqrt{q_{w}^{2} + q_{x}^{2} + q_{y}^{2} + q_{z}^{2}}
     \enspace \in \real,
-\end{aligned}
 </equation>
 
 and has the property
 
 <equation>
-\begin{aligned}
   \Norm{\Vec{p} \otimes \Vec{q}} =
   \Norm{\Vec{q} \otimes \Vec{p}} =
   \Norm{\Vec{p}} \Norm{\Vec{q}}
-\end{aligned}
 </equation>
 
 
@@ -263,19 +256,16 @@ and has the property
 Using the properties of the cross and dot product
 
 <equation>
-\begin{aligned}
   \Vec{u} \cdot \Vec{v} &=
     \Norm{\Vec{u}} \Norm{\Vec{v}} \cos \theta \\
   \Norm{\Vec{u} \times \Vec{v}} &=
     \Norm{\Vec{u}} \Norm{\Vec{v}} \Norm{\sin \theta} ,
-\end{aligned}
 </equation>
 
 the axis angle, $\boldsymbol{\theta} \in \real^{3}$, can be obtained from
 $\Vec{u}$ and $\Vec{v}$ with
 
 <equation>
-\begin{aligned}
   %-- Axis-angle
   \boldsymbol{\theta} &= \theta \Vec{e} \\
   % -- Angle
@@ -287,7 +277,6 @@ $\Vec{u}$ and $\Vec{v}$ with
   \Vec{e} &=
     \dfrac{\Vec{u} \times \Vec{v}}{\Norm{\Vec{u} \times \Vec{v}}}
     \quad , \enspace \Vec{e} \in \real^{3}
-\end{aligned}
 </equation>
 
 where $\Vec{e}$ is the unit vector that defines the rotation axis and $\theta$
@@ -317,7 +306,6 @@ rotation of the IMU sensor frame, $\frame_{S}$, with respect to the world
 frame, $\frame_{W}$, can be calculated given that values for $\Vec{g}$ and
 $\Vec{a}_{m}$ are known. For example let
 <equation>
-\begin{aligned}
   % -- Gravity vector
   \Vec{g} &= \Transpose{\begin{bmatrix} 0 & 0 & -9.81 \end{bmatrix}} \\
   % -- Accelerometer measurement vector
@@ -328,7 +316,6 @@ $\Vec{a}_{m}$ are known. For example let
       -3.14984
     \end{bmatrix}
   } ,
-\end{aligned}
 </equation>
 taken from the first measurement of the \texttt{imu\_april} calibration
 sequence of the EuRoC MAV dataset.
@@ -362,7 +349,6 @@ is negated, and so $\Vec{u} = -\Vec{g}$ and $\Vec{v} = \Vec{a}_{m}$. Using
 axis-angle, $\boldsymbol{\theta}$, is thereby
 
 <equation>
-\begin{aligned}
   % -- Axis-Angle
   \theta &= 1.8982 \\
   \Vec{e} &= \Transpose{
@@ -372,7 +358,6 @@ axis-angle, $\boldsymbol{\theta}$, is thereby
       0.00000
     \end{bmatrix}
   }
-\end{aligned}
 </equation>
 
 Finally the quaternion, $\quat_{WS}$, can be calculated using
@@ -410,12 +395,10 @@ Finally the quaternion, $\quat_{WS}$, can be calculated using
 <h2>Rotation Matrix to Quaternion</h2>
 
 <equation>
-\begin{aligned}
   q_w &= \dfrac{\sqrt{1 + m_{11} + m_{22} + m_{33}}}{2} \\
   q_x &= \dfrac{m_{32} - m_{23}}{4 q_w} \\
   q_y &= \dfrac{m_{13} - m_{31}}{4 q_w} \\
   q_z &= \dfrac{m_{21} - m_{02}}{4 q_w}
-\end{aligned}
 </equation>
 
 Note, while the equations seems straight forward in practice, however,the trace
@@ -460,30 +443,24 @@ coordinate tuple $\boldsymbol{\varphi} (\varphi_1, \varphi_2, \varphi_3) \in
 $\forall t, s \in \real$, $\forall \vec{\boldsymbol{\varphi}} \in $
 
 <equation>
-\begin{aligned}
   Exp((t + s) \vec{\boldsymbol{\varphi}}) =
     Exp(t\vec{\boldsymbol{\varphi}}) \circ Exp(s\vec{\boldsymbol{\varphi}})
-\end{aligned}
 </equation>
 
 
 <equation>
-\begin{aligned}
   \boxplus :& SO(3) \times \real^{3} \rightarrow SO(3), \\
     &\Phi, \boldsymbol{\varphi}
       \mapsto \text{exp}(\boldsymbol{\varphi}) \circ \Phi, \\
   \boxminus :& SO(3) \times SO(3) \rightarrow \real^{3}, \\
     &\Phi_1, \Phi_2 \mapsto \text{log}(\Phi_1 \circ \Phi_{2}^{-1})
-\end{aligned}
 </equation>
 
 Similar to regular addition and subtraction, both operators have the following
 identities,
 
 <equation>
-\begin{aligned}
   \Phi \boxplus \Vec{0} &= \Phi \\
   (\Phi \boxplus \boldsymbol{\varphi}) \boxminus \Phi &= \boldsymbol{\varphi} \\
   \Phi_1 \boxplus (\Phi_2 \boxminus \Phi_1) &= \Phi_2
-\end{aligned}
 </equation>

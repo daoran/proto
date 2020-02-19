@@ -1,21 +1,18 @@
 <h1>Equi-distant Distortion</h1>
 
 <equation>
-\begin{aligned}
   r &= \sqrt{x^{2} + y^{2}} \\
   \theta &= \arctan{(r)} \\
   \theta_d &= \theta (1 + k_1 \theta^2 + k_2 \theta^4
     + k_3 \theta^6 + k_4 \theta^8) \\
   x' &= (\theta_d / r) \cdot x \\
   y' &= (\theta_d / r) \cdot y
-\end{aligned}
 </equation>
 
 
 <h2>Equi-distant Point Jacobian</h2>
 
 <equation>
-\begin{aligned}
   \dfrac{\partial{\Vec{d}_{\text{equi}}}}{\partial{\Vec{p}_{C}}} &=
     \begin{bmatrix}
       J_{11} & J_{12} \\
@@ -40,14 +37,12 @@
     J_{12} &= x s_r r_y \\
     J_{21} &= y s_r r_x \\
     J_{22} &= s + y s_r r_y
-\end{aligned}
 </equation>
 
 
 <h2>Equi-distant Parameter Jacobian</h2>
 
 <equation>
-\begin{aligned}
   \dfrac{\partial{\Vec{d}_{\text{equi}}}}
         {\partial{\Vec{d}_{\text{params}}}} &=
     \begin{bmatrix}
@@ -64,5 +59,4 @@
   J_{22} &= y \theta^5 / r \\
   J_{23} &= y \theta^7 / r \\
   J_{24} &= y \theta^9 / r
-\end{aligned}
 </equation>
