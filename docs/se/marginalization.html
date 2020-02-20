@@ -1,7 +1,65 @@
 <h1>Marginalization</h1>
-<h2>Shur's Complement</h2>
 
-<p>But there are something happening</p>
+<p>As a reminder, marginalization is about having a joint density $p(x, y)$
+over two variables $x$ and $y$, and we would like to marginalize out or
+"eliminate a variable", lets say $y$ in this case:
+<equation>
+  p(x) = \int_{y} p(x, y)
+</equation>
+resulting in a density $p(x)$ over the remaining variable $x$.</p>
+
+<p>Now, if the density was in covariance form with mean $\boldsymbol{\mu}$ and
+covariance $\mathbf{\Sigma}$, partitioned as follows:
+<equation>
+  p(x, y) = \mathcal{N}(
+    % Mean
+    \begin{bmatrix}
+      \boldsymbol\mu_{x} \\ 
+      \boldsymbol\mu_{y}
+    \end{bmatrix},
+    % Covariance
+    \begin{bmatrix}
+      \mathbf\Sigma_{xx}, \mathbf\Sigma_{xy} \\ 
+      \mathbf\Sigma_{yx}, \mathbf\Sigma_{yy}
+    \end{bmatrix}
+  )
+</equation>
+marginalization is simple, as the corresponding sub-block
+$\mathbf{\Sigma}_{xx}$ already contains the covariance on $x$ i.e.,
+<equation>
+  p(x) = \mathcal{N}(
+    % Mean
+    \boldsymbol\mu_{x},
+    % Covariance
+      \mathbf\Sigma_{xx}
+  ).
+</equation>
+</p>
+
+<p>In the nonlinear-least squares case, however, we took the negative-log on
+the multi-variate Gaussian distribution to arrive at the nonlinear least
+squares cost function of the form:
+<equation>
+  \mathcal{N}(\mathbf{z}, \boldsymbol{\mu}, \mathbf{\Sigma}) &= 
+    \dfrac{1}{\sqrt{|2\pi\mathbf{\Sigma}|}}
+    \exp(
+      -\dfrac{1}{2} 
+      || \mathbf{z} - \mathbf{h}(\boldsymbol{\mu})||^{2}_{\Sigma}
+    )\\
+  J &= \min_{x} ||\mathbf{e} ||^{2}_{\Sigma} \\
+  J &= \min_{x} ||\mathbf{\Sigma}^{-1/2} \mathbf{e} ||^{2}_{2}
+</equation>
+
+<equation>
+  \mathbf{\Sigma} = \mathbf{H}^{-1}
+</equation>
+
+It just so happens that when we're trying to invert the Hessian sub matrix
+block via Schur's complement, we are at the same time performing
+marginalization.
+
+
+<h2>Shur's Complement</h2>
 
 <p>Let $\Mat{M}$ be a matrix that consists of block matrices $\Mat{A}$, $\Mat{B}$,
 $\Mat{C}$, $\Mat{D}$,
@@ -21,6 +79,7 @@ matrix $\Mat{B}$ is the defined by
   \Mat{M}/\Mat{D} = \Mat{A} - \Mat{B} \Mat{D}^{-1} \Mat{C}.
 </equation>
 </p>
+
 
 ---
 
@@ -114,6 +173,85 @@ Substituting in the above  to the R.H.S of the Gauss-Newton system, $\Mat{H}
     \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
     \Delta{\chi}_{\lambda_{1}}.
 </equation>
+</p>
+
+
+<h3>Derivation of Schur's Complement for Marginalization</h3>
+
+<p>
+From the Gauss-Newton system, $\mathbf{H} \mathbf{x} = \mathbf{b}$, we can
+derive the marginalization of the old states in $\mathbf{x}$ algebraically.
+Let us decompose the system as:
+<equation>
+  % H
+  \begin{bmatrix}
+    \mathbf{H}_{11} & \mathbf{H}_{12} \\ 
+    \mathbf{H}_{21} & \mathbf{H}_{22}
+  \end{bmatrix}
+  % x
+  \begin{bmatrix}
+    \mathbf{x}_{1} \\ 
+    \mathbf{x}_{2}
+  \end{bmatrix}
+  =
+  % b
+  \begin{bmatrix}
+    \mathbf{b}_{1} \\ 
+    \mathbf{b}_{2}
+  \end{bmatrix}
+</equation>
+If we multiply out the block matrices and vectors out we get:
+<equation>
+  % Line 1
+  \mathbf{H}_{11} \mathbf{x}_{1} + \mathbf{H}_{12} \mathbf{x}_{2}
+    = \mathbf{b}_{1} \\
+  % Line 2
+  \mathbf{H}_{21} \mathbf{x}_{1} + \mathbf{H}_{22} \mathbf{x}_{2}
+    = \mathbf{b}_{2}
+</equation>
+Now if we want to marginalize out the $\mathbf{x}_{2}$, we simply rearrange the
+second equation above to be w.r.t. $\mathbf{x}_{2}$ like so:
+<equation>
+  % Line 1
+  \mathbf{H}_{21} \mathbf{x}_{1} + \mathbf{H}_{22} \mathbf{x}_{2}
+    &= \mathbf{b}_{2} \\
+  % Line 2
+  \mathbf{H}_{22} \mathbf{x}_{2}
+    &= \mathbf{b}_{2} - \mathbf{H}_{21} \mathbf{x}_{1} \\
+  % Line 3
+  \mathbf{x}_{2}
+    &= \mathbf{H}_{22}^{-1} \mathbf{b}_{2}
+		- \mathbf{H}_{22}^{-1} \mathbf{H}_{21} \mathbf{x}_{1} \\
+</equation>
+substitute our $\mathbf{x}_{2}$ above back into $\mathbf{H}_{11} \mathbf{x}_{1}
++ \mathbf{H}_{12} \mathbf{x}_{2} = \mathbf{b}_{1}$, and rearrange the terms so
+it is w.r.t $\mathbf{x}_{1}$ to get:
+<equation>
+  % Line 1
+  \mathbf{H}_{11} \mathbf{x}_{1} + \mathbf{H}_{12}
+  (\mathbf{H}_{22}^{-1} \mathbf{b}_{2}
+    - \mathbf{H}_{22}^{-1} \mathbf{H}_{21} \mathbf{x}_{1})
+  &= \mathbf{b}_{1} \\
+  % Line 2
+  \mathbf{H}_{11} \mathbf{x}_{1}
+  + \mathbf{H}_{12} \mathbf{H}_{22}^{-1} \mathbf{b}_{2}
+  - \mathbf{H}_{12} \mathbf{H}_{22}^{-1} \mathbf{H}_{21} \mathbf{x}_{1}
+  &= \mathbf{b}_{1} \\
+  % Line 3
+  (\mathbf{H}_{11}
+		- \mathbf{H}_{12}\mathbf{H}_{22}^{-1}\mathbf{H}_{21}) \mathbf{x}_{1}
+  &= \mathbf{b}_{1} - \mathbf{H}_{12} \mathbf{H}_{22}^{-1} \mathbf{b}_{2}
+</equation>
+We end up with the Schur Complement of $\mathbf{H}_{22}$ in $\mathbf{H}$:
+<equation>
+  \mathbf{H} / \mathbf{H}_{22} :=
+    \mathbf{H}_{11}
+    - \mathbf{H}_{12}\mathbf{H}_{22}^{-1}\mathbf{H}_{21} \\
+  \mathbf{b} / \mathbf{b}_{2} :=
+    \mathbf{b}_{1} - \mathbf{H}_{12} \mathbf{H}_{22}^{-1} \mathbf{b}_{2}
+</equation>
+If you want to marginalize out $\mathbf{x}_{1}$ you can follow the same process
+above but w.r.t $\mathbf{x}_{1}$, that is left as an exercise to the reader ;)
 </p>
 
 ---

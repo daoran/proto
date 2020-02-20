@@ -25,6 +25,7 @@ var katex_options = {
     "\\LargeNorm": "\\left\\lVert#1\\right\\rVert}",
     "\\Trace": "\\text{tr}(#1)",
     "\\Rank": "\\text{rank}(#1)}",
+    "\\E": "\\mathbb{E}\\left[#1\\right]",
     "\\Bigslant": "{\\left/\\right}",
     "\\cost": "J",
     "\\argmin": "\\mathop{\\mathrm{argmin}",
