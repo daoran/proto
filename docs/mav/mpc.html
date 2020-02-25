@@ -134,7 +134,7 @@ to 50ms.
 
 <h2>MPC Formulated as a QP Problem</h2>
 
-Our goal is to obtain an optimal input sequence $\bar{\u}^{\ast} =
+<p>Our goal is to obtain an optimal input sequence $\bar{\u}^{\ast} =
 \u_{0}^{\ast} \dots \u_{N-1}^{\ast}$ which is the solution of the following
 optimization problem:
 <equation>
@@ -148,12 +148,28 @@ optimization problem:
 
 <equation>
 	J = \sum_{k = 0}^{N - 1}
-			\left(
-					\Norm{\Mat{Q}_{k + 1} (\Vec{y}_{k + 1} - \Vec{s}_{k + 1}^{y})}_{2}^{2}
-					+ \Norm{\Mat{R}_{k} (\Vec{u}_{k} - \Vec{s}_{k}^{u})}_{2}^{2}
-			\right)
+  \left(
+    \Norm{\Mat{Q}_{k + 1} (\Vec{y}_{k + 1} - \Vec{s}_{k + 1}^{y})}_{2}^{2}
+    + \Norm{\Mat{R}_{k} (\Vec{u}_{k} - \Vec{s}_{k}^{u})}_{2}^{2}
+  \right)
 </equation>
-stacking the cost function,
+
+where: 
+<ul>
+  <li>$\state_{k + 1} \in \real^{n}$: system state at time $k$</li>
+  <li>$\hat{\state}_{0} \in \real^{n}$: estimated state at time 0</li>
+  <li>$\Vec{y}_{k} \in \real^{p}$: system output at time $k$</li>
+  <li>$\Vec{u}_{k}$: system input at time $k$</li>
+  <li>$\Vec{s}_{k}^{y} \in \real^{p}$: reference output at time $k$ (given)</li>
+  <li>$\Vec{s}_{k}^{u} \in \real^{m}$: reference input at time $k$ (given)</li>
+  <li>$\Mat{R}_{k} \in \real^{m \times m}$: input gain matrix (tuning
+    parameters)</li>
+  <li>$\Mat{Q}_{k} \in \real^{n \times n}$: output gain matrix (tuning
+    parameters)</li>
+</ul>
+
+By concatenating the two squared 2-norms that appear in the cost function $J$,
+we can rewrite it as:
 <equation>
     J = \Norm{\begin{matrix}
         \Mat{Q}_{1} (\Vec{y}_{1} - \Vec{s}_{1}^{y}) \\
@@ -166,17 +182,18 @@ stacking the cost function,
         \Mat{R}_{N-1} (\Vec{u}_{N-1} - \Vec{s}_{N-1}^{u}) \\
     \end{matrix}}_{2}^{2}
 </equation>
-
+and stacking the $\Mat{Q}$ and $\Mat{R}$ as,
 <equation>
     J = \Norm{
             \begin{matrix}
                 \bar{\Mat{Q}}(\bar{\Vec{y}} - \bar{\Vec{s}}^{y}) \\
                 \bar{\Mat{R}}(\bar{\Vec{u}} - \bar{\Vec{s}}^{u})
             \end{matrix}
-        }_{2}^{2},
+        }_{2}^{2}.
 </equation>
+</p>
 
-The problem with the current formulation is the equality constraints
+<p>The problem with the current formulation is the equality constraints
 $\Vec{x}_{k + 1}$, $\Vec{y}_{k}$ and $\state_{0}$ may not be valid in practice
 due to imperfect model, and/or sensor measurement noise. If the equality
 constraints are invalid the optimized solution will not be feasible. Instead,
@@ -314,3 +331,4 @@ transformed into the following equivalent QP with inequality constraints:
 	s.t. : 
 			& \hat{\u}_{\text{min}} \leq \u \leq \u_{\text{max}}
 </equation>
+</p>
