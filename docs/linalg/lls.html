@@ -1,17 +1,17 @@
 <h1>Linear Least Squares</h1>
 
-Linear problems generally have the form
+<p>Linear problems generally have the form
 <equation>
   \Mat{A} \Vec{x} = \Vec{b}
 </equation>
 If $\Mat{A}$ is skinny (number of rows is larger than number of columns) the
-problem is over constrained and there is no \textit{unique} solution. Instead,
+problem is over constrained and there is no <i>unique</i> solution. Instead,
 the problem can be solved by minizming the squared error between $\Mat{A}
 \Vec{x}$ and $\Vec{b}$. The linear least squares problem is then defined as,
 <equation>
   \min_{\Vec{x}} || \Mat{A} \Vec{x} - \Vec{b} ||^{2}_{2} \enspace,
 </equation>
-where the goal is to find an \textit{approximate} solution.
+where the goal is to find an <i>approximate</i> solution.
 
 The local minima can be found when the derivative of the squared error is zero.
 First the squared error is expanded to give:
@@ -49,3 +49,4 @@ $\Vec{x}$ gives the following:
 </equation>
 where $\left( \Transpose{\Mat{A}} \Mat{A} \right)^{-1} \Transpose{\Mat{A}}$ is
 known as the pseudo inverse $\Mat{A}^{\dagger}$.
+</p>

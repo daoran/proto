@@ -1,0 +1,50 @@
+<h1>IMU Preintegration</h1>
+
+<p>
+<equation>
+  \hat{\Vec{a}} &=
+    \Vec{a} + \rot_{WS} \gravity + \bias_{a} + \noise_{a} \\
+  \hat{\angvel} &=
+    \angvel + \bias_{\omega} + \noise_{\omega}
+</equation>
+
+<equation>
+  \trans_{WS_{k+1}}
+    &= \trans_{WS_{k}}
+      + \vel_{WS_{k}} \Delta t_{k}
+      + \iint_{t \in [t_{k}, t_{k+1}]} (
+        \rot_{WS} (\hat{\acc}_{S} - \bias_{a} - \noise_{a}) dt^{2}
+      )
+  \\
+  \vel_{WS_{k+1}}
+    &= \vel_{WS_{k}} \Delta t_{k}
+      + \int_{t \in [t_{k}, t_{k+1}]} (
+        \rot_{WS} (\hat{\acc}_{S} - \bias_{a} - \noise_{a}) dt^{2}
+      )
+  \\
+  \quat_{WS_{k+1}}
+    &= \quat_{WS_{k}} \otimes
+      \int_{t \in [t_{k}, t_{k+1}]}
+      \dfrac{1}{2} \mathbf{\Omega}(
+        \hat\angvel_{S} - \bias_{\omega} - \noise_{\omega}
+        ) \quat_{S_{k}S_{t}} dt
+</equation>
+where
+<equation>
+  \mathbf{\Omega}(\mathbf{\omega}) =
+    \begin{bmatrix}
+      - \Skew{\omega} & \omega \\
+      - \omega^{\transpose} & 0
+    \end{bmatrix}, \enspace
+  \Skew{\omega} =
+    \begin{bmatrix}
+      0 & -\omega_{z} & \omega_{y} \\
+      \omega_{z} & 0 & -\omega_{x} \\
+      -\omega_{y} & \omega_{x} & 0
+    \end{bmatrix}.
+</equation>
+$\Delta{t_{k}}$ is the duration between the time interval $[t_k, t_{k+1}]$.</p>
+
+<equation>
+  
+</equation>

@@ -13,7 +13,7 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # octave notes/camera/intrinsics_jacobian.m && exit 0
 # octave notes/camera/radtan4_params_jacobian.m && exit 0
 # octave notes/camera/radtan4_point_jacobian.m && exit 0
-# octave notes/imu_preintegration/ipm.m && exit 0
+octave notes/imu_preintegration/ipm.m && exit 0
 # octave notes/imu_preintegration/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0
@@ -31,7 +31,7 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # octave notes/quaternion.m && exit 0
 # octave notes/mav.m && exit 0
 # octave notes/msckf.m && exit 0
-octave notes/nbt.m && exit 0
+# octave notes/nbt.m && exit 0
 # octave notes/rand_inv_matrix.m && exit 0
 # octave notes/vicon_frames.m && exit 0
 # octave notes/vicon_f450.m && exit 0

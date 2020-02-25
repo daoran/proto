@@ -31,24 +31,31 @@ equations,
 <p>This transform, however, has a non-intuitive effect on black and white
 targets, as the three channels tend to be equally over and under exposed in RGB
 images. As a result, the transform leads to similar values for white and black
-pixels, eliminating the ability for the AprilTag library to detect edges. To
-resolve this issue, we designed a new AprilTag so that the single channel image
-produced by using the equation introduced above produces a grey scale like
-image that is robust to shadows and changes in illumination. Examining
-\eqref{eq:illlum_invar}, it can be observed the resulting pixel intensities are
-maximized when the camera observes green ($R_{2}$) and minimized when viewing a
-mixture of red and blue, ($R_{1}$ and $R_{3}$ respectively). The proposed
-illumination invariant AprilTag shown in is created by replacing the white and
-black portions of a typical AprilTag with green and magenta. This modification
-was tested under various lighting conditions.
+pixels, eliminating the ability for the computer vision algorithms to detect
+edges.</p>
+
+
+<h2>Illumination Invariant AprilTags</h2>
+
+<p>To resolve this issue, we designed a new AprilTag so that the single
+channel image produced by using the equation introduced above produces a grey
+scale like image that is robust to shadows and changes in illumination.
+Examining \eqref{eq:illlum_invar}, it can be observed the resulting pixel
+intensities are maximized when the camera observes green ($R_{2}$) and
+minimized when viewing a mixture of red and blue, ($R_{1}$ and $R_{3}$
+respectively). The proposed illumination invariant AprilTag shown in is created
+by replacing the white and black portions of a typical AprilTag with green and
+magenta. This modification was tested under various lighting conditions.
 Fig.~\ref{fig:illum_invar_comparision} shows the tag's appearance after
 performing the illumination invariant transform, creating a single channel
 image that replaces the typical single channel, grey scale image that is
-typically used by the AprilTag library. The images shown in
-Fig.~\ref{fig:illum_invar_comparision} are taken using a PointGrey Chameleon3
-(CM3-U3-28S4C-CS) with a Sony ICX818 image sensor. The corresponding values of
-$\lambda_{1},\lambda_{2}, \lambda_{3}$ and $\alpha $ are 480 nm, 510 nm, 640 nm
-and 0.56 respectively as noted in the sensor data sheets.</p>
+typically used by the AprilTag library.</p>
+
+<p>The images shown in Fig.~\ref{fig:illum_invar_comparision} are taken using a
+PointGrey Chameleon3 (CM3-U3-28S4C-CS) with a Sony ICX818 image sensor. The
+corresponding values of $\lambda_{1},\lambda_{2}, \lambda_{3}$ and $\alpha $
+are 480 nm, 510 nm, 640 nm and 0.56 respectively as noted in the sensor data
+sheets.</p>
 
 <h3>References</h3>
 [Maddern2014]: Maddern, Will, et al. "Illumination invariant imaging:

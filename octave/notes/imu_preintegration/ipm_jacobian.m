@@ -45,12 +45,9 @@ dalpha_dq = -0.25 * quat2rot(dq_k) * skew(a_Bk) * dt^2 + -0.25 * quat2rot(dq_kp1
 dalpha_dv = eye(3) * dt;
 
 function check_Jdp(q_k, q_kp1)
-
   % for i = 1:3
   %   T_SC0_diff = perturb_trans(T_SC0, step_size, i);
   %   e_prime = residual(T_WS, T_SC0_diff, T_WF, p_F);
   %   fdiff(1:2, i) = (e_prime - e) / step_size;
   % endfor
-
-
 endfunction

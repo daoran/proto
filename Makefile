@@ -22,8 +22,8 @@ define usage
   format_code:
     Format proto code using clang-format.
 
-	docs:
-		Start a webserver to write docs.
+  docs:
+    Start a webserver to write docs.
 endef
 export usage
 

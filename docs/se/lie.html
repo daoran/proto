@@ -1,0 +1,103 @@
+<h1>Riemannian Geometry</h1>
+
+<h2>Special Orthogonal Group $\SO{3}$ </h2>
+
+<p>Special Orthogonal Group $\SO{3}$ describes the group of 3D rotation matrices and
+it is formally defined as $\SO{3} \dot{=} \{ \rot \in \real^{3 \times 3} :
+\rot^{\transpose} \rot = \I, \Det{\rot} = 1 \}$ .  The group operation is the
+usual matrix multiplication, and the inverse is the matrix transpose. The group
+$\SO{3}$ also forms a smooth manifold. The tangent space to the manifold (at the
+identity) is denoted $\so{3}$, which is also called the <i>Lie
+algebra</i> and coincides with the space of $3 \times 3$ skew symmetric
+matrices.
+<equation>
+  \angvel \in \real^{3}, 
+  \enspace
+  \Skew{\angvel} = \begin{bmatrix}
+    0 & -\omega_{3} & \omega_{2} \\
+    \omega_{3} & 0 & -\omega_{1} \\
+    -\omega_{2} & \omega_{1} & 0
+  \end{bmatrix}
+</equation>
+</p>
+
+<equation>
+\text{Exp}: \real^{3} \rightarrow \SO{3} ;
+  \enspace
+  \boldsymbol{\phi} \rightarrow \text{exp}(\Skew{\boldsymbol{\phi}}) \\
+  \text{Log}: \SO{3} \rightarrow \real^{3} ;
+  \enspace
+  \rot \rightarrow \Skew{\text{log}(\rot)}
+</equation>
+
+<b>Exponential Map</b>
+
+<p>The <i>exponential map</i> (at the identity) $\text{exp}: \mathfrak{so}(3)
+\rightarrow \SO{3}$ associates an element of the Lie Algebra to a rotation: 
+<equation>
+\text{exp}(\Skew{\boldsymbol{\phi}}) = 
+  \I 
+  + \dfrac{\sin(|| \boldsymbol{\phi} ||)}{|| \boldsymbol{\phi} ||} \Skew{\boldsymbol{\phi}}
+  + \dfrac{1 - \cos(|| \boldsymbol{\phi} ||)}{|| \boldsymbol{\phi} ||^{2}} \Skew{\boldsymbol{\phi}}^{2}
+</equation>
+</p>
+
+
+<b>Logarithmic Map</b>
+
+<p>The <i>logarithmic map</i> (at the identity) associates rotation matrix
+$\rot \in \SO{3}$ to a skew symmetric matrix:
+<equation>
+  \log(\rot) = \dfrac{\psi \cdot (\rot - \rot^{\transpose})}{2 \sin(\psi)},
+  \enspace
+  \psi = \cos^{-1} \left( \dfrac{\Trace{\rot) - 1}}{2} \right)
+</equation>
+</p>
+
+
+<h3>Properties</h3>
+
+<equation>
+  & \rot \text{Exp}(\boldsymbol{\phi}) \rot^{\transpose} \\
+  &= \text{Exp}(\rot \Skew{\boldsymbol{\phi}} \rot^{\transpose}) \\
+  &= \text{Exp}(\rot \boldsymbol{\phi}) \\
+  &= \text{Exp}(\boldsymbol{\phi}) \rot \\
+  &= \rot^{\transpose} \text{Exp}(\boldsymbol{\phi}) \rot
+</equation>
+
+<equation>
+\text{Exp}(\boldsymbol{\phi} + \delta\boldsymbol{\phi}) \approx
+  \text{Exp}(\boldsymbol{\phi}) 
+  \text{Exp}(\jac_{r}(\boldsymbol{\phi}) \delta\boldsymbol{\phi})
+</equation>
+
+<equation>
+\text{Log}(
+  \text{Exp}(\boldsymbol{\phi})
+  \text{Exp}(\delta\boldsymbol{\phi})
+)
+\approx
+\boldsymbol{\phi} + \jac_{r}^{-1}(\boldsymbol{\phi}) 
+  \delta\boldsymbol{\phi}
+</equation>
+
+<equation>
+\jac_{r}(\boldsymbol{\phi}) = 
+  \I 
+  - \dfrac{1 - \cos(||\boldsymbol{\phi}||)}{||\boldsymbol{\phi}||^{2}}
+  + \dfrac{||\boldsymbol{\phi} - \sin(||\boldsymbol{\phi}||)}
+    {||\boldsymbol{\phi^{3}}||}
+  (\Skew{\boldsymbol{\phi}})^{2}
+</equation>
+
+<equation>
+\jac_{r}^{-1}(\boldsymbol{\phi}) = 
+  \I 
+  - \dfrac{1}{2} \Skew{\boldsymbol{\phi}}
+  + \left(
+    \dfrac{1}{||\boldsymbol{\phi}||^{2}}
+    + \dfrac{1 + \cos(||\boldsymbol{\phi}||}
+      {2 ||\boldsymbol{\phi}||^{2} \sin(||\boldsymbol{\phi}||)}
+  \right)
+  \Skew{\boldsymbol{\phi}}^{2}
+</equation>

@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <!-- Disable browser caching -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
 
   <!-- SHOWDOWN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
@@ -31,6 +34,7 @@
     <li><a href="#linalg-cond">Condition Number</a></li>
     <li><a href="#linalg-qr">QR</a></li>
     <li><a href="#linalg-svd">SVD</a></li>
+    <li><a href="#linalg-schurs">Schurs' Complement</a></li>
     <li><a href="#linalg-lls">Linear Least Squares</a></li>
     <li><a href="#linalg-nlls">Non-linear Least Squares</a></li>
   </ul>
@@ -48,10 +52,17 @@
   <h2>State Estimation</h2>
   <ul>
     <li><a href="#se-rotations">Rotations</a></li>
+    <li><a href="#se-lie">Lie</a></li>
     <li><a href="#se-shannon">Shannon</a></li>
     <li><a href="#se-imu">IMU</a></li>
+    <li><a href="#se-imu_preintegration">IMU Preintegration</a></li>
     <li><a href="#se-gauss_newton">Gauss Newton</a></li>
     <li><a href="#se-marginalization">Marginalization</a></li>
+  </ul>
+
+  <h2>MAV</h2>
+  <ul>
+    <li><a href="#mav-mpc">MPC</a></li>
   </ul>
 </div>
 

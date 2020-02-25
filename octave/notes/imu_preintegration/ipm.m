@@ -37,6 +37,20 @@ function x_imu = imu_update(x_imu, a_B, w_B, dt)
   x_imu.p_WS += (v_WS * dt) + (0.5 * C_WS * (a_B - b_a - n_a) * dt^2) + (0.5 * g * dt^2);
 endfunction
 
+function x_imu = imu_rel_update(x_imu)
+  b_a = x_imu.b_a;
+  b_g = x_imu.b_g;
+  g = x_imu.g;
+  n_a = zeros(3, 1);
+  n_g = zeros(3, 1);
+
+  C_WS = x_imu.C_WS;
+  v_WS = x_imu.v_WS;
+  p_WS = x_imu.p_WS;
+  
+
+endfunction
+
 % Load KITTI Raw data sequence
 data_path = "/data/kitti";
 data_date = "2011_09_26";

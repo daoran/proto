@@ -34,54 +34,24 @@ $\mathbf{\Sigma}_{xx}$ already contains the covariance on $x$ i.e.,
       \mathbf\Sigma_{xx}
   ).
 </equation>
-</p>
-
-<p>In the nonlinear-least squares case, however, we took the negative-log on
-the multi-variate Gaussian distribution to arrive at the nonlinear least
-squares cost function of the form:
+In the nonlinear-least squares formulation, however, we can only obtain the
+covariance $\mathbf{\Sigma}$ with the following property,
 <equation>
-  \mathcal{N}(\mathbf{z}, \boldsymbol{\mu}, \mathbf{\Sigma}) &= 
-    \dfrac{1}{\sqrt{|2\pi\mathbf{\Sigma}|}}
-    \exp(
-      -\dfrac{1}{2} 
-      || \mathbf{z} - \mathbf{h}(\boldsymbol{\mu})||^{2}_{\Sigma}
-    )\\
-  J &= \min_{x} ||\mathbf{e} ||^{2}_{\Sigma} \\
-  J &= \min_{x} ||\mathbf{\Sigma}^{-1/2} \mathbf{e} ||^{2}_{2}
+  \mathbf{\Sigma} = \Mat{H}^{-1}
 </equation>
 
-<equation>
-  \mathbf{\Sigma} = \mathbf{H}^{-1}
-</equation>
+where $\Mat{H}$ is the hessian matrix in a Gauss-Newton system. It just so
+happens that when we're trying to solve $\Mat{H}\delta{\Vec{x}} = \Vec{b}$ for
+$\delta{\Vec{x}}$, when we apply the Schur's complement two things occur:
 
-It just so happens that when we're trying to invert the Hessian sub matrix
-block via Schur's complement, we are at the same time performing
-marginalization.
+<ol>
+  <li>invert $\Mat{H}$ to solve for $\delta{\Vec{x}}$</li>
+  <li>Marginalize out old states</li>
+</ol>
 
+The marginalized $\mathbf{H}$ (after Schur's complement) will be equivalent to
+$\mathbf{\Sigma}_{xx}^{-1}.$</p>
 
-<h2>Shur's Complement</h2>
-
-<p>Let $\Mat{M}$ be a matrix that consists of block matrices $\Mat{A}$, $\Mat{B}$,
-$\Mat{C}$, $\Mat{D}$,
-<equation>
-  \Mat{M} =
-  \begin{bmatrix}
-    \Mat{A} & \Mat{B} \\
-    \Mat{C} & \Mat{D}
-  \end{bmatrix}
-</equation>
-if $\Mat{A}$ is invertible, the Schur's complement of the block $\Mat{A}$ of the
-matrix $\Mat{B}$ is the defined by
-<equation>
-  \Mat{M}/\Mat{A} = \Mat{D} - \Mat{C} \Mat{A}^{-1} \Mat{B}.
-</equation>
-<equation>
-  \Mat{M}/\Mat{D} = \Mat{A} - \Mat{B} \Mat{D}^{-1} \Mat{C}.
-</equation>
-</p>
-
-
----
 
 <h2>Using Shur's Complement for marginalization</h2>
 
@@ -139,7 +109,7 @@ the first order Taylor series results in,
   \Vec{b} + \dfrac{\delta{b}}{\delta{\Delta{\chi}}} \bigg\rvert_{\state_{0}}
     = \Vec{b} - \Mat{H} \Delta{\chi}.
 </equation>
-Partioning \eqref{eq:gn_rhs_v2} into $\mu$ and $\lambda$,
+Partioning the matrix $\Mat{H}$ and $\Vec{b}$ into $\mu$ and $\lambda$,
 <equation>
   <!-- \label{eq:gn_rhs_v2_partitioned} -->
   \begin{bmatrix}
@@ -242,7 +212,7 @@ it is w.r.t $\mathbf{x}_{1}$ to get:
 		- \mathbf{H}_{12}\mathbf{H}_{22}^{-1}\mathbf{H}_{21}) \mathbf{x}_{1}
   &= \mathbf{b}_{1} - \mathbf{H}_{12} \mathbf{H}_{22}^{-1} \mathbf{b}_{2}
 </equation>
-We end up with the Schur Complement of $\mathbf{H}_{22}$ in $\mathbf{H}$:
+thus the Schur Complement of $\mathbf{H}_{22}$ in $\mathbf{H}$ is:
 <equation>
   \mathbf{H} / \mathbf{H}_{22} :=
     \mathbf{H}_{11}
@@ -251,10 +221,10 @@ We end up with the Schur Complement of $\mathbf{H}_{22}$ in $\mathbf{H}$:
     \mathbf{b}_{1} - \mathbf{H}_{12} \mathbf{H}_{22}^{-1} \mathbf{b}_{2}
 </equation>
 If you want to marginalize out $\mathbf{x}_{1}$ you can follow the same process
-above but w.r.t $\mathbf{x}_{1}$, that is left as an exercise to the reader ;)
+above but w.r.t $\mathbf{x}_{1}$.
 </p>
 
----
+<hr>
 
 <p>Let us consider the following scenario. A state vector, $\state$, during the
 time interval $[0, k]$ will contain $m$ old states to be marginalized out and
@@ -266,10 +236,9 @@ as,
   c(\state_{k}) &= c(\state_{m}, \state_{r}) \\
                 &= c(\state_{m}) + c(\state_{r}).
 </equation>
-The intuition behind \eqref{eq:ba_cost_fn} is since the state at time $k$ can
-be partitioned into $m$ and $r$, the cost can also be decomposed. Utilizing
-this property, the multi-variate optimization can also be decomposed as
-follows,
+The intuition behind the above is since the state at time $k$ can be
+partitioned into $m$ and $r$, the cost can also be decomposed. Utilizing this
+property, the multivariate optimization can also be decomposed as follows,
 <equation>
 
   \min_{\state_{m}, \state_{r}} c(\state_{m}, \state_{r})
@@ -281,44 +250,3 @@ The equation above shows the minimization problem can be solved by first
 optimizing for the states $\state_{m}$, and then forming a prior towards the
 problem of solving for $\state_{r}$. The reformulation of the minimization
 problem entails no approximation.</p>
-
-<p>The Gauss Newton system for solving the minimization problem is,
-<equation>
-  \Mat{H} \Delta{\state} = \Vec{b}.
-</equation>
-Partitioning the $\Mat{H}$ matrix into $\mu$ for states to be marginalized out,
-and $\lambda$ for states to remain,
-<equation>
-  \begin{bmatrix}
-    \Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
-    \Mat{H}_{\lambda_{1}\mu} & \Mat{H}_{\lambda_{1}\lambda_{1}}
-  \end{bmatrix}
-  \begin{bmatrix}
-    \delta\state_{\mu} \\
-    \delta\state_{\lambda}
-  \end{bmatrix}
-  =
-  \begin{bmatrix}
-    \Vec{b}_{\mu} \\
-    \Vec{b}_{\lambda}
-  \end{bmatrix}
-</equation>
-Solving for $\Delta{\state}$ via the Schur's Complement operation,
-<equation>
-  \Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}
-  &=
-  \Mat{H}_{\lambda_{1}\lambda_{1}} -
-  \Mat{H}_{\lambda_{1}\mu}
-  \Mat{H}_{\mu\mu}^{-1}
-  \Mat{H}_{\mu\lambda_{1}}
-  \\
-  \Vec{b}^{\ast}_{\lambda_{1}}
-  &=
-  \Vec{b}_{\lambda_{1}} -
-  \Mat{H}_{\lambda_{1}\mu}
-  \Mat{H}_{\mu\mu}^{-1}
-  \Vec{b}_{\mu}
-</equation>
-where $\Vec{b}^{\ast}_{\lambda_{1}}$ and
-$\Mat{H}^{\ast}_{\lambda_{1}\lambda_{1}}$ are non-linear functions of
-$\state_\lambda$ and $\state_\mu$.</p>
