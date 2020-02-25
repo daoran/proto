@@ -37,15 +37,15 @@ edges.</p>
 
 <h2>Illumination Invariant AprilTags</h2>
 
-<p>To resolve this issue, we designed a new AprilTag so that the single
-channel image produced by using the equation introduced above produces a grey
-scale like image that is robust to shadows and changes in illumination.
-Examining \eqref{eq:illlum_invar}, it can be observed the resulting pixel
-intensities are maximized when the camera observes green ($R_{2}$) and
-minimized when viewing a mixture of red and blue, ($R_{1}$ and $R_{3}$
-respectively). The proposed illumination invariant AprilTag shown in is created
-by replacing the white and black portions of a typical AprilTag with green and
-magenta. This modification was tested under various lighting conditions.
+<p>To resolve this issue, we designed a new AprilTag so that the single channel
+image produced by using the equation introduced above produces a grey scale
+like image that is robust to shadows and changes in illumination.  Examining
+\eqref{eq:illlum_invar}, it can be observed the resulting pixel intensities are
+maximized when the camera observes green ($R_{2}$) and minimized when viewing a
+mixture of red and blue, ($R_{1}$ and $R_{3}$ respectively). The proposed
+illumination invariant AprilTag shown in is created by replacing the white and
+black portions of a typical AprilTag with green and magenta. This modification
+was tested under various lighting conditions.
 Fig.~\ref{fig:illum_invar_comparision} shows the tag's appearance after
 performing the illumination invariant transform, creating a single channel
 image that replaces the typical single channel, grey scale image that is

@@ -1,7 +1,7 @@
 <h1>Non-linear Least Squares</h1>
 
-A non-linear least squares is an optimization problem that minimizes the sum of
-squares of the residual functions, and has the form
+<p>A non-linear least squares is an optimization problem that minimizes the sum
+of squares of the residual functions, and has the form
 <equation>
   \cost = \text{argmin}_{\Vec{x}} \enspace
     \dfrac{1}{2} \enspace
@@ -18,11 +18,11 @@ form of
 </equation>
 is defined as the difference between the measured value, $\Vec{z}$, and the
 estimated value calculated using the measurement function, $\Vec{h}(\cdot)$.
+</p>
 
-A local minima for the problem is found when the gradient of the cost,
+<p>A local minima for the problem is found when the gradient of the cost,
 $\cost$, is zero
 <equation>
-
   \dfrac{\partial{\cost}}{\partial{\Vec{x}}}
   &=
     \dfrac{\partial{\cost}}{\partial{\Vec{e}}}
@@ -35,13 +35,11 @@ $\cost$, is zero
     \Vec{e}(\Vec{x})^{\transpose}
     \Mat{W}
     \Vec{E}(\Vec{x})
-
 </equation>
 linearizing $\Vec{e}(\Vec{x})$ with the first-order Taylor series,
 $\Vec{e}(\Vec{x}) \approx \Vec{e}(\bar{\Vec{x}}) + \Vec{E}(\bar{\Vec{x}})
 \Delta\Vec{x}$, gives,
 <equation>
-
   \dfrac{\partial{\cost}}{\partial{\Vec{x}}}
   &=
     (\Vec{e}(\bar{\Vec{x}}) + \Vec{E}(\bar{\Vec{x}})\Delta\Vec{x})^{\transpose}
@@ -77,9 +75,9 @@ $\Vec{e}(\Vec{x}) \approx \Vec{e}(\bar{\Vec{x}}) + \Vec{E}(\bar{\Vec{x}})
     \Mat{W} \,
     \Vec{e}(\bar{\Vec{x}})
   }_{\Vec{b}}
-
 </equation>
 solve the normal equations for $\Delta\Vec{x}$ and update $\Vec{x}$ using,
 <equation>
   \Vec{x}^{k+1} = \Vec{x}^{k} + \Delta{\Vec{x}}
 </equation>
+</p>
