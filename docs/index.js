@@ -25,7 +25,7 @@ var katex_options = {
     "\\Inv": "{#1^{-1}}",
     "\\LargeNorm": "\\left\\lVert#1\\right\\rVert}",
     "\\Trace": "\\text{tr}(#1)",
-    "\\Rank": "\\text{rank}(#1)}",
+    "\\Rank": "\\text{rank}(#1)",
     "\\E": "\\mathbb{E}\\left[#1\\right]",
     "\\Bigslant": "{\\left/\\right}",
     "\\cost": "J",
@@ -33,6 +33,8 @@ var katex_options = {
     "\\SO": "\\text{SO}(#1)",
     "\\so": "\\mathfrak{so}(#1)",
     "\\jac": "\\text{J}",
+    // Probability
+    "\\RV": "\\mathbf{#1}",
     // Transforms
     "\\frame": "{\\mathcal{F}}",
     "\\rot": "{\\Mat{C}}",
