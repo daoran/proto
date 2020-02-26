@@ -1,1 +1,253 @@
 <h1>Bundle Adjustment</h1>
+
+<equation>
+  \Argmin{\Tf{W}{S}, \Tf{S}{C}, \Tf{W}{F}}
+  &\Norm{\error(\Tf{W}{S}, \Tf{S}{C}, \Tf{W}{F})}^{2}
+</equation>
+Where
+<equation>
+  \error(\Tf{W}{S}, \Tf{S}{C}, \Tf{W}{F}) =
+  \Vec{z} - \pi(\Tf{W}{S}, \Tf{S}{C}, \Tf{W}{F})
+</equation>
+
+<p>In ceres-solver the expression $\error(\Tf{W}{S}, \Tf{S}{C},
+\Tf{W}{F})$ is known as a residual block. As such the optimization
+jacobian matrix is with respect to the residual.</p>
+
+<equation>
+	% -- zhat
+  \hat{\Vec{z}} &=
+    \pi(\Tf{W}{S},
+              \Tf{S}{C},
+              \Tf{W}{F}) \\
+	% -- e = z - zhat
+  \Vec{e} &= \Vec{z} - \hat{\Vec{z}}
+</equation>
+
+<equation>
+  % -- z hat
+  \hat{\Vec{z}}
+		&=
+			\begin{bmatrix}
+        \Vec{X}_{C} / \Vec{Z}_{C} \\
+        \Vec{Y}_{C} / \Vec{Z}_{C}
+			\end{bmatrix} \\
+  % -- p_C
+  \Vec{x}_{CF_{i}}
+		&=
+			\begin{bmatrix}
+        \Vec{X}_{C} \\
+        \Vec{Y}_{C} \\
+        \Vec{Z}_{C}
+			\end{bmatrix} \\
+  % -- dh / dp_C
+  \dfrac{\partial{\pi}}{\partial{\Vec{x}_{C}}}
+		&=
+			\begin{bmatrix}
+        1 / \Vec{Z}_{C} & 0 & -\Vec{X}_{C} / \Vec{Z}_{C}^{2} \\
+				0 & 1 / \Vec{Z}_{C} & -\Vec{Y}_{C} / \Vec{Z}_{C}^{2}
+			\end{bmatrix}
+</equation>
+
+<equation>
+  \Pt{C}{F_{ij}}
+  &=
+  \Tf{S}{C}^{-1}
+  \enspace
+  \Tf{W}{S}^{-1}
+  \enspace
+  \Tf{W}{F}
+  \enspace \Pt{F}{F_{ij}}
+</equation>
+
+
+
+<h2>Jacobian w.r.t Sensor Pose, $\Tf{W}{S}$</h2>
+
+<equation>
+  \Pt{W}{F_{ij}}
+  &=
+    \Tf{W}{S}
+    \enspace \Pt{S}{F_{i}} \\
+  &=
+    \Rot{W}{S}
+    \enspace \Pt{S}{F_{i}}
+		+ \Trans{W}{S}
+</equation>
+
+<equation>
+  % -- dh / dp_W
+  \dfrac{\partial{\pi}}{\partial{\Pt{W}}}
+		&= \dfrac{\partial{\pi}}{\partial{\Pt{C}{F_{i}}}}
+			 \enspace
+			 \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{W}}} \\
+  % -- dp_C / dp_W
+  \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{W}}}
+		&= \Rot{C}{W}
+</equation>
+
+<equation>
+	% -- dh / dT_WS
+  \dfrac{\partial{\pi}}{\partial{\Tf{W}{S}}}
+    &=
+		\begin{bmatrix}
+			\dfrac{\partial{\pi}}{\partial{\dtheta}}
+			\quad
+			\dfrac{\partial{\pi}}{\partial{\Trans{W}{S}}}
+		\end{bmatrix}
+</equation>
+
+<equation>
+	% -- dh / dtheta_WS
+  \dfrac{\partial{\pi}}{\partial{\dtheta}}
+    &= \dfrac{\partial{\pi}}{\partial{\Pt{C}{F_{i}}}}
+			 \enspace
+       \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{W}}}
+			 \enspace
+       \dfrac{\partial{\Pt{W}}}{\partial{\dtheta}} \\
+	% -- dp_S / dtheta_WS
+	\dfrac{\partial{\Pt{W}}}{\partial{\dtheta}}
+  &= -\Skew{\rot\{\dtheta\} \enspace \Pt{S}{F_{i}}}
+</equation>
+
+<equation>
+	% -- dh / dr_WS
+  \dfrac{\partial{\pi}}{\partial{\Trans{W}{S}}}
+    &= \dfrac{\partial{\pi}}{\partial{\Pt{C}{F_{i}}}}
+			 \enspace
+       \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{W}}}
+			 \enspace
+       \dfrac{\partial{\Pt{W}}}{\partial{\Trans{W}{S}}} \\
+	% -- dp_S / dr_WS
+	\dfrac{\partial{\Pt{W}}}{\partial{\Trans{W}{S}}}
+		&= \I
+</equation>
+
+
+<h2>Jacobian w.r.t Sensor-Camera Extrinsics, $\Tf{S}{C}$</h2>
+
+<equation>
+	% p_W
+  \Pt{S}{F_{i}}{F_{ij}}
+  &=
+    \Tf{S}{C}
+    \enspace \Pt{C}{F_{i}} \\
+  &=
+    \Rot{S}{C}
+    \enspace \Pt{C}{F_{i}}
+		+ \Trans{S}{C}
+</equation>
+
+<equation>
+\dfrac{\partial{\pi}}{\partial{\Pt{S}{F_{i}}}}
+		&=
+			\dfrac{\partial{\pi}}{\partial{\Pt{C}{F_{i}}}}
+			\enspace
+      \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{S}{F_{i}}}} \\
+  % -- dp_C / dp_S
+  \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{S}{F_{i}}}}
+		&= \Rot{C}{S}
+</equation>
+
+
+<equation>
+	% -- dh / dT_SC
+  \dfrac{\partial{\pi}}{\partial{\Tf{S}{C}}}
+    =
+			\begin{bmatrix}
+        \dfrac{\partial{\pi}}{\partial{\dtheta}}
+				\quad
+				\dfrac{\partial{\pi}}{\partial{\Trans{S}{C}}}
+			\end{bmatrix}
+</equation>
+
+
+<equation>
+	% -- dh / dtheta_SC
+  \dfrac{\partial{\pi}}{\partial{\dtheta}}
+    &=
+      \dfrac{\partial{\pi}}{\partial{\Pt{C}{F_{i}}}}
+			\enspace
+      \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{S}{F_{i}}}}
+			\enspace
+      \dfrac{\partial{\Pt{S}{F_{i}}}}{\partial{\dtheta}} \\
+	% -- dp_S / dtheta_SC
+  \dfrac{\partial{\Pt{S}{F_{i}}}}{\partial{\dtheta}}
+  &= -\Skew{\rot\{\dtheta\} \enspace \Pt{S}{F_{i}}}
+</equation>
+
+
+<equation>
+	% -- dh / dr_SC
+  \dfrac{\partial{\pi}}{\partial{\Trans{S}{C}}}
+    &=
+      \dfrac{\partial{\pi}}{\partial{\Pt{C}{F_{i}}}}
+			\enspace
+      \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{S}{F_{i}}}}
+			\enspace
+      \dfrac{\partial{\Pt{S}{F_{i}}}}{\partial{\Trans{S}{C}}} \\
+	% -- dp_S / dr_SC
+  \dfrac{\partial{\Pt{S}{F_{i}}}}{\partial{\Trans{S}{C}}}
+	  &= \I \\
+</equation>
+
+
+<h2>Jacobian w.r.t Fiducial Pose, $\Tf{W}{F}$</h2>
+
+<equation>
+  \Pt{W}{F_{i}}
+    &= \Tf{W}{F}
+      \enspace
+      \Pt{F}{F_{i}} \\
+    &= \Rot{W}{F}
+      \enspace
+      \Pt{F}{F_{i}}
+      + \Trans{W}{F}
+</equation>
+
+<equation>
+  \dfrac{\partial{\pi}}{\partial{\Pt{W}}}
+		&=
+			\dfrac{\partial{\pi}}{\partial{\Pt{C}{F_{i}}}}
+			\enspace
+			\dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{W}{F_{i}}}} \\
+  % -- dp_C / dp_W
+  \dfrac{\partial{\Pt{C}{F_{i}}}}{\partial{\Pt{W}{F_{i}}}}
+		&= \Rot{C}{W}
+</equation>
+
+<equation>
+	\dfrac{\partial{\pi}}{\partial{\Tf{W}{F}}}
+		&=
+			\begin{bmatrix}
+        \dfrac{\partial \pi}{\partial \dtheta}
+				\enspace
+				\dfrac{\partial \pi}{\partial \Trans{W}{F}}
+			\end{bmatrix}
+</equation>
+
+<equation>
+	% dh / dtheta_WF
+  \dfrac{\partial{\pi}}
+				{\partial{\dtheta}}
+		&=
+			\dfrac{\partial{\pi}}
+						{\partial{\Pt{W}{F_{i}}}}
+			\enspace
+			\dfrac{\partial{\Pt{W}{F_{i}}}}
+						{\partial{\dtheta}} \\
+  % -- dp_W / ddtheta
+  \dfrac{\partial{\Pt{W}}}{\partial{\dtheta}}
+    &= -\Skew{\rot\{\dtheta\} \enspace \Pt{F}{F_{i}}}
+</equation>
+
+<equation>
+	% dh / dr_WF
+  \dfrac{\partial{\pi}}{\partial{\Trans{W}{F}}}
+		&=
+			\dfrac{\partial{\pi}}{\partial{\Pt{W}{F_{i}}}}
+			\enspace
+			\dfrac{\partial{\Pt{W}{F_{i}}}}{\partial{\Trans{W}{F}}} \\
+  % -- dp_W / dr_WF
+  \dfrac{\partial{\Pt{W}{F_{i}}}}{\partial{\Trans{W}{F}}} &= \I
+</equation>
