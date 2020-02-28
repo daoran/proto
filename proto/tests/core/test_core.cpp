@@ -612,16 +612,16 @@ int test_ticAndToc() {
  * DATA
  *****************************************************************************/
 
-int test_csvrows() {
+int test_csv_rows() {
   int rows;
-  rows = csvrows(TEST_DATA);
+  rows = csv_rows(TEST_DATA);
   MU_CHECK(rows == 281);
   return 0;
 }
 
-int test_csvcols() {
+int test_csv_cols() {
   int cols;
-  cols = csvcols(TEST_DATA);
+  cols = csv_cols(TEST_DATA);
   MU_CHECK(cols == 2);
   return 0;
 }
@@ -2285,8 +2285,8 @@ void test_suite() {
   MU_ADD_TEST(test_ticAndToc);
 
   // Data
-  MU_ADD_TEST(test_csvrows);
-  MU_ADD_TEST(test_csvcols);
+  MU_ADD_TEST(test_csv_rows);
+  MU_ADD_TEST(test_csv_cols);
   MU_ADD_TEST(test_csv2mat);
   MU_ADD_TEST(test_mat2csv);
   MU_ADD_TEST(test_slerp);

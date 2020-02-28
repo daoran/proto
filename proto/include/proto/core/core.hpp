@@ -1057,6 +1057,11 @@ mat3_t rvec2rot(const vec3_t &rvec, const double eps = 1e-5);
 vec3_t quat2euler(const quat_t &q);
 
 /**
+ * Convert quaternion to rotation matrix.
+ */
+mat3_t quat2rot(const quat_t &q);
+
+/**
  * Initialize attitude using IMU gyroscope `w_m` and accelerometer `a_m`
  * measurements. The calculated attitude outputted into to `C_WS`. Note: this
  * function does not calculate initial yaw angle in the world frame. Only the
@@ -1144,16 +1149,56 @@ int32_t int32(const uint8_t *data, const size_t offset);
 uint32_t uint32(const uint8_t *data, const size_t offset);
 
 /**
+ * Allocate memory for a C-style string
+ */
+char *malloc_string(const char *s);
+
+/**
  * Get number of rows in CSV file.
  * @returns Number of rows in CSV file else -1 for failure.
  */
-int csvrows(const std::string &file_path);
+int csv_rows(const char *fp);
+
+/**
+ * Get number of cols in CSV file.
+ * @returns Number of cols in CSV file else -1 for failure.
+ */
+int csv_cols(const char *fp);
+
+/**
+ * Return csv fields as strings and number of fields in csv file.
+ */
+char **csv_fields(const char *fp, int *nb_fields);
+
+/**
+ * Load data in csv file `fp`. Assumming the data are doubles. Also returns
+ * number of rows and cols in `nb_rows` and `nb_cols` respectively.
+ */
+double **csv_data(const char *fp, int *nb_rows, int *nb_cols);
+
+/**
+ * Load integer arrays in csv file located at `csv_path`. The number of arrays
+ * is returned in `nb_arrays`.
+ */
+int **load_iarrays(const char *csv_path, int *nb_arrays);
+
+/**
+ * Load double arrays in csv file located at `csv_path`. The number of arrays
+ * is returned in `nb_arrays`.
+ */
+double **load_darrays(const char *csv_path, int *nb_arrays);
+
+/**
+ * Get number of rows in CSV file.
+ * @returns Number of rows in CSV file else -1 for failure.
+ */
+int csv_rows(const std::string &file_path);
 
 /**
  * Get number of columns in CSV file.
  * @returns Number of columns in CSV file else -1 for failure.
  */
-int csvcols(const std::string &file_path);
+int csv_cols(const std::string &file_path);
 
 /**
  * Convert CSV file to matrix.

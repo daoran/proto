@@ -1156,6 +1156,35 @@ vec3_t quat2euler(const quat_t &q) {
   return vec3_t{t1, t2, t3};
 }
 
+mat3_t quat2rot(const quat_t &q) {
+  const double qw = q.w();
+  const double qx = q.x();
+  const double qy = q.y();
+  const double qz = q.z();
+
+  const double qx2 = qx * qx;
+  const double qy2 = qy * qy;
+  const double qz2 = qz * qz;
+  const double qw2 = qw * qw;
+
+  // Homogeneous form
+  mat3_t C;
+  // -- 1st row
+  C(0, 0) = qw2 + qx2 - qy2 - qz2;
+  C(0, 1) = 2 * (qx * qy - qw * qz);
+  C(0, 2) = 2 * (qx * qz + qw * qy);
+  // -- 2nd row
+  C(1, 3) = 2 * (qx * qy + qw * qz);
+  C(1, 4) = qw2 - qx2 + qy2 - qz2;
+  C(1, 5) = 2 * (qy * qz - qw * qx);
+  // -- 3rd row
+  C(2, 6) = 2 * (qx * qz - qw * qy);
+  C(2, 7) = 2 * (qy * qz + qw * qx);
+  C(2, 8) = qw2 - qx2 - qy2 + qz2;
+
+  return C;
+}
+
 void imu_init_attitude(const vec3s_t w_m,
                        const vec3s_t a_m,
                        mat3_t &C_WS,
@@ -1245,7 +1274,273 @@ uint32_t uint32(const uint8_t *data, const size_t offset) {
                     (data[offset + 1] << 8) | (data[offset]));
 }
 
-int csvrows(const std::string &file_path) {
+char *malloc_string(const char *s) {
+  char *retval = (char *) malloc(sizeof(char) * strlen(s) + 1);
+  strcpy(retval, s);
+  return retval;
+}
+
+int csv_rows(const char *fp) {
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return -1;
+  }
+
+  // Loop through lines
+  int nb_rows = 0;
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] != '#') {
+      nb_rows++;
+    }
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return nb_rows;
+}
+
+int csv_cols(const char *fp) {
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return -1;
+  }
+
+  // Get line that isn't the header
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] != '#') {
+      break;
+    }
+  }
+
+  // Parse line to obtain number of elements
+  int nb_elements = 1;
+  int found_separator = 0;
+  for (size_t i = 0; i < len_max; i++) {
+    if (line[i] == ',') {
+      found_separator = 1;
+      nb_elements++;
+    }
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return (found_separator) ? nb_elements : -1;
+}
+
+char **csv_fields(const char *fp, int *nb_fields) {
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return NULL;
+  }
+
+  // Get last header line
+  char field_line[1024] = {0};
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] != '#') {
+      break;
+    } else {
+      strcpy(field_line, line);
+    }
+  }
+
+  // Parse fields
+  *nb_fields = csv_cols(fp);
+  char **fields = (char **) malloc(sizeof(char *) * *nb_fields);
+  int field_idx = 0;
+  char field_name[100] = {0};
+
+  for (size_t i = 0; i < strlen(field_line); i++) {
+    char c = field_line[i];
+
+    // Ignore # and ' '
+    if (c == '#' || c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      // Add field name to fields
+      fields[field_idx] = malloc_string(field_name);
+      memset(field_name, '\0', sizeof(char) * 100);
+      field_idx++;
+    } else {
+      // Append field name
+      field_name[strlen(field_name)] = c;
+    }
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return fields;
+}
+
+double **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
+  // Obtain number of rows and columns in csv data
+  *nb_rows = csv_rows(fp);
+  *nb_cols = csv_cols(fp);
+  if (*nb_rows == -1 || *nb_cols == -1) {
+    return NULL;
+  }
+
+  // Initialize memory for csv data
+  double **data = (double **) malloc(sizeof(double *) * *nb_rows);
+  for (int i = 0; i < *nb_cols; i++) {
+    data[i] = (double *) malloc(sizeof(double) * *nb_cols);
+  }
+
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return NULL;
+  }
+
+  // Loop through data
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  int row_idx = 0;
+  int col_idx = 0;
+
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    char entry[100] = {0};
+    for (size_t i = 0; i < strlen(line); i++) {
+      char c = line[i];
+      if (c == ' ') {
+        continue;
+      }
+
+      if (c == ',' || c == '\n') {
+        data[row_idx][col_idx] = strtod(entry, NULL);
+        memset(entry, '\0', sizeof(char) * 100);
+        col_idx++;
+      } else {
+        entry[strlen(entry)] = c;
+      }
+    }
+
+    col_idx = 0;
+    row_idx++;
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return data;
+}
+
+static int *parse_iarray_line(char *line) {
+  char entry[1024] = {0};
+  int index = 0;
+  int *data = NULL;
+
+  for (size_t i = 0; i < strlen(line); i++) {
+    char c = line[i];
+    if (c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      if (data == NULL) {
+        size_t array_size = strtod(entry, NULL);
+        data = (int *) calloc(array_size + 1, sizeof(int));
+      }
+      data[index] = strtod(entry, NULL);
+      index++;
+      memset(entry, '\0', sizeof(char) * 100);
+    } else {
+      entry[strlen(entry)] = c;
+    }
+  }
+
+  return data;
+}
+
+int **load_iarrays(const char *csv_path, int *nb_arrays) {
+  FILE *csv_file = fopen(csv_path, "r");
+  *nb_arrays = csv_rows(csv_path);
+  int **array = (int **) calloc(*nb_arrays, sizeof(int *));
+
+  char line[1024] = {0};
+  int frame_idx = 0;
+  while (fgets(line, 1024, csv_file) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    array[frame_idx] = parse_iarray_line(line);
+    frame_idx++;
+  }
+  fclose(csv_file);
+
+  return array;
+}
+
+static double *parse_darray_line(char *line) {
+  char entry[1024] = {0};
+  int index = 0;
+  double *data = NULL;
+
+  for (size_t i = 0; i < strlen(line); i++) {
+    char c = line[i];
+    if (c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      if (data == NULL) {
+        size_t array_size = strtod(entry, NULL);
+        data = (double *) calloc(array_size, sizeof(double));
+      }
+      data[index] = strtod(entry, NULL);
+      index++;
+      memset(entry, '\0', sizeof(char) * 100);
+    } else {
+      entry[strlen(entry)] = c;
+    }
+  }
+
+  return data;
+}
+
+double **load_darrays(const char *csv_path, int *nb_arrays) {
+  FILE *csv_file = fopen(csv_path, "r");
+  *nb_arrays = csv_rows(csv_path);
+  double **array = (double **) calloc(*nb_arrays, sizeof(double *));
+
+  char line[1024] = {0};
+  int frame_idx = 0;
+  while (fgets(line, 1024, csv_file) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    array[frame_idx] = parse_darray_line(line);
+    frame_idx++;
+  }
+  fclose(csv_file);
+
+  return array;
+}
+
+int csv_rows(const std::string &file_path) {
   // Load file
   std::ifstream infile(file_path);
   if (infile.good() != true) {
@@ -1262,7 +1557,7 @@ int csvrows(const std::string &file_path) {
   return nb_rows;
 }
 
-int csvcols(const std::string &file_path) {
+int csv_cols(const std::string &file_path) {
   int nb_elements = 1;
   bool found_separator = false;
 
@@ -1293,8 +1588,8 @@ int csv2mat(const std::string &file_path, const bool header, matx_t &data) {
   }
 
   // Obtain number of rows and cols
-  int nb_rows = csvrows(file_path);
-  int nb_cols = csvcols(file_path);
+  int nb_rows = csv_rows(file_path);
+  int nb_cols = csv_cols(file_path);
 
   // Skip header line?
   std::string line;

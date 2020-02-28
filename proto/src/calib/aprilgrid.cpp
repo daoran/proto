@@ -264,7 +264,8 @@ int aprilgrid_object_points(const aprilgrid_t &grid,
   const double x = j * (tag_size + tag_size * tag_spacing);
   const double y = i * (tag_size + tag_size * tag_spacing);
 
-  // Calculate the x and y of each corner
+  // Calculate the x and y of each corner (from the bottom left corner in a
+  // anti-clockwise fashion)
   object_points.emplace_back(x, y, 0);
   object_points.emplace_back(x + tag_size, y, 0);
   object_points.emplace_back(x + tag_size, y + tag_size, 0);

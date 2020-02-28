@@ -22,8 +22,8 @@ debug() {
 # make deps
 # time make debug
 time make release
-sudo make install
-time make ros
+# sudo make install
+# time make ros
 # sudo make debug_install
 # exit
 
@@ -87,7 +87,7 @@ cd proto/build/tests
 
 # -- core
 # ./core-test_core
-./core-test_core --target test_sim_imu_measurement
+# ./core-test_core --target test_sim_imu_measurement
 
 # -- driver
 # ./driver-test_camera-camera
