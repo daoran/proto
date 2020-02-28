@@ -394,7 +394,6 @@ static mat3_t J_camera_translation(const quat_t q_WC) {
 }
 
 static mat3_t J_target_point(const quat_t q_WC) {
-  // Convert quaternion to rotatoin matrix
   const mat3_t C_WC = q_WC.toRotationMatrix();
   const mat3_t C_CW = C_WC.transpose();
   return C_CW;
