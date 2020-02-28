@@ -6,7 +6,7 @@ namespace proto {
 #define TEST_DATA "./test_data/estimation/ba_data"
 
 int test_parse_keypoints_line() {
-	std::string line = "4,1,2,3,4\n";
+  std::string line = "4,1,2,3,4\n";
   keypoints_t keypoints = parse_keypoints_line(line.c_str());
 
   keypoints_print(keypoints);
@@ -48,16 +48,16 @@ int test_ba_residuals() {
 int test_ba_jacobian() {
   ba_data_t data{TEST_DATA};
 
-	// for (const auto pose : data.cam_poses) {
-	// 	std::cout << pose.q.w() << ", ";
-	// 	std::cout << pose.q.x() << ", ";
-	// 	std::cout << pose.q.y() << ", ";
-	// 	std::cout << pose.q.z() << std::endl;
-	// }
+  // for (const auto pose : data.cam_poses) {
+  //   std::cout << pose.q.w() << ", ";
+  //   std::cout << pose.q.x() << ", ";
+  //   std::cout << pose.q.y() << ", ";
+  //   std::cout << pose.q.z() << std::endl;
+  // }
 
   matx_t J = ba_jacobian(data);
 
-	mat2csv("/tmp/J.csv", J);
+  mat2csv("/tmp/J.csv", J);
 
   return 0;
 }
@@ -73,7 +73,7 @@ int test_ba_update() {
 
 int test_ba_cost() {
   vecx_t e{5};
-	e << 1.0, 2.0, 3.0, 4.0, 5.0;
+  e << 1.0, 2.0, 3.0, 4.0, 5.0;
   const double cost = ba_cost(e);
 
   printf("Cost: %f\n", cost);
@@ -83,12 +83,12 @@ int test_ba_cost() {
 }
 
 int test_ba_solve() {
-	struct timespec t_start = tic();
+  struct timespec t_start = tic();
   ba_data_t data{TEST_DATA};
   ba_solve(data);
-	printf("time taken: %fs\n", toc(&t_start));
-	printf("nb_frames: %d\n", data.nb_frames);
-	printf("nb_points: %d\n", data.nb_points);
+  printf("time taken: %fs\n", toc(&t_start));
+  printf("nb_frames: %d\n", data.nb_frames);
+  printf("nb_points: %d\n", data.nb_points);
 
   return 0;
 }
