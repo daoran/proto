@@ -504,6 +504,7 @@ end
 
 
 % save_dataset(save_path="/tmp/ba_data/", data_gnd);
+save_dataset(save_path="/tmp/ba_data/", data);
 % e = ba_residuals(data_gnd);
 % E = ba_jacobian(data);
 % H = E' * E;

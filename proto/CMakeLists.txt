@@ -131,32 +131,33 @@ INSTALL(
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/SuiteSparse
 )
 
-# # UNIT TESTS
-# SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
-# FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
-# FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
-# SET(
-#   UNITTESTS
-#   atl-test_atl
-#   calib-test_aprilgrid
-#   calib-test_calib_camera
-#   calib-test_calib_data
-#   # calib-test_calib_gimbal
-#   calib-test_calib_stereo
-#   calib-test_sandbox
-#   calib-test_sandbox2
-#   core-test_core
-#   dataset-test_euroc
-#   dataset-test_kitti
-#   # estimation-test_factor
-#   # estimation-test_frontend
-#   model-test_model
-#   vision-test_vision
-#   viz-test_gui
-#   viz-test_plane
-# )
-# FOREACH(TEST ${UNITTESTS})
-#   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
-#   ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
-#   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
-# ENDFOREACH(TEST)
+# UNIT TESTS
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
+FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
+FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
+SET(
+  UNITTESTS
+  # atl-test_atl
+  # calib-test_aprilgrid
+  # calib-test_calib_camera
+  # calib-test_calib_data
+  # calib-test_calib_gimbal
+  # calib-test_calib_stereo
+  # calib-test_sandbox
+  # calib-test_sandbox2
+  # core-test_core
+  # dataset-test_euroc
+  # dataset-test_kitti
+  estimation-test_ba
+  # estimation-test_factor
+  # estimation-test_frontend
+  # model-test_model
+  # vision-test_vision
+  # viz-test_gui
+  # viz-test_plane
+)
+FOREACH(TEST ${UNITTESTS})
+  STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
+  ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
+  TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
+ENDFOREACH(TEST)

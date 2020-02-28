@@ -10,7 +10,7 @@ debug() {
     -ex=bt \
     -ex="set confirm off" \
     -ex=quit \
-    --args "$1" "$2"
+    --args "$1" "$2" "$3"
 }
 
 # CLEAN CATKIN
@@ -98,6 +98,13 @@ cd proto/build/tests
 # ./dataset-test_kitti
 
 # -- estimation
+# ./estimation-test_ba --target test_parse_keypoints_line
+# ./estimation-test_ba --target test_load_keypoints
+# ./estimation-test_ba --target test_ba_residuals
+# ./estimation-test_ba --target test_ba_jacobian
+# ./estimation-test_ba --target test_ba_update
+# ./estimation-test_ba --target test_ba_cost
+./estimation-test_ba --target test_ba_solve
 # ./estimation-test_factor
 # ./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement
