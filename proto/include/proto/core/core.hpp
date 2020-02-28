@@ -1062,6 +1062,11 @@ vec3_t quat2euler(const quat_t &q);
 mat3_t quat2rot(const quat_t &q);
 
 /**
+ * Convert small angle euler angle to quaternion.
+ */
+quat_t quat_delta(const vec3_t &dalpha);
+
+/**
  * Initialize attitude using IMU gyroscope `w_m` and accelerometer `a_m`
  * measurements. The calculated attitude outputted into to `C_WS`. Note: this
  * function does not calculate initial yaw angle in the world frame. Only the
@@ -1113,6 +1118,37 @@ float mtoc(struct timespec *tic);
  * Get time now in milliseconds since epoch
  */
 double time_now();
+
+/*****************************************************************************
+ *                                  POSE
+ *****************************************************************************/
+
+struct pose_t {
+  timestamp_t ts = 0;
+  quat_t q;
+  vec3_t r;
+
+  pose_t();
+  pose_t(const quat_t &q_, const vec3_t &r_);
+  pose_t(const timestamp_t &ts_, const quat_t &q_, const vec3_t &r_);
+};
+
+typedef std::vector<pose_t> poses_t;
+
+void pose_set_quat(pose_t &pose, const quat_t &q);
+void pose_set_trans(pose_t &pose, const vec3_t &r);
+void pose_print(const std::string &prefix, const pose_t &pose);
+mat4_t pose2tf(const pose_t &pose);
+poses_t load_poses(const std::string &csv_path);
+
+/******************************************************************************
+ *                                KEYPOINTS
+ *****************************************************************************/
+
+typedef std::vector<vec2_t> keypoints_t;
+
+std::vector<keypoints_t> load_keypoints(const std::string &data_path);
+void keypoints_print(const keypoints_t &keypoints);
 
 /******************************************************************************
  *                                  DATA
@@ -1410,6 +1446,12 @@ std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
 
   return retval;
 }
+
+int check_jacobian(const std::string &jac_name,
+                   const matx_t &fdiff,
+                   const matx_t &jac,
+                   const double threshold,
+                   const bool print = false);
 
 /******************************************************************************
  *                                CONFIG

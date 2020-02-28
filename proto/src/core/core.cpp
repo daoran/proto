@@ -1185,6 +1185,13 @@ mat3_t quat2rot(const quat_t &q) {
   return C;
 }
 
+quat_t quat_delta(const vec3_t &dalpha) {
+  const double half_norm = 0.5 * dalpha.norm();
+  const vec3_t vector = sinc(half_norm) * 0.5 * dalpha;
+  const double scalar = cos(half_norm);
+  return quat_t{scalar, vector(0), vector(1), vector(2)};
+}
+
 void imu_init_attitude(const vec3s_t w_m,
                        const vec3s_t a_m,
                        mat3_t &C_WS,
@@ -1242,6 +1249,148 @@ double time_now() {
   struct timeval t;
   gettimeofday(&t, NULL);
   return ((double) t.tv_sec + ((double) t.tv_usec) / 1000000.0);
+}
+
+/*****************************************************************************
+ *                                  POSE
+ *****************************************************************************/
+
+pose_t::pose_t() {}
+
+pose_t::pose_t(const quat_t &q_, const vec3_t &r_)
+    : q{q_}, r{r_} {}
+
+pose_t::pose_t(const timestamp_t &ts_, const quat_t &q_, const vec3_t &r_)
+    : ts{ts_}, q{q_}, r{r_} {}
+
+void pose_set_quat(pose_t &pose, const quat_t &q) {
+  pose.q = q;
+}
+
+void pose_set_trans(pose_t &pose, const vec3_t &r) {
+  pose.r = r;
+}
+
+void pose_print(const std::string &prefix, const pose_t &pose) {
+  printf("[%s] ", prefix.c_str());
+  printf("q: (%f, %f, %f, %f)", pose.q.w(), pose.q.x(), pose.q.y(), pose.q.z());
+  printf("\t");
+  printf("r: (%f, %f, %f)\n", pose.r(0), pose.r(1), pose.r(2));
+}
+
+mat4_t pose2tf(const pose_t &pose) {
+  return tf(pose.q, pose.r);
+}
+
+poses_t load_poses(const std::string &csv_path) {
+  FILE *csv_file = fopen(csv_path.c_str(), "r");
+  char line[1024] = {0};
+  poses_t poses;
+
+  while (fgets(line, 1024, csv_file) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    char entry[1024] = {0};
+    double data[7] = {0};
+    int index = 0;
+    for (size_t i = 0; i < strlen(line); i++) {
+      char c = line[i];
+      if (c == ' ') {
+        continue;
+      }
+
+      if (c == ',' || c == '\n') {
+        data[index] = strtod(entry, NULL);
+        memset(entry, '\0', sizeof(char) * 100);
+        index++;
+      } else {
+        entry[strlen(entry)] = c;
+      }
+    }
+
+    quat_t q{data[0], data[1], data[2], data[3]};
+    vec3_t r{data[4], data[5], data[6]};
+    poses.emplace_back(q, r);
+  }
+  fclose(csv_file);
+
+  return poses;
+}
+
+/******************************************************************************
+ *                                KEYPOINTS
+ *****************************************************************************/
+
+static keypoints_t parse_keypoints_line(const char *line) {
+  char entry[100] = {0};
+  int kp_ready = 0;
+  vec2_t kp{0.0, 0.0};
+  int kp_index = 0;
+  bool first_element_parsed = false;
+
+  // Parse line
+  keypoints_t keypoints;
+
+  for (size_t i = 0; i < strlen(line); i++) {
+    char c = line[i];
+    if (c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      if (first_element_parsed == false) {
+        first_element_parsed = true;
+      } else {
+        // Parse keypoint
+        if (kp_ready == 0) {
+          kp(0) = strtod(entry, NULL);
+          kp_ready = 1;
+
+        } else {
+          kp(1) = strtod(entry, NULL);
+          keypoints.push_back(kp);
+          kp_ready = 0;
+          kp_index++;
+        }
+      }
+
+      memset(entry, '\0', sizeof(char) * 100);
+    } else {
+      entry[strlen(entry)] = c;
+    }
+  }
+
+  return keypoints;
+}
+
+std::vector<keypoints_t> load_keypoints(const std::string &data_path) {
+  char keypoints_csv[1000] = {0};
+  strcat(keypoints_csv, data_path.c_str());
+  strcat(keypoints_csv, "/keypoints.csv");
+
+  FILE *csv_file = fopen(keypoints_csv, "r");
+  std::vector<keypoints_t> keypoints;
+
+  char line[1024] = {0};
+  while (fgets(line, 1024, csv_file) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+    keypoints.push_back(parse_keypoints_line(line));
+  }
+  fclose(csv_file);
+
+  return keypoints;
+}
+
+void keypoints_print(const keypoints_t &keypoints) {
+  printf("nb_keypoints: %zu\n", keypoints.size());
+  printf("keypoints:\n");
+  for (size_t i = 0; i < keypoints.size(); i++) {
+    printf("-- (%f, %f)\n", keypoints[i](0), keypoints[i](1));
+  }
 }
 
 /*****************************************************************************
@@ -1868,6 +2017,45 @@ bool all_true(const std::vector<bool> x) {
   }
 
   return true;
+}
+
+int check_jacobian(const std::string &jac_name,
+                   const matx_t &fdiff,
+                   const matx_t &jac,
+                   const double threshold,
+                   const bool print) {
+  int retval = 0;
+  const matx_t delta = (fdiff - jac);
+  bool failed = false;
+
+  // Check if any of the values are beyond the threshold
+  for (long i = 0; i < delta.rows(); i++) {
+    for (long j = 0; j < delta.cols(); j++) {
+      if (fabs(delta(i, j)) >= threshold) {
+        failed = true;
+      }
+    }
+  }
+
+  // Print result
+  if (failed) {
+    retval = -1;
+    if (print) {
+      LOG_ERROR("Check [%s] failed!\n", jac_name.c_str());
+      print_matrix("num diff jac", fdiff);
+      print_matrix("analytical jac", jac);
+      print_matrix("difference matrix", delta);
+      exit(-1);
+    }
+
+  } else {
+    if (print) {
+      printf("Check [%s] passed!\n", jac_name.c_str());
+    }
+    retval = 0;
+  }
+
+  return retval;
 }
 
 /******************************************************************************
