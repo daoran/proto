@@ -143,7 +143,7 @@ static keypoints_t parse_keypoints_line(const char *line) {
   int kp_ready = 0;
   vec2_t kp{0.0, 0.0};
   int kp_index = 0;
-	bool first_element_parsed = false;
+  bool first_element_parsed = false;
 
   // Parse line
   keypoints_t keypoints;
@@ -155,23 +155,23 @@ static keypoints_t parse_keypoints_line(const char *line) {
     }
 
     if (c == ',' || c == '\n') {
-			if (first_element_parsed == false) {
-				first_element_parsed = true;
-			} else {
-				// Parse keypoint
-				if (kp_ready == 0) {
-					kp(0) = strtod(entry, NULL);
-					kp_ready = 1;
+      if (first_element_parsed == false) {
+        first_element_parsed = true;
+      } else {
+        // Parse keypoint
+        if (kp_ready == 0) {
+          kp(0) = strtod(entry, NULL);
+          kp_ready = 1;
 
-				} else {
-					kp(1) = strtod(entry, NULL);
-					keypoints.push_back(kp);
-					kp_ready = 0;
-					kp_index++;
-				}
-			}
+        } else {
+          kp(1) = strtod(entry, NULL);
+          keypoints.push_back(kp);
+          kp_ready = 0;
+          kp_index++;
+        }
+      }
 
-			memset(entry, '\0', sizeof(char) * 100);
+      memset(entry, '\0', sizeof(char) * 100);
     } else {
       entry[strlen(entry)] = c;
     }
@@ -357,7 +357,7 @@ vecx_t ba_residuals(ba_data_t &data) {
 
 static mat2_t J_intrinsics_point(const mat3_t K) {
   // J = [K[0, 0], 0.0,
-  // 		  0.0, K[1, 1]];
+  //       0.0, K[1, 1]];
   mat2_t J = zeros(2, 2);
   J(0, 0) = K(0, 0);
   J(1, 1) = K(1, 1);
@@ -370,7 +370,7 @@ static matx_t J_project(const vec3_t p_C) {
   const double z = p_C(2);
 
   // J = [1 / z, 0, -x / z^2,
-  // 		  0, 1 / z, -y / z^2];
+  //       0, 1 / z, -y / z^2];
   matx_t J = zeros(2, 3);
   J(0, 0) = 1.0 / z;
   J(1, 1) = 1.0 / z;
@@ -423,10 +423,10 @@ static int check_jacobian(const std::string &jac_name,
     retval = -1;
     if (print) {
       LOG_ERROR("Check [%s] failed!\n", jac_name.c_str());
-			print_matrix("num diff jac", fdiff);
-			print_matrix("analytical jac", jac);
-			print_matrix("difference matrix", delta);
-			exit(-1);
+      print_matrix("num diff jac", fdiff);
+      print_matrix("analytical jac", jac);
+      print_matrix("difference matrix", delta);
+      exit(-1);
     }
 
   } else {
@@ -440,31 +440,31 @@ static int check_jacobian(const std::string &jac_name,
 }
 
 int check_J_cam_pose(const mat3_t &cam_K,
-										 const mat4_t &T_WC,
+                     const mat4_t &T_WC,
                      const vec3_t &p_W,
                      const mat_t<2, 6> &J_cam_pose,
                      const double step_size = 1e-3,
                      const double threshold = 1e-2) {
   const vec2_t z{0.0, 0.0};
-	const vec4_t hp_W = p_W.homogeneous();
+  const vec4_t hp_W = p_W.homogeneous();
 
   // Perturb rotation
   matx_t fdiff = zeros(2, 6);
   for (int i = 0; i < 3; i++) {
-		// Forward difference
+    // Forward difference
     const mat4_t T_WC_fd = tf_perturb_rot(T_WC, step_size, i);
-		const mat4_t T_CW_fd = T_WC_fd.inverse();
+    const mat4_t T_CW_fd = T_WC_fd.inverse();
     const vec3_t p_C_fd = (T_CW_fd * hp_W).head(3);
-		const vec3_t x_fd{p_C_fd(0) / p_C_fd(2), p_C_fd(1) / p_C_fd(2), 1.0};
-		const vec2_t z_fd = (cam_K * x_fd).head(2);
+    const vec3_t x_fd{p_C_fd(0) / p_C_fd(2), p_C_fd(1) / p_C_fd(2), 1.0};
+    const vec2_t z_fd = (cam_K * x_fd).head(2);
     const vec2_t e_fd = z - z_fd;
 
-		// Backward difference
+    // Backward difference
     const mat4_t T_WC_bd = tf_perturb_rot(T_WC, -step_size, i);
-		const mat4_t T_CW_bd = T_WC_bd.inverse();
+    const mat4_t T_CW_bd = T_WC_bd.inverse();
     const vec3_t p_C_bd = (T_CW_bd * hp_W).head(3);
-		const vec3_t x_bd{p_C_bd(0) / p_C_bd(2), p_C_bd(1) / p_C_bd(2), 1.0};
-		const vec2_t z_bd = (cam_K * x_bd).head(2);
+    const vec3_t x_bd{p_C_bd(0) / p_C_bd(2), p_C_bd(1) / p_C_bd(2), 1.0};
+    const vec2_t z_bd = (cam_K * x_bd).head(2);
     const vec2_t e_bd = z - z_bd;
 
     fdiff.block(0, i, 2, 1) = (e_fd - e_bd) / (2 * step_size);
@@ -472,20 +472,20 @@ int check_J_cam_pose(const mat3_t &cam_K,
 
   // Perturb translation
   for (int i = 0; i < 3; i++) {
-		// Forward difference
+    // Forward difference
     const mat4_t T_WC_fd = tf_perturb_trans(T_WC, step_size, i);
-		const mat4_t T_CW_fd = T_WC_fd.inverse();
+    const mat4_t T_CW_fd = T_WC_fd.inverse();
     const vec3_t p_C_fd = (T_CW_fd * hp_W).head(3);
-		const vec3_t x_fd{p_C_fd(0) / p_C_fd(2), p_C_fd(1) / p_C_fd(2), 1.0};
-		const vec2_t z_fd = (cam_K * x_fd).head(2);
+    const vec3_t x_fd{p_C_fd(0) / p_C_fd(2), p_C_fd(1) / p_C_fd(2), 1.0};
+    const vec2_t z_fd = (cam_K * x_fd).head(2);
     const vec2_t e_fd = z - z_fd;
 
-		// Backward difference
+    // Backward difference
     const mat4_t T_WC_bd = tf_perturb_trans(T_WC, -step_size, i);
-		const mat4_t T_CW_bd = T_WC_bd.inverse();
+    const mat4_t T_CW_bd = T_WC_bd.inverse();
     const vec3_t p_C_bd = (T_CW_bd * hp_W).head(3);
-		const vec3_t x_bd{p_C_bd(0) / p_C_bd(2), p_C_bd(1) / p_C_bd(2), 1.0};
-		const vec2_t z_bd = (cam_K * x_bd).head(2);
+    const vec3_t x_bd{p_C_bd(0) / p_C_bd(2), p_C_bd(1) / p_C_bd(2), 1.0};
+    const vec2_t z_bd = (cam_K * x_bd).head(2);
     const vec2_t e_bd = z - z_bd;
 
     fdiff.block(0, i + 3, 2, 1) = (e_fd - e_bd) / (2 * step_size);
@@ -495,32 +495,32 @@ int check_J_cam_pose(const mat3_t &cam_K,
 }
 
 int check_J_point(const mat3_t &cam_K,
-									const mat4_t &T_WC,
+                  const mat4_t &T_WC,
                   const vec3_t &p_W,
                   const mat_t<2, 3> &J_point,
                   const double step_size = 1e-10,
                   const double threshold = 1e-2) {
   const vec2_t z{0.0, 0.0};
-	const mat4_t T_CW = T_WC.inverse();
+  const mat4_t T_CW = T_WC.inverse();
   matx_t fdiff = zeros(2, 3);
   mat3_t dr = I(3) * step_size;
 
   // Perturb landmark
   for (int i = 0; i < 3; i++) {
-		// Forward difference
+    // Forward difference
     const vec3_t p_W_fd = p_W + dr.col(i);
-		const vec4_t hp_W_fd = p_W_fd.homogeneous();
+    const vec4_t hp_W_fd = p_W_fd.homogeneous();
     const vec3_t p_C_fd = (T_CW * hp_W_fd).head(3);
-		const vec3_t x_fd{p_C_fd(0) / p_C_fd(2), p_C_fd(1) / p_C_fd(2), 1.0};
-		const vec2_t z_fd = (cam_K * x_fd).head(2);
+    const vec3_t x_fd{p_C_fd(0) / p_C_fd(2), p_C_fd(1) / p_C_fd(2), 1.0};
+    const vec2_t z_fd = (cam_K * x_fd).head(2);
     const vec2_t e_fd = z - z_fd;
 
-		// Backward difference
+    // Backward difference
     const vec3_t p_W_bd = p_W - dr.col(i);
-		const vec4_t hp_W_bd = p_W_bd.homogeneous();
+    const vec4_t hp_W_bd = p_W_bd.homogeneous();
     const vec3_t p_C_bd = (T_CW * hp_W_bd).head(3);
-		const vec3_t x_bd{p_C_bd(0) / p_C_bd(2), p_C_bd(1) / p_C_bd(2), 1.0};
-		const vec2_t z_bd = (cam_K * x_bd).head(2);
+    const vec3_t x_bd{p_C_bd(0) / p_C_bd(2), p_C_bd(1) / p_C_bd(2), 1.0};
+    const vec2_t z_bd = (cam_K * x_bd).head(2);
     const vec2_t e_bd = z - z_bd;
 
     fdiff.block(0, i, 2, 1) = (e_fd - e_bd) / (2 * step_size);
@@ -575,13 +575,13 @@ matx_t ba_jacobian(ba_data_t &data) {
       const matx_t J_cam_pos = -1 * J_K * J_P * J_r;
       J.block(rs, cs, 2, 3) = J_cam_rot;
       J.block(rs, cs + 3, 2, 3) = J_cam_pos;
-			// check_J_cam_pose(data.cam_K, T_WC, p_W, J.block(rs, cs, 2, 6));
+      // check_J_cam_pose(data.cam_K, T_WC, p_W, J.block(rs, cs, 2, 6));
 
       // Point jacobian
       cs = (data.nb_frames * 6) + point_ids[i] * 3;
       const matx_t J_point = -1 * J_K * J_P * J_target_point(q_WC);
       J.block(rs, cs, 2, 3) = J_point;
-			// check_J_point(data.cam_K, T_WC, p_W, J_point);
+      // check_J_point(data.cam_K, T_WC, p_W, J_point);
 
       meas_idx++;
     }
@@ -604,11 +604,11 @@ void ba_update(ba_data_t &data, const vecx_t &e, const matx_t &E) {
 
   // Solve Gauss-Newton system [H dx = g]: Solve for dx
   // const matx_t H = (E.transpose() * E); // GN version
-	const double lambda = 10.0;  // LM damping term
+  const double lambda = 10.0;  // LM damping term
   const matx_t H = (E.transpose() * E) + lambda * I(E.cols());  // LM version
   const vecx_t g = -E.transpose() * e;
   // const vecx_t dx = H.inverse() * g;
-	const vecx_t dx = H.ldlt().solve(g);
+  const vecx_t dx = H.ldlt().solve(g);
 
   // Update camera poses
   for (int k = 0; k < data.nb_frames; k++) {
