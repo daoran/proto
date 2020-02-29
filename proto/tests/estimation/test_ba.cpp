@@ -137,7 +137,6 @@ int test_ba_residuals() {
 
 int test_ba_jacobian() {
   ba_data_t data{TEST_DATA};
-
   // for (const auto pose : data.cam_poses) {
   //   std::cout << pose.q.w() << ", ";
   //   std::cout << pose.q.x() << ", ";
@@ -146,7 +145,6 @@ int test_ba_jacobian() {
   // }
 
   matx_t J = ba_jacobian(data);
-
   mat2csv("/tmp/J.csv", J);
 
   return 0;

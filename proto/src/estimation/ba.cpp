@@ -380,16 +380,21 @@ matx_t ba_jacobian(ba_data_t &data) {
 }
 
 void ba_update(ba_data_t &data, const vecx_t &e, const matx_t &E) {
+  // const double lambda = 10.0;  // LM damping term
+  const double lambda = 0.001;  // LM damping term
+
   // Form weight matrix
   // W = diag(repmat(sigma, data->nb_measurements, 1));
 
   // Solve Gauss-Newton system [H dx = g]: Solve for dx
-  // const matx_t H = (E.transpose() * E); // GN version
-  const double lambda = 10.0;  // LM damping term
-  const matx_t H = (E.transpose() * E) + lambda * I(E.cols());  // LM version
+  matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
+  matx_t H_diag = (H.diagonal().asDiagonal());
+  // H = H + lambda * I(E.cols());  // original LM damping
+  H = H + lambda * H_diag;  // R. Fletcher trust region mod
   const vecx_t g = -E.transpose() * e;
-  // const vecx_t dx = H.inverse() * g;
-  const vecx_t dx = H.ldlt().solve(g);
+
+  // const vecx_t dx = H.inverse() * g;  // Slow inverse
+  const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
 
   // Update camera poses
   for (int k = 0; k < data.nb_frames; k++) {
