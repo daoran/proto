@@ -5,7 +5,7 @@ namespace proto {
 static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              double *intrinsics,
                              double *distortion,
-                             calib_pose_param_t *pose,
+                             pose_t *pose,
                              ceres::Problem &problem) {
   for (const auto &tag_id : aprilgrid.ids) {
     // Get keypoints
@@ -42,8 +42,8 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                NULL,      // Loss function
                                intrinsics,
                                distortion,
-                               pose->q.coeffs().data(),
-                               pose->r.data());
+                               pose->rot().coeffs().data(),
+                               pose->trans().data());
     }
   }
 
@@ -87,7 +87,7 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
                        radtan4_t &radtan,
                        mat4s_t &T_CF) {
   // Optimization variables
-  std::vector<calib_pose_param_t> T_CF_params;
+  std::vector<pose_t> T_CF_params;
   for (size_t i = 0; i < aprilgrids.size(); i++) {
     T_CF_params.emplace_back(aprilgrids[i].T_CF);
   }
@@ -110,7 +110,7 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
-    problem.SetParameterization(T_CF_params[i].q.coeffs().data(),
+    problem.SetParameterization(T_CF_params[i].rot().coeffs().data(),
                                 &quaternion_parameterization);
   }
 
@@ -128,7 +128,7 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
   // Clean up
   T_CF.clear();
   for (auto pose_param : T_CF_params) {
-    T_CF.emplace_back(tf(pose_param.q, pose_param.r));
+    T_CF.push_back(pose_param.tf());
   }
 
   return 0;
@@ -457,7 +457,7 @@ static void initialize_intrinsics(cv::VideoCapture &camera,
 static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                              double *intrinsics,
                              double *distortion,
-                             calib_pose_param_t *pose,
+                             pose_t *pose,
                              ceres::Problem *problem) {
   for (const auto &tag_id : aprilgrid.ids) {
     // Get keypoints
@@ -494,8 +494,8 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 NULL,      // Loss function
                                 intrinsics,
                                 distortion,
-                                pose->q.coeffs().data(),
-                                pose->r.data());
+                                pose->rot().coeffs().data(),
+                                pose->trans().data());
     }
   }
 
@@ -507,7 +507,7 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
                               radtan4_t &radtan,
                               mat4s_t &T_CF) {
   // Optimization variables
-  std::vector<calib_pose_param_t> T_CF_params;
+  std::vector<pose_t> T_CF_params;
   for (size_t i = 0; i < aprilgrids.size(); i++) {
     T_CF_params.emplace_back(aprilgrids[i].T_CF);
   }
@@ -530,7 +530,7 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
-    problem->SetParameterization(T_CF_params[i].q.coeffs().data(),
+    problem->SetParameterization(T_CF_params[i].rot().coeffs().data(),
                                  &quaternion_parameterization);
   }
 
@@ -584,7 +584,7 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
   // Add results to T_CF
   T_CF.clear();
   for (auto pose_param : T_CF_params) {
-    T_CF.emplace_back(tf(pose_param.q, pose_param.r));
+    T_CF.push_back(pose_param.tf());
   }
 
   return entropy;

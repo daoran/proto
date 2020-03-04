@@ -943,6 +943,10 @@ mat4_t tf_perturb_trans(const mat4_t &T, const double step_size, const int i) {
   return tf(C, r_diff);
 }
 
+vec3_t tf_point(const mat4_t &T, const vec3_t &p) {
+  return (T * p.homogeneous()).head(3);
+}
+
 mat3_t rotx(const double theta) {
   mat3_t R;
 
@@ -1257,29 +1261,114 @@ double time_now() {
 
 pose_t::pose_t() {}
 
-pose_t::pose_t(const quat_t &q_, const vec3_t &r_)
-    : q{q_}, r{r_} {}
-
-pose_t::pose_t(const timestamp_t &ts_, const quat_t &q_, const vec3_t &r_)
-    : ts{ts_}, q{q_}, r{r_} {}
-
-void pose_set_quat(pose_t &pose, const quat_t &q) {
-  pose.q = q;
+pose_t::pose_t(const double *param_) {
+  for (int i = 0; i < 7; i++) {
+    param[i] = param_[i];
+  }
 }
 
-void pose_set_trans(pose_t &pose, const vec3_t &r) {
-  pose.r = r;
+pose_t::pose_t(const mat4_t &tf_) {
+  const quat_t q{tf_quat(tf_)};
+  const vec3_t r{tf_trans(tf_)};
+
+  param[0] = q.w();
+  param[1] = q.x();
+  param[2] = q.y();
+  param[3] = q.z();
+
+  param[4] = r(0);
+  param[5] = r(1);
+  param[6] = r(2);
+}
+
+pose_t::pose_t(const quat_t &q_, const vec3_t &r_)
+    : param{q_.w(), q_.x(), q_.y(), q_.z(), r_(0), r_(1), r_(2)} {}
+
+pose_t::pose_t(const size_t id_,
+               const timestamp_t &ts_,
+               const mat4_t &T)
+    : param_t{id_, ts_, 6} {
+  const quat_t q{tf_quat(T)};
+  const vec3_t r{tf_trans(T)};
+
+  param[0] = q.w();
+  param[1] = q.x();
+  param[2] = q.y();
+  param[3] = q.z();
+
+  param[4] = r(0);
+  param[5] = r(1);
+  param[6] = r(2);
+}
+
+quat_t pose_t::rot() const {
+  return quat_t{param[0], param[1], param[2], param[3]};
+}
+
+vec3_t pose_t::trans() const {
+  return vec3_t{param[4], param[5], param[6]};
+}
+
+mat4_t pose_t::tf() const {
+  return proto::tf(rot(), trans());
+}
+
+quat_t pose_t::rot() { return static_cast<const pose_t &>(*this).rot(); }
+vec3_t pose_t::trans() { return static_cast<const pose_t &>(*this).trans(); }
+mat4_t pose_t::tf() { return static_cast<const pose_t &>(*this).tf(); }
+
+double *pose_t::data() { return param; }
+
+void pose_t::set_trans(const vec3_t &r) {
+  param[4] = r(0);
+  param[5] = r(1);
+  param[6] = r(2);
+}
+
+void pose_t::set_rot(const quat_t &q) {
+  param[0] = q.w();
+  param[1] = q.x();
+  param[2] = q.y();
+  param[3] = q.z();
+}
+
+void pose_t::set_rot(const mat3_t &C) {
+  quat_t q{C};
+  param[0] = q.w();
+  param[1] = q.x();
+  param[2] = q.y();
+  param[3] = q.z();
+}
+
+void pose_t::plus(const vecx_t &dx) {
+  // Rotation component
+  double half_norm = 0.5 * dx.head<3>().norm();
+  double dq_w = cos(half_norm);
+  double dq_x = sinc(half_norm) * 0.5 * dx(0);
+  double dq_y = sinc(half_norm) * 0.5 * dx(1);
+  double dq_z = sinc(half_norm) * 0.5 * dx(2);
+  quat_t dq{dq_w, dq_x, dq_y, dq_z};
+  quat_t q{param[0], param[1], param[2], param[3]};
+  quat_t q_updated = q * dq;
+  param[0] = q_updated.w();
+  param[1] = q_updated.x();
+  param[2] = q_updated.y();
+  param[3] = q_updated.z();
+
+  // Translation component
+  param[3] = param[3] - dx[3];
+  param[4] = param[4] - dx[4];
+  param[5] = param[5] - dx[5];
 }
 
 void pose_print(const std::string &prefix, const pose_t &pose) {
-  printf("[%s] ", prefix.c_str());
-  printf("q: (%f, %f, %f, %f)", pose.q.w(), pose.q.x(), pose.q.y(), pose.q.z());
-  printf("\t");
-  printf("r: (%f, %f, %f)\n", pose.r(0), pose.r(1), pose.r(2));
-}
+  const quat_t q = pose.rot();
+  const vec3_t r = pose.trans();
 
-mat4_t pose2tf(const pose_t &pose) {
-  return tf(pose.q, pose.r);
+  printf("[%s] ", prefix.c_str());
+  printf("q: (%f, %f, %f, %f)", q.w(), q.x(), q.y(), q.z());
+  printf("\t");
+  printf("r: (%f, %f, %f)\n", r(0), r(1), r(2));
 }
 
 poses_t load_poses(const std::string &csv_path) {
@@ -1312,16 +1401,25 @@ poses_t load_poses(const std::string &csv_path) {
 
     quat_t q{data[0], data[1], data[2], data[3]};
     vec3_t r{data[4], data[5], data[6]};
-    poses.emplace_back(q, r);
+    poses.emplace_back(data);
   }
   fclose(csv_file);
 
   return poses;
 }
 
-/******************************************************************************
- *                                KEYPOINTS
- *****************************************************************************/
+landmark_t::landmark_t(const size_t id_, const vec3_t &p_W_)
+  : param_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
+
+vec3_t landmark_t::vec() { return map_vec_t<3>(param); };
+
+double *landmark_t::data() { return param; };
+
+void landmark_t::plus(const vecx_t &dx) {
+  param[0] = param[0] + dx[0];
+  param[1] = param[1] + dx[1];
+  param[2] = param[2] + dx[2];
+}
 
 static keypoints_t parse_keypoints_line(const char *line) {
   char entry[100] = {0};

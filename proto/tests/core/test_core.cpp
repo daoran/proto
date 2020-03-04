@@ -609,6 +609,32 @@ int test_ticAndToc() {
 }
 
 /******************************************************************************
+ * POSE
+ *****************************************************************************/
+
+int test_pose() {
+  pose_t pose;
+
+  MU_CHECK(pose.ts == 0);
+  MU_CHECK(fltcmp(pose.param[0], 1.0) == 0);
+  MU_CHECK(fltcmp(pose.param[1], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[2], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[3], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[4], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[5], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[6], 0.0) == 0);
+
+  pose.param[4] = 0.1;
+  pose.param[5] = 0.2;
+  pose.param[6] = 0.3;
+  MU_CHECK(fltcmp(pose.param[4], 0.1) == 0);
+  MU_CHECK(fltcmp(pose.param[5], 0.2) == 0);
+  MU_CHECK(fltcmp(pose.param[6], 0.3) == 0);
+
+  return 0;
+}
+
+/******************************************************************************
  * DATA
  *****************************************************************************/
 
@@ -2283,6 +2309,9 @@ void test_suite() {
 
   // Time
   MU_ADD_TEST(test_ticAndToc);
+
+  // Pose
+  MU_ADD_TEST(test_pose);
 
   // Data
   MU_ADD_TEST(test_csv_rows);

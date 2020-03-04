@@ -22,7 +22,7 @@ debug() {
 # make deps
 # time make debug
 time make release
-# sudo make install
+sudo make install
 # time make ros
 # sudo make debug_install
 # exit
@@ -87,6 +87,7 @@ cd proto/build/tests
 
 # -- core
 # ./core-test_core
+# ./core-test_core --target test_pose
 # ./core-test_core --target test_sim_imu_measurement
 
 # -- driver
@@ -104,7 +105,7 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_jacobian
 # ./estimation-test_ba --target test_ba_update
 # ./estimation-test_ba --target test_ba_cost
-./estimation-test_ba --target test_ba_solve
+# ./estimation-test_ba --target test_ba_solve
 # ./estimation-test_factor
 # ./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement

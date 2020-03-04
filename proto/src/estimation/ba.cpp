@@ -294,7 +294,7 @@ vecx_t ba_residuals(ba_data_t &data) {
   int res_idx = 0; // Residual index
   for (int k = 0; k < data.nb_frames; k++) {
     // Form camera pose and its inverse
-    const mat4_t T_WC = pose2tf(data.cam_poses[k]);
+    const mat4_t T_WC = data.cam_poses[k].tf();
     const mat4_t T_CW = T_WC.inverse();
 
     // Get point ids and measurements at time step k
@@ -302,13 +302,10 @@ vecx_t ba_residuals(ba_data_t &data) {
     const int *point_ids = &data.point_ids[k][1];
 
     for (int i = 0; i < nb_ids; i++) {
-      // Get point in world frame
+      // Get point in world frame and transform to camera frame
       const int id = point_ids[i];
       const vec3_t p_W{data.points[id]};
-      const vec4_t hp_W = p_W.homogeneous();
-
-      // Transform point in world frame to camera frame
-      const vec3_t p_C = (T_CW * hp_W).head(3);
+      const vec3_t p_C = tf_point(T_CW, p_W);
 
       // Project point in camera frame down to image plane
       const vec3_t x{p_C(0) / p_C(2), p_C(1) / p_C(2), 1.0};
@@ -336,7 +333,7 @@ matx_t ba_jacobian(ba_data_t &data) {
 
   for (int k = 0; k < data.nb_frames; k++) {
     // Form camera pose
-    const mat4_t T_WC = pose2tf(data.cam_poses[k]);
+    const mat4_t T_WC = data.cam_poses[k].tf();
     const quat_t q_WC = tf_quat(T_WC);
     const vec3_t r_WC = tf_trans(T_WC);
     const mat4_t T_CW = T_WC.inverse();
@@ -347,12 +344,10 @@ matx_t ba_jacobian(ba_data_t &data) {
 
     // Loop over observations at time k
     for (int i = 0; i < nb_ids; i++) {
-      // Get point in world frame
+      // Get point in world frame and transform to camera frame
       const int id = point_ids[i];
       const vec3_t p_W{data.points[id]};
-
-      // Transform point in world frame to camera frame
-      const vec3_t p_C = (T_CW * p_W.homogeneous()).head(3);
+      const vec3_t p_C = tf_point(T_CW, p_W);
 
       // Camera pose jacobian
       const int rs = meas_idx * 2;
@@ -402,13 +397,14 @@ void ba_update(ba_data_t &data, const vecx_t &e, const matx_t &E) {
 
     // Update camera rotation
     const vec3_t dalpha{dx(s), dx(s + 1), dx(s + 2)};
-    const quat_t q = data.cam_poses[k].q;
+    const quat_t q = data.cam_poses[k].rot();
     const quat_t dq = quat_delta(dalpha);
-    data.cam_poses[k].q = dq * q;
+    data.cam_poses[k].set_rot(dq * q);
 
     // Update camera position
+    const vec3_t r_WC = data.cam_poses[k].trans();
     const vec3_t dr_WC{dx(s + 3), dx(s + 4), dx(s + 5)};
-    data.cam_poses[k].r += dr_WC;
+    data.cam_poses[k].set_trans(r_WC + dr_WC);
   }
 
   // Update points

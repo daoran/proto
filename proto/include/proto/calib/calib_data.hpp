@@ -12,20 +12,6 @@
 namespace proto {
 
 /**
- * Pose parameter block
- */
-struct calib_pose_param_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  quat_t q;
-  vec3_t r;
-
-  calib_pose_param_t(const mat4_t &T);
-  calib_pose_param_t(const mat3_t &C, const vec3_t &r);
-  calib_pose_param_t(const quat_t &q, const vec3_t &r);
-  ~calib_pose_param_t();
-};
-
-/**
  * Calibration target.
  */
 struct calib_target_t {

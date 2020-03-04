@@ -986,6 +986,11 @@ mat4_t tf_perturb_rot(const mat4_t &T, double step_size, const int i);
 mat4_t tf_perturb_trans(const mat4_t &T, double step_size, const int i);
 
 /**
+ * Transform point `p` with transform `T`.
+ */
+vec3_t tf_point(const mat4_t &T, const vec3_t &p);
+
+/**
  * Rotation matrix around x-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
@@ -1120,32 +1125,71 @@ float mtoc(struct timespec *tic);
 double time_now();
 
 /*****************************************************************************
- *                                  POSE
+ *                             FACTOR GRAPH
  *****************************************************************************/
 
-struct pose_t {
+struct param_t {
+  size_t id = 0;
   timestamp_t ts = 0;
-  quat_t q;
-  vec3_t r;
+  size_t local_size = 0;
+
+  param_t() {}
+
+  param_t(const size_t id_, const size_t local_size_)
+      : id{id_}, local_size{local_size_} {}
+
+  param_t(const size_t id_, const timestamp_t &ts_, const size_t local_size_)
+      : id{id_}, ts{ts_}, local_size{local_size_} {}
+
+  virtual ~param_t() {}
+
+  virtual double *data() = 0;
+  virtual void plus(const vecx_t &) = 0;
+};
+
+struct pose_t : param_t {
+  double param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   pose_t();
+  pose_t(const double *data);
+  pose_t(const mat4_t &tf_);
   pose_t(const quat_t &q_, const vec3_t &r_);
-  pose_t(const timestamp_t &ts_, const quat_t &q_, const vec3_t &r_);
+  pose_t(const size_t id, const timestamp_t &ts_,
+         const mat4_t &tf);
+
+  quat_t rot() const;
+  vec3_t trans() const;
+  mat4_t tf() const;
+
+  quat_t rot();
+  vec3_t trans();
+  mat4_t tf();
+
+  vec3_t vec();
+  double *data();
+  void set_trans(const vec3_t &r);
+  void set_rot(const quat_t &q);
+  void set_rot(const mat3_t &C);
+  void plus(const vecx_t &dx);
+};
+
+struct landmark_t :param_t {
+  double param[3] = {0.0, 0.0, 0.0};
+
+  landmark_t(const size_t id_, const vec3_t &p_W_);
+
+  vec3_t vec();
+  double *data();
+  size_t dimensions();
+  void plus(const vecx_t &dx);
 };
 
 typedef std::vector<pose_t> poses_t;
-
-void pose_set_quat(pose_t &pose, const quat_t &q);
-void pose_set_trans(pose_t &pose, const vec3_t &r);
-void pose_print(const std::string &prefix, const pose_t &pose);
-mat4_t pose2tf(const pose_t &pose);
-poses_t load_poses(const std::string &csv_path);
-
-/******************************************************************************
- *                                KEYPOINTS
- *****************************************************************************/
-
+typedef std::vector<landmark_t *> landmarks_t;
 typedef std::vector<vec2_t> keypoints_t;
+
+void pose_print(const std::string &prefix, const pose_t &pose);
+poses_t load_poses(const std::string &csv_path);
 
 std::vector<keypoints_t> load_keypoints(const std::string &data_path);
 void keypoints_print(const keypoints_t &keypoints);

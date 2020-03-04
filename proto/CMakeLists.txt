@@ -99,7 +99,7 @@ ADD_LIBRARY(
   src/dataset/timeline.cpp
   # estimation
   src/estimation/ba.cpp
-  # src/estimation/factor.cpp
+  src/estimation/factor.cpp
   src/estimation/filter.cpp
   src/estimation/frontend.cpp
   # model
@@ -138,14 +138,14 @@ FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   # atl-test_atl
-  # calib-test_aprilgrid
-  # calib-test_calib_camera
-  # calib-test_calib_data
+  calib-test_aprilgrid
+  calib-test_calib_camera
+  calib-test_calib_data
   # calib-test_calib_gimbal
-  # calib-test_calib_stereo
+  calib-test_calib_stereo
   # calib-test_sandbox
   # calib-test_sandbox2
-  # core-test_core
+  core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
   estimation-test_ba
