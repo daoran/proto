@@ -574,6 +574,14 @@ glmodel_t::glmodel_t(const std::string &path,
   glmodel_load(*this, path);
 }
 
+glmodel_t::glmodel_t(const std::string &path,
+                     const char *vs,
+                     const char *fs,
+                     const bool gamma)
+    : program{vs, fs}, gamma_correction(gamma) {
+  glmodel_load(*this, path);
+}
+
 void glmodel_draw(glmodel_t &model, const glcamera_t &camera) {
   // Set projection and view
   model.program.use();
@@ -1473,7 +1481,7 @@ void gui_t::mouse_cursor_callback(GLFWwindow *window, double xpos, double ypos) 
 		} else if (gui->last_cursor_set) {
 			const float dx = gui->last_cursor_x - xpos;
 			const float dy = ypos - gui->last_cursor_y;
-			gui->camera.position += gui->camera.front * (dy * 0.1f);
+			gui->camera.position += gui->camera.up * (dy * 0.1f);
 			gui->camera.position += gui->camera.right * (dx * 0.1f);
 			glcamera_update(gui->camera);
 			gui->last_cursor_x = xpos;
@@ -1546,11 +1554,11 @@ void gui_t::render(const bool clear_gui) {
   if (clear_gui) {
     clear();
   }
-
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
   // glfwMakeContextCurrent(gui_);
+	glEnable(GL_CULL_FACE);
   glfwSwapBuffers(gui_);
 }
 
