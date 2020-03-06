@@ -32,16 +32,16 @@ The `calib_config.yaml` file is expected to have the following format:
 
 int main(int argc, char *argv[]) {
   // Parse command line arguments
-  if (argc != 2)
-    print_usage();
-  return -1;
-}
+  if (argc != 2) {
+      print_usage();
+    return -1;
+  }
 
-// Calibrate camera intrinsics
-const std::string config_file{argv[1]};
-if (proto::calib_camera_solve(config_file) != 0) {
-  FATAL("Failed to calibrate camera!");
-}
+  // Calibrate camera intrinsics
+  const std::string config_file{argv[1]};
+  if (proto::calib_camera_solve(config_file) != 0) {
+    FATAL("Failed to calibrate camera!");
+  }
 
-return 0;
+  return 0;
 }

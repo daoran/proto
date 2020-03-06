@@ -140,8 +140,6 @@ int test_gui() {
     glDisable(GL_CULL_FACE);
     gui.render();
   }
-
-  gui.close();
   return 0;
 }
 
@@ -156,7 +154,6 @@ int test_gui_imshow() {
     gui.render();
   }
 
-  gui.close();
   return 0;
 }
 
@@ -164,7 +161,7 @@ int test_gui_imshow_update() {
   gui_t gui{"Play"};
 
   // Open webcam
-  cv::VideoCapture capture(0);
+  cv::VideoCapture capture(1);
   if (!capture.isOpened()) {
     printf("Failed to open camera!\n");
     return -1;
@@ -189,13 +186,12 @@ int test_gui_imshow_update() {
     gui.clear();
     gui.render();
   }
-  gui.close();
 
   return 0;
 }
 
 void test_suite() {
-  MU_ADD_TEST(test_gui);
+  // MU_ADD_TEST(test_gui);
   // MU_ADD_TEST(test_gui_imshow);
   // MU_ADD_TEST(test_gui_imshow_update);
 }

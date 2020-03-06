@@ -150,7 +150,7 @@ public:
   float pitch = 0.0f;
 
   // Settings
-  float movement_speed = 10.0f;
+  float movement_speed = 15.0f;
   float mouse_sensitivity = 0.05f;
   float fov = 45.0f;
   float near = 0.1f;
@@ -160,7 +160,7 @@ public:
 
   glcamera_t(int &screen_width_,
              int &screen_height_,
-             const glm::vec3 position_);
+             const glm::vec3 position_ = glm::vec3(0.0f, 5.0f, 30.0f));
 };
 
 glm::mat4 glcamera_projection(const glcamera_t &camera);
@@ -358,7 +358,7 @@ public:
   glm::mat3 rot();
 };
 
-class glcf_t : globj_t {
+class glcf_t : public globj_t {
 public:
   float fov_ = glm::radians(60.0f);
   float scale_ = 1.0;
@@ -369,35 +369,36 @@ public:
   void draw(const glcamera_t &camera);
 };
 
-class glcube_t : globj_t {
+class glcube_t : public globj_t {
 public:
-  float cube_size_ = 0.5;
+  const float cube_size_ = 0.5;
   glm::vec3 color_{0.9, 0.4, 0.2};
 
   glcube_t();
+  glcube_t(const float cube_size);
   ~glcube_t();
   void draw(const glcamera_t &camera);
 };
 
-class glframe_t : globj_t {
+class glframe_t : public globj_t {
 public:
-  float line_width_ = 5.0f;
+  const float line_width_ = 5.0f;
 
   glframe_t();
   ~glframe_t();
   void draw(const glcamera_t &camera);
 };
 
-class glgrid_t : globj_t {
+class glgrid_t : public globj_t {
 public:
-  int grid_size_ = 10;
+  const int grid_size_ = 10;
 
   glgrid_t();
   ~glgrid_t();
   void draw(const glcamera_t &camera);
 };
 
-class glplane_t : globj_t {
+class glplane_t : public globj_t {
 public:
   std::string image_path_;
   float width_ = 0.5;
@@ -421,31 +422,51 @@ public:
 
 class gui_t {
 public:
+  bool keep_running_ = true;
   GLFWwindow *gui_;
   const std::string title_;
   int width_;
   int height_;
   float time_last_;
+  float dt_;
   ImVec4 clear_color_{0.45f, 0.55f, 0.60f, 1.00f};
+  glcamera_t camera{width_, height_};
+
+	// Mouse
+	bool right_click = false;
+	bool left_click = false;
+	bool last_cursor_set = false;
+	double last_cursor_x = 0.0;
+	double last_cursor_y = 0.0;
 
   gui_t(const std::string &title, const int width, const int height);
   gui_t(const std::string &title);
   ~gui_t();
 
   static void error_callback(int error, const char *description);
+  static void key_callback(GLFWwindow* window,
+                           int key,
+                           int scancode,
+                           int action,
+                           int mods);
   static void window_callback(GLFWwindow *window,
                               const int width,
                               const int height);
-  static void cursor_callback(GLFWwindow *window,
-                              const double xpos,
-                              const double ypos);
+  static void mouse_cursor_callback(GLFWwindow *window,
+																		const double xpos,
+																		const double ypos);
+  static void mouse_button_callback(GLFWwindow *window,
+																		int button,
+																		int action,
+																		int mods);
+	static void mouse_scroll_callback(GLFWwindow * window,
+																		double xoffset,
+																		double yoffset);
 
-  float dt();
   bool ok();
   void poll();
   void clear();
   void render(const bool clear_gui = false);
-  void close();
 };
 
 class gui_imshow_t {

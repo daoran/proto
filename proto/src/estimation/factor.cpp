@@ -175,14 +175,26 @@ void graph_eval(graph_t &graph) {
 
   // Determine parameter order
   std::map<double *, size_t> param_idx;
+  std::map<double *, size_t> temporal_blocks;
+  std::map<double *, size_t> landmark_blocks;
   size_t param_counter = 0;
 
   for (const auto &factor : graph.factors) {
     for (size_t i = 0; i < factor->param_ids.size(); i++) {
       const auto param_id = factor->param_ids[i];
       const auto param = graph.params[param_id];
-      param_idx[param->data()] = param_counter;
-      param_counter += param->local_size;
+
+      if (typeid(param) == typeid(pose_t)) {
+        // temporal_blocks
+
+
+      } else if (typeid(param) == typeid(landmark_t)) {
+
+
+      }
+
+      // param_idx[param->data()] = param_counter;
+      // param_counter += param->local_size;
     }
   }
 

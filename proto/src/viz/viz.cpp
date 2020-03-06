@@ -935,10 +935,13 @@ void glcf_t::draw(const glcamera_t &camera) {
   glLineWidth(original_line_width);
 }
 
-glcube_t::glcube_t() : globj_t{shaders::glcube_vs, shaders::glcube_fs} {
+glcube_t::glcube_t() : glcube_t{0.5} {}
+
+glcube_t::glcube_t(const float cube_size)
+	: globj_t{shaders::glcube_vs, shaders::glcube_fs},
+		cube_size_{cube_size} {
   // Vertices
   // clang-format off
-  const float cube_size = cube_size_;
   const float r = color_.x;
   const float g = color_.y;
   const float b = color_.z;
@@ -1337,12 +1340,6 @@ void glplane_t::draw(const glcamera_t &camera) {
  *                                GUI
  ***************************************************************************/
 
-static void glfw_cursor_cb(GLFWwindow *window, double xpos, double ypos) {
-  UNUSED(window);
-  // cursor_x = xpos;
-  // cursor_y = ypos;
-}
-
 // static void glfw_scroll_cb(GLFWwindow *window, double xoffset, double
 // yoffset) {
 //   glcamera_scroll_handler(camera, yoffset);
@@ -1374,11 +1371,14 @@ gui_t::gui_t(const std::string &title, const int width, const int height)
   glfwSwapInterval(1); // Enable vsync
 
   // Event handlers
+	glfwWaitEventsTimeout(0.1);
+  glfwSetWindowUserPointer(gui_, this);
   // -- Keyboard
-  // glfwSetKeyCallback(gui_, keyboard_callback);
+  glfwSetKeyCallback(gui_, key_callback);
   // -- Mouse
-  // glfwSetCursorPosCallback(gui_, cursor_callback);
-  // glfwSetScrollCallback(gui_, scroll_callback);
+  glfwSetCursorPosCallback(gui_, mouse_cursor_callback);
+	glfwSetMouseButtonCallback(gui_, mouse_button_callback);
+  glfwSetScrollCallback(gui_, mouse_scroll_callback);
   // -- Window
   glfwSetFramebufferSizeCallback(gui_, window_callback);
 
@@ -1402,7 +1402,8 @@ gui_t::gui_t(const std::string &title, const int width, const int height)
   ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-gui_t::gui_t(const std::string &title) : gui_t{title, 1280, 1080} {}
+gui_t::gui_t(const std::string &title)
+	: gui_t{title, 1024, 768} {}
 
 gui_t::~gui_t() {
   ImGui_ImplOpenGL3_Shutdown();
@@ -1417,6 +1418,101 @@ void gui_t::error_callback(int error, const char *description) {
   fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
+void gui_t::key_callback(GLFWwindow* window,
+												 int key,
+												 int scancode,
+												 int action,
+												 int mods) {
+	UNUSED(scancode);
+	UNUSED(mods);
+	gui_t *gui = reinterpret_cast<gui_t *>(glfwGetWindowUserPointer(window));
+	const auto press_or_hold = (action == GLFW_PRESS || action == GLFW_REPEAT);
+
+	if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
+		gui->keep_running_ = false;
+	} else if (key == GLFW_KEY_W && press_or_hold) {
+		glcamera_movement_t direction = FORWARD;
+		glcamera_keyboard_handler(gui->camera, direction, gui->dt_);
+	} else if (key == GLFW_KEY_A && press_or_hold) {
+		glcamera_movement_t direction = LEFT;
+		glcamera_keyboard_handler(gui->camera, direction, gui->dt_);
+	} else if (key == GLFW_KEY_S && press_or_hold) {
+		glcamera_movement_t direction = BACKWARD;
+		glcamera_keyboard_handler(gui->camera, direction, gui->dt_);
+	} else if (key == GLFW_KEY_D && press_or_hold) {
+		glcamera_movement_t direction = RIGHT;
+		glcamera_keyboard_handler(gui->camera, direction, gui->dt_);
+	}
+}
+
+void gui_t::mouse_cursor_callback(GLFWwindow *window, double xpos, double ypos) {
+  UNUSED(window);
+	gui_t *gui = reinterpret_cast<gui_t *>(glfwGetWindowUserPointer(window));
+
+
+	if (gui->left_click) {
+		// Rotate camera
+		if ( gui->last_cursor_set == false) {
+			gui->last_cursor_set = true;
+			gui->last_cursor_x = xpos;
+			gui->last_cursor_y = ypos;
+		} else if (gui->last_cursor_set) {
+			const double dx = xpos - gui->last_cursor_x;
+			const double dy = ypos - gui->last_cursor_y;
+			glcamera_mouse_handler(gui->camera, dx, dy);
+			gui->last_cursor_x = xpos;
+			gui->last_cursor_y = ypos;
+		}
+
+	} else if (gui->right_click) {
+		// Move camera
+		if (gui->last_cursor_set == false) {
+			gui->last_cursor_set = true;
+			gui->last_cursor_x = xpos;
+			gui->last_cursor_y = ypos;
+		} else if (gui->last_cursor_set) {
+			const float dx = gui->last_cursor_x - xpos;
+			const float dy = ypos - gui->last_cursor_y;
+			gui->camera.position += gui->camera.front * (dy * 0.1f);
+			gui->camera.position += gui->camera.right * (dx * 0.1f);
+			glcamera_update(gui->camera);
+			gui->last_cursor_x = xpos;
+			gui->last_cursor_y = ypos;
+		}
+	}
+
+	if (gui->left_click == false && gui->right_click == false) {
+		gui->last_cursor_set = false;
+		gui->last_cursor_x = 0.0;
+		gui->last_cursor_y = 0.0;
+	}
+}
+
+void gui_t::mouse_button_callback(GLFWwindow *window,
+																	int button,
+																	int action,
+																	int mods) {
+  UNUSED(window);
+  UNUSED(mods);
+	gui_t *gui = reinterpret_cast<gui_t *>(glfwGetWindowUserPointer(window));
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		gui->left_click = (action == GLFW_PRESS) ? true : false;
+	}
+	if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+		gui->right_click = (action == GLFW_PRESS) ? true : false;
+	}
+}
+
+void gui_t::mouse_scroll_callback(GLFWwindow * window,
+																  double xoffset,
+																  double yoffset) {
+	UNUSED(window);
+	UNUSED(xoffset);
+	gui_t *gui = reinterpret_cast<gui_t *>(glfwGetWindowUserPointer(window));
+	glcamera_scroll_handler(gui->camera, yoffset);
+}
+
 void gui_t::window_callback(GLFWwindow *window,
                             const int width,
                             const int height) {
@@ -1424,14 +1520,13 @@ void gui_t::window_callback(GLFWwindow *window,
   glViewport(0, 0, width, height);
 }
 
-float gui_t::dt() {
+bool gui_t::ok() {
   float time_now = glfwGetTime();
-  float dt = time_now - time_last_;
+  dt_ = time_now - time_last_;
   time_last_ = time_now;
-  return dt;
-}
 
-bool gui_t::ok() { return !glfwWindowShouldClose(gui_); }
+	return !glfwWindowShouldClose(gui_) && keep_running_;
+}
 
 void gui_t::poll() {
   glfwPollEvents();
@@ -1457,15 +1552,6 @@ void gui_t::render(const bool clear_gui) {
 
   // glfwMakeContextCurrent(gui_);
   glfwSwapBuffers(gui_);
-}
-
-void gui_t::close() {
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-
-  glfwDestroyWindow(gui_);
-  glfwTerminate();
 }
 
 gui_imshow_t::gui_imshow_t(const std::string &title) : title_{title} {}

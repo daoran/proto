@@ -13,6 +13,7 @@ FIND_PACKAGE(Ceres REQUIRED)
 FIND_PACKAGE(SuiteSparse REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
 FIND_PACKAGE(opengv REQUIRED)
+FIND_PACKAGE(octomap REQUIRED)
 FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
 INCLUDE(cmake/ImportEigen3.cmake)
@@ -73,10 +74,12 @@ SET(
   dl
   ${ASSIMP_LIBRARIES}
   ${OPENGL_gl_LIBRARY}
+  ${OCTOMAP_LIBRARIES}
 	opengv
   imgui
   imgui_impl
 )
+MESSAGE("OCTOMAP LIBRARY: ${OCTOMAP_LIBRARY}")
 
 # LIBRARY
 ADD_LIBRARY(
@@ -102,6 +105,7 @@ ADD_LIBRARY(
   src/estimation/factor.cpp
   src/estimation/filter.cpp
   src/estimation/frontend.cpp
+  src/estimation/dense.cpp
   # model
   src/model/model.cpp
   # vision
@@ -138,17 +142,18 @@ FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   # atl-test_atl
-  calib-test_aprilgrid
-  calib-test_calib_camera
-  calib-test_calib_data
+  # calib-test_aprilgrid
+  # calib-test_calib_camera
+  # calib-test_calib_data
   # calib-test_calib_gimbal
-  calib-test_calib_stereo
+  # calib-test_calib_stereo
   # calib-test_sandbox
   # calib-test_sandbox2
-  core-test_core
+  # core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
-  estimation-test_ba
+  # estimation-test_ba
+  estimation-test_dense
   # estimation-test_factor
   # estimation-test_frontend
   # model-test_model
@@ -161,3 +166,19 @@ FOREACH(TEST ${UNITTESTS})
   ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 ENDFOREACH(TEST)
+
+# # APPS
+# SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
+# SET(
+#   APPS
+#   apps-calib_camera
+#   apps-calib_stereo
+#   apps-detect_aprilgrid
+#   apps-validate_intrinsics
+#   apps-validate_stereo
+# )
+# FOREACH(APP ${APPS})
+#   STRING(REGEX REPLACE "-" "/" APP_PATH ${APP})
+#   ADD_EXECUTABLE(${APP} src/${APP_PATH}.cpp)
+#   TARGET_LINK_LIBRARIES(${APP} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
+# ENDFOREACH(APP)
