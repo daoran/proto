@@ -32,4 +32,5 @@ install opencv3
 install apriltags
 install opengl
 install opengv
+install octomap
 install yamlcpp
