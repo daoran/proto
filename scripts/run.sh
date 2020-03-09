@@ -109,7 +109,7 @@ cd proto/build/tests
 # ./estimation-test_factor
 # ./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement
-./estimation-test_dense
+# ./estimation-test_dense
 
 # -- mav
 # ./mav-test_atl
