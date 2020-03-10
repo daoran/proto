@@ -832,7 +832,7 @@ unsigned int texture_from_file(const std::string &dir,
                     GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   } else {
-    std::cout << "Texture failed to load at path: " << fp << std::endl;
+    LOG_ERROR("Texture failed to load at path: %s", fp);
   }
 
   stbi_image_free(data);

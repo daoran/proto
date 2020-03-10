@@ -813,20 +813,20 @@ int main(int argc, char *argv[]) {
   show_results(ds);
   save_results(calib_results_path, ds);
 
-  // Process test ROS bag
-  process_rosbag(test_bag_path,
-                 test_out_path,
-                 cam0_topic,
-                 body0_topic,
-                 target0_topic);
-
-  // long long ts_offset = -1e2;
-  // for (int i = 0; i < 10000; i++) {
-  //   ts_offset += 1e5;
-  //   loop_test_dataset(test_out_path, calib_target, ds, false, ts_offset);
-  // }
-  loop_test_dataset(test_out_path, calib_target, ds, true, 0.0);
-  clear_test_output();
+  // // Process test ROS bag
+  // process_rosbag(test_bag_path,
+  //                test_out_path,
+  //                cam0_topic,
+  //                body0_topic,
+  //                target0_topic);
+  //
+  // // long long ts_offset = -1e2;
+  // // for (int i = 0; i < 10000; i++) {
+  // //   ts_offset += 1e5;
+  // //   loop_test_dataset(test_out_path, calib_target, ds, false, ts_offset);
+  // // }
+  // loop_test_dataset(test_out_path, calib_target, ds, true, 0.0);
+  // clear_test_output();
 
   return 0;
 }

@@ -161,8 +161,8 @@ static matx_t J_project(const vec3_t &p_C) {
 }
 
 static mat3_t J_camera_rotation(const quat_t &q_WC,
-                         const vec3_t &r_WC,
-                         const vec3_t &p_W) {
+                                const vec3_t &r_WC,
+                                const vec3_t &p_W) {
   const mat3_t C_WC = q_WC.toRotationMatrix();
   const mat3_t C_CW = C_WC.transpose();
   return C_CW * skew(p_W - r_WC);

@@ -23,7 +23,7 @@ debug() {
 # time make debug
 time make release
 sudo make install
-# time make ros
+time make ros
 # sudo make debug_install
 # exit
 
@@ -37,7 +37,7 @@ sudo make install
 # mv /data/vicon_capture.bag /data/vicon-train.bag
 # roslaunch proto_ros calib_vicon_capture.launch
 # mv /data/vicon_capture.bag /data/vicon-test.bag
-# rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
+rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
 
 # roslaunch proto_ros calib_vicon.launch
 # roslaunch proto_ros calib_vicon_validate.launch
