@@ -23,7 +23,7 @@ debug() {
 # time make debug
 time make release
 sudo make install
-time make ros
+# time make ros
 # sudo make debug_install
 # exit
 
@@ -37,7 +37,7 @@ time make ros
 # mv /data/vicon_capture.bag /data/vicon-train.bag
 # roslaunch proto_ros calib_vicon_capture.launch
 # mv /data/vicon_capture.bag /data/vicon-test.bag
-rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
+# rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
 
 # roslaunch proto_ros calib_vicon.launch
 # roslaunch proto_ros calib_vicon_validate.launch
@@ -106,7 +106,7 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_update
 # ./estimation-test_ba --target test_ba_cost
 # ./estimation-test_ba --target test_ba_solve
-# ./estimation-test_factor
+./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement
 # ./estimation-test_dense

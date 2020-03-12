@@ -45,7 +45,7 @@ function check_radtan4_point_jacobian(k1, k2, p1, p2)
   J22 = k1*(x**2 + y**2) + k2*(x**2 + y**2)**2 + 6*p1*y + 2*p2*x + y*(2*k1*y + 4*k2*y*(x**2 + y**2)) + 1;
   dz__dp = [J11, J12; J21, J22];
 
-  % Finite diff w.r.t k1, k2, p1, p2
+  % Finite diff w.r.t input point (x, y)
   fdiff = zeros(2, 2);
   step_size = 1.0e-8;
 

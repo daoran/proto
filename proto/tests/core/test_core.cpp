@@ -609,7 +609,7 @@ int test_ticAndToc() {
 }
 
 /******************************************************************************
- * POSE
+ * FACTOR GRAPH
  *****************************************************************************/
 
 int test_pose() {
@@ -633,6 +633,13 @@ int test_pose() {
 
   return 0;
 }
+
+int test_landmark() {
+  landmark_t landmark{0, vec3_t{1.0, 2.0, 3.0}};
+  MU_CHECK(landmark.id == 0);
+  return 0;
+}
+
 
 /******************************************************************************
  * DATA
@@ -1904,7 +1911,7 @@ int test_sim_imu_measurement() {
 }
 
 /*****************************************************************************
- *                                 CONTROL
+ * CONTROL
  *****************************************************************************/
 
 int test_pid_construct() {
@@ -2130,7 +2137,7 @@ int test_carrot_ctrl_update() {
 }
 
 /*****************************************************************************
- *                              NETWORKING
+ * NETWORKING
  *****************************************************************************/
 
 int test_tcp_server() {
@@ -2310,8 +2317,9 @@ void test_suite() {
   // Time
   MU_ADD_TEST(test_ticAndToc);
 
-  // Pose
+  // Factor graph
   MU_ADD_TEST(test_pose);
+  MU_ADD_TEST(test_landmark);
 
   // Data
   MU_ADD_TEST(test_csv_rows);

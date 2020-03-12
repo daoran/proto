@@ -538,6 +538,7 @@ struct radtan4_t {
   double *data[4] = {&k1, &k2, &p1, &p2};
 
   radtan4_t();
+  radtan4_t(const double *distortion_);
   radtan4_t(const vec4_t &distortion_);
   radtan4_t(const double k1_,
             const double k2_,
@@ -546,6 +547,15 @@ struct radtan4_t {
   radtan4_t(radtan4_t &radtan);
   radtan4_t(const radtan4_t &radtan);
   ~radtan4_t();
+
+  vec2_t distort(const vec2_t &p);
+  vec2_t distort(const vec2_t &p) const;
+
+  mat2_t J_point(const vec2_t &p);
+  mat2_t J_point(const vec2_t &p) const;
+
+  mat_t<2, 4> J_param(const vec2_t &p);
+  mat_t<2, 4> J_param(const vec2_t &p) const;
 
   void operator=(const radtan4_t &src) throw();
 };
@@ -639,6 +649,7 @@ struct equi4_t {
   double k2 = 0.0;
   double k3 = 0.0;
   double k4 = 0.0;
+  double *data[4] = {&k1, &k2, &k3, &k4};
 
   equi4_t(const double k1_,
           const double k2_,
@@ -713,6 +724,7 @@ struct pinhole_t {
   double *data[4] = {&fx, &fy, &cx, &cy};
 
   pinhole_t();
+  pinhole_t(const double *intrinsics);
   pinhole_t(const vec4_t &intrinsics);
   pinhole_t(const mat3_t &K);
   pinhole_t(const double fx_,
@@ -722,6 +734,15 @@ struct pinhole_t {
   pinhole_t(pinhole_t &pinhole);
   pinhole_t(const pinhole_t &pinhole);
   ~pinhole_t();
+
+  vec2_t project(const vec2_t &p);
+  vec2_t project(const vec2_t &p) const;
+
+  mat2_t J_point();
+  mat2_t J_point() const;
+
+  mat_t<2, 4> J_param(const vec2_t &p);
+  mat_t<2, 4> J_param(const vec2_t &p) const;
 
   void operator=(const pinhole_t &src) throw();
 };
@@ -861,6 +882,66 @@ vec2_t project(const pinhole_t &pinhole, const vec3_t &p);
  * @returns Point in pixel coordinates
  */
 vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h);
+
+template <typename CM, typename DM>
+int project(const int img_w,
+            const int img_h,
+            const CM &cam_model,
+            const DM &dist_model,
+            const vec3_t &p_C,
+            vec2_t &z_hat) {
+  // Check validity of the point, simple depth test.
+  const double x = p_C(0);
+  const double y = p_C(1);
+  const double z = p_C(2);
+  if (fabs(z) < 0.05) {
+    return -1;
+  }
+
+  // Project, distort and then scale and center
+  const vec2_t p{x / z, y / z};
+  const vec2_t p_dist = dist_model.distort(p);
+  z_hat = cam_model.project(p_dist);
+
+  // Check projection
+  const bool x_ok = (z_hat(0) >= 0 && z_hat(0) <= img_w);
+  const bool y_ok = (z_hat(1) >= 0 && z_hat(1) <= img_h);
+  if (x_ok == false || y_ok == false) {
+    return -2;
+  }
+
+  return 0;
+}
+
+template <typename CM, typename DM>
+int project(const int img_w,
+            const int img_h,
+            const CM &cam_model,
+            const DM &dist_model,
+            const vec3_t &p_C,
+            vec2_t &z_hat,
+            mat_t<2, 3> &J_h) {
+  int retval = project(img_w, img_h, cam_model, dist_model, p_C, z_hat);
+  if (retval != 0) {
+    return retval;
+  }
+
+  // Projection Jacobian
+  const double x = p_C(0);
+  const double y = p_C(1);
+  const double z = p_C(2);
+  mat_t<2, 3> J_proj = zeros(2, 3);
+  J_proj(0, 0) = 1.0 / z;
+  J_proj(1, 1) = 1.0 / z;
+  J_proj(0, 2) = -x / (z * z);
+  J_proj(1, 2) = -y / (z * z);
+
+  // Measurement Jacobian
+  const vec2_t p{x / z, y / z};
+  J_h = cam_model.J_point() * dist_model.J_point(p) * J_proj;
+
+  return 0;
+}
 
 /****************************************************************************
  *                            CAMERA GEOMETRY
@@ -1002,8 +1083,7 @@ vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
 }
 
 template <typename T>
-int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
-                            const Eigen::Matrix<T, 4, 1> &D,
+int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
                             const Eigen::Matrix<T, 3, 1> &point,
                             Eigen::Matrix<T, 2, 1> &image_point) {
   // Check for singularity
@@ -1012,11 +1092,15 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
     return -1;
   }
 
-  // Extract distortion params
-  const T k1 = D(0);
-  const T k2 = D(1);
-  const T p1 = D(2);
-  const T p2 = D(3);
+  // Extract intrinsics params
+  const T fx = params(0);
+  const T fy = params(1);
+  const T cx = params(2);
+  const T cy = params(3);
+  const T k1 = params(4);
+  const T k2 = params(5);
+  const T p1 = params(6);
+  const T p2 = params(7);
 
   // Project
   const T x = point(0) / point(2);
@@ -1051,10 +1135,6 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
   const T y_ddash = y_dash + (p1 * (r2 + T(2) * y2) + T(2) * p2 * xy);
 
   // Scale and center
-  const T fx = K(0, 0);
-  const T fy = K(1, 1);
-  const T cx = K(0, 2);
-  const T cy = K(1, 2);
   image_point(0) = fx * x_ddash + cx;
   image_point(1) = fy * y_ddash + cy;
 
@@ -1070,21 +1150,43 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
 }
 
 template <typename T>
+int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
+                            const Eigen::Matrix<T, 4, 1> &D,
+                            const Eigen::Matrix<T, 3, 1> &point,
+                            Eigen::Matrix<T, 2, 1> &image_point) {
+  Eigen::Matrix<T, 8, 1> params;
+  params << K(0, 0);  // fx
+  params << K(1, 1);  // fy
+  params << K(0, 2);  // cx
+  params << K(1, 2);  // cy
+  params << D(0);     // k1
+  params << D(1);     // k2
+  params << D(2);     // p1
+  params << D(3);     // p2
+
+  return pinhole_radtan4_project(params, point, image_point);
+}
+
+template <typename T>
 static Eigen::Matrix<T, 2, 1>
-pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
-                      const Eigen::Matrix<T, 4, 1> &D,
+pinhole_equi4_project(const Eigen::Matrix<T, 8, 1> &params,
                       const Eigen::Matrix<T, 3, 1> &point) {
   // Project
   const T x = point(0) / point(2);
   const T y = point(1) / point(2);
 
-  // Radial distortion factor
-  const T k1 = D(0);
-  const T k2 = D(1);
-  const T k3 = D(2);
-  const T k4 = D(3);
-  const T r = sqrt(pow(x, 2) + pow(y, 2));
+  // Pinhole params
+  const T fx = params(0);
+  const T fy = params(1);
+  const T cx = params(2);
+  const T cy = params(3);
 
+  // Radial distortion params
+  const T k1 = params(4);
+  const T k2 = params(5);
+  const T k3 = params(6);
+  const T k4 = params(7);
+  const T r = sqrt(pow(x, 2) + pow(y, 2));
   // if (r < 1e-8) {
   //   return point;
   // }
@@ -1100,10 +1202,27 @@ pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
   const T y_dash = (th_d / r) * y;
 
   // Scale distorted point
-  Eigen::Matrix<T, 2, 1> x_distorted{x_dash, y_dash};
-  const Eigen::Matrix<T, 2, 1> pixel = (K * x_distorted.homogeneous()).head(2);
+  const Eigen::Matrix<T, 2, 1> pixel{fx * x_dash + cx, fy * y_dash + cy};
 
   return pixel;
+}
+
+template <typename T>
+static Eigen::Matrix<T, 2, 1>
+pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
+                      const Eigen::Matrix<T, 4, 1> &D,
+                      const Eigen::Matrix<T, 3, 1> &point) {
+  Eigen::Matrix<T, 8, 1> params;
+  params << K(0, 0);  // fx
+  params << K(1, 1);  // fy
+  params << K(0, 2);  // cx
+  params << K(1, 2);  // cy
+  params << D(0);     // k1
+  params << D(1);     // k2
+  params << D(2);     // p1
+  params << D(3);     // p2
+
+  return pinhole_equi4_project(params, point, point);
 }
 
 } //  namespace proto

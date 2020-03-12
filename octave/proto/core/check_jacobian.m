@@ -8,7 +8,7 @@ function retval = check_jacobian(jac_name, fdiff, jac, threshold, print=false)
   for i = 1:rows(d)
     for j = 1:columns(d)
       delta = d(i, j);
-      if (delta > threshold)
+      if (abs(delta) > threshold)
         failed = true;
       endif
     endfor

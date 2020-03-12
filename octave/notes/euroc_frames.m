@@ -22,6 +22,13 @@ T_WS = eye(4);
 T_WS(1:3, 1:3) = R_WS;
 T_WS(1:3, 4) = [2; 0; 0];
 
+% T_WS = [
+%   0.00000   0.00000   1.00000   2.00000;
+%   0.00000   -1.00000   0.00000   0.00000;
+%   1.00000   0.00000   0.00000   0.00000;
+%   0.00000   0.00000   0.00000   1.00000;
+% ];
+
 % Fiducial pose T_WF
 rpy_WF = [deg2rad(0.0); deg2rad(0.0); deg2rad(0.0)];
 R_WF = euler321(rpy_WF);
@@ -76,8 +83,10 @@ hold on;
 grid on;
 view(3);
 draw_frame(T_WS, 0.1);
-draw_camera(T_WS * T_SC0, scale=0.05, 'r');
-draw_camera(T_WS * T_SC1, scale=0.05, 'g');
+% draw_camera(T_WS * T_SC0, scale=0.05, 'r');
+draw_frame(T_WS * T_SC0, 0.1);
+% draw_camera(T_WS * T_SC1, scale=0.05, 'g');
+draw_frame(T_WS * T_SC1, 0.1);
 xlabel("x");
 ylabel("y");
 zlabel("z");

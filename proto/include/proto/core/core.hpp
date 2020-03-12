@@ -95,7 +95,7 @@
 namespace proto {
 
 /******************************************************************************
- *                              FILESYSTEM
+ *                                FILESYSTEM
  *****************************************************************************/
 
 /**
@@ -236,7 +236,7 @@ std::vector<std::string> path_split(const std::string path);
 std::string paths_combine(const std::string path1, const std::string path2);
 
 /******************************************************************************
- *                                 ALGEBRA
+ *                                  ALGEBRA
  *****************************************************************************/
 
 /**
@@ -296,7 +296,7 @@ std::vector<T> linspace(const T start, const T end, const int num) {
 }
 
 /******************************************************************************
- *                            LINEAR ALGEBRA
+ *                              LINEAR ALGEBRA
  *****************************************************************************/
 
 #define col_major_t Eigen::ColMajor
@@ -670,7 +670,7 @@ void load_matrix(const std::vector<double> &x,
 void load_matrix(const matx_t A, std::vector<double> &x);
 
 /******************************************************************************
- *                                Geometry
+ *                                 Geometry
  *****************************************************************************/
 
 /**
@@ -874,7 +874,7 @@ void latlon_diff(double lat_ref,
 double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
 
 /******************************************************************************
- *                              Statistics
+ *                                STATISTICS
  *****************************************************************************/
 
 /**
@@ -930,8 +930,39 @@ vec3_t mvn(std::default_random_engine &engine,
 double gauss_normal();
 
 /*****************************************************************************
- *                              Transform
+ *                               TRANSFORM
  *****************************************************************************/
+
+/**
+ * Form a 4x4 homogeneous transformation matrix from a
+ * rotation matrix `C` and translation vector `r`.
+ */
+template <typename T>
+Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
+                          const Eigen::Matrix<T, 3, 1> &r) {
+  Eigen::Matrix<T, 4, 4> transform = Eigen::Matrix<T, 4, 4>::Identity();
+  transform.block(0, 0, 3, 3) = C;
+  transform.block(0, 3, 3, 1) = r;
+  return transform;
+}
+
+/**
+ * Form a 4x4 homogeneous transformation matrix from a pointer to double array
+ * containing (quaternion + translation) 7 elements: (qw, qx, qy, qz, x, y, z)
+ */
+mat4_t tf(const double *params);
+
+/**
+ * Form a 4x4 homogeneous transformation matrix from a
+ * rotation matrix `C` and translation vector `r`.
+ */
+mat4_t tf(const mat3_t &C, const vec3_t &r);
+
+/**
+ * Form a 4x4 homogeneous transformation matrix from a
+ * Hamiltonian quaternion `q` and translation vector `r`.
+ */
+mat4_t tf(const quat_t &q, const vec3_t &r);
 
 /**
  * Extract rotation from transform
@@ -948,30 +979,6 @@ inline quat_t tf_quat(const mat4_t &tf) { return quat_t{tf.block<3, 3>(0, 0)}; }
  */
 inline vec3_t tf_trans(const mat4_t &tf) { return tf.block<3, 1>(0, 3); }
 
-/**
- * Form a 4x4 homogeneous transformation matrix from a
- * rotation matrix `C` and translation vector `r`.
- */
-template <typename T>
-Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
-                          const Eigen::Matrix<T, 3, 1> &r) {
-  Eigen::Matrix<T, 4, 4> transform = Eigen::Matrix<T, 4, 4>::Identity();
-  transform.block(0, 0, 3, 3) = C;
-  transform.block(0, 3, 3, 1) = r;
-  return transform;
-}
-
-/**
- * Form a 4x4 homogeneous transformation matrix from a
- * rotation matrix `C` and translation vector `r`.
- */
-mat4_t tf(const mat3_t &C, const vec3_t &r);
-
-/**
- * Form a 4x4 homogeneous transformation matrix from a
- * Hamiltonian quaternion `q` and translation vector `r`.
- */
-mat4_t tf(const quat_t &q, const vec3_t &r);
 
 /**
  * Perturb the rotation element in the tranform `T` by `step_size` at index
@@ -1083,7 +1090,7 @@ void imu_init_attitude(const vec3s_t w_m,
                        const size_t buffer_size = 50);
 
 /*****************************************************************************
- *                                 Time
+ *                                 TIME
  *****************************************************************************/
 
 typedef uint64_t timestamp_t;
@@ -1125,8 +1132,13 @@ float mtoc(struct timespec *tic);
 double time_now();
 
 /*****************************************************************************
- *                             FACTOR GRAPH
+ *                              FACTOR GRAPH
  *****************************************************************************/
+
+#define POSE 0
+#define INTRINSIC 1
+#define EXTRINSIC 2
+#define LANDMARK 3
 
 struct param_t {
   size_t id = 0;
@@ -1176,13 +1188,24 @@ struct pose_t : param_t {
 struct landmark_t :param_t {
   double param[3] = {0.0, 0.0, 0.0};
 
+  landmark_t(const vec3_t &p_W_);
   landmark_t(const size_t id_, const vec3_t &p_W_);
 
   vec3_t vec();
   double *data();
-  size_t dimensions();
   void plus(const vecx_t &dx);
 };
+
+// struct camera_params_t :param_t {
+//   double param[4] = {0.0, 0.0, 0.0, 0.0};
+//
+//   camera_params_t(const vec3_t &p_W_);
+//   camera_params_t(const size_t id_, const vec3_t &p_W_);
+//
+//   vec3_t vec();
+//   double *data();
+//   void plus(const vecx_t &dx);
+// };
 
 typedef std::vector<pose_t> poses_t;
 typedef std::vector<landmark_t *> landmarks_t;
@@ -1498,12 +1521,12 @@ int check_jacobian(const std::string &jac_name,
                    const bool print = false);
 
 /******************************************************************************
- *                               MANIFOLD
+ *                                 MANIFOLD
  *****************************************************************************/
 
 
 /******************************************************************************
- *                                CONFIG
+ *                                  CONFIG
  *****************************************************************************/
 
 struct config_t {
@@ -1922,7 +1945,7 @@ void sim_imu_measurement(sim_imu_t &imu,
                          vec3_t &w_WS_S);
 
 /*****************************************************************************
- *                               CONTROL
+ *                                CONTROL
  *****************************************************************************/
 
 /**
@@ -2029,7 +2052,7 @@ int carrot_ctrl_carrot_point(const carrot_ctrl_t &cc,
 int carrot_ctrl_update(carrot_ctrl_t &cc, const vec3_t &pos, vec3_t &carrot_pt);
 
 /******************************************************************************
- *                              Measurements
+ *                               MEASUREMENTS
  *****************************************************************************/
 
 // struct pose_t {

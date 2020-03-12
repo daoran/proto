@@ -916,6 +916,12 @@ double gauss_normal() {
  *                               TRANSFORM
  *****************************************************************************/
 
+mat4_t tf(const double *params) {
+  const quat_t q{params[0], params[1], params[2], params[3]};
+  const vec3_t r{params[4], params[5], params[6]};
+  return tf(q, r);
+}
+
 mat4_t tf(const mat3_t &C, const vec3_t &r) {
   mat4_t T = I(4);
   T.block(0, 0, 3, 3) = C;
@@ -1256,15 +1262,19 @@ double time_now() {
 }
 
 /*****************************************************************************
- *                                  POSE
+ *                               FACTOR GRAPH
  *****************************************************************************/
 
 pose_t::pose_t() {}
 
 pose_t::pose_t(const double *param_) {
-  for (int i = 0; i < 7; i++) {
-    param[i] = param_[i];
-  }
+  param[0] = param_[0];
+  param[1] = param_[1];
+  param[2] = param_[2];
+  param[3] = param_[3];
+  param[4] = param_[4];
+  param[5] = param_[5];
+  param[6] = param_[6];
 }
 
 pose_t::pose_t(const mat4_t &tf_) {
@@ -1408,6 +1418,9 @@ poses_t load_poses(const std::string &csv_path) {
   return poses;
 }
 
+landmark_t::landmark_t(const vec3_t &p_W_)
+  : param{p_W_(0), p_W_(1), p_W_(2)} {}
+
 landmark_t::landmark_t(const size_t id_, const vec3_t &p_W_)
   : param_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
 
@@ -1420,6 +1433,38 @@ void landmark_t::plus(const vecx_t &dx) {
   param[1] = param[1] + dx[1];
   param[2] = param[2] + dx[2];
 }
+
+// camera_params_t::camera_params_t(double *param_, size_t nb_params_)
+//   : param{param_}, nb_params{nb_params_} {}
+//
+// camera_params_t::camera_params_t(const size_t id_,
+//                                  double *param_,
+//                                  size_t nb_params_)
+//   : param_t{id_, nb_params_}, param{param_} {}
+//
+// double *camera_params_t::data() { return param; };
+//
+// void camera_params_t::plus(const vecx_t &dx) {
+//   for (size_t i = 0; i < nb_params; i++) {
+//     param[i] = param[i] + dx[i];
+//   }
+// }
+//
+// distortion_params_t::distortion_params_t(double *param_, size_t nb_params_)
+//   : param{param_}, nb_params{nb_params_} {}
+//
+// distortion_params_t::distortion_params_t(const size_t id_,
+//                                          double *param_,
+//                                          size_t nb_params_)
+//   : param_t{id_, nb_params_}, param{param_} {}
+//
+// double *distortion_params_t::data() { return param; };
+//
+// void distortion_params_t::plus(const vecx_t &dx) {
+//   for (size_t i = 0; i < nb_params; i++) {
+//     param[i] = param[i] + dx[i];
+//   }
+// }
 
 static keypoints_t parse_keypoints_line(const char *line) {
   char entry[100] = {0};
@@ -2122,11 +2167,24 @@ int check_jacobian(const std::string &jac_name,
                    const matx_t &jac,
                    const double threshold,
                    const bool print) {
-  int retval = 0;
-  const matx_t delta = (fdiff - jac);
-  bool failed = false;
+  // Pre-check
+  if (jac.size() == 0) {
+    LOG_ERROR("Provided analytical jacobian is empty!");
+    return false;
+  } else if (fdiff.size() == 0) {
+    LOG_ERROR("Provided numerical jacobian is empty!");
+    return false;
+  } else if (fdiff.rows() != jac.rows()) {
+    LOG_ERROR("rows(fdiff) != rows(jac)");
+    return false;
+  } else if (fdiff.cols() != jac.cols()) {
+    LOG_ERROR("cols(fdiff) != cols(jac)");
+    return false;
+  }
 
   // Check if any of the values are beyond the threshold
+  const matx_t delta = (fdiff - jac);
+  bool failed = false;
   for (long i = 0; i < delta.rows(); i++) {
     for (long j = 0; j < delta.cols(); j++) {
       if (fabs(delta(i, j)) >= threshold) {
@@ -2135,14 +2193,19 @@ int check_jacobian(const std::string &jac_name,
     }
   }
 
+  print_matrix("num diff jac", fdiff);
+  print_matrix("analytical jac", jac);
+  print_matrix("difference matrix", delta);
+
   // Print result
+  int retval = 0;
   if (failed) {
     retval = -1;
     if (print) {
       LOG_ERROR("Check [%s] failed!\n", jac_name.c_str());
-      print_matrix("num diff jac", fdiff);
-      print_matrix("analytical jac", jac);
-      print_matrix("difference matrix", delta);
+      // print_matrix("num diff jac", fdiff);
+      // print_matrix("analytical jac", jac);
+      // print_matrix("difference matrix", delta);
       exit(-1);
     }
 
@@ -2844,7 +2907,7 @@ void sim_imu_measurement(sim_imu_t &imu,
 }
 
 /*****************************************************************************
- *                              CONTROL
+ *                                 CONTROL
  *****************************************************************************/
 
 pid_t::pid_t() {}
@@ -2976,7 +3039,7 @@ int carrot_ctrl_update(carrot_ctrl_t &cc,
 }
 
 /*****************************************************************************
- *                             NETWORKING
+ *                                NETWORKING
  *****************************************************************************/
 
 int ip_port_info(const int sockfd, char *ip, int *port) {

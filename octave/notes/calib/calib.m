@@ -81,12 +81,12 @@ de__dr_WF = de__dzhat * dzhat__dp_C0 * dp_C0__dp_W * dp_W__dr_WF;
 
 % Check jacobians
 retval = 0;
-retval += check_de__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, de__dtheta_SC0, step_size, threshold);
+% retval += check_de__dtheta_SC0(T_WS, T_SC0, T_WF, p_F, de__dtheta_SC0, step_size, threshold);
 retval += check_de__dtheta_WS(T_WS, T_SC0, T_WF, p_F, de__dtheta_WS, step_size, threshold);
-retval += check_de__dtheta_WF(T_WS, T_SC0, T_WF, p_F, de__dtheta_WF, step_size, threshold);
-retval += check_de__dr_SC0(T_WS, T_SC0, T_WF, p_F, de__dr_SC0, step_size, threshold);
-retval += check_de__dr_WS(T_WS, T_SC0, T_WF, p_F, de__dr_WS, step_size, threshold);
-retval += check_de__dr_WF(T_WS, T_SC0, T_WF, p_F, de__dr_WF, step_size, threshold);
+% retval += check_de__dtheta_WF(T_WS, T_SC0, T_WF, p_F, de__dtheta_WF, step_size, threshold);
+% retval += check_de__dr_SC0(T_WS, T_SC0, T_WF, p_F, de__dr_SC0, step_size, threshold);
+% retval += check_de__dr_WS(T_WS, T_SC0, T_WF, p_F, de__dr_WS, step_size, threshold);
+% retval += check_de__dr_WF(T_WS, T_SC0, T_WF, p_F, de__dr_WF, step_size, threshold);
 
 % Summary
 if retval != 0

@@ -154,8 +154,8 @@ SET(
   # dataset-test_euroc
   # dataset-test_kitti
   # estimation-test_ba
-  estimation-test_dense
-  # estimation-test_factor
+  # estimation-test_dense
+  estimation-test_factor
   # estimation-test_frontend
   # model-test_model
   # vision-test_vision

@@ -705,23 +705,108 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
 
 radtan4_t::radtan4_t() {}
 
+radtan4_t::radtan4_t(const double *distortion_)
+  : k1{distortion_[0]}, k2{distortion_[1]},
+    p1{distortion_[2]}, p2{distortion_[3]} {}
+
 radtan4_t::radtan4_t(const vec4_t &distortion_)
-    : k1{distortion_(0)}, k2{distortion_(1)}, p1{distortion_(2)},
-      p2{distortion_(3)} {}
+  : k1{distortion_(0)}, k2{distortion_(1)},
+    p1{distortion_(2)}, p2{distortion_(3)} {}
 
 radtan4_t::radtan4_t(const double k1_,
                      const double k2_,
                      const double p1_,
                      const double p2_)
-    : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
+  : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
 
 radtan4_t::radtan4_t(radtan4_t &radtan4)
-    : k1{radtan4.k1}, k2{radtan4.k2}, p1{radtan4.p1}, p2{radtan4.p2} {}
+  : k1{radtan4.k1}, k2{radtan4.k2}, p1{radtan4.p1}, p2{radtan4.p2} {}
 
 radtan4_t::radtan4_t(const radtan4_t &radtan4)
-    : k1{radtan4.k1}, k2{radtan4.k2}, p1{radtan4.p1}, p2{radtan4.p2} {}
+  : k1{radtan4.k1}, k2{radtan4.k2}, p1{radtan4.p1}, p2{radtan4.p2} {}
 
 radtan4_t::~radtan4_t() {}
+
+vec2_t radtan4_t::distort(const vec2_t &p) {
+  return static_cast<const radtan4_t &>(*this).distort(p);
+}
+
+vec2_t radtan4_t::distort(const vec2_t &p) const {
+  const double x = p(0);
+  const double y = p(1);
+
+  // Apply radial distortion
+  const double x2 = x * x;
+  const double y2 = y * y;
+  const double r2 = x2 + y2;
+  const double r4 = r2 * r2;
+  const double radial_factor = 1 + (k1 * r2) + (k2 * r4);
+  const double x_dash = x * radial_factor;
+  const double y_dash = y * radial_factor;
+
+  // Apply tangential distortion
+  const double xy = x * y;
+  const double x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const double y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+
+  return vec2_t{x_ddash, y_ddash};
+}
+
+mat2_t radtan4_t::J_point(const vec2_t &p) {
+  return static_cast<const radtan4_t &>(*this).J_point(p);
+}
+
+mat2_t radtan4_t::J_point(const vec2_t &p) const {
+  const double x = p(0);
+  const double y = p(1);
+
+  const double x2 = x * x;
+  const double y2 = y * y;
+  const double r2 = x2 + y2;
+  const double r4 = r2 * r2;
+
+  // Let p = [x; y] normalized point
+  // Let p' be the distorted p
+  // The jacobian of p' w.r.t. p (or dp'/dp) is:
+  // clang-format off
+  mat2_t J_point;
+  J_point(0, 0) = 1 + k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (2 * k1 * x + 4 * k2 * x * r2);
+  J_point(1, 0) = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
+  J_point(0, 1) = J_point(1, 0);
+  J_point(1, 1) = 1 + k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2);
+  // clang-format on
+  // Above is generated using sympy
+
+  return J_point;
+}
+
+mat_t<2, 4> radtan4_t::J_param(const vec2_t &p) {
+  return static_cast<const radtan4_t &>(*this).J_param(p);
+}
+
+mat_t<2, 4> radtan4_t::J_param(const vec2_t &p) const {
+  const double x = p(0);
+  const double y = p(1);
+
+  const double xy = x * y;
+  const double x2 = x * x;
+  const double y2 = y * y;
+  const double r2 = x2 + y2;
+  const double r4 = r2 * r2;
+
+  mat_t<2, 4> J_params = zeros(2, 4);
+  J_params(0, 0) = x * r2;
+  J_params(0, 1) = x * r4;
+  J_params(0, 2) = 2 * xy;
+  J_params(0, 3) = 3 * x2 + y2;
+
+  J_params(1, 0) = y * r2;
+  J_params(1, 1) = y * r4;
+  J_params(1, 2) = x2 + 3 * y2;
+  J_params(1, 3) = 2 * xy;
+
+  return J_params;
+}
 
 void radtan4_t::operator=(const radtan4_t &src) throw() {
   k1 = src.k1;
@@ -1035,6 +1120,10 @@ vec2_t undistort(const equi4_t &equi, const vec2_t &p) {
 
 pinhole_t::pinhole_t() {}
 
+pinhole_t::pinhole_t(const double *intrinsics_)
+    : fx{intrinsics_[0]}, fy{intrinsics_[1]}, cx{intrinsics_[2]},
+      cy{intrinsics_[3]} {}
+
 pinhole_t::pinhole_t(const vec4_t &intrinsics_)
     : fx{intrinsics_(0)}, fy{intrinsics_(1)}, cx{intrinsics_(2)},
       cy{intrinsics_(3)} {}
@@ -1055,6 +1144,42 @@ pinhole_t::pinhole_t(const pinhole_t &pinhole)
     : fx{pinhole.fx}, fy{pinhole.fy}, cx{pinhole.cx}, cy{pinhole.cy} {}
 
 pinhole_t::~pinhole_t() {}
+
+vec2_t pinhole_t::project(const vec2_t &p) {
+  return static_cast<const pinhole_t &>(*this).project(p);
+}
+
+vec2_t pinhole_t::project(const vec2_t &p) const {
+  return vec2_t{p(0) * fx + cx, p(1) * fy + cy};
+}
+
+mat2_t pinhole_t::J_point() {
+  return static_cast<const pinhole_t &>(*this).J_point();
+}
+
+mat2_t pinhole_t::J_point() const {
+  mat2_t J_K = zeros(2, 2);
+  J_K(0, 0) = fx;
+  J_K(1, 1) = fy;
+  return J_K;
+}
+
+mat_t<2, 4> pinhole_t::J_param(const vec2_t &p) {
+  return static_cast<const pinhole_t &>(*this).J_param(p);
+}
+
+mat_t<2, 4> pinhole_t::J_param(const vec2_t &p) const {
+  const double x = p(0);
+  const double y = p(1);
+
+  mat_t<2, 4> J_param = zeros(2, 4);
+  J_param(0, 0) = x;
+  J_param(1, 1) = y;
+  J_param(0, 2) = 1;
+  J_param(1, 3) = 1;
+
+  return J_param;
+}
 
 void pinhole_t::operator=(const pinhole_t &src) throw() {
   fx = src.fx;
@@ -1158,9 +1283,7 @@ vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h) {
   J_P(1, 3) = -y / (z * z);
 
   // Intrinsics Jacobian
-  mat2_t J_K = zeros(2, 2);
-  J_K(0, 0) = model.fx;
-  J_K(1, 1) = model.fy;
+  mat2_t J_K = model.J_point();
 
   // Measurement Jacobian
   J_h = J_K * J_P;
