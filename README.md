@@ -42,4 +42,4 @@ at the root of the repo.
 
 ## License
 
-The source code is released under GPLv3 license.
+The source code is released under MIT license.
