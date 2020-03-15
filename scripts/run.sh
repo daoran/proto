@@ -70,10 +70,8 @@ cd proto/build/tests
 # ./calib-test_aprilgrid --target test_aprilgrid_detect
 # ./calib-test_aprilgrid --target test_aprilgrid_detect2
 # ./calib-test_calib_camera
-# ./calib-test_calib_camera_nbv
 # ./calib-test_calib_data
 # ./calib-test_calib_gimbal
-# ./calib-test_calib_stereo
 # ./calib-test_sandbox
 # ./calib-test_sandbox2
 # ./calib-test_sandbox3

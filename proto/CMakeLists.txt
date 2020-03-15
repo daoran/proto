@@ -146,7 +146,6 @@ SET(
   # calib-test_calib_camera
   # calib-test_calib_data
   # calib-test_calib_gimbal
-  # calib-test_calib_stereo
   # calib-test_sandbox
   # calib-test_sandbox2
   # core-test_core
