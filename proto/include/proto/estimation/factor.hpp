@@ -21,12 +21,7 @@ struct factor_t {
 
   factor_t(const size_t id_, const timestamp_t &ts_)
     : id{id_}, ts{ts_} {}
-
   virtual ~factor_t() {}
-
-  void addParam(size_t &id) {
-    param_ids.push_back(id);
-  }
 
   virtual bool eval(double const *const *parameters) = 0;
 };
@@ -65,10 +60,9 @@ struct cam_factor_t : factor_t {
     jacobians.push_back(mat_t<2, 4>());  // Camera model
     jacobians.push_back(mat_t<2, 4>());  // Distortion model
   }
-  ~cam_factor_t() {}
 
   bool eval(double const *const *params) {
-    assert(param_ids.size() == 3);
+    assert(param_ids.size() == 5);
 
     // Map out parameters
     const mat4_t T_WS = tf(params[0]);
@@ -130,7 +124,11 @@ struct cam_factor_t : factor_t {
 
 struct imu_error_t : factor_t {
   imu_error_t() {}
-  virtual ~imu_error_t() {}
+
+  bool eval(double const *const *params) {
+    UNUSED(params);
+    return true;
+  }
 };
 
 /*****************************************************************************
@@ -174,11 +172,22 @@ size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
   return id;
 }
 
+size_t graph_add_cam_params(graph_t &graph,
+                            const int cam_index,
+                            const vecx_t &params) {
+  const auto id = graph.params.size();
+
+  return id;
+}
+
 template <typename CM, typename DM>
 size_t graph_add_cam_factor(graph_t &graph,
                             const timestamp_t &ts,
                             const int cam_idx,
-                            const camera_geometry_t<CM, DM> &cam_geom,
+                            const int img_w,
+                            const int img_h,
+                            const CM &cm,
+                            const DM &dm,
                             const mat4_t &T_WS,
                             const mat4_t &T_SC,
                             const vec3_t &p_W,
@@ -191,7 +200,11 @@ size_t graph_add_cam_factor(graph_t &graph,
 
   // Create cam_factor_t
   const auto f_id = graph.factors.size();
-  auto factor = new cam_factor_t<CM, DM>{ts, f_id, cam_idx, cam_geom, z, info};
+  auto factor = new cam_factor_t<CM, DM>{
+    ts, f_id,
+    cam_idx, img_w, img_h, cm, dm,
+    z, info
+  };
   factor->param_ids.push_back(pose_id);
   factor->param_ids.push_back(sc_id);
   factor->param_ids.push_back(landmark_id);

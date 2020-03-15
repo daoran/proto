@@ -1090,7 +1090,7 @@ void imu_init_attitude(const vec3s_t w_m,
                        const size_t buffer_size = 50);
 
 /*****************************************************************************
- *                                 TIME
+ *                                    TIME
  *****************************************************************************/
 
 typedef uint64_t timestamp_t;
@@ -1520,10 +1520,6 @@ int check_jacobian(const std::string &jac_name,
                    const double threshold,
                    const bool print = false);
 
-/******************************************************************************
- *                                 MANIFOLD
- *****************************************************************************/
-
 
 /******************************************************************************
  *                                  CONFIG
@@ -1808,8 +1804,11 @@ std::deque<timestamp_t> lerp_timestamps(const std::deque<timestamp_t> &t0,
 
 /**
  * Given the interpolation timestamps `lerp_ts`, target timestamps
- * `target_ts` and target data `target_data`. This function will interpolate
- * the `target_data` at the interpolation points.
+ * `target_ts` and target data `target_data`. This function will:
+ *
+ * 1: Interpolate the `target_data` at the interpolation points defined by
+ *    `target_ts`.
+ * 2: Disgard data that are not in the target timestamp
  */
 void lerp_data(const std::deque<timestamp_t> &lerp_ts,
                std::deque<timestamp_t> &target_ts,
@@ -2055,24 +2054,6 @@ int carrot_ctrl_update(carrot_ctrl_t &cc, const vec3_t &pos, vec3_t &carrot_pt);
  *                               MEASUREMENTS
  *****************************************************************************/
 
-// struct pose_t {
-//   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-//   timestamp_t ts = 0;
-//   quat_t q{1.0, 0.0, 0.0, 0.0};
-//   vec3_t r{0.0, 0.0, 0.0};
-//
-//   pose_t(const mat4_t &T) : q{tf_quat(T)}, r{tf_trans(T)} {}
-//   pose_t(const mat3_t &C, const vec3_t &r) : q{quat_t{C}}, r{r} {}
-//   pose_t(const quat_t &q, const vec3_t &r) :q{q}, r{r} {}
-//   pose_t(const timestamp_t &ts, const mat4_t &T)
-//     : ts{ts}, q{tf_quat(T)}, r{tf_trans(T)} {}
-//   pose_t(const timestamp_t &ts, const mat3_t &C, const vec3_t &r)
-//     : ts{ts}, q{quat_t{C}}, r{r} {}
-//   pose_t(const timestamp_t &ts, const quat_t &q, const vec3_t &r)
-//     : ts{ts}, q{q}, r{r} {}
-//   ~pose_t() {}
-// };
-
 struct meas_t {
   timestamp_t ts = 0;
 
@@ -2081,32 +2062,32 @@ struct meas_t {
   virtual ~meas_t() {}
 };
 
-struct imu_data_t : meas_t {
-  vec3_t gyro;
-  vec3_t accel;
+struct imu_data_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  imu_data_t() {}
-  imu_data_t(const vec3_t &gyro_, const vec3_t &accel_)
-      : gyro{gyro_}, accel{accel_} {}
-  virtual ~imu_data_t() {}
+  timestamps_t ts;
+  vec3s_t gyro;
+  vec3s_t accel;
 };
 
 struct image_t : meas_t {
-  timestamp_t ts = 0;
   int width = 0;
   int height = 0;
   float *data = nullptr;
 
   image_t() {}
+
   image_t(const timestamp_t ts_, const int width_, const int height_)
-      : ts{ts_}, width{width_}, height{height_} {
+      : meas_t{ts_}, width{width_}, height{height_} {
     data = new float[width * height];
   }
+
   image_t(const timestamp_t ts_,
           const int width_,
           const int height_,
           float *data_)
-      : ts{ts_}, width{width_}, height{height_}, data{data_} {}
+      : meas_t{ts_}, width{width_}, height{height_}, data{data_} {}
+
   virtual ~image_t() {
     if (data) {
       free(data);

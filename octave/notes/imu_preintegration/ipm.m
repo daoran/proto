@@ -37,8 +37,8 @@ function x_imu = imu_update(x_imu, a_B, w_B, dt)
   x_imu.p_WS += (v_WS * dt) + (0.5 * C_WS * (a_B - b_a - n_a) * dt^2) + (0.5 * g * dt^2);
 endfunction
 
-function x_imu = imu_preintegrate(x_imu, a_B, w_B, dt)
-  assert(length(a_B) == length(w_B));
+function x_imu = imu_preintegrate(x_imu, imu_ts, imu_accel, imu_gyro)
+  assert(length(imu_accel) == length(imu_gyro));
 
   g = x_imu.g;
   b_a = x_imu.b_a;
@@ -46,19 +46,22 @@ function x_imu = imu_preintegrate(x_imu, a_B, w_B, dt)
   n_a = zeros(3, 1);
   n_g = zeros(3, 1);
 
-  dC_ik = x_imu.C_WS;
-  dv_ik = x_imu.v_WS;
-  dp_ik = x_imu.p_WS;
+  dC = eye(3);
+  dv = zeros(3, 1);
+  da = zeros(3, 1);
 
-  for k = 1:length(a_B)
-    dC_ik *= so3_exp((w_B(:, k) - b_g) * dt);
-    dv_ik += dC_ik * (a_B(:, k) - b_a) * dt;
-    dp_ik += 1.5 * dC_ik * (a_B(:, k) - b_a) * dt**2;
+  for k = 1:(length(imu_accel)-1)
+    dt = imu_ts(k + 1) - imu_ts(k);
+    dt_sq = dt * dt;
+
+    dC *= so3_exp((imu_gyro(:, k) - b_g - n_g) * dt);
+    dv += dC * (imu_accel(:, k) - b_a - n_a) * dt;
+    da += (3.0 / 2.0) * dC * (imu_accel(:, k) - b_a - n_a) * dt_sq;
   endfor
 
-  x_imu.C_WS = dC_ik;
-  x_imu.v_WS = dv_ik;
-  x_imu.p_WS = dp_ik;
+  x_imu.C_WS *= dC;
+  x_imu.v_WS += dv;
+  x_imu.p_WS += da;
 endfunction
 
 % Load KITTI Raw data sequence
@@ -101,9 +104,10 @@ for k = 10:10:length(data.oxts.time)
   dt = t - t_prev;
 
   % Propagate IMU state
-  a_B = data.oxts.a_B(:, km1:k);
-  w_B = data.oxts.w_B(:, km1:k);
-  x_imu = imu_preintegrate(x_imu, a_B, w_B, dt);
+  imu_ts = data.oxts.time(km1:k);
+  imu_a = data.oxts.a_B(:, km1:k);
+  imu_w = data.oxts.w_B(:, km1:k);
+  x_imu = imu_preintegrate(x_imu, imu_ts, imu_a, imu_w);
   km1 = k;
 
   % Keep track of t_prev

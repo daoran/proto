@@ -1,8 +1,8 @@
 set -e
 
-export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 
-# make
+make
 
 # sudo bash ./scripts/install_mexopencv.bash
 # ./scripts/run_tests.bash && exit 0
@@ -11,9 +11,9 @@ export LD_LIBRARY_PATH=/usr/local/src/mexopencv/lib
 # octave notes/calib/calib.m && exit 0
 # octave notes/camera/equi4_point_jacobian.m && exit 0
 # octave notes/camera/intrinsics_jacobian.m && exit 0
-octave notes/camera/radtan4_params_jacobian.m && exit 0
+# octave notes/camera/radtan4_params_jacobian.m && exit 0
 # octave notes/camera/radtan4_point_jacobian.m && exit 0
-# octave notes/imu_preintegration/ipm.m && exit 0
+octave notes/imu_preintegration/ipm.m && exit 0
 # octave notes/imu_preintegration/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0
@@ -24,6 +24,7 @@ octave notes/camera/radtan4_params_jacobian.m && exit 0
 # octave notes/euler321_deriv.m && exit 0
 # octave notes/euroc_frames.m && exit 0
 # octave notes/frames_sandbox.m && exit 0
+# octave notes/felix.m && exit 0
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
 # octave notes/illum_invar.m && exit 0

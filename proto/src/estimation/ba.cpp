@@ -138,7 +138,7 @@ ba_data_t::~ba_data_t() {
 
 static mat2_t J_intrinsics(const mat3_t &K) {
   // J = [K[0, 0], 0.0,
-  //       0.0, K[1, 1]];
+  //      0.0, K[1, 1]];
   mat2_t J = zeros(2, 2);
   J(0, 0) = K(0, 0);
   J(1, 1) = K(1, 1);
@@ -151,7 +151,7 @@ static matx_t J_project(const vec3_t &p_C) {
   const double z = p_C(2);
 
   // J = [1 / z, 0, -x / z^2,
-  //       0, 1 / z, -y / z^2];
+  //      0, 1 / z, -y / z^2];
   matx_t J = zeros(2, 3);
   J(0, 0) = 1.0 / z;
   J(1, 1) = 1.0 / z;

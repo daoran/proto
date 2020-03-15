@@ -46,43 +46,13 @@ static int check_J_h(const int img_w,
     p_C_diff(i) += step_size;
     project(img_w, img_h, cm, dm, p_C_diff, z_hat);
     auto e_prime = z - z_hat;
+
+    // Forward finite difference
     fdiff.block(0, i, 2, 1) = (e_prime - e) / step_size;
   }
 
   return check_jacobian("J_h", fdiff, -1 * J_h, threshold, true);
 }
-
-// template <typename CM, typename DM>
-// static int check_J_hparams(const int img_w,
-//                            const int img_h,
-//                            const double *camera_params,
-//                            const double *dist_params,
-//                            const double step_size = 1e-8,
-//                            const double threshold = 1e-3) {
-//   // Calculate baseline
-//   // clang-format off
-//   vec2_t z{0.0, 0.0};
-//   CM cm{camera_params};
-//   DM dm{dist_params};
-//   vec2_t z_hat;
-//   vec3_t p_C{1.0, 2.0, 10.0};
-//   mat_t<2, 3> J_h;
-//   project(img_w, img_h, cm, dm, p_C, z_hat, J_h);
-//   vec2_t e = z - z_hat;
-//   // clang-format on
-//
-//   // Perturb camera parameters
-//   mat_t<2, 8> fdiff = zeros(2, 8);
-//   for (int i = 0; i < 3; i++) {
-//     vec3_t p_C_diff = p_C;
-//     p_C_diff(i) += step_size;
-//     project(img_w, img_h, cm, dm, p_C_diff, z_hat);
-//     auto e_prime = z - z_hat;
-//     fdiff.block(0, i, 2, 1) = (e_prime - e) / step_size;
-//   }
-//
-//   return check_jacobian("J_h", fdiff, -1 * J_h, threshold, true);
-// }
 
 template <typename CM, typename DM>
 static int check_J_sensor_pose(const int img_w,
@@ -108,6 +78,8 @@ static int check_J_sensor_pose(const int img_w,
     auto T_WS_diff = tf_perturb_rot(T_WS, step_size, i);
     auto z_hat = camera_project(img_w, img_h, T_WS_diff, T_SC, p_W, cm, dm);
     auto e_prime = z - z_hat;
+
+    // Forward finite difference
     fdiff.block(0, i, 2, 1) = (e_prime - e) / step_size;
   }
 
@@ -116,6 +88,8 @@ static int check_J_sensor_pose(const int img_w,
     auto T_WS_diff = tf_perturb_trans(T_WS, step_size, i);
     auto z_hat = camera_project(img_w, img_h, T_WS_diff, T_SC, p_W, cm, dm);
     auto e_prime = z - z_hat;
+
+    // Forward finite difference
     fdiff.block(0, i + 3, 2, 1) = (e_prime - e) / step_size;
   }
 
@@ -154,6 +128,8 @@ static int check_J_sensor_camera_pose(const int img_w,
     auto T_SC_diff = tf_perturb_trans(T_SC, step_size, i);
     auto z_hat = camera_project(img_w, img_h, T_WS, T_SC_diff, p_W, cm, dm);
     auto e_prime = z - z_hat;
+
+    // Forward finite difference
     fdiff.block(0, i + 3, 2, 1) = (e_prime - e) / step_size;
   }
 
@@ -184,6 +160,8 @@ int check_J_landmark(const int img_w,
     auto p_W_diff = p_W + dr.col(i);
     auto z_hat = camera_project(img_w, img_h, T_WS, T_SC, p_W_diff, cm, dm);
     auto e_prime = z - z_hat;
+
+    // Forward finite difference
     fdiff.block(0, i, 2, 1) = (e_prime - e) / step_size;
   }
 
@@ -221,6 +199,8 @@ int check_J_cam_params(const int img_w,
     const CM cm_fd{params_fd};
     auto z_hat = camera_project(img_w, img_h, T_WS, T_SC, p_W, cm_fd, dm);
     auto e_prime = z - z_hat;
+
+    // Forward finite difference
     fdiff.block(0, i, 2, 1) = (e_prime - e) / step_size;
   }
 
@@ -258,6 +238,8 @@ int check_J_dist_params(const int img_w,
     const DM dm_fd{params_fd};
     auto z_hat = camera_project(img_w, img_h, T_WS, T_SC, p_W, cm, dm_fd);
     auto e_prime = z - z_hat;
+
+    // Forward finite difference
     fdiff.block(0, i, 2, 1) = (e_prime - e) / step_size;
   }
 
