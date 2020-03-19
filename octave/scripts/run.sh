@@ -13,7 +13,7 @@ make
 # octave notes/camera/intrinsics_jacobian.m && exit 0
 # octave notes/camera/radtan4_params_jacobian.m && exit 0
 # octave notes/camera/radtan4_point_jacobian.m && exit 0
-octave notes/imu_preintegration/ipm.m && exit 0
+# octave notes/imu_preintegration/ipm.m && exit 0
 # octave notes/imu_preintegration/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0

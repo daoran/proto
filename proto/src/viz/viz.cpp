@@ -471,8 +471,9 @@ void glmesh_draw(const glmesh_t &mesh, const glprog_t &program) {
 glcamera_t::glcamera_t(int &screen_width,
                        int &screen_height,
                        const glm::vec3 position)
-    : position{position}, screen_width{screen_width}, screen_height{
-                                                          screen_height} {
+    : position{position},
+      screen_width{screen_width},
+      screen_height{screen_height} {
   glcamera_update(*this);
 }
 
@@ -1343,6 +1344,32 @@ void glplane_t::draw(const glcamera_t &camera) {
   // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+glvoxels_t::glvoxels_t(const float voxel_size_, const size_t max_voxels_)
+    : voxel_size{voxel_size_}, max_voxels{max_voxels_} {
+  data = (float **) malloc(sizeof(float *) * max_voxels);
+  for (size_t i = 0; i < max_voxels_; i++) {
+   data[i] = (float *) calloc(sizeof(float), 3);
+  }
+}
+
+glvoxels_t::~glvoxels_t() {
+  for (size_t i = 0; i < max_voxels; i++) {
+    free(data[i]);
+  }
+  free(data);
+}
+
+void glvoxels_t::add(const vec3_t &pos) {
+  if ((nb_voxels + 1) >= max_voxels) {
+    FATAL("Number of voxels reached!");
+    return;
+  }
+
+  data[nb_voxels][0] = pos(0);
+  data[nb_voxels][1] = pos(1);
+  data[nb_voxels][2] = pos(2);
+  nb_voxels++;
+}
 
 /****************************************************************************
  *                                GUI
@@ -1382,7 +1409,7 @@ gui_t::gui_t(const std::string &title, const int width, const int height)
 	glfwWaitEventsTimeout(0.1);
   glfwSetWindowUserPointer(gui_, this);
   // -- Keyboard
-  glfwSetKeyCallback(gui_, key_callback);
+  // glfwSetKeyCallback(gui_, key_callback);
   // -- Mouse
   glfwSetCursorPosCallback(gui_, mouse_cursor_callback);
 	glfwSetMouseButtonCallback(gui_, mouse_button_callback);
@@ -1438,7 +1465,7 @@ void gui_t::key_callback(GLFWwindow* window,
 
 	if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
 		gui->keep_running_ = false;
-	} else if (key == GLFW_KEY_W && press_or_hold) {
+	} else if (key == GLFW_KEY_W) {
 		glcamera_movement_t direction = FORWARD;
 		glcamera_keyboard_handler(gui->camera, direction, gui->dt_);
 	} else if (key == GLFW_KEY_A && press_or_hold) {

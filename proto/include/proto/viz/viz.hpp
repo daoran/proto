@@ -150,7 +150,7 @@ public:
   float pitch = 0.0f;
 
   // Settings
-  float movement_speed = 15.0f;
+  float movement_speed = 50.0f;
   float mouse_sensitivity = 0.05f;
   float fov = 45.0f;
   float near = 0.1f;
@@ -454,6 +454,20 @@ public:
 
   glplane_t(const std::string &image_path);
   void draw(const glcamera_t &camera);
+};
+
+class glvoxels_t {
+public:
+  float voxel_size;
+  size_t max_voxels;
+
+  float **data;
+  size_t nb_voxels = 0;
+
+  glvoxels_t(const float voxel_size, const size_t max_voxels);
+  ~glvoxels_t();
+
+  void add(const vec3_t &pos);
 };
 
 /****************************************************************************

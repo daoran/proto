@@ -52,8 +52,6 @@ sudo make install
 # ./calib_stereo config/calib_stereo.yaml
 # ./calib_vicon_marker config/calib_vicon_marker.yaml
 # ./detect_aprilgrid config/detect_aprilgrid.yaml
-# ./ublox_rover
-# ./ublox_base_station
 # ./validate_intrinsics config/validate_intrinsics.yaml
 # ./validate_stereo config/validate_stereo.yaml
 # exit
@@ -104,11 +102,11 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_update
 # ./estimation-test_ba --target test_ba_cost
 # ./estimation-test_ba --target test_ba_solve
-# ./estimation-test_imu 
+# ./estimation-test_imu
 # ./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement
-# ./estimation-test_dense
+./estimation-test_dense
 
 # -- mav
 # ./mav-test_atl
