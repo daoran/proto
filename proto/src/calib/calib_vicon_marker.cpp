@@ -53,12 +53,12 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 NULL,      // Loss function
                                 intrinsics,
                                 distortion,
-                                T_MC->q.coeffs().data(),
-                                T_MC->r.data(),
-                                T_WM->q.coeffs().data(),
-                                T_WM->r.data(),
-                                T_WF->q.coeffs().data(),
-                                T_WF->r.data());
+                                T_MC->q,
+                                T_MC->r,
+                                T_WM->q,
+                                T_WM->r,
+                                T_WF->q,
+                                T_WF->r);
     }
   }
 
@@ -145,12 +145,12 @@ int calib_vicon_marker_solve(const aprilgrids_t &aprilgrids,
     }
 
     // Set quaternion parameterization for T_WM
-    problem->SetParameterization(T_WM_params[i].q.coeffs().data(),
+    problem->SetParameterization(T_WM_params[i].q,
                                  &quaternion_parameterization);
 
     // Fixing the marker pose - assume vicon is calibrated and accurate
-    problem->SetParameterBlockConstant(T_WM_params[i].q.coeffs().data());
-    problem->SetParameterBlockConstant(T_WM_params[i].r.data());
+    problem->SetParameterBlockConstant(T_WM_params[i].q);
+    problem->SetParameterBlockConstant(T_WM_params[i].r);
   }
 
   // Fix camera parameters
@@ -158,13 +158,13 @@ int calib_vicon_marker_solve(const aprilgrids_t &aprilgrids,
   problem->SetParameterBlockConstant(*radtan.data);
 
   // Fix T_WF parameters
-  // problem->SetParameterBlockConstant(T_WF_param.q.coeffs().data());
-  // problem->SetParameterBlockConstant(T_WF_param.r.data());
+  // problem->SetParameterBlockConstant(T_WF_param.q);
+  // problem->SetParameterBlockConstant(T_WF_param.r);
 
   // Set quaternion parameterization for T_MC
-  problem->SetParameterization(T_MC_param.q.coeffs().data(),
+  problem->SetParameterization(T_MC_param.q,
                                &quaternion_parameterization);
-  problem->SetParameterization(T_WF_param.q.coeffs().data(),
+  problem->SetParameterization(T_WF_param.q,
                                &quaternion_parameterization);
 
   // Set solver options
@@ -181,13 +181,13 @@ int calib_vicon_marker_solve(const aprilgrids_t &aprilgrids,
   // Finish up
   // -- Marker pose
   T_WM.clear();
-  for (const auto T_WM_param : T_WM_params) {
-    T_WM.push_back(tf(T_WM_param.q, T_WM_param.r));
+  for (auto T_WM_param : T_WM_params) {
+    T_WM.push_back(T_WM_param.T());
   }
   // -- Marker to camera extrinsics
-  T_MC = tf(T_MC_param.q, T_MC_param.r);
+  T_MC = T_MC_param.T();
   // -- Fiducial pose
-  T_WF = tf(T_WF_param.q, T_WF_param.r);
+  T_WF = T_WF_param.T();
 
   return 0;
 }

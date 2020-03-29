@@ -278,7 +278,7 @@ std::string paths_combine(const std::string path1, const std::string path2) {
  *                                ALGEBRA
  *****************************************************************************/
 
-int sign(const double x) {
+int sign(const real_t x) {
   if (fltcmp(x, 0.0) == 0) {
     return 0;
   } else if (x < 0) {
@@ -287,7 +287,7 @@ int sign(const double x) {
   return 1;
 }
 
-int fltcmp(const double f1, const double f2) {
+int fltcmp(const real_t f1, const real_t f2) {
   if (fabs(f1 - f2) <= 0.0001) {
     return 0;
   } else if (f1 > f2) {
@@ -297,7 +297,7 @@ int fltcmp(const double f1, const double f2) {
   }
 }
 
-double binomial(const double n, const double k) {
+real_t binomial(const real_t n, const real_t k) {
   if (k == 0 || k == n) {
     return 1.0;
   }
@@ -318,7 +318,7 @@ void print_shape(const std::string &name, const vecx_t &v) {
 }
 
 void print_array(const std::string &name,
-                 const double *array,
+                 const real_t *array,
                  const size_t size) {
   std::cout << name << std::endl;
   for (size_t i = 0; i < size; i++) {
@@ -357,7 +357,7 @@ void print_quaternion(const std::string &name, const quat_t &q) {
   printf("w:%f, x:%f, y:%f, z:%f\n", q.w(), q.x(), q.y(), q.z());
 }
 
-std::string array2str(const double *array, const size_t size) {
+std::string array2str(const real_t *array, const size_t size) {
   std::stringstream os;
   for (size_t i = 0; i < (size - 1); i++) {
     os << array[i] << " ";
@@ -367,23 +367,23 @@ std::string array2str(const double *array, const size_t size) {
   return os.str();
 }
 
-void array2vec(const double *x, const size_t size, vecx_t y) {
+void array2vec(const real_t *x, const size_t size, vecx_t y) {
   y.resize(size);
   for (size_t i = 0; i < size; i++) {
     y(i) = x[i];
   }
 }
 
-double *vec2array(const vecx_t &v) {
-  double *array = (double *) malloc(sizeof(double) * v.size());
+real_t *vec2array(const vecx_t &v) {
+  real_t *array = (real_t *) malloc(sizeof(real_t) * v.size());
   for (int i = 0; i < v.size(); i++) {
     array[i] = v(i);
   }
   return array;
 }
 
-double *mat2array(const matx_t &m) {
-  double *array = (double *) malloc(sizeof(double) * m.size());
+real_t *mat2array(const matx_t &m) {
+  real_t *array = (real_t *) malloc(sizeof(real_t) * m.size());
 
   int index = 0;
   for (int i = 0; i < m.rows(); i++) {
@@ -395,8 +395,8 @@ double *mat2array(const matx_t &m) {
   return array;
 }
 
-double *quat2array(const quat_t &q) {
-  double *array = (double *) malloc(sizeof(double) * 4);
+real_t *quat2array(const quat_t &q) {
+  real_t *array = (real_t *) malloc(sizeof(real_t) * 4);
 
   array[0] = q.x();
   array[1] = q.y();
@@ -406,13 +406,13 @@ double *quat2array(const quat_t &q) {
   return array;
 }
 
-void vec2array(const vecx_t &v, double *out) {
+void vec2array(const vecx_t &v, real_t *out) {
   for (int i = 0; i < v.size(); i++) {
     out[i] = v(i);
   }
 }
 
-void mat2array(const matx_t &A, double *out) {
+void mat2array(const matx_t &A, real_t *out) {
   int index = 0;
   for (int i = 0; i < A.rows(); i++) {
     for (int j = 0; j < A.cols(); j++) {
@@ -480,9 +480,9 @@ matx_t vecs2mat(const vec3s_t &vs) {
 
   int idx = 0;
   for (const auto &v : vs) {
-    const double x = v(0);
-    const double y = v(1);
-    const double z = v(2);
+    const real_t x = v(0);
+    const real_t y = v(1);
+    const real_t z = v(2);
     retval.block(0, idx, 4, 1) = vec4_t{x, y, z, 1.0};
     idx++;
   }
@@ -511,7 +511,7 @@ std::string vec2str(const vecx_t &v, bool brackets) {
   return str;
 }
 
-std::string arr2str(const double *arr, const size_t len, bool brackets) {
+std::string arr2str(const real_t *arr, const size_t len, bool brackets) {
   std::string str;
 
   if (brackets) {
@@ -614,7 +614,7 @@ matx_t enforce_psd(const matx_t &A) {
       if (i == j) {
         A_psd(i, j) = std::fabs(A(i, j));
       } else {
-        const double x = 0.5 * (A(i, j) + A(j, i));
+        const real_t x = 0.5 * (A(i, j) + A(j, i));
         A_psd(i, j) = x;
         A_psd(j, i) = x;
       }
@@ -630,7 +630,7 @@ matx_t nullspace(const matx_t &A) {
   return A_null_space;
 }
 
-void load_matrix(const std::vector<double> &x,
+void load_matrix(const std::vector<real_t> &x,
                  const int rows,
                  const int cols,
                  matx_t &y) {
@@ -649,7 +649,7 @@ void load_matrix(const std::vector<double> &x,
   }
 }
 
-void load_matrix(const matx_t &A, std::vector<double> &x) {
+void load_matrix(const matx_t &A, std::vector<real_t> &x) {
   for (int i = 0; i < A.cols(); i++) {
     for (int j = 0; j < A.rows(); j++) {
       x.push_back(A(j, i));
@@ -661,33 +661,33 @@ void load_matrix(const matx_t &A, std::vector<double> &x) {
  *                                GEOMETRY
  *****************************************************************************/
 
-double sinc(const double x) {
+real_t sinc(const real_t x) {
   if (fabs(x) > 1e-6) {
     return sin(x) / x;
   } else {
-    static const double c_2 = 1.0 / 6.0;
-    static const double c_4 = 1.0 / 120.0;
-    static const double c_6 = 1.0 / 5040.0;
-    const double x_2 = x * x;
-    const double x_4 = x_2 * x_2;
-    const double x_6 = x_2 * x_2 * x_2;
+    static const real_t c_2 = 1.0 / 6.0;
+    static const real_t c_4 = 1.0 / 120.0;
+    static const real_t c_6 = 1.0 / 5040.0;
+    const real_t x_2 = x * x;
+    const real_t x_4 = x_2 * x_2;
+    const real_t x_6 = x_2 * x_2 * x_2;
     return 1.0 - c_2 * x_2 + c_4 * x_4 - c_6 * x_6;
   }
 }
 
-double deg2rad(const double d) { return d * (M_PI / 180.0); }
+real_t deg2rad(const real_t d) { return d * (M_PI / 180.0); }
 
 vec3_t deg2rad(const vec3_t d) { return d * (M_PI / 180.0); }
 
-double rad2deg(const double r) { return r * (180.0 / M_PI); }
+real_t rad2deg(const real_t r) { return r * (180.0 / M_PI); }
 
 vec3_t rad2deg(const vec3_t &r) { return r * (180.0 / M_PI); }
 
-double wrap180(const double euler_angle) {
+real_t wrap180(const real_t euler_angle) {
   return fmod((euler_angle + 180.0), 360.0) - 180.0;
 }
 
-double wrap360(const double euler_angle) {
+real_t wrap360(const real_t euler_angle) {
   if (euler_angle > 0) {
     return fmod(euler_angle, 360.0);
   } else {
@@ -695,18 +695,18 @@ double wrap360(const double euler_angle) {
   }
 }
 
-double wrapPi(const double r) { return deg2rad(wrap180(rad2deg(r))); }
+real_t wrapPi(const real_t r) { return deg2rad(wrap180(rad2deg(r))); }
 
-double wrap2Pi(const double r) { return deg2rad(wrap360(rad2deg(r))); }
+real_t wrap2Pi(const real_t r) { return deg2rad(wrap360(rad2deg(r))); }
 
-vec2_t circle(const double r, const double theta) {
+vec2_t circle(const real_t r, const real_t theta) {
   return vec2_t{r * cos(theta), r * sin(theta)};
 }
 
-vec3_t sphere(const double rho, const double theta, const double phi) {
-  const double x = rho * sin(theta) * cos(phi);
-  const double y = rho * sin(theta) * sin(phi);
-  const double z = rho * cos(theta);
+vec3_t sphere(const real_t rho, const real_t theta, const real_t phi) {
+  const real_t x = rho * sin(theta) * cos(phi);
+  const real_t y = rho * sin(theta) * sin(phi);
+  const real_t z = rho * cos(theta);
   return vec3_t{x, y, z};
 }
 
@@ -741,33 +741,33 @@ mat4_t lookat(const vec3_t &cam_pos,
   return T_target_camera;
 }
 
-double cross_track_error(const vec2_t &p1,
+real_t cross_track_error(const vec2_t &p1,
                          const vec2_t &p2,
                          const vec2_t &pos) {
-  const double x0 = pos(0);
-  const double y0 = pos(1);
+  const real_t x0 = pos(0);
+  const real_t y0 = pos(1);
 
-  const double x1 = p1(0);
-  const double y1 = p1(0);
+  const real_t x1 = p1(0);
+  const real_t y1 = p1(0);
 
-  const double x2 = p2(0);
-  const double y2 = p2(0);
+  const real_t x2 = p2(0);
+  const real_t y2 = p2(0);
 
   // calculate perpendicular distance between line (p1, p2) and point (pos)
-  const double n = ((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
-  const double d = sqrt(pow(y2 - y1, 2) + pow(x2 - x1, 2));
+  const real_t n = ((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
+  const real_t d = sqrt(pow(y2 - y1, 2) + pow(x2 - x1, 2));
 
   return fabs(n) / d;
 }
 
 int point_left_right(const vec2_t &a, const vec2_t &b, const vec2_t &c) {
-  const double a0 = a(0);
-  const double a1 = a(1);
-  const double b0 = b(0);
-  const double b1 = b(1);
-  const double c0 = c(0);
-  const double c1 = c(1);
-  const double x = (b0 - a0) * (c1 - a1) - (b1 - a1) * (c0 - a0);
+  const real_t a0 = a(0);
+  const real_t a1 = a(1);
+  const real_t b0 = b(0);
+  const real_t b1 = b(1);
+  const real_t c0 = c(0);
+  const real_t c1 = c(1);
+  const real_t x = (b0 - a0) * (c1 - a1) - (b1 - a1) * (c0 - a0);
 
   if (x > 0) {
     return 1; // left
@@ -780,7 +780,7 @@ int point_left_right(const vec2_t &a, const vec2_t &b, const vec2_t &c) {
   return -1;
 }
 
-double closest_point(const vec2_t &a,
+real_t closest_point(const vec2_t &a,
                      const vec2_t &b,
                      const vec2_t &p,
                      vec2_t &closest) {
@@ -793,41 +793,41 @@ double closest_point(const vec2_t &a,
   // calculate closest point
   const vec2_t v1 = p - a;
   const vec2_t v2 = b - a;
-  const double t = v1.dot(v2) / v2.squaredNorm();
+  const real_t t = v1.dot(v2) / v2.squaredNorm();
   closest = a + t * v2;
 
   return t;
 }
 
-void latlon_offset(double lat_ref,
-                   double lon_ref,
-                   double offset_N,
-                   double offset_E,
-                   double *lat_new,
-                   double *lon_new) {
+void latlon_offset(real_t lat_ref,
+                   real_t lon_ref,
+                   real_t offset_N,
+                   real_t offset_E,
+                   real_t *lat_new,
+                   real_t *lon_new) {
   *lat_new = lat_ref + (offset_E / EARTH_RADIUS_M);
   *lon_new = lon_ref + (offset_N / EARTH_RADIUS_M) / cos(deg2rad(lat_ref));
 }
 
-void latlon_diff(double lat_ref,
-                 double lon_ref,
-                 double lat,
-                 double lon,
-                 double *dist_N,
-                 double *dist_E) {
-  double d_lon = lon - lon_ref;
-  double d_lat = lat - lat_ref;
+void latlon_diff(real_t lat_ref,
+                 real_t lon_ref,
+                 real_t lat,
+                 real_t lon,
+                 real_t *dist_N,
+                 real_t *dist_E) {
+  real_t d_lon = lon - lon_ref;
+  real_t d_lat = lat - lat_ref;
 
   *dist_N = deg2rad(d_lat) * EARTH_RADIUS_M;
   *dist_E = deg2rad(d_lon) * EARTH_RADIUS_M * cos(deg2rad(lat));
 }
 
-double latlon_dist(double lat_ref, double lon_ref, double lat, double lon) {
-  double dist_N = 0.0;
-  double dist_E = 0.0;
+real_t latlon_dist(real_t lat_ref, real_t lon_ref, real_t lat, real_t lon) {
+  real_t dist_N = 0.0;
+  real_t dist_E = 0.0;
 
   latlon_diff(lat_ref, lon_ref, lat, lon, &dist_N, &dist_E);
-  double dist = sqrt(pow(dist_N, 2) + pow(dist_E, 2));
+  real_t dist = sqrt(pow(dist_N, 2) + pow(dist_E, 2));
 
   return dist;
 }
@@ -838,14 +838,14 @@ double latlon_dist(double lat_ref, double lon_ref, double lat, double lon) {
 
 int randi(int ub, int lb) { return rand() % lb + ub; }
 
-double randf(const double ub, const double lb) {
-  const double f = (double) rand() / RAND_MAX;
+real_t randf(const real_t ub, const real_t lb) {
+  const real_t f = (real_t) rand() / RAND_MAX;
   return lb + f * (ub - lb);
 }
 
-double median(const std::vector<double> &v) {
+real_t median(const std::vector<real_t> &v) {
   // sort values
-  std::vector<double> v_copy = v;
+  std::vector<real_t> v_copy = v;
   std::sort(v_copy.begin(), v_copy.end());
 
   // obtain median
@@ -855,8 +855,8 @@ double median(const std::vector<double> &v) {
 
   } else {
     // grab middle two values and calc mean
-    const double a = v_copy[v_copy.size() / 2];
-    const double b = v_copy[(v_copy.size() / 2) - 1];
+    const real_t a = v_copy[v_copy.size() / 2];
+    const real_t b = v_copy[(v_copy.size() / 2) - 1];
     return (a + b) / 2.0;
   }
 }
@@ -872,31 +872,31 @@ vec3_t mean(const vec3s_t &x) {
   return x_hat;
 }
 
-double shannon_entropy(const matx_t &covar) {
-  const double n = covar.rows();
-  const double covar_det = covar.determinant();
-  const double entropy = 0.5 * log(pow(2 * M_PI * exp(1), n) * covar_det);
+real_t shannon_entropy(const matx_t &covar) {
+  const real_t n = covar.rows();
+  const real_t covar_det = covar.determinant();
+  const real_t entropy = 0.5 * log(pow(2 * M_PI * exp(1), n) * covar_det);
   return entropy;
 }
 
 vec3_t mvn(std::default_random_engine &engine,
            const vec3_t &mu,
            const vec3_t &stdev) {
-  std::normal_distribution<double> normal_x(mu(0), stdev(0));
-  std::normal_distribution<double> normal_y(mu(1), stdev(1));
-  std::normal_distribution<double> normal_z(mu(2), stdev(2));
+  std::normal_distribution<real_t> normal_x(mu(0), stdev(0));
+  std::normal_distribution<real_t> normal_y(mu(1), stdev(1));
+  std::normal_distribution<real_t> normal_z(mu(2), stdev(2));
   return vec3_t{normal_x(engine), normal_y(engine), normal_z(engine)};
 }
 
-double gauss_normal() {
-  static double V1, V2, S;
+real_t gauss_normal() {
+  static real_t V1, V2, S;
   static int phase = 0;
-  double X;
+  real_t X;
 
   if (phase == 0) {
     do {
-      double U1 = (double) rand() / RAND_MAX;
-      double U2 = (double) rand() / RAND_MAX;
+      real_t U1 = (real_t) rand() / RAND_MAX;
+      real_t U2 = (real_t) rand() / RAND_MAX;
 
       V1 = 2 * U1 - 1;
       V2 = 2 * U2 - 1;
@@ -916,7 +916,7 @@ double gauss_normal() {
  *                               TRANSFORM
  *****************************************************************************/
 
-mat4_t tf(const double *params) {
+mat4_t tf(const real_t *params) {
   const quat_t q{params[0], params[1], params[2], params[3]};
   const vec3_t r{params[4], params[5], params[6]};
   return tf(q, r);
@@ -933,7 +933,7 @@ mat4_t tf(const quat_t &q, const vec3_t &r) {
   return tf(q.toRotationMatrix(), r);
 }
 
-mat4_t tf_perturb_rot(const mat4_t &T, double step_size, const int i) {
+mat4_t tf_perturb_rot(const mat4_t &T, real_t step_size, const int i) {
   const mat3_t drvec = I(3) * step_size;
   const mat3_t C = tf_rot(T);
   const vec3_t r = tf_trans(T);
@@ -941,7 +941,7 @@ mat4_t tf_perturb_rot(const mat4_t &T, double step_size, const int i) {
   return tf(C_diff, r);
 }
 
-mat4_t tf_perturb_trans(const mat4_t &T, const double step_size, const int i) {
+mat4_t tf_perturb_trans(const mat4_t &T, const real_t step_size, const int i) {
   const mat3_t dr = I(3) * step_size;
   const mat3_t C = tf_rot(T);
   const vec3_t r = tf_trans(T);
@@ -953,7 +953,7 @@ vec3_t tf_point(const mat4_t &T, const vec3_t &p) {
   return (T * p.homogeneous()).head(3);
 }
 
-mat3_t rotx(const double theta) {
+mat3_t rotx(const real_t theta) {
   mat3_t R;
 
   // clang-format off
@@ -965,7 +965,7 @@ mat3_t rotx(const double theta) {
   return R;
 }
 
-mat3_t roty(const double theta) {
+mat3_t roty(const real_t theta) {
   mat3_t R;
 
   // clang-format off
@@ -977,7 +977,7 @@ mat3_t roty(const double theta) {
   return R;
 }
 
-mat3_t rotz(const double theta) {
+mat3_t rotz(const real_t theta) {
   mat3_t R;
 
   // clang-format off
@@ -991,21 +991,21 @@ mat3_t rotz(const double theta) {
 
 mat3_t euler123(const vec3_t &euler) {
   // i.e. XYZ rotation sequence (body to world)
-  const double phi = euler(0);
-  const double theta = euler(1);
-  const double psi = euler(2);
+  const real_t phi = euler(0);
+  const real_t theta = euler(1);
+  const real_t psi = euler(2);
 
-  const double R11 = cos(psi) * cos(theta);
-  const double R21 = cos(psi) * sin(theta) * sin(phi) - sin(psi) * cos(phi);
-  const double R31 = cos(psi) * sin(theta) * cos(phi) + sin(psi) * sin(phi);
+  const real_t R11 = cos(psi) * cos(theta);
+  const real_t R21 = cos(psi) * sin(theta) * sin(phi) - sin(psi) * cos(phi);
+  const real_t R31 = cos(psi) * sin(theta) * cos(phi) + sin(psi) * sin(phi);
 
-  const double R12 = sin(psi) * cos(theta);
-  const double R22 = sin(psi) * sin(theta) * sin(phi) + cos(psi) * cos(phi);
-  const double R32 = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi);
+  const real_t R12 = sin(psi) * cos(theta);
+  const real_t R22 = sin(psi) * sin(theta) * sin(phi) + cos(psi) * cos(phi);
+  const real_t R32 = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi);
 
-  const double R13 = -sin(theta);
-  const double R23 = cos(theta) * sin(phi);
-  const double R33 = cos(theta) * cos(phi);
+  const real_t R13 = -sin(theta);
+  const real_t R23 = cos(theta) * sin(phi);
+  const real_t R33 = cos(theta) * cos(phi);
 
   mat3_t R;
   // clang-format off
@@ -1019,21 +1019,21 @@ mat3_t euler123(const vec3_t &euler) {
 
 mat3_t euler321(const vec3_t &euler) {
   // i.e. ZYX rotation sequence (world to body)
-  const double phi = euler(0);
-  const double theta = euler(1);
-  const double psi = euler(2);
+  const real_t phi = euler(0);
+  const real_t theta = euler(1);
+  const real_t psi = euler(2);
 
-  const double R11 = cos(psi) * cos(theta);
-  const double R21 = sin(psi) * cos(theta);
-  const double R31 = -sin(theta);
+  const real_t R11 = cos(psi) * cos(theta);
+  const real_t R21 = sin(psi) * cos(theta);
+  const real_t R31 = -sin(theta);
 
-  const double R12 = cos(psi) * sin(theta) * sin(phi) - sin(psi) * cos(phi);
-  const double R22 = sin(psi) * sin(theta) * sin(phi) + cos(psi) * cos(phi);
-  const double R32 = cos(theta) * sin(phi);
+  const real_t R12 = cos(psi) * sin(theta) * sin(phi) - sin(psi) * cos(phi);
+  const real_t R22 = sin(psi) * sin(theta) * sin(phi) + cos(psi) * cos(phi);
+  const real_t R32 = cos(theta) * sin(phi);
 
-  const double R13 = cos(psi) * sin(theta) * cos(phi) + sin(psi) * sin(phi);
-  const double R23 = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi);
-  const double R33 = cos(theta) * cos(phi);
+  const real_t R13 = cos(psi) * sin(theta) * cos(phi) + sin(psi) * sin(phi);
+  const real_t R23 = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi);
+  const real_t R33 = cos(theta) * cos(phi);
 
   mat3_t R;
   // clang-format off
@@ -1046,64 +1046,64 @@ mat3_t euler321(const vec3_t &euler) {
 }
 
 quat_t euler2quat(const vec3_t &euler) {
-  const double phi = euler(1);
-  const double theta = euler(2);
-  const double psi = euler(3);
+  const real_t phi = euler(1);
+  const real_t theta = euler(2);
+  const real_t psi = euler(3);
 
-  const double c_phi = cos(phi / 2.0);
-  const double c_theta = cos(theta / 2.0);
-  const double c_psi = cos(psi / 2.0);
-  const double s_phi = sin(phi / 2.0);
-  const double s_theta = sin(theta / 2.0);
-  const double s_psi = sin(psi / 2.0);
+  const real_t c_phi = cos(phi / 2.0);
+  const real_t c_theta = cos(theta / 2.0);
+  const real_t c_psi = cos(psi / 2.0);
+  const real_t s_phi = sin(phi / 2.0);
+  const real_t s_theta = sin(theta / 2.0);
+  const real_t s_psi = sin(psi / 2.0);
 
-  const double qx = s_phi * c_theta * c_psi - c_phi * s_theta * s_psi;
-  const double qy = c_phi * s_theta * c_psi + s_phi * c_theta * s_psi;
-  const double qz = c_phi * c_theta * s_psi - s_phi * s_theta * c_psi;
-  const double qw = c_phi * c_theta * c_psi + s_phi * s_theta * s_psi;
+  const real_t qx = s_phi * c_theta * c_psi - c_phi * s_theta * s_psi;
+  const real_t qy = c_phi * s_theta * c_psi + s_phi * c_theta * s_psi;
+  const real_t qz = c_phi * c_theta * s_psi - s_phi * s_theta * c_psi;
+  const real_t qw = c_phi * c_theta * c_psi + s_phi * s_theta * s_psi;
 
-  const double mag = sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
+  const real_t mag = sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
   return quat_t{qw / mag, qx / mag, qy / mag, qz / mag};
 }
 
 mat3_t vecs2rot(const vec3_t &a_B, const vec3_t &g) {
   // Create Quaternion from two vectors
-  const double cos_theta = a_B.normalized().transpose() * g.normalized();
-  const double half_cos = sqrt(0.5 * (1.0 + cos_theta));
-  const double half_sin = sqrt(0.5 * (1.0 - cos_theta));
+  const real_t cos_theta = a_B.normalized().transpose() * g.normalized();
+  const real_t half_cos = sqrt(0.5 * (1.0 + cos_theta));
+  const real_t half_sin = sqrt(0.5 * (1.0 - cos_theta));
   const vec3_t w = a_B.cross(g).normalized();
 
-  const double qw = half_cos;
-  const double qx = half_sin * w(0);
-  const double qy = half_sin * w(1);
-  const double qz = half_sin * w(2);
+  const real_t qw = half_cos;
+  const real_t qx = half_sin * w(0);
+  const real_t qy = half_sin * w(1);
+  const real_t qz = half_sin * w(2);
 
   // Convert Quaternion to rotation matrix
-  const double qx2 = qx * qx;
-  const double qy2 = qy * qy;
-  const double qz2 = qz * qz;
-  const double qw2 = qw * qw;
+  const real_t qx2 = qx * qx;
+  const real_t qy2 = qy * qy;
+  const real_t qz2 = qz * qz;
+  const real_t qw2 = qw * qw;
 
-  const double R11 = qw2 + qx2 - qy2 - qz2;
-  const double R12 = 2 * (qx * qy - qw * qz);
-  const double R13 = 2 * (qx * qz + qw * qy);
+  const real_t R11 = qw2 + qx2 - qy2 - qz2;
+  const real_t R12 = 2 * (qx * qy - qw * qz);
+  const real_t R13 = 2 * (qx * qz + qw * qy);
 
-  const double R21 = 2 * (qx * qy + qw * qz);
-  const double R22 = qw2 - qx2 + qy2 - qz2;
-  const double R23 = 2 * (qy * qz - qw * qx);
+  const real_t R21 = 2 * (qx * qy + qw * qz);
+  const real_t R22 = qw2 - qx2 + qy2 - qz2;
+  const real_t R23 = 2 * (qy * qz - qw * qx);
 
-  const double R31 = 2 * (qx * qz - qw * qy);
-  const double R32 = 2 * (qy * qz + qw * qx);
-  const double R33 = qw2 - qx2 - qy2 + qz2;
+  const real_t R31 = 2 * (qx * qz - qw * qy);
+  const real_t R32 = 2 * (qy * qz + qw * qx);
+  const real_t R33 = qw2 - qx2 - qy2 + qz2;
 
   mat3_t R;
   R << R11, R12, R13, R21, R22, R23, R31, R32, R33;
   return R;
 }
 
-mat3_t rvec2rot(const vec3_t &rvec, const double eps) {
+mat3_t rvec2rot(const vec3_t &rvec, const real_t eps) {
   // Magnitude of rvec
-  const double theta = sqrt(rvec.transpose() * rvec);
+  const real_t theta = sqrt(rvec.transpose() * rvec);
   // ^ basically norm(rvec), but faster
 
   // Check if rotation is too small
@@ -1119,25 +1119,25 @@ mat3_t rvec2rot(const vec3_t &rvec, const double eps) {
 
   // Convert rvec to rotation matrix
   const vec3_t rvec_normalized = rvec / theta;
-  const double x = rvec_normalized(0);
-  const double y = rvec_normalized(1);
-  const double z = rvec_normalized(2);
+  const real_t x = rvec_normalized(0);
+  const real_t y = rvec_normalized(1);
+  const real_t z = rvec_normalized(2);
 
-  const double c = cos(theta);
-  const double s = sin(theta);
-  const double C = 1 - c;
+  const real_t c = cos(theta);
+  const real_t s = sin(theta);
+  const real_t C = 1 - c;
 
-  const double xs = x * s;
-  const double ys = y * s;
-  const double zs = z * s;
+  const real_t xs = x * s;
+  const real_t ys = y * s;
+  const real_t zs = z * s;
 
-  const double xC = x * C;
-  const double yC = y * C;
-  const double zC = z * C;
+  const real_t xC = x * C;
+  const real_t yC = y * C;
+  const real_t zC = z * C;
 
-  const double xyC = x * yC;
-  const double yzC = y * zC;
-  const double zxC = z * xC;
+  const real_t xyC = x * yC;
+  const real_t yzC = y * zC;
+  const real_t zxC = z * xC;
 
   // clang-format off
   mat3_t R;
@@ -1149,33 +1149,33 @@ mat3_t rvec2rot(const vec3_t &rvec, const double eps) {
 }
 
 vec3_t quat2euler(const quat_t &q) {
-  const double qw = q.w();
-  const double qx = q.x();
-  const double qy = q.y();
-  const double qz = q.z();
+  const real_t qw = q.w();
+  const real_t qx = q.x();
+  const real_t qy = q.y();
+  const real_t qz = q.z();
 
-  const double qw2 = qw * qw;
-  const double qx2 = qx * qx;
-  const double qy2 = qy * qy;
-  const double qz2 = qz * qz;
+  const real_t qw2 = qw * qw;
+  const real_t qx2 = qx * qx;
+  const real_t qy2 = qy * qy;
+  const real_t qz2 = qz * qz;
 
-  const double t1 = atan2(2 * (qx * qw + qz * qy), (qw2 - qx2 - qy2 + qz2));
-  const double t2 = asin(2 * (qy * qw - qx * qz));
-  const double t3 = atan2(2 * (qx * qy + qz * qw), (qw2 + qx2 - qy2 - qz2));
+  const real_t t1 = atan2(2 * (qx * qw + qz * qy), (qw2 - qx2 - qy2 + qz2));
+  const real_t t2 = asin(2 * (qy * qw - qx * qz));
+  const real_t t3 = atan2(2 * (qx * qy + qz * qw), (qw2 + qx2 - qy2 - qz2));
 
   return vec3_t{t1, t2, t3};
 }
 
 mat3_t quat2rot(const quat_t &q) {
-  const double qw = q.w();
-  const double qx = q.x();
-  const double qy = q.y();
-  const double qz = q.z();
+  const real_t qw = q.w();
+  const real_t qx = q.x();
+  const real_t qy = q.y();
+  const real_t qz = q.z();
 
-  const double qx2 = qx * qx;
-  const double qy2 = qy * qy;
-  const double qz2 = qz * qz;
-  const double qw2 = qw * qw;
+  const real_t qx2 = qx * qx;
+  const real_t qy2 = qy * qy;
+  const real_t qz2 = qz * qz;
+  const real_t qw2 = qw * qw;
 
   // Homogeneous form
   mat3_t C;
@@ -1196,9 +1196,9 @@ mat3_t quat2rot(const quat_t &q) {
 }
 
 quat_t quat_delta(const vec3_t &dalpha) {
-  const double half_norm = 0.5 * dalpha.norm();
+  const real_t half_norm = 0.5 * dalpha.norm();
   const vec3_t vector = sinc(half_norm) * 0.5 * dalpha;
-  const double scalar = cos(half_norm);
+  const real_t scalar = cos(half_norm);
   return quat_t{scalar, vector(0), vector(1), vector(2)};
 }
 
@@ -1232,9 +1232,9 @@ void timestamp_print(const timestamp_t &ts, const std::string &prefix) {
          ts);
 }
 
-double ts2sec(const timestamp_t &ts) { return ts * 1.0e-9; }
+real_t ts2sec(const timestamp_t &ts) { return ts * 1.0e-9; }
 
-double ns2sec(const uint64_t ns) { return ns * 1.0e-9; }
+real_t ns2sec(const uint64_t ns) { return ns * 1.0e-9; }
 
 struct timespec tic() {
   struct timespec time_start;
@@ -1255,10 +1255,10 @@ float toc(struct timespec *tic) {
 
 float mtoc(struct timespec *tic) { return toc(tic) * 1000.0; }
 
-double time_now() {
+real_t time_now() {
   struct timeval t;
   gettimeofday(&t, NULL);
-  return ((double) t.tv_sec + ((double) t.tv_usec) / 1000000.0);
+  return ((real_t) t.tv_sec + ((real_t) t.tv_usec) / 1000000.0);
 }
 
 /*****************************************************************************
@@ -1267,7 +1267,7 @@ double time_now() {
 
 pose_t::pose_t() {}
 
-pose_t::pose_t(const double *param_) {
+pose_t::pose_t(const real_t *param_) {
   param[0] = param_[0];
   param[1] = param_[1];
   param[2] = param_[2];
@@ -1327,7 +1327,7 @@ quat_t pose_t::rot() { return static_cast<const pose_t &>(*this).rot(); }
 vec3_t pose_t::trans() { return static_cast<const pose_t &>(*this).trans(); }
 mat4_t pose_t::tf() { return static_cast<const pose_t &>(*this).tf(); }
 
-double *pose_t::data() { return param; }
+real_t *pose_t::data() { return param; }
 
 void pose_t::set_trans(const vec3_t &r) {
   param[4] = r(0);
@@ -1352,11 +1352,11 @@ void pose_t::set_rot(const mat3_t &C) {
 
 void pose_t::plus(const vecx_t &dx) {
   // Rotation component
-  double half_norm = 0.5 * dx.head<3>().norm();
-  double dq_w = cos(half_norm);
-  double dq_x = sinc(half_norm) * 0.5 * dx(0);
-  double dq_y = sinc(half_norm) * 0.5 * dx(1);
-  double dq_z = sinc(half_norm) * 0.5 * dx(2);
+  real_t half_norm = 0.5 * dx.head<3>().norm();
+  real_t dq_w = cos(half_norm);
+  real_t dq_x = sinc(half_norm) * 0.5 * dx(0);
+  real_t dq_y = sinc(half_norm) * 0.5 * dx(1);
+  real_t dq_z = sinc(half_norm) * 0.5 * dx(2);
   quat_t dq{dq_w, dq_x, dq_y, dq_z};
   quat_t q{param[0], param[1], param[2], param[3]};
   quat_t q_updated = q * dq;
@@ -1392,7 +1392,7 @@ poses_t load_poses(const std::string &csv_path) {
     }
 
     char entry[1024] = {0};
-    double data[7] = {0};
+    real_t data[7] = {0};
     int index = 0;
     for (size_t i = 0; i < strlen(line); i++) {
       char c = line[i];
@@ -1426,7 +1426,7 @@ landmark_t::landmark_t(const size_t id_, const vec3_t &p_W_)
 
 vec3_t landmark_t::vec() { return map_vec_t<3>(param); };
 
-double *landmark_t::data() { return param; };
+real_t *landmark_t::data() { return param; };
 
 void landmark_t::plus(const vecx_t &dx) {
   param[0] = param[0] + dx[0];
@@ -1434,15 +1434,15 @@ void landmark_t::plus(const vecx_t &dx) {
   param[2] = param[2] + dx[2];
 }
 
-// camera_params_t::camera_params_t(double *param_, size_t nb_params_)
+// camera_params_t::camera_params_t(real_t *param_, size_t nb_params_)
 //   : param{param_}, nb_params{nb_params_} {}
 //
 // camera_params_t::camera_params_t(const size_t id_,
-//                                  double *param_,
+//                                  real_t *param_,
 //                                  size_t nb_params_)
 //   : param_t{id_, nb_params_}, param{param_} {}
 //
-// double *camera_params_t::data() { return param; };
+// real_t *camera_params_t::data() { return param; };
 //
 // void camera_params_t::plus(const vecx_t &dx) {
 //   for (size_t i = 0; i < nb_params; i++) {
@@ -1450,15 +1450,15 @@ void landmark_t::plus(const vecx_t &dx) {
 //   }
 // }
 //
-// distortion_params_t::distortion_params_t(double *param_, size_t nb_params_)
+// distortion_params_t::distortion_params_t(real_t *param_, size_t nb_params_)
 //   : param{param_}, nb_params{nb_params_} {}
 //
 // distortion_params_t::distortion_params_t(const size_t id_,
-//                                          double *param_,
+//                                          real_t *param_,
 //                                          size_t nb_params_)
 //   : param_t{id_, nb_params_}, param{param_} {}
 //
-// double *distortion_params_t::data() { return param; };
+// real_t *distortion_params_t::data() { return param; };
 //
 // void distortion_params_t::plus(const vecx_t &dx) {
 //   for (size_t i = 0; i < nb_params; i++) {
@@ -1680,7 +1680,7 @@ char **csv_fields(const char *fp, int *nb_fields) {
   return fields;
 }
 
-double **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
+real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
   // Obtain number of rows and columns in csv data
   *nb_rows = csv_rows(fp);
   *nb_cols = csv_cols(fp);
@@ -1689,9 +1689,9 @@ double **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
   }
 
   // Initialize memory for csv data
-  double **data = (double **) malloc(sizeof(double *) * *nb_rows);
+  real_t **data = (real_t **) malloc(sizeof(real_t *) * *nb_rows);
   for (int i = 0; i < *nb_cols; i++) {
-    data[i] = (double *) malloc(sizeof(double) * *nb_cols);
+    data[i] = (real_t *) malloc(sizeof(real_t) * *nb_cols);
   }
 
   // Load file
@@ -1785,10 +1785,10 @@ int **load_iarrays(const char *csv_path, int *nb_arrays) {
   return array;
 }
 
-static double *parse_darray_line(char *line) {
+static real_t *parse_darray_line(char *line) {
   char entry[1024] = {0};
   int index = 0;
-  double *data = NULL;
+  real_t *data = NULL;
 
   for (size_t i = 0; i < strlen(line); i++) {
     char c = line[i];
@@ -1799,7 +1799,7 @@ static double *parse_darray_line(char *line) {
     if (c == ',' || c == '\n') {
       if (data == NULL) {
         size_t array_size = strtod(entry, NULL);
-        data = (double *) calloc(array_size, sizeof(double));
+        data = (real_t *) calloc(array_size, sizeof(real_t));
       }
       data[index] = strtod(entry, NULL);
       index++;
@@ -1812,10 +1812,10 @@ static double *parse_darray_line(char *line) {
   return data;
 }
 
-double **load_darrays(const char *csv_path, int *nb_arrays) {
+real_t **load_darrays(const char *csv_path, int *nb_arrays) {
   FILE *csv_file = fopen(csv_path, "r");
   *nb_arrays = csv_rows(csv_path);
-  double **array = (double **) calloc(*nb_arrays, sizeof(double *));
+  real_t **array = (real_t **) calloc(*nb_arrays, sizeof(real_t *));
 
   char line[1024] = {0};
   int frame_idx = 0;
@@ -1892,7 +1892,7 @@ int csv2mat(const std::string &file_path, const bool header, matx_t &data) {
 
   // Load data
   int line_no = 0;
-  std::vector<double> vdata;
+  std::vector<real_t> vdata;
   data = zeros(nb_rows, nb_cols);
 
   while (std::getline(infile, line)) {
@@ -1902,7 +1902,7 @@ int csv2mat(const std::string &file_path, const bool header, matx_t &data) {
     std::string element;
     for (int i = 0; i < nb_cols; i++) {
       std::getline(ss, element, ',');
-      const double value = atof(element.c_str());
+      const real_t value = atof(element.c_str());
       data(line_no, i) = value;
     }
 
@@ -1976,7 +1976,7 @@ int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data) {
   return 0;
 }
 
-void print_progress(const double percentage) {
+void print_progress(const real_t percentage) {
   const char *PBSTR =
       "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
   const int PBWIDTH = 60;
@@ -1992,7 +1992,7 @@ void print_progress(const double percentage) {
   }
 }
 
-quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
+quat_t slerp(const quat_t &q_start, const quat_t &q_end, const real_t alpha) {
   vec4_t q0{q_start.coeffs().data()};
   vec4_t q1{q_end.coeffs().data()};
 
@@ -2002,7 +2002,7 @@ quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
   q1.normalize();
 
   // Compute the cosine of the angle between the two vectors.
-  double dot = q0.dot(q1);
+  real_t dot = q0.dot(q1);
 
   // If the dot product is negative, slerp won't take
   // the shorter path. Note that q1 and -q1 are equivalent when
@@ -2013,7 +2013,7 @@ quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
     dot = -dot;
   }
 
-  const double DOT_THRESHOLD = 0.9995;
+  const real_t DOT_THRESHOLD = 0.9995;
   if (dot > DOT_THRESHOLD) {
     // If the inputs are too close for comfort, linearly interpolate
     // and normalize the result.
@@ -2023,20 +2023,20 @@ quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
   }
 
   // Since dot is in range [0, DOT_THRESHOLD], acos is safe
-  const double theta_0 = acos(dot);     // theta_0 = angle between input vectors
-  const double theta = theta_0 * alpha; // theta = angle between q0 and result
-  const double sin_theta = sin(theta);  // compute this value only once
-  const double sin_theta_0 = sin(theta_0); // compute this value only once
+  const real_t theta_0 = acos(dot);     // theta_0 = angle between input vectors
+  const real_t theta = theta_0 * alpha; // theta = angle between q0 and result
+  const real_t sin_theta = sin(theta);  // compute this value only once
+  const real_t sin_theta_0 = sin(theta_0); // compute this value only once
 
   // == sin(theta_0 - theta) / sin(theta_0)
-  const double s0 = cos(theta) - dot * sin_theta / sin_theta_0;
-  const double s1 = sin_theta / sin_theta_0;
+  const real_t s0 = cos(theta) - dot * sin_theta / sin_theta_0;
+  const real_t s1 = sin_theta / sin_theta_0;
 
   const vec4_t result = (s0 * q0) + (s1 * q1);
   return quat_t{result(3), result(0), result(1), result(2)};
 }
 
-mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha) {
+mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const real_t alpha) {
   // Decompose start pose
   const vec3_t trans0 = tf_trans(p0);
   const quat_t quat0{tf_rot(p0)};
@@ -2057,7 +2057,7 @@ void interp_poses(const timestamps_t &timestamps,
                   const mat4s_t &poses,
                   const timestamps_t &interp_ts,
                   mat4s_t &interped_poses,
-                  const double threshold) {
+                  const real_t threshold) {
   assert(timestamps.size() > 0);
   assert(timestamps.size() == poses.size());
   assert(interp_ts.size() > 0);
@@ -2074,7 +2074,7 @@ void interp_poses(const timestamps_t &timestamps,
     const timestamp_t ts = timestamps[i];
     const mat4_t T = poses[i];
 
-    const double diff = (ts - interp_ts[interp_idx]) * 1e-9;
+    const real_t diff = (ts - interp_ts[interp_idx]) * 1e-9;
     if (diff < threshold) {
       // Set interpolation start point
       ts_start = ts;
@@ -2086,9 +2086,9 @@ void interp_poses(const timestamps_t &timestamps,
       pose1 = T;
 
       // Calculate alpha
-      const double numerator = (interp_ts[interp_idx] - ts_start) * 1e-9;
-      const double denominator = (ts_end - ts_start) * 1e-9;
-      const double alpha = numerator / denominator;
+      const real_t numerator = (interp_ts[interp_idx] - ts_start) * 1e-9;
+      const real_t denominator = (ts_end - ts_start) * 1e-9;
+      const real_t alpha = numerator / denominator;
 
       // Interpoate translation and rotation and add to results
       interped_poses.push_back(interp_pose(pose0, pose1, alpha));
@@ -2121,7 +2121,7 @@ void closest_poses(const timestamps_t &timestamps,
 
   // Variables
   const timestamp_t ts = timestamps[0];
-  double diff_closest = fabs((ts - target_ts[0]) * 1e-9);
+  real_t diff_closest = fabs((ts - target_ts[0]) * 1e-9);
   mat4_t pose_closest = poses[0];
 
   size_t target_idx = 0;
@@ -2130,7 +2130,7 @@ void closest_poses(const timestamps_t &timestamps,
     const mat4_t pose = poses[i];
 
     // Find closest pose
-    const double diff = fabs((ts - target_ts[target_idx]) * 1e-9);
+    const real_t diff = fabs((ts - target_ts[target_idx]) * 1e-9);
     if (diff < diff_closest) {
       // Update closest pose
       pose_closest = pose;
@@ -2166,7 +2166,7 @@ bool all_true(const std::vector<bool> x) {
 int check_jacobian(const std::string &jac_name,
                    const matx_t &fdiff,
                    const matx_t &jac,
-                   const double threshold,
+                   const real_t threshold,
                    const bool print) {
   // Pre-check
   if (jac.size() == 0) {
@@ -2352,7 +2352,7 @@ int parse(const config_t &config,
 
   // Parse
   yaml_check_vector<vec2_t>(node, key, optional);
-  vec = vec2_t{node[0].as<double>(), node[1].as<double>()};
+  vec = vec2_t{node[0].as<real_t>(), node[1].as<real_t>()};
   return 0;
 }
 
@@ -2369,7 +2369,7 @@ int parse(const config_t &config,
   // Parse
   yaml_check_vector<vec3_t>(node, key, optional);
   vec =
-      vec3_t{node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
+      vec3_t{node[0].as<real_t>(), node[1].as<real_t>(), node[2].as<real_t>()};
   return 0;
 }
 
@@ -2385,10 +2385,10 @@ int parse(const config_t &config,
 
   // Parse
   yaml_check_vector<vec4_t>(node, key, optional);
-  vec = vec4_t{node[0].as<double>(),
-               node[1].as<double>(),
-               node[2].as<double>(),
-               node[3].as<double>()};
+  vec = vec4_t{node[0].as<real_t>(),
+               node[1].as<real_t>(),
+               node[2].as<real_t>(),
+               node[3].as<real_t>()};
   return 0;
 }
 
@@ -2406,7 +2406,7 @@ int parse(const config_t &config,
   const size_t vector_size = yaml_check_vector<vecx_t>(node, key, optional);
   vec = vecx_t::Zero(vector_size, 1);
   for (size_t i = 0; i < node.size(); i++) {
-    vec(i) = node[i].as<double>();
+    vec(i) = node[i].as<real_t>();
   }
   return 0;
 }
@@ -2423,10 +2423,10 @@ int parse(const config_t &config,
 
   // Parse
   yaml_check_matrix<mat2_t>(node, key, optional);
-  mat(0, 0) = node["data"][0].as<double>();
-  mat(0, 1) = node["data"][1].as<double>();
-  mat(1, 0) = node["data"][2].as<double>();
-  mat(1, 1) = node["data"][3].as<double>();
+  mat(0, 0) = node["data"][0].as<real_t>();
+  mat(0, 1) = node["data"][1].as<real_t>();
+  mat(1, 0) = node["data"][2].as<real_t>();
+  mat(1, 1) = node["data"][3].as<real_t>();
   return 0;
 }
 
@@ -2443,17 +2443,17 @@ int parse(const config_t &config,
   // Parse
   yaml_check_matrix<mat3_t>(node, key, optional);
   // -- Col 1
-  mat(0, 0) = node["data"][0].as<double>();
-  mat(0, 1) = node["data"][1].as<double>();
-  mat(0, 2) = node["data"][2].as<double>();
+  mat(0, 0) = node["data"][0].as<real_t>();
+  mat(0, 1) = node["data"][1].as<real_t>();
+  mat(0, 2) = node["data"][2].as<real_t>();
   // -- Col 2
-  mat(1, 0) = node["data"][3].as<double>();
-  mat(1, 1) = node["data"][4].as<double>();
-  mat(1, 2) = node["data"][5].as<double>();
+  mat(1, 0) = node["data"][3].as<real_t>();
+  mat(1, 1) = node["data"][4].as<real_t>();
+  mat(1, 2) = node["data"][5].as<real_t>();
   // -- Col 3
-  mat(2, 0) = node["data"][6].as<double>();
-  mat(2, 1) = node["data"][7].as<double>();
-  mat(2, 2) = node["data"][8].as<double>();
+  mat(2, 0) = node["data"][6].as<real_t>();
+  mat(2, 1) = node["data"][7].as<real_t>();
+  mat(2, 2) = node["data"][8].as<real_t>();
   return 0;
 }
 
@@ -2472,7 +2472,7 @@ int parse(const config_t &config,
   size_t index = 0;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      mat(i, j) = node["data"][index].as<double>();
+      mat(i, j) = node["data"][index].as<real_t>();
       index++;
     }
   }
@@ -2499,7 +2499,7 @@ int parse(const config_t &config,
   size_t index = 0;
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
-      mat(i, j) = node["data"][index].as<double>();
+      mat(i, j) = node["data"][index].as<real_t>();
       index++;
     }
   }
@@ -2526,7 +2526,7 @@ int parse(const config_t &config,
   size_t index = 0;
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
-      mat.at<double>(i, j) = node["data"][index].as<double>();
+      mat.at<real_t>(i, j) = node["data"][index].as<real_t>();
       index++;
     }
   }
@@ -2599,9 +2599,9 @@ void lerp_data(const std::deque<timestamp_t> &lerp_ts,
         }
 
         // Calculate interpolation parameter alpha
-        const double num = (lerp_ts[lerp_idx] - t0) * 1e-9;
-        const double den = (t1 - t0) * 1e-9;
-        const double alpha = num / den;
+        const real_t num = (lerp_ts[lerp_idx] - t0) * 1e-9;
+        const real_t den = (t1 - t0) * 1e-9;
+        const real_t alpha = num / den;
 
         // Lerp and add to results
         result_data.push_back(lerp(v0, v1, alpha));
@@ -2694,10 +2694,10 @@ ctraj_t::ctraj_t(const timestamps_t &timestamps,
   ctraj_init(*this);
 }
 
-inline static double ts_normalize(const ctraj_t &ctraj, const timestamp_t ts) {
-  const double ts_s_k = ts2sec(ts);
-  const double ts_s_start = ctraj.ts_s_start;
-  const double ts_s_end = ctraj.ts_s_end;
+inline static real_t ts_normalize(const ctraj_t &ctraj, const timestamp_t ts) {
+  const real_t ts_s_k = ts2sec(ts);
+  const real_t ts_s_start = ctraj.ts_s_start;
+  const real_t ts_s_end = ctraj.ts_s_end;
   return (ts_s_k - ts_s_start) / (ts_s_end - ts_s_start);
 }
 
@@ -2746,7 +2746,7 @@ void ctraj_init(ctraj_t &ctraj) {
 }
 
 mat4_t ctraj_get_pose(const ctraj_t &ctraj, const timestamp_t ts) {
-  const double u = ts_normalize(ctraj, ts);
+  const real_t u = ts_normalize(ctraj, ts);
 
   // Translation
   const vec3_t r = ctraj.pos_spline(u);
@@ -2766,8 +2766,8 @@ vec3_t ctraj_get_velocity(const ctraj_t &ctraj, const timestamp_t ts) {
   assert(ts >= ctraj.timestamps.front());
   assert(ts <= ctraj.timestamps.back());
 
-  const double u = ts_normalize(ctraj, ts);
-  const double scale = (1 / ctraj.ts_s_gap);
+  const real_t u = ts_normalize(ctraj, ts);
+  const real_t scale = (1 / ctraj.ts_s_gap);
 
   return ctraj.pos_spline.derivatives(u, 1).col(1) * scale;
 }
@@ -2776,14 +2776,14 @@ vec3_t ctraj_get_acceleration(const ctraj_t &ctraj, const timestamp_t ts) {
   assert(ts >= ctraj.timestamps.front());
   assert(ts <= ctraj.timestamps.back());
 
-  const double u = ts_normalize(ctraj, ts);
-  const double scale = pow(1 / ctraj.ts_s_gap, 2);
+  const real_t u = ts_normalize(ctraj, ts);
+  const real_t scale = pow(1 / ctraj.ts_s_gap, 2);
 
   return ctraj.pos_spline.derivatives(u, 2).col(2) * scale;
 }
 
 static mat3_t so3_exp(const vec3_t &phi) {
-  const double norm = phi.norm();
+  const real_t norm = phi.norm();
   if (norm < 1e-3) {
     return mat3_t{I(3) + skew(phi)};
   }
@@ -2800,15 +2800,15 @@ vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts) {
   assert(ts >= ctraj.timestamps.front());
   assert(ts <= ctraj.timestamps.back());
 
-  const double u = ts_normalize(ctraj, ts);
-  const double scale = 1 / ctraj.ts_s_gap;
+  const real_t u = ts_normalize(ctraj, ts);
+  const real_t scale = 1 / ctraj.ts_s_gap;
 
   const auto rvec_spline_deriv = ctraj.rvec_spline.derivatives(u, 1);
   const vec3_t rvec = rvec_spline_deriv.col(0);
   const vec3_t rvec_deriv = rvec_spline_deriv.col(1) * scale;
 
   // Check magnitude of the rotation vector
-  const double rvec_norm = rvec.norm();
+  const real_t rvec_norm = rvec.norm();
   if (rvec_norm < 1e-12) {
     return vec3_t{rvec_deriv};
   }
@@ -2864,13 +2864,13 @@ void sim_imu_measurement(sim_imu_t &imu,
                          vec3_t &a_WS_S,
                          vec3_t &w_WS_S) {
   // Delta time according to sample rate
-  double dt = 1.0 / imu.rate;
+  real_t dt = 1.0 / imu.rate;
 
   // Check consistency of time increments:
   if (imu.started == false) {
     if (fabs(ts2sec(ts - imu.ts_prev) - dt) < (dt / 2.0)) {
       FATAL("Inconsisten sample rate with parameter setting: %f < %f",
-            fabs(double(ts - imu.ts_prev) * 1.0e-9 - dt),
+            fabs(real_t(ts - imu.ts_prev) * 1.0e-9 - dt),
             dt / 2.0);
     }
   }
@@ -2913,7 +2913,7 @@ void sim_imu_measurement(sim_imu_t &imu,
 
 pid_t::pid_t() {}
 
-pid_t::pid_t(const double k_p_, const double k_i_, const double k_d_)
+pid_t::pid_t(const real_t k_p_, const real_t k_i_, const real_t k_d_)
     : k_p{k_p_}, k_i{k_i_}, k_d{k_d_} {}
 
 pid_t::~pid_t() {}
@@ -2930,25 +2930,25 @@ std::ostream &operator<<(std::ostream &os, const pid_t &pid) {
   return os;
 }
 
-double pid_update(pid_t &p,
-                  const double setpoint,
-                  const double actual,
-                  const double dt) {
+real_t pid_update(pid_t &p,
+                  const real_t setpoint,
+                  const real_t actual,
+                  const real_t dt) {
   // Calculate errors
-  const double error = setpoint - actual;
+  const real_t error = setpoint - actual;
   p.error_sum += error * dt;
 
   // Calculate output
   p.error_p = p.k_p * error;
   p.error_i = p.k_i * p.error_sum;
   p.error_d = p.k_d * (error - p.error_prev) / dt;
-  const double output = p.error_p + p.error_i + p.error_d;
+  const real_t output = p.error_p + p.error_i + p.error_d;
 
   p.error_prev = error;
   return output;
 }
 
-double pid_update(pid_t &p, const double error, const double dt) {
+real_t pid_update(pid_t &p, const real_t error, const real_t dt) {
   return pid_update(p, error, 0.0, dt);
 }
 
@@ -2967,7 +2967,7 @@ carrot_ctrl_t::~carrot_ctrl_t() {}
 
 int carrot_ctrl_configure(carrot_ctrl_t &cc,
                           const vec3s_t &waypoints,
-                          const double look_ahead_dist) {
+                          const real_t look_ahead_dist) {
   if (waypoints.size() <= (size_t) 2) {
     LOG_ERROR("Too few waypoints!");
     return -1;
@@ -2988,7 +2988,7 @@ int carrot_ctrl_closest_point(const carrot_ctrl_t &cc,
   // Calculate closest point
   const vec3_t v1 = pos - cc.wp_start;
   const vec3_t v2 = cc.wp_end - cc.wp_start;
-  const double t = v1.dot(v2) / v2.squaredNorm();
+  const real_t t = v1.dot(v2) / v2.squaredNorm();
   result = cc.wp_start + t * v2;
 
   return t;

@@ -107,7 +107,7 @@ int calib_camera_stats(const aprilgrids_t &aprilgrids,
       // Form residual and call the functor for four corners of the tag
       for (size_t j = 0; j < 4; j++) {
         const RESIDUAL residual{keypoints[j], object_points[j]};
-        double res[2] = {0.0, 0.0};
+        real_t res[2] = {0.0, 0.0};
         residual(intrinsics,
                  distortion,
                  q_CF.coeffs().data(),
@@ -119,14 +119,14 @@ int calib_camera_stats(const aprilgrids_t &aprilgrids,
   }
 
   // Calculate RMSE reprojection error
-  double err_sum = 0.0;
+  real_t err_sum = 0.0;
   for (auto &residual : residuals) {
-    const double err = residual.norm();
-    const double err_sq = err * err;
+    const real_t err = residual.norm();
+    const real_t err_sq = err * err;
     err_sum += err_sq;
   }
-  const double err_mean = err_sum / (double) residuals.size();
-  const double rmse = sqrt(err_mean);
+  const real_t err_mean = err_sum / (real_t) residuals.size();
+  const real_t rmse = sqrt(err_mean);
   std::cout << "nb_residuals: " << residuals.size() << std::endl;
   std::cout << "RMSE Reprojection Error [px]: " << rmse << std::endl;
 
@@ -198,7 +198,7 @@ void nbv_find(const calib_target_t &target,
               mat4_t &nbv_pose,
               aprilgrid_t &nbv_grid);
 
-double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
+real_t calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
                               pinhole_t &pinhole,
                               radtan4_t &radtan,
                               mat4s_t &T_CF);
@@ -217,9 +217,9 @@ int calib_camera_batch(const std::string &target_path,
  * Stereo camera calibration residual
  */
 struct stereo_residual_t {
-  double z_C0_[2] = {0.0, 0.0};     ///< Measurement from cam0
-  double z_C1_[2] = {0.0, 0.0};     ///< Measurement from cam1
-  double p_F_[3] = {0.0, 0.0, 0.0}; ///< Object point
+  real_t z_C0_[2] = {0.0, 0.0};     ///< Measurement from cam0
+  real_t z_C1_[2] = {0.0, 0.0};     ///< Measurement from cam1
+  real_t p_F_[3] = {0.0, 0.0, 0.0}; ///< Object point
 
   stereo_residual_t(const vec2_t &z_C0, const vec2_t &z_C1, const vec3_t &p_F)
       : z_C0_{z_C0(0), z_C0(1)}, z_C1_{z_C1(0), z_C1(1)}, p_F_{p_F(0),

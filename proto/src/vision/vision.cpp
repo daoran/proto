@@ -33,17 +33,17 @@ void convert(const cv::Mat &x, matx_t &y) {
 
   for (int i = 0; i < x.rows; i++) {
     for (int j = 0; j < x.cols; j++) {
-      y(i, j) = x.at<double>(i, j);
+      y(i, j) = x.at<real_t>(i, j);
     }
   }
 }
 
 void convert(const matx_t &x, cv::Mat &y) {
-  y = cv::Mat(x.rows(), x.cols(), cv::DataType<double>::type);
+  y = cv::Mat(x.rows(), x.cols(), cv::DataType<real_t>::type);
 
   for (int i = 0; i < x.rows(); i++) {
     for (int j = 0; j < x.cols(); j++) {
-      y.at<double>(i, j) = x(i, j);
+      y.at<real_t>(i, j) = x(i, j);
     }
   }
 }
@@ -142,10 +142,10 @@ cv::Mat rgb2gray(const cv::Mat &image) {
 cv::Mat roi(const cv::Mat &image,
             const int width,
             const int height,
-            const double cx,
-            const double cy) {
-  const double x = cx - width / 2.0;
-  const double y = cy - height / 2.0;
+            const real_t cx,
+            const real_t cy) {
+  const real_t x = cx - width / 2.0;
+  const real_t y = cy - height / 2.0;
   cv::Rect roi(x, y, width, height);
   return image(roi);
 }
@@ -165,8 +165,8 @@ bool is_rot_mat(const cv::Mat &R) {
 
 cv::Vec3f rot2euler(const cv::Mat &R) {
   assert(is_rot_mat(R));
-  const double R00 = R.at<double>(0, 0);
-  const double R10 = R.at<double>(1, 0);
+  const real_t R00 = R.at<real_t>(0, 0);
+  const real_t R10 = R.at<real_t>(1, 0);
   const float sy = sqrt(R00 * R00 + R10 * R10);
   bool singular = sy < 1e-6;
 
@@ -174,13 +174,13 @@ cv::Vec3f rot2euler(const cv::Mat &R) {
   float y;
   float z;
   if (!singular) {
-    x = atan2(R.at<double>(2, 1), R.at<double>(2, 2));
-    y = atan2(-R.at<double>(2, 0), sy);
-    z = atan2(R.at<double>(1, 0), R.at<double>(0, 0));
+    x = atan2(R.at<real_t>(2, 1), R.at<real_t>(2, 2));
+    y = atan2(-R.at<real_t>(2, 0), sy);
+    z = atan2(R.at<real_t>(1, 0), R.at<real_t>(0, 0));
 
   } else {
-    x = atan2(-R.at<double>(1, 2), R.at<double>(1, 1));
-    y = atan2(-R.at<double>(2, 0), sy);
+    x = atan2(-R.at<real_t>(1, 2), R.at<real_t>(1, 1));
+    y = atan2(-R.at<real_t>(2, 0), sy);
     z = 0;
   }
 
@@ -206,29 +206,29 @@ float rescale_points(std::vector<cv::Point2f> &pts1,
   return scaling_factor;
 }
 
-double reprojection_error(const vec2s_t &measured, const vec2s_t &projected) {
+real_t reprojection_error(const vec2s_t &measured, const vec2s_t &projected) {
   assert(measured.size() == projected.size());
 
-  double sse = 0.0;
+  real_t sse = 0.0;
   const size_t nb_keypoints = measured.size();
   for (size_t i = 0; i < nb_keypoints; i++) {
     sse += (measured[i] - projected[i]).norm();
   }
-  const double rmse = sqrt(sse / nb_keypoints);
+  const real_t rmse = sqrt(sse / nb_keypoints);
 
   return rmse;
 }
 
-double reprojection_error(const std::vector<cv::Point2f> &measured,
+real_t reprojection_error(const std::vector<cv::Point2f> &measured,
                           const std::vector<cv::Point2f> &projected) {
   assert(measured.size() == projected.size());
 
-  double sse = 0.0;
+  real_t sse = 0.0;
   const size_t nb_keypoints = measured.size();
   for (size_t i = 0; i < nb_keypoints; i++) {
     sse += cv::norm(measured[i] - projected[i]);
   }
-  const double rmse = sqrt(sse / nb_keypoints);
+  const real_t rmse = sqrt(sse / nb_keypoints);
 
   return rmse;
 }
@@ -242,8 +242,8 @@ matx_t feature_mask(const int image_width,
   // Create a mask around each point
   for (const auto &p : points) {
     // Skip if pixel is out of image bounds
-    const double px = static_cast<int>(p.x);
-    const double py = static_cast<int>(p.y);
+    const real_t px = static_cast<int>(p.x);
+    const real_t py = static_cast<int>(p.y);
     if (px >= image_width || px <= 0) {
       continue;
     } else if (py >= image_height || py <= 0) {
@@ -345,7 +345,7 @@ cv::Mat radtan_undistort_image(const mat3_t &K,
 cv::Mat equi_undistort_image(const mat3_t &K,
                              const vecx_t &D,
                              const cv::Mat &image,
-                             const double balance,
+                             const real_t balance,
                              cv::Mat &Knew) {
   // Estimate new camera matrix first
   const cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
@@ -364,16 +364,16 @@ cv::Mat equi_undistort_image(const mat3_t &K,
 }
 
 void illum_invar_transform(cv::Mat &image,
-                           const double lambda_1,
-                           const double lambda_2,
-                           const double lambda_3) {
+                           const real_t lambda_1,
+                           const real_t lambda_2,
+                           const real_t lambda_3) {
   // The following method is adapted from:
   // Illumination Invariant Imaging: Applications in Robust Vision-based
   // Localisation, Mapping and Classification for Autonomous Vehicles
   // Maddern et al (2014)
 
   // clang-format off
-  double alpha = (lambda_1 * lambda_3 - lambda_1 * lambda_2) /
+  real_t alpha = (lambda_1 * lambda_3 - lambda_1 * lambda_2) /
           			 (lambda_2 * lambda_3 - lambda_1 * lambda_2);
   // clang-format on
 
@@ -398,9 +398,9 @@ void illum_invar_transform(cv::Mat &image,
   cv::normalize(image, image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 }
 
-double lapm(const cv::Mat &src) {
+real_t lapm(const cv::Mat &src) {
   // 'LAPM' algorithm (Nayar89)
-  cv::Mat M = (cv::Mat_<double>(3, 1) << -1, 2, -1);
+  cv::Mat M = (cv::Mat_<real_t>(3, 1) << -1, 2, -1);
   cv::Mat G = cv::getGaussianKernel(3, -1, CV_64F);
 
   cv::Mat Lx;
@@ -411,11 +411,11 @@ double lapm(const cv::Mat &src) {
 
   cv::Mat FM = cv::abs(Lx) + cv::abs(Ly);
 
-  double measure = cv::mean(FM).val[0];
+  real_t measure = cv::mean(FM).val[0];
   return measure;
 }
 
-double lapv(const cv::Mat &src) {
+real_t lapv(const cv::Mat &src) {
   // 'LAPV' algorithm (Pech2000)
   cv::Mat lap;
   cv::Laplacian(src, lap, CV_64F);
@@ -423,11 +423,11 @@ double lapv(const cv::Mat &src) {
   cv::Scalar mu, sigma;
   cv::meanStdDev(lap, mu, sigma);
 
-  double measure = sigma.val[0] * sigma.val[0];
+  real_t measure = sigma.val[0] * sigma.val[0];
   return measure;
 }
 
-double teng(const cv::Mat &src, int ksize) {
+real_t teng(const cv::Mat &src, int ksize) {
   // 'TENG' algorithm (Krotkov86)
   cv::Mat Gx, Gy;
   cv::Sobel(src, Gx, CV_64F, 1, 0, ksize);
@@ -435,16 +435,16 @@ double teng(const cv::Mat &src, int ksize) {
 
   cv::Mat FM = Gx.mul(Gx) + Gy.mul(Gy);
 
-  double measure = cv::mean(FM).val[0];
+  real_t measure = cv::mean(FM).val[0];
   return measure;
 }
 
-double glvn(const cv::Mat &src) {
+real_t glvn(const cv::Mat &src) {
   // 'GLVN' algorithm (Santos97)
   cv::Scalar mu, sigma;
   cv::meanStdDev(src, mu, sigma);
 
-  double measure = (sigma.val[0] * sigma.val[0]) / mu.val[0];
+  real_t measure = (sigma.val[0] * sigma.val[0]) / mu.val[0];
   return measure;
 }
 
@@ -585,7 +585,7 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
                                     const int max_corners,
                                     const int grid_rows,
                                     const int grid_cols,
-                                    const double threshold,
+                                    const real_t threshold,
                                     const bool nonmax_suppression) {
   // Prepare input image - make sure it is grayscale
   cv::Mat image_gray = rgb2gray(image);
@@ -604,8 +604,8 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
   for (int x = 0; x < image_width; x += dx) {
     for (int y = 0; y < image_height; y += dy) {
       // Make sure roi width and height are not out of bounds
-      const double w = (x + dx > image_width) ? image_width - x : dx;
-      const double h = (y + dy > image_height) ? image_height - y : dy;
+      const real_t w = (x + dx > image_width) ? image_width - x : dx;
+      const real_t h = (y + dy > image_height) ? image_height - y : dy;
 
       // Detect corners in grid cell
       cv::Rect roi = cv::Rect(x, y, w, h);
@@ -639,12 +639,12 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
                                    const int max_corners,
                                    const int grid_rows,
                                    const int grid_cols,
-                                   const double quality_level,
-                                   const double min_distance,
+                                   const real_t quality_level,
+                                   const real_t min_distance,
                                    const cv::Mat mask,
                                    const int block_size,
                                    const bool use_harris_detector,
-                                   const double k) {
+                                   const real_t k) {
   // Prepare input image - make sure it is grayscale
   cv::Mat image_gray = rgb2gray(image);
 
@@ -662,8 +662,8 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
   for (int x = 0; x < image_width; x += dx) {
     for (int y = 0; y < image_height; y += dy) {
       // Make sure roi width and height are not out of bounds
-      const double w = (x + dx > image_width) ? image_width - x : dx;
-      const double h = (y + dy > image_height) ? image_height - y : dy;
+      const real_t w = (x + dx > image_width) ? image_width - x : dx;
+      const real_t h = (y + dy > image_height) ? image_height - y : dy;
 
       // Detect corners in grid cell
       const cv::Rect roi = cv::Rect(x, y, w, h);
@@ -705,7 +705,7 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
 
 radtan4_t::radtan4_t() {}
 
-radtan4_t::radtan4_t(const double *distortion_)
+radtan4_t::radtan4_t(const real_t *distortion_)
   : k1{distortion_[0]}, k2{distortion_[1]},
     p1{distortion_[2]}, p2{distortion_[3]} {}
 
@@ -713,10 +713,10 @@ radtan4_t::radtan4_t(const vec4_t &distortion_)
   : k1{distortion_(0)}, k2{distortion_(1)},
     p1{distortion_(2)}, p2{distortion_(3)} {}
 
-radtan4_t::radtan4_t(const double k1_,
-                     const double k2_,
-                     const double p1_,
-                     const double p2_)
+radtan4_t::radtan4_t(const real_t k1_,
+                     const real_t k2_,
+                     const real_t p1_,
+                     const real_t p2_)
   : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
 
 radtan4_t::radtan4_t(radtan4_t &radtan4)
@@ -732,22 +732,22 @@ vec2_t radtan4_t::distort(const vec2_t &p) {
 }
 
 vec2_t radtan4_t::distort(const vec2_t &p) const {
-  const double x = p(0);
-  const double y = p(1);
+  const real_t x = p(0);
+  const real_t y = p(1);
 
   // Apply radial distortion
-  const double x2 = x * x;
-  const double y2 = y * y;
-  const double r2 = x2 + y2;
-  const double r4 = r2 * r2;
-  const double radial_factor = 1 + (k1 * r2) + (k2 * r4);
-  const double x_dash = x * radial_factor;
-  const double y_dash = y * radial_factor;
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+  const real_t radial_factor = 1 + (k1 * r2) + (k2 * r4);
+  const real_t x_dash = x * radial_factor;
+  const real_t y_dash = y * radial_factor;
 
   // Apply tangential distortion
-  const double xy = x * y;
-  const double x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
-  const double y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+  const real_t xy = x * y;
+  const real_t x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const real_t y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
 
   return vec2_t{x_ddash, y_ddash};
 }
@@ -757,13 +757,13 @@ mat2_t radtan4_t::J_point(const vec2_t &p) {
 }
 
 mat2_t radtan4_t::J_point(const vec2_t &p) const {
-  const double x = p(0);
-  const double y = p(1);
+  const real_t x = p(0);
+  const real_t y = p(1);
 
-  const double x2 = x * x;
-  const double y2 = y * y;
-  const double r2 = x2 + y2;
-  const double r4 = r2 * r2;
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
 
   // Let p = [x; y] normalized point
   // Let p' be the distorted p
@@ -785,14 +785,14 @@ mat_t<2, 4> radtan4_t::J_param(const vec2_t &p) {
 }
 
 mat_t<2, 4> radtan4_t::J_param(const vec2_t &p) const {
-  const double x = p(0);
-  const double y = p(1);
+  const real_t x = p(0);
+  const real_t y = p(1);
 
-  const double xy = x * y;
-  const double x2 = x * x;
-  const double y2 = y * y;
-  const double r2 = x2 + y2;
-  const double r4 = r2 * r2;
+  const real_t xy = x * y;
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
 
   mat_t<2, 4> J_params = zeros(2, 4);
   J_params(0, 0) = x * r2;
@@ -828,51 +828,51 @@ vec4_t distortion_coeffs(const radtan4_t &radtan) {
 }
 
 vec2_t distort(const radtan4_t &radtan, const vec2_t &point) {
-  const double k1 = radtan.k1;
-  const double k2 = radtan.k2;
-  const double p1 = radtan.p1;
-  const double p2 = radtan.p2;
-  const double x = point(0);
-  const double y = point(1);
+  const real_t k1 = radtan.k1;
+  const real_t k2 = radtan.k2;
+  const real_t p1 = radtan.p1;
+  const real_t p2 = radtan.p2;
+  const real_t x = point(0);
+  const real_t y = point(1);
 
   // Apply radial distortion
-  const double x2 = x * x;
-  const double y2 = y * y;
-  const double r2 = x2 + y2;
-  const double r4 = r2 * r2;
-  const double radial_factor = 1 + (k1 * r2) + (k2 * r4);
-  const double x_dash = x * radial_factor;
-  const double y_dash = y * radial_factor;
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+  const real_t radial_factor = 1 + (k1 * r2) + (k2 * r4);
+  const real_t x_dash = x * radial_factor;
+  const real_t y_dash = y * radial_factor;
 
   // Apply tangential distortion
-  const double xy = x * y;
-  const double x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
-  const double y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+  const real_t xy = x * y;
+  const real_t x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const real_t y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
 
   return vec2_t{x_ddash, y_ddash};
 }
 
 vec2_t distort(const radtan4_t &radtan, const vec2_t &p, mat2_t &J_point) {
-  const double k1 = radtan.k1;
-  const double k2 = radtan.k2;
-  const double p1 = radtan.p1;
-  const double p2 = radtan.p2;
-  const double x = p(0);
-  const double y = p(1);
+  const real_t k1 = radtan.k1;
+  const real_t k2 = radtan.k2;
+  const real_t p1 = radtan.p1;
+  const real_t p2 = radtan.p2;
+  const real_t x = p(0);
+  const real_t y = p(1);
 
   // Apply radial distortion
-  const double x2 = x * x;
-  const double y2 = y * y;
-  const double r2 = x2 + y2;
-  const double r4 = r2 * r2;
-  const double radial_factor = 1 + (k1 * r2) + (k2 * r4);
-  const double x_dash = x * radial_factor;
-  const double y_dash = y * radial_factor;
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+  const real_t radial_factor = 1 + (k1 * r2) + (k2 * r4);
+  const real_t x_dash = x * radial_factor;
+  const real_t y_dash = y * radial_factor;
 
   // Apply tangential distortion
-  const double xy = x * y;
-  const double x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
-  const double y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+  const real_t xy = x * y;
+  const real_t x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const real_t y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
 
   // Let p = [x; y] normalized point
   // Let p' be the distorted p
@@ -894,14 +894,14 @@ vec2_t distort(const radtan4_t &radtan,
                mat_t<2, 4> &J_params) {
   const vec2_t p_distorted = distort(radtan, p, J_point);
 
-  const double x = p(0);
-  const double y = p(1);
+  const real_t x = p(0);
+  const real_t y = p(1);
 
-  const double xy = x * y;
-  const double x2 = x * x;
-  const double y2 = y * y;
-  const double r2 = x2 + y2;
-  const double r4 = r2 * r2;
+  const real_t xy = x * y;
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
 
   J_params(0, 0) = x * r2;
   J_params(0, 1) = x * r4;
@@ -920,25 +920,25 @@ matx_t distort(const radtan4_t &radtan, const matx_t &points) {
   assert(points.rows() == 2);
   assert(points.cols() > 0);
 
-  const double k1 = radtan.k1;
-  const double k2 = radtan.k2;
-  const double p1 = radtan.p1;
-  const double p2 = radtan.p2;
-  const Eigen::ArrayXd x = points.row(0).array();
-  const Eigen::ArrayXd y = points.row(1).array();
+  const real_t k1 = radtan.k1;
+  const real_t k2 = radtan.k2;
+  const real_t p1 = radtan.p1;
+  const real_t p2 = radtan.p2;
+  const arrayx_t x = points.row(0).array();
+  const arrayx_t y = points.row(1).array();
 
   // Apply radial distortion
-  const Eigen::ArrayXd x2 = x * x;
-  const Eigen::ArrayXd y2 = y * y;
-  const Eigen::ArrayXd r2 = x2 + y2;
-  const Eigen::ArrayXd r4 = r2 * r2;
-  const Eigen::ArrayXd x_dash = x * (1 + (k1 * r2) + (k2 * r4));
-  const Eigen::ArrayXd y_dash = y * (1 + (k1 * r2) + (k2 * r4));
+  const arrayx_t x2 = x * x;
+  const arrayx_t y2 = y * y;
+  const arrayx_t r2 = x2 + y2;
+  const arrayx_t r4 = r2 * r2;
+  const arrayx_t x_dash = x * (1 + (k1 * r2) + (k2 * r4));
+  const arrayx_t y_dash = y * (1 + (k1 * r2) + (k2 * r4));
 
   // Apply tangential distortion
-  const Eigen::ArrayXd xy = x * y;
-  const Eigen::ArrayXd x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
-  const Eigen::ArrayXd y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+  const arrayx_t xy = x * y;
+  const arrayx_t x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const arrayx_t y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
 
   // Form results
   const int nb_points = points.cols();
@@ -978,10 +978,10 @@ vec2_t undistort(const radtan4_t &radtan,
  *                              EQUI-DISTANCE
  ***************************************************************************/
 
-equi4_t::equi4_t(const double k1_,
-                 const double k2_,
-                 const double k3_,
-                 const double k4_)
+equi4_t::equi4_t(const real_t k1_,
+                 const real_t k2_,
+                 const real_t k3_,
+                 const real_t k4_)
     : k1{k1_}, k2{k2_}, k3{k3_}, k4{k4_} {}
 
 equi4_t::~equi4_t() {}
@@ -995,39 +995,39 @@ std::ostream &operator<<(std::ostream &os, const equi4_t &equi4) {
 }
 
 vec2_t distort(const equi4_t &equi, const vec2_t &point) {
-  const double k1 = equi.k1;
-  const double k2 = equi.k2;
-  const double k3 = equi.k3;
-  const double k4 = equi.k4;
-  const double x = point(0);
-  const double y = point(1);
-  const double r = sqrt(pow(x, 2) + pow(y, 2));
+  const real_t k1 = equi.k1;
+  const real_t k2 = equi.k2;
+  const real_t k3 = equi.k3;
+  const real_t k4 = equi.k4;
+  const real_t x = point(0);
+  const real_t y = point(1);
+  const real_t r = sqrt(pow(x, 2) + pow(y, 2));
 
   if (r < 1e-8) {
     return point;
   }
 
   // Apply equi distortion
-  const double th = atan(r);
-  const double th2 = th * th;
-  const double th4 = th2 * th2;
-  const double th6 = th4 * th2;
-  const double th8 = th4 * th4;
-  const double th_d = th * (1 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
-  const double x_dash = (th_d / r) * x;
-  const double y_dash = (th_d / r) * y;
+  const real_t th = atan(r);
+  const real_t th2 = th * th;
+  const real_t th4 = th2 * th2;
+  const real_t th6 = th4 * th2;
+  const real_t th8 = th4 * th4;
+  const real_t th_d = th * (1 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  const real_t x_dash = (th_d / r) * x;
+  const real_t y_dash = (th_d / r) * y;
 
   return vec2_t{x_dash, y_dash};
 }
 
 vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J_point) {
-  const double k1 = equi.k1;
-  const double k2 = equi.k2;
-  const double k3 = equi.k3;
-  const double k4 = equi.k4;
-  const double x = point(0);
-  const double y = point(1);
-  const double r = sqrt(pow(x, 2) + pow(y, 2));
+  const real_t k1 = equi.k1;
+  const real_t k2 = equi.k2;
+  const real_t k3 = equi.k3;
+  const real_t k4 = equi.k4;
+  const real_t x = point(0);
+  const real_t y = point(1);
+  const real_t r = sqrt(pow(x, 2) + pow(y, 2));
 
   if (r < 1e-8) {
     J_point = I(2);
@@ -1035,23 +1035,23 @@ vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J_point) {
   }
 
   // Apply equi distortion
-  const double th = atan(r);
-  const double th2 = th * th;
-  const double th4 = th2 * th2;
-  const double th6 = th4 * th2;
-  const double th8 = th4 * th4;
-  const double thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
-  const double s = thd / r;
-  const double x_dash = s * x;
-  const double y_dash = s * y;
+  const real_t th = atan(r);
+  const real_t th2 = th * th;
+  const real_t th4 = th2 * th2;
+  const real_t th6 = th4 * th2;
+  const real_t th8 = th4 * th4;
+  const real_t thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  const real_t s = thd / r;
+  const real_t x_dash = s * x;
+  const real_t y_dash = s * y;
 
   // Form jacobian
   // clang-format off
-  const double th_r = 1.0 / (r * r + 1.0);
-  const double thd_th = 1.0 + 3.0 * k1 * th2 + 5.0 * k2 * th4 + 7.0 * k3 * th6 + 9.0 * k4 * th8;
-  const double s_r = thd_th * th_r / r - thd / (r * r);
-  const double r_x = 1.0 / r * x;
-  const double r_y = 1.0 / r * y;
+  const real_t th_r = 1.0 / (r * r + 1.0);
+  const real_t thd_th = 1.0 + 3.0 * k1 * th2 + 5.0 * k2 * th4 + 7.0 * k3 * th6 + 9.0 * k4 * th8;
+  const real_t s_r = thd_th * th_r / r - thd / (r * r);
+  const real_t r_x = 1.0 / r * x;
+  const real_t r_y = 1.0 / r * y;
   J_point(0,0) = s + x * s_r * r_x;
   J_point(0,1) = x * s_r * r_y;
   J_point(1,0) = y * s_r * r_x;
@@ -1066,13 +1066,13 @@ matx_t distort(const equi4_t &equi, const matx_t &points) {
   assert(points.cols() > 0);
 
   // Setup
-  const double k1 = equi.k1;
-  const double k2 = equi.k2;
-  const double k3 = equi.k3;
-  const double k4 = equi.k4;
-  const Eigen::ArrayXd x = points.row(0).array();
-  const Eigen::ArrayXd y = points.row(1).array();
-  const Eigen::ArrayXd r = (x.pow(2) + y.pow(2)).sqrt();
+  const real_t k1 = equi.k1;
+  const real_t k2 = equi.k2;
+  const real_t k3 = equi.k3;
+  const real_t k4 = equi.k4;
+  const arrayx_t x = points.row(0).array();
+  const arrayx_t y = points.row(1).array();
+  const arrayx_t r = (x.pow(2) + y.pow(2)).sqrt();
 
   // Apply equi distortion
   const auto th = r.atan();
@@ -1094,22 +1094,22 @@ matx_t distort(const equi4_t &equi, const matx_t &points) {
 }
 
 vec2_t undistort(const equi4_t &equi, const vec2_t &p) {
-  const double k1 = equi.k1;
-  const double k2 = equi.k2;
-  const double k3 = equi.k3;
-  const double k4 = equi.k4;
-  const double thd = sqrt(p(0) * p(0) + p(1) * p(1));
+  const real_t k1 = equi.k1;
+  const real_t k2 = equi.k2;
+  const real_t k3 = equi.k3;
+  const real_t k4 = equi.k4;
+  const real_t thd = sqrt(p(0) * p(0) + p(1) * p(1));
 
-  double th = thd; // Initial guess
+  real_t th = thd; // Initial guess
   for (int i = 20; i > 0; i--) {
-    const double th2 = th * th;
-    const double th4 = th2 * th2;
-    const double th6 = th4 * th2;
-    const double th8 = th4 * th4;
+    const real_t th2 = th * th;
+    const real_t th4 = th2 * th2;
+    const real_t th6 = th4 * th2;
+    const real_t th8 = th4 * th4;
     th = thd / (1 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
   }
 
-  const double scaling = tan(th) / thd;
+  const real_t scaling = tan(th) / thd;
   vec2_t p_ud{p(0) * scaling, p(1) * scaling};
   return p_ud;
 }
@@ -1120,7 +1120,7 @@ vec2_t undistort(const equi4_t &equi, const vec2_t &p) {
 
 pinhole_t::pinhole_t() {}
 
-pinhole_t::pinhole_t(const double *intrinsics_)
+pinhole_t::pinhole_t(const real_t *intrinsics_)
     : fx{intrinsics_[0]}, fy{intrinsics_[1]}, cx{intrinsics_[2]},
       cy{intrinsics_[3]} {}
 
@@ -1131,10 +1131,10 @@ pinhole_t::pinhole_t(const vec4_t &intrinsics_)
 pinhole_t::pinhole_t(const mat3_t &K_)
     : fx{K_(0, 0)}, fy{K_(1, 1)}, cx{K_(0, 2)}, cy{K_(1, 2)} {}
 
-pinhole_t::pinhole_t(const double fx_,
-                     const double fy_,
-                     const double cx_,
-                     const double cy_)
+pinhole_t::pinhole_t(const real_t fx_,
+                     const real_t fy_,
+                     const real_t cx_,
+                     const real_t cy_)
     : fx{fx_}, fy{fy_}, cx{cx_}, cy{cy_} {}
 
 pinhole_t::pinhole_t(pinhole_t &pinhole)
@@ -1169,8 +1169,8 @@ mat_t<2, 4> pinhole_t::J_param(const vec2_t &p) {
 }
 
 mat_t<2, 4> pinhole_t::J_param(const vec2_t &p) const {
-  const double x = p(0);
-  const double y = p(1);
+  const real_t x = p(0);
+  const real_t y = p(1);
 
   mat_t<2, 4> J_param = zeros(2, 4);
   J_param(0, 0) = x;
@@ -1197,7 +1197,7 @@ std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole) {
 }
 
 mat3_t
-pinhole_K(const double fx, const double fy, const double cx, const double cy) {
+pinhole_K(const real_t fx, const real_t fy, const real_t cx, const real_t cy) {
   mat3_t K;
   // clang-format off
   K << fx, 0.0, cx,
@@ -1211,12 +1211,12 @@ pinhole_K(const double fx, const double fy, const double cx, const double cy) {
 mat3_t pinhole_K(const pinhole_t &pinhole) { return pinhole_K(*pinhole.data); }
 
 mat3_t pinhole_K(const vec2_t &image_size,
-                 const double lens_hfov,
-                 const double lens_vfov) {
-  const double fx = pinhole_focal_length(image_size(0), lens_hfov);
-  const double fy = pinhole_focal_length(image_size(1), lens_vfov);
-  const double cx = image_size(0) / 2.0;
-  const double cy = image_size(1) / 2.0;
+                 const real_t lens_hfov,
+                 const real_t lens_vfov) {
+  const real_t fx = pinhole_focal_length(image_size(0), lens_hfov);
+  const real_t fy = pinhole_focal_length(image_size(1), lens_vfov);
+  const real_t cx = image_size(0) / 2.0;
+  const real_t cy = image_size(1) / 2.0;
   return pinhole_K(fx, fy, cx, cy);
 }
 
@@ -1228,24 +1228,24 @@ mat34_t pinhole_P(const mat3_t &K, const mat3_t &C_WC, const vec3_t &r_WC) {
   return P;
 }
 
-double pinhole_focal_length(const int image_width, const double fov) {
+real_t pinhole_focal_length(const int image_width, const real_t fov) {
   return ((image_width / 2.0) / tan(deg2rad(fov) / 2.0));
 }
 
 vec2_t pinhole_focal_length(const vec2_t &image_size,
-                            const double hfov,
-                            const double vfov) {
-  const double fx = ((image_size(0) / 2.0) / tan(deg2rad(hfov) / 2.0));
-  const double fy = ((image_size(1) / 2.0) / tan(deg2rad(vfov) / 2.0));
+                            const real_t hfov,
+                            const real_t vfov) {
+  const real_t fx = ((image_size(0) / 2.0) / tan(deg2rad(hfov) / 2.0));
+  const real_t fy = ((image_size(1) / 2.0) / tan(deg2rad(vfov) / 2.0));
   return vec2_t{fx, fy};
 }
 
 vec2_t project(const vec3_t &p) { return vec2_t{p(0) / p(2), p(1) / p(2)}; }
 
 vec2_t project(const vec3_t &p, mat_t<2, 3> &J_P) {
-  const double x = p(0);
-  const double y = p(1);
-  const double z = p(2);
+  const real_t x = p(0);
+  const real_t y = p(1);
+  const real_t z = p(2);
 
   // Projection Jacobian
   J_P = zeros(2, 3);
@@ -1262,18 +1262,18 @@ vec2_t project(const pinhole_t &model, const vec2_t &p) {
 }
 
 vec2_t project(const pinhole_t &model, const vec3_t &p) {
-  const double px = p(0) / p(2);
-  const double py = p(1) / p(2);
+  const real_t px = p(0) / p(2);
+  const real_t py = p(1) / p(2);
   return vec2_t{px * model.fx + model.cx, py * model.fy + model.cy};
 }
 
 vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h) {
-  const double x = p(0);
-  const double y = p(1);
-  const double z = p(2);
+  const real_t x = p(0);
+  const real_t y = p(1);
+  const real_t z = p(2);
 
-  const double px = x / z;
-  const double py = y / z;
+  const real_t px = x / z;
+  const real_t py = y / z;
 
   // Projection Jacobian
   mat_t<2, 3> J_P = zeros(2, 3);

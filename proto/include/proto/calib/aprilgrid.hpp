@@ -30,8 +30,8 @@ struct aprilgrid_t {
   bool configured = false;
   int tag_rows = 0;
   int tag_cols = 0;
-  double tag_size = 0.0;
-  double tag_spacing = 0.0;
+  real_t tag_size = 0.0;
+  real_t tag_spacing = 0.0;
 
   /// Detections
   bool detected = false;
@@ -49,8 +49,8 @@ struct aprilgrid_t {
   aprilgrid_t(const timestamp_t &timestamp,
               const int tag_rows,
               const int tag_cols,
-              const double tag_size,
-              const double tag_spacing);
+              const real_t tag_size,
+              const real_t tag_spacing);
   ~aprilgrid_t();
 };
 typedef AprilTags::TagDetection apriltag_t;
@@ -86,8 +86,8 @@ int aprilgrid_get(const aprilgrid_t &grid,
 void aprilgrid_set_properties(aprilgrid_t &grid,
                               const int tag_rows,
                               const int tag_cols,
-                              const double tag_size,
-                              const double tag_spacing);
+                              const real_t tag_size,
+                              const real_t tag_spacing);
 
 /**
  * Get the tag's grid index using the tag id

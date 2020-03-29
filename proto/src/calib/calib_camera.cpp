@@ -46,8 +46,8 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                NULL,      // Loss function
                                intrinsics,
                                distortion,
-                               pose->q.coeffs().data(),
-                               pose->r.data());
+                               pose->q,
+                               pose->r);
     }
   }
 
@@ -114,7 +114,7 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
-    problem.SetParameterization(T_CF_params[i].q.coeffs().data(),
+    problem.SetParameterization(T_CF_params[i].q,
                                 &quaternion_parameterization);
   }
 
@@ -132,7 +132,7 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
   // Clean up
   T_CF.clear();
   for (auto pose_param : T_CF_params) {
-    T_CF.push_back(tf(pose_param.q, pose_param.r));
+    T_CF.push_back(pose_param.T());
   }
 
   return 0;
@@ -144,8 +144,8 @@ int calib_camera_solve(const std::string &config_file) {
   std::string results_fpath;
   bool imshow = false;
   vec2_t resolution{0.0, 0.0};
-  double lens_hfov = 0.0;
-  double lens_vfov = 0.0;
+  real_t lens_hfov = 0.0;
+  real_t lens_vfov = 0.0;
   std::string camera_model;
   std::string distortion_model;
 
@@ -197,12 +197,12 @@ int calib_camera_solve(const std::string &config_file) {
   }
 
   // Setup initial camera intrinsics and distortion for optimization
-  const double image_width = resolution(0);
-  const double image_height = resolution(1);
-  const double fx = pinhole_focal_length(image_width, lens_hfov);
-  const double fy = pinhole_focal_length(image_height, lens_vfov);
-  const double cx = resolution(0) / 2.0;
-  const double cy = resolution(1) / 2.0;
+  const real_t image_width = resolution(0);
+  const real_t image_height = resolution(1);
+  const real_t fx = pinhole_focal_length(image_width, lens_hfov);
+  const real_t fy = pinhole_focal_length(image_height, lens_vfov);
+  const real_t cx = resolution(0) / 2.0;
+  const real_t cy = resolution(1) / 2.0;
   pinhole_t pinhole{fx, fy, cx, cy};
   radtan4_t radtan{0.01, 0.0001, 0.0001, 0.0001};
 
@@ -236,8 +236,8 @@ int calib_camera_solve(const std::string &config_file) {
 }
 
 mat4s_t calib_generate_poses(const calib_target_t &target) {
-  const double target_width = (target.tag_rows - 1.0) * target.tag_size;
-  const double target_height = (target.tag_cols - 1.0) * target.tag_size;
+  const real_t target_width = (target.tag_rows - 1.0) * target.tag_size;
+  const real_t target_height = (target.tag_cols - 1.0) * target.tag_size;
   const vec3_t target_center{target_width / 2.0, target_height / 2.0, 0.0};
 
   // Pose settings
@@ -383,7 +383,7 @@ void nbv_find(const calib_target_t &target,
               mat4_t &nbv_pose,
               aprilgrid_t &nbv_grid) {
   // Evalute NBV
-  double entropy_best = 0.0;
+  real_t entropy_best = 0.0;
   const camera_geometry_t<pinhole_t, radtan4_t> camera{pinhole, radtan};
   const vec2_t resolution{pinhole.cx * 2.0, pinhole.cy * 2.0};
 
@@ -401,7 +401,7 @@ void nbv_find(const calib_target_t &target,
     mat4s_t T_CT_ignore;
 
     // -- Evaluate NBV
-    const double entropy =
+    const real_t entropy =
         calib_camera_nbv_solve(grids, pinhole_copy, radtan_copy, T_CT_ignore);
     if (entropy < entropy_best) {
       entropy_best = entropy;
@@ -420,10 +420,10 @@ static void initialize_intrinsics(cv::VideoCapture &camera,
   cv::Mat frame;
   camera.read(frame);
   const auto detector = aprilgrid_detector_t();
-  const double fx = pinhole_focal_length(frame.cols, 120.0);
-  const double fy = pinhole_focal_length(frame.rows, 120.0);
-  const double cx = frame.cols / 2.0;
-  const double cy = frame.rows / 2.0;
+  const real_t fx = pinhole_focal_length(frame.cols, 120.0);
+  const real_t fy = pinhole_focal_length(frame.rows, 120.0);
+  const real_t cx = frame.cols / 2.0;
+  const real_t cy = frame.rows / 2.0;
   pinhole = pinhole_t{fx, fy, cx, cy};
   radtan = radtan4_t{0.0, 0.0, 0.0, 0.0};
   const mat3_t K = pinhole_K(pinhole);
@@ -459,8 +459,8 @@ static void initialize_intrinsics(cv::VideoCapture &camera,
 }
 
 static int process_aprilgrid(const aprilgrid_t &aprilgrid,
-                             double *intrinsics,
-                             double *distortion,
+                             real_t *intrinsics,
+                             real_t *distortion,
                              calib_pose_t *pose,
                              ceres::Problem *problem) {
   for (const auto &tag_id : aprilgrid.ids) {
@@ -498,15 +498,15 @@ static int process_aprilgrid(const aprilgrid_t &aprilgrid,
                                 NULL,      // Loss function
                                 intrinsics,
                                 distortion,
-                                pose->q.coeffs().data(),
-                                pose->r.data());
+                                pose->q,
+                                pose->r);
     }
   }
 
   return 0;
 }
 
-double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
+real_t calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
                               pinhole_t &pinhole,
                               radtan4_t &radtan,
                               mat4s_t &T_CF) {
@@ -534,7 +534,7 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
       LOG_ERROR("Failed to add AprilGrid measurements to problem!");
       return -1;
     }
-    problem->SetParameterization(T_CF_params[i].q.coeffs().data(),
+    problem->SetParameterization(T_CF_params[i].q,
                                  &quaternion_parameterization);
   }
 
@@ -549,10 +549,10 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
   ceres::Solve(options, problem.get(), &summary);
 
   // Estimate covariance
-  double entropy = 0.0;
+  real_t entropy = 0.0;
   {
     // Estimate pinhole and radtan covariance
-    std::vector<std::pair<const double *, const double *>> covar_blocks;
+    std::vector<std::pair<const real_t *, const real_t *>> covar_blocks;
     covar_blocks.push_back({*pinhole.data, *pinhole.data});
     covar_blocks.push_back({*radtan.data, *radtan.data});
     covar_blocks.push_back({*pinhole.data, *radtan.data});
@@ -561,9 +561,9 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
     covar_est.Compute(covar_blocks, problem.get());
 
     // Extract pinhole and radtan covariance
-    double pinhole_covar[4 * 4];
-    double radtan_covar[4 * 4];
-    double pinhole_radtan_covar[4 * 4];
+    real_t pinhole_covar[4 * 4];
+    real_t radtan_covar[4 * 4];
+    real_t pinhole_radtan_covar[4 * 4];
     covar_est.GetCovarianceBlock(*pinhole.data, *pinhole.data, pinhole_covar);
     covar_est.GetCovarianceBlock(*radtan.data, *radtan.data, radtan_covar);
     covar_est.GetCovarianceBlock(*pinhole.data,
@@ -588,7 +588,7 @@ double calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
   // Add results to T_CF
   T_CF.clear();
   for (auto pose_param : T_CF_params) {
-    T_CF.push_back(tf(pose_param.q, pose_param.r));
+    T_CF.push_back(pose_param.T());
   }
 
   return entropy;
@@ -691,13 +691,13 @@ int calib_camera_nbv(const std::string &target_path, const size_t max_frames) {
     // Calculate position difference between desired and actual
     const vec3_t pos_desired = tf_trans(nbv_pose);
     const vec3_t pos_actual = tf_trans(grid.T_CF);
-    const double pos_diff = (pos_desired - pos_actual).norm();
+    const real_t pos_diff = (pos_desired - pos_actual).norm();
     bool pos_ok = (pos_diff < 0.03) ? true : false;
 
     // Calculate attitute difference between desired and actual
     // const vec3_t rpy_desired = quat2euler(tf_quat(nbv_pose));
     // const vec3_t rpy_actual = quat2euler(tf_quat(grid.T_CF));
-    // const double rpy_diff = (rpy_desired - rpy_actual).norm();
+    // const real_t rpy_diff = (rpy_desired - rpy_actual).norm();
     // bool rpy_ok = (rad2deg(rpy_diff) < 5.0) ? true : false;
     bool rpy_ok = true;
 
@@ -757,10 +757,10 @@ int calib_camera_batch(const std::string &target_path,
   cv::Mat frame;
   camera.read(frame);
   const auto detector = aprilgrid_detector_t();
-  const double fx = pinhole_focal_length(frame.cols, 120.0);
-  const double fy = pinhole_focal_length(frame.rows, 120.0);
-  const double cx = frame.cols / 2.0;
-  const double cy = frame.rows / 2.0;
+  const real_t fx = pinhole_focal_length(frame.cols, 120.0);
+  const real_t fy = pinhole_focal_length(frame.rows, 120.0);
+  const real_t cx = frame.cols / 2.0;
+  const real_t cy = frame.rows / 2.0;
   pinhole_t pinhole{fx, fy, cx, cy};
   radtan4_t radtan{0.0, 0.0, 0.0, 0.0};
   const mat3_t K = pinhole_K(pinhole);
@@ -806,10 +806,10 @@ int calib_camera_batch(const std::string &target_path,
 
 static int process_aprilgrid(const aprilgrid_t &cam0_aprilgrid,
                              const aprilgrid_t &cam1_aprilgrid,
-                             double *cam0_intrinsics,
-                             double *cam0_distortion,
-                             double *cam1_intrinsics,
-                             double *cam1_distortion,
+                             real_t *cam0_intrinsics,
+                             real_t *cam0_distortion,
+                             real_t *cam1_intrinsics,
+                             real_t *cam1_distortion,
                              calib_pose_t *T_C0C1,
                              calib_pose_t *T_C0F,
                              ceres::Problem *problem) {
@@ -859,10 +859,10 @@ static int process_aprilgrid(const aprilgrid_t &cam0_aprilgrid,
                                 cam0_distortion,
                                 cam1_intrinsics,
                                 cam1_distortion,
-                                T_C0C1->q.coeffs().data(),
-                                T_C0C1->r.data(),
-                                T_C0F->q.coeffs().data(),
-                                T_C0F->r.data());
+                                T_C0C1->q,
+                                T_C0C1->r,
+                                T_C0F->q,
+                                T_C0F->r);
     }
   }
 
@@ -969,10 +969,10 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
       return -1;
     }
 
-    problem->SetParameterization(pose_params[i].q.coeffs().data(),
+    problem->SetParameterization(pose_params[i].q,
                                  &quaternion_parameterization);
   }
-  problem->SetParameterization(extrinsic_param.q.coeffs().data(),
+  problem->SetParameterization(extrinsic_param.q,
                                &quaternion_parameterization);
 
   // Set solver options
@@ -986,9 +986,9 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
   std::cout << summary.FullReport() << std::endl;
 
   // Finish up
-  T_C0C1 = tf(extrinsic_param.q.toRotationMatrix(), extrinsic_param.r);
+  T_C0C1 = extrinsic_param.T();
   for (auto pose_param : pose_params) {
-    T_C0F.emplace_back(tf(pose_param.q, pose_param.r));
+    T_C0F.emplace_back(pose_param.T());
   }
 
   return 0;
@@ -1000,14 +1000,14 @@ int calib_stereo_solve(const std::string &config_file) {
   std::string results_fpath;
 
   vec2_t cam0_resolution{0.0, 0.0};
-  double cam0_lens_hfov = 0.0;
-  double cam0_lens_vfov = 0.0;
+  real_t cam0_lens_hfov = 0.0;
+  real_t cam0_lens_vfov = 0.0;
   std::string cam0_camera_model;
   std::string cam0_distortion_model;
 
   vec2_t cam1_resolution{0.0, 0.0};
-  double cam1_lens_hfov = 0.0;
-  double cam1_lens_vfov = 0.0;
+  real_t cam1_lens_hfov = 0.0;
+  real_t cam1_lens_vfov = 0.0;
   std::string cam1_camera_model;
   std::string cam1_distortion_model;
 
@@ -1075,21 +1075,21 @@ int calib_stereo_solve(const std::string &config_file) {
 
   // Setup initial cam0 intrinsics and distortion
   // -- cam0
-  const double cam0_img_w = cam0_resolution(0);
-  const double cam0_img_h = cam0_resolution(1);
-  const double cam0_fx = pinhole_focal_length(cam0_img_w, cam0_lens_hfov);
-  const double cam0_fy = pinhole_focal_length(cam0_img_h, cam0_lens_vfov);
-  const double cam0_cx = cam0_img_w / 2.0;
-  const double cam0_cy = cam0_img_h / 2.0;
+  const real_t cam0_img_w = cam0_resolution(0);
+  const real_t cam0_img_h = cam0_resolution(1);
+  const real_t cam0_fx = pinhole_focal_length(cam0_img_w, cam0_lens_hfov);
+  const real_t cam0_fy = pinhole_focal_length(cam0_img_h, cam0_lens_vfov);
+  const real_t cam0_cx = cam0_img_w / 2.0;
+  const real_t cam0_cy = cam0_img_h / 2.0;
   pinhole_t cam0_pinhole{cam0_fx, cam0_fy, cam0_cx, cam0_cy};
   radtan4_t cam0_radtan{0.01, 0.0001, 0.0001, 0.0001};
   // -- cam1
-  const double cam1_img_w = cam1_resolution(0);
-  const double cam1_img_h = cam1_resolution(1);
-  const double cam1_fx = pinhole_focal_length(cam1_img_w, cam1_lens_hfov);
-  const double cam1_fy = pinhole_focal_length(cam1_img_h, cam1_lens_vfov);
-  const double cam1_cx = cam1_img_w / 2.0;
-  const double cam1_cy = cam1_img_h / 2.0;
+  const real_t cam1_img_w = cam1_resolution(0);
+  const real_t cam1_img_h = cam1_resolution(1);
+  const real_t cam1_fx = pinhole_focal_length(cam1_img_w, cam1_lens_hfov);
+  const real_t cam1_fy = pinhole_focal_length(cam1_img_h, cam1_lens_vfov);
+  const real_t cam1_cx = cam1_img_w / 2.0;
+  const real_t cam1_cy = cam1_img_h / 2.0;
   pinhole_t cam1_pinhole{cam1_fx, cam1_fy, cam1_cx, cam1_cy};
   radtan4_t cam1_radtan{0.01, 0.0001, 0.0001, 0.0001};
 

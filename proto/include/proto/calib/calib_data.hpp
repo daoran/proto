@@ -15,14 +15,17 @@ namespace proto {
  * Pose parameter block
  **/
 struct calib_pose_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  quat_t q;
-  vec3_t r;
+  // EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  // quat_t q;
+  // vec3_t r;
+  double q[4] = {0.0, 0.0, 0.0, 1.0}; // x, y, z, w
+  double r[3] = {0.0, 0.0, 0.0}; // x, y, z
 
   calib_pose_t(const mat4_t &T);
-  calib_pose_t(const mat3_t &C, const vec3_t &r);
-  calib_pose_t(const quat_t &q, const vec3_t &r);
+  calib_pose_t(const mat3_t &rot, const vec3_t &trans);
+  calib_pose_t(const quat_t &rot, const vec3_t &trans);
   ~calib_pose_t();
+  mat4_t T();
 };
 
 /**
@@ -32,8 +35,8 @@ struct calib_target_t {
   std::string target_type;
   int tag_rows = 0;
   int tag_cols = 0;
-  double tag_size = 0.0;
-  double tag_spacing = 0.0;
+  real_t tag_size = 0.0;
+  real_t tag_spacing = 0.0;
 
   calib_target_t();
   ~calib_target_t();
@@ -85,8 +88,8 @@ int preprocess_camera_data(const calib_target_t &target,
 int preprocess_camera_data(const calib_target_t &target,
                            const std::string &image_dir,
                            const vec2_t &image_size,
-                           const double lens_hfov,
-                           const double lens_vfov,
+                           const real_t lens_hfov,
+                           const real_t lens_vfov,
                            const std::string &output_dir,
                            const bool imshow = false,
                            const bool show_progress = true);
@@ -123,10 +126,10 @@ int preprocess_stereo_data(const calib_target_t &target,
                            const std::string &cam1_image_dir,
                            const vec2_t &cam0_image_size,
                            const vec2_t &cam1_image_size,
-                           const double cam0_lens_hfov,
-                           const double cam0_lens_vfov,
-                           const double cam1_lens_hfov,
-                           const double cam1_lens_vfov,
+                           const real_t cam0_lens_hfov,
+                           const real_t cam0_lens_vfov,
+                           const real_t cam1_lens_hfov,
+                           const real_t cam1_lens_vfov,
                            const std::string &cam0_output_dir,
                            const std::string &cam1_output_dir);
 

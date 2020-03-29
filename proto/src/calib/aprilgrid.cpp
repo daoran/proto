@@ -11,8 +11,8 @@ aprilgrid_t::aprilgrid_t() {}
 aprilgrid_t::aprilgrid_t(const timestamp_t &timestamp,
                          const int tag_rows,
                          const int tag_cols,
-                         const double tag_size,
-                         const double tag_spacing)
+                         const real_t tag_size,
+                         const real_t tag_spacing)
     : configured{true}, tag_rows{tag_rows}, tag_cols{tag_cols},
       tag_size{tag_size}, tag_spacing{tag_spacing}, timestamp{timestamp} {}
 
@@ -183,8 +183,8 @@ int aprilgrid_get(const aprilgrid_t &grid,
 void aprilgrid_set_properties(aprilgrid_t &grid,
                               const int tag_rows,
                               const int tag_cols,
-                              const double tag_size,
-                              const double tag_spacing) {
+                              const real_t tag_size,
+                              const real_t tag_spacing) {
   grid.configured = true;
   grid.tag_rows = tag_rows;
   grid.tag_cols = tag_cols;
@@ -209,8 +209,8 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
                            const int tag_id,
                            const int corner_id,
                            vec3_t &object_point) {
-  const double tag_size = grid.tag_size;
-  const double tag_spacing = grid.tag_spacing;
+  const real_t tag_size = grid.tag_size;
+  const real_t tag_spacing = grid.tag_spacing;
 
   // Calculate the AprilGrid index using tag id
   int i = 0;
@@ -222,8 +222,8 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
 
   // Caculate the x and y of the tag origin (bottom left corner of tag)
   // relative to grid origin (bottom left corner of entire grid)
-  const double x = j * (tag_size + tag_size * tag_spacing);
-  const double y = i * (tag_size + tag_size * tag_spacing);
+  const real_t x = j * (tag_size + tag_size * tag_spacing);
+  const real_t y = i * (tag_size + tag_size * tag_spacing);
 
   // Calculate the x and y of each corner
   switch (corner_id) {
@@ -248,8 +248,8 @@ int aprilgrid_object_point(const aprilgrid_t &grid,
 int aprilgrid_object_points(const aprilgrid_t &grid,
                             const int tag_id,
                             vec3s_t &object_points) {
-  const double tag_size = grid.tag_size;
-  const double tag_spacing = grid.tag_spacing;
+  const real_t tag_size = grid.tag_size;
+  const real_t tag_spacing = grid.tag_spacing;
 
   // Calculate the AprilGrid index using tag id
   int i = 0;
@@ -261,8 +261,8 @@ int aprilgrid_object_points(const aprilgrid_t &grid,
 
   // Calculate the x and y of the tag origin (bottom left corner of tag)
   // relative to grid origin (bottom left corner of entire grid)
-  const double x = j * (tag_size + tag_size * tag_spacing);
-  const double y = i * (tag_size + tag_size * tag_spacing);
+  const real_t x = j * (tag_size + tag_size * tag_spacing);
+  const real_t y = i * (tag_size + tag_size * tag_spacing);
 
   // Calculate the x and y of each corner (from the bottom left corner in a
   // anti-clockwise fashion)
@@ -304,8 +304,8 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
 
     // Caculate the x and y of the tag origin (bottom left corner of tag)
     // relative to grid origin (bottom left corner of entire grid)
-    const double x = j * (grid.tag_size + grid.tag_size * grid.tag_spacing);
-    const double y = i * (grid.tag_size + grid.tag_size * grid.tag_spacing);
+    const real_t x = j * (grid.tag_size + grid.tag_size * grid.tag_spacing);
+    const real_t y = i * (grid.tag_size + grid.tag_size * grid.tag_spacing);
 
     // Calculate the x and y of each corner
     const cv::Point3f bottom_left(x, y, 0);
@@ -327,16 +327,16 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
   }
 
   // Extract out camera intrinsics
-  const double fx = cam_K(0, 0);
-  const double fy = cam_K(1, 1);
-  const double cx = cam_K(0, 2);
-  const double cy = cam_K(1, 2);
+  const real_t fx = cam_K(0, 0);
+  const real_t fy = cam_K(1, 1);
+  const real_t cx = cam_K(0, 2);
+  const real_t cy = cam_K(1, 2);
 
   // Extract out camera distortion
-  const double k1 = cam_D(0);
-  const double k2 = cam_D(1);
-  const double p1 = cam_D(2);
-  const double p2 = cam_D(3);
+  const real_t k1 = cam_D(0);
+  const real_t k2 = cam_D(1);
+  const real_t p1 = cam_D(2);
+  const real_t p2 = cam_D(3);
 
   // Solve pnp
   cv::Vec4f distortion_params(k1, k2, p1, p2); // SolvPnP assumes radtan
@@ -378,8 +378,8 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
 
     // Calculate the x and y of the tag origin (bottom left corner of tag)
     // relative to grid origin (bottom left corner of entire grid)
-    const double x = j * (grid.tag_size + grid.tag_size * grid.tag_spacing);
-    const double y = i * (grid.tag_size + grid.tag_size * grid.tag_spacing);
+    const real_t x = j * (grid.tag_size + grid.tag_size * grid.tag_spacing);
+    const real_t y = i * (grid.tag_size + grid.tag_size * grid.tag_spacing);
 
     // Calculate the x and y of each corner
     const vec4_t bottom_left(x, y, 0, 1);
@@ -428,7 +428,7 @@ void aprilgrid_imshow(const aprilgrid_t &grid,
     // cv::Scalar text_color(0, 0, 255);
     // std::string text = std::to_string(tags[i].id);
     // int font = cv::FONT_HERSHEY_PLAIN;
-    // double font_scale = 1.0;
+    // real_t font_scale = 1.0;
     // int thickness = 2;
     // cv::putText(image_rgb, text, cxy, font, font_scale, text_color,
     // thickness);
@@ -555,10 +555,10 @@ int aprilgrid_load(aprilgrid_t &grid, const std::string &data_path) {
     int configured = 0;
     int estimated = 0;
     int tag_id = 0;
-    double kp_x, kp_y = 0.0;
-    double p_x, p_y, p_z = 0.0;
-    double q_w, q_x, q_y, q_z = 0.0;
-    double r_x, r_y, r_z = 0.0;
+    real_t kp_x, kp_y = 0.0;
+    real_t p_x, p_y, p_z = 0.0;
+    real_t q_w, q_x, q_y, q_z = 0.0;
+    real_t r_x, r_y, r_z = 0.0;
     int retval = fscanf(
         // File pointer
         fp,
@@ -634,7 +634,7 @@ int aprilgrid_configure(aprilgrid_t &grid, const std::string &target_file) {
   parse(config, "tag_size", grid.tag_size);
   parse(config, "tag_spacing", grid.tag_spacing);
 
-  // Double check tag type
+  // real_t check tag type
   if (target_type != "aprilgrid") {
     FATAL("Invalid target_type [%s], expecting 'aprilgrid'!",
           target_type.c_str());
@@ -648,7 +648,7 @@ void aprilgrid_filter_tags(const cv::Mat &image,
                            std::vector<apriltag_t> &tags) {
   std::vector<apriltag_t>::iterator iter = tags.begin();
 
-  const double min_border_dist = 4.0;
+  const real_t min_border_dist = 4.0;
   for (iter = tags.begin(); iter != tags.end();) {
     bool remove = false;
 

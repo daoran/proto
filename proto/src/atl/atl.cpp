@@ -54,7 +54,7 @@ int att_ctrl_configure(att_ctrl_t &ctrl,
 vec4_t att_ctrl_update(att_ctrl_t &ctrl,
                        const vec4_t &setpoints,
                        const mat4_t &T_WB,
-                       const double dt) {
+                       const real_t dt) {
   assert(ctrl.ok);
 
   // Check rate
@@ -64,14 +64,14 @@ vec4_t att_ctrl_update(att_ctrl_t &ctrl,
   }
 
   // Form actual
-  const double z = tf_trans(T_WB)(2);
+  const real_t z = tf_trans(T_WB)(2);
   const vec3_t rpy = quat2euler(tf_quat(T_WB));
   const vec4_t actual{rpy(0), rpy(1), rpy(2), z};
 
   // Calculate yaw error
-  double actual_yaw = rad2deg(actual(2));
-  double setpoint_yaw = rad2deg(setpoints(2));
-  double error_yaw = setpoint_yaw - actual_yaw;
+  real_t actual_yaw = rad2deg(actual(2));
+  real_t setpoint_yaw = rad2deg(setpoints(2));
+  real_t error_yaw = setpoint_yaw - actual_yaw;
 
   // Wrap yaw
   if (error_yaw > 180.0) {
@@ -82,24 +82,24 @@ vec4_t att_ctrl_update(att_ctrl_t &ctrl,
   error_yaw = deg2rad(error_yaw);
 
   // Roll, pitch and yaw
-  double r = pid_update(ctrl.roll_ctrl, setpoints(0), actual(0), ctrl.dt);
-  double p = pid_update(ctrl.pitch_ctrl, setpoints(1), actual(1), ctrl.dt);
-  double y = pid_update(ctrl.yaw_ctrl, error_yaw, 0.0, ctrl.dt);
+  real_t r = pid_update(ctrl.roll_ctrl, setpoints(0), actual(0), ctrl.dt);
+  real_t p = pid_update(ctrl.pitch_ctrl, setpoints(1), actual(1), ctrl.dt);
+  real_t y = pid_update(ctrl.yaw_ctrl, error_yaw, 0.0, ctrl.dt);
   r = (r < ctrl.roll_limits(0)) ? ctrl.roll_limits(0) : r;
   r = (r > ctrl.roll_limits(1)) ? ctrl.roll_limits(1) : r;
   p = (p < ctrl.pitch_limits(0)) ? ctrl.pitch_limits(0) : p;
   p = (p > ctrl.pitch_limits(1)) ? ctrl.pitch_limits(1) : p;
 
   // Thrust
-  double t = ctrl.max_thrust * setpoints(3);
+  real_t t = ctrl.max_thrust * setpoints(3);
   t = (t > ctrl.max_thrust) ? ctrl.max_thrust : t;
   t = (t < 0.0) ? 0.0 : t;
 
   // Map roll, pitch, yaw and thrust to motor outputs
-  const double m1 = -p - y + t;
-  const double m2 = -r + y + t;
-  const double m3 = p - y + t;
-  const double m4 = r + y + t;
+  const real_t m1 = -p - y + t;
+  const real_t m2 = -r + y + t;
+  const real_t m3 = p - y + t;
+  const real_t m4 = r + y + t;
   vec4_t outputs{m1, m2, m3, m4};
 
   // Limit outputs
@@ -173,8 +173,8 @@ int pos_ctrl_configure(pos_ctrl_t &ctrl,
 vec4_t pos_ctrl_update(pos_ctrl_t &ctrl,
                        const vec3_t &setpoints,
                        const mat4_t &T_WB,
-                       const double desired_yaw,
-                       const double dt) {
+                       const real_t desired_yaw,
+                       const real_t dt) {
   assert(ctrl.ok);
 
   // Check rate
@@ -186,7 +186,7 @@ vec4_t pos_ctrl_update(pos_ctrl_t &ctrl,
 
   // Form actual position and yaw
   const vec3_t actual_pos = tf_trans(T_WB);
-  const double actual_yaw = quat2euler(tf_quat(T_WB))(2);
+  const real_t actual_yaw = quat2euler(tf_quat(T_WB))(2);
 
   // Transform errors in world frame to body frame (excluding roll and pitch)
   const vec3_t errors_W{setpoints - actual_pos};
@@ -195,10 +195,10 @@ vec4_t pos_ctrl_update(pos_ctrl_t &ctrl,
   const vec3_t errors_B = C_BW * errors_W;
 
   // Roll, pitch, yaw and thrust
-  double r = -pid_update(ctrl.x_ctrl, errors_B(1), dt);
-  double p = pid_update(ctrl.y_ctrl, errors_B(0), dt);
-  double y = desired_yaw;
-  double t = ctrl.hover_throttle + pid_update(ctrl.z_ctrl, errors_B(2), dt);
+  real_t r = -pid_update(ctrl.x_ctrl, errors_B(1), dt);
+  real_t p = pid_update(ctrl.y_ctrl, errors_B(0), dt);
+  real_t y = desired_yaw;
+  real_t t = ctrl.hover_throttle + pid_update(ctrl.z_ctrl, errors_B(2), dt);
 
   // Limit roll, pitch
   r = (r < ctrl.roll_limits(0)) ? ctrl.roll_limits(0) : r;
@@ -281,9 +281,9 @@ int tk_ctrl_configure(tk_ctrl_t &ctrl,
 vec4_t tk_ctrl_update(tk_ctrl_t &ctrl,
                       const mat4_t &T_BZ,
                       const mat4_t &T_WB,
-                      const double desired_height,
-                      const double desired_yaw,
-                      const double dt) {
+                      const real_t desired_height,
+                      const real_t desired_yaw,
+                      const real_t dt) {
   // Check rate
   ctrl.dt += dt;
   if (ctrl.dt < 0.01) {
@@ -293,21 +293,21 @@ vec4_t tk_ctrl_update(tk_ctrl_t &ctrl,
   // Form landing zone to body relative error
   // Note: Key important thing here is we don't want to land just yet, so lets
   // keep at a desired height at the moment
-  const double actual_height = T_WB(2, 3);
+  const real_t actual_height = T_WB(2, 3);
   vec3_t r_BZ = tf_trans(T_BZ);
   r_BZ(2) = desired_height - actual_height;
 
   // Adjust relative errors by incorporating yaw in world frame
-  const double actual_yaw = quat2euler(tf_quat(T_WB))(2);
+  const real_t actual_yaw = quat2euler(tf_quat(T_WB))(2);
   const vec3_t rpy_WB{0.0, 0.0, actual_yaw};
   const mat3_t C_BW = euler123(rpy_WB);
   const vec3_t errors_B = C_BW * r_BZ;
 
   // Roll, pitch, yaw and thrust
-  double r = -pid_update(ctrl.x_ctrl, errors_B(1), dt);
-  double p = pid_update(ctrl.y_ctrl, errors_B(0), dt);
-  double y = desired_yaw;
-  double t = ctrl.hover_throttle + pid_update(ctrl.z_ctrl, errors_B(2), dt);
+  real_t r = -pid_update(ctrl.x_ctrl, errors_B(1), dt);
+  real_t p = pid_update(ctrl.y_ctrl, errors_B(0), dt);
+  real_t y = desired_yaw;
+  real_t t = ctrl.hover_throttle + pid_update(ctrl.z_ctrl, errors_B(2), dt);
 
   // Limit roll, pitch
   r = (r < ctrl.roll_limits(0)) ? ctrl.roll_limits(0) : r;
@@ -347,7 +347,7 @@ void tk_ctrl_reset(tk_ctrl_t &ctrl) {
 //                    const vec3_t &p_G,
 //                    const vec3_t &v_G,
 //                    const vec3_t &rpy_G,
-//                    const double dt) {
+//                    const real_t dt) {
 //   // Check rate
 //   wc.dt += dt;
 //   if (wc.dt < 0.01) {
@@ -388,19 +388,19 @@ void tk_ctrl_reset(tk_ctrl_t &ctrl) {
 //   errors = R * errors;
 //
 //   // Roll
-//   double r = -pid_update(wc.ct_controller, errors(1), wc.dt);
+//   real_t r = -pid_update(wc.ct_controller, errors(1), wc.dt);
 //
 //   // Pitch
-//   // double error_forward = m.desired_velocity - v_B(0);
-//   // double p = wc.at_controller.update(error_forward, wc.dt);
-//   double p = pid_update(wc.at_controller, errors(0), wc.dt);
+//   // real_t error_forward = m.desired_velocity - v_B(0);
+//   // real_t p = wc.at_controller.update(error_forward, wc.dt);
+//   real_t p = pid_update(wc.at_controller, errors(0), wc.dt);
 //
 //   // Yaw
-//   // double y = 0.2 * mission_waypoint_heading(m);
-//   double y = 0.0;
+//   // real_t y = 0.2 * mission_waypoint_heading(m);
+//   real_t y = 0.0;
 //
 //   // Throttle
-//   double t = wc.hover_throttle;
+//   real_t t = wc.hover_throttle;
 //   t += pid_update(wc.z_controller, errors(2), wc.dt);
 //   t /= fabs(cos(r) * cos(p)); // adjust throttle for roll and pitch
 //
@@ -434,7 +434,7 @@ void tk_ctrl_reset(tk_ctrl_t &ctrl) {
 lz_detector_t::lz_detector_t() {}
 
 lz_detector_t::lz_detector_t(const std::vector<int> &tag_ids,
-                             const std::vector<double> &tag_sizes) {
+                             const std::vector<real_t> &tag_sizes) {
   if (lz_detector_configure(*this, tag_ids, tag_sizes) != 0) {
     FATAL("Failed to configure landing zone!");
   }
@@ -461,7 +461,7 @@ void lz_print(const lz_t &lz) {
 
 int lz_detector_configure(lz_detector_t &lz,
                           const std::vector<int> &tag_ids,
-                          const std::vector<double> &tag_sizes) {
+                          const std::vector<real_t> &tag_sizes) {
   if (tag_ids.size() != tag_sizes.size()) {
     LOG_ERROR("tag_ids.size() != tag_sizes.size()");
     return -1;
@@ -469,7 +469,7 @@ int lz_detector_configure(lz_detector_t &lz,
 
   for (size_t i = 0; i < tag_ids.size(); i++) {
     const int tag_id = tag_ids[i];
-    const double tag_sz = tag_sizes[i];
+    const real_t tag_sz = tag_sizes[i];
     lz.targets[tag_id] = tag_sz;
   }
   lz.det = new AprilTags::TagDetector(AprilTags::tagCodes16h5);
@@ -482,7 +482,7 @@ int lz_detector_configure(lz_detector_t &lz,
                           const std::string &config_file,
                           const std::string &prefix) {
   std::vector<int> tag_ids;
-  std::vector<double> tag_sizes;
+  std::vector<real_t> tag_sizes;
 
   const std::string p = (prefix == "") ? "" : prefix + ".";
   config_t config{config_file};
@@ -501,10 +501,10 @@ int lz_detector_detect(const lz_detector_t &lz,
   cvtColor(image, gray_image, CV_BGR2GRAY);
 
   // Extract camera intrinsics
-  const double fx = pinhole.fx;
-  const double fy = pinhole.fy;
-  const double cx = pinhole.cx;
-  const double cy = pinhole.cy;
+  const real_t fx = pinhole.fx;
+  const real_t fy = pinhole.fy;
+  const real_t cx = pinhole.cx;
+  const real_t cy = pinhole.cy;
 
   // Calculate relative pose
   bool detected = false;
@@ -514,8 +514,8 @@ int lz_detector_detect(const lz_detector_t &lz,
       continue;
     }
 
-    const double tag_size = lz.targets.at(tag.id);
-    T_CZ = tag.getRelativeTransform(tag_size, fx, fy, cx, cy);
+    const real_t tag_size = lz.targets.at(tag.id);
+    T_CZ = tag.getRelativeTransform(tag_size, fx, fy, cx, cy).cast<real_t>();
     detected = true;
     break;
   }
@@ -543,21 +543,21 @@ int lz_calc_corners(const lz_detector_t &lz,
                     const cv::Mat &image,
                     const mat4_t &T_CZ,
                     const int tag_id,
-                    const double padding,
+                    const real_t padding,
                     vec2_t &top_left,
                     vec2_t &btm_right) {
   // Tag size and camera intrinsics
-  const double tag_size = lz.targets.at(tag_id);
-  const double fx = pinhole.fx;
-  const double fy = pinhole.fy;
-  const double cx = pinhole.cx;
-  const double cy = pinhole.cy;
+  const real_t tag_size = lz.targets.at(tag_id);
+  const real_t fx = pinhole.fx;
+  const real_t fy = pinhole.fy;
+  const real_t cx = pinhole.cx;
+  const real_t cy = pinhole.cy;
 
   // Tag position in camera frame
   const vec3_t r_CZ = tf_trans(T_CZ);
-  const double x = r_CZ(0);
-  const double y = r_CZ(1);
-  const double z = r_CZ(2);
+  const real_t x = r_CZ(0);
+  const real_t y = r_CZ(1);
+  const real_t z = r_CZ(2);
 
   // Calculate top left and bottom right corners of tag in object frame
   top_left(0) = x - (tag_size / 2.0) - padding;
@@ -586,18 +586,18 @@ int lz_calc_corners(const lz_detector_t &lz,
  *                              MISSION
  ****************************************************************************/
 
-waypoint_t waypoint_setup(const double latitude, const double longitude) {
+waypoint_t waypoint_setup(const real_t latitude, const real_t longitude) {
   waypoint_t wp;
   wp.latitude = latitude;
   wp.longitude = longitude;
   return wp;
 }
 
-waypoint_t waypoint_setup(const double latitude,
-                          const double longitude,
-                          const double altitude,
-                          const double staytime,
-                          const double heading) {
+waypoint_t waypoint_setup(const real_t latitude,
+                          const real_t longitude,
+                          const real_t altitude,
+                          const real_t staytime,
+                          const real_t heading) {
   waypoint_t wp;
   wp.latitude = latitude;
   wp.longitude = longitude;
@@ -607,7 +607,7 @@ waypoint_t waypoint_setup(const double latitude,
   return wp;
 }
 
-double waypoint_distance(const waypoint_t &wp_a, const waypoint_t &wp_b) {
+real_t waypoint_distance(const waypoint_t &wp_a, const waypoint_t &wp_b) {
   return latlon_dist(wp_a.latitude,
                      wp_a.longitude,
                      wp_b.latitude,
@@ -631,7 +631,7 @@ int wp_mission_configure(wp_mission_t &m, const std::string &config_file) {
   }
   // clang-format off
   std::string wp_type;
-  std::vector<double> wp_data;
+  std::vector<real_t> wp_data;
   parse(config, "desired_velocity", m.desired_velocity);
   parse(config, "look_ahead_dist", m.look_ahead_dist);
   parse(config, "threshold_waypoint_gap", m.threshold_waypoint_gap);
@@ -666,14 +666,14 @@ int wp_mission_configure(wp_mission_t &m, const std::string &config_file) {
 }
 
 int wp_mission_load_waypoints(wp_mission_t &m,
-                              const std::vector<double> &wps,
+                              const std::vector<real_t> &wps,
                               const int type) {
   if (type == GPS_WAYPOINTS) {
     // Convert waypoint data into waypoints in the local frame
     for (size_t i = 0; i < wps.size(); i += 3) {
-      const double lat = wps[i];
-      const double lon = wps[i + 1];
-      const double alt = wps[i + 2];
+      const real_t lat = wps[i];
+      const real_t lon = wps[i + 1];
+      const real_t alt = wps[i + 2];
 
       // Check lat, lon
       if (fltcmp(lat, 0.0) == 0.0 || fltcmp(lon, 0.0) == 0.0) {
@@ -727,7 +727,7 @@ int wp_mission_check_gps_waypoints(wp_mission_t &m) {
     vec3_t wp = m.gps_waypoints[i];
 
     // Check distance
-    double dist = latlon_dist(last_wp(0), last_wp(1), wp(0), wp(1));
+    real_t dist = latlon_dist(last_wp(0), last_wp(1), wp(0), wp(1));
     if (dist > m.threshold_waypoint_gap) {
       LOG_ERROR(EDISTLATLON,
                 (int) i + 1,
@@ -745,8 +745,8 @@ int wp_mission_check_gps_waypoints(wp_mission_t &m) {
 }
 
 int wp_mission_set_gps_homepoint(wp_mission_t &m,
-                                 const double home_lat,
-                                 const double home_lon) {
+                                 const real_t home_lat,
+                                 const real_t home_lon) {
   // Pre-check
   if (m.gps_waypoints.size() == 0) {
     return -1;
@@ -755,10 +755,10 @@ int wp_mission_set_gps_homepoint(wp_mission_t &m,
   // Convert
   for (auto gps : m.gps_waypoints) {
     // Convert lat lon to local frame
-    const double lat = gps(0);
-    const double lon = gps(1);
-    const double alt = gps(2);
-    double dist_N, dist_E;
+    const real_t lat = gps(0);
+    const real_t lon = gps(1);
+    const real_t alt = gps(2);
+    real_t dist_N, dist_E;
     latlon_diff(home_lat, home_lon, lat, lon, &dist_N, &dist_E);
 
     // Add to local waypoints in NWU
@@ -779,7 +779,7 @@ vec3_t wp_mission_closest_point(const wp_mission_t &m, const vec3_t &p_G) {
   // Calculate closest point
   const vec3_t v1 = p_G - m.wp_start;
   const vec3_t v2 = m.wp_end - m.wp_start;
-  const double t = v1.dot(v2) / v2.squaredNorm();
+  const real_t t = v1.dot(v2) / v2.squaredNorm();
 
   // Make sure the point is between wp_start and wp_end
   if (t < 0) {
@@ -795,7 +795,7 @@ int wp_mission_point_line_side(const wp_mission_t &m, const vec3_t &p_G) {
   const vec3_t a = m.wp_start;
   const vec3_t b = m.wp_end;
   const vec3_t c = p_G;
-  const double s =
+  const real_t s =
       ((b(0) - a(0)) * (c(1) - a(1)) - (b(1) - a(1)) * (c(0) - a(0)));
 
   // Position is colinear with waypoint track
@@ -812,7 +812,7 @@ int wp_mission_point_line_side(const wp_mission_t &m, const vec3_t &p_G) {
   return -1;
 }
 
-double wp_mission_crosstrack_error(const wp_mission_t &m,
+real_t wp_mission_crosstrack_error(const wp_mission_t &m,
                                    const vec3_t &p_G,
                                    int mode) {
   vec3_t BA = m.wp_start - p_G;
@@ -825,7 +825,7 @@ double wp_mission_crosstrack_error(const wp_mission_t &m,
   }
 
   // Crosstrack error
-  const double error = (BA.cross(BC)).norm() / BC.norm();
+  const real_t error = (BA.cross(BC)).norm() / BC.norm();
 
   // Check which side the point is on
   const int side = wp_mission_point_line_side(m, p_G);
@@ -833,12 +833,12 @@ double wp_mission_crosstrack_error(const wp_mission_t &m,
   return error * side;
 }
 
-double wp_mission_waypoint_heading(const wp_mission_t &m) {
-  const double dx = m.wp_end(0) - m.wp_start(0);
-  const double dy = m.wp_end(1) - m.wp_start(1);
+real_t wp_mission_waypoint_heading(const wp_mission_t &m) {
+  const real_t dx = m.wp_end(0) - m.wp_start(0);
+  const real_t dy = m.wp_end(1) - m.wp_start(1);
 
   // Calculate heading
-  double heading = atan2(dy, dx);
+  real_t heading = atan2(dy, dx);
   if (heading > M_PI) {
     heading -= 2 * M_PI;
   } else if (heading < -M_PI) {
@@ -850,7 +850,7 @@ double wp_mission_waypoint_heading(const wp_mission_t &m) {
 
 vec3_t wp_mission_waypoint_interpolate(const wp_mission_t &m,
                                        const vec3_t &p_G,
-                                       const double r) {
+                                       const real_t r) {
   // Get closest point
   const vec3_t pt_on_line = wp_mission_closest_point(m, p_G);
 
@@ -868,7 +868,7 @@ int wp_mission_waypoint_reached(const wp_mission_t &m, const vec3_t &p_G) {
 
   // Calculate distance to waypoint
   const vec3_t x = m.wp_end - p_G;
-  const double dist = x.norm();
+  const real_t dist = x.norm();
 
   // Waypoint reached?
   if (dist > m.threshold_waypoint_reached) {
@@ -975,7 +975,7 @@ int atl_detect_lz(atl_t &atl, const cv::Mat &image) {
                             atl.lz);
 }
 
-vec4_t atl_step_hover_mode(atl_t &atl, const mat4_t &T_WB, const double dt) {
+vec4_t atl_step_hover_mode(atl_t &atl, const mat4_t &T_WB, const real_t dt) {
   // Position control
   const vec4_t att_setpoint = pos_ctrl_update(atl.pos_ctrl,
                                               atl.position_setpoint,
@@ -992,7 +992,7 @@ vec4_t atl_step_hover_mode(atl_t &atl, const mat4_t &T_WB, const double dt) {
 vec4_t atl_step_discover_mode(atl_t &atl,
                               const mat4_t &T_WB,
                               const lz_t &lz,
-                              const double dt) {
+                              const real_t dt) {
   // Hover in place
   const vec4_t u = atl_step_hover_mode(atl, T_WB, dt);
   if (atl.discover_tic.tv_sec == 0) {
@@ -1019,7 +1019,7 @@ vec4_t atl_step_discover_mode(atl_t &atl,
 vec4_t atl_step_tracking_mode(atl_t &atl,
                               const mat4_t &T_WB,
                               const lz_t &lz,
-                              const double dt) {
+                              const real_t dt) {
   vec4_t att_setpoint;
 
   if (lz.detected) {
@@ -1080,14 +1080,14 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
   return u;
 }
 
-// vec4_t atl_step_landing_mode(atl_t &atl, const double dt) {
+// vec4_t atl_step_landing_mode(atl_t &atl, const real_t dt) {
 //   // // land on target
 //   // atl.landing_controller.update(atl.landing_target.position_B,
 //   //                               atl.velocity,
 //   //                               atl.yaw_setpoint,
 //   //                               dt);
 //   const vec3_t r_WB = tf_trans(atl.T_WB);
-//   const double yaw = quat2euler(tf_quat(atl.T_WB))(2);
+//   const real_t yaw = quat2euler(tf_quat(atl.T_WB))(2);
 //   const vec3_t setpoints = atl.r_CZ;
 //   const vec4_t actual{r_WB(0), r_WB(1), r_WB(2), yaw};
 //
@@ -1125,7 +1125,7 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
 int atl_step(atl_t &atl,
              const mat4_t &T_WB,
              const lz_t &lz,
-             const double dt,
+             const real_t dt,
              vec4_t &u) {
   switch (atl.mode) {
   case DISARM_MODE: return -1; break;

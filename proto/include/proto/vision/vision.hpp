@@ -143,8 +143,8 @@ cv::Mat rgb2gray(const cv::Mat &image);
 cv::Mat roi(const cv::Mat &image,
             const int width,
             const int height,
-            const double cx,
-            const double cy);
+            const real_t cx,
+            const real_t cy);
 
 /**
  * Compare two keypoints based on the response.
@@ -188,7 +188,7 @@ float rescale_points(vec2s_t &pts1, std::vector<vec2_t> &pts2);
  * @param[in] projected Projected image pixels
  * @returns Reprojection error
  */
-double reprojection_error(const vec2s_t &measured, const vec2s_t &projected);
+real_t reprojection_error(const vec2s_t &measured, const vec2s_t &projected);
 
 /**
  * Calculate reprojection error
@@ -197,7 +197,7 @@ double reprojection_error(const vec2s_t &measured, const vec2s_t &projected);
  * @param[in] projected Projected image pixels
  * @returns Reprojection error
  */
-double reprojection_error(const std::vector<cv::Point2f> &measured,
+real_t reprojection_error(const std::vector<cv::Point2f> &measured,
                           const std::vector<cv::Point2f> &projected);
 
 /**
@@ -287,7 +287,7 @@ cv::Mat radtan_undistort_image(const mat3_t &K,
 cv::Mat equi_undistort_image(const mat3_t &K,
                              const vecx_t &D,
                              const cv::Mat &image,
-                             const double balance,
+                             const real_t balance,
                              cv::Mat &Knew);
 /**
  * Illumination invariant transform.
@@ -298,17 +298,17 @@ cv::Mat equi_undistort_image(const mat3_t &K,
  * @param[in] lambda_3 Lambad 3
  */
 void illum_invar_transform(cv::Mat &image,
-                           const double lambda_1,
-                           const double lambda_2,
-                           const double lambda_3);
+                           const real_t lambda_1,
+                           const real_t lambda_2,
+                           const real_t lambda_3);
 
-double lapm(const cv::Mat &src);
+real_t lapm(const cv::Mat &src);
 
-double lapv(const cv::Mat &src);
+real_t lapv(const cv::Mat &src);
 
-double teng(const cv::Mat &src, int ksize);
+real_t teng(const cv::Mat &src, int ksize);
 
-double glvn(const cv::Mat &src);
+real_t glvn(const cv::Mat &src);
 
 // /**
 //  * Outlier rejection using essential matrix
@@ -328,7 +328,7 @@ double glvn(const cv::Mat &src);
 //     const mat4_t &T_cam1_cam0,
 //     const std::vector<cv::Point2f> &cam0_points,
 //     const std::vector<cv::Point2f> &cam1_points,
-//     const double threshold,
+//     const real_t threshold,
 //     std::vector<uchar> &inlier_markers);
 
 // template <typename CAMERA_MODEL, typename DISTORTION_MODEL>
@@ -338,7 +338,7 @@ double glvn(const cv::Mat &src);
 //     const mat4_t &T_cam1_cam0,
 //     const std::vector<cv::Point2f> &cam0_points,
 //     const std::vector<cv::Point2f> &cam1_points,
-//     const double threshold,
+//     const real_t threshold,
 //     std::vector<uchar> &inlier_markers) {
 //   // Remove outliers using essential matrix
 //   // -- Compute the relative rotation between the cam0 frame and cam1 frame
@@ -347,11 +347,11 @@ double glvn(const cv::Mat &src);
 //   // -- Compute the essential matrix
 //   const cv::Matx33d E = skew(t_cam0_cam1) * R_cam1_cam0;
 //   // -- Calculate norm pixel unit
-//   const double cam0_fx = cam0.camera_model.fx;
-//   const double cam0_fy = cam0.camera_model.fy;
-//   const double cam1_fx = cam1.camera_model.fx;
-//   const double cam1_fy = cam1.camera_model.fy;
-//   const double norm_pixel_unit = 4.0 / (cam0_fx + cam0_fy + cam1_fx +
+//   const real_t cam0_fx = cam0.camera_model.fx;
+//   const real_t cam0_fy = cam0.camera_model.fy;
+//   const real_t cam1_fx = cam1.camera_model.fx;
+//   const real_t cam1_fy = cam1.camera_model.fy;
+//   const real_t norm_pixel_unit = 4.0 / (cam0_fx + cam0_fy + cam1_fx +
 //   cam1_fy);
 //   // -- Further remove outliers based on essential matrix
 //   // std::vector<cv::Point2f> cam0_points_ud = undistort(cam0_points);
@@ -368,7 +368,7 @@ double glvn(const cv::Mat &src);
 //   //   const cv::Vec3d pt0(cam0_points_ud[i].x, cam0_points_ud[i].y, 1.0);
 //   //   const cv::Vec3d pt1(cam1_points_ud[i].x, cam1_points_ud[i].y, 1.0);
 //   //   const cv::Vec3d el = E * pt0;
-//   //   double err = fabs((pt1.t() * el)[0]) / sqrt(el[0] * el[0] + el[1] *
+//   //   real_t err = fabs((pt1.t() * el)[0]) / sqrt(el[0] * el[0] + el[1] *
 //   //   el[1]); if (err > threshold * norm_pixel_unit) {
 //   //     inlier_markers[i] = 0;
 //   //   }
@@ -493,7 +493,7 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
                                     const int max_corners = 100,
                                     const int grid_rows = 5,
                                     const int grid_cols = 5,
-                                    const double threshold = 10.0,
+                                    const real_t threshold = 10.0,
                                     const bool nonmax_suppression = true);
 
 /**
@@ -516,12 +516,12 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
                                    const int max_corners = 100,
                                    const int grid_rows = 5,
                                    const int grid_cols = 5,
-                                   const double quality_level = 0.01,
-                                   const double min_distance = 10,
+                                   const real_t quality_level = 0.01,
+                                   const real_t min_distance = 10,
                                    const cv::Mat mask = cv::Mat(),
                                    const int block_size = 3,
                                    const bool use_harris_detector = false,
-                                   const double k = 0.04);
+                                   const real_t k = 0.04);
 
 /****************************************************************************
  *                            RADIAL-TANGENTIAL
@@ -531,19 +531,19 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
  * Radial-tangential distortion
  */
 struct radtan4_t {
-  double k1 = 0.0;
-  double k2 = 0.0;
-  double p1 = 0.0;
-  double p2 = 0.0;
-  double *data[4] = {&k1, &k2, &p1, &p2};
+  real_t k1 = 0.0;
+  real_t k2 = 0.0;
+  real_t p1 = 0.0;
+  real_t p2 = 0.0;
+  real_t *data[4] = {&k1, &k2, &p1, &p2};
 
   radtan4_t();
-  radtan4_t(const double *distortion_);
+  radtan4_t(const real_t *distortion_);
   radtan4_t(const vec4_t &distortion_);
-  radtan4_t(const double k1_,
-            const double k2_,
-            const double p1_,
-            const double p2_);
+  radtan4_t(const real_t k1_,
+            const real_t k2_,
+            const real_t p1_,
+            const real_t p2_);
   radtan4_t(radtan4_t &radtan);
   radtan4_t(const radtan4_t &radtan);
   ~radtan4_t();
@@ -645,16 +645,16 @@ vec2_t undistort(const radtan4_t &radtan,
  * Equi-distant distortion
  */
 struct equi4_t {
-  double k1 = 0.0;
-  double k2 = 0.0;
-  double k3 = 0.0;
-  double k4 = 0.0;
-  double *data[4] = {&k1, &k2, &k3, &k4};
+  real_t k1 = 0.0;
+  real_t k2 = 0.0;
+  real_t k3 = 0.0;
+  real_t k4 = 0.0;
+  real_t *data[4] = {&k1, &k2, &k3, &k4};
 
-  equi4_t(const double k1_,
-          const double k2_,
-          const double k3_,
-          const double k4_);
+  equi4_t(const real_t k1_,
+          const real_t k2_,
+          const real_t k3_,
+          const real_t k4_);
   ~equi4_t();
 };
 
@@ -717,20 +717,20 @@ vec2_t undistort(const equi4_t &equi, const vec2_t &p);
  * Pinhole camera model
  */
 struct pinhole_t {
-  double fx = 0.0;
-  double fy = 0.0;
-  double cx = 0.0;
-  double cy = 0.0;
-  double *data[4] = {&fx, &fy, &cx, &cy};
+  real_t fx = 0.0;
+  real_t fy = 0.0;
+  real_t cx = 0.0;
+  real_t cy = 0.0;
+  real_t *data[4] = {&fx, &fy, &cx, &cy};
 
   pinhole_t();
-  pinhole_t(const double *intrinsics);
+  pinhole_t(const real_t *intrinsics);
   pinhole_t(const vec4_t &intrinsics);
   pinhole_t(const mat3_t &K);
-  pinhole_t(const double fx_,
-            const double fy_,
-            const double cx_,
-            const double cy_);
+  pinhole_t(const real_t fx_,
+            const real_t fy_,
+            const real_t cx_,
+            const real_t cy_);
   pinhole_t(pinhole_t &pinhole);
   pinhole_t(const pinhole_t &pinhole);
   ~pinhole_t();
@@ -763,7 +763,7 @@ std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole);
  * @returns Camera matrix K
  */
 mat3_t
-pinhole_K(const double fx, const double fy, const double cx, const double cy);
+pinhole_K(const real_t fx, const real_t fy, const real_t cx, const real_t cy);
 
 /**
  * Form pinhole camera matrix K
@@ -802,8 +802,8 @@ static Eigen::Matrix<T, 3, 3> pinhole_K(const T *intrinsics) {
  * @returns Camera matrix K
  */
 mat3_t pinhole_K(const vec2_t &image_size,
-                 const double lens_hfov,
-                 const double lens_vfov);
+                 const real_t lens_hfov,
+                 const real_t lens_vfov);
 
 /**
  * Form pinhole projection matrix P
@@ -822,7 +822,7 @@ mat34_t pinhole_P(const mat3_t &K, const mat3_t &C_WC, const vec3_t &r_WC);
  * @param[in] fov Field of view [deg]
  * @returns Focal length in pixels
  */
-double pinhole_focal_length(const int image_width, const double fov);
+real_t pinhole_focal_length(const int image_width, const real_t fov);
 
 /**
  * Pinhole camera model theoretical focal length
@@ -833,8 +833,8 @@ double pinhole_focal_length(const int image_width, const double fov);
  * @returns Focal length in pixels
  */
 vec2_t pinhole_focal_length(const vec2_t &image_size,
-                            const double hfov,
-                            const double vfov);
+                            const real_t hfov,
+                            const real_t vfov);
 
 /**
  * Project 3D point to image plane (not in pixels)
@@ -891,9 +891,9 @@ int project(const int img_w,
             const vec3_t &p_C,
             vec2_t &z_hat) {
   // Check validity of the point, simple depth test.
-  const double x = p_C(0);
-  const double y = p_C(1);
-  const double z = p_C(2);
+  const real_t x = p_C(0);
+  const real_t y = p_C(1);
+  const real_t z = p_C(2);
   if (fabs(z) < 0.05) {
     return -1;
   }
@@ -927,9 +927,9 @@ int project(const int img_w,
   }
 
   // Projection Jacobian
-  const double x = p_C(0);
-  const double y = p_C(1);
-  const double z = p_C(2);
+  const real_t x = p_C(0);
+  const real_t y = p_C(1);
+  const real_t z = p_C(2);
   mat_t<2, 3> J_proj = zeros(2, 3);
   J_proj(0, 0) = 1.0 / z;
   J_proj(1, 1) = 1.0 / z;
@@ -1088,7 +1088,7 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
                             Eigen::Matrix<T, 2, 1> &image_point) {
   // Check for singularity
   const T z_norm = sqrt(point(2) * point(2)); // std::abs doesn't work for all T
-  if (z_norm < 1.0e-12) {
+  if ((T) z_norm < (T) 1.0e-12) {
     return -1;
   }
 

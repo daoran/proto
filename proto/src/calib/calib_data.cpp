@@ -2,16 +2,48 @@
 
 namespace proto {
 
-calib_pose_t::calib_pose_t(const mat4_t &T)
-  : q{T.block<3, 3>(0, 0)}, r{T.block<3, 1>(0, 3)} {}
+calib_pose_t::calib_pose_t(const mat4_t &T) {
+  quat_t q_{tf_rot(T)};
+  q[0] = q_.x();
+  q[1] = q_.y();
+  q[2] = q_.z();
+  q[3] = q_.w();
 
-calib_pose_t::calib_pose_t(const mat3_t &C, const vec3_t &r)
-  : q{C}, r{r} {}
+  r[0] = T(0, 3);
+  r[1] = T(1, 3);
+  r[2] = T(2, 3);
+}
 
-calib_pose_t::calib_pose_t(const quat_t &q, const vec3_t &r)
-  : q{q}, r{r} {}
+calib_pose_t::calib_pose_t(const mat3_t &rot, const vec3_t &trans) {
+  quat_t q_{rot};
+  q[0] = q_.x();
+  q[1] = q_.y();
+  q[2] = q_.z();
+  q[3] = q_.w();
+
+  r[0] = trans(0);
+  r[1] = trans(1);
+  r[2] = trans(2);
+}
+
+calib_pose_t::calib_pose_t(const quat_t &rot, const vec3_t &trans) {
+  q[0] = rot.x();
+  q[1] = rot.y();
+  q[2] = rot.z();
+  q[3] = rot.w();
+
+  r[0] = trans(0);
+  r[1] = trans(1);
+  r[2] = trans(2);
+}
 
 calib_pose_t::~calib_pose_t() {}
+
+mat4_t calib_pose_t::T() {
+  quat_t rot(q[3], q[0], q[1], q[2]);
+  vec3_t trans(r[0], r[1], r[2]);
+  return tf(rot, trans);
+}
 
 calib_target_t::calib_target_t() {}
 
@@ -67,7 +99,7 @@ int detect_calib_data(const calib_target_t &target,
   aprilgrid_detector_t detector;
 
   for (size_t i = 0; i < image_paths.size(); i++) {
-    print_progress((double) i / image_paths.size());
+    print_progress((real_t) i / image_paths.size());
     // -- Detect
     const auto image_path = paths_combine(image_dir, image_paths[i]);
     const cv::Mat image = cv::imread(image_path);
@@ -114,7 +146,7 @@ int preprocess_camera_data(const calib_target_t &target,
 
   for (size_t i = 0; i < image_paths.size(); i++) {
     if (show_progress) {
-      print_progress((double) i / image_paths.size());
+      print_progress((real_t) i / image_paths.size());
     }
 
     // -- Create output file path
@@ -127,8 +159,8 @@ int preprocess_camera_data(const calib_target_t &target,
     // -- Setup AprilGrid
     const int tag_rows = target.tag_rows;
     const int tag_cols = target.tag_cols;
-    const double tag_size = target.tag_size;
-    const double tag_spacing = target.tag_spacing;
+    const real_t tag_size = target.tag_size;
+    const real_t tag_spacing = target.tag_spacing;
     aprilgrid_t grid{ts, tag_rows, tag_cols, tag_size, tag_spacing};
 
     // -- Skip if already preprocessed
@@ -172,8 +204,8 @@ int preprocess_camera_data(const calib_target_t &target,
 int preprocess_camera_data(const calib_target_t &target,
                            const std::string &image_dir,
                            const vec2_t &image_size,
-                           const double lens_hfov,
-                           const double lens_vfov,
+                           const real_t lens_hfov,
+                           const real_t lens_vfov,
                            const std::string &output_dir,
                            const bool imshow,
                            const bool show_progress) {
@@ -244,16 +276,16 @@ int preprocess_stereo_data(const calib_target_t &target,
                            const std::string &cam1_image_dir,
                            const vec2_t &cam0_image_size,
                            const vec2_t &cam1_image_size,
-                           const double cam0_lens_hfov,
-                           const double cam0_lens_vfov,
-                           const double cam1_lens_hfov,
-                           const double cam1_lens_vfov,
+                           const real_t cam0_lens_hfov,
+                           const real_t cam0_lens_vfov,
+                           const real_t cam1_lens_hfov,
+                           const real_t cam1_lens_vfov,
                            const std::string &cam0_output_dir,
                            const std::string &cam1_output_dir) {
   std::vector<std::string> data_paths = {cam0_image_dir, cam1_image_dir};
   std::vector<vec2_t> resolutions = {cam0_image_size, cam1_image_size};
-  std::vector<double> hfovs = {cam0_lens_hfov, cam1_lens_hfov};
-  std::vector<double> vfovs = {cam0_lens_vfov, cam1_lens_vfov};
+  std::vector<real_t> hfovs = {cam0_lens_hfov, cam1_lens_hfov};
+  std::vector<real_t> vfovs = {cam0_lens_vfov, cam1_lens_vfov};
   std::vector<std::string> output_paths = {cam0_output_dir, cam1_output_dir};
 
   int retvals[2] = {0, 0};
@@ -379,7 +411,7 @@ int load_stereo_calib_data(const std::string &cam0_data_dir,
 int load_multicam_calib_data(const int nb_cams,
                              const std::vector<std::string> &data_dirs,
                              std::map<int, aprilgrids_t> &calib_data) {
-  // Double check nb_cams is equal to data_dirs.size()
+  // real_t check nb_cams is equal to data_dirs.size()
   if (nb_cams != (int) data_dirs.size()) {
     LOG_ERROR("nb_cams != data_dirs");
     return -1;
@@ -515,7 +547,7 @@ cv::Mat draw_calib_validation(const cv::Mat &image,
   }
 
   // Calculate reprojection error and show in image
-  const double rmse = reprojection_error(measured, projected);
+  const real_t rmse = reprojection_error(measured, projected);
   // -- Convert rmse to string
   std::stringstream stream;
   stream << std::fixed << std::setprecision(2) << rmse;

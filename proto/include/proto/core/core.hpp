@@ -45,8 +45,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 /* PRECISION TYPE */
-#define real_t float
-// #define real_t double
+// #define real_t float
+#define real_t double
 
 /******************************************************************************
  *                                MACROS
@@ -252,7 +252,7 @@ std::string paths_combine(const std::string path1, const std::string path2);
  *    - 1: Positive number
  *    - -1: Negative number
  */
-int sign(const double x);
+int sign(const real_t x);
 
 /**
  * Floating point comparator
@@ -264,7 +264,7 @@ int sign(const double x);
  *    - 1: if f1 > f2
  *    - -1: if f1 < f2
  */
-int fltcmp(const double f1, const double f2);
+int fltcmp(const real_t f1, const real_t f2);
 
 /**
  * Calculate binomial coefficient
@@ -273,7 +273,7 @@ int fltcmp(const double f1, const double f2);
  * @param[in] k
  * @returns Binomial coefficient
  */
-double binomial(const double n, const double k);
+real_t binomial(const real_t n, const real_t k);
 
 /**
  * Return evenly spaced numbers over a specified interval.
@@ -290,8 +290,8 @@ std::vector<T> linspace(const T start, const T end, const int num) {
     return linspaced;
   }
 
-  const double diff = static_cast<double>(end - start);
-  const double delta = diff / static_cast<double>(num - 1);
+  const real_t diff = static_cast<real_t>(end - start);
+  const real_t delta = diff / static_cast<real_t>(num - 1);
   for (int i = 0; i < num - 1; ++i) {
     linspaced.push_back(start + delta * i);
   }
@@ -306,21 +306,22 @@ std::vector<T> linspace(const T start, const T end, const int num) {
 #define col_major_t Eigen::ColMajor
 #define row_major_t Eigen::RowMajor
 
-typedef Eigen::Matrix<double, 2, 1> vec2_t;
-typedef Eigen::Matrix<double, 3, 1> vec3_t;
-typedef Eigen::Matrix<double, 4, 1> vec4_t;
-typedef Eigen::Matrix<double, 5, 1> vec5_t;
-typedef Eigen::Matrix<double, 6, 1> vec6_t;
-typedef Eigen::Matrix<double, Eigen::Dynamic, 1> vecx_t;
-typedef Eigen::Matrix<double, 2, 2> mat2_t;
-typedef Eigen::Matrix<double, 3, 3> mat3_t;
-typedef Eigen::Matrix<double, 4, 4> mat4_t;
-typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> matx_t;
-typedef Eigen::Matrix<double, 3, 4> mat34_t;
-typedef Eigen::Quaternion<double> quat_t;
-typedef Eigen::AngleAxis<double> angle_axis_t;
-typedef Eigen::Matrix<double, 1, Eigen::Dynamic> row_vector_t;
-typedef Eigen::Matrix<double, Eigen::Dynamic, 1> col_vector_t;
+typedef Eigen::Matrix<real_t, 2, 1> vec2_t;
+typedef Eigen::Matrix<real_t, 3, 1> vec3_t;
+typedef Eigen::Matrix<real_t, 4, 1> vec4_t;
+typedef Eigen::Matrix<real_t, 5, 1> vec5_t;
+typedef Eigen::Matrix<real_t, 6, 1> vec6_t;
+typedef Eigen::Matrix<real_t, Eigen::Dynamic, 1> vecx_t;
+typedef Eigen::Matrix<real_t, 2, 2> mat2_t;
+typedef Eigen::Matrix<real_t, 3, 3> mat3_t;
+typedef Eigen::Matrix<real_t, 4, 4> mat4_t;
+typedef Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic> matx_t;
+typedef Eigen::Matrix<real_t, 3, 4> mat34_t;
+typedef Eigen::Quaternion<real_t> quat_t;
+typedef Eigen::AngleAxis<real_t> angle_axis_t;
+typedef Eigen::Matrix<real_t, 1, Eigen::Dynamic> row_vector_t;
+typedef Eigen::Matrix<real_t, Eigen::Dynamic, 1> col_vector_t;
+typedef Eigen::Array<real_t, Eigen::Dynamic, 1> arrayx_t;
 
 typedef std::vector<vec2_t, Eigen::aligned_allocator<vec2_t>> vec2s_t;
 typedef std::vector<vec3_t, Eigen::aligned_allocator<vec3_t>> vec3s_t;
@@ -338,15 +339,15 @@ typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
 template <int ROWS,
           int COLS,
           Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using mat_t = Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>;
+using mat_t = Eigen::Matrix<real_t, ROWS, COLS, STRIDE_TYPE>;
 
 template <int ROWS,
           int COLS,
           Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using map_mat_t = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
+using map_mat_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, COLS, STRIDE_TYPE>>;
 
 template <int ROWS>
-using map_vec_t = Eigen::Map<Eigen::Matrix<double, ROWS, 1>>;
+using map_vec_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, 1>>;
 
 /**
  * Print shape of a matrix
@@ -372,7 +373,7 @@ void print_shape(const std::string &name, const vecx_t &v);
  * @param[in] size Size of target array
  */
 void print_array(const std::string &name,
-                 const double *array,
+                 const real_t *array,
                  const size_t size);
 
 /**
@@ -397,16 +398,16 @@ void print_quaternion(const std::string &name, const quat_t &q);
  * @param[in] size Size of target array
  * @returns String of array
  */
-std::string array2str(const double *array, const size_t size);
+std::string array2str(const real_t *array, const size_t size);
 
 /**
- * Convert double array to Eigen::Vector
+ * Convert real_t array to Eigen::Vector
  *
  * @param[in] x Input array
  * @param[in] size Size of input array
  * @param[out] y Output vector
  */
-void array2vec(const double *x, const size_t size, vecx_t &y);
+void array2vec(const real_t *x, const size_t size, vecx_t &y);
 
 /**
  * Vector to array
@@ -414,7 +415,7 @@ void array2vec(const double *x, const size_t size, vecx_t &y);
  * @param[in] v Vector
  * @returns Array
  */
-double *vec2array(const vecx_t &v);
+real_t *vec2array(const vecx_t &v);
 
 /**
  * Matrix to array
@@ -422,7 +423,7 @@ double *vec2array(const vecx_t &v);
  * @param[in] m Matrix
  * @returns Array
  */
-double *mat2array(const matx_t &m);
+real_t *mat2array(const matx_t &m);
 
 /**
  * Quaternion to array
@@ -432,7 +433,7 @@ double *mat2array(const matx_t &m);
  * @param[in] q Quaternion
  * @returns Array
  */
-double *quat2array(const quat_t &q);
+real_t *quat2array(const quat_t &q);
 
 /**
  * Vector to array
@@ -440,7 +441,7 @@ double *quat2array(const quat_t &q);
  * @param[in] v Vector
  * @param[out] out Output array
  */
-void vec2array(const vecx_t &v, double *out);
+void vec2array(const vecx_t &v, real_t *out);
 
 /**
  * Matrix to array
@@ -448,7 +449,7 @@ void vec2array(const vecx_t &v, double *out);
  * @param[in] m Matrix
  * @param[in] out Output array
  */
-void mat2array(const matx_t &m, double *out);
+void mat2array(const matx_t &m, real_t *out);
 
 /**
  * Matrix to list of vectors
@@ -499,7 +500,7 @@ std::string vec2str(const vecx_t &v, const bool brackets = true);
  * @param[in] brackets Brakcets around vector string
  * @returns Array as a string
  */
-std::string arr2str(const double *arr, const size_t len, bool brackets = true);
+std::string arr2str(const real_t *arr, const size_t len, bool brackets = true);
 
 /**
  * Matrix to string
@@ -626,25 +627,25 @@ matx_t enforce_psd(const matx_t &A);
 matx_t nullspace(const matx_t &A);
 
 /**
- * Load std::vector of doubles to an Eigen::Matrix
+ * Load std::vector of real_ts to an Eigen::Matrix
  *
  * @param[in] x Matrix values
  * @param[in] rows Number of matrix rows
  * @param[in] cols Number of matrix colums
  * @param[out] y Output matrix
  */
-void load_matrix(const std::vector<double> &x,
+void load_matrix(const std::vector<real_t> &x,
                  const int rows,
                  const int cols,
                  matx_t &y);
 
 /**
- * Load an Eigen::Matrix into a std::vector of doubles
+ * Load an Eigen::Matrix into a std::vector of real_ts
  *
  * @param[in] A Matrix
  * @param[out] x Output vector of matrix values
  */
-void load_matrix(const matx_t A, std::vector<double> &x);
+void load_matrix(const matx_t A, std::vector<real_t> &x);
 
 /******************************************************************************
  *                                 Geometry
@@ -653,7 +654,7 @@ void load_matrix(const matx_t A, std::vector<double> &x);
 /**
  * Sinc function.
  */
-double sinc(const double x);
+real_t sinc(const real_t x);
 
 /**
  * Degrees to radians
@@ -661,7 +662,7 @@ double sinc(const double x);
  * @param[in] d Degree to be converted
  * @return Degree in radians
  */
-double deg2rad(const double d);
+real_t deg2rad(const real_t d);
 
 /**
  * Degrees to radians
@@ -677,7 +678,7 @@ vec3_t deg2rad(const vec3_t d);
  * @param[in] r Radian to be converted
  * @return Radian in degrees
  */
-double rad2deg(const double r);
+real_t rad2deg(const real_t r);
 
 /**
  * Radians to degree
@@ -693,7 +694,7 @@ vec3_t rad2deg(const vec3_t &r);
  * @param[in] d Degrees
  * @return Angle wraped to 180
  */
-double wrap180(const double d);
+real_t wrap180(const real_t d);
 
 /**
  * Wrap angle in degrees to 360
@@ -701,7 +702,7 @@ double wrap180(const double d);
  * @param[in] d Degrees
  * @return Angle wraped to 360
  */
-double wrap360(const double d);
+real_t wrap360(const real_t d);
 
 /**
  * Wrap angle in radians to PI
@@ -709,7 +710,7 @@ double wrap360(const double d);
  * @param[in] r Radians
  * @return Angle wraped to PI
  */
-double wrapPi(const double r);
+real_t wrapPi(const real_t r);
 
 /**
  * Wrap angle in radians to 2 PI
@@ -717,18 +718,18 @@ double wrapPi(const double r);
  * @param[in] r Radians
  * @return Angle wraped to 2 PI
  */
-double wrap2Pi(const double r);
+real_t wrap2Pi(const real_t r);
 
 /**
  * Create a circle point of radius `r` at angle `theta` radians.
  */
-vec2_t circle(const double r, const double theta);
+vec2_t circle(const real_t r, const real_t theta);
 
 /**
  * Create the sphere point with sphere radius `rho` at longitude `theta`
  * [radians] and latitude `phi` [radians].
  */
-vec3_t sphere(const double rho, const double theta, const double phi);
+vec3_t sphere(const real_t rho, const real_t theta, const real_t phi);
 
 /**
  * Create look at matrix.
@@ -745,7 +746,7 @@ mat4_t lookat(const vec3_t &cam_pos,
  * @param[in] pos Robot position
  * @return Cross track error
  */
-double cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
+real_t cross_track_error(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
 
 /**
  * Check if point `pos` is left or right of line formed by `p1` and `p2`
@@ -774,7 +775,7 @@ int point_left_right(const vec2_t &p1, const vec2_t &p2, const vec2_t &pos);
  *    (50%) of the waypoint line, alternatively a negative number denotes the
  *    closest point is behind the first waypoint.
  */
-double closest_point(const vec2_t &p1,
+real_t closest_point(const vec2_t &p1,
                      const vec2_t &p2,
                      const vec2_t &p3,
                      vec2_t &closest);
@@ -788,7 +789,7 @@ double closest_point(const vec2_t &p1,
  * @returns Linear interpolation
  */
 template <typename T>
-T lerp(const T &a, const T &b, const double t) {
+T lerp(const T &a, const T &b, const real_t t) {
   return a * (1.0 - t) + b * t;
 }
 
@@ -808,12 +809,12 @@ T lerp(const T &a, const T &b, const double t) {
  * @param lat_new New latitude (decimal format)
  * @param lon_new New longitude (decimal format)
  */
-void latlon_offset(double lat_ref,
-                   double lon_ref,
-                   double offset_N,
-                   double offset_E,
-                   double *lat_new,
-                   double *lon_new);
+void latlon_offset(real_t lat_ref,
+                   real_t lon_ref,
+                   real_t offset_N,
+                   real_t offset_E,
+                   real_t *lat_new,
+                   real_t *lon_new);
 
 /**
  * Calculate difference in distance in North and East from two GPS coordinates
@@ -828,12 +829,12 @@ void latlon_offset(double lat_ref,
  * @param dist_N Distance of point of interest in North axis [m]
  * @param dist_E Distance of point of interest in East axis [m]
  */
-void latlon_diff(double lat_ref,
-                 double lon_ref,
-                 double lat,
-                 double lon,
-                 double *dist_N,
-                 double *dist_E);
+void latlon_diff(real_t lat_ref,
+                 real_t lon_ref,
+                 real_t lat,
+                 real_t lon,
+                 real_t *dist_N,
+                 real_t *dist_E);
 
 /**
  * Calculate Euclidean distance between two GPS coordintes
@@ -848,7 +849,7 @@ void latlon_diff(double lat_ref,
  *
  * @returns Euclidean distance between two GPS coordinates [m]
  */
-double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
+real_t latlon_dist(real_t lat_ref, real_t lon_ref, real_t lat, real_t lon);
 
 /******************************************************************************
  *                                STATISTICS
@@ -864,13 +865,13 @@ double latlon_dist(double lat_ref, double lon_ref, double lat, double lon);
 int randi(const int ub, const int lb);
 
 /**
- * Create random double
+ * Create random real_t
  *
  * @param[in] ub Upper bound
  * @param[in] lb Lower bound
  * @return Random floating point
  */
-double randf(const double ub, const double lb);
+real_t randf(const real_t ub, const real_t lb);
 
 /**
  * Calculate median given an array of numbers
@@ -878,7 +879,7 @@ double randf(const double ub, const double lb);
  * @param[in] v Array of numbers
  * @return Median of given array
  */
-double median(const std::vector<double> &v);
+real_t median(const std::vector<real_t> &v);
 
 /**
  * Mean vector
@@ -891,7 +892,7 @@ vec3_t mean(const vec3s_t &x);
 /**
  * Shannon Entropy of a given covariance matrix `covar`.
  */
-double shannon_entropy(const matx_t &covar);
+real_t shannon_entropy(const matx_t &covar);
 
 /**
  * Multivariate normal.
@@ -904,7 +905,7 @@ vec3_t mvn(std::default_random_engine &engine,
  * Gassian normal.
  * http://c-faq.com/lib/gaussian.html
  */
-double gauss_normal();
+real_t gauss_normal();
 
 /*****************************************************************************
  *                               TRANSFORM
@@ -924,10 +925,10 @@ Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
 }
 
 /**
- * Form a 4x4 homogeneous transformation matrix from a pointer to double array
+ * Form a 4x4 homogeneous transformation matrix from a pointer to real_t array
  * containing (quaternion + translation) 7 elements: (qw, qx, qy, qz, x, y, z)
  */
-mat4_t tf(const double *params);
+mat4_t tf(const real_t *params);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
@@ -961,13 +962,13 @@ inline vec3_t tf_trans(const mat4_t &tf) { return tf.block<3, 1>(0, 3); }
  * Perturb the rotation element in the tranform `T` by `step_size` at index
  * `i`. Where i = 0 for x-axis, i = 1 for y-axis, and i = 2 for z-axis.
  */
-mat4_t tf_perturb_rot(const mat4_t &T, double step_size, const int i);
+mat4_t tf_perturb_rot(const mat4_t &T, real_t step_size, const int i);
 
 /**
  * Perturb the translation element in the tranform `T` by `step_size` at index
  * `i`. Where i = 0 for x-axis, i = 1 for y-axis, and i = 2 for z-axis.
  */
-mat4_t tf_perturb_trans(const mat4_t &T, double step_size, const int i);
+mat4_t tf_perturb_trans(const mat4_t &T, real_t step_size, const int i);
 
 /**
  * Transform point `p` with transform `T`.
@@ -978,19 +979,19 @@ vec3_t tf_point(const mat4_t &T, const vec3_t &p);
  * Rotation matrix around x-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
-mat3_t rotx(const double theta);
+mat3_t rotx(const real_t theta);
 
 /**
  * Rotation matrix around y-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
-mat3_t roty(const double theta);
+mat3_t roty(const real_t theta);
 
 /**
  * Rotation matrix around z-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
-mat3_t rotz(const double theta);
+mat3_t rotz(const real_t theta);
 
 /**
  * Convert euler sequence 123 to rotation matrix R
@@ -1038,7 +1039,7 @@ mat3_t vecs2rot(const vec3_t &a_m, const vec3_t &g);
 /**
  * Convert rotation vector `rvec` to rotation matrix.
  */
-mat3_t rvec2rot(const vec3_t &rvec, const double eps = 1e-5);
+mat3_t rvec2rot(const vec3_t &rvec, const real_t eps = 1e-5);
 
 /**
  * Convert quaternion to euler angles.
@@ -1081,12 +1082,12 @@ void timestamp_print(const timestamp_t &ts, const std::string &prefix = "");
 /**
  * Convert ts to second.
  */
-double ts2sec(const timestamp_t &ts);
+real_t ts2sec(const timestamp_t &ts);
 
 /**
  * Convert nano-second to second.
  */
-double ns2sec(const uint64_t ns);
+real_t ns2sec(const uint64_t ns);
 
 /**
  * Start timer.
@@ -1106,7 +1107,7 @@ float mtoc(struct timespec *tic);
 /**
  * Get time now in milliseconds since epoch
  */
-double time_now();
+real_t time_now();
 
 /*****************************************************************************
  *                              FACTOR GRAPH
@@ -1132,15 +1133,15 @@ struct param_t {
 
   virtual ~param_t() {}
 
-  virtual double *data() = 0;
+  virtual real_t *data() = 0;
   virtual void plus(const vecx_t &) = 0;
 };
 
 struct pose_t : param_t {
-  double param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  real_t param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   pose_t();
-  pose_t(const double *data);
+  pose_t(const real_t *data);
   pose_t(const mat4_t &tf_);
   pose_t(const quat_t &q_, const vec3_t &r_);
   pose_t(const size_t id, const timestamp_t &ts_,
@@ -1155,7 +1156,7 @@ struct pose_t : param_t {
   mat4_t tf();
 
   vec3_t vec();
-  double *data();
+  real_t *data();
   void set_trans(const vec3_t &r);
   void set_rot(const quat_t &q);
   void set_rot(const mat3_t &C);
@@ -1163,24 +1164,24 @@ struct pose_t : param_t {
 };
 
 struct landmark_t :param_t {
-  double param[3] = {0.0, 0.0, 0.0};
+  real_t param[3] = {0.0, 0.0, 0.0};
 
   landmark_t(const vec3_t &p_W_);
   landmark_t(const size_t id_, const vec3_t &p_W_);
 
   vec3_t vec();
-  double *data();
+  real_t *data();
   void plus(const vecx_t &dx);
 };
 
 // struct camera_params_t :param_t {
-//   double param[4] = {0.0, 0.0, 0.0, 0.0};
+//   real_t param[4] = {0.0, 0.0, 0.0, 0.0};
 //
 //   camera_params_t(const vec3_t &p_W_);
 //   camera_params_t(const size_t id_, const vec3_t &p_W_);
 //
 //   vec3_t vec();
-//   double *data();
+//   real_t *data();
 //   void plus(const vecx_t &dx);
 // };
 
@@ -1251,10 +1252,10 @@ int csv_cols(const char *fp);
 char **csv_fields(const char *fp, int *nb_fields);
 
 /**
- * Load data in csv file `fp`. Assumming the data are doubles. Also returns
+ * Load data in csv file `fp`. Assumming the data are real_ts. Also returns
  * number of rows and cols in `nb_rows` and `nb_cols` respectively.
  */
-double **csv_data(const char *fp, int *nb_rows, int *nb_cols);
+real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols);
 
 /**
  * Load integer arrays in csv file located at `csv_path`. The number of arrays
@@ -1263,10 +1264,10 @@ double **csv_data(const char *fp, int *nb_rows, int *nb_cols);
 int **load_iarrays(const char *csv_path, int *nb_arrays);
 
 /**
- * Load double arrays in csv file located at `csv_path`. The number of arrays
+ * Load real_t arrays in csv file located at `csv_path`. The number of arrays
  * is returned in `nb_arrays`.
  */
-double **load_darrays(const char *csv_path, int *nb_arrays);
+real_t **load_darrays(const char *csv_path, int *nb_arrays);
 
 /**
  * Get number of rows in CSV file.
@@ -1307,17 +1308,17 @@ int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data);
 /**
  * Print progress to screen
  */
-void print_progress(const double percentage);
+void print_progress(const real_t percentage);
 
 /**
  * Slerp
  */
-quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha);
+quat_t slerp(const quat_t &q_start, const quat_t &q_end, const real_t alpha);
 
 /**
  * Interpolate between two poses `p0` and `p1` with parameter `alpha`.
  */
-mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha);
+mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const real_t alpha);
 
 /**
  * Interpolate `poses` where each pose has a timestamp in `timestamps` and the
@@ -1329,7 +1330,7 @@ void interp_poses(const timestamps_t &timestamps,
                   const mat4s_t &poses,
                   const timestamps_t &interp_ts,
                   mat4s_t &interped_poses,
-                  const double threshold = 0.001);
+                  const real_t threshold = 0.001);
 
 /**
  * Get the closest pose in `poses` where each pose has a timestamp in
@@ -1494,7 +1495,7 @@ std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
 int check_jacobian(const std::string &jac_name,
                    const matx_t &fdiff,
                    const matx_t &jac,
-                   const double threshold,
+                   const real_t threshold,
                    const bool print = false);
 
 
@@ -1814,9 +1815,9 @@ void lerp_data(std::deque<timestamp_t> &ts0,
  *                                 SPLINE
  *****************************************************************************/
 
-typedef Eigen::Spline<double, 1> Spline1D;
-typedef Eigen::Spline<double, 2> Spline2D;
-typedef Eigen::Spline<double, 3> Spline3D;
+typedef Eigen::Spline<real_t, 1> Spline1D;
+typedef Eigen::Spline<real_t, 2> Spline2D;
+typedef Eigen::Spline<real_t, 3> Spline3D;
 
 #define SPLINE1D(X, Y, DEG)                                                    \
   Eigen::SplineFitting<Spline1D>::Interpolate(X, DEG, Y)
@@ -1835,9 +1836,9 @@ struct ctraj_t {
   const vec3s_t positions;
   const quats_t orientations;
 
-  const double ts_s_start;
-  const double ts_s_end;
-  const double ts_s_gap;
+  const real_t ts_s_start;
+  const real_t ts_s_end;
+  const real_t ts_s_gap;
 
   Spline3D pos_spline;
   Spline3D rvec_spline;
@@ -1887,14 +1888,14 @@ int ctraj_save(const ctraj_t &ctraj, const std::string &save_path);
  */
 struct sim_imu_t {
   // IMU parameters
-  double rate = 0.0;       // IMU rate [Hz]
-  double tau_a = 0.0;      // Reversion time constant for accel [s]
-  double tau_g = 0.0;      // Reversion time constant for gyro [s]
-  double sigma_g_c = 0.0;  // Gyro noise density [rad/s/sqrt(Hz)]
-  double sigma_a_c = 0.0;  // Accel noise density [m/s^s/sqrt(Hz)]
-  double sigma_gw_c = 0.0; // Gyro drift noise density [rad/s^s/sqrt(Hz)]
-  double sigma_aw_c = 0.0; // Accel drift noise density [m/s^2/sqrt(Hz)]
-  double g = 0.0;          // Gravity vector [ms-2]
+  real_t rate = 0.0;       // IMU rate [Hz]
+  real_t tau_a = 0.0;      // Reversion time constant for accel [s]
+  real_t tau_g = 0.0;      // Reversion time constant for gyro [s]
+  real_t sigma_g_c = 0.0;  // Gyro noise density [rad/s/sqrt(Hz)]
+  real_t sigma_a_c = 0.0;  // Accel noise density [m/s^s/sqrt(Hz)]
+  real_t sigma_gw_c = 0.0; // Gyro drift noise density [rad/s^s/sqrt(Hz)]
+  real_t sigma_aw_c = 0.0; // Accel drift noise density [m/s^2/sqrt(Hz)]
+  real_t g = 0.0;          // Gravity vector [ms-2]
 
   // IMU flags and biases
   bool started = false;
@@ -1928,19 +1929,19 @@ void sim_imu_measurement(sim_imu_t &imu,
  * PID Controller
  */
 struct pid_t {
-  double error_prev = 0.0;
-  double error_sum = 0.0;
+  real_t error_prev = 0.0;
+  real_t error_sum = 0.0;
 
-  double error_p = 0.0;
-  double error_i = 0.0;
-  double error_d = 0.0;
+  real_t error_p = 0.0;
+  real_t error_i = 0.0;
+  real_t error_d = 0.0;
 
-  double k_p = 0.0;
-  double k_i = 0.0;
-  double k_d = 0.0;
+  real_t k_p = 0.0;
+  real_t k_i = 0.0;
+  real_t k_d = 0.0;
 
   pid_t();
-  pid_t(const double k_p, const double k_i, const double k_d);
+  pid_t(const real_t k_p, const real_t k_i, const real_t k_d);
   ~pid_t();
 };
 
@@ -1954,17 +1955,17 @@ std::ostream &operator<<(std::ostream &os, const pid_t &pid);
  *
  * @returns Controller command
  */
-double pid_update(pid_t &p,
-                  const double setpoint,
-                  const double actual,
-                  const double dt);
+real_t pid_update(pid_t &p,
+                  const real_t setpoint,
+                  const real_t actual,
+                  const real_t dt);
 
 /**
  * Update controller
  *
  * @returns Controller command
  */
-double pid_update(pid_t &p, const double error, const double dt);
+real_t pid_update(pid_t &p, const real_t error, const real_t dt);
 
 /**
  * Reset controller
@@ -1979,7 +1980,7 @@ struct carrot_ctrl_t {
   vec3_t wp_start = vec3_t::Zero();
   vec3_t wp_end = vec3_t::Zero();
   size_t wp_index = 0;
-  double look_ahead_dist = 0.0;
+  real_t look_ahead_dist = 0.0;
 
   carrot_ctrl_t();
   ~carrot_ctrl_t();
@@ -1993,7 +1994,7 @@ struct carrot_ctrl_t {
  */
 int carrot_ctrl_configure(carrot_ctrl_t &cc,
                           const vec3s_t &waypoints,
-                          const double look_ahead_dist);
+                          const real_t look_ahead_dist);
 
 /**
  * Calculate closest point along current trajectory using current position
