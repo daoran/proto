@@ -6,13 +6,13 @@ std::string kitti_parse_string(const std::string &line) {
   return strip(line.substr(line.find(":") + 1, line.size() - 1));
 }
 
-double kitti_parse_double(const std::string &line) {
+real_t kitti_parse_real_t(const std::string &line) {
   const std::string str_val = kitti_parse_string(line);
-  const double val = atof(str_val.c_str());
+  const real_t val = atof(str_val.c_str());
   return val;
 }
 
-std::vector<double> kitti_parse_array(const std::string &line) {
+std::vector<real_t> kitti_parse_array(const std::string &line) {
   // Setup
   std::string s = kitti_parse_string(line);
   std::string delimiter = " ";
@@ -20,7 +20,7 @@ std::vector<double> kitti_parse_array(const std::string &line) {
   // Extract tokens
   size_t pos = 0;
   std::string token;
-  std::vector<double> values;
+  std::vector<real_t> values;
 
   while ((pos = s.find(delimiter)) != std::string::npos) {
     token = s.substr(0, pos);
@@ -36,17 +36,17 @@ std::vector<double> kitti_parse_array(const std::string &line) {
 }
 
 vec2_t kitti_parse_vec2(const std::string &line) {
-  const std::vector<double> values = kitti_parse_array(line);
+  const std::vector<real_t> values = kitti_parse_array(line);
   return vec2_t(values[0], values[1]);
 }
 
 vec3_t kitti_parse_vec3(const std::string &line) {
-  const std::vector<double> values = kitti_parse_array(line);
+  const std::vector<real_t> values = kitti_parse_array(line);
   return vec3_t(values[0], values[1], values[2]);
 }
 
 vecx_t kitti_parse_vecx(const std::string &line) {
-  const std::vector<double> values = kitti_parse_array(line);
+  const std::vector<real_t> values = kitti_parse_array(line);
 
   // Form the vector
   vecx_t vec;
@@ -59,7 +59,7 @@ vecx_t kitti_parse_vecx(const std::string &line) {
 }
 
 mat3_t kitti_parse_mat3(const std::string &line) {
-  const std::vector<double> values = kitti_parse_array(line);
+  const std::vector<real_t> values = kitti_parse_array(line);
 
   // Form the matrix
   mat3_t mat;
@@ -75,7 +75,7 @@ mat3_t kitti_parse_mat3(const std::string &line) {
 }
 
 mat34_t kitti_parse_mat34(const std::string &line) {
-  const std::vector<double> values = kitti_parse_array(line);
+  const std::vector<real_t> values = kitti_parse_array(line);
 
   // Form the matrix
   mat34_t mat;
@@ -121,7 +121,7 @@ int kitti_parse_timestamp(const std::string &line, long *s) {
   t.tm_hour = hour;
   t.tm_min = minute;
   t.tm_sec = second;
-  *s = ((double) mktime(&t) * 1.0e9) + subsecond;
+  *s = ((real_t) mktime(&t) * 1.0e9) + subsecond;
 
   return 0;
 }
@@ -151,12 +151,12 @@ int calib_cam2cam_load(calib_cam2cam_t &calib) {
       continue;
 
     } else if (token == "corner_dist") {
-      calib.corner_dist = kitti_parse_double(line);
+      calib.corner_dist = kitti_parse_real_t(line);
       continue;
     }
 
     // Parse rectification variables
-    const double cam_id = std::stod(token.substr(token.length() - 1));
+    const real_t cam_id = std::stod(token.substr(token.length() - 1));
     const bool rect_var = (token.find("rect") != std::string::npos);
     if (rect_var) {
       if (token[0] == 'S') {
@@ -286,34 +286,34 @@ int oxts_entry_load(oxts_entry_t &entry) {
   // Load the data
   std::string line;
   std::getline(oxt_file, line);
-  const std::vector<double> array = kitti_parse_array(line);
+  const std::vector<real_t> array = kitti_parse_array(line);
 
   // Store
-  const double lat = array[0];
-  const double lon = array[1];
-  const double alt = array[2];
-  const double roll = array[3];
-  const double pitch = array[4];
-  const double yaw = array[5];
-  const double vn = array[6];
-  const double ve = array[7];
-  const double vf = array[8];
-  const double vl = array[9];
-  const double vu = array[10];
-  const double ax = array[11];
-  const double ay = array[12];
-  const double az = array[13];
-  const double af = array[14];
-  const double al = array[15];
-  const double au = array[16];
-  const double wx = array[17];
-  const double wy = array[18];
-  const double wz = array[19];
-  const double wf = array[20];
-  const double wl = array[21];
-  const double wu = array[22];
-  const double pos_acc = array[23];
-  const double vel_acc = array[24];
+  const real_t lat = array[0];
+  const real_t lon = array[1];
+  const real_t alt = array[2];
+  const real_t roll = array[3];
+  const real_t pitch = array[4];
+  const real_t yaw = array[5];
+  const real_t vn = array[6];
+  const real_t ve = array[7];
+  const real_t vf = array[8];
+  const real_t vl = array[9];
+  const real_t vu = array[10];
+  const real_t ax = array[11];
+  const real_t ay = array[12];
+  const real_t az = array[13];
+  const real_t af = array[14];
+  const real_t al = array[15];
+  const real_t au = array[16];
+  const real_t wx = array[17];
+  const real_t wy = array[18];
+  const real_t wz = array[19];
+  const real_t wf = array[20];
+  const real_t wl = array[21];
+  const real_t wu = array[22];
+  const real_t pos_acc = array[23];
+  const real_t vel_acc = array[24];
 
   entry.gps = vec3_t{lat, lon, alt};
   entry.rpy = vec3_t{roll, pitch, yaw};
@@ -371,9 +371,9 @@ int oxts_load_entries(oxts_t &oxts) {
     }
 
     // Calculate local position
-    double dist_N = 0.0;
-    double dist_E = 0.0;
-    double alt = entry.gps(2) - gps_ref(2);
+    real_t dist_N = 0.0;
+    real_t dist_E = 0.0;
+    real_t alt = entry.gps(2) - gps_ref(2);
     latlon_diff(gps_ref(0),
                 gps_ref(1),
                 entry.gps(0),
@@ -436,7 +436,7 @@ int oxts_load_timestamps(oxts_t &oxts) {
     }
 
     oxts.timestamps.push_back(ts);
-    oxts.time.push_back((double) (ts - ts_first) * 1.0e-9);
+    oxts.time.push_back((real_t) (ts - ts_first) * 1.0e-9);
     line = std::string();
   }
 

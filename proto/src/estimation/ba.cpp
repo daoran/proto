@@ -11,7 +11,7 @@ static mat3_t load_camera(const std::string &data_path) {
   // Parse csv file
   int nb_rows = 0;
   int nb_cols = 0;
-  double **cam_K = csv_data(cam_csv, &nb_rows, &nb_cols);
+  real_t **cam_K = csv_data(cam_csv, &nb_rows, &nb_cols);
   if (cam_K == NULL) {
     FATAL("Failed to load csv file [%s]!", cam_csv);
   }
@@ -49,16 +49,16 @@ static poses_t load_target_pose(const std::string &data_path) {
   return load_poses(target_pose_csv);
 }
 
-static double **load_points(const std::string &data_path, int *nb_points) {
+static real_t **load_points(const std::string &data_path, int *nb_points) {
   char points_csv[1000] = {0};
   strcat(points_csv, data_path.c_str());
   strcat(points_csv, "/points.csv");
 
   // Initialize memory for points
   *nb_points = csv_rows(points_csv);
-  double **points = (double **) malloc(sizeof(double *) * *nb_points);
+  real_t **points = (real_t **) malloc(sizeof(real_t *) * *nb_points);
   for (int i = 0; i < *nb_points; i++) {
-    points[i] = (double *) malloc(sizeof(double) * 3);
+    points[i] = (real_t *) malloc(sizeof(real_t) * 3);
   }
 
   // Load file
@@ -146,9 +146,9 @@ static mat2_t J_intrinsics(const mat3_t &K) {
 }
 
 static matx_t J_project(const vec3_t &p_C) {
-  const double x = p_C(0);
-  const double y = p_C(1);
-  const double z = p_C(2);
+  const real_t x = p_C(0);
+  const real_t y = p_C(1);
+  const real_t z = p_C(2);
 
   // J = [1 / z, 0, -x / z^2,
   //      0, 1 / z, -y / z^2];
@@ -184,8 +184,8 @@ int check_J_cam_pose(const mat3_t &cam_K,
                      const mat4_t &T_WC,
                      const vec3_t &p_W,
                      const mat_t<2, 6> &J_cam_pose,
-                     const double step_size = 1e-3,
-                     const double threshold = 1e-2) {
+                     const real_t step_size = 1e-3,
+                     const real_t threshold = 1e-2) {
   const vec2_t z{0.0, 0.0};
   const vec4_t hp_W = p_W.homogeneous();
 
@@ -241,8 +241,8 @@ int check_J_point(const mat3_t &cam_K,
                   const mat4_t &T_WC,
                   const vec3_t &p_W,
                   const mat_t<2, 3> &J_point,
-                  const double step_size = 1e-10,
-                  const double threshold = 1e-2) {
+                  const real_t step_size = 1e-10,
+                  const real_t threshold = 1e-2) {
   const vec2_t z{0.0, 0.0};
   const mat4_t T_CW = T_WC.inverse();
   matx_t fdiff = zeros(2, 3);
@@ -375,8 +375,8 @@ matx_t ba_jacobian(ba_data_t &data) {
 }
 
 void ba_update(ba_data_t &data, const vecx_t &e, const matx_t &E) {
-  // const double lambda = 10.0;  // LM damping term
-  const double lambda = 0.001;  // LM damping term
+  // const real_t lambda = 10.0;  // LM damping term
+  const real_t lambda = 0.001;  // LM damping term
 
   // Form weight matrix
   // W = diag(repmat(sigma, data->nb_measurements, 1));
@@ -417,26 +417,25 @@ void ba_update(ba_data_t &data, const vecx_t &e, const matx_t &E) {
   }
 }
 
-double ba_cost(const vecx_t &e) {
+real_t ba_cost(const vecx_t &e) {
   return 0.5 * e.transpose() * e;
 }
 
 void ba_solve(ba_data_t &data) {
   int max_iter = 10;
-  double cost_prev = 0.0;
+  real_t cost_prev = 0.0;
 
   for (int iter = 0; iter < max_iter; iter++) {
     struct timespec t_start = tic();
     const vecx_t e = ba_residuals(data);
     const matx_t E = ba_jacobian(data);
     ba_update(data, e, E);
-    printf("- iter[%d] time: %fs\n", iter, toc(&t_start));
 
-    const double cost = ba_cost(e);
-    // printf("iter: %d\t cost: %.4e\n", iter, cost);
+    const real_t cost = ba_cost(e);
+    printf("- iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&t_start));
 
     // Termination criteria
-    double cost_diff = fabs(cost - cost_prev);
+    real_t cost_diff = fabs(cost - cost_prev);
     if (cost_diff < 1.0e-3) {
       printf("Done!\n");
       break;

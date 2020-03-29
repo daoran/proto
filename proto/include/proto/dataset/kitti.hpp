@@ -15,7 +15,7 @@ struct calib_cam2cam_t {
   std::string file_path;
 
   std::string calib_time;
-  double corner_dist = 0.0;
+  real_t corner_dist = 0.0;
   std::array<vec2_t, 4> S;
   std::array<mat3_t, 4> K;
   std::array<vecx_t, 4> D;
@@ -82,8 +82,8 @@ struct oxts_entry_t {
   vec3_t a_B = zeros(3, 1);
   vec3_t w_G = zeros(3, 1);
   vec3_t w_B = zeros(3, 1);
-  double pos_accuracy = 0.0;
-  double vel_accuracy = 0.0;
+  real_t pos_accuracy = 0.0;
+  real_t vel_accuracy = 0.0;
 
   oxts_entry_t() {}
   oxts_entry_t(const std::string &file_path_) : file_path{file_path_} {}
@@ -97,7 +97,7 @@ struct oxts_t {
   std::string oxts_dir;
 
   std::vector<long> timestamps;
-  std::vector<double> time;
+  std::vector<real_t> time;
   vec3s_t gps;
   vec3s_t rpy;
   vec3s_t p_G;
@@ -107,8 +107,8 @@ struct oxts_t {
   vec3s_t a_B;
   vec3s_t w_G;
   vec3s_t w_B;
-  std::vector<double> pos_accuracy;
-  std::vector<double> vel_accuracy;
+  std::vector<real_t> pos_accuracy;
+  std::vector<real_t> vel_accuracy;
 
   oxts_t() {}
   oxts_t(const std::string &oxts_dir_) : oxts_dir{oxts_dir_} {}
@@ -156,12 +156,12 @@ struct kitti_raw_t {
 std::string kitti_parse_string(const std::string &line);
 
 /**
- * Parse double
+ * Parse real_t
  *
- * @param[in] line Line containing a double
- * @returns A double
+ * @param[in] line Line containing a real_t
+ * @returns A real_t
  */
-double kitti_parse_double(const std::string &line);
+real_t kitti_parse_real_t(const std::string &line);
 
 /**
  * Parse array
@@ -169,7 +169,7 @@ double kitti_parse_double(const std::string &line);
  * @param[in] line Line containing an array
  * @returns Array
  */
-std::vector<double> kitti_parse_array(const std::string &line);
+std::vector<real_t> kitti_parse_array(const std::string &line);
 
 /**
  * Parse vector of size 2

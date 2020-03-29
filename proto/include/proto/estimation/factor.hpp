@@ -23,7 +23,7 @@ struct factor_t {
     : id{id_}, ts{ts_} {}
   virtual ~factor_t() {}
 
-  virtual bool eval(double const *const *parameters) = 0;
+  virtual bool eval(real_t const *const *parameters) = 0;
 };
 
 /*****************************************************************************
@@ -61,7 +61,7 @@ struct cam_factor_t : factor_t {
     jacobians.push_back(mat_t<2, 4>());  // Distortion model
   }
 
-  bool eval(double const *const *params) {
+  bool eval(real_t const *const *params) {
     assert(param_ids.size() == 5);
 
     // Map out parameters
@@ -125,7 +125,7 @@ struct cam_factor_t : factor_t {
 struct imu_error_t : factor_t {
   imu_error_t() {}
 
-  bool eval(double const *const *params) {
+  bool eval(real_t const *const *params) {
     UNUSED(params);
     return true;
   }
@@ -220,10 +220,10 @@ void graph_eval(graph_t &graph) {
   matx_t J = zeros(graph.residual_size, graph.param_size);
 
   // Determine parameter order
-  std::map<double *, size_t> param_idx;
-  std::map<double *, size_t> pose_blocks;
-  std::map<double *, size_t> calib_blocks;
-  std::map<double *, size_t> landmark_blocks;
+  std::map<real_t *, size_t> param_idx;
+  std::map<real_t *, size_t> pose_blocks;
+  std::map<real_t *, size_t> calib_blocks;
+  std::map<real_t *, size_t> landmark_blocks;
   // size_t param_counter = 0;
 
   for (const auto &factor : graph.factors) {
@@ -246,7 +246,7 @@ void graph_eval(graph_t &graph) {
   }
 
   // // Loop over time
-  // double *params[10] = {0};
+  // real_t *params[10] = {0};
   // for (const auto &factor : graph.factors) {
   //   for (size_t i = 0; i < factor->param_ids.size(); i++) {
   //     const auto param_id = factor->param_ids[i];
@@ -254,7 +254,7 @@ void graph_eval(graph_t &graph) {
   //   }
   //
   //   // factor->eval(params, );
-  //   memset(params, '\0', sizeof(double *) * 10);
+  //   memset(params, '\0', sizeof(real_t *) * 10);
   // }
 }
 

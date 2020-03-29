@@ -20,7 +20,7 @@ struct ba_data_t {
   int **point_ids;
   int nb_ids;
 
-  double **points;
+  real_t **points;
   int nb_points;
 
   ba_data_t(const std::string &data_path);
@@ -31,7 +31,7 @@ int ba_residual_size(ba_data_t &data);
 vecx_t ba_residuals(ba_data_t &data);
 matx_t ba_jacobian(ba_data_t &data);
 void ba_update(ba_data_t &data, const vecx_t &e, const matx_t &E);
-double ba_cost(const vecx_t &e);
+real_t ba_cost(const vecx_t &e);
 void ba_solve(ba_data_t &data);
 
 } // namespace proto
