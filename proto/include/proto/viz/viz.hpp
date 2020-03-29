@@ -25,6 +25,10 @@
 
 namespace proto {
 
+/****************************************************************************
+ *                                UTILS
+ ***************************************************************************/
+
 void print_vec3(const std::string &title, const glm::vec3 &v);
 void print_vec4(const std::string &title, const glm::vec4 &v);
 void print_mat3(const std::string &title, const glm::mat3 &m);
@@ -235,7 +239,8 @@ struct glmodel_t {
 
 void glmodel_draw(glmodel_t &model, const glcamera_t &camera);
 void glmodel_load(glmodel_t &model, const std::string &path);
-void glmodel_process_node(glmodel_t &model, aiNode *node, const aiScene *scene);
+void glmodel_process_node(glmodel_t &model, aiNode *node,
+                          const aiScene *scene);
 glmesh_t glmodel_process_mesh(glmodel_t &model,
                               aiMesh *mesh,
                               const aiScene *scene);
@@ -291,6 +296,33 @@ void main() {
   color = in_color;
 }
 )glsl";
+
+static const char *glvoxel_vs = R"glsl(
+#version 330 core
+layout (location = 0) in vec3 in_pos;
+layout (location = 1) in vec3 in_color;
+out vec3 color;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main() {
+  gl_Position = projection * view * model * vec4(in_pos, 1.0);
+  color = in_color;
+}
+)glsl";
+
+static const char *glvoxel_fs = R"glsl(
+#version 150 core
+in vec3 color;
+out vec4 frag_color;
+
+void main() {
+  frag_color = vec4(color, 1.0f);
+}
+)glsl";
+
 
 static const char *glcube_fs = R"glsl(
 #version 150 core
@@ -456,18 +488,13 @@ public:
   void draw(const glcamera_t &camera);
 };
 
-class glvoxels_t {
+class glvoxels_t : public globj_t {
 public:
-  float voxel_size;
-  size_t max_voxels;
-
-  float **data;
-  size_t nb_voxels = 0;
+  std::vector<GLfloat> vertices;
 
   glvoxels_t(const float voxel_size, const size_t max_voxels);
   ~glvoxels_t();
-
-  void add(const vec3_t &pos);
+  void draw(const glcamera_t &camera);
 };
 
 /****************************************************************************

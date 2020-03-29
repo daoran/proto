@@ -5,7 +5,7 @@ PROJECT(proto)
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(BUILD_SHARED_LIBS ON)
-# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse")
 
 # DEPENDENCIES
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -151,9 +151,9 @@ SET(
   # core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
-  # estimation-test_ba
-  estimation-test_dense
-  estimation-test_factor
+  estimation-test_ba
+  # estimation-test_dense
+  # estimation-test_factor
   # estimation-test_frontend
   # model-test_model
   # vision-test_vision

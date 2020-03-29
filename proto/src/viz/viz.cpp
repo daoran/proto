@@ -797,7 +797,7 @@ std::vector<gltexture_t> glmodel_load_textures(glmodel_t &model,
 
 unsigned int texture_from_file(const std::string &dir,
                                const char *fp,
-                               bool gamma) {
+                               bool /*gamma*/) {
   const std::string filename = dir + '/' + std::string(fp);
   unsigned int texture_id;
   glGenTextures(1, &texture_id);
@@ -955,62 +955,51 @@ glcube_t::glcube_t(const float cube_size)
   const float g = color_.y;
   const float b = color_.z;
   static const GLfloat vertices[] = {
-    // Triangle 1 : begin
+    // Triangle 1
     -cube_size, -cube_size, -cube_size, r, g, b,
     -cube_size, -cube_size, cube_size, r, g, b,
     -cube_size, cube_size, cube_size, r, g, b,
-    // Triangle 1 : end
-    // Triangle 2 : begin
+    // Triangle 2
     cube_size, cube_size, -cube_size, r, g, b,
     -cube_size, -cube_size, -cube_size, r, g, b,
     -cube_size, cube_size, -cube_size, r, g, b,
-    // Triangle 2 : end
-    // Triangle 3 : begin
+    // Triangle 3
     cube_size, -cube_size, cube_size, r, g, b,
     -cube_size, -cube_size, -cube_size, r, g, b,
     cube_size, -cube_size, -cube_size, r, g, b,
-    // Triangle 3 : end
-    // Triangle 4 : begin
+    // Triangle 4
     cube_size, cube_size, -cube_size, r, g, b,
     cube_size, -cube_size, -cube_size, r, g, b,
     -cube_size, -cube_size, -cube_size, r, g, b,
-    // Triangle 4 : end
-    // Triangle 5 : begin
+    // Triangle 5
     -cube_size, -cube_size, -cube_size, r, g, b,
     -cube_size, cube_size, cube_size, r, g, b,
     -cube_size, cube_size, -cube_size, r, g, b,
-    // Triangle 5 : end
-    // Triangle 6 : begin
+    // Triangle 6
     cube_size, -cube_size, cube_size, r, g, b,
     -cube_size, -cube_size, cube_size, r, g, b,
     -cube_size, -cube_size, -cube_size, r, g, b,
-    // Triangle 6 : end
-    // Triangle 7 : begin
+    // Triangle 7
     -cube_size, cube_size, cube_size, r, g, b,
     -cube_size, -cube_size, cube_size, r, g, b,
     cube_size, -cube_size, cube_size, r, g, b,
-    // Triangle 7 : end
-    // Triangle 8 : begin
+    // Triangle 8
     cube_size, cube_size, cube_size, r, g, b,
     cube_size, -cube_size, -cube_size, r, g, b,
     cube_size, cube_size, -cube_size, r, g, b,
-    // Triangle 8 : end
-    // Triangle 9 : begin
+    // Triangle 9
     cube_size, -cube_size, -cube_size, r, g, b,
     cube_size, cube_size, cube_size, r, g, b,
     cube_size, -cube_size, cube_size, r, g, b,
-    // Triangle 9 : end
-    // Triangle 10 : begin
+    // Triangle 10
     cube_size, cube_size, cube_size, r, g, b,
     cube_size, cube_size, -cube_size, r, g, b,
     -cube_size, cube_size, -cube_size, r, g, b,
-    // Triangle 10 : end
-    // Triangle 11 : begin
+    // Triangle 11
     cube_size, cube_size, cube_size, r, g, b,
     -cube_size, cube_size, -cube_size, r, g, b,
     -cube_size, cube_size, cube_size, r, g, b,
-    // Triangle 11 : end
-    // Triangle 12 : begin
+    // Triangle 12
     cube_size, cube_size, cube_size, r, g, b,
     -cube_size, cube_size, cube_size, r, g, b,
     cube_size, -cube_size, cube_size, r, g, b
@@ -1061,6 +1050,119 @@ void glcube_t::draw(const glcamera_t &camera) {
   glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0); // Unbind VAO
 }
+
+glvoxels_t::glvoxels_t(const float voxel_size, const size_t nb_voxels)
+    : globj_t{shaders::glcube_vs, shaders::glcube_fs} {
+  // Vertices
+  // clang-format off
+  glm::vec3 color{0.9, 0.4, 0.2};
+  const float r = color.x;
+  const float g = color.y;
+  const float b = color.z;
+
+  for (size_t i = 0; i < nb_voxels; i++) {
+    static const GLfloat voxel_vertices[18 * 12] = {
+      // Triangle 1
+      -voxel_size, -voxel_size, -voxel_size, r, g, b,
+      -voxel_size, -voxel_size, voxel_size, r, g, b,
+      -voxel_size, voxel_size, voxel_size, r, g, b,
+      // Triangle 2
+      voxel_size, voxel_size, -voxel_size, r, g, b,
+      -voxel_size, -voxel_size, -voxel_size, r, g, b,
+      -voxel_size, voxel_size, -voxel_size, r, g, b,
+      // Triangle 3
+      voxel_size, -voxel_size, voxel_size, r, g, b,
+      -voxel_size, -voxel_size, -voxel_size, r, g, b,
+      voxel_size, -voxel_size, -voxel_size, r, g, b,
+      // Triangle 4
+      voxel_size, voxel_size, -voxel_size, r, g, b,
+      voxel_size, -voxel_size, -voxel_size, r, g, b,
+      -voxel_size, -voxel_size, -voxel_size, r, g, b,
+      // Triangle 5
+      -voxel_size, -voxel_size, -voxel_size, r, g, b,
+      -voxel_size, voxel_size, voxel_size, r, g, b,
+      -voxel_size, voxel_size, -voxel_size, r, g, b,
+      // Triangle 6
+      voxel_size, -voxel_size, voxel_size, r, g, b,
+      -voxel_size, -voxel_size, voxel_size, r, g, b,
+      -voxel_size, -voxel_size, -voxel_size, r, g, b,
+      // Triangle 7
+      -voxel_size, voxel_size, voxel_size, r, g, b,
+      -voxel_size, -voxel_size, voxel_size, r, g, b,
+      voxel_size, -voxel_size, voxel_size, r, g, b,
+      // Triangle 8
+      voxel_size, voxel_size, voxel_size, r, g, b,
+      voxel_size, -voxel_size, -voxel_size, r, g, b,
+      voxel_size, voxel_size, -voxel_size, r, g, b,
+      // Triangle 9
+      voxel_size, -voxel_size, -voxel_size, r, g, b,
+      voxel_size, voxel_size, voxel_size, r, g, b,
+      voxel_size, -voxel_size, voxel_size, r, g, b,
+      // Triangle 10
+      voxel_size, voxel_size, voxel_size, r, g, b,
+      voxel_size, voxel_size, -voxel_size, r, g, b,
+      -voxel_size, voxel_size, -voxel_size, r, g, b,
+      // Triangle 11
+      voxel_size, voxel_size, voxel_size, r, g, b,
+      -voxel_size, voxel_size, -voxel_size, r, g, b,
+      -voxel_size, voxel_size, voxel_size, r, g, b,
+      // Triangle 12
+      voxel_size, voxel_size, voxel_size, r, g, b,
+      -voxel_size, voxel_size, voxel_size, r, g, b,
+      voxel_size, -voxel_size, voxel_size, r, g, b
+    };
+
+    for (size_t j = 0; j < (18 * 12); j++) {
+      vertices.push_back(voxel_vertices[j]);
+    }
+  }
+
+  const size_t nb_triangles = 12 * nb_voxels;
+  const size_t vertices_per_triangle = 3;
+  const size_t nb_vertices = vertices_per_triangle * nb_triangles;
+  const size_t vertex_buffer_size = sizeof(float) * 6 * nb_vertices;
+  // clang-format on
+
+  // VAO
+  glGenVertexArrays(1, &VAO_);
+  glBindVertexArray(VAO_);
+
+  // VBO
+  glGenBuffers(1, &VBO_);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+  glBufferData(GL_ARRAY_BUFFER,
+               vertex_buffer_size,
+               vertices.data(),
+               GL_STATIC_DRAW);
+  // -- Position attribute
+  size_t vertex_size = 6 * sizeof(float);
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+  // -- Color attribute
+  void *color_offset = (void *) (3 * sizeof(float));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
+  glEnableVertexAttribArray(1);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+}
+
+glvoxels_t::~glvoxels_t() {}
+
+void glvoxels_t::draw(const glcamera_t &camera) {
+  program_.use();
+  program_.setMat4("projection", glcamera_projection(camera));
+  program_.setMat4("view", glcamera_view_matrix(camera));
+  program_.setMat4("model", T_SM_);
+
+  // 12 x 3 indices starting at 0 -> 12 triangles -> 6 squares
+  glBindVertexArray(VAO_);
+  glDrawArrays(GL_TRIANGLES, 0, 36);
+  glBindVertexArray(0); // Unbind VAO
+}
+
 
 glframe_t::glframe_t() : globj_t{shaders::glframe_vs, shaders::glframe_fs} {
   // Vertices
@@ -1342,33 +1444,6 @@ void glplane_t::draw(const glcamera_t &camera) {
 
   // glDisable(GL_DEPTH_TEST);
   // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-glvoxels_t::glvoxels_t(const float voxel_size_, const size_t max_voxels_)
-    : voxel_size{voxel_size_}, max_voxels{max_voxels_} {
-  data = (float **) malloc(sizeof(float *) * max_voxels);
-  for (size_t i = 0; i < max_voxels_; i++) {
-   data[i] = (float *) calloc(sizeof(float), 3);
-  }
-}
-
-glvoxels_t::~glvoxels_t() {
-  for (size_t i = 0; i < max_voxels; i++) {
-    free(data[i]);
-  }
-  free(data);
-}
-
-void glvoxels_t::add(const vec3_t &pos) {
-  if ((nb_voxels + 1) >= max_voxels) {
-    FATAL("Number of voxels reached!");
-    return;
-  }
-
-  data[nb_voxels][0] = pos(0);
-  data[nb_voxels][1] = pos(1);
-  data[nb_voxels][2] = pos(2);
-  nb_voxels++;
 }
 
 /****************************************************************************

@@ -387,9 +387,9 @@ void ba_update(ba_data_t &data, const vecx_t &e, const matx_t &E) {
   // H = H + lambda * I(E.cols());  // original LM damping
   H = H + lambda * H_diag;  // R. Fletcher trust region mod
   const vecx_t g = -E.transpose() * e;
-
   // const vecx_t dx = H.inverse() * g;  // Slow inverse
   const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
+  // const vecx_t dx = H.llt().solve(g);   // Cholesky decomp
 
   // Update camera poses
   for (int k = 0; k < data.nb_frames; k++) {
@@ -426,16 +426,18 @@ void ba_solve(ba_data_t &data) {
   double cost_prev = 0.0;
 
   for (int iter = 0; iter < max_iter; iter++) {
+    struct timespec t_start = tic();
     const vecx_t e = ba_residuals(data);
     const matx_t E = ba_jacobian(data);
     ba_update(data, e, E);
+    printf("- iter[%d] time: %fs\n", iter, toc(&t_start));
 
     const double cost = ba_cost(e);
-    printf("iter: %d\t cost: %.4e\n", iter, cost);
+    // printf("iter: %d\t cost: %.4e\n", iter, cost);
 
     // Termination criteria
     double cost_diff = fabs(cost - cost_prev);
-    if (cost_diff < 1.0e-6) {
+    if (cost_diff < 1.0e-3) {
       printf("Done!\n");
       break;
     }

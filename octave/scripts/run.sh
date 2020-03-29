@@ -22,7 +22,7 @@ make
 # octave notes/error_ellipse.m && exit 0
 # octave notes/error_propagation.m && exit 0
 # octave notes/euler321_deriv.m && exit 0
-# octave notes/euroc_frames.m && exit 0
+octave notes/euroc_frames.m && exit 0
 # octave notes/frames_sandbox.m && exit 0
 # octave notes/felix.m && exit 0
 # octave notes/gauss_newton.m && exit 0

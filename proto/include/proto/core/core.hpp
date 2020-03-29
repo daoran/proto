@@ -44,6 +44,10 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+/* PRECISION TYPE */
+#define real_t float
+// #define real_t double
+
 /******************************************************************************
  *                                MACROS
  *****************************************************************************/
@@ -302,31 +306,21 @@ std::vector<T> linspace(const T start, const T end, const int num) {
 #define col_major_t Eigen::ColMajor
 #define row_major_t Eigen::RowMajor
 
-typedef Eigen::Vector2d vec2_t;
-typedef Eigen::Vector3d vec3_t;
-typedef Eigen::Vector4d vec4_t;
+typedef Eigen::Matrix<double, 2, 1> vec2_t;
+typedef Eigen::Matrix<double, 3, 1> vec3_t;
+typedef Eigen::Matrix<double, 4, 1> vec4_t;
 typedef Eigen::Matrix<double, 5, 1> vec5_t;
 typedef Eigen::Matrix<double, 6, 1> vec6_t;
-typedef Eigen::VectorXd vecx_t;
-
-typedef Eigen::Vector2f vec2f_t;
-typedef Eigen::Vector3f vec3f_t;
-typedef Eigen::Vector4f vec4f_t;
-typedef Eigen::Matrix<float, 5, 1> vec5f_t;
-typedef Eigen::Matrix<float, 6, 1> vec6f_t;
-typedef Eigen::VectorXf vecxf_t;
-
-typedef Eigen::Matrix2d mat2_t;
-typedef Eigen::Matrix3d mat3_t;
-typedef Eigen::Matrix4d mat4_t;
-typedef Eigen::MatrixXd matx_t;
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> vecx_t;
+typedef Eigen::Matrix<double, 2, 2> mat2_t;
+typedef Eigen::Matrix<double, 3, 3> mat3_t;
+typedef Eigen::Matrix<double, 4, 4> mat4_t;
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> matx_t;
 typedef Eigen::Matrix<double, 3, 4> mat34_t;
-
-typedef Eigen::Matrix2f mat2f_t;
-typedef Eigen::Matrix3f mat3f_t;
-typedef Eigen::Matrix4f mat4f_t;
-typedef Eigen::MatrixXf matxf_t;
-typedef Eigen::Matrix<float, 3, 4> mat34f_t;
+typedef Eigen::Quaternion<double> quat_t;
+typedef Eigen::AngleAxis<double> angle_axis_t;
+typedef Eigen::Matrix<double, 1, Eigen::Dynamic> row_vector_t;
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> col_vector_t;
 
 typedef std::vector<vec2_t, Eigen::aligned_allocator<vec2_t>> vec2s_t;
 typedef std::vector<vec3_t, Eigen::aligned_allocator<vec3_t>> vec3s_t;
@@ -334,29 +328,12 @@ typedef std::vector<vec4_t, Eigen::aligned_allocator<vec4_t>> vec4s_t;
 typedef std::vector<vec5_t, Eigen::aligned_allocator<vec5_t>> vec5s_t;
 typedef std::vector<vec6_t, Eigen::aligned_allocator<vec6_t>> vec6s_t;
 typedef std::vector<vecx_t> vecxs_t;
-
-typedef std::vector<vec2f_t, Eigen::aligned_allocator<vec2f_t>> vec2fs_t;
-typedef std::vector<vec3f_t, Eigen::aligned_allocator<vec3f_t>> vec3fs_t;
-typedef std::vector<vec4f_t, Eigen::aligned_allocator<vec4f_t>> vec4fs_t;
-typedef std::vector<vec5f_t, Eigen::aligned_allocator<vec5f_t>> vec5fs_t;
-typedef std::vector<vec6f_t, Eigen::aligned_allocator<vec6f_t>> vec6fs_t;
-typedef std::vector<vecxf_t> vecxfs_t;
-
 typedef std::vector<mat2_t, Eigen::aligned_allocator<mat2_t>> mat2s_t;
 typedef std::vector<mat3_t, Eigen::aligned_allocator<mat3_t>> mat3s_t;
 typedef std::vector<mat4_t, Eigen::aligned_allocator<mat4_t>> mat4s_t;
 typedef std::vector<matx_t, Eigen::aligned_allocator<matx_t>> matxs_t;
-
-typedef std::vector<mat2f_t, Eigen::aligned_allocator<mat2f_t>> mat2fs_t;
-typedef std::vector<mat3f_t, Eigen::aligned_allocator<mat3f_t>> mat3fs_t;
-typedef std::vector<mat4f_t, Eigen::aligned_allocator<mat4f_t>> mat4fs_t;
-typedef std::vector<matxf_t, Eigen::aligned_allocator<matxf_t>> matxfs_t;
-
-typedef Eigen::Quaterniond quat_t;
 typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
 
-typedef Eigen::Quaternionf quatf_t;
-typedef std::vector<quatf_t, Eigen::aligned_allocator<quat_t>> quatfs_t;
 
 template <int ROWS,
           int COLS,

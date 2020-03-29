@@ -14,9 +14,9 @@ int test_raytracing() {
 	glcf_t cf;
 
   glvoxels_t voxels{0.05, 10000};
-  for (int i = 0; i < 1000; i++) {
-    voxels.add({randf(-5.0, 5.0), randf(-5.0, 5.0), randf(-5.0, 5.0)});
-  }
+  // for (int i = 0; i < 1000; i++) {
+  //   voxels.add({randf(-5.0, 5.0), randf(-5.0, 5.0), randf(-5.0, 5.0)});
+  // }
 
   // std::vector<glcube_t *> voxels;
   // for (int i = 0; i < 1000; i++) {
@@ -30,13 +30,14 @@ int test_raytracing() {
     gui.clear();
 
 		grid.draw(gui.camera);
-		// glmodel_draw(model, gui.camera);
+		glmodel_draw(model, gui.camera);
 		// cf.draw(gui.camera);
 
 		// for (auto &voxel : voxels) {
     //   voxel->draw(gui.camera);
 		// }
 
+    // Keyboard handler
     if (glfwGetKey(gui.gui_, GLFW_KEY_W) == GLFW_PRESS) {
       glcamera_keyboard_handler(gui.camera, FORWARD, gui.dt_);
     } else if (glfwGetKey(gui.gui_, GLFW_KEY_A) == GLFW_PRESS) {
@@ -45,6 +46,8 @@ int test_raytracing() {
       glcamera_keyboard_handler(gui.camera, BACKWARD, gui.dt_);
     } else if (glfwGetKey(gui.gui_, GLFW_KEY_D) == GLFW_PRESS) {
       glcamera_keyboard_handler(gui.camera, RIGHT, gui.dt_);
+    } else if (glfwGetKey(gui.gui_, GLFW_KEY_Q) == GLFW_PRESS) {
+      break;
     }
 
     gui.render();

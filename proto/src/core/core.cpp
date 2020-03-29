@@ -1914,25 +1914,26 @@ int csv2mat(const std::string &file_path, const bool header, matx_t &data) {
 
 int mat2csv(const std::string &file_path, const matx_t &data) {
   // Open file
-  std::ofstream outfile(file_path);
-  if (outfile.good() != true) {
+  FILE *outfile = fopen(file_path.c_str(), "w");
+  if (outfile == nullptr) {
     return -1;
   }
 
   // Save matrix
   for (int i = 0; i < data.rows(); i++) {
     for (int j = 0; j < data.cols(); j++) {
-      outfile << data(i, j);
+      fprintf(outfile, "%f", data(i, j));
 
       if ((j + 1) != data.cols()) {
-        outfile << ",";
+        fprintf(outfile, ",");
       }
     }
-    outfile << "\n";
+    fprintf(outfile, "\n");
   }
 
   // Close file
-  outfile.close();
+  fclose(outfile);
+
   return 0;
 }
 
@@ -2707,7 +2708,7 @@ void ctraj_init(ctraj_t &ctraj) {
 
   // Create knots
   const size_t nb_knots = ctraj.timestamps.size();
-  Eigen::RowVectorXd knots{nb_knots};
+  row_vector_t knots{nb_knots};
   for (size_t i = 0; i < ctraj.timestamps.size(); i++) {
     knots(i) = ts_normalize(ctraj, ctraj.timestamps[i]);
   }
@@ -2720,11 +2721,11 @@ void ctraj_init(ctraj_t &ctraj) {
 
   // Prep orientation data
   matx_t rvec{3, nb_knots};
-  Eigen::AngleAxisd aa{ctraj.orientations[0]};
+  angle_axis_t aa{ctraj.orientations[0]};
   rvec.block<3, 1>(0, 0) = aa.angle() * aa.axis();
 
   for (size_t i = 1; i < nb_knots; i++) {
-    const Eigen::AngleAxisd aa{ctraj.orientations[i]};
+    const angle_axis_t aa{ctraj.orientations[i]};
     const vec3_t rvec_k = aa.angle() * aa.axis();
     const vec3_t rvec_km1 = rvec.block<3, 1>(0, i - 1);
 
@@ -2755,7 +2756,7 @@ mat4_t ctraj_get_pose(const ctraj_t &ctraj, const timestamp_t ts) {
   if (rvec.norm() < 1e-12) { // Check angle is not zero
     return tf(I(3), r);
   }
-  const Eigen::AngleAxisd aa{rvec.norm(), rvec.normalized()};
+  const angle_axis_t aa{rvec.norm(), rvec.normalized()};
   const quat_t q{aa};
 
   return tf(q, r);

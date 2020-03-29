@@ -30,9 +30,10 @@ T_WS(1:3, 4) = [2; 0; 0];
 % ];
 
 % Fiducial pose T_WF
-rpy_WF = [deg2rad(0.0); deg2rad(0.0); deg2rad(0.0)];
+rpy_WF = [deg2rad(90.0); deg2rad(0.0); deg2rad(90.0)];
+euler2quat(rpy_WF)
 R_WF = euler321(rpy_WF);
-t_WF = [10.0; 0; 0];
+t_WF = [1.0; 0; 0];
 T_WF = tf(R_WF, t_WF);
 
 % Fiducial point
@@ -77,18 +78,19 @@ T_WF = tf(R_WF, t_WF);
 % R_WS = quat2rot(q)
 
 
-% Plot
-figure(1);
-hold on;
-grid on;
-view(3);
-draw_frame(T_WS, 0.1);
-% draw_camera(T_WS * T_SC0, scale=0.05, 'r');
-draw_frame(T_WS * T_SC0, 0.1);
-% draw_camera(T_WS * T_SC1, scale=0.05, 'g');
-draw_frame(T_WS * T_SC1, 0.1);
-xlabel("x");
-ylabel("y");
-zlabel("z");
-axis('equal');
-ginput();
+% % Plot
+% figure(1);
+% hold on;
+% grid on;
+% view(3);
+% draw_frame(T_WS, 0.1);
+% % draw_camera(T_WS * T_SC0, scale=0.05, 'r');
+% draw_frame(T_WS * T_SC0, 0.1);
+% % draw_camera(T_WS * T_SC1, scale=0.05, 'g');
+% draw_frame(T_WS * T_SC1, 0.1);
+% draw_frame(T_WF, 0.1);
+% xlabel("x");
+% ylabel("y");
+% zlabel("z");
+% axis('equal');
+% ginput();

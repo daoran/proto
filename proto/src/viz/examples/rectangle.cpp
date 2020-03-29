@@ -37,7 +37,7 @@ void process_input(GLFWwindow *window) {
   }
 }
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+void framebuffer_size_callback(GLFWwindow *, int width, int height) {
   // Make sure the viewport matches the new window dimensions
   glViewport(0, 0, width, height);
 }

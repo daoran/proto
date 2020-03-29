@@ -543,8 +543,11 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
                               const lz_t &lz,
                               const double dt);
 vec4_t atl_step_landing_mode(atl_t &atl, const double dt);
-int atl_step(
-    atl_t &atl, const mat4_t T_WB, const lz_t &lz, const double dt, vec4_t &u);
+int atl_step(atl_t &atl,
+             const mat4_t &T_WB,
+             const lz_t &lz,
+             const double dt,
+             vec4_t &u);
 
 } //  namespace proto
 #endif // PROTO_MAV_ATL_HPP

@@ -495,7 +495,7 @@ int lz_detector_configure(lz_detector_t &lz,
 int lz_detector_detect(const lz_detector_t &lz,
                        const cv::Mat &image,
                        const pinhole_t &pinhole,
-                       proto::mat4_t &T_CZ) {
+                       mat4_t &T_CZ) {
   // Convert colour image to gray
   cv::Mat gray_image;
   cvtColor(image, gray_image, CV_BGR2GRAY);
@@ -762,7 +762,7 @@ int wp_mission_set_gps_homepoint(wp_mission_t &m,
     latlon_diff(home_lat, home_lon, lat, lon, &dist_N, &dist_E);
 
     // Add to local waypoints in NWU
-    const vec3_t nwu{dist_N, -1.0 * dist_E, alt};
+    const vec3_t nwu{dist_N, -dist_E, alt};
     std::cout << "Adding local waypoint (nwu): " << nwu.transpose();
     std::cout << std::endl;
     m.local_waypoints.push_back(nwu);
@@ -1122,8 +1122,11 @@ vec4_t atl_step_tracking_mode(atl_t &atl,
 //   return u;
 // }
 
-int atl_step(
-    atl_t &atl, const mat4_t T_WB, const lz_t &lz, const double dt, vec4_t &u) {
+int atl_step(atl_t &atl,
+             const mat4_t &T_WB,
+             const lz_t &lz,
+             const double dt,
+             vec4_t &u) {
   switch (atl.mode) {
   case DISARM_MODE: return -1; break;
   case IDLE_MODE: return 0; break;

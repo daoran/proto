@@ -1,6 +1,8 @@
 set -e
-export CC=/usr/bin/clang
-export CXX=/usr/bin/clang++
+# export CC=/usr/bin/clang
+# export CXX=/usr/bin/clang++
+export CC=/usr/bin/gcc
+export CXX=/usr/bin/g++
 SCRIPT_PATH="`dirname \"$0\"`"
 SCRIPT_PATH="`( cd \"$SCRIPT_PATH\" && pwd )`"
 
@@ -95,6 +97,7 @@ cd proto/build/tests
 # ./dataset-test_kitti
 
 # -- estimation
+./estimation-test_ba
 # ./estimation-test_ba --target test_parse_keypoints_line
 # ./estimation-test_ba --target test_load_keypoints
 # ./estimation-test_ba --target test_ba_residuals
@@ -106,7 +109,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement
-./estimation-test_dense
+# ./estimation-test_dense
 
 # -- mav
 # ./mav-test_atl
