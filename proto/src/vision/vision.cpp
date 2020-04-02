@@ -398,56 +398,6 @@ void illum_invar_transform(cv::Mat &image,
   cv::normalize(image, image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 }
 
-real_t lapm(const cv::Mat &src) {
-  // 'LAPM' algorithm (Nayar89)
-  cv::Mat M = (cv::Mat_<real_t>(3, 1) << -1, 2, -1);
-  cv::Mat G = cv::getGaussianKernel(3, -1, CV_64F);
-
-  cv::Mat Lx;
-  cv::sepFilter2D(src, Lx, CV_64F, M, G);
-
-  cv::Mat Ly;
-  cv::sepFilter2D(src, Ly, CV_64F, G, M);
-
-  cv::Mat FM = cv::abs(Lx) + cv::abs(Ly);
-
-  real_t measure = cv::mean(FM).val[0];
-  return measure;
-}
-
-real_t lapv(const cv::Mat &src) {
-  // 'LAPV' algorithm (Pech2000)
-  cv::Mat lap;
-  cv::Laplacian(src, lap, CV_64F);
-
-  cv::Scalar mu, sigma;
-  cv::meanStdDev(lap, mu, sigma);
-
-  real_t measure = sigma.val[0] * sigma.val[0];
-  return measure;
-}
-
-real_t teng(const cv::Mat &src, int ksize) {
-  // 'TENG' algorithm (Krotkov86)
-  cv::Mat Gx, Gy;
-  cv::Sobel(src, Gx, CV_64F, 1, 0, ksize);
-  cv::Sobel(src, Gy, CV_64F, 0, 1, ksize);
-
-  cv::Mat FM = Gx.mul(Gx) + Gy.mul(Gy);
-
-  real_t measure = cv::mean(FM).val[0];
-  return measure;
-}
-
-real_t glvn(const cv::Mat &src) {
-  // 'GLVN' algorithm (Santos97)
-  cv::Scalar mu, sigma;
-  cv::meanStdDev(src, mu, sigma);
-
-  real_t measure = (sigma.val[0] * sigma.val[0]) / mu.val[0];
-  return measure;
-}
-
 /*****************************************************************************
  *                                DRAW
  ****************************************************************************/

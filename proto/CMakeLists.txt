@@ -104,8 +104,6 @@ ADD_LIBRARY(
   src/estimation/filter.cpp
   src/estimation/frontend.cpp
   src/estimation/dense.cpp
-  # model
-  src/model/model.cpp
   # vision
   src/vision/vision.cpp
   # viz
@@ -146,12 +144,12 @@ SET(
   # calib-test_calib_gimbal
   # calib-test_sandbox
   # calib-test_sandbox2
-  # core-test_core
+  core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
-  estimation-test_ba
+  # estimation-test_ba
   # estimation-test_dense
-  # estimation-test_factor
+  estimation-test_factor
   # estimation-test_frontend
   # model-test_model
   # vision-test_vision

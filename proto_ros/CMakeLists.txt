@@ -88,8 +88,8 @@ ADD_LIBRARY(proto_pose_plugin SHARED src/ros/gazebo/pose_plugin.cpp)
 TARGET_LINK_LIBRARIES(proto_pose_plugin ${DEPS})
 
 # ROS NODES
-ADD_EXECUTABLE(atl_node src/ros/nodes/atl_node.cpp)
-TARGET_LINK_LIBRARIES(atl_node ${DEPS})
+# ADD_EXECUTABLE(atl_node src/ros/nodes/atl_node.cpp)
+# TARGET_LINK_LIBRARIES(atl_node ${DEPS})
 
 ADD_EXECUTABLE(calib_camera_node src/ros/nodes/calib_camera_node.cpp)
 TARGET_LINK_LIBRARIES(calib_camera_node ${DEPS})
@@ -118,6 +118,6 @@ TARGET_LINK_LIBRARIES(camera_node ${DEPS})
 ADD_EXECUTABLE(example_node src/ros/nodes/example_node.cpp)
 TARGET_LINK_LIBRARIES(example_node ${DEPS})
 
-ADD_EXECUTABLE(lz_detector_node src/ros/nodes/lz_detector_node.cpp)
-TARGET_LINK_LIBRARIES(lz_detector_node ${DEPS})
+# ADD_EXECUTABLE(lz_detector_node src/ros/nodes/lz_detector_node.cpp)
+# TARGET_LINK_LIBRARIES(lz_detector_node ${DEPS})
 

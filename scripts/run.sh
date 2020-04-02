@@ -87,6 +87,8 @@ cd proto/build/tests
 # ./core-test_core
 # ./core-test_core --target test_pose
 # ./core-test_core --target test_sim_imu_measurement
+# ./core-test_mav
+# ./core-test_two_wheel
 
 # -- driver
 # ./driver-test_camera-camera
@@ -97,7 +99,7 @@ cd proto/build/tests
 # ./dataset-test_kitti
 
 # -- estimation
-./estimation-test_ba
+# ./estimation-test_ba
 # ./estimation-test_ba --target test_parse_keypoints_line
 # ./estimation-test_ba --target test_load_keypoints
 # ./estimation-test_ba --target test_ba_residuals
@@ -106,21 +108,12 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_cost
 # ./estimation-test_ba --target test_ba_solve
 # ./estimation-test_imu
+# ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians
+./estimation-test_factor --target test_imu_factor_jacobians
 # ./estimation-test_factor --target test_graph_update
 # ./estimation-test_measurement
 # ./estimation-test_dense
-
-# -- mav
-# ./mav-test_atl
-# ./mav-test_att_ctrl
-# ./mav-test_lz
-# ./mav-test_mission
-# ./mav-test_pos_ctrl
-
-# -- model
-# ./model-test_mav
-# ./model-test_two_wheel
 
 # -- vision
 # ./vision-test_camera-camera_geometry

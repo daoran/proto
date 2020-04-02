@@ -302,14 +302,6 @@ void illum_invar_transform(cv::Mat &image,
                            const real_t lambda_2,
                            const real_t lambda_3);
 
-real_t lapm(const cv::Mat &src);
-
-real_t lapv(const cv::Mat &src);
-
-real_t teng(const cv::Mat &src, int ksize);
-
-real_t glvn(const cv::Mat &src);
-
 // /**
 //  * Outlier rejection using essential matrix
 //  *
