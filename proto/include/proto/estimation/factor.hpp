@@ -310,18 +310,17 @@ struct imu_factor_t : factor_t {
     // -- Speed and bias at timestamp i
     const vec_t<9> sb_i{params[1]};
     const vec3_t v_i = sb_i.segment<3>(0);
-    const vec3_t bg_i = sb_i.segment<3>(3);
-    const vec3_t ba_i = sb_i.segment<3>(6);
+    const vec3_t ba_i = sb_i.segment<3>(3);
+    const vec3_t bg_i = sb_i.segment<3>(6);
     // -- Sensor pose at timestep j
     const mat4_t T_j = tf(params[2]);
-    const mat3_t C_j = tf_rot(T_j);
     const quat_t q_j = tf_quat(T_j);
     const vec3_t r_j = tf_trans(T_j);
     // -- Speed and bias at timestep j
     const vec_t<9> sb_j{params[3]};
     const vec3_t v_j = sb_j.segment<3>(0);
-    const vec3_t bg_j = sb_j.segment<3>(3);
-    const vec3_t ba_j = sb_j.segment<3>(6);
+    const vec3_t ba_j = sb_j.segment<3>(3);
+    const vec3_t bg_j = sb_j.segment<3>(6);
 
     // Obtain Jacobians for gyro and accel bias
     const mat3_t dp_bg = F.block<3, 3>(0, 9);
@@ -348,17 +347,31 @@ struct imu_factor_t : factor_t {
     // Calculate jacobians
     // clang-format off
     const mat3_t C_i_inv = C_i.transpose();
-    // const mat3_t C_j_inv = C_j.transpose();
     // -- Sensor pose at i Jacobian
     jacobians[0] = zeros(15, 6);
     jacobians[0].block<3, 3>(0, 0) = skew(C_i_inv * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq));
     jacobians[0].block<3, 3>(0, 3) = -C_i_inv;
     jacobians[0].block<3, 3>(3, 0) = skew(C_i_inv * (v_j - v_i + g * dt_ij));
     jacobians[0].block<3, 3>(6, 0) = -(quat_lmul(q_j.inverse() * q_i) * quat_rmul(gamma)).bottomRightCorner<3, 3>();
+    // -- Speed and bias at i Jacobian
+    jacobians[1] = zeros(15, 9);
+    jacobians[1].block<3, 3>(0, 0) = -C_i_inv * dt_ij;
+    jacobians[1].block<3, 3>(0, 3) = -dp_ba;
+    jacobians[1].block<3, 3>(0, 6) = -dp_bg;
+    jacobians[1].block<3, 3>(3, 0) = -C_i_inv;
+    jacobians[1].block<3, 3>(3, 3) = -dv_ba;
+    jacobians[1].block<3, 3>(3, 6) = -dv_bg;
+    jacobians[1].block<3, 3>(9, 3) = -I(3);
+    jacobians[1].block<3, 3>(12, 6) = -I(3);
     // -- Sensor pose at j Jacobian
     jacobians[2] = zeros(15, 6);
     jacobians[2].block<3, 3>(0, 3) = C_i_inv;
     jacobians[2].block<3, 3>(6, 0) = quat_lmul(gamma.inverse() * q_i.inverse() * q_j.inverse()).bottomRightCorner<3, 3>();
+    // -- Speed and bias at j Jacobian
+    jacobians[3] = zeros(15, 9);
+    jacobians[3].block<3, 3>(3, 0) = C_i_inv;
+    jacobians[3].block<3, 3>(9, 3) = I(3);
+    jacobians[3].block<3, 3>(12, 6) = I(3);
     // clang-format on
 
     return true;

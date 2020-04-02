@@ -604,6 +604,45 @@ static int check_imu_factor_J_sensor_pose_i(
   return check_jacobian("J_sensor_pose_i", fdiff, J, threshold, true);
 }
 
+static int check_imu_factor_J_speed_bias_i(
+    imu_factor_t &factor,
+    mat4_t &T_WS_i, vec_t<9> &sb_i,
+    mat4_t &T_WS_j, vec_t<9> &sb_j,
+    matx_t &J,
+    const real_t step_size=1e-8,
+    const real_t threshold=1e-4) {
+  imu_factor_t imu_factor = factor;
+  pose_t sensor_pose_i{T_WS_i};
+  pose_t sensor_pose_j{T_WS_j};
+  real_t *params[4] = {
+    sensor_pose_i.data(),
+    sb_i.data(),
+    sensor_pose_j.data(),
+    sb_j.data()
+  };
+  factor.eval(params);
+  const auto e = factor.residuals;
+
+  // Perturb
+  matx_t fdiff = zeros(15, 9);
+  for (int i = 0; i < 9; i++) {
+    auto sb_i_diff = sb_i;
+    sb_i_diff(i) += step_size;
+    real_t *params[4] = {
+      sensor_pose_i.data(),
+      sb_i_diff.data(),
+      sensor_pose_j.data(),
+      sb_j.data()
+    };
+    factor.eval(params);
+    const auto e_prime = factor.residuals;
+
+    fdiff.block(0, i, 15, 1) = (e_prime - e) / step_size;
+  }
+
+  return check_jacobian("J_speed_bias_i", fdiff, J, threshold, true);
+}
+
 static int check_imu_factor_J_sensor_pose_j(
     imu_factor_t &factor,
     mat4_t &T_WS_i, vec_t<9> &sb_i,
@@ -657,6 +696,45 @@ static int check_imu_factor_J_sensor_pose_j(
   }
 
   return check_jacobian("J_sensor_pose_j", fdiff, J, threshold, true);
+}
+
+static int check_imu_factor_J_speed_bias_j(
+    imu_factor_t &factor,
+    mat4_t &T_WS_i, vec_t<9> &sb_i,
+    mat4_t &T_WS_j, vec_t<9> &sb_j,
+    matx_t &J,
+    const real_t step_size=1e-8,
+    const real_t threshold=1e-4) {
+  imu_factor_t imu_factor = factor;
+  pose_t sensor_pose_i{T_WS_i};
+  pose_t sensor_pose_j{T_WS_j};
+  real_t *params[4] = {
+    sensor_pose_i.data(),
+    sb_i.data(),
+    sensor_pose_j.data(),
+    sb_j.data()
+  };
+  factor.eval(params);
+  const auto e = factor.residuals;
+
+  // Perturb
+  matx_t fdiff = zeros(15, 9);
+  for (int i = 0; i < 9; i++) {
+    auto sb_j_diff = sb_j;
+    sb_j_diff(i) += step_size;
+    real_t *params[4] = {
+      sensor_pose_i.data(),
+      sb_i.data(),
+      sensor_pose_j.data(),
+      sb_j_diff.data()
+    };
+    factor.eval(params);
+    const auto e_prime = factor.residuals;
+
+    fdiff.block(0, i, 15, 1) = (e_prime - e) / step_size;
+  }
+
+  return check_jacobian("J_speed_bias_i", fdiff, J, threshold, true);
 }
 
 int test_imu_factor_jacobians() {
@@ -784,16 +862,26 @@ int test_imu_factor_jacobians() {
     sb_j.data(),
   };
   factor.eval(params);
-  printf("rows: %zu, cols: %zu\n", factor.jacobians[0].rows(), factor.jacobians[0].cols());
+
   check_imu_factor_J_sensor_pose_i(factor,
                                    T_WS_i, sb_i,
                                    T_WS_j, sb_j,
                                    factor.jacobians[0]);
 
+  check_imu_factor_J_speed_bias_i(factor,
+                                  T_WS_i, sb_i,
+                                  T_WS_j, sb_j,
+                                  factor.jacobians[1]);
+
   check_imu_factor_J_sensor_pose_j(factor,
                                    T_WS_i, sb_i,
                                    T_WS_j, sb_j,
                                    factor.jacobians[2]);
+
+  check_imu_factor_J_speed_bias_j(factor,
+                                  T_WS_i, sb_i,
+                                  T_WS_j, sb_j,
+                                  factor.jacobians[3]);
 
   // Debug
   // const bool debug = true;
