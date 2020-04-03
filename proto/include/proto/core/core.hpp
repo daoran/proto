@@ -1,7 +1,37 @@
 #ifndef PROTO_CORE_HPP
 #define PROTO_CORE_HPP
 
+/*****************************************************************************
+ * This file is huge, it contains everything from parsing yaml files, linear
+ * algebra functions to networking code used for robotics.
+ *
+ * Contents:
+ * - Macros
+ * - Filesystem
+ * - Algebra
+ * - Linear Algebra
+ * - Geometry
+ * - Differential Geometry
+ * - Statistics
+ * - Transform
+ * - Time
+ * - Factor Graph
+ * - Data
+ * - Configuration
+ * - Interpolation
+ * - Spline
+ * - Control
+ * - Measurements
+ * - Models
+ * - Networking
+ *
+ ****************************************************************************/
+
 #define ENABLE_MACROS 1
+
+/* PRECISION TYPE */
+#define real_t float
+// #define real_t double
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,10 +73,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
-/* PRECISION TYPE */
-// #define real_t float
-#define real_t double
 
 /******************************************************************************
  *                                MACROS
@@ -853,6 +879,19 @@ void latlon_diff(real_t lat_ref,
  */
 real_t latlon_dist(real_t lat_ref, real_t lon_ref, real_t lat, real_t lon);
 
+/*****************************************************************************
+ *                         DIFFERENTIAL GEOMETRY
+ *****************************************************************************/
+
+namespace lie {
+
+mat3_t Exp(const vec3_t &phi);
+vec3_t Log(const mat3_t &C);
+mat3_t Jr(const vec3_t &psi);
+
+} // namespace lie
+
+
 /******************************************************************************
  *                                STATISTICS
  *****************************************************************************/
@@ -908,12 +947,6 @@ vec3_t mvn(std::default_random_engine &engine,
  * http://c-faq.com/lib/gaussian.html
  */
 real_t gauss_normal();
-
-/*****************************************************************************
- *                         DIFFERENTIAL GEOMETRY
- *****************************************************************************/
-
-mat3_t so3_exp(const vec3_t &phi);
 
 /*****************************************************************************
  *                               TRANSFORM
@@ -1181,7 +1214,7 @@ struct pose_t : param_t {
   void plus(const vecx_t &dx);
 };
 
-struct landmark_t :param_t {
+struct landmark_t : param_t {
   real_t param[3] = {0.0, 0.0, 0.0};
 
   landmark_t(const vec3_t &p_W_);
@@ -1192,19 +1225,45 @@ struct landmark_t :param_t {
   void plus(const vecx_t &dx);
 };
 
-// struct camera_params_t :param_t {
-//   real_t param[4] = {0.0, 0.0, 0.0, 0.0};
-//
-//   camera_params_t(const vec3_t &p_W_);
-//   camera_params_t(const size_t id_, const vec3_t &p_W_);
-//
-//   vec3_t vec();
-//   real_t *data();
-//   void plus(const vecx_t &dx);
-// };
+struct camera_param_t : param_t {
+  int cam_index = 0;
+  real_t param[4] = {0.0, 0.0, 0.0, 0.0};
+
+  camera_param_t(const size_t id_, const int cam_index_, const vec4_t &param_);
+
+  vec4_t vec();
+  real_t *data();
+  void plus(const vecx_t &dx);
+};
+
+struct dist_param_t : param_t {
+  int cam_index = 0;
+  real_t param[4] = {0.0, 0.0, 0.0, 0.0};
+
+  dist_param_t(const vec4_t &param_);
+  dist_param_t(const size_t id_, const int cam_index_, const vec4_t &param_);
+
+  vec4_t vec();
+  real_t *data();
+  void plus(const vecx_t &dx);
+};
+
+struct sb_param_t : param_t {
+  real_t param[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  sb_param_t(const size_t id_,
+             const timestamp_t &ts_,
+             const vec3_t &v_,
+             const vec3_t &ba_,
+             const vec3_t &bg_);
+
+  vec_t<9> vec();
+  real_t *data();
+  void plus(const vecx_t &dx);
+};
 
 typedef std::vector<pose_t> poses_t;
-typedef std::vector<landmark_t *> landmarks_t;
+typedef std::vector<landmark_t> landmarks_t;
 typedef std::vector<vec2_t> keypoints_t;
 
 void pose_print(const std::string &prefix, const pose_t &pose);
@@ -2092,7 +2151,7 @@ struct image_t : meas_t {
 };
 
 /*****************************************************************************
- *                                MODEL
+ *                                MODELS
  ****************************************************************************/
 
 /**
@@ -2105,10 +2164,10 @@ struct image_t : meas_t {
  *
  * @returns DH transform
  */
-mat4_t dh_transform(const double theta,
-                    const double d,
-                    const double a,
-                    const double alpha);
+mat4_t dh_transform(const real_t theta,
+                    const real_t d,
+                    const real_t a,
+                    const real_t alpha);
 
 /**
  * 2-DOF Gimbal Model
@@ -2125,25 +2184,25 @@ struct gimbal_model_t {
   vecx_t tau_d = zeros(6, 1);
 
   // First gibmal-joint
-  double Lambda1 = 0.0;
+  real_t Lambda1 = 0.0;
   vec3_t w1 = zeros(3, 1);
 
   // Second gibmal-joint
-  double Lambda2 = 0.0;
+  real_t Lambda2 = 0.0;
   vec3_t w2 = zeros(3, 1);
 
-  double theta1_offset = 0.0;
-  double theta2_offset = 0.0;
+  real_t theta1_offset = 0.0;
+  real_t theta2_offset = 0.0;
 
   gimbal_model_t();
   gimbal_model_t(const vec6_t &tau_s,
                  const vec6_t &tau_d,
-                 const double Lambda1,
+                 const real_t Lambda1,
                  const vec3_t w1,
-                 const double Lambda2,
+                 const real_t Lambda2,
                  const vec3_t w2,
-                 const double theta1_offset = 0.0,
-                 const double theta2_offset = 0.0);
+                 const real_t theta1_offset = 0.0,
+                 const real_t theta2_offset = 0.0);
   virtual ~gimbal_model_t();
 };
 
@@ -2155,8 +2214,8 @@ struct gimbal_model_t {
  * @param[in] pitch Pitch [rads]
  */
 void gimbal_model_set_attitude(gimbal_model_t &model,
-                               const double roll,
-                               const double pitch);
+                               const real_t roll,
+                               const real_t pitch);
 
 /**
  * Get gimbal joint angle
@@ -2221,7 +2280,7 @@ std::ostream &operator<<(std::ostream &os, const gimbal_model_t &gimbal);
  * @param[in] w Target angular velocity
  * @param[in] time Target time taken to complete circle trajectory
  **/
-void circle_trajectory(const double r, const double v, double *w, double *time);
+void circle_trajectory(const real_t r, const real_t v, real_t *w, real_t *time);
 
 /**
  * Two wheel robot
@@ -2233,8 +2292,8 @@ struct two_wheel_t {
   vec3_t rpy_G = vec3_t::Zero();
   vec3_t w_G = vec3_t::Zero();
 
-  double vx_desired = 0.0;
-  double yaw_desired = 0.0;
+  real_t vx_desired = 0.0;
+  real_t yaw_desired = 0.0;
 
   pid_t vx_controller{0.1, 0.0, 0.1};
   pid_t yaw_controller{0.1, 0.0, 0.1};
@@ -2257,7 +2316,7 @@ struct two_wheel_t {
  * @param[in,out] tm Model
  * @param[in] dt Time difference (s)
  */
-void two_wheel_update(two_wheel_t &tm, const double dt);
+void two_wheel_update(two_wheel_t &tm, const real_t dt);
 
 /**
  * MAV model
@@ -2268,18 +2327,18 @@ struct mav_model_t {
   vec3_t position{0.0, 0.0, 0.0};         ///< Position in global frame
   vec3_t linear_velocity{0.0, 0.0, 0.0};  ///< Linear velocity in global frame
 
-  double Ix = 0.0963; ///< Moment of inertia in x-axis
-  double Iy = 0.0963; ///< Moment of inertia in y-axis
-  double Iz = 0.1927; ///< Moment of inertia in z-axis
+  real_t Ix = 0.0963; ///< Moment of inertia in x-axis
+  real_t Iy = 0.0963; ///< Moment of inertia in y-axis
+  real_t Iz = 0.1927; ///< Moment of inertia in z-axis
 
-  double kr = 0.1; ///< Rotation drag constant
-  double kt = 0.2; ///< Translation drag constant
+  real_t kr = 0.1; ///< Rotation drag constant
+  real_t kt = 0.2; ///< Translation drag constant
 
-  double l = 0.9; ///< MAV arm length
-  double d = 1.0; ///< drag constant
+  real_t l = 0.9; ///< MAV arm length
+  real_t d = 1.0; ///< drag constant
 
-  double m = 1.0;  ///< Mass
-  double g = 9.81; ///< Gravity
+  real_t m = 1.0;  ///< Mass
+  real_t g = 9.81; ///< Gravity
 };
 
 /**
@@ -2292,7 +2351,7 @@ struct mav_model_t {
  */
 int mav_model_update(mav_model_t &qm,
                      const vec4_t &motor_inputs,
-                     const double dt);
+                     const real_t dt);
 
 /*****************************************************************************
  *                               NETWORKING

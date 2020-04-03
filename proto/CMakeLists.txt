@@ -88,9 +88,9 @@ ADD_LIBRARY(
   # calib
   src/calib/aprilgrid.cpp
   src/calib/calib_data.cpp
-  src/calib/calib_camera.cpp
+  # src/calib/calib_camera.cpp
   # src/calib/calib_gimbal.cpp
-  src/calib/calib_vicon_marker.cpp
+  # src/calib/calib_vicon_marker.cpp
   # core
   src/core/core.cpp
   src/core/stb.cpp

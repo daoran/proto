@@ -948,19 +948,15 @@ struct camera_geometry_t {
   CM camera_model;
   DM distortion_model;
 
-  camera_geometry_t();
-  camera_geometry_t(const CM &camera_model_, const DM &distortion_model_);
-  ~camera_geometry_t();
+  camera_geometry_t() {}
+
+  camera_geometry_t(const CM &camera_model_, const DM &distortion_model_)
+    : camera_model{camera_model_}, distortion_model{distortion_model_} {}
+
+  ~camera_geometry_t() {}
 };
 
-/**
- * Pinhole Radial-Tangential Camera Geometry
- */
 typedef camera_geometry_t<pinhole_t, radtan4_t> pinhole_radtan4_t;
-
-/**
- * Pinhole Equi Camera Geometry
- */
 typedef camera_geometry_t<pinhole_t, equi4_t> pinhole_equi4_t;
 
 /**
@@ -1019,17 +1015,6 @@ static Eigen::Matrix<T, 2, 1>
 pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
                       const Eigen::Matrix<T, 4, 1> &D,
                       const Eigen::Matrix<T, 3, 1> &point);
-
-template <typename CM, typename DM>
-camera_geometry_t<CM, DM>::camera_geometry_t() {}
-
-template <typename CM, typename DM>
-camera_geometry_t<CM, DM>::camera_geometry_t(const CM &camera_model_,
-                                             const DM &distortion_model_)
-    : camera_model{camera_model_}, distortion_model{distortion_model_} {}
-
-template <typename CM, typename DM>
-camera_geometry_t<CM, DM>::~camera_geometry_t() {}
 
 template <typename CM, typename DM>
 vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,

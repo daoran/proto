@@ -832,6 +832,50 @@ real_t latlon_dist(real_t lat_ref, real_t lon_ref, real_t lat, real_t lon) {
   return dist;
 }
 
+/*****************************************************************************
+ *                         DIFFERENTIAL GEOMETRY
+ *****************************************************************************/
+
+namespace lie {
+
+mat3_t Exp(const vec3_t &phi) {
+  const real_t norm = phi.norm();
+
+  // Small angle approx
+  if (norm < 1e-3) {
+    return mat3_t{I(3) + skew(phi)};
+  }
+
+  // Exponential map from so(3) to SO(3)
+  const mat3_t phi_skew = skew(phi);
+  mat3_t C = I(3);
+  C += (sin(norm) / norm) * phi_skew;
+  C += ((1 - cos(norm)) / (norm * norm)) * (phi_skew * phi_skew);
+
+  return C;
+}
+
+// vec3_t Log(const mat3_t &C) {
+//   const auto phi = acos(C.trace() - 1 / 2);
+//   return phi * (C * C.transpose()) / (2 * sin(phi));
+// }
+
+mat3_t Jr(const vec3_t &psi) {
+  const real_t psi_norm = psi.norm();
+  const real_t psi_norm_sq = psi_norm * psi_norm;
+  const real_t psi_norm_cube = psi_norm_sq * psi_norm;
+  const mat3_t psi_skew = skew(psi);
+  const mat3_t psi_skew_sq = psi_skew * psi_skew;
+
+  mat3_t J = I(3);
+  J -= ((1 - cos(psi_norm)) / psi_norm_sq) * psi_skew;
+  J += (psi_norm - sin(psi_norm)) / (psi_norm_cube) * psi_skew_sq;
+  return J;
+}
+
+} // namespace lie
+
+
 /******************************************************************************
  *                               STATISTICS
  *****************************************************************************/
@@ -910,24 +954,6 @@ real_t gauss_normal() {
 
   phase = 1 - phase;
   return X;
-}
-
-/*****************************************************************************
- *                         DIFFERENTIAL GEOMETRY
- *****************************************************************************/
-
-mat3_t so3_exp(const vec3_t &phi) {
-  const real_t norm = phi.norm();
-  if (norm < 1e-3) {
-    return mat3_t{I(3) + skew(phi)};
-  }
-
-  const mat3_t phi_skew = skew(phi);
-  mat3_t C = I(3);
-  C += (sin(norm) / norm) * phi_skew;
-  C += ((1 - cos(norm)) / (norm * norm)) * (phi_skew * phi_skew);
-
-  return C;
 }
 
 /*****************************************************************************
@@ -1482,37 +1508,88 @@ void landmark_t::plus(const vecx_t &dx) {
   param[2] = param[2] + dx[2];
 }
 
-// camera_params_t::camera_params_t(real_t *param_, size_t nb_params_)
-//   : param{param_}, nb_params{nb_params_} {}
-//
-// camera_params_t::camera_params_t(const size_t id_,
-//                                  real_t *param_,
-//                                  size_t nb_params_)
-//   : param_t{id_, nb_params_}, param{param_} {}
-//
-// real_t *camera_params_t::data() { return param; };
-//
-// void camera_params_t::plus(const vecx_t &dx) {
-//   for (size_t i = 0; i < nb_params; i++) {
-//     param[i] = param[i] + dx[i];
-//   }
-// }
-//
-// distortion_params_t::distortion_params_t(real_t *param_, size_t nb_params_)
-//   : param{param_}, nb_params{nb_params_} {}
-//
-// distortion_params_t::distortion_params_t(const size_t id_,
-//                                          real_t *param_,
-//                                          size_t nb_params_)
-//   : param_t{id_, nb_params_}, param{param_} {}
-//
-// real_t *distortion_params_t::data() { return param; };
-//
-// void distortion_params_t::plus(const vecx_t &dx) {
-//   for (size_t i = 0; i < nb_params; i++) {
-//     param[i] = param[i] + dx[i];
-//   }
-// }
+camera_param_t::camera_param_t(const size_t id_,
+                               const int cam_index_,
+                               const vec4_t &param_)
+  : param_t{id_, 4}, cam_index{cam_index_} {
+  for (int i = 0; i < param_.size(); i++) {
+    param[i] = param_(i);
+  }
+}
+
+vec4_t camera_param_t::vec() { return map_vec_t<4>(param); };
+
+real_t *camera_param_t::data() { return param; };
+
+void camera_param_t::plus(const vecx_t &dx) {
+  param[0] = param[0] + dx[0];
+  param[1] = param[1] + dx[1];
+  param[2] = param[2] + dx[2];
+  param[3] = param[3] + dx[3];
+}
+
+dist_param_t::dist_param_t(const size_t id_,
+                               const int cam_index_,
+                               const vec4_t &param_)
+  : param_t{id_, 4}, cam_index{cam_index_} {
+  for (int i = 0; i < param_.size(); i++) {
+    param[i] = param_(i);
+  }
+}
+
+vec4_t dist_param_t::vec() { return map_vec_t<4>(param); };
+
+real_t *dist_param_t::data() { return param; };
+
+void dist_param_t::plus(const vecx_t &dx) {
+  param[0] = param[0] + dx[0];
+  param[1] = param[1] + dx[1];
+  param[2] = param[2] + dx[2];
+  param[3] = param[3] + dx[3];
+}
+
+sb_param_t::sb_param_t(const size_t id_,
+                       const timestamp_t &ts_,
+                       const vec3_t &v_,
+                       const vec3_t &ba_,
+                       const vec3_t &bg_)
+  : param_t{id_, ts_, 9} {
+  // Velocity
+  param[0] = v_(0);
+  param[1] = v_(1);
+  param[2] = v_(2);
+
+  // Accel bias
+  param[3] = ba_(0);
+  param[4] = ba_(1);
+  param[5] = ba_(2);
+
+  // Gyro bias
+  param[6] = bg_(0);
+  param[7] = bg_(1);
+  param[8] = bg_(2);
+}
+
+vec_t<9> sb_param_t::vec() { return map_vec_t<9>(param); };
+
+real_t *sb_param_t::data() { return param; };
+
+void sb_param_t::plus(const vecx_t &dx) {
+  // Velocity
+  param[0] = param[0] + dx[0];
+  param[1] = param[1] + dx[1];
+  param[2] = param[2] + dx[2];
+
+  // Accel bias
+  param[3] = param[3] + dx[3];
+  param[4] = param[4] + dx[4];
+  param[5] = param[5] + dx[5];
+
+  // Gyro bias
+  param[6] = param[6] + dx[6];
+  param[7] = param[7] + dx[7];
+  param[8] = param[8] + dx[8];
+}
 
 static keypoints_t parse_keypoints_line(const char *line) {
   char entry[100] = {0};
@@ -2241,10 +2318,6 @@ int check_jacobian(const std::string &jac_name,
       }
     }
   }
-
-  print_matrix("num diff jac", fdiff);
-  print_matrix("analytical jac", jac);
-  print_matrix("difference matrix", delta);
 
   // Print result
   int retval = 0;
@@ -3077,10 +3150,10 @@ int carrot_ctrl_update(carrot_ctrl_t &cc,
  *                                  MODEL
  ****************************************************************************/
 
-mat4_t dh_transform(const double theta,
-                    const double d,
-                    const double a,
-                    const double alpha) {
+mat4_t dh_transform(const real_t theta,
+                    const real_t d,
+                    const real_t a,
+                    const real_t alpha) {
   // clang-format off
   mat4_t T;
   T << cos(theta), -sin(theta) * cos(alpha), sin(theta) * sin(alpha), a * cos(theta),
@@ -3096,20 +3169,20 @@ gimbal_model_t::gimbal_model_t() {}
 
 gimbal_model_t::gimbal_model_t(const vec6_t &tau_s,
                                const vec6_t &tau_d,
-                               const double Lambda1,
+                               const real_t Lambda1,
                                const vec3_t w1,
-                               const double Lambda2,
+                               const real_t Lambda2,
                                const vec3_t w2,
-                               const double theta1_offset,
-                               const double theta2_offset)
+                               const real_t theta1_offset,
+                               const real_t theta2_offset)
     : tau_s{tau_s}, tau_d{tau_d}, Lambda1{Lambda1}, w1{w1}, Lambda2{Lambda2},
       w2{w2}, theta1_offset{theta1_offset}, theta2_offset{theta2_offset} {}
 
 gimbal_model_t::~gimbal_model_t() {}
 
 void gimbal_model_set_attitude(gimbal_model_t &model,
-                               const double roll_,
-                               const double pitch_) {
+                               const real_t roll_,
+                               const real_t pitch_) {
   model.Lambda1 = roll_;
   model.Lambda2 = pitch_;
 }
@@ -3128,15 +3201,15 @@ mat4_t gimbal_model_T_BS(const gimbal_model_t &model) {
 }
 
 mat4_t gimbal_model_T_EB(const gimbal_model_t &model) {
-  const double theta1 = model.Lambda1 + model.theta1_offset;
-  const double d1 = model.w1[0];
-  const double a1 = model.w1[1];
-  const double alpha1 = model.w1[2];
+  const real_t theta1 = model.Lambda1 + model.theta1_offset;
+  const real_t d1 = model.w1[0];
+  const real_t a1 = model.w1[1];
+  const real_t alpha1 = model.w1[2];
 
-  const double theta2 = model.Lambda2 + model.theta2_offset;
-  const double d2 = model.w2[0];
-  const double a2 = model.w2[1];
-  const double alpha2 = model.w2[2];
+  const real_t theta2 = model.Lambda2 + model.theta2_offset;
+  const real_t d2 = model.w2[0];
+  const real_t a2 = model.w2[1];
+  const real_t alpha2 = model.w2[2];
 
   const mat4_t T_1b = dh_transform(theta1, d1, a1, alpha1).inverse();
   const mat4_t T_e1 = dh_transform(theta2, d2, a2, alpha2).inverse();
@@ -3181,16 +3254,16 @@ std::ostream &operator<<(std::ostream &os, const gimbal_model_t &model) {
   return os;
 }
 
-void circle_trajectory(const double r,
-                       const double v,
-                       double *w,
-                       double *time) {
-  const double dist = 2 * M_PI * r;
+void circle_trajectory(const real_t r,
+                       const real_t v,
+                       real_t *w,
+                       real_t *time) {
+  const real_t dist = 2 * M_PI * r;
   *time = dist / v;
   *w = (2 * M_PI) / *time;
 }
 
-void two_wheel_update(two_wheel_t &tm, const double dt) {
+void two_wheel_update(two_wheel_t &tm, const real_t dt) {
   const vec3_t p_G_prev = tm.p_G;
   const vec3_t v_G_prev = tm.v_G;
   const vec3_t rpy_G_prev = tm.rpy_G;
@@ -3212,32 +3285,32 @@ void two_wheel_update(two_wheel_t &tm, const double dt) {
 
 int mav_model_update(mav_model_t &model,
                      const vec4_t &motor_inputs,
-                     const double dt) {
-  const double ph = model.attitude(0);
-  const double th = model.attitude(1);
-  const double ps = model.attitude(2);
+                     const real_t dt) {
+  const real_t ph = model.attitude(0);
+  const real_t th = model.attitude(1);
+  const real_t ps = model.attitude(2);
 
-  const double p = model.angular_velocity(0);
-  const double q = model.angular_velocity(1);
-  const double r = model.angular_velocity(2);
+  const real_t p = model.angular_velocity(0);
+  const real_t q = model.angular_velocity(1);
+  const real_t r = model.angular_velocity(2);
 
-  const double x = model.position(0);
-  const double y = model.position(1);
-  const double z = model.position(2);
+  const real_t x = model.position(0);
+  const real_t y = model.position(1);
+  const real_t z = model.position(2);
 
-  const double vx = model.linear_velocity(0);
-  const double vy = model.linear_velocity(1);
-  const double vz = model.linear_velocity(2);
+  const real_t vx = model.linear_velocity(0);
+  const real_t vy = model.linear_velocity(1);
+  const real_t vz = model.linear_velocity(2);
 
-  const double Ix = model.Ix;
-  const double Iy = model.Iy;
-  const double Iz = model.Iz;
+  const real_t Ix = model.Ix;
+  const real_t Iy = model.Iy;
+  const real_t Iz = model.Iz;
 
-  const double kr = model.kr;
-  const double kt = model.kt;
+  const real_t kr = model.kr;
+  const real_t kt = model.kt;
 
-  const double m = model.m;
-  const double g = model.g;
+  const real_t m = model.m;
+  const real_t g = model.g;
 
   // convert motor inputs to angular p, q, r and total thrust
   // clang-format off
@@ -3248,10 +3321,10 @@ int mav_model_update(mav_model_t &model,
        -model.d, model.d, -model.d, model.d;
   // clang-format on
   const vec4_t tau = A * motor_inputs;
-  const double tauf = tau(0);
-  const double taup = tau(1);
-  const double tauq = tau(2);
-  const double taur = tau(3);
+  const real_t tauf = tau(0);
+  const real_t taup = tau(1);
+  const real_t tauq = tau(2);
+  const real_t taur = tau(3);
 
   // update
   // clang-format off

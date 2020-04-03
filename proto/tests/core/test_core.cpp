@@ -276,8 +276,8 @@ int test_nullspace() {
  *****************************************************************************/
 
 int test_deg2radAndrad2deg() {
-  double d_deg;
-  double d_rad;
+  real_t d_deg;
+  real_t d_rad;
 
   d_deg = 10;
   d_rad = deg2rad(d_deg);
@@ -287,7 +287,7 @@ int test_deg2radAndrad2deg() {
 }
 
 int test_wrap180() {
-  double retval;
+  real_t retval;
 
   // normal cases
   retval = wrap180(90.0);
@@ -316,7 +316,7 @@ int test_wrap180() {
 }
 
 int test_wrap360() {
-  double retval;
+  real_t retval;
 
   // normal cases
   retval = wrap360(90.0);
@@ -448,14 +448,14 @@ int test_lerp() {
 
 int test_latlon_offset() {
   // UWaterloo 110 yards Canadian Football field from one end to another
-  double lat = 43.474357;
-  double lon = -80.550415;
+  real_t lat = 43.474357;
+  real_t lon = -80.550415;
 
-  double offset_N = 44.1938;
-  double offset_E = 90.2336;
+  real_t offset_N = 44.1938;
+  real_t offset_E = 90.2336;
 
-  double lat_new = 0.0;
-  double lon_new = 0.0;
+  real_t lat_new = 0.0;
+  real_t lon_new = 0.0;
 
   // calculate football field GPS coordinates
   latlon_offset(lat, lon, offset_N, offset_E, &lat_new, &lon_new);
@@ -471,17 +471,17 @@ int test_latlon_offset() {
 
 int test_latlon_diff() {
   // UWaterloo 110 yards Canadian Football field from one end to another
-  double lat_ref = 43.474357;
-  double lon_ref = -80.550415;
-  double lat = 43.474754;
-  double lon = -80.549298;
+  real_t lat_ref = 43.474357;
+  real_t lon_ref = -80.550415;
+  real_t lat = 43.474754;
+  real_t lon = -80.549298;
 
-  double dist_N = 0.0;
-  double dist_E = 0.0;
+  real_t dist_N = 0.0;
+  real_t dist_E = 0.0;
 
   // calculate football field distance
   latlon_diff(lat_ref, lon_ref, lat, lon, &dist_N, &dist_E);
-  double dist = sqrt(pow(dist_N, 2) + pow(dist_E, 2));
+  real_t dist = sqrt(pow(dist_N, 2) + pow(dist_E, 2));
   std::cout << "distance north: " << dist_N << std::endl;
   std::cout << "distance east: " << dist_E << std::endl;
 
@@ -493,13 +493,13 @@ int test_latlon_diff() {
 
 int test_latlon_dist() {
   // UWaterloo 110 yards Canadian Football field from one end to another
-  double lat_ref = 43.474357;
-  double lon_ref = -80.550415;
-  double lat = 43.474754;
-  double lon = -80.549298;
+  real_t lat_ref = 43.474357;
+  real_t lon_ref = -80.550415;
+  real_t lat = 43.474754;
+  real_t lon = -80.549298;
 
   // calculate football field distance
-  double dist = latlon_dist(lat_ref, lon_ref, lat, lon);
+  real_t dist = latlon_dist(lat_ref, lon_ref, lat, lon);
   std::cout << "distance: " << dist << std::endl;
 
   // 110 yards is approx 100 meters
@@ -513,7 +513,7 @@ int test_latlon_dist() {
  *****************************************************************************/
 
 int test_median() {
-  std::vector<double> v;
+  std::vector<real_t> v;
 
   v.push_back(6);
   v.push_back(3);
@@ -692,17 +692,17 @@ int test_mat2csv() {
 
 int test_slerp() {
   for (int i = 0; i < 1000; i++) {
-    const double roll_start = randf(-1.0, 1.0);
-    const double pitch_start = randf(-1.0, 1.0);
-    const double yaw_start = randf(-1.0, 1.0);
+    const real_t roll_start = randf(-1.0, 1.0);
+    const real_t pitch_start = randf(-1.0, 1.0);
+    const real_t yaw_start = randf(-1.0, 1.0);
     const vec3_t rpy_start{roll_start, pitch_start, yaw_start};
 
-    const double roll_end = randf(-1.0, 1.0);
-    const double pitch_end = randf(-1.0, 1.0);
-    const double yaw_end = randf(-1.0, 1.0);
+    const real_t roll_end = randf(-1.0, 1.0);
+    const real_t pitch_end = randf(-1.0, 1.0);
+    const real_t yaw_end = randf(-1.0, 1.0);
     const vec3_t rpy_end{roll_end, pitch_end, yaw_end};
 
-    const double alpha = randf(0.0, 1.0);
+    const real_t alpha = randf(0.0, 1.0);
     const auto q0 = quat_t{euler321(rpy_start)};
     const auto q1 = quat_t{euler321(rpy_end)};
     const auto expect = q0.slerp(alpha, q1);
@@ -758,7 +758,7 @@ int test_interp_poses() {
   const vec3_t rpy_end{deg2rad(90.0), deg2rad(90.0), deg2rad(90.0)};
 
   const size_t nb_timestamps = timestamps.size();
-  const double step = 1.0 / nb_timestamps;
+  const real_t step = 1.0 / nb_timestamps;
   vec3s_t trans_interp_gnd;
   for (size_t i = 0; i < nb_timestamps; i++) {
     const auto trans_interp = lerp(trans_start, trans_end, step * i);
@@ -811,7 +811,7 @@ int test_closest_poses() {
   const vec3_t rpy_end{deg2rad(1.0), deg2rad(2.0), deg2rad(3.0)};
 
   const size_t nb_timestamps = timestamps.size();
-  const double step = 1.0 / nb_timestamps;
+  const real_t step = 1.0 / nb_timestamps;
   vec3s_t trans_interp_gnd;
   for (size_t i = 0; i < nb_timestamps; i++) {
     const auto trans_interp = lerp(trans_start, trans_end, step * i);
@@ -901,9 +901,9 @@ int test_config_parse_primitive() {
   parse(config, "float", f);
   MU_CHECK(fltcmp(2.2, f) == 0);
 
-  // DOUBLE
-  double d = 0.0;
-  parse(config, "double", d);
+  // real_t
+  real_t d = 0.0;
+  parse(config, "real_t", d);
   MU_CHECK(fltcmp(3.3, d) == 0);
 
   // STRING
@@ -939,9 +939,9 @@ int test_config_parse_array() {
     MU_CHECK_FLOAT((i + 1) * 1.1, f_array[i]);
   }
 
-  // DOUBLE
-  std::vector<double> d_array;
-  parse(config, "double_array", d_array);
+  // real_t
+  std::vector<real_t> d_array;
+  parse(config, "real_t_array", d_array);
   for (int i = 0; i < 4; i++) {
     MU_CHECK_FLOAT((i + 1) * 1.1, d_array[i]);
   }
@@ -1055,7 +1055,7 @@ int test_config_parse_matrix() {
   index = 0;
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 4; j++) {
-      MU_CHECK_FLOAT((index + 1) * 1.1, cvmat.at<double>(i, j));
+      MU_CHECK_FLOAT((index + 1) * 1.1, cvmat.at<real_t>(i, j));
       index++;
     }
   }
@@ -1070,26 +1070,26 @@ int test_config_parser_full_example() {
   bool b;
   int i;
   float f;
-  double d;
+  real_t d;
 
   parse(config, "bool", b);
   parse(config, "int", i);
   parse(config, "float", f);
-  parse(config, "double", d);
+  parse(config, "real_t", d);
 
   // Array
   std::string s;
   std::vector<bool> b_array;
   std::vector<int> i_array;
   std::vector<float> f_array;
-  std::vector<double> d_array;
+  std::vector<real_t> d_array;
   std::vector<std::string> s_array;
 
   parse(config, "string", s);
   parse(config, "bool_array", b_array);
   parse(config, "int_array", i_array);
   parse(config, "float_array", f_array);
-  parse(config, "double_array", d_array);
+  parse(config, "real_t_array", d_array);
   parse(config, "string_array", s_array);
 
   // Vectors
@@ -1121,7 +1121,7 @@ int test_config_parser_full_example() {
   std::cout << "bool: " << b << std::endl;
   std::cout << "int: " << i << std::endl;
   std::cout << "float: " << f << std::endl;
-  std::cout << "double: " << d << std::endl;
+  std::cout << "real_t: " << d << std::endl;
   std::cout << "string: " << s << std::endl;
   std::cout << std::endl;
 
@@ -1434,9 +1434,9 @@ int test_lerp_data3() {
   std::deque<vec3_t> accel_data;
 
   timestamp_t t0 = 0;
-  Eigen::Vector3d d0;
+  vec3_t d0;
   timestamp_t t1 = 0;
-  Eigen::Vector3d d1;
+  vec3_t d1;
   bool t0_set = false;
 
   std::deque<timestamp_t> lerp_ts;
@@ -1452,7 +1452,7 @@ int test_lerp_data3() {
     buf_seq.pop_front();
 
     // Data
-    const Eigen::Vector3d data = buf_data.front();
+    const vec3_t data = buf_data.front();
     buf_data.pop_front();
 
     if (t0_set == false && seq == "A") {
@@ -1468,8 +1468,8 @@ int test_lerp_data3() {
       while (lerp_ts.size()) {
         const timestamp_t lts = lerp_ts.front();
         const vec3_t ldata = lerp_data.front();
-        const double dt = static_cast<double>(t1 - t0) * 1e-9;
-        const double alpha = static_cast<double>(lts - t0) * 1e-9 / dt;
+        const real_t dt = static_cast<real_t>(t1 - t0) * 1e-9;
+        const real_t alpha = static_cast<real_t>(lts - t0) * 1e-9 / dt;
 
         accel_ts.push_back(lts);
         accel_data.push_back(lerp(d0, d1, alpha));
@@ -1518,7 +1518,7 @@ void generate_trajectory(timestamps_t &timestamps,
                          quats_t &orientations) {
   timestamp_t ts_k = 0;
   const timestamp_t ts_end = 5.0 * 1e9;
-  const double f = 100.0;
+  const real_t f = 100.0;
   const timestamp_t dt = (1 / f) * 1e9;
 
   while (ts_k <= ts_end) {
@@ -1526,15 +1526,15 @@ void generate_trajectory(timestamps_t &timestamps,
     timestamps.push_back(ts_k);
 
     // Position
-    const double ts_s_k = ts2sec(ts_k);
+    const real_t ts_s_k = ts2sec(ts_k);
     positions.emplace_back(sin(2 * M_PI * 2 * ts_s_k) + 1.0,
                            sin(2 * M_PI * 2 * ts_s_k) + 2.0,
                            sin(2 * M_PI * 2 * ts_s_k) + 3.0);
 
     // Orientation
-    const vec3_t rpy{sin(2 * M_PI * 2 * ts_s_k),
+    const vec3_t rpy(sin(2 * M_PI * 2 * ts_s_k),
                      sin(2 * M_PI * 2 * ts_s_k + M_PI / 4),
-                     sin(2 * M_PI * 2 * ts_s_k + M_PI / 2)};
+                     sin(2 * M_PI * 2 * ts_s_k + M_PI / 2));
     orientations.emplace_back(euler321(rpy));
 
     // Update
@@ -1620,7 +1620,7 @@ int test_ctraj_get_pose() {
 
     timestamp_t ts_k = 0;
     const timestamp_t ts_end = timestamps.back();
-    const double f = 1000.0;
+    const real_t f = 1000.0;
     const timestamp_t dt = (1 / f) * 1e9;
 
     while (ts_k <= ts_end) {
@@ -1666,7 +1666,7 @@ int test_ctraj_get_velocity() {
 
     timestamp_t ts_k = 0;
     const timestamp_t ts_end = timestamps.back();
-    const double f = 1000.0;
+    const real_t f = 1000.0;
     const timestamp_t dt = (1 / f) * 1e9;
 
     while (ts_k <= ts_end) {
@@ -1706,7 +1706,7 @@ int test_ctraj_get_acceleration() {
 
     timestamp_t ts_k = 0;
     const timestamp_t ts_end = timestamps.back();
-    const double f = 1000.0;
+    const real_t f = 1000.0;
     const timestamp_t dt = (1 / f) * 1e9;
 
     while (ts_k <= ts_end) {
@@ -1747,7 +1747,7 @@ int test_ctraj_get_angular_velocity() {
 
   timestamp_t ts_k = 0;
   const timestamp_t ts_end = timestamps.back();
-  const double f = 1000.0;
+  const real_t f = 1000.0;
   const timestamp_t dt = (1 / f) * 1e9;
 
   // Initialize first attitude
@@ -1769,7 +1769,7 @@ int test_ctraj_get_angular_velocity() {
 
     // Propagate angular velocity to obtain attitude at time k
     const mat3_t C_BW = tf_rot(T_WB).inverse();
-    C_WB = C_WB * so3_exp(C_BW * w_WB_k * ts2sec(dt));
+    C_WB = C_WB * lie::Exp(C_BW * w_WB_k * ts2sec(dt));
     q_prop_hist.emplace_back(quat_t{C_WB});
 
     ts_k += dt;
@@ -1849,8 +1849,8 @@ int test_sim_imu_measurement() {
                         w_WS_S);
 
     // Propagate simulated IMU measurements
-    const double dt_s = ts2sec(dt);
-    const double dt_s_sq = dt_s * dt_s;
+    const real_t dt_s = ts2sec(dt);
+    const real_t dt_s_sq = dt_s * dt_s;
     const vec3_t g{0.0, 0.0, -imu.g};
     // -- Position at time k
     const vec3_t b_a = ones(3, 1) * imu.b_a;
@@ -1863,7 +1863,7 @@ int test_sim_imu_measurement() {
     // -- Attitude at time k
     const vec3_t b_g = ones(3, 1) * imu.b_g;
     const vec3_t n_g = ones(3, 1) * imu.sigma_g_c;
-    C_WS = C_WS * so3_exp((w_WS_S - b_g - n_g) * ts2sec(dt));
+    C_WS = C_WS * lie::Exp((w_WS_S - b_g - n_g) * ts2sec(dt));
 
     // Reocord IMU measurments
     pos_prop.push_back(r_WS);
@@ -1938,7 +1938,7 @@ int test_pid_update() {
   pid_t p(1.0, 2.0, 3.0);
 
   // test and assert
-  double output = pid_update(p, 10.0, 0.0, 0.1);
+  real_t output = pid_update(p, 10.0, 0.0, 0.1);
   std::cout << p << std::endl;
 
   // MU_CHECK_FLOAT(1.0, p.error_sum);
@@ -2151,12 +2151,12 @@ int test_two_wheel_update() {
   output_file << header << std::endl;
 
   // Setup model
-  double t_end = 10.0;
-  const double dt = 0.1;
+  real_t t_end = 10.0;
+  const real_t dt = 0.1;
 
-  double wz_B = 0.0;
-  const double circle_radius = 10.0;
-  const double circle_velocity = 1.0;
+  real_t wz_B = 0.0;
+  const real_t circle_radius = 10.0;
+  const real_t circle_velocity = 1.0;
   circle_trajectory(circle_radius, circle_velocity, &wz_B, &t_end);
   two_wheel_t model;
   model.v_B(0) = circle_velocity;
@@ -2178,7 +2178,7 @@ int test_two_wheel_update() {
   output_file << model.rpy_G(2) << std::endl;
 
   // Simulate model motion
-  for (double t = 0.0; t < t_end; t += dt) {
+  for (real_t t = 0.0; t < t_end; t += dt) {
     // Update
     two_wheel_update(model, dt);
 
@@ -2243,7 +2243,7 @@ int setup_output_files(std::ofstream &gnd_file,
   return 0;
 }
 
-void record_timestep(const double t,
+void record_timestep(const real_t t,
                      const mav_model_t &mav,
                      std::ofstream &gnd_file,
                      std::ofstream &mea_file,
@@ -2304,9 +2304,9 @@ int test_mav_model_update() {
   mav.position = pos_desired;
 
   // Simulate
-  const double dt = 0.01;
-  // for (double t = 0.0; t <= 30.0; t += dt) {
-  for (double t = 0.0; t <= 30.0; t += dt) {
+  const real_t dt = 0.01;
+  // for (real_t t = 0.0; t <= 30.0; t += dt) {
+  for (real_t t = 0.0; t <= 30.0; t += dt) {
     // Update mav model
     const vec4_t motor_inputs = zeros(4, 1);
     mav_model_update(mav, motor_inputs, dt);

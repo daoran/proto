@@ -323,20 +323,20 @@ struct imu_factor_t : factor_t {
     const vec3_t bg_j = sb_j.segment<3>(6);
 
     // Obtain Jacobians for gyro and accel bias
-    const mat3_t dp_bg = F.block<3, 3>(0, 9);
-    const mat3_t dp_ba = F.block<3, 3>(0, 12);
-    const mat3_t dv_bg = F.block<3, 3>(3, 9);
-    const mat3_t dv_ba = F.block<3, 3>(3, 12);
-    const mat3_t dq_bg = F.block<3, 3>(6, 12);
+    const mat3_t dp_dbg = F.block<3, 3>(0, 9);
+    const mat3_t dp_dba = F.block<3, 3>(0, 12);
+    const mat3_t dv_dbg = F.block<3, 3>(3, 9);
+    const mat3_t dv_dba = F.block<3, 3>(3, 12);
+    const mat3_t dq_dbg = F.block<3, 3>(6, 12);
 
     // Calculate residuals
     const real_t dt_ij = ns2sec(imu_ts.back() - imu_ts.front());
     const real_t dt_ij_sq = dt_ij * dt_ij;
     const vec3_t dbg = bg_i - bg;
     const vec3_t dba = ba_i - ba;
-    const vec3_t alpha = dp + dp_bg * dbg + dp_ba * dba;
-    const vec3_t beta = dv + dv_bg * dbg + dv_ba * dba;
-    const quat_t gamma = dq * quat_delta(dq_bg * dbg);
+    const vec3_t alpha = dp + dp_dbg * dbg + dp_dba * dba;
+    const vec3_t beta = dv + dv_dbg * dbg + dv_dba * dba;
+    const quat_t gamma = dq * quat_delta(dq_dbg * dbg);
 
     residuals << C_i.inverse() * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq) - alpha,
                  C_i.inverse() * (v_j - v_i + g * dt_ij) - beta,
@@ -346,27 +346,30 @@ struct imu_factor_t : factor_t {
 
     // Calculate jacobians
     // clang-format off
+    const quat_t gamma_inv = gamma.inverse();
     const mat3_t C_i_inv = C_i.transpose();
+    const quat_t q_i_inv = q_i.inverse();
+    const quat_t q_j_inv = q_j.inverse();
     // -- Sensor pose at i Jacobian
     jacobians[0] = zeros(15, 6);
     jacobians[0].block<3, 3>(0, 0) = skew(C_i_inv * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq));
     jacobians[0].block<3, 3>(0, 3) = -C_i_inv;
     jacobians[0].block<3, 3>(3, 0) = skew(C_i_inv * (v_j - v_i + g * dt_ij));
-    jacobians[0].block<3, 3>(6, 0) = -(quat_lmul(q_j.inverse() * q_i) * quat_rmul(gamma)).bottomRightCorner<3, 3>();
+    jacobians[0].block<3, 3>(6, 0) = -(quat_lmul(q_j_inv * q_i) * quat_rmul(gamma)).bottomRightCorner<3, 3>();
     // -- Speed and bias at i Jacobian
     jacobians[1] = zeros(15, 9);
     jacobians[1].block<3, 3>(0, 0) = -C_i_inv * dt_ij;
-    jacobians[1].block<3, 3>(0, 3) = -dp_ba;
-    jacobians[1].block<3, 3>(0, 6) = -dp_bg;
+    jacobians[1].block<3, 3>(0, 3) = -dp_dba;
+    jacobians[1].block<3, 3>(0, 6) = -dp_dbg;
     jacobians[1].block<3, 3>(3, 0) = -C_i_inv;
-    jacobians[1].block<3, 3>(3, 3) = -dv_ba;
-    jacobians[1].block<3, 3>(3, 6) = -dv_bg;
+    jacobians[1].block<3, 3>(3, 3) = -dv_dba;
+    jacobians[1].block<3, 3>(3, 6) = -dv_dbg;
     jacobians[1].block<3, 3>(9, 3) = -I(3);
     jacobians[1].block<3, 3>(12, 6) = -I(3);
     // -- Sensor pose at j Jacobian
     jacobians[2] = zeros(15, 6);
     jacobians[2].block<3, 3>(0, 3) = C_i_inv;
-    jacobians[2].block<3, 3>(6, 0) = quat_lmul(gamma.inverse() * q_i.inverse() * q_j.inverse()).bottomRightCorner<3, 3>();
+    jacobians[2].block<3, 3>(6, 0) = quat_lmul(gamma_inv * q_i_inv * q_j_inv).bottomRightCorner<3, 3>();
     // -- Speed and bias at j Jacobian
     jacobians[3] = zeros(15, 9);
     jacobians[3].block<3, 3>(3, 0) = C_i_inv;
@@ -414,8 +417,8 @@ size_t graph_add_pose(graph_t &graph,
 
 size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
   const auto id = graph.params.size();
-  const auto landmark_param = new landmark_t{id, landmark};
-  graph.params.insert({id, landmark_param});
+  const auto param = new landmark_t{id, landmark};
+  graph.params.insert({id, param});
   return id;
 }
 
@@ -423,8 +426,59 @@ size_t graph_add_cam_params(graph_t &graph,
                             const int cam_index,
                             const vecx_t &params) {
   const auto id = graph.params.size();
-
+  const auto param = new camera_param_t{id, cam_index, params};
+  graph.params.insert({id, param});
   return id;
+}
+
+size_t graph_add_dist_params(graph_t &graph,
+                             const int cam_index,
+                             const vecx_t &params) {
+  const auto id = graph.params.size();
+  const auto param = new dist_param_t{id, cam_index, params};
+  graph.params.insert({id, param});
+  return id;
+}
+
+size_t graph_add_sb_params(graph_t &graph,
+                           const timestamp_t &ts,
+                           const vec3_t &v,
+                           const vec3_t &ba,
+                           const vec3_t &bg) {
+  const auto id = graph.params.size();
+  const auto param = new sb_param_t{id, ts, v, ba, bg};
+  graph.params.insert({id, param});
+  return id;
+}
+
+template <typename CM, typename DM>
+size_t graph_add_ba_factor(graph_t &graph,
+                           const timestamp_t &ts,
+                           const int cam_idx,
+                           const int img_w,
+                           const int img_h,
+                           const size_t cam_pose_id,
+                           const size_t landmark_id,
+                           const size_t cam_param_id,
+                           const size_t dist_param_id,
+                           const vec2_t &z,
+                           const mat2_t &info = I(2)) {
+  // Create factor
+  const auto f_id = graph.factors.size();
+  auto factor = new ba_factor_t<CM, DM>{
+    ts, f_id,
+    cam_idx, img_w, img_h,
+    z, info
+  };
+  factor->param_ids.push_back(cam_pose_id);
+  factor->param_ids.push_back(landmark_id);
+  factor->param_ids.push_back(cam_param_id);
+  factor->param_ids.push_back(dist_param_id);
+
+  // Add factor to graph
+  graph.factors.push_back(factor);
+
+  return f_id;
 }
 
 template <typename CM, typename DM>
@@ -433,30 +487,50 @@ size_t graph_add_cam_factor(graph_t &graph,
                             const int cam_idx,
                             const int img_w,
                             const int img_h,
-                            const CM &cm,
-                            const DM &dm,
-                            const mat4_t &T_WS,
-                            const mat4_t &T_SC,
-                            const vec3_t &p_W,
+                            const size_t sensor_pose_id,
+                            const size_t imu_cam_pose_id,
+                            const size_t landmark_id,
+                            const size_t cam_param_id,
+                            const size_t dist_param_id,
                             const vec2_t &z,
-                            const mat2_t &info) {
-  // Create cam_factor_t parameters
-  const auto pose_id = graph_add_pose(graph, ts, T_WS);
-  const auto sc_id = graph_add_pose(graph, ts, T_SC);
-  const auto landmark_id = graph_add_landmark(graph, p_W);
-
-  // Create cam_factor_t
+                            const mat2_t &info = I(2)) {
+  // Create factor
   const auto f_id = graph.factors.size();
   auto factor = new cam_factor_t<CM, DM>{
     ts, f_id,
-    cam_idx, img_w, img_h, cm, dm,
+    cam_idx, img_w, img_h,
     z, info
   };
-  factor->param_ids.push_back(pose_id);
-  factor->param_ids.push_back(sc_id);
+  factor->param_ids.push_back(sensor_pose_id);
+  factor->param_ids.push_back(imu_cam_pose_id);
   factor->param_ids.push_back(landmark_id);
+  factor->param_ids.push_back(cam_param_id);
+  factor->param_ids.push_back(dist_param_id);
 
-  // Add cam_factor_t to graph
+  // Add factor to graph
+  graph.factors.push_back(factor);
+
+  return f_id;
+}
+
+size_t graph_add_imu_factor(graph_t &graph,
+                            const int imu_index,
+                            const timestamps_t &imu_ts,
+                            const vec3s_t &imu_accel,
+                            const vec3s_t &imu_gyro,
+                            const size_t pose0_id,
+                            const size_t sb0_id,
+                            const size_t pose1_id,
+                            const size_t sb1_id) {
+  // Create factor
+  const auto f_id = graph.factors.size();
+  auto factor = new imu_factor_t(imu_index, imu_ts, imu_gyro, imu_accel);
+  factor->param_ids.push_back(pose0_id);
+  factor->param_ids.push_back(sb0_id);
+  factor->param_ids.push_back(pose1_id);
+  factor->param_ids.push_back(sb1_id);
+
+  // Add factor to graph
   graph.factors.push_back(factor);
 
   return f_id;
@@ -505,9 +579,69 @@ void graph_eval(graph_t &graph) {
   // }
 }
 
-int graph_solve(graph_t &graph) {
-  return 0;
+vecx_t graph_residuals(graph_t &graph) {
+  vecx_t e;
+  return e;
 }
+
+matx_t graph_jacobian(graph_t &graph) {
+  matx_t E;
+  return E;
+}
+
+void graph_update(graph_t &graph, const vecx_t &dx) {
+
+}
+
+/*****************************************************************************
+ *                               TINY SOLVER
+ ****************************************************************************/
+
+struct tiny_solver_t {
+  // Optimization parameters
+  int max_iter = 10;
+  real_t lambda = 1e-2;
+
+  real_t cost = 0.0;
+
+  tiny_solver_t() {}
+
+  int solve(graph_t &graph)  {
+    int max_iter = 10;
+    real_t cost_prev = 0.0;
+
+    for (int iter = 0; iter < max_iter; iter++) {
+      struct timespec t_start = tic();
+      const vecx_t e = graph_residuals(graph);
+      const matx_t E = graph_jacobian(graph);
+
+      // Form weight matrix
+      // W = diag(repmat(sigma, data->nb_measurements, 1));
+
+      // Solve Gauss-Newton system [H dx = g]: Solve for dx
+      matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
+      matx_t H_diag = (H.diagonal().asDiagonal());
+      // H = H + lambda * I(E.cols());  // original LM damping
+      H = H + lambda * H_diag;  // R. Fletcher trust region mod
+      const vecx_t g = -E.transpose() * e;
+      const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
+
+      cost = 0.5 * static_cast<real_t>(e.transpose() * e);
+      printf("iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&t_start));
+
+      // Termination criteria
+      real_t cost_diff = fabs(cost - cost_prev);
+      if (cost_diff < 1.0e-3) {
+        printf("Done!\n");
+        break;
+      }
+      cost_prev = cost;
+    }
+
+    return 0;
+  }
+
+};
 
 } // namespace proto
 #endif // PROTO_ESTIMATION_FACTOR_HPP
