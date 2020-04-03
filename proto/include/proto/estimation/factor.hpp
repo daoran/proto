@@ -208,8 +208,8 @@ struct imu_factor_t : factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   const timestamps_t imu_ts;
-  const vec3s_t imu_gyro;
   const vec3s_t imu_accel;
+  const vec3s_t imu_gyro;
   const vec3_t g{0.0, 0.0, -9.81};
 
   mat_t<15, 15> P = zeros(15, 15);  // Covariance matrix
@@ -224,12 +224,12 @@ struct imu_factor_t : factor_t {
 
   imu_factor_t(const size_t id_,
                const timestamps_t imu_ts_,
-               const vec3s_t imu_gyro_,
-               const vec3s_t imu_accel_)
+               const vec3s_t imu_accel_,
+               const vec3s_t imu_gyro_ )
       : factor_t{id_},
         imu_ts{imu_ts_},
-        imu_gyro{imu_gyro_},
-        imu_accel{imu_accel_} {
+        imu_accel{imu_accel_},
+        imu_gyro{imu_gyro_} {
     residuals = zeros(15, 1);
     jacobians.push_back(zeros(15, 6));  // T_WS at timestep i
     jacobians.push_back(zeros(15, 9));  // Speed and bias at timestep i
@@ -249,8 +249,8 @@ struct imu_factor_t : factor_t {
   }
 
   void propagate(const timestamps_t &ts,
-                 const vec3s_t &w_m,
-                 const vec3s_t &a_m) {
+                 const vec3s_t &a_m,
+                 const vec3s_t &w_m) {
     assert(w_m.size() == a_m.size());
 
     real_t dt_prev = ns2sec(ts[1] - ts[0]);
@@ -305,6 +305,7 @@ struct imu_factor_t : factor_t {
     // -- Sensor pose at timestep i
     const mat4_t T_i = tf(params[0]);
     const mat3_t C_i = tf_rot(T_i);
+    const mat3_t C_i_inv = C_i.transpose();
     const quat_t q_i = tf_quat(T_i);
     const vec3_t r_i = tf_trans(T_i);
     // -- Speed and bias at timestamp i
@@ -338,24 +339,20 @@ struct imu_factor_t : factor_t {
     const vec3_t beta = dv + dv_dbg * dbg + dv_dba * dba;
     const quat_t gamma = dq * quat_delta(dq_dbg * dbg);
 
-    residuals << C_i.inverse() * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq) - alpha,
-                 C_i.inverse() * (v_j - v_i + g * dt_ij) - beta,
+    residuals << C_i_inv * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq) - alpha,
+                 C_i_inv * (v_j - v_i + g * dt_ij) - beta,
                  2.0 * (gamma.inverse() * (q_i.inverse() * q_j)).vec(),
                  ba_j - ba_i,
                  bg_j - bg_i;
 
     // Calculate jacobians
     // clang-format off
-    const quat_t gamma_inv = gamma.inverse();
-    const mat3_t C_i_inv = C_i.transpose();
-    const quat_t q_i_inv = q_i.inverse();
-    const quat_t q_j_inv = q_j.inverse();
     // -- Sensor pose at i Jacobian
     jacobians[0] = zeros(15, 6);
     jacobians[0].block<3, 3>(0, 0) = skew(C_i_inv * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq));
     jacobians[0].block<3, 3>(0, 3) = -C_i_inv;
     jacobians[0].block<3, 3>(3, 0) = skew(C_i_inv * (v_j - v_i + g * dt_ij));
-    jacobians[0].block<3, 3>(6, 0) = -(quat_lmul(q_j_inv * q_i) * quat_rmul(gamma)).bottomRightCorner<3, 3>();
+    jacobians[0].block<3, 3>(6, 0) = -(quat_lmul(q_j.inverse() * q_i) * quat_rmul(gamma)).bottomRightCorner<3, 3>();
     // -- Speed and bias at i Jacobian
     jacobians[1] = zeros(15, 9);
     jacobians[1].block<3, 3>(0, 0) = -C_i_inv * dt_ij;
@@ -369,7 +366,7 @@ struct imu_factor_t : factor_t {
     // -- Sensor pose at j Jacobian
     jacobians[2] = zeros(15, 6);
     jacobians[2].block<3, 3>(0, 3) = C_i_inv;
-    jacobians[2].block<3, 3>(6, 0) = quat_lmul(gamma_inv * q_i_inv * q_j_inv).bottomRightCorner<3, 3>();
+    jacobians[2].block<3, 3>(6, 0) = quat_lmul(gamma.inverse() * q_i.inverse() * q_j.inverse()).bottomRightCorner<3, 3>();
     // -- Speed and bias at j Jacobian
     jacobians[3] = zeros(15, 9);
     jacobians[3].block<3, 3>(3, 0) = C_i_inv;

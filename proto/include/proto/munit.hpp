@@ -96,10 +96,11 @@ static std::string test_target = "";
     printf("%d failed\n", tests - passed);                                     \
     printf("\n");                                                              \
     printf(KNRM);                                                              \
-    if (failed != 0)                                                           \
+    if (failed != 0) {                                                         \
       return -1;                                                               \
-    else                                                                       \
+    } else {                                                                   \
       return 0;                                                                \
+    }                                                                          \
   } while (0)
 
 #define MU_RUN_TESTS(TEST_SUITE)                                               \

@@ -76,15 +76,10 @@ cd proto/build/tests
 # ./calib-test_sandbox2
 # ./calib-test_sandbox3
 
-# -- comm
-# ./comm-test_tcp
-
-# -- control
-# ./control-test_carrot_ctrl
-# ./control-test_pid
-
 # -- core
 # ./core-test_core
+# ./core-test_core --target test_ts2sec
+# ./core-test_core --target test_ns2sec
 # ./core-test_core --target test_pose
 # ./core-test_core --target test_sim_imu_measurement
 # ./core-test_mav
@@ -116,8 +111,10 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_add_landmark
 # ./estimation-test_factor --target test_graph_add_cam_params
 # ./estimation-test_factor --target test_graph_add_dist_params
+# ./estimation-test_factor --target test_graph_add_sb_params
 # ./estimation-test_factor --target test_graph_add_ba_factor
-./estimation-test_factor --target test_graph_add_cam_factor
+# ./estimation-test_factor --target test_graph_add_cam_factor
+# ./estimation-test_factor --target test_graph_add_imu_factor
 # ./estimation-test_measurement
 # ./estimation-test_dense
 

@@ -3,6 +3,14 @@
 
 namespace proto {
 
+#if PRECISION == SINGLE
+  real_t step_size = 1e-3;
+  real_t threshold = 0.5;
+#else
+  real_t step_size = 1e-6;
+  real_t threshold = 1e-4;
+#endif
+
 template <typename CM, typename DM>
 static vec2_t camera_project(const int img_w,
                              const int img_h,
@@ -76,9 +84,7 @@ static int check_J_h(
     const int img_w,
     const int img_h,
     const real_t *camera_params,
-    const real_t *dist_params,
-    const real_t step_size = 1e-8,
-    const real_t threshold = 1e-3) {
+    const real_t *dist_params) {
   // Calculate baseline
   // clang-format off
   const vec2_t z{0.0, 0.0};
@@ -114,9 +120,7 @@ static int check_J_cam_params(
     const vec3_t &p_W,
     const real_t *cam_params,
     const real_t *dist_params,
-    const matx_t &J,
-    const real_t step_size = 1e-8,
-    const real_t threshold = 1e-5) {
+    const matx_t &J) {
   const vec2_t z{0.0, 0.0};
   const CM cm{cam_params};
   const DM dm{dist_params};
@@ -153,9 +157,7 @@ static int check_J_dist_params(
     const vec3_t &p_W,
     const real_t *cam_params,
     const real_t *dist_params,
-    const matx_t &J,
-    const real_t step_size = 1e-8,
-    const real_t threshold = 1e-5) {
+    const matx_t &J) {
   const vec2_t z{0.0, 0.0};
   const CM cm{cam_params};
   const DM dm{dist_params};
@@ -193,9 +195,7 @@ static int check_ba_factor_J_cam_pose(
     const vec3_t &p_W,
     const real_t *camera_params,
     const real_t *dist_params,
-    const matx_t &J,
-    const real_t step_size = 1e-8,
-    const real_t threshold = 1e-3) {
+    const matx_t &J) {
   // Calculate baseline
   const vec2_t z{0.0, 0.0};
   const CM cm{camera_params};
@@ -235,9 +235,7 @@ static int check_ba_factor_J_landmark(
     const vec3_t &p_W,
     const real_t *camera_params,
     const real_t *dist_params,
-    const matx_t &J,
-    const real_t step_size = 1e-5,
-    const real_t threshold = 1e-5) {
+    const matx_t &J) {
   const vec2_t z{0.0, 0.0};
   const CM cm{camera_params};
   const DM dm{dist_params};
@@ -331,9 +329,7 @@ static int check_cam_factor_J_sensor_pose(
     const vec3_t &p_W,
     const real_t *camera_params,
     const real_t *dist_params,
-    const matx_t &J,
-    const real_t step_size = 1e-8,
-    const real_t threshold = 1e-3) {
+    const matx_t &J) {
   // Calculate baseline
   const vec2_t z{0.0, 0.0};
   const CM cm{camera_params};
@@ -374,9 +370,7 @@ static int check_cam_factor_J_sensor_camera_pose(
     const vec3_t &p_W,
     const real_t *camera_params,
     const real_t *dist_params,
-    const matx_t &J,
-    const real_t step_size = 1e-8,
-    const real_t threshold = 1e-5) {
+    const matx_t &J) {
   // Calculate baseline
   const vec2_t z{0.0, 0.0};
   const CM cm{camera_params};
@@ -415,9 +409,7 @@ static int check_cam_factor_J_landmark(
     const vec3_t &p_W,
     const real_t *camera_params,
     const real_t *dist_params,
-    const matx_t &J,
-    const real_t step_size = 1e-5,
-    const real_t threshold = 1e-5) {
+    const matx_t &J) {
   const vec2_t z{0.0, 0.0};
   const CM cm{camera_params};
   const DM dm{dist_params};
@@ -522,9 +514,7 @@ static int check_imu_factor_J_sensor_pose_i(
     imu_factor_t &factor,
     mat4_t &T_WS_i, vec_t<9> &sb_i,
     mat4_t &T_WS_j, vec_t<9> &sb_j,
-    matx_t &J,
-    const real_t step_size=1e-8,
-    const real_t threshold=1e-4) {
+    matx_t &J) {
   imu_factor_t imu_factor = factor;
   pose_t sensor_pose_i{T_WS_i};
   pose_t sensor_pose_j{T_WS_j};
@@ -577,9 +567,7 @@ static int check_imu_factor_J_speed_bias_i(
     imu_factor_t &factor,
     mat4_t &T_WS_i, vec_t<9> &sb_i,
     mat4_t &T_WS_j, vec_t<9> &sb_j,
-    matx_t &J,
-    const real_t step_size=1e-8,
-    const real_t threshold=1e-4) {
+    matx_t &J) {
   imu_factor_t imu_factor = factor;
   pose_t sensor_pose_i{T_WS_i};
   pose_t sensor_pose_j{T_WS_j};
@@ -616,9 +604,7 @@ static int check_imu_factor_J_sensor_pose_j(
     imu_factor_t &factor,
     mat4_t &T_WS_i, vec_t<9> &sb_i,
     mat4_t &T_WS_j, vec_t<9> &sb_j,
-    matx_t &J,
-    const real_t step_size=1e-8,
-    const real_t threshold=1e-4) {
+    matx_t &J) {
   imu_factor_t imu_factor = factor;
   pose_t sensor_pose_i{T_WS_i};
   pose_t sensor_pose_j{T_WS_j};
@@ -671,9 +657,7 @@ static int check_imu_factor_J_speed_bias_j(
     imu_factor_t &factor,
     mat4_t &T_WS_i, vec_t<9> &sb_i,
     mat4_t &T_WS_j, vec_t<9> &sb_j,
-    matx_t &J,
-    const real_t step_size=1e-8,
-    const real_t threshold=1e-4) {
+    matx_t &J) {
   imu_factor_t imu_factor = factor;
   pose_t sensor_pose_i{T_WS_i};
   pose_t sensor_pose_j{T_WS_j};
@@ -799,8 +783,8 @@ int test_imu_factor_jacobians() {
   save_data("/tmp/imu_gyro.csv", imu_ts, imu_gyro);
 
   // Create factor
-  imu_factor_t factor(0, imu_ts, imu_gyro, imu_accel);
-  factor.propagate(imu_ts, imu_gyro, imu_accel);
+  imu_factor_t factor(0, imu_ts, imu_accel, imu_gyro);
+  factor.propagate(imu_ts, imu_accel, imu_gyro);
 
   // Evaluate factor
   // -- Sensor pose at i
@@ -1137,6 +1121,15 @@ int test_graph_add_imu_factor() {
                        sb0_id,
                        pose1_id,
                        sb1_id);
+
+  real_t *params[4] = {
+    graph.params[0]->data(),
+    graph.params[1]->data(),
+    graph.params[2]->data(),
+    graph.params[3]->data()
+  };
+  graph.factors[0]->eval(params);
+  std::cout << graph.factors[0]->residuals << std::endl;
 
   // Asserts
   MU_CHECK(graph.params.size() == 4);

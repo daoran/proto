@@ -30,8 +30,8 @@
 #define ENABLE_MACROS 1
 
 /* PRECISION TYPE */
-#define real_t float
-// #define real_t double
+#define PRECISION SINGLE
+// #define PRECISION DOUBLE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,6 +268,14 @@ std::string paths_combine(const std::string path1, const std::string path2);
 /******************************************************************************
  *                                  ALGEBRA
  *****************************************************************************/
+
+#if PRECISION == SINGLE
+  #define real_t float
+#elif PRECISION == DOUBLE
+  #define real_t double
+#else
+  #define real_t double
+#endif
 
 /**
  * Sign of number
@@ -807,19 +815,6 @@ real_t closest_point(const vec2_t &p1,
                      const vec2_t &p2,
                      const vec2_t &p3,
                      vec2_t &closest);
-
-/**
- * Linear interpolation between two points.
- *
- * @param[in] a First point
- * @param[in] b Second point
- * @param[in] t Unit number
- * @returns Linear interpolation
- */
-template <typename T>
-T lerp(const T &a, const T &b, const real_t t) {
-  return a * (1.0 - t) + b * t;
-}
 
 #define EARTH_RADIUS_M 6378137.0
 
@@ -1388,39 +1383,6 @@ int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data);
 void print_progress(const real_t percentage);
 
 /**
- * Slerp
- */
-quat_t slerp(const quat_t &q_start, const quat_t &q_end, const real_t alpha);
-
-/**
- * Interpolate between two poses `p0` and `p1` with parameter `alpha`.
- */
-mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const real_t alpha);
-
-/**
- * Interpolate `poses` where each pose has a timestamp in `timestamps` and the
- * interpolation points in time are in `interp_ts`. The results are recorded
- * in `interp_poses`.
- * @returns 0 for success, -1 for failure
- */
-void interp_poses(const timestamps_t &timestamps,
-                  const mat4s_t &poses,
-                  const timestamps_t &interp_ts,
-                  mat4s_t &interped_poses,
-                  const real_t threshold = 0.001);
-
-/**
- * Get the closest pose in `poses` where each pose has a timestamp in
- * `timestamps` and the target points in time are in `target_ts`. The results
- * are recorded in `result`.
- * @returns 0 for success, -1 for failure
- */
-void closest_poses(const timestamps_t &timestamps,
-                   const mat4s_t &poses,
-                   const timestamps_t &interp_ts,
-                   mat4s_t &result);
-
-/**
  * Check if vector `x` is all true.
  */
 bool all_true(const std::vector<bool> x);
@@ -1834,6 +1796,53 @@ int parse(const config_t &config,
  *****************************************************************************/
 
 /**
+ * Linear interpolation between two points.
+ *
+ * @param[in] a First point
+ * @param[in] b Second point
+ * @param[in] t Unit number
+ * @returns Linear interpolation
+ */
+template <typename T>
+T lerp(const T &a, const T &b, const real_t t) {
+  return a * (1.0 - t) + b * t;
+}
+
+/**
+ * Slerp
+ */
+quat_t slerp(const quat_t &q_start, const quat_t &q_end, const real_t alpha);
+
+/**
+ * Interpolate between two poses `p0` and `p1` with parameter `alpha`.
+ */
+mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const real_t alpha);
+
+/**
+ * Interpolate `poses` where each pose has a timestamp in `timestamps` and the
+ * interpolation points in time are in `interp_ts`. The results are recorded
+ * in `interp_poses`.
+ * @returns 0 for success, -1 for failure
+ */
+void interp_poses(const timestamps_t &timestamps,
+                  const mat4s_t &poses,
+                  const timestamps_t &interp_ts,
+                  mat4s_t &interped_poses,
+                  const real_t threshold = 0.001);
+
+/**
+ * Get the closest pose in `poses` where each pose has a timestamp in
+ * `timestamps` and the target points in time are in `target_ts`. The results
+ * are recorded in `result`.
+ * @returns 0 for success, -1 for failure
+ */
+void closest_poses(const timestamps_t &timestamps,
+                   const mat4s_t &poses,
+                   const timestamps_t &interp_ts,
+                   mat4s_t &result);
+
+
+/**
  * Let `t0` and `t1` be timestamps from two signals. If one of them is measured
  * at a higher rate, the goal is to interpolate the lower rate signal so that
  * it aligns with the higher rate one.
@@ -1965,14 +1974,14 @@ int ctraj_save(const ctraj_t &ctraj, const std::string &save_path);
  */
 struct sim_imu_t {
   // IMU parameters
-  real_t rate = 0.0;       // IMU rate [Hz]
-  real_t tau_a = 0.0;      // Reversion time constant for accel [s]
-  real_t tau_g = 0.0;      // Reversion time constant for gyro [s]
-  real_t sigma_g_c = 0.0;  // Gyro noise density [rad/s/sqrt(Hz)]
-  real_t sigma_a_c = 0.0;  // Accel noise density [m/s^s/sqrt(Hz)]
-  real_t sigma_gw_c = 0.0; // Gyro drift noise density [rad/s^s/sqrt(Hz)]
-  real_t sigma_aw_c = 0.0; // Accel drift noise density [m/s^2/sqrt(Hz)]
-  real_t g = 0.0;          // Gravity vector [ms-2]
+  real_t rate = 0.0;        // IMU rate [Hz]
+  real_t tau_a = 0.0;       // Reversion time constant for accel [s]
+  real_t tau_g = 0.0;       // Reversion time constant for gyro [s]
+  real_t sigma_g_c = 0.0;   // Gyro noise density [rad/s/sqrt(Hz)]
+  real_t sigma_a_c = 0.0;   // Accel noise density [m/s^s/sqrt(Hz)]
+  real_t sigma_gw_c = 0.0;  // Gyro drift noise density [rad/s^s/sqrt(Hz)]
+  real_t sigma_aw_c = 0.0;  // Accel drift noise density [m/s^2/sqrt(Hz)]
+  real_t g = 9.81;          // Gravity vector [ms-2]
 
   // IMU flags and biases
   bool started = false;
