@@ -30,8 +30,8 @@
 #define ENABLE_MACROS 1
 
 /* PRECISION TYPE */
-#define PRECISION SINGLE
-// #define PRECISION DOUBLE
+// #define PRECISION 1 // Single Precision
+#define PRECISION 2 // Double Precision
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -269,9 +269,9 @@ std::string paths_combine(const std::string path1, const std::string path2);
  *                                  ALGEBRA
  *****************************************************************************/
 
-#if PRECISION == SINGLE
+#if PRECISION == 1
   #define real_t float
-#elif PRECISION == DOUBLE
+#elif PRECISION == 2
   #define real_t double
 #else
   #define real_t double

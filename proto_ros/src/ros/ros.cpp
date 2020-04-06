@@ -390,8 +390,8 @@ void imu_message_handler(const rosbag::MessageInstance &msg,
   const auto ts_str = std::to_string(ts.toNSec());
 
   // Convert ros msg data
-  const Eigen::Vector3d gyro = msg_convert(imu_msg->angular_velocity);
-  const Eigen::Vector3d accel = msg_convert(imu_msg->linear_acceleration);
+  const vec3_t gyro = msg_convert(imu_msg->angular_velocity);
+  const vec3_t accel = msg_convert(imu_msg->linear_acceleration);
 
   // Save imu measurement to file
   // -- Timestamp [ns]
@@ -415,8 +415,8 @@ void accel_message_handler(const rosbag::MessageInstance &msg,
   const auto ts_str = std::to_string(ts.toNSec());
 
   // Convert ros msg data
-  const Eigen::Vector3d gyro = msg_convert(accel_msg->angular_velocity);
-  const Eigen::Vector3d accel = msg_convert(accel_msg->linear_acceleration);
+  const vec3_t gyro = msg_convert(accel_msg->angular_velocity);
+  const vec3_t accel = msg_convert(accel_msg->linear_acceleration);
 
   // Save imu measurement to file
   // -- Timestamp [ns]
@@ -440,8 +440,8 @@ void gyro_message_handler(const rosbag::MessageInstance &msg,
   const auto ts_str = std::to_string(ts.toNSec());
 
   // Convert ros msg data
-  const Eigen::Vector3d gyro = msg_convert(gyro_msg->angular_velocity);
-  const Eigen::Vector3d accel = msg_convert(gyro_msg->linear_acceleration);
+  const vec3_t gyro = msg_convert(gyro_msg->angular_velocity);
+  const vec3_t accel = msg_convert(gyro_msg->linear_acceleration);
 
   // Save imu measurement to file
   // -- Timestamp [ns]

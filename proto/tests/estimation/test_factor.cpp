@@ -695,8 +695,8 @@ int test_imu_factor_jacobians() {
   timestamps_t timestamps;
   vec3s_t positions;
   quats_t orientations;
-  for (int i = 0; i <= 10; i++) {
-    timestamps.push_back(i * 1e9);
+  for (int i = 0; i <= 5; i++) {
+    timestamps.push_back(i * 1e8);
     positions.emplace_back(i, i, 0.0);
     orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
   }

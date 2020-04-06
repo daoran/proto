@@ -210,15 +210,19 @@ struct imu_factor_t : factor_t {
   const timestamps_t imu_ts;
   const vec3s_t imu_accel;
   const vec3s_t imu_gyro;
-  const vec3_t g{0.0, 0.0, -9.81};
+  const vec3_t g{0.0, 0.0, 9.81};
 
   mat_t<15, 15> P = zeros(15, 15);  // Covariance matrix
   mat_t<12, 12> Q = zeros(12, 12);  // noise matrix
   mat_t<15, 15> F = zeros(15, 15);  // Transition matrix
 
+  // Delta position, velocity and rotation between timestep i and j
+  // (i.e start and end of imu measurements)
   vec3_t dp{0.0, 0.0, 0.0};
   vec3_t dv{0.0, 0.0, 0.0};
   quat_t dq{1.0, 0.0, 0.0, 0.0};
+
+  // Accelerometer and gyroscope biases
   vec3_t bg{0.0, 0.0, 0.0};
   vec3_t ba{0.0, 0.0, 0.0};
 

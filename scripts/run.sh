@@ -105,7 +105,7 @@ cd proto/build/tests
 # ./estimation-test_imu
 # ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians
-# ./estimation-test_factor --target test_imu_factor_jacobians
+./estimation-test_factor --target test_imu_factor_jacobians
 # ./estimation-test_factor --target test_graph
 # ./estimation-test_factor --target test_graph_add_pose
 # ./estimation-test_factor --target test_graph_add_landmark
