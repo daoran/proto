@@ -406,8 +406,7 @@ int test_aprilgrid_save_and_load() {
 
   grid.estimated = true;
   grid.points_CF = {pos1, pos2, pos3, pos4};
-  grid.T_CF = I(4);
-  grid.T_CF.block(0, 3, 3, 1) = vec3_t{1.0, 2.0, 3.0};
+  grid.T_CF = tf(I(3), vec3_t{1.0, 2.0, 3.0});
   MU_CHECK(aprilgrid_save(grid, TEST_OUTPUT) == 0);
 
   // Test load
@@ -428,8 +427,10 @@ int test_aprilgrid_save_and_load() {
   MU_CHECK_FLOAT(0.0, (grid2.points_CF[2] - pos3).norm());
   MU_CHECK_FLOAT(0.0, (grid2.points_CF[3] - pos4).norm());
 
-  const auto diff = grid2.T_CF.block(0, 3, 3, 1) - vec3_t{1.0, 2.0, 3.0};
-  MU_CHECK((diff).norm() < 1e-5);
+  // std::cout << grid2.T_CF.block(0, 3, 3, 1) << std::endl;
+  const vec3_t r_CF = tf_trans(grid2.T_CF);
+  const auto diff = r_CF - vec3_t{1.0, 2.0, 3.0};
+  MU_CHECK((diff).norm() < 1e-3);
 
   return 0;
 }

@@ -39,20 +39,21 @@ struct pinhole_radtan4_residual_t {
                   const T *const r_CF_,
                   T *residuals_) const {
     // Map variables to Eigen
-    const Eigen::Matrix<T, 3, 3> K = pinhole_K(intrinsics_);
-    const Eigen::Matrix<T, 4, 1> D = radtan4_D(distortion_);
+    Eigen::Matrix<T, 8, 1> cam_params;
+    cam_params << intrinsics_[0], intrinsics_[1], intrinsics_[2], intrinsics_[3],
+                  distortion_[0], distortion_[1], distortion_[2], distortion_[3];
     const Eigen::Matrix<T, 3, 1> p_F{T(p_F_[0]), T(p_F_[1]), T(p_F_[2])};
 
     // Form tf
     const Eigen::Quaternion<T> q_CF(q_CF_[3], q_CF_[0], q_CF_[1], q_CF_[2]);
-    const Eigen::Matrix<T, 3, 3> R_CF = q_CF.toRotationMatrix();
+    const Eigen::Matrix<T, 3, 3> C_CF = q_CF.toRotationMatrix();
     const Eigen::Matrix<T, 3, 1> r_CF{r_CF_[0], r_CF_[1], r_CF_[2]};
-    Eigen::Matrix<T, 4, 4> T_CF = tf(R_CF, r_CF);
+    Eigen::Matrix<T, 4, 4> T_CF = tf(C_CF, r_CF);
 
     // Transform and project point to image plane
     const Eigen::Matrix<T, 3, 1> p_C = (T_CF * p_F.homogeneous()).head(3);
     Eigen::Matrix<T, 2, 1> z_hat;
-    if (pinhole_radtan4_project(K, D, p_C, z_hat) != 0) {
+    if (pinhole_radtan4_project(cam_params, p_C, z_hat) != 0) {
       return false;
     }
 
@@ -222,9 +223,9 @@ struct stereo_residual_t {
   real_t p_F_[3] = {0.0, 0.0, 0.0}; ///< Object point
 
   stereo_residual_t(const vec2_t &z_C0, const vec2_t &z_C1, const vec3_t &p_F)
-      : z_C0_{z_C0(0), z_C0(1)}, z_C1_{z_C1(0), z_C1(1)}, p_F_{p_F(0),
-                                                               p_F(1),
-                                                               p_F(2)} {}
+      : z_C0_{z_C0(0), z_C0(1)},
+        z_C1_{z_C1(0), z_C1(1)},
+        p_F_{p_F(0), p_F(1), p_F(2)} {}
 
   ~stereo_residual_t() {}
 
@@ -245,24 +246,26 @@ struct stereo_residual_t {
     // -- Fiducial point
     const Eigen::Matrix<T, 3, 1> p_F{T(p_F_[0]), T(p_F_[1]), T(p_F_[2])};
     // -- cam0 intrinsics and distortion
-    const Eigen::Matrix<T, 3, 3> cam0_K = pinhole_K(cam0_intrinsics);
-    const Eigen::Matrix<T, 4, 1> cam0_D = radtan4_D(cam0_distortion);
+    Eigen::Matrix<T, 8, 1> cam0;
+    cam0 << cam0_intrinsics[0], cam0_intrinsics[1], cam0_intrinsics[2], cam0_intrinsics[3],
+            cam0_distortion[0], cam0_distortion[1], cam0_distortion[2], cam0_distortion[3];
     // -- cam1 intrinsics and distortion
-    const Eigen::Matrix<T, 3, 3> cam1_K = pinhole_K(cam1_intrinsics);
-    const Eigen::Matrix<T, 4, 1> cam1_D = radtan4_D(cam1_distortion);
+    Eigen::Matrix<T, 8, 1> cam1;
+    cam1 << cam1_intrinsics[0], cam1_intrinsics[1], cam1_intrinsics[2], cam1_intrinsics[3],
+            cam1_distortion[0], cam1_distortion[1], cam1_distortion[2], cam1_distortion[3];
 
     // Form transforms
     // clang-format off
     // -- Create transform between fiducial and cam0
     const Eigen::Quaternion<T> q_C0F(q_C0F_[3], q_C0F_[0], q_C0F_[1], q_C0F_[2]);
-    const Eigen::Matrix<T, 3, 3> R_C0F = q_C0F.toRotationMatrix();
+    const Eigen::Matrix<T, 3, 3> C_C0F = q_C0F.toRotationMatrix();
     const Eigen::Matrix<T, 3, 1> r_C0F{r_C0F_[0], r_C0F_[1], r_C0F_[2]};
-    const Eigen::Matrix<T, 4, 4> T_C0F = tf(R_C0F, r_C0F);
+    const Eigen::Matrix<T, 4, 4> T_C0F = tf(C_C0F, r_C0F);
     // -- Create transform between cam0 and cam1
     const Eigen::Quaternion<T> q_C0C1(q_C0C1_[3], q_C0C1_[0], q_C0C1_[1], q_C0C1_[2]);
-    const Eigen::Matrix<T, 3, 3> R_C0C1 = q_C0C1.toRotationMatrix();
+    const Eigen::Matrix<T, 3, 3> C_C0C1 = q_C0C1.toRotationMatrix();
     const Eigen::Matrix<T, 3, 1> r_C0C1{r_C0C1_[0], r_C0C1_[1], r_C0C1_[2]};
-    const Eigen::Matrix<T, 4, 4> T_C0C1 = tf(R_C0C1, r_C0C1);
+    const Eigen::Matrix<T, 4, 4> T_C0C1 = tf(C_C0C1, r_C0C1);
     const Eigen::Matrix<T, 4, 4> T_C1C0 = T_C0C1.inverse();
     // clang-format on
 
@@ -271,13 +274,13 @@ struct stereo_residual_t {
     // -- Project point observed from cam0 to cam0 image plane
     const Eigen::Matrix<T, 3, 1> p_C0 = (T_C0F * p_F.homogeneous()).head(3);
     Eigen::Matrix<T, 2, 1> z_C0_hat;
-    if (pinhole_radtan4_project(cam0_K, cam0_D, p_C0, z_C0_hat) != 0) {
+    if (pinhole_radtan4_project(cam0, p_C0, z_C0_hat) != 0) {
       return false;
     }
     // -- Project point observed from cam0 to cam1 image plane
     const Eigen::Matrix<T, 3, 1> p_C1 = (T_C1C0 * p_C0.homogeneous()).head(3);
     Eigen::Matrix<T, 2, 1> z_C1_hat;
-    if (pinhole_radtan4_project(cam1_K, cam1_D, p_C1, z_C1_hat) != 0) {
+    if (pinhole_radtan4_project(cam1, p_C1, z_C1_hat) != 0) {
       return false;
     }
     // clang-format on

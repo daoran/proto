@@ -384,12 +384,9 @@ void ba_update(ba_data_t &data, const vecx_t &e, const matx_t &E) {
   // Solve Gauss-Newton system [H dx = g]: Solve for dx
   matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
   matx_t H_diag = (H.diagonal().asDiagonal());
-  // H = H + lambda * I(E.cols());  // original LM damping
-  H = H + lambda * H_diag;  // R. Fletcher trust region mod
+  H = H + lambda * H_diag; // R. Fletcher trust region mod
   const vecx_t g = -E.transpose() * e;
-  // const vecx_t dx = H.inverse() * g;  // Slow inverse
   const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
-  // const vecx_t dx = H.llt().solve(g);   // Cholesky decomp
 
   // Update camera poses
   for (int k = 0; k < data.nb_frames; k++) {

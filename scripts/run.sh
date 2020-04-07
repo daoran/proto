@@ -34,6 +34,7 @@ sudo make install
 # roslaunch proto_ros sim_calib.launch
 # roslaunch proto_ros calib_camera.launch
 # roslaunch proto_ros calib_stereo.launch
+# exit
 
 # roslaunch proto_ros calib_vicon_capture.launch
 # mv /data/vicon_capture.bag /data/vicon-train.bag
@@ -65,12 +66,9 @@ sudo make install
 cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
-# ./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose
-# ./calib-test_aprilgrid --target test_aprilgrid_calc_relative_pose2
-# ./calib-test_aprilgrid --target test_aprilgrid_detect
-# ./calib-test_aprilgrid --target test_aprilgrid_detect2
-# ./calib-test_calib_camera
-# ./calib-test_calib_data
+./calib-test_aprilgrid
+./calib-test_calib_data
+./calib-test_calib_camera
 # ./calib-test_calib_gimbal
 # ./calib-test_sandbox
 # ./calib-test_sandbox2
@@ -78,12 +76,6 @@ cd proto/build/tests
 
 # -- core
 # ./core-test_core
-# ./core-test_core --target test_ts2sec
-# ./core-test_core --target test_ns2sec
-# ./core-test_core --target test_pose
-# ./core-test_core --target test_sim_imu_measurement
-# ./core-test_mav
-# ./core-test_two_wheel
 
 # -- driver
 # ./driver-test_camera-camera
@@ -105,7 +97,7 @@ cd proto/build/tests
 # ./estimation-test_imu
 # ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians
-./estimation-test_factor --target test_imu_factor_jacobians
+# ./estimation-test_factor --target test_imu_factor_jacobians
 # ./estimation-test_factor --target test_graph
 # ./estimation-test_factor --target test_graph_add_pose
 # ./estimation-test_factor --target test_graph_add_landmark

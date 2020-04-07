@@ -1082,20 +1082,6 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
   // Project
   const T x = point(0) / point(2);
   const T y = point(1) / point(2);
-  // const T fx = K(0, 0);
-  // const T fy = K(1, 1);
-  // const T cx = K(0, 2);
-  // const T cy = K(1, 2);
-  // const T x = fx * (point(0) / point(2)) + cx;
-  // const T y = fy * (point(1) / point(2)) + cy;
-
-  // // Scale and center
-  // const T fx = K(0, 0);
-  // const T fy = K(1, 1);
-  // const T cx = K(0, 2);
-  // const T cy = K(1, 2);
-  // x = fx * x + cx;
-  // y = fy * y + cy;
 
   // Apply Radial distortion factor
   const T x2 = x * x;
@@ -1115,33 +1101,11 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
   image_point(0) = fx * x_ddash + cx;
   image_point(1) = fy * y_ddash + cy;
 
-  // // Set result
-  // image_point(0) = x_ddash;
-  // image_point(1) = y_ddash;
-
   if (point(2) > T(0.0)) {
     return 0; // Point is infront of camera
   } else {
     return 1; // Point is behind camera
   }
-}
-
-template <typename T>
-int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
-                            const Eigen::Matrix<T, 4, 1> &D,
-                            const Eigen::Matrix<T, 3, 1> &point,
-                            Eigen::Matrix<T, 2, 1> &image_point) {
-  Eigen::Matrix<T, 8, 1> params;
-  params << K(0, 0);  // fx
-  params << K(1, 1);  // fy
-  params << K(0, 2);  // cx
-  params << K(1, 2);  // cy
-  params << D(0);     // k1
-  params << D(1);     // k2
-  params << D(2);     // p1
-  params << D(3);     // p2
-
-  return pinhole_radtan4_project(params, point, image_point);
 }
 
 template <typename T>

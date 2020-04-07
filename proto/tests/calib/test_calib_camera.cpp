@@ -5,7 +5,7 @@
 namespace proto {
 
 #define IMAGE_DIR "/data/euroc_mav/cam_april/mav0/cam0/data"
-#define APRILGRID_CONF "test_data/calib/aprilgrid/target2.yaml"
+#define APRILGRID_CONF "test_data/calib/aprilgrid/target.yaml"
 #define APRILGRID_DATA "/tmp/aprilgrid_test/mono/cam0"
 #define APRILGRID_IMAGE "test_data/calib/aprilgrid/aprilgrid.png"
 #define CAM0_APRILGRID_DATA "/tmp/aprilgrid_test/stereo/cam0"
@@ -36,8 +36,8 @@ void test_setup() {
 
 int test_pinhole_radtan4_residual() {
   // Test load
-  std::vector<aprilgrid_t> aprilgrids;
-  std::vector<timestamp_t> timestamps;
+  aprilgrids_t aprilgrids;
+  timestamps_t timestamps;
   int retval = load_camera_calib_data(APRILGRID_DATA, aprilgrids, timestamps);
   MU_CHECK(retval == 0);
   MU_CHECK(aprilgrids.size() > 0);
@@ -45,21 +45,14 @@ int test_pinhole_radtan4_residual() {
 
   // Setup intrinsic and distortion initialization
   const vec2_t image_size{752, 480};
-  const double lens_hfov = 98.0;
-  const double lens_vfov = 73.0;
-  const double fx = pinhole_focal_length(image_size(0), lens_hfov);
-  const double fy = pinhole_focal_length(image_size(1), lens_vfov);
-  const double cx = image_size(0) / 2.0;
-  const double cy = image_size(1) / 2.0;
-  const double intrinsics[4] = {fx, fy, cx, cy};
-  const double distortion[4] = {0.01, 0.0001, 0.0001, 0.0001};
+  const vec4_t intrinsics{458.654, 457.296, 367.215, 248.375};
+  const vec4_t distortion{-0.28, 0.07, 0.0001, 0.0001};
 
   for (size_t i = 0; i < aprilgrids.size(); i++) {
-    // Setup
     const auto grid = aprilgrids[i];
     const auto tag_id = grid.ids[0];
     const int corner_id = 0;
-    const auto kp = grid.keypoints[0];
+    const auto kp = grid.keypoints[corner_id];
     const auto T_CF = grid.T_CF;
 
     // Get object point
@@ -69,13 +62,24 @@ int test_pinhole_radtan4_residual() {
     }
 
     // Form residual and call the functor
-    const quat_t q_CF{T_CF.block<3, 3>(0, 0)};
-    const vec3_t t_CF{T_CF.block<3, 1>(0, 3)};
-    const double q_CF_data[4] = {q_CF.x(), q_CF.y(), q_CF.z(), q_CF.w()};
-    const double t_CF_data[3] = {t_CF(0), t_CF(1), t_CF(2)};
+    const quat_t q_CF = tf_quat(T_CF);
+    const vec3_t r_CF = tf_trans(T_CF);
     double result[2] = {0.0, 0.0};
     const pinhole_radtan4_residual_t residual{kp, object_point};
-    residual(intrinsics, distortion, q_CF_data, t_CF_data, result);
+    residual(intrinsics.data(),
+             distortion.data(),
+             q_CF.coeffs().data(),
+             r_CF.data(),
+             result);
+
+    // vec3_t p_C = tf_point(T_CF, object_point);
+    // timestamp_print(grid.timestamp);
+    // print_quaternion("q_CF", q_CF);
+    // print_vector("r_CF", r_CF);
+    // print_matrix("T_CF", T_CF);
+    // print_vector("p_F", object_point);
+    // print_vector("p_C", p_C);
+    // print_vector("kp", kp);
 
     // Just some arbitrary test to make sure reprojection error is not larger
     // than 100pixels in x or y direction. But often this can be the case ...
@@ -551,14 +555,14 @@ void test_suite() {
 
   // Monocular camera tests
   MU_ADD_TEST(test_pinhole_radtan4_residual);
-  MU_ADD_TEST(test_calib_generate_poses);
+  // MU_ADD_TEST(test_calib_generate_poses);
   MU_ADD_TEST(test_calib_camera_stats);
   MU_ADD_TEST(test_calib_camera_solve);
 
-  MU_ADD_TEST(test_nbv_create_aprilgrid);
-  MU_ADD_TEST(test_nbv_draw_aprilgrid);
+  // MU_ADD_TEST(test_nbv_create_aprilgrid);
+  // MU_ADD_TEST(test_nbv_draw_aprilgrid);
   // MU_ADD_TEST(test_nbv_find);
-  MU_ADD_TEST(test_calib_camera_nbv);
+  // MU_ADD_TEST(test_calib_camera_nbv);
   // MU_ADD_TEST(test_calib_camera_batch);
 
   // Stereo camera tests

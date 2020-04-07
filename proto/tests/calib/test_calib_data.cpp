@@ -258,6 +258,7 @@ int test_validate_intrinsics() {
                                         camera);
 
   // Visualize
+  // const bool debug = true;
   const bool debug = false;
   if (debug) {
     cv::imshow("Validation:", validation);
@@ -364,7 +365,8 @@ int test_validate_stereo() {
                                       T_C0C1);
 
   // Visualize
-  const bool debug = true;
+  // const bool debug = true;
+  const bool debug = false;
   if (debug) {
     cv::imshow("Validation:", result);
     cv::waitKey(0);
