@@ -34,8 +34,9 @@ struct vicon_marker_residual_t {
                   T *residual) const {
     // Map optimization variables to Eigen
     // -- Camera intrinsics and distortion
-    const Eigen::Matrix<T, 3, 3> K = pinhole_K(intrinsics_);
-    const Eigen::Matrix<T, 4, 1> D = radtan4_D(distortion_);
+    Eigen::Matrix<T, 8, 1> cam_params;
+    cam_params << intrinsics_[0], intrinsics_[1], intrinsics_[2], intrinsics_[3],
+                  distortion_[0], distortion_[1], distortion_[2], distortion_[3];
     // -- Marker to camera extrinsics pose
     const Eigen::Quaternion<T> q_MC(q_MC_[3], q_MC_[0], q_MC_[1], q_MC_[2]);
     const Eigen::Matrix<T, 3, 3> C_MC = q_MC.toRotationMatrix();
@@ -59,7 +60,7 @@ struct vicon_marker_residual_t {
     const Eigen::Matrix<T, 4, 1> hp_C = T_CM * T_MW * T_WF * p_F.homogeneous();
     const Eigen::Matrix<T, 3, 1> p_C = hp_C.head(3);
     Eigen::Matrix<T, 2, 1> z_hat;
-    if (pinhole_radtan4_project(K, D, p_C, z_hat) != 0) {
+    if (pinhole_radtan4_project(cam_params, p_C, z_hat) != 0) {
       return false;
     }
 

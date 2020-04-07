@@ -2,6 +2,525 @@
 
 namespace proto {
 
+/*****************************************************************************
+ *                                  DATA
+ *****************************************************************************/
+
+int8_t int8(const uint8_t *data, const size_t offset) {
+  return (int8_t)(data[offset]);
+}
+
+uint8_t uint8(const uint8_t *data, const size_t offset) {
+  return (uint8_t)(data[offset]);
+}
+
+int16_t int16(const uint8_t *data, const size_t offset) {
+  return (int16_t)((data[offset + 1] << 8) | (data[offset]));
+}
+
+uint16_t uint16(const uint8_t *data, const size_t offset) {
+  return (uint16_t)((data[offset + 1] << 8) | (data[offset]));
+}
+
+int32_t sint32(const uint8_t *data, const size_t offset) {
+  return (int32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
+                   (data[offset + 1] << 8) | (data[offset]));
+}
+
+uint32_t uint32(const uint8_t *data, const size_t offset) {
+  return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
+                    (data[offset + 1] << 8) | (data[offset]));
+}
+
+char *malloc_string(const char *s) {
+  char *retval = (char *) malloc(sizeof(char) * strlen(s) + 1);
+  strcpy(retval, s);
+  return retval;
+}
+
+int csv_rows(const char *fp) {
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return -1;
+  }
+
+  // Loop through lines
+  int nb_rows = 0;
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] != '#') {
+      nb_rows++;
+    }
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return nb_rows;
+}
+
+int csv_cols(const char *fp) {
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return -1;
+  }
+
+  // Get line that isn't the header
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] != '#') {
+      break;
+    }
+  }
+
+  // Parse line to obtain number of elements
+  int nb_elements = 1;
+  int found_separator = 0;
+  for (size_t i = 0; i < len_max; i++) {
+    if (line[i] == ',') {
+      found_separator = 1;
+      nb_elements++;
+    }
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return (found_separator) ? nb_elements : -1;
+}
+
+char **csv_fields(const char *fp, int *nb_fields) {
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return NULL;
+  }
+
+  // Get last header line
+  char field_line[1024] = {0};
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] != '#') {
+      break;
+    } else {
+      strcpy(field_line, line);
+    }
+  }
+
+  // Parse fields
+  *nb_fields = csv_cols(fp);
+  char **fields = (char **) malloc(sizeof(char *) * *nb_fields);
+  int field_idx = 0;
+  char field_name[100] = {0};
+
+  for (size_t i = 0; i < strlen(field_line); i++) {
+    char c = field_line[i];
+
+    // Ignore # and ' '
+    if (c == '#' || c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      // Add field name to fields
+      fields[field_idx] = malloc_string(field_name);
+      memset(field_name, '\0', sizeof(char) * 100);
+      field_idx++;
+    } else {
+      // Append field name
+      field_name[strlen(field_name)] = c;
+    }
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return fields;
+}
+
+real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
+  // Obtain number of rows and columns in csv data
+  *nb_rows = csv_rows(fp);
+  *nb_cols = csv_cols(fp);
+  if (*nb_rows == -1 || *nb_cols == -1) {
+    return NULL;
+  }
+
+  // Initialize memory for csv data
+  real_t **data = (real_t **) malloc(sizeof(real_t *) * *nb_rows);
+  for (int i = 0; i < *nb_cols; i++) {
+    data[i] = (real_t *) malloc(sizeof(real_t) * *nb_cols);
+  }
+
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return NULL;
+  }
+
+  // Loop through data
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  int row_idx = 0;
+  int col_idx = 0;
+
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    char entry[100] = {0};
+    for (size_t i = 0; i < strlen(line); i++) {
+      char c = line[i];
+      if (c == ' ') {
+        continue;
+      }
+
+      if (c == ',' || c == '\n') {
+        data[row_idx][col_idx] = strtod(entry, NULL);
+        memset(entry, '\0', sizeof(char) * 100);
+        col_idx++;
+      } else {
+        entry[strlen(entry)] = c;
+      }
+    }
+
+    col_idx = 0;
+    row_idx++;
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return data;
+}
+
+static int *parse_iarray_line(char *line) {
+  char entry[1024] = {0};
+  int index = 0;
+  int *data = NULL;
+
+  for (size_t i = 0; i < strlen(line); i++) {
+    char c = line[i];
+    if (c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      if (data == NULL) {
+        size_t array_size = strtod(entry, NULL);
+        data = (int *) calloc(array_size + 1, sizeof(int));
+      }
+      data[index] = strtod(entry, NULL);
+      index++;
+      memset(entry, '\0', sizeof(char) * 100);
+    } else {
+      entry[strlen(entry)] = c;
+    }
+  }
+
+  return data;
+}
+
+int **load_iarrays(const char *csv_path, int *nb_arrays) {
+  FILE *csv_file = fopen(csv_path, "r");
+  *nb_arrays = csv_rows(csv_path);
+  int **array = (int **) calloc(*nb_arrays, sizeof(int *));
+
+  char line[1024] = {0};
+  int frame_idx = 0;
+  while (fgets(line, 1024, csv_file) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    array[frame_idx] = parse_iarray_line(line);
+    frame_idx++;
+  }
+  fclose(csv_file);
+
+  return array;
+}
+
+static real_t *parse_darray_line(char *line) {
+  char entry[1024] = {0};
+  int index = 0;
+  real_t *data = NULL;
+
+  for (size_t i = 0; i < strlen(line); i++) {
+    char c = line[i];
+    if (c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      if (data == NULL) {
+        size_t array_size = strtod(entry, NULL);
+        data = (real_t *) calloc(array_size, sizeof(real_t));
+      }
+      data[index] = strtod(entry, NULL);
+      index++;
+      memset(entry, '\0', sizeof(char) * 100);
+    } else {
+      entry[strlen(entry)] = c;
+    }
+  }
+
+  return data;
+}
+
+real_t **load_darrays(const char *csv_path, int *nb_arrays) {
+  FILE *csv_file = fopen(csv_path, "r");
+  *nb_arrays = csv_rows(csv_path);
+  real_t **array = (real_t **) calloc(*nb_arrays, sizeof(real_t *));
+
+  char line[1024] = {0};
+  int frame_idx = 0;
+  while (fgets(line, 1024, csv_file) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    array[frame_idx] = parse_darray_line(line);
+    frame_idx++;
+  }
+  fclose(csv_file);
+
+  return array;
+}
+
+int csv_rows(const std::string &file_path) {
+  // Load file
+  std::ifstream infile(file_path);
+  if (infile.good() != true) {
+    return -1;
+  }
+
+  // Obtain number of lines
+  int nb_rows = 0;
+  std::string line;
+  while (std::getline(infile, line)) {
+    nb_rows++;
+  }
+
+  return nb_rows;
+}
+
+int csv_cols(const std::string &file_path) {
+  int nb_elements = 1;
+  bool found_separator = false;
+
+  // Load file
+  std::ifstream infile(file_path);
+  if (infile.good() != true) {
+    return -1;
+  }
+
+  // Obtain number of commas
+  std::string line;
+  std::getline(infile, line);
+  for (size_t i = 0; i < line.length(); i++) {
+    if (line[i] == ',') {
+      found_separator = true;
+      nb_elements++;
+    }
+  }
+
+  return (found_separator) ? nb_elements : 0;
+}
+
+int csv2mat(const std::string &file_path, const bool header, matx_t &data) {
+  // Load file
+  std::ifstream infile(file_path);
+  if (infile.good() != true) {
+    return -1;
+  }
+
+  // Obtain number of rows and cols
+  int nb_rows = csv_rows(file_path);
+  int nb_cols = csv_cols(file_path);
+
+  // Skip header line?
+  std::string line;
+  if (header) {
+    std::getline(infile, line);
+    nb_rows -= 1;
+  }
+
+  // Load data
+  int line_no = 0;
+  std::vector<real_t> vdata;
+  data = zeros(nb_rows, nb_cols);
+
+  while (std::getline(infile, line)) {
+    std::istringstream ss(line);
+
+    // Load data row
+    std::string element;
+    for (int i = 0; i < nb_cols; i++) {
+      std::getline(ss, element, ',');
+      const real_t value = atof(element.c_str());
+      data(line_no, i) = value;
+    }
+
+    line_no++;
+  }
+
+  return 0;
+}
+
+int mat2csv(const std::string &file_path, const matx_t &data) {
+  // Open file
+  FILE *outfile = fopen(file_path.c_str(), "w");
+  if (outfile == nullptr) {
+    return -1;
+  }
+
+  // Save matrix
+  for (int i = 0; i < data.rows(); i++) {
+    for (int j = 0; j < data.cols(); j++) {
+      fprintf(outfile, "%f", data(i, j));
+
+      if ((j + 1) != data.cols()) {
+        fprintf(outfile, ",");
+      }
+    }
+    fprintf(outfile, "\n");
+  }
+
+  // Close file
+  fclose(outfile);
+
+  return 0;
+}
+
+int vec2csv(const std::string &file_path, const std::deque<vec3_t> &data) {
+  // Open file
+  std::ofstream outfile(file_path);
+  if (outfile.good() != true) {
+    return -1;
+  }
+
+  // Save vector
+  for (const auto &v : data) {
+    outfile << v(0);
+    outfile << ",";
+    outfile << v(1);
+    outfile << ",";
+    outfile << v(2);
+    outfile << std::endl;
+  }
+
+  // Close file
+  outfile.close();
+  return 0;
+}
+
+int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data) {
+  // Open file
+  std::ofstream outfile(file_path);
+  if (outfile.good() != true) {
+    return -1;
+  }
+
+  // Save vector
+  for (const auto &ts : data) {
+    outfile << ts << std::endl;
+  }
+
+  // Close file
+  outfile.close();
+  return 0;
+}
+
+void print_progress(const real_t percentage) {
+  const char *PBSTR =
+      "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
+  const int PBWIDTH = 60;
+
+  int val = (int) (percentage * 100);
+  int lpad = (int) (percentage * PBWIDTH);
+  int rpad = PBWIDTH - lpad;
+  printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
+  fflush(stdout);
+
+  if ((fabs(percentage - 1.0) < 1e-10)) {
+    printf("\n");
+  }
+}
+
+bool all_true(const std::vector<bool> x) {
+  for (const auto i : x) {
+    if (i == false) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+int check_jacobian(const std::string &jac_name,
+                   const matx_t &fdiff,
+                   const matx_t &jac,
+                   const real_t threshold,
+                   const bool print) {
+  // Pre-check
+  if (jac.size() == 0) {
+    LOG_ERROR("Provided analytical jacobian is empty!");
+    return false;
+  } else if (fdiff.size() == 0) {
+    LOG_ERROR("Provided numerical jacobian is empty!");
+    return false;
+  } else if (fdiff.rows() != jac.rows()) {
+    LOG_ERROR("rows(fdiff) != rows(jac)");
+    return false;
+  } else if (fdiff.cols() != jac.cols()) {
+    LOG_ERROR("cols(fdiff) != cols(jac)");
+    return false;
+  }
+
+  // Check if any of the values are beyond the threshold
+  const matx_t delta = (fdiff - jac);
+  bool failed = false;
+  for (long i = 0; i < delta.rows(); i++) {
+    for (long j = 0; j < delta.cols(); j++) {
+      if (fabs(delta(i, j)) >= threshold) {
+        failed = true;
+      }
+    }
+  }
+
+  // Print result
+  int retval = 0;
+  if (failed) {
+    if (print) {
+      LOG_ERROR("Check [%s] failed!\n", jac_name.c_str());
+      print_matrix("num diff jac", fdiff);
+      print_matrix("analytical jac", jac);
+      print_matrix("difference matrix", delta);
+      // exit(-1);
+    }
+    retval = -1;
+
+  } else {
+    if (print) {
+      printf("Check [%s] passed!\n", jac_name.c_str());
+    }
+    retval = 0;
+  }
+
+  return retval;
+}
+
 /******************************************************************************
  *                               FILESYSTEM
  *****************************************************************************/
@@ -272,6 +791,321 @@ std::string paths_combine(const std::string path1, const std::string path2) {
   }
 
   return result;
+}
+
+
+/******************************************************************************
+ *                               CONFIG
+ *****************************************************************************/
+
+config_t::config_t() {}
+
+config_t::config_t(const std::string &file_path_) : file_path{file_path_} {
+  if (yaml_load_file(file_path_, root) == 0) {
+    ok = true;
+  }
+}
+
+config_t::~config_t() {}
+
+int yaml_load_file(const std::string file_path, YAML::Node &root) {
+  // Pre-check
+  if (file_exists(file_path) == false) {
+    FATAL("File not found: %s", file_path.c_str());
+  }
+
+  // Load and parse file
+  try {
+    root = YAML::LoadFile(file_path);
+  } catch (YAML::ParserException &e) {
+    LOG_ERROR("%s", e.what());
+    return -1;
+  }
+
+  return 0;
+}
+
+int yaml_get_node(const config_t &config,
+                  const std::string &key,
+                  const bool optional,
+                  YAML::Node &node) {
+  assert(config.ok == true);
+
+  // Recurse down config key
+  std::vector<YAML::Node> traversal;
+  traversal.push_back(config.root);
+
+  std::istringstream iss(key);
+  std::string element;
+
+  while (std::getline(iss, element, '.')) {
+    traversal.push_back(traversal.back()[element]);
+  }
+  node = traversal.back();
+  // Note:
+  //
+  //    yaml_node = yaml_node["some_level_deeper"];
+  //
+  // YAML::Node is mutable, by doing the above it destroys the parsed yaml
+  // tree/graph, to avoid this problem we store the visited YAML::Node into
+  // a std::vector and return the last visited YAML::Node
+
+  // Check key
+  if (node.IsDefined() == false && optional == false) {
+    LOG_ERROR("Opps [%s] missing in yaml file [%s]!",
+              key.c_str(),
+              config.file_path.c_str());
+    return -1;
+  } else if (node.IsDefined() == false && optional == true) {
+    return -1;
+  }
+
+  return 0;
+}
+
+int yaml_has_key(const config_t &config, const std::string &key) {
+  assert(config.ok == true);
+
+  // Recurse down config key
+  std::vector<YAML::Node> traversal;
+  traversal.push_back(config.root);
+
+  std::istringstream iss(key);
+  std::string element;
+
+  while (std::getline(iss, element, '.')) {
+    traversal.push_back(traversal.back()[element]);
+  }
+  auto node = traversal.back();
+  // Note:
+  //
+  //    yaml_node = yaml_node["some_level_deeper"];
+  //
+  // YAML::Node is mutable, by doing the above it destroys the parsed yaml
+  // tree/graph, to avoid this problem we store the visited YAML::Node into
+  // a std::vector and return the last visited YAML::Node
+
+  // Check key
+  if (node.IsDefined() == false) {
+    return -1;
+  }
+
+  return 0;
+}
+
+int yaml_has_key(const std::string &file_path, const std::string &key) {
+  const config_t config{file_path};
+  return yaml_has_key(config, key);
+}
+
+void yaml_check_matrix_fields(const YAML::Node &node,
+                              const std::string &key,
+                              size_t &rows,
+                              size_t &cols) {
+  const std::string targets[3] = {"rows", "cols", "data"};
+  for (int i = 0; i < 3; i++) {
+    if (!node[targets[i]]) {
+      FATAL("Key [%s] is missing for matrix [%s]!",
+            targets[i].c_str(),
+            key.c_str());
+    }
+  }
+  rows = node["rows"].as<int>();
+  cols = node["cols"].as<int>();
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          vec2_t &vec,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  yaml_check_vector<vec2_t>(node, key, optional);
+  vec = vec2_t{node[0].as<real_t>(), node[1].as<real_t>()};
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          vec3_t &vec,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  yaml_check_vector<vec3_t>(node, key, optional);
+  vec =
+      vec3_t{node[0].as<real_t>(), node[1].as<real_t>(), node[2].as<real_t>()};
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          vec4_t &vec,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  yaml_check_vector<vec4_t>(node, key, optional);
+  vec = vec4_t{node[0].as<real_t>(),
+               node[1].as<real_t>(),
+               node[2].as<real_t>(),
+               node[3].as<real_t>()};
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          vecx_t &vec,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  const size_t vector_size = yaml_check_vector<vecx_t>(node, key, optional);
+  vec = vecx_t::Zero(vector_size, 1);
+  for (size_t i = 0; i < node.size(); i++) {
+    vec(i) = node[i].as<real_t>();
+  }
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          mat2_t &mat,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  yaml_check_matrix<mat2_t>(node, key, optional);
+  mat(0, 0) = node["data"][0].as<real_t>();
+  mat(0, 1) = node["data"][1].as<real_t>();
+  mat(1, 0) = node["data"][2].as<real_t>();
+  mat(1, 1) = node["data"][3].as<real_t>();
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          mat3_t &mat,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  yaml_check_matrix<mat3_t>(node, key, optional);
+  // -- Col 1
+  mat(0, 0) = node["data"][0].as<real_t>();
+  mat(0, 1) = node["data"][1].as<real_t>();
+  mat(0, 2) = node["data"][2].as<real_t>();
+  // -- Col 2
+  mat(1, 0) = node["data"][3].as<real_t>();
+  mat(1, 1) = node["data"][4].as<real_t>();
+  mat(1, 2) = node["data"][5].as<real_t>();
+  // -- Col 3
+  mat(2, 0) = node["data"][6].as<real_t>();
+  mat(2, 1) = node["data"][7].as<real_t>();
+  mat(2, 2) = node["data"][8].as<real_t>();
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          mat4_t &mat,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  yaml_check_matrix<mat4_t>(node, key, optional);
+  size_t index = 0;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      mat(i, j) = node["data"][index].as<real_t>();
+      index++;
+    }
+  }
+
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          matx_t &mat,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  size_t rows = 0;
+  size_t cols = 0;
+  yaml_check_matrix<matx_t>(node, key, optional, rows, cols);
+
+  mat.resize(rows, cols);
+  size_t index = 0;
+  for (size_t i = 0; i < rows; i++) {
+    for (size_t j = 0; j < cols; j++) {
+      mat(i, j) = node["data"][index].as<real_t>();
+      index++;
+    }
+  }
+
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
+          cv::Mat &mat,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  size_t rows = 0;
+  size_t cols = 0;
+  yaml_check_matrix<cv::Mat>(node, key, optional, rows, cols);
+
+  mat = cv::Mat(rows, cols, CV_64F);
+  size_t index = 0;
+  for (size_t i = 0; i < rows; i++) {
+    for (size_t j = 0; j < cols; j++) {
+      mat.at<real_t>(i, j) = node["data"][index].as<real_t>();
+      index++;
+    }
+  }
+
+  return 0;
 }
 
 /******************************************************************************
@@ -716,8 +1550,8 @@ mat4_t lookat(const vec3_t &cam_pos,
   // Note: If we were using OpenGL the cam_dir would be the opposite direction,
   // since in OpenGL the camera forward is -z. In robotics however our camera
   // is +z forward.
-  const vec3_t cam_dir = normalize(target - cam_pos);
-  const vec3_t cam_right = normalize(up_axis.cross(cam_dir));
+  const vec3_t cam_dir = (target - cam_pos).normalized();
+  const vec3_t cam_right = (up_axis.cross(cam_dir)).normalized();
   const vec3_t cam_up = cam_dir.cross(cam_right);
 
   // clang-format off
@@ -1336,1158 +2170,152 @@ real_t time_now() {
 }
 
 /*****************************************************************************
- *                               FACTOR GRAPH
+ *                                NETWORKING
  *****************************************************************************/
 
-pose_t::pose_t() {}
-
-pose_t::pose_t(const real_t *param_) {
-  param[0] = param_[0];
-  param[1] = param_[1];
-  param[2] = param_[2];
-  param[3] = param_[3];
-  param[4] = param_[4];
-  param[5] = param_[5];
-  param[6] = param_[6];
-}
-
-pose_t::pose_t(const mat4_t &tf_) {
-  const quat_t q{tf_quat(tf_)};
-  const vec3_t r{tf_trans(tf_)};
-
-  param[0] = q.w();
-  param[1] = q.x();
-  param[2] = q.y();
-  param[3] = q.z();
-
-  param[4] = r(0);
-  param[5] = r(1);
-  param[6] = r(2);
-}
-
-pose_t::pose_t(const quat_t &q_, const vec3_t &r_)
-    : param{q_.w(), q_.x(), q_.y(), q_.z(), r_(0), r_(1), r_(2)} {}
-
-pose_t::pose_t(const size_t id_,
-               const timestamp_t &ts_,
-               const mat4_t &T)
-    : param_t{id_, ts_, 6} {
-  const quat_t q{tf_quat(T)};
-  const vec3_t r{tf_trans(T)};
-
-  param[0] = q.w();
-  param[1] = q.x();
-  param[2] = q.y();
-  param[3] = q.z();
-
-  param[4] = r(0);
-  param[5] = r(1);
-  param[6] = r(2);
-}
-
-quat_t pose_t::rot() const {
-  return quat_t{param[0], param[1], param[2], param[3]};
-}
-
-vec3_t pose_t::trans() const {
-  return vec3_t{param[4], param[5], param[6]};
-}
-
-mat4_t pose_t::tf() const {
-  return proto::tf(rot(), trans());
-}
-
-quat_t pose_t::rot() { return static_cast<const pose_t &>(*this).rot(); }
-vec3_t pose_t::trans() { return static_cast<const pose_t &>(*this).trans(); }
-mat4_t pose_t::tf() { return static_cast<const pose_t &>(*this).tf(); }
-
-real_t *pose_t::data() { return param; }
-
-void pose_t::set_trans(const vec3_t &r) {
-  param[4] = r(0);
-  param[5] = r(1);
-  param[6] = r(2);
-}
-
-void pose_t::set_rot(const quat_t &q) {
-  param[0] = q.w();
-  param[1] = q.x();
-  param[2] = q.y();
-  param[3] = q.z();
-}
-
-void pose_t::set_rot(const mat3_t &C) {
-  quat_t q{C};
-  param[0] = q.w();
-  param[1] = q.x();
-  param[2] = q.y();
-  param[3] = q.z();
-}
-
-void pose_t::plus(const vecx_t &dx) {
-  // Rotation component
-  real_t half_norm = 0.5 * dx.head<3>().norm();
-  real_t dq_w = cos(half_norm);
-  real_t dq_x = sinc(half_norm) * 0.5 * dx(0);
-  real_t dq_y = sinc(half_norm) * 0.5 * dx(1);
-  real_t dq_z = sinc(half_norm) * 0.5 * dx(2);
-  quat_t dq{dq_w, dq_x, dq_y, dq_z};
-  quat_t q{param[0], param[1], param[2], param[3]};
-  quat_t q_updated = q * dq;
-  param[0] = q_updated.w();
-  param[1] = q_updated.x();
-  param[2] = q_updated.y();
-  param[3] = q_updated.z();
-
-  // Translation component
-  param[3] = param[3] - dx[3];
-  param[4] = param[4] - dx[4];
-  param[5] = param[5] - dx[5];
-}
-
-void pose_print(const std::string &prefix, const pose_t &pose) {
-  const quat_t q = pose.rot();
-  const vec3_t r = pose.trans();
-
-  printf("[%s] ", prefix.c_str());
-  printf("q: (%f, %f, %f, %f)", q.w(), q.x(), q.y(), q.z());
-  printf("\t");
-  printf("r: (%f, %f, %f)\n", r(0), r(1), r(2));
-}
-
-poses_t load_poses(const std::string &csv_path) {
-  FILE *csv_file = fopen(csv_path.c_str(), "r");
-  char line[1024] = {0};
-  poses_t poses;
-
-  while (fgets(line, 1024, csv_file) != NULL) {
-    if (line[0] == '#') {
-      continue;
-    }
-
-    char entry[1024] = {0};
-    real_t data[7] = {0};
-    int index = 0;
-    for (size_t i = 0; i < strlen(line); i++) {
-      char c = line[i];
-      if (c == ' ') {
-        continue;
-      }
-
-      if (c == ',' || c == '\n') {
-        data[index] = strtod(entry, NULL);
-        memset(entry, '\0', sizeof(char) * 100);
-        index++;
-      } else {
-        entry[strlen(entry)] = c;
-      }
-    }
-
-    quat_t q{data[0], data[1], data[2], data[3]};
-    vec3_t r{data[4], data[5], data[6]};
-    poses.emplace_back(data);
-  }
-  fclose(csv_file);
-
-  return poses;
-}
-
-landmark_t::landmark_t(const vec3_t &p_W_)
-  : param{p_W_(0), p_W_(1), p_W_(2)} {}
-
-landmark_t::landmark_t(const size_t id_, const vec3_t &p_W_)
-  : param_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
-
-vec3_t landmark_t::vec() { return map_vec_t<3>(param); };
-
-real_t *landmark_t::data() { return param; };
-
-void landmark_t::plus(const vecx_t &dx) {
-  param[0] = param[0] + dx[0];
-  param[1] = param[1] + dx[1];
-  param[2] = param[2] + dx[2];
-}
-
-camera_param_t::camera_param_t(const size_t id_,
-                               const int cam_index_,
-                               const vec4_t &param_)
-  : param_t{id_, 4}, cam_index{cam_index_} {
-  for (int i = 0; i < param_.size(); i++) {
-    param[i] = param_(i);
-  }
-}
-
-vec4_t camera_param_t::vec() { return map_vec_t<4>(param); };
-
-real_t *camera_param_t::data() { return param; };
-
-void camera_param_t::plus(const vecx_t &dx) {
-  param[0] = param[0] + dx[0];
-  param[1] = param[1] + dx[1];
-  param[2] = param[2] + dx[2];
-  param[3] = param[3] + dx[3];
-}
-
-dist_param_t::dist_param_t(const size_t id_,
-                               const int cam_index_,
-                               const vec4_t &param_)
-  : param_t{id_, 4}, cam_index{cam_index_} {
-  for (int i = 0; i < param_.size(); i++) {
-    param[i] = param_(i);
-  }
-}
-
-vec4_t dist_param_t::vec() { return map_vec_t<4>(param); };
-
-real_t *dist_param_t::data() { return param; };
-
-void dist_param_t::plus(const vecx_t &dx) {
-  param[0] = param[0] + dx[0];
-  param[1] = param[1] + dx[1];
-  param[2] = param[2] + dx[2];
-  param[3] = param[3] + dx[3];
-}
-
-sb_param_t::sb_param_t(const size_t id_,
-                       const timestamp_t &ts_,
-                       const vec3_t &v_,
-                       const vec3_t &ba_,
-                       const vec3_t &bg_)
-  : param_t{id_, ts_, 9} {
-  // Velocity
-  param[0] = v_(0);
-  param[1] = v_(1);
-  param[2] = v_(2);
-
-  // Accel bias
-  param[3] = ba_(0);
-  param[4] = ba_(1);
-  param[5] = ba_(2);
-
-  // Gyro bias
-  param[6] = bg_(0);
-  param[7] = bg_(1);
-  param[8] = bg_(2);
-}
-
-vec_t<9> sb_param_t::vec() { return map_vec_t<9>(param); };
-
-real_t *sb_param_t::data() { return param; };
-
-void sb_param_t::plus(const vecx_t &dx) {
-  // Velocity
-  param[0] = param[0] + dx[0];
-  param[1] = param[1] + dx[1];
-  param[2] = param[2] + dx[2];
-
-  // Accel bias
-  param[3] = param[3] + dx[3];
-  param[4] = param[4] + dx[4];
-  param[5] = param[5] + dx[5];
-
-  // Gyro bias
-  param[6] = param[6] + dx[6];
-  param[7] = param[7] + dx[7];
-  param[8] = param[8] + dx[8];
-}
-
-static keypoints_t parse_keypoints_line(const char *line) {
-  char entry[100] = {0};
-  int kp_ready = 0;
-  vec2_t kp{0.0, 0.0};
-  int kp_index = 0;
-  bool first_element_parsed = false;
-
-  // Parse line
-  keypoints_t keypoints;
-
-  for (size_t i = 0; i < strlen(line); i++) {
-    char c = line[i];
-    if (c == ' ') {
-      continue;
-    }
-
-    if (c == ',' || c == '\n') {
-      if (first_element_parsed == false) {
-        first_element_parsed = true;
-      } else {
-        // Parse keypoint
-        if (kp_ready == 0) {
-          kp(0) = strtod(entry, NULL);
-          kp_ready = 1;
-
-        } else {
-          kp(1) = strtod(entry, NULL);
-          keypoints.push_back(kp);
-          kp_ready = 0;
-          kp_index++;
-        }
-      }
-
-      memset(entry, '\0', sizeof(char) * 100);
-    } else {
-      entry[strlen(entry)] = c;
-    }
-  }
-
-  return keypoints;
-}
-
-std::vector<keypoints_t> load_keypoints(const std::string &data_path) {
-  char keypoints_csv[1000] = {0};
-  strcat(keypoints_csv, data_path.c_str());
-  strcat(keypoints_csv, "/keypoints.csv");
-
-  FILE *csv_file = fopen(keypoints_csv, "r");
-  std::vector<keypoints_t> keypoints;
-
-  char line[1024] = {0};
-  while (fgets(line, 1024, csv_file) != NULL) {
-    if (line[0] == '#') {
-      continue;
-    }
-    keypoints.push_back(parse_keypoints_line(line));
-  }
-  fclose(csv_file);
-
-  return keypoints;
-}
-
-void keypoints_print(const keypoints_t &keypoints) {
-  printf("nb_keypoints: %zu\n", keypoints.size());
-  printf("keypoints:\n");
-  for (size_t i = 0; i < keypoints.size(); i++) {
-    printf("-- (%f, %f)\n", keypoints[i](0), keypoints[i](1));
-  }
-}
-
-/*****************************************************************************
- *                                  DATA
- *****************************************************************************/
-
-int8_t int8(const uint8_t *data, const size_t offset) {
-  return (int8_t)(data[offset]);
-}
-
-uint8_t uint8(const uint8_t *data, const size_t offset) {
-  return (uint8_t)(data[offset]);
-}
-
-int16_t int16(const uint8_t *data, const size_t offset) {
-  return (int16_t)((data[offset + 1] << 8) | (data[offset]));
-}
-
-uint16_t uint16(const uint8_t *data, const size_t offset) {
-  return (uint16_t)((data[offset + 1] << 8) | (data[offset]));
-}
-
-int32_t sint32(const uint8_t *data, const size_t offset) {
-  return (int32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
-                   (data[offset + 1] << 8) | (data[offset]));
-}
-
-uint32_t uint32(const uint8_t *data, const size_t offset) {
-  return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
-                    (data[offset + 1] << 8) | (data[offset]));
-}
-
-char *malloc_string(const char *s) {
-  char *retval = (char *) malloc(sizeof(char) * strlen(s) + 1);
-  strcpy(retval, s);
-  return retval;
-}
-
-int csv_rows(const char *fp) {
-  // Load file
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    fclose(infile);
+int ip_port_info(const int sockfd, char *ip, int *port) {
+  struct sockaddr_storage addr;
+  socklen_t len = sizeof addr;
+  if (getpeername(sockfd, (struct sockaddr *) &addr, &len) != 0) {
     return -1;
   }
 
-  // Loop through lines
-  int nb_rows = 0;
-  char line[1024] = {0};
-  size_t len_max = 1024;
-  while (fgets(line, len_max, infile) != NULL) {
-    if (line[0] != '#') {
-      nb_rows++;
-    }
-  }
-
-  // Cleanup
-  fclose(infile);
-
-  return nb_rows;
-}
-
-int csv_cols(const char *fp) {
-  // Load file
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    fclose(infile);
-    return -1;
-  }
-
-  // Get line that isn't the header
-  char line[1024] = {0};
-  size_t len_max = 1024;
-  while (fgets(line, len_max, infile) != NULL) {
-    if (line[0] != '#') {
-      break;
-    }
-  }
-
-  // Parse line to obtain number of elements
-  int nb_elements = 1;
-  int found_separator = 0;
-  for (size_t i = 0; i < len_max; i++) {
-    if (line[i] == ',') {
-      found_separator = 1;
-      nb_elements++;
-    }
-  }
-
-  // Cleanup
-  fclose(infile);
-
-  return (found_separator) ? nb_elements : -1;
-}
-
-char **csv_fields(const char *fp, int *nb_fields) {
-  // Load file
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    fclose(infile);
-    return NULL;
-  }
-
-  // Get last header line
-  char field_line[1024] = {0};
-  char line[1024] = {0};
-  size_t len_max = 1024;
-  while (fgets(line, len_max, infile) != NULL) {
-    if (line[0] != '#') {
-      break;
-    } else {
-      strcpy(field_line, line);
-    }
-  }
-
-  // Parse fields
-  *nb_fields = csv_cols(fp);
-  char **fields = (char **) malloc(sizeof(char *) * *nb_fields);
-  int field_idx = 0;
-  char field_name[100] = {0};
-
-  for (size_t i = 0; i < strlen(field_line); i++) {
-    char c = field_line[i];
-
-    // Ignore # and ' '
-    if (c == '#' || c == ' ') {
-      continue;
-    }
-
-    if (c == ',' || c == '\n') {
-      // Add field name to fields
-      fields[field_idx] = malloc_string(field_name);
-      memset(field_name, '\0', sizeof(char) * 100);
-      field_idx++;
-    } else {
-      // Append field name
-      field_name[strlen(field_name)] = c;
-    }
-  }
-
-  // Cleanup
-  fclose(infile);
-
-  return fields;
-}
-
-real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
-  // Obtain number of rows and columns in csv data
-  *nb_rows = csv_rows(fp);
-  *nb_cols = csv_cols(fp);
-  if (*nb_rows == -1 || *nb_cols == -1) {
-    return NULL;
-  }
-
-  // Initialize memory for csv data
-  real_t **data = (real_t **) malloc(sizeof(real_t *) * *nb_rows);
-  for (int i = 0; i < *nb_cols; i++) {
-    data[i] = (real_t *) malloc(sizeof(real_t) * *nb_cols);
-  }
-
-  // Load file
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    fclose(infile);
-    return NULL;
-  }
-
-  // Loop through data
-  char line[1024] = {0};
-  size_t len_max = 1024;
-  int row_idx = 0;
-  int col_idx = 0;
-
-  while (fgets(line, len_max, infile) != NULL) {
-    if (line[0] == '#') {
-      continue;
-    }
-
-    char entry[100] = {0};
-    for (size_t i = 0; i < strlen(line); i++) {
-      char c = line[i];
-      if (c == ' ') {
-        continue;
-      }
-
-      if (c == ',' || c == '\n') {
-        data[row_idx][col_idx] = strtod(entry, NULL);
-        memset(entry, '\0', sizeof(char) * 100);
-        col_idx++;
-      } else {
-        entry[strlen(entry)] = c;
-      }
-    }
-
-    col_idx = 0;
-    row_idx++;
-  }
-
-  // Cleanup
-  fclose(infile);
-
-  return data;
-}
-
-static int *parse_iarray_line(char *line) {
-  char entry[1024] = {0};
-  int index = 0;
-  int *data = NULL;
-
-  for (size_t i = 0; i < strlen(line); i++) {
-    char c = line[i];
-    if (c == ' ') {
-      continue;
-    }
-
-    if (c == ',' || c == '\n') {
-      if (data == NULL) {
-        size_t array_size = strtod(entry, NULL);
-        data = (int *) calloc(array_size + 1, sizeof(int));
-      }
-      data[index] = strtod(entry, NULL);
-      index++;
-      memset(entry, '\0', sizeof(char) * 100);
-    } else {
-      entry[strlen(entry)] = c;
-    }
-  }
-
-  return data;
-}
-
-int **load_iarrays(const char *csv_path, int *nb_arrays) {
-  FILE *csv_file = fopen(csv_path, "r");
-  *nb_arrays = csv_rows(csv_path);
-  int **array = (int **) calloc(*nb_arrays, sizeof(int *));
-
-  char line[1024] = {0};
-  int frame_idx = 0;
-  while (fgets(line, 1024, csv_file) != NULL) {
-    if (line[0] == '#') {
-      continue;
-    }
-
-    array[frame_idx] = parse_iarray_line(line);
-    frame_idx++;
-  }
-  fclose(csv_file);
-
-  return array;
-}
-
-static real_t *parse_darray_line(char *line) {
-  char entry[1024] = {0};
-  int index = 0;
-  real_t *data = NULL;
-
-  for (size_t i = 0; i < strlen(line); i++) {
-    char c = line[i];
-    if (c == ' ') {
-      continue;
-    }
-
-    if (c == ',' || c == '\n') {
-      if (data == NULL) {
-        size_t array_size = strtod(entry, NULL);
-        data = (real_t *) calloc(array_size, sizeof(real_t));
-      }
-      data[index] = strtod(entry, NULL);
-      index++;
-      memset(entry, '\0', sizeof(char) * 100);
-    } else {
-      entry[strlen(entry)] = c;
-    }
-  }
-
-  return data;
-}
-
-real_t **load_darrays(const char *csv_path, int *nb_arrays) {
-  FILE *csv_file = fopen(csv_path, "r");
-  *nb_arrays = csv_rows(csv_path);
-  real_t **array = (real_t **) calloc(*nb_arrays, sizeof(real_t *));
-
-  char line[1024] = {0};
-  int frame_idx = 0;
-  while (fgets(line, 1024, csv_file) != NULL) {
-    if (line[0] == '#') {
-      continue;
-    }
-
-    array[frame_idx] = parse_darray_line(line);
-    frame_idx++;
-  }
-  fclose(csv_file);
-
-  return array;
-}
-
-int csv_rows(const std::string &file_path) {
-  // Load file
-  std::ifstream infile(file_path);
-  if (infile.good() != true) {
-    return -1;
-  }
-
-  // Obtain number of lines
-  int nb_rows = 0;
-  std::string line;
-  while (std::getline(infile, line)) {
-    nb_rows++;
-  }
-
-  return nb_rows;
-}
-
-int csv_cols(const std::string &file_path) {
-  int nb_elements = 1;
-  bool found_separator = false;
-
-  // Load file
-  std::ifstream infile(file_path);
-  if (infile.good() != true) {
-    return -1;
-  }
-
-  // Obtain number of commas
-  std::string line;
-  std::getline(infile, line);
-  for (size_t i = 0; i < line.length(); i++) {
-    if (line[i] == ',') {
-      found_separator = true;
-      nb_elements++;
-    }
-  }
-
-  return (found_separator) ? nb_elements : 0;
-}
-
-int csv2mat(const std::string &file_path, const bool header, matx_t &data) {
-  // Load file
-  std::ifstream infile(file_path);
-  if (infile.good() != true) {
-    return -1;
-  }
-
-  // Obtain number of rows and cols
-  int nb_rows = csv_rows(file_path);
-  int nb_cols = csv_cols(file_path);
-
-  // Skip header line?
-  std::string line;
-  if (header) {
-    std::getline(infile, line);
-    nb_rows -= 1;
-  }
-
-  // Load data
-  int line_no = 0;
-  std::vector<real_t> vdata;
-  data = zeros(nb_rows, nb_cols);
-
-  while (std::getline(infile, line)) {
-    std::istringstream ss(line);
-
-    // Load data row
-    std::string element;
-    for (int i = 0; i < nb_cols; i++) {
-      std::getline(ss, element, ',');
-      const real_t value = atof(element.c_str());
-      data(line_no, i) = value;
-    }
-
-    line_no++;
-  }
-
-  return 0;
-}
-
-int mat2csv(const std::string &file_path, const matx_t &data) {
-  // Open file
-  FILE *outfile = fopen(file_path.c_str(), "w");
-  if (outfile == nullptr) {
-    return -1;
-  }
-
-  // Save matrix
-  for (int i = 0; i < data.rows(); i++) {
-    for (int j = 0; j < data.cols(); j++) {
-      fprintf(outfile, "%f", data(i, j));
-
-      if ((j + 1) != data.cols()) {
-        fprintf(outfile, ",");
-      }
-    }
-    fprintf(outfile, "\n");
-  }
-
-  // Close file
-  fclose(outfile);
-
-  return 0;
-}
-
-int vec2csv(const std::string &file_path, const std::deque<vec3_t> &data) {
-  // Open file
-  std::ofstream outfile(file_path);
-  if (outfile.good() != true) {
-    return -1;
-  }
-
-  // Save vector
-  for (const auto &v : data) {
-    outfile << v(0);
-    outfile << ",";
-    outfile << v(1);
-    outfile << ",";
-    outfile << v(2);
-    outfile << std::endl;
-  }
-
-  // Close file
-  outfile.close();
-  return 0;
-}
-
-int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data) {
-  // Open file
-  std::ofstream outfile(file_path);
-  if (outfile.good() != true) {
-    return -1;
-  }
-
-  // Save vector
-  for (const auto &ts : data) {
-    outfile << ts << std::endl;
-  }
-
-  // Close file
-  outfile.close();
-  return 0;
-}
-
-void print_progress(const real_t percentage) {
-  const char *PBSTR =
-      "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
-  const int PBWIDTH = 60;
-
-  int val = (int) (percentage * 100);
-  int lpad = (int) (percentage * PBWIDTH);
-  int rpad = PBWIDTH - lpad;
-  printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
-  fflush(stdout);
-
-  if ((fabs(percentage - 1.0) < 1e-10)) {
-    printf("\n");
-  }
-}
-
-bool all_true(const std::vector<bool> x) {
-  for (const auto i : x) {
-    if (i == false) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-int check_jacobian(const std::string &jac_name,
-                   const matx_t &fdiff,
-                   const matx_t &jac,
-                   const real_t threshold,
-                   const bool print) {
-  // Pre-check
-  if (jac.size() == 0) {
-    LOG_ERROR("Provided analytical jacobian is empty!");
-    return false;
-  } else if (fdiff.size() == 0) {
-    LOG_ERROR("Provided numerical jacobian is empty!");
-    return false;
-  } else if (fdiff.rows() != jac.rows()) {
-    LOG_ERROR("rows(fdiff) != rows(jac)");
-    return false;
-  } else if (fdiff.cols() != jac.cols()) {
-    LOG_ERROR("cols(fdiff) != cols(jac)");
-    return false;
-  }
-
-  // Check if any of the values are beyond the threshold
-  const matx_t delta = (fdiff - jac);
-  bool failed = false;
-  for (long i = 0; i < delta.rows(); i++) {
-    for (long j = 0; j < delta.cols(); j++) {
-      if (fabs(delta(i, j)) >= threshold) {
-        failed = true;
-      }
-    }
-  }
-
-  // Print result
-  int retval = 0;
-  if (failed) {
-    if (print) {
-      LOG_ERROR("Check [%s] failed!\n", jac_name.c_str());
-      print_matrix("num diff jac", fdiff);
-      print_matrix("analytical jac", jac);
-      print_matrix("difference matrix", delta);
-      // exit(-1);
-    }
-    retval = -1;
-
+  // Deal with both IPv4 and IPv6:
+  char ipstr[INET6_ADDRSTRLEN];
+
+  if (addr.ss_family == AF_INET) {
+    // IPV4
+    struct sockaddr_in *s = (struct sockaddr_in *) &addr;
+    *port = ntohs(s->sin_port);
+    inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
   } else {
-    if (print) {
-      printf("Check [%s] passed!\n", jac_name.c_str());
-    }
-    retval = 0;
+    // IPV6
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *) &addr;
+    *port = ntohs(s->sin6_port);
+    inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
   }
+  strcpy(ip, ipstr);
 
+  return 0;
+}
+
+int ip_port_info(const int sockfd, std::string &ip, int &port) {
+  char ipstr[INET6_ADDRSTRLEN];
+  const int retval = ip_port_info(sockfd, ipstr, &port);
+  ip = std::string{ipstr};
   return retval;
 }
 
-/******************************************************************************
- *                               CONFIG
- *****************************************************************************/
+tcp_server_t::tcp_server_t(int port_) : port{port_} {}
 
-config_t::config_t() {}
+tcp_client_t::tcp_client_t(const std::string &server_ip_, int server_port_)
+    : server_ip{server_ip_}, server_port{server_port_} {}
 
-config_t::config_t(const std::string &file_path_) : file_path{file_path_} {
-  if (yaml_load_file(file_path_, root) == 0) {
-    ok = true;
-  }
-}
-
-config_t::~config_t() {}
-
-int yaml_load_file(const std::string file_path, YAML::Node &root) {
-  // Pre-check
-  if (file_exists(file_path) == false) {
-    FATAL("File not found: %s", file_path.c_str());
+int tcp_server_config(tcp_server_t &server) {
+  // Create socket
+  server.sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (server.sockfd == -1) {
+    LOG_ERROR("Socket creation failed...");
+    return -1;
   }
 
-  // Load and parse file
-  try {
-    root = YAML::LoadFile(file_path);
-  } catch (YAML::ParserException &e) {
-    LOG_ERROR("%s", e.what());
+  // Socket options
+  const int en = 1;
+  const size_t int_sz = sizeof(int);
+  if (setsockopt(server.sockfd, SOL_SOCKET, SO_REUSEADDR, &en, int_sz) < 0) {
+    LOG_ERROR("setsockopt(SO_REUSEADDR) failed");
+  }
+  if (setsockopt(server.sockfd, SOL_SOCKET, SO_REUSEPORT, &en, int_sz) < 0) {
+    LOG_ERROR("setsockopt(SO_REUSEPORT) failed");
+  }
+
+  // Assign IP, PORT
+  struct sockaddr_in sockaddr;
+  bzero(&sockaddr, sizeof(sockaddr));
+  sockaddr.sin_family = AF_INET;
+  sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  sockaddr.sin_port = htons(server.port);
+
+  // Bind newly created socket to given IP
+  int retval =
+      bind(server.sockfd, (struct sockaddr *) &sockaddr, sizeof(sockaddr));
+  if (retval != 0) {
+    LOG_ERROR("Socket bind failed: %s", strerror(errno));
     return -1;
   }
 
   return 0;
 }
 
-int yaml_get_node(const config_t &config,
-                  const std::string &key,
-                  const bool optional,
-                  YAML::Node &node) {
-  assert(config.ok == true);
-
-  // Recurse down config key
-  std::vector<YAML::Node> traversal;
-  traversal.push_back(config.root);
-
-  std::istringstream iss(key);
-  std::string element;
-
-  while (std::getline(iss, element, '.')) {
-    traversal.push_back(traversal.back()[element]);
-  }
-  node = traversal.back();
-  // Note:
-  //
-  //    yaml_node = yaml_node["some_level_deeper"];
-  //
-  // YAML::Node is mutable, by doing the above it destroys the parsed yaml
-  // tree/graph, to avoid this problem we store the visited YAML::Node into
-  // a std::vector and return the last visited YAML::Node
-
-  // Check key
-  if (node.IsDefined() == false && optional == false) {
-    LOG_ERROR("Opps [%s] missing in yaml file [%s]!",
-              key.c_str(),
-              config.file_path.c_str());
-    return -1;
-  } else if (node.IsDefined() == false && optional == true) {
+int tcp_server_loop(tcp_server_t &server) {
+  // Server is ready to listen
+  if ((listen(server.sockfd, 5)) != 0) {
+    LOG_ERROR("Listen failed...");
     return -1;
   }
 
-  return 0;
-}
+  // Accept the data packet from client and verification
+  std::map<int, pthread_t *> threads;
+  int thread_id = 0;
 
-int yaml_has_key(const config_t &config, const std::string &key) {
-  assert(config.ok == true);
-
-  // Recurse down config key
-  std::vector<YAML::Node> traversal;
-  traversal.push_back(config.root);
-
-  std::istringstream iss(key);
-  std::string element;
-
-  while (std::getline(iss, element, '.')) {
-    traversal.push_back(traversal.back()[element]);
-  }
-  auto node = traversal.back();
-  // Note:
-  //
-  //    yaml_node = yaml_node["some_level_deeper"];
-  //
-  // YAML::Node is mutable, by doing the above it destroys the parsed yaml
-  // tree/graph, to avoid this problem we store the visited YAML::Node into
-  // a std::vector and return the last visited YAML::Node
-
-  // Check key
-  if (node.IsDefined() == false) {
-    return -1;
-  }
-
-  return 0;
-}
-
-int yaml_has_key(const std::string &file_path, const std::string &key) {
-  const config_t config{file_path};
-  return yaml_has_key(config, key);
-}
-
-void yaml_check_matrix_fields(const YAML::Node &node,
-                              const std::string &key,
-                              size_t &rows,
-                              size_t &cols) {
-  const std::string targets[3] = {"rows", "cols", "data"};
-  for (int i = 0; i < 3; i++) {
-    if (!node[targets[i]]) {
-      FATAL("Key [%s] is missing for matrix [%s]!",
-            targets[i].c_str(),
-            key.c_str());
+  DEBUG("Server ready!");
+  while (true) {
+    // Accept incomming connections
+    struct sockaddr_in sockaddr;
+    socklen_t len = sizeof(sockaddr);
+    int connfd = accept(server.sockfd, (struct sockaddr *) &sockaddr, &len);
+    if (connfd < 0) {
+      LOG_ERROR("Server acccept failed!");
+      return -1;
+    } else {
+      server.conns.push_back(connfd);
     }
+
+    // Fork off a thread to handle the connection
+    pthread_t thread;
+    pthread_create(&thread, nullptr, server.conn_thread, (void *) &server);
+    threads.insert({thread_id, &thread});
+    thread_id++;
   }
-  rows = node["rows"].as<int>();
-  cols = node["cols"].as<int>();
-}
-
-int parse(const config_t &config,
-          const std::string &key,
-          vec2_t &vec,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  yaml_check_vector<vec2_t>(node, key, optional);
-  vec = vec2_t{node[0].as<real_t>(), node[1].as<real_t>()};
-  return 0;
-}
-
-int parse(const config_t &config,
-          const std::string &key,
-          vec3_t &vec,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  yaml_check_vector<vec3_t>(node, key, optional);
-  vec =
-      vec3_t{node[0].as<real_t>(), node[1].as<real_t>(), node[2].as<real_t>()};
-  return 0;
-}
-
-int parse(const config_t &config,
-          const std::string &key,
-          vec4_t &vec,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  yaml_check_vector<vec4_t>(node, key, optional);
-  vec = vec4_t{node[0].as<real_t>(),
-               node[1].as<real_t>(),
-               node[2].as<real_t>(),
-               node[3].as<real_t>()};
-  return 0;
-}
-
-int parse(const config_t &config,
-          const std::string &key,
-          vecx_t &vec,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  const size_t vector_size = yaml_check_vector<vecx_t>(node, key, optional);
-  vec = vecx_t::Zero(vector_size, 1);
-  for (size_t i = 0; i < node.size(); i++) {
-    vec(i) = node[i].as<real_t>();
-  }
-  return 0;
-}
-
-int parse(const config_t &config,
-          const std::string &key,
-          mat2_t &mat,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  yaml_check_matrix<mat2_t>(node, key, optional);
-  mat(0, 0) = node["data"][0].as<real_t>();
-  mat(0, 1) = node["data"][1].as<real_t>();
-  mat(1, 0) = node["data"][2].as<real_t>();
-  mat(1, 1) = node["data"][3].as<real_t>();
-  return 0;
-}
-
-int parse(const config_t &config,
-          const std::string &key,
-          mat3_t &mat,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  yaml_check_matrix<mat3_t>(node, key, optional);
-  // -- Col 1
-  mat(0, 0) = node["data"][0].as<real_t>();
-  mat(0, 1) = node["data"][1].as<real_t>();
-  mat(0, 2) = node["data"][2].as<real_t>();
-  // -- Col 2
-  mat(1, 0) = node["data"][3].as<real_t>();
-  mat(1, 1) = node["data"][4].as<real_t>();
-  mat(1, 2) = node["data"][5].as<real_t>();
-  // -- Col 3
-  mat(2, 0) = node["data"][6].as<real_t>();
-  mat(2, 1) = node["data"][7].as<real_t>();
-  mat(2, 2) = node["data"][8].as<real_t>();
-  return 0;
-}
-
-int parse(const config_t &config,
-          const std::string &key,
-          mat4_t &mat,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  yaml_check_matrix<mat4_t>(node, key, optional);
-  size_t index = 0;
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      mat(i, j) = node["data"][index].as<real_t>();
-      index++;
-    }
-  }
+  DEBUG("Server shutting down ...");
 
   return 0;
 }
 
-int parse(const config_t &config,
-          const std::string &key,
-          matx_t &mat,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
+int tcp_client_config(tcp_client_t &client) {
+  // Create socket
+  client.sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (client.sockfd == -1) {
+    LOG_ERROR("Socket creation failed!");
     return -1;
   }
 
-  // Parse
-  size_t rows = 0;
-  size_t cols = 0;
-  yaml_check_matrix<matx_t>(node, key, optional, rows, cols);
+  // Assign IP, PORT
+  struct sockaddr_in server;
+  size_t server_size = sizeof(server);
+  bzero(&server, server_size);
+  server.sin_family = AF_INET;
+  server.sin_addr.s_addr = inet_addr(client.server_ip.c_str());
+  server.sin_port = htons(client.server_port);
 
-  mat.resize(rows, cols);
-  size_t index = 0;
-  for (size_t i = 0; i < rows; i++) {
-    for (size_t j = 0; j < cols; j++) {
-      mat(i, j) = node["data"][index].as<real_t>();
-      index++;
-    }
+  // Connect to server
+  if (connect(client.sockfd, (struct sockaddr *) &server, server_size) != 0) {
+    LOG_ERROR("Failed to connect to server!");
+    return -1;
   }
+  DEBUG("Connected to the server!");
 
   return 0;
 }
 
-int parse(const config_t &config,
-          const std::string &key,
-          cv::Mat &mat,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  size_t rows = 0;
-  size_t cols = 0;
-  yaml_check_matrix<cv::Mat>(node, key, optional, rows, cols);
-
-  mat = cv::Mat(rows, cols, CV_64F);
-  size_t index = 0;
-  for (size_t i = 0; i < rows; i++) {
-    for (size_t j = 0; j < cols; j++) {
-      mat.at<real_t>(i, j) = node["data"][index].as<real_t>();
-      index++;
+int tcp_client_loop(tcp_client_t &client) {
+  while (true) {
+    if (client.loop_cb) {
+      int retval = client.loop_cb(client);
+      switch (retval) {
+      case -1: return -1;
+      case 1: break;
+      }
     }
   }
 
@@ -2799,10 +2627,6 @@ void lerp_data(std::deque<timestamp_t> &ts0,
   align_back(lerp_ts, ts1, vs1);
   align_back(lerp_ts, ts0, vs0);
 }
-
-/*****************************************************************************
- *                                SPLINE
- *****************************************************************************/
 
 ctraj_t::ctraj_t(const timestamps_t &timestamps,
                  const vec3s_t &positions,
@@ -3350,156 +3174,1474 @@ int mav_model_update(mav_model_t &model,
 }
 
 /*****************************************************************************
- *                                NETWORKING
- *****************************************************************************/
+ *                                  VISION
+ ****************************************************************************/
 
-int ip_port_info(const int sockfd, char *ip, int *port) {
-  struct sockaddr_storage addr;
-  socklen_t len = sizeof addr;
-  if (getpeername(sockfd, (struct sockaddr *) &addr, &len) != 0) {
-    return -1;
+bool is_equal(const cv::Mat &m1, const cv::Mat &m2) {
+  // Pre-check
+  if (m1.empty() && m2.empty()) {
+    return true;
   }
 
-  // Deal with both IPv4 and IPv6:
-  char ipstr[INET6_ADDRSTRLEN];
+  // Check dimensions
+  if (m1.cols != m2.cols) {
+    return false;
+  } else if (m1.rows != m2.rows) {
+    return false;
+  } else if (m1.dims != m2.dims) {
+    return false;
+  }
 
-  if (addr.ss_family == AF_INET) {
-    // IPV4
-    struct sockaddr_in *s = (struct sockaddr_in *) &addr;
-    *port = ntohs(s->sin_port);
-    inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+  // Check matrix elements
+  cv::Mat diff;
+  cv::compare(m1, m2, diff, cv::CMP_NE);
+
+  return cv::countNonZero(diff) ? false : true;
+}
+
+void convert(const cv::Mat &x, matx_t &y) {
+  y.resize(x.rows, x.cols);
+
+  for (int i = 0; i < x.rows; i++) {
+    for (int j = 0; j < x.cols; j++) {
+      y(i, j) = x.at<real_t>(i, j);
+    }
+  }
+}
+
+void convert(const matx_t &x, cv::Mat &y) {
+  y = cv::Mat(x.rows(), x.cols(), cv::DataType<real_t>::type);
+
+  for (int i = 0; i < x.rows(); i++) {
+    for (int j = 0; j < x.cols(); j++) {
+      y.at<real_t>(i, j) = x(i, j);
+    }
+  }
+}
+
+matx_t convert(const cv::Mat &x) {
+  matx_t y;
+  convert(x, y);
+  return y;
+}
+
+cv::Mat convert(const matx_t &x) {
+  cv::Mat y;
+  convert(x, y);
+  return y;
+}
+
+std::vector<cv::KeyPoint>
+sort_keypoints(const std::vector<cv::KeyPoint> keypoints, const size_t limit) {
+  if (keypoints.size() == 0) {
+    return std::vector<cv::KeyPoint>();
+  }
+
+  // Obtain vector responses
+  std::vector<int> responses;
+  for (size_t i = 0; i < keypoints.size(); i++) {
+    responses.push_back(keypoints[i].response);
+  }
+
+  // Sort responses
+  std::vector<int> index(responses.size());
+  std::iota(std::begin(index), std::end(index), 0);
+  cv::sortIdx(responses, index, CV_SORT_DESCENDING);
+
+  // Form sorted keypoints
+  std::vector<cv::KeyPoint> keypoints_sorted;
+  for (size_t i = 0; i < keypoints.size(); i++) {
+    keypoints_sorted.push_back(keypoints[index[i]]);
+    if (keypoints_sorted.size() == limit) {
+      break;
+    }
+  }
+
+  return keypoints_sorted;
+}
+
+cv::Mat gray2rgb(const cv::Mat &image) {
+  const int image_height = image.rows;
+  const int image_width = image.cols;
+  cv::Mat out_image(image_height, image_width, CV_8UC3);
+
+  if (image.channels() == 1) {
+    cv::cvtColor(image, out_image, CV_GRAY2RGB);
   } else {
-    // IPV6
-    struct sockaddr_in6 *s = (struct sockaddr_in6 *) &addr;
-    *port = ntohs(s->sin6_port);
-    inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
+    return image.clone();
   }
-  strcpy(ip, ipstr);
 
-  return 0;
+  return out_image;
 }
 
-int ip_port_info(const int sockfd, std::string &ip, int &port) {
-  char ipstr[INET6_ADDRSTRLEN];
-  const int retval = ip_port_info(sockfd, ipstr, &port);
-  ip = std::string{ipstr};
-  return retval;
+cv::Mat rgb2gray(const cv::Mat &image) {
+  cv::Mat image_gray;
+
+  if (image.channels() == 3) {
+    cv::cvtColor(image, image_gray, CV_BGR2GRAY);
+  } else {
+    return image.clone();
+  }
+
+  return image_gray;
 }
 
-tcp_server_t::tcp_server_t(int port_) : port{port_} {}
-
-tcp_client_t::tcp_client_t(const std::string &server_ip_, int server_port_)
-    : server_ip{server_ip_}, server_port{server_port_} {}
-
-int tcp_server_config(tcp_server_t &server) {
-  // Create socket
-  server.sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server.sockfd == -1) {
-    LOG_ERROR("Socket creation failed...");
-    return -1;
-  }
-
-  // Socket options
-  const int en = 1;
-  const size_t int_sz = sizeof(int);
-  if (setsockopt(server.sockfd, SOL_SOCKET, SO_REUSEADDR, &en, int_sz) < 0) {
-    LOG_ERROR("setsockopt(SO_REUSEADDR) failed");
-  }
-  if (setsockopt(server.sockfd, SOL_SOCKET, SO_REUSEPORT, &en, int_sz) < 0) {
-    LOG_ERROR("setsockopt(SO_REUSEPORT) failed");
-  }
-
-  // Assign IP, PORT
-  struct sockaddr_in sockaddr;
-  bzero(&sockaddr, sizeof(sockaddr));
-  sockaddr.sin_family = AF_INET;
-  sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  sockaddr.sin_port = htons(server.port);
-
-  // Bind newly created socket to given IP
-  int retval =
-      bind(server.sockfd, (struct sockaddr *) &sockaddr, sizeof(sockaddr));
-  if (retval != 0) {
-    LOG_ERROR("Socket bind failed: %s", strerror(errno));
-    return -1;
-  }
-
-  return 0;
+cv::Mat roi(const cv::Mat &image,
+            const int width,
+            const int height,
+            const real_t cx,
+            const real_t cy) {
+  const real_t x = cx - width / 2.0;
+  const real_t y = cy - height / 2.0;
+  cv::Rect roi(x, y, width, height);
+  return image(roi);
 }
 
-int tcp_server_loop(tcp_server_t &server) {
-  // Server is ready to listen
-  if ((listen(server.sockfd, 5)) != 0) {
-    LOG_ERROR("Listen failed...");
-    return -1;
+bool keypoint_compare_by_response(const cv::KeyPoint &kp1,
+                                  const cv::KeyPoint &kp2) {
+  // Keypoint with higher response will be at the beginning of the vector
+  return kp1.response > kp2.response;
+}
+
+real_t reprojection_error(const vec2s_t &measured, const vec2s_t &projected) {
+  assert(measured.size() == projected.size());
+
+  real_t sse = 0.0;
+  const size_t nb_keypoints = measured.size();
+  for (size_t i = 0; i < nb_keypoints; i++) {
+    sse += (measured[i] - projected[i]).norm();
   }
+  const real_t rmse = sqrt(sse / nb_keypoints);
 
-  // Accept the data packet from client and verification
-  std::map<int, pthread_t *> threads;
-  int thread_id = 0;
+  return rmse;
+}
 
-  DEBUG("Server ready!");
-  while (true) {
-    // Accept incomming connections
-    struct sockaddr_in sockaddr;
-    socklen_t len = sizeof(sockaddr);
-    int connfd = accept(server.sockfd, (struct sockaddr *) &sockaddr, &len);
-    if (connfd < 0) {
-      LOG_ERROR("Server acccept failed!");
-      return -1;
-    } else {
-      server.conns.push_back(connfd);
+real_t reprojection_error(const std::vector<cv::Point2f> &measured,
+                          const std::vector<cv::Point2f> &projected) {
+  assert(measured.size() == projected.size());
+
+  real_t sse = 0.0;
+  const size_t nb_keypoints = measured.size();
+  for (size_t i = 0; i < nb_keypoints; i++) {
+    sse += cv::norm(measured[i] - projected[i]);
+  }
+  const real_t rmse = sqrt(sse / nb_keypoints);
+
+  return rmse;
+}
+
+matx_t feature_mask(const int image_width,
+                    const int image_height,
+                    const std::vector<cv::Point2f> points,
+                    const int patch_width) {
+  matx_t mask = ones(image_height, image_width);
+
+  // Create a mask around each point
+  for (const auto &p : points) {
+    // Skip if pixel is out of image bounds
+    const real_t px = static_cast<int>(p.x);
+    const real_t py = static_cast<int>(p.y);
+    if (px >= image_width || px <= 0) {
+      continue;
+    } else if (py >= image_height || py <= 0) {
+      continue;
     }
 
-    // Fork off a thread to handle the connection
-    pthread_t thread;
-    pthread_create(&thread, nullptr, server.conn_thread, (void *) &server);
-    threads.insert({thread_id, &thread});
-    thread_id++;
-  }
-  DEBUG("Server shutting down ...");
+    // Calculate patch top left corner, patch width and height
+    vec2_t top_left{px - patch_width, py - patch_width};
+    vec2_t top_right{px + patch_width, py - patch_width};
+    vec2_t btm_left{px - patch_width, py + patch_width};
+    vec2_t btm_right{px + patch_width, py + patch_width};
+    std::vector<vec2_t *> corners{&top_left, &top_right, &btm_left, &btm_right};
+    for (auto corner : corners) {
+      // Check corner in x-axis
+      if ((*corner)(0) < 0) {
+        (*corner)(0) = 0;
+      } else if ((*corner)(0) > image_width) {
+        (*corner)(0) = image_width;
+      }
 
-  return 0;
-}
-
-int tcp_client_config(tcp_client_t &client) {
-  // Create socket
-  client.sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (client.sockfd == -1) {
-    LOG_ERROR("Socket creation failed!");
-    return -1;
-  }
-
-  // Assign IP, PORT
-  struct sockaddr_in server;
-  size_t server_size = sizeof(server);
-  bzero(&server, server_size);
-  server.sin_family = AF_INET;
-  server.sin_addr.s_addr = inet_addr(client.server_ip.c_str());
-  server.sin_port = htons(client.server_port);
-
-  // Connect to server
-  if (connect(client.sockfd, (struct sockaddr *) &server, server_size) != 0) {
-    LOG_ERROR("Failed to connect to server!");
-    return -1;
-  }
-  DEBUG("Connected to the server!");
-
-  return 0;
-}
-
-int tcp_client_loop(tcp_client_t &client) {
-  while (true) {
-    if (client.loop_cb) {
-      int retval = client.loop_cb(client);
-      switch (retval) {
-      case -1: return -1;
-      case 1: break;
+      // Check corner in y-axis
+      if ((*corner)(1) < 0) {
+        (*corner)(1) = 0;
+      } else if ((*corner)(1) > image_height) {
+        (*corner)(1) = image_height;
       }
     }
+
+    // Create mask around pixel
+    const int row = top_left(1);
+    const int col = top_left(0);
+    int width = top_right(0) - top_left(0) + 1;
+    int height = btm_left(1) - top_left(1) + 1;
+    width = (col + width) > image_width ? width - 1 : width;
+    height = (row + height) > image_height ? height - 1 : height;
+
+    // std::cout << "---" << std::endl;
+    // std::cout << image_width << std::endl;
+    // std::cout << image_height << std::endl;
+    // std::cout << row << std::endl;
+    // std::cout << col << std::endl;
+    // std::cout << width << std::endl;
+    // std::cout << height << std::endl;
+    // std::cout << "---" << std::endl;
+
+    mask.block(row, col, height, width) = zeros(height, width);
   }
 
-  return 0;
+  return mask;
+}
+
+matx_t feature_mask(const int image_width,
+                    const int image_height,
+                    const std::vector<cv::KeyPoint> keypoints,
+                    const int patch_width) {
+  std::vector<cv::Point2f> points;
+  for (const auto &kp : keypoints) {
+    points.emplace_back(kp.pt);
+  }
+
+  return feature_mask(image_width, image_height, points, patch_width);
+}
+
+cv::Mat feature_mask_opencv(const int image_width,
+                            const int image_height,
+                            const std::vector<cv::Point2f> points,
+                            const int patch_width) {
+  auto mask = feature_mask(image_width, image_height, points, patch_width);
+
+  cv::Mat mask_cv;
+  cv::eigen2cv(mask, mask_cv);
+  mask_cv.convertTo(mask_cv, CV_8UC1);
+
+  return mask_cv;
+}
+
+cv::Mat feature_mask_opencv(const int image_width,
+                            const int image_height,
+                            const std::vector<cv::KeyPoint> keypoints,
+                            const int patch_width) {
+  auto mask = feature_mask(image_width, image_height, keypoints, patch_width);
+
+  cv::Mat mask_cv;
+  cv::eigen2cv(mask, mask_cv);
+  mask_cv.convertTo(mask_cv, CV_8UC1);
+
+  return mask_cv;
+}
+
+cv::Mat radtan_undistort_image(const mat3_t &K,
+                               const vecx_t &D,
+                               const cv::Mat &image) {
+  cv::Mat image_ud;
+  cv::Mat K_ud = convert(K).clone();
+  cv::undistort(image, image_ud, convert(K), convert(D), K_ud);
+  return image_ud;
+}
+
+cv::Mat equi_undistort_image(const mat3_t &K,
+                             const vecx_t &D,
+                             const cv::Mat &image,
+                             const real_t balance,
+                             cv::Mat &Knew) {
+  // Estimate new camera matrix first
+  const cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
+  cv::fisheye::estimateNewCameraMatrixForUndistortRectify(convert(K),
+                                                          convert(D),
+                                                          image.size(),
+                                                          R,
+                                                          Knew,
+                                                          balance);
+
+  // Undistort image
+  cv::Mat image_ud;
+  cv::fisheye::undistortImage(image, image_ud, convert(K), convert(D), Knew);
+
+  return image_ud;
+}
+
+void illum_invar_transform(cv::Mat &image,
+                           const real_t lambda_1,
+                           const real_t lambda_2,
+                           const real_t lambda_3) {
+  // The following method is adapted from:
+  // Illumination Invariant Imaging: Applications in Robust Vision-based
+  // Localisation, Mapping and Classification for Autonomous Vehicles
+  // Maddern et al (2014)
+
+  // clang-format off
+  real_t alpha = (lambda_1 * lambda_3 - lambda_1 * lambda_2) /
+          			 (lambda_2 * lambda_3 - lambda_1 * lambda_2);
+  // clang-format on
+
+  std::vector<cv::Mat> channels(3);
+  split(image, channels);
+  channels[0].convertTo(channels[0], CV_32F);
+  channels[1].convertTo(channels[1], CV_32F);
+  channels[2].convertTo(channels[2], CV_32F);
+
+  channels[0].row(0).setTo(cv::Scalar(1));
+  channels[1].row(0).setTo(cv::Scalar(1));
+  channels[2].row(0).setTo(cv::Scalar(1));
+
+  cv::Mat log_ch_1, log_ch_2, log_ch_3;
+  cv::log(channels[0] / 255.0, log_ch_1);
+  cv::log(channels[1] / 255.0, log_ch_2);
+  cv::log(channels[2] / 255.0, log_ch_3);
+
+  image = 0.5 + log_ch_2 - alpha * log_ch_3 - (1 - alpha) * log_ch_1;
+  image.setTo(0, image < 0);
+  image.setTo(1, image > 1);
+  cv::normalize(image, image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+}
+
+cv::Mat draw_tracks(const cv::Mat &img_cur,
+                    const std::vector<cv::Point2f> p0,
+                    const std::vector<cv::Point2f> p1,
+                    const std::vector<uchar> &status) {
+  // Draw tracks
+  for (size_t i = 0; i < status.size(); i++) {
+    // Check if point was lost
+    if (status[i] == 0) {
+      continue;
+    }
+
+    // Draw circle and line
+    cv::circle(img_cur, p0[i], 1, cv::Scalar(0, 255, 0), -1);
+    cv::circle(img_cur, p1[i], 1, cv::Scalar(0, 255, 0), -1);
+    cv::line(img_cur, p0[i], p1[i], cv::Scalar(0, 255, 0));
+  }
+
+  return img_cur;
+}
+
+cv::Mat draw_matches(const cv::Mat &img0,
+                     const cv::Mat &img1,
+                     const std::vector<cv::Point2f> k0,
+                     const std::vector<cv::Point2f> k1,
+                     const std::vector<uchar> &status) {
+  cv::Mat match_img;
+
+  // Stack current and previous image vertically
+  cv::vconcat(img0, img1, match_img);
+
+  // Draw matches
+  for (size_t i = 0; i < status.size(); i++) {
+    if (status[i]) {
+      cv::Point2f p0 = k0[i];
+      cv::Point2f p1 = k1[i];
+
+      // Point 1
+      p1.y += img0.rows;
+
+      // Draw circle and line
+      cv::circle(match_img, p0, 2, cv::Scalar(0, 255, 0), -1);
+      cv::circle(match_img, p1, 2, cv::Scalar(0, 255, 0), -1);
+      cv::line(match_img, p0, p1, cv::Scalar(0, 255, 0));
+    }
+  }
+
+  return match_img;
+}
+
+cv::Mat draw_matches(const cv::Mat &img0,
+                     const cv::Mat &img1,
+                     const std::vector<cv::KeyPoint> k0,
+                     const std::vector<cv::KeyPoint> k1,
+                     const std::vector<cv::DMatch> &matches) {
+  cv::Mat match_img;
+
+  // Stack current and previous image vertically
+  cv::vconcat(img0, img1, match_img);
+
+  // Draw matches
+  for (size_t i = 0; i < matches.size(); i++) {
+    const int k0_idx = matches[i].queryIdx;
+    const int k1_idx = matches[i].trainIdx;
+    cv::KeyPoint p0 = k0[k0_idx];
+    cv::KeyPoint p1 = k1[k1_idx];
+
+    // Point 1
+    p1.pt.y += img0.rows;
+
+    // Draw circle and line
+    cv::circle(match_img, p0.pt, 2, cv::Scalar(0, 255, 0), -1);
+    cv::circle(match_img, p1.pt, 2, cv::Scalar(0, 255, 0), -1);
+    cv::line(match_img, p0.pt, p1.pt, cv::Scalar(0, 255, 0));
+  }
+
+  return match_img;
+}
+
+cv::Mat draw_grid_features(const cv::Mat &image,
+                           const int grid_rows,
+                           const int grid_cols,
+                           const std::vector<cv::Point2f> features) {
+  cv::Mat out_image = image.clone();
+
+  // Draw corners
+  for (auto p : features) {
+    cv::circle(out_image, p, 2, cv::Scalar(0, 255, 0), -1);
+  }
+
+  // Draw vertical lines
+  const int image_width = image.cols;
+  const int image_height = image.rows;
+  const int dx = image_width / grid_cols;
+  const int dy = image_height / grid_rows;
+
+  for (int x = dx; x < image_width; x += dx) {
+    const cv::Point start(x, 0);
+    const cv::Point end(x, image_height);
+    const cv::Scalar color(0, 0, 255);
+    cv::line(out_image, start, end, color, 2);
+  }
+
+  // Draw horizontal lines
+  for (int y = dy; y < image_height; y += dy) {
+    const cv::Point start(0, y);
+    const cv::Point end(image_width, y);
+    const cv::Scalar color(0, 0, 255);
+    cv::line(out_image, start, end, color, 2);
+  }
+
+  return out_image;
+}
+
+cv::Mat draw_grid_features(const cv::Mat &image,
+                           const int grid_rows,
+                           const int grid_cols,
+                           const std::vector<cv::KeyPoint> features) {
+  std::vector<cv::Point2f> points;
+  for (const auto &f : features) {
+    points.emplace_back(f.pt);
+  }
+
+  return draw_grid_features(image, grid_rows, grid_cols, points);
+}
+
+std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
+                                    const int max_corners,
+                                    const int grid_rows,
+                                    const int grid_cols,
+                                    const real_t threshold,
+                                    const bool nonmax_suppression) {
+  // Prepare input image - make sure it is grayscale
+  cv::Mat image_gray = rgb2gray(image);
+
+  // Calculate number of grid cells and max corners per cell
+  const int image_width = image.cols;
+  const int image_height = image.rows;
+  const int dx = image_width / grid_cols;
+  const int dy = image_height / grid_rows;
+  const int nb_cells = grid_rows * grid_cols;
+  const size_t max_corners_per_cell = (float) max_corners / (float) nb_cells;
+
+  // Detect corners in each grid cell
+  std::vector<cv::KeyPoint> keypoints_all;
+
+  for (int x = 0; x < image_width; x += dx) {
+    for (int y = 0; y < image_height; y += dy) {
+      // Make sure roi width and height are not out of bounds
+      const real_t w = (x + dx > image_width) ? image_width - x : dx;
+      const real_t h = (y + dy > image_height) ? image_height - y : dy;
+
+      // Detect corners in grid cell
+      cv::Rect roi = cv::Rect(x, y, w, h);
+      std::vector<cv::KeyPoint> keypoints;
+      cv::FAST(image_gray(roi), keypoints, threshold, nonmax_suppression);
+
+      // Sort by keypoint response
+      keypoints = sort_keypoints(keypoints);
+
+      // Adjust keypoint's position according to the offset limit to max
+      // corners per cell
+      std::vector<cv::KeyPoint> keypoints_adjusted;
+      for (auto &kp : keypoints) {
+        keypoints_adjusted.emplace_back(kp.pt.x += x, kp.pt.y += y, kp.size);
+        if (keypoints_adjusted.size() == max_corners_per_cell) {
+          break;
+        }
+      }
+
+      // Add to total keypoints detected
+      keypoints_all.insert(std::end(keypoints_all),
+                           std::begin(keypoints_adjusted),
+                           std::end(keypoints_adjusted));
+    }
+  }
+
+  return keypoints_all;
+}
+
+std::vector<cv::Point2f> grid_good(const cv::Mat &image,
+                                   const int max_corners,
+                                   const int grid_rows,
+                                   const int grid_cols,
+                                   const real_t quality_level,
+                                   const real_t min_distance,
+                                   const cv::Mat mask,
+                                   const int block_size,
+                                   const bool use_harris_detector,
+                                   const real_t k) {
+  // Prepare input image - make sure it is grayscale
+  cv::Mat image_gray = rgb2gray(image);
+
+  // Calculate number of grid cells and max corners per cell
+  const int image_width = image.cols;
+  const int image_height = image.rows;
+  const int dx = image_width / grid_cols;
+  const int dy = image_height / grid_rows;
+  const int nb_cells = grid_rows * grid_cols;
+  const size_t max_corners_per_cell = (float) max_corners / (float) nb_cells;
+
+  // Detect corners in each grid cell
+  std::vector<cv::Point2f> corners_all;
+
+  for (int x = 0; x < image_width; x += dx) {
+    for (int y = 0; y < image_height; y += dy) {
+      // Make sure roi width and height are not out of bounds
+      const real_t w = (x + dx > image_width) ? image_width - x : dx;
+      const real_t h = (y + dy > image_height) ? image_height - y : dy;
+
+      // Detect corners in grid cell
+      const cv::Rect roi = cv::Rect(x, y, w, h);
+      const cv::Mat sub_mask = (mask.rows == 0) ? cv::Mat() : mask(roi);
+      std::vector<cv::Point2f> corners;
+      cv::goodFeaturesToTrack(image_gray(roi),
+                              corners,
+                              max_corners,
+                              quality_level,
+                              min_distance,
+                              sub_mask,
+                              block_size,
+                              use_harris_detector,
+                              k);
+
+      // Adjust keypoint's position according to the offset limit to max
+      // corners per cell
+      std::vector<cv::Point2f> corners_adjusted;
+      for (auto &p : corners) {
+        corners_adjusted.emplace_back(p.x += x, p.y += y);
+        if (corners_adjusted.size() == max_corners_per_cell) {
+          break;
+        }
+      }
+
+      // Add to total corners detected
+      corners_all.insert(std::end(corners_all),
+                         std::begin(corners_adjusted),
+                         std::end(corners_adjusted));
+    }
+  }
+
+  return corners_all;
+}
+
+radtan4_t::radtan4_t() {}
+
+radtan4_t::radtan4_t(const real_t *distortion_)
+  : k1{distortion_[0]}, k2{distortion_[1]},
+    p1{distortion_[2]}, p2{distortion_[3]} {}
+
+radtan4_t::radtan4_t(const vec4_t &distortion_)
+  : k1{distortion_(0)}, k2{distortion_(1)},
+    p1{distortion_(2)}, p2{distortion_(3)} {}
+
+radtan4_t::radtan4_t(const real_t k1_,
+                     const real_t k2_,
+                     const real_t p1_,
+                     const real_t p2_)
+  : k1{k1_}, k2{k2_}, p1{p1_}, p2{p2_} {}
+
+radtan4_t::radtan4_t(radtan4_t &radtan4)
+  : k1{radtan4.k1}, k2{radtan4.k2}, p1{radtan4.p1}, p2{radtan4.p2} {}
+
+radtan4_t::radtan4_t(const radtan4_t &radtan4)
+  : k1{radtan4.k1}, k2{radtan4.k2}, p1{radtan4.p1}, p2{radtan4.p2} {}
+
+radtan4_t::~radtan4_t() {}
+
+vec2_t radtan4_t::distort(const vec2_t &p) {
+  return static_cast<const radtan4_t &>(*this).distort(p);
+}
+
+vec2_t radtan4_t::distort(const vec2_t &p) const {
+  const real_t x = p(0);
+  const real_t y = p(1);
+
+  // Apply radial distortion
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+  const real_t radial_factor = 1 + (k1 * r2) + (k2 * r4);
+  const real_t x_dash = x * radial_factor;
+  const real_t y_dash = y * radial_factor;
+
+  // Apply tangential distortion
+  const real_t xy = x * y;
+  const real_t x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const real_t y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+
+  return vec2_t{x_ddash, y_ddash};
+}
+
+mat2_t radtan4_t::J_point(const vec2_t &p) {
+  return static_cast<const radtan4_t &>(*this).J_point(p);
+}
+
+mat2_t radtan4_t::J_point(const vec2_t &p) const {
+  const real_t x = p(0);
+  const real_t y = p(1);
+
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+
+  // Let p = [x; y] normalized point
+  // Let p' be the distorted p
+  // The jacobian of p' w.r.t. p (or dp'/dp) is:
+  // clang-format off
+  mat2_t J_point;
+  J_point(0, 0) = 1 + k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (2 * k1 * x + 4 * k2 * x * r2);
+  J_point(1, 0) = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
+  J_point(0, 1) = J_point(1, 0);
+  J_point(1, 1) = 1 + k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2);
+  // clang-format on
+  // Above is generated using sympy
+
+  return J_point;
+}
+
+mat_t<2, 4> radtan4_t::J_param(const vec2_t &p) {
+  return static_cast<const radtan4_t &>(*this).J_param(p);
+}
+
+mat_t<2, 4> radtan4_t::J_param(const vec2_t &p) const {
+  const real_t x = p(0);
+  const real_t y = p(1);
+
+  const real_t xy = x * y;
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+
+  mat_t<2, 4> J_params = zeros(2, 4);
+  J_params(0, 0) = x * r2;
+  J_params(0, 1) = x * r4;
+  J_params(0, 2) = 2 * xy;
+  J_params(0, 3) = 3 * x2 + y2;
+
+  J_params(1, 0) = y * r2;
+  J_params(1, 1) = y * r4;
+  J_params(1, 2) = x2 + 3 * y2;
+  J_params(1, 3) = 2 * xy;
+
+  return J_params;
+}
+
+void radtan4_t::operator=(const radtan4_t &src) throw() {
+  k1 = src.k1;
+  k2 = src.k2;
+  p1 = src.p1;
+  p2 = src.p2;
+}
+
+std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4) {
+  os << "k1: " << radtan4.k1 << std::endl;
+  os << "k2: " << radtan4.k2 << std::endl;
+  os << "p1: " << radtan4.p1 << std::endl;
+  os << "p2: " << radtan4.p2 << std::endl;
+  return os;
+}
+
+vec4_t distortion_coeffs(const radtan4_t &radtan) {
+  return vec4_t{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
+}
+
+vec2_t distort(const radtan4_t &radtan, const vec2_t &point) {
+  const real_t k1 = radtan.k1;
+  const real_t k2 = radtan.k2;
+  const real_t p1 = radtan.p1;
+  const real_t p2 = radtan.p2;
+  const real_t x = point(0);
+  const real_t y = point(1);
+
+  // Apply radial distortion
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+  const real_t radial_factor = 1 + (k1 * r2) + (k2 * r4);
+  const real_t x_dash = x * radial_factor;
+  const real_t y_dash = y * radial_factor;
+
+  // Apply tangential distortion
+  const real_t xy = x * y;
+  const real_t x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const real_t y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+
+  return vec2_t{x_ddash, y_ddash};
+}
+
+vec2_t distort(const radtan4_t &radtan, const vec2_t &p, mat2_t &J_point) {
+  const real_t k1 = radtan.k1;
+  const real_t k2 = radtan.k2;
+  const real_t p1 = radtan.p1;
+  const real_t p2 = radtan.p2;
+  const real_t x = p(0);
+  const real_t y = p(1);
+
+  // Apply radial distortion
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+  const real_t radial_factor = 1 + (k1 * r2) + (k2 * r4);
+  const real_t x_dash = x * radial_factor;
+  const real_t y_dash = y * radial_factor;
+
+  // Apply tangential distortion
+  const real_t xy = x * y;
+  const real_t x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const real_t y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+
+  // Let p = [x; y] normalized point
+  // Let p' be the distorted p
+  // The jacobian of p' w.r.t. p (or dp'/dp) is:
+  // clang-format off
+  J_point(0, 0) = 1 + k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (2 * k1 * x + 4 * k2 * x * r2);
+  J_point(1, 0) = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
+  J_point(0, 1) = J_point(1, 0);
+  J_point(1, 1) = 1 + k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2);
+  // clang-format on
+  // Above is generated using sympy
+
+  return vec2_t{x_ddash, y_ddash};
+}
+
+vec2_t distort(const radtan4_t &radtan,
+               const vec2_t &p,
+               mat2_t &J_point,
+               mat_t<2, 4> &J_params) {
+  const vec2_t p_distorted = distort(radtan, p, J_point);
+
+  const real_t x = p(0);
+  const real_t y = p(1);
+
+  const real_t xy = x * y;
+  const real_t x2 = x * x;
+  const real_t y2 = y * y;
+  const real_t r2 = x2 + y2;
+  const real_t r4 = r2 * r2;
+
+  J_params(0, 0) = x * r2;
+  J_params(0, 1) = x * r4;
+  J_params(0, 2) = 2 * xy;
+  J_params(0, 3) = 3 * x2 + y2;
+
+  J_params(1, 0) = y * r2;
+  J_params(1, 1) = y * r4;
+  J_params(1, 2) = x2 + 3 * y2;
+  J_params(1, 3) = 2 * xy;
+
+  return p_distorted;
+}
+
+matx_t distort(const radtan4_t &radtan, const matx_t &points) {
+  assert(points.rows() == 2);
+  assert(points.cols() > 0);
+
+  const real_t k1 = radtan.k1;
+  const real_t k2 = radtan.k2;
+  const real_t p1 = radtan.p1;
+  const real_t p2 = radtan.p2;
+  const arrayx_t x = points.row(0).array();
+  const arrayx_t y = points.row(1).array();
+
+  // Apply radial distortion
+  const arrayx_t x2 = x * x;
+  const arrayx_t y2 = y * y;
+  const arrayx_t r2 = x2 + y2;
+  const arrayx_t r4 = r2 * r2;
+  const arrayx_t x_dash = x * (1 + (k1 * r2) + (k2 * r4));
+  const arrayx_t y_dash = y * (1 + (k1 * r2) + (k2 * r4));
+
+  // Apply tangential distortion
+  const arrayx_t xy = x * y;
+  const arrayx_t x_ddash = x_dash + (2 * p1 * xy + p2 * (r2 + 2 * x2));
+  const arrayx_t y_ddash = y_dash + (p1 * (r2 + 2 * y2) + 2 * p2 * xy);
+
+  // Form results
+  const int nb_points = points.cols();
+  matx_t distorted_points{2, nb_points};
+  distorted_points.row(0) = x_ddash;
+  distorted_points.row(1) = y_ddash;
+
+  return distorted_points;
+}
+
+vec2_t undistort(const radtan4_t &radtan,
+                 const vec2_t &p0,
+                 const int max_iter) {
+  vec2_t p = p0;
+
+  for (int i = 0; i < max_iter; i++) {
+    // Error
+    const vec2_t p_distorted = distort(radtan, p);
+    const vec2_t err = (p0 - p_distorted);
+
+    // Jacobian
+    mat2_t J;
+    distort(radtan, p, J);
+    const mat2_t pinv = (J.transpose() * J).inverse() * J.transpose();
+    const vec2_t dp = pinv * err;
+    p = p + dp;
+
+    if ((err.transpose() * err) < 1.0e-15) {
+      break;
+    }
+  }
+
+  return p;
+}
+
+equi4_t::equi4_t(const real_t k1_,
+                 const real_t k2_,
+                 const real_t k3_,
+                 const real_t k4_)
+    : k1{k1_}, k2{k2_}, k3{k3_}, k4{k4_} {}
+
+equi4_t::~equi4_t() {}
+
+std::ostream &operator<<(std::ostream &os, const equi4_t &equi4) {
+  os << "k1: " << equi4.k1 << std::endl;
+  os << "k2: " << equi4.k2 << std::endl;
+  os << "k3: " << equi4.k3 << std::endl;
+  os << "k4: " << equi4.k4 << std::endl;
+  return os;
+}
+
+vec2_t distort(const equi4_t &equi, const vec2_t &point) {
+  const real_t k1 = equi.k1;
+  const real_t k2 = equi.k2;
+  const real_t k3 = equi.k3;
+  const real_t k4 = equi.k4;
+  const real_t x = point(0);
+  const real_t y = point(1);
+  const real_t r = sqrt(pow(x, 2) + pow(y, 2));
+
+  if (r < 1e-8) {
+    return point;
+  }
+
+  // Apply equi distortion
+  const real_t th = atan(r);
+  const real_t th2 = th * th;
+  const real_t th4 = th2 * th2;
+  const real_t th6 = th4 * th2;
+  const real_t th8 = th4 * th4;
+  const real_t th_d = th * (1 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  const real_t x_dash = (th_d / r) * x;
+  const real_t y_dash = (th_d / r) * y;
+
+  return vec2_t{x_dash, y_dash};
+}
+
+vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J_point) {
+  const real_t k1 = equi.k1;
+  const real_t k2 = equi.k2;
+  const real_t k3 = equi.k3;
+  const real_t k4 = equi.k4;
+  const real_t x = point(0);
+  const real_t y = point(1);
+  const real_t r = sqrt(pow(x, 2) + pow(y, 2));
+
+  if (r < 1e-8) {
+    J_point = I(2);
+    return point;
+  }
+
+  // Apply equi distortion
+  const real_t th = atan(r);
+  const real_t th2 = th * th;
+  const real_t th4 = th2 * th2;
+  const real_t th6 = th4 * th2;
+  const real_t th8 = th4 * th4;
+  const real_t thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  const real_t s = thd / r;
+  const real_t x_dash = s * x;
+  const real_t y_dash = s * y;
+
+  // Form jacobian
+  // clang-format off
+  const real_t th_r = 1.0 / (r * r + 1.0);
+  const real_t thd_th = 1.0 + 3.0 * k1 * th2 + 5.0 * k2 * th4 + 7.0 * k3 * th6 + 9.0 * k4 * th8;
+  const real_t s_r = thd_th * th_r / r - thd / (r * r);
+  const real_t r_x = 1.0 / r * x;
+  const real_t r_y = 1.0 / r * y;
+  J_point(0,0) = s + x * s_r * r_x;
+  J_point(0,1) = x * s_r * r_y;
+  J_point(1,0) = y * s_r * r_x;
+  J_point(1,1) = s + y * s_r * r_y;
+  // clang-format on
+
+  return vec2_t{x_dash, y_dash};
+}
+
+matx_t distort(const equi4_t &equi, const matx_t &points) {
+  assert(points.rows() == 2);
+  assert(points.cols() > 0);
+
+  // Setup
+  const real_t k1 = equi.k1;
+  const real_t k2 = equi.k2;
+  const real_t k3 = equi.k3;
+  const real_t k4 = equi.k4;
+  const arrayx_t x = points.row(0).array();
+  const arrayx_t y = points.row(1).array();
+  const arrayx_t r = (x.pow(2) + y.pow(2)).sqrt();
+
+  // Apply equi distortion
+  const auto th = r.atan();
+  const auto th2 = th.pow(2);
+  const auto th4 = th.pow(4);
+  const auto th6 = th.pow(6);
+  const auto th8 = th.pow(8);
+  const auto thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  const auto s = thd / r;
+  const auto x_dash = s * x;
+  const auto y_dash = s * y;
+
+  // Project equi distorted points to image plane
+  const int nb_points = points.cols();
+  matx_t distorted_points{2, nb_points};
+  distorted_points.row(0) = x_dash;
+  distorted_points.row(1) = y_dash;
+  return distorted_points;
+}
+
+vec2_t undistort(const equi4_t &equi, const vec2_t &p) {
+  const real_t k1 = equi.k1;
+  const real_t k2 = equi.k2;
+  const real_t k3 = equi.k3;
+  const real_t k4 = equi.k4;
+  const real_t thd = sqrt(p(0) * p(0) + p(1) * p(1));
+
+  real_t th = thd; // Initial guess
+  for (int i = 20; i > 0; i--) {
+    const real_t th2 = th * th;
+    const real_t th4 = th2 * th2;
+    const real_t th6 = th4 * th2;
+    const real_t th8 = th4 * th4;
+    th = thd / (1 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  }
+
+  const real_t scaling = tan(th) / thd;
+  vec2_t p_ud{p(0) * scaling, p(1) * scaling};
+  return p_ud;
+}
+
+pinhole_t::pinhole_t() {}
+
+pinhole_t::pinhole_t(const real_t *intrinsics_)
+    : fx{intrinsics_[0]}, fy{intrinsics_[1]}, cx{intrinsics_[2]},
+      cy{intrinsics_[3]} {}
+
+pinhole_t::pinhole_t(const vec4_t &intrinsics_)
+    : fx{intrinsics_(0)}, fy{intrinsics_(1)}, cx{intrinsics_(2)},
+      cy{intrinsics_(3)} {}
+
+pinhole_t::pinhole_t(const mat3_t &K_)
+    : fx{K_(0, 0)}, fy{K_(1, 1)}, cx{K_(0, 2)}, cy{K_(1, 2)} {}
+
+pinhole_t::pinhole_t(const real_t fx_,
+                     const real_t fy_,
+                     const real_t cx_,
+                     const real_t cy_)
+    : fx{fx_}, fy{fy_}, cx{cx_}, cy{cy_} {}
+
+pinhole_t::pinhole_t(pinhole_t &pinhole)
+    : fx{pinhole.fx}, fy{pinhole.fy}, cx{pinhole.cx}, cy{pinhole.cy} {}
+
+pinhole_t::pinhole_t(const pinhole_t &pinhole)
+    : fx{pinhole.fx}, fy{pinhole.fy}, cx{pinhole.cx}, cy{pinhole.cy} {}
+
+pinhole_t::~pinhole_t() {}
+
+vec2_t pinhole_t::project(const vec2_t &p) {
+  return static_cast<const pinhole_t &>(*this).project(p);
+}
+
+vec2_t pinhole_t::project(const vec2_t &p) const {
+  return vec2_t{p(0) * fx + cx, p(1) * fy + cy};
+}
+
+mat2_t pinhole_t::J_point() {
+  return static_cast<const pinhole_t &>(*this).J_point();
+}
+
+mat2_t pinhole_t::J_point() const {
+  mat2_t J_K = zeros(2, 2);
+  J_K(0, 0) = fx;
+  J_K(1, 1) = fy;
+  return J_K;
+}
+
+mat_t<2, 4> pinhole_t::J_param(const vec2_t &p) {
+  return static_cast<const pinhole_t &>(*this).J_param(p);
+}
+
+mat_t<2, 4> pinhole_t::J_param(const vec2_t &p) const {
+  const real_t x = p(0);
+  const real_t y = p(1);
+
+  mat_t<2, 4> J_param = zeros(2, 4);
+  J_param(0, 0) = x;
+  J_param(1, 1) = y;
+  J_param(0, 2) = 1;
+  J_param(1, 3) = 1;
+
+  return J_param;
+}
+
+void pinhole_t::operator=(const pinhole_t &src) throw() {
+  fx = src.fx;
+  fy = src.fy;
+  cx = src.cx;
+  cy = src.cy;
+}
+
+std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole) {
+  os << "fx: " << pinhole.fx << std::endl;
+  os << "fy: " << pinhole.fy << std::endl;
+  os << "cx: " << pinhole.cx << std::endl;
+  os << "cy: " << pinhole.cy << std::endl;
+  return os;
+}
+
+mat3_t
+pinhole_K(const real_t fx, const real_t fy, const real_t cx, const real_t cy) {
+  mat3_t K;
+  // clang-format off
+  K << fx, 0.0, cx,
+       0.0, fy, cy,
+       0.0, 0.0, 1.0;
+  // clang-format on
+
+  return K;
+}
+
+mat3_t pinhole_K(const pinhole_t &pinhole) { return pinhole_K(*pinhole.data); }
+
+mat3_t pinhole_K(const vec2_t &image_size,
+                 const real_t lens_hfov,
+                 const real_t lens_vfov) {
+  const real_t fx = pinhole_focal_length(image_size(0), lens_hfov);
+  const real_t fy = pinhole_focal_length(image_size(1), lens_vfov);
+  const real_t cx = image_size(0) / 2.0;
+  const real_t cy = image_size(1) / 2.0;
+  return pinhole_K(fx, fy, cx, cy);
+}
+
+mat34_t pinhole_P(const mat3_t &K, const mat3_t &C_WC, const vec3_t &r_WC) {
+  mat34_t A;
+  A.block(0, 0, 3, 3) = C_WC;
+  A.block(0, 3, 3, 1) = -C_WC * r_WC;
+  const mat34_t P = K * A;
+  return P;
+}
+
+real_t pinhole_focal_length(const int image_width, const real_t fov) {
+  return ((image_width / 2.0) / tan(deg2rad(fov) / 2.0));
+}
+
+vec2_t pinhole_focal_length(const vec2_t &image_size,
+                            const real_t hfov,
+                            const real_t vfov) {
+  const real_t fx = ((image_size(0) / 2.0) / tan(deg2rad(hfov) / 2.0));
+  const real_t fy = ((image_size(1) / 2.0) / tan(deg2rad(vfov) / 2.0));
+  return vec2_t{fx, fy};
+}
+
+vec2_t project(const vec3_t &p) { return vec2_t{p(0) / p(2), p(1) / p(2)}; }
+
+vec2_t project(const vec3_t &p, mat_t<2, 3> &J_P) {
+  const real_t x = p(0);
+  const real_t y = p(1);
+  const real_t z = p(2);
+
+  // Projection Jacobian
+  J_P = zeros(2, 3);
+  J_P(0, 0) = 1.0 / z;
+  J_P(1, 1) = 1.0 / z;
+  J_P(0, 2) = -x / (z * z);
+  J_P(1, 2) = -y / (z * z);
+
+  return vec2_t{x / z, x / z};
+}
+
+vec2_t project(const pinhole_t &model, const vec2_t &p) {
+  return vec2_t{p(0) * model.fx + model.cx, p(1) * model.fy + model.cy};
+}
+
+vec2_t project(const pinhole_t &model, const vec3_t &p) {
+  const real_t px = p(0) / p(2);
+  const real_t py = p(1) / p(2);
+  return vec2_t{px * model.fx + model.cx, py * model.fy + model.cy};
+}
+
+vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h) {
+  const real_t x = p(0);
+  const real_t y = p(1);
+  const real_t z = p(2);
+
+  const real_t px = x / z;
+  const real_t py = y / z;
+
+  // Projection Jacobian
+  mat_t<2, 3> J_P = zeros(2, 3);
+  J_P(0, 0) = 1.0 / z;
+  J_P(1, 1) = 1.0 / z;
+  J_P(0, 2) = -x / (z * z);
+  J_P(1, 3) = -y / (z * z);
+
+  // Intrinsics Jacobian
+  mat2_t J_K = model.J_point();
+
+  // Measurement Jacobian
+  J_h = J_K * J_P;
+
+  return vec2_t{px * model.fx + model.cx, py * model.fy + model.cy};
+}
+
+/*****************************************************************************
+ *                               FACTOR GRAPH
+ *****************************************************************************/
+
+pose_t::pose_t() {}
+
+pose_t::pose_t(const real_t *param_) {
+  param[0] = param_[0];
+  param[1] = param_[1];
+  param[2] = param_[2];
+  param[3] = param_[3];
+  param[4] = param_[4];
+  param[5] = param_[5];
+  param[6] = param_[6];
+}
+
+pose_t::pose_t(const mat4_t &tf_) {
+  const quat_t q{tf_quat(tf_)};
+  const vec3_t r{tf_trans(tf_)};
+
+  param[0] = q.w();
+  param[1] = q.x();
+  param[2] = q.y();
+  param[3] = q.z();
+
+  param[4] = r(0);
+  param[5] = r(1);
+  param[6] = r(2);
+}
+
+pose_t::pose_t(const quat_t &q_, const vec3_t &r_)
+    : param{q_.w(), q_.x(), q_.y(), q_.z(), r_(0), r_(1), r_(2)} {}
+
+pose_t::pose_t(const size_t id_,
+               const timestamp_t &ts_,
+               const mat4_t &T)
+    : param_t{id_, ts_, 6} {
+  const quat_t q{tf_quat(T)};
+  const vec3_t r{tf_trans(T)};
+
+  param[0] = q.w();
+  param[1] = q.x();
+  param[2] = q.y();
+  param[3] = q.z();
+
+  param[4] = r(0);
+  param[5] = r(1);
+  param[6] = r(2);
+}
+
+quat_t pose_t::rot() const {
+  return quat_t{param[0], param[1], param[2], param[3]};
+}
+
+vec3_t pose_t::trans() const {
+  return vec3_t{param[4], param[5], param[6]};
+}
+
+mat4_t pose_t::tf() const {
+  return proto::tf(rot(), trans());
+}
+
+quat_t pose_t::rot() { return static_cast<const pose_t &>(*this).rot(); }
+vec3_t pose_t::trans() { return static_cast<const pose_t &>(*this).trans(); }
+mat4_t pose_t::tf() { return static_cast<const pose_t &>(*this).tf(); }
+
+real_t *pose_t::data() { return param; }
+
+void pose_t::set_trans(const vec3_t &r) {
+  param[4] = r(0);
+  param[5] = r(1);
+  param[6] = r(2);
+}
+
+void pose_t::set_rot(const quat_t &q) {
+  param[0] = q.w();
+  param[1] = q.x();
+  param[2] = q.y();
+  param[3] = q.z();
+}
+
+void pose_t::set_rot(const mat3_t &C) {
+  quat_t q{C};
+  param[0] = q.w();
+  param[1] = q.x();
+  param[2] = q.y();
+  param[3] = q.z();
+}
+
+void pose_t::plus(const vecx_t &dx) {
+  // Rotation component
+  real_t half_norm = 0.5 * dx.head<3>().norm();
+  real_t dq_w = cos(half_norm);
+  real_t dq_x = sinc(half_norm) * 0.5 * dx(0);
+  real_t dq_y = sinc(half_norm) * 0.5 * dx(1);
+  real_t dq_z = sinc(half_norm) * 0.5 * dx(2);
+  quat_t dq{dq_w, dq_x, dq_y, dq_z};
+  quat_t q{param[0], param[1], param[2], param[3]};
+  quat_t q_updated = q * dq;
+  param[0] = q_updated.w();
+  param[1] = q_updated.x();
+  param[2] = q_updated.y();
+  param[3] = q_updated.z();
+
+  // Translation component
+  param[3] = param[3] - dx[3];
+  param[4] = param[4] - dx[4];
+  param[5] = param[5] - dx[5];
+}
+
+void pose_print(const std::string &prefix, const pose_t &pose) {
+  const quat_t q = pose.rot();
+  const vec3_t r = pose.trans();
+
+  printf("[%s] ", prefix.c_str());
+  printf("q: (%f, %f, %f, %f)", q.w(), q.x(), q.y(), q.z());
+  printf("\t");
+  printf("r: (%f, %f, %f)\n", r(0), r(1), r(2));
+}
+
+poses_t load_poses(const std::string &csv_path) {
+  FILE *csv_file = fopen(csv_path.c_str(), "r");
+  char line[1024] = {0};
+  poses_t poses;
+
+  while (fgets(line, 1024, csv_file) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    char entry[1024] = {0};
+    real_t data[7] = {0};
+    int index = 0;
+    for (size_t i = 0; i < strlen(line); i++) {
+      char c = line[i];
+      if (c == ' ') {
+        continue;
+      }
+
+      if (c == ',' || c == '\n') {
+        data[index] = strtod(entry, NULL);
+        memset(entry, '\0', sizeof(char) * 100);
+        index++;
+      } else {
+        entry[strlen(entry)] = c;
+      }
+    }
+
+    quat_t q{data[0], data[1], data[2], data[3]};
+    vec3_t r{data[4], data[5], data[6]};
+    poses.emplace_back(data);
+  }
+  fclose(csv_file);
+
+  return poses;
+}
+
+landmark_t::landmark_t(const vec3_t &p_W_)
+  : param{p_W_(0), p_W_(1), p_W_(2)} {}
+
+landmark_t::landmark_t(const size_t id_, const vec3_t &p_W_)
+  : param_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
+
+vec3_t landmark_t::vec() { return map_vec_t<3>(param); };
+
+real_t *landmark_t::data() { return param; };
+
+void landmark_t::plus(const vecx_t &dx) {
+  param[0] = param[0] + dx[0];
+  param[1] = param[1] + dx[1];
+  param[2] = param[2] + dx[2];
+}
+
+camera_param_t::camera_param_t(const size_t id_,
+                               const int cam_index_,
+                               const vec4_t &param_)
+  : param_t{id_, 4}, cam_index{cam_index_} {
+  for (int i = 0; i < param_.size(); i++) {
+    param[i] = param_(i);
+  }
+}
+
+vec4_t camera_param_t::vec() { return map_vec_t<4>(param); };
+
+real_t *camera_param_t::data() { return param; };
+
+void camera_param_t::plus(const vecx_t &dx) {
+  param[0] = param[0] + dx[0];
+  param[1] = param[1] + dx[1];
+  param[2] = param[2] + dx[2];
+  param[3] = param[3] + dx[3];
+}
+
+dist_param_t::dist_param_t(const size_t id_,
+                               const int cam_index_,
+                               const vec4_t &param_)
+  : param_t{id_, 4}, cam_index{cam_index_} {
+  for (int i = 0; i < param_.size(); i++) {
+    param[i] = param_(i);
+  }
+}
+
+vec4_t dist_param_t::vec() { return map_vec_t<4>(param); };
+
+real_t *dist_param_t::data() { return param; };
+
+void dist_param_t::plus(const vecx_t &dx) {
+  param[0] = param[0] + dx[0];
+  param[1] = param[1] + dx[1];
+  param[2] = param[2] + dx[2];
+  param[3] = param[3] + dx[3];
+}
+
+sb_param_t::sb_param_t(const size_t id_,
+                       const timestamp_t &ts_,
+                       const vec3_t &v_,
+                       const vec3_t &ba_,
+                       const vec3_t &bg_)
+  : param_t{id_, ts_, 9} {
+  // Velocity
+  param[0] = v_(0);
+  param[1] = v_(1);
+  param[2] = v_(2);
+
+  // Accel bias
+  param[3] = ba_(0);
+  param[4] = ba_(1);
+  param[5] = ba_(2);
+
+  // Gyro bias
+  param[6] = bg_(0);
+  param[7] = bg_(1);
+  param[8] = bg_(2);
+}
+
+vec_t<9> sb_param_t::vec() { return map_vec_t<9>(param); };
+
+real_t *sb_param_t::data() { return param; };
+
+void sb_param_t::plus(const vecx_t &dx) {
+  // Velocity
+  param[0] = param[0] + dx[0];
+  param[1] = param[1] + dx[1];
+  param[2] = param[2] + dx[2];
+
+  // Accel bias
+  param[3] = param[3] + dx[3];
+  param[4] = param[4] + dx[4];
+  param[5] = param[5] + dx[5];
+
+  // Gyro bias
+  param[6] = param[6] + dx[6];
+  param[7] = param[7] + dx[7];
+  param[8] = param[8] + dx[8];
+}
+
+static keypoints_t parse_keypoints_line(const char *line) {
+  char entry[100] = {0};
+  int kp_ready = 0;
+  vec2_t kp{0.0, 0.0};
+  int kp_index = 0;
+  bool first_element_parsed = false;
+
+  // Parse line
+  keypoints_t keypoints;
+
+  for (size_t i = 0; i < strlen(line); i++) {
+    char c = line[i];
+    if (c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      if (first_element_parsed == false) {
+        first_element_parsed = true;
+      } else {
+        // Parse keypoint
+        if (kp_ready == 0) {
+          kp(0) = strtod(entry, NULL);
+          kp_ready = 1;
+
+        } else {
+          kp(1) = strtod(entry, NULL);
+          keypoints.push_back(kp);
+          kp_ready = 0;
+          kp_index++;
+        }
+      }
+
+      memset(entry, '\0', sizeof(char) * 100);
+    } else {
+      entry[strlen(entry)] = c;
+    }
+  }
+
+  return keypoints;
+}
+
+std::vector<keypoints_t> load_keypoints(const std::string &data_path) {
+  char keypoints_csv[1000] = {0};
+  strcat(keypoints_csv, data_path.c_str());
+  strcat(keypoints_csv, "/keypoints.csv");
+
+  FILE *csv_file = fopen(keypoints_csv, "r");
+  std::vector<keypoints_t> keypoints;
+
+  char line[1024] = {0};
+  while (fgets(line, 1024, csv_file) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+    keypoints.push_back(parse_keypoints_line(line));
+  }
+  fclose(csv_file);
+
+  return keypoints;
+}
+
+void keypoints_print(const keypoints_t &keypoints) {
+  printf("nb_keypoints: %zu\n", keypoints.size());
+  printf("keypoints:\n");
+  for (size_t i = 0; i < keypoints.size(); i++) {
+    printf("-- (%f, %f)\n", keypoints[i](0), keypoints[i](1));
+  }
 }
 
 } // namespace proto

@@ -6,8 +6,11 @@
  * algebra functions to networking code used for robotics.
  *
  * Contents:
+ * - Data Type
  * - Macros
+ * - Data
  * - Filesystem
+ * - Configuration
  * - Algebra
  * - Linear Algebra
  * - Geometry
@@ -15,23 +18,15 @@
  * - Statistics
  * - Transform
  * - Time
- * - Factor Graph
- * - Data
- * - Configuration
+ * - Networking
  * - Interpolation
- * - Spline
  * - Control
  * - Measurements
  * - Models
- * - Networking
+ * - Vision
+ * - Factor Graph
  *
  ****************************************************************************/
-
-#define ENABLE_MACROS 1
-
-/* PRECISION TYPE */
-// #define PRECISION 1 // Single Precision
-#define PRECISION 2 // Double Precision
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,9 +65,82 @@
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/Splines>
 
+#include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/features2d/features2d.hpp>
+
+#define ENABLE_MACROS 1
+
+/******************************************************************************
+ *                                DATA TYPE
+ *****************************************************************************/
+
+/* PRECISION TYPE */
+// #define PRECISION 1 // Single Precision
+#define PRECISION 2 // Double Precision
+
+#if PRECISION == 1
+  #define real_t float
+#elif PRECISION == 2
+  #define real_t double
+#else
+  #define real_t double
+#endif
+
+#define col_major_t Eigen::ColMajor
+#define row_major_t Eigen::RowMajor
+
+typedef Eigen::Matrix<real_t, 2, 1> vec2_t;
+typedef Eigen::Matrix<real_t, 3, 1> vec3_t;
+typedef Eigen::Matrix<real_t, 4, 1> vec4_t;
+typedef Eigen::Matrix<real_t, 5, 1> vec5_t;
+typedef Eigen::Matrix<real_t, 6, 1> vec6_t;
+typedef Eigen::Matrix<real_t, Eigen::Dynamic, 1> vecx_t;
+typedef Eigen::Matrix<real_t, 2, 2> mat2_t;
+typedef Eigen::Matrix<real_t, 3, 3> mat3_t;
+typedef Eigen::Matrix<real_t, 4, 4> mat4_t;
+typedef Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic> matx_t;
+typedef Eigen::Matrix<real_t, 3, 4> mat34_t;
+typedef Eigen::Quaternion<real_t> quat_t;
+typedef Eigen::AngleAxis<real_t> angle_axis_t;
+typedef Eigen::Matrix<real_t, 1, Eigen::Dynamic> row_vector_t;
+typedef Eigen::Matrix<real_t, Eigen::Dynamic, 1> col_vector_t;
+typedef Eigen::Array<real_t, Eigen::Dynamic, 1> arrayx_t;
+
+typedef std::vector<vec2_t, Eigen::aligned_allocator<vec2_t>> vec2s_t;
+typedef std::vector<vec3_t, Eigen::aligned_allocator<vec3_t>> vec3s_t;
+typedef std::vector<vec4_t, Eigen::aligned_allocator<vec4_t>> vec4s_t;
+typedef std::vector<vec5_t, Eigen::aligned_allocator<vec5_t>> vec5s_t;
+typedef std::vector<vec6_t, Eigen::aligned_allocator<vec6_t>> vec6s_t;
+typedef std::vector<vecx_t> vecxs_t;
+typedef std::vector<mat2_t, Eigen::aligned_allocator<mat2_t>> mat2s_t;
+typedef std::vector<mat3_t, Eigen::aligned_allocator<mat3_t>> mat3s_t;
+typedef std::vector<mat4_t, Eigen::aligned_allocator<mat4_t>> mat4s_t;
+typedef std::vector<matx_t, Eigen::aligned_allocator<matx_t>> matxs_t;
+typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
+
+template <int LENGTH, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+using vec_t = Eigen::Matrix<real_t, LENGTH, 1, STRIDE_TYPE>;
+
+template <int ROWS,
+          int COLS,
+          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+using mat_t = Eigen::Matrix<real_t, ROWS, COLS, STRIDE_TYPE>;
+
+template <int ROWS,
+          int COLS,
+          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+using map_mat_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, COLS, STRIDE_TYPE>>;
+
+template <int ROWS>
+using map_vec_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, 1>>;
+
+typedef uint64_t timestamp_t;
+typedef std::vector<timestamp_t> timestamps_t;
 
 /******************************************************************************
  *                                MACROS
@@ -123,6 +191,276 @@
 #endif // ENABLE_MACROS ------------------------------------------------------
 
 namespace proto {
+
+/******************************************************************************
+ *                                  DATA
+ *****************************************************************************/
+
+/**
+ * Convert bytes to signed 8bit number
+ */
+int8_t int8(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to unsigned 8bit number
+ */
+uint8_t uint8(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to signed 16bit number
+ */
+int16_t int16(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to unsigned 16bit number
+ */
+uint16_t uint16(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to signed 32bit number
+ */
+int32_t int32(const uint8_t *data, const size_t offset);
+
+/**
+ * Convert bytes to unsigned 32bit number
+ */
+uint32_t uint32(const uint8_t *data, const size_t offset);
+
+/**
+ * Allocate memory for a C-style string
+ */
+char *malloc_string(const char *s);
+
+/**
+ * Get number of rows in CSV file.
+ * @returns Number of rows in CSV file else -1 for failure.
+ */
+int csv_rows(const char *fp);
+
+/**
+ * Get number of cols in CSV file.
+ * @returns Number of cols in CSV file else -1 for failure.
+ */
+int csv_cols(const char *fp);
+
+/**
+ * Return csv fields as strings and number of fields in csv file.
+ */
+char **csv_fields(const char *fp, int *nb_fields);
+
+/**
+ * Load data in csv file `fp`. Assumming the data are real_ts. Also returns
+ * number of rows and cols in `nb_rows` and `nb_cols` respectively.
+ */
+real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols);
+
+/**
+ * Load integer arrays in csv file located at `csv_path`. The number of arrays
+ * is returned in `nb_arrays`.
+ */
+int **load_iarrays(const char *csv_path, int *nb_arrays);
+
+/**
+ * Load real_t arrays in csv file located at `csv_path`. The number of arrays
+ * is returned in `nb_arrays`.
+ */
+real_t **load_darrays(const char *csv_path, int *nb_arrays);
+
+/**
+ * Get number of rows in CSV file.
+ * @returns Number of rows in CSV file else -1 for failure.
+ */
+int csv_rows(const std::string &file_path);
+
+/**
+ * Get number of columns in CSV file.
+ * @returns Number of columns in CSV file else -1 for failure.
+ */
+int csv_cols(const std::string &file_path);
+
+/**
+ * Convert CSV file to matrix.
+ * @returns 0 for success, -1 for failure
+ */
+int csv2mat(const std::string &file_path, const bool header, matx_t &data);
+
+/**
+ * Convert matrix to csv file.
+ * @returns 0 for success, -1 for failure
+ */
+int mat2csv(const std::string &file_path, const matx_t &data);
+
+/**
+ * Convert vector to csv file.
+ * @returns 0 for success, -1 for failure
+ */
+int vec2csv(const std::string &file_path, const std::deque<vec3_t> &data);
+
+/**
+ * Convert timestamps to csv file.
+ * @returns 0 for success, -1 for failure
+ */
+int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data);
+
+/**
+ * Print progress to screen
+ */
+void print_progress(const real_t percentage);
+
+/**
+ * Check if vector `x` is all true.
+ */
+bool all_true(const std::vector<bool> x);
+
+/**
+ * Pop front of an `std::vector`.
+ */
+template <typename T>
+void pop_front(std::vector<T> &vec) {
+  assert(!vec.empty());
+  vec.front() = std::move(vec.back());
+  vec.pop_back();
+}
+
+/**
+ * Pop front of an `std::vector`.
+ */
+template <typename T1, typename T2>
+void pop_front(std::vector<T1, T2> &vec) {
+  assert(!vec.empty());
+  vec.front() = std::move(vec.back());
+  vec.pop_back();
+}
+
+/**
+ * Extend `std::vector`.
+ */
+template <typename T>
+void extend(std::vector<T> &x, std::vector<T> &add) {
+  x.reserve(x.size() + add.size());
+  x.insert(x.end(), add.begin(), add.end());
+}
+
+/**
+ * Extend `std::vector`.
+ */
+template <typename T1, typename T2>
+void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add) {
+  x.reserve(x.size() + add.size());
+  x.insert(x.end(), add.begin(), add.end());
+}
+
+/**
+ * Get raw pointer of a value in a `std::map`.
+ */
+template <typename K, typename V>
+const V *lookup(const std::map<K, V> &map, K key) {
+  typename std::map<K, V>::const_iterator iter = map.find(key);
+  if (iter != map.end()) {
+    return &iter->second;
+  } else {
+    return nullptr;
+  }
+}
+
+/**
+ * Get raw pointer of a value in a `std::map`.
+ */
+template <typename K, typename V>
+V *lookup(std::map<K, V> &map, K key) {
+  return const_cast<V *>(lookup(const_cast<const std::map<K, V> &>(map), key));
+}
+
+/**
+ * Get raw pointer of a value in a `std::map`.
+ */
+template <typename K, typename V>
+const V *lookup(const std::unordered_map<K, V> &map, K key) {
+  typename std::unordered_map<K, V>::const_iterator iter = map.find(key);
+  if (iter != map.end()) {
+    return &iter->second;
+  } else {
+    return nullptr;
+  }
+}
+
+/**
+ * Get raw pointer of a value in a `std::map`.
+ */
+template <typename K, typename V>
+V *lookup(std::unordered_map<K, V> &map, K key) {
+  return const_cast<V *>(
+      lookup(const_cast<const std::unordered_map<K, V> &>(map), key));
+}
+
+/**
+ * Union between set `a` and set `b`.
+ */
+template <typename T>
+T set_union(const T &s1, const T &s2) {
+  T result = s1;
+  result.insert(s2.begin(), s2.end());
+  return result;
+}
+
+/**
+ * Difference between `a` and set `b`.
+ */
+template <typename T>
+T set_diff(const T &a, const T &b) {
+  T results;
+  std::set_difference(a.begin(),
+                      a.end(),
+                      b.begin(),
+                      b.end(),
+                      std::inserter(results, results.end()));
+  return results;
+}
+
+/**
+ * Symmetric difference between `a` and `b`.
+ */
+template <typename T>
+T set_symmetric_diff(const T &a, const T &b) {
+  T results;
+  std::set_symmetric_difference(a.begin(),
+                                a.end(),
+                                b.begin(),
+                                b.end(),
+                                std::back_inserter(results));
+  return results;
+}
+
+/**
+ * Intersection between std::vectors `vecs`.
+ * @returns Number of common elements
+ */
+template <typename T>
+std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
+  // Obtain element count across all vectors
+  std::unordered_map<T, size_t> counter;
+  for (const auto &vec : vecs) { // Loop over all vectors
+    for (const auto &p : vec) {  // Loop over elements in vector
+      counter[p] += 1;
+    }
+  }
+
+  // Build intersection result
+  std::set<T> retval;
+  for (const auto &el : counter) {
+    if (el.second == vecs.size()) {
+      retval.insert(el.first);
+    }
+  }
+
+  return retval;
+}
+
+int check_jacobian(const std::string &jac_name,
+                   const matx_t &fdiff,
+                   const matx_t &jac,
+                   const real_t threshold,
+                   const bool print = false);
 
 /******************************************************************************
  *                                FILESYSTEM
@@ -265,17 +603,263 @@ std::vector<std::string> path_split(const std::string path);
  */
 std::string paths_combine(const std::string path1, const std::string path2);
 
+
+/******************************************************************************
+ *                                  CONFIG
+ *****************************************************************************/
+
+struct config_t {
+  std::string file_path;
+  YAML::Node root;
+  bool ok = false;
+
+  config_t();
+  config_t(const std::string &file_path_);
+  ~config_t();
+};
+
+/**
+ * Load YAML file.
+ * @returns 0 for success or -1 for failure.
+ */
+int yaml_load_file(const std::string file_path, YAML::Node &root);
+
+/**
+ * Get YAML node containing the parameter value.
+ * @returns 0 for success or -1 for failure.
+ */
+int yaml_get_node(const config_t &config,
+                  const std::string &key,
+                  const bool optional,
+                  YAML::Node &node);
+
+/**
+ * Check if yaml file has `key`.
+ * @returns 0 for success or -1 for failure.
+ */
+int yaml_has_key(const config_t &config, const std::string &key);
+
+/**
+ * Check if yaml file has `key`.
+ * @returns 0 for success or -1 for failure.
+ */
+int yaml_has_key(const std::string &file_path, const std::string &key);
+
+/**
+ * Check size of vector in config file and returns the size.
+ */
+template <typename T>
+size_t yaml_check_vector(const YAML::Node &node,
+                         const std::string &key,
+                         const bool optional);
+
+/**
+ * Check matrix fields.
+ */
+void yaml_check_matrix_fields(const YAML::Node &node,
+                              const std::string &key,
+                              size_t &rows,
+                              size_t &cols);
+
+/**
+ * Check matrix to make sure that the parameter has the data field "rows",
+ * "cols" and "data". It also checks to make sure the number of values is the
+ * same size as the matrix.
+ */
+template <typename T>
+void yaml_check_matrix(const YAML::Node &node,
+                       const std::string &key,
+                       const bool optional,
+                       size_t &rows,
+                       size_t &cols);
+
+template <typename T>
+void yaml_check_matrix(const YAML::Node &node,
+                       const std::string &key,
+                       const bool optional);
+
+template <typename T>
+int parse(const config_t &config,
+          const std::string &key,
+          T &out,
+          const bool optional = false);
+
+template <typename T>
+int parse(const config_t &config,
+          const std::string &key,
+          std::vector<T> &out,
+          const bool optional);
+
+int parse(const config_t &config,
+          const std::string &key,
+          vec2_t &vec,
+          const bool optional = false);
+
+int parse(const config_t &config,
+          const std::string &key,
+          vec3_t &vec,
+          const bool optional = false);
+
+int parse(const config_t &config,
+          const std::string &key,
+          vec4_t &vec,
+          const bool optional = false);
+
+int parse(const config_t &config,
+          const std::string &key,
+          vecx_t &vec,
+          const bool optional = false);
+
+int parse(const config_t &config,
+          const std::string &key,
+          mat2_t &mat,
+          const bool optional = false);
+
+int parse(const config_t &config,
+          const std::string &key,
+          mat3_t &mat,
+          const bool optional = false);
+
+int parse(const config_t &config,
+          const std::string &key,
+          mat4_t &mat,
+          const bool optional = false);
+
+int parse(const config_t &config,
+          const std::string &key,
+          matx_t &mat,
+          const bool optional = false);
+
+int parse(const config_t &config,
+          const std::string &key,
+          cv::Mat &mat,
+          const bool optional = false);
+
+template <typename T>
+int parse(const config_t &config,
+          const std::string &key,
+          const int rows,
+          const int cols,
+          T &mat,
+          const bool optional = false);
+
+////////// CONFIG IMPLEMENTATION
+
+template <typename T>
+size_t yaml_check_vector(const YAML::Node &node,
+                         const std::string &key,
+                         const bool optional) {
+  UNUSED(optional);
+  assert(node);
+
+  // Get expected vector size
+  size_t vector_size = 0;
+  if (std::is_same<T, vec2_t>::value) {
+    vector_size = 2;
+  } else if (std::is_same<T, vec3_t>::value) {
+    vector_size = 3;
+  } else if (std::is_same<T, vec4_t>::value) {
+    vector_size = 4;
+  } else if (std::is_same<T, vec5_t>::value) {
+    vector_size = 5;
+  } else if (std::is_same<T, vecx_t>::value) {
+    vector_size = node.size();
+    return vector_size; // Don't bother, it could be anything
+  } else {
+    FATAL("Unsportted vector type!");
+  }
+
+  // Check number of values in the param
+  if (node.size() == 0 && node.size() != vector_size) {
+    FATAL("Vector [%s] should have %d values but config has %d!",
+          key.c_str(),
+          static_cast<int>(vector_size),
+          static_cast<int>(node.size()));
+  }
+
+  return vector_size;
+}
+
+template <typename T>
+void yaml_check_matrix(const YAML::Node &node,
+                       const std::string &key,
+                       const bool optional,
+                       size_t &rows,
+                       size_t &cols) {
+  UNUSED(optional);
+  assert(node);
+  yaml_check_matrix_fields(node, key, rows, cols);
+
+  // Check number of elements
+  size_t nb_elements = 0;
+  if (std::is_same<T, mat2_t>::value) {
+    nb_elements = 4;
+  } else if (std::is_same<T, mat3_t>::value) {
+    nb_elements = 9;
+  } else if (std::is_same<T, mat4_t>::value) {
+    nb_elements = 16;
+  } else if (std::is_same<T, matx_t>::value) {
+    nb_elements = node["data"].size();
+
+  } else if (std::is_same<T, cv::Mat>::value) {
+    nb_elements = node["data"].size();
+  } else {
+    FATAL("Unsportted matrix type!");
+  }
+  if (node["data"].size() != nb_elements) {
+    FATAL("Matrix [%s] rows and cols do not match number of values!",
+          key.c_str());
+  }
+}
+
+template <typename T>
+void yaml_check_matrix(const YAML::Node &node,
+                       const std::string &key,
+                       const bool optional) {
+  size_t rows;
+  size_t cols;
+  yaml_check_matrix<T>(node, key, optional, rows, cols);
+}
+
+template <typename T>
+int parse(const config_t &config,
+          const std::string &key,
+          T &out,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  out = node.as<T>();
+  return 0;
+}
+
+template <typename T>
+int parse(const config_t &config,
+          const std::string &key,
+          std::vector<T> &out,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  std::vector<T> array;
+  for (auto n : node) {
+    out.push_back(n.as<T>());
+  }
+
+  return 0;
+}
+
 /******************************************************************************
  *                                  ALGEBRA
  *****************************************************************************/
-
-#if PRECISION == 1
-  #define real_t float
-#elif PRECISION == 2
-  #define real_t double
-#else
-  #define real_t double
-#endif
 
 /**
  * Sign of number
@@ -336,54 +920,6 @@ std::vector<T> linspace(const T start, const T end, const int num) {
 /******************************************************************************
  *                              LINEAR ALGEBRA
  *****************************************************************************/
-
-#define col_major_t Eigen::ColMajor
-#define row_major_t Eigen::RowMajor
-
-typedef Eigen::Matrix<real_t, 2, 1> vec2_t;
-typedef Eigen::Matrix<real_t, 3, 1> vec3_t;
-typedef Eigen::Matrix<real_t, 4, 1> vec4_t;
-typedef Eigen::Matrix<real_t, 5, 1> vec5_t;
-typedef Eigen::Matrix<real_t, 6, 1> vec6_t;
-typedef Eigen::Matrix<real_t, Eigen::Dynamic, 1> vecx_t;
-typedef Eigen::Matrix<real_t, 2, 2> mat2_t;
-typedef Eigen::Matrix<real_t, 3, 3> mat3_t;
-typedef Eigen::Matrix<real_t, 4, 4> mat4_t;
-typedef Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic> matx_t;
-typedef Eigen::Matrix<real_t, 3, 4> mat34_t;
-typedef Eigen::Quaternion<real_t> quat_t;
-typedef Eigen::AngleAxis<real_t> angle_axis_t;
-typedef Eigen::Matrix<real_t, 1, Eigen::Dynamic> row_vector_t;
-typedef Eigen::Matrix<real_t, Eigen::Dynamic, 1> col_vector_t;
-typedef Eigen::Array<real_t, Eigen::Dynamic, 1> arrayx_t;
-
-typedef std::vector<vec2_t, Eigen::aligned_allocator<vec2_t>> vec2s_t;
-typedef std::vector<vec3_t, Eigen::aligned_allocator<vec3_t>> vec3s_t;
-typedef std::vector<vec4_t, Eigen::aligned_allocator<vec4_t>> vec4s_t;
-typedef std::vector<vec5_t, Eigen::aligned_allocator<vec5_t>> vec5s_t;
-typedef std::vector<vec6_t, Eigen::aligned_allocator<vec6_t>> vec6s_t;
-typedef std::vector<vecx_t> vecxs_t;
-typedef std::vector<mat2_t, Eigen::aligned_allocator<mat2_t>> mat2s_t;
-typedef std::vector<mat3_t, Eigen::aligned_allocator<mat3_t>> mat3s_t;
-typedef std::vector<mat4_t, Eigen::aligned_allocator<mat4_t>> mat4s_t;
-typedef std::vector<matx_t, Eigen::aligned_allocator<matx_t>> matxs_t;
-typedef std::vector<quat_t, Eigen::aligned_allocator<quat_t>> quats_t;
-
-template <int LENGTH, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using vec_t = Eigen::Matrix<real_t, LENGTH, 1, STRIDE_TYPE>;
-
-template <int ROWS,
-          int COLS,
-          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using mat_t = Eigen::Matrix<real_t, ROWS, COLS, STRIDE_TYPE>;
-
-template <int ROWS,
-          int COLS,
-          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using map_mat_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, COLS, STRIDE_TYPE>>;
-
-template <int ROWS>
-using map_vec_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, 1>>;
 
 /**
  * Print shape of a matrix
@@ -546,6 +1082,11 @@ std::string arr2str(const real_t *arr, const size_t len, bool brackets = true);
  * @returns Array as a string
  */
 std::string mat2str(const matx_t &m, const std::string &indent = "  ");
+
+/**
+ * Normalize vector x
+ */
+vec2_t normalize(const vec2_t &x);
 
 /**
  * Normalize vector `v`.
@@ -1117,9 +1658,6 @@ void imu_init_attitude(const vec3s_t w_m,
  *                                    TIME
  *****************************************************************************/
 
-typedef uint64_t timestamp_t;
-typedef std::vector<timestamp_t> timestamps_t;
-
 /**
  * Print timestamp.
  */
@@ -1156,640 +1694,65 @@ float mtoc(struct timespec *tic);
 real_t time_now();
 
 /*****************************************************************************
- *                              FACTOR GRAPH
- *****************************************************************************/
-
-#define POSE 0
-#define INTRINSIC 1
-#define EXTRINSIC 2
-#define LANDMARK 3
-
-struct param_t {
-  size_t id = 0;
-  timestamp_t ts = 0;
-  size_t local_size = 0;
-
-  param_t() {}
-
-  param_t(const size_t id_, const size_t local_size_)
-      : id{id_}, local_size{local_size_} {}
-
-  param_t(const size_t id_, const timestamp_t &ts_, const size_t local_size_)
-      : id{id_}, ts{ts_}, local_size{local_size_} {}
-
-  virtual ~param_t() {}
-
-  virtual real_t *data() = 0;
-  virtual void plus(const vecx_t &) = 0;
-};
-
-struct pose_t : param_t {
-  real_t param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  pose_t();
-  pose_t(const real_t *data);
-  pose_t(const mat4_t &tf_);
-  pose_t(const quat_t &q_, const vec3_t &r_);
-  pose_t(const size_t id, const timestamp_t &ts_,
-         const mat4_t &tf);
-
-  quat_t rot() const;
-  vec3_t trans() const;
-  mat4_t tf() const;
-
-  quat_t rot();
-  vec3_t trans();
-  mat4_t tf();
-
-  vec3_t vec();
-  real_t *data();
-  void set_trans(const vec3_t &r);
-  void set_rot(const quat_t &q);
-  void set_rot(const mat3_t &C);
-  void plus(const vecx_t &dx);
-};
-
-struct landmark_t : param_t {
-  real_t param[3] = {0.0, 0.0, 0.0};
-
-  landmark_t(const vec3_t &p_W_);
-  landmark_t(const size_t id_, const vec3_t &p_W_);
-
-  vec3_t vec();
-  real_t *data();
-  void plus(const vecx_t &dx);
-};
-
-struct camera_param_t : param_t {
-  int cam_index = 0;
-  real_t param[4] = {0.0, 0.0, 0.0, 0.0};
-
-  camera_param_t(const size_t id_, const int cam_index_, const vec4_t &param_);
-
-  vec4_t vec();
-  real_t *data();
-  void plus(const vecx_t &dx);
-};
-
-struct dist_param_t : param_t {
-  int cam_index = 0;
-  real_t param[4] = {0.0, 0.0, 0.0, 0.0};
-
-  dist_param_t(const vec4_t &param_);
-  dist_param_t(const size_t id_, const int cam_index_, const vec4_t &param_);
-
-  vec4_t vec();
-  real_t *data();
-  void plus(const vecx_t &dx);
-};
-
-struct sb_param_t : param_t {
-  real_t param[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  sb_param_t(const size_t id_,
-             const timestamp_t &ts_,
-             const vec3_t &v_,
-             const vec3_t &ba_,
-             const vec3_t &bg_);
-
-  vec_t<9> vec();
-  real_t *data();
-  void plus(const vecx_t &dx);
-};
-
-typedef std::vector<pose_t> poses_t;
-typedef std::vector<landmark_t> landmarks_t;
-typedef std::vector<vec2_t> keypoints_t;
-
-void pose_print(const std::string &prefix, const pose_t &pose);
-poses_t load_poses(const std::string &csv_path);
-
-std::vector<keypoints_t> load_keypoints(const std::string &data_path);
-void keypoints_print(const keypoints_t &keypoints);
-
-/******************************************************************************
- *                                  DATA
- *****************************************************************************/
+ *                               NETWORKING
+ ****************************************************************************/
 
 /**
- * Convert bytes to signed 8bit number
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
  */
-int8_t int8(const uint8_t *data, const size_t offset);
+int ip_port_info(const int sockfd, char *ip, int *port);
 
 /**
- * Convert bytes to unsigned 8bit number
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
  */
-uint8_t uint8(const uint8_t *data, const size_t offset);
+int ip_port_info(const int sockfd, std::string &ip, int &port);
 
 /**
- * Convert bytes to signed 16bit number
+ * TCP server
  */
-int16_t int16(const uint8_t *data, const size_t offset);
+struct tcp_server_t {
+  int port = 8080;
+  int sockfd = -1;
+  std::vector<int> conns;
+  void *(*conn_thread)(void *) = nullptr;
 
-/**
- * Convert bytes to unsigned 16bit number
- */
-uint16_t uint16(const uint8_t *data, const size_t offset);
-
-/**
- * Convert bytes to signed 32bit number
- */
-int32_t int32(const uint8_t *data, const size_t offset);
-
-/**
- * Convert bytes to unsigned 32bit number
- */
-uint32_t uint32(const uint8_t *data, const size_t offset);
-
-/**
- * Allocate memory for a C-style string
- */
-char *malloc_string(const char *s);
-
-/**
- * Get number of rows in CSV file.
- * @returns Number of rows in CSV file else -1 for failure.
- */
-int csv_rows(const char *fp);
-
-/**
- * Get number of cols in CSV file.
- * @returns Number of cols in CSV file else -1 for failure.
- */
-int csv_cols(const char *fp);
-
-/**
- * Return csv fields as strings and number of fields in csv file.
- */
-char **csv_fields(const char *fp, int *nb_fields);
-
-/**
- * Load data in csv file `fp`. Assumming the data are real_ts. Also returns
- * number of rows and cols in `nb_rows` and `nb_cols` respectively.
- */
-real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols);
-
-/**
- * Load integer arrays in csv file located at `csv_path`. The number of arrays
- * is returned in `nb_arrays`.
- */
-int **load_iarrays(const char *csv_path, int *nb_arrays);
-
-/**
- * Load real_t arrays in csv file located at `csv_path`. The number of arrays
- * is returned in `nb_arrays`.
- */
-real_t **load_darrays(const char *csv_path, int *nb_arrays);
-
-/**
- * Get number of rows in CSV file.
- * @returns Number of rows in CSV file else -1 for failure.
- */
-int csv_rows(const std::string &file_path);
-
-/**
- * Get number of columns in CSV file.
- * @returns Number of columns in CSV file else -1 for failure.
- */
-int csv_cols(const std::string &file_path);
-
-/**
- * Convert CSV file to matrix.
- * @returns 0 for success, -1 for failure
- */
-int csv2mat(const std::string &file_path, const bool header, matx_t &data);
-
-/**
- * Convert matrix to csv file.
- * @returns 0 for success, -1 for failure
- */
-int mat2csv(const std::string &file_path, const matx_t &data);
-
-/**
- * Convert vector to csv file.
- * @returns 0 for success, -1 for failure
- */
-int vec2csv(const std::string &file_path, const std::deque<vec3_t> &data);
-
-/**
- * Convert timestamps to csv file.
- * @returns 0 for success, -1 for failure
- */
-int ts2csv(const std::string &file_path, const std::deque<timestamp_t> &data);
-
-/**
- * Print progress to screen
- */
-void print_progress(const real_t percentage);
-
-/**
- * Check if vector `x` is all true.
- */
-bool all_true(const std::vector<bool> x);
-
-/**
- * Pop front of an `std::vector`.
- */
-template <typename T>
-void pop_front(std::vector<T> &vec) {
-  assert(!vec.empty());
-  vec.front() = std::move(vec.back());
-  vec.pop_back();
-}
-
-/**
- * Pop front of an `std::vector`.
- */
-template <typename T1, typename T2>
-void pop_front(std::vector<T1, T2> &vec) {
-  assert(!vec.empty());
-  vec.front() = std::move(vec.back());
-  vec.pop_back();
-}
-
-/**
- * Extend `std::vector`.
- */
-template <typename T>
-void extend(std::vector<T> &x, std::vector<T> &add) {
-  x.reserve(x.size() + add.size());
-  x.insert(x.end(), add.begin(), add.end());
-}
-
-/**
- * Extend `std::vector`.
- */
-template <typename T1, typename T2>
-void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add) {
-  x.reserve(x.size() + add.size());
-  x.insert(x.end(), add.begin(), add.end());
-}
-
-/**
- * Get raw pointer of a value in a `std::map`.
- */
-template <typename K, typename V>
-const V *lookup(const std::map<K, V> &map, K key) {
-  typename std::map<K, V>::const_iterator iter = map.find(key);
-  if (iter != map.end()) {
-    return &iter->second;
-  } else {
-    return nullptr;
-  }
-}
-
-/**
- * Get raw pointer of a value in a `std::map`.
- */
-template <typename K, typename V>
-V *lookup(std::map<K, V> &map, K key) {
-  return const_cast<V *>(lookup(const_cast<const std::map<K, V> &>(map), key));
-}
-
-/**
- * Get raw pointer of a value in a `std::map`.
- */
-template <typename K, typename V>
-const V *lookup(const std::unordered_map<K, V> &map, K key) {
-  typename std::unordered_map<K, V>::const_iterator iter = map.find(key);
-  if (iter != map.end()) {
-    return &iter->second;
-  } else {
-    return nullptr;
-  }
-}
-
-/**
- * Get raw pointer of a value in a `std::map`.
- */
-template <typename K, typename V>
-V *lookup(std::unordered_map<K, V> &map, K key) {
-  return const_cast<V *>(
-      lookup(const_cast<const std::unordered_map<K, V> &>(map), key));
-}
-
-/**
- * Union between set `a` and set `b`.
- */
-template <typename T>
-T set_union(const T &s1, const T &s2) {
-  T result = s1;
-  result.insert(s2.begin(), s2.end());
-  return result;
-}
-
-/**
- * Difference between `a` and set `b`.
- */
-template <typename T>
-T set_diff(const T &a, const T &b) {
-  T results;
-  std::set_difference(a.begin(),
-                      a.end(),
-                      b.begin(),
-                      b.end(),
-                      std::inserter(results, results.end()));
-  return results;
-}
-
-/**
- * Symmetric difference between `a` and `b`.
- */
-template <typename T>
-T set_symmetric_diff(const T &a, const T &b) {
-  T results;
-  std::set_symmetric_difference(a.begin(),
-                                a.end(),
-                                b.begin(),
-                                b.end(),
-                                std::back_inserter(results));
-  return results;
-}
-
-/**
- * Intersection between std::vectors `vecs`.
- * @returns Number of common elements
- */
-template <typename T>
-std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
-  // Obtain element count across all vectors
-  std::unordered_map<T, size_t> counter;
-  for (const auto &vec : vecs) { // Loop over all vectors
-    for (const auto &p : vec) {  // Loop over elements in vector
-      counter[p] += 1;
-    }
-  }
-
-  // Build intersection result
-  std::set<T> retval;
-  for (const auto &el : counter) {
-    if (el.second == vecs.size()) {
-      retval.insert(el.first);
-    }
-  }
-
-  return retval;
-}
-
-int check_jacobian(const std::string &jac_name,
-                   const matx_t &fdiff,
-                   const matx_t &jac,
-                   const real_t threshold,
-                   const bool print = false);
-
-
-/******************************************************************************
- *                                  CONFIG
- *****************************************************************************/
-
-struct config_t {
-  std::string file_path;
-  YAML::Node root;
-  bool ok = false;
-
-  config_t();
-  config_t(const std::string &file_path_);
-  ~config_t();
+  tcp_server_t(int port_ = 8080);
 };
 
 /**
- * Load YAML file.
- * @returns 0 for success or -1 for failure.
+ * TCP client
  */
-int yaml_load_file(const std::string file_path, YAML::Node &root);
+struct tcp_client_t {
+  std::string server_ip;
+  int server_port = 8080;
+  int sockfd = -1;
+  int (*loop_cb)(tcp_client_t &) = nullptr;
+
+  tcp_client_t(const std::string &server_ip_ = "127.0.0.1",
+               int server_port_ = 8080);
+};
 
 /**
- * Get YAML node containing the parameter value.
- * @returns 0 for success or -1 for failure.
+ * Configure TCP server
  */
-int yaml_get_node(const config_t &config,
-                  const std::string &key,
-                  const bool optional,
-                  YAML::Node &node);
+int tcp_server_config(tcp_server_t &server);
 
 /**
- * Check if yaml file has `key`.
- * @returns 0 for success or -1 for failure.
+ * Loop TCP server
  */
-int yaml_has_key(const config_t &config, const std::string &key);
+int tcp_server_loop(tcp_server_t &server);
 
 /**
- * Check if yaml file has `key`.
- * @returns 0 for success or -1 for failure.
+ * Configure TCP client
  */
-int yaml_has_key(const std::string &file_path, const std::string &key);
+int tcp_client_config(tcp_client_t &client);
 
 /**
- * Check size of vector in config file and returns the size.
+ * Loop TCP client
  */
-template <typename T>
-size_t yaml_check_vector(const YAML::Node &node,
-                         const std::string &key,
-                         const bool optional);
-
-/**
- * Check matrix fields.
- */
-void yaml_check_matrix_fields(const YAML::Node &node,
-                              const std::string &key,
-                              size_t &rows,
-                              size_t &cols);
-
-/**
- * Check matrix to make sure that the parameter has the data field "rows",
- * "cols" and "data". It also checks to make sure the number of values is the
- * same size as the matrix.
- */
-template <typename T>
-void yaml_check_matrix(const YAML::Node &node,
-                       const std::string &key,
-                       const bool optional,
-                       size_t &rows,
-                       size_t &cols);
-
-template <typename T>
-void yaml_check_matrix(const YAML::Node &node,
-                       const std::string &key,
-                       const bool optional);
-
-template <typename T>
-int parse(const config_t &config,
-          const std::string &key,
-          T &out,
-          const bool optional = false);
-
-template <typename T>
-int parse(const config_t &config,
-          const std::string &key,
-          std::vector<T> &out,
-          const bool optional);
-
-int parse(const config_t &config,
-          const std::string &key,
-          vec2_t &vec,
-          const bool optional = false);
-
-int parse(const config_t &config,
-          const std::string &key,
-          vec3_t &vec,
-          const bool optional = false);
-
-int parse(const config_t &config,
-          const std::string &key,
-          vec4_t &vec,
-          const bool optional = false);
-
-int parse(const config_t &config,
-          const std::string &key,
-          vecx_t &vec,
-          const bool optional = false);
-
-int parse(const config_t &config,
-          const std::string &key,
-          mat2_t &mat,
-          const bool optional = false);
-
-int parse(const config_t &config,
-          const std::string &key,
-          mat3_t &mat,
-          const bool optional = false);
-
-int parse(const config_t &config,
-          const std::string &key,
-          mat4_t &mat,
-          const bool optional = false);
-
-int parse(const config_t &config,
-          const std::string &key,
-          matx_t &mat,
-          const bool optional = false);
-
-int parse(const config_t &config,
-          const std::string &key,
-          cv::Mat &mat,
-          const bool optional = false);
-
-template <typename T>
-int parse(const config_t &config,
-          const std::string &key,
-          const int rows,
-          const int cols,
-          T &mat,
-          const bool optional = false);
-
-////////// CONFIG IMPLEMENTATION
-
-template <typename T>
-size_t yaml_check_vector(const YAML::Node &node,
-                         const std::string &key,
-                         const bool optional) {
-  UNUSED(optional);
-  assert(node);
-
-  // Get expected vector size
-  size_t vector_size = 0;
-  if (std::is_same<T, vec2_t>::value) {
-    vector_size = 2;
-  } else if (std::is_same<T, vec3_t>::value) {
-    vector_size = 3;
-  } else if (std::is_same<T, vec4_t>::value) {
-    vector_size = 4;
-  } else if (std::is_same<T, vec5_t>::value) {
-    vector_size = 5;
-  } else if (std::is_same<T, vecx_t>::value) {
-    vector_size = node.size();
-    return vector_size; // Don't bother, it could be anything
-  } else {
-    FATAL("Unsportted vector type!");
-  }
-
-  // Check number of values in the param
-  if (node.size() == 0 && node.size() != vector_size) {
-    FATAL("Vector [%s] should have %d values but config has %d!",
-          key.c_str(),
-          static_cast<int>(vector_size),
-          static_cast<int>(node.size()));
-  }
-
-  return vector_size;
-}
-
-template <typename T>
-void yaml_check_matrix(const YAML::Node &node,
-                       const std::string &key,
-                       const bool optional,
-                       size_t &rows,
-                       size_t &cols) {
-  UNUSED(optional);
-  assert(node);
-  yaml_check_matrix_fields(node, key, rows, cols);
-
-  // Check number of elements
-  size_t nb_elements = 0;
-  if (std::is_same<T, mat2_t>::value) {
-    nb_elements = 4;
-  } else if (std::is_same<T, mat3_t>::value) {
-    nb_elements = 9;
-  } else if (std::is_same<T, mat4_t>::value) {
-    nb_elements = 16;
-  } else if (std::is_same<T, matx_t>::value) {
-    nb_elements = node["data"].size();
-
-  } else if (std::is_same<T, cv::Mat>::value) {
-    nb_elements = node["data"].size();
-  } else {
-    FATAL("Unsportted matrix type!");
-  }
-  if (node["data"].size() != nb_elements) {
-    FATAL("Matrix [%s] rows and cols do not match number of values!",
-          key.c_str());
-  }
-}
-
-template <typename T>
-void yaml_check_matrix(const YAML::Node &node,
-                       const std::string &key,
-                       const bool optional) {
-  size_t rows;
-  size_t cols;
-  yaml_check_matrix<T>(node, key, optional, rows, cols);
-}
-
-template <typename T>
-int parse(const config_t &config,
-          const std::string &key,
-          T &out,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  out = node.as<T>();
-  return 0;
-}
-
-template <typename T>
-int parse(const config_t &config,
-          const std::string &key,
-          std::vector<T> &out,
-          const bool optional) {
-  // Get node
-  YAML::Node node;
-  if (yaml_get_node(config, key, optional, node) != 0) {
-    return -1;
-  }
-
-  // Parse
-  std::vector<T> array;
-  for (auto n : node) {
-    out.push_back(n.as<T>());
-  }
-
-  return 0;
-}
+int tcp_client_loop(tcp_client_t &client);
 
 /******************************************************************************
  *                              INTERPOLATION
@@ -1896,10 +1859,6 @@ void lerp_data(std::deque<timestamp_t> &ts0,
                std::deque<vec3_t> &vs0,
                std::deque<timestamp_t> &ts1,
                std::deque<vec3_t> &vs1);
-
-/******************************************************************************
- *                                 SPLINE
- *****************************************************************************/
 
 typedef Eigen::Spline<real_t, 1> Spline1D;
 typedef Eigen::Spline<real_t, 2> Spline2D;
@@ -2363,65 +2322,1117 @@ int mav_model_update(mav_model_t &qm,
                      const real_t dt);
 
 /*****************************************************************************
- *                               NETWORKING
+ *                                  VISION
  ****************************************************************************/
 
 /**
- * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
- * `port`. Returns `0` for success and `-1` for failure.
+ * Compare `cv::Mat` whether they are equal
+ *
+ * @param m1 First matrix
+ * @param m2 Second matrix
+ * @returns true or false
  */
-int ip_port_info(const int sockfd, char *ip, int *port);
+bool is_equal(const cv::Mat &m1, const cv::Mat &m2);
 
 /**
- * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
- * `port`. Returns `0` for success and `-1` for failure.
+ * Convert cv::Mat to Eigen::Matrix
+ *
+ * @param x Input matrix
+ * @param y Output matrix
  */
-int ip_port_info(const int sockfd, std::string &ip, int &port);
+void convert(const cv::Mat &x, matx_t &y);
 
 /**
- * TCP server
+ * Convert Eigen::Matrix to cv::Mat
+ *
+ * @param x Input matrix
+ * @param y Output matrix
  */
-struct tcp_server_t {
-  int port = 8080;
-  int sockfd = -1;
-  std::vector<int> conns;
-  void *(*conn_thread)(void *) = nullptr;
+void convert(const matx_t &x, cv::Mat &y);
 
-  tcp_server_t(int port_ = 8080);
+/**
+ * Convert cv::Mat to Eigen::Matrix
+ *
+ * @param x Input matrix
+ * @returns Matrix as Eigen::Matrix
+ */
+matx_t convert(const cv::Mat &x);
+
+/**
+ * Convert Eigen::Matrix to cv::Mat
+ *
+ * @param x Input matrix
+ * @returns Matrix as cv::Mat
+ */
+cv::Mat convert(const matx_t &x);
+
+/**
+ * Sort Keypoints
+ *
+ * @param keypoints
+ * @param limit
+ * @returns Sorted keypoints by response
+ */
+std::vector<cv::KeyPoint> sort_keypoints(
+    const std::vector<cv::KeyPoint> keypoints, const size_t limit = 0);
+
+/**
+ * Convert gray-scale image to rgb image
+ *
+ * @param image
+ *
+ * @returns RGB image
+ */
+cv::Mat gray2rgb(const cv::Mat &image);
+
+/**
+ * Convert rgb image to gray-scale image
+ *
+ * @param image
+ *
+ * @returns Gray-scale image
+ */
+cv::Mat rgb2gray(const cv::Mat &image);
+
+/**
+ * Create ROI from an image
+ *
+ * @param[in] image Input image
+ * @param[in] width ROI width
+ * @param[in] height ROI height
+ * @param[in] cx ROI center x-axis
+ * @param[in] cy ROI center y-axis
+ *
+ * @returns ROI
+ */
+cv::Mat roi(const cv::Mat &image,
+            const int width,
+            const int height,
+            const real_t cx,
+            const real_t cy);
+
+/**
+ * Compare two keypoints based on the response.
+ *
+ * @param[in] kp1 First keypoint
+ * @param[in] kp2 Second keypoint
+ * @returns Boolean to denote if first keypoint repose is larger than second
+ */
+bool keypoint_compare_by_response(const cv::KeyPoint &kp1,
+                                  const cv::KeyPoint &kp2);
+
+/**
+ * Calculate reprojection error
+ *
+ * @param[in] measured Measured image pixels
+ * @param[in] projected Projected image pixels
+ * @returns Reprojection error
+ */
+real_t reprojection_error(const vec2s_t &measured, const vec2s_t &projected);
+
+/**
+ * Calculate reprojection error
+ *
+ * @param[in] measured Measured image pixels
+ * @param[in] projected Projected image pixels
+ * @returns Reprojection error
+ */
+real_t reprojection_error(const std::vector<cv::Point2f> &measured,
+                          const std::vector<cv::Point2f> &projected);
+
+/**
+ * Create feature mask
+ *
+ * @param[in] image_width Image width
+ * @param[in] image_height Image height
+ * @param[in] points Points
+ * @param[in] patch_width Patch width
+ *
+ * @returns Feature mask
+ */
+matx_t feature_mask(const int image_width,
+                    const int image_height,
+                    const std::vector<cv::Point2f> points,
+                    const int patch_width);
+
+/**
+ * Create feature mask
+ *
+ * @param[in] image_width Image width
+ * @param[in] image_height Image height
+ * @param[in] keypoints Keypoints
+ * @param[in] patch_width Patch width
+ *
+ * @returns Feature mask
+ */
+matx_t feature_mask(const int image_width,
+                    const int image_height,
+                    const std::vector<cv::KeyPoint> keypoints,
+                    const int patch_width);
+
+/**
+ * Create feature mask
+ *
+ * @param[in] image_width Image width
+ * @param[in] image_height Image height
+ * @param[in] points Points
+ * @param[in] patch_width Patch width
+ *
+ * @returns Feature mask
+ */
+cv::Mat feature_mask_opencv(const int image_width,
+                            const int image_height,
+                            const std::vector<cv::Point2f> points,
+                            const int patch_width);
+
+/**
+ * Create feature mask
+ *
+ * @param[in] image_width Image width
+ * @param[in] image_height Image height
+ * @param[in] keypoints Keypoints
+ * @param[in] patch_width Patch width
+ *
+ * @returns Feature mask
+ */
+cv::Mat feature_mask_opencv(const int image_width,
+                            const int image_height,
+                            const std::vector<cv::KeyPoint> keypoints,
+                            const int patch_width);
+
+/**
+ * Equi undistort image
+ *
+ * @param[in] K Camera matrix K
+ * @param[in] D Distortion vector D
+ * @param[in] image Input image
+ *
+ * @returns Undistorted image using radial-tangential distortion
+ */
+cv::Mat radtan_undistort_image(const mat3_t &K,
+                               const vecx_t &D,
+                               const cv::Mat &image);
+
+/**
+ * Equi undistort image
+ *
+ * @param[in] K Camera matrix K
+ * @param[in] D Distortion vector D
+ * @param[in] image Input image
+ * @param[in] balance Balance
+ * @param[in,out] Knew New camera matrix K
+ *
+ * @returns Undistorted image using equidistant distortion
+ */
+cv::Mat equi_undistort_image(const mat3_t &K,
+                             const vecx_t &D,
+                             const cv::Mat &image,
+                             const real_t balance,
+                             cv::Mat &Knew);
+/**
+ * Illumination invariant transform.
+ *
+ * @param[in] image Image
+ * @param[in] lambda_1 Lambad 1
+ * @param[in] lambda_2 Lambad 2
+ * @param[in] lambda_3 Lambad 3
+ */
+void illum_invar_transform(cv::Mat &image,
+                           const real_t lambda_1,
+                           const real_t lambda_2,
+                           const real_t lambda_3);
+
+/**
+ * Draw tracks
+ *
+ * @param[in] img_cur Current image frame
+ * @param[in] p0 Previous corners
+ * @param[in] p1 Current corners
+ * @param[in] status Corners status
+ *
+ * @returns Image with feature matches between previous and current frame
+ */
+cv::Mat draw_tracks(const cv::Mat &img_cur,
+                    const std::vector<cv::Point2f> p0,
+                    const std::vector<cv::Point2f> p1,
+                    const std::vector<uchar> &status);
+
+/**
+ * Draw tracks
+ *
+ * @param[in] img_cur Current image frame
+ * @param[in] p0 Previous corners
+ * @param[in] p1 Current corners
+ * @param[in] status Corners status
+ *
+ * @returns Image with feature matches between previous and current frame
+ */
+cv::Mat draw_tracks(const cv::Mat &img_cur,
+                    const std::vector<cv::Point2f> p0,
+                    const std::vector<cv::Point2f> p1,
+                    const std::vector<uchar> &status);
+
+/**
+ * Draw matches
+ *
+ * @param[in] img0 Image frame 0
+ * @param[in] img1 Image frame 1
+ * @param[in] k0 Previous keypoints
+ * @param[in] k1 Current keypoints
+ * @param[in] status Inlier vector
+ *
+ * @returns Image with feature matches between frame 0 and 1
+ */
+cv::Mat draw_matches(const cv::Mat &img0,
+                     const cv::Mat &img1,
+                     const std::vector<cv::Point2f> k0,
+                     const std::vector<cv::Point2f> k1,
+                     const std::vector<uchar> &status);
+
+/**
+ * Draw matches
+ *
+ * @param[in] img0 Previous image frame
+ * @param[in] img1 Current image frame
+ * @param[in] k0 Previous keypoints
+ * @param[in] k1 Current keypoints
+ * @param[in] matches Feature matches
+ *
+ * @returns Image with feature matches between previous and current frame
+ */
+cv::Mat draw_matches(const cv::Mat &img0,
+                     const cv::Mat &img1,
+                     const std::vector<cv::KeyPoint> k0,
+                     const std::vector<cv::KeyPoint> k1,
+                     const std::vector<cv::DMatch> &matches);
+
+/**
+ * Draw grid features
+ *
+ * @param[in] image Image frame
+ * @param[in] grid_rows Grid rows
+ * @param[in] grid_cols Grid cols
+ * @param[in] features List of features
+ *
+ * @returns Grid features image
+ */
+cv::Mat draw_grid_features(const cv::Mat &image,
+                           const int grid_rows,
+                           const int grid_cols,
+                           const std::vector<cv::Point2f> features);
+
+/**
+ * Draw grid features
+ *
+ * @param[in] image Image frame
+ * @param[in] grid_rows Grid rows
+ * @param[in] grid_cols Grid cols
+ * @param[in] features List of features
+ *
+ * @returns Grid features image
+ */
+cv::Mat draw_grid_features(const cv::Mat &image,
+                           const int grid_rows,
+                           const int grid_cols,
+                           const std::vector<cv::KeyPoint> features);
+
+/**
+ * Grid fast
+ *
+ * @param[in] image Input image
+ * @param[in] max_corners Max number of corners
+ * @param[in] grid_rows Number of grid rows
+ * @param[in] grid_cols Number of grid cols
+ * @param[in] threshold Fast threshold
+ * @param[in] nonmax_suppression Nonmax Suppression
+ *
+ * @returns List of keypoints
+ */
+std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
+                                    const int max_corners = 100,
+                                    const int grid_rows = 5,
+                                    const int grid_cols = 5,
+                                    const real_t threshold = 10.0,
+                                    const bool nonmax_suppression = true);
+
+/**
+ * Grid good
+ *
+ * @param[in] image Input image
+ * @param[in] max_corners Max number of corners
+ * @param[in] grid_rows Number of grid rows
+ * @param[in] grid_cols Number of grid cols
+ * @param[in] quality_level Quality level
+ * @param[in] min_distance Min distance
+ * @param[in] mask Mask
+ * @param[in] block_size Block size
+ * @param[in] use_harris_detector Use Harris detector
+ * @param[in] k Free parameter for Harris detector
+ *
+ * @returns List of points
+ */
+std::vector<cv::Point2f> grid_good(const cv::Mat &image,
+                                   const int max_corners = 100,
+                                   const int grid_rows = 5,
+                                   const int grid_cols = 5,
+                                   const real_t quality_level = 0.01,
+                                   const real_t min_distance = 10,
+                                   const cv::Mat mask = cv::Mat(),
+                                   const int block_size = 3,
+                                   const bool use_harris_detector = false,
+                                   const real_t k = 0.04);
+
+/**
+ * Radial-tangential distortion
+ */
+struct radtan4_t {
+  real_t k1 = 0.0;
+  real_t k2 = 0.0;
+  real_t p1 = 0.0;
+  real_t p2 = 0.0;
+  real_t *data[4] = {&k1, &k2, &p1, &p2};
+
+  radtan4_t();
+  radtan4_t(const real_t *distortion_);
+  radtan4_t(const vec4_t &distortion_);
+  radtan4_t(const real_t k1_,
+            const real_t k2_,
+            const real_t p1_,
+            const real_t p2_);
+  radtan4_t(radtan4_t &radtan);
+  radtan4_t(const radtan4_t &radtan);
+  ~radtan4_t();
+
+  vec2_t distort(const vec2_t &p);
+  vec2_t distort(const vec2_t &p) const;
+
+  mat2_t J_point(const vec2_t &p);
+  mat2_t J_point(const vec2_t &p) const;
+
+  mat_t<2, 4> J_param(const vec2_t &p);
+  mat_t<2, 4> J_param(const vec2_t &p) const;
+
+  void operator=(const radtan4_t &src) throw();
 };
 
 /**
- * TCP client
+ * Create Radial-tangential distortion vector
  */
-struct tcp_client_t {
-  std::string server_ip;
-  int server_port = 8080;
-  int sockfd = -1;
-  int (*loop_cb)(tcp_client_t &) = nullptr;
+template <typename T>
+Eigen::Matrix<T, 4, 1> radtan4_D(const T *distortion) {
+  const T k1 = distortion[0];
+  const T k2 = distortion[1];
+  const T p1 = distortion[2];
+  const T p2 = distortion[3];
+  Eigen::Matrix<T, 4, 1> D{k1, k2, p1, p2};
+  return D;
+}
 
-  tcp_client_t(const std::string &server_ip_ = "127.0.0.1",
-               int server_port_ = 8080);
+/**
+ * Type to output stream.
+ */
+std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4);
+
+/**
+ * Return distortion coefficients of a Radial-Tangential distortion
+ */
+vec4_t distortion_coeffs(const radtan4_t &radtan);
+
+/**
+ * Distort points with the radial-tangential distortion model.
+ *
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] point Point
+ * @returns Distorted point
+ */
+vec2_t distort(const radtan4_t &radtan, const vec2_t &point);
+
+/**
+ * Distort 3D points with the radial-tangential distortion model.
+ *
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] point Point
+ * @param[out] J_point Jacobian of distorted point w.r.t. projection point
+ * @returns Distorted point
+ */
+vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J_point);
+
+/**
+ * Distort 3D points with the radial-tangential distortion model.
+ *
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] point Point
+ * @param[out] J_point Jacobian of distorted point w.r.t. projection point
+ * @param[out] J_radtan Jacobian of distorted point w.r.t. radtan params
+ * @returns Distorted point
+ */
+vec2_t distort(const radtan4_t &radtan,
+               const vec2_t &point,
+               mat2_t &J_point,
+               mat_t<2, 4> &J_params);
+
+/**
+ * Distort 3D points with the radial-tangential distortion model.
+ *
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] points Points
+ * @returns Distorted points
+ */
+matx_t distort(const radtan4_t &radtan, const matx_t &points);
+
+/**
+ * Undistort point.
+ *
+ * @param[in] radtan Radial tangential parameters
+ * @param[in] p0 Distorted point
+ * @param[in] max_iter Max iteration
+ * @returns Undistorted point
+ */
+vec2_t undistort(const radtan4_t &radtan,
+                 const vec2_t &p0,
+                 const int max_iter = 5);
+
+/**
+ * Equi-distant distortion
+ */
+struct equi4_t {
+  real_t k1 = 0.0;
+  real_t k2 = 0.0;
+  real_t k3 = 0.0;
+  real_t k4 = 0.0;
+  real_t *data[4] = {&k1, &k2, &k3, &k4};
+
+  equi4_t(const real_t k1_,
+          const real_t k2_,
+          const real_t k3_,
+          const real_t k4_);
+  ~equi4_t();
 };
 
 /**
- * Configure TCP server
+ * Create Equidistant distortion vector
  */
-int tcp_server_config(tcp_server_t &server);
+template <typename T>
+Eigen::Matrix<T, 4, 1> equi4_D(const T *distortion) {
+  const T k1 = distortion[0];
+  const T k2 = distortion[1];
+  const T k3 = distortion[2];
+  const T k4 = distortion[3];
+  Eigen::Matrix<T, 4, 1> D{k1, k2, k3, k4};
+  return D;
+}
 
 /**
- * Loop TCP server
+ * Type to output stream.
  */
-int tcp_server_loop(tcp_server_t &server);
+std::ostream &operator<<(std::ostream &os, const equi4_t &equi4);
 
 /**
- * Configure TCP client
+ * Distort point with equi-distant distortion model.
+ *
+ * @param[in] equi Equi-distance parameters
+ * @param[in] point Point
+ * @returns Distorted point
  */
-int tcp_client_config(tcp_client_t &client);
+vec2_t distort(const equi4_t &equi, const vec2_t &point);
 
 /**
- * Loop TCP client
+ * Distort point with equi-distant distortion model.
+ *
+ * @param[in] equi Equi-distance parameters
+ * @param[in] point Point
+ * @param[out] J_point Jacobian of equi w.r.t. point
+ * @returns Distorted point
  */
-int tcp_client_loop(tcp_client_t &client);
+vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J_point);
+
+/**
+ * Distort point with equi-distant distortion model.
+ *
+ * @param[in] equi Equi-distance parameters
+ * @param[in] points Points
+ * @returns Distorted points
+ */
+matx_t distort(const equi4_t &equi, const matx_t &points);
+
+/**
+ * Un-distort a 2D point with the equi-distant distortion model.
+ */
+vec2_t undistort(const equi4_t &equi, const vec2_t &p);
+
+/**
+ * Pinhole camera model
+ */
+struct pinhole_t {
+  real_t fx = 0.0;
+  real_t fy = 0.0;
+  real_t cx = 0.0;
+  real_t cy = 0.0;
+  real_t *data[4] = {&fx, &fy, &cx, &cy};
+
+  pinhole_t();
+  pinhole_t(const real_t *intrinsics);
+  pinhole_t(const vec4_t &intrinsics);
+  pinhole_t(const mat3_t &K);
+  pinhole_t(const real_t fx_,
+            const real_t fy_,
+            const real_t cx_,
+            const real_t cy_);
+  pinhole_t(pinhole_t &pinhole);
+  pinhole_t(const pinhole_t &pinhole);
+  ~pinhole_t();
+
+  vec2_t project(const vec2_t &p);
+  vec2_t project(const vec2_t &p) const;
+
+  mat2_t J_point();
+  mat2_t J_point() const;
+
+  mat_t<2, 4> J_param(const vec2_t &p);
+  mat_t<2, 4> J_param(const vec2_t &p) const;
+
+  void operator=(const pinhole_t &src) throw();
+};
+
+/**
+ * `pinhole_t` to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole);
+
+/**
+ * Form pinhole camera matrix K
+ *
+ * @param[in] fx Focal length in x-axis
+ * @param[in] fy Focal length in y-axis
+ * @param[in] cx Principal center in x-axis
+ * @param[in] cy Principal center in y-axis
+ *
+ * @returns Camera matrix K
+ */
+mat3_t
+pinhole_K(const real_t fx, const real_t fy, const real_t cx, const real_t cy);
+
+/**
+ * Form pinhole camera matrix K
+ *
+ * @param[in] pinhole Pinhole camera
+ * @returns Camera matrix K
+ */
+mat3_t pinhole_K(const pinhole_t &pinhole);
+
+/**
+ * Pinhole camera matrix K
+ */
+template <typename T>
+static Eigen::Matrix<T, 3, 3> pinhole_K(const T *intrinsics) {
+  const T fx = intrinsics[0];
+  const T fy = intrinsics[1];
+  const T cx = intrinsics[2];
+  const T cy = intrinsics[3];
+
+  // clang-format off
+  Eigen::Matrix<T, 3, 3> K;
+  K << fx, T(0.0), cx,
+       T(0.0), fy, cy,
+       T(0.0), T(0.0), T(1.0);
+  // clang-format on
+  return K;
+}
+
+/**
+ * Form **theoretical** pinhole camera matrix K
+ *
+ * @param[in] image_size Image width and height [px]
+ * @param[in] lens_hfov Lens horizontal field of view [deg]
+ * @param[in] lens_vfov Lens vertical field of view [deg]
+ *
+ * @returns Camera matrix K
+ */
+mat3_t pinhole_K(const vec2_t &image_size,
+                 const real_t lens_hfov,
+                 const real_t lens_vfov);
+
+/**
+ * Form pinhole projection matrix P
+ *
+ * @param[in] K Camera matrix K
+ * @param[in] C_WC Camera rotation matrix in world frame
+ * @param[in] r_WC Camera translation vector in world frame
+ * @returns Camera projection matrix P
+ */
+mat34_t pinhole_P(const mat3_t &K, const mat3_t &C_WC, const vec3_t &r_WC);
+
+/**
+ * Pinhole camera model theoretical focal length
+ *
+ * @param[in] image_width Image width [px]
+ * @param[in] fov Field of view [deg]
+ * @returns Focal length in pixels
+ */
+real_t pinhole_focal_length(const int image_width, const real_t fov);
+
+/**
+ * Pinhole camera model theoretical focal length
+ *
+ * @param[in] image_size Image width and height [px]
+ * @param[in] hfov Horizontal field of view [deg]
+ * @param[in] vfov Vertical field of view [deg]
+ * @returns Focal length in pixels
+ */
+vec2_t pinhole_focal_length(const vec2_t &image_size,
+                            const real_t hfov,
+                            const real_t vfov);
+
+/**
+ * Project 3D point to image plane (not in pixels)
+ *
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] p Point in 3D
+ * @returns Point in image plane (not in pixels)
+ */
+vec2_t project(const vec3_t &p);
+
+/**
+ * Project 3D point to image plane (not in pixels)
+ *
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] p Point in 3D
+ * @param[out] J_P Project Jacobian.
+ * @returns Point in image plane (not in pixels)
+ */
+vec2_t project(const vec3_t &p, mat_t<2, 3> &J_P);
+
+/**
+ * Scale and center projected point to pixel coordinates
+ *
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] p Point
+ * @returns Point in pixel coordinates
+ */
+vec2_t project(const pinhole_t &pinhole, const vec2_t &p);
+
+/**
+ * Project 3D point, scale and center to pixel coordinates
+ *
+ * @param[in] pinhole Pinhole camera model
+ * @param[in] p Point in 3D
+ * @returns Point in pixel coordinates
+ */
+vec2_t project(const pinhole_t &pinhole, const vec3_t &p);
+
+/**
+ * Project 3D point, scale and center to pixel coordinates
+ *
+ * @param[in] pinhole Pinhole camera model.
+ * @param[in] p Point in 3D.
+ * @param[out] J_h Measurement Jacobian.
+ * @returns Point in pixel coordinates
+ */
+vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h);
+
+template <typename CM, typename DM>
+int project(const int img_w,
+            const int img_h,
+            const CM &cam_model,
+            const DM &dist_model,
+            const vec3_t &p_C,
+            vec2_t &z_hat) {
+  // Check validity of the point, simple depth test.
+  const real_t x = p_C(0);
+  const real_t y = p_C(1);
+  const real_t z = p_C(2);
+  if (fabs(z) < 0.05) {
+    return -1;
+  }
+
+  // Project, distort and then scale and center
+  const vec2_t p{x / z, y / z};
+  const vec2_t p_dist = dist_model.distort(p);
+  z_hat = cam_model.project(p_dist);
+
+  // Check projection
+  const bool x_ok = (z_hat(0) >= 0 && z_hat(0) <= img_w);
+  const bool y_ok = (z_hat(1) >= 0 && z_hat(1) <= img_h);
+  if (x_ok == false || y_ok == false) {
+    return -2;
+  }
+
+  return 0;
+}
+
+template <typename CM, typename DM>
+int project(const int img_w,
+            const int img_h,
+            const CM &cam_model,
+            const DM &dist_model,
+            const vec3_t &p_C,
+            vec2_t &z_hat,
+            mat_t<2, 3> &J_h) {
+  int retval = project(img_w, img_h, cam_model, dist_model, p_C, z_hat);
+  if (retval != 0) {
+    return retval;
+  }
+
+  // Projection Jacobian
+  const real_t x = p_C(0);
+  const real_t y = p_C(1);
+  const real_t z = p_C(2);
+  mat_t<2, 3> J_proj = zeros(2, 3);
+  J_proj(0, 0) = 1.0 / z;
+  J_proj(1, 1) = 1.0 / z;
+  J_proj(0, 2) = -x / (z * z);
+  J_proj(1, 2) = -y / (z * z);
+
+  // Measurement Jacobian
+  const vec2_t p{x / z, y / z};
+  J_h = cam_model.J_point() * dist_model.J_point(p) * J_proj;
+
+  return 0;
+}
+
+/****************************************************************************
+ *                            CAMERA GEOMETRY
+ ***************************************************************************/
+
+/**
+ * Camera geometry
+ */
+template <typename CM, typename DM>
+struct camera_geometry_t {
+  int camera_index = 0;
+  CM camera_model;
+  DM distortion_model;
+
+  camera_geometry_t() {}
+
+  camera_geometry_t(const CM &camera_model_, const DM &distortion_model_)
+    : camera_model{camera_model_}, distortion_model{distortion_model_} {}
+
+  ~camera_geometry_t() {}
+};
+
+typedef camera_geometry_t<pinhole_t, radtan4_t> pinhole_radtan4_t;
+typedef camera_geometry_t<pinhole_t, equi4_t> pinhole_equi4_t;
+
+/**
+ * Project point to image plane in pixels
+ *
+ * @param[in] cam Camera geometry
+ * @param[in] point Point
+ * @returns Point to image plane projection in pixel coordinates
+ */
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &point);
+
+/**
+ * Project point to image plane in pixels
+ *
+ * @param[in] cam Camera geometry
+ * @param[in] p_C 3D Point observed from camera frame
+ * @param[out] J_h Measurement model jacobian
+ * @returns Point to image plane projection in pixel coordinates
+ */
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &p_C,
+                               matx_t &J_h);
+
+/**
+ * Project point to image plane in pixels
+ *
+ * @param[in] cam Camera geometry
+ * @param[in] p_C 3D Point observed from camera frame
+ * @param[out] J_h Measurement model jacobian
+ * @param[out] J_params jacobian
+ * @returns Point to image plane projection in pixel coordinates
+ */
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &p_C,
+                               matx_t &J_h,
+                               matx_t &J_params);
+
+/**
+ * Project point using pinhole radial-tangential
+ */
+template <typename T>
+int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
+                            const Eigen::Matrix<T, 4, 1> &D,
+                            const Eigen::Matrix<T, 3, 1> &point,
+                            Eigen::Matrix<T, 2, 1> &image_point);
+
+/**
+ * Project point using pinhole equidistant
+ */
+template <typename T>
+static Eigen::Matrix<T, 2, 1>
+pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
+                      const Eigen::Matrix<T, 4, 1> &D,
+                      const Eigen::Matrix<T, 3, 1> &point);
+
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &point) {
+  const vec2_t p{point(0) / point(2), point(1) / point(2)};
+  const vec2_t point_distorted = distort(cam.distortion_model, p);
+  return project(cam.camera_model, point_distorted);
+}
+
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &p_C,
+                               matx_t &J_h) {
+  mat_t<2, 3> J_P;
+  mat2_t J_K;
+  mat2_t J_D;
+
+  const vec2_t p = project(p_C, J_P);
+  const vec2_t p_distorted = distort(cam.distortion_model, p, J_D);
+  const vec2_t pixel = project(cam.camera_model, p_distorted);
+
+  J_h = J_K * J_D * J_P;
+
+  return pixel;
+}
+
+template <typename CM, typename DM>
+vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
+                               const vec3_t &p_C,
+                               matx_t &J_h,
+                               matx_t &J_params) {
+  mat_t<2, 3> J_P;
+  mat2_t J_K;
+  mat2_t J_D;
+
+  const vec2_t p = project(p_C, J_P);
+  const vec2_t p_distorted = distort(cam.distortion_model, p, J_D, J_params);
+  const vec2_t pixel = project(cam.camera_model, p_distorted);
+
+  J_h = J_K * J_D * J_P;
+
+  return pixel;
+}
+
+template <typename T>
+int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
+                            const Eigen::Matrix<T, 3, 1> &point,
+                            Eigen::Matrix<T, 2, 1> &image_point) {
+  // Check for singularity
+  const T z_norm = sqrt(point(2) * point(2)); // std::abs doesn't work for all T
+  if ((T) z_norm < (T) 1.0e-12) {
+    return -1;
+  }
+
+  // Extract intrinsics params
+  const T fx = params(0);
+  const T fy = params(1);
+  const T cx = params(2);
+  const T cy = params(3);
+  const T k1 = params(4);
+  const T k2 = params(5);
+  const T p1 = params(6);
+  const T p2 = params(7);
+
+  // Project
+  const T x = point(0) / point(2);
+  const T y = point(1) / point(2);
+
+  // Apply Radial distortion factor
+  const T x2 = x * x;
+  const T y2 = y * y;
+  const T r2 = x2 + y2;
+  const T r4 = r2 * r2;
+  const T radial_factor = T(1) + (k1 * r2) + (k2 * r4);
+  const T x_dash = x * radial_factor;
+  const T y_dash = y * radial_factor;
+
+  // Apply Tangential distortion factor
+  const T xy = x * y;
+  const T x_ddash = x_dash + (T(2) * p1 * xy + p2 * (r2 + T(2) * x2));
+  const T y_ddash = y_dash + (p1 * (r2 + T(2) * y2) + T(2) * p2 * xy);
+
+  // Scale and center
+  image_point(0) = fx * x_ddash + cx;
+  image_point(1) = fy * y_ddash + cy;
+
+  if (point(2) > T(0.0)) {
+    return 0; // Point is infront of camera
+  } else {
+    return 1; // Point is behind camera
+  }
+}
+
+template <typename T>
+static Eigen::Matrix<T, 2, 1>
+pinhole_equi4_project(const Eigen::Matrix<T, 8, 1> &params,
+                      const Eigen::Matrix<T, 3, 1> &point) {
+  // Project
+  const T x = point(0) / point(2);
+  const T y = point(1) / point(2);
+
+  // Pinhole params
+  const T fx = params(0);
+  const T fy = params(1);
+  const T cx = params(2);
+  const T cy = params(3);
+
+  // Radial distortion params
+  const T k1 = params(4);
+  const T k2 = params(5);
+  const T k3 = params(6);
+  const T k4 = params(7);
+  const T r = sqrt(pow(x, 2) + pow(y, 2));
+  // if (r < 1e-8) {
+  //   return point;
+  // }
+
+  // Apply equi distortion
+  const T th = atan(r);
+  const T th2 = th * th;
+  const T th4 = th2 * th2;
+  const T th6 = th4 * th2;
+  const T th8 = th4 * th4;
+  const T th_d = th * (T(1) + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  const T x_dash = (th_d / r) * x;
+  const T y_dash = (th_d / r) * y;
+
+  // Scale distorted point
+  const Eigen::Matrix<T, 2, 1> pixel{fx * x_dash + cx, fy * y_dash + cy};
+
+  return pixel;
+}
+
+template <typename T>
+static Eigen::Matrix<T, 2, 1>
+pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
+                      const Eigen::Matrix<T, 4, 1> &D,
+                      const Eigen::Matrix<T, 3, 1> &point) {
+  Eigen::Matrix<T, 8, 1> params;
+  params << K(0, 0);  // fx
+  params << K(1, 1);  // fy
+  params << K(0, 2);  // cx
+  params << K(1, 2);  // cy
+  params << D(0);     // k1
+  params << D(1);     // k2
+  params << D(2);     // p1
+  params << D(3);     // p2
+
+  return pinhole_equi4_project(params, point, point);
+}
+
+/*****************************************************************************
+ *                              FACTOR GRAPH
+ *****************************************************************************/
+
+#define POSE 0
+#define INTRINSIC 1
+#define EXTRINSIC 2
+#define LANDMARK 3
+
+struct param_t {
+  size_t id = 0;
+  timestamp_t ts = 0;
+  size_t local_size = 0;
+
+  param_t() {}
+
+  param_t(const size_t id_, const size_t local_size_)
+      : id{id_}, local_size{local_size_} {}
+
+  param_t(const size_t id_, const timestamp_t &ts_, const size_t local_size_)
+      : id{id_}, ts{ts_}, local_size{local_size_} {}
+
+  virtual ~param_t() {}
+
+  virtual real_t *data() = 0;
+  virtual void plus(const vecx_t &) = 0;
+};
+
+struct pose_t : param_t {
+  real_t param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  pose_t();
+  pose_t(const real_t *data);
+  pose_t(const mat4_t &tf_);
+  pose_t(const quat_t &q_, const vec3_t &r_);
+  pose_t(const size_t id, const timestamp_t &ts_,
+         const mat4_t &tf);
+
+  quat_t rot() const;
+  vec3_t trans() const;
+  mat4_t tf() const;
+
+  quat_t rot();
+  vec3_t trans();
+  mat4_t tf();
+
+  vec3_t vec();
+  real_t *data();
+  void set_trans(const vec3_t &r);
+  void set_rot(const quat_t &q);
+  void set_rot(const mat3_t &C);
+  void plus(const vecx_t &dx);
+};
+
+struct landmark_t : param_t {
+  real_t param[3] = {0.0, 0.0, 0.0};
+
+  landmark_t(const vec3_t &p_W_);
+  landmark_t(const size_t id_, const vec3_t &p_W_);
+
+  vec3_t vec();
+  real_t *data();
+  void plus(const vecx_t &dx);
+};
+
+struct camera_param_t : param_t {
+  int cam_index = 0;
+  real_t param[4] = {0.0, 0.0, 0.0, 0.0};
+
+  camera_param_t(const size_t id_, const int cam_index_, const vec4_t &param_);
+
+  vec4_t vec();
+  real_t *data();
+  void plus(const vecx_t &dx);
+};
+
+struct dist_param_t : param_t {
+  int cam_index = 0;
+  real_t param[4] = {0.0, 0.0, 0.0, 0.0};
+
+  dist_param_t(const vec4_t &param_);
+  dist_param_t(const size_t id_, const int cam_index_, const vec4_t &param_);
+
+  vec4_t vec();
+  real_t *data();
+  void plus(const vecx_t &dx);
+};
+
+struct sb_param_t : param_t {
+  real_t param[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  sb_param_t(const size_t id_,
+             const timestamp_t &ts_,
+             const vec3_t &v_,
+             const vec3_t &ba_,
+             const vec3_t &bg_);
+
+  vec_t<9> vec();
+  real_t *data();
+  void plus(const vecx_t &dx);
+};
+
+typedef std::vector<pose_t> poses_t;
+typedef std::vector<landmark_t> landmarks_t;
+typedef std::vector<vec2_t> keypoints_t;
+
+void pose_print(const std::string &prefix, const pose_t &pose);
+poses_t load_poses(const std::string &csv_path);
+
+std::vector<keypoints_t> load_keypoints(const std::string &data_path);
+void keypoints_print(const keypoints_t &keypoints);
+
 
 } //  namespace proto
 #endif // PROTO_CORE_HPP

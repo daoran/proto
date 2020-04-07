@@ -10,6 +10,55 @@
 namespace proto {
 
 /******************************************************************************
+ * DATA
+ *****************************************************************************/
+
+int test_csv_rows() {
+  int rows;
+  rows = csv_rows(TEST_DATA);
+  MU_CHECK(rows == 281);
+  return 0;
+}
+
+int test_csv_cols() {
+  int cols;
+  cols = csv_cols(TEST_DATA);
+  MU_CHECK(cols == 2);
+  return 0;
+}
+
+int test_csv2mat() {
+  matx_t data;
+
+  csv2mat(TEST_DATA, true, data);
+  MU_CHECK(data.rows() == 280);
+  MU_CHECK(data.cols() == 2);
+  MU_CHECK_NEAR(-2.22482078596, data(0, 0), 1e-4);
+  MU_CHECK_NEAR(9.9625789766, data(0, 1), 1e-4);
+  MU_CHECK_NEAR(47.0485650525, data(279, 0), 1e-4);
+  MU_CHECK_NEAR(613.503760567, data(279, 1), 1e-4);
+
+  return 0;
+}
+
+int test_mat2csv() {
+  matx_t x;
+  matx_t y;
+
+  csv2mat(TEST_DATA, true, x);
+  mat2csv(TEST_OUTPUT, x);
+  csv2mat(TEST_OUTPUT, false, y);
+
+  for (int i = 0; i < x.rows(); i++) {
+    for (int j = 0; j < x.cols(); j++) {
+      MU_CHECK_NEAR(x(i, j), y(i, j), 0.1);
+    }
+  }
+
+  return 0;
+}
+
+/******************************************************************************
  * FILESYSTEM
  *****************************************************************************/
 
@@ -50,6 +99,272 @@ int test_paths_combine() {
   out = paths_combine("./a/b/c", "../d/e");
   std::cout << out << std::endl;
   MU_CHECK("./a/b/d/e" == out);
+
+  return 0;
+}
+
+/******************************************************************************
+ * CONFIG
+ *****************************************************************************/
+
+int test_config_constructor() {
+  config_t config{TEST_CONFIG};
+
+  MU_CHECK(config.ok == true);
+  MU_CHECK(config.file_path == TEST_CONFIG);
+
+  return 0;
+}
+
+int test_config_parse_primitive() {
+  config_t config{TEST_CONFIG};
+
+  // INTEGER
+  int i = 0;
+  parse(config, "int", i);
+  MU_CHECK(1 == i);
+
+  // FLOAT
+  float f = 0.0f;
+  parse(config, "float", f);
+  MU_CHECK(fltcmp(2.2, f) == 0);
+
+  // real_t
+  real_t d = 0.0;
+  parse(config, "double", d);
+  MU_CHECK(fltcmp(3.3, d) == 0);
+
+  // STRING
+  std::string s;
+  parse(config, "string", s);
+  MU_CHECK("hello world!" == s);
+
+  return 0;
+}
+
+int test_config_parse_array() {
+  config_t config{TEST_CONFIG};
+
+  // BOOL ARRAY
+  std::vector<bool> b_array;
+  parse(config, "bool_array", b_array);
+  MU_CHECK(b_array[0]);
+  MU_CHECK(b_array[1] == false);
+  MU_CHECK(b_array[2]);
+  MU_CHECK(b_array[3] == false);
+
+  // INTEGER
+  std::vector<int> i_array;
+  parse(config, "int_array", i_array);
+  for (int i = 0; i < 4; i++) {
+    MU_CHECK(i_array[i] == i + 1);
+  }
+
+  // FLOAT
+  std::vector<float> f_array;
+  parse(config, "float_array", f_array);
+  for (int i = 0; i < 4; i++) {
+    MU_CHECK_FLOAT((i + 1) * 1.1, f_array[i]);
+  }
+
+  // real_t
+  std::vector<real_t> d_array;
+  parse(config, "double_array", d_array);
+  for (int i = 0; i < 4; i++) {
+    MU_CHECK_FLOAT((i + 1) * 1.1, d_array[i]);
+  }
+
+  // STRING
+  std::vector<std::string> s_array;
+  parse(config, "string_array", s_array);
+  MU_CHECK(s_array[0] == "1.1");
+  MU_CHECK(s_array[1] == "2.2");
+  MU_CHECK(s_array[2] == "3.3");
+  MU_CHECK(s_array[3] == "4.4");
+
+  return 0;
+}
+
+int test_config_parse_vector() {
+  config_t config{TEST_CONFIG};
+
+  // VECTOR 2
+  vec2_t vec2;
+  parse(config, "vector2", vec2);
+  std::cout << vec2.transpose() << std::endl;
+  MU_CHECK_FLOAT(1.1, vec2(0));
+  MU_CHECK_FLOAT(2.2, vec2(1));
+
+  // VECTOR 3
+  vec3_t vec3;
+  parse(config, "vector3", vec3);
+  std::cout << vec3.transpose() << std::endl;
+  MU_CHECK_FLOAT(1.1, vec3(0));
+  MU_CHECK_FLOAT(2.2, vec3(1));
+  MU_CHECK_FLOAT(3.3, vec3(2));
+
+  // VECTOR 4
+  vec4_t vec4;
+  parse(config, "vector4", vec4);
+  std::cout << vec4.transpose() << std::endl;
+  MU_CHECK_FLOAT(1.1, vec4(0));
+  MU_CHECK_FLOAT(2.2, vec4(1));
+  MU_CHECK_FLOAT(3.3, vec4(2));
+  MU_CHECK_FLOAT(4.4, vec4(3));
+
+  // VECTOR X
+  vecx_t vecx;
+  parse(config, "vector", vecx);
+  std::cout << vecx.transpose() << std::endl;
+  for (int i = 0; i < 9; i++) {
+    MU_CHECK_FLOAT((i + 1) * 1.1, vecx(i));
+  }
+
+  return 0;
+}
+
+int test_config_parse_matrix() {
+  config_t config{TEST_CONFIG};
+
+  // MATRIX 2
+  mat2_t mat2;
+  parse(config, "matrix2", mat2);
+  std::cout << mat2 << std::endl;
+
+  MU_CHECK_FLOAT(1.1, mat2(0, 0));
+  MU_CHECK_FLOAT(2.2, mat2(0, 1));
+  MU_CHECK_FLOAT(3.3, mat2(1, 0));
+  MU_CHECK_FLOAT(4.4, mat2(1, 1));
+
+  // MATRIX 3
+  mat3_t mat3;
+  parse(config, "matrix3", mat3);
+  std::cout << mat3 << std::endl;
+
+  int index = 0;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      MU_CHECK_FLOAT((index + 1) * 1.1, mat3(i, j));
+      index++;
+    }
+  }
+
+  // MATRIX 4
+  mat4_t mat4;
+  parse(config, "matrix4", mat4);
+  std::cout << mat4 << std::endl;
+
+  index = 0;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      MU_CHECK_FLOAT((index + 1) * 1.1, mat4(i, j));
+      index++;
+    }
+  }
+
+  // MATRIX X
+  matx_t matx;
+  parse(config, "matrix", matx);
+  std::cout << matx << std::endl;
+
+  index = 0;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 4; j++) {
+      MU_CHECK_FLOAT((index + 1) * 1.1, matx(i, j));
+      index++;
+    }
+  }
+
+  // CV MATRIX
+  cv::Mat cvmat;
+  parse(config, "matrix", cvmat);
+  std::cout << cvmat << std::endl;
+
+  index = 0;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 4; j++) {
+      MU_CHECK_FLOAT((index + 1) * 1.1, cvmat.at<real_t>(i, j));
+      index++;
+    }
+  }
+
+  return 0;
+}
+
+int test_config_parser_full_example() {
+  config_t config{TEST_CONFIG};
+
+  // Primitives
+  bool b;
+  int i;
+  float f;
+  real_t d;
+
+  parse(config, "bool", b);
+  parse(config, "int", i);
+  parse(config, "float", f);
+  parse(config, "double", d);
+
+  // Array
+  std::string s;
+  std::vector<bool> b_array;
+  std::vector<int> i_array;
+  std::vector<float> f_array;
+  std::vector<real_t> d_array;
+  std::vector<std::string> s_array;
+
+  parse(config, "string", s);
+  parse(config, "bool_array", b_array);
+  parse(config, "int_array", i_array);
+  parse(config, "float_array", f_array);
+  parse(config, "double_array", d_array);
+  parse(config, "string_array", s_array);
+
+  // Vectors
+  vec2_t vec2;
+  vec3_t vec3;
+  vec4_t vec4;
+  vecx_t vecx;
+
+  parse(config, "vector2", vec2);
+  parse(config, "vector3", vec3);
+  parse(config, "vector4", vec4);
+  parse(config, "vector", vecx);
+
+  // Matrices
+  mat2_t mat2;
+  mat3_t mat3;
+  mat4_t mat4;
+  matx_t matx;
+
+  parse(config, "matrix2", mat2);
+  parse(config, "matrix3", mat3);
+  parse(config, "matrix4", mat4);
+  parse(config, "matrix", matx);
+
+  cv::Mat cvmat;
+  parse(config, "matrix", cvmat);
+  parse(config, "non_existant_key", cvmat, true);
+
+  std::cout << "bool: " << b << std::endl;
+  std::cout << "int: " << i << std::endl;
+  std::cout << "float: " << f << std::endl;
+  std::cout << "real_t: " << d << std::endl;
+  std::cout << "string: " << s << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "vector2: " << vec2.transpose() << std::endl;
+  std::cout << "vector3: " << vec3.transpose() << std::endl;
+  std::cout << "vector4: " << vec4.transpose() << std::endl;
+  std::cout << "vector: " << vecx.transpose() << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "matrix2: \n" << mat2 << std::endl;
+  std::cout << "matrix3: \n" << mat3 << std::endl;
+  std::cout << "matrix4: \n" << mat4 << std::endl;
+  std::cout << "matrix: \n" << matx << std::endl;
+  std::cout << "cvmatrix: \n" << cvmat << std::endl;
+  std::cout << std::endl;
 
   return 0;
 }
@@ -611,353 +926,139 @@ int test_tic_toc() {
   return 0;
 }
 
-/******************************************************************************
- * FACTOR GRAPH
+/*****************************************************************************
+ * NETWORKING
  *****************************************************************************/
 
-int test_pose() {
-  pose_t pose;
-
-  MU_CHECK(pose.ts == 0);
-  MU_CHECK(fltcmp(pose.param[0], 1.0) == 0);
-  MU_CHECK(fltcmp(pose.param[1], 0.0) == 0);
-  MU_CHECK(fltcmp(pose.param[2], 0.0) == 0);
-  MU_CHECK(fltcmp(pose.param[3], 0.0) == 0);
-  MU_CHECK(fltcmp(pose.param[4], 0.0) == 0);
-  MU_CHECK(fltcmp(pose.param[5], 0.0) == 0);
-  MU_CHECK(fltcmp(pose.param[6], 0.0) == 0);
-
-  pose.param[4] = 0.1;
-  pose.param[5] = 0.2;
-  pose.param[6] = 0.3;
-  MU_CHECK(fltcmp(pose.param[4], 0.1) == 0);
-  MU_CHECK(fltcmp(pose.param[5], 0.2) == 0);
-  MU_CHECK(fltcmp(pose.param[6], 0.3) == 0);
-
+int test_tcp_server() {
+  tcp_server_t server;
+  MU_CHECK(server.port == 8080);
+  MU_CHECK(server.sockfd == -1);
+  MU_CHECK(server.conns.size() == 0);
+  MU_CHECK(server.conn_thread == nullptr);
   return 0;
 }
 
-int test_landmark() {
-  landmark_t landmark{0, vec3_t{1.0, 2.0, 3.0}};
-  MU_CHECK(landmark.id == 0);
+int test_tcp_client() {
+  tcp_client_t client;
+  MU_CHECK(client.server_ip == "127.0.0.1");
+  MU_CHECK(client.server_port == 8080);
+  MU_CHECK(client.sockfd == -1);
+  MU_CHECK(client.loop_cb == nullptr);
   return 0;
 }
 
+int test_tcp_server_config() {
+  tcp_server_t server;
 
-/******************************************************************************
- * DATA
- *****************************************************************************/
-
-int test_csv_rows() {
-  int rows;
-  rows = csv_rows(TEST_DATA);
-  MU_CHECK(rows == 281);
+  MU_CHECK(tcp_server_config(server) == 0);
+  MU_CHECK(server.sockfd != -1);
   return 0;
 }
 
-int test_csv_cols() {
-  int cols;
-  cols = csv_cols(TEST_DATA);
-  MU_CHECK(cols == 2);
+int test_tcp_client_config() {
+  tcp_client_t client;
+
+  MU_CHECK(tcp_client_config(client) == 0);
+  MU_CHECK(client.sockfd != -1);
   return 0;
 }
 
-int test_csv2mat() {
-  matx_t data;
+static void *server_conn_thread(void *arg) {
+  UNUSED(arg);
+  tcp_server_t *server = (tcp_server_t *) arg;
+  const std::string msg_data = "hello world\n";
 
-  csv2mat(TEST_DATA, true, data);
-  MU_CHECK(data.rows() == 280);
-  MU_CHECK(data.cols() == 2);
-  MU_CHECK_NEAR(-2.22482078596, data(0, 0), 1e-4);
-  MU_CHECK_NEAR(9.9625789766, data(0, 1), 1e-4);
-  MU_CHECK_NEAR(47.0485650525, data(279, 0), 1e-4);
-  MU_CHECK_NEAR(613.503760567, data(279, 1), 1e-4);
-
-  return 0;
-}
-
-int test_mat2csv() {
-  matx_t x;
-  matx_t y;
-
-  csv2mat(TEST_DATA, true, x);
-  mat2csv(TEST_OUTPUT, x);
-  csv2mat(TEST_OUTPUT, false, y);
-
-  for (int i = 0; i < x.rows(); i++) {
-    for (int j = 0; j < x.cols(); j++) {
-      MU_CHECK_NEAR(x(i, j), y(i, j), 0.1);
+  // while (1) {
+  for (int i = 0; i < 10; i++) {
+    for (const auto conn : server->conns) {
+      if (write(conn, msg_data.c_str(), msg_data.length()) == -1) {
+        LOG_INFO("Opps!\n");
+      }
     }
+    sleep(1);
+  }
+
+  return nullptr;
+}
+
+static int client_loop_cb(tcp_client_t &client) {
+  UNUSED(client);
+
+  // Read byte
+  uint8_t data = 0;
+  if (read(client.sockfd, &data, 1) == 1) {
+    // printf("%c\n", data);
   }
 
   return 0;
 }
 
-/******************************************************************************
- * CONFIG
- *****************************************************************************/
+static int client_loop_die_cb(tcp_client_t &client) {
+  UNUSED(client);
+  return -1;
+}
 
-int test_config_constructor() {
-  config_t config{TEST_CONFIG};
+static void *server_thread(void *arg) {
+  UNUSED(arg);
 
-  MU_CHECK(config.ok == true);
-  MU_CHECK(config.file_path == TEST_CONFIG);
+  tcp_server_t server;
+  server.conn_thread = server_conn_thread;
+  tcp_server_config(server);
+  tcp_server_loop(server);
+
+  return nullptr;
+}
+
+static void *client_thread(void *arg) {
+  UNUSED(arg);
+
+  tcp_client_t client;
+  client.loop_cb = client_loop_cb;
+  tcp_client_config(client);
+  tcp_client_loop(client);
+
+  return nullptr;
+}
+
+static void *client_bad_thread(void *arg) {
+  UNUSED(arg);
+
+  tcp_client_t client;
+  client.loop_cb = client_loop_die_cb;
+  tcp_client_config(client);
+  tcp_client_loop(client);
+
+  return nullptr;
+}
+
+int test_tcp_server_client_loop() {
+  // Start server
+  LOG_INFO("Starting server");
+  pthread_t server_tid;
+  pthread_create(&server_tid, nullptr, server_thread, nullptr);
+  sleep(1);
+
+  // Start client
+  LOG_INFO("Starting client 1");
+  pthread_t client_tid;
+  pthread_create(&client_tid, nullptr, client_thread, nullptr);
+  sleep(1);
+
+  // Start client
+  LOG_INFO("Starting client 2");
+  pthread_t client2_tid;
+  pthread_create(&client2_tid, nullptr, client_bad_thread, nullptr);
+  sleep(1);
+
+  // Block until both are done
+  pthread_join(server_tid, nullptr);
+  pthread_join(client_tid, nullptr);
+  pthread_join(client2_tid, nullptr);
 
   return 0;
 }
 
-int test_config_parse_primitive() {
-  config_t config{TEST_CONFIG};
-
-  // INTEGER
-  int i = 0;
-  parse(config, "int", i);
-  MU_CHECK(1 == i);
-
-  // FLOAT
-  float f = 0.0f;
-  parse(config, "float", f);
-  MU_CHECK(fltcmp(2.2, f) == 0);
-
-  // real_t
-  real_t d = 0.0;
-  parse(config, "double", d);
-  MU_CHECK(fltcmp(3.3, d) == 0);
-
-  // STRING
-  std::string s;
-  parse(config, "string", s);
-  MU_CHECK("hello world!" == s);
-
-  return 0;
-}
-
-int test_config_parse_array() {
-  config_t config{TEST_CONFIG};
-
-  // BOOL ARRAY
-  std::vector<bool> b_array;
-  parse(config, "bool_array", b_array);
-  MU_CHECK(b_array[0]);
-  MU_CHECK(b_array[1] == false);
-  MU_CHECK(b_array[2]);
-  MU_CHECK(b_array[3] == false);
-
-  // INTEGER
-  std::vector<int> i_array;
-  parse(config, "int_array", i_array);
-  for (int i = 0; i < 4; i++) {
-    MU_CHECK(i_array[i] == i + 1);
-  }
-
-  // FLOAT
-  std::vector<float> f_array;
-  parse(config, "float_array", f_array);
-  for (int i = 0; i < 4; i++) {
-    MU_CHECK_FLOAT((i + 1) * 1.1, f_array[i]);
-  }
-
-  // real_t
-  std::vector<real_t> d_array;
-  parse(config, "double_array", d_array);
-  for (int i = 0; i < 4; i++) {
-    MU_CHECK_FLOAT((i + 1) * 1.1, d_array[i]);
-  }
-
-  // STRING
-  std::vector<std::string> s_array;
-  parse(config, "string_array", s_array);
-  MU_CHECK(s_array[0] == "1.1");
-  MU_CHECK(s_array[1] == "2.2");
-  MU_CHECK(s_array[2] == "3.3");
-  MU_CHECK(s_array[3] == "4.4");
-
-  return 0;
-}
-
-int test_config_parse_vector() {
-  config_t config{TEST_CONFIG};
-
-  // VECTOR 2
-  vec2_t vec2;
-  parse(config, "vector2", vec2);
-  std::cout << vec2.transpose() << std::endl;
-  MU_CHECK_FLOAT(1.1, vec2(0));
-  MU_CHECK_FLOAT(2.2, vec2(1));
-
-  // VECTOR 3
-  vec3_t vec3;
-  parse(config, "vector3", vec3);
-  std::cout << vec3.transpose() << std::endl;
-  MU_CHECK_FLOAT(1.1, vec3(0));
-  MU_CHECK_FLOAT(2.2, vec3(1));
-  MU_CHECK_FLOAT(3.3, vec3(2));
-
-  // VECTOR 4
-  vec4_t vec4;
-  parse(config, "vector4", vec4);
-  std::cout << vec4.transpose() << std::endl;
-  MU_CHECK_FLOAT(1.1, vec4(0));
-  MU_CHECK_FLOAT(2.2, vec4(1));
-  MU_CHECK_FLOAT(3.3, vec4(2));
-  MU_CHECK_FLOAT(4.4, vec4(3));
-
-  // VECTOR X
-  vecx_t vecx;
-  parse(config, "vector", vecx);
-  std::cout << vecx.transpose() << std::endl;
-  for (int i = 0; i < 9; i++) {
-    MU_CHECK_FLOAT((i + 1) * 1.1, vecx(i));
-  }
-
-  return 0;
-}
-
-int test_config_parse_matrix() {
-  config_t config{TEST_CONFIG};
-
-  // MATRIX 2
-  mat2_t mat2;
-  parse(config, "matrix2", mat2);
-  std::cout << mat2 << std::endl;
-
-  MU_CHECK_FLOAT(1.1, mat2(0, 0));
-  MU_CHECK_FLOAT(2.2, mat2(0, 1));
-  MU_CHECK_FLOAT(3.3, mat2(1, 0));
-  MU_CHECK_FLOAT(4.4, mat2(1, 1));
-
-  // MATRIX 3
-  mat3_t mat3;
-  parse(config, "matrix3", mat3);
-  std::cout << mat3 << std::endl;
-
-  int index = 0;
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      MU_CHECK_FLOAT((index + 1) * 1.1, mat3(i, j));
-      index++;
-    }
-  }
-
-  // MATRIX 4
-  mat4_t mat4;
-  parse(config, "matrix4", mat4);
-  std::cout << mat4 << std::endl;
-
-  index = 0;
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      MU_CHECK_FLOAT((index + 1) * 1.1, mat4(i, j));
-      index++;
-    }
-  }
-
-  // MATRIX X
-  matx_t matx;
-  parse(config, "matrix", matx);
-  std::cout << matx << std::endl;
-
-  index = 0;
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 4; j++) {
-      MU_CHECK_FLOAT((index + 1) * 1.1, matx(i, j));
-      index++;
-    }
-  }
-
-  // CV MATRIX
-  cv::Mat cvmat;
-  parse(config, "matrix", cvmat);
-  std::cout << cvmat << std::endl;
-
-  index = 0;
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 4; j++) {
-      MU_CHECK_FLOAT((index + 1) * 1.1, cvmat.at<real_t>(i, j));
-      index++;
-    }
-  }
-
-  return 0;
-}
-
-int test_config_parser_full_example() {
-  config_t config{TEST_CONFIG};
-
-  // Primitives
-  bool b;
-  int i;
-  float f;
-  real_t d;
-
-  parse(config, "bool", b);
-  parse(config, "int", i);
-  parse(config, "float", f);
-  parse(config, "double", d);
-
-  // Array
-  std::string s;
-  std::vector<bool> b_array;
-  std::vector<int> i_array;
-  std::vector<float> f_array;
-  std::vector<real_t> d_array;
-  std::vector<std::string> s_array;
-
-  parse(config, "string", s);
-  parse(config, "bool_array", b_array);
-  parse(config, "int_array", i_array);
-  parse(config, "float_array", f_array);
-  parse(config, "double_array", d_array);
-  parse(config, "string_array", s_array);
-
-  // Vectors
-  vec2_t vec2;
-  vec3_t vec3;
-  vec4_t vec4;
-  vecx_t vecx;
-
-  parse(config, "vector2", vec2);
-  parse(config, "vector3", vec3);
-  parse(config, "vector4", vec4);
-  parse(config, "vector", vecx);
-
-  // Matrices
-  mat2_t mat2;
-  mat3_t mat3;
-  mat4_t mat4;
-  matx_t matx;
-
-  parse(config, "matrix2", mat2);
-  parse(config, "matrix3", mat3);
-  parse(config, "matrix4", mat4);
-  parse(config, "matrix", matx);
-
-  cv::Mat cvmat;
-  parse(config, "matrix", cvmat);
-  parse(config, "non_existant_key", cvmat, true);
-
-  std::cout << "bool: " << b << std::endl;
-  std::cout << "int: " << i << std::endl;
-  std::cout << "float: " << f << std::endl;
-  std::cout << "real_t: " << d << std::endl;
-  std::cout << "string: " << s << std::endl;
-  std::cout << std::endl;
-
-  std::cout << "vector2: " << vec2.transpose() << std::endl;
-  std::cout << "vector3: " << vec3.transpose() << std::endl;
-  std::cout << "vector4: " << vec4.transpose() << std::endl;
-  std::cout << "vector: " << vecx.transpose() << std::endl;
-  std::cout << std::endl;
-
-  std::cout << "matrix2: \n" << mat2 << std::endl;
-  std::cout << "matrix3: \n" << mat3 << std::endl;
-  std::cout << "matrix4: \n" << mat4 << std::endl;
-  std::cout << "matrix: \n" << matx << std::endl;
-  std::cout << "cvmatrix: \n" << cvmat << std::endl;
-  std::cout << std::endl;
-
-  return 0;
-}
 
 /******************************************************************************
  * INTERPOLATION
@@ -2334,146 +2435,501 @@ int test_mav_model_update() {
   return 0;
 }
 
-
 /*****************************************************************************
- * NETWORKING
+ * VISION
+ ****************************************************************************/
+
+#define VISION_TEST_IMAGE "test_data/core/test_image.jpg"
+
+int test_feature_mask() {
+  const auto image = cv::imread(VISION_TEST_IMAGE);
+  if (image.empty()) {
+    LOG_ERROR("Cannot load image [%s]!", VISION_TEST_IMAGE);
+    return -1;
+  }
+
+  const int image_width = image.cols;
+  const int image_height = image.rows;
+  auto keypoints = grid_fast(image, 100, 5, 5, 30);
+  std::vector<cv::Point2f> points;
+  for (auto kp : keypoints) {
+    points.emplace_back(kp.pt);
+  }
+  points.emplace_back(0, 0);
+  points.emplace_back(image_height, image_width);
+  points.emplace_back(0, image_width);
+  points.emplace_back(image_height, 0);
+
+  auto mask = feature_mask(image_width, image_height, points, 4);
+  const bool debug = false;
+  if (debug) {
+    cv::imshow("Mask", convert(mask));
+    cv::waitKey(0);
+  }
+
+  return 0;
+}
+
+int test_grid_fast() {
+  const cv::Mat image = cv::imread(VISION_TEST_IMAGE);
+  if (image.empty()) {
+    LOG_ERROR("Cannot load image [%s]!", VISION_TEST_IMAGE);
+    return -1;
+  }
+
+  auto features = grid_fast(image, // Input image
+                            1000,  // Max number of corners
+                            5,     // Grid rows
+                            5,     // Grid columns
+                            10.0,  // Threshold
+                            true); // Nonmax suppression
+
+  bool debug = false;
+  if (debug) {
+    auto out_image = draw_grid_features(image, 5, 5, features);
+    cv::imshow("Grid Features", out_image);
+    cv::waitKey(0);
+  }
+
+  return 0;
+}
+
+int benchmark_grid_fast() {
+  // Grid-FAST corner detector
+  {
+    const cv::Mat image = cv::imread(VISION_TEST_IMAGE);
+    auto keypoints = grid_fast(image, // Input image
+                               1000,  // Max number of corners
+                               10,    // Grid rows
+                               10,    // Grid columns
+                               10.0,  // Threshold
+                               true); // Nonmax suppression
+
+    // Save keypoints to file
+    matx_t data;
+    data.resize(keypoints.size(), 2);
+    int row_index = 0;
+    for (auto kp : keypoints) {
+      data(row_index, 0) = kp.pt.x;
+      data(row_index, 1) = kp.pt.y;
+      row_index++;
+    }
+    mat2csv("/tmp/grid_fast.csv", data);
+    cv::imwrite("/tmp/grid_fast.png", image);
+  }
+
+  // Standard FAST corner detector
+  {
+    // Prepare input image - make sure it is grayscale
+    const cv::Mat image = cv::imread(VISION_TEST_IMAGE);
+    cv::Mat image_gray;
+    if (image.channels() == 3) {
+      cv::cvtColor(image, image_gray, CV_BGR2GRAY);
+    } else {
+      image_gray = image.clone();
+    }
+
+    std::vector<cv::KeyPoint> keypoints;
+    cv::FAST(image_gray, // Input image
+             keypoints,  // Keypoints
+             10.0,       // Threshold
+             true);      // Nonmax suppression
+
+    // Sort by keypoint response
+    keypoints = sort_keypoints(keypoints, 1000);
+
+    // Draw corners
+    for (auto kp : keypoints) {
+      cv::circle(image, kp.pt, 2, cv::Scalar(0, 255, 0), -1);
+    }
+
+    // Draw
+    cv::imshow("FAST", image);
+    cv::waitKey(1);
+
+    // Save image and keypoints to file
+    matx_t data;
+    data.resize(keypoints.size(), 2);
+    int row_index = 0;
+    for (auto kp : keypoints) {
+      data(row_index, 0) = kp.pt.x;
+      data(row_index, 1) = kp.pt.y;
+      row_index++;
+    }
+    mat2csv("/tmp/fast.csv", data);
+    cv::imwrite("/tmp/fast.png", image);
+  }
+
+  // Visualize results
+  do {
+  } while (cv::waitKey(0) != 113);
+
+  return 0;
+}
+
+int test_grid_good() {
+  const cv::Mat image = cv::imread(VISION_TEST_IMAGE);
+  if (image.empty()) {
+    LOG_ERROR("Cannot load image [%s]!", VISION_TEST_IMAGE);
+    return -1;
+  }
+
+  auto features = grid_good(image, // Input image
+                            1000,  // Max number of corners
+                            5,     // Grid rows
+                            5);    // Grid columns
+
+  bool debug = false;
+  if (debug) {
+    auto out_image = draw_grid_features(image, 5, 5, features);
+    cv::imshow("Grid Features", out_image);
+    cv::waitKey(0);
+  }
+
+  return 0;
+}
+
+struct vision_test_config {
+  const int image_width = 640;
+  const int image_height = 640;
+  const double fov = 60.0;
+
+  const double fx = pinhole_focal_length(image_width, fov);
+  const double fy = pinhole_focal_length(image_height, fov);
+  const double cx = image_width / 2.0;
+  const double cy = image_height / 2.0;
+};
+
+pinhole_t setup_pinhole_model() {
+  struct vision_test_config config;
+  return pinhole_t{config.fx, config.fy, config.cx, config.cy};
+}
+
+int test_radtan_distort_point() {
+  const int nb_points = 100;
+
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    radtan4_t radtan{0.1, 0.01, 0.01, 0.01};
+    vec3_t p{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    vec2_t pixel = distort(radtan, vec2_t{p(0) / p(2), p(1) / p(2)});
+
+    // Use opencv to use radtan distortion to distort point
+    const std::vector<cv::Point3f> points{cv::Point3f(p(0), p(1), p(2))};
+    const cv::Vec3f rvec;
+    const cv::Vec3f tvec;
+    const cv::Mat K = convert(pinhole_K(1.0, 1.0, 0.0, 0.0));
+    const cv::Vec4f D(radtan.k1, radtan.k2, radtan.p1, radtan.p2);
+    std::vector<cv::Point2f> image_points;
+    cv::projectPoints(points, rvec, tvec, K, D, image_points);
+    const vec2_t expected{image_points[0].x, image_points[0].y};
+
+    // // Debug
+    // std::cout << p.transpose() << std::endl;
+    // std::cout << pixel.transpose() << std::endl;
+    // std::cout << expected.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((pixel - expected).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_radtan_distort_points() {
+  // Setup
+  int nb_points = 100;
+  radtan4_t radtan{0.1, 0.01, 0.01, 0.01};
+  matx_t points;
+  points.resize(2, nb_points);
+
+  std::vector<cv::Point3f> cv_points;
+  for (int i = 0; i < nb_points; i++) {
+    vec3_t p{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    points.block(0, i, 2, 1) = vec2_t{p(0) / p(2), p(1) / p(2)};
+    cv_points.emplace_back(p(0), p(1), p(2));
+  }
+
+  // Use opencv to use radtan distortion to distort point
+  const cv::Vec3f rvec;
+  const cv::Vec3f tvec;
+  const cv::Mat K = convert(pinhole_K(1.0, 1.0, 0.0, 0.0));
+  const cv::Vec4f D(radtan.k1, radtan.k2, radtan.p1, radtan.p2);
+  std::vector<cv::Point2f> expected_points;
+  cv::projectPoints(cv_points, rvec, tvec, K, D, expected_points);
+
+  // Distort points
+  matx_t pixels = distort(radtan, points);
+  for (int i = 0; i < nb_points; i++) {
+    const auto pixel = pixels.block(0, i, 2, 1);
+    const auto expected = vec2_t{expected_points[i].x, expected_points[i].y};
+
+    // // Debug
+    // std::cout << i << std::endl;
+    // std::cout << cv_points[i] << std::endl;
+    // std::cout << pixel.transpose() << std::endl;
+    // std::cout << expected.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((pixel - expected).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_radtan_undistort_point() {
+  const int nb_points = 100;
+
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    const radtan4_t radtan{0.1, 0.02, 0.03, 0.04};
+    const vec3_t point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    const vec2_t p{point(0) / point(2), point(1) / point(2)};
+    const vec2_t p_d = distort(radtan, p);
+    const vec2_t p_ud = undistort(radtan, p_d);
+
+    // // Debug
+    // std::cout << p.transpose() << std::endl;
+    // std::cout << p_ud.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((p - p_ud).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_equi_distort_point() {
+  const int nb_points = 100;
+
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    equi4_t equi{0.1, 0.01, 0.01, 0.01};
+    vec3_t point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    vec2_t p{point(0) / point(2), point(1) / point(2)};
+    vec2_t p_d = distort(equi, p);
+
+    // Use opencv to use equi distortion to distort point
+    const std::vector<cv::Point2f> points{cv::Point2f(p(0), p(1))};
+    const cv::Mat K = convert(pinhole_K(1.0, 1.0, 0.0, 0.0));
+    const cv::Vec4f D(equi.k1, equi.k2, equi.k3, equi.k4);
+    std::vector<cv::Point2f> image_points;
+    cv::fisheye::distortPoints(points, image_points, K, D);
+    const vec2_t expected{image_points[0].x, image_points[0].y};
+
+    // // Debug
+    // std::cout << p_d.transpose() << std::endl;
+    // std::cout << expected.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((p_d - expected).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_equi_distort_points() {
+  // Setup
+  int nb_points = 100;
+  equi4_t equi{0.1, 0.01, 0.01, 0.01};
+  matx_t points;
+  points.resize(2, nb_points);
+
+  std::vector<cv::Point2f> cv_points;
+  for (int i = 0; i < nb_points; i++) {
+    vec3_t p{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    points.block(0, i, 2, 1) = vec2_t{p(0) / p(2), p(1) / p(2)};
+    cv_points.emplace_back(p(0) / p(2), p(1) / p(2));
+  }
+
+  // Use opencv to use equi distortion to distort point
+  std::vector<cv::Point2f> expected_points;
+  const cv::Mat K = convert(pinhole_K(1.0, 1.0, 0.0, 0.0));
+  const cv::Vec4f D(equi.k1, equi.k2, equi.k3, equi.k4);
+  cv::fisheye::distortPoints(cv_points, expected_points, K, D);
+
+  // Distort points
+  matx_t points_distorted = distort(equi, points);
+  for (int i = 0; i < nb_points; i++) {
+    const auto p_dist = points_distorted.block(0, i, 2, 1);
+    const auto expected = vec2_t{expected_points[i].x, expected_points[i].y};
+
+    // Debug
+    // std::cout << i << std::endl;
+    // std::cout << p_dist.transpose() << std::endl;
+    // std::cout << expected.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((p_dist - expected).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_equi_undistort_point() {
+  const int nb_points = 100;
+
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    const equi4_t equi{0.1, 0.2, 0.3, 0.4};
+    const vec3_t point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    const vec2_t p{point(0) / point(2), point(1) / point(2)};
+    const vec2_t p_d = distort(equi, p);
+    const vec2_t p_ud = undistort(equi, p_d);
+
+    // // Debug
+    // std::cout << p.transpose() << std::endl;
+    // std::cout << p_d.transpose() << std::endl;
+    // std::cout << p_ud.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((p - p_ud).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_pinhole_constructor() {
+  pinhole_t pinhole;
+
+  MU_CHECK_FLOAT(0.0, pinhole.fx);
+  MU_CHECK_FLOAT(0.0, pinhole.fy);
+  MU_CHECK_FLOAT(0.0, pinhole.cx);
+  MU_CHECK_FLOAT(0.0, pinhole.cy);
+
+  return 0;
+}
+
+int test_pinhole_K() {
+  struct vision_test_config config;
+  pinhole_t pinhole{config.fx, config.fy, config.cx, config.cy};
+  mat3_t K = pinhole_K(config.fx, config.fy, config.cx, config.cy);
+  MU_CHECK((K - pinhole_K(pinhole)).norm() < 1e-4);
+
+  return 0;
+}
+
+int test_pinhole_P() {
+  struct vision_test_config config;
+  pinhole_t pinhole = setup_pinhole_model();
+
+  mat3_t R = euler321(vec3_t{0.0, 0.0, 0.0});
+  vec3_t t{1.0, 2.0, 3.0};
+  mat34_t P = pinhole_P(pinhole_K(pinhole), R, t);
+
+  mat34_t P_expected;
+  // clang-format off
+  P_expected << config.fx, 0.0, config.cx, -1514.26,
+                0.0, config.fy, config.cy, -2068.51,
+                0.0, 0.0, 1.0, -3.0;
+  // clang-format on
+  MU_CHECK(((P - P_expected).norm() < 0.01));
+
+  return 0;
+}
+
+int test_pinhole_focal_length() {
+  const double fov = 90.0;
+  const double fx = pinhole_focal_length(600, fov);
+  const double fy = pinhole_focal_length(600, fov);
+  MU_CHECK_FLOAT(300.0, fy);
+  MU_CHECK_FLOAT(fx, fy);
+
+  const vec2_t image_size{600, 600};
+  const vec2_t focal_length = pinhole_focal_length(image_size, fov, fov);
+  MU_CHECK_FLOAT(fx, focal_length(0));
+  MU_CHECK_FLOAT(fy, focal_length(1));
+
+  return 0;
+}
+
+int test_pinhole_project() {
+  pinhole_t pinhole = setup_pinhole_model();
+  vec3_t p{0.0, 0.0, 10.0};
+
+  vec2_t x = project(pinhole, p);
+  MU_CHECK_FLOAT(320.0, x(0));
+  MU_CHECK_FLOAT(320.0, x(1));
+
+  return 0;
+}
+
+int test_camera_geometry_project_pinhole_radtan() {
+  const pinhole_t camera_model = setup_pinhole_model();
+  const radtan4_t distortion_model{0.1, 0.01, 0.01, 0.01};
+  camera_geometry_t<pinhole_t, radtan4_t> camera(camera_model,
+                                                 distortion_model);
+
+  const vec3_t point{0.1, 0.2, 10.0};
+  const vec2_t pixel = camera_geometry_project(camera, point);
+  std::cout << pixel.transpose() << std::endl;
+
+  return 0;
+}
+
+int test_camera_geometry_project_pinhole_equi() {
+  const pinhole_t camera_model = setup_pinhole_model();
+  const equi4_t distortion_model{0.1, 0.01, 0.01, 0.01};
+  camera_geometry_t<pinhole_t, equi4_t> camera(camera_model, distortion_model);
+
+  const vec3_t point{0.1, 0.2, 10.0};
+  const vec2_t pixel = camera_geometry_project(camera, point);
+  std::cout << pixel.transpose() << std::endl;
+
+  return 0;
+}
+
+/******************************************************************************
+ * FACTOR GRAPH
  *****************************************************************************/
 
-int test_tcp_server() {
-  tcp_server_t server;
-  MU_CHECK(server.port == 8080);
-  MU_CHECK(server.sockfd == -1);
-  MU_CHECK(server.conns.size() == 0);
-  MU_CHECK(server.conn_thread == nullptr);
-  return 0;
-}
+int test_pose() {
+  pose_t pose;
 
-int test_tcp_client() {
-  tcp_client_t client;
-  MU_CHECK(client.server_ip == "127.0.0.1");
-  MU_CHECK(client.server_port == 8080);
-  MU_CHECK(client.sockfd == -1);
-  MU_CHECK(client.loop_cb == nullptr);
-  return 0;
-}
+  MU_CHECK(pose.ts == 0);
+  MU_CHECK(fltcmp(pose.param[0], 1.0) == 0);
+  MU_CHECK(fltcmp(pose.param[1], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[2], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[3], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[4], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[5], 0.0) == 0);
+  MU_CHECK(fltcmp(pose.param[6], 0.0) == 0);
 
-int test_tcp_server_config() {
-  tcp_server_t server;
-
-  MU_CHECK(tcp_server_config(server) == 0);
-  MU_CHECK(server.sockfd != -1);
-  return 0;
-}
-
-int test_tcp_client_config() {
-  tcp_client_t client;
-
-  MU_CHECK(tcp_client_config(client) == 0);
-  MU_CHECK(client.sockfd != -1);
-  return 0;
-}
-
-static void *server_conn_thread(void *arg) {
-  UNUSED(arg);
-  tcp_server_t *server = (tcp_server_t *) arg;
-  const std::string msg_data = "hello world\n";
-
-  // while (1) {
-  for (int i = 0; i < 10; i++) {
-    for (const auto conn : server->conns) {
-      if (write(conn, msg_data.c_str(), msg_data.length()) == -1) {
-        LOG_INFO("Opps!\n");
-      }
-    }
-    sleep(1);
-  }
-
-  return nullptr;
-}
-
-static int client_loop_cb(tcp_client_t &client) {
-  UNUSED(client);
-
-  // Read byte
-  uint8_t data = 0;
-  if (read(client.sockfd, &data, 1) == 1) {
-    // printf("%c\n", data);
-  }
+  pose.param[4] = 0.1;
+  pose.param[5] = 0.2;
+  pose.param[6] = 0.3;
+  MU_CHECK(fltcmp(pose.param[4], 0.1) == 0);
+  MU_CHECK(fltcmp(pose.param[5], 0.2) == 0);
+  MU_CHECK(fltcmp(pose.param[6], 0.3) == 0);
 
   return 0;
 }
 
-static int client_loop_die_cb(tcp_client_t &client) {
-  UNUSED(client);
-  return -1;
-}
-
-static void *server_thread(void *arg) {
-  UNUSED(arg);
-
-  tcp_server_t server;
-  server.conn_thread = server_conn_thread;
-  tcp_server_config(server);
-  tcp_server_loop(server);
-
-  return nullptr;
-}
-
-static void *client_thread(void *arg) {
-  UNUSED(arg);
-
-  tcp_client_t client;
-  client.loop_cb = client_loop_cb;
-  tcp_client_config(client);
-  tcp_client_loop(client);
-
-  return nullptr;
-}
-
-static void *client_bad_thread(void *arg) {
-  UNUSED(arg);
-
-  tcp_client_t client;
-  client.loop_cb = client_loop_die_cb;
-  tcp_client_config(client);
-  tcp_client_loop(client);
-
-  return nullptr;
-}
-
-int test_tcp_server_client_loop() {
-  // Start server
-  LOG_INFO("Starting server");
-  pthread_t server_tid;
-  pthread_create(&server_tid, nullptr, server_thread, nullptr);
-  sleep(1);
-
-  // Start client
-  LOG_INFO("Starting client 1");
-  pthread_t client_tid;
-  pthread_create(&client_tid, nullptr, client_thread, nullptr);
-  sleep(1);
-
-  // Start client
-  LOG_INFO("Starting client 2");
-  pthread_t client2_tid;
-  pthread_create(&client2_tid, nullptr, client_bad_thread, nullptr);
-  sleep(1);
-
-  // Block until both are done
-  pthread_join(server_tid, nullptr);
-  pthread_join(client_tid, nullptr);
-  pthread_join(client2_tid, nullptr);
-
+int test_landmark() {
+  landmark_t landmark{0, vec3_t{1.0, 2.0, 3.0}};
+  MU_CHECK(landmark.id == 0);
   return 0;
 }
-
 
 void test_suite() {
+  // Data
+  MU_ADD_TEST(test_csv_rows);
+  MU_ADD_TEST(test_csv_cols);
+  MU_ADD_TEST(test_csv2mat);
+  MU_ADD_TEST(test_mat2csv);
+
   // Filesystem
   MU_ADD_TEST(test_file_exists);
   MU_ADD_TEST(test_path_split);
   MU_ADD_TEST(test_paths_combine);
+
+  // Config
+  MU_ADD_TEST(test_config_constructor);
+  MU_ADD_TEST(test_config_parse_primitive);
+  MU_ADD_TEST(test_config_parse_array);
+  MU_ADD_TEST(test_config_parse_vector);
+  MU_ADD_TEST(test_config_parse_matrix);
+  MU_ADD_TEST(test_config_parser_full_example);
 
   // Algebra
   MU_ADD_TEST(test_sign);
@@ -2517,23 +2973,12 @@ void test_suite() {
   MU_ADD_TEST(test_ns2sec);
   MU_ADD_TEST(test_tic_toc);
 
-  // Factor graph
-  MU_ADD_TEST(test_pose);
-  MU_ADD_TEST(test_landmark);
-
-  // Data
-  MU_ADD_TEST(test_csv_rows);
-  MU_ADD_TEST(test_csv_cols);
-  MU_ADD_TEST(test_csv2mat);
-  MU_ADD_TEST(test_mat2csv);
-
-  // Config
-  MU_ADD_TEST(test_config_constructor);
-  MU_ADD_TEST(test_config_parse_primitive);
-  MU_ADD_TEST(test_config_parse_array);
-  MU_ADD_TEST(test_config_parse_vector);
-  MU_ADD_TEST(test_config_parse_matrix);
-  MU_ADD_TEST(test_config_parser_full_example);
+  // // Networking
+  // MU_ADD_TEST(test_tcp_server);
+  // MU_ADD_TEST(test_tcp_client);
+  // MU_ADD_TEST(test_tcp_server_config);
+  // MU_ADD_TEST(test_tcp_client_config);
+  // MU_ADD_TEST(test_tcp_server_client_loop);
 
   // Interpolation
   MU_ADD_TEST(test_lerp);
@@ -2546,8 +2991,6 @@ void test_suite() {
   MU_ADD_TEST(test_lerp_data);
   MU_ADD_TEST(test_lerp_data2);
   MU_ADD_TEST(test_lerp_data3);
-
-  // Spline
   MU_ADD_TEST(test_ctraj);
   MU_ADD_TEST(test_ctraj_get_pose);
   MU_ADD_TEST(test_ctraj_get_velocity);
@@ -2572,12 +3015,28 @@ void test_suite() {
   MU_ADD_TEST(test_mav_model_constructor);
   MU_ADD_TEST(test_mav_model_update);
 
-  // // Networking
-  // MU_ADD_TEST(test_tcp_server);
-  // MU_ADD_TEST(test_tcp_client);
-  // MU_ADD_TEST(test_tcp_server_config);
-  // MU_ADD_TEST(test_tcp_client_config);
-  // MU_ADD_TEST(test_tcp_server_client_loop);
+  // Vision
+  MU_ADD_TEST(test_feature_mask);
+  MU_ADD_TEST(test_grid_fast);
+  MU_ADD_TEST(benchmark_grid_fast);
+  MU_ADD_TEST(test_grid_good);
+  MU_ADD_TEST(test_radtan_distort_point);
+  MU_ADD_TEST(test_radtan_distort_points);
+  MU_ADD_TEST(test_radtan_undistort_point);
+  MU_ADD_TEST(test_equi_distort_point);
+  MU_ADD_TEST(test_equi_distort_points);
+  MU_ADD_TEST(test_equi_undistort_point);
+  MU_ADD_TEST(test_pinhole_constructor);
+  MU_ADD_TEST(test_pinhole_K);
+  MU_ADD_TEST(test_pinhole_P);
+  MU_ADD_TEST(test_pinhole_focal_length);
+  MU_ADD_TEST(test_pinhole_project);
+  MU_ADD_TEST(test_camera_geometry_project_pinhole_radtan);
+  MU_ADD_TEST(test_camera_geometry_project_pinhole_equi);
+
+  // Factor graph
+  MU_ADD_TEST(test_pose);
+  MU_ADD_TEST(test_landmark);
 }
 
 } // namespace proto

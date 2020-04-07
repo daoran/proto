@@ -24,7 +24,7 @@ debug() {
 # make deps
 # time make debug
 time make release
-sudo make install
+# sudo make install
 # time make ros
 # sudo make debug_install
 # exit
@@ -66,9 +66,9 @@ sudo make install
 cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
-./calib-test_aprilgrid
-./calib-test_calib_data
-./calib-test_calib_camera
+# ./calib-test_aprilgrid
+# ./calib-test_calib_data
+# ./calib-test_calib_camera
 # ./calib-test_calib_gimbal
 # ./calib-test_sandbox
 # ./calib-test_sandbox2
@@ -76,6 +76,15 @@ cd proto/build/tests
 
 # -- core
 # ./core-test_core
+# ./core-test_camera-camera_geometry
+# ./core-test_camera-equi
+# ./core-test_camera-pinhole
+# ./core-test_camera-radtan
+# ./core-test_feature2d-grid_fast
+# ./core-test_feature2d-grid_good
+# ./core-test_frontend
+# ./core-test_vision_common
+
 
 # -- driver
 # ./driver-test_camera-camera
@@ -109,16 +118,6 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_add_imu_factor
 # ./estimation-test_measurement
 # ./estimation-test_dense
-
-# -- vision
-# ./vision-test_camera-camera_geometry
-# ./vision-test_camera-equi
-# ./vision-test_camera-pinhole
-# ./vision-test_camera-radtan
-# ./vision-test_feature2d-grid_fast
-# ./vision-test_feature2d-grid_good
-# ./vision-test_frontend
-# ./vision-test_vision_common
 
 # -- viz
 # ./viz-test_gui
