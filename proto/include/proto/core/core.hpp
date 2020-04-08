@@ -3084,7 +3084,8 @@ struct projection_t {
  */
 template <typename DM = nodist_t>
 struct pinhole_t : projection_t<DM> {
-  static const size_t params_size = 4;
+  static const size_t proj_params_size = 4;
+  static const size_t dist_params_size = DM::params_size;
 
   pinhole_t() {}
 
@@ -3098,7 +3099,7 @@ struct pinhole_t : projection_t<DM> {
             const int img_h,
             const real_t *proj_params,
             const real_t *dist_params)
-    : projection_t<DM>{img_w, img_h, proj_params, params_size, dist_params} {}
+    : projection_t<DM>{img_w, img_h, proj_params, proj_params_size, dist_params} {}
 
   pinhole_t(const int img_w,
             const int img_h,

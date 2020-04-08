@@ -284,8 +284,7 @@ void lerp_body_poses(const aprilgrids_t &grids,
 
 struct dataset_t {
   aprilgrids_t grids;
-  pinhole_t pinhole;
-  radtan4_t radtan;
+  pinhole_t<radtan4_t> cam_model;
   mat4s_t T_WM;
   mat4_t T_MC;
   mat4_t T_WF;
@@ -349,8 +348,9 @@ dataset_t process_dataset(const std::string &data_path,
   std::cout << "---- Loading AprilGrids" << std::endl;
   aprilgrids_t aprilgrids = load_aprilgrids(grid0_path);
   // -- Camera intrinsics and distortion
-  ds.pinhole = pinhole_t{intrinsics};
-  ds.radtan = radtan4_t{distortion};
+  int img_w = resolution(0);
+  int img_h = resolution(1);
+  ds.cam_model = pinhole_t<radtan4_t>{img_w, img_h, intrinsics, distortion};
   // -- Vicon marker pose
   std::cout << "---- Loading body poses" << std::endl;
   timestamps_t body_timestamps;
@@ -380,8 +380,8 @@ dataset_t process_dataset(const std::string &data_path,
   std::cout << "nb grids: " << ds.grids.size() << std::endl;
   std::cout << "nb poses: " << ds.T_WM.size() << std::endl;
   std::cout << std::endl;
-  std::cout << "Pinhole:\n" << ds.pinhole << std::endl;
-  std::cout << "Radtan:\n" << ds.radtan << std::endl;
+  std::cout << "Pinhole:\n" << ds.cam_model << std::endl;
+  std::cout << "Radtan:\n" << ds.cam_model.distortion << std::endl;
   print_matrix("T_MC", ds.T_MC);
   print_matrix("T_WF", ds.T_WF);
 
@@ -464,8 +464,14 @@ double loop_test_dataset(const std::string test_path,
 
   // Optimized parameters
   vec_t<8> cam_params;
-  cam_params << ds.pinhole.fx, ds.pinhole.fy, ds.pinhole.cx, ds.pinhole.cy,
-                ds.radtan.k1, ds.radtan.k2, ds.radtan.p1, ds.radtan.p2;
+  cam_params << ds.cam_model.fx(),
+                ds.cam_model.fy(),
+                ds.cam_model.cx(),
+                ds.cam_model.cy(),
+                ds.cam_model.distortion.k1(),
+                ds.cam_model.distortion.k2(),
+                ds.cam_model.distortion.p1(),
+                ds.cam_model.distortion.p2();
   const mat4_t T_MC = ds.T_MC;
   const mat4_t T_WF = ds.T_WF;
 
@@ -590,16 +596,18 @@ void show_results(const dataset_t &ds) {
       T_CF.emplace_back(T_CM * T_MW * ds.T_WF);
     }
   }
-  calib_camera_stats<pinhole_radtan4_residual_t>(ds.grids,
-                                                 *ds.pinhole.data,
-                                                 *ds.radtan.data,
-                                                 T_CF,
-                                                 "");
+  calib_camera_stats<pinhole_radtan4_residual_t>(
+    ds.grids,
+    ds.cam_model.params.data(),
+    ds.cam_model.distortion.params.data(),
+    T_CF,
+    ""
+  );
   std::cout << std::endl;
 
   // Optimized Parameters
-  std::cout << "Pinhole:\n" << ds.pinhole << std::endl;
-  std::cout << "Radtan:\n" << ds.radtan << std::endl;
+  std::cout << "Pinhole:\n" << ds.cam_model << std::endl;
+  std::cout << "Radtan:\n" << ds.cam_model.distortion << std::endl;
   print_matrix("T_WF", ds.T_WF);
   print_matrix("T_WM", ds.T_WM[0]);
   print_matrix("T_MC", ds.T_MC);
@@ -617,8 +625,7 @@ void show_results(const dataset_t &ds) {
 void save_results(const std::string &output_path, const dataset_t &ds) {
   LOG_INFO("Saving results to [%s]!", output_path.c_str());
   const aprilgrid_t grid = ds.grids[0];
-  const pinhole_t pinhole = ds.pinhole;
-  const radtan4_t radtan = ds.radtan;
+  const pinhole_t<radtan4_t> cam_model = ds.cam_model;
   const mat4_t T_WF = ds.T_WF;
   const mat4_t T_MC = ds.T_MC;
 
@@ -640,17 +647,17 @@ void save_results(const std::string &output_path, const dataset_t &ds) {
     fprintf(fp, "  distortion_model: \"radtan\"\n");
     fprintf(fp, "  intrinsics: ");
     fprintf(fp, "[");
-    fprintf(fp, "%lf, ", pinhole.fx);
-    fprintf(fp, "%lf, ", pinhole.fy);
-    fprintf(fp, "%lf, ", pinhole.cx);
-    fprintf(fp, "%lf", pinhole.cy);
+    fprintf(fp, "%lf, ", cam_model.fx());
+    fprintf(fp, "%lf, ", cam_model.fy());
+    fprintf(fp, "%lf, ", cam_model.cx());
+    fprintf(fp, "%lf", cam_model.cy());
     fprintf(fp, "]\n");
     fprintf(fp, "  distortion: ");
     fprintf(fp, "[");
-    fprintf(fp, "%lf, ", radtan.k1);
-    fprintf(fp, "%lf, ", radtan.k2);
-    fprintf(fp, "%lf, ", radtan.p1);
-    fprintf(fp, "%lf", radtan.p2);
+    fprintf(fp, "%lf, ", cam_model.distortion.k1());
+    fprintf(fp, "%lf, ", cam_model.distortion.k2());
+    fprintf(fp, "%lf, ", cam_model.distortion.p1());
+    fprintf(fp, "%lf", cam_model.distortion.p2());
     fprintf(fp, "]\n");
     fprintf(fp, "\n");
 
@@ -806,8 +813,7 @@ int main(int argc, char *argv[]) {
   // Calibrate vicon object to camera transform
   dataset_t ds = process_dataset(data_path, calib_results_path, calib_target);
   calib_vicon_marker_solve(ds.grids,
-                           ds.pinhole,
-                           ds.radtan,
+                           ds.cam_model,
                            ds.T_WM,
                            ds.T_MC,
                            ds.T_WF);

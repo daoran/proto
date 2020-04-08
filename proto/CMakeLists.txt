@@ -80,7 +80,6 @@ SET(
   imgui
   imgui_impl
 )
-MESSAGE("OCTOMAP LIBRARY: ${OCTOMAP_LIBRARY}")
 
 # LIBRARY
 ADD_LIBRARY(
@@ -89,21 +88,20 @@ ADD_LIBRARY(
   src/calib/aprilgrid.cpp
   src/calib/calib_data.cpp
   src/calib/calib_camera.cpp
-  # src/calib/calib_vicon_marker.cpp
   # core
   src/core/core.cpp
   src/core/stb.cpp
   # dataset
-  # src/dataset/euroc.cpp
-  # src/dataset/kitti.cpp
-  # src/dataset/timeline.cpp
+  src/dataset/euroc.cpp
+  src/dataset/kitti.cpp
+  src/dataset/timeline.cpp
   # estimation
   src/estimation/ba.cpp
   src/estimation/factor.cpp
   # src/estimation/filter.cpp
   # src/estimation/frontend.cpp
   # src/estimation/dense.cpp
-  # # viz
+  # viz
   # src/viz/viz.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})

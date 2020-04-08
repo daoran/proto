@@ -57,7 +57,7 @@ ros:
 	@cd ${CATKIN_WS}/src && ln -sf ${PROJ_PATH}/proto_ros . \
 		&& . /opt/ros/melodic/setup.sh \
 		&& cd .. \
-		&& catkin build proto_ros -DCMAKE_BUILD_TYPE=DEBUG -j2
+		&& catkin build proto_ros -DCMAKE_BUILD_TYPE=RELEASE -j2
 
 format_code:
 	@bash ./scripts/format_code.bash

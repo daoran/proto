@@ -24,8 +24,8 @@ debug() {
 # make deps
 # time make debug
 time make release
-# sudo make install
-# time make ros
+sudo make install
+time make ros
 # sudo make debug_install
 # exit
 
@@ -66,7 +66,7 @@ time make release
 cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
-# ./calib-test_aprilgrid
+./calib-test_aprilgrid
 # ./calib-test_calib_data
 # ./calib-test_calib_camera
 # ./calib-test_calib_gimbal
@@ -104,7 +104,7 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_cost
 # ./estimation-test_ba --target test_ba_solve
 # ./estimation-test_imu
-./estimation-test_factor --target test_ba_factor_jacobians
+# ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_imu_factor_jacobians
 # ./estimation-test_factor --target test_graph
