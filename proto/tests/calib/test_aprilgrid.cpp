@@ -484,51 +484,6 @@ int test_aprilgrid_detect() {
   return 0;
 }
 
-// int test_aprilgrid_detect2() {
-//   // aprilgrid_t grid;
-//   // MU_CHECK(aprilgrid_configure(grid, TEST_CONF) == 0);
-//
-//   const auto detector = aprilgrid_detector_t();
-//   const cv::Mat image = cv::imread(TEST_IMAGE, cv::IMREAD_GRAYSCALE);
-//   // const mat3_t K = pinhole_K(458.654, 457.296, 367.215, 248.375);
-//   // const vec4_t D{-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05};
-//
-//   apriltag_detector_t *td = apriltag_detector_create();
-// 	td->debug = 1;
-//   apriltag_family_t *tf = tag36h11_create();
-// 	// tf->width_at_border = 4;
-// 	tf->total_width = 6;
-// 	// tf->reversed_border = true;
-//   apriltag_detector_add_family(td, tf);
-//
-// 	image_u8_t im = {
-// 		.width = image.cols,
-// 		.height = image.rows,
-// 		.stride = image.cols,
-// 		.buf = image.data
-// 	};
-// 	// zarray_t *detections = apriltag_detector_detect(td, &im);
-// 	// for (int i = 0; i < zarray_size(detections); i++) {
-// 	// 	apriltag_detection_t *det;
-// 	// 	zarray_get(detections, i, &det);
-// 	// 	// Do something with det here
-// 	// }
-// 	// printf("detected: %d\n", zarray_size(detections));
-// 	zarray_t *quads = apriltag_quad_thresh(td, &im);
-// 	printf("quads: %d\n", zarray_size(quads));
-// 	apriltag_detections_destroy(quads);
-//
-// 	// apriltag_detections_destroy(detections);
-// 	tag36h11_destroy(tf);
-// 	apriltag_detector_destroy(td);
-//
-// 	// cv::imshow("image", image);
-// 	// cv::waitKey(0);
-//
-//
-//   return 0;
-// }
-
 int test_aprilgrid_intersection() {
   aprilgrid_t grid0;
   aprilgrid_t grid1;
@@ -613,7 +568,6 @@ void test_suite() {
   MU_ADD_TEST(test_aprilgrid_save_and_load);
   MU_ADD_TEST(test_aprilgrid_print);
   MU_ADD_TEST(test_aprilgrid_detect);
-  // MU_ADD_TEST(test_aprilgrid_detect2);
   MU_ADD_TEST(test_aprilgrid_intersection);
   MU_ADD_TEST(test_aprilgrid_intersection2);
 }

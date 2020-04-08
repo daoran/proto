@@ -210,7 +210,11 @@ int preprocess_camera_data(const calib_target_t &target,
                            const bool imshow,
                            const bool show_progress) {
   // Get camera image paths
-  const mat3_t cam_K = pinhole_K(image_size, lens_hfov, lens_vfov);
+  const real_t fx = pinhole_focal(image_size(0), lens_hfov);
+  const real_t fy = pinhole_focal(image_size(1), lens_vfov);
+  const real_t cx = image_size(0) / 2.0;
+  const real_t cy = image_size(1) / 2.0;
+  const mat3_t cam_K = pinhole_K(fx, fy, cx, cy);
   const vec4_t cam_D = zeros(4, 1);
 
   return preprocess_camera_data(target,

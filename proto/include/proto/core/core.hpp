@@ -75,6 +75,8 @@
 
 #define ENABLE_MACROS 1
 
+namespace proto {
+
 /******************************************************************************
  *                                DATA TYPE
  *****************************************************************************/
@@ -189,8 +191,6 @@ typedef std::vector<timestamp_t> timestamps_t;
 #endif
 
 #endif // ENABLE_MACROS ------------------------------------------------------
-
-namespace proto {
 
 /******************************************************************************
  *                                  DATA
@@ -2322,7 +2322,7 @@ int mav_model_update(mav_model_t &qm,
                      const real_t dt);
 
 /*****************************************************************************
- *                                  VISION
+ *                                  CV
  ****************************************************************************/
 
 /**
@@ -2683,536 +2683,562 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
                                    const real_t k = 0.04);
 
 /**
- * Radial-tangential distortion
+ * Distortion model
  */
-struct radtan4_t {
-  real_t k1 = 0.0;
-  real_t k2 = 0.0;
-  real_t p1 = 0.0;
-  real_t p2 = 0.0;
-  real_t *data[4] = {&k1, &k2, &p1, &p2};
+struct distortion_t {
+  vecx_t params;
 
-  radtan4_t();
-  radtan4_t(const real_t *distortion_);
-  radtan4_t(const vec4_t &distortion_);
-  radtan4_t(const real_t k1_,
-            const real_t k2_,
-            const real_t p1_,
-            const real_t p2_);
-  radtan4_t(radtan4_t &radtan);
-  radtan4_t(const radtan4_t &radtan);
-  ~radtan4_t();
+  distortion_t() {}
 
-  vec2_t distort(const vec2_t &p);
-  vec2_t distort(const vec2_t &p) const;
+  distortion_t(const vecx_t &params_)
+    : params{params_} {}
 
-  mat2_t J_point(const vec2_t &p);
-  mat2_t J_point(const vec2_t &p) const;
+  distortion_t(const real_t *params_, const size_t params_size_) {
+    params.resize(params_size_);
+    for (size_t i = 0; i < params_size_; i++) {
+      params(i) = params_[i];
+    }
+  }
 
-  mat_t<2, 4> J_param(const vec2_t &p);
-  mat_t<2, 4> J_param(const vec2_t &p) const;
+  virtual ~distortion_t() {}
 
-  void operator=(const radtan4_t &src) throw();
+  virtual vec2_t distort(const vec2_t &p) = 0;
+  virtual vec2_t distort(const vec2_t &p) const = 0;
+
+  virtual vec2_t undistort(const vec2_t &p) = 0;
+  virtual vec2_t undistort(const vec2_t &p) const = 0;
+
+  virtual mat2_t J_point(const vec2_t &p) = 0;
+  virtual mat2_t J_point(const vec2_t &p) const = 0;
+
+  virtual matx_t J_param(const vec2_t &p) = 0;
+  virtual matx_t J_param(const vec2_t &p) const = 0;
+
+  // virtual void operator=(const distortion_t &src) throw() = 0;
 };
 
 /**
- * Create Radial-tangential distortion vector
+ * No distortion
  */
-template <typename T>
-Eigen::Matrix<T, 4, 1> radtan4_D(const T *distortion) {
-  const T k1 = distortion[0];
-  const T k2 = distortion[1];
-  const T p1 = distortion[2];
-  const T p2 = distortion[3];
-  Eigen::Matrix<T, 4, 1> D{k1, k2, p1, p2};
-  return D;
-}
+struct nodist_t : distortion_t {
+  static const size_t params_size = 0;
+
+  nodist_t() {}
+  nodist_t(const vecx_t &) {}
+  nodist_t(const real_t *) {}
+  ~nodist_t() {}
+
+  vec2_t distort(const vec2_t &p) {
+    return static_cast<const nodist_t &>(*this).distort(p);
+  }
+
+  vec2_t distort(const vec2_t &p) const {
+    return p;
+  }
+
+  vec2_t undistort(const vec2_t &p) {
+    return static_cast<const nodist_t &>(*this).undistort(p);
+  }
+
+  vec2_t undistort(const vec2_t &p) const {
+    return p;
+  }
+
+  mat2_t J_point(const vec2_t &p) {
+    return static_cast<const nodist_t &>(*this).J_point(p);
+  }
+
+  mat2_t J_point(const vec2_t &p) const {
+    UNUSED(p);
+    return I(2);
+  }
+
+  matx_t J_param(const vec2_t &p) {
+    return static_cast<const nodist_t &>(*this).J_param(p);
+  }
+
+  matx_t J_param(const vec2_t &p) const {
+    UNUSED(p);
+    matx_t J;
+    J.resize(2, 0);
+    return J;
+  }
+};
 
 /**
- * Type to output stream.
+ * Radial-tangential distortion
  */
+struct radtan4_t : distortion_t {
+  static const size_t params_size = 4;
+
+  radtan4_t() {}
+
+  radtan4_t(const vecx_t &params_)
+    : distortion_t{params_} {}
+
+  radtan4_t(const real_t *dist_params)
+    : distortion_t{dist_params, params_size} {}
+
+  radtan4_t(const real_t k1,
+            const real_t k2,
+            const real_t p1,
+            const real_t p2)
+    : distortion_t{vec4_t{k1, k2, p1, p2}} {}
+
+  virtual ~radtan4_t() {}
+
+  real_t k1() { return static_cast<const radtan4_t &>(*this).k1(); }
+  real_t k2() { return static_cast<const radtan4_t &>(*this).k2(); }
+  real_t p1() { return static_cast<const radtan4_t &>(*this).p1(); }
+  real_t p2() { return static_cast<const radtan4_t &>(*this).p2(); }
+  real_t k1() const { return params(0); }
+  real_t k2() const { return params(1); }
+  real_t p1() const { return params(2); }
+  real_t p2() const { return params(3); }
+
+  vec2_t distort(const vec2_t &p) {
+    return static_cast<const radtan4_t &>(*this).distort(p);
+  }
+
+  vec2_t distort(const vec2_t &p) const {
+    const real_t x = p(0);
+    const real_t y = p(1);
+
+    // Apply radial distortion
+    const real_t x2 = x * x;
+    const real_t y2 = y * y;
+    const real_t r2 = x2 + y2;
+    const real_t r4 = r2 * r2;
+    const real_t radial_factor = 1 + (k1() * r2) + (k2() * r4);
+    const real_t x_dash = x * radial_factor;
+    const real_t y_dash = y * radial_factor;
+
+    // Apply tangential distortion
+    const real_t xy = x * y;
+    const real_t x_ddash = x_dash + (2 * p1() * xy + p2() * (r2 + 2 * x2));
+    const real_t y_ddash = y_dash + (p1() * (r2 + 2 * y2) + 2 * p2() * xy);
+
+    return vec2_t{x_ddash, y_ddash};
+  }
+
+  vec2_t undistort(const vec2_t &p0) {
+    return static_cast<const radtan4_t &>(*this).undistort(p0);
+  }
+
+  vec2_t undistort(const vec2_t &p0) const {
+    vec2_t p = p0;
+    int max_iter = 5;
+
+    for (int i = 0; i < max_iter; i++) {
+      // Error
+      const vec2_t p_distorted = distort(p);
+      const vec2_t err = (p0 - p_distorted);
+
+      // Jacobian
+      mat2_t J = J_point(p);
+      const mat2_t pinv = (J.transpose() * J).inverse() * J.transpose();
+      const vec2_t dp = pinv * err;
+      p = p + dp;
+
+      if ((err.transpose() * err) < 1.0e-15) {
+        break;
+      }
+    }
+
+    return p;
+  }
+
+  mat2_t J_point(const vec2_t &p) {
+    return static_cast<const radtan4_t &>(*this).J_point(p);
+  }
+
+  mat2_t J_point(const vec2_t &p) const {
+    const real_t x = p(0);
+    const real_t y = p(1);
+
+    const real_t x2 = x * x;
+    const real_t y2 = y * y;
+    const real_t r2 = x2 + y2;
+    const real_t r4 = r2 * r2;
+
+    // Let p = [x; y] normalized point
+    // Let p' be the distorted p
+    // The jacobian of p' w.r.t. p (or dp'/dp) is:
+    mat2_t J_point;
+    J_point(0, 0) = 1 + k1() * r2 + k2() * r4;
+    J_point(0, 0) += 2 * p1() * y + 6 * p2() * x;
+    J_point(0, 0) += x * (2 * k1() * x + 4 * k2() * x * r2);
+    J_point(1, 0) = 2 * p1() * x + 2 * p2() * y;
+    J_point(1, 0) += y * (2 * k1() * x + 4 * k2() * x * r2);
+    J_point(0, 1) = J_point(1, 0);
+    J_point(1, 1) = 1 + k1() * r2 + k2() * r4;
+    J_point(1, 1) += 6 * p1() * y + 2 * p2() * x;
+    J_point(1, 1) += y * (2 * k1() * y + 4 * k2() * y * r2);
+    // Above is generated using sympy
+
+    return J_point;
+  }
+
+  matx_t J_param(const vec2_t &p) {
+    return static_cast<const radtan4_t &>(*this).J_param(p);
+  }
+
+  matx_t J_param(const vec2_t &p) const {
+    const real_t x = p(0);
+    const real_t y = p(1);
+
+    const real_t xy = x * y;
+    const real_t x2 = x * x;
+    const real_t y2 = y * y;
+    const real_t r2 = x2 + y2;
+    const real_t r4 = r2 * r2;
+
+    mat_t<2, 4> J_params = zeros(2, 4);
+    J_params(0, 0) = x * r2;
+    J_params(0, 1) = x * r4;
+    J_params(0, 2) = 2 * xy;
+    J_params(0, 3) = 3 * x2 + y2;
+
+    J_params(1, 0) = y * r2;
+    J_params(1, 1) = y * r4;
+    J_params(1, 2) = x2 + 3 * y2;
+    J_params(1, 3) = 2 * xy;
+
+    return J_params;
+  }
+};
+
 std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4);
-
-/**
- * Return distortion coefficients of a Radial-Tangential distortion
- */
-vec4_t distortion_coeffs(const radtan4_t &radtan);
-
-/**
- * Distort points with the radial-tangential distortion model.
- *
- * @param[in] radtan Radial tangential parameters
- * @param[in] point Point
- * @returns Distorted point
- */
-vec2_t distort(const radtan4_t &radtan, const vec2_t &point);
-
-/**
- * Distort 3D points with the radial-tangential distortion model.
- *
- * @param[in] radtan Radial tangential parameters
- * @param[in] point Point
- * @param[out] J_point Jacobian of distorted point w.r.t. projection point
- * @returns Distorted point
- */
-vec2_t distort(const radtan4_t &radtan, const vec2_t &point, mat2_t &J_point);
-
-/**
- * Distort 3D points with the radial-tangential distortion model.
- *
- * @param[in] radtan Radial tangential parameters
- * @param[in] point Point
- * @param[out] J_point Jacobian of distorted point w.r.t. projection point
- * @param[out] J_radtan Jacobian of distorted point w.r.t. radtan params
- * @returns Distorted point
- */
-vec2_t distort(const radtan4_t &radtan,
-               const vec2_t &point,
-               mat2_t &J_point,
-               mat_t<2, 4> &J_params);
-
-/**
- * Distort 3D points with the radial-tangential distortion model.
- *
- * @param[in] radtan Radial tangential parameters
- * @param[in] points Points
- * @returns Distorted points
- */
-matx_t distort(const radtan4_t &radtan, const matx_t &points);
-
-/**
- * Undistort point.
- *
- * @param[in] radtan Radial tangential parameters
- * @param[in] p0 Distorted point
- * @param[in] max_iter Max iteration
- * @returns Undistorted point
- */
-vec2_t undistort(const radtan4_t &radtan,
-                 const vec2_t &p0,
-                 const int max_iter = 5);
 
 /**
  * Equi-distant distortion
  */
-struct equi4_t {
-  real_t k1 = 0.0;
-  real_t k2 = 0.0;
-  real_t k3 = 0.0;
-  real_t k4 = 0.0;
-  real_t *data[4] = {&k1, &k2, &k3, &k4};
+struct equi4_t : distortion_t {
+  static const size_t params_size = 4;
 
-  equi4_t(const real_t k1_,
-          const real_t k2_,
-          const real_t k3_,
-          const real_t k4_);
-  ~equi4_t();
+  equi4_t() {}
+
+  equi4_t(const vecx_t &dist_params)
+    : distortion_t{dist_params} {}
+
+  equi4_t(const real_t *dist_params)
+    : distortion_t{dist_params, params_size} {}
+
+  equi4_t(const real_t k1,
+          const real_t k2,
+          const real_t k3,
+          const real_t k4) {
+    params.resize(4);
+    params << k1, k2, k3, k4;
+  }
+
+  ~equi4_t() {}
+
+  real_t k1() { return static_cast<const equi4_t &>(*this).k1(); }
+  real_t k2() { return static_cast<const equi4_t &>(*this).k2(); }
+  real_t k3() { return static_cast<const equi4_t &>(*this).k3(); }
+  real_t k4() { return static_cast<const equi4_t &>(*this).k4(); }
+
+  real_t k1() const { return this->params(0); }
+  real_t k2() const { return this->params(1); }
+  real_t k3() const { return this->params(2); }
+  real_t k4() const { return this->params(3); }
+
+  vec2_t distort(const vec2_t &p) {
+    return static_cast<const equi4_t &>(*this).distort(p);
+  }
+
+  vec2_t distort(const vec2_t &p) const {
+    const real_t r = p.norm();
+    if (r < 1e-8) {
+      return p;
+    }
+
+    // Apply equi distortion
+    const real_t th = atan(r);
+    const real_t th2 = th * th;
+    const real_t th4 = th2 * th2;
+    const real_t th6 = th4 * th2;
+    const real_t th8 = th4 * th4;
+    const real_t thd = th * (1 + k1() * th2 + k2() * th4 + k3() * th6 + k4() * th8);
+    const real_t x_dash = (thd / r) * p(0);
+    const real_t y_dash = (thd / r) * p(1);
+
+    return vec2_t{x_dash, y_dash};
+  }
+
+  vec2_t undistort(const vec2_t &p) {
+    return static_cast<const equi4_t &>(*this).undistort(p);
+  }
+
+  vec2_t undistort(const vec2_t &p) const {
+    const real_t thd = sqrt(p(0) * p(0) + p(1) * p(1));
+
+    real_t th = thd; // Initial guess
+    for (int i = 20; i > 0; i--) {
+      const real_t th2 = th * th;
+      const real_t th4 = th2 * th2;
+      const real_t th6 = th4 * th2;
+      const real_t th8 = th4 * th4;
+      th = thd / (1 + k1() * th2 + k2() * th4 + k3() * th6 + k4() * th8);
+    }
+
+    const real_t scaling = tan(th) / thd;
+    return vec2_t{p(0) * scaling, p(1) * scaling};
+  }
+
+  mat2_t J_point(const vec2_t &p) {
+    return static_cast<const equi4_t &>(*this).J_point(p);
+  }
+
+  mat2_t J_point(const vec2_t &p) const {
+    const real_t x = p(0);
+    const real_t y = p(1);
+    const real_t r = p.norm();
+    const real_t th = atan(r);
+    const real_t th2 = th * th;
+    const real_t th4 = th2 * th2;
+    const real_t th6 = th4 * th2;
+    const real_t th8 = th4 * th4;
+    const real_t thd = th * (1.0 + k1() * th2 + k2() * th4 + k3() * th6 + k4() * th8);
+    const real_t s = thd / r;
+
+    // Form jacobian
+    const real_t th_r = 1.0 / (r * r + 1.0);
+    real_t thd_th = 1.0 + 3.0 * k1() * th2;
+    thd_th += 5.0 * k2() * th4;
+    thd_th += 7.0 * k3() * th6;
+    thd_th += 9.0 * k4() * th8;
+    const real_t s_r = thd_th * th_r / r - thd / (r * r);
+    const real_t r_x = 1.0 / r * x;
+    const real_t r_y = 1.0 / r * y;
+
+    mat2_t J_point = I(2);
+    J_point(0, 0) = s + x * s_r * r_x;
+    J_point(0, 1) = x * s_r * r_y;
+    J_point(1, 0) = y * s_r * r_x;
+    J_point(1, 1) = s + y * s_r * r_y;
+
+    return J_point;
+  }
+
+  matx_t J_param(const vec2_t &p) {
+    UNUSED(p);
+    return zeros(2, 4);
+  }
+
+  matx_t J_param(const vec2_t &p) const {
+    UNUSED(p);
+    return zeros(2, 4);
+  }
 };
 
-/**
- * Create Equidistant distortion vector
- */
-template <typename T>
-Eigen::Matrix<T, 4, 1> equi4_D(const T *distortion) {
-  const T k1 = distortion[0];
-  const T k2 = distortion[1];
-  const T k3 = distortion[2];
-  const T k4 = distortion[3];
-  Eigen::Matrix<T, 4, 1> D{k1, k2, k3, k4};
-  return D;
-}
-
-/**
- * Type to output stream.
- */
 std::ostream &operator<<(std::ostream &os, const equi4_t &equi4);
 
 /**
- * Distort point with equi-distant distortion model.
- *
- * @param[in] equi Equi-distance parameters
- * @param[in] point Point
- * @returns Distorted point
+ * Projection model
  */
-vec2_t distort(const equi4_t &equi, const vec2_t &point);
+template <typename DM = nodist_t>
+struct projection_t {
+  int img_w = 0;
+  int img_h = 0;
+  vecx_t params;
+  DM distortion;
 
-/**
- * Distort point with equi-distant distortion model.
- *
- * @param[in] equi Equi-distance parameters
- * @param[in] point Point
- * @param[out] J_point Jacobian of equi w.r.t. point
- * @returns Distorted point
- */
-vec2_t distort(const equi4_t &equi, const vec2_t &point, mat2_t &J_point);
+  projection_t() {}
 
-/**
- * Distort point with equi-distant distortion model.
- *
- * @param[in] equi Equi-distance parameters
- * @param[in] points Points
- * @returns Distorted points
- */
-matx_t distort(const equi4_t &equi, const matx_t &points);
+  projection_t(const int img_w_,
+               const int img_h_,
+               const vecx_t &proj_params_,
+               const vecx_t &dist_params_)
+    : img_w{img_w_},
+      img_h{img_h_},
+      params{proj_params_},
+      distortion{dist_params_} {}
 
-/**
- * Un-distort a 2D point with the equi-distant distortion model.
- */
-vec2_t undistort(const equi4_t &equi, const vec2_t &p);
+  projection_t(const int img_w_,
+               const int img_h_,
+               const real_t *proj_params_,
+               const size_t proj_params_size_,
+               const real_t *dist_params_)
+    : img_w{img_w_},
+      img_h{img_h_},
+      distortion{dist_params_} {
+    params.resize(proj_params_size_);
+    for (size_t i = 0; i < proj_params_size_; i++) {
+      params(i) = proj_params_[i];
+    }
+  }
 
-/**
- * Pinhole camera model
- */
-struct pinhole_t {
-  real_t fx = 0.0;
-  real_t fy = 0.0;
-  real_t cx = 0.0;
-  real_t cy = 0.0;
-  real_t *data[4] = {&fx, &fy, &cx, &cy};
+  ~projection_t() {}
 
-  pinhole_t();
-  pinhole_t(const real_t *intrinsics);
-  pinhole_t(const vec4_t &intrinsics);
-  pinhole_t(const mat3_t &K);
-  pinhole_t(const real_t fx_,
-            const real_t fy_,
-            const real_t cx_,
-            const real_t cy_);
-  pinhole_t(pinhole_t &pinhole);
-  pinhole_t(const pinhole_t &pinhole);
-  ~pinhole_t();
+  virtual mat2_t J_point() = 0;
+  virtual mat2_t J_point() const = 0;
 
-  vec2_t project(const vec2_t &p);
-  vec2_t project(const vec2_t &p) const;
-
-  mat2_t J_point();
-  mat2_t J_point() const;
-
-  mat_t<2, 4> J_param(const vec2_t &p);
-  mat_t<2, 4> J_param(const vec2_t &p) const;
-
-  void operator=(const pinhole_t &src) throw();
+  virtual matx_t J_param(const vec2_t &p) = 0;
+  virtual matx_t J_param(const vec2_t &p) const = 0;
 };
 
 /**
- * `pinhole_t` to output stream
+ * Pinhole projection model
  */
-std::ostream &operator<<(std::ostream &os, const pinhole_t &pinhole);
+template <typename DM = nodist_t>
+struct pinhole_t : projection_t<DM> {
+  static const size_t params_size = 4;
 
-/**
- * Form pinhole camera matrix K
- *
- * @param[in] fx Focal length in x-axis
- * @param[in] fy Focal length in y-axis
- * @param[in] cx Principal center in x-axis
- * @param[in] cy Principal center in y-axis
- *
- * @returns Camera matrix K
- */
-mat3_t
-pinhole_K(const real_t fx, const real_t fy, const real_t cx, const real_t cy);
+  pinhole_t() {}
 
-/**
- * Form pinhole camera matrix K
- *
- * @param[in] pinhole Pinhole camera
- * @returns Camera matrix K
- */
-mat3_t pinhole_K(const pinhole_t &pinhole);
+  pinhole_t(const int img_w,
+            const int img_h,
+            const vecx_t &proj_params,
+            const vecx_t &dist_params)
+    : projection_t<DM>{img_w, img_h, proj_params, dist_params} {}
 
-/**
- * Pinhole camera matrix K
- */
-template <typename T>
-static Eigen::Matrix<T, 3, 3> pinhole_K(const T *intrinsics) {
-  const T fx = intrinsics[0];
-  const T fy = intrinsics[1];
-  const T cx = intrinsics[2];
-  const T cy = intrinsics[3];
+  pinhole_t(const int img_w,
+            const int img_h,
+            const real_t *proj_params,
+            const real_t *dist_params)
+    : projection_t<DM>{img_w, img_h, proj_params, params_size, dist_params} {}
 
-  // clang-format off
-  Eigen::Matrix<T, 3, 3> K;
-  K << fx, T(0.0), cx,
-       T(0.0), fy, cy,
-       T(0.0), T(0.0), T(1.0);
-  // clang-format on
-  return K;
+  pinhole_t(const int img_w,
+            const int img_h,
+            const real_t fx,
+            const real_t fy,
+            const real_t cx,
+            const real_t cy)
+      : projection_t<DM>{img_w, img_h, vec4_t{fx, fy, cx, cy}, zeros(0)} {}
+
+  ~pinhole_t() {}
+
+  real_t fx() { return static_cast<const pinhole_t &>(*this).fx(); }
+  real_t fy() { return static_cast<const pinhole_t &>(*this).fy(); }
+  real_t cx() { return static_cast<const pinhole_t &>(*this).cx(); }
+  real_t cy() { return static_cast<const pinhole_t &>(*this).cy(); }
+
+  real_t fx() const { return this->params(0); }
+  real_t fy() const { return this->params(1); }
+  real_t cx() const { return this->params(2); }
+  real_t cy() const { return this->params(3); }
+
+  mat3_t K() {
+    return static_cast<const pinhole_t &>(*this).K();
+  }
+
+  mat3_t K() const {
+    mat3_t K = zeros(3, 3);
+    K(0, 0) = fx();
+    K(1, 1) = fy();
+    K(0, 2) = cx();
+    K(1, 2) = cy();
+    K(2, 2) = 1.0;
+    return K;
+  }
+
+  int project(const vec3_t &p_C, vec2_t &z_hat) {
+    return static_cast<const pinhole_t &>(*this).project(p_C, z_hat);
+  }
+
+  int project(const vec3_t &p_C, vec2_t &z_hat) const {
+    // Check validity of the point, simple depth test.
+    const real_t x = p_C(0);
+    const real_t y = p_C(1);
+    const real_t z = p_C(2);
+    if (fabs(z) < 0.05) {
+      return -1;
+    }
+
+    // Project, distort and then scale and center
+    const vec2_t p{x / z, y / z};
+    const vec2_t p_dist = this->distortion.distort(p);
+    z_hat(0) = fx() * p_dist(0) + cx();
+    z_hat(1) = fy() * p_dist(1) + cy();
+
+    // Check projection
+    const bool x_ok = (z_hat(0) >= 0 && z_hat(0) <= this->img_w);
+    const bool y_ok = (z_hat(1) >= 0 && z_hat(1) <= this->img_h);
+    if (x_ok == false || y_ok == false) {
+      return -2;
+    }
+
+    return 0;
+  }
+
+  int project(const vec3_t &p_C, vec2_t &z_hat, mat_t<2, 3> &J_h) {
+    return static_cast<const pinhole_t &>(*this).project(p_C, z_hat, J_h);
+  }
+
+  int project(const vec3_t &p_C, vec2_t &z_hat, mat_t<2, 3> &J_h) const {
+    int retval = project(p_C, z_hat);
+    if (retval != 0) {
+      return retval;
+    }
+
+    // Projection Jacobian
+    const real_t x = p_C(0);
+    const real_t y = p_C(1);
+    const real_t z = p_C(2);
+    mat_t<2, 3> J_proj = zeros(2, 3);
+    J_proj(0, 0) = 1.0 / z;
+    J_proj(1, 1) = 1.0 / z;
+    J_proj(0, 2) = -x / (z * z);
+    J_proj(1, 2) = -y / (z * z);
+
+    // Measurement Jacobian
+    const vec2_t p{x / z, y / z};
+    J_h = J_point() * this->distortion.J_point(p) * J_proj;
+
+    return 0;
+  }
+
+  mat2_t J_point() {
+    return static_cast<const pinhole_t &>(*this).J_point();
+  }
+
+  mat2_t J_point() const {
+    mat2_t J_K = zeros(2, 2);
+    J_K(0, 0) = fx();
+    J_K(1, 1) = fy();
+    return J_K;
+  }
+
+  matx_t J_param(const vec2_t &p) {
+    return static_cast<const pinhole_t &>(*this).J_param(p);
+  }
+
+  matx_t J_param(const vec2_t &p) const {
+    const real_t x = p(0);
+    const real_t y = p(1);
+
+    mat_t<2, 4> J_param = zeros(2, 4);
+    J_param(0, 0) = x;
+    J_param(1, 1) = y;
+    J_param(0, 2) = 1;
+    J_param(1, 3) = 1;
+
+    return J_param;
+  }
+};
+
+template <typename DM>
+std::ostream &operator<<(std::ostream &os, const pinhole_t<DM> &pinhole) {
+  os << "fx: " << pinhole.fx() << std::endl;
+  os << "fy: " << pinhole.fy() << std::endl;
+  os << "cx: " << pinhole.cx() << std::endl;
+  os << "cy: " << pinhole.cy() << std::endl;
+  return os;
 }
 
-/**
- * Form **theoretical** pinhole camera matrix K
- *
- * @param[in] image_size Image width and height [px]
- * @param[in] lens_hfov Lens horizontal field of view [deg]
- * @param[in] lens_vfov Lens vertical field of view [deg]
- *
- * @returns Camera matrix K
- */
-mat3_t pinhole_K(const vec2_t &image_size,
+real_t pinhole_focal(const int image_size, const real_t fov);
+
+mat3_t pinhole_K(const real_t fx,
+                 const real_t fy,
+                 const real_t cx,
+                 const real_t cy);
+
+mat3_t pinhole_K(const int img_w,
+                 const int img_h,
                  const real_t lens_hfov,
                  const real_t lens_vfov);
-
-/**
- * Form pinhole projection matrix P
- *
- * @param[in] K Camera matrix K
- * @param[in] C_WC Camera rotation matrix in world frame
- * @param[in] r_WC Camera translation vector in world frame
- * @returns Camera projection matrix P
- */
-mat34_t pinhole_P(const mat3_t &K, const mat3_t &C_WC, const vec3_t &r_WC);
-
-/**
- * Pinhole camera model theoretical focal length
- *
- * @param[in] image_width Image width [px]
- * @param[in] fov Field of view [deg]
- * @returns Focal length in pixels
- */
-real_t pinhole_focal_length(const int image_width, const real_t fov);
-
-/**
- * Pinhole camera model theoretical focal length
- *
- * @param[in] image_size Image width and height [px]
- * @param[in] hfov Horizontal field of view [deg]
- * @param[in] vfov Vertical field of view [deg]
- * @returns Focal length in pixels
- */
-vec2_t pinhole_focal_length(const vec2_t &image_size,
-                            const real_t hfov,
-                            const real_t vfov);
-
-/**
- * Project 3D point to image plane (not in pixels)
- *
- * @param[in] pinhole Pinhole camera model
- * @param[in] p Point in 3D
- * @returns Point in image plane (not in pixels)
- */
-vec2_t project(const vec3_t &p);
-
-/**
- * Project 3D point to image plane (not in pixels)
- *
- * @param[in] pinhole Pinhole camera model
- * @param[in] p Point in 3D
- * @param[out] J_P Project Jacobian.
- * @returns Point in image plane (not in pixels)
- */
-vec2_t project(const vec3_t &p, mat_t<2, 3> &J_P);
-
-/**
- * Scale and center projected point to pixel coordinates
- *
- * @param[in] pinhole Pinhole camera model
- * @param[in] p Point
- * @returns Point in pixel coordinates
- */
-vec2_t project(const pinhole_t &pinhole, const vec2_t &p);
-
-/**
- * Project 3D point, scale and center to pixel coordinates
- *
- * @param[in] pinhole Pinhole camera model
- * @param[in] p Point in 3D
- * @returns Point in pixel coordinates
- */
-vec2_t project(const pinhole_t &pinhole, const vec3_t &p);
-
-/**
- * Project 3D point, scale and center to pixel coordinates
- *
- * @param[in] pinhole Pinhole camera model.
- * @param[in] p Point in 3D.
- * @param[out] J_h Measurement Jacobian.
- * @returns Point in pixel coordinates
- */
-vec2_t project(const pinhole_t &model, const vec3_t &p, mat_t<2, 3> &J_h);
-
-template <typename CM, typename DM>
-int project(const int img_w,
-            const int img_h,
-            const CM &cam_model,
-            const DM &dist_model,
-            const vec3_t &p_C,
-            vec2_t &z_hat) {
-  // Check validity of the point, simple depth test.
-  const real_t x = p_C(0);
-  const real_t y = p_C(1);
-  const real_t z = p_C(2);
-  if (fabs(z) < 0.05) {
-    return -1;
-  }
-
-  // Project, distort and then scale and center
-  const vec2_t p{x / z, y / z};
-  const vec2_t p_dist = dist_model.distort(p);
-  z_hat = cam_model.project(p_dist);
-
-  // Check projection
-  const bool x_ok = (z_hat(0) >= 0 && z_hat(0) <= img_w);
-  const bool y_ok = (z_hat(1) >= 0 && z_hat(1) <= img_h);
-  if (x_ok == false || y_ok == false) {
-    return -2;
-  }
-
-  return 0;
-}
-
-template <typename CM, typename DM>
-int project(const int img_w,
-            const int img_h,
-            const CM &cam_model,
-            const DM &dist_model,
-            const vec3_t &p_C,
-            vec2_t &z_hat,
-            mat_t<2, 3> &J_h) {
-  int retval = project(img_w, img_h, cam_model, dist_model, p_C, z_hat);
-  if (retval != 0) {
-    return retval;
-  }
-
-  // Projection Jacobian
-  const real_t x = p_C(0);
-  const real_t y = p_C(1);
-  const real_t z = p_C(2);
-  mat_t<2, 3> J_proj = zeros(2, 3);
-  J_proj(0, 0) = 1.0 / z;
-  J_proj(1, 1) = 1.0 / z;
-  J_proj(0, 2) = -x / (z * z);
-  J_proj(1, 2) = -y / (z * z);
-
-  // Measurement Jacobian
-  const vec2_t p{x / z, y / z};
-  J_h = cam_model.J_point() * dist_model.J_point(p) * J_proj;
-
-  return 0;
-}
-
-/****************************************************************************
- *                            CAMERA GEOMETRY
- ***************************************************************************/
-
-/**
- * Camera geometry
- */
-template <typename CM, typename DM>
-struct camera_geometry_t {
-  int camera_index = 0;
-  CM camera_model;
-  DM distortion_model;
-
-  camera_geometry_t() {}
-
-  camera_geometry_t(const CM &camera_model_, const DM &distortion_model_)
-    : camera_model{camera_model_}, distortion_model{distortion_model_} {}
-
-  ~camera_geometry_t() {}
-};
-
-typedef camera_geometry_t<pinhole_t, radtan4_t> pinhole_radtan4_t;
-typedef camera_geometry_t<pinhole_t, equi4_t> pinhole_equi4_t;
-
-/**
- * Project point to image plane in pixels
- *
- * @param[in] cam Camera geometry
- * @param[in] point Point
- * @returns Point to image plane projection in pixel coordinates
- */
-template <typename CM, typename DM>
-vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
-                               const vec3_t &point);
-
-/**
- * Project point to image plane in pixels
- *
- * @param[in] cam Camera geometry
- * @param[in] p_C 3D Point observed from camera frame
- * @param[out] J_h Measurement model jacobian
- * @returns Point to image plane projection in pixel coordinates
- */
-template <typename CM, typename DM>
-vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
-                               const vec3_t &p_C,
-                               matx_t &J_h);
-
-/**
- * Project point to image plane in pixels
- *
- * @param[in] cam Camera geometry
- * @param[in] p_C 3D Point observed from camera frame
- * @param[out] J_h Measurement model jacobian
- * @param[out] J_params jacobian
- * @returns Point to image plane projection in pixel coordinates
- */
-template <typename CM, typename DM>
-vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
-                               const vec3_t &p_C,
-                               matx_t &J_h,
-                               matx_t &J_params);
-
-/**
- * Project point using pinhole radial-tangential
- */
-template <typename T>
-int pinhole_radtan4_project(const Eigen::Matrix<T, 3, 3> &K,
-                            const Eigen::Matrix<T, 4, 1> &D,
-                            const Eigen::Matrix<T, 3, 1> &point,
-                            Eigen::Matrix<T, 2, 1> &image_point);
-
-/**
- * Project point using pinhole equidistant
- */
-template <typename T>
-static Eigen::Matrix<T, 2, 1>
-pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
-                      const Eigen::Matrix<T, 4, 1> &D,
-                      const Eigen::Matrix<T, 3, 1> &point);
-
-template <typename CM, typename DM>
-vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
-                               const vec3_t &point) {
-  const vec2_t p{point(0) / point(2), point(1) / point(2)};
-  const vec2_t point_distorted = distort(cam.distortion_model, p);
-  return project(cam.camera_model, point_distorted);
-}
-
-template <typename CM, typename DM>
-vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
-                               const vec3_t &p_C,
-                               matx_t &J_h) {
-  mat_t<2, 3> J_P;
-  mat2_t J_K;
-  mat2_t J_D;
-
-  const vec2_t p = project(p_C, J_P);
-  const vec2_t p_distorted = distort(cam.distortion_model, p, J_D);
-  const vec2_t pixel = project(cam.camera_model, p_distorted);
-
-  J_h = J_K * J_D * J_P;
-
-  return pixel;
-}
-
-template <typename CM, typename DM>
-vec2_t camera_geometry_project(const camera_geometry_t<CM, DM> &cam,
-                               const vec3_t &p_C,
-                               matx_t &J_h,
-                               matx_t &J_params) {
-  mat_t<2, 3> J_P;
-  mat2_t J_K;
-  mat2_t J_D;
-
-  const vec2_t p = project(p_C, J_P);
-  const vec2_t p_distorted = distort(cam.distortion_model, p, J_D, J_params);
-  const vec2_t pixel = project(cam.camera_model, p_distorted);
-
-  J_h = J_K * J_D * J_P;
-
-  return pixel;
-}
 
 template <typename T>
 int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
@@ -3301,24 +3327,6 @@ pinhole_equi4_project(const Eigen::Matrix<T, 8, 1> &params,
   const Eigen::Matrix<T, 2, 1> pixel{fx * x_dash + cx, fy * y_dash + cy};
 
   return pixel;
-}
-
-template <typename T>
-static Eigen::Matrix<T, 2, 1>
-pinhole_equi4_project(const Eigen::Matrix<T, 3, 3> &K,
-                      const Eigen::Matrix<T, 4, 1> &D,
-                      const Eigen::Matrix<T, 3, 1> &point) {
-  Eigen::Matrix<T, 8, 1> params;
-  params << K(0, 0);  // fx
-  params << K(1, 1);  // fy
-  params << K(0, 2);  // cx
-  params << K(1, 2);  // cy
-  params << D(0);     // k1
-  params << D(1);     // k2
-  params << D(2);     // p1
-  params << D(3);     // p2
-
-  return pinhole_equi4_project(params, point, point);
 }
 
 /*****************************************************************************

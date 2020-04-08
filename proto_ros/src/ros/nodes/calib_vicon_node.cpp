@@ -463,8 +463,9 @@ double loop_test_dataset(const std::string test_path,
                   ts_offset);
 
   // Optimized parameters
-  const mat3_t K = pinhole_K(ds.pinhole);
-  const vec4_t D{ds.radtan.k1, ds.radtan.k2, ds.radtan.p1, ds.radtan.p2};
+  vec_t<8> cam_params;
+  cam_params << ds.pinhole.fx, ds.pinhole.fy, ds.pinhole.cx, ds.pinhole.cy,
+                ds.radtan.k1, ds.radtan.k2, ds.radtan.p1, ds.radtan.p2;
   const mat4_t T_MC = ds.T_MC;
   const mat4_t T_WF = ds.T_WF;
 
@@ -507,7 +508,7 @@ double loop_test_dataset(const std::string test_path,
         const vec3_t p_C = (T_CW * T_WF * p_F.homogeneous()).head(3);
 
         vec2_t z_hat;
-        if (pinhole_radtan4_project(K, D, p_C, z_hat) != 0) {
+        if (pinhole_radtan4_project(cam_params, p_C, z_hat) != 0) {
           continue;
         }
         residuals.emplace_back(keypoints[i] - z_hat);
@@ -521,22 +522,22 @@ double loop_test_dataset(const std::string test_path,
     for (const auto &p_F : object_points) {
       const vec3_t p_C = (T_CW * T_WF * p_F.homogeneous()).head(3);
 
-      {
-        double fx = K(0, 0);
-        double fy = K(1, 1);
-        double cx = K(0, 2);
-        double cy = K(1, 2);
-        double x = fx * (p_C(0) / p_C(2)) + cx;
-        double y = fy * (p_C(1) / p_C(2)) + cy;
-        const bool x_ok = (x > 0 && x < img_w);
-        const bool y_ok = (y > 0 && y < img_h);
-        if (!x_ok && !y_ok) {
-          continue;
-        }
-      }
+      // {
+      //   double fx = K(0, 0);
+      //   double fy = K(1, 1);
+      //   double cx = K(0, 2);
+      //   double cy = K(1, 2);
+      //   double x = fx * (p_C(0) / p_C(2)) + cx;
+      //   double y = fy * (p_C(1) / p_C(2)) + cy;
+      //   const bool x_ok = (x > 0 && x < img_w);
+      //   const bool y_ok = (y > 0 && y < img_h);
+      //   if (!x_ok && !y_ok) {
+      //     continue;
+      //   }
+      // }
 
       vec2_t img_pt;
-      if (pinhole_radtan4_project(K, D, p_C, img_pt) != 0) {
+      if (pinhole_radtan4_project(cam_params, p_C, img_pt) != 0) {
         continue;
       }
 

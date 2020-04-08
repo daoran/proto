@@ -5,6 +5,6 @@
 #include "proto/calib/calib_camera.hpp"
 #include "proto/calib/calib_data.hpp"
 #include "proto/calib/calib_gimbal.hpp"
-#include "proto/calib/calib_vicon_marker.hpp"
+// #include "proto/calib/calib_vicon_marker.hpp"
 
 #endif // PROTO_CALIB_HPP

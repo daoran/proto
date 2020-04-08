@@ -139,16 +139,142 @@ int calib_camera_stats(const aprilgrids_t &aprilgrids,
  */
 mat4s_t calib_generate_poses(const calib_target_t &target);
 
+static int process_aprilgrid(const aprilgrid_t &aprilgrid,
+                             double *intrinsics,
+                             double *distortion,
+                             calib_pose_t *pose,
+                             ceres::Problem &problem) {
+  for (const auto &tag_id : aprilgrid.ids) {
+    // Get keypoints
+    vec2s_t keypoints;
+    if (aprilgrid_get(aprilgrid, tag_id, keypoints) != 0) {
+      LOG_ERROR("Failed to get AprilGrid keypoints!");
+      return -1;
+    }
+
+    // Get object points
+    vec3s_t object_points;
+    if (aprilgrid_object_points(aprilgrid, tag_id, object_points) != 0) {
+      LOG_ERROR("Failed to calculate AprilGrid object points!");
+      return -1;
+    }
+
+    // Form residual block
+    for (size_t i = 0; i < 4; i++) {
+      const auto kp = keypoints[i];
+      const auto obj_pt = object_points[i];
+
+      const auto residual = new pinhole_radtan4_residual_t{kp, obj_pt};
+      const auto cost_func =
+          new ceres::AutoDiffCostFunction<pinhole_radtan4_residual_t,
+                                          2, // Size of: residual
+                                          4, // Size of: intrinsics
+                                          4, // Size of: distortion
+                                          4, // Size of: q_CF
+                                          3  // Size of: r_CF
+                                          >(residual);
+
+      // const auto cost_func = new intrinsics_residual_t{kp, obj_pt};
+      problem.AddResidualBlock(cost_func, // Cost function
+                               NULL,      // Loss function
+                               intrinsics,
+                               distortion,
+                               pose->q,
+                               pose->r);
+    }
+  }
+
+  return 0;
+}
+
 /**
  * Calibrate camera intrinsics and relative pose between camera and fiducial
  * calibration target.
  *
  * @returns 0 or -1 for success or failure
  */
+template <typename DM>
 int calib_camera_solve(const aprilgrids_t &aprilgrids,
-                       pinhole_t &pinhole,
-                       radtan4_t &radtan,
-                       mat4s_t &poses);
+                       pinhole_t<DM> &cam,
+                       mat4s_t &T_CF) {
+  // Optimization variables
+  std::vector<calib_pose_t> T_CF_params;
+  for (size_t i = 0; i < aprilgrids.size(); i++) {
+    T_CF_params.emplace_back(aprilgrids[i].T_CF);
+  }
+
+  // Setup optimization problem
+  ceres::Problem::Options problem_options;
+  problem_options.local_parameterization_ownership =
+      ceres::DO_NOT_TAKE_OWNERSHIP;
+  ceres::Problem problem(problem_options);
+  ceres::EigenQuaternionParameterization quaternion_parameterization;
+
+  // Process all aprilgrid data
+  for (size_t i = 0; i < aprilgrids.size(); i++) {
+    int retval = process_aprilgrid(aprilgrids[i],
+                                   cam.params.data(),
+                                   cam.distortion.params.data(),
+                                   &T_CF_params[i],
+                                   problem);
+    if (retval != 0) {
+      LOG_ERROR("Failed to add AprilGrid measurements to problem!");
+      return -1;
+    }
+    problem.SetParameterization(T_CF_params[i].q,
+                                &quaternion_parameterization);
+  }
+
+  // Set solver options
+  ceres::Solver::Options options;
+  options.minimizer_progress_to_stdout = true;
+  options.max_num_iterations = 100;
+  // options.check_gradients = true;
+
+  // Solve
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
+  std::cout << summary.FullReport() << std::endl;
+
+  // Clean up
+  T_CF.clear();
+  for (auto pose_param : T_CF_params) {
+    T_CF.push_back(pose_param.T());
+  }
+
+  return 0;
+}
+
+static int save_results(const std::string &save_path,
+                        const vec2_t &resolution,
+                        const pinhole_t<radtan4_t> &cam) {
+  std::ofstream outfile(save_path);
+
+  // Check if file is ok
+  if (outfile.good() != true) {
+    return -1;
+  }
+
+  // Save results
+  const std::string indent = "  ";
+  {
+    const std::string res = vec2str(resolution);
+    const std::string intrinsics = arr2str(cam.params.data(), 4);
+    const std::string distortion = arr2str(cam.distortion.params.data(), 4);
+    outfile << "cam0:" << std::endl;
+    outfile << indent << "camera_model: \"pinhole\"" << std::endl;
+    outfile << indent << "distortion_model: \"radtan\"" << std::endl;
+    outfile << indent << "resolution: " << res << std::endl;
+    outfile << indent << "intrinsics: " << intrinsics << std::endl;
+    outfile << indent << "distortion: " << distortion << std::endl;
+    outfile << std::endl;
+  }
+
+  // Finsh up
+  outfile.close();
+
+  return 0;
+}
 
 /**
  * Calibrate camera intrinsics and relative pose between camera and fiducial
@@ -178,37 +304,134 @@ int calib_camera_solve(const aprilgrids_t &aprilgrids,
  *
  * @returns 0 or -1 for success or failure
  */
-int calib_camera_solve(const std::string &config_file);
+int calib_camera_solve(const std::string &config_file) {
+  // Calibration config data
+  std::string data_path;
+  std::string results_fpath;
+  bool imshow = false;
+  vec2_t resolution{0.0, 0.0};
+  real_t lens_hfov = 0.0;
+  real_t lens_vfov = 0.0;
+  std::string camera_model;
+  std::string distortion_model;
 
-aprilgrid_t
-nbv_create_aprilgrid(const calib_target_t &target,
-                     const camera_geometry_t<pinhole_t, radtan4_t> &camera,
-                     const vec2_t &resolution,
-                     const mat4_t &T_CF);
+  // Parse calib config file
+  config_t config{config_file};
+  parse(config, "settings.data_path", data_path);
+  parse(config, "settings.results_fpath", results_fpath);
+  parse(config, "settings.imshow", imshow, true);
+  parse(config, "cam0.resolution", resolution);
+  parse(config, "cam0.lens_hfov", lens_hfov);
+  parse(config, "cam0.lens_vfov", lens_vfov);
+  parse(config, "cam0.camera_model", camera_model);
+  parse(config, "cam0.distortion_model", distortion_model);
 
-void nbv_draw_aprilgrid(const aprilgrid_t grid,
-                        const pinhole_t &pinhole,
-                        const radtan4_t &radtan,
-                        const mat4_t &T_CT,
-                        cv::Mat &frame);
+  // Load calibration target
+  calib_target_t calib_target;
+  if (calib_target_load(calib_target, config_file, "calib_target") != 0) {
+    LOG_ERROR("Failed to load calib target in [%s]!", config_file.c_str());
+    return -1;
+  }
 
-void nbv_find(const calib_target_t &target,
-              const aprilgrids_t &aprilgrids,
-              const pinhole_t &pinhole,
-              const radtan4_t &radtan,
-              mat4_t &nbv_pose,
-              aprilgrid_t &nbv_grid);
+  // Prepare aprilgrid data directory
+  const auto grid_data_path = data_path + "/grid0/cam0/data";
+  if (dir_exists(grid_data_path) == false) {
+    dir_create(grid_data_path);
+  }
 
-real_t calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
-                              pinhole_t &pinhole,
-                              radtan4_t &radtan,
-                              mat4s_t &T_CF);
+  // Preprocess calibration data
+  const auto cam_data_path = data_path + "/cam0/data";
+  int retval = preprocess_camera_data(calib_target,
+                                      cam_data_path,
+                                      resolution,
+                                      lens_hfov,
+                                      lens_vfov,
+                                      grid_data_path,
+                                      imshow);
+  if (retval != 0) {
+    LOG_ERROR("Failed to preprocess calibration data!");
+    return -1;
+  }
 
-int calib_camera_nbv(const std::string &target_path,
-                     const size_t max_frames = 15);
+  // Load calibration data
+  aprilgrids_t grids;
+  timestamps_t timestamps;
+  retval = load_camera_calib_data(grid_data_path, grids, timestamps);
+  if (retval != 0) {
+    LOG_ERROR("Failed to load camera calibration data!");
+    return -1;
+  }
 
-int calib_camera_batch(const std::string &target_path,
-                       const size_t max_frames = 15);
+  // Setup initial camera intrinsics and distortion for optimization
+  const int img_w = resolution(0);
+  const int img_h = resolution(1);
+  const real_t fx = pinhole_focal(img_w, lens_hfov);
+  const real_t fy = pinhole_focal(img_h, lens_vfov);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const vec4_t proj_params{fx, fy, cx, cy};
+  const vec4_t dist_params{0.01, 0.0001, 0.0001, 0.0001};
+  pinhole_t<radtan4_t> cam{img_w, img_h, proj_params, dist_params};
+
+  // Calibrate camera
+  LOG_INFO("Calibrating camera!");
+  mat4s_t T_CF;
+  if (calib_camera_solve(grids, cam, T_CF) != 0) {
+    LOG_ERROR("Failed to calibrate camera data!");
+    return -1;
+  }
+
+  // Show results
+  std::cout << "Optimization results:" << std::endl;
+  std::cout << cam << std::endl;
+  // std::cout << radtan << std::endl;
+  calib_camera_stats<pinhole_radtan4_residual_t>(grids,
+                                                 cam.params.data(),
+                                                 cam.distortion.params.data(),
+                                                 T_CF,
+                                                 "");
+
+  // Save results
+  printf("\x1B[92mSaving optimization results to [%s]\033[0m\n",
+         results_fpath.c_str());
+  if (save_results(results_fpath, resolution, cam) != 0) {
+    LOG_ERROR("Failed to save results to [%s]!", results_fpath.c_str());
+    return -1;
+  }
+
+  return 0;
+}
+
+//
+// // aprilgrid_t
+// // nbv_create_aprilgrid(const calib_target_t &target,
+// //                      const camera_geometry_t<pinhole_t, radtan4_t> &camera,
+// //                      const vec2_t &resolution,
+// //                      const mat4_t &T_CF);
+// //
+// // void nbv_draw_aprilgrid(const aprilgrid_t grid,
+// //                         const pinhole_t &pinhole,
+// //                         const radtan4_t &radtan,
+// //                         const mat4_t &T_CT,
+// //                         cv::Mat &frame);
+// //
+// // void nbv_find(const calib_target_t &target,
+// //               const aprilgrids_t &aprilgrids,
+// //               const pinhole_t &pinhole,
+// //               const radtan4_t &radtan,
+// //               mat4_t &nbv_pose,
+// //               aprilgrid_t &nbv_grid);
+//
+// // real_t calib_camera_nbv_solve(aprilgrids_t &aprilgrids,
+// //                               pinhole_t &pinhole,
+// //                               radtan4_t &radtan,
+// //                               mat4s_t &T_CF);
+// //
+// // int calib_camera_nbv(const std::string &target_path,
+// //                      const size_t max_frames = 15);
+//
+// int calib_camera_batch(const std::string &target_path,
+//                        const size_t max_frames = 15);
 
 /*****************************************************************************
  *                             STEREO CAMERA
@@ -297,17 +520,193 @@ struct stereo_residual_t {
   }
 };
 
-/**
- * Calibrate stereo camera extrinsics and relative pose between cameras.
- */
+static int process_aprilgrid(const aprilgrid_t &cam0_aprilgrid,
+                             const aprilgrid_t &cam1_aprilgrid,
+                             real_t *cam0_intrinsics,
+                             real_t *cam0_distortion,
+                             real_t *cam1_intrinsics,
+                             real_t *cam1_distortion,
+                             calib_pose_t *T_C0C1,
+                             calib_pose_t *T_C0F,
+                             ceres::Problem *problem) {
+  for (const auto &tag_id : cam0_aprilgrid.ids) {
+    // Get keypoints
+    vec2s_t cam0_keypoints;
+    if (aprilgrid_get(cam0_aprilgrid, tag_id, cam0_keypoints) != 0) {
+      LOG_ERROR("Failed to get AprilGrid keypoints!");
+      return -1;
+    }
+    vec2s_t cam1_keypoints;
+    if (aprilgrid_get(cam1_aprilgrid, tag_id, cam1_keypoints) != 0) {
+      LOG_ERROR("Failed to get AprilGrid keypoints!");
+      return -1;
+    }
+
+    // Get object points
+    vec3s_t object_points;
+    if (aprilgrid_object_points(cam0_aprilgrid, tag_id, object_points) != 0) {
+      LOG_ERROR("Failed to calculate AprilGrid object points!");
+      return -1;
+    }
+
+    // Form residual block
+    for (size_t i = 0; i < 4; i++) {
+      const auto kp0 = cam0_keypoints[i];
+      const auto kp1 = cam1_keypoints[i];
+      const auto obj_pt = object_points[i];
+      const auto residual = new stereo_residual_t{kp0, kp1, obj_pt};
+
+      const auto cost_func =
+          new ceres::AutoDiffCostFunction<stereo_residual_t,
+                                          4, // Size of: residual
+                                          4, // Size of: cam0_intrinsics
+                                          4, // Size of: cam0_distortion
+                                          4, // Size of: cam1_intrinsics
+                                          4, // Size of: cam1_distortion
+                                          4, // Size of: q_C0C1
+                                          3, // Size of: t_C0C1
+                                          4, // Size of: q_C0F
+                                          3  // Size of: t_C0F
+                                          >(residual);
+
+      problem->AddResidualBlock(cost_func, // Cost function
+                                NULL,      // Loss function
+                                cam0_intrinsics,
+                                cam0_distortion,
+                                cam1_intrinsics,
+                                cam1_distortion,
+                                T_C0C1->q,
+                                T_C0C1->r,
+                                T_C0F->q,
+                                T_C0F->r);
+    }
+  }
+
+  return 0;
+}
+
+template <typename DM>
+static int save_results(const std::string &save_path,
+                        const vec2_t &cam0_resolution,
+                        const vec2_t &cam1_resolution,
+                        const pinhole_t<DM> &cam0,
+                        const pinhole_t<DM> &cam1,
+                        const mat4_t &T_C0C1) {
+  std::ofstream outfile(save_path);
+  const std::string indent = "  ";
+
+  // Check if file is ok
+  if (outfile.good() != true) {
+    return -1;
+  }
+
+  // Save cam0 results
+  {
+    const std::string resolution = vec2str(cam0_resolution);
+    const std::string intrinsics = arr2str(cam0.params.data(), 4);
+    const std::string distortion = arr2str(cam0.distortion.params.data(), 4);
+    outfile << "cam0:" << std::endl;
+    outfile << indent << "camera_model: \"pinhole\"" << std::endl;
+    outfile << indent << "distortion_model: \"radtan\"" << std::endl;
+    outfile << indent << "resolution: " << resolution << std::endl;
+    outfile << indent << "intrinsics: " << intrinsics << std::endl;
+    outfile << indent << "distortion: " << distortion << std::endl;
+    outfile << std::endl;
+  }
+
+  // Save cam1 results
+  {
+    const std::string resolution = vec2str(cam1_resolution);
+    const std::string intrinsics = arr2str(cam1.params.data(), 4);
+    const std::string distortion = arr2str(cam1.distortion.params.data(), 4);
+    outfile << "cam1:" << std::endl;
+    outfile << indent << "camera_model: \"pinhole\"" << std::endl;
+    outfile << indent << "distortion_model: \"radtan\"" << std::endl;
+    outfile << indent << "resolution: " << resolution << std::endl;
+    outfile << indent << "intrinsics: " << intrinsics << std::endl;
+    outfile << indent << "distortion: " << distortion << std::endl;
+    outfile << std::endl;
+  }
+
+  // Save camera extrinsics
+  outfile << "T_C0C1:" << std::endl;
+  outfile << indent << "rows: 4" << std::endl;
+  outfile << indent << "cols: 4" << std::endl;
+  outfile << indent << "data: [" << std::endl;
+  outfile << mat2str(T_C0C1, indent + indent) << std::endl;
+  outfile << indent << "]" << std::endl;
+  outfile << std::endl;
+
+  // Finsh up
+  outfile.close();
+
+  return 0;
+}
+
+template <typename DM>
 int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
                        const std::vector<aprilgrid_t> &cam1_aprilgrids,
-                       pinhole_t &cam0_pinhole,
-                       radtan4_t &cam0_radtan,
-                       pinhole_t &cam1_pinhole,
-                       radtan4_t &cam1_radtan,
+                       pinhole_t<DM> &cam0,
+                       pinhole_t<DM> &cam1,
                        mat4_t &T_C0C1,
-                       mat4s_t &T_C0F);
+                       mat4s_t &T_C0F) {
+  assert(cam0_aprilgrids.size() == cam1_aprilgrids.size());
+
+  // Optimization variables
+  calib_pose_t extrinsic_param{T_C0C1};
+  std::vector<calib_pose_t> pose_params;
+  for (size_t i = 0; i < cam0_aprilgrids.size(); i++) {
+    pose_params.emplace_back(cam0_aprilgrids[i].T_CF);
+  }
+
+  // Setup optimization problem
+  // clang-format off
+  ceres::Problem::Options problem_options;
+  problem_options.local_parameterization_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  std::unique_ptr<ceres::Problem> problem(new ceres::Problem(problem_options));
+  ceres::EigenQuaternionParameterization quaternion_parameterization;
+  // clang-format on
+
+  // Process all aprilgrid data
+  for (size_t i = 0; i < cam0_aprilgrids.size(); i++) {
+    int retval = process_aprilgrid(cam0_aprilgrids[i],
+                                   cam1_aprilgrids[i],
+                                   cam0.params.data(),
+                                   cam0.distortion.params.data(),
+                                   cam1.params.data(),
+                                   cam1.distortion.params.data(),
+                                   &extrinsic_param,
+                                   &pose_params[i],
+                                   problem.get());
+    if (retval != 0) {
+      LOG_ERROR("Failed to add AprilGrid measurements to problem!");
+      return -1;
+    }
+
+    problem->SetParameterization(pose_params[i].q,
+                                 &quaternion_parameterization);
+  }
+  problem->SetParameterization(extrinsic_param.q,
+                               &quaternion_parameterization);
+
+  // Set solver options
+  ceres::Solver::Options options;
+  options.minimizer_progress_to_stdout = true;
+  options.max_num_iterations = 100;
+
+  // Solve
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, problem.get(), &summary);
+  std::cout << summary.FullReport() << std::endl;
+
+  // Finish up
+  T_C0C1 = extrinsic_param.T();
+  for (auto pose_param : pose_params) {
+    T_C0F.emplace_back(pose_param.T());
+  }
+
+  return 0;
+}
 
 /**
  * Calibrate stereo camera extrinsics and relative pose between cameras. This
@@ -340,8 +739,158 @@ int calib_stereo_solve(const std::vector<aprilgrid_t> &cam0_aprilgrids,
  *       camera_model: "pinhole"
  *       distortion_model: "radtan"
  */
-int calib_stereo_solve(const std::string &config_file);
+int calib_stereo_solve(const std::string &config_file) {
+  // Calibration settings
+  std::string data_path;
+  std::string results_fpath;
 
+  vec2_t cam0_resolution{0.0, 0.0};
+  real_t cam0_lens_hfov = 0.0;
+  real_t cam0_lens_vfov = 0.0;
+  std::string cam0_camera_model;
+  std::string cam0_distortion_model;
+
+  vec2_t cam1_resolution{0.0, 0.0};
+  real_t cam1_lens_hfov = 0.0;
+  real_t cam1_lens_vfov = 0.0;
+  std::string cam1_camera_model;
+  std::string cam1_distortion_model;
+
+  // Parse calibration config
+  config_t config{config_file};
+
+  parse(config, "settings.data_path", data_path);
+  parse(config, "settings.results_fpath", results_fpath);
+  parse(config, "cam0.resolution", cam0_resolution);
+  parse(config, "cam0.lens_hfov", cam0_lens_hfov);
+  parse(config, "cam0.lens_vfov", cam0_lens_vfov);
+  parse(config, "cam0.camera_model", cam0_camera_model);
+  parse(config, "cam0.distortion_model", cam0_distortion_model);
+  parse(config, "cam1.resolution", cam1_resolution);
+  parse(config, "cam1.lens_hfov", cam1_lens_hfov);
+  parse(config, "cam1.lens_vfov", cam1_lens_vfov);
+  parse(config, "cam1.camera_model", cam1_camera_model);
+  parse(config, "cam1.distortion_model", cam1_distortion_model);
+
+  // Load calibration target
+  calib_target_t calib_target;
+  if (calib_target_load(calib_target, config_file, "calib_target") != 0) {
+    LOG_ERROR("Failed to load calib target [%s]!", config_file.c_str());
+    return -1;
+  }
+
+  // Prepare aprilgrid data directory
+  const auto cam0_grid_path = data_path + "/grid0/cam0/data";
+  if (dir_exists(cam0_grid_path) == false) {
+    dir_create(cam0_grid_path);
+  }
+  const auto cam1_grid_path = data_path + "/grid0/cam1/data";
+  if (dir_exists(cam1_grid_path) == false) {
+    dir_create(cam1_grid_path);
+  }
+
+  // Preprocess calibration data
+  int retval = preprocess_stereo_data(calib_target,
+                                      data_path + "/cam0/data",
+                                      data_path + "/cam1/data",
+                                      cam0_resolution,
+                                      cam1_resolution,
+                                      cam0_lens_hfov,
+                                      cam0_lens_vfov,
+                                      cam1_lens_hfov,
+                                      cam1_lens_vfov,
+                                      cam0_grid_path,
+                                      cam1_grid_path);
+  if (retval != 0) {
+    LOG_ERROR("Failed to preprocess calibration data!");
+    return -1;
+  }
+
+  // Load stereo calibration data
+  aprilgrids_t cam0_aprilgrids;
+  aprilgrids_t cam1_aprilgrids;
+  retval = load_stereo_calib_data(cam0_grid_path,
+                                  cam1_grid_path,
+                                  cam0_aprilgrids,
+                                  cam1_aprilgrids);
+  if (retval != 0) {
+    LOG_ERROR("Failed to load calibration data!");
+    return -1;
+  }
+
+  // Setup initial cam0 intrinsics and distortion
+  // -- cam0
+  pinhole_t<radtan4_t> cam0;
+  {
+    const int img_w = cam0_resolution(0);
+    const int img_h = cam0_resolution(1);
+    const real_t fx = pinhole_focal(img_w, cam0_lens_hfov);
+    const real_t fy = pinhole_focal(img_h, cam0_lens_vfov);
+    const real_t cx = img_w / 2.0;
+    const real_t cy = img_h / 2.0;
+    const vec4_t proj_params{fx, fy, cx, cy};
+    const vec4_t dist_params{0.01, 0.0001, 0.0001, 0.0001};
+    cam0 = pinhole_t<radtan4_t>{img_w, img_h, proj_params, dist_params};
+  }
+  // -- cam1
+  pinhole_t<radtan4_t> cam1;
+  {
+    const int img_w = cam1_resolution(0);
+    const int img_h = cam1_resolution(1);
+    const real_t fx = pinhole_focal(img_w, cam1_lens_hfov);
+    const real_t fy = pinhole_focal(img_h, cam1_lens_vfov);
+    const real_t cx = img_w / 2.0;
+    const real_t cy = img_h / 2.0;
+    const vec4_t proj_params{fx, fy, cx, cy};
+    const vec4_t dist_params{0.01, 0.0001, 0.0001, 0.0001};
+    cam1 = pinhole_t<radtan4_t>{img_w, img_h, proj_params, dist_params};
+  }
+
+  // Calibrate stereo
+  LOG_INFO("Calibrating stereo camera!");
+  mat4_t T_C0C1 = I(4);
+  mat4s_t poses;
+  retval = calib_stereo_solve(cam0_aprilgrids,
+                              cam1_aprilgrids,
+                              cam0,
+                              cam1,
+                              T_C0C1,
+                              poses);
+  if (retval != 0) {
+    LOG_ERROR("Failed to calibrate stereo cameras!");
+    return -1;
+  }
+
+  // Show results
+  std::cout << "Optimization results:" << std::endl;
+  // -- cam0
+  std::cout << "cam0:" << std::endl;
+  std::cout << cam0 << std::endl;
+  std::cout << cam0.distortion << std::endl;
+  // -- cam1
+  std::cout << "cam1:" << std::endl;
+  std::cout << cam1 << std::endl;
+  std::cout << cam1.distortion << std::endl;
+  // -- cam0-cam1 extrinsics
+  std::cout << "T_C0C1:\n" << T_C0C1 << std::endl;
+  std::cout << std::endl;
+
+  // Save results
+  printf("\x1B[92mSaving optimization results to [%s]\033[0m\n",
+         results_fpath.c_str());
+  retval = save_results(results_fpath,
+                        cam0_resolution,
+                        cam1_resolution,
+                        cam0,
+                        cam1,
+                        T_C0C1);
+  if (retval != 0) {
+    LOG_ERROR("Failed to save results to [%s]!", results_fpath.c_str());
+    return -1;
+  }
+
+  return 0;
+}
 
 } //  namespace proto
 #endif // PROTO_CALIB_CALIB_CAMERA_HPP
