@@ -133,16 +133,16 @@ FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   # atl-test_atl
-  calib-test_aprilgrid
-  calib-test_calib_camera
-  calib-test_calib_data
+  # calib-test_aprilgrid
+  # calib-test_calib_camera
+  # calib-test_calib_data
   # calib-test_calib_gimbal
   # calib-test_sandbox
   # calib-test_sandbox2
   core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
-  estimation-test_ba
+  # estimation-test_ba
   # estimation-test_dense
   estimation-test_factor
   # estimation-test_frontend

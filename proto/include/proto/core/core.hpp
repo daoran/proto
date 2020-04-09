@@ -2711,8 +2711,8 @@ struct distortion_t {
   virtual mat2_t J_point(const vec2_t &p) = 0;
   virtual mat2_t J_point(const vec2_t &p) const = 0;
 
-  virtual matx_t J_param(const vec2_t &p) = 0;
-  virtual matx_t J_param(const vec2_t &p) const = 0;
+  virtual matx_t J_dist(const vec2_t &p) = 0;
+  virtual matx_t J_dist(const vec2_t &p) const = 0;
 
   // virtual void operator=(const distortion_t &src) throw() = 0;
 };
@@ -2753,11 +2753,11 @@ struct nodist_t : distortion_t {
     return I(2);
   }
 
-  matx_t J_param(const vec2_t &p) {
-    return static_cast<const nodist_t &>(*this).J_param(p);
+  matx_t J_dist(const vec2_t &p) {
+    return static_cast<const nodist_t &>(*this).J_dist(p);
   }
 
-  matx_t J_param(const vec2_t &p) const {
+  matx_t J_dist(const vec2_t &p) const {
     UNUSED(p);
     matx_t J;
     J.resize(2, 0);
@@ -2879,11 +2879,11 @@ struct radtan4_t : distortion_t {
     return J_point;
   }
 
-  matx_t J_param(const vec2_t &p) {
-    return static_cast<const radtan4_t &>(*this).J_param(p);
+  matx_t J_dist(const vec2_t &p) {
+    return static_cast<const radtan4_t &>(*this).J_dist(p);
   }
 
-  matx_t J_param(const vec2_t &p) const {
+  matx_t J_dist(const vec2_t &p) const {
     const real_t x = p(0);
     const real_t y = p(1);
 
@@ -2893,18 +2893,18 @@ struct radtan4_t : distortion_t {
     const real_t r2 = x2 + y2;
     const real_t r4 = r2 * r2;
 
-    mat_t<2, 4> J_params = zeros(2, 4);
-    J_params(0, 0) = x * r2;
-    J_params(0, 1) = x * r4;
-    J_params(0, 2) = 2 * xy;
-    J_params(0, 3) = 3 * x2 + y2;
+    mat_t<2, 4> J_dist = zeros(2, 4);
+    J_dist(0, 0) = x * r2;
+    J_dist(0, 1) = x * r4;
+    J_dist(0, 2) = 2 * xy;
+    J_dist(0, 3) = 3 * x2 + y2;
 
-    J_params(1, 0) = y * r2;
-    J_params(1, 1) = y * r4;
-    J_params(1, 2) = x2 + 3 * y2;
-    J_params(1, 3) = 2 * xy;
+    J_dist(1, 0) = y * r2;
+    J_dist(1, 1) = y * r4;
+    J_dist(1, 2) = x2 + 3 * y2;
+    J_dist(1, 3) = 2 * xy;
 
-    return J_params;
+    return J_dist;
   }
 };
 
@@ -3022,14 +3022,33 @@ struct equi4_t : distortion_t {
     return J_point;
   }
 
-  matx_t J_param(const vec2_t &p) {
-    UNUSED(p);
-    return zeros(2, 4);
+  matx_t J_dist(const vec2_t &p) {
+    return static_cast<const equi4_t &>(*this).J_dist(p);
   }
 
-  matx_t J_param(const vec2_t &p) const {
-    UNUSED(p);
-    return zeros(2, 4);
+  matx_t J_dist(const vec2_t &p) const {
+    const real_t x = p(0);
+    const real_t y = p(1);
+    const real_t r = p.norm();
+    const real_t th = atan(r);
+
+    const real_t th3 = th * th * th;
+    const real_t th5 = th3 * th * th;
+    const real_t th7 = th5 * th * th;
+    const real_t th9 = th7 * th * th;
+
+    matx_t J_dist = zeros(2, 4);
+    J_dist(0, 0) = x * th3 / r;
+    J_dist(0, 1) = x * th5 / r;
+    J_dist(0, 2) = x * th7 / r;
+    J_dist(0, 3) = x * th9 / r;
+
+    J_dist(1, 0) = y * th3 / r;
+    J_dist(1, 1) = y * th5 / r;
+    J_dist(1, 2) = y * th7 / r;
+    J_dist(1, 3) = y * th9 / r;
+
+    return J_dist;
   }
 };
 
@@ -3075,8 +3094,11 @@ struct projection_t {
   virtual mat2_t J_point() = 0;
   virtual mat2_t J_point() const = 0;
 
-  virtual matx_t J_param(const vec2_t &p) = 0;
-  virtual matx_t J_param(const vec2_t &p) const = 0;
+  virtual matx_t J_proj(const vec2_t &p) = 0;
+  virtual matx_t J_proj(const vec2_t &p) const = 0;
+
+  virtual matx_t J_dist(const vec2_t &p) = 0;
+  virtual matx_t J_dist(const vec2_t &p) const = 0;
 };
 
 /**
@@ -3202,23 +3224,34 @@ struct pinhole_t : projection_t<DM> {
     return J_K;
   }
 
-  matx_t J_param(const vec2_t &p) {
-    return static_cast<const pinhole_t &>(*this).J_param(p);
+  matx_t J_proj(const vec2_t &p) {
+    return static_cast<const pinhole_t &>(*this).J_proj(p);
   }
 
-  matx_t J_param(const vec2_t &p) const {
+  matx_t J_proj(const vec2_t &p) const {
     const real_t x = p(0);
     const real_t y = p(1);
 
-    mat_t<2, 4> J_param = zeros(2, 4);
-    J_param(0, 0) = x;
-    J_param(1, 1) = y;
-    J_param(0, 2) = 1;
-    J_param(1, 3) = 1;
+    mat_t<2, 4> J_proj = zeros(2, 4);
+    J_proj(0, 0) = x;
+    J_proj(1, 1) = y;
+    J_proj(0, 2) = 1;
+    J_proj(1, 3) = 1;
 
-    return J_param;
+    return J_proj;
+  }
+
+  matx_t J_dist(const vec2_t &p) {
+    return static_cast<const pinhole_t &>(*this).J_dist(p);
+  }
+
+  matx_t J_dist(const vec2_t &p) const {
+    return J_point() * this->distortion.J_dist(p);
   }
 };
+
+typedef pinhole_t<radtan4_t> pinhole_radtan4_t;
+typedef pinhole_t<equi4_t> pinhole_equi4_t;
 
 template <typename DM>
 std::ostream &operator<<(std::ostream &os, const pinhole_t<DM> &pinhole) {
@@ -3226,6 +3259,9 @@ std::ostream &operator<<(std::ostream &os, const pinhole_t<DM> &pinhole) {
   os << "fy: " << pinhole.fy() << std::endl;
   os << "cx: " << pinhole.cx() << std::endl;
   os << "cy: " << pinhole.cy() << std::endl;
+
+  os << std::endl;
+  os << pinhole.distortion << std::endl;
   return os;
 }
 
@@ -3235,6 +3271,8 @@ mat3_t pinhole_K(const real_t fx,
                  const real_t fy,
                  const real_t cx,
                  const real_t cy);
+
+mat3_t pinhole_K(const vec4_t &params);
 
 mat3_t pinhole_K(const int img_w,
                  const int img_h,
@@ -3290,46 +3328,6 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
   }
 }
 
-template <typename T>
-static Eigen::Matrix<T, 2, 1>
-pinhole_equi4_project(const Eigen::Matrix<T, 8, 1> &params,
-                      const Eigen::Matrix<T, 3, 1> &point) {
-  // Project
-  const T x = point(0) / point(2);
-  const T y = point(1) / point(2);
-
-  // Pinhole params
-  const T fx = params(0);
-  const T fy = params(1);
-  const T cx = params(2);
-  const T cy = params(3);
-
-  // Radial distortion params
-  const T k1 = params(4);
-  const T k2 = params(5);
-  const T k3 = params(6);
-  const T k4 = params(7);
-  const T r = sqrt(pow(x, 2) + pow(y, 2));
-  // if (r < 1e-8) {
-  //   return point;
-  // }
-
-  // Apply equi distortion
-  const T th = atan(r);
-  const T th2 = th * th;
-  const T th4 = th2 * th2;
-  const T th6 = th4 * th2;
-  const T th8 = th4 * th4;
-  const T th_d = th * (T(1) + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
-  const T x_dash = (th_d / r) * x;
-  const T y_dash = (th_d / r) * y;
-
-  // Scale distorted point
-  const Eigen::Matrix<T, 2, 1> pixel{fx * x_dash + cx, fy * y_dash + cy};
-
-  return pixel;
-}
-
 /*****************************************************************************
  *                              FACTOR GRAPH
  *****************************************************************************/
@@ -3361,75 +3359,228 @@ struct param_t {
 struct pose_t : param_t {
   real_t param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-  pose_t();
-  pose_t(const real_t *data);
-  pose_t(const mat4_t &tf_);
-  pose_t(const quat_t &q_, const vec3_t &r_);
-  pose_t(const size_t id, const timestamp_t &ts_,
-         const mat4_t &tf);
+  pose_t() {}
 
-  quat_t rot() const;
-  vec3_t trans() const;
-  mat4_t tf() const;
+  pose_t(const real_t *param_) {
+    param[0] = param_[0];
+    param[1] = param_[1];
+    param[2] = param_[2];
+    param[3] = param_[3];
+    param[4] = param_[4];
+    param[5] = param_[5];
+    param[6] = param_[6];
+  }
 
-  quat_t rot();
-  vec3_t trans();
-  mat4_t tf();
+  pose_t(const mat4_t &tf_) {
+    const quat_t q{tf_quat(tf_)};
+    const vec3_t r{tf_trans(tf_)};
 
-  vec3_t vec();
-  real_t *data();
-  void set_trans(const vec3_t &r);
-  void set_rot(const quat_t &q);
-  void set_rot(const mat3_t &C);
-  void plus(const vecx_t &dx);
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+
+    param[4] = r(0);
+    param[5] = r(1);
+    param[6] = r(2);
+  }
+
+  pose_t(const quat_t &q_, const vec3_t &r_)
+      : param{q_.w(), q_.x(), q_.y(), q_.z(), r_(0), r_(1), r_(2)} {}
+
+  pose_t(const size_t id_,
+                const timestamp_t &ts_,
+                const mat4_t &T)
+      : param_t{id_, ts_, 6} {
+    const quat_t q{tf_quat(T)};
+    const vec3_t r{tf_trans(T)};
+
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+
+    param[4] = r(0);
+    param[5] = r(1);
+    param[6] = r(2);
+  }
+
+  quat_t rot() const {
+    return quat_t{param[0], param[1], param[2], param[3]};
+  }
+
+  vec3_t trans() const {
+    return vec3_t{param[4], param[5], param[6]};
+  }
+
+  mat4_t tf() const {
+    return proto::tf(rot(), trans());
+  }
+
+  quat_t rot() { return static_cast<const pose_t &>(*this).rot(); }
+  vec3_t trans() { return static_cast<const pose_t &>(*this).trans(); }
+  mat4_t tf() { return static_cast<const pose_t &>(*this).tf(); }
+
+  real_t *data() { return param; }
+
+  void set_trans(const vec3_t &r) {
+    param[4] = r(0);
+    param[5] = r(1);
+    param[6] = r(2);
+  }
+
+  void set_rot(const quat_t &q) {
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+  }
+
+  void set_rot(const mat3_t &C) {
+    quat_t q{C};
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+  }
+
+  void plus(const vecx_t &dx) {
+    // Rotation component
+    real_t half_norm = 0.5 * dx.head<3>().norm();
+    real_t dq_w = cos(half_norm);
+    real_t dq_x = sinc(half_norm) * 0.5 * dx(0);
+    real_t dq_y = sinc(half_norm) * 0.5 * dx(1);
+    real_t dq_z = sinc(half_norm) * 0.5 * dx(2);
+    quat_t dq{dq_w, dq_x, dq_y, dq_z};
+    quat_t q{param[0], param[1], param[2], param[3]};
+    quat_t q_updated = q * dq;
+    param[0] = q_updated.w();
+    param[1] = q_updated.x();
+    param[2] = q_updated.y();
+    param[3] = q_updated.z();
+
+    // Translation component
+    param[3] = param[3] - dx[3];
+    param[4] = param[4] - dx[4];
+    param[5] = param[5] - dx[5];
+  }
 };
 
 struct landmark_t : param_t {
   real_t param[3] = {0.0, 0.0, 0.0};
 
-  landmark_t(const vec3_t &p_W_);
-  landmark_t(const size_t id_, const vec3_t &p_W_);
+  landmark_t(const vec3_t &p_W_)
+    : param{p_W_(0), p_W_(1), p_W_(2)} {}
 
-  vec3_t vec();
-  real_t *data();
-  void plus(const vecx_t &dx);
+  landmark_t(const size_t id_, const vec3_t &p_W_)
+    : param_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
+
+  vec3_t vec() { return map_vec_t<3>(param); };
+
+  real_t *data() { return param; };
+
+  void plus(const vecx_t &dx) {
+    param[0] = param[0] + dx[0];
+    param[1] = param[1] + dx[1];
+    param[2] = param[2] + dx[2];
+  }
 };
 
 struct camera_param_t : param_t {
   int cam_index = 0;
   real_t param[4] = {0.0, 0.0, 0.0, 0.0};
 
-  camera_param_t(const size_t id_, const int cam_index_, const vec4_t &param_);
+  camera_param_t(const size_t id_,
+                 const int cam_index_,
+                 const vec4_t &param_)
+    : param_t{id_, 4}, cam_index{cam_index_} {
+    for (int i = 0; i < param_.size(); i++) {
+      param[i] = param_(i);
+    }
+  }
 
-  vec4_t vec();
-  real_t *data();
-  void plus(const vecx_t &dx);
+  vec4_t vec() { return map_vec_t<4>(param); };
+
+  real_t *data() { return param; };
+
+  void plus(const vecx_t &dx) {
+    param[0] = param[0] + dx[0];
+    param[1] = param[1] + dx[1];
+    param[2] = param[2] + dx[2];
+    param[3] = param[3] + dx[3];
+  }
 };
 
 struct dist_param_t : param_t {
   int cam_index = 0;
   real_t param[4] = {0.0, 0.0, 0.0, 0.0};
 
-  dist_param_t(const vec4_t &param_);
-  dist_param_t(const size_t id_, const int cam_index_, const vec4_t &param_);
+  dist_param_t(const size_t id_,
+               const int cam_index_,
+               const vec4_t &param_)
+    : param_t{id_, 4}, cam_index{cam_index_} {
+    for (int i = 0; i < param_.size(); i++) {
+      param[i] = param_(i);
+    }
+  }
 
-  vec4_t vec();
-  real_t *data();
-  void plus(const vecx_t &dx);
+  vec4_t vec() { return map_vec_t<4>(param); };
+
+  real_t *data() { return param; };
+
+  void plus(const vecx_t &dx) {
+    param[0] = param[0] + dx[0];
+    param[1] = param[1] + dx[1];
+    param[2] = param[2] + dx[2];
+    param[3] = param[3] + dx[3];
+  }
 };
 
 struct sb_param_t : param_t {
   real_t param[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   sb_param_t(const size_t id_,
-             const timestamp_t &ts_,
-             const vec3_t &v_,
-             const vec3_t &ba_,
-             const vec3_t &bg_);
+            const timestamp_t &ts_,
+            const vec3_t &v_,
+            const vec3_t &ba_,
+            const vec3_t &bg_)
+    : param_t{id_, ts_, 9} {
+    // Velocity
+    param[0] = v_(0);
+    param[1] = v_(1);
+    param[2] = v_(2);
 
-  vec_t<9> vec();
-  real_t *data();
-  void plus(const vecx_t &dx);
+    // Accel bias
+    param[3] = ba_(0);
+    param[4] = ba_(1);
+    param[5] = ba_(2);
+
+    // Gyro bias
+    param[6] = bg_(0);
+    param[7] = bg_(1);
+    param[8] = bg_(2);
+  }
+
+  vec_t<9> vec() { return map_vec_t<9>(param); };
+
+  real_t *data() { return param; };
+
+  void plus(const vecx_t &dx) {
+    // Velocity
+    param[0] = param[0] + dx[0];
+    param[1] = param[1] + dx[1];
+    param[2] = param[2] + dx[2];
+
+    // Accel bias
+    param[3] = param[3] + dx[3];
+    param[4] = param[4] + dx[4];
+    param[5] = param[5] + dx[5];
+
+    // Gyro bias
+    param[6] = param[6] + dx[6];
+    param[7] = param[7] + dx[7];
+    param[8] = param[8] + dx[8];
+  }
 };
 
 typedef std::vector<pose_t> poses_t;
@@ -3441,7 +3592,6 @@ poses_t load_poses(const std::string &csv_path);
 
 std::vector<keypoints_t> load_keypoints(const std::string &data_path);
 void keypoints_print(const keypoints_t &keypoints);
-
 
 } //  namespace proto
 #endif // PROTO_CORE_HPP

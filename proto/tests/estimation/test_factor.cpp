@@ -11,35 +11,6 @@ namespace proto {
   real_t threshold = 1e-4;
 #endif
 
-// template <typename CAMERA>
-// static vec2_t camera_project(const int img_w,
-//                              const int img_h,
-//                              const mat4_t &T_WC,
-//                              const vec3_t &p_W,
-//                              const PM &pm,
-//                              const DM &dm) {
-//   const mat4_t T_CW = T_WC.inverse();
-//   const vec3_t p_C = tf_point(T_CW, p_W);
-//   vec2_t z_hat;
-//   if (project(img_w, img_h, pm, dm, p_C, z_hat) != 0) {
-//     FATAL("Failed to project point!");
-//   }
-//   return z_hat;
-// }
-//
-// template <typename CAMERA>
-// static vec2_t camera_project(const int img_w,
-//                              const int img_h,
-//                              const mat4_t &T_WS,
-//                              const mat4_t &T_SC,
-//                              const vec3_t &p_W,
-//                              const PM &pm,
-//                              const DM &dm) {
-//   const mat4_t T_WC = T_WS * T_SC;
-//   return camera_project(img_w, img_h, T_WC, p_W, pm, dm);
-// }
-
-
 void save_data(const std::string &save_path,
                const timestamps_t &ts,
                const vec3s_t &y) {
@@ -280,7 +251,7 @@ int test_ba_factor_jacobians() {
   const size_t id = 0;
   const int cam_index = 0;
   const vec2_t z{0.0, 0.0};
-  ba_factor_t<pinhole_t<radtan4_t>> factor{id, ts, cam_index, img_w, img_h, z};
+  ba_factor_t<pinhole_radtan4_t> factor{id, ts, cam_index, img_w, img_h, z};
 
   // Evaluate factor
   real_t *params[4] {
@@ -294,27 +265,27 @@ int test_ba_factor_jacobians() {
   // Check ba factor parameter jacobians
   int retval = 0;
   // -- Check measurement model jacobian
-  retval = check_J_h<pinhole_t<radtan4_t>>(
+  retval = check_J_h<pinhole_radtan4_t>(
     img_w, img_h, proj_params, dist_params);
   MU_CHECK(retval == 0);
   // -- Check camera pose jacobian
   const mat_t<2, 6> J0 = factor.jacobians[0];
-  retval = check_ba_factor_J_cam_pose<pinhole_t<radtan4_t>>(
+  retval = check_ba_factor_J_cam_pose<pinhole_radtan4_t>(
     img_w, img_h, T_WC, p_W, proj_params, dist_params, J0);
   MU_CHECK(retval == 0);
   // -- Check landmark jacobian
   const mat_t<2, 3> J1 = factor.jacobians[1];
-  retval = check_ba_factor_J_landmark<pinhole_t<radtan4_t>>(
+  retval = check_ba_factor_J_landmark<pinhole_radtan4_t>(
     img_w, img_h, T_WC, p_W, proj_params, dist_params, J1);
   MU_CHECK(retval == 0);
   // -- Check cam params jacobian
   const mat_t<2, 4> J2 = factor.jacobians[2];
-  retval = check_J_proj_params<pinhole_t<radtan4_t>>(
+  retval = check_J_proj_params<pinhole_radtan4_t>(
     img_w, img_h, T_WC, p_W, proj_params, dist_params, J2);
   MU_CHECK(retval == 0);
   // -- Check dist params jacobian
   const mat_t<2, 4> J3 = factor.jacobians[3];
-  retval = check_J_dist_params<pinhole_t<radtan4_t>>(
+  retval = check_J_dist_params<pinhole_radtan4_t>(
     img_w, img_h, T_WC, p_W, proj_params, dist_params, J3);
   MU_CHECK(retval == 0);
 
@@ -474,7 +445,7 @@ int test_cam_factor_jacobians() {
   const size_t id = 0;
   const int cam_index = 0;
   const vec2_t z{0.0, 0.0};
-  cam_factor_t<pinhole_t<radtan4_t>> factor{id, ts, cam_index, img_w, img_h, z};
+  cam_factor_t<pinhole_radtan4_t> factor{id, ts, cam_index, img_w, img_h, z};
 
   // Evaluate factor
   real_t *params[5] {
@@ -489,32 +460,32 @@ int test_cam_factor_jacobians() {
   // Check camera factor parameter jacobians
   int retval = 0;
   // -- Check measurement model jacobian
-  retval = check_J_h<pinhole_t<radtan4_t>>(
+  retval = check_J_h<pinhole_radtan4_t>(
     img_w, img_h, proj_params, dist_params);
   MU_CHECK(retval == 0);
   // -- Check sensor pose jacobian
   const mat_t<2, 6> J0 = factor.jacobians[0];
-  retval = check_cam_factor_J_sensor_pose<pinhole_t<radtan4_t>>(
+  retval = check_cam_factor_J_sensor_pose<pinhole_radtan4_t>(
     img_w, img_h, T_WS, T_SC, p_W, proj_params, dist_params, J0);
   MU_CHECK(retval == 0);
   // -- Check sensor camera pose jacobian
   const mat_t<2, 6> J1 = factor.jacobians[1];
-  retval = check_cam_factor_J_sensor_camera_pose<pinhole_t<radtan4_t>>(
+  retval = check_cam_factor_J_sensor_camera_pose<pinhole_radtan4_t>(
     img_w, img_h, T_WS, T_SC, p_W, proj_params, dist_params, J1);
   MU_CHECK(retval == 0);
   // -- Check landmark jacobian
   const mat_t<2, 3> J2 = factor.jacobians[2];
-  retval = check_cam_factor_J_landmark<pinhole_t<radtan4_t>>(
+  retval = check_cam_factor_J_landmark<pinhole_radtan4_t>(
     img_w, img_h, T_WS, T_SC, p_W, proj_params, dist_params, J2);
   MU_CHECK(retval == 0);
   // -- Check cam params jacobian
   const mat_t<2, 4> J3 = factor.jacobians[3];
-  retval = check_J_proj_params<pinhole_t<radtan4_t>>(
+  retval = check_J_proj_params<pinhole_radtan4_t>(
     img_w, img_h, T_WS * T_SC, p_W, proj_params, dist_params, J3);
   MU_CHECK(retval == 0);
   // -- Check dist params jacobian
   const mat_t<2, 4> J4 = factor.jacobians[4];
-  retval = check_J_dist_params<pinhole_t<radtan4_t>>(
+  retval = check_J_dist_params<pinhole_radtan4_t>(
     img_w, img_h, T_WS * T_SC, p_W, proj_params, dist_params, J4);
   MU_CHECK(retval == 0);
 
@@ -957,11 +928,11 @@ int test_graph_add_ba_factor() {
   // BA factor
   const int img_w = 640;
   const int img_h = 480;
-  const pinhole_t<radtan4_t> cm{img_w, img_h, proj_params, dist_params};
+  const pinhole_radtan4_t cm{img_w, img_h, proj_params, dist_params};
 
   vec2_t z;
   cm.project(tf_point(T_WC.inverse(), p_W), z);
-  graph_add_ba_factor<pinhole_t<radtan4_t>>(
+  graph_add_ba_factor<pinhole_radtan4_t>(
     graph,
     ts,
     cam_index,
@@ -1016,10 +987,10 @@ int test_graph_add_cam_factor() {
   // BA factor
   const int img_w = 640;
   const int img_h = 480;
-  const pinhole_t<radtan4_t> cm{img_w, img_h, proj_params, dist_params};
+  const pinhole_radtan4_t cm{img_w, img_h, proj_params, dist_params};
   vec2_t z;
   cm.project(tf_point((T_WS * T_SC).inverse(), p_W), z);
-  graph_add_cam_factor<pinhole_t<radtan4_t>>(
+  graph_add_cam_factor<pinhole_radtan4_t>(
     graph,
     ts,
     cam_index,
@@ -1050,8 +1021,8 @@ int test_graph_add_imu_factor() {
   timestamps_t timestamps;
   vec3s_t positions;
   quats_t orientations;
-  for (int i = 0; i <= 10; i++) {
-    timestamps.push_back(i * 1e9);
+  for (int i = 0; i <= 5; i++) {
+    timestamps.push_back(i * 1e8);
     positions.emplace_back(i, i, 0.0);
     orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
   }
@@ -1105,7 +1076,7 @@ int test_graph_add_imu_factor() {
   // Create graph
   graph_t graph;
   timestamp_t t0 = 0;
-  timestamp_t t1 = 1e9;
+  timestamp_t t1 = ts_end;
   // -- Add sensor pose at i
   const mat4_t T_WS_i = tf(orientations.front(), positions.front());
   auto pose0_id = graph_add_pose(graph, t0, T_WS_i);
@@ -1116,12 +1087,12 @@ int test_graph_add_imu_factor() {
   auto sb0_id = graph_add_sb_params(graph, t0, v_WS_i, ba_i, bg_i);
   // -- Add sensor pose at j
   const mat4_t T_WS_j = tf(orientations.back(), positions.back());
-  auto pose1_id = graph_add_pose(graph, t0, T_WS_j);
+  auto pose1_id = graph_add_pose(graph, t1, T_WS_j);
   // -- Add speed and bias at j
   const vec3_t v_WS_j = ctraj_get_velocity(ctraj, ns2sec(t1));
   const vec3_t ba_j{0.0, 0.0, 0.0};
   const vec3_t bg_j{0.0, 0.0, 0.0};
-  auto sb1_id = graph_add_sb_params(graph, t0, v_WS_j, ba_j, bg_j);
+  auto sb1_id = graph_add_sb_params(graph, t1, v_WS_j, ba_j, bg_j);
   // -- Add imu factor
   const int imu_index = 0;
   graph_add_imu_factor(graph,
@@ -1146,6 +1117,191 @@ int test_graph_add_imu_factor() {
   // Asserts
   MU_CHECK(graph.params.size() == 4);
   MU_CHECK(graph.factors.size() == 1);
+
+  return 0;
+}
+
+static vec3s_t create_3d_features(const real_t *x_bounds,
+                                  const real_t *y_bounds,
+                                  const real_t *z_bounds,
+                                  const size_t nb_features) {
+  vec3s_t features;
+  for (size_t i = 0; i < nb_features; i++) {
+    real_t x = randf(x_bounds[0], x_bounds[1]);
+    real_t y = randf(y_bounds[0], y_bounds[1]);
+    real_t z = randf(z_bounds[0], z_bounds[1]);
+    features.emplace_back(x, y, z);
+  }
+  return features;
+}
+
+static vec3s_t create_3d_features_perimeter(const vec3_t &origin,
+                                            const vec3_t &dim,
+                                            const size_t nb_features) {
+  // Dimension of the outskirt
+  const real_t w = dim(0);
+  const real_t l = dim(1);
+  const real_t h = dim(2);
+
+  // Features per side
+  size_t nb_fps = nb_features / 4.0;
+  vec3s_t features;
+
+  // Features in the east side
+  {
+    const real_t x_bounds[2] = {origin(0) - w, origin(0) + w};
+    const real_t y_bounds[2] = {origin(1) + l, origin(1) + l};
+    const real_t z_bounds[2] = {origin(2) - h, origin(2) + h};
+    auto f = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps);
+    features.reserve(features.size() + std::distance(f.begin(), f.end()));
+    features.insert(features.end(), f.begin(), f.end());
+  }
+
+  // Features in the north side
+  {
+    const real_t x_bounds[2] = {origin(0) + w, origin(0) + w};
+    const real_t y_bounds[2] = {origin(1) - l, origin(1) + l};
+    const real_t z_bounds[2] = {origin(2) - h, origin(2) + h};
+    auto f = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps);
+    features.reserve(features.size() + std::distance(f.begin(), f.end()));
+    features.insert(features.end(), f.begin(), f.end());
+  }
+
+  // Features in the west side
+  {
+    const real_t x_bounds[2] = {origin(0) - w, origin(0) + w};
+    const real_t y_bounds[2] = {origin(1) - l, origin(1) - l};
+    const real_t z_bounds[2] = {origin(2) - h, origin(2) + h};
+    auto f = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps);
+    features.reserve(features.size() + std::distance(f.begin(), f.end()));
+    features.insert(features.end(), f.begin(), f.end());
+  }
+
+  // Features in the south side
+  {
+    const real_t x_bounds[2] = {origin(0) - w, origin(0) - w};
+    const real_t y_bounds[2] = {origin(1) - l, origin(1) + l};
+    const real_t z_bounds[2] = {origin(2) - h, origin(2) + h};
+    auto f = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps);
+    features.reserve(features.size() + std::distance(f.begin(), f.end()));
+    features.insert(features.end(), f.begin(), f.end());
+  }
+
+  return features;
+}
+
+void save_features(const std::string &path, const vec3s_t &features) {
+  FILE *csv = fopen(path.c_str(), "w");
+  for (const auto &f : features) {
+    fprintf(csv, "%f,%f,%f\n", f(0), f(1), f(2));
+  }
+  fclose(csv);
+}
+
+void save_poses(const std::string &path,
+                const timestamps_t &timestamps,
+                const vec3s_t &positions,
+                const quats_t &orientations) {
+  FILE *csv = fopen(path.c_str(), "w");
+  for (size_t i = 0; i < timestamps.size(); i++) {
+    const timestamp_t ts = timestamps[i];
+    const vec3_t pos = positions[i];
+    const quat_t rot = orientations[i];
+    fprintf(csv, "%ld,", ts);
+    fprintf(csv, "%f,%f,%f,", pos(0), pos(1), pos(2));
+    fprintf(csv, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
+  }
+  fclose(csv);
+}
+
+void sim() {
+  // Create features
+  const vec3_t origin{0.0, 0.0, 0.0};
+  const vec3_t dim{5.0, 5.0, 5.0};
+  const size_t nb_features = 1000;
+  const vec3s_t features = create_3d_features_perimeter(origin, dim, nb_features);
+  save_features("/tmp/features.csv", features);
+
+  // Generate circle trajectory
+  const real_t r = 3.0;
+  const real_t dtheta = deg2rad(360.0) / 10.0;
+  real_t theta = deg2rad(-180.0);
+
+  const real_t t_end = 20.0;
+  const real_t dt = t_end / 10.0;
+  real_t t = 0.0;
+
+  timestamps_t timestamps;
+  vec3s_t positions;
+  quats_t orientations;
+
+  while (theta < deg2rad(180)) {
+    const real_t x = r * cos(theta);
+    const real_t y = r * sin(theta);
+    const real_t z = 0.0;
+
+    timestamps.push_back(t * 1e9);
+    positions.emplace_back(x, y, z);
+    orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
+
+    t += dt;
+    theta += dtheta;
+  }
+  save_poses("/tmp/poses.csv", timestamps, positions, orientations);
+
+  // Fit spline to trajectory
+  ctraj_t ctraj(timestamps, positions, orientations);
+
+  // Setup imu sim
+  sim_imu_t imu;
+  imu.rate = 400;
+  imu.tau_a = 3600;
+  imu.tau_g = 3600;
+  imu.sigma_g_c = 0.00275;
+  imu.sigma_a_c = 0.0250;
+  imu.sigma_gw_c = 1.65e-05;
+  imu.sigma_aw_c = 0.000441;
+  imu.g = 9.81007;
+
+  // Simulate IMU measurements
+  std::default_random_engine rndeng;
+  timestamps_t imu_ts;
+  vec3s_t imu_accel;
+  vec3s_t imu_gyro;
+
+  timestamp_t ts_k = 0;
+  const timestamp_t ts_end = timestamps.back();
+  const timestamp_t dt_imu = (1 / imu.rate) * 1e9;
+
+  // -- Simulate imu measurements
+  while (ts_k <= ts_end) {
+    const auto T_WS_W = ctraj_get_pose(ctraj, ts_k);
+    const auto w_WS_W = ctraj_get_angular_velocity(ctraj, ts_k);
+    const auto a_WS_W = ctraj_get_acceleration(ctraj, ts_k);
+    vec3_t a_WS_S;
+    vec3_t w_WS_S;
+    sim_imu_measurement(imu,
+                        rndeng,
+                        ts_k,
+                        T_WS_W,
+                        w_WS_W,
+                        a_WS_W,
+                        a_WS_S,
+                        w_WS_S);
+
+    // Reocord IMU measurments
+    imu_ts.push_back(ts_k);
+    imu_accel.push_back(a_WS_S);
+    imu_gyro.push_back(w_WS_S);
+
+    ts_k += dt_imu;
+  }
+
+}
+
+int test_graph_eval() {
+  graph_t graph;
+
 
   return 0;
 }
@@ -1195,6 +1351,7 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_ba_factor);
   MU_ADD_TEST(test_graph_add_cam_factor);
   MU_ADD_TEST(test_graph_add_imu_factor);
+  MU_ADD_TEST(test_graph_eval);
   // MU_ADD_TEST(test_graph_solve);
 }
 

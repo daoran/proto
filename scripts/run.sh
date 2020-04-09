@@ -66,7 +66,7 @@ time make ros
 cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
-./calib-test_aprilgrid
+# ./calib-test_aprilgrid
 # ./calib-test_calib_data
 # ./calib-test_calib_camera
 # ./calib-test_calib_gimbal
@@ -116,6 +116,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_add_ba_factor
 # ./estimation-test_factor --target test_graph_add_cam_factor
 # ./estimation-test_factor --target test_graph_add_imu_factor
+./estimation-test_factor --target test_graph_eval
 # ./estimation-test_measurement
 # ./estimation-test_dense
 

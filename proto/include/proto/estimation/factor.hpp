@@ -101,9 +101,9 @@ struct ba_factor_t : factor_t {
     // -- Jacobian w.r.t. landmark
     jacobians[1] = -1 * J_h * C_CW;
     // -- Jacobian w.r.t. projection model
-    jacobians[2] = -1 * cm.J_param(p_dist);
+    jacobians[2] = -1 * cm.J_proj(p_dist);
     // -- Jacobian w.r.t. distortion model
-    jacobians[3] = -1 * cm.J_point() * cm.distortion.J_param(p);
+    jacobians[3] = -1 * cm.J_dist(p);
 
     return 0;
   }
@@ -190,9 +190,9 @@ struct cam_factor_t : factor_t {
     // -- Jacobian w.r.t. landmark
     jacobians[2] = -1 * J_h * C_CW;
     // -- Jacobian w.r.t. camera model
-    jacobians[3] = -1 * cam_model.J_param(p_dist);
+    jacobians[3] = -1 * cam_model.J_proj(p_dist);
     // -- Jacobian w.r.t. distortion model
-    jacobians[4] = -1 * cam_model.J_point() * cam_model.distortion.J_param(p);
+    jacobians[4] = -1 * cam_model.J_dist(p);
 
     return 0;
   }
@@ -547,22 +547,24 @@ void graph_eval(graph_t &graph) {
   // size_t param_counter = 0;
 
   for (const auto &factor : graph.factors) {
+
+    std::vector<real_t *> factor_params;
     for (size_t i = 0; i < factor->param_ids.size(); i++) {
       const auto param_id = factor->param_ids[i];
       const auto param = graph.params[param_id];
+      factor_params.push_back(param->data());
 
-      //   if (typeid(param) == typeid(pose_t)) {
-      //     // temporal_blocks
-      //
-      //
-      //   } else if (typeid(param) == typeid(landmark_t)) {
-      //
-      //
-      //   }
+        if (typeid(param) == typeid(pose_t)) {
+
+        } else if (typeid(param) == typeid(landmark_t)) {
+
+        }
 
       // param_idx[param->data()] = param_counter;
       // param_counter += param->local_size;
     }
+
+    factor->eval(factor_params.data());
   }
 
   // // Loop over time

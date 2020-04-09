@@ -3759,9 +3759,9 @@ real_t pinhole_focal(const int image_size, const real_t fov) {
 }
 
 mat3_t pinhole_K(const real_t fx,
-                    const real_t fy,
-                    const real_t cx,
-                    const real_t cy) {
+                 const real_t fy,
+                 const real_t cx,
+                 const real_t cy) {
   mat3_t K = zeros(3, 3);
   K(0, 0) = fx;
   K(1, 1) = fy;
@@ -3769,6 +3769,10 @@ mat3_t pinhole_K(const real_t fx,
   K(1, 2) = cy;
   K(2, 2) = 1.0;
   return K;
+}
+
+mat3_t pinhole_K(const vec4_t &params) {
+  return pinhole_K(params(0), params(1), params(2), params(3));
 }
 
 mat3_t pinhole_K(const int img_w,
@@ -3792,112 +3796,6 @@ mat3_t pinhole_K(const int img_w,
 /*****************************************************************************
  *                               FACTOR GRAPH
  *****************************************************************************/
-
-pose_t::pose_t() {}
-
-pose_t::pose_t(const real_t *param_) {
-  param[0] = param_[0];
-  param[1] = param_[1];
-  param[2] = param_[2];
-  param[3] = param_[3];
-  param[4] = param_[4];
-  param[5] = param_[5];
-  param[6] = param_[6];
-}
-
-pose_t::pose_t(const mat4_t &tf_) {
-  const quat_t q{tf_quat(tf_)};
-  const vec3_t r{tf_trans(tf_)};
-
-  param[0] = q.w();
-  param[1] = q.x();
-  param[2] = q.y();
-  param[3] = q.z();
-
-  param[4] = r(0);
-  param[5] = r(1);
-  param[6] = r(2);
-}
-
-pose_t::pose_t(const quat_t &q_, const vec3_t &r_)
-    : param{q_.w(), q_.x(), q_.y(), q_.z(), r_(0), r_(1), r_(2)} {}
-
-pose_t::pose_t(const size_t id_,
-               const timestamp_t &ts_,
-               const mat4_t &T)
-    : param_t{id_, ts_, 6} {
-  const quat_t q{tf_quat(T)};
-  const vec3_t r{tf_trans(T)};
-
-  param[0] = q.w();
-  param[1] = q.x();
-  param[2] = q.y();
-  param[3] = q.z();
-
-  param[4] = r(0);
-  param[5] = r(1);
-  param[6] = r(2);
-}
-
-quat_t pose_t::rot() const {
-  return quat_t{param[0], param[1], param[2], param[3]};
-}
-
-vec3_t pose_t::trans() const {
-  return vec3_t{param[4], param[5], param[6]};
-}
-
-mat4_t pose_t::tf() const {
-  return proto::tf(rot(), trans());
-}
-
-quat_t pose_t::rot() { return static_cast<const pose_t &>(*this).rot(); }
-vec3_t pose_t::trans() { return static_cast<const pose_t &>(*this).trans(); }
-mat4_t pose_t::tf() { return static_cast<const pose_t &>(*this).tf(); }
-
-real_t *pose_t::data() { return param; }
-
-void pose_t::set_trans(const vec3_t &r) {
-  param[4] = r(0);
-  param[5] = r(1);
-  param[6] = r(2);
-}
-
-void pose_t::set_rot(const quat_t &q) {
-  param[0] = q.w();
-  param[1] = q.x();
-  param[2] = q.y();
-  param[3] = q.z();
-}
-
-void pose_t::set_rot(const mat3_t &C) {
-  quat_t q{C};
-  param[0] = q.w();
-  param[1] = q.x();
-  param[2] = q.y();
-  param[3] = q.z();
-}
-
-void pose_t::plus(const vecx_t &dx) {
-  // Rotation component
-  real_t half_norm = 0.5 * dx.head<3>().norm();
-  real_t dq_w = cos(half_norm);
-  real_t dq_x = sinc(half_norm) * 0.5 * dx(0);
-  real_t dq_y = sinc(half_norm) * 0.5 * dx(1);
-  real_t dq_z = sinc(half_norm) * 0.5 * dx(2);
-  quat_t dq{dq_w, dq_x, dq_y, dq_z};
-  quat_t q{param[0], param[1], param[2], param[3]};
-  quat_t q_updated = q * dq;
-  param[0] = q_updated.w();
-  param[1] = q_updated.x();
-  param[2] = q_updated.y();
-  param[3] = q_updated.z();
-
-  // Translation component
-  param[3] = param[3] - dx[3];
-  param[4] = param[4] - dx[4];
-  param[5] = param[5] - dx[5];
-}
 
 void pose_print(const std::string &prefix, const pose_t &pose) {
   const quat_t q = pose.rot();
@@ -3944,105 +3842,6 @@ poses_t load_poses(const std::string &csv_path) {
   fclose(csv_file);
 
   return poses;
-}
-
-landmark_t::landmark_t(const vec3_t &p_W_)
-  : param{p_W_(0), p_W_(1), p_W_(2)} {}
-
-landmark_t::landmark_t(const size_t id_, const vec3_t &p_W_)
-  : param_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
-
-vec3_t landmark_t::vec() { return map_vec_t<3>(param); };
-
-real_t *landmark_t::data() { return param; };
-
-void landmark_t::plus(const vecx_t &dx) {
-  param[0] = param[0] + dx[0];
-  param[1] = param[1] + dx[1];
-  param[2] = param[2] + dx[2];
-}
-
-camera_param_t::camera_param_t(const size_t id_,
-                               const int cam_index_,
-                               const vec4_t &param_)
-  : param_t{id_, 4}, cam_index{cam_index_} {
-  for (int i = 0; i < param_.size(); i++) {
-    param[i] = param_(i);
-  }
-}
-
-vec4_t camera_param_t::vec() { return map_vec_t<4>(param); };
-
-real_t *camera_param_t::data() { return param; };
-
-void camera_param_t::plus(const vecx_t &dx) {
-  param[0] = param[0] + dx[0];
-  param[1] = param[1] + dx[1];
-  param[2] = param[2] + dx[2];
-  param[3] = param[3] + dx[3];
-}
-
-dist_param_t::dist_param_t(const size_t id_,
-                               const int cam_index_,
-                               const vec4_t &param_)
-  : param_t{id_, 4}, cam_index{cam_index_} {
-  for (int i = 0; i < param_.size(); i++) {
-    param[i] = param_(i);
-  }
-}
-
-vec4_t dist_param_t::vec() { return map_vec_t<4>(param); };
-
-real_t *dist_param_t::data() { return param; };
-
-void dist_param_t::plus(const vecx_t &dx) {
-  param[0] = param[0] + dx[0];
-  param[1] = param[1] + dx[1];
-  param[2] = param[2] + dx[2];
-  param[3] = param[3] + dx[3];
-}
-
-sb_param_t::sb_param_t(const size_t id_,
-                       const timestamp_t &ts_,
-                       const vec3_t &v_,
-                       const vec3_t &ba_,
-                       const vec3_t &bg_)
-  : param_t{id_, ts_, 9} {
-  // Velocity
-  param[0] = v_(0);
-  param[1] = v_(1);
-  param[2] = v_(2);
-
-  // Accel bias
-  param[3] = ba_(0);
-  param[4] = ba_(1);
-  param[5] = ba_(2);
-
-  // Gyro bias
-  param[6] = bg_(0);
-  param[7] = bg_(1);
-  param[8] = bg_(2);
-}
-
-vec_t<9> sb_param_t::vec() { return map_vec_t<9>(param); };
-
-real_t *sb_param_t::data() { return param; };
-
-void sb_param_t::plus(const vecx_t &dx) {
-  // Velocity
-  param[0] = param[0] + dx[0];
-  param[1] = param[1] + dx[1];
-  param[2] = param[2] + dx[2];
-
-  // Accel bias
-  param[3] = param[3] + dx[3];
-  param[4] = param[4] + dx[4];
-  param[5] = param[5] + dx[5];
-
-  // Gyro bias
-  param[6] = param[6] + dx[6];
-  param[7] = param[7] + dx[7];
-  param[8] = param[8] + dx[8];
 }
 
 static keypoints_t parse_keypoints_line(const char *line) {
