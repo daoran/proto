@@ -139,7 +139,7 @@ SET(
   # calib-test_calib_gimbal
   # calib-test_sandbox
   # calib-test_sandbox2
-  core-test_core
+  # core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
   # estimation-test_ba

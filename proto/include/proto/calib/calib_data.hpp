@@ -7,7 +7,6 @@
 
 #include "proto/core/core.hpp"
 #include "proto/calib/aprilgrid.hpp"
-#include "proto/vision/vision.hpp"
 
 namespace proto {
 

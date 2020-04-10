@@ -24,8 +24,8 @@ debug() {
 # make deps
 # time make debug
 time make release
-sudo make install
-time make ros
+# sudo make install
+# time make ros
 # sudo make debug_install
 # exit
 

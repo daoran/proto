@@ -1,10 +1,7 @@
 #ifndef PROTO_ESTIMATION_FACTOR_HPP
 #define PROTO_ESTIMATION_FACTOR_HPP
 
-#include <ceres/ceres.h>
-
 #include "proto/core/core.hpp"
-#include "proto/vision/vision.hpp"
 
 namespace proto {
 

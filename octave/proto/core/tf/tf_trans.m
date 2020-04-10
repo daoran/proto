@@ -1,3 +1,3 @@
-function r = tf_trans(tf)
-  r = tf(1:3, 4);
+function r = tf_trans(T)
+  r = T(1:3, 4);
 endfunction

@@ -1195,6 +1195,7 @@ void save_features(const std::string &path, const vec3s_t &features) {
   for (const auto &f : features) {
     fprintf(csv, "%f,%f,%f\n", f(0), f(1), f(2));
   }
+  fflush(csv);
   fclose(csv);
 }
 
@@ -1211,48 +1212,120 @@ void save_poses(const std::string &path,
     fprintf(csv, "%f,%f,%f,", pos(0), pos(1), pos(2));
     fprintf(csv, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
   }
+  fflush(csv);
   fclose(csv);
 }
 
-void sim() {
+void save_imu_data(const std::string &imu_data_path,
+                   const std::string &imu_poses_path,
+                   const timestamps_t &imu_ts,
+                   const vec3s_t &imu_accel,
+                   const vec3s_t &imu_gyro,
+                   const vec3s_t &imu_pos,
+                   const quats_t &imu_rot) {
+  {
+    FILE *csv = fopen(imu_data_path.c_str(), "w");
+    for (size_t i = 0; i < imu_ts.size(); i++) {
+      const timestamp_t ts = imu_ts[i];
+      const vec3_t acc = imu_accel[i];
+      const vec3_t gyr = imu_gyro[i];
+      fprintf(csv, "%ld,", ts);
+      fprintf(csv, "%f,%f,%f,", acc(0), acc(1), acc(2));
+      fprintf(csv, "%f,%f,%f\n", gyr(0), gyr(1), gyr(2));
+    }
+    fflush(csv);
+    fclose(csv);
+  }
+
+  {
+    FILE *csv = fopen(imu_poses_path.c_str(), "w");
+    for (size_t i = 0; i < imu_ts.size(); i++) {
+      const timestamp_t ts = imu_ts[i];
+      const vec3_t pos = imu_pos[i];
+      const quat_t rot = imu_rot[i];
+      fprintf(csv, "%ld,", ts);
+      fprintf(csv, "%f,%f,%f,", pos(0), pos(1), pos(2));
+      fprintf(csv, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
+    }
+    fflush(csv);
+    fclose(csv);
+  }
+}
+
+void simulate_trajectory() {
+  const std::string features_path = "/tmp/features.csv";
+  const std::string cam_poses_path = "/tmp/cam_poses.csv";
+  const std::string imu_data_path = "/tmp/imu.csv";
+  const std::string imu_poses_path = "/tmp/imu_poses.csv";
+
   // Create features
   const vec3_t origin{0.0, 0.0, 0.0};
   const vec3_t dim{5.0, 5.0, 5.0};
   const size_t nb_features = 1000;
   const vec3s_t features = create_3d_features_perimeter(origin, dim, nb_features);
-  save_features("/tmp/features.csv", features);
+  save_features(features_path, features);
 
-  // Generate circle trajectory
-  const real_t r = 3.0;
-  const real_t dtheta = deg2rad(360.0) / 10.0;
-  real_t theta = deg2rad(-180.0);
+  // // Generate circle trajectory
+  // const int nb_poses = 20;
+  // const real_t r = 3.0;
+  // const real_t dtheta = deg2rad(360.0) / nb_poses;
+  // real_t theta = deg2rad(180.0);
+  // real_t yaw = deg2rad(0.0);
+  // const real_t t_end = 20.0;
+  // const real_t dt = t_end / nb_poses;
+  // real_t t = 0.0;
+  //
+  // timestamps_t timestamps;
+  // vec3s_t positions;
+  // quats_t orientations;
 
-  const real_t t_end = 20.0;
-  const real_t dt = t_end / 10.0;
-  real_t t = 0.0;
+  // // while (theta > deg2rad(-180)) {
+  // // while (theta > deg2rad(-90)) {
+  // while (theta > deg2rad(50)) {
+  //   const real_t x = r * cos(theta);
+  //   const real_t y = r * sin(theta);
+  //   const real_t z = 0.0;
+  //   const vec3_t rpy{deg2rad(-90.0 + randf(-1.0, 1.0)),
+  //                    deg2rad(randf(-1.0, 1.0)),
+  //                    wrapPi(yaw)};
+  //
+  //   timestamps.push_back(t * 1e9);
+  //   positions.emplace_back(x, y, z);
+  //   orientations.emplace_back(euler321(rpy));
+  //
+  //   t += dt;
+  //   theta -= dtheta;
+  //   yaw -= dtheta;
+  // }
 
   timestamps_t timestamps;
   vec3s_t positions;
   quats_t orientations;
 
-  while (theta < deg2rad(180)) {
-    const real_t x = r * cos(theta);
-    const real_t y = r * sin(theta);
-    const real_t z = 0.0;
+  timestamps.push_back(0.0 * 1e9);
+  positions.emplace_back(-3.5, 3.5, 0.0);
+  orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
 
-    timestamps.push_back(t * 1e9);
-    positions.emplace_back(x, y, z);
-    orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
+  timestamps.push_back(2.5 * 1e9);
+  positions.emplace_back(-2.0, -2.0, 0.0);
+  orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
 
-    t += dt;
-    theta += dtheta;
-  }
-  save_poses("/tmp/poses.csv", timestamps, positions, orientations);
+  timestamps.push_back(5.0 * 1e9);
+  positions.emplace_back(0.0, 0.0, 0.0);
+  orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
 
-  // Fit spline to trajectory
+  timestamps.push_back(7.5 * 1e9);
+  positions.emplace_back(2.0, 2.0, 0.0);
+  orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
+
+  timestamps.push_back(10 * 1e9);
+  positions.emplace_back(3.5, -3.5, 0.0);
+  orientations.emplace_back(1.0, 0.0, 0.0, 0.0);
+
+  save_poses(cam_poses_path, timestamps, positions, orientations);
+
+  // Simulate IMU measurements
   ctraj_t ctraj(timestamps, positions, orientations);
-
-  // Setup imu sim
   sim_imu_t imu;
   imu.rate = 400;
   imu.tau_a = 3600;
@@ -1263,45 +1336,78 @@ void sim() {
   imu.sigma_aw_c = 0.000441;
   imu.g = 9.81007;
 
-  // Simulate IMU measurements
   std::default_random_engine rndeng;
   timestamps_t imu_ts;
+  vec3s_t imu_pos;
+  quats_t imu_rot;
   vec3s_t imu_accel;
   vec3s_t imu_gyro;
 
+  timestamps_t cam_ts;
+  vec3s_t cam_pos;
+  quats_t cam_rot;
+
+  const real_t cam_rate = 20.0;
   timestamp_t ts_k = 0;
   const timestamp_t ts_end = timestamps.back();
   const timestamp_t dt_imu = (1 / imu.rate) * 1e9;
+  const timestamp_t imu_period = (1.0 / imu.rate) * 1e9;
+  const timestamp_t cam_period = (1.0 / cam_rate) * 1e9;
 
-  // -- Simulate imu measurements
   while (ts_k <= ts_end) {
-    const auto T_WS_W = ctraj_get_pose(ctraj, ts_k);
-    const auto w_WS_W = ctraj_get_angular_velocity(ctraj, ts_k);
-    const auto a_WS_W = ctraj_get_acceleration(ctraj, ts_k);
-    vec3_t a_WS_S;
-    vec3_t w_WS_S;
-    sim_imu_measurement(imu,
-                        rndeng,
-                        ts_k,
-                        T_WS_W,
-                        w_WS_W,
-                        a_WS_W,
-                        a_WS_S,
-                        w_WS_S);
+    if ((ts_k % imu_period) == 0) {
+      const auto T_WS_W = ctraj_get_pose(ctraj, ts_k);
+      const auto w_WS_W = ctraj_get_angular_velocity(ctraj, ts_k);
+      const auto a_WS_W = ctraj_get_acceleration(ctraj, ts_k);
+      vec3_t a_WS_S;
+      vec3_t w_WS_S;
+      sim_imu_measurement(imu,
+                          rndeng,
+                          ts_k,
+                          T_WS_W,
+                          w_WS_W,
+                          a_WS_W,
+                          a_WS_S,
+                          w_WS_S);
 
-    // Reocord IMU measurments
-    imu_ts.push_back(ts_k);
-    imu_accel.push_back(a_WS_S);
-    imu_gyro.push_back(w_WS_S);
+      // Record IMU measurments
+      imu_ts.push_back(ts_k);
+      imu_accel.push_back(a_WS_S);
+      imu_gyro.push_back(w_WS_S);
+
+      imu_pos.push_back(tf_trans(T_WS_W));
+      imu_rot.push_back(tf_quat(T_WS_W));
+    }
+
+    if ((ts_k % cam_period) == 0) {
+      const auto C_CS = euler321(deg2rad(vec3_t{-90.0, 0.0, -90.0}));
+      const vec3_t r_CS = zeros(3, 1);
+      const auto T_SC = tf(C_CS, r_CS);
+      const auto T_WS = ctraj_get_pose(ctraj, ts_k);
+      const auto T_WC = T_WS * T_SC;
+
+      cam_ts.push_back(ts_k);
+      cam_pos.push_back(tf_trans(T_WC));
+      cam_rot.push_back(tf_quat(T_WC));
+    }
 
     ts_k += dt_imu;
   }
-
+  save_imu_data(imu_data_path, imu_poses_path,
+                imu_ts, imu_accel, imu_gyro, imu_pos, imu_rot);
+  save_poses(cam_poses_path, cam_ts, cam_pos, cam_rot);
 }
 
 int test_graph_eval() {
   graph_t graph;
+  simulate_trajectory();
 
+  // Debug
+  const bool debug = true;
+  // const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
+  }
 
   return 0;
 }
