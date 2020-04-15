@@ -51,7 +51,7 @@ struct ba_factor_t : factor_t {
         ts{ts_}, cam_index{cam_index_},
         img_w{img_w_}, img_h{img_h_},
         z{z_}, info{info_} {
-    jacobians.push_back(zeros(2, 6));  // T_WS
+    jacobians.push_back(zeros(2, 6));  // T_WC
     jacobians.push_back(zeros(2, 3));  // p_W
     jacobians.push_back(zeros(2, CM::proj_params_size));  // Projection model
     jacobians.push_back(zeros(2, CM::dist_params_size));  // Distortion model
@@ -170,17 +170,19 @@ struct cam_factor_t : factor_t {
     residuals = z - z_hat;
 
     // Calculate Jacobians
-    const vec2_t p{p_C(0) / p_C(2), p_C(1) / p_C(2)};
-    const vec2_t p_dist = cam_model.distortion.distort(p);
-    const vec3_t p_S = tf_point(T_SC, p_C);
     const mat3_t C_SC = tf_rot(T_SC);
     const mat3_t C_CS = C_SC.transpose();
     const mat3_t C_WS = tf_rot(T_WS);
-    const mat3_t C_CW = C_CS * C_WS.transpose();
+    const mat3_t C_SW = C_WS.transpose();
+    const mat3_t C_CW = C_CS * C_SW;
+    const vec3_t r_WS = tf_trans(T_WS);
+    const vec2_t p{p_C(0) / p_C(2), p_C(1) / p_C(2)};
+    const vec2_t p_dist = cam_model.distortion.distort(p);
+    // const vec3_t p_S = tf_point(T_SC, p_C);
 
     // -- Jacobian w.r.t. sensor pose T_WS
-    jacobians[0].block(0, 0, 2, 3) = -1 * J_h * -C_CW * -skew(C_WS * p_S);
-    jacobians[0].block(0, 3, 2, 3) = -1 * J_h * -C_CW;
+    jacobians[0].block(0, 0, 2, 3) = -1 * J_h * C_CS * C_SW * skew(p_W - r_WS);
+    jacobians[0].block(0, 3, 2, 3) = -1 * J_h * C_CS * -C_SW;
     // -- Jacobian w.r.t. sensor-camera extrinsic pose T_SCi
     jacobians[1].block(0, 0, 2, 3) = -1 * J_h * C_CS * skew(C_SC * p_C);
     jacobians[1].block(0, 3, 2, 3) = -1 * J_h * -C_CS;
@@ -191,6 +193,21 @@ struct cam_factor_t : factor_t {
     // -- Jacobian w.r.t. distortion model
     jacobians[4] = -1 * cam_model.J_dist(p);
 
+    // if (jac != nullptr) {
+    //   map_mat_t<2, 6, row_major_t> J0(jac[0]);
+    //   map_mat_t<2, 6, row_major_t> J1(jac[1]);
+    //   map_mat_t<2, 6, row_major_t> J2(jac[2]);
+    //   map_mat_t<2, 6, row_major_t> J3(jac[3]);
+    //   map_mat_t<2, 6, row_major_t> J4(jac[4]);
+    //   J0.block(0, 0, 2, 3) = -1 * J_h * -C_CW * -skew(C_WS * p_S);
+    //   J0.block(0, 3, 2, 3) = -1 * J_h * -C_CW;
+    //   J1.block(0, 0, 2, 3) = -1 * J_h * C_CS * skew(C_SC * p_C);
+    //   J1.block(0, 3, 2, 3) = -1 * J_h * -C_CS;
+    //   J2 = -1 * J_h * C_CW;
+    //   J3 = -1 * cam_model.J_proj(p_dist);
+    //   J4 = -1 * cam_model.J_dist(p);
+    // }
+    //
     return 0;
   }
 };
@@ -384,8 +401,6 @@ struct imu_factor_t : factor_t {
 struct graph_t {
   std::unordered_map<size_t, param_t *> params;
   std::deque<factor_t *> factors;
-  size_t param_size = 0;
-  size_t residual_size = 0;
 
   graph_t() {}
 
@@ -418,11 +433,11 @@ size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
   return id;
 }
 
-size_t graph_add_cam_params(graph_t &graph,
-                            const int cam_index,
-                            const vecx_t &params) {
+size_t graph_add_proj_params(graph_t &graph,
+                             const int cam_index,
+                             const vecx_t &params) {
   const auto id = graph.params.size();
-  const auto param = new camera_param_t{id, cam_index, params};
+  const auto param = new proj_param_t{id, cam_index, params};
   graph.params.insert({id, param});
   return id;
 }
@@ -533,62 +548,85 @@ size_t graph_add_imu_factor(graph_t &graph,
 }
 
 void graph_eval(graph_t &graph) {
-  vecx_t r = zeros(graph.residual_size);
-  matx_t J = zeros(graph.residual_size, graph.param_size);
+  // // Param blocks
+  // std::map<real_t *, size_t> param_blocks;
+  // size_t pose_col_idx = 0;
+  // size_t landmark_col_idx = 0;
+  // size_t proj_col_idx = 0;
+  // size_t dist_col_idx = 0;
 
-  // Determine parameter order
-  std::map<real_t *, size_t> param_idx;
-  std::map<real_t *, size_t> pose_blocks;
-  std::map<real_t *, size_t> calib_blocks;
-  std::map<real_t *, size_t> landmark_blocks;
-  // size_t param_counter = 0;
+  // for (const auto &factor : graph.factors) {
+  //   // Obtain params for factor
+  //   std::vector<real_t *> factor_params;
+  //   for (size_t i = 0; i < factor->param_ids.size(); i++) {
+  //     const auto param_id = factor->param_ids[i];
+  //     const auto &param = graph.params[param_id];
+  //
+  //     // Check if param has already been tracked
+  //     if (param_blocks.count(param->data()) > 0) {
+  //       continue;
+  //     }
+  //
+  //     // Keep track of param blocks
+  //     if (typeid(param) == typeid(pose_t)) {
+  //       param_blocks.insert({param->data(), pose_col_idx});
+  //       pose_col_idx++;
+  //     } else if (typeid(param) == typeid(landmark_t)) {
+  //       param_blocks.insert({param->data(), landmark_col_idx});
+  //       landmark_col_idx++;
+  //     } else if (typeid(param) == typeid(proj_param_t)) {
+  //       param_blocks.insert({param->data(), proj_col_idx});
+  //       proj_col_idx++;
+  //     } else if (typeid(param) == typeid(dist_param_t)) {
+  //       param_blocks.insert({param->data(), dist_col_idx});
+  //       dist_col_idx++;
+  //     }
+  //   }
+  // }
 
+  // Residuals and jacobians
+  // vecx_t r = zeros(graph.residual_size);
+  // matx_t J = zeros(graph.residual_size, graph.param_size);
+  // printf("graph residual_size: %zu\n", graph.residual_size);
+  // exit(0);
+
+  // Evalulate factors
+  // size_t res_row_idx = 0;
   for (const auto &factor : graph.factors) {
-
+    // Obtain params for factor
     std::vector<real_t *> factor_params;
     for (size_t i = 0; i < factor->param_ids.size(); i++) {
       const auto param_id = factor->param_ids[i];
-      const auto param = graph.params[param_id];
+      const auto &param = graph.params[param_id];
       factor_params.push_back(param->data());
-
-        if (typeid(param) == typeid(pose_t)) {
-
-        } else if (typeid(param) == typeid(landmark_t)) {
-
-        }
-
-      // param_idx[param->data()] = param_counter;
-      // param_counter += param->local_size;
     }
-
     factor->eval(factor_params.data());
+    printf("residual_size: %zu\n", factor->residuals.size());
+    printf("residual: %f\n", factor->residuals.norm());
+
+    // r.segment(res_row_idx, factor->residuals.size()) = factor->residuals;
+    // res_row_idx += factor->residuals.size();
+    // printf("row_idx: %zu\n", res_row_idx);
   }
 
-  // // Loop over time
-  // real_t *params[10] = {0};
-  // for (const auto &factor : graph.factors) {
-  //   for (size_t i = 0; i < factor->param_ids.size(); i++) {
-  //     const auto param_id = factor->param_ids[i];
-  //     params[i] = graph.params[param_id]->data();
-  //   }
-  //
-  //   // factor->eval(params, );
-  //   memset(params, '\0', sizeof(real_t *) * 10);
-  // }
+  // printf("cost: %f\n", r.norm());
 }
 
 vecx_t graph_residuals(graph_t &graph) {
+  UNUSED(graph);
   vecx_t e;
   return e;
 }
 
 matx_t graph_jacobian(graph_t &graph) {
+  UNUSED(graph);
   matx_t E;
   return E;
 }
 
 void graph_update(graph_t &graph, const vecx_t &dx) {
-
+  UNUSED(graph);
+  UNUSED(dx);
 }
 
 /*****************************************************************************

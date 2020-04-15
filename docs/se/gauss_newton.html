@@ -23,22 +23,22 @@ approximated with the first-order Taylor series,
       \Vec{e}(\bar{\Vec{x}}) +
       \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
 </equation>
-where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
+where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\partial\Vec{e}(\Vec{x})}{\partial\Vec{x}}
 \bigg\rvert_{\Vec{x}_{k}}$ and $\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}$.</p>
 
 <equation>
-  \dfrac{\delta{\cost}}{\delta{\Vec{x}}} =
-    \dfrac{\delta{\cost}}{\delta{\Vec{e}}}
-    \dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}}
+  \dfrac{\partial{\cost}}{\partial{\Vec{x}}} =
+    \dfrac{\partial{\cost}}{\partial{\Vec{e}}}
+    \dfrac{\partial{\Vec{e}}}{\partial{\Vec{x}}}
 </equation>
 
 <equation>
 
-  \dfrac{\delta{\cost}}{\delta{\Vec{e}}} &=
+  \dfrac{\partial{\cost}}{\partial{\Vec{e}}} &=
     \dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
     \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
   %
-  \dfrac{\delta{\Vec{e}}}{\delta{\Vec{x}}} &=
+  \dfrac{\partial{\Vec{e}}}{\partial{\Vec{x}}} &=
     \Vec{e}(\bar{\Vec{x}}) +
     \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
     \Mat{E}(\bar{\Vec{x}})
@@ -47,7 +47,7 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\delta\Vec{e}(\Vec{x})}{\delta\Vec{x}}
 
 <equation>
 
-  \dfrac{\delta{\cost}}{\delta{\Vec{x}}}
+  \dfrac{\partial{\cost}}{\partial{\Vec{x}}}
     &=
       (\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
     % Line 2

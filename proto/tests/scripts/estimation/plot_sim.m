@@ -1,15 +1,10 @@
 #!/usr/bin/octave -qf
 graphics_toolkit("fltk");
 
-features_path = "/tmp/features.csv";
-cam_poses_path = "/tmp/cam_poses.csv";
-imu_path = "/tmp/imu.csv";
-imu_poses_path = "/tmp/imu_poses.csv";
-
-features = csvread(features_path);
-cam_poses = csvread(cam_poses_path);
-imu_data = csvread(imu_path);
-imu_poses = csvread(imu_poses_path);
+features_csv = "/tmp/features.csv";
+cam_poses_csv = "/tmp/cam_poses.csv";
+imu_data_csv = "/tmp/imu_data.csv";
+imu_poses_csv = "/tmp/imu_poses.csv";
 
 function hp = homogeneous(p)
   hp = [p; ones(1, columns(p))];
@@ -143,18 +138,27 @@ function r = tf_trans(T)
   r = T(1:3, 4);
 endfunction
 
-function plot_3d(fig_id, plot_title, features, cam_poses)
+function plot_3d(fig_id, plot_title, features_csv, cam_poses_csv, imu_poses_csv)
+  features = csvread(features_csv);
+  cam_poses = csvread(cam_poses_csv);
+  imu_poses = csvread(imu_poses_csv);
+
   figure(fig_id);
   hold on;
 
   scatter3(features(:, 1), features(:, 2), features(:, 3), '.');
-
-  for i = 1:10:rows(cam_poses)
-    r_WC = cam_poses(i, 2:4)';
-    q_WC = cam_poses(i, 5:8)';
-    T_WC = tf(q_WC, r_WC);
-    draw_camera(T_WC, 0.5);
-    draw_frame(T_WC);
+  % for i = 1:200:rows(cam_poses)
+  %   r_WC = cam_poses(i, 2:4)';
+  %   q_WC = cam_poses(i, 5:8)';
+  %   T_WC = tf(q_WC, r_WC);
+  %   draw_camera(T_WC, 0.3);
+  %   draw_frame(T_WC);
+  % endfor
+  for i = 1:1000:rows(imu_poses)
+    r_WS = imu_poses(i, 2:4)';
+    q_WS = imu_poses(i, 5:8)';
+    T_WS = tf(q_WS, r_WS);
+    draw_frame(T_WS);
   endfor
 
   view(3);
@@ -165,14 +169,18 @@ function plot_3d(fig_id, plot_title, features, cam_poses)
   axis 'equal';
 endfunction
 
-function plot_poses(fig_id, plot_title, data)
+function plot_poses(fig_id, plot_title, csv_file)
+  data = csvread(csv_file);
+  ts = data(:, 1) * 1e-9;
+
   figure(fig_id);
 
   subplot(211);
   hold on;
-  plot(data(:, 1) * 1e-9, data(:, 2), 'r-', 'linewidth', 2.0);
-  plot(data(:, 1) * 1e-9, data(:, 3), 'g-', 'linewidth', 2.0);
-  plot(data(:, 1) * 1e-9, data(:, 4), 'b-', 'linewidth', 2.0);
+  plot(ts, data(:, 2), 'r-', 'linewidth', 2.0);
+  plot(ts, data(:, 3), 'g-', 'linewidth', 2.0);
+  plot(ts, data(:, 4), 'b-', 'linewidth', 2.0);
+  xlim([min(ts), max(ts)]);
   xlabel("Time [s]");
   ylabel("Displacement [m]");
   title(plot_title);
@@ -185,22 +193,27 @@ function plot_poses(fig_id, plot_title, data)
     q = data(i, 5:8);
     cam_euler = [cam_euler; quat2euler(q)'];
   endfor
-  plot(data(:, 1) * 1e-9, cam_euler(:, 1), 'r-', 'linewidth', 2.0);
-  plot(data(:, 1) * 1e-9, cam_euler(:, 2), 'g-', 'linewidth', 2.0);
-  plot(data(:, 1) * 1e-9, cam_euler(:, 3), 'b-', 'linewidth', 2.0);
+  plot(ts, cam_euler(:, 1), 'r-', 'linewidth', 2.0);
+  plot(ts, cam_euler(:, 2), 'g-', 'linewidth', 2.0);
+  plot(ts, cam_euler(:, 3), 'b-', 'linewidth', 2.0);
+  xlim([min(ts), max(ts)]);
   xlabel("Time [s]");
   ylabel("Rotation [deg]");
   legend("x", "y", "z");
 endfunction
 
-function plot_imu_data(fig_id, plot_title, data)
+function plot_imu_data(fig_id, plot_title, imu_data_csv)
+  data = csvread(imu_data_csv);
+  ts = data(:, 1) * 1e-9;
+
   figure(fig_id);
 
   subplot(211);
   hold on;
-  plot(data(:, 1) * 1e-9, data(:, 2), 'r-', 'linewidth', 2.0);
-  plot(data(:, 1) * 1e-9, data(:, 3), 'g-', 'linewidth', 2.0);
-  plot(data(:, 1) * 1e-9, data(:, 4), 'b-', 'linewidth', 2.0);
+  plot(ts, data(:, 2), 'r-', 'linewidth', 2.0);
+  plot(ts, data(:, 3), 'g-', 'linewidth', 2.0);
+  plot(ts, data(:, 4), 'b-', 'linewidth', 2.0);
+  xlim([min(ts), max(ts)]);
   xlabel("Time [s]");
   ylabel("Accel [m/s]");
   title(plot_title);
@@ -208,18 +221,35 @@ function plot_imu_data(fig_id, plot_title, data)
 
   subplot(212);
   hold on;
-  plot(data(:, 1) * 1e-9, data(:, 5), 'r-', 'linewidth', 2.0);
-  plot(data(:, 1) * 1e-9, data(:, 6), 'g-', 'linewidth', 2.0);
-  plot(data(:, 1) * 1e-9, data(:, 7), 'b-', 'linewidth', 2.0);
+  plot(ts, data(:, 5), 'r-', 'linewidth', 2.0);
+  plot(ts, data(:, 6), 'g-', 'linewidth', 2.0);
+  plot(ts, data(:, 7), 'b-', 'linewidth', 2.0);
+  xlim([min(ts), max(ts)]);
   xlabel("Time [s]");
   ylabel("Gyro [rad/s]");
   legend("x", "y", "z");
 endfunction
 
 % 3D plot
-plot_3d(1, "3D Plot", features, cam_poses);
-plot_poses(2, "Camera Poses", cam_poses);
-plot_imu_data(3, "IMU data", imu_data);
-plot_poses(4, "Interpolated Poses", imu_poses);
+plot_3d(1, "3D Plot", features_csv, cam_poses_csv, imu_poses_csv);
+plot_poses(2, "Camera Poses", cam_poses_csv);
+plot_imu_data(3, "IMU data", imu_data_csv);
+% plot_poses(4, "Interpolated Poses", imu_poses_csv);
+
+
+% figure(1);
+% hold on;
+% imu_poses = csvread(imu_poses_csv);
+% for i = 1:1000:rows(imu_poses)
+%   r_WS = imu_poses(i, 2:4)';
+%   q_WS = imu_poses(i, 5:8)';
+%   T_WS = tf(q_WS, r_WS);
+%   draw_frame(T_WS);
+% endfor
+% view(3);
+% xlabel("x [m]");
+% ylabel("y [m]");
+% zlabel("z [m]");
+% axis 'equal';
 
 ginput();

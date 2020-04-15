@@ -326,14 +326,13 @@ dataset_t process_dataset(const std::string &data_path,
   //
   //   // Preprocess calibration data
   //   const auto cam_data_path = data_path + "/cam0/data";
-  //   const pinhole_t pinhole{intrinsics};
-  //   const radtan4_t radtan{distortion};
-  //   mat3_t cam_K = pinhole_K(pinhole);
-  //   vec4_t cam_D{radtan.k1, radtan.k2, radtan.p1, radtan.p2};
+  //   int img_w = resolution(0);
+  //   int img_h = resolution(1);
+  //   pinhole_t<radtan4_t> camera{img_w, img_h, intrinsics, distortion};
   //   int retval = preprocess_camera_data(calib_target,
   //                                       cam_data_path,
-  //                                       cam_K,
-  //                                       cam_D,
+  //                                       pinhole_K(intrinsics),
+  //                                       distortion,
   //                                       grid_data_path,
   //                                       true);
   //   if (retval != 0) {
@@ -362,6 +361,7 @@ dataset_t process_dataset(const std::string &data_path,
   // ds.grids, ds.T_WM, 0.05e9);
   // -- Vicon Marker to Camera transform
   const vec3_t euler{-90.0, 0.0, -90.0};
+  // const vec3_t euler{-180.0, 0.0, -90.0};
   const mat3_t C = euler321(deg2rad(euler));
   ds.T_MC = tf(C, zeros(3, 1));
   // -- Fiducial target pose

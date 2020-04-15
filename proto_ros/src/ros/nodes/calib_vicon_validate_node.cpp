@@ -103,8 +103,10 @@ struct node_t : ros_node_t {
         }
       }
 
+      vec_t<8> cam_params;
+      cam_params << cam0_K_, cam0_D_;
       vec2_t img_pt;
-      if (pinhole_radtan4_project(K, cam0_D_, p_C, img_pt) != 0) {
+      if (pinhole_radtan4_project(cam_params, p_C, img_pt) != 0) {
         continue;
       }
 

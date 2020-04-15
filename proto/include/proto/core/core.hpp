@@ -2093,29 +2093,57 @@ struct imu_data_t {
   vec3s_t accel;
 };
 
-struct image_t : meas_t {
-  int width = 0;
-  int height = 0;
-  float *data = nullptr;
+struct imu_meas_t {
+  timestamp_t ts = 0;
+  vec3_t accel{0.0, 0.0, 0.0};
+  vec3_t gyro{0.0, 0.0, 0.0};
 
-  image_t() {}
+  imu_meas_t() {}
 
-  image_t(const timestamp_t ts_, const int width_, const int height_)
-      : meas_t{ts_}, width{width_}, height{height_} {
-    data = new float[width * height];
-  }
+  imu_meas_t(const timestamp_t &ts_, const vec3_t &accel_, const vec3_t &gyro_)
+    : ts{ts_}, accel{accel_}, gyro{gyro_} {}
 
-  image_t(const timestamp_t ts_,
-          const int width_,
-          const int height_,
-          float *data_)
-      : meas_t{ts_}, width{width_}, height{height_}, data{data_} {}
+  ~imu_meas_t() {}
+};
 
-  virtual ~image_t() {
-    if (data) {
-      free(data);
-    }
-  }
+// struct image_t : meas_t {
+//   int width = 0;
+//   int height = 0;
+//   float *data = nullptr;
+//
+//   image_t() {}
+//
+//   image_t(const timestamp_t ts_, const int width_, const int height_)
+//       : meas_t{ts_}, width{width_}, height{height_} {
+//     data = new float[width * height];
+//   }
+//
+//   image_t(const timestamp_t ts_,
+//           const int width_,
+//           const int height_,
+//           float *data_)
+//       : meas_t{ts_}, width{width_}, height{height_}, data{data_} {}
+//
+//   virtual ~image_t() {
+//     if (data) {
+//       free(data);
+//     }
+//   }
+// };
+
+struct cam_frame_t {
+  timestamp_t ts = 0;
+  vec2s_t keypoints;
+  std::vector<size_t> feature_ids;
+
+  cam_frame_t() {}
+
+  cam_frame_t(const timestamp_t &ts_,
+              const vec2s_t &keypoints_,
+              const std::vector<size_t> feature_ids_)
+    : ts{ts_}, keypoints{keypoints_}, feature_ids{feature_ids_} {}
+
+  ~cam_frame_t() {}
 };
 
 /*****************************************************************************
@@ -3143,6 +3171,22 @@ struct pinhole_t : projection_t<DM> {
   real_t cx() const { return this->params(2); }
   real_t cy() const { return this->params(3); }
 
+  vecx_t proj_params() {
+    return static_cast<const pinhole_t &>(*this).proj_params();
+  }
+
+  vecx_t proj_params() const {
+    return this->params;
+  }
+
+  vecx_t dist_params() {
+    return static_cast<const pinhole_t &>(*this).dist_params();
+  }
+
+  vecx_t dist_params() const {
+    return this->distortion.params;
+  }
+
   mat3_t K() {
     return static_cast<const pinhole_t &>(*this).K();
   }
@@ -3166,7 +3210,7 @@ struct pinhole_t : projection_t<DM> {
     const real_t x = p_C(0);
     const real_t y = p_C(1);
     const real_t z = p_C(2);
-    if (fabs(z) < 0.05) {
+    if (z < 0.0) {
       return -1;
     }
 
@@ -3486,13 +3530,13 @@ struct landmark_t : param_t {
   }
 };
 
-struct camera_param_t : param_t {
+struct proj_param_t : param_t {
   int cam_index = 0;
   real_t param[4] = {0.0, 0.0, 0.0, 0.0};
 
-  camera_param_t(const size_t id_,
-                 const int cam_index_,
-                 const vec4_t &param_)
+  proj_param_t(const size_t id_,
+               const int cam_index_,
+               const vec4_t &param_)
     : param_t{id_, 4}, cam_index{cam_index_} {
     for (int i = 0; i < param_.size(); i++) {
       param[i] = param_(i);
@@ -3592,6 +3636,82 @@ poses_t load_poses(const std::string &csv_path);
 
 std::vector<keypoints_t> load_keypoints(const std::string &data_path);
 void keypoints_print(const keypoints_t &keypoints);
+
+/*****************************************************************************
+ *                               SIMULATION
+ *****************************************************************************/
+
+enum sim_event_type_t {
+  NOT_SET,
+  CAMERA,
+  IMU,
+};
+
+struct sim_event_t {
+  sim_event_type_t type = NOT_SET;
+  int sensor_id = 0;
+  timestamp_t ts = 0;
+  imu_meas_t imu;
+  cam_frame_t frame;
+
+  // Camera event
+  sim_event_t(const int sensor_id_,
+              const timestamp_t &ts_,
+              const vec2s_t &keypoints_,
+              const std::vector<size_t> &feature_ids_)
+    : type{CAMERA},
+      sensor_id{sensor_id_},
+      ts{ts_},
+      frame{ts_, keypoints_, feature_ids_} {}
+
+  // IMU event
+  sim_event_t(const int sensor_id_, const timestamp_t &ts_,
+              const vec3_t &accel_, const vec3_t &gyro_)
+    : type{IMU}, sensor_id{sensor_id_}, ts{ts_}, imu{ts_, accel_, gyro_} {}
+};
+
+struct vio_sim_data_t {
+  // Settings
+  real_t sensor_velocity = 0.3;
+  real_t cam_rate = 30;
+  real_t imu_rate = 400;
+
+  // Scene data
+  vec3s_t features;
+
+  // Camera data
+  timestamps_t cam_ts;
+  vec3s_t cam_pos;
+  quats_t cam_rot;
+  std::vector<std::vector<size_t>> observations;
+  std::vector<vec2s_t> keypoints;
+
+  // IMU data
+  timestamps_t imu_ts;
+  vec3s_t imu_acc;
+  vec3s_t imu_gyr;
+  vec3s_t imu_pos;
+  quats_t imu_rot;
+
+  // Simulation timeline
+  std::multimap<timestamp_t, sim_event_t> timeline;
+
+  // Add IMU measurement to timeline
+  void add(const int sensor_id, const timestamp_t &ts,
+           const vec3_t &accel, const vec3_t &gyro) {
+    sim_event_t event(sensor_id, ts, accel, gyro);
+    timeline.insert({ts, event});
+  }
+
+  // Add camera frame to timeline
+  void add(const int sensor_id, const timestamp_t &ts,
+           const vec2s_t &keypoints, const std::vector<size_t> &feature_ids) {
+    sim_event_t event{sensor_id, ts, keypoints, feature_ids};
+    timeline.insert({event.ts, event});
+  }
+};
+
+void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data);
 
 } //  namespace proto
 #endif // PROTO_CORE_HPP

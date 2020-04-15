@@ -14,17 +14,51 @@ namespace proto {
  * Pose parameter block
  **/
 struct calib_pose_t {
-  // EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  // quat_t q;
-  // vec3_t r;
   double q[4] = {0.0, 0.0, 0.0, 1.0}; // x, y, z, w
-  double r[3] = {0.0, 0.0, 0.0}; // x, y, z
+  double r[3] = {0.0, 0.0, 0.0};      // x, y, z
 
-  calib_pose_t(const mat4_t &T);
-  calib_pose_t(const mat3_t &rot, const vec3_t &trans);
-  calib_pose_t(const quat_t &rot, const vec3_t &trans);
-  ~calib_pose_t();
-  mat4_t T();
+  calib_pose_t(const mat4_t &T) {
+    quat_t q_{tf_rot(T)};
+    q[0] = q_.x();
+    q[1] = q_.y();
+    q[2] = q_.z();
+    q[3] = q_.w();
+
+    r[0] = T(0, 3);
+    r[1] = T(1, 3);
+    r[2] = T(2, 3);
+  }
+
+  calib_pose_t(const mat3_t &rot, const vec3_t &trans) {
+    quat_t q_{rot};
+    q[0] = q_.x();
+    q[1] = q_.y();
+    q[2] = q_.z();
+    q[3] = q_.w();
+
+    r[0] = trans(0);
+    r[1] = trans(1);
+    r[2] = trans(2);
+  }
+
+  calib_pose_t(const quat_t &rot, const vec3_t &trans) {
+    q[0] = rot.x();
+    q[1] = rot.y();
+    q[2] = rot.z();
+    q[3] = rot.w();
+
+    r[0] = trans(0);
+    r[1] = trans(1);
+    r[2] = trans(2);
+  }
+
+  ~calib_pose_t() {}
+
+  mat4_t T() {
+    quat_t rot(q[3], q[0], q[1], q[2]);
+    vec3_t trans(r[0], r[1], r[2]);
+    return tf(rot, trans);
+  }
 };
 
 /**
@@ -37,8 +71,8 @@ struct calib_target_t {
   real_t tag_size = 0.0;
   real_t tag_spacing = 0.0;
 
-  calib_target_t();
-  ~calib_target_t();
+  calib_target_t() {}
+  ~calib_target_t() {}
 };
 
 /**

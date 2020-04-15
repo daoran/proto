@@ -109,8 +109,8 @@ TARGET_LINK_LIBRARIES(calib_vicon_capture_node ${DEPS})
 ADD_EXECUTABLE(calib_vicon_node src/ros/nodes/calib_vicon_node.cpp)
 TARGET_LINK_LIBRARIES(calib_vicon_node ${DEPS})
 
-# ADD_EXECUTABLE(calib_vicon_validate_node src/ros/nodes/calib_vicon_validate_node.cpp)
-# TARGET_LINK_LIBRARIES(calib_vicon_validate_node ${DEPS})
+ADD_EXECUTABLE(calib_vicon_validate_node src/ros/nodes/calib_vicon_validate_node.cpp)
+TARGET_LINK_LIBRARIES(calib_vicon_validate_node ${DEPS})
 
 ADD_EXECUTABLE(camera_node src/ros/nodes/camera_node.cpp)
 TARGET_LINK_LIBRARIES(camera_node ${DEPS})

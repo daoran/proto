@@ -24,8 +24,8 @@ debug() {
 # make deps
 # time make debug
 time make release
-# sudo make install
-# time make ros
+sudo make install
+time make ros
 # sudo make debug_install
 # exit
 
@@ -42,7 +42,7 @@ time make release
 # mv /data/vicon_capture.bag /data/vicon-test.bag
 # rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
 
-# roslaunch proto_ros calib_vicon.launch
+# roslaunch proto_ros calib_vicon.launch && exit
 # roslaunch proto_ros calib_vicon_validate.launch
 
 # cd scripts/api/
@@ -105,7 +105,7 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_solve
 # ./estimation-test_imu
 # ./estimation-test_factor --target test_ba_factor_jacobians
-# ./estimation-test_factor --target test_cam_factor_jacobians
+./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_imu_factor_jacobians
 # ./estimation-test_factor --target test_graph
 # ./estimation-test_factor --target test_graph_add_pose
@@ -116,7 +116,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_add_ba_factor
 # ./estimation-test_factor --target test_graph_add_cam_factor
 # ./estimation-test_factor --target test_graph_add_imu_factor
-./estimation-test_factor --target test_graph_eval
+# ./estimation-test_factor --target test_graph_eval
 # ./estimation-test_measurement
 # ./estimation-test_dense
 
