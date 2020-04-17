@@ -753,6 +753,34 @@ void aprilgrid_intersection(std::vector<aprilgrid_t *> &grids) {
   }
 }
 
+void aprilgrid_random_sample(const aprilgrid_t &grid, const size_t n,
+                             std::vector<int> &sample_tag_ids,
+                             std::vector<vec2s_t> &sample_keypoints,
+                             std::vector<vec3s_t> &sample_object_points) {
+  if (grid.ids.size() == 0) {
+    return;
+  }
+
+  std::default_random_engine generator;
+  std::uniform_real_distribution<double> distribution(0.0, grid.ids.size());
+  while (sample_tag_ids.size() < std::min(grid.ids.size(), n)) {
+    const int index = distribution(generator);
+    const auto tag_id = grid.ids[index];
+
+    // Skip this tag_id if we've already sampled it
+    if (std::count(sample_tag_ids.begin(), sample_tag_ids.end(), tag_id)) {
+      continue;
+    }
+
+    vec2s_t keypoints;
+    vec3s_t object_points;
+    aprilgrid_get(grid, tag_id, keypoints, object_points);
+    sample_tag_ids.push_back(tag_id);
+    sample_keypoints.push_back(keypoints);
+    sample_object_points.push_back(object_points);
+  }
+}
+
 bool sort_apriltag_by_id(const AprilTags::TagDetection &a,
                          const AprilTags::TagDetection &b) {
   return (a.id < b.id);

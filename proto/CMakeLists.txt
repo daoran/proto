@@ -18,11 +18,11 @@ FIND_PACKAGE(opengv REQUIRED)
 FIND_PACKAGE(octomap REQUIRED)
 FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
-SET(OpenGL_GL_PREFERENCE GLVND)
-FIND_PACKAGE(OpenGL REQUIRED)
-FIND_PACKAGE(glfw3 REQUIRED)
-FIND_PACKAGE(assimp REQUIRED)
-FIND_PACKAGE(glm REQUIRED)
+# SET(OpenGL_GL_PREFERENCE GLVND)
+# FIND_PACKAGE(OpenGL REQUIRED)
+# FIND_PACKAGE(glfw3 REQUIRED)
+# FIND_PACKAGE(assimp REQUIRED)
+# FIND_PACKAGE(glm REQUIRED)
 
 # OPENMP
 if (OPENMP_FOUND)
@@ -37,24 +37,24 @@ INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${SUITESPARSE_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
 
-# GLAD
-INCLUDE_DIRECTORIES(/usr/local/src/glad/include)
+# # GLAD
+# INCLUDE_DIRECTORIES(/usr/local/src/glad/include)
 
-# IMGUI
-INCLUDE_DIRECTORIES(/usr/local/src/imgui /usr/local/src/imgui/examples)
-ADD_DEFINITIONS(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
-ADD_LIBRARY(
-  imgui
-  /usr/local/src/imgui/imgui.cpp
-  /usr/local/src/imgui/imgui_draw.cpp
-  /usr/local/src/imgui/imgui_demo.cpp
-  /usr/local/src/imgui/imgui_widgets.cpp
-)
-ADD_LIBRARY(
-  imgui_impl
-  /usr/local/src/imgui/examples/imgui_impl_glfw.cpp
-  /usr/local/src/imgui/examples/imgui_impl_opengl3.cpp
-)
+# # IMGUI
+# INCLUDE_DIRECTORIES(/usr/local/src/imgui /usr/local/src/imgui/examples)
+# ADD_DEFINITIONS(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+# ADD_LIBRARY(
+#   imgui
+#   /usr/local/src/imgui/imgui.cpp
+#   /usr/local/src/imgui/imgui_draw.cpp
+#   /usr/local/src/imgui/imgui_demo.cpp
+#   /usr/local/src/imgui/imgui_widgets.cpp
+# )
+# ADD_LIBRARY(
+#   imgui_impl
+#   /usr/local/src/imgui/examples/imgui_impl_glfw.cpp
+#   /usr/local/src/imgui/examples/imgui_impl_opengl3.cpp
+# )
 
 # # BUILD WITH CATKIN
 # IF(CATKIN_DEVEL_PREFIX)
@@ -101,17 +101,15 @@ ADD_LIBRARY(
   # src/estimation/filter.cpp
   # src/estimation/frontend.cpp
   # src/estimation/dense.cpp
-  # viz
-  # src/viz/viz.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
-INSTALL(
-  TARGETS ${PROJECT_NAME} imgui imgui_impl
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+# INSTALL(
+#   TARGETS ${PROJECT_NAME} imgui imgui_impl
+#   ARCHIVE DESTINATION lib
+#   LIBRARY DESTINATION lib
+#   RUNTIME DESTINATION bin
+# )
 INSTALL(
   DIRECTORY include/
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include
@@ -139,15 +137,13 @@ SET(
   # calib-test_calib_gimbal
   # calib-test_sandbox
   # calib-test_sandbox2
-  # core-test_core
+  core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
   # estimation-test_ba
   # estimation-test_dense
   estimation-test_factor
   # estimation-test_frontend
-  # model-test_model
-  # vision-test_vision
   # viz-test_gui
   # viz-test_plane
 )

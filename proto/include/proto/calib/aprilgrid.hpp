@@ -1,6 +1,8 @@
 #ifndef PROTO_CALIB_APRILGRID_HPP
 #define PROTO_CALIB_APRILGRID_HPP
 
+#include <algorithm>
+
 /// Order matters with the AprilTags lib. The detector has to be first.
 #include <AprilTags/TagDetector.h>
 #include <AprilTags/Tag36h11.h>
@@ -181,6 +183,14 @@ void aprilgrid_intersection(aprilgrid_t &grid0, aprilgrid_t &grid1);
  * Find the intersection of aprilgrids
  */
 void aprilgrid_intersection(std::vector<aprilgrid_t *> &grids);
+
+/**
+ * Random sample `n` aprilgrid measurements.
+ */
+void aprilgrid_random_sample(const aprilgrid_t &grid, const size_t n,
+                             std::vector<int> &sample_tag_ids,
+                             std::vector<vec2s_t> &sample_keypoints,
+                             std::vector<vec3s_t> &sample_object_points);
 
 /** Comparator to sort detected AprilTags by id */
 bool sort_apriltag_by_id(const AprilTags::TagDetection &a,

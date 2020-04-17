@@ -351,6 +351,30 @@ void extend(std::vector<T1, T2> &x, std::vector<T1, T2> &add) {
 }
 
 /**
+ * Slice `std::vector`.
+ */
+template<typename T>
+std::vector<T> slice(std::vector<T> const &v, int m, int n) {
+  auto first = v.cbegin() + m;
+  auto last = v.cbegin() + n + 1;
+
+  std::vector<T> vec(first, last);
+  return vec;
+}
+
+/**
+ * Slice `std::vector`.
+ */
+template<typename T1, typename T2>
+std::vector<T1, T2> slice(std::vector<T1, T2> const &v, int m, int n) {
+  auto first = v.cbegin() + m;
+  auto last = v.cbegin() + n + 1;
+
+  std::vector<T1, T2> vec(first, last);
+  return vec;
+}
+
+/**
  * Get raw pointer of a value in a `std::map`.
  */
 template <typename K, typename V>
@@ -3376,23 +3400,25 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
  *                              FACTOR GRAPH
  *****************************************************************************/
 
-#define POSE 0
-#define INTRINSIC 1
-#define EXTRINSIC 2
-#define LANDMARK 3
+#define POSE 1
+#define PROJECTION 2
+#define DISTORTION 3
+#define LANDMARK 4
+#define SPEED_BIAS 5
 
 struct param_t {
+	int type = -1;
   size_t id = 0;
   timestamp_t ts = 0;
   size_t local_size = 0;
 
-  param_t() {}
+  param_t(const int type_) : type{type_} {}
 
-  param_t(const size_t id_, const size_t local_size_)
-      : id{id_}, local_size{local_size_} {}
+  param_t(const int type_, const size_t id_, const size_t local_size_)
+      : type{type_}, id{id_}, local_size{local_size_} {}
 
-  param_t(const size_t id_, const timestamp_t &ts_, const size_t local_size_)
-      : id{id_}, ts{ts_}, local_size{local_size_} {}
+  param_t(const int type_, const size_t id_, const timestamp_t &ts_, const size_t local_size_)
+      : type{type_}, id{id_}, ts{ts_}, local_size{local_size_} {}
 
   virtual ~param_t() {}
 
@@ -3403,9 +3429,9 @@ struct param_t {
 struct pose_t : param_t {
   real_t param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-  pose_t() {}
+  pose_t() : param_t{POSE} {}
 
-  pose_t(const real_t *param_) {
+  pose_t(const real_t *param_) : param_t{POSE} {
     param[0] = param_[0];
     param[1] = param_[1];
     param[2] = param_[2];
@@ -3415,7 +3441,7 @@ struct pose_t : param_t {
     param[6] = param_[6];
   }
 
-  pose_t(const mat4_t &tf_) {
+  pose_t(const mat4_t &tf_) : param_t{POSE} {
     const quat_t q{tf_quat(tf_)};
     const vec3_t r{tf_trans(tf_)};
 
@@ -3429,13 +3455,13 @@ struct pose_t : param_t {
     param[6] = r(2);
   }
 
-  pose_t(const quat_t &q_, const vec3_t &r_)
-      : param{q_.w(), q_.x(), q_.y(), q_.z(), r_(0), r_(1), r_(2)} {}
+  pose_t(const quat_t &q_, const vec3_t &r_) :
+		param_t{POSE}, param{q_.w(), q_.x(), q_.y(), q_.z(), r_(0), r_(1), r_(2)} {}
 
   pose_t(const size_t id_,
-                const timestamp_t &ts_,
-                const mat4_t &T)
-      : param_t{id_, ts_, 6} {
+         const timestamp_t &ts_,
+         const mat4_t &T)
+      : param_t{POSE, id_, ts_, 6} {
     const quat_t q{tf_quat(T)};
     const vec3_t r{tf_trans(T)};
 
@@ -3514,10 +3540,10 @@ struct landmark_t : param_t {
   real_t param[3] = {0.0, 0.0, 0.0};
 
   landmark_t(const vec3_t &p_W_)
-    : param{p_W_(0), p_W_(1), p_W_(2)} {}
+    : param_t{LANDMARK}, param{p_W_(0), p_W_(1), p_W_(2)} {}
 
   landmark_t(const size_t id_, const vec3_t &p_W_)
-    : param_t{id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
+    : param_t{LANDMARK, id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
 
   vec3_t vec() { return map_vec_t<3>(param); };
 
@@ -3537,7 +3563,7 @@ struct proj_param_t : param_t {
   proj_param_t(const size_t id_,
                const int cam_index_,
                const vec4_t &param_)
-    : param_t{id_, 4}, cam_index{cam_index_} {
+    : param_t{PROJECTION, id_, 4}, cam_index{cam_index_} {
     for (int i = 0; i < param_.size(); i++) {
       param[i] = param_(i);
     }
@@ -3562,7 +3588,7 @@ struct dist_param_t : param_t {
   dist_param_t(const size_t id_,
                const int cam_index_,
                const vec4_t &param_)
-    : param_t{id_, 4}, cam_index{cam_index_} {
+    : param_t{DISTORTION, id_, 4}, cam_index{cam_index_} {
     for (int i = 0; i < param_.size(); i++) {
       param[i] = param_(i);
     }
@@ -3584,11 +3610,11 @@ struct sb_param_t : param_t {
   real_t param[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   sb_param_t(const size_t id_,
-            const timestamp_t &ts_,
-            const vec3_t &v_,
-            const vec3_t &ba_,
-            const vec3_t &bg_)
-    : param_t{id_, ts_, 9} {
+             const timestamp_t &ts_,
+             const vec3_t &v_,
+             const vec3_t &ba_,
+             const vec3_t &bg_)
+    : param_t{SPEED_BIAS, id_, ts_, 9} {
     // Velocity
     param[0] = v_(0);
     param[1] = v_(1);
@@ -3692,6 +3718,7 @@ struct vio_sim_data_t {
   vec3s_t imu_gyr;
   vec3s_t imu_pos;
   quats_t imu_rot;
+  vec3s_t imu_vel;
 
   // Simulation timeline
   std::multimap<timestamp_t, sim_event_t> timeline;

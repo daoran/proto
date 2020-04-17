@@ -2829,9 +2829,9 @@ void sim_imu_measurement(sim_imu_t &imu,
   w_WS_S = C_SW * w_WS_W + imu.b_g + w_g * imu.sigma_g_c * sqrt(dt);
 
   // Compute accel measurement
-  const vec3_t g{0.0, 0.0, -imu.g}; // Gravity vector
+  const vec3_t g{0.0, 0.0, imu.g}; // Gravity vector
   const vec3_t w_a = mvn(rndeng);   // Accel white noise
-  a_WS_S = C_SW * (a_WS_W - g) + imu.b_a + w_a * imu.sigma_a_c * sqrt(dt);
+  a_WS_S = C_SW * (a_WS_W + g) + imu.b_a + w_a * imu.sigma_a_c * sqrt(dt);
 
   imu.ts_prev = ts;
 }
@@ -4032,6 +4032,7 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
       const vec3_t rpy{deg2rad(-90.0), 0.0, yaw};
       const mat3_t C_WC = euler321(rpy);
       const mat4_t T_WC = tf(C_WC, r_WC);
+
       sim_data.cam_ts.push_back(t * 1e9);
       sim_data.cam_pos.push_back(r_WC);
       sim_data.cam_rot.emplace_back(C_WC);
@@ -4073,14 +4074,18 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
 
     std::default_random_engine rndeng;
     sim_imu_t imu;
-    imu.rate = 400;
+    imu.rate = sim_data.imu_rate;
     imu.tau_a = 3600;
     imu.tau_g = 3600;
-    imu.sigma_g_c = 0.005;
-    imu.sigma_a_c = 0.025;
-    imu.sigma_gw_c = 1e-05;
-    imu.sigma_aw_c = 0.001;
-    imu.g = 9.81007;
+    imu.sigma_g_c = 0.0;
+    imu.sigma_a_c = 0.0;
+    imu.sigma_gw_c = 0.0;
+    imu.sigma_aw_c = 0.0;
+    // imu.sigma_g_c = 0.005;
+    // imu.sigma_a_c = 0.025;
+    // imu.sigma_gw_c = 1e-05;
+    // imu.sigma_aw_c = 0.001;
+    imu.g = 9.81;
 
     while (t <= t_end) {
       // Form sensor pose
@@ -4094,6 +4099,12 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
       const vec3_t r_WS_W{rx, ry, rz};
       // -- Pose
       const mat4_t T_WS_W = tf(C_WS_W, r_WS_W);
+
+      // Form sensor velocity
+      const real_t vx = -circle_r * w * sin(theta);
+      const real_t vy = circle_r * w * cos(theta);
+      const real_t vz = 0.0;
+      sim_data.imu_vel.emplace_back(vx, vy, vz);
 
       // Form sensor angular velocity
       const timestamp_t ts_k = t * 1e9;

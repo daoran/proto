@@ -2,7 +2,6 @@
 
 #include "proto/munit.hpp"
 #include "proto/calib/aprilgrid.hpp"
-#include "proto/vision/vision.hpp"
 
 // #include <apriltag/apriltag.h>
 // #include <apriltag/tag36h11.h>
@@ -557,6 +556,38 @@ int test_aprilgrid_intersection2() {
   return 0;
 }
 
+int test_aprilgrid_random_sample() {
+  aprilgrid_t grid;
+  MU_CHECK(aprilgrid_configure(grid, TEST_CONF) == 0);
+
+  const auto detector = aprilgrid_detector_t();
+  const cv::Mat image = cv::imread(TEST_IMAGE);
+  const mat3_t K = pinhole_K(458.654, 457.296, 367.215, 248.375);
+  const vec4_t D{-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05};
+  aprilgrid_detect(grid, detector, image, K, D);
+
+  const size_t n = 5;
+  std::vector<int> tag_ids;
+  std::vector<vec2s_t> keypoints;
+  std::vector<vec3s_t> object_points;
+  aprilgrid_random_sample(grid, n, tag_ids, keypoints, object_points);
+
+  MU_CHECK(tag_ids.size() == n);
+  for (size_t i = 0; i < n; i++) {
+    MU_CHECK(std::count(tag_ids.begin(), tag_ids.end(), tag_ids[i]) == 1);
+  }
+  MU_CHECK(keypoints.size() == n);
+  for (size_t i = 0; i < n; i++) {
+    MU_CHECK(keypoints[i].size() == 4);
+  }
+  MU_CHECK(object_points.size() == n);
+  for (size_t i = 0; i < n; i++) {
+    MU_CHECK(object_points[i].size() == 4);
+  }
+
+  return 0;
+}
+
 void test_suite() {
   MU_ADD_TEST(test_aprilgrid_constructor);
   MU_ADD_TEST(test_aprilgrid_add);
@@ -570,6 +601,7 @@ void test_suite() {
   MU_ADD_TEST(test_aprilgrid_detect);
   MU_ADD_TEST(test_aprilgrid_intersection);
   MU_ADD_TEST(test_aprilgrid_intersection2);
+  MU_ADD_TEST(test_aprilgrid_random_sample);
 }
 
 } // namespace proto
