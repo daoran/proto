@@ -1118,6 +1118,11 @@ vec2_t normalize(const vec2_t &x);
 vec3_t normalize(const vec3_t &v);
 
 /**
+ * Condition number of `A`.
+ */
+real_t cond(const matx_t &A);
+
+/**
  * Zeros-matrix
  *
  * @param rows Number of rows
@@ -1658,14 +1663,29 @@ mat3_t quat2rot(const quat_t &q);
 quat_t quat_delta(const vec3_t &dalpha);
 
 /**
- * Left quaternion product matrix.
+ * Return left quaternion product matrix.
  */
 mat4_t quat_lmul(const quat_t &q);
 
 /**
- * Right quaternion product matrix.
+ * Return left quaternion product matrix (but only for x, y, z components).
+ */
+mat3_t quat_lmul_xyz(const quat_t &q);
+
+/**
+ * Return right quaternion product matrix.
  */
 mat4_t quat_rmul(const quat_t &q);
+
+/**
+ * Return right quaternion product matrix (but only for x, y, z components).
+ */
+mat3_t quat_rmul_xyz(const quat_t &q);
+
+/**
+ * Return only the x, y, z, components of a quaternion matrix.
+ */
+mat3_t quat_mat_xyz(const mat4_t &Q);
 
 /**
  * Initialize attitude using IMU gyroscope `w_m` and accelerometer `a_m`
@@ -3407,6 +3427,8 @@ int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
 #define SPEED_BIAS 5
 
 struct param_t {
+  bool fixed = false;
+
 	int type = -1;
   size_t id = 0;
   timestamp_t ts = 0;
@@ -3516,23 +3538,19 @@ struct pose_t : param_t {
 
   void plus(const vecx_t &dx) {
     // Rotation component
-    real_t half_norm = 0.5 * dx.head<3>().norm();
-    real_t dq_w = cos(half_norm);
-    real_t dq_x = sinc(half_norm) * 0.5 * dx(0);
-    real_t dq_y = sinc(half_norm) * 0.5 * dx(1);
-    real_t dq_z = sinc(half_norm) * 0.5 * dx(2);
-    quat_t dq{dq_w, dq_x, dq_y, dq_z};
-    quat_t q{param[0], param[1], param[2], param[3]};
-    quat_t q_updated = q * dq;
+    const vec3_t dalpha{dx(0), dx(1), dx(2)};
+    const quat_t dq = quat_delta(dalpha);
+    const quat_t q{param[0], param[1], param[2], param[3]};
+    const quat_t q_updated = dq * q;
     param[0] = q_updated.w();
     param[1] = q_updated.x();
     param[2] = q_updated.y();
     param[3] = q_updated.z();
 
     // Translation component
-    param[3] = param[3] - dx[3];
-    param[4] = param[4] - dx[4];
-    param[5] = param[5] - dx[5];
+    param[3] = param[3] + dx(3);
+    param[4] = param[4] + dx(4);
+    param[5] = param[5] + dx(5);
   }
 };
 
@@ -3550,9 +3568,9 @@ struct landmark_t : param_t {
   real_t *data() { return param; };
 
   void plus(const vecx_t &dx) {
-    param[0] = param[0] + dx[0];
-    param[1] = param[1] + dx[1];
-    param[2] = param[2] + dx[2];
+    param[0] = param[0] + dx(0);
+    param[1] = param[1] + dx(1);
+    param[2] = param[2] + dx(2);
   }
 };
 
@@ -3574,10 +3592,10 @@ struct proj_param_t : param_t {
   real_t *data() { return param; };
 
   void plus(const vecx_t &dx) {
-    param[0] = param[0] + dx[0];
-    param[1] = param[1] + dx[1];
-    param[2] = param[2] + dx[2];
-    param[3] = param[3] + dx[3];
+    param[0] = param[0] + dx(0);
+    param[1] = param[1] + dx(1);
+    param[2] = param[2] + dx(2);
+    param[3] = param[3] + dx(3);
   }
 };
 
@@ -3599,10 +3617,10 @@ struct dist_param_t : param_t {
   real_t *data() { return param; };
 
   void plus(const vecx_t &dx) {
-    param[0] = param[0] + dx[0];
-    param[1] = param[1] + dx[1];
-    param[2] = param[2] + dx[2];
-    param[3] = param[3] + dx[3];
+    param[0] = param[0] + dx(0);
+    param[1] = param[1] + dx(1);
+    param[2] = param[2] + dx(2);
+    param[3] = param[3] + dx(3);
   }
 };
 

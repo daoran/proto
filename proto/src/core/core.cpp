@@ -1384,6 +1384,13 @@ std::string mat2str(const matx_t &m, const std::string &indent) {
 
 vec3_t normalize(const vec3_t &v) { return v / v.norm(); }
 
+real_t cond(const matx_t &A) {
+  Eigen::JacobiSVD<matx_t> svd(A);
+  const auto max_sigma = svd.singularValues()(0);
+  const auto min_sigma = svd.singularValues()(svd.singularValues().size() - 1);
+  return max_sigma / min_sigma;
+}
+
 matx_t zeros(const int rows, const int cols) {
   return matx_t::Zero(rows, cols);
 }
@@ -2095,6 +2102,11 @@ mat4_t quat_lmul(const quat_t &q) {
   return lmul;
 }
 
+mat3_t quat_lmul_xyz(const quat_t &q) {
+  mat4_t Q = quat_lmul(q);
+  return Q.bottomRightCorner<3, 3>();
+}
+
 mat4_t quat_rmul(const quat_t &q) {
   const real_t qw = q.w();
   const real_t qx = q.x();
@@ -2108,6 +2120,15 @@ mat4_t quat_rmul(const quat_t &q) {
           qz,  qy, -qx,  qw;
   // clang-format on
   return lmul;
+}
+
+mat3_t quat_rmul_xyz(const quat_t &q) {
+  mat4_t Q = quat_rmul(q);
+  return Q.bottomRightCorner<3, 3>();
+}
+
+mat3_t quat_mat_xyz(const mat4_t &Q) {
+  return Q.bottomRightCorner<3, 3>();
 }
 
 void imu_init_attitude(const vec3s_t w_m,
