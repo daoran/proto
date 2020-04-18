@@ -30,15 +30,9 @@ struct param_t {
 
   virtual ~param_t() {}
 
-  virtual void set(const matx_t &) { FATAL("Not Implmented!"); }
-  virtual void set(const vecx_t &) { FATAL("Not Implmented!"); }
   virtual real_t *data() = 0;
   virtual void plus(const vecx_t &) = 0;
-  virtual void perturb(const int i, const real_t step_size) {
-    UNUSED(i);
-    UNUSED(step_size);
-    FATAL("Not Implmented!");
-  }
+  virtual void perturb(const int i, const real_t step_size) = 0;
 };
 
 struct pose_t : param_t {
@@ -128,20 +122,6 @@ struct pose_t : param_t {
     param[3] = q.z();
   }
 
-  void set(const matx_t &T) {
-    const quat_t q = tf_quat(T);
-    const vec3_t r = tf_trans(T);
-
-    param[0] = q.w();
-    param[1] = q.x();
-    param[2] = q.y();
-    param[3] = q.z();
-
-    param[4] = r(0);
-    param[5] = r(1);
-    param[6] = r(2);
-  }
-
   real_t *data() { return param; }
 
   void plus(const vecx_t &dx) {
@@ -186,12 +166,6 @@ struct landmark_t : param_t {
   landmark_t(const size_t id_, const vec3_t &p_W_)
     : param_t{LANDMARK, id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
 
-  void set(const vecx_t &p) {
-    param[0] = p(0);
-    param[1] = p(1);
-    param[2] = p(2);
-  }
-
   vec3_t vec() { return map_vec_t<3>(param); };
 
   real_t *data() { return param; };
@@ -218,13 +192,6 @@ struct proj_param_t : param_t {
     for (int i = 0; i < param_.size(); i++) {
       param[i] = param_(i);
     }
-  }
-
-  void set(const vecx_t &param_new) {
-    param[0] = param_new(0);
-    param[1] = param_new(1);
-    param[2] = param_new(2);
-    param[3] = param_new(3);
   }
 
   vec4_t vec() { return map_vec_t<4>(param); };
@@ -254,13 +221,6 @@ struct dist_param_t : param_t {
     for (int i = 0; i < param_.size(); i++) {
       param[i] = param_(i);
     }
-  }
-
-  void set(const vecx_t &param_new) {
-    param[0] = param_new(0);
-    param[1] = param_new(1);
-    param[2] = param_new(2);
-    param[3] = param_new(3);
   }
 
   vec4_t vec() { return map_vec_t<4>(param); };
@@ -302,18 +262,6 @@ struct sb_param_t : param_t {
     param[6] = bg_(0);
     param[7] = bg_(1);
     param[8] = bg_(2);
-  }
-
-  void set(const vecx_t &param_new) {
-    param[0] = param_new(0);
-    param[1] = param_new(1);
-    param[2] = param_new(2);
-    param[3] = param_new(3);
-    param[4] = param_new(4);
-    param[5] = param_new(5);
-    param[6] = param_new(6);
-    param[7] = param_new(7);
-    param[8] = param_new(8);
   }
 
   vec_t<9> vec() { return map_vec_t<9>(param); };
@@ -371,7 +319,7 @@ struct factor_t {
            const std::vector<param_t *> &params_)
     : id{id_}, info{info_}, params{params_} {}
   virtual ~factor_t() {}
-  virtual bool eval() = 0;
+  virtual int eval() = 0;
 };
 
 int check_jacobians(factor_t *factor,
@@ -393,10 +341,11 @@ struct pose_factor_t : factor_t {
                 const mat_t<6, 6> &info_,
                 const std::vector<param_t *> &params_)
       : factor_t{id_, info_, params_}, pose_meas{pose_} {
+    residuals = zeros(6, 1);
     jacobians.push_back(zeros(6, 6));
 	}
 
-	bool eval() {
+	int eval() {
     assert(params.size() == 1);
 
 		// Calculate delta pose
@@ -406,7 +355,6 @@ struct pose_factor_t : factor_t {
 		// Calculate pose error
 		const quat_t dq = tf_quat(delta_pose);
 		const vec3_t dtheta = 2 * dq.coeffs().head<3>();
-		residuals = zeros(6, 1);
 		residuals.head<3>() = dtheta;
 		residuals.tail<3>() = tf_trans(pose_meas) - tf_trans(pose_est);
 
@@ -421,7 +369,7 @@ struct pose_factor_t : factor_t {
     jacobians[0].block<3, 3>(0, 0) = -dq_mul_xyz;
 		// clang-format on
 
-		return true;
+		return 0;
 	}
 };
 
@@ -451,13 +399,14 @@ struct ba_factor_t : factor_t {
         ts{ts_}, cam_index{cam_index_},
         img_w{img_w_}, img_h{img_h_},
         z{z_} {
+    residuals = zeros(2, 1);
     jacobians.push_back(zeros(2, 6));  // T_WC
     jacobians.push_back(zeros(2, 3));  // p_W
     jacobians.push_back(zeros(2, CM::proj_params_size));  // Projection model
     jacobians.push_back(zeros(2, CM::dist_params_size));  // Distortion model
   }
 
-  bool eval() {
+  int eval() {
     assert(params.size() == 4);
 
     // Map out parameters
@@ -481,10 +430,10 @@ struct ba_factor_t : factor_t {
       }
 
 			jacobians[0] = zeros(2, 6);  // T_WC
-			jacobians[1] = zeros(2, CM::proj_params_size);  // Projection model
-			jacobians[2] = zeros(2, CM::dist_params_size);  // Distortion model
-			jacobians[3] = zeros(2, 3);  // p_W
-      return false;
+			jacobians[1] = zeros(2, 3);  // p_W
+			jacobians[2] = zeros(2, CM::proj_params_size);  // Projection model
+			jacobians[3] = zeros(2, CM::dist_params_size);  // Distortion model
+      return -1;
     }
 
     // Calculate residual
@@ -537,6 +486,7 @@ struct cam_factor_t : factor_t {
         ts{ts_}, cam_index{cam_index_},
         img_w{img_w_}, img_h{img_h_},
         z{z_} {
+    residuals = zeros(2, 1);
     jacobians.push_back(zeros(2, 6));  // T_WS
     jacobians.push_back(zeros(2, 6));  // T_SC
     jacobians.push_back(zeros(2, 3));  // p_W
@@ -544,7 +494,7 @@ struct cam_factor_t : factor_t {
     jacobians.push_back(zeros(2, 4));  // Distortion model
   }
 
-  bool eval() {
+  int eval() {
     assert(params.size() == 5);
 
     // Map out parameters
@@ -568,7 +518,7 @@ struct cam_factor_t : factor_t {
       case -1: LOG_ERROR("Point is not infront of camera!"); break;
       case -2: LOG_ERROR("Projected point is outside the image plane!"); break;
       }
-      return false;
+      return -1;
     }
 
     // Calculate residual
@@ -710,7 +660,7 @@ struct imu_factor_t : factor_t {
     }
   }
 
-  bool eval() {
+  int eval() {
     // Map out parameters
     // -- Sensor pose at timestep i
     const mat4_t T_i = tf(params[0]->data());
@@ -790,7 +740,7 @@ struct imu_factor_t : factor_t {
     jacobians[3].block<3, 3>(12, 6) = I(3);
     // clang-format on
 
-    return true;
+    return 0;
   }
 };
 
@@ -899,19 +849,15 @@ size_t graph_add_ba_factor(graph_t &graph,
   const auto f_id = graph.factors.size();
   std::vector<param_t *> params{
     graph.params[cam_pose_id],
+    graph.params[landmark_id],
     graph.params[proj_param_id],
-    graph.params[dist_param_id],
-    graph.params[landmark_id]
+    graph.params[dist_param_id]
   };
   auto factor = new ba_factor_t<CM>{
     ts, f_id,
     cam_idx, img_w, img_h,
     z, info, params
   };
-  // factor->param_ids.push_back(cam_pose_id);
-  // factor->param_ids.push_back(proj_param_id);
-  // factor->param_ids.push_back(dist_param_id);
-  // factor->param_ids.push_back(landmark_id);
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -946,11 +892,6 @@ size_t graph_add_cam_factor(graph_t &graph,
     cam_idx, img_w, img_h,
     z, info, params
   };
-  // factor->param_ids.push_back(sensor_pose_id);
-  // factor->param_ids.push_back(imu_cam_pose_id);
-  // factor->param_ids.push_back(landmark_id);
-  // factor->param_ids.push_back(proj_param_id);
-  // factor->param_ids.push_back(dist_param_id);
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -976,10 +917,6 @@ size_t graph_add_imu_factor(graph_t &graph,
     graph.params[sb1_id]
   };
   auto factor = new imu_factor_t(imu_index, imu_ts, imu_gyro, imu_accel, I(15), params);
-  // factor->param_ids.push_back(pose0_id);
-  // factor->param_ids.push_back(sb0_id);
-  // factor->param_ids.push_back(pose1_id);
-  // factor->param_ids.push_back(sb1_id);
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -987,11 +924,22 @@ size_t graph_add_imu_factor(graph_t &graph,
   return f_id;
 }
 
-// void graph_eval(graph_t &graph, vecx_t &r) {
-//   for (const auto &factor : graph.factors) {
-//     factor->eval();
-//   }
-// }
+void graph_residuals(graph_t &graph, vecx_t &r) {
+  std::vector<real_t> residuals;
+  for (const auto &factor : graph.factors) {
+    if (factor->eval() != false) {
+      for (long i = 0; i < factor->residuals.size(); i++) {
+        residuals.push_back(factor->residuals(i));
+      }
+    }
+  }
+
+  // Convert std::vector<real_t> to vecx_t
+  r.resize(residuals.size());
+  for (long i = 0; i < r.size(); i++) {
+    r(i) = residuals[i];
+  }
+}
 
 void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 	// First pass: Determine what parameters we have
@@ -1003,9 +951,9 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 
 	for (const auto &factor : graph.factors) {
 		for (const auto &param : factor->params) {
-			// Check if param has already been tracked or fixed
+			// Check if param is already tracked or fixed
 			if (param_tracker.count(param) > 0 || param->fixed) {
-				continue;
+				continue; // Skip this param
 			}
 
 			// Keep track of param blocks
@@ -1027,13 +975,23 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 	size_t proj_cs = pose_param_size;
 	size_t dist_cs = proj_cs + proj_param_size;
 	size_t landmark_cs = dist_cs + dist_param_size;
+  std::vector<bool> factor_ok;
 
 	graph.param_index.clear();
   for (const auto &factor : graph.factors) {
+    // Evaluate factor
+    if (factor->eval() != 0) {
+      factor_ok.push_back(false);
+      continue; // Skip this factor
+    }
+    residuals_size += factor->residuals.size();
+    factor_ok.push_back(true);
+
+    // Assign parameter order in jacobian
 		for (const auto &param : factor->params) {
-      // Check if param has already been tracked
+			// Check if param is already tracked or fixed
       if (graph.param_index.count(param) > 0 || param->fixed) {
-        continue;
+        continue; // Skip this param
       }
 
 			// Assign jacobian column index for parameter
@@ -1041,6 +999,10 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 			case POSE:
 				graph.param_index.insert({param, pose_cs});
 				pose_cs += param->local_size;
+				break;
+      case LANDMARK:
+				graph.param_index.insert({param, landmark_cs});
+				landmark_cs += param->local_size;
 				break;
       case PROJECTION:
 				graph.param_index.insert({param, proj_cs});
@@ -1050,20 +1012,12 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 				graph.param_index.insert({param, dist_cs});
 				dist_cs += param->local_size;
 				break;
-      case LANDMARK:
-				graph.param_index.insert({param, landmark_cs});
-				landmark_cs += param->local_size;
-				break;
 			default:
 				FATAL("Unsupported param type!");
 				break;
 			}
       params_size += param->local_size;
     }
-
-		// Evaluate factor
-    factor->eval();
-		residuals_size += factor->residuals.size();
   }
 
   // Third pass: Form residuals and jacobians
@@ -1072,18 +1026,26 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 
   size_t rs = 0;
   size_t cs = 0;
-  for (const auto &factor : graph.factors) {
-    for (size_t i = 0; i < factor->params.size(); i++) {
-      const auto &param = graph.params.at(i);
+  for (size_t i = 0; i < graph.factors.size(); i++) {
+    const auto &factor = graph.factors[i];
+    if (factor_ok[i] == false) {
+      continue; // Skip this factor
+    }
+
+    // Form jacobian
+    for (size_t j = 0; j < factor->params.size(); j++) {
+      const auto &param = factor->params.at(j);
       const long rows = factor->residuals.size();
       const long cols = param->local_size;
 
       if (graph.param_index.count(param)) {
         cs = graph.param_index[param];
-        J.block(rs, cs, rows, cols) = factor->jacobians[i];
+        J.block(rs, cs, rows, cols) = factor->jacobians[j];
         // J.block(rs, cs, rows, cols) = ones(rows, cols);
       }
     }
+
+    // Form residual
     r.segment(rs, factor->residuals.size()) = factor->residuals;
     rs += factor->residuals.size();
   }

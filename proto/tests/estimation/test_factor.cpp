@@ -602,59 +602,50 @@ int test_graph_add_cam_factor() {
   return 0;
 }
 
-// int test_graph_add_imu_factor() {
-//   vio_sim_data_t sim_data;
-//   sim_circle_trajectory(4.0, sim_data);
-//
-//   // Create graph
-//   graph_t graph;
-//   size_t nb_imu_meas = 10;
-//   timestamp_t t0 = sim_data.imu_ts[0];
-//   timestamp_t t1 = sim_data.imu_ts[nb_imu_meas];
-//
-//   // -- Add sensor pose at i
-//   const mat4_t T_WS_i = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
-//   auto pose0_id = graph_add_pose(graph, t0, T_WS_i);
-//   // -- Add speed and bias at i
-//   const vec3_t v_WS_i = sim_data.imu_vel[0];
-//   const vec3_t ba_i{0.0, 0.0, 0.0};
-//   const vec3_t bg_i{0.0, 0.0, 0.0};
-//   auto sb0_id = graph_add_sb_params(graph, t0, v_WS_i, ba_i, bg_i);
-//   // -- Add sensor pose at j
-//   const mat4_t T_WS_j = tf(sim_data.imu_rot[nb_imu_meas], sim_data.imu_pos[nb_imu_meas]);
-//   auto pose1_id = graph_add_pose(graph, t1, T_WS_j);
-//   // -- Add speed and bias at j
-//   const vec3_t v_WS_j = sim_data.imu_vel[nb_imu_meas];
-//   const vec3_t ba_j{0.0, 0.0, 0.0};
-//   const vec3_t bg_j{0.0, 0.0, 0.0};
-//   auto sb1_id = graph_add_sb_params(graph, t1, v_WS_j, ba_j, bg_j);
-//   // -- Add imu factor
-//   const int imu_index = 0;
-//   graph_add_imu_factor(graph,
-//                        imu_index,
-//                        slice(sim_data.imu_ts, 0, nb_imu_meas),
-//                        slice(sim_data.imu_acc, 0, nb_imu_meas),
-//                        slice(sim_data.imu_gyr, 0, nb_imu_meas),
-//                        pose0_id,
-//                        sb0_id,
-//                        pose1_id,
-//                        sb1_id);
-//
-//   real_t *params[4] = {
-//     graph.params[0]->data(),
-//     graph.params[1]->data(),
-//     graph.params[2]->data(),
-//     graph.params[3]->data()
-//   };
-//   graph.factors[0]->eval(params);
-//   std::cout << graph.factors[0]->residuals << std::endl;
-//
-//   // Asserts
-//   MU_CHECK(graph.params.size() == 4);
-//   MU_CHECK(graph.factors.size() == 1);
-//
-//   return 0;
-// }
+int test_graph_add_imu_factor() {
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+
+  // Create graph
+  graph_t graph;
+  size_t nb_imu_meas = 10;
+  timestamp_t t0 = sim_data.imu_ts[0];
+  timestamp_t t1 = sim_data.imu_ts[nb_imu_meas];
+
+  // -- Add sensor pose at i
+  const mat4_t T_WS_i = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
+  auto pose0_id = graph_add_pose(graph, t0, T_WS_i);
+  // -- Add speed and bias at i
+  const vec3_t v_WS_i = sim_data.imu_vel[0];
+  const vec3_t ba_i{0.0, 0.0, 0.0};
+  const vec3_t bg_i{0.0, 0.0, 0.0};
+  auto sb0_id = graph_add_sb_params(graph, t0, v_WS_i, ba_i, bg_i);
+  // -- Add sensor pose at j
+  const mat4_t T_WS_j = tf(sim_data.imu_rot[nb_imu_meas], sim_data.imu_pos[nb_imu_meas]);
+  auto pose1_id = graph_add_pose(graph, t1, T_WS_j);
+  // -- Add speed and bias at j
+  const vec3_t v_WS_j = sim_data.imu_vel[nb_imu_meas];
+  const vec3_t ba_j{0.0, 0.0, 0.0};
+  const vec3_t bg_j{0.0, 0.0, 0.0};
+  auto sb1_id = graph_add_sb_params(graph, t1, v_WS_j, ba_j, bg_j);
+  // -- Add imu factor
+  const int imu_index = 0;
+  graph_add_imu_factor(graph,
+                       imu_index,
+                       slice(sim_data.imu_ts, 0, nb_imu_meas),
+                       slice(sim_data.imu_acc, 0, nb_imu_meas),
+                       slice(sim_data.imu_gyr, 0, nb_imu_meas),
+                       pose0_id,
+                       sb0_id,
+                       pose1_id,
+                       sb1_id);
+
+  // Asserts
+  MU_CHECK(graph.params.size() == 4);
+  MU_CHECK(graph.factors.size() == 1);
+
+  return 0;
+}
 
 void save_features(const std::string &path, const vec3s_t &features) {
   FILE *csv = fopen(path.c_str(), "w");
@@ -777,6 +768,7 @@ int test_graph_eval() {
                                                cam0_pose_id, feature_id,
                                                proj_param_id, dist_param_id, z);
       }
+      printf("nb features: %zu\n", event.frame.feature_ids.size());
 
 			cam_pose++;
 			if (cam_pose == 2) {
@@ -791,15 +783,6 @@ int test_graph_eval() {
   graph_eval(graph, r, J);
 	mat2csv("/tmp/J.csv", J);
 	mat2csv("/tmp/r.csv", r);
-
-	// Solve Gauss-Newton system [H dx = g]: Solve for dx
-	real_t lambda = 1e-3;
-	matx_t H = J.transpose() * J; // Hessian approx: H = J^t J
-	matx_t H_diag = (H.diagonal().asDiagonal());
-	H = H + lambda * H_diag;			// R. Fletcher trust region mod
-	const vecx_t g = -J.transpose() * r;
-	const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
-	mat2csv("/tmp/dx.csv", dx);
 
 	OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
 	// OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/r.csv");
@@ -918,8 +901,8 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_pose_factor);
   MU_ADD_TEST(test_graph_add_ba_factor);
   MU_ADD_TEST(test_graph_add_cam_factor);
-  // MU_ADD_TEST(test_graph_add_imu_factor);
-  // MU_ADD_TEST(test_graph_eval);
+  MU_ADD_TEST(test_graph_add_imu_factor);
+  MU_ADD_TEST(test_graph_eval);
   // MU_ADD_TEST(test_graph_solve);
 }
 
