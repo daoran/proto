@@ -55,7 +55,7 @@ int test_pose_factor_jacobians() {
   const mat3_t C_WS = euler321(euler);
   const vec3_t r_WS{randf(-0.5, 0.5), randf(-0.5, 0.5), randf(-0.5, 0.5)};
   const mat4_t T_WS = tf(C_WS, r_WS);
-  pose_factor_t pose_factor(0, T_WS);
+  pose_factor_t pose_factor(0, T_WS, I(6));
 
   pose_t pose{T_WS};
   real_t *params[1] = {pose.data()};
@@ -933,6 +933,23 @@ int test_graph_add_dist_params() {
   return 0;
 }
 
+int test_graph_add_pose_factor() {
+  graph_t graph;
+
+  timestamp_t ts = 0;
+  mat4_t T_WS = I(4);
+  const size_t pose_id = graph_add_pose(graph, ts, T_WS);
+  graph_add_pose_factor(graph, pose_id, T_WS);
+
+  MU_CHECK(graph.params.size() == 1);
+  MU_CHECK(graph.params[0] != nullptr);
+
+  MU_CHECK(graph.factors.size() == 1);
+  MU_CHECK(graph.factors[0] != nullptr);
+
+  return 0;
+}
+
 int test_graph_add_sb_params() {
   graph_t graph;
 
@@ -1196,6 +1213,7 @@ int test_graph_eval() {
 
   // Create graph
   graph_t graph;
+	bool prior_set = false;
 
   // -- Add landmarks
   for (const auto &feature : sim_data.features) {
@@ -1203,8 +1221,8 @@ int test_graph_eval() {
   }
   // -- Add cam0 parameters
   int cam_id = 0;
-  size_t proj_param_id = graph_add_proj_params(graph, cam_id, cam0.proj_params());
-  size_t dist_param_id = graph_add_dist_params(graph, cam_id, cam0.dist_params());
+  size_t proj_param_id = graph_add_proj_params(graph, cam_id, cam0.proj_params(), true);
+  size_t dist_param_id = graph_add_dist_params(graph, cam_id, cam0.dist_params(), true);
   // -- Add cam0 poses and ba factors
   size_t pose_idx = 0;
 	int cam_pose = 0;
@@ -1221,6 +1239,11 @@ int test_graph_eval() {
       const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
       pose_idx++;
 
+      if (prior_set == false) {
+        graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        prior_set = true;
+      }
+
       // Add cam0 observations at ts
       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
         const auto feature_id = event.frame.feature_ids[i];
@@ -1230,10 +1253,9 @@ int test_graph_eval() {
                                                cam0_pose_id, feature_id,
                                                proj_param_id, dist_param_id, z);
       }
-			printf("nb_features: %zu\n", event.frame.feature_ids.size());
 
 			cam_pose++;
-			if (cam_pose == 3) {
+			if (cam_pose == 2) {
 				break;
 			}
     }
@@ -1255,7 +1277,7 @@ int test_graph_eval() {
 	const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
 	mat2csv("/tmp/dx.csv", dx);
 
-	// OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
+	OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
 	// OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/r.csv");
 
   // Debug
@@ -1286,11 +1308,12 @@ int test_graph_solve() {
   const pinhole_radtan4_t cam0{img_w, img_h, proj_params, dist_params};
 
   // Create graph
+  bool prior_set = false;
   graph_t graph;
 
   // -- Add landmarks
   for (const auto &feature : sim_data.features) {
-    // graph_add_landmark(graph, feature + vec3_t{randf(-0.1, 0.1), randf(-0.1, 0.1), randf(-0.1, 0.1)});
+    // graph_add_landmark(graph, feature + vec3_t{randf(-0.01, 0.01), randf(-0.01, 0.01), randf(-0.01, 0.01)});
     graph_add_landmark(graph, feature);
   }
   // -- Add cam0 parameters
@@ -1308,10 +1331,17 @@ int test_graph_solve() {
     if (event.type == sim_event_type_t::CAMERA) {
       // Add cam0 pose
       const quat_t q_WC0 = sim_data.cam_rot[pose_idx];
-      const vec3_t r_WC0 = sim_data.cam_pos[pose_idx] + vec3_t{randf(-0.1, 0.1), randf(-0.1, 0.1), randf(-0.1, 0.1)};
+      const vec3_t r_WC0_diff{randf(-0.05, 0.05), randf(-0.05, 0.05), randf(-0.05, 0.05)};
+      const vec3_t r_WC0 = sim_data.cam_pos[pose_idx] + r_WC0_diff;
+      // const vec3_t r_WC0 = sim_data.cam_pos[pose_idx];
       const mat4_t T_WC0 = tf(q_WC0, r_WC0);
       const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
       pose_idx++;
+
+      if (prior_set == false) {
+        graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        prior_set = true;
+      }
 
       // Add cam0 observations at ts
       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
@@ -1324,15 +1354,17 @@ int test_graph_solve() {
       }
 
 			cam_pose++;
-			if (cam_pose == 3) {
+			if (cam_pose == 20) {
 				break;
 			}
     }
   }
 
 	tiny_solver_t solver;
-	solver.max_iter = 2;
+	solver.max_iter = 30;
+	solver.lambda = 1e6;
 	solver.solve(graph);
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/E.csv");
 
   // Debug
   // const bool debug = true;
@@ -1356,6 +1388,7 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_proj_params);
   MU_ADD_TEST(test_graph_add_dist_params);
   MU_ADD_TEST(test_graph_add_sb_params);
+  MU_ADD_TEST(test_graph_add_pose_factor);
   MU_ADD_TEST(test_graph_add_ba_factor);
   MU_ADD_TEST(test_graph_add_cam_factor);
   MU_ADD_TEST(test_graph_add_imu_factor);

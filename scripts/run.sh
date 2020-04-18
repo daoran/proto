@@ -104,7 +104,7 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_cost
 # ./estimation-test_ba --target test_ba_solve
 # ./estimation-test_imu
-./estimation-test_factor --target test_pose_factor_jacobians
+# ./estimation-test_factor --target test_pose_factor_jacobians
 # ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_imu_factor_jacobians
@@ -114,11 +114,12 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_add_cam_params
 # ./estimation-test_factor --target test_graph_add_dist_params
 # ./estimation-test_factor --target test_graph_add_sb_params
+# ./estimation-test_factor --target test_graph_add_pose_factor
 # ./estimation-test_factor --target test_graph_add_ba_factor
 # ./estimation-test_factor --target test_graph_add_cam_factor
 # ./estimation-test_factor --target test_graph_add_imu_factor
 # ./estimation-test_factor --target test_graph_eval
-# ./estimation-test_factor --target test_graph_solve
+./estimation-test_factor --target test_graph_solve
 # ./estimation-test_measurement
 # ./estimation-test_dense
 

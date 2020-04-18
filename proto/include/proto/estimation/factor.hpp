@@ -14,11 +14,12 @@ struct factor_t {
 
   size_t id = 0;
   std::vector<size_t> param_ids;
+  matx_t info;
   vecx_t residuals;
   matxs_t jacobians;
 
   factor_t() {}
-  factor_t(const size_t id_) : id{id_} {}
+  factor_t(const size_t id_, const matx_t &info_) : id{id_}, info{info_} {}
   virtual ~factor_t() {}
   virtual bool eval(real_t const *const *parameters) = 0;
 };
@@ -31,8 +32,8 @@ struct pose_factor_t : factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 	const mat4_t pose_meas;
 
-  pose_factor_t(const size_t id_, const mat4_t &pose_)
-		: factor_t{id_}, pose_meas{pose_} {
+  pose_factor_t(const size_t id_, const mat4_t &pose_, const mat_t<6, 6> &info_)
+		: factor_t{id_, info_}, pose_meas{pose_} {
     jacobians.push_back(zeros(6, 6));
 	}
 
@@ -79,7 +80,6 @@ struct ba_factor_t : factor_t {
   const int img_w = 0;
   const int img_h = 0;
   const vec2_t z{0.0, 0.0};
-  const mat2_t info = I(2);
 
   ba_factor_t(const size_t id_,
               const timestamp_t &ts_,
@@ -88,10 +88,10 @@ struct ba_factor_t : factor_t {
               const int img_h_,
               const vec2_t &z_,
               const mat2_t &info_ = I(2))
-      : factor_t{id_},
+      : factor_t{id_, info_},
         ts{ts_}, cam_index{cam_index_},
         img_w{img_w_}, img_h{img_h_},
-        z{z_}, info{info_} {
+        z{z_} {
     jacobians.push_back(zeros(2, 6));  // T_WC
     jacobians.push_back(zeros(2, CM::proj_params_size));  // Projection model
     jacobians.push_back(zeros(2, CM::dist_params_size));  // Distortion model
@@ -165,7 +165,6 @@ struct cam_factor_t : factor_t {
   const int img_w = 0;
   const int img_h = 0;
   const vec2_t z{0.0, 0.0};
-  const mat2_t info = I(2);
 
   cam_factor_t(const size_t id_,
                const timestamp_t &ts_,
@@ -174,10 +173,10 @@ struct cam_factor_t : factor_t {
                const int img_h_,
                const vec2_t &z_,
                const mat2_t &info_ = I(2))
-      : factor_t{id_},
+      : factor_t{id_, info_},
         ts{ts_}, cam_index{cam_index_},
         img_w{img_w_}, img_h{img_h_},
-        z{z_}, info{info_} {
+        z{z_} {
     jacobians.push_back(zeros(2, 6));  // T_WS
     jacobians.push_back(zeros(2, 6));  // T_SC
     jacobians.push_back(zeros(2, 3));  // p_W
@@ -271,8 +270,9 @@ struct imu_factor_t : factor_t {
   imu_factor_t(const size_t id_,
                const timestamps_t imu_ts_,
                const vec3s_t imu_accel_,
-               const vec3s_t imu_gyro_ )
-      : factor_t{id_},
+               const vec3s_t imu_gyro_ ,
+               const mat_t<15, 15> &info_ = I(15))
+      : factor_t{id_, info_},
         imu_ts{imu_ts_},
         imu_accel{imu_accel_},
         imu_gyro{imu_gyro_} {
@@ -388,11 +388,17 @@ struct imu_factor_t : factor_t {
     const vec3_t beta = dv + dv_dbg * dbg + dv_dba * dba;
     const quat_t gamma = dq * quat_delta(dq_dbg * dbg);
 
+    const quat_t q_i_inv = q_i.inverse();
+    const quat_t q_j_inv = q_j.inverse();
+    const quat_t gamma_inv = gamma.inverse();
+
+    // clang-format off
     residuals << C_i_inv * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq) - alpha,
                  C_i_inv * (v_j - v_i + g * dt_ij) - beta,
-                 2.0 * (gamma.inverse() * (q_i.inverse() * q_j)).vec(),
+                 2.0 * (gamma_inv * (q_i_inv * q_j)).vec(),
                  ba_j - ba_i,
                  bg_j - bg_i;
+    // clang-format on
 
     // Calculate jacobians
     // clang-format off
@@ -401,7 +407,7 @@ struct imu_factor_t : factor_t {
     jacobians[0].block<3, 3>(0, 0) = skew(C_i_inv * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq));
     jacobians[0].block<3, 3>(0, 3) = -C_i_inv;
     jacobians[0].block<3, 3>(3, 0) = skew(C_i_inv * (v_j - v_i + g * dt_ij));
-    jacobians[0].block<3, 3>(6, 0) = -(quat_lmul(q_j.inverse() * q_i) * quat_rmul(gamma)).bottomRightCorner<3, 3>();
+    jacobians[0].block<3, 3>(6, 0) = -quat_mat_xyz(quat_lmul(q_j_inv * q_i) * quat_rmul(gamma));
     // -- Speed and bias at i Jacobian
     jacobians[1] = zeros(15, 9);
     jacobians[1].block<3, 3>(0, 0) = -C_i_inv * dt_ij;
@@ -415,7 +421,7 @@ struct imu_factor_t : factor_t {
     // -- Sensor pose at j Jacobian
     jacobians[2] = zeros(15, 6);
     jacobians[2].block<3, 3>(0, 3) = C_i_inv;
-    jacobians[2].block<3, 3>(6, 0) = quat_lmul(gamma.inverse() * q_i.inverse() * q_j.inverse()).bottomRightCorner<3, 3>();
+    jacobians[2].block<3, 3>(6, 0) = quat_lmul_xyz(gamma_inv * q_i_inv * q_j_inv);
     // -- Speed and bias at j Jacobian
     jacobians[3] = zeros(15, 9);
     jacobians[3].block<3, 3>(3, 0) = C_i_inv;
@@ -433,6 +439,7 @@ struct imu_factor_t : factor_t {
 
 struct graph_t {
   std::unordered_map<size_t, param_t *> params;
+  std::unordered_map<param_t *, size_t> param_index;
   std::deque<factor_t *> factors;
 
   graph_t() {}
@@ -454,8 +461,8 @@ size_t graph_add_pose(graph_t &graph,
                       const timestamp_t &ts,
                       const mat4_t &pose) {
   const auto id = graph.params.size();
-  const auto pose_param = new pose_t{id, ts, pose};
-  graph.params.insert({id, pose_param});
+  const auto param = new pose_t{id, ts, pose};
+  graph.params.insert({id, param});
   return id;
 }
 
@@ -468,18 +475,22 @@ size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
 
 size_t graph_add_proj_params(graph_t &graph,
                              const int cam_index,
-                             const vecx_t &params) {
+                             const vecx_t &params,
+                             bool fixed = false) {
   const auto id = graph.params.size();
   const auto param = new proj_param_t{id, cam_index, params};
+  param->fixed = fixed;
   graph.params.insert({id, param});
   return id;
 }
 
 size_t graph_add_dist_params(graph_t &graph,
                              const int cam_index,
-                             const vecx_t &params) {
+                             const vecx_t &params,
+                             bool fixed = false) {
   const auto id = graph.params.size();
   const auto param = new dist_param_t{id, cam_index, params};
+  param->fixed = fixed;
   graph.params.insert({id, param});
   return id;
 }
@@ -493,6 +504,21 @@ size_t graph_add_sb_params(graph_t &graph,
   const auto param = new sb_param_t{id, ts, v, ba, bg};
   graph.params.insert({id, param});
   return id;
+}
+
+size_t graph_add_pose_factor(graph_t &graph,
+                             const size_t pose_id,
+                             const mat4_t &T,
+                             const mat_t<6, 6> &info = I(6)) {
+  // Create factor
+  const auto f_id = graph.factors.size();
+  auto factor = new pose_factor_t{f_id, T, info};
+  factor->param_ids.push_back(pose_id);
+
+  // Add factor to graph
+  graph.factors.push_back(factor);
+
+  return f_id;
 }
 
 template <typename CM>
@@ -580,17 +606,25 @@ size_t graph_add_imu_factor(graph_t &graph,
   return f_id;
 }
 
-void graph_eval(const graph_t &graph, vecx_t &r, matx_t &J) {
+void graph_eval(graph_t &graph, vecx_t &r) {
+  for (const auto &factor : graph.factors) {
+    std::vector<real_t *> factor_params;
+    for (size_t i = 0; i < factor->param_ids.size(); i++) {
+      const auto param_id = factor->param_ids[i];
+      const auto &param = graph.params.at(param_id);
+			factor_params.push_back(param->data());
+    }
+    factor->eval(factor_params.data());
+  }
+}
+
+void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 	// First pass: Determine what parameters we have
-  std::map<real_t *, size_t> param_tracker;
-  std::map<real_t *, size_t> pose_params;
-  std::map<real_t *, size_t> landmark_params;
-  std::map<real_t *, size_t> proj_params;
-  std::map<real_t *, size_t> dist_params;
-	size_t pose_idx = 0;
-	size_t landmark_idx = 0;
-	size_t proj_idx = 0;
-	size_t dist_idx = 0;
+  std::unordered_set<param_t *> param_tracker;
+  size_t pose_param_size = 0;
+  size_t landmark_param_size = 0;
+  size_t proj_param_size = 0;
+  size_t dist_param_size = 0;
 
 	for (const auto &factor : graph.factors) {
 		// Obtain params for factor
@@ -598,42 +632,32 @@ void graph_eval(const graph_t &graph, vecx_t &r, matx_t &J) {
 			const auto param_id = factor->param_ids[i];
 			const auto &param = graph.params.at(param_id);
 
-			// Check if param has already been tracked
-			if (param_tracker.count(param->data()) > 0) {
+			// Check if param has already been tracked or fixed
+			if (param_tracker.count(param) > 0 || param->fixed) {
 				continue;
 			}
 
 			// Keep track of param blocks
-			if (param->type == POSE) {
-				param_tracker.insert({param->data(), 1});
-				pose_params.insert({param->data(), pose_idx});
-				pose_idx++;
-			} else if (param->type == PROJECTION) {
-				param_tracker.insert({param->data(), 1});
-				proj_params.insert({param->data(), proj_idx});
-				proj_idx++;
-			} else if (param->type == DISTORTION) {
-				param_tracker.insert({param->data(), 1});
-				dist_params.insert({param->data(), dist_idx});
-				dist_idx++;
-			} else if (param->type == LANDMARK) {
-				param_tracker.insert({param->data(), 1});
-				landmark_params.insert({param->data(), landmark_idx});
-				landmark_idx++;
+			switch (param->type) {
+      case POSE: pose_param_size += param->local_size; break;
+			case PROJECTION: proj_param_size += param->local_size; break;
+			case DISTORTION: dist_param_size += param->local_size; break;
+			case LANDMARK: landmark_param_size += param->local_size; break;
+			default: FATAL("Unsupported param type [%d]!", param->type); break;
 			}
+      param_tracker.insert(param);
 		}
 	}
 
-	// Second pass: Evaluate factors and assign global jacobian order for each
-	// parameter in the problem
-  std::map<real_t *, size_t> param_blocks;
+  // Second pass: Assign jacobian order for each parameter and evaluate factor
   size_t residuals_size = 0;
   size_t params_size = 0;
 	size_t pose_cs = 0;
-	size_t proj_cs = pose_params.size() * 6;
-	size_t dist_cs = (pose_params.size() * 6) + 4;
-	size_t landmark_cs = (pose_params.size() * 6) + 4 + 4;
+	size_t proj_cs = pose_param_size;
+	size_t dist_cs = proj_cs + proj_param_size;
+	size_t landmark_cs = dist_cs + dist_param_size;
 
+	graph.param_index.clear();
   for (const auto &factor : graph.factors) {
     std::vector<real_t *> factor_params;
     for (size_t i = 0; i < factor->param_ids.size(); i++) {
@@ -642,26 +666,26 @@ void graph_eval(const graph_t &graph, vecx_t &r, matx_t &J) {
 			factor_params.push_back(param->data());
 
       // Check if param has already been tracked
-      if (param_blocks.count(param->data()) > 0) {
+      if (graph.param_index.count(param) > 0 || param->fixed) {
         continue;
       }
 
 			// Assign jacobian column index for parameter
 			switch (param->type) {
 			case POSE:
-				param_blocks.insert({param->data(), pose_cs});
+				graph.param_index.insert({param, pose_cs});
 				pose_cs += param->local_size;
 				break;
       case PROJECTION:
-				param_blocks.insert({param->data(), proj_cs});
+				graph.param_index.insert({param, proj_cs});
 				proj_cs += param->local_size;
 				break;
       case DISTORTION:
-				param_blocks.insert({param->data(), dist_cs});
+				graph.param_index.insert({param, dist_cs});
 				dist_cs += param->local_size;
 				break;
       case LANDMARK:
-				param_blocks.insert({param->data(), landmark_cs});
+				graph.param_index.insert({param, landmark_cs});
 				landmark_cs += param->local_size;
 				break;
 			default:
@@ -677,7 +701,7 @@ void graph_eval(const graph_t &graph, vecx_t &r, matx_t &J) {
   }
 
   // Third pass: Form residuals and jacobians
-  r = zeros(residuals_size);
+  r.resize(residuals_size);
   J = zeros(residuals_size, params_size);
 
   size_t rs = 0;
@@ -689,8 +713,11 @@ void graph_eval(const graph_t &graph, vecx_t &r, matx_t &J) {
       const long rows = factor->residuals.size();
       const long cols = param->local_size;
 
-      cs = param_blocks[param->data()];
-      J.block(rs, cs, rows, cols) = factor->jacobians[i];
+      if (graph.param_index.count(param)) {
+        cs = graph.param_index[param];
+        J.block(rs, cs, rows, cols) = factor->jacobians[i];
+        // J.block(rs, cs, rows, cols) = ones(rows, cols);
+      }
     }
     r.segment(rs, factor->residuals.size()) = factor->residuals;
     rs += factor->residuals.size();
@@ -698,19 +725,12 @@ void graph_eval(const graph_t &graph, vecx_t &r, matx_t &J) {
 }
 
 void graph_update(graph_t &graph, const vecx_t &dx) {
-	size_t row_idx = 0;
-
-  for (const auto &factor : graph.factors) {
-    for (size_t i = 0; i < factor->param_ids.size(); i++) {
-      const auto param_id = factor->param_ids[i];
-      const auto &param = graph.params.at(param_id);
-			if (param->type == POSE) {
-				param->plus(dx.segment(row_idx, param->local_size));
-			}
-			print_vector("dx", dx.segment(row_idx, param->local_size));
-			row_idx += param->local_size;
-    }
-	}
+  for (const auto &kv: graph.param_index) {
+    const auto &param = kv.first;
+    const auto index = kv.second;
+    param->plus(dx.segment(index, param->local_size));
+  }
+	graph.param_index.clear();
 }
 
 /*****************************************************************************
@@ -720,14 +740,13 @@ void graph_update(graph_t &graph, const vecx_t &dx) {
 struct tiny_solver_t {
   // Optimization parameters
   int max_iter = 10;
-  real_t lambda = 1e-3;
-
-  real_t cost = 0.0;
+  real_t lambda = 1e8;
 
   tiny_solver_t() {}
 
   int solve(graph_t &graph)  {
-    int max_iter = 10;
+    real_t lambda_k = lambda;
+    real_t cost = 0.0;
     real_t cost_prev = 0.0;
 
 		struct timespec t_start = tic();
@@ -741,24 +760,56 @@ struct tiny_solver_t {
 
       // Solve Gauss-Newton system [H dx = g]: Solve for dx
       matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
-      matx_t H_diag = (H.diagonal().asDiagonal());
-      H = H + lambda * H_diag;			// R. Fletcher trust region mod
+      H = H + lambda_k * I(H.rows()); // LM dampening
+      // matx_t H_diag = (H.diagonal().asDiagonal());
+      // H = H + lambda * H_diag;			// R. Fletcher trust region mod
       const vecx_t g = -E.transpose() * e;
+      // printf("cond(H): %f\n", cond(H));
       const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
+
+      // vecx_t g = -E.transpose() * e;
+      // matx_t H = E.transpose() * E;
+      // vecx_t p = (H.diagonal() + vecx_t::Constant(H.cols(), 10)).cwiseSqrt().cwiseInverse();
+      // H = p.asDiagonal() * H * p.asDiagonal();
+      // g = p.asDiagonal() * g;
+      // printf("cond(H): %f\n", cond(H));
+      // const vecx_t dx = p.asDiagonal() * H.ldlt().solve(g);
 
 			// Calculate cost
       cost = 0.5 * static_cast<real_t>(e.transpose() * e);
-      printf("iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&t_start));
+      const real_t cost_diff = (iter == 0) ? 0.0 : (cost - cost_prev);
+
+      // Calculate reprojection error
+      size_t nb_keypoints = e.size() / 2.0;
+      real_t sse = 0.0;
+      for (size_t i = 0; i < nb_keypoints; i++) {
+        sse += e.segment(i * 2, 2).norm();
+      }
+      const real_t rmse = sqrt(sse / nb_keypoints);
+      printf("rmse reproj error: %.2f  ", rmse);
+
+      // Calculate
+			if (cost_diff > 0) {
+        lambda_k /= 10.0;
+			} else {
+        lambda_k *= 10.0;
+			}
+      printf("iter[%d]  ", iter);
+      printf("cost[%.4e]  ", cost);
+      printf("cost change[%.4e]  ", cost_diff);
+      printf("iter time: %fs\n", toc(&t_start));
 
       // Termination criteria
-      real_t cost_diff = fabs(cost - cost_prev);
-      if (cost_diff < 1.0e-3) {
+      if (iter != 0 && cost_diff > -1.0e-4) {
         printf("Done!\n");
         break;
       }
-      cost_prev = cost;
+
+			// if (cost_diff < 0) {
+        graph_update(graph, dx);
+        cost_prev = cost;
+      // }
 			t_start = tic();
-			graph_update(graph, dx);
     }
 
     return 0;

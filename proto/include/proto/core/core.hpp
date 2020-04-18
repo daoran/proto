@@ -57,6 +57,7 @@
 #include <deque>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <type_traits>
 
 #include <yaml-cpp/yaml.h>
