@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "proto/core/core.hpp"
+#include "proto/estimation/factor.hpp"
 
 namespace proto {
 

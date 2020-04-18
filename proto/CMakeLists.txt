@@ -96,7 +96,7 @@ ADD_LIBRARY(
   src/dataset/kitti.cpp
   src/dataset/timeline.cpp
   # estimation
-  src/estimation/ba.cpp
+  # src/estimation/ba.cpp
   src/estimation/factor.cpp
   # src/estimation/filter.cpp
   # src/estimation/frontend.cpp

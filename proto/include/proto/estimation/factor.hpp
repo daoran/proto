@@ -5,6 +5,353 @@
 
 namespace proto {
 
+#define POSE 1
+#define PROJECTION 2
+#define DISTORTION 3
+#define LANDMARK 4
+#define SPEED_BIAS 5
+
+struct param_t {
+  bool fixed = false;
+
+	int type = -1;
+  size_t id = 0;
+  timestamp_t ts = 0;
+  size_t local_size = 0;
+
+  param_t(const int type_, const size_t local_size_)
+    : type{type_}, local_size{local_size_} {}
+
+  param_t(const int type_, const size_t id_, const size_t local_size_)
+    : type{type_}, id{id_}, local_size{local_size_} {}
+
+  param_t(const int type_, const size_t id_, const timestamp_t &ts_, const size_t local_size_)
+    : type{type_}, id{id_}, ts{ts_}, local_size{local_size_} {}
+
+  virtual ~param_t() {}
+
+  virtual void set(const matx_t &) { FATAL("Not Implmented!"); }
+  virtual void set(const vecx_t &) { FATAL("Not Implmented!"); }
+  virtual real_t *data() = 0;
+  virtual void plus(const vecx_t &) = 0;
+  virtual void perturb(const int i, const real_t step_size) {
+    UNUSED(i);
+    UNUSED(step_size);
+    FATAL("Not Implmented!");
+  }
+};
+
+struct pose_t : param_t {
+  real_t param[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  pose_t() : param_t{POSE, 6} {}
+
+  pose_t(const real_t *param_) : param_t{POSE, 6} {
+    param[0] = param_[0];
+    param[1] = param_[1];
+    param[2] = param_[2];
+    param[3] = param_[3];
+    param[4] = param_[4];
+    param[5] = param_[5];
+    param[6] = param_[6];
+  }
+
+  pose_t(const mat4_t &tf_) : param_t{POSE, 6} {
+    const quat_t q{tf_quat(tf_)};
+    const vec3_t r{tf_trans(tf_)};
+
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+
+    param[4] = r(0);
+    param[5] = r(1);
+    param[6] = r(2);
+  }
+
+  pose_t(const quat_t &q_, const vec3_t &r_)
+    : param_t{POSE, 6},
+      param{q_.w(), q_.x(), q_.y(), q_.z(), r_(0), r_(1), r_(2)} {}
+
+  pose_t(const size_t id_,
+         const timestamp_t &ts_,
+         const mat4_t &T)
+      : param_t{POSE, id_, ts_, 6} {
+    const quat_t q{tf_quat(T)};
+    const vec3_t r{tf_trans(T)};
+
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+
+    param[4] = r(0);
+    param[5] = r(1);
+    param[6] = r(2);
+  }
+
+  quat_t rot() const {
+    return quat_t{param[0], param[1], param[2], param[3]};
+  }
+
+  vec3_t trans() const {
+    return vec3_t{param[4], param[5], param[6]};
+  }
+
+  mat4_t tf() const {
+    return proto::tf(rot(), trans());
+  }
+
+  quat_t rot() { return static_cast<const pose_t &>(*this).rot(); }
+  vec3_t trans() { return static_cast<const pose_t &>(*this).trans(); }
+  mat4_t tf() { return static_cast<const pose_t &>(*this).tf(); }
+
+  void set_trans(const vec3_t &r) {
+    param[4] = r(0);
+    param[5] = r(1);
+    param[6] = r(2);
+  }
+
+  void set_rot(const quat_t &q) {
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+  }
+
+  void set_rot(const mat3_t &C) {
+    quat_t q{C};
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+  }
+
+  void set(const matx_t &T) {
+    const quat_t q = tf_quat(T);
+    const vec3_t r = tf_trans(T);
+
+    param[0] = q.w();
+    param[1] = q.x();
+    param[2] = q.y();
+    param[3] = q.z();
+
+    param[4] = r(0);
+    param[5] = r(1);
+    param[6] = r(2);
+  }
+
+  real_t *data() { return param; }
+
+  void plus(const vecx_t &dx) {
+    // Rotation component
+    const vec3_t dalpha{dx(0), dx(1), dx(2)};
+    const quat_t dq = quat_delta(dalpha);
+    const quat_t q{param[0], param[1], param[2], param[3]};
+    const quat_t q_updated = dq * q;
+    param[0] = q_updated.w();
+    param[1] = q_updated.x();
+    param[2] = q_updated.y();
+    param[3] = q_updated.z();
+
+    // Translation component
+    param[3] = param[3] + dx(3);
+    param[4] = param[4] + dx(4);
+    param[5] = param[5] + dx(5);
+  }
+
+  void perturb(const int i, const real_t step_size) {
+    if (i >= 0 && i < 3) {
+      const auto T_WS_diff = tf_perturb_rot(this->tf(), step_size, i);
+      this->set_rot(tf_rot(T_WS_diff));
+      this->set_trans(tf_trans(T_WS_diff));
+    } else if (i >= 3 && i <= 5) {
+      const auto T_WS_diff = tf_perturb_trans(this->tf(), step_size, i - 3);
+      this->set_rot(tf_rot(T_WS_diff));
+      this->set_trans(tf_trans(T_WS_diff));
+    } else {
+      FATAL("Invalid perturbation index [%d]!", i);
+    }
+  }
+
+};
+
+struct landmark_t : param_t {
+  real_t param[3] = {0.0, 0.0, 0.0};
+
+  landmark_t(const vec3_t &p_W_)
+    : param_t{LANDMARK, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
+
+  landmark_t(const size_t id_, const vec3_t &p_W_)
+    : param_t{LANDMARK, id_, 3}, param{p_W_(0), p_W_(1), p_W_(2)} {}
+
+  void set(const vecx_t &p) {
+    param[0] = p(0);
+    param[1] = p(1);
+    param[2] = p(2);
+  }
+
+  vec3_t vec() { return map_vec_t<3>(param); };
+
+  real_t *data() { return param; };
+
+  void plus(const vecx_t &dx) {
+    param[0] = param[0] + dx(0);
+    param[1] = param[1] + dx(1);
+    param[2] = param[2] + dx(2);
+  }
+
+  void perturb(const int i, const real_t step_size) {
+    param[i] += step_size;
+  }
+};
+
+struct proj_param_t : param_t {
+  int cam_index = 0;
+  real_t param[4] = {0.0, 0.0, 0.0, 0.0};
+
+  proj_param_t(const size_t id_,
+               const int cam_index_,
+               const vec4_t &param_)
+    : param_t{PROJECTION, id_, 4}, cam_index{cam_index_} {
+    for (int i = 0; i < param_.size(); i++) {
+      param[i] = param_(i);
+    }
+  }
+
+  void set(const vecx_t &param_new) {
+    param[0] = param_new(0);
+    param[1] = param_new(1);
+    param[2] = param_new(2);
+    param[3] = param_new(3);
+  }
+
+  vec4_t vec() { return map_vec_t<4>(param); };
+
+  real_t *data() { return param; };
+
+  void plus(const vecx_t &dx) {
+    param[0] = param[0] + dx(0);
+    param[1] = param[1] + dx(1);
+    param[2] = param[2] + dx(2);
+    param[3] = param[3] + dx(3);
+  }
+
+  void perturb(const int i, const real_t step_size) {
+    param[i] += step_size;
+  }
+};
+
+struct dist_param_t : param_t {
+  int cam_index = 0;
+  real_t param[4] = {0.0, 0.0, 0.0, 0.0};
+
+  dist_param_t(const size_t id_,
+               const int cam_index_,
+               const vec4_t &param_)
+    : param_t{DISTORTION, id_, 4}, cam_index{cam_index_} {
+    for (int i = 0; i < param_.size(); i++) {
+      param[i] = param_(i);
+    }
+  }
+
+  void set(const vecx_t &param_new) {
+    param[0] = param_new(0);
+    param[1] = param_new(1);
+    param[2] = param_new(2);
+    param[3] = param_new(3);
+  }
+
+  vec4_t vec() { return map_vec_t<4>(param); };
+
+  real_t *data() { return param; };
+
+  void plus(const vecx_t &dx) {
+    param[0] = param[0] + dx(0);
+    param[1] = param[1] + dx(1);
+    param[2] = param[2] + dx(2);
+    param[3] = param[3] + dx(3);
+  }
+
+  void perturb(const int i, const real_t step_size) {
+    param[i] += step_size;
+  }
+};
+
+struct sb_param_t : param_t {
+  real_t param[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  sb_param_t(const size_t id_,
+             const timestamp_t &ts_,
+             const vec3_t &v_,
+             const vec3_t &ba_,
+             const vec3_t &bg_)
+    : param_t{SPEED_BIAS, id_, ts_, 9} {
+    // Velocity
+    param[0] = v_(0);
+    param[1] = v_(1);
+    param[2] = v_(2);
+
+    // Accel bias
+    param[3] = ba_(0);
+    param[4] = ba_(1);
+    param[5] = ba_(2);
+
+    // Gyro bias
+    param[6] = bg_(0);
+    param[7] = bg_(1);
+    param[8] = bg_(2);
+  }
+
+  void set(const vecx_t &param_new) {
+    param[0] = param_new(0);
+    param[1] = param_new(1);
+    param[2] = param_new(2);
+    param[3] = param_new(3);
+    param[4] = param_new(4);
+    param[5] = param_new(5);
+    param[6] = param_new(6);
+    param[7] = param_new(7);
+    param[8] = param_new(8);
+  }
+
+  vec_t<9> vec() { return map_vec_t<9>(param); };
+
+  real_t *data() { return param; };
+
+  void plus(const vecx_t &dx) {
+    // Velocity
+    param[0] = param[0] + dx[0];
+    param[1] = param[1] + dx[1];
+    param[2] = param[2] + dx[2];
+
+    // Accel bias
+    param[3] = param[3] + dx[3];
+    param[4] = param[4] + dx[4];
+    param[5] = param[5] + dx[5];
+
+    // Gyro bias
+    param[6] = param[6] + dx[6];
+    param[7] = param[7] + dx[7];
+    param[8] = param[8] + dx[8];
+  }
+
+  void perturb(const int i, const real_t step_size) {
+    param[i] += step_size;
+  }
+};
+
+typedef std::vector<pose_t> poses_t;
+typedef std::vector<landmark_t> landmarks_t;
+typedef std::vector<vec2_t> keypoints_t;
+
+void pose_print(const std::string &prefix, const pose_t &pose);
+poses_t load_poses(const std::string &csv_path);
+
+std::vector<keypoints_t> load_keypoints(const std::string &data_path);
+void keypoints_print(const keypoints_t &keypoints);
+
 /*****************************************************************************
  *                                FACTOR
  ****************************************************************************/
@@ -13,16 +360,25 @@ struct factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   size_t id = 0;
-  std::vector<size_t> param_ids;
   matx_t info;
+  std::vector<param_t *> params;
   vecx_t residuals;
   matxs_t jacobians;
 
   factor_t() {}
-  factor_t(const size_t id_, const matx_t &info_) : id{id_}, info{info_} {}
+  factor_t(const size_t id_,
+           const matx_t &info_,
+           const std::vector<param_t *> &params_)
+    : id{id_}, info{info_}, params{params_} {}
   virtual ~factor_t() {}
-  virtual bool eval(real_t const *const *parameters) = 0;
+  virtual bool eval() = 0;
 };
+
+int check_jacobians(factor_t *factor,
+                    const int param_idx,
+                    const std::string &jac_name,
+                    const real_t step_size,
+                    const real_t threshold);
 
 /*****************************************************************************
  *                              POSE FACTOR
@@ -32,16 +388,19 @@ struct pose_factor_t : factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 	const mat4_t pose_meas;
 
-  pose_factor_t(const size_t id_, const mat4_t &pose_, const mat_t<6, 6> &info_)
-		: factor_t{id_, info_}, pose_meas{pose_} {
+  pose_factor_t(const size_t id_,
+                const mat4_t &pose_,
+                const mat_t<6, 6> &info_,
+                const std::vector<param_t *> &params_)
+      : factor_t{id_, info_, params_}, pose_meas{pose_} {
     jacobians.push_back(zeros(6, 6));
 	}
 
-	bool eval(real_t const *const *params) {
-    assert(param_ids.size() == 1);
+	bool eval() {
+    assert(params.size() == 1);
 
 		// Calculate delta pose
-    const mat4_t pose_est = tf(params[0]);
+    const mat4_t pose_est = tf(params[0]->data());
 		const mat4_t delta_pose = pose_meas * pose_est.inverse();
 
 		// Calculate pose error
@@ -66,7 +425,6 @@ struct pose_factor_t : factor_t {
 	}
 };
 
-
 /*****************************************************************************
  *                               BA FACTOR
  ****************************************************************************/
@@ -87,24 +445,25 @@ struct ba_factor_t : factor_t {
               const int img_w_,
               const int img_h_,
               const vec2_t &z_,
-              const mat2_t &info_ = I(2))
-      : factor_t{id_, info_},
+              const mat2_t &info_,
+              const std::vector<param_t *> &params_)
+      : factor_t{id_, info_, params_},
         ts{ts_}, cam_index{cam_index_},
         img_w{img_w_}, img_h{img_h_},
         z{z_} {
     jacobians.push_back(zeros(2, 6));  // T_WC
+    jacobians.push_back(zeros(2, 3));  // p_W
     jacobians.push_back(zeros(2, CM::proj_params_size));  // Projection model
     jacobians.push_back(zeros(2, CM::dist_params_size));  // Distortion model
-    jacobians.push_back(zeros(2, 3));  // p_W
   }
 
-  bool eval(real_t const *const *params) {
-    assert(param_ids.size() == 4);
+  bool eval() {
+    assert(params.size() == 4);
 
     // Map out parameters
-    const mat4_t T_WC = tf(params[0]);
-    const CM cm{img_w, img_h, params[1], params[2]};
-    const vec3_t p_W{params[3]};
+    const mat4_t T_WC = tf(params[0]->data());
+    const vec3_t p_W{params[1]->data()};
+    const CM cm{img_w, img_h, params[2]->data(), params[3]->data()};
 
     // Transform point from world to camera frame
     const mat4_t T_CW = T_WC.inverse();
@@ -141,12 +500,12 @@ struct ba_factor_t : factor_t {
     // -- Jacobian w.r.t. sensor pose T_WS
     jacobians[0].block(0, 0, 2, 3) = -1 * J_h * C_CW * skew(p_W - r_WC);
     jacobians[0].block(0, 3, 2, 3) = -1 * J_h * -C_CW;
-    // -- Jacobian w.r.t. projection model
-    jacobians[1] = -1 * cm.J_proj(p_dist);
-    // -- Jacobian w.r.t. distortion model
-    jacobians[2] = -1 * cm.J_dist(p);
     // -- Jacobian w.r.t. landmark
-    jacobians[3] = -1 * J_h * C_CW;
+    jacobians[1] = -1 * J_h * C_CW;
+    // -- Jacobian w.r.t. projection model
+    jacobians[2] = -1 * cm.J_proj(p_dist);
+    // -- Jacobian w.r.t. distortion model
+    jacobians[3] = -1 * cm.J_dist(p);
 
     return 0;
   }
@@ -172,8 +531,9 @@ struct cam_factor_t : factor_t {
                const int img_w_,
                const int img_h_,
                const vec2_t &z_,
-               const mat2_t &info_ = I(2))
-      : factor_t{id_, info_},
+               const mat2_t &info_,
+               const std::vector<param_t *> &params_)
+      : factor_t{id_, info_, params_},
         ts{ts_}, cam_index{cam_index_},
         img_w{img_w_}, img_h{img_h_},
         z{z_} {
@@ -184,14 +544,14 @@ struct cam_factor_t : factor_t {
     jacobians.push_back(zeros(2, 4));  // Distortion model
   }
 
-  bool eval(real_t const *const *params) {
-    assert(param_ids.size() == 5);
+  bool eval() {
+    assert(params.size() == 5);
 
     // Map out parameters
-    const mat4_t T_WS = tf(params[0]);
-    const mat4_t T_SC = tf(params[1]);
-    const CM cam_model{img_w, img_h, params[2], params[3]};
-    const vec3_t p_W{params[4]};
+    const mat4_t T_WS = tf(params[0]->data());
+    const mat4_t T_SC = tf(params[1]->data());
+    const vec3_t p_W{params[2]->data()};
+    const CM cam_model{img_w, img_h, params[3]->data(), params[4]->data()};
 
     // Transform point from world to camera frame
     const mat4_t T_WC = T_WS * T_SC;
@@ -230,12 +590,12 @@ struct cam_factor_t : factor_t {
     // -- Jacobian w.r.t. sensor-camera extrinsic pose T_SCi
     jacobians[1].block(0, 0, 2, 3) = -1 * J_h * C_CS * skew(C_SC * p_C);
     jacobians[1].block(0, 3, 2, 3) = -1 * J_h * -C_CS;
-    // -- Jacobian w.r.t. camera model
-    jacobians[2] = -1 * cam_model.J_proj(p_dist);
-    // -- Jacobian w.r.t. distortion model
-    jacobians[3] = -1 * cam_model.J_dist(p);
     // -- Jacobian w.r.t. landmark
-    jacobians[4] = -1 * J_h * C_CW;
+    jacobians[2] = -1 * J_h * C_CW;
+    // -- Jacobian w.r.t. camera model
+    jacobians[3] = -1 * cam_model.J_proj(p_dist);
+    // -- Jacobian w.r.t. distortion model
+    jacobians[4] = -1 * cam_model.J_dist(p);
 
     return 0;
   }
@@ -271,8 +631,9 @@ struct imu_factor_t : factor_t {
                const timestamps_t imu_ts_,
                const vec3s_t imu_accel_,
                const vec3s_t imu_gyro_ ,
-               const mat_t<15, 15> &info_ = I(15))
-      : factor_t{id_, info_},
+               const mat_t<15, 15> &info_,
+               const std::vector<param_t *> &params_)
+      : factor_t{id_, info_, params_},
         imu_ts{imu_ts_},
         imu_accel{imu_accel_},
         imu_gyro{imu_gyro_} {
@@ -349,25 +710,25 @@ struct imu_factor_t : factor_t {
     }
   }
 
-  bool eval(real_t const *const *params) {
+  bool eval() {
     // Map out parameters
     // -- Sensor pose at timestep i
-    const mat4_t T_i = tf(params[0]);
+    const mat4_t T_i = tf(params[0]->data());
     const mat3_t C_i = tf_rot(T_i);
     const mat3_t C_i_inv = C_i.transpose();
     const quat_t q_i = tf_quat(T_i);
     const vec3_t r_i = tf_trans(T_i);
     // -- Speed and bias at timestamp i
-    const vec_t<9> sb_i{params[1]};
+    const vec_t<9> sb_i{params[1]->data()};
     const vec3_t v_i = sb_i.segment<3>(0);
     const vec3_t ba_i = sb_i.segment<3>(3);
     const vec3_t bg_i = sb_i.segment<3>(6);
     // -- Sensor pose at timestep j
-    const mat4_t T_j = tf(params[2]);
+    const mat4_t T_j = tf(params[2]->data());
     const quat_t q_j = tf_quat(T_j);
     const vec3_t r_j = tf_trans(T_j);
     // -- Speed and bias at timestep j
-    const vec_t<9> sb_j{params[3]};
+    const vec_t<9> sb_j{params[3]->data()};
     const vec3_t v_j = sb_j.segment<3>(0);
     const vec3_t ba_j = sb_j.segment<3>(3);
     const vec3_t bg_j = sb_j.segment<3>(6);
@@ -512,8 +873,8 @@ size_t graph_add_pose_factor(graph_t &graph,
                              const mat_t<6, 6> &info = I(6)) {
   // Create factor
   const auto f_id = graph.factors.size();
-  auto factor = new pose_factor_t{f_id, T, info};
-  factor->param_ids.push_back(pose_id);
+  std::vector<param_t *> params{graph.params[pose_id]};
+  auto factor = new pose_factor_t{f_id, T, info, params};
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -533,17 +894,24 @@ size_t graph_add_ba_factor(graph_t &graph,
                            const size_t dist_param_id,
                            const vec2_t &z,
                            const mat2_t &info = I(2)) {
+
   // Create factor
   const auto f_id = graph.factors.size();
+  std::vector<param_t *> params{
+    graph.params[cam_pose_id],
+    graph.params[proj_param_id],
+    graph.params[dist_param_id],
+    graph.params[landmark_id]
+  };
   auto factor = new ba_factor_t<CM>{
     ts, f_id,
     cam_idx, img_w, img_h,
-    z, info
+    z, info, params
   };
-  factor->param_ids.push_back(cam_pose_id);
-  factor->param_ids.push_back(proj_param_id);
-  factor->param_ids.push_back(dist_param_id);
-  factor->param_ids.push_back(landmark_id);
+  // factor->param_ids.push_back(cam_pose_id);
+  // factor->param_ids.push_back(proj_param_id);
+  // factor->param_ids.push_back(dist_param_id);
+  // factor->param_ids.push_back(landmark_id);
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -566,16 +934,23 @@ size_t graph_add_cam_factor(graph_t &graph,
                             const mat2_t &info = I(2)) {
   // Create factor
   const auto f_id = graph.factors.size();
+  std::vector<param_t *> params{
+    graph.params[sensor_pose_id],
+    graph.params[imu_cam_pose_id],
+    graph.params[landmark_id],
+    graph.params[proj_param_id],
+    graph.params[dist_param_id]
+  };
   auto factor = new cam_factor_t<CM>{
     ts, f_id,
     cam_idx, img_w, img_h,
-    z, info
+    z, info, params
   };
-  factor->param_ids.push_back(sensor_pose_id);
-  factor->param_ids.push_back(imu_cam_pose_id);
-  factor->param_ids.push_back(landmark_id);
-  factor->param_ids.push_back(proj_param_id);
-  factor->param_ids.push_back(dist_param_id);
+  // factor->param_ids.push_back(sensor_pose_id);
+  // factor->param_ids.push_back(imu_cam_pose_id);
+  // factor->param_ids.push_back(landmark_id);
+  // factor->param_ids.push_back(proj_param_id);
+  // factor->param_ids.push_back(dist_param_id);
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -594,11 +969,17 @@ size_t graph_add_imu_factor(graph_t &graph,
                             const size_t sb1_id) {
   // Create factor
   const auto f_id = graph.factors.size();
-  auto factor = new imu_factor_t(imu_index, imu_ts, imu_gyro, imu_accel);
-  factor->param_ids.push_back(pose0_id);
-  factor->param_ids.push_back(sb0_id);
-  factor->param_ids.push_back(pose1_id);
-  factor->param_ids.push_back(sb1_id);
+  std::vector<param_t *> params{
+    graph.params[pose0_id],
+    graph.params[sb0_id],
+    graph.params[pose1_id],
+    graph.params[sb1_id]
+  };
+  auto factor = new imu_factor_t(imu_index, imu_ts, imu_gyro, imu_accel, I(15), params);
+  // factor->param_ids.push_back(pose0_id);
+  // factor->param_ids.push_back(sb0_id);
+  // factor->param_ids.push_back(pose1_id);
+  // factor->param_ids.push_back(sb1_id);
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -606,17 +987,11 @@ size_t graph_add_imu_factor(graph_t &graph,
   return f_id;
 }
 
-void graph_eval(graph_t &graph, vecx_t &r) {
-  for (const auto &factor : graph.factors) {
-    std::vector<real_t *> factor_params;
-    for (size_t i = 0; i < factor->param_ids.size(); i++) {
-      const auto param_id = factor->param_ids[i];
-      const auto &param = graph.params.at(param_id);
-			factor_params.push_back(param->data());
-    }
-    factor->eval(factor_params.data());
-  }
-}
+// void graph_eval(graph_t &graph, vecx_t &r) {
+//   for (const auto &factor : graph.factors) {
+//     factor->eval();
+//   }
+// }
 
 void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 	// First pass: Determine what parameters we have
@@ -627,11 +1002,7 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
   size_t dist_param_size = 0;
 
 	for (const auto &factor : graph.factors) {
-		// Obtain params for factor
-		for (size_t i = 0; i < factor->param_ids.size(); i++) {
-			const auto param_id = factor->param_ids[i];
-			const auto &param = graph.params.at(param_id);
-
+		for (const auto &param : factor->params) {
 			// Check if param has already been tracked or fixed
 			if (param_tracker.count(param) > 0 || param->fixed) {
 				continue;
@@ -659,12 +1030,7 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 
 	graph.param_index.clear();
   for (const auto &factor : graph.factors) {
-    std::vector<real_t *> factor_params;
-    for (size_t i = 0; i < factor->param_ids.size(); i++) {
-      const auto param_id = factor->param_ids[i];
-      const auto &param = graph.params.at(param_id);
-			factor_params.push_back(param->data());
-
+		for (const auto &param : factor->params) {
       // Check if param has already been tracked
       if (graph.param_index.count(param) > 0 || param->fixed) {
         continue;
@@ -696,7 +1062,7 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
     }
 
 		// Evaluate factor
-    factor->eval(factor_params.data());
+    factor->eval();
 		residuals_size += factor->residuals.size();
   }
 
@@ -707,9 +1073,8 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
   size_t rs = 0;
   size_t cs = 0;
   for (const auto &factor : graph.factors) {
-    for (size_t i = 0; i < factor->param_ids.size(); i++) {
-      const auto param_id = factor->param_ids[i];
-      const auto &param = graph.params.at(param_id);
+    for (size_t i = 0; i < factor->params.size(); i++) {
+      const auto &param = graph.params.at(i);
       const long rows = factor->residuals.size();
       const long cols = param->local_size;
 
