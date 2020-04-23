@@ -1535,7 +1535,7 @@ Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
  * Form a 4x4 homogeneous transformation matrix from a pointer to real_t array
  * containing (quaternion + translation) 7 elements: (qw, qx, qy, qz, x, y, z)
  */
-mat4_t tf(const real_t *params);
+mat4_t tf(const vecx_t &params);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
@@ -3132,35 +3132,26 @@ std::ostream &operator<<(std::ostream &os, const equi4_t &equi4);
  */
 template <typename DM = nodist_t>
 struct projection_t {
-  int img_w = 0;
-  int img_h = 0;
+  int resolution[2] = {0, 0};
   vecx_t params;
   DM distortion;
 
   projection_t() {}
 
-  projection_t(const int img_w_,
-               const int img_h_,
+  projection_t(const int resolution_[2],
                const vecx_t &proj_params_,
                const vecx_t &dist_params_)
-    : img_w{img_w_},
-      img_h{img_h_},
+    : resolution{resolution_[0], resolution_[1]},
       params{proj_params_},
       distortion{dist_params_} {}
 
-  projection_t(const int img_w_,
-               const int img_h_,
-               const real_t *proj_params_,
+  projection_t(const int resolution_[2],
+               const vecx_t &params_,
                const size_t proj_params_size_,
-               const real_t *dist_params_)
-    : img_w{img_w_},
-      img_h{img_h_},
-      distortion{dist_params_} {
-    params.resize(proj_params_size_);
-    for (size_t i = 0; i < proj_params_size_; i++) {
-      params(i) = proj_params_[i];
-    }
-  }
+               const size_t dist_params_size_)
+    : projection_t{resolution_,
+                   params_.head(proj_params_size_),
+                   params_.tail(dist_params_size_)} {}
 
   ~projection_t() {}
 
@@ -3181,28 +3172,25 @@ template <typename DM = nodist_t>
 struct pinhole_t : projection_t<DM> {
   static const size_t proj_params_size = 4;
   static const size_t dist_params_size = DM::params_size;
+  static const size_t params_size = proj_params_size + dist_params_size;
 
   pinhole_t() {}
 
-  pinhole_t(const int img_w,
-            const int img_h,
+  pinhole_t(const int resolution[2],
             const vecx_t &proj_params,
             const vecx_t &dist_params)
-    : projection_t<DM>{img_w, img_h, proj_params, dist_params} {}
+    : projection_t<DM>{resolution, proj_params, dist_params} {}
 
-  pinhole_t(const int img_w,
-            const int img_h,
-            const real_t *proj_params,
-            const real_t *dist_params)
-    : projection_t<DM>{img_w, img_h, proj_params, proj_params_size, dist_params} {}
+  pinhole_t(const int resolution[2],
+            const vecx_t &params)
+    : projection_t<DM>{resolution, params, proj_params_size, DM::params_size} {}
 
-  pinhole_t(const int img_w,
-            const int img_h,
+  pinhole_t(const int resolution[2],
             const real_t fx,
             const real_t fy,
             const real_t cx,
             const real_t cy)
-      : projection_t<DM>{img_w, img_h, vec4_t{fx, fy, cx, cy}, zeros(0)} {}
+      : projection_t<DM>{resolution, vec4_t{fx, fy, cx, cy}, zeros(0)} {}
 
   ~pinhole_t() {}
 
@@ -3266,8 +3254,8 @@ struct pinhole_t : projection_t<DM> {
     z_hat(1) = fy() * p_dist(1) + cy();
 
     // Check projection
-    const bool x_ok = (z_hat(0) >= 0 && z_hat(0) <= this->img_w);
-    const bool y_ok = (z_hat(1) >= 0 && z_hat(1) <= this->img_h);
+    const bool x_ok = (z_hat(0) >= 0 && z_hat(0) <= this->resolution[0]);
+    const bool y_ok = (z_hat(1) >= 0 && z_hat(1) <= this->resolution[1]);
     if (x_ok == false || y_ok == false) {
       return -2;
     }

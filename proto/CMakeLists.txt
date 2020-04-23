@@ -5,24 +5,20 @@ PROJECT(proto)
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(BUILD_SHARED_LIBS ON)
-# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse")
+
+FIND_PROGRAM(CCACHE_FOUND ccache)
+IF(CCACHE_FOUND)
+  SET_PROPERTY(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  SET_PROPERTY(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+ENDIF(CCACHE_FOUND)
 
 # DEPENDENCIES
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
 INCLUDE(cmake/ImportEigen3.cmake)
 FIND_PACKAGE(OpenCV REQUIRED)
-FIND_PACKAGE(Ceres REQUIRED)
-FIND_PACKAGE(SuiteSparse REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
-FIND_PACKAGE(opengv REQUIRED)
-FIND_PACKAGE(octomap REQUIRED)
-FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
+# FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
-# SET(OpenGL_GL_PREFERENCE GLVND)
-# FIND_PACKAGE(OpenGL REQUIRED)
-# FIND_PACKAGE(glfw3 REQUIRED)
-# FIND_PACKAGE(assimp REQUIRED)
-# FIND_PACKAGE(glm REQUIRED)
 
 # OPENMP
 if (OPENMP_FOUND)
@@ -34,33 +30,6 @@ endif()
 # INCLUDES
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
-INCLUDE_DIRECTORIES(${SUITESPARSE_INCLUDE_DIRS})
-INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
-
-# # GLAD
-# INCLUDE_DIRECTORIES(/usr/local/src/glad/include)
-
-# # IMGUI
-# INCLUDE_DIRECTORIES(/usr/local/src/imgui /usr/local/src/imgui/examples)
-# ADD_DEFINITIONS(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
-# ADD_LIBRARY(
-#   imgui
-#   /usr/local/src/imgui/imgui.cpp
-#   /usr/local/src/imgui/imgui_draw.cpp
-#   /usr/local/src/imgui/imgui_demo.cpp
-#   /usr/local/src/imgui/imgui_widgets.cpp
-# )
-# ADD_LIBRARY(
-#   imgui_impl
-#   /usr/local/src/imgui/examples/imgui_impl_glfw.cpp
-#   /usr/local/src/imgui/examples/imgui_impl_opengl3.cpp
-# )
-
-# # BUILD WITH CATKIN
-# IF(CATKIN_DEVEL_PREFIX)
-#   FIND_PACKAGE(catkin REQUIRED)
-#   CATKIN_PACKAGE(INCLUDE_DIRS include LIBRARIES proto)
-# ENDIF()
 
 SET(
   ${PROJECT_NAME}_DEPS
@@ -68,32 +37,18 @@ SET(
   ${SUITESPARSE_LIBRARIES}
   ${CERES_LIBRARIES}
   yaml-cpp
-  apriltags
-  ${GeographicLib_LIBRARIES}
-  glad
-  glfw
-  dl
-  ${ASSIMP_LIBRARIES}
-  ${OPENGL_gl_LIBRARY}
-  ${OCTOMAP_LIBRARIES}
-	opengv
-  imgui
-  imgui_impl
+  # ${GeographicLib_LIBRARIES}
 )
 
 # LIBRARY
 ADD_LIBRARY(
   ${PROJECT_NAME}
-  # calib
-  src/calib/aprilgrid.cpp
-  src/calib/calib_data.cpp
-  src/calib/calib_camera.cpp
   # core
   src/core/core.cpp
   src/core/stb.cpp
   # dataset
-  src/dataset/euroc.cpp
-  src/dataset/kitti.cpp
+  # src/dataset/euroc.cpp
+  # src/dataset/kitti.cpp
   src/dataset/timeline.cpp
   # estimation
   # src/estimation/ba.cpp
@@ -104,12 +59,6 @@ ADD_LIBRARY(
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
-# INSTALL(
-#   TARGETS ${PROJECT_NAME} imgui imgui_impl
-#   ARCHIVE DESTINATION lib
-#   LIBRARY DESTINATION lib
-#   RUNTIME DESTINATION bin
-# )
 INSTALL(
   DIRECTORY include/
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include
@@ -119,10 +68,6 @@ INSTALL(
   FILES cmake/ProtoConfig.cmake
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/Proto
 )
-INSTALL(
-  FILES cmake/SuiteSparseConfig.cmake
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/SuiteSparse
-)
 
 # UNIT TESTS
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
@@ -131,12 +76,6 @@ FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   # atl-test_atl
-  # calib-test_aprilgrid
-  # calib-test_calib_camera
-  # calib-test_calib_data
-  # calib-test_calib_gimbal
-  # calib-test_sandbox
-  # calib-test_sandbox2
   core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
@@ -144,27 +83,9 @@ SET(
   # estimation-test_dense
   estimation-test_factor
   # estimation-test_frontend
-  # viz-test_gui
-  # viz-test_plane
 )
 FOREACH(TEST ${UNITTESTS})
   STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
   ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 ENDFOREACH(TEST)
-
-# # APPS
-# SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/apps)
-# SET(
-#   APPS
-#   apps-calib_camera
-#   apps-calib_stereo
-#   apps-detect_aprilgrid
-#   apps-validate_intrinsics
-#   apps-validate_stereo
-# )
-# FOREACH(APP ${APPS})
-#   STRING(REGEX REPLACE "-" "/" APP_PATH ${APP})
-#   ADD_EXECUTABLE(${APP} src/${APP_PATH}.cpp)
-#   TARGET_LINK_LIBRARIES(${APP} ${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
-# ENDFOREACH(APP)

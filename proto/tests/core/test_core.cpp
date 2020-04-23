@@ -2718,8 +2718,10 @@ int test_pinhole_constructor() {
 
 int test_pinhole_K() {
   struct vision_test_config config;
-  pinhole_t<> pinhole{config.image_width, config.image_height,
-                      config.fx, config.fy, config.cx, config.cy};
+  int resolution[2] = {config.image_width, config.image_height};
+  vec4_t proj_params{config.fx, config.fy, config.cx, config.cy};
+  vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
+  pinhole_t<> pinhole{resolution, proj_params, dist_params};
   mat3_t K;
   K << config.fx, 0.0, config.cx,
        0.0, config.fy, config.cy,
@@ -2746,8 +2748,11 @@ int test_pinhole_K() {
 
 int test_pinhole_project() {
   struct vision_test_config config;
-  pinhole_t<> pinhole{config.image_width, config.image_height,
-                      config.fx, config.fy, config.cx, config.cy};
+
+  int resolution[2] = {config.image_width, config.image_height};
+  vec4_t proj_params{config.fx, config.fy, config.cx, config.cy};
+  vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
+  pinhole_t<> pinhole{resolution, proj_params, dist_params};
 
   vec3_t p_C{0.0, 0.0, 1.0};
   vec2_t x {0.0, 0.0};

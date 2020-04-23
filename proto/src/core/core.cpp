@@ -1801,9 +1801,10 @@ real_t gauss_normal() {
  *                               TRANSFORM
  *****************************************************************************/
 
-mat4_t tf(const real_t *params) {
-  const quat_t q{params[0], params[1], params[2], params[3]};
-  const vec3_t r{params[4], params[5], params[6]};
+mat4_t tf(const vecx_t &params) {
+  assert(params.size() == 7);
+  const quat_t q{params(0), params(1), params(2), params(3)};
+  const vec3_t r{params(4), params(5), params(6)};
   return tf(q, r);
 }
 
@@ -3902,17 +3903,18 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
   sim_data.features = create_3d_features_perimeter(origin, dim, nb_features);
 
   // Create camera
-  const int img_w = 640;
-  const int img_h = 480;
+  const int res[2] = {640, 480};
   const real_t lens_hfov = 90.0;
   const real_t lens_vfov = 90.0;
-  const real_t fx = pinhole_focal(img_w, lens_hfov);
-  const real_t fy = pinhole_focal(img_h, lens_vfov);
-  const real_t cx = img_w / 2.0;
-  const real_t cy = img_h / 2.0;
+  const real_t fx = pinhole_focal(res[0], lens_hfov);
+  const real_t fy = pinhole_focal(res[1], lens_vfov);
+  const real_t cx = res[0] / 2.0;
+  const real_t cy = res[1] / 2.0;
   const vec4_t proj_params{fx, fy, cx, cy};
   const vec4_t dist_params{0.01, 0.001, 0.0001, 0.0001};
-  const pinhole_radtan4_t camera{img_w, img_h, proj_params, dist_params};
+  print_vector("proj_params", proj_params);
+  print_vector("dist_params", dist_params);
+  const pinhole_radtan4_t camera{res, proj_params, dist_params};
 
   // Simulate camera
   {

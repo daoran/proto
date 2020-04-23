@@ -6,9 +6,9 @@ make
 
 # sudo bash ./scripts/install_mexopencv.bash
 # ./scripts/run_tests.bash && exit 0
-# octave notes/ba/ba.m && exit 0
+octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
-octave notes/calib/calib.m && exit 0
+# octave notes/calib/calib.m && exit 0
 # octave notes/camera/equi4_point_jacobian.m && exit 0
 # octave notes/camera/intrinsics_jacobian.m && exit 0
 # octave notes/camera/radtan4_params_jacobian.m && exit 0
