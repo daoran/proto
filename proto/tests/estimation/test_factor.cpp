@@ -484,9 +484,8 @@ int test_graph_add_ba_factor() {
   const int resolution[2] = {640, 480};
   const vec4_t proj_params{640, 480, 320, 240};
   const vec4_t dist_params{0.01, 0.001, 0.001, 0.001};
-  const auto cam_params_id = graph_add_camera(graph,
-                                              cam_index, resolution,
-                                              proj_params, dist_params);
+  const auto cam_id = graph_add_camera(graph, cam_index, resolution,
+                                       proj_params, dist_params);
 
   // BA factor
   const pinhole_radtan4_t cm{resolution, proj_params, dist_params};
@@ -498,7 +497,7 @@ int test_graph_add_ba_factor() {
     ts,
     cam_pose_id,
     landmark_id,
-    cam_params_id,
+    cam_id,
     z
   );
 
@@ -538,7 +537,7 @@ int test_graph_add_cam_factor() {
   const int resolution[2] = {640, 480};
   const vec4_t proj_params{640, 480, 320, 240};
   const vec4_t dist_params{0.01, 0.001, 0.001, 0.001};
-  const auto cam_params_id = graph_add_camera(graph, cam_index, resolution,
+  const auto cam_id = graph_add_camera(graph, cam_index, resolution,
                                               proj_params, dist_params);
 
   // BA factor
@@ -551,7 +550,7 @@ int test_graph_add_cam_factor() {
     sensor_pose_id,
     imucam_pose_id,
     landmark_id,
-    cam_params_id,
+    cam_id,
     z
   );
 
@@ -691,7 +690,7 @@ int test_graph_eval() {
 
   // Create graph
   graph_t graph;
-	bool prior_set = false;
+  bool prior_set = false;
 
   // -- Add landmarks
   for (const auto &feature : sim_data.features) {
@@ -699,11 +698,12 @@ int test_graph_eval() {
   }
   // -- Add cam0 parameters
   int cam_index = 0;
-  const auto cam_params_id = graph_add_camera(graph, cam_index, resolution,
-                                              proj_params, dist_params);
+  const auto cam_id = graph_add_camera(graph, cam_index, resolution,
+                                       proj_params, dist_params);
+
   // -- Add cam0 poses and ba factors
   size_t pose_idx = 0;
-	int cam_pose = 0;
+  int cam_pose = 0;
   for (const auto &kv : sim_data.timeline) {
     const timestamp_t &ts = kv.first;
     const sim_event_t &event = kv.second;
@@ -729,26 +729,26 @@ int test_graph_eval() {
         graph_add_ba_factor<pinhole_radtan4_t>(graph, ts,
                                                cam0_pose_id,
                                                feature_id,
-                                               cam_params_id,
+                                               cam_id,
                                                z);
       }
       printf("nb features: %zu\n", event.frame.feature_ids.size());
 
-			cam_pose++;
-			if (cam_pose == 2) {
-				break;
-			}
+      cam_pose++;
+      if (cam_pose == 2) {
+        break;
+      }
     }
   }
 
   // Evaluate graph
-	vecx_t r;
-	matx_t J;
+  vecx_t r;
+  matx_t J;
   graph_eval(graph, r, J);
-	mat2csv("/tmp/J.csv", J);
-	mat2csv("/tmp/r.csv", r);
-	OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
-	// OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/r.csv");
+  mat2csv("/tmp/J.csv", J);
+  // mat2csv("/tmp/r.csv", r);
+  OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/r.csv");
 
   // Debug
   // const bool debug = true;
@@ -931,7 +931,8 @@ int test_graph_solve_ba() {
   const real_t cy = data.cam_K(1, 2);
   const vec4_t proj_params{fx, fy, cx, cy};
   const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
-  auto cam_id = graph_add_camera(graph, cam_index, resolution, proj_params, dist_params);
+  auto cam_id = graph_add_camera(graph, cam_index, resolution,
+                                 proj_params, dist_params);
 
   for (int k = 0; k < data.nb_frames; k++) {
     const timestamp_t ts = k * 1e9;
@@ -992,9 +993,9 @@ int test_graph_solve_ba() {
     cost_prev = cost;
   }
 
-	// tiny_solver_t solver;
-	// solver.max_iter = 2;
-	// solver.solve(graph);
+  // tiny_solver_t solver;
+  // solver.max_iter = 2;
+  // solver.solve(graph);
 
   return 0;
 }
@@ -1024,11 +1025,12 @@ int test_graph_solve() {
   const real_t cy = resolution[1] / 2.0;
   const vec4_t proj_params{fx, fy, cx, cy};
   const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
-  auto cam0_id = graph_add_camera(graph, cam_index, resolution, proj_params, dist_params);
+  auto cam0_id = graph_add_camera(graph, cam_index, resolution,
+                                  proj_params, dist_params);
 
   // -- Add cam0 poses and ba factors
   size_t pose_idx = 0;
-	int cam_pose = 0;
+  int cam_pose = 0;
   for (const auto &kv : sim_data.timeline) {
     const timestamp_t &ts = kv.first;
     const sim_event_t &event = kv.second;
@@ -1052,16 +1054,18 @@ int test_graph_solve() {
       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
         const auto feature_id = event.frame.feature_ids[i];
         const auto z = event.frame.keypoints[i];
-        graph_add_ba_factor<pinhole_radtan4_t>(graph, ts,
+        graph_add_ba_factor<pinhole_radtan4_t>(graph,
+                                               ts,
                                                cam0_pose_id,
                                                feature_id,
-                                               cam0_id, z);
+                                               cam0_id,
+                                               z);
       }
 
-			cam_pose++;
-			if (cam_pose == 20) {
-				break;
-			}
+      cam_pose++;
+      if (cam_pose == 10) {
+        break;
+      }
     }
   }
 
@@ -1088,7 +1092,7 @@ int test_graph_solve() {
 
     // Termination criteria
     real_t cost_diff = fabs(cost - cost_prev);
-    if (cost_diff < 1.0e-2) {
+    if (cost_diff < 1.0e-1) {
       printf("Done!\n");
       break;
     }
@@ -1100,9 +1104,9 @@ int test_graph_solve() {
   print_vector("proj param", cam_params->proj_params());
   print_vector("dist param", cam_params->dist_params());
 
-	// tiny_solver_t solver;
-	// solver.max_iter = 2;
-	// solver.solve(graph);
+  // tiny_solver_t solver;
+  // solver.max_iter = 2;
+  // solver.solve(graph);
   // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/E.csv");
 
   // Debug

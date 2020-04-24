@@ -49,7 +49,7 @@ ADD_LIBRARY(
   # dataset
   # src/dataset/euroc.cpp
   # src/dataset/kitti.cpp
-  src/dataset/timeline.cpp
+  # src/dataset/timeline.cpp
   # estimation
   # src/estimation/ba.cpp
   src/estimation/factor.cpp

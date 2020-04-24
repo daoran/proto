@@ -3912,8 +3912,6 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
   const real_t cy = res[1] / 2.0;
   const vec4_t proj_params{fx, fy, cx, cy};
   const vec4_t dist_params{0.01, 0.001, 0.0001, 0.0001};
-  print_vector("proj_params", proj_params);
-  print_vector("dist_params", dist_params);
   const pinhole_radtan4_t camera{res, proj_params, dist_params};
 
   // Simulate camera

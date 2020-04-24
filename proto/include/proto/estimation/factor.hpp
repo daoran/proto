@@ -134,6 +134,15 @@ struct pose_t : param_t {
   }
 };
 
+struct extrinsic_t : pose_t {
+  extrinsic_t() {}
+
+  extrinsic_t(const size_t id_, const mat4_t &T, const bool fixed_=false)
+    : pose_t{id_, 0, T, fixed_} {
+    this->type = "extrinsic_t";
+  }
+};
+
 struct landmark_t : param_t {
   landmark_t() {}
 
@@ -239,7 +248,7 @@ int check_jacobians(factor_t *factor,
 
 struct pose_factor_t : factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-	const mat4_t pose_meas;
+  const mat4_t pose_meas;
 
   pose_factor_t(const size_t id_,
                 const mat4_t &pose_,
@@ -248,24 +257,24 @@ struct pose_factor_t : factor_t {
       : factor_t{id_, info_, params_}, pose_meas{pose_} {
     residuals = zeros(6, 1);
     jacobians.push_back(zeros(6, 6));
-	}
+  }
 
-	int eval(bool jacs=true) {
+  int eval(bool jacs=true) {
     assert(params.size() == 1);
 
-		// Calculate delta pose
+    // Calculate delta pose
     const mat4_t pose_est = tf(params[0]->param);
-		const mat4_t delta_pose = pose_meas * pose_est.inverse();
+    const mat4_t delta_pose = pose_meas * pose_est.inverse();
 
-		// Calculate pose error
-		const quat_t dq = tf_quat(delta_pose);
-		const vec3_t dtheta = 2 * dq.coeffs().head<3>();
-		residuals.head<3>() = dtheta;
-		residuals.tail<3>() = tf_trans(pose_meas) - tf_trans(pose_est);
+    // Calculate pose error
+    const quat_t dq = tf_quat(delta_pose);
+    const vec3_t dtheta = 2 * dq.coeffs().head<3>();
+    residuals.head<3>() = dtheta;
+    residuals.tail<3>() = tf_trans(pose_meas) - tf_trans(pose_est);
 
-		// Calculate jacobian
-		// clang-format off
-		if (jacs) {
+    // Calculate jacobian
+    // clang-format off
+    if (jacs) {
       jacobians[0].setIdentity();
       jacobians[0] *= -1.0;
       mat3_t dq_mul_xyz;
@@ -274,10 +283,10 @@ struct pose_factor_t : factor_t {
                     -dq.y(), dq.x(), dq.w();
       jacobians[0].block<3, 3>(0, 0) = -dq_mul_xyz;
     }
-		// clang-format on
+    // clang-format on
 
-		return 0;
-	}
+    return 0;
+  }
 };
 
 /*****************************************************************************
@@ -332,9 +341,9 @@ struct ba_factor_t : factor_t {
       // case -1: LOG_ERROR("Point is not infront of camera!"); break;
       // case -2: LOG_ERROR("Projected point is outside the image plane!"); break;
       // }
-			jacobians[0] = zeros(2, 6);  // T_WC
-			jacobians[1] = zeros(2, 3);  // p_W
-			jacobians[2] = zeros(2, CM::params_size);  // Projection model
+      jacobians[0] = zeros(2, 6);  // T_WC
+      jacobians[1] = zeros(2, 3);  // p_W
+      jacobians[2] = zeros(2, CM::params_size);  // Projection model
       return -1;
     }
 
@@ -659,7 +668,9 @@ struct imu_factor_t : factor_t {
 struct graph_t {
   std::unordered_map<size_t, param_t *> params;
   std::unordered_map<param_t *, size_t> param_index;
-  std::vector<param_t *> param_order;
+  std::vector<std::string> param_order{"pose_t",
+                                       "camera_params_t",
+                                       "landmark_t"};
   std::deque<factor_t *> factors;
 
   graph_t() {}
@@ -799,7 +810,8 @@ size_t graph_add_imu_factor(graph_t &graph,
     graph.params[pose1_id],
     graph.params[sb1_id]
   };
-  auto factor = new imu_factor_t(imu_index, imu_ts, imu_gyro, imu_accel, I(15), params);
+  auto factor = new imu_factor_t(imu_index, imu_ts, imu_gyro, imu_accel,
+                                 I(15), params);
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -825,33 +837,51 @@ void graph_residuals(graph_t &graph, vecx_t &r) {
 }
 
 void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
-	// First pass: Determine what parameters we have
+  // First pass: Determine what parameters we have
   std::unordered_set<param_t *> param_tracker;
   std::unordered_map<std::string, int> param_counter;
 
-	for (const auto &factor : graph.factors) {
-		for (const auto &param : factor->params) {
-			// Check if param is already tracked or fixed
-			if (param_tracker.count(param) > 0 || param->fixed) {
-				continue; // Skip this param
-			}
+  for (const auto &factor : graph.factors) {
+    for (const auto &param : factor->params) {
+      // Check if param is already tracked or fixed
+      if (param_tracker.count(param) > 0 || param->fixed) {
+        continue; // Skip this param
+      }
 
-			// Keep track of param blocks
-			param_counter[param->type] += param->local_size;
+      // Keep track of param blocks
+      param_counter[param->type] += param->local_size;
       param_tracker.insert(param);
-		}
-	}
+    }
+  }
 
   // Second pass: Assign jacobian order for each parameter and evaluate factor
   size_t residuals_size = 0;
   size_t params_size = 0;
-  std::unordered_map<std::string, int> param_cs;
-  param_cs["pose_t"] = 0;
-  param_cs["camera_params_t"] = param_counter["pose_t"];
-  param_cs["landmark_t"] = param_counter["pose_t"] + param_counter["camera_params_t"];
+  std::unordered_map<std::string, int> param_cs;  // Map param type to col index
 
+  // -- Check which param is not in defined param order
+  for (int i = 0; i < (int) graph.param_order.size(); i++) {
+    if (param_counter.find(graph.param_order[i]) == param_counter.end()) {
+      FATAL("Param [%s] not found!", graph.param_order[i].c_str());
+    }
+  }
+
+  // -- Assign param start index
+  for (int i = 0; i < (int) graph.param_order.size(); i++) {
+    auto param_i = graph.param_order[i];
+    param_cs[param_i] = 0;
+
+    int j = i - 1;
+    while (j > -1) {
+      auto param_j = graph.param_order[j];
+      param_cs[graph.param_order[i]] += param_counter[param_j];
+      j--;
+    }
+  }
+
+  // -- Assign param global index
   std::vector<bool> factor_ok;
-	graph.param_index.clear();
+  graph.param_index.clear();
   for (const auto &factor : graph.factors) {
     // Evaluate factor
     if (factor->eval() != 0) {
@@ -862,13 +892,13 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
     factor_ok.push_back(true);
 
     // Assign parameter order in jacobian
-		for (const auto &param : factor->params) {
-			// Check if param is already tracked or fixed
+    for (const auto &param : factor->params) {
+      // Check if param is already tracked or fixed
       if (graph.param_index.count(param) > 0 || param->fixed) {
         continue; // Skip this param
       }
 
-			// Assign jacobian column index for parameter
+      // Assign jacobian column index for parameter
       graph.param_index.insert({param, param_cs[param->type]});
       param_cs[param->type] += param->local_size;
       params_size += param->local_size;
@@ -896,7 +926,6 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
       if (graph.param_index.count(param)) {
         cs = graph.param_index[param];
         J.block(rs, cs, rows, cols) = factor->jacobians[j];
-        // J.block(rs, cs, rows, cols) = ones(rows, cols);
       }
     }
 
@@ -912,7 +941,7 @@ void graph_update(graph_t &graph, const vecx_t &dx) {
     const auto index = kv.second;
     param->plus(dx.segment(index, param->local_size));
   }
-	graph.param_index.clear();
+  graph.param_index.clear();
 }
 
 /*****************************************************************************
@@ -942,19 +971,19 @@ struct tiny_solver_t {
       lm_diagonal.resize(H.rows());
     }
     cost = e.squaredNorm() / 2.0;
-		printf("iter[%d]  ", iter);
-		printf("cost[%.4e]\n", cost);
+    printf("iter[%d]  ", iter);
+    printf("cost[%.4e]\n", cost);
   }
 
   int solve(graph_t &graph)  {
     real_t initial_trust_region_radius = 1e4;
     real_t u = 1.0 / initial_trust_region_radius;
     real_t v = 2.0;
-		eval(graph);
+    eval(graph);
 
-		struct timespec t_start = tic();
+    struct timespec t_start = tic();
     for (iter = 0; iter < max_iter; iter++) {
-			// Precondition H
+      // Precondition H
       const real_t min_diagonal = 1e-6;
       const real_t max_diagonal = 1e32;
       matx_t H_regularized = H;
@@ -962,15 +991,15 @@ struct tiny_solver_t {
         lm_diagonal[i] = std::sqrt(u * std::min(std::max(H(i, i), min_diagonal), max_diagonal));
         H_regularized(i, i) += lm_diagonal[i] * lm_diagonal[i];
       }
-			// printf("cond(H): %f\n", cond(H_regularized));
+      // printf("cond(H): %f\n", cond(H_regularized));
 
-			// Update
+      // Update
       const vecx_t g = -E.transpose() * e;
       const vecx_t lm_step = H_regularized.ldlt().solve(g);
       const vecx_t dx = jacobi_scaling.asDiagonal() * lm_step;
       graph_update(graph, dx);
 
-			// Evaluate
+      // Evaluate
       vecx_t e_k;
       matx_t E_k;
       graph_eval(graph, e_k, E_k);
@@ -981,7 +1010,7 @@ struct tiny_solver_t {
       // printf("cost[%.4e]  ", e_k.squaredNorm() / 2.0);
       // printf("iter time: %fs\n", toc(&t_start));
 
-			real_t rho(cost_change / model_cost_change);
+      real_t rho(cost_change / model_cost_change);
       if (rho > 0) {
         // Accept the Levenberg-Marquardt step because the linear
         // model fits well.
@@ -1009,7 +1038,7 @@ struct tiny_solver_t {
       // to move closer to gradient descent.
       u *= v;
       v *= 2;
-			graph_update(graph, -dx);
+      graph_update(graph, -dx);
 
       // Calculate reprojection error
       // size_t nb_keypoints = e.size() / 2.0;

@@ -3325,6 +3325,19 @@ struct pinhole_t : projection_t<DM> {
   matx_t J_dist(const vec2_t &p) const {
     return J_point() * this->distortion.J_dist(p);
   }
+
+  matx_t J_params(const vec2_t &p) {
+    return static_cast<const pinhole_t &>(*this).J_params(p);
+  }
+
+  matx_t J_params(const vec2_t &p) const {
+    const vec2_t p_dist = this->distortion.distort(p);
+
+    matx_t J = zeros(2, params_size);
+    J.block(0, 0, 2, proj_params_size) = -1 * J_proj(p_dist);
+    J.block(0, dist_params_size, 2, proj_params_size) = -1 * J_dist(p);
+    return J;
+  }
 };
 
 typedef pinhole_t<radtan4_t> pinhole_radtan4_t;
@@ -3355,55 +3368,6 @@ mat3_t pinhole_K(const int img_w,
                  const int img_h,
                  const real_t lens_hfov,
                  const real_t lens_vfov);
-
-template <typename T>
-int pinhole_radtan4_project(const Eigen::Matrix<T, 8, 1> &params,
-                            const Eigen::Matrix<T, 3, 1> &point,
-                            Eigen::Matrix<T, 2, 1> &image_point) {
-  // Check for singularity
-  const T z_norm = sqrt(point(2) * point(2)); // std::abs doesn't work for all T
-  if ((T) z_norm < (T) 1.0e-12) {
-    return -1;
-  }
-
-  // Extract intrinsics params
-  const T fx = params(0);
-  const T fy = params(1);
-  const T cx = params(2);
-  const T cy = params(3);
-  const T k1 = params(4);
-  const T k2 = params(5);
-  const T p1 = params(6);
-  const T p2 = params(7);
-
-  // Project
-  const T x = point(0) / point(2);
-  const T y = point(1) / point(2);
-
-  // Apply Radial distortion factor
-  const T x2 = x * x;
-  const T y2 = y * y;
-  const T r2 = x2 + y2;
-  const T r4 = r2 * r2;
-  const T radial_factor = T(1) + (k1 * r2) + (k2 * r4);
-  const T x_dash = x * radial_factor;
-  const T y_dash = y * radial_factor;
-
-  // Apply Tangential distortion factor
-  const T xy = x * y;
-  const T x_ddash = x_dash + (T(2) * p1 * xy + p2 * (r2 + T(2) * x2));
-  const T y_ddash = y_dash + (p1 * (r2 + T(2) * y2) + T(2) * p2 * xy);
-
-  // Scale and center
-  image_point(0) = fx * x_ddash + cx;
-  image_point(1) = fy * y_ddash + cy;
-
-  if (point(2) > T(0.0)) {
-    return 0; // Point is infront of camera
-  } else {
-    return 1; // Point is behind camera
-  }
-}
 
 /*****************************************************************************
  *                               SIMULATION

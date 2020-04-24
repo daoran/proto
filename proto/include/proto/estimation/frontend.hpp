@@ -2,7 +2,6 @@
 #define PROTO_VISION_FRONTEND_HPP
 
 #include "proto/core/core.hpp"
-#include "proto/vision/vision.hpp"
 
 namespace proto {
 
