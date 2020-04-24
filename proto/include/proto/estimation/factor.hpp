@@ -828,11 +828,6 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 	// First pass: Determine what parameters we have
   std::unordered_set<param_t *> param_tracker;
   std::unordered_map<std::string, int> param_counter;
-  size_t pose_param_size = 0;
-  size_t landmark_param_size = 0;
-  size_t proj_param_size = 0;
-  size_t dist_param_size = 0;
-  size_t cam_param_size = 0;
 
 	for (const auto &factor : graph.factors) {
 		for (const auto &param : factor->params) {
@@ -842,14 +837,7 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
 			}
 
 			// Keep track of param blocks
-			// switch (param->type) {
-      // case POSE: pose_param_size += param->local_size; break;
-			// case PROJECTION: proj_param_size += param->local_size; break;
-			// case DISTORTION: dist_param_size += param->local_size; break;
-			// case LANDMARK: landmark_param_size += param->local_size; break;
-			// case CAMERA: cam_param_size += param->local_size; break;
-			// default: FATAL("Unsupported param type [%d]!", param->type); break;
-			// }
+			param_counter[param->type] += param->local_size;
       param_tracker.insert(param);
 		}
 	}
@@ -857,12 +845,12 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
   // Second pass: Assign jacobian order for each parameter and evaluate factor
   size_t residuals_size = 0;
   size_t params_size = 0;
-	size_t pose_cs = 0;
-	size_t proj_cs = pose_param_size;
-	size_t dist_cs = proj_cs + proj_param_size;
-	size_t landmark_cs = dist_cs + dist_param_size;
-  std::vector<bool> factor_ok;
+  std::unordered_map<std::string, int> param_cs;
+  param_cs["pose_t"] = 0;
+  param_cs["camera_params_t"] = param_counter["pose_t"];
+  param_cs["landmark_t"] = param_counter["pose_t"] + param_counter["camera_params_t"];
 
+  std::vector<bool> factor_ok;
 	graph.param_index.clear();
   for (const auto &factor : graph.factors) {
     // Evaluate factor
@@ -880,28 +868,9 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
         continue; // Skip this param
       }
 
-			// // Assign jacobian column index for parameter
-			// switch (param->type) {
-			// case POSE:
-			// 	graph.param_index.insert({param, pose_cs});
-			// 	pose_cs += param->local_size;
-			// 	break;
-      // case LANDMARK:
-			// 	graph.param_index.insert({param, landmark_cs});
-			// 	landmark_cs += param->local_size;
-			// 	break;
-      // case PROJECTION:
-			// 	graph.param_index.insert({param, proj_cs});
-			// 	proj_cs += param->local_size;
-			// 	break;
-      // case DISTORTION:
-			// 	graph.param_index.insert({param, dist_cs});
-			// 	dist_cs += param->local_size;
-			// 	break;
-			// default:
-			// 	FATAL("Unsupported param type!");
-			// 	break;
-			// }
+			// Assign jacobian column index for parameter
+      graph.param_index.insert({param, param_cs[param->type]});
+      param_cs[param->type] += param->local_size;
       params_size += param->local_size;
     }
   }
@@ -927,6 +896,7 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
       if (graph.param_index.count(param)) {
         cs = graph.param_index[param];
         J.block(rs, cs, rows, cols) = factor->jacobians[j];
+        // J.block(rs, cs, rows, cols) = ones(rows, cols);
       }
     }
 

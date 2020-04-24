@@ -339,13 +339,13 @@ int test_imu_factor_jacobians() {
   pose_t pose_i{0, 0, T_WS_i};
   // -- Speed and bias at i
   const vec3_t v_WS_i = ctraj_get_velocity(ctraj, 0.0);
-  sb_param_t sb_i{1, 0, v_WS_i, zeros(3, 1), zeros(3, 1)};
+  sb_params_t sb_i{1, 0, v_WS_i, zeros(3, 1), zeros(3, 1)};
   // -- Sensor pose at j
   mat4_t T_WS_j = tf(orientations.back(), positions.back());
   pose_t pose_j{2, timestamps.back(), T_WS_j};
   // -- Speed and bias at j
   const vec3_t v_WS_j = ctraj_get_velocity(ctraj, 10.0);
-  sb_param_t sb_j{1, timestamps.back(), v_WS_j, zeros(3, 1), zeros(3, 1)};
+  sb_params_t sb_j{1, timestamps.back(), v_WS_j, zeros(3, 1), zeros(3, 1)};
   // -- IMU factor
   std::vector<param_t *> params{&pose_i, &sb_i, &pose_j, &sb_j};
   imu_factor_t factor(0, imu_ts, imu_accel, imu_gyro, I(15), params);
@@ -611,525 +611,509 @@ int test_graph_add_imu_factor() {
   return 0;
 }
 
-// void save_features(const std::string &path, const vec3s_t &features) {
-//   FILE *csv = fopen(path.c_str(), "w");
-//   for (const auto &f : features) {
-//     fprintf(csv, "%f,%f,%f\n", f(0), f(1), f(2));
-//   }
-//   fflush(csv);
-//   fclose(csv);
-// }
-//
-// void save_poses(const std::string &path,
-//                 const timestamps_t &timestamps,
-//                 const vec3s_t &positions,
-//                 const quats_t &orientations) {
-//   FILE *csv = fopen(path.c_str(), "w");
-//   for (size_t i = 0; i < timestamps.size(); i++) {
-//     const timestamp_t ts = timestamps[i];
-//     const vec3_t pos = positions[i];
-//     const quat_t rot = orientations[i];
-//     fprintf(csv, "%ld,", ts);
-//     fprintf(csv, "%f,%f,%f,", pos(0), pos(1), pos(2));
-//     fprintf(csv, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
-//   }
-//   fflush(csv);
-//   fclose(csv);
-// }
-//
-// void save_imu_data(const std::string &imu_data_path,
-//                    const std::string &imu_poses_path,
-//                    const timestamps_t &imu_ts,
-//                    const vec3s_t &imu_accel,
-//                    const vec3s_t &imu_gyro,
-//                    const vec3s_t &imu_pos,
-//                    const quats_t &imu_rot) {
-//   {
-//     FILE *csv = fopen(imu_data_path.c_str(), "w");
-//     for (size_t i = 0; i < imu_ts.size(); i++) {
-//       const timestamp_t ts = imu_ts[i];
-//       const vec3_t acc = imu_accel[i];
-//       const vec3_t gyr = imu_gyro[i];
-//       fprintf(csv, "%ld,", ts);
-//       fprintf(csv, "%f,%f,%f,", acc(0), acc(1), acc(2));
-//       fprintf(csv, "%f,%f,%f\n", gyr(0), gyr(1), gyr(2));
-//     }
-//     fflush(csv);
-//     fclose(csv);
-//   }
-//
-//   {
-//     FILE *csv = fopen(imu_poses_path.c_str(), "w");
-//     for (size_t i = 0; i < imu_ts.size(); i++) {
-//       const timestamp_t ts = imu_ts[i];
-//       const vec3_t pos = imu_pos[i];
-//       const quat_t rot = imu_rot[i];
-//       fprintf(csv, "%ld,", ts);
-//       fprintf(csv, "%f,%f,%f,", pos(0), pos(1), pos(2));
-//       fprintf(csv, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
-//     }
-//     fflush(csv);
-//     fclose(csv);
-//   }
-// }
-//
-// int test_graph_eval() {
-//   vio_sim_data_t sim_data;
-//   sim_circle_trajectory(4.0, sim_data);
-//
-//   // Create camera
-//   const int img_w = 640;
-//   const int img_h = 480;
-//   const real_t lens_hfov = 90.0;
-//   const real_t lens_vfov = 90.0;
-//   const real_t fx = pinhole_focal(img_w, lens_hfov);
-//   const real_t fy = pinhole_focal(img_h, lens_vfov);
-//   const real_t cx = img_w / 2.0;
-//   const real_t cy = img_h / 2.0;
-//   const vec4_t proj_params{fx, fy, cx, cy};
-//   const vec4_t dist_params{0.01, 0.001, 0.0001, 0.0001};
-//   const pinhole_radtan4_t cam0{img_w, img_h, proj_params, dist_params};
-//
-//   // Create graph
-//   graph_t graph;
-// 	bool prior_set = false;
-//
-//   // -- Add landmarks
-//   for (const auto &feature : sim_data.features) {
-//     graph_add_landmark(graph, feature);
-//   }
-//   // -- Add cam0 parameters
-//   int cam_id = 0;
-//   size_t proj_param_id = graph_add_proj_params(graph, cam_id, cam0.proj_params(), true);
-//   size_t dist_param_id = graph_add_dist_params(graph, cam_id, cam0.dist_params(), true);
-//   // -- Add cam0 poses and ba factors
-//   size_t pose_idx = 0;
-// 	int cam_pose = 0;
-//   for (const auto &kv : sim_data.timeline) {
-//     const timestamp_t &ts = kv.first;
-//     const sim_event_t &event = kv.second;
-//
-//     // Handle camera event
-//     if (event.type == sim_event_type_t::CAMERA) {
-//       // Add cam0 pose
-//       const quat_t q_WC0 = sim_data.cam_rot[pose_idx];
-//       const vec3_t r_WC0 = sim_data.cam_pos[pose_idx];
-//       const mat4_t T_WC0 = tf(q_WC0, r_WC0);
-//       const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
-//       pose_idx++;
-//
-//       if (prior_set == false) {
-//         graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
-//         prior_set = true;
-//       }
-//
-//       // Add cam0 observations at ts
-//       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
-//         const auto feature_id = event.frame.feature_ids[i];
-//         const auto z = event.frame.keypoints[i];
-//         graph_add_ba_factor<pinhole_radtan4_t>(graph, ts, event.sensor_id,
-//                                                cam0.img_w, cam0.img_h,
-//                                                cam0_pose_id, feature_id,
-//                                                proj_param_id, dist_param_id, z);
-//       }
-//       printf("nb features: %zu\n", event.frame.feature_ids.size());
-//
-// 			cam_pose++;
-// 			if (cam_pose == 2) {
-// 				break;
-// 			}
-//     }
-//   }
-//
-//   // Evaluate graph
-// 	vecx_t r;
-// 	matx_t J;
-//   graph_eval(graph, r, J);
-// 	mat2csv("/tmp/J.csv", J);
-// 	mat2csv("/tmp/r.csv", r);
-// 	// OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
-// 	// OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/r.csv");
-//
-//   // Debug
-//   // const bool debug = true;
-//   const bool debug = false;
-//   if (debug) {
-//     OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
-//   }
-//
-//   return 0;
-// }
-//
-// static mat3_t load_camera(const std::string &data_path) {
-//   // Setup csv path
-//   char cam_csv[1000] = {0};
-//   strcat(cam_csv, data_path.c_str());
-//   strcat(cam_csv, "/camera.csv");
-//
-//   // Parse csv file
-//   int nb_rows = 0;
-//   int nb_cols = 0;
-//   real_t **cam_K = csv_data(cam_csv, &nb_rows, &nb_cols);
-//   if (cam_K == NULL) {
-//     FATAL("Failed to load csv file [%s]!", cam_csv);
-//   }
-//   if (nb_rows != 3 || nb_cols != 3) {
-//     LOG_ERROR("Error while parsing camera file [%s]!", cam_csv);
-//     LOG_ERROR("-- Expected 3 rows got %d instead!", nb_rows);
-//     LOG_ERROR("-- Expected 3 cols got %d instead!", nb_cols);
-//     FATAL("Invalid camera file [%s]!", cam_csv);
-//   }
-//
-//   // Flatten 2D array to 1D array
-//   mat3_t K;
-//   for (int i = 0; i < nb_rows; i++) {
-//     for (int j = 0; j < nb_cols; j++) {
-//       K(i, j) = cam_K[i][j];
-//     }
-//     free(cam_K[i]);
-//   }
-//   free(cam_K);
-//
-//   return K;
-// }
-//
-// static poses_t load_camera_poses(const std::string &data_path) {
-//   char cam_poses_csv[1000] = {0};
-//   strcat(cam_poses_csv, data_path.c_str());
-//   strcat(cam_poses_csv, "/camera_poses.csv");
-//   return load_poses(cam_poses_csv);
-// }
-//
-// static poses_t load_target_pose(const std::string &data_path) {
-//   char target_pose_csv[1000] = {0};
-//   strcat(target_pose_csv, data_path.c_str());
-//   strcat(target_pose_csv, "/target_pose.csv");
-//   return load_poses(target_pose_csv);
-// }
-//
-// static real_t **load_points(const std::string &data_path, int *nb_points) {
-//   char points_csv[1000] = {0};
-//   strcat(points_csv, data_path.c_str());
-//   strcat(points_csv, "/points.csv");
-//
-//   // Initialize memory for points
-//   *nb_points = csv_rows(points_csv);
-//   real_t **points = (real_t **) malloc(sizeof(real_t *) * *nb_points);
-//   for (int i = 0; i < *nb_points; i++) {
-//     points[i] = (real_t *) malloc(sizeof(real_t) * 3);
-//   }
-//
-//   // Load file
-//   FILE *infile = fopen(points_csv, "r");
-//   if (infile == NULL) {
-//     fclose(infile);
-//     return NULL;
-//   }
-//
-//   // Loop through data
-//   char line[1024] = {0};
-//   size_t len_max = 1024;
-//   int point_idx = 0;
-//   int col_idx = 0;
-//
-//   while (fgets(line, len_max, infile) != NULL) {
-//     if (line[0] == '#') {
-//       continue;
-//     }
-//
-//     char entry[100] = {0};
-//     for (size_t i = 0; i < strlen(line); i++) {
-//       char c = line[i];
-//       if (c == ' ') {
-//         continue;
-//       }
-//
-//       if (c == ',' || c == '\n') {
-//         points[point_idx][col_idx] = strtod(entry, NULL);
-//         memset(entry, '\0', sizeof(char) * 100);
-//         col_idx++;
-//       } else {
-//         entry[strlen(entry)] = c;
-//       }
-//     }
-//
-//     col_idx = 0;
-//     point_idx++;
-//   }
-//
-//   // Cleanup
-//   fclose(infile);
-//
-//   return points;
-// }
-//
-// static int **load_point_ids(const std::string &data_path, int *nb_points) {
-//   char csv_path[1000] = {0};
-//   strcat(csv_path, data_path.c_str());
-//   strcat(csv_path, "/point_ids.csv");
-//   return load_iarrays(csv_path, nb_points);
-// }
-//
-// struct ba_data_t {
-//   mat3_t cam_K;
-//
-//   poses_t cam_poses;
-//   pose_t target_pose;
-//   int nb_frames;
-//
-//   std::vector<keypoints_t> keypoints;
-//   int **point_ids;
-//   int nb_ids;
-//
-//   real_t **points;
-//   int nb_points;
-//
-//   ba_data_t(const std::string &data_path) {
-//     cam_K = load_camera(data_path);
-//     cam_poses = load_camera_poses(data_path);
-//     target_pose = load_target_pose(data_path)[0];
-//     nb_frames = cam_poses.size();
-//     keypoints = load_keypoints(data_path);
-//     point_ids = load_point_ids(data_path, &nb_ids);
-//     points = load_points(data_path, &nb_points);
-//   }
-//
-//   ~ba_data_t() {
-//     // Point IDs
-//     for (int i = 0; i < nb_frames; i++) {
-//       free(point_ids[i]);
-//     }
-//     free(point_ids);
-//
-//     // Points
-//     for (int i = 0; i < nb_points; i++) {
-//       free(points[i]);
-//     }
-//     free(points);
-//   }
-// };
-//
-// int test_graph_solve_ba() {
-//   ba_data_t data{TEST_BA_DATA};
-//
-//   // Create camera
-//   const int img_w = 640;
-//   const int img_h = 480;
-//   const real_t fx = data.cam_K(0, 0);
-//   const real_t fy = data.cam_K(1, 1);
-//   const real_t cx = data.cam_K(0, 2);
-//   const real_t cy = data.cam_K(1, 2);
-//   const vec4_t proj_params{fx, fy, cx, cy};
-//   const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
-//   const pinhole_radtan4_t cam0{img_w, img_h, proj_params, dist_params};
-//
-//   // Create graph
-//   bool prior_set = false;
-//   graph_t graph;
-//
-//   // -- Add landmarks
-//   for (int i = 0; i < data.nb_points; i++) {
-//     const vec3_t p{data.points[i]};
-//     graph_add_landmark(graph, p);
-//   }
-//
-//   // -- Add cam0 parameters
-//   int cam_id = 0;
-//   auto proj_dist_ids = graph_add_camera(graph, cam_id, cam0);
-//   size_t proj_id = proj_dist_ids.first;
-//   size_t dist_id = proj_dist_ids.second;
-//
-//   for (int k = 0; k < data.nb_frames; k++) {
-//     const timestamp_t ts = k * 1e9;
-//
-//     // -- Add cam0 pose
-//     const auto T_WC0 = data.cam_poses[k];
-//     const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0.tf());
-//     if (prior_set == false) {
-//       graph_add_pose_factor(graph, cam0_pose_id, T_WC0.tf());
-//       prior_set = true;
-//     }
-//
-//     // -- Add cam0 observations at timestep k
-//     int nb_points = data.point_ids[k][0];
-//     for (int i = 0; i < nb_points; i++) {
-//       const auto point_id = data.point_ids[k][i + 1];
-//       const auto z = data.keypoints[k][i];
-//       graph_add_ba_factor<pinhole_radtan4_t>(graph, ts, cam_id,
-//                                              cam0.img_w, cam0.img_h,
-//                                              cam0_pose_id, point_id,
-//                                              proj_id, dist_id, z);
-//     }
-//
-//     // if (k == 5) {
-//     //   break;
-//     // }
-//   }
-//
-//   vecx_t e;
-//   matx_t E;
-//   graph_eval(graph, e, E);
-//   std::cout << "cost: " << 0.5 * e.squaredNorm() << std::endl;
-//
-//   int max_iter = 10;
-//   real_t cost_prev = 0.0;
-//
-//   for (int iter = 0; iter < max_iter; iter++) {
-//     struct timespec t_start = tic();
-//     vecx_t e;
-//     matx_t E;
-//     graph_eval(graph, e, E);
-//
-//     // Solve Gauss-Newton system [H dx = g]: Solve for dx
-//     const real_t lambda = 0.001;  // LM damping term
-//     matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
-//     matx_t H_diag = (H.diagonal().asDiagonal());
-//     H = H + lambda * H_diag; // R. Fletcher trust region mod
-//     const vecx_t g = -E.transpose() * e;
-//     const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
-//     graph_update(graph, dx);
-//
-//     const real_t cost = 0.5 * e.transpose() * e;
-//     printf("- iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&t_start));
-//
-//     // Termination criteria
-//     real_t cost_diff = fabs(cost - cost_prev);
-//     if (cost_diff < 1.0e-3) {
-//       printf("Done!\n");
-//       break;
-//     }
-//     cost_prev = cost;
-//   }
-//
-// 	// tiny_solver_t solver;
-// 	// solver.max_iter = 2;
-// 	// solver.solve(graph);
-//
-//   return 0;
-// }
-//
-// int test_graph_solve() {
-//   vio_sim_data_t sim_data;
-//   sim_circle_trajectory(4.0, sim_data);
-//
-//   // Create camera
-//   const int img_w = 640;
-//   const int img_h = 480;
-//   const real_t lens_hfov = 90.0;
-//   const real_t lens_vfov = 90.0;
-//   const real_t fx = pinhole_focal(img_w, lens_hfov);
-//   const real_t fy = pinhole_focal(img_h, lens_vfov);
-//   const real_t cx = img_w / 2.0;
-//   const real_t cy = img_h / 2.0;
-//   const vec4_t proj_params{fx, fy, cx, cy};
-//   const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
-//   const pinhole_radtan4_t cam0{img_w, img_h, proj_params, dist_params};
-//
-//   // Create graph
-//   bool prior_set = false;
-//   graph_t graph;
-//
-//   // -- Add landmarks
-//   for (const auto &feature : sim_data.features) {
-//     const vec3_t noise{randf(-0.1, 0.1), randf(-0.1, 0.1), randf(-0.1, 0.1)};
-//     graph_add_landmark(graph, feature + noise);
-//   }
-//
-//   // -- Add cam0 parameters
-//   int cam_id = 0;
-//   auto proj_dist_ids = graph_add_camera(graph, cam_id, cam0);
-//   size_t proj_id = proj_dist_ids.first;
-//   size_t dist_id = proj_dist_ids.second;
-//
-//   // -- Add cam0 poses and ba factors
-//   size_t pose_idx = 0;
-// 	int cam_pose = 0;
-//   for (const auto &kv : sim_data.timeline) {
-//     const timestamp_t &ts = kv.first;
-//     const sim_event_t &event = kv.second;
-//
-//     // Handle camera event
-//     if (event.type == sim_event_type_t::CAMERA) {
-//       // Add cam0 pose
-//       const quat_t q_WC0 = sim_data.cam_rot[pose_idx];
-//       const vec3_t noise{randf(-0.05, 0.05), randf(-0.05, 0.05), randf(-0.05, 0.05)};
-//       const vec3_t r_WC0 = sim_data.cam_pos[pose_idx] + noise;
-//       const mat4_t T_WC0 = tf(q_WC0, r_WC0);
-//       const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
-//       pose_idx++;
-//
-//       if (prior_set == false) {
-//         graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
-//         prior_set = true;
-//       }
-//
-//       // Add cam0 observations at ts
-//       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
-//         const auto feature_id = event.frame.feature_ids[i];
-//         const auto z = event.frame.keypoints[i];
-//         graph_add_ba_factor<pinhole_radtan4_t>(graph, ts, event.sensor_id,
-//                                                cam0.img_w, cam0.img_h,
-//                                                cam0_pose_id, feature_id,
-//                                                proj_id, dist_id, z);
-//       }
-//
-// 			cam_pose++;
-// 			if (cam_pose == 20) {
-// 				break;
-// 			}
-//     }
-//   }
-//
-//   int max_iter = 10;
-//   real_t cost_prev = 0.0;
-//   struct timespec t_start = tic();
-//   for (int iter = 0; iter < max_iter; iter++) {
-//     struct timespec iter_start = tic();
-//     vecx_t e;
-//     matx_t E;
-//     graph_eval(graph, e, E);
-//
-//     // Solve Gauss-Newton system [H dx = g]: Solve for dx
-//     const real_t lambda = 0.001;  // LM damping term
-//     matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
-//     matx_t H_diag = (H.diagonal().asDiagonal());
-//     H = H + lambda * H_diag;      // R. Fletcher trust region mod
-//     const vecx_t g = -E.transpose() * e;
-//     const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
-//     graph_update(graph, dx);
-//
-//     const real_t cost = 0.5 * e.transpose() * e;
-//     printf("- iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&iter_start));
-//
-//     // Termination criteria
-//     real_t cost_diff = fabs(cost - cost_prev);
-//     if (cost_diff < 1.0e-2) {
-//       printf("Done!\n");
-//       break;
-//     }
-//     cost_prev = cost;
-//   }
-//   printf("total time: %fs\n", toc(&t_start));
-//
-//   const auto proj_param = graph.params[proj_id];
-//   const auto dist_param = graph.params[dist_id];
-//   print_vector("proj param", vec4_t{proj_param->data()});
-//   print_vector("dist param", vec4_t{dist_param->data()});
-//
-// 	// tiny_solver_t solver;
-// 	// solver.max_iter = 2;
-// 	// solver.solve(graph);
-//   // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/E.csv");
-//
-//   // Debug
-//   // const bool debug = true;
-//   const bool debug = false;
-//   if (debug) {
-//     OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
-//   }
-//
-//   return 0;
-// }
+void save_features(const std::string &path, const vec3s_t &features) {
+  FILE *csv = fopen(path.c_str(), "w");
+  for (const auto &f : features) {
+    fprintf(csv, "%f,%f,%f\n", f(0), f(1), f(2));
+  }
+  fflush(csv);
+  fclose(csv);
+}
+
+void save_poses(const std::string &path,
+                const timestamps_t &timestamps,
+                const vec3s_t &positions,
+                const quats_t &orientations) {
+  FILE *csv = fopen(path.c_str(), "w");
+  for (size_t i = 0; i < timestamps.size(); i++) {
+    const timestamp_t ts = timestamps[i];
+    const vec3_t pos = positions[i];
+    const quat_t rot = orientations[i];
+    fprintf(csv, "%ld,", ts);
+    fprintf(csv, "%f,%f,%f,", pos(0), pos(1), pos(2));
+    fprintf(csv, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
+  }
+  fflush(csv);
+  fclose(csv);
+}
+
+void save_imu_data(const std::string &imu_data_path,
+                   const std::string &imu_poses_path,
+                   const timestamps_t &imu_ts,
+                   const vec3s_t &imu_accel,
+                   const vec3s_t &imu_gyro,
+                   const vec3s_t &imu_pos,
+                   const quats_t &imu_rot) {
+  {
+    FILE *csv = fopen(imu_data_path.c_str(), "w");
+    for (size_t i = 0; i < imu_ts.size(); i++) {
+      const timestamp_t ts = imu_ts[i];
+      const vec3_t acc = imu_accel[i];
+      const vec3_t gyr = imu_gyro[i];
+      fprintf(csv, "%ld,", ts);
+      fprintf(csv, "%f,%f,%f,", acc(0), acc(1), acc(2));
+      fprintf(csv, "%f,%f,%f\n", gyr(0), gyr(1), gyr(2));
+    }
+    fflush(csv);
+    fclose(csv);
+  }
+
+  {
+    FILE *csv = fopen(imu_poses_path.c_str(), "w");
+    for (size_t i = 0; i < imu_ts.size(); i++) {
+      const timestamp_t ts = imu_ts[i];
+      const vec3_t pos = imu_pos[i];
+      const quat_t rot = imu_rot[i];
+      fprintf(csv, "%ld,", ts);
+      fprintf(csv, "%f,%f,%f,", pos(0), pos(1), pos(2));
+      fprintf(csv, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
+    }
+    fflush(csv);
+    fclose(csv);
+  }
+}
+
+int test_graph_eval() {
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+
+  // Create camera
+  const int resolution[2] = {640, 480};
+  const real_t lens_hfov = 90.0;
+  const real_t lens_vfov = 90.0;
+  const real_t fx = pinhole_focal(resolution[0], lens_hfov);
+  const real_t fy = pinhole_focal(resolution[1], lens_vfov);
+  const real_t cx = resolution[0] / 2.0;
+  const real_t cy = resolution[1] / 2.0;
+  const vec4_t proj_params{fx, fy, cx, cy};
+  const vec4_t dist_params{0.01, 0.001, 0.0001, 0.0001};
+  const pinhole_radtan4_t cam0{resolution, proj_params, dist_params};
+
+  // Create graph
+  graph_t graph;
+	bool prior_set = false;
+
+  // -- Add landmarks
+  for (const auto &feature : sim_data.features) {
+    graph_add_landmark(graph, feature);
+  }
+  // -- Add cam0 parameters
+  int cam_index = 0;
+  const auto cam_params_id = graph_add_camera(graph, cam_index, resolution,
+                                              proj_params, dist_params);
+  // -- Add cam0 poses and ba factors
+  size_t pose_idx = 0;
+	int cam_pose = 0;
+  for (const auto &kv : sim_data.timeline) {
+    const timestamp_t &ts = kv.first;
+    const sim_event_t &event = kv.second;
+
+    // Handle camera event
+    if (event.type == sim_event_type_t::CAMERA) {
+      // Add cam0 pose
+      const quat_t q_WC0 = sim_data.cam_rot[pose_idx];
+      const vec3_t r_WC0 = sim_data.cam_pos[pose_idx];
+      const mat4_t T_WC0 = tf(q_WC0, r_WC0);
+      const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
+      pose_idx++;
+
+      if (prior_set == false) {
+        graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        prior_set = true;
+      }
+
+      // Add cam0 observations at ts
+      for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
+        const auto feature_id = event.frame.feature_ids[i];
+        const auto z = event.frame.keypoints[i];
+        graph_add_ba_factor<pinhole_radtan4_t>(graph, ts,
+                                               cam0_pose_id,
+                                               feature_id,
+                                               cam_params_id,
+                                               z);
+      }
+      printf("nb features: %zu\n", event.frame.feature_ids.size());
+
+			cam_pose++;
+			if (cam_pose == 2) {
+				break;
+			}
+    }
+  }
+
+  // Evaluate graph
+	vecx_t r;
+	matx_t J;
+  graph_eval(graph, r, J);
+	mat2csv("/tmp/J.csv", J);
+	mat2csv("/tmp/r.csv", r);
+	OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
+	// OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/r.csv");
+
+  // Debug
+  // const bool debug = true;
+  const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
+  }
+
+  return 0;
+}
+
+static mat3_t load_camera(const std::string &data_path) {
+  // Setup csv path
+  char cam_csv[1000] = {0};
+  strcat(cam_csv, data_path.c_str());
+  strcat(cam_csv, "/camera.csv");
+
+  // Parse csv file
+  int nb_rows = 0;
+  int nb_cols = 0;
+  real_t **cam_K = csv_data(cam_csv, &nb_rows, &nb_cols);
+  if (cam_K == NULL) {
+    FATAL("Failed to load csv file [%s]!", cam_csv);
+  }
+  if (nb_rows != 3 || nb_cols != 3) {
+    LOG_ERROR("Error while parsing camera file [%s]!", cam_csv);
+    LOG_ERROR("-- Expected 3 rows got %d instead!", nb_rows);
+    LOG_ERROR("-- Expected 3 cols got %d instead!", nb_cols);
+    FATAL("Invalid camera file [%s]!", cam_csv);
+  }
+
+  // Flatten 2D array to 1D array
+  mat3_t K;
+  for (int i = 0; i < nb_rows; i++) {
+    for (int j = 0; j < nb_cols; j++) {
+      K(i, j) = cam_K[i][j];
+    }
+    free(cam_K[i]);
+  }
+  free(cam_K);
+
+  return K;
+}
+
+static poses_t load_camera_poses(const std::string &data_path) {
+  char cam_poses_csv[1000] = {0};
+  strcat(cam_poses_csv, data_path.c_str());
+  strcat(cam_poses_csv, "/camera_poses.csv");
+  return load_poses(cam_poses_csv);
+}
+
+static poses_t load_target_pose(const std::string &data_path) {
+  char target_pose_csv[1000] = {0};
+  strcat(target_pose_csv, data_path.c_str());
+  strcat(target_pose_csv, "/target_pose.csv");
+  return load_poses(target_pose_csv);
+}
+
+static real_t **load_points(const std::string &data_path, int *nb_points) {
+  char points_csv[1000] = {0};
+  strcat(points_csv, data_path.c_str());
+  strcat(points_csv, "/points.csv");
+
+  // Initialize memory for points
+  *nb_points = csv_rows(points_csv);
+  real_t **points = (real_t **) malloc(sizeof(real_t *) * *nb_points);
+  for (int i = 0; i < *nb_points; i++) {
+    points[i] = (real_t *) malloc(sizeof(real_t) * 3);
+  }
+
+  // Load file
+  FILE *infile = fopen(points_csv, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return NULL;
+  }
+
+  // Loop through data
+  char line[1024] = {0};
+  size_t len_max = 1024;
+  int point_idx = 0;
+  int col_idx = 0;
+
+  while (fgets(line, len_max, infile) != NULL) {
+    if (line[0] == '#') {
+      continue;
+    }
+
+    char entry[100] = {0};
+    for (size_t i = 0; i < strlen(line); i++) {
+      char c = line[i];
+      if (c == ' ') {
+        continue;
+      }
+
+      if (c == ',' || c == '\n') {
+        points[point_idx][col_idx] = strtod(entry, NULL);
+        memset(entry, '\0', sizeof(char) * 100);
+        col_idx++;
+      } else {
+        entry[strlen(entry)] = c;
+      }
+    }
+
+    col_idx = 0;
+    point_idx++;
+  }
+
+  // Cleanup
+  fclose(infile);
+
+  return points;
+}
+
+static int **load_point_ids(const std::string &data_path, int *nb_points) {
+  char csv_path[1000] = {0};
+  strcat(csv_path, data_path.c_str());
+  strcat(csv_path, "/point_ids.csv");
+  return load_iarrays(csv_path, nb_points);
+}
+
+struct ba_data_t {
+  mat3_t cam_K;
+
+  poses_t cam_poses;
+  pose_t target_pose;
+  int nb_frames;
+
+  std::vector<keypoints_t> keypoints;
+  int **point_ids;
+  int nb_ids;
+
+  real_t **points;
+  int nb_points;
+
+  ba_data_t(const std::string &data_path) {
+    cam_K = load_camera(data_path);
+    cam_poses = load_camera_poses(data_path);
+    target_pose = load_target_pose(data_path)[0];
+    nb_frames = cam_poses.size();
+    keypoints = load_keypoints(data_path);
+    point_ids = load_point_ids(data_path, &nb_ids);
+    points = load_points(data_path, &nb_points);
+  }
+
+  ~ba_data_t() {
+    // Point IDs
+    for (int i = 0; i < nb_frames; i++) {
+      free(point_ids[i]);
+    }
+    free(point_ids);
+
+    // Points
+    for (int i = 0; i < nb_points; i++) {
+      free(points[i]);
+    }
+    free(points);
+  }
+};
+
+int test_graph_solve_ba() {
+  ba_data_t data{TEST_BA_DATA};
+
+  // Create graph
+  bool prior_set = false;
+  graph_t graph;
+
+  // -- Add landmarks
+  for (int i = 0; i < data.nb_points; i++) {
+    const vec3_t p{data.points[i]};
+    graph_add_landmark(graph, p);
+  }
+
+  // -- Add cam0 parameters
+  const int cam_index = 0;
+  const int resolution[2] = {640, 480};
+  const real_t fx = data.cam_K(0, 0);
+  const real_t fy = data.cam_K(1, 1);
+  const real_t cx = data.cam_K(0, 2);
+  const real_t cy = data.cam_K(1, 2);
+  const vec4_t proj_params{fx, fy, cx, cy};
+  const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
+  auto cam_id = graph_add_camera(graph, cam_index, resolution, proj_params, dist_params);
+
+  for (int k = 0; k < data.nb_frames; k++) {
+    const timestamp_t ts = k * 1e9;
+
+    // -- Add cam0 pose
+    const auto T_WC0 = data.cam_poses[k];
+    const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0.tf());
+    if (prior_set == false) {
+      graph_add_pose_factor(graph, cam0_pose_id, T_WC0.tf());
+      prior_set = true;
+    }
+
+    // -- Add cam0 observations at timestep k
+    int nb_points = data.point_ids[k][0];
+    for (int i = 0; i < nb_points; i++) {
+      const auto point_id = data.point_ids[k][i + 1];
+      const auto z = data.keypoints[k][i];
+      graph_add_ba_factor<pinhole_radtan4_t>(graph, ts,
+                                             cam0_pose_id,
+                                             point_id,
+                                             cam_id,
+                                             z);
+    }
+  }
+
+  vecx_t e;
+  matx_t E;
+  graph_eval(graph, e, E);
+  std::cout << "cost: " << 0.5 * e.squaredNorm() << std::endl;
+
+  int max_iter = 10;
+  real_t cost_prev = 0.0;
+
+  for (int iter = 0; iter < max_iter; iter++) {
+    struct timespec t_start = tic();
+    vecx_t e;
+    matx_t E;
+    graph_eval(graph, e, E);
+
+    // Solve Gauss-Newton system [H dx = g]: Solve for dx
+    const real_t lambda = 0.001;  // LM damping term
+    matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
+    matx_t H_diag = (H.diagonal().asDiagonal());
+    H = H + lambda * H_diag; // R. Fletcher trust region mod
+    const vecx_t g = -E.transpose() * e;
+    const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
+    graph_update(graph, dx);
+
+    const real_t cost = 0.5 * e.transpose() * e;
+    printf("- iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&t_start));
+
+    // Termination criteria
+    real_t cost_diff = fabs(cost - cost_prev);
+    if (cost_diff < 1.0e-3) {
+      printf("Done!\n");
+      break;
+    }
+    cost_prev = cost;
+  }
+
+	// tiny_solver_t solver;
+	// solver.max_iter = 2;
+	// solver.solve(graph);
+
+  return 0;
+}
+
+int test_graph_solve() {
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+
+  // Create graph
+  bool prior_set = false;
+  graph_t graph;
+
+  // -- Add landmarks
+  for (const auto &feature : sim_data.features) {
+    const vec3_t noise{randf(-0.1, 0.1), randf(-0.1, 0.1), randf(-0.1, 0.1)};
+    graph_add_landmark(graph, feature + noise);
+  }
+
+  // -- Add cam0 parameters
+  int cam_index = 0;
+  const int resolution[2] = {640, 480};
+  const real_t lens_hfov = 90.0;
+  const real_t lens_vfov = 90.0;
+  const real_t fx = pinhole_focal(resolution[0], lens_hfov);
+  const real_t fy = pinhole_focal(resolution[1], lens_vfov);
+  const real_t cx = resolution[0] / 2.0;
+  const real_t cy = resolution[1] / 2.0;
+  const vec4_t proj_params{fx, fy, cx, cy};
+  const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
+  auto cam0_id = graph_add_camera(graph, cam_index, resolution, proj_params, dist_params);
+
+  // -- Add cam0 poses and ba factors
+  size_t pose_idx = 0;
+	int cam_pose = 0;
+  for (const auto &kv : sim_data.timeline) {
+    const timestamp_t &ts = kv.first;
+    const sim_event_t &event = kv.second;
+
+    // Handle camera event
+    if (event.type == sim_event_type_t::CAMERA) {
+      // Add cam0 pose
+      const quat_t q_WC0 = sim_data.cam_rot[pose_idx];
+      const vec3_t noise{randf(-0.05, 0.05), randf(-0.05, 0.05), randf(-0.05, 0.05)};
+      const vec3_t r_WC0 = sim_data.cam_pos[pose_idx] + noise;
+      const mat4_t T_WC0 = tf(q_WC0, r_WC0);
+      const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
+      pose_idx++;
+
+      if (prior_set == false) {
+        graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        prior_set = true;
+      }
+
+      // Add cam0 observations at ts
+      for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
+        const auto feature_id = event.frame.feature_ids[i];
+        const auto z = event.frame.keypoints[i];
+        graph_add_ba_factor<pinhole_radtan4_t>(graph, ts,
+                                               cam0_pose_id,
+                                               feature_id,
+                                               cam0_id, z);
+      }
+
+			cam_pose++;
+			if (cam_pose == 20) {
+				break;
+			}
+    }
+  }
+
+  int max_iter = 10;
+  real_t cost_prev = 0.0;
+  struct timespec t_start = tic();
+  for (int iter = 0; iter < max_iter; iter++) {
+    struct timespec iter_start = tic();
+    vecx_t e;
+    matx_t E;
+    graph_eval(graph, e, E);
+
+    // Solve Gauss-Newton system [H dx = g]: Solve for dx
+    const real_t lambda = 0.001;  // LM damping term
+    matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
+    matx_t H_diag = (H.diagonal().asDiagonal());
+    H = H + lambda * H_diag;      // R. Fletcher trust region mod
+    const vecx_t g = -E.transpose() * e;
+    const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
+    graph_update(graph, dx);
+
+    const real_t cost = 0.5 * e.transpose() * e;
+    printf("- iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&iter_start));
+
+    // Termination criteria
+    real_t cost_diff = fabs(cost - cost_prev);
+    if (cost_diff < 1.0e-2) {
+      printf("Done!\n");
+      break;
+    }
+    cost_prev = cost;
+  }
+  printf("total time: %fs\n", toc(&t_start));
+
+  camera_params_t *cam_params = (camera_params_t *) graph.params[cam0_id];
+  print_vector("proj param", cam_params->proj_params());
+  print_vector("dist param", cam_params->dist_params());
+
+	// tiny_solver_t solver;
+	// solver.max_iter = 2;
+	// solver.solve(graph);
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/E.csv");
+
+  // Debug
+  // const bool debug = true;
+  const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
+  }
+
+  return 0;
+}
 
 void test_suite() {
   MU_ADD_TEST(test_pose);
@@ -1149,9 +1133,9 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_ba_factor);
   MU_ADD_TEST(test_graph_add_cam_factor);
   MU_ADD_TEST(test_graph_add_imu_factor);
-  // MU_ADD_TEST(test_graph_eval);
-  // MU_ADD_TEST(test_graph_solve_ba);
-  // MU_ADD_TEST(test_graph_solve);
+  MU_ADD_TEST(test_graph_eval);
+  MU_ADD_TEST(test_graph_solve_ba);
+  MU_ADD_TEST(test_graph_solve);
 }
 
 } // namespace proto
