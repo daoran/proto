@@ -29,13 +29,6 @@ time make release
 # sudo make debug_install
 # exit
 
-# source ~/.bashrc
-# cd ~/catkin_ws/ && source devel/setup.bash
-# roslaunch proto_ros sim_calib.launch
-# roslaunch proto_ros calib_camera.launch
-# roslaunch proto_ros calib_stereo.launch
-# exit
-
 # roslaunch proto_ros calib_vicon_capture.launch
 # mv /data/vicon_capture.bag /data/vicon-train.bag
 # roslaunch proto_ros calib_vicon_capture.launch
@@ -47,20 +40,6 @@ time make release
 
 # cd scripts/api/
 # python3 api.py
-
-# APPS
-# cd build/apps
-# ./scripts/octave/calib_data_summary
-# ./calib_camera config/calib_camera.yaml
-# ./calib_stereo config/calib_stereo.yaml
-# ./calib_vicon_marker config/calib_vicon_marker.yaml
-# ./detect_aprilgrid config/detect_aprilgrid.yaml
-# ./validate_intrinsics config/validate_intrinsics.yaml
-# ./validate_stereo config/validate_stereo.yaml
-# exit
-
-# cd build
-# ./play
 
 # TESTS
 cd proto/build/tests
@@ -103,7 +82,7 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_update
 # ./estimation-test_ba --target test_ba_cost
 # ./estimation-test_ba --target test_ba_solve
-# ./estimation-test_factor
+./estimation-test_factor
 # ./estimation-test_factor --target test_pose_factor_jacobians
 # ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians
@@ -118,7 +97,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_add_ba_factor
 # ./estimation-test_factor --target test_graph_add_cam_factor
 # ./estimation-test_factor --target test_graph_add_imu_factor
-./estimation-test_factor --target test_graph_eval
+# ./estimation-test_factor --target test_graph_eval
 # ./estimation-test_factor --target test_graph_solve_ba
 # ./estimation-test_factor --target test_graph_solve
 # ./estimation-test_measurement

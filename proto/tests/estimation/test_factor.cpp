@@ -452,14 +452,20 @@ int test_graph_add_pose_factor() {
 
   timestamp_t ts = 0;
   mat4_t T_WS = I(4);
-  const size_t pose_id = graph_add_pose(graph, ts, T_WS);
+  auto pose_id = graph_add_pose(graph, ts, T_WS);
   graph_add_pose_factor(graph, pose_id, T_WS);
+
 
   MU_CHECK(graph.params.size() == 1);
   MU_CHECK(graph.params[0] != nullptr);
 
   MU_CHECK(graph.factors.size() == 1);
   MU_CHECK(graph.factors[0] != nullptr);
+
+	auto pose_param = graph.factors[0]->params[0];
+	MU_CHECK(graph.param_factor.size() == 1);
+	MU_CHECK(graph.param_factor[pose_param].size() == 1);
+	MU_CHECK(graph.param_factor[pose_param][0] == graph.factors[0]);
 
   return 0;
 }
@@ -507,6 +513,12 @@ int test_graph_add_ba_factor() {
   MU_CHECK(graph.params[2] != nullptr);
 
   MU_CHECK(graph.factors.size() == 1);
+
+	MU_CHECK(graph.param_factor.size() == 3);
+	for (const auto &param : graph.factors[0]->params) {
+		MU_CHECK(graph.param_factor[param].size() == 1);
+		MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
+	}
 
   return 0;
 }
@@ -562,6 +574,12 @@ int test_graph_add_cam_factor() {
 
   MU_CHECK(graph.factors.size() == 1);
 
+	MU_CHECK(graph.param_factor.size() == 4);
+	for (const auto &param : graph.factors[0]->params) {
+		MU_CHECK(graph.param_factor[param].size() == 1);
+		MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
+	}
+
   return 0;
 }
 
@@ -606,6 +624,12 @@ int test_graph_add_imu_factor() {
   // Asserts
   MU_CHECK(graph.params.size() == 4);
   MU_CHECK(graph.factors.size() == 1);
+
+	MU_CHECK(graph.param_factor.size() == 4);
+	for (const auto &param : graph.factors[0]->params) {
+		MU_CHECK(graph.param_factor[param].size() == 1);
+		MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
+	}
 
   return 0;
 }
@@ -747,7 +771,7 @@ int test_graph_eval() {
   graph_eval(graph, r, J);
   mat2csv("/tmp/J.csv", J);
   // mat2csv("/tmp/r.csv", r);
-  OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
   // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/r.csv");
 
   // Debug

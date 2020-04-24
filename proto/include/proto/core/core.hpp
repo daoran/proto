@@ -1254,6 +1254,14 @@ void load_matrix(const std::vector<real_t> &x,
  */
 void load_matrix(const matx_t A, std::vector<real_t> &x);
 
+/**
+ * Perform Schur's Complement
+ */
+void schurs_complement(const matx_t &H, const vecx_t &b,
+											 const size_t m, const size_t r,
+								  		 matx_t &H_marg, vecx_t &b_marg,
+											 const bool precond=false, const bool debug=false);
+
 /******************************************************************************
  *                                 Geometry
  *****************************************************************************/
@@ -3334,8 +3342,8 @@ struct pinhole_t : projection_t<DM> {
     const vec2_t p_dist = this->distortion.distort(p);
 
     matx_t J = zeros(2, params_size);
-    J.block(0, 0, 2, proj_params_size) = -1 * J_proj(p_dist);
-    J.block(0, dist_params_size, 2, proj_params_size) = -1 * J_dist(p);
+    J.block(0, 0, 2, proj_params_size) = J_proj(p_dist);
+    J.block(0, dist_params_size, 2, proj_params_size) = J_dist(p);
     return J;
   }
 };

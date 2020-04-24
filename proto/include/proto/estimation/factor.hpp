@@ -353,7 +353,6 @@ struct ba_factor_t : factor_t {
     // Calculate Jacobians
     if (jacs) {
       const vec2_t p{p_C(0) / p_C(2), p_C(1) / p_C(2)};
-      const vec2_t p_dist = cm.distortion.distort(p);
       const mat3_t C_WC = tf_rot(T_WC);
       const mat3_t C_CW = C_WC.transpose();
       const vec3_t r_WC = tf_trans(T_WC);
@@ -364,10 +363,7 @@ struct ba_factor_t : factor_t {
       // -- Jacobian w.r.t. landmark
       jacobians[1] = -1 * J_h * C_CW;
       // -- Jacobian w.r.t. camera parameters
-      const auto proj_size = cm.proj_params_size;
-      const auto dist_size = cm.dist_params_size;
-      jacobians[2].block(0, 0, 2, proj_size) = -1 * cm.J_proj(p_dist);
-      jacobians[2].block(0, dist_size, 2, proj_size) = -1 * cm.J_dist(p);
+      jacobians[2] = -1 * cm.J_params(p);
     }
 
     return 0;
@@ -445,7 +441,6 @@ struct cam_factor_t : factor_t {
       const mat3_t C_CW = C_CS * C_SW;
       const vec3_t r_WS = tf_trans(T_WS);
       const vec2_t p{p_C(0) / p_C(2), p_C(1) / p_C(2)};
-      const vec2_t p_dist = cm.distortion.distort(p);
 
       // -- Jacobian w.r.t. sensor pose T_WS
       jacobians[0].block(0, 0, 2, 3) = -1 * J_h * C_CS * C_SW * skew(p_W - r_WS);
@@ -456,10 +451,7 @@ struct cam_factor_t : factor_t {
       // -- Jacobian w.r.t. landmark
       jacobians[2] = -1 * J_h * C_CW;
       // -- Jacobian w.r.t. camera model
-      const auto proj_size = cm.proj_params_size;
-      const auto dist_size = cm.dist_params_size;
-      jacobians[3].block(0, 0, 2, proj_size) = -1 * cm.J_proj(p_dist);
-      jacobians[3].block(0, dist_size, 2, proj_size) = -1 * cm.J_dist(p);
+      jacobians[3] = -1 * cm.J_params(p);
     }
 
     return 0;
@@ -662,16 +654,117 @@ struct imu_factor_t : factor_t {
 };
 
 /*****************************************************************************
+ *                         MARGINALIZATION FACTOR
+ ****************************************************************************/
+
+struct marg_factor_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+	std::unordered_set<factor_t *> factors;
+	std::unordered_set<param_t *> params_tracker;
+	std::unordered_set<param_t *> marg_params;
+	std::unordered_set<param_t *> remain_params;
+
+  marg_factor_t() {}
+
+	void add(const factor_t *factor,
+					 const std::vector<int> marg_indicies) {
+		// Loop through parameters
+		for (size_t i = 0; i < factor->params.size(); i++) {
+			const auto &param = factor->params[i];
+
+			// Determine if we have seen the parameter before
+			if (params_tracker.count(param) != 0) {
+				params_tracker.insert(param);
+
+				// Keep track of:
+				// - Pointers to parameter blocks for marginalization.
+				// - Pointers to parameter blocks to remain.
+				const auto it = std::find(marg_indicies.begin(), marg_indicies.end(), i);
+				if (it != marg_indicies.end()) {
+					marg_params.insert(param);
+				} else {
+					remain_params.insert(param);
+				}
+			}
+		}
+	}
+
+  int eval(bool jacs=true) {
+	// void setup(matx_t &H, vecx_t &b, bool debug=false) {
+		size_t m = 0;
+		size_t r = 0;
+		std::unordered_map<param_t *, size_t> param_index;
+
+		// Determine parameter block column indicies for matrix H
+		size_t index = 0; // Column index of matrix H
+		// -- Column indices for parameter blocks to be marginalized
+		for (const auto &param : marg_params) {
+			param_index.insert({param, index});
+			index += param->local_size;
+			m += param->local_size;
+		}
+		// -- Column indices for parameter blocks to remain
+		for (const auto &param : remain_params) {
+			param_index.insert({param, index});
+			index += param->local_size;
+			r += param->local_size;
+		}
+
+		// // Form the H and b. Left and RHS of Gauss-Newton.
+		// const auto params_size = m + r;
+		// H = zeros(params_size, params_size);
+		// b = zeros(params_size, 1);
+		// if (debug) {
+		// 	printf("m: %zu\n", m);
+		// 	printf("r: %zu\n", r);
+		// 	printf("H shape: %zu x %zu\n", H.rows(), H.cols());
+		// 	printf("b shape: %zu x %zu\n", b.rows(), b.cols());
+		// }
+    //
+		// for (const auto &factor : factors) {
+		// 	for (size_t i = 0; i < factor->params.size(); i++) {
+		// 		const auto &param_i = factor->params[i];
+		// 		const int idx_i = param_index[param_i];
+		// 		const int size_i = param_i->local_size;
+		// 		const matx_t J_i = factor->jacobians[i];
+    //
+		// 		for (size_t j = i; j < factor->params.size(); j++) {
+		// 			const auto &param_j = factor->params[j];
+		// 			const int idx_j = param_index[param_j];
+		// 			const int size_j = param_j->local_size;
+		// 			const matx_t J_j = factor->jacobians[j];
+    //
+		// 			if (i == j) {  // Form diagonals of H
+		// 				H.block(idx_i, idx_i, size_i, size_i) += J_i.transpose() * J_i;
+		// 			} else {  // Form off-diagonals of H
+		// 				H.block(idx_i, idx_j, size_i, size_j) += J_i.transpose() * J_j;
+		// 				H.block(idx_j, idx_i, size_j, size_i) =
+		// 					H.block(idx_i, idx_j, size_i, size_j).transpose();
+		// 			}
+		// 		}
+    //
+		// 		// RHS of Gauss Newton (i.e. vector b)
+		// 		b.segment(idx_i, size_i) += -J_i.transpose() * factor->residuals;
+		// 	}
+		// }
+
+    return 0;
+  }
+};
+
+
+/*****************************************************************************
  *                              FACTOR GRAPH
  ****************************************************************************/
 
 struct graph_t {
+  std::deque<factor_t *> factors;
   std::unordered_map<size_t, param_t *> params;
   std::unordered_map<param_t *, size_t> param_index;
+	std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
   std::vector<std::string> param_order{"pose_t",
                                        "camera_params_t",
                                        "landmark_t"};
-  std::deque<factor_t *> factors;
 
   graph_t() {}
 
@@ -740,6 +833,7 @@ size_t graph_add_pose_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors.push_back(factor);
+	graph.param_factor[params[0]].push_back(factor);
 
   return f_id;
 }
@@ -764,6 +858,9 @@ size_t graph_add_ba_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors.push_back(factor);
+	graph.param_factor[params[0]].push_back(factor);
+	graph.param_factor[params[1]].push_back(factor);
+	graph.param_factor[params[2]].push_back(factor);
 
   return f_id;
 }
@@ -789,6 +886,10 @@ size_t graph_add_cam_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors.push_back(factor);
+	graph.param_factor[params[0]].push_back(factor);
+	graph.param_factor[params[1]].push_back(factor);
+	graph.param_factor[params[2]].push_back(factor);
+	graph.param_factor[params[3]].push_back(factor);
 
   return f_id;
 }
@@ -815,25 +916,12 @@ size_t graph_add_imu_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors.push_back(factor);
+	graph.param_factor[params[0]].push_back(factor);
+	graph.param_factor[params[1]].push_back(factor);
+	graph.param_factor[params[2]].push_back(factor);
+	graph.param_factor[params[3]].push_back(factor);
 
   return f_id;
-}
-
-void graph_residuals(graph_t &graph, vecx_t &r) {
-  std::vector<real_t> residuals;
-  for (const auto &factor : graph.factors) {
-    if (factor->eval(false) != false) {
-      for (long i = 0; i < factor->residuals.size(); i++) {
-        residuals.push_back(factor->residuals(i));
-      }
-    }
-  }
-
-  // Convert std::vector<real_t> to vecx_t
-  r.resize(residuals.size());
-  for (long i = 0; i < r.size(); i++) {
-    r(i) = residuals[i];
-  }
 }
 
 void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {

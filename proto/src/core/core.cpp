@@ -1498,6 +1498,67 @@ void load_matrix(const matx_t &A, std::vector<real_t> &x) {
   }
 }
 
+void schurs_complement(const matx_t &H, const vecx_t &b,
+											 const size_t m, const size_t r,
+								  		 matx_t &H_marg, vecx_t &b_marg,
+											 const bool precond, const bool debug) {
+	assert(m > 0 && r > 0);
+
+	// Setup
+	const long local_size = m + r;
+	H_marg = zeros(local_size, local_size);
+	b_marg = zeros(local_size, 1);
+
+	// Precondition Hmm
+	matx_t Hmm = H.block(0, 0, m, m);
+	if (precond) {
+		Hmm = 0.5 * (Hmm + Hmm.transpose());
+	}
+
+	// Pseudo inverse of Hmm via Eigen-decomposition:
+	//
+	//   A_pinv = V * Lambda_pinv * V_transpose
+	//
+	// Where Lambda_pinv is formed by **replacing every non-zero diagonal entry
+	// by its reciprocal, leaving the zeros in place, and transposing the
+	// resulting matrix.**
+	//
+	// clang-format off
+	const double eps = 1.0e-8;
+	const Eigen::SelfAdjointEigenSolver<matx_t> eig(Hmm);
+	const matx_t V = eig.eigenvectors();
+	const auto eigvals = eig.eigenvalues().array();
+	const auto eigvals_inv = (eigvals > eps).select(eigvals.inverse(), 0);
+	const matx_t Lambda_inv = vecx_t(eigvals_inv).asDiagonal();
+	const matx_t Hmm_inv = V * Lambda_inv * V.transpose();
+	// clang-format on
+
+	// Calculate Schur's complement
+	const matx_t Hmr = H.block(0, m, m, r);
+	const matx_t Hrm = H.block(m, 0, r, m);
+	const matx_t Hrr = H.block(m, m, r, r);
+	const vecx_t bmm = b.segment(0, m);
+	const vecx_t brr = b.segment(m, r);
+	H_marg = Hrr - Hrm * Hmm_inv * Hmr;
+	b_marg = brr - Hrm * Hmm_inv * bmm;
+	const double inv_check = ((Hmm * Hmm_inv) - I(m, m)).sum();
+	if (fabs(inv_check) > 1e-4) {
+		LOG_ERROR("FAILED!: Inverse identity check: %f", inv_check);
+	}
+
+	if (debug) {
+		mat2csv("/tmp/H.csv", H);
+		mat2csv("/tmp/Hmm.csv", Hmm);
+		mat2csv("/tmp/Hmr.csv", Hmr);
+		mat2csv("/tmp/Hrm.csv", Hrm);
+		mat2csv("/tmp/Hrr.csv", Hrr);
+		mat2csv("/tmp/bmm.csv", bmm);
+		mat2csv("/tmp/brr.csv", brr);
+		mat2csv("/tmp/H_marg.csv", H_marg);
+		mat2csv("/tmp/b_marg.csv", b_marg);
+	}
+}
+
 /******************************************************************************
  *                                GEOMETRY
  *****************************************************************************/
