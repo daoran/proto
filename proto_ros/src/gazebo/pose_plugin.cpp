@@ -10,8 +10,8 @@
 #include <geometry_msgs/PoseStamped.h>
 
 #include <proto/proto.hpp>
-#include "proto/ros/ros.hpp"
-#include "proto/ros/gazebo.hpp"
+#include "ros/ros.hpp"
+#include "gazebo/gazebo.hpp"
 
 namespace gazebo {
 

@@ -18,7 +18,7 @@ FIND_PACKAGE(
     image_transport
     cv_bridge
 )
-INCLUDE_DIRECTORIES(include)
+INCLUDE_DIRECTORIES(src)
 INCLUDE_DIRECTORIES(${catkin_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${GAZEBO_INCLUDE_DIRS})
 INCLUDE(cmake/ImportProto.cmake)
@@ -34,14 +34,6 @@ SET(
   ${PROTO_LIBRARIES}
 )
 
-# ROS MESSAGE
-ADD_MESSAGE_FILES(
-  DIRECTORY msgs
-  FILES
-  UBloxRover.msg
-)
-GENERATE_MESSAGES(DEPENDENCIES std_msgs)
-
 # CATKING PACKAGE
 CATKIN_PACKAGE(
   CATKIN_DEPENDS
@@ -55,36 +47,31 @@ CATKIN_PACKAGE(
     message_runtime
     image_transport
     cv_bridge
-  INCLUDE_DIRS
-    include
   LIBRARIES
     proto_ros
 )
 
 # PROTO ROS LIB
-ADD_LIBRARY(
-  proto_ros
-  src/ros/ros.cpp
-)
+ADD_LIBRARY(proto_ros src/ros/ros.cpp)
 INSTALL(
   DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
 
 # GAZEBO
-ADD_LIBRARY(proto_camera_plugin SHARED src/ros/gazebo/camera_plugin.cpp)
+ADD_LIBRARY(proto_camera_plugin SHARED src/gazebo/camera_plugin.cpp)
 TARGET_LINK_LIBRARIES(proto_camera_plugin ${DEPS})
 
-ADD_LIBRARY(proto_gimbal_plugin SHARED src/ros/gazebo/gimbal_plugin.cpp)
+ADD_LIBRARY(proto_gimbal_plugin SHARED src/gazebo/gimbal_plugin.cpp)
 TARGET_LINK_LIBRARIES(proto_gimbal_plugin ${DEPS})
 
-ADD_LIBRARY(proto_landing_target_plugin SHARED src/ros/gazebo/landing_target_plugin.cpp)
+ADD_LIBRARY(proto_landing_target_plugin SHARED src/gazebo/landing_target_plugin.cpp)
 TARGET_LINK_LIBRARIES(proto_landing_target_plugin ${DEPS})
 
-ADD_LIBRARY(proto_mav_plugin SHARED src/ros/gazebo/mav_plugin.cpp)
+ADD_LIBRARY(proto_mav_plugin SHARED src/gazebo/mav_plugin.cpp)
 TARGET_LINK_LIBRARIES(proto_mav_plugin ${DEPS})
 
-ADD_LIBRARY(proto_pose_plugin SHARED src/ros/gazebo/pose_plugin.cpp)
+ADD_LIBRARY(proto_pose_plugin SHARED src/gazebo/pose_plugin.cpp)
 TARGET_LINK_LIBRARIES(proto_pose_plugin ${DEPS})
 
 # ROS NODES
@@ -96,4 +83,3 @@ TARGET_LINK_LIBRARIES(example_node ${DEPS})
 
 # ADD_EXECUTABLE(lz_detector_node src/ros/nodes/lz_detector_node.cpp)
 # TARGET_LINK_LIBRARIES(lz_detector_node ${DEPS})
-

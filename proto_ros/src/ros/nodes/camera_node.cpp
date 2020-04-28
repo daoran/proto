@@ -2,7 +2,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "proto/ros/ros.hpp"
+#include "ros/ros.hpp"
 
 namespace proto {
 

@@ -1,4 +1,4 @@
-#include "proto/ros/ros.hpp"
+#include "ros/ros.hpp"
 
 namespace proto {
 

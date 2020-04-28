@@ -17,7 +17,6 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
 INCLUDE(cmake/ImportEigen3.cmake)
 FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
-# FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
 
 # OPENMP
@@ -30,15 +29,7 @@ endif()
 # INCLUDES
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
-
-SET(
-  ${PROJECT_NAME}_DEPS
-  ${OpenCV_LIBS}
-  ${SUITESPARSE_LIBRARIES}
-  ${CERES_LIBRARIES}
-  yaml-cpp
-  # ${GeographicLib_LIBRARIES}
-)
+SET(${PROJECT_NAME}_DEPS ${OpenCV_LIBS} yaml-cpp)
 
 # LIBRARY
 ADD_LIBRARY(
@@ -48,14 +39,13 @@ ADD_LIBRARY(
   src/core/stb.cpp
   # dataset
   # src/dataset/euroc.cpp
-  # src/dataset/kitti.cpp
+  src/dataset/kitti.cpp
   # src/dataset/timeline.cpp
   # estimation
-  # src/estimation/ba.cpp
+  # src/estimation/dense.cpp
   src/estimation/factor.cpp
   # src/estimation/filter.cpp
   # src/estimation/frontend.cpp
-  # src/estimation/dense.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
@@ -79,7 +69,6 @@ SET(
   core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
-  # estimation-test_ba
   # estimation-test_dense
   estimation-test_factor
   # estimation-test_frontend

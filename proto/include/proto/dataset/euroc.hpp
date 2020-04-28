@@ -6,12 +6,13 @@
 #include <inttypes.h>
 
 #include "proto/core/core.hpp"
-#include "proto/calib/aprilgrid.hpp"
-#include "proto/calib/calib_data.hpp"
 #include "proto/dataset/timeline.hpp"
 
 namespace proto {
 
+/**
+ * EuRoC IMU data
+ */
 struct euroc_imu_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   bool ok = false;
@@ -37,6 +38,14 @@ struct euroc_imu_t {
   ~euroc_imu_t();
 };
 
+/**
+ * EuRoC IMU data to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const euroc_imu_t &data);
+
+/**
+ * EuRoC camera data
+ */
 struct euroc_camera_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   bool ok = false;
@@ -62,6 +71,14 @@ struct euroc_camera_t {
   ~euroc_camera_t();
 };
 
+/**
+ * EuRoC camera to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const euroc_camera_t &data);
+
+/**
+ * EuRoC ground truth
+ */
 struct euroc_ground_truth_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   bool ok = false;
@@ -80,6 +97,9 @@ struct euroc_ground_truth_t {
   ~euroc_ground_truth_t();
 };
 
+/**
+ * EuRoC data
+ */
 struct euroc_data_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -108,6 +128,9 @@ struct euroc_data_t {
   ~euroc_data_t();
 };
 
+/**
+ * EuRoC calibration target
+ */
 struct euroc_target_t {
   bool ok = false;
   std::string file_path;
@@ -123,6 +146,14 @@ struct euroc_target_t {
   ~euroc_target_t();
 };
 
+/**
+ * EuRoC target to output stream
+ */
+std::ostream &operator<<(std::ostream &os, const euroc_target_t &target);
+
+/**
+ * EuRoC calibration data
+ */
 struct euroc_calib_t {
   bool ok = false;
 
@@ -218,50 +249,34 @@ int euroc_target_load(euroc_target_t &target, const std::string &target_file);
  */
 int euroc_calib_load(euroc_calib_t &data, const std::string &data_path);
 
-/**
- * Process EuRoC calibration data and detect the AprilGrid detected from both
- * cameras. The detected AprilGrids will be outputted as files into the
- * `preprocess_path`, and as `aprilgrids_t` in `cam0_grids` and `cam1_grids`.
- */
-int process_stereo_images(const euroc_calib_t &calib_data,
-                          const std::string &preprocess_path,
-                          const mat3_t &cam0_K,
-                          const vec4_t &cam0_D,
-                          const mat3_t &cam1_K,
-                          const vec4_t &cam1_D,
-                          aprilgrids_t &cam0_grids,
-                          aprilgrids_t &cam1_grids);
-
-/**
- * Create timeline from EuRoC calibration data `calib_data`. The timeline data
- * will put the detected aprilgrids from cam0 and cam1 inplace of the cam0 and
- * cam1 image paths. Using the aprilgrid data and initial sensor-camera
- * extrinsics `T_SC0`, the initial sensor poses in world frame `T_WS`, fiducial
- * pose in world frame `T_WF` and finally first timestamp `t0` will be
- * calculated.
- */
-timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
-                                        const aprilgrids_t &cam0_grids,
-                                        const aprilgrids_t &cam1_grids,
-                                        const mat4_t &T_SC0,
-                                        mat4s_t &T_WS,
-                                        mat4_t &T_WF,
-                                        timestamp_t &t0);
-
-/**
- * `euroc_imu_t` to output stream
- */
-std::ostream &operator<<(std::ostream &os, const euroc_imu_t &data);
-
-/**
- * `euroc_camera_t` to output stream
- */
-std::ostream &operator<<(std::ostream &os, const euroc_camera_t &data);
-
-/**
- * `calib_target_t` to output stream
- */
-std::ostream &operator<<(std::ostream &os, const euroc_target_t &target);
-
+// /**
+//  * Process EuRoC calibration data and detect the AprilGrid detected from both
+//  * cameras. The detected AprilGrids will be outputted as files into the
+//  * `preprocess_path`, and as `aprilgrids_t` in `cam0_grids` and `cam1_grids`.
+//  */
+// int process_stereo_images(const euroc_calib_t &calib_data,
+//                           const std::string &preprocess_path,
+//                           const mat3_t &cam0_K,
+//                           const vec4_t &cam0_D,
+//                           const mat3_t &cam1_K,
+//                           const vec4_t &cam1_D,
+//                           aprilgrids_t &cam0_grids,
+//                           aprilgrids_t &cam1_grids);
+//
+// /**
+//  * Create timeline from EuRoC calibration data `calib_data`. The timeline data
+//  * will put the detected aprilgrids from cam0 and cam1 inplace of the cam0 and
+//  * cam1 image paths. Using the aprilgrid data and initial sensor-camera
+//  * extrinsics `T_SC0`, the initial sensor poses in world frame `T_WS`, fiducial
+//  * pose in world frame `T_WF` and finally first timestamp `t0` will be
+//  * calculated.
+//  */
+// timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
+//                                         const aprilgrids_t &cam0_grids,
+//                                         const aprilgrids_t &cam1_grids,
+//                                         const mat4_t &T_SC0,
+//                                         mat4s_t &T_WS,
+//                                         mat4_t &T_WF,
+//                                         timestamp_t &t0);
 } // namespace proto
 #endif /* PROTO_DATASET_EUROC_HPP */

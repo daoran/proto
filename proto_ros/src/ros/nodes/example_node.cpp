@@ -1,4 +1,4 @@
-#include "proto/ros/ros.hpp"
+#include "ros/ros.hpp"
 
 // NODE SETTINGS
 static const double NODE_RATE = 1.0;
