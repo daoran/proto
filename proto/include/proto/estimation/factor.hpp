@@ -1040,106 +1040,88 @@ void graph_update(graph_t &graph, const vecx_t &dx) {
 
 struct tiny_solver_t {
   // Optimization parameters
+	bool verbose = false;
   int max_iter = 10;
+	real_t lambda = 1e-4;
+  real_t cost_change_threshold = 1e-1;
+  real_t time_limit = 0.01;
 
-  int iter = 0;
+	// Optimization data
+	int iter = 0;
   real_t cost = 0.0;
-  vecx_t jacobi_scaling;
-  vecx_t lm_diagonal;
   vecx_t e;
   matx_t E;
-  matx_t H;
+	matx_t H;
+	matx_t H_diag;
+	vecx_t g;
+	vecx_t dx;
+	real_t solve_time = 0.0;
 
   tiny_solver_t() {}
 
-  void eval(graph_t &graph) {
-    graph_eval(graph, e, E);
-    H = E.transpose() * E;
-
-    if (iter == 0) {
-      jacobi_scaling = 1.0 / (1.0 + E.colwise().norm().array());
-      lm_diagonal.resize(H.rows());
-    }
-    cost = e.squaredNorm() / 2.0;
-    printf("iter[%d]  ", iter);
-    printf("cost[%.4e]\n", cost);
-  }
-
   int solve(graph_t &graph)  {
-    real_t initial_trust_region_radius = 1e4;
-    real_t u = 1.0 / initial_trust_region_radius;
-    real_t v = 2.0;
-    eval(graph);
+    struct timespec solve_tic = tic();
 
-    struct timespec t_start = tic();
+		// Calculate initial cost
+    graph_eval(graph, e, E);
+    cost = 0.5 * e.transpose() * e;
+
+    // Solve
+		real_t lambda_k = lambda;
     for (iter = 0; iter < max_iter; iter++) {
-      // Precondition H
-      const real_t min_diagonal = 1e-6;
-      const real_t max_diagonal = 1e32;
-      matx_t H_regularized = H;
-      for (int i = 0; i < H.rows(); ++i) {
-        lm_diagonal[i] = std::sqrt(u * std::min(std::max(H(i, i), min_diagonal), max_diagonal));
-        H_regularized(i, i) += lm_diagonal[i] * lm_diagonal[i];
-      }
-      // printf("cond(H): %f\n", cond(H_regularized));
-
-      // Update
-      const vecx_t g = -E.transpose() * e;
-      const vecx_t lm_step = H_regularized.ldlt().solve(g);
-      const vecx_t dx = jacobi_scaling.asDiagonal() * lm_step;
+			// Solve Gauss-Newton system [H dx = g]: Solve for dx
+			H = E.transpose() * E;
+			H_diag = (H.diagonal().asDiagonal());
+			H = H + lambda_k * H_diag;
+			g = -E.transpose() * e;
+			dx = H.ldlt().solve(g);
       graph_update(graph, dx);
 
-      // Evaluate
-      vecx_t e_k;
-      matx_t E_k;
-      graph_eval(graph, e_k, E_k);
-      const real_t cost_change = (2 * cost - e_k.squaredNorm());
-      const real_t model_cost_change = lm_step.dot(2 * g - H * lm_step);
+      // Evaluate cost after update
+      graph_eval(graph, e, E);
+      const real_t cost_k = 0.5 * e.transpose() * e;
+			const real_t cost_delta = cost_k - cost;
+			const real_t solve_time = toc(&solve_tic);
+			const real_t iter_time = (iter == 0) ? 0 : (solve_time / iter);
+			if (verbose) {
+				printf("iter[%d] ", iter);
+				printf("cost[%.2e] ", cost);
+				printf("cost_k[%.2e] ", cost_k);
+				printf("cost_delta[%.2e] ", cost_delta);
+				printf("lambda[%.2e] ", lambda_k);
+				printf("iter_time[%.4f] ", iter_time);
+				printf("solve_time[%.4f]\n", solve_time);
+			}
 
-      // printf("iter[%d]  ", iter);
-      // printf("cost[%.4e]  ", e_k.squaredNorm() / 2.0);
-      // printf("iter time: %fs\n", toc(&t_start));
+			// Determine whether to accept update
+      if (cost_k < cost) {
+				// Accept update
+				lambda_k /= 10.0;
+				cost = cost_k;
+      } else {
+				// Reject update
+				lambda_k *= 10.0;
+				graph_update(graph, -dx);
+			}
 
-      real_t rho(cost_change / model_cost_change);
-      if (rho > 0) {
-        // Accept the Levenberg-Marquardt step because the linear
-        // model fits well.
-        // x = x_new_;
-
-        eval(graph);
-        // if (summary.gradient_max_norm < options.gradient_tolerance) {
-        //   summary.status = GRADIENT_TOO_SMALL;
-        //   break;
-        // }
-
-        // if (cost_ < options.cost_threshold) {
-        //   summary.status = COST_TOO_SMALL;
-        //   break;
-        // }
-
-        real_t tmp = real_t(2.0 * rho - 1.0);
-        u = u * std::max(1.0 / 3.0, 1.0 - tmp * tmp * tmp);
-        v = 2;
-        continue;
-      }
-
-      // Reject the update because either the normal equations failed to solve
-      // or the local linear model was not good (rho < 0). Instead, increase u
-      // to move closer to gradient descent.
-      u *= v;
-      v *= 2;
-      graph_update(graph, -dx);
+			// Termination criterias
+			if (fabs(cost_delta) < cost_change_threshold) {
+				break;
+			}
+			if ((solve_time + iter_time) > time_limit) {
+				break;
+			}
 
       // Calculate reprojection error
-      // size_t nb_keypoints = e.size() / 2.0;
-      // real_t sse = 0.0;
-      // for (size_t i = 0; i < nb_keypoints; i++) {
-      //   sse += e.segment(i * 2, 2).norm();
-      // }
-      // const real_t rmse = sqrt(sse / nb_keypoints);
-      // printf("rmse reproj error: %.2f  ", rmse);
+      size_t nb_keypoints = e.size() / 2.0;
+      real_t sse = 0.0;
+      for (size_t i = 0; i < nb_keypoints; i++) {
+        sse += e.segment(i * 2, 2).norm();
+      }
+      const real_t rmse = sqrt(sse / nb_keypoints);
+      printf("rmse reproj error: %.2f  ", rmse);
     }
-    printf("solver took: %fs\n", toc(&t_start));
+		solve_time = toc(&solve_tic);
 
     return 0;
   }

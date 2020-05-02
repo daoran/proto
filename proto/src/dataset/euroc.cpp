@@ -303,7 +303,7 @@ int euroc_data_load(euroc_data_t &data, const std::string &data_path) {
     const timestamp_t ts = data.imu_data.timestamps[i];
     const vec3_t a_B = data.imu_data.a_B[i];
     const vec3_t w_B = data.imu_data.w_B[i];
-    const auto imu_event = timeline_event_t<timestamp_t>{ts, a_B, w_B};
+    const auto imu_event = timeline_event_t{ts, a_B, w_B};
     data.timeline.insert({ts, imu_event});
   }
 
@@ -323,13 +323,13 @@ int euroc_data_load(euroc_data_t &data, const std::string &data_path) {
   for (size_t i = 0; i < data.cam0_data.timestamps.size(); i++) {
     const timestamp_t ts = data.cam0_data.timestamps[i];
     const auto image_path = data.cam0_data.image_paths[i];
-    const auto cam0_event = timeline_event_t<timestamp_t>(ts, 0, image_path);
+    const auto cam0_event = timeline_event_t(ts, 0, image_path);
     data.timeline.insert({ts, cam0_event});
   }
   for (size_t i = 0; i < data.cam1_data.timestamps.size(); i++) {
     const timestamp_t ts = data.cam1_data.timestamps[i];
     const auto image_path = data.cam1_data.image_paths[i];
-    const auto cam1_event = timeline_event_t<timestamp_t>(ts, 1, image_path);
+    const auto cam1_event = timeline_event_t(ts, 1, image_path);
     data.timeline.insert({ts, cam1_event});
   }
   cv::Mat image = cv::imread(data.cam0_data.image_paths[0]);

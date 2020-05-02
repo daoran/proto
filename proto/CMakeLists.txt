@@ -37,10 +37,10 @@ ADD_LIBRARY(
   # core
   src/core/core.cpp
   src/core/stb.cpp
+  src/core/tinyply.cpp
   # dataset
-  # src/dataset/euroc.cpp
+  src/dataset/euroc.cpp
   src/dataset/kitti.cpp
-  # src/dataset/timeline.cpp
   # estimation
   # src/estimation/dense.cpp
   src/estimation/factor.cpp

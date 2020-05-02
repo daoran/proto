@@ -981,49 +981,109 @@ int test_graph_solve_ba() {
     }
   }
 
-  vecx_t e;
-  matx_t E;
-  graph_eval(graph, e, E);
-  std::cout << "cost: " << 0.5 * e.squaredNorm() << std::endl;
-
-  int max_iter = 10;
-  real_t cost_prev = 0.0;
-
-  for (int iter = 0; iter < max_iter; iter++) {
-    struct timespec t_start = tic();
-    vecx_t e;
-    matx_t E;
-    graph_eval(graph, e, E);
-
-    // Solve Gauss-Newton system [H dx = g]: Solve for dx
-    const real_t lambda = 0.001;  // LM damping term
-    matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
-    matx_t H_diag = (H.diagonal().asDiagonal());
-    H = H + lambda * H_diag; // R. Fletcher trust region mod
-    const vecx_t g = -E.transpose() * e;
-    const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
-    graph_update(graph, dx);
-
-    const real_t cost = 0.5 * e.transpose() * e;
-    printf("- iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&t_start));
-
-    // Termination criteria
-    real_t cost_diff = fabs(cost - cost_prev);
-    if (cost_diff < 1.0e-3) {
-      printf("Done!\n");
-      break;
-    }
-    cost_prev = cost;
-  }
-
-  // tiny_solver_t solver;
-  // solver.max_iter = 2;
-  // solver.solve(graph);
+	// Solve graph
+  tiny_solver_t solver;
+	solver.verbose = true;
+  solver.solve(graph);
+	printf("solver took: %fs\n", solver.solve_time);
 
   return 0;
 }
 
-int test_graph_solve() {
+int test_graph_solve_vio() {
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+
+  // Create graph
+  bool prior_set = false;
+  graph_t graph;
+
+  // -- Add landmarks
+  for (const auto &feature : sim_data.features) {
+    const vec3_t noise{randf(-0.1, 0.1), randf(-0.1, 0.1), randf(-0.1, 0.1)};
+    graph_add_landmark(graph, feature + noise);
+  }
+
+  // -- Add cam0 parameters
+  int cam_index = 0;
+  const int resolution[2] = {640, 480};
+  const real_t lens_hfov = 90.0;
+  const real_t lens_vfov = 90.0;
+  const real_t fx = pinhole_focal(resolution[0], lens_hfov);
+  const real_t fy = pinhole_focal(resolution[1], lens_vfov);
+  const real_t cx = resolution[0] / 2.0;
+  const real_t cy = resolution[1] / 2.0;
+  const vec4_t proj_params{fx, fy, cx, cy};
+  const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
+  auto cam0_id = graph_add_camera(graph, cam_index, resolution,
+                                  proj_params, dist_params);
+
+  // -- Add cam0 poses and ba factors
+  size_t pose_idx = 0;
+  int cam_pose = 0;
+  for (const auto &kv : sim_data.timeline) {
+    const timestamp_t &ts = kv.first;
+    const sim_event_t &event = kv.second;
+
+    // Handle camera event
+    if (event.type == sim_event_type_t::CAMERA) {
+      // Add cam0 pose
+      const quat_t q_WC0 = sim_data.cam_rot[pose_idx];
+      const vec3_t noise{randf(-0.05, 0.05), randf(-0.05, 0.05), randf(-0.05, 0.05)};
+      const vec3_t r_WC0 = sim_data.cam_pos[pose_idx] + noise;
+      const mat4_t T_WC0 = tf(q_WC0, r_WC0);
+      const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
+      pose_idx++;
+
+      if (prior_set == false) {
+        graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        prior_set = true;
+      }
+
+      // Add cam0 observations at ts
+      for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
+        const auto feature_id = event.frame.feature_ids[i];
+        const auto z = event.frame.keypoints[i];
+        graph_add_ba_factor<pinhole_radtan4_t>(graph,
+                                               ts,
+                                               cam0_pose_id,
+                                               feature_id,
+                                               cam0_id,
+                                               z);
+      }
+
+      cam_pose++;
+      if (cam_pose == 10) {
+        break;
+      }
+    }
+
+    // // Handle imu event
+    // if (event.type == sim_event_type_t::IMU) {
+    //
+		// }
+  }
+
+	// Solve graph
+  tiny_solver_t solver;
+  solver.verbose = true;
+  solver.solve(graph);
+
+  camera_params_t *cam_params = (camera_params_t *) graph.params[cam0_id];
+  print_vector("proj param", cam_params->proj_params());
+  print_vector("dist param", cam_params->dist_params());
+
+  // Debug
+  // const bool debug = true;
+  const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
+  }
+
+  return 0;
+}
+
+int test_tiny_solver() {
   vio_sim_data_t sim_data;
   sim_circle_trajectory(4.0, sim_data);
 
@@ -1092,54 +1152,13 @@ int test_graph_solve() {
     }
   }
 
-  int max_iter = 10;
-  real_t cost_prev = 0.0;
-  struct timespec t_start = tic();
-  for (int iter = 0; iter < max_iter; iter++) {
-    struct timespec iter_start = tic();
-    vecx_t e;
-    matx_t E;
-    graph_eval(graph, e, E);
+	// Solve graph
+  tiny_solver_t solver;
+  solver.verbose = true;
+  solver.solve(graph);
+	printf("solver took: %fs\n", solver.solve_time);
 
-    // Solve Gauss-Newton system [H dx = g]: Solve for dx
-    const real_t lambda = 0.001;  // LM damping term
-    matx_t H = E.transpose() * E; // Hessian approx: H = J^t J
-    matx_t H_diag = (H.diagonal().asDiagonal());
-    H = H + lambda * H_diag;      // R. Fletcher trust region mod
-    const vecx_t g = -E.transpose() * e;
-    const vecx_t dx = H.ldlt().solve(g);   // Cholesky decomp
-    graph_update(graph, dx);
-
-    const real_t cost = 0.5 * e.transpose() * e;
-    printf("- iter[%d] cost[%.4e] time: %fs\n", iter, cost, toc(&iter_start));
-
-    // Termination criteria
-    real_t cost_diff = fabs(cost - cost_prev);
-    if (cost_diff < 1.0e-1) {
-      printf("Done!\n");
-      break;
-    }
-    cost_prev = cost;
-  }
-  printf("total time: %fs\n", toc(&t_start));
-
-  camera_params_t *cam_params = (camera_params_t *) graph.params[cam0_id];
-  print_vector("proj param", cam_params->proj_params());
-  print_vector("dist param", cam_params->dist_params());
-
-  // tiny_solver_t solver;
-  // solver.max_iter = 2;
-  // solver.solve(graph);
-  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/E.csv");
-
-  // Debug
-  // const bool debug = true;
-  const bool debug = false;
-  if (debug) {
-    OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
-  }
-
-  return 0;
+	return 0;
 }
 
 void test_suite() {
@@ -1162,7 +1181,9 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_imu_factor);
   MU_ADD_TEST(test_graph_eval);
   MU_ADD_TEST(test_graph_solve_ba);
-  MU_ADD_TEST(test_graph_solve);
+  MU_ADD_TEST(test_graph_solve_vio);
+
+	MU_ADD_TEST(test_tiny_solver);
 }
 
 } // namespace proto
