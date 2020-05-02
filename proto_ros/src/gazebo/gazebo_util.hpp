@@ -1,5 +1,5 @@
-#ifndef PROTO_ROS_GAZEBO_HPP
-#define PROTO_ROS_GAZEBO_HPP
+#ifndef PROTO_ROS_GAZEBO_UTIL_HPP
+#define PROTO_ROS_GAZEBO_UTIL_HPP
 
 #include <proto/proto.hpp>
 #include <ignition/math/Vector3.hh>
@@ -30,4 +30,4 @@ proto::mat4_t convert(const ignition::math::Pose3d &pose) {
 }
 
 } // namespace gazebo
-#endif // PROTO_ROS_GAZEBO_HPP
+#endif // PROTO_ROS_GAZEBO_UTIL_HPP

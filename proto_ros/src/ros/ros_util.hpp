@@ -1,4 +1,32 @@
-#include "ros/ros.hpp"
+#ifndef PROTO_ROS_ROS_UTIL_HPP
+#define PROTO_ROS_ROS_UTIL_HPP
+
+#include <functional>
+
+#include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
+
+#include <std_msgs/UInt8.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
+#include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/TwistStamped.h>
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/Joy.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/CameraInfo.h>
+
+#include <proto/proto.hpp>
 
 namespace proto {
 
@@ -460,95 +488,267 @@ void gyro_message_handler(const rosbag::MessageInstance &msg,
  *                                NODE
  ****************************************************************************/
 
-ros_node_t::ros_node_t() {}
-
-ros_node_t::~ros_node_t() {
-  ros::shutdown();
-  if (ros_rate_) {
-    delete ros_rate_;
+#define ROS_PARAM(NH, X, Y)                                                    \
+  if (NH.getParam(X, Y) == false) {                                            \
+    ROS_FATAL_STREAM("Failed to get ROS param [" << X << "]!");                \
+    exit(0);                                                                   \
   }
+
+#define ROS_OPTIONAL_PARAM(NH, X, Y, DEFAULT)                                  \
+  if (NH.getParam(X, Y) == false) {                                            \
+    ROS_INFO("ROS param [%s] not found, setting defaults!", (X).c_str());      \
+    Y = DEFAULT;                                                               \
+  }
+
+#define RUN_ROS_NODE(NODE_CLASS)                                               \
+  int main(int argc, char **argv) {                                            \
+    std::string node_name;                                                     \
+    if (ros::isInitialized() == false) {                                       \
+      node_name = proto::ros_node_name(argc, argv);                            \
+      ros::init(argc, argv, node_name, ros::init_options::NoSigintHandler);    \
+    }                                                                          \
+                                                                               \
+    NODE_CLASS node;                                                           \
+    node.node_name_ = node_name;                                               \
+    if (node.configure() != 0) {                                               \
+      ROS_ERROR("Failed to configure [%s]!", #NODE_CLASS);                     \
+      return -1;                                                               \
+    }                                                                          \
+    node.loop();                                                               \
+    return 0;                                                                  \
+  }
+
+#define RUN_ROS_NODE_RATE(NODE_CLASS, NODE_RATE)                               \
+  int main(int argc, char **argv) {                                            \
+    std::string node_name;                                                     \
+    if (ros::isInitialized() == false) {                                       \
+      node_name = proto::ros_node_name(argc, argv);                            \
+      ros::init(argc, argv, node_name, ros::init_options::NoSigintHandler);    \
+    }                                                                          \
+                                                                               \
+    NODE_CLASS node;                                                           \
+    node.node_name_ = node_name;                                               \
+    if (node.configure(NODE_RATE) != 0) {                                      \
+      ROS_ERROR("Failed to configure [%s]!", #NODE_CLASS);                     \
+      return -1;                                                               \
+    }                                                                          \
+    node.loop();                                                               \
+    return 0;                                                                  \
+  }
+
+std::string ros_node_name(int argc, char *argv[]) {
+  for (int i = 1; i < argc; i++) {
+    std::string arg(argv[i]);
+    if (arg.find("__name:=") != std::string::npos) {
+      return arg.substr(8);
+    }
+  }
+
+  FATAL("Failed to find node name?");
 }
 
-int ros_node_t::configure() {
-  ros_nh_.getParam("/debug_mode", debug_mode_);
-  ros_nh_.getParam("/sim_mode", sim_mode_);
-  configured_ = true;
+struct ros_node_t {
+  bool configured_ = false;
+  bool debug_mode_ = false;
+  bool sim_mode_ = false;
 
-  return 0;
-}
+  int argc_ = 0;
+  char **argv_ = nullptr;
 
-int ros_node_t::configure(const int hz) {
-  configure();
-  ros_rate_ = new ros::Rate(hz);
-  return 0;
-}
+  std::string node_name_;
+  size_t ros_seq_ = 0;
+  ros::NodeHandle ros_nh_;
+  ros::Rate *ros_rate_ = nullptr;
+  ros::Time ros_last_updated_;
 
-void ros_node_t::shutdown_callback(const std_msgs::Bool &msg) {
-  if (msg.data) {
+  std::map<std::string, ros::Publisher> ros_pubs_;
+  std::map<std::string, ros::Subscriber> ros_subs_;
+  std::map<std::string, ros::ServiceServer> ros_services_;
+  std::map<std::string, ros::ServiceClient> ros_clients_;
+
+  std::map<std::string, image_transport::Publisher> img_pubs_;
+  std::map<std::string, image_transport::Subscriber> img_subs_;
+  std::function<int()> loop_cb_;
+
+  ros_node_t() {}
+
+  ~ros_node_t() {
     ros::shutdown();
-  }
-}
-
-int ros_node_t::add_shutdown_subscriber(const std::string &topic) {
-  ros::Subscriber sub;
-
-  // Pre-check
-  if (configured_ == false) {
-    return -1;
+    if (ros_rate_) {
+      delete ros_rate_;
+    }
   }
 
-  // Register subscriber
-  sub = ros_nh_.subscribe(topic, 1, &ros_node_t::shutdown_callback, this);
-  ros_subs_[topic] = sub;
+  int configure() {
+    ros_nh_.getParam("/debug_mode", debug_mode_);
+    ros_nh_.getParam("/sim_mode", sim_mode_);
+    configured_ = true;
 
-  return 0;
-}
-
-int ros_node_t::add_image_publisher(const std::string &topic) {
-  // Pre-check
-  if (configured_ == false) {
-    return -1;
+    return 0;
   }
 
-  // Image transport
-  image_transport::ImageTransport it(ros_nh_);
-  img_pubs_[topic] = it.advertise(topic, 1);
-
-  return 0;
-}
-
-int ros_node_t::add_loop_callback(std::function<int()> cb) {
-  loop_cb_ = cb;
-  return 0;
-}
-
-int ros_node_t::loop() {
-  // Pre-check
-  if (configured_ == false) {
-    return -1;
+  int configure(const int hz) {
+    configure();
+    ros_rate_ = new ros::Rate(hz);
+    return 0;
   }
 
-  // Loop
-  ROS_INFO("ROS node [%s] is running!", node_name_.c_str());
-  while (ros::ok()) {
-    // Loop callback
-    if (loop_cb_ != nullptr) {
-      int retval = loop_cb_();
-      if (retval != 0) {
-        return retval;
+  void shutdown_callback(const std_msgs::Bool &msg) {
+    if (msg.data) {
+      ros::shutdown();
+    }
+  }
+
+  int add_shutdown_subscriber(const std::string &topic) {
+    ros::Subscriber sub;
+
+    // Pre-check
+    if (configured_ == false) {
+      return -1;
+    }
+
+    // Register subscriber
+    sub = ros_nh_.subscribe(topic, 1, &ros_node_t::shutdown_callback, this);
+    ros_subs_[topic] = sub;
+
+    return 0;
+  }
+
+  template <typename M, typename T>
+  int add_image_subscriber(const std::string &topic,
+                           void (T::*fp)(M),
+                           T *obj,
+                           uint32_t queue_size = 1) {
+    // pre-check
+    if (configured_ == false) {
+      return -1;
+    }
+
+    // image transport
+    image_transport::ImageTransport it(ros_nh_);
+    img_subs_[topic] = it.subscribe(topic, queue_size, fp, obj);
+
+    return 0;
+  }
+
+  template <typename M>
+  int add_publisher(const std::string &topic,
+                    uint32_t queue_size = 1,
+                    bool latch = false) {
+    ros::Publisher publisher;
+
+    // pre-check
+    if (configured_ == false) {
+      return -1;
+    }
+
+    // add publisher
+    publisher = ros_nh_.advertise<M>(topic, queue_size, latch);
+    ros_pubs_[topic] = publisher;
+
+    return 0;
+  }
+
+  template <typename M, typename T>
+  int add_subscriber(const std::string &topic,
+                     void (T::*fp)(M),
+                     T *obj,
+                     uint32_t queue_size = 1) {
+    ros::Subscriber subscriber;
+
+    // pre-check
+    if (configured_ == false) {
+      return -1;
+    }
+
+    // add subscriber
+    subscriber = ros_nh_.subscribe(topic, queue_size, fp, obj);
+    ros_subs_[topic] = subscriber;
+
+    return 0;
+  }
+
+  template <class T, class MReq, class MRes>
+  int add_service(const std::string &service_topic,
+                  bool (T::*fp)(MReq &, MRes &),
+                  T *obj) {
+    ros::ServiceServer server;
+
+    // pre-check
+    if (configured_ == false) {
+      return -1;
+    }
+
+    // register service server
+    server = ros_nh_.advertiseService(service_topic, fp, obj);
+    ros_services_[service_topic] = server;
+
+    return 0;
+  }
+
+  template <typename M>
+  int add_client(const std::string &service_topic) {
+    ros::ServiceClient client;
+
+    // pre-check
+    if (configured_ == false) {
+      return -1;
+    }
+
+    // register service server
+    client = ros_nh_.serviceClient<M>(service_topic);
+    ros_clients_[service_topic] = client;
+
+    return 0;
+  }
+
+  int add_image_publisher(const std::string &topic) {
+    // Pre-check
+    if (configured_ == false) {
+      return -1;
+    }
+
+    // Image transport
+    image_transport::ImageTransport it(ros_nh_);
+    img_pubs_[topic] = it.advertise(topic, 1);
+
+    return 0;
+  }
+
+  int add_loop_callback(std::function<int()> cb) {
+    loop_cb_ = cb;
+    return 0;
+  }
+
+  int loop() {
+    // Pre-check
+    if (configured_ == false) {
+      return -1;
+    }
+
+    // Loop
+    ROS_INFO("ROS node [%s] is running!", node_name_.c_str());
+    while (ros::ok()) {
+      // Loop callback
+      if (loop_cb_ != nullptr) {
+        int retval = loop_cb_();
+        if (retval != 0) {
+          return retval;
+        }
+      }
+
+      // Update
+      ros::spinOnce();
+      ros_seq_++;
+      ros_last_updated_ = ros::Time::now();
+      if (ros_rate_) {
+        ros_rate_->sleep();
       }
     }
 
-    // Update
-    ros::spinOnce();
-    ros_seq_++;
-    ros_last_updated_ = ros::Time::now();
-    if (ros_rate_) {
-      ros_rate_->sleep();
-    }
+    return 0;
   }
-
-  return 0;
-}
+};
 
 } // namespace proto
+#endif // PROTO_ROS_ROS_UTIL_HPP

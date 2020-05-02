@@ -82,7 +82,7 @@ cd proto/build/tests
 # ./estimation-test_ba --target test_ba_update
 # ./estimation-test_ba --target test_ba_cost
 # ./estimation-test_ba --target test_ba_solve
-# ./estimation-test_factor
+./estimation-test_factor
 # ./estimation-test_factor --target test_pose_factor_jacobians
 # ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians

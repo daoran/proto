@@ -28,7 +28,6 @@ INCLUDE_DIRECTORIES(${PROTO_INCLUDE_DIRS})
 # LINK
 SET(
   DEPS
-  proto_ros
   proto
   ${catkin_LIBRARIES}
   ${PROTO_LIBRARIES}
@@ -52,7 +51,6 @@ CATKIN_PACKAGE(
 )
 
 # PROTO ROS LIB
-ADD_LIBRARY(proto_ros src/ros/ros.cpp)
 INSTALL(
   DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
@@ -75,11 +73,11 @@ ADD_LIBRARY(proto_pose_plugin SHARED src/gazebo/pose_plugin.cpp)
 TARGET_LINK_LIBRARIES(proto_pose_plugin ${DEPS})
 
 # ROS NODES
-# ADD_EXECUTABLE(atl_node src/ros/nodes/atl_node.cpp)
+# ADD_EXECUTABLE(atl_node src/ros/atl_node.cpp)
 # TARGET_LINK_LIBRARIES(atl_node ${DEPS})
 
-ADD_EXECUTABLE(example_node src/ros/nodes/example_node.cpp)
+ADD_EXECUTABLE(example_node src/ros/example_node.cpp)
 TARGET_LINK_LIBRARIES(example_node ${DEPS})
 
-# ADD_EXECUTABLE(lz_detector_node src/ros/nodes/lz_detector_node.cpp)
+# ADD_EXECUTABLE(lz_detector_node src/ros/lz_detector_node.cpp)
 # TARGET_LINK_LIBRARIES(lz_detector_node ${DEPS})

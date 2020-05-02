@@ -1746,6 +1746,29 @@ float mtoc(struct timespec *tic);
  */
 real_t time_now();
 
+/**
+ * Profiler
+ */
+struct profiler_t {
+  std::map<std::string, timespec> timers;
+  std::map<std::string, float> record;
+
+  profiler_t() {}
+
+  void start(const std::string &key) {
+    timers[key] = tic();
+  }
+
+  float stop(const std::string &key) {
+    record[key] = toc(&timers[key]);
+    return record[key];
+  }
+
+  void print(const std::string &key) {
+    printf("[%s]: %f\n", key.c_str(), stop(key));
+  }
+};
+
 /*****************************************************************************
  *                               NETWORKING
  ****************************************************************************/

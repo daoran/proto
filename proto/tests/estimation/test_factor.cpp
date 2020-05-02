@@ -4,7 +4,6 @@
 namespace proto {
 
 #define TEST_BA_DATA "./test_data/estimation/ba_data"
-// #define TEST_BA_DATA "/tmp/ba_data"
 
 #if PRECISION == 1
   real_t step = 1e-5;

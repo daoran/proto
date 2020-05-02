@@ -500,116 +500,34 @@ int euroc_calib_load(euroc_calib_t &data, const std::string &data_path) {
   return 0;
 }
 
-// int process_stereo_images(const euroc_calib_t &calib_data,
-//                           const std::string &preprocess_path,
-//                           const mat3_t &cam0_K,
-//                           const vec4_t &cam0_D,
-//                           const mat3_t &cam1_K,
-//                           const vec4_t &cam1_D,
-//                           aprilgrids_t &cam0_grids,
-//                           aprilgrids_t &cam1_grids) {
-//   // Calib target
-//   calib_target_t target;
-//   target.target_type = "AprilGrid";
-//   target.tag_rows = calib_data.calib_target.tag_rows;
-//   target.tag_cols = calib_data.calib_target.tag_cols;
-//   target.tag_size = calib_data.calib_target.tag_size;
-//   target.tag_spacing = calib_data.calib_target.tag_spacing;
-//
-//   // Preprocess cam0 images
-//   const auto cam0_image_dir = calib_data.cam0_data.data_dir + "/data";
-//   const auto cam0_output_dir = paths_combine(preprocess_path, "cam0");
-//   int retval = preprocess_camera_data(target,
-//                                       cam0_image_dir,
-//                                       cam0_K,
-//                                       cam0_D,
-//                                       cam0_output_dir,
-//                                       false,
-//                                       false);
-//   if (retval != 0) {
-//     LOG_ERROR("Failed to preprocess cam0 image data");
-//   }
-//
-//   // Preprocess cam1 images
-//   const auto cam1_image_dir = calib_data.cam1_data.data_dir + "/data";
-//   const auto cam1_output_dir = paths_combine(preprocess_path, "cam1");
-//   retval = preprocess_camera_data(target,
-//                                   cam1_image_dir,
-//                                   cam1_K,
-//                                   cam1_D,
-//                                   cam1_output_dir);
-//   if (retval != 0) {
-//     LOG_ERROR("Failed to preprocess cam0 image data");
-//   }
-//
-//   // Load preprocessed aprilgrids from both cam0 and cam1
-//   retval = load_stereo_calib_data(cam0_output_dir,
-//                                   cam1_output_dir,
-//                                   cam0_grids,
-//                                   cam1_grids);
-//   if (retval != 0) {
-//     LOG_ERROR("Failed to load preprocessed aprilgrid data");
-//   }
-//
-//   return 0;
-// }
-//
-// timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
-//                                         const aprilgrids_t &cam0_grids,
-//                                         const aprilgrids_t &cam1_grids,
-//                                         const mat4_t &T_SC0,
-//                                         mat4s_t &T_WS,
-//                                         mat4_t &T_WF,
-//                                         timestamp_t &t0) {
-//   assert(cam0_grids.size() > 0);
-//   assert(cam1_grids.size() > 0);
-//   assert(cam0_grids.size() == cam1_grids.size());
-//
-//   // Get initial sensor attitude
-//   mat3_t C_WS;
-//   imu_init_attitude(calib_data.imu_data.w_B, calib_data.imu_data.a_B, C_WS);
-//   const auto T_WS_init = tf(C_WS, zeros(3, 1));
-//
-//   // Form T_WF, assumming sensor is at world origin in the first frame
-//   const auto T_C0F = cam0_grids[0].T_CF;
-//   T_WF = T_WS_init * T_SC0 * T_C0F;
-//
-//   // Calculate sensor pose throughout the whole dataset
-//   // i.e. We are trying to obtain:
-//   // T_WS = T_WF * inv(T_C0F) * inv(T_SC0)
-//   for (const auto grid : cam0_grids) {
-//     const mat4_t T_C0F = grid.T_CF;
-//     const auto T_FC0 = T_C0F.inverse();
-//     const auto T_C0S = T_SC0.inverse();
-//     const auto T_WC0 = T_WF * T_FC0;
-//     T_WS.emplace_back(T_WC0 * T_C0S);
-//   }
-//
-//   // Create timeline
-//   timeline_t<timestamp_t> timeline;
-//   // -- Add aprilgrid observed from cam0 events
-//   for (const auto &grid : cam0_grids) {
-//     const auto ts = grid.timestamp;
-//     const timeline_event_t<timestamp_t> event{ts, 0, grid};
-//     timeline_add_event(timeline, event);
-//   }
-//   // -- Add aprilgrid observed from cam1 events
-//   for (const auto &grid : cam1_grids) {
-//     const auto ts = grid.timestamp;
-//     const timeline_event_t<timestamp_t> event{ts, 1, grid};
-//     timeline_add_event(timeline, event);
-//   }
-//   // -- Add imu events
-//   for (size_t i = 0; i < calib_data.imu_data.timestamps.size(); i++) {
-//     const auto ts = calib_data.imu_data.timestamps[i];
-//     const auto a_B = calib_data.imu_data.a_B[i];
-//     const auto w_B = calib_data.imu_data.w_B[i];
-//     const timeline_event_t<timestamp_t> event{ts, a_B, w_B};
-//     timeline_add_event(timeline, event);
-//   }
-//   t0 = timeline.data.begin()->first;
-//
-//   return timeline;
-// }
+timeline_t euroc_calib_timeline(const euroc_calib_t &calib_data) {
+  // Create timeline
+  timeline_t timeline;
+
+  // -- Add cam0 events
+  for (size_t i = 0; i < calib_data.cam0_data.timestamps.size(); i++) {
+    const auto ts = calib_data.cam0_data.timestamps[i];
+    const auto img_path = calib_data.cam0_data.image_paths[i];
+    const timeline_event_t event{ts, 0, img_path};
+    timeline.add(event);
+  }
+  // -- Add cam1 events
+  for (size_t i = 0; i < calib_data.cam1_data.timestamps.size(); i++) {
+    const auto ts = calib_data.cam1_data.timestamps[i];
+    const auto img_path = calib_data.cam1_data.image_paths[i];
+    const timeline_event_t event{ts, 0, img_path};
+    timeline.add(event);
+  }
+  // -- Add imu events
+  for (size_t i = 0; i < calib_data.imu_data.timestamps.size(); i++) {
+    const auto ts = calib_data.imu_data.timestamps[i];
+    const auto a_B = calib_data.imu_data.a_B[i];
+    const auto w_B = calib_data.imu_data.w_B[i];
+    const timeline_event_t event{ts, a_B, w_B};
+    timeline.add(event);
+  }
+
+  return timeline;
+}
 
 } // namespace proto

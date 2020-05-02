@@ -6,7 +6,7 @@ make
 
 # sudo bash ./scripts/install_mexopencv.bash
 # ./scripts/run_tests.bash && exit 0
-octave notes/ba/ba.m && exit 0
+# octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
 # octave notes/camera/equi4_point_jacobian.m && exit 0
@@ -24,6 +24,7 @@ octave notes/ba/ba.m && exit 0
 # octave notes/error_propagation.m && exit 0
 # octave notes/euler321_deriv.m && exit 0
 # octave notes/euroc_frames.m && exit 0
+octave notes/fpv_frames.m && exit 0
 # octave notes/frames_sandbox.m && exit 0
 # octave notes/felix.m && exit 0
 # octave notes/gauss_newton.m && exit 0

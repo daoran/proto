@@ -758,6 +758,8 @@ struct marg_factor_t {
  ****************************************************************************/
 
 struct graph_t {
+  size_t next_id = 0;
+
   std::deque<factor_t *> factors;
   std::unordered_map<size_t, param_t *> params;
   std::unordered_map<param_t *, size_t> param_index;
@@ -784,14 +786,14 @@ struct graph_t {
 size_t graph_add_pose(graph_t &graph,
                       const timestamp_t &ts,
                       const mat4_t &pose) {
-  const auto id = graph.params.size();
+  const auto id = graph.next_id++;
   const auto param = new pose_t{id, ts, pose};
   graph.params.insert({id, param});
   return id;
 }
 
 size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
-  const auto id = graph.params.size();
+  const auto id = graph.next_id++;
   const auto param = new landmark_t{id, landmark};
   graph.params.insert({id, param});
   return id;
@@ -803,7 +805,7 @@ size_t graph_add_camera(graph_t &graph,
                         const vecx_t &proj_params,
                         const vecx_t &dist_params,
                         bool fixed=false) {
-  const auto id = graph.params.size();
+  const auto id = graph.next_id++;
   const auto param = new camera_params_t{id, cam_index, resolution,
                                          proj_params, dist_params,
                                          fixed};
@@ -816,7 +818,7 @@ size_t graph_add_speed_bias(graph_t &graph,
                             const vec3_t &v,
                             const vec3_t &ba,
                             const vec3_t &bg) {
-  const auto id = graph.params.size();
+  const auto id = graph.next_id++;
   const auto param = new sb_params_t{id, ts, v, ba, bg};
   graph.params.insert({id, param});
   return id;

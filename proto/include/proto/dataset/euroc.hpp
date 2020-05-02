@@ -121,7 +121,7 @@ struct euroc_data_t {
 
   std::set<timestamp_t> timestamps;
   std::map<timestamp_t, double> time;
-  std::multimap<timestamp_t, timeline_event_t<timestamp_t>> timeline;
+  std::multimap<timestamp_t, timeline_event_t> timeline;
 
   euroc_data_t();
   euroc_data_t(const std::string &data_path);
@@ -249,34 +249,10 @@ int euroc_target_load(euroc_target_t &target, const std::string &target_file);
  */
 int euroc_calib_load(euroc_calib_t &data, const std::string &data_path);
 
-// /**
-//  * Process EuRoC calibration data and detect the AprilGrid detected from both
-//  * cameras. The detected AprilGrids will be outputted as files into the
-//  * `preprocess_path`, and as `aprilgrids_t` in `cam0_grids` and `cam1_grids`.
-//  */
-// int process_stereo_images(const euroc_calib_t &calib_data,
-//                           const std::string &preprocess_path,
-//                           const mat3_t &cam0_K,
-//                           const vec4_t &cam0_D,
-//                           const mat3_t &cam1_K,
-//                           const vec4_t &cam1_D,
-//                           aprilgrids_t &cam0_grids,
-//                           aprilgrids_t &cam1_grids);
-//
-// /**
-//  * Create timeline from EuRoC calibration data `calib_data`. The timeline data
-//  * will put the detected aprilgrids from cam0 and cam1 inplace of the cam0 and
-//  * cam1 image paths. Using the aprilgrid data and initial sensor-camera
-//  * extrinsics `T_SC0`, the initial sensor poses in world frame `T_WS`, fiducial
-//  * pose in world frame `T_WF` and finally first timestamp `t0` will be
-//  * calculated.
-//  */
-// timeline_t<timestamp_t> create_timeline(const euroc_calib_t &calib_data,
-//                                         const aprilgrids_t &cam0_grids,
-//                                         const aprilgrids_t &cam1_grids,
-//                                         const mat4_t &T_SC0,
-//                                         mat4s_t &T_WS,
-//                                         mat4_t &T_WF,
-//                                         timestamp_t &t0);
+/**
+ * Form EuRoC dataset timeline
+ */
+timeline_t euroc_timeline(const euroc_calib_t &calib_data);
+
 } // namespace proto
 #endif /* PROTO_DATASET_EUROC_HPP */
