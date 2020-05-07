@@ -1471,6 +1471,26 @@ matx_t nullspace(const matx_t &A) {
   return A_null_space;
 }
 
+bool equals(const matx_t &A, const matx_t &B) {
+  if (A.rows() != B.rows()) {
+    return false;
+  }
+
+  if (A.cols() != B.cols()) {
+    return false;
+  }
+
+  for (long i = 0; i < A.rows(); i++) {
+    for (long j = 0; j < A.cols(); j++) {
+      if (fltcmp(A(i, j), B(i, j)) != 0) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 void load_matrix(const std::vector<real_t> &x,
                  const int rows,
                  const int cols,
@@ -1499,64 +1519,64 @@ void load_matrix(const matx_t &A, std::vector<real_t> &x) {
 }
 
 void schurs_complement(const matx_t &H, const vecx_t &b,
-											 const size_t m, const size_t r,
-								  		 matx_t &H_marg, vecx_t &b_marg,
-											 const bool precond, const bool debug) {
-	assert(m > 0 && r > 0);
+                       const size_t m, const size_t r,
+                       matx_t &H_marg, vecx_t &b_marg,
+                       const bool precond, const bool debug) {
+  assert(m > 0 && r > 0);
 
-	// Setup
-	const long local_size = m + r;
-	H_marg = zeros(local_size, local_size);
-	b_marg = zeros(local_size, 1);
+  // Setup
+  const long local_size = m + r;
+  H_marg = zeros(local_size, local_size);
+  b_marg = zeros(local_size, 1);
 
-	// Precondition Hmm
-	matx_t Hmm = H.block(0, 0, m, m);
-	if (precond) {
-		Hmm = 0.5 * (Hmm + Hmm.transpose());
-	}
+  // Precondition Hmm
+  matx_t Hmm = H.block(0, 0, m, m);
+  if (precond) {
+    Hmm = 0.5 * (Hmm + Hmm.transpose());
+  }
 
-	// Pseudo inverse of Hmm via Eigen-decomposition:
-	//
-	//   A_pinv = V * Lambda_pinv * V_transpose
-	//
-	// Where Lambda_pinv is formed by **replacing every non-zero diagonal entry
-	// by its reciprocal, leaving the zeros in place, and transposing the
-	// resulting matrix.**
-	//
-	// clang-format off
-	const double eps = 1.0e-8;
-	const Eigen::SelfAdjointEigenSolver<matx_t> eig(Hmm);
-	const matx_t V = eig.eigenvectors();
-	const auto eigvals = eig.eigenvalues().array();
-	const auto eigvals_inv = (eigvals > eps).select(eigvals.inverse(), 0);
-	const matx_t Lambda_inv = vecx_t(eigvals_inv).asDiagonal();
-	const matx_t Hmm_inv = V * Lambda_inv * V.transpose();
-	// clang-format on
+  // Pseudo inverse of Hmm via Eigen-decomposition:
+  //
+  //   A_pinv = V * Lambda_pinv * V_transpose
+  //
+  // Where Lambda_pinv is formed by **replacing every non-zero diagonal entry
+  // by its reciprocal, leaving the zeros in place, and transposing the
+  // resulting matrix.**
+  //
+  // clang-format off
+  const double eps = 1.0e-8;
+  const Eigen::SelfAdjointEigenSolver<matx_t> eig(Hmm);
+  const matx_t V = eig.eigenvectors();
+  const auto eigvals = eig.eigenvalues().array();
+  const auto eigvals_inv = (eigvals > eps).select(eigvals.inverse(), 0);
+  const matx_t Lambda_inv = vecx_t(eigvals_inv).asDiagonal();
+  const matx_t Hmm_inv = V * Lambda_inv * V.transpose();
+  // clang-format on
 
-	// Calculate Schur's complement
-	const matx_t Hmr = H.block(0, m, m, r);
-	const matx_t Hrm = H.block(m, 0, r, m);
-	const matx_t Hrr = H.block(m, m, r, r);
-	const vecx_t bmm = b.segment(0, m);
-	const vecx_t brr = b.segment(m, r);
-	H_marg = Hrr - Hrm * Hmm_inv * Hmr;
-	b_marg = brr - Hrm * Hmm_inv * bmm;
-	const double inv_check = ((Hmm * Hmm_inv) - I(m, m)).sum();
-	if (fabs(inv_check) > 1e-4) {
-		LOG_ERROR("FAILED!: Inverse identity check: %f", inv_check);
-	}
+  // Calculate Schur's complement
+  const matx_t Hmr = H.block(0, m, m, r);
+  const matx_t Hrm = H.block(m, 0, r, m);
+  const matx_t Hrr = H.block(m, m, r, r);
+  const vecx_t bmm = b.segment(0, m);
+  const vecx_t brr = b.segment(m, r);
+  H_marg = Hrr - Hrm * Hmm_inv * Hmr;
+  b_marg = brr - Hrm * Hmm_inv * bmm;
+  const double inv_check = ((Hmm * Hmm_inv) - I(m, m)).sum();
+  if (fabs(inv_check) > 1e-4) {
+    LOG_ERROR("FAILED!: Inverse identity check: %f", inv_check);
+  }
 
-	if (debug) {
-		mat2csv("/tmp/H.csv", H);
-		mat2csv("/tmp/Hmm.csv", Hmm);
-		mat2csv("/tmp/Hmr.csv", Hmr);
-		mat2csv("/tmp/Hrm.csv", Hrm);
-		mat2csv("/tmp/Hrr.csv", Hrr);
-		mat2csv("/tmp/bmm.csv", bmm);
-		mat2csv("/tmp/brr.csv", brr);
-		mat2csv("/tmp/H_marg.csv", H_marg);
-		mat2csv("/tmp/b_marg.csv", b_marg);
-	}
+  if (debug) {
+    mat2csv("/tmp/H.csv", H);
+    mat2csv("/tmp/Hmm.csv", Hmm);
+    mat2csv("/tmp/Hmr.csv", Hmr);
+    mat2csv("/tmp/Hrm.csv", Hrm);
+    mat2csv("/tmp/Hrr.csv", Hrr);
+    mat2csv("/tmp/bmm.csv", bmm);
+    mat2csv("/tmp/brr.csv", brr);
+    mat2csv("/tmp/H_marg.csv", H_marg);
+    mat2csv("/tmp/b_marg.csv", b_marg);
+  }
 }
 
 /******************************************************************************
@@ -3168,26 +3188,6 @@ void circle_trajectory(const real_t r,
   *w = (2 * M_PI) / *time;
 }
 
-void two_wheel_update(two_wheel_t &tm, const real_t dt) {
-  const vec3_t p_G_prev = tm.p_G;
-  const vec3_t v_G_prev = tm.v_G;
-  const vec3_t rpy_G_prev = tm.rpy_G;
-
-  tm.p_G += euler321(tm.rpy_G) * tm.v_B * dt;
-  tm.v_G = (tm.p_G - p_G_prev) / dt;
-  tm.a_G = (tm.v_G - v_G_prev) / dt;
-
-  tm.rpy_G += euler321(tm.rpy_G) * tm.w_B * dt;
-  tm.w_G = tm.rpy_G - rpy_G_prev;
-  tm.a_B = euler123(tm.rpy_G) * tm.a_G;
-
-  // Wrap angles to +/- pi
-  for (int i = 0; i < 3; i++) {
-    tm.rpy_G(i) = (tm.rpy_G(i) > M_PI) ? tm.rpy_G(i) - 2 * M_PI : tm.rpy_G(i);
-    tm.rpy_G(i) = (tm.rpy_G(i) < -M_PI) ? tm.rpy_G(i) + 2 * M_PI : tm.rpy_G(i);
-  }
-}
-
 int mav_model_update(mav_model_t &model,
                      const vec4_t &motor_inputs,
                      const real_t dt) {
@@ -3555,7 +3555,7 @@ void illum_invar_transform(cv::Mat &image,
 
   // clang-format off
   real_t alpha = (lambda_1 * lambda_3 - lambda_1 * lambda_2) /
-          			 (lambda_2 * lambda_3 - lambda_1 * lambda_2);
+                 (lambda_2 * lambda_3 - lambda_1 * lambda_2);
   // clang-format on
 
   std::vector<cv::Mat> channels(3);

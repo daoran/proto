@@ -659,94 +659,94 @@ struct imu_factor_t : factor_t {
 
 struct marg_factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-	std::unordered_set<factor_t *> factors;
-	std::unordered_set<param_t *> params_tracker;
-	std::unordered_set<param_t *> marg_params;
-	std::unordered_set<param_t *> remain_params;
+  std::unordered_set<factor_t *> factors;
+  std::unordered_set<param_t *> params_tracker;
+  std::unordered_set<param_t *> marg_params;
+  std::unordered_set<param_t *> remain_params;
 
   marg_factor_t() {}
 
-	void add(const factor_t *factor,
-					 const std::vector<int> marg_indicies) {
-		// Loop through parameters
-		for (size_t i = 0; i < factor->params.size(); i++) {
-			const auto &param = factor->params[i];
+  void add(const factor_t *factor,
+           const std::vector<int> marg_indicies) {
+    // Loop through parameters
+    for (size_t i = 0; i < factor->params.size(); i++) {
+      const auto &param = factor->params[i];
 
-			// Determine if we have seen the parameter before
-			if (params_tracker.count(param) != 0) {
-				params_tracker.insert(param);
+      // Determine if we have seen the parameter before
+      if (params_tracker.count(param) != 0) {
+        params_tracker.insert(param);
 
-				// Keep track of:
-				// - Pointers to parameter blocks for marginalization.
-				// - Pointers to parameter blocks to remain.
-				const auto it = std::find(marg_indicies.begin(), marg_indicies.end(), i);
-				if (it != marg_indicies.end()) {
-					marg_params.insert(param);
-				} else {
-					remain_params.insert(param);
-				}
-			}
-		}
-	}
+        // Keep track of:
+        // - Pointers to parameter blocks for marginalization.
+        // - Pointers to parameter blocks to remain.
+        const auto it = std::find(marg_indicies.begin(), marg_indicies.end(), i);
+        if (it != marg_indicies.end()) {
+          marg_params.insert(param);
+        } else {
+          remain_params.insert(param);
+        }
+      }
+    }
+  }
 
   int eval(bool jacs=true) {
-	// void setup(matx_t &H, vecx_t &b, bool debug=false) {
-		size_t m = 0;
-		size_t r = 0;
-		std::unordered_map<param_t *, size_t> param_index;
+  // void setup(matx_t &H, vecx_t &b, bool debug=false) {
+    size_t m = 0;
+    size_t r = 0;
+    std::unordered_map<param_t *, size_t> param_index;
 
-		// Determine parameter block column indicies for matrix H
-		size_t index = 0; // Column index of matrix H
-		// -- Column indices for parameter blocks to be marginalized
-		for (const auto &param : marg_params) {
-			param_index.insert({param, index});
-			index += param->local_size;
-			m += param->local_size;
-		}
-		// -- Column indices for parameter blocks to remain
-		for (const auto &param : remain_params) {
-			param_index.insert({param, index});
-			index += param->local_size;
-			r += param->local_size;
-		}
+    // Determine parameter block column indicies for matrix H
+    size_t index = 0; // Column index of matrix H
+    // -- Column indices for parameter blocks to be marginalized
+    for (const auto &param : marg_params) {
+      param_index.insert({param, index});
+      index += param->local_size;
+      m += param->local_size;
+    }
+    // -- Column indices for parameter blocks to remain
+    for (const auto &param : remain_params) {
+      param_index.insert({param, index});
+      index += param->local_size;
+      r += param->local_size;
+    }
 
-		// // Form the H and b. Left and RHS of Gauss-Newton.
-		// const auto params_size = m + r;
-		// H = zeros(params_size, params_size);
-		// b = zeros(params_size, 1);
-		// if (debug) {
-		// 	printf("m: %zu\n", m);
-		// 	printf("r: %zu\n", r);
-		// 	printf("H shape: %zu x %zu\n", H.rows(), H.cols());
-		// 	printf("b shape: %zu x %zu\n", b.rows(), b.cols());
-		// }
+    // // Form the H and b. Left and RHS of Gauss-Newton.
+    // const auto params_size = m + r;
+    // H = zeros(params_size, params_size);
+    // b = zeros(params_size, 1);
+    // if (debug) {
+    //   printf("m: %zu\n", m);
+    //   printf("r: %zu\n", r);
+    //   printf("H shape: %zu x %zu\n", H.rows(), H.cols());
+    //   printf("b shape: %zu x %zu\n", b.rows(), b.cols());
+    // }
     //
-		// for (const auto &factor : factors) {
-		// 	for (size_t i = 0; i < factor->params.size(); i++) {
-		// 		const auto &param_i = factor->params[i];
-		// 		const int idx_i = param_index[param_i];
-		// 		const int size_i = param_i->local_size;
-		// 		const matx_t J_i = factor->jacobians[i];
+    // for (const auto &factor : factors) {
+    //   for (size_t i = 0; i < factor->params.size(); i++) {
+    //     const auto &param_i = factor->params[i];
+    //     const int idx_i = param_index[param_i];
+    //     const int size_i = param_i->local_size;
+    //     const matx_t J_i = factor->jacobians[i];
     //
-		// 		for (size_t j = i; j < factor->params.size(); j++) {
-		// 			const auto &param_j = factor->params[j];
-		// 			const int idx_j = param_index[param_j];
-		// 			const int size_j = param_j->local_size;
-		// 			const matx_t J_j = factor->jacobians[j];
+    //     for (size_t j = i; j < factor->params.size(); j++) {
+    //       const auto &param_j = factor->params[j];
+    //       const int idx_j = param_index[param_j];
+    //       const int size_j = param_j->local_size;
+    //       const matx_t J_j = factor->jacobians[j];
     //
-		// 			if (i == j) {  // Form diagonals of H
-		// 				H.block(idx_i, idx_i, size_i, size_i) += J_i.transpose() * J_i;
-		// 			} else {  // Form off-diagonals of H
-		// 				H.block(idx_i, idx_j, size_i, size_j) += J_i.transpose() * J_j;
-		// 				H.block(idx_j, idx_i, size_j, size_i) =
-		// 					H.block(idx_i, idx_j, size_i, size_j).transpose();
-		// 			}
-		// 		}
+    //       if (i == j) {  // Form diagonals of H
+    //         H.block(idx_i, idx_i, size_i, size_i) += J_i.transpose() * J_i;
+    //       } else {  // Form off-diagonals of H
+    //         H.block(idx_i, idx_j, size_i, size_j) += J_i.transpose() * J_j;
+    //         H.block(idx_j, idx_i, size_j, size_i) =
+    //           H.block(idx_i, idx_j, size_i, size_j).transpose();
+    //       }
+    //     }
     //
-		// 		// RHS of Gauss Newton (i.e. vector b)
-		// 		b.segment(idx_i, size_i) += -J_i.transpose() * factor->residuals;
-		// 	}
-		// }
+    //     // RHS of Gauss Newton (i.e. vector b)
+    //     b.segment(idx_i, size_i) += -J_i.transpose() * factor->residuals;
+    //   }
+    // }
 
     return 0;
   }
@@ -763,7 +763,7 @@ struct graph_t {
   std::deque<factor_t *> factors;
   std::unordered_map<size_t, param_t *> params;
   std::unordered_map<param_t *, size_t> param_index;
-	std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
+  std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
   std::vector<std::string> param_order{"pose_t",
                                        "camera_params_t",
                                        "landmark_t"};
@@ -835,7 +835,7 @@ size_t graph_add_pose_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors.push_back(factor);
-	graph.param_factor[params[0]].push_back(factor);
+  graph.param_factor[params[0]].push_back(factor);
 
   return f_id;
 }
@@ -860,9 +860,9 @@ size_t graph_add_ba_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors.push_back(factor);
-	graph.param_factor[params[0]].push_back(factor);
-	graph.param_factor[params[1]].push_back(factor);
-	graph.param_factor[params[2]].push_back(factor);
+  graph.param_factor[params[0]].push_back(factor);
+  graph.param_factor[params[1]].push_back(factor);
+  graph.param_factor[params[2]].push_back(factor);
 
   return f_id;
 }
@@ -888,10 +888,10 @@ size_t graph_add_cam_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors.push_back(factor);
-	graph.param_factor[params[0]].push_back(factor);
-	graph.param_factor[params[1]].push_back(factor);
-	graph.param_factor[params[2]].push_back(factor);
-	graph.param_factor[params[3]].push_back(factor);
+  graph.param_factor[params[0]].push_back(factor);
+  graph.param_factor[params[1]].push_back(factor);
+  graph.param_factor[params[2]].push_back(factor);
+  graph.param_factor[params[3]].push_back(factor);
 
   return f_id;
 }
@@ -918,10 +918,10 @@ size_t graph_add_imu_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors.push_back(factor);
-	graph.param_factor[params[0]].push_back(factor);
-	graph.param_factor[params[1]].push_back(factor);
-	graph.param_factor[params[2]].push_back(factor);
-	graph.param_factor[params[3]].push_back(factor);
+  graph.param_factor[params[0]].push_back(factor);
+  graph.param_factor[params[1]].push_back(factor);
+  graph.param_factor[params[2]].push_back(factor);
+  graph.param_factor[params[3]].push_back(factor);
 
   return f_id;
 }
@@ -1040,77 +1040,77 @@ void graph_update(graph_t &graph, const vecx_t &dx) {
 
 struct tiny_solver_t {
   // Optimization parameters
-	bool verbose = false;
+  bool verbose = false;
   int max_iter = 10;
-	real_t lambda = 1e-4;
+  real_t lambda = 1e-4;
   real_t cost_change_threshold = 1e-1;
   real_t time_limit = 0.01;
 
-	// Optimization data
-	int iter = 0;
+  // Optimization data
+  int iter = 0;
   real_t cost = 0.0;
   vecx_t e;
   matx_t E;
-	matx_t H;
-	matx_t H_diag;
-	vecx_t g;
-	vecx_t dx;
-	real_t solve_time = 0.0;
+  matx_t H;
+  matx_t H_diag;
+  vecx_t g;
+  vecx_t dx;
+  real_t solve_time = 0.0;
 
   tiny_solver_t() {}
 
   int solve(graph_t &graph)  {
     struct timespec solve_tic = tic();
 
-		// Calculate initial cost
+    // Calculate initial cost
     graph_eval(graph, e, E);
     cost = 0.5 * e.transpose() * e;
 
     // Solve
-		real_t lambda_k = lambda;
+    real_t lambda_k = lambda;
     for (iter = 0; iter < max_iter; iter++) {
-			// Solve Gauss-Newton system [H dx = g]: Solve for dx
-			H = E.transpose() * E;
-			H_diag = (H.diagonal().asDiagonal());
-			H = H + lambda_k * H_diag;
-			g = -E.transpose() * e;
-			dx = H.ldlt().solve(g);
+      // Solve Gauss-Newton system [H dx = g]: Solve for dx
+      H = E.transpose() * E;
+      H_diag = (H.diagonal().asDiagonal());
+      H = H + lambda_k * H_diag;
+      g = -E.transpose() * e;
+      dx = H.ldlt().solve(g);
       graph_update(graph, dx);
 
       // Evaluate cost after update
       graph_eval(graph, e, E);
       const real_t cost_k = 0.5 * e.transpose() * e;
-			const real_t cost_delta = cost_k - cost;
-			const real_t solve_time = toc(&solve_tic);
-			const real_t iter_time = (iter == 0) ? 0 : (solve_time / iter);
-			if (verbose) {
-				printf("iter[%d] ", iter);
-				printf("cost[%.2e] ", cost);
-				printf("cost_k[%.2e] ", cost_k);
-				printf("cost_delta[%.2e] ", cost_delta);
-				printf("lambda[%.2e] ", lambda_k);
-				printf("iter_time[%.4f] ", iter_time);
-				printf("solve_time[%.4f]\n", solve_time);
-			}
+      const real_t cost_delta = cost_k - cost;
+      const real_t solve_time = toc(&solve_tic);
+      const real_t iter_time = (iter == 0) ? 0 : (solve_time / iter);
+      if (verbose) {
+        printf("iter[%d] ", iter);
+        printf("cost[%.2e] ", cost);
+        printf("cost_k[%.2e] ", cost_k);
+        printf("cost_delta[%.2e] ", cost_delta);
+        printf("lambda[%.2e] ", lambda_k);
+        printf("iter_time[%.4f] ", iter_time);
+        printf("solve_time[%.4f]\n", solve_time);
+      }
 
-			// Determine whether to accept update
+      // Determine whether to accept update
       if (cost_k < cost) {
-				// Accept update
-				lambda_k /= 10.0;
-				cost = cost_k;
+        // Accept update
+        lambda_k /= 10.0;
+        cost = cost_k;
       } else {
-				// Reject update
-				lambda_k *= 10.0;
-				graph_update(graph, -dx);
-			}
+        // Reject update
+        lambda_k *= 10.0;
+        graph_update(graph, -dx);
+      }
 
-			// Termination criterias
-			if (fabs(cost_delta) < cost_change_threshold) {
-				break;
-			}
-			if ((solve_time + iter_time) > time_limit) {
-				break;
-			}
+      // Termination criterias
+      if (fabs(cost_delta) < cost_change_threshold) {
+        break;
+      }
+      if ((solve_time + iter_time) > time_limit) {
+        break;
+      }
 
       // Calculate reprojection error
       size_t nb_keypoints = e.size() / 2.0;
@@ -1121,7 +1121,7 @@ struct tiny_solver_t {
       const real_t rmse = sqrt(sse / nb_keypoints);
       printf("rmse reproj error: %.2f  ", rmse);
     }
-		solve_time = toc(&solve_tic);
+    solve_time = toc(&solve_tic);
 
     return 0;
   }

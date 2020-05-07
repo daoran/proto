@@ -36,16 +36,16 @@ ADD_LIBRARY(
   ${PROJECT_NAME}
   # core
   src/core/core.cpp
-  src/core/stb.cpp
-  src/core/tinyply.cpp
-  # dataset
-  src/dataset/euroc.cpp
-  src/dataset/kitti.cpp
-  # estimation
-  # src/estimation/dense.cpp
-  src/estimation/factor.cpp
-  # src/estimation/filter.cpp
-  # src/estimation/frontend.cpp
+  # src/core/stb.cpp
+  # src/core/tinyply.cpp
+  # # dataset
+  # src/dataset/euroc.cpp
+  # src/dataset/kitti.cpp
+  # # estimation
+  # # src/estimation/dense.cpp
+  # src/estimation/factor.cpp
+  # # src/estimation/filter.cpp
+  # # src/estimation/frontend.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
@@ -70,7 +70,7 @@ SET(
   # dataset-test_euroc
   # dataset-test_kitti
   # estimation-test_dense
-  estimation-test_factor
+  # estimation-test_factor
   # estimation-test_frontend
 )
 FOREACH(TEST ${UNITTESTS})

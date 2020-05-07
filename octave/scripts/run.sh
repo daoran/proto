@@ -24,9 +24,9 @@ make
 # octave notes/error_propagation.m && exit 0
 # octave notes/euler321_deriv.m && exit 0
 # octave notes/euroc_frames.m && exit 0
-octave notes/fpv_frames.m && exit 0
+octave notes/fiducial_xy_jac.m
+# octave notes/fpv_frames.m && exit 0
 # octave notes/frames_sandbox.m && exit 0
-# octave notes/felix.m && exit 0
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
 # octave notes/illum_invar.m && exit 0

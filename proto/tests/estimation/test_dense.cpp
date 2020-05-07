@@ -9,8 +9,8 @@ namespace proto {
 int test_raytracing() {
   gui_t gui{"Play"};
   glmodel_t model("test_data/viz/nanosuit/nanosuit.obj");
-	glgrid_t grid;
-	glcf_t cf;
+  glgrid_t grid;
+  glcf_t cf;
 
   glvoxels_t voxels{0.05, 10000};
   // for (int i = 0; i < 1000; i++) {
@@ -28,13 +28,13 @@ int test_raytracing() {
     gui.poll();
     gui.clear();
 
-		grid.draw(gui.camera);
-		glmodel_draw(model, gui.camera);
-		// cf.draw(gui.camera);
+    grid.draw(gui.camera);
+    glmodel_draw(model, gui.camera);
+    // cf.draw(gui.camera);
 
-		// for (auto &voxel : voxels) {
+    // for (auto &voxel : voxels) {
     //   voxel->draw(gui.camera);
-		// }
+    // }
 
     // Keyboard handler
     if (glfwGetKey(gui.gui_, GLFW_KEY_W) == GLFW_PRESS) {

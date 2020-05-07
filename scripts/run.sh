@@ -45,29 +45,119 @@ time make ros
 cd proto/build/tests
 # -- calib
 # valgrind --leak-check=full
-# ./calib-test_aprilgrid
-# ./calib-test_calib_data
-# ./calib-test_calib_camera
-# ./calib-test_calib_gimbal
-# ./calib-test_sandbox
-# ./calib-test_sandbox2
-# ./calib-test_sandbox3
 
-# -- core
+# -- CORE
 # ./core-test_core
-# ./core-test_camera-camera_geometry
-# ./core-test_camera-equi
-# ./core-test_camera-pinhole
-# ./core-test_camera-radtan
-# ./core-test_feature2d-grid_fast
-# ./core-test_feature2d-grid_good
-# ./core-test_frontend
-# ./core-test_vision_common
-
-
-# -- driver
-# ./driver-test_camera-camera
-# ./driver-test_ublox
+# ---- Data
+# ./core-test_core --target test_csv_rows
+# ./core-test_core --target test_csv_cols
+# ./core-test_core --target test_csv2mat
+# ./core-test_core --target test_mat2csv
+# ---- Filesystem
+# ./core-test_core --target test_file_exists
+# ./core-test_core --target test_path_split
+# ./core-test_core --target test_paths_combine
+# ---- Config
+# ./core-test_core --target test_config_constructor
+# ./core-test_core --target test_config_parse_primitive
+# ./core-test_core --target test_config_parse_array
+# ./core-test_core --target test_config_parse_vector
+# ./core-test_core --target test_config_parse_matrix
+# ./core-test_core --target test_config_parser_full_example
+# ---- Algebra
+# ./core-test_core --target test_sign
+# ./core-test_core --target test_linspace
+# ./core-test_core --target test_linspace_timestamps
+# ---- Linear Algebra
+# ./core-test_core --target test_zeros
+# ./core-test_core --target test_I
+# ./core-test_core --target test_ones
+# ./core-test_core --target test_hstack
+# ./core-test_core --target test_vstack
+# ./core-test_core --target test_dstack
+# ./core-test_core --target test_skew
+# ./core-test_core --target test_skewsq
+# ./core-test_core --target test_enforce_psd
+# ./core-test_core --target test_nullspace
+# ---- Geometry
+# ./core-test_core --target test_deg2rad_rad2deg
+# ./core-test_core --target test_wrap180
+# ./core-test_core --target test_wrap360
+# ./core-test_core --target test_cross_track_error
+# ./core-test_core --target test_point_left_right
+# ./core-test_core --target test_closest_point
+# ./core-test_core --target test_latlon_offset
+# ./core-test_core --target test_latlon_diff
+# ./core-test_core --target test_latlon_dist
+# ---- Statistics
+# ./core-test_core --target test_median
+# ./core-test_core --target test_mvn
+# ./core-test_core --target test_gauss_normal
+# ---- Transform
+# ./core-test_core --target test_tf_rot
+# ./core-test_core --target test_tf_trans
+# ---- Time
+# ./core-test_core --target test_ts2sec
+# ./core-test_core --target test_ns2sec
+# ./core-test_core --target test_tic_toc
+# ---- Network
+# ./core-test_core --target test_tcp_server
+# ./core-test_core --target test_tcp_client
+# ./core-test_core --target test_tcp_server_config
+# ./core-test_core --target test_tcp_client_config
+# ./core-test_core --target test_tcp_server_client_loop
+# ---- Interpolation
+# ./core-test_core --target test_lerp
+# ./core-test_core --target test_slerp
+# ./core-test_core --target test_interp_pose
+# ./core-test_core --target test_interp_poses
+# ./core-test_core --target test_closest_poses
+# ./core-test_core --target test_intersection
+# ./core-test_core --target test_lerp_timestamps
+# ./core-test_core --target test_lerp_data
+# ./core-test_core --target test_lerp_data2
+# ./core-test_core --target test_lerp_data3
+# ./core-test_core --target test_ctraj
+# ./core-test_core --target test_ctraj_get_pose
+# ./core-test_core --target test_ctraj_get_velocity
+# ./core-test_core --target test_ctraj_get_acceleration
+# ./core-test_core --target test_ctraj_get_angular_velocity
+# ./core-test_core --target test_sim_imu_measurement
+# ---- Control
+# ./core-test_core --target test_pid_construct
+# ./core-test_core --target test_pid_setup
+# ./core-test_core --target test_pid_update
+# ./core-test_core --target test_pid_reset
+# ./core-test_core --target test_carrot_ctrl_constructor
+# ./core-test_core --target test_carrot_ctrl_configure
+# ./core-test_core --target test_carrot_ctrl_closest_point
+# ./core-test_core --target test_carrot_ctrl_carrot_point
+# ./core-test_core --target test_carrot_ctrl_update
+# ---- Measurements
+# ./core-test_core --target test_imu_meas
+# ./core-test_core --target test_imu_data
+# ./core-test_core --target test_imu_data_add
+# ./core-test_core --target test_imu_data_size
+# ./core-test_core --target test_imu_data_last_ts
+# ./core-test_core --target test_imu_data_clear
+# ---- Model
+# ./core-test_core --target test_two_wheel_constructor
+./core-test_core --target test_two_wheel_update
+# ./core-test_core --target test_mav_model_constructor
+# ./core-test_core --target test_mav_model_update
+# ---- Vision
+# ./core-test_core --target test_feature_mask
+# ./core-test_core --target test_grid_fast
+# ./core-test_core --target benchmark_grid_fast
+# ./core-test_core --target test_grid_good
+# ./core-test_core --target test_radtan_distort_point
+# ./core-test_core --target test_radtan_undistort_point
+# ./core-test_core --target test_equi_distort_point
+# ./core-test_core --target test_equi_undistort_point
+# ./core-test_core --target test_pinhole
+# ./core-test_core --target test_pinhole_K
+# ./core-test_core --target test_pinhole_focal
+# ./core-test_core --target test_pinhole_project
 
 # -- dataset
 # ./dataset-test_euroc
@@ -98,9 +188,9 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_add_cam_factor
 # ./estimation-test_factor --target test_graph_add_imu_factor
 # ./estimation-test_factor --target test_graph_eval
-./estimation-test_factor --target test_graph_solve_ba
-./estimation-test_factor --target test_graph_solve
-./estimation-test_factor --target test_tiny_solver
+# ./estimation-test_factor --target test_graph_solve_ba
+# ./estimation-test_factor --target test_graph_solve
+# ./estimation-test_factor --target test_tiny_solver
 # ./estimation-test_measurement
 # ./estimation-test_dense
 

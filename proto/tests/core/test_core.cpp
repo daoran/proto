@@ -2237,13 +2237,88 @@ int test_carrot_ctrl_update() {
 }
 
 /*****************************************************************************
+ * Measurements
+ ****************************************************************************/
+
+int test_imu_meas() {
+  imu_meas_t imu_meas;
+
+  MU_CHECK(imu_meas.ts == 0);
+  MU_CHECK(equals(imu_meas.accel, zeros(3, 1)));
+  MU_CHECK(equals(imu_meas.gyro, zeros(3, 1)));
+
+  return 0;
+}
+
+int test_imu_data() {
+  imu_data_t imu_data;
+
+  MU_CHECK(imu_data.timestamps.size() == 0);
+  MU_CHECK(imu_data.accel.size() == 0);
+  MU_CHECK(imu_data.gyro.size() == 0);
+
+  return 0;
+}
+
+int test_imu_data_add() {
+  imu_data_t imu_data;
+
+  imu_data.add(0, {1, 2, 3}, {4, 5, 6});
+  MU_CHECK(imu_data.timestamps.size() == 1);
+  MU_CHECK(imu_data.accel.size() == 1);
+  MU_CHECK(imu_data.gyro.size() == 1);
+
+  return 0;
+}
+
+int test_imu_data_size() {
+  imu_data_t imu_data;
+
+  imu_data.add(0, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(0, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(0, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(0, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(0, {1, 2, 3}, {4, 5, 6});
+  MU_CHECK(imu_data.size() == 5);
+
+  return 0;
+}
+
+int test_imu_data_last_ts() {
+  imu_data_t imu_data;
+
+  imu_data.add(0, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(1, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(2, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(3, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(4, {1, 2, 3}, {4, 5, 6});
+  MU_CHECK(imu_data.last_ts() == 4);
+
+  return 0;
+}
+
+int test_imu_data_clear() {
+  imu_data_t imu_data;
+
+  imu_data.add(0, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(1, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(2, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(3, {1, 2, 3}, {4, 5, 6});
+  imu_data.add(4, {1, 2, 3}, {4, 5, 6});
+  imu_data.clear();
+  MU_CHECK(imu_data.size() == 0);
+
+  return 0;
+}
+
+/*****************************************************************************
  * MODEL
  ****************************************************************************/
 
 int test_two_wheel_constructor() {
   two_wheel_t model;
 
-  MU_CHECK(model.p_G.isApprox(vec3_t::Zero()));
+  MU_CHECK(model.r_G.isApprox(vec3_t::Zero()));
   MU_CHECK(model.rpy_G.isApprox(vec3_t::Zero()));
   MU_CHECK(model.w_B.isApprox(vec3_t::Zero()));
   MU_CHECK(model.v_B.isApprox(vec3_t::Zero()));
@@ -2278,9 +2353,9 @@ int test_two_wheel_update() {
 
   // Record initial model state
   output_file << 0.0 << ",";
-  output_file << model.p_G(0) << ",";
-  output_file << model.p_G(1) << ",";
-  output_file << model.p_G(2) << ",";
+  output_file << model.r_G(0) << ",";
+  output_file << model.r_G(1) << ",";
+  output_file << model.r_G(2) << ",";
   output_file << model.v_G(0) << ",";
   output_file << model.v_G(1) << ",";
   output_file << model.v_G(2) << ",";
@@ -2294,13 +2369,13 @@ int test_two_wheel_update() {
   // Simulate model motion
   for (real_t t = 0.0; t < t_end; t += dt) {
     // Update
-    two_wheel_update(model, dt);
+    model.update(dt);
 
     // Record model state
     output_file << t << ",";
-    output_file << model.p_G(0) << ",";
-    output_file << model.p_G(1) << ",";
-    output_file << model.p_G(2) << ",";
+    output_file << model.r_G(0) << ",";
+    output_file << model.r_G(1) << ",";
+    output_file << model.r_G(2) << ",";
     output_file << model.v_G(0) << ",";
     output_file << model.v_G(1) << ",";
     output_file << model.v_G(2) << ",";
@@ -2561,8 +2636,7 @@ int benchmark_grid_fast() {
   }
 
   // Visualize results
-  do {
-  } while (cv::waitKey(0) != 113);
+  cv::waitKey(0);
 
   return 0;
 }
@@ -2653,59 +2727,59 @@ int test_radtan_undistort_point() {
   return 0;
 }
 
-// int test_equi_distort_point() {
-//   const int nb_points = 100;
-//
-//   for (int i = 0; i < nb_points; i++) {
-//     // Distort point
-//     equi4_t equi{0.1, 0.01, 0.01, 0.01};
-//     vec3_t point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
-//     vec2_t p{point(0) / point(2), point(1) / point(2)};
-//     vec2_t p_d = equi.distort(p);
-//
-//     // Use opencv to use equi distortion to distort point
-//     const std::vector<cv::Point2f> points{cv::Point2f(p(0), p(1))};
-//     const cv::Mat K = convert(I(3));
-//     const cv::Vec4f D(equi.k1, equi.k2, equi.k3, equi.k4);
-//     std::vector<cv::Point2f> image_points;
-//     cv::fisheye::distortPoints(points, image_points, K, D);
-//     const vec2_t expected{image_points[0].x, image_points[0].y};
-//
-//     // // Debug
-//     // std::cout << p_d.transpose() << std::endl;
-//     // std::cout << expected.transpose() << std::endl;
-//     // std::cout << std::endl;
-//
-//     MU_CHECK((p_d - expected).norm() < 1.0e-5);
-//   }
-//
-//   return 0;
-// }
-//
-// int test_equi_undistort_point() {
-//   const int nb_points = 100;
-//
-//   for (int i = 0; i < nb_points; i++) {
-//     // Distort point
-//     const equi4_t equi{0.1, 0.2, 0.3, 0.4};
-//     const vec3_t point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
-//     const vec2_t p{point(0) / point(2), point(1) / point(2)};
-//     const vec2_t p_d = equi.distort(p);
-//     const vec2_t p_ud = equi.undistort(p_d);
-//
-//     // // Debug
-//     // std::cout << p.transpose() << std::endl;
-//     // std::cout << p_d.transpose() << std::endl;
-//     // std::cout << p_ud.transpose() << std::endl;
-//     // std::cout << std::endl;
-//
-//     MU_CHECK((p - p_ud).norm() < 1.0e-5);
-//   }
-//
-//   return 0;
-// }
+int test_equi_distort_point() {
+  const int nb_points = 100;
 
-int test_pinhole_constructor() {
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    equi4_t equi{0.1, 0.01, 0.01, 0.01};
+    vec3_t point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    vec2_t p{point(0) / point(2), point(1) / point(2)};
+    vec2_t p_d = equi.distort(p);
+
+    // Use opencv to use equi distortion to distort point
+    const std::vector<cv::Point2f> points{cv::Point2f(p(0), p(1))};
+    const cv::Mat K = convert(I(3));
+    const cv::Vec4f D(equi.k1(), equi.k2(), equi.k3(), equi.k4());
+    std::vector<cv::Point2f> image_points;
+    cv::fisheye::distortPoints(points, image_points, K, D);
+    const vec2_t expected{image_points[0].x, image_points[0].y};
+
+    // // Debug
+    // std::cout << p_d.transpose() << std::endl;
+    // std::cout << expected.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((p_d - expected).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_equi_undistort_point() {
+  const int nb_points = 100;
+
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    const equi4_t equi{0.1, 0.2, 0.3, 0.4};
+    const vec3_t point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    const vec2_t p{point(0) / point(2), point(1) / point(2)};
+    const vec2_t p_d = equi.distort(p);
+    const vec2_t p_ud = equi.undistort(p_d);
+
+    // // Debug
+    // std::cout << p.transpose() << std::endl;
+    // std::cout << p_d.transpose() << std::endl;
+    // std::cout << p_ud.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    MU_CHECK((p - p_ud).norm() < 1.0e-5);
+  }
+
+  return 0;
+}
+
+int test_pinhole() {
   pinhole_t<> pinhole;
 
   MU_CHECK_FLOAT(0.0, pinhole.fx());
@@ -2731,20 +2805,15 @@ int test_pinhole_K() {
   return 0;
 }
 
-// int test_pinhole_focal_length() {
-//   const double fov = 90.0;
-//   const double fx = pinhole_focal_length(600, fov);
-//   const double fy = pinhole_focal_length(600, fov);
-//   MU_CHECK_FLOAT(300.0, fy);
-//   MU_CHECK_FLOAT(fx, fy);
-//
-//   // const vec2_t image_size{600, 600};
-//   // const vec2_t focal_length = pinhole_focal_length(image_size, fov, fov);
-//   // MU_CHECK_FLOAT(fx, focal_length(0));
-//   // MU_CHECK_FLOAT(fy, focal_length(1));
-//
-//   return 0;
-// }
+int test_pinhole_focal() {
+  const double fov = 90.0;
+  const double fx = pinhole_focal(600, fov);
+  const double fy = pinhole_focal(600, fov);
+  MU_CHECK_FLOAT(300.0, fy);
+  MU_CHECK_FLOAT(fx, fy);
+
+  return 0;
+}
 
 int test_pinhole_project() {
   struct vision_test_config config;
@@ -2862,6 +2931,14 @@ void test_suite() {
   MU_ADD_TEST(test_carrot_ctrl_carrot_point);
   MU_ADD_TEST(test_carrot_ctrl_update);
 
+  // Measurements
+  MU_ADD_TEST(test_imu_meas);
+  MU_ADD_TEST(test_imu_data);
+  MU_ADD_TEST(test_imu_data_add);
+  MU_ADD_TEST(test_imu_data_size);
+  MU_ADD_TEST(test_imu_data_last_ts);
+  MU_ADD_TEST(test_imu_data_clear);
+
   // Model
   MU_ADD_TEST(test_two_wheel_constructor);
   MU_ADD_TEST(test_two_wheel_update);
@@ -2875,11 +2952,11 @@ void test_suite() {
   MU_ADD_TEST(test_grid_good);
   MU_ADD_TEST(test_radtan_distort_point);
   MU_ADD_TEST(test_radtan_undistort_point);
-  // MU_ADD_TEST(test_equi_distort_point);
-  // MU_ADD_TEST(test_equi_undistort_point);
-  MU_ADD_TEST(test_pinhole_constructor);
+  MU_ADD_TEST(test_equi_distort_point);
+  MU_ADD_TEST(test_equi_undistort_point);
+  MU_ADD_TEST(test_pinhole);
   MU_ADD_TEST(test_pinhole_K);
-  // MU_ADD_TEST(test_pinhole_focal_length);
+  MU_ADD_TEST(test_pinhole_focal);
   MU_ADD_TEST(test_pinhole_project);
 }
 

@@ -22,6 +22,7 @@
  * - Interpolation
  * - Control
  * - Measurements
+ * - Parameters
  * - Models
  * - Vision
  * - Factor Graph
@@ -1234,6 +1235,11 @@ matx_t enforce_psd(const matx_t &A);
 matx_t nullspace(const matx_t &A);
 
 /**
+ * Check if two matrices `A` and `B` are equal.
+ */
+bool equals(const matx_t &A, const matx_t &B);
+
+/**
  * Load std::vector of real_ts to an Eigen::Matrix
  *
  * @param[in] x Matrix values
@@ -1258,9 +1264,9 @@ void load_matrix(const matx_t A, std::vector<real_t> &x);
  * Perform Schur's Complement
  */
 void schurs_complement(const matx_t &H, const vecx_t &b,
-											 const size_t m, const size_t r,
-								  		 matx_t &H_marg, vecx_t &b_marg,
-											 const bool precond=false, const bool debug=false);
+                       const size_t m, const size_t r,
+                       matx_t &H_marg, vecx_t &b_marg,
+                       const bool precond=false, const bool debug=false);
 
 /******************************************************************************
  *                                 Geometry
@@ -2161,14 +2167,6 @@ struct meas_t {
   virtual ~meas_t() {}
 };
 
-struct imu_data_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-
-  timestamps_t ts;
-  vec3s_t gyro;
-  vec3s_t accel;
-};
-
 struct imu_meas_t {
   timestamp_t ts = 0;
   vec3_t accel{0.0, 0.0, 0.0};
@@ -2180,6 +2178,35 @@ struct imu_meas_t {
     : ts{ts_}, accel{accel_}, gyro{gyro_} {}
 
   ~imu_meas_t() {}
+};
+
+struct imu_data_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  timestamps_t timestamps;
+  vec3s_t accel;
+  vec3s_t gyro;
+
+  void add(const timestamp_t &ts, const vec3_t &acc, const vec3_t &gyr) {
+    timestamps.push_back(ts);
+    accel.push_back(acc);
+    gyro.push_back(gyr);
+  }
+
+  size_t size() {
+    assert(timestamps.size() == accel.size());
+    assert(timestamps.size() == gyro.size());
+    return timestamps.size();
+  }
+
+  timestamp_t last_ts() {
+    return timestamps.back();
+  }
+
+  void clear() {
+    timestamps.clear();
+    accel.clear();
+    gyro.clear();
+  }
 };
 
 // struct image_t : meas_t {
@@ -2222,9 +2249,24 @@ struct cam_frame_t {
   ~cam_frame_t() {}
 };
 
-/*****************************************************************************
- *                                MODELS
- ****************************************************************************/
+/******************************************************************************
+ *                               PARAMETERS
+ *****************************************************************************/
+
+struct imu_params_t {
+  real_t rate = 0.0;        // IMU rate [Hz]
+  real_t tau_a = 0.0;       // Reversion time constant for accel [s]
+  real_t tau_g = 0.0;       // Reversion time constant for gyro [s]
+  real_t sigma_g_c = 0.0;   // Gyro noise density [rad/s/sqrt(Hz)]
+  real_t sigma_a_c = 0.0;   // Accel noise density [m/s^s/sqrt(Hz)]
+  real_t sigma_gw_c = 0.0;  // Gyro drift noise density [rad/s^s/sqrt(Hz)]
+  real_t sigma_aw_c = 0.0;  // Accel drift noise density [m/s^2/sqrt(Hz)]
+  real_t g = 9.81;          // Gravity vector [ms-2]
+};
+
+/******************************************************************************
+ *                                 MODELS
+ *****************************************************************************/
 
 /**
  * Create DH transform from link n to link n-1 (end to front)
@@ -2358,7 +2400,7 @@ void circle_trajectory(const real_t r, const real_t v, real_t *w, real_t *time);
  * Two wheel robot
  */
 struct two_wheel_t {
-  vec3_t p_G = vec3_t::Zero();
+  vec3_t r_G = vec3_t::Zero();
   vec3_t v_G = vec3_t::Zero();
   vec3_t a_G = vec3_t::Zero();
   vec3_t rpy_G = vec3_t::Zero();
@@ -2376,19 +2418,31 @@ struct two_wheel_t {
 
   two_wheel_t() {}
 
-  two_wheel_t(const vec3_t &p_G_, const vec3_t &v_G_, const vec3_t &rpy_G_)
-      : p_G{p_G_}, v_G{v_G_}, rpy_G{rpy_G_} {}
+  two_wheel_t(const vec3_t &r_G_, const vec3_t &v_G_, const vec3_t &rpy_G_)
+      : r_G{r_G_}, v_G{v_G_}, rpy_G{rpy_G_} {}
 
   ~two_wheel_t() {}
-};
 
-/**
- * Update
- *
- * @param[in,out] tm Model
- * @param[in] dt Time difference (s)
- */
-void two_wheel_update(two_wheel_t &tm, const real_t dt);
+  void update(const real_t dt) {
+    const vec3_t r_G_prev = r_G;
+    const vec3_t v_G_prev = v_G;
+    const vec3_t rpy_G_prev = rpy_G;
+
+    r_G += euler321(rpy_G) * v_B * dt;
+    v_G = (r_G - r_G_prev) / dt;
+    a_G = (v_G - v_G_prev) / dt;
+
+    rpy_G += euler321(rpy_G) * w_B * dt;
+    w_G = rpy_G - rpy_G_prev;
+    a_B = euler123(rpy_G) * a_G;
+
+    // Wrap angles to +/- pi
+    for (int i = 0; i < 3; i++) {
+      rpy_G(i) = (rpy_G(i) > M_PI) ? rpy_G(i) - 2 * M_PI : rpy_G(i);
+      rpy_G(i) = (rpy_G(i) < -M_PI) ? rpy_G(i) + 2 * M_PI : rpy_G(i);
+    }
+  }
+};
 
 /**
  * MAV model
