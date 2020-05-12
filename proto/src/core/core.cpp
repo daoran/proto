@@ -3704,12 +3704,12 @@ cv::Mat draw_grid_features(const cv::Mat &image,
   return draw_grid_features(image, grid_rows, grid_cols, points);
 }
 
-std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
-                                    const int max_corners,
-                                    const int grid_rows,
-                                    const int grid_cols,
-                                    const real_t threshold,
-                                    const bool nonmax_suppression) {
+std::vector<cv::Point2f> grid_fast(const cv::Mat &image,
+                                   const int max_corners,
+                                   const int grid_rows,
+                                   const int grid_cols,
+                                   const real_t threshold,
+                                   const bool nonmax_suppression) {
   // Prepare input image - make sure it is grayscale
   cv::Mat image_gray = rgb2gray(image);
 
@@ -3719,10 +3719,10 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
   const int dx = image_width / grid_cols;
   const int dy = image_height / grid_rows;
   const int nb_cells = grid_rows * grid_cols;
-  const size_t max_corners_per_cell = (float) max_corners / (float) nb_cells;
+  const size_t max_corners_per_cell = max_corners / nb_cells;
 
   // Detect corners in each grid cell
-  std::vector<cv::KeyPoint> keypoints_all;
+  std::vector<cv::Point2f> keypoints_all;
 
   for (int x = 0; x < image_width; x += dx) {
     for (int y = 0; y < image_height; y += dy) {
@@ -3740,18 +3740,17 @@ std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
 
       // Adjust keypoint's position according to the offset limit to max
       // corners per cell
-      std::vector<cv::KeyPoint> keypoints_adjusted;
+      size_t cell_counter = 0;
       for (auto &kp : keypoints) {
-        keypoints_adjusted.emplace_back(kp.pt.x += x, kp.pt.y += y, kp.size);
-        if (keypoints_adjusted.size() == max_corners_per_cell) {
+        kp.pt.x += x;
+        kp.pt.y += y;
+
+        keypoints_all.push_back(kp.pt);
+        cell_counter++;
+        if (cell_counter == max_corners_per_cell) {
           break;
         }
       }
-
-      // Add to total keypoints detected
-      keypoints_all.insert(std::end(keypoints_all),
-                           std::begin(keypoints_adjusted),
-                           std::end(keypoints_adjusted));
     }
   }
 

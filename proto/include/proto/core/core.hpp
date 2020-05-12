@@ -2806,12 +2806,12 @@ cv::Mat draw_grid_features(const cv::Mat &image,
  *
  * @returns List of keypoints
  */
-std::vector<cv::KeyPoint> grid_fast(const cv::Mat &image,
-                                    const int max_corners = 100,
-                                    const int grid_rows = 5,
-                                    const int grid_cols = 5,
-                                    const real_t threshold = 10.0,
-                                    const bool nonmax_suppression = true);
+std::vector<cv::Point2f> grid_fast(const cv::Mat &image,
+                                   const int max_corners = 100,
+                                   const int grid_rows = 5,
+                                   const int grid_cols = 5,
+                                   const real_t threshold = 10.0,
+                                   const bool nonmax_suppression = true);
 
 /**
  * Grid good

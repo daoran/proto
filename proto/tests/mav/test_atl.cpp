@@ -2,8 +2,8 @@
 #include <fstream>
 
 #include "proto/munit.hpp"
-#include "proto/atl/atl.hpp"
-#include "proto/model/model.hpp"
+#include "proto/core/core.hpp"
+#include "proto/mav/atl.hpp"
 
 namespace proto {
 
@@ -371,8 +371,8 @@ int test_lz_detector_detect() {
   const lz_detector_t lz_detector{tag_ids, tag_sizes};
 
   cv::Mat image;
-  const double fx = pinhole_focal_length(image.cols, 90.0);
-  const double fy = pinhole_focal_length(image.rows, 90.0);
+  const double fx = pinhole_focal(image.cols, 90.0);
+  const double fy = pinhole_focal(image.rows, 90.0);
   const double cx = image.cols / 2.0;
   const double cy = image.rows / 2.0;
   const pinhole_t pinhole{fx, fy, cx, cy};

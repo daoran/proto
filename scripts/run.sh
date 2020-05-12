@@ -25,7 +25,7 @@ debug() {
 # time make debug
 time make release
 sudo make install
-time make ros
+# time make ros
 # sudo make debug_install
 # exit
 
@@ -142,7 +142,7 @@ cd proto/build/tests
 # ./core-test_core --target test_imu_data_clear
 # ---- Model
 # ./core-test_core --target test_two_wheel_constructor
-./core-test_core --target test_two_wheel_update
+# ./core-test_core --target test_two_wheel_update
 # ./core-test_core --target test_mav_model_constructor
 # ./core-test_core --target test_mav_model_update
 # ---- Vision
@@ -164,14 +164,7 @@ cd proto/build/tests
 # ./dataset-test_kitti
 
 # -- estimation
-# ./estimation-test_ba
-# ./estimation-test_ba --target test_parse_keypoints_line
-# ./estimation-test_ba --target test_load_keypoints
-# ./estimation-test_ba --target test_ba_residuals
-# ./estimation-test_ba --target test_ba_jacobian
-# ./estimation-test_ba --target test_ba_update
-# ./estimation-test_ba --target test_ba_cost
-# ./estimation-test_ba --target test_ba_solve
+# ./estimation-test_dense
 # ./estimation-test_factor
 # ./estimation-test_factor --target test_pose_factor_jacobians
 # ./estimation-test_factor --target test_ba_factor_jacobians
@@ -191,8 +184,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_solve_ba
 # ./estimation-test_factor --target test_graph_solve
 # ./estimation-test_factor --target test_tiny_solver
-# ./estimation-test_measurement
-# ./estimation-test_dense
+./estimation-test_frontend
 
 # -- viz
 # ./viz-test_gui
