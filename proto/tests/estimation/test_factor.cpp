@@ -979,11 +979,18 @@ int test_graph_solve_ba() {
                                              cam_id,
                                              z);
     }
+
+    // printf("k: %d\n", k);
+    // if (k == 9) {
+    //   break;
+    // }
   }
 
   // Solve graph
   tiny_solver_t solver;
   solver.verbose = true;
+  solver.time_limit = 10.0;
+  solver.max_iter = 30.0;
   solver.solve(graph);
   printf("solver took: %fs\n", solver.solve_time);
 
@@ -1119,45 +1126,45 @@ int test_graph_solve_vio() {
   return 0;
 }
 
-void imu_update(const imu_data_t &imu_data,
-                const vec3_t &g,
-                vec3_t &T_WS,
-                vec_t<9> &sb) {
-  auto na = zeros(3, 1);
-  auto ng = zeros(3, 1);
-
-  auto C_WS = tf_rot(T_WS);
-  auto r_WS = tf_trans(T_WS);
-  auto v_WS = sb.segment(0, 3);
-  auto ba = sb.segment(3, 3);
-  auto bg = sb.segment(6, 3);
-
-  for (size_t k = 0; k < imu_data.timestamps.size(); k++) {
-    // Calculate dt
-    real_t dt = 0.0;
-    if ((k + 1) < imu_data.timestamps.size()) {
-      dt = imu_data.timestamps[k + 1] - imu_data.timestamps[k];
-    } else {
-      dt = imu_data.timestamps.back() - (imu_data.timestamps.back() - 1);
-    }
-    const auto dt_sq = dt * dt;
-
-    // Get accel and gyro measurements
-    const auto a = (imu_data.accel[k] - ba - na);
-    const auto w = (imu_data.gyro[k] - bg - ng);
-
-    // Update
-    C_WS *= lie::Exp(w * dt);
-    v_WS += (C_WS * a * dt) + (g * dt);
-    r_WS += (v_WS * dt) + (0.5 * C_WS * a * dt_sq) + (0.5 * g * dt_sq);
-  }
-
-  // Set results
-  T_WS = tf(C_WS, r_WS);
-  sb.segment(0, 3) = v_WS;
-  sb.segment(3, 3) = ba;
-  sb.segment(6, 3) = bg;
-}
+// void imu_update(const imu_data_t &imu_data,
+//                 const vec3_t &g,
+//                 vec3_t &T_WS,
+//                 vec_t<9> &sb) {
+//   auto na = zeros(3, 1);
+//   auto ng = zeros(3, 1);
+//
+//   auto C_WS = tf_rot(T_WS);
+//   auto r_WS = tf_trans(T_WS);
+//   auto v_WS = sb.segment(0, 3);
+//   auto ba = sb.segment(3, 3);
+//   auto bg = sb.segment(6, 3);
+//
+//   for (size_t k = 0; k < imu_data.timestamps.size(); k++) {
+//     // Calculate dt
+//     real_t dt = 0.0;
+//     if ((k + 1) < imu_data.timestamps.size()) {
+//       dt = imu_data.timestamps[k + 1] - imu_data.timestamps[k];
+//     } else {
+//       dt = imu_data.timestamps.back() - (imu_data.timestamps.back() - 1);
+//     }
+//     const auto dt_sq = dt * dt;
+//
+//     // Get accel and gyro measurements
+//     const auto a = (imu_data.accel[k] - ba - na);
+//     const auto w = (imu_data.gyro[k] - bg - ng);
+//
+//     // Update
+//     C_WS *= lie::Exp(w * dt);
+//     v_WS += (C_WS * a * dt) + (g * dt);
+//     r_WS += (v_WS * dt) + (0.5 * C_WS * a * dt_sq) + (0.5 * g * dt_sq);
+//   }
+//
+//   // Set results
+//   T_WS = tf(C_WS, r_WS);
+//   sb.segment(0, 3) = v_WS;
+//   sb.segment(3, 3) = ba;
+//   sb.segment(6, 3) = bg;
+// }
 
 int test_imu_propagate() {
 
