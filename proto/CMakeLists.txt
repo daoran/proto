@@ -36,16 +36,13 @@ ADD_LIBRARY(
   ${PROJECT_NAME}
   # core
   src/core/core.cpp
-  # src/core/stb.cpp
-  # src/core/tinyply.cpp
-  # # dataset
+  # dataset
   # src/dataset/euroc.cpp
   src/dataset/kitti.cpp
-  # # estimation
-  # # src/estimation/dense.cpp
+  # estimation
+  # src/estimation/dense.cpp
   # src/estimation/factor.cpp
-  # # src/estimation/filter.cpp
-  src/estimation/frontend.cpp
+  # src/estimation/filter.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)

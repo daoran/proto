@@ -42,12 +42,14 @@ int test_frontend_update() {
     const auto image = cv::imread(cam0_image_path, cv::IMREAD_COLOR);
     const auto image_gray = rgb2gray(image);
 
-    frontend.update(image, debug);
+    frontend.update(image_gray, debug);
     if (debug) {
-      if (cv::waitKey(100) == 'q') {
+      if (cv::waitKey(50) == 'q') {
         return 0;
       }
     }
+    printf("tracked: %zu  ", frontend.features.tracking.size());
+    printf("total: %zu\n", frontend.features.tracking.size() + frontend.features.lost.size());
     nb_images++;
   }
   printf("seconds per image: %f\n", profiler.stop("tracking") / nb_images);

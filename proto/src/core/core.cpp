@@ -1,5 +1,20 @@
 #include "proto/core/core.hpp"
 
+#ifndef STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#include "proto/core/stb_image.h"
+#endif // STB_IMAGE_IMPLEMENTATION
+
+#ifndef STB_IMAGE_RESIZE_IMPLEMENTATION
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "proto/core/stb_image_resize.h"
+#endif // STB_IMAGE_RESIZE_IMPLEMENTATION
+
+#ifndef TINYPLY_IMPLEMENTATION
+#define TINYPLY_IMPLEMENTATION
+#include "proto/core/tinyply.hpp"
+#endif // TINYPLY_IMPLEMENTATION
+
 namespace proto {
 
 /*****************************************************************************
@@ -3705,7 +3720,7 @@ cv::Mat draw_grid_features(const cv::Mat &image,
 }
 
 std::vector<cv::Point2f> grid_fast(const cv::Mat &image,
-                                   const int max_corners,
+                                   const int max_keypoints,
                                    const int grid_rows,
                                    const int grid_cols,
                                    const real_t threshold,
@@ -3719,7 +3734,7 @@ std::vector<cv::Point2f> grid_fast(const cv::Mat &image,
   const int dx = image_width / grid_cols;
   const int dy = image_height / grid_rows;
   const int nb_cells = grid_rows * grid_cols;
-  const size_t max_corners_per_cell = max_corners / nb_cells;
+  const size_t max_per_cell = std::ceil((float) max_keypoints / (float) nb_cells);
 
   // Detect corners in each grid cell
   std::vector<cv::Point2f> keypoints_all;
@@ -3747,7 +3762,7 @@ std::vector<cv::Point2f> grid_fast(const cv::Mat &image,
 
         keypoints_all.push_back(kp.pt);
         cell_counter++;
-        if (cell_counter == max_corners_per_cell) {
+        if (cell_counter >= max_per_cell) {
           break;
         }
       }
@@ -3758,7 +3773,7 @@ std::vector<cv::Point2f> grid_fast(const cv::Mat &image,
 }
 
 std::vector<cv::Point2f> grid_good(const cv::Mat &image,
-                                   const int max_corners,
+                                   const int max_keypoints,
                                    const int grid_rows,
                                    const int grid_cols,
                                    const real_t quality_level,
@@ -3776,10 +3791,10 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
   const int dx = image_width / grid_cols;
   const int dy = image_height / grid_rows;
   const int nb_cells = grid_rows * grid_cols;
-  const size_t max_corners_per_cell = (float) max_corners / (float) nb_cells;
+  const size_t max_per_cell = std::ceil((float) max_keypoints / (float) nb_cells);
 
   // Detect corners in each grid cell
-  std::vector<cv::Point2f> corners_all;
+  std::vector<cv::Point2f> keypoints_all;
 
   for (int x = 0; x < image_width; x += dx) {
     for (int y = 0; y < image_height; y += dy) {
@@ -3787,13 +3802,13 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
       const real_t w = (x + dx > image_width) ? image_width - x : dx;
       const real_t h = (y + dy > image_height) ? image_height - y : dy;
 
-      // Detect corners in grid cell
+      // Detect keypoints in grid cell
       const cv::Rect roi = cv::Rect(x, y, w, h);
       const cv::Mat sub_mask = (mask.rows == 0) ? cv::Mat() : mask(roi);
-      std::vector<cv::Point2f> corners;
+      std::vector<cv::Point2f> keypoints;
       cv::goodFeaturesToTrack(image_gray(roi),
-                              corners,
-                              max_corners,
+                              keypoints,
+                              max_keypoints,
                               quality_level,
                               min_distance,
                               sub_mask,
@@ -3802,23 +3817,22 @@ std::vector<cv::Point2f> grid_good(const cv::Mat &image,
                               k);
 
       // Adjust keypoint's position according to the offset limit to max
-      // corners per cell
-      std::vector<cv::Point2f> corners_adjusted;
-      for (auto &p : corners) {
-        corners_adjusted.emplace_back(p.x += x, p.y += y);
-        if (corners_adjusted.size() == max_corners_per_cell) {
+      // keypoints per cell
+      size_t cell_counter = 0;
+      for (auto &kp : keypoints) {
+        kp.x += x;
+        kp.y += y;
+
+        keypoints_all.push_back(kp);
+        cell_counter++;
+        if (cell_counter >= max_per_cell) {
           break;
         }
       }
-
-      // Add to total corners detected
-      corners_all.insert(std::end(corners_all),
-                         std::begin(corners_adjusted),
-                         std::end(corners_adjusted));
     }
   }
 
-  return corners_all;
+  return keypoints_all;
 }
 
 std::ostream &operator<<(std::ostream &os, const radtan4_t &radtan4) {

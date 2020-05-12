@@ -21,7 +21,7 @@ struct feature_t {
     keypoints.emplace_back(kx, ky);
   }
 
-  size_t nb_frames_tracked() {
+  size_t tracked() {
     return keypoints.size();
   }
 };
@@ -72,9 +72,10 @@ struct frontend_t {
   cv::Mat image_prev;
 
   // Settings
-  size_t min_tracking = 80;
+  const size_t min_tracking = 30;
+  const size_t max_tracking = 50;
 
-  const int max_corners = 100;
+  // -- Grid FAST Settings
   const int grid_rows = 4;
   const int grid_cols = 5;
   const real_t quality_level = 0.001;
@@ -84,109 +85,115 @@ struct frontend_t {
   const bool use_harris_detector = true;
   const real_t k = 0.01;
 
+  // -- Optical Flow Settings
+  const int patch_size = 10;
+  const double max_level = 3;
+  const int max_iter = 30;
+  const double epsilon = 0.01;
+
+  // -- RANSAC settings
+  const int f_type = cv::FM_RANSAC;
+  const double param1 = 1.0;
+  const double param2 = 0.99;
+
   frontend_t() {}
 
-  std::vector<cv::Point2f> detect(const cv::Mat &image) {
-    const auto kps = grid_fast(image);
-    if (kps.size() > 0) {
-      initialized = true;
+  void visualize(const cv::Mat &image) {
+    cv::Mat track_image = gray2rgb(image);
+    const int radius = 2;
+    const cv::Scalar green(0, 255, 0);
+    const cv::Scalar yellow(0, 255, 255);
+
+    for (auto &kv : features.tracking) {
+      auto &f = kv.second;
+      const auto &kp = f.keypoints.back();
+      const cv::Point2f p(kp(0), kp(1));
+
+      if (f.tracked() > 3) {
+        cv::circle(track_image, p, radius, green, cv::FILLED);
+      } else {
+        cv::circle(track_image, p, radius, yellow, cv::FILLED);
+      }
     }
-    return kps;
+
+    cv::imshow("Tracking", track_image);
   }
 
-  void track(const cv::Mat &image,
-             const std::vector<cv::Point2f> &kps0,
-             std::vector<cv::Point2f> &kps1,
-             std::vector<bool> &inliers,
-             bool debug) {
-    // Track using optical flow
+  void detect(const cv::Mat &image) {
+    const size_t nb_keypoints = max_tracking - features.tracking.size();
+    const auto keypoints = grid_fast(image, nb_keypoints);
+    if (initialized == false && keypoints.size() > 0) {
+      initialized = true;
+    }
+
+    for (size_t i = 0; i < keypoints.size(); i++) {
+      const auto kp = keypoints[i];
+      features.add(kp.x, kp.y);
+    }
+  }
+
+  void track(const cv::Mat &image, bool debug) {
+    // Setup
+    std::vector<size_t> ids;
+    std::vector<cv::Point2f> kps0;
+    std::vector<cv::Point2f> kps1;
+    features.keypoints(ids, kps0);
     kps1 = kps0;
+
+    // Track using optical flow
     std::vector<uchar> inliers_optflow;
     std::vector<float> err;
-    cv::Size win_size(10, 10);
+    cv::Size win_size(patch_size, patch_size);
     int crit_type = (cv::TermCriteria::COUNT) + (cv::TermCriteria::EPS);
-    int max_count = 30;
-    double epsilon = 0.01;
-    cv::TermCriteria criteria(crit_type, max_count, epsilon);
+    cv::TermCriteria criteria(crit_type, max_iter, epsilon);
     cv::calcOpticalFlowPyrLK(image_prev, image,
                              kps0, kps1,
                              inliers_optflow, err,
-                             win_size, 3, criteria,
+                             win_size, max_level, criteria,
                              cv::OPTFLOW_USE_INITIAL_FLOW);
 
     // Remove outliers using RANSAC
     std::vector<uchar> inliers_ransac;
-    int f_type = cv::FM_RANSAC;
-    double param1 = 1.0;
-    double param2 = 0.99;
     cv::findFundamentalMat(kps0, kps1, f_type, param1, param2, inliers_ransac);
 
-    // Form inliers vector using results from optical flow and RANSAC
+    // Update or mark feature as lost
+    std::vector<bool> inliers;
+    size_t lost = 0;
     for (size_t i = 0; i < kps0.size(); i++) {
       if (inliers_optflow[i] && inliers_ransac[i]) {
         inliers.push_back(true);
+        const auto kp = kps1[i];
+        features.update(ids[i], kp.x, kp.y);
       } else {
         inliers.push_back(false);
+        features.mark_lost(ids[i]);
+        lost++;
       }
     }
 
     // Debug
     if (debug) {
-      cv::Mat track_image;
-      const int radius = 2;
-      const cv::Scalar color(0, 255, 0);
-      cv::vconcat(image_prev, image, track_image);
-
-      for (size_t i = 0; i < kps0.size(); i++) {
-        if (inliers[i]) {
-          kps1[i].y += image.rows;
-          cv::circle(track_image, kps0[i], radius, color, cv::FILLED);
-          cv::circle(track_image, kps1[i], radius, color, cv::FILLED);
-          kps1[i].y -= image.rows;
-        }
-      }
-
-      cv::imshow("Tracking", track_image);
+      visualize(image);
     }
   }
 
   void update(const cv::Mat &image, const bool debug=false) {
     assert(image.channels() == 1);
 
-    // Detect or track
-    std::vector<size_t> ids;
-    std::vector<cv::Point2f> keypoints_prev;
-    std::vector<cv::Point2f> keypoints_curr;
-    std::vector<bool> inliers;
-    features.keypoints(ids, keypoints_prev);
-
-    if (initialized == false || keypoints_prev.size() < min_tracking) {
-      // Detect
-      keypoints_curr = detect(image);
-      for (size_t i = 0; i < keypoints_curr.size(); i++) {
-        const auto kp = keypoints_curr[i];
-        features.add(kp.x, kp.y);
-      }
-
+    if (initialized == false) {
+      detect(image);
     } else {
-      // Track
-      track(image, keypoints_prev, keypoints_curr, inliers, debug);
-      for (size_t i = 0; i < keypoints_curr.size(); i++) {
-        if (inliers[i]) {
-          const auto kp = keypoints_curr[i];
-          features.update(ids[i], kp.x, kp.y);
-        } else {
-          features.mark_lost(ids[i]);
-        }
+      if (features.tracking.size() < min_tracking) {
+        detect(image);
       }
-
+      track(image, debug);
     }
+
     image_prev = image;
   }
 
   void clear() {
     features.clear();
-    // keypoints.clear();
     image_prev.release();
   }
 };
