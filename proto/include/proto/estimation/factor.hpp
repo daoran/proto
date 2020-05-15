@@ -6,6 +6,7 @@
 namespace proto {
 
 struct param_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   bool fixed = false;
 
   std::string type;
@@ -16,13 +17,6 @@ struct param_t {
   vecx_t param;
 
   param_t() {}
-
-  param_t(const std::string &type_,
-          const size_t id_,
-          const long local_size_,
-          const long global_size_,
-          const bool fixed_=false)
-    : param_t{type_, id_, 0, local_size_, global_size_, fixed_} {}
 
   param_t(const std::string &type_,
           const size_t id_,
@@ -38,6 +32,13 @@ struct param_t {
       global_size{global_size_},
       param{zeros(global_size_, 1)} {}
 
+  param_t(const std::string &type_,
+          const size_t id_,
+          const long local_size_,
+          const long global_size_,
+          const bool fixed_=false)
+    : param_t{type_, id_, 0, local_size_, global_size_, fixed_} {}
+
   virtual ~param_t() {}
 
   virtual void plus(const vecx_t &) = 0;
@@ -45,7 +46,17 @@ struct param_t {
 };
 
 struct pose_t : param_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
   pose_t() {}
+
+  pose_t(const size_t id_,
+         const timestamp_t &ts_,
+         const vec_t<7> &pose,
+         const bool fixed_=false)
+      : param_t{"pose_t", id_, ts_, 6, 7, fixed_} {
+    param = pose;
+  }
 
   pose_t(const size_t id_,
          const timestamp_t &ts_,
@@ -135,6 +146,8 @@ struct pose_t : param_t {
 };
 
 struct extrinsic_t : pose_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
   extrinsic_t() {}
 
   extrinsic_t(const size_t id_, const mat4_t &T, const bool fixed_=false)
@@ -144,6 +157,8 @@ struct extrinsic_t : pose_t {
 };
 
 struct landmark_t : param_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
   landmark_t() {}
 
   landmark_t(const size_t id_, const vec3_t &p_W_, const bool fixed_=false)
@@ -156,6 +171,8 @@ struct landmark_t : param_t {
 };
 
 struct camera_params_t : param_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
   int cam_index = 0;
   int resolution[2] = {0, 0};
   long proj_size = 0;
@@ -188,6 +205,8 @@ struct camera_params_t : param_t {
 };
 
 struct sb_params_t : param_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
   sb_params_t() {}
 
   sb_params_t(const size_t id_,
@@ -538,7 +557,7 @@ struct cam_factor_t : factor_t {
   }
 
   int eval(bool jacs=true) {
-    assert(params.size() == 5);
+    assert(params.size() == 4);
 
     // Map out parameters
     const mat4_t T_WS = tf(params[0]->param);
@@ -556,11 +575,11 @@ struct cam_factor_t : factor_t {
     mat_t<2, 3> J_h;
     int retval = cm.project(p_C, z_hat, J_h);
     if (retval != 0) {
-      LOG_ERROR("Failed to project point!");
-      switch (retval) {
-      case -1: LOG_ERROR("Point is not infront of camera!"); break;
-      case -2: LOG_ERROR("Projected point is outside the image plane!"); break;
-      }
+      // LOG_ERROR("Failed to project point!");
+      // switch (retval) {
+      // case -1: LOG_ERROR("Point is not infront of camera!"); break;
+      // case -2: LOG_ERROR("Projected point is outside the image plane!"); break;
+      // }
       return -1;
     }
 
@@ -652,6 +671,7 @@ struct imu_factor_t : factor_t {
   void propagate(const timestamps_t &ts,
                  const vec3s_t &a_m,
                  const vec3s_t &w_m) {
+    assert(ts.size() == a_m.size());
     assert(w_m.size() == a_m.size());
 
     real_t dt_prev = ns2sec(ts[1] - ts[0]);
@@ -788,6 +808,52 @@ struct imu_factor_t : factor_t {
   }
 };
 
+void imu_propagate(const imu_data_t &imu_data,
+                	 const vec3_t &g,
+                	 const vec_t<7> &pose_i,
+                	 const vec_t<9> &sb_i,
+                	 vec_t<7> &pose_j,
+                	 vec_t<9> &sb_j) {
+  assert(imu_data.size() > 2);
+  auto na = zeros(3, 1);
+  auto ng = zeros(3, 1);
+  pose_j = pose_i;
+  sb_j = sb_i;
+
+  quat_t q_WS{pose_i(0), pose_i(1), pose_i(2), pose_i(3)};
+  vec3_t r_WS{pose_i(4), pose_i(5), pose_i(6)};
+  vec3_t v_WS = sb_i.segment(0, 3);
+  vec3_t ba = sb_i.segment(3, 3);
+  vec3_t bg = sb_i.segment(6, 3);
+
+  real_t dt = 0.0025;
+  for (size_t k = 0; k < imu_data.timestamps.size(); k++) {
+    // Calculate dt
+    if ((k + 1) < imu_data.timestamps.size()) {
+      dt = ns2sec(imu_data.timestamps[k + 1] - imu_data.timestamps[k]);
+    }
+    const real_t dt_sq = dt * dt;
+
+    // Update position and velocity
+    const vec3_t a = (imu_data.accel[k] - ba - na);
+    r_WS += v_WS * dt + 0.5 * (q_WS * a) * dt_sq + (0.5 * g * dt_sq);
+    v_WS += (q_WS * a) * dt + (g * dt);
+
+    // Update rotation
+    const vec3_t w = (imu_data.gyro[k] - bg - ng);
+    const real_t scalar = 1.0;
+    const vec3_t vector = 0.5 * w * dt;
+    q_WS *= quat_t{scalar, vector(0), vector(1), vector(2)};
+  }
+
+  // Set results
+  pose_j << q_WS.w(), q_WS.x(), q_WS.y(), q_WS.z(), r_WS;
+  sb_j.segment(0, 3) = v_WS;
+  sb_j.segment(3, 3) = ba;
+  sb_j.segment(6, 3) = bg;
+}
+
+
 /*****************************************************************************
  *                         MARGINALIZATION FACTOR
  ****************************************************************************/
@@ -920,9 +986,25 @@ struct graph_t {
 
 size_t graph_add_pose(graph_t &graph,
                       const timestamp_t &ts,
+                      const vec_t<7> &pose) {
+  const auto id = graph.next_id++;
+  const auto param = new pose_t{id, ts, pose};
+  graph.params.insert({id, param});
+  return id;
+}
+
+size_t graph_add_pose(graph_t &graph,
+                      const timestamp_t &ts,
                       const mat4_t &pose) {
   const auto id = graph.next_id++;
   const auto param = new pose_t{id, ts, pose};
+  graph.params.insert({id, param});
+  return id;
+}
+
+size_t graph_add_extrinsic(graph_t &graph, const mat4_t &pose) {
+  const auto id = graph.next_id++;
+  const auto param = new extrinsic_t{id, pose};
   graph.params.insert({id, param});
   return id;
 }
@@ -957,6 +1039,19 @@ size_t graph_add_speed_bias(graph_t &graph,
   const auto param = new sb_params_t{id, ts, v, ba, bg};
   graph.params.insert({id, param});
   return id;
+}
+
+size_t graph_add_speed_bias(graph_t &graph,
+                            const timestamp_t &ts,
+                            const vec_t<9> &sb) {
+	const vec3_t &v = sb.head(3);
+	const vec3_t &ba = sb.segment(3, 3);
+	const vec3_t &bg = sb.segment(6, 3);
+	return graph_add_speed_bias(graph, ts, v, ba, bg);
+}
+
+vecx_t graph_get_estimate(graph_t &graph, size_t id) {
+	return graph.params[id]->param;
 }
 
 size_t graph_add_pose_factor(graph_t &graph,
@@ -1178,19 +1273,16 @@ struct tiny_solver_t {
   bool verbose = false;
   int max_iter = 10;
   real_t lambda = 1e-4;
-  real_t cost_change_threshold = 1e-10;
+  real_t cost_change_threshold = 1e-2;
   real_t time_limit = 0.01;
+	real_t update_factor = 10.0;
 
   // Optimization data
   int iter = 0;
   real_t cost = 0.0;
-  vecx_t e;
-  matx_t E;
-  matx_t H;
-  matx_t H_diag;
-  vecx_t g;
-  vecx_t dx;
   real_t solve_time = 0.0;
+	vecx_t e;
+	matx_t E;
 
   tiny_solver_t() {}
 
@@ -1205,11 +1297,11 @@ struct tiny_solver_t {
     real_t lambda_k = lambda;
     for (iter = 0; iter < max_iter; iter++) {
       // Solve Gauss-Newton system [H dx = g]: Solve for dx
-      H = E.transpose() * E;
-      H_diag = (H.diagonal().asDiagonal());
+      matx_t H = E.transpose() * E;
+      matx_t H_diag = (H.diagonal().asDiagonal());
       H = H + lambda_k * H_diag;
-      g = -E.transpose() * e;
-      dx = H.ldlt().solve(g);
+      vecx_t g = -E.transpose() * e;
+      vecx_t dx = H.ldlt().solve(g);
       graph_update(graph, dx);
 
       // Evaluate cost after update
@@ -1225,42 +1317,42 @@ struct tiny_solver_t {
         printf("cost_delta[%.2e] ", cost_delta);
         printf("lambda[%.2e] ", lambda_k);
         printf("iter_time[%.4f] ", iter_time);
-        printf("solve_time[%.4f]\n", solve_time);
+        printf("solve_time[%.4f]  ", solve_time);
+
+				// Calculate reprojection error
+				size_t nb_keypoints = e.size() / 2.0;
+				real_t sse = 0.0;
+				for (size_t i = 0; i < nb_keypoints; i++) {
+					sse += e.segment(i * 2, 2).norm();
+				}
+				const real_t rmse = sqrt(sse / nb_keypoints);
+				printf("rmse reproj error: %.2f\n", rmse);
       }
 
       // Determine whether to accept update
       if (cost_k < cost) {
         // Accept update
-        lambda_k /= 10.0;
+        lambda_k /= update_factor;
         cost = cost_k;
       } else {
         // Reject update
-        lambda_k *= 10.0;
+        lambda_k *= update_factor;
         graph_update(graph, -dx);
       }
 
       // Termination criterias
-      // if (fabs(cost_delta) < cost_change_threshold) {
-      //   break;
-      // }
+      if (fabs(cost_delta) < cost_change_threshold) {
+        break;
+      }
       if ((solve_time + iter_time) > time_limit) {
         break;
       }
 
-      // Calculate reprojection error
-      size_t nb_keypoints = e.size() / 2.0;
-      real_t sse = 0.0;
-      for (size_t i = 0; i < nb_keypoints; i++) {
-        sse += e.segment(i * 2, 2).norm();
-      }
-      const real_t rmse = sqrt(sse / nb_keypoints);
-      printf("rmse reproj error: %.2f\n", rmse);
     }
     solve_time = toc(&solve_tic);
 
     return 0;
   }
-
 };
 
 } // namespace proto

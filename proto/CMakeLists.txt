@@ -61,7 +61,7 @@ FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   # atl-test_atl
-  # core-test_core
+  core-test_core
   # dataset-test_euroc
   # dataset-test_kitti
   # estimation-test_dense

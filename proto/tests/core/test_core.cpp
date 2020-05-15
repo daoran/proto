@@ -81,22 +81,22 @@ int test_path_split() {
   return 0;
 }
 
-int test_paths_combine() {
+int test_paths_join() {
   std::string out;
 
-  out = paths_combine("/a/b/c", "../");
+  out = paths_join("/a/b/c", "../");
   std::cout << out << std::endl;
   MU_CHECK("/a/b" == out);
 
-  out = paths_combine("/a/b/c", "../..");
+  out = paths_join("/a/b/c", "../..");
   std::cout << out << std::endl;
   MU_CHECK("/a" == out);
 
-  out = paths_combine("/a/b/c", "d/e");
+  out = paths_join("/a/b/c", "d/e");
   std::cout << out << std::endl;
   MU_CHECK("/a/b/c/d/e" == out);
 
-  out = paths_combine("./a/b/c", "../d/e");
+  out = paths_join("./a/b/c", "../d/e");
   std::cout << out << std::endl;
   MU_CHECK("./a/b/d/e" == out);
 
@@ -2528,7 +2528,7 @@ int test_feature_mask() {
   auto keypoints = grid_fast(image, 100, 5, 5, 30);
   std::vector<cv::Point2f> points;
   for (auto kp : keypoints) {
-    points.emplace_back(kp.pt);
+    points.emplace_back(kp);
   }
   points.emplace_back(0, 0);
   points.emplace_back(image_height, image_width);
@@ -2585,8 +2585,8 @@ int benchmark_grid_fast() {
     data.resize(keypoints.size(), 2);
     int row_index = 0;
     for (auto kp : keypoints) {
-      data(row_index, 0) = kp.pt.x;
-      data(row_index, 1) = kp.pt.y;
+      data(row_index, 0) = kp.x;
+      data(row_index, 1) = kp.y;
       row_index++;
     }
     mat2csv("/tmp/grid_fast.csv", data);
@@ -2833,6 +2833,21 @@ int test_pinhole_project() {
   return 0;
 }
 
+int test_sim_circle_trajectory() {
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+	sim_data.save("/tmp/sim_data");
+
+  // Debug
+  const bool debug = true;
+  // const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/core/plot_sim_data.m");
+  }
+
+  return 0;
+}
+
 void test_suite() {
   // Data
   MU_ADD_TEST(test_csv_rows);
@@ -2843,7 +2858,7 @@ void test_suite() {
   // Filesystem
   MU_ADD_TEST(test_file_exists);
   MU_ADD_TEST(test_path_split);
-  MU_ADD_TEST(test_paths_combine);
+  MU_ADD_TEST(test_paths_join);
 
   // Config
   MU_ADD_TEST(test_config_constructor);
@@ -2958,6 +2973,9 @@ void test_suite() {
   MU_ADD_TEST(test_pinhole_K);
   MU_ADD_TEST(test_pinhole_focal);
   MU_ADD_TEST(test_pinhole_project);
+
+  // Simulation
+  MU_ADD_TEST(test_sim_circle_trajectory);
 }
 
 } // namespace proto

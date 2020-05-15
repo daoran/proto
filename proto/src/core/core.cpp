@@ -757,7 +757,7 @@ std::vector<std::string> path_split(const std::string path) {
   return splits;
 }
 
-std::string paths_combine(const std::string path1, const std::string path2) {
+std::string paths_join(const std::string path1, const std::string path2) {
   int dirs_up;
   std::string result;
   std::vector<std::string> splits1;
@@ -3894,6 +3894,128 @@ mat3_t pinhole_K(const int img_w,
  *                               SIMULATION
  *****************************************************************************/
 
+void vio_sim_data_t::add(const int sensor_id,
+												 const timestamp_t &ts,
+												 const vec3_t &accel,
+												 const vec3_t &gyro) {
+	sim_event_t event(sensor_id, ts, accel, gyro);
+	timeline.insert({ts, event});
+}
+
+void vio_sim_data_t::add(const int sensor_id,
+												 const timestamp_t &ts,
+												 const vec2s_t &keypoints,
+												 const std::vector<size_t> &feature_ids) {
+	sim_event_t event{sensor_id, ts, keypoints, feature_ids};
+	timeline.insert({event.ts, event});
+}
+
+void vio_sim_data_t::save(const std::string &dir) {
+	if (create_dir(dir) == -1) {
+		FATAL("Failed to create dir [%s]!", dir.c_str());
+	}
+
+	auto features_csv_path = dir + "/features.csv";
+	auto cam0_obs_csv_path = dir + "/cam0_observations.csv";
+	auto cam0_kps_csv_path = dir + "/cam0_keypoints.csv";
+	auto cam0_pose_csv_path = dir + "/cam0_pose.csv";
+	auto imu_csv_path = dir + "/imu.csv";
+	auto imu_pose_csv_path = dir + "/imu_pose.csv";
+	auto imu_vel_csv_path = dir + "/imu_vel.csv";
+
+	FILE *features_csv = fopen(features_csv_path.c_str(), "w");
+	FILE *cam0_obs_csv = fopen(cam0_obs_csv_path.c_str(), "w");
+	FILE *cam0_kps_csv = fopen(cam0_kps_csv_path.c_str(), "w");
+	FILE *cam0_pose_csv = fopen(cam0_pose_csv_path.c_str(), "w");
+	FILE *imu_csv = fopen(imu_csv_path.c_str(), "w");
+	FILE *imu_pose_csv = fopen(imu_pose_csv_path.c_str(), "w");
+	FILE *imu_vel_csv = fopen(imu_vel_csv_path.c_str(), "w");
+
+	// Save features
+	for (const auto &f : features) {
+		fprintf(features_csv, "%f,%f,%f\n", f(0), f(1), f(2));
+	}
+	fclose(features_csv);
+
+	// Save observations
+	for (size_t k = 0; k < cam_ts.size(); k++) {
+		const auto ts = cam_ts[k];
+		fprintf(cam0_obs_csv, "%" PRIu64 ",", ts);
+		fprintf(cam0_obs_csv, "%zu,", observations[k].size());
+
+		for (size_t i = 0; i < observations[k].size(); i++) {
+			const auto obs = observations[k][i];
+			fprintf(cam0_obs_csv, "%zu", obs);
+			if ((i + 1) != observations[k].size()) {
+				fprintf(cam0_obs_csv, ",");
+			} else {
+				fprintf(cam0_obs_csv, "\n");
+			}
+		}
+	}
+	fclose(cam0_obs_csv);
+
+	// Save keypoints
+	for (size_t k = 0; k < cam_ts.size(); k++) {
+		const auto ts = cam_ts[k];
+		fprintf(cam0_kps_csv, "%" PRIu64 ",", ts);
+		fprintf(cam0_kps_csv, "%zu,", keypoints[k].size());
+
+		for (size_t i = 0; i < keypoints[k].size(); i++) {
+			const auto kp= keypoints[k][i];
+			fprintf(cam0_kps_csv, "%f,%f", kp(0), kp(1));
+			if ((i + 1) != keypoints[k].size()) {
+				fprintf(cam0_kps_csv, ",");
+			} else {
+				fprintf(cam0_kps_csv, "\n");
+			}
+		}
+	}
+	fclose(cam0_kps_csv);
+
+	// Save camera poses
+	for (size_t k = 0; k < cam_ts.size(); k++) {
+		const auto ts = cam_ts[k];
+		const auto q = cam_rot[k];
+		const auto r = cam_pos[k];
+		fprintf(cam0_pose_csv, "%" PRIu64 ",", ts);
+		fprintf(cam0_pose_csv, "%f,%f,%f,%f,", q.w(), q.x(), q.y(), q.z());
+		fprintf(cam0_pose_csv, "%f,%f,%f\n", r(0), r(1), r(2));
+	}
+	fclose(cam0_pose_csv);
+
+	// Save imu data
+	for (size_t k = 0; k < imu_ts.size(); k++) {
+		const auto ts = imu_ts[k];
+		const auto a = imu_acc[k];
+		const auto w = imu_gyr[k];
+		fprintf(imu_csv, "%" PRIu64 ",", ts);
+		fprintf(imu_csv, "%f,%f,%f,", a(0), a(1), a(2));
+		fprintf(imu_csv, "%f,%f,%f\n", w(0), w(1), w(2));
+	}
+	fclose(imu_csv);
+
+	// Save imu poses
+	for (size_t k = 0; k < imu_ts.size(); k++) {
+		const auto ts = imu_ts[k];
+		const auto q = imu_rot[k];
+		const auto r = imu_pos[k];
+		fprintf(imu_pose_csv, "%" PRIu64 ",", ts);
+		fprintf(imu_pose_csv, "%f,%f,%f,%f,", q.w(), q.x(), q.y(), q.z());
+		fprintf(imu_pose_csv, "%f,%f,%f\n", r(0), r(1), r(2));
+	}
+	fclose(imu_pose_csv);
+
+	// Save imu velocities
+	for (size_t k = 0; k < imu_ts.size(); k++) {
+		const auto ts = imu_ts[k];
+		const auto vel = imu_vel[k];
+		fprintf(imu_vel_csv, "%" PRIu64 ",", ts);
+		fprintf(imu_vel_csv, "%f,%f,%f\n", vel(0), vel(1), vel(2));
+	}
+	fclose(imu_vel_csv);
+}
+
 static vec3s_t create_3d_features(const real_t *x_bounds,
                                   const real_t *y_bounds,
                                   const real_t *z_bounds,
@@ -3967,7 +4089,7 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
   const real_t circle_dist = 2 * M_PI * circle_r;
   const real_t time_taken = circle_dist / sim_data.sensor_velocity;
   const real_t f = 1.0 / time_taken;
-  const real_t w = 2.0 * M_PI * f;
+  const real_t w = -2.0 * M_PI * f;
   const real_t w2 = w * w;
 
   // Create features
@@ -4082,7 +4204,7 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
 
       // Form sensor angular velocity
       const timestamp_t ts_k = t * 1e9;
-      const vec3_t w_WS_W{0.0, 0.0, -w};
+      const vec3_t w_WS_W{0.0, 0.0, w};
 
       // Form Sensor acceleration
       const real_t ax = -circle_r * w2 * cos(theta);
@@ -4110,24 +4232,10 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
 
       // Update
       t += dt;
-      theta += -w * dt;  // -ve to go from 180 to -180 in CW fashion
-      yaw += -w * dt;    // -ve to go from 180 to -180 in CW fashion
+      theta += w * dt;  // -ve to go from 180 to -180 in CW fashion
+      yaw += w * dt;    // -ve to go from 180 to -180 in CW fashion
     }
   }
-
-  // // Save sim data
-  // const std::string features_path = "/tmp/features.csv";
-  // const std::string imu_data_path = "/tmp/imu_data.csv";
-  // const std::string imu_poses_path = "/tmp/imu_poses.csv";
-  // const std::string cam_poses_path = "/tmp/cam_poses.csv";
-  // save_features(features_path, sim_data.features);
-  // save_poses(cam_poses_path,
-  //            sim_data.cam_ts,
-  //            sim_data.cam_pos,
-  //            sim_data.cam_rot);
-  // save_imu_data(imu_data_path, imu_poses_path,
-  //               sim_data.imu_ts, sim_data.imu_acc, sim_data.imu_gyr,
-  //               sim_data.imu_pos, sim_data.imu_rot);
 }
 
 

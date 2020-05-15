@@ -25,6 +25,7 @@
  * - Parameters
  * - Models
  * - Vision
+ * - Simulation
  * - Factor Graph
  *
  ****************************************************************************/
@@ -84,8 +85,8 @@ namespace proto {
  *****************************************************************************/
 
 /* PRECISION TYPE */
-// #define PRECISION 1 // Single Precision
-#define PRECISION 2 // Double Precision
+#define PRECISION 1 // Single Precision
+// #define PRECISION 2 // Double Precision
 
 #if PRECISION == 1
   #define real_t float
@@ -627,7 +628,7 @@ std::vector<std::string> path_split(const std::string path);
  * @param path2 Path 22
  * @returns Combined path
  */
-std::string paths_combine(const std::string path1, const std::string path2);
+std::string paths_join(const std::string path1, const std::string path2);
 
 
 /******************************************************************************
@@ -2192,15 +2193,11 @@ struct imu_data_t {
     gyro.push_back(gyr);
   }
 
-  size_t size() {
-    assert(timestamps.size() == accel.size());
-    assert(timestamps.size() == gyro.size());
-    return timestamps.size();
-  }
+  size_t size() const { return timestamps.size(); }
+  size_t size() { return static_cast<const imu_data_t &>(*this).size(); }
 
-  timestamp_t last_ts() {
-    return timestamps.back();
-  }
+  timestamp_t last_ts() const { return timestamps.back(); }
+  timestamp_t last_ts() { return static_cast<const imu_data_t &>(*this).last_ts(); }
 
   void clear() {
     timestamps.clear();
@@ -3515,18 +3512,18 @@ struct vio_sim_data_t {
   std::multimap<timestamp_t, sim_event_t> timeline;
 
   // Add IMU measurement to timeline
-  void add(const int sensor_id, const timestamp_t &ts,
-           const vec3_t &accel, const vec3_t &gyro) {
-    sim_event_t event(sensor_id, ts, accel, gyro);
-    timeline.insert({ts, event});
-  }
+  void add(const int sensor_id,
+					 const timestamp_t &ts,
+           const vec3_t &accel,
+					 const vec3_t &gyro);
 
   // Add camera frame to timeline
-  void add(const int sensor_id, const timestamp_t &ts,
-           const vec2s_t &keypoints, const std::vector<size_t> &feature_ids) {
-    sim_event_t event{sensor_id, ts, keypoints, feature_ids};
-    timeline.insert({event.ts, event});
-  }
+  void add(const int sensor_id,
+					 const timestamp_t &ts,
+           const vec2s_t &keypoints,
+					 const std::vector<size_t> &feature_ids);
+
+	void save(const std::string &dir);
 };
 
 void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data);

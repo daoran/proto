@@ -31,13 +31,13 @@ function x_imu = imu_update(x_imu, a_B, w_B, dt)
   C_WS_i = x_imu.C_WS;
   v_WS_i = x_imu.v_WS;
 
-  w_W = (w_B - b_g - n_g);
-  a_W = (a_B - b_a - n_a);
+  w = (w_B - b_g - n_g);
+  a = (a_B - b_a - n_a);
   dt_sq = dt * dt;
 
-  x_imu.C_WS *= so3_exp(w_W * dt);
-  x_imu.v_WS += (C_WS_i * a_W * dt) + (g * dt);
-  x_imu.p_WS += (v_WS_i * dt) + (0.5 * C_WS_i * a_W * dt_sq) + (0.5 * g * dt_sq);
+  x_imu.C_WS *= so3_exp(w * dt);
+  x_imu.v_WS += (C_WS_i * a * dt) + (g * dt);
+  x_imu.p_WS += (v_WS_i * dt) + (0.5 * C_WS_i * a * dt_sq) + (0.5 * g * dt_sq);
 endfunction
 
 function imu_batch_integration(data)
