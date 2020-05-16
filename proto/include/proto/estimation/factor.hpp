@@ -622,7 +622,7 @@ struct imu_factor_t : factor_t {
   const timestamps_t imu_ts;
   const vec3s_t imu_accel;
   const vec3s_t imu_gyro;
-  const vec3_t g{0.0, 0.0, 9.81};
+  const vec3_t g{0.0, 0.0, -9.81};
 
   mat_t<15, 15> P = zeros(15, 15);  // Covariance matrix
   mat_t<12, 12> Q = zeros(12, 12);  // noise matrix

@@ -166,7 +166,7 @@ cd proto/build/tests
 
 # -- estimation
 # ./estimation-test_dense
-./estimation-test_factor
+# ./estimation-test_factor
 # ./estimation-test_factor --target test_pose_factor_jacobians
 # ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians
@@ -185,7 +185,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_eval
 # ./estimation-test_factor --target test_graph_solve_ba
 # ./estimation-test_factor --target test_graph_solve_vo
-# ./estimation-test_factor --target test_graph_solve_vio
+./estimation-test_factor --target test_graph_solve_vio
 # ./estimation-test_frontend
 
 # -- viz

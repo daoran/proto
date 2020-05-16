@@ -4154,8 +4154,8 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
 
       // Update
       t += dt;
-      theta += -w * dt; // -ve to go from 180 to -180 in CW fashion
-      yaw += -w * dt;   // -ve to yaw the camera CW fashion
+      theta += w * dt; // -ve to go from 180 to -180 in CW fashion
+      yaw += w * dt;   // -ve to yaw the camera CW fashion
     }
   }
 

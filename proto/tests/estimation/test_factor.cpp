@@ -349,7 +349,6 @@ int test_imu_factor_jacobians() {
   // -- IMU factor
   std::vector<param_t *> params{&pose_i, &sb_i, &pose_j, &sb_j};
   imu_factor_t factor(0, imu_ts, imu_accel, imu_gyro, I(15), params);
-  factor.propagate(imu_ts, imu_accel, imu_gyro);
 
   // Check jacobians
   int retval = 0;
@@ -387,73 +386,32 @@ int test_imu_propagate() {
   sim_circle_trajectory(4.0, sim_data);
 	sim_data.save("/tmp/sim_data");
 
-	// imu_data_t imu_data;
-	// const vec3_t g{0.0, 0.0, -9.81};
-  //
-	// size_t imu_end = sim_data.imu_ts.size();
-	// mat4_t T_WS_i = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
-	// mat4_t T_WS_j = tf(sim_data.imu_rot[imu_end], sim_data.imu_pos[imu_end]);
-  //
-	// vec_t<9> sb_i;
-	// sb_i << sim_data.imu_vel[0], zeros(6, 1);
-  //
-	// vec_t<9> sb_j;
-	// sb_j << sim_data.imu_vel[imu_end], zeros(6, 1);
-  //
-	// print_matrix("T_WS_i", T_WS_i);
-	// print_matrix("T_WS_j", T_WS_j);
-	// print_vector("sb_i", sb_i);
-	// print_vector("sb_j", sb_j);
-	// printf("\n");
-  //
-	// for (size_t k = 0; k < imu_end; k++) {
-	// 	imu_data.add(sim_data.imu_ts[k], sim_data.imu_acc[k], sim_data.imu_gyr[k]);
-	// }
-  //
-  // {
-  //   vec_t<7> pose_i;
-  //   auto q_WS = tf_quat(T_WS_i);
-  //   auto r_WS = tf_trans(T_WS_i);
-  //   pose_i << q_WS.w(), q_WS.x(), q_WS.y(), q_WS.z(), r_WS;
-  //   vec_t<7> pose_j;
-  //   vec_t<9> sb_j;
-  //   imu_propagate(imu_data, g, pose_i, sb_i, pose_j, sb_j);
-  //
-  //   print_vector("pose_i", pose_i);
-  //   print_vector("pose_j", pose_j);
-  //   print_vector("sb_j", sb_j);
-  // }
+  vec_t<7> pose_i;
+  vec_t<9> sb_i;
+  auto q_WS = sim_data.imu_rot[0];
+  auto r_WS = sim_data.imu_pos[0];
+  pose_i << q_WS.w(), q_WS.x(), q_WS.y(), q_WS.z(), r_WS;
+  sb_i << sim_data.imu_vel[0], zeros(6, 1);
 
-  {
-    vec_t<7> pose_i;
-    vec_t<9> sb_i;
-    {
-      auto q_WS = sim_data.imu_rot[0];
-      auto r_WS = sim_data.imu_pos[0];
-      pose_i << q_WS.w(), q_WS.x(), q_WS.y(), q_WS.z(), r_WS;
-      sb_i << sim_data.imu_vel[0], zeros(6, 1);
+  imu_data_t imu_data;
+  const vec3_t g{0.0, 0.0, -9.81};
+
+  for (size_t k = 0; k < sim_data.imu_ts.size(); k++) {
+    vec_t<7> pose_j = pose_i;
+    vec_t<9> sb_j = sb_i;
+    imu_data.add(sim_data.imu_ts[k], sim_data.imu_acc[k], sim_data.imu_gyr[k]);
+
+    if (imu_data.size() > 10) {
+      imu_propagate(imu_data, g, pose_i, sb_i, pose_j, sb_j);
+      imu_data.clear();
     }
 
-    imu_data_t imu_data;
-    const vec3_t g{0.0, 0.0, -9.81};
-
-    for (size_t k = 0; k < sim_data.imu_ts.size(); k++) {
-      vec_t<7> pose_j = pose_i;
-      vec_t<9> sb_j = sb_i;
-      imu_data.add(sim_data.imu_ts[k], sim_data.imu_acc[k], sim_data.imu_gyr[k]);
-
-      if (imu_data.size() > 10) {
-        imu_propagate(imu_data, g, pose_i, sb_i, pose_j, sb_j);
-        imu_data.clear();
-      }
-
-      pose_i = pose_j;
-      sb_i = sb_j;
-    }
-
-    print_vector("pose_j", pose_i);
-    print_matrix("T_WS", tf(pose_i));
+    pose_i = pose_j;
+    sb_i = sb_j;
   }
+
+  print_vector("pose_j", pose_i);
+  print_matrix("T_WS", tf(pose_i));
 
   // const auto pose_diff = T_WS - T_WS_j;
   // const auto pos_diff = tf_trans(pose_diff);
@@ -1083,10 +1041,12 @@ int test_graph_solve_ba() {
 int test_graph_solve_vo() {
   vio_sim_data_t sim_data;
   sim_circle_trajectory(4.0, sim_data);
+  sim_data.save("/tmp/sim_data");
 
   // Create graph
   bool prior_set = false;
   graph_t graph;
+  std::vector<size_t> pose_ids;
 
   // -- Add landmarks
   for (const auto &feature : sim_data.features) {
@@ -1123,6 +1083,7 @@ int test_graph_solve_vo() {
       const vec3_t r_WC0 = sim_data.cam_pos[pose_idx] + noise;
       const mat4_t T_WC0 = tf(q_WC0, r_WC0);
       const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
+      pose_ids.push_back(cam0_pose_id);
       pose_idx++;
 
       if (prior_set == false) {
@@ -1143,7 +1104,7 @@ int test_graph_solve_vo() {
       }
 
       cam_pose++;
-      if (cam_pose == 10) {
+      if (cam_pose == 30) {
         break;
       }
     }
@@ -1151,15 +1112,28 @@ int test_graph_solve_vo() {
 
   tiny_solver_t solver;
   solver.max_iter = 10;
+  solver.time_limit = 10.0;
 	solver.verbose = true;
   solver.solve(graph);
   printf("solver took: %fs\n", solver.solve_time);
 
+  FILE *est_csv = fopen("/tmp/sim_data/cam0_pose_est.csv", "w");
+  for (const auto &id : pose_ids) {
+    const auto ts = graph.params[id]->ts;
+    const auto pose = graph.params[id]->param;
+    const auto q = pose.head(4);
+    const auto r = pose.tail(3);
+		fprintf(est_csv, "%" PRIu64 ",", ts);
+    fprintf(est_csv, "%f,%f,%f,%f,", q(0), q(1), q(2), q(3));
+    fprintf(est_csv, "%f,%f,%f\n", r(0), r(1), r(2));
+  }
+  fclose(est_csv);
+
   // Debug
-  // const bool debug = true;
-  const bool debug = false;
+  const bool debug = true;
+  // const bool debug = false;
   if (debug) {
-    OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
+    OCTAVE_SCRIPT("scripts/estimation/plot_test_vo.m");
   }
 
   return 0;
@@ -1168,6 +1142,7 @@ int test_graph_solve_vo() {
 int test_graph_solve_vio() {
   vio_sim_data_t sim_data;
   sim_circle_trajectory(4.0, sim_data);
+  sim_data.save("/tmp/sim_data");
 
   // Create graph
   graph_t graph;
@@ -1175,11 +1150,11 @@ int test_graph_solve_vio() {
                        "sb_params_t",
                        "camera_params_t",
                        "extrinsic_t",
-                       "landmark_t"
-  };
+                       "landmark_t"};
 
 	vec3_t g{0.0, 0.0, -9.81};
   std::map<int, cam_frame_t> cam_frames;
+  std::vector<size_t> pose_ids;
   size_t pose_id = 0;
   size_t sb_id = 0;
 
@@ -1217,6 +1192,7 @@ int test_graph_solve_vio() {
     const auto ts = sim_data.imu_ts[0];
     const auto T_WS = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
     pose_id = graph_add_pose(graph, ts, T_WS);
+    pose_ids.push_back(pose_id);
     pose_idx++;
     // -- Add first sb parameter
     const vec3_t v = sim_data.imu_vel[0];
@@ -1229,6 +1205,7 @@ int test_graph_solve_vio() {
 
   // -- Add cam0 poses and ba factors
   imu_data_t imu_data;
+  std::set<size_t> unique_features;
   for (const auto &kv : sim_data.timeline) {
     const timestamp_t &ts = kv.first;
     const sim_event_t &event = kv.second;
@@ -1259,6 +1236,7 @@ int test_graph_solve_vio() {
       imu_propagate(imu_data, g, pose_i, sb_i, pose_j, sb_j);
       pose_id = graph_add_pose(graph, ts, pose_j);
       sb_id = graph_add_speed_bias(graph, ts, sb_j);
+      pose_ids.push_back(pose_id);
       pose_idx++;
 
       // Add imu0 factor
@@ -1271,6 +1249,7 @@ int test_graph_solve_vio() {
       // Add cam0 factor
       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
         const auto feature_id = event.frame.feature_ids[i];
+        unique_features.insert(feature_id);
         const auto z = event.frame.keypoints[i];
         graph_add_cam_factor<pinhole_radtan4_t>(graph,
                                                 ts,
@@ -1297,13 +1276,26 @@ int test_graph_solve_vio() {
   camera_params_t *cam_params = (camera_params_t *) graph.params[cam0_id];
   print_vector("proj param", cam_params->proj_params());
   print_vector("dist param", cam_params->dist_params());
+  printf("nb unique features: %zu\n", unique_features.size());
 
-  // // Debug
-  // // const bool debug = true;
+  FILE *est_csv = fopen("/tmp/sim_data/imu_pose_est.csv", "w");
+  for (const auto &id : pose_ids) {
+    const auto ts = graph.params[id]->ts;
+    const auto pose = graph.params[id]->param;
+    const auto q = pose.head(4);
+    const auto r = pose.tail(3);
+		fprintf(est_csv, "%" PRIu64 ",", ts);
+    fprintf(est_csv, "%f,%f,%f,%f,", q(0), q(1), q(2), q(3));
+    fprintf(est_csv, "%f,%f,%f\n", r(0), r(1), r(2));
+  }
+  fclose(est_csv);
+
+  // Debug
+  const bool debug = true;
   // const bool debug = false;
-  // if (debug) {
-  //   OCTAVE_SCRIPT("scripts/estimation/plot_sim.m");
-  // }
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/estimation/plot_test_vio.m");
+  }
 
   return 0;
 }
