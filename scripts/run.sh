@@ -24,7 +24,7 @@ debug() {
 # make deps
 # time make debug
 time make release
-# sudo make install
+sudo make install
 # time make ros
 # sudo make debug_install
 # exit
@@ -172,6 +172,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_imu_factor_jacobians
 # ./estimation-test_factor --target test_imu_propagate
+./estimation-test_factor --target test_marg_factor
 # ./estimation-test_factor --target test_graph
 # ./estimation-test_factor --target test_graph_add_pose
 # ./estimation-test_factor --target test_graph_add_landmark
@@ -185,7 +186,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_eval
 # ./estimation-test_factor --target test_graph_solve_ba
 # ./estimation-test_factor --target test_graph_solve_vo
-./estimation-test_factor --target test_graph_solve_vio
+# ./estimation-test_factor --target test_graph_solve_vio
 # ./estimation-test_frontend
 
 # -- viz

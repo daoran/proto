@@ -85,8 +85,8 @@ namespace proto {
  *****************************************************************************/
 
 /* PRECISION TYPE */
-#define PRECISION 1 // Single Precision
-// #define PRECISION 2 // Double Precision
+// #define PRECISION 1 // Single Precision
+#define PRECISION 2 // Double Precision
 
 #if PRECISION == 1
   #define real_t float
@@ -1260,6 +1260,9 @@ void load_matrix(const std::vector<real_t> &x,
  * @param[out] x Output vector of matrix values
  */
 void load_matrix(const matx_t A, std::vector<real_t> &x);
+
+/** Pseudo Inverse via SVD **/
+matx_t pinv(const matx_t &A, const real_t tol=1e-4);
 
 /**
  * Perform Schur's Complement

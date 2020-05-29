@@ -82,6 +82,20 @@ mxArray *convert(const std::vector<long> &long_vector) {
 }
 
 /**
+ * Convert vector of float
+ */
+mxArray *convert(const std::vector<float> &float_vector) {
+  const long nb_ts = float_vector.size();
+  mxArray *out = mxCreateNumericMatrix(nb_ts, 1, mxDOUBLE_CLASS, mxREAL);
+  float_t *data = (float *) mxGetData(out);
+  for (long i = 0; i < nb_ts; i++) {
+    data[i] = float_vector[i];
+  }
+
+  return out;
+}
+
+/**
  * Convert vector of double
  */
 mxArray *convert(const std::vector<double> &double_vector) {

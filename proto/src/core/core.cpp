@@ -1533,6 +1533,22 @@ void load_matrix(const matx_t &A, std::vector<real_t> &x) {
   }
 }
 
+matx_t pinv(const matx_t &A, const real_t tol) {
+	auto svd = A.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
+	const auto &vals_ = svd.singularValues();
+	matx_t vals_inv = zeros(A.cols(), A.rows());
+
+	for (unsigned int i = 0; i < vals_.size(); ++i) {
+		if (vals_(i) > tol) {
+			vals_inv(i, i) = ((real_t) 1.0) / vals_(i);
+		} else {
+			vals_inv(i, i) = ((real_t) 0);
+		}
+	}
+
+	return svd.matrixV() * vals_inv * svd.matrixU().adjoint();
+}
+
 void schurs_complement(const matx_t &H, const vecx_t &b,
                        const size_t m, const size_t r,
                        matx_t &H_marg, vecx_t &b_marg,
@@ -1540,9 +1556,9 @@ void schurs_complement(const matx_t &H, const vecx_t &b,
   assert(m > 0 && r > 0);
 
   // Setup
-  const long local_size = m + r;
-  H_marg = zeros(local_size, local_size);
-  b_marg = zeros(local_size, 1);
+  const long size = m + r;
+  H_marg = zeros(size, size);
+  b_marg = zeros(size, 1);
 
   // Precondition Hmm
   matx_t Hmm = H.block(0, 0, m, m);
@@ -1557,7 +1573,6 @@ void schurs_complement(const matx_t &H, const vecx_t &b,
   // Where Lambda_pinv is formed by **replacing every non-zero diagonal entry
   // by its reciprocal, leaving the zeros in place, and transposing the
   // resulting matrix.**
-  //
   // clang-format off
   const double eps = 1.0e-8;
   const Eigen::SelfAdjointEigenSolver<matx_t> eig(Hmm);
@@ -1576,10 +1591,10 @@ void schurs_complement(const matx_t &H, const vecx_t &b,
   const vecx_t brr = b.segment(m, r);
   H_marg = Hrr - Hrm * Hmm_inv * Hmr;
   b_marg = brr - Hrm * Hmm_inv * bmm;
-  const double inv_check = ((Hmm * Hmm_inv) - I(m, m)).sum();
-  if (fabs(inv_check) > 1e-4) {
-    LOG_ERROR("FAILED!: Inverse identity check: %f", inv_check);
-  }
+  // const double inv_check = ((Hmm * Hmm_inv) - I(m, m)).sum();
+  // if (fabs(inv_check) > 1e-4) {
+  //   LOG_ERROR("FAILED!: Inverse identity check: %f", inv_check);
+  // }
 
   if (debug) {
     mat2csv("/tmp/H.csv", H);

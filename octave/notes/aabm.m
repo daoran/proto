@@ -1,5 +1,5 @@
 # Point relative to camera (HYPOTHETICAL)
-p_CPi = [0.0; 0.0; 10.0];
+p_CPi = [0.0; 0.0; 0.5];
 
 # Marker-camera exintrinsics (REAL)
 q_MC = [0.160825; -0.683; 0.6954; -0.153];
@@ -7,7 +7,7 @@ r_MC = [0.104008; 0.019301; -0.104969];
 
 # Marker world pose (HYPOTHETICAL)
 q_WM = [1.0; 0.0; 0.0; 0.0];
-r_WM = [1.0; 2.0; 3.0];
+r_WM = [0.0; 0.0; 0.0];
 
 function R = quat2rot(q)
   qw = q(1);
@@ -253,7 +253,7 @@ J_MC = [J_theta_MC, J_r_MC];
 # -- Point jacobian
 J_p_CPi = C_WC;
 # -- Overall jacobian
-J = [J_theta_WM, J_r_WM, J_theta_MC, J_r_MC, J_p_CPi]
+J = [J_theta_WM, J_r_WM, J_theta_MC, J_r_MC, J_p_CPi];
 
 # Check jacobians
 check_marker_pose_jac(J_WM, T_WM, T_MC, p_CPi);
@@ -261,14 +261,16 @@ check_marker_camera_jac(J_MC, T_WM, T_MC, p_CPi);
 check_point_jac(J_p_CPi, T_WM, T_MC, p_CPi);
 
 # Calculate covariance of point in world frame: p_WPi
+# Note: OptiTrack claims accuracy is less than 0.05deg with 0.3mm errors
 # -- Form input covariance matrix
 covar_in = eye(15);
 covar_in(1:3, 1:3) = eye(3) * deg2rad(0.05)**2;  # theta_WM variance
 covar_in(4:6, 4:6) = eye(3) * 0.003**2;          # r_WM variance
-covar_in(7:9, 7:9) = eye(3) * deg2rad(0.5)**2;   # theta_MC variance
-covar_in(10:12, 10:12) = eye(3) * 0.001**2;      # r_MC variance
+covar_in(7:9, 7:9) = eye(3) * deg2rad(0.1)**2;   # theta_MC variance
+covar_in(10:12, 10:12) = eye(3) * 0.001**2;       # r_MC variance
 covar_in(13:15, 13:15) = eye(3) * 0.001**2;      # p_CPi variance
 # -- Calculate output covariance matrix using first order error propagation
 covar_out = J * covar_in * J';
 # -- p_WCi variance
-diag(covar_out)
+p_WCi_var = diag(covar_out);
+p_WCi_stddev = sqrt(p_WCi_var)

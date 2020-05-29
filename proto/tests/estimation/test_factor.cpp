@@ -425,6 +425,89 @@ int test_imu_propagate() {
   return 0;
 }
 
+int test_marg_factor() {
+  // Setup parameters
+  size_t next_param_id = 0;
+	size_t nb_poses = 5;
+	size_t nb_landmarks = 5;
+  // -- Camera poses
+  const vec3_t euler{-90.0, 0.0, -90.0};
+  const mat3_t C_WC = euler321(deg2rad(euler));
+  vec3_t r_WC{0.0, 0.0, 0.0};
+  poses_t cam_poses;
+  for (size_t i = 0; i < nb_poses; i++) {
+    r_WC(1) += 0.05;
+    const mat4_t T_WC = tf(C_WC, r_WC);
+    cam_poses.emplace_back(next_param_id, 0, T_WC);
+    next_param_id++;
+  }
+  // -- Camera geometry
+  const int cam_index = 0;
+  const int resolution[2] = {640, 480};
+  const double fx = pinhole_focal(resolution[0], 90.0);
+  const double fy = pinhole_focal(resolution[1], 90.0);
+  const double cx = resolution[0] / 2.0;
+  const double cy = resolution[1] / 2.0;
+  vec4_t proj_params{fx, fy, cx, cy};
+  vec4_t dist_params{0.01, 0.001, 0.001, 0.001};
+  camera_params_t cam_params{next_param_id, cam_index, resolution,
+														 proj_params, dist_params};
+  next_param_id++;
+  pinhole_radtan4_t camera{resolution, proj_params, dist_params};
+  // -- Landmarks
+	landmarks_t landmarks;
+	for (size_t i = 0; i < nb_landmarks; i++) {
+		const vec3_t p_W{1.0, 0.01 * i, 0.0};
+		landmarks.emplace_back(next_param_id, p_W);
+		next_param_id++;
+	}
+
+  // Create ba factor
+  const timestamp_t ts = 0;
+  const size_t id = 0;
+  std::vector<factor_t *> factors;
+  for (size_t i = 0; i < cam_poses.size(); i++) {
+		for (size_t j = 0; j < landmarks.size(); j++) {
+			mat4_t T_WC = tf(cam_poses[i].param);
+			vec3_t p_C = tf_point(T_WC.inverse(), landmarks[j].param);
+
+			vec2_t z;
+			camera.project(p_C, z);
+			// z(0) += 5.0;
+			// z(1) += 5.0;
+
+			std::vector<param_t *> params{&cam_poses[i], &landmarks[j], &cam_params};
+			factor_t *factor = new ba_factor_t<pinhole_radtan4_t>{id, ts, z, I(2), params};
+			factor->eval();
+			factors.push_back(factor);
+		}
+  }
+
+  // Create marginalization factor
+  marg_factor_t marg;
+  for (size_t i = 0; i < factors.size(); i++) {
+    if (i < landmarks.size()) {
+      marg.add(factors[i], {0});
+    } else {
+      marg.add(factors[i], {});
+    }
+  }
+  // MU_CHECK(marg.marg_params.size() == 1);
+  // MU_CHECK(marg.remain_params.size() == 2);
+
+  marg.eval();
+  OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/H.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/b.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/Hmm.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/Hmr.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/Hrm.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/Hrr.csv");
+  OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/H_marg.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/b_marg.csv");
+
+  return 0;
+}
+
 int test_graph() {
   graph_t graph;
 
@@ -1309,6 +1392,7 @@ void test_suite() {
   MU_ADD_TEST(test_cam_factor_jacobians);
   MU_ADD_TEST(test_imu_factor_jacobians);
 	MU_ADD_TEST(test_imu_propagate);
+	MU_ADD_TEST(test_marg_factor);
 
   MU_ADD_TEST(test_graph);
   MU_ADD_TEST(test_graph_add_pose);

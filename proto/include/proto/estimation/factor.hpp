@@ -867,14 +867,13 @@ struct marg_factor_t {
 
   marg_factor_t() {}
 
-  void add(const factor_t *factor,
-           const std::vector<int> marg_indicies) {
+  void add(factor_t *factor, const std::vector<int> marg_indicies) {
     // Loop through parameters
     for (size_t i = 0; i < factor->params.size(); i++) {
       const auto &param = factor->params[i];
 
       // Determine if we have seen the parameter before
-      if (params_tracker.count(param) != 0) {
+      if (params_tracker.count(param) == 0) {
         params_tracker.insert(param);
 
         // Keep track of:
@@ -887,6 +886,8 @@ struct marg_factor_t {
           remain_params.insert(param);
         }
       }
+
+      factors.insert(factor);
     }
   }
 
@@ -896,7 +897,7 @@ struct marg_factor_t {
     size_t r = 0;
     std::unordered_map<param_t *, size_t> param_index;
 
-    // Determine parameter block column indicies for matrix H
+    // Determine parameter ordering, with parameters to be marginalized first
     size_t index = 0; // Column index of matrix H
     // -- Column indices for parameter blocks to be marginalized
     for (const auto &param : marg_params) {
@@ -910,44 +911,45 @@ struct marg_factor_t {
       index += param->local_size;
       r += param->local_size;
     }
+    printf("m: %zu\n", m);
+    printf("r: %zu\n", r);
 
-    // // Form the H and b. Left and RHS of Gauss-Newton.
-    // const auto params_size = m + r;
-    // H = zeros(params_size, params_size);
-    // b = zeros(params_size, 1);
-    // if (debug) {
-    //   printf("m: %zu\n", m);
-    //   printf("r: %zu\n", r);
-    //   printf("H shape: %zu x %zu\n", H.rows(), H.cols());
-    //   printf("b shape: %zu x %zu\n", b.rows(), b.cols());
-    // }
-    //
-    // for (const auto &factor : factors) {
-    //   for (size_t i = 0; i < factor->params.size(); i++) {
-    //     const auto &param_i = factor->params[i];
-    //     const int idx_i = param_index[param_i];
-    //     const int size_i = param_i->local_size;
-    //     const matx_t J_i = factor->jacobians[i];
-    //
-    //     for (size_t j = i; j < factor->params.size(); j++) {
-    //       const auto &param_j = factor->params[j];
-    //       const int idx_j = param_index[param_j];
-    //       const int size_j = param_j->local_size;
-    //       const matx_t J_j = factor->jacobians[j];
-    //
-    //       if (i == j) {  // Form diagonals of H
-    //         H.block(idx_i, idx_i, size_i, size_i) += J_i.transpose() * J_i;
-    //       } else {  // Form off-diagonals of H
-    //         H.block(idx_i, idx_j, size_i, size_j) += J_i.transpose() * J_j;
-    //         H.block(idx_j, idx_i, size_j, size_i) =
-    //           H.block(idx_i, idx_j, size_i, size_j).transpose();
-    //       }
-    //     }
-    //
-    //     // RHS of Gauss Newton (i.e. vector b)
-    //     b.segment(idx_i, size_i) += -J_i.transpose() * factor->residuals;
-    //   }
-    // }
+    // Form the H and b. Left and RHS of Gauss-Newton.
+    const auto params_size = m + r;
+    matx_t H = zeros(params_size, params_size);
+    vecx_t b = zeros(params_size, 1);
+
+    for (auto &factor : factors) {
+      for (size_t i = 0; i < factor->params.size(); i++) {
+        const auto &param_i = factor->params[i];
+        const int idx_i = param_index[param_i];
+        const int size_i = param_i->local_size;
+        const matx_t J_i = factor->jacobians[i];
+
+        for (size_t j = i; j < factor->params.size(); j++) {
+          const auto &param_j = factor->params[j];
+          const int idx_j = param_index[param_j];
+          const int size_j = param_j->local_size;
+          const matx_t J_j = factor->jacobians[j];
+
+          if (i == j) {  // Form diagonals of H
+            H.block(idx_i, idx_i, size_i, size_i) += J_i.transpose() * J_i;
+          } else {  // Form off-diagonals of H
+            H.block(idx_i, idx_j, size_i, size_j) += J_i.transpose() * J_j;
+            H.block(idx_j, idx_i, size_j, size_i) =
+              H.block(idx_i, idx_j, size_i, size_j).transpose();
+          }
+        }
+
+        // RHS of Gauss Newton (i.e. vector b)
+        b.segment(idx_i, size_i) += -J_i.transpose() * factor->residuals;
+      }
+    }
+
+    // Schurs complement
+    matx_t H_marg;
+    vecx_t b_marg;
+    schurs_complement(H, b, m, r, H_marg, b_marg, false, true);
 
     return 0;
   }
