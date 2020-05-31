@@ -10,6 +10,7 @@ data = csvread(csv, 0, 0);
 
 % Plot figure
 figure();
-imagesc(data);
+% imagesc(data);
+imshow(data);
 % grid on;
 ginput()

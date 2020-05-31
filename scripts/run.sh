@@ -172,20 +172,20 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_imu_factor_jacobians
 # ./estimation-test_factor --target test_imu_propagate
-./estimation-test_factor --target test_marg_factor
+# ./estimation-test_factor --target test_marg_factor
 # ./estimation-test_factor --target test_graph
 # ./estimation-test_factor --target test_graph_add_pose
 # ./estimation-test_factor --target test_graph_add_landmark
-# ./estimation-test_factor --target test_graph_add_cam_params
-# ./estimation-test_factor --target test_graph_add_dist_params
-# ./estimation-test_factor --target test_graph_add_sb_params
+# ./estimation-test_factor --target test_graph_add_camera
+# ./estimation-test_factor --target test_graph_add_speed_bias
 # ./estimation-test_factor --target test_graph_add_pose_factor
 # ./estimation-test_factor --target test_graph_add_ba_factor
 # ./estimation-test_factor --target test_graph_add_cam_factor
 # ./estimation-test_factor --target test_graph_add_imu_factor
+# ./estimation-test_factor --target test_graph_marginalize_factors
 # ./estimation-test_factor --target test_graph_eval
 # ./estimation-test_factor --target test_graph_solve_ba
-# ./estimation-test_factor --target test_graph_solve_vo
+./estimation-test_factor --target test_graph_solve_vo
 # ./estimation-test_factor --target test_graph_solve_vio
 # ./estimation-test_frontend
 

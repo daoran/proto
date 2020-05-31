@@ -5,21 +5,26 @@
 
 namespace proto {
 
+typedef id_t size_t;
+
 struct param_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   bool fixed = false;
+  bool marginalize = false;
 
   std::string type;
-  size_t id = 0;
+  id_t id = 0;
   timestamp_t ts = 0;
   long local_size = 0;
   long global_size = 0;
   vecx_t param;
 
+  std::vector<id_t> factor_ids;
+
   param_t() {}
 
   param_t(const std::string &type_,
-          const size_t id_,
+          const id_t id_,
           const timestamp_t &ts_,
           const long local_size_,
           const long global_size_,
@@ -33,7 +38,7 @@ struct param_t {
       param{zeros(global_size_, 1)} {}
 
   param_t(const std::string &type_,
-          const size_t id_,
+          const id_t id_,
           const long local_size_,
           const long global_size_,
           const bool fixed_=false)
@@ -50,7 +55,7 @@ struct pose_t : param_t {
 
   pose_t() {}
 
-  pose_t(const size_t id_,
+  pose_t(const id_t id_,
          const timestamp_t &ts_,
          const vec_t<7> &pose,
          const bool fixed_=false)
@@ -58,7 +63,7 @@ struct pose_t : param_t {
     param = pose;
   }
 
-  pose_t(const size_t id_,
+  pose_t(const id_t id_,
          const timestamp_t &ts_,
          const mat4_t &T,
          const bool fixed_=false)
@@ -150,7 +155,7 @@ struct extrinsic_t : pose_t {
 
   extrinsic_t() {}
 
-  extrinsic_t(const size_t id_, const mat4_t &T, const bool fixed_=false)
+  extrinsic_t(const id_t id_, const mat4_t &T, const bool fixed_=false)
     : pose_t{id_, 0, T, fixed_} {
     this->type = "extrinsic_t";
   }
@@ -161,7 +166,7 @@ struct landmark_t : param_t {
 
   landmark_t() {}
 
-  landmark_t(const size_t id_, const vec3_t &p_W_, const bool fixed_=false)
+  landmark_t(const id_t id_, const vec3_t &p_W_, const bool fixed_=false)
     : param_t{"landmark_t", id_, 3, 3, fixed_} {
     param = p_W_;
   }
@@ -180,7 +185,7 @@ struct camera_params_t : param_t {
 
   camera_params_t() {}
 
-  camera_params_t(const size_t id_,
+  camera_params_t(const id_t id_,
                   const int cam_index_,
                   const int resolution_[2],
                   const vecx_t &proj_params_,
@@ -209,7 +214,7 @@ struct sb_params_t : param_t {
 
   sb_params_t() {}
 
-  sb_params_t(const size_t id_,
+  sb_params_t(const id_t id_,
              const timestamp_t &ts_,
              const vec3_t &v_,
              const vec3_t &ba_,
@@ -352,15 +357,16 @@ void keypoints_print(const keypoints_t &keypoints) {
 
 struct factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  bool marginalize = false;
 
-  size_t id = 0;
+  id_t id = 0;
   matx_t info;
   std::vector<param_t *> params;
   vecx_t residuals;
   matxs_t jacobians;
 
   factor_t() {}
-  factor_t(const size_t id_,
+  factor_t(const id_t id_,
            const matx_t &info_,
            const std::vector<param_t *> &params_)
     : id{id_}, info{info_}, params{params_} {}
@@ -404,7 +410,7 @@ struct pose_factor_t : factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   const mat4_t pose_meas;
 
-  pose_factor_t(const size_t id_,
+  pose_factor_t(const id_t id_,
                 const mat4_t &pose_,
                 const mat_t<6, 6> &info_,
                 const std::vector<param_t *> &params_)
@@ -457,7 +463,7 @@ struct ba_factor_t : factor_t {
   timestamp_t ts = 0;
   vec2_t z{0.0, 0.0};
 
-  ba_factor_t(const size_t id_,
+  ba_factor_t(const id_t id_,
               const timestamp_t &ts_,
               const vec2_t &z_,
               const mat2_t &info_,
@@ -538,7 +544,7 @@ struct cam_factor_t : factor_t {
   timestamp_t ts = 0;
   vec2_t z{0.0, 0.0};
 
-  cam_factor_t(const size_t id_,
+  cam_factor_t(const id_t id_,
                const timestamp_t &ts_,
                const vec2_t &z_,
                const mat2_t &info_,
@@ -638,7 +644,7 @@ struct imu_factor_t : factor_t {
   vec3_t bg{0.0, 0.0, 0.0};
   vec3_t ba{0.0, 0.0, 0.0};
 
-  imu_factor_t(const size_t id_,
+  imu_factor_t(const id_t id_,
                const timestamps_t imu_ts_,
                const vec3s_t imu_accel_,
                const vec3s_t imu_gyro_ ,
@@ -809,11 +815,11 @@ struct imu_factor_t : factor_t {
 };
 
 void imu_propagate(const imu_data_t &imu_data,
-                	 const vec3_t &g,
-                	 const vec_t<7> &pose_i,
-                	 const vec_t<9> &sb_i,
-                	 vec_t<7> &pose_j,
-                	 vec_t<9> &sb_j) {
+                   const vec3_t &g,
+                   const vec_t<7> &pose_i,
+                   const vec_t<9> &sb_i,
+                   vec_t<7> &pose_j,
+                   vec_t<9> &sb_j) {
   assert(imu_data.size() > 2);
   auto na = zeros(3, 1);
   auto ng = zeros(3, 1);
@@ -855,106 +861,19 @@ void imu_propagate(const imu_data_t &imu_data,
 
 
 /*****************************************************************************
- *                         MARGINALIZATION FACTOR
+ *                               MARGINALIZER
  ****************************************************************************/
 
-struct marg_factor_t {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  std::unordered_set<factor_t *> factors;
-  std::unordered_set<param_t *> params_tracker;
-  std::unordered_set<param_t *> marg_params;
-  std::unordered_set<param_t *> remain_params;
-
-  marg_factor_t() {}
-
-  void add(factor_t *factor, const std::vector<int> marg_indicies) {
-    // Loop through parameters
-    for (size_t i = 0; i < factor->params.size(); i++) {
-      const auto &param = factor->params[i];
-
-      // Determine if we have seen the parameter before
-      if (params_tracker.count(param) == 0) {
-        params_tracker.insert(param);
-
-        // Keep track of:
-        // - Pointers to parameter blocks for marginalization.
-        // - Pointers to parameter blocks to remain.
-        const auto it = std::find(marg_indicies.begin(), marg_indicies.end(), i);
-        if (it != marg_indicies.end()) {
-          marg_params.insert(param);
-        } else {
-          remain_params.insert(param);
-        }
-      }
-
-      factors.insert(factor);
-    }
-  }
-
-  int eval(bool jacs=true) {
-  // void setup(matx_t &H, vecx_t &b, bool debug=false) {
-    size_t m = 0;
-    size_t r = 0;
-    std::unordered_map<param_t *, size_t> param_index;
-
-    // Determine parameter ordering, with parameters to be marginalized first
-    size_t index = 0; // Column index of matrix H
-    // -- Column indices for parameter blocks to be marginalized
-    for (const auto &param : marg_params) {
-      param_index.insert({param, index});
-      index += param->local_size;
-      m += param->local_size;
-    }
-    // -- Column indices for parameter blocks to remain
-    for (const auto &param : remain_params) {
-      param_index.insert({param, index});
-      index += param->local_size;
-      r += param->local_size;
-    }
-    printf("m: %zu\n", m);
-    printf("r: %zu\n", r);
-
-    // Form the H and b. Left and RHS of Gauss-Newton.
-    const auto params_size = m + r;
-    matx_t H = zeros(params_size, params_size);
-    vecx_t b = zeros(params_size, 1);
-
-    for (auto &factor : factors) {
-      for (size_t i = 0; i < factor->params.size(); i++) {
-        const auto &param_i = factor->params[i];
-        const int idx_i = param_index[param_i];
-        const int size_i = param_i->local_size;
-        const matx_t J_i = factor->jacobians[i];
-
-        for (size_t j = i; j < factor->params.size(); j++) {
-          const auto &param_j = factor->params[j];
-          const int idx_j = param_index[param_j];
-          const int size_j = param_j->local_size;
-          const matx_t J_j = factor->jacobians[j];
-
-          if (i == j) {  // Form diagonals of H
-            H.block(idx_i, idx_i, size_i, size_i) += J_i.transpose() * J_i;
-          } else {  // Form off-diagonals of H
-            H.block(idx_i, idx_j, size_i, size_j) += J_i.transpose() * J_j;
-            H.block(idx_j, idx_i, size_j, size_i) =
-              H.block(idx_i, idx_j, size_i, size_j).transpose();
-          }
-        }
-
-        // RHS of Gauss Newton (i.e. vector b)
-        b.segment(idx_i, size_i) += -J_i.transpose() * factor->residuals;
-      }
-    }
-
-    // Schurs complement
-    matx_t H_marg;
-    vecx_t b_marg;
-    schurs_complement(H, b, m, r, H_marg, b_marg, false, true);
-
-    return 0;
-  }
-};
-
+void marginalize_sibley(matx_t &H,
+                        vecx_t &g,
+                             size_t marg_size,
+                        size_t remain_size) {
+  matx_t H_marg;
+  vecx_t g_marg;
+  schurs_complement(H, g, marg_size, remain_size, H_marg, g_marg, true);
+  H = H_marg;
+  g = g_marg;
+}
 
 /*****************************************************************************
  *                              FACTOR GRAPH
@@ -1046,14 +965,14 @@ size_t graph_add_speed_bias(graph_t &graph,
 size_t graph_add_speed_bias(graph_t &graph,
                             const timestamp_t &ts,
                             const vec_t<9> &sb) {
-	const vec3_t &v = sb.head(3);
-	const vec3_t &ba = sb.segment(3, 3);
-	const vec3_t &bg = sb.segment(6, 3);
-	return graph_add_speed_bias(graph, ts, v, ba, bg);
+  const vec3_t &v = sb.head(3);
+  const vec3_t &ba = sb.segment(3, 3);
+  const vec3_t &bg = sb.segment(6, 3);
+  return graph_add_speed_bias(graph, ts, v, ba, bg);
 }
 
-vecx_t graph_get_estimate(graph_t &graph, size_t id) {
-	return graph.params[id]->param;
+vecx_t graph_get_estimate(graph_t &graph, id_t id) {
+  return graph.params[id]->param;
 }
 
 size_t graph_add_pose_factor(graph_t &graph,
@@ -1061,13 +980,16 @@ size_t graph_add_pose_factor(graph_t &graph,
                              const mat4_t &T,
                              const mat_t<6, 6> &info = I(6)) {
   // Create factor
-  const auto f_id = graph.factors.size();
+  const id_t f_id = graph.factors.size();
   std::vector<param_t *> params{graph.params[pose_id]};
   auto factor = new pose_factor_t{f_id, T, info, params};
 
   // Add factor to graph
   graph.factors.push_back(factor);
   graph.param_factor[params[0]].push_back(factor);
+
+  // Point params to factor
+  params[0]->factor_ids.push_back(f_id);
 
   return f_id;
 }
@@ -1082,19 +1004,24 @@ size_t graph_add_ba_factor(graph_t &graph,
                            const mat2_t &info = I(2) * 0.5) {
 
   // Create factor
-  const auto f_id = graph.factors.size();
+  const id_t f_id = graph.factors.size();
   std::vector<param_t *> params{
     graph.params[cam_pose_id],
     graph.params[landmark_id],
     graph.params[cam_params_id],
   };
-  auto factor = new ba_factor_t<CM>{ts, f_id, z, info, params};
+  auto factor = new ba_factor_t<CM>{f_id, ts, z, info, params};
 
   // Add factor to graph
   graph.factors.push_back(factor);
   graph.param_factor[params[0]].push_back(factor);
   graph.param_factor[params[1]].push_back(factor);
   graph.param_factor[params[2]].push_back(factor);
+
+  // Point params to factor
+  for (auto *param : params) {
+    param->factor_ids.push_back(f_id);
+  }
 
   return f_id;
 }
@@ -1109,14 +1036,14 @@ size_t graph_add_cam_factor(graph_t &graph,
                             const vec2_t &z,
                             const mat2_t &info = I(2)) {
   // Create factor
-  const auto f_id = graph.factors.size();
+  const id_t f_id = graph.factors.size();
   std::vector<param_t *> params{
     graph.params[sensor_pose_id],
     graph.params[imu_cam_pose_id],
     graph.params[landmark_id],
     graph.params[cam_params_id]
   };
-  auto factor = new cam_factor_t<CM>{ts, f_id, z, info, params};
+  auto factor = new cam_factor_t<CM>{f_id, ts, z, info, params};
 
   // Add factor to graph
   graph.factors.push_back(factor);
@@ -1124,6 +1051,11 @@ size_t graph_add_cam_factor(graph_t &graph,
   graph.param_factor[params[1]].push_back(factor);
   graph.param_factor[params[2]].push_back(factor);
   graph.param_factor[params[3]].push_back(factor);
+
+  // Point params to factor
+  for (auto *param : params) {
+    param->factor_ids.push_back(f_id);
+  }
 
   return f_id;
 }
@@ -1138,14 +1070,15 @@ size_t graph_add_imu_factor(graph_t &graph,
                             const size_t pose1_id,
                             const size_t sb1_id) {
   // Create factor
-  const auto f_id = graph.factors.size();
+  const id_t f_id = graph.factors.size();
   std::vector<param_t *> params{
     graph.params[pose0_id],
     graph.params[sb0_id],
     graph.params[pose1_id],
     graph.params[sb1_id]
   };
-  auto factor = new imu_factor_t(imu_index, imu_ts, imu_gyro, imu_accel,
+  auto factor = new imu_factor_t(imu_index, imu_ts,
+                                 imu_gyro, imu_accel,
                                  I(15), params);
 
   // Add factor to graph
@@ -1155,13 +1088,46 @@ size_t graph_add_imu_factor(graph_t &graph,
   graph.param_factor[params[2]].push_back(factor);
   graph.param_factor[params[3]].push_back(factor);
 
+  // Point params to factor
+  for (auto *param : params) {
+    param->factor_ids.push_back(f_id);
+  }
+
   return f_id;
 }
 
-void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
+// Note: this function does not actually perform marginalization, it simply
+// marks it to be marginalized.
+void graph_mark_param(graph_t &graph, const id_t param_id) {
+  assert(graph.params.count(param_id) == 1);
+  auto param = graph.params[param_id];
+  param->marginalize = true;
+  param->type = "marg_" + param->type;
+
+	for (const auto factor_id : param->factor_ids) {
+		graph.factors[factor_id]->marginalize = true;
+	}
+}
+
+void graph_marginalize_factors(graph_t &graph) {
+	auto i = graph.factors.begin();
+	while (i != graph.factors.end()) {
+		if ((*i)->marginalize) {
+			graph.factors.erase(i);
+		}
+		i++;
+	}
+}
+
+void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
+                size_t *marg_size=nullptr,
+                size_t *remain_size=nullptr) {
   // First pass: Determine what parameters we have
   std::unordered_set<param_t *> param_tracker;
   std::unordered_map<std::string, int> param_counter;
+	std::set<std::string> marg_param_types;
+  *marg_size = 0;
+  *remain_size = 0;
 
   for (const auto &factor : graph.factors) {
     for (const auto &param : factor->params) {
@@ -1173,6 +1139,14 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
       // Keep track of param blocks
       param_counter[param->type] += param->local_size;
       param_tracker.insert(param);
+
+      // Change parameter type if marked for marginalization
+      if (param->marginalize) {
+				marg_param_types.insert(param->type);
+        *marg_size += param->local_size;
+      } else {
+        *remain_size += param->local_size;
+      }
     }
   }
 
@@ -1180,23 +1154,32 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J) {
   size_t residuals_size = 0;
   size_t params_size = 0;
   std::unordered_map<std::string, int> param_cs;  // Map param type to col index
+  std::vector<std::string> param_order;
+
+  // -- Setup param order
+	for (const auto param_type : marg_param_types) {
+		param_order.push_back(param_type);
+	}
+  for (const auto param_type : graph.param_order) {
+    param_order.push_back(param_type);
+  }
 
   // -- Check which param is not in defined param order
-  for (int i = 0; i < (int) graph.param_order.size(); i++) {
-    if (param_counter.find(graph.param_order[i]) == param_counter.end()) {
-      FATAL("Param [%s] not found!", graph.param_order[i].c_str());
+  for (int i = 0; i < (int) param_order.size(); i++) {
+    if (param_counter.find(param_order[i]) == param_counter.end()) {
+      FATAL("Param [%s] not found!", param_order[i].c_str());
     }
   }
 
   // -- Assign param start index
-  for (int i = 0; i < (int) graph.param_order.size(); i++) {
-    auto param_i = graph.param_order[i];
+  for (int i = 0; i < (int) param_order.size(); i++) {
+    auto param_i = param_order[i];
     param_cs[param_i] = 0;
 
     int j = i - 1;
     while (j > -1) {
-      auto param_j = graph.param_order[j];
-      param_cs[graph.param_order[i]] += param_counter[param_j];
+      auto param_j = param_order[j];
+      param_cs[param_order[i]] += param_counter[param_j];
       j--;
     }
   }
@@ -1277,14 +1260,19 @@ struct tiny_solver_t {
   real_t lambda = 1e-4;
   real_t cost_change_threshold = 1e-2;
   real_t time_limit = 0.01;
-	real_t update_factor = 10.0;
+  real_t update_factor = 10.0;
 
   // Optimization data
   int iter = 0;
   real_t cost = 0.0;
   real_t solve_time = 0.0;
-	vecx_t e;
-	matx_t E;
+  vecx_t e;
+  matx_t E;
+
+  // Marginalization
+  std::string marg_type = "sibley";
+  size_t marg_size = 0;
+  size_t remain_size = 0;
 
   tiny_solver_t() {}
 
@@ -1292,22 +1280,34 @@ struct tiny_solver_t {
     struct timespec solve_tic = tic();
 
     // Calculate initial cost
-    graph_eval(graph, e, E);
+    graph_eval(graph, e, E, &marg_size, &remain_size);
+
     cost = 0.5 * e.transpose() * e;
 
     // Solve
     real_t lambda_k = lambda;
     for (iter = 0; iter < max_iter; iter++) {
       // Solve Gauss-Newton system [H dx = g]: Solve for dx
+      // -- Form L.H.S. and R.H.S. of GN
       matx_t H = E.transpose() * E;
-      matx_t H_diag = (H.diagonal().asDiagonal());
-      H = H + lambda_k * H_diag;
       vecx_t g = -E.transpose() * e;
-      vecx_t dx = H.ldlt().solve(g);
+      // -- Marginalize?
+      // if (marg_size) {
+      //   if (marg_type == "sibley") {
+      //     marginalize_sibley(H, g, marg_size, remain_size);
+      //   } else {
+      //     FATAL("marg_type[%s] not implemented!\n", marg_type.c_str());
+      //   }
+      // }
+      // -- Damp the Hessian matrix H
+      const matx_t H_diag = (H.diagonal().asDiagonal());
+      H = H + lambda_k * H_diag;
+      // -- Solve for dx
+      const vecx_t dx = H.ldlt().solve(g);
       graph_update(graph, dx);
 
       // Evaluate cost after update
-      graph_eval(graph, e, E);
+      graph_eval(graph, e, E, &marg_size, &remain_size);
       const real_t cost_k = 0.5 * e.transpose() * e;
       const real_t cost_delta = cost_k - cost;
       const real_t solve_time = toc(&solve_tic);
@@ -1321,14 +1321,14 @@ struct tiny_solver_t {
         printf("iter_time[%.4f] ", iter_time);
         printf("solve_time[%.4f]  ", solve_time);
 
-				// Calculate reprojection error
-				size_t nb_keypoints = e.size() / 2.0;
-				real_t sse = 0.0;
-				for (size_t i = 0; i < nb_keypoints; i++) {
-					sse += e.segment(i * 2, 2).norm();
-				}
-				const real_t rmse = sqrt(sse / nb_keypoints);
-				printf("rmse reproj error: %.2f\n", rmse);
+        // Calculate reprojection error
+        size_t nb_keypoints = e.size() / 2.0;
+        real_t sse = 0.0;
+        for (size_t i = 0; i < nb_keypoints; i++) {
+          sse += e.segment(i * 2, 2).norm();
+        }
+        const real_t rmse = sqrt(sse / nb_keypoints);
+        printf("rmse reproj error: %.2f\n", rmse);
       }
 
       // Determine whether to accept update
