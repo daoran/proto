@@ -882,7 +882,7 @@ void marginalize_sibley(matx_t &H,
 struct graph_t {
   size_t next_id = 0;
 
-  std::deque<factor_t *> factors;
+  std::map<size_t, factor_t *> factors;
   std::unordered_map<size_t, param_t *> params;
   std::unordered_map<param_t *, size_t> param_index;
   std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
@@ -893,8 +893,8 @@ struct graph_t {
   graph_t() {}
 
   ~graph_t() {
-    for (const auto &factor : factors) {
-      delete factor;
+    for (const auto &kv : factors) {
+      delete kv.second;
     }
     factors.clear();
 
@@ -985,7 +985,7 @@ size_t graph_add_pose_factor(graph_t &graph,
   auto factor = new pose_factor_t{f_id, T, info, params};
 
   // Add factor to graph
-  graph.factors.push_back(factor);
+  graph.factors[f_id] = factor;
   graph.param_factor[params[0]].push_back(factor);
 
   // Point params to factor
@@ -1013,7 +1013,7 @@ size_t graph_add_ba_factor(graph_t &graph,
   auto factor = new ba_factor_t<CM>{f_id, ts, z, info, params};
 
   // Add factor to graph
-  graph.factors.push_back(factor);
+  graph.factors[f_id] = factor;
   graph.param_factor[params[0]].push_back(factor);
   graph.param_factor[params[1]].push_back(factor);
   graph.param_factor[params[2]].push_back(factor);
@@ -1046,7 +1046,7 @@ size_t graph_add_cam_factor(graph_t &graph,
   auto factor = new cam_factor_t<CM>{f_id, ts, z, info, params};
 
   // Add factor to graph
-  graph.factors.push_back(factor);
+  graph.factors[f_id] = factor;
   graph.param_factor[params[0]].push_back(factor);
   graph.param_factor[params[1]].push_back(factor);
   graph.param_factor[params[2]].push_back(factor);
@@ -1082,7 +1082,7 @@ size_t graph_add_imu_factor(graph_t &graph,
                                  I(15), params);
 
   // Add factor to graph
-  graph.factors.push_back(factor);
+  graph.factors[f_id] = factor;
   graph.param_factor[params[0]].push_back(factor);
   graph.param_factor[params[1]].push_back(factor);
   graph.param_factor[params[2]].push_back(factor);
@@ -1110,13 +1110,13 @@ void graph_mark_param(graph_t &graph, const id_t param_id) {
 }
 
 void graph_marginalize_factors(graph_t &graph) {
-	auto i = graph.factors.begin();
-	while (i != graph.factors.end()) {
-		if ((*i)->marginalize) {
-			graph.factors.erase(i);
-		}
-		i++;
-	}
+	// auto i = graph.factors.begin();
+	// while (i != graph.factors.end()) {
+	// 	if ((*i)->marginalize) {
+	// 		graph.factors.erase(i);
+	// 	}
+	// 	i++;
+	// }
 }
 
 void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
@@ -1129,7 +1129,9 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   *marg_size = 0;
   *remain_size = 0;
 
-  for (const auto &factor : graph.factors) {
+  for (const auto &kv : graph.factors) {
+		auto &factor = kv.second;
+
     for (const auto &param : factor->params) {
       // Check if param is already tracked or fixed
       if (param_tracker.count(param) > 0 || param->fixed) {
@@ -1187,7 +1189,9 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   // -- Assign param global index
   std::vector<bool> factor_ok;
   graph.param_index.clear();
-  for (const auto &factor : graph.factors) {
+  for (const auto &kv : graph.factors) {
+		auto factor = kv.second;
+
     // Evaluate factor
     if (factor->eval() != 0) {
       factor_ok.push_back(false);
