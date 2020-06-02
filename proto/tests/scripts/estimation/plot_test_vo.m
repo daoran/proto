@@ -185,24 +185,26 @@ ts = cam_ts(1:nb_meas) * 1e-9;
 
 subplot(311);
 hold on;
-plot(ts, cam_rot(1:nb_meas, 1), "r-", "linewidth", 1.5);
-plot(ts, cam_est_rot(:, 1), "rx", "linewidth", 1.5);
+plot(ts, rad2deg(cam_rot(1:nb_meas, 1)), "r-", "linewidth", 1.5);
+plot(ts, rad2deg(cam_est_rot(:, 1)), "ro", "linewidth", 1.5);
 xlabel("Time [s]");
 ylabel("Attitude [deg]");
 xlim([0, max(ts)]);
 
 subplot(312);
 hold on;
-plot(ts, cam_rot(1:nb_meas, 2), "g-", "linewidth", 1.5);
-plot(ts, cam_est_rot(:, 2), "gx", "linewidth", 1.5);
+plot(ts, rad2deg(cam_rot(1:nb_meas, 2)), "g-", "linewidth", 1.5);
+plot(ts, rad2deg(cam_est_rot(:, 2)), "go", "linewidth", 1.5);
 xlabel("Time [s]");
 ylabel("Attitude [deg]");
 xlim([0, max(ts)]);
 
 subplot(313);
 hold on;
-plot(ts, cam_rot(1:nb_meas, 3), "b-", "linewidth", 1.5);
-plot(ts, cam_est_rot(:, 3), "bx", "linewidth", 1.5);
+plot(ts, rad2deg(cam_rot(1:nb_meas, 3)), "b-", "linewidth", 1.5);
+plot(ts, rad2deg(cam_est_rot(:, 3)), "bo", "linewidth", 1.5);
 xlabel("Time [s]");
 ylabel("Attitude [deg]");
 xlim([0, max(ts)]);
+
+ginput();

@@ -592,10 +592,10 @@ int test_graph_add_pose_factor() {
   MU_CHECK(graph.params[0]->factor_ids.size() == 1);
   MU_CHECK(graph.params[0]->factor_ids[0] == factor_id);
 
-  auto pose_param = graph.factors[0]->params[0];
-  MU_CHECK(graph.param_factor.size() == 1);
-  MU_CHECK(graph.param_factor[pose_param].size() == 1);
-  MU_CHECK(graph.param_factor[pose_param][0] == graph.factors[0]);
+  // auto pose_param = graph.factors[0]->params[0];
+  // MU_CHECK(graph.param_factor.size() == 1);
+  // MU_CHECK(graph.param_factor[pose_param].size() == 1);
+  // MU_CHECK(graph.param_factor[pose_param][0] == graph.factors[0]);
 
   return 0;
 }
@@ -650,11 +650,11 @@ int test_graph_add_ba_factor() {
 
   MU_CHECK(graph.factors.size() == 1);
 
-  MU_CHECK(graph.param_factor.size() == 3);
-  for (const auto &param : graph.factors[0]->params) {
-    MU_CHECK(graph.param_factor[param].size() == 1);
-    MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
-  }
+  // MU_CHECK(graph.param_factor.size() == 3);
+  // for (const auto &param : graph.factors[0]->params) {
+  //   MU_CHECK(graph.param_factor[param].size() == 1);
+  //   MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
+  // }
 
   return 0;
 }
@@ -720,11 +720,11 @@ int test_graph_add_cam_factor() {
 
   MU_CHECK(graph.factors.size() == 1);
 
-  MU_CHECK(graph.param_factor.size() == 4);
-  for (const auto &param : graph.factors[0]->params) {
-    MU_CHECK(graph.param_factor[param].size() == 1);
-    MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
-  }
+  // MU_CHECK(graph.param_factor.size() == 4);
+  // for (const auto &param : graph.factors[0]->params) {
+  //   MU_CHECK(graph.param_factor[param].size() == 1);
+  //   MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
+  // }
 
   return 0;
 }
@@ -771,13 +771,90 @@ int test_graph_add_imu_factor() {
   MU_CHECK(graph.params.size() == 4);
   MU_CHECK(graph.factors.size() == 1);
 
-  MU_CHECK(graph.param_factor.size() == 4);
-  for (const auto &param : graph.factors[0]->params) {
-    MU_CHECK(graph.param_factor[param].size() == 1);
-    MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
-  }
+  // MU_CHECK(graph.param_factor.size() == 4);
+  // for (const auto &param : graph.factors[0]->params) {
+  //   MU_CHECK(graph.param_factor[param].size() == 1);
+  //   MU_CHECK(graph.param_factor[param][0] == graph.factors[0]);
+  // }
 
   return 0;
+}
+
+int test_graph_rm_param() {
+  graph_t graph;
+
+  // Sensor poses
+  const mat3_t C_WS = I(3);
+  const vec3_t r_WS = zeros(3, 1);
+  const mat4_t T_WS = tf(C_WS, r_WS);
+  const auto pose0_id = graph_add_pose(graph, 0, T_WS);
+  const auto pose1_id = graph_add_pose(graph, 1, T_WS);
+  const auto pose2_id = graph_add_pose(graph, 2, T_WS);
+  const auto pose3_id = graph_add_pose(graph, 3, T_WS);
+	MU_CHECK(graph.params.size() == 4);
+
+	graph_rm_param(graph, pose0_id);
+	MU_CHECK(graph.params.size() == 3);
+
+	graph_rm_param(graph, pose1_id);
+	MU_CHECK(graph.params.size() == 2);
+
+	graph_rm_param(graph, pose2_id);
+	MU_CHECK(graph.params.size() == 1);
+
+	graph_rm_param(graph, pose3_id);
+	MU_CHECK(graph.params.size() == 0);
+
+  return 0;
+}
+
+int test_graph_rm_factor() {
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+
+  // Create graph
+  graph_t graph;
+  size_t nb_imu_meas = 10;
+  timestamp_t t0 = sim_data.imu_ts[0];
+  timestamp_t t1 = sim_data.imu_ts[nb_imu_meas];
+
+  // -- Add sensor pose at i
+  const mat4_t T_WS_i = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
+  auto pose0_id = graph_add_pose(graph, t0, T_WS_i);
+  // -- Add speed and bias at i
+  const vec3_t v_WS_i = sim_data.imu_vel[0];
+  const vec3_t ba_i{0.0, 0.0, 0.0};
+  const vec3_t bg_i{0.0, 0.0, 0.0};
+  auto sb0_id = graph_add_speed_bias(graph, t0, v_WS_i, ba_i, bg_i);
+  // -- Add sensor pose at j
+  const mat4_t T_WS_j = tf(sim_data.imu_rot[nb_imu_meas], sim_data.imu_pos[nb_imu_meas]);
+  auto pose1_id = graph_add_pose(graph, t1, T_WS_j);
+  // -- Add speed and bias at j
+  const vec3_t v_WS_j = sim_data.imu_vel[nb_imu_meas];
+  const vec3_t ba_j{0.0, 0.0, 0.0};
+  const vec3_t bg_j{0.0, 0.0, 0.0};
+  auto sb1_id = graph_add_speed_bias(graph, t1, v_WS_j, ba_j, bg_j);
+  // -- Add imu factor
+  const int imu_index = 0;
+  graph_add_imu_factor(graph,
+                       imu_index,
+                       slice(sim_data.imu_ts, 0, nb_imu_meas),
+                       slice(sim_data.imu_acc, 0, nb_imu_meas),
+                       slice(sim_data.imu_gyr, 0, nb_imu_meas),
+                       pose0_id,
+                       sb0_id,
+                       pose1_id,
+                       sb1_id);
+
+	// Remove factor
+	MU_CHECK(graph.factors.size() == 1);
+	MU_CHECK(graph.params.size() == 4);
+	MU_CHECK(graph.factors[0]->id == 0);
+	graph_rm_factor(graph, 0);
+	MU_CHECK(graph.factors.size() == 0);
+	MU_CHECK(graph.params.size() == 4);
+
+	return 0;
 }
 
 int test_graph_marginalize_factors() {
@@ -841,6 +918,15 @@ void save_features(const std::string &path, const vec3s_t &features) {
   fclose(csv);
 }
 
+void save_pose(FILE *csv_file,
+               const timestamp_t &ts,
+               const vec3_t &pos,
+               const quat_t &rot) {
+  fprintf(csv_file, "%ld,", ts);
+  fprintf(csv_file, "%f,%f,%f,", pos(0), pos(1), pos(2));
+  fprintf(csv_file, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
+}
+
 void save_poses(const std::string &path,
                 const timestamps_t &timestamps,
                 const vec3s_t &positions,
@@ -850,9 +936,7 @@ void save_poses(const std::string &path,
     const timestamp_t ts = timestamps[i];
     const vec3_t pos = positions[i];
     const quat_t rot = orientations[i];
-    fprintf(csv, "%ld,", ts);
-    fprintf(csv, "%f,%f,%f,", pos(0), pos(1), pos(2));
-    fprintf(csv, "%f,%f,%f,%f\n", rot.w(), rot.x(), rot.y(), rot.z());
+    save_pose(csv, ts, pos, rot);
   }
   fflush(csv);
   fclose(csv);
@@ -954,7 +1038,6 @@ int test_graph_eval() {
                                                cam_id,
                                                z);
       }
-      printf("nb features: %zu\n", event.frame.feature_ids.size());
 
       cam_pose++;
       if (cam_pose == 2) {
@@ -966,7 +1049,11 @@ int test_graph_eval() {
   // Evaluate graph
   vecx_t r;
   matx_t J;
-  graph_eval(graph, r, J);
+  size_t marg_size;
+  size_t remain_size;
+  graph_eval(graph, r, J, &marg_size, &remain_size);
+  printf("marg_size: %zu\n", marg_size);
+  printf("remain_size: %zu\n", remain_size);
   mat2csv("/tmp/J.csv", J);
   // mat2csv("/tmp/r.csv", r);
   // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
@@ -1201,6 +1288,7 @@ int test_graph_solve_vo() {
   // Create graph
   bool prior_set = false;
   graph_t graph;
+	std::deque<std::deque<id_t>> window;
   std::vector<size_t> pose_ids;
 
   // -- Add landmarks
@@ -1223,9 +1311,14 @@ int test_graph_solve_vo() {
   auto cam0_id = graph_add_camera(graph, cam_index, resolution,
                                   proj_params, dist_params);
 
-	std::deque<std::deque<id_t>> window;
-
   // -- Add cam0 poses and ba factors
+  profiler_t profiler;
+  profiler.start("solve vo");
+  tiny_solver_t solver;
+  solver.max_iter = 20;
+  solver.time_limit = 10.0;
+  solver.verbose = false;
+
   size_t pose_idx = 0;
   int cam_pose = 0;
   for (const auto &kv : sim_data.timeline) {
@@ -1237,17 +1330,17 @@ int test_graph_solve_vo() {
     if (event.type == sim_event_type_t::CAMERA) {
       // Add cam0 pose
       const quat_t q_WC0 = sim_data.cam_rot[pose_idx];
-      const vec3_t noise{randf(-0.05, 0.05), randf(-0.05, 0.05), randf(-0.05, 0.05)};
+      const vec3_t noise{randf(-0.1, 0.1), randf(-0.1, 0.1), randf(-0.1, 0.1)};
       const vec3_t r_WC0 = sim_data.cam_pos[pose_idx] + noise;
       const mat4_t T_WC0 = tf(q_WC0, r_WC0);
       const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0);
       pose_ids.push_back(cam0_pose_id);
       pose_idx++;
 
-      // if (prior_set == false) {
-      //   graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
-      //   prior_set = true;
-      // }
+      if (prior_set == false) {
+        graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        prior_set = true;
+      }
 
       // Add cam0 observations at ts
       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
@@ -1264,39 +1357,24 @@ int test_graph_solve_vo() {
 			window.push_back(factors_k);
       cam_pose++;
 
-      if (cam_pose != 0 && cam_pose % 5 == 0) {
-        // Solve
-        tiny_solver_t solver;
-        solver.max_iter = 10;
-        solver.time_limit = 10.0;
-        solver.verbose = true;
-        solver.solve(graph);
-        printf("solver took: %fs\n", solver.solve_time);
-
+      if (window.size() > 10) {
 				// for (auto factor_id : window.front()) {
-				// 	graph.factors->marginalize = true;
+        //   graph.factors[factor_id]->params[0]->marginalize = true;
 				// }
-				// window.pop_front();
 
-        // Remove factors marked for marginalization
-        // graph_marginalize_factors(graph);
+        // Solve
+        solver.solve(graph);
+        printf("cam_pose: %d\tsolver took: %fs\n", cam_pose, solver.solve_time);
 
-        // // Mark oldest pose for marginalization
-        // auto factor = graph.factors.front();
-        // auto pose_id = factor->params[0]->id;
-        // graph_mark_param(graph, pose_id);
-
-				printf("graph.factors.size(): %zu\n", graph.factors.size());
+				// Mark factors to be marginalized out
+				for (auto factor_id : window.front()) {
+					graph_rm_factor(graph, factor_id);
+				}
+				window.pop_front();
       }
     }
   }
-
-  // tiny_solver_t solver;
-  // solver.max_iter = 10;
-  // solver.time_limit = 10.0;
-  // solver.verbose = true;
-  // solver.solve(graph);
-  // printf("solver took: %fs\n", solver.solve_time);
+  profiler.print("solve vo");
 
   FILE *est_csv = fopen("/tmp/sim_data/cam0_pose_est.csv", "w");
   for (const auto &id : pose_ids) {
@@ -1311,8 +1389,8 @@ int test_graph_solve_vo() {
   fclose(est_csv);
 
   // Debug
-  // const bool debug = true;
-  const bool debug = false;
+  const bool debug = true;
+  // const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/estimation/plot_test_vo.m");
   }
@@ -1482,170 +1560,6 @@ int test_graph_solve_vio() {
   return 0;
 }
 
-int test_graph_solve_vio_marg() {
-  vio_sim_data_t sim_data;
-  sim_circle_trajectory(4.0, sim_data);
-  sim_data.save("/tmp/sim_data");
-
-  // Create graph
-  graph_t graph;
-  graph.param_order = {"pose_t",
-                       "sb_params_t",
-                       "camera_params_t",
-                       "extrinsic_t",
-                       "landmark_t"};
-
-  vec3_t g{0.0, 0.0, -9.81};
-  std::map<int, cam_frame_t> cam_frames;
-  std::vector<size_t> pose_ids;
-  size_t pose_id = 0;
-  size_t sb_id = 0;
-
-  // -- Add landmarks
-  for (const auto &feature : sim_data.features) {
-    const vec3_t noise{randf(-0.1, 0.1), randf(-0.1, 0.1), randf(-0.1, 0.1)};
-    graph_add_landmark(graph, feature + noise);
-  }
-
-  // -- Add cam0 parameters
-  int cam_index = 0;
-  const int resolution[2] = {640, 480};
-  const real_t lens_hfov = 90.0;
-  const real_t lens_vfov = 90.0;
-  const real_t fx = pinhole_focal(resolution[0], lens_hfov);
-  const real_t fy = pinhole_focal(resolution[1], lens_vfov);
-  const real_t cx = resolution[0] / 2.0;
-  const real_t cy = resolution[1] / 2.0;
-  const vec4_t proj_params{fx, fy, cx, cy};
-  const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
-  const auto cam0_id = graph_add_camera(graph, cam_index, resolution,
-                                        proj_params, dist_params);
-
-  // -- Add imu cam pose parameter
-  const vec3_t rpy{-M_PI / 2.0, 0.0, -M_PI / 2.0};
-  const mat3_t C_SC = euler321(rpy);
-  const vec3_t r_SC{0.0, 0.0, 0.0};
-  const mat4_t T_SC = tf(C_SC, r_SC);
-  const auto imucam0_id = graph_add_extrinsic(graph, T_SC);
-
-  // Add pose prior
-  size_t pose_idx = 0;
-  {
-    // -- Add first pose parameter
-    const auto ts = sim_data.imu_ts[0];
-    const auto T_WS = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
-    pose_id = graph_add_pose(graph, ts, T_WS);
-    pose_ids.push_back(pose_id);
-    pose_idx++;
-    // -- Add first sb parameter
-    const vec3_t v = sim_data.imu_vel[0];
-    const vec3_t ba{0.0, 0.0, 0.0};
-    const vec3_t bg{0.0, 0.0, 0.0};
-    sb_id = graph_add_speed_bias(graph, ts, v, ba, bg);
-    // -- Add pose prior
-    graph_add_pose_factor(graph, pose_id, T_WS);
-  }
-
-  // -- Add cam0 poses and ba factors
-  imu_data_t imu_data;
-  std::set<size_t> unique_features;
-  for (const auto &kv : sim_data.timeline) {
-    const timestamp_t &ts = kv.first;
-    const sim_event_t &event = kv.second;
-
-    const real_t x = randf(-0.05, 0.05);
-    const real_t y = randf(-0.05, 0.05);
-    const real_t z = randf(-0.05, 0.05);
-    const vec3_t noise{x, y, z};
-
-    // Handle imu event
-    if (event.type == sim_event_type_t::IMU) {
-      imu_data.add(ts, event.imu.accel, event.imu.gyro);
-    }
-
-    // Handle camera event
-    if (event.type == sim_event_type_t::CAMERA) {
-      if (imu_data.size() < 2) {
-        continue;
-      }
-
-      // Propagate imu measurements
-      const size_t pose_i_id = pose_id;
-      const size_t sb_i_id = sb_id;
-      const vec_t<7> pose_i = graph.params[pose_id]->param;
-      const vec_t<9> sb_i = graph.params[sb_id]->param;
-      vec_t<7> pose_j = pose_i;
-      vec_t<9> sb_j = sb_i;
-      imu_propagate(imu_data, g, pose_i, sb_i, pose_j, sb_j);
-      pose_id = graph_add_pose(graph, ts, pose_j);
-      sb_id = graph_add_speed_bias(graph, ts, sb_j);
-      pose_ids.push_back(pose_id);
-      pose_idx++;
-
-      // Add imu0 factor
-      const int imu_idx = 0;
-      graph_add_imu_factor(graph, imu_idx,
-                           imu_data.timestamps, imu_data.accel, imu_data.gyro,
-                           pose_i_id, sb_i_id, pose_id, sb_id);
-      imu_data.clear();
-
-      // Add cam0 factor
-      for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
-        const auto feature_id = event.frame.feature_ids[i];
-        unique_features.insert(feature_id);
-        const auto z = event.frame.keypoints[i];
-        graph_add_cam_factor<pinhole_radtan4_t>(graph,
-                                                ts,
-                                                pose_id,
-                                                imucam0_id,
-                                                feature_id,
-                                                cam0_id,
-                                                z);
-      }
-
-      if (pose_idx % 5 == 0) {
-        // Solve graph
-        tiny_solver_t solver;
-        solver.verbose = true;
-        solver.max_iter = 30;
-        solver.time_limit = 10.0;
-        solver.solve(graph);
-        break;
-
-        // // Mark oldest pose to be marginalized
-        // graph.factors.first();
-      }
-    }
-  }
-
-  camera_params_t *cam_params = (camera_params_t *) graph.params[cam0_id];
-  print_vector("proj param", cam_params->proj_params());
-  print_vector("dist param", cam_params->dist_params());
-  printf("nb unique features: %zu\n", unique_features.size());
-
-  FILE *est_csv = fopen("/tmp/sim_data/imu_pose_est.csv", "w");
-  for (const auto &id : pose_ids) {
-    const auto ts = graph.params[id]->ts;
-    const auto pose = graph.params[id]->param;
-    const auto q = pose.head(4);
-    const auto r = pose.tail(3);
-    fprintf(est_csv, "%" PRIu64 ",", ts);
-    fprintf(est_csv, "%f,%f,%f,%f,", q(0), q(1), q(2), q(3));
-    fprintf(est_csv, "%f,%f,%f\n", r(0), r(1), r(2));
-  }
-  fclose(est_csv);
-
-  // Debug
-  const bool debug = true;
-  // const bool debug = false;
-  if (debug) {
-    OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/H.csv");
-    // OCTAVE_SCRIPT("scripts/estimation/plot_test_vio.m");
-  }
-
-  return 0;
-}
-
 void test_suite() {
   MU_ADD_TEST(test_pose);
   MU_ADD_TEST(test_landmark);
@@ -1666,12 +1580,13 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_ba_factor);
   MU_ADD_TEST(test_graph_add_cam_factor);
   MU_ADD_TEST(test_graph_add_imu_factor);
+  MU_ADD_TEST(test_graph_rm_param);
+  MU_ADD_TEST(test_graph_rm_factor);
   MU_ADD_TEST(test_graph_marginalize_factors);
   MU_ADD_TEST(test_graph_eval);
   MU_ADD_TEST(test_graph_solve_ba);
   MU_ADD_TEST(test_graph_solve_vo);
   MU_ADD_TEST(test_graph_solve_vio);
-  MU_ADD_TEST(test_graph_solve_vio_marg);
 }
 
 } // namespace proto

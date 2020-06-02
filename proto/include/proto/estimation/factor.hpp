@@ -5,7 +5,7 @@
 
 namespace proto {
 
-typedef id_t size_t;
+typedef size_t id_t;
 
 struct param_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -481,7 +481,7 @@ struct ba_factor_t : factor_t {
   }
 
   int eval(bool jacs=true) {
-    assert(params.size() == 4);
+    assert(params.size() == 3);
 
     // Map out parameters
     const mat4_t T_WC = tf(params[0]->param);
@@ -859,7 +859,6 @@ void imu_propagate(const imu_data_t &imu_data,
   sb_j.segment(6, 3) = bg;
 }
 
-
 /*****************************************************************************
  *                               MARGINALIZER
  ****************************************************************************/
@@ -880,12 +879,13 @@ void marginalize_sibley(matx_t &H,
  ****************************************************************************/
 
 struct graph_t {
-  size_t next_id = 0;
+  size_t next_param_id = 0;
+  size_t next_factor_id = 0;
 
   std::map<size_t, factor_t *> factors;
   std::unordered_map<size_t, param_t *> params;
-  std::unordered_map<param_t *, size_t> param_index;
-  std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
+  std::unordered_map<size_t, size_t> param_index; // id - column start
+  // std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
   std::vector<std::string> param_order{"pose_t",
                                        "camera_params_t",
                                        "landmark_t"};
@@ -908,7 +908,7 @@ struct graph_t {
 size_t graph_add_pose(graph_t &graph,
                       const timestamp_t &ts,
                       const vec_t<7> &pose) {
-  const auto id = graph.next_id++;
+  const auto id = graph.next_param_id++;
   const auto param = new pose_t{id, ts, pose};
   graph.params.insert({id, param});
   return id;
@@ -917,21 +917,21 @@ size_t graph_add_pose(graph_t &graph,
 size_t graph_add_pose(graph_t &graph,
                       const timestamp_t &ts,
                       const mat4_t &pose) {
-  const auto id = graph.next_id++;
+  const auto id = graph.next_param_id++;
   const auto param = new pose_t{id, ts, pose};
   graph.params.insert({id, param});
   return id;
 }
 
 size_t graph_add_extrinsic(graph_t &graph, const mat4_t &pose) {
-  const auto id = graph.next_id++;
+  const auto id = graph.next_param_id++;
   const auto param = new extrinsic_t{id, pose};
   graph.params.insert({id, param});
   return id;
 }
 
 size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
-  const auto id = graph.next_id++;
+  const auto id = graph.next_param_id++;
   const auto param = new landmark_t{id, landmark};
   graph.params.insert({id, param});
   return id;
@@ -943,7 +943,7 @@ size_t graph_add_camera(graph_t &graph,
                         const vecx_t &proj_params,
                         const vecx_t &dist_params,
                         bool fixed=false) {
-  const auto id = graph.next_id++;
+  const auto id = graph.next_param_id++;
   const auto param = new camera_params_t{id, cam_index, resolution,
                                          proj_params, dist_params,
                                          fixed};
@@ -956,7 +956,7 @@ size_t graph_add_speed_bias(graph_t &graph,
                             const vec3_t &v,
                             const vec3_t &ba,
                             const vec3_t &bg) {
-  const auto id = graph.next_id++;
+  const auto id = graph.next_param_id++;
   const auto param = new sb_params_t{id, ts, v, ba, bg};
   graph.params.insert({id, param});
   return id;
@@ -980,13 +980,13 @@ size_t graph_add_pose_factor(graph_t &graph,
                              const mat4_t &T,
                              const mat_t<6, 6> &info = I(6)) {
   // Create factor
-  const id_t f_id = graph.factors.size();
+  const id_t f_id = graph.next_factor_id++;
   std::vector<param_t *> params{graph.params[pose_id]};
   auto factor = new pose_factor_t{f_id, T, info, params};
 
   // Add factor to graph
   graph.factors[f_id] = factor;
-  graph.param_factor[params[0]].push_back(factor);
+  // graph.param_factor[params[0]].push_back(factor);
 
   // Point params to factor
   params[0]->factor_ids.push_back(f_id);
@@ -1004,7 +1004,7 @@ size_t graph_add_ba_factor(graph_t &graph,
                            const mat2_t &info = I(2) * 0.5) {
 
   // Create factor
-  const id_t f_id = graph.factors.size();
+  const id_t f_id = graph.next_factor_id++;
   std::vector<param_t *> params{
     graph.params[cam_pose_id],
     graph.params[landmark_id],
@@ -1014,9 +1014,9 @@ size_t graph_add_ba_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors[f_id] = factor;
-  graph.param_factor[params[0]].push_back(factor);
-  graph.param_factor[params[1]].push_back(factor);
-  graph.param_factor[params[2]].push_back(factor);
+  // graph.param_factor[params[0]].push_back(factor);
+  // graph.param_factor[params[1]].push_back(factor);
+  // graph.param_factor[params[2]].push_back(factor);
 
   // Point params to factor
   for (auto *param : params) {
@@ -1036,7 +1036,7 @@ size_t graph_add_cam_factor(graph_t &graph,
                             const vec2_t &z,
                             const mat2_t &info = I(2)) {
   // Create factor
-  const id_t f_id = graph.factors.size();
+  const id_t f_id = graph.next_factor_id++;
   std::vector<param_t *> params{
     graph.params[sensor_pose_id],
     graph.params[imu_cam_pose_id],
@@ -1047,10 +1047,10 @@ size_t graph_add_cam_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors[f_id] = factor;
-  graph.param_factor[params[0]].push_back(factor);
-  graph.param_factor[params[1]].push_back(factor);
-  graph.param_factor[params[2]].push_back(factor);
-  graph.param_factor[params[3]].push_back(factor);
+  // graph.param_factor[params[0]].push_back(factor);
+  // graph.param_factor[params[1]].push_back(factor);
+  // graph.param_factor[params[2]].push_back(factor);
+  // graph.param_factor[params[3]].push_back(factor);
 
   // Point params to factor
   for (auto *param : params) {
@@ -1070,7 +1070,7 @@ size_t graph_add_imu_factor(graph_t &graph,
                             const size_t pose1_id,
                             const size_t sb1_id) {
   // Create factor
-  const id_t f_id = graph.factors.size();
+  const id_t f_id = graph.next_factor_id++;
   std::vector<param_t *> params{
     graph.params[pose0_id],
     graph.params[sb0_id],
@@ -1083,10 +1083,10 @@ size_t graph_add_imu_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors[f_id] = factor;
-  graph.param_factor[params[0]].push_back(factor);
-  graph.param_factor[params[1]].push_back(factor);
-  graph.param_factor[params[2]].push_back(factor);
-  graph.param_factor[params[3]].push_back(factor);
+  // graph.param_factor[params[0]].push_back(factor);
+  // graph.param_factor[params[1]].push_back(factor);
+  // graph.param_factor[params[2]].push_back(factor);
+  // graph.param_factor[params[3]].push_back(factor);
 
   // Point params to factor
   for (auto *param : params) {
@@ -1110,20 +1110,54 @@ void graph_mark_param(graph_t &graph, const id_t param_id) {
 }
 
 void graph_marginalize_factors(graph_t &graph) {
-	// auto i = graph.factors.begin();
-	// while (i != graph.factors.end()) {
-	// 	if ((*i)->marginalize) {
-	// 		graph.factors.erase(i);
-	// 	}
-	// 	i++;
-	// }
+	for (auto &kv : graph.factors) {
+		auto f_id = kv.first;
+		auto *factor = kv.second;
+		if (factor->marginalize) {
+			delete factor;
+			graph.factors.erase(f_id);
+		}
+	}
 }
 
-void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
-                size_t *marg_size=nullptr,
-                size_t *remain_size=nullptr) {
+void graph_rm_param(graph_t &graph, const id_t param_id) {
+	auto &param = graph.params[param_id];
+	graph.params.erase(param_id);
+	delete param;
+}
+
+void graph_rm_factor(graph_t &graph, const id_t factor_id) {
+	auto &factor = graph.factors[factor_id];
+	graph.factors.erase(factor->id);
+	delete factor;
+}
+
+vecx_t graph_residuals(graph_t &graph) {
+  size_t residuals_size = 0;
+
+  // Eval
+  for (const auto &kv : graph.factors) {
+    auto factor = kv.second;
+    if (factor->eval(false) == 0) {
+      residuals_size += factor->residuals.size();
+    }
+  }
+
+  // Form residual vector
+  vecx_t r = zeros(residuals_size, 1);
+  size_t idx = 0;
+  for (const auto &kv : graph.factors) {
+    auto &factor = kv.second;
+    r.segment(idx, factor->residuals.size()) = factor->residuals;
+    idx += factor->residuals.size();
+  }
+
+  return r;
+}
+
+matx_t graph_jacobians(graph_t &graph, size_t *marg_size, size_t *remain_size) {
   // First pass: Determine what parameters we have
-  std::unordered_set<param_t *> param_tracker;
+  std::unordered_set<id_t> param_tracker;
   std::unordered_map<std::string, int> param_counter;
 	std::set<std::string> marg_param_types;
   *marg_size = 0;
@@ -1134,13 +1168,13 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
 
     for (const auto &param : factor->params) {
       // Check if param is already tracked or fixed
-      if (param_tracker.count(param) > 0 || param->fixed) {
+      if (param_tracker.count(param->id) > 0 || param->fixed) {
         continue; // Skip this param
       }
 
       // Keep track of param blocks
       param_counter[param->type] += param->local_size;
-      param_tracker.insert(param);
+      param_tracker.insert(param->id);
 
       // Change parameter type if marked for marginalization
       if (param->marginalize) {
@@ -1153,8 +1187,6 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   }
 
   // Second pass: Assign jacobian order for each parameter and evaluate factor
-  size_t residuals_size = 0;
-  size_t params_size = 0;
   std::unordered_map<std::string, int> param_cs;  // Map param type to col index
   std::vector<std::string> param_order;
 
@@ -1187,8 +1219,11 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   }
 
   // -- Assign param global index
+  size_t residuals_size = 0;
+  size_t params_size = 0;
   std::vector<bool> factor_ok;
   graph.param_index.clear();
+
   for (const auto &kv : graph.factors) {
 		auto factor = kv.second;
 
@@ -1203,12 +1238,139 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
     // Assign parameter order in jacobian
     for (const auto &param : factor->params) {
       // Check if param is already tracked or fixed
-      if (graph.param_index.count(param) > 0 || param->fixed) {
+      if (graph.param_index.count(param->id) > 0 || param->fixed) {
         continue; // Skip this param
       }
 
       // Assign jacobian column index for parameter
-      graph.param_index.insert({param, param_cs[param->type]});
+      graph.param_index.insert({param->id, param_cs[param->type]});
+      param_cs[param->type] += param->local_size;
+      params_size += param->local_size;
+    }
+  }
+
+  // Third pass: Form residuals and jacobians
+  matx_t J = zeros(residuals_size, params_size);
+
+  size_t rs = 0;
+  size_t cs = 0;
+	size_t i = 0;
+  for (auto &kv : graph.factors) {
+    const auto &factor = kv.second;
+    if (factor_ok[i] == false) {
+      continue; // Skip this factor
+    }
+		i++;
+
+    // Form jacobian
+    for (size_t j = 0; j < factor->params.size(); j++) {
+      const auto &param = factor->params.at(j);
+      const long rows = factor->residuals.size();
+      const long cols = param->local_size;
+
+      if (graph.param_index.count(param->id)) {
+        cs = graph.param_index[param->id];
+        J.block(rs, cs, rows, cols) = factor->jacobians[j];
+      }
+    }
+
+    // Update residual start
+    rs += factor->residuals.size();
+  }
+
+  return J;
+}
+
+void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
+                size_t *marg_size, size_t *remain_size) {
+  // First pass: Determine what parameters we have
+  std::unordered_set<id_t> param_tracker;
+  std::unordered_map<std::string, int> param_counter;
+	std::set<std::string> marg_param_types;
+  *marg_size = 0;
+  *remain_size = 0;
+
+  for (const auto &kv : graph.factors) {
+		auto &factor = kv.second;
+
+    for (const auto &param : factor->params) {
+      // Check if param is already tracked or fixed
+      if (param_tracker.count(param->id) > 0 || param->fixed) {
+        continue; // Skip this param
+      }
+
+      // Keep track of param blocks
+      param_counter[param->type] += param->local_size;
+      param_tracker.insert(param->id);
+
+      // Change parameter type if marked for marginalization
+      if (param->marginalize) {
+				marg_param_types.insert(param->type);
+        *marg_size += param->local_size;
+      } else {
+        *remain_size += param->local_size;
+      }
+    }
+  }
+
+  // Second pass: Assign jacobian order for each parameter and evaluate factor
+  std::unordered_map<std::string, int> param_cs;  // Map param type to col index
+  std::vector<std::string> param_order;
+
+  // -- Setup param order
+	for (const auto param_type : marg_param_types) {
+		param_order.push_back(param_type);
+	}
+  for (const auto param_type : graph.param_order) {
+    param_order.push_back(param_type);
+  }
+
+  // -- Check which param is not in defined param order
+  for (int i = 0; i < (int) param_order.size(); i++) {
+    if (param_counter.find(param_order[i]) == param_counter.end()) {
+      FATAL("Param [%s] not found!", param_order[i].c_str());
+    }
+  }
+
+  // -- Assign param start index
+  for (int i = 0; i < (int) param_order.size(); i++) {
+    auto param_i = param_order[i];
+    param_cs[param_i] = 0;
+
+    int j = i - 1;
+    while (j > -1) {
+      auto param_j = param_order[j];
+      param_cs[param_order[i]] += param_counter[param_j];
+      j--;
+    }
+  }
+
+  // -- Assign param global index
+  size_t residuals_size = 0;
+  size_t params_size = 0;
+  std::vector<bool> factor_ok;
+  graph.param_index.clear();
+
+  for (const auto &kv : graph.factors) {
+		auto factor = kv.second;
+
+    // Evaluate factor
+    if (factor->eval() != 0) {
+      factor_ok.push_back(false);
+      continue; // Skip this factor's jacobians and residuals
+    }
+    residuals_size += factor->residuals.size();
+    factor_ok.push_back(true);
+
+    // Assign parameter order in jacobian
+    for (const auto &param : factor->params) {
+      // Check if param is already tracked or fixed
+      if (graph.param_index.count(param->id) > 0 || param->fixed) {
+        continue; // Skip this param
+      }
+
+      // Assign jacobian column index for parameter
+      graph.param_index.insert({param->id, param_cs[param->type]});
       param_cs[param->type] += param->local_size;
       params_size += param->local_size;
     }
@@ -1220,11 +1382,13 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
 
   size_t rs = 0;
   size_t cs = 0;
-  for (size_t i = 0; i < graph.factors.size(); i++) {
-    const auto &factor = graph.factors[i];
+	size_t i = 0;
+  for (auto &kv : graph.factors) {
+    const auto &factor = kv.second;
     if (factor_ok[i] == false) {
       continue; // Skip this factor
     }
+		i++;
 
     // Form jacobian
     for (size_t j = 0; j < factor->params.size(); j++) {
@@ -1232,8 +1396,8 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
       const long rows = factor->residuals.size();
       const long cols = param->local_size;
 
-      if (graph.param_index.count(param)) {
-        cs = graph.param_index[param];
+      if (graph.param_index.count(param->id)) {
+        cs = graph.param_index[param->id];
         J.block(rs, cs, rows, cols) = factor->jacobians[j];
       }
     }
@@ -1245,12 +1409,15 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
 }
 
 void graph_update(graph_t &graph, const vecx_t &dx) {
+	assert(dx.rows() > 0);
+
   for (const auto &kv: graph.param_index) {
-    const auto &param = kv.first;
+    const auto &param_id = kv.first;
     const auto index = kv.second;
+    const auto &param = graph.params[param_id];
+    assert((index + param->local_size) <= (size_t) dx.size());
     param->plus(dx.segment(index, param->local_size));
   }
-  graph.param_index.clear();
 }
 
 /*****************************************************************************
@@ -1285,7 +1452,6 @@ struct tiny_solver_t {
 
     // Calculate initial cost
     graph_eval(graph, e, E, &marg_size, &remain_size);
-
     cost = 0.5 * e.transpose() * e;
 
     // Solve
@@ -1298,7 +1464,9 @@ struct tiny_solver_t {
       // -- Marginalize?
       // if (marg_size) {
       //   if (marg_type == "sibley") {
+      //     print_shape("H before", H);
       //     marginalize_sibley(H, g, marg_size, remain_size);
+      //     print_shape("H after", H);
       //   } else {
       //     FATAL("marg_type[%s] not implemented!\n", marg_type.c_str());
       //   }
@@ -1343,21 +1511,73 @@ struct tiny_solver_t {
       } else {
         // Reject update
         lambda_k *= update_factor;
-        graph_update(graph, -dx);
+        // graph_update(graph, -dx);
       }
 
       // Termination criterias
       if (fabs(cost_delta) < cost_change_threshold) {
         break;
-      }
-      if ((solve_time + iter_time) > time_limit) {
+      } else if ((solve_time + iter_time) > time_limit) {
         break;
       }
-
     }
     solve_time = toc(&solve_tic);
 
     return 0;
+  }
+};
+
+/*******************************************************************************
+ *                           SLIDING WINDOW FILTER
+ ******************************************************************************/
+
+struct state_info_t {
+  std::vector<id_t> factor_ids;
+  std::vector<id_t> feature_ids;
+  id_t pose_id;
+};
+
+struct swf_t {
+	graph_t graph;
+  tiny_solver_t solver;
+
+	std::deque<state_info_t> window;
+  std::vector<id_t> camera_ids;
+  std::vector<id_t> feature_ids;
+
+  swf_t() {}
+
+  size_t nb_cams() { return camera_ids.size(); }
+  size_t nb_features() { return feature_ids.size(); }
+  size_t window_size() { return window.size(); }
+
+  void add_feature(const vec3_t &feature) {
+    auto feature_id = graph_add_landmark(graph, feature);
+    feature_ids.push_back(feature_id);
+  }
+
+  void add_camera(const int cam_index,
+                  const int resolution[2],
+                  const vecx_t &proj_params,
+                  const vecx_t &dist_params) {
+    auto camera_id = graph_add_camera(graph,
+                                      cam_index,
+                                      resolution,
+                                      proj_params,
+                                      dist_params);
+    camera_ids.push_back(camera_id);
+  }
+
+  void marginalize() {
+    // Mark factors to be marginalized out
+    printf("window size: %zu\n", window_size());
+
+    const auto state = window.front();
+    for (auto factor_id : state.factor_ids) {
+      graph_rm_param(graph, graph.factors[factor_id]->params[0]->id);
+      graph_rm_factor(graph, factor_id);
+    }
+    window.pop_front();
   }
 };
 

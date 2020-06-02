@@ -9,6 +9,47 @@ r_MC = [0.104008; 0.019301; -0.104969];
 q_WM = [1.0; 0.0; 0.0; 0.0];
 r_WM = [0.0; 0.0; 0.0];
 
+# Back project
+# -- Parameters
+res = [640; 480];
+hfov = deg2rad(87);
+vfov = deg2rad(58);
+fx = 599.503798;
+fy = 601.315908;
+cx = 324.227980;
+cy = 243.189442;
+reproj_error = 1.5;  # (RMSE) Obtained from calibration
+# -- Measurements
+z = [320; 240];
+depth = 0.5;
+# -- Estimate uncertainty in world frame
+# Calculate conversion of pixel at a depth of 0.5m to meters
+pix2meters_horiz = (depth * tan(hfov / 2.0)) / (res(1) / 2);
+pix2meters_vert = (depth * tan(vfov / 2.0)) / (res(2) / 2);
+p_CPi_x_stddev = reproj_error * pix2meters_horiz;
+p_CPi_y_stddev = reproj_error * pix2meters_vert;
+
+# Note: OptiTrack claims accuracy is less than 0.05deg with 0.3mm errors
+# -- Form input covariance matrix
+covar_in = eye(15);
+covar_in(1:3, 1:3) = eye(3) * deg2rad(0.05)**2;  # theta_WM variance
+covar_in(4:6, 4:6) = eye(3) * 0.003**2;          # r_WM variance
+covar_in(7, 7) = deg2rad(0.084)**2;              # theta_MC x variance
+covar_in(8, 8) = deg2rad(0.081)**2;              # theta_MC y variance
+covar_in(9, 9) = deg2rad(0.044)**2;              # theta_MC z variance
+covar_in(10, 10) = 0.001**2;                     # r_MC x variance
+covar_in(11, 11) = 0.001**2;                     # r_MC y variance
+covar_in(12, 12) = 0.001**2;                     # r_MC z variance
+covar_in(13, 13) = p_CPi_x_stddev**2;            # p_CPi variance
+covar_in(14, 14) = p_CPi_y_stddev**2;            # p_CPi variance
+covar_in(15, 15) = 0.00375**2;                   # p_CPi variance
+
+# If the Intel RealSense d435i camera is 1m from the object, the expected
+# accuracy is between 2.5mm to 5mm. Therefore a depth of 0.5m infers an
+# accuracy of 3.75mm.
+# https://www.intel.co.uk/content/www/uk/en/support/articles/000026260/emerging-technologies/intel-realsense-technology.html
+
+
 function R = quat2rot(q)
   qw = q(1);
   qx = q(2);
@@ -163,6 +204,27 @@ function retval = check_jacobian(jac_name, fdiff, jac, threshold, print=true)
   endif
 endfunction
 
+% function check_ray_jac(J_ray, fx, fy, cx, cy, depth, z)
+%   step_size = 1e-6;
+%   threshold = 1e-4;
+%   z_descaled = [(z(1) - cx) / fx; (z(2) - cy) / fy];  # Descale-decenter z -> z'
+%   p_CPi = [z_descaled(1) * depth; z_descaled(2) * depth; depth];  # Back-project z' to 3D
+%
+%   step = eye(2) * step_size;
+%   fdiff = zeros(3, 2);
+%   for i = 1:2
+%     z_diff = z;
+%     z_diff(i) += step_size;
+%
+%     z_descaled_diff = [(z_diff(1) - cx) / fx; (z_diff(2) - cy) / fy];  # Descale-decenter z -> z'
+%     p_CPi_diff = [z_descaled_diff(1) * depth; z_descaled_diff(2) * depth; depth];  # Back-project z' to 3D
+%     fdiff(1:3, i) = (p_CPi_diff - p_CPi) / step_size;
+%   endfor
+%   fdiff
+%
+%   % retval = check_jacobian("J_ray", fdiff, J_ray, threshold);
+% endfunction
+
 function check_marker_pose_jac(J_WM, T_WM, T_MC, p_CPi)
   step_size = 1e-6;
   threshold = 1e-4;
@@ -227,6 +289,19 @@ function check_point_jac(J_p, T_WM, T_MC, p_CPi)
   retval = check_jacobian("J_p", fdiff, J_p(1:3, 1:3), threshold);
 endfunction
 
+% # -- Measurement model
+% z_descaled = [(z(1) - cx) / fx; (z(2) - cy) / fy];  # Descale-decenter z -> z'
+% p_CPi = [z_descaled(1) * depth; z_descaled(2) * depth; depth];  # Back-project z' to 3D
+# -- Form back project jacobian
+% J_backproj = [depth, 0; 0, depth];
+% J_descale = [1 / fx, 0; 0, 1 / fy];
+% J_ray = J_backproj * J_descale;
+% check_ray_jac(J_ray, fx, fy, cx, cy, depth, z)
+% covar_calib = eye(2) * rmse_reproj_error**2;
+% covar_ray = J * covar_calib * J';
+% ray_var = diag(covar_ray)
+% ray_std = sqrt(ray_var)
+
 # Marker-Camera extrinsics
 T_MC = eye(4);
 T_MC(1:3, 1:3) = quat2rot(q_MC);
@@ -261,14 +336,6 @@ check_marker_camera_jac(J_MC, T_WM, T_MC, p_CPi);
 check_point_jac(J_p_CPi, T_WM, T_MC, p_CPi);
 
 # Calculate covariance of point in world frame: p_WPi
-# Note: OptiTrack claims accuracy is less than 0.05deg with 0.3mm errors
-# -- Form input covariance matrix
-covar_in = eye(15);
-covar_in(1:3, 1:3) = eye(3) * deg2rad(0.05)**2;  # theta_WM variance
-covar_in(4:6, 4:6) = eye(3) * 0.003**2;          # r_WM variance
-covar_in(7:9, 7:9) = eye(3) * deg2rad(0.1)**2;   # theta_MC variance
-covar_in(10:12, 10:12) = eye(3) * 0.001**2;       # r_MC variance
-covar_in(13:15, 13:15) = eye(3) * 0.001**2;      # p_CPi variance
 # -- Calculate output covariance matrix using first order error propagation
 covar_out = J * covar_in * J';
 # -- p_WCi variance
