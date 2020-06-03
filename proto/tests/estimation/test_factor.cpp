@@ -444,10 +444,10 @@ int test_marg_factor() {
   // -- Camera geometry
   const int cam_index = 0;
   const int resolution[2] = {640, 480};
-  const double fx = pinhole_focal(resolution[0], 90.0);
-  const double fy = pinhole_focal(resolution[1], 90.0);
-  const double cx = resolution[0] / 2.0;
-  const double cy = resolution[1] / 2.0;
+  const real_t fx = pinhole_focal(resolution[0], 90.0);
+  const real_t fy = pinhole_focal(resolution[1], 90.0);
+  const real_t cx = resolution[0] / 2.0;
+  const real_t cy = resolution[1] / 2.0;
   vec4_t proj_params{fx, fy, cx, cy};
   vec4_t dist_params{0.01, 0.001, 0.001, 0.001};
   camera_params_t cam_params{next_param_id, cam_index, resolution,
@@ -1293,8 +1293,9 @@ int test_graph_solve_vo() {
 
   // -- Add landmarks
   for (const auto &feature : sim_data.features) {
-    const vec3_t noise{randf(-0.1, 0.1), randf(-0.1, 0.1), randf(-0.1, 0.1)};
+    const vec3_t noise{randf(-0.01, 0.01), randf(-0.01, 0.01), randf(-0.01, 0.01)};
     graph_add_landmark(graph, feature + noise);
+    // graph_add_landmark(graph, feature);
   }
 
   // -- Add cam0 parameters
@@ -1315,7 +1316,7 @@ int test_graph_solve_vo() {
   profiler_t profiler;
   profiler.start("solve vo");
   tiny_solver_t solver;
-  solver.max_iter = 20;
+  solver.max_iter = 10;
   solver.time_limit = 10.0;
   solver.verbose = false;
 
@@ -1337,8 +1338,10 @@ int test_graph_solve_vo() {
       pose_ids.push_back(cam0_pose_id);
       pose_idx++;
 
+      // Add factor
       if (prior_set == false) {
-        graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        auto factor_id = graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        factors_k.push_back(factor_id);
         prior_set = true;
       }
 
@@ -1359,12 +1362,21 @@ int test_graph_solve_vo() {
 
       if (window.size() > 10) {
 				// for (auto factor_id : window.front()) {
-        //   graph.factors[factor_id]->params[0]->marginalize = true;
+				//   if (graph.factors[factor_id]->params[0]->marginalize == false) {
+        //     graph.factors[factor_id]->params[0]->marginalize = true;
+        //     graph.factors[factor_id]->params[0]->type = "marg_" + graph.factors[factor_id]->params[0]->type;
+        //     // printf("factor_id: %zu\t", factor_id);
+        //     // printf("param_type: %s\n", graph.factors[factor_id]->params[0]->type.c_str());
+        //   }
 				// }
 
         // Solve
         solver.solve(graph);
-        printf("cam_pose: %d\tsolver took: %fs\n", cam_pose, solver.solve_time);
+        printf("time: %f\t", ns2sec(sim_data.cam_ts[pose_idx]));
+        printf("cam_pose: %d\t", cam_pose);
+        printf("cost: %e\t", solver.cost);
+        printf("solver took: %fs\n", solver.solve_time);
+        // printf("\n");
 
 				// Mark factors to be marginalized out
 				for (auto factor_id : window.front()) {
@@ -1553,8 +1565,8 @@ int test_graph_solve_vio() {
   const bool debug = true;
   // const bool debug = false;
   if (debug) {
-    OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/H.csv");
-    // OCTAVE_SCRIPT("scripts/estimation/plot_test_vio.m");
+    // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/H.csv");
+    OCTAVE_SCRIPT("scripts/estimation/plot_test_vio.m");
   }
 
   return 0;

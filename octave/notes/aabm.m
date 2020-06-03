@@ -26,14 +26,14 @@ depth = 0.5;
 # Calculate conversion of pixel at a depth of 0.5m to meters
 pix2meters_horiz = (depth * tan(hfov / 2.0)) / (res(1) / 2);
 pix2meters_vert = (depth * tan(vfov / 2.0)) / (res(2) / 2);
-p_CPi_x_stddev = reproj_error * pix2meters_horiz;
-p_CPi_y_stddev = reproj_error * pix2meters_vert;
+p_CPi_x_stddev = reproj_error * pix2meters_horiz
+p_CPi_y_stddev = reproj_error * pix2meters_vert
 
 # Note: OptiTrack claims accuracy is less than 0.05deg with 0.3mm errors
 # -- Form input covariance matrix
 covar_in = eye(15);
 covar_in(1:3, 1:3) = eye(3) * deg2rad(0.05)**2;  # theta_WM variance
-covar_in(4:6, 4:6) = eye(3) * 0.003**2;          # r_WM variance
+covar_in(4:6, 4:6) = eye(3) * 0.0003**2;         # r_WM variance
 covar_in(7, 7) = deg2rad(0.084)**2;              # theta_MC x variance
 covar_in(8, 8) = deg2rad(0.081)**2;              # theta_MC y variance
 covar_in(9, 9) = deg2rad(0.044)**2;              # theta_MC z variance

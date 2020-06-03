@@ -863,15 +863,18 @@ void imu_propagate(const imu_data_t &imu_data,
  *                               MARGINALIZER
  ****************************************************************************/
 
-void marginalize_sibley(matx_t &H,
-                        vecx_t &g,
-                             size_t marg_size,
-                        size_t remain_size) {
+int marginalize_sibley(matx_t &H,
+                       vecx_t &g,
+                       size_t marg_size,
+                       size_t remain_size) {
   matx_t H_marg;
   vecx_t g_marg;
-  schurs_complement(H, g, marg_size, remain_size, H_marg, g_marg, true);
+  int retval = schurs_complement(H, g, marg_size, remain_size,
+                                 H_marg, g_marg, true);
   H = H_marg;
   g = g_marg;
+
+  return retval;
 }
 
 /*****************************************************************************
@@ -884,7 +887,7 @@ struct graph_t {
 
   std::map<size_t, factor_t *> factors;
   std::unordered_map<size_t, param_t *> params;
-  std::unordered_map<size_t, size_t> param_index; // id - column start
+  std::unordered_map<id_t, size_t> param_index; // id - column start
   // std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
   std::vector<std::string> param_order{"pose_t",
                                        "camera_params_t",
@@ -1408,15 +1411,17 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   }
 }
 
-void graph_update(graph_t &graph, const vecx_t &dx) {
+void graph_update(graph_t &graph, const vecx_t &dx, const size_t offset=0) {
 	assert(dx.rows() > 0);
 
   for (const auto &kv: graph.param_index) {
     const auto &param_id = kv.first;
-    const auto index = kv.second;
     const auto &param = graph.params[param_id];
-    assert((index + param->local_size) <= (size_t) dx.size());
-    param->plus(dx.segment(index, param->local_size));
+    if (param->marginalize == false) {
+      const auto index = kv.second - offset;
+      assert((index + param->local_size) <= (size_t) dx.size());
+      param->plus(dx.segment(index, param->local_size));
+    }
   }
 }
 
@@ -1429,7 +1434,7 @@ struct tiny_solver_t {
   bool verbose = false;
   int max_iter = 10;
   real_t lambda = 1e-4;
-  real_t cost_change_threshold = 1e-2;
+  real_t cost_change_threshold = 1e-1;
   real_t time_limit = 0.01;
   real_t update_factor = 10.0;
 
@@ -1447,40 +1452,67 @@ struct tiny_solver_t {
 
   tiny_solver_t() {}
 
+  real_t eval(graph_t &graph) {
+    graph_eval(graph, e, E, &marg_size, &remain_size);
+    return 0.5 * e.transpose() * e;
+  }
+
+  void update(graph_t &graph, const real_t lambda_k) {
+    if (E.rows() == 0) {
+      return;
+    }
+
+    // Solve Gauss-Newton system [H dx = g]: Solve for dx
+    // -- Form L.H.S. and R.H.S. of GN
+    // matx_t W = (I(E.rows()) * (1)).inverse();
+    // matx_t W = I(E.rows());
+    // matx_t H = E.transpose() * W * E;
+    // vecx_t g = -E.transpose() * W * e;
+    matx_t H = E.transpose() * E;
+    vecx_t g = -E.transpose() * e;
+    // bool is_empty = H.isZero();
+    // if (is_empty) {
+    //   FATAL("Hessian is zeros\n");
+    // }
+    // -- Marginalize?
+    // if (marg_size) {
+    //   if (marg_type == "sibley") {
+    //     if (marginalize_sibley(H, g, marg_size, H.rows() - marg_size) != 0) {
+    //       marg_size = 0;
+    //     }
+    //   } else {
+    //     FATAL("marg_type[%s] not implemented!\n", marg_type.c_str());
+    //   }
+    // }
+    // -- Damp the Hessian matrix H
+    const matx_t H_diag = (H.diagonal().asDiagonal());
+    H = H + lambda_k * H_diag;
+    // -- Solve for dx
+    const vecx_t dx = H.ldlt().solve(g);
+    // const vecx_t dx = H.colPivHouseholderQr().solve(g);
+    // const vecx_t dx = (H.transpose() * H).inverse() * H.transpose() * g;
+    // -- Update
+    // graph_update(graph, dx, marg_size);
+    graph_update(graph, dx);
+  }
+
   int solve(graph_t &graph)  {
     struct timespec solve_tic = tic();
+    real_t lambda_k = lambda;
 
     // Calculate initial cost
-    graph_eval(graph, e, E, &marg_size, &remain_size);
-    cost = 0.5 * e.transpose() * e;
+    cost = eval(graph);
+    // if (cost < 1e-1) {
+    //   return 0;
+    // }
+    update(graph, lambda_k);
 
     // Solve
-    real_t lambda_k = lambda;
     for (iter = 0; iter < max_iter; iter++) {
-      // Solve Gauss-Newton system [H dx = g]: Solve for dx
-      // -- Form L.H.S. and R.H.S. of GN
-      matx_t H = E.transpose() * E;
-      vecx_t g = -E.transpose() * e;
-      // -- Marginalize?
-      // if (marg_size) {
-      //   if (marg_type == "sibley") {
-      //     print_shape("H before", H);
-      //     marginalize_sibley(H, g, marg_size, remain_size);
-      //     print_shape("H after", H);
-      //   } else {
-      //     FATAL("marg_type[%s] not implemented!\n", marg_type.c_str());
-      //   }
+      const real_t cost_k = eval(graph);
+      // if (cost_k < 1e-1) {
+      //   return 0;
       // }
-      // -- Damp the Hessian matrix H
-      const matx_t H_diag = (H.diagonal().asDiagonal());
-      H = H + lambda_k * H_diag;
-      // -- Solve for dx
-      const vecx_t dx = H.ldlt().solve(g);
-      graph_update(graph, dx);
-
-      // Evaluate cost after update
-      graph_eval(graph, e, E, &marg_size, &remain_size);
-      const real_t cost_k = 0.5 * e.transpose() * e;
       const real_t cost_delta = cost_k - cost;
       const real_t solve_time = toc(&solve_tic);
       const real_t iter_time = (iter == 0) ? 0 : (solve_time / iter);
@@ -1506,12 +1538,12 @@ struct tiny_solver_t {
       // Determine whether to accept update
       if (cost_k < cost) {
         // Accept update
+        update(graph, lambda_k);
         lambda_k /= update_factor;
         cost = cost_k;
       } else {
         // Reject update
         lambda_k *= update_factor;
-        // graph_update(graph, -dx);
       }
 
       // Termination criterias
@@ -1522,6 +1554,15 @@ struct tiny_solver_t {
       }
     }
     solve_time = toc(&solve_tic);
+
+    // Calculate reprojection error
+    size_t nb_keypoints = e.size() / 2.0;
+    real_t sse = 0.0;
+    for (size_t i = 0; i < nb_keypoints; i++) {
+      sse += e.segment(i * 2, 2).norm();
+    }
+    const real_t rmse = sqrt(sse / nb_keypoints);
+    printf("rmse reproj error: %.2f\t", rmse);
 
     return 0;
   }
