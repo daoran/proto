@@ -1,0 +1,13 @@
+cam0:
+  proj_model: "pinhole"
+  dist_model: "pinhole"
+  resolution: [640, 480]
+  lens_hfov: 90.0
+  lens_vfov: 90.0
+
+solver:
+  window_limit: 10
+  verbose: false
+  max_iter: 10
+  time_limit: 10.0
+  lambda: 1e-4

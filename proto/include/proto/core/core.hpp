@@ -483,6 +483,20 @@ std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
   return retval;
 }
 
+void save_features(const std::string &path, const vec3s_t &features);
+
+void save_pose(FILE *csv_file,
+               const timestamp_t &ts,
+               const quat_t &rot,
+               const vec3_t &pos);
+
+void save_pose(FILE *csv_file, const timestamp_t &ts, const vecx_t &pose);
+
+void save_poses(const std::string &path,
+                const timestamps_t &timestamps,
+                const quats_t &orientations,
+                const vec3s_t &positions);
+
 int check_jacobian(const std::string &jac_name,
                    const matx_t &fdiff,
                    const matx_t &jac,
@@ -1708,6 +1722,22 @@ mat3_t quat_rmul_xyz(const quat_t &q);
  * Return only the x, y, z, components of a quaternion matrix.
  */
 mat3_t quat_mat_xyz(const mat4_t &Q);
+
+/**
+ * Add noise to rotation matrix `rot`, where noise `n` is in degrees.
+ */
+mat3_t add_noise(const mat3_t &rot, const real_t n);
+
+/**
+ * Add noise to position vector `pos`, where noise `n` is in meters.
+ */
+vec3_t add_noise(const vec3_t &pos, const real_t n);
+
+/**
+ * Add noise to transform `pose`, where `pos_n` is in meters and `rot_n` is in
+ * degrees.
+ */
+matx_t add_noise(const mat4_t &pose, const real_t pos_n, const real_t rot_n);
 
 /**
  * Initialize attitude using IMU gyroscope `w_m` and accelerometer `a_m`
@@ -3478,11 +3508,11 @@ struct sim_event_t {
   sim_event_t(const int sensor_id_,
               const timestamp_t &ts_,
               const vec2s_t &keypoints_,
-              const std::vector<size_t> &feature_ids_)
+              const std::vector<size_t> &feature_idxs_)
     : type{CAMERA},
       sensor_id{sensor_id_},
       ts{ts_},
-      frame{ts_, keypoints_, feature_ids_} {}
+      frame{ts_, keypoints_, feature_idxs_} {}
 
   // IMU event
   sim_event_t(const int sensor_id_, const timestamp_t &ts_,
@@ -3501,8 +3531,12 @@ struct vio_sim_data_t {
 
   // Camera data
   timestamps_t cam_ts;
+  vec3s_t cam_pos_gnd;
+  quats_t cam_rot_gnd;
+  mat4s_t cam_poses_gnd;
   vec3s_t cam_pos;
   quats_t cam_rot;
+  mat4s_t cam_poses;
   std::vector<std::vector<size_t>> observations;
   std::vector<vec2s_t> keypoints;
 
@@ -3512,6 +3546,7 @@ struct vio_sim_data_t {
   vec3s_t imu_gyr;
   vec3s_t imu_pos;
   quats_t imu_rot;
+  mat4s_t imu_poses;
   vec3s_t imu_vel;
 
   // Simulation timeline
@@ -3527,7 +3562,7 @@ struct vio_sim_data_t {
   void add(const int sensor_id,
 					 const timestamp_t &ts,
            const vec2s_t &keypoints,
-					 const std::vector<size_t> &feature_ids);
+					 const std::vector<size_t> &feature_idxs);
 
 	void save(const std::string &dir);
 };

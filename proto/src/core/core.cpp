@@ -483,6 +483,45 @@ bool all_true(const std::vector<bool> x) {
   return true;
 }
 
+void save_features(const std::string &path, const vec3s_t &features) {
+  FILE *csv = fopen(path.c_str(), "w");
+  for (const auto &f : features) {
+    fprintf(csv, "%f,%f,%f\n", f(0), f(1), f(2));
+  }
+  fflush(csv);
+  fclose(csv);
+}
+
+void save_pose(FILE *csv_file,
+               const timestamp_t &ts,
+               const quat_t &rot,
+               const vec3_t &pos) {
+  fprintf(csv_file, "%ld,", ts);
+  fprintf(csv_file, "%f,%f,%f,%f,", rot.w(), rot.x(), rot.y(), rot.z());
+  fprintf(csv_file, "%f,%f,%f\n", pos(0), pos(1), pos(2));
+}
+
+void save_pose(FILE *csv_file, const timestamp_t &ts, const vecx_t &pose) {
+  fprintf(csv_file, "%ld,", ts);
+  fprintf(csv_file, "%f,%f,%f,%f,", pose(0), pose(1), pose(2), pose(3));
+  fprintf(csv_file, "%f,%f,%f\n", pose(4), pose(5), pose(6));
+}
+
+void save_poses(const std::string &path,
+                const timestamps_t &timestamps,
+                const quats_t &orientations,
+                const vec3s_t &positions) {
+  FILE *csv = fopen(path.c_str(), "w");
+  for (size_t i = 0; i < timestamps.size(); i++) {
+    const timestamp_t ts = timestamps[i];
+    const quat_t rot = orientations[i];
+    const vec3_t pos = positions[i];
+    save_pose(csv, ts, rot, pos);
+  }
+  fflush(csv);
+  fclose(csv);
+}
+
 int check_jacobian(const std::string &jac_name,
                    const matx_t &fdiff,
                    const matx_t &jac,
@@ -1945,18 +1984,30 @@ mat4_t tf(const quat_t &q, const vec3_t &r) {
 }
 
 mat4_t tf_perturb_rot(const mat4_t &T, real_t step_size, const int i) {
-  const mat3_t drvec = I(3) * step_size;
   const mat3_t C = tf_rot(T);
   const vec3_t r = tf_trans(T);
-  const mat3_t C_diff = rvec2rot(drvec.col(i), 1e-8) * C;
+
+  mat3_t C_diff;
+  if (i == -1) {
+    C_diff = rvec2rot(ones(3, 1) * step_size, 1e-8) * C;
+  } else {
+    const mat3_t drvec = I(3) * step_size;
+    C_diff = rvec2rot(drvec.col(i), 1e-8) * C;
+  }
   return tf(C_diff, r);
 }
 
 mat4_t tf_perturb_trans(const mat4_t &T, const real_t step_size, const int i) {
-  const mat3_t dr = I(3) * step_size;
   const mat3_t C = tf_rot(T);
   const vec3_t r = tf_trans(T);
-  const vec3_t r_diff = r + dr.col(i);
+
+  vec3_t r_diff;
+  if (i == -1) {
+    r_diff = r + ones(3, 1) * step_size;
+  } else {
+    const mat3_t dr = I(3) * step_size;
+    r_diff = r + dr.col(i);
+  }
   return tf(C, r_diff);
 }
 
@@ -2255,6 +2306,23 @@ mat3_t quat_rmul_xyz(const quat_t &q) {
 
 mat3_t quat_mat_xyz(const mat4_t &Q) {
   return Q.bottomRightCorner<3, 3>();
+}
+
+mat3_t add_noise(const mat3_t &rot, const real_t n) {
+  const vec3_t rpy_n{randf(-n, n), randf(-n, n), randf(-n, n)};
+  const vec3_t rpy = quat2euler(quat_t{rot}) + deg2rad(rpy_n);
+  return euler321(rpy);
+}
+
+vec3_t add_noise(const vec3_t &pos, const real_t n) {
+  const vec3_t pos_n{randf(-n, n), randf(-n, n), randf(-n, n)};
+  return pos + pos_n;
+}
+
+matx_t add_noise(const mat4_t &pose, const real_t pos_n, const real_t rot_n) {
+  vec3_t pos = add_noise(tf_trans(pose), pos_n);
+  mat3_t rot = add_noise(tf_rot(pose), rot_n);
+  return tf(rot, pos);
 }
 
 void imu_init_attitude(const vec3s_t w_m,
@@ -3934,8 +4002,8 @@ void vio_sim_data_t::add(const int sensor_id,
 void vio_sim_data_t::add(const int sensor_id,
 												 const timestamp_t &ts,
 												 const vec2s_t &keypoints,
-												 const std::vector<size_t> &feature_ids) {
-	sim_event_t event{sensor_id, ts, keypoints, feature_ids};
+												 const std::vector<size_t> &feature_idxs) {
+	sim_event_t event{sensor_id, ts, keypoints, feature_idxs};
 	timeline.insert({event.ts, event});
 }
 
@@ -4005,11 +4073,9 @@ void vio_sim_data_t::save(const std::string &dir) {
 	// Save camera poses
 	for (size_t k = 0; k < cam_ts.size(); k++) {
 		const auto ts = cam_ts[k];
-		const auto q = cam_rot[k];
-		const auto r = cam_pos[k];
-		fprintf(cam0_pose_csv, "%" PRIu64 ",", ts);
-		fprintf(cam0_pose_csv, "%f,%f,%f,%f,", q.w(), q.x(), q.y(), q.z());
-		fprintf(cam0_pose_csv, "%f,%f,%f\n", r(0), r(1), r(2));
+		const auto q = cam_rot_gnd[k];
+		const auto r = cam_pos_gnd[k];
+		save_pose(cam0_pose_csv, ts, q, r);
 	}
 	fclose(cam0_pose_csv);
 
@@ -4159,12 +4225,19 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
       const mat4_t T_WC = tf(C_WC, r_WC);
 
       sim_data.cam_ts.push_back(t * 1e9);
-      sim_data.cam_pos.push_back(r_WC);
-      sim_data.cam_rot.emplace_back(C_WC);
+
+      sim_data.cam_pos_gnd.push_back(r_WC);
+      sim_data.cam_rot_gnd.emplace_back(C_WC);
+      sim_data.cam_poses_gnd.push_back(tf(C_WC, r_WC));
+
+      const mat4_t T_WC_n = add_noise(T_WC, 0.1, 1.0);
+      sim_data.cam_pos.push_back(tf_trans(T_WC_n));
+      sim_data.cam_rot.push_back(tf_quat(T_WC_n));
+      sim_data.cam_poses.push_back(T_WC_n);
 
       // Check which features in the scene is observable by camera
       const mat4_t T_CW = T_WC.inverse();
-      size_t feature_id = 0;
+      size_t feature_idx = 0;
       std::vector<size_t> frame_obs;
       vec2s_t frame_kps;
 
@@ -4172,10 +4245,10 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
         vec2_t z;
         const vec3_t p_C = tf_point(T_CW, p_W);
         if (camera.project(p_C, z) == 0) {
-          frame_obs.push_back(feature_id);
+          frame_obs.push_back(feature_idx);
           frame_kps.push_back(z);
         }
-        feature_id++;
+        feature_idx++;
       }
       sim_data.observations.push_back(frame_obs);
       sim_data.keypoints.push_back(frame_kps);
@@ -4256,6 +4329,7 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
       sim_data.imu_acc.push_back(a_WS_S);
       sim_data.imu_gyr.push_back(w_WS_S);
       sim_data.imu_pos.push_back(tf_trans(T_WS_W));
+      sim_data.imu_poses.push_back(T_WS_W);
       sim_data.imu_rot.push_back(tf_quat(T_WS_W));
       sim_data.add(imu_id, ts_k, a_WS_S, w_WS_S);
 

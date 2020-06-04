@@ -187,7 +187,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_marginalize_factors
 # ./estimation-test_factor --target test_graph_eval
 # ./estimation-test_factor --target test_graph_solve_ba
-./estimation-test_factor --target test_graph_solve_vo
+./estimation-test_factor --target test_swf_solve_vo
 # ./estimation-test_factor --target test_graph_solve_vio
 # ./estimation-test_frontend
 

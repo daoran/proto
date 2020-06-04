@@ -1472,7 +1472,9 @@ struct tiny_solver_t {
     vecx_t g = -E.transpose() * e;
     // bool is_empty = H.isZero();
     // if (is_empty) {
-    //   FATAL("Hessian is zeros\n");
+    //   // FATAL("Hessian is zeros\n");
+    //   printf("Hessian is zeros\n");
+    //   return;
     // }
     // -- Marginalize?
     // if (marg_size) {
@@ -1573,29 +1575,32 @@ struct tiny_solver_t {
  ******************************************************************************/
 
 struct state_info_t {
+  timestamp_t ts;
   std::vector<id_t> factor_ids;
   std::vector<id_t> feature_ids;
   id_t pose_id;
+
+  state_info_t(const timestamp_t ts_) : ts{ts_} {}
 };
 
 struct swf_t {
 	graph_t graph;
   tiny_solver_t solver;
+  int window_limit = 10;
 
 	std::deque<state_info_t> window;
+  bool prior_set = false;
+  id_t prior_id = 0;
+  id_t imu_id = 0;
   std::vector<id_t> camera_ids;
   std::vector<id_t> feature_ids;
+  std::vector<id_t> pose_ids;
 
   swf_t() {}
 
   size_t nb_cams() { return camera_ids.size(); }
   size_t nb_features() { return feature_ids.size(); }
   size_t window_size() { return window.size(); }
-
-  void add_feature(const vec3_t &feature) {
-    auto feature_id = graph_add_landmark(graph, feature);
-    feature_ids.push_back(feature_id);
-  }
 
   void add_camera(const int cam_index,
                   const int resolution[2],
@@ -1609,6 +1614,38 @@ struct swf_t {
     camera_ids.push_back(camera_id);
   }
 
+  id_t add_feature(const vec3_t &feature) {
+    auto feature_id = graph_add_landmark(graph, feature);
+    feature_ids.push_back(feature_id);
+    return feature_id;
+  }
+
+  id_t add_pose(const timestamp_t ts, const mat4_t &pose) {
+    auto pose_id = graph_add_pose(graph, ts, pose);
+    pose_ids.push_back(pose_id);
+    window.emplace_back(ts);
+    return pose_id;
+  }
+
+  void add_pose_prior(const id_t pose_id) {
+    mat4_t pose = tf(graph.params[pose_id]->param);
+    prior_id = graph_add_pose_factor(graph, pose_id, pose);
+    window.back().factor_ids.push_back(prior_id);
+    prior_set = true;
+  }
+
+  id_t add_ba_factor(const timestamp_t ts,
+                     const int cam_index,
+                     const id_t pose_id,
+                     const id_t feature_id,
+                     const vec2_t &z) {
+    const id_t cam_id = camera_ids[cam_index];
+    const auto factor_id = graph_add_ba_factor<pinhole_radtan4_t>(
+      graph, ts, pose_id, feature_id, cam_id, z);
+    window.back().factor_ids.push_back(factor_id);
+    return factor_id;
+  }
+
   void marginalize() {
     // Mark factors to be marginalized out
     printf("window size: %zu\n", window_size());
@@ -1619,6 +1656,94 @@ struct swf_t {
       graph_rm_factor(graph, factor_id);
     }
     window.pop_front();
+  }
+
+  int solve() {
+    // Check window size
+    if ((int) window.size() <= window_limit) {
+      return 0;
+    }
+
+    // Mark oldest pose for marginalization
+    auto &state = window.front();
+    for (auto factor_id : state.factor_ids) {
+      if (graph.factors[factor_id]->params[0]->marginalize == false) {
+        graph.factors[factor_id]->params[0]->marginalize = true;
+        graph.factors[factor_id]->params[0]->type = "marg_" + graph.factors[factor_id]->params[0]->type;
+        // printf("factor_id: %zu\t", factor_id);
+        // printf("param_type: %s\n", graph.factors[factor_id]->params[0]->type.c_str());
+      }
+    }
+
+    // Solve
+    // solver.solve(graph);
+    printf("time: %f\t", ns2sec(state.ts));
+    printf("cost: %e\t", solver.cost);
+    printf("solver took: %fs\n", solver.solve_time);
+    // printf("\n");
+
+    // Mark factors to be marginalized out
+    for (auto factor_id : state.factor_ids) {
+      graph_rm_factor(graph, factor_id);
+    }
+    window.pop_front();
+
+    return 0;
+  }
+
+  int load_config(const std::string &config_path) {
+    config_t config{config_path};
+
+    // Parse config
+    std::string proj_model;
+    std::string dist_model;
+    vec2_t resolution;
+    real_t lens_hfov;
+    real_t lens_vfov;
+    parse(config, "cam0.proj_model", proj_model);
+    parse(config, "cam0.dist_model", dist_model);
+    parse(config, "cam0.resolution", resolution);
+    parse(config, "cam0.lens_hfov", lens_hfov);
+    parse(config, "cam0.lens_vfov", lens_vfov);
+
+    // Setup camera
+    const real_t fx = pinhole_focal(resolution(0), lens_hfov);
+    const real_t fy = pinhole_focal(resolution(1), lens_vfov);
+    const real_t cx = resolution(0) / 2.0;
+    const real_t cy = resolution(1) / 2.0;
+    const vec4_t proj_params{fx, fy, cx, cy};
+    const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
+
+    // Add camera
+    const int cam_index = 0;
+    const int cam_res[2] = {(int) resolution(0), (int) resolution(1)};
+    add_camera(cam_index, cam_res, proj_params, dist_params);
+
+    // Solver options
+    parse(config, "solver.verbose", solver.verbose);
+    parse(config, "solver.window_limit", window_limit);
+    parse(config, "solver.max_iter", solver.max_iter);
+    parse(config, "solver.time_limit", solver.time_limit);
+    parse(config, "solver.lambda", solver.lambda);
+
+    return 0;
+  }
+
+  int save_poses(const std::string &save_path) {
+    FILE *est_csv = fopen(save_path.c_str(), "w");
+    if (est_csv == NULL) {
+      LOG_ERROR("Failed to open [%s] to save poses!", save_path.c_str());
+      return -1;
+    }
+
+    for (const auto &id : pose_ids) {
+      const auto ts = graph.params[id]->ts;
+      const auto pose = graph.params[id]->param;
+      save_pose(est_csv, ts, pose);
+    }
+    fclose(est_csv);
+
+    return 0;
   }
 };
 
