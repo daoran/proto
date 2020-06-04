@@ -886,7 +886,7 @@ struct graph_t {
   size_t next_factor_id = 0;
 
   std::map<size_t, factor_t *> factors;
-  std::unordered_map<size_t, param_t *> params;
+  std::map<size_t, param_t *> params;
   std::unordered_map<id_t, size_t> param_index; // id - column start
   // std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
   std::vector<std::string> param_order{"pose_t",
@@ -1112,17 +1112,6 @@ void graph_mark_param(graph_t &graph, const id_t param_id) {
 	}
 }
 
-void graph_marginalize_factors(graph_t &graph) {
-	for (auto &kv : graph.factors) {
-		auto f_id = kv.first;
-		auto *factor = kv.second;
-		if (factor->marginalize) {
-			delete factor;
-			graph.factors.erase(f_id);
-		}
-	}
-}
-
 void graph_rm_param(graph_t &graph, const id_t param_id) {
 	auto &param = graph.params[param_id];
 	graph.params.erase(param_id);
@@ -1133,6 +1122,33 @@ void graph_rm_factor(graph_t &graph, const id_t factor_id) {
 	auto &factor = graph.factors[factor_id];
 	graph.factors.erase(factor->id);
 	delete factor;
+}
+
+vecx_t graph_get_state(graph_t &graph) {
+  size_t param_size = 0;
+  for (const auto &kv : graph.params) {
+    auto &param = kv.second;
+    param_size += param->param.size();
+  }
+
+  size_t i = 0;
+  vecx_t params{param_size};
+  for (const auto &kv : graph.params) {
+    auto &param = kv.second;
+    params.segment(i, param->param.size()) = param->param;
+    i += param->param.size();
+  }
+
+  return params;
+}
+
+void graph_set_state(graph_t &graph, vecx_t &x) {
+  size_t i = 0;
+  for (const auto &kv : graph.params) {
+    auto &param = kv.second;
+    param->param = x.segment(i, param->param.size());
+    i += param->param.size();
+  }
 }
 
 vecx_t graph_residuals(graph_t &graph) {
@@ -1464,18 +1480,17 @@ struct tiny_solver_t {
 
     // Solve Gauss-Newton system [H dx = g]: Solve for dx
     // -- Form L.H.S. and R.H.S. of GN
-    // matx_t W = (I(E.rows()) * (1)).inverse();
-    // matx_t W = I(E.rows());
-    // matx_t H = E.transpose() * W * E;
-    // vecx_t g = -E.transpose() * W * e;
-    matx_t H = E.transpose() * E;
-    vecx_t g = -E.transpose() * e;
-    // bool is_empty = H.isZero();
-    // if (is_empty) {
-    //   // FATAL("Hessian is zeros\n");
-    //   printf("Hessian is zeros\n");
-    //   return;
-    // }
+    // matx_t W = (I(E.rows()) * (0.1));
+    matx_t W = I(E.rows());
+    matx_t H = E.transpose() * W * E;
+    vecx_t g = -E.transpose() * W * e;
+    bool is_empty = H.isZero();
+    if (is_empty) {
+
+
+      FATAL("Hessian is zeros");
+      return;
+    }
     // -- Marginalize?
     // if (marg_size) {
     //   if (marg_type == "sibley") {
@@ -1492,7 +1507,7 @@ struct tiny_solver_t {
     // -- Solve for dx
     const vecx_t dx = H.ldlt().solve(g);
     // const vecx_t dx = H.colPivHouseholderQr().solve(g);
-    // const vecx_t dx = (H.transpose() * H).inverse() * H.transpose() * g;
+    // const vecx_t dx = H.inverse() * g;
     // -- Update
     // graph_update(graph, dx, marg_size);
     graph_update(graph, dx);
@@ -1504,17 +1519,11 @@ struct tiny_solver_t {
 
     // Calculate initial cost
     cost = eval(graph);
-    // if (cost < 1e-1) {
-    //   return 0;
-    // }
     update(graph, lambda_k);
 
     // Solve
     for (iter = 0; iter < max_iter; iter++) {
       const real_t cost_k = eval(graph);
-      // if (cost_k < 1e-1) {
-      //   return 0;
-      // }
       const real_t cost_delta = cost_k - cost;
       const real_t solve_time = toc(&solve_tic);
       const real_t iter_time = (iter == 0) ? 0 : (solve_time / iter);
@@ -1576,8 +1585,8 @@ struct tiny_solver_t {
 
 struct state_info_t {
   timestamp_t ts;
-  std::vector<id_t> factor_ids;
-  std::vector<id_t> feature_ids;
+  ordered_set_t<id_t> factor_ids;
+  ordered_set_t<id_t> feature_ids;
   id_t pose_id;
 
   state_info_t(const timestamp_t ts_) : ts{ts_} {}
@@ -1627,11 +1636,12 @@ struct swf_t {
     return pose_id;
   }
 
-  void add_pose_prior(const id_t pose_id) {
+  id_t add_pose_prior(const id_t pose_id) {
     mat4_t pose = tf(graph.params[pose_id]->param);
     prior_id = graph_add_pose_factor(graph, pose_id, pose);
-    window.back().factor_ids.push_back(prior_id);
+    window.back().factor_ids.insert(prior_id);
     prior_set = true;
+		return prior_id;
   }
 
   id_t add_ba_factor(const timestamp_t ts,
@@ -1642,7 +1652,8 @@ struct swf_t {
     const id_t cam_id = camera_ids[cam_index];
     const auto factor_id = graph_add_ba_factor<pinhole_radtan4_t>(
       graph, ts, pose_id, feature_id, cam_id, z);
-    window.back().factor_ids.push_back(factor_id);
+    window.back().factor_ids.insert(factor_id);
+    window.back().feature_ids.insert(feature_id);
     return factor_id;
   }
 
@@ -1676,7 +1687,7 @@ struct swf_t {
     }
 
     // Solve
-    // solver.solve(graph);
+    solver.solve(graph);
     printf("time: %f\t", ns2sec(state.ts));
     printf("cost: %e\t", solver.cost);
     printf("solver took: %fs\n", solver.solve_time);

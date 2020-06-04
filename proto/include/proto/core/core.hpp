@@ -483,6 +483,27 @@ std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
   return retval;
 }
 
+template <class T>
+class ordered_set_t {
+public:
+  using iterator                     = typename std::vector<T>::iterator;
+  using const_iterator               = typename std::vector<T>::const_iterator;
+  iterator begin()                   { return vector.begin(); }
+  iterator end()                     { return vector.end(); }
+  const_iterator begin() const       { return vector.begin(); }
+  const_iterator end() const         { return vector.end(); }
+  const T& front() const             { return vector.front(); }
+  const T& back() const              { return vector.back(); }
+  void insert(const T& item)         { if (set.insert(item).second) vector.push_back(item); }
+  size_t count(const T& item) const  { return set.count(item); }
+  bool empty() const                 { return set.empty(); }
+  size_t size() const                { return set.size(); }
+
+private:
+  std::vector<T> vector;
+  std::set<T>    set;
+};
+
 void save_features(const std::string &path, const vec3s_t &features);
 
 void save_pose(FILE *csv_file,
@@ -1737,7 +1758,7 @@ vec3_t add_noise(const vec3_t &pos, const real_t n);
  * Add noise to transform `pose`, where `pos_n` is in meters and `rot_n` is in
  * degrees.
  */
-matx_t add_noise(const mat4_t &pose, const real_t pos_n, const real_t rot_n);
+mat4_t add_noise(const mat4_t &pose, const real_t pos_n, const real_t rot_n);
 
 /**
  * Initialize attitude using IMU gyroscope `w_m` and accelerometer `a_m`

@@ -857,56 +857,48 @@ int test_graph_rm_factor() {
 	return 0;
 }
 
-int test_graph_marginalize_factors() {
+int test_graph_get_state() {
   graph_t graph;
 
-  // Camera pose
-  const timestamp_t ts = 0;
-  const vec3_t euler{-90.0, 0.0, -90.0};
-  const mat3_t C_WC = euler321(deg2rad(euler));
-  const vec3_t r_WC = zeros(3, 1);
-  const mat4_t T_WC = tf(C_WC, r_WC);
-  const auto cam_pose_id = graph_add_pose(graph, ts, T_WC);
+  // Sensor poses
+  const mat3_t C_WS = I(3);
+  const vec3_t r_WS = zeros(3, 1);
+  const mat4_t T_WS = tf(C_WS, r_WS);
+  graph_add_pose(graph, 0, add_noise(T_WS, 0.1, 0.0));
+  graph_add_pose(graph, 1, add_noise(T_WS, 0.1, 0.0));
+  graph_add_pose(graph, 2, add_noise(T_WS, 0.1, 0.0));
+  graph_add_pose(graph, 3, add_noise(T_WS, 0.1, 0.0));
+	MU_CHECK(graph.params.size() == 4);
 
-  // Landmark
-  const vec3_t p_W{10.0, 0.0, 0.0};
-  const auto landmark_id = graph_add_landmark(graph, p_W);
+	const vecx_t x = graph_get_state(graph);
+	// print_vector("x", x);
+	MU_CHECK(x.size() == (7 * 4));
 
-  // Camera and distortion parameters
-  const int cam_index = 0;
-  const int resolution[2] = {640, 480};
-  const vec4_t proj_params{640, 480, 320, 240};
-  const vec4_t dist_params{0.01, 0.001, 0.001, 0.001};
-  const auto cam_id = graph_add_camera(graph, cam_index, resolution,
-                                       proj_params, dist_params);
-  const pinhole_radtan4_t cm{resolution, proj_params, dist_params};
+  return 0;
+}
 
-  // Add BA factors
-	std::vector<id_t> factor_ids;
-	for (int i = 0; i < 5; i++) {
-		vec2_t z;
-		cm.project(tf_point(T_WC.inverse(), p_W), z);
-		auto factor_id = graph_add_ba_factor<pinhole_radtan4_t>(
-			graph,
-			ts,
-			cam_pose_id,
-			landmark_id,
-			cam_id,
-			z
-		);
-		factor_ids.push_back(factor_id);
+int test_graph_set_state() {
+  graph_t graph;
+
+  // Sensor poses
+  const mat3_t C_WS = I(3);
+  const vec3_t r_WS = zeros(3, 1);
+  const mat4_t T_WS = tf(C_WS, r_WS);
+  graph_add_pose(graph, 0, add_noise(T_WS, 0.1, 0.0));
+  graph_add_pose(graph, 1, add_noise(T_WS, 0.1, 0.0));
+  graph_add_pose(graph, 2, add_noise(T_WS, 0.1, 0.0));
+  graph_add_pose(graph, 3, add_noise(T_WS, 0.1, 0.0));
+	MU_CHECK(graph.params.size() == 4);
+
+	vecx_t x = zeros((7 * 4), 1);
+	for (int i = 0; i < 4; i++) {
+    x(i * 7) = 1.0;
 	}
+	graph_set_state(graph, x);
 
-	// Mark the first two factors to be marginalized
-	graph.factors[0]->marginalize = true;
-	graph.factors[1]->marginalize = true;
+  print_vector("x", graph_get_state(graph));
 
-	// Remove factors
-	MU_CHECK(graph.factors.size() == 5);
-	graph_marginalize_factors(graph);
-	MU_CHECK(graph.factors.size() == 3);
-
-	return 0;
+  return 0;
 }
 
 void save_imu_data(const std::string &imu_data_path,
@@ -1275,9 +1267,9 @@ int test_swf_solve_vo() {
       pose_idx++;
 
       // Add factor
-      if (swf.prior_set == false) {
-        swf.add_pose_prior(pose_id);
-      }
+      // if (swf.prior_set == false) {
+      //   swf.add_pose_prior(pose_id);
+      // }
 
       // Add cam0 observations at ts
       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
@@ -1488,7 +1480,8 @@ void test_suite() {
   MU_ADD_TEST(test_graph_add_imu_factor);
   MU_ADD_TEST(test_graph_rm_param);
   MU_ADD_TEST(test_graph_rm_factor);
-  MU_ADD_TEST(test_graph_marginalize_factors);
+  MU_ADD_TEST(test_graph_get_state);
+  MU_ADD_TEST(test_graph_set_state);
   MU_ADD_TEST(test_graph_eval);
   MU_ADD_TEST(test_graph_solve_ba);
 

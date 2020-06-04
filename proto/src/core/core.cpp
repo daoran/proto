@@ -2319,7 +2319,7 @@ vec3_t add_noise(const vec3_t &pos, const real_t n) {
   return pos + pos_n;
 }
 
-matx_t add_noise(const mat4_t &pose, const real_t pos_n, const real_t rot_n) {
+mat4_t add_noise(const mat4_t &pose, const real_t pos_n, const real_t rot_n) {
   vec3_t pos = add_noise(tf_trans(pose), pos_n);
   mat3_t rot = add_noise(tf_rot(pose), rot_n);
   return tf(rot, pos);
