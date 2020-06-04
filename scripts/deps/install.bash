@@ -19,18 +19,9 @@ install_base() {
 apt_update
 install_base
 install ros
-install assimp
 install boost
 install ceres
 install eigen
-install geographiclib
-install glad
-install glfw3
-install glm
-install imgui
 install opencv3
-install apriltags
-install opengl
-install opengv
 install octomap
 install yamlcpp
