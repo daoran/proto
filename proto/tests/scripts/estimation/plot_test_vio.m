@@ -2,9 +2,7 @@
 graphics_toolkit("fltk");
 
 imu_pose_csv = "/tmp/sim_data/imu_pose.csv";
-imu_pose_init_csv = "/tmp/sim_data/imu_pose_init.csv";
 imu_pose_est_csv = "/tmp/sim_data/imu_pose_est.csv";
-
 imu_vel_csv = "/tmp/sim_data/imu_vel.csv";
 
 function R = euler321(rpy)
@@ -152,64 +150,63 @@ endfunction
 [imu_est_ts, imu_est_pos, imu_est_rot] = parse_pose(imu_pose_est_csv);
 [imu_vel_ts, imu_vel] = parse_vel(imu_vel_csv);
 
-
 % Plot position and attitude
 figure(1);
-nb_meas = length(imu_est_ts);
-ts = imu_ts(1:nb_meas) * 1e-9;
+% nb_meas = length(imu_est_ts);
+% ts = imu_ts(1:nb_meas) * 1e-9;
 
 subplot(311);
 hold on;
-plot(ts, imu_pos(1:nb_meas, 1), "r-", "linewidth", 1.5);
-plot(ts, imu_est_pos(:, 1), "rx", "linewidth", 1.0);
+plot(imu_ts * 1e-9, imu_pos(:, 1), "r-", "linewidth", 1.5);
+plot(imu_est_ts * 1e-9, imu_est_pos(:, 1), "rx", "linewidth", 1.0);
 xlabel("Time [s]");
 ylabel("Position [m]");
-xlim([0, max(ts)]);
+xlim([0, max(imu_ts * 1e-9)]);
 
 subplot(312);
 hold on;
-plot(ts, imu_pos(1:nb_meas, 2), "g-", "linewidth", 1.5);
-plot(ts, imu_est_pos(:, 2), "gx", "linewidth", 1.0);
+plot(imu_ts * 1e-9, imu_pos(:, 2), "g-", "linewidth", 1.5);
+plot(imu_est_ts * 1e-9, imu_est_pos(:, 2), "gx", "linewidth", 1.0);
 xlabel("Time [s]");
 ylabel("Position [m]");
-xlim([0, max(ts)]);
+xlim([0, max(imu_ts * 1e-9)]);
 
 subplot(313);
 hold on;
-plot(ts, imu_pos(1:nb_meas, 3), "b-", "linewidth", 1.5);
-plot(ts, imu_est_pos(:, 3), "bx", "linewidth", 1.0);
+plot(imu_ts * 1e-9, imu_pos(:, 3), "b-", "linewidth", 1.5);
+plot(imu_est_ts * 1e-9, imu_est_pos(:, 3), "bx", "linewidth", 1.0);
 xlabel("Time [s]");
 ylabel("Position [m]");
-xlim([0, max(ts)]);
+xlim([0, max(imu_ts * 1e-9)]);
 
 
-% Plot attitude
-figure(2);
-nb_meas = length(imu_est_ts);
-ts = imu_ts(1:nb_meas) * 1e-9;
-
-subplot(311);
-hold on;
-plot(ts, imu_rot(1:nb_meas, 1), "r-", "linewidth", 1.5);
-plot(ts, imu_est_rot(:, 1), "rx", "linewidth", 1.5);
-xlabel("Time [s]");
-ylabel("Attitude [deg]");
-xlim([0, max(ts)]);
-
-subplot(312);
-hold on;
-plot(ts, imu_rot(1:nb_meas, 2), "g-", "linewidth", 1.5);
-plot(ts, imu_est_rot(:, 2), "gx", "linewidth", 1.5);
-xlabel("Time [s]");
-ylabel("Attitude [deg]");
-xlim([0, max(ts)]);
-
-subplot(313);
-hold on;
-plot(ts, imu_rot(1:nb_meas, 3), "b-", "linewidth", 1.5);
-plot(ts, imu_est_rot(:, 3), "bx", "linewidth", 1.5);
-xlabel("Time [s]");
-ylabel("Attitude [deg]");
-xlim([0, max(ts)]);
+% % Plot attitude
+% figure(2);
+% nb_meas = length(imu_est_ts);
+% ts = imu_ts(1:nb_meas) * 1e-9;
+%
+% subplot(311);
+% hold on;
+% plot(imu_ts * 1e-9, imu_rot(1:nb_meas, 1), "r-", "linewidth", 1.5);
+% plot(imu_est_ts * 1e-9, imu_est_rot(:, 1), "rx", "linewidth", 1.5);
+% xlabel("Time [s]");
+% ylabel("Attitude [deg]");
+% xlim([0, max(ts)]);
+%
+% subplot(312);
+% hold on;
+% plot(imu_ts * 1e-9, imu_rot(1:nb_meas, 2), "g-", "linewidth", 1.5);
+% plot(imu_est_ts * 1e-9, imu_est_rot(:, 2), "gx", "linewidth", 1.5);
+% xlabel("Time [s]");
+% ylabel("Attitude [deg]");
+% xlim([0, max(ts)]);
+%
+% subplot(313);
+% hold on;
+% plot(imu_ts * 1e-9, imu_rot(1:nb_meas, 3), "b-", "linewidth", 1.5);
+% plot(imu_est_ts * 1e-9, imu_est_rot(:, 3), "bx", "linewidth", 1.5);
+% xlabel("Time [s]");
+% ylabel("Attitude [deg]");
+% xlim([0, max(ts)]);
 
 ginput();

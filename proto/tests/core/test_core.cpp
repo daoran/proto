@@ -2836,7 +2836,7 @@ int test_pinhole_project() {
 int test_sim_circle_trajectory() {
   vio_sim_data_t sim_data;
   sim_circle_trajectory(4.0, sim_data);
-	sim_data.save("/tmp/sim_data");
+  sim_data.save("/tmp/sim_data");
 
   // Debug
   const bool debug = true;

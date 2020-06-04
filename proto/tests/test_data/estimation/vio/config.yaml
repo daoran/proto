@@ -1,9 +1,23 @@
+imu0:
+  rate: 400
+  g: [0.0, 0.0, -9.81]
+
 cam0:
   proj_model: "pinhole"
   dist_model: "radtan4"
   resolution: [640, 480]
   lens_hfov: 90.0
   lens_vfov: 90.0
+
+T_SC0:
+  rows: 4
+  cols: 4
+  data: [
+    0.0, 0.0, 1.0, 0.0,
+    -1.0, 0.0, 0.0, 0.0,
+    0.0, -1.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 1.0
+  ]
 
 solver:
   window_limit: 10

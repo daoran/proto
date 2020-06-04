@@ -184,12 +184,12 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_add_imu_factor
 # ./estimation-test_factor --target test_graph_rm_param
 # ./estimation-test_factor --target test_graph_rm_factor
-# ./estimation-test_factor --target test_graph_get_state
-./estimation-test_factor --target test_graph_set_state
 # ./estimation-test_factor --target test_graph_eval
+# ./estimation-test_factor --target test_graph_get_state
+# ./estimation-test_factor --target test_graph_set_state
 # ./estimation-test_factor --target test_graph_solve_ba
 # ./estimation-test_factor --target test_swf_solve_vo
-# ./estimation-test_factor --target test_graph_solve_vio
+./estimation-test_factor --target test_swf_solve_vio
 # ./estimation-test_frontend
 
 # -- viz

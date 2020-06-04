@@ -3575,17 +3575,17 @@ struct vio_sim_data_t {
 
   // Add IMU measurement to timeline
   void add(const int sensor_id,
-					 const timestamp_t &ts,
+           const timestamp_t &ts,
            const vec3_t &accel,
-					 const vec3_t &gyro);
+           const vec3_t &gyro);
 
   // Add camera frame to timeline
   void add(const int sensor_id,
-					 const timestamp_t &ts,
+           const timestamp_t &ts,
            const vec2s_t &keypoints,
-					 const std::vector<size_t> &feature_idxs);
+           const std::vector<size_t> &feature_idxs);
 
-	void save(const std::string &dir);
+  void save(const std::string &dir);
 };
 
 void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data);

@@ -501,9 +501,9 @@ struct ba_factor_t : factor_t {
       // case -1: LOG_ERROR("Point is not infront of camera!"); break;
       // case -2: LOG_ERROR("Projected point is outside the image plane!"); break;
       // }
-      jacobians[0] = zeros(2, 6);  // T_WC
-      jacobians[1] = zeros(2, 3);  // p_W
-      jacobians[2] = zeros(2, CM::params_size);  // Projection model
+      // jacobians[0] = zeros(2, 6);  // T_WC
+      // jacobians[1] = zeros(2, 3);  // p_W
+      // jacobians[2] = zeros(2, CM::params_size);  // Projection model
       return -1;
     }
 
@@ -1107,48 +1107,21 @@ void graph_mark_param(graph_t &graph, const id_t param_id) {
   param->marginalize = true;
   param->type = "marg_" + param->type;
 
-	for (const auto factor_id : param->factor_ids) {
-		graph.factors[factor_id]->marginalize = true;
-	}
+  for (const auto factor_id : param->factor_ids) {
+    graph.factors[factor_id]->marginalize = true;
+  }
 }
 
 void graph_rm_param(graph_t &graph, const id_t param_id) {
-	auto &param = graph.params[param_id];
-	graph.params.erase(param_id);
-	delete param;
+  auto &param = graph.params[param_id];
+  graph.params.erase(param_id);
+  delete param;
 }
 
 void graph_rm_factor(graph_t &graph, const id_t factor_id) {
-	auto &factor = graph.factors[factor_id];
-	graph.factors.erase(factor->id);
-	delete factor;
-}
-
-vecx_t graph_get_state(graph_t &graph) {
-  size_t param_size = 0;
-  for (const auto &kv : graph.params) {
-    auto &param = kv.second;
-    param_size += param->param.size();
-  }
-
-  size_t i = 0;
-  vecx_t params{param_size};
-  for (const auto &kv : graph.params) {
-    auto &param = kv.second;
-    params.segment(i, param->param.size()) = param->param;
-    i += param->param.size();
-  }
-
-  return params;
-}
-
-void graph_set_state(graph_t &graph, vecx_t &x) {
-  size_t i = 0;
-  for (const auto &kv : graph.params) {
-    auto &param = kv.second;
-    param->param = x.segment(i, param->param.size());
-    i += param->param.size();
-  }
+  auto &factor = graph.factors[factor_id];
+  graph.factors.erase(factor->id);
+  delete factor;
 }
 
 vecx_t graph_residuals(graph_t &graph) {
@@ -1178,12 +1151,12 @@ matx_t graph_jacobians(graph_t &graph, size_t *marg_size, size_t *remain_size) {
   // First pass: Determine what parameters we have
   std::unordered_set<id_t> param_tracker;
   std::unordered_map<std::string, int> param_counter;
-	std::set<std::string> marg_param_types;
+  std::set<std::string> marg_param_types;
   *marg_size = 0;
   *remain_size = 0;
 
   for (const auto &kv : graph.factors) {
-		auto &factor = kv.second;
+    auto &factor = kv.second;
 
     for (const auto &param : factor->params) {
       // Check if param is already tracked or fixed
@@ -1197,7 +1170,7 @@ matx_t graph_jacobians(graph_t &graph, size_t *marg_size, size_t *remain_size) {
 
       // Change parameter type if marked for marginalization
       if (param->marginalize) {
-				marg_param_types.insert(param->type);
+        marg_param_types.insert(param->type);
         *marg_size += param->local_size;
       } else {
         *remain_size += param->local_size;
@@ -1210,9 +1183,9 @@ matx_t graph_jacobians(graph_t &graph, size_t *marg_size, size_t *remain_size) {
   std::vector<std::string> param_order;
 
   // -- Setup param order
-	for (const auto param_type : marg_param_types) {
-		param_order.push_back(param_type);
-	}
+  for (const auto param_type : marg_param_types) {
+    param_order.push_back(param_type);
+  }
   for (const auto param_type : graph.param_order) {
     param_order.push_back(param_type);
   }
@@ -1244,7 +1217,7 @@ matx_t graph_jacobians(graph_t &graph, size_t *marg_size, size_t *remain_size) {
   graph.param_index.clear();
 
   for (const auto &kv : graph.factors) {
-		auto factor = kv.second;
+    auto factor = kv.second;
 
     // Evaluate factor
     if (factor->eval() != 0) {
@@ -1273,13 +1246,12 @@ matx_t graph_jacobians(graph_t &graph, size_t *marg_size, size_t *remain_size) {
 
   size_t rs = 0;
   size_t cs = 0;
-	size_t i = 0;
+  size_t i = 0;
   for (auto &kv : graph.factors) {
     const auto &factor = kv.second;
-    if (factor_ok[i] == false) {
+    if (factor_ok[i++] == false) {
       continue; // Skip this factor
     }
-		i++;
 
     // Form jacobian
     for (size_t j = 0; j < factor->params.size(); j++) {
@@ -1305,12 +1277,12 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   // First pass: Determine what parameters we have
   std::unordered_set<id_t> param_tracker;
   std::unordered_map<std::string, int> param_counter;
-	std::set<std::string> marg_param_types;
+  std::set<std::string> marg_param_types;
   *marg_size = 0;
   *remain_size = 0;
 
   for (const auto &kv : graph.factors) {
-		auto &factor = kv.second;
+    auto &factor = kv.second;
 
     for (const auto &param : factor->params) {
       // Check if param is already tracked or fixed
@@ -1324,7 +1296,7 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
 
       // Change parameter type if marked for marginalization
       if (param->marginalize) {
-				marg_param_types.insert(param->type);
+        marg_param_types.insert(param->type);
         *marg_size += param->local_size;
       } else {
         *remain_size += param->local_size;
@@ -1337,9 +1309,9 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   std::vector<std::string> param_order;
 
   // -- Setup param order
-	for (const auto param_type : marg_param_types) {
-		param_order.push_back(param_type);
-	}
+  for (const auto param_type : marg_param_types) {
+    param_order.push_back(param_type);
+  }
   for (const auto param_type : graph.param_order) {
     param_order.push_back(param_type);
   }
@@ -1367,19 +1339,19 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   // -- Assign param global index
   size_t residuals_size = 0;
   size_t params_size = 0;
-  std::vector<bool> factor_ok;
+  std::vector<int> factor_ok;
   graph.param_index.clear();
 
   for (const auto &kv : graph.factors) {
-		auto factor = kv.second;
+    auto factor = kv.second;
 
     // Evaluate factor
     if (factor->eval() != 0) {
-      factor_ok.push_back(false);
+      factor_ok.push_back(0);
       continue; // Skip this factor's jacobians and residuals
     }
     residuals_size += factor->residuals.size();
-    factor_ok.push_back(true);
+    factor_ok.push_back(1);
 
     // Assign parameter order in jacobian
     for (const auto &param : factor->params) {
@@ -1401,13 +1373,12 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
 
   size_t rs = 0;
   size_t cs = 0;
-	size_t i = 0;
+  size_t i = 0;
   for (auto &kv : graph.factors) {
     const auto &factor = kv.second;
-    if (factor_ok[i] == false) {
+    if (factor_ok[i++] == 0) {
       continue; // Skip this factor
     }
-		i++;
 
     // Form jacobian
     for (size_t j = 0; j < factor->params.size(); j++) {
@@ -1427,8 +1398,43 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
   }
 }
 
+vecx_t graph_get_state(const graph_t &graph) {
+  size_t param_size = 0;
+  for (const auto &kv : graph.params) {
+    auto &param = kv.second;
+    param_size += param->param.size();
+  }
+
+  size_t i = 0;
+  vecx_t params{param_size};
+  for (const auto &kv : graph.params) {
+    auto &param = kv.second;
+    params.segment(i, param->param.size()) = param->param;
+    i += param->param.size();
+  }
+
+  return params;
+}
+
+void graph_set_state(graph_t &graph, const vecx_t &x) {
+  size_t i = 0;
+  for (const auto &kv : graph.params) {
+    auto &param = kv.second;
+    param->param = x.segment(i, param->param.size());
+    i += param->param.size();
+  }
+}
+
+void graph_print_params(const graph_t &graph) {
+  for (const auto &kv : graph.params) {
+    auto &param = kv.second;
+    auto data = vec2str(param->param);
+    printf("[%zu][%s]%s\n", param->id, param->type.c_str(), data.c_str());
+  }
+}
+
 void graph_update(graph_t &graph, const vecx_t &dx, const size_t offset=0) {
-	assert(dx.rows() > 0);
+  assert(dx.rows() > 0);
 
   for (const auto &kv: graph.param_index) {
     const auto &param_id = kv.first;
@@ -1474,43 +1480,37 @@ struct tiny_solver_t {
   }
 
   void update(graph_t &graph, const real_t lambda_k) {
-    if (E.rows() == 0) {
-      return;
-    }
+    assert(E.size() != 0);
+    assert(e.size() != 0);
 
     // Solve Gauss-Newton system [H dx = g]: Solve for dx
     // -- Form L.H.S. and R.H.S. of GN
-    // matx_t W = (I(E.rows()) * (0.1));
-    matx_t W = I(E.rows());
-    matx_t H = E.transpose() * W * E;
-    vecx_t g = -E.transpose() * W * e;
-    bool is_empty = H.isZero();
-    if (is_empty) {
-
-
-      FATAL("Hessian is zeros");
-      return;
-    }
+    matx_t H = E.transpose() * E;
+    vecx_t g = -E.transpose() * e;
+    // TODO: Instead of multiplying E.transpose() * E, or -E.traspose() * e, we
+    // should instead build the Hessian matrix and vector g itself. This helps
+    // alleviate computational complexity of computing a dense matrix of approx
+    // runtime complexity of O(n^{2}).  Technically Eigen will do a better job
+    // than that however, its still expensive.
     // -- Marginalize?
-    // if (marg_size) {
-    //   if (marg_type == "sibley") {
-    //     if (marginalize_sibley(H, g, marg_size, H.rows() - marg_size) != 0) {
-    //       marg_size = 0;
-    //     }
-    //   } else {
-    //     FATAL("marg_type[%s] not implemented!\n", marg_type.c_str());
-    //   }
-    // }
+    if (marg_size) {
+      if (marg_type == "sibley") {
+        if (marginalize_sibley(H, g, marg_size, H.rows() - marg_size) != 0) {
+          marg_size = 0;
+        }
+      } else if (marg_type == "drop") {
+        marg_size = 0;
+      } else {
+        FATAL("marg_type [%s] not implemented!\n", marg_type.c_str());
+      }
+    }
     // -- Damp the Hessian matrix H
     const matx_t H_diag = (H.diagonal().asDiagonal());
     H = H + lambda_k * H_diag;
     // -- Solve for dx
     const vecx_t dx = H.ldlt().solve(g);
-    // const vecx_t dx = H.colPivHouseholderQr().solve(g);
-    // const vecx_t dx = H.inverse() * g;
     // -- Update
-    // graph_update(graph, dx, marg_size);
-    graph_update(graph, dx);
+    graph_update(graph, dx, marg_size);
   }
 
   int solve(graph_t &graph)  {
@@ -1535,15 +1535,14 @@ struct tiny_solver_t {
         printf("lambda[%.2e] ", lambda_k);
         printf("iter_time[%.4f] ", iter_time);
         printf("solve_time[%.4f]  ", solve_time);
-
-        // Calculate reprojection error
-        size_t nb_keypoints = e.size() / 2.0;
-        real_t sse = 0.0;
-        for (size_t i = 0; i < nb_keypoints; i++) {
-          sse += e.segment(i * 2, 2).norm();
-        }
-        const real_t rmse = sqrt(sse / nb_keypoints);
-        printf("rmse reproj error: %.2f\n", rmse);
+        // // Calculate reprojection error
+        // size_t nb_keypoints = e.size() / 2.0;
+        // real_t sse = 0.0;
+        // for (size_t i = 0; i < nb_keypoints; i++) {
+        //   sse += e.segment(i * 2, 2).norm();
+        // }
+        // const real_t rmse = sqrt(sse / nb_keypoints);
+        // printf("rmse reproj error: %.2f\n", rmse);
       }
 
       // Determine whether to accept update
@@ -1566,14 +1565,14 @@ struct tiny_solver_t {
     }
     solve_time = toc(&solve_tic);
 
-    // Calculate reprojection error
-    size_t nb_keypoints = e.size() / 2.0;
-    real_t sse = 0.0;
-    for (size_t i = 0; i < nb_keypoints; i++) {
-      sse += e.segment(i * 2, 2).norm();
-    }
-    const real_t rmse = sqrt(sse / nb_keypoints);
-    printf("rmse reproj error: %.2f\t", rmse);
+    // // Calculate reprojection error
+    // size_t nb_keypoints = e.size() / 2.0;
+    // real_t sse = 0.0;
+    // for (size_t i = 0; i < nb_keypoints; i++) {
+    //   sse += e.segment(i * 2, 2).norm();
+    // }
+    // const real_t rmse = sqrt(sse / nb_keypoints);
+    // printf("rmse reproj error: %.2f\t", rmse);
 
     return 0;
   }
@@ -1587,23 +1586,29 @@ struct state_info_t {
   timestamp_t ts;
   ordered_set_t<id_t> factor_ids;
   ordered_set_t<id_t> feature_ids;
-  id_t pose_id;
+  id_t pose_id = 0;
+  id_t sb_id = 0;
 
   state_info_t(const timestamp_t ts_) : ts{ts_} {}
 };
 
 struct swf_t {
-	graph_t graph;
+  graph_t graph;
   tiny_solver_t solver;
   int window_limit = 10;
 
-	std::deque<state_info_t> window;
+  std::deque<state_info_t> window;
   bool prior_set = false;
   id_t prior_id = 0;
   id_t imu_id = 0;
   std::vector<id_t> camera_ids;
   std::vector<id_t> feature_ids;
+  std::vector<id_t> extrinsics_ids;
   std::vector<id_t> pose_ids;
+  std::vector<id_t> sb_ids;
+
+  real_t imu_rate = -1.0;
+  vec3_t g{0.0, 0.0, -9.81};
 
   swf_t() {}
 
@@ -1623,6 +1628,19 @@ struct swf_t {
     camera_ids.push_back(camera_id);
   }
 
+  void add_extrinsics(const int cam_index, const mat4_t &extrinsics) {
+    // Check to see if camera index exists
+    try {
+      camera_ids.at(cam_index);
+    } catch (const std::out_of_range &exception) {
+      FATAL("camera [%d] not added yet!", cam_index);
+    }
+
+    // Add extrinsics
+    auto imucam_id = graph_add_extrinsic(graph, extrinsics);
+    extrinsics_ids.push_back(imucam_id);
+  }
+
   id_t add_feature(const vec3_t &feature) {
     auto feature_id = graph_add_landmark(graph, feature);
     feature_ids.push_back(feature_id);
@@ -1636,12 +1654,22 @@ struct swf_t {
     return pose_id;
   }
 
+  id_t add_speed_bias(const timestamp_t ts,
+                      const vec3_t &v,
+                      const vec3_t &ba,
+                      const vec3_t &bg) {
+    auto sb_id = graph_add_speed_bias(graph, ts, v, ba, bg);
+    sb_ids.push_back(sb_id);
+    window.back().sb_id = sb_id;
+    return sb_id;
+  }
+
   id_t add_pose_prior(const id_t pose_id) {
     mat4_t pose = tf(graph.params[pose_id]->param);
     prior_id = graph_add_pose_factor(graph, pose_id, pose);
     window.back().factor_ids.insert(prior_id);
     prior_set = true;
-		return prior_id;
+    return prior_id;
   }
 
   id_t add_ba_factor(const timestamp_t ts,
@@ -1654,6 +1682,50 @@ struct swf_t {
       graph, ts, pose_id, feature_id, cam_id, z);
     window.back().factor_ids.insert(factor_id);
     window.back().feature_ids.insert(feature_id);
+    return factor_id;
+  }
+
+  id_t add_imu_factor(const timestamp_t ts, const imu_data_t &imu_data) {
+    // Expect pose, speed and biases to be initialized first
+    assert(pose_ids.size() > 0);
+    assert(sb_ids.size() > 0);
+
+    // Propagate imu measurements
+    const id_t pose_i_id = pose_ids.back();
+    const id_t sb_i_id = sb_ids.back();
+    const vec_t<7> pose_i = graph.params[pose_i_id]->param;
+    const vec_t<9> sb_i = graph.params[sb_i_id]->param;
+    vec_t<7> pose_j = pose_i;
+    vec_t<9> sb_j = sb_i;
+    imu_propagate(imu_data, g, pose_i, sb_i, pose_j, sb_j);
+    const id_t pose_j_id = graph_add_pose(graph, ts, pose_j);
+    const id_t sb_j_id = graph_add_speed_bias(graph, ts, sb_j);
+    pose_ids.push_back(pose_j_id);
+    sb_ids.push_back(sb_j_id);
+
+    // Add imu factor
+    const int imu_idx = 0;
+    const auto factor_id = graph_add_imu_factor(
+      graph, imu_idx,
+      imu_data.timestamps, imu_data.accel, imu_data.gyro,
+      pose_i_id, sb_i_id, pose_j_id, sb_j_id);
+    window.back().factor_ids.insert(factor_id);
+    window.back().pose_id = pose_j_id;
+    window.back().sb_id = sb_j_id;
+
+    return factor_id;
+  }
+
+  id_t add_cam_factor(const timestamp_t ts,
+                      const int cam_index,
+                      const id_t pose_id,
+                      const id_t feature_id,
+                      const vec2_t &z) {
+    const auto imucam_id = extrinsics_ids[cam_index];
+    const auto cam_id = camera_ids[cam_index];
+    const auto factor_id = graph_add_cam_factor<pinhole_radtan4_t>(
+      graph, ts, pose_id, imucam_id, feature_id, cam_id, z);
+
     return factor_id;
   }
 
@@ -1671,6 +1743,7 @@ struct swf_t {
 
   int solve() {
     // Check window size
+    printf("window.size(): %zu!\n", window.size());
     if ((int) window.size() <= window_limit) {
       return 0;
     }
@@ -1678,19 +1751,20 @@ struct swf_t {
     // Mark oldest pose for marginalization
     auto &state = window.front();
     for (auto factor_id : state.factor_ids) {
-      if (graph.factors[factor_id]->params[0]->marginalize == false) {
-        graph.factors[factor_id]->params[0]->marginalize = true;
-        graph.factors[factor_id]->params[0]->type = "marg_" + graph.factors[factor_id]->params[0]->type;
+      auto &param = graph.factors[factor_id]->params[0];
+      if (param->marginalize == false) {
+        param->marginalize = true;
+        param->type = "marg_" + param->type;
         // printf("factor_id: %zu\t", factor_id);
         // printf("param_type: %s\n", graph.factors[factor_id]->params[0]->type.c_str());
       }
     }
+    printf("solving!\n");
 
     // Solve
     solver.solve(graph);
-    printf("time: %f\t", ns2sec(state.ts));
-    printf("cost: %e\t", solver.cost);
-    printf("solver took: %fs\n", solver.solve_time);
+    printf("cost: %.2e\t", solver.cost);
+    printf("solver took: %.4fs\n", solver.solve_time);
     // printf("\n");
 
     // Mark factors to be marginalized out
@@ -1705,34 +1779,55 @@ struct swf_t {
   int load_config(const std::string &config_path) {
     config_t config{config_path};
 
-    // Parse config
-    std::string proj_model;
-    std::string dist_model;
-    vec2_t resolution;
-    real_t lens_hfov;
-    real_t lens_vfov;
-    parse(config, "cam0.proj_model", proj_model);
-    parse(config, "cam0.dist_model", dist_model);
-    parse(config, "cam0.resolution", resolution);
-    parse(config, "cam0.lens_hfov", lens_hfov);
-    parse(config, "cam0.lens_vfov", lens_vfov);
-
-    // Setup camera
-    const real_t fx = pinhole_focal(resolution(0), lens_hfov);
-    const real_t fy = pinhole_focal(resolution(1), lens_vfov);
-    const real_t cx = resolution(0) / 2.0;
-    const real_t cy = resolution(1) / 2.0;
-    const vec4_t proj_params{fx, fy, cx, cy};
-    const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
+    // Add imu
+    if (yaml_has_key(config, "imu0")) {
+      graph.param_order = {"pose_t",
+                           "sb_params_t",
+                           "camera_params_t",
+                           "extrinsic_t",
+                           "landmark_t"};
+      parse(config, "imu0.rate", imu_rate);
+      parse(config, "imu0.g", g);
+    }
 
     // Add camera
-    const int cam_index = 0;
-    const int cam_res[2] = {(int) resolution(0), (int) resolution(1)};
-    add_camera(cam_index, cam_res, proj_params, dist_params);
+    for (int cam_idx = 0; cam_idx < 5; cam_idx++) {
+      if (yaml_has_key(config, "cam" + std::to_string(cam_idx))) {
+        std::string proj_model;
+        std::string dist_model;
+        vec2_t resolution;
+        real_t lens_hfov;
+        real_t lens_vfov;
+        parse(config, "cam0.proj_model", proj_model);
+        parse(config, "cam0.dist_model", dist_model);
+        parse(config, "cam0.resolution", resolution);
+        parse(config, "cam0.lens_hfov", lens_hfov);
+        parse(config, "cam0.lens_vfov", lens_vfov);
+        const real_t fx = pinhole_focal(resolution(0), lens_hfov);
+        const real_t fy = pinhole_focal(resolution(1), lens_vfov);
+        const real_t cx = resolution(0) / 2.0;
+        const real_t cy = resolution(1) / 2.0;
+        const vec4_t proj_params{fx, fy, cx, cy};
+        const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
+        const int cam_res[2] = {(int) resolution(0), (int) resolution(1)};
+        add_camera(cam_idx, cam_res, proj_params, dist_params);
+      }
+    }
+
+    // Add imu-cam extrinsics
+    for (int cam_idx = 0; cam_idx < 5; cam_idx++) {
+      std::string imucam_key = "T_SC" + std::to_string(cam_idx);
+      if (yaml_has_key(config, imucam_key)) {
+        mat4_t pose;
+        parse(config, imucam_key, pose);
+        add_extrinsics(cam_idx, pose);
+      }
+    }
 
     // Solver options
     parse(config, "solver.verbose", solver.verbose);
     parse(config, "solver.window_limit", window_limit);
+    parse(config, "solver.marg_type", solver.marg_type);
     parse(config, "solver.max_iter", solver.max_iter);
     parse(config, "solver.time_limit", solver.time_limit);
     parse(config, "solver.lambda", solver.lambda);
