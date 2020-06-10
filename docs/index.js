@@ -36,6 +36,7 @@ var katex_options = {
     "\\jac": "\\text{J}",
     // Probability
     "\\RV": "\\mathbf{#1}",
+    "\\covar": "\\mathbf{\\Sigma}",
     // Transforms
     "\\frame": "{\\mathcal{F}}",
     "\\rot": "{\\Mat{C}}",

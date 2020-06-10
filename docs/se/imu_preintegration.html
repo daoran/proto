@@ -278,13 +278,12 @@ where $\Mat{Q}$ is the diagonal covariance matrix of noise.
   \dfrac{\partial\Vec{r}}{\partial\delta{x}_{k}} 
   &= \begin{bmatrix}
   % -- Row block 1
-  -\rot_{k, 0} 
-  & -\Delta{t} \I_{3 \times 3} 
+  -\rot_{k, 0}
+  & -\Delta{t} \I_{3 \times 3}
   & \Skew{\rot_{k, 0} (
     \pos_{WS_{k + 1}} - \pos_{WS_{k}}
     + \dfrac{1}{2} \gravity \Delta{t}^{2}
   )} \\
-  & 
   % -- Row block 2
   \Mat{0}_{3 \times 3}
   & -\I_{3 \times 3}

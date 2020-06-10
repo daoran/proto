@@ -40,18 +40,8 @@ covariance $\mathbf{\Sigma}$ with the following property,
   \mathbf{\Sigma} = \Mat{H}^{-1}
 </equation>
 
-where $\Mat{H}$ is the hessian matrix in a Gauss-Newton system. It just so
-happens that when we're trying to solve $\Mat{H}\delta{\Vec{x}} = \Vec{b}$ for
-$\delta{\Vec{x}}$, when we apply the Schur's complement two things occur:
-
-<ol>
-  <li>invert $\Mat{H}$ to solve for $\delta{\Vec{x}}$</li>
-  <li>Marginalize out old states</li>
-</ol>
-
-The marginalized $\mathbf{H}$ (after Schur's complement) will be equivalent to
-$\mathbf{\Sigma}_{xx}^{-1}.$</p>
-
+where $\Mat{H}$ is the Hessian matrix in a Gauss-Newton system
+($\Mat{H}\delta\Vec{x} = \Vec{b}$). 
 
 <h2>Using Shur's Complement for marginalization</h2>
 
@@ -59,11 +49,11 @@ $\mathbf{\Sigma}_{xx}^{-1}.$</p>
 <equation>
   \Mat{H} \delta\state = \Vec{b} ,
 </equation>
-it so happens that Schur's complement can be used to both invert and
-marginalize out the old states. First let $\state_\mu$ be the states to be
-marginalized out, $\state_{\lambda}$ be the set of states related to those by
-error terms, and $\state_{\rho}$ be the set of remaining states. Partitioning
-the Hessian, error state and R.H.S of the Gauss-Newton system gives:
+it so happens that Schur's complement can be used to invert and marginalize out
+the old states. First let $\state_\mu$ be the states to be marginalized out,
+$\state_{\lambda}$ be the set of states related to those by error terms, and
+$\state_{\rho}$ be the set of remaining states. Partitioning the Hessian, error
+state and R.H.S of the Gauss-Newton system gives:
 <equation>
   \begin{bmatrix}
     \Mat{H}_{\mu\mu} & \Mat{H}_{\mu\lambda_{1}} \\
