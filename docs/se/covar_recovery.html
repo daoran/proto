@@ -1,34 +1,49 @@
 <h1>Covariance Recovery</h1>
 
-The Gauss-Newton system is:
-<equation>
-    \Mat{H} \Delta{\Vec{x}} = \Vec{g}
-</equation>
-where the hessian $\Mat{H}$ can be decomposed into $\Mat{R}^{\transpose}
-\Mat{R}$ using either Cholesky or QR factorization. The objective is to recover
-the marginal covariance matrix $\covar = \Mat{H}^{-1}$ without inverting
-$\Mat{H}$, since it is expensive and numerically unstable if it is not well
-conditioned.
+<p>The inverse of the Hessian matrix $\Mat{H}$ is known to be the marginal
+covariance matrix $\covar$. However, inverting $\Mat{H}$ can be expensive and
+unstable. The objective in the following is to recover the marginal covariance
+matrix from the square root information matrix $\Mat{R}$ using
+back-substitution.</p>
 
-Let us write,
+<p>First, the Hessian $\Mat{H}$ is decomposed into a lower and upper triangular
+matrix, $\Mat{R}^{\transpose} \Mat{R}$ using either Cholesky or QR
+factorization. Then let us write,
 <equation>
+  (\Mat{R}^{\transpose} \Mat{R})
   (\Mat{R}^{\transpose} \Mat{R})^{-1}
-		&= \covar
-		= \begin{bmatrix}
-			\covar_{1} &
-			\covar_{2} &
-			\dots &
-			\covar_{n}
-		\end{bmatrix} \\
-		(\Mat{R}^{\transpose} \Mat{R})(\Mat{R}^{\transpose} \Mat{R})^{-1}
-		&= \I \\
-			(\Mat{R}^{\transpose} \Mat{R}) \covar
-		&= \I \\
-			\Mat{R} \covar &= (\Mat{R}^{\transpose})^{-1}.
+    &= \I \\
+  (\Mat{R}^{\transpose} \Mat{R}) \covar &= \I \\
+  \Mat{R} \covar &= (\Mat{R}^{\transpose})^{-1}.
 </equation>
-Note that if we focus on the last column of $\covar$ and last diagonal element
-in $(\Mat{R}^{\transpose})^{-1}$, we can rewrite $\Mat{R} \covar =
-(\Mat{R}^{\transpose})^{-1}$ as
+Then, using back-substitution on the last equation, $\covar$ can be recovered with
+the following two general equations for diagonals and off-diagonals:
+<equation>
+  \boxed{
+    \sigma_{ii} =
+    \dfrac{1}{r_{ii}}
+    \left(
+      z_{ii}
+      -\sum_{j=i+1}^{n} r_{i,j} \sigma_{j,i}
+    \right)
+  }
+</equation>
+<equation>
+  \boxed{
+    \sigma_{il} =
+    \dfrac{1}{r_{ii}}
+    \left(
+      -\sum_{j=i+1}^{l} r_{i,j} \sigma_{j,l}
+      -\sum_{j=l+1}^{n} r_{i,j} \sigma_{j,l}
+    \right)
+  }
+</equation>
+
+<h2>Derivation of Covariance Recovery using Square Root Matrix</h2>
+
+<equation>
+  \Mat{R} \covar = (\Mat{R}^{\transpose})^{-1}
+</equation>
 <equation>
 \underbrace{
 	\begin{bmatrix}
@@ -40,89 +55,34 @@ in $(\Mat{R}^{\transpose})^{-1}$, we can rewrite $\Mat{R} \covar =
 }_{\Mat{R}}
 \underbrace{
 	\begin{bmatrix}
-		\sigma_{1,n} \\
-		\sigma_{2,n} \\
-		\vdots \\
-		\sigma_{n,n}
+    \sigma_{1,1} & \sigma_{1,2} & \dots & \sigma_{1,n} \\
+    \sigma_{2,1} & \sigma_{2,2} & \dots & \sigma_{2,n} \\
+		\vdots & \vdots & \vdots & \vdots \\
+    \sigma_{n,1} & \sigma_{n,2} & \dots & \sigma_{n,n} \\
 	\end{bmatrix}
-}_{\covar_{n}}
+}_{\covar}
 =
 \underbrace{
-	\begin{bmatrix}
-		0 \\
-		0 \\
-		\vdots \\
-		1 / r_{nn}
-	\end{bmatrix}
-}_{\{(\Mat{R}^{\transpose})^{-1}\}_{ii}}
+\begin{bmatrix}
+  z_{11} & 0 & \dots & 0 \\
+  z_{21} & z_{22} & \dots & 0 \\
+  \vdots & \vdots & \ddots & \vdots \\
+  z_{m1} & z_{m2} & \dots & z_{nn}
+\end{bmatrix}
+}_{(\Mat{R}^{\transpose})^{-1}}
 </equation>
-and write out the matrix notation,
-<equation>
-	&r_{nn} \sigma_{n,n} = 1 / r_{nn} \\
-	&\quad\quad\quad\quad\quad\quad\vdots \\
-	&r_{2,2} \sigma_{2,n} + r_{2,3} \sigma_{3,n}
-      + \dots + r_{2,n} \sigma_{n,n} = 0 \\
-	&r_{1,1} \sigma_{1,n} + r_{1,2} \sigma_{2,n}
-      + \dots + r_{1,n} \sigma_{n,n} = 0 \\
-</equation>
-and rearrange to solve for $\sigma_{i,n}$ in $\covar_{n}$,
-<equation>
-	&\sigma_{n,n} = (r_{nn})^{-2} \\
-	&\quad\quad\quad\quad\quad\quad\vdots \\
-	&\sigma_{2,n} = (-r_{2,3} \sigma_{3,n}
-                   - \dots - r_{2,n} \sigma_{n,n}) / r_{2,2}  \\
-	&\sigma_{1,n} = (-r_{1,2} \sigma_{2,n}
-                   - \dots - r_{1,n} \sigma_{n,n}) / r_{1,1}
-</equation>
-or more generally,
-<equation>
-	&\sigma_{n,n} = (r_{nn})^{-2} \\
-	&\sigma_{i,n} = \dfrac{-\sum_{j=i+1}^{1} r_{ij} \sigma_{j,n}}{r_{ii}}
-	\quad
-	\text{where} \; i = n - 1, \cdots, 1
-</equation>
-which is essentially performing back-substition.
-</p>
 
-<hr><!------------------------------------------------------------------------!>
+<p>The trick to solving for $\covar$ is the fact the term
+$(\Mat{R}^{\transpose})^{-1}$ is not actually evaluated. Instead, we take
+advantage of the struture of the lower triangular matrix to solve a system of
+equations via back-substituion. For one, we know for a fact the inverse of the
+diagonals in $(\Mat{R}^{\transpose})^{-1}$ is the reciprocal of itself, i.e.
+$z_{ii} = 1 / r_{ii}$ (a known property of the property of inverse matrices).
+Secondly, by performing back-substition the lower triangle values are not
+required.</p>
 
-<!-- <equation> -->
-<!-- \underbrace{ -->
-<!-- 	\begin{bmatrix} -->
-<!-- 		r_{11} &#38; r_{12} &#38; \cdots &#38; r_{1n} \\ -->
-<!-- 		0 &#38; r_{22} &#38; \cdots &#38; r_{2n} \\ -->
-<!-- 		\vdots &#38; \vdots &#38; \ddots &#38; \vdots \\ -->
-<!-- 		0 &#38; 0 &#38; \cdots &#38; r_{nn} \\ -->
-<!-- 	\end{bmatrix} -->
-<!-- }_{\Mat{R}} -->
-<!-- \underbrace{ -->
-<!-- 	\begin{bmatrix} -->
-<!--     \sigma_{1,1} &#38; \sigma_{1,2} &#38; \dots &#38; \sigma_{1,n} \\ -->
-<!--     \sigma_{2,1} &#38; \sigma_{2,2} &#38; \dots &#38; \sigma_{2,n} \\ -->
-<!-- 		\vdots &#38; \vdots &#38; \vdots &#38; \vdots \\ -->
-<!--     \sigma_{n,1} &#38; \sigma_{n,2} &#38; \dots &#38; \sigma_{n,n} \\ -->
-<!-- 	\end{bmatrix} -->
-<!-- }_{\covar} -->
-<!-- = -->
-<!-- \underbrace{ -->
-<!-- \begin{bmatrix} -->
-<!--   r_{11} &#38; 0 &#38; \dots &#38; 0 \\ -->
-<!--   r_{21} &#38; r_{22} &#38; \dots &#38; 0 \\ -->
-<!--   \vdots &#38; \vdots &#38; \ddots &#38; \vdots \\ -->
-<!--   r_{m1} &#38; r_{m2} &#38; \dots &#38; r_{nn} -->
-<!-- \end{bmatrix} -->
-<!-- }_{(\Mat{R}^{\transpose})^{&#45;1}} -->
-<!-- </equation> -->
-<!-- and write out the matrix notation, -->
-<!-- <equation> -->
-<!-- 	&#38;r_{nn} \sigma_{n,n} = 1 / r_{nn} \\ -->
-<!-- 	&#38;\quad\quad\quad\quad\quad\quad\vdots \\ -->
-<!-- 	&#38;r_{2,2} \sigma_{2,n} + r_{2,3} \sigma_{3,n} -->
-<!--       + \dots + r_{2,n} \sigma_{n,n} = 0 \\ -->
-<!-- 	&#38;r_{1,1} \sigma_{1,n} + r_{1,2} \sigma_{2,n} -->
-<!--       + \dots + r_{1,n} \sigma_{n,n} = 0 \\ -->
-<!-- </equation> -->
-
+<p>Lets see an example, suppose $\Mat{R}$, $\covar$, and
+$(\Mat{R}^{\transpose})^{-1}$ are $4 \times 4$ matrices,
 <equation>
 	\begin{bmatrix}
 		r_{11} & r_{12} & r_{13} & r_{14} \\
@@ -142,43 +102,68 @@ which is essentially performing back-substition.
     z_{21} & z_{22} & 0 & 0 \\
     z_{31} & z_{32} & z_{33} & 0 \\
     z_{41} & z_{42} & z_{43} & z_{44}
-  \end{bmatrix}
+  \end{bmatrix},
 </equation>
+if we write out the matrix multiplication, and rearrange w.r.t values of
+$\covar$ for each column in $\covar$ we get (<b>note</b>: because a covariance
+matrix is symmetric, we will be ignoring the lower triangular values of
+$\covar$):
+</p>
 
 <h3>1st Column</h3>
 <equation>
-r_{11} \sigma_{11} + r_{12} \sigma_{21} + r_{13} \sigma_{31} + r_{14} \sigma_{41} &= z_{11} \\
+r_{11} \sigma_{11} 
+  + r_{12} \sigma_{21} 
+  + r_{13} \sigma_{31} 
+  + r_{14} \sigma_{41} &= z_{11}
 </equation>
 
 <equation>
-\sigma_{11} &= (z_{11} -r_{12} \sigma_{21} - r_{13} \sigma_{31} - r_{14} \sigma_{41}) / r_{11} \\
+  \sigma_{11} &= 
+  (z_{11} -r_{12} \sigma_{21} 
+  - r_{13} \sigma_{31} 
+  - r_{14} \sigma_{41}) / r_{11}
 </equation>
 
 <h3>2nd Column</h3>
 <equation>
-r_{11} \sigma_{12} + r_{12} \sigma_{22} + r_{13} \sigma_{32} + r_{14} \sigma_{42} &= 0 \\
-r_{22} \sigma_{22} + r_{23} \sigma_{32} + r_{24} \sigma_{42} &= z_{22} \\
+r_{11} \sigma_{12} 
+  + r_{12} \sigma_{22} 
+  + r_{13} \sigma_{32} 
+  + r_{14} \sigma_{42} &= 0 \\
+r_{22} \sigma_{22} 
+  + r_{23} \sigma_{32} 
+  + r_{24} \sigma_{42} &= z_{22}
 </equation>
 
 <equation>
-\sigma_{12} &= (-r_{12} \sigma_{22} - r_{13} \sigma_{32} - r_{14} \sigma_{42}) / r_{11} \\
-\sigma_{22} &= (z_{22} -r_{23} \sigma_{32} - r_{24} \sigma_{42}) / r_{22} \\
+\sigma_{12} &= (-r_{12} \sigma_{22} 
+  - r_{13} \sigma_{32} - r_{14} \sigma_{42}) / r_{11} \\
+\sigma_{22} &= (z_{22} -r_{23} \sigma_{32} 
+  - r_{24} \sigma_{42}) / r_{22}
 </equation>
 
 <h3>3rd Column</h3>
 <equation>
-r_{11} \sigma_{13} + r_{12} \sigma_{23} + r_{13} \sigma_{33} + r_{14} \sigma_{43} &= 0 \\
-r_{22} \sigma_{23} + r_{23} \sigma_{33} + r_{24} \sigma_{43} &= 0 \\
-r_{33} \sigma_{33} + r_{34} \sigma_{43} &= z_{33} \\
+r_{11} \sigma_{13} 
+  + r_{12} \sigma_{23} 
+  + r_{13} \sigma_{33} 
+  + r_{14} \sigma_{43} &= 0 \\
+r_{22} \sigma_{23} 
+  + r_{23} \sigma_{33} 
+  + r_{24} \sigma_{43} &= 0 \\
+r_{33} \sigma_{33} 
+  + r_{34} \sigma_{43} &= z_{33}
 </equation>
-
 
 <equation>
-\sigma_{13} &= (-r_{12} \sigma_{23} - r_{13} \sigma_{33} - r_{14} \sigma_{43}) / r_{11} \\
-\sigma_{23} &= (-r_{23} \sigma_{33} - r_{24} \sigma_{43}) / r_{22} \\
+\sigma_{13} &= (-r_{12} \sigma_{23} 
+  - r_{13} \sigma_{33} 
+  - r_{14} \sigma_{43}) / r_{11} \\
+\sigma_{23} &= (-r_{23} \sigma_{33} 
+  - r_{24} \sigma_{43}) / r_{22} \\
 \sigma_{33} &= (z_{33} - r_{34} \sigma_{43}) / r_{33}
 </equation>
-
 
 <h3>4th Column</h3>
 <equation>
@@ -195,18 +180,40 @@ r_{44} \sigma_{44} &= z_{44}
 \sigma_{44} &= z_{44} / r_{44}
 </equation>
 
-
+<p>Collecting the diagonal and off-diagonal terms we can form general equations
+to find any values in $\covar$:
 <h3>Diagonals</h3>
 
 <equation>
-\sigma_{11} &= (z_{11} -r_{12} \sigma_{21} - r_{13} \sigma_{31} - r_{14} \sigma_{41}) / r_{11} \\
-\sigma_{22} &= (z_{22} -r_{23} \sigma_{32} - r_{24} \sigma_{42}) / r_{22} \\
-\sigma_{33} &= (z_{33} - r_{34} \sigma_{43}) / r_{33} \\
-\sigma_{44} &= z_{44} / r_{44}
+  % Line 1
+  {\color{blue}\sigma_{11}} &=
+    ({\color{brown}z_{11}}
+    {\color{magenta} -r_{12} \sigma_{21}
+    - r_{13} \sigma_{31}
+    - r_{14} \sigma_{41}})
+    / {\color{red}r_{11}} \\
+  % Line 2
+  {\color{blue}\sigma_{22}} &=
+    ({\color{brown}z_{22}}
+    {\color{magenta} -r_{23} \sigma_{32}
+    - r_{24} \sigma_{42}})
+    / {\color{red}r_{22}} \\
+  % Line 3
+  {\color{blue}\sigma_{33}} &=
+    ({\color{brown}z_{33}}
+    {\color{magenta} -r_{34} \sigma_{43}})
+    / {\color{red}r_{33}} \\
+  % Line 4
+  {\color{blue}\sigma_{44}} &= {\color{brown}z_{44}} / {\color{red}r_{44}}
 </equation>
 
 <equation>
-\sigma_{ii} = \dfrac{1}{r_{ii}} \left(z_{ii} - \sum_{j=i+1}^{n} r_{i,j} \sigma_{j,i}\right) \\
+  {\color{blue}\sigma_{ii}} =
+    {\color{red}\dfrac{1}{r_{ii}}}
+    \left(
+      {\color{brown}z_{ii}}
+      {\color{magenta}-\sum_{j=i+1}^{n} r_{i,j} \sigma_{j,i}}
+    \right)
 </equation>
 
 Since we know that the inverse of the diagonals are its reciprocal, $z_{ii}$
@@ -214,8 +221,11 @@ can be written as $\frac{1}{r_{ii}}$ giving us the general formula for the
 diagonals of $\covar$ as,
 <equation>
   \boxed{
-    \sigma_{ii} = \dfrac{1}{r_{ii}} \left(
-      \dfrac{1}{r_{ii}} - \sum_{j=i+1}^{n} r_{i,j} \sigma_{j,i}
+  {\color{blue}\sigma_{ii}} =
+    {\color{red}\dfrac{1}{r_{ii}}}
+    \left(
+      {\color{brown}\dfrac{1}{r_{ii}}}
+      {\color{magenta}-\sum_{j=i+1}^{n} r_{i,j} \sigma_{j,i}}
     \right)
   }
 </equation>
@@ -224,14 +234,38 @@ diagonals of $\covar$ as,
 <h3>Off-Diagonals</h3>
 
 <equation>
-\sigma_{12} &= (-r_{12} \sigma_{22} - r_{13} \sigma_{32} - r_{14} \sigma_{42}) / r_{11} \\
-\sigma_{13} &= (-r_{12} \sigma_{23} - r_{13} \sigma_{33} - r_{14} \sigma_{43}) / r_{11} \\
-\sigma_{14} &= (-r_{12} \sigma_{24} - r_{13} \sigma_{34} - r_{14} \sigma_{44}) / r_{11} \\ \\
-\sigma_{23} &= (-r_{23} \sigma_{33} - r_{24} \sigma_{43}) / r_{22} \\
-\sigma_{24} &= (-r_{23} \sigma_{34} + r_{24} \sigma_{44}) / r_{22}  \\ \\
-\sigma_{34} &= (-r_{34} \sigma_{44}) / r_{33} \\
+  {\color{blue}\sigma_{12}} &=
+    ({\color{magenta}-r_{12} \sigma_{22}}
+    {\color{purple}-r_{13} \sigma_{32} - r_{14} \sigma_{42}})
+    / {\color{red}r_{11}} \\
+  {\color{blue}\sigma_{13}} &=
+    ({\color{magenta}-r_{12} \sigma_{23}}
+    {\color{purple}-r_{13} \sigma_{33} - r_{14} \sigma_{43}})
+    / {\color{red}r_{11}} \\
+  {\color{blue}\sigma_{14}} &=
+    ({\color{magenta}-r_{12} \sigma_{24}}
+    {\color{purple}-r_{13} \sigma_{34} - r_{14} \sigma_{44}})
+    / {\color{red}r_{11}} \\ \\
+  {\color{blue}\sigma_{23}} &=
+    ({\color{magenta}-r_{23} \sigma_{33}}
+    {\color{purple}-r_{24} \sigma_{43}})
+    / {\color{red}r_{22}} \\
+  {\color{blue}\sigma_{24}} &=
+    ({\color{magenta}-r_{23} \sigma_{34}}
+    {\color{purple}-r_{24} \sigma_{44}})
+    / {\color{red}r_{22}}  \\ \\
+  {\color{blue}\sigma_{34}} &=
+    ({\color{magenta}-r_{34} \sigma_{44}})
+    / {\color{red}r_{33}}
 </equation>
 
 <equation>
-\sigma_{il} = \dfrac{1}{r_{ii}} \left( \sum_{j=l}^{n} r_{i,j} \sigma_{j,l} \right)
+\boxed{
+  {\color{blue}\sigma_{il}} =
+  {\color{red}\dfrac{1}{r_{ii}}}
+  \left(
+    {\color{magenta}-\sum_{j=i+1}^{l} r_{i,j} \sigma_{j,l}}
+    {\color{purple}-\sum_{j=l+1}^{n} r_{i,j} \sigma_{j,l}}
+  \right)
+}
 </equation>
