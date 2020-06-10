@@ -16,8 +16,9 @@ or QR factorization. Then let us write,
   (\Mat{R}^{\transpose} \Mat{R}) \covar &= \I \\
   \Mat{R} \covar &= (\Mat{R}^{\transpose})^{-1}.
 </equation>
-and using back-substitution on the last equation, $\covar$ can be recovered with
-the following two general equations for diagonals and off-diagonals:
+and using back-substitution on the last equation to solve for $\covar$ results
+in the following two general equations for any diagonal and off-diagonal values
+of $\covar$:
 <equation>
   \boxed{
     \sigma_{ii} =
@@ -81,8 +82,8 @@ advantage of the struture of the lower triangular matrix to solve a system of
 equations via back-substituion. For one, we know for a fact the inverse of the
 diagonals in $(\Mat{R}^{\transpose})^{-1}$ is the reciprocal of itself, i.e.
 $z_{ii} = 1 / r_{ii}$ (a known property of inverting diagonal matrices).
-Secondly, by performing back-substition the lower triangle values are not
-required.</p>
+Secondly, by performing back-substition the lower triangle values of
+$(\Mat{R}^{\transpose})^{-1}$ are not required.</p>
 
 <p>Lets see an example, suppose $\Mat{R}$, $\covar$, and
 $(\Mat{R}^{\transpose})^{-1}$ are $4 \times 4$ matrices,
