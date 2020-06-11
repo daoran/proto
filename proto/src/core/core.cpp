@@ -1662,6 +1662,72 @@ int schurs_complement(const matx_t &H, const vecx_t &b,
   return 0;
 }
 
+real_t covar_recover(const long i, const long l,
+                     const matx_t &U, const vecx_t &diag,
+                     mat_hash_t &hash) {
+  // Check if covar at (i, l) has already been computed
+  if (hash.count(i) == 1 && hash[i].count(l) == 1) {
+    return hash[i][l];
+  } else if (hash.count(l) == 1 && hash[l].count(i) == 1) {
+    return hash[l][i];
+  }
+
+  // Sum over sparse entries of row i in U
+  auto sum_row = [&](const long i) {
+    real_t sum = 0;
+    for (long j = i; j < U.cols(); j++) {
+      if (j != i) {
+        real_t covar_lj = 0;
+        if (j > l) {
+          covar_lj = covar_recover(l, j, U, diag, hash);
+        } else {
+          covar_lj = covar_recover(j, l, U, diag, hash);
+        }
+        sum += U(i, j) * covar_lj;
+      }
+    }
+    return sum;
+  };
+
+  // Compute covar at (i, l)
+	real_t covar_il;
+  if (i == l) {
+    // Diagonals
+    covar_il = diag[l] * (diag[l] - sum_row(l));
+  } else {
+    // Off-diagonals
+    covar_il = (-sum_row(i) * diag[i]);
+  }
+	hash[i][l] = covar_il;
+
+	return covar_il;
+}
+
+mat_hash_t covar_recover(const matx_t &H, const mat_indicies_t &indicies) {
+  // Decompose H to LL^t
+  const Eigen::LLT<matx_t> llt(H);
+  const matx_t U = llt.matrixU();  // Upper triangular matrix
+
+  // Pre-calculate diagonal inverses
+  vecx_t diag(U.rows());
+  size_t nb_rows = U.rows();
+  for (size_t i = 0; i < nb_rows; i++) {
+    diag(i) = 1.0 / U(i, i);
+  }
+
+  // Recover values of covariance matrix
+  mat_hash_t hash;
+  mat_hash_t retval;
+  for (auto &index : indicies) {
+    const long i = index.first;
+    const long j = index.second;
+    const real_t covar_ij = covar_recover(i, j, U, diag, hash);
+    retval[i][j] = covar_ij;
+  }
+
+  return retval;
+}
+
 /******************************************************************************
  *                                GEOMETRY
  *****************************************************************************/

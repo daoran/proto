@@ -1,7 +1,6 @@
 <h1>Gauss Newton</h1>
 
 <equation>
-
   \min_{\Vec{x}} \cost(\Vec{x})
     &=
       \dfrac{1}{2}
@@ -12,7 +11,6 @@
       \Vec{e}_{i}^{\transpose}(\Vec{x})
       \Mat{W}
       \Vec{e}_{i}(\Vec{x})
-
 </equation>
 
 <p>Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
@@ -66,7 +64,6 @@ where $\Mat{E}(\bar{\Vec{x}}) = \dfrac{\partial\Vec{e}(\Vec{x})}{\partial\Vec{x}
 </equation>
 
 <equation>
-
     % Line 4
     \Delta\Vec{x}^{\transpose}
       \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})

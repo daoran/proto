@@ -22,9 +22,9 @@
  * - Interpolation
  * - Control
  * - Measurements
- * - Parameters
  * - Models
  * - Vision
+ * - Parameters
  * - Simulation
  * - Factor Graph
  *
@@ -143,6 +143,9 @@ using map_mat_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, COLS, STRIDE_TYPE>>;
 
 template <int ROWS>
 using map_vec_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, 1>>;
+
+typedef std::unordered_map<long, std::unordered_map<long, real_t>> mat_hash_t;
+typedef std::vector<std::pair<long int, long int>> mat_indicies_t;
 
 typedef uint64_t timestamp_t;
 typedef std::vector<timestamp_t> timestamps_t;
@@ -504,25 +507,40 @@ private:
   std::set<T>    set;
 };
 
+/**
+ * Save 3D features to csv file defined in `path`.
+ */
 void save_features(const std::string &path, const vec3s_t &features);
 
+/**
+ * Save pose to `csv_file` incrementally.
+ */
 void save_pose(FILE *csv_file,
                const timestamp_t &ts,
                const quat_t &rot,
                const vec3_t &pos);
 
+/**
+ * Save pose to `csv_file` incrementally.
+ */
 void save_pose(FILE *csv_file, const timestamp_t &ts, const vecx_t &pose);
 
+/**
+ * Save poses to csv file in `path`.
+ */
 void save_poses(const std::string &path,
                 const timestamps_t &timestamps,
                 const quats_t &orientations,
                 const vec3s_t &positions);
 
+/**
+ * Check jacobian
+ */
 int check_jacobian(const std::string &jac_name,
                    const matx_t &fdiff,
                    const matx_t &jac,
                    const real_t threshold,
-                   const bool print = false);
+                   const bool print=false);
 
 /******************************************************************************
  *                                FILESYSTEM
@@ -1309,6 +1327,23 @@ int schurs_complement(const matx_t &H, const vecx_t &b,
                       const size_t m, const size_t r,
                       matx_t &H_marg, vecx_t &b_marg,
                       const bool precond=false, const bool debug=false);
+
+
+/**
+ * Recover covariance(i, l) (a specific value in the covariance matrix) from
+ * the upper triangular matrix `U` with precomputed diagonal vector containing
+ * `diag(U)^{-1}`. Computed covariances will be stored in the `hash` to avoid
+ * recomputing the value again.
+ */
+real_t covar_recover(const long i, const long l,
+                     const matx_t &U, const vecx_t &diag,
+                     mat_hash_t &hash);
+
+/**
+ * From the Hessian matrix `H`, recover the covariance values defined in
+ * `indicies`. Returns a matrix hashmap of covariance values.
+ */
+mat_hash_t covar_recover(const matx_t &H, const mat_indicies_t &indicies);
 
 /******************************************************************************
  *                                 Geometry
@@ -2301,21 +2336,6 @@ struct cam_frame_t {
     : ts{ts_}, keypoints{keypoints_}, feature_ids{feature_ids_} {}
 
   ~cam_frame_t() {}
-};
-
-/******************************************************************************
- *                               PARAMETERS
- *****************************************************************************/
-
-struct imu_params_t {
-  real_t rate = 0.0;        // IMU rate [Hz]
-  real_t tau_a = 0.0;       // Reversion time constant for accel [s]
-  real_t tau_g = 0.0;       // Reversion time constant for gyro [s]
-  real_t sigma_g_c = 0.0;   // Gyro noise density [rad/s/sqrt(Hz)]
-  real_t sigma_a_c = 0.0;   // Accel noise density [m/s^s/sqrt(Hz)]
-  real_t sigma_gw_c = 0.0;  // Gyro drift noise density [rad/s^s/sqrt(Hz)]
-  real_t sigma_aw_c = 0.0;  // Accel drift noise density [m/s^2/sqrt(Hz)]
-  real_t g = 9.81;          // Gravity vector [ms-2]
 };
 
 /******************************************************************************
@@ -3507,6 +3527,21 @@ mat3_t pinhole_K(const int img_w,
                  const int img_h,
                  const real_t lens_hfov,
                  const real_t lens_vfov);
+
+/******************************************************************************
+ *                               PARAMETERS
+ *****************************************************************************/
+
+struct imu_params_t {
+  real_t rate = 0.0;        // IMU rate [Hz]
+  real_t tau_a = 0.0;       // Reversion time constant for accel [s]
+  real_t tau_g = 0.0;       // Reversion time constant for gyro [s]
+  real_t sigma_g_c = 0.0;   // Gyro noise density [rad/s/sqrt(Hz)]
+  real_t sigma_a_c = 0.0;   // Accel noise density [m/s^s/sqrt(Hz)]
+  real_t sigma_gw_c = 0.0;  // Gyro drift noise density [rad/s^s/sqrt(Hz)]
+  real_t sigma_aw_c = 0.0;  // Accel drift noise density [m/s^2/sqrt(Hz)]
+  real_t g = 9.81;          // Gravity vector [ms-2]
+};
 
 /*****************************************************************************
  *                               SIMULATION

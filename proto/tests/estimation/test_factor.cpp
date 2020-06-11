@@ -306,7 +306,7 @@ int test_imu_factor_jacobians() {
     const real_t dt_k_sq = dt_k * dt_k;
     const vec3_t g{0.0, 0.0, -imu.g};
     // -- Position at time k
-    const vec3_t b_a = ones(3, 1) * imu.b_a;
+    const vec3_t b_a = imu.b_a;
     const vec3_t n_a = ones(3, 1) * imu.sigma_a_c;
     r_WS += v_WS * dt_k;
     r_WS += 0.5 * g * dt_k_sq;
@@ -314,7 +314,7 @@ int test_imu_factor_jacobians() {
     // -- velocity at time k
     v_WS += C_WS * (a_WS_S - b_a - n_a) * dt_k + g * dt_k;
     // -- Attitude at time k
-    const vec3_t b_g = ones(3, 1) * imu.b_g;
+    const vec3_t b_g = imu.b_g;
     const vec3_t n_g = ones(3, 1) * imu.sigma_g_c;
     C_WS = C_WS * lie::Exp((w_WS_S - b_g - n_g) * ts2sec(dt));
 
@@ -409,6 +409,21 @@ int test_imu_propagate() {
     pose_i = pose_j;
     sb_i = sb_j;
   }
+
+  std::vector<param_t *> params = {
+    new pose_t{0, imu_data.timestamps[0], sim_data.imu_poses.front()},
+    new sb_params_t{1, imu_data.timestamps[0], sim_data.imu_vel.front(), zeros(3, 1), zeros(3, 1)},
+    new pose_t{2, imu_data.timestamps.back(), sim_data.imu_poses.back()},
+    new sb_params_t{3, imu_data.timestamps.back(), sim_data.imu_vel.back(), zeros(3, 1), zeros(3, 1)},
+  };
+  imu_factor_t factor(0,
+                      imu_data.timestamps,
+                      imu_data.accel,
+                      imu_data.gyro,
+                      I(15),
+                      params);
+  factor.eval();
+  print_vector("residuals", factor.residuals);
 
   print_vector("pose_j", pose_i);
   print_matrix("T_WS", tf(pose_i));
@@ -1272,8 +1287,8 @@ int test_swf_solve_vo() {
     // Handle camera event
     if (event.type == sim_event_type_t::CAMERA) {
       // Add pose
-      const id_t pose_id = swf.add_pose(ts, sim_data.cam_poses[pose_idx]);
-      pose_idx++;
+      const mat4_t T_WC = sim_data.cam_poses[pose_idx++];
+      const id_t pose_id = swf.add_pose(ts, T_WC);
 
       // Add prior
       if (swf.prior_set == false) {
@@ -1350,29 +1365,26 @@ int test_swf_solve_vio() {
       if (imu_data.size() < 2) {
         continue;
       }
+      printf("window_size: %zu\n", swf.window.size());
 
       // Add imu factor
       swf.add_imu_factor(ts, imu_data);
       imu_data.clear();
 
-      // // Add cam0 factors
-      // auto pose_id = swf.window.back().pose_id;
-      // for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
-      //   const auto feature_idx = event.frame.feature_ids[i];
-      //   const auto feature_id = swf.feature_ids[feature_idx];
-      //   const auto z = event.frame.keypoints[i];
-      //   swf.add_cam_factor(ts, 0, pose_id, feature_id, z);
-      // }
+      // Add cam0 factors
+      auto pose_id = swf.window.back().pose_id;
+      for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
+        const auto feature_idx = event.frame.feature_ids[i];
+        const auto feature_id = swf.feature_ids[feature_idx];
+        const auto z = event.frame.keypoints[i];
+        swf.add_cam_factor(ts, 0, pose_id, feature_id, z);
+      }
 
       swf.solve();
     }
   }
   profiler.print("solve_vio");
   swf.save_poses("/tmp/sim_data/imu_pose_est.csv");
-
-//   camera_params_t *cam_params = (camera_params_t *) graph.params[cam0_id];
-//   print_vector("proj param", cam_params->proj_params());
-//   print_vector("dist param", cam_params->dist_params());
 
   // Debug
   const bool debug = true;

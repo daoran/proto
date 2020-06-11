@@ -20,9 +20,11 @@ T_SC0:
   ]
 
 solver:
-  window_limit: 10
   verbose: false
   marg_type: "sibley"
   max_iter: 5
   time_limit: 10.0
   lambda: 1.0e-4
+
+swf:
+  window_limit: 10

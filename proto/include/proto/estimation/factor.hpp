@@ -180,6 +180,8 @@ struct camera_params_t : param_t {
 
   int cam_index = 0;
   int resolution[2] = {0, 0};
+  std::string proj_model;
+  std::string dist_model;
   long proj_size = 0;
   long dist_size = 0;
 
@@ -628,7 +630,7 @@ struct imu_factor_t : factor_t {
   const timestamps_t imu_ts;
   const vec3s_t imu_accel;
   const vec3s_t imu_gyro;
-  const vec3_t g{0.0, 0.0, -9.81};
+  const vec3_t g{0.0, 0.0, 9.81};
 
   mat_t<15, 15> P = zeros(15, 15);  // Covariance matrix
   mat_t<12, 12> Q = zeros(12, 12);  // noise matrix
@@ -888,7 +890,6 @@ struct graph_t {
   std::map<size_t, factor_t *> factors;
   std::map<size_t, param_t *> params;
   std::unordered_map<id_t, size_t> param_index; // id - column start
-  // std::unordered_map<param_t *, std::vector<factor_t *>> param_factor;
   std::vector<std::string> param_order{"pose_t",
                                        "camera_params_t",
                                        "landmark_t"};
@@ -989,7 +990,6 @@ size_t graph_add_pose_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors[f_id] = factor;
-  // graph.param_factor[params[0]].push_back(factor);
 
   // Point params to factor
   params[0]->factor_ids.push_back(f_id);
@@ -1017,9 +1017,6 @@ size_t graph_add_ba_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors[f_id] = factor;
-  // graph.param_factor[params[0]].push_back(factor);
-  // graph.param_factor[params[1]].push_back(factor);
-  // graph.param_factor[params[2]].push_back(factor);
 
   // Point params to factor
   for (auto *param : params) {
@@ -1050,10 +1047,6 @@ size_t graph_add_cam_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors[f_id] = factor;
-  // graph.param_factor[params[0]].push_back(factor);
-  // graph.param_factor[params[1]].push_back(factor);
-  // graph.param_factor[params[2]].push_back(factor);
-  // graph.param_factor[params[3]].push_back(factor);
 
   // Point params to factor
   for (auto *param : params) {
@@ -1086,10 +1079,6 @@ size_t graph_add_imu_factor(graph_t &graph,
 
   // Add factor to graph
   graph.factors[f_id] = factor;
-  // graph.param_factor[params[0]].push_back(factor);
-  // graph.param_factor[params[1]].push_back(factor);
-  // graph.param_factor[params[2]].push_back(factor);
-  // graph.param_factor[params[3]].push_back(factor);
 
   // Point params to factor
   for (auto *param : params) {
@@ -1474,6 +1463,15 @@ struct tiny_solver_t {
 
   tiny_solver_t() {}
 
+  void load_config(const config_t &config, const std::string &prefix="") {
+    const std::string key = (prefix == "") ? "" : prefix + ".";
+    parse(config, key + "verbose", verbose);
+    parse(config, key + "marg_type", marg_type);
+    parse(config, key + "max_iter", max_iter);
+    parse(config, key + "time_limit", time_limit);
+    parse(config, key + "lambda", lambda);
+  }
+
   real_t eval(graph_t &graph) {
     graph_eval(graph, e, E, &marg_size, &remain_size);
     return 0.5 * e.transpose() * e;
@@ -1495,6 +1493,7 @@ struct tiny_solver_t {
     // -- Marginalize?
     if (marg_size) {
       if (marg_type == "sibley") {
+        print_shape("H", H);
         if (marginalize_sibley(H, g, marg_size, H.rows() - marg_size) != 0) {
           marg_size = 0;
         }
@@ -1535,14 +1534,14 @@ struct tiny_solver_t {
         printf("lambda[%.2e] ", lambda_k);
         printf("iter_time[%.4f] ", iter_time);
         printf("solve_time[%.4f]  ", solve_time);
-        // // Calculate reprojection error
-        // size_t nb_keypoints = e.size() / 2.0;
-        // real_t sse = 0.0;
-        // for (size_t i = 0; i < nb_keypoints; i++) {
-        //   sse += e.segment(i * 2, 2).norm();
-        // }
-        // const real_t rmse = sqrt(sse / nb_keypoints);
-        // printf("rmse reproj error: %.2f\n", rmse);
+        // Calculate reprojection error
+        size_t nb_keypoints = e.size() / 2.0;
+        real_t sse = 0.0;
+        for (size_t i = 0; i < nb_keypoints; i++) {
+          sse += e.segment(i * 2, 2).norm();
+        }
+        const real_t rmse = sqrt(sse / nb_keypoints);
+        printf("rmse reproj error: %.2f\n", rmse);
       }
 
       // Determine whether to accept update
@@ -1607,7 +1606,7 @@ struct swf_t {
   std::vector<id_t> pose_ids;
   std::vector<id_t> sb_ids;
 
-  real_t imu_rate = -1.0;
+  real_t imu_rate = 0.0;
   vec3_t g{0.0, 0.0, -9.81};
 
   swf_t() {}
@@ -1615,6 +1614,12 @@ struct swf_t {
   size_t nb_cams() { return camera_ids.size(); }
   size_t nb_features() { return feature_ids.size(); }
   size_t window_size() { return window.size(); }
+
+  void add_imu(const config_t &config) {
+    const std::string prefix = "imu0";
+    parse(config, "imu0.rate", imu_rate);
+    parse(config, "imu0.g", g);
+  }
 
   void add_camera(const int cam_index,
                   const int resolution[2],
@@ -1626,6 +1631,46 @@ struct swf_t {
                                       proj_params,
                                       dist_params);
     camera_ids.push_back(camera_id);
+  }
+
+  void add_camera(const config_t &config, const int cam_index) {
+    const std::string prefix = "cam" + std::to_string(cam_index);
+
+    std::vector<int> cam_res;
+    std::string proj_model;
+    std::string dist_model;
+    vecx_t proj_params;
+    vecx_t dist_params;
+    parse(config, prefix + ".resolution", cam_res);
+    parse(config, prefix + ".proj_model", proj_model);
+    parse(config, prefix + ".dist_model", dist_model);
+
+    bool has_proj_params = yaml_has_key(config, prefix + ".proj_params");
+    bool has_dist_params = yaml_has_key(config, prefix + ".dist_params");
+    bool has_lens_hfov = yaml_has_key(config, prefix + ".lens_hfov");
+    bool has_lens_vfov = yaml_has_key(config, prefix + ".lens_vfov");
+
+    if (has_proj_params && has_dist_params) {
+      parse(config, prefix + ".proj_params", proj_params);
+      parse(config, prefix + ".dist_params", dist_params);
+
+    } else if (has_lens_hfov && has_lens_vfov) {
+      real_t lens_hfov;
+      real_t lens_vfov;
+      parse(config, prefix + ".lens_hfov", lens_hfov);
+      parse(config, prefix + ".lens_vfov", lens_vfov);
+      const real_t fx = pinhole_focal(cam_res[0], lens_hfov);
+      const real_t fy = pinhole_focal(cam_res[1], lens_vfov);
+      const real_t cx = cam_res[0] / 2.0;
+      const real_t cy = cam_res[1] / 2.0;
+      proj_params = vec4_t{fx, fy, cx, cy};
+      dist_params = vec4_t{0.01, 0.001, 0.01, 0.001};
+
+    } else {
+      FATAL("Insufficient info to init proj and dist params!");
+    }
+
+    add_camera(cam_index, cam_res.data(), proj_params, dist_params);
   }
 
   void add_extrinsics(const int cam_index, const mat4_t &extrinsics) {
@@ -1654,6 +1699,10 @@ struct swf_t {
     return pose_id;
   }
 
+  id_t add_pose(const timestamp_t ts, const vec_t<7> &pose) {
+    return add_pose(ts, tf(pose));
+  }
+
   id_t add_speed_bias(const timestamp_t ts,
                       const vec3_t &v,
                       const vec3_t &ba,
@@ -1662,6 +1711,13 @@ struct swf_t {
     sb_ids.push_back(sb_id);
     window.back().sb_id = sb_id;
     return sb_id;
+  }
+
+  id_t add_speed_bias(const timestamp_t ts, const vec_t<9> &sb) {
+    const auto v = sb.segment(0, 3);
+    const auto ba = sb.segment(3, 3);
+    const auto bg = sb.segment(6, 3);
+    return add_speed_bias(ts, v, ba, bg);
   }
 
   id_t add_pose_prior(const id_t pose_id) {
@@ -1698,8 +1754,8 @@ struct swf_t {
     vec_t<7> pose_j = pose_i;
     vec_t<9> sb_j = sb_i;
     imu_propagate(imu_data, g, pose_i, sb_i, pose_j, sb_j);
-    const id_t pose_j_id = graph_add_pose(graph, ts, pose_j);
-    const id_t sb_j_id = graph_add_speed_bias(graph, ts, sb_j);
+    const id_t pose_j_id = add_pose(ts, pose_j);
+    const id_t sb_j_id = add_speed_bias(ts, sb_j);
     pose_ids.push_back(pose_j_id);
     sb_ids.push_back(sb_j_id);
 
@@ -1743,7 +1799,7 @@ struct swf_t {
 
   int solve() {
     // Check window size
-    printf("window.size(): %zu!\n", window.size());
+    // printf("window.size(): %zu\n", window.size());
     if ((int) window.size() <= window_limit) {
       return 0;
     }
@@ -1755,11 +1811,8 @@ struct swf_t {
       if (param->marginalize == false) {
         param->marginalize = true;
         param->type = "marg_" + param->type;
-        // printf("factor_id: %zu\t", factor_id);
-        // printf("param_type: %s\n", graph.factors[factor_id]->params[0]->type.c_str());
       }
     }
-    printf("solving!\n");
 
     // Solve
     solver.solve(graph);
@@ -1778,6 +1831,7 @@ struct swf_t {
 
   int load_config(const std::string &config_path) {
     config_t config{config_path};
+    parse(config, "swf.window_limit", window_limit);
 
     // Add imu
     if (yaml_has_key(config, "imu0")) {
@@ -1786,31 +1840,14 @@ struct swf_t {
                            "camera_params_t",
                            "extrinsic_t",
                            "landmark_t"};
-      parse(config, "imu0.rate", imu_rate);
-      parse(config, "imu0.g", g);
+      add_imu(config);
     }
 
     // Add camera
     for (int cam_idx = 0; cam_idx < 5; cam_idx++) {
-      if (yaml_has_key(config, "cam" + std::to_string(cam_idx))) {
-        std::string proj_model;
-        std::string dist_model;
-        vec2_t resolution;
-        real_t lens_hfov;
-        real_t lens_vfov;
-        parse(config, "cam0.proj_model", proj_model);
-        parse(config, "cam0.dist_model", dist_model);
-        parse(config, "cam0.resolution", resolution);
-        parse(config, "cam0.lens_hfov", lens_hfov);
-        parse(config, "cam0.lens_vfov", lens_vfov);
-        const real_t fx = pinhole_focal(resolution(0), lens_hfov);
-        const real_t fy = pinhole_focal(resolution(1), lens_vfov);
-        const real_t cx = resolution(0) / 2.0;
-        const real_t cy = resolution(1) / 2.0;
-        const vec4_t proj_params{fx, fy, cx, cy};
-        const vec4_t dist_params{0.0, 0.0, 0.0, 0.0};
-        const int cam_res[2] = {(int) resolution(0), (int) resolution(1)};
-        add_camera(cam_idx, cam_res, proj_params, dist_params);
+      std::string prefix = "cam" + std::to_string(cam_idx);
+      if (yaml_has_key(config, prefix)) {
+        add_camera(config, cam_idx);
       }
     }
 
@@ -1825,12 +1862,7 @@ struct swf_t {
     }
 
     // Solver options
-    parse(config, "solver.verbose", solver.verbose);
-    parse(config, "solver.window_limit", window_limit);
-    parse(config, "solver.marg_type", solver.marg_type);
-    parse(config, "solver.max_iter", solver.max_iter);
-    parse(config, "solver.time_limit", solver.time_limit);
-    parse(config, "solver.lambda", solver.lambda);
+    solver.load_config(config, "solver");
 
     return 0;
   }

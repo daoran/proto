@@ -586,6 +586,51 @@ int test_nullspace() {
   return 0;
 }
 
+int test_covar_recover() {
+  matx_t H;
+	csv2mat("/tmp/H.csv", false, H);
+	print_matrix("H", H);
+
+  matx_t covar;
+	csv2mat("/tmp/covar.csv", false, covar);
+
+	// print_matrix("covar", covar);
+
+	profiler_t profile;
+	profile.start("H_inv");
+	print_matrix("covar", H.inverse());
+	profile.print("H_inv");
+
+  // Decompose H to LL^t
+  const Eigen::LLT<matx_t> llt(H);
+  const matx_t U = llt.matrixU();  // Upper triangular matrix
+
+  // Pre-calculate diagonal inverses
+  vecx_t diag(U.rows());
+  size_t nb_rows = U.rows();
+  for (size_t i = 0; i < nb_rows; i++) {
+    diag(i) = 1.0 / U(i, i);
+  }
+
+	// Recover
+	mat_indicies_t indicies;
+	indicies.emplace_back(0, 0);
+	indicies.emplace_back(0, 1);
+	indicies.emplace_back(1, 0);
+	indicies.emplace_back(1, 1);
+
+	profile.start("covar_recover");
+	mat_hash_t results = covar_recover(H, indicies);
+	profile.print("covar_recover");
+	printf("covar(%d, %d): %f\n", 0, 0, results[0][0]);
+	printf("covar(%d, %d): %f\n", 0, 1, results[0][1]);
+	printf("covar(%d, %d): %f\n", 1, 0, results[1][0]);
+	printf("covar(%d, %d): %f\n", 1, 1, results[1][1]);
+
+  return 0;
+}
+
+
 /******************************************************************************
  * GEOMETRY
  *****************************************************************************/
@@ -2884,6 +2929,7 @@ void test_suite() {
   MU_ADD_TEST(test_skewsq);
   MU_ADD_TEST(test_enforce_psd);
   MU_ADD_TEST(test_nullspace);
+  MU_ADD_TEST(test_covar_recover);
 
   // Geometry
   MU_ADD_TEST(test_deg2rad_rad2deg);
@@ -2979,5 +3025,6 @@ void test_suite() {
 }
 
 } // namespace proto
+
 
 MU_RUN_TESTS(proto::test_suite);
