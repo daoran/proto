@@ -243,10 +243,10 @@ function data = ba_update(data, e, E, sigma=[1.0; 1.0])
   % Solve Gauss-Newton system [H dx = g]: Solve for dx
   H = (E' * W * E);
   g = -E' * W * e;
-	% cond(H)
-	% H = nearestSPD(H);
+  % cond(H)
+  % H = nearestSPD(H);
   H = H + 0.1 * eye(size(H));
-	% cond(H)
+  % cond(H)
   % dx = H \ g;
   dx = pinv(H) * g;
 
@@ -329,11 +329,11 @@ function plot_compare_data(title_name, data_gnd, data_est)
     % draw_frame(T_WC, 0.05);
   endfor
 
-	scatter3(data_est.p_data(1, :),
-					 data_est.p_data(2, :),
-			 		 data_est.p_data(3, :),
-					 10.0,
-		   		 'b');
+  scatter3(data_est.p_data(1, :),
+           data_est.p_data(2, :),
+            data_est.p_data(3, :),
+           10.0,
+            'b');
 
   % Plot settings
   title(title_name);

@@ -26,36 +26,36 @@ function x = bwdsubs(U, b)
   % Input vector b is n by 1
   % Output vector x is the solution to the linear system
   % U x = b
-	assert(columns(U) == rows(b));
-	n = rows(b);
+  assert(columns(U) == rows(b));
+  n = rows(b);
 
   x = zeros(n, 1);
   for j=n:-1:1
-		if (U(j, j) == 0)
-			error('Matrix is singular!');
-		end;
+    if (U(j, j) == 0)
+      error('Matrix is singular!');
+    end;
     x(j) = b(j) / U(j, j);
     b(1:j-1) = b(1:j-1) - U(1:j-1, j) * x(j);
   end
 endfunction
 
 function x = fwdsubs(L, b)
-	% Solving a lower triangular system by forward-substitution
-	% Input matrix L is an n by n lower triangular matrix
-	% Input vector b is n by 1
-	% Output vector x is the solution to the linear system
-	% L x = b
-	assert(columns(L) == rows(b));
-	n = rows(b);
+  % Solving a lower triangular system by forward-substitution
+  % Input matrix L is an n by n lower triangular matrix
+  % Input vector b is n by 1
+  % Output vector x is the solution to the linear system
+  % L x = b
+  assert(columns(L) == rows(b));
+  n = rows(b);
 
-	x = zeros(n, 1);
-	for j=1:n
-		if (L(j, j) == 0)
-			error('Matrix is singular!');
-		end;
-		x(j) = b(j) / L(j, j);
-		b(j+1:n) = b(j+1:n) - L(j+1:n, j) * x(j);
-	endfor
+  x = zeros(n, 1);
+  for j=1:n
+    if (L(j, j) == 0)
+      error('Matrix is singular!');
+    end;
+    x(j) = b(j) / L(j, j);
+    b(j+1:n) = b(j+1:n) - L(j+1:n, j) * x(j);
+  endfor
 endfunction
 
 % rpy = rand(3, 1);

@@ -12,9 +12,9 @@ function p_distorted = radtan4_distort(k1, k2, p1, p2, p)
   x_dash = x * radial_factor;
   y_dash = y * radial_factor;
 
-	% Apply tangential distortion
-	xy = x * y;
-	x_ddash = x_dash + (2.0 * p1 * xy + p2 * (r2 + 2.0 * x2));
-	y_ddash = y_dash + (p1 * (r2 + 2.0 * y2) + 2.0 * p2 * xy);
+  % Apply tangential distortion
+  xy = x * y;
+  x_ddash = x_dash + (2.0 * p1 * xy + p2 * (r2 + 2.0 * x2));
+  y_ddash = y_dash + (p1 * (r2 + 2.0 * y2) + 2.0 * p2 * xy);
   p_distorted = [x_ddash; y_ddash];
 endfunction

@@ -16,8 +16,8 @@ im = rgb2gray(im);
 % Calculate image gradients
 [Ix, Iy] = derivative5(im, 'x', 'y');
 gauss_kern = 1 / 16 * [0, 2, 0;
-											 2, 4, 2;
-											 0, 2, 0];
+                       2, 4, 2;
+                       0, 2, 0];
 Ix2 = imfilter(Ix.^2, gauss_kern);
 Iy2 = imfilter(Iy.^2, gauss_kern);
 Ixy = imfilter(Ix.*Iy, gauss_kern);

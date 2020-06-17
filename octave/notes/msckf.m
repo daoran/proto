@@ -14,10 +14,10 @@ function traj = sim_traj()
   circle_cy = 0.0;
   nb_features = 1000;
 
-	% Create features
-	origin = [circle_cx, circle_cy, 0.0];
-	dim = [circle_r * 2, circle_r * 2, circle_r * 2];
-	features = create_3d_features_perimeter(origin, dim, nb_features);
+  % Create features
+  origin = [circle_cx, circle_cy, 0.0];
+  dim = [circle_r * 2, circle_r * 2, circle_r * 2];
+  features = create_3d_features_perimeter(origin, dim, nb_features);
 
   sim_time = linspace(0.0, t_end, t_end * imu_rate);
   circle_theta = linspace(-pi, pi, t_end * imu_rate);
@@ -57,7 +57,7 @@ function traj = sim_traj()
 
     % Update
     poses{k} = T;
-	  pos{k} = [x; y; z];
+    pos{k} = [x; y; z];
     vel{k} = [vx; vy; vz];
     acc{k} = [ax; ay; az];
     ang_vel{k} = [wx; wy; wz];
@@ -67,7 +67,7 @@ function traj = sim_traj()
   % Create trajectory structure
   traj = {};
   traj.time = sim_time;
-	traj.dt = 1.0 / imu_rate;
+  traj.dt = 1.0 / imu_rate;
   traj.T_WS_W = poses;
   traj.r_WS_W = pos;
   traj.v_WS_W = vel;
@@ -75,48 +75,48 @@ function traj = sim_traj()
   traj.w_WS_W = ang_vel;
 
   % Plot data
-	plot_data = 0;
-	if plot_data
-		figure();
-		hold on;
-		for k = 1:100:length(traj.T_WS_W)
-			T_WS_W = traj.T_WS_W{k};
-			draw_frame(T_WS_W);
-		end
-		plot3(features(:, 1), features(:, 2), features(:, 3), 'r.');
-		xlabel("x [m]");
-		ylabel("y [m]");
-		plot(acc(2, :), 'g-', 'linewidth', 2);
-		title("Position");
+  plot_data = 0;
+  if plot_data
+    figure();
+    hold on;
+    for k = 1:100:length(traj.T_WS_W)
+      T_WS_W = traj.T_WS_W{k};
+      draw_frame(T_WS_W);
+    end
+    plot3(features(:, 1), features(:, 2), features(:, 3), 'r.');
+    xlabel("x [m]");
+    ylabel("y [m]");
+    plot(acc(2, :), 'g-', 'linewidth', 2);
+    title("Position");
 
-		figure();
-		hold on;
-		vel = cell2mat(vel);
-		plot(vel(1, :), 'r-', 'linewidth', 2);
-		plot(vel(2, :), 'g-', 'linewidth', 2);
-		title("Velocity");
+    figure();
+    hold on;
+    vel = cell2mat(vel);
+    plot(vel(1, :), 'r-', 'linewidth', 2);
+    plot(vel(2, :), 'g-', 'linewidth', 2);
+    title("Velocity");
 
-		figure();
-		hold on;
-		acc = cell2mat(acc);
-		plot(acc(1, :), 'r-', 'linewidth', 2);
-		plot(acc(2, :), 'g-', 'linewidth', 2);
-		title("Acceleration");
+    figure();
+    hold on;
+    acc = cell2mat(acc);
+    plot(acc(1, :), 'r-', 'linewidth', 2);
+    plot(acc(2, :), 'g-', 'linewidth', 2);
+    title("Acceleration");
 
-		ginput()
-	endif
+    ginput()
+  endif
 endfunction
 
 function imu = sim_imu_init()
   imu = {};
-  imu.rate = 0.0;        		 % IMU rate [Hz]
-  imu.tau_g = 3600;       	 % Reversion time constant for accel [s]
-  imu.tau_a = 3600;       	 % Reversion time constant for gyro [s]
+  imu.rate = 0.0;             % IMU rate [Hz]
+  imu.tau_g = 3600;          % Reversion time constant for accel [s]
+  imu.tau_a = 3600;          % Reversion time constant for gyro [s]
   imu.sigma_g_c = 12.0e-4;   % Gyro noise density [rad/s/sqrt(Hz)]
   imu.sigma_a_c = 8.0e-3;    % Accel noise density [m/s^s/sqrt(Hz)]
   imu.sigma_gw_c = 4.0e-6;   % Gyro drift noise density [rad/s^s/sqrt(Hz)]
   imu.sigma_aw_c = 4.0e-5;   % Accel drift noise density [m/s^2/sqrt(Hz)]
-  imu.g = 9.81;          	   % Gravity vector [ms-2]
+  imu.g = 9.81;               % Gravity vector [ms-2]
 
   imu.b_g = zeros(3, 1);
   imu.b_a = zeros(3, 1);
@@ -182,7 +182,7 @@ function x_imu = imu_update(x_imu, w_B, a_B, dt)
   x_imu.C_WS = C_WS * so3_exp((w_B - b_g - n_g) * dt);
   x_imu.r_WS += (v_WS * dt) + (0.5 * C_WS * (a_B - b_a - n_a) * dt**2) + (0.5 * g * dt**2);
   x_imu.v_WS += (C_WS * (a_B - b_a - n_a) * dt) + (g * dt);
-	a_B
+  a_B
 endfunction
 
 % Simulate trajectory
@@ -212,39 +212,39 @@ for k = 1:length(traj.time)
   w_WS_W = traj.w_WS_W{k};
   a_WS_W = traj.a_WS_W{k};
 
-	% sim_imu = sim_imu_measurements(sim_imu, T_WS_W, w_WS_W, a_WS_W, traj.dt);
-	% x_imu = imu_update(x_imu, sim_imu.w_WS_S, sim_imu.a_WS_S, traj.dt);
+  % sim_imu = sim_imu_measurements(sim_imu, T_WS_W, w_WS_W, a_WS_W, traj.dt);
+  % x_imu = imu_update(x_imu, sim_imu.w_WS_S, sim_imu.a_WS_S, traj.dt);
 
-	dt = traj.dt;
+  dt = traj.dt;
   g = [0.0; 0.0; -9.81];
-	C_WS = tf_rot(T_WS_W);
+  C_WS = tf_rot(T_WS_W);
   % a_B = C_WS' * (a_WS_W - g);
   % r_WS += (v_WS * dt) + (0.5 * C_WS * a_B * dt**2) + (0.5 * g * dt**2);
   % v_WS += (C_WS * a_B * dt) + (g * dt);
 
   a_WS = a_WS_W;
-	v_WS = traj.v_WS_W{k};
-	r_WS += v_WS * dt + (0.5 * a_WS_W * dt^2);
+  v_WS = traj.v_WS_W{k};
+  r_WS += v_WS * dt + (0.5 * a_WS_W * dt^2);
 
-	% r_WS += v_WS * dt + (0.5 * a_WS_W * dt^2);
-	% v_WS += a_WS_W * dt;
+  % r_WS += v_WS * dt + (0.5 * a_WS_W * dt^2);
+  % v_WS += a_WS_W * dt;
 
-	% imu_pos = [imu_pos, x_imu.r_WS];
-	% imu_vel = [imu_vel, x_imu.v_WS];
-	imu_pos = [imu_pos, r_WS];
-	imu_vel = [imu_vel, v_WS];
-	imu_acc = [imu_vel, a_WS];
-	% imu_att = [imu_att, rot2euler(x_imu.C_WS)];
-	% imu_acc_m = [imu_acc_m, sim_imu.a_WS_S];
-	% imu_gyro_m = [imu_gyro_m, sim_imu.w_WS_S];
+  % imu_pos = [imu_pos, x_imu.r_WS];
+  % imu_vel = [imu_vel, x_imu.v_WS];
+  imu_pos = [imu_pos, r_WS];
+  imu_vel = [imu_vel, v_WS];
+  imu_acc = [imu_vel, a_WS];
+  % imu_att = [imu_att, rot2euler(x_imu.C_WS)];
+  % imu_acc_m = [imu_acc_m, sim_imu.a_WS_S];
+  % imu_gyro_m = [imu_gyro_m, sim_imu.w_WS_S];
 endfor
 
 % figure();
 % att = [];
 % for k = 1:length(traj.T_WS_W)
-% 	T_WS_W = traj.T_WS_W{k};
-% 	C_WS = tf_rot(T_WS_W);
-% 	att = [att, rot2euler(C_WS)];
+%   T_WS_W = traj.T_WS_W{k};
+%   C_WS = tf_rot(T_WS_W);
+%   att = [att, rot2euler(C_WS)];
 % endfor
 % plot(att(1, :), 'r-', 'linewidth', 2.0);
 % plot(att(2, :), 'g-', 'linewidth', 2.0);

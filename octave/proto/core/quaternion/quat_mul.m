@@ -14,7 +14,7 @@ function result = quat_mul(p, q)
   % y = p_w * q_y - p_y * q_w + p_z * q_x + p_x * q_z;
   % z = p_w * q_z + p_z * q_w - p_x * q_y + p_y * q_x;
 
-	% result = [w; x; y; z];
+  % result = [w; x; y; z];
 
   p_w = p(1);
   q_w = q(1);

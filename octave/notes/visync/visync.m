@@ -77,7 +77,7 @@ function data = visync(timeline, plot=false)
         gyro_event = true;
       endif
 
-			% Check if we got the first gyro and accel measurement
+      % Check if we got the first gyro and accel measurement
       if gyro.started && accel.started
         imu_started = true;
       endif

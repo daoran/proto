@@ -539,11 +539,11 @@ function plot_compare_data(data_gnd, data_est)
     % draw_frame(T_WC, 0.05);
   endfor
 
-	scatter3(data_est.p_data(1, :),
-					 data_est.p_data(2, :),
-			 		 data_est.p_data(3, :),
-					 10.0,
-		   		 'b');
+  scatter3(data_est.p_data(1, :),
+           data_est.p_data(2, :),
+            data_est.p_data(3, :),
+           10.0,
+            'b');
 
   % Plot settings
   xlabel("x [m]");
