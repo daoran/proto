@@ -58,15 +58,15 @@ known as the pseudo inverse $\Mat{A}^{\dagger}$.
 <h2>Forward Substitution</h2>
 
 <equation>
-  \Mat{U} \Vec{x} = \Vec{b}
+  \Mat{L} \Vec{x} = \Vec{b}
 </equation>
 
 <equation>
 \begin{bmatrix}
-  u_{11} & 0 & \dots & 0 \\
-  u_{21} & u_{22} & \dots & 0 \\
+  l_{11} & 0 & \dots & 0 \\
+  l_{21} & l_{22} & \dots & 0 \\
   \vdots & \vdots & \ddots & \vdots \\
-  u_{m1} & u_{m2} & \dots & u_{mn}
+  l_{m1} & l_{m2} & \dots & l_{mn}
 \end{bmatrix}
 \begin{bmatrix}
   x_{1} \\
@@ -84,25 +84,25 @@ known as the pseudo inverse $\Mat{A}^{\dagger}$.
 </equation>
 writing out the above,
 <equation>
-  &u_{11} x_{1} = b_{1} \\
-  &u_{21} x_{1} + u_{22} x_{2} = b_{2} \\
-  &u_{31} x_{1} + u_{32} x_{2} + u_{33} x_{3} = b_{3} \\
+  &l_{11} x_{1} = b_{1} \\
+  &l_{21} x_{1} + l_{22} x_{2} = b_{2} \\
+  &l_{31} x_{1} + l_{32} x_{2} + l_{33} x_{3} = b_{3} \\
   &\qquad\qquad\qquad\vdots \\
-  &u_{m,1} x_{1} + u_{m,2} x_{2} + \dots + u_{m,n} x_{n} = b_{n}
+  &l_{m,1} x_{1} + l_{m,2} x_{2} + \dots + l_{m,n} x_{n} = b_{n}
 </equation>
 and rearranging to solve for $\Vec{x}$,
 <equation>
-  x_{1} &= b_{1} / u_{11} \\
-  x_{2} &= (b_{2} - u_{21} x_{1}) / u_{22} \\
-  x_{3} &= (b_{3} - u_{31} x_{1} - u_{32} x_{2} ) / u_{33} \\
+  x_{1} &= b_{1} / l_{11} \\
+  x_{2} &= (b_{2} - l_{21} x_{1}) / l_{22} \\
+  x_{3} &= (b_{3} - l_{31} x_{1} - l_{32} x_{2} ) / l_{33} \\
   &\qquad\qquad\qquad\qquad\qquad\vdots \\
-  x_{m} &= (b_{m} - u_{m,1} x_{1} - u_{m,2} x_{2} - \dots
-            - u_{m,m-1} x_{m-1} ) / u_{m,n}
+  x_{m} &= (b_{m} - l_{m,1} x_{1} - l_{m,2} x_{2} - \dots
+            - l_{m,m-1} x_{m-1} ) / l_{m,n}
 </equation>
 or more generally,
 <equation>
   \boxed{
-    x_{i} = \dfrac{b_{i} - \sum_{j=1}^{i-1} u_{ij} x_{i}}{u_{ii}}
+    x_{i} = \dfrac{b_{i} - \sum_{j=1}^{i-1} l_{ij} x_{i}}{l_{ii}}
     \quad
     \text{where} \; 1 \leq i \leq n
   }.
@@ -115,15 +115,15 @@ or more generally,
 <h2>Backward Substitution</h2>
 
 <equation>
-  \Mat{L} \Vec{x} = \Vec{b}
+  \Mat{U} \Vec{x} = \Vec{b}
 </equation>
 
 <equation>
 \begin{bmatrix}
-  l_{11} & l_{12} & \dots & l_{1n} \\
-  0 & l_{22} & \dots & l_{2n} \\
+  u_{11} & u_{12} & \dots & u_{1n} \\
+  0 & u_{22} & \dots & u_{2n} \\
   \vdots & \vdots & \ddots & \vdots \\
-  0 & 0 & \dots & l_{mn} \\
+  0 & 0 & \dots & u_{mn} \\
 \end{bmatrix}
 \begin{bmatrix}
   x_{1} \\
@@ -141,22 +141,22 @@ or more generally,
 </equation>
 writing out the above,
 <equation>
-  &l_{11} x_{1} + l_{12} x_{2} + \dots + l_{1n} x_{n} = b_{1} \\
-  &l_{22} x_{2} + \dots + l_{2n} x_{n} = b_{2} \\
+  &u_{11} x_{1} + u_{12} x_{2} + \dots + u_{1n} x_{n} = b_{1} \\
+  &u_{22} x_{2} + \dots + u_{2n} x_{n} = b_{2} \\
   &\qquad\qquad\qquad\vdots \\
-  &l_{mn} x_{n} = b_{n}
+  &u_{mn} x_{n} = b_{n}
 </equation>
 and rearranging to solve for $\Vec{x}$,
 <equation>
-  x_{1} &= (b_{1} - l_{12} x_{2} - \dots - l_{1n} x_{n}) / l_{11} \\
-  x_{2} &= (b_{2} - l_{22} x_{3} - \dots - l_{2n} x_{n}) / l_{22} \\
+  x_{1} &= (b_{1} - u_{12} x_{2} - \dots - u_{1n} x_{n}) / u_{11} \\
+  x_{2} &= (b_{2} - u_{22} x_{3} - \dots - u_{2n} x_{n}) / u_{22} \\
   &\qquad\qquad\qquad\vdots \\
-  x_{m} &= b_{m} / l_{mn}
+  x_{m} &= b_{m} / u_{mn}
 </equation>
 or more generally,
 <equation>
   \boxed{
-    x_{i} = \dfrac{b_{i} - \sum_{j=i+1}^{1} l_{ij} x_{i}}{l_{ii}}
+    x_{i} = \dfrac{b_{i} - \sum_{j=i+1}^{1} u_{ij} x_{i}}{u_{ii}}
     \quad
     \text{where} \; i = n, n - 1, \cdots, 1
   }.
