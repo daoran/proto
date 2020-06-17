@@ -356,7 +356,8 @@ fov = 90.0;
 camera = camera_init(res, fov);
 % -- Create data
 % data = trajectory_simulate(camera, chessboard);
-nb_poses = 20;
+% nb_poses = 20;
+nb_poses = 10;
 data_gnd = calib_sim(calib_target, T_WT, camera, nb_poses);
 data = calib_data_add_noise(data_gnd);
 
@@ -448,29 +449,32 @@ function save_dataset(save_path="/tmp/ba_data/", data)
   fclose(points_file);
 end
 
-n = 6;
-m = 6;
-A = rand(n, m);
-B = A' * A
-covar = inv(B)
-B_ = inv(covar)
-% imagesc(B);
-
-csvwrite("/tmp/H.csv", B);
-csvwrite("/tmp/covar.csv", covar);
-imagesc(covar);
-ginput()
+% n = 6;
+% m = 6;
+% A = rand(n, m);
+% B = A' * A
+% covar = inv(B)
+% B_ = inv(covar)
+% % imagesc(B);
+%
+% csvwrite("/tmp/H.csv", B);
+% csvwrite("/tmp/covar.csv", covar);
+% imagesc(covar);
+% ginput()
 
 % save_dataset(save_path="/tmp/ba_data/", data_gnd);
 % save_dataset(save_path="/tmp/ba_data/", data);
 % e = ba_residuals(data_gnd);
-% E = ba_jacobian(data);
-% H = E' * E;
+E = ba_jacobian(data);
+H = E' * E;
+H = H + 1e-3 * eye(size(H));
 % covar = pinv(H);
 % covar
-% imshow(covar);
+% [L, U, P] = lu(H);
+% size(L)
+% imshow(pinv(H));
 % ginput();
-% csvwrite("/tmp/H.csv", H)
+csvwrite("/tmp/H.csv", H)
 % g = -E' * e;
 %
 % H = nearestSPD(H);

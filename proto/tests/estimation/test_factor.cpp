@@ -1028,17 +1028,17 @@ int test_graph_eval() {
   }
 
   // Evaluate graph
-  vecx_t r;
-  matx_t J;
+  matx_t H;
+  vecx_t g;
   size_t marg_size;
   size_t remain_size;
-  graph_eval(graph, r, J, &marg_size, &remain_size);
-  printf("marg_size: %zu\n", marg_size);
-  printf("remain_size: %zu\n", remain_size);
-  mat2csv("/tmp/J.csv", J);
-  // mat2csv("/tmp/r.csv", r);
-  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/J.csv");
-  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/r.csv");
+  graph_eval(graph, H, g, &marg_size, &remain_size);
+  // printf("marg_size: %zu\n", marg_size);
+  // printf("remain_size: %zu\n", remain_size);
+  // mat2csv("/tmp/H.csv", H);
+  // mat2csv("/tmp/g.csv", g);
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/H.csv");
+  // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/g.csv");
 
   // Debug
   // const bool debug = true;

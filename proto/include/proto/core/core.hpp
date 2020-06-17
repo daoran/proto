@@ -65,6 +65,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/Splines>
 
@@ -115,6 +116,9 @@ typedef Eigen::AngleAxis<real_t> angle_axis_t;
 typedef Eigen::Matrix<real_t, 1, Eigen::Dynamic> row_vector_t;
 typedef Eigen::Matrix<real_t, Eigen::Dynamic, 1> col_vector_t;
 typedef Eigen::Array<real_t, Eigen::Dynamic, 1> arrayx_t;
+
+typedef Eigen::SparseMatrix<real_t> sp_mat_t;
+typedef Eigen::SparseVector<real_t> sp_vec_t;
 
 typedef std::vector<vec2_t, Eigen::aligned_allocator<vec2_t>> vec2s_t;
 typedef std::vector<vec3_t, Eigen::aligned_allocator<vec3_t>> vec3s_t;
@@ -1329,21 +1333,21 @@ int schurs_complement(const matx_t &H, const vecx_t &b,
                       const bool precond=false, const bool debug=false);
 
 
-/**
- * Recover covariance(i, l) (a specific value in the covariance matrix) from
- * the upper triangular matrix `U` with precomputed diagonal vector containing
- * `diag(U)^{-1}`. Computed covariances will be stored in the `hash` to avoid
- * recomputing the value again.
- */
-real_t covar_recover(const long i, const long l,
-                     const matx_t &U, const vecx_t &diag,
-                     mat_hash_t &hash);
-
-/**
- * From the Hessian matrix `H`, recover the covariance values defined in
- * `indicies`. Returns a matrix hashmap of covariance values.
- */
-mat_hash_t covar_recover(const matx_t &H, const mat_indicies_t &indicies);
+// /**
+//  * Recover covariance(i, l) (a specific value in the covariance matrix) from
+//  * the upper triangular matrix `U` with precomputed diagonal vector containing
+//  * `diag(U)^{-1}`. Computed covariances will be stored in the `hash` to avoid
+//  * recomputing the value again.
+//  */
+// real_t covar_recover(const long i, const long l,
+//                      const matx_t &U, const vecx_t &diag,
+//                      mat_hash_t &hash);
+//
+// /**
+//  * From the Hessian matrix `H`, recover the covariance values defined in
+//  * `indicies`. Returns a matrix hashmap of covariance values.
+//  */
+// mat_hash_t covar_recover(const matx_t &H, const mat_indicies_t &indicies);
 
 /******************************************************************************
  *                                 Geometry

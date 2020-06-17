@@ -586,46 +586,185 @@ int test_nullspace() {
   return 0;
 }
 
+real_t covar_recover(const long i, const long l,
+                     const matx_t &U, const vecx_t &diag,
+                     mat_hash_t &hash) {
+  // Check if covar at (i, l) has already been computed
+  if (hash.count(i) == 1 && hash[i].count(l) == 1) {
+    return hash[i][l];
+  } else if (hash.count(l) == 1 && hash[l].count(i) == 1) {
+    return hash[l][i];
+  }
+
+  // Sum over sparse entries of row i in U
+  const auto sum_row = [&](const long i) {
+    real_t sum = 0;
+
+    for (long j = i; j < U.cols(); j++) {
+      if (j != i) {
+        real_t covar_lj = 0;
+        if (j > l) {
+          covar_lj = covar_recover(l, j, U, diag, hash);
+        } else {
+          covar_lj = covar_recover(j, l, U, diag, hash);
+        }
+        sum += U(i, j) * covar_lj;
+      }
+    }
+
+    return sum;
+  };
+
+  // Compute covar at (i, l)
+	real_t covar_il;
+  if (i == l) {
+    // Diagonals
+    covar_il = diag[l] * (diag[l] - sum_row(l));
+  } else {
+    // Off-diagonals
+    covar_il = (-sum_row(i) * diag[i]);
+  }
+	hash[i][l] = covar_il;
+
+	return covar_il;
+}
+
+real_t covar_recover(const long i, const long l,
+                     // const sp_mat_t &U, const vecx_t &diag,
+                     const sp_mat_t &L, const vecx_t &diag,
+                     mat_hash_t &hash) {
+  // Check if covar at (i, l) has already been computed
+  if (hash.count(i) == 1 && hash[i].count(l) == 1) {
+    return hash[i][l];
+  } else if (hash.count(l) == 1 && hash[l].count(i) == 1) {
+    return hash[l][i];
+  }
+
+  // Sum over sparse entries of row i in U
+  // Eigen::SparseVector<double> U_row = U.row(i);
+  Eigen::SparseVector<double> L_row = L.col(i);
+  const auto sum_row = [&](const long i) {
+    real_t sum = 0;
+
+    // for (Eigen::SparseVector<double>::InnerIterator it(U_row); it; ++it){
+    for (Eigen::SparseVector<double>::InnerIterator it(L_row); it; ++it){
+      long j = it.index();
+      real_t U_ij = it.value();
+
+      if (j != i) {
+        real_t covar_lj = 0;
+        if (j > l) {
+          // covar_lj = covar_recover(l, j, U, diag, hash);
+          covar_lj = covar_recover(l, j, L, diag, hash);
+        } else {
+          // covar_lj = covar_recover(j, l, U, diag, hash);
+          covar_lj = covar_recover(j, l, L, diag, hash);
+        }
+        sum += U_ij * covar_lj;
+      }
+    }
+
+    return sum;
+  };
+
+  // Compute covar at (i, l)
+	real_t covar_il;
+  if (i == l) {
+    // Diagonals
+    covar_il = diag[l] * (diag[l] - sum_row(l));
+  } else {
+    // Off-diagonals
+    covar_il = (-sum_row(i) * diag[i]);
+  }
+	hash[i][l] = covar_il;
+
+	return covar_il;
+}
+
+mat_hash_t covar_recover(const matx_t &H, const mat_indicies_t &indicies) {
+  // Decompose H to LL^t
+  const Eigen::LLT<matx_t> llt(H);
+  // const matx_t U = llt.matrixU();  // Upper triangular matrix
+  // const sp_mat_t U_sparse = U.sparseView();
+  const matx_t L = llt.matrixL();  // Upper triangular matrix
+  const sp_mat_t L_sparse = L.sparseView();
+
+  // Pre-calculate diagonal inverses
+  // vecx_t diag(U.rows());
+  // size_t nb_rows = U.rows();
+  // for (size_t i = 0; i < nb_rows; i++) {
+  //   diag(i) = 1.0 / U(i, i);
+  // }
+  vecx_t diag(L.rows());
+  size_t nb_rows = L.rows();
+  for (size_t i = 0; i < nb_rows; i++) {
+    diag(i) = 1.0 / L(i, i);
+  }
+
+  // Recover values of covariance matrix
+  mat_hash_t hash;
+  mat_hash_t retval;
+  for (auto &index : indicies) {
+    const long i = index.first;
+    const long j = index.second;
+    // const real_t covar_ij = covar_recover(i, j, U, diag, hash);
+    // const real_t covar_ij = covar_recover(i, j, U_sparse, diag, hash);
+    const real_t covar_ij = covar_recover(i, j, L_sparse, diag, hash);
+    retval[i][j] = covar_ij;
+  }
+
+  return retval;
+}
+
 int test_covar_recover() {
+	profiler_t profile;
+
   matx_t H;
 	csv2mat("/tmp/H.csv", false, H);
-	print_matrix("H", H);
 
   matx_t covar;
 	csv2mat("/tmp/covar.csv", false, covar);
 
-	// print_matrix("covar", covar);
+	// matx_t H_diag = H.diagonal().asDiagonal();
+	// H = H + 1e-5 * H_diag;
 
-	profiler_t profile;
-	profile.start("H_inv");
-	print_matrix("covar", H.inverse());
-	profile.print("H_inv");
-
-  // Decompose H to LL^t
-  const Eigen::LLT<matx_t> llt(H);
-  const matx_t U = llt.matrixU();  // Upper triangular matrix
-
-  // Pre-calculate diagonal inverses
-  vecx_t diag(U.rows());
-  size_t nb_rows = U.rows();
-  for (size_t i = 0; i < nb_rows; i++) {
-    diag(i) = 1.0 / U(i, i);
-  }
+	// profile.start("H_inv");
+  // // matx_t covar_est = pinv(H);
+  // matx_t covar_est = H.inverse();
+	// profile.print("H_inv");
 
 	// Recover
 	mat_indicies_t indicies;
-	indicies.emplace_back(0, 0);
-	indicies.emplace_back(0, 1);
-	indicies.emplace_back(1, 0);
-	indicies.emplace_back(1, 1);
+	for (int i = H.rows() - 16; i < H.rows(); i++) {
+    // for (int j = H.rows() - 16; j < H.rows(); j++) {
+      indicies.emplace_back(i, i);
+    // }
+  }
 
 	profile.start("covar_recover");
 	mat_hash_t results = covar_recover(H, indicies);
 	profile.print("covar_recover");
-	printf("covar(%d, %d): %f\n", 0, 0, results[0][0]);
-	printf("covar(%d, %d): %f\n", 0, 1, results[0][1]);
-	printf("covar(%d, %d): %f\n", 1, 0, results[1][0]);
-	printf("covar(%d, %d): %f\n", 1, 1, results[1][1]);
+
+  // for (const auto &ij : indicies) {
+  //   const long i = ij.first;
+  //   const long j = ij.second;
+  //   if (i == j) {
+  //     printf("(%ld, %ld) ", i, j);
+  //     printf("recovered: %e\n", results[i][j]);
+  //   }
+  // }
+
+  // print_vector("H_cam_diag", H.diagonal().tail(16));
+
+  for (const auto &ij : indicies) {
+    const long i = ij.first;
+    const long j = ij.second;
+    printf("(%ld, %ld) ", i, j);
+    MU_CHECK(std::isnan(results[i][j]) == false);
+    // printf("result: %f\n", results[i][j]);
+    printf("result: %f recovered: %f\n", results[i][j], covar(i, j));
+    // MU_CHECK(fltcmp(results[i][j], covar_est(i, j)) == 0);
+	}
 
   return 0;
 }
@@ -2970,10 +3109,10 @@ void test_suite() {
   MU_ADD_TEST(test_interp_poses);
   MU_ADD_TEST(test_closest_poses);
   MU_ADD_TEST(test_intersection);
-  MU_ADD_TEST(test_lerp_timestamps);
-  MU_ADD_TEST(test_lerp_data);
-  MU_ADD_TEST(test_lerp_data2);
-  MU_ADD_TEST(test_lerp_data3);
+  // MU_ADD_TEST(test_lerp_timestamps);
+  // MU_ADD_TEST(test_lerp_data);
+  // MU_ADD_TEST(test_lerp_data2);
+  // MU_ADD_TEST(test_lerp_data3);
   MU_ADD_TEST(test_ctraj);
   MU_ADD_TEST(test_ctraj_get_pose);
   MU_ADD_TEST(test_ctraj_get_velocity);
@@ -3015,10 +3154,10 @@ void test_suite() {
   MU_ADD_TEST(test_radtan_undistort_point);
   MU_ADD_TEST(test_equi_distort_point);
   MU_ADD_TEST(test_equi_undistort_point);
-  MU_ADD_TEST(test_pinhole);
-  MU_ADD_TEST(test_pinhole_K);
-  MU_ADD_TEST(test_pinhole_focal);
-  MU_ADD_TEST(test_pinhole_project);
+  // MU_ADD_TEST(test_pinhole);
+  // MU_ADD_TEST(test_pinhole_K);
+  // MU_ADD_TEST(test_pinhole_focal);
+  // MU_ADD_TEST(test_pinhole_project);
 
   // Simulation
   MU_ADD_TEST(test_sim_circle_trajectory);

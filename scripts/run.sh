@@ -22,8 +22,8 @@ debug() {
 
 # LIBRARY
 # make deps
-time make debug
-# time make release
+# time make debug
+time make release
 sudo make install
 # time make ros
 # sudo make debug_install
@@ -78,7 +78,7 @@ cd proto/build/tests
 # ./core-test_core --target test_skewsq
 # ./core-test_core --target test_enforce_psd
 # ./core-test_core --target test_nullspace
-./core-test_core --target test_covar_recover
+# ./core-test_core --target test_covar_recover
 # ---- Geometry
 # ./core-test_core --target test_deg2rad_rad2deg
 # ./core-test_core --target test_wrap180
@@ -188,7 +188,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_get_state
 # ./estimation-test_factor --target test_graph_set_state
 # ./estimation-test_factor --target test_graph_solve_ba
-# ./estimation-test_factor --target test_swf_solve_vo
+./estimation-test_factor --target test_swf_solve_vo
 # ./estimation-test_factor --target test_swf_solve_vio
 # ./estimation-test_frontend
 

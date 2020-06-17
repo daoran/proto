@@ -1114,23 +1114,30 @@ void graph_rm_factor(graph_t &graph, const id_t factor_id) {
 }
 
 vecx_t graph_residuals(graph_t &graph) {
+  // Calculate residual size
+  std::vector<bool> factors_ok;
   size_t residuals_size = 0;
-
-  // Eval
   for (const auto &kv : graph.factors) {
     auto factor = kv.second;
+
     if (factor->eval(false) == 0) {
+      factors_ok.push_back(true);
       residuals_size += factor->residuals.size();
+    } else {
+      factors_ok.push_back(false);
     }
   }
 
   // Form residual vector
   vecx_t r = zeros(residuals_size, 1);
   size_t idx = 0;
+  size_t k = 0;
   for (const auto &kv : graph.factors) {
-    auto &factor = kv.second;
-    r.segment(idx, factor->residuals.size()) = factor->residuals;
-    idx += factor->residuals.size();
+    if (factors_ok[k++]) {
+      auto &factor = kv.second;
+      r.segment(idx, factor->residuals.size()) = factor->residuals;
+      idx += factor->residuals.size();
+    }
   }
 
   return r;
@@ -1261,7 +1268,7 @@ matx_t graph_jacobians(graph_t &graph, size_t *marg_size, size_t *remain_size) {
   return J;
 }
 
-void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
+void graph_eval(graph_t &graph, matx_t &H, vecx_t &g,
                 size_t *marg_size, size_t *remain_size) {
   // First pass: Determine what parameters we have
   std::unordered_set<id_t> param_tracker;
@@ -1356,34 +1363,42 @@ void graph_eval(graph_t &graph, vecx_t &r, matx_t &J,
     }
   }
 
-  // Third pass: Form residuals and jacobians
-  r = zeros(residuals_size, 1);
-  J = zeros(residuals_size, params_size);
+  // Third pass: Form L.H.S and R.H.S of H dx = g
+  H = zeros(params_size, params_size);
+  g = zeros(params_size, 1);
 
-  size_t rs = 0;
-  size_t cs = 0;
-  size_t i = 0;
+  size_t k = 0;
   for (auto &kv : graph.factors) {
     const auto &factor = kv.second;
-    if (factor_ok[i++] == 0) {
+    if (factor_ok[k++] == 0) {
       continue; // Skip this factor
     }
 
-    // Form jacobian
-    for (size_t j = 0; j < factor->params.size(); j++) {
-      const auto &param = factor->params.at(j);
-      const long rows = factor->residuals.size();
-      const long cols = param->local_size;
+    // Form Hessian H
+    for (size_t i = 0; i < factor->params.size(); i++) {
+      const auto &param_i = factor->params.at(i);
+      const auto idx_i = graph.param_index[param_i->id];
+      const auto size_i = param_i->local_size;
+      const matx_t &J_i = factor->jacobians[i];
 
-      if (graph.param_index.count(param->id)) {
-        cs = graph.param_index[param->id];
-        J.block(rs, cs, rows, cols) = factor->jacobians[j];
+      for (size_t j = i; j < factor->params.size(); j++) {
+        const auto &param_j = factor->params.at(j);
+        const auto idx_j = graph.param_index[param_j->id];
+        const auto size_j = param_j->local_size;
+        const matx_t &J_j = factor->jacobians[j];
+
+        if (i == j) {  // Diagonal
+          H.block(idx_i, idx_j, size_i, size_j) += J_i.transpose() * J_j;
+        } else {  // Off-diagonal
+          H.block(idx_i, idx_j, size_i, size_j) += J_i.transpose() * J_j;
+          H.block(idx_j, idx_i, size_j, size_i) =
+            H.block(idx_i, idx_j, size_i, size_j).transpose();
+        }
       }
-    }
 
-    // Form residual
-    r.segment(rs, factor->residuals.size()) = factor->residuals;
-    rs += factor->residuals.size();
+      // Form R.H.S. vector g
+      g.segment(idx_i, size_i) -= J_i.transpose() * factor->residuals;
+    }
   }
 }
 
@@ -1453,8 +1468,9 @@ struct tiny_solver_t {
   int iter = 0;
   real_t cost = 0.0;
   real_t solve_time = 0.0;
+  matx_t H;
+  vecx_t g;
   vecx_t e;
-  matx_t E;
 
   // Marginalization
   std::string marg_type = "sibley";
@@ -1473,27 +1489,19 @@ struct tiny_solver_t {
   }
 
   real_t eval(graph_t &graph) {
-    graph_eval(graph, e, E, &marg_size, &remain_size);
+    graph_eval(graph, H, g, &marg_size, &remain_size);
+    e = graph_residuals(graph);
     return 0.5 * e.transpose() * e;
   }
 
   void update(graph_t &graph, const real_t lambda_k) {
-    assert(E.size() != 0);
-    assert(e.size() != 0);
+    assert(H.size() != 0);
+    assert(g.size() != 0);
 
     // Solve Gauss-Newton system [H dx = g]: Solve for dx
-    // -- Form L.H.S. and R.H.S. of GN
-    matx_t H = E.transpose() * E;
-    vecx_t g = -E.transpose() * e;
-    // TODO: Instead of multiplying E.transpose() * E, or -E.traspose() * e, we
-    // should instead build the Hessian matrix and vector g itself. This helps
-    // alleviate computational complexity of computing a dense matrix of approx
-    // runtime complexity of O(n^{2}).  Technically Eigen will do a better job
-    // than that however, its still expensive.
     // -- Marginalize?
     if (marg_size) {
       if (marg_type == "sibley") {
-        print_shape("H", H);
         if (marginalize_sibley(H, g, marg_size, H.rows() - marg_size) != 0) {
           marg_size = 0;
         }
@@ -1818,7 +1826,8 @@ struct swf_t {
     solver.solve(graph);
     printf("cost: %.2e\t", solver.cost);
     printf("solver took: %.4fs\n", solver.solve_time);
-    // printf("\n");
+    printf("\n");
+    // exit(0);
 
     // Mark factors to be marginalized out
     for (auto factor_id : state.factor_ids) {
