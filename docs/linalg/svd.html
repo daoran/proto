@@ -8,11 +8,9 @@
 <ol>
   <li>Compute eigenvalues and eigenvectors of $\Mat{A}^{\transpose} \Mat{A}$
     <equation>
-    
       \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{1} &= \lambda_{1} \Vec{v}_{1} \\
       &\vdots \\
-      \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{1} &= \lambda_{1} \Vec{v}_{1} \\
-    
+      \Mat{A}^{\transpose} \Mat{A} \Vec{v}_{n} &= \lambda_{n} \Vec{v}_{n} \\
     </equation>
   </li>
 
@@ -32,9 +30,11 @@
     <equation>
     \Mat{\Sigma} =
     \begin{bmatrix}
-      \vert &  & \vert \\
-      \Vec{v}_{1} & \dots  & \Vec{v}_{n} \\
-      \vert &  & \vert \\
+      \sqrt{\lambda_1} & 0 & 0 & 0 & 0 \\
+      0 & \sqrt{\lambda_2} & 0 & 0 & 0 \\
+      0 & 0 & \ddots & 0 & 0 \\
+      0 & 0 & 0 & \ddots & 0 \\
+      0 & 0 & 0 & 0 & \sqrt{\lambda_{n}}
     \end{bmatrix}
     </equation>
   </li>
@@ -52,53 +52,3 @@
     </equation>
   </li>
 </ol>
-
-
-<h2>Pseudo Inverse with SVD</h2>
-
-<p>
-<equation>
-  \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}
-</equation>
-
-<equation>
-
-\Mat{A}^{\dagger} 
-  &= (\Mat{A}^{\transpose} \Mat{A})^{-1} \Mat{A}^{\transpose} \\
-  &= ((\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose}
-      (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}))^{-1}
-     (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
-  &= ((\Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose}
-       \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{-1}
-     (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
-  &= (\Mat{V} \Mat{\Sigma}^{2} \Mat{V}^{\transpose})^{-1}
-      \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
-  &= (\Mat{V}^{\transpose})^{-1} \Mat{\Sigma}^{-2} \Mat{V}^{-1}
-      \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
-  &= \Mat{V} \Mat{\Sigma}^{-2} \Mat{\Sigma} \Mat{U}^{\transpose} \\
-  &= \Mat{V} \Mat{\Sigma}^{-1} \Mat{U}^{\transpose} \\
-
-</equation>
-where $\Mat{\Sigma}^{-1}$ is the pseudo inverse of $\Mat{\Sigma}$, which
-is formed by replacing everey non-zero diagonal entry by its reciprocal and
-transposing the resulting matrix.</p>
-
-
-<h2>Linear Least Squares with SVD</h2>
-
-<equation>
-
-  \Mat{A} \Vec{x} &= \Vec{b} \\
-  \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose} \Vec{x} &= \Vec{b} \\
-  \Mat{\Sigma} \Mat{V}^{\transpose} \Vec{x} &= \Mat{U}^{\transpose} \Vec{b} \\
-
-</equation>
-Let $\Vec{y} = \Vec{V}^{\transpose} \Vec{x}$ and subbing into the above gives,
-<equation>
-  \Vec{y} = \Mat{U}^{\transpose} \Vec{b} \Mat{\Sigma}^{-1}.
-</equation>
-Solve for $\Vec{y}$ via forward substition and backward substitution to find
-$\Vec{x}$,
-<equation>
-  \Vec{x} = \Mat{V} \Vec{y}
-</equation>

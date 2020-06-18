@@ -1,0 +1,118 @@
+<h1>Inverting a Matrix</h1>
+
+<p>Inverting a matrix in linear algebra is often avoidable and recommended.</p>
+<ul>
+  <li>Inverting a Matrix with Cholesky Decomposition</li>
+  <li>Pseudo Inverse of a Matrix with SVD</li>
+</ul>
+
+
+<hr><!------------------------------------------------------------------------!>
+
+
+<h2>Inverting a Matrix with Cholesky Decomposition</h2>
+
+<p>Let matrix $\Mat{A}$ be invertible, using the identity:
+<equation>
+  \Mat{A} \Mat{A}^{-1} = \I
+</equation>
+we can solve for the inverse of $\Mat{A}$ by using Cholesky decomposition, but
+first lets rewrite the above by first decomposing $\Mat{A} = \Mat{L}
+\Mat{L}^{\transpose}$ and rearrange the terms such that we can take advantage
+of back substition,
+<equation>
+  (\Mat{L} \Mat{L}^{\transpose}) \Mat{A}^{-1} &= \I \\
+  (\Mat{L}^{\transpose}) \Mat{L} \Mat{A}^{-1} &= \I \\
+  \Mat{L} \Mat{A}^{-1} &= (\Mat{L}^{\transpose})^{-1}  \\
+</equation>
+</p>
+
+
+<hr><!------------------------------------------------------------------------!>
+
+
+<h2>Pseudo Inverse of a Matrix with SVD</h2>
+
+<p>
+<equation>
+  \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}
+</equation>
+
+<equation>
+
+\Mat{A}^{\dagger} 
+  &= (\Mat{A}^{\transpose} \Mat{A})^{-1} \Mat{A}^{\transpose} \\
+  &= ((\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose}
+      (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}))^{-1}
+     (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
+  &= ((\Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose}
+       \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{-1}
+     (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
+  &= (\Mat{V} \Mat{\Sigma}^{2} \Mat{V}^{\transpose})^{-1}
+      \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= (\Mat{V}^{\transpose})^{-1} \Mat{\Sigma}^{-2} \Mat{V}^{-1}
+      \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= \Mat{V} \Mat{\Sigma}^{-2} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+  &= \Mat{V} \Mat{\Sigma}^{-1} \Mat{U}^{\transpose} \\
+
+</equation>
+where $\Mat{\Sigma}^{-1}$ is the pseudo inverse of $\Mat{\Sigma}$, which
+is formed by replacing everey non-zero diagonal entry by its reciprocal and
+transposing the resulting matrix.</p>
+
+
+<hr><!------------------------------------------------------------------------!>
+
+
+<h2>Invert Lower Triangular Matrix</h2>
+
+<p>If we have a lower triangular matrix $\Mat{L}$ and our objective is to find
+$\Mat{L}^{-1}$, we can use the property
+<equation>
+  \Mat{L}\Mat{L}^{-1} = \I,
+</equation>
+and use forward-substitution to solve for $\Mat{L}^{-1}$ column by column,
+staring from the first column $j$.
+<equation>
+\begin{bmatrix}
+  l_{11} & 0 & \dots & 0 \\
+  l_{21} & l_{22} & \dots & 0 \\
+  \vdots & \vdots & \ddots & \vdots \\
+  l_{m1} & l_{m2} & \dots & l_{mn}
+\end{bmatrix}
+\begin{bmatrix}
+  a_{1j} \\
+  a_{2j} \\
+  \vdots \\
+  a_{mj}
+\end{bmatrix}
+=
+\begin{bmatrix}
+  1 \\
+  0 \\
+  \vdots \\
+  0
+\end{bmatrix}
+</equation>
+
+<equation>
+  & l_{11} a_{1j} = 1 \\
+  & l_{21} a_{1j} + l_{22} a_{2j} = 0 \\
+  & \qquad\qquad\qquad\vdots \\
+  & l_{m1} a_{1j} + l_{m2} a_{2j} + \dots + l_{mn} a_{mj} = 0
+</equation>
+
+<equation>
+  & a_{1j} = 1 / l_{11} \\
+  & a_{2j} = - l_{21} a_{1j} / l_{22} \\
+  & \qquad\qquad\qquad\vdots \\
+  & a_{mj} = (-l_{m1} a_{1j} - l_{m2} a_{2j} 
+              - \dots - l_{m,j-1} a_{m-1,j}) / l_{mn}
+</equation>
+
+<equation>
+  a_{ij} = \dfrac{I_{ij} - \sum_{j=i+1}^{1} l_{ij} a_{i}}{l_{ii}}
+  \quad
+  \text{where} \; i = n, n - 1, \cdots, 1
+</equation>
+</p>
