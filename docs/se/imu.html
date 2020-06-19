@@ -3,7 +3,6 @@
 <h2>IMU Motion Model</h2>
 
 <equation>
-
   % Position
   \dot\pos_{WS} &= \vel_{WS} \\
   % Orientation
@@ -19,7 +18,6 @@
   \dot{\gyrBias} &= \noise_{\gyrBias} \\
   % Accel Bias
   \dot{\accBias} &= -\dfrac{1}{\tau} \accBias + \noise_{\gyrBias}
-
 </equation>
 
 <p>The matrix $\mathbf{\Omega}$ is formed from the estimated angular rate
