@@ -1,93 +1,11 @@
 <h1>Non-linear Least Squares</h1>
 
-<p>A non-linear least squares is an optimization problem that minimizes the sum
-of squares of the residual functions, and has the form
-<equation>
-  \cost = \text{argmin}_{\Vec{x}} \enspace
-    \dfrac{1}{2} \enspace
-    \Vec{e}(\Vec{x})^{\transpose}
-    \Mat{W} \,
-    \Vec{e}(\Vec{x})
-</equation>
-where the error function, $\Vec{e}(\cdot)$, depends on the optimization
-parameter, $\Vec{x} \in \real^{n}$. The error function, $\Vec{e}(\cdot)$, has a
-form of
-<equation>
-  \Vec{e}_{i} =
-    \Vec{z} - \Vec{h}(\Vec{x})
-</equation>
-is defined as the difference between the measured value, $\Vec{z}$, and the
-estimated value calculated using the measurement function, $\Vec{h}(\cdot)$.
-</p>
-
-<p>A local minima for the problem is found when the gradient of the cost,
-$\cost$, is zero
-<equation>
-  \dfrac{\partial{\cost}}{\partial{\Vec{x}}}
-  &=
-    \dfrac{\partial{\cost}}{\partial{\Vec{e}}}
-    \dfrac{\partial{\Vec{e}}}{\partial{\Vec{x}}} \\
-  &=
-    \Vec{e}(\Vec{x})^{\transpose}
-    \Mat{W}
-    \dfrac{\partial{\Vec{e}}}{\partial{\Vec{x}}} \\
-  &=
-    \Vec{e}(\Vec{x})^{\transpose}
-    \Mat{W}
-    \Vec{E}(\Vec{x})
-</equation>
-linearizing $\Vec{e}(\Vec{x})$ with the first-order Taylor series,
-$\Vec{e}(\Vec{x}) \approx \Vec{e}(\bar{\Vec{x}}) + \Vec{E}(\bar{\Vec{x}})
-\Delta\Vec{x}$, gives,
-<equation>
-  \dfrac{\partial{\cost}}{\partial{\Vec{x}}}
-  &=
-    (\Vec{e}(\bar{\Vec{x}}) + \Vec{E}(\bar{\Vec{x}})\Delta\Vec{x})^{\transpose}
-    \Mat{W} \Vec{E}(\Vec{x})
-  = 0 \\
-  &\Vec{e}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{E}(\bar{\Vec{x}})
-    + \Delta\Vec{x}^{\transpose} \Vec{E}(\bar{\Vec{x}})^{\transpose}
-      \Mat{W}
-      \Vec{E}(\bar{\Vec{x}})
-    = 0 \\
-  &\Vec{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \, \Vec{e}(\bar{\Vec{x}})
-    + \Vec{E}(\bar{\Vec{x}})^{\transpose}
-      \Mat{W}
-      \Vec{E}(\bar{\Vec{x}})
-      \Delta\Vec{x}
-    = 0 \\
-  &\underbrace{
-      \Vec{E}(\bar{\Vec{x}})^{\transpose}
-      \Mat{W}
-      \Vec{E}(\bar{\Vec{x}})
-  }_{\Mat{A}}
-  \underbrace{
-    \vphantom{
-      \Vec{E}(\bar{\Vec{x}})^{\transpose}
-      \Mat{W}
-      \Vec{E}(\bar{\Vec{x}})
-    }
-    \Delta\Vec{x}
-  }_{\Vec{x}}
-  =
-  \underbrace{
-    - \Vec{E}(\bar{\Vec{x}})^{\transpose}
-    \Mat{W} \,
-    \Vec{e}(\bar{\Vec{x}})
-  }_{\Vec{b}}
-</equation>
-solve the normal equations for $\Delta\Vec{x}$ and update $\Vec{x}$ using,
-<equation>
-  \Vec{x}^{k+1} = \Vec{x}^{k} + \Delta{\Vec{x}}
-</equation>
-</p>
-
 
 <hr><!------------------------------------------------------------------------!>
 
-
 <h2>Gauss Newton</h2>
 
+<p>
 <equation>
   \min_{\Vec{x}} \cost(\Vec{x})
     &=
@@ -100,8 +18,16 @@ solve the normal equations for $\Delta\Vec{x}$ and update $\Vec{x}$ using,
       \Mat{W}
       \Vec{e}_{i}(\Vec{x})
 </equation>
-
-<p>Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
+where the error function, $\Vec{e}(\cdot)$, depends on the optimization
+parameter, $\Vec{x} \in \real^{n}$. The error function, $\Vec{e}(\cdot)$, has a
+form of
+<equation>
+  \Vec{e}_{i} =
+    \Vec{z} - \Vec{h}(\Vec{x})
+</equation>
+is defined as the difference between the measured value, $\Vec{z}$, and the
+estimated value calculated using the measurement function, $\Vec{h}(\cdot)$.
+Since the error function, $\Vec{e}(\Vec{x})$, is non-linear, it is
 approximated with the first-order Taylor series,
 <equation>
   \Vec{e}(\Vec{x})

@@ -1,9 +1,30 @@
 <h1>Rank</h1>
 
 <p>The rank $\rho(\Mat{A})$ of a matrix $\Mat{A}$ of $n$ rows and $m$ columns
-is defined as <b>the number of independent rows or columns</b>.
+is defined as <b>the number of independent rows or columns</b>. Rank is thus a
+measure of the "non-degenerateness" of the system of lienar equations and
+linear transformation encoded by $\Mat{A}$.
 <ul>
   <li>Full rank (non-singular): $\rho(\Mat{A}) = \min(n, m)$</li>
   <li>Not full rank (singular): $\rho(\Mat{A}) < \min(n, m)$</li>
 </ul>
+</p>
+
+
+<h2>Properties</h2>
+
+<p>Let $\Mat{A}$ be an $m \times n$ matrix, and $\Mat{B}$ be an $n \times k$
+matrix,
+<equation>
+  \Rank{\Mat{A}} &\leq \Min{m}{n} \\
+  \Rank{\Mat{AB}} &\leq \Min{\Rank{\Mat{A}}}{\Rank{\Mat{B}}} \\
+  \Rank{\Mat{AB}} + \Rank{\Mat{BC}}
+    &\leq \Rank{\Mat{B}} + \Rank{\Mat{ABC}} \\
+  \Rank{\Mat{A} + \Mat{B}} &\leq \Rank{\Mat{A}} + \Rank{\Mat{B}} \\
+  \Rank{\Mat{A}^{\transpose} \Mat{A}}
+    &= \Rank{\Mat{A} \Mat{A}^{\transpose}}
+    = \Rank{\Mat{A}}
+    = \Rank{\Mat{A}^{\transpose}} \\
+  \Rank{\Mat{0}} &= 0
+</equation>
 </p>

@@ -2,16 +2,16 @@
 
 <h2>Special Orthogonal Group $\SO{3}$ </h2>
 
-<p>Special Orthogonal Group $\SO{3}$ describes the group of 3D rotation matrices and
-it is formally defined as $\SO{3} \dot{=} \{ \rot \in \real^{3 \times 3} :
-\rot^{\transpose} \rot = \I, \Det{\rot} = 1 \}$ .  The group operation is the
-usual matrix multiplication, and the inverse is the matrix transpose. The group
-$\SO{3}$ also forms a smooth manifold. The tangent space to the manifold (at the
-identity) is denoted $\so{3}$, which is also called the <i>Lie
-algebra</i> and coincides with the space of $3 \times 3$ skew symmetric
+<p>Special Orthogonal Group $\SO{3}$ describes the group of 3D rotation
+matrices and it is formally defined as $\SO{3} \dot{=} \{ \rot \in \real^{3
+\times 3} : \rot^{\transpose} \rot = \I, \Det{\rot} = 1 \}$ .  The group
+operation is the usual matrix multiplication, and the inverse is the matrix
+transpose. The group $\SO{3}$ also forms a smooth manifold. The tangent space
+to the manifold (at the identity) is denoted $\so{3}$, which is also called the
+<i>Lie algebra</i> and coincides with the space of $3 \times 3$ skew symmetric
 matrices.
 <equation>
-  \angvel \in \real^{3}, 
+  \angvel \in \real^{3},
   \enspace
   \Skew{\angvel} = \begin{bmatrix}
     0 & -\omega_{3} & \omega_{2} \\
@@ -33,12 +33,16 @@ matrices.
 <b>Exponential Map</b>
 
 <p>The <i>exponential map</i> (at the identity) $\text{exp}: \mathfrak{so}(3)
-\rightarrow \SO{3}$ associates an element of the Lie Algebra to a rotation: 
+\rightarrow \SO{3}$ associates an element of the Lie Algebra to a rotation:
 <equation>
-\text{exp}(\Skew{\boldsymbol{\phi}}) = 
-  \I 
-  + \dfrac{\sin(|| \boldsymbol{\phi} ||)}{|| \boldsymbol{\phi} ||} \Skew{\boldsymbol{\phi}}
-  + \dfrac{1 - \cos(|| \boldsymbol{\phi} ||)}{|| \boldsymbol{\phi} ||^{2}} \Skew{\boldsymbol{\phi}}^{2}
+\text{exp}(\Skew{\boldsymbol{\phi}}) =
+  \I
+  + \dfrac{\sin(|| \boldsymbol{\phi} ||)}
+          {|| \boldsymbol{\phi} ||}
+      \Skew{\boldsymbol{\phi}}
+  + \dfrac{1 - \cos(|| \boldsymbol{\phi} ||)}
+          {|| \boldsymbol{\phi} ||^{2}}
+      \Skew{\boldsymbol{\phi}}^{2}
 </equation>
 </p>
 
@@ -58,7 +62,7 @@ $\rot \in \SO{3}$ to a skew symmetric matrix:
 <h3>Properties</h3>
 
 <equation>
-  & \rot \text{Exp}(\boldsymbol{\phi}) \rot^{\transpose} \\
+  \rot \text{Exp}(\boldsymbol{\phi}) \rot^{\transpose} \\
   &= \text{Exp}(\rot \Skew{\boldsymbol{\phi}} \rot^{\transpose}) \\
   &= \text{Exp}(\rot \boldsymbol{\phi}) \\
   &= \text{Exp}(\boldsymbol{\phi}) \rot \\
@@ -67,7 +71,7 @@ $\rot \in \SO{3}$ to a skew symmetric matrix:
 
 <equation>
 \text{Exp}(\boldsymbol{\phi} + \delta\boldsymbol{\phi}) \approx
-  \text{Exp}(\boldsymbol{\phi}) 
+  \text{Exp}(\boldsymbol{\phi})
   \text{Exp}(\jac_{r}(\boldsymbol{\phi}) \delta\boldsymbol{\phi})
 </equation>
 
@@ -77,13 +81,13 @@ $\rot \in \SO{3}$ to a skew symmetric matrix:
   \text{Exp}(\delta\boldsymbol{\phi})
 )
 \approx
-\boldsymbol{\phi} + \jac_{r}^{-1}(\boldsymbol{\phi}) 
+\boldsymbol{\phi} + \jac_{r}^{-1}(\boldsymbol{\phi})
   \delta\boldsymbol{\phi}
 </equation>
 
 <equation>
-\jac_{r}(\boldsymbol{\phi}) = 
-  \I 
+\jac_{r}(\boldsymbol{\phi}) =
+  \I
   - \dfrac{1 - \cos(||\boldsymbol{\phi}||)}{||\boldsymbol{\phi}||^{2}}
   + \dfrac{||\boldsymbol{\phi} - \sin(||\boldsymbol{\phi}||)}
     {||\boldsymbol{\phi^{3}}||}
@@ -91,8 +95,8 @@ $\rot \in \SO{3}$ to a skew symmetric matrix:
 </equation>
 
 <equation>
-\jac_{r}^{-1}(\boldsymbol{\phi}) = 
-  \I 
+\jac_{r}^{-1}(\boldsymbol{\phi}) =
+  \I
   - \dfrac{1}{2} \Skew{\boldsymbol{\phi}}
   + \left(
     \dfrac{1}{||\boldsymbol{\phi}||^{2}}
