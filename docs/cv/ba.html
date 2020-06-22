@@ -116,10 +116,17 @@ Useful skew properties:
 </equation>
 
 <equation>
+\dfrac{\partial\hat{\Vec{z}}}{\partial\Vec{x}'}
+  \dfrac{\partial\Vec{x}'}{\partial\Vec{x}}
+  \dfrac{\partial\Vec{x}}{\partial\Pt{C}{P}}
+  \dfrac{\partial{\Pt{C}{P}}}{\partial{\Tf{W}{C}}}
+</equation>
+
+<equation>
   \dfrac{\partial{\Pt{C}{P}}}{\partial{\Tf{W}{C}}}
     &= \begin{bmatrix}
       \dfrac{\partial{\Pt{C}{P}}}{\partial{\quat_{WC}}}
-			\qquad
+			\enspace
       \dfrac{\partial{\Pt{C}{P}}}{\partial{\Trans{W}{C}}}
 		\end{bmatrix}
 </equation>
@@ -128,24 +135,19 @@ Useful skew properties:
   \dfrac{\partial{\Pt{C}{P}}}{\partial{\quat_{WC}^{-1}}}
     &= -\Skew{\Rot{W}{C}^{-1} \left( \Pt{W}{P} - \Trans{W}{C} \right)} \\
   \dfrac{\partial{\quat_{WC}^{-1}}}{\partial{\quat_{WC}}}
-    &= -\Rot{W}{C}^{-1} \\ 
+    &= -\Rot{W}{C}^{-1} \\ \\
   \dfrac{\partial{\Pt{C}{P}}}{\partial{\quat_{WC}^{-1}}}
   \dfrac{\partial{\quat_{WC}^{-1}}}{\partial{\quat_{WC}}}
     &= (-\Skew{\Rot{W}{C}^{-1} \left( \Pt{W}{P} - \Trans{W}{C} \right)})
        (-\Rot{W}{C}^{-1}) \\ 
+    & \text{using skew property:} \enspace \Skew{\rot \enspace \Vec{v}}
+      = \rot \Skew{\Vec{v}} \rot^{\transpose} \\
     &= (-\Rot{W}{C}^{-1} \Skew{\left( \Pt{W}{P} - \Trans{W}{C} \right)}
-      \enspace \Rot{W}{C})(-\Rot{W}{C}^{-1}) & \text{using skew property}\\ 
+      \enspace \Rot{W}{C})(-\Rot{W}{C}^{-1}) \\
     &= \Rot{W}{C}^{-1} \Skew{\left( \Pt{W}{P} - \Trans{W}{C} \right)} \\
     \\ \\
   \dfrac{\partial{\Pt{C}{P}}}{\partial{\Trans{W}{C}}}
     &= -\Rot{W}{C}^{-1}
-</equation>
-
-<equation>
-\dfrac{\partial\hat{\Vec{z}}}{\partial\Vec{x}'}
-  \dfrac{\partial\Vec{x}'}{\partial\Vec{x}}
-  \dfrac{\partial\Vec{x}}{\partial\Pt{C}{P}}
-  \dfrac{\partial{\Pt{C}{P}}}{\partial{\Tf{W}{C}}}
 </equation>
 
 
@@ -157,13 +159,12 @@ Useful skew properties:
 </equation>
 
 <equation>
-  \dfrac{\partial\Pt{C}{P}}{\partial\Pt{W}{P}} &= \Rot{W}{C}^{-1} 
-</equation>
-
-<equation>
 \dfrac{\partial\hat{\Vec{z}}}{\partial\Vec{x}'}
   \dfrac{\partial\Vec{x}'}{\partial\Vec{x}}
   \dfrac{\partial\Vec{x}}{\partial\Pt{C}{P}}
   \dfrac{\partial{\Pt{C}{P}}}{\partial{\Pt{W}{P}}}
 </equation>
 
+<equation>
+  \dfrac{\partial\Pt{C}{P}}{\partial\Pt{W}{P}} &= \Rot{W}{C}^{-1} 
+</equation>
