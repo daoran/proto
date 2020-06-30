@@ -99,38 +99,37 @@ where
 .. math::
 
   \begin{align}
-    % A Matrices
     \Mat{A}_{\text{LON}} &= \begin{bmatrix}
         0 & 1 & 0 \\ 
         0 & -c_{x} & g \\ 
         0 & 0 & -b_{\theta}
+    \end{bmatrix}
+    ,& 
+    &\quad
+    &\Mat{B}_{\text{LON}} &= \begin{bmatrix}
+        0 \\ 
+        0 \\
+        b_{\theta^{r}}
     \end{bmatrix} \\
     \Mat{A}_{\text{LAT}} &= \begin{bmatrix}
         0 & 1 & 0 \\ 
         0 & -c_{x} & -g \\ 
         0 & 0 & -b_{\phi}
+    \end{bmatrix}
+    ,& 
+    &\quad
+    &\Mat{B}_{\text{LAT}} &= \begin{bmatrix}
+        0 \\ 
+        0 \\
+        b_{\phi^{r}}
     \end{bmatrix} \\
     \Mat{A}_{\text{ALT}} &= \begin{bmatrix}
         0 & 1 \\
         0 & -c_{z}
     \end{bmatrix}
-  \end{align}
-
-.. math::
-
-  \begin{align}
-    % B Matrices
-    \Mat{B}_{\text{LON}} &= \begin{bmatrix}
-        0 \\ 
-        0 \\
-        b_{\theta^{r}}
-    \end{bmatrix} \\
-    \Mat{B}_{\text{LAT}} &= \begin{bmatrix}
-        0 \\ 
-        0 \\
-        b_{\phi^{r}}
-    \end{bmatrix} \\
-    \Mat{B}_{\text{ALT}} &= \begin{bmatrix}
+    ,& 
+    &\quad
+    &\Mat{B}_{\text{ALT}} &= \begin{bmatrix}
         0 \\ 
         1
     \end{bmatrix}

@@ -55,6 +55,7 @@ mathjax_config = {
             'Vec': [r'\mathbf{#1}', 1],
             'Mat': [r'\mathbf{#1}', 1],
             'real': r'\rm I\!R',
+            'Real': [r'{\real^{#1}}', 1],
             'ones': r'{\Vec{1}}',
             'Ones': [r'{\Vec{1}_{#1\times#2}}', 2],
             'zeros': '{\Vec{0}}',
@@ -76,8 +77,8 @@ mathjax_config = {
             'Bigslant': [r'{\left#1/#2\right}', 2],
             'cost': 'J',
             'error': r'{\Vec{e}}',
-            'SO': [r'\text{SO}(#1)', 1, r''],
-            'so': [r'\mathfrak{so}(#1)', 1, r''],
+            'SO': [r'\text{SO}(#1)', 1],
+            'so': [r'\mathfrak{so}(#1)', 1],
             'jac': r'\text{J}',
             # Probability
             'RV': [r'\mathbf{#1}', 1, r''],
@@ -166,7 +167,7 @@ html_theme_options = {
     'github_banner': True,
     'github_type': 'star',
     'github_button': False,
-    'page_width': '850px',
+    'page_width': '900px',
     'sidebar_width': '250px',
     'sidebar_collapse': True
 }

@@ -12,12 +12,15 @@ through the center undergoes no refraction, and light passing through the edges
 of the lens, undergoes through severe bending causing the radial distortion.
 
 .. image:: imgs/radial_distortion.png
+  :align: center
+
 
 Tangential distortion, on the other hand, is mainly due to camera sensor
 mis-alignment during the manufacturing process. It occurs when the camera
 sensor is not in parallel with the lens.
 
 .. image:: imgs/tangential_distortion.png
+  :align: center
 
 The combined radial-tangential distortion is modelled using a polynomial
 approximation with parameters :math:`k_{1}, k_{2}` and :math:`p_{1}, p_{2}`

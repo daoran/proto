@@ -1,10 +1,13 @@
-<h2>Bayes Theorem</h2>
+Bayes Theorem
+=============
 
-<equation>
+.. math::
+
   p(\RV{x}, \RV{y}) = p(\RV{x}|\RV{y}) p(\RV{y}) = p(\RV{x}|\RV{y}) p(\RV{y})
-</equation>
 
-<equation>
+
+.. math::
+
   \underbrace{p(\RV{x}|\RV{y})}_{\text{Posterior}} =
     \dfrac{
       \overbrace{p(\RV{x}|\RV{y})}^{\text{Likelihood}}
@@ -13,4 +16,3 @@
     }{
       \underbrace{p(\RV{y})}_{\text{Evidence}}
     }
-</equation>
