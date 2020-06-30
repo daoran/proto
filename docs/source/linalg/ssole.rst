@@ -132,8 +132,8 @@ or more generally,
 
 
 
-Solving :math:`\Mat{A} \Vec{x} = \Vec{b}` with SVD
---------------------------------------------------
+Solve Least Squares with SVD
+----------------------------
 
 To solve :math:`\Mat{A} \Vec{x} = \Vec{b}` with non-singular :math:`\Mat{A} \in
 \real^{n \times n}`, lets factor :math:`\Mat{A}` using SVD and rearrange the
@@ -162,8 +162,8 @@ using back-substitution.
 
 
 
-Solving :math:`\Mat{A} \Vec{x} = \Vec{b}` with QR
--------------------------------------------------
+Solve Least Squares with QR
+---------------------------
 
 To solve :math:`\Mat{A} \Vec{x} = \Vec{b}` with non-singular :math:`\Mat{A} \in
 \real^{n \times n}`, lets factor :math:`\Mat{A}` using QR decomposition and
@@ -183,9 +183,8 @@ back-substitution.
 
 
 
-
-Solving :math:`\Mat{A} \Vec{x} = \Vec{b}` with Cholesky Decomposition
----------------------------------------------------------------------
+Solve Least Squares with Cholesky Decomposition
+-----------------------------------------------
 
 To solve :math:`\Mat{A} \Vec{x} = \Vec{b}` with non-singular :math:`\Mat{A} \in
 \real^{n \times n}`, lets factor :math:`\Mat{A}` using Cholesky decomposition

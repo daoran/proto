@@ -1,5 +1,5 @@
-SVD
-===
+SVD Decomposition
+=================
 
 .. math::
   \Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\ast}

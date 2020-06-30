@@ -1,5 +1,5 @@
-QR
-==
+QR Decomposition
+================
 
 QR decomposition or QR factorization is a decomposition of a matrix
 :math:`\Mat{A}` into a product,

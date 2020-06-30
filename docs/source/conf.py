@@ -161,7 +161,12 @@ html_theme = 'alabaster'
 # documentation.
 #
 html_theme_options = {
-    'font_size': '0.95em'
+    'github_user': 'chutsu',
+    'github_repo': 'proto',
+    'github_banner': True,
+    'github_type': 'star',
+    'page_width': '850px',
+    'sidebar_width': '250px'
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

@@ -1,0 +1,40 @@
+li.toctree-l1 {
+  font-size: 0.8em;
+}
+
+div.sphinxsidebar p {
+  font-size: 0.85em;
+}
+
+div.sphinxsidebar .caption {
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+div.body p {
+  font-size: 0.85em;
+}
+
+div.body h1 {
+  font-size: 1.5em;
+}
+
+div.body h2 {
+  font-size: 1.3em;
+}
+
+div.body h3 {
+  font-size: 1.1em;
+}
+
+div.body span.math {
+  font-size: 1.0em;
+}
+
+div.body li {
+  font-size: 0.85em;
+}
+
+.MathJax_Display {
+  font-size: 0.8em;
+}

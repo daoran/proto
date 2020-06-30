@@ -1,5 +1,5 @@
-LU
-==
+LU Decomposition
+================
 
 Lower–Upper (LU) decomposition or factorization factors a matrix as the
 product of a lower triangular matrix and an upper triangular matrix. The
