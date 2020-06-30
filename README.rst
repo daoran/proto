@@ -1,14 +1,16 @@
-# proto
+proto
+=====
 
-<a href="https://github.com/chutsu/proto/actions">
-  <img class="badge" src="https://github.com/chutsu/proto/workflows/C/C++%20CI/badge.svg">
-</a>
+.. <a href="https://github.com/chutsu/proto/actions">
+..   <img class="badge" src="https://github.com/chutsu/proto/workflows/C/C++%20CI/badge.svg">
+.. </a>
 
 `proto` contain notes and code used to learn about different aspects of
 robotics. From estimation, mapping to control and planning.
 
 
-## Build
+Build
+-----
 
 For convenience there is a `Makefile` that automates the installation of
 dependencies and building of `proto`, the make targets are as follows.
@@ -40,6 +42,7 @@ at the root of the repo.
     make
     sudo make install  # By default will install to /usr/local
 
-## License
+License
+-------
 
 The source code is released under MIT license.

@@ -1,7 +1,5 @@
-Welcome to proto's documentation!
-=================================
-
 .. toctree::
+   :hidden:
    :maxdepth: 1
    :numbered:
    :caption: Computer Vision
@@ -17,6 +15,7 @@ Welcome to proto's documentation!
    cv/ba
 
 .. toctree::
+   :hidden:
    :maxdepth: 1
    :numbered:
    :caption: Linear Algebra
@@ -34,11 +33,4 @@ Welcome to proto's documentation!
    linalg/lls
    linalg/nlls
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. include:: ../../README.rst
