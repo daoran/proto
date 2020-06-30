@@ -33,4 +33,12 @@
    linalg/lls
    linalg/nlls
 
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :numbered:
+   :caption: MAV
+
+   mav/mpc
+
 .. include:: ../../README.rst

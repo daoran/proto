@@ -30,14 +30,14 @@ the roll and pitch are:
 .. math::
 
   \begin{align}
-  	\ddot{\theta} &=
-  			-b_{\ddot{\theta}\theta} \theta
-  			-b_{\ddot{\theta}\dot{\theta}} \dot{\theta}
-  			+b_{\theta^{r}} \theta^{r} \\
-  	\ddot{\phi} &=
-  			-b_{\ddot{\phi}\phi} \phi
-  			-b_{\ddot{\phi}\dot{\phi}} \dot{\phi}
-  			+b_{\phi^{r}} \phi^{r}
+    \ddot{\theta} &=
+      -b_{\ddot{\theta}\theta} \theta
+      -b_{\ddot{\theta}\dot{\theta}} \dot{\theta}
+      +b_{\theta^{r}} \theta^{r} \\
+    \ddot{\phi} &=
+      -b_{\ddot{\phi}\phi} \phi
+      -b_{\ddot{\phi}\dot{\phi}} \dot{\phi}
+      +b_{\phi^{r}} \phi^{r}
   \end{align}
 
 where :math:`b_{(\cdot)}` are constants of the first order system. The values
@@ -50,22 +50,24 @@ The state vector :math:`\state` is,
 
 .. math::
 
-	\state = \begin{bmatrix}
-		x \enspace \dot{x} \enspace \theta \enspace \dot{\theta}
-		\enspace \enspace y \enspace \dot{y} \enspace \phi \enspace \dot{\phi} \enspace
-		\enspace \enspace z \enspace \dot{z}
-	\end{bmatrix} \in \real^{10}
+  \state = \begin{bmatrix}
+    x \enspace \dot{x} \enspace \theta \enspace \dot{\theta}
+    \enspace \enspace
+    y \enspace \dot{y} \enspace \phi \enspace \dot{\phi} \enspace
+    \enspace \enspace
+    z \enspace \dot{z}
+  \end{bmatrix} \in \real^{10}
 
 The input vector :math:`\u` to the linear model contains reference roll :math:`\theta^{r}`,
 pitch :math:`\phi^{r}` and thrust `T^{r}`, or written as
 
 .. math::
 
-    \u = \begin{bmatrix}
-        \theta^{r}
-        \enspace \phi^{r}
-        \enspace T^{r}
-    \end{bmatrix}
+  \u = \begin{bmatrix}
+    \theta^{r}
+    \enspace \phi^{r}
+    \enspace T^{r}
+  \end{bmatrix}
 
 Time-invariant state space representation:
 
@@ -96,44 +98,43 @@ where
 
 .. math::
 
+  \begin{align}
     % A Matrices
-    \Mat{A}_{\text{LON}} = \begin{bmatrix}
+    \Mat{A}_{\text{LON}} &= \begin{bmatrix}
         0 & 1 & 0 \\ 
         0 & -c_{x} & g \\ 
         0 & 0 & -b_{\theta}
-    \end{bmatrix}
-    \enspace
-    \Mat{A}_{\text{LAT}} = \begin{bmatrix}
+    \end{bmatrix} \\
+    \Mat{A}_{\text{LAT}} &= \begin{bmatrix}
         0 & 1 & 0 \\ 
         0 & -c_{x} & -g \\ 
         0 & 0 & -b_{\phi}
-    \end{bmatrix}
-    \enspace
-    \Mat{A}_{\text{ALT}} = \begin{bmatrix}
+    \end{bmatrix} \\
+    \Mat{A}_{\text{ALT}} &= \begin{bmatrix}
         0 & 1 \\
         0 & -c_{z}
     \end{bmatrix}
+  \end{align}
 
 .. math::
 
+  \begin{align}
     % B Matrices
-    \Mat{B}_{\text{LON}} = \begin{bmatrix}
+    \Mat{B}_{\text{LON}} &= \begin{bmatrix}
         0 \\ 
         0 \\
         b_{\theta^{r}}
-    \end{bmatrix}
-    \enspace
-    \Mat{B}_{\text{LAT}} = \begin{bmatrix}
+    \end{bmatrix} \\
+    \Mat{B}_{\text{LAT}} &= \begin{bmatrix}
         0 \\ 
         0 \\
         b_{\phi^{r}}
-    \end{bmatrix}
-    \enspace
-    \Mat{B}_{\text{ALT}} = \begin{bmatrix}
+    \end{bmatrix} \\
+    \Mat{B}_{\text{ALT}} &= \begin{bmatrix}
         0 \\ 
         1
     \end{bmatrix}
-
+  \end{align}
 
 .. math::
     % C Matrix
@@ -268,28 +269,28 @@ where
 
 .. math::
     % xbar
-    \bar{\state} = \begin{bmatrix}
+    &\bar{\state} = \begin{bmatrix}
         \state_{1} \\ 
         \state_{2} \\ 
         \vdots \\
         \state_{N}
     \end{bmatrix},
     % Phi
-    \mathbf{\Phi} = \begin{bmatrix}
+    &\mathbf{\Phi} = \begin{bmatrix}
         \Mat{A}_{d} \\
         \Mat{A}_{d}^{2} \\
         \vdots \\
         \Mat{A}_{d}^{N}
-    \end{bmatrix},
+    \end{bmatrix} \\
     % Gamma
-    \mathbf{\Gamma} = \begin{bmatrix}
+    &\mathbf{\Gamma} = \begin{bmatrix}
         \Mat{B}_{d} & \mathbf{0} & \dots & \mathbf{0} \\
         \Mat{A}_{d} \Mat{B}_{d} & \Mat{B}_{d} & \dots & \mathbf{0} \\
         \vdots & \vdots & \ddots & \vdots \\
         \Mat{A}_{d}^{N-1} \Mat{B}_{d} & \Mat{A}_{d}^{N-2} \Mat{B}_{d} & \dots & \Mat{B}_{d} \\
     \end{bmatrix},
     % ubar
-    \bar{\Vec{u}} = \begin{bmatrix}
+    &\bar{\Vec{u}} = \begin{bmatrix}
         \Vec{u}_{0} \\ 
         \Vec{u}_{1} \\ 
         \vdots \\
@@ -304,8 +305,9 @@ Rewriting :math:`\bar{\Vec{y}}` with the above,
         = \bar{\Mat{C}} \mathbf{\Phi} \hat{\state}
         + \bar{\Mat{C}} \mathbf{\Gamma} \bar{\Vec{u}},
 
-and substituting into the cost function `J`, collect the :math:`\bar{\Vec{u}}` terms
-and rearrange so that it is in the form of :math:`\Mat{A}\Vec{\state} - \Vec{b}`,
+and substituting into the cost function `J`, collect the :math:`\bar{\Vec{u}}`
+terms and rearrange so that it is in the form of :math:`\Mat{A}\Vec{\state} -
+\Vec{b}`,
 
 .. math::
 
@@ -333,7 +335,9 @@ and rearrange so that it is in the form of :math:`\Mat{A}\Vec{\state} - \Vec{b}`
             \end{matrix}\right) \bar{\Vec{u}}
         -
             \left(\begin{matrix}
-                \bar{\Mat{Q}} \bar{\Vec{s}}^{y} + \bar{\Mat{Q}} \bar{\Mat{C}} \mathbf{\Phi} \state_{0} \\
+                \bar{\Mat{Q}} \bar{\Vec{s}}^{y}
+                  + \bar{\Mat{Q}} \bar{\Mat{C}}
+                    \mathbf{\Phi} \state_{0} \\
                 \bar{\Mat{R}} \bar{\Vec{s}}^{u}
             \end{matrix}\right)
         }_{\Mat{A}\Vec{x} - \Vec{b}}
@@ -345,6 +349,7 @@ then expanding the equation out and ignoring the constant term (i.e.
 
 .. math::
 
+  \begin{align}
     J =
     \underbrace{
         \bar{\Vec{u}}^{\transpose}
@@ -356,7 +361,7 @@ then expanding the equation out and ignoring the constant term (i.e.
             \bar{\Mat{Q}} \bar{\Mat{C}} \mathbf{\Gamma} \\
             \bar{\Mat{R}}
         \end{matrix}\right)
-        \bar{\Vec{u}}
+        \bar{\Vec{u}} \\
         - 2
         \left(\begin{matrix}
             \bar{\Mat{Q}} \bar{\Vec{s}}^{y}
@@ -372,6 +377,7 @@ then expanding the equation out and ignoring the constant term (i.e.
         \Vec{x}^{\transpose} \Mat{A}^{\transpose}\Mat{A}\Vec{x}
         - 2 \Vec{b}^{\transpose} \Mat{A} \Vec{x}
     }
+  \end{align}
 
 With the cost function in quadratic form, the optimization problem is now
 transformed into the following equivalent QP with inequality constraints:
