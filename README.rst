@@ -15,32 +15,36 @@ Build
 For convenience there is a `Makefile` that automates the installation of
 dependencies and building of `proto`, the make targets are as follows.
 
-    deps:
-      Install proto dependencies.
+.. code-block:: none
 
-    debug:
-      Build proto in debug mode.
+  deps:
+    Install proto dependencies.
 
-    release:
-      Build proto in release mode.
+  debug:
+    Build proto in debug mode.
 
-    install:
-      Install proto to $PREFIX. By default this is "/usr/local".
+  release:
+    Build proto in release mode.
 
-    ros:
-      Build the ROS interface to `proto` (a.k.a `proto_ros`).
+  install:
+    Install proto to $PREFIX. By default this is "/usr/local".
 
-    format_code:
-      Format proto code using clang-format.
+  ros:
+    Build the ROS interface to `proto` (a.k.a `proto_ros`).
+
+  format_code:
+    Format proto code using clang-format.
 
 Or, the standard way to build a C++ project is to enter the following commands
 at the root of the repo.
 
-    mkdir -p build
-    cd build
-    cmake ..
-    make
-    sudo make install  # By default will install to /usr/local
+.. code-block:: none
+
+  mkdir -p build
+  cd build
+  cmake ..
+  make
+  sudo make install  # By default will install to /usr/local
 
 License
 -------
