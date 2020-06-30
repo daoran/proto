@@ -82,7 +82,7 @@ Derivation of the Essential Matrix
 
 
 Fundamental Matrix
-^^^^^^^^^^^^^^^^^^
+------------------
 
 .. math::
 

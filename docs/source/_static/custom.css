@@ -11,6 +11,10 @@ div.sphinxsidebar .caption {
   font-weight: bold;
 }
 
+div.sphinxsidebar li.toctree-l2 {
+  font-size: 1.1em;
+}
+
 div.body p {
   font-size: 0.85em;
 }

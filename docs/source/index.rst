@@ -1,6 +1,6 @@
 .. toctree::
    :hidden:
-   :maxdepth: 1
+   :maxdepth: 2
    :numbered:
    :caption: Computer Vision
 
@@ -16,7 +16,7 @@
 
 .. toctree::
    :hidden:
-   :maxdepth: 1
+   :maxdepth: 2
    :numbered:
    :caption: Linear Algebra
 

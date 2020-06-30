@@ -165,8 +165,10 @@ html_theme_options = {
     'github_repo': 'proto',
     'github_banner': True,
     'github_type': 'star',
+    'github_button': False,
     'page_width': '850px',
-    'sidebar_width': '250px'
+    'sidebar_width': '250px',
+    'sidebar_collapse': True
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
