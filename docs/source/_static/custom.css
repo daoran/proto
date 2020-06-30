@@ -11,6 +11,11 @@ div.sphinxsidebar .caption {
   font-weight: bold;
 }
 
+div.sphinxsidebar ul {
+  list-style-type: none;
+  list-style-position: inside;
+}
+
 div.sphinxsidebar li.toctree-l2 {
   font-size: 1.1em;
 }

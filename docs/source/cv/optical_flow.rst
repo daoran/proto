@@ -17,19 +17,25 @@ not change. Additionally, if there was a small displacement, :math:`dx` and
 written in mathematical form as,
 
 .. math::
+  :label: brightness_constancy
 
   I(x, y, t) = I(x + dx, y + dy, t + dt).
 
+
 This is known as the brightness constancy equation. To obtain the image
 gradient and velocity of the pixel, we can use Taylor series approximation of
-right-hand side of \eqref{eq:brightness_constancy} to get,
+right-hand side of :eq:`brightness_constancy` to get,
 
 .. math::
-  I(x + dx, y + dy, t + dt) = I(x, y, t)
-    + \dfrac{\partial{I}}{\partial{x}} dx
-    + \dfrac{\partial{I}}{\partial{y}} dy
-    + \dfrac{\partial{I}}{\partial{t}} dt
-    + \text{H.O.T},
+
+  \begin{align}
+    &I(x + dx, y + dy, t + dt) \\ 
+    &= I(x, y, t)
+        + \dfrac{\partial{I}}{\partial{x}} dx
+        + \dfrac{\partial{I}}{\partial{y}} dy
+        + \dfrac{\partial{I}}{\partial{t}} dt
+        + \dots
+  \end{align}
 
 removing common terms and dividing by :math:`dt` we get,
 
@@ -117,7 +123,6 @@ obtained by minimizing the following,
 the solution of which can be obtained by using *normal equations*,
 
 .. math::
-  :label: lk1
 
   \begin{align}
     \mathbf{A}^{T} \mathbf{A} \mathbf{x} &= \mathbf{A}^{T} \mathbf{b} \\

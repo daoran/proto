@@ -1,7 +1,6 @@
 .. toctree::
    :hidden:
    :maxdepth: 2
-   :numbered:
    :caption: Computer Vision
 
    cv/fundamental
@@ -17,7 +16,6 @@
 .. toctree::
    :hidden:
    :maxdepth: 2
-   :numbered:
    :caption: Linear Algebra
 
    linalg/rank
@@ -36,7 +34,6 @@
 .. toctree::
    :hidden:
    :maxdepth: 2
-   :numbered:
    :caption: MAV
 
    mav/mpc
