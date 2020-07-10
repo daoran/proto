@@ -1327,9 +1327,8 @@ long int rank(const matx_t &A);
 /**
  * Perform Schur's Complement
  */
-int schurs_complement(const matx_t &H, const vecx_t &b,
+int schurs_complement(matx_t &H, vecx_t &b,
                       const size_t m, const size_t r,
-                      matx_t &H_marg, vecx_t &b_marg,
                       const bool precond=false, const bool debug=false);
 
 

@@ -6,11 +6,11 @@ cam0:
   lens_vfov: 90.0
 
 solver:
-  verbose: true
+  verbose: false
   marg_type: "sibley"
   max_iter: 5
   time_limit: 10.0
   lambda: 1.0e-4
 
 swf:
-  window_limit: 30
+  window_limit: 10

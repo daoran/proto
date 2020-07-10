@@ -93,11 +93,67 @@ int test_pose_factor_jacobians() {
   pose_t pose{0, 0, T_WS};
 
   // Pose factor
-  std::vector<param_t *> params{&pose};
-  pose_factor_t factor(0, T_WS, I(6), params);
+  pose_factor_t factor(0, I(6), &pose);
 
   // Check factor jacobian
   int retval = check_jacobians(&factor, 0, "J_pose", step, threshold);
+  MU_CHECK(retval == 0);
+
+  return 0;
+}
+
+int test_extrinsic_factor_jacobians() {
+  // Form measurement pose
+  const vec3_t euler{randf(-0.5, 0.5), randf(-0.5, 0.5), randf(-0.5, 0.5)};
+  const mat3_t C_WS = euler321(euler);
+  const vec3_t r_WS{randf(-0.5, 0.5), randf(-0.5, 0.5), randf(-0.5, 0.5)};
+  const mat4_t T_WS = tf(C_WS, r_WS);
+
+  // Form estimation pose
+  pose_t pose{0, 0, T_WS};
+
+  // Pose factor
+  extrinsic_factor_t factor(0, I(6), &pose);
+
+  // Check factor jacobian
+  int retval = check_jacobians(&factor, 0, "J_pose", step, threshold);
+  MU_CHECK(retval == 0);
+
+  return 0;
+}
+
+int test_speed_bias_factor_jacobians() {
+  // Form estimation pose
+  size_t id = 0;
+  timestamp_t ts = 0;
+  vec3_t v{0.1, 0.2, 0.3};
+  vec3_t ba{0.1, 0.2, 0.3};
+  vec3_t bg{0.1, 0.2, 0.3};
+  sb_params_t sb{id, ts, v, ba, bg};
+
+  // Speed bias factor
+  speed_bias_factor_t factor(0, I(9), &sb);
+
+  // Check factor jacobian
+  int retval = check_jacobians(&factor, 0, "J_sb", step, threshold);
+  MU_CHECK(retval == 0);
+
+  return 0;
+}
+
+int test_camera_params_factor_jacobians() {
+  // Form estimation pose
+  size_t id = 0;
+  int resolution[2] = {640, 480};
+  vec4_t proj_params{640, 480, 320, 240};
+  vec4_t dist_params{0.01, 0.001, 0.001, 0.001};
+  camera_params_t cam_params{id, 0, resolution, proj_params, dist_params};
+
+  // Speed bias factor
+  camera_params_factor_t factor(0, I(8), &cam_params);
+
+  // Check factor jacobian
+  int retval = check_jacobians(&factor, 0, "J_cam_params", step, threshold);
   MU_CHECK(retval == 0);
 
   return 0;
@@ -596,7 +652,7 @@ int test_graph_add_pose_factor() {
   timestamp_t ts = 0;
   mat4_t T_WS = I(4);
   auto pose_id = graph_add_pose(graph, ts, T_WS);
-  auto factor_id = graph_add_pose_factor(graph, pose_id, T_WS);
+  auto factor_id = graph_add_pose_factor(graph, pose_id, I(6));
 
   MU_CHECK(graph.params.size() == 1);
   MU_CHECK(graph.params[0] != nullptr);
@@ -983,10 +1039,12 @@ int test_graph_eval() {
   for (const auto &feature : sim_data.features) {
     graph_add_landmark(graph, feature);
   }
+
   // -- Add cam0 parameters
   int cam_index = 0;
   const auto cam_id = graph_add_camera(graph, cam_index, resolution,
                                        proj_params, dist_params);
+  // graph_add_camera_params_factor(graph, cam_id, I(8));
 
   // -- Add cam0 poses and ba factors
   size_t pose_idx = 0;
@@ -1005,7 +1063,7 @@ int test_graph_eval() {
       pose_idx++;
 
       if (prior_set == false) {
-        graph_add_pose_factor(graph, cam0_pose_id, T_WC0);
+        graph_add_pose_factor(graph, cam0_pose_id, I(6));
         prior_set = true;
       }
 
@@ -1021,7 +1079,7 @@ int test_graph_eval() {
       }
 
       cam_pose++;
-      if (cam_pose == 2) {
+      if (cam_pose == 10) {
         break;
       }
     }
@@ -1033,9 +1091,24 @@ int test_graph_eval() {
   size_t marg_size;
   size_t remain_size;
   graph_eval(graph, H, g, &marg_size, &remain_size);
+
+  printf("rank(H): %ld\n", rank(H));
+  printf("rows(H): %ld\n", H.rows());
+
+  auto covar = H.llt().solve(I(H.rows()));
+  // auto covar = H.householderQr().solve(I(H.rows()));
+  printf("det(covar): %f\n", covar.determinant());
+
+  // auto n = covar.rows();
+  double k = pow((double) (2.0 * M_PI * 2.718281828459045), (double) 40.0);
+  // auto det_covar = covar.determinant();
+  // auto entropy = 0.5 * std::log2(k * det_covar);
+  printf("k: %f\n", k);
+  // printf("entropy: %f\n", entropy);
+
   // printf("marg_size: %zu\n", marg_size);
   // printf("remain_size: %zu\n", remain_size);
-  // mat2csv("/tmp/H.csv", H);
+  mat2csv("/tmp/H.csv", H);
   // mat2csv("/tmp/g.csv", g);
   // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/H.csv");
   // OCTAVE_SCRIPT("scripts/estimation/plot_matrix.m /tmp/g.csv");
@@ -1231,7 +1304,7 @@ int test_graph_solve_ba() {
     const auto T_WC0 = data.cam_poses[k];
     const size_t cam0_pose_id = graph_add_pose(graph, ts, T_WC0.tf());
     if (prior_set == false) {
-      graph_add_pose_factor(graph, cam0_pose_id, T_WC0.tf());
+      graph_add_pose_factor(graph, cam0_pose_id, I(6));
       prior_set = true;
     }
 
@@ -1365,7 +1438,7 @@ int test_swf_solve_vio() {
       if (imu_data.size() < 2) {
         continue;
       }
-      printf("window_size: %zu\n", swf.window.size());
+      // printf("window_size: %zu\n", swf.window.size());
 
       // Add imu factor
       swf.add_imu_factor(ts, imu_data);
@@ -1401,6 +1474,9 @@ void test_suite() {
   MU_ADD_TEST(test_landmark);
 
   MU_ADD_TEST(test_pose_factor_jacobians);
+  MU_ADD_TEST(test_extrinsic_factor_jacobians);
+  MU_ADD_TEST(test_speed_bias_factor_jacobians);
+  MU_ADD_TEST(test_camera_params_factor_jacobians);
   MU_ADD_TEST(test_ba_factor_jacobians);
   MU_ADD_TEST(test_cam_factor_jacobians);
   MU_ADD_TEST(test_imu_factor_jacobians);

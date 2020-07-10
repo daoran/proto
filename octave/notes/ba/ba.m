@@ -467,14 +467,26 @@ end
 % e = ba_residuals(data_gnd);
 E = ba_jacobian(data);
 H = E' * E;
-H = H + 1e-3 * eye(size(H));
+% H = H + 1e-3 * eye(size(H));
+
 % covar = pinv(H);
+% det(covar(1:6, 1:6))
+% covar(end-2:end, end-2:end)
+% det(covar(end-2:end, end-2:end))
+% covar = pinv(H);
+% covar = pinv(H);
+% sqrt(diag(covar))
+% det(covar)
+% trace(covar)
+% imagesc(covar);
+% colorbar();
+% ginput();
 % covar
 % [L, U, P] = lu(H);
 % size(L)
 % imshow(pinv(H));
 % ginput();
-csvwrite("/tmp/H.csv", H)
+% csvwrite("/tmp/H.csv", H)
 % g = -E' * e;
 %
 % H = nearestSPD(H);

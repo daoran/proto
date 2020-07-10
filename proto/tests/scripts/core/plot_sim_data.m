@@ -127,17 +127,17 @@ imu_ts = [];
 imu_pos = [];
 imu_rot = [];
 for i = 1:rows(imu_pose_data)
-	data = imu_pose_data(i, :);
-	imu_ts = [imu_ts; data(1)];
-	imu_pos = [imu_pos; data(6:8)];
-	imu_rot = [imu_rot; quat2euler(data(2:6))'];
+  data = imu_pose_data(i, :);
+  imu_ts = [imu_ts; data(1)];
+  imu_pos = [imu_pos; data(6:8)];
+  imu_rot = [imu_rot; quat2euler(data(2:6))'];
 endfor
 
 % Parse imu velocity
 imu_vel = [];
 for i = 1:rows(imu_vel_data)
-	data = imu_vel_data(i, :);
-	imu_vel = [imu_vel; data(2:4)];
+  data = imu_vel_data(i, :);
+  imu_vel = [imu_vel; data(2:4)];
 endfor
 
 % Parse cam pose
@@ -145,10 +145,10 @@ cam_ts = [];
 cam_pos = [];
 cam_rot = [];
 for i = 1:rows(cam_pose_data)
-	data = cam_pose_data(i, :);
-	cam_ts = [cam_ts; data(1)];
-	cam_pos = [cam_pos; data(6:8)];
-	cam_rot = [cam_rot; quat2euler(data(2:6))'];
+  data = cam_pose_data(i, :);
+  cam_ts = [cam_ts; data(1)];
+  cam_pos = [cam_pos; data(6:8)];
+  cam_rot = [cam_rot; quat2euler(data(2:6))'];
 endfor
 
 
@@ -197,17 +197,17 @@ hold on;
 plot3(imu_pos(1:100:end, 1), imu_pos(1:100:end, 2), imu_pos(1:100:end, 3), 'r.');
 
 for k = 1:int32(rows(imu_pos)*0.1):rows(imu_pos)
-	pos = transpose(imu_pos(k, :));
-	rot = euler321(imu_rot(k, :));
-	T_WS = tf(rot, pos);
-	draw_frame(T_WS);
+  pos = transpose(imu_pos(k, :));
+  rot = euler321(imu_rot(k, :));
+  T_WS = tf(rot, pos);
+  draw_frame(T_WS);
 endfor
 
 % for k = 1:int32(rows(cam_pos)*0.01):rows(cam_pos)
-% 	pos = transpose(cam_pos(k, :));
-% 	rot = euler321(cam_rot(k, :));
-% 	T_WS = tf(rot, pos);
-% 	draw_frame(T_WS);
+%   pos = transpose(cam_pos(k, :));
+%   rot = euler321(cam_rot(k, :));
+%   T_WS = tf(rot, pos);
+%   draw_frame(T_WS);
 % endfor
 
 % rpy_WC = [deg2rad(-90.0); deg2rad(0.0); deg2rad(-90.0)];

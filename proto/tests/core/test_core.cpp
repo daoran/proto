@@ -587,50 +587,6 @@ int test_nullspace() {
 }
 
 real_t covar_recover(const long i, const long l,
-                     const matx_t &U, const vecx_t &diag,
-                     mat_hash_t &hash) {
-  // Check if covar at (i, l) has already been computed
-  if (hash.count(i) == 1 && hash[i].count(l) == 1) {
-    return hash[i][l];
-  } else if (hash.count(l) == 1 && hash[l].count(i) == 1) {
-    return hash[l][i];
-  }
-
-  // Sum over sparse entries of row i in U
-  const auto sum_row = [&](const long i) {
-    real_t sum = 0;
-
-    for (long j = i; j < U.cols(); j++) {
-      if (j != i) {
-        real_t covar_lj = 0;
-        if (j > l) {
-          covar_lj = covar_recover(l, j, U, diag, hash);
-        } else {
-          covar_lj = covar_recover(j, l, U, diag, hash);
-        }
-        sum += U(i, j) * covar_lj;
-      }
-    }
-
-    return sum;
-  };
-
-  // Compute covar at (i, l)
-	real_t covar_il;
-  if (i == l) {
-    // Diagonals
-    covar_il = diag[l] * (diag[l] - sum_row(l));
-  } else {
-    // Off-diagonals
-    covar_il = (-sum_row(i) * diag[i]);
-  }
-	hash[i][l] = covar_il;
-
-	return covar_il;
-}
-
-real_t covar_recover(const long i, const long l,
-                     // const sp_mat_t &U, const vecx_t &diag,
                      const sp_mat_t &L, const vecx_t &diag,
                      mat_hash_t &hash) {
   // Check if covar at (i, l) has already been computed
@@ -641,12 +597,10 @@ real_t covar_recover(const long i, const long l,
   }
 
   // Sum over sparse entries of row i in U
-  // Eigen::SparseVector<double> U_row = U.row(i);
   Eigen::SparseVector<double> L_row = L.col(i);
   const auto sum_row = [&](const long i) {
     real_t sum = 0;
 
-    // for (Eigen::SparseVector<double>::InnerIterator it(U_row); it; ++it){
     for (Eigen::SparseVector<double>::InnerIterator it(L_row); it; ++it){
       long j = it.index();
       real_t U_ij = it.value();
@@ -654,10 +608,8 @@ real_t covar_recover(const long i, const long l,
       if (j != i) {
         real_t covar_lj = 0;
         if (j > l) {
-          // covar_lj = covar_recover(l, j, U, diag, hash);
           covar_lj = covar_recover(l, j, L, diag, hash);
         } else {
-          // covar_lj = covar_recover(j, l, U, diag, hash);
           covar_lj = covar_recover(j, l, L, diag, hash);
         }
         sum += U_ij * covar_lj;
@@ -668,7 +620,7 @@ real_t covar_recover(const long i, const long l,
   };
 
   // Compute covar at (i, l)
-	real_t covar_il;
+  real_t covar_il;
   if (i == l) {
     // Diagonals
     covar_il = diag[l] * (diag[l] - sum_row(l));
@@ -676,39 +628,40 @@ real_t covar_recover(const long i, const long l,
     // Off-diagonals
     covar_il = (-sum_row(i) * diag[i]);
   }
-	hash[i][l] = covar_il;
+  hash[i][l] = covar_il;
 
-	return covar_il;
+  return covar_il;
 }
 
 mat_hash_t covar_recover(const matx_t &H, const mat_indicies_t &indicies) {
-  // Decompose H to LL^t
+  // Decompose H using Cholesky decomposition (LLT)
   const Eigen::LLT<matx_t> llt(H);
-  // const matx_t U = llt.matrixU();  // Upper triangular matrix
-  // const sp_mat_t U_sparse = U.sparseView();
-  const matx_t L = llt.matrixL();  // Upper triangular matrix
-  const sp_mat_t L_sparse = L.sparseView();
+  if (llt.info() != Eigen::Success) {
+    FATAL("Failed to decompose H using cholesky decomposition!");
+  }
+  const matx_t L = llt.matrixL();
+
+  // // Decompose H using QR decomposition
+  // const Eigen::HouseholderQR<matx_t> qr(H);
+  // const matx_t L = qr.matrixQR().triangularView<Eigen::Lower>();
 
   // Pre-calculate diagonal inverses
-  // vecx_t diag(U.rows());
-  // size_t nb_rows = U.rows();
-  // for (size_t i = 0; i < nb_rows; i++) {
-  //   diag(i) = 1.0 / U(i, i);
-  // }
   vecx_t diag(L.rows());
   size_t nb_rows = L.rows();
   for (size_t i = 0; i < nb_rows; i++) {
+    if (L(i, i) < 1e-8) {
+      FATAL("L(%zu, %zu): %f < 1e-8!", i, i, L(i, i));
+    }
     diag(i) = 1.0 / L(i, i);
   }
 
   // Recover values of covariance matrix
   mat_hash_t hash;
   mat_hash_t retval;
+  const sp_mat_t L_sparse = L.sparseView();
   for (auto &index : indicies) {
     const long i = index.first;
     const long j = index.second;
-    // const real_t covar_ij = covar_recover(i, j, U, diag, hash);
-    // const real_t covar_ij = covar_recover(i, j, U_sparse, diag, hash);
     const real_t covar_ij = covar_recover(i, j, L_sparse, diag, hash);
     retval[i][j] = covar_ij;
   }
@@ -717,33 +670,33 @@ mat_hash_t covar_recover(const matx_t &H, const mat_indicies_t &indicies) {
 }
 
 int test_covar_recover() {
-	profiler_t profile;
+  profiler_t profile;
 
   matx_t H;
-	csv2mat("/tmp/H.csv", false, H);
+  csv2mat("/tmp/H.csv", false, H);
 
-  matx_t covar;
-	csv2mat("/tmp/covar.csv", false, covar);
+  // matx_t covar;
+  // csv2mat("/tmp/covar.csv", false, covar);
 
-	// matx_t H_diag = H.diagonal().asDiagonal();
-	// H = H + 1e-5 * H_diag;
+  // matx_t H_diag = H.diagonal().asDiagonal();
+  // H = H + 1e-5 * H_diag;
 
-	// profile.start("H_inv");
-  // // matx_t covar_est = pinv(H);
+  profile.start("H_inv");
+  matx_t covar_est = pinv(H);
   // matx_t covar_est = H.inverse();
-	// profile.print("H_inv");
+  profile.print("H_inv");
 
-	// Recover
-	mat_indicies_t indicies;
-	for (int i = H.rows() - 16; i < H.rows(); i++) {
+  // Recover
+  mat_indicies_t indicies;
+  for (int i = H.rows() - 16; i < H.rows(); i++) {
     // for (int j = H.rows() - 16; j < H.rows(); j++) {
       indicies.emplace_back(i, i);
     // }
   }
 
-	profile.start("covar_recover");
-	mat_hash_t results = covar_recover(H, indicies);
-	profile.print("covar_recover");
+  profile.start("covar_recover");
+  mat_hash_t results = covar_recover(H, indicies);
+  profile.print("covar_recover");
 
   // for (const auto &ij : indicies) {
   //   const long i = ij.first;
@@ -762,9 +715,9 @@ int test_covar_recover() {
     printf("(%ld, %ld) ", i, j);
     MU_CHECK(std::isnan(results[i][j]) == false);
     // printf("result: %f\n", results[i][j]);
-    printf("result: %f recovered: %f\n", results[i][j], covar(i, j));
+    printf("result: %f recovered: %f\n", results[i][j], covar_est(i, j));
     // MU_CHECK(fltcmp(results[i][j], covar_est(i, j)) == 0);
-	}
+  }
 
   return 0;
 }

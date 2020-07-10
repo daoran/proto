@@ -372,6 +372,10 @@ struct factor_t {
            const matx_t &info_,
            const std::vector<param_t *> &params_)
     : id{id_}, info{info_}, params{params_} {}
+  factor_t(const id_t id_,
+           const matx_t &info_,
+           param_t * &param_)
+    : id{id_}, info{info_}, params{param_} {}
   virtual ~factor_t() {}
   virtual int eval(bool jacs=true) = 0;
 };
@@ -413,10 +417,9 @@ struct pose_factor_t : factor_t {
   const mat4_t pose_meas;
 
   pose_factor_t(const id_t id_,
-                const mat4_t &pose_,
                 const mat_t<6, 6> &info_,
-                const std::vector<param_t *> &params_)
-      : factor_t{id_, info_, params_}, pose_meas{pose_} {
+                param_t *param_)
+      : factor_t{id_, info_, param_}, pose_meas{tf(param_->param)} {
     residuals = zeros(6, 1);
     jacobians.push_back(zeros(6, 6));
   }
@@ -446,6 +449,119 @@ struct pose_factor_t : factor_t {
       jacobians[0].block<3, 3>(0, 0) = -dq_mul_xyz;
     }
     // clang-format on
+
+    return 0;
+  }
+};
+
+/*****************************************************************************
+ *                            EXTRINSIC FACTOR
+ ****************************************************************************/
+
+struct extrinsic_factor_t : pose_factor_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  const mat4_t pose_meas;
+
+  extrinsic_factor_t(const id_t id_,
+                     const mat_t<6, 6> &info_,
+                     param_t *param_)
+      : pose_factor_t{id_, info_, param_} {}
+};
+
+/*****************************************************************************
+ *                            SPEED BIAS FACTOR
+ ****************************************************************************/
+
+struct speed_bias_factor_t : factor_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  const vec_t<9> sb_meas;
+
+  speed_bias_factor_t(const id_t id_,
+                      const mat_t<9, 9> &info_,
+                      param_t * param_)
+      : factor_t{id_, info_, param_}, sb_meas{param_->param} {
+    residuals = zeros(9, 1);
+    jacobians.push_back(zeros(9, 9));
+  }
+
+  int eval(bool jacs=true) {
+    assert(params.size() == 1);
+
+    // Calculate delta sb
+    const vec_t<9> sb_est = params[0]->param;
+    const vec_t<9> error = sb_meas - sb_est;
+    residuals = error;
+
+    // Calculate jacobian
+    if (jacs) {
+      jacobians[0] = -1.0 * I(9);
+    }
+
+    return 0;
+  }
+};
+
+/*****************************************************************************
+ *                         CAMERA PARAMS FACTOR
+ ****************************************************************************/
+
+struct camera_params_factor_t : factor_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  const vecx_t meas;
+
+  camera_params_factor_t(const id_t id_,
+                         const matx_t &info_,
+                         param_t *param_)
+      : factor_t(id_, info_, {param_}), meas{param_->param} {
+    residuals = zeros(9, 1);
+    jacobians.push_back(zeros(9, 9));
+  }
+
+  int eval(bool jacs=true) {
+    assert(params.size() == 1);
+
+    // Calculate delta sb
+    const vecx_t est = params[0]->param;
+    const vecx_t error = meas - est;
+    residuals = error;
+
+    // Calculate jacobian
+    if (jacs) {
+      jacobians[0] = -1.0 * I(est.rows());
+    }
+
+    return 0;
+  }
+};
+
+/*****************************************************************************
+ *                           LANDMARK FACTOR
+ ****************************************************************************/
+
+struct landmark_factor_t : factor_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  const vecx_t meas;
+
+  landmark_factor_t(const id_t id_,
+                    const matx_t &info_,
+                    param_t *param_)
+      : factor_t(id_, info_, {param_}), meas{param_->param} {
+    residuals = zeros(3, 1);
+    jacobians.push_back(zeros(3, 3));
+  }
+
+  int eval(bool jacs=true) {
+    assert(params.size() == 1);
+
+    // Calculate delta sb
+    const vecx_t est = params[0]->param;
+    const vecx_t error = meas - est;
+    residuals = error;
+
+    // Calculate jacobian
+    if (jacs) {
+      jacobians[0] = -1.0 * I(est.rows());
+    }
 
     return 0;
   }
@@ -503,10 +619,10 @@ struct ba_factor_t : factor_t {
       // case -1: LOG_ERROR("Point is not infront of camera!"); break;
       // case -2: LOG_ERROR("Projected point is outside the image plane!"); break;
       // }
-      // jacobians[0] = zeros(2, 6);  // T_WC
-      // jacobians[1] = zeros(2, 3);  // p_W
-      // jacobians[2] = zeros(2, CM::params_size);  // Projection model
-      return -1;
+      jacobians[0] = zeros(2, 6);  // T_WC
+      jacobians[1] = zeros(2, 3);  // p_W
+      jacobians[2] = zeros(2, CM::params_size);  // Projection model
+      return 0;
     }
 
     // Calculate residual
@@ -588,7 +704,12 @@ struct cam_factor_t : factor_t {
       // case -1: LOG_ERROR("Point is not infront of camera!"); break;
       // case -2: LOG_ERROR("Projected point is outside the image plane!"); break;
       // }
-      return -1;
+      // return -1;
+      jacobians[0] = zeros(2, 6);  // T_WS
+      jacobians[1] = zeros(2, 6);  // T_SC
+      jacobians[2] = zeros(2, 3);  // p_W
+      jacobians[3] = zeros(2, CM::params_size);  // Camera params
+      return 0;
     }
 
     // Calculate residual
@@ -862,24 +983,6 @@ void imu_propagate(const imu_data_t &imu_data,
 }
 
 /*****************************************************************************
- *                               MARGINALIZER
- ****************************************************************************/
-
-int marginalize_sibley(matx_t &H,
-                       vecx_t &g,
-                       size_t marg_size,
-                       size_t remain_size) {
-  matx_t H_marg;
-  vecx_t g_marg;
-  int retval = schurs_complement(H, g, marg_size, remain_size,
-                                 H_marg, g_marg, true);
-  H = H_marg;
-  g = g_marg;
-
-  return retval;
-}
-
-/*****************************************************************************
  *                              FACTOR GRAPH
  ****************************************************************************/
 
@@ -981,18 +1084,51 @@ vecx_t graph_get_estimate(graph_t &graph, id_t id) {
 
 size_t graph_add_pose_factor(graph_t &graph,
                              const size_t pose_id,
-                             const mat4_t &T,
                              const mat_t<6, 6> &info = I(6)) {
   // Create factor
   const id_t f_id = graph.next_factor_id++;
-  std::vector<param_t *> params{graph.params[pose_id]};
-  auto factor = new pose_factor_t{f_id, T, info, params};
+  auto param = graph.params[pose_id];
+  auto factor = new pose_factor_t{f_id, info, param};
 
   // Add factor to graph
   graph.factors[f_id] = factor;
 
   // Point params to factor
-  params[0]->factor_ids.push_back(f_id);
+  param->factor_ids.push_back(f_id);
+
+  return f_id;
+}
+
+size_t graph_add_camera_params_factor(graph_t &graph,
+                                      const size_t cam_params_id,
+                                      const matx_t &info) {
+  // Create factor
+  const id_t f_id = graph.next_factor_id++;
+  auto param = graph.params[cam_params_id];
+  auto factor = new camera_params_factor_t{f_id, info, param};
+
+  // Add factor to graph
+  graph.factors[f_id] = factor;
+
+  // Point params to factor
+  param->factor_ids.push_back(f_id);
+
+  return f_id;
+}
+
+size_t graph_add_landmark_factor(graph_t &graph,
+                                 const size_t landmark_id,
+                                 const mat_t<3, 3> &info=I(3)) {
+  // Create factor
+  const id_t f_id = graph.next_factor_id++;
+  auto param = graph.params[landmark_id];
+  auto factor = new landmark_factor_t{f_id, info, param};
+
+  // Add factor to graph
+  graph.factors[f_id] = factor;
+
+  // Point params to factor
+  param->factor_ids.push_back(f_id);
 
   return f_id;
 }
@@ -1498,11 +1634,10 @@ struct tiny_solver_t {
     assert(H.size() != 0);
     assert(g.size() != 0);
 
-    // Solve Gauss-Newton system [H dx = g]: Solve for dx
     // -- Marginalize?
     if (marg_size) {
       if (marg_type == "sibley") {
-        if (marginalize_sibley(H, g, marg_size, H.rows() - marg_size) != 0) {
+        if (schurs_complement(H, g, marg_size, H.rows() - marg_size) != 0) {
           marg_size = 0;
         }
       } else if (marg_type == "drop") {
@@ -1729,8 +1864,7 @@ struct swf_t {
   }
 
   id_t add_pose_prior(const id_t pose_id) {
-    mat4_t pose = tf(graph.params[pose_id]->param);
-    prior_id = graph_add_pose_factor(graph, pose_id, pose);
+    prior_id = graph_add_pose_factor(graph, pose_id, I(6));
     window.back().factor_ids.insert(prior_id);
     prior_set = true;
     return prior_id;
@@ -1826,7 +1960,7 @@ struct swf_t {
     solver.solve(graph);
     printf("cost: %.2e\t", solver.cost);
     printf("solver took: %.4fs\n", solver.solve_time);
-    printf("\n");
+    // printf("\n");
     // exit(0);
 
     // Mark factors to be marginalized out

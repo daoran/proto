@@ -1588,28 +1588,27 @@ matx_t pinv(const matx_t &A, const real_t tol) {
   return svd.matrixV() * vals_inv * svd.matrixU().adjoint();
 }
 
-long int rank(matx_t &A) {
+long int rank(const matx_t &A) {
   Eigen::FullPivLU<matx_t> lu_decomp(A);
   return lu_decomp.rank();
 }
 
-int schurs_complement(const matx_t &H, const vecx_t &b,
+int schurs_complement(matx_t &H, vecx_t &b,
                       const size_t m, const size_t r,
-                      matx_t &H_marg, vecx_t &b_marg,
                       const bool precond, const bool debug) {
   assert(m > 0 && r > 0);
   assert(H.isZero() == false);
 
   // Setup
   const long size = m + r;
-  H_marg = zeros(size, size);
-  b_marg = zeros(size, 1);
+  matx_t H_marg = zeros(size, size);
+  vecx_t b_marg = zeros(size, 1);
 
   // Precondition Hmm
   matx_t Hmm = H.block(0, 0, m, m);
-  // if (precond) {
+  if (precond) {
     Hmm = 0.5 * (Hmm + Hmm.transpose());
-  // }
+  }
 
   // Pseudo inverse of Hmm via Eigen-decomposition:
   //
@@ -1635,7 +1634,7 @@ int schurs_complement(const matx_t &H, const vecx_t &b,
     // mat2csv("/tmp/H.csv", H);
     // mat2csv("/tmp/Hmm.csv", Hmm);
     // exit(0);
-    // return -1;
+    return -1;
   }
 
   // Calculate Schur's complement
@@ -1659,6 +1658,8 @@ int schurs_complement(const matx_t &H, const vecx_t &b,
     mat2csv("/tmp/b_marg.csv", b_marg);
   }
 
+  H = H_marg;
+  b = b_marg;
   return 0;
 }
 

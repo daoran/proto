@@ -25,7 +25,7 @@ zero. First the squared error is expanded to give:
 .. math::
   (\Mat{A} \Vec{x} - \Vec{b})^{\transpose}
     (\Mat{A} \Vec{x} - \Vec{b}) \\
-  (\Transpose{\Vec{x}} \Transpose{\Mat{A}} \Mat{A} \Vec{x}
+  \Transpose{\Vec{x}} \Transpose{\Mat{A}} \Mat{A} \Vec{x}
     - 2 \Transpose{\Vec{b}} \Mat{A} \Vec{x}
 
 then by differentiating the expanded squared error with respect to

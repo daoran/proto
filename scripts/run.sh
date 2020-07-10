@@ -15,16 +15,28 @@ debug() {
     --args "$1" "$2" "$3"
 }
 
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto;
+#   make debug;
+#   cd proto/build/tests;
+#   ./estimation-test_factor --target test_swf_solve_vio
+# " C-m
+# exit
+
+
 # CLEAN CATKIN
 # cd ~/catkin_ws/
 # catkin clean
 # cd -
 
+# DOCS
+# cd docs && cd source; find . -type f -exec touch {} +; cd .. && make html && exit
+
 # LIBRARY
 # make deps
 # time make debug
 time make release
-sudo make install
+# sudo make install
 # time make ros
 # sudo make debug_install
 # exit
@@ -169,6 +181,9 @@ cd proto/build/tests
 # ./estimation-test_dense
 # ./estimation-test_factor
 # ./estimation-test_factor --target test_pose_factor_jacobians
+# ./estimation-test_factor --target test_extrinsic_factor_jacobians
+# ./estimation-test_factor --target test_speed_bias_factor_jacobians
+# ./estimation-test_factor --target test_camera_params_factor_jacobians
 # ./estimation-test_factor --target test_ba_factor_jacobians
 # ./estimation-test_factor --target test_cam_factor_jacobians
 # ./estimation-test_factor --target test_imu_factor_jacobians
@@ -189,7 +204,7 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_set_state
 # ./estimation-test_factor --target test_graph_solve_ba
 ./estimation-test_factor --target test_swf_solve_vo
-# ./estimation-test_factor --target test_swf_solve_vio
+# debug ./estimation-test_factor --target test_swf_solve_vio
 # ./estimation-test_frontend
 
 # -- viz
