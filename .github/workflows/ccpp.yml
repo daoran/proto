@@ -1,7 +1,5 @@
-name: C/C++ CI
-
+name: ci
 on: [push]
-
 jobs:
   build_proto:
     runs-on: ubuntu-18.04
