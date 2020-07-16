@@ -189,6 +189,20 @@ class nav_msgs:
         data = msg_data + "," + str_data + "," + pose_data + "," + twist_data
         return (header, data)
 
+class sensor_msgs:
+    supported_msgs = [
+        "sensor_msgs/Imu"
+    ]
+
+    @staticmethod
+    def imu_to_str(msg):
+        msg_header, msg_data = std_msgs.header_to_str(msg.header)
+        _, gyr = geometry_msgs.vector3_to_str(msg.angular_velocity)
+        _, acc = geometry_msgs.vector3_to_str(msg.linear_acceleration)
+        header = msg_header + ",wx,wy,wz,ax,ay,az"
+        data = msg_data + "," + gyr + "," + acc
+        return (header, data)
+
 
 def check_topic_exists(bag, topic):
     info = bag.get_type_and_topic_info()
@@ -202,6 +216,7 @@ def check_topic_type(bag, topic):
     supported_msgs = std_msgs.supported_msgs
     supported_msgs += geometry_msgs.supported_msgs
     supported_msgs += nav_msgs.supported_msgs
+    supported_msgs += sensor_msgs.supported_msgs
 
     if msg_type not in supported_msgs:
         supported_list = ""
@@ -238,6 +253,10 @@ def get_msg_converter(bag, topic):
     # ODOMETRY MSGS
     if msg_type == "nav_msgs/Odometry":
         return nav_msgs.odometry_to_str
+
+    # SENSOR MSGS
+    if msg_type == "sensor_msgs/Imu":
+        return sensor_msgs.imu_to_str
 
 
 if __name__ == "__main__":

@@ -34,8 +34,8 @@ debug() {
 
 # LIBRARY
 # make deps
-# time make debug
-time make release
+time make debug
+# time make release
 # sudo make install
 # time make ros
 # sudo make debug_install
@@ -203,7 +203,17 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_graph_get_state
 # ./estimation-test_factor --target test_graph_set_state
 # ./estimation-test_factor --target test_graph_solve_ba
-./estimation-test_factor --target test_swf_solve_vo
+# ./estimation-test_factor --target test_swf_add_imu
+# ./estimation-test_factor --target test_swf_add_camera
+# ./estimation-test_factor --target test_swf_add_extrinsics
+# ./estimation-test_factor --target test_swf_add_feature
+# ./estimation-test_factor --target test_swf_add_speed_bias
+# ./estimation-test_factor --target test_swf_add_pose_prior
+./estimation-test_factor --target test_swf_add_ba_factor
+# ./estimation-test_factor --target test_swf_add_imu_factor
+# ./estimation-test_factor --target test_swf_add_cam_factor
+# ./estimation-test_factor --target test_swf_add_marginalize
+# ./estimation-test_factor --target test_swf_solve_vo
 # debug ./estimation-test_factor --target test_swf_solve_vio
 # ./estimation-test_frontend
 

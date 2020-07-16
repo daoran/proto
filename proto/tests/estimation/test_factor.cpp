@@ -4,6 +4,8 @@
 namespace proto {
 
 #define TEST_BA_DATA "./test_data/estimation/ba_data"
+#define TEST_VO_CONFIG "./test_data/estimation/vo/config.yaml"
+#define TEST_VIO_CONFIG "./test_data/estimation/vio/config.yaml"
 
 #if PRECISION == 1
   real_t step = 1e-5;
@@ -1334,6 +1336,136 @@ int test_graph_solve_ba() {
   return 0;
 }
 
+int test_swf_add_imu() {
+  config_t config{TEST_VIO_CONFIG};
+
+  swf_t swf;
+  swf.add_imu(config);
+  MU_CHECK(swf.imu_rate == 400);
+  MU_CHECK(fltcmp(swf.g(0), 0.0) == 0);
+  MU_CHECK(fltcmp(swf.g(1), 0.0) == 0);
+  MU_CHECK(fltcmp(swf.g(2), -9.81) == 0);
+
+  return 0;
+}
+
+int test_swf_add_camera() {
+  config_t config{TEST_VIO_CONFIG};
+
+  swf_t swf;
+  swf.add_camera(config, 0);
+  MU_CHECK(swf.camera_ids.size() == 1);
+  MU_CHECK(swf.camera_ids[0] == 0);
+
+  return 0;
+}
+
+int test_swf_add_extrinsics() {
+  config_t config{TEST_VIO_CONFIG};
+
+  swf_t swf;
+  swf.add_camera(config, 0);
+  swf.add_extrinsics(config, 0);
+  MU_CHECK(swf.extrinsics_ids.size() == 1);
+  MU_CHECK(swf.extrinsics_ids[0] == 1);
+
+  return 0;
+}
+
+int test_swf_add_feature() {
+  config_t config{TEST_VIO_CONFIG};
+
+  swf_t swf;
+  vec3_t feature{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(-1.0, 1.0)};
+  swf.add_feature(feature);
+  MU_CHECK(swf.feature_ids.size() == 1);
+  MU_CHECK(swf.feature_ids[0] == 0);
+
+  return 0;
+}
+
+int test_swf_add_pose() {
+  config_t config{TEST_VIO_CONFIG};
+  swf_t swf;
+
+  mat4_t pose = I(4);
+  swf.add_pose(0, pose);
+  MU_CHECK(swf.pose_ids.size() == 1);
+  MU_CHECK(swf.pose_ids[0] == 0);
+  MU_CHECK(swf.window.size() == 1);
+
+  return 0;
+}
+
+int test_swf_add_speed_bias() {
+  config_t config{TEST_VIO_CONFIG};
+  swf_t swf;
+
+  mat4_t pose = I(4);
+  swf.add_pose(0, pose);
+  MU_CHECK(swf.pose_ids.size() == 1);
+  MU_CHECK(swf.pose_ids[0] == 0);
+  MU_CHECK(swf.window.size() == 1);
+  MU_CHECK(swf.window.front().ts == 0);
+
+  const timestamp_t ts = 0;
+  const vec3_t v{1.0, 2.0, 3.0};
+  const vec3_t ba{1.0, 2.0, 3.0};
+  const vec3_t bg{1.0, 2.0, 3.0};;
+  swf.add_speed_bias(ts, v, ba, bg);
+  MU_CHECK(swf.sb_ids.size() == 1);
+  MU_CHECK(swf.sb_ids[0] == 1);
+  MU_CHECK(swf.window.size() == 1);
+  MU_CHECK(swf.window.front().ts == 0);
+  MU_CHECK(swf.window.front().sb_id == 1);
+
+  return 0;
+}
+
+int test_swf_add_pose_prior() {
+  config_t config{TEST_VIO_CONFIG};
+  swf_t swf;
+
+  mat4_t pose = I(4);
+  auto pose_id = swf.add_pose(0, pose);
+  MU_CHECK(swf.pose_ids.size() == 1);
+  MU_CHECK(swf.pose_ids[0] == 0);
+  MU_CHECK(swf.window.size() == 1);
+  MU_CHECK(swf.window.front().ts == 0);
+
+  auto prior_id = swf.add_pose_prior(pose_id);
+  MU_CHECK(swf.prior_set == true);
+  MU_CHECK(swf.window.size() == 1);
+  MU_CHECK(swf.window.front().ts == 0);
+  MU_CHECK(swf.window.front().factor_ids.size() == 1);
+  MU_CHECK(swf.window.front().factor_ids.front() == prior_id);
+
+  return 0;
+}
+
+int test_swf_add_ba_factor() {
+  // config_t config{TEST_VIO_CONFIG};
+  // swf_t swf;
+  // TODO: ADD BA FACTOR TEST
+
+  return 0;
+}
+
+int test_swf_add_imu_factor() {
+
+  return 0;
+}
+
+int test_swf_add_cam_factor() {
+
+  return 0;
+}
+
+int test_swf_add_marginalize() {
+
+  return 0;
+}
+
 int test_swf_solve_vo() {
   vio_sim_data_t sim_data;
   sim_circle_trajectory(4.0, sim_data);
@@ -1341,7 +1473,7 @@ int test_swf_solve_vo() {
 
   // Setup sliding window filter
   swf_t swf;
-  swf.load_config("test_data/estimation/vo/config.yaml");
+  swf.load_config(TEST_VO_CONFIG);
 
   // -- Add landmarks
   for (const auto &feature : sim_data.features) {
@@ -1399,7 +1531,7 @@ int test_swf_solve_vio() {
 
   // Setup sliding window filter
   swf_t swf;
-  swf.load_config("test_data/estimation/vio/config.yaml");
+  swf.load_config(TEST_VIO_CONFIG);
 
   // -- Add landmarks
   for (const auto &feature : sim_data.features) {
@@ -1498,6 +1630,18 @@ void test_suite() {
   MU_ADD_TEST(test_graph_set_state);
   MU_ADD_TEST(test_graph_eval);
   MU_ADD_TEST(test_graph_solve_ba);
+
+  MU_ADD_TEST(test_swf_add_imu);
+  MU_ADD_TEST(test_swf_add_camera);
+  MU_ADD_TEST(test_swf_add_extrinsics);
+  MU_ADD_TEST(test_swf_add_feature);
+  MU_ADD_TEST(test_swf_add_speed_bias);
+  MU_ADD_TEST(test_swf_add_pose_prior);
+  MU_ADD_TEST(test_swf_add_ba_factor);
+  MU_ADD_TEST(test_swf_add_imu_factor);
+  MU_ADD_TEST(test_swf_add_cam_factor);
+  MU_ADD_TEST(test_swf_add_marginalize);
+
 
   MU_ADD_TEST(test_swf_solve_vo);
   MU_ADD_TEST(test_swf_solve_vio);

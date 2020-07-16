@@ -1829,6 +1829,13 @@ struct swf_t {
     extrinsics_ids.push_back(imucam_id);
   }
 
+  void add_extrinsics(config_t &config, const int cam_index) {
+    const std::string prefix = "T_SC" + std::to_string(cam_index);
+    mat4_t extrinsics;
+    parse(config, prefix, extrinsics);
+    add_extrinsics(cam_index, extrinsics);
+  }
+
   id_t add_feature(const vec3_t &feature) {
     auto feature_id = graph_add_landmark(graph, feature);
     feature_ids.push_back(feature_id);
@@ -1850,6 +1857,8 @@ struct swf_t {
                       const vec3_t &v,
                       const vec3_t &ba,
                       const vec3_t &bg) {
+    assert(window_size() != 0);
+
     auto sb_id = graph_add_speed_bias(graph, ts, v, ba, bg);
     sb_ids.push_back(sb_id);
     window.back().sb_id = sb_id;
@@ -1864,6 +1873,8 @@ struct swf_t {
   }
 
   id_t add_pose_prior(const id_t pose_id) {
+    assert(window_size() != 0);
+
     prior_id = graph_add_pose_factor(graph, pose_id, I(6));
     window.back().factor_ids.insert(prior_id);
     prior_set = true;
@@ -1875,6 +1886,9 @@ struct swf_t {
                      const id_t pose_id,
                      const id_t feature_id,
                      const vec2_t &z) {
+    assert(nb_cams() != 0);
+    assert(window_size() != 0);
+
     const id_t cam_id = camera_ids[cam_index];
     const auto factor_id = graph_add_ba_factor<pinhole_radtan4_t>(
       graph, ts, pose_id, feature_id, cam_id, z);
