@@ -1,18 +1,19 @@
-proto
-=====
+# proto
+
+<a href="https://github.com/chutsu/proto/actions?query=ci">
+  <img src="https://github.com/chutsu/proto/workflows/ci/badge.svg">
+</a>
 
 `proto` contain notes and code used to learn about different aspects of
 robotics. From estimation, mapping to control and planning.
 
 
-Build
------
+## Build
 
 For convenience there is a `Makefile` that automates the installation of
 dependencies and building of `proto`, the make targets are as follows.
 
-.. code-block:: none
-
+```
   deps:
     Install proto dependencies.
 
@@ -30,19 +31,19 @@ dependencies and building of `proto`, the make targets are as follows.
 
   format_code:
     Format proto code using clang-format.
+```
 
 Or, the standard way to build a C++ project is to enter the following commands
 at the root of the repo.
 
-.. code-block:: none
-
+```
   mkdir -p build
   cd build
   cmake ..
   make
   sudo make install  # By default will install to /usr/local
+```
 
-License
--------
+## License
 
 The source code is released under MIT license.
