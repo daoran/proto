@@ -1315,10 +1315,10 @@ matx_t graph_jacobians(graph_t &graph, size_t *marg_size, size_t *remain_size) {
   std::vector<std::string> param_order;
 
   // -- Setup param order
-  for (const auto param_type : marg_param_types) {
+  for (const auto &param_type : marg_param_types) {
     param_order.push_back(param_type);
   }
-  for (const auto param_type : graph.param_order) {
+  for (const auto &param_type : graph.param_order) {
     param_order.push_back(param_type);
   }
 
@@ -1441,10 +1441,10 @@ void graph_eval(graph_t &graph, matx_t &H, vecx_t &g,
   std::vector<std::string> param_order;
 
   // -- Setup param order
-  for (const auto param_type : marg_param_types) {
+  for (const auto &param_type : marg_param_types) {
     param_order.push_back(param_type);
   }
-  for (const auto param_type : graph.param_order) {
+  for (const auto &param_type : graph.param_order) {
     param_order.push_back(param_type);
   }
 

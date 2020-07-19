@@ -209,8 +209,8 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_swf_add_feature
 # ./estimation-test_factor --target test_swf_add_speed_bias
 # ./estimation-test_factor --target test_swf_add_pose_prior
-./estimation-test_factor --target test_swf_add_ba_factor
-# ./estimation-test_factor --target test_swf_add_imu_factor
+# ./estimation-test_factor --target test_swf_add_ba_factor
+./estimation-test_factor --target test_swf_add_imu_factor
 # ./estimation-test_factor --target test_swf_add_cam_factor
 # ./estimation-test_factor --target test_swf_add_marginalize
 # ./estimation-test_factor --target test_swf_solve_vo

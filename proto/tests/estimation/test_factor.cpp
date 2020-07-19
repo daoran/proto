@@ -1444,14 +1444,72 @@ int test_swf_add_pose_prior() {
 }
 
 int test_swf_add_ba_factor() {
-  // config_t config{TEST_VIO_CONFIG};
-  // swf_t swf;
-  // TODO: ADD BA FACTOR TEST
+  config_t config{TEST_VIO_CONFIG};
+  swf_t swf;
+
+  const int cam_idx = 0;
+  swf.add_camera(config, cam_idx);
+
+  mat4_t pose = I(4);
+  const id_t pose_id = swf.add_pose(0, pose);
+
+  vec3_t feature{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(-1.0, 1.0)};
+  const id_t feature_id = swf.add_feature(feature);
+
+  const timestamp_t ts = 0;
+  const int cam_index = 0;
+  const vec2_t z{0.0, 0.0};
+  const id_t factor_id = swf.add_ba_factor(ts, cam_idx, pose_id, feature_id, z);
+
+  MU_CHECK(swf.nb_cams() == 1);
+  MU_CHECK(swf.nb_features() == 1);
+  MU_CHECK(swf.window_size() == 1);
+  MU_CHECK(swf.window.back().ts == ts);
+  MU_CHECK(swf.window.back().factor_ids.size() == 1);
+  MU_CHECK(swf.window.back().feature_ids.size() == 1);
 
   return 0;
 }
 
 int test_swf_add_imu_factor() {
+  // Simulation data
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+
+  // Sliding window filter
+  config_t config{TEST_VIO_CONFIG};
+  imu_data_t imu_data;
+  swf_t swf;
+  // -- Add first pose parameter
+  const auto ts = sim_data.imu_ts[0];
+  const auto T_WS = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
+  const auto pose_id = swf.add_pose(ts, T_WS);
+  // -- Add first sb parameter
+  const vec3_t v = sim_data.imu_vel[0];
+  const vec3_t ba{0.0, 0.0, 0.0};
+  const vec3_t bg{0.0, 0.0, 0.0};
+  swf.add_speed_bias(ts, v, ba, bg);
+  // -- Obtain some imu measurements
+  for (const auto &kv : sim_data.timeline) {
+    const timestamp_t &ts = kv.first;
+    const sim_event_t &event = kv.second;
+    // Handle imu event
+    if (event.type == sim_event_type_t::IMU) {
+      imu_data.add(ts, event.imu.accel, event.imu.gyro);
+    }
+
+    // Collect 0.5s of imu data
+    if (ts >= 0.5e9) {
+      break;
+    }
+  }
+  // -- Add imu factor
+  swf.add_imu_factor(0.5e9, imu_data);
+  MU_CHECK(swf.pose_ids.size() == 2);
+  MU_CHECK(swf.sb_ids.size() == 2);
+  MU_CHECK(swf.window.back().factor_ids.size() == 1);
+  MU_CHECK(swf.window.back().pose_id != 0);
+  MU_CHECK(swf.window.back().sb_id != 0);
 
   return 0;
 }
