@@ -34,6 +34,7 @@
 #   /tmp/nav_odometry.csv
 
 # python scripts/rosutils/aabm_debug.py ~/Downloads/bags/OscillationTest.bag
+python scripts/sysid/battery_model_id.py ~/downloads/hover_3.bag
 # python scripts/sysid/battery_model_id.py /data/ucl/sysid/ucl_hover.bag
 # python scripts/sysid/model_data_prep.py /data/ucl/sysid/pitch_1.bag
 # octave scripts/sysid/model_sysid.m
