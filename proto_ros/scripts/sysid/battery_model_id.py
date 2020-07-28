@@ -147,9 +147,8 @@ if __name__ == "__main__":
     print("Polynomial coeffs (highest order first): %s" % str(voltage_thrust_fit))
 
     # Visualize voltage model
-    print("Visualize")
-    plt.plot(voltage_data, thrust_data)
-    plt.plot(voltage_data, voltage_thrust_model(voltage_data))
+    plt.plot(voltage_data, thrust_data, ".", markersize=2)
+    plt.plot(voltage_data, voltage_thrust_model(voltage_data), color="red")
     plt.xlabel("Voltage [v]")
     plt.ylabel("Thrust")
     plt.title("Battery model")
