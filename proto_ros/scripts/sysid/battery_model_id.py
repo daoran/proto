@@ -152,4 +152,5 @@ if __name__ == "__main__":
     plt.plot(voltage_data, voltage_thrust_model(voltage_data))
     plt.xlabel("Voltage [v]")
     plt.ylabel("Thrust")
+    plt.title("Battery model")
     plt.show()
