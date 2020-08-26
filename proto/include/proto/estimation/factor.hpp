@@ -5,7 +5,7 @@
 
 namespace proto {
 
-typedef size_t id_t;
+typedef ssize_t id_t;
 
 struct param_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -13,7 +13,7 @@ struct param_t {
   bool marginalize = false;
 
   std::string type;
-  id_t id = 0;
+  id_t id = -1;
   timestamp_t ts = 0;
   long local_size = 0;
   long global_size = 0;
@@ -45,6 +45,11 @@ struct param_t {
     : param_t{type_, id_, 0, local_size_, global_size_, fixed_} {}
 
   virtual ~param_t() {}
+
+  void mark_marginalize() {
+    marginalize = true;
+    type = "marg_" + type;
+  }
 
   virtual void plus(const vecx_t &) = 0;
   virtual void perturb(const int i, const real_t step_size) = 0;
@@ -244,105 +249,12 @@ void pose_print(const std::string &prefix, const pose_t &pose) {
   printf("r: (%f, %f, %f)\n", r(0), r(1), r(2));
 }
 
-poses_t load_poses(const std::string &csv_path) {
-  FILE *csv_file = fopen(csv_path.c_str(), "r");
-  char line[1024] = {0};
-  poses_t poses;
-
-  size_t pose_index = 0;
-  while (fgets(line, 1024, csv_file) != NULL) {
-    if (line[0] == '#') {
-      continue;
-    }
-
-    char entry[1024] = {0};
-    real_t data[7] = {0};
-    int index = 0;
-    for (size_t i = 0; i < strlen(line); i++) {
-      char c = line[i];
-      if (c == ' ') {
-        continue;
-      }
-
-      if (c == ',' || c == '\n') {
-        data[index] = strtod(entry, NULL);
-        memset(entry, '\0', sizeof(char) * 100);
-        index++;
-      } else {
-        entry[strlen(entry)] = c;
-      }
-    }
-
-    quat_t q{data[0], data[1], data[2], data[3]};
-    vec3_t r{data[4], data[5], data[6]};
-    poses.emplace_back(pose_index, pose_index, tf(q, r));
-    pose_index++;
+void landmarks_print(const landmarks_t &landmarks) {
+  printf("nb_landmarks: %zu\n", landmarks.size());
+  printf("landmarks:\n");
+  for (const auto &lm : landmarks) {
+    printf("-- [%ld]: (%.2f, %.2f, %.2f)\n", lm.id, lm.param(0), lm.param(1), lm.param(2));
   }
-  fclose(csv_file);
-
-  return poses;
-}
-
-static keypoints_t parse_keypoints_line(const char *line) {
-  char entry[100] = {0};
-  int kp_ready = 0;
-  vec2_t kp{0.0, 0.0};
-  int kp_index = 0;
-  bool first_element_parsed = false;
-
-  // Parse line
-  keypoints_t keypoints;
-
-  for (size_t i = 0; i < strlen(line); i++) {
-    char c = line[i];
-    if (c == ' ') {
-      continue;
-    }
-
-    if (c == ',' || c == '\n') {
-      if (first_element_parsed == false) {
-        first_element_parsed = true;
-      } else {
-        // Parse keypoint
-        if (kp_ready == 0) {
-          kp(0) = strtod(entry, NULL);
-          kp_ready = 1;
-
-        } else {
-          kp(1) = strtod(entry, NULL);
-          keypoints.push_back(kp);
-          kp_ready = 0;
-          kp_index++;
-        }
-      }
-
-      memset(entry, '\0', sizeof(char) * 100);
-    } else {
-      entry[strlen(entry)] = c;
-    }
-  }
-
-  return keypoints;
-}
-
-std::vector<keypoints_t> load_keypoints(const std::string &data_path) {
-  char keypoints_csv[1000] = {0};
-  strcat(keypoints_csv, data_path.c_str());
-  strcat(keypoints_csv, "/keypoints.csv");
-
-  FILE *csv_file = fopen(keypoints_csv, "r");
-  std::vector<keypoints_t> keypoints;
-
-  char line[1024] = {0};
-  while (fgets(line, 1024, csv_file) != NULL) {
-    if (line[0] == '#') {
-      continue;
-    }
-    keypoints.push_back(parse_keypoints_line(line));
-  }
-  fclose(csv_file);
-
-  return keypoints;
 }
 
 void keypoints_print(const keypoints_t &keypoints) {
@@ -353,6 +265,256 @@ void keypoints_print(const keypoints_t &keypoints) {
   }
 }
 
+struct ba_data_t {
+  mat3_t cam_K;
+
+  poses_t cam_poses;
+  pose_t target_pose;
+  int nb_frames;
+
+  std::vector<keypoints_t> keypoints;
+  int **point_ids;
+  int nb_ids;
+
+  real_t **points;
+  int nb_points;
+
+  ba_data_t(const std::string &data_path) {
+    cam_K = load_camera(data_path);
+    cam_poses = load_camera_poses(data_path);
+    target_pose = load_target_pose(data_path)[0];
+    nb_frames = cam_poses.size();
+    keypoints = load_keypoints(data_path);
+    point_ids = load_point_ids(data_path, &nb_ids);
+    points = load_points(data_path, &nb_points);
+  }
+
+  ~ba_data_t() {
+    // Point IDs
+    for (int i = 0; i < nb_frames; i++) {
+      free(point_ids[i]);
+    }
+    free(point_ids);
+
+    // Points
+    for (int i = 0; i < nb_points; i++) {
+      free(points[i]);
+    }
+    free(points);
+  }
+
+  static poses_t load_poses(const std::string &csv_path) {
+    FILE *csv_file = fopen(csv_path.c_str(), "r");
+    char line[1024] = {0};
+    poses_t poses;
+
+    size_t pose_index = 0;
+    while (fgets(line, 1024, csv_file) != NULL) {
+      if (line[0] == '#') {
+        continue;
+      }
+
+      char entry[1024] = {0};
+      real_t data[7] = {0};
+      int index = 0;
+      for (size_t i = 0; i < strlen(line); i++) {
+        char c = line[i];
+        if (c == ' ') {
+          continue;
+        }
+
+        if (c == ',' || c == '\n') {
+          data[index] = strtod(entry, NULL);
+          memset(entry, '\0', sizeof(char) * 100);
+          index++;
+        } else {
+          entry[strlen(entry)] = c;
+        }
+      }
+
+      quat_t q{data[0], data[1], data[2], data[3]};
+      vec3_t r{data[4], data[5], data[6]};
+      poses.emplace_back(pose_index, pose_index, tf(q, r));
+      pose_index++;
+    }
+    fclose(csv_file);
+
+    return poses;
+  }
+
+  static keypoints_t parse_keypoints_line(const char *line) {
+    char entry[100] = {0};
+    int kp_ready = 0;
+    vec2_t kp{0.0, 0.0};
+    int kp_index = 0;
+    bool first_element_parsed = false;
+
+    // Parse line
+    keypoints_t keypoints;
+
+    for (size_t i = 0; i < strlen(line); i++) {
+      char c = line[i];
+      if (c == ' ') {
+        continue;
+      }
+
+      if (c == ',' || c == '\n') {
+        if (first_element_parsed == false) {
+          first_element_parsed = true;
+        } else {
+          // Parse keypoint
+          if (kp_ready == 0) {
+            kp(0) = strtod(entry, NULL);
+            kp_ready = 1;
+
+          } else {
+            kp(1) = strtod(entry, NULL);
+            keypoints.push_back(kp);
+            kp_ready = 0;
+            kp_index++;
+          }
+        }
+
+        memset(entry, '\0', sizeof(char) * 100);
+      } else {
+        entry[strlen(entry)] = c;
+      }
+    }
+
+    return keypoints;
+  }
+
+  static std::vector<keypoints_t> load_keypoints(const std::string &data_path) {
+    char keypoints_csv[1000] = {0};
+    strcat(keypoints_csv, data_path.c_str());
+    strcat(keypoints_csv, "/keypoints.csv");
+
+    FILE *csv_file = fopen(keypoints_csv, "r");
+    std::vector<keypoints_t> keypoints;
+
+    char line[1024] = {0};
+    while (fgets(line, 1024, csv_file) != NULL) {
+      if (line[0] == '#') {
+        continue;
+      }
+      keypoints.push_back(parse_keypoints_line(line));
+    }
+    fclose(csv_file);
+
+    return keypoints;
+  }
+
+  static mat3_t load_camera(const std::string &data_path) {
+    // Setup csv path
+    char cam_csv[1000] = {0};
+    strcat(cam_csv, data_path.c_str());
+    strcat(cam_csv, "/camera.csv");
+
+    // Parse csv file
+    int nb_rows = 0;
+    int nb_cols = 0;
+    real_t **cam_K = csv_data(cam_csv, &nb_rows, &nb_cols);
+    if (cam_K == NULL) {
+      FATAL("Failed to load csv file [%s]!", cam_csv);
+    }
+    if (nb_rows != 3 || nb_cols != 3) {
+      LOG_ERROR("Error while parsing camera file [%s]!", cam_csv);
+      LOG_ERROR("-- Expected 3 rows got %d instead!", nb_rows);
+      LOG_ERROR("-- Expected 3 cols got %d instead!", nb_cols);
+      FATAL("Invalid camera file [%s]!", cam_csv);
+    }
+
+    // Flatten 2D array to 1D array
+    mat3_t K;
+    for (int i = 0; i < nb_rows; i++) {
+      for (int j = 0; j < nb_cols; j++) {
+        K(i, j) = cam_K[i][j];
+      }
+      free(cam_K[i]);
+    }
+    free(cam_K);
+
+    return K;
+  }
+
+  static poses_t load_camera_poses(const std::string &data_path) {
+    char cam_poses_csv[1000] = {0};
+    strcat(cam_poses_csv, data_path.c_str());
+    strcat(cam_poses_csv, "/camera_poses.csv");
+    return load_poses(cam_poses_csv);
+  }
+
+  static poses_t load_target_pose(const std::string &data_path) {
+    char target_pose_csv[1000] = {0};
+    strcat(target_pose_csv, data_path.c_str());
+    strcat(target_pose_csv, "/target_pose.csv");
+    return load_poses(target_pose_csv);
+  }
+
+  static real_t **load_points(const std::string &data_path, int *nb_points) {
+    char points_csv[1000] = {0};
+    strcat(points_csv, data_path.c_str());
+    strcat(points_csv, "/points.csv");
+
+    // Initialize memory for points
+    *nb_points = csv_rows(points_csv);
+    real_t **points = (real_t **) malloc(sizeof(real_t *) * *nb_points);
+    for (int i = 0; i < *nb_points; i++) {
+      points[i] = (real_t *) malloc(sizeof(real_t) * 3);
+    }
+
+    // Load file
+    FILE *infile = fopen(points_csv, "r");
+    if (infile == NULL) {
+      fclose(infile);
+      return NULL;
+    }
+
+    // Loop through data
+    char line[1024] = {0};
+    size_t len_max = 1024;
+    int point_idx = 0;
+    int col_idx = 0;
+
+    while (fgets(line, len_max, infile) != NULL) {
+      if (line[0] == '#') {
+        continue;
+      }
+
+      char entry[100] = {0};
+      for (size_t i = 0; i < strlen(line); i++) {
+        char c = line[i];
+        if (c == ' ') {
+          continue;
+        }
+
+        if (c == ',' || c == '\n') {
+          points[point_idx][col_idx] = strtod(entry, NULL);
+          memset(entry, '\0', sizeof(char) * 100);
+          col_idx++;
+        } else {
+          entry[strlen(entry)] = c;
+        }
+      }
+
+      col_idx = 0;
+      point_idx++;
+    }
+
+    // Cleanup
+    fclose(infile);
+
+    return points;
+  }
+
+  static int **load_point_ids(const std::string &data_path, int *nb_points) {
+    char csv_path[1000] = {0};
+    strcat(csv_path, data_path.c_str());
+    strcat(csv_path, "/point_ids.csv");
+    return load_iarrays(csv_path, nb_points);
+  }
+};
+
 /*****************************************************************************
  *                                FACTOR
  ****************************************************************************/
@@ -361,21 +523,35 @@ struct factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   bool marginalize = false;
 
+  std::string type = "factor_t";
   id_t id = 0;
+
+  matx_t covar;
   matx_t info;
+  matx_t sqrt_info;
+
   std::vector<param_t *> params;
   vecx_t residuals;
   matxs_t jacobians;
 
   factor_t() {}
+
   factor_t(const id_t id_,
-           const matx_t &info_,
+           const matx_t &covar_,
            const std::vector<param_t *> &params_)
-    : id{id_}, info{info_}, params{params_} {}
+    : id{id_}, covar{covar_}, info{covar_.inverse()}, params{params_} {
+    Eigen::LLT<matx_t> llt_info(info);
+    sqrt_info = llt_info.matrixL().transpose();
+  }
+
   factor_t(const id_t id_,
-           const matx_t &info_,
+           const matx_t &covar_,
            param_t * &param_)
-    : id{id_}, info{info_}, params{param_} {}
+    : id{id_}, covar{covar_}, info{covar_.inverse()}, params{param_} {
+    Eigen::LLT<matx_t> llt_info(info);
+    sqrt_info = llt_info.matrixL().transpose();
+  }
+
   virtual ~factor_t() {}
   virtual int eval(bool jacs=true) = 0;
 };
@@ -417,11 +593,13 @@ struct pose_factor_t : factor_t {
   const mat4_t pose_meas;
 
   pose_factor_t(const id_t id_,
-                const mat_t<6, 6> &info_,
+                const mat_t<6, 6> &covar_,
                 param_t *param_)
-      : factor_t{id_, info_, param_}, pose_meas{tf(param_->param)} {
+      : factor_t{id_, covar_, param_}, pose_meas{tf(param_->param)} {
+    type = "pose_factor_t";
     residuals = zeros(6, 1);
     jacobians.push_back(zeros(6, 6));
+
   }
 
   int eval(bool jacs=true) {
@@ -463,9 +641,9 @@ struct extrinsic_factor_t : pose_factor_t {
   const mat4_t pose_meas;
 
   extrinsic_factor_t(const id_t id_,
-                     const mat_t<6, 6> &info_,
+                     const mat_t<6, 6> &covar_,
                      param_t *param_)
-      : pose_factor_t{id_, info_, param_} {}
+      : pose_factor_t{id_, covar_, param_} {}
 };
 
 /*****************************************************************************
@@ -477,9 +655,10 @@ struct speed_bias_factor_t : factor_t {
   const vec_t<9> sb_meas;
 
   speed_bias_factor_t(const id_t id_,
-                      const mat_t<9, 9> &info_,
+                      const mat_t<9, 9> &covar_,
                       param_t * param_)
-      : factor_t{id_, info_, param_}, sb_meas{param_->param} {
+      : factor_t{id_, covar_, param_}, sb_meas{param_->param} {
+    type = "speed_bias_factor_t";
     residuals = zeros(9, 1);
     jacobians.push_back(zeros(9, 9));
   }
@@ -510,9 +689,10 @@ struct camera_params_factor_t : factor_t {
   const vecx_t meas;
 
   camera_params_factor_t(const id_t id_,
-                         const matx_t &info_,
+                         const matx_t &covar_,
                          param_t *param_)
-      : factor_t(id_, info_, {param_}), meas{param_->param} {
+      : factor_t(id_, covar_, {param_}), meas{param_->param} {
+    type = "camera_params_factor_t";
     residuals = zeros(9, 1);
     jacobians.push_back(zeros(9, 9));
   }
@@ -543,9 +723,10 @@ struct landmark_factor_t : factor_t {
   const vecx_t meas;
 
   landmark_factor_t(const id_t id_,
-                    const matx_t &info_,
+                    const matx_t &covar_,
                     param_t *param_)
-      : factor_t(id_, info_, {param_}), meas{param_->param} {
+      : factor_t(id_, covar_, {param_}), meas{param_->param} {
+    type = "landmark_factor_t";
     residuals = zeros(3, 1);
     jacobians.push_back(zeros(3, 3));
   }
@@ -584,9 +765,10 @@ struct ba_factor_t : factor_t {
   ba_factor_t(const id_t id_,
               const timestamp_t &ts_,
               const vec2_t &z_,
-              const mat2_t &info_,
+              const mat2_t &covar_,
               const std::vector<param_t *> &params_)
-      : factor_t{id_, info_, params_}, ts{ts_}, z{z_} {
+      : factor_t{id_, covar_, params_}, ts{ts_}, z{z_} {
+    type = "ba_factor_t";
     residuals = zeros(2, 1);
     jacobians.push_back(zeros(2, 6));  // T_WC
     jacobians.push_back(zeros(2, 3));  // p_W
@@ -665,9 +847,10 @@ struct cam_factor_t : factor_t {
   cam_factor_t(const id_t id_,
                const timestamp_t &ts_,
                const vec2_t &z_,
-               const mat2_t &info_,
+               const mat2_t &covar_,
                const std::vector<param_t *> &params_)
-      : factor_t{id_, info_, params_}, ts{ts_}, z{z_} {
+      : factor_t{id_, covar_, params_}, ts{ts_}, z{z_} {
+    type = "cam_factor_t";
     residuals = zeros(2, 1);
     jacobians.push_back(zeros(2, 6));  // T_WS
     jacobians.push_back(zeros(2, 6));  // T_SC
@@ -748,6 +931,7 @@ struct cam_factor_t : factor_t {
 struct imu_factor_t : factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
+  const int imu_index = -1;
   const timestamps_t imu_ts;
   const vec3s_t imu_accel;
   const vec3s_t imu_gyro;
@@ -768,15 +952,18 @@ struct imu_factor_t : factor_t {
   vec3_t ba{0.0, 0.0, 0.0};
 
   imu_factor_t(const id_t id_,
+               const int imu_index_,
                const timestamps_t imu_ts_,
                const vec3s_t imu_accel_,
                const vec3s_t imu_gyro_ ,
-               const mat_t<15, 15> &info_,
+               const mat_t<15, 15> &covar_,
                const std::vector<param_t *> &params_)
-      : factor_t{id_, info_, params_},
+      : factor_t{id_, covar_, params_},
+        imu_index{imu_index_},
         imu_ts{imu_ts_},
         imu_accel{imu_accel_},
         imu_gyro{imu_gyro_} {
+    type = "imu_factor_t";
     residuals = zeros(15, 1);
     jacobians.push_back(zeros(15, 6));  // T_WS at timestep i
     jacobians.push_back(zeros(15, 9));  // Speed and bias at timestep i
@@ -987,11 +1174,11 @@ void imu_propagate(const imu_data_t &imu_data,
  ****************************************************************************/
 
 struct graph_t {
-  size_t next_param_id = 0;
-  size_t next_factor_id = 0;
+  id_t next_param_id = 0;
+  id_t next_factor_id = 0;
 
-  std::map<size_t, factor_t *> factors;
-  std::map<size_t, param_t *> params;
+  std::map<id_t, factor_t *> factors;
+  std::map<id_t, param_t *> params;
   std::unordered_map<id_t, size_t> param_index; // id - column start
   std::vector<std::string> param_order{"pose_t",
                                        "camera_params_t",
@@ -1012,44 +1199,44 @@ struct graph_t {
   }
 };
 
-size_t graph_add_pose(graph_t &graph,
-                      const timestamp_t &ts,
-                      const vec_t<7> &pose) {
+id_t graph_add_pose(graph_t &graph,
+                    const timestamp_t &ts,
+                    const vec_t<7> &pose) {
   const auto id = graph.next_param_id++;
   const auto param = new pose_t{id, ts, pose};
   graph.params.insert({id, param});
   return id;
 }
 
-size_t graph_add_pose(graph_t &graph,
-                      const timestamp_t &ts,
-                      const mat4_t &pose) {
+id_t graph_add_pose(graph_t &graph,
+                    const timestamp_t &ts,
+                    const mat4_t &pose) {
   const auto id = graph.next_param_id++;
   const auto param = new pose_t{id, ts, pose};
   graph.params.insert({id, param});
   return id;
 }
 
-size_t graph_add_extrinsic(graph_t &graph, const mat4_t &pose) {
+id_t graph_add_extrinsic(graph_t &graph, const mat4_t &pose) {
   const auto id = graph.next_param_id++;
   const auto param = new extrinsic_t{id, pose};
   graph.params.insert({id, param});
   return id;
 }
 
-size_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
+id_t graph_add_landmark(graph_t &graph, const vec3_t &landmark) {
   const auto id = graph.next_param_id++;
   const auto param = new landmark_t{id, landmark};
   graph.params.insert({id, param});
   return id;
 }
 
-size_t graph_add_camera(graph_t &graph,
-                        const int cam_index,
-                        const int resolution[2],
-                        const vecx_t &proj_params,
-                        const vecx_t &dist_params,
-                        bool fixed=false) {
+id_t graph_add_camera(graph_t &graph,
+                      const int cam_index,
+                      const int resolution[2],
+                      const vecx_t &proj_params,
+                      const vecx_t &dist_params,
+                      bool fixed=false) {
   const auto id = graph.next_param_id++;
   const auto param = new camera_params_t{id, cam_index, resolution,
                                          proj_params, dist_params,
@@ -1058,20 +1245,20 @@ size_t graph_add_camera(graph_t &graph,
   return id;
 }
 
-size_t graph_add_speed_bias(graph_t &graph,
-                            const timestamp_t &ts,
-                            const vec3_t &v,
-                            const vec3_t &ba,
-                            const vec3_t &bg) {
+id_t graph_add_speed_bias(graph_t &graph,
+                          const timestamp_t &ts,
+                          const vec3_t &v,
+                          const vec3_t &ba,
+                          const vec3_t &bg) {
   const auto id = graph.next_param_id++;
   const auto param = new sb_params_t{id, ts, v, ba, bg};
   graph.params.insert({id, param});
   return id;
 }
 
-size_t graph_add_speed_bias(graph_t &graph,
-                            const timestamp_t &ts,
-                            const vec_t<9> &sb) {
+id_t graph_add_speed_bias(graph_t &graph,
+                          const timestamp_t &ts,
+                          const vec_t<9> &sb) {
   const vec3_t &v = sb.head(3);
   const vec3_t &ba = sb.segment(3, 3);
   const vec3_t &bg = sb.segment(6, 3);
@@ -1082,13 +1269,13 @@ vecx_t graph_get_estimate(graph_t &graph, id_t id) {
   return graph.params[id]->param;
 }
 
-size_t graph_add_pose_factor(graph_t &graph,
-                             const size_t pose_id,
-                             const mat_t<6, 6> &info = I(6)) {
+id_t graph_add_pose_factor(graph_t &graph,
+                           const id_t pose_id,
+                           const mat_t<6, 6> &covar = I(6)) {
   // Create factor
   const id_t f_id = graph.next_factor_id++;
   auto param = graph.params[pose_id];
-  auto factor = new pose_factor_t{f_id, info, param};
+  auto factor = new pose_factor_t{f_id, covar, param};
 
   // Add factor to graph
   graph.factors[f_id] = factor;
@@ -1099,13 +1286,13 @@ size_t graph_add_pose_factor(graph_t &graph,
   return f_id;
 }
 
-size_t graph_add_camera_params_factor(graph_t &graph,
-                                      const size_t cam_params_id,
-                                      const matx_t &info) {
+id_t graph_add_camera_params_factor(graph_t &graph,
+                                    const id_t cam_params_id,
+                                    const matx_t &covar) {
   // Create factor
   const id_t f_id = graph.next_factor_id++;
   auto param = graph.params[cam_params_id];
-  auto factor = new camera_params_factor_t{f_id, info, param};
+  auto factor = new camera_params_factor_t{f_id, covar, param};
 
   // Add factor to graph
   graph.factors[f_id] = factor;
@@ -1116,13 +1303,13 @@ size_t graph_add_camera_params_factor(graph_t &graph,
   return f_id;
 }
 
-size_t graph_add_landmark_factor(graph_t &graph,
-                                 const size_t landmark_id,
-                                 const mat_t<3, 3> &info=I(3)) {
+id_t graph_add_landmark_factor(graph_t &graph,
+                               const id_t landmark_id,
+                               const mat_t<3, 3> &covar=I(3)) {
   // Create factor
   const id_t f_id = graph.next_factor_id++;
   auto param = graph.params[landmark_id];
-  auto factor = new landmark_factor_t{f_id, info, param};
+  auto factor = new landmark_factor_t{f_id, covar, param};
 
   // Add factor to graph
   graph.factors[f_id] = factor;
@@ -1134,13 +1321,13 @@ size_t graph_add_landmark_factor(graph_t &graph,
 }
 
 template <typename CM>
-size_t graph_add_ba_factor(graph_t &graph,
-                           const timestamp_t &ts,
-                           const size_t cam_pose_id,
-                           const size_t landmark_id,
-                           const size_t cam_params_id,
-                           const vec2_t &z,
-                           const mat2_t &info = I(2) * 0.5) {
+id_t graph_add_ba_factor(graph_t &graph,
+                         const timestamp_t &ts,
+                         const id_t cam_pose_id,
+                         const id_t landmark_id,
+                         const id_t cam_params_id,
+                         const vec2_t &z,
+                         const mat2_t &covar = I(2) * 0.5) {
 
   // Create factor
   const id_t f_id = graph.next_factor_id++;
@@ -1149,7 +1336,7 @@ size_t graph_add_ba_factor(graph_t &graph,
     graph.params[landmark_id],
     graph.params[cam_params_id],
   };
-  auto factor = new ba_factor_t<CM>{f_id, ts, z, info, params};
+  auto factor = new ba_factor_t<CM>{f_id, ts, z, covar, params};
 
   // Add factor to graph
   graph.factors[f_id] = factor;
@@ -1163,14 +1350,14 @@ size_t graph_add_ba_factor(graph_t &graph,
 }
 
 template <typename CM>
-size_t graph_add_cam_factor(graph_t &graph,
-                            const timestamp_t &ts,
-                            const size_t sensor_pose_id,
-                            const size_t imu_cam_pose_id,
-                            const size_t landmark_id,
-                            const size_t cam_params_id,
-                            const vec2_t &z,
-                            const mat2_t &info = I(2)) {
+id_t graph_add_cam_factor(graph_t &graph,
+                          const timestamp_t &ts,
+                          const id_t sensor_pose_id,
+                          const id_t imu_cam_pose_id,
+                          const id_t landmark_id,
+                          const id_t cam_params_id,
+                          const vec2_t &z,
+                          const mat2_t &covar = I(2)) {
   // Create factor
   const id_t f_id = graph.next_factor_id++;
   std::vector<param_t *> params{
@@ -1179,7 +1366,7 @@ size_t graph_add_cam_factor(graph_t &graph,
     graph.params[landmark_id],
     graph.params[cam_params_id]
   };
-  auto factor = new cam_factor_t<CM>{f_id, ts, z, info, params};
+  auto factor = new cam_factor_t<CM>{f_id, ts, z, covar, params};
 
   // Add factor to graph
   graph.factors[f_id] = factor;
@@ -1192,15 +1379,15 @@ size_t graph_add_cam_factor(graph_t &graph,
   return f_id;
 }
 
-size_t graph_add_imu_factor(graph_t &graph,
-                            const int imu_index,
-                            const timestamps_t &imu_ts,
-                            const vec3s_t &imu_accel,
-                            const vec3s_t &imu_gyro,
-                            const size_t pose0_id,
-                            const size_t sb0_id,
-                            const size_t pose1_id,
-                            const size_t sb1_id) {
+id_t graph_add_imu_factor(graph_t &graph,
+                          const int imu_index,
+                          const timestamps_t &imu_ts,
+                          const vec3s_t &imu_accel,
+                          const vec3s_t &imu_gyro,
+                          const id_t pose0_id,
+                          const id_t sb0_id,
+                          const id_t pose1_id,
+                          const id_t sb1_id) {
   // Create factor
   const id_t f_id = graph.next_factor_id++;
   std::vector<param_t *> params{
@@ -1209,7 +1396,7 @@ size_t graph_add_imu_factor(graph_t &graph,
     graph.params[pose1_id],
     graph.params[sb1_id]
   };
-  auto factor = new imu_factor_t(imu_index, imu_ts,
+  auto factor = new imu_factor_t(f_id, imu_index, imu_ts,
                                  imu_gyro, imu_accel,
                                  I(15), params);
 
@@ -1677,14 +1864,16 @@ struct tiny_solver_t {
         printf("lambda[%.2e] ", lambda_k);
         printf("iter_time[%.4f] ", iter_time);
         printf("solve_time[%.4f]  ", solve_time);
-        // Calculate reprojection error
-        size_t nb_keypoints = e.size() / 2.0;
-        real_t sse = 0.0;
-        for (size_t i = 0; i < nb_keypoints; i++) {
-          sse += e.segment(i * 2, 2).norm();
-        }
-        const real_t rmse = sqrt(sse / nb_keypoints);
-        printf("rmse reproj error: %.2f\n", rmse);
+        printf("\n");
+
+        // // Calculate reprojection error
+        // size_t nb_keypoints = e.size() / 2.0;
+        // real_t sse = 0.0;
+        // for (size_t i = 0; i < nb_keypoints; i++) {
+        //   sse += e.segment(i * 2, 2).norm();
+        // }
+        // const real_t rmse = sqrt(sse / nb_keypoints);
+        // printf("rmse reproj error: %.2f\n", rmse);
       }
 
       // Determine whether to accept update
@@ -1705,7 +1894,12 @@ struct tiny_solver_t {
         break;
       }
     }
+
     solve_time = toc(&solve_tic);
+    if (verbose) {
+      printf("cost: %.2e\t", cost);
+      printf("solver took: %.4fs\n", solve_time);
+    }
 
     // // Calculate reprojection error
     // size_t nb_keypoints = e.size() / 2.0;
@@ -1725,11 +1919,11 @@ struct tiny_solver_t {
  ******************************************************************************/
 
 struct state_info_t {
-  timestamp_t ts;
-  ordered_set_t<id_t> factor_ids;
-  ordered_set_t<id_t> feature_ids;
-  id_t pose_id = 0;
-  id_t sb_id = 0;
+  timestamp_t ts = -1;
+  id_t pose_id = -1;
+  id_t sb_id = -1;
+  std::vector<id_t> factor_ids;
+  std::vector<id_t> feature_ids;
 
   state_info_t(const timestamp_t ts_) : ts{ts_} {}
 };
@@ -1740,23 +1934,49 @@ struct swf_t {
   int window_limit = 10;
 
   std::deque<state_info_t> window;
-  bool prior_set = false;
-  id_t prior_id = 0;
-  id_t imu_id = 0;
   std::vector<id_t> camera_ids;
-  std::vector<id_t> feature_ids;
   std::vector<id_t> extrinsics_ids;
-  std::vector<id_t> pose_ids;
-  std::vector<id_t> sb_ids;
+  std::vector<id_t> feature_ids;
+  std::deque<id_t> pose_ids;
+  std::deque<id_t> sb_ids;
+
+  ordered_set_t<id_t> marg_param_ids;
+  ordered_set_t<id_t> marg_factor_ids;
 
   real_t imu_rate = 0.0;
   vec3_t g{0.0, 0.0, -9.81};
 
   swf_t() {}
 
+  size_t window_size() { return window.size(); }
   size_t nb_cams() { return camera_ids.size(); }
   size_t nb_features() { return feature_ids.size(); }
-  size_t window_size() { return window.size(); }
+  size_t nb_extrinsics() { return extrinsics_ids.size(); }
+  size_t nb_poses() { return pose_ids.size(); }
+  size_t nb_speed_biases() { return sb_ids.size(); }
+
+  void print_info() {
+    printf("window size: %zu\n", window_size());
+    printf("nb camera_ids: %zu\n", camera_ids.size());
+    printf("nb feature_ids: %zu\n", feature_ids.size());
+    printf("nb extrinsics_ids: %zu\n", extrinsics_ids.size());
+    printf("nb pose_ids: %zu\n", pose_ids.size());
+    printf("nb sb_ids: %zu\n", sb_ids.size());
+  }
+
+  void print_window() {
+    printf("window size: %zu\n", window_size());
+    int i = 0;
+    for (const auto &state : window) {
+      printf("state [%d]:\n", i++);
+      printf("ts: %ld\n", state.ts);
+      printf("factor_ids size: %ld\n", state.factor_ids.size());
+      printf("feature_ids size: %ld\n", state.feature_ids.size());
+      printf("pose_id: %ld\n", state.pose_id);
+      printf("sb_id: %ld\n", state.sb_id);
+      printf("\n");
+    }
+  }
 
   void add_imu(const config_t &config) {
     const std::string prefix = "imu0";
@@ -1846,6 +2066,7 @@ struct swf_t {
     auto pose_id = graph_add_pose(graph, ts, pose);
     pose_ids.push_back(pose_id);
     window.emplace_back(ts);
+    window.back().pose_id = pose_id;
     return pose_id;
   }
 
@@ -1858,7 +2079,6 @@ struct swf_t {
                       const vec3_t &ba,
                       const vec3_t &bg) {
     assert(window_size() != 0);
-
     auto sb_id = graph_add_speed_bias(graph, ts, v, ba, bg);
     sb_ids.push_back(sb_id);
     window.back().sb_id = sb_id;
@@ -1875,9 +2095,8 @@ struct swf_t {
   id_t add_pose_prior(const id_t pose_id) {
     assert(window_size() != 0);
 
-    prior_id = graph_add_pose_factor(graph, pose_id, I(6));
-    window.back().factor_ids.insert(prior_id);
-    prior_set = true;
+    const auto prior_id = graph_add_pose_factor(graph, pose_id, I(6));
+    window.back().factor_ids.push_back(prior_id);
     return prior_id;
   }
 
@@ -1889,11 +2108,12 @@ struct swf_t {
     assert(nb_cams() != 0);
     assert(window_size() != 0);
 
-    const id_t cam_id = camera_ids[cam_index];
+    const id_t cam_id = camera_ids.at(cam_index);
     const auto factor_id = graph_add_ba_factor<pinhole_radtan4_t>(
       graph, ts, pose_id, feature_id, cam_id, z);
-    window.back().factor_ids.insert(factor_id);
-    window.back().feature_ids.insert(feature_id);
+    window.back().factor_ids.push_back(factor_id);
+    window.back().feature_ids.push_back(feature_id);
+
     return factor_id;
   }
 
@@ -1912,8 +2132,6 @@ struct swf_t {
     imu_propagate(imu_data, g, pose_i, sb_i, pose_j, sb_j);
     const id_t pose_j_id = add_pose(ts, pose_j);
     const id_t sb_j_id = add_speed_bias(ts, sb_j);
-    pose_ids.push_back(pose_j_id);
-    sb_ids.push_back(sb_j_id);
 
     // Add imu factor
     const int imu_idx = 0;
@@ -1921,7 +2139,7 @@ struct swf_t {
       graph, imu_idx,
       imu_data.timestamps, imu_data.accel, imu_data.gyro,
       pose_i_id, sb_i_id, pose_j_id, sb_j_id);
-    window.back().factor_ids.insert(factor_id);
+    window.back().factor_ids.push_back(factor_id);
     window.back().pose_id = pose_j_id;
     window.back().sb_id = sb_j_id;
 
@@ -1933,55 +2151,84 @@ struct swf_t {
                       const id_t pose_id,
                       const id_t feature_id,
                       const vec2_t &z) {
-    const auto imucam_id = extrinsics_ids[cam_index];
-    const auto cam_id = camera_ids[cam_index];
+    assert(nb_cams() != 0);
+    assert(window_size() != 0);
+
+    const auto imucam_id = extrinsics_ids.at(cam_index);
+    const auto cam_id = camera_ids.at(cam_index);
     const auto factor_id = graph_add_cam_factor<pinhole_radtan4_t>(
       graph, ts, pose_id, imucam_id, feature_id, cam_id, z);
+    window.back().factor_ids.push_back(factor_id);
+    window.back().feature_ids.push_back(feature_id);
 
     return factor_id;
   }
 
-  void marginalize() {
-    // Mark factors to be marginalized out
-    printf("window size: %zu\n", window_size());
+  void pre_marginalize() {
+    // Mark oldest pose or speed bias for marginalization
+    {
+      auto &state = window.front();
+      if (state.pose_id != -1) {
+        const auto &param = graph.params[state.pose_id];
+        param->mark_marginalize();
+        marg_param_ids.insert(param->id);
 
-    const auto state = window.front();
-    for (auto factor_id : state.factor_ids) {
-      graph_rm_param(graph, graph.factors[factor_id]->params[0]->id);
+        auto factor_ids = param->factor_ids;
+        for (const auto &factor_id : factor_ids) {
+          if (graph.factors.count(factor_id)) {
+            const auto &factor = graph.factors[factor_id];
+            factor->marginalize = true;
+            marg_factor_ids.insert(factor->id);
+
+            auto &ids = param->factor_ids;
+            auto erase_idx = std::remove(ids.begin(), ids.end(), factor_id);
+            ids.erase(erase_idx, ids.end());
+          }
+        }
+      }
+      if (state.sb_id != -1) {
+        const auto &param = graph.params[state.sb_id];
+        param->mark_marginalize();
+        marg_param_ids.insert(param->id);
+
+        for (const auto &factor_id : param->factor_ids) {
+          if (graph.factors.count(factor_id)) {
+            const auto &factor = graph.factors[factor_id];
+            factor->marginalize = true;
+            marg_factor_ids.insert(factor->id);
+
+            auto &ids = param->factor_ids;
+            auto erase_idx = std::remove(ids.begin(), ids.end(), factor_id);
+            ids.erase(erase_idx, ids.end());
+          }
+        }
+      }
+    }
+  }
+
+  void marginalize() {
+    // for (const auto &param_id : marg_param_ids) {
+    //   // printf("remove param[%ld]\n", param_id);
+    //   graph_rm_param(graph, param_id);
+    // }
+    for (const auto &factor_id : marg_factor_ids) {
+      // printf("remove factor[%ld]\n", factor_id);
       graph_rm_factor(graph, factor_id);
     }
+
+    marg_param_ids.clear();
+    marg_factor_ids.clear();
     window.pop_front();
   }
 
   int solve() {
-    // Check window size
-    // printf("window.size(): %zu\n", window.size());
     if ((int) window.size() <= window_limit) {
       return 0;
     }
 
-    // Mark oldest pose for marginalization
-    auto &state = window.front();
-    for (auto factor_id : state.factor_ids) {
-      auto &param = graph.factors[factor_id]->params[0];
-      if (param->marginalize == false) {
-        param->marginalize = true;
-        param->type = "marg_" + param->type;
-      }
-    }
-
-    // Solve
+    pre_marginalize();
     solver.solve(graph);
-    printf("cost: %.2e\t", solver.cost);
-    printf("solver took: %.4fs\n", solver.solve_time);
-    // printf("\n");
-    // exit(0);
-
-    // Mark factors to be marginalized out
-    for (auto factor_id : state.factor_ids) {
-      graph_rm_factor(graph, factor_id);
-    }
-    window.pop_front();
+    marginalize();
 
     return 0;
   }

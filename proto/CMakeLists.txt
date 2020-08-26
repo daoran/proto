@@ -40,8 +40,6 @@ ADD_LIBRARY(
   # dataset
   src/dataset/euroc.cpp
   src/dataset/kitti.cpp
-  # estimation
-  # src/estimation/dense.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${${PROJECT_NAME}_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)

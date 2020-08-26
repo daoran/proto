@@ -1,5 +1,7 @@
-all: dataset config
+default: dataset config
 	@echo "Done!"
+
+.PHONY: deps dataset config tests clean
 
 deps:
 	pkg install -forge quaternion;
@@ -11,6 +13,9 @@ dataset:
 
 config:
 	@make -s -C proto/core/config
+
+tests:
+	@./scripts/run_tests.bash
 
 clean:
 	@make -s -C proto/dataset clean

@@ -22,7 +22,7 @@ T_SC0:
 solver:
   verbose: true
   marg_type: "sibley"
-  max_iter: 5
+  max_iter: 10
   time_limit: 10.0
   lambda: 1.0e-4
 

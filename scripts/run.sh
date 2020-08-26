@@ -216,8 +216,8 @@ cd proto/build/tests
 # ./estimation-test_factor --target test_swf_add_cam_factor
 # debug ./estimation-test_factor --target test_swf_pre_marginalize
 # ./estimation-test_factor --target test_swf_marginalize
-# ./estimation-test_factor --target test_swf_solve_vo
-./estimation-test_factor --target test_swf_solve_vio
+./estimation-test_factor --target test_swf_solve_vo
+# ./estimation-test_factor --target test_swf_solve_vio
 # ./estimation-test_frontend
 
 # -- viz

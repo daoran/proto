@@ -6,7 +6,7 @@ cam0:
   lens_vfov: 90.0
 
 solver:
-  verbose: false
+  verbose: true
   marg_type: "sibley"
   max_iter: 5
   time_limit: 10.0

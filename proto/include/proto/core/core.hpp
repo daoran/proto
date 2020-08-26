@@ -151,7 +151,7 @@ using map_vec_t = Eigen::Map<Eigen::Matrix<real_t, ROWS, 1>>;
 typedef std::unordered_map<long, std::unordered_map<long, real_t>> mat_hash_t;
 typedef std::vector<std::pair<long int, long int>> mat_indicies_t;
 
-typedef uint64_t timestamp_t;
+typedef int64_t timestamp_t;
 typedef std::vector<timestamp_t> timestamps_t;
 
 /******************************************************************************
@@ -490,21 +490,27 @@ std::set<T> intersection(const std::list<std::vector<T>> &vecs) {
   return retval;
 }
 
+/**
+ * Ordered Set
+ */
 template <class T>
 class ordered_set_t {
 public:
   using iterator                     = typename std::vector<T>::iterator;
   using const_iterator               = typename std::vector<T>::const_iterator;
+
   iterator begin()                   { return vector.begin(); }
   iterator end()                     { return vector.end(); }
   const_iterator begin() const       { return vector.begin(); }
   const_iterator end() const         { return vector.end(); }
+  const T& at(const size_t i) const  { return vector.at(i); }
   const T& front() const             { return vector.front(); }
   const T& back() const              { return vector.back(); }
   void insert(const T& item)         { if (set.insert(item).second) vector.push_back(item); }
   size_t count(const T& item) const  { return set.count(item); }
   bool empty() const                 { return set.empty(); }
   size_t size() const                { return set.size(); }
+  void clear()                       { vector.clear(); set.clear(); }
 
 private:
   std::vector<T> vector;

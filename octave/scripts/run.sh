@@ -2,14 +2,14 @@ set -e
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 
-make
+# make
+# make tests
 
 # sudo bash ./scripts/install_mexopencv.bash
-# ./scripts/run_tests.bash && exit 0
 # octave notes/covar_recover.m && exit 0
 # octave notes/schurs.m && exit 0
 # octave notes/aabm.m && exit 0
-octave notes/ba/ba.m && exit 0
+# octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
 # octave notes/camera/equi4_point_jacobian.m && exit 0
@@ -45,7 +45,7 @@ octave notes/ba/ba.m && exit 0
 # octave notes/vicon_ucl.m && exit 0
 
 # octave tools/calib_data_summary.m && exit 0
-# octave tools/plot_aprilgrid_data.m && exit 0
+octave tools/plot_aprilgrid_data.m && exit 0
 # octave tools/plot_calib_euroc.m && exit 0
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_ubx_nav_hpposllh.m
@@ -100,19 +100,19 @@ octave notes/ba/ba.m && exit 0
 # octave tests/plot/test_draw_frame.m && exit 0
 # octave tests/plot/test_draw_points.m && exit 0
 
-# octave tests/vision/test_camera_init.m && exit 0
-# octave tests/vision/test_camera_measurements.m && exit 0
-# octave tests/vision/test_chessboard_create.m && exit 0
-# octave tests/vision/test_equi4_distort.m && exit 0
-# octave tests/vision/test_equi4_param_jacobian.m && exit 0
-# octave tests/vision/test_equi4_point_jacobian.m && exit 0
-# octave tests/vision/test_equi4_undistort.m && exit 0
-# octave tests/vision/test_focal_length.m && exit 0
-# octave tests/vision/test_pinhole_K.m && exit 0
-# octave tests/vision/test_radtan4_distort.m && exit 0
-# octave tests/vision/test_radtan4_param_jacobian.m && exit 0
-# octave tests/vision/test_radtan4_point_jacobian.m && exit 0
-# octave tests/vision/test_radtan4_undistort.m && exit 0
-# octave tests/vision/test_trajectory_plot.m && exit 0
-# octave tests/vision/test_trajectory_simulate.m && exit 0
-# octave tests/vision/test_webcam.m && exit 0
+# octave tests/cv/test_camera_init.m && exit 0
+# octave tests/cv/test_camera_measurements.m && exit 0
+# octave tests/cv/test_chessboard_create.m && exit 0
+# octave tests/cv/test_equi4_distort.m && exit 0
+# octave tests/cv/test_equi4_param_jacobian.m && exit 0
+# octave tests/cv/test_equi4_point_jacobian.m && exit 0
+# octave tests/cv/test_equi4_undistort.m && exit 0
+# octave tests/cv/test_focal_length.m && exit 0
+# octave tests/cv/test_pinhole_K.m && exit 0
+# octave tests/cv/test_radtan4_distort.m && exit 0
+# octave tests/cv/test_radtan4_param_jacobian.m && exit 0
+# octave tests/cv/test_radtan4_point_jacobian.m && exit 0
+# octave tests/cv/test_radtan4_undistort.m && exit 0
+# octave tests/cv/test_trajectory_plot.m && exit 0
+# octave tests/cv/test_trajectory_simulate.m && exit 0
+# octave tests/cv/test_webcam.m && exit 0

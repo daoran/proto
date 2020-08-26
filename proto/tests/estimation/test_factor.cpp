@@ -126,7 +126,7 @@ int test_extrinsic_factor_jacobians() {
 
 int test_speed_bias_factor_jacobians() {
   // Form estimation pose
-  size_t id = 0;
+  id_t id = 0;
   timestamp_t ts = 0;
   vec3_t v{0.1, 0.2, 0.3};
   vec3_t ba{0.1, 0.2, 0.3};
@@ -145,7 +145,7 @@ int test_speed_bias_factor_jacobians() {
 
 int test_camera_params_factor_jacobians() {
   // Form estimation pose
-  size_t id = 0;
+  id_t id = 0;
   int resolution[2] = {640, 480};
   vec4_t proj_params{640, 480, 320, 240};
   vec4_t dist_params{0.01, 0.001, 0.001, 0.001};
@@ -406,7 +406,9 @@ int test_imu_factor_jacobians() {
   sb_params_t sb_j{1, timestamps.back(), v_WS_j, zeros(3, 1), zeros(3, 1)};
   // -- IMU factor
   std::vector<param_t *> params{&pose_i, &sb_i, &pose_j, &sb_j};
-  imu_factor_t factor(0, imu_ts, imu_accel, imu_gyro, I(15), params);
+  const id_t factor_id = 0;
+  const int imu_index = 0;
+  imu_factor_t factor(factor_id, imu_index, imu_ts, imu_accel, imu_gyro, I(15), params);
 
   // Check jacobians
   int retval = 0;
@@ -422,6 +424,9 @@ int test_imu_factor_jacobians() {
   // -- Check jacobian of speed and bias at j
   retval = check_jacobians(&factor, 0, "J_sb_j", step, threshold);
   MU_CHECK(retval == 0);
+
+  factor.eval();
+  std::cout << factor.residuals.transpose() << std::endl;
 
   // Debug
   // const bool debug = true;
@@ -474,7 +479,11 @@ int test_imu_propagate() {
     new pose_t{2, imu_data.timestamps.back(), sim_data.imu_poses.back()},
     new sb_params_t{3, imu_data.timestamps.back(), sim_data.imu_vel.back(), zeros(3, 1), zeros(3, 1)},
   };
-  imu_factor_t factor(0,
+
+  const id_t factor_id = 0;
+  const int imu_index = 0;
+  imu_factor_t factor(factor_id,
+                      imu_index,
                       imu_data.timestamps,
                       imu_data.accel,
                       imu_data.gyro,
@@ -500,7 +509,7 @@ int test_imu_propagate() {
 
 int test_marg_factor() {
   // Setup parameters
-  size_t next_param_id = 0;
+  id_t next_param_id = 0;
   size_t nb_poses = 5;
   size_t nb_landmarks = 5;
   // -- Camera poses
@@ -1125,155 +1134,6 @@ int test_graph_eval() {
   return 0;
 }
 
-static mat3_t load_camera(const std::string &data_path) {
-  // Setup csv path
-  char cam_csv[1000] = {0};
-  strcat(cam_csv, data_path.c_str());
-  strcat(cam_csv, "/camera.csv");
-
-  // Parse csv file
-  int nb_rows = 0;
-  int nb_cols = 0;
-  real_t **cam_K = csv_data(cam_csv, &nb_rows, &nb_cols);
-  if (cam_K == NULL) {
-    FATAL("Failed to load csv file [%s]!", cam_csv);
-  }
-  if (nb_rows != 3 || nb_cols != 3) {
-    LOG_ERROR("Error while parsing camera file [%s]!", cam_csv);
-    LOG_ERROR("-- Expected 3 rows got %d instead!", nb_rows);
-    LOG_ERROR("-- Expected 3 cols got %d instead!", nb_cols);
-    FATAL("Invalid camera file [%s]!", cam_csv);
-  }
-
-  // Flatten 2D array to 1D array
-  mat3_t K;
-  for (int i = 0; i < nb_rows; i++) {
-    for (int j = 0; j < nb_cols; j++) {
-      K(i, j) = cam_K[i][j];
-    }
-    free(cam_K[i]);
-  }
-  free(cam_K);
-
-  return K;
-}
-
-static poses_t load_camera_poses(const std::string &data_path) {
-  char cam_poses_csv[1000] = {0};
-  strcat(cam_poses_csv, data_path.c_str());
-  strcat(cam_poses_csv, "/camera_poses.csv");
-  return load_poses(cam_poses_csv);
-}
-
-static poses_t load_target_pose(const std::string &data_path) {
-  char target_pose_csv[1000] = {0};
-  strcat(target_pose_csv, data_path.c_str());
-  strcat(target_pose_csv, "/target_pose.csv");
-  return load_poses(target_pose_csv);
-}
-
-static real_t **load_points(const std::string &data_path, int *nb_points) {
-  char points_csv[1000] = {0};
-  strcat(points_csv, data_path.c_str());
-  strcat(points_csv, "/points.csv");
-
-  // Initialize memory for points
-  *nb_points = csv_rows(points_csv);
-  real_t **points = (real_t **) malloc(sizeof(real_t *) * *nb_points);
-  for (int i = 0; i < *nb_points; i++) {
-    points[i] = (real_t *) malloc(sizeof(real_t) * 3);
-  }
-
-  // Load file
-  FILE *infile = fopen(points_csv, "r");
-  if (infile == NULL) {
-    fclose(infile);
-    return NULL;
-  }
-
-  // Loop through data
-  char line[1024] = {0};
-  size_t len_max = 1024;
-  int point_idx = 0;
-  int col_idx = 0;
-
-  while (fgets(line, len_max, infile) != NULL) {
-    if (line[0] == '#') {
-      continue;
-    }
-
-    char entry[100] = {0};
-    for (size_t i = 0; i < strlen(line); i++) {
-      char c = line[i];
-      if (c == ' ') {
-        continue;
-      }
-
-      if (c == ',' || c == '\n') {
-        points[point_idx][col_idx] = strtod(entry, NULL);
-        memset(entry, '\0', sizeof(char) * 100);
-        col_idx++;
-      } else {
-        entry[strlen(entry)] = c;
-      }
-    }
-
-    col_idx = 0;
-    point_idx++;
-  }
-
-  // Cleanup
-  fclose(infile);
-
-  return points;
-}
-
-static int **load_point_ids(const std::string &data_path, int *nb_points) {
-  char csv_path[1000] = {0};
-  strcat(csv_path, data_path.c_str());
-  strcat(csv_path, "/point_ids.csv");
-  return load_iarrays(csv_path, nb_points);
-}
-
-struct ba_data_t {
-  mat3_t cam_K;
-
-  poses_t cam_poses;
-  pose_t target_pose;
-  int nb_frames;
-
-  std::vector<keypoints_t> keypoints;
-  int **point_ids;
-  int nb_ids;
-
-  real_t **points;
-  int nb_points;
-
-  ba_data_t(const std::string &data_path) {
-    cam_K = load_camera(data_path);
-    cam_poses = load_camera_poses(data_path);
-    target_pose = load_target_pose(data_path)[0];
-    nb_frames = cam_poses.size();
-    keypoints = load_keypoints(data_path);
-    point_ids = load_point_ids(data_path, &nb_ids);
-    points = load_points(data_path, &nb_points);
-  }
-
-  ~ba_data_t() {
-    // Point IDs
-    for (int i = 0; i < nb_frames; i++) {
-      free(point_ids[i]);
-    }
-    free(point_ids);
-
-    // Points
-    for (int i = 0; i < nb_points; i++) {
-      free(points[i]);
-    }
-    free(points);
-  }
-};
-
 int test_graph_solve_ba() {
   ba_data_t data{TEST_BA_DATA};
 
@@ -1355,7 +1215,7 @@ int test_swf_add_camera() {
   swf_t swf;
   swf.add_camera(config, 0);
   MU_CHECK(swf.camera_ids.size() == 1);
-  MU_CHECK(swf.camera_ids[0] == 0);
+  MU_CHECK(swf.camera_ids.at(0) == 0);
 
   return 0;
 }
@@ -1367,7 +1227,7 @@ int test_swf_add_extrinsics() {
   swf.add_camera(config, 0);
   swf.add_extrinsics(config, 0);
   MU_CHECK(swf.extrinsics_ids.size() == 1);
-  MU_CHECK(swf.extrinsics_ids[0] == 1);
+  MU_CHECK(swf.extrinsics_ids.at(0) == 1);
 
   return 0;
 }
@@ -1379,7 +1239,7 @@ int test_swf_add_feature() {
   vec3_t feature{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(-1.0, 1.0)};
   swf.add_feature(feature);
   MU_CHECK(swf.feature_ids.size() == 1);
-  MU_CHECK(swf.feature_ids[0] == 0);
+  MU_CHECK(swf.feature_ids.at(0) == 0);
 
   return 0;
 }
@@ -1389,10 +1249,17 @@ int test_swf_add_pose() {
   swf_t swf;
 
   mat4_t pose = I(4);
-  swf.add_pose(0, pose);
+  auto pose_id = swf.add_pose(0, pose);
+
   MU_CHECK(swf.pose_ids.size() == 1);
-  MU_CHECK(swf.pose_ids[0] == 0);
+  MU_CHECK(swf.pose_ids.at(0) == 0);
+
   MU_CHECK(swf.window.size() == 1);
+  MU_CHECK(swf.window.back().ts == 0);
+  MU_CHECK(swf.window.back().factor_ids.size() == 0);
+  MU_CHECK(swf.window.back().feature_ids.size() == 0);
+  MU_CHECK(swf.window.back().pose_id == pose_id);
+  MU_CHECK(swf.window.back().sb_id == -1);
 
   return 0;
 }
@@ -1402,9 +1269,9 @@ int test_swf_add_speed_bias() {
   swf_t swf;
 
   mat4_t pose = I(4);
-  swf.add_pose(0, pose);
+  const auto pose_id = swf.add_pose(0, pose);
   MU_CHECK(swf.pose_ids.size() == 1);
-  MU_CHECK(swf.pose_ids[0] == 0);
+  MU_CHECK(swf.pose_ids.at(0) == 0);
   MU_CHECK(swf.window.size() == 1);
   MU_CHECK(swf.window.front().ts == 0);
 
@@ -1412,12 +1279,17 @@ int test_swf_add_speed_bias() {
   const vec3_t v{1.0, 2.0, 3.0};
   const vec3_t ba{1.0, 2.0, 3.0};
   const vec3_t bg{1.0, 2.0, 3.0};;
-  swf.add_speed_bias(ts, v, ba, bg);
+  const auto sb_id = swf.add_speed_bias(ts, v, ba, bg);
+
   MU_CHECK(swf.sb_ids.size() == 1);
-  MU_CHECK(swf.sb_ids[0] == 1);
+  MU_CHECK(swf.sb_ids.at(0) == 1);
+
   MU_CHECK(swf.window.size() == 1);
   MU_CHECK(swf.window.front().ts == 0);
-  MU_CHECK(swf.window.front().sb_id == 1);
+  MU_CHECK(swf.window.front().factor_ids.size() == 0);
+  MU_CHECK(swf.window.front().feature_ids.size() == 0);
+  MU_CHECK(swf.window.front().pose_id == pose_id);
+  MU_CHECK(swf.window.front().sb_id == sb_id);
 
   return 0;
 }
@@ -1429,16 +1301,18 @@ int test_swf_add_pose_prior() {
   mat4_t pose = I(4);
   auto pose_id = swf.add_pose(0, pose);
   MU_CHECK(swf.pose_ids.size() == 1);
-  MU_CHECK(swf.pose_ids[0] == 0);
+  MU_CHECK(swf.pose_ids.at(0) == 0);
   MU_CHECK(swf.window.size() == 1);
-  MU_CHECK(swf.window.front().ts == 0);
+  MU_CHECK(swf.window.back().ts == 0);
 
   auto prior_id = swf.add_pose_prior(pose_id);
-  MU_CHECK(swf.prior_set == true);
   MU_CHECK(swf.window.size() == 1);
-  MU_CHECK(swf.window.front().ts == 0);
-  MU_CHECK(swf.window.front().factor_ids.size() == 1);
-  MU_CHECK(swf.window.front().factor_ids.front() == prior_id);
+  MU_CHECK(swf.window.back().ts == 0);
+  MU_CHECK(swf.window.back().factor_ids.size() == 1);
+  MU_CHECK(swf.window.back().factor_ids.front() == prior_id);
+  MU_CHECK(swf.window.back().feature_ids.size() == 0);
+  MU_CHECK(swf.window.back().pose_id == pose_id);
+  MU_CHECK(swf.window.back().sb_id == -1);
 
   return 0;
 }
@@ -1457,16 +1331,22 @@ int test_swf_add_ba_factor() {
   const id_t feature_id = swf.add_feature(feature);
 
   const timestamp_t ts = 0;
-  const int cam_index = 0;
   const vec2_t z{0.0, 0.0};
   const id_t factor_id = swf.add_ba_factor(ts, cam_idx, pose_id, feature_id, z);
 
+  swf.print_window();
+
   MU_CHECK(swf.nb_cams() == 1);
   MU_CHECK(swf.nb_features() == 1);
+
   MU_CHECK(swf.window_size() == 1);
   MU_CHECK(swf.window.back().ts == ts);
   MU_CHECK(swf.window.back().factor_ids.size() == 1);
+  MU_CHECK(swf.window.back().factor_ids.back() == factor_id);
   MU_CHECK(swf.window.back().feature_ids.size() == 1);
+  MU_CHECK(swf.window.back().feature_ids.back() == feature_id);
+  MU_CHECK(swf.window.back().pose_id == pose_id);
+  MU_CHECK(swf.window.back().sb_id == -1);
 
   return 0;
 }
@@ -1488,7 +1368,9 @@ int test_swf_add_imu_factor() {
   const vec3_t v = sim_data.imu_vel[0];
   const vec3_t ba{0.0, 0.0, 0.0};
   const vec3_t bg{0.0, 0.0, 0.0};
-  swf.add_speed_bias(ts, v, ba, bg);
+  const auto sb_id = swf.add_speed_bias(ts, v, ba, bg);
+  // -- Add pose prior
+  const auto pose_prior_id = swf.add_pose_prior(pose_id);
   // -- Obtain some imu measurements
   for (const auto &kv : sim_data.timeline) {
     const timestamp_t &ts = kv.first;
@@ -1504,22 +1386,260 @@ int test_swf_add_imu_factor() {
     }
   }
   // -- Add imu factor
-  swf.add_imu_factor(0.5e9, imu_data);
+  const auto imu_factor_id = swf.add_imu_factor(0.5e9, imu_data);
+  swf.print_window();
+
   MU_CHECK(swf.pose_ids.size() == 2);
+  MU_CHECK(swf.pose_ids.front() == pose_id);
   MU_CHECK(swf.sb_ids.size() == 2);
+
+  MU_CHECK(swf.window.size() == 2);
+  MU_CHECK(swf.window.front().pose_id == pose_id);
+  MU_CHECK(swf.window.front().sb_id == sb_id);
+  MU_CHECK(swf.window.front().factor_ids.size() == 1);
+  MU_CHECK(swf.window.front().factor_ids.front() == pose_prior_id);
+  MU_CHECK(swf.window.front().feature_ids.size() == 0);
+
+  MU_CHECK(swf.window.back().pose_id == sb_id + 1);
+  MU_CHECK(swf.window.back().sb_id == sb_id + 2);
   MU_CHECK(swf.window.back().factor_ids.size() == 1);
-  MU_CHECK(swf.window.back().pose_id != 0);
-  MU_CHECK(swf.window.back().sb_id != 0);
+  MU_CHECK(swf.window.back().factor_ids.front() == imu_factor_id);
+  MU_CHECK(swf.window.back().feature_ids.size() == 0);
 
   return 0;
 }
 
 int test_swf_add_cam_factor() {
+  config_t config{TEST_VIO_CONFIG};
+  swf_t swf;
+
+  const int cam_idx = 0;
+  swf.add_camera(config, cam_idx);
+
+  mat4_t pose = I(4);
+  const auto pose_id = swf.add_pose(0, pose);
+
+  mat4_t ext = I(4);
+  swf.add_extrinsics(0, ext);
+
+  vec3_t feature{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(-1.0, 1.0)};
+  const auto feature_id = swf.add_feature(feature);
+
+  const timestamp_t ts = 0;
+  const vec2_t z{0.0, 0.0};
+  const auto factor_id = swf.add_cam_factor(ts, cam_idx, pose_id, feature_id, z);
+
+  swf.print_window();
+
+  MU_CHECK(swf.nb_cams() == 1);
+  MU_CHECK(swf.nb_features() == 1);
+  MU_CHECK(swf.nb_extrinsics() == 1);
+
+  MU_CHECK(swf.window_size() == 1);
+  MU_CHECK(swf.window.back().ts == ts);
+  MU_CHECK(swf.window.back().pose_id == pose_id);
+  MU_CHECK(swf.window.back().sb_id == -1);
+  MU_CHECK(swf.window.back().factor_ids.size() == 1);
+  MU_CHECK(swf.window.back().factor_ids.back() == factor_id);
+  MU_CHECK(swf.window.back().feature_ids.size() == 1);
+  MU_CHECK(swf.window.back().feature_ids.back() == feature_id);
 
   return 0;
 }
 
-int test_swf_add_marginalize() {
+static void print_window(swf_t &swf) {
+  int i = 0;
+  for (auto &state : swf.window) {
+    printf("state[%d]\n", i++);
+    for (auto &factor_id : state.factor_ids) {
+      const auto &factor = swf.graph.factors[factor_id];
+      if (factor == nullptr) {
+        continue;
+      }
+
+
+      printf("%s [%ld][%d]\t", factor->type.c_str(), factor->id, factor->marginalize);
+      printf("{");
+      for (const auto &param : factor->params) {
+        printf("%s[%ld]\t", param->type.c_str(), param->id);
+      }
+      printf("}");
+      printf("\n");
+    }
+    printf("\n");
+  }
+}
+
+int test_swf_pre_marginalize() {
+  // Simulation data
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+
+  // Sliding window filter
+  config_t config{TEST_VIO_CONFIG};
+  swf_t swf;
+  swf.load_config(TEST_VIO_CONFIG);
+
+  // -- Add landmarks
+  for (const auto &feature : sim_data.features) {
+    swf.add_feature(add_noise(feature, 0.01));
+  }
+
+  // Initialize first pose
+  // -- Add first pose parameter
+  const auto ts = sim_data.imu_ts[0];
+  const auto T_WS = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
+  const auto pose_id = swf.add_pose(ts, T_WS);
+  // -- Add first sb parameter
+  const vec3_t v = sim_data.imu_vel[0];
+  const vec3_t ba{0.0, 0.0, 0.0};
+  const vec3_t bg{0.0, 0.0, 0.0};
+  swf.add_speed_bias(ts, v, ba, bg);
+  // -- Add pose prior
+  swf.add_pose_prior(pose_id);
+
+  // -- Loop over data
+  imu_data_t imu_data;
+
+  for (const auto &kv : sim_data.timeline) {
+    const timestamp_t &ts = kv.first;
+    const sim_event_t &event = kv.second;
+
+    // Handle imu event
+    if (event.type == sim_event_type_t::IMU) {
+      imu_data.add(ts, event.imu.accel, event.imu.gyro);
+    }
+
+    // Handle camera event
+    if (event.type == sim_event_type_t::CAMERA) {
+      if (imu_data.size() < 2) {
+        continue;
+      }
+
+      // Add imu factor
+      swf.add_imu_factor(ts, imu_data);
+      imu_data.clear();
+
+      // Add cam0 factors
+      const auto cam_idx = event.sensor_id;
+      auto pose_id = swf.window.back().pose_id;
+      for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
+        const auto feature_idx = event.frame.feature_ids[i];
+        const auto feature_id = swf.feature_ids.at(feature_idx);
+        const auto z = event.frame.keypoints[i];
+        swf.add_cam_factor(ts, cam_idx, pose_id, feature_id, z);
+      }
+
+      if (swf.window_size() >= 3) {
+        break;
+      }
+    }
+  }
+
+  // printf("----------\n");
+  // swf.print_info();
+  // printf("\n");
+  // swf.print_window();
+
+  swf.pre_marginalize();
+  print_window(swf);
+
+  swf.marginalize();
+  printf("\n");
+  print_window(swf);
+  printf("\n");
+  printf("\n");
+
+  swf.pre_marginalize();
+  print_window(swf);
+
+  swf.marginalize();
+  printf("\n");
+  print_window(swf);
+
+  return 0;
+}
+
+int test_swf_marginalize() {
+  // Simulation data
+  vio_sim_data_t sim_data;
+  sim_circle_trajectory(4.0, sim_data);
+
+  // Sliding window filter
+  config_t config{TEST_VIO_CONFIG};
+  swf_t swf;
+  swf.load_config(TEST_VIO_CONFIG);
+
+  // -- Add landmarks
+  for (const auto &feature : sim_data.features) {
+    swf.add_feature(add_noise(feature, 0.01));
+  }
+
+  // Initialize first pose
+  // -- Add first pose parameter
+  const auto ts = sim_data.imu_ts[0];
+  const auto T_WS = tf(sim_data.imu_rot[0], sim_data.imu_pos[0]);
+  const auto pose_id = swf.add_pose(ts, T_WS);
+  // -- Add first sb parameter
+  const vec3_t v = sim_data.imu_vel[0];
+  const vec3_t ba{0.0, 0.0, 0.0};
+  const vec3_t bg{0.0, 0.0, 0.0};
+  swf.add_speed_bias(ts, v, ba, bg);
+  // -- Add pose prior
+  swf.add_pose_prior(pose_id);
+
+  // -- Loop over data
+  imu_data_t imu_data;
+
+  for (const auto &kv : sim_data.timeline) {
+    const timestamp_t &ts = kv.first;
+    const sim_event_t &event = kv.second;
+
+    // Handle imu event
+    if (event.type == sim_event_type_t::IMU) {
+      imu_data.add(ts, event.imu.accel, event.imu.gyro);
+    }
+
+    // Handle camera event
+    if (event.type == sim_event_type_t::CAMERA) {
+      if (imu_data.size() < 2) {
+        continue;
+      }
+
+      // Add imu factor
+      swf.add_imu_factor(ts, imu_data);
+      imu_data.clear();
+
+      // Add cam0 factors
+      const auto cam_idx = event.sensor_id;
+      auto pose_id = swf.window.back().pose_id;
+      for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
+        const auto feature_idx = event.frame.feature_ids[i];
+        const auto feature_id = swf.feature_ids.at(feature_idx);
+        const auto z = event.frame.keypoints[i];
+        swf.add_cam_factor(ts, cam_idx, pose_id, feature_id, z);
+      }
+
+      if (swf.window_size() >= 5) {
+        break;
+      }
+    }
+  }
+
+  printf("----------\n");
+  swf.print_info();
+  printf("\n");
+  swf.print_window();
+
+  swf.marginalize();
+
+  printf("----------\n");
+  swf.print_info();
+  printf("\n");
+  swf.print_window();
+
+  printf("nb_factors: %ld\n", swf.graph.factors.size());
+  printf("nb_params: %ld\n", swf.graph.params.size());
 
   return 0;
 }
@@ -1542,7 +1662,8 @@ int test_swf_solve_vo() {
   profiler_t profiler;
   profiler.start("solve_vo");
 
-  size_t pose_idx = 0;
+  bool prior_set = false;
+  id_t pose_idx = 0;
   for (const auto &kv : sim_data.timeline) {
     const timestamp_t &ts = kv.first;
     const sim_event_t &event = kv.second;
@@ -1554,14 +1675,15 @@ int test_swf_solve_vo() {
       const id_t pose_id = swf.add_pose(ts, T_WC);
 
       // Add prior
-      if (swf.prior_set == false) {
+      if (prior_set == false) {
         swf.add_pose_prior(pose_id);
+        prior_set = true;
       }
 
       // Add cam0 observations at ts
       for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
         auto feature_index = event.frame.feature_ids[i];
-        auto feature_id = swf.feature_ids[feature_index];
+        auto feature_id = swf.feature_ids.at(feature_index);
         auto z = event.frame.keypoints[i];
         swf.add_ba_factor(ts, 0, pose_id, feature_id, z);
       }
@@ -1570,11 +1692,11 @@ int test_swf_solve_vo() {
     }
   }
   profiler.print("solve_vo");
-  swf.save_poses("/tmp/sim_data/cam0_pose_est.csv");
+  // swf.save_poses("/tmp/sim_data/cam0_pose_est.csv");
 
   // Debug
-  const bool debug = true;
-  // const bool debug = false;
+  // const bool debug = true;
+  const bool debug = false;
   if (debug) {
     OCTAVE_SCRIPT("scripts/estimation/plot_test_vo.m");
   }
@@ -1614,47 +1736,73 @@ int test_swf_solve_vio() {
   profiler_t profiler;
   profiler.start("solve_vio");
 
+  bool frame_set = false;
+  cam_frame_t frame;
+
   for (const auto &kv : sim_data.timeline) {
     const timestamp_t &ts = kv.first;
     const sim_event_t &event = kv.second;
 
     // Handle imu event
     if (event.type == sim_event_type_t::IMU) {
+      printf("imu: %ld\n", ts);
       imu_data.add(ts, event.imu.accel, event.imu.gyro);
-    }
-
-    // Handle camera event
-    if (event.type == sim_event_type_t::CAMERA) {
-      if (imu_data.size() < 2) {
+      if (imu_data.size() < 2 || frame_set == false) {
         continue;
       }
-      // printf("window_size: %zu\n", swf.window.size());
+      // exit(0);
 
       // Add imu factor
       swf.add_imu_factor(ts, imu_data);
       imu_data.clear();
 
       // Add cam0 factors
+      const auto cam_idx = event.sensor_id;
       auto pose_id = swf.window.back().pose_id;
-      for (size_t i = 0; i < event.frame.feature_ids.size(); i++) {
-        const auto feature_idx = event.frame.feature_ids[i];
-        const auto feature_id = swf.feature_ids[feature_idx];
-        const auto z = event.frame.keypoints[i];
-        swf.add_cam_factor(ts, 0, pose_id, feature_id, z);
+      for (size_t i = 0; i < frame.feature_ids.size(); i++) {
+        const auto feature_idx = frame.feature_ids[i];
+        const auto feature_id = swf.feature_ids.at(feature_idx);
+        const auto z = frame.keypoints[i];
+        swf.add_cam_factor(ts, cam_idx, pose_id, feature_id, z);
       }
 
       swf.solve();
+      frame_set = false;
+
+      // if (swf.window_size() > 10) {
+      //   goto end;
+      // }
+    }
+
+    // Handle camera event
+    if (event.type == sim_event_type_t::CAMERA) {
+      printf("cam: %ld\n", ts);
+      frame = event.frame;
+      frame_set = true;
     }
   }
-  profiler.print("solve_vio");
-  swf.save_poses("/tmp/sim_data/imu_pose_est.csv");
 
-  // Debug
-  const bool debug = true;
-  // const bool debug = false;
-  if (debug) {
-    OCTAVE_SCRIPT("scripts/estimation/plot_test_vio.m");
-  }
+// end:
+//   matx_t H;
+//   vecx_t g;
+//   size_t marg_size = 0;
+//   size_t remain_size = 0;
+//   graph_eval(swf.graph, H, g, &marg_size, &remain_size);
+//
+//   auto e = graph_residuals(swf.graph);
+//   auto cost = 0.5 * e.transpose() * e;
+//   printf("cost: %f\n", (double) cost);
+
+  // swf.solve();
+  // profiler.print("solve_vio");
+  // swf.save_poses("/tmp/sim_data/imu_pose_est.csv");
+  //
+  // // Debug
+  // const bool debug = true;
+  // // const bool debug = false;
+  // if (debug) {
+  //   OCTAVE_SCRIPT("scripts/estimation/plot_test_vio.m");
+  // }
 
   return 0;
 }
@@ -1693,13 +1841,14 @@ void test_suite() {
   MU_ADD_TEST(test_swf_add_camera);
   MU_ADD_TEST(test_swf_add_extrinsics);
   MU_ADD_TEST(test_swf_add_feature);
+  MU_ADD_TEST(test_swf_add_pose);
   MU_ADD_TEST(test_swf_add_speed_bias);
   MU_ADD_TEST(test_swf_add_pose_prior);
   MU_ADD_TEST(test_swf_add_ba_factor);
   MU_ADD_TEST(test_swf_add_imu_factor);
   MU_ADD_TEST(test_swf_add_cam_factor);
-  MU_ADD_TEST(test_swf_add_marginalize);
-
+  MU_ADD_TEST(test_swf_pre_marginalize);
+  MU_ADD_TEST(test_swf_marginalize);
 
   MU_ADD_TEST(test_swf_solve_vo);
   MU_ADD_TEST(test_swf_solve_vio);
