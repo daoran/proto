@@ -27,14 +27,12 @@ ELSE ()
   MESSAGE(FATAL_ERROR "Failed to find libproto!")
 ENDIF()
 
-# Set PROTO_DEPS
+# Set PROTO_LIBRARIES
 SET(PROTO_DEPS
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
     yaml-cpp
     apriltags
     pthread)
-
-# Set PROTO_LIBRARIES
 SET(PROTO_LIBRARIES ${PROTO_DEPS} proto)
 SET(PROTO_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
