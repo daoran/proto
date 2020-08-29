@@ -25,7 +25,6 @@ ADD_LIBRARY(
   ${PROJECT_NAME}
   proto/aprilgrid.cpp
   proto/core.cpp
-  proto/euroc.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${PROTO_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
@@ -47,7 +46,7 @@ SET(
   UNITTESTS
   # atl-test_atl
   core-test_core
-  # dataset-test_euroc
+  dataset-test_euroc
   dataset-test_kitti
   # estimation-test_dense
   estimation-test_factor

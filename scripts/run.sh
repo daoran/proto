@@ -174,8 +174,8 @@ cd proto/build/tests
 # ./core-test_core --target test_sim_circle_trajectory
 
 # -- dataset
-# ./dataset-test_euroc
-./dataset-test_kitti
+./dataset-test_euroc
+# ./dataset-test_kitti
 
 # -- estimation
 # ./estimation-test_dense

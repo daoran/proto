@@ -695,7 +695,7 @@ std::string paths_join(const std::string path1, const std::string path2);
 
 
 /******************************************************************************
- *                                  CONFIG
+ *                              CONFIGURATION
  *****************************************************************************/
 
 struct config_t {

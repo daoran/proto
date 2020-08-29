@@ -32,10 +32,7 @@ int test_euroc_imu_constructor() {
 }
 
 int test_euroc_imu_load() {
-  euroc_imu_t imu_data;
-
-  int retval = euroc_imu_load(imu_data, TEST_IMU_DATA);
-  MU_CHECK(0 == retval);
+  euroc_imu_t imu_data{TEST_IMU_DATA};
   MU_CHECK(imu_data.timestamps.size());
   MU_CHECK(imu_data.w_B.size());
   MU_CHECK(imu_data.a_B.size());
@@ -79,8 +76,6 @@ int test_euroc_camera_constructor() {
 }
 
 int test_euroc_camera_load() {
-  euroc_camera_t camera_data;
-
   // Sensor extrinsics wrt. the body-frame.
   // clang-format off
   mat4_t T_BS_expected;
@@ -93,8 +88,7 @@ int test_euroc_camera_load() {
   const vec4_t distortion_expected(-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05);
   // clang-format on
 
-  int retval = euroc_camera_load(camera_data, TEST_CAM0_DATA);
-  MU_CHECK(0.0 == retval);
+  euroc_camera_t camera_data{TEST_CAM0_DATA};
   MU_CHECK(camera_data.timestamps.size());
   MU_CHECK(camera_data.image_paths.size());
   MU_CHECK(camera_data.timestamps[0] == 1403715273262142976);
@@ -126,10 +120,8 @@ int test_euroc_ground_truth_constructor() {
 }
 
 int test_euroc_ground_truth_load() {
-  euroc_ground_truth_t ground_truth;
+  euroc_ground_truth_t ground_truth{TEST_GROUND_TRUTH_DATA};
 
-  int retval = euroc_ground_truth_load(ground_truth, TEST_GROUND_TRUTH_DATA);
-  MU_CHECK(0 == retval);
   MU_CHECK(ground_truth.timestamps.size());
   MU_CHECK(ground_truth.p_RS_R.size());
   MU_CHECK(ground_truth.q_RS.size());
@@ -151,24 +143,8 @@ int test_euroc_ground_truth_load() {
   return 0;
 }
 
-int test_euroc_data_constructor() {
-  euroc_data_t data("/tmp");
-  MU_CHECK(data.ok == false);
-  MU_CHECK("/tmp" == data.data_path);
-
-  return 0;
-}
-
 int test_euroc_data_load() {
-  euroc_data_t data;
-  MU_CHECK(0 == euroc_data_load(data, TEST_DATA));
-
-  return 0;
-}
-
-int test_euroc_calib_constructor() {
-  euroc_calib_t data(TEST_CALIB_DATA);
-  MU_CHECK(TEST_CALIB_DATA == data.data_path);
+  euroc_data_t data{TEST_DATA};
 
   return 0;
 }
@@ -177,7 +153,7 @@ int test_euroc_calib_load() {
   {
     euroc_calib_t data;
     MU_CHECK(data.ok == false);
-    MU_CHECK(0 == euroc_calib_load(data, TEST_CALIB_DATA));
+    data = euroc_calib_t(TEST_CALIB_DATA);
     MU_CHECK(data.ok);
   }
 
@@ -248,10 +224,8 @@ void test_suite() {
   MU_ADD_TEST(test_euroc_ground_truth_constructor);
   MU_ADD_TEST(test_euroc_ground_truth_load);
 
-  MU_ADD_TEST(test_euroc_data_constructor);
   MU_ADD_TEST(test_euroc_data_load);
 
-  MU_ADD_TEST(test_euroc_calib_constructor);
   MU_ADD_TEST(test_euroc_calib_load);
 
   // MU_ADD_TEST(test_process_stereo_images);
