@@ -175,7 +175,7 @@ cd proto/build/tests
 
 # -- dataset
 ./dataset-test_euroc
-# ./dataset-test_kitti
+./dataset-test_kitti
 
 # -- estimation
 # ./estimation-test_dense

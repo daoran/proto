@@ -23,5 +23,6 @@ install boost
 install ceres
 install eigen
 install opencv3
+install apriltags
 install octomap
 install yamlcpp

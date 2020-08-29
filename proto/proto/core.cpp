@@ -906,9 +906,9 @@ int yaml_get_node(const config_t &config,
 
   // Check key
   if (node.IsDefined() == false && optional == false) {
-    LOG_ERROR("Opps [%s] missing in yaml file [%s]!",
-              key.c_str(),
-              config.file_path.c_str());
+    FATAL("Opps [%s] missing in yaml file [%s]!",
+          key.c_str(),
+          config.file_path.c_str());
     return -1;
   } else if (node.IsDefined() == false && optional == true) {
     return -1;

@@ -1,5 +1,5 @@
-#ifndef PROTO_DATASET_EUROC_HPP
-#define PROTO_DATASET_EUROC_HPP
+#ifndef PROTO_EUROC_HPP
+#define PROTO_EUROC_HPP
 
 #include <string>
 #include <libgen.h>
@@ -9,6 +9,10 @@
 #include "proto/timeline.hpp"
 
 namespace proto {
+
+/*****************************************************************************
+ * euroc_imu_t
+ ****************************************************************************/
 
 /**
  * EuRoC IMU data
@@ -114,6 +118,10 @@ std::ostream &operator<<(std::ostream &os, const euroc_imu_t &data) {
 
   return os;
 }
+
+/*****************************************************************************
+ * euroc_camera_t
+ ****************************************************************************/
 
 /**
  * EuRoC camera data
@@ -224,6 +232,10 @@ std::ostream &operator<<(std::ostream &os, const euroc_camera_t &data) {
   return os;
 }
 
+/*****************************************************************************
+ * euroc_ground_truth_t
+ ****************************************************************************/
+
 /**
  * EuRoC ground truth
  */
@@ -312,6 +324,10 @@ struct euroc_ground_truth_t {
 
   ~euroc_ground_truth_t() {}
 };
+
+/*****************************************************************************
+ * euroc_data_t
+ ****************************************************************************/
 
 /**
  * EuRoC data
@@ -580,4 +596,4 @@ struct euroc_calib_t {
 };
 
 } // namespace proto
-#endif /* PROTO_DATASET_EUROC_HPP */
+#endif /* PROTO_EUROC_HPP */
