@@ -1,5 +1,5 @@
 #include "proto/munit.hpp"
-#include "proto/estimation/factor.hpp"
+#include "proto/factor.hpp"
 
 namespace proto {
 
@@ -1850,6 +1850,7 @@ void test_suite() {
   MU_ADD_TEST(test_swf_pre_marginalize);
   MU_ADD_TEST(test_swf_marginalize);
 
+  // MU_ADD_TEST(test_swf_solve_mono_calib);
   MU_ADD_TEST(test_swf_solve_vo);
   MU_ADD_TEST(test_swf_solve_vio);
 }

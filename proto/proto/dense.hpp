@@ -4,7 +4,7 @@
 #include <octomap/octomap.h>
 #include <octomap/OcTree.h>
 
-#include "proto/core/core.hpp"
+#include "proto/core.hpp"
 
 namespace proto {
 

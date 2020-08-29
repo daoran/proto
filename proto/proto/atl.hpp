@@ -10,7 +10,7 @@
 #include <AprilTags/TagDetector.h>
 #include <AprilTags/Tag16h5.h>
 
-#include "proto/core/core.hpp"
+#include "proto/core.hpp"
 
 namespace proto {
 

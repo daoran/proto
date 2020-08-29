@@ -1,7 +1,7 @@
-#ifndef PROTO_DATASET_TIMELINE_HPP
-#define PROTO_DATASET_TIMELINE_HPP
+#ifndef PROTO_TIMELINE_HPP
+#define PROTO_TIMELINE_HPP
 
-#include "proto/core/core.hpp"
+#include "proto/core.hpp"
 
 namespace proto {
 
@@ -72,4 +72,4 @@ struct timeline_t {
 };
 
 } //  namespace proto
-#endif // PROTO_DATASET_TIMELINE_HPP
+#endif // PROTO_TIMELINE_HPP

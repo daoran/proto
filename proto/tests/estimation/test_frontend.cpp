@@ -1,7 +1,7 @@
 #include "proto/munit.hpp"
-#include "proto/core/core.hpp"
-#include "proto/dataset/kitti.hpp"
-#include "proto/estimation/frontend.hpp"
+#include "proto/core.hpp"
+#include "proto/kitti.hpp"
+#include "proto/frontend.hpp"
 
 namespace proto {
 

@@ -1,18 +1,18 @@
-#include "proto/core/core.hpp"
+#include "proto/core.hpp"
 
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
-#include "proto/core/stb_image.h"
+#include "proto/stb_image.h"
 #endif // STB_IMAGE_IMPLEMENTATION
 
 #ifndef STB_IMAGE_RESIZE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "proto/core/stb_image_resize.h"
+#include "proto/stb_image_resize.h"
 #endif // STB_IMAGE_RESIZE_IMPLEMENTATION
 
 #ifndef TINYPLY_IMPLEMENTATION
 #define TINYPLY_IMPLEMENTATION
-#include "proto/core/tinyply.hpp"
+#include "proto/tinyply.hpp"
 #endif // TINYPLY_IMPLEMENTATION
 
 namespace proto {

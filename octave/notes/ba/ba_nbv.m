@@ -420,13 +420,15 @@ function entropy = ba_entropy(data, sigma=[1.0; 1.0])
 
   % Calculate update
   E = ba_jacobian(data);
-  EWE = (E' * W * E);
+  H = (E' * W * E);
   % lambda = 1e-10;
-  % EWE = EWE + (lambda * eye(size(EWE)));
+  % H = H + (lambda * eye(size(H)));
 
   % Estimate covariance
-  % covar = (EWE)^-1;
-  covar = pinv(EWE);
+  % covar = (H)^-1;
+  % rank(H)
+  % rows(H)
+  covar = pinv(H);
   nb_points = length(data.p_data);
   points_covar = covar(end-(nb_points*3)+1:end, end-(nb_points*3)+1:end);
 

@@ -2,8 +2,8 @@
 #include <fstream>
 
 #include "proto/munit.hpp"
-#include "proto/core/core.hpp"
-#include "proto/mav/atl.hpp"
+#include "proto/core.hpp"
+#include "proto/atl.hpp"
 
 namespace proto {
 

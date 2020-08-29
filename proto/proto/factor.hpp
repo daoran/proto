@@ -1,7 +1,7 @@
 #ifndef PROTO_ESTIMATION_FACTOR_HPP
 #define PROTO_ESTIMATION_FACTOR_HPP
 
-#include "proto/core/core.hpp"
+#include "proto/core.hpp"
 
 namespace proto {
 
@@ -599,7 +599,6 @@ struct pose_factor_t : factor_t {
     type = "pose_factor_t";
     residuals = zeros(6, 1);
     jacobians.push_back(zeros(6, 6));
-
   }
 
   int eval(bool jacs=true) {
@@ -643,7 +642,7 @@ struct extrinsic_factor_t : pose_factor_t {
   extrinsic_factor_t(const id_t id_,
                      const mat_t<6, 6> &covar_,
                      param_t *param_)
-      : pose_factor_t{id_, covar_, param_} {}
+    : pose_factor_t{id_, covar_, param_} {}
 };
 
 /*****************************************************************************
@@ -808,7 +807,7 @@ struct ba_factor_t : factor_t {
     }
 
     // Calculate residual
-    residuals = z - z_hat;
+    residuals = sqrt_info * (z - z_hat);
 
     // Calculate Jacobians
     if (jacs) {
@@ -896,7 +895,7 @@ struct cam_factor_t : factor_t {
     }
 
     // Calculate residual
-    residuals = z - z_hat;
+    residuals = sqrt_info * (z - z_hat);
 
     // Calculate Jacobians
     if (jacs) {
@@ -1327,7 +1326,7 @@ id_t graph_add_ba_factor(graph_t &graph,
                          const id_t landmark_id,
                          const id_t cam_params_id,
                          const vec2_t &z,
-                         const mat2_t &covar = I(2) * 0.5) {
+                         const mat2_t &covar = I(2)) {
 
   // Create factor
   const id_t f_id = graph.next_factor_id++;

@@ -5,8 +5,8 @@
 #include <libgen.h>
 #include <inttypes.h>
 
-#include "proto/core/core.hpp"
-#include "proto/dataset/timeline.hpp"
+#include "proto/core.hpp"
+#include "proto/timeline.hpp"
 
 namespace proto {
 

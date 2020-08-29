@@ -1,5 +1,3 @@
-
-
 function R = euler321(rpy)
   phi = rpy(1);
   theta = rpy(2);

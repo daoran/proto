@@ -1,7 +1,7 @@
 #ifndef PROTO_VISION_FRONTEND_HPP
 #define PROTO_VISION_FRONTEND_HPP
 
-#include "proto/core/core.hpp"
+#include "proto/core.hpp"
 
 namespace proto {
 

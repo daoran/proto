@@ -1,25 +1,26 @@
 #include "proto/munit.hpp"
-#include "proto/dataset/kitti.hpp"
+#include "proto/kitti.hpp"
 
 namespace proto {
 
 #define TEST_DATA_BASEPATH "test_data/dataset/kitti/raw"
-#define TEST_DATA_PATH "test_data/dataset/kitti/raw/2011_09_26"
+#define TEST_DATA_PATH TEST_DATA_BASEPATH "/2011_09_26"
+#define TEST_OXTS_PATH TEST_DATA_PATH "/2011_09_26_drive_0001_sync/oxts"
 
 int test_kitti_parse_string() {
-  std::string value = kitti_parse_string("X: Hello World");
+  std::string value = kitti::parse_string("X: Hello World");
   MU_CHECK("Hello World" == value);
   return 0;
 }
 
 int test_kitti_parse_double() {
-  double value = kitti_parse_double("X: 1.23");
+  double value = kitti::parse_double("X: 1.23");
   MU_CHECK_FLOAT(1.23, value);
   return 0;
 }
 
 int test_kitti_parse_array() {
-  std::vector<double> value = kitti_parse_array("X: 1.0 2.0 3.0");
+  std::vector<double> value = kitti::parse_array("X: 1.0 2.0 3.0");
 
   MU_CHECK((int) value.size() == 3);
   MU_CHECK_FLOAT(1.0, value[0]);
@@ -30,7 +31,7 @@ int test_kitti_parse_array() {
 }
 
 int test_kitti_parse_vec2() {
-  vec2_t value = kitti_parse_vec2("X: 1.0 2.0");
+  vec2_t value = kitti::parse_vec2("X: 1.0 2.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -39,7 +40,7 @@ int test_kitti_parse_vec2() {
 }
 
 int test_kitti_parse_vec3() {
-  vec3_t value = kitti_parse_vec3("X: 1.0 2.0 3.0");
+  vec3_t value = kitti::parse_vec3("X: 1.0 2.0 3.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -49,7 +50,7 @@ int test_kitti_parse_vec3() {
 }
 
 int test_kitti_parse_vecx() {
-  vecx_t value = kitti_parse_vecx("X: 1.0 2.0 3.0 4.0 5.0 6.0");
+  vecx_t value = kitti::parse_vecx("X: 1.0 2.0 3.0 4.0 5.0 6.0");
 
   MU_CHECK_FLOAT(1.0, value(0));
   MU_CHECK_FLOAT(2.0, value(1));
@@ -62,7 +63,7 @@ int test_kitti_parse_vecx() {
 }
 
 int test_kitti_parse_mat3() {
-  mat3_t value = kitti_parse_mat3("X: 1 2 3 4 5 6 7 8 9");
+  mat3_t value = kitti::parse_mat3("X: 1 2 3 4 5 6 7 8 9");
 
   MU_CHECK_FLOAT(1.0, value(0, 0));
   MU_CHECK_FLOAT(2.0, value(0, 1));
@@ -78,7 +79,7 @@ int test_kitti_parse_mat3() {
 }
 
 int test_kitti_parse_mat34() {
-  mat34_t value = kitti_parse_mat34("X: 1 2 3 4 5 6 7 8 9 10 11 12");
+  mat34_t value = kitti::parse_mat34("X: 1 2 3 4 5 6 7 8 9 10 11 12");
 
   MU_CHECK_FLOAT(1.0, value(0, 0));
   MU_CHECK_FLOAT(2.0, value(0, 1));
@@ -100,10 +101,6 @@ int test_kitti_parse_mat34() {
 
 int test_calib_cam2cam_load() {
   calib_cam2cam_t calib{TEST_DATA_PATH "/calib_cam_to_cam.txt"};
-
-  int retval = calib_cam2cam_load(calib);
-  MU_CHECK(retval == 0);
-
   const vec2_t S_00_exp{1.392000e+03, 5.120000e+02};
   MU_CHECK("09-Jan-2012 13:57:47" == calib.calib_time);
   MU_CHECK_FLOAT(9.950000e-02, calib.corner_dist);
@@ -114,25 +111,17 @@ int test_calib_cam2cam_load() {
 int test_calib_imu2velo_load() {
   calib_imu2velo_t calib{TEST_DATA_PATH "/calib_imu_to_velo.txt"};
 
-  int retval = calib_imu2velo_load(calib);
-  MU_CHECK(retval == 0);
-
   return 0;
 }
 
 int test_calib_velo2cam_load() {
   calib_velo2cam_t calib{TEST_DATA_PATH "/calib_velo_to_cam.txt"};
 
-  int retval = calib_velo2cam_load(calib);
-  MU_CHECK(retval == 0);
-
   return 0;
 }
 
 int test_oxts_load() {
-  oxts_t oxts{TEST_DATA_PATH "/oxts"};
-  oxts_load(oxts);
-
+  oxts_t oxts{TEST_OXTS_PATH};
   for (size_t i = 0; i < oxts.timestamps.size(); i++) {
     MU_CHECK(oxts.time[i] >= 0.0);
   }
@@ -141,8 +130,7 @@ int test_oxts_load() {
 }
 
 int test_kitti_raw_load() {
-  kitti_raw_t dataset(TEST_DATA_BASEPATH, "2011_09_26", "0001");
-  MU_CHECK(kitti_raw_load(dataset) == 0);
+  kitti_raw_t dataset(TEST_DATA_BASEPATH, "2011_09_26", "0001", "sync");
   return 0;
 }
 

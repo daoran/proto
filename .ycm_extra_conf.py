@@ -28,7 +28,7 @@ flags = [
     '-isystem', '../llvm/include',
     '-isystem', '../llvm/tools/clang/include',
     '-I', '.',
-    '-I', 'include',
+    '-I', 'proto',
     '-I', 'src',
     '-I', '/usr/local/include',
     '-I', '/usr/include/eigen3',

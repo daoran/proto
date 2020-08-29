@@ -8,7 +8,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # sudo bash ./scripts/install_mexopencv.bash
 # octave notes/covar_recover.m && exit 0
 # octave notes/schurs.m && exit 0
-# octave notes/aabm.m && exit 0
+octave notes/aabm.m && exit 0
 # octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
@@ -45,7 +45,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # octave notes/vicon_ucl.m && exit 0
 
 # octave tools/calib_data_summary.m && exit 0
-octave tools/plot_aprilgrid_data.m && exit 0
+# octave tools/plot_aprilgrid_data.m && exit 0
 # octave tools/plot_calib_euroc.m && exit 0
 # octave tools/plot_timestamps.m && exit 0
 # octave tools/plot_ubx_nav_hpposllh.m
