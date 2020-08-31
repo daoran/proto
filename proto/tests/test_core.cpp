@@ -1,7 +1,7 @@
 #include <unistd.h>
 
-#include "proto/munit.hpp"
-#include "proto/core.hpp"
+#include "munit.hpp"
+#include "core.hpp"
 
 #define TEST_CONFIG "test_data/core/config/config.yaml"
 #define TEST_DATA "test_data/core/data/matrix.dat"

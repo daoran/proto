@@ -1,5 +1,5 @@
-#include "proto/munit.hpp"
-#include "proto/kitti.hpp"
+#include "munit.hpp"
+#include "kitti.hpp"
 
 namespace proto {
 

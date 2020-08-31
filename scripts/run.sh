@@ -57,169 +57,169 @@ time make release
 cd proto/build/tests
 # octave-cli scripts/core/plot_sim_data.m && exit
 
+# -- CALIB
+./test_calib
+
 # -- CORE
-# ./core-test_core
+# ./test_core
 # ---- Data
-# ./core-test_core --target test_csv_rows
-# ./core-test_core --target test_csv_cols
-# ./core-test_core --target test_csv2mat
-# ./core-test_core --target test_mat2csv
+# ./test_core --target test_csv_rows
+# ./test_core --target test_csv_cols
+# ./test_core --target test_csv2mat
+# ./test_core --target test_mat2csv
 # ---- Filesystem
-# ./core-test_core --target test_file_exists
-# ./core-test_core --target test_path_split
-# ./core-test_core --target test_paths_combine
+# ./test_core --target test_file_exists
+# ./test_core --target test_path_split
+# ./test_core --target test_paths_combine
 # ---- Config
-# ./core-test_core --target test_config_constructor
-# ./core-test_core --target test_config_parse_primitive
-# ./core-test_core --target test_config_parse_array
-# ./core-test_core --target test_config_parse_vector
-# ./core-test_core --target test_config_parse_matrix
-# ./core-test_core --target test_config_parser_full_example
+# ./test_core --target test_config_constructor
+# ./test_core --target test_config_parse_primitive
+# ./test_core --target test_config_parse_array
+# ./test_core --target test_config_parse_vector
+# ./test_core --target test_config_parse_matrix
+# ./test_core --target test_config_parser_full_example
 # ---- Algebra
-# ./core-test_core --target test_sign
-# ./core-test_core --target test_linspace
-# ./core-test_core --target test_linspace_timestamps
+# ./test_core --target test_sign
+# ./test_core --target test_linspace
+# ./test_core --target test_linspace_timestamps
 # ---- Linear Algebra
-# ./core-test_core --target test_zeros
-# ./core-test_core --target test_I
-# ./core-test_core --target test_ones
-# ./core-test_core --target test_hstack
-# ./core-test_core --target test_vstack
-# ./core-test_core --target test_dstack
-# ./core-test_core --target test_skew
-# ./core-test_core --target test_skewsq
-# ./core-test_core --target test_enforce_psd
-# ./core-test_core --target test_nullspace
-# ./core-test_core --target test_covar_recover
+# ./test_core --target test_zeros
+# ./test_core --target test_I
+# ./test_core --target test_ones
+# ./test_core --target test_hstack
+# ./test_core --target test_vstack
+# ./test_core --target test_dstack
+# ./test_core --target test_skew
+# ./test_core --target test_skewsq
+# ./test_core --target test_enforce_psd
+# ./test_core --target test_nullspace
+# ./test_core --target test_covar_recover
 # ---- Geometry
-# ./core-test_core --target test_deg2rad_rad2deg
-# ./core-test_core --target test_wrap180
-# ./core-test_core --target test_wrap360
-# ./core-test_core --target test_cross_track_error
-# ./core-test_core --target test_point_left_right
-# ./core-test_core --target test_closest_point
-# ./core-test_core --target test_latlon_offset
-# ./core-test_core --target test_latlon_diff
-# ./core-test_core --target test_latlon_dist
+# ./test_core --target test_deg2rad_rad2deg
+# ./test_core --target test_wrap180
+# ./test_core --target test_wrap360
+# ./test_core --target test_cross_track_error
+# ./test_core --target test_point_left_right
+# ./test_core --target test_closest_point
+# ./test_core --target test_latlon_offset
+# ./test_core --target test_latlon_diff
+# ./test_core --target test_latlon_dist
 # ---- Statistics
-# ./core-test_core --target test_median
-# ./core-test_core --target test_mvn
-# ./core-test_core --target test_gauss_normal
+# ./test_core --target test_median
+# ./test_core --target test_mvn
+# ./test_core --target test_gauss_normal
 # ---- Transform
-# ./core-test_core --target test_tf_rot
-# ./core-test_core --target test_tf_trans
+# ./test_core --target test_tf_rot
+# ./test_core --target test_tf_trans
 # ---- Time
-# ./core-test_core --target test_ts2sec
-# ./core-test_core --target test_ns2sec
-# ./core-test_core --target test_tic_toc
+# ./test_core --target test_ts2sec
+# ./test_core --target test_ns2sec
+# ./test_core --target test_tic_toc
 # ---- Network
-# ./core-test_core --target test_tcp_server
-# ./core-test_core --target test_tcp_client
-# ./core-test_core --target test_tcp_server_config
-# ./core-test_core --target test_tcp_client_config
-# ./core-test_core --target test_tcp_server_client_loop
+# ./test_core --target test_tcp_server
+# ./test_core --target test_tcp_client
+# ./test_core --target test_tcp_server_config
+# ./test_core --target test_tcp_client_config
+# ./test_core --target test_tcp_server_client_loop
 # ---- Interpolation
-# ./core-test_core --target test_lerp
-# ./core-test_core --target test_slerp
-# ./core-test_core --target test_interp_pose
-# ./core-test_core --target test_interp_poses
-# ./core-test_core --target test_closest_poses
-# ./core-test_core --target test_intersection
-# ./core-test_core --target test_lerp_timestamps
-# ./core-test_core --target test_lerp_data
-# ./core-test_core --target test_lerp_data2
-# ./core-test_core --target test_lerp_data3
-# ./core-test_core --target test_ctraj
-# ./core-test_core --target test_ctraj_get_pose
-# ./core-test_core --target test_ctraj_get_velocity
-# ./core-test_core --target test_ctraj_get_acceleration
-# ./core-test_core --target test_ctraj_get_angular_velocity
-# ./core-test_core --target test_sim_imu_measurement
+# ./test_core --target test_lerp
+# ./test_core --target test_slerp
+# ./test_core --target test_interp_pose
+# ./test_core --target test_interp_poses
+# ./test_core --target test_closest_poses
+# ./test_core --target test_intersection
+# ./test_core --target test_lerp_timestamps
+# ./test_core --target test_lerp_data
+# ./test_core --target test_lerp_data2
+# ./test_core --target test_lerp_data3
+# ./test_core --target test_ctraj
+# ./test_core --target test_ctraj_get_pose
+# ./test_core --target test_ctraj_get_velocity
+# ./test_core --target test_ctraj_get_acceleration
+# ./test_core --target test_ctraj_get_angular_velocity
+# ./test_core --target test_sim_imu_measurement
 # ---- Control
-# ./core-test_core --target test_pid_construct
-# ./core-test_core --target test_pid_setup
-# ./core-test_core --target test_pid_update
-# ./core-test_core --target test_pid_reset
-# ./core-test_core --target test_carrot_ctrl_constructor
-# ./core-test_core --target test_carrot_ctrl_configure
-# ./core-test_core --target test_carrot_ctrl_closest_point
-# ./core-test_core --target test_carrot_ctrl_carrot_point
-# ./core-test_core --target test_carrot_ctrl_update
+# ./test_core --target test_pid_construct
+# ./test_core --target test_pid_setup
+# ./test_core --target test_pid_update
+# ./test_core --target test_pid_reset
+# ./test_core --target test_carrot_ctrl_constructor
+# ./test_core --target test_carrot_ctrl_configure
+# ./test_core --target test_carrot_ctrl_closest_point
+# ./test_core --target test_carrot_ctrl_carrot_point
+# ./test_core --target test_carrot_ctrl_update
 # ---- Measurements
-# ./core-test_core --target test_imu_meas
-# ./core-test_core --target test_imu_data
-# ./core-test_core --target test_imu_data_add
-# ./core-test_core --target test_imu_data_size
-# ./core-test_core --target test_imu_data_last_ts
-# ./core-test_core --target test_imu_data_clear
+# ./test_core --target test_imu_meas
+# ./test_core --target test_imu_data
+# ./test_core --target test_imu_data_add
+# ./test_core --target test_imu_data_size
+# ./test_core --target test_imu_data_last_ts
+# ./test_core --target test_imu_data_clear
 # ---- Model
-# ./core-test_core --target test_two_wheel_constructor
-# ./core-test_core --target test_two_wheel_update
-# ./core-test_core --target test_mav_model_constructor
-# ./core-test_core --target test_mav_model_update
+# ./test_core --target test_two_wheel_constructor
+# ./test_core --target test_two_wheel_update
+# ./test_core --target test_mav_model_constructor
+# ./test_core --target test_mav_model_update
 # ---- Vision
-# ./core-test_core --target test_feature_mask
-# ./core-test_core --target test_grid_fast
-# ./core-test_core --target benchmark_grid_fast
-# ./core-test_core --target test_grid_good
-# ./core-test_core --target test_radtan_distort_point
-# ./core-test_core --target test_radtan_undistort_point
-# ./core-test_core --target test_equi_distort_point
-# ./core-test_core --target test_equi_undistort_point
-# ./core-test_core --target test_pinhole
-# ./core-test_core --target test_pinhole_K
-# ./core-test_core --target test_pinhole_focal
-# ./core-test_core --target test_pinhole_project
+# ./test_core --target test_feature_mask
+# ./test_core --target test_grid_fast
+# ./test_core --target benchmark_grid_fast
+# ./test_core --target test_grid_good
+# ./test_core --target test_radtan_distort_point
+# ./test_core --target test_radtan_undistort_point
+# ./test_core --target test_equi_distort_point
+# ./test_core --target test_equi_undistort_point
+# ./test_core --target test_pinhole
+# ./test_core --target test_pinhole_K
+# ./test_core --target test_pinhole_focal
+# ./test_core --target test_pinhole_project
 # ---- Simulation
-# ./core-test_core --target test_sim_circle_trajectory
+# ./test_core --target test_sim_circle_trajectory
 
 # -- dataset
-./dataset-test_euroc
-./dataset-test_kitti
+# ./test_euroc
+# ./test_kitti
 
 # -- estimation
-# ./estimation-test_dense
-# ./estimation-test_factor
-# ./estimation-test_factor --target test_pose_factor_jacobians
-# ./estimation-test_factor --target test_extrinsic_factor_jacobians
-# ./estimation-test_factor --target test_speed_bias_factor_jacobians
-# ./estimation-test_factor --target test_camera_params_factor_jacobians
-# ./estimation-test_factor --target test_ba_factor_jacobians
-# ./estimation-test_factor --target test_cam_factor_jacobians
-# ./estimation-test_factor --target test_imu_factor_jacobians
-# ./estimation-test_factor --target test_imu_propagate
-# ./estimation-test_factor --target test_graph
-# ./estimation-test_factor --target test_graph_add_pose
-# ./estimation-test_factor --target test_graph_add_landmark
-# ./estimation-test_factor --target test_graph_add_camera
-# ./estimation-test_factor --target test_graph_add_speed_bias
-# ./estimation-test_factor --target test_graph_add_pose_factor
-# ./estimation-test_factor --target test_graph_add_ba_factor
-# ./estimation-test_factor --target test_graph_add_cam_factor
-# ./estimation-test_factor --target test_graph_add_imu_factor
-# ./estimation-test_factor --target test_graph_rm_param
-# ./estimation-test_factor --target test_graph_rm_factor
-# ./estimation-test_factor --target test_graph_eval
-# ./estimation-test_factor --target test_graph_get_state
-# ./estimation-test_factor --target test_graph_set_state
-# ./estimation-test_factor --target test_graph_solve_ba
-# ./estimation-test_factor --target test_swf_add_imu
-# ./estimation-test_factor --target test_swf_add_camera
-# ./estimation-test_factor --target test_swf_add_extrinsics
-# ./estimation-test_factor --target test_swf_add_feature
-# ./estimation-test_factor --target test_swf_add_pose
-# ./estimation-test_factor --target test_swf_add_speed_bias
-# ./estimation-test_factor --target test_swf_add_pose_prior
-# ./estimation-test_factor --target test_swf_add_ba_factor
-# ./estimation-test_factor --target test_swf_add_imu_factor
-# ./estimation-test_factor --target test_swf_add_cam_factor
-# ./estimation-test_factor --target test_swf_add_cam_factor
-# debug ./estimation-test_factor --target test_swf_pre_marginalize
-# ./estimation-test_factor --target test_swf_marginalize
-# ./estimation-test_factor --target test_swf_solve_vo
-# ./estimation-test_factor --target test_swf_solve_vio
-# ./estimation-test_frontend
+# ./test_dense
+# ./test_factor
+# ./test_factor --target test_pose_factor_jacobians
+# ./test_factor --target test_extrinsic_factor_jacobians
+# ./test_factor --target test_speed_bias_factor_jacobians
+# ./test_factor --target test_camera_params_factor_jacobians
+# ./test_factor --target test_ba_factor_jacobians
+# ./test_factor --target test_cam_factor_jacobians
+# ./test_factor --target test_imu_factor_jacobians
+# ./test_factor --target test_imu_propagate
+# ./test_factor --target test_graph
+# ./test_factor --target test_graph_add_pose
+# ./test_factor --target test_graph_add_landmark
+# ./test_factor --target test_graph_add_camera
+# ./test_factor --target test_graph_add_speed_bias
+# ./test_factor --target test_graph_add_pose_factor
+# ./test_factor --target test_graph_add_ba_factor
+# ./test_factor --target test_graph_add_cam_factor
+# ./test_factor --target test_graph_add_imu_factor
+# ./test_factor --target test_graph_rm_param
+# ./test_factor --target test_graph_rm_factor
+# ./test_factor --target test_graph_eval
+# ./test_factor --target test_graph_get_state
+# ./test_factor --target test_graph_set_state
+# ./test_factor --target test_graph_solve_ba
+# ./test_factor --target test_swf_add_imu
+# ./test_factor --target test_swf_add_camera
+# ./test_factor --target test_swf_add_extrinsics
+# ./test_factor --target test_swf_add_feature
+# ./test_factor --target test_swf_add_pose
+# ./test_factor --target test_swf_add_speed_bias
+# ./test_factor --target test_swf_add_pose_prior
+# ./test_factor --target test_swf_add_ba_factor
+# ./test_factor --target test_swf_add_imu_factor
+# ./test_factor --target test_swf_add_cam_factor
+# ./test_factor --target test_swf_add_cam_factor
+# debug ./test_factor --target test_swf_pre_marginalize
+# ./test_factor --target test_swf_marginalize
+# ./test_factor --target test_swf_solve_vo
+# ./test_factor --target test_swf_solve_vio
 
-# -- viz
-# ./viz-test_gui
-# ./viz-test_plane
+# ./test_frontend

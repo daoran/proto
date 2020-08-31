@@ -1,4 +1,4 @@
-#include "proto/atl.hpp"
+#include "atl.hpp"
 
 namespace proto {
 

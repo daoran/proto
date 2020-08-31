@@ -1,7 +1,7 @@
 #ifndef PROTO_ESTIMATION_FILTER_HPP
 #define PROTO_ESTIMATION_FILTER_HPP
 
-#include "proto/core.hpp"
+#include "core.hpp"
 
 namespace proto {
 

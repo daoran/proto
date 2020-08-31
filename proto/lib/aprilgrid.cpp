@@ -1,4 +1,4 @@
-#include "proto/aprilgrid.hpp"
+#include "aprilgrid.hpp"
 
 namespace proto {
 
@@ -400,11 +400,9 @@ int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
   return 0;
 }
 
-void aprilgrid_imshow(const aprilgrid_t &grid,
-                      const std::string &title,
-                      const cv::Mat &image) {
+void aprilgrid_draw(const aprilgrid_t &grid, cv::Mat &image) {
   // Draw corners
-  cv::Mat image_rgb = gray2rgb(image);
+  image = gray2rgb(image);
 
   for (size_t i = 0; i < grid.ids.size(); i++) {
     const size_t id = grid.ids[i];
@@ -420,10 +418,10 @@ void aprilgrid_imshow(const aprilgrid_t &grid,
     cv::Point2f p4(kps[3](0), kps[3](1)); // Bottom right
 
     // Draw corners
-    cv::circle(image_rgb, p1, 2, cv::Scalar(0, 0, 255), -1); // Bottom left
-    cv::circle(image_rgb, p2, 2, cv::Scalar(0, 0, 255), -1); // Top left
-    cv::circle(image_rgb, p3, 2, cv::Scalar(0, 0, 255), -1); // Top right
-    cv::circle(image_rgb, p4, 2, cv::Scalar(0, 0, 255), -1); // Bottom right
+    cv::circle(image, p1, 2, cv::Scalar(0, 0, 255), -1); // Bottom left
+    cv::circle(image, p2, 2, cv::Scalar(0, 0, 255), -1); // Top left
+    cv::circle(image, p3, 2, cv::Scalar(0, 0, 255), -1); // Top right
+    cv::circle(image, p4, 2, cv::Scalar(0, 0, 255), -1); // Bottom right
 
     // // Draw Tag ID
     // cv::Point2f cxy(tags[i].cxy.first - 10, tags[i].cxy.second + 5);
@@ -435,9 +433,14 @@ void aprilgrid_imshow(const aprilgrid_t &grid,
     // cv::putText(image_rgb, text, cxy, font, font_scale, text_color,
     // thickness);
   }
+}
 
-  // Show
-  cv::imshow(title, image_rgb);
+void aprilgrid_imshow(const aprilgrid_t &grid,
+                      const std::string &title,
+                      const cv::Mat &image) {
+	cv::Mat image_copy = image.clone();
+	aprilgrid_draw(grid, image_copy);
+  cv::imshow(title, image_copy);
   cv::waitKey(1);
 }
 

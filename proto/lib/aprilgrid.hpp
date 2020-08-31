@@ -7,7 +7,7 @@
 #include <AprilTags/TagDetector.h>
 #include <AprilTags/Tag36h11.h>
 
-#include "proto/core.hpp"
+#include "core.hpp"
 
 namespace proto {
 
@@ -128,6 +128,9 @@ int aprilgrid_object_points(const aprilgrid_t &grid, vec3s_t &object_points);
 int aprilgrid_calc_relative_pose(aprilgrid_t &grid,
                                  const mat3_t &cam_K,
                                  const vec4_t &cam_D);
+
+/** Draw detection on `image`. */
+void aprilgrid_draw(const aprilgrid_t &grid, cv::Mat &image);
 
 /** Show detection. */
 void aprilgrid_imshow(const aprilgrid_t &grid,

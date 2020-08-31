@@ -1,7 +1,7 @@
 #ifndef PROTO_TIMELINE_HPP
 #define PROTO_TIMELINE_HPP
 
-#include "proto/core.hpp"
+#include "core.hpp"
 
 namespace proto {
 

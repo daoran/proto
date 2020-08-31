@@ -1,7 +1,7 @@
 #ifndef PROTO_ESTIMATION_FACTOR_HPP
 #define PROTO_ESTIMATION_FACTOR_HPP
 
-#include "proto/core.hpp"
+#include "core.hpp"
 
 namespace proto {
 
@@ -1886,12 +1886,12 @@ struct tiny_solver_t {
         lambda_k *= update_factor;
       }
 
-      // Termination criterias
-      if (fabs(cost_delta) < cost_change_threshold) {
-        break;
-      } else if ((solve_time + iter_time) > time_limit) {
-        break;
-      }
+      // // Termination criterias
+      // if (fabs(cost_delta) < cost_change_threshold) {
+      //   break;
+      // } else if ((solve_time + iter_time) > time_limit) {
+      //   break;
+      // }
     }
 
     solve_time = toc(&solve_tic);

@@ -1,7 +1,7 @@
-#include "proto/munit.hpp"
-#include "proto/core.hpp"
-#include "proto/kitti.hpp"
-#include "proto/frontend.hpp"
+#include "munit.hpp"
+#include "core.hpp"
+#include "kitti.hpp"
+#include "frontend.hpp"
 
 namespace proto {
 
@@ -18,13 +18,6 @@ int test_frontend_track() {
 }
 
 int test_frontend_update() {
-  // Load kitti dataset
-  // kitti_raw_t dataset(TEST_DATA_BASEPATH, "2011_09_26", "0005");
-  // if (kitti_raw_load(dataset) != 0) {
-  //   LOG_ERROR("Failed to load KITTI raw dataset!");
-  //   return -1;
-  // }
-
   const auto data_path = "/data/euroc_mav/imu_april/mav0/cam0/data/";
   std::vector<std::string> results;
   list_dir(data_path, results);
@@ -40,7 +33,6 @@ int test_frontend_update() {
   // for (const auto cam0_image_path : dataset.cam0) {
   for (auto cam0_image_path : results) {
     cam0_image_path = data_path + cam0_image_path;
-    std::cout << cam0_image_path << std::endl;
     const auto image = cv::imread(cam0_image_path, cv::IMREAD_COLOR);
     const auto image_gray = rgb2gray(image);
 

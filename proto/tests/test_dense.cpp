@@ -1,6 +1,6 @@
-#include "proto/munit.hpp"
-#include "proto/kitti.hpp"
-#include "proto/viz/viz.hpp"
+#include "munit.hpp"
+#include "kitti.hpp"
+#include "viz/viz.hpp"
 
 namespace proto {
 

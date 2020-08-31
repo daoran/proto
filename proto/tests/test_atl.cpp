@@ -1,9 +1,9 @@
 #include <iostream>
 #include <fstream>
 
-#include "proto/munit.hpp"
-#include "proto/core.hpp"
-#include "proto/atl.hpp"
+#include "munit.hpp"
+#include "core.hpp"
+#include "atl.hpp"
 
 namespace proto {
 

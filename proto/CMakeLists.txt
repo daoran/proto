@@ -35,17 +35,17 @@ SET(PROTO_DEPS
     pthread)
 
 # LIBRARY
-INCLUDE_DIRECTORIES(.)
+INCLUDE_DIRECTORIES(lib)
 ADD_LIBRARY(
   ${PROJECT_NAME}
-  proto/aprilgrid.cpp
-  proto/core.cpp
+  lib/aprilgrid.cpp
+  lib/core.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${PROTO_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
 INSTALL(
-  DIRECTORY include/
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+  DIRECTORY lib/
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/include/proto
   FILES_MATCHING PATTERN "*.h*"
 )
 INSTALL(
@@ -61,6 +61,7 @@ FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
 SET(
   UNITTESTS
   # test_atl
+  test_calib
   test_core
   test_euroc
   test_kitti

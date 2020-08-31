@@ -1,7 +1,7 @@
-#ifndef PROTO_VISION_FRONTEND_HPP
-#define PROTO_VISION_FRONTEND_HPP
+#ifndef PROTO_FRONTEND_HPP
+#define PROTO_FRONTEND_HPP
 
-#include "proto/core.hpp"
+#include "core.hpp"
 
 namespace proto {
 
@@ -199,4 +199,4 @@ struct frontend_t {
 };
 
 } //  namespace proto
-#endif // PROTO_VISION_FRONTEND_HPP
+#endif // PROTO_FRONTEND_HPP

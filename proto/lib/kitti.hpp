@@ -1,7 +1,7 @@
 #ifndef PROTO_DATASET_KITTI_HPP
 #define PROTO_DATASET_KITTI_HPP
 
-#include "proto/core.hpp"
+#include "core.hpp"
 
 namespace proto {
 

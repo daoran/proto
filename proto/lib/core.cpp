@@ -1,18 +1,18 @@
-#include "proto/core.hpp"
+#include "core.hpp"
 
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
-#include "proto/stb_image.h"
+#include "stb_image.h"
 #endif // STB_IMAGE_IMPLEMENTATION
 
 #ifndef STB_IMAGE_RESIZE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "proto/stb_image_resize.h"
+#include "stb_image_resize.h"
 #endif // STB_IMAGE_RESIZE_IMPLEMENTATION
 
 #ifndef TINYPLY_IMPLEMENTATION
 #define TINYPLY_IMPLEMENTATION
-#include "proto/tinyply.hpp"
+#include "tinyply.hpp"
 #endif // TINYPLY_IMPLEMENTATION
 
 namespace proto {
@@ -519,6 +519,25 @@ void save_poses(const std::string &path,
     save_pose(csv, ts, rot, pos);
   }
   fflush(csv);
+  fclose(csv);
+}
+
+void save_poses(const std::string &path, const mat4s_t &poses) {
+  FILE *csv = fopen(path.c_str(), "w");
+  for (const auto &pose : poses) {
+    const auto &q = tf_quat(pose);
+    const auto &r = tf_trans(pose);
+
+    fprintf(csv, "%f,", q.w());
+    fprintf(csv, "%f,", q.x());
+    fprintf(csv, "%f,", q.y());
+    fprintf(csv, "%f,", q.z());
+
+    fprintf(csv, "%f,", r(0));
+    fprintf(csv, "%f,", r(1));
+    fprintf(csv, "%f\n", r(2));
+  }
+	fflush(csv);
   fclose(csv);
 }
 
@@ -1920,6 +1939,17 @@ vec3_t mean(const vec3s_t &x) {
   x_hat *= 1.0f / x.size();
 
   return x_hat;
+}
+
+real_t rmse(const std::vector<real_t> &residuals) {
+  double err_sum = 0.0;
+  for (const auto &r : residuals) {
+    err_sum += r;
+  }
+
+  double nb_residuals = residuals.size();
+  double mse = (err_sum * err_sum) / nb_residuals;
+  return sqrt(mse);
 }
 
 real_t shannon_entropy(const matx_t &covar) {

@@ -544,6 +544,11 @@ void save_poses(const std::string &path,
                 const vec3s_t &positions);
 
 /**
+ * Save poses to csv file in `path`.
+ */
+void save_poses(const std::string &path, const mat4s_t &poses);
+
+/**
  * Check jacobian
  */
 int check_jacobian(const std::string &jac_name,
@@ -1595,6 +1600,11 @@ real_t median(const std::vector<real_t> &v);
  * @return Mean vector
  */
 vec3_t mean(const vec3s_t &x);
+
+/**
+ * Root Mean Squared Error.
+ */
+double rmse(const std::vector<real_t> &residuals);
 
 /**
  * Shannon Entropy of a given covariance matrix `covar`.
