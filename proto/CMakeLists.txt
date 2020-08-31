@@ -57,18 +57,18 @@ INSTALL(
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/test_data DESTINATION ${PROJECT_BINARY_DIR}/tests)
 FILE(COPY tests/scripts DESTINATION ${PROJECT_BINARY_DIR}/tests)
+
 SET(
   UNITTESTS
-  # atl-test_atl
-  core-test_core
-  dataset-test_euroc
-  dataset-test_kitti
-  # estimation-test_dense
-  estimation-test_factor
-  # estimation-test_frontend
+  # test_atl
+  test_core
+  test_euroc
+  test_kitti
+  # test_dense
+  test_factor
+  test_frontend
 )
 FOREACH(TEST ${UNITTESTS})
-  STRING(REGEX REPLACE "-" "/" TEST_PATH ${TEST})
-  ADD_EXECUTABLE(${TEST} tests/${TEST_PATH}.cpp)
+  ADD_EXECUTABLE(${TEST} tests/${TEST}.cpp)
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${PROTO_LIBRARIES})
 ENDFOREACH(TEST)

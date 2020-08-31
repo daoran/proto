@@ -25,8 +25,9 @@ int test_frontend_update() {
   //   return -1;
   // }
 
+  const auto data_path = "/data/euroc_mav/imu_april/mav0/cam0/data/";
   std::vector<std::string> results;
-  list_dir("/home/chutsu/Downloads/mav0/cam0/data", results);
+  list_dir(data_path, results);
   std::sort(results.begin(), results.end());
 
   // Loop through frontend
@@ -38,7 +39,8 @@ int test_frontend_update() {
 
   // for (const auto cam0_image_path : dataset.cam0) {
   for (auto cam0_image_path : results) {
-    cam0_image_path = "/home/chutsu/Downloads/mav0/cam0/data/" + cam0_image_path;
+    cam0_image_path = data_path + cam0_image_path;
+    std::cout << cam0_image_path << std::endl;
     const auto image = cv::imread(cam0_image_path, cv::IMREAD_COLOR);
     const auto image_gray = rgb2gray(image);
 
