@@ -1912,6 +1912,16 @@ real_t randf(const real_t ub, const real_t lb) {
   return lb + f * (ub - lb);
 }
 
+real_t sum(const std::vector<real_t> &x) {
+  double sum = 0.0;
+
+  for (const auto &x_i : x) {
+    sum += x_i;
+  }
+
+  return sum;
+}
+
 real_t median(const std::vector<real_t> &v) {
   // sort values
   std::vector<real_t> v_copy = v;
@@ -1942,13 +1952,13 @@ vec3_t mean(const vec3s_t &x) {
 }
 
 real_t rmse(const std::vector<real_t> &residuals) {
-  double err_sum = 0.0;
-  for (const auto &r : residuals) {
-    err_sum += r;
+  double sse = 0.0;
+  for (const auto r : residuals) {
+    sse += r * r;
   }
 
-  double nb_residuals = residuals.size();
-  double mse = (err_sum * err_sum) / nb_residuals;
+  double n = residuals.size();
+  double mse = sse / n;
   return sqrt(mse);
 }
 
@@ -1995,6 +2005,12 @@ real_t gauss_normal() {
 /*****************************************************************************
  *                               TRANSFORM
  *****************************************************************************/
+
+mat4_t tf(const double *params) {
+  const quat_t q{params[0], params[1], params[2], params[3]};
+  const vec3_t r{params[4], params[5], params[6]};
+  return tf(q, r);
+}
 
 mat4_t tf(const vecx_t &params) {
   assert(params.size() == 7);
@@ -3536,7 +3552,7 @@ real_t reprojection_error(const vec2s_t &measured, const vec2s_t &projected) {
   real_t sse = 0.0;
   const size_t nb_keypoints = measured.size();
   for (size_t i = 0; i < nb_keypoints; i++) {
-    sse += (measured[i] - projected[i]).norm();
+    sse += pow((measured[i] - projected[i]).norm(), 2);
   }
   const real_t rmse = sqrt(sse / nb_keypoints);
 
@@ -3550,11 +3566,21 @@ real_t reprojection_error(const std::vector<cv::Point2f> &measured,
   real_t sse = 0.0;
   const size_t nb_keypoints = measured.size();
   for (size_t i = 0; i < nb_keypoints; i++) {
-    sse += cv::norm(measured[i] - projected[i]);
+    sse += pow(cv::norm(measured[i] - projected[i]), 2);
   }
   const real_t rmse = sqrt(sse / nb_keypoints);
 
   return rmse;
+}
+
+real_t reprojection_error(const std::vector<vec2_t> &errors) {
+  double sse = 0.0;
+  for (const auto &e : errors) {
+    sse += pow(e.norm(), 2);
+  }
+  const double mse = sse / errors.size();
+
+  return sqrt(mse);
 }
 
 matx_t feature_mask(const int image_width,
@@ -4371,6 +4397,5 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
     }
   }
 }
-
 
 } // namespace proto

@@ -234,6 +234,60 @@ int test_ba_factor_jacobians() {
   return 0;
 }
 
+int test_calib_mono_factor_jacobians() {
+  // Setup parameters
+  // -- Camera
+  const int cam_index = 0;
+  const int resolution[2] = {640, 480};
+  const vec3_t rpy_WC{-90.0, 0.0, -90.0};
+  const mat3_t C_WC = euler321(deg2rad(rpy_WC));
+  const vec3_t r_WC{-10.0, 0.0, 0.0};
+  const mat4_t T_WC = tf(C_WC, r_WC);
+  pose_t cam_pose{0, 0, T_WC};
+  // -- Fiducial Pose
+  const vec3_t rpy_WF{90.0, 0.0, -90.0};
+  const mat3_t C_WF = euler321(deg2rad(rpy_WF));
+  const vec3_t r_WF{0.01, 0.02, 0.03};
+  const mat4_t T_WF = tf(C_WF, r_WC);
+  fiducial_pose_t fiducial_pose{1, T_WF};
+  const int tag_id = 0;
+  const int tag_corner = 0;
+  const vec3_t r_FFi{0.01, 0.01, 0.0};
+  // -- Camera intrinsics
+  vec4_t proj_params{600.0, 600.0, 325.0, 240.0};
+  vec4_t dist_params{0.15, -0.3, 0.0001, 0.001};
+  camera_params_t cam_params{2, cam_index, resolution, proj_params, dist_params};
+
+  // Create factor
+  const timestamp_t ts = 0;
+  const size_t id = 0;
+  const vec2_t z{0.0, 0.0};
+  std::vector<param_t *> params{
+    &cam_pose,
+    &fiducial_pose,
+    &cam_params,
+  };
+  calib_mono_factor_t<pinhole_radtan4_t> factor{id, ts, tag_id, tag_corner,
+                                                r_FFi, z, I(2), params};
+
+  // Check ba factor parameter jacobians
+  int retval = 0;
+  // -- Check measurement model jacobian
+  retval = check_J_h<pinhole_radtan4_t>(resolution, cam_params.param);
+  MU_CHECK(retval == 0);
+  // -- Check camera pose jacobian
+  retval = check_jacobians(&factor, 0, "J_cam_pose", step, threshold);
+  MU_CHECK(retval == 0);
+  // -- Check landmark jacobian
+  retval = check_jacobians(&factor, 1, "J_fiducial_pose", step, threshold);
+  MU_CHECK(retval == 0);
+  // // -- Check camera params jacobian
+  // retval = check_jacobians(&factor, 2, "J_cam_params", step, threshold);
+  // MU_CHECK(retval == 0);
+
+  return 0;
+}
+
 int test_cam_factor_jacobians() {
   // Setup parameters
   // clang-format off
@@ -1668,6 +1722,7 @@ int test_swf_solve_vo() {
     const timestamp_t &ts = kv.first;
     const sim_event_t &event = kv.second;
 
+
     // Handle camera event
     if (event.type == sim_event_type_t::CAMERA) {
       // Add pose
@@ -1816,6 +1871,7 @@ void test_suite() {
   MU_ADD_TEST(test_speed_bias_factor_jacobians);
   MU_ADD_TEST(test_camera_params_factor_jacobians);
   MU_ADD_TEST(test_ba_factor_jacobians);
+  MU_ADD_TEST(test_calib_mono_factor_jacobians);
   MU_ADD_TEST(test_cam_factor_jacobians);
   MU_ADD_TEST(test_imu_factor_jacobians);
   MU_ADD_TEST(test_imu_propagate);
@@ -1850,7 +1906,6 @@ void test_suite() {
   MU_ADD_TEST(test_swf_pre_marginalize);
   MU_ADD_TEST(test_swf_marginalize);
 
-  // MU_ADD_TEST(test_swf_solve_mono_calib);
   MU_ADD_TEST(test_swf_solve_vo);
   MU_ADD_TEST(test_swf_solve_vio);
 }

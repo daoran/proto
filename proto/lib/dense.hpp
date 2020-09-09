@@ -1,5 +1,5 @@
-#ifndef PROTO_ESTIMATION_DENSE_HPP
-#define PROTO_ESTIMATION_DENSE_HPP
+#ifndef PROTO_DENSE_HPP
+#define PROTO_DENSE_HPP
 
 #include <octomap/octomap.h>
 #include <octomap/OcTree.h>

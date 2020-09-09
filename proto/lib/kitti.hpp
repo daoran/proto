@@ -1,5 +1,5 @@
-#ifndef PROTO_DATASET_KITTI_HPP
-#define PROTO_DATASET_KITTI_HPP
+#ifndef PROTO_KITTI_HPP
+#define PROTO_KITTI_HPP
 
 #include "core.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef PROTO_MAV_ATL_HPP
-#define PROTO_MAV_ATL_HPP
+#ifndef PROTO_ATL_HPP
+#define PROTO_ATL_HPP
 
 #include <deque>
 #include <iomanip>

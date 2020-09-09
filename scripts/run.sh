@@ -58,7 +58,7 @@ cd proto/build/tests
 # octave-cli scripts/core/plot_sim_data.m && exit
 
 # -- CALIB
-./test_calib
+# ./test_calib
 
 # -- CORE
 # ./test_core
@@ -188,6 +188,7 @@ cd proto/build/tests
 # ./test_factor --target test_speed_bias_factor_jacobians
 # ./test_factor --target test_camera_params_factor_jacobians
 # ./test_factor --target test_ba_factor_jacobians
+# ./test_factor --target test_calib_mono_factor_jacobians
 # ./test_factor --target test_cam_factor_jacobians
 # ./test_factor --target test_imu_factor_jacobians
 # ./test_factor --target test_imu_propagate

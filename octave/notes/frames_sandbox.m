@@ -98,9 +98,14 @@ endfunction
 
 % T_WC
 rpy_WC = [deg2rad(-90.0); deg2rad(0.0); deg2rad(-90.0)];
-R_WC = euler321(rpy_WC);
-t_WC = [0; 0; 1.0];
-T_WC = tf(R_WC, t_WC);
+C_WC = euler321(rpy_WC);
+r_WC = [-10.0; 0; 0];
+T_WC = tf(C_WC, r_WC);
+
+rpy_WF = [deg2rad(90.0); deg2rad(0.0); deg2rad(-90.0)];
+C_WF = euler321(rpy_WF);
+r_WF = [0.1; 0.1; 0.0];
+T_WF = tf(C_WF, r_WF);
 
 % Plot
 figure(1);
@@ -108,11 +113,12 @@ hold on;
 grid on;
 view(3);
 draw_frame(T_WC, 1.0);
+draw_frame(T_WF, 1.0);
 xlabel("x");
 ylabel("y");
 zlabel("z");
-xlim([-1.0 1.0]);
-ylim([-1.0 1.0]);
-zlim([0.0 2.0]);
-% axis('equal');
+% xlim([-1.0 1.0]);
+% ylim([-1.0 1.0]);
+% zlim([0.0 2.0]);
+axis('equal');
 ginput();

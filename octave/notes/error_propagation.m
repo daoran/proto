@@ -24,12 +24,16 @@ cy = image_height / 2.0;
 K = pinhole_K([fx, fy, cx, cy]);
 
 # Hypothetical measurement covariance
-var_fx = 1.0;
-var_fy = 0.1;
-var_cx = 1.0;
-var_cy = 0.1;
-% covar_params = diag([var_fx, var_fy, var_cx, var_cy])
-covar_params = rand(4, 4) + diag([1.0, 1.0, 1.0, 1.0])
+stddev_fx = 1.0;
+stddev_fy = 1.0;
+stddev_cx = 1.0;
+stddev_cy = 1.0;
+var_fx = stddev_fx**2;
+var_fy = stddev_fy**2;
+var_cx = stddev_cx**2;
+var_cy = stddev_cy**2;
+covar_params = diag([var_fx, var_fy, var_cx, var_cy])
+% covar_params = rand(4, 4) + diag([1.0, 1.0, 1.0, 1.0])
 
 % Plot uncertainty map
 function p_C = back_project(K, pixel)
@@ -48,6 +52,9 @@ for y = 1:image_height
     p_C = back_project(K, [x; y]);
     J = dz__dparams(p_C);
     covar_point = J * covar_params * J';
+    J
+    covar_point
+    exit
 
     n = length(covar_point);
     entropy = 0.5 * log((2 * pi * e)^n * det(covar_point));
@@ -66,6 +73,7 @@ ylabel("y [px]");
 xlim([0, image_width]);
 ylim([0, image_height]);
 axis("square");
+colorbar();
 ginput();
 
 

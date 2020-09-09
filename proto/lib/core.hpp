@@ -3,7 +3,7 @@
 
 /*****************************************************************************
  * This file is huge, it contains everything from parsing yaml files, linear
- * algebra functions to networking code used for robotics.
+ * algebra functions to state estimation code used for robotics.
  *
  * Contents:
  * - Data Type
@@ -26,9 +26,12 @@
  * - Vision
  * - Parameters
  * - Simulation
- * - Factor Graph
  *
  ****************************************************************************/
+
+#define ENABLE_MACROS 1
+#define ENABLE_CONFIGURATION 1
+#define ENABLE_SIMULATION 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,8 +79,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/features2d/features2d.hpp>
-
-#define ENABLE_MACROS 1
 
 namespace proto {
 
@@ -1586,6 +1587,14 @@ int randi(const int ub, const int lb);
 real_t randf(const real_t ub, const real_t lb);
 
 /**
+ * Sum values in vector.
+ *
+ * @param[in] x Array of numbers
+ * @return Sum of vector
+ */
+real_t sum(const std::vector<real_t> &x);
+
+/**
  * Calculate median given an array of numbers
  *
  * @param[in] v Array of numbers
@@ -1604,7 +1613,7 @@ vec3_t mean(const vec3s_t &x);
 /**
  * Root Mean Squared Error.
  */
-double rmse(const std::vector<real_t> &residuals);
+real_t rmse(const std::vector<real_t> &residuals);
 
 /**
  * Shannon Entropy of a given covariance matrix `covar`.
@@ -1640,6 +1649,12 @@ Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
   transform.block(0, 3, 3, 1) = r;
   return transform;
 }
+
+/**
+ * Form a 4x4 homogeneous transformation matrix from a pointer to real_t array
+ * containing (quaternion + translation) 7 elements: (qw, qx, qy, qz, x, y, z)
+ */
+mat4_t tf(const double *params);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a pointer to real_t array

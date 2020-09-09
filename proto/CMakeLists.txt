@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.3)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
 PROJECT(proto)
 
 # BUILD SETTINGS
@@ -40,6 +40,7 @@ ADD_LIBRARY(
   ${PROJECT_NAME}
   lib/aprilgrid.cpp
   lib/core.cpp
+  lib/factor.cpp
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${PROTO_DEPS})
 # TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
@@ -62,14 +63,15 @@ SET(
   UNITTESTS
   # test_atl
   test_calib
-  test_core
-  test_euroc
-  test_kitti
+  # test_core
+  # test_euroc
+  # test_kitti
   # test_dense
-  test_factor
-  test_frontend
+  # test_factor
+  # test_frontend
 )
 FOREACH(TEST ${UNITTESTS})
   ADD_EXECUTABLE(${TEST} tests/${TEST}.cpp)
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${PROTO_LIBRARIES})
+  TARGET_PRECOMPILE_HEADERS(${TEST} PRIVATE core.hpp factor.hpp)
 ENDFOREACH(TEST)

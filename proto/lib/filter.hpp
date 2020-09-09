@@ -1,5 +1,5 @@
-#ifndef PROTO_ESTIMATION_FILTER_HPP
-#define PROTO_ESTIMATION_FILTER_HPP
+#ifndef PROTO_FILTER_HPP
+#define PROTO_FILTER_HPP
 
 #include "core.hpp"
 
