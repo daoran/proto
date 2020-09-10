@@ -36,7 +36,7 @@ deps:
 
 ${BUILD_DIR}:
 	@mkdir -p ${BUILD_DIR}
-	# @make -s deps
+	@make -s deps
 
 debug: ${BUILD_DIR}
 	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s -j2
