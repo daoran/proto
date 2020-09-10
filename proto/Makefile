@@ -1,36 +1,16 @@
-CXX=g++
-CFLAGS=\
-	-Wall \
-	-I/usr/include/eigen3 \
-	-I/usr/include/yaml-cpp \
-	`pkg-config --cflags opencv`
-LIBS=\
-	-lyaml-cpp \
-	`pkg-config --libs opencv`
+include config.mk
+NB_JOBS=4
 
-BLD_DIR = $(PWD)/build
+default: dirs libproto tests
+.PHONY: dirs libproto tests
 
-AR = ar
-AR_FLAGS = -rvs
+dirs:
+	@mkdir -p $(BLD_DIR)
 
-SRCS = $(wildcard lib/*.cpp)
-OBJS = $(addprefix $(BLD_DIR)/, $(SRCS:.cpp=.o))
+libproto:
+	@echo "building [libproto]"
+	@make -s -C lib -j$(NB_JOBS)
 
-COMPILE_OBJ = \
-	@echo "CXX [%<]"; \
-	$(CXX) $(CFLAGS) -c $< -o $@
-
-MAKE_STATIC_LIB = \
-	@echo "AR [libproto.a]"; \
-	$(AR) $(AR_FLAGS) $@ $^
-
-default:
-	@echo $(SRCS)
-	echo $(OBJS)
-
-$(BLD_DIR)/%.o : lib/%.cpp lib/%.hpp
-	$(COMPILE_OBJ)
-
-$(BLD_DIR)/libproto.a : $(OBJS)
-	echo $(OBJS)
-	$(MAKE_STATIC_LIB)
+tests:
+	@echo "building [tests]"
+	@make -s -C tests -j$(NB_JOBS)

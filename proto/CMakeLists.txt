@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.18)
 PROJECT(proto)
 
 # BUILD SETTINGS
@@ -67,11 +67,10 @@ SET(
   # test_euroc
   # test_kitti
   # test_dense
-  # test_factor
+  test_factor
   # test_frontend
 )
 FOREACH(TEST ${UNITTESTS})
   ADD_EXECUTABLE(${TEST} tests/${TEST}.cpp)
   TARGET_LINK_LIBRARIES(${TEST} ${PROJECT_NAME} ${PROTO_LIBRARIES})
-  TARGET_PRECOMPILE_HEADERS(${TEST} PRIVATE core.hpp factor.hpp)
 ENDFOREACH(TEST)

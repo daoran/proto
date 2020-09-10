@@ -27,21 +27,36 @@ struct param_t {
 
   std::vector<id_t> factor_ids;
 
-  param_t();
+  param_t() {}
+
   param_t(const std::string &type_,
           const id_t id_,
           const timestamp_t &ts_,
           const long local_size_,
           const long global_size_,
-          const bool fixed_=false);
+          const bool fixed_=false)
+    : fixed{fixed_},
+      type{type_},
+      id{id_},
+      ts{ts_},
+      local_size{local_size_},
+      global_size{global_size_},
+      param{zeros(global_size_, 1)} {}
+
   param_t(const std::string &type_,
           const id_t id_,
           const long local_size_,
           const long global_size_,
-          const bool fixed_=false);
-  virtual ~param_t();
+          const bool fixed_=false)
+    : param_t{type_, id_, 0, local_size_, global_size_, fixed_} {}
 
-  void mark_marginalize();
+  virtual ~param_t() {}
+
+  void mark_marginalize() {
+    marginalize = true;
+    type = "marg_" + type;
+  }
+
   virtual void plus(const vecx_t &) = 0;
   virtual void perturb(const int i, const real_t step_size) = 0;
 };
@@ -49,49 +64,137 @@ struct param_t {
 struct pose_t : param_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  pose_t();
+  pose_t() {}
+
   pose_t(const id_t id_,
          const timestamp_t &ts_,
          const vec_t<7> &pose,
-         const bool fixed_);
+         const bool fixed_=false)
+      : param_t{"pose_t", id_, ts_, 6, 7, fixed_} {
+    param = pose;
+  }
+
   pose_t(const id_t id_,
          const timestamp_t &ts_,
          const mat4_t &T,
-         const bool fixed_=false);
+         const bool fixed_=false)
+      : param_t{"pose_t", id_, ts_, 6, 7, fixed_} {
+    const quat_t q{tf_quat(T)};
+    const vec3_t r{tf_trans(T)};
 
-  quat_t rot() const;
-  vec3_t trans() const;
-  mat4_t tf() const;
+    param(0) = q.w();
+    param(1) = q.x();
+    param(2) = q.y();
+    param(3) = q.z();
 
-  quat_t rot();
-  vec3_t trans();
-  mat4_t tf();
+    param(4) = r(0);
+    param(5) = r(1);
+    param(6) = r(2);
+  }
 
-  void set_trans(const vec3_t &r);
-  void set_rot(const quat_t &q);
-  void set_rot(const mat3_t &C);
-  void plus(const vecx_t &dx);
-  void perturb(const int i, const real_t step_size);
+  quat_t rot() const {
+    return quat_t{param[0], param[1], param[2], param[3]};
+  }
+
+  vec3_t trans() const {
+    return vec3_t{param[4], param[5], param[6]};
+  }
+
+  mat4_t tf() const {
+    return proto::tf(rot(), trans());
+  }
+
+  quat_t rot() { return static_cast<const pose_t &>(*this).rot(); }
+  vec3_t trans() { return static_cast<const pose_t &>(*this).trans(); }
+  mat4_t tf() { return static_cast<const pose_t &>(*this).tf(); }
+
+  void set_trans(const vec3_t &r) {
+    param(4) = r(0);
+    param(5) = r(1);
+    param(6) = r(2);
+  }
+
+  void set_rot(const quat_t &q) {
+    param(0) = q.w();
+    param(1) = q.x();
+    param(2) = q.y();
+    param(3) = q.z();
+  }
+
+  void set_rot(const mat3_t &C) {
+    quat_t q{C};
+    param(0) = q.w();
+    param(1) = q.x();
+    param(2) = q.y();
+    param(3) = q.z();
+  }
+
+  void plus(const vecx_t &dx) {
+    // Rotation component
+    const vec3_t dalpha{dx(0), dx(1), dx(2)};
+    const quat_t dq = quat_delta(dalpha);
+    const quat_t q = rot();
+    const quat_t q_updated = dq * q;
+    param(0) = q_updated.w();
+    param(1) = q_updated.x();
+    param(2) = q_updated.y();
+    param(3) = q_updated.z();
+
+    // Translation component
+    param(4) += dx(3);
+    param(5) += dx(4);
+    param(6) += dx(5);
+  }
+
+  void perturb(const int i, const real_t step_size) {
+    if (i >= 0 && i < 3) {
+      const auto T_WS_diff = tf_perturb_rot(this->tf(), step_size, i);
+      this->set_rot(tf_rot(T_WS_diff));
+      this->set_trans(tf_trans(T_WS_diff));
+    } else if (i >= 3 && i <= 5) {
+      const auto T_WS_diff = tf_perturb_trans(this->tf(), step_size, i - 3);
+      this->set_rot(tf_rot(T_WS_diff));
+      this->set_trans(tf_trans(T_WS_diff));
+    } else {
+      FATAL("Invalid perturbation index [%d]!", i);
+    }
+  }
 };
 
 struct fiducial_pose_t : pose_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  fiducial_pose_t();
-  fiducial_pose_t(const id_t id_, const mat4_t &T, const bool fixed_=false);
+
+  fiducial_pose_t() {}
+
+  fiducial_pose_t(const id_t id_, const mat4_t &T, const bool fixed_=false)
+    : pose_t{id_, 0, T, fixed_} {
+    this->type = "fiducial_pose_t";
+  }
 };
 
 struct extrinsic_t : pose_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  extrinsic_t();
-  extrinsic_t(const id_t id_, const mat4_t &T, const bool fixed_=false);
+
+  extrinsic_t() {}
+
+  extrinsic_t(const id_t id_, const mat4_t &T, const bool fixed_=false)
+    : pose_t{id_, 0, T, fixed_} {
+    this->type = "extrinsic_t";
+  }
 };
 
 struct landmark_t : param_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  landmark_t();
-  landmark_t(const id_t id_, const vec3_t &p_W_, const bool fixed_=false);
-  void plus(const vecx_t &dx);
-  void perturb(const int i, const real_t step_size);
+
+  landmark_t() {}
+
+  landmark_t(const id_t id_, const vec3_t &p_W_, const bool fixed_=false)
+    : param_t{"landmark_t", id_, 3, 3, fixed_} {
+    param = p_W_;
+  }
+
+  void plus(const vecx_t &dx) { param += dx; }
+  void perturb(const int i, const real_t step_size) { param[i] += step_size; }
 };
 
 struct camera_params_t : param_t {
@@ -104,33 +207,49 @@ struct camera_params_t : param_t {
   long proj_size = 0;
   long dist_size = 0;
 
-  camera_params_t();
+  camera_params_t() {}
+
   camera_params_t(const id_t id_,
                   const int cam_index_,
                   const int resolution_[2],
                   const vecx_t &proj_params_,
                   const vecx_t &dist_params_,
-                  const bool fixed_=false);
+                  const bool fixed_=false)
+    : param_t{"camera_params_t", id_, proj_params_.size() + dist_params_.size(),
+              proj_params_.size() + dist_params_.size(),
+              fixed_},
+      cam_index{cam_index_},
+      resolution{resolution_[0], resolution_[1]},
+      proj_size{proj_params_.size()},
+      dist_size{dist_params_.size()} {
+    param.resize(proj_size + dist_size);
+    param.head(proj_size) = proj_params_;
+    param.tail(dist_size) = dist_params_;
+  }
 
-  vecx_t proj_params();
-  vecx_t dist_params();
-  void plus(const vecx_t &dx);
-  void perturb(const int i, const real_t step_size);
+  vecx_t proj_params() { return param.head(proj_size); }
+  vecx_t dist_params() { return param.tail(dist_size); }
+  void plus(const vecx_t &dx) { param += dx; }
+  void perturb(const int i, const real_t step_size) { param(i) += step_size; }
 };
 
 struct sb_params_t : param_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  sb_params_t();
+  sb_params_t() {}
+
   sb_params_t(const id_t id_,
              const timestamp_t &ts_,
              const vec3_t &v_,
              const vec3_t &ba_,
              const vec3_t &bg_,
-             const bool fixed_=false);
+             const bool fixed_=false)
+    : param_t{"sb_params_t", id_, ts_, 9, 9, fixed_} {
+    param << v_, ba_, bg_;
+  }
 
-  void plus(const vecx_t &dx);
-  void perturb(const int i, const real_t step_size);
+  void plus(const vecx_t &dx) { param += dx; }
+  void perturb(const int i, const real_t step_size) { param(i) += step_size; }
 };
 
 typedef std::vector<pose_t> poses_t;
@@ -158,15 +277,25 @@ struct factor_t {
   vecx_t residuals;
   matxs_t jacobians;
 
-  factor_t();
-  factor_t(const id_t id_,
-           const matx_t &covar_,
-           const std::vector<param_t *> &params_);
-  factor_t(const id_t id_,
-           const matx_t &covar_,
-           param_t * &param_);
+  factor_t() {}
 
-  virtual ~factor_t();
+  factor_t(const id_t id_,
+           const matx_t &covar_,
+           const std::vector<param_t *> &params_)
+    : id{id_}, covar{covar_}, info{covar_.inverse()}, params{params_} {
+    Eigen::LLT<matx_t> llt_info(info);
+    sqrt_info = llt_info.matrixL().transpose();
+  }
+
+  factor_t(const id_t id_,
+           const matx_t &covar_,
+           param_t * &param_)
+    : id{id_}, covar{covar_}, info{covar_.inverse()}, params{param_} {
+    Eigen::LLT<matx_t> llt_info(info);
+    sqrt_info = llt_info.matrixL().transpose();
+  }
+
+  virtual ~factor_t() {}
   virtual int eval(bool jacs=true) = 0;
 };
 
@@ -182,9 +311,41 @@ struct pose_factor_t : factor_t {
 
   pose_factor_t(const id_t id_,
                 const mat_t<6, 6> &covar_,
-                param_t *param_);
+                param_t *param_)
+      : factor_t{id_, covar_, param_}, pose_meas{tf(param_->param)} {
+    type = "pose_factor_t";
+    residuals = zeros(6, 1);
+    jacobians.push_back(zeros(6, 6));
+  }
 
-  int eval(bool jacs=true);
+  int eval(bool jacs=true) {
+    assert(params.size() == 1);
+
+    // Calculate delta pose
+    const mat4_t pose_est = tf(params[0]->param);
+    const mat4_t delta_pose = pose_meas * pose_est.inverse();
+
+    // Calculate pose error
+    const quat_t dq = tf_quat(delta_pose);
+    const vec3_t dtheta = 2 * dq.coeffs().head<3>();
+    residuals.head<3>() = dtheta;
+    residuals.tail<3>() = tf_trans(pose_meas) - tf_trans(pose_est);
+
+    // Calculate jacobian
+    // clang-format off
+    if (jacs) {
+      jacobians[0].setIdentity();
+      jacobians[0] *= -1.0;
+      mat3_t dq_mul_xyz;
+      dq_mul_xyz << dq.w(), -dq.z(), dq.y(),
+                    dq.z(), dq.w(), -dq.x(),
+                    -dq.y(), dq.x(), dq.w();
+      jacobians[0].block<3, 3>(0, 0) = -dq_mul_xyz;
+    }
+    // clang-format on
+
+    return 0;
+  }
 };
 
 struct extrinsic_factor_t : pose_factor_t {
@@ -193,7 +354,8 @@ struct extrinsic_factor_t : pose_factor_t {
 
   extrinsic_factor_t(const id_t id_,
                      const mat_t<6, 6> &covar_,
-                     param_t *param_);
+                     param_t *param_)
+    : pose_factor_t{id_, covar_, param_} {}
 };
 
 struct speed_bias_factor_t : factor_t {
@@ -202,9 +364,28 @@ struct speed_bias_factor_t : factor_t {
 
   speed_bias_factor_t(const id_t id_,
                       const mat_t<9, 9> &covar_,
-                      param_t * param_);
+                      param_t * param_)
+      : factor_t{id_, covar_, param_}, sb_meas{param_->param} {
+    type = "speed_bias_factor_t";
+    residuals = zeros(9, 1);
+    jacobians.push_back(zeros(9, 9));
+  }
 
-  int eval(bool jacs=true);
+  int eval(bool jacs=true) {
+    assert(params.size() == 1);
+
+    // Calculate delta sb
+    const vec_t<9> sb_est = params[0]->param;
+    const vec_t<9> error = sb_meas - sb_est;
+    residuals = error;
+
+    // Calculate jacobian
+    if (jacs) {
+      jacobians[0] = -1.0 * I(9);
+    }
+
+    return 0;
+  }
 };
 
 struct camera_params_factor_t : factor_t {
@@ -213,18 +394,58 @@ struct camera_params_factor_t : factor_t {
 
   camera_params_factor_t(const id_t id_,
                          const matx_t &covar_,
-                         param_t *param_);
+                         param_t *param_)
+      : factor_t(id_, covar_, {param_}), meas{param_->param} {
+    type = "camera_params_factor_t";
+    residuals = zeros(9, 1);
+    jacobians.push_back(zeros(9, 9));
+  }
 
-  int eval(bool jacs=true);
+  int eval(bool jacs=true) {
+    assert(params.size() == 1);
+
+    // Calculate delta sb
+    const vecx_t est = params[0]->param;
+    const vecx_t error = meas - est;
+    residuals = error;
+
+    // Calculate jacobian
+    if (jacs) {
+      jacobians[0] = -1.0 * I(est.rows());
+    }
+
+    return 0;
+  }
 };
 
 struct landmark_factor_t : factor_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   const vecx_t meas;
 
-  landmark_factor_t(const id_t id_, const matx_t &covar_, param_t *param_);
+  landmark_factor_t(const id_t id_,
+                    const matx_t &covar_,
+                    param_t *param_)
+      : factor_t(id_, covar_, {param_}), meas{param_->param} {
+    type = "landmark_factor_t";
+    residuals = zeros(3, 1);
+    jacobians.push_back(zeros(3, 3));
+  }
 
-  int eval(bool jacs=true);
+  int eval(bool jacs=true) {
+    assert(params.size() == 1);
+
+    // Calculate delta sb
+    const vecx_t est = params[0]->param;
+    const vecx_t error = meas - est;
+    residuals = error;
+
+    // Calculate jacobian
+    if (jacs) {
+      jacobians[0] = -1.0 * I(est.rows());
+    }
+
+    return 0;
+  }
 };
 
 template <typename CM>
@@ -512,13 +733,171 @@ struct imu_factor_t : factor_t {
                const vec3s_t imu_accel_,
                const vec3s_t imu_gyro_ ,
                const mat_t<15, 15> &covar_,
-               const std::vector<param_t *> &params_);
+               const std::vector<param_t *> &params_)
+      : factor_t{id_, covar_, params_},
+        imu_index{imu_index_},
+        imu_ts{imu_ts_},
+        imu_accel{imu_accel_},
+        imu_gyro{imu_gyro_} {
+    type = "imu_factor_t";
+    residuals = zeros(15, 1);
+    jacobians.push_back(zeros(15, 6));  // T_WS at timestep i
+    jacobians.push_back(zeros(15, 9));  // Speed and bias at timestep i
+    jacobians.push_back(zeros(15, 6));  // T_WS at timestep j
+    jacobians.push_back(zeros(15, 9));  // Speed and bias at timestep j
 
-  void reset();
+    propagate(imu_ts_, imu_accel_, imu_gyro_);
+  }
+
+  void reset() {
+    P = zeros(15, 15);
+    F = zeros(15, 15);
+
+    dp = zeros(3);
+    dv = zeros(3);
+    dq = quat_t{1.0, 0.0, 0.0, 0.0};
+    ba = zeros(3);
+    bg = zeros(3);
+  }
+
   void propagate(const timestamps_t &ts,
                  const vec3s_t &a_m,
-                 const vec3s_t &w_m);
-  int eval(bool jacs=true);
+                 const vec3s_t &w_m) {
+    assert(ts.size() == a_m.size());
+    assert(w_m.size() == a_m.size());
+
+    real_t dt_prev = ns2sec(ts[1] - ts[0]);
+    for (size_t i = 0; i < w_m.size(); i++) {
+      // Calculate dt
+      real_t dt = 0.0;
+      if ((i + 1) < w_m.size()) {
+        dt = ns2sec(ts[i + 1] - ts[i]);
+        dt_prev = dt;
+      } else {
+        dt = dt_prev;
+      }
+      // printf("i: %zu\n", i);
+
+      // Update relative position and velocity
+      dp = dp + dv * dt + 0.5 * (dq * (a_m[i] - ba)) * dt * dt;
+      dv = dv + (dq * (a_m[i] - ba)) * dt;
+
+      // Update relative rotation
+      const real_t scalar = 1.0;
+      const vec3_t vector = 0.5 * (w_m[i] - bg) * dt;
+      const quat_t dq_i{scalar, vector(0), vector(1), vector(2)};
+      dq = dq * dq_i;
+
+      // Transition matrix F
+      const mat3_t C_ji = dq.toRotationMatrix();
+      mat_t<15, 15> F_i = zeros(15, 15);
+      F_i.block<3, 3>(0, 3) = I(3);
+      F_i.block<3, 3>(3, 6) = -C_ji * skew(a_m[i] - ba);
+      F_i.block<3, 3>(3, 9) = -C_ji;
+      F_i.block<3, 3>(6, 6) = -skew(w_m[i] - bg);
+      F_i.block<3, 3>(6, 12) = -I(3);
+
+      // Input matrix G
+      mat_t<15, 12> G_i = zeros(15, 12);
+      G_i.block<3, 3>(3, 0) = -C_ji;
+      G_i.block<3, 3>(6, 3) = -I(3);
+      G_i.block<3, 3>(9, 6) = I(3);
+      G_i.block<3, 3>(12, 9) = I(3);
+
+      // Update covariance matrix
+      const mat_t<15, 15> I_Fi_dt = (I(15) + F * dt);
+      const mat_t<15, 12> Gi_dt = (G_i * dt);
+      P = I_Fi_dt * P * I_Fi_dt.transpose() + Gi_dt * Q * Gi_dt.transpose();
+
+      // Update Jacobian
+      F = I_Fi_dt * F;
+    }
+  }
+
+  int eval(bool jacs=true) {
+    // Map out parameters
+    // -- Sensor pose at timestep i
+    const mat4_t T_i = tf(params[0]->param);
+    const mat3_t C_i = tf_rot(T_i);
+    const mat3_t C_i_inv = C_i.transpose();
+    const quat_t q_i = tf_quat(T_i);
+    const vec3_t r_i = tf_trans(T_i);
+    // -- Speed and bias at timestamp i
+    const vec_t<9> sb_i{params[1]->param};
+    const vec3_t v_i = sb_i.segment<3>(0);
+    const vec3_t ba_i = sb_i.segment<3>(3);
+    const vec3_t bg_i = sb_i.segment<3>(6);
+    // -- Sensor pose at timestep j
+    const mat4_t T_j = tf(params[2]->param);
+    const quat_t q_j = tf_quat(T_j);
+    const vec3_t r_j = tf_trans(T_j);
+    // -- Speed and bias at timestep j
+    const vec_t<9> sb_j{params[3]->param};
+    const vec3_t v_j = sb_j.segment<3>(0);
+    const vec3_t ba_j = sb_j.segment<3>(3);
+    const vec3_t bg_j = sb_j.segment<3>(6);
+
+    // Obtain Jacobians for gyro and accel bias
+    const mat3_t dp_dbg = F.block<3, 3>(0, 9);
+    const mat3_t dp_dba = F.block<3, 3>(0, 12);
+    const mat3_t dv_dbg = F.block<3, 3>(3, 9);
+    const mat3_t dv_dba = F.block<3, 3>(3, 12);
+    const mat3_t dq_dbg = F.block<3, 3>(6, 12);
+
+    // Calculate residuals
+    const real_t dt_ij = ns2sec(imu_ts.back() - imu_ts.front());
+    const real_t dt_ij_sq = dt_ij * dt_ij;
+    const vec3_t dbg = bg_i - bg;
+    const vec3_t dba = ba_i - ba;
+    const vec3_t alpha = dp + dp_dbg * dbg + dp_dba * dba;
+    const vec3_t beta = dv + dv_dbg * dbg + dv_dba * dba;
+    const quat_t gamma = dq * quat_delta(dq_dbg * dbg);
+
+    const quat_t q_i_inv = q_i.inverse();
+    const quat_t q_j_inv = q_j.inverse();
+    const quat_t gamma_inv = gamma.inverse();
+
+    // clang-format off
+    residuals << C_i_inv * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq) - alpha,
+                 C_i_inv * (v_j - v_i + g * dt_ij) - beta,
+                 2.0 * (gamma_inv * (q_i_inv * q_j)).vec(),
+                 ba_j - ba_i,
+                 bg_j - bg_i;
+    // clang-format on
+
+    // Calculate jacobians
+    if (jacs) {
+      // clang-format off
+      // -- Sensor pose at i Jacobian
+      jacobians[0] = zeros(15, 6);
+      jacobians[0].block<3, 3>(0, 0) = skew(C_i_inv * (r_j - r_i - v_i * dt_ij + 0.5 * g * dt_ij_sq));
+      jacobians[0].block<3, 3>(0, 3) = -C_i_inv;
+      jacobians[0].block<3, 3>(3, 0) = skew(C_i_inv * (v_j - v_i + g * dt_ij));
+      jacobians[0].block<3, 3>(6, 0) = -quat_mat_xyz(quat_lmul(q_j_inv * q_i) * quat_rmul(gamma));
+      // -- Speed and bias at i Jacobian
+      jacobians[1] = zeros(15, 9);
+      jacobians[1].block<3, 3>(0, 0) = -C_i_inv * dt_ij;
+      jacobians[1].block<3, 3>(0, 3) = -dp_dba;
+      jacobians[1].block<3, 3>(0, 6) = -dp_dbg;
+      jacobians[1].block<3, 3>(3, 0) = -C_i_inv;
+      jacobians[1].block<3, 3>(3, 3) = -dv_dba;
+      jacobians[1].block<3, 3>(3, 6) = -dv_dbg;
+      jacobians[1].block<3, 3>(9, 3) = -I(3);
+      jacobians[1].block<3, 3>(12, 6) = -I(3);
+      // -- Sensor pose at j Jacobian
+      jacobians[2] = zeros(15, 6);
+      jacobians[2].block<3, 3>(0, 3) = C_i_inv;
+      jacobians[2].block<3, 3>(6, 0) = quat_lmul_xyz(gamma_inv * q_i_inv * q_j_inv);
+      // -- Speed and bias at j Jacobian
+      jacobians[3] = zeros(15, 9);
+      jacobians[3].block<3, 3>(3, 0) = C_i_inv;
+      jacobians[3].block<3, 3>(9, 3) = I(3);
+      jacobians[3].block<3, 3>(12, 6) = I(3);
+      // clang-format on
+    }
+
+    return 0;
+  }
 };
 
 void imu_propagate(const imu_data_t &imu_data,
@@ -541,8 +920,19 @@ struct graph_t {
                                        "camera_params_t",
                                        "landmark_t"};
 
-  graph_t();
-  virtual ~graph_t();
+  graph_t() {}
+
+  ~graph_t() {
+    for (const auto &kv : factors) {
+      delete kv.second;
+    }
+    factors.clear();
+
+    for (const auto &kv : params) {
+      delete kv.second;
+    }
+    params.clear();
+  }
 };
 
 id_t graph_add_pose(graph_t &graph,
@@ -717,7 +1107,9 @@ void graph_set_state(graph_t &graph, const vecx_t &x);
 void graph_print_params(const graph_t &graph);
 void graph_update(graph_t &graph, const vecx_t &dx, const size_t offset=0);
 
-/******************************* TINY SOLVER ********************************/
+/*****************************************************************************
+ *                               TINY SOLVER
+ ****************************************************************************/
 
 struct tiny_solver_t {
   // Optimization parameters
@@ -744,12 +1136,131 @@ struct tiny_solver_t {
   size_t marg_size = 0;
   size_t remain_size = 0;
 
-  tiny_solver_t();
+  tiny_solver_t() {}
 
-  void load_config(const config_t &config, const std::string &prefix="");
-  real_t eval(graph_t &graph);
-  void update(graph_t &graph, const real_t lambda_k);
-  int solve(graph_t &graph);
+  void load_config(const config_t &config, const std::string &prefix="") {
+    const std::string key = (prefix == "") ? "" : prefix + ".";
+    parse(config, key + "verbose", verbose);
+    parse(config, key + "marg_type", marg_type);
+    parse(config, key + "max_iter", max_iter);
+    parse(config, key + "time_limit", time_limit);
+    parse(config, key + "lambda", lambda);
+  }
+
+  real_t eval(graph_t &graph) {
+    graph_eval(graph, H, g, &marg_size, &remain_size);
+    e = graph_residuals(graph);
+    return 0.5 * e.transpose() * e;
+  }
+
+  void update(graph_t &graph, const real_t lambda_k) {
+    assert(H.size() != 0);
+    assert(g.size() != 0);
+
+    // -- Marginalize?
+    if (marg_size) {
+      if (marg_type == "sibley") {
+        if (schurs_complement(H, g, marg_size, H.rows() - marg_size) != 0) {
+          marg_size = 0;
+        }
+      } else if (marg_type == "drop") {
+        marg_size = 0;
+      } else {
+        FATAL("marg_type [%s] not implemented!\n", marg_type.c_str());
+      }
+    }
+    // -- Damp the Hessian matrix H
+    const matx_t H_diag = (H.diagonal().asDiagonal());
+    H = H + lambda_k * H_diag;
+    // -- Solve for dx
+    dx = H.ldlt().solve(g);
+    // -- Update
+    graph_update(graph, dx, marg_size);
+  }
+
+  int solve(graph_t &graph)  {
+    struct timespec solve_tic = tic();
+    real_t lambda_k = lambda;
+
+    // Solve
+    for (iter = 0; iter < max_iter; iter++) {
+      // Cost k
+      x = graph_get_state(graph);
+      graph_eval(graph, H, g, &marg_size, &remain_size);
+      const matx_t H_diag = (H.diagonal().asDiagonal());
+      H = H + lambda_k * H_diag;
+      dx = H.ldlt().solve(g);
+      e = graph_residuals(graph);
+      cost = 0.5 * e.transpose() * e;
+
+      // Cost k+1
+      graph_update(graph, dx);
+      // graph_eval(graph, H, g, &marg_size, &remain_size);
+      // const matx_t H_diag_kp1 = (H.diagonal().asDiagonal());
+      // H = H + lambda_k * H_diag_kp1;
+      // dx = H.ldlt().solve(g);
+      e = graph_residuals(graph);
+      const real_t cost_k = 0.5 * e.transpose() * e;
+
+      // cost = eval(graph);
+      // x = graph_get_state(graph);
+      //
+      // update(graph, lambda);
+      // const real_t cost_k = eval(graph);
+
+      const real_t cost_delta = cost_k - cost;
+      const real_t solve_time = toc(&solve_tic);
+      const real_t iter_time = (iter == 0) ? 0 : (solve_time / iter);
+
+      if (verbose) {
+        printf("iter[%d] ", iter);
+        printf("cost[%.2e] ", cost);
+        printf("cost_k[%.2e] ", cost_k);
+        printf("cost_delta[%.2e] ", cost_delta);
+        printf("lambda[%.2e] ", lambda_k);
+        printf("iter_time[%.4f] ", iter_time);
+        printf("solve_time[%.4f]  ", solve_time);
+        printf("\n");
+
+        // // Calculate reprojection error
+        // size_t nb_keypoints = e.size() / 2.0;
+        // real_t sse = 0.0;
+        // for (size_t i = 0; i < nb_keypoints; i++) {
+        //   sse += pow(e.segment(i * 2, 2).norm(), 2);
+        // }
+        // const real_t rmse = sqrt(sse / nb_keypoints);
+        // printf("rmse reproj error: %.2f\n", rmse);
+      }
+
+      // Determine whether to accept update
+      if (cost_k < cost) {
+        // Accept update
+        // printf("improvement!\n");
+        lambda_k /= update_factor;
+        cost = cost_k;
+      } else {
+        // Reject update
+        // printf("no improvement!\n");
+        graph_set_state(graph, x); // Restore state
+        lambda_k *= update_factor;
+      }
+
+      // Termination criterias
+      if (fabs(cost_delta) < cost_change_threshold) {
+        break;
+      } else if ((solve_time + iter_time) > time_limit) {
+        break;
+      }
+    }
+
+    solve_time = toc(&solve_tic);
+    if (verbose) {
+      printf("cost: %.2e\t", cost);
+      printf("solver took: %.4fs\n", solve_time);
+    }
+
+    return 0;
+  }
 };
 
 
@@ -952,6 +1463,7 @@ struct swf_t {
       graph, ts, pose_id, feature_id, cam_id, z);
     window.back().factor_ids.push_back(factor_id);
     window.back().feature_ids.push_back(feature_id);
+
 
     return factor_id;
   }

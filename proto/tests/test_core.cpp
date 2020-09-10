@@ -2191,6 +2191,7 @@ int test_pid_update() {
   // test and assert
   real_t output = pid_update(p, 10.0, 0.0, 0.1);
   std::cout << p << std::endl;
+  std::cout << output << std::endl;
 
   // MU_CHECK_FLOAT(1.0, p.error_sum);
   // MU_CHECK_FLOAT(10.0, p.error_p);

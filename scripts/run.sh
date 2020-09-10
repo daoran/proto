@@ -23,7 +23,6 @@ debug() {
 # " C-m
 # exit
 
-
 # CLEAN CATKIN
 # cd ~/catkin_ws/
 # catkin clean
@@ -35,10 +34,11 @@ debug() {
 # LIBRARY
 # make deps
 # time make debug
-time make release
+# time make release
 # sudo make install
 # time make ros
 # sudo make debug_install
+cd proto; time make
 # exit
 
 # roslaunch proto_ros calib_vicon_capture.launch
