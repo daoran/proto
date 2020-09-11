@@ -19,3 +19,10 @@ libproto:
 tests:
 	@echo "building [unit-tests]"
 	@make -s -C tests -j$(NB_JOBS)
+
+install:
+	@echo "installing [libproto]"
+	@mkdir -p /usr/local/include/proto
+	@cp -rv lib/*.hpp /usr/local/include/proto
+	@cp -v build/libproto.a /usr/local/lib
+	@echo "done!"

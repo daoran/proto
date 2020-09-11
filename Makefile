@@ -46,6 +46,9 @@ install:
 	@if [ ! -d proto/build ]; then \
 		echo "Error: Not built yet!"; \
 		exit 1; \
+	else \
+		cd proto; \
+		make -s install; \
 	fi
 
 ros:
