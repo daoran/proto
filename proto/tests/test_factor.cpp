@@ -1,5 +1,5 @@
 #include "munit.hpp"
-#include "proto.hpp"
+#include "factor.hpp"
 
 namespace proto {
 
@@ -74,6 +74,7 @@ int test_pose() {
   MU_CHECK(fltcmp(pose.param[4], 0.0) == 0);
   MU_CHECK(fltcmp(pose.param[5], 0.0) == 0);
   MU_CHECK(fltcmp(pose.param[6], 0.0) == 0);
+
 
   return 0;
 }

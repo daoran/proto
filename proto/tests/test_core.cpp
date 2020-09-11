@@ -295,10 +295,10 @@ int test_config_parser_full_example() {
   config_t config{TEST_CONFIG};
 
   // Primitives
-  bool b;
-  int i;
-  float f;
-  real_t d;
+  bool b = false;
+  int i = 0;
+  float f = 0.0f;
+  double d = 0.0;
 
   parse(config, "bool", b);
   parse(config, "int", i);
@@ -310,7 +310,7 @@ int test_config_parser_full_example() {
   std::vector<bool> b_array;
   std::vector<int> i_array;
   std::vector<float> f_array;
-  std::vector<real_t> d_array;
+  std::vector<double> d_array;
   std::vector<std::string> s_array;
 
   parse(config, "string", s);
@@ -349,7 +349,7 @@ int test_config_parser_full_example() {
   std::cout << "bool: " << b << std::endl;
   std::cout << "int: " << i << std::endl;
   std::cout << "float: " << f << std::endl;
-  std::cout << "real_t: " << d << std::endl;
+  std::cout << "double: " << d << std::endl;
   std::cout << "string: " << s << std::endl;
   std::cout << std::endl;
 

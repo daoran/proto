@@ -1,6 +1,5 @@
 MKFILE_PATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
-BUILD_DIR=${PROJ_PATH}/proto/build
 CATKIN_WS=~/catkin_ws
 
 .PHONY: default deps debug release install ros format_code docs
@@ -34,22 +33,19 @@ deps:
 	@echo "[Installing Dependencies]"
 	@sudo bash ./scripts/deps/install.bash
 
-${BUILD_DIR}:
-	@mkdir -p ${BUILD_DIR}
-	@make -s deps
+clean:
+	@cd proto; make -s clean
 
-debug: ${BUILD_DIR}
-	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make -s -j2
+debug:
+	@cd proto; make -s -DDEBUG
 
-release: ${BUILD_DIR}
-	@cd proto/build && cmake -DCMAKE_BUILD_TYPE=RELEASE .. && make -s -j2
+release:
+	@cd proto; make -s
 
 install:
 	@if [ ! -d proto/build ]; then \
 		echo "Error: Not built yet!"; \
 		exit 1; \
-	else \
-		cd proto/build && make -s install; \
 	fi
 
 ros:

@@ -1,10 +1,12 @@
-CXX=clang++
+CXX=g++
 CXXFLAGS=\
-	-std=c++11\
+	-std=c++11 \
 	-Wall \
 	-Winvalid-pch \
+	-O3 \
+	-fPIC \
 	-I$(PWD)/lib \
-	-I$(PWD)/$(BLD_DIR) \
+	-I$(BLD_DIR) \
 	-I/usr/include/eigen3 \
 	-I/usr/include/yaml-cpp \
 	`pkg-config --cflags opencv`
@@ -32,5 +34,5 @@ MAKE_STATIC_LIB = \
 	$(AR) $(AR_FLAGS) $@ $^
 
 MAKE_TEST = \
-	echo "TEST [$<]"; \
+	@echo "TEST [$<]"; \
 	$(CXX) $< -o $@ $(LIBS) $(CXXFLAGS)

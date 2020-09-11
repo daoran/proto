@@ -34,11 +34,11 @@ debug() {
 # LIBRARY
 # make deps
 # time make debug
-# time make release
+time make release
 # sudo make install
 # time make ros
 # sudo make debug_install
-cd proto; time make
+# cd proto; time make
 # exit
 
 # roslaunch proto_ros calib_vicon_capture.launch
@@ -54,7 +54,7 @@ cd proto; time make
 # python3 api.py
 
 # TESTS
-cd proto/build/tests
+cd proto/build
 # octave-cli scripts/core/plot_sim_data.m && exit
 
 # -- CALIB
@@ -218,7 +218,7 @@ cd proto/build/tests
 # ./test_factor --target test_swf_add_imu_factor
 # ./test_factor --target test_swf_add_cam_factor
 # ./test_factor --target test_swf_add_cam_factor
-# debug ./test_factor --target test_swf_pre_marginalize
+# ./test_factor --target test_swf_pre_marginalize
 # ./test_factor --target test_swf_marginalize
 # ./test_factor --target test_swf_solve_vo
 # ./test_factor --target test_swf_solve_vio
