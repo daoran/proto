@@ -9,7 +9,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # octave notes/covar_recover.m && exit 0
 # octave notes/schurs.m && exit 0
 # octave notes/aabm.m && exit 0
-octave notes/ba/ba.m && exit 0
+# octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
 # octave notes/camera/equi4_point_jacobian.m && exit 0
@@ -99,6 +99,14 @@ octave notes/ba/ba.m && exit 0
 # octave tests/plot/test_draw_camera.m && exit 0
 # octave tests/plot/test_draw_frame.m && exit 0
 # octave tests/plot/test_draw_points.m && exit 0
+
+# octave tests/se/test_graph_t.m && exit 0
+# octave tests/se/test_graph_add_param.m && exit 0
+octave tests/se/test_graph_add_factor.m && exit 0
+# octave tests/se/test_landmark_t.m && exit 0
+# octave tests/se/test_param_t.m && exit 0
+# octave tests/se/test_pose_t.m && exit 0
+# octave tests/se/test_sb_t.m && exit 0
 
 # octave tests/cv/test_camera_init.m && exit 0
 # octave tests/cv/test_camera_measurements.m && exit 0
