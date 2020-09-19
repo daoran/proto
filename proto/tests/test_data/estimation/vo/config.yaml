@@ -13,4 +13,4 @@ solver:
   lambda: 1.0e-4
 
 swf:
-  window_limit: 5
+  window_limit: 10

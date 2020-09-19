@@ -1849,16 +1849,16 @@ int test_swf_solve_vio() {
 //   auto cost = 0.5 * e.transpose() * e;
 //   printf("cost: %f\n", (double) cost);
 
-  // swf.solve();
-  // profiler.print("solve_vio");
-  // swf.save_poses("/tmp/sim_data/imu_pose_est.csv");
-  //
-  // // Debug
-  // const bool debug = true;
-  // // const bool debug = false;
-  // if (debug) {
-  //   OCTAVE_SCRIPT("scripts/estimation/plot_test_vio.m");
-  // }
+  swf.solve();
+  profiler.print("solve_vio");
+  swf.save_poses("/tmp/sim_data/imu_pose_est.csv");
+
+  // Debug
+  const bool debug = true;
+  // const bool debug = false;
+  if (debug) {
+    OCTAVE_SCRIPT("scripts/estimation/plot_test_vio.m");
+  }
 
   return 0;
 }

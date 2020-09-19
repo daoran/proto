@@ -287,16 +287,14 @@ struct factor_t {
     sqrt_info = llt_info.matrixL().transpose();
   }
 
-  factor_t(const id_t id_,
-           const matx_t &covar_,
-           param_t * &param_)
+  factor_t(const id_t id_, const matx_t &covar_, param_t * &param_)
     : id{id_}, covar{covar_}, info{covar_.inverse()}, params{param_} {
     Eigen::LLT<matx_t> llt_info(info);
     sqrt_info = llt_info.matrixL().transpose();
   }
 
   virtual ~factor_t() {}
-  virtual int eval(bool jacs=true) = 0;
+  virtual int eval(const bool jacs=true) = 0;
 };
 
 int check_jacobians(factor_t *factor,
@@ -318,7 +316,7 @@ struct pose_factor_t : factor_t {
     jacobians.push_back(zeros(6, 6));
   }
 
-  int eval(bool jacs=true) {
+  int eval(const bool jacs=true) {
     assert(params.size() == 1);
 
     // Calculate delta pose
@@ -371,7 +369,7 @@ struct speed_bias_factor_t : factor_t {
     jacobians.push_back(zeros(9, 9));
   }
 
-  int eval(bool jacs=true) {
+  int eval(const bool jacs=true) {
     assert(params.size() == 1);
 
     // Calculate delta sb
@@ -401,7 +399,7 @@ struct camera_params_factor_t : factor_t {
     jacobians.push_back(zeros(9, 9));
   }
 
-  int eval(bool jacs=true) {
+  int eval(const bool jacs=true) {
     assert(params.size() == 1);
 
     // Calculate delta sb
@@ -431,7 +429,7 @@ struct landmark_factor_t : factor_t {
     jacobians.push_back(zeros(3, 3));
   }
 
-  int eval(bool jacs=true) {
+  int eval(const bool jacs=true) {
     assert(params.size() == 1);
 
     // Calculate delta sb
@@ -476,7 +474,7 @@ struct ba_factor_t : factor_t {
     resolution[1] = cam_params->resolution[1];
   }
 
-  int eval(bool jacs=true) {
+  int eval(const bool jacs=true) {
     assert(params.size() == 3);
 
     // Map out parameters
@@ -561,7 +559,7 @@ struct calib_mono_factor_t : factor_t {
     resolution[1] = cam_params->resolution[1];
   }
 
-  int eval(bool jacs=true) {
+  int eval(const bool jacs=true) {
     assert(params.size() == 3);
 
     // Map out parameters
@@ -643,7 +641,7 @@ struct cam_factor_t : factor_t {
     resolution[1] = cam_params->resolution[1];
   }
 
-  int eval(bool jacs=true) {
+  int eval(const bool jacs=true) {
     assert(params.size() == 4);
 
     // Map out parameters
@@ -814,7 +812,7 @@ struct imu_factor_t : factor_t {
     }
   }
 
-  int eval(bool jacs=true) {
+  int eval(const bool jacs=true) {
     // Map out parameters
     // -- Sensor pose at timestep i
     const mat4_t T_i = tf(params[0]->param);
@@ -906,6 +904,29 @@ void imu_propagate(const imu_data_t &imu_data,
                    const vec_t<9> &sb_i,
                    vec_t<7> &pose_j,
                    vec_t<9> &sb_j);
+
+struct marg_factor_t : factor_t {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  marg_factor_t() {
+    type = "marg_factor_t";
+  }
+
+  void add_param() {
+    // Add parameter to be marginalized
+
+  }
+
+  int eval(const bool jacs=true) {
+
+    // Calculate jacobians
+    if (jacs) {
+
+    }
+
+    return 0;
+  }
+};
 
 /********************************* GRAPH ************************************/
 

@@ -2,7 +2,7 @@ include ../config.mk
 
 LIBPROTO = $(BLD_DIR)/libproto.a
 
-default: test_data $(BLD_DIR)/test_core $(BLD_DIR)/test_factor
+default: test_data $(BLD_DIR)/test_factor
 .PHONY: test_data
 
 test_data:

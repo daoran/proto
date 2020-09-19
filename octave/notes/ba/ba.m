@@ -532,25 +532,25 @@ H = E' * E;
 % issemidef = all(d) > -tol
 
 
-% % Optimize
-% % plot_compare_data("Before Bundle Adjustment", data_gnd, data);
-% max_iter = 20;
-% cost_prev = 0.0;
-% for i = 1:max_iter
-%   E = ba_jacobian(data);
-%   e = ba_residuals(data);
-%
-%   data = ba_update(data, e, E);
-%   cost = ba_cost(e);
-%   printf("iter: %d\t cost: %.4e\n", i, cost);
-%
-%   % Termination criteria
-%   cost_diff = abs(cost - cost_prev);
-%   if cost_diff < 1e-6
-%     printf("Done!\n");
-%     break;
-%   endif
-%   cost_prev = cost;
-% endfor
-% % plot_compare_data("After Bundle Adjustment", data_gnd, data);
+% Optimize
+% plot_compare_data("Before Bundle Adjustment", data_gnd, data);
+max_iter = 20;
+cost_prev = 0.0;
+for i = 1:max_iter
+  E = ba_jacobian(data);
+  e = ba_residuals(data);
+
+  data = ba_update(data, e, E);
+  cost = ba_cost(e);
+  printf("iter: %d\t cost: %.4e\n", i, cost);
+
+  % Termination criteria
+  cost_diff = abs(cost - cost_prev);
+  if cost_diff < 1e-6
+    printf("Done!\n");
+    break;
+  endif
+  cost_prev = cost;
+endfor
+% plot_compare_data("After Bundle Adjustment", data_gnd, data);
 % % ginput();

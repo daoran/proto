@@ -9,7 +9,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # octave notes/covar_recover.m && exit 0
 # octave notes/schurs.m && exit 0
 # octave notes/aabm.m && exit 0
-# octave notes/ba/ba.m && exit 0
+octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
 # octave notes/camera/equi4_point_jacobian.m && exit 0
@@ -24,7 +24,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # octave notes/circle_sim.m && exit 0
 # octave notes/convolution.m && exit 0
 # octave notes/error_ellipse.m && exit 0
-octave notes/error_propagation.m && exit 0
+# octave notes/error_propagation.m && exit 0
 # octave notes/euler321_deriv.m && exit 0
 # octave notes/euroc_frames.m && exit 0
 # octave notes/fiducial_xy_jac.m

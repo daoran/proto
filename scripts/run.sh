@@ -221,6 +221,6 @@ cd proto/build
 # ./test_factor --target test_swf_pre_marginalize
 # ./test_factor --target test_swf_marginalize
 # ./test_factor --target test_swf_solve_vo
-# ./test_factor --target test_swf_solve_vio
+./test_factor --target test_swf_solve_vio
 
 # ./test_frontend
