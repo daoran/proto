@@ -22,8 +22,8 @@ dist_model = "radtan4";
 proj_params = [fx; fy; cx; cy];
 dist_params = [-0.01; 0.01; 1e-4; 1e-4];
 cam_params = camera_t(cam_idx, resolution,
-											proj_model, dist_model,
-											proj_params, dist_params);
+                      proj_model, dist_model,
+                      proj_params, dist_params);
 
 % Setup landmark
 lm = landmark_t(0, [10; rand(2, 1)]);
