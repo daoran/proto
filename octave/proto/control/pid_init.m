@@ -10,5 +10,4 @@ function pid = pid_init(k_p, k_i, k_d)
   pid.error_p = 0.0;
   pid.error_i = 0.0;
   pid.error_d = 0.0;
-
 endfunction

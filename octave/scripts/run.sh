@@ -100,9 +100,10 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # octave tests/plot/test_draw_frame.m && exit 0
 # octave tests/plot/test_draw_points.m && exit 0
 
+octave tests/se/test_ba_factor_eval.m && exit 0
 # octave tests/se/test_graph_t.m && exit 0
 # octave tests/se/test_graph_add_param.m && exit 0
-octave tests/se/test_graph_add_factor.m && exit 0
+# octave tests/se/test_graph_add_factor.m && exit 0
 # octave tests/se/test_landmark_t.m && exit 0
 # octave tests/se/test_param_t.m && exit 0
 # octave tests/se/test_pose_t.m && exit 0
@@ -117,6 +118,7 @@ octave tests/se/test_graph_add_factor.m && exit 0
 # octave tests/cv/test_equi4_undistort.m && exit 0
 # octave tests/cv/test_focal_length.m && exit 0
 # octave tests/cv/test_pinhole_K.m && exit 0
+# octave tests/cv/test_pinhole_radtan4.m && exit 0
 # octave tests/cv/test_radtan4_distort.m && exit 0
 # octave tests/cv/test_radtan4_param_jacobian.m && exit 0
 # octave tests/cv/test_radtan4_point_jacobian.m && exit 0
