@@ -39,6 +39,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # octave notes/mav.m && exit 0
 # octave notes/msckf.m && exit 0
 # octave notes/nbt.m && exit 0
+octave notes/nbt_trajs.m && exit 0
 # octave notes/rand_inv_matrix.m && exit 0
 # octave notes/vicon_frames.m && exit 0
 # octave notes/vicon_f450.m && exit 0
@@ -100,7 +101,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # octave tests/plot/test_draw_frame.m && exit 0
 # octave tests/plot/test_draw_points.m && exit 0
 
-octave tests/se/test_ba_factor_eval.m && exit 0
+# octave tests/se/test_ba_factor_eval.m && exit 0
 # octave tests/se/test_graph_t.m && exit 0
 # octave tests/se/test_graph_add_param.m && exit 0
 # octave tests/se/test_graph_add_factor.m && exit 0

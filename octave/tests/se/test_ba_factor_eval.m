@@ -41,14 +41,9 @@ graph.params{3} = cam_params;
 
 % -- Add factor to graph
 param_ids = [1; 2; 3];
-covar = eye(2);
 graph.factors{1} = ba_factor(cam_params, param_ids, z);
 
 % Evaluate BA factor
 factor = graph.factors{1};
 
-cam_pose = graph.params{factor.param_ids(1)};
-lm = graph.params{factor.param_ids(2)};
-cam_params = graph.params{factor.param_ids(3)};
-
-% [r, jacobians] = ba_factor_eval(factor, {cam_pose, lm, cam_params})
+[r, jacobians] = ba_factor_eval(factor, {cam_pose, lm, cam_params})

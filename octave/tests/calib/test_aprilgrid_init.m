@@ -15,11 +15,14 @@ C_WF = euler321(rpy);
 T_WF = tf(C_WF, zeros(3, 1));
 p_WF = dehomogeneous(T_WF * hp_F);
 
-figure();
-scatter3(p_WF(1, :), p_WF(2, :), p_WF(3, :), "r", "filled");
-view(3);
-axis("equal");
-xlabel("x [m]");
-ylabel("y [m]");
-zlabel("z [m]");
-ginput();
+debug = 0;
+if debug
+  figure();
+  scatter3(p_WF(1, :), p_WF(2, :), p_WF(3, :), "r", "filled");
+  view(3);
+  axis("equal");
+  xlabel("x [m]");
+  ylabel("y [m]");
+  zlabel("z [m]");
+  ginput();
+endif
