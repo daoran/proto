@@ -29,23 +29,18 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   nb_params += length(landmark_param_ids);
   nb_params += length(camera_param_ids);
 
-  param_idx = zeros(nb_params, 1);
-	% (row: param_id, col: col_idx)
-	% i-th row represents param_id, e.g. row 0 is param_id 0 ...
-	% The value represents the col_idx in the Hessian.
-  % So if row 0 (i.e. param_id 0) has value 10, 10 is the matrix index
-
+  param_idx = {};
   col_idx = 1;
   for i = 1:length(pose_param_ids)
-    param_idx(pose_param_ids(i)) = col_idx;
+    param_idx{pose_param_ids(i)} = col_idx;
     col_idx += 6;
   endfor
   for i = 1:length(landmark_param_ids)
-    param_idx(landmark_param_ids(i)) = col_idx;
+    param_idx{landmark_param_ids(i)} = col_idx;
     col_idx += 3;
   endfor
   for i = 1:length(camera_param_ids)
-    param_idx(camera_param_ids(i)) = col_idx;
+    param_idx{camera_param_ids(i)} = col_idx;
     col_idx += 3;
   endfor
 
@@ -65,12 +60,12 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
 		residuals = [residuals; r];
 
     for i = 1:length(params)
-      idx_i = param_idx(params{i}.id);
+      idx_i = param_idx{params{i}.id};
       size_i = params{i}.min_dims;
       J_i = jacobians{i};
 
       for j = i:length(params)
-        idx_j = param_idx(params{j}.id);
+        idx_j = param_idx{params{j}.id};
         size_j = params{j}.min_dims;
         J_j = jacobians{j};
 

@@ -59,7 +59,7 @@ for k = 1:length(data.time)
   for i = 1:length(p_ids)
     p_W = data.p_data(:, p_ids(i));
     landmark_id = lmid2pid{p_ids(i)};
-    ba_factor = ba_factor_init(0, [pose_id, landmark_id, camera_id], z_k(:, i));
+    ba_factor = ba_factor_init(ts, [pose_id, landmark_id, camera_id], z_k(:, i));
     graph = graph_add_factor(graph, ba_factor);
   endfor
 endfor
