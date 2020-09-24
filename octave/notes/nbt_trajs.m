@@ -212,74 +212,74 @@ endfunction
 %       object_points.push_back(ray * grid_depth);
 %     endfor
 %     kp_x = 0;
-% 	endfor
+%   endfor
 % endfunction
 
 function entropy = eval_nbt(sensor_poses, T_SC, cam_params, calib_covar)
-	entropy = 0;
-	p_W = [10; 0; 0];
+  entropy = 0;
+  p_W = [10; 0; 0];
 
-	for i = 1:length(sensor_poses)
-		% Setup
-		T_WS = sensor_poses{i};
-		C_WS = tf_rot(T_WS);
-		C_SC = tf_rot(T_SC);
-		T_WC = T_WS * T_SC;
-		T_CW = T_WC';
-		p_C = tf_point(T_CW, p_W);
-		% p_C = [0; 0; 10.0];
+  for i = 1:length(sensor_poses)
+    % Setup
+    T_WS = sensor_poses{i};
+    C_WS = tf_rot(T_WS);
+    C_SC = tf_rot(T_SC);
+    T_WC = T_WS * T_SC;
+    T_CW = T_WC';
+    p_C = tf_point(T_CW, p_W);
+    % p_C = [0; 0; 10.0];
 
-		% Project and distort point p_C
-		fx = cam_params(1);
-		fy = cam_params(2);
-		k1 = cam_params(5);
-		k2 = cam_params(6);
-		p1 = cam_params(7);
-		p2 = cam_params(8);
-		x = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
-		x_dist = radtan4_distort(k1, k2, p1, p2, x);  % Distort point
+    % Project and distort point p_C
+    fx = cam_params(1);
+    fy = cam_params(2);
+    k1 = cam_params(5);
+    k2 = cam_params(6);
+    p1 = cam_params(7);
+    p2 = cam_params(8);
+    x = [p_C(1) / p_C(3); p_C(2) / p_C(3)];
+    x_dist = radtan4_distort(k1, k2, p1, p2, x);  % Distort point
 
-		% Project-distort-scale and center jacobian
-		J_proj = [1 / p_C(3), 0, -p_C(1) / p_C(3)**2;
-							0, 1 / p_C(3), -p_C(2) / p_C(3)**2];
-		J_dist = radtan4_point_jacobian(k1, k2, p1, p2, x);
-		J_point = [fx, 0; 0, fy];
-		J_h = J_point * J_dist * J_proj;
+    % Project-distort-scale and center jacobian
+    J_proj = [1 / p_C(3), 0, -p_C(1) / p_C(3)**2;
+              0, 1 / p_C(3), -p_C(2) / p_C(3)**2];
+    J_dist = radtan4_point_jacobian(k1, k2, p1, p2, x);
+    J_point = [fx, 0; 0, fy];
+    J_h = J_point * J_dist * J_proj;
 
-		% Sensor pose Jacobian
-		p_S = tf_point(T_SC, p_C);
-		dp_C__dp_W = C_SC' * C_WS';
-		dp_W__dr_WS = eye(3);
-		dp_W__dtheta = -skew(C_WS * p_S);
-		J_sensor_pose = zeros(2, 6);
-		J_sensor_pose(1:2, 1:3) = J_h * dp_C__dp_W * dp_W__dr_WS;
-		J_sensor_pose(1:2, 4:6) = J_h * dp_C__dp_W * dp_W__dtheta;
+    % Sensor pose Jacobian
+    p_S = tf_point(T_SC, p_C);
+    dp_C__dp_W = C_SC' * C_WS';
+    dp_W__dr_WS = eye(3);
+    dp_W__dtheta = -skew(C_WS * p_S);
+    J_sensor_pose = zeros(2, 6);
+    J_sensor_pose(1:2, 1:3) = J_h * dp_C__dp_W * dp_W__dr_WS;
+    J_sensor_pose(1:2, 4:6) = J_h * dp_C__dp_W * dp_W__dtheta;
 
-		% Sensor-camera Jacobian
-		dp_C__dp_S = C_SC';
-		dp_S__dr_SC = eye(3);
-		dp_S__dtheta = -skew(C_SC * p_C);
-		J_sensor_camera = zeros(2, 6);
-		J_sensor_camera(1:2, 1:3) = J_h * dp_C__dp_S * dp_S__dr_SC;
-		J_sensor_camera(1:2, 4:6) = J_h * dp_C__dp_S * dp_S__dtheta;
+    % Sensor-camera Jacobian
+    dp_C__dp_S = C_SC';
+    dp_S__dr_SC = eye(3);
+    dp_S__dtheta = -skew(C_SC * p_C);
+    J_sensor_camera = zeros(2, 6);
+    J_sensor_camera(1:2, 1:3) = J_h * dp_C__dp_S * dp_S__dr_SC;
+    J_sensor_camera(1:2, 4:6) = J_h * dp_C__dp_S * dp_S__dtheta;
 
-		% Camera parameters Jacobian
-		J_cam_params = zeros(2, 8);
-		J_cam_params(1:2, 1:4) = [x_dist(1), 0, 1, 0;
-															0, x_dist(2), 0, 1];
-		J_dist_params = radtan4_params_jacobian(k1, k2, p1, p2, x);
-		J_cam_params(1:2, 5:8) = J_point * J_dist_params;
+    % Camera parameters Jacobian
+    J_cam_params = zeros(2, 8);
+    J_cam_params(1:2, 1:4) = [x_dist(1), 0, 1, 0;
+                              0, x_dist(2), 0, 1];
+    J_dist_params = radtan4_params_jacobian(k1, k2, p1, p2, x);
+    J_cam_params(1:2, 5:8) = J_point * J_dist_params;
 
-		% First order error propagation
-		J_x = [J_sensor_pose, J_sensor_camera, J_cam_params];
-		sensor_pose_var = [1e-5; 1e-5; 1e-5; 1e-5; 1e-5; 1e-5];
-		sensor_camera_var = diag(calib_covar)(1:6);
-		cam_params_var = diag(calib_covar)(end-7:end);
-		covar_x = diag([sensor_pose_var; sensor_camera_var; cam_params_var]);
-		covar_y = (J_x * covar_x * J_x');
+    % First order error propagation
+    J_x = [J_sensor_pose, J_sensor_camera, J_cam_params];
+    sensor_pose_var = [1e-5; 1e-5; 1e-5; 1e-5; 1e-5; 1e-5];
+    sensor_camera_var = diag(calib_covar)(1:6);
+    cam_params_var = diag(calib_covar)(end-7:end);
+    covar_x = diag([sensor_pose_var; sensor_camera_var; cam_params_var]);
+    covar_y = (J_x * covar_x * J_x');
 
-		entropy += trace(covar_y);
-	endfor
+    entropy += trace(covar_y);
+  endfor
 endfunction
 
 

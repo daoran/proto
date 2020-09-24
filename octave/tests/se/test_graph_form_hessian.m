@@ -36,32 +36,32 @@ graph = graph_init();
 % -- Add landmarks
 lmid2pid = {}; % Landmark id to parameter id
 for i = 1:columns(data.p_data)
-	p_W = data.p_data(:, i);
-	[graph, param_id] = graph_add_param(graph, landmark_init(i, p_W));
-	lmid2pid{i} = param_id;
+  p_W = data.p_data(:, i);
+  [graph, param_id] = graph_add_param(graph, landmark_init(i, p_W));
+  lmid2pid{i} = param_id;
 endfor
 % -- Loop through time
 for k = 1:length(data.time)
-	% Timestamp
-	ts = data.time(k);
+  % Timestamp
+  ts = data.time(k);
 
-	% Form camera pose transform T_WC
-	q_WC = data.q_WC{k};
-	r_WC = data.r_WC{k};
-	cam_pose = pose_init(ts, [q_WC; r_WC]);
-	[graph, pose_id] = graph_add_param(graph, cam_pose);
+  % Form camera pose transform T_WC
+  q_WC = data.q_WC{k};
+  r_WC = data.r_WC{k};
+  cam_pose = pose_init(ts, [q_WC; r_WC]);
+  [graph, pose_id] = graph_add_param(graph, cam_pose);
 
-	# Get point ids and keypoint measurements at time k
-	p_ids = data.point_ids_data{k};
-	z_k = data.z_data{k};
+  # Get point ids and keypoint measurements at time k
+  p_ids = data.point_ids_data{k};
+  z_k = data.z_data{k};
 
-	% Loop over observations at time k
-	for i = 1:length(p_ids)
-		p_W = data.p_data(:, p_ids(i));
-		landmark_id = lmid2pid{p_ids(i)};
-		ba_factor = ba_factor_init(0, [pose_id, landmark_id, camera_id], z_k(:, i));
-		graph = graph_add_factor(graph, ba_factor);
-	endfor
+  % Loop over observations at time k
+  for i = 1:length(p_ids)
+    p_W = data.p_data(:, p_ids(i));
+    landmark_id = lmid2pid{p_ids(i)};
+    ba_factor = ba_factor_init(0, [pose_id, landmark_id, camera_id], z_k(:, i));
+    graph = graph_add_factor(graph, ba_factor);
+  endfor
 endfor
 
 % Form hessian
