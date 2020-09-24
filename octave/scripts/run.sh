@@ -110,7 +110,7 @@ ctags -R .
 # octave tests/se/param/test_sb_init.m && exit 0
 # octave tests/se/test_graph_add_factor.m && exit 0
 # octave tests/se/test_graph_add_param.m && exit 0
-octave tests/se/test_graph_form_hessian.m && exit 0
+octave tests/se/test_graph_eval.m && exit 0
 # octave tests/se/test_graph_init.m && exit 0
 
 # octave tests/cv/test_camera_measurements.m && exit 0

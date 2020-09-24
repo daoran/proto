@@ -1,22 +1,22 @@
 function graph = graph_update(graph, param_idx, dx)
   for i = 1:rows(param_idx)
-    param_id = i;
-
-    param = graph.param{param_id};
+    param = graph.params{i};
     idx = param_idx(i);
 
-    % Update pose
+		% Update parameter
     if strcmp(param.type, "pose")
+			% Update pose
       dalpha = dx(idx:idx+2);
       dq = quat_delta(dalpha);
-      quat = param.param(1:4);
-      param.param(1:4) = quat_mul(dq, quat);
+      param.param(1:4) = quat_mul(dq, param.param(1:4));
 
       dr = dx(idx+3:idx+5);
-      trans = param.param(1:4);
-      param.param(5:7) = trans + dr;
+      param.param(5:7) = param.param(5:7)+ dr;
     else
       param.param = param.param + dx(idx:(idx+param.min_dims-1));
     end
+
+		% Replace the parameter with new updated
+		graph.params{i} = param;
   endfor
 endfunction
