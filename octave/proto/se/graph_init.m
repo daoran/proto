@@ -1,4 +1,4 @@
-function graph = graph_t()
+function graph = graph_init()
   graph.params = {};
   graph.factors = {};
 endfunction

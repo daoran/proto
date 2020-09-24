@@ -1,19 +1,18 @@
-function [z, point_ids] = camera_measurements(K, resolution, T_WC, points_W)
-  assert(size(K) == [3, 3]);
-  assert(length(resolution) == 2);
+function [z, point_ids] = camera_measurements(camera, T_WC, points_W)
   assert(size(T_WC) == [4, 4]);
   assert(rows(points_W) == 3);
   assert(columns(points_W) > 0);
 
   # Form projection matrix
   T_CW = inv(T_WC);
-  R_CW = T_CW(1:3, 1:3);
-  t_CW = T_CW(1:3, 4);
-  P = K * [R_CW, t_CW];
+  C_CW = T_CW(1:3, 1:3);
+  r_CW = T_CW(1:3, 4);
+  K = pinhole_K(camera.param(1:4));
+  P = K * [C_CW, r_CW];
 
   # Setup
-  image_width = resolution(1);
-  image_height = resolution(2);
+  image_width = camera.resolution(1);
+  image_height = camera.resolution(2);
   nb_points = columns(points_W);
 
   # Check points

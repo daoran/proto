@@ -37,9 +37,7 @@ function data = calib_sim(calib_target, T_WT, camera, nb_poses, debug=false)
     assert(norm(quat2rot(q_WC{i}) - C_WC) < 1e-4);
 
     % Project world points to camera
-    K = camera.K;
-    image_size = camera.resolution;
-    [z, point_ids] = camera_measurements(K, image_size, T_WC, p_data);
+    [z, point_ids] = camera_measurements(camera, T_WC, p_data);
 
     z_data{i} = z;
     point_ids_data{i} = point_ids;

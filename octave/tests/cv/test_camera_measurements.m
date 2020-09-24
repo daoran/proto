@@ -1,15 +1,22 @@
 addpath(genpath("proto"));
 
-# Camera properties
+% Setup camera
+cam_idx = 0;
 image_width = 640;
 image_height = 480;
 resolution = [image_width; image_height];
-fov = 90;
+fov = 60.0;
 fx = focal_length(image_width, fov);
 fy = focal_length(image_height, fov);
-cx = image_width / 2.0;
-cy = image_height / 2.0;
-K = pinhole_K([fx, fy, cx, cy]);
+cx = image_width / 2;
+cy = image_height / 2;
+proj_model = "pinhole";
+dist_model = "radtan4";
+proj_params = [fx; fy; cx; cy];
+dist_params = [-0.01; 0.01; 1e-4; 1e-4];
+camera = camera_init(cam_idx, resolution,
+                     proj_model, dist_model,
+                     proj_params, dist_params);
 
 # Camera pose
 C_WC = euler321(deg2rad([-90.0, 0.0, -90.0]));
@@ -20,7 +27,7 @@ T_WC = tf(C_WC, r_WC);
 points_W = 10.0 * rand(3, 100);
 
 # Get camera measurements
-[z, point_ids] = camera_measurements(K, resolution, T_WC, points_W);
+[z, point_ids] = camera_measurements(camera, T_WC, points_W);
 assert(rows(z) == 2);
 assert(columns(z) > 0);
 assert(rows(point_ids) == 1);

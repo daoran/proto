@@ -1,12 +1,10 @@
-function K = pinhole_K(intrinsics)
-  fx = intrinsics(1);
-  fy = intrinsics(2);
-  cx = intrinsics(3);
-  cy = intrinsics(4);
+function K = pinhole_K(params)
+  fx = params(1);
+  fy = params(2);
+  cx = params(3);
+  cy = params(4);
 
-  K = eye(3);
-  K(1, 1) = fx;
-  K(2, 2) = fy;
-  K(1, 3) = cx;
-  K(2, 3) = cy;
+  K = [fx, 0, cx,
+       0, fy, cy,
+       0, 0, 1];
 endfunction

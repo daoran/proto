@@ -1,6 +1,7 @@
 set -e
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
+ctags -R .
 
 # make
 # make tests
@@ -39,7 +40,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 # octave notes/mav.m && exit 0
 # octave notes/msckf.m && exit 0
 # octave notes/nbt.m && exit 0
-octave notes/nbt_trajs.m && exit 0
+# octave notes/nbt_trajs.m && exit 0
 # octave notes/rand_inv_matrix.m && exit 0
 # octave notes/vicon_frames.m && exit 0
 # octave notes/vicon_f450.m && exit 0
@@ -101,16 +102,17 @@ octave notes/nbt_trajs.m && exit 0
 # octave tests/plot/test_draw_frame.m && exit 0
 # octave tests/plot/test_draw_points.m && exit 0
 
-# octave tests/se/test_ba_factor_eval.m && exit 0
-# octave tests/se/test_graph_t.m && exit 0
-# octave tests/se/test_graph_add_param.m && exit 0
+# octave tests/se/factor/test_ba_factor_init.m && exit 0
+# octave tests/se/factor/test_ba_factor_eval.m && exit 0
+# octave tests/se/param/test_camera_init.m && exit 0
+# octave tests/se/param/test_landmark_init.m && exit 0
+# octave tests/se/param/test_pose_init.m && exit 0
+# octave tests/se/param/test_sb_init.m && exit 0
 # octave tests/se/test_graph_add_factor.m && exit 0
-# octave tests/se/test_landmark_t.m && exit 0
-# octave tests/se/test_param_t.m && exit 0
-# octave tests/se/test_pose_t.m && exit 0
-# octave tests/se/test_sb_t.m && exit 0
+# octave tests/se/test_graph_add_param.m && exit 0
+octave tests/se/test_graph_form_hessian.m && exit 0
+# octave tests/se/test_graph_init.m && exit 0
 
-# octave tests/cv/test_camera_init.m && exit 0
 # octave tests/cv/test_camera_measurements.m && exit 0
 # octave tests/cv/test_chessboard_create.m && exit 0
 # octave tests/cv/test_equi4_distort.m && exit 0
@@ -119,7 +121,6 @@ octave notes/nbt_trajs.m && exit 0
 # octave tests/cv/test_equi4_undistort.m && exit 0
 # octave tests/cv/test_focal_length.m && exit 0
 # octave tests/cv/test_pinhole_K.m && exit 0
-# octave tests/cv/test_pinhole_radtan4.m && exit 0
 # octave tests/cv/test_radtan4_distort.m && exit 0
 # octave tests/cv/test_radtan4_param_jacobian.m && exit 0
 # octave tests/cv/test_radtan4_point_jacobian.m && exit 0

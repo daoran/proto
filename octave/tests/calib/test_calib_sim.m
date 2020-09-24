@@ -7,9 +7,23 @@ r_WT = [1.0; 0.0; 0.0];
 T_WT = tf(C_WT, r_WT);
 
 % Setup camera
-fov = 90.0;
-image_size = [640; 480];
-camera = camera_init(image_size, fov);
+cam_idx = 0;
+image_width = 640;
+image_height = 480;
+resolution = [image_width; image_height];
+fov = 60.0;
+fx = focal_length(image_width, fov);
+fy = focal_length(image_height, fov);
+cx = image_width / 2;
+cy = image_height / 2;
+proj_model = "pinhole";
+dist_model = "radtan4";
+proj_params = [fx; fy; cx; cy];
+dist_params = [-0.01; 0.01; 1e-4; 1e-4];
+camera = camera_init(cam_idx, resolution,
+                     proj_model, dist_model,
+                     proj_params, dist_params);
+
 
 % Simulation calibration data
 % debug = true;

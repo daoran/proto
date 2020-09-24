@@ -1,5 +1,4 @@
 function [r, jacobians] = ba_factor_eval(factor, params)
-  assert(isfield(factor, "camera_params"));
   assert(isfield(factor, "param_ids"));
 
   % Setup return values
@@ -9,14 +8,14 @@ function [r, jacobians] = ba_factor_eval(factor, params)
   jacobians{3} = zeros(2, 8);  % w.r.t Camera parameters
 
   % Map params
-  cam_pose_param = params{1};
-  lm_param = params{2};
+  cam_pose = params{1};
+  landmark = params{2};
   cam_params = params{3};
 
-  T_WC = tf(cam_pose_param.data);
-  p_W = lm_param.data;
-  proj_params = cam_params.data(1:4);
-  dist_params = cam_params.data(5:8);
+  T_WC = tf(cam_pose.param);
+  p_W = landmark.param;
+  proj_params = cam_params.param(1:4);
+  dist_params = cam_params.param(5:8);
 
   % Project point in world frame to image plane
   p_C = tf_point(inv(T_WC), p_W);
@@ -60,6 +59,7 @@ function [r, jacobians] = ba_factor_eval(factor, params)
   J_cam_params = zeros(2, 8);
   J_cam_params(1:2, 1:4) = [x_dist(1), 0, 1, 0;
                             0, x_dist(2), 0, 1];
-  J_cam_params(1:2, 5:8) = J_point * radtan4_params_jacobian(k1, k2, p1, p2, x);
+  J_dist = radtan4_params_jacobian(k1, k2, p1, p2, x);
+  J_cam_params(1:2, 5:8) = J_point * J_dist;
   jacobians{3} = -1 * sqrt_info * J_cam_params;
 endfunction

@@ -1850,6 +1850,11 @@ void imu_init_attitude(const vec3s_t w_m,
 void timestamp_print(const timestamp_t &ts, const std::string &prefix = "");
 
 /**
+ * Convert seconds to timestamp.
+ */
+timestamp_t ts2sec(const real_t seconds);
+
+/**
  * Convert ts to second.
  */
 real_t ts2sec(const timestamp_t &ts);

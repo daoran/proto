@@ -30,15 +30,17 @@ landmark = landmark_init(0, [10; rand(2, 1)]);
 p_C = tf_point(inv(T_WC), landmark.param);
 z = pinhole_radtan4_project(proj_params, zeros(4, 1), p_C);
 
-% Create graph
+% Setup graph
 graph = graph_init();
-
 [graph, cam_pose_id] = graph_add_param(graph, cam_pose);
 [graph, landmark_id] = graph_add_param(graph, landmark);
 [graph, cam_params_id] = graph_add_param(graph, cam_params);
 
-param_ids = [cam_pose_id, landmark_id, cam_params_id];
-ba_factor = ba_factor_init(param_ids, z);
-graph = graph_add_factor(graph, ba_factor)
-
-% assert(length(graph.factors) == 1);
+% Create BA factor
+ts = 0;
+param_ids = [cam_pose_id; landmark_id; cam_params_id];
+ba_factor = ba_factor_init(ts, param_ids, z);
+assert(isfield(ba_factor, "ts"));
+assert(isfield(ba_factor, "param_ids"));
+assert(isfield(ba_factor, "z"));
+assert(isfield(ba_factor, "covar"));
