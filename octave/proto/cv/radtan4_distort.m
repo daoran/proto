@@ -1,4 +1,13 @@
-function p_distorted = radtan4_distort(k1, k2, p1, p2, p)
+function p_distorted = radtan4_distort(dist_params, p)
+  assert(length(dist_params) == 4);
+  assert(length(p) == 2);
+
+  % Distortion parameters
+  k1 = dist_params(1);
+  k2 = dist_params(2);
+  p1 = dist_params(3);
+  p2 = dist_params(4);
+
   % Point
   x = p(1);
   y = p(2);

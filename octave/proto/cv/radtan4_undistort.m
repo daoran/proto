@@ -1,11 +1,20 @@
-function point = radtan4_undistort(k1, k2, p1, p2, p0)
+function point = radtan4_undistort(dist_params, p0)
+  assert(length(dist_params) == 4);
+
+  % Distortion parameters
+  k1 = dist_params(1);
+  k2 = dist_params(2);
+  p1 = dist_params(3);
+  p2 = dist_params(4);
+
+  % Undistort
   p = p0;
   max_iter = 5;
 
   for i = 1:max_iter
     % Error
-    p_distorted = radtan4_distort(k1, k2, p1, p2, p);
-    J = radtan4_point_jacobian(k1, k2, p1, p2, p);
+    p_distorted = radtan4_distort(dist_params, p);
+    J = radtan4_point_jacobian(dist_params, p);
     err = (p0 - p_distorted);
 
     % Update

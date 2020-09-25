@@ -167,7 +167,7 @@ function [T_diff] = perturb_trans(T, step_size, i)
   T_diff = tf(C, r_diff);
 endfunction
 
-function retval = check_jacobian(jac_name, fdiff, jac, threshold, print=true)
+function retval = check_jacobian(jac_name, fdiff, jac, threshold, print=1)
   % delta = sqrt(sum((fdiff - jac)(:))**2);
   % if (delta > threshold)
 

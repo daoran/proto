@@ -1,4 +1,14 @@
-function J_point = equi4_point_jacobian(k1, k2, k3, k4, p)
+function J_point = equi4_point_jacobian(dist_params, p)
+  assert(length(dist_params) == 4);
+  assert(length(p) == 2);
+
+  % Distortion parameters
+  k1 = dist_params(1);
+  k2 = dist_params(2);
+  k3 = dist_params(3);
+  k4 = dist_params(4);
+
+  % Jacobian
   x = p(1);
   y = p(2);
   r = sqrt(x**2 + y**2);

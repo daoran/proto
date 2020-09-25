@@ -4,7 +4,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/mexopencv/lib
 ctags -R .
 
 # make
-# make tests
+make tests
 
 # sudo bash ./scripts/install_mexopencv.bash
 # octave notes/covar_recover.m && exit 0
@@ -91,6 +91,20 @@ ctags -R .
 # octave tests/core/test_normalize.m && exit 0
 # octave tests/core/test_skew.m && exit 0
 
+# octave tests/cv/test_camera_measurements.m && exit 0
+# octave tests/cv/test_chessboard_create.m && exit 0
+# octave tests/cv/test_equi4_distort.m && exit 0
+# octave tests/cv/test_equi4_param_jacobian.m && exit 0
+# octave tests/cv/test_equi4_point_jacobian.m && exit 0
+# octave tests/cv/test_equi4_undistort.m && exit 0
+# octave tests/cv/test_focal_length.m && exit 0
+# octave tests/cv/test_pinhole_K.m && exit 0
+# octave tests/cv/test_radtan4_distort.m && exit 0
+# octave tests/cv/test_radtan4_param_jacobian.m && exit 0
+# octave tests/cv/test_radtan4_point_jacobian.m && exit 0
+# octave tests/cv/test_radtan4_undistort.m && exit 0
+# octave tests/cv/test_webcam.m && exit 0
+
 # octave tests/dataset/test_load_aprilgrid.m && exit 0
 # octave tests/dataset/test_load_euroc.m && exit 0
 # octave tests/dataset/test_load_kitti.m && exit 0
@@ -110,21 +124,8 @@ ctags -R .
 # octave tests/se/param/test_sb_init.m && exit 0
 # octave tests/se/test_graph_add_factor.m && exit 0
 # octave tests/se/test_graph_add_param.m && exit 0
-octave tests/se/test_graph_eval.m && exit 0
+# octave tests/se/test_graph_eval.m && exit 0
 # octave tests/se/test_graph_init.m && exit 0
 
-# octave tests/cv/test_camera_measurements.m && exit 0
-# octave tests/cv/test_chessboard_create.m && exit 0
-# octave tests/cv/test_equi4_distort.m && exit 0
-# octave tests/cv/test_equi4_param_jacobian.m && exit 0
-# octave tests/cv/test_equi4_point_jacobian.m && exit 0
-# octave tests/cv/test_equi4_undistort.m && exit 0
-# octave tests/cv/test_focal_length.m && exit 0
-# octave tests/cv/test_pinhole_K.m && exit 0
-# octave tests/cv/test_radtan4_distort.m && exit 0
-# octave tests/cv/test_radtan4_param_jacobian.m && exit 0
-# octave tests/cv/test_radtan4_point_jacobian.m && exit 0
-# octave tests/cv/test_radtan4_undistort.m && exit 0
-# octave tests/cv/test_trajectory_plot.m && exit 0
-# octave tests/cv/test_trajectory_simulate.m && exit 0
-# octave tests/cv/test_webcam.m && exit 0
+# octave tests/sim/test_trajectory_plot.m && exit 0
+# octave tests/sim/test_trajectory_simulate.m && exit 0

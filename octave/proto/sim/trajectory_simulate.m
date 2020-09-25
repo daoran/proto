@@ -18,8 +18,6 @@ function data = trajectory_simulate(camera, chessboard)
   T_WT = tf(C_WT, r_WT);
   hp_F = homogeneous(chessboard.object_points);
   p_W = dehomogeneous(T_WT * hp_F);
-  K = camera.K;
-  res = camera.resolution;
 
   % Generate trajectory
   time_data = [];
@@ -38,7 +36,7 @@ function data = trajectory_simulate(camera, chessboard)
     T_WC_k = tf(C_WC_k, r_WC_k);
 
     % Check landmarks
-    [z_out, points_out] = camera_measurements(K, res, T_WC_k, p_W);
+    [z_out, points_out] = camera_measurements(camera, T_WC_k, p_W);
 
     % Record data
     time_data = [time_data, t];

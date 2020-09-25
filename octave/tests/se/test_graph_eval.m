@@ -17,22 +17,17 @@ fx = focal_length(image_width, fov);
 fy = focal_length(image_height, fov);
 cx = image_width / 2;
 cy = image_height / 2;
-proj_model = "pinhole";
-dist_model = "radtan4";
 proj_params = [fx; fy; cx; cy];
 dist_params = [-0.01; 0.01; 1e-4; 1e-4];
-camera = camera_init(cam_idx, resolution,
-                     proj_model, dist_model,
-                     proj_params, dist_params);
+camera = pinhole_radtan4_init(cam_idx, resolution, proj_params, dist_params);
 % -- Simulate
 nb_poses = 10;
 data_gnd = calib_sim(calib_target, T_WT, camera, nb_poses);
+% data = data_gnd;
 data = calib_data_add_noise(data_gnd);
 
 % Create graph
 graph = graph_init();
-% -- Add camera
-[graph, camera_id] = graph_add_param(graph, camera);
 % -- Add landmarks
 lmid2pid = {}; % Landmark id to parameter id
 for i = 1:columns(data.p_data)
@@ -40,6 +35,8 @@ for i = 1:columns(data.p_data)
   [graph, param_id] = graph_add_param(graph, landmark_init(i, p_W));
   lmid2pid{i} = param_id;
 endfor
+% -- Add camera
+[graph, camera_id] = graph_add_param(graph, camera);
 % -- Loop through time
 for k = 1:length(data.time)
   % Timestamp
@@ -67,7 +64,7 @@ endfor
 % Optimize
 for i = 1:10
   [H, g, r, param_idx] = graph_eval(graph);
-  H = H + 0.1 * eye(size(H)); % Levenberg-Marquardt Dampening
+  H = H + 1e-4 * eye(size(H)); % Levenberg-Marquardt Dampening
   dx = pinv(H) * g;
 
   graph = graph_update(graph, param_idx, dx);

@@ -38,7 +38,7 @@ graph = graph_init();
 [graph, cam_params_id] = graph_add_param(graph, cam_params);
 
 param_ids = [cam_pose_id, landmark_id, cam_params_id];
-ba_factor = ba_factor_init(param_ids, z);
-graph = graph_add_factor(graph, ba_factor)
+ba_factor = ba_factor_init(0, param_ids, z);
+graph = graph_add_factor(graph, ba_factor);
 
-% assert(length(graph.factors) == 1);
+assert(length(graph.factors) == 1);

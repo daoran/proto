@@ -17,13 +17,9 @@ fx = focal_length(image_width, fov);
 fy = focal_length(image_height, fov);
 cx = image_width / 2;
 cy = image_height / 2;
-proj_model = "pinhole";
-dist_model = "radtan4";
 proj_params = [fx; fy; cx; cy];
 dist_params = [-0.01; 0.01; 1e-4; 1e-4];
-cam_params = camera_init(cam_idx, resolution,
-                         proj_model, dist_model,
-                         proj_params, dist_params);
+camera = pinhole_radtan4_init(cam_idx, resolution, proj_params, dist_params);
 
 % Setup landmark
 landmark = landmark_init(0, [10; rand(2, 1)]);
@@ -34,7 +30,7 @@ z = pinhole_radtan4_project(proj_params, zeros(4, 1), p_C);
 graph = graph_init();
 [graph, cam_pose_id] = graph_add_param(graph, cam_pose);
 [graph, landmark_id] = graph_add_param(graph, landmark);
-[graph, cam_params_id] = graph_add_param(graph, cam_params);
+[graph, cam_params_id] = graph_add_param(graph, camera);
 
 % Create BA factor
 ts = 0;

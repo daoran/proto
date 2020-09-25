@@ -1,5 +1,5 @@
-function factor = ba_factor_init(ts, param_ids, z, covar=eye(2))
-  assert(length(param_ids) == 3);
+function factor = cam_factor_init(ts, param_ids, z, covar=eye(2))
+  assert(length(param_ids) == 4);
   assert(size(z) == [2, 1]);
   assert(size(covar) == [2, 2]);
 

@@ -29,37 +29,32 @@ J = jacobian([x_ddash, y_ddash], [x, y])
 % char(J(2, 2))
 
 
-function check_radtan4_point_jacobian(k1, k2, p1, p2)
+function check_radtan4_point_jacobian(dist_params)
   % Radtan distort
   p = [unifrnd(-0.1, 0.1); unifrnd(-0.1, 0.1)];
-  z = radtan4_distort(k1, k2, p1, p2, p);
-  J = radtan4_point_jacobian(k1, k2, p1, p2, p);
+  z = radtan4_distort(dist_params, p);
+  J = radtan4_point_jacobian(dist_params, p);
 
   % Jacobian w.r.t. point x and y
-  x = p(1);
-  y = p(2);
-
-  J11 = k1*(x**2 + y**2) + k2*(x**2 + y**2)**2 + 2*p1*y + 6*p2*x + x*(2*k1*x + 4*k2*x*(x**2 + y**2)) + 1;
-  J12 = 2*p1*x + 2*p2*y + y*(2*k1*x + 4*k2*x*(x**2 + y**2));
-  J21 = 2*p1*x + 2*p2*y + x*(2*k1*y + 4*k2*y*(x**2 + y**2));
-  J22 = k1*(x**2 + y**2) + k2*(x**2 + y**2)**2 + 6*p1*y + 2*p2*x + y*(2*k1*y + 4*k2*y*(x**2 + y**2)) + 1;
-  dz__dp = [J11, J12; J21, J22];
+  J_point = radtan4_point_jacobian(dist_params, p);
 
   % Finite diff w.r.t input point (x, y)
   fdiff = zeros(2, 2);
   step_size = 1.0e-8;
 
-  x_diff = x + step_size;
-  z_prime = radtan4_distort(k1, k2, p1, p2, [x_diff, y]);
+  p_diff = p;
+  p_diff(1) = p(1) + step_size;
+  z_prime = radtan4_distort(dist_params, p_diff);
   fdiff(1:2, 1) = (z_prime - z) / step_size;
 
-  y_diff = y + step_size;
-  z_prime = radtan4_distort(k1, k2, p1, p2, [x, y_diff]);
+  p_diff = p;
+  p_diff(2) = p(2) + step_size;
+  z_prime = radtan4_distort(dist_params, p_diff);
   fdiff(1:2, 2) = (z_prime - z) / step_size;
 
   % Check jacobian
   threshold = 1e-5;
-  retval = check_jacobian("dz__dp", fdiff, dz__dp, threshold);
+  retval = check_jacobian("J_radtan4_point", fdiff, J_point, threshold);
 endfunction
 
 % Check jacobian
@@ -67,4 +62,5 @@ k1 = 0.01;
 k2 = 0.001;
 p1 = 0.01;
 p2 = 0.001;
-check_radtan4_point_jacobian(k1, k2, p1, p2);
+dist_params = [k1; k2; p1; p2];
+check_radtan4_point_jacobian(dist_params);

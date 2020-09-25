@@ -33,10 +33,14 @@ function retval = ba_nb_measurements(data)
   endfor
 endfunction
 
-function J = intrinsics_point_jacobian(K)
+function J = intrinsics_point_jacobian(camera)
+  proj_params = camera.param(1:4);
+  fx = proj_params(1);
+  fy = proj_params(2);
+
   J = zeros(2, 2);
-  J(1, 1) = K(1, 1);
-  J(2, 2) = K(2, 2);
+  J(1, 1) = fx;
+  J(2, 2) = fy;
 endfunction
 
 function J = project_jacobian(p_C)
@@ -119,9 +123,6 @@ function J = ba_jacobian(data, check_jacobians=false)
   J_cols = (nb_poses * 6) + (nb_points * 3);
   J = zeros(J_rows, J_cols);
 
-  % Camera intrinsics
-  K = data.camera.K;
-
   % Loop over camera poses
   pose_idx = 1;
   meas_idx = 1;
@@ -153,7 +154,7 @@ function J = ba_jacobian(data, check_jacobians=false)
       cs = ((pose_idx - 1) * 6) + 1;
       ce = cs + 5;
       % -- Form jacobians
-      J_K = intrinsics_point_jacobian(K);
+      J_K = intrinsics_point_jacobian(data.camera);
       J_P = project_jacobian(p_C);
       J_C = camera_rotation_jacobian(q_WC, r_WC, p_W);
       J_r = camera_translation_jacobian(q_WC);
@@ -196,9 +197,6 @@ endfunction
 function residuals = ba_residuals(data)
   residuals = [];
 
-  % Camera
-  K = data.camera.K;
-
   % Target pose
   C_WT = quat2rot(data.q_WT);
   r_WT = data.r_WT;
@@ -222,7 +220,7 @@ function residuals = ba_residuals(data)
       p_W = data.p_data(:, p_id);
 
       % Calculate reprojection error
-      z_hat = pinhole_project(K, T_WC, p_W);
+      z_hat = pinhole_project(data.camera, T_WC, p_W);
       e = z_k(1:2, i) - z_hat;
       residuals = [residuals; e];
     endfor
@@ -351,15 +349,29 @@ C_WT = euler321(deg2rad([90.0, 0.0, -90.0]));
 r_WT = [1.0; 0.0; 0.0];
 T_WT = tf(C_WT, r_WT);
 % -- Create camera
-res = [640; 480];
+cam_idx = 0;
+image_width = 640;
+image_height = 480;
+resolution = [image_width; image_height];
 fov = 90.0;
-camera = camera_init(res, fov);
+fx = focal_length(image_width, fov);
+fy = focal_length(image_height, fov);
+cx = image_width / 2;
+cy = image_height / 2;
+proj_model = "pinhole";
+dist_model = "radtan4";
+proj_params = [fx; fy; cx; cy];
+dist_params = [-0.01; 0.01; 1e-4; 1e-4];
+camera = camera_init(cam_idx, resolution,
+                     proj_model, dist_model,
+                     proj_params, dist_params);
 % -- Create data
 % data = trajectory_simulate(camera, chessboard);
 % nb_poses = 20;
 nb_poses = 10;
 data_gnd = calib_sim(calib_target, T_WT, camera, nb_poses);
-data = calib_data_add_noise(data_gnd);
+% data = calib_data_add_noise(data_gnd);
+data = data_gnd;
 
 function save_dataset(save_path="/tmp/ba_data/", data)
   % Create directory to save dataset
@@ -448,89 +460,6 @@ function save_dataset(save_path="/tmp/ba_data/", data)
   endfor
   fclose(points_file);
 end
-
-% n = 6;
-% m = 6;
-% A = rand(n, m);
-% B = A' * A
-% covar = inv(B)
-% B_ = inv(covar)
-% % imagesc(B);
-%
-% csvwrite("/tmp/H.csv", B);
-% csvwrite("/tmp/covar.csv", covar);
-% imagesc(covar);
-% ginput()
-
-% save_dataset(save_path="/tmp/ba_data/", data_gnd);
-% save_dataset(save_path="/tmp/ba_data/", data);
-% e = ba_residuals(data_gnd);
-E = ba_jacobian(data);
-H = E' * E;
-% H = H + 1e-3 * eye(size(H));
-
-% covar = pinv(H);
-% det(covar(1:6, 1:6))
-% covar(end-2:end, end-2:end)
-% det(covar(end-2:end, end-2:end))
-% covar = pinv(H);
-% covar = pinv(H);
-% sqrt(diag(covar))
-% det(covar)
-% trace(covar)
-% imagesc(covar);
-% colorbar();
-% ginput();
-% covar
-% [L, U, P] = lu(H);
-% size(L)
-% imshow(pinv(H));
-% ginput();
-% csvwrite("/tmp/H.csv", H)
-% g = -E' * e;
-%
-% H = nearestSPD(H);
-
-% Jacobi Preconditioning
-% cond(H)
-% p = diag(H);
-% P = diag(p);
-% p_recip = 1 ./ p;
-% P_inv = diag(p_recip);
-% H = P_inv * H * P;
-% g = P_inv * g;
-% cond(H)
-% chol(H)
-% dx = H \ g;
-
-
-% H_hat = nearestSPD(H);
-% dx = H_hat \ g
-% dx = H \ g
-% rcond(H_hat)
-% chol(H_hat);
-% chol(H);
-% min(min(H))
-% figure(1);
-% imagesc(H);
-% ginput();
-
-% cost = ba_cost(e)
-
-% E = ba_jacobian(data);
-% H = E' * E;
-% try chol(H)
-%   disp('Matrix is symmetric positive definite.')
-% catch ME
-%   disp('Matrix is not symmetric positive definite')
-% end
-
-% # For small matrices
-% d = eig(H);
-% tol = eps;
-% isposdef = all(d) > tol
-% issemidef = all(d) > -tol
-
 
 % Optimize
 % plot_compare_data("Before Bundle Adjustment", data_gnd, data);
