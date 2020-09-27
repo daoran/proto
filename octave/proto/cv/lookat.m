@@ -1,12 +1,12 @@
-function T_target_camera = lookat(cam_pos, target, up_axis=[0.0; -1.0; 0.0])
+function T_target_camera = lookat(cam_pos, target_pos, up_axis=[0.0; -1.0; 0.0])
   assert(size(cam_pos) == [3, 1]);
-  assert(size(target) == [3, 1]);
+  assert(size(target_pos) == [3, 1]);
   assert(size(up_axis) == [3, 1]);
 
   % Note: If we were using OpenGL the cam_dir would be the opposite direction,
   % since in OpenGL the camera forward is -z. In robotics however our camera is
   % +z forward.
-  cam_dir = normalize((target - cam_pos));
+  cam_dir = normalize((target_pos - cam_pos));
   cam_right = normalize(cross(up_axis, cam_dir));
   cam_up = cross(cam_dir, cam_right);
 

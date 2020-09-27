@@ -220,7 +220,7 @@ function residuals = ba_residuals(data)
       p_W = data.p_data(:, p_id);
 
       % Calculate reprojection error
-      z_hat = pinhole_project(data.camera, T_WC, p_W);
+      z_hat = pinhole_project(data.camera.param(1:4), T_WC, p_W);
       e = z_k(1:2, i) - z_hat;
       residuals = [residuals; e];
     endfor

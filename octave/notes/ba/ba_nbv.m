@@ -36,10 +36,14 @@ function retval = ba_nb_measurements(data)
   endfor
 endfunction
 
-function J = intrinsics_point_jacobian(K)
+function J = intrinsics_point_jacobian(camera)
+  proj_params = camera.param(1:4);
+  fx = proj_params(1);
+  fy = proj_params(2);
+
   J = zeros(2, 2);
-  J(1, 1) = K(1, 1);
-  J(2, 2) = K(2, 2);
+  J(1, 1) = fx;
+  J(2, 2) = fy;
 endfunction
 
 function J = project_jacobian(p_C)
@@ -122,9 +126,6 @@ function J = ba_jacobian(data, check_jacobians=false)
   J_cols = (nb_poses * 6) + (nb_points * 3);
   J = zeros(J_rows, J_cols);
 
-  % Camera intrinsics
-  K = data.camera.K;
-
   % Loop over camera poses
   pose_idx = 1;
   meas_idx = 1;
@@ -156,7 +157,7 @@ function J = ba_jacobian(data, check_jacobians=false)
       cs = ((pose_idx - 1) * 6) + 1;
       ce = cs + 5;
       % -- Form jacobians
-      J_K = intrinsics_point_jacobian(K);
+      J_K = intrinsics_point_jacobian(data.camera);
       J_P = project_jacobian(p_C);
       J_cam_rot = -1 * J_K * J_P * camera_rotation_jacobian(q_WC, r_WC, p_W);
       J_cam_pos = -1 * J_K * J_P * camera_translation_jacobian(q_WC);
@@ -197,9 +198,6 @@ endfunction
 function residuals = ba_residuals(data)
   residuals = [];
 
-  % Camera
-  K = data.camera.K;
-
   % Target pose
   C_WT = quat2rot(data.q_WT);
   r_WT = data.r_WT;
@@ -223,7 +221,7 @@ function residuals = ba_residuals(data)
       p_W = data.p_data(:, p_id);
 
       % Calculate reprojection error
-      z_hat = pinhole_project(K, T_WC, p_W);
+      z_hat = pinhole_project(data.camera.param(1:4), T_WC, p_W);
       e = z_k(1:2, i) - z_hat;
       residuals = [residuals; e];
     endfor
@@ -294,6 +292,8 @@ function [entropy_data, data, data_gnd] = ba_nbv_solve(data, data_gnd, nb_nbv=0)
   data_gnd.p_data = data_gnd.p_data;
 
   for i = 1:nb_nbv
+    nb_poses = length(data.time)
+
     max_iter = 20;
     cost_prev = 0.0;
     for i = 1:max_iter
@@ -367,14 +367,12 @@ function [entropy_data, data, data_gnd] = ba_nbv_solve(data, data_gnd, nb_nbv=0)
   % ginput();
 endfunction
 
-function [entropy_data, data] = ba_batch_solve(data, start_idx)
+function [entropy_data, data] = ba_batch_solve(data)
   entropy_data = [];
   nb_poses = length(data.time);
 
-  % Create optimzation data
-
   % Optimize
-  for k = start_idx:nb_poses
+  for k = 1:nb_poses
     printf("\n");
     printf("k: %d\n", k);
     opt_data.time = data.time(1:k);
@@ -460,10 +458,8 @@ function nbv = ba_nbv(data, sigma=[1.0; 1.0])
     r_WC = tf_trans(T_WC);
     q_WC = tf_quat(T_WC);
 
-    K = data.camera.K;
-    image_size = data.camera.resolution;
     p_data = data.p_data;
-    [z, point_ids] = camera_measurements(K, image_size, T_WC, p_data);
+    [z, point_ids] = camera_measurements(data.camera, T_WC, p_data);
 
     data_new = data;
     data_new.time = [data_new.time, idx_new];
@@ -563,52 +559,65 @@ C_WT = euler321(deg2rad([90.0, 0.0, -90.0]));
 r_WT = [1.0; 0.0; 0.0];
 T_WT = tf(C_WT, r_WT);
 % -- Create camera
-res = [640; 480];
+cam_idx = 0;
+image_width = 640;
+image_height = 480;
+resolution = [image_width; image_height];
 fov = 90.0;
-camera = camera_init(res, fov);
+fx = focal_length(image_width, fov);
+fy = focal_length(image_height, fov);
+cx = image_width / 2;
+cy = image_height / 2;
+proj_model = "pinhole";
+dist_model = "radtan4";
+proj_params = [fx; fy; cx; cy];
+dist_params = [-0.01; 0.01; 1e-4; 1e-4];
+camera = camera_init(cam_idx, resolution,
+                     proj_model, dist_model,
+                     proj_params, dist_params);
 % -- Create data
 % data = trajectory_simulate(camera, chessboard);
-nb_poses = 20;
+nb_poses = 10;
 data_gnd = calib_sim(calib_target, T_WT, camera, nb_poses);
 data = calib_data_add_noise(data_gnd);
 
-% % Batch optimization
-% [batch_entropy, batch_data] = ba_batch_solve(data, 3);
+% Batch optimization
+[batch_entropy, batch_data] = ba_batch_solve(data, 3);
 
 % NBV optimization
-nbv_data.time = data.time(1:3);
+nbv_data.time = data.time(1);
 nbv_data.camera = data.camera;
 nbv_data.target = data.target;
 nbv_data.q_WT = data.q_WT;
 nbv_data.r_WT = data.r_WT;
-nbv_data.q_WC = data.q_WC(1:3);
-nbv_data.r_WC = data.r_WC(1:3);
-nbv_data.z_data = data.z_data(1:3);
-nbv_data.point_ids_data = data.point_ids_data(1:3);
+nbv_data.q_WC = data.q_WC(1);
+nbv_data.r_WC = data.r_WC(1);
+nbv_data.z_data = data.z_data(1);
+nbv_data.point_ids_data = data.point_ids_data(1);
 nbv_data.p_data = data.p_data;
 
-nb_nbvs = 7;
+nb_nbvs = 9;
 [nbv_entropy, nbv_data, nbv_gnd] = ba_nbv_solve(nbv_data, data_gnd, nb_nbvs);
+
 
 % % Plot
 % plot_compare_data(data_gnd, batch_data);
 % title("Batch");
-%
+
 % plot_compare_data(nbv_gnd, nbv_data);
 % title("NBV");
 % ginput();
 
-% figure();
-% hold on;
-% x_axis = (nbv_data.time(end)-nb_nbvs:nbv_data.time(end));
-% plot(x_axis, batch_entropy, "r-", "linewidth", 2.0);
-% plot(x_axis, nbv_entropy, "b-", "linewidth", 2.0);
-% legend("Batch", "NBV");
-% set(gca, "XTick", x_axis)
-% xlabel("Number of views");
-% ylabel("Covariance Entropy [nats]");
-% ginput();
+size(batch_entropy)
+size(nbv_entropy)
 
-% profile off;
-% data = profile("info");
-% profshow(data, 30);
+figure();
+hold on;
+x_axis = (nbv_data.time(end)-nb_nbvs:nbv_data.time(end));
+plot(x_axis, batch_entropy, "r-", "linewidth", 2.0);
+plot(x_axis, nbv_entropy, "b-", "linewidth", 2.0);
+legend("Batch", "NBV");
+set(gca, "XTick", x_axis)
+xlabel("Number of views");
+ylabel("Covariance Entropy [nats]");
+ginput();
