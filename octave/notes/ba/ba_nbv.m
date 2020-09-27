@@ -273,10 +273,12 @@ function [data, EWE] = ba_update(data, e, E, sigma=[1.0; 1.0])
   endfor
 endfunction
 
-function [entropy_data, data, data_gnd] = ba_nbv_solve(data, data_gnd, nb_nbv=0)
+function [entropy_data, data, data_gnd] = ba_nbv_solve(data, data_gnd, start_idx)
   % Setup
   % plot_compare_data(data_gnd, data);
   entropy_data = [];
+  nb_poses = length(data.time);
+  nb_nbvs = nb_poses - start_idx;
 
   % Slice ground truth data
   gnd_end = length(data.time);
@@ -291,9 +293,20 @@ function [entropy_data, data, data_gnd] = ba_nbv_solve(data, data_gnd, nb_nbv=0)
   data_gnd.point_ids_data = data_gnd.point_ids_data(1:gnd_end);
   data_gnd.p_data = data_gnd.p_data;
 
-  for i = 1:nb_nbv
-    nb_poses = length(data.time)
+  % Slice data - only extract first 'start_idx' views
+  data.time = data.time(1:start_idx);
+  data.camera = data.camera;
+  data.target = data.target;
+  data.q_WT = data.q_WT;
+  data.r_WT = data.r_WT;
+  data.q_WC = data.q_WC(1:start_idx);
+  data.r_WC = data.r_WC(1:start_idx);
+  data.z_data = data.z_data(1:start_idx);
+  data.point_ids_data = data.point_ids_data(1:start_idx);
+  data.p_data = data.p_data;
 
+  for i = 1:nb_nbvs
+    % Optimize
     max_iter = 20;
     cost_prev = 0.0;
     for i = 1:max_iter
@@ -367,12 +380,12 @@ function [entropy_data, data, data_gnd] = ba_nbv_solve(data, data_gnd, nb_nbv=0)
   % ginput();
 endfunction
 
-function [entropy_data, data] = ba_batch_solve(data)
+function [entropy_data, data] = ba_batch_solve(data, start_idx)
   entropy_data = [];
   nb_poses = length(data.time);
 
   % Optimize
-  for k = 1:nb_poses
+  for k = start_idx:nb_poses
     printf("\n");
     printf("k: %d\n", k);
     opt_data.time = data.time(1:k);
@@ -578,26 +591,20 @@ camera = camera_init(cam_idx, resolution,
 % -- Create data
 % data = trajectory_simulate(camera, chessboard);
 nb_poses = 10;
+start_idx = 3;
+nb_nbvs = nb_poses - start_idx;
 data_gnd = calib_sim(calib_target, T_WT, camera, nb_poses);
 data = calib_data_add_noise(data_gnd);
 
 % Batch optimization
-[batch_entropy, batch_data] = ba_batch_solve(data, 3);
+printf("Perform Batch Optimization\n");
+[batch_entropy, batch_data] = ba_batch_solve(data, start_idx);
+printf("----------------------------------------\n");
 
 % NBV optimization
-nbv_data.time = data.time(1);
-nbv_data.camera = data.camera;
-nbv_data.target = data.target;
-nbv_data.q_WT = data.q_WT;
-nbv_data.r_WT = data.r_WT;
-nbv_data.q_WC = data.q_WC(1);
-nbv_data.r_WC = data.r_WC(1);
-nbv_data.z_data = data.z_data(1);
-nbv_data.point_ids_data = data.point_ids_data(1);
-nbv_data.p_data = data.p_data;
-
-nb_nbvs = 9;
-[nbv_entropy, nbv_data, nbv_gnd] = ba_nbv_solve(nbv_data, data_gnd, nb_nbvs);
+printf("Perform NBV Optimization\n");
+[nbv_entropy, nbv_data, nbv_gnd] = ba_nbv_solve(data, data_gnd, start_idx);
+printf("----------------------------------------\n");
 
 
 % % Plot
@@ -607,9 +614,6 @@ nb_nbvs = 9;
 % plot_compare_data(nbv_gnd, nbv_data);
 % title("NBV");
 % ginput();
-
-size(batch_entropy)
-size(nbv_entropy)
 
 figure();
 hold on;
