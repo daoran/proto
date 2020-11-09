@@ -63,7 +63,8 @@ mathjax_config = {
             'Norm': [r'{\left\lVert{#1}\right\rVert}', 1],
             'Det': [r'{\text{det}(#1)}', 1],
             'I': r'{\Mat{I}}',
-            'Skew': [r'{\lfloor #1 \enspace \times \rfloor}', 1],
+            # 'Skew': [r'{\lfloor #1 \enspace \times \rfloor}', 1],
+            'Skew': [r'{\left(#1\right)^{\times}}', 1],
             'Min': [r'\text{min}(#1, #2)', 2],
             'Max': [r'\text{max}(#1, #2)', 2],
             'argmin': r'\mathop{\mathrm{argmin}',
@@ -100,7 +101,14 @@ mathjax_config = {
             'pos': r'{\Vec{r}}',
             'vel': r'{\Vec{v}}',
             'acc': r'{\Vec{a}}',
+            'dalpha': r'{\delta\boldsymbol{\alpha}}',
+            'dbeta': r'{\delta\boldsymbol{\beta}}',
+            'dgamma': r'{\delta\boldsymbol{\gamma}}',
             'dtheta': r'{\delta\boldsymbol{\theta}}',
+            'dotdalpha': r'{\delta\dot{\boldsymbol{\alpha}}}',
+            'dotdbeta': r'{\delta\dot{\boldsymbol{\beta}}}',
+            'dotdgamma': r'{\delta\dot{\boldsymbol{\gamma}}}',
+            'dotdtheta': r'{\delta\dot{\boldsymbol{\theta}}}',
             'dPos': r'{\dot{\Vec{r}}}',
             'dVel': r'{\dot{\Vec{v}}}',
             'angvel': r'{\boldsymbol{\omega}}',
@@ -111,12 +119,14 @@ mathjax_config = {
             # Gyroscope
             'gyr': r'{\angvel}',
             'gyrMeas': r'{\angvel_{m}}',
-            'gyrNoise': r'{\noise_{g}}',
-            'gyrBias': r'{\bias_{g}}',
+            'gyrNoise': r'{\noise_{\omega}}',
+            'gyrBias': r'{\bias_{\omega}}',
+            'gyrBiasNoise': r'{\noise_{\bias_{\omega}}}',
             # Accelerometer
             'accMeas': r'{\acc_{m}}',
             'accNoise': r'{\noise_{a}}',
-            'accBias': r'{\bias_{a}}'
+            'accBias': r'{\bias_{a}}',
+            'accBiasNoise': r'{\noise_{\bias_{a}}}'
         }
     }
 }
