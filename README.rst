@@ -12,7 +12,7 @@ Build
 -----
 
 For convenience there is a ``Makefile`` that automates the installation of
-dependencies and building of ``proto``, the make targets are as follows.
+dependencies and building of ``proto``, the make targets are as follows.::
 
     deps:
       Install proto dependencies.
@@ -33,7 +33,7 @@ dependencies and building of ``proto``, the make targets are as follows.
       Format proto code using clang-format.
 
 Or, the standard way to build a C++ project is to enter the following commands
-at the root of the repo.
+at the root of the repo.::
 
     mkdir -p build
     cd build
