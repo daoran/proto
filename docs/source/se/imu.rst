@@ -110,6 +110,9 @@ Euler integration is chosen. At the start, :math:`\boldsymbol{\alpha}_{k,k}`,
         \end{bmatrix} \\
   \end{align}
 
+The linearized dynamics of the error state for :math:`\boldsymbol{\alpha}`,
+:math:`\boldsymbol{\beta}`, :math:`\boldsymbol{\gamma}`:
+
 .. math::
   \begin{align}
     % Position
@@ -119,7 +122,7 @@ Euler integration is chosen. At the start, :math:`\boldsymbol{\alpha}_{k,k}`,
       &=
       -\rot_{{S_{k}S_{t}}} \Skew{\accMeas - \accBias} \dtheta
       -\rot_{{S_{k}S_{t}}} \delta{\accBias}
-      - \accNoise \\
+      -\rot{{S_{k}S_{t}}} \accNoise \\
     % Orientation
     \dotdtheta
       &=
@@ -129,10 +132,40 @@ Euler integration is chosen. At the start, :math:`\boldsymbol{\alpha}_{k,k}`,
   \end{align}
 
 .. math::
+  \Vec{x} = \begin{bmatrix}
+    \boldsymbol{\alpha} \\
+    \boldsymbol{\beta} \\
+    \boldsymbol{\gamma} \\
+    \accBias \\
+    \gyrBias
+  \end{bmatrix}
+  \enspace
+  \delta{\Vec{x}} = \begin{bmatrix}
+    \dalpha \\
+    \dbeta \\
+    \dgamma \\
+    \delta{\accBias} \\
+    \delta{\gyrBias}
+  \end{bmatrix}
+  \enspace
+  \Vec{u} = \begin{bmatrix}
+    \accMeas \\
+    \gyrMeas
+  \end{bmatrix}
+  \enspace
+  \Vec{\noise} = \begin{bmatrix}
+    \accNoise \\
+    \gyrNoise \\
+    \accBiasNoise \\
+    \gyrBiasNoise
+  \end{bmatrix} \\
+
+.. math::
+  \delta{\dot{\Vec{x}}} &= \Mat{F} \delta{\Vec{x}} + \Mat{G} \Vec{n} \\
   \begin{bmatrix}
     \dotdalpha \\
-    \dotdtheta \\
     \dotdbeta \\
+    \dotdtheta \\
     \delta{\dot{\accBias}} \\
     \delta{\dot{\gyrBias}}
   \end{bmatrix}
@@ -140,22 +173,22 @@ Euler integration is chosen. At the start, :math:`\boldsymbol{\alpha}_{k,k}`,
   \begin{bmatrix}
     % ROW 1
     \mathbf{0}_{3}
-    & \mathbf{0}_{3}
     & \I_{3}
+    & \mathbf{0}_{3}
     & \mathbf{0}_{3}
     & \mathbf{0}_{3} \\
     % ROW 2
     \mathbf{0}_{3}
-    & -\Skew{\gyrMeas - \gyrBias}
     & \mathbf{0}_{3}
-    & \mathbf{0}_{3}
-    & -\I_{3} \\
-    % ROW 3
-    \mathbf{0}_{3}
     & -\rot_{{S_{k}S_{t}}} \Skew{\accMeas - \accBias}
-    & \mathbf{0}_{3}
     & -\rot_{{S_{k}S_{t}}}
     & \mathbf{0}_{3} \\
+    % ROW 3
+    \mathbf{0}_{3}
+    & \mathbf{0}_{3}
+    & -\Skew{\gyrMeas - \gyrBias}
+    & \mathbf{0}_{3}
+    & -\I_{3} \\
     % ROW 4
     \mathbf{0}_{3}
     & \mathbf{0}_{3}
@@ -171,8 +204,8 @@ Euler integration is chosen. At the start, :math:`\boldsymbol{\alpha}_{k,k}`,
   \end{bmatrix}
   \begin{bmatrix}
     \dalpha \\
-    \dtheta \\
     \dbeta \\
+    \dtheta \\
     \delta{\accBias} \\
     \delta{\gyrBias}
   \end{bmatrix} \\
@@ -181,9 +214,9 @@ Euler integration is chosen. At the start, :math:`\boldsymbol{\alpha}_{k,k}`,
     % ROW 1
     \mathbf{0}_{3} & \mathbf{0}_{3} & \mathbf{0}_{3} & \mathbf{0}_{3} \\
     % ROW 2
-    \mathbf{0}_{3} & -\I_{3} & \mathbf{0}_{3} & \mathbf{0}_{3} \\
-    % ROW 3
     -\rot_{{S_{k}S_{t}}} & \mathbf{0}_{3} & \mathbf{0}_{3} & \mathbf{0}_{3} \\
+    % ROW 3
+    \mathbf{0}_{3} & -\I_{3} & \mathbf{0}_{3} & \mathbf{0}_{3} \\
     % ROW 4
     \mathbf{0}_{3} & \mathbf{0}_{3} & \I_{3} & \mathbf{0}_{3} \\
     % ROW 5
@@ -195,7 +228,6 @@ Euler integration is chosen. At the start, :math:`\boldsymbol{\alpha}_{k,k}`,
     \accBiasNoise \\
     \gyrBiasNoise
   \end{bmatrix} \\
-  &= \Mat{F} \delta{\Vec{z}} + \Mat{G} \Vec{n}
 
 
 .. math::
@@ -226,11 +258,11 @@ Residuals
 
 .. math::
   \begin{bmatrix}
-    \Vec{e}_{\Delta{\pos}} \\
-    \Vec{e}_{\Delta{\quat}} \\
-    \Vec{e}_{\Delta{\vel}} \\
-    \Vec{e}_{\Delta{\accBias}} \\
-    \Vec{e}_{\Delta{\gyrBias}}
+    \Vec{e}_{\dalpha} \\
+    \Vec{e}_{\dbeta} \\
+    \Vec{e}_{\dgamma} \\
+    \Vec{e}_{\delta{\accBias}} \\
+    \Vec{e}_{\delta{\gyrBias}}
   \end{bmatrix}
   =
   \underbrace{
@@ -242,14 +274,14 @@ Residuals
           - \vel_{{WS}_{k}} \Delta{t}
           + \dfrac{1}{2} \gravity \Delta{t^{2}}
         \right) \\
-    % Orientation
-    \quat^{-1}_{WS_{k}} \otimes \quat_{WS_{k+1}} \\
     % Velocity
         \rot_{{S_{k}W}} \left(
           \vel_{{WS}_{k+1}}
           - \vel_{{WS}_{k}}
           + \gravity \Delta{t}
         \right) \\
+    % Orientation
+    \quat^{-1}_{WS_{k}} \otimes \quat_{WS_{k+1}} \\
     % Biases
     \accBias_{k+1} - \accBias_{k} \\
     \gyrBias_{k+1} - \gyrBias_{k}
@@ -259,8 +291,8 @@ Residuals
   \underbrace{
     \begin{bmatrix}
     \hat{\boldsymbol{\alpha}}_{k,k+1} \\
-    \hat{\boldsymbol{\gamma}}_{k,k+1} \\
     \hat{\boldsymbol{\beta}}_{k,k+1} \\
+    \hat{\boldsymbol{\gamma}}_{k,k+1} \\
     \Mat{0} \\
     \Mat{0}
     \end{bmatrix}
@@ -272,9 +304,9 @@ Pose at :math:`k`
 
 .. math::
   \begin{align}
-    \dfrac{\Vec{e}_{\Delta{\pos}}}{{\partial{\pos_{WS_{k}}}}}
+    \dfrac{\Vec{e}_{\dalpha}}{{\partial{\pos_{WS_{k}}}}}
       &= -\rot_{S_{k}W} \\
-    \dfrac{\Vec{e}_{\Delta{\pos}}}{{\partial{\dtheta_{k}}}}
+    \dfrac{\Vec{e}_{\dalpha}}{{\partial{\dtheta_{k}}}}
       &=
       \Skew{
         \rot_{{S_{k}W}} \left(
@@ -284,8 +316,8 @@ Pose at :math:`k`
           + \dfrac{1}{2} \gravity \Delta{t^{2}}
         \right)
       } \\
-    \dfrac{\Vec{e}_{\Delta{\rot}}}{{\partial{\dtheta_{k}}}} &=\\
-    \dfrac{\Vec{e}_{\Delta{\vel}}}{{\partial{\pos_{WS_{k}}}}}
+    \dfrac{\Vec{e}_{\dgamma}}{{\partial{\dtheta_{k}}}} &=\\
+    \dfrac{\Vec{e}_{\dbeta}}{{\partial{\pos_{WS_{k}}}}}
       &=
       \Skew{
         \rot_{{S_{k}W}} \left(
@@ -300,24 +332,50 @@ Speed and Biases at :math:`k`
 
 .. math::
   \begin{align}
-    \dfrac{\partial{\error_{\text{IMU}}}}{{\partial{\vel_{WS_{k}}}}} \\
-    \dfrac{\partial{\error_{\text{IMU}}}}{{\partial{\gyrBias_{WS_{k}}}}} \\
-    \dfrac{\partial{\error_{\text{IMU}}}}{{\partial{\accBias_{WS_{k}}}}}
+    \dfrac{\partial{\error_{\dalpha}}}{{\partial{\vel_{WS_{k}}}}}
+      &= -\rot_{S_{k}W} \Delta{t} \\
+    \dfrac{\partial{\error_{\dalpha}}}{{\partial{\accBias_{k}}}}
+      &= -\Mat{J}^{\alpha}_{\delta{\accBias}} \\
+    \dfrac{\partial{\error_{\dalpha}}}{{\partial{\gyrBias_{k}}}}
+      &= -\Mat{J}^{\alpha}_{\delta{\gyrBias}}
+  \end{align}
+
+.. math::
+  \begin{align}
+    \dfrac{\partial{\error_{\dbeta}}}{{\partial{\vel_{WS_{k}}}}}
+      &= -\rot_{S_{k}W} \\
+    \dfrac{\partial{\error_{\dbeta}}}{{\partial{\accBias_{k}}}}
+      &= -\Mat{J}^{\beta}_{\delta{\accBias}} \\
+    \dfrac{\partial{\error_{\dbeta}}}{{\partial{\gyrBias_{k}}}}
+      &= -\Mat{J}^{\beta}_{\delta{\gyrBias}}
+  \end{align}
+
+.. math::
+  \begin{align}
+    \dfrac{\partial{\error_{\delta{\accBias}}}}{{\partial{\accBias_{k}}}}
+      &= -\I_{3} \\
+    \dfrac{\partial{\error_{\delta{\gyrBias}}}}{{\partial{\gyrBias_{k}}}}
+      &= -\I_{3}
   \end{align}
 
 Pose at :math:`k+1`
 
 .. math::
   \begin{align}
-    \dfrac{\partial{\error_{\text{IMU}}}}{{\partial{\pos_{WS_{k+1}}}}}
-    \dfrac{\partial{\error_{\text{IMU}}}}{{\partial{\dtheta}}}
+    \dfrac{\partial\Vec{e}_{\dalpha}}{{\partial{\pos_{WS_{k+1}}}}}
+      &= \rot_{S_{k}W} \\
+    \dfrac{\partial\Vec{e}_{\dgamma}}{{\partial{\quat_{WS_{k+1}}}}}
+      &= \\
   \end{align}
 
 Speed and Biases at :math:`k+1`
 
 .. math::
   \begin{align}
-    \dfrac{\partial{\error_{\text{IMU}}}}{{\partial{\vel_{WS_{k+1}}}}} \\
-    \dfrac{\partial{\error_{\text{IMU}}}}{{\partial{\gyrBias_{WS_{k+1}}}}} \\
-    \dfrac{\partial{\error_{\text{IMU}}}}{{\partial{\accBias_{WS_{k+1}}}}}
+    \dfrac{\partial{\error_{\dbeta}}}{{\partial{\vel_{WS_{k+1}}}}}
+      &= \rot_{S_{k}W} \\
+    \dfrac{\partial{\error_{\delta{\accBias}}}}{{\partial{\accBias_{k+1}}}}
+      &= \I_{3} \\
+    \dfrac{\partial{\error_{\delta{\gyrBias}}}}{{\partial{\gyrBias_{k+1}}}}
+      &= \I_{3}
   \end{align}

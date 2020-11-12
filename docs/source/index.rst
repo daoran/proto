@@ -56,7 +56,6 @@
    se/covar_recovery.rst
    se/shannon.rst
    se/imu.rst
-   se/factors.rst
    se/gauge.rst
    se/marginalization.rst
 
@@ -69,4 +68,4 @@
    mav/mpc.rst
 
 
-# .. include:: ../../README.rst
+.. include:: ../../README.rst

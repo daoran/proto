@@ -16,6 +16,7 @@ bin
 obj
 tags
 build
+docs/_build
 
 # matlab
 *.mat
