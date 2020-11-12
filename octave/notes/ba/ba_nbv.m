@@ -1,7 +1,6 @@
 addpath(genpath("proto"));
 graphics_toolkit("fltk");
 pkg load statistics;
-% profile on;
 
 function data = calib_data_add_noise(data)
   nb_poses = length(data.time);
@@ -243,13 +242,6 @@ function [data, EWE] = ba_update(data, e, E, sigma=[1.0; 1.0])
   EWE = (E' * W * E);
   dx = pinv(EWE) * (-E' * W * e);
 
-  % EWE = EWE + 0.1 * eye(size(EWE));
-  % dx = EWE \ (-E' * e);
-
-  % dx = (EWE) \ (-E' * W * e);
-  % dx = inv(EWE) * (-E' * W * e);
-  % dx = (EWE)^-1 * (-E' * W * e);
-
   % Update camera poses
   nb_poses = length(data.time);
   for i = 1:nb_poses
@@ -444,8 +436,10 @@ function entropy = ba_entropy(data, sigma=[1.0; 1.0])
   points_covar = covar(end-(nb_points*3)+1:end, end-(nb_points*3)+1:end);
 
   % Calculate Shannon Entropy
+  % -- Use all the cam poses and landmarks uncertainty as a measure for calibration
   % n = rows(covar);
   % entropy = 0.5 * log((2 * pi * e)**n * det(covar));
+  % -- Use the landmark points uncertainty as a measure for calibration
   n = length(points_covar);
   entropy = 0.5 * log((2 * pi * e)^n * det(points_covar));
 endfunction
@@ -584,12 +578,11 @@ cy = image_height / 2;
 proj_model = "pinhole";
 dist_model = "radtan4";
 proj_params = [fx; fy; cx; cy];
-dist_params = [-0.01; 0.01; 1e-4; 1e-4];
+dist_params = zeros(4, 1);
 camera = camera_init(cam_idx, resolution,
                      proj_model, dist_model,
                      proj_params, dist_params);
 % -- Create data
-% data = trajectory_simulate(camera, chessboard);
 nb_poses = 10;
 start_idx = 3;
 nb_nbvs = nb_poses - start_idx;
@@ -610,7 +603,7 @@ printf("----------------------------------------\n");
 % % Plot
 % plot_compare_data(data_gnd, batch_data);
 % title("Batch");
-
+%
 % plot_compare_data(nbv_gnd, nbv_data);
 % title("NBV");
 % ginput();

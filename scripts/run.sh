@@ -31,12 +31,14 @@ debug() {
 # DOCS
 # cd docs && cd source; find . -type f -exec touch {} +; cd .. && make html && exit
 
+# sudo bash scripts/deps/install_sophus.bash
+
 # LIBRARY
 # make deps
 # time make debug
 time make release
-sudo make install
-time make ros
+# sudo make install
+# time make ros
 # sudo make debug_install
 # cd proto; time make
 # exit
@@ -182,45 +184,45 @@ cd proto/build
 
 # -- estimation
 # ./test_dense
-# ./test_factor
-# ./test_factor --target test_pose_factor_jacobians
-# ./test_factor --target test_extrinsic_factor_jacobians
-# ./test_factor --target test_speed_bias_factor_jacobians
-# ./test_factor --target test_camera_params_factor_jacobians
-# ./test_factor --target test_ba_factor_jacobians
-# ./test_factor --target test_calib_mono_factor_jacobians
-# ./test_factor --target test_cam_factor_jacobians
-# ./test_factor --target test_imu_factor_jacobians
-# ./test_factor --target test_imu_propagate
-# ./test_factor --target test_graph
-# ./test_factor --target test_graph_add_pose
-# ./test_factor --target test_graph_add_landmark
-# ./test_factor --target test_graph_add_camera
-# ./test_factor --target test_graph_add_speed_bias
-# ./test_factor --target test_graph_add_pose_factor
-# ./test_factor --target test_graph_add_ba_factor
-# ./test_factor --target test_graph_add_cam_factor
-# ./test_factor --target test_graph_add_imu_factor
-# ./test_factor --target test_graph_rm_param
-# ./test_factor --target test_graph_rm_factor
-# ./test_factor --target test_graph_eval
-# ./test_factor --target test_graph_get_state
-# ./test_factor --target test_graph_set_state
-# ./test_factor --target test_graph_solve_ba
-# ./test_factor --target test_swf_add_imu
-# ./test_factor --target test_swf_add_camera
-# ./test_factor --target test_swf_add_extrinsics
-# ./test_factor --target test_swf_add_feature
-# ./test_factor --target test_swf_add_pose
-# ./test_factor --target test_swf_add_speed_bias
-# ./test_factor --target test_swf_add_pose_prior
-# ./test_factor --target test_swf_add_ba_factor
-# ./test_factor --target test_swf_add_imu_factor
-# ./test_factor --target test_swf_add_cam_factor
-# ./test_factor --target test_swf_add_cam_factor
-# ./test_factor --target test_swf_pre_marginalize
-# ./test_factor --target test_swf_marginalize
-# ./test_factor --target test_swf_solve_vo
-./test_factor --target test_swf_solve_vio
+# ./test_se
+# ./test_se --target test_pose_factor_jacobians
+# ./test_se --target test_extrinsic_factor_jacobians
+# ./test_se --target test_speed_bias_factor_jacobians
+# ./test_se --target test_camera_params_factor_jacobians
+# ./test_se --target test_ba_factor_jacobians
+# ./test_se --target test_calib_mono_factor_jacobians
+# ./test_se --target test_cam_factor_jacobians
+# ./test_se --target test_imu_factor_jacobians
+# ./test_se --target test_imu_propagate
+# ./test_se --target test_graph
+# ./test_se --target test_graph_add_pose
+# ./test_se --target test_graph_add_landmark
+# ./test_se --target test_graph_add_camera
+# ./test_se --target test_graph_add_speed_bias
+# ./test_se --target test_graph_add_pose_factor
+# ./test_se --target test_graph_add_ba_factor
+# ./test_se --target test_graph_add_cam_factor
+# ./test_se --target test_graph_add_imu_factor
+# ./test_se --target test_graph_rm_param
+# ./test_se --target test_graph_rm_factor
+# ./test_se --target test_graph_eval
+# ./test_se --target test_graph_get_state
+# ./test_se --target test_graph_set_state
+# ./test_se --target test_graph_solve_ba
+# ./test_se --target test_swf_add_imu
+# ./test_se --target test_swf_add_camera
+# ./test_se --target test_swf_add_extrinsics
+# ./test_se --target test_swf_add_feature
+# ./test_se --target test_swf_add_pose
+# ./test_se --target test_swf_add_speed_bias
+# ./test_se --target test_swf_add_pose_prior
+# ./test_se --target test_swf_add_ba_factor
+# ./test_se --target test_swf_add_imu_factor
+# ./test_se --target test_swf_add_cam_factor
+# ./test_se --target test_swf_add_cam_factor
+# ./test_se --target test_swf_pre_marginalize
+# ./test_se --target test_swf_marginalize
+# ./test_se --target test_swf_solve_vo
+# ./test_se --target test_swf_solve_vio
 
 # ./test_frontend

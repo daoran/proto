@@ -1333,8 +1333,11 @@ void load_matrix(const matx_t A, std::vector<real_t> &x);
 /** Pseudo Inverse via SVD **/
 matx_t pinv(const matx_t &A, const real_t tol=1e-4);
 
-/** Rank of matrix A **/
+/** Rank of matrix `A` **/
 long int rank(const matx_t &A);
+
+/** Check whether matrix `A` full Rank **/
+bool full_rank(const matx_t &A);
 
 /**
  * Perform Schur's Complement
@@ -1897,13 +1900,13 @@ struct profiler_t {
     timers[key] = tic();
   }
 
-  float stop(const std::string &key) {
+  float stop(const std::string &key, const bool verbose=false) {
     record[key] = toc(&timers[key]);
-    return record[key];
-  }
+    if (verbose) {
+      printf("[%s]: %.4fs\n", key.c_str(), stop(key));
+    }
 
-  void print(const std::string &key) {
-    printf("[%s]: %.4fs\n", key.c_str(), stop(key));
+    return record[key];
   }
 };
 

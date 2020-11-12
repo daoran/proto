@@ -10,6 +10,7 @@ CXXFLAGS=\
 	-I/usr/include/eigen3 \
 	-I/usr/include/yaml-cpp \
 	`pkg-config --cflags opencv`
+
 LIBS=\
 	-L$(BLD_DIR) -lproto \
 	`pkg-config --libs opencv` \

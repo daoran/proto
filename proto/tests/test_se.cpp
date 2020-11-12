@@ -1,5 +1,5 @@
 #include "munit.hpp"
-#include "factor.hpp"
+#include "se.hpp"
 
 namespace proto {
 
@@ -1747,7 +1747,7 @@ int test_swf_solve_vo() {
       swf.solve();
     }
   }
-  profiler.print("solve_vo");
+  profiler.stop("solve_vo", true);
   // swf.save_poses("/tmp/sim_data/cam0_pose_est.csv");
 
   // Debug
@@ -1850,7 +1850,7 @@ int test_swf_solve_vio() {
 //   printf("cost: %f\n", (double) cost);
 
   swf.solve();
-  profiler.print("solve_vio");
+  profiler.stop("solve_vio", true);
   swf.save_poses("/tmp/sim_data/imu_pose_est.csv");
 
   // Debug

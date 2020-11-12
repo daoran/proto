@@ -39,5 +39,5 @@ function q = rot2quat(R)
     qz = 0.25 * S;
   endif
 
-  q = [qw; qx; qy; qz];
+  q = quat_normalize([qw; qx; qy; qz]);
 endfunction

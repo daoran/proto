@@ -1,13 +1,9 @@
-#ifndef PROTO_FACTOR_HPP
-#define PROTO_FACTOR_HPP
+#ifndef PROTO_SE_HPP
+#define PROTO_SE_HPP
 
 #include "core.hpp"
 
 namespace proto {
-
-/*****************************************************************************
- *                             FACTOR GRAPH
- *****************************************************************************/
 
 /****************************** PARAMETERS ***********************************/
 
@@ -1916,4 +1912,4 @@ struct ba_data_t {
 };
 
 } // namespace proto
-#endif // PROTO_FACTOR_HPP
+#endif // PROTO_SE_HPP

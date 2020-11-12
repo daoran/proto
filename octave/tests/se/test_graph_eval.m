@@ -62,10 +62,10 @@ for k = 1:length(data.time)
 endfor
 
 % Optimize
-for i = 1:10
+for i = 1:5
   [H, g, r, param_idx] = graph_eval(graph);
   H = H + 1e-4 * eye(size(H)); % Levenberg-Marquardt Dampening
-  dx = pinv(H) * g;
+  dx = linsolve(H, g);
 
   graph = graph_update(graph, param_idx, dx);
   cost = 0.5 * r' * r

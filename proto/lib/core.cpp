@@ -1608,8 +1608,12 @@ matx_t pinv(const matx_t &A, const real_t tol) {
 }
 
 long int rank(const matx_t &A) {
-  Eigen::FullPivLU<matx_t> lu_decomp(A);
-  return lu_decomp.rank();
+  Eigen::FullPivLU<matx_t> LU(A);
+  return LU.rank();
+}
+
+bool full_rank(const matx_t &A) {
+  return (rank(A) == A.rows());
 }
 
 int schurs_complement(matx_t &H, vecx_t &b,
@@ -4300,7 +4304,7 @@ void sim_circle_trajectory(const real_t circle_r, vio_sim_data_t &sim_data) {
       std::vector<size_t> frame_obs;
       vec2s_t frame_kps;
 
-      for (const auto p_W : sim_data.features) {
+      for (const auto &p_W : sim_data.features) {
         vec2_t z;
         const vec3_t p_C = tf_point(T_CW, p_W);
         if (camera.project(p_C, z) == 0) {

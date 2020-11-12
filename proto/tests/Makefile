@@ -2,7 +2,7 @@ include ../config.mk
 
 LIBPROTO = $(BLD_DIR)/libproto.a
 
-default: test_data $(BLD_DIR)/test_factor
+default: test_data $(BLD_DIR)/test_se
 .PHONY: test_data
 
 test_data:
@@ -24,7 +24,7 @@ $(BLD_DIR)/test_dense: test_dense.cpp $(LIBPROTO)
 $(BLD_DIR)/test_euroc: test_euroc.cpp $(LIBPROTO)
 	$(MAKE_TEST)
 
-$(BLD_DIR)/test_factor: test_factor.cpp $(LIBPROTO)
+$(BLD_DIR)/test_se: test_se.cpp $(LIBPROTO)
 	$(MAKE_TEST)
 
 $(BLD_DIR)/test_frontend: test_frontend.cpp $(LIBPROTO)

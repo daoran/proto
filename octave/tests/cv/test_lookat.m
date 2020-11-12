@@ -42,18 +42,18 @@ T_WC = T_WT * T_TC;
 %         0, 0, 1, cam_pos(3);
 %         0, 0, 0, 1;];
 
-figure(1);
-hold on;
-draw_frame(T_WC, 0.1);
-scatter3(0, 0, 0, 50, 'filled');
-calib_target_draw(calib_target, T_WT);
-
-padding = 1.0;
-xlim([min(target_pos(1), cam_pos(1)) - padding, max(target_pos(1), cam_pos(1)) + padding]);
-ylim([min(target_pos(2), cam_pos(2)) - padding, max(target_pos(2), cam_pos(2)) + padding]);
-xlabel("x");
-ylabel("y");
-zlabel("z");
-axis("equal");
-view(3);
-ginput();
+% figure(1);
+% hold on;
+% draw_frame(T_WC, 0.1);
+% scatter3(0, 0, 0, 50, 'filled');
+% calib_target_draw(calib_target, T_WT);
+%
+% padding = 1.0;
+% xlim([min(target_pos(1), cam_pos(1)) - padding, max(target_pos(1), cam_pos(1)) + padding]);
+% ylim([min(target_pos(2), cam_pos(2)) - padding, max(target_pos(2), cam_pos(2)) + padding]);
+% xlabel("x");
+% ylabel("y");
+% zlabel("z");
+% axis("equal");
+% view(3);
+% ginput();

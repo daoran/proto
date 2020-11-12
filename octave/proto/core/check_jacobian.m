@@ -1,4 +1,4 @@
-function retval = check_jacobian(jac_name, fdiff, jac, threshold, print=false)
+function retval = check_jacobian(jac_name, fdiff, jac, threshold, verbose=false)
   % delta = sqrt(sum((fdiff - jac)(:))**2);
   % if (delta > threshold)
 
@@ -16,18 +16,18 @@ function retval = check_jacobian(jac_name, fdiff, jac, threshold, print=false)
 
   if failed
     retval = -1;
-    if print
+    if verbose
       printf("Check [%s] failed!\n", jac_name);
     endif
     fdiff_minus_jac = fdiff - jac
     num_diff = fdiff
     jac
     % delta
-    if print
+    if verbose
       printf("----------------------------------------\n");
     endif
   else
-    if print
+    if verbose
       printf("Check [%s] passed!\n", jac_name);
     endif
     retval = 0;

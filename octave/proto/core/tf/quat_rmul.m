@@ -1,4 +1,4 @@
-function r = quatrmul(p, q)
+function r = quat_rmul(p, q)
   assert(size(p) == [4, 1]);
   assert(size(q) == [4, 1]);
 
