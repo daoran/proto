@@ -90,6 +90,9 @@ for i = 1:3
   num_diff(:, i) = (p_W_fd - p_W) / step;
 end
 
+J
+num_diff
+
 # Check jacobians
 if norm(J - num_diff) < 1e-6
   printf("Fiducial Jacobians are GOOD!\n");

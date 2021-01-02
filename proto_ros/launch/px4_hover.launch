@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="proto_ros" name="px4_hover_node" type="px4_hover_node" output="screen" required="true">
+  </node>
+</launch>

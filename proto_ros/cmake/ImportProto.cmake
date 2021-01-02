@@ -5,29 +5,29 @@
 # Dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(Ceres REQUIRED)
-FIND_PACKAGE(SuiteSparse REQUIRED)
+# FIND_PACKAGE(SuiteSparse REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
-FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
+# FIND_PACKAGE(GeographicLib 1.34 REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
-SET(OpenGL_GL_PREFERENCE GLVND)
-FIND_PACKAGE(OpenGL REQUIRED)
-FIND_PACKAGE(glfw3 REQUIRED)
-FIND_PACKAGE(assimp REQUIRED)
-FIND_PACKAGE(glm REQUIRED)
+# SET(OpenGL_GL_PREFERENCE GLVND)
+# FIND_PACKAGE(OpenGL REQUIRED)
+# FIND_PACKAGE(glfw3 REQUIRED)
+# FIND_PACKAGE(assimp REQUIRED)
+# FIND_PACKAGE(glm REQUIRED)
 
-# -- glad
-# INCLUDE_DIRECTORIES(/usr/local/src/glad/include)
-FIND_LIBRARY(GLAD_LIBRARY LIBRARY NAMES glad)
-FIND_PATH(GLAD_INCLUDE_DIR glad/glad.h
-          HINTS /usr/local/src/glad/include)
-
-# -- imgui
-FIND_LIBRARY(IMGUI_LIBRARY LIBRARY NAMES imgui)
-FIND_LIBRARY(IMGUI_IMPL_LIBRARY LIBRARY NAMES imgui_impl)
-FIND_PATH(IMGUI_INCLUDE_DIR imgui.h
-          HINTS /usr/local/src/imgui)
-FIND_PATH(IMGUI_IMPL_INCLUDE_DIR imgui_impl_opengl3.h
-          HINTS /usr/local/src/imgui/examples)
+# # -- glad
+# # INCLUDE_DIRECTORIES(/usr/local/src/glad/include)
+# FIND_LIBRARY(GLAD_LIBRARY LIBRARY NAMES glad)
+# FIND_PATH(GLAD_INCLUDE_DIR glad/glad.h
+#           HINTS /usr/local/src/glad/include)
+#
+# # -- imgui
+# FIND_LIBRARY(IMGUI_LIBRARY LIBRARY NAMES imgui)
+# FIND_LIBRARY(IMGUI_IMPL_LIBRARY LIBRARY NAMES imgui_impl)
+# FIND_PATH(IMGUI_INCLUDE_DIR imgui.h
+#           HINTS /usr/local/src/imgui)
+# FIND_PATH(IMGUI_IMPL_INCLUDE_DIR imgui_impl_opengl3.h
+#           HINTS /usr/local/src/imgui/examples)
 
 # Find proto
 FIND_LIBRARY(PROTO_LIBRARY LIBRARY NAMES proto)

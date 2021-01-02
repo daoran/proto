@@ -1,8 +1,10 @@
 addpath(genpath("proto"));
 graphics_toolkit("fltk");
 
-data_path = "/data/results/euroc/orbslam3/MH_01/stamped_traj_estimate.txt"
-data_path2 = "/data/results/euroc/vins_mono/MH_01/stamped_traj_estimate.txt"
+% data_path = "/data/results/euroc/orbslam3/MH_01/stamped_traj_estimate.txt"
+% data_path2 = "/data/results/euroc/vins_mono/MH_01/stamped_traj_estimate.txt"
+data_path = "/data/results/euroc/laptop/orbslam3-stereo-vo-euroc/laptop_orbslam3-stereo-vo-euroc_MH_01/stamped_traj_estimate.txt"
+data_path2 = "/data/results/euroc/laptop/orbslam3-stereo-vo-euroc/laptop_orbslam3-stereo-vo-euroc_MH_01/stamped_groundtruth.txt"
 
 % T_CS = [
 %   0.01496650221625856, 0.9996699324639489, -0.02088132991299131, 0.06866596603701511;
@@ -47,7 +49,7 @@ poses2 = load_poses(data_path2);
 
 figure(1);
 hold on;
-for i = 1:10:1000
+for i = 1:10:100
   draw_frame(poses{i});
 endfor
 xlabel("x");
@@ -58,7 +60,7 @@ view(3);
 
 figure(2);
 hold on
-for i = 1:10:1000
+for i = 1:100:1000
   draw_frame(poses2{i});
 endfor
 xlabel("x");

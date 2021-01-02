@@ -21,18 +21,18 @@ FIND_PACKAGE(
 INCLUDE_DIRECTORIES(src)
 INCLUDE_DIRECTORIES(${catkin_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${GAZEBO_INCLUDE_DIRS})
-INCLUDE(cmake/ImportProto.cmake)
-FIND_PACKAGE(Proto REQUIRED)
-FIND_PACKAGE(octomap REQUIRED)
+# INCLUDE(cmake/ImportProto.cmake)
+# FIND_PACKAGE(Proto REQUIRED)
+# FIND_PACKAGE(octomap REQUIRED)
 INCLUDE_DIRECTORIES(${PROTO_INCLUDE_DIRS} ${OCTOMAP_INCLUDE_DIRS})
 
 # LINK
 SET(
   DEPS
-  proto
+  # proto
   ${catkin_LIBRARIES}
-  ${PROTO_LIBRARIES}
-  ${OCTOMAP_LIBRARIES}
+  # ${PROTO_LIBRARIES}
+  # ${OCTOMAP_LIBRARIES}
 )
 
 # CATKING PACKAGE
@@ -58,28 +58,34 @@ INSTALL(
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
 
-# GAZEBO
-ADD_LIBRARY(proto_camera_plugin SHARED src/gazebo/camera_plugin.cpp)
-TARGET_LINK_LIBRARIES(proto_camera_plugin ${DEPS})
-
-ADD_LIBRARY(proto_gimbal_plugin SHARED src/gazebo/gimbal_plugin.cpp)
-TARGET_LINK_LIBRARIES(proto_gimbal_plugin ${DEPS})
-
-ADD_LIBRARY(proto_landing_target_plugin SHARED src/gazebo/landing_target_plugin.cpp)
-TARGET_LINK_LIBRARIES(proto_landing_target_plugin ${DEPS})
-
-ADD_LIBRARY(proto_mav_plugin SHARED src/gazebo/mav_plugin.cpp)
-TARGET_LINK_LIBRARIES(proto_mav_plugin ${DEPS})
-
-ADD_LIBRARY(proto_pose_plugin SHARED src/gazebo/pose_plugin.cpp)
-TARGET_LINK_LIBRARIES(proto_pose_plugin ${DEPS})
+# # GAZEBO
+# ADD_LIBRARY(proto_camera_plugin SHARED src/gazebo/camera_plugin.cpp)
+# TARGET_LINK_LIBRARIES(proto_camera_plugin ${DEPS})
+#
+# ADD_LIBRARY(proto_gimbal_plugin SHARED src/gazebo/gimbal_plugin.cpp)
+# TARGET_LINK_LIBRARIES(proto_gimbal_plugin ${DEPS})
+#
+# ADD_LIBRARY(proto_landing_target_plugin SHARED src/gazebo/landing_target_plugin.cpp)
+# TARGET_LINK_LIBRARIES(proto_landing_target_plugin ${DEPS})
+#
+# ADD_LIBRARY(proto_mav_plugin SHARED src/gazebo/mav_plugin.cpp)
+# TARGET_LINK_LIBRARIES(proto_mav_plugin ${DEPS})
+#
+# ADD_LIBRARY(proto_pose_plugin SHARED src/gazebo/pose_plugin.cpp)
+# TARGET_LINK_LIBRARIES(proto_pose_plugin ${DEPS})
 
 # ROS NODES
 # ADD_EXECUTABLE(atl_node src/ros/atl_node.cpp)
 # TARGET_LINK_LIBRARIES(atl_node ${DEPS})
 
-ADD_EXECUTABLE(example_node src/ros/example_node.cpp)
-TARGET_LINK_LIBRARIES(example_node ${DEPS})
+ADD_EXECUTABLE(px4_hover_node src/ros/px4_hover_node.cpp)
+TARGET_LINK_LIBRARIES(px4_hover_node ${DEPS})
+
+ADD_EXECUTABLE(px4_sysid_node src/ros/px4_sysid_node.cpp)
+TARGET_LINK_LIBRARIES(px4_sysid_node ${DEPS})
+
+# ADD_EXECUTABLE(example_node src/ros/example_node.cpp)
+# TARGET_LINK_LIBRARIES(example_node ${DEPS})
 
 # ADD_EXECUTABLE(lz_detector_node src/ros/lz_detector_node.cpp)
 # TARGET_LINK_LIBRARIES(lz_detector_node ${DEPS})

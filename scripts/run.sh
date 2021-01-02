@@ -49,6 +49,12 @@ time make release
 # mv /data/vicon_capture.bag /data/vicon-test.bag
 # rm -rf /data/intel_d435i/calib_vicon_data && roslaunch proto_ros calib_vicon.launch
 
+# export ROS_MASTER_URI=http://192.168.0.103:11311
+# export ROS_HOSTNAME=192.168.0.126
+# export ROS_IP=192.168.0.126
+# source ~/catkin_ws/devel/setup.bash
+# roslaunch proto_ros px4_hover.launch
+
 # roslaunch proto_ros calib_vicon.launch && exit
 # roslaunch proto_ros calib_vicon_validate.launch
 
@@ -191,7 +197,7 @@ cd proto/build
 # ./test_se --target test_camera_params_factor_jacobians
 # ./test_se --target test_ba_factor_jacobians
 # ./test_se --target test_calib_mono_factor_jacobians
-# ./test_se --target test_cam_factor_jacobians
+./test_se --target test_cam_factor_jacobians
 # ./test_se --target test_imu_factor_jacobians
 # ./test_se --target test_imu_propagate
 # ./test_se --target test_graph

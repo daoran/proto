@@ -14,12 +14,14 @@ ctags -R .
 # octave notes/ba/ba.m && exit 0
 # octave notes/ba/ba_nbv.m && exit 0
 # octave notes/calib/calib.m && exit 0
+# octave notes/stereo_calib/stereo_calib.m && exit 0
 # octave notes/camera/equi4_point_jacobian.m && exit 0
 # octave notes/camera/intrinsics_jacobian.m && exit 0
 # octave notes/camera/radtan4_params_jacobian.m && exit 0
 # octave notes/camera/radtan4_point_jacobian.m && exit 0
-# octave notes/imu_preintegration/ipm.m && exit 0
-# octave notes/imu_preintegration/ipm_jacobian.m && exit 0
+# octave notes/traj_eval/traj_eval.m
+octave notes/imu/imu.m && exit 0
+# octave notes/imu/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0
 # octave notes/bspline.m && exit 0
@@ -37,7 +39,7 @@ ctags -R .
 # octave notes/illum_invar.m && exit 0
 # octave notes/jacobians.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
-octave notes/quaternion.m && exit 0
+# octave notes/quaternion.m && exit 0
 # octave notes/mav.m && exit 0
 # octave notes/msckf.m && exit 0
 # octave notes/nbt.m && exit 0

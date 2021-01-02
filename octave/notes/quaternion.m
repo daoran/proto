@@ -1,17 +1,69 @@
 addpath(genpath("proto"));
 pkg load symbolic;
 
-syms qx qy qz qw;
-epsilon = [qx; qy; qz];
-eta = qw;
+% syms qx qy qz qw;
+% epsilon = [qx; qy; qz];
+% eta = qw;
 % q = [eta * eye(3) - skew(epsilon), epsilon;
 %      -epsilon', eta];
 
+% q = [eta * eye(3) - skew(epsilon), epsilon;
+%      -epsilon', eta];
+% q
 
-q = [eta * eye(3) - skew(epsilon), epsilon;
-     -epsilon', eta];
+% + pz qw - px qy + py qx + pw qz 
+% - px qx - py qy - pz qz + pw qw 
+% + qx pw + py qz - pz qy + pw qx 
+% - py qw + pz qx + px qz + pw qy 
 
-q
+% pw, -px, -py, -pz,
+% px,  pw, -pz,  py,
+% py,  pz,  pw, -px,
+% pz, -py,  px,  pw
+
+
+p_ = euler2quat([deg2rad(0.4), deg2rad(0.5), deg2rad(0.6)]);
+q_ = euler2quat([deg2rad(0.1), deg2rad(0.2), deg2rad(0.3)]);
+
+p = [p_(2); p_(3); p_(4); p_(1)];
+q = [q_(2); q_(3); q_(4); q_(1)];
+
+px = p(1);
+py = p(2);
+pz = p(3);
+pw = p(4);
+
+P = [pw, -pz,  py, px;
+     pz,  pw, -px, py;
+     -py,  px,  pw, pz;
+     -px, -py, -pz, pw];
+P * q
+
+    pw, -px, -py, -pz;
+    px, pw, -pz, py;
+    py, pz, pw, -px;
+    pz, -py, px, pw;
+
+% Q = [ qw,  qz, -qy, qx;
+%      -qz,  qw,  qx, qy;
+%       qy, -qx,  qw, qz;
+%      -qx, -qy, -qz, qw];
+
+quat_lmul(p_, q_)
+
+% px = p_(1);
+% py = p_(2);
+% pz = p_(3);
+% pw = p_(4);
+%
+% lprod = [
+%   pw, -px, -py, -pz;
+%   px, pw, -pz, py;
+%   py, pz, pw, -px;
+%   pz, -py, px, pw;
+% ];
+% lprod * q_
+
 
 
 % Test Jacobian

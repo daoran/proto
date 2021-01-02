@@ -66,10 +66,11 @@ class geometry_msgs:
         "geometry_msgs/Quaternion",
         "geometry_msgs/Pose",
         "geometry_msgs/PoseStamped",
-        "geometry_msgs/PoseWithCovarianceStamped"
-        "geometry_msgs/Twist"
-        "geometry_msgs/TwistStamped"
-        "geometry_msgs/TwistWithCovarianceStamped"
+        "geometry_msgs/PoseWithCovarianceStamped",
+        "geometry_msgs/Twist",
+        "geometry_msgs/TwistStamped",
+        "geometry_msgs/TwistWithCovarianceStamped",
+        "geometry_msgs/TransformStamped"
     ]
 
     @staticmethod
@@ -104,6 +105,15 @@ class geometry_msgs:
     def pose_to_str(msg):
         pos_header, pos_data = geometry_msgs.point_to_str(msg.position)
         rot_header, rot_data = geometry_msgs.quaternion_to_str(msg.orientation)
+
+        header = pos_header + "," + rot_header
+        data = pos_data + "," + rot_data
+        return (header, data)
+
+    @staticmethod
+    def tf_to_str(msg):
+        pos_header, pos_data = geometry_msgs.vector3_to_str(msg.translation)
+        rot_header, rot_data = geometry_msgs.quaternion_to_str(msg.rotation)
 
         header = pos_header + "," + rot_header
         data = pos_data + "," + rot_data
@@ -171,6 +181,15 @@ class geometry_msgs:
 
         header = msg_header + "," + twist_header + "," + covar_header
         data = msg_data + "," + twist_data + "," + covar_data
+        return (header, data)
+
+    @staticmethod
+    def transform_stamped_to_str(msg):
+        msg_header, header_data = std_msgs.header_to_str(msg.header)
+        tf_header, tf_data = geometry_msgs.tf_to_str(msg.transform)
+
+        header = msg_header + "," + tf_header
+        data = header_data + "," + tf_data
         return (header, data)
 
 class nav_msgs:
@@ -249,6 +268,8 @@ def get_msg_converter(bag, topic):
         return geometry_msgs.pose_stamped_to_str
     if msg_type == "geometry_msgs/PoseWithCovarianceStamped":
         return geometry_msgs.pose_with_covariance_stamped_to_str
+    if msg_type == "geometry_msgs/TransformStamped":
+        return geometry_msgs.transform_stamped_to_str
 
     # ODOMETRY MSGS
     if msg_type == "nav_msgs/Odometry":

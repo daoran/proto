@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="proto_ros" name="px4_sysid_node" type="px4_sysid_node" output="screen" required="true">
+  </node>
+</launch>

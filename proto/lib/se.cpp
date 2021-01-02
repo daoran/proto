@@ -59,6 +59,8 @@ int check_jacobians(factor_t *factor,
     fdiff.block(0, i, e.rows(), 1) = (e_prime - e) / step_size;
   }
 
+  print_matrix("J", J);
+  print_matrix("fdiff", fdiff);
   return check_jacobian(jac_name, fdiff, J, threshold, true);
 }
 
