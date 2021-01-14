@@ -229,23 +229,21 @@ function x_imu = imu_state_init()
   x_imu.p_WS = zeros(3, 1);
   x_imu.v_WS = zeros(3, 1);
   x_imu.C_WS = eye(3);
-  x_imu.b_a = zeros(3, 1);
-  x_imu.b_g = zeros(3, 1);
+  x_imu.ba = zeros(3, 1);
+  x_imu.bg = zeros(3, 1);
   x_imu.g = [0; 0; 9.81];
 endfunction
 
 function x_imu = imu_euler_update(x_imu, acc, gyr, dt)
   g = x_imu.g;
-  b_a = x_imu.b_a;
-  b_g = x_imu.b_g;
-  n_a = zeros(3, 1);
-  n_g = zeros(3, 1);
+  ba = x_imu.ba;
+  bg = x_imu.bg;
 
   C_WS_i = x_imu.C_WS;
   v_WS_i = x_imu.v_WS;
 
-  w = (gyr - b_g - n_g);
-  a = (acc - b_a - n_a);
+  w = gyr - bg;
+  a = acc - ba;
   dt_sq = dt * dt;
 
   x_imu.C_WS *= so3_exp(w * dt);
@@ -255,43 +253,36 @@ endfunction
 
 function x_imu = imu_rk4_update(x_imu, acc, gyr, dt)
   g = x_imu.g;
-  b_a = x_imu.b_a;
-  b_g = x_imu.b_g;
-  n_a = zeros(3, 1);
-  n_g = zeros(3, 1);
+  ba = x_imu.ba;
+  bg = x_imu.bg;
+  na = zeros(3, 1);
+  ng = zeros(3, 1);
 
   C_WS_k = x_imu.C_WS;
   q_WS_k = rot2quat(C_WS_k);
   v_WS_k = x_imu.v_WS;
-  p_WS_k = x_imu.p_WS;
+  r_k = x_imu.p_WS;
 
-  w = (gyr - b_g - n_g);
-  a = (acc - b_a - n_a);
-
-  % Integrated orientation at time k + dt (kpdt: k plus dt)
-  % To be used for RK4
-  q_WS_kpdt = quat_integrate(q_WS_k, w, dt);
-  C_WS_kpdt = quat2rot(q_WS_kpdt);
-
-  % Integrated orientation at time k + dt / 2 (kphdt: k plus half dt)
-  % To be used for RK4
-  q_WS_kphdt = quat_integrate(q_WS_k, w, dt / 2);
-  C_WS_kphdt = quat2rot(q_WS_kphdt);
+  w = gyr - bg;
+  a = acc - ba;
 
   % Runge-Kutta 4th Order
-  % k1 = f(tn, yn)
+  % -- Integrate orientation at time k + dt (kpdt: k plus dt)
+  q_WS_kpdt = quat_integrate(q_WS_k, w, dt);
+  C_WS_kpdt = quat2rot(q_WS_kpdt);
+  % -- Integrate orientation at time k + dt / 2 (kphdt: k plus half dt)
+  q_WS_kphdt = quat_integrate(q_WS_k, w, dt / 2);
+  C_WS_kphdt = quat2rot(q_WS_kphdt);
+  % -- k1 = f(tn, yn)
   k1_v_dot = C_WS_k * a - g;
   k1_p_dot = v_WS_k;
-
-  % k2 = f(tn + dt / 2, yn + k1 * dt / 2)
+  % -- k2 = f(tn + dt / 2, yn + k1 * dt / 2)
   k2_v_dot = C_WS_kphdt * acc - g;
   k2_p_dot = v_WS_k + k1_v_dot * dt / 2;
-
-  % k3 = f(tn + dt / 2, yn + k2 * dt / 2)
+  % -- k3 = f(tn + dt / 2, yn + k2 * dt / 2)
   k3_v_dot = C_WS_kphdt * acc - g;
   k3_p_dot = v_WS_k + k2_v_dot * dt / 2;
-
-  % k4 = f(tn + dt, tn + k3 * dt)
+  % -- k4 = f(tn + dt, tn + k3 * dt)
   k4_v_dot = C_WS_kpdt * acc - g;
   k4_p_dot = v_WS_k + k3_v_dot * dt;
 
@@ -343,6 +334,113 @@ function est = imu_batch_integrate(sim_data, method)
   est.pos = est_pos;
   est.vel = est_vel;
   est.att = est_att;
+endfunction
+
+function imu_preintegrate(imu_ts, imu_acc, imu_gyr, g,
+                          pose_i, sb_i, pose_j, sb_j)
+  dC = eye(3, 3);
+  dq = rot2quat(dC);
+  dv = zeros(3, 1);
+  dr = zeros(3, 1);
+  ba = sb_i(4:6);
+  bg = sb_i(7:9);
+
+  t_prev = imu_ts(1);
+  dt = 0.0;
+  Dt = 0.0;
+
+  J = zeros(15, 15);
+  P = zeros(15, 15);
+  for k = 2:length(imu_ts)
+    % Calculate dt
+    t = imu_ts(k);
+    dt = t - t_prev;
+
+    % Propagate IMU state using Runge-Kutta 4th Order
+    a = imu_acc(:, k) - ba;
+    w = imu_gyr(:, k) - bg;
+    % -- Integrate orientation at time k + dt (kpdt: k plus dt)
+    dq_kpdt = quat_integrate(dq, w, dt);
+    dC_kpdt = quat2rot(dq_kpdt);
+    % -- Integrate orientation at time k + dt / 2 (kphdt: k plus half dt)
+    dq_kphdt = quat_integrate(dq, w, dt / 2);
+    dC_kphdt = quat2rot(dq_kphdt);
+    % -- k1 = f(tn, yn)
+    k1_v_dot = dC * a - g;
+    k1_p_dot = dv;
+    % -- k2 = f(tn + dt / 2, yn + k1 * dt / 2)
+    k2_v_dot = dC_kphdt * a - g;
+    k2_p_dot = dv + k1_v_dot * dt / 2;
+    % -- k3 = f(tn + dt / 2, yn + k2 * dt / 2)
+    k3_v_dot = dC_kphdt * a - g;
+    k3_p_dot = dv + k2_v_dot * dt / 2;
+    % -- k4 = f(tn + dt, tn + k3 * dt)
+    k4_v_dot = dC_kpdt * a - g;
+    k4_p_dot = dv + k3_v_dot * dt;
+    % -- Put it all together
+    dC = dC_kpdt;
+    dv += dt / 6 * (k1_v_dot + 2 * k2_v_dot + 2 * k3_v_dot + k4_v_dot);
+    dr += dt / 6 * (k1_p_dot + 2 * k2_p_dot + 2 * k3_p_dot + k4_p_dot);
+
+    % Continuous time transition matrix F
+    F = zeros(15, 15);
+    F(1:3, 1:3) = -skew(w);
+    F(1:3, 4:6) = -eye(3);
+    F(7:9, 1:3) = -dC * skew(a);
+    F(7:9, 10:12) = -dC;
+    F(13:15, 7:9) = eye(3);
+
+    % Continuous time input matrix G
+    G = zeros(18, 12);
+    G(4:6, 1:3) = -dC;
+    G(7:9, 4:6) = -eye(3);
+    G(10:12, 7:9) = eye(3);
+    G(13:15, 10:12) = eye(3);
+
+    % Discretize transition matrix F by using Taylor Series to the 3rd order
+    % "Quaternion kinematics for the error-state Kalman filter" (2017)
+    % By Joan Sola
+    % [Section B, p.73 "Closed-form Integration Methods"]
+    F_dt = F * dt;
+    Phi = eye(15);
+    Phi += F_dt;
+    Phi += (1.0 / 2.0) * F_dt^2;
+    Phi += (1.0 / 6.0) * F_dt^3;
+
+    % % Propagate the state covariance matrix
+    % Q_k = Phi * G * Q * G' * Phi' * dt;
+    % P = Phi * P * Phi' + Q_k;
+
+    % % Update
+    % J = Phi * J;
+    t_prev = t;
+    Dt += dt;
+  endfor
+
+  r_i = tf_trans(pose_i);
+  r_j = tf_trans(pose_j);
+  C_i = tf_rot(pose_i);
+  v_i = sb_i(1:3);
+  ba_i = sb_i(4:6);
+  bg_i = sb_i(4:6);
+
+  C_j = tf_rot(pose_j);
+  v_j = sb_j(1:3);
+  ba_j = sb_j(4:6);
+  bg_j = sb_j(4:6);
+
+  % dC
+  % dv
+  % dr
+
+  Dt_sq = Dt * Dt;
+  err_pos = C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)) - dr
+  err_vel = C_i' * ((v_j - v_i) + (g * Dt)) - dv
+  err_rot = C_i' * C_j;
+  err_ba = ba_j - ba_i
+  err_bg = bg_j - bg_i
+  % err = [err_pos; err_vel; err_rot; err_ba; err_bg];
+
 endfunction
 
 function plot_imu(sim_data)
@@ -504,6 +602,9 @@ function traj_error(gnd, est)
     err_z = [err_z, gnd_pos(3) - est_pos(3)];
   endfor
 
+  dist = norm(gnd.pos(:, end) - est.pos(:, end));
+  printf("Euclidean distance between start and end: %f\n", dist);
+
   printf("Error (x, y, z):\n");
   printf("mean: [%f, %f, %f]\n", mean(err_x), mean(err_y), mean(err_z));
   printf("median: [%f, %f, %f]\n", median(err_x), median(err_y), median(err_z));
@@ -512,15 +613,25 @@ endfunction
 
 ################################### MAIN ######################################
 
-sim_data = sim_imu(1.0, 0.2);
-est = imu_batch_integrate(sim_data, "euler");
+sim_data = sim_imu(0.5, 1.0);
+% est = imu_batch_integrate(sim_data, "euler");
 % est = imu_batch_integrate(sim_data, "rk4");
+% traj_error(sim_data, est);
+
+N = 100;
+imu_ts = sim_data.time(1:N);
+imu_acc = sim_data.imu_acc(:, 1:N);
+imu_gyr = sim_data.imu_gyr(:, 1:N);
+g = [0.0; 0.0; 9.81];
+pose_i = sim_data.poses{1}
+sb_i = [sim_data.vel(:, 1); zeros(6, 1)];
+pose_j = sim_data.poses{N}
+sb_j = [sim_data.vel(:, N); zeros(6, 1)];
+
+imu_preintegrate(imu_ts, imu_acc, imu_gyr, g,
+                 pose_i, sb_i, pose_j, sb_j);
 
 % Print errors
-dist = norm(sim_data.pos(:, end) - est.pos(:, end));
-printf("Euclidean distance between start and end: %f\n", dist);
-traj_error(sim_data, est);
-
-plot_poses(sim_data, est);
-plot_imu(sim_data);
-ginput();
+% plot_poses(sim_data, est);
+% plot_imu(sim_data);
+% ginput();

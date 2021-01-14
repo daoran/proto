@@ -97,7 +97,7 @@ r_i = [0.1; 0.2; 0.3];
 T_i = tf(C_i, r_i)
 
 # Pose j
-rpy_j = [0.1, 0.2, 0.2];  % z is perturbed by 0.1 rad
+rpy_j = [0.1, 0.2, 0.3];  % z is perturbed by 0.1 rad
 C_j = euler321(rpy_j);
 r_j = [0.1; 0.2; 0.3];
 T_j = tf(C_j, r_j)

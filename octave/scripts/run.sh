@@ -20,7 +20,7 @@ ctags -R .
 # octave notes/camera/radtan4_params_jacobian.m && exit 0
 # octave notes/camera/radtan4_point_jacobian.m && exit 0
 # octave notes/traj_eval/traj_eval.m
-octave notes/imu/imu.m && exit 0
+# octave notes/imu/imu.m && exit 0
 # octave notes/imu/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0
@@ -33,11 +33,12 @@ octave notes/imu/imu.m && exit 0
 # octave notes/euroc_frames.m && exit 0
 # octave notes/fiducial_xy_jac.m
 # octave notes/fpv_frames.m && exit 0
-# octave notes/frames_sandbox.m && exit 0
+octave notes/frames_sandbox.m && exit 0
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
 # octave notes/illum_invar.m && exit 0
 # octave notes/jacobians.m && exit 0
+# octave notes/least_squares.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
 # octave notes/quaternion.m && exit 0
 # octave notes/mav.m && exit 0

@@ -1,5 +1,5 @@
 function J = pinhole_radtan4_params_jacobian(proj_params, dist_params, p_C)
-  x = [p_C(1) / p_C(3); p_C(2) / p_C(3)];       % Project 3D point
+  x = [p_C(1) / p_C(3); p_C(2) / p_C(3)];    % Project 3D point
   x_dist = radtan4_distort(dist_params, x);  % Distort point
 
   J_proj_point = pinhole_point_jacobian(proj_params);

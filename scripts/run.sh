@@ -197,7 +197,7 @@ cd proto/build
 # ./test_se --target test_camera_params_factor_jacobians
 # ./test_se --target test_ba_factor_jacobians
 # ./test_se --target test_calib_mono_factor_jacobians
-./test_se --target test_cam_factor_jacobians
+# ./test_se --target test_cam_factor_jacobians
 # ./test_se --target test_imu_factor_jacobians
 # ./test_se --target test_imu_propagate
 # ./test_se --target test_graph

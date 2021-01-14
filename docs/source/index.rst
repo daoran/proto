@@ -58,7 +58,7 @@
    se/imu.rst
    se/gauge.rst
    se/marginalization.rst
-
+   se/eskf.rst
 
 .. toctree::
    :hidden:
