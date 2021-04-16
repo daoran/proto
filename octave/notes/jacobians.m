@@ -107,29 +107,32 @@ function retval = check_dp_C__dtheta_WF(T_WS,
   retval = check_jacobian("dp_C__dtheta_WF", fdiff, dp_C__dtheta_WF, threshold);
 endfunction
 
+% r_WF = inv(T_SC) * inv(T_WS) * T_WF * r_FFi
+
 C_SC0 = tf_rot(T_SC0);
 r_SC0 = tf_trans(T_SC0);
-dp_C0__dtheta_SC = C_SC0' * skew(p_S - r_SC0);
+% dp_C0__dtheta_SC = -C_SC0' * -skew(p_S - r_SC0);
+dp_C0__dtheta_SC = -skew(C_SC0' * (p_F - r_SC0));
+% dp_C0__dtheta_SC = C_SC0' * skew(C_SC0 * p_C0);
 retval = check_dp_C__dtheta_SC(T_WS, T_SC0, T_WF, p_F, dp_C0__dtheta_SC, step_size, threshold);
 assert(retval == 0);
 
-C_WS = tf_rot(T_WS);
-r_WS = tf_trans(T_WS);
-C_C0S = inv(tf_rot(T_SC0));
-dp_C0__dtheta_WS = C_C0S * C_WS' * skew(p_W - r_WS);
-retval = check_dp_C__dtheta_WS(T_WS, T_SC0, T_WF, p_F, dp_C0__dtheta_WS, step_size, threshold);
-assert(retval == 0);
+% C_WS = tf_rot(T_WS);
+% r_WS = tf_trans(T_WS);
+% C_C0S = inv(tf_rot(T_SC0));
+% dp_C0__dtheta_WS = C_C0S * C_WS' * skew(p_W - r_WS);
+% retval = check_dp_C__dtheta_WS(T_WS, T_SC0, T_WF, p_F, dp_C0__dtheta_WS, step_size, threshold);
+% assert(retval == 0);
 
+% C_WF = tf_rot(T_WF);
+% r_WF = tf_trans(T_WF);
 
-C_WF = tf_rot(T_WF);
-r_WF = tf_trans(T_WF);
+% C_C0S = tf_rot(T_SC0)';
+% C_SW = tf_rot(T_WS)';
+% C_C0W = C_C0S * C_SW;
 
-C_C0S = tf_rot(T_SC0)';
-C_SW = tf_rot(T_WS)';
-C_C0W = C_C0S * C_SW;
-
-dp_W__dtheta_WF = -skew(C_WF * p_F);
-dp_C0__dp_W = C_C0W;
-dp_C0__dtheta_WF = dp_C0__dp_W * dp_W__dtheta_WF;
-check_dp_C__dtheta_WF(T_WS, T_SC0, T_WF, p_F, dp_C0__dtheta_WF, step_size, threshold);
-assert(retval == 0);
+% dp_W__dtheta_WF = -skew(C_WF * p_F);
+% dp_C0__dp_W = C_C0W;
+% dp_C0__dtheta_WF = dp_C0__dp_W * dp_W__dtheta_WF;
+% check_dp_C__dtheta_WF(T_WS, T_SC0, T_WF, p_F, dp_C0__dtheta_WF, step_size, threshold);
+% assert(retval == 0);

@@ -9,13 +9,13 @@ T_WT = tf(C_WT, r_WT);
 
 % Generate poses
 [poses, calib_center] = calib_generate_poses(calib_target);
-calib_center_W = dehomogeneous(T_WT * homogeneous(calib_center));
+calib_center_W = tf_point(T_WT, calib_center);
 assert(size(calib_center) == [3, 1]);
 assert(length(poses) > 1);
 
 % Visualize
-debug = false;
-% debug = true;
+% debug = false;
+debug = true;
 if debug
   figure();
   hold on;

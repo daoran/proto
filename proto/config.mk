@@ -1,39 +1,44 @@
-CXX=g++
-CXXFLAGS=\
-	-std=c++11 \
-	-Wall \
-	-Winvalid-pch \
-	-O3 \
-	-fPIC \
-	-I$(PWD)/lib \
-	-I$(BLD_DIR) \
-	-I/usr/include/eigen3 \
-	-I/usr/include/yaml-cpp \
-	`pkg-config --cflags opencv`
+BLD_DIR=$(PWD)/build
+BIN_DIR=$(PWD)/build/bin
+INC_DIR=$(PWD)
+DEPS_DIR=$(PWD)/deps
+TESTS_DIR=$(PWD)/tests
 
-LIBS=\
-	-L$(BLD_DIR) -lproto \
-	`pkg-config --libs opencv` \
-	-lyaml-cpp \
+# COMPILER SETTINGS
+CC=tcc
+# CC=gcc
+CFLAGS=-g -Wall -I$(INC_DIR) -I$(DEPS_DIR)/include -ggdb
+
+GLFW3_LIBS=-L$(DEPS_DIR)/lib -lglfw3 -lrt -lm -ldl
+GLEW_LIBS=-lGLEW
+OPENGL_LIBS=$(GLFW3_LIBS) $(GLEW_LIBS) -lGL -L/usr/X11R6/lib -lX11
+BLAS_LIBS=-lblas -llapack
+
+LIBS=-L$(BLD_DIR) \
+	-lzero \
+	$(OPENGL_LIBS) \
+	$(BLAS_LIBS) \
 	-lpthread
 
-BLD_DIR = $(PWD)/build
-
+# ARCHIVER SETTTINGS
 AR = ar
-AR_FLAGS = -rvs
+ARFLAGS = rvs
 
-COMPILE_OBJECT = \
-	@echo "CXX [$<]"; \
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-COMPILE_HEADER = \
-	@echo "PCH [$<]"; \
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+# COMPILER COMMANDS
+COMPILE_OBJ = \
+	@echo "CC [$<]"; \
+	$(CC) $(CFLAGS) -c $< -o $@
 
 MAKE_STATIC_LIB = \
-	@echo "AR [libproto.a]"; \
-	$(AR) $(AR_FLAGS) $@ $^
+	@echo "AR [libzero.a]"; \
+	$(AR) $(ARFLAGS) $@ $^
+
+COMPILE_TEST_OBJ = \
+	$(CC) $(CFLAGS) -c $< -o $@
 
 MAKE_TEST = \
-	@echo "TEST [$<]"; \
-	$(CXX) $< -o $@ $(LIBS) $(CXXFLAGS)
+	echo "TEST [$(shell basename $@)]"; \
+	$(CC) $(CFLAGS) \
+		$(subst $(BIN_DIR), $(BLD_DIR), $@.o) \
+		-o $@ \
+		$(LIBS)

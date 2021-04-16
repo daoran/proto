@@ -1,28 +1,28 @@
 include config.mk
-NB_JOBS=4
 
-default: dirs libproto tests
-.PHONY: dirs libproto tests
-
-dirs:
-	@mkdir -p $(BLD_DIR)
+default: $(BLD_DIR) $(BIN_DIR) zero tests done
+.PHONY: format_code zero tests done
 
 clean:
-	@echo "Cleaning build files for libproto ..."
 	@rm -rf $(BLD_DIR)
-	@echo "Done!"
 
-libproto:
-	@echo "Building [libproto]"
-	@make -s -C lib -j$(NB_JOBS)
+$(BLD_DIR):
+	@mkdir -p $(BLD_DIR)
+
+$(BIN_DIR):
+	@mkdir -p $(BIN_DIR)
+
+format_code:
+	@bash scripts/format_code.bash
+
+zero:
+	@make -s -C zero -j8
+
+benchmarks:
+	@make -s -C zero/benchmarks
 
 tests:
-	@echo "Building [unit-tests]"
-	@make -s -C tests -j$(NB_JOBS)
+	@make -s -C zero/tests -j8
 
-install:
-	@echo "Installing [libproto]"
-	@mkdir -p /usr/local/include/proto
-	@cp -rv lib/*.hpp /usr/local/include/proto
-	@cp -v build/libproto.a /usr/local/lib
-	@echo "Done!"
+done:
+	@echo "Done! :)"

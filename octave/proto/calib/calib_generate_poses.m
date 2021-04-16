@@ -8,7 +8,7 @@ function [poses, calib_center] = calib_generate_poses(calib_target)
   y_range = linspace(-0.3, 0.3, 5);
   z_range = linspace(0.2, 0.5, 5);
 
-  % Generate camera positions infrom of the AprilGrid target in the target frame,
+  % Generate camera positions infront of the AprilGrid target in the target frame,
   % r_TC.
   cam_positions = zeros(3, length(x_range) * length(y_range) * length(z_range));
   pos_idx = 1;

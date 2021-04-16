@@ -33,7 +33,7 @@ ctags -R .
 # octave notes/euroc_frames.m && exit 0
 # octave notes/fiducial_xy_jac.m
 # octave notes/fpv_frames.m && exit 0
-octave notes/frames_sandbox.m && exit 0
+# octave notes/frames_sandbox.m && exit 0
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
 # octave notes/illum_invar.m && exit 0
@@ -50,7 +50,9 @@ octave notes/frames_sandbox.m && exit 0
 # octave notes/vicon_frames.m && exit 0
 # octave notes/vicon_f450.m && exit 0
 # octave notes/vicon_ucl.m && exit 0
+octave notes/mocap_debug.m && exit 0
 # octave notes/dpose.m && exit 0
+# octave notes/drot.m && exit 0
 
 # octave tools/calib_data_summary.m && exit 0
 # octave tools/plot_aprilgrid_data.m && exit 0

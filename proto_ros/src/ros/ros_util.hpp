@@ -632,9 +632,9 @@ struct ros_node_t {
   }
 
   template <typename M>
-  int add_publisher(const std::string &topic,
-                    uint32_t queue_size = 1,
-                    bool latch = false) {
+  int add_pub(const std::string &topic,
+              uint32_t queue_size = 1,
+              bool latch = false) {
     ros::Publisher publisher;
 
     // pre-check
@@ -650,10 +650,10 @@ struct ros_node_t {
   }
 
   template <typename M, typename T>
-  int add_subscriber(const std::string &topic,
-                     void (T::*fp)(M),
-                     T *obj,
-                     uint32_t queue_size = 1) {
+  int add_sub(const std::string &topic,
+              void (T::*fp)(M),
+              T *obj,
+              uint32_t queue_size = 1) {
     ros::Subscriber subscriber;
 
     // pre-check

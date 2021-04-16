@@ -91,16 +91,16 @@ function q = rot2quat(R)
 endfunction
 
 # Pose i
-rpy_i = [0.1, 0.2, 0.3];
+rpy_i = deg2rad([0.0, 0.0, 0.0]);
 C_i = euler321(rpy_i);
-r_i = [0.1; 0.2; 0.3];
-T_i = tf(C_i, r_i)
+r_i = [0.0; 0.0; 0.0];
+T_i = tf(C_i, r_i);
 
 # Pose j
-rpy_j = [0.1, 0.2, 0.3];  % z is perturbed by 0.1 rad
+rpy_j = deg2rad([0.0, 0.0, 90.0]);  % z is perturbed by 0.1 rad
 C_j = euler321(rpy_j);
-r_j = [0.1; 0.2; 0.3];
-T_j = tf(C_j, r_j)
+r_j = [0.0; 0.0; 0.0];
+T_j = tf(C_j, r_j);
 
 # Difference between pose i and j
 dT = T_j * inv(T_i)

@@ -18,7 +18,7 @@ int test_frontend_track() {
 }
 
 int test_frontend_update() {
-  const auto data_path = "/data/euroc_mav/imu_april/mav0/cam0/data/";
+  const auto data_path = "/data/euroc/raw/MH_01/mav0/cam0/data/";
   std::vector<std::string> results;
   list_dir(data_path, results);
   std::sort(results.begin(), results.end());

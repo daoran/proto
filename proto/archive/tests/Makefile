@@ -4,6 +4,8 @@ LIBPROTO = $(BLD_DIR)/libproto.a
 
 default: test_data
 # default: test_data $(BLD_DIR)/test_se
+# default: test_data $(BLD_DIR)/test_euroc
+# default: test_data $(BLD_DIR)/test_frontend
 .PHONY: test_data
 
 test_data:

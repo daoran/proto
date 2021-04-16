@@ -36,6 +36,7 @@ debug() {
 # LIBRARY
 # make deps
 # time make debug
+# rm -rf proto/build
 time make release
 # sudo make install
 # time make ros

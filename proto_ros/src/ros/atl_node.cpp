@@ -38,12 +38,12 @@ struct atl_node_t : ros_node_t {
     // clang-format off
     ros_node_t::configure(hz);
     add_publisher<sensor_msgs::Joy>(MOTOR_INPUTS_TOPIC);
-    add_subscriber(SET_MODE_TOPIC, &atl_node_t::set_mode_callback, this);
-    add_subscriber(SET_POSITION_TOPIC, &atl_node_t::set_position_callback, this);
-    add_subscriber(POSE_TOPIC, &atl_node_t::pose_callback, this);
-    add_subscriber(TWIST_TOPIC, &atl_node_t::twist_callback, this);
-    add_subscriber(REL_POSE_TOPIC, &atl_node_t::relative_pose_callback, this);
-    add_subscriber(DETECTED_TOPIC, &atl_node_t::detected_callback, this);
+    add_sub(SET_MODE_TOPIC, &atl_node_t::set_mode_callback, this);
+    add_sub(SET_POSITION_TOPIC, &atl_node_t::set_position_callback, this);
+    add_sub(POSE_TOPIC, &atl_node_t::pose_callback, this);
+    add_sub(TWIST_TOPIC, &atl_node_t::twist_callback, this);
+    add_sub(REL_POSE_TOPIC, &atl_node_t::relative_pose_callback, this);
+    add_sub(DETECTED_TOPIC, &atl_node_t::detected_callback, this);
     add_loop_callback(std::bind(&atl_node_t::loop_callback, this));
     // clang-format on
 
