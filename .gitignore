@@ -17,6 +17,11 @@ obj
 tags
 build
 docs/_build
+proto/deps/bin
+proto/deps/include
+proto/deps/lib
+proto/deps/share
+proto/deps/src
 
 # matlab
 *.mat

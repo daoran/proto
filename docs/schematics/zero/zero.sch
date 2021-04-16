@@ -1,0 +1,147 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+Wire Wire Line
+	2450 2150 2450 2000
+$Comp
+L Device:C C4
+U 1 1 5E24EED7
+P 3650 3450
+F 0 "C4" H 3535 3404 50  0000 R CNN
+F 1 "2.2nF" H 3535 3495 50  0000 R CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 3688 3300 50  0001 C CNN
+F 3 "~" H 3650 3450 50  0001 C CNN
+	1    3650 3450
+	-1   0    0    1   
+$EndComp
+$Comp
+L power:GND #PWR05
+U 1 1 5E257699
+P 3650 3800
+F 0 "#PWR05" H 3650 3550 50  0001 C CNN
+F 1 "GND" H 3655 3627 50  0000 C CNN
+F 2 "" H 3650 3800 50  0001 C CNN
+F 3 "" H 3650 3800 50  0001 C CNN
+	1    3650 3800
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR03
+U 1 1 5E257E66
+P 2900 2000
+F 0 "#PWR03" H 2900 1750 50  0001 C CNN
+F 1 "GND" H 2905 1827 50  0000 C CNN
+F 2 "" H 2900 2000 50  0001 C CNN
+F 3 "" H 2900 2000 50  0001 C CNN
+	1    2900 2000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:C C2
+U 1 1 5E24CC68
+P 2600 2000
+F 0 "C2" V 2348 2000 50  0000 C CNN
+F 1 "0.1uF" V 2439 2000 50  0000 C CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 2638 1850 50  0001 C CNN
+F 3 "~" H 2600 2000 50  0001 C CNN
+	1    2600 2000
+	0    1    1    0   
+$EndComp
+Connection ~ 2450 2000
+Wire Wire Line
+	2450 1600 2450 2000
+$Comp
+L Device:C C3
+U 1 1 5E262D4C
+P 3050 3300
+F 0 "C3" H 3165 3346 50  0000 L CNN
+F 1 "0.1uF" H 3165 3255 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 3088 3150 50  0001 C CNN
+F 3 "~" H 3050 3300 50  0001 C CNN
+	1    3050 3300
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR04
+U 1 1 5E26387D
+P 3050 3800
+F 0 "#PWR04" H 3050 3550 50  0001 C CNN
+F 1 "GND" H 3055 3627 50  0000 C CNN
+F 2 "" H 3050 3800 50  0001 C CNN
+F 3 "" H 3050 3800 50  0001 C CNN
+	1    3050 3800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3650 3050 3050 3050
+Wire Wire Line
+	3650 3050 3650 3300
+$Comp
+L power:GND #PWR01
+U 1 1 5E26CD86
+P 1700 1600
+F 0 "#PWR01" H 1700 1350 50  0001 C CNN
+F 1 "GND" H 1705 1427 50  0000 C CNN
+F 2 "" H 1700 1600 50  0001 C CNN
+F 3 "" H 1700 1600 50  0001 C CNN
+	1    1700 1600
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	2250 2050 1700 2050
+$Comp
+L Device:C C1
+U 1 1 5E268284
+P 1700 1900
+F 0 "C1" H 1815 1946 50  0000 L CNN
+F 1 "10nF" H 1815 1855 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 1738 1750 50  0001 C CNN
+F 3 "~" H 1700 1900 50  0001 C CNN
+	1    1700 1900
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:VDD #PWR02
+U 1 1 5E2618B9
+P 2450 1600
+F 0 "#PWR02" H 2450 1450 50  0001 C CNN
+F 1 "VDD" H 2467 1773 50  0000 C CNN
+F 2 "" H 2450 1600 50  0001 C CNN
+F 3 "" H 2450 1600 50  0001 C CNN
+	1    2450 1600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3650 3600 3650 3800
+Wire Wire Line
+	2900 2000 2750 2000
+Wire Wire Line
+	1700 1750 1700 1600
+Wire Wire Line
+	3050 3450 3050 3800
+$Comp
+L Sensor_Motion:MPU-6050 U1
+U 1 1 5E24C0AA
+P 2350 2850
+F 0 "U1" H 2350 2061 50  0000 C CNN
+F 1 "MPU-6050" H 2350 1970 50  0000 C CNN
+F 2 "Sensor_Motion:InvenSense_QFN-24_4x4mm_P0.5mm" H 2350 2050 50  0001 C CNN
+F 3 "https://store.invensense.com/datasheets/invensense/MPU-6050_DataSheet_V3%204.pdf" H 2350 2700 50  0001 C CNN
+	1    2350 2850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2250 2050 2250 2150
+$EndSCHEMATC
