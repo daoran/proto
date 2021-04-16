@@ -10,6 +10,9 @@ if [ ! -d src/glfw ]; then
   cd -
 fi
 
+# Install deps
+sudo apt-get install libxrandr-dev
+
 # Build
 cd src/glfw
 mkdir -p build
