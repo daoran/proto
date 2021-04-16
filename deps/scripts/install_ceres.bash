@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e  # Exit on first error
-BASEDIR=$(dirname "$0")
-source $BASEDIR/config.bash
+source "config.bash"
 
 # VERY IMPORTANT! We need to specifically tell cmake we have our own custom
 # installation of eigen3 or else you'll end up with seg-faults during

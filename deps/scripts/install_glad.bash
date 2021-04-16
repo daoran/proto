@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e  # halt on first error
-BASEDIR=$(dirname "$0")
-source "$BASEDIR/config.bash"
+source "config.bash"
 
 GLAD_DIR=$PREFIX/src/glad
 SRC_DIR=$GLAD_DIR/src

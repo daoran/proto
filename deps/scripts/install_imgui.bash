@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e  # halt on first error
-BASEDIR=$(dirname "$0")
-source "$BASEDIR/config.bash"
+source "config.bash"
 
 REPO_NAME=imgui
 REPO_URL=https://github.com/ocornut/imgui

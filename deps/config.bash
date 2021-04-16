@@ -1,15 +1,52 @@
 # Configurations
-PREFIX="/usr/local"
-DOWNLOAD_PATH="$PREFIX/src"
 BUILD_TYPE="Release"
 
+# $1 - Directory to check
+check_dir() {
+  if [ ! -d "$1" ]; then
+    echo "DIR [$1] does not exist!";
+    exit -1;
+  fi
+}
+
 apt_update() {
-  echo "[Updating APT package list]";
-  apt-get update -qqq;
+  echo -n "[Updating APT package list]";
+  if apt-get update -qqq > log/update.log 2>&1 ; then
+    echo -e "\033[0;32m OK! \033[0m"
+  else
+    echo -e "\033[0;31m FAILED!: \033[0m"
+    cat log/update.log
+    exit -1
+  fi
 }
 
 apt_install() {
-  apt-get install -qqq -y "$@";
+  apt-get install -qqq -y "$@"
+}
+
+install() {
+  echo -n "Installing $1 ..."
+  if "$SCRIPTPATH/scripts"/install_"$1".bash > log/install.log 2>&1; then
+    echo -e "\033[0;32m OK! \033[0m"
+  else
+    echo -e "\033[0;31m FAILED! \033[0m"
+    cat log/install.log
+    exit -1
+  fi
+}
+
+install_base() {
+  apt_install dialog apt-utils git mercurial cmake g++ clang tcc
+}
+
+# $1 - Git Repo URL
+# $2 - Repo folder name
+clone_git_repo() {
+  cd $DOWNLOAD_PATH
+  if [ ! -d "$2" ]; then
+    git clone "$1" "$2"
+  fi
+  cd - > /dev/null
 }
 
 # $1 - Git Repo URL
