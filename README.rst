@@ -32,15 +32,6 @@ dependencies and building of ``proto``, the make targets are as follows::
     format_code:
       Format proto code using clang-format.
 
-Or, the standard way to build a C++ project is to enter the following commands
-at the root of the repo::
-
-    mkdir -p build
-    cd build
-    cmake ..
-    make
-    sudo make install  # By default will install to /usr/local
-
 
 License
 -------

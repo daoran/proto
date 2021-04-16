@@ -1,5 +1,8 @@
-default: dirs openblas suitesparse stb fast glfw
-.PHONY: dirs openblas suitesparse stb fast glfw
+# default: dirs openblas suitesparse stb fast glfw
+# .PHONY: dirs openblas suitesparse stb fast glfw
+
+default: dirs stb fast glfw
+.PHONY: dirs stb fast glfw
 
 clean:
 	@rm -rf bin
