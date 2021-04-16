@@ -28,14 +28,26 @@ suitesparse: dirs openblas
 	@echo "Building suitesparse ..."
 	@bash suitesparse.bash > log/suitesparse_build.log 2>&1
 
+# stb: dirs
+# 	@echo "Building stb ..."
+# 	@bash stb.bash > log/stb_build.log 2>&1
+#
+# fast: dirs
+# 	@echo "Building fast ..."
+# 	@bash fast.bash > log/fast_build.log 2>&1
+#
+# glfw: dirs
+# 	@echo "Building glfw ..."
+# 	@bash glfw.bash > log/glfw_build.log 2>&1
+
 stb: dirs
 	@echo "Building stb ..."
-	@bash stb.bash > log/stb_build.log 2>&1
+	@bash stb.bash
 
 fast: dirs
 	@echo "Building fast ..."
-	@bash fast.bash > log/fast_build.log 2>&1
+	@bash fast.bash
 
 glfw: dirs
 	@echo "Building glfw ..."
-	@bash glfw.bash > log/glfw_build.log 2>&1
+	@bash glfw.bash
