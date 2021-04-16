@@ -12,8 +12,8 @@ jobs:
     - name: Build libproto
       run: make release
 
-    - name: Install libproto
-      run: sudo make install
+    # - name: Install libproto
+    #   run: sudo make install
 
     # - name: Build ROS interface
     #   run: make ros

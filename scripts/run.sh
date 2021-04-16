@@ -15,6 +15,8 @@ debug() {
     --args "$1" "$2" "$3"
 }
 
+ctags -R proto/lib
+
 # tmux send-keys -t dev -R "\
 #   cd ~/projects/proto;
 #   make debug;
