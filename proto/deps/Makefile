@@ -20,13 +20,13 @@ dirs:
 	@mkdir -p share
 	@mkdir -p src
 
-openblas: dirs
-	@echo "Building openblas ..."
-	@bash openblas.bash > log/openblas_build.log 2>&1
+# openblas: dirs
+# 	@echo "Building openblas ..."
+# 	@bash openblas.bash > log/openblas_build.log 2>&1
 
-suitesparse: dirs openblas
-	@echo "Building suitesparse ..."
-	@bash suitesparse.bash > log/suitesparse_build.log 2>&1
+# suitesparse: dirs openblas
+# 	@echo "Building suitesparse ..."
+# 	@bash suitesparse.bash > log/suitesparse_build.log 2>&1
 
 # stb: dirs
 # 	@echo "Building stb ..."
@@ -39,6 +39,10 @@ suitesparse: dirs openblas
 # glfw: dirs
 # 	@echo "Building glfw ..."
 # 	@bash glfw.bash > log/glfw_build.log 2>&1
+
+openblas: dirs
+	@echo "Building openblas ..."
+	@bash openblas.bash
 
 stb: dirs
 	@echo "Building stb ..."

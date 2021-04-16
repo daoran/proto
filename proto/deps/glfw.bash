@@ -12,6 +12,7 @@ fi
 
 # Install deps
 sudo apt-get install libxrandr-dev
+sudo apt-get install libxinerama-dev
 
 # Build
 cd src/glfw
