@@ -32,6 +32,7 @@ default:
 deps:
 	@echo "[Installing Dependencies]"
 	@sudo bash ./scripts/deps/install.bash
+	@cd proto; make -s deps
 
 clean:
 	@cd proto; make -s clean

@@ -11,7 +11,6 @@ clean:
 	@rm -rf log
 	@rm -rf share
 	@rm -rf src
-	@rm *.log
 
 dirs:
 	@mkdir -p bin
@@ -22,26 +21,21 @@ dirs:
 	@mkdir -p src
 
 openblas: dirs
-	@echo "[Building OpenBLAS]"
+	@echo "Building openblas ..."
 	@bash openblas.bash > log/openblas_build.log 2>&1
-	@echo "[Finished Building OpenBLAS!]"
 
 suitesparse: dirs openblas
-	@echo "[Building SuiteSparse]"
+	@echo "Building suitesparse ..."
 	@bash suitesparse.bash > log/suitesparse_build.log 2>&1
-	@echo "[Finished Building SuiteSparse!]"
 
 stb: dirs
-	@echo "[Building STB]"
+	@echo "Building stb ..."
 	@bash stb.bash > log/stb_build.log 2>&1
-	@echo "[Finished Building STB!]"
 
 fast: dirs
-	@echo "[Building FAST]"
+	@echo "Building fast ..."
 	@bash fast.bash > log/fast_build.log 2>&1
-	@echo "[Finished Building FAST!]"
 
 glfw: dirs
-	@echo "[Building GLFW]"
+	@echo "Building glfw ..."
 	@bash glfw.bash > log/glfw_build.log 2>&1
-	@echo "[Finished Building GLFW!]"
