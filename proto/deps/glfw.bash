@@ -13,6 +13,7 @@ fi
 # Install deps
 sudo apt-get install libxrandr-dev
 sudo apt-get install libxinerama-dev
+sudo apt-get install libxcursor-dev
 
 # Build
 cd src/glfw
