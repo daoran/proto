@@ -25,5 +25,5 @@ install eigen
 install opencv3
 install apriltags
 install octomap
-install glfw3
+install glew
 install yamlcpp
