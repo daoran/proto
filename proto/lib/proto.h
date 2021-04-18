@@ -12,9 +12,18 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <unistd.h>
 #include <dirent.h>
 #include <assert.h>
 #include <sys/time.h>
+
+#include <errno.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/poll.h>
 
 #include "stb_image.h"
 
@@ -161,14 +170,21 @@ typedef double real_t;
 #endif
 
 char *malloc_string(const char *s);
+int **load_iarrays(const char *csv_path, int *nb_arrays);
+real_t **load_darrays(const char *csv_path, int *nb_arrays);
+
 int dsv_rows(const char *fp);
 int dsv_cols(const char *fp, const char delim);
 char **dsv_fields(const char *fp, const char delim, int *nb_fields);
+
 real_t **dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols);
+void dsv_free(real_t **data, const int nb_rows);
+
 real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols);
-int **load_iarrays(const char *csv_path, int *nb_arrays);
-real_t **load_darrays(const char *csv_path, int *nb_arrays);
-real_t *load_vector(const char *file_path);
+void csv_free(real_t **data, const int nb_rows);
+
+/* real_t *load_matrix(const char *file_path); */
+/* real_t *load_vector(const char *file_path); */
 
 /******************************************************************************
  * TIME
@@ -180,38 +196,71 @@ typedef uint64_t timestamp_t;
 struct timespec tic();
 float toc(struct timespec *tic);
 float mtoc(struct timespec *tic);
-float time_now();
+timestamp_t time_now();
+
+/******************************************************************************
+ * NETWORK
+ ******************************************************************************/
+
+/**
+ * TCP server
+ */
+typedef struct tcp_server_t {
+  int port;
+  int sockfd;
+  int conn;
+  void *(*conn_handler)(void *);
+} tcp_server_t;
+
+/**
+ * TCP client
+ */
+typedef struct tcp_client_t {
+  char server_ip[1024];
+  int server_port;
+  int sockfd;
+  int (*loop_cb)(struct tcp_client_t *);
+} tcp_client_t;
+
+int ip_port_info(const int sockfd, char *ip, int *port);
+
+int tcp_server_setup(tcp_server_t *server, const int port);
+int tcp_server_loop(tcp_server_t *server);
+
+int tcp_client_setup(tcp_client_t *client,
+                     const char *server_ip,
+                     const int server_port);
+int tcp_client_loop(tcp_client_t *client);
+
 
 /******************************************************************************
  * MATHS
  ******************************************************************************/
 
-/**
- * Mathematical Pi constant (i.e. 3.1415..)
- */
+/** Mathematical Pi constant (i.e. 3.1415..) */
 #ifndef M_PI
 #define M_PI (3.14159265358979323846)
 #endif
 
-/**
- * Min of two numbers, X or Y.
- */
+/** Real number comparison tolerance */
+#ifndef CMP_TOL
+#define CMP_TOL 1e-6
+#endif
+
+/** Min of two numbers, X or Y. */
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
-/**
- * Max of two numbers, X or Y.
- */
+/** Max of two numbers, X or Y. */
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
-/**
- * Based on sign of b, return +ve or -ve a.
- */
+/** Based on sign of b, return +ve or -ve a. */
 #define SIGN2(a, b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 
 float randf(float a, float b);
 real_t deg2rad(const real_t d);
 real_t rad2deg(const real_t r);
 int fltcmp(const real_t x, const real_t y);
+int fltcmp2(const void *x, const void *y);
 real_t pythag(const real_t a, const real_t b);
 real_t lerp(const real_t a, const real_t b, const real_t t);
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);
@@ -235,7 +284,7 @@ void eye(real_t *A, const size_t m, const size_t n);
 void ones(real_t *A, const size_t m, const size_t n);
 void zeros(real_t *A, const size_t m, const size_t n);
 
-real_t *mat_new(const size_t m, const size_t n);
+real_t *mat_malloc(const size_t m, const size_t n);
 int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n);
 int mat_equals(const real_t *A,
                const real_t *B,
@@ -276,7 +325,7 @@ void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale);
 
-real_t *vec_new(const size_t length);
+real_t *vec_malloc(const size_t length);
 void vec_copy(const real_t *src, const size_t length, real_t *dest);
 int vec_equals(const real_t *x, const real_t *y, const size_t length);
 void vec_add(const real_t *x, const real_t *y, real_t *z, size_t length);

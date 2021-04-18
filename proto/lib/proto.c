@@ -8,7 +8,7 @@
  * List files in directory.
  * @returns List of files in directory
  */
-char **list_files(const char *path, int *nb_files) {
+char **list_files(const char *path, int *n) {
   struct dirent **namelist;
   int N = scandir(path, &namelist, 0, alphasort);
   if (N < 0) {
@@ -21,7 +21,7 @@ char **list_files(const char *path, int *nb_files) {
 
   /* Allocate memory for list of files */
   char **files = malloc(sizeof(char *) * (N - 2));
-  *nb_files = 0;
+  *n = 0;
 
   /* Create list of files */
   for (int i = 2; i < N; i++) {
@@ -30,9 +30,9 @@ char **list_files(const char *path, int *nb_files) {
     strcat(fp, (fp[strlen(fp) - 1] == '/') ? "" : "/");
     strcat(fp, namelist[i]->d_name);
 
-    files[*nb_files] = malloc(sizeof(char) * (strlen(fp) + 1));
-    strcpy(files[*nb_files], fp);
-    (*nb_files)++;
+    files[*n] = malloc(sizeof(char) * (strlen(fp) + 1));
+    strcpy(files[*n], fp);
+    (*n)++;
 
     free(namelist[i]);
   }
@@ -64,16 +64,17 @@ char *file_read(const char *fp) {
   }
 
   fseek(f, 0, SEEK_END);
-  long int length = ftell(f);
+  long int len = ftell(f);
   fseek(f, 0, SEEK_SET);
 
-  char *buffer = malloc(length);
-  if (buffer) {
-    fread(buffer, 1, length, f);
+  char *buf = malloc(sizeof(char) * (len + 1));
+  if (buf) {
+    fread(buf, 1, len, f);
+    buf[len] = '\0';
   }
   fclose(f);
 
-  return buffer;
+  return buf;
 }
 
 /**
@@ -132,12 +133,15 @@ int file_copy(const char *src, const char *dest) {
     return -2;
   }
 
-  /* BUFSIZE default is 8192 bytes */
-  /* BUFSIZE of 1 means one chareter at time */
-  char buf[BUFSIZ];
-  size_t read = 0;
-  while ((read = fread(buf, 1, BUFSIZ, src_file)) == 0) {
-    fwrite(buf, 1, read, dest_file);
+  char *line = NULL;
+  size_t len = 0;
+  ssize_t read = 0;
+  while ((read = getline(&line, &len, src_file)) != -1) {
+    printf("[%ld,%ld]-->%s", read, len, line);
+    fwrite(line, sizeof(char), read, dest_file);
+  }
+  if (line) {
+    free(line);
   }
 
   /* Clean up */
@@ -159,207 +163,6 @@ char *malloc_string(const char *s) {
   char *retval = malloc(sizeof(char) * strlen(s) + 1);
   strcpy(retval, s);
   return retval;
-}
-
-/**
- * Get number of rows in a delimited file at `fp`.
- * @returns
- * - Number of rows
- * - -1 for failure
- */
-int dsv_rows(const char *fp) {
-  /* Load file */
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    return -1;
-  }
-
-  /* Loop through lines */
-  int nb_rows = 0;
-  char line[MAX_LINE_LENGTH] = {0};
-  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-    if (line[0] != '#') {
-      nb_rows++;
-    }
-  }
-
-  /* Cleanup */
-  fclose(infile);
-
-  return nb_rows;
-}
-
-/**
- * Get number of columns in a delimited file at `fp`.
- * @returns
- * - Number of columns
- * - -1 for failure
- */
-int dsv_cols(const char *fp, const char delim) {
-  /* Load file */
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    return -1;
-  }
-
-  /* Get line that isn't the header */
-  char line[MAX_LINE_LENGTH] = {0};
-  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-    if (line[0] != '#') {
-      break;
-    }
-  }
-
-  /* Parse line to obtain number of elements */
-  int nb_elements = 1;
-  int found_separator = 0;
-  for (size_t i = 0; i < MAX_LINE_LENGTH; i++) {
-    if (line[i] == delim) {
-      found_separator = 1;
-      nb_elements++;
-    }
-  }
-
-  /* Cleanup */
-  fclose(infile);
-
-  return (found_separator) ? nb_elements : -1;
-}
-
-/**
- * Get the fields of the delimited file at `fp`, where `delim` is the value
- * separated symbol and `nb_fields` returns the length of the fields returned.
- * @returns
- * - List of field strings
- * - NULL for failure
- */
-char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
-  /* Load file */
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    fclose(infile);
-    return NULL;
-  }
-
-  /* Get last header line */
-  char field_line[MAX_LINE_LENGTH] = {0};
-  char line[MAX_LINE_LENGTH] = {0};
-  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-    if (line[0] != '#') {
-      break;
-    } else {
-      strcpy(field_line, line);
-    }
-  }
-
-  /* Parse fields */
-  *nb_fields = dsv_cols(fp, delim);
-  char **fields = malloc(sizeof(char *) * *nb_fields);
-  int field_idx = 0;
-  char field_name[100] = {0};
-
-  for (size_t i = 0; i < strlen(field_line); i++) {
-    char c = field_line[i];
-
-    /* Ignore # and ' ' */
-    if (c == '#' || c == delim) {
-      continue;
-    }
-
-    if (c == ',' || c == '\n') {
-      /* Add field name to fields */
-      fields[field_idx] = malloc_string(field_name);
-      memset(field_name, '\0', sizeof(char) * 100);
-      field_idx++;
-    } else {
-      /* Append field name */
-      field_name[strlen(field_name)] = c;
-    }
-  }
-
-  /* Cleanup */
-  fclose(infile);
-
-  return fields;
-}
-
-/**
- * Load delimited separated value data as a matrix.
- * @returns
- * - Matrix of DSV data
- * - NULL for failure
- */
-real_t **dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
-  assert(fp != NULL);
-
-  /* Obtain number of rows and columns in dsv data */
-  *nb_rows = dsv_rows(fp);
-  *nb_cols = dsv_cols(fp, delim);
-  if (*nb_rows == -1 || *nb_cols == -1) {
-    return NULL;
-  }
-
-  /* Initialize memory for dsv data */
-  real_t **data = malloc(sizeof(real_t *) * *nb_rows);
-  for (int i = 0; i < *nb_rows; i++) {
-    data[i] = malloc(sizeof(real_t) * *nb_cols);
-  }
-
-  /* Load file */
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    fclose(infile);
-    return NULL;
-  }
-
-  /* Loop through data */
-  char line[MAX_LINE_LENGTH] = {0};
-  int row_idx = 0;
-  int col_idx = 0;
-
-  /* Loop through data line by line */
-  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-    /* Ignore if comment line */
-    if (line[0] == '#') {
-      continue;
-    }
-
-    /* Iterate through values in line separated by commas */
-    char entry[100] = {0};
-    for (size_t i = 0; i < strlen(line); i++) {
-      char c = line[i];
-      if (c == ' ') {
-        continue;
-      }
-
-      if (c == ',' || c == '\n') {
-        data[row_idx][col_idx] = strtod(entry, NULL);
-        memset(entry, '\0', sizeof(char) * 100);
-        col_idx++;
-      } else {
-        entry[strlen(entry)] = c;
-      }
-    }
-
-    col_idx = 0;
-    row_idx++;
-  }
-
-  /* Clean up */
-  fclose(infile);
-
-  return data;
-}
-
-/**
- * Load comma separated data as a matrix, where `fp` is the csv file path, on
- * success `nb_rows` and `nb_cols` will be filled.
- * @returns
- * - Matrix of CSV data
- * - NULL for failure
- */
-real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
-  return dsv_data(fp, ',', nb_rows, nb_cols);
 }
 
 /**
@@ -482,41 +285,224 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays) {
 }
 
 /**
- * Load real vector from file
+ * Get number of rows in a delimited file at `fp`.
  * @returns
- * - Real vector
- * - Null for failure
+ * - Number of rows
+ * - -1 for failure
  */
-real_t *load_vector(const char *file_path) {
-  /* Open file */
-  FILE *csv = fopen(file_path, "r");
-  if (csv == NULL) {
+int dsv_rows(const char *fp) {
+  /* Load file */
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    return -1;
+  }
+
+  /* Loop through lines */
+  int nb_rows = 0;
+  char line[MAX_LINE_LENGTH] = {0};
+  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
+    if (line[0] != '#') {
+      nb_rows++;
+    }
+  }
+
+  /* Cleanup */
+  fclose(infile);
+
+  return nb_rows;
+}
+
+/**
+ * Get number of columns in a delimited file at `fp`.
+ * @returns
+ * - Number of columns
+ * - -1 for failure
+ */
+int dsv_cols(const char *fp, const char delim) {
+  /* Load file */
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    return -1;
+  }
+
+  /* Get line that isn't the header */
+  char line[MAX_LINE_LENGTH] = {0};
+  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
+    if (line[0] != '#') {
+      break;
+    }
+  }
+
+  /* Parse line to obtain number of elements */
+  int nb_elements = 1;
+  int found_separator = 0;
+  for (size_t i = 0; i < MAX_LINE_LENGTH; i++) {
+    if (line[i] == delim) {
+      found_separator = 1;
+      nb_elements++;
+    }
+  }
+
+  /* Cleanup */
+  fclose(infile);
+
+  return (found_separator) ? nb_elements : -1;
+}
+
+/**
+ * Get the fields of the delimited file at `fp`, where `delim` is the value
+ * separated symbol and `nb_fields` returns the length of the fields returned.
+ * @returns
+ * - List of field strings
+ * - NULL for failure
+ */
+char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
+  /* Load file */
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
     return NULL;
   }
 
-  /* Get number of lines in file */
-  size_t nb_lines = 0;
-  char buf[MAX_LINE_LENGTH] = {0};
-  while (fgets(buf, MAX_LINE_LENGTH, csv)) {
-    nb_lines++;
-  }
-  rewind(csv);
-
-  /* Load vector */
-  real_t *v = malloc(sizeof(real_t) * nb_lines);
-  for (size_t i = 0; i < nb_lines; i++) {
-#if PRECISION == 1
-    int retval = fscanf(csv, "%f", &v[i]);
-#elif PRECISION == 2
-    int retval = fscanf(csv, "%le", &v[i]);
-#endif
-    if (retval != 1) {
-      return NULL;
+  /* Get last header line */
+  char field_line[MAX_LINE_LENGTH] = {0};
+  char line[MAX_LINE_LENGTH] = {0};
+  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
+    if (line[0] != '#') {
+      break;
+    } else {
+      strcpy(field_line, line);
     }
   }
-  fclose(csv);
 
-  return v;
+  /* Parse fields */
+  *nb_fields = dsv_cols(fp, delim);
+  char **fields = malloc(sizeof(char *) * *nb_fields);
+  int field_idx = 0;
+  char field_name[100] = {0};
+
+  for (size_t i = 0; i < strlen(field_line); i++) {
+    char c = field_line[i];
+
+    /* Ignore # and ' ' */
+    if (c == '#' || c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == '\n') {
+      /* Add field name to fields */
+      fields[field_idx] = malloc_string(field_name);
+      memset(field_name, '\0', sizeof(char) * 100);
+      field_idx++;
+    } else {
+      /* Append field name */
+      field_name[strlen(field_name)] = c;
+    }
+  }
+
+  /* Cleanup */
+  fclose(infile);
+
+  return fields;
+}
+
+/**
+ * Load delimited separated value data as a matrix.
+ * @returns
+ * - Matrix of DSV data
+ * - NULL for failure
+ */
+real_t **dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
+  assert(fp != NULL);
+
+  /* Obtain number of rows and columns in dsv data */
+  *nb_rows = dsv_rows(fp);
+  *nb_cols = dsv_cols(fp, delim);
+  if (*nb_rows == -1 || *nb_cols == -1) {
+    return NULL;
+  }
+
+  /* Initialize memory for dsv data */
+  real_t **data = malloc(sizeof(real_t *) * *nb_rows);
+  for (int i = 0; i < *nb_rows; i++) {
+    data[i] = malloc(sizeof(real_t) * *nb_cols);
+  }
+
+  /* Load file */
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    fclose(infile);
+    return NULL;
+  }
+
+  /* Loop through data */
+  char line[MAX_LINE_LENGTH] = {0};
+  int row_idx = 0;
+  int col_idx = 0;
+
+  /* Loop through data line by line */
+  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
+    /* Ignore if comment line */
+    if (line[0] == '#') {
+      continue;
+    }
+
+    /* Iterate through values in line separated by commas */
+    char entry[100] = {0};
+    for (size_t i = 0; i < strlen(line); i++) {
+      char c = line[i];
+      if (c == ' ') {
+        continue;
+      }
+
+      if (c == ',' || c == '\n') {
+        data[row_idx][col_idx] = strtod(entry, NULL);
+        memset(entry, '\0', sizeof(char) * 100);
+        col_idx++;
+      } else {
+        entry[strlen(entry)] = c;
+      }
+    }
+
+    col_idx = 0;
+    row_idx++;
+  }
+
+  /* Clean up */
+  fclose(infile);
+
+  return data;
+}
+
+/**
+ * Free DSV data.
+ */
+void dsv_free(real_t **data, const int nb_rows) {
+  for (int i = 0; i < nb_rows; i++) {
+    free(data[i]);
+  }
+  free(data);
+}
+
+/**
+ * Load comma separated data as a matrix, where `fp` is the csv file path, on
+ * success `nb_rows` and `nb_cols` will be filled.
+ * @returns
+ * - Matrix of CSV data
+ * - NULL for failure
+ */
+real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
+  return dsv_data(fp, ',', nb_rows, nb_cols);
+}
+
+/**
+ * Free CSV data.
+ */
+void csv_free(real_t **data, const int nb_rows) {
+  for (int i = 0; i < nb_rows; i++) {
+    free(data[i]);
+  }
+  free(data);
 }
 
 /******************************************************************************
@@ -556,15 +542,180 @@ float toc(struct timespec *tic) {
 float mtoc(struct timespec *tic) { return toc(tic) * 1000.0; }
 
 /**
- * Get time now in seconds since epoch.
- * @return Time now in seconds since epoch
+ * Get time now since epoch.
+ * @return Time now in nano-seconds since epoch
  */
-float time_now() {
-  struct timeval t;
-  gettimeofday(&t, NULL);
-  return ((float) t.tv_sec + ((float) t.tv_usec) / 1000000.0);
+timestamp_t time_now() {
+  struct timespec spec;
+  clock_gettime(CLOCK_REALTIME, &spec);
+
+  const time_t sec = spec.tv_sec;
+  const long int ns = spec.tv_nsec;
+  const uint64_t BILLION = 1000000000L;
+
+  return (uint64_t) sec * BILLION + (uint64_t) ns;
 }
 
+/******************************************************************************
+ * NETWORK
+ ******************************************************************************/
+
+/**
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
+ */
+int ip_port_info(const int sockfd, char *ip, int *port) {
+  struct sockaddr_storage addr;
+  socklen_t len = sizeof addr;
+  if (getpeername(sockfd, (struct sockaddr *) &addr, &len) != 0) {
+    return -1;
+  }
+
+  // Deal with both IPv4 and IPv6:
+  char ipstr[INET6_ADDRSTRLEN];
+
+  if (addr.ss_family == AF_INET) {
+    // IPV4
+    struct sockaddr_in *s = (struct sockaddr_in *) &addr;
+    *port = ntohs(s->sin_port);
+    inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+  } else {
+    // IPV6
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *) &addr;
+    *port = ntohs(s->sin6_port);
+    inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
+  }
+  strcpy(ip, ipstr);
+
+  return 0;
+}
+
+/**
+ * Configure TCP server
+ */
+int tcp_server_setup(tcp_server_t *server, const int port) {
+  /* Setup server struct */
+  server->port = port;
+  server->sockfd = -1;
+  server->conn = -1;
+
+  /* Create socket */
+  server->sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (server->sockfd == -1) {
+    LOG_ERROR("Socket creation failed...");
+    return -1;
+  }
+
+  /* Socket options */
+  const int en = 1;
+  const size_t int_sz = sizeof(int);
+  if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEADDR, &en, int_sz) < 0) {
+    LOG_ERROR("setsockopt(SO_REUSEADDR) failed");
+  }
+  if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEPORT, &en, int_sz) < 0) {
+    LOG_ERROR("setsockopt(SO_REUSEPORT) failed");
+  }
+
+  /* Assign IP, PORT */
+  struct sockaddr_in sockaddr;
+  bzero(&sockaddr, sizeof(sockaddr));
+  sockaddr.sin_family = AF_INET;
+  sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  sockaddr.sin_port = htons(server->port);
+
+  /* Bind newly created socket to given IP */
+  int retval =
+      bind(server->sockfd, (struct sockaddr *) &sockaddr, sizeof(sockaddr));
+  if (retval != 0) {
+    LOG_ERROR("Socket bind failed: %s", strerror(errno));
+    return -1;
+  }
+
+  return 0;
+}
+
+/**
+ * Loop TCP server
+ */
+int tcp_server_loop(tcp_server_t *server) {
+  // Server is ready to listen
+  if ((listen(server->sockfd, 5)) != 0) {
+    LOG_ERROR("Listen failed...");
+    return -1;
+  }
+
+  // Accept the data packet from client and verification
+  DEBUG("Server ready!");
+  while (1) {
+    // Accept incomming connections
+    struct sockaddr_in sockaddr;
+    socklen_t len = sizeof(sockaddr);
+    int connfd = accept(server->sockfd, (struct sockaddr *) &sockaddr, &len);
+    if (connfd < 0) {
+      LOG_ERROR("Server acccept failed!");
+      return -1;
+    } else {
+      server->conn = connfd;
+      server->conn_handler(&server);
+    }
+  }
+  DEBUG("Server shutting down ...");
+
+  return 0;
+}
+
+/**
+ * Configure TCP client
+ */
+int tcp_client_setup(tcp_client_t *client,
+                     const char *server_ip,
+                     const int server_port) {
+  /* Setup client struct */
+  strcpy(client->server_ip, server_ip);
+  client->server_port = server_port;
+  client->sockfd = -1;
+
+  /* Create socket */
+  client->sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (client->sockfd == -1) {
+    LOG_ERROR("Socket creation failed!");
+    return -1;
+  }
+
+  /* Assign IP, PORT */
+  struct sockaddr_in server;
+  size_t server_size = sizeof(server);
+  bzero(&server, server_size);
+  server.sin_family = AF_INET;
+  server.sin_addr.s_addr = inet_addr(client->server_ip);
+  server.sin_port = htons(client->server_port);
+
+  /* Connect to server */
+  if (connect(client->sockfd, (struct sockaddr *) &server, server_size) != 0) {
+    LOG_ERROR("Failed to connect to server!");
+    return -1;
+  }
+  DEBUG("Connected to the server!");
+
+  return 0;
+}
+
+/**
+ * Loop TCP client
+ */
+int tcp_client_loop(tcp_client_t *client) {
+  while (1) {
+    if (client->loop_cb) {
+      int retval = client->loop_cb(client);
+      switch (retval) {
+      case -1: return -1;
+      case 1: break;
+      }
+    }
+  }
+
+  return 0;
+}
 
 /******************************************************************************
  *                                 MATHS
@@ -601,9 +752,27 @@ real_t rad2deg(const real_t r) { return r * (180.0 / M_PI); }
  * - -1 if x < y
  */
 int fltcmp(const real_t x, const real_t y) {
-  if (fabs(x - y) < 1e-6) {
+  if (fabs(x - y) < CMP_TOL) {
     return 0;
   } else if (x > y) {
+    return 1;
+  }
+
+  return -1;
+}
+
+/**
+ * Compare reals.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int fltcmp2(const void *x, const void *y) {
+  const real_t diff = (*(real_t *)x - *(real_t *)y);
+  if (fabs(diff) < CMP_TOL) {
+    return 0;
+  } else if (diff > 0) {
     return 1;
   }
 
@@ -674,48 +843,60 @@ real_t sinc(const real_t x) {
 }
 
 /**
- * Calculate mean from vector `x` of length `length`.
+ * Calculate mean from vector `x` of length `n`.
  * @returns Mean of x
  */
-real_t mean(const real_t* x, const size_t length) {
+real_t mean(const real_t* x, const size_t n) {
   real_t sum = 0.0;
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < n; i++) {
     sum += x[i];
   }
-  real_t N = length;
-  return sum / N;
+  return sum / n;
 }
 
 /**
- * Calculate median from vector `x` of length `length`.
+ * Calculate median from vector `x` of length `n`.
  * @returns Median of x
  */
-real_t median(const real_t* x, const size_t length) {
-  /* qsort(x, length, sizeof(real_t), fltcmp); */
-  return 0;
+real_t median(const real_t* x, const size_t n) {
+  /* Make a copy of the original input vector x */
+  real_t *vals = malloc(sizeof(real_t) * n);
+  for (size_t i = 0; i < n; i++) {
+    vals[i] = x[i];
+  }
+
+  /* Sort the values */
+  qsort(vals, n, sizeof(real_t), fltcmp2);
+
+  // Return the median
+  size_t midpoint = n / 2.0;
+  if ((n % 2) == 0) {
+    return (vals[n] + vals[n - 1]) / 2.0;
+  }
+  return vals[midpoint];
 }
 
 /**
- * Calculate variance from vector `x` of length `length`.
+ * Calculate variance from vector `x` of length `n`.
  * @returns Variance of x
  */
-real_t var(const real_t *x, const size_t length) {
-  real_t mu = mean(x, length);
+real_t var(const real_t *x, const size_t n) {
+  const real_t mu = mean(x, n);
 
   real_t sse = 0.0;
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < n; i++) {
     sse += (x[i] - mu) * (x[i] - mu);
   }
 
-  return length;
+  return sse / (n - 1);
 }
 
 /**
- * Calculate standard deviation from vector `x` of length `length`.
+ * Calculate standard deviation from vector `x` of length `n`.
  * @returns Standard deviation of x
  */
-real_t stddev(const real_t *x, const size_t length) {
-  return sqrt(var(x, length));
+real_t stddev(const real_t *x, const size_t n) {
+  return sqrt(var(x, n));
 }
 
 /******************************************************************************
@@ -818,7 +999,7 @@ void zeros(real_t *A, const size_t m, const size_t n) {
  * Malloc matrix of size `m x n`.
  * @returns Heap allocated memory for the matrix.
  */
-real_t *mat_new(const size_t m, const size_t n) {
+real_t *mat_malloc(const size_t m, const size_t n) {
   return calloc(m * n, sizeof(real_t));
 }
 
@@ -1185,7 +1366,7 @@ void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale) {
  * Create new vector of `length` in heap memory.
  * @returns Heap allocated vector
  */
-real_t *vec_new(const size_t length) { return calloc(length, sizeof(real_t)); }
+real_t *vec_malloc(const size_t length) { return calloc(length, sizeof(real_t)); }
 
 /**
  * Copy vector `src` of `length` to `dest`.
@@ -1352,7 +1533,7 @@ int check_jacobian(const char *jac_name,
                    const int verbose) {
   int retval = 0;
   int ok = 1;
-  real_t *delta = mat_new(m, n);
+  real_t *delta = mat_malloc(m, n);
   mat_sub(fdiff, jac, delta, m, n);
 
   /* Check if any of the values are beyond the tol */
@@ -1814,7 +1995,7 @@ void lapack_chol_solve(const real_t *A,
   int lda = m;
   int n = m;
   char uplo = 'L';
-  real_t *a = mat_new(m, m);
+  real_t *a = mat_malloc(m, m);
   mat_copy(A, m, m, a);
 #if PRECISION == 1
   spotrf_(&uplo, &n, a, &lda, &info);

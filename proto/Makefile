@@ -19,13 +19,13 @@ format_code:
 	@bash scripts/format_code.bash
 
 lib:
-	@make -s -C lib -j4
+	@make -s -C lib 
 
 benchmarks:
 	@make -s -C lib/benchmarks
 
 tests:
-	@make -s -C lib/tests -j4
+	@make -s -C lib/tests
 
 done:
 	@echo "Done! :)"

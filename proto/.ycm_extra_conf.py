@@ -13,6 +13,8 @@ flags = [
     '-Wno-long-long',
     '-Wno-variadic-macros',
     '-fexceptions',
+    '-D_DEFAULT_SOURCE',
+    '-D_POSIX_C_SOURCE=199309L',
     # '-DNDEBUG',
     # You 100% do NOT need -DUSE_CLANG_COMPLETER in your flags; only the YCM
     # source code needs it.
@@ -21,28 +23,18 @@ flags = [
     # to use when compiling headers. So it will guess. Badly. So C++ headers
     # will be compiled as C headers. You don't want that so ALWAYS specify the
     # '-x' flag.  # For a C project, you would set this to 'c' instead of 'c++'.
-    '-x',
+    # '-x',
     'c',
-    # 'c++',
-    '-isystem', '../BoostParts',
-    '-isystem', get_python_inc(),
-    '-isystem', '../llvm/include',
-    '-isystem', '../llvm/tools/clang/include',
+    # '-isystem', '../BoostParts',
+    # '-isystem', get_python_inc(),
+    # '-isystem', '../llvm/include',
+    # '-isystem', '../llvm/tools/clang/include',
+    # '-std=c11',
     '-I', '.',
-    '-I', 'proto/lib',
-    '-I', 'src',
+    '-I', 'deps/include',
+    '-I', 'include',
     '-I', '/usr/local/include',
-    '-I', '/usr/include/eigen3',
-    '-I', '/usr/include/gazebo-9',
-    '-I', '/usr/include/ignition/common1',
-    '-I', '/usr/include/ignition/fuel_tools1',
-    '-I', '/usr/include/ignition/math4',
-    '-I', '/usr/include/ignition/msgs1',
-    '-I', '/usr/include/ignition/transport4',
-    '-I', '/opt/ros/melodic/include',
-    '-I', 'proto/include',
-    '-I', 'proto_ros/src',
-    '-I', '/home/chutsu/catkin_ws/devel/include',
+    '-I', '/usr/include/octave-4.2.2/octave',
     '-I', './ClangCompleter',
     '-isystem', './tests/gmock/gtest',
     '-isystem', './tests/gmock/gtest/include',
@@ -55,7 +47,7 @@ flags = [
 # which is required for compiling the standard library, and to 'c++11' for older
 # versions.
 if platform.system() != 'Windows':
-    flags.append('-std=c++11')
+    flags.append('-std=c11')
 
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

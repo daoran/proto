@@ -4,8 +4,12 @@
 /* TEST PARAMS */
 #define M 10
 #define N 10
-#define TEST_CSV "zero/tests/test_data/test_csv.csv"
-#define TEST_POSES_CSV "zero/tests/test_data/poses.csv"
+#define TEST_CSV "test_data/test_csv.csv"
+#define TEST_POSES_CSV "test_data/poses.csv"
+
+/******************************************************************************
+ * LOGGING
+ ******************************************************************************/
 
 int test_debug() {
   DEBUG("Hello World!");
@@ -22,9 +26,75 @@ int test_log_warn() {
   return 0;
 }
 
+/******************************************************************************
+ * FILESYSTEM
+ ******************************************************************************/
+
+int test_list_files() {
+  int nb_files = 0;
+  char **files = list_files("/tmp", &nb_files);
+  MU_CHECK(files != NULL);
+  MU_CHECK(nb_files != 0);
+
+  /* printf("nb_files: %d\n", nb_files); */
+  for (int i = 0; i < nb_files; i++) {
+    /* printf("file: %s\n", files[i]); */
+    free(files[i]);
+  }
+  free(files);
+
+  return 0;
+}
+
+int test_list_files_free() {
+  int nb_files = 0;
+  char **files = list_files("/tmp", &nb_files);
+  list_files_free(files, nb_files);
+
+  return 0;
+}
+
+int test_file_read() {
+  char *text = file_read("test_data/poses.csv");
+  /* printf("%s\n", text); */
+  MU_CHECK(text != NULL);
+  free(text);
+
+  return 0;
+}
+
+int test_skip_line() {
+  FILE *fp = fopen("test_data/poses.csv", "r");
+  skip_line(fp);
+
+  return 0;
+}
+
+int test_file_rows() {
+  int nb_rows = file_rows("test_data/poses.csv");
+  MU_CHECK(nb_rows > 0);
+  return 0;
+}
+
+int test_file_copy() {
+  file_copy("test_data/poses.csv", "/tmp/poses.csv");
+  char *text0 = file_read("test_data/poses.csv");
+  char *text1 = file_read("/tmp/poses.csv");
+  MU_CHECK(strcmp(text0, text1) == 0);
+  free(text0);
+  free(text1);
+
+  return 0;
+}
+
+/******************************************************************************
+ * DATA
+ ******************************************************************************/
+
 int test_malloc_string() {
   char *s = malloc_string("hello world!");
   MU_CHECK(strcmp(s, "hello world!") == 0);
+  free(s);
   return 0;
 }
 
@@ -66,14 +136,173 @@ int test_dsv_data() {
     for (int j = 0; j < nb_rows; j++) {
       MU_CHECK(fltcmp(data[i][j], index + 1) == 0);
       index++;
-
-      /* printf("%f ", data[i][j]); */
     }
-    /* printf("\n"); */
   }
+  dsv_free(data, nb_rows);
 
   return 0;
 }
+
+int test_dsv_free() {
+  int nb_rows = 0;
+  int nb_cols = 0;
+  real_t **data = dsv_data(TEST_CSV, ',', &nb_rows, &nb_cols);
+  dsv_free(data, nb_rows);
+
+  return 0;
+}
+
+int test_csv_data() {
+  int nb_rows = 0;
+  int nb_cols = 0;
+  real_t **data = csv_data(TEST_CSV, &nb_rows, &nb_cols);
+  csv_free(data, nb_rows);
+
+  return 0;
+}
+
+/******************************************************************************
+ * TIME
+ ******************************************************************************/
+
+int test_tic() {
+  struct timespec t_start = tic();
+  printf("t_start.sec: %ld\n", t_start.tv_sec);
+  printf("t_start.nsec: %ld\n", t_start.tv_nsec);
+  return 0;
+}
+
+int test_toc() {
+  struct timespec t_start = tic();
+  sleep(1.0);
+  MU_CHECK(fabs(toc(&t_start) - 1.0) < 1e-2);
+  return 0;
+}
+
+int test_mtoc() {
+  struct timespec t_start = tic();
+  sleep(1.0);
+  MU_CHECK(fabs(mtoc(&t_start) - 1000) < 1);
+  return 0;
+}
+
+int test_time_now() {
+  timestamp_t t_now = time_now();
+  printf("t_now: %ld\n", t_now);
+  return 0;
+}
+
+/******************************************************************************
+ * MATHS
+ ******************************************************************************/
+
+int test_min() {
+  MU_CHECK(MIN(1, 2) == 1);
+  MU_CHECK(MIN(2, 1) == 1);
+  return 0;
+}
+
+int test_max() {
+  MU_CHECK(MAX(1, 2) == 2);
+  MU_CHECK(MAX(2, 1) == 2);
+  return 0;
+}
+
+int test_randf() {
+  const real_t val = randf(0.0, 10.0);
+  MU_CHECK(val < 10.0);
+  MU_CHECK(val > 0.0);
+  return 0;
+}
+
+int test_deg2rad() {
+  MU_CHECK(fltcmp(deg2rad(180.0f), M_PI) == 0);
+  return 0;
+}
+
+int test_rad2deg() {
+  MU_CHECK(fltcmp(rad2deg(M_PI), 180.0f) == 0);
+  return 0;
+}
+
+int test_fltcmp() {
+  MU_CHECK(fltcmp(1.0, 1.0) == 0);
+  MU_CHECK(fltcmp(1.0, 1.01) != 0);
+  return 0;
+}
+
+int test_fltcmp2() {
+  const real_t x = 1.0f;
+  const real_t y = 1.0f;
+  const real_t z = 1.01f;
+  MU_CHECK(fltcmp2(&x, &y) == 0);
+  MU_CHECK(fltcmp2(&x, &z) != 0);
+  return 0;
+}
+
+int test_pythag() {
+  MU_CHECK(fltcmp(pythag(3.0, 4.0), 5.0) == 0);
+  return 0;
+}
+
+int test_lerp() {
+  MU_CHECK(fltcmp(lerp(0.0, 1.0, 0.5), 0.5) == 0);
+  MU_CHECK(fltcmp(lerp(0.0, 10.0, 0.8), 8.0) == 0);
+  return 0;
+}
+
+int test_lerp3() {
+  real_t a[3] = {0.0, 1.0, 2.0};
+  real_t b[3] = {1.0, 2.0, 3.0};
+  real_t c[3] = {0.0, 0.0, 0.0};
+  real_t t = 0.5;
+
+  lerp3(a, b, t, c);
+  MU_CHECK(fltcmp(c[0], 0.5) == 0);
+  MU_CHECK(fltcmp(c[1], 1.5) == 0);
+  MU_CHECK(fltcmp(c[2], 2.5) == 0);
+
+  return 0;
+}
+
+int test_sinc() {
+  return 0;
+}
+
+int test_mean() {
+  real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
+  MU_CHECK(fltcmp(mean(vals, 4), 2.5) == 0);
+
+  return 0;
+}
+
+int test_median() {
+  real_t vals[5] = {1.0, 2.0, 0.0, 3.0, 4.0};
+  MU_CHECK(fltcmp(median(vals, 5), 2.0) == 0);
+
+  real_t vals2[6] = {1.0, 2.0, 0.0, 3.0, 4.0, 5.0};
+  MU_CHECK(fltcmp(median(vals2, 6), 2.5f) == 0);
+
+  return 0;
+}
+
+int test_var() {
+  real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
+  MU_CHECK(fltcmp(var(vals, 4), 1.666666667) == 0);
+
+  return 0;
+}
+
+int test_stddev() {
+  real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
+  MU_CHECK(fltcmp(stddev(vals, 4), sqrt(1.666666667)) == 0);
+
+  return 0;
+}
+
+/******************************************************************************
+ * LINEAR ALGEBRA
+ ******************************************************************************/
 
 int test_eye() {
   real_t A[25] = {0.0};
@@ -1241,12 +1470,44 @@ void test_suite() {
   MU_ADD_TEST(test_log_error);
   MU_ADD_TEST(test_log_warn);
 
+  /* FILE SYSTEM */
+  MU_ADD_TEST(test_list_files);
+  MU_ADD_TEST(test_list_files_free);
+  MU_ADD_TEST(test_file_read);
+  MU_ADD_TEST(test_skip_line);
+  MU_ADD_TEST(test_file_rows);
+  MU_ADD_TEST(test_file_copy);
+
   /* DATA */
   MU_ADD_TEST(test_malloc_string);
   MU_ADD_TEST(test_dsv_rows);
   MU_ADD_TEST(test_dsv_cols);
   MU_ADD_TEST(test_dsv_fields);
   MU_ADD_TEST(test_dsv_data);
+  MU_ADD_TEST(test_dsv_free);
+
+  /* TIME */
+  MU_ADD_TEST(test_tic);
+  MU_ADD_TEST(test_toc);
+  MU_ADD_TEST(test_mtoc);
+  MU_ADD_TEST(test_time_now);
+
+  /* MATHS */
+  MU_ADD_TEST(test_min);
+  MU_ADD_TEST(test_max);
+  MU_ADD_TEST(test_randf);
+  MU_ADD_TEST(test_deg2rad);
+  MU_ADD_TEST(test_rad2deg);
+  MU_ADD_TEST(test_fltcmp);
+  MU_ADD_TEST(test_fltcmp2);
+  MU_ADD_TEST(test_pythag);
+  MU_ADD_TEST(test_lerp);
+  MU_ADD_TEST(test_lerp3);
+  MU_ADD_TEST(test_sinc);
+  MU_ADD_TEST(test_mean);
+  MU_ADD_TEST(test_median);
+  MU_ADD_TEST(test_var);
+  MU_ADD_TEST(test_stddev);
 
   /* LINEAR ALGEBRA */
   MU_ADD_TEST(test_eye);
