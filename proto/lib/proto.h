@@ -1,5 +1,5 @@
-#ifndef PROTO_H
-#define PROTO_H
+#ifndef PROTO_H_
+#define PROTO_H_
 
 #define PRECISION 1
 #define MAX_LINE_LENGTH 9046
@@ -94,19 +94,6 @@
 #endif
 
 /**
- * Log error
- *
- * @param[in] M Message
- * @param[in] ... Varadic arguments
- */
-#define LOG_ERROR(M, ...)                                                      \
-  fprintf(stderr,                                                              \
-          KRED "[ERROR] [%s:%d] " M KNRM "\n",                                 \
-          __FILENAME__,                                                        \
-          __LINE__,                                                            \
-          ##__VA_ARGS__)
-
-/**
  * Log info
  *
  * @param[in] M Message
@@ -115,6 +102,19 @@
 #define LOG_INFO(M, ...)                                                       \
   fprintf(stderr,                                                              \
           "[INFO] [%s:%d] " M "\n",                                            \
+          __FILENAME__,                                                        \
+          __LINE__,                                                            \
+          ##__VA_ARGS__)
+
+/**
+ * Log error
+ *
+ * @param[in] M Message
+ * @param[in] ... Varadic arguments
+ */
+#define LOG_ERROR(M, ...)                                                      \
+  fprintf(stderr,                                                              \
+          KRED "[ERROR] [%s:%d] " M KNRM "\n",                                 \
           __FILENAME__,                                                        \
           __LINE__,                                                            \
           ##__VA_ARGS__)
@@ -176,7 +176,6 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays);
 int dsv_rows(const char *fp);
 int dsv_cols(const char *fp, const char delim);
 char **dsv_fields(const char *fp, const char delim, int *nb_fields);
-
 real_t **dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols);
 void dsv_free(real_t **data, const int nb_rows);
 
@@ -231,7 +230,6 @@ int tcp_client_setup(tcp_client_t *client,
                      const char *server_ip,
                      const int server_port);
 int tcp_client_loop(tcp_client_t *client);
-
 
 /******************************************************************************
  * MATHS
@@ -325,13 +323,14 @@ void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale);
 
-real_t *vec_malloc(const size_t length);
-void vec_copy(const real_t *src, const size_t length, real_t *dest);
-int vec_equals(const real_t *x, const real_t *y, const size_t length);
-void vec_add(const real_t *x, const real_t *y, real_t *z, size_t length);
-void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t length);
-void vec_scale(real_t *x, const size_t length, const real_t scale);
-real_t vec_norm(const real_t *x, const size_t length);
+real_t *vec_malloc(const size_t n);
+void vec_copy(const real_t *src, const size_t n, real_t *dest);
+int vec_equals(const real_t *x, const real_t *y, const size_t n);
+void vec_add(const real_t *x, const real_t *y, real_t *z, size_t n);
+void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t n);
+void vec_scale(real_t *x, const size_t n, const real_t scale);
+real_t vec_norm(const real_t *x, const size_t n);
+void vec_normalize(real_t *x, const size_t n);
 
 void dot(const real_t *A,
          const size_t A_m,
@@ -386,6 +385,7 @@ void lapack_chol_solve(const real_t *A,
  ******************************************************************************/
 
 void tf(const real_t params[7], real_t T[4 * 4]);
+void tf_decompose(const real_t T[4 * 4], real_t C[3*3], real_t r[3]);
 void tf_params(const real_t T[4 * 4], real_t params[7]);
 void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]);
 void tf_trans_set(real_t T[4 * 4], const real_t r[3]);
@@ -408,8 +408,10 @@ void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_delta(const real_t dalpha[3], real_t dq[4]);
 
 /******************************************************************************
- * IMAGE
+ * CV
  ******************************************************************************/
+
+/* IMAGE ---------------------------------------------------------------------*/
 
 typedef struct image_t {
   int width;
@@ -426,9 +428,6 @@ image_t *image_load(const char *file_path);
 void image_print_properties(const image_t *img);
 void image_free(image_t *img);
 
-/******************************************************************************
- * CV
- ******************************************************************************/
 
 /* RADTAN --------------------------------------------------------------------*/
 
@@ -491,13 +490,11 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 /* POSE --------------------------------------------------------------------- */
 
 typedef struct pose_t {
-  uint64_t param_id;
   timestamp_t ts;
   real_t data[7];
 } pose_t;
 
 void pose_setup(pose_t *pose,
-                uint64_t *param_id,
                 const timestamp_t ts,
                 const real_t *param);
 void pose_print(const pose_t *pose);
@@ -505,60 +502,50 @@ void pose_print(const pose_t *pose);
 /* SPEED AND BIASES --------------------------------------------------------- */
 
 typedef struct speed_biases_t {
-  uint64_t param_id;
   timestamp_t ts;
   real_t data[9];
 } speed_biases_t;
 
 void speed_biases_setup(speed_biases_t *sb,
-                      uint64_t *param_id,
-                      const timestamp_t ts,
-                      const real_t *param);
+                        const timestamp_t ts,
+                        const real_t *param);
 void speed_biases_print(const speed_biases_t *sb);
 
 /* FEATURE ------------------------------------------------------------------ */
 
 typedef struct feature_t {
-  uint64_t param_id;
   real_t data[3];
 } feature_t;
 
-void feature_setup(feature_t *p,
-                   uint64_t *param_id,
-                   const real_t *param);
+void feature_setup(feature_t *p, const real_t *param);
 void feature_print(const feature_t *feature);
 
 /* EXTRINSICS --------------------------------------------------------------- */
 
 typedef struct extrinsics_t {
-  uint64_t param_id;
   real_t data[7];
 } extrinsics_t;
 
-void extrinsics_setup(extrinsics_t *extrinsics,
-                      uint64_t *param_id,
-                      const real_t *param);
+void extrinsics_setup(extrinsics_t *extrinsics, const real_t *param);
 void extrinsics_print(const extrinsics_t *extrinsics);
 
-/* CAMERA ------------------------------------------------------------------- */
+/* CAMERA PARAMS ------------------------------------------------------------ */
 
-typedef struct camera_t {
-  uint64_t param_id;
+typedef struct camera_params_t {
   int cam_idx;
   int resolution[2];
   char proj_model[20];
   char dist_model[20];
   real_t data[8];
-} camera_t;
+} camera_params_t;
 
-void camera_setup(camera_t *camera,
-                  uint64_t *param_id,
-                  const int cam_idx,
-                  const int cam_res[2],
-                  const char *proj_model,
-                  const char *dist_model,
-                  const real_t *data);
-void camera_print(const camera_t *camera);
+void camera_params_setup(camera_params_t *camera,
+                         const int cam_idx,
+                         const int cam_res[2],
+                         const char *proj_model,
+                         const char *dist_model,
+                         const real_t *data);
+void camera_params_print(const camera_params_t *camera);
 
 /* POSE FACTOR -------------------------------------------------------------- */
 
@@ -581,12 +568,11 @@ void pose_factor_setup(pose_factor_t *factor,
 void pose_factor_reset(pose_factor_t *factor);
 int pose_factor_eval(pose_factor_t *factor);
 
-/* CAMERA FACTOR ------------------------------------------------------------ */
+/* BA FACTOR ---------------------------------------------------------------- */
 
-typedef struct cam_factor_t {
+typedef struct ba_factor_t {
   pose_t *pose;
-  extrinsics_t *extrinsics;
-  camera_t *camera;
+  camera_params_t *camera;
   feature_t *feature;
 
   real_t covar[2*2];
@@ -595,10 +581,37 @@ typedef struct cam_factor_t {
   real_t r[2];
   int r_size;
 
-  real_t J0[2*6];
-  real_t J1[2*6];
-  real_t J2[2*8];
-  real_t J3[2*3];
+  real_t J0[2*6]; /* Jacobian w.r.t camera pose T_WC */
+  real_t J1[2*3]; /* Jacobian w.r.t landmark */
+  real_t *jacs[4];
+  int nb_params;
+} ba_factor_t;
+
+void ba_factor_setup(ba_factor_t *factor,
+                     pose_t *pose,
+                     feature_t *feature,
+                     camera_params_t *camera,
+                     const real_t var[2]);
+int ba_factor_eval(ba_factor_t *factor);
+
+/* CAMERA FACTOR ------------------------------------------------------------ */
+
+typedef struct cam_factor_t {
+  pose_t *pose;
+  extrinsics_t *extrinsics;
+  camera_params_t *camera;
+  feature_t *feature;
+
+  real_t covar[2*2];
+  real_t z[2];
+
+  real_t r[2];
+  int r_size;
+
+  real_t J0[2*6]; /* Jacobian w.r.t sensor pose T_WS */
+  real_t J1[2*6]; /* Jacobian w.r.t sensor-camera extrinsics T_SC */
+  real_t J2[2*8]; /* Jacobian w.r.t camera parameters */
+  real_t J3[2*3]; /* Jacobian w.r.t landmark */
   real_t *jacs[4];
   int nb_params;
 } cam_factor_t;
@@ -606,7 +619,8 @@ typedef struct cam_factor_t {
 void cam_factor_setup(cam_factor_t *factor,
                       pose_t *pose,
                       extrinsics_t *extrinsics,
-                      camera_t *camera,
+                      feature_t *feature,
+                      camera_params_t *camera,
                       const real_t var[2]);
 void cam_factor_reset(cam_factor_t *factor);
 int cam_factor_eval(cam_factor_t *factor);
@@ -695,7 +709,7 @@ typedef struct solver_t {
   pose_t poses[MAX_POSES];
   int nb_poses;
 
-  camera_t cams[MAX_CAMS];
+  camera_params_t cams[MAX_CAMS];
   int nb_cams;
 
   extrinsics_t extrinsics[MAX_CAMS];
@@ -716,4 +730,4 @@ void solver_print(solver_t *solver);
 int solver_eval(solver_t *solver);
 void solver_optimize(solver_t *solver);
 
-#endif // PROTO_H
+#endif // _PROTO_H_

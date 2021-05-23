@@ -480,7 +480,7 @@ function plot_poses(gnd, est=0)
   title("Position X-Y");
   xlabel("x [m]");
   ylabel("y [m]");
-  legend("Estimated", "Ground Truth");
+  legend("Ground Truth", "Estimated");
 
   subplot(4, 1, 4);
   hold on;
@@ -490,7 +490,7 @@ function plot_poses(gnd, est=0)
   title("Altitude");
   xlabel("time [s]");
   ylabel("z [m]");
-  legend("Estimated", "Ground Truth");
+  legend("Ground Truth", "Estimated");
 endfunction
 
 function sim_data = sim_imu(circle_r, velocity)
@@ -615,23 +615,23 @@ endfunction
 
 sim_data = sim_imu(0.5, 1.0);
 % est = imu_batch_integrate(sim_data, "euler");
-% est = imu_batch_integrate(sim_data, "rk4");
-% traj_error(sim_data, est);
+est = imu_batch_integrate(sim_data, "rk4");
+traj_error(sim_data, est);
 
-N = 100;
-imu_ts = sim_data.time(1:N);
-imu_acc = sim_data.imu_acc(:, 1:N);
-imu_gyr = sim_data.imu_gyr(:, 1:N);
-g = [0.0; 0.0; 9.81];
-pose_i = sim_data.poses{1}
-sb_i = [sim_data.vel(:, 1); zeros(6, 1)];
-pose_j = sim_data.poses{N}
-sb_j = [sim_data.vel(:, N); zeros(6, 1)];
-
-imu_preintegrate(imu_ts, imu_acc, imu_gyr, g,
-                 pose_i, sb_i, pose_j, sb_j);
+% N = 100;
+% imu_ts = sim_data.time(1:N);
+% imu_acc = sim_data.imu_acc(:, 1:N);
+% imu_gyr = sim_data.imu_gyr(:, 1:N);
+% g = [0.0; 0.0; 9.81];
+% pose_i = sim_data.poses{1}
+% sb_i = [sim_data.vel(:, 1); zeros(6, 1)];
+% pose_j = sim_data.poses{N}
+% sb_j = [sim_data.vel(:, N); zeros(6, 1)];
+%
+% imu_preintegrate(imu_ts, imu_acc, imu_gyr, g,
+%                  pose_i, sb_i, pose_j, sb_j);
 
 % Print errors
-% plot_poses(sim_data, est);
-% plot_imu(sim_data);
-% ginput();
+plot_poses(sim_data, est);
+plot_imu(sim_data);
+ginput();

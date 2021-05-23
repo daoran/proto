@@ -1,56 +1,71 @@
 #include <Wire.h>
 #include <Arduino.h>
 
-#include "core.h"
+/* #include "comms/gpio.h" */
+#include "comms/uart.h"
+#include "comms/i2c.h"
+/* #include "comms/pwm.h" */
+#include "comms/sbus.h"
 
+#include "sensors/mpu6050.h"
+#include "sensors/bmp280.h"
 
 // GLOBAL VARIABLES
-auto t_prev = micros();
-twi i2c;
+uart_t uart;
+mpu6050_t imu;
+bmp280_t bmp;
 
-/* uint8_t pins[4] = {0, 1, 2, 3}; */
-/* uint8_t nb_pins = 4; */
-/* pwm_t pwm{pins, nb_pins}; */
-uart_t serial;
-gpio_t gpio;
+struct fcu_t {
+  mpu6050_t imu;
+  bmp280_t bmp;
+};
 
-/*
-  void test_tps() {
-  if (fcu.tps.data_ready()) {
-    float temperature = 0.0f;
-    float pressure = 0.0f;
-    fcu.tps.get_data(temperature, pressure);
-
-    serial.printf("%f  ", temperature);
-    serial.printf("%f\n\r", pressure);
-
-    serial.printf("temperature: %f [deg]  ", temperature);
-    serial.printf("pressure: %f [Pa]", pressure);
+void fcu_setup(struct fcu_t *fcu) {
+  mpu6050_setup(fcu->imu);
+  bmp280_setup(fcu->bmp);
+}
 
 
-    auto t_now = micros();
-    float t_elapsed = ((float) t_now - t_prev);
+void setup() {
+  i2c_setup();
+  uart_setup(&uart);
 
-    serial.printf("time elapsed: %f [us]\n\r", t_elapsed);
-  }
-  }
+//  delay(1000);
+//  i2c_print_addrs(&uart);
+//  delay(1000);
 
-  void test_sensors() {
-  test_tps();
-  test_imu();
-  t_prev = micros();
-  }
+//  sbus_setup();
 
-  void test_pwm() {
-  pwm.set(0, 0.5);
-  float duration = pulseIn(1, HIGH);
-  //serial.printf("pwm width: %f [us]\n\r", duration);
-  }
-*/
+  /* delay(1000); */
+  /* mpu6050_setup(&imu); */
 
-void setup() {}
+  bmp280_setup(&bmp);
+}
 
 void loop() {
-  /* serial.printf("Hello World\n"); */
-  /* delay(100); */
+  /* i2c_print_addrs(&uart); */
+  /* delay(1000); */
+
+//  sbus_update(&uart);
+//  delay(1000);
+
+  if (bmp280_data_ready(&bmp)) {
+  float temperature = 0.0f;
+  float pressure = 0.0f;
+  bmp280_get_data(&bmp, &temperature, &pressure);
+  uart_printf(&uart, "%f\n", 44330 * (1.0 - pow(pressure / 100 / 1013.25, 0.1903)));
+  //uart_printf(&uart, "%f\n", temperature);
+  delay(10);
+  }
+
+  // mpu6050_get_data(&imu);
+  // uart_printf(&uart, "%f ", imu.accel[0]);
+  // uart_printf(&uart, "%f ", imu.accel[1]);
+  // uart_printf(&uart, "%f\n", imu.accel[2]);
+  /* uart_printf(&uart, "gx: %f  ", imu.gyro[0]); */
+  /* uart_printf(&uart, "gy: %f  ", imu.gyro[1]); */
+  /* uart_printf(&uart, "gz: %f  ", imu.gyro[2]); */
+  // uart_printf(&uart, "\n");
+
+  /* delay(1000); */
 }

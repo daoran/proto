@@ -20,7 +20,7 @@ ctags -R .
 # octave notes/camera/radtan4_params_jacobian.m && exit 0
 # octave notes/camera/radtan4_point_jacobian.m && exit 0
 # octave notes/traj_eval/traj_eval.m
-# octave notes/imu/imu.m && exit 0
+octave notes/imu/imu.m && exit 0
 # octave notes/imu/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0

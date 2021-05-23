@@ -1,6 +1,5 @@
 #!/bin/sh
 set -e
-# ARDUINO=~/Downloads/arduino-1.8.12/arduino
 
 debug() {
   gdb \
@@ -138,6 +137,23 @@ cd ./build/bin
 # ./test_proto --target test_pinhole_equi4_project
 # ./test_proto --target test_pinhole_equi4_project_jacobian
 # ./test_proto --target test_pinhole_equi4_params_jacobian
+# PROTO-SF
+# ./test_proto --target test_pose_setup
+# ./test_proto --target test_speed_bias_setup
+# ./test_proto --target test_landmark_setup
+# ./test_proto --target test_extrinsics_setup
+# ./test_proto --target test_camera_setup
+# ./test_proto --target test_pose_factor_setup
+# ./test_proto --target test_pose_factor_eval
+# ./test_proto --target test_ba_factor_setup
+# ./test_proto --target test_ba_factor_eval
+# ./test_proto --target test_cam_factor_setup
+# ./test_proto --target test_cam_factor_eval
+# ./test_proto --target test_imu_buf_setup
+# ./test_proto --target test_imu_buf_add
+# ./test_proto --target test_imu_buf_clear
+# ./test_proto --target test_imu_buf_copy
+# ./test_proto --target test_imu_buf_print
 
 # valgrind --leak-check=full ./test_traj_eval
 # time ./test_traj_eval
@@ -166,18 +182,4 @@ cd ./build/bin
 # ./test_imshow
 # ./test_imshow2
 # gdb -ex run -ex bt ./test_imshow
-
-# ./test_se --target test_pose_setup
-# ./test_se --target test_speed_bias_setup
-# ./test_se --target test_landmark_setup
-# ./test_se --target test_extrinsics_setup
-# ./test_se --target test_camera_setup
-# ./test_se --target test_pose_factor_setup
-# ./test_se --target test_pose_factor_eval
-# ./test_se --target test_cam_factor_setup
-# ./test_se --target test_imu_buf_setup
-# ./test_se --target test_imu_buf_add
-# ./test_se --target test_imu_buf_clear
-# ./test_se --target test_imu_buf_copy
-# ./test_se --target test_imu_buf_print
 # ./test_template

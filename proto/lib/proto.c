@@ -1363,28 +1363,28 @@ void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale) {
 }
 
 /**
- * Create new vector of `length` in heap memory.
+ * Create new vector of length `n` in heap memory.
  * @returns Heap allocated vector
  */
-real_t *vec_malloc(const size_t length) { return calloc(length, sizeof(real_t)); }
+real_t *vec_malloc(const size_t n) { return calloc(n, sizeof(real_t)); }
 
 /**
- * Copy vector `src` of `length` to `dest`.
+ * Copy vector `src` of length `n` to `dest`.
  */
-void vec_copy(const real_t *src, const size_t length, real_t *dest) {
-  for (size_t i = 0; i < length; i++) {
+void vec_copy(const real_t *src, const size_t n, real_t *dest) {
+  for (size_t i = 0; i < n; i++) {
     dest[i] = src[i];
   }
 }
 
 /**
- * Check if vectors `x` and `y` of `length` are equal.
+ * Check if vectors `x` and `y` of length `n` are equal.
  * @returns
  * - 1 for x == y
  * - 0 for x != y
  */
-int vec_equals(const real_t *x, const real_t *y, const size_t length) {
-  for (size_t i = 0; i < length; i++) {
+int vec_equals(const real_t *x, const real_t *y, const size_t n) {
+  for (size_t i = 0; i < n; i++) {
     if (fltcmp(x[i], y[i]) != 0) {
       return 0;
     }
@@ -1394,48 +1394,58 @@ int vec_equals(const real_t *x, const real_t *y, const size_t length) {
 }
 
 /**
- * Sum two vectors `x` and `y` of `length` to `z`.
+ * Sum two vectors `x` and `y` of length `n` to `z`.
  */
-void vec_add(const real_t *x, const real_t *y, real_t *z, size_t length) {
+void vec_add(const real_t *x, const real_t *y, real_t *z, size_t n) {
   assert(x != NULL && y != NULL && z != NULL && x != y && x != z);
-  assert(length > 0);
+  assert(n > 0);
 
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < n; i++) {
     z[i] = x[i] + y[i];
   }
 }
 
 /**
- * Subtract two vectors `x` and `y` of `length` to `z`.
+ * Subtract two vectors `x` and `y` of length `n` to `z`.
  */
-void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t length) {
+void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t n) {
   assert(x != NULL && y != NULL && z != NULL && x != y && x != z);
-  assert(length > 0);
+  assert(n > 0);
 
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < n; i++) {
     z[i] = x[i] - y[i];
   }
 }
 
 /**
- * Scale a vector `x` of `length` with `scale` in-place.
+ * Scale a vector `x` of length `n` with `scale` in-place.
  */
-void vec_scale(real_t *x, const size_t length, const real_t scale) {
-  for (size_t i = 0; i < length; i++) {
+void vec_scale(real_t *x, const size_t n, const real_t scale) {
+  for (size_t i = 0; i < n; i++) {
     x[i] = x[i] * scale;
   }
 }
 
 /**
- * Calculate vector norm of `x` of size `length`.
+ * Calculate vector norm of `x` of length `n`.
  * @returns Norm of vector x
  */
-real_t vec_norm(const real_t *x, const size_t length) {
+real_t vec_norm(const real_t *x, const size_t n) {
   real_t sum = 0.0;
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < n; i++) {
     sum += x[i] * x[i];
   }
   return sqrt(sum);
+}
+
+/**
+ * Normalize vector `x` of length `n` in place.
+ */
+void vec_normalize(real_t *x, const size_t n) {
+  const real_t norm = vec_norm(x, n);
+  for (size_t i = 0; i < n; i++) {
+    x[i] = x[i] / norm;
+  }
 }
 
 /**
@@ -2066,10 +2076,29 @@ void tf(const real_t params[7], real_t T[4 * 4]) {
 }
 
 /**
+ * Decompose transform `T` into the rotation `C` and translation `r`
+ * components.
+ */
+void tf_decompose(const real_t T[4 * 4], real_t C[3*3], real_t r[3]) {
+  assert(T != NULL);
+  assert(C != NULL);
+  assert(r != NULL);
+
+  /* clang-format off */
+  C[0] = T[0]; C[1] = T[1]; C[2] = T[2];  r[0] = T[3];
+  C[3] = T[4]; C[4] = T[5]; C[5] = T[6];  r[1] = T[7];
+  C[6] = T[8]; C[7] = T[9]; C[8] = T[10]; r[1] = T[11];
+  /* clang-format on */
+}
+
+/**
  * Form 7x1 pose parameter vector `params` from 4x4 homogeneous transformation
  * matrix `T`.
  */
 void tf_params(const real_t T[4 * 4], real_t params[7]) {
+  assert(T != NULL);
+  assert(params != NULL);
+
   real_t C[3 * 3] = {0};
   tf_rot_get(T, C);
 
@@ -2238,6 +2267,7 @@ void tf_hpoint(const real_t T[4 * 4], const real_t hp[4], real_t retval[4]) {
  * `T` with `step_size`.
  */
 void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i) {
+  assert(T != NULL);
   assert(i >= 0 && i <= 2);
 
   /* Build perturb drvec */
@@ -2261,6 +2291,7 @@ void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i) {
  * matrix with `step_size`.
  */
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
+  assert(T != NULL);
   assert(i >= 0 && i <= 2);
 
   /* Build perturb dr */
@@ -2281,6 +2312,9 @@ void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
  * the tolerance to determine if the rotation is too small.
  */
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R) {
+  assert(rvec != NULL);
+  assert(R != NULL);
+
   /* Magnitude of rvec */
   const real_t theta = sqrt(rvec[0] * rvec[0] + rvec[1] * rvec[1]);
   // ^ basically norm(rvec), but faster
@@ -2549,7 +2583,7 @@ void quat_delta(const real_t dalpha[3], real_t dq[4]) {
 }
 
 /*****************************************************************************
- * IMAGE
+ * CV
  *****************************************************************************/
 
 /**
@@ -2560,9 +2594,9 @@ void image_setup(image_t *img,
                  const int height,
                  uint8_t *data) {
   assert(img != NULL);
-  img->data = data;
   img->width = width;
   img->height = height;
+  img->data = data;
 }
 
 /**
@@ -2570,6 +2604,8 @@ void image_setup(image_t *img,
  * @returns Heap allocated image
  */
 image_t *image_load(const char *file_path) {
+  assert(file_path != NULL);
+
   int img_w = 0;
   int img_h = 0;
   int img_c = 0;
@@ -2605,10 +2641,6 @@ void image_free(image_t *img) {
   free(img);
 }
 
-/*****************************************************************************
- * CV
- *****************************************************************************/
-
 /* RADTAN --------------------------------------------------------------------*/
 
 /**
@@ -2617,6 +2649,10 @@ void image_free(image_t *img) {
  * written to 2x1 vector `p_d`.
  */
 void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
+  assert(params != NULL);
+  assert(p != NULL);
+  assert(p_d != NULL);
+
   /* Distortion parameters */
   const real_t k1 = params[0];
   const real_t k2 = params[1];
@@ -2653,6 +2689,10 @@ void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
 void radtan4_point_jacobian(const real_t params[4],
                             const real_t p[2],
                             real_t J_point[2 * 2]) {
+  assert(params != NULL);
+  assert(p != NULL);
+  assert(J_point != NULL);
+
   /* Distortion parameters */
   const real_t k1 = params[0];
   const real_t k2 = params[1];
@@ -2685,6 +2725,9 @@ void radtan4_point_jacobian(const real_t params[4],
 void radtan4_params_jacobian(const real_t params[4],
                              const real_t p[2],
                              real_t J_param[2 * 4]) {
+  assert(params != NULL);
+  assert(p != NULL);
+  assert(J_param != NULL);
   UNUSED(params);
 
   /* Point */
@@ -2718,6 +2761,10 @@ void radtan4_params_jacobian(const real_t params[4],
  * written to 2x1 vector `p_d`.
  */
 void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
+  assert(params != NULL);
+  assert(p != NULL);
+  assert(p_d != NULL);
+
   const real_t k1 = params[0];
   const real_t k2 = params[1];
   const real_t k3 = params[2];
@@ -2735,11 +2782,8 @@ void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
   const real_t thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
   const real_t s = thd / r;
 
-  const real_t x_dash = s * x;
-  const real_t y_dash = s * y;
-
-  p_d[0] = x_dash;
-  p_d[1] = y_dash;
+  p_d[0] = s * x;
+  p_d[1] = s * y;
 }
 
 /**
@@ -2749,6 +2793,10 @@ void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
 void equi4_point_jacobian(const real_t params[4],
                           const real_t p[2],
                           real_t J_point[2 * 2]) {
+  assert(params != NULL);
+  assert(p != NULL);
+  assert(J_point != NULL);
+
   const real_t k1 = params[0];
   const real_t k2 = params[1];
   const real_t k3 = params[2];
@@ -2787,6 +2835,9 @@ void equi4_point_jacobian(const real_t params[4],
 void equi4_params_jacobian(const real_t params[4],
                            const real_t p[2],
                            real_t J_param[2 * 4]) {
+  assert(params != NULL);
+  assert(p != NULL);
+  assert(J_param != NULL);
   UNUSED(params);
 
   const real_t x = p[0];
@@ -2827,6 +2878,10 @@ real_t pinhole_focal(const int image_width, const real_t fov) {
  * pinhole parameters `params` (fx, fy, cx, cy).
  */
 void pinhole_project(const real_t params[4], const real_t p_C[3], real_t x[2]) {
+  assert(params != NULL);
+  assert(p_C != NULL);
+  assert(x != NULL);
+
   const real_t fx = params[0];
   const real_t fy = params[1];
   const real_t cx = params[2];
@@ -2856,6 +2911,9 @@ void pinhole_point_jacobian(const real_t params[4], real_t J[2 * 3]) {
 void pinhole_params_jacobian(const real_t params[4],
                              const real_t x[2],
                              real_t J[2 * 4]) {
+  assert(params != NULL);
+  assert(x != NULL);
+  assert(J != NULL);
   UNUSED(params);
 
   J[0] = x[0];
@@ -2881,6 +2939,10 @@ void pinhole_params_jacobian(const real_t params[4],
 void pinhole_radtan4_project(const real_t params[8],
                              const real_t p_C[3],
                              real_t x[2]) {
+  assert(params != NULL);
+  assert(p_C != NULL);
+  assert(x != NULL);
+
   /* Project */
   const real_t p[2] = {p_C[0] / p_C[2], p_C[1] / p_C[2]};
 
@@ -2909,6 +2971,10 @@ void pinhole_radtan4_project(const real_t params[8],
 void pinhole_radtan4_project_jacobian(const real_t params[8],
                                       const real_t p_C[3],
                                       real_t J[2 * 3]) {
+  assert(params != NULL);
+  assert(p_C != NULL);
+  assert(J != NULL);
+
   /* Project */
   const real_t x = p_C[0];
   const real_t y = p_C[0];
@@ -2953,6 +3019,10 @@ void pinhole_radtan4_project_jacobian(const real_t params[8],
 void pinhole_radtan4_params_jacobian(const real_t params[8],
                                      const real_t p_C[3],
                                      real_t J[2 * 8]) {
+  assert(params != NULL);
+  assert(p_C != NULL);
+  assert(J != NULL);
+
   const real_t fx = params[0];
   const real_t fy = params[1];
   const real_t cx = params[2];
@@ -3011,6 +3081,10 @@ void pinhole_radtan4_params_jacobian(const real_t params[8],
 void pinhole_equi4_project(const real_t params[8],
                            const real_t p_C[3],
                            real_t x[2]) {
+  assert(params != NULL);
+  assert(p_C != NULL);
+  assert(x != NULL);
+
   /* Project */
   const real_t p[2] = {p_C[0] / p_C[2], p_C[1] / p_C[2]};
 
@@ -3039,6 +3113,10 @@ void pinhole_equi4_project(const real_t params[8],
 void pinhole_equi4_project_jacobian(const real_t params[8],
                                     const real_t p_C[3],
                                     real_t J[2 * 3]) {
+  assert(params != NULL);
+  assert(p_C != NULL);
+  assert(J != NULL);
+
   /* Project */
   const real_t x = p_C[0];
   const real_t y = p_C[0];
@@ -3080,12 +3158,13 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
 /* POSE --------------------------------------------------------------------- */
 
 void pose_setup(pose_t *pose,
-                uint64_t *param_id,
                 const timestamp_t ts,
                 const real_t *data) {
-  pose->param_id = *param_id;
+  assert(pose != NULL);
+  assert(data != NULL);
+
+  /* Timestamp */
   pose->ts = ts;
-  *param_id += 1;
 
   /* Quaternion */
   pose->data[0] = data[0];
@@ -3102,12 +3181,13 @@ void pose_setup(pose_t *pose,
 /* SPEED AND BIASES --------------------------------------------------------- */
 
 void speed_biases_setup(speed_biases_t *sb,
-                        uint64_t *param_id,
                         const timestamp_t ts,
                         const real_t *data) {
-  sb->param_id = *param_id;
+  assert(sb != NULL);
+  assert(data != NULL);
+
+  /* Timestamp */
   sb->ts = ts;
-  *param_id += 1;
 
   /* Velocity */
   sb->data[0] = data[0];
@@ -3127,11 +3207,9 @@ void speed_biases_setup(speed_biases_t *sb,
 
 /* FEATURE ------------------------------------------------------------------ */
 
-void feature_setup(feature_t *p,
-                   uint64_t *param_id,
-                   const real_t *data) {
-  p->param_id = *param_id;
-  *param_id += 1;
+void feature_setup(feature_t *p, const real_t *data) {
+  assert(p != NULL);
+  assert(data != NULL);
 
   p->data[0] = data[0];
   p->data[1] = data[1];
@@ -3140,11 +3218,9 @@ void feature_setup(feature_t *p,
 
 /* EXTRINSICS --------------------------------------------------------------- */
 
-void extrinsics_setup(extrinsics_t *extrinsics,
-                      uint64_t *param_id,
-                      const real_t *data) {
-  extrinsics->param_id = *param_id;
-  *param_id += 1;
+void extrinsics_setup(extrinsics_t *extrinsics, const real_t *data) {
+  assert(extrinsics != NULL);
+  assert(data != NULL);
 
   /* Quaternion */
   extrinsics->data[0] = data[0];
@@ -3158,16 +3234,20 @@ void extrinsics_setup(extrinsics_t *extrinsics,
   extrinsics->data[6] = data[6];
 }
 
-/* CAMERA ------------------------------------------------------------------- */
+/* CAMERA PARAMS ------------------------------------------------------------ */
 
-void camera_setup(camera_t *camera,
-                  uint64_t *param_id,
-                  const int cam_idx,
-                  const int cam_res[2],
-                  const char *proj_model,
-                  const char *dist_model,
-                  const real_t data[8]) {
-  camera->param_id = *param_id;
+void camera_params_setup(camera_params_t *camera,
+                         const int cam_idx,
+                         const int cam_res[2],
+                         const char *proj_model,
+                         const char *dist_model,
+                         const real_t data[8]) {
+  assert(camera != NULL);
+  assert(cam_res != NULL);
+  assert(proj_model != NULL);
+  assert(dist_model != NULL);
+  assert(data != NULL);
+
   camera->cam_idx = cam_idx;
   camera->resolution[0] = cam_res[0];
   camera->resolution[1] = cam_res[1];
@@ -3185,7 +3265,9 @@ void camera_setup(camera_t *camera,
   camera->data[7] = data[7];
 }
 
-void camera_print(const camera_t *camera) {
+void camera_params_print(const camera_params_t *camera) {
+  assert(camera);
+
   printf("cam_idx: %d\n", camera->cam_idx);
   printf("cam_res: [%d, %d]\n", camera->resolution[0], camera->resolution[1]);
   printf("proj_model: %s\n", camera->proj_model);
@@ -3206,6 +3288,10 @@ void camera_print(const camera_t *camera) {
 void pose_factor_setup(pose_factor_t *factor,
                        pose_t *pose,
                        const real_t var[6]) {
+  assert(factor != NULL);
+  assert(pose != NULL);
+  assert(var != NULL);
+
   zeros(factor->pose_meas, 7, 1);
   factor->pose_est = pose;
 
@@ -3280,15 +3366,93 @@ int pose_factor_eval(pose_factor_t *factor) {
   return 0;
 }
 
+/* BA FACTOR ---------------------------------------------------------------- */
+
+void ba_factor_setup(ba_factor_t *factor,
+                     pose_t *pose,
+                     feature_t *feature,
+                     camera_params_t *camera,
+                     const real_t var[2]) {
+  factor->pose = pose;
+  factor->feature = feature;
+  factor->camera = camera;
+
+  factor->covar[0] = 1.0 / (var[0] * var[0]);
+  factor->covar[1] = 0.0;
+  factor->covar[2] = 0.0;
+  factor->covar[3] = 1.0 / (var[1] * var[1]);
+
+  zeros(factor->r, 2, 1);
+
+  zeros(factor->J0, 2, 6);
+  zeros(factor->J1, 2, 3);
+  factor->jacs[0] = factor->J0;
+  factor->jacs[1] = factor->J1;
+  factor->nb_params = 4;
+}
+
+int ba_factor_eval(ba_factor_t *factor) {
+  assert(factor != NULL);
+  assert(factor->pose);
+  assert(factor->feature);
+  assert(factor->camera);
+
+  /* Map params */
+  /* -- Camera pose */
+  real_t T_WC[4 * 4] = {0};
+  tf(factor->pose->data, T_WC);
+  /* -- Feature */
+  real_t *p_W = factor->feature->data;
+  /* -- Camera params */
+  real_t *cam_params = factor->camera->data;
+
+  /* Calculate residuals */
+  /* -- Project point from world to image plane */
+  real_t T_CW[4 * 4] = {0};
+  real_t p_C[3] = {0};
+  real_t z_hat[2];
+  tf_inv(T_WC, T_CW);
+  tf_point(T_CW, p_W, p_C);
+  pinhole_radtan4_project(cam_params, p_C, z_hat);
+  /* -- Residual */
+  real_t err[2] = {0};
+  err[0] = factor->z[0] - z_hat[0];
+  err[1] = factor->z[1] - z_hat[1];
+  /* -- Weighted residual */
+  real_t sqrt_info[2 * 2] = {0};
+  sqrt_info[0] = 1.0 / factor->covar[0];
+  sqrt_info[1] = 0.0;
+  sqrt_info[2] = 0.0;
+  sqrt_info[3] = 1.0 / factor->covar[1];
+  dot(sqrt_info, 2, 2, err, 2, 1, factor->r);
+
+  /* Calculate jacobians */
+  /* -- Form: -1 * sqrt_info */
+  real_t neg_sqrt_info[2 * 2] = {0};
+  mat_copy(sqrt_info, 2, 2, neg_sqrt_info);
+  mat_scale(neg_sqrt_info, 2, 2, -1.0);
+  /* -- Form: Jh_weighted = -1 * sqrt_info * J_h */
+  real_t J_h[2 * 3] = {0};
+  real_t Jh_weighted[2 * 3] = {0};
+  pinhole_radtan4_project_jacobian(cam_params, p_C, J_h);
+  dot(neg_sqrt_info, 2, 2, J_h, 2, 3, Jh_weighted);
+  /* -- Fill jacobians */
+
+
+  return 0;
+}
+
 /* CAMERA FACTOR ------------------------------------------------------------ */
 
 void cam_factor_setup(cam_factor_t *factor,
                       pose_t *pose,
                       extrinsics_t *extrinsics,
-                      camera_t *camera,
+                      feature_t *feature,
+                      camera_params_t *camera,
                       const real_t var[2]) {
   factor->pose = pose;
   factor->extrinsics = extrinsics;
+  factor->feature = feature;
   factor->camera = camera;
 
   factor->covar[0] = 1.0 / (var[0] * var[0]);
@@ -3317,6 +3481,125 @@ void cam_factor_reset(cam_factor_t *factor) {
   zeros(factor->J3, 2, 3);
 }
 
+static void cam_factor_sensor_pose_jacobian(const real_t Jh_weighted[2 * 3],
+                                            const real_t T_SC[3 * 3],
+                                            const real_t T_WS[3 * 3],
+                                            const real_t p_W[3],
+                                            real_t J[2 * 6]) {
+  /* J[0:2, 0:3] = -1 * sqrt_info * J_h * C_CS * C_SW * skew(p_W - r_WS); */
+  /* J[0:2, 3:5] = -1 * sqrt_info * J_h * C_CS * -C_SW; */
+
+  /* Setup */
+  real_t C_SC[3 * 3] = {0};
+  real_t C_CS[3 * 3] = {0};
+  real_t C_WS[3 * 3] = {0};
+  real_t C_SW[3 * 3] = {0};
+  real_t C_CW[3 * 3] = {0};
+
+  tf_rot_get(T_SC, C_SC);
+  mat_transpose(C_SC, 3, 3, C_CS);
+  tf_rot_get(T_WS, C_WS);
+  mat_transpose(C_WS, 3, 3, C_SW);
+  dot(C_CS, 3, 3, C_SW, 3, 3, C_CW);
+
+  /* Form: C_CS * C_SW * skew(p_W - r_WS) */
+  real_t r_WS[3] = {0};
+  tf_trans_get(T_WS, r_WS);
+
+  real_t p[3] = {0};
+  real_t S[3 * 3] = {0};
+  vec_sub(p_W, r_WS, p, 3);
+  skew(p, S);
+
+  real_t RHS[3 * 3] = {0};
+  dot(C_CW, 3, 3, S, 3, 3, RHS);
+
+  /* Form: -C_SW */
+  real_t neg_C_CW[3 * 3] = {0};
+  mat_copy(C_CW, 3, 3, neg_C_CW);
+  mat_scale(neg_C_CW, 3, 3, -1.0);
+
+  /* Form: J_pos = -1 * sqrt_info * J_h * C_CS * C_SW * skew(p_W - r_WS); */
+  real_t J_pos[2 * 3] = {0};
+  dot(Jh_weighted, 2, 3, RHS, 3, 3, J_pos);
+
+  /* Form: J_rot = -1 * sqrt_info * J_h * C_CS * -C_SW; */
+  real_t J_rot[2 * 3] = {0};
+  dot(Jh_weighted, 2, 3, neg_C_CW, 3, 3, J_rot);
+
+  /* Fill the jacobians */
+  mat_block_set(J, 6, 0, 0, 1, 2, J_pos);
+  mat_block_set(J, 6, 0, 3, 1, 5, J_rot);
+}
+
+static void cam_factor_sensor_camera_jacobian(const real_t Jh_weighted[2 * 3],
+                                              const real_t T_SC[3 * 3],
+                                              const real_t p_C[3],
+                                              real_t J[2 * 6]) {
+  /* J[0:2, 0:3] = -1 * sqrt_info * J_h * C_CS * skew(C_SC * p_C); */
+  /* J[0:2, 3:5] = -1 * sqrt_info * J_h * -C_CS; */
+
+  /* Setup */
+  real_t C_SC[3 * 3] = {0};
+  real_t C_CS[3 * 3] = {0};
+  real_t C_SW[3 * 3] = {0};
+  real_t C_CW[3 * 3] = {0};
+
+  tf_rot_get(T_SC, C_SC);
+  mat_transpose(C_SC, 3, 3, C_CS);
+  dot(C_CS, 3, 3, C_SW, 3, 3, C_CW);
+
+  /* Form: C_CS * skew(C_SC * p_C) */
+  real_t p[3] = {0};
+  dot(C_SC, 3, 3, p_C, 3, 3, p);
+
+  real_t S[3 * 3] = {0};
+  skew(p, S);
+
+  real_t RHS[3 * 3] = {0};
+  dot(C_CS, 3, 3, S, 3, 3, RHS);
+
+  /* Form: -C_CS */
+  real_t neg_C_CS[3 * 3] = {0};
+  mat_copy(C_CS, 3, 3, neg_C_CS);
+  mat_scale(neg_C_CS, 3, 3, -1.0);
+
+  /* Form: J_pos = -1 * sqrt_info * J_h * C_CS * skew(C_SC * p_C); */
+  real_t J_pos[2 * 3] = {0};
+  dot(Jh_weighted, 2, 3, RHS, 3, 3, J_pos);
+
+  /* Form: J_rot = -1 * sqrt_info * J_h * -C_CS; */
+  real_t J_rot[2 * 3] = {0};
+  dot(Jh_weighted, 2, 3, neg_C_CS, 3, 3, J_rot);
+
+  /* Fill Jacobians */
+  mat_block_set(J, 6, 0, 0, 1, 2, J_pos);
+  mat_block_set(J, 6, 0, 3, 1, 5, J_rot);
+}
+
+static void cam_factor_camera_params_jacobian(const real_t neg_sqrt_info[2 * 2],
+                                              const real_t J_cam_params[2 * 8],
+                                              real_t J[2 * 8]) {
+  /* J = -1 * sqrt_info * J_cam_params; */
+  dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
+}
+
+static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
+                                        const real_t T_WS[4 * 4],
+                                        const real_t T_SC[4 * 4],
+                                        real_t J[2 * 3]) {
+  /* Setup */
+  real_t T_WC[4 * 4] = {0};
+  real_t C_WC[3 * 3] = {0};
+  real_t C_CW[3 * 3] = {0};
+  dot(T_WS, 4, 4, T_SC, 4, 4, T_WC);
+  tf_rot_get(T_WC, C_WC);
+  mat_transpose(C_WC, 3, 3, C_CW);
+
+  /* Form: J = -1 * sqrt_info * J_h * C_CW; */
+  dot(Jh_weighted, 2, 3, C_CW, 3, 3, J);
+}
+
 int cam_factor_eval(cam_factor_t *factor) {
   assert(factor != NULL);
   assert(factor->pose);
@@ -3336,16 +3619,16 @@ int cam_factor_eval(cam_factor_t *factor) {
   real_t T_CW[4 * 4] = {0};
   dot(T_WS, 4, 4, T_SC, 4, 4, T_WC);
   tf_inv(T_WC, T_CW);
-  /* -- Landmark */
+  /* -- Feature */
   real_t *p_W = factor->feature->data;
-  real_t p_C[3 * 1] = {0};
+  real_t p_C[3] = {0};
   tf_point(T_CW, p_W, p_C);
+
+  /* Calculate residuals */
   /* -- Project point from world to image plane */
   real_t z_hat[2];
   real_t *cam_params = factor->camera->data;
   pinhole_radtan4_project(cam_params, p_C, z_hat);
-
-  /* Calculate residuals */
   /* -- Residual */
   real_t err[2] = {0};
   err[0] = factor->z[0] - z_hat[0];
@@ -3359,10 +3642,23 @@ int cam_factor_eval(cam_factor_t *factor) {
   dot(sqrt_info, 2, 2, err, 2, 1, factor->r);
 
   /* Calculate jacobians */
-  /* -- Camera params jacobian */
-  /* -- Extrinsics jacobian */
-  /* -- Pose jacobian */
-  /* -- Landmark jacobian */
+  /* -- Form: -1 * sqrt_info */
+  real_t neg_sqrt_info[2 * 2] = {0};
+  mat_copy(sqrt_info, 2, 2, neg_sqrt_info);
+  mat_scale(neg_sqrt_info, 2, 2, -1.0);
+  /* -- Form: Jh_weighted = -1 * sqrt_info * J_h */
+  real_t J_h[2 * 3] = {0};
+  real_t Jh_weighted[2 * 3] = {0};
+  pinhole_radtan4_project_jacobian(cam_params, p_C, J_h);
+  dot(neg_sqrt_info, 2, 2, J_h, 2, 3, Jh_weighted);
+  /* -- Form: J_cam_params */
+  real_t J_cam_params[2 * 8] = {0};
+  pinhole_radtan4_params_jacobian(cam_params, p_C, J_cam_params);
+  /* -- Fill jacobians */
+  cam_factor_sensor_pose_jacobian(Jh_weighted, T_WS, T_SC, p_W, factor->J0);
+  cam_factor_sensor_camera_jacobian(Jh_weighted, T_SC, p_C, factor->J1);
+  cam_factor_camera_params_jacobian(neg_sqrt_info, J_cam_params, factor->J2);
+  cam_factor_feature_jacobian(Jh_weighted, T_WS, T_SC, factor->J3);
 
   return 0;
 }

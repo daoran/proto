@@ -1,3 +1,6 @@
+#ifndef _IMSHOW_H_
+#define _IMSHOW_H_
+
 #include <unistd.h>
 #include <pthread.h>
 
@@ -64,3 +67,5 @@ void imshow_update(imshow_t *im, image_t *img);
 int imshow_wait(imshow_t *im);
 void imshow_loop(imshow_t *im);
 void *imshow_thread(void *data);
+
+#endif /* _IMSHOW_H_ */

@@ -1,5 +1,5 @@
-#ifndef ZERO_GUI_H
-#define ZERO_GUI_H
+#ifndef _GUI_H_
+#define _GUI_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,4 +221,4 @@ void gl_grid_setup(gl_entity_t *entity);
 void gl_grid_cleanup(const gl_entity_t *entity);
 void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera);
 
-#endif /* ZERO_GUI_H */
+#endif /* _GUI_H_ */

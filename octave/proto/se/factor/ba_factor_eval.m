@@ -16,12 +16,11 @@ function [r, jacobians] = ba_factor_eval(factor, params)
   landmark = params{2};
   camera = params{3};
 
+  % Project point in world frame to image plane
   T_WC = tf(cam_pose.param);
   p_W = landmark.param;
   proj_params = camera.param(1:4);
   dist_params = camera.param(5:8);
-
-  % Project point in world frame to image plane
   p_C = tf_point(inv(T_WC), p_W);
   z_hat = camera.project(proj_params, dist_params, p_C);
 

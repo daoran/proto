@@ -645,6 +645,10 @@ int test_check_jacobian() {
   return 0;
 }
 
+/******************************************************************************
+ * SVD
+ ******************************************************************************/
+
 int test_svd() {
   real_t A[M * N];
   real_t A_orig[M * N];
@@ -681,6 +685,10 @@ int test_svd() {
 
   return 0;
 }
+
+/******************************************************************************
+ * CHOL
+ ******************************************************************************/
 
 int test_chol() {
   /* clang-format off */
@@ -792,6 +800,10 @@ int test_chol_solve2() {
   return 0;
 }
 #endif
+
+/******************************************************************************
+ * TRANSFORMS
+ ******************************************************************************/
 
 int test_tf_rot_set() {
   real_t C[9];
@@ -1134,16 +1146,109 @@ int test_quat2rot() {
   return 0;
 }
 
+/******************************************************************************
+ * CV
+ ******************************************************************************/
+
+/* IMAGE ---------------------------------------------------------------------*/
+
+int test_image_setup() {
+  return 0;
+}
+
+int test_image_load() {
+  return 0;
+}
+
+int test_image_print_properties() {
+  return 0;
+}
+
+int test_image_free() {
+  return 0;
+}
+
+/* RADTAN --------------------------------------------------------------------*/
+
+int test_radtan4_distort() {
+  return 0;
+}
+
+int test_radtan4_point_jacobian() {
+  return 0;
+}
+
+int test_radtan4_params_jacobian() {
+  return 0;
+}
+
+/* EQUI ----------------------------------------------------------------------*/
+
+int test_equi4_distort() {
+  return 0;
+}
+
+int test_equi4_point_jacobian() {
+  return 0;
+}
+
+int test_equi4_params_jacobian() {
+  return 0;
+}
+
+/* PINHOLE -------------------------------------------------------------------*/
+
+int test_pinhole_project() {
+  return 0;
+}
+
+int test_pinhole_point_jacobian() {
+  return 0;
+}
+
+int test_pinhole_params_jacobian() {
+  return 0;
+}
+
+/* PINHOLE-RADTAN4 -----------------------------------------------------------*/
+
+int test_pinhole_radtan4_project() {
+  return 0;
+}
+
+int test_pinhole_radtan4_project_jacobian() {
+  return 0;
+}
+
+int test_pinhole_radtan4_params_jacobian() {
+  return 0;
+}
+
+/* PINHOLE-EQUI4 -------------------------------------------------------------*/
+
+int test_pinhole_equi4_project() {
+  return 0;
+}
+
+int test_pinhole_equi4_project_jacobian() {
+  return 0;
+}
+
+int test_pinhole_equi4_params_jacobian() {
+  return 0;
+}
+
+/******************************************************************************
+ * SENSOR FUSION
+ ******************************************************************************/
+
 int test_pose_setup() {
-  uint64_t param_id = 0;
   timestamp_t ts = 1;
   pose_t pose;
 
   real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-  pose_setup(&pose, &param_id, ts, data);
+  pose_setup(&pose, ts, data);
 
-  MU_CHECK(param_id == 1);
-  MU_CHECK(pose.param_id == 0);
   MU_CHECK(pose.ts == 1);
 
   MU_CHECK(fltcmp(pose.data[0], 1.0) == 0.0);
@@ -1159,15 +1264,12 @@ int test_pose_setup() {
 }
 
 int test_speed_biases_setup() {
-  uint64_t param_id = 0;
   timestamp_t ts = 1;
   speed_biases_t sb;
 
   real_t data[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
-  speed_biases_setup(&sb, &param_id, ts, data);
+  speed_biases_setup(&sb, ts, data);
 
-  MU_CHECK(param_id == 1);
-  MU_CHECK(sb.param_id == 0);
   MU_CHECK(sb.ts == 1);
 
   MU_CHECK(fltcmp(sb.data[0], 1.0) == 0.0);
@@ -1186,14 +1288,10 @@ int test_speed_biases_setup() {
 }
 
 int test_feature_setup() {
-  uint64_t param_id = 0;
   feature_t feature;
 
   real_t data[3] = {0.1, 0.2, 0.3};
-  feature_setup(&feature, &param_id, data);
-
-  MU_CHECK(param_id == 1);
-  MU_CHECK(feature.param_id == 0);
+  feature_setup(&feature, data);
 
   MU_CHECK(fltcmp(feature.data[0], 0.1) == 0.0);
   MU_CHECK(fltcmp(feature.data[1], 0.2) == 0.0);
@@ -1203,14 +1301,10 @@ int test_feature_setup() {
 }
 
 int test_extrinsics_setup() {
-  uint64_t param_id = 0;
   extrinsics_t extrinsics;
 
   real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-  extrinsics_setup(&extrinsics, &param_id, data);
-
-  MU_CHECK(param_id == 1);
-  MU_CHECK(extrinsics.param_id == 0);
+  extrinsics_setup(&extrinsics, data);
 
   MU_CHECK(fltcmp(extrinsics.data[0], 1.0) == 0.0);
   MU_CHECK(fltcmp(extrinsics.data[1], 0.0) == 0.0);
@@ -1224,33 +1318,24 @@ int test_extrinsics_setup() {
   return 0;
 }
 
-int test_camera_setup() {
-  uint64_t param_id = 0;
-
-  camera_t camera;
+int test_camera_params_setup() {
+  camera_params_t camera;
   const int cam_idx = 0;
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_setup(&camera,
-               &param_id,
-               cam_idx, cam_res,
-               proj_model, dist_model,
-               data);
-
-  camera_print(&camera);
+  camera_params_setup(&camera, cam_idx, cam_res, proj_model, dist_model, data);
+  camera_params_print(&camera);
 
   return 0;
 }
 
 int test_pose_factor_setup() {
-  uint64_t param_id = 0;
-
   timestamp_t ts = 1;
   pose_t pose;
   real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-  pose_setup(&pose, &param_id, ts, data);
+  pose_setup(&pose, ts, data);
 
   pose_factor_t pose_factor;
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
@@ -1280,39 +1365,71 @@ int test_pose_factor_eval() {
   return 0;
 }
 
-int test_cam_factor_setup() {
-  uint64_t param_id = 0;
-
+int test_ba_factor_setup() {
   timestamp_t ts = 0;
+
   pose_t pose;
   {
     real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-    pose_setup(&pose, &param_id, ts, data);
+    pose_setup(&pose, ts, data);
   }
 
-  extrinsics_t extrinsics;
+  feature_t feature;
   {
-    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-    extrinsics_setup(&extrinsics, &param_id, data);
+    const real_t data[3] = {1.0, 0.0, 0.0};
+    feature_setup(&feature, data);
   }
 
-  camera_t camera;
+  camera_params_t cam;
   {
     const int cam_idx = 0;
     const int cam_res[2] = {752, 480};
     const char *proj_model = "pinhole";
     const char *dist_model = "radtan4";
     const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-    camera_setup(&camera,
-                &param_id,
-                cam_idx, cam_res,
-                proj_model, dist_model,
-                data);
+    camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, data);
+  }
+
+  ba_factor_t ba_factor;
+  real_t var[2] = {1.0, 1.0};
+  ba_factor_setup(&ba_factor, &pose, &feature, &cam, var);
+
+  return 0;
+}
+
+int test_cam_factor_setup() {
+  timestamp_t ts = 0;
+  pose_t pose;
+  {
+    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
+    pose_setup(&pose, ts, data);
+  }
+
+  extrinsics_t extrinsics;
+  {
+    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
+    extrinsics_setup(&extrinsics, data);
+  }
+
+  feature_t feature;
+  {
+    const real_t data[3] = {1.0, 0.0, 0.0};
+    feature_setup(&feature, data);
+  }
+
+  camera_params_t cam;
+  {
+    const int cam_idx = 0;
+    const int cam_res[2] = {752, 480};
+    const char *proj_model = "pinhole";
+    const char *dist_model = "radtan4";
+    const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+    camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, data);
   }
 
   cam_factor_t cam_factor;
   real_t var[2] = {1.0, 1.0};
-  cam_factor_setup(&cam_factor, &pose, &extrinsics, &camera, var);
+  cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, var);
 
   print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
   print_matrix("cam_factor.r", cam_factor.r, 2, 1);
@@ -1325,39 +1442,46 @@ int test_cam_factor_setup() {
 }
 
 int test_cam_factor_eval() {
-  uint64_t param_id = 0;
-
   timestamp_t ts = 0;
   pose_t pose;
   {
-    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-    pose_setup(&pose, &param_id, ts, data);
+    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    pose_setup(&pose, ts, data);
   }
 
   extrinsics_t extrinsics;
   {
-    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-    extrinsics_setup(&extrinsics, &param_id, data);
+    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    extrinsics_setup(&extrinsics, data);
   }
 
-  camera_t camera;
+  feature_t feature;
+  {
+    const real_t data[3] = {10.0, 0.0, 0.0};
+    feature_setup(&feature, data);
+  }
+
+  camera_params_t cam;
   {
     const int cam_idx = 0;
     const int cam_res[2] = {752, 480};
     const char *proj_model = "pinhole";
     const char *dist_model = "radtan4";
     const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-    camera_setup(&camera,
-                &param_id,
-                cam_idx, cam_res,
-                proj_model, dist_model,
-                data);
+    camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, data);
   }
 
   cam_factor_t cam_factor;
   real_t var[2] = {1.0, 1.0};
-  cam_factor_setup(&cam_factor, &pose, &extrinsics, &camera, var);
+  cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, var);
   cam_factor_eval(&cam_factor);
+
+  print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
+  print_matrix("cam_factor.r", cam_factor.r, 2, 1);
+  print_matrix("cam_factor.J0", cam_factor.J0, 2, 6);
+  print_matrix("cam_factor.J1", cam_factor.J1, 2, 6);
+  print_matrix("cam_factor.J2", cam_factor.J2, 2, 8);
+  print_matrix("cam_factor.J3", cam_factor.J3, 2, 3);
 
   return 0;
 }
@@ -1457,12 +1581,12 @@ int test_solver_setup() {
   return 0;
 }
 
-/* int test_solver_print() { */
-/*   solver_t solver; */
-/*   solver_setup(&solver); */
-/*   solver_print(&solver); */
-/*   return 0; */
-/* } */
+int test_solver_print() {
+  solver_t solver;
+  solver_setup(&solver);
+  solver_print(&solver);
+  return 0;
+}
 
 void test_suite() {
   /* LOGGING */
@@ -1558,16 +1682,50 @@ void test_suite() {
   MU_ADD_TEST(test_quat2euler);
   MU_ADD_TEST(test_quat2rot);
 
+  /* CV */
+  /* -- IMAGE */
+  MU_ADD_TEST(test_image_setup);
+  MU_ADD_TEST(test_image_load);
+  MU_ADD_TEST(test_image_print_properties);
+  MU_ADD_TEST(test_image_free);
+  /* -- RADTAN */
+  MU_ADD_TEST(test_radtan4_distort);
+  MU_ADD_TEST(test_radtan4_point_jacobian);
+  MU_ADD_TEST(test_radtan4_params_jacobian);
+  /* -- EQUI */
+  MU_ADD_TEST(test_equi4_distort);
+  MU_ADD_TEST(test_equi4_point_jacobian);
+  MU_ADD_TEST(test_equi4_params_jacobian);
+  /* -- PINHOLE */
+  MU_ADD_TEST(test_pinhole_project);
+  MU_ADD_TEST(test_pinhole_point_jacobian);
+  MU_ADD_TEST(test_pinhole_params_jacobian);
+  /* -- PINHOLE-RADTAN4  */
+  MU_ADD_TEST(test_pinhole_radtan4_project);
+  MU_ADD_TEST(test_pinhole_radtan4_project_jacobian);
+  MU_ADD_TEST(test_pinhole_radtan4_params_jacobian);
+  /* -- PINHOLE-EQUI4  */
+  MU_ADD_TEST(test_pinhole_equi4_project);
+  MU_ADD_TEST(test_pinhole_equi4_project_jacobian);
+  MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
+
   /* SENSOR FUSION */
+  /* -- Parameters */
   MU_ADD_TEST(test_pose_setup);
   MU_ADD_TEST(test_speed_biases_setup);
   MU_ADD_TEST(test_feature_setup);
   MU_ADD_TEST(test_extrinsics_setup);
-  MU_ADD_TEST(test_camera_setup);
+  MU_ADD_TEST(test_camera_params_setup);
+  /* -- Pose factor */
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
+  /* -- BA factor */
+  MU_ADD_TEST(test_ba_factor_setup);
+  /* MU_ADD_TEST(test_ba_factor_eval); */
+  /* -- Camera factor */
   MU_ADD_TEST(test_cam_factor_setup);
   MU_ADD_TEST(test_cam_factor_eval);
+  /* -- IMU factor */
   MU_ADD_TEST(test_imu_buf_setup);
   MU_ADD_TEST(test_imu_buf_add);
   MU_ADD_TEST(test_imu_buf_clear);
@@ -1575,8 +1733,9 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buf_print);
   /* MU_ADD_TEST(test_imu_factor_setup); */
   /* MU_ADD_TEST(test_imu_factor_eval); */
-  /* MU_ADD_TEST(test_solver_setup); */
-  /* MU_ADD_TEST(test_solver_print); */
+  /* -- Sliding window estimator */
+  MU_ADD_TEST(test_solver_setup);
+  MU_ADD_TEST(test_solver_print);
   /* MU_ADD_TEST(test_solver_eval); */
   /* MU_ADD_TEST(test_solver_solve); */
 }
