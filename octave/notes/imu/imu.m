@@ -3,10 +3,16 @@ graphics_toolkit("fltk");
 
 ################################# UTILS ######################################
 
-function y = skew(x)
-  y = [0, -x(3), x(2);
+function A = skew(x)
+  assert(size(x) == [3, 1]);
+  A = [0, -x(3), x(2);
        x(3), 0, -x(1);
        -x(2), x(1), 0];
+endfunction
+
+function w = skew_inv(A)
+  assert(size(A) == [3, 3]);
+  w = [A(3, 2); A(1, 3); A(2, 1)];
 endfunction
 
 function R = euler321(rpy)
@@ -213,7 +219,8 @@ function C = tf_rot(tf)
   C = tf(1:3, 1:3);
 endfunction
 
-function C = so3_exp(phi)
+function C = Exp(phi)
+  assert(size(phi) == [3, 1]);
   if (phi < 1e-3)
     C = eye(3) + skew(phi);
   else
@@ -222,6 +229,13 @@ function C = so3_exp(phi)
     C += ((1 - cos(norm(phi))) / norm(phi)^2) * skew(phi)^2;
   endif
 endfunction
+
+function rvec = Log(C)
+  assert(size(C) == [3, 3]);
+  phi = acos(trace(C) - 1 / 2);
+  rvec = (phi * skew_inv(C - C')) / (2 * sin(phi));
+endfunction
+
 
 ################################### IMU ######################################
 
@@ -246,7 +260,7 @@ function x_imu = imu_euler_update(x_imu, acc, gyr, dt)
   a = acc - ba;
   dt_sq = dt * dt;
 
-  x_imu.C_WS *= so3_exp(w * dt);
+  x_imu.C_WS *= Exp(w * dt);
   x_imu.v_WS += ((C_WS_i * a) - g) * dt;
   x_imu.p_WS += (v_WS_i * dt) + (0.5 * (C_WS_i * a - g) * dt_sq);
 endfunction
@@ -336,8 +350,8 @@ function est = imu_batch_integrate(sim_data, method)
   est.att = est_att;
 endfunction
 
-function imu_preintegrate(imu_ts, imu_acc, imu_gyr, g,
-                          pose_i, sb_i, pose_j, sb_j)
+function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
+                                     pose_i, sb_i, pose_j, sb_j)
   dC = eye(3, 3);
   dq = rot2quat(dC);
   dv = zeros(3, 1);
@@ -355,92 +369,75 @@ function imu_preintegrate(imu_ts, imu_acc, imu_gyr, g,
     % Calculate dt
     t = imu_ts(k);
     dt = t - t_prev;
-
-    % Propagate IMU state using Runge-Kutta 4th Order
+    dt_sq = dt * dt;
     a = imu_acc(:, k) - ba;
     w = imu_gyr(:, k) - bg;
-    % -- Integrate orientation at time k + dt (kpdt: k plus dt)
-    dq_kpdt = quat_integrate(dq, w, dt);
-    dC_kpdt = quat2rot(dq_kpdt);
-    % -- Integrate orientation at time k + dt / 2 (kphdt: k plus half dt)
-    dq_kphdt = quat_integrate(dq, w, dt / 2);
-    dC_kphdt = quat2rot(dq_kphdt);
-    % -- k1 = f(tn, yn)
-    k1_v_dot = dC * a - g;
-    k1_p_dot = dv;
-    % -- k2 = f(tn + dt / 2, yn + k1 * dt / 2)
-    k2_v_dot = dC_kphdt * a - g;
-    k2_p_dot = dv + k1_v_dot * dt / 2;
-    % -- k3 = f(tn + dt / 2, yn + k2 * dt / 2)
-    k3_v_dot = dC_kphdt * a - g;
-    k3_p_dot = dv + k2_v_dot * dt / 2;
-    % -- k4 = f(tn + dt, tn + k3 * dt)
-    k4_v_dot = dC_kpdt * a - g;
-    k4_p_dot = dv + k3_v_dot * dt;
-    % -- Put it all together
-    dC = dC_kpdt;
-    dv += dt / 6 * (k1_v_dot + 2 * k2_v_dot + 2 * k3_v_dot + k4_v_dot);
-    dr += dt / 6 * (k1_p_dot + 2 * k2_p_dot + 2 * k3_p_dot + k4_p_dot);
+
+    % Propagate IMU state using Euler method
+    dr = dr + (dv * dt) + (0.5 * (dC * (a - bg)) * dt_sq);
+    dv = dv + dC * (a - bg) * dt;
+    dC = dC * Exp(w * dt);
 
     % Continuous time transition matrix F
     F = zeros(15, 15);
-    F(1:3, 1:3) = -skew(w);
-    F(1:3, 4:6) = -eye(3);
-    F(7:9, 1:3) = -dC * skew(a);
-    F(7:9, 10:12) = -dC;
-    F(13:15, 7:9) = eye(3);
+    F(1:3, 4:6) = eye(3);
+    F(4:6, 7:9) = -dC * skew(a - ba);
+    F(4:6, 10:12) = dC;
+    F(7:9, 7:9) = -skew(w - bg);
+    F(7:9, 13:15) = eye(3);
 
     % Continuous time input matrix G
-    G = zeros(18, 12);
+    G = zeros(15, 12);
     G(4:6, 1:3) = -dC;
     G(7:9, 4:6) = -eye(3);
     G(10:12, 7:9) = eye(3);
     G(13:15, 10:12) = eye(3);
 
-    % Discretize transition matrix F by using Taylor Series to the 3rd order
-    % "Quaternion kinematics for the error-state Kalman filter" (2017)
-    % By Joan Sola
-    % [Section B, p.73 "Closed-form Integration Methods"]
-    F_dt = F * dt;
-    Phi = eye(15);
-    Phi += F_dt;
-    Phi += (1.0 / 2.0) * F_dt^2;
-    Phi += (1.0 / 6.0) * F_dt^3;
-
+    % % Discretize transition matrix F by using Taylor Series to the 3rd order
+    % % "Quaternion kinematics for the error-state Kalman filter" (2017)
+    % % By Joan Sola
+    % % [Section B, p.73 "Closed-form Integration Methods"]
+    % F_dt = F * dt;
+    % Phi = eye(15);
+    % Phi += F_dt;
+    % Phi += (1.0 / 2.0) * F_dt^2;
+    % Phi += (1.0 / 6.0) * F_dt^3;
+    %
     % % Propagate the state covariance matrix
     % Q_k = Phi * G * Q * G' * Phi' * dt;
     % P = Phi * P * Phi' + Q_k;
-
+    %
     % % Update
     % J = Phi * J;
     t_prev = t;
     Dt += dt;
   endfor
 
+  % Timestep i
   r_i = tf_trans(pose_i);
-  r_j = tf_trans(pose_j);
   C_i = tf_rot(pose_i);
   v_i = sb_i(1:3);
   ba_i = sb_i(4:6);
   bg_i = sb_i(4:6);
 
+  % Timestep j
+  r_j = tf_trans(pose_j);
   C_j = tf_rot(pose_j);
   v_j = sb_j(1:3);
   ba_j = sb_j(4:6);
   bg_j = sb_j(4:6);
 
-  % dC
-  % dv
-  % dr
-
+  % Form residuals
   Dt_sq = Dt * Dt;
-  err_pos = C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)) - dr
-  err_vel = C_i' * ((v_j - v_i) + (g * Dt)) - dv
-  err_rot = C_i' * C_j;
-  err_ba = ba_j - ba_i
-  err_bg = bg_j - bg_i
-  % err = [err_pos; err_vel; err_rot; err_ba; err_bg];
+  err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr
+  err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv
+  err_rot = Log(dC' * (C_i' * C_j))
+  err_ba = ba_j - ba_i;
+  err_bg = bg_j - bg_i;
+  r = [err_pos; err_vel; err_rot; err_ba; err_bg];
 
+  % Form jacobians
+  jacs = []
 endfunction
 
 function plot_imu(sim_data)
@@ -615,23 +612,23 @@ endfunction
 
 sim_data = sim_imu(0.5, 1.0);
 % est = imu_batch_integrate(sim_data, "euler");
-est = imu_batch_integrate(sim_data, "rk4");
-traj_error(sim_data, est);
+% est = imu_batch_integrate(sim_data, "rk4");
+% traj_error(sim_data, est);
 
-% N = 100;
-% imu_ts = sim_data.time(1:N);
-% imu_acc = sim_data.imu_acc(:, 1:N);
-% imu_gyr = sim_data.imu_gyr(:, 1:N);
-% g = [0.0; 0.0; 9.81];
-% pose_i = sim_data.poses{1}
-% sb_i = [sim_data.vel(:, 1); zeros(6, 1)];
-% pose_j = sim_data.poses{N}
-% sb_j = [sim_data.vel(:, N); zeros(6, 1)];
-%
-% imu_preintegrate(imu_ts, imu_acc, imu_gyr, g,
-%                  pose_i, sb_i, pose_j, sb_j);
+N = length(sim_data.time);
+imu_ts = sim_data.time(1:N);
+imu_acc = sim_data.imu_acc(:, 1:N);
+imu_gyr = sim_data.imu_gyr(:, 1:N);
+g = [0.0; 0.0; 9.81];
+pose_i = sim_data.poses{1};
+sb_i = [sim_data.vel(:, 1); zeros(6, 1)];
+pose_j = sim_data.poses{N};
+sb_j = [sim_data.vel(:, N); zeros(6, 1)];
 
-% Print errors
-plot_poses(sim_data, est);
-plot_imu(sim_data);
-ginput();
+imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
+                pose_i, sb_i, pose_j, sb_j);
+
+% % Print errors
+% plot_poses(sim_data, est);
+% plot_imu(sim_data);
+% ginput();
