@@ -606,212 +606,212 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GUI
  ******************************************************************************/
 
-void gui_framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-  gui_t *gui = glfwGetWindowUserPointer(window);
-  gui->window_width = width;
-  gui->window_height = height;
-  glViewport(0, 0, gui->window_width, gui->window_height);
-}
-
-void gui_event_handler(GLFWwindow *window) {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-    glfwSetWindowShouldClose(window, 1);
-  }
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-    glfwSetWindowShouldClose(window, 1);
-  }
-}
-
-void gui_error_callback(int error, const char *description) {
-  fprintf(stderr, "GLFW Error %d: %s\n", error, description);
-}
-
-void gui_mouse_cursor_callback(GLFWwindow *window, double x, double y) {
-  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
-  const float dx = x - gui->last_cursor_x;
-  const float dy = y - gui->last_cursor_y;
-  gui->last_cursor_x = x;
-  gui->last_cursor_y = y;
-
-  /* Rotate camera */
-  if (gui->left_click) {
-    if (gui->last_cursor_set == 0) {
-      gui->last_cursor_set = 1;
-    } else if (gui->last_cursor_set) {
-      gl_camera_rotate(&gui->camera, gui->mouse_sensitivity, dx, dy);
-    }
-  }
-
-  /* Pan camera */
-  if (gui->right_click) {
-    if (gui->last_cursor_set == 0) {
-      gui->last_cursor_set = 1;
-    } else if (gui->last_cursor_set) {
-      gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy);
-    }
-  }
-
-  /* Reset cursor */
-  if (gui->left_click == 0 && gui->right_click == 0) {
-    gui->left_click = 0;
-    gui->right_click = 0;
-    gui->last_cursor_set = 0;
-    gui->last_cursor_x = 0.0;
-    gui->last_cursor_y = 0.0;
-  }
-}
-
-void gui_mouse_button_callback(GLFWwindow *window,
-                               int btn,
-                               int action,
-                               int mods) {
-  UNUSED(mods);
-
-  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
-  if (btn == GLFW_MOUSE_BUTTON_LEFT) {
-    gui->left_click = (action == GLFW_PRESS) ? 1 : 0;
-  } else if (btn == GLFW_MOUSE_BUTTON_RIGHT) {
-    gui->right_click = (action == GLFW_PRESS) ? 1 : 0;
-  }
-}
-
-void gui_mouse_scroll_callback(GLFWwindow *window, double dx, double dy) {
-  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
-  gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, dx, dy);
-}
-
-void gui_keyboard_callback(GLFWwindow* window,
-                                    int key,
-                           int scancode,
-                           int action,
-                           int mods) {
-  UNUSED(scancode);
-  UNUSED(mods);
-
-  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
-  if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-    glfwSetWindowShouldClose(gui->window, 1);
-  }
-}
-
-void gui_setup(gui_t *gui) {
-  /* GLFW */
-  glfwInit();
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  gui->window = glfwCreateWindow(gui->window_width,
-                                 gui->window_height,
-                                 gui->window_title,
-                                 NULL, NULL);
-  if (gui->window == NULL) {
-    glfwTerminate();
-    FATAL("Failed to create GLFW window");
-  }
-  glfwMakeContextCurrent(gui->window);
-  glfwSetWindowAspectRatio(gui->window, gui->window_width, gui->window_height);
-
-  /* Get screen width, height and center the window */
-  int xpos = 0;
-  int ypos = 0;
-  GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-  glfwGetMonitorWorkarea(monitor,
-                         &xpos,
-                         &ypos,
-                         &gui->screen_width,
-                         &gui->screen_height);
-  int window_x = (gui->screen_width - gui->window_width) / 2.0;
-  int window_y = (gui->screen_height - gui->window_height) / 2.0;
-  glfwSetWindowPos(gui->window, window_x, window_y);
-
-  /* Event handlers */
-  glfwSwapInterval(1);
-  glfwSetWindowUserPointer(gui->window, gui);
-  glfwSetCursorPosCallback(gui->window, gui_mouse_cursor_callback);
-  glfwSetMouseButtonCallback(gui->window, gui_mouse_button_callback);
-  glfwSetScrollCallback(gui->window, gui_mouse_scroll_callback);
-  glfwSetFramebufferSizeCallback(gui->window, gui_framebuffer_size_callback);
-
-  /* GLEW */
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    FATAL("glewInit failed: %s", glewGetErrorString(err));
-  }
-
-  /* Camera */
-  gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
-  gui->movement_speed = 50.0f;
-  gui->mouse_sensitivity = 0.02f;
-
-  /* Cursor */
-  gui->left_click = 0;
-  gui->right_click = 0;
-  gui->last_cursor_set = 0;
-  gui->last_cursor_x = 0.0f;
-  gui->last_cursor_y = 0.0f;
-}
-
-void gui_reset(gui_t *gui) {
-  /* Camera */
-  gui->movement_speed = 50.0f;
-  gui->mouse_sensitivity = 0.02f;
-
-  /* Cursor */
-  gui->left_click = 0;
-  gui->right_click = 0;
-  gui->last_cursor_set = 0;
-  gui->last_cursor_x = 0.0f;
-  gui->last_cursor_y = 0.0f;
-}
-
-void gui_loop(gui_t *gui) {
-  gl_entity_t cube;
-  GLfloat cube_pos[3] = {0.0, 0.0, 0.0};
-  gl_cube_setup(&cube, cube_pos);
-
-  gl_entity_t cube2;
-  GLfloat cube2_pos[3] = {2.0, 0.0, 0.0};
-  gl_cube_setup(&cube2, cube2_pos);
-
-  gl_entity_t cube3;
-  GLfloat cube3_pos[3] = {-2.0, 0.0, 0.0};
-  gl_cube_setup(&cube3, cube3_pos);
-
-  gl_entity_t cf;
-	gl_camera_frame_setup(&cf);
-
-  gl_entity_t frame;
-	gl_axis_frame_setup(&frame);
-
-  gl_entity_t grid;
-	gl_grid_setup(&grid);
-
-  while (!glfwWindowShouldClose(gui->window)) {
-    gui_event_handler(gui->window);
-    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    /* gl_cube_draw(&cube, &gui->camera); */
-    /* gl_cube_draw(&cube2, &gui->camera); */
-    /* gl_cube_draw(&cube3, &gui->camera); */
-
-		gl_camera_frame_draw(&cf, &gui->camera);
-		gl_axis_frame_draw(&frame, &gui->camera);
-		gl_grid_draw(&grid, &gui->camera);
-
-    glEnable(GL_CULL_FACE);
-    glfwSwapBuffers(gui->window);
-    glfwPollEvents();
-  }
-
-	gl_cube_cleanup(&cube);
-	gl_cube_cleanup(&cube2);
-	gl_cube_cleanup(&cube3);
-	gl_camera_frame_cleanup(&cf);
-	gl_grid_cleanup(&grid);
-
-  glfwTerminate();
-}
+/* void gui_framebuffer_size_callback(GLFWwindow* window, int width, int height) { */
+/*   gui_t *gui = glfwGetWindowUserPointer(window); */
+/*   gui->window_width = width; */
+/*   gui->window_height = height; */
+/*   glViewport(0, 0, gui->window_width, gui->window_height); */
+/* } */
+/*  */
+/* void gui_event_handler(GLFWwindow *window) { */
+/*   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { */
+/*     glfwSetWindowShouldClose(window, 1); */
+/*   } */
+/*   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) { */
+/*     glfwSetWindowShouldClose(window, 1); */
+/*   } */
+/* } */
+/*  */
+/* void gui_error_callback(int error, const char *description) { */
+/*   fprintf(stderr, "GLFW Error %d: %s\n", error, description); */
+/* } */
+/*  */
+/* void gui_mouse_cursor_callback(GLFWwindow *window, double x, double y) { */
+/*   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window); */
+/*   const float dx = x - gui->last_cursor_x; */
+/*   const float dy = y - gui->last_cursor_y; */
+/*   gui->last_cursor_x = x; */
+/*   gui->last_cursor_y = y; */
+/*  */
+/*   #<{(| Rotate camera |)}># */
+/*   if (gui->left_click) { */
+/*     if (gui->last_cursor_set == 0) { */
+/*       gui->last_cursor_set = 1; */
+/*     } else if (gui->last_cursor_set) { */
+/*       gl_camera_rotate(&gui->camera, gui->mouse_sensitivity, dx, dy); */
+/*     } */
+/*   } */
+/*  */
+/*   #<{(| Pan camera |)}># */
+/*   if (gui->right_click) { */
+/*     if (gui->last_cursor_set == 0) { */
+/*       gui->last_cursor_set = 1; */
+/*     } else if (gui->last_cursor_set) { */
+/*       gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy); */
+/*     } */
+/*   } */
+/*  */
+/*   #<{(| Reset cursor |)}># */
+/*   if (gui->left_click == 0 && gui->right_click == 0) { */
+/*     gui->left_click = 0; */
+/*     gui->right_click = 0; */
+/*     gui->last_cursor_set = 0; */
+/*     gui->last_cursor_x = 0.0; */
+/*     gui->last_cursor_y = 0.0; */
+/*   } */
+/* } */
+/*  */
+/* void gui_mouse_button_callback(GLFWwindow *window, */
+/*                                int btn, */
+/*                                int action, */
+/*                                int mods) { */
+/*   UNUSED(mods); */
+/*  */
+/*   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window); */
+/*   if (btn == GLFW_MOUSE_BUTTON_LEFT) { */
+/*     gui->left_click = (action == GLFW_PRESS) ? 1 : 0; */
+/*   } else if (btn == GLFW_MOUSE_BUTTON_RIGHT) { */
+/*     gui->right_click = (action == GLFW_PRESS) ? 1 : 0; */
+/*   } */
+/* } */
+/*  */
+/* void gui_mouse_scroll_callback(GLFWwindow *window, double dx, double dy) { */
+/*   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window); */
+/*   gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, dx, dy); */
+/* } */
+/*  */
+/* void gui_keyboard_callback(GLFWwindow* window, */
+/*                                     int key, */
+/*                            int scancode, */
+/*                            int action, */
+/*                            int mods) { */
+/*   UNUSED(scancode); */
+/*   UNUSED(mods); */
+/*  */
+/*   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window); */
+/*   if (key == GLFW_KEY_Q && action == GLFW_PRESS) { */
+/*     glfwSetWindowShouldClose(gui->window, 1); */
+/*   } */
+/* } */
+/*  */
+/* void gui_setup(gui_t *gui) { */
+/*   #<{(| GLFW |)}># */
+/*   glfwInit(); */
+/*   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); */
+/*   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); */
+/*   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); */
+/*   gui->window = glfwCreateWindow(gui->window_width, */
+/*                                  gui->window_height, */
+/*                                  gui->window_title, */
+/*                                  NULL, NULL); */
+/*   if (gui->window == NULL) { */
+/*     glfwTerminate(); */
+/*     FATAL("Failed to create GLFW window"); */
+/*   } */
+/*   glfwMakeContextCurrent(gui->window); */
+/*   glfwSetWindowAspectRatio(gui->window, gui->window_width, gui->window_height); */
+/*  */
+/*   #<{(| Get screen width, height and center the window |)}># */
+/*   int xpos = 0; */
+/*   int ypos = 0; */
+/*   GLFWmonitor *monitor = glfwGetPrimaryMonitor(); */
+/*   glfwGetMonitorWorkarea(monitor, */
+/*                          &xpos, */
+/*                          &ypos, */
+/*                          &gui->screen_width, */
+/*                          &gui->screen_height); */
+/*   int window_x = (gui->screen_width - gui->window_width) / 2.0; */
+/*   int window_y = (gui->screen_height - gui->window_height) / 2.0; */
+/*   glfwSetWindowPos(gui->window, window_x, window_y); */
+/*  */
+/*   #<{(| Event handlers |)}># */
+/*   glfwSwapInterval(1); */
+/*   glfwSetWindowUserPointer(gui->window, gui); */
+/*   glfwSetCursorPosCallback(gui->window, gui_mouse_cursor_callback); */
+/*   glfwSetMouseButtonCallback(gui->window, gui_mouse_button_callback); */
+/*   glfwSetScrollCallback(gui->window, gui_mouse_scroll_callback); */
+/*   glfwSetFramebufferSizeCallback(gui->window, gui_framebuffer_size_callback); */
+/*  */
+/*   #<{(| GLEW |)}># */
+/*   GLenum err = glewInit(); */
+/*   if (err != GLEW_OK) { */
+/*     FATAL("glewInit failed: %s", glewGetErrorString(err)); */
+/*   } */
+/*  */
+/*   #<{(| Camera |)}># */
+/*   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height); */
+/*   gui->movement_speed = 50.0f; */
+/*   gui->mouse_sensitivity = 0.02f; */
+/*  */
+/*   #<{(| Cursor |)}># */
+/*   gui->left_click = 0; */
+/*   gui->right_click = 0; */
+/*   gui->last_cursor_set = 0; */
+/*   gui->last_cursor_x = 0.0f; */
+/*   gui->last_cursor_y = 0.0f; */
+/* } */
+/*  */
+/* void gui_reset(gui_t *gui) { */
+/*   #<{(| Camera |)}># */
+/*   gui->movement_speed = 50.0f; */
+/*   gui->mouse_sensitivity = 0.02f; */
+/*  */
+/*   #<{(| Cursor |)}># */
+/*   gui->left_click = 0; */
+/*   gui->right_click = 0; */
+/*   gui->last_cursor_set = 0; */
+/*   gui->last_cursor_x = 0.0f; */
+/*   gui->last_cursor_y = 0.0f; */
+/* } */
+/*  */
+/* void gui_loop(gui_t *gui) { */
+/*   gl_entity_t cube; */
+/*   GLfloat cube_pos[3] = {0.0, 0.0, 0.0}; */
+/*   gl_cube_setup(&cube, cube_pos); */
+/*  */
+/*   gl_entity_t cube2; */
+/*   GLfloat cube2_pos[3] = {2.0, 0.0, 0.0}; */
+/*   gl_cube_setup(&cube2, cube2_pos); */
+/*  */
+/*   gl_entity_t cube3; */
+/*   GLfloat cube3_pos[3] = {-2.0, 0.0, 0.0}; */
+/*   gl_cube_setup(&cube3, cube3_pos); */
+/*  */
+/*   gl_entity_t cf; */
+/* 	gl_camera_frame_setup(&cf); */
+/*  */
+/*   gl_entity_t frame; */
+/* 	gl_axis_frame_setup(&frame); */
+/*  */
+/*   gl_entity_t grid; */
+/* 	gl_grid_setup(&grid); */
+/*  */
+/*   while (!glfwWindowShouldClose(gui->window)) { */
+/*     gui_event_handler(gui->window); */
+/*     glClearColor(0.15f, 0.15f, 0.15f, 1.0f); */
+/*     glClear(GL_COLOR_BUFFER_BIT); */
+/*  */
+/*     #<{(| gl_cube_draw(&cube, &gui->camera); |)}># */
+/*     #<{(| gl_cube_draw(&cube2, &gui->camera); |)}># */
+/*     #<{(| gl_cube_draw(&cube3, &gui->camera); |)}># */
+/*  */
+/* 		gl_camera_frame_draw(&cf, &gui->camera); */
+/* 		gl_axis_frame_draw(&frame, &gui->camera); */
+/* 		gl_grid_draw(&grid, &gui->camera); */
+/*  */
+/*     glEnable(GL_CULL_FACE); */
+/*     glfwSwapBuffers(gui->window); */
+/*     glfwPollEvents(); */
+/*   } */
+/*  */
+/* 	gl_cube_cleanup(&cube); */
+/* 	gl_cube_cleanup(&cube2); */
+/* 	gl_cube_cleanup(&cube3); */
+/* 	gl_camera_frame_cleanup(&cf); */
+/* 	gl_grid_cleanup(&grid); */
+/*  */
+/*   glfwTerminate(); */
+/* } */
 
 /* GL CUBE ********************************************************************/
 

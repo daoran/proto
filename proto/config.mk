@@ -5,20 +5,23 @@ DEPS_DIR=$(PWD)/../deps
 TESTS_DIR=$(PWD)/tests
 
 # COMPILER SETTINGS
-CC=tcc
-# CC=gcc
-CFLAGS=-g -Wall -I$(INC_DIR) -I$(DEPS_DIR)/include
+# CC=tcc
+CC=gcc
+CFLAGS=-g -Wall -I$(INC_DIR) -I$(DEPS_DIR)/include `sdl2-config --cflags`
 
-GLFW3_LIBS=-L$(DEPS_DIR)/lib -lglfw3 -lrt -lm -ldl
+# GLFW3_LIBS=-L$(DEPS_DIR)/lib -lglfw3 -lrt -lm -ldl
+SDL2_LIBS=`sdl2-config --libs`
 GLEW_LIBS=-lGLEW
-OPENGL_LIBS=$(GLFW3_LIBS) $(GLEW_LIBS) -lGL -L/usr/X11R6/lib -lX11
+# OPENGL_LIBS=$(GLFW3_LIBS) $(GLEW_LIBS) -lGL -L/usr/X11R6/lib -lX11
+OPENGL_LIBS=$(SDL2_LIBS) $(GLEW_LIBS) -lGL
 BLAS_LIBS=-lblas -llapack
 
 LIBS=-L$(BLD_DIR) \
 	-lzero \
 	$(OPENGL_LIBS) \
 	$(BLAS_LIBS) \
-	-lpthread
+	-lpthread \
+  -lm
 
 # ARCHIVER SETTTINGS
 AR = ar

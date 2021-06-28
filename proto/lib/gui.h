@@ -8,7 +8,10 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <GLFW/glfw3.h>
+/* #include <GLFW/glfw3.h> */
+
+#define SDL_DISABLE_IMMINTRIN_H 1
+#include <SDL2/SDL.h>
 
 #include "proto.h"
 
@@ -170,7 +173,7 @@ typedef struct gui_t {
   int screen_width;
   int screen_height;
 
-  GLFWwindow *window;
+	SDL_Window *window;
   char *window_title;
   int window_width;
   int window_height;
@@ -186,20 +189,20 @@ typedef struct gui_t {
   float last_cursor_y;
 } gui_t;
 
-void gui_framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void gui_event_handler(GLFWwindow *window);
-void gui_error_callback(int error, const char *description);
-void gui_mouse_cursor_callback(GLFWwindow *window, double x, double y);
-void gui_mouse_button_callback(GLFWwindow *window,
-                               int btn,
-                               int action,
-                               int mods);
-void gui_mouse_scroll_callback(GLFWwindow *window, double dx, double dy);
-void gui_keyboard_callback(GLFWwindow* window,
-                           int key,
-                           int scancode,
-                           int action,
-                           int mods);
+/* void gui_framebuffer_size_callback(GLFWwindow* window, int width, int height); */
+/* void gui_event_handler(GLFWwindow *window); */
+/* void gui_error_callback(int error, const char *description); */
+/* void gui_mouse_cursor_callback(GLFWwindow *window, double x, double y); */
+/* void gui_mouse_button_callback(GLFWwindow *window, */
+/*                                int btn, */
+/*                                int action, */
+/*                                int mods); */
+/* void gui_mouse_scroll_callback(GLFWwindow *window, double dx, double dy); */
+/* void gui_keyboard_callback(GLFWwindow* window, */
+/*                            int key, */
+/*                            int scancode, */
+/*                            int action, */
+/*                            int mods); */
 
 void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);

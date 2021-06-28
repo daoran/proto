@@ -19,7 +19,7 @@ format_code:
 	@bash scripts/format_code.bash
 
 lib:
-	@make -s -C lib 
+	@make -s -C lib
 
 benchmarks:
 	@make -s -C lib/benchmarks
