@@ -84,6 +84,19 @@ function r = quat_mul(p, q)
   r = quat_lmul(p, q);
 endfunction
 
+function q_inv = quat_inv(q)
+  % assert(norm(q) == 1.0);
+  q_inv = quat_conj(q);
+endfunction
+
+function q_conj = quat_conj(q)
+  qw = q(1);
+  qx = q(2);
+  qy = q(3);
+  qz = q(4);
+  q_conj = [qw; -qx; -qy; -qz];
+endfunction
+
 function q_kp1 = quat_integrate(q_k, w, dt)
   % "Quaternion kinematics for the error-state Kalman filter" (2017)
   % By Joan Sola
@@ -101,6 +114,13 @@ function q_kp1 = quat_integrate(q_k, w, dt)
   endif
 
   q_kp1 = quat_mul(q_k, [q_scalar; q_vec]);
+endfunction
+
+function dq = quat_delta(dalpha)
+  half_norm = 0.5 * norm(dalpha);
+  scalar = cos(half_norm);
+  vector = sinc(half_norm) * 0.5 * dalpha;
+  dq = [scalar; vector];
 endfunction
 
 function q = rot2quat(R)
@@ -207,6 +227,44 @@ function T = tf(varargin)
   T(1:3, 4) = trans;
 endfunction
 
+function R = rvec2rot(rvec)
+  % If small rotation
+  theta = sqrt(rvec(:)'*rvec(:));  % = norm(rvec), but faster
+  if theta < eps
+    R = [1, -rvec(3), rvec(2);
+          rvec(3), 1, -rvec(1);
+          -rvec(2), rvec(1), 1];
+    return
+  end
+
+  % Convert rvec to rotation matrix
+  rvec = rvec / theta;
+  x = rvec(1);
+  y = rvec(2);
+  z = rvec(3);
+
+  c = cos(theta);
+  s = sin(theta);
+  C = 1 - c;
+
+  xs = x * s;
+  ys = y * s;
+  zs = z * s;
+
+  xC = x * C;
+  yC = y * C;
+  zC = z * C;
+
+  xyC = x * yC;
+  yzC = y * zC;
+  zxC = z * xC;
+
+  R = [x * xC + c, xyC - zs, zxC + ys;
+       xyC + zs, y * yC + c, yzC - xs;
+       zxC - ys, yzC + xs, z * zC + c];
+  return
+endfunction
+
 function r = tf_trans(T)
   r = T(1:3, 4);
 endfunction
@@ -217,6 +275,46 @@ endfunction
 
 function C = tf_rot(tf)
   C = tf(1:3, 1:3);
+endfunction
+
+function [T_diff] = perturb_trans(T, step_size, i)
+  assert(size(T) == [4, 4] || size(T) == [3, 1]);
+
+  if (size(T) == [4, 4])
+    dr = eye(3) * step_size;
+    C = tf_rot(T);
+    r = tf_trans(T);
+    r_diff = r + dr(1:3, i);
+    T_diff = tf(C, r_diff);
+
+  elseif (size(T) == [3, 1])
+    r = T;
+    dr = eye(3) * step_size;
+    r_diff = r + dr(1:3, i);
+    T_diff = r_diff;
+
+  endif
+endfunction
+
+function [retval] = perturb_rot(T, step_size, i)
+  assert(size(T) == [4, 4] || size(T) == [3, 3]);
+
+  if (size(T) == [4, 4])
+    C = tf_rot(T);
+    r = tf_trans(T);
+
+    rvec = eye(3) * step_size;
+    C_diff = rvec2rot(rvec(1:3, i));
+    C_diff = C_diff * C;
+    retval = tf(C_diff, r);
+
+  elseif (size(T) == [3, 3])
+    rvec = eye(3) * step_size;
+    C = T;
+    C_diff = rvec2rot(rvec(1:3, i));
+    retval = C_diff * C;
+
+  endif
 endfunction
 
 function C = Exp(phi)
@@ -350,6 +448,14 @@ function est = imu_batch_integrate(sim_data, method)
   est.att = est_att;
 endfunction
 
+function dq = delta_quat(theta)
+   dqw = 1.0;
+   dqx = theta(1) / 2.0;
+   dqy = theta(2) / 2.0;
+   dqz = theta(3) / 2.0;
+   dq = [dqw, dqx, dqy, dqz];
+endfunction
+
 function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
                                      pose_i, sb_i, pose_j, sb_j)
   dC = eye(3, 3);
@@ -363,8 +469,22 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   dt = 0.0;
   Dt = 0.0;
 
-  J = zeros(15, 15);
-  P = zeros(15, 15);
+  J = eye(15, 15); % State jacobian
+  P = eye(15, 15); % State covariance
+
+  % Noise covariance matrix
+  Q = zeros(12, 12);
+  noise_acc = 0.08;    % accelerometer measurement noise standard deviation.
+  noise_gyr = 0.004;   % gyroscope measurement noise standard deviation.
+  noise_ba = 0.00004;  % accelerometer bias random work noise standard deviation.
+  noise_bg = 2.0e-6;   % gyroscope bias random work noise standard deviation.
+  Q(1:3, 1:3) = (noise_acc * noise_acc) * eye(3);
+  Q(4:6, 4:6) = (noise_gyr * noise_gyr) * eye(3);
+  Q(7:9, 7:9) = (noise_ba * noise_ba) * eye(3);
+  Q(10:12, 10:12) = (noise_bg * noise_bg) * eye(3);
+
+  printf("length(imu_ts) : %ld\n", length(imu_ts));
+
   for k = 2:length(imu_ts)
     % Calculate dt
     t = imu_ts(k);
@@ -393,22 +513,23 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
     G(10:12, 7:9) = eye(3);
     G(13:15, 10:12) = eye(3);
 
-    % % Discretize transition matrix F by using Taylor Series to the 3rd order
-    % % "Quaternion kinematics for the error-state Kalman filter" (2017)
-    % % By Joan Sola
-    % % [Section B, p.73 "Closed-form Integration Methods"]
-    % F_dt = F * dt;
-    % Phi = eye(15);
-    % Phi += F_dt;
-    % Phi += (1.0 / 2.0) * F_dt^2;
-    % Phi += (1.0 / 6.0) * F_dt^3;
-    %
-    % % Propagate the state covariance matrix
-    % Q_k = Phi * G * Q * G' * Phi' * dt;
-    % P = Phi * P * Phi' + Q_k;
-    %
-    % % Update
-    % J = Phi * J;
+    % Discretize transition matrix F by using Taylor Series to the 3rd order
+    % "Quaternion kinematics for the error-state Kalman filter" (2017)
+    % By Joan Sola
+    % [Section B, p.73 "Closed-form Integration Methods"]
+    F_dt = F * dt;
+    Phi = eye(15);
+    Phi += F_dt;
+    Phi += (1.0 / 2.0) * F_dt^2;
+    Phi += (1.0 / 6.0) * F_dt^3;
+
+    % Propagate the state covariance matrix
+    Q_k = Phi * G * Q * G' * Phi' * dt;
+    P = Phi * P * Phi' + Q_k;
+
+    % Update
+    J = Phi * J;
+
     t_prev = t;
     Dt += dt;
   endfor
@@ -416,28 +537,61 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   % Timestep i
   r_i = tf_trans(pose_i);
   C_i = tf_rot(pose_i);
+  q_i = tf_quat(pose_i);
   v_i = sb_i(1:3);
   ba_i = sb_i(4:6);
-  bg_i = sb_i(4:6);
+  bg_i = sb_i(7:9);
 
   % Timestep j
   r_j = tf_trans(pose_j);
   C_j = tf_rot(pose_j);
+  q_j = tf_quat(pose_j);
   v_j = sb_j(1:3);
   ba_j = sb_j(4:6);
-  bg_j = sb_j(4:6);
+  bg_j = sb_j(7:9);
+
+  % Correct the relative position, velocity and orientation
+  % -- Extract jacobians from error-state jacobian
+  dr_dba = J(1:3, 10:12);
+  dr_dbg = J(1:3, 13:15);
+  dq_dbg = J(7:9, 13:15);
+  dv_dba = J(4:6, 10:12);
+  dv_dbg = J(4:6, 13:15);
+  dba = ba_i - ba_j;
+  dbg = bg_i - bg_j;
+  % -- Correct the relative position, velocity and rotation
+  dr = dr + dr_dba * dba + dr_dbg * dbg;
+  dv = dv + dv_dba * dba + dv_dbg * dbg;
+  dq = quat_mul(quat_delta(dq_dbg * dbg), rot2quat(dC));
 
   % Form residuals
   Dt_sq = Dt * Dt;
-  err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr
-  err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv
-  err_rot = Log(dC' * (C_i' * C_j))
+  err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
+  err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv;
+  % err_rot = Log(dC' * (C_i' * C_j))
+  err_rot = 2 * (quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
   err_ba = ba_j - ba_i;
   err_bg = bg_j - bg_i;
   r = [err_pos; err_vel; err_rot; err_ba; err_bg];
 
   % Form jacobians
-  jacs = []
+  jacs{1} = zeros(15, 6);  % w.r.t pose i
+  jacs{2} = zeros(15, 9);  % w.r.t speed and biase i
+  jacs{3} = zeros(15, 6);  % w.r.t pose j
+  jacs{4} = zeros(15, 9);  % w.r.t speed and biase j
+
+  % Eigen::Matrix<typename Derived::Scalar, 4, 4> ans;
+  % ans(0, 0) = q.w();
+  % ans.template block<1, 3>(0, 1) = -q.vec().transpose();
+  % ans.template block<3, 1>(1, 0) = q.vec();
+  % ans.template block<3, 3>(1, 1) = q.w() * I(3) + skew(qq.vec());
+
+  % -- Jacobian w.r.t. pose i
+  jacs{1}(1:3, 1:3) = -C_i';                                                        % dr w.r.t r_i
+  jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)));  % dr w.r.t C_i
+  jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                        % dv w.r.t C_i
+  % jacs{1}(7:9, 4:6) =  -(Qleft(quat_mul(quat_inv(q_j), q_i) * Qright(corrected_delta_q)).bottomRightCorner<3, 3>();                        % dq w.r.t C_i
+  % jacs{1}(7:9, 4:6) = -Jr_inv(                                                               % dC w.r.t C_i
 endfunction
 
 function plot_imu(sim_data)
@@ -625,8 +779,36 @@ sb_i = [sim_data.vel(:, 1); zeros(6, 1)];
 pose_j = sim_data.poses{N};
 sb_j = [sim_data.vel(:, N); zeros(6, 1)];
 
-imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
-                pose_i, sb_i, pose_j, sb_j);
+% Evaluate imu factor
+[r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j);
+
+% Check jacobians
+% -- Check jacobian w.r.t pose i
+step = 1e-8;
+fdiff = zeros(15, 6);
+for i = 1:3
+  pose_i_diff = perturb_trans(pose_i, step, i)
+  [r_diff, _] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i_diff, sb_i, pose_j, sb_j);
+  fdiff(:, i) = (r_diff - r) / step;
+endfor
+for i = 4:6
+  pose_i_diff = perturb_rot(pose_i, step, i - 3)
+  [r_diff, _] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i_diff, sb_i, pose_j, sb_j);
+  fdiff(:, i) = (r_diff - r) / step;
+endfor
+
+jacs{1}
+fdiff
+
+
+
+
+
+
+
+
+
+
 
 % % Print errors
 % plot_poses(sim_data, est);
