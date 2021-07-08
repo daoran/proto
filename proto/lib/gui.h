@@ -8,7 +8,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <GLFW/glfw3.h>
+/* #include <GLFW/glfw3.h> */
 
 #include "proto.h"
 
@@ -29,16 +29,13 @@ int gl_equals(const GLfloat *A,
               const int nb_cols,
               const GLfloat tol);
 void gl_matf_set(GLfloat *A,
-                    const int m,
-                     const int n,
-                    const int i,
+                 const int m,
+                 const int n,
+                 const int i,
                  const int j,
-                     const GLfloat val);
-GLfloat gl_matf_val(const GLfloat *A,
-                    const int m,
-                    const int n,
-                    const int i,
-                         const int j);
+                 const GLfloat val);
+GLfloat gl_matf_val(
+    const GLfloat *A, const int m, const int n, const int i, const int j);
 void gl_copy(const GLfloat *src, const int m, const int n, GLfloat *dest);
 void gl_transpose(const real_t *A, size_t m, size_t n, real_t *A_t);
 void gl_zeros(GLfloat *A, const int nb_rows, const int nb_cols);
@@ -63,8 +60,12 @@ void gl_sub(const GLfloat *A,
             const int nb_rows,
             const int nb_cols,
             GLfloat *C);
-void gl_dot(const GLfloat *A, const int A_m, const int A_n,
-            const GLfloat *B, const int B_m, const int B_n,
+void gl_dot(const GLfloat *A,
+            const int A_m,
+            const int A_n,
+            const GLfloat *B,
+            const int B_m,
+            const int B_n,
             GLfloat *C);
 void gl_scale(GLfloat factor, GLfloat *A, const int nb_rows, const int nb_cols);
 GLfloat gl_norm(const GLfloat *x, const int size);
@@ -72,13 +73,13 @@ void gl_normalize(GLfloat *x, const int size);
 
 void gl_perspective(const GLfloat fov,
                     const GLfloat aspect,
-                        const GLfloat near,
-                       const GLfloat far,
-                    GLfloat P[4*4]);
+                    const GLfloat near,
+                    const GLfloat far,
+                    GLfloat P[4 * 4]);
 void gl_lookat(const GLfloat eye[3],
                const GLfloat at[3],
                const GLfloat up[3],
-               GLfloat V[4*4]);
+               GLfloat V[4 * 4]);
 
 /******************************************************************************
  * SHADER
@@ -86,15 +87,15 @@ void gl_lookat(const GLfloat eye[3],
 
 GLuint shader_compile(const char *shader_src, const int type);
 GLuint shaders_link(const GLuint vertex_shader,
-                      const GLuint fragment_shader,
-                      const GLuint geometry_shader);
+                    const GLuint fragment_shader,
+                    const GLuint geometry_shader);
 
 /******************************************************************************
  * GL PROGRAM
  ******************************************************************************/
 
 typedef struct gl_entity_t {
-  GLfloat T[4*4];
+  GLfloat T[4 * 4];
 
   GLint program_id;
   GLuint vao;
@@ -115,9 +116,9 @@ int gl_prog_set_float(const GLint id, const char *k, const GLfloat v);
 int gl_prog_set_vec2f(const GLint id, const char *k, const GLfloat v[2]);
 int gl_prog_set_vec3f(const GLint id, const char *k, const GLfloat v[3]);
 int gl_prog_set_vec4f(const GLint id, const char *k, const GLfloat v[4]);
-int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2*2]);
-int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3*3]);
-int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4*4]);
+int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2 * 2]);
+int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3 * 3]);
+int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4 * 4]);
 
 /******************************************************************************
  * GL-CAMERA
@@ -141,8 +142,8 @@ typedef struct gl_camera_t {
   GLfloat near;
   GLfloat far;
 
-  GLfloat P[4*4];  /* Projection matrix */
-  GLfloat V[4*4];  /* View matrix */
+  GLfloat P[4 * 4]; /* Projection matrix */
+  GLfloat V[4 * 4]; /* View matrix */
 } gl_camera_t;
 
 void gl_camera_setup(gl_camera_t *camera,
@@ -170,7 +171,7 @@ typedef struct gui_t {
   int screen_width;
   int screen_height;
 
-  GLFWwindow *window;
+  /* GLFWwindow *window; */
   char *window_title;
   int window_width;
   int window_height;
@@ -186,7 +187,7 @@ typedef struct gui_t {
   float last_cursor_y;
 } gui_t;
 
-void gui_framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void gui_framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void gui_event_handler(GLFWwindow *window);
 void gui_error_callback(int error, const char *description);
 void gui_mouse_cursor_callback(GLFWwindow *window, double x, double y);
@@ -195,11 +196,8 @@ void gui_mouse_button_callback(GLFWwindow *window,
                                int action,
                                int mods);
 void gui_mouse_scroll_callback(GLFWwindow *window, double dx, double dy);
-void gui_keyboard_callback(GLFWwindow* window,
-                           int key,
-                           int scancode,
-                           int action,
-                           int mods);
+void gui_keyboard_callback(
+    GLFWwindow *window, int key, int scancode, int action, int mods);
 
 void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);
