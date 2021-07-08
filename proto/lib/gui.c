@@ -4,13 +4,9 @@
  * UTILS
  ******************************************************************************/
 
-GLfloat gl_deg2rad(const GLfloat d) {
-  return d * M_PI / 180.0f;
-}
+GLfloat gl_deg2rad(const GLfloat d) { return d * M_PI / 180.0f; }
 
-GLfloat gl_rad2deg(const GLfloat r) {
-  return r * 180.0f / M_PI;
-}
+GLfloat gl_rad2deg(const GLfloat r) { return r * 180.0f / M_PI; }
 
 void gl_print_vector(const char *prefix, const GLfloat *x, const int length) {
   printf("%s: [", prefix);
@@ -24,9 +20,9 @@ void gl_print_vector(const char *prefix, const GLfloat *x, const int length) {
 }
 
 void gl_print_matrix(const char *prefix,
-                      const GLfloat *A,
-                      const int nb_rows,
-                      const int nb_cols) {
+                     const GLfloat *A,
+                     const int nb_rows,
+                     const int nb_cols) {
   printf("%s:\n", prefix);
   for (int i = 0; i < nb_rows; i++) {
     for (int j = 0; j < nb_cols; j++) {
@@ -98,20 +94,17 @@ int gl_equals(const GLfloat *A,
 }
 
 void gl_matf_set(GLfloat *A,
-                    const int m,
-                     const int n,
-                    const int i,
+                 const int m,
+                 const int n,
+                 const int i,
                  const int j,
-                     const GLfloat val) {
+                 const GLfloat val) {
   UNUSED(n);
   A[i + (j * m)] = val;
 }
 
-GLfloat gl_matf_val(const GLfloat *A,
-                    const int m,
-                    const int n,
-                    const int i,
-                         const int j) {
+GLfloat gl_matf_val(
+    const GLfloat *A, const int m, const int n, const int i, const int j) {
   UNUSED(n);
   return A[i + (j * m)];
 }
@@ -164,8 +157,12 @@ void gl_sub(const GLfloat *A,
   }
 }
 
-void gl_dot(const GLfloat *A, const int A_m, const int A_n,
-            const GLfloat *B, const int B_m, const int B_n,
+void gl_dot(const GLfloat *A,
+            const int A_m,
+            const int A_n,
+            const GLfloat *B,
+            const int B_m,
+            const int B_n,
             GLfloat *C) {
   assert(A != C && B != C);
   assert(A_n == B_m);
@@ -182,7 +179,10 @@ void gl_dot(const GLfloat *A, const int A_m, const int A_n,
   }
 }
 
-void gl_scale(GLfloat factor, GLfloat *A, const int nb_rows, const int nb_cols) {
+void gl_scale(GLfloat factor,
+              GLfloat *A,
+              const int nb_rows,
+              const int nb_cols) {
   for (int i = 0; i < (nb_rows * nb_cols); i++) {
     A[i] *= factor;
   }
@@ -206,9 +206,9 @@ void gl_normalize(GLfloat *x, const int size) {
 
 void gl_perspective(const GLfloat fov,
                     const GLfloat aspect,
-                        const GLfloat near,
-                       const GLfloat far,
-                    GLfloat P[4*4]) {
+                    const GLfloat near,
+                    const GLfloat far,
+                    GLfloat P[4 * 4]) {
   const GLfloat f = 1.0f / tan(fov * 0.5f);
 
   gl_zeros(P, 4, 4);
@@ -236,7 +236,7 @@ void gl_perspective(const GLfloat fov,
 void gl_lookat(const GLfloat eye[3],
                const GLfloat at[3],
                const GLfloat up[3],
-               GLfloat V[4*4]) {
+               GLfloat V[4 * 4]) {
   /* Z-axis: Camera forward */
   GLfloat z[3] = {0};
   gl_sub(at, eye, 3, 1, z);
@@ -255,7 +255,7 @@ void gl_lookat(const GLfloat eye[3],
   gl_scale(-1.0f, z, 3, 1);
 
   /* Form rotation component */
-  GLfloat R[4*4] = {0};
+  GLfloat R[4 * 4] = {0};
   R[0] = x[0];
   R[1] = y[0];
   R[2] = z[0];
@@ -277,7 +277,7 @@ void gl_lookat(const GLfloat eye[3],
   R[15] = 1.0f;
 
   /* Form translation component */
-  GLfloat T[4*4] = {0};
+  GLfloat T[4 * 4] = {0};
   T[0] = 1.0f;
   T[1] = 0.0f;
   T[2] = 0.0f;
@@ -329,8 +329,8 @@ GLuint shader_compile(const char *shader_src, const int type) {
 }
 
 GLuint shaders_link(const GLuint vertex_shader,
-                      const GLuint fragment_shader,
-                      const GLuint geometry_shader) {
+                    const GLuint fragment_shader,
+                    const GLuint geometry_shader) {
   // Attach shaders to link
   GLuint program = glCreateProgram();
   glAttachShader(program, vertex_shader);
@@ -454,7 +454,7 @@ int gl_prog_set_vec4f(const GLint id, const char *k, const GLfloat v[4]) {
   return 0;
 }
 
-int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2*2]) {
+int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2 * 2]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -464,7 +464,7 @@ int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2*2]) {
   return 0;
 }
 
-int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3*3]) {
+int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3 * 3]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -474,7 +474,7 @@ int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3*3]) {
   return 0;
 }
 
-int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4*4]) {
+int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4 * 4]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -543,7 +543,7 @@ void gl_camera_update(gl_camera_t *camera) {
 void gl_camera_rotate(gl_camera_t *camera,
                       const float factor,
                       const float dx,
-                           const float dy) {
+                      const float dy) {
   /* Update yaw and pitch */
   float pitch = camera->pitch;
   float yaw = camera->yaw;
@@ -606,7 +606,7 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GUI
  ******************************************************************************/
 
-void gui_framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+void gui_framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   gui_t *gui = glfwGetWindowUserPointer(window);
   gui->window_width = width;
   gui->window_height = height;
@@ -680,11 +680,8 @@ void gui_mouse_scroll_callback(GLFWwindow *window, double dx, double dy) {
   gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, dx, dy);
 }
 
-void gui_keyboard_callback(GLFWwindow* window,
-                                    int key,
-                           int scancode,
-                           int action,
-                           int mods) {
+void gui_keyboard_callback(
+    GLFWwindow *window, int key, int scancode, int action, int mods) {
   UNUSED(scancode);
   UNUSED(mods);
 
@@ -703,7 +700,8 @@ void gui_setup(gui_t *gui) {
   gui->window = glfwCreateWindow(gui->window_width,
                                  gui->window_height,
                                  gui->window_title,
-                                 NULL, NULL);
+                                 NULL,
+                                 NULL);
   if (gui->window == NULL) {
     glfwTerminate();
     FATAL("Failed to create GLFW window");
@@ -778,13 +776,13 @@ void gui_loop(gui_t *gui) {
   gl_cube_setup(&cube3, cube3_pos);
 
   gl_entity_t cf;
-	gl_camera_frame_setup(&cf);
+  gl_camera_frame_setup(&cf);
 
   gl_entity_t frame;
-	gl_axis_frame_setup(&frame);
+  gl_axis_frame_setup(&frame);
 
   gl_entity_t grid;
-	gl_grid_setup(&grid);
+  gl_grid_setup(&grid);
 
   while (!glfwWindowShouldClose(gui->window)) {
     gui_event_handler(gui->window);
@@ -795,20 +793,20 @@ void gui_loop(gui_t *gui) {
     /* gl_cube_draw(&cube2, &gui->camera); */
     /* gl_cube_draw(&cube3, &gui->camera); */
 
-		gl_camera_frame_draw(&cf, &gui->camera);
-		gl_axis_frame_draw(&frame, &gui->camera);
-		gl_grid_draw(&grid, &gui->camera);
+    gl_camera_frame_draw(&cf, &gui->camera);
+    gl_axis_frame_draw(&frame, &gui->camera);
+    gl_grid_draw(&grid, &gui->camera);
 
     glEnable(GL_CULL_FACE);
     glfwSwapBuffers(gui->window);
     glfwPollEvents();
   }
 
-	gl_cube_cleanup(&cube);
-	gl_cube_cleanup(&cube2);
-	gl_cube_cleanup(&cube3);
-	gl_camera_frame_cleanup(&cf);
-	gl_grid_cleanup(&grid);
+  gl_cube_cleanup(&cube);
+  gl_cube_cleanup(&cube2);
+  gl_cube_cleanup(&cube3);
+  gl_camera_frame_cleanup(&cf);
+  gl_grid_cleanup(&grid);
 
   glfwTerminate();
 }
@@ -953,7 +951,7 @@ void gl_camera_frame_setup(gl_entity_t *entity) {
   }
 
   // Form the camera fov frame
-	GLfloat fov = gl_deg2rad(60.0);
+  GLfloat fov = gl_deg2rad(60.0);
   GLfloat hfov = fov / 2.0f;
   GLfloat scale = 1.0f;
   GLfloat z = scale;
@@ -1015,7 +1013,8 @@ void gl_camera_frame_cleanup(const gl_entity_t *entity) {
   glDeleteBuffers(1, &entity->vbo);
 }
 
-void gl_camera_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
+void gl_camera_frame_draw(const gl_entity_t *entity,
+                          const gl_camera_t *camera) {
   glUseProgram(entity->program_id);
   gl_prog_set_mat4f(entity->program_id, "projection", camera->P);
   gl_prog_set_mat4f(entity->program_id, "view", camera->V);
@@ -1026,7 +1025,7 @@ void gl_camera_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera) 
   glGetFloatv(GL_LINE_WIDTH, &original_line_width);
 
   // Set line width
-	GLfloat line_width = 2.0f;
+  GLfloat line_width = 2.0f;
   glLineWidth(line_width);
 
   // Draw frame
@@ -1112,7 +1111,7 @@ void gl_axis_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glGetFloatv(GL_LINE_WIDTH, &original_line_width);
 
   // Set line width
-	GLfloat line_width = 6.0f;
+  GLfloat line_width = 6.0f;
   glLineWidth(line_width);
 
   // Draw frame
@@ -1190,7 +1189,7 @@ void gl_grid_setup(gl_entity_t *entity) {
   }
 
   // Create vertices
-	const int grid_size = 10;
+  const int grid_size = 10;
   const int nb_lines = (grid_size + 1) * 2;
   const int nb_vertices = nb_lines * 2;
   GLfloat *vertices = glgrid_create_vertices(grid_size);
@@ -1229,7 +1228,7 @@ void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   gl_prog_set_mat4f(entity->program_id, "view", camera->V);
   gl_prog_set_mat4f(entity->program_id, "model", entity->T);
 
-	const int grid_size = 10;
+  const int grid_size = 10;
   const int nb_lines = (grid_size + 1) * 2;
   const int nb_vertices = nb_lines * 2;
 

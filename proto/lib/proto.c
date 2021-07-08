@@ -412,7 +412,8 @@ char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
  * - Matrix of DSV data
  * - NULL for failure
  */
-real_t **dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
+real_t **
+dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
   assert(fp != NULL);
 
   /* Obtain number of rows and columns in dsv data */
@@ -769,7 +770,7 @@ int fltcmp(const real_t x, const real_t y) {
  * - -1 if x < y
  */
 int fltcmp2(const void *x, const void *y) {
-  const real_t diff = (*(real_t *)x - *(real_t *)y);
+  const real_t diff = (*(real_t *) x - *(real_t *) y);
   if (fabs(diff) < CMP_TOL) {
     return 0;
   } else if (diff > 0) {
@@ -846,7 +847,7 @@ real_t sinc(const real_t x) {
  * Calculate mean from vector `x` of length `n`.
  * @returns Mean of x
  */
-real_t mean(const real_t* x, const size_t n) {
+real_t mean(const real_t *x, const size_t n) {
   real_t sum = 0.0;
   for (size_t i = 0; i < n; i++) {
     sum += x[i];
@@ -858,7 +859,7 @@ real_t mean(const real_t* x, const size_t n) {
  * Calculate median from vector `x` of length `n`.
  * @returns Median of x
  */
-real_t median(const real_t* x, const size_t n) {
+real_t median(const real_t *x, const size_t n) {
   /* Make a copy of the original input vector x */
   real_t *vals = malloc(sizeof(real_t) * n);
   for (size_t i = 0; i < n; i++) {
@@ -895,9 +896,7 @@ real_t var(const real_t *x, const size_t n) {
  * Calculate standard deviation from vector `x` of length `n`.
  * @returns Standard deviation of x
  */
-real_t stddev(const real_t *x, const size_t n) {
-  return sqrt(var(x, n));
-}
+real_t stddev(const real_t *x, const size_t n) { return sqrt(var(x, n)); }
 
 /******************************************************************************
  * LINEAR ALGEBRA
@@ -1205,8 +1204,8 @@ void mat_block_get(const real_t *A,
 }
 
 /**
- * Set matrix sub-block `block` to `A` with `stride` from row and column start `rs`
- * and `cs`, to row and column end `re` and `ce`.
+ * Set matrix sub-block `block` to `A` with `stride` from row and column start
+ * `rs` and `cs`, to row and column end `re` and `ce`.
  */
 void mat_block_set(real_t *A,
                    const size_t stride,
@@ -1624,7 +1623,6 @@ void cblas_dot(const real_t *A,
 #endif
 }
 #endif
-
 
 /******************************************************************************
  * SVD
@@ -2079,7 +2077,7 @@ void tf(const real_t params[7], real_t T[4 * 4]) {
  * Decompose transform `T` into the rotation `C` and translation `r`
  * components.
  */
-void tf_decompose(const real_t T[4 * 4], real_t C[3*3], real_t r[3]) {
+void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]) {
   assert(T != NULL);
   assert(C != NULL);
   assert(r != NULL);
@@ -2263,8 +2261,8 @@ void tf_hpoint(const real_t T[4 * 4], const real_t hp[4], real_t retval[4]) {
 }
 
 /**
- * Perturb the `i`-th rotational component of a 4x4 homogeneous transformation matrix
- * `T` with `step_size`.
+ * Perturb the `i`-th rotational component of a 4x4 homogeneous transformation
+ * matrix `T` with `step_size`.
  */
 void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i) {
   assert(T != NULL);
@@ -3157,9 +3155,7 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
 
 /* POSE --------------------------------------------------------------------- */
 
-void pose_setup(pose_t *pose,
-                const timestamp_t ts,
-                const real_t *data) {
+void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   assert(pose != NULL);
   assert(data != NULL);
 
@@ -3437,7 +3433,6 @@ int ba_factor_eval(ba_factor_t *factor) {
   pinhole_radtan4_project_jacobian(cam_params, p_C, J_h);
   dot(neg_sqrt_info, 2, 2, J_h, 2, 3, Jh_weighted);
   /* -- Fill jacobians */
-
 
   return 0;
 }
@@ -3778,7 +3773,6 @@ int imu_factor_eval(imu_factor_t *factor) {
   assert(factor != NULL);
 
   /* factor->jacs[0] */
-
 
   return 0;
 }
