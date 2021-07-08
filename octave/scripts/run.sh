@@ -20,7 +20,7 @@ ctags -R .
 # octave notes/camera/radtan4_params_jacobian.m && exit 0
 # octave notes/camera/radtan4_point_jacobian.m && exit 0
 # octave notes/traj_eval/traj_eval.m
-octave notes/imu/imu.m && exit 0
+# octave notes/imu/imu.m && exit 0
 # octave notes/imu/ipm_jacobian.m && exit 0
 # octave notes/visync/main.m && exit 0
 # octave notes/back_substitution.m && exit 0
@@ -50,7 +50,7 @@ octave notes/imu/imu.m && exit 0
 # octave notes/vicon_frames.m && exit 0
 # octave notes/vicon_f450.m && exit 0
 # octave notes/vicon_ucl.m && exit 0
-octave notes/mocap_debug.m && exit 0
+# octave notes/mocap_debug.m && exit 0
 # octave notes/dpose.m && exit 0
 # octave notes/drot.m && exit 0
 
@@ -126,7 +126,7 @@ octave notes/mocap_debug.m && exit 0
 # octave tests/plot/test_draw_points.m && exit 0
 
 # octave tests/se/factor/test_ba_factor_init.m && exit 0
-# octave tests/se/factor/test_ba_factor_eval.m && exit 0
+octave tests/se/factor/test_ba_factor_eval.m && exit 0
 # octave tests/se/param/test_camera_init.m && exit 0
 # octave tests/se/param/test_landmark_init.m && exit 0
 # octave tests/se/param/test_pose_init.m && exit 0
