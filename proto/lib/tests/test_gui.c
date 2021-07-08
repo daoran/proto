@@ -6,12 +6,14 @@
  ******************************************************************************/
 
 int test_gl_zeros() {
+  /* clang-format off */
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
   GLfloat expected[3*3] = {0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0};
+  /* clang-format on */
 
   gl_zeros(A, 3, 3);
   gl_print_matrix("A", A, 3, 3);
@@ -21,12 +23,14 @@ int test_gl_zeros() {
 }
 
 int test_gl_ones() {
+  /* clang-format off */
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
   GLfloat expected[3*3] = {1.0, 1.0, 1.0,
                            1.0, 1.0, 1.0,
                            1.0, 1.0, 1.0};
+  /* clang-format on */
 
   gl_ones(A, 3, 3);
   gl_print_matrix("A", A, 3, 3);
@@ -37,6 +41,7 @@ int test_gl_ones() {
 
 int test_gl_eye() {
   /* Check 4x4 matrix */
+  /* clang-format off */
   GLfloat A[4*4] = {0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0, 0.0,
@@ -45,11 +50,13 @@ int test_gl_eye() {
                              0.0, 1.0, 0.0, 0.0,
                              0.0, 0.0, 1.0, 0.0,
                              0.0, 0.0, 0.0, 1.0};
+  /* clang-format on */
   gl_eye(A, 4, 4);
   gl_print_matrix("A", A, 4, 4);
   MU_CHECK(gl_equals(A, A_expected, 4, 4, 1e-8));
 
   /* Check 3x4 matrix */
+  /* clang-format off */
   GLfloat B[3*4] = {0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
@@ -58,6 +65,7 @@ int test_gl_eye() {
                              0.0, 1.0, 0.0,
                              0.0, 0.0, 1.0,
                              0.0, 0.0, 0.0};
+  /* clang-format on */
   gl_eye(B, 3, 4);
   gl_print_matrix("B", B, 3, 4);
   MU_CHECK(gl_equals(B, B_expected, 3, 4, 1e-8));
@@ -66,6 +74,7 @@ int test_gl_eye() {
 }
 
 int test_gl_equals() {
+  /* clang-format off */
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
@@ -75,6 +84,7 @@ int test_gl_equals() {
   GLfloat C[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 10.0};
+  /* clang-format on */
 
   /* Assert */
   MU_CHECK(gl_equals(A, B, 3, 3, 1e-8) == 1);
@@ -84,10 +94,12 @@ int test_gl_equals() {
 }
 
 int test_gl_matf_set() {
+  /* clang-format off */
   GLfloat A[3*4] = {0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0};
+  /* clang-format on */
 
   gl_matf_set(A, 3, 4, 0, 1, 1.0);
   gl_matf_set(A, 3, 4, 1, 0, 2.0);
@@ -99,10 +111,12 @@ int test_gl_matf_set() {
 }
 
 int test_gl_matf_val() {
+  /* clang-format off */
   GLfloat A[3*4] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0,
                     10.0, 11.0, 12.0};
+  /* clang-format on */
 
   const float tol = 1e-4;
   MU_CHECK(fabs(gl_matf_val(A, 3, 4, 0, 0) - 1.0) < tol);
@@ -126,21 +140,25 @@ int test_gl_matf_val() {
 
 int test_gl_transpose() {
   /* Transpose a 3x3 matrix */
+  /* clang-format off */
   GLfloat A[3*3] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0};
-  GLfloat A_t[3*3] = {0};
+  /* clang-format on */
+  GLfloat A_t[3 * 3] = {0};
 
   gl_transpose(A, 3, 3, A_t);
   gl_print_matrix("A", A, 3, 3);
   gl_print_matrix("A_t", A_t, 3, 3);
 
   /* Transpose a 3x4 matrix */
+  /* clang-format off */
   GLfloat B[3*4] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0,
                     10.0, 11.0, 12.0};
-  GLfloat B_t[3*4] = {0};
+  /* clang-format on */
+  GLfloat B_t[3 * 4] = {0};
   gl_transpose(B, 3, 4, B_t);
   gl_print_matrix("B", B, 3, 4);
   gl_print_matrix("B_t", B_t, 4, 3);
@@ -164,19 +182,23 @@ int test_gl_vec3_cross() {
 }
 
 int test_gl_dot() {
+  /* clang-format off */
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
   GLfloat B[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
-  GLfloat C[3*3] = {0.0};
+  /* clang-format on */
+  GLfloat C[3 * 3] = {0.0};
   gl_dot(A, 3, 3, B, 3, 3, C);
 
   /* Assert */
+  /* clang-format off */
   GLfloat expected[3*3] = {30.0f, 66.0f, 102.0f,
                            36.0f, 81.0f, 126.0f,
                            42.0f, 96.0f, 150.0f};
+  /* clang-format on */
   gl_print_matrix("C", C, 3, 3);
   gl_print_matrix("expected", expected, 3, 3);
   MU_CHECK(gl_equals(C, expected, 3, 3, 1e-8));
@@ -214,7 +236,7 @@ int test_gl_perspective() {
   const GLfloat near = 0.1f;
   const GLfloat far = 100.0f;
 
-  GLfloat P[4*4] = {0};
+  GLfloat P[4 * 4] = {0};
   gl_perspective(fov, ratio, near, far, P);
 
   /* clang-format off */
@@ -247,7 +269,7 @@ int test_gl_lookat() {
   eye[1] = focal[1] + radius * cos(pitch);
   eye[2] = focal[2] + radius * cos(yaw);
 
-  GLfloat V[4*4] = {0};
+  GLfloat V[4 * 4] = {0};
   gl_lookat(eye, focal, world_up, V);
 
   /* clang-format off */
