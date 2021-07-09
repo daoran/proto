@@ -13,8 +13,7 @@ struct distortion_t {
 
   distortion_t() {}
 
-  distortion_t(const vecx_t &params_)
-    : params{params_} {}
+  distortion_t(const vecx_t &params_) : params{params_} {}
 
   distortion_t(const real_t *params_, const size_t params_size_) {
     params.resize(params_size_);
@@ -55,17 +54,13 @@ struct nodist_t : distortion_t {
     return static_cast<const nodist_t &>(*this).distort(p);
   }
 
-  vec2_t distort(const vec2_t &p) const {
-    return p;
-  }
+  vec2_t distort(const vec2_t &p) const { return p; }
 
   vec2_t undistort(const vec2_t &p) {
     return static_cast<const nodist_t &>(*this).undistort(p);
   }
 
-  vec2_t undistort(const vec2_t &p) const {
-    return p;
-  }
+  vec2_t undistort(const vec2_t &p) const { return p; }
 
   mat2_t J_point(const vec2_t &p) {
     return static_cast<const nodist_t &>(*this).J_point(p);
@@ -96,17 +91,13 @@ struct radtan4_t : distortion_t {
 
   radtan4_t() {}
 
-  radtan4_t(const vecx_t &params_)
-    : distortion_t{params_} {}
+  radtan4_t(const vecx_t &params_) : distortion_t{params_} {}
 
   radtan4_t(const real_t *dist_params)
-    : distortion_t{dist_params, params_size} {}
+      : distortion_t{dist_params, params_size} {}
 
-  radtan4_t(const real_t k1,
-            const real_t k2,
-            const real_t p1,
-            const real_t p2)
-    : distortion_t{vec4_t{k1, k2, p1, p2}} {}
+  radtan4_t(const real_t k1, const real_t k2, const real_t p1, const real_t p2)
+      : distortion_t{vec4_t{k1, k2, p1, p2}} {}
 
   virtual ~radtan4_t() {}
 
@@ -241,16 +232,11 @@ struct equi4_t : distortion_t {
 
   equi4_t() {}
 
-  equi4_t(const vecx_t &dist_params)
-    : distortion_t{dist_params} {}
+  equi4_t(const vecx_t &dist_params) : distortion_t{dist_params} {}
 
-  equi4_t(const real_t *dist_params)
-    : distortion_t{dist_params, params_size} {}
+  equi4_t(const real_t *dist_params) : distortion_t{dist_params, params_size} {}
 
-  equi4_t(const real_t k1,
-          const real_t k2,
-          const real_t k3,
-          const real_t k4) {
+  equi4_t(const real_t k1, const real_t k2, const real_t k3, const real_t k4) {
     params.resize(4);
     params << k1, k2, k3, k4;
   }
@@ -283,7 +269,8 @@ struct equi4_t : distortion_t {
     const real_t th4 = th2 * th2;
     const real_t th6 = th4 * th2;
     const real_t th8 = th4 * th4;
-    const real_t thd = th * (1 + k1() * th2 + k2() * th4 + k3() * th6 + k4() * th8);
+    const real_t thd =
+        th * (1 + k1() * th2 + k2() * th4 + k3() * th6 + k4() * th8);
     const real_t x_dash = (thd / r) * p(0);
     const real_t y_dash = (thd / r) * p(1);
 
@@ -323,7 +310,8 @@ struct equi4_t : distortion_t {
     const real_t th4 = th2 * th2;
     const real_t th6 = th4 * th2;
     const real_t th8 = th4 * th4;
-    const real_t thd = th * (1.0 + k1() * th2 + k2() * th4 + k3() * th6 + k4() * th8);
+    const real_t thd =
+        th * (1.0 + k1() * th2 + k2() * th4 + k3() * th6 + k4() * th8);
     const real_t s = thd / r;
 
     // Form jacobian
@@ -391,17 +379,16 @@ struct projection_t {
   projection_t(const int resolution_[2],
                const vecx_t &proj_params_,
                const vecx_t &dist_params_)
-    : resolution{resolution_[0], resolution_[1]},
-      params{proj_params_},
-      distortion{dist_params_} {}
+      : resolution{resolution_[0], resolution_[1]}, params{proj_params_},
+        distortion{dist_params_} {}
 
   projection_t(const int resolution_[2],
                const vecx_t &params_,
                const size_t proj_params_size_,
                const size_t dist_params_size_)
-    : projection_t{resolution_,
-                   params_.head(proj_params_size_),
-                   params_.tail(dist_params_size_)} {}
+      : projection_t{resolution_,
+                     params_.head(proj_params_size_),
+                     params_.tail(dist_params_size_)} {}
 
   ~projection_t() {}
 
@@ -429,11 +416,13 @@ struct pinhole_t : projection_t<DM> {
   pinhole_t(const int resolution[2],
             const vecx_t &proj_params,
             const vecx_t &dist_params)
-    : projection_t<DM>{resolution, proj_params, dist_params} {}
+      : projection_t<DM>{resolution, proj_params, dist_params} {}
 
-  pinhole_t(const int resolution[2],
-            const vecx_t &params)
-    : projection_t<DM>{resolution, params, proj_params_size, DM::params_size} {}
+  pinhole_t(const int resolution[2], const vecx_t &params)
+      : projection_t<DM>{resolution,
+                         params,
+                         proj_params_size,
+                         DM::params_size} {}
 
   pinhole_t(const int resolution[2],
             const real_t fx,
@@ -458,21 +447,15 @@ struct pinhole_t : projection_t<DM> {
     return static_cast<const pinhole_t &>(*this).proj_params();
   }
 
-  vecx_t proj_params() const {
-    return this->params;
-  }
+  vecx_t proj_params() const { return this->params; }
 
   vecx_t dist_params() {
     return static_cast<const pinhole_t &>(*this).dist_params();
   }
 
-  vecx_t dist_params() const {
-    return this->distortion.params;
-  }
+  vecx_t dist_params() const { return this->distortion.params; }
 
-  mat3_t K() {
-    return static_cast<const pinhole_t &>(*this).K();
-  }
+  mat3_t K() { return static_cast<const pinhole_t &>(*this).K(); }
 
   mat3_t K() const {
     mat3_t K = zeros(3, 3);
@@ -540,9 +523,7 @@ struct pinhole_t : projection_t<DM> {
     return 0;
   }
 
-  mat2_t J_point() {
-    return static_cast<const pinhole_t &>(*this).J_point();
-  }
+  mat2_t J_point() { return static_cast<const pinhole_t &>(*this).J_point(); }
 
   mat2_t J_point() const {
     mat2_t J_K = zeros(2, 2);
@@ -607,10 +588,8 @@ std::ostream &operator<<(std::ostream &os, const pinhole_t<DM> &pinhole) {
 
 real_t pinhole_focal(const int image_size, const real_t fov);
 
-mat3_t pinhole_K(const real_t fx,
-                 const real_t fy,
-                 const real_t cx,
-                 const real_t cy);
+mat3_t
+pinhole_K(const real_t fx, const real_t fy, const real_t cx, const real_t cy);
 
 mat3_t pinhole_K(const vec4_t &params);
 
