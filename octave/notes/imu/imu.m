@@ -61,6 +61,30 @@ function q_out = quat_normalize(q)
   q_out = [q(1) / n; q(2) / n; q(3) / n; q(4) / n];
 endfunction
 
+function L = quat_left(q)
+  qw = q(1);
+  qx = q(2);
+  qy = q(3);
+  qz = q(4);
+
+  L = [qw, -qx, -qy, -qz;
+       qx, qw, -qz, qy;
+       qy, qz, qw, -qx;
+       qz, -qy, qx, qw];
+endfunction
+
+function R = quat_right(q)
+  qw = q(1);
+  qx = q(2);
+  qy = q(3);
+  qz = q(4);
+
+  R = [qw, -qx, -qy, -qz;
+       qx, qw, qz, -qy;
+       qy, -qz, qw, qx;
+       qz, qy, -qx, qw];
+endfunction
+
 function r = quat_lmul(p, q)
   assert(size(p) == [4, 1]);
   assert(size(q) == [4, 1]);
@@ -317,6 +341,15 @@ function [retval] = perturb_rot(T, step_size, i)
   endif
 endfunction
 
+function [retval] = perturb_pose(T, step_size, i)
+  assert(size(T) == [4, 4] && i >= 0 && i <= 6);
+  if i <= 3
+    retval = perturb_trans(T, step_size, i);
+  else
+    retval = perturb_rot(T, step_size, i - 3);
+  endif
+endfunction
+
 function C = Exp(phi)
   assert(size(phi) == [3, 1]);
   if (phi < 1e-3)
@@ -334,6 +367,35 @@ function rvec = Log(C)
   rvec = (phi * skew_inv(C - C')) / (2 * sin(phi));
 endfunction
 
+function J = Jr(theta)
+  % Equation (8) in:
+  % Forster, Christian, et al. "IMU preintegration on manifold for efficient
+  % visual-inertial maximum-a-posteriori estimation." Georgia Institute of
+  % Technology, 2015.
+  theta_norm = norm(theta);
+  theta_norm_sq = theta_norm * theta_norm;
+  theta_norm_cube = theta_norm_sq * theta_norm;
+  theta_skew = skew(theta);
+  theta_skew_sq = theta_skew * theta_skew;
+
+  J = eye(3);
+  J -= ((1 - cos(theta_norm)) / theta_norm_sq) * theta_skew;
+  J += (theta_norm - sin(theta_norm)) / (theta_norm_cube) * theta_skew_sq;
+endfunction
+
+function J = Jr_inv(theta)
+  theta_norm = norm(theta);
+  theta_norm_sq = theta_norm * theta_norm;
+  theta_skew = skew(theta);
+  theta_skew_sq = theta_skew * theta_skew;
+
+  A = 1.0 / theta_norm_sq;
+  B = (1 + cos(theta_norm)) / (2 * theta_norm * sin(theta_norm));
+
+  J = eye(3);
+  J += 0.5 * theta_skew;
+  J += (A - B) * theta_skew_sq;
+endfunction
 
 ################################### IMU ######################################
 
@@ -448,14 +510,6 @@ function est = imu_batch_integrate(sim_data, method)
   est.att = est_att;
 endfunction
 
-function dq = delta_quat(theta)
-   dqw = 1.0;
-   dqx = theta(1) / 2.0;
-   dqy = theta(2) / 2.0;
-   dqz = theta(3) / 2.0;
-   dq = [dqw, dqx, dqy, dqz];
-endfunction
-
 function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
                                      pose_i, sb_i, pose_j, sb_j)
   dC = eye(3, 3);
@@ -469,8 +523,8 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   dt = 0.0;
   Dt = 0.0;
 
-  J = eye(15, 15); % State jacobian
-  P = eye(15, 15); % State covariance
+  state_F = eye(15, 15);   % State jacobian
+  state_P = zeros(15, 15); % State covariance
 
   % Noise covariance matrix
   Q = zeros(12, 12);
@@ -482,8 +536,6 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   Q(4:6, 4:6) = (noise_gyr * noise_gyr) * eye(3);
   Q(7:9, 7:9) = (noise_ba * noise_ba) * eye(3);
   Q(10:12, 10:12) = (noise_bg * noise_bg) * eye(3);
-
-  printf("length(imu_ts) : %ld\n", length(imu_ts));
 
   for k = 2:length(imu_ts)
     % Calculate dt
@@ -502,9 +554,9 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
     F = zeros(15, 15);
     F(1:3, 4:6) = eye(3);
     F(4:6, 7:9) = -dC * skew(a - ba);
-    F(4:6, 10:12) = dC;
+    F(4:6, 10:12) = -dC;
     F(7:9, 7:9) = -skew(w - bg);
-    F(7:9, 13:15) = eye(3);
+    F(7:9, 13:15) = -eye(3);
 
     % Continuous time input matrix G
     G = zeros(15, 12);
@@ -522,14 +574,18 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
     Phi += F_dt;
     Phi += (1.0 / 2.0) * F_dt^2;
     Phi += (1.0 / 6.0) * F_dt^3;
+    state_F = Phi * state_F;
 
     % Propagate the state covariance matrix
-    Q_k = Phi * G * Q * G' * Phi' * dt;
-    P = Phi * P * Phi' + Q_k;
+    state_P = (Phi * state_P * Phi') + (Phi * G * Q * G' * Phi' * dt);
 
-    % Update
-    J = Phi * J;
+    % Propagate the state jacobian and covariance
+    % I_F_dt = (eye(15) + F * dt);
+    % G_dt = G * dt;
+    % state_F = I_F_dt * state_F;
+    % state_P = I_F_dt * state_P * I_F_dt' + G_dt * Q * G_dt';
 
+    % Update time
     t_prev = t;
     Dt += dt;
   endfor
@@ -552,13 +608,15 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
 
   % Correct the relative position, velocity and orientation
   % -- Extract jacobians from error-state jacobian
-  dr_dba = J(1:3, 10:12);
-  dr_dbg = J(1:3, 13:15);
-  dq_dbg = J(7:9, 13:15);
-  dv_dba = J(4:6, 10:12);
-  dv_dbg = J(4:6, 13:15);
-  dba = ba_i - ba_j;
-  dbg = bg_i - bg_j;
+  dr_dba = state_F(1:3, 10:12);
+  dr_dbg = state_F(1:3, 13:15);
+  dv_dba = state_F(4:6, 10:12);
+  dv_dbg = state_F(4:6, 13:15);
+  dq_dbg = state_F(7:9, 13:15);
+  % dba = ba_i - ba_j;
+  % dbg = bg_i - bg_j;
+  dba = zeros(3, 1);
+  dbg = zeros(3, 1);
   % -- Correct the relative position, velocity and rotation
   dr = dr + dr_dba * dba + dr_dbg * dbg;
   dv = dv + dv_dba * dba + dv_dbg * dbg;
@@ -570,8 +628,10 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv;
   % err_rot = Log(dC' * (C_i' * C_j))
   err_rot = 2 * (quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
-  err_ba = ba_j - ba_i;
-  err_bg = bg_j - bg_i;
+  % err_ba = ba_j - ba_i;
+  % err_bg = bg_j - bg_i;
+  err_ba = zeros(3, 1);
+  err_bg = zeros(3, 1);
   r = [err_pos; err_vel; err_rot; err_ba; err_bg];
 
   % Form jacobians
@@ -580,18 +640,31 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{3} = zeros(15, 6);  % w.r.t pose j
   jacs{4} = zeros(15, 9);  % w.r.t speed and biase j
 
-  % Eigen::Matrix<typename Derived::Scalar, 4, 4> ans;
-  % ans(0, 0) = q.w();
-  % ans.template block<1, 3>(0, 1) = -q.vec().transpose();
-  % ans.template block<3, 1>(1, 0) = q.vec();
-  % ans.template block<3, 3>(1, 1) = q.w() * I(3) + skew(qq.vec());
-
   % -- Jacobian w.r.t. pose i
-  jacs{1}(1:3, 1:3) = -C_i';                                                        % dr w.r.t r_i
-  jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)));  % dr w.r.t C_i
-  jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                        % dv w.r.t C_i
-  % jacs{1}(7:9, 4:6) =  -(Qleft(quat_mul(quat_inv(q_j), q_i) * Qright(corrected_delta_q)).bottomRightCorner<3, 3>();                        % dq w.r.t C_i
-  % jacs{1}(7:9, 4:6) = -Jr_inv(                                                               % dC w.r.t C_i
+  jacs{1}(1:3, 1:3) = -C_i';                                                       % dr w.r.t r_i
+  jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
+  jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
+  jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dC w.r.t C_i
+
+  % -- Jacobian w.r.t. speed and biases i
+  jacs{2}(1:3, 1:3) = -C_i' * Dt;  % dr w.r.t v_i
+  jacs{2}(1:3, 4:6) = -dr_dba;     % dr w.r.t ba
+  jacs{2}(1:3, 7:9) = -dr_dbg;     % dr w.r.t bg
+  jacs{2}(4:6, 1:3) = -C_i';       % dv w.r.t v_i
+  jacs{2}(4:6, 4:6) = -dv_dba;     % dv w.r.t ba
+  jacs{2}(4:6, 7:9) = -dv_dbg;     % dv w.r.t bg
+
+  % -- Jacobian w.r.t. pose j
+  err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
+  jacs{3}(1:3, 1:3) = C_i';                                                                       % dr w.r.t r_j
+  jacs{3}(7:9, 4:6) = -Jr_inv(err_rot);                                                           % dC w.r.t C_i
+  jacs{3}(7:9, 4:6) = quat_left(quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4, 2:4);
+  dq
+  q_i
+  q_j
+
+  % -- Jacobian w.r.t. sb j
+  jacs{4}(4:6, 1:3) = C_i';       % dv w.r.t v_j
 endfunction
 
 function plot_imu(sim_data)
@@ -769,46 +842,64 @@ sim_data = sim_imu(0.5, 1.0);
 % est = imu_batch_integrate(sim_data, "rk4");
 % traj_error(sim_data, est);
 
-N = length(sim_data.time);
+% N = length(sim_data.time);
+N = 100;
 imu_ts = sim_data.time(1:N);
 imu_acc = sim_data.imu_acc(:, 1:N);
 imu_gyr = sim_data.imu_gyr(:, 1:N);
 g = [0.0; 0.0; 9.81];
 pose_i = sim_data.poses{1};
-sb_i = [sim_data.vel(:, 1); zeros(6, 1)];
+sb_i = [sim_data.vel(:, 1); 1e-5 * eye(6, 1)];
 pose_j = sim_data.poses{N};
-sb_j = [sim_data.vel(:, N); zeros(6, 1)];
+sb_j = [sim_data.vel(:, N); 1e-3 * eye(6, 1)];
 
 % Evaluate imu factor
 [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j);
 
 % Check jacobians
-% -- Check jacobian w.r.t pose i
 step = 1e-8;
+% -- Check jacobian w.r.t pose i (DONE!)
+% fdiff = zeros(15, 6);
+% for i = 1:6
+%   pose_i_diff = perturb_pose(pose_i, step, i);
+%   [r_diff, _] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i_diff, sb_i, pose_j, sb_j);
+%   fdiff(:, i) = (r_diff - r) / step;
+% endfor
+% jacs{1}
+% fdiff
+% jacs{1} - fdiff
+% % -- Check jacobian w.r.t sb i
+% fdiff = zeros(15, 9);
+% for i = 1:9
+%   sb_i_diff = sb_i;
+%   sb_i_diff(i) += step;
+%   [r_diff, _] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i_diff, pose_j, sb_j);
+%   fdiff(:, i) = (r_diff - r) / step;
+% endfor
+% jacs{2}
+% fdiff
+% jacs{2} - fdiff
+% -- Check jacobian w.r.t pose j
 fdiff = zeros(15, 6);
-for i = 1:3
-  pose_i_diff = perturb_trans(pose_i, step, i)
-  [r_diff, _] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i_diff, sb_i, pose_j, sb_j);
+for i = 1:6
+  pose_j_diff = perturb_pose(pose_j, step, i);
+  [r_diff, _] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j_diff, sb_j);
   fdiff(:, i) = (r_diff - r) / step;
 endfor
-for i = 4:6
-  pose_i_diff = perturb_rot(pose_i, step, i - 3)
-  [r_diff, _] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i_diff, sb_i, pose_j, sb_j);
-  fdiff(:, i) = (r_diff - r) / step;
-endfor
-
-jacs{1}
+jacs{3}
 fdiff
-
-
-
-
-
-
-
-
-
-
+jacs{3} - fdiff
+% % -- Check jacobian w.r.t sb j (DONE!)
+% fdiff = zeros(15, 9);
+% for i = 1:9
+%   sb_j_diff = sb_j;
+%   sb_j_diff(i) += step;
+%   [r_diff, _] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j_diff);
+%   fdiff(:, i) = (r_diff - r) / step;
+% endfor
+% jacs{4}
+% fdiff
+% jacs{4} - fdiff
 
 % % Print errors
 % plot_poses(sim_data, est);
