@@ -265,9 +265,7 @@ int test_lerp3() {
   return 0;
 }
 
-int test_sinc() {
-  return 0;
-}
+int test_sinc() { return 0; }
 
 int test_mean() {
   real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
@@ -490,7 +488,8 @@ int test_mat_transpose() {
   mat_transpose(A, 3, 3, C);
   print_matrix("C", C, 3, 3);
 
-  real_t B[3*4] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+  real_t B[3 * 4] =
+      {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
   real_t D[9] = {0.0};
   print_matrix("B", B, 3, 4);
   mat_transpose(B, 3, 4, D);
@@ -1152,91 +1151,53 @@ int test_quat2rot() {
 
 /* IMAGE ---------------------------------------------------------------------*/
 
-int test_image_setup() {
-  return 0;
-}
+int test_image_setup() { return 0; }
 
-int test_image_load() {
-  return 0;
-}
+int test_image_load() { return 0; }
 
-int test_image_print_properties() {
-  return 0;
-}
+int test_image_print_properties() { return 0; }
 
-int test_image_free() {
-  return 0;
-}
+int test_image_free() { return 0; }
 
 /* RADTAN --------------------------------------------------------------------*/
 
-int test_radtan4_distort() {
-  return 0;
-}
+int test_radtan4_distort() { return 0; }
 
-int test_radtan4_point_jacobian() {
-  return 0;
-}
+int test_radtan4_point_jacobian() { return 0; }
 
-int test_radtan4_params_jacobian() {
-  return 0;
-}
+int test_radtan4_params_jacobian() { return 0; }
 
 /* EQUI ----------------------------------------------------------------------*/
 
-int test_equi4_distort() {
-  return 0;
-}
+int test_equi4_distort() { return 0; }
 
-int test_equi4_point_jacobian() {
-  return 0;
-}
+int test_equi4_point_jacobian() { return 0; }
 
-int test_equi4_params_jacobian() {
-  return 0;
-}
+int test_equi4_params_jacobian() { return 0; }
 
 /* PINHOLE -------------------------------------------------------------------*/
 
-int test_pinhole_project() {
-  return 0;
-}
+int test_pinhole_project() { return 0; }
 
-int test_pinhole_point_jacobian() {
-  return 0;
-}
+int test_pinhole_point_jacobian() { return 0; }
 
-int test_pinhole_params_jacobian() {
-  return 0;
-}
+int test_pinhole_params_jacobian() { return 0; }
 
 /* PINHOLE-RADTAN4 -----------------------------------------------------------*/
 
-int test_pinhole_radtan4_project() {
-  return 0;
-}
+int test_pinhole_radtan4_project() { return 0; }
 
-int test_pinhole_radtan4_project_jacobian() {
-  return 0;
-}
+int test_pinhole_radtan4_project_jacobian() { return 0; }
 
-int test_pinhole_radtan4_params_jacobian() {
-  return 0;
-}
+int test_pinhole_radtan4_params_jacobian() { return 0; }
 
 /* PINHOLE-EQUI4 -------------------------------------------------------------*/
 
-int test_pinhole_equi4_project() {
-  return 0;
-}
+int test_pinhole_equi4_project() { return 0; }
 
-int test_pinhole_equi4_project_jacobian() {
-  return 0;
-}
+int test_pinhole_equi4_project_jacobian() { return 0; }
 
-int test_pinhole_equi4_params_jacobian() {
-  return 0;
-}
+int test_pinhole_equi4_params_jacobian() { return 0; }
 
 /******************************************************************************
  * SENSOR FUSION

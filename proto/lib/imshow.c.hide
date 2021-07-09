@@ -149,14 +149,14 @@ void imshow_draw(imshow_t *im) {
 
   glBindTexture(GL_TEXTURE_2D, im->texture_id);
   glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(-1.0, -1.0, 0.0);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(1.0, -1.0, 0.0);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(1.0, 1.0, 0.0);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(-1.0, 1.0, 0.0);
+  glTexCoord2f(0.0f, 0.0f);
+  glVertex3f(-1.0, -1.0, 0.0);
+  glTexCoord2f(1.0f, 0.0f);
+  glVertex3f(1.0, -1.0, 0.0);
+  glTexCoord2f(1.0f, 1.0f);
+  glVertex3f(1.0, 1.0, 0.0);
+  glTexCoord2f(0.0f, 1.0f);
+  glVertex3f(-1.0, 1.0, 0.0);
   glEnd();
   glFlush();
 
@@ -210,7 +210,7 @@ int imshow_wait(imshow_t *im) {
   /*               &rootX, &rootY, &winX, &winY, &mask); */
 
   /* Capture scroll events */
-  if (ev.type == ButtonPress){
+  if (ev.type == ButtonPress) {
     switch (ev.xbutton.button) {
     case Button1:
       im->mouse_pressed = 1;
