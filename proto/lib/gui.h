@@ -190,7 +190,7 @@ typedef struct gui_t {
   float last_cursor_y;
 } gui_t;
 
-/* void gui_framebuffer_size_callback(GLFWwindow* window, int width, int
+/* void gui_framebuffer_size_callback(GLFWwindow *window, int width, int
  * height); */
 /* void gui_event_handler(GLFWwindow *window); */
 /* void gui_error_callback(int error, const char *description); */

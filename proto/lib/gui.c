@@ -309,6 +309,7 @@ void gl_lookat(const GLfloat eye[3],
 
 GLuint shader_compile(const char *shader_src, const int type) {
   if (shader_src == NULL) {
+    LOG_ERROR("Shader source is NULL!");
     return GL_FALSE;
   }
 
@@ -321,7 +322,7 @@ GLuint shader_compile(const char *shader_src, const int type) {
   if (retval == GL_FALSE) {
     char log[9046] = {0};
     glGetShaderInfoLog(shader, 9046, NULL, log);
-    LOG_ERROR("Failed to compile shader:\n%s\n", log);
+    LOG_ERROR("Failed to compile shader:\n%s", log);
     return retval;
   }
 

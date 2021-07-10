@@ -294,49 +294,33 @@ int test_gl_lookat() {
  ******************************************************************************/
 
 int test_shader_compile() {
-  /* #<{(| GLFW |)}># */
-  /* glfwInit(); */
-  /* glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); */
-  /* glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); */
-  /* glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); */
-  /* glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); */
-  /* GLFWwindow *window = glfwCreateWindow(1, 1, "Test", NULL, NULL); */
-  /* glfwMakeContextCurrent(window); */
-  /*  */
-  /* #<{(| GLEW |)}># */
-  /* GLenum err = glewInit(); */
-  /* if (err != GLEW_OK) { */
-  /*   printf("glewInit failed: %s", glewGetErrorString(err)); */
-  /*   exit(1); */
-  /* } */
-
   /* SDL init */
-  if (SDL_Init(SDL_INIT_VIDEO) != 0){
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
     return -1;
   }
 
-	/* Window */
-	const char *title = "Hello World!";
-	const int x = 100;
-	const int y = 100;
-	const int w = 640;
-	const int h = 480;
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-	SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-	if (window == NULL){
-		printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-		return -1;
-	}
+  /* Window */
+  const char *title = "Hello World!";
+  const int x = 100;
+  const int y = 100;
+  const int w = 640;
+  const int h = 480;
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
+  if (window == NULL) {
+    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
+    return -1;
+  }
 
-	/* OpenGL context */
+  /* OpenGL context */
   SDL_GLContext context = SDL_GL_CreateContext(window);
-	SDL_GL_SetSwapInterval(1);
-	UNUSED(context);
+  SDL_GL_SetSwapInterval(1);
+  UNUSED(context);
 
-	/* GLEW */
+  /* GLEW */
   GLenum err = glewInit();
   if (err != GLEW_OK) {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
@@ -357,32 +341,32 @@ int test_shader_compile() {
 
 int test_shader_link() {
   /* SDL init */
-  if (SDL_Init(SDL_INIT_VIDEO) != 0){
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
     return -1;
   }
 
-	/* Window */
-	const char *title = "Hello World!";
-	const int x = 100;
-	const int y = 100;
-	const int w = 640;
-	const int h = 480;
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-	SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-	if (window == NULL){
-		printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-		return -1;
-	}
+  /* Window */
+  const char *title = "Hello World!";
+  const int x = 100;
+  const int y = 100;
+  const int w = 640;
+  const int h = 480;
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
+  if (window == NULL) {
+    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
+    return -1;
+  }
 
-	/* OpenGL context */
+  /* OpenGL context */
   SDL_GLContext context = SDL_GL_CreateContext(window);
-	SDL_GL_SetSwapInterval(1);
-	UNUSED(context);
+  SDL_GL_SetSwapInterval(1);
+  UNUSED(context);
 
-	/* GLEW */
+  /* GLEW */
   GLenum err = glewInit();
   if (err != GLEW_OK) {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
@@ -412,33 +396,49 @@ int test_shader_link() {
  *                                GL PROGRAM
  ******************************************************************************/
 
-/* int test_gl_prog_setup() { */
-/*   #<{(| GLFW |)}># */
-/*   glfwInit(); */
-/*   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); */
-/*   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); */
-/*   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); */
-/*   glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); */
-/*   GLFWwindow *window = glfwCreateWindow(1, 1, "Test", NULL, NULL); */
-/*   glfwMakeContextCurrent(window); */
-/*  */
-/*   #<{(| GLEW |)}># */
-/*   GLenum err = glewInit(); */
-/*   if (err != GLEW_OK) { */
-/*     printf("glewInit failed: %s", glewGetErrorString(err)); */
-/*     exit(1); */
-/*   } */
-/*  */
-/*   #<{(| Shader program |)}># */
-/*   char *glcube_vs = file_read("./shaders/cube.vert"); */
-/*   char *glcube_fs = file_read("./shaders/cube.frag"); */
-/*   const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL); */
-/*   free(glcube_vs); */
-/*   free(glcube_fs); */
-/*   MU_CHECK(program_id != GL_FALSE); */
-/*  */
-/*   return 0; */
-/* } */
+int test_gl_prog_setup() {
+  /* SDL init */
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    printf("SDL_Init Error: %s/n", SDL_GetError());
+    return -1;
+  }
+
+  /* Window */
+  const char *title = "Hello World!";
+  const int x = 100;
+  const int y = 100;
+  const int w = 640;
+  const int h = 480;
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
+  if (window == NULL) {
+    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
+    return -1;
+  }
+
+  /* OpenGL context */
+  SDL_GLContext context = SDL_GL_CreateContext(window);
+  SDL_GL_SetSwapInterval(1);
+  UNUSED(context);
+
+  /* GLEW */
+  GLenum err = glewInit();
+  if (err != GLEW_OK) {
+    FATAL("glewInit failed: %s", glewGetErrorString(err));
+  }
+
+  /* Shader program */
+  char *glcube_vs = file_read("./shaders/cube.vert");
+  char *glcube_fs = file_read("./shaders/cube.frag");
+  const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL);
+  free(glcube_vs);
+  free(glcube_fs);
+  MU_CHECK(program_id != GL_FALSE);
+
+  return 0;
+}
 
 /*******************************************************************************
  *                                 GL-CAMERA
@@ -499,42 +499,43 @@ int test_gl_camera_setup() {
 
 int test_gui() {
   /* SDL init */
-  if (SDL_Init(SDL_INIT_VIDEO) != 0){
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
     return -1;
   }
 
-	/* Window */
-	const char *title = "Hello World!";
-	const int x = 100;
-	const int y = 100;
-	const int w = 640;
-	const int h = 480;
-	const uint32_t flags = SDL_WINDOW_SHOWN;
-	SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, flags);
-	if (window == NULL){
-		printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-		return -1;
-	}
+  /* Window */
+  const char *title = "Hello World!";
+  const int x = 100;
+  const int y = 100;
+  const int w = 640;
+  const int h = 480;
+  const uint32_t flags = SDL_WINDOW_SHOWN;
+  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, flags);
+  if (window == NULL) {
+    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
+    return -1;
+  }
 
-	/* OpenGL context */
+  /* OpenGL context */
   SDL_GLContext context = SDL_GL_CreateContext(window);
-	UNUSED(context);
+  UNUSED(context);
 
-	int loop = 1;
-	while (loop) {
-		glViewport(0, 0, w, h);
+  int loop = 1;
+  while (loop) {
+    glViewport(0, 0, w, h);
     glClearColor(1.f, 0.f, 1.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT);
     SDL_GL_SwapWindow(window);
-	}
+  }
 
   // Surface
   /* SDL_Surface *surface = SDL_GetWindowSurface(window); */
-  /* SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0xFF, 0xFF, 0xFF)); */
+  /* SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0xFF, 0xFF, 0xFF));
+   */
   /* SDL_UpdateWindowSurface(window); */
 
-	SDL_Delay(2000);
+  SDL_Delay(2000);
   SDL_DestroyWindow(window);
   SDL_Quit();
 
@@ -562,10 +563,10 @@ void test_suite() {
   MU_ADD_TEST(test_shader_link);
 
   /* GL PROGRAM */
-  /* MU_ADD_TEST(test_gl_prog_setup); */
+  MU_ADD_TEST(test_gl_prog_setup);
 
   /* GL CAMERA */
-  MU_ADD_TEST(test_gl_camera_setup);
+  /* MU_ADD_TEST(test_gl_camera_setup); */
 
   /* GUI */
   /* MU_ADD_TEST(test_gui); */
