@@ -1,9 +1,10 @@
 function J = Jr_inv(theta)
   theta_norm = norm(theta);
+  theta_norm_sq = theta_norm * theta_norm;
   theta_skew = skew(theta);
   theta_skew_sq = theta_skew * theta_skew;
 
-  A = 1.0 / theta_skew_sq;
+  A = 1.0 / theta_norm_sq;
   B = (1 + cos(theta_norm)) / (2 * theta_norm * sin(theta_norm));
 
   J = eye(3);

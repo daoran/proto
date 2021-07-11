@@ -1,4 +1,8 @@
 function J = Jr(theta)
+  % Equation (8) in:
+  % Forster, Christian, et al. "IMU preintegration on manifold for efficient
+  % visual-inertial maximum-a-posteriori estimation." Georgia Institute of
+  % Technology, 2015.
   theta_norm = norm(theta);
   theta_norm_sq = theta_norm * theta_norm;
   theta_norm_cube = theta_norm_sq * theta_norm;
