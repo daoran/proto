@@ -20,5 +20,5 @@ function [F, r_j, v_j, C_j, ba_j, bg_j] = imu_euler_integrate(ts_i, ts_j,
   F(7:9, 7:9) = -skew(gyr_i - bg_i);
   F(7:9, 13:15) = -eye(3);
 
-  F = eye(15) + F * dt;
+  % F = eye(15) + F * dt;
 endfunction

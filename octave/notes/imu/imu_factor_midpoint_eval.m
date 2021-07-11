@@ -7,7 +7,6 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   ba_i = sb_i(4:6);
   bg_i = sb_i(7:9);
 
-  t_prev = imu_ts(1);
   dt = 0.0;
   Dt = 0.0;
 
@@ -25,11 +24,11 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   Q(7:9, 7:9) = (noise_ba * noise_ba) * eye(3);
   Q(10:12, 10:12) = (noise_bg * noise_bg) * eye(3);
 
+  dt = imu_ts(2) - imu_ts(1);
+  dt_sq = dt * dt;
   for k = 1:(length(imu_ts)-1)
     % Calculate dt
     t = imu_ts(k);
-    dt = t - t_prev;
-    dt_sq = dt * dt;
 
     % Mid point integration
     ts_i = imu_ts(k);
@@ -73,7 +72,6 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
     % state_P = I_F_dt * state_P * I_F_dt' + G_dt * Q * G_dt';
 
     % Update time
-    t_prev = t;
     Dt += dt;
   endfor
 
@@ -106,16 +104,15 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   dr = dr + dr_dba * dba + dr_dbg * dbg;
   dv = dv + dv_dba * dba + dv_dbg * dbg;
   dq = quat_mul(quat_delta(dq_dbg * dbg), rot2quat(dC));
-  % dC = dC * Exp(dq_dbg * dbg);
+  dC = dC * Exp(dq_dbg * dbg);
 
   % Form residuals
   Dt_sq = Dt * Dt;
   err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
   err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv;
   err_rot = (2 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
-  % err_rot = Log(dC' * (C_i' * C_j));
   err_ba = ba_j - ba_i;
-  err_bg = ba_j - ba_i;
+  err_bg = bg_j - bg_i;
   r = [err_pos; err_vel; err_rot; err_ba; err_bg];
 
   % Form jacobians
@@ -125,7 +122,7 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{4} = zeros(15, 9);  % w.r.t speed and biase j
 
   % -- Jacobian w.r.t. pose i
-  jacs{1}(1:3, 1:3) = -C_i';                                                     % dr w.r.t r_i
+  jacs{1}(1:3, 1:3) = -C_i';                                                       % dr w.r.t r_i
   jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
   jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
   jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dC w.r.t C_i
@@ -134,19 +131,23 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{2}(1:3, 1:3) = -C_i' * Dt;  % dr w.r.t v_i
   jacs{2}(1:3, 4:6) = -dr_dba;     % dr w.r.t ba
   jacs{2}(1:3, 7:9) = -dr_dbg;     % dr w.r.t bg
+
   jacs{2}(4:6, 1:3) = -C_i';       % dv w.r.t v_i
   jacs{2}(4:6, 4:6) = -dv_dba;     % dv w.r.t ba
   jacs{2}(4:6, 7:9) = -dv_dbg;     % dv w.r.t bg
+
   jacs{2}(7:9, 7:9) = -quat_left(C_j' * C_i * dC)(2:4, 2:4) * dq_dbg;     % dC w.r.t bg
+
   jacs{2}(10:12, 4:6) = -eye(3);   % dba w.r.t ba
   jacs{2}(13:15, 7:9) = -eye(3);   % dbg w.r.t bg
 
   % -- Jacobian w.r.t. pose j
-  err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
   jacs{3}(1:3, 1:3) = C_i';                                                                       % dr w.r.t r_j
-  jacs{3}(7:9, 4:6) = -Jr_inv(err_rot);                                                           % dC w.r.t C_i
-  jacs{3}(7:9, 4:6) = quat_left(quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4, 2:4);
+  jacs{3}(7:9, 4:6) = Jr_inv(err_rot);                                                           % dC w.r.t C_i
+  % jacs{3}(7:9, 4:6) = quat_left(quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4, 2:4);
 
   % -- Jacobian w.r.t. sb j
-  jacs{4}(4:6, 1:3) = C_i';       % dv w.r.t v_j
+  jacs{4}(4:6, 1:3) = C_i';      % dv w.r.t v_j
+  jacs{4}(10:12, 4:6) = eye(3);  % dv w.r.t ba_j
+  jacs{4}(13:15, 7:9) = eye(3);  % dv w.r.t bg_j
 endfunction

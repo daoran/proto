@@ -3,11 +3,11 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   dC = eye(3, 3);
   dv = zeros(3, 1);
   dr = zeros(3, 1);
-  ba = sb_i(4:6);
-  bg = sb_i(7:9);
+  ba_i = sb_i(4:6);
+  bg_i = sb_i(7:9);
 
-  t_prev = imu_ts(1);
-  dt = 0.0;
+  dt = imu_ts(2) - imu_ts(1);
+  dt_sq = dt * dt;
   Dt = 0.0;
 
   state_F = eye(15, 15);   % State jacobian
@@ -24,56 +24,36 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   Q(7:9, 7:9) = (noise_ba * noise_ba) * eye(3);
   Q(10:12, 10:12) = (noise_bg * noise_bg) * eye(3);
 
-  for k = 2:length(imu_ts)
+  for k = 1:(length(imu_ts)-1)
     % Calculate dt
     t = imu_ts(k);
-    dt = t - t_prev;
-    dt_sq = dt * dt;
-    a = imu_acc(:, k);
-    w = imu_gyr(:, k);
 
-    % Propagate IMU state using Euler method
-    dr = dr + (dv * dt) + (0.5 * dC * (a - ba) * dt_sq);
-    dv = dv + dC * (a - ba) * dt;
-    dC = dC * Exp((w - bg) * dt);
+    % Euler integration
+    ts_i = imu_ts(k);
+    ts_j = imu_ts(k+1);
+    acc_i = imu_acc(:, k);
+    gyr_i = imu_gyr(:, k);
+    acc_j = imu_acc(:, k+1);
+    gyr_j = imu_gyr(:, k+1);
 
-    % Continuous time transition matrix F
-    F = zeros(15, 15);
-    F(1:3, 4:6) = eye(3);
-    F(4:6, 7:9) = -dC * skew(a - ba);
-    F(4:6, 10:12) = -dC;
-    F(7:9, 7:9) = -skew(w - bg);
-    F(7:9, 13:15) = -eye(3);
-
-    % Continuous time input matrix G
-    G = zeros(15, 12);
-    G(4:6, 1:3) = -dC;
-    G(7:9, 4:6) = -eye(3);
-    G(10:12, 7:9) = eye(3);
-    G(13:15, 10:12) = eye(3);
+    [F, dr, dv, dC, ba_i, bg_i] = imu_euler_integrate(ts_i, ts_j,
+                                                         acc_i, gyr_i,
+                                                         acc_j, gyr_j,
+                                                         dr, dv, dC, ba_i, bg_i, g);
 
     % Discretize transition matrix F by using Taylor Series to the 3rd order
     % "Quaternion kinematics for the error-state Kalman filter" (2017)
     % By Joan Sola
     % [Section B, p.73 "Closed-form Integration Methods"]
-    % F_dt = F * dt;
-    % Phi = eye(15);
-    % Phi += F_dt;
-    % Phi += (1.0 / 2.0) * F_dt^2;
-    % Phi += (1.0 / 6.0) * F_dt^3;
-    % state_F = Phi * state_F;
-
-    % Propagate the state covariance matrix
-    % state_P = (Phi * state_P * Phi') + (Phi * G * Q * G' * Phi' * dt);
-
-    % % Propagate the state jacobian and covariance
-    I_F_dt = (eye(15) + F * dt);
-    G_dt = G * dt;
-    state_F = I_F_dt * state_F;
-    state_P = I_F_dt * state_P * I_F_dt' + G_dt * Q * G_dt';
+    F_dt = F * dt;
+    Phi = eye(15);
+    Phi += F_dt;
+    Phi += (1.0 / 2.0) * F_dt^2;
+    Phi += (1.0 / 6.0) * F_dt^3;
+    state_F = Phi * state_F;
+    % state_F = F * state_F;
 
     % Update time
-    t_prev = t;
     Dt += dt;
   endfor
 
@@ -100,8 +80,10 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   dv_dba = state_F(4:6, 10:12);
   dv_dbg = state_F(4:6, 13:15);
   dq_dbg = state_F(7:9, 13:15);
-  dba = ba_i;
-  dbg = bg_i;
+  % dba = ba_i;
+  % dbg = bg_i;
+  dba = zeros(3, 1);
+  dbg = zeros(3, 1);
   % -- Correct the relative position, velocity and rotation
   dr = dr + dr_dba * dba + dr_dbg * dbg;
   dv = dv + dv_dba * dba + dv_dbg * dbg;
@@ -127,7 +109,7 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{4} = zeros(15, 9);  % w.r.t speed and biase j
 
   % -- Jacobian w.r.t. pose i
-  jacs{1}(1:3, 1:3) = -eye(3);                                                       % dr w.r.t r_i
+  jacs{1}(1:3, 1:3) = -C_i';                                                       % dr w.r.t r_i
   jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
   jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
   jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dC w.r.t C_i
@@ -139,15 +121,13 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{2}(4:6, 1:3) = -C_i';       % dv w.r.t v_i
   jacs{2}(4:6, 4:6) = -dv_dba;     % dv w.r.t ba
   jacs{2}(4:6, 7:9) = -dv_dbg;     % dv w.r.t bg
+  jacs{2}(7:9, 7:9) = -Jr_inv(;     % dq w.r.t bg
+  % Fix this and I think we're done :)
 
   % -- Jacobian w.r.t. pose j
-  err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
   jacs{3}(1:3, 1:3) = C_i';                                                                       % dr w.r.t r_j
   jacs{3}(7:9, 4:6) = -Jr_inv(err_rot);                                                           % dC w.r.t C_i
   jacs{3}(7:9, 4:6) = quat_left(quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4, 2:4);
-  % dq
-  % q_i
-  % q_j
 
   % -- Jacobian w.r.t. sb j
   jacs{4}(4:6, 1:3) = C_i';       % dv w.r.t v_j
