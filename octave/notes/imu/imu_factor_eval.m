@@ -24,6 +24,9 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   Q(7:9, 7:9) = (noise_ba * noise_ba) * eye(3);
   Q(10:12, 10:12) = (noise_bg * noise_bg) * eye(3);
 
+  linearized_ba = ba_i;
+  linearized_bg = bg_i;
+
   for k = 1:(length(imu_ts)-1)
     % Calculate dt
     t = imu_ts(k);
@@ -36,22 +39,22 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
     acc_j = imu_acc(:, k+1);
     gyr_j = imu_gyr(:, k+1);
 
-    [F, dr, dv, dC, ba_i, bg_i] = imu_euler_integrate(ts_i, ts_j,
+    [F, dr, dv, dC, linearized_ba, linearized_bg] = imu_euler_integrate(ts_i, ts_j,
                                                          acc_i, gyr_i,
                                                          acc_j, gyr_j,
-                                                         dr, dv, dC, ba_i, bg_i, g);
+                                                         dr, dv, dC, linearized_ba, linearized_bg, g);
 
     % Discretize transition matrix F by using Taylor Series to the 3rd order
     % "Quaternion kinematics for the error-state Kalman filter" (2017)
     % By Joan Sola
     % [Section B, p.73 "Closed-form Integration Methods"]
-    F_dt = F * dt;
-    Phi = eye(15);
-    Phi += F_dt;
-    Phi += (1.0 / 2.0) * F_dt^2;
-    Phi += (1.0 / 6.0) * F_dt^3;
-    state_F = Phi * state_F;
-    % state_F = F * state_F;
+    % F_dt = F * dt;
+    % Phi = eye(15);
+    % Phi += F_dt;
+    % Phi += (1.0 / 2.0) * F_dt^2;
+    % Phi += (1.0 / 6.0) * F_dt^3;
+    % state_F = Phi * state_F;
+    state_F = (eye(15) + F * dt) * state_F;
 
     % Update time
     Dt += dt;
@@ -80,39 +83,38 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   dv_dba = state_F(4:6, 10:12);
   dv_dbg = state_F(4:6, 13:15);
   dq_dbg = state_F(7:9, 13:15);
-  % dba = ba_i;
-  % dbg = bg_i;
-  dba = zeros(3, 1);
-  dbg = zeros(3, 1);
+  dba = ba_i - linearized_ba;
+  dbg = bg_i - linearized_bg;
   % -- Correct the relative position, velocity and rotation
   dr = dr + dr_dba * dba + dr_dbg * dbg;
   dv = dv + dv_dba * dba + dv_dbg * dbg;
   dq = quat_mul(quat_delta(dq_dbg * dbg), rot2quat(dC));
-  % dC = dC * Exp(dq_dbg * dbg);
+  dC_ = dC;
+  dC = dC * Exp(dq_dbg * dbg);
 
   % Form residuals
   Dt_sq = Dt * Dt;
   err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
   err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv;
   err_rot = (2 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
-  % err_rot = Log(dC' * (C_i' * C_j));
+  % err_rot = Log(dC' * C_i' * C_j);
   err_ba = zeros(3, 1);
   err_bg = zeros(3, 1);
   % err_ba = ba_j - ba_i;
-  % err_bg = ba_j - ba_i;
+  % err_bg = bg_j - bg_i;
   r = [err_pos; err_vel; err_rot; err_ba; err_bg];
 
   % Form jacobians
-  jacs{1} = zeros(15, 6);  % w.r.t pose i
-  jacs{2} = zeros(15, 9);  % w.r.t speed and biase i
-  jacs{3} = zeros(15, 6);  % w.r.t pose j
-  jacs{4} = zeros(15, 9);  % w.r.t speed and biase j
+  jacs{1} = zeros(15, 6);  % residuals w.r.t pose i
+  jacs{2} = zeros(15, 9);  % residuals w.r.t speed and biase i
+  jacs{3} = zeros(15, 6);  % residuals w.r.t pose j
+  jacs{4} = zeros(15, 9);  % residuals w.r.t speed and biase j
 
   % -- Jacobian w.r.t. pose i
   jacs{1}(1:3, 1:3) = -C_i';                                                       % dr w.r.t r_i
   jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
   jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
-  jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dC w.r.t C_i
+  jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dtheta w.r.t C_i
 
   % -- Jacobian w.r.t. speed and biases i
   jacs{2}(1:3, 1:3) = -C_i' * Dt;  % dr w.r.t v_i
@@ -121,13 +123,12 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{2}(4:6, 1:3) = -C_i';       % dv w.r.t v_i
   jacs{2}(4:6, 4:6) = -dv_dba;     % dv w.r.t ba
   jacs{2}(4:6, 7:9) = -dv_dbg;     % dv w.r.t bg
-  jacs{2}(7:9, 7:9) = -Jr_inv(;     % dq w.r.t bg
-  % Fix this and I think we're done :)
+  % jacs{2}(7:9, 7:9) = -Jr_inv(err_rot) * Exp(err_rot)' * Jr(dq_dbg * dbg) * dq_dbg;  % dtheta w.r.t bg_i
+  jacs{2}(7:9, 7:9) = -quat_left(C_j' * C_i * dC_)(2:4, 2:4) * dq_dbg;
 
   % -- Jacobian w.r.t. pose j
-  jacs{3}(1:3, 1:3) = C_i';                                                                       % dr w.r.t r_j
-  jacs{3}(7:9, 4:6) = -Jr_inv(err_rot);                                                           % dC w.r.t C_i
-  jacs{3}(7:9, 4:6) = quat_left(quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4, 2:4);
+  jacs{3}(1:3, 1:3) = C_i';                                             % dr w.r.t r_j
+  jacs{3}(7:9, 4:6) = quat_left(rot2quat(dC' * C_i' * C_j))(2:4, 2:4);  % dtheta w.r.t C_j
 
   % -- Jacobian w.r.t. sb j
   jacs{4}(4:6, 1:3) = C_i';       % dv w.r.t v_j
