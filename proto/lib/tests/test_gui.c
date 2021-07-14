@@ -486,90 +486,45 @@ int test_gl_camera_setup() {
  *                                   GUI
  ******************************************************************************/
 
-/* int test_gui() { */
-/*   gui_t gui; */
-/*   gui.window_title = "Test"; */
-/*   gui.window_width = 640; */
-/*   gui.window_height = 480; */
-/*   gui_setup(&gui); */
-/*   gui_loop(&gui); */
-/*  */
-/*   return 0; */
-/* } */
-
 int test_gui() {
-  /* SDL init */
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    printf("SDL_Init Error: %s/n", SDL_GetError());
-    return -1;
-  }
-
-  /* Window */
-  const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  const uint32_t flags = SDL_WINDOW_SHOWN;
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, flags);
-  if (window == NULL) {
-    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-    return -1;
-  }
-
-  /* OpenGL context */
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  UNUSED(context);
-
-  int loop = 1;
-  while (loop) {
-    glViewport(0, 0, w, h);
-    glClearColor(1.f, 0.f, 1.f, 0.f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    SDL_GL_SwapWindow(window);
-  }
-
-  // Surface
-  /* SDL_Surface *surface = SDL_GetWindowSurface(window); */
-  /* SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0xFF, 0xFF, 0xFF));
-   */
-  /* SDL_UpdateWindowSurface(window); */
-
-  SDL_Delay(2000);
-  SDL_DestroyWindow(window);
-  SDL_Quit();
+  gui_t gui;
+  gui.window_title = "Test";
+  gui.window_width = 640;
+  gui.window_height = 480;
+  gui_setup(&gui);
+  gui_loop(&gui);
 
   return 0;
 }
 
 void test_suite() {
-  /* UTILS */
-  MU_ADD_TEST(test_gl_zeros);
-  MU_ADD_TEST(test_gl_ones);
-  MU_ADD_TEST(test_gl_eye);
-  MU_ADD_TEST(test_gl_equals);
-  MU_ADD_TEST(test_gl_matf_set);
-  MU_ADD_TEST(test_gl_matf_val);
-  MU_ADD_TEST(test_gl_transpose);
-  MU_ADD_TEST(test_gl_vec3_cross);
-  MU_ADD_TEST(test_gl_dot);
-  MU_ADD_TEST(test_gl_norm);
-  MU_ADD_TEST(test_gl_normalize);
-  MU_ADD_TEST(test_gl_perspective);
-  MU_ADD_TEST(test_gl_lookat);
-
-  /* SHADER */
-  MU_ADD_TEST(test_shader_compile);
-  MU_ADD_TEST(test_shader_link);
-
-  /* GL PROGRAM */
-  MU_ADD_TEST(test_gl_prog_setup);
+  /* #<{(| UTILS |)}># */
+  /* MU_ADD_TEST(test_gl_zeros); */
+  /* MU_ADD_TEST(test_gl_ones); */
+  /* MU_ADD_TEST(test_gl_eye); */
+  /* MU_ADD_TEST(test_gl_equals); */
+  /* MU_ADD_TEST(test_gl_matf_set); */
+  /* MU_ADD_TEST(test_gl_matf_val); */
+  /* MU_ADD_TEST(test_gl_transpose); */
+  /* MU_ADD_TEST(test_gl_vec3_cross); */
+  /* MU_ADD_TEST(test_gl_dot); */
+  /* MU_ADD_TEST(test_gl_norm); */
+  /* MU_ADD_TEST(test_gl_normalize); */
+  /* MU_ADD_TEST(test_gl_perspective); */
+  /* MU_ADD_TEST(test_gl_lookat); */
+  /*  */
+  /* #<{(| SHADER |)}># */
+  /* MU_ADD_TEST(test_shader_compile); */
+  /* MU_ADD_TEST(test_shader_link); */
+  /*  */
+  /* #<{(| GL PROGRAM |)}># */
+  /* MU_ADD_TEST(test_gl_prog_setup); */
 
   /* GL CAMERA */
   /* MU_ADD_TEST(test_gl_camera_setup); */
 
   /* GUI */
-  /* MU_ADD_TEST(test_gui); */
+  MU_ADD_TEST(test_gui);
 }
 
 MU_RUN_TESTS(test_suite)

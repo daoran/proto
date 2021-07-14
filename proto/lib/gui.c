@@ -695,132 +695,134 @@ void gl_camera_zoom(gl_camera_t *camera,
 /*     glfwSetWindowShouldClose(gui->window, 1); */
 /*   } */
 /* } */
-/*  */
-/* void gui_setup(gui_t *gui) { */
-/*   #<{(| GLFW |)}># */
-/*   glfwInit(); */
-/*   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); */
-/*   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); */
-/*   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); */
-/*   gui->window = glfwCreateWindow(gui->window_width, */
-/*                                  gui->window_height, */
-/*                                  gui->window_title, */
-/*                                  NULL, NULL); */
-/*   if (gui->window == NULL) { */
-/*     glfwTerminate(); */
-/*     FATAL("Failed to create GLFW window"); */
-/*   } */
-/*   glfwMakeContextCurrent(gui->window); */
-/*   glfwSetWindowAspectRatio(gui->window, gui->window_width,
- * gui->window_height); */
-/*  */
-/*   #<{(| Get screen width, height and center the window |)}># */
-/*   int xpos = 0; */
-/*   int ypos = 0; */
-/*   GLFWmonitor *monitor = glfwGetPrimaryMonitor(); */
-/*   glfwGetMonitorWorkarea(monitor, */
-/*                          &xpos, */
-/*                          &ypos, */
-/*                          &gui->screen_width, */
-/*                          &gui->screen_height); */
-/*   int window_x = (gui->screen_width - gui->window_width) / 2.0; */
-/*   int window_y = (gui->screen_height - gui->window_height) / 2.0; */
-/*   glfwSetWindowPos(gui->window, window_x, window_y); */
-/*  */
-/*   #<{(| Event handlers |)}># */
-/*   glfwSwapInterval(1); */
-/*   glfwSetWindowUserPointer(gui->window, gui); */
-/*   glfwSetCursorPosCallback(gui->window, gui_mouse_cursor_callback); */
-/*   glfwSetMouseButtonCallback(gui->window, gui_mouse_button_callback); */
-/*   glfwSetScrollCallback(gui->window, gui_mouse_scroll_callback); */
-/*   glfwSetFramebufferSizeCallback(gui->window, gui_framebuffer_size_callback);
- */
-/*  */
-/*   #<{(| GLEW |)}># */
-/*   GLenum err = glewInit(); */
-/*   if (err != GLEW_OK) { */
-/*     FATAL("glewInit failed: %s", glewGetErrorString(err)); */
-/*   } */
-/*  */
-/*   #<{(| Camera |)}># */
-/*   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height); */
-/*   gui->movement_speed = 50.0f; */
-/*   gui->mouse_sensitivity = 0.02f; */
-/*  */
-/*   #<{(| Cursor |)}># */
-/*   gui->left_click = 0; */
-/*   gui->right_click = 0; */
-/*   gui->last_cursor_set = 0; */
-/*   gui->last_cursor_x = 0.0f; */
-/*   gui->last_cursor_y = 0.0f; */
-/* } */
-/*  */
-/* void gui_reset(gui_t *gui) { */
-/*   #<{(| Camera |)}># */
-/*   gui->movement_speed = 50.0f; */
-/*   gui->mouse_sensitivity = 0.02f; */
-/*  */
-/*   #<{(| Cursor |)}># */
-/*   gui->left_click = 0; */
-/*   gui->right_click = 0; */
-/*   gui->last_cursor_set = 0; */
-/*   gui->last_cursor_x = 0.0f; */
-/*   gui->last_cursor_y = 0.0f; */
-/* } */
-/*  */
-/* void gui_loop(gui_t *gui) { */
-/*   gl_entity_t cube; */
-/*   GLfloat cube_pos[3] = {0.0, 0.0, 0.0}; */
-/*   gl_cube_setup(&cube, cube_pos); */
-/*  */
-/*   gl_entity_t cube2; */
-/*   GLfloat cube2_pos[3] = {2.0, 0.0, 0.0}; */
-/*   gl_cube_setup(&cube2, cube2_pos); */
-/*  */
-/*   gl_entity_t cube3; */
-/*   GLfloat cube3_pos[3] = {-2.0, 0.0, 0.0}; */
-/*   gl_cube_setup(&cube3, cube3_pos); */
-/*  */
-/*   gl_entity_t cf; */
-/* 	gl_camera_frame_setup(&cf); */
-/*  */
-/*   gl_entity_t frame; */
-/* 	gl_axis_frame_setup(&frame); */
-/*  */
-/*   gl_entity_t grid; */
-/* 	gl_grid_setup(&grid); */
-/*  */
-/*   while (!glfwWindowShouldClose(gui->window)) { */
-/*     gui_event_handler(gui->window); */
-/*     glClearColor(0.15f, 0.15f, 0.15f, 1.0f); */
-/*     glClear(GL_COLOR_BUFFER_BIT); */
-/*  */
-/*     #<{(| gl_cube_draw(&cube, &gui->camera); |)}># */
-/*     #<{(| gl_cube_draw(&cube2, &gui->camera); |)}># */
-/*     #<{(| gl_cube_draw(&cube3, &gui->camera); |)}># */
-/*  */
-/* 		gl_camera_frame_draw(&cf, &gui->camera); */
-/* 		gl_axis_frame_draw(&frame, &gui->camera); */
-/* 		gl_grid_draw(&grid, &gui->camera); */
-/*  */
-/*     glEnable(GL_CULL_FACE); */
-/*     glfwSwapBuffers(gui->window); */
-/*     glfwPollEvents(); */
-/*   } */
-/*  */
-/* 	gl_cube_cleanup(&cube); */
-/* 	gl_cube_cleanup(&cube2); */
-/* 	gl_cube_cleanup(&cube3); */
-/* 	gl_camera_frame_cleanup(&cf); */
-/* 	gl_grid_cleanup(&grid); */
-/*  */
-/*   glfwTerminate(); */
-/* } */
 
-/* GL CUBE ********************************************************************/
+void gui_setup(gui_t *gui) {
+  /* SDL init */
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    FATAL("SDL_Init Error: %s/n", SDL_GetError());
+  }
+
+  /* Window */
+  const char *title = "Hello World!";
+  const int x = 100;
+  const int y = 100;
+  const int w = 640;
+  const int h = 480;
+  const uint32_t flags = SDL_WINDOW_OPENGL;
+  gui->window = SDL_CreateWindow(title, x, y, w, h, flags);
+  if (gui->window == NULL) {
+    FATAL("SDL_CreateWindow Error: %s/n", SDL_GetError());
+  }
+
+  /* OpenGL context */
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  SDL_GLContext context = SDL_GL_CreateContext(gui->window);
+  SDL_GL_SetSwapInterval(1);
+  UNUSED(context);
+
+  /* GLEW */
+  GLenum err = glewInit();
+  if (err != GLEW_OK) {
+    FATAL("glewInit failed: %s", glewGetErrorString(err));
+  }
+
+  /* Camera */
+  gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
+  gui->movement_speed = 50.0f;
+  gui->mouse_sensitivity = 0.02f;
+
+  /* Cursor */
+  gui->left_click = 0;
+  gui->right_click = 0;
+  gui->last_cursor_set = 0;
+  gui->last_cursor_x = 0.0f;
+  gui->last_cursor_y = 0.0f;
+}
+
+void gui_reset(gui_t *gui) {
+  /* Camera */
+  gui->movement_speed = 50.0f;
+  gui->mouse_sensitivity = 0.02f;
+
+  /* Cursor */
+  gui->left_click = 0;
+  gui->right_click = 0;
+  gui->last_cursor_set = 0;
+  gui->last_cursor_x = 0.0f;
+  gui->last_cursor_y = 0.0f;
+}
+
+void gui_loop(gui_t *gui) {
+  gl_entity_t cube;
+  GLfloat cube_pos[3] = {0.0, 0.0, 0.0};
+  gl_cube_setup(&cube, cube_pos);
+
+  gl_entity_t cube2;
+  GLfloat cube2_pos[3] = {2.0, 0.0, 0.0};
+  gl_cube_setup(&cube2, cube2_pos);
+
+  gl_entity_t cube3;
+  GLfloat cube3_pos[3] = {-2.0, 0.0, 0.0};
+  gl_cube_setup(&cube3, cube3_pos);
+
+  gl_entity_t cf;
+  gl_camera_frame_setup(&cf);
+
+  gl_entity_t frame;
+  gl_axis_frame_setup(&frame);
+
+  gl_entity_t grid;
+  gl_grid_setup(&grid);
+
+  int loop = 1;
+  while (loop) {
+    /*     gui_event_handler(gui->window); */
+    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT) {
+        loop = 0;
+      }
+
+      if (event.type == SDL_KEYDOWN) {
+        switch (event.key.keysym.sym) {
+        case SDLK_ESCAPE: loop = 0; break;
+        case SDLK_q: loop = 0; break;
+        }
+      }
+    }
+
+    gl_cube_draw(&cube, &gui->camera);
+    gl_cube_draw(&cube2, &gui->camera);
+    gl_cube_draw(&cube3, &gui->camera);
+
+    gl_camera_frame_draw(&cf, &gui->camera);
+    gl_axis_frame_draw(&frame, &gui->camera);
+    gl_grid_draw(&grid, &gui->camera);
+
+    SDL_GL_SwapWindow(gui->window);
+    SDL_Delay(1);
+  }
+
+  gl_cube_cleanup(&cube);
+  gl_cube_cleanup(&cube2);
+  gl_cube_cleanup(&cube3);
+  gl_camera_frame_cleanup(&cf);
+  gl_grid_cleanup(&grid);
+
+  SDL_DestroyWindow(gui->window);
+  SDL_Quit();
+}
+
+/* GL CUBE
+ * ********************************************************************/
 
 void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]) {
-  /* Entity transform */
+  // Entity transform
   gl_eye(entity->T, 4, 4);
   entity->T[12] = pos[0];
   entity->T[13] = pos[1];
@@ -940,7 +942,8 @@ void gl_cube_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glBindVertexArray(0); // Unbind VAO
 }
 
-/* GL CAMERA FRAME ************************************************************/
+/* GL CAMERA FRAME
+ * ************************************************************/
 
 void gl_camera_frame_setup(gl_entity_t *entity) {
   /* Entity transform */
@@ -1045,7 +1048,8 @@ void gl_camera_frame_draw(const gl_entity_t *entity,
   glLineWidth(original_line_width);
 }
 
-/* GL AXIS FRAME **************************************************************/
+/* GL AXIS FRAME
+ * **************************************************************/
 
 void gl_axis_frame_setup(gl_entity_t *entity) {
   /* Entity transform */
@@ -1178,7 +1182,8 @@ static GLfloat *glgrid_create_vertices(int grid_size) {
   return vertices;
 }
 
-/* GL GRID ********************************************************************/
+/* GL GRID
+ * ********************************************************************/
 
 void gl_grid_setup(gl_entity_t *entity) {
   /* Entity transform */
