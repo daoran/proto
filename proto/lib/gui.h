@@ -178,6 +178,7 @@ typedef struct gui_t {
   char *window_title;
   int window_width;
   int window_height;
+  int loop;
 
   gl_camera_t camera;
   GLfloat movement_speed;
@@ -190,23 +191,10 @@ typedef struct gui_t {
   float last_cursor_y;
 } gui_t;
 
-// void gui_framebuffer_size_callback(GLFWwindow *window, int width, int
-// height);
-// void gui_event_handler(GLFWwindow *window); void
-// gui_error_callback(int error, const char *description); void
-// gui_mouse_cursor_callback(GLFWwindow *window, double x, double y); void
-// gui_mouse_button_callback(GLFWwindow *window,
-//                                int btn,
-//                                int action,
-//                                int mods);
-// void gui_mouse_scroll_callback(GLFWwindow *window, double dx, double
-// dy);
-//
-// void gui_keyboard_callback(GLFWwindow* window,
-//                            int key,
-//                            int scancode,
-//                            int action,
-//                            int mods);
+void gui_window_callback(gui_t *gui, const SDL_Event event);
+void gui_keyboard_callback(gui_t *gui, const SDL_Event event);
+void gui_mouse_callback(gui_t *gui, const SDL_Event event);
+void gui_event_handler(gui_t *gui);
 
 void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);

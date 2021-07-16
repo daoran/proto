@@ -368,9 +368,22 @@ GLuint shaders_link(const GLuint vertex_shader,
 GLuint gl_prog_setup(const char *vs_src,
                      const char *fs_src,
                      const char *gs_src) {
-  const GLuint vs = shader_compile(vs_src, GL_VERTEX_SHADER);
-  const GLuint fs = shader_compile(fs_src, GL_FRAGMENT_SHADER);
-  const GLuint gs = shader_compile(gs_src, GL_GEOMETRY_SHADER);
+  GLuint vs = GL_FALSE;
+  GLuint fs = GL_FALSE;
+  GLuint gs = GL_FALSE;
+
+  if (vs_src) {
+    vs = shader_compile(vs_src, GL_VERTEX_SHADER);
+  }
+
+  if (fs_src) {
+    fs = shader_compile(fs_src, GL_FRAGMENT_SHADER);
+  }
+
+  if (gs_src) {
+    gs = shader_compile(gs_src, GL_GEOMETRY_SHADER);
+  }
+
   const GLuint program_id = shaders_link(vs, fs, gs);
   return program_id;
 }
@@ -607,94 +620,87 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GUI
  ******************************************************************************/
 
-/* void gui_framebuffer_size_callback(GLFWwindow* window, int width, int height)
- * { */
-/*   gui_t *gui = glfwGetWindowUserPointer(window); */
-/*   gui->window_width = width; */
-/*   gui->window_height = height; */
-/*   glViewport(0, 0, gui->window_width, gui->window_height); */
-/* } */
-/*  */
-/* void gui_event_handler(GLFWwindow *window) { */
-/*   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { */
-/*     glfwSetWindowShouldClose(window, 1); */
-/*   } */
-/*   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) { */
-/*     glfwSetWindowShouldClose(window, 1); */
-/*   } */
-/* } */
-/*  */
-/* void gui_error_callback(int error, const char *description) { */
-/*   fprintf(stderr, "GLFW Error %d: %s\n", error, description); */
-/* } */
-/*  */
-/* void gui_mouse_cursor_callback(GLFWwindow *window, double x, double y) { */
-/*   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window); */
-/*   const float dx = x - gui->last_cursor_x; */
-/*   const float dy = y - gui->last_cursor_y; */
-/*   gui->last_cursor_x = x; */
-/*   gui->last_cursor_y = y; */
-/*  */
-/*   #<{(| Rotate camera |)}># */
-/*   if (gui->left_click) { */
-/*     if (gui->last_cursor_set == 0) { */
-/*       gui->last_cursor_set = 1; */
-/*     } else if (gui->last_cursor_set) { */
-/*       gl_camera_rotate(&gui->camera, gui->mouse_sensitivity, dx, dy); */
-/*     } */
-/*   } */
-/*  */
-/*   #<{(| Pan camera |)}># */
-/*   if (gui->right_click) { */
-/*     if (gui->last_cursor_set == 0) { */
-/*       gui->last_cursor_set = 1; */
-/*     } else if (gui->last_cursor_set) { */
-/*       gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy); */
-/*     } */
-/*   } */
-/*  */
-/*   #<{(| Reset cursor |)}># */
-/*   if (gui->left_click == 0 && gui->right_click == 0) { */
-/*     gui->left_click = 0; */
-/*     gui->right_click = 0; */
-/*     gui->last_cursor_set = 0; */
-/*     gui->last_cursor_x = 0.0; */
-/*     gui->last_cursor_y = 0.0; */
-/*   } */
-/* } */
-/*  */
-/* void gui_mouse_button_callback(GLFWwindow *window, */
-/*                                int btn, */
-/*                                int action, */
-/*                                int mods) { */
-/*   UNUSED(mods); */
-/*  */
-/*   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window); */
-/*   if (btn == GLFW_MOUSE_BUTTON_LEFT) { */
-/*     gui->left_click = (action == GLFW_PRESS) ? 1 : 0; */
-/*   } else if (btn == GLFW_MOUSE_BUTTON_RIGHT) { */
-/*     gui->right_click = (action == GLFW_PRESS) ? 1 : 0; */
-/*   } */
-/* } */
-/*  */
-/* void gui_mouse_scroll_callback(GLFWwindow *window, double dx, double dy) { */
-/*   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window); */
-/*   gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, dx, dy); */
-/* } */
-/*  */
-/* void gui_keyboard_callback(GLFWwindow* window, */
-/*                                     int key, */
-/*                            int scancode, */
-/*                            int action, */
-/*                            int mods) { */
-/*   UNUSED(scancode); */
-/*   UNUSED(mods); */
-/*  */
-/*   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window); */
-/*   if (key == GLFW_KEY_Q && action == GLFW_PRESS) { */
-/*     glfwSetWindowShouldClose(gui->window, 1); */
-/*   } */
-/* } */
+void gui_window_callback(gui_t *gui, const SDL_Event event) {
+  if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+    const int width = event.window.data1;
+    const int height = event.window.data2;
+    gui->screen_width = width;
+    gui->screen_height = (height > 0) ? height : 1;
+    glViewport(0, 0, (GLsizei) gui->screen_width, (GLsizei) gui->screen_height);
+  }
+}
+
+void gui_keyboard_callback(gui_t *gui, const SDL_Event event) {
+  if (event.type == SDL_KEYDOWN) {
+    switch (event.key.keysym.sym) {
+      case SDLK_ESCAPE:
+        gui->loop = 0;
+        break;
+      case SDLK_q:
+        gui->loop = 0;
+        break;
+    }
+  }
+}
+
+void gui_mouse_callback(gui_t *gui, const SDL_Event event) {
+  const float x = event.motion.x;
+  const float y = event.motion.y;
+  const float dx = x - gui->last_cursor_x;
+  const float dy = y - gui->last_cursor_y;
+  gui->last_cursor_x = x;
+  gui->last_cursor_y = y;
+
+  gui->left_click = (event.button.button == SDL_BUTTON_LEFT);
+  gui->right_click = (event.button.button == SDL_BUTTON_RIGHT ||
+                      event.button.button == SDL_BUTTON_X1);
+
+  if (gui->left_click) {
+    /* Rotate camera */
+    if (gui->last_cursor_set == 0) {
+      gui->last_cursor_set = 1;
+    } else if (gui->last_cursor_set) {
+      gl_camera_rotate(&gui->camera, gui->mouse_sensitivity, dx, dy);
+    }
+  } else if (gui->right_click) {
+    /* Pan camera */
+    if (gui->last_cursor_set == 0) {
+      gui->last_cursor_set = 1;
+    } else if (gui->last_cursor_set) {
+      gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy);
+    }
+  } else if (event.wheel.type == SDL_MOUSEWHEEL && event.wheel.y) {
+    gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, 0, event.wheel.y);
+  } else {
+    /* Reset cursor */
+    gui->left_click = 0;
+    gui->right_click = 0;
+    gui->last_cursor_set = 0;
+    gui->last_cursor_x = 0.0;
+    gui->last_cursor_y = 0.0;
+  }
+}
+
+void gui_event_handler(gui_t *gui) {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    switch (event.type) {
+      case SDL_WINDOWEVENT:
+        gui_window_callback(gui, event);
+        break;
+      case SDL_KEYUP:
+      case SDL_KEYDOWN:
+        gui_keyboard_callback(gui, event);
+        break;
+      case SDL_MOUSEMOTION:
+      case SDL_MOUSEBUTTONDOWN:
+      case SDL_MOUSEBUTTONUP:
+      case SDL_MOUSEWHEEL:
+        gui_mouse_callback(gui, event);
+        break;
+    }
+  }
+}
 
 void gui_setup(gui_t *gui) {
   /* SDL init */
@@ -713,6 +719,7 @@ void gui_setup(gui_t *gui) {
   if (gui->window == NULL) {
     FATAL("SDL_CreateWindow Error: %s/n", SDL_GetError());
   }
+  SDL_SetWindowResizable(gui->window, 1);
 
   /* OpenGL context */
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -776,25 +783,10 @@ void gui_loop(gui_t *gui) {
   gl_entity_t grid;
   gl_grid_setup(&grid);
 
-  int loop = 1;
-  while (loop) {
-    /*     gui_event_handler(gui->window); */
+  gui->loop = 1;
+  while (gui->loop) {
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT) {
-        loop = 0;
-      }
-
-      if (event.type == SDL_KEYDOWN) {
-        switch (event.key.keysym.sym) {
-        case SDLK_ESCAPE: loop = 0; break;
-        case SDLK_q: loop = 0; break;
-        }
-      }
-    }
 
     gl_cube_draw(&cube, &gui->camera);
     gl_cube_draw(&cube2, &gui->camera);
@@ -804,6 +796,7 @@ void gui_loop(gui_t *gui) {
     gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
 
+    gui_event_handler(gui);
     SDL_GL_SwapWindow(gui->window);
     SDL_Delay(1);
   }
