@@ -491,8 +491,20 @@ int test_gui() {
   gui.window_title = "Test";
   gui.window_width = 640;
   gui.window_height = 480;
+
   gui_setup(&gui);
   gui_loop(&gui);
+
+  return 0;
+}
+
+int test_imshow() {
+  imshow_t imshow;
+  imshow.window_title = "Test";
+  imshow_setup(&imshow, "test_data/images/awesomeface.png");
+  imshow_loop(&imshow);
+
+  /* imshow("TEST", "test_data/images/awesomeface.png"); */
 
   return 0;
 }
@@ -524,7 +536,8 @@ void test_suite() {
   /* MU_ADD_TEST(test_gl_camera_setup); */
 
   /* GUI */
-  MU_ADD_TEST(test_gui);
+  /* MU_ADD_TEST(test_gui); */
+  MU_ADD_TEST(test_imshow);
 }
 
 MU_RUN_TESTS(test_suite)

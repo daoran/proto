@@ -10,7 +10,7 @@ CC=gcc
 CFLAGS=-g -Wall -I$(INC_DIR) -I$(DEPS_DIR)/include `sdl2-config --cflags`
 
 # GLFW3_LIBS=-L$(DEPS_DIR)/lib -lglfw3 -lrt -lm -ldl
-SDL2_LIBS=`sdl2-config --libs`
+SDL2_LIBS=`sdl2-config --libs` -lSDL2_image
 GLEW_LIBS=-lGLEW
 # OPENGL_LIBS=$(GLFW3_LIBS) $(GLEW_LIBS) -lGL -L/usr/X11R6/lib -lX11
 OPENGL_LIBS=$(SDL2_LIBS) $(GLEW_LIBS) -lGL

@@ -12,6 +12,7 @@
 
 #define SDL_DISABLE_IMMINTRIN_H 1
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 #include "proto.h"
 
@@ -167,6 +168,26 @@ void gl_camera_zoom(gl_camera_t *camera,
                     const float dy);
 
 /******************************************************************************
+ * GL-PRIMITIVES
+ ******************************************************************************/
+
+void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]);
+void gl_cube_cleanup(const gl_entity_t *entity);
+void gl_cube_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+
+void gl_camera_frame_setup(gl_entity_t *entity);
+void gl_camera_frame_cleanup(const gl_entity_t *entity);
+void gl_camera_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+
+void gl_axis_frame_setup(gl_entity_t *entity);
+void gl_axis_frame_cleanup(const gl_entity_t *entity);
+void gl_axis_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+
+void gl_grid_setup(gl_entity_t *entity);
+void gl_grid_cleanup(const gl_entity_t *entity);
+void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+
+/******************************************************************************
  * GUI
  ******************************************************************************/
 
@@ -195,25 +216,43 @@ void gui_window_callback(gui_t *gui, const SDL_Event event);
 void gui_keyboard_callback(gui_t *gui, const SDL_Event event);
 void gui_mouse_callback(gui_t *gui, const SDL_Event event);
 void gui_event_handler(gui_t *gui);
-
 void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);
 void gui_loop(gui_t *gui);
 
-void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]);
-void gl_cube_cleanup(const gl_entity_t *entity);
-void gl_cube_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+/******************************************************************************
+ * IMSHOW
+ ******************************************************************************/
 
-void gl_camera_frame_setup(gl_entity_t *entity);
-void gl_camera_frame_cleanup(const gl_entity_t *entity);
-void gl_camera_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+typedef struct imshow_t {
+  int screen_width;
+  int screen_height;
 
-void gl_axis_frame_setup(gl_entity_t *entity);
-void gl_axis_frame_cleanup(const gl_entity_t *entity);
-void gl_axis_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+  SDL_Window *window;
+  char *window_title;
+  int window_width;
+  int window_height;
+  int loop;
 
-void gl_grid_setup(gl_entity_t *entity);
-void gl_grid_cleanup(const gl_entity_t *entity);
-void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+  SDL_Surface *image_surface;
+
+  gl_camera_t camera;
+  GLfloat movement_speed;
+  GLfloat mouse_sensitivity;
+
+  int left_click;
+  int right_click;
+  int last_cursor_set;
+  float last_cursor_x;
+  float last_cursor_y;
+} imshow_t;
+
+void imshow_window_callback(imshow_t *imshow, const SDL_Event event);
+void imshow_keyboard_callback(imshow_t *imshow, const SDL_Event event);
+void imshow_event_handler(imshow_t *gui);
+void imshow_setup(imshow_t *imshow, const char *fp);
+void imshow_reset(imshow_t *imshow);
+void imshow_loop(imshow_t *imshow);
+void imshow(const char *title, const char *fp);
 
 #endif /* _GUI_H_ */
