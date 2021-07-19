@@ -502,9 +502,18 @@ int test_imshow() {
   imshow_t imshow;
   imshow.window_title = "Test";
   imshow_setup(&imshow, "test_data/images/awesomeface.png");
-  imshow_loop(&imshow);
 
-  /* imshow("TEST", "test_data/images/awesomeface.png"); */
+  /* int x = 100; */
+  /* int y = 100; */
+  /* int radius = 10; */
+  /* SDL_Color color; */
+  /* color.r = 0; */
+  /* color.g = 0; */
+  /* color.b = 0; */
+  /* color.a = 255; */
+  /* draw_circle(imshow.renderer, x, y, radius, color); */
+
+  imshow_loop(&imshow);
 
   return 0;
 }
@@ -537,6 +546,8 @@ void test_suite() {
 
   /* GUI */
   /* MU_ADD_TEST(test_gui); */
+
+  /* IMSHOW */
   MU_ADD_TEST(test_imshow);
 }
 

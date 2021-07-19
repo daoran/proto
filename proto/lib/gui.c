@@ -1138,12 +1138,18 @@ void gui_setup(gui_t *gui) {
     FATAL("SDL_Init Error: %s/n", SDL_GetError());
   }
 
+  /* Get display size */
+  SDL_DisplayMode disp_mode;
+  SDL_GetCurrentDisplayMode(0, &disp_mode);
+  const int disp_w = disp_mode.w;
+  const int disp_h = disp_mode.h;
+
   /* Window */
   const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
   const int w = 640;
   const int h = 480;
+  const int x = disp_w / 2 - w / 2;
+  const int y = disp_h / 2 - h / 2;
   const uint32_t flags = SDL_WINDOW_OPENGL;
   gui->window = SDL_CreateWindow(title, x, y, w, h, flags);
   if (gui->window == NULL) {
@@ -1289,19 +1295,73 @@ void imshow_event_handler(imshow_t *imshow) {
   }
 }
 
-void imshow_setup(imshow_t *imshow, const char *fp) {
+void draw_circle(SDL_Renderer *renderer,
+                 const int cx,
+                 const int cy,
+                 const int radius,
+                 const SDL_Color color) {
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+  for (int x = cx - radius; x <= cx + radius; x++) {
+    for (int y = cy - radius; y <= cy + radius; y++) {
+      if ((pow(cy - y, 2) + pow(cx - x, 2)) <= pow(radius, 2)) {
+        SDL_RenderDrawPoint(renderer, x, y);
+      }
+    }
+  }
+}
+
+/* void draw_circle(SDL_Renderer *renderer, */
+/*                  int32_t centreX, */
+/*                  int32_t centreY, */
+/*                  int32_t radius, */
+/*                  const SDL_Color color) { */
+/*   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a); */
+/*   const int32_t diameter = (radius * 2); */
+/*  */
+/*   int32_t x = (radius - 1); */
+/*   int32_t y = 0; */
+/*   int32_t tx = 1; */
+/*   int32_t ty = 1; */
+/*   int32_t error = (tx - diameter); */
+/*  */
+/*   while (x >= y) { */
+/*     //  Each of the following renders an octant of the circle */
+/*     SDL_RenderDrawPoint(renderer, centreX + x, centreY - y); */
+/*     SDL_RenderDrawPoint(renderer, centreX + x, centreY + y); */
+/*     SDL_RenderDrawPoint(renderer, centreX - x, centreY - y); */
+/*     SDL_RenderDrawPoint(renderer, centreX - x, centreY + y); */
+/*     SDL_RenderDrawPoint(renderer, centreX + y, centreY - x); */
+/*     SDL_RenderDrawPoint(renderer, centreX + y, centreY + x); */
+/*     SDL_RenderDrawPoint(renderer, centreX - y, centreY - x); */
+/*     SDL_RenderDrawPoint(renderer, centreX - y, centreY + x); */
+/*  */
+/*     if (error <= 0) { */
+/*       ++y; */
+/*       error += ty; */
+/*       ty += 2; */
+/*     } */
+/*  */
+/*     if (error > 0) { */
+/*       --x; */
+/*       tx += 2; */
+/*       error += (tx - diameter); */
+/*     } */
+/*   } */
+/* } */
+
+void imshow_setup(imshow_t *im, const char *fp) {
   /* SDL init */
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     FATAL("SDL_Init Error: %s/n", SDL_GetError());
   }
 
   /* Load image */
-  imshow->image_surface = IMG_Load(fp);
-  if (imshow->image_surface) {
+  im->image_surface = IMG_Load(fp);
+  if (im->image_surface == NULL) {
     FATAL("Failed to load image [%s]!", fp);
   }
-  const int img_w = imshow->image_surface->w;
-  const int img_h = imshow->image_surface->h;
+  const int img_w = im->image_surface->w;
+  const int img_h = im->image_surface->h;
 
   /* Get display size */
   SDL_DisplayMode disp_mode;
@@ -1314,23 +1374,47 @@ void imshow_setup(imshow_t *imshow, const char *fp) {
   const int y = disp_h / 2 - img_h / 2;
   const int w = img_w;
   const int h = img_h;
-  const uint32_t flags = SDL_WINDOW_OPENGL;
-  imshow->window = SDL_CreateWindow(imshow->window_title, x, y, w, h, flags);
-  if (imshow->window == NULL) {
-    FATAL("SDL_CreateWindow Error: %s/n", SDL_GetError());
+  if (SDL_CreateWindowAndRenderer(w, h, 0, &im->window, &im->renderer) != 0) {
+    FATAL("Failed to create window: %s\n", SDL_GetError());
   }
-  SDL_SetWindowResizable(imshow->window, 1);
+  SDL_SetWindowTitle(im->window, im->window_title);
+  SDL_SetWindowPosition(im->window, x, y);
+  SDL_SetWindowResizable(im->window, 1);
+
+  /* Clear render */
+  SDL_SetRenderDrawColor(im->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+  SDL_RenderClear(im->renderer);
 
   /* Show image */
-  SDL_Surface *screen_surface = SDL_GetWindowSurface(imshow->window);
-  SDL_BlitSurface(imshow->image_surface, NULL, screen_surface, NULL);
+  SDL_Texture *texture =
+      SDL_CreateTextureFromSurface(im->renderer, im->image_surface);
+  SDL_RenderCopy(im->renderer, texture, NULL, NULL);
+  SDL_RenderPresent(im->renderer);
+
+  /* Draw circles */
+  const int x_min = 0;
+  const int y_min = 0;
+  const int x_max = img_w;
+  const int y_max = img_h;
+  for (int i = 0; i < 200; i++) {
+    const int x = (rand() % (x_max + 1 - x_min)) + x_min;
+    const int y = (rand() % (y_max + 1 - y_min)) + y_min;
+    const int radius = 20;
+    SDL_Color color;
+    color.r = 255;
+    color.g = 255;
+    color.b = 255;
+    color.a = 255;
+    draw_circle(im->renderer, x, y, radius, color);
+  }
+  SDL_RenderPresent(im->renderer);
 
   /* Cursor */
-  imshow->left_click = 0;
-  imshow->right_click = 0;
-  imshow->last_cursor_set = 0;
-  imshow->last_cursor_x = 0.0f;
-  imshow->last_cursor_y = 0.0f;
+  im->left_click = 0;
+  im->right_click = 0;
+  im->last_cursor_set = 0;
+  im->last_cursor_x = 0.0f;
+  im->last_cursor_y = 0.0f;
 }
 
 void imshow_reset(imshow_t *imshow) {
@@ -1354,66 +1438,6 @@ void imshow_loop(imshow_t *imshow) {
     SDL_Delay(1);
   }
 
-  SDL_UpdateWindowSurface(imshow->window);
-  SDL_Delay(100);
-
   SDL_DestroyWindow(imshow->window);
   SDL_Quit();
 }
-
-void imshow(const char *title, const char *fp) {
-  /* SDL init */
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    FATAL("SDL_Init Error: %s/n", SDL_GetError());
-  }
-
-  /* Window */
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  const uint32_t flags = SDL_WINDOW_OPENGL;
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, flags);
-  if (window == NULL) {
-    FATAL("SDL_CreateWindow Error: %s/n", SDL_GetError());
-  }
-  SDL_SetWindowResizable(window, 1);
-
-  SDL_Surface *image_surface = IMG_Load(fp);
-  SDL_Surface *screen_surface = SDL_GetWindowSurface(window);
-  SDL_BlitSurface(image_surface, NULL, screen_surface, NULL);
-
-  int loop = 1;
-  while (loop) {
-    SDL_Event event;
-
-    while (SDL_PollEvent(&event)) {
-      switch (event.type) {
-        case SDL_WINDOWEVENT:
-          if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {}
-          break;
-        case SDL_KEYUP:
-        case SDL_KEYDOWN:
-          switch (event.key.keysym.sym) {
-            case SDLK_ESCAPE:
-              loop = 0;
-              break;
-            case SDLK_q:
-              loop = 0;
-              break;
-          }
-          break;
-      }
-    }
-    SDL_UpdateWindowSurface(window);
-    SDL_Delay(1);
-  }
-
-  /* SDL_BlitSurface(image_surface, NULL, screen_surface, NULL); */
-  SDL_UpdateWindowSurface(window);
-  SDL_Delay(100);
-
-  SDL_DestroyWindow(window);
-  SDL_Quit();
-}
-

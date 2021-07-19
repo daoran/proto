@@ -225,10 +225,9 @@ void gui_loop(gui_t *gui);
  ******************************************************************************/
 
 typedef struct imshow_t {
-  int screen_width;
-  int screen_height;
-
   SDL_Window *window;
+  SDL_Renderer *renderer;
+
   char *window_title;
   int window_width;
   int window_height;
@@ -253,6 +252,5 @@ void imshow_event_handler(imshow_t *gui);
 void imshow_setup(imshow_t *imshow, const char *fp);
 void imshow_reset(imshow_t *imshow);
 void imshow_loop(imshow_t *imshow);
-void imshow(const char *title, const char *fp);
 
 #endif /* _GUI_H_ */
