@@ -1,4 +1,8 @@
 function features = create_3d_features_perimeter(origin, dim, nb_features)
+  assert(size(origin) == [3, 1]);
+  assert(size(dim) == [3, 1]);
+  assert(nb_features > 0);
+
   % Dimension of the outskirt
   w = dim(1);
   l = dim(2);
