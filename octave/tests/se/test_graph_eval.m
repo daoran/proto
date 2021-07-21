@@ -45,7 +45,8 @@ for k = 1:length(data.time)
   % Form camera pose transform T_WC
   q_WC = data.q_WC{k};
   r_WC = data.r_WC{k};
-  cam_pose = pose_init(ts, [q_WC; r_WC]);
+  T_WC = tf(q_WC, r_WC);
+  cam_pose = pose_init(ts, T_WC);
   [graph, pose_id] = graph_add_param(graph, cam_pose);
 
   % Get point ids and keypoint measurements at time k

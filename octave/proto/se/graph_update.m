@@ -4,7 +4,7 @@ function graph = graph_update(graph, param_idx, dx)
     idx = param_idx{param.id};
 
 		% Update parameter
-    if strcmp(param.type, "pose")
+    if strcmp(param.type, "pose") == 1
       param = pose_update(param, dx(idx:idx+5));
     else
       param.param = param.param + dx(idx:(idx+param.min_dims-1));

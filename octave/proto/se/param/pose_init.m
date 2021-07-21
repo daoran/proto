@@ -2,9 +2,9 @@ function pose = pose_init(ts, data)
   assert(all(size(data) == [7, 1]) || all(size(data) == [4, 4]));
 
   % Convert pose data from 4x4 homogenous transformation matrix to
-  % pose vector (qw, qx, qy, qz, rx, ry, rz)
+  % pose vector (rx, ry, rz, qx, qy, qz, qw)
   if all(size(data) == [4, 4])
-    data = [tf_quat(data); tf_trans(data)];
+    data = tf_param(data);
   endif
 
   pose.type = "pose";

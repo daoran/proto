@@ -62,8 +62,8 @@ function [r, jacs] = imu_factor_eval(factor, params)
 
   % -- Jacobian w.r.t. pose i
   jacs{1}(1:3, 1:3) = -C_i';                                                       % dr w.r.t r_i
-  jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
-  jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
+  jacs{1}(1:3, 4:6) = -skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
+  jacs{1}(4:6, 4:6) = -skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
   jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dtheta w.r.t C_i
 
   % -- Jacobian w.r.t. speed and biases i
@@ -73,7 +73,6 @@ function [r, jacs] = imu_factor_eval(factor, params)
   jacs{2}(4:6, 1:3) = -C_i';       % dv w.r.t v_i
   jacs{2}(4:6, 4:6) = -dv_dba;     % dv w.r.t ba
   jacs{2}(4:6, 7:9) = -dv_dbg;     % dv w.r.t bg
-  % jacs{2}(7:9, 7:9) = -Jr_inv(err_rot) * Exp(err_rot)' * Jr(dq_dbg * dbg) * dq_dbg;  % dtheta w.r.t bg_i
   jacs{2}(7:9, 7:9) = -quat_left(C_j' * C_i * dC_)(2:4, 2:4) * dq_dbg;
 
   % -- Jacobian w.r.t. pose j

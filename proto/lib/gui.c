@@ -1399,11 +1399,11 @@ void imshow_setup(imshow_t *im, const char *fp) {
   for (int i = 0; i < 200; i++) {
     const int x = (rand() % (x_max + 1 - x_min)) + x_min;
     const int y = (rand() % (y_max + 1 - y_min)) + y_min;
-    const int radius = 20;
+    const int radius = 5;
     SDL_Color color;
     color.r = 255;
-    color.g = 255;
-    color.b = 255;
+    color.g = 0;
+    color.b = 0;
     color.a = 255;
     draw_circle(im->renderer, x, y, radius, color);
   }

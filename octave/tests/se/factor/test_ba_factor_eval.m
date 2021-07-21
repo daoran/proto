@@ -4,7 +4,7 @@ addpath(genpath("proto"));
 rot = euler2quat(deg2rad([-90; 0; -90]));
 trans = [0.0; 0.0; 0.0];
 T_WC = tf(rot, trans);
-data = [rot; trans];
+data = tf_param(T_WC);
 cam_pose = pose_init(0, data);
 
 % Setup cam0
@@ -39,4 +39,11 @@ ba_factor = ba_factor_init(ts, param_ids, z);
 
 % Evaluate BA factor
 params = graph_get_params(graph, ba_factor.param_ids);
-[r, jacobians] = ba_factor_eval(ba_factor, params)
+[r, jacobians] = ba_factor_eval(ba_factor, params);
+
+% Test BA jacobians
+step_size = 1e-8;
+threshold = 1e-4;
+check_factor_jacobians(@ba_factor_eval, ba_factor, params, 1, "J_cam_pose", step_size, threshold);
+check_factor_jacobians(@ba_factor_eval, ba_factor, params, 2, "J_landmark", step_size, threshold);
+check_factor_jacobians(@ba_factor_eval, ba_factor, params, 3, "J_cam_params", step_size, threshold);

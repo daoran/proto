@@ -4,13 +4,16 @@ function T = tf(varargin)
 
   % Parse arguments
   assert(length(varargin) == 1 || length(varargin) == 2);
+
   if length(varargin) == 1
+    % Input is a 4x4 transformation matrix
     pose = varargin{1};
     assert(all(size(pose) == [7, 1]));
-    rot = quat2rot(pose(1:4));
-    trans = pose(5:7);
+    rot = quat2rot([pose(7); pose(4); pose(5); pose(6)]);
+    trans = pose(1:3);
 
   elseif length(varargin) == 2
+    % Input is a rotation matrix + translation vector
     rot = varargin{1};
     trans = varargin{2};
     assert(size(rot) == [3, 3] || size(rot) == [4, 1]);
@@ -18,7 +21,6 @@ function T = tf(varargin)
     if size(rot) == [4, 1]
       rot = quat2rot(rot);
     endif
-
   endif
 
   T = eye(4, 4);

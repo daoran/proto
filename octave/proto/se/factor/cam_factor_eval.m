@@ -37,11 +37,11 @@ function [r, jacs] = cam_factor_eval(factor, params)
   C_WS = tf_rot(T_WS);
   C_SW = C_WS';
   r_WS = tf_trans(T_WS);
-  jacs{1}(1:2, 1:3) = -1 * sqrt_info * J_h * C_CS * C_SW * skew(p_W - r_WS);
-  jacs{1}(1:2, 4:6) = -1 * sqrt_info * J_h * C_CS * -C_SW;
+  jacs{1}(1:2, 1:3) = -1 * sqrt_info * J_h * C_CS * -C_SW;
+  jacs{1}(1:2, 4:6) = -1 * sqrt_info * J_h * C_CS * C_SW * skew(p_W - r_WS);
   % -- Jacobian w.r.t. sensor camera pose T_SC
-  jacs{2}(1:2, 1:3) = -1 * sqrt_info * J_h * C_CS * skew(C_SC * p_C);
-  jacs{2}(1:2, 4:6) = -1 * sqrt_info * J_h * -C_CS;
+  jacs{2}(1:2, 1:3) = -1 * sqrt_info * J_h * -C_CS;
+  jacs{2}(1:2, 4:6) = -1 * sqrt_info * J_h * C_CS * skew(C_SC * p_C);
   % -- Jacobian w.r.t. landmark
   jacs{3} = -1 * sqrt_info * J_h * C_CW;
   % -- Jacobian w.r.t. camera parameters

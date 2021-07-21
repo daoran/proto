@@ -7,14 +7,20 @@ function check_factor_jacobians(factor_eval, factor, params, param_idx, jac_name
   for i = 1:params{param_idx}.min_dims
     % Perturb and evaluate
     params_fwd = params;
-    params_fwd{param_idx}.param = tf_param(perturb_pose(tf(params{param_idx}.param), step_size, i));
+    if strcmp(params_fwd{param_idx}.type, "pose") == 1
+      T = tf(params_fwd{param_idx}.param);
+      T_fwd = perturb_pose(T, step_size, i);
+      params_fwd{param_idx}.param = tf_param(T_fwd);
+    else
+      params_fwd{param_idx}.param(i) += step_size;
+    endif
+
+    % Evaluate
     [r_fwd, _] = factor_eval(factor, params_fwd);
 
     % Forward finite difference
     fdiff(:, i) = (r_fwd - r) / step_size;
   endfor
 
-  jacs{param_idx}
-  fdiff
   check_jacobian(jac_name, fdiff, jacs{param_idx}, threshold, true);
 endfunction

@@ -4,8 +4,7 @@ sim_data = sim_imu(0.5, 1.0);
 window_size = 10
 g = [0.0; 0.0; 9.81];
 
-i = 1;
-start_idx = i;
+start_idx = 10;
 end_idx = start_idx + window_size - 1;
 
 % IMU buffer
@@ -28,16 +27,16 @@ pose_i = pose_init(imu_buf.ts(start_idx), sim_data.poses{start_idx});
 vel_i = sim_data.vel(:, start_idx);
 ba_i = zeros(3, 1);
 bg_i = zeros(3, 1);
-sb_i = sb_init(imu_buf.ts(start_idx), vel_i, bg_i, ba_i);
+sb_i = sb_init(imu_buf.ts(1), vel_i, bg_i, ba_i);
 
 % Pose j
-pose_j = pose_init(imu_buf.ts(end_idx), sim_data.poses{end_idx});
+pose_j = pose_init(imu_buf.ts(end), sim_data.poses{end_idx});
 
 % Speed and bias j
 vel_j = sim_data.vel(:, end_idx);
 ba_j = zeros(3, 1);
 bg_j = zeros(3, 1);
-sb_j = sb_init(imu_buf.ts(end_idx), vel_j, bg_j, ba_j);
+sb_j = sb_init(imu_buf.ts(end), vel_j, bg_j, ba_j);
 
 % Setup graph
 graph = graph_init();
@@ -54,7 +53,9 @@ imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i);
 params = graph_get_params(graph, imu_factor.param_ids);
 [r, jacobians] = imu_factor_eval(imu_factor, params);
 
-h = 1e-8;
+step_size = 1e-8;
 threshold = 1e-4;
-check_factor_jacobians(@imu_factor_eval, imu_factor, params, 1, "J_pose_i", h, threshold)
-% check_factor_jacobians(@imu_factor_eval, imu_factor, params, 3, "J_pose_j", h, threshold)
+check_factor_jacobians(@imu_factor_eval, imu_factor, params, 1, "J_pose_i", step_size, threshold)
+% check_factor_jacobians(@imu_factor_eval, imu_factor, params, 2, "J_sb_i", step_size, threshold)
+% check_factor_jacobians(@imu_factor_eval, imu_factor, params, 3, "J_pose_j", step_size, threshold)
+% check_factor_jacobians(@imu_factor_eval, imu_factor, params, 4, "J_sb_j", step_size, threshold)
