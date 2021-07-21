@@ -1,4 +1,4 @@
-function [r, jacobians] = imu_factor_eval(factor, imu_buf, params)
+function [r, jacs] = imu_factor_eval(factor, params)
   assert(isstruct(factor));
   assert(length(params) == 4);
 
@@ -9,17 +9,19 @@ function [r, jacobians] = imu_factor_eval(factor, imu_buf, params)
   sb_j= params{4};
 
   % Timestep i
-  r_i = tf_trans(pose_i.param);
-  C_i = tf_rot(pose_i.param);
-  q_i = tf_quat(pose_i.param);
+  T_i = tf(pose_i.param);
+  r_i = tf_trans(T_i);
+  C_i = tf_rot(T_i);
+  q_i = tf_quat(T_i);
   v_i = sb_i.param(1:3);
   ba_i = sb_i.param(4:6);
   bg_i = sb_i.param(7:9);
 
   % Timestep j
-  r_j = tf_trans(pose_j.param);
-  C_j = tf_rot(pose_j.param);
-  q_j = tf_quat(pose_j.param);
+  T_j = tf(pose_j.param);
+  r_j = tf_trans(T_j);
+  C_j = tf_rot(T_j);
+  q_j = tf_quat(T_j);
   v_j = sb_j.param(1:3);
   ba_j = sb_j.param(4:6);
   bg_j = sb_j.param(7:9);
@@ -37,10 +39,11 @@ function [r, jacobians] = imu_factor_eval(factor, imu_buf, params)
   dr = factor.dr + dr_dba * dba + dr_dbg * dbg;
   dv = factor.dv + dv_dba * dba + dv_dbg * dbg;
   dq = quat_mul(quat_delta(dq_dbg * dbg), rot2quat(factor.dC));
-  dC_ = dC;
-  dC = dC * Exp(dq_dbg * dbg);
+  dC_ = factor.dC;
+  dC = factor.dC * Exp(dq_dbg * dbg);
 
   % Form residuals
+  g = factor.g;
   Dt = factor.Dt;
   Dt_sq = Dt * Dt;
   err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
@@ -49,8 +52,6 @@ function [r, jacobians] = imu_factor_eval(factor, imu_buf, params)
   % err_rot = Log(dC' * C_i' * C_j);
   err_ba = zeros(3, 1);
   err_bg = zeros(3, 1);
-  % err_ba = ba_j - ba_i;
-  % err_bg = bg_j - bg_i;
   r = [err_pos; err_vel; err_rot; err_ba; err_bg];
 
   % Form jacobians

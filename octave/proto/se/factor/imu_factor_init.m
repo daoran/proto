@@ -13,11 +13,11 @@ function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
 
   % Pre-integrate relative position, velocity, rotation and biases
   factor.Dt = 0.0;
-  dr = zeros(3, 1); % Relative position
-  dv = zeros(3, 1); % Relative velocity
-  dC = eye(3, 3);   % Relative rotation
-  ba = sb_i(4:6);   % Accel biase
-  bg = sb_i(7:9);   % Gyro biase
+  dr = zeros(3, 1);      % Relative position
+  dv = zeros(3, 1);      % Relative velocity
+  dC = eye(3, 3);        % Relative rotation
+  ba = sb_i.param(4:6);  % Accel biase
+  bg = sb_i.param(7:9);  % Gyro biase
 
   % Pre-integrate imu measuremenets
   for k = 1:(length(imu_buf.ts)-1)
@@ -64,4 +64,5 @@ function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
   factor.dC = dC;
   factor.ba = ba;
   factor.bg = bg;
+  factor.g = [0.0; 0.0; 9.81];
 endfunction

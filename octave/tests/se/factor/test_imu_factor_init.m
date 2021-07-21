@@ -21,20 +21,4 @@ imu_params.noise_bg = 2.0e-6;   % gyroscope bias random work noise stddev.
 
 param_ids = [1, 2, 3, 4];
 sb_i = zeros(9, 1);
-factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
-
-%for i = 1:window_size:(length(sim_data.time)-window_size);
-%  start_idx = i;
-%  end_idx = i + window_size - 1;
-%  imu_ts = sim_data.time(start_idx:end_idx);
-%  imu_acc = sim_data.imu_acc(:, start_idx:end_idx);
-%  imu_gyr = sim_data.imu_gyr(:, start_idx:end_idx);
-%
-%  pose_i = sim_data.poses{start_idx};
-%  sb_i = [sim_data.vel(:, start_idx); 1e-2 * eye(6, 1)];
-%  pose_j = sim_data.poses{end_idx};
-%  sb_j = [sim_data.vel(:, end_idx); 3e-2 * eye(6, 1)];
-%
-%  check_imu_factor_jacobians(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j);
-%  printf("\n\n");
-%endfor
+factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i);
