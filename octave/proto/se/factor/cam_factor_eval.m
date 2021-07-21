@@ -14,15 +14,17 @@ function [r, jacs] = cam_factor_eval(factor, params)
 
   % Map params
   sensor_pose = params{1};
-  sensor_cam_pose = params{2};
+  imucam_exts = params{2};
   landmark = params{3};
   camera = params{4};
 
   % Project point in world frame to image plane
   T_WS = tf(sensor_pose.param);
-  T_SC = tf(sensor_cam_pose.param);
+  T_SC = tf(imucam_exts.param);
   p_W = landmark.param;
   p_C = tf_point(inv(T_WS * T_SC), p_W);
+  proj_params = camera.param(1:4);
+  dist_params = camera.param(5:8);
   z_hat = camera.project(proj_params, dist_params, p_C);
 
   % Calculate residual
@@ -31,12 +33,15 @@ function [r, jacs] = cam_factor_eval(factor, params)
   r = sqrt_info * (z - z_hat);
 
   % Calculate Jacobians
+  C_SC = tf_rot(T_SC);
+  C_WS = tf_rot(T_WS);
+  C_CS = C_SC';
+  C_SW = C_WS';
+  C_CW = C_CS * C_WS';
+  r_WS = tf_trans(T_WS);
   % -- Measurement model jacobian
   J_h = camera.J_proj(proj_params, dist_params, p_C);
   % -- Jacobian w.r.t. sensor pose T_WS
-  C_WS = tf_rot(T_WS);
-  C_SW = C_WS';
-  r_WS = tf_trans(T_WS);
   jacs{1}(1:2, 1:3) = -1 * sqrt_info * J_h * C_CS * -C_SW;
   jacs{1}(1:2, 4:6) = -1 * sqrt_info * J_h * C_CS * C_SW * skew(p_W - r_WS);
   % -- Jacobian w.r.t. sensor camera pose T_SC

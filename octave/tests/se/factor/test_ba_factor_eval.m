@@ -44,6 +44,6 @@ params = graph_get_params(graph, ba_factor.param_ids);
 % Test BA jacobians
 step_size = 1e-8;
 threshold = 1e-4;
-check_factor_jacobians(@ba_factor_eval, ba_factor, params, 1, "J_cam_pose", step_size, threshold);
-check_factor_jacobians(@ba_factor_eval, ba_factor, params, 2, "J_landmark", step_size, threshold);
-check_factor_jacobians(@ba_factor_eval, ba_factor, params, 3, "J_cam_params", step_size, threshold);
+check_factor_jacobian(@ba_factor_eval, ba_factor, params, 1, "J_cam_pose", step_size, threshold);
+check_factor_jacobian(@ba_factor_eval, ba_factor, params, 2, "J_landmark", step_size, threshold);
+check_factor_jacobian(@ba_factor_eval, ba_factor, params, 3, "J_cam_params", step_size, threshold);

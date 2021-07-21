@@ -1,4 +1,4 @@
-function check_factor_jacobians(factor_eval, factor, params, param_idx, jac_name, step_size, threshold)
+function check_factor_jacobian(factor_eval, factor, params, param_idx, jac_name, step_size, threshold)
   % Calculate baseline
   [r, jacs] = factor_eval(factor, params);
 
