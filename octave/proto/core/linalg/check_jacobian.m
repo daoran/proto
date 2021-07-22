@@ -20,8 +20,8 @@ function retval = check_jacobian(jac_name, fdiff, jac, threshold, verbose=false)
       printf("Check [%s] failed!\n", jac_name);
     endif
     fdiff_minus_jac = fdiff - jac
-    % num_diff = fdiff
-    % jac
+    num_diff = fdiff
+    jac
     % delta
     if verbose
       printf("----------------------------------------\n");

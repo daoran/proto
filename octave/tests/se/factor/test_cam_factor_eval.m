@@ -1,8 +1,8 @@
 addpath(genpath("proto"));
 
 % Setup sensor pose T_WS
-rot = euler2quat(deg2rad([0; 0; 0]));
-trans = [0.0; 0.0; 0.0];
+rot = euler2quat(deg2rad([0.1; 0.1; 0.1]));
+trans = [0.01; 0.02; 0.03];
 T_WS = tf(rot, trans);
 data = tf_param(T_WS);
 sensor_pose = pose_init(0, data);

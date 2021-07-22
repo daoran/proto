@@ -15,7 +15,8 @@ function pose = pose_update(pose, dx)
   % Update rotation
   dalpha = dx(4:6);
   dq = quat_delta(dalpha);
-  q_kp1 = quat_mul(dq, q);
+  % q_kp1 = quat_mul(dq, q);  % Pre-multiply perturbation
+  q_kp1 = quat_mul(q, dq);  % Post-multiply perturbation
 
   % Update pose
   T_kp1 = tf(q_kp1, r_kp1);

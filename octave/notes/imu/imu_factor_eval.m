@@ -65,8 +65,8 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   C_i = tf_rot(pose_i);
   q_i = tf_quat(pose_i);
   v_i = sb_i(1:3);
-  ba_i = sb_i(4:6);
-  bg_i = sb_i(7:9);
+  ba_i = sb_i(4:6) + 1e-2 * ones(3, 1);
+  bg_i = sb_i(7:9) + 1e-2 * ones(3, 1);
 
   % Timestep j
   r_j = tf_trans(pose_j);
@@ -97,12 +97,27 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
   err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv;
   err_rot = (2 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
-  % err_rot = Log(dC' * C_i' * C_j);
   err_ba = zeros(3, 1);
   err_bg = zeros(3, 1);
-  % err_ba = ba_j - ba_i;
-  % err_bg = bg_j - bg_i;
   r = [err_pos; err_vel; err_rot; err_ba; err_bg];
+
+  % rpy = deg2rad([0.01; 0.02; 0.03]);
+  % tau = Log(euler321(rpy));
+  % Exp(tau) * C_i
+  % C_i * Exp(C_i' * tau)
+
+  % C_i * Exp(tau) * C_i'
+  % Exp(C_i * tau)
+
+  % (C_i * Exp(C_i' * tau))' * C_j * C_i
+  % Exp(C_i' * tau)' * C_i' * C_j * C_i
+  % Exp(tau)' * C_i' * C_j * C_i
+
+  % err_rot = Log(dC' * (C_i' * C_j))
+  % Log((Exp(tau) * dC)' * C_i' * C_j)
+  % Log((dC * Exp(dC' * tau))' * C_i' * C_j)
+  % Log(dC' * Exp(tau)' * C_i' * C_j)
+  % Log(dC' * Exp(tau)' * (C_j * C_i'))
 
   % Form jacobians
   jacs{1} = zeros(15, 6);  % residuals w.r.t pose i
@@ -114,7 +129,7 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{1}(1:3, 1:3) = -C_i';                                                       % dr w.r.t r_i
   jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
   jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
-  jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dtheta w.r.t C_i
+  jacs{1}(7:9, 4:6) = -(quat_left(rot2quat(C_j' * C_i)) * quat_right(dq))(2:4, 2:4);
 
   % -- Jacobian w.r.t. speed and biases i
   jacs{2}(1:3, 1:3) = -C_i' * Dt;  % dr w.r.t v_i
@@ -123,13 +138,12 @@ function [r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{2}(4:6, 1:3) = -C_i';       % dv w.r.t v_i
   jacs{2}(4:6, 4:6) = -dv_dba;     % dv w.r.t ba
   jacs{2}(4:6, 7:9) = -dv_dbg;     % dv w.r.t bg
-  % jacs{2}(7:9, 7:9) = -Jr_inv(err_rot) * Exp(err_rot)' * Jr(dq_dbg * dbg) * dq_dbg;  % dtheta w.r.t bg_i
-  jacs{2}(7:9, 7:9) = -quat_left(C_j' * C_i * dC_)(2:4, 2:4) * dq_dbg;
+  jacs{2}(7:9, 7:9) = -quat_left(rot2quat(C_j' * C_i * dC_))(2:4, 2:4) * dq_dbg;
 
   % -- Jacobian w.r.t. pose j
   jacs{3}(1:3, 1:3) = C_i';                                             % dr w.r.t r_j
   jacs{3}(7:9, 4:6) = quat_left(rot2quat(dC' * C_i' * C_j))(2:4, 2:4);  % dtheta w.r.t C_j
 
   % -- Jacobian w.r.t. sb j
-  jacs{4}(4:6, 1:3) = C_i';       % dv w.r.t v_j
+  jacs{4}(4:6, 1:3) = C_i';  % dv w.r.t v_j
 endfunction

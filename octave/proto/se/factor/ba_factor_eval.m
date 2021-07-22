@@ -37,7 +37,7 @@ function [r, jacobians] = ba_factor_eval(factor, params)
   C_CW = C_WC';
   r_WC = tf_trans(T_WC);
   jacobians{1}(1:2, 1:3) = -1 * sqrt_info * J_h * -C_CW;
-  jacobians{1}(1:2, 4:6) = -1 * sqrt_info * J_h * C_CW * skew(p_W - r_WC);
+  jacobians{1}(1:2, 4:6) = -1 * sqrt_info * J_h * -C_CW * skew(p_W - r_WC) * -C_WC;
   % -- Jacobian w.r.t. landmark
   jacobians{2} = -1 * sqrt_info * J_h * C_CW;
   % -- Jacobian w.r.t. camera parameters

@@ -69,6 +69,7 @@ function check_imu_factor_jacobians(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, p
   endfor
 
   if max(max(abs(jacs{3} - fdiff))) > 1e-4
+    printf("J_pose_j Failed!\n");
     jacs{3}
     fdiff
     jacs{3} - fdiff
@@ -105,30 +106,33 @@ sim_data = sim_imu(0.5, 1.0);
 window_size = 10
 g = [0.0; 0.0; 9.81];
 
-for i = 1:window_size:(length(sim_data.time)-window_size);
-  start_idx = i;
-  end_idx = i + window_size - 1;
-  imu_ts = sim_data.time(start_idx:end_idx);
-  imu_acc = sim_data.imu_acc(:, start_idx:end_idx);
-  imu_gyr = sim_data.imu_gyr(:, start_idx:end_idx);
+% for i = 1:window_size:(length(sim_data.time)-window_size);
+%   start_idx = i;
+%   end_idx = i + window_size - 1;
+%   imu_ts = sim_data.time(start_idx:end_idx);
+%   imu_acc = sim_data.imu_acc(:, start_idx:end_idx);
+%   imu_gyr = sim_data.imu_gyr(:, start_idx:end_idx);
+%
+%   pose_i = sim_data.poses{start_idx};
+%   sb_i = [sim_data.vel(:, start_idx); 1e-1 * eye(6, 1)];
+%   pose_j = sim_data.poses{end_idx};
+%   sb_j = [sim_data.vel(:, end_idx); 3e-1 * eye(6, 1)];
+%
+%   check_imu_factor_jacobians(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j);
+%   printf("\n\n");
+% endfor
 
-  pose_i = sim_data.poses{start_idx};
-  sb_i = [sim_data.vel(:, start_idx); 1e-2 * eye(6, 1)];
-  pose_j = sim_data.poses{end_idx};
-  sb_j = [sim_data.vel(:, end_idx); 3e-2 * eye(6, 1)];
+% N = length(sim_data.time);
+start_idx = 10;
+N = 2;
+imu_ts = sim_data.time(start_idx:start_idx+N);
+imu_acc = sim_data.imu_acc(:, start_idx:start_idx+N);
+imu_gyr = sim_data.imu_gyr(:, start_idx:start_idx+N);
+g = [0.0; 0.0; 9.81];
+pose_i = sim_data.poses{start_idx};
+sb_i = [sim_data.vel(:, start_idx); 1e-2 * eye(6, 1)];
+pose_j = sim_data.poses{start_idx+N};
+sb_j = [sim_data.vel(:, start_idx+N); 3e-2 * eye(6, 1)];
+[r, jacs] = imu_factor_eval(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j);
 
-  check_imu_factor_jacobians(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j);
-  printf("\n\n");
-endfor
-
-% % N = length(sim_data.time);
-% start_idx = 10;
-% N = 2;
-% imu_ts = sim_data.time(start_idx:start_idx+N);
-% imu_acc = sim_data.imu_acc(:, start_idx:start_idx+N);
-% imu_gyr = sim_data.imu_gyr(:, start_idx:start_idx+N);
-% g = [0.0; 0.0; 9.81];
-% pose_i = sim_data.poses{start_idx};
-% sb_i = [sim_data.vel(:, start_idx); 1e-2 * eye(6, 1)];
-% pose_j = sim_data.poses{start_idx+N};
-% sb_j = [sim_data.vel(:, start_idx+N); 3e-2 * eye(6, 1)];
+% check_imu_factor_jacobians(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j);

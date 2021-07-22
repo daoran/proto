@@ -38,9 +38,8 @@ function [r, jacs] = imu_factor_eval(factor, params)
   % -- Correct the relative position, velocity and rotation
   dr = factor.dr + dr_dba * dba + dr_dbg * dbg;
   dv = factor.dv + dv_dba * dba + dv_dbg * dbg;
-  dq = quat_mul(quat_delta(dq_dbg * dbg), rot2quat(factor.dC));
-  dC_ = factor.dC;
   dC = factor.dC * Exp(dq_dbg * dbg);
+  dq = rot2quat(dC);
 
   % Form residuals
   g = factor.g;
@@ -49,7 +48,6 @@ function [r, jacs] = imu_factor_eval(factor, params)
   err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
   err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv;
   err_rot = (2 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
-  % err_rot = Log(dC' * C_i' * C_j);
   err_ba = zeros(3, 1);
   err_bg = zeros(3, 1);
   r = [err_pos; err_vel; err_rot; err_ba; err_bg];
@@ -62,9 +60,9 @@ function [r, jacs] = imu_factor_eval(factor, params)
 
   % -- Jacobian w.r.t. pose i
   jacs{1}(1:3, 1:3) = -C_i';                                                       % dr w.r.t r_i
-  jacs{1}(1:3, 4:6) = -skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
-  jacs{1}(4:6, 4:6) = -skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
-  jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dtheta w.r.t C_i
+  jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
+  jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
+  jacs{1}(7:9, 4:6) = -(quat_left(rot2quat(C_j' * C_i)) * quat_right(dq))(2:4, 2:4);
 
   % -- Jacobian w.r.t. speed and biases i
   jacs{2}(1:3, 1:3) = -C_i' * Dt;  % dr w.r.t v_i
@@ -73,7 +71,7 @@ function [r, jacs] = imu_factor_eval(factor, params)
   jacs{2}(4:6, 1:3) = -C_i';       % dv w.r.t v_i
   jacs{2}(4:6, 4:6) = -dv_dba;     % dv w.r.t ba
   jacs{2}(4:6, 7:9) = -dv_dbg;     % dv w.r.t bg
-  jacs{2}(7:9, 7:9) = -quat_left(C_j' * C_i * dC_)(2:4, 2:4) * dq_dbg;
+  jacs{2}(7:9, 7:9) = -quat_left(rot2quat(C_j' * C_i * factor.dC))(2:4, 2:4) * dq_dbg;
 
   % -- Jacobian w.r.t. pose j
   jacs{3}(1:3, 1:3) = C_i';                                             % dr w.r.t r_j
