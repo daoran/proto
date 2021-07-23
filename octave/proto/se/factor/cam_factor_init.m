@@ -7,4 +7,5 @@ function factor = cam_factor_init(ts, param_ids, z, covar=eye(2))
   factor.param_ids = param_ids;
   factor.z = z;
   factor.covar = covar;
+  factor.eval = @cam_factor_eval;
 endfunction

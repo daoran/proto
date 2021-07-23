@@ -65,4 +65,5 @@ function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
   factor.ba = ba;
   factor.bg = bg;
   factor.g = [0.0; 0.0; 9.81];
+  factor.eval = @imu_factor_eval;
 endfunction

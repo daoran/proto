@@ -7,4 +7,5 @@ function factor = ba_factor_init(ts, param_ids, z, covar=eye(2))
   factor.param_ids = param_ids;
   factor.z = z;
   factor.covar = covar;
+  factor.eval = @ba_factor_eval;
 endfunction

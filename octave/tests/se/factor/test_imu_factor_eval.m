@@ -4,6 +4,13 @@ sim_data = sim_imu(0.5, 1.0);
 window_size = 10
 g = [0.0; 0.0; 9.81];
 
+% IMU params
+imu_params = {};
+imu_params.noise_acc = 0.08;    % accelerometer measurement noise stddev.
+imu_params.noise_gyr = 0.004;   % gyroscope measurement noise stddev.
+imu_params.noise_ba = 0.00004;  % accelerometer bias random work noise stddev.
+imu_params.noise_bg = 2.0e-6;   % gyroscope bias random work noise stddev.
+
 for i = 1:window_size:(length(sim_data.time)-window_size);
   start_idx = i;
   end_idx = start_idx + window_size - 1;
@@ -13,13 +20,6 @@ for i = 1:window_size:(length(sim_data.time)-window_size);
   imu_buf.ts = sim_data.time(start_idx:end_idx);
   imu_buf.acc = sim_data.imu_acc(:, start_idx:end_idx);
   imu_buf.gyr = sim_data.imu_gyr(:, start_idx:end_idx);
-
-  % IMU params
-  imu_params = {};
-  imu_params.noise_acc = 0.08;    % accelerometer measurement noise stddev.
-  imu_params.noise_gyr = 0.004;   % gyroscope measurement noise stddev.
-  imu_params.noise_ba = 0.00004;  % accelerometer bias random work noise stddev.
-  imu_params.noise_bg = 2.0e-6;   % gyroscope bias random work noise stddev.
 
   % Pose i
   pose_i = pose_init(imu_buf.ts(1), sim_data.poses{start_idx});

@@ -1,5 +1,6 @@
 function [H, g, residuals, param_idx] = graph_eval(graph)
   pose_param_ids = [];
+  sb_param_ids = [];
   landmark_param_ids = [];
   camera_param_ids = [];
 
@@ -12,6 +13,8 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
       param = params{j};
       if strcmp(param.type, "pose")
         pose_param_ids = [pose_param_ids, param.id];
+      elseif strcmp(param.type, "sb")
+        sb_param_ids = [sb_param_ids, param.id];
       elseif strcmp(param.type, "landmark")
         landmark_param_ids = [landmark_param_ids, param.id];
       elseif strcmp(param.type, "camera")
@@ -20,12 +23,14 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
     endfor
   endfor
   pose_param_ids = unique(pose_param_ids);
+  sb_param_ids = unique(sb_param_ids);
   landmark_param_ids = unique(landmark_param_ids);
   camera_param_ids = unique(camera_param_ids);
 
   % Assign global parameter order
   nb_params = 0;
   nb_params += length(pose_param_ids);
+  nb_params += length(sb_param_ids);
   nb_params += length(landmark_param_ids);
   nb_params += length(camera_param_ids);
 
@@ -34,6 +39,10 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   for i = 1:length(pose_param_ids)
     param_idx{pose_param_ids(i)} = col_idx;
     col_idx += 6;
+  endfor
+  for i = 1:length(pose_param_ids)
+    param_idx{sb_param_ids(i)} = col_idx;
+    col_idx += 9;
   endfor
   for i = 1:length(landmark_param_ids)
     param_idx{landmark_param_ids(i)} = col_idx;
@@ -47,6 +56,7 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   % Form Hessian
   param_size = 0;
   param_size += length(pose_param_ids) * 6;
+  param_size += length(sb_param_ids) * 9;
   param_size += length(landmark_param_ids) * 3;
   param_size += length(camera_param_ids) * 8;
   H = zeros(param_size, param_size);
@@ -56,7 +66,7 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   for k = 1:length(graph.factors)
     factor = graph.factors{k};
     params = graph_get_params(graph, factor.param_ids);
-    [r, jacobians] = ba_factor_eval(factor, params);
+    [r, jacobians] = factor.eval(factor, params);
 		residuals = [residuals; r];
 
     for i = 1:length(params)
