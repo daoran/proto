@@ -7,7 +7,7 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
   rpy_gnd = [];
   rpy_est = [];
 
-  for k = 1:length(graph.factors)
+  for k = 2:length(graph.factors)
     T_WS = poses_gnd{k};
     pos_gnd = [pos_gnd, tf_trans(T_WS)];
     rpy_gnd = [rpy_gnd, rad2deg(rot2euler(tf_rot(T_WS)))];
@@ -25,7 +25,7 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
   t = [];
   v_gnd = [];
   v_est = [];
-  for k = 1:length(graph.factors)
+  for k = 2:length(graph.factors)
     factor = graph.factors{k};
     params = graph_get_params(graph, factor.param_ids);
     ts = factor.imu_buf.ts(1);
@@ -33,7 +33,7 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
     v = vels_gnd{k};
 
     t = [t; ts];
-    v_gnd = [v_gnd, vels_gnd{k}];
+    v_gnd = [v_gnd, vels_gnd{k-1}];
     v_est = [v_est, sb_i.param(1:3)];
   endfor
 
@@ -106,19 +106,19 @@ endfunction
 
 % Simulate imu data
 sim_data = sim_imu(0.5, 1.0);
-window_size = 10;
+window_size = 5;
 g = [0.0; 0.0; 9.81];
 
 % IMU params
 imu_params = {};
-% imu_params.noise_acc = 0.08;    % accelerometer measurement noise stddev.
-% imu_params.noise_gyr = 0.004;   % gyroscope measurement noise stddev.
-% imu_params.noise_ba = 0.00004;  % accelerometer bias random work noise stddev.
-% imu_params.noise_bg = 2.0e-6;   % gyroscope bias random work noise stddev.
-imu_params.noise_acc = 1e-8;    % accelerometer measurement noise stddev.
-imu_params.noise_gyr = 1e-8;   % gyroscope measurement noise stddev.
-imu_params.noise_ba = 1e-8;  % accelerometer bias random work noise stddev.
-imu_params.noise_bg = 1e-8;   % gyroscope bias random work noise stddev.
+imu_params.noise_acc = 0.08;    % accelerometer measurement noise stddev.
+imu_params.noise_gyr = 0.004;   % gyroscope measurement noise stddev.
+imu_params.noise_ba = 0.00004;  % accelerometer bias random work noise stddev.
+imu_params.noise_bg = 2.0e-6;   % gyroscope bias random work noise stddev.
+% imu_params.noise_acc = 1e-8;    % accelerometer measurement noise stddev.
+% imu_params.noise_gyr = 1e-8;   % gyroscope measurement noise stddev.
+% imu_params.noise_ba = 1e-8;  % accelerometer bias random work noise stddev.
+% imu_params.noise_bg = 1e-8;   % gyroscope bias random work noise stddev.
 
 % Create graph
 graph = graph_init();
@@ -145,8 +145,14 @@ vel_idx = 1;
 vels_gnd{vel_idx} = sim_data.vel(:, 1);
 vel_idx += 1;
 
+% Add pose factor
+pose_covar = 1e-8 * eye(6);
+pose_factor = pose_factor_init(0, [pose_i_id], sim_data.poses{1}, pose_covar);
+graph = graph_add_factor(graph, pose_factor);
+
 % Add imu factors
 for start_idx = 1:window_size:(length(sim_data.time)-window_size);
+% for start_idx = 1:window_size:window_size*10;
   end_idx = start_idx + window_size - 1;
 
   % IMU buffer
@@ -192,18 +198,10 @@ endfor
 
 
 % Visualize
-visualize("Before optimization", graph, poses_gnd, vels_gnd);
+% visualize("Before optimization", graph, poses_gnd, vels_gnd);
 
 % Optimize
-max_iter = 5;
-for i = 1:max_iter
-  [H, g, r, param_idx] = graph_eval(graph);
-  H = H + 1e-6 * eye(size(H)); % Levenberg-Marquardt Dampening
-  dx = linsolve(H, g);
-
-  graph = graph_update(graph, param_idx, dx);
-  cost = 0.5 * r' * r
-end
+graph = graph_solve(graph);
 
 visualize("After Optimization", graph, poses_gnd, vels_gnd);
 ginput();

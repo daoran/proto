@@ -1,8 +1,11 @@
 function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
+  assert(length(param_ids) == 4);
+
   factor.param_ids = param_ids;
   factor.imu_buf = imu_buf;
   factor.imu_params = imu_params;
 
+  factor.Dt = 0.0;
   factor.state_F = eye(15, 15);   % State jacobian
   factor.state_P = zeros(15, 15); % State covariance
   factor.Q = zeros(12, 12);
@@ -12,7 +15,6 @@ function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
   factor.Q(10:12, 10:12) = (imu_params.noise_bg * imu_params.noise_bg) * eye(3);
 
   % Pre-integrate relative position, velocity, rotation and biases
-  factor.Dt = 0.0;
   dr = zeros(3, 1);      % Relative position
   dv = zeros(3, 1);      % Relative velocity
   dC = eye(3, 3);        % Relative rotation
@@ -66,4 +68,5 @@ function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
   factor.bg = bg;
   factor.g = [0.0; 0.0; 9.81];
   factor.eval = @imu_factor_eval;
+  factor.sqrt_info = chol(inv(factor.state_P));
 endfunction

@@ -40,7 +40,7 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
     param_idx{pose_param_ids(i)} = col_idx;
     col_idx += 6;
   endfor
-  for i = 1:length(pose_param_ids)
+  for i = 1:length(sb_param_ids)
     param_idx{sb_param_ids(i)} = col_idx;
     col_idx += 9;
   endfor

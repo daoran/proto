@@ -46,11 +46,11 @@ for i = 1:window_size:(length(sim_data.time)-window_size);
   [graph, pose_j_id] = graph_add_param(graph, pose_j);
   [graph, sb_j_id] = graph_add_param(graph, sb_j);
 
-  % Create imu factor
+  % Create factor
   param_ids = [pose_i_id; sb_i_id; pose_j_id; sb_j_id];
   imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i);
 
-  % Evaluate imu factor
+  % Evaluate factor
   params = graph_get_params(graph, imu_factor.param_ids);
   v_i_est = params{2}.param(1:3);
   ba_i_est = params{2}.param(4:6);
@@ -61,9 +61,9 @@ for i = 1:window_size:(length(sim_data.time)-window_size);
   % Test jacobians
   step_size = 1e-8;
   threshold = 1e-4;
-  check_factor_jacobian(@imu_factor_eval, imu_factor, params, 1, "J_pose_i", step_size, threshold)
-  check_factor_jacobian(@imu_factor_eval, imu_factor, params, 2, "J_sb_i", step_size, threshold)
-  check_factor_jacobian(@imu_factor_eval, imu_factor, params, 3, "J_pose_j", step_size, threshold)
-  check_factor_jacobian(@imu_factor_eval, imu_factor, params, 4, "J_sb_j", step_size, threshold)
+  check_factor_jacobian(imu_factor, params, 1, "J_pose_i", step_size, threshold)
+  check_factor_jacobian(imu_factor, params, 2, "J_sb_i", step_size, threshold)
+  check_factor_jacobian(imu_factor, params, 3, "J_pose_j", step_size, threshold)
+  check_factor_jacobian(imu_factor, params, 4, "J_sb_j", step_size, threshold)
   printf("\n");
 endfor
