@@ -1,6 +1,7 @@
 function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
   assert(length(param_ids) == 4);
 
+  factor.type = "imu_factor";
   factor.param_ids = param_ids;
   factor.imu_buf = imu_buf;
   factor.imu_params = imu_params;
