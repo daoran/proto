@@ -27,6 +27,7 @@ install opencv3
 # install octomap
 install fast
 install glew
-install glfw
+install sdl2
+# install glfw
 install stb
 install yamlcpp
