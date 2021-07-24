@@ -9,7 +9,7 @@ start_idx = i;
 end_idx = i + window_size - 1;
 
 imu_buf = {};
-imu_buf.ts = sim_data.time(start_idx:end_idx);
+imu_buf.ts = sim_data.imu_time(start_idx:end_idx);
 imu_buf.acc = sim_data.imu_acc(:, start_idx:end_idx);
 imu_buf.gyr = sim_data.imu_gyr(:, start_idx:end_idx);
 

@@ -1,7 +1,7 @@
 addpath(genpath("proto"));
 graphics_toolkit("fltk");
 
-sim_data = sim_vio(0.5, 1.0);
+sim_data = sim_vo(0.5, 1.0);
 
 show_plots = 1;
 if show_plots
@@ -9,19 +9,10 @@ if show_plots
   figure();
   hold on;
 
-  % Camera poses
   nb_poses = length(sim_data.cam_poses);
   interval = int32(nb_poses / 10);
   for k = 1:interval:nb_poses
-    T_WC = sim_data.cam_poses{k};
-    draw_frame(T_WC, 0.1);
-  endfor
-
-  % IMU poses
-  nb_poses = length(sim_data.imu_poses);
-  interval = int32(nb_poses / 10);
-  for k = 1:interval:nb_poses
-    T_WS = sim_data.imu_poses{k};
+    T_WS = sim_data.cam_poses{k};
     draw_frame(T_WS, 0.1);
   endfor
 

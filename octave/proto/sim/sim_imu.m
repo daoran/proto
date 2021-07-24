@@ -14,7 +14,7 @@ function sim_data = sim_imu(circle_r, velocity)
   t = 0;
 
   theta = pi;
-  yaw = 0;
+  yaw = pi / 2.0;
 
   sensor_poses = {};
   sensor_pos = [];
@@ -81,12 +81,12 @@ function sim_data = sim_imu(circle_r, velocity)
   endwhile
 
   sim_data = {};
-  sim_data.poses = sensor_poses;
-  sim_data.pos = sensor_pos;
-  sim_data.quat = sensor_quat;
-  sim_data.att = sensor_att;
-  sim_data.vel = sensor_vel;
-  sim_data.time = imu_ts;
+  sim_data.imu_poses = sensor_poses;
+  sim_data.imu_pos = sensor_pos;
+  sim_data.imu_quat = sensor_quat;
+  sim_data.imu_att = sensor_att;
+  sim_data.imu_vel = sensor_vel;
+  sim_data.imu_time = imu_ts;
   sim_data.imu_acc = imu_acc;
   sim_data.imu_gyr = imu_gyr;
 endfunction
