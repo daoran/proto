@@ -22,7 +22,7 @@ function sim_data = sim_imu(circle_r, velocity)
   sensor_att = [];
   sensor_vel = [];
 
-  imu_ts = [];
+  imu_time = [];
   imu_acc = [];
   imu_gyr = [];
 
@@ -66,7 +66,7 @@ function sim_data = sim_imu(circle_r, velocity)
     sensor_att = [sensor_att, quat2euler(tf_quat(T_WS))];
     sensor_vel = [sensor_vel, v_WS];
 
-    imu_ts = [imu_ts; t];
+    imu_time = [imu_time; t];
     imu_acc = [imu_acc, acc];
     imu_gyr = [imu_gyr, gyr];
 
@@ -86,7 +86,7 @@ function sim_data = sim_imu(circle_r, velocity)
   sim_data.imu_quat = sensor_quat;
   sim_data.imu_att = sensor_att;
   sim_data.imu_vel = sensor_vel;
-  sim_data.imu_time = imu_ts;
+  sim_data.imu_time = imu_time;
   sim_data.imu_acc = imu_acc;
   sim_data.imu_gyr = imu_gyr;
 endfunction

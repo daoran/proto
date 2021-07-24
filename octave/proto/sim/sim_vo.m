@@ -37,7 +37,7 @@ function sim_data = sim_vo(circle_r,
   theta = pi;
   yaw = pi / 2.0;
 
-  cam_ts = [];
+  cam_time = [];
   cam_poses = {};
   cam_pos = [];
   cam_quat = [];
@@ -59,7 +59,7 @@ function sim_data = sim_vo(circle_r,
     % Camera pose
     T_WC0 = T_WS * T_SC0;
     [z_data, p_data] = camera_measurements(cam0, T_WC0, features');
-    cam_ts = [cam_ts; t];
+    cam_time = [cam_time; t];
     cam_poses{idx} = T_WC0;
     cam_pos = [cam_pos, tf_trans(T_WC0)];
     cam_quat = [cam_quat, tf_quat(T_WC0)];
@@ -82,7 +82,7 @@ function sim_data = sim_vo(circle_r,
   % -- Camera
   sim_data.T_SC0 = T_SC0;
   sim_data.cam0 = cam0;
-  sim_data.cam_ts = cam_ts;
+  sim_data.cam_time = cam_time;
   sim_data.cam_poses = cam_poses;
   sim_data.cam_pos = cam_pos;
   sim_data.cam_quat = cam_quat;

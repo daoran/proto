@@ -9,25 +9,23 @@ if show_plots
   figure();
   hold on;
 
-  % Camera poses
-  nb_poses = length(sim_data.cam_poses);
+  % Sensor and camera poses
+  T_SC0 = sim_data.T_SC0;
+  nb_poses = length(sim_data.timeline);
   interval = int32(nb_poses / 10);
   for k = 1:interval:nb_poses
-    T_WC = sim_data.cam_poses{k};
-    draw_frame(T_WC, 0.1);
-  endfor
-
-  % IMU poses
-  nb_poses = length(sim_data.imu_poses);
-  interval = int32(nb_poses / 10);
-  for k = 1:interval:nb_poses
-    T_WS = sim_data.imu_poses{k};
+    event = sim_data.timeline(k);
+    T_WS = event.imu_pose;
+    T_WC0 = T_WS * T_SC0;
     draw_frame(T_WS, 0.1);
+    draw_frame(T_WC0, 0.1);
   endfor
 
+  % Features
   features = sim_data.features;
   scatter3(features(:, 1), features(:, 2), features(:, 3), 'filled');
 
+  % Plot settings
   axis('equal');
   xlabel('x [m]');
   ylabel('y [m]');
