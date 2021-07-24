@@ -28,7 +28,7 @@ function [r, jacs] = cam_factor_eval(factor, params)
   z_hat = camera.project(proj_params, dist_params, p_C);
 
   % Calculate residual
-  sqrt_info = chol(factor.covar);
+  sqrt_info = factor.sqrt_info;
   z = factor.z;
   r = sqrt_info * (z - z_hat);
 

@@ -1,4 +1,4 @@
-function [r, jacobians] = ba_factor_eval(factor, params)
+function [r, jacs] = ba_factor_eval(factor, params)
   assert(isstruct(factor));
   assert(length(params) == 3);
   assert(isfield(params{3}, "project"));
@@ -7,9 +7,9 @@ function [r, jacobians] = ba_factor_eval(factor, params)
 
   % Setup return values
   r = zeros(2, 1);
-  jacobians{1} = zeros(2, 6);  % w.r.t Camera pose T_WC
-  jacobians{2} = zeros(2, 3);  % w.r.t Landmark r_W
-  jacobians{3} = zeros(2, 8);  % w.r.t Camera parameters
+  jacs{1} = zeros(2, 6);  % w.r.t Camera pose T_WC
+  jacs{2} = zeros(2, 3);  % w.r.t Landmark r_W
+  jacs{3} = zeros(2, 8);  % w.r.t Camera parameters
 
   % Map params
   cam_pose = params{1};
@@ -25,7 +25,7 @@ function [r, jacobians] = ba_factor_eval(factor, params)
   z_hat = camera.project(proj_params, dist_params, p_C);
 
   % Calculate residual
-  sqrt_info = chol(factor.covar);
+  sqrt_info = factor.sqrt_info;
   z = factor.z;
   r = sqrt_info * (z - z_hat);
 
@@ -36,11 +36,11 @@ function [r, jacobians] = ba_factor_eval(factor, params)
   C_WC = tf_rot(T_WC);
   C_CW = C_WC';
   r_WC = tf_trans(T_WC);
-  jacobians{1}(1:2, 1:3) = -1 * sqrt_info * J_h * -C_CW;
-  jacobians{1}(1:2, 4:6) = -1 * sqrt_info * J_h * -C_CW * skew(p_W - r_WC) * -C_WC;
+  jacs{1}(1:2, 1:3) = -1 * sqrt_info * J_h * -C_CW;
+  jacs{1}(1:2, 4:6) = -1 * sqrt_info * J_h * -C_CW * skew(p_W - r_WC) * -C_WC;
   % -- Jacobian w.r.t. landmark
-  jacobians{2} = -1 * sqrt_info * J_h * C_CW;
+  jacs{2} = -1 * sqrt_info * J_h * C_CW;
   % -- Jacobian w.r.t. camera parameters
   J_cam_params = camera.J_param(proj_params, dist_params, p_C);
-  jacobians{3} = -1 * sqrt_info * J_cam_params;
+  jacs{3} = -1 * sqrt_info * J_cam_params;
 endfunction

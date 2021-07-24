@@ -1,6 +1,6 @@
-function check_factor_jacobian(factor_eval, factor, params, param_idx, jac_name, step_size, threshold)
+function check_factor_jacobian(factor, params, param_idx, jac_name, step_size, threshold)
   % Calculate baseline
-  [r, jacs] = factor_eval(factor, params);
+  [r, jacs] = factor.eval(factor, params);
 
   % Numerical diff
   fdiff = zeros(rows(r), params{param_idx}.min_dims);
@@ -16,7 +16,7 @@ function check_factor_jacobian(factor_eval, factor, params, param_idx, jac_name,
     endif
 
     % Evaluate
-    [r_fwd, _] = factor_eval(factor, params_fwd);
+    [r_fwd, _] = factor.eval(factor, params_fwd);
 
     % Forward finite difference
     fdiff(:, i) = (r_fwd - r) / step_size;

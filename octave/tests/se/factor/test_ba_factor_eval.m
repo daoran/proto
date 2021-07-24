@@ -32,18 +32,18 @@ graph = graph_init();
 [graph, landmark_id] = graph_add_param(graph, landmark);
 [graph, cam_params_id] = graph_add_param(graph, camera);
 
-% Create BA factor
+% Create factor
 ts = 0;
 param_ids = [cam_pose_id; landmark_id; cam_params_id];
 ba_factor = ba_factor_init(ts, param_ids, z);
 
-% Evaluate BA factor
+% Evaluate factor
 params = graph_get_params(graph, ba_factor.param_ids);
 [r, jacobians] = ba_factor_eval(ba_factor, params);
 
-% Test BA jacobians
+% Test jacobians
 step_size = 1e-8;
 threshold = 1e-4;
-check_factor_jacobian(@ba_factor_eval, ba_factor, params, 1, "J_cam_pose", step_size, threshold);
-check_factor_jacobian(@ba_factor_eval, ba_factor, params, 2, "J_landmark", step_size, threshold);
-check_factor_jacobian(@ba_factor_eval, ba_factor, params, 3, "J_cam_params", step_size, threshold);
+check_factor_jacobian(ba_factor, params, 1, "J_cam_pose", step_size, threshold);
+check_factor_jacobian(ba_factor, params, 2, "J_landmark", step_size, threshold);
+check_factor_jacobian(ba_factor, params, 3, "J_cam_params", step_size, threshold);
