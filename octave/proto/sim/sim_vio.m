@@ -8,7 +8,7 @@ function sim_data = sim_vio(circle_r, velocity)
   cam_idx = 1;
 
   while 1
-    % Increment indicies
+    % Check which sensor measurement is available
     imu_time = imu_data.imu_time(imu_idx);
     cam_time = cam_data.cam_time(cam_idx);
     is_imu_event = 0;
@@ -33,8 +33,8 @@ function sim_data = sim_vio(circle_r, velocity)
     if is_cam_event
       event.has_cam_data = 1;
       event.cam_pose = cam_data.cam_poses{cam_idx};
-      event.cam_z_data = cam_data.cam_z_data;
-      event.cam_p_data = cam_data.cam_p_data;
+      event.cam_z_data = cam_data.cam_z_data{cam_idx};
+      event.cam_p_data = cam_data.cam_p_data{cam_idx};
     else
       event.has_cam_data = 0;
       event.cam_pose = 0;
@@ -67,7 +67,7 @@ function sim_data = sim_vio(circle_r, velocity)
   sim_data.nb_features = cam_data.nb_features;
   sim_data.features    = cam_data.features;
   % -- Camera
-  sim_data.T_SC0       = cam_data.T_SC0;
+  sim_data.T_SC0      = cam_data.T_SC0;
   sim_data.cam0       = cam_data.cam0;
   sim_data.cam_time   = cam_data.cam_time;
   sim_data.cam_poses  = cam_data.cam_poses;

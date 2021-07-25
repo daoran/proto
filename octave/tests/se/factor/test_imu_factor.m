@@ -171,8 +171,8 @@ for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
 
   % Pose j
   T_WS_j = sim_data.imu_poses{end_idx};
-  T_WS_j(1:3, 1:3) = T_WS_j(1:3, 1:3) * Exp(normrnd(0.0, 0.05, 3, 1)); % Add noise to rotation
-  T_WS_j(1:3, 4) += normrnd(0.0, 1.0, 3, 1); % Add noise to translation
+  T_WS_j(1:3, 1:3) *= Exp(normrnd(0.0, 0.05, 3, 1)); % Add noise to rotation
+  T_WS_j(1:3, 4) += normrnd(0.0, 1.0, 3, 1);         % Add noise to translation
   pose_j = pose_init(imu_buf.ts(end), T_WS_j);
 
   % Keep track of ground truth pose

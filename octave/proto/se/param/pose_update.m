@@ -1,5 +1,6 @@
 function pose = pose_update(pose, dx)
-  assert(isstruct(pose) && pose.type == "pose");
+  assert(isstruct(pose))
+  assert(strcmp(pose.type, "pose") || strcmp(pose.type, "extrinsics"));
   assert(length(dx) == 6);
 
   % Convert pose vector to 4x4 transformation matrix

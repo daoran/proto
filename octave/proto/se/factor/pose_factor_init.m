@@ -1,5 +1,6 @@
 function factor = pose_factor_init(ts, param_ids, pose, covar=eye(6))
   assert(length(param_ids) == 1);
+  assert(size(pose) == [4, 4]);
   assert(size(covar) == [6, 6]);
 
   factor.type = "pose_factor";
