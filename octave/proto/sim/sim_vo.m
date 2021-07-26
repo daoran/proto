@@ -19,7 +19,7 @@ function sim_data = sim_vo(circle_r,
   % Simulate features
   origin = [0; 0; 0];
   dim = [circle_r * 2; circle_r * 2; circle_r * 1.5];
-  nb_features = 1000;
+  nb_features = 2000;
   features = create_3d_features_perimeter(origin, dim, nb_features);
 
   % Simulate camera

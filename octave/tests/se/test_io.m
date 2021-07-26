@@ -6,6 +6,8 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
   pos_est = [];
   rpy_gnd = [];
   rpy_est = [];
+  ba_est = [];
+  bg_est = [];
 
   for k = 2:length(graph.factors)
     T_WS = poses_gnd{k};
@@ -35,7 +37,25 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
     t = [t; ts];
     v_gnd = [v_gnd, vels_gnd{k-1}];
     v_est = [v_est, sb_i.param(1:3)];
+    ba_est = [ba_est, sb_i.param(4:6)];
+    bg_est = [bg_est, sb_i.param(7:9)];
   endfor
+
+  % figure();
+  % subplot(211);
+  % hold on;
+  % plot(t, ba_est(1, :), 'r-', 'linewidth', 2.0);
+  % plot(t, ba_est(2, :), 'g-', 'linewidth', 2.0);
+  % plot(t, ba_est(3, :), 'b-', 'linewidth', 2.0);
+  % xlabel('Time [s]');
+  %
+  % subplot(212);
+  % hold on;
+  % plot(t, bg_est(1, :), 'r-', 'linewidth', 2.0);
+  % plot(t, bg_est(2, :), 'g-', 'linewidth', 2.0);
+  % plot(t, bg_est(3, :), 'b-', 'linewidth', 2.0);
+  % xlabel('Time [s]');
+  % ginput();
 
   % Plot
   % | 1  | 2  | 3  | 4  | 5  | 6  | 7  |
@@ -48,7 +68,7 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
   subplot(3, 7, [1, 2, 3, 8, 9, 10, 15, 16, 17]);
   hold on;
   plot(pos_gnd(1, :), pos_gnd(2, :), 'k-', 'linewidth', 2.0);
-  plot(pos_est(1, :), pos_est(2, :), 'r.', 'linewidth', 0.5);
+  plot(pos_est(1, :), pos_est(2, :), 'r-', 'linewidth', 1.0);
   axis('equal');
   xlabel("Displacement in x-direction [m]");
   ylabel("Displacement in y-direction [m]");
@@ -113,7 +133,7 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
 endfunction
 
 % Simulate imu data
-sim_data = sim_imu(10.0, 2.0);
+sim_data = sim_imu(2.0, 1.0);
 window_size = 10;
 g = [0.0; 0.0; 9.81];
 
@@ -123,10 +143,6 @@ imu_params.noise_acc = 0.08;    % accelerometer measurement noise stddev.
 imu_params.noise_gyr = 0.004;   % gyroscope measurement noise stddev.
 imu_params.noise_ba = 0.00004;  % accelerometer bias random work noise stddev.
 imu_params.noise_bg = 2.0e-6;   % gyroscope bias random work noise stddev.
-% imu_params.noise_acc = 1e-8;    % accelerometer measurement noise stddev.
-% imu_params.noise_gyr = 1e-8;   % gyroscope measurement noise stddev.
-% imu_params.noise_ba = 1e-8;  % accelerometer bias random work noise stddev.
-% imu_params.noise_bg = 1e-8;   % gyroscope bias random work noise stddev.
 
 % Create graph
 graph = graph_init();
@@ -160,7 +176,7 @@ graph = graph_add_factor(graph, pose_factor);
 
 % Add imu factors
 for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
-% for start_idx = 1:window_size:window_size*10;
+% for start_idx = 1:window_size:200
   end_idx = start_idx + window_size - 1;
 
   % IMU buffer
@@ -171,8 +187,8 @@ for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
 
   % Pose j
   T_WS_j = sim_data.imu_poses{end_idx};
-  T_WS_j(1:3, 1:3) *= Exp(normrnd(0.0, 0.05, 3, 1)); % Add noise to rotation
-  T_WS_j(1:3, 4) += normrnd(0.0, 1.0, 3, 1);         % Add noise to translation
+  T_WS_j(1:3, 1:3) *= Exp(normrnd(0.0, 0.01, 3, 1)); % Add noise to rotation
+  T_WS_j(1:3, 4) += normrnd(0.0, 0.5, 3, 1);         % Add noise to translation
   pose_j = pose_init(imu_buf.ts(end), T_WS_j);
 
   % Keep track of ground truth pose
@@ -185,7 +201,7 @@ for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
 
   % Speed and bias j
   vel_j = sim_data.imu_vel(:, end_idx);
-  vel_j += normrnd(0.0, 0.5, 3, 1); % Add noise to velocities
+  vel_j += normrnd(0.0, 1.0, 3, 1); % Add noise to velocities
   ba_j = zeros(3, 1);
   bg_j = zeros(3, 1);
   sb_j = sb_init(imu_buf.ts(end), vel_j, bg_j, ba_j);
@@ -205,8 +221,9 @@ for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
 endfor
 
 % Visualize
-% visualize("Before optimization", graph, poses_gnd, vels_gnd);
-% print('-dpng', '-S1200,600', '/tmp/imu_factor-before.png')
+visualize("Before optimization", graph, poses_gnd, vels_gnd);
+print('-dpng', '-S1200,600', '/tmp/imu_factor-before.png')
+close;
 
 % Optimize
 graph = graph_solve(graph);

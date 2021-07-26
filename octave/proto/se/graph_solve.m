@@ -1,24 +1,32 @@
 function graph = graph_solve(graph)
   % Settings
-  max_iter = 20;
-  lambda = 1e4;
+  max_iter = 100;
+  lambda = 1e8;
 
   % Calculate initial cost
   [H, g, r, param_idx] = graph_eval(graph);
   cost_prev = 0.5 * r' * r;
+  printf("iter[0] cost: %.2e, dcost = 0.00, lambda: %.2e\n", cost_prev, lambda);
 
+  nb_bad_iters = 0;
   for i = 1:max_iter
     % Levenberg-Marquardt
     H = H + lambda * eye(size(H));
-    % dx = H \ g;
-    dx = linsolve(H, g);
+    % dx = pinv(H) * g;
+    dx = H \ g;
+    % dx = linsolve(H, g);
+
+    % warning('off');
+    % H_sparse = sparse(H);
+    % dx = pcg(H_sparse, g, 1e-3, 100);
+    % warning('on');
 
     graph = graph_update(graph, param_idx, dx);
     [H, g, r, param_idx] = graph_eval(graph);
 
     cost = 0.5 * r' * r;
     dcost = cost_prev - cost;
-    printf("cost: %.2e, dcost = %.2e, lambda: %.2e\n", cost, dcost, lambda);
+    printf("iter[%d] cost: %.2e, dcost = %.2e, lambda: %.2e\n", i, cost, dcost, lambda);
 
     % Termination criteria
     % -- Cost is low?
@@ -28,24 +36,24 @@ function graph = graph_solve(graph)
     endif
     % -- Convergence speed too low?
     if dcost < 1e-2
-      printf("Convergence speed < %.2e terminating!\n", 1e-2);
+      nb_bad_iters += 1;
 
-      % Restore previous estimate if dcost is -ve and terminating
-      if dcost < 0
-        graph = graph_update(graph, param_idx, -dx);
+      if nb_bad_iters > 3
+        printf("Convergence speed < %.2e terminating!\n", 1e-2);
+        break;
       endif
-
-      break;
     endif
 
     % Update
     if dcost > 0
-      lambda /= 5.0;
+      lambda /= 10.0;
+      nb_bad_iters = 0;
+      cost_prev = cost;
     else
-      lambda *= 6.0;
+      lambda *= 5.0;
       graph = graph_update(graph, param_idx, -dx);
       [H, g, r, param_idx] = graph_eval(graph);
+      cost_prev = 0.5 * r' * r;
     endif
-    cost_prev = cost;
   end
 endfunction

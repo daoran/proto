@@ -27,6 +27,7 @@ function sim_data = sim_vio(circle_r, velocity)
     event.time = imu_time;
     event.has_imu_data = 1;
     event.imu_pose = imu_data.imu_poses{imu_idx};
+    event.imu_vel = imu_data.imu_vel(:, imu_idx);
     event.imu_acc = imu_data.imu_acc(:, imu_idx);
     event.imu_gyr = imu_data.imu_gyr(:, imu_idx);
     % -- Camera data

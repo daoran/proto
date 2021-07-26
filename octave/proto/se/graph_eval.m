@@ -39,11 +39,11 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   nb_params += length(landmark_param_ids);
   nb_params += length(camera_param_ids);
 
-  printf("nb_pose_params: %d\n", length(pose_param_ids));
-  printf("nb_exts_params: %d\n", length(exts_param_ids));
-  printf("nb_sb_params: %d\n", length(sb_param_ids));
-  printf("nb_landmark_params: %d\n", length(landmark_param_ids));
-  printf("nb_camera_params: %d\n", length(camera_param_ids));
+  % printf("nb_pose_params: %d\n", length(pose_param_ids));
+  % printf("nb_exts_params: %d\n", length(exts_param_ids));
+  % printf("nb_sb_params: %d\n", length(sb_param_ids));
+  % printf("nb_landmark_params: %d\n", length(landmark_param_ids));
+  % printf("nb_camera_params: %d\n", length(camera_param_ids));
 
   param_idx = {};
   col_idx = 1;
