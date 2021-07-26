@@ -7,6 +7,9 @@ function imu_buf = imu_buf_init(t, acc, gyr)
     imu_buf.acc = [];
     imu_buf.gyr = [];
   elseif nargin == 3
+    assert(size(t) == [1, 1]);
+    assert(size(acc) == [3, 1]);
+    assert(size(gyr) == [3, 1]);
     imu_buf = {};
     imu_buf.ts = [t];
     imu_buf.acc = [acc];
