@@ -40,15 +40,15 @@ function [r, jacs] = cam_factor_eval(factor, params)
   C_CW = C_CS * C_WS';
   r_WS = tf_trans(T_WS);
   % -- Measurement model jacobian
-  J_h = camera.J_proj(proj_params, dist_params, p_C);
+  Jh = camera.J_proj(proj_params, dist_params, p_C);
   % -- Jacobian w.r.t. sensor pose T_WS
-  jacs{1}(1:2, 1:3) = -1 * sqrt_info * J_h * C_CS * -C_SW;
-  jacs{1}(1:2, 4:6) = -1 * sqrt_info * J_h * C_CS * -C_SW * skew(p_W - r_WS) * -C_WS;
+  jacs{1}(1:2, 1:3) = -1 * sqrt_info * Jh * C_CS * -C_SW;
+  jacs{1}(1:2, 4:6) = -1 * sqrt_info * Jh * C_CS * -C_SW * skew(p_W - r_WS) * -C_WS;
   % -- Jacobian w.r.t. sensor camera pose T_SC
-  jacs{2}(1:2, 1:3) = -1 * sqrt_info * J_h * -C_CS;
-  jacs{2}(1:2, 4:6) = -1 * sqrt_info * J_h * -C_CS * skew(C_SC * p_C) * -C_SC;
+  jacs{2}(1:2, 1:3) = -1 * sqrt_info * Jh * -C_CS;
+  jacs{2}(1:2, 4:6) = -1 * sqrt_info * Jh * -C_CS * skew(C_SC * p_C) * -C_SC;
   % -- Jacobian w.r.t. landmark
-  jacs{3} = -1 * sqrt_info * J_h * C_CW;
+  jacs{3} = -1 * sqrt_info * Jh * C_CW;
   % -- Jacobian w.r.t. camera parameters
   J_cam_params = camera.J_param(proj_params, dist_params, p_C);
   jacs{4} = -1 * sqrt_info * J_cam_params;
