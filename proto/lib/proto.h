@@ -263,8 +263,8 @@ real_t pythag(const real_t a, const real_t b);
 real_t lerp(const real_t a, const real_t b, const real_t t);
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);
 real_t sinc(const real_t x);
-real_t mean(const real_t* x, const size_t length);
-real_t median(const real_t* x, const size_t length);
+real_t mean(const real_t *x, const size_t length);
+real_t median(const real_t *x, const size_t length);
 real_t var(const real_t *x, const size_t length);
 real_t stddev(const real_t *x, const size_t length);
 
@@ -385,7 +385,7 @@ void lapack_chol_solve(const real_t *A,
  ******************************************************************************/
 
 void tf(const real_t params[7], real_t T[4 * 4]);
-void tf_decompose(const real_t T[4 * 4], real_t C[3*3], real_t r[3]);
+void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]);
 void tf_params(const real_t T[4 * 4], real_t params[7]);
 void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]);
 void tf_trans_set(real_t T[4 * 4], const real_t r[3]);
@@ -427,7 +427,6 @@ void image_setup(image_t *img,
 image_t *image_load(const char *file_path);
 void image_print_properties(const image_t *img);
 void image_free(image_t *img);
-
 
 /* RADTAN --------------------------------------------------------------------*/
 
@@ -494,9 +493,7 @@ typedef struct pose_t {
   real_t data[7];
 } pose_t;
 
-void pose_setup(pose_t *pose,
-                const timestamp_t ts,
-                const real_t *param);
+void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_print(const pose_t *pose);
 
 /* SPEED AND BIASES --------------------------------------------------------- */
@@ -575,14 +572,14 @@ typedef struct ba_factor_t {
   camera_params_t *camera;
   feature_t *feature;
 
-  real_t covar[2*2];
+  real_t covar[2 * 2];
   real_t z[2];
 
   real_t r[2];
   int r_size;
 
-  real_t J0[2*6]; /* Jacobian w.r.t camera pose T_WC */
-  real_t J1[2*3]; /* Jacobian w.r.t landmark */
+  real_t J0[2 * 6]; /* Jacobian w.r.t camera pose T_WC */
+  real_t J1[2 * 3]; /* Jacobian w.r.t landmark */
   real_t *jacs[4];
   int nb_params;
 } ba_factor_t;
@@ -602,16 +599,16 @@ typedef struct cam_factor_t {
   camera_params_t *camera;
   feature_t *feature;
 
-  real_t covar[2*2];
+  real_t covar[2 * 2];
   real_t z[2];
 
   real_t r[2];
   int r_size;
 
-  real_t J0[2*6]; /* Jacobian w.r.t sensor pose T_WS */
-  real_t J1[2*6]; /* Jacobian w.r.t sensor-camera extrinsics T_SC */
-  real_t J2[2*8]; /* Jacobian w.r.t camera parameters */
-  real_t J3[2*3]; /* Jacobian w.r.t landmark */
+  real_t J0[2 * 6]; /* Jacobian w.r.t sensor pose T_WS */
+  real_t J1[2 * 6]; /* Jacobian w.r.t sensor-camera extrinsics T_SC */
+  real_t J2[2 * 8]; /* Jacobian w.r.t camera parameters */
+  real_t J3[2 * 3]; /* Jacobian w.r.t landmark */
   real_t *jacs[4];
   int nb_params;
 } cam_factor_t;
@@ -634,10 +631,10 @@ typedef struct imu_params_t {
   int imu_idx;
   real_t rate;
 
-  real_t n_aw[3];
-  real_t n_gw[3];
-  real_t n_a[3];
-  real_t n_g[3];
+  real_t n_aw;
+  real_t n_gw;
+  real_t n_a;
+  real_t n_g;
   real_t g;
 } imu_params_t;
 
@@ -666,6 +663,19 @@ typedef struct imu_factor_t {
   real_t J3[2 * 9];
   real_t *jacs[4];
   int nb_params;
+
+  /* Preintegration variables */
+  real_t Dt;
+  real_t F[15 * 15]; /* State jacobian */
+  real_t P[15 * 15]; /* State covariance */
+  real_t Q[15 * 15]; /* Noise matrix */
+
+  real_t dr[3];     /* Relative position */
+  real_t dv[3];     /* Relative velocity */
+  real_t dC[3 * 3]; /* Relative rotation */
+  real_t ba[3];     /* Accel biase */
+  real_t bg[3];     /* Gyro biase */
+
 } imu_factor_t;
 
 void imu_buf_setup(imu_buf_t *imu_buf);
@@ -693,11 +703,8 @@ int imu_factor_eval(imu_factor_t *factor);
 #define MAX_CAMS 4
 #define MAX_FEATURES 1000
 #define MAX_PARAMS MAX_POSES + MAX_CAMS + MAX_CAMS + MAX_FEATURES
-#define MAX_H_SIZE \
-  MAX_POSES * 6 \
-  + MAX_CAMS * 8 \
-  + MAX_CAMS * 6 \
-  + MAX_FEATURES * 3
+#define MAX_H_SIZE                                                             \
+  MAX_POSES * 6 + MAX_CAMS * 8 + MAX_CAMS * 6 + MAX_FEATURES * 3
 
 typedef struct solver_t {
   cam_factor_t cam_factors[MAX_FEATURES];

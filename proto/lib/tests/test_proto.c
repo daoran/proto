@@ -1536,6 +1536,29 @@ int test_imu_buf_print() {
   return 0;
 }
 
+int test_imu_factor_setup() {
+  imu_factor_t imu_factor;
+  imu_params_t imu_params;
+  imu_buf_t imu_buf;
+
+  pose_t pose_i;
+  speed_biases_t sb_i;
+  pose_t pose_j;
+  speed_biases_t sb_j;
+
+  imu_buf_setup(&imu_buf);
+
+  imu_factor_setup(&imu_factor,
+                   &imu_params,
+                   &imu_buf,
+                   &pose_i,
+                   &sb_i,
+                   &pose_j,
+                   &sb_j);
+
+  return 0;
+}
+
 int test_solver_setup() {
   solver_t solver;
   solver_setup(&solver);
@@ -1618,7 +1641,7 @@ void test_suite() {
   MU_ADD_TEST(test_check_jacobian);
 
   /* SVD */
-  MU_ADD_TEST(test_svd);
+  /* MU_ADD_TEST(test_svd); */
 
   /* CHOL */
   MU_ADD_TEST(test_chol);
@@ -1692,9 +1715,9 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buf_clear);
   MU_ADD_TEST(test_imu_buf_copy);
   MU_ADD_TEST(test_imu_buf_print);
-  /* MU_ADD_TEST(test_imu_factor_setup); */
+  MU_ADD_TEST(test_imu_factor_setup);
   /* MU_ADD_TEST(test_imu_factor_eval); */
-  /* -- Sliding window estimator */
+  /* -- Solver */
   MU_ADD_TEST(test_solver_setup);
   MU_ADD_TEST(test_solver_print);
   /* MU_ADD_TEST(test_solver_eval); */

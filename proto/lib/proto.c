@@ -709,8 +709,10 @@ int tcp_client_loop(tcp_client_t *client) {
     if (client->loop_cb) {
       int retval = client->loop_cb(client);
       switch (retval) {
-      case -1: return -1;
-      case 1: break;
+        case -1:
+          return -1;
+        case 1:
+          break;
       }
     }
   }
@@ -3692,7 +3694,8 @@ void imu_buf_add(imu_buf_t *imu_buf,
                  timestamp_t ts,
                  real_t acc[3],
                  real_t gyr[3]) {
-  int k = imu_buf->size;
+  assert(imu_buf->size < MAX_IMU_BUF_SIZE);
+  const int k = imu_buf->size;
   imu_buf->ts[k] = ts;
   imu_buf->acc[k][0] = acc[0];
   imu_buf->acc[k][1] = acc[1];
@@ -3743,6 +3746,7 @@ void imu_factor_setup(imu_factor_t *factor,
                       speed_biases_t *sb_i,
                       pose_t *pose_j,
                       speed_biases_t *sb_j) {
+  /* Parameters */
   factor->imu_params = imu_params;
   imu_buf_copy(imu_buf, &factor->imu_buf);
   factor->pose_i = pose_i;
@@ -3750,15 +3754,104 @@ void imu_factor_setup(imu_factor_t *factor,
   factor->pose_j = pose_j;
   factor->sb_j = sb_j;
 
+  /* Covariance and residuals */
   zeros(factor->covar, 15, 15);
   zeros(factor->r, 15, 1);
   factor->r_size = 15;
 
+  /* Jacobians */
   factor->jacs[0] = factor->J0;
   factor->jacs[1] = factor->J1;
   factor->jacs[2] = factor->J2;
   factor->jacs[3] = factor->J3;
   factor->nb_params = 4;
+
+  /* Pre-integration variables */
+  factor->Dt = 0.0;
+  eye(factor->F, 15, 15);   /* State jacobian */
+  zeros(factor->P, 15, 15); /* State covariance */
+
+  /* -- Noise matrix */
+  const real_t n_a = imu_params->n_a;
+  const real_t n_g = imu_params->n_g;
+  const real_t n_ba = imu_params->n_aw;
+  const real_t n_bg = imu_params->n_gw;
+  const real_t n_a_sq = n_a * n_a;
+  const real_t n_g_sq = n_g * n_g;
+  const real_t n_ba_sq = n_ba * n_ba;
+  const real_t n_bg_sq = n_bg * n_bg;
+  real_t Q_diag[12] = {0};
+  Q_diag[0] = n_a_sq;
+  Q_diag[1] = n_a_sq;
+  Q_diag[2] = n_a_sq;
+  Q_diag[3] = n_g_sq;
+  Q_diag[4] = n_g_sq;
+  Q_diag[5] = n_g_sq;
+  Q_diag[6] = n_ba_sq;
+  Q_diag[7] = n_ba_sq;
+  Q_diag[8] = n_ba_sq;
+  Q_diag[9] = n_bg_sq;
+  Q_diag[10] = n_bg_sq;
+  Q_diag[11] = n_bg_sq;
+  zeros(factor->Q, 12, 12);
+  mat_diag_set(factor->Q, 12, 12, Q_diag);
+
+  /* -- Setup relative position, velocity and rotation */
+  real_t dr[3] = {0};
+  real_t dv[3] = {0};
+  real_t dC[3 * 3] = {0};
+  zeros(factor->dr, 3, 1);
+  zeros(factor->dv, 3, 1);
+  eye(factor->dC, 3, 3);
+
+  ba[0] = sb_i->data[3];
+  ba[1] = sb_i->data[4];
+  ba[2] = sb_i->data[5];
+
+  bg[0] = sb_i->data[6];
+  bg[1] = sb_i->data[7];
+  bg[2] = sb_i->data[8];
+
+  /* Pre-integrate imu measuremenets */
+  for (int k = 0; k < imu_buf->size; k++) {
+    /* Euler integration */
+    const real_t ts_i = imu_buf->ts[k];
+    const real_t ts_j = imu_buf->ts[k + 1];
+    const real_t *acc = imu_buf->acc[k];
+    const real_t *gyr = imu_buf->gyr[k];
+
+    /* Propagate IMU state using Euler method */
+    const real_t dt = ts_j - ts_i;
+    const real_t dt_sq = dt * dt;
+    /* dr = dr + (dv * dt) + (0.5 * dC * (acc - ba) * dt_sq); */
+    /* dv = dv + dC * (acc - ba) * dt; */
+    /* dC = dC * Exp((gyr - bg) * dt); */
+    /* ba = ba; */
+    /* bg = bg; */
+
+    /* Continuous time transition matrix F */
+    /* F = zeros(15, 15); */
+    /* F(1 : 3, 4 : 6) = eye(3); */
+    /* F(4 : 6, 7 : 9) = -dC * skew(acc - ba); */
+    /* F(4 : 6, 10 : 12) = -dC; */
+    /* F(7 : 9, 7 : 9) = -skew(gyr - bg); */
+    /* F(7 : 9, 13 : 15) = -eye(3); */
+
+    /* Continuous time input jacobian G */
+    /* G = zeros(15, 12); */
+    /* G(4 : 6, 1 : 3) = -dC; */
+    /* G(7 : 9, 4 : 6) = -eye(3); */
+    /* G(10 : 12, 7 : 9) = eye(3); */
+    /* G(13 : 15, 10 : 12) = eye(3); */
+
+    /* Update */
+    /* G_dt = G * dt; */
+    /* I_F_dt = eye(15) + F * dt; */
+    /* factor.state_F = I_F_dt * factor.state_F; */
+    /* factor.state_P = */
+    /*     I_F_dt * factor.state_P * I_F_dt ' + G_dt * factor.Q * G_dt'; */
+    /* factor.Dt += dt; */
+  }
 }
 
 void imu_factor_reset(imu_factor_t *factor) {
@@ -3767,6 +3860,16 @@ void imu_factor_reset(imu_factor_t *factor) {
   zeros(factor->J1, 2, 9);
   zeros(factor->J2, 2, 6);
   zeros(factor->J3, 2, 9);
+
+  zeros(factor->dr, 3, 1);       /* Relative position */
+  zeros(factor->dv, 3, 1);       /* Relative velocity */
+  eye(factor->dC, 3, 3);         /* Relative rotation */
+  factor->ba[0] = sb_i->data[3]; /* Accel bias */
+  factor->ba[1] = sb_i->data[4]; /* Accel bias */
+  factor->ba[2] = sb_i->data[5]; /* Accel bias */
+  factor->bg[0] = sb_i->data[6]; /* Gyro bias */
+  factor->bg[1] = sb_i->data[7]; /* Gyro bias */
+  factor->bg[2] = sb_i->data[8]; /* Gyro bias */
 }
 
 int imu_factor_eval(imu_factor_t *factor) {
