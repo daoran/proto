@@ -2056,7 +2056,7 @@ void lie_Exp(const real_t phi[3], real_t C[3 * 3]) {
   assert(phi != NULL);
   assert(C != NULL);
 
-  real_t phi_norm = vec_norm(phi);
+  real_t phi_norm = vec_norm(phi, 3);
   real_t phi_skew[3 * 3] = {0};
   real_t phi_skew_sq[3 * 3] = {0};
 
@@ -2066,7 +2066,7 @@ void lie_Exp(const real_t phi[3], real_t C[3 * 3]) {
   if (phi_norm < 1e-3) {
     /* C = eye(3) + skew(phi); */
     eye(C, 3, 3);
-    mat_add(C, 3, 3, phi_skew, 3, 1, C);
+    mat_add(C, phi_skew, C, 3, 3);
   } else {
     /* C = eye(3); */
     /* C += (sin(phi_norm) / phi_norm) * phi_skew; */
@@ -2080,8 +2080,8 @@ void lie_Exp(const real_t phi[3], real_t C[3 * 3]) {
     mat_scale(B, 3, 3, 1.0 - cos(phi_norm) / (phi_norm * phi_norm));
 
     eye(C, 3, 3);
-    mat_add(C, 3, 3, A, 3, 3, C);
-    mat_add(C, 3, 3, B, 3, 3, C);
+    mat_add(C, A, C, 3, 3);
+    mat_add(C, B, C, 3, 3);
   }
 }
 
@@ -2356,6 +2356,7 @@ void tf_point(const real_t T[4 * 4], const real_t p[3], real_t retval[3]) {
 void tf_hpoint(const real_t T[4 * 4], const real_t hp[4], real_t retval[4]) {
   assert(T != NULL);
   assert(hp != retval);
+  assert(retal != NULL);
   dot(T, 4, 4, hp, 4, 1, retval);
 }
 
@@ -2410,6 +2411,7 @@ void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
  */
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R) {
   assert(rvec != NULL);
+  assert(eps > 0);
   assert(R != NULL);
 
   /* Magnitude of rvec */
@@ -2611,8 +2613,9 @@ void quat2rot(const real_t q[4], real_t C[3 * 3]) {
  * Quaternion left-multiply `p` with `q`, results are outputted to `r`.
  */
 void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]) {
-  assert(p != NULL && q != NULL && r != NULL);
-  assert(p != r && q != r);
+  assert(p != NULL);
+  assert(q != NULL);
+  assert(r != NULL);
 
   const real_t pw = p[0];
   const real_t px = p[1];
@@ -2635,8 +2638,9 @@ void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]) {
  * Quaternion right-multiply `p` with `q`, results are outputted to `r`.
  */
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]) {
-  assert(p != NULL && q != NULL && r != NULL);
-  assert(p != r && q != r);
+  assert(p != NULL);
+  assert(q != NULL);
+  assert(r != NULL);
 
   const real_t qw = q[0];
   const real_t qx = q[1];
@@ -2659,8 +2663,9 @@ void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]) {
  * Quaternion multiply `p` with `q`, results are outputted to `r`.
  */
 void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]) {
-  assert(p != NULL && q != NULL && r != NULL);
-  assert(p != r && q != r);
+  assert(p != NULL);
+  assert(q != NULL);
+  assert(r != NULL);
   quat_lmul(p, q, r);
 }
 
@@ -2668,6 +2673,9 @@ void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]) {
  * Form delta quaternion `dq` from a small rotation vector `dalpha`.
  */
 void quat_delta(const real_t dalpha[3], real_t dq[4]) {
+  assert(dalpha != NULL);
+  assert(dq != NULL);
+
   const real_t half_norm = 0.5 * vec_norm(dalpha, 3);
   const real_t k = sinc(half_norm) * 0.5;
   const real_t vector[3] = {k * dalpha[0], k * dalpha[1], k * dalpha[2]};
@@ -2734,6 +2742,7 @@ void image_print_properties(const image_t *img) {
  * Free image.
  */
 void image_free(image_t *img) {
+  assert(img != NULL);
   free(img->data);
   free(img);
 }
@@ -2995,6 +3004,9 @@ void pinhole_project(const real_t params[4], const real_t p_C[3], real_t x[2]) {
  * Form Pinhole point jacobian `J` using pinhole parameters `params`.
  */
 void pinhole_point_jacobian(const real_t params[4], real_t J[2 * 3]) {
+  assert(params != NULL);
+  assert(J != NULL);
+
   J[0] = params[0];
   J[1] = 0.0;
   J[2] = 0.0;
@@ -3361,7 +3373,7 @@ void camera_params_setup(camera_params_t *camera,
 }
 
 void camera_params_print(const camera_params_t *camera) {
-  assert(camera);
+  assert(camera != NULL);
 
   printf("cam_idx: %d\n", camera->cam_idx);
   printf("cam_res: [%d, %d]\n", camera->resolution[0], camera->resolution[1]);
@@ -3407,6 +3419,8 @@ void pose_factor_setup(pose_factor_t *factor,
 }
 
 void pose_factor_reset(pose_factor_t *factor) {
+  assert(factor != NULL);
+
   zeros(factor->r, 6, 1);
   zeros(factor->J0, 6, 6);
 }
@@ -3468,6 +3482,12 @@ void ba_factor_setup(ba_factor_t *factor,
                      feature_t *feature,
                      camera_params_t *camera,
                      const real_t var[2]) {
+  assert(factor != NULL);
+  assert(pose != NULL);
+  assert(feature != NULL);
+  assert(camera != NULL);
+  assert(var != NULL);
+
   factor->pose = pose;
   factor->feature = feature;
   factor->camera = camera;
@@ -3544,6 +3564,13 @@ void cam_factor_setup(cam_factor_t *factor,
                       feature_t *feature,
                       camera_params_t *camera,
                       const real_t var[2]) {
+  assert(factor != NULL);
+  assert(pose != NULL);
+  assert(extrinsics != NULL);
+  assert(feature != NULL);
+  assert(camera != NULL);
+  assert(var != NULL);
+
   factor->pose = pose;
   factor->extrinsics = extrinsics;
   factor->feature = feature;
@@ -3568,6 +3595,8 @@ void cam_factor_setup(cam_factor_t *factor,
 }
 
 void cam_factor_reset(cam_factor_t *factor) {
+  assert(factor != NULL);
+
   zeros(factor->r, 2, 1);
   zeros(factor->J0, 2, 6);
   zeros(factor->J1, 2, 6);
@@ -3580,6 +3609,12 @@ static void cam_factor_sensor_pose_jacobian(const real_t Jh_weighted[2 * 3],
                                             const real_t T_WS[3 * 3],
                                             const real_t p_W[3],
                                             real_t J[2 * 6]) {
+  assert(Jh_weighted != NULL);
+  assert(T_SC != NULL);
+  assert(T_WS != NULL);
+  assert(p_W != NULL);
+  assert(J != NULL);
+
   /* J[0:2, 0:3] = -1 * sqrt_info * J_h * C_CS * C_SW * skew(p_W - r_WS); */
   /* J[0:2, 3:5] = -1 * sqrt_info * J_h * C_CS * -C_SW; */
 
@@ -3630,6 +3665,11 @@ static void cam_factor_sensor_camera_jacobian(const real_t Jh_weighted[2 * 3],
                                               const real_t T_SC[3 * 3],
                                               const real_t p_C[3],
                                               real_t J[2 * 6]) {
+  assert(Jh_weighted != NULL);
+  assert(T_SC != NULL);
+  assert(p_C != NULL);
+  assert(J != NULL);
+
   /* J[0:2, 0:3] = -1 * sqrt_info * J_h * C_CS * skew(C_SC * p_C); */
   /* J[0:2, 3:5] = -1 * sqrt_info * J_h * -C_CS; */
 
@@ -3674,6 +3714,10 @@ static void cam_factor_sensor_camera_jacobian(const real_t Jh_weighted[2 * 3],
 static void cam_factor_camera_params_jacobian(const real_t neg_sqrt_info[2 * 2],
                                               const real_t J_cam_params[2 * 8],
                                               real_t J[2 * 8]) {
+  assert(neg_sqrt_info != NULL);
+  assert(J_cam_params != NULL);
+  assert(J != NULL);
+
   /* J = -1 * sqrt_info * J_cam_params; */
   dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
 }
@@ -3682,6 +3726,11 @@ static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
                                         const real_t T_WS[4 * 4],
                                         const real_t T_SC[4 * 4],
                                         real_t J[2 * 3]) {
+  assert(Jh_weighted != NULL);
+  assert(T_WS != NULL);
+  assert(T_SC != NULL);
+  assert(J != NULL);
+
   /* Setup */
   real_t T_WC[4 * 4] = {0};
   real_t C_WC[3 * 3] = {0};
@@ -3899,6 +3948,9 @@ void imu_factor_setup(imu_factor_t *factor,
   real_t dr[3] = {0};
   real_t dv[3] = {0};
   real_t dC[3 * 3] = {0};
+  real_t ba[3] = {0};
+  real_t bg[3] = {0};
+
   zeros(factor->dr, 3, 1);
   zeros(factor->dv, 3, 1);
   eye(factor->dC, 3, 3);
@@ -3995,15 +4047,11 @@ void imu_factor_reset(imu_factor_t *factor) {
   zeros(factor->J2, 2, 6);
   zeros(factor->J3, 2, 9);
 
-  zeros(factor->dr, 3, 1);       /* Relative position */
-  zeros(factor->dv, 3, 1);       /* Relative velocity */
-  eye(factor->dC, 3, 3);         /* Relative rotation */
-  factor->ba[0] = sb_i->data[3]; /* Accel bias */
-  factor->ba[1] = sb_i->data[4]; /* Accel bias */
-  factor->ba[2] = sb_i->data[5]; /* Accel bias */
-  factor->bg[0] = sb_i->data[6]; /* Gyro bias */
-  factor->bg[1] = sb_i->data[7]; /* Gyro bias */
-  factor->bg[2] = sb_i->data[8]; /* Gyro bias */
+  zeros(factor->dr, 3, 1); /* Relative position */
+  zeros(factor->dv, 3, 1); /* Relative velocity */
+  eye(factor->dC, 3, 3);   /* Relative rotation */
+  zeros(factor->ba, 3, 1); /* Accel bias */
+  zeros(factor->bg, 3, 1); /* Gyro bias */
 }
 
 int imu_factor_eval(imu_factor_t *factor) {
