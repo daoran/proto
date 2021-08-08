@@ -1480,6 +1480,9 @@ void dot(const real_t *A,
  * Create skew-symmetric matrix `A` from a 3x1 vector `x`.
  */
 void skew(const real_t x[3], real_t A[3 * 3]) {
+  assert(x != NULL);
+  assert(A != NULL);
+
   /* First row */
   A[0] = 0.0;
   A[1] = -x[2];
@@ -1494,6 +1497,18 @@ void skew(const real_t x[3], real_t A[3 * 3]) {
   A[6] = -x[1];
   A[7] = x[0];
   A[8] = 0.0;
+}
+
+/**
+ * Opposite of the skew-symmetric matrix
+ */
+void skew_inv(const real_t A[3 * 3], real_t x[3]) {
+  assert(A != NULL);
+  assert(x != NULL);
+
+  /* x[0] = A[2]; */
+  /* x[1] = A; */
+  /* x[2] = A; */
 }
 
 /**
@@ -2032,6 +2047,88 @@ void lapack_chol_solve(const real_t *A,
   free(a);
 }
 #endif
+
+/******************************************************************************
+ * Lie
+ ******************************************************************************/
+
+void lie_Exp(const real_t phi[3], real_t C[3 * 3]) {
+  assert(phi != NULL);
+  assert(C != NULL);
+
+  real_t phi_norm = vec_norm(phi);
+  real_t phi_skew[3 * 3] = {0};
+  real_t phi_skew_sq[3 * 3] = {0};
+
+  skew(phi, phi_skew);
+  dot(phi_skew, 3, 3, phi_skew, 3, 3, phi_skew_sq);
+
+  if (phi_norm < 1e-3) {
+    /* C = eye(3) + skew(phi); */
+    eye(C, 3, 3);
+    mat_add(C, 3, 3, phi_skew, 3, 1, C);
+  } else {
+    /* C = eye(3); */
+    /* C += (sin(phi_norm) / phi_norm) * phi_skew; */
+    /* C += ((1 - cos(phi_norm)) / phi_norm ^ 2) * phi_skew_sq; */
+    real_t A[3 * 3] = {0};
+    mat_copy(phi_skew, 3, 3, A);
+    mat_scale(A, 3, 3, (sin(phi_norm) / phi_norm));
+
+    real_t B[3 * 3] = {0};
+    mat_copy(phi_skew_sq, 3, 3, B);
+    mat_scale(B, 3, 3, 1.0 - cos(phi_norm) / (phi_norm * phi_norm));
+
+    eye(C, 3, 3);
+    mat_add(C, 3, 3, A, 3, 3, C);
+    mat_add(C, 3, 3, B, 3, 3, C);
+  }
+}
+
+void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
+  assert(C != NULL);
+  assert(rvec != NULL);
+
+  const real_t C00 = C[0];
+  const real_t C01 = C[1];
+  const real_t C02 = C[2];
+  const real_t C10 = C[3];
+  const real_t C11 = C[4];
+  const real_t C12 = C[5];
+  const real_t C20 = C[6];
+  const real_t C21 = C[7];
+  const real_t C22 = C[8];
+
+  /* % phi = acos((trace(C) - 1) / 2); */
+  /* % u = skew_inv(C - C') / (2 * sin(phi)); */
+  /* % rvec = phi * u; */
+
+  /* real_t tr = C00 + C11 + C22; */
+  /* real_t phi = acos((tr - 1.0) / 2.0); */
+
+  /* if (tr + 1.0 < 1e-10) */
+  /*   if (abs(C33 + 1.0) > 1e-5) */
+  /*     rvec = (pi / sqrt(2.0 + 2.0 * C33)) * [C13; C23; 1.0 + C33]; */
+  /*   elseif (abs(C22 + 1.0) > 1e-5) */
+  /*     rvec = (pi / sqrt(2.0 + 2.0 * C22)) * [C12; 1.0 + C22; C32]; */
+  /*   else */
+  /*     rvec = (pi / sqrt(2.0 + 2.0 * C11)) * [1.0 + C11; C21; C31]; */
+  /*   endif */
+  /*  */
+  /* else */
+  /*   tr_3 = tr - 3.0;  % always negative */
+  /*   if tr_3 < -1e-7 */
+  /*     theta = acos((tr - 1.0) / 2.0); */
+  /*     magnitude = theta / (2.0 * sin(theta)); */
+  /*   else */
+  /*     % when theta near 0, +-2pi, +-4pi, etc. (trace near 3.0) */
+  /*     % use Taylor expansion: theta \approx 1/2-(t-3)/12 + O((t-3)^2) */
+  /*     % see https://github.com/borglab/gtsam/issues/746 for details */
+  /*     magnitude = 0.5 - tr_3 / 12.0; */
+  /*   endif */
+  /*   rvec = magnitude * [C32 - C23; C13 - C31; C21 - C12]; */
+  /* endif */
+}
 
 /******************************************************************************
  * TRANSFORMS
@@ -3713,9 +3810,11 @@ void imu_buf_clear(imu_buf_t *imu_buf) {
     real_t *gyr = imu_buf->gyr[k];
 
     *ts = 0;
+
     acc[0] = 0.0;
     acc[1] = 0.0;
     acc[2] = 0.0;
+
     gyr[0] = 0.0;
     gyr[1] = 0.0;
     gyr[2] = 0.0;
@@ -3817,28 +3916,63 @@ void imu_factor_setup(imu_factor_t *factor,
     /* Euler integration */
     const real_t ts_i = imu_buf->ts[k];
     const real_t ts_j = imu_buf->ts[k + 1];
-    const real_t *acc = imu_buf->acc[k];
-    const real_t *gyr = imu_buf->gyr[k];
+    const real_t *a = imu_buf->acc[k];
+    const real_t *w = imu_buf->gyr[k];
+    const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
+    const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
 
     /* Propagate IMU state using Euler method */
     const real_t dt = ts_j - ts_i;
     const real_t dt_sq = dt * dt;
-    /* dr = dr + (dv * dt) + (0.5 * dC * (acc - ba) * dt_sq); */
-    /* dv = dv + dC * (acc - ba) * dt; */
-    /* dC = dC * Exp((gyr - bg) * dt); */
+
+    /* dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq); */
+    real_t vel_int[3] = {dv[0], dv[1], dv[2]};
+    vec_scale(vel_int, 3, dt);
+
+    real_t acc_dint[3] = {0};
+    dot(dC, 3, 3, a_t, 3, 1, acc_dint);
+    vec_scale(acc_dint, 3, 0.5 * dt_sq);
+
+    dr[0] += vel_int[0] + acc_dint[0];
+    dr[1] += vel_int[1] + acc_dint[1];
+    dr[2] += vel_int[2] + acc_dint[2];
+
+    /* dv = dv + dC * a_t * dt; */
+    real_t dv_update[3] = {0};
+    real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt};
+    dot(dC, 3, 3, acc_int, 3, 1, dv_update);
+
+    dv[0] += dv_update[0];
+    dv[1] += dv_update[1];
+    dv[2] += dv_update[2];
+
+    /* dC = dC * Exp((w_t) * dt); */
+    real_t dC_old[3 * 3] = {0};
+    real_t C_update[3 * 3] = {0};
+    real_t w_int[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt};
+    mat_copy(dC, 3, 3, dC_old);
+    dot(dC_old, 3, 3, C_update, 3, 3, dC);
+
     /* ba = ba; */
+    ba[0] = ba[0];
+    ba[1] = ba[1];
+    ba[2] = ba[2];
+
     /* bg = bg; */
+    bg[0] = bg[0];
+    bg[1] = bg[1];
+    bg[2] = bg[2];
 
     /* Continuous time transition matrix F */
-    /* F = zeros(15, 15); */
-    /* F(1 : 3, 4 : 6) = eye(3); */
-    /* F(4 : 6, 7 : 9) = -dC * skew(acc - ba); */
-    /* F(4 : 6, 10 : 12) = -dC; */
-    /* F(7 : 9, 7 : 9) = -skew(gyr - bg); */
-    /* F(7 : 9, 13 : 15) = -eye(3); */
+    real_t F[15 * 15] = {0};
+    /* F(0:3, 3:6) = eye(3); */
+    /* F(4:6, 7:9) = -dC * skewa_t; */
+    /* F(4:6, 10:12) = -dC; */
+    /* F(7:9, 7:9) = -skew(w_t); */
+    /* F(7:9, 13:15) = -eye(3); */
 
     /* Continuous time input jacobian G */
-    /* G = zeros(15, 12); */
+    real_t G[15 * 12] = {0};
     /* G(4 : 6, 1 : 3) = -dC; */
     /* G(7 : 9, 4 : 6) = -eye(3); */
     /* G(10 : 12, 7 : 9) = eye(3); */

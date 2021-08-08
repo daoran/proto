@@ -340,6 +340,7 @@ void dot(const real_t *A,
          const size_t B_n,
          real_t *C);
 void skew(const real_t x[3], real_t A[3 * 3]);
+void skew_inv(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
 int check_jacobian(const char *jac_name,
@@ -406,6 +407,13 @@ void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_delta(const real_t dalpha[3], real_t dq[4]);
+
+/******************************************************************************
+ * Lie
+ ******************************************************************************/
+
+void lie_Exp(const real_t phi[3], real_t C[3 * 3]);
+void lie_Log(const real_t C[3 * 3], real_t rvec[3]);
 
 /******************************************************************************
  * CV
