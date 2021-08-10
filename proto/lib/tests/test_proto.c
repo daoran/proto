@@ -1704,11 +1704,11 @@ void test_suite() {
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
   /* -- BA factor */
-  MU_ADD_TEST(test_ba_factor_setup);
+  /* MU_ADD_TEST(test_ba_factor_setup); */
   /* MU_ADD_TEST(test_ba_factor_eval); */
   /* -- Camera factor */
-  MU_ADD_TEST(test_cam_factor_setup);
-  MU_ADD_TEST(test_cam_factor_eval);
+  /* MU_ADD_TEST(test_cam_factor_setup); */
+  /* MU_ADD_TEST(test_cam_factor_eval); */
   /* -- IMU factor */
   MU_ADD_TEST(test_imu_buf_setup);
   MU_ADD_TEST(test_imu_buf_add);
@@ -1718,8 +1718,8 @@ void test_suite() {
   MU_ADD_TEST(test_imu_factor_setup);
   /* MU_ADD_TEST(test_imu_factor_eval); */
   /* -- Solver */
-  MU_ADD_TEST(test_solver_setup);
-  MU_ADD_TEST(test_solver_print);
+  /* MU_ADD_TEST(test_solver_setup); */
+  /* MU_ADD_TEST(test_solver_print); */
   /* MU_ADD_TEST(test_solver_eval); */
   /* MU_ADD_TEST(test_solver_solve); */
 }

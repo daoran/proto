@@ -566,6 +566,9 @@ timestamp_t time_now() {
  * `port`. Returns `0` for success and `-1` for failure.
  */
 int ip_port_info(const int sockfd, char *ip, int *port) {
+  assert(ip != NULL);
+  assert(port != NULL);
+
   struct sockaddr_storage addr;
   socklen_t len = sizeof addr;
   if (getpeername(sockfd, (struct sockaddr *) &addr, &len) != 0) {
@@ -595,6 +598,8 @@ int ip_port_info(const int sockfd, char *ip, int *port) {
  * Configure TCP server
  */
 int tcp_server_setup(tcp_server_t *server, const int port) {
+  assert(server != NULL);
+
   /* Setup server struct */
   server->port = port;
   server->sockfd = -1;
@@ -639,6 +644,8 @@ int tcp_server_setup(tcp_server_t *server, const int port) {
  * Loop TCP server
  */
 int tcp_server_loop(tcp_server_t *server) {
+  assert(server != NULL);
+
   // Server is ready to listen
   if ((listen(server->sockfd, 5)) != 0) {
     LOG_ERROR("Listen failed...");
@@ -671,6 +678,9 @@ int tcp_server_loop(tcp_server_t *server) {
 int tcp_client_setup(tcp_client_t *client,
                      const char *server_ip,
                      const int server_port) {
+  assert(client != NULL);
+  assert(server_ip != NULL);
+
   /* Setup client struct */
   strcpy(client->server_ip, server_ip);
   client->server_port = server_port;
@@ -772,6 +782,9 @@ int fltcmp(const real_t x, const real_t y) {
  * - -1 if x < y
  */
 int fltcmp2(const void *x, const void *y) {
+  assert(x != NULL);
+  assert(y != NULL);
+
   const real_t diff = (*(real_t *) x - *(real_t *) y);
   if (fabs(diff) < CMP_TOL) {
     return 0;
@@ -822,6 +835,10 @@ real_t lerp(const real_t a, const real_t b, const real_t t) {
  * interpolation hyper-parameter.
  */
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]) {
+  assert(a != NULL);
+  assert(b != NULL);
+  assert(x != NULL);
+
   x[0] = lerp(a[0], b[0], t);
   x[1] = lerp(a[1], b[1], t);
   x[2] = lerp(a[2], b[2], t);
@@ -850,6 +867,9 @@ real_t sinc(const real_t x) {
  * @returns Mean of x
  */
 real_t mean(const real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
   real_t sum = 0.0;
   for (size_t i = 0; i < n; i++) {
     sum += x[i];
@@ -862,6 +882,9 @@ real_t mean(const real_t *x, const size_t n) {
  * @returns Median of x
  */
 real_t median(const real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
   /* Make a copy of the original input vector x */
   real_t *vals = malloc(sizeof(real_t) * n);
   for (size_t i = 0; i < n; i++) {
@@ -884,8 +907,10 @@ real_t median(const real_t *x, const size_t n) {
  * @returns Variance of x
  */
 real_t var(const real_t *x, const size_t n) {
-  const real_t mu = mean(x, n);
+  assert(x != NULL);
+  assert(n > 0);
 
+  const real_t mu = mean(x, n);
   real_t sse = 0.0;
   for (size_t i = 0; i < n; i++) {
     sse += (x[i] - mu) * (x[i] - mu);
@@ -898,7 +923,11 @@ real_t var(const real_t *x, const size_t n) {
  * Calculate standard deviation from vector `x` of length `n`.
  * @returns Standard deviation of x
  */
-real_t stddev(const real_t *x, const size_t n) { return sqrt(var(x, n)); }
+real_t stddev(const real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+  return sqrt(var(x, n));
+}
 
 /******************************************************************************
  * LINEAR ALGEBRA
@@ -1001,6 +1030,8 @@ void zeros(real_t *A, const size_t m, const size_t n) {
  * @returns Heap allocated memory for the matrix.
  */
 real_t *mat_malloc(const size_t m, const size_t n) {
+  assert(m > 0);
+  assert(n > 0);
   return calloc(m * n, sizeof(real_t));
 }
 
@@ -1012,6 +1043,11 @@ real_t *mat_malloc(const size_t m, const size_t n) {
  * - -1 if A < B
  */
 int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n) {
+  assert(A != NULL);
+  assert(B != NULL);
+  assert(m > 0);
+  assert(n > 0);
+
   size_t index = 0;
 
   for (size_t i = 0; i < m; i++) {
@@ -1040,6 +1076,12 @@ int mat_equals(const real_t *A,
                const size_t m,
                const size_t n,
                const real_t tol) {
+  assert(A != NULL);
+  assert(B != NULL);
+  assert(m > 0);
+  assert(n > 0);
+  assert(tol > 0);
+
   size_t index = 0;
 
   for (size_t i = 0; i < m; i++) {
@@ -1062,6 +1104,11 @@ int mat_equals(const real_t *A,
  * - -1 Failure
  */
 int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
+  assert(save_path != NULL);
+  assert(A != NULL);
+  assert(m > 0);
+  assert(n > 0);
+
   FILE *csv_file = fopen(save_path, "w");
   if (csv_file == NULL) {
     return -1;
@@ -1089,6 +1136,10 @@ int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
  * @returns Loaded matrix matrix
  */
 real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
+  assert(mat_path != NULL);
+  assert(nb_rows != NULL);
+  assert(nb_cols != NULL);
+
   /* Obtain number of rows and columns in csv data */
   *nb_rows = dsv_rows(mat_path);
   *nb_cols = dsv_cols(mat_path, ',');
@@ -1176,6 +1227,11 @@ mat_val(const real_t *A, const size_t stride, const size_t i, const size_t j) {
  * Copy matrix `src` of size `m x n` to `dest`.
  */
 void mat_copy(const real_t *src, const int m, const int n, real_t *dest) {
+  assert(src != NULL);
+  assert(m > 0);
+  assert(n > 0);
+  assert(dest != NULL);
+
   for (int i = 0; i < (m * n); i++) {
     dest[i] = src[i];
   }
@@ -1193,6 +1249,8 @@ void mat_block_get(const real_t *A,
                    const size_t re,
                    const size_t ce,
                    real_t *block) {
+  assert(A != NULL);
+  assert(block != NULL);
   assert(A != block);
   assert(stride != 0);
 
@@ -1216,6 +1274,8 @@ void mat_block_set(real_t *A,
                    const size_t re,
                    const size_t ce,
                    const real_t *block) {
+  assert(A != NULL);
+  assert(block != NULL);
   assert(A != block);
   assert(stride != 0);
 
@@ -1250,6 +1310,11 @@ void mat_diag_get(const real_t *A, const int m, const int n, real_t *d) {
  * Set the diagonal of matrix `A` of size `m x n` with vector `d`.
  */
 void mat_diag_set(real_t *A, const int m, const int n, const real_t *d) {
+  assert(A != NULL);
+  assert(m > 0);
+  assert(n > 0);
+  assert(d != NULL);
+
   int mat_index = 0;
   int vec_index = 0;
 
@@ -1271,6 +1336,10 @@ void mat_diag_set(real_t *A, const int m, const int n, const real_t *d) {
  * outputted to `U`.
  */
 void mat_triu(const real_t *A, const size_t m, real_t *U) {
+  assert(A != NULL);
+  assert(m > 0);
+  assert(U != NULL);
+
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < m; j++) {
       U[i * m + j] = (j >= i) ? A[i * m + j] : 0.0;
@@ -1283,6 +1352,10 @@ void mat_triu(const real_t *A, const size_t m, real_t *U) {
  * outputted to `L`.
  */
 void mat_tril(const real_t *A, const size_t m, real_t *L) {
+  assert(A != NULL);
+  assert(m > 0);
+  assert(L != NULL);
+
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < m; j++) {
       L[i * m + j] = (j <= i) ? A[i * m + j] : 0.0;
@@ -1295,6 +1368,10 @@ void mat_tril(const real_t *A, const size_t m, real_t *L) {
  * @returns Trace of matrix A
  */
 real_t mat_trace(const real_t *A, const size_t m, const size_t n) {
+  assert(A != NULL);
+  assert(m > 0);
+  assert(n > 0);
+
   real_t tr = 0.0;
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
@@ -1367,12 +1444,19 @@ void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale) {
  * Create new vector of length `n` in heap memory.
  * @returns Heap allocated vector
  */
-real_t *vec_malloc(const size_t n) { return calloc(n, sizeof(real_t)); }
+real_t *vec_malloc(const size_t n) {
+  assert(n > 0);
+  return calloc(n, sizeof(real_t));
+}
 
 /**
  * Copy vector `src` of length `n` to `dest`.
  */
 void vec_copy(const real_t *src, const size_t n, real_t *dest) {
+  assert(src != NULL);
+  assert(n > 0);
+  assert(dest != NULL);
+
   for (size_t i = 0; i < n; i++) {
     dest[i] = src[i];
   }
@@ -1385,6 +1469,10 @@ void vec_copy(const real_t *src, const size_t n, real_t *dest) {
  * - 0 for x != y
  */
 int vec_equals(const real_t *x, const real_t *y, const size_t n) {
+  assert(x != NULL);
+  assert(y != NULL);
+  assert(n > 0);
+
   for (size_t i = 0; i < n; i++) {
     if (fltcmp(x[i], y[i]) != 0) {
       return 0;
@@ -1422,6 +1510,9 @@ void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t n) {
  * Scale a vector `x` of length `n` with `scale` in-place.
  */
 void vec_scale(real_t *x, const size_t n, const real_t scale) {
+  assert(x != NULL);
+  assert(n > 0);
+
   for (size_t i = 0; i < n; i++) {
     x[i] = x[i] * scale;
   }
@@ -1432,6 +1523,9 @@ void vec_scale(real_t *x, const size_t n, const real_t scale) {
  * @returns Norm of vector x
  */
 real_t vec_norm(const real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
   real_t sum = 0.0;
   for (size_t i = 0; i < n; i++) {
     sum += x[i] * x[i];
@@ -1443,6 +1537,9 @@ real_t vec_norm(const real_t *x, const size_t n) {
  * Normalize vector `x` of length `n` in place.
  */
 void vec_normalize(real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
   const real_t norm = vec_norm(x, n);
   for (size_t i = 0; i < n; i++) {
     x[i] = x[i] / norm;
@@ -1516,6 +1613,11 @@ void skew_inv(const real_t A[3 * 3], real_t x[3]) {
  * vector `b` and solve for vector `y` of size `n`.
  */
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n) {
+  assert(L != NULL);
+  assert(b != NULL);
+  assert(y != NULL);
+  assert(n > 0);
+
   for (size_t i = 0; i < n; i++) {
     real_t alpha = b[i];
     for (size_t j = 0; j < i; j++) {
@@ -1530,6 +1632,11 @@ void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n) {
  * vector `y` and solve for vector `x` of size `n`.
  */
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n) {
+  assert(U != NULL);
+  assert(y != NULL);
+  assert(x != NULL);
+  assert(n > 0);
+
   for (int i = n - 1; i >= 0; i--) {
     real_t alpha = y[i];
     for (int j = i; j < (int) n; j++) {
@@ -1557,6 +1664,13 @@ int check_jacobian(const char *jac_name,
                    const size_t n,
                    const real_t tol,
                    const int verbose) {
+  assert(jac_name != NULL);
+  assert(fdiff != NULL);
+  assert(jac != NULL);
+  assert(m > 0);
+  assert(n > 0);
+  assert(tol > 0);
+
   int retval = 0;
   int ok = 1;
   real_t *delta = mat_malloc(m, n);
@@ -1929,7 +2043,7 @@ int svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
 void chol(const real_t *A, const size_t m, real_t *L) {
   assert(A != NULL);
   assert(m > 0);
-  /* real_t *L = calloc(m * m, sizeof(real_t)); */
+  assert(L != NULL);
 
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < (i + 1); j++) {
@@ -1957,6 +2071,11 @@ void chol(const real_t *A, const size_t m, real_t *L) {
  * `b` is a vector and `x` is the solution vector of size `n`.
  */
 void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
+  assert(A != NULL);
+  assert(b != NULL);
+  assert(x != NULL);
+  assert(n > 0);
+
   /* Allocate memory */
   real_t *L = calloc(n * n, sizeof(real_t));
   real_t *Lt = calloc(n * n, sizeof(real_t));
@@ -2015,6 +2134,11 @@ void lapack_chol_solve(const real_t *A,
                        const real_t *b,
                        real_t *x,
                        const size_t m) {
+  assert(A != NULL);
+  assert(b != NULL);
+  assert(x != NULL);
+  assert(m > 0);
+
   /* Cholesky Decomposition */
   int info = 0;
   int lda = m;
@@ -2077,7 +2201,7 @@ void lie_Exp(const real_t phi[3], real_t C[3 * 3]) {
 
     real_t B[3 * 3] = {0};
     mat_copy(phi_skew_sq, 3, 3, B);
-    mat_scale(B, 3, 3, 1.0 - cos(phi_norm) / (phi_norm * phi_norm));
+    mat_scale(B, 3, 3, (1.0 - cos(phi_norm)) / (phi_norm * phi_norm));
 
     eye(C, 3, 3);
     mat_add(C, A, C, 3, 3);
@@ -2099,35 +2223,44 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
   const real_t C21 = C[7];
   const real_t C22 = C[8];
 
-  /* % phi = acos((trace(C) - 1) / 2); */
-  /* % u = skew_inv(C - C') / (2 * sin(phi)); */
-  /* % rvec = phi * u; */
+  const real_t tr = C00 + C11 + C22;
+  const real_t phi = acos((tr - 1.0) / 2.0);
 
-  /* real_t tr = C00 + C11 + C22; */
-  /* real_t phi = acos((tr - 1.0) / 2.0); */
+  if (tr + 1.0 < 1e-10) {
+    if (abs(C22 + 1.0) > 1e-5) {
+      const real_t s = M_PI / sqrt(2.0 + 2.0 * C22);
+      rvec[0] = s * C02;
+      rvec[1] = s * C12;
+      rvec[2] = s * (1.0 + C22);
+    } else if (abs(C11 + 1.0) > 1e-5) {
+      const real_t s = M_PI / sqrt(2.0 + 2.0 * C11);
+      rvec[0] = s * C01;
+      rvec[1] = s * (1.0 + C11);
+      rvec[2] = s * C21;
+    } else {
+      const real_t s = M_PI / sqrt(2.0 + 2.0 * C00);
+      rvec[0] = 1.0 + C00;
+      rvec[1] = C10;
+      rvec[1] = C20;
+    }
 
-  /* if (tr + 1.0 < 1e-10) */
-  /*   if (abs(C33 + 1.0) > 1e-5) */
-  /*     rvec = (pi / sqrt(2.0 + 2.0 * C33)) * [C13; C23; 1.0 + C33]; */
-  /*   elseif (abs(C22 + 1.0) > 1e-5) */
-  /*     rvec = (pi / sqrt(2.0 + 2.0 * C22)) * [C12; 1.0 + C22; C32]; */
-  /*   else */
-  /*     rvec = (pi / sqrt(2.0 + 2.0 * C11)) * [1.0 + C11; C21; C31]; */
-  /*   endif */
-  /*  */
-  /* else */
-  /*   tr_3 = tr - 3.0;  % always negative */
-  /*   if tr_3 < -1e-7 */
-  /*     theta = acos((tr - 1.0) / 2.0); */
-  /*     magnitude = theta / (2.0 * sin(theta)); */
-  /*   else */
-  /*     % when theta near 0, +-2pi, +-4pi, etc. (trace near 3.0) */
-  /*     % use Taylor expansion: theta \approx 1/2-(t-3)/12 + O((t-3)^2) */
-  /*     % see https://github.com/borglab/gtsam/issues/746 for details */
-  /*     magnitude = 0.5 - tr_3 / 12.0; */
-  /*   endif */
-  /*   rvec = magnitude * [C32 - C23; C13 - C31; C21 - C12]; */
-  /* endif */
+  } else {
+    const real_t tr_3 = tr - 3.0; // always negative
+    real_t s;
+    if (tr_3 < -1e-7) {
+      const theta = acos((tr - 1.0) / 2.0);
+      s = theta / (2.0 * sin(theta));
+    } else {
+      // when theta near 0, +-2pi, +-4pi, etc. (trace near 3.0)
+      // use Taylor expansion: theta \approx 1/2-(t-3)/12 + O((t-3)^2)
+      // see https://github.com/borglab/gtsam/issues/746 for details
+      s = 0.5 - tr_3 / 12.0;
+    }
+    /* rvec = magnitude * [C32 - C23; C13 - C31; C21 - C12]; */
+    rvec[0] = s * (C21 - C12);
+    rvec[1] = s * (C02 - C20);
+    rvec[2] = s * (C10 - C01);
+  }
 }
 
 /******************************************************************************
@@ -2238,8 +2371,8 @@ void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]) {
 }
 
 /**
- * Set the translational component in the 4x4 transformation matrix `T` using a
- * 3x1 translation vector `r`.
+ * Set the translational component in the 4x4 transformation matrix `T` using
+ * a 3x1 translation vector `r`.
  */
 void tf_trans_set(real_t T[4 * 4], const real_t r[3]) {
   assert(T != NULL);
@@ -2356,7 +2489,7 @@ void tf_point(const real_t T[4 * 4], const real_t p[3], real_t retval[3]) {
 void tf_hpoint(const real_t T[4 * 4], const real_t hp[4], real_t retval[4]) {
   assert(T != NULL);
   assert(hp != retval);
-  assert(retal != NULL);
+  assert(retval != NULL);
   dot(T, 4, 4, hp, 4, 1, retval);
 }
 
@@ -2385,8 +2518,8 @@ void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i) {
 }
 
 /**
- * Perturb the `i`-th translation component of a 4x4 homogeneous transformation
- * matrix with `step_size`.
+ * Perturb the `i`-th translation component of a 4x4 homogeneous
+ * transformation matrix with `step_size`.
  */
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
   assert(T != NULL);
@@ -2747,7 +2880,8 @@ void image_free(image_t *img) {
   free(img);
 }
 
-/* RADTAN --------------------------------------------------------------------*/
+/* RADTAN
+ * --------------------------------------------------------------------*/
 
 /**
  * Distort 2x1 point `p` using Radial-Tangential distortion, where the
@@ -2859,7 +2993,8 @@ void radtan4_params_jacobian(const real_t params[4],
   J_param[7] = 2 * xy;
 }
 
-/* EQUI ----------------------------------------------------------------------*/
+/* EQUI
+ * ----------------------------------------------------------------------*/
 
 /**
  * Distort 2x1 point `p` using Equi-Distant distortion, where the
@@ -2935,8 +3070,8 @@ void equi4_point_jacobian(const real_t params[4],
 }
 
 /**
- * Form Equi-Distant parameter jacobian, using distortion `params` (k1, k2, k3,
- * k4), 2x1 image point `p`, the jacobian is written to 2x4 `J_param`.
+ * Form Equi-Distant parameter jacobian, using distortion `params` (k1, k2,
+ * k3, k4), 2x1 image point `p`, the jacobian is written to 2x4 `J_param`.
  */
 void equi4_params_jacobian(const real_t params[4],
                            const real_t p[2],
@@ -2969,7 +3104,8 @@ void equi4_params_jacobian(const real_t params[4],
   J_param[7] = y * th9 / r;
 }
 
-/* PINHOLE -------------------------------------------------------------------*/
+/* PINHOLE
+ * -------------------------------------------------------------------*/
 
 /**
  * Estimate pinhole focal length. The focal length is estimated using
@@ -2980,8 +3116,8 @@ real_t pinhole_focal(const int image_width, const real_t fov) {
 }
 
 /**
- * Project 3D point `p_C` observed from the camera to the image plane `x` using
- * pinhole parameters `params` (fx, fy, cx, cy).
+ * Project 3D point `p_C` observed from the camera to the image plane `x`
+ * using pinhole parameters `params` (fx, fy, cx, cy).
  */
 void pinhole_project(const real_t params[4], const real_t p_C[3], real_t x[2]) {
   assert(params != NULL);
@@ -3036,7 +3172,8 @@ void pinhole_params_jacobian(const real_t params[4],
   J[7] = 1.0;
 }
 
-/* PINHOLE-RADTAN4 -----------------------------------------------------------*/
+/* PINHOLE-RADTAN4
+ * -----------------------------------------------------------*/
 
 /**
  * Projection of 3D point to image plane using Pinhole + Radial-Tangential.
@@ -3178,7 +3315,8 @@ void pinhole_radtan4_params_jacobian(const real_t params[8],
   J[11] = J_proj_params[7];
 }
 
-/* PINHOLE-EQUI4 -------------------------------------------------------------*/
+/* PINHOLE-EQUI4
+ * -------------------------------------------------------------*/
 
 /**
  * Projection of 3D point to image plane using Pinhole + Equi-Distant.
@@ -3264,7 +3402,8 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
  * SENSOR FUSION
  ******************************************************************************/
 
-/* POSE --------------------------------------------------------------------- */
+/* POSE ---------------------------------------------------------------------
+ */
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   assert(pose != NULL);
@@ -3285,7 +3424,8 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   pose->data[6] = data[6];
 }
 
-/* SPEED AND BIASES --------------------------------------------------------- */
+/* SPEED AND BIASES ---------------------------------------------------------
+ */
 
 void speed_biases_setup(speed_biases_t *sb,
                         const timestamp_t ts,
@@ -3312,7 +3452,8 @@ void speed_biases_setup(speed_biases_t *sb,
   sb->data[8] = data[8];
 }
 
-/* FEATURE ------------------------------------------------------------------ */
+/* FEATURE ------------------------------------------------------------------
+ */
 
 void feature_setup(feature_t *p, const real_t *data) {
   assert(p != NULL);
@@ -3323,7 +3464,8 @@ void feature_setup(feature_t *p, const real_t *data) {
   p->data[2] = data[2];
 }
 
-/* EXTRINSICS --------------------------------------------------------------- */
+/* EXTRINSICS ---------------------------------------------------------------
+ */
 
 void extrinsics_setup(extrinsics_t *extrinsics, const real_t *data) {
   assert(extrinsics != NULL);
@@ -3341,7 +3483,8 @@ void extrinsics_setup(extrinsics_t *extrinsics, const real_t *data) {
   extrinsics->data[6] = data[6];
 }
 
-/* CAMERA PARAMS ------------------------------------------------------------ */
+/* CAMERA PARAMS ------------------------------------------------------------
+ */
 
 void camera_params_setup(camera_params_t *camera,
                          const int cam_idx,
@@ -3390,7 +3533,8 @@ void camera_params_print(const camera_params_t *camera) {
   printf("]\n");
 }
 
-/* POSE FACTOR -------------------------------------------------------------- */
+/* POSE FACTOR --------------------------------------------------------------
+ */
 
 void pose_factor_setup(pose_factor_t *factor,
                        pose_t *pose,
@@ -3475,7 +3619,8 @@ int pose_factor_eval(pose_factor_t *factor) {
   return 0;
 }
 
-/* BA FACTOR ---------------------------------------------------------------- */
+/* BA FACTOR ----------------------------------------------------------------
+ */
 
 void ba_factor_setup(ba_factor_t *factor,
                      pose_t *pose,
@@ -3556,7 +3701,8 @@ int ba_factor_eval(ba_factor_t *factor) {
   return 0;
 }
 
-/* CAMERA FACTOR ------------------------------------------------------------ */
+/* CAMERA FACTOR ------------------------------------------------------------
+ */
 
 void cam_factor_setup(cam_factor_t *factor,
                       pose_t *pose,
@@ -3806,7 +3952,8 @@ int cam_factor_eval(cam_factor_t *factor) {
   return 0;
 }
 
-/* IMU FACTOR --------------------------------------------------------------- */
+/* IMU FACTOR ---------------------------------------------------------------
+ */
 
 void imu_buf_setup(imu_buf_t *imu_buf) {
   for (int k = 0; k < MAX_IMU_BUF_SIZE; k++) {
@@ -4062,7 +4209,8 @@ int imu_factor_eval(imu_factor_t *factor) {
   return 0;
 }
 
-/* SOLVER ------------------------------------------------------------------- */
+/* SOLVER -------------------------------------------------------------------
+ */
 
 void solver_setup(solver_t *solver) {
   assert(solver);
