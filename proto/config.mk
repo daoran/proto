@@ -14,7 +14,7 @@ SDL2_LIBS=`sdl2-config --libs` -lSDL2_image
 GLEW_LIBS=-lGLEW
 # OPENGL_LIBS=$(GLFW3_LIBS) $(GLEW_LIBS) -lGL -L/usr/X11R6/lib -lX11
 OPENGL_LIBS=$(SDL2_LIBS) $(GLEW_LIBS) -lGL
-BLAS_LIBS=-lblas -llapack
+BLAS_LIBS=-lblas -llapack -llapacke
 
 LIBS=-L$(BLD_DIR) \
 	-lzero \

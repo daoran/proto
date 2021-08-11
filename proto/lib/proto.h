@@ -1,10 +1,10 @@
 #ifndef PROTO_H_
 #define PROTO_H_
 
-#define PRECISION 1
+#define PRECISION 2
 #define MAX_LINE_LENGTH 9046
 #define USE_CBLAS
-/* #define USE_LAPACK */
+#define USE_LAPACK
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -366,6 +366,10 @@ void cblas_dot(const real_t *A,
  ******************************************************************************/
 
 int svd(real_t *A, const int m, const int n, real_t *w, real_t *V);
+
+#ifdef USE_LAPACK
+void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t);
+#endif
 
 /******************************************************************************
  * CHOL

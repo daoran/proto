@@ -685,6 +685,34 @@ int test_svd() {
   return 0;
 }
 
+int test_lapack_svd() {
+  /* clang-format off */
+  real_t A[6 * 4] = {
+     7.52, -1.10, -7.95,  1.08,
+    -0.76,  0.62,  9.34, -7.10,
+     5.13,  6.62, -5.66,  0.87,
+    -4.75,  8.52,  5.75,  5.30,
+     1.33,  4.91, -5.49, -3.52,
+    -2.40, -6.77,  2.34,  3.95
+  };
+  /* clang-format on */
+
+  const int m = 6;
+  const int n = 4;
+  real_t *S = NULL;
+  real_t *U = NULL;
+  real_t *V_t = NULL;
+
+  lapack_svd(A, m, n, &S, &U, &V_t);
+
+  print_matrix("A", A, m, n);
+  print_vector("S", S, 4);
+  print_matrix("U", U, m, n);
+  print_matrix("V_t", V_t, m, n);
+
+  return 0;
+}
+
 /******************************************************************************
  * CHOL
  ******************************************************************************/
@@ -1158,8 +1186,13 @@ int test_lie_Exp_Log() {
   lie_Log(C, rvec);
 
   print_vector("phi", phi, 3);
+  printf("\n");
   print_matrix("C", C, 3, 3);
   print_vector("rvec", rvec, 3);
+
+  MU_CHECK(fltcmp(phi[0], rvec[0]) == 0);
+  MU_CHECK(fltcmp(phi[1], rvec[1]) == 0);
+  MU_CHECK(fltcmp(phi[2], rvec[2]) == 0);
 
   return 0;
 }
@@ -1661,6 +1694,7 @@ void test_suite() {
 
   /* SVD */
   /* MU_ADD_TEST(test_svd); */
+  MU_ADD_TEST(test_lapack_svd);
 
   /* CHOL */
   MU_ADD_TEST(test_chol);

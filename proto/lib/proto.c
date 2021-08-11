@@ -2035,6 +2035,21 @@ int svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
   return 0;
 }
 
+#ifdef USE_LAPACK
+void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t) {
+  const int lda = n;
+  const int diag_size = m < n ? m : n;
+  *S = malloc(sizeof(real_t) * diag_size);
+  *U = malloc(sizeof(real_t) * m * m);
+  *V_t = malloc(sizeof(real_t) * n * n);
+#if PRECISION == 1
+  LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *S, *U, m, *V_t, n);
+#elif PRECISION == 2
+  LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *S, *U, m, *V_t, n);
+#endif
+}
+#endif
+
 /******************************************************************************
  * CHOL
  ******************************************************************************/
@@ -2232,7 +2247,7 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
   real_t u[3] = {0};
   skew_inv(dC, u);
   const real_t s = 1.0 / (2 * sin(phi));
-  const real_t vec[3] = {s * u[0], s * u[1], s * u[3]};
+  const real_t vec[3] = {s * u[0], s * u[1], s * u[2]};
 
   rvec[0] = phi * vec[0];
   rvec[1] = phi * vec[1];
@@ -3378,8 +3393,8 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
  * SENSOR FUSION
  ******************************************************************************/
 
-/* POSE ---------------------------------------------------------------------
- */
+/* POSE
+ * ----------------------------------------------------------------------*/
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   assert(pose != NULL);
@@ -3400,8 +3415,8 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   pose->data[6] = data[6];
 }
 
-/* SPEED AND BIASES ---------------------------------------------------------
- */
+/* SPEED AND BIASES
+ * ----------------------------------------------------------*/
 
 void speed_biases_setup(speed_biases_t *sb,
                         const timestamp_t ts,
@@ -3428,8 +3443,8 @@ void speed_biases_setup(speed_biases_t *sb,
   sb->data[8] = data[8];
 }
 
-/* FEATURE ------------------------------------------------------------------
- */
+/* FEATURE
+ * -------------------------------------------------------------------*/
 
 void feature_setup(feature_t *p, const real_t *data) {
   assert(p != NULL);
@@ -3440,8 +3455,8 @@ void feature_setup(feature_t *p, const real_t *data) {
   p->data[2] = data[2];
 }
 
-/* EXTRINSICS ---------------------------------------------------------------
- */
+/* EXTRINSICS
+ * ----------------------------------------------------------------*/
 
 void extrinsics_setup(extrinsics_t *extrinsics, const real_t *data) {
   assert(extrinsics != NULL);
@@ -3459,8 +3474,8 @@ void extrinsics_setup(extrinsics_t *extrinsics, const real_t *data) {
   extrinsics->data[6] = data[6];
 }
 
-/* CAMERA PARAMS ------------------------------------------------------------
- */
+/* CAMERA PARAMS
+ * -------------------------------------------------------------*/
 
 void camera_params_setup(camera_params_t *camera,
                          const int cam_idx,
@@ -3509,8 +3524,8 @@ void camera_params_print(const camera_params_t *camera) {
   printf("]\n");
 }
 
-/* POSE FACTOR --------------------------------------------------------------
- */
+/* POSE FACTOR
+ * ---------------------------------------------------------------*/
 
 void pose_factor_setup(pose_factor_t *factor,
                        pose_t *pose,
@@ -3595,8 +3610,8 @@ int pose_factor_eval(pose_factor_t *factor) {
   return 0;
 }
 
-/* BA FACTOR ----------------------------------------------------------------
- */
+/* BA FACTOR
+ * -----------------------------------------------------------------*/
 
 void ba_factor_setup(ba_factor_t *factor,
                      pose_t *pose,
@@ -3677,8 +3692,8 @@ int ba_factor_eval(ba_factor_t *factor) {
   return 0;
 }
 
-/* CAMERA FACTOR ------------------------------------------------------------
- */
+/* CAMERA FACTOR
+ * -------------------------------------------------------------*/
 
 void cam_factor_setup(cam_factor_t *factor,
                       pose_t *pose,
@@ -3928,8 +3943,8 @@ int cam_factor_eval(cam_factor_t *factor) {
   return 0;
 }
 
-/* IMU FACTOR ---------------------------------------------------------------
- */
+/* IMU FACTOR
+ * ----------------------------------------------------------------*/
 
 void imu_buf_setup(imu_buf_t *imu_buf) {
   for (int k = 0; k < MAX_IMU_BUF_SIZE; k++) {
@@ -4185,8 +4200,8 @@ int imu_factor_eval(imu_factor_t *factor) {
   return 0;
 }
 
-/* SOLVER -------------------------------------------------------------------
- */
+/* SOLVER
+ * --------------------------------------------------------------------*/
 
 void solver_setup(solver_t *solver) {
   assert(solver);
