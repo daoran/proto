@@ -1401,7 +1401,7 @@ void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
  *     C = A + B
  */
 void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
-  assert(A != NULL && B != NULL && C != NULL && B != C && A != C);
+  assert(A != NULL && B != NULL && C != NULL);
   assert(m > 0 && n > 0);
 
   for (size_t i = 0; i < (m * n); i++) {
@@ -1603,9 +1603,13 @@ void skew_inv(const real_t A[3 * 3], real_t x[3]) {
   assert(A != NULL);
   assert(x != NULL);
 
-  /* x[0] = A[2]; */
-  /* x[1] = A; */
-  /* x[2] = A; */
+  const real_t A02 = A[2];
+  const real_t A10 = A[3];
+  const real_t A21 = A[7];
+
+  x[0] = A21;
+  x[1] = A02;
+  x[2] = A10;
 }
 
 /**
@@ -2213,54 +2217,26 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
   assert(C != NULL);
   assert(rvec != NULL);
 
-  const real_t C00 = C[0];
-  const real_t C01 = C[1];
-  const real_t C02 = C[2];
-  const real_t C10 = C[3];
-  const real_t C11 = C[4];
-  const real_t C12 = C[5];
-  const real_t C20 = C[6];
-  const real_t C21 = C[7];
-  const real_t C22 = C[8];
-
-  const real_t tr = C00 + C11 + C22;
+  /**
+   * phi = acos((trace(C) - 1) / 2);
+   * vec = skew_inv(C - C') / (2 * sin(phi));
+   * rvec = phi * vec;
+   */
+  const real_t tr = C[0] + C[4] + C[8];
   const real_t phi = acos((tr - 1.0) / 2.0);
 
-  if (tr + 1.0 < 1e-10) {
-    if (abs(C22 + 1.0) > 1e-5) {
-      const real_t s = M_PI / sqrt(2.0 + 2.0 * C22);
-      rvec[0] = s * C02;
-      rvec[1] = s * C12;
-      rvec[2] = s * (1.0 + C22);
-    } else if (abs(C11 + 1.0) > 1e-5) {
-      const real_t s = M_PI / sqrt(2.0 + 2.0 * C11);
-      rvec[0] = s * C01;
-      rvec[1] = s * (1.0 + C11);
-      rvec[2] = s * C21;
-    } else {
-      const real_t s = M_PI / sqrt(2.0 + 2.0 * C00);
-      rvec[0] = 1.0 + C00;
-      rvec[1] = C10;
-      rvec[1] = C20;
-    }
+  real_t C_t[3 * 3] = {0};
+  real_t dC[3 * 3] = {0};
+  mat_transpose(C, 3, 3, C_t);
+  mat_sub(C, C_t, dC, 3, 3);
+  real_t u[3] = {0};
+  skew_inv(dC, u);
+  const real_t s = 1.0 / (2 * sin(phi));
+  const real_t vec[3] = {s * u[0], s * u[1], s * u[3]};
 
-  } else {
-    const real_t tr_3 = tr - 3.0; // always negative
-    real_t s;
-    if (tr_3 < -1e-7) {
-      const theta = acos((tr - 1.0) / 2.0);
-      s = theta / (2.0 * sin(theta));
-    } else {
-      // when theta near 0, +-2pi, +-4pi, etc. (trace near 3.0)
-      // use Taylor expansion: theta \approx 1/2-(t-3)/12 + O((t-3)^2)
-      // see https://github.com/borglab/gtsam/issues/746 for details
-      s = 0.5 - tr_3 / 12.0;
-    }
-    /* rvec = magnitude * [C32 - C23; C13 - C31; C21 - C12]; */
-    rvec[0] = s * (C21 - C12);
-    rvec[1] = s * (C02 - C20);
-    rvec[2] = s * (C10 - C01);
-  }
+  rvec[0] = phi * vec[0];
+  rvec[1] = phi * vec[1];
+  rvec[2] = phi * vec[2];
 }
 
 /******************************************************************************

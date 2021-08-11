@@ -120,6 +120,8 @@ cd ./build/bin
 # ./test_proto --target test_pose2tf
 # ./test_proto --target test_load_poses
 # PROTO-CV
+# ./test_proto --target test_lie_Exp_Log
+# PROTO-CV
 # ./test_proto --target test_radtan4_distort
 # ./test_proto --target test_radtan4_point_jacobian
 # ./test_proto --target test_radtan4_params_jacobian

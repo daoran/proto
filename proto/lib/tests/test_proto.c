@@ -1146,6 +1146,25 @@ int test_quat2rot() {
 }
 
 /******************************************************************************
+ * LIE
+ ******************************************************************************/
+
+int test_lie_Exp_Log() {
+  const real_t phi[3] = {0.1, 0.2, 0.3};
+  real_t C[3 * 3] = {0};
+  lie_Exp(phi, C);
+
+  real_t rvec[3] = {0};
+  lie_Log(C, rvec);
+
+  print_vector("phi", phi, 3);
+  print_matrix("C", C, 3, 3);
+  print_vector("rvec", rvec, 3);
+
+  return 0;
+}
+
+/******************************************************************************
  * CV
  ******************************************************************************/
 
@@ -1665,6 +1684,9 @@ void test_suite() {
   MU_ADD_TEST(test_rot2quat);
   MU_ADD_TEST(test_quat2euler);
   MU_ADD_TEST(test_quat2rot);
+
+  /* LIE */
+  MU_ADD_TEST(test_lie_Exp_Log);
 
   /* CV */
   /* -- IMAGE */
