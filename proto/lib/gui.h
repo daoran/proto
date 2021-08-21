@@ -41,7 +41,7 @@ void gl_matf_set(GLfloat *A,
 GLfloat gl_matf_val(
     const GLfloat *A, const int m, const int n, const int i, const int j);
 void gl_copy(const GLfloat *src, const int m, const int n, GLfloat *dest);
-void gl_transpose(const real_t *A, size_t m, size_t n, real_t *A_t);
+void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t);
 void gl_zeros(GLfloat *A, const int nb_rows, const int nb_cols);
 void gl_ones(GLfloat *A, const int nb_rows, const int nb_cols);
 void gl_eye(GLfloat *A, const int nb_rows, const int nb_cols);
