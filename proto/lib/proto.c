@@ -2038,7 +2038,7 @@ int svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
 #ifdef USE_LAPACK
 void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t) {
   const int lda = n;
-  const int diag_size = m < n ? m : n;
+  const int diag_size = (m < n) ? m : n;
   *S = malloc(sizeof(real_t) * diag_size);
   *U = malloc(sizeof(real_t) * m * m);
   *V_t = malloc(sizeof(real_t) * n * n);
@@ -2269,8 +2269,8 @@ void tf(const real_t params[7], real_t T[4 * 4]) {
   assert(params != NULL);
   assert(T != NULL);
 
-  const real_t q[4] = {params[0], params[1], params[2], params[3]};
-  const real_t r[3] = {params[4], params[5], params[6]};
+  const real_t r[3] = {params[0], params[1], params[2]};
+  const real_t q[4] = {params[6], params[3], params[4], params[5]};
 
   real_t C[3 * 3] = {0};
   quat2rot(q, C);
@@ -2731,6 +2731,50 @@ void quat2rot(const real_t q[4], real_t C[3 * 3]) {
   C[6] = 2 * (qx * qz - qw * qy);
   C[7] = 2 * (qy * qz + qw * qx);
   C[8] = qw2 - qx2 - qy2 + qz2;
+}
+
+/**
+ * Inverse Quaternion `q`.
+ */
+void quat_inv(const real_t q[4], real_t q_inv[4]) {
+  q_inv[0] = q[0];
+  q_inv[1] = -q[1];
+  q_inv[2] = -q[2];
+  q_inv[3] = -q[3];
+}
+
+/**
+ * Form Quaternion left multiplication matrix.
+ */
+void quat_left(const real_t q[4], real_t left[4 * 4]) {
+  const real_t qw = q[0];
+  const real_t qx = q[1];
+  const real_t qy = q[2];
+  const real_t qz = q[3];
+
+  /* clang-format off */
+  left[0]  = qw; left[1]  = -qx; left[2]  = -qy; left[3]  = -qz;
+  left[4]  = qx; left[5]  =  qw; left[6]  = -qz; left[7]  =  qy;
+  left[8]  = qy; left[9]  =  qz; left[10] =  qw; left[11] = -qx;
+  left[12] = qz; left[13] = -qy; left[14] =  qx; left[15] =  qw;
+  /* clang-format on */
+}
+
+/**
+ * Form Quaternion right multiplication matrix.
+ */
+void quat_right(const real_t q[4], real_t right[4 * 4]) {
+  const real_t qw = q[0];
+  const real_t qx = q[1];
+  const real_t qy = q[2];
+  const real_t qz = q[3];
+
+  /* clang-format off */
+  right[0]  = qw; right[1]  = -qx; right[2]  = -qy; right[3]  = -qz;
+  right[4]  = qx; right[5]  =  qw; right[6]  =  qz; right[7]  = -qy;
+  right[8]  = qy; right[9]  = -qz; right[10] =  qw; right[11] =  qx;
+  right[12] = qz; right[13] =  qy; right[14] = -qx; right[15] =  qw;
+  /* clang-format on */
 }
 
 /**
@@ -3403,16 +3447,16 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   /* Timestamp */
   pose->ts = ts;
 
-  /* Quaternion */
-  pose->data[0] = data[0];
-  pose->data[1] = data[1];
-  pose->data[2] = data[2];
-  pose->data[3] = data[3];
-
   /* Translation */
-  pose->data[4] = data[4];
-  pose->data[5] = data[5];
-  pose->data[6] = data[6];
+  pose->data[0] = data[0]; /* rx */
+  pose->data[1] = data[1]; /* ry */
+  pose->data[2] = data[2]; /* rz */
+
+  /* Quaternion */
+  pose->data[3] = data[3]; /* qx */
+  pose->data[4] = data[4]; /* qy */
+  pose->data[5] = data[5]; /* qz */
+  pose->data[6] = data[6]; /* qw */
 }
 
 /* SPEED AND BIASES
@@ -3462,16 +3506,16 @@ void extrinsics_setup(extrinsics_t *extrinsics, const real_t *data) {
   assert(extrinsics != NULL);
   assert(data != NULL);
 
-  /* Quaternion */
-  extrinsics->data[0] = data[0];
-  extrinsics->data[1] = data[1];
-  extrinsics->data[2] = data[2];
-  extrinsics->data[3] = data[3];
-
   /* Translation */
-  extrinsics->data[4] = data[4];
-  extrinsics->data[5] = data[5];
-  extrinsics->data[6] = data[6];
+  extrinsics->data[0] = data[0]; /* rx */
+  extrinsics->data[1] = data[1]; /* ry */
+  extrinsics->data[2] = data[2]; /* rz */
+
+  /* Quaternion */
+  extrinsics->data[3] = data[3]; /* qx */
+  extrinsics->data[4] = data[4]; /* qy */
+  extrinsics->data[5] = data[5]; /* qz */
+  extrinsics->data[6] = data[6]; /* qw */
 }
 
 /* CAMERA PARAMS
@@ -3534,7 +3578,13 @@ void pose_factor_setup(pose_factor_t *factor,
   assert(pose != NULL);
   assert(var != NULL);
 
-  zeros(factor->pose_meas, 7, 1);
+  factor->pose_meas[0] = pose->data[0];
+  factor->pose_meas[1] = pose->data[1];
+  factor->pose_meas[2] = pose->data[2];
+  factor->pose_meas[3] = pose->data[3];
+  factor->pose_meas[4] = pose->data[4];
+  factor->pose_meas[5] = pose->data[5];
+  factor->pose_meas[6] = pose->data[6];
   factor->pose_est = pose;
 
   zeros(factor->covar, 6, 6);
@@ -3544,6 +3594,14 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->covar[21] = 1.0 / (var[3] * var[3]);
   factor->covar[28] = 1.0 / (var[4] * var[4]);
   factor->covar[35] = 1.0 / (var[5] * var[5]);
+
+  zeros(factor->sqrt_info, 6, 6);
+  factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
+  factor->sqrt_info[7] = sqrt(1.0 / factor->covar[7]);
+  factor->sqrt_info[14] = sqrt(1.0 / factor->covar[14]);
+  factor->sqrt_info[21] = sqrt(1.0 / factor->covar[21]);
+  factor->sqrt_info[28] = sqrt(1.0 / factor->covar[28]);
+  factor->sqrt_info[35] = sqrt(1.0 / factor->covar[35]);
 
   zeros(factor->r, 6, 1);
   factor->r_size = 6;
@@ -3555,7 +3613,6 @@ void pose_factor_setup(pose_factor_t *factor,
 
 void pose_factor_reset(pose_factor_t *factor) {
   assert(factor != NULL);
-
   zeros(factor->r, 6, 1);
   zeros(factor->J0, 6, 6);
 }
@@ -3564,47 +3621,65 @@ int pose_factor_eval(pose_factor_t *factor) {
   assert(factor != NULL);
 
   /* Map params */
-  real_t pose_est[4 * 4] = {0};
-  real_t pose_meas[4 * 4] = {0};
-  tf(factor->pose_est->data, pose_est);
-  tf(factor->pose_meas, pose_meas);
-
-  /* Invert estimated pose */
-  real_t pose_est_inv[4 * 4] = {0};
-  tf_inv(pose_est, pose_est_inv);
-
-  /* Calculate delta pose */
-  real_t dpose[4 * 4] = {0};
-  dot(pose_est, 4, 4, pose_meas, 4, 4, dpose);
+  /* -- Pose vector */
+  const real_t *est = factor->pose_est->data;
+  const real_t *meas = factor->pose_meas;
+  /* -- Translation component */
+  const real_t r_meas[3] = {meas[0], meas[1], meas[2]};
+  const real_t r_est[3] = {est[0], est[1], est[2]};
+  const real_t q_meas[4] = {meas[6], meas[3], meas[4], meas[5]};
+  const real_t q_est[4] = {est[6], est[3], est[4], est[5]};
 
   /* Calculate pose error */
-  real_t *r = factor->r;
-  const real_t dqw = dpose[0];
-  const real_t dqx = dpose[1];
-  const real_t dqy = dpose[2];
-  const real_t dqz = dpose[3];
-  const real_t drx = dpose[4];
-  const real_t dry = dpose[5];
-  const real_t drz = dpose[6];
-  /* -- dtheta */
-  r[0] = 2.0 * dqx;
-  r[1] = 2.0 * dqy;
-  r[2] = 2.0 * dqz;
-  /* -- dr */
-  r[3] = drx;
-  r[4] = dry;
-  r[5] = drz;
+  /* -- Translation error */
+  /* dr = r_meas - r_est; */
+  real_t dr[3] = {0};
+  dr[0] = r_meas[0] - r_est[0];
+  dr[1] = r_meas[1] - r_est[1];
+  dr[2] = r_meas[2] - r_est[2];
+
+  /* -- Rotation error */
+  /* dq = quat_mul(quat_inv(q_meas), q_est); */
+  real_t dq[4] = {0};
+  real_t q_meas_inv[4] = {0};
+  quat_inv(q_meas, q_meas_inv);
+  quat_mul(q_meas_inv, q_est, dq);
+
+  /* dtheta = 2 * dq; */
+  real_t dtheta[3] = {0};
+  dtheta[0] = 2 * dq[1];
+  dtheta[1] = 2 * dq[2];
+  dtheta[2] = 2 * dq[3];
+
+  /* -- Set residuals */
+  /* r = factor.sqrt_info * [dr; dtheta]; */
+  real_t r[6] = {0};
+  r[0] = dr[0];
+  r[1] = dr[1];
+  r[2] = dr[2];
+  r[3] = dtheta[0];
+  r[4] = dtheta[1];
+  r[5] = dtheta[2];
+  dot(factor->sqrt_info, 6, 6, r, 6, 1, factor->r);
 
   /* Calculate Jacobians */
+  /* J = zeros(6, 6); */
+  /* J(1:3, 1:3) = -eye(3); */
+  /* J(4:6, 4:6) = quat_left(dq)(2:4, 2:4); */
+  /* J = factor.sqrt_info * J; */
   /* clang-format off */
-  real_t *J = factor->J0;
-  J[0]  = -dqw; J[1]  =  dqz; J[2]  = -dqy; J[3]  =  0.0; J[4]  =  0.0; J[5]  =  0.0;
-  J[6]  = -dqz; J[7]  = -dqw; J[8]  =  dqx; J[9]  =  0.0; J[10] =  0.0; J[11] =  0.0;
-  J[12] =  dqy; J[13] = -dqx; J[14] = -dqw; J[15] =  0.0; J[16] =  0.0; J[17] =  0.0;
-  J[18] =  0.0; J[19] =  0.0; J[20] =  0.0; J[21] = -1.0; J[22] =  0.0; J[23] =  0.0;
-  J[24] =  0.0; J[25] =  0.0; J[26] =  0.0; J[27] =  0.0; J[28] = -1.0; J[29] =  0.0;
-  J[30] =  0.0; J[31] =  0.0; J[32] =  0.0; J[33] =  0.0; J[34] =  0.0; J[35] = -1.0;
-  factor->jacs[0] = J;
+  const real_t dqw = dq[0];
+  const real_t dqx = dq[1];
+  const real_t dqy = dq[2];
+  const real_t dqz = dq[3];
+  real_t J[6 * 6] = {0};
+  J[0]  = -1.0; J[1]  =  0.0; J[2]  =  0.0; J[3]  =  0.0; J[4]  =  0.0; J[5]  =  0.0;
+  J[6]  =  0.0; J[7]  = -1.0; J[8]  =  0.0; J[9]  =  0.0; J[10] =  0.0; J[11] =  0.0;
+  J[12] =  0.0; J[13] =  0.0; J[14] = -1.0; J[15] =  0.0; J[16] =  0.0; J[17] =  0.0;
+  J[18] =  0.0; J[19] =  0.0; J[20] =  0.0; J[21] =  dqw; J[22] = -dqz; J[23] =  dqy;
+  J[24] =  0.0; J[25] =  0.0; J[26] =  0.0; J[27] =  dqz; J[28] =  dqw; J[29] = -dqx;
+  J[30] =  0.0; J[31] =  0.0; J[32] =  0.0; J[33] = -dqy; J[34] =  dqx; J[35] =  dqw;
+  dot(factor->sqrt_info, 6, 6, J, 6, 6, factor->jacs[0]);
   /* clang-format on */
 
   return 0;
@@ -3624,22 +3699,34 @@ void ba_factor_setup(ba_factor_t *factor,
   assert(camera != NULL);
   assert(var != NULL);
 
+  /* Parameters */
   factor->pose = pose;
   factor->feature = feature;
   factor->camera = camera;
 
+  /* Measurement covariance */
   factor->covar[0] = 1.0 / (var[0] * var[0]);
   factor->covar[1] = 0.0;
   factor->covar[2] = 0.0;
   factor->covar[3] = 1.0 / (var[1] * var[1]);
 
+  /* Square-root information matrix */
+  factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
+  factor->sqrt_info[1] = 0.0;
+  factor->sqrt_info[2] = 0.0;
+  factor->sqrt_info[3] = sqrt(1.0 / factor->covar[1]);
+
+  /* Residual vector */
   zeros(factor->r, 2, 1);
 
+  /* Jacobians */
   zeros(factor->J0, 2, 6);
   zeros(factor->J1, 2, 3);
+  zeros(factor->J2, 2, 8);
   factor->jacs[0] = factor->J0;
   factor->jacs[1] = factor->J1;
-  factor->nb_params = 4;
+  factor->jacs[2] = factor->J2;
+  factor->nb_params = 3;
 }
 
 int ba_factor_eval(ba_factor_t *factor) {
@@ -3670,23 +3757,18 @@ int ba_factor_eval(ba_factor_t *factor) {
   err[0] = factor->z[0] - z_hat[0];
   err[1] = factor->z[1] - z_hat[1];
   /* -- Weighted residual */
-  real_t sqrt_info[2 * 2] = {0};
-  sqrt_info[0] = 1.0 / factor->covar[0];
-  sqrt_info[1] = 0.0;
-  sqrt_info[2] = 0.0;
-  sqrt_info[3] = 1.0 / factor->covar[1];
-  dot(sqrt_info, 2, 2, err, 2, 1, factor->r);
+  dot(factor->sqrt_info, 2, 2, err, 2, 1, factor->r);
 
   /* Calculate jacobians */
   /* -- Form: -1 * sqrt_info */
   real_t neg_sqrt_info[2 * 2] = {0};
-  mat_copy(sqrt_info, 2, 2, neg_sqrt_info);
+  mat_copy(factor->sqrt_info, 2, 2, neg_sqrt_info);
   mat_scale(neg_sqrt_info, 2, 2, -1.0);
   /* -- Form: Jh_weighted = -1 * sqrt_info * J_h */
-  real_t J_h[2 * 3] = {0};
+  real_t Jh[2 * 3] = {0};
   real_t Jh_weighted[2 * 3] = {0};
-  pinhole_radtan4_project_jacobian(cam_params, p_C, J_h);
-  dot(neg_sqrt_info, 2, 2, J_h, 2, 3, Jh_weighted);
+  pinhole_radtan4_project_jacobian(cam_params, p_C, Jh);
+  dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_weighted);
   /* -- Fill jacobians */
 
   return 0;

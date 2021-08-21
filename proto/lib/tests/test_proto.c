@@ -1347,13 +1347,14 @@ int test_camera_params_setup() {
 int test_pose_factor_setup() {
   timestamp_t ts = 1;
   pose_t pose;
-  real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
+  real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
   pose_setup(&pose, ts, data);
 
   pose_factor_t pose_factor;
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   pose_factor_setup(&pose_factor, &pose, var);
 
+  print_matrix("pose_factor.pose_meas", pose_factor.pose_meas, 7, 1);
   print_matrix("pose_factor.covar", pose_factor.covar, 6, 6);
   print_matrix("pose_factor.r", pose_factor.r, 6, 1);
   print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
@@ -1362,18 +1363,18 @@ int test_pose_factor_setup() {
 }
 
 int test_pose_factor_eval() {
-  /* pose_t pose; */
+  timestamp_t ts = 1;
+  pose_t pose;
+  real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
+  pose_setup(&pose, ts, data);
 
-  /* pose_factor_t pose_factor; */
-  /* pose_factor->ts = 0; */
-  /* pose_factor->measured[0]; */
-  /* pose_factor->measured[1]; */
-  /* pose_factor->measured[2]; */
-  /* pose_factor->measured[3]; */
-  /* pose_factor->measured[4]; */
-  /* pose_factor->measured[5]; */
-  /* pose_factor->measured[6]; */
-  /* double covar[6 * 6]; */
+  pose_factor_t pose_factor;
+  real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  pose_factor_setup(&pose_factor, &pose, var);
+
+  pose_factor_eval(&pose_factor);
+  print_matrix("pose_factor.r", pose_factor.r, 6, 1);
+  print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
 
   return 0;
 }
@@ -1383,7 +1384,39 @@ int test_ba_factor_setup() {
 
   pose_t pose;
   {
-    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
+    real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
+    pose_setup(&pose, ts, data);
+  }
+
+  feature_t feature;
+  {
+    const real_t data[3] = {1.0, 0.0, 0.0};
+    feature_setup(&feature, data);
+  }
+
+  camera_params_t cam;
+  {
+    const int cam_idx = 0;
+    const int cam_res[2] = {752, 480};
+    const char *proj_model = "pinhole";
+    const char *dist_model = "radtan4";
+    const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+    camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, data);
+  }
+
+  ba_factor_t ba_factor;
+  real_t var[2] = {1.0, 1.0};
+  ba_factor_setup(&ba_factor, &pose, &feature, &cam, var);
+
+  return 0;
+}
+
+int test_ba_factor_eval() {
+  timestamp_t ts = 0;
+
+  pose_t pose;
+  {
+    real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
     pose_setup(&pose, ts, data);
   }
 
@@ -1760,8 +1793,8 @@ void test_suite() {
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
   /* -- BA factor */
-  /* MU_ADD_TEST(test_ba_factor_setup); */
-  /* MU_ADD_TEST(test_ba_factor_eval); */
+  MU_ADD_TEST(test_ba_factor_setup);
+  MU_ADD_TEST(test_ba_factor_eval);
   /* -- Camera factor */
   /* MU_ADD_TEST(test_cam_factor_setup); */
   /* MU_ADD_TEST(test_cam_factor_eval); */

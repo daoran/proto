@@ -407,6 +407,9 @@ void euler321(const real_t euler[3], real_t C[3 * 3]);
 void rot2quat(const real_t C[3 * 3], real_t q[4]);
 void quat2euler(const real_t q[4], real_t euler[3]);
 void quat2rot(const real_t q[4], real_t C[3 * 3]);
+void quat_inv(const real_t q[4], real_t q_inv[4]);
+void quat_left(const real_t q[4], real_t left[4 * 4]);
+void quat_right(const real_t q[4], real_t right[4 * 4]);
 void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]);
@@ -563,6 +566,7 @@ typedef struct pose_factor_t {
   pose_t *pose_est;
 
   real_t covar[6 * 6];
+  real_t sqrt_info[6 * 6];
   real_t r[6];
   int r_size;
 
@@ -585,6 +589,7 @@ typedef struct ba_factor_t {
   feature_t *feature;
 
   real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
   real_t z[2];
 
   real_t r[2];
@@ -592,6 +597,7 @@ typedef struct ba_factor_t {
 
   real_t J0[2 * 6]; /* Jacobian w.r.t camera pose T_WC */
   real_t J1[2 * 3]; /* Jacobian w.r.t landmark */
+  real_t J2[2 * 8]; /* Jacobian w.r.t camera parameters */
   real_t *jacs[4];
   int nb_params;
 } ba_factor_t;
