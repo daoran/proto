@@ -3760,16 +3760,67 @@ int ba_factor_eval(ba_factor_t *factor) {
   dot(factor->sqrt_info, 2, 2, err, 2, 1, factor->r);
 
   /* Calculate jacobians */
-  /* -- Form: -1 * sqrt_info */
+  /* -- Form: Jh_weighted = -1 * sqrt_info * Jh */
   real_t neg_sqrt_info[2 * 2] = {0};
   mat_copy(factor->sqrt_info, 2, 2, neg_sqrt_info);
   mat_scale(neg_sqrt_info, 2, 2, -1.0);
-  /* -- Form: Jh_weighted = -1 * sqrt_info * J_h */
+
   real_t Jh[2 * 3] = {0};
   real_t Jh_weighted[2 * 3] = {0};
   pinhole_radtan4_project_jacobian(cam_params, p_C, Jh);
   dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_weighted);
-  /* -- Fill jacobians */
+
+  /* -- Jacobian w.r.t. camera pose T_WC */
+  /* J_cam_trans = -1 * sqrt_info * Jh * -C_CW; */
+  /* J_cam_rot = -1 * sqrt_info * Jh * -C_CW * skew(p_W - r_WC) * -C_WC; */
+  /* J0 = [J_cam_rot, J_cam_trans] */
+  real_t C_WC[3 * 3] = {0};
+  real_t C_CW[3 * 3] = {0};
+  real_t r_WC[3] = {0};
+  tf_rot_get(T_WC, C_WC);
+  mat_transpose(C_WC, 3, 3, C_CW);
+  tf_trans_get(T_WC, r_WC);
+
+  real_t neg_C_CW[3 * 3] = {0};
+  mat_copy(C_CW, 3, 3, neg_C_CW);
+  mat_scale(neg_C_CW, 3, 3, -1.0);
+
+  real_t J_cam_trans[2 * 3] = {0};
+  dot(Jh_weighted, 2, 3, neg_C_CW, 3, 3, J_cam_trans);
+
+  real_t A[3 * 3] = {0};
+  mat_copy(J_cam_trans, 3, 3, A);
+
+  real_t B[3 * 3] = {0};
+  real_t dp[3] = {0};
+  dp[0] = p_W[0] - r_WC[0];
+  dp[1] = p_W[1] - r_WC[1];
+  dp[2] = p_W[2] - r_WC[2];
+  skew(dp, B);
+
+  real_t C[3 * 3] = {0};
+  mat_copy(C_WC, 3, 3, C);
+  mat_scale(C, 3, 3, -1.0);
+
+  real_t AB[3 * 3] = {0};
+  real_t ABC[3 * 3] = {0};
+  real_t J_cam_rot[2 * 3] = {0};
+  dot(A, 3, 3, B, 3, 3, AB);
+  dot(AB, 3, 3, C, 3, 3, ABC);
+  dot(Jh_weighted, 2, 3, ABC, 3, 3, J_cam_rot);
+
+  mat_block_set(factor->J0, 6, 0, 0, 3, 3, J_cam_trans);
+  mat_block_set(factor->J0, 6, 0, 3, 3, 6, J_cam_rot);
+
+  /* -- Jacobian w.r.t. landmark */
+  /* J1 = -1 * sqrt_info * Jh * C_CW; */
+  dot(Jh_weighted, 2, 3, C_CW, 3, 3, factor->J1);
+
+  /* -- Jacobian w.r.t. camera parameters */
+  /* J2 = -1 * sqrt_info * J_cam_params; */
+  real_t J_cam_params[2 * 8] = {0};
+  pinhole_radtan4_params_jacobian(cam_params, p_C, J_cam_params);
+  dot(Jh_weighted, 2, 3, J_cam_params, 3, 3, factor->J2);
 
   return 0;
 }
@@ -3834,8 +3885,8 @@ static void cam_factor_sensor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   assert(p_W != NULL);
   assert(J != NULL);
 
-  /* J[0:2, 0:3] = -1 * sqrt_info * J_h * C_CS * C_SW * skew(p_W - r_WS); */
-  /* J[0:2, 3:5] = -1 * sqrt_info * J_h * C_CS * -C_SW; */
+  /* J[0:2, 0:3] = -1 * sqrt_info * Jh * C_CS * C_SW * skew(p_W - r_WS); */
+  /* J[0:2, 3:5] = -1 * sqrt_info * Jh * C_CS * -C_SW; */
 
   /* Setup */
   real_t C_SC[3 * 3] = {0};
@@ -3867,11 +3918,11 @@ static void cam_factor_sensor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   mat_copy(C_CW, 3, 3, neg_C_CW);
   mat_scale(neg_C_CW, 3, 3, -1.0);
 
-  /* Form: J_pos = -1 * sqrt_info * J_h * C_CS * C_SW * skew(p_W - r_WS); */
+  /* Form: J_pos = -1 * sqrt_info * Jh * C_CS * C_SW * skew(p_W - r_WS); */
   real_t J_pos[2 * 3] = {0};
   dot(Jh_weighted, 2, 3, RHS, 3, 3, J_pos);
 
-  /* Form: J_rot = -1 * sqrt_info * J_h * C_CS * -C_SW; */
+  /* Form: J_rot = -1 * sqrt_info * Jh * C_CS * -C_SW; */
   real_t J_rot[2 * 3] = {0};
   dot(Jh_weighted, 2, 3, neg_C_CW, 3, 3, J_rot);
 
@@ -3889,8 +3940,8 @@ static void cam_factor_sensor_camera_jacobian(const real_t Jh_weighted[2 * 3],
   assert(p_C != NULL);
   assert(J != NULL);
 
-  /* J[0:2, 0:3] = -1 * sqrt_info * J_h * C_CS * skew(C_SC * p_C); */
-  /* J[0:2, 3:5] = -1 * sqrt_info * J_h * -C_CS; */
+  /* J[0:2, 0:3] = -1 * sqrt_info * Jh * C_CS * skew(C_SC * p_C); */
+  /* J[0:2, 3:5] = -1 * sqrt_info * Jh * -C_CS; */
 
   /* Setup */
   real_t C_SC[3 * 3] = {0};
@@ -3917,11 +3968,11 @@ static void cam_factor_sensor_camera_jacobian(const real_t Jh_weighted[2 * 3],
   mat_copy(C_CS, 3, 3, neg_C_CS);
   mat_scale(neg_C_CS, 3, 3, -1.0);
 
-  /* Form: J_pos = -1 * sqrt_info * J_h * C_CS * skew(C_SC * p_C); */
+  /* Form: J_pos = -1 * sqrt_info * Jh * C_CS * skew(C_SC * p_C); */
   real_t J_pos[2 * 3] = {0};
   dot(Jh_weighted, 2, 3, RHS, 3, 3, J_pos);
 
-  /* Form: J_rot = -1 * sqrt_info * J_h * -C_CS; */
+  /* Form: J_rot = -1 * sqrt_info * Jh * -C_CS; */
   real_t J_rot[2 * 3] = {0};
   dot(Jh_weighted, 2, 3, neg_C_CS, 3, 3, J_rot);
 
@@ -3958,7 +4009,7 @@ static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
   tf_rot_get(T_WC, C_WC);
   mat_transpose(C_WC, 3, 3, C_CW);
 
-  /* Form: J = -1 * sqrt_info * J_h * C_CW; */
+  /* Form: J = -1 * sqrt_info * Jh * C_CW; */
   dot(Jh_weighted, 2, 3, C_CW, 3, 3, J);
 }
 
@@ -4008,11 +4059,11 @@ int cam_factor_eval(cam_factor_t *factor) {
   real_t neg_sqrt_info[2 * 2] = {0};
   mat_copy(sqrt_info, 2, 2, neg_sqrt_info);
   mat_scale(neg_sqrt_info, 2, 2, -1.0);
-  /* -- Form: Jh_weighted = -1 * sqrt_info * J_h */
-  real_t J_h[2 * 3] = {0};
+  /* -- Form: Jh_weighted = -1 * sqrt_info * Jh */
+  real_t Jh[2 * 3] = {0};
   real_t Jh_weighted[2 * 3] = {0};
-  pinhole_radtan4_project_jacobian(cam_params, p_C, J_h);
-  dot(neg_sqrt_info, 2, 2, J_h, 2, 3, Jh_weighted);
+  pinhole_radtan4_project_jacobian(cam_params, p_C, Jh);
+  dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_weighted);
   /* -- Form: J_cam_params */
   real_t J_cam_params[2 * 8] = {0};
   pinhole_radtan4_params_jacobian(cam_params, p_C, J_cam_params);

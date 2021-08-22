@@ -1372,9 +1372,11 @@ int test_pose_factor_eval() {
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   pose_factor_setup(&pose_factor, &pose, var);
 
-  pose_factor_eval(&pose_factor);
+  const int retval = pose_factor_eval(&pose_factor);
   print_matrix("pose_factor.r", pose_factor.r, 6, 1);
   print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
+
+  MU_CHECK(retval == 0);
 
   return 0;
 }
@@ -1382,27 +1384,21 @@ int test_pose_factor_eval() {
 int test_ba_factor_setup() {
   timestamp_t ts = 0;
 
+  const real_t pose_data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
   pose_t pose;
-  {
-    real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
-    pose_setup(&pose, ts, data);
-  }
+  pose_setup(&pose, ts, pose_data);
 
+  const real_t feature_data[3] = {1.0, 0.0, 0.0};
   feature_t feature;
-  {
-    const real_t data[3] = {1.0, 0.0, 0.0};
-    feature_setup(&feature, data);
-  }
+  feature_setup(&feature, feature_data);
 
+  const int cam_idx = 0;
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_t cam;
-  {
-    const int cam_idx = 0;
-    const int cam_res[2] = {752, 480};
-    const char *proj_model = "pinhole";
-    const char *dist_model = "radtan4";
-    const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-    camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, data);
-  }
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   ba_factor_t ba_factor;
   real_t var[2] = {1.0, 1.0};
@@ -1414,31 +1410,28 @@ int test_ba_factor_setup() {
 int test_ba_factor_eval() {
   timestamp_t ts = 0;
 
+  const real_t pose_data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
   pose_t pose;
-  {
-    real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
-    pose_setup(&pose, ts, data);
-  }
+  pose_setup(&pose, ts, pose_data);
 
+  const real_t feature_data[3] = {1.0, 0.0, 0.0};
   feature_t feature;
-  {
-    const real_t data[3] = {1.0, 0.0, 0.0};
-    feature_setup(&feature, data);
-  }
+  feature_setup(&feature, feature_data);
 
+  const int cam_idx = 0;
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_t cam;
-  {
-    const int cam_idx = 0;
-    const int cam_res[2] = {752, 480};
-    const char *proj_model = "pinhole";
-    const char *dist_model = "radtan4";
-    const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-    camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, data);
-  }
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   ba_factor_t ba_factor;
   real_t var[2] = {1.0, 1.0};
   ba_factor_setup(&ba_factor, &pose, &feature, &cam, var);
+  const int retval = ba_factor_eval(&ba_factor);
+
+  MU_CHECK(retval == 0);
 
   return 0;
 }
