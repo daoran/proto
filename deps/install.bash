@@ -22,6 +22,7 @@ install ros
 install boost
 install ceres
 install eigen
+install lapacke
 install opencv3
 # install apriltags
 # install octomap
