@@ -564,6 +564,7 @@ void camera_params_print(const camera_params_t *camera);
 typedef struct pose_factor_t {
   real_t pose_meas[7];
   pose_t *pose_est;
+  int nb_params;
 
   real_t covar[6 * 6];
   real_t sqrt_info[6 * 6];
@@ -572,7 +573,6 @@ typedef struct pose_factor_t {
 
   real_t J0[6 * 6];
   real_t *jacs[1];
-  int nb_params;
 } pose_factor_t;
 
 void pose_factor_setup(pose_factor_t *factor,
@@ -587,6 +587,7 @@ typedef struct ba_factor_t {
   pose_t *pose;
   camera_params_t *camera;
   feature_t *feature;
+  int nb_params;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
@@ -599,7 +600,6 @@ typedef struct ba_factor_t {
   real_t J1[2 * 3]; /* Jacobian w.r.t landmark */
   real_t J2[2 * 8]; /* Jacobian w.r.t camera parameters */
   real_t *jacs[4];
-  int nb_params;
 } ba_factor_t;
 
 void ba_factor_setup(ba_factor_t *factor,
@@ -616,6 +616,7 @@ typedef struct cam_factor_t {
   extrinsics_t *extrinsics;
   camera_params_t *camera;
   feature_t *feature;
+  int nb_params;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
@@ -629,7 +630,6 @@ typedef struct cam_factor_t {
   real_t J2[2 * 3]; /* Jacobian w.r.t landmark */
   real_t J3[2 * 8]; /* Jacobian w.r.t camera parameters */
   real_t *jacs[4];
-  int nb_params;
 } cam_factor_t;
 
 void cam_factor_setup(cam_factor_t *factor,
