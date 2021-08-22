@@ -2504,7 +2504,7 @@ void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i) {
   real_t C_rvec[3 * 3] = {0};
   real_t C_diff[3 * 3] = {0};
   rvec2rot(drvec, 1e-8, C_rvec);
-  dot(C_rvec, 3, 3, C, 3, 3, C_diff);
+  dot(C, 3, 3, C_rvec, 3, 3, C_diff);
   tf_rot_set(T, C_diff);
 }
 
