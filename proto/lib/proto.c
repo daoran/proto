@@ -3722,9 +3722,10 @@ static void ba_factor_cam_pose_jacobian(const real_t Jh_weighted[2 * 3],
                                         const real_t T_WC[4 * 4],
                                         const real_t p_W[3],
                                         real_t *J) {
-  /* J_cam_trans = -1 * sqrt_info * Jh * -C_CW; */
-  /* J_cam_rot = -1 * sqrt_info * Jh * -C_CW * skew(p_W - r_WC) * -C_WC; */
-  /* J0 = [J_cam_rot, J_cam_trans] */
+  /* Jh_weighted = -1 * sqrt_info * Jh; */
+  /* J_pos = Jh_weighted * -C_CW; */
+  /* J_rot = Jh_weighted * -C_CW * skew(p_W - r_WC) * -C_WC; */
+  /* J = [J_rot, J_pos] */
 
   /* Setup */
   real_t C_WC[3 * 3] = {0};
@@ -3734,16 +3735,17 @@ static void ba_factor_cam_pose_jacobian(const real_t Jh_weighted[2 * 3],
   mat_transpose(C_WC, 3, 3, C_CW);
   tf_trans_get(T_WC, r_WC);
 
-  /* J_cam_trans = -1 * sqrt_info * Jh * -C_CW; */
+  /* J_pos = -1 * sqrt_info * Jh * -C_CW; */
   real_t neg_C_CW[3 * 3] = {0};
   mat_copy(C_CW, 3, 3, neg_C_CW);
   mat_scale(neg_C_CW, 3, 3, -1.0);
 
-  real_t J_cam_trans[2 * 3] = {0};
-  dot(Jh_weighted, 2, 3, neg_C_CW, 3, 3, J_cam_trans);
+  real_t J_pos[2 * 3] = {0};
+  dot(Jh_weighted, 2, 3, neg_C_CW, 3, 3, J_pos);
 
   /**
-   * J_cam_rot = -1 * sqrt_info * Jh * -C_CW * skew(p_W - r_WC) * -C_WC;
+   * Jh_weighted = -1 * sqrt_info * Jh;
+   * J_rot = Jh_weighted * -C_CW * skew(p_W - r_WC) * -C_WC;
    * where:
    *
    *   A = -C_CW;
@@ -3751,7 +3753,7 @@ static void ba_factor_cam_pose_jacobian(const real_t Jh_weighted[2 * 3],
    *   C = -C_WC;
    */
   real_t A[3 * 3] = {0};
-  mat_copy(J_cam_trans, 3, 3, A);
+  mat_copy(J_pos, 3, 3, A);
 
   real_t B[3 * 3] = {0};
   real_t dp[3] = {0};
@@ -3766,21 +3768,22 @@ static void ba_factor_cam_pose_jacobian(const real_t Jh_weighted[2 * 3],
 
   real_t AB[3 * 3] = {0};
   real_t ABC[3 * 3] = {0};
-  real_t J_cam_rot[2 * 3] = {0};
+  real_t J_rot[2 * 3] = {0};
   dot(A, 3, 3, B, 3, 3, AB);
   dot(AB, 3, 3, C, 3, 3, ABC);
-  dot(Jh_weighted, 2, 3, ABC, 3, 3, J_cam_rot);
+  dot(Jh_weighted, 2, 3, ABC, 3, 3, J_rot);
 
   /* Set result */
-  /* J = [J_cam_rot, J_cam_trans] */
-  mat_block_set(J, 6, 0, 0, 3, 3, J_cam_trans);
-  mat_block_set(J, 6, 0, 3, 3, 6, J_cam_rot);
+  /* J = [J_rot, J_pos] */
+  mat_block_set(J, 6, 0, 0, 3, 3, J_pos);
+  mat_block_set(J, 6, 0, 3, 3, 6, J_rot);
 }
 
 static void ba_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
                                        const real_t T_WC[4 * 4],
                                        real_t *J) {
-  /* J = -1 * sqrt_info * Jh * C_CW; */
+  /* Jh_weighted = -1 * sqrt_info * Jh; */
+  /* J = Jh_weighted * C_CW; */
   real_t C_WC[3 * 3] = {0};
   real_t C_CW[3 * 3] = {0};
   tf_rot_get(T_WC, C_WC);
@@ -3788,7 +3791,7 @@ static void ba_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
   dot(Jh_weighted, 2, 3, C_CW, 3, 3, J);
 }
 
-static void ba_factor_camera_params_jacobian(const real_t neg_sqrt_info[2 * 3],
+static void ba_factor_camera_params_jacobian(const real_t neg_sqrt_info[2 * 2],
                                              const real_t J_cam_params[2 * 8],
                                              real_t *J) {
   /* J = -1 * sqrt_info * J_cam_params; */
