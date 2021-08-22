@@ -618,15 +618,16 @@ typedef struct cam_factor_t {
   feature_t *feature;
 
   real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
   real_t z[2];
 
   real_t r[2];
   int r_size;
 
   real_t J0[2 * 6]; /* Jacobian w.r.t sensor pose T_WS */
-  real_t J1[2 * 6]; /* Jacobian w.r.t sensor-camera extrinsics T_SC */
-  real_t J2[2 * 8]; /* Jacobian w.r.t camera parameters */
-  real_t J3[2 * 3]; /* Jacobian w.r.t landmark */
+  real_t J1[2 * 6]; /* Jacobian w.r.t sensor-camera extrinsics T_SCi */
+  real_t J2[2 * 3]; /* Jacobian w.r.t landmark */
+  real_t J3[2 * 8]; /* Jacobian w.r.t camera parameters */
   real_t *jacs[4];
   int nb_params;
 } cam_factor_t;
@@ -675,10 +676,10 @@ typedef struct imu_factor_t {
   real_t r[15];
   int r_size;
 
-  real_t J0[2 * 6];
-  real_t J1[2 * 9];
-  real_t J2[2 * 6];
-  real_t J3[2 * 9];
+  real_t J0[2 * 6]; /* Jacobian w.r.t pose i */
+  real_t J1[2 * 9]; /* Jacobian w.r.t speed and biases i */
+  real_t J2[2 * 6]; /* Jacobian w.r.t pose j */
+  real_t J3[2 * 9]; /* Jacobian w.r.t speed and biases j */
   real_t *jacs[4];
   int nb_params;
 
