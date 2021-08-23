@@ -1345,11 +1345,13 @@ int test_camera_params_setup() {
 }
 
 int test_pose_factor_setup() {
+  /* Pose */
   timestamp_t ts = 1;
   pose_t pose;
   real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
   pose_setup(&pose, ts, data);
 
+  /* Setup pose factor */
   pose_factor_t pose_factor;
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   pose_factor_setup(&pose_factor, &pose, var);
@@ -1363,15 +1365,18 @@ int test_pose_factor_setup() {
 }
 
 int test_pose_factor_eval() {
+  /* Pose */
   timestamp_t ts = 1;
   pose_t pose;
   real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
   pose_setup(&pose, ts, data);
 
+  /* Setup pose factor */
   pose_factor_t pose_factor;
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   pose_factor_setup(&pose_factor, &pose, var);
 
+  /* Evaluate pose factor */
   const int retval = pose_factor_eval(&pose_factor);
   print_matrix("pose_factor.r", pose_factor.r, 6, 1);
   print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
@@ -1382,93 +1387,152 @@ int test_pose_factor_eval() {
 }
 
 int test_ba_factor_setup() {
+  /* Timestamp */
   timestamp_t ts = 0;
 
-  const real_t pose_data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
+  /* Camera pose */
+  const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
   pose_t pose;
   pose_setup(&pose, ts, pose_data);
 
-  const real_t feature_data[3] = {1.0, 0.0, 0.0};
+  /* Feature */
+  const real_t p_W[3] = {1.0, 0.0, 0.0};
   feature_t feature;
-  feature_setup(&feature, feature_data);
+  feature_setup(&feature, p_W);
 
+  /* Camera parameters */
   const int cam_idx = 0;
-  const int cam_res[2] = {752, 480};
+  const int cam_res[2] = {640, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_t cam;
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
+  /* Project point from world to image plane */
+  real_t T_WC[4 * 4] = {0};
+  real_t T_CW[4 * 4] = {0};
+  real_t p_C[3] = {0};
+  real_t z[2];
+  tf(pose_data, T_WC);
+  tf_inv(T_WC, T_CW);
+  tf_point(T_CW, p_W, p_C);
+  pinhole_radtan4_project(cam_data, p_C, z);
+
+  /* Bundle adjustment factor */
   ba_factor_t ba_factor;
   real_t var[2] = {1.0, 1.0};
-  ba_factor_setup(&ba_factor, &pose, &feature, &cam, var);
+  ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
+
+  print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
+  print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
+  print_matrix("ba_factor.r", ba_factor.r, 2, 1);
+  print_matrix("ba_factor.J0", ba_factor.J0, 2, 6);
+  print_matrix("ba_factor.J1", ba_factor.J1, 2, 3);
+  print_matrix("ba_factor.J2", ba_factor.J2, 2, 8);
 
   return 0;
 }
 
 int test_ba_factor_eval() {
+  /* Timestamp */
   timestamp_t ts = 0;
 
-  const real_t pose_data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
+  /* Camera pose */
+  const real_t pose_data[7] = {0.01, 0.01, 0.0, -0.5, 0.5, -0.5, 0.5};
   pose_t pose;
   pose_setup(&pose, ts, pose_data);
 
-  const real_t feature_data[3] = {1.0, 0.0, 0.0};
+  /* Feature */
+  const real_t p_W[3] = {1.0, 0.0, 0.0};
   feature_t feature;
-  feature_setup(&feature, feature_data);
+  feature_setup(&feature, p_W);
 
+  /* Camera parameters */
   const int cam_idx = 0;
-  const int cam_res[2] = {752, 480};
+  const int cam_res[2] = {640, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam_data[8] = {640, 480, 320, 240, 0.03, 0.01, 0.001, 0.001};
   camera_params_t cam;
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
+  /* Project point from world to image plane */
+  real_t T_WC[4 * 4] = {0};
+  real_t T_CW[4 * 4] = {0};
+  real_t p_C[3] = {0};
+  real_t z[2];
+  tf(pose_data, T_WC);
+  tf_inv(T_WC, T_CW);
+  tf_point(T_CW, p_W, p_C);
+  pinhole_radtan4_project(cam_data, p_C, z);
+
+  /* Bundle adjustment factor */
   ba_factor_t ba_factor;
   real_t var[2] = {1.0, 1.0};
-  ba_factor_setup(&ba_factor, &pose, &feature, &cam, var);
-  const int retval = ba_factor_eval(&ba_factor);
+  ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
 
-  MU_CHECK(retval == 0);
+  /* Evaluate bundle adjustment factor */
+  ba_factor_eval(&ba_factor);
+
+  print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
+  print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
+  print_matrix("ba_factor.r", ba_factor.r, 2, 1);
+  print_matrix("ba_factor.J0", ba_factor.J0, 2, 6);
+  print_matrix("ba_factor.J1", ba_factor.J1, 2, 3);
+  print_matrix("ba_factor.J2", ba_factor.J2, 2, 8);
 
   return 0;
 }
 
 int test_cam_factor_setup() {
+  /* Timestamp */
   timestamp_t ts = 0;
+
+  /* Sensor pose */
   pose_t pose;
-  {
-    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-    pose_setup(&pose, ts, data);
-  }
+  const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
+  pose_setup(&pose, ts, pose_data);
 
+  /* Extrinsics */
   extrinsics_t extrinsics;
-  {
-    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
-    extrinsics_setup(&extrinsics, data);
-  }
+  const real_t exts_data[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+  extrinsics_setup(&extrinsics, exts_data);
 
+  /* Feature */
   feature_t feature;
-  {
-    const real_t data[3] = {1.0, 0.0, 0.0};
-    feature_setup(&feature, data);
-  }
+  const real_t p_W[3] = {1.0, 0.0, 0.0};
+  feature_setup(&feature, p_W);
 
+  /* Camera parameters */
   camera_params_t cam;
-  {
-    const int cam_idx = 0;
-    const int cam_res[2] = {752, 480};
-    const char *proj_model = "pinhole";
-    const char *dist_model = "radtan4";
-    const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-    camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, data);
-  }
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
+  /* Project point from world to image plane */
+  real_t T_WS[4 * 4] = {0};
+  real_t T_SW[4 * 4] = {0};
+  real_t T_SCi[4 * 4] = {0};
+  real_t T_CiS[4 * 4] = {0};
+  real_t T_CiW[4 * 4] = {0};
+  real_t p_Ci[3] = {0};
+  real_t z[2];
+  tf(pose_data, T_WS);
+  tf(exts_data, T_SCi);
+  tf_inv(T_WS, T_SW);
+  tf_inv(T_SCi, T_CiS);
+  dot(T_CiS, 4, 4, T_SW, 4, 4, T_CiW);
+  tf_point(T_CiW, p_W, p_Ci);
+  pinhole_radtan4_project(cam_data, p_Ci, z);
+
+  /* Camera factor */
   cam_factor_t cam_factor;
   real_t var[2] = {1.0, 1.0};
-  cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, var);
+  cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
 
   print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
   print_matrix("cam_factor.r", cam_factor.r, 2, 1);
@@ -1481,41 +1545,60 @@ int test_cam_factor_setup() {
 }
 
 int test_cam_factor_eval() {
+  /* Timestamp */
   timestamp_t ts = 0;
+
+  /* Sensor pose */
   pose_t pose;
-  {
-    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    pose_setup(&pose, ts, data);
-  }
+  const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
+  pose_setup(&pose, ts, pose_data);
 
+  /* Extrinsics */
   extrinsics_t extrinsics;
-  {
-    real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    extrinsics_setup(&extrinsics, data);
-  }
+  const real_t exts_data[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+  extrinsics_setup(&extrinsics, exts_data);
 
+  /* Feature */
   feature_t feature;
-  {
-    const real_t data[3] = {10.0, 0.0, 0.0};
-    feature_setup(&feature, data);
-  }
+  const real_t p_W[3] = {1.0, 0.0, 0.0};
+  feature_setup(&feature, p_W);
 
+  /* Camera parameters */
   camera_params_t cam;
-  {
-    const int cam_idx = 0;
-    const int cam_res[2] = {752, 480};
-    const char *proj_model = "pinhole";
-    const char *dist_model = "radtan4";
-    const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-    camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, data);
-  }
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
+  /* Project point from world to image plane */
+  real_t T_WS[4 * 4] = {0};
+  real_t T_SW[4 * 4] = {0};
+  real_t T_SCi[4 * 4] = {0};
+  real_t T_CiS[4 * 4] = {0};
+  real_t T_CiW[4 * 4] = {0};
+  real_t p_Ci[3] = {0};
+  real_t z[2];
+  tf(pose_data, T_WS);
+  tf(exts_data, T_SCi);
+  tf_inv(T_WS, T_SW);
+  tf_inv(T_SCi, T_CiS);
+  dot(T_CiS, 4, 4, T_SW, 4, 4, T_CiW);
+  tf_point(T_CiW, p_W, p_Ci);
+  pinhole_radtan4_project(cam_data, p_Ci, z);
+
+  /* Setup camera factor */
   cam_factor_t cam_factor;
   real_t var[2] = {1.0, 1.0};
-  cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, var);
+  cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
+
+  /* Evaluate camera factor */
   cam_factor_eval(&cam_factor);
+  print_vector("z", z, 2);
 
   print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
+  print_matrix("cam_factor.sqrt_info", cam_factor.sqrt_info, 2, 2);
   print_matrix("cam_factor.r", cam_factor.r, 2, 1);
   print_matrix("cam_factor.J0", cam_factor.J0, 2, 6);
   print_matrix("cam_factor.J1", cam_factor.J1, 2, 6);
@@ -1789,8 +1872,8 @@ void test_suite() {
   MU_ADD_TEST(test_ba_factor_setup);
   MU_ADD_TEST(test_ba_factor_eval);
   /* -- Camera factor */
-  /* MU_ADD_TEST(test_cam_factor_setup); */
-  /* MU_ADD_TEST(test_cam_factor_eval); */
+  MU_ADD_TEST(test_cam_factor_setup);
+  MU_ADD_TEST(test_cam_factor_eval);
   /* -- IMU factor */
   MU_ADD_TEST(test_imu_buf_setup);
   MU_ADD_TEST(test_imu_buf_add);

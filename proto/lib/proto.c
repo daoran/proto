@@ -2859,6 +2859,8 @@ void quat_delta(const real_t dalpha[3], real_t dq[4]) {
  * CV
  *****************************************************************************/
 
+// IMAGE ///////////////////////////////////////////////////////////////////////
+
 /**
  * Setup image `img` with `width`, `height` and `data`.
  */
@@ -3509,7 +3511,7 @@ void extrinsics_setup(extrinsics_t *extrinsics, const real_t *data) {
   extrinsics->data[6] = data[6]; /* qw */
 }
 
-// CAMERA PARAMS //////////////////////////// //////////////////////////////////
+// CAMERA PARAMS ///////////////////////////////////////////////////////////////
 
 void camera_params_setup(camera_params_t *camera,
                          const int cam_idx,
@@ -3567,6 +3569,11 @@ void pose_factor_setup(pose_factor_t *factor,
   assert(pose != NULL);
   assert(var != NULL);
 
+  /* Parameters */
+  factor->pose_est = pose;
+  factor->nb_params = 1;
+
+  /* Measurement */
   factor->pose_meas[0] = pose->data[0];
   factor->pose_meas[1] = pose->data[1];
   factor->pose_meas[2] = pose->data[2];
@@ -3574,9 +3581,8 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->pose_meas[4] = pose->data[4];
   factor->pose_meas[5] = pose->data[5];
   factor->pose_meas[6] = pose->data[6];
-  factor->pose_est = pose;
-  factor->nb_params = 1;
 
+  /* Measurement covariance matrix */
   zeros(factor->covar, 6, 6);
   factor->covar[0] = 1.0 / (var[0] * var[0]);
   factor->covar[7] = 1.0 / (var[1] * var[1]);
@@ -3585,6 +3591,7 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->covar[28] = 1.0 / (var[4] * var[4]);
   factor->covar[35] = 1.0 / (var[5] * var[5]);
 
+  /* Square root information matrix */
   zeros(factor->sqrt_info, 6, 6);
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
   factor->sqrt_info[7] = sqrt(1.0 / factor->covar[7]);
@@ -3593,9 +3600,11 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->sqrt_info[28] = sqrt(1.0 / factor->covar[28]);
   factor->sqrt_info[35] = sqrt(1.0 / factor->covar[35]);
 
+  /* Residual */
   zeros(factor->r, 6, 1);
   factor->r_size = 6;
 
+  /* Jacobians */
   zeros(factor->J0, 6, 6);
   factor->jacs[0] = factor->J0;
 }
@@ -3677,9 +3686,10 @@ int pose_factor_eval(pose_factor_t *factor) {
 // BA FACTOR ///////////////////////////////////////////////////////////////////
 
 void ba_factor_setup(ba_factor_t *factor,
-                     pose_t *pose,
-                     feature_t *feature,
-                     camera_params_t *camera,
+                     const pose_t *pose,
+                     const feature_t *feature,
+                     const camera_params_t *camera,
+                     const real_t z[2],
                      const real_t var[2]) {
   assert(factor != NULL);
   assert(pose != NULL);
@@ -3703,7 +3713,11 @@ void ba_factor_setup(ba_factor_t *factor,
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
   factor->sqrt_info[1] = 0.0;
   factor->sqrt_info[2] = 0.0;
-  factor->sqrt_info[3] = sqrt(1.0 / factor->covar[1]);
+  factor->sqrt_info[3] = sqrt(1.0 / factor->covar[3]);
+
+  /* Measurement */
+  factor->z[0] = z[0];
+  factor->z[1] = z[1];
 
   /* Residual */
   zeros(factor->r, 2, 1);
@@ -3775,8 +3789,8 @@ static void ba_factor_cam_pose_jacobian(const real_t Jh_weighted[2 * 3],
 
   /* Set result */
   /* J = [J_rot, J_pos] */
-  mat_block_set(J, 6, 0, 0, 3, 3, J_pos);
-  mat_block_set(J, 6, 0, 3, 3, 6, J_rot);
+  mat_block_set(J, 6, 0, 0, 1, 2, J_pos);
+  mat_block_set(J, 6, 0, 3, 1, 5, J_rot);
 }
 
 static void ba_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
@@ -3809,9 +3823,9 @@ int ba_factor_eval(ba_factor_t *factor) {
   real_t T_WC[4 * 4] = {0};
   tf(factor->pose->data, T_WC);
   /* -- Feature */
-  real_t *p_W = factor->feature->data;
+  const real_t *p_W = factor->feature->data;
   /* -- Camera params */
-  real_t *cam_params = factor->camera->data;
+  const real_t *cam_params = factor->camera->data;
 
   /* Calculate residuals */
   /* -- Project point from world to image plane */
@@ -3852,10 +3866,11 @@ int ba_factor_eval(ba_factor_t *factor) {
 // CAMERA FACTOR ///////////////////////////////////////////////////////////////
 
 void cam_factor_setup(cam_factor_t *factor,
-                      pose_t *pose,
-                      extrinsics_t *extrinsics,
-                      feature_t *feature,
-                      camera_params_t *camera,
+                      const pose_t *pose,
+                      const extrinsics_t *extrinsics,
+                      const feature_t *feature,
+                      const camera_params_t *camera,
+                      const real_t z[2],
                       const real_t var[2]) {
   assert(factor != NULL);
   assert(pose != NULL);
@@ -3881,17 +3896,21 @@ void cam_factor_setup(cam_factor_t *factor,
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
   factor->sqrt_info[1] = 0.0;
   factor->sqrt_info[2] = 0.0;
-  factor->sqrt_info[3] = sqrt(1.0 / factor->covar[1]);
+  factor->sqrt_info[3] = sqrt(1.0 / factor->covar[3]);
+
+  /* Measurement */
+  factor->z[0] = z[0];
+  factor->z[1] = z[1];
 
   /* Residual */
   zeros(factor->r, 2, 1);
   factor->r_size = 2;
 
   /* Jacobians */
-  zeros(factor->J0, 2, 6);
-  zeros(factor->J1, 2, 6);
-  zeros(factor->J2, 2, 8);
-  zeros(factor->J3, 2, 3);
+  zeros(factor->J0, 2, 6); /* Jacobian w.r.t sensor pose T_WS */
+  zeros(factor->J1, 2, 6); /* Jacobian w.r.t sensor-camera extrinsics T_SCi */
+  zeros(factor->J2, 2, 3); /* Jacobian w.r.t landmark */
+  zeros(factor->J3, 2, 8); /* Jacobian w.r.t camera parameters */
   factor->jacs[0] = factor->J0;
   factor->jacs[1] = factor->J1;
   factor->jacs[2] = factor->J2;
@@ -3904,8 +3923,8 @@ void cam_factor_reset(cam_factor_t *factor) {
   zeros(factor->r, 2, 1);
   zeros(factor->J0, 2, 6);
   zeros(factor->J1, 2, 6);
-  zeros(factor->J2, 2, 8);
-  zeros(factor->J3, 2, 3);
+  zeros(factor->J2, 2, 3);
+  zeros(factor->J3, 2, 8);
 }
 
 static void cam_factor_sensor_pose_jacobian(const real_t Jh_weighted[2 * 3],
@@ -4074,14 +4093,14 @@ int cam_factor_eval(cam_factor_t *factor) {
   dot(T_WS, 4, 4, T_SC, 4, 4, T_WC);
   tf_inv(T_WC, T_CW);
   /* -- Feature */
-  real_t *p_W = factor->feature->data;
+  const real_t *p_W = factor->feature->data;
   real_t p_C[3] = {0};
   tf_point(T_CW, p_W, p_C);
 
   /* Calculate residuals */
   /* -- Project point from world to image plane */
   real_t z_hat[2];
-  real_t *cam_params = factor->camera->data;
+  const real_t *cam_params = factor->camera->data;
   pinhole_radtan4_project(cam_params, p_C, z_hat);
   /* -- Residual */
   real_t err[2] = {0};
