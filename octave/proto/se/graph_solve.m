@@ -12,8 +12,8 @@ function graph = graph_solve(graph)
   for i = 1:max_iter
     % Levenberg-Marquardt
     H = H + lambda * eye(size(H));
-    % dx = pinv(H) * g;
     dx = H \ g;
+    % dx = pinv(H) * g;
     % dx = linsolve(H, g);
 
     % warning('off');
@@ -23,7 +23,6 @@ function graph = graph_solve(graph)
 
     graph = graph_update(graph, param_idx, dx);
     [H, g, r, param_idx] = graph_eval(graph);
-
     cost = 0.5 * r' * r;
     dcost = cost_prev - cost;
     printf("iter[%d] cost: %.2e, dcost = %.2e, lambda: %.2e\n", i, cost, dcost, lambda);

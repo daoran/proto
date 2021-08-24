@@ -2,6 +2,7 @@ addpath(genpath("proto"));
 pkg load image;
 graphics_toolkit("fltk");
 
+
 % Settings
 k = 0.04;
 thresh = 10;
