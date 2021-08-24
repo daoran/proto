@@ -1,10 +1,10 @@
 #ifndef PROTO_H_
 #define PROTO_H_
 
-#define PRECISION 1
+#define PRECISION 2
 #define MAX_LINE_LENGTH 9046
 #define USE_CBLAS
-/* #define USE_LAPACK */
+#define USE_LAPACK
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -367,6 +367,10 @@ void cblas_dot(const real_t *A,
 
 int svd(real_t *A, const int m, const int n, real_t *w, real_t *V);
 
+#ifdef USE_LAPACK
+void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t);
+#endif
+
 /******************************************************************************
  * CHOL
  ******************************************************************************/
@@ -403,6 +407,9 @@ void euler321(const real_t euler[3], real_t C[3 * 3]);
 void rot2quat(const real_t C[3 * 3], real_t q[4]);
 void quat2euler(const real_t q[4], real_t euler[3]);
 void quat2rot(const real_t q[4], real_t C[3 * 3]);
+void quat_inv(const real_t q[4], real_t q_inv[4]);
+void quat_left(const real_t q[4], real_t left[4 * 4]);
+void quat_right(const real_t q[4], real_t right[4 * 4]);
 void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]);
@@ -419,7 +426,7 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]);
  * CV
  ******************************************************************************/
 
-/* IMAGE ---------------------------------------------------------------------*/
+// IMAGE ///////////////////////////////////////////////////////////////////////
 
 typedef struct image_t {
   int width;
@@ -436,7 +443,7 @@ image_t *image_load(const char *file_path);
 void image_print_properties(const image_t *img);
 void image_free(image_t *img);
 
-/* RADTAN --------------------------------------------------------------------*/
+// RADTAN //////////////////////////////////////////////////////////////////////
 
 void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
 void radtan4_point_jacobian(const real_t params[4],
@@ -446,7 +453,7 @@ void radtan4_params_jacobian(const real_t params[4],
                              const real_t p[2],
                              real_t J_param[2 * 4]);
 
-/* EQUI ----------------------------------------------------------------------*/
+// EQUI ////////////////////////////////////////////////////////////////////////
 
 void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
 void equi4_point_jacobian(const real_t params[4],
@@ -456,7 +463,7 @@ void equi4_params_jacobian(const real_t params[4],
                            const real_t p[2],
                            real_t J_param[2 * 4]);
 
-/* PINHOLE -------------------------------------------------------------------*/
+// PINHOLE /////////////////////////////////////////////////////////////////////
 
 real_t pinhole_focal(const int image_width, const real_t fov);
 void pinhole_project(const real_t params[4], const real_t p_C[3], real_t x[2]);
@@ -466,7 +473,7 @@ void pinhole_params_jacobian(const real_t params[4],
                              const real_t x[2],
                              real_t J[2 * 4]);
 
-/* PINHOLE-RADTAN4 -----------------------------------------------------------*/
+// PINHOLE-RADTAN4 /////////////////////////////////////////////////////////////
 
 void pinhole_radtan4_project(const real_t params[8],
                              const real_t p_C[3],
@@ -478,7 +485,7 @@ void pinhole_radtan4_params_jacobian(const real_t params[8],
                                      const real_t p_C[3],
                                      real_t J[2 * 8]);
 
-/* PINHOLE-EQUI4 -------------------------------------------------------------*/
+// PINHOLE-EQUI4 ///////////////////////////////////////////////////////////////
 
 void pinhole_equi4_project(const real_t params[8],
                            const real_t p_C[3],
@@ -494,7 +501,7 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
  * SENSOR FUSION
  ******************************************************************************/
 
-/* POSE --------------------------------------------------------------------- */
+// POSE ////////////////////////////////////////////////////////////////////////
 
 typedef struct pose_t {
   timestamp_t ts;
@@ -504,7 +511,7 @@ typedef struct pose_t {
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_print(const pose_t *pose);
 
-/* SPEED AND BIASES --------------------------------------------------------- */
+// SPEED AND BIASES ////////////////////////////////////////////////////////////
 
 typedef struct speed_biases_t {
   timestamp_t ts;
@@ -516,7 +523,7 @@ void speed_biases_setup(speed_biases_t *sb,
                         const real_t *param);
 void speed_biases_print(const speed_biases_t *sb);
 
-/* FEATURE ------------------------------------------------------------------ */
+// FEATURE /////////////////////////////////////////////////////////////////////
 
 typedef struct feature_t {
   real_t data[3];
@@ -525,7 +532,7 @@ typedef struct feature_t {
 void feature_setup(feature_t *p, const real_t *param);
 void feature_print(const feature_t *feature);
 
-/* EXTRINSICS --------------------------------------------------------------- */
+// EXTRINSICS //////////////////////////////////////////////////////////////////
 
 typedef struct extrinsics_t {
   real_t data[7];
@@ -534,7 +541,7 @@ typedef struct extrinsics_t {
 void extrinsics_setup(extrinsics_t *extrinsics, const real_t *param);
 void extrinsics_print(const extrinsics_t *extrinsics);
 
-/* CAMERA PARAMS ------------------------------------------------------------ */
+// CAMERA PARAMS ///////////////////////////////////////////////////////////////
 
 typedef struct camera_params_t {
   int cam_idx;
@@ -552,19 +559,66 @@ void camera_params_setup(camera_params_t *camera,
                          const real_t *data);
 void camera_params_print(const camera_params_t *camera);
 
-/* POSE FACTOR -------------------------------------------------------------- */
+// FACTOR //////////////////////////////////////////////////////////////////////
+
+/* int check_factor_jacobian(factor_t *factor, */
+/*                           const int param_idx, */
+/*                           const char *jac_name, */
+/*                           const real_t step_size, */
+/*                           const real_t threshold) { */
+/*   #<{(| Calculate baseline |)}># */
+/*   factor->eval(factor); */
+/*  */
+/*   #<{(| Numerical diff |)}># */
+/*   const int nb_rows = factor->r_size; */
+/*   const int nb_cols = factor->param_local_size[param_idx]; */
+/*   real_t *J_numdiff = calloc(nb_rows * nb_cols, sizeof(real_t)); */
+/*  */
+/*   for (int i = 0; i < nb_cols; i++) { */
+/*     #<{(| Perturb and evaluate |)}># */
+/*   } */
+/*  */
+/*   #<{(| for i = 1:params{param_idx}.min_dims |)}># */
+/*   #<{(|   % Perturb and evaluate |)}># */
+/*   #<{(|   params_fwd = params; |)}># */
+/*   #<{(|   if strcmp(params_fwd{param_idx}.type, "pose") == 1 |)}># */
+/*   #<{(|     T = tf(params_fwd{param_idx}.param); |)}># */
+/*   #<{(|     T_fwd = perturb_pose(T, step_size, i); |)}># */
+/*   #<{(|     params_fwd{param_idx}.param = tf_param(T_fwd); |)}># */
+/*   #<{(|   else |)}># */
+/*   #<{(|     params_fwd{param_idx}.param(i) += step_size; |)}># */
+/*   #<{(|   endif |)}># */
+/*   #<{(|  |)}># */
+/*   #<{(|   % Evaluate |)}># */
+/*   #<{(|   [r_fwd, _] = factor.eval(factor, params_fwd); |)}># */
+/*   #<{(|  |)}># */
+/*   #<{(|   % Forward finite difference |)}># */
+/*   #<{(|   J_numdiff(:, i) = (r_fwd - r) / step_size; |)}># */
+/*   #<{(| endfor |)}># */
+/*   #<{(|  |)}># */
+/*   #<{(| J_analytical = jacs{param_idx}; |)}># */
+/*   check_jacobian(jac_name, J_numdiff, J_analytical, threshold, true); */
+/*  */
+/*   #<{(| Clean up |)}># */
+/*   free(J_numdiff); */
+/*  */
+/*   return 0; */
+/* } */
+
+// POSE FACTOR /////////////////////////////////////////////////////////////////
 
 typedef struct pose_factor_t {
   real_t pose_meas[7];
   pose_t *pose_est;
+  int nb_params;
 
   real_t covar[6 * 6];
+  real_t sqrt_info[6 * 6];
   real_t r[6];
   int r_size;
 
   real_t J0[6 * 6];
   real_t *jacs[1];
-  int nb_params;
 } pose_factor_t;
 
 void pose_factor_setup(pose_factor_t *factor,
@@ -573,14 +627,16 @@ void pose_factor_setup(pose_factor_t *factor,
 void pose_factor_reset(pose_factor_t *factor);
 int pose_factor_eval(pose_factor_t *factor);
 
-/* BA FACTOR ---------------------------------------------------------------- */
+// BA FACTOR ///////////////////////////////////////////////////////////////////
 
 typedef struct ba_factor_t {
-  pose_t *pose;
-  camera_params_t *camera;
-  feature_t *feature;
+  const pose_t *pose;
+  const camera_params_t *camera;
+  const feature_t *feature;
+  int nb_params;
 
   real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
   real_t z[2];
 
   real_t r[2];
@@ -588,49 +644,52 @@ typedef struct ba_factor_t {
 
   real_t J0[2 * 6]; /* Jacobian w.r.t camera pose T_WC */
   real_t J1[2 * 3]; /* Jacobian w.r.t landmark */
+  real_t J2[2 * 8]; /* Jacobian w.r.t camera parameters */
   real_t *jacs[4];
-  int nb_params;
 } ba_factor_t;
 
 void ba_factor_setup(ba_factor_t *factor,
-                     pose_t *pose,
-                     feature_t *feature,
-                     camera_params_t *camera,
+                     const pose_t *pose,
+                     const feature_t *feature,
+                     const camera_params_t *camera,
+                     const real_t z[2],
                      const real_t var[2]);
 int ba_factor_eval(ba_factor_t *factor);
 
-/* CAMERA FACTOR ------------------------------------------------------------ */
+// CAMERA FACTOR ///////////////////////////////////////////////////////////////
 
 typedef struct cam_factor_t {
-  pose_t *pose;
-  extrinsics_t *extrinsics;
-  camera_params_t *camera;
-  feature_t *feature;
+  const pose_t *pose;
+  const extrinsics_t *extrinsics;
+  const camera_params_t *camera;
+  const feature_t *feature;
+  int nb_params;
 
   real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
   real_t z[2];
 
   real_t r[2];
   int r_size;
 
   real_t J0[2 * 6]; /* Jacobian w.r.t sensor pose T_WS */
-  real_t J1[2 * 6]; /* Jacobian w.r.t sensor-camera extrinsics T_SC */
-  real_t J2[2 * 8]; /* Jacobian w.r.t camera parameters */
-  real_t J3[2 * 3]; /* Jacobian w.r.t landmark */
+  real_t J1[2 * 6]; /* Jacobian w.r.t sensor-camera extrinsics T_SCi */
+  real_t J2[2 * 3]; /* Jacobian w.r.t landmark */
+  real_t J3[2 * 8]; /* Jacobian w.r.t camera parameters */
   real_t *jacs[4];
-  int nb_params;
 } cam_factor_t;
 
 void cam_factor_setup(cam_factor_t *factor,
-                      pose_t *pose,
-                      extrinsics_t *extrinsics,
-                      feature_t *feature,
-                      camera_params_t *camera,
+                      const pose_t *pose,
+                      const extrinsics_t *extrinsics,
+                      const feature_t *feature,
+                      const camera_params_t *camera,
+                      const real_t z[2],
                       const real_t var[2]);
 void cam_factor_reset(cam_factor_t *factor);
 int cam_factor_eval(cam_factor_t *factor);
 
-/* IMU FACTOR --------------------------------------------------------------- */
+// IMU FACTOR //////////////////////////////////////////////////////////////////
 
 #define MAX_IMU_BUF_SIZE 10000
 
@@ -665,10 +724,10 @@ typedef struct imu_factor_t {
   real_t r[15];
   int r_size;
 
-  real_t J0[2 * 6];
-  real_t J1[2 * 9];
-  real_t J2[2 * 6];
-  real_t J3[2 * 9];
+  real_t J0[2 * 6]; /* Jacobian w.r.t pose i */
+  real_t J1[2 * 9]; /* Jacobian w.r.t speed and biases i */
+  real_t J2[2 * 6]; /* Jacobian w.r.t pose j */
+  real_t J3[2 * 9]; /* Jacobian w.r.t speed and biases j */
   real_t *jacs[4];
   int nb_params;
 
@@ -705,7 +764,7 @@ void imu_factor_setup(imu_factor_t *factor,
 void imu_factor_reset(imu_factor_t *factor);
 int imu_factor_eval(imu_factor_t *factor);
 
-/* SLIDING WINDOW ESTIMATOR ------------------------------------------------- */
+// SOLVER //////////////////////////////////////////////////////////////////////
 
 #define MAX_POSES 1000
 #define MAX_CAMS 4

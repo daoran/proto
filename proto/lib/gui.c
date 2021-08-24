@@ -115,7 +115,7 @@ void gl_copy(const GLfloat *src, const int m, const int n, GLfloat *dest) {
   }
 }
 
-void gl_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
+void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t) {
   assert(A != NULL && A != A_t);
   assert(m > 0 && n > 0);
 
