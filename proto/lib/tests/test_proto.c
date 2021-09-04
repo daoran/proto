@@ -1211,6 +1211,79 @@ int test_image_print_properties() { return 0; }
 
 int test_image_free() { return 0; }
 
+/* GEOMETRY ------------------------------------------------------------------*/
+
+int test_dlt() {
+  /* Setup camera */
+  const int image_width = 640;
+  const int image_height = 480;
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+  real_t K[3 * 3];
+  pinhole_K(proj_params, K);
+
+  /* Setup camera pose T_WC0 */
+  const real_t euler_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
+  real_t T_WC0[4 * 4] = {0};
+  tf_euler_set(T_WC0, euler_WC0);
+  tf_trans_set(T_WC0, r_WC0);
+
+  /* Setup camera pose T_WC1 */
+  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC1[3] = {0.1, 0.1, 0.0};
+  real_t T_WC1[4 * 4] = {0};
+  tf_euler_set(T_WC1, euler_WC1);
+  tf_trans_set(T_WC1, r_WC1);
+
+  /* Setup projection matrices */
+  real_t P0[3 * 4] = {0};
+  real_t P1[3 * 4] = {0};
+  pinhole_projection_matrix(proj_params, T_WC0, P0);
+  pinhole_projection_matrix(proj_params, T_WC1, P1);
+
+  /* Setup 3D and 2D correspondance points */
+  int nb_tests = 100;
+  for (int i = 0; i < nb_tests; i++) {
+    const real_t p_W[3] = {5.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
+
+    real_t T_C0W[4 * 4] = {0};
+    real_t T_C1W[4 * 4] = {0};
+    tf_inv(T_WC0, T_C0W);
+    tf_inv(T_WC1, T_C1W);
+
+    real_t p_C0[3] = {0};
+    real_t p_C1[3] = {0};
+    tf_point(T_C0W, p_W, p_C0);
+    tf_point(T_C1W, p_W, p_C1);
+
+    real_t z0[2] = {0};
+    real_t z1[2] = {0};
+    pinhole_project(proj_params, p_C0, z0);
+    pinhole_project(proj_params, p_C1, z1);
+
+    /* Test */
+    real_t p_W_est[3] = {0};
+    dlt(P0, P1, z0, z1, p_W_est);
+    /* print_vector("p_W [gnd]", p_W, 3); */
+    /* print_vector("p_W [est]", p_W_est, 3); */
+
+    /* Assert */
+    real_t diff[3] = {0};
+    diff[0] = p_W[0] - p_W_est[0];
+    diff[1] = p_W[1] - p_W_est[1];
+    diff[2] = p_W[2] - p_W_est[2];
+    MU_CHECK(vec_norm(diff, 3) < 1e-4);
+    ;
+  }
+
+  return 0;
+}
+
 /* RADTAN --------------------------------------------------------------------*/
 
 int test_radtan4_distort() { return 0; }
@@ -1382,6 +1455,27 @@ int test_pose_factor_eval() {
   print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
 
   MU_CHECK(retval == 0);
+
+  return 0;
+}
+
+int test_pose_factor_jacobians() {
+  /* Pose */
+  timestamp_t ts = 1;
+  pose_t pose;
+  real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
+  pose_setup(&pose, ts, data);
+
+  /* Setup pose factor */
+  pose_factor_t pose_factor;
+  real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  pose_factor_setup(&pose_factor, &pose, var);
+
+  /* Evaluate pose factor */
+  const int retval = pose_factor_eval(&pose_factor);
+
+  print_matrix("pose_factor.r", pose_factor.r, 6, 1);
+  print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
 
   return 0;
 }
@@ -1837,6 +1931,8 @@ void test_suite() {
   MU_ADD_TEST(test_image_load);
   MU_ADD_TEST(test_image_print_properties);
   MU_ADD_TEST(test_image_free);
+  /* -- GEOMETRY */
+  MU_ADD_TEST(test_dlt);
   /* -- RADTAN */
   MU_ADD_TEST(test_radtan4_distort);
   MU_ADD_TEST(test_radtan4_point_jacobian);
@@ -1868,6 +1964,7 @@ void test_suite() {
   /* -- Pose factor */
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
+  MU_ADD_TEST(test_pose_factor_jacobians);
   /* -- BA factor */
   MU_ADD_TEST(test_ba_factor_setup);
   MU_ADD_TEST(test_ba_factor_eval);

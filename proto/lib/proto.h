@@ -390,13 +390,16 @@ void lapack_chol_solve(const real_t *A,
  ******************************************************************************/
 
 void tf(const real_t params[7], real_t T[4 * 4]);
-void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]);
 void tf_params(const real_t T[4 * 4], real_t params[7]);
+void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]);
 void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]);
+void tf_rot_get(const real_t T[4 * 4], real_t C[3 * 3]);
+void tf_quat_set(real_t T[4 * 4], const real_t q[4]);
+void tf_quat_get(const real_t T[4 * 4], real_t q[4]);
+void tf_euler_set(real_t T[4 * 4], const real_t euler[3]);
+void tf_euler_get(const real_t T[4 * 4], real_t euler[3]);
 void tf_trans_set(real_t T[4 * 4], const real_t r[3]);
 void tf_trans_get(const real_t T[4 * 4], real_t r[3]);
-void tf_rot_get(const real_t T[4 * 4], real_t C[3 * 3]);
-void tf_quat_get(const real_t T[4 * 4], real_t q[4]);
 void tf_inv(const real_t T[4 * 4], real_t T_inv[4 * 4]);
 void tf_point(const real_t T[4 * 4], const real_t p[3], real_t retval[3]);
 void tf_hpoint(const real_t T[4 * 4], const real_t p[4], real_t retval[4]);
@@ -404,7 +407,9 @@ void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i);
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R);
 void euler321(const real_t euler[3], real_t C[3 * 3]);
+void euler2quat(const real_t euler[3], real_t q[4]);
 void rot2quat(const real_t C[3 * 3], real_t q[4]);
+void rot2euler(const real_t C[3 * 3], real_t euler[3]);
 void quat2euler(const real_t q[4], real_t euler[3]);
 void quat2rot(const real_t q[4], real_t C[3 * 3]);
 void quat_inv(const real_t q[4], real_t q_inv[4]);
@@ -443,6 +448,14 @@ image_t *image_load(const char *file_path);
 void image_print_properties(const image_t *img);
 void image_free(image_t *img);
 
+// GEOMETRY ////////////////////////////////////////////////////////////////////
+
+void dlt(const real_t P_i[3 * 4],
+         const real_t P_j[3 * 4],
+         const real_t z_i[2],
+         const real_t z_j[2],
+         real_t p[3]);
+
 // RADTAN //////////////////////////////////////////////////////////////////////
 
 void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
@@ -466,8 +479,11 @@ void equi4_params_jacobian(const real_t params[4],
 // PINHOLE /////////////////////////////////////////////////////////////////////
 
 real_t pinhole_focal(const int image_width, const real_t fov);
-void pinhole_project(const real_t params[4], const real_t p_C[3], real_t x[2]);
-
+void pinhole_K(const real_t params[4], real_t K[3 * 3]);
+void pinhole_projection_matrix(const real_t params[4],
+                               const real_t T[4 * 4],
+                               real_t P[3 * 4]);
+void pinhole_project(const real_t params[4], const real_t p_C[3], real_t z[2]);
 void pinhole_point_jacobian(const real_t params[4], real_t J_point[2 * 3]);
 void pinhole_params_jacobian(const real_t params[4],
                              const real_t x[2],
@@ -500,6 +516,12 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 /******************************************************************************
  * SENSOR FUSION
  ******************************************************************************/
+
+#define POSE_PARAM 1
+#define SB_PARAM 2
+#define FEATURE_PARAM 3
+#define EXTRINSICS_PARAM 4
+#define CAM_PARAM 5
 
 // POSE ////////////////////////////////////////////////////////////////////////
 
@@ -558,52 +580,6 @@ void camera_params_setup(camera_params_t *camera,
                          const char *dist_model,
                          const real_t *data);
 void camera_params_print(const camera_params_t *camera);
-
-// FACTOR //////////////////////////////////////////////////////////////////////
-
-/* int check_factor_jacobian(factor_t *factor, */
-/*                           const int param_idx, */
-/*                           const char *jac_name, */
-/*                           const real_t step_size, */
-/*                           const real_t threshold) { */
-/*   #<{(| Calculate baseline |)}># */
-/*   factor->eval(factor); */
-/*  */
-/*   #<{(| Numerical diff |)}># */
-/*   const int nb_rows = factor->r_size; */
-/*   const int nb_cols = factor->param_local_size[param_idx]; */
-/*   real_t *J_numdiff = calloc(nb_rows * nb_cols, sizeof(real_t)); */
-/*  */
-/*   for (int i = 0; i < nb_cols; i++) { */
-/*     #<{(| Perturb and evaluate |)}># */
-/*   } */
-/*  */
-/*   #<{(| for i = 1:params{param_idx}.min_dims |)}># */
-/*   #<{(|   % Perturb and evaluate |)}># */
-/*   #<{(|   params_fwd = params; |)}># */
-/*   #<{(|   if strcmp(params_fwd{param_idx}.type, "pose") == 1 |)}># */
-/*   #<{(|     T = tf(params_fwd{param_idx}.param); |)}># */
-/*   #<{(|     T_fwd = perturb_pose(T, step_size, i); |)}># */
-/*   #<{(|     params_fwd{param_idx}.param = tf_param(T_fwd); |)}># */
-/*   #<{(|   else |)}># */
-/*   #<{(|     params_fwd{param_idx}.param(i) += step_size; |)}># */
-/*   #<{(|   endif |)}># */
-/*   #<{(|  |)}># */
-/*   #<{(|   % Evaluate |)}># */
-/*   #<{(|   [r_fwd, _] = factor.eval(factor, params_fwd); |)}># */
-/*   #<{(|  |)}># */
-/*   #<{(|   % Forward finite difference |)}># */
-/*   #<{(|   J_numdiff(:, i) = (r_fwd - r) / step_size; |)}># */
-/*   #<{(| endfor |)}># */
-/*   #<{(|  |)}># */
-/*   #<{(| J_analytical = jacs{param_idx}; |)}># */
-/*   check_jacobian(jac_name, J_numdiff, J_analytical, threshold, true); */
-/*  */
-/*   #<{(| Clean up |)}># */
-/*   free(J_numdiff); */
-/*  */
-/*   return 0; */
-/* } */
 
 // POSE FACTOR /////////////////////////////////////////////////////////////////
 
