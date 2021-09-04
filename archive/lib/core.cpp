@@ -281,8 +281,8 @@ vec3_t normalize(const vec3_t &v) { return v / v.norm(); }
 // real_t cond(const matx_t &A) {
 //   Eigen::JacobiSVD<matx_t> svd(A);
 //   const auto max_sigma = svd.singularValues()(0);
-//   const auto min_sigma = svd.singularValues()(svd.singularValues().size() - 1);
-//   return max_sigma / min_sigma;
+//   const auto min_sigma = svd.singularValues()(svd.singularValues().size() -
+//   1); return max_sigma / min_sigma;
 // }
 
 matx_t zeros(const int rows, const int cols) {
@@ -719,12 +719,11 @@ mat3_t Jr(const vec3_t &psi) {
 
   mat3_t J = I(3);
   J -= ((1 - cos(psi_norm)) / psi_norm_sq) * psi_skew;
-  J += (psi_norm - sin(psi_norm)) / (psi_norm_cube) * psi_skew_sq;
+  J += (psi_norm - sin(psi_norm)) / (psi_norm_cube) *psi_skew_sq;
   return J;
 }
 
 } // namespace lie
-
 
 /******************************************************************************
  *                               STATISTICS
@@ -1176,9 +1175,7 @@ mat3_t quat_rmul_xyz(const quat_t &q) {
   return Q.bottomRightCorner<3, 3>();
 }
 
-mat3_t quat_mat_xyz(const mat4_t &Q) {
-  return Q.bottomRightCorner<3, 3>();
-}
+mat3_t quat_mat_xyz(const mat4_t &Q) { return Q.bottomRightCorner<3, 3>(); }
 
 mat3_t add_noise(const mat3_t &rot, const real_t n) {
   const vec3_t rpy_n{randf(-n, n), randf(-n, n), randf(-n, n)};
@@ -1222,7 +1219,10 @@ void imu_init_attitude(const vec3s_t w_m,
 
 void timestamp_print(const timestamp_t &ts, const std::string &prefix) {
   if (prefix != "") {
-    printf("%s: " "%" PRIu64 "\n", prefix.c_str(), ts);
+    printf("%s: "
+           "%" PRIu64 "\n",
+           prefix.c_str(),
+           ts);
   } else {
     printf("%" PRIu64 "\n", ts);
   }
@@ -1259,12 +1259,12 @@ real_t time_now() {
   return ((real_t) t.tv_sec + ((real_t) t.tv_usec) / 1000000.0);
 }
 
-
 // /*****************************************************************************
 //  *                             INTERPOLATION
 //  ****************************************************************************/
 //
-// quat_t slerp(const quat_t &q_start, const quat_t &q_end, const real_t alpha) {
+// quat_t slerp(const quat_t &q_start, const quat_t &q_end, const real_t alpha)
+// {
 //   vec4_t q0{q_start.coeffs().data()};
 //   vec4_t q1{q_end.coeffs().data()};
 //
@@ -1295,10 +1295,11 @@ real_t time_now() {
 //   }
 //
 //   // Since dot is in range [0, DOT_THRESHOLD], acos is safe
-//   const real_t theta_0 = acos(dot);     // theta_0 = angle between input vectors
-//   const real_t theta = theta_0 * alpha; // theta = angle between q0 and result
-//   const real_t sin_theta = sin(theta);  // compute this value only once
-//   const real_t sin_theta_0 = sin(theta_0); // compute this value only once
+//   const real_t theta_0 = acos(dot);     // theta_0 = angle between input
+//   vectors const real_t theta = theta_0 * alpha; // theta = angle between q0
+//   and result const real_t sin_theta = sin(theta);  // compute this value only
+//   once const real_t sin_theta_0 = sin(theta_0); // compute this value only
+//   once
 //
 //   // == sin(theta_0 - theta) / sin(theta_0)
 //   const real_t s0 = cos(theta) - dot * sin_theta / sin_theta_0;
@@ -1569,7 +1570,8 @@ real_t time_now() {
 // ctraj_t::ctraj_t(const timestamps_t &timestamps,
 //                  const vec3s_t &positions,
 //                  const quats_t &orientations)
-//     : timestamps{timestamps}, positions{positions}, orientations{orientations},
+//     : timestamps{timestamps}, positions{positions},
+//     orientations{orientations},
 //       ts_s_start{ts2sec(timestamps.front())},
 //       ts_s_end{ts2sec(timestamps.back())}, ts_s_gap{ts_s_end - ts_s_start} {
 //   assert(timestamps.size() == positions.size());
@@ -1578,7 +1580,8 @@ real_t time_now() {
 //   ctraj_init(*this);
 // }
 //
-// inline static real_t ts_normalize(const ctraj_t &ctraj, const timestamp_t ts) {
+// inline static real_t ts_normalize(const ctraj_t &ctraj, const timestamp_t ts)
+// {
 //   const real_t ts_s_k = ts2sec(ts);
 //   const real_t ts_s_start = ctraj.ts_s_start;
 //   const real_t ts_s_end = ctraj.ts_s_end;
@@ -1666,7 +1669,8 @@ real_t time_now() {
 //   return ctraj.pos_spline.derivatives(u, 2).col(2) * scale;
 // }
 //
-// vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts) {
+// vec3_t ctraj_get_angular_velocity(const ctraj_t &ctraj, const timestamp_t ts)
+// {
 //   assert(ts >= ctraj.timestamps.front());
 //   assert(ts <= ctraj.timestamps.back());
 //
@@ -1718,9 +1722,11 @@ real_t time_now() {
 //   return 0;
 // }
 
-// // /*****************************************************************************
+// //
+// /*****************************************************************************
 // //  *                                  MODEL
-// //  ****************************************************************************/
+// //
+// ****************************************************************************/
 // //
 // // mat4_t dh_transform(const real_t theta,
 // //                     const real_t d,
@@ -1728,8 +1734,10 @@ real_t time_now() {
 // //                     const real_t alpha) {
 // //   // clang-format off
 // //   mat4_t T;
-// //   T << cos(theta), -sin(theta) * cos(alpha), sin(theta) * sin(alpha), a * cos(theta),
-// //        sin(theta), cos(theta) * cos(alpha), -cos(theta) * sin(alpha), a * sin(theta),
+// //   T << cos(theta), -sin(theta) * cos(alpha), sin(theta) * sin(alpha), a *
+// cos(theta),
+// //        sin(theta), cos(theta) * cos(alpha), -cos(theta) * sin(alpha), a *
+// sin(theta),
 // //        0.0, sin(alpha), cos(alpha), d,
 // //        0.0, 0.0, 0.0, 1.0;
 // //   // clang-format on
@@ -1747,8 +1755,10 @@ real_t time_now() {
 // //                                const vec3_t w2,
 // //                                const real_t theta1_offset,
 // //                                const real_t theta2_offset)
-// //     : tau_s{tau_s}, tau_d{tau_d}, Lambda1{Lambda1}, w1{w1}, Lambda2{Lambda2},
-// //       w2{w2}, theta1_offset{theta1_offset}, theta2_offset{theta2_offset} {}
+// //     : tau_s{tau_s}, tau_d{tau_d}, Lambda1{Lambda1}, w1{w1},
+// Lambda2{Lambda2},
+// //       w2{w2}, theta1_offset{theta1_offset}, theta2_offset{theta2_offset}
+// {}
 // //
 // // gimbal_model_t::~gimbal_model_t() {}
 // //
@@ -1880,18 +1890,26 @@ real_t time_now() {
 // //
 // //   // update
 // //   // clang-format off
-// //   model.attitude(0) = ph + (p + q * sin(ph) * tan(th) + r * cos(ph) * tan(th)) * dt;
+// //   model.attitude(0) = ph + (p + q * sin(ph) * tan(th) + r * cos(ph) *
+// tan(th)) * dt;
 // //   model.attitude(1) = th + (q * cos(ph) - r * sin(ph)) * dt;
-// //   model.attitude(2) = ps + ((1 / cos(th)) * (q * sin(ph) + r * cos(ph))) * dt;
-// //   model.angular_velocity(0) = p + (-((Iz - Iy) / Ix) * q * r - (kr * p / Ix) + (1 / Ix) * taup) * dt;
-// //   model.angular_velocity(1) = q + (-((Ix - Iz) / Iy) * p * r - (kr * q / Iy) + (1 / Iy) * tauq) * dt;
-// //   model.angular_velocity(2) = r + (-((Iy - Ix) / Iz) * p * q - (kr * r / Iz) + (1 / Iz) * taur) * dt;
+// //   model.attitude(2) = ps + ((1 / cos(th)) * (q * sin(ph) + r * cos(ph))) *
+// dt;
+// //   model.angular_velocity(0) = p + (-((Iz - Iy) / Ix) * q * r - (kr * p /
+// Ix) + (1 / Ix) * taup) * dt;
+// //   model.angular_velocity(1) = q + (-((Ix - Iz) / Iy) * p * r - (kr * q /
+// Iy) + (1 / Iy) * tauq) * dt;
+// //   model.angular_velocity(2) = r + (-((Iy - Ix) / Iz) * p * q - (kr * r /
+// Iz) + (1 / Iz) * taur) * dt;
 // //   model.position(0) = x + vx * dt;
 // //   model.position(1) = y + vy * dt;
 // //   model.position(2) = z + vz * dt;
-// //   model.linear_velocity(0) = vx + ((-kt * vx / m) + (1 / m) * (cos(ph) * sin(th) * cos(ps) + sin(ph) * sin(ps)) * tauf) * dt;
-// //   model.linear_velocity(1) = vy + ((-kt * vy / m) + (1 / m) * (cos(ph) * sin(th) * sin(ps) - sin(ph) * cos(ps)) * tauf) * dt;
-// //   model.linear_velocity(2) = vz + (-(kt * vz / m) + (1 / m) * (cos(ph) * cos(th)) * tauf - g) * dt;
+// //   model.linear_velocity(0) = vx + ((-kt * vx / m) + (1 / m) * (cos(ph) *
+// sin(th) * cos(ps) + sin(ph) * sin(ps)) * tauf) * dt;
+// //   model.linear_velocity(1) = vy + ((-kt * vy / m) + (1 / m) * (cos(ph) *
+// sin(th) * sin(ps) - sin(ph) * cos(ps)) * tauf) * dt;
+// //   model.linear_velocity(2) = vz + (-(kt * vz / m) + (1 / m) * (cos(ph) *
+// cos(th)) * tauf - g) * dt;
 // //   // clang-format on
 // //
 // //   // constrain yaw to be [-180, 180]
