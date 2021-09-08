@@ -1,5 +1,5 @@
-% pkg load symbolic;
 addpath(genpath("proto"));
+pkg load symbolic;
 
 % syms P11 P12 P13 P14;
 % syms P21 P22 P23 P24;
@@ -12,7 +12,7 @@ addpath(genpath("proto"));
 %      P31, P32, P33, P34];
 % X = [Xx; Xy; Xz; 1.0];
 % z = [x; y; 1.0];
-
+%
 % cross(z, (P * X))
 
 function p = linear_triangulation(z, z_dash, P, P_dash)
@@ -65,7 +65,7 @@ proj_params = [fx, fy, cx, cy];
 K = pinhole_K(proj_params);
 
 % Setup camera pose T_WC0
-rot = euler2quat(deg2rad([-90; 0; -90]));
+rot = euler321(deg2rad([-90; 0; -90]));
 trans = [0.0; 0.0; 0.0];
 T_WC0 = tf(rot, trans);
 

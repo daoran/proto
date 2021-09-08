@@ -3001,11 +3001,16 @@ void image_free(image_t *img) {
 
 // GEOMETRY ////////////////////////////////////////////////////////////////////
 
-void dlt(const real_t P_i[3 * 4],
-         const real_t P_j[3 * 4],
-         const real_t z_i[2],
-         const real_t z_j[2],
-         real_t p[3]) {
+/**
+ * Triangulate a single 3D point `p` observed by two different camera frames
+ * represented by two 3x4 camera projection matrices `P_i` and `P_j`, and the
+ * 2D image point correspondance `z_i` and `z_j`.
+ */
+void linear_triangulation(const real_t P_i[3 * 4],
+                          const real_t P_j[3 * 4],
+                          const real_t z_i[2],
+                          const real_t z_j[2],
+                          real_t p[3]) {
   /* Form A matrix */
   real_t A[4 * 4] = {0};
   /* -- ROW 1 */
@@ -3042,6 +3047,7 @@ void dlt(const real_t P_i[3 * 4],
   real_t *V_t = NULL;
   lapack_svd(A2, 4, 4, &S, &U, &V_t);
 
+  /* Get last row of V_t and normalize the scale to obtain the 3D point */
   const real_t x = V_t[12];
   const real_t y = V_t[13];
   const real_t z = V_t[14];
@@ -3049,6 +3055,92 @@ void dlt(const real_t P_i[3 * 4],
   p[0] = x / w;
   p[1] = y / w;
   p[2] = z / w;
+}
+
+/**
+ * From two camera frames triangulate `n` 3D points with `cam_i` and `cam_j`
+ * representing the pinhole parameters (fx, fy, cx, cy), `T_CiCj` as the 4x4
+ * transformation matrix representing the extrinsics between first and second
+ * camera frame and finally `z_i` and `z_j` are the image keypoints observed by
+ * the two camera frames.
+ */
+void stereo_triangulate(const real_t cam_i[4],
+                        const real_t cam_j[4],
+                        const real_t T_CiCj[4 * 4],
+                        const real_t *z_i,
+                        const real_t *z_j,
+                        const int n,
+                        real_t *points,
+                        int *inliers) {
+  /* Initialize the 3D points */
+  real_t P_i[3 * 4] = {0};
+  real_t P_j[3 * 4] = {0};
+  real_t origin[4 * 4] = {0};
+  eye(origin, 4, 4);
+  pinhole_projection_matrix(cam_i, origin, P_i);
+  pinhole_projection_matrix(cam_j, T_CiCj, P_j);
+  for (int i = 0; i < n; i++) {
+    linear_triangulation(P_i, P_j, &z_i[i * 2], &z_j[i * 2], &points[i * 3]);
+  }
+
+  /* Bundle Adjustment */
+  real_t p_Ci[3] = {0};
+  real_t zhat_i[2] = {0};
+  real_t zhat_j[2] = {0};
+  const int r_size = (n * 2) * 2; /* nb_points * vec2 * 2 cams */
+  const int H_size = n * 3;       /* nb_points * vec3 */
+  real_t *r = malloc(sizeof(real_t) * r_size);
+  real_t *H = malloc(sizeof(real_t) * H_size);
+
+  real_t J_i[2 * 3] = {0};
+  real_t J_j[2 * 3] = {0};
+  real_t C_CiCj[3 * 3] = {0};
+  real_t C_CjCi[3 * 3] = {0};
+  tf_rot(T_CiCj, C_CiCj);
+  mat_transpose(C_CiCj, 3, 3, C_CjCi);
+
+  for (int i = 0; i < n; i++) {
+    vec_copy(&points[i * 3], 3, p_Ci);
+    pinhole_project(cam_i, p_Ci, zhat_i);
+    pinhole_project(cam_j, p_Ci, zhat_j);
+    r[(i * 2) + 0] = z_i[0] - zhat_i[0];
+    r[(i * 2) + 1] = z_i[1] - zhat_i[1];
+    r[(i * 2) + 2] = z_j[0] - zhat_j[0];
+    r[(i * 2) + 3] = z_j[1] - zhat_j[1];
+
+    real_t dx_dp[2 * 3] = {0};
+    dx_dp[0] = 1.0 / z;
+    dx_dp[1] = 0.0;
+    dx_dp[2] = -x / (z * z);
+    dx_dp[3] = 0.0;
+    dx_dp[4] = 1.0 / z;
+    dx_dp[5] = -y / (z * z);
+
+    real_t dzi_dx[2 * 2] = {0};
+    dzi_dx[0] = cam_i[0];
+    dzi_dx[1] = 0.0;
+    dzi_dx[2] = 0.0;
+    dzi_dx[3] = cam_i[1];
+
+    real_t dzj_dx[2 * 2] = {0};
+    dzj_dx[0] = cam_j[0];
+    dzj_dx[1] = 0.0;
+    dzj_dx[2] = 0.0;
+    dzj_dx[3] = cam_j[1];
+
+    dot(dzi_dx, 2, 2, dx_dp, 2, 3, Jh_i);
+    dot(dzj_dx, 2, 2, dx_dp, 2, 3, Jh_j);
+
+    mat_copy(Jh_i, 2, 3, J_i);
+    dot(Jh_j, 2, 3, C_CjCi, 3, 3, J_j);
+    /* mat_block_set(real_t *A, */
+  }
+
+  /* real_t C_WC[3 * 3] = {0}; */
+  /* real_t C_CW[3 * 3] = {0}; */
+  /* tf_rot_get(T_WC, C_WC); */
+  /* mat_transpose(C_WC, 3, 3, C_CW); */
+  /* dot(Jh_weighted, 2, 3, C_CW, 3, 3, J); */
 }
 
 // RADTAN //////////////////////////////////////////////////////////////////////
@@ -3381,7 +3473,7 @@ void pinhole_project(const real_t params[4], const real_t p_C[3], real_t z[2]) {
 /**
  * Form Pinhole point jacobian `J` using pinhole parameters `params`.
  */
-void pinhole_point_jacobian(const real_t params[4], real_t J[2 * 3]) {
+void pinhole_point_jacobian(const real_t params[4], real_t J[2 * 2]) {
   assert(params != NULL);
   assert(J != NULL);
 

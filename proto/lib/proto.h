@@ -450,11 +450,19 @@ void image_free(image_t *img);
 
 // GEOMETRY ////////////////////////////////////////////////////////////////////
 
-void dlt(const real_t P_i[3 * 4],
-         const real_t P_j[3 * 4],
-         const real_t z_i[2],
-         const real_t z_j[2],
-         real_t p[3]);
+void linear_triangulation(const real_t P_i[3 * 4],
+                          const real_t P_j[3 * 4],
+                          const real_t z_i[2],
+                          const real_t z_j[2],
+                          real_t p[3]);
+void stereo_triangulate(const real_t cam_i[4],
+                        const real_t cam_j[4],
+                        const real_t T_CiCj[4 * 4],
+                        const real_t *z_i,
+                        const real_t *z_j,
+                        const int n,
+                        real_t *points,
+                        int *inliers);
 
 // RADTAN //////////////////////////////////////////////////////////////////////
 
@@ -484,7 +492,7 @@ void pinhole_projection_matrix(const real_t params[4],
                                const real_t T[4 * 4],
                                real_t P[3 * 4]);
 void pinhole_project(const real_t params[4], const real_t p_C[3], real_t z[2]);
-void pinhole_point_jacobian(const real_t params[4], real_t J_point[2 * 3]);
+void pinhole_point_jacobian(const real_t params[4], real_t J_point[2 * 2]);
 void pinhole_params_jacobian(const real_t params[4],
                              const real_t x[2],
                              real_t J[2 * 4]);

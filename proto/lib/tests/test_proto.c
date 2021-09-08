@@ -1213,7 +1213,7 @@ int test_image_free() { return 0; }
 
 /* GEOMETRY ------------------------------------------------------------------*/
 
-int test_dlt() {
+int test_linear_triangulation() {
   /* Setup camera */
   const int image_width = 640;
   const int image_height = 480;
@@ -1268,17 +1268,16 @@ int test_dlt() {
 
     /* Test */
     real_t p_W_est[3] = {0};
-    dlt(P0, P1, z0, z1, p_W_est);
-    /* print_vector("p_W [gnd]", p_W, 3); */
-    /* print_vector("p_W [est]", p_W_est, 3); */
+    linear_triangulation(P0, P1, z0, z1, p_W_est);
 
     /* Assert */
     real_t diff[3] = {0};
-    diff[0] = p_W[0] - p_W_est[0];
-    diff[1] = p_W[1] - p_W_est[1];
-    diff[2] = p_W[2] - p_W_est[2];
-    MU_CHECK(vec_norm(diff, 3) < 1e-4);
-    ;
+    vec_sub(p_W, p_W_est, diff, 3);
+    const real_t norm = vec_norm(diff, 3);
+
+    /* print_vector("p_W [gnd]", p_W, 3); */
+    /* print_vector("p_W [est]", p_W_est, 3); */
+    MU_CHECK(norm < 1e-4);
   }
 
   return 0;
@@ -1932,7 +1931,7 @@ void test_suite() {
   MU_ADD_TEST(test_image_print_properties);
   MU_ADD_TEST(test_image_free);
   /* -- GEOMETRY */
-  MU_ADD_TEST(test_dlt);
+  MU_ADD_TEST(test_linear_triangulation);
   /* -- RADTAN */
   MU_ADD_TEST(test_radtan4_distort);
   MU_ADD_TEST(test_radtan4_point_jacobian);
