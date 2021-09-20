@@ -47,7 +47,7 @@ function p = linear_triangulation(z, z_dash, P, P_dash)
 
   % Use SVD to solve AX = 0
   [_, _, V] = svd(A' * A);
-  hp = V(:, 4); % Get the best result from SVD (last column of V)
+  hp = V(:, 4);     % Get the best result from SVD (last column of V)
 
   hp = hp / hp(4);  % Normalize the homogeneous 3D point
   p = hp(1:3);      % Return only the first three components (x, y, z)
@@ -64,25 +64,22 @@ cy = image_height / 2;
 proj_params = [fx, fy, cx, cy];
 K = pinhole_K(proj_params);
 
-% Setup camera pose T_WC0
-rot = euler2quat(deg2rad([-90; 0; -90]));
-trans = [0.0; 0.0; 0.0];
-T_WC0 = tf(rot, trans);
+% Setup camera pose T_C0C0
+T_C0C0 = tf(eye(3), zeros(3, 1));
 
 % Setup camera pose T_WC1
-rot = euler2quat(deg2rad([-90; 0; -90]));
+rot = euler2quat(deg2rad([0; 0; 0]));
 trans = [0.1; 0.1; 0.0];
-T_WC1 = tf(rot, trans);
+T_C0C1 = tf(rot, trans);
 
 % Setup projection matrices
-T_C0W = inv(T_WC0);
-C0 = tf_rot(T_C0W);
-t0 = tf_trans(T_C0W);
+C0 = tf_rot(T_C0C0);
+t0 = tf_trans(T_C0C0);
 P0 = K * [C0, t0];
 
-T_C1W = inv(T_WC1);
-C1 = tf_rot(T_C1W);
-t1 = tf_trans(T_C1W);
+T_C1C0 = inv(T_C0C1);
+C1 = tf_rot(T_C1C0);
+t1 = tf_trans(T_C1C0);
 P1 = K * [C1, t1];
 
 % Setup 3D and 2D correspondance points
@@ -91,9 +88,9 @@ landmark_points = [];
 cam0_points = [];
 cam1_points = [];
 
-p_W = [2.0; normrnd(0.0, 1.0); normrnd(0.0, 1.0)];
-z0 = pinhole_project(proj_params, T_WC0, p_W);
-z1 = pinhole_project(proj_params, T_WC1, p_W);
+p_C0 = [normrnd(0.0, 1.0); normrnd(0.0, 1.0); abs(normrnd(0.0, 1.0))];
+z0 = pinhole_project(proj_params, T_C0C0, p_C0);
+z1 = pinhole_project(proj_params, T_C0C1, p_C0);
 
-p_W
-p_W_est = linear_triangulation(z0, z1, P0, P1)
+p_C0
+p_C0_est = linear_triangulation(z0, z1, P0, P1)
