@@ -1399,11 +1399,87 @@ int test_radtan4_params_jacobian() {
 
 /* EQUI ----------------------------------------------------------------------*/
 
-int test_equi4_distort() { return 0; }
+int test_equi4_distort() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+  real_t p_d[2] = {0};
+  equi4_distort(params, p, p_d);
 
-int test_equi4_point_jacobian() { return 0; }
+  print_vector("p", p, 2);
+  print_vector("p_d", p_d, 2);
 
-int test_equi4_params_jacobian() { return 0; }
+  return 0;
+}
+
+int test_equi4_point_jacobian() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+  real_t J_point[2 * 2] = {0};
+  equi4_point_jacobian(params, p, J_point);
+
+  /* Calculate numerical diff */
+  const real_t step = 1e-4;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 2] = {0};
+  {
+    real_t p_d[2] = {0};
+    equi4_distort(params, p, p_d);
+
+    for (int i = 0; i < 2; i++) {
+      real_t p_diff[2] = {p[0], p[1]};
+      p_diff[i] = p[i] + step;
+
+      real_t p_d_prime[2] = {0};
+      equi4_distort(params, p_diff, p_d_prime);
+
+      J_numdiff[i] = (p_d_prime[0] - p_d[0]) / step;
+      J_numdiff[i + 2] = (p_d_prime[1] - p_d[1]) / step;
+    }
+  }
+
+  /* Check jacobian */
+  print_vector("p", p, 2);
+  print_matrix("J_point", J_point, 2, 2);
+  print_matrix("J_numdiff", J_numdiff, 2, 2);
+  check_jacobian("J", J_numdiff, J_point, 2, 2, tol, 1);
+
+  return 0;
+}
+
+int test_equi4_params_jacobian() {
+  const real_t params[4] = {0.01, 0.01, 0.01, 0.01};
+  const real_t p[2] = {0.1, 0.2};
+  real_t J_param[2 * 4] = {0};
+  equi4_params_jacobian(params, p, J_param);
+
+  /* Calculate numerical diff */
+  const real_t step = 1e-8;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 4] = {0};
+  {
+    real_t p_d[2] = {0};
+    equi4_distort(params, p, p_d);
+
+    for (int i = 0; i < 4; i++) {
+      real_t params_diff[4] = {params[0], params[1], params[2], params[3]};
+      params_diff[i] = params[i] + step;
+
+      real_t p_d_prime[2] = {0};
+      equi4_distort(params_diff, p, p_d_prime);
+
+      J_numdiff[i] = (p_d_prime[0] - p_d[0]) / step;
+      J_numdiff[i + 4] = (p_d_prime[1] - p_d[1]) / step;
+    }
+  }
+
+  /* Check jacobian */
+  print_vector("p", p, 2);
+  print_matrix("J_param", J_param, 2, 4);
+  print_matrix("J_numdiff", J_numdiff, 2, 4);
+  check_jacobian("J", J_numdiff, J_param, 2, 4, tol, 1);
+
+  return 0;
+}
 
 /* PINHOLE -------------------------------------------------------------------*/
 
