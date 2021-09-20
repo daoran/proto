@@ -6,6 +6,8 @@
 #define USE_CBLAS
 #define USE_LAPACK
 
+#define WARN_UNUSED __attribute__((warn_unused_result))
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -396,8 +398,8 @@ void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]);
 void tf_rot_get(const real_t T[4 * 4], real_t C[3 * 3]);
 void tf_quat_set(real_t T[4 * 4], const real_t q[4]);
 void tf_quat_get(const real_t T[4 * 4], real_t q[4]);
-void tf_euler_set(real_t T[4 * 4], const real_t euler[3]);
-void tf_euler_get(const real_t T[4 * 4], real_t euler[3]);
+void tf_euler_set(real_t T[4 * 4], const real_t ypr[3]);
+void tf_euler_get(const real_t T[4 * 4], real_t ypr[3]);
 void tf_trans_set(real_t T[4 * 4], const real_t r[3]);
 void tf_trans_get(const real_t T[4 * 4], real_t r[3]);
 void tf_inv(const real_t T[4 * 4], real_t T_inv[4 * 4]);
@@ -406,11 +408,11 @@ void tf_hpoint(const real_t T[4 * 4], const real_t p[4], real_t retval[4]);
 void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i);
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R);
-void euler321(const real_t euler[3], real_t C[3 * 3]);
-void euler2quat(const real_t euler[3], real_t q[4]);
+void euler321(const real_t ypr[3], real_t C[3 * 3]);
+void euler2quat(const real_t ypr[3], real_t q[4]);
 void rot2quat(const real_t C[3 * 3], real_t q[4]);
-void rot2euler(const real_t C[3 * 3], real_t euler[3]);
-void quat2euler(const real_t q[4], real_t euler[3]);
+void rot2euler(const real_t C[3 * 3], real_t ypr[3]);
+void quat2euler(const real_t q[4], real_t ypr[3]);
 void quat2rot(const real_t q[4], real_t C[3 * 3]);
 void quat_inv(const real_t q[4], real_t q_inv[4]);
 void quat_left(const real_t q[4], real_t left[4 * 4]);
@@ -785,7 +787,7 @@ typedef struct solver_t {
 
 void solver_setup(solver_t *solver);
 void solver_print(solver_t *solver);
-int solver_eval(solver_t *solver);
+int solver_eval(solver_t *solver) __attribute__((warn_unused_result));
 void solver_optimize(solver_t *solver);
 
 #endif // _PROTO_H_

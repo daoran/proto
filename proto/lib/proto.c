@@ -1705,6 +1705,9 @@ int check_jacobian(const char *jac_name,
     retval = 0;
   }
 
+  /* Clean up */
+  free(delta);
+
   return retval;
 }
 
@@ -2414,28 +2417,28 @@ void tf_quat_get(const real_t T[4 * 4], real_t q[4]) {
  * Set the rotational component in the 4x4 transformation matrix `T` using a
  * 3x1 euler angle vector `euler`.
  */
-void tf_euler_set(real_t T[4 * 4], const real_t euler[3]) {
+void tf_euler_set(real_t T[4 * 4], const real_t ypr[3]) {
   assert(T != NULL);
-  assert(euler != NULL);
-  assert(T != euler);
+  assert(ypr != NULL);
+  assert(T != ypr);
 
   real_t C[3 * 3] = {0};
-  euler321(euler, C);
+  euler321(ypr, C);
   tf_rot_set(T, C);
 }
 
 /**
  * Get the rotational component in the 4x4 transformation matrix `T` in the
- * form of a 3x1 euler angle vector `euler`.
+ * form of a 3x1 euler angle vector `ypr`.
  */
-void tf_euler_get(const real_t T[4 * 4], real_t euler[3]) {
+void tf_euler_get(const real_t T[4 * 4], real_t ypr[3]) {
   assert(T != NULL);
-  assert(euler != NULL);
-  assert(T != euler);
+  assert(ypr != NULL);
+  assert(T != ypr);
 
   real_t C[3 * 3] = {0};
   tf_rot_get(T, C);
-  rot2euler(C, euler);
+  rot2euler(C, ypr);
 }
 
 /**
@@ -2637,16 +2640,16 @@ void rvec2rot(const real_t *rvec, const real_t eps, real_t *R) {
 }
 
 /**
- * Convert Euler angles represented as a 3x1 vector `euler` to 3x3 rotation
+ * Convert Euler angles `ypr` (yaw, pitch, roll) in degrees to a 3x3 rotation
  * matrix `C`.
  */
-void euler321(const real_t euler[3], real_t C[3 * 3]) {
-  assert(euler != NULL);
+void euler321(const real_t ypr[3], real_t C[3 * 3]) {
+  assert(ypr != NULL);
   assert(C != NULL);
 
-  const real_t phi = euler[0];
-  const real_t theta = euler[1];
-  const real_t psi = euler[2];
+  const real_t psi = ypr[0];
+  const real_t theta = ypr[1];
+  const real_t phi = ypr[2];
 
   /* 1st row */
   C[0] = cos(psi) * cos(theta);
@@ -2663,12 +2666,12 @@ void euler321(const real_t euler[3], real_t C[3 * 3]) {
 }
 
 /**
- * Convert Euler angles `euler` in radians to a Hamiltonian Quaternion.
+ * Convert Euler angles `ypr` in radians to a Hamiltonian Quaternion.
  */
-void euler2quat(const real_t euler[3], real_t q[4]) {
-  const real_t phi = euler[0];
-  const real_t theta = euler[1];
-  const real_t psi = euler[2];
+void euler2quat(const real_t ypr[3], real_t q[4]) {
+  const real_t psi = ypr[0];
+  const real_t theta = ypr[1];
+  const real_t phi = ypr[2];
 
   const real_t c_phi = cos(phi / 2.0);
   const real_t c_theta = cos(theta / 2.0);
@@ -3055,6 +3058,11 @@ void linear_triangulation(const real_t P_i[3 * 4],
   p[0] = x / w;
   p[1] = y / w;
   p[2] = z / w;
+
+  /* Clean up */
+  free(S);
+  free(U);
+  free(V_t);
 }
 
 /**
@@ -3083,58 +3091,62 @@ void stereo_triangulate(const real_t cam_i[4],
     linear_triangulation(P_i, P_j, &z_i[i * 2], &z_j[i * 2], &points[i * 3]);
   }
 
-  /* Bundle Adjustment */
-  real_t p_Ci[3] = {0};
-  real_t zhat_i[2] = {0};
-  real_t zhat_j[2] = {0};
-  const int r_size = (n * 2) * 2; /* nb_points * vec2 * 2 cams */
-  const int H_size = n * 3;       /* nb_points * vec3 */
-  real_t *r = malloc(sizeof(real_t) * r_size);
-  real_t *H = malloc(sizeof(real_t) * H_size);
-
-  real_t J_i[2 * 3] = {0};
-  real_t J_j[2 * 3] = {0};
-  real_t C_CiCj[3 * 3] = {0};
-  real_t C_CjCi[3 * 3] = {0};
-  tf_rot(T_CiCj, C_CiCj);
-  mat_transpose(C_CiCj, 3, 3, C_CjCi);
-
-  for (int i = 0; i < n; i++) {
-    vec_copy(&points[i * 3], 3, p_Ci);
-    pinhole_project(cam_i, p_Ci, zhat_i);
-    pinhole_project(cam_j, p_Ci, zhat_j);
-    r[(i * 2) + 0] = z_i[0] - zhat_i[0];
-    r[(i * 2) + 1] = z_i[1] - zhat_i[1];
-    r[(i * 2) + 2] = z_j[0] - zhat_j[0];
-    r[(i * 2) + 3] = z_j[1] - zhat_j[1];
-
-    real_t dx_dp[2 * 3] = {0};
-    dx_dp[0] = 1.0 / z;
-    dx_dp[1] = 0.0;
-    dx_dp[2] = -x / (z * z);
-    dx_dp[3] = 0.0;
-    dx_dp[4] = 1.0 / z;
-    dx_dp[5] = -y / (z * z);
-
-    real_t dzi_dx[2 * 2] = {0};
-    dzi_dx[0] = cam_i[0];
-    dzi_dx[1] = 0.0;
-    dzi_dx[2] = 0.0;
-    dzi_dx[3] = cam_i[1];
-
-    real_t dzj_dx[2 * 2] = {0};
-    dzj_dx[0] = cam_j[0];
-    dzj_dx[1] = 0.0;
-    dzj_dx[2] = 0.0;
-    dzj_dx[3] = cam_j[1];
-
-    dot(dzi_dx, 2, 2, dx_dp, 2, 3, Jh_i);
-    dot(dzj_dx, 2, 2, dx_dp, 2, 3, Jh_j);
-
-    mat_copy(Jh_i, 2, 3, J_i);
-    dot(Jh_j, 2, 3, C_CjCi, 3, 3, J_j);
-    /* mat_block_set(real_t *A, */
-  }
+  /* #<{(| Bundle Adjustment |)}># */
+  /* real_t p_Ci[3] = {0}; */
+  /* real_t zhat_i[2] = {0}; */
+  /* real_t zhat_j[2] = {0}; */
+  /* const int r_size = (n * 2) * 2; #<{(| nb_points * vec2 * 2 cams |)}># */
+  /* const int H_size = n * 3;       #<{(| nb_points * vec3 |)}># */
+  /* real_t *r = malloc(sizeof(real_t) * r_size); */
+  /* real_t *H = malloc(sizeof(real_t) * H_size); */
+  /*  */
+  /* real_t J_i[2 * 3] = {0}; */
+  /* real_t J_j[2 * 3] = {0}; */
+  /* real_t C_CiCj[3 * 3] = {0}; */
+  /* real_t C_CjCi[3 * 3] = {0}; */
+  /* tf_rot_get(T_CiCj, C_CiCj); */
+  /* mat_transpose(C_CiCj, 3, 3, C_CjCi); */
+  /*  */
+  /* for (int i = 0; i < n; i++) { */
+  /*   vec_copy(&points[i * 3], 3, p_Ci); */
+  /*   pinhole_project(cam_i, p_Ci, zhat_i); */
+  /*   pinhole_project(cam_j, p_Ci, zhat_j); */
+  /*   r[(i * 2) + 0] = z_i[0] - zhat_i[0]; */
+  /*   r[(i * 2) + 1] = z_i[1] - zhat_i[1]; */
+  /*   r[(i * 2) + 2] = z_j[0] - zhat_j[0]; */
+  /*   r[(i * 2) + 3] = z_j[1] - zhat_j[1]; */
+  /*  */
+  /*   real_t x = p_Ci[0]; */
+  /*   real_t y = p_Ci[1]; */
+  /*   real_t z = p_Ci[2]; */
+  /*  */
+  /*   real_t dx_dp[2 * 3] = {0}; */
+  /*   dx_dp[0] = 1.0 / z; */
+  /*   dx_dp[1] = 0.0; */
+  /*   dx_dp[2] = -x / (z * z); */
+  /*   dx_dp[3] = 0.0; */
+  /*   dx_dp[4] = 1.0 / z; */
+  /*   dx_dp[5] = -y / (z * z); */
+  /*  */
+  /*   real_t dzi_dx[2 * 2] = {0}; */
+  /*   dzi_dx[0] = cam_i[0]; */
+  /*   dzi_dx[1] = 0.0; */
+  /*   dzi_dx[2] = 0.0; */
+  /*   dzi_dx[3] = cam_i[1]; */
+  /*  */
+  /*   real_t dzj_dx[2 * 2] = {0}; */
+  /*   dzj_dx[0] = cam_j[0]; */
+  /*   dzj_dx[1] = 0.0; */
+  /*   dzj_dx[2] = 0.0; */
+  /*   dzj_dx[3] = cam_j[1]; */
+  /*  */
+  /*   dot(dzi_dx, 2, 2, dx_dp, 2, 3, Jh_i); */
+  /*   dot(dzj_dx, 2, 2, dx_dp, 2, 3, Jh_j); */
+  /*  */
+  /*   mat_copy(Jh_i, 2, 3, J_i); */
+  /*   dot(Jh_j, 2, 3, C_CjCi, 3, 3, J_j); */
+  /*   #<{(| mat_block_set(real_t *A, |)}># */
+  /* } */
 
   /* real_t C_WC[3 * 3] = {0}; */
   /* real_t C_CW[3 * 3] = {0}; */
@@ -4067,7 +4079,7 @@ static void ba_factor_cam_pose_jacobian(const real_t Jh_weighted[2 * 3],
    *   C = -C_WC;
    */
   real_t A[3 * 3] = {0};
-  mat_copy(J_pos, 3, 3, A);
+  mat_copy(neg_C_CW, 3, 3, A);
 
   real_t B[3 * 3] = {0};
   real_t dp[3] = {0};
@@ -4317,7 +4329,7 @@ static void cam_factor_sensor_camera_jacobian(const real_t Jh_weighted[2 * 3],
 
   /* Form: C_CS * skew(C_SC * p_C) */
   real_t p[3] = {0};
-  dot(C_SC, 3, 3, p_C, 3, 3, p);
+  dot(C_SC, 3, 3, p_C, 3, 1, p);
 
   real_t S[3 * 3] = {0};
   skew(p, S);

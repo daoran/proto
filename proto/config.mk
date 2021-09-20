@@ -7,7 +7,13 @@ TESTS_DIR=$(PWD)/tests
 # COMPILER SETTINGS
 # CC=tcc
 CC=gcc
-CFLAGS=-g -Wall -I$(INC_DIR) -I$(DEPS_DIR)/include `sdl2-config --cflags`
+CFLAGS=\
+	-g \
+	-Wall \
+	-Wunused-result \
+	-I$(INC_DIR) \
+	-I$(DEPS_DIR)/include \
+	`sdl2-config --cflags`
 
 # GLFW3_LIBS=-L$(DEPS_DIR)/lib -lglfw3 -lrt -lm -ldl
 SDL2_LIBS=`sdl2-config --libs` -lSDL2_image
