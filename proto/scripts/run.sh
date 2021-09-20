@@ -32,6 +32,7 @@ time make
 
 
 cd ./build/bin
+# ./test_proto
 # PROTO-LOGGING
 # ./test_proto --target test_debug
 # ./test_proto --target test_log_error
@@ -121,10 +122,11 @@ cd ./build/bin
 # ./test_proto --target test_load_poses
 # PROTO-CV
 # ./test_proto --target test_lie_Exp_Log
-# PROTO-CV
-# ./test_proto --target test_radtan4_distort
-# ./test_proto --target test_radtan4_point_jacobian
-# ./test_proto --target test_radtan4_params_jacobian
+# ./test_proto --target test_linear_triangulation
+# ./test_proto --target test_stereo_triangulation
+./test_proto --target test_radtan4_distort
+./test_proto --target test_radtan4_point_jacobian
+./test_proto --target test_radtan4_params_jacobian
 # ./test_proto --target test_equi4_distort
 # ./test_proto --target test_equi4_point_jacobian
 # ./test_proto --target test_equi4_params_jacobian
@@ -150,7 +152,7 @@ cd ./build/bin
 # ./test_proto --target test_ba_factor_setup
 # ./test_proto --target test_ba_factor_eval
 # ./test_proto --target test_cam_factor_setup
-# ./test_proto --target test_cam_factor_eval
+# valgrind --track-origins=yes ./test_proto --target test_cam_factor_eval
 # ./test_proto --target test_imu_buf_setup
 # ./test_proto --target test_imu_buf_add
 # ./test_proto --target test_imu_buf_clear

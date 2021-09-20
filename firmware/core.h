@@ -12,13 +12,9 @@
     (void) (expr);                                                             \
   } while (0)
 
-inline float deg2rad(const float d) {
-  return d * (M_PI / 180.0);
-}
+inline float deg2rad(const float d) { return d * (M_PI / 180.0); }
 
-inline float rad2deg(const float r) {
-  return r * (180.0 / M_PI);
-}
+inline float rad2deg(const float r) { return r * (180.0 / M_PI); }
 
 inline int8_t int8(const uint8_t *data, const size_t offset = 0) {
   return (int8_t)(data[offset]);
@@ -54,18 +50,27 @@ void euler321(const float euler[3], float C[3 * 3]) {
   const float theta = euler[1];
   const float psi = euler[2];
 
+  const float cphi = cos(phi);
+  const float sphi = sin(phi);
+  const float cpsi = cos(psi);
+  const float spsi = sin(psi);
+  const float ctheta = cos(theta);
+  const float stheta = sin(theta);
+
   /* 1st row */
-  C[0] = cos(psi) * cos(theta);
-  C[1] = cos(psi) * sin(theta) * sin(phi) - sin(psi) * cos(phi);
-  C[2] = cos(psi) * sin(theta) * cos(phi) + sin(psi) * sin(phi);
+  C[0] = cpsi * ctheta;
+  C[1] = cpsi * stheta * sphi - spsi * cphi;
+  C[2] = cpsi * stheta * cphi + spsi * sphi;
+
   /* 2nd row */
-  C[3] = sin(psi) * cos(theta);
-  C[4] = sin(psi) * sin(theta) * sin(phi) + cos(psi) * cos(phi);
-  C[5] = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi);
+  C[3] = spsi * ctheta;
+  C[4] = spsi * stheta * sphi + cpsi * cphi;
+  C[5] = spsi * stheta * cphi - cpsi * sphi;
+
   /* 3rd row */
-  C[6] = -sin(theta);
-  C[7] = cos(theta) * sin(phi);
-  C[8] = cos(theta) * cos(phi);
+  C[6] = -stheta;
+  C[7] = ctheta * sphi;
+  C[8] = ctheta * cphi;
 }
 
 void quat2euler(const float q[4], float euler[3]) {
@@ -151,9 +156,15 @@ void tf_trans(const float T[16], float r[3]) {
 }
 
 void tf_rot(const float T[16], float C[9]) {
-  C[0] = T[0]; C[1] = T[1]; C[2] = T[2];
-  C[3] = T[3]; C[4] = T[4]; C[5] = T[5];
-  C[6] = T[6]; C[7] = T[7]; C[8] = T[8];
+  C[0] = T[0];
+  C[1] = T[1];
+  C[2] = T[2];
+  C[3] = T[3];
+  C[4] = T[4];
+  C[5] = T[5];
+  C[6] = T[6];
+  C[7] = T[7];
+  C[8] = T[8];
 }
 
 void tf_quat(const float T[4 * 4], float q[4]) {

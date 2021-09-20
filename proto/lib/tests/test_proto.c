@@ -77,9 +77,10 @@ int test_file_rows() {
 }
 
 int test_file_copy() {
-  file_copy("test_data/poses.csv", "/tmp/poses.csv");
+  int retval = file_copy("test_data/poses.csv", "/tmp/poses.csv");
   char *text0 = file_read("test_data/poses.csv");
   char *text1 = file_read("/tmp/poses.csv");
+  MU_CHECK(retval == 0);
   MU_CHECK(strcmp(text0, text1) == 0);
   free(text0);
   free(text1);
@@ -1211,25 +1212,331 @@ int test_image_print_properties() { return 0; }
 
 int test_image_free() { return 0; }
 
+/* GEOMETRY ------------------------------------------------------------------*/
+
+int test_linear_triangulation() {
+  /* Setup camera */
+  const int image_width = 640;
+  const int image_height = 480;
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+  real_t K[3 * 3];
+  pinhole_K(proj_params, K);
+
+  /* Setup camera pose T_WC0 */
+  const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
+  real_t T_WC0[4 * 4] = {0};
+  tf_euler_set(T_WC0, ypr_WC0);
+  tf_trans_set(T_WC0, r_WC0);
+
+  /* Setup camera pose T_WC1 */
+  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC1[3] = {0.1, 0.1, 0.0};
+  real_t T_WC1[4 * 4] = {0};
+  tf_euler_set(T_WC1, euler_WC1);
+  tf_trans_set(T_WC1, r_WC1);
+
+  /* Setup projection matrices */
+  real_t P0[3 * 4] = {0};
+  real_t P1[3 * 4] = {0};
+  pinhole_projection_matrix(proj_params, T_WC0, P0);
+  pinhole_projection_matrix(proj_params, T_WC1, P1);
+
+  /* Setup 3D and 2D correspondance points */
+  int nb_tests = 100;
+  for (int i = 0; i < nb_tests; i++) {
+    const real_t p_W[3] = {5.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
+
+    real_t T_C0W[4 * 4] = {0};
+    real_t T_C1W[4 * 4] = {0};
+    tf_inv(T_WC0, T_C0W);
+    tf_inv(T_WC1, T_C1W);
+
+    real_t p_C0[3] = {0};
+    real_t p_C1[3] = {0};
+    tf_point(T_C0W, p_W, p_C0);
+    tf_point(T_C1W, p_W, p_C1);
+
+    real_t z0[2] = {0};
+    real_t z1[2] = {0};
+    pinhole_project(proj_params, p_C0, z0);
+    pinhole_project(proj_params, p_C1, z1);
+
+    /* Test */
+    real_t p_W_est[3] = {0};
+    linear_triangulation(P0, P1, z0, z1, p_W_est);
+
+    /* Assert */
+    real_t diff[3] = {0};
+    vec_sub(p_W, p_W_est, diff, 3);
+    const real_t norm = vec_norm(diff, 3);
+    /* print_vector("p_W [gnd]", p_W, 3); */
+    /* print_vector("p_W [est]", p_W_est, 3); */
+    MU_CHECK(norm < 1e-4);
+  }
+
+  return 0;
+}
+
+int test_stereo_triangulation() {
+  /* Setup camera */
+  const int image_width = 640;
+  const int image_height = 480;
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+  real_t K[3 * 3];
+  pinhole_K(proj_params, K);
+
+  /* Setup camera pose T_WC0 */
+  const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
+  real_t T_WC0[4 * 4] = {0};
+  tf_euler_set(T_WC0, ypr_WC0);
+  tf_trans_set(T_WC0, r_WC0);
+
+  /* Setup camera pose T_WC1 */
+  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC1[3] = {0.1, 0.1, 0.0};
+  real_t T_WC1[4 * 4] = {0};
+  tf_euler_set(T_WC1, euler_WC1);
+  tf_trans_set(T_WC1, r_WC1);
+
+  return 0;
+}
+
 /* RADTAN --------------------------------------------------------------------*/
 
-int test_radtan4_distort() { return 0; }
+int test_radtan4_distort() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+  real_t p_d[2] = {0};
+  radtan4_distort(params, p, p_d);
 
-int test_radtan4_point_jacobian() { return 0; }
+  print_vector("p", p, 2);
+  print_vector("p_d", p_d, 2);
 
-int test_radtan4_params_jacobian() { return 0; }
+  return 0;
+}
+
+int test_radtan4_point_jacobian() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+  real_t J_point[2 * 2] = {0};
+  radtan4_point_jacobian(params, p, J_point);
+
+  /* Calculate numerical diff */
+  const real_t step = 1e-4;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 2] = {0};
+  {
+    real_t p_d[2] = {0};
+    radtan4_distort(params, p, p_d);
+
+    for (int i = 0; i < 2; i++) {
+      real_t p_diff[2] = {p[0], p[1]};
+      p_diff[i] = p[i] + step;
+
+      real_t p_d_prime[2] = {0};
+      radtan4_distort(params, p_diff, p_d_prime);
+
+      J_numdiff[i] = (p_d_prime[0] - p_d[0]) / step;
+      J_numdiff[i + 2] = (p_d_prime[1] - p_d[1]) / step;
+    }
+  }
+
+  /* Check jacobian */
+  print_vector("p", p, 2);
+  print_matrix("J_point", J_point, 2, 2);
+  print_matrix("J_numdiff", J_numdiff, 2, 2);
+  check_jacobian("J", J_numdiff, J_point, 2, 2, tol, 1);
+
+  return 0;
+}
+
+int test_radtan4_params_jacobian() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+  real_t J_param[2 * 4] = {0};
+  radtan4_params_jacobian(params, p, J_param);
+
+  /* Calculate numerical diff */
+  const real_t step = 1e-4;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 4] = {0};
+  {
+    real_t p_d[2] = {0};
+    radtan4_distort(params, p, p_d);
+
+    for (int i = 0; i < 4; i++) {
+      real_t params_diff[4] = {params[0], params[1], params[2], params[3]};
+      params_diff[i] = params[i] + step;
+
+      real_t p_d_prime[2] = {0};
+      radtan4_distort(params_diff, p, p_d_prime);
+
+      J_numdiff[i] = (p_d_prime[0] - p_d[0]) / step;
+      J_numdiff[i + 4] = (p_d_prime[1] - p_d[1]) / step;
+    }
+  }
+
+  /* Check jacobian */
+  print_vector("p", p, 2);
+  print_matrix("J_param", J_param, 2, 4);
+  print_matrix("J_numdiff", J_numdiff, 2, 4);
+  check_jacobian("J", J_numdiff, J_param, 2, 4, tol, 1);
+
+  return 0;
+}
 
 /* EQUI ----------------------------------------------------------------------*/
 
-int test_equi4_distort() { return 0; }
+int test_equi4_distort() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+  real_t p_d[2] = {0};
+  equi4_distort(params, p, p_d);
 
-int test_equi4_point_jacobian() { return 0; }
+  print_vector("p", p, 2);
+  print_vector("p_d", p_d, 2);
 
-int test_equi4_params_jacobian() { return 0; }
+  return 0;
+}
+
+int test_equi4_point_jacobian() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+  real_t J_point[2 * 2] = {0};
+  equi4_point_jacobian(params, p, J_point);
+
+  /* Calculate numerical diff */
+  const real_t step = 1e-4;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 2] = {0};
+  {
+    real_t p_d[2] = {0};
+    equi4_distort(params, p, p_d);
+
+    for (int i = 0; i < 2; i++) {
+      real_t p_diff[2] = {p[0], p[1]};
+      p_diff[i] = p[i] + step;
+
+      real_t p_d_prime[2] = {0};
+      equi4_distort(params, p_diff, p_d_prime);
+
+      J_numdiff[i] = (p_d_prime[0] - p_d[0]) / step;
+      J_numdiff[i + 2] = (p_d_prime[1] - p_d[1]) / step;
+    }
+  }
+
+  /* Check jacobian */
+  print_vector("p", p, 2);
+  print_matrix("J_point", J_point, 2, 2);
+  print_matrix("J_numdiff", J_numdiff, 2, 2);
+  check_jacobian("J", J_numdiff, J_point, 2, 2, tol, 1);
+
+  return 0;
+}
+
+int test_equi4_params_jacobian() {
+  const real_t params[4] = {0.01, 0.01, 0.01, 0.01};
+  const real_t p[2] = {0.1, 0.2};
+  real_t J_param[2 * 4] = {0};
+  equi4_params_jacobian(params, p, J_param);
+
+  /* Calculate numerical diff */
+  const real_t step = 1e-8;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 4] = {0};
+  {
+    real_t p_d[2] = {0};
+    equi4_distort(params, p, p_d);
+
+    for (int i = 0; i < 4; i++) {
+      real_t params_diff[4] = {params[0], params[1], params[2], params[3]};
+      params_diff[i] = params[i] + step;
+
+      real_t p_d_prime[2] = {0};
+      equi4_distort(params_diff, p, p_d_prime);
+
+      J_numdiff[i] = (p_d_prime[0] - p_d[0]) / step;
+      J_numdiff[i + 4] = (p_d_prime[1] - p_d[1]) / step;
+    }
+  }
+
+  /* Check jacobian */
+  print_vector("p", p, 2);
+  print_matrix("J_param", J_param, 2, 4);
+  print_matrix("J_numdiff", J_numdiff, 2, 4);
+  check_jacobian("J", J_numdiff, J_param, 2, 4, tol, 1);
+
+  return 0;
+}
 
 /* PINHOLE -------------------------------------------------------------------*/
 
-int test_pinhole_project() { return 0; }
+int test_pinhole_focal() {
+  const real_t focal = pinhole_focal(640, 90.0);
+  MU_CHECK(fltcmp(focal, 320.0) == 0);
+  return 0;
+}
+
+int test_pinhole_K() {
+  const real_t params[4] = {1.0, 2.0, 3.0, 4.0};
+  real_t K[3 * 3] = {0};
+  pinhole_K(params, K);
+
+  MU_CHECK(fltcmp(K[0], 1.0) == 0);
+  MU_CHECK(fltcmp(K[1], 0.0) == 0);
+  MU_CHECK(fltcmp(K[2], 3.0) == 0);
+
+  MU_CHECK(fltcmp(K[3], 0.0) == 0);
+  MU_CHECK(fltcmp(K[4], 2.0) == 0);
+  MU_CHECK(fltcmp(K[5], 4.0) == 0);
+
+  MU_CHECK(fltcmp(K[6], 0.0) == 0);
+  MU_CHECK(fltcmp(K[7], 0.0) == 0);
+  MU_CHECK(fltcmp(K[8], 1.0) == 0);
+
+  return 0;
+}
+
+int test_pinhole_project_matrix() {
+  /* const real_t params[4] = {1.0, 2.0, 3.0, 4.0}; */
+  /* real_t T[4 * 4] = {0}; */
+  /* real_t P[3 * 4] = {0}; */
+  /* pinhole_projection_matrix(params, P); */
+
+  return 0;
+}
+
+int test_pinhole_project() {
+  const real_t img_w = 640;
+  const real_t img_h = 480;
+  const real_t fx = pinhole_focal(img_w, 90.0);
+  const real_t fy = pinhole_focal(img_w, 90.0);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const real_t params[4] = {fx, fy, cx, cy};
+  const real_t p_C[3] = {0.0, 0.0, 1.0};
+  real_t z[2] = {0.0, 0.0};
+  pinhole_project(params, p_C, z);
+
+  print_vector("p_C", p_C, 3);
+  print_vector("z", z, 2);
+  MU_CHECK(fltcmp(z[0], 320.0) == 0);
+  MU_CHECK(fltcmp(z[1], 240.0) == 0);
+
+  return 0;
+}
 
 int test_pinhole_point_jacobian() { return 0; }
 
@@ -1382,6 +1689,29 @@ int test_pose_factor_eval() {
   print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
 
   MU_CHECK(retval == 0);
+
+  return 0;
+}
+
+int test_pose_factor_jacobians() {
+  /* Pose */
+  timestamp_t ts = 1;
+  pose_t pose;
+  real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
+  pose_setup(&pose, ts, data);
+
+  /* Setup pose factor */
+  pose_factor_t pose_factor;
+  real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  pose_factor_setup(&pose_factor, &pose, var);
+
+  /* Evaluate pose factor */
+  /* const int retval = pose_factor_eval(&pose_factor); */
+  /* MU_CHECK(retval == 0); */
+  pose_factor_eval(&pose_factor);
+
+  print_matrix("pose_factor.r", pose_factor.r, 6, 1);
+  print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
 
   return 0;
 }
@@ -1837,6 +2167,9 @@ void test_suite() {
   MU_ADD_TEST(test_image_load);
   MU_ADD_TEST(test_image_print_properties);
   MU_ADD_TEST(test_image_free);
+  /* -- GEOMETRY */
+  MU_ADD_TEST(test_linear_triangulation);
+  MU_ADD_TEST(test_stereo_triangulation);
   /* -- RADTAN */
   MU_ADD_TEST(test_radtan4_distort);
   MU_ADD_TEST(test_radtan4_point_jacobian);
@@ -1846,6 +2179,9 @@ void test_suite() {
   MU_ADD_TEST(test_equi4_point_jacobian);
   MU_ADD_TEST(test_equi4_params_jacobian);
   /* -- PINHOLE */
+  MU_ADD_TEST(test_pinhole_focal);
+  MU_ADD_TEST(test_pinhole_K);
+  MU_ADD_TEST(test_pinhole_project_matrix);
   MU_ADD_TEST(test_pinhole_project);
   MU_ADD_TEST(test_pinhole_point_jacobian);
   MU_ADD_TEST(test_pinhole_params_jacobian);
@@ -1868,6 +2204,7 @@ void test_suite() {
   /* -- Pose factor */
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
+  MU_ADD_TEST(test_pose_factor_jacobians);
   /* -- BA factor */
   MU_ADD_TEST(test_ba_factor_setup);
   MU_ADD_TEST(test_ba_factor_eval);
