@@ -1483,7 +1483,60 @@ int test_equi4_params_jacobian() {
 
 /* PINHOLE -------------------------------------------------------------------*/
 
-int test_pinhole_project() { return 0; }
+int test_pinhole_focal() {
+  const real_t focal = pinhole_focal(640, 90.0);
+  MU_CHECK(fltcmp(focal, 320.0) == 0);
+  return 0;
+}
+
+int test_pinhole_K() {
+  const real_t params[4] = {1.0, 2.0, 3.0, 4.0};
+  real_t K[3 * 3] = {0};
+  pinhole_K(params, K);
+
+  MU_CHECK(fltcmp(K[0], 1.0) == 0);
+  MU_CHECK(fltcmp(K[1], 0.0) == 0);
+  MU_CHECK(fltcmp(K[2], 3.0) == 0);
+
+  MU_CHECK(fltcmp(K[3], 0.0) == 0);
+  MU_CHECK(fltcmp(K[4], 2.0) == 0);
+  MU_CHECK(fltcmp(K[5], 4.0) == 0);
+
+  MU_CHECK(fltcmp(K[6], 0.0) == 0);
+  MU_CHECK(fltcmp(K[7], 0.0) == 0);
+  MU_CHECK(fltcmp(K[8], 1.0) == 0);
+
+  return 0;
+}
+
+int test_pinhole_project_matrix() {
+  /* const real_t params[4] = {1.0, 2.0, 3.0, 4.0}; */
+  /* real_t T[4 * 4] = {0}; */
+  /* real_t P[3 * 4] = {0}; */
+  /* pinhole_projection_matrix(params, P); */
+
+  return 0;
+}
+
+int test_pinhole_project() {
+  const real_t img_w = 640;
+  const real_t img_h = 480;
+  const real_t fx = pinhole_focal(img_w, 90.0);
+  const real_t fy = pinhole_focal(img_w, 90.0);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const real_t params[4] = {fx, fy, cx, cy};
+  const real_t p_C[3] = {0.0, 0.0, 1.0};
+  real_t z[2] = {0.0, 0.0};
+  pinhole_project(params, p_C, z);
+
+  print_vector("p_C", p_C, 3);
+  print_vector("z", z, 2);
+  MU_CHECK(fltcmp(z[0], 320.0) == 0);
+  MU_CHECK(fltcmp(z[1], 240.0) == 0);
+
+  return 0;
+}
 
 int test_pinhole_point_jacobian() { return 0; }
 
@@ -2126,6 +2179,9 @@ void test_suite() {
   MU_ADD_TEST(test_equi4_point_jacobian);
   MU_ADD_TEST(test_equi4_params_jacobian);
   /* -- PINHOLE */
+  MU_ADD_TEST(test_pinhole_focal);
+  MU_ADD_TEST(test_pinhole_K);
+  MU_ADD_TEST(test_pinhole_project_matrix);
   MU_ADD_TEST(test_pinhole_project);
   MU_ADD_TEST(test_pinhole_point_jacobian);
   MU_ADD_TEST(test_pinhole_params_jacobian);
