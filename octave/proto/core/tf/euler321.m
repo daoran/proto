@@ -1,4 +1,8 @@
 function R = euler321(rpy)
+  % Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
+  % Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
+  % Princeton University Press, 1999. Print.
+  % Page 85-86, "The Aerospace Sequence"
   phi = rpy(1);
   theta = rpy(2);
   psi = rpy(3);

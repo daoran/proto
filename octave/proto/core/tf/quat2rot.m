@@ -1,4 +1,7 @@
 function R = quat2rot(q)
+  % Blanco, Jose-Luis. "A tutorial on se (3) transformation parameterizations
+  % and on-manifold optimization." University of Malaga, Tech. Rep 3 (2010): 6.
+  % Page 18, Equation (2.20)
   qw = q(1);
   qx = q(2);
   qy = q(3);
