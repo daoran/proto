@@ -124,17 +124,18 @@ cd ./build/bin
 # ./test_proto --target test_lie_Exp_Log
 # ./test_proto --target test_linear_triangulation
 # ./test_proto --target test_stereo_triangulation
-./test_proto --target test_radtan4_distort
-./test_proto --target test_radtan4_point_jacobian
-./test_proto --target test_radtan4_params_jacobian
+# ./test_proto --target test_radtan4_distort
+# ./test_proto --target test_radtan4_point_jacobian
+# ./test_proto --target test_radtan4_params_jacobian
 # ./test_proto --target test_equi4_distort
 # ./test_proto --target test_equi4_point_jacobian
 # ./test_proto --target test_equi4_params_jacobian
-# ./test_proto --target test_pinhole_K
 # ./test_proto --target test_pinhole_focal
+# ./test_proto --target test_pinhole_K
 # ./test_proto --target test_pinhole_project
+# ./test_proto --target test_pinhole_projection_matrix
 # ./test_proto --target test_pinhole_point_jacobian
-# ./test_proto --target test_pinhole_params_jacobian
+./test_proto --target test_pinhole_params_jacobian
 # ./test_proto --target test_pinhole_radtan4_project
 # ./test_proto --target test_pinhole_radtan4_project_jacobian
 # ./test_proto --target test_pinhole_radtan4_params_jacobian
@@ -152,7 +153,7 @@ cd ./build/bin
 # ./test_proto --target test_ba_factor_setup
 # ./test_proto --target test_ba_factor_eval
 # ./test_proto --target test_cam_factor_setup
-# valgrind --track-origins=yes ./test_proto --target test_cam_factor_eval
+# ./test_proto --target test_cam_factor_eval
 # ./test_proto --target test_imu_buf_setup
 # ./test_proto --target test_imu_buf_add
 # ./test_proto --target test_imu_buf_clear
