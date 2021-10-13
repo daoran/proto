@@ -1564,8 +1564,8 @@ int test_pinhole_project() {
   real_t z[2] = {0.0, 0.0};
   pinhole_project(params, p_C, z);
 
-  print_vector("p_C", p_C, 3);
-  print_vector("z", z, 2);
+  /* print_vector("p_C", p_C, 3); */
+  /* print_vector("z", z, 2); */
   MU_CHECK(fltcmp(z[0], 320.0) == 0);
   MU_CHECK(fltcmp(z[1], 240.0) == 0);
 
@@ -1671,8 +1671,8 @@ int test_pinhole_radtan4_project() {
   pinhole_radtan4_project(params, p_C, x);
 
   /* print_vector("x", x, 2); */
-  MU_CHECK(fltcmp(x[0], 323.2) == 0);
-  MU_CHECK(fltcmp(x[1], 166.4) == 0);
+  MU_CHECK(fltcmp(x[0], 323.204000) == 0);
+  MU_CHECK(fltcmp(x[1], 166.406400) == 0);
 
   return 0;
 }
@@ -1715,9 +1715,9 @@ int test_pinhole_radtan4_project_jacobian() {
   }
 
   /* Assert */
-  print_matrix("J_numdiff", J_numdiff, 2, 3);
-  print_matrix("J", J, 2, 3);
-  MU_CHECK(check_jacobian("J", J_numdiff, J, 2, 3, tol, 1) == 0);
+  /* print_matrix("J_numdiff", J_numdiff, 2, 3); */
+  /* print_matrix("J", J, 2, 3); */
+  MU_CHECK(check_jacobian("J", J_numdiff, J, 2, 3, tol, 0) == 0);
 
   return 0;
 }
@@ -1836,7 +1836,7 @@ int test_pinhole_equi4_project_jacobian() {
   /* Assert */
   /* print_matrix("J_numdiff", J_numdiff, 2, 3); */
   /* print_matrix("J", J, 2, 3); */
-  MU_CHECK(check_jacobian("J", J_numdiff, J, 2, 3, tol, 1) == 0);
+  MU_CHECK(check_jacobian("J", J_numdiff, J, 2, 3, tol, 0) == 0);
 
   return 0;
 }
