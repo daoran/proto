@@ -135,11 +135,11 @@ cd ./build/bin
 # ./test_proto --target test_pinhole_project
 # ./test_proto --target test_pinhole_projection_matrix
 # ./test_proto --target test_pinhole_point_jacobian
-./test_proto --target test_pinhole_params_jacobian
+# ./test_proto --target test_pinhole_params_jacobian
 # ./test_proto --target test_pinhole_radtan4_project
 # ./test_proto --target test_pinhole_radtan4_project_jacobian
 # ./test_proto --target test_pinhole_radtan4_params_jacobian
-# ./test_proto --target test_pinhole_equi4_project
+./test_proto --target test_pinhole_equi4_project
 # ./test_proto --target test_pinhole_equi4_project_jacobian
 # ./test_proto --target test_pinhole_equi4_params_jacobian
 # PROTO-SF

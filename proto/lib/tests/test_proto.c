@@ -1652,19 +1652,241 @@ int test_pinhole_params_jacobian() {
 
 /* PINHOLE-RADTAN4 -----------------------------------------------------------*/
 
-int test_pinhole_radtan4_project() { return 0; }
+int test_pinhole_radtan4_project() {
+  /* Camera parameters */
+  const int img_w = 640;
+  const int img_h = 320;
+  const real_t fx = pinhole_focal(img_w, 90.0);
+  const real_t fy = pinhole_focal(img_w, 90.0);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const real_t k1 = 0.3;
+  const real_t k2 = 0.01;
+  const real_t p1 = 0.01;
+  const real_t p2 = 0.01;
+  const real_t params[8] = {fx, fy, cx, cy, k1, k2, p1, p2};
 
-int test_pinhole_radtan4_project_jacobian() { return 0; }
+  const real_t p_C[3] = {0.1, 0.2, 10.0};
+  real_t x[2] = {0};
+  pinhole_radtan4_project(params, p_C, x);
 
-int test_pinhole_radtan4_params_jacobian() { return 0; }
+  /* print_vector("x", x, 2); */
+  MU_CHECK(fltcmp(x[0], 323.2) == 0);
+  MU_CHECK(fltcmp(x[1], 166.4) == 0);
+
+  return 0;
+}
+
+int test_pinhole_radtan4_project_jacobian() {
+  /* Camera parameters */
+  const int img_w = 640;
+  const int img_h = 320;
+  const real_t fx = pinhole_focal(img_w, 90.0);
+  const real_t fy = pinhole_focal(img_w, 90.0);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const real_t k1 = 0.3;
+  const real_t k2 = 0.01;
+  const real_t p1 = 0.01;
+  const real_t p2 = 0.01;
+  const real_t params[8] = {fx, fy, cx, cy, k1, k2, p1, p2};
+
+  /* Calculate analytical jacobian */
+  const real_t p_C[3] = {0.1, 0.2, 10.0};
+  real_t J[2 * 3] = {0};
+  pinhole_radtan4_project_jacobian(params, p_C, J);
+
+  /* Numerical differentiation */
+  real_t z[2] = {0};
+  pinhole_radtan4_project(params, p_C, z);
+
+  const real_t h = 1e-8;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 3] = {0};
+
+  for (size_t i = 0; i < 3; i++) {
+    real_t z_fd[2] = {0};
+    real_t p_C_fd[3] = {p_C[0], p_C[1], p_C[2]};
+    p_C_fd[i] += h;
+
+    pinhole_radtan4_project(params, p_C_fd, z_fd);
+    J_numdiff[i] = (z_fd[0] - z[0]) / h;
+    J_numdiff[i + 3] = (z_fd[1] - z[1]) / h;
+  }
+
+  /* Assert */
+  print_matrix("J_numdiff", J_numdiff, 2, 3);
+  print_matrix("J", J, 2, 3);
+  MU_CHECK(check_jacobian("J", J_numdiff, J, 2, 3, tol, 1) == 0);
+
+  return 0;
+}
+
+int test_pinhole_radtan4_params_jacobian() {
+  /* Camera parameters */
+  const int img_w = 640;
+  const int img_h = 320;
+  const real_t fx = pinhole_focal(img_w, 90.0);
+  const real_t fy = pinhole_focal(img_w, 90.0);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const real_t k1 = 0.3;
+  const real_t k2 = 0.01;
+  const real_t p1 = 0.01;
+  const real_t p2 = 0.01;
+  const real_t params[8] = {fx, fy, cx, cy, k1, k2, p1, p2};
+
+  /* Calculate analytical jacobian */
+  const real_t p_C[3] = {0.1, 0.2, 10.0};
+  real_t J_params[2 * 8] = {0};
+  pinhole_radtan4_params_jacobian(params, p_C, J_params);
+
+  /* Numerical differentiation */
+  real_t z[2] = {0};
+  pinhole_radtan4_project(params, p_C, z);
+
+  const real_t h = 1e-8;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 8] = {0};
+
+  for (size_t i = 0; i < 8; i++) {
+    real_t z_fd[2] = {0};
+
+    real_t params_fd[8] = {0};
+    memcpy(params_fd, params, sizeof(real_t) * 8);
+    params_fd[i] += h;
+
+    pinhole_radtan4_project(params_fd, p_C, z_fd);
+    J_numdiff[i] = (z_fd[0] - z[0]) / h;
+    J_numdiff[i + 8] = (z_fd[1] - z[1]) / h;
+  }
+
+  /* Assert */
+  /* print_matrix("J_numdiff", J_numdiff, 2, 8); */
+  /* print_matrix("J_params", J_params, 2, 8); */
+  MU_CHECK(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
+
+  return 0;
+}
 
 /* PINHOLE-EQUI4 -------------------------------------------------------------*/
 
-int test_pinhole_equi4_project() { return 0; }
+int test_pinhole_equi4_project() {
+  /* Camera parameters */
+  const int img_w = 640;
+  const int img_h = 320;
+  const real_t fx = pinhole_focal(img_w, 90.0);
+  const real_t fy = pinhole_focal(img_w, 90.0);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const real_t k1 = 0.1;
+  const real_t k2 = 0.01;
+  const real_t k3 = 0.01;
+  const real_t k4 = 0.01;
+  const real_t params[8] = {fx, fy, cx, cy, k1, k2, k3, k4};
 
-int test_pinhole_equi4_project_jacobian() { return 0; }
+  const real_t p_C[3] = {0.1, 0.2, 10.0};
+  real_t x[2] = {0};
+  pinhole_equi4_project(params, p_C, x);
 
-int test_pinhole_equi4_params_jacobian() { return 0; }
+  /* print_vector("x", x, 2); */
+  MU_CHECK(fltcmp(x[0], 323.199627) == 0);
+  MU_CHECK(fltcmp(x[1], 166.399254) == 0);
+
+  return 0;
+}
+
+int test_pinhole_equi4_project_jacobian() {
+  /* Camera parameters */
+  const int img_w = 640;
+  const int img_h = 320;
+  const real_t fx = pinhole_focal(img_w, 90.0);
+  const real_t fy = pinhole_focal(img_w, 90.0);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const real_t k1 = 0.1;
+  const real_t k2 = 0.01;
+  const real_t k3 = 0.01;
+  const real_t k4 = 0.01;
+  const real_t params[8] = {fx, fy, cx, cy, k1, k2, k3, k4};
+
+  /* Calculate analytical jacobian */
+  const real_t p_C[3] = {0.1, 0.2, 10.0};
+  real_t J[2 * 3] = {0};
+  pinhole_equi4_project_jacobian(params, p_C, J);
+
+  /* Numerical differentiation */
+  real_t z[2] = {0};
+  pinhole_equi4_project(params, p_C, z);
+
+  const real_t h = 1e-8;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 3] = {0};
+
+  for (size_t i = 0; i < 3; i++) {
+    real_t z_fd[2] = {0};
+    real_t p_C_fd[3] = {p_C[0], p_C[1], p_C[2]};
+    p_C_fd[i] += h;
+
+    pinhole_equi4_project(params, p_C_fd, z_fd);
+    J_numdiff[i] = (z_fd[0] - z[0]) / h;
+    J_numdiff[i + 3] = (z_fd[1] - z[1]) / h;
+  }
+
+  /* Assert */
+  /* print_matrix("J_numdiff", J_numdiff, 2, 3); */
+  /* print_matrix("J", J, 2, 3); */
+  MU_CHECK(check_jacobian("J", J_numdiff, J, 2, 3, tol, 1) == 0);
+
+  return 0;
+}
+
+int test_pinhole_equi4_params_jacobian() {
+  /* Camera parameters */
+  const int img_w = 640;
+  const int img_h = 320;
+  const real_t fx = pinhole_focal(img_w, 90.0);
+  const real_t fy = pinhole_focal(img_w, 90.0);
+  const real_t cx = img_w / 2.0;
+  const real_t cy = img_h / 2.0;
+  const real_t k1 = 0.1;
+  const real_t k2 = 0.01;
+  const real_t k3 = 0.01;
+  const real_t k4 = 0.01;
+  const real_t params[8] = {fx, fy, cx, cy, k1, k2, k3, k4};
+
+  /* Calculate analytical jacobian */
+  const real_t p_C[3] = {0.1, 0.2, 10.0};
+  real_t J_params[2 * 8] = {0};
+  pinhole_equi4_params_jacobian(params, p_C, J_params);
+
+  /* Numerical differentiation */
+  real_t z[2] = {0};
+  pinhole_equi4_project(params, p_C, z);
+
+  const real_t h = 1e-8;
+  const real_t tol = 1e-4;
+  real_t J_numdiff[2 * 8] = {0};
+
+  for (size_t i = 0; i < 8; i++) {
+    real_t z_fd[2] = {0};
+
+    real_t params_fd[8] = {0};
+    memcpy(params_fd, params, sizeof(real_t) * 8);
+    params_fd[i] += h;
+
+    pinhole_equi4_project(params_fd, p_C, z_fd);
+    J_numdiff[i] = (z_fd[0] - z[0]) / h;
+    J_numdiff[i + 8] = (z_fd[1] - z[1]) / h;
+  }
+
+  /* Assert */
+  /* print_matrix("J_numdiff", J_numdiff, 2, 8); */
+  /* print_matrix("J_params", J_params, 2, 8); */
+  MU_CHECK(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
+
+  return 0;
+}
 
 /******************************************************************************
  * SENSOR FUSION
