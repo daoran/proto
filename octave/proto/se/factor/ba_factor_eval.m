@@ -1,9 +1,6 @@
 function [r, jacs] = ba_factor_eval(factor, params)
   assert(isstruct(factor));
   assert(length(params) == 3);
-  assert(isfield(params{3}, "project"));
-  assert(isfield(params{3}, "J_proj"));
-  assert(isfield(params{3}, "J_param"));
 
   % Setup return values
   r = zeros(2, 1);
@@ -15,6 +12,9 @@ function [r, jacs] = ba_factor_eval(factor, params)
   cam_pose = params{1};
   landmark = params{2};
   camera = params{3};
+  assert(isfield(camera, "project"));
+  assert(isfield(camera, "J_proj"));
+  assert(isfield(camera, "J_param"));
 
   % Project point in world frame to image plane
   T_WC = tf(cam_pose.param);

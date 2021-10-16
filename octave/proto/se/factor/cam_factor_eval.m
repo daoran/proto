@@ -1,9 +1,6 @@
 function [r, jacs] = cam_factor_eval(factor, params)
   assert(isstruct(factor));
   assert(length(params) == 4);
-  assert(isfield(params{4}, "project"));
-  assert(isfield(params{4}, "J_proj"));
-  assert(isfield(params{4}, "J_param"));
 
   % Setup return values
   r = zeros(2, 1);
@@ -17,6 +14,9 @@ function [r, jacs] = cam_factor_eval(factor, params)
   imucam_exts = params{2};
   landmark = params{3};
   camera = params{4};
+  assert(isfield(camera, "project"));
+  assert(isfield(camera, "J_proj"));
+  assert(isfield(camera, "J_param"));
 
   % Project point in world frame to image plane
   T_WS = tf(sensor_pose.param);
