@@ -37,8 +37,8 @@ ctags -R .
 # octave notes/gauss_newton.m && exit 0
 # octave notes/harris_corner.m && exit 0
 # octave notes/illum_invar.m && exit 0
-octave notes/inv_depth_param.m && exit 0
-# octave notes/inv_depth_param_jacobian.m && exit 0
+# octave notes/inv_depth_param.m && exit 0
+octave notes/inv_depth_param_jacobian.m && exit 0
 # octave notes/jacobians.m && exit 0
 # octave notes/least_squares.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
@@ -108,9 +108,13 @@ octave notes/inv_depth_param.m && exit 0
 # octave tests/cv/test_equi4_point_jacobian.m && exit 0
 # octave tests/cv/test_equi4_undistort.m && exit 0
 # octave tests/cv/test_focal_length.m && exit 0
+# octave tests/cv/test_idp_param.m && exit 0
 # octave tests/cv/test_lookat.m && exit 0
 # octave tests/cv/test_pinhole_K.m && exit 0
 # octave tests/cv/test_point2bearing.m && exit 0
+# octave tests/cv/test_pinhole_params_jacobian.m && exit 0
+# octave tests/cv/test_pinhole_point_jacobian.m && exit 0
+# octave tests/cv/test_pinhole_project.m && exit 0
 # octave tests/cv/test_radtan4_distort.m && exit 0
 # octave tests/cv/test_radtan4_param_jacobian.m && exit 0
 # octave tests/cv/test_radtan4_point_jacobian.m && exit 0

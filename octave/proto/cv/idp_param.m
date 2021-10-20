@@ -1,4 +1,10 @@
-function param = idp_param(T_WC, z)
+function param = idp_param(camera, T_WC, z)
+  % Extract projection parameters
+  fx = camera.proj_params(0);
+  fy = camera.proj_params(1);
+  cx = camera.proj_params(2);
+  cy = camera.proj_params(3);
+
   % Convert image pixel coordinates to normalized retinal coordintes
   x = [(z(1) - cx) / fx; (z(2) - cy) / fy; 1.0];
 

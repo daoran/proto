@@ -24,26 +24,4 @@ p_W = [10.0; 0.1; 0.2]
 p_C = tf_point(inv(T_WC), p_W);
 z = pinhole_radtan4_project(proj_params, zeros(4, 1), p_C);
 
-% Form inverse-depth parameterization
-x = [(z(1) - cx) / fx; (z(2) - cy) / fy; 1.0];
-h_W = C_WC * x;
-theta = atan2(h_W(1), h_W(3));
-phi = atan2(-h_W(2), sqrt(h_W(1) * h_W(1) + h_W(3) * h_W(3)));
-rho = 1.0 / p_C(3);
-param = [r_WC; theta; phi; rho];
-
-% Convert inverse depth parameterization to 3D world point
-x = param(1);
-y = param(2);
-z = param(3);
-r_WC = [x; y; z];
-
-theta = param(4);
-phi = param(5);
-rho = param(6);
-
-m = [cos(phi) * sin(theta);
-      -sin(phi);
-      cos(phi) * cos(theta)];
-
-p_W = r_WC + (1.0 / rho) * m
+% param = idp_param(camera, T_WC, z)
