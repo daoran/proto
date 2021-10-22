@@ -1,7 +1,12 @@
-function feature = feature_init(f_id, x)
-  assert(all(size(x) == [3, 1]));
+function feature = feature_init(id, x)
+  assert(all(size(x) == [3, 1]) || all(size(x) == [6, 1]));
   feature.type = "feature";
-  feature.f_id = f_id;
+  feature.id = id;
   feature.param = x;
-  feature.min_dims = 3;
+  feature.min_dims = rows(x);
+  if rows(x) == 3
+    feature.parameterization = "XYZ";
+  else
+    feature.parameterization = "INVERSE_DEPTH";
+  endif
 endfunction

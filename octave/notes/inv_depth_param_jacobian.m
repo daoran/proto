@@ -50,8 +50,8 @@ function test_inv_depth_param_jac(step, threshold)
   p_W_prime = [x_i; y_i; z_i] + 1 / (rho_i + step) * m(theta_i, phi_i);
   J_numdiff(1:3, 6) = (p_W_prime - p_W) / step;
 
-  J_inv_depth
-  J_numdiff
+  % J_inv_depth
+  % J_numdiff
   check_jacobian("J_inv_depth", J_numdiff, J_inv_depth, threshold, true);
 endfunction
 
@@ -125,10 +125,10 @@ function test_inv_depth_param_jac2(step, threshold)
     J_numdiff(1:2, i) = (z_fwd - z_bwd) / step;
   endfor
 
-  J_inv_depth
-  J_numdiff
+  % J_inv_depth
+  % J_numdiff
   check_jacobian("J_inv_depth", J_numdiff, J_inv_depth, threshold, true);
 endfunction
 
-% test_inv_depth_param_jac(step, threshold)
+test_inv_depth_param_jac(step, threshold)
 test_inv_depth_param_jac2(step, threshold)

@@ -38,7 +38,7 @@ ctags -R .
 # octave notes/harris_corner.m && exit 0
 # octave notes/illum_invar.m && exit 0
 # octave notes/inv_depth_param.m && exit 0
-octave notes/inv_depth_param_jacobian.m && exit 0
+# octave notes/inv_depth_param_jacobian.m && exit 0
 # octave notes/jacobians.m && exit 0
 # octave notes/least_squares.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
@@ -136,13 +136,15 @@ octave notes/inv_depth_param_jacobian.m && exit 0
 # octave tests/se/factor/test_ba_factor_eval.m && exit 0
 # octave tests/se/factor/test_cam_factor_eval.m && exit 0
 # octave tests/se/param/test_camera_init.m && exit 0
-# octave tests/se/param/test_landmark_init.m && exit 0
+# octave tests/se/param/test_feature_init.m && exit 0
 # octave tests/se/param/test_pose_init.m && exit 0
 # octave tests/se/param/test_sb_init.m && exit 0
 # octave tests/se/test_graph_add_factor.m && exit 0
 # octave tests/se/test_graph_add_param.m && exit 0
-# octave tests/se/test_graph_eval.m && exit 0
+octave tests/se/test_graph_eval.m && exit 0
 # octave tests/se/test_graph_init.m && exit 0
+# octave tests/se/test_io.m && exit 0
+# octave tests/se/test_vio.m && exit 0
 
 # octave tests/sim/test_trajectory_plot.m && exit 0
 # octave tests/sim/test_trajectory_simulate.m && exit 0

@@ -2,8 +2,14 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   pose_param_ids = [];
   exts_param_ids = [];
   sb_param_ids = [];
-  landmark_param_ids = [];
+  feature_param_ids = [];
   camera_param_ids = [];
+
+  pose_param_size = 0;
+  exts_param_size = 0;
+  sb_param_size = 0;
+  feature_param_size = 0;
+  camera_param_size = 0;
 
   % Track parameters
   for i = 1:length(graph.factors)
@@ -14,21 +20,26 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
       param = params{j};
       if strcmp(param.type, "pose")
         pose_param_ids = [pose_param_ids, param.id];
+        pose_param_size = param.min_dims;
       elseif strcmp(param.type, "extrinsics")
         exts_param_ids = [exts_param_ids, param.id];
+        exts_param_size = param.min_dims;
       elseif strcmp(param.type, "sb")
         sb_param_ids = [sb_param_ids, param.id];
-      elseif strcmp(param.type, "landmark")
-        landmark_param_ids = [landmark_param_ids, param.id];
+        sb_param_size = param.min_dims;
+      elseif strcmp(param.type, "feature")
+        feature_param_ids = [feature_param_ids, param.id];
+        feature_param_size = param.min_dims;
       elseif strcmp(param.type, "camera")
         camera_param_ids = [camera_param_ids, param.id];
+        camera_param_size = param.min_dims;
       endif
     endfor
   endfor
   pose_param_ids = unique(pose_param_ids);
   exts_param_ids = unique(exts_param_ids);
   sb_param_ids = unique(sb_param_ids);
-  landmark_param_ids = unique(landmark_param_ids);
+  feature_param_ids = unique(feature_param_ids);
   camera_param_ids = unique(camera_param_ids);
 
   % Assign global parameter order
@@ -36,45 +47,51 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   nb_params += length(pose_param_ids);
   nb_params += length(exts_param_ids);
   nb_params += length(sb_param_ids);
-  nb_params += length(landmark_param_ids);
+  nb_params += length(feature_param_ids);
   nb_params += length(camera_param_ids);
+
+  % printf("pose_param_size: %d\n", pose_param_size);
+  % printf("exts_param_size: %d\n", exts_param_size);
+  % printf("sb_param_size: %d\n", sb_param_size);
+  % printf("feature_param_size: %d\n", feature_param_size);
+  % printf("camera_param_size: %d\n", camera_param_size);
 
   % printf("nb_pose_params: %d\n", length(pose_param_ids));
   % printf("nb_exts_params: %d\n", length(exts_param_ids));
   % printf("nb_sb_params: %d\n", length(sb_param_ids));
-  % printf("nb_landmark_params: %d\n", length(landmark_param_ids));
+  % printf("nb_feature_params: %d\n", length(feature_param_ids));
   % printf("nb_camera_params: %d\n", length(camera_param_ids));
 
   param_idx = {};
   col_idx = 1;
   for i = 1:length(pose_param_ids)
     param_idx{pose_param_ids(i)} = col_idx;
-    col_idx += 6;
+    col_idx += pose_param_size;
   endfor
   for i = 1:length(exts_param_ids)
     param_idx{exts_param_ids(i)} = col_idx;
-    col_idx += 6;
+    col_idx += exts_param_size;
   endfor
   for i = 1:length(sb_param_ids)
     param_idx{sb_param_ids(i)} = col_idx;
-    col_idx += 9;
+    col_idx += sb_param_size;
   endfor
-  for i = 1:length(landmark_param_ids)
-    param_idx{landmark_param_ids(i)} = col_idx;
-    col_idx += 3;
+  for i = 1:length(feature_param_ids)
+    param_idx{feature_param_ids(i)} = col_idx;
+    col_idx += feature_param_size;
   endfor
   for i = 1:length(camera_param_ids)
     param_idx{camera_param_ids(i)} = col_idx;
-    col_idx += 3;
+    col_idx += camera_param_size;
   endfor
 
   % Form Hessian
   param_size = 0;
-  param_size += length(pose_param_ids) * 6;
-  param_size += length(exts_param_ids) * 6;
-  param_size += length(sb_param_ids) * 9;
-  param_size += length(landmark_param_ids) * 3;
-  param_size += length(camera_param_ids) * 8;
+  param_size += length(pose_param_ids) * pose_param_size;
+  param_size += length(exts_param_ids) * exts_param_size;
+  param_size += length(sb_param_ids) * sb_param_size;
+  param_size += length(feature_param_ids) * feature_param_size;
+  param_size += length(camera_param_ids) * camera_param_size;
   H = zeros(param_size, param_size);
 	g = zeros(param_size, 1);
 	residuals = [];

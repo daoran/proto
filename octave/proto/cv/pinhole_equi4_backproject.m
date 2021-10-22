@@ -1,9 +1,9 @@
 function p = pinhole_equi4_backproject(proj_params, dist_params, z)
   % Extract projection parameters
-  fx = proj_params(0);
-  fy = proj_params(1);
-  cx = proj_params(2);
-  cy = proj_params(3);
+  fx = proj_params(1);
+  fy = proj_params(2);
+  cx = proj_params(3);
+  cy = proj_params(4);
 
   % Convert image pixel coordinates to normalized retinal coordintes
   x = [(z(1) - cx) / fx; (z(2) - cy) / fy; 1.0];

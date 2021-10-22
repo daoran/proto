@@ -13,6 +13,7 @@ function cam = pinhole_radtan4_init(idx, resolution, proj_params, dist_params)
   cam.min_dims = 8;
 
   cam.project = @pinhole_radtan4_project;
+  cam.backproject = @pinhole_radtan4_backproject;
   cam.J_proj = @pinhole_radtan4_project_jacobian;
   cam.J_param = @pinhole_radtan4_params_jacobian;
 endfunction

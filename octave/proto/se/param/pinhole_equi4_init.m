@@ -13,6 +13,7 @@ function cam = pinhole_equi4_init(idx, resolution, proj_params, dist_params)
   cam.min_dims = 8;
 
   cam.project = @pinhole_equi4_project;
+  cam.backproject = @pinhole_equi4_backproject;
   cam.J_proj = @pinhole_equi4_project_jacobian;
   cam.J_param = @pinhole_equi4_params_jacobian;
 endfunction

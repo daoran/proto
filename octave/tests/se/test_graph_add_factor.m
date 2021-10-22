@@ -25,19 +25,19 @@ cam_params = camera_init(cam_idx, resolution,
                          proj_model, dist_model,
                          proj_params, dist_params);
 
-% Setup landmark
-landmark = landmark_init(0, [10; rand(2, 1)]);
-p_C = tf_point(inv(T_WC), landmark.param);
+% Setup feature
+feature = feature_init(0, [10; rand(2, 1)]);
+p_C = tf_point(inv(T_WC), feature.param);
 z = pinhole_radtan4_project(proj_params, zeros(4, 1), p_C);
 
 % Create graph
 graph = graph_init();
 
 [graph, cam_pose_id] = graph_add_param(graph, cam_pose);
-[graph, landmark_id] = graph_add_param(graph, landmark);
+[graph, feature_id] = graph_add_param(graph, feature);
 [graph, cam_params_id] = graph_add_param(graph, cam_params);
 
-param_ids = [cam_pose_id, landmark_id, cam_params_id];
+param_ids = [cam_pose_id, feature_id, cam_params_id];
 ba_factor = ba_factor_init(0, param_ids, z);
 graph = graph_add_factor(graph, ba_factor);
 

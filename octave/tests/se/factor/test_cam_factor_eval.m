@@ -28,21 +28,21 @@ proj_params = [fx; fy; cx; cy];
 dist_params = [-0.01; 0.01; 1e-4; 1e-4];
 camera = pinhole_radtan4_init(cam_idx, resolution, proj_params, dist_params);
 
-% Setup landmark
-landmark = landmark_init(0, [10; rand(2, 1)]);
-p_C = tf_point(inv(T_SC) * inv(T_WS), landmark.param);
+% Setup feature
+feature = feature_init(0, [10; rand(2, 1)]);
+p_C = tf_point(inv(T_SC) * inv(T_WS), feature.param);
 z = pinhole_radtan4_project(proj_params, zeros(4, 1), p_C);
 
 % Setup graph
 graph = graph_init();
 [graph, sensor_pose_id] = graph_add_param(graph, sensor_pose);
 [graph, imucam_exts_id] = graph_add_param(graph, imucam_exts);
-[graph, landmark_id] = graph_add_param(graph, landmark);
+[graph, feature_id] = graph_add_param(graph, feature);
 [graph, cam_params_id] = graph_add_param(graph, camera);
 
 % Create factor
 ts = 0;
-param_ids = [sensor_pose_id; imucam_exts_id; landmark_id; cam_params_id];
+param_ids = [sensor_pose_id; imucam_exts_id; feature_id; cam_params_id];
 cam_factor = cam_factor_init(ts, param_ids, z);
 
 % Evaluate factor
@@ -54,5 +54,5 @@ step_size = 1e-8;
 threshold = 1e-4;
 check_factor_jacobian(cam_factor, params, 1, "J_sensor_pose", step_size, threshold);
 check_factor_jacobian(cam_factor, params, 2, "J_imucam_exts", step_size, threshold);
-check_factor_jacobian(cam_factor, params, 3, "J_landmark", step_size, threshold);
+check_factor_jacobian(cam_factor, params, 3, "J_feature", step_size, threshold);
 check_factor_jacobian(cam_factor, params, 4, "J_cam_params", step_size, threshold);

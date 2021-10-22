@@ -28,12 +28,25 @@ data = calib_data_add_noise(data_gnd);
 
 % Create graph
 graph = graph_init();
-% -- Add landmarks
-lmid2pid = {}; % Landmark id to parameter id
+% -- Add features
+fid2pid = {}; % Feature id to parameter id
+q_WC_0 = data.q_WC{1};
+r_WC_0 = data.r_WC{1};
+T_WC_0 = tf(q_WC_0, r_WC_0);
 for i = 1:columns(data.p_data)
   p_W = data.p_data(:, i);
-  [graph, param_id] = graph_add_param(graph, landmark_init(i, p_W));
-  lmid2pid{i} = param_id;
+
+  % Feature XYZ parameterization
+  [graph, param_id] = graph_add_param(graph, feature_init(i, p_W));
+
+  % % Feature inverse depth parameterization
+  % p_C = tf_point(inv(T_WC_0), p_W);
+  % z = camera.project(proj_params, dist_params, p_C);
+  % feature_param = idp_param(camera, T_WC_0, z);
+  % feature = feature_init(i, feature_param);
+  % [graph, param_id] = graph_add_param(graph, feature);
+
+  fid2pid{i} = param_id;
 endfor
 % -- Add camera
 [graph, camera_id] = graph_add_param(graph, camera);
@@ -56,8 +69,8 @@ for k = 1:length(data.time)
   % Loop over observations at time k
   for i = 1:length(p_ids)
     p_W = data.p_data(:, p_ids(i));
-    landmark_id = lmid2pid{p_ids(i)};
-    ba_factor = ba_factor_init(ts, [pose_id, landmark_id, camera_id], z_k(:, i));
+    feature_id = fid2pid{p_ids(i)};
+    ba_factor = ba_factor_init(ts, [pose_id, feature_id, camera_id], z_k(:, i));
     graph = graph_add_factor(graph, ba_factor);
   endfor
 endfor

@@ -7,7 +7,7 @@ function graph = graph_update(graph, param_idx, dx)
 
 		% Update parameter
     idx = param_idx{param.id};
-    if (strcmp(param.type, "pose") == 1 || strcmp(param.type, "extrinsics"))
+    if (strcmp(param.type, "pose") || strcmp(param.type, "extrinsics"))
       param = pose_update(param, dx(idx:idx+5));
     else
       param.param += dx(idx:(idx+param.min_dims-1));

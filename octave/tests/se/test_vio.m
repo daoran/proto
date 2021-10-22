@@ -132,11 +132,11 @@ gnd_data.imu_att = [rad2deg(quat2euler(tf_quat(sim_data.imu_poses{1})))];
 gnd_data.imu_vel = [sim_data.imu_vel(:, 1)];
 gnd_data.exts = sim_data.T_SC0;
 
-% -- Add landmarks
+% -- Add features
 fid2pid = {};
 for i = 1:rows(sim_data.features)
   p_W = sim_data.features(i, :)';
-  [graph, param_id] = graph_add_param(graph, landmark_init(i, p_W));
+  [graph, param_id] = graph_add_param(graph, feature_init(i, p_W));
   fid2pid{i} = param_id;
 endfor
 
