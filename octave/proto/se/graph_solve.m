@@ -1,7 +1,8 @@
 function graph = graph_solve(graph)
   % Settings
   max_iter = 100;
-  lambda = 1e8;
+  % lambda = 1e8;
+  lambda = 1e-4;
 
   % Calculate initial cost
   [H, g, r, param_idx] = graph_eval(graph);
@@ -12,14 +13,14 @@ function graph = graph_solve(graph)
   for i = 1:max_iter
     % Levenberg-Marquardt
     H = H + lambda * eye(size(H));
-    dx = H \ g;
+    % dx = H \ g;
     % dx = pinv(H) * g;
     % dx = linsolve(H, g);
 
-    % warning('off');
-    % H_sparse = sparse(H);
-    % dx = pcg(H_sparse, g, 1e-3, 100);
-    % warning('on');
+    warning('off');
+    H_sparse = sparse(H);
+    dx = pcg(H_sparse, g, 1e-3, 100);
+    warning('on');
 
     graph = graph_update(graph, param_idx, dx);
     [H, g, r, param_idx] = graph_eval(graph);

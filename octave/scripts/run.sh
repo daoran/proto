@@ -77,10 +77,11 @@ ctags -R .
 # octave tests/core/ctraj/test_ctraj_init.m && exit 0
 # octave tests/core/os/test_join_paths.m && exit 0
 # octave tests/core/os/test_list_dir.m && exit 0
-# octave tests/core/quat/test_quat_mul.m && exit 0
-# octave tests/core/quat/test_quat_norm.m && exit 0
-# octave tests/core/quat/test_quat_normalize.m && exit 0
-# octave tests/core/quat/test_quat_omega.m && exit 0
+octave tests/core/linalg/test_schurs_complement.m && exit 0
+# octave tests/core/tf/test_quat_mul.m && exit 0
+# octave tests/core/tf/test_quat_norm.m && exit 0
+# octave tests/core/tf/test_quat_normalize.m && exit 0
+# octave tests/core/tf/test_quat_omega.m && exit 0
 # octave tests/core/tf/test_dehomogeneous.m && exit 0
 # octave tests/core/tf/test_euler2quat.m && exit 0
 # octave tests/core/tf/test_euler321.m && exit 0
@@ -135,14 +136,16 @@ ctags -R .
 # octave tests/se/factor/test_ba_factor_init.m && exit 0
 # octave tests/se/factor/test_ba_factor_eval.m && exit 0
 # octave tests/se/factor/test_cam_factor_eval.m && exit 0
+# octave tests/se/factor/test_marg_factor_init.m && exit 0
 # octave tests/se/param/test_camera_init.m && exit 0
 # octave tests/se/param/test_feature_init.m && exit 0
 # octave tests/se/param/test_pose_init.m && exit 0
 # octave tests/se/param/test_sb_init.m && exit 0
 # octave tests/se/test_graph_add_factor.m && exit 0
 # octave tests/se/test_graph_add_param.m && exit 0
-octave tests/se/test_graph_eval.m && exit 0
+# octave tests/se/test_graph_eval.m && exit 0
 # octave tests/se/test_graph_init.m && exit 0
+# octave tests/se/test_graph_remove_factor.m && exit 0
 # octave tests/se/test_io.m && exit 0
 # octave tests/se/test_vio.m && exit 0
 

@@ -1,4 +1,7 @@
-function [H, g, residuals, param_idx] = graph_eval(graph)
+function [r, jacs] = marg_factor_eval(marg_factor, params)
+  assert(isstruct(marg_factor));
+
+  % Setup
   pose_param_ids = [];
   sb_param_ids = [];
   camera_param_ids = [];
@@ -12,11 +15,12 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   feature_param_size = 0;
 
   % Track parameters
-  for i = 1:length(graph.factors)
-    factor = graph.factors{i};
-    params = graph_get_params(graph, factor.param_ids);
+  for i = 1:length(marg_factor.factors)
+    factor = marg_factor.factors{i};
+    % params = graph_get_params(graph, factor.param_ids);
+    factor
 
-    for j = 1:length(params)
+    for j = 1:length(factor.param_ids)
       param = params{j};
       if strcmp(param.type, "pose")
         pose_param_ids = [pose_param_ids, param.id];
@@ -49,18 +53,6 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   nb_params += length(exts_param_ids);
   nb_params += length(camera_param_ids);
   nb_params += length(feature_param_ids);
-
-  % printf("pose_param_size: %d\n", pose_param_size);
-  % printf("exts_param_size: %d\n", exts_param_size);
-  % printf("sb_param_size: %d\n", sb_param_size);
-  % printf("feature_param_size: %d\n", feature_param_size);
-  % printf("camera_param_size: %d\n", camera_param_size);
-
-  % printf("nb_pose_params: %d\n", length(pose_param_ids));
-  % printf("nb_exts_params: %d\n", length(exts_param_ids));
-  % printf("nb_sb_params: %d\n", length(sb_param_ids));
-  % printf("nb_feature_params: %d\n", length(feature_param_ids));
-  % printf("nb_camera_params: %d\n", length(camera_param_ids));
 
   param_idx = {};
   col_idx = 1;
@@ -96,21 +88,24 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
 	g = zeros(param_size, 1);
 	residuals = [];
 
-  for k = 1:length(graph.factors)
-    factor = graph.factors{k};
-    params = graph_get_params(graph, factor.param_ids);
-    [r, jacobians] = factor.eval(factor, params);
+  for k = 1:length(marg_factor.factors)
+    factor = marg_factor.factors{k};
+    factor_params = {};
+    for x = 1:length(factor.param_ids)
+      factor_params{x} = params{factor.param_ids(x)};
+    end
+    [r, jacobians] = factor.eval(factor, factor_params);
 		residuals = [residuals; r];
 
-    for i = 1:length(params)
-      idx_i = param_idx{params{i}.id};
-      size_i = params{i}.min_dims;
+    for i = 1:length(factor_params)
+      idx_i = param_idx{factor_params{i}.id};
+      size_i = factor_params{i}.min_dims;
       J_i = jacobians{i};
 
       for j = i:length(params)
-        idx_j = param_idx{params{j}.id};
-        size_j = params{j}.min_dims;
-        J_j = jacobians{j};
+        idx_j = param_idx{factor_params{i}.id};
+        size_j = factor_params{i}.min_dims;
+        J_j = jacobians{i};
 
 				rs = idx_i;
 				re = idx_i + (size_i - 1);
@@ -132,4 +127,10 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
 			g(rs:re) += -J_i' * r;
     endfor  % Iterate params - i
   endfor  % Iterate factors
+
+  % imagesc(H);
+  % ginput();
+
+  r = zeros(1, 1);
+  jacs = zeros(1, 1);
 endfunction
