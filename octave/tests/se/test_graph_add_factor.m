@@ -39,6 +39,6 @@ graph = graph_init();
 
 param_ids = [cam_pose_id, feature_id, cam_params_id];
 ba_factor = ba_factor_init(0, param_ids, z);
-graph = graph_add_factor(graph, ba_factor);
+[graph, factor_id] = graph_add_factor(graph, ba_factor);
 
 assert(length(graph.factors) == 1);

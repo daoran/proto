@@ -6,7 +6,7 @@ function [r, jacs] = cam_factor_eval(factor, params)
   r = zeros(2, 1);
   jacs{1} = zeros(2, 6);  % w.r.t Sensor pose T_WS
   jacs{2} = zeros(2, 6);  % w.r.t Sensor-camera pose T_SC
-  jacs{3} = zeros(2, 3);  % w.r.t Landmark r_W
+  jacs{3} = zeros(2, 3);  % w.r.t Feature r_W
   jacs{4} = zeros(2, 8);  % w.r.t Camera parameters
 
   % Map params
