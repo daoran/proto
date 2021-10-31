@@ -50,18 +50,6 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
   nb_params += length(camera_param_ids);
   nb_params += length(feature_param_ids);
 
-  % printf("pose_param_size: %d\n", pose_param_size);
-  % printf("exts_param_size: %d\n", exts_param_size);
-  % printf("sb_param_size: %d\n", sb_param_size);
-  % printf("feature_param_size: %d\n", feature_param_size);
-  % printf("camera_param_size: %d\n", camera_param_size);
-
-  % printf("nb_pose_params: %d\n", length(pose_param_ids));
-  % printf("nb_exts_params: %d\n", length(exts_param_ids));
-  % printf("nb_sb_params: %d\n", length(sb_param_ids));
-  % printf("nb_feature_params: %d\n", length(feature_param_ids));
-  % printf("nb_camera_params: %d\n", length(camera_param_ids));
-
   param_idx = {};
   col_idx = 1;
   for i = 1:length(pose_param_ids)
