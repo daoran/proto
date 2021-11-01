@@ -4,6 +4,7 @@ function feature = feature_init(feature_id, x)
   feature.feature_id = feature_id;
   feature.param = x;
   feature.min_dims = rows(x);
+  feature.pose_ids = [];
 
   if rows(x) == 3
     feature.parameterization = "XYZ";

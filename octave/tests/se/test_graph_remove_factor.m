@@ -44,5 +44,6 @@ ba_factor = ba_factor_init(0, param_ids, z);
 assert(length(graph.factors) == 1);
 
 % Remove factor
+assert(length(graph.factors) == 1);
 graph = graph_remove_factor(graph, factor_id);
-length(graph.factors)
+assert(length(graph.factors) == 0);

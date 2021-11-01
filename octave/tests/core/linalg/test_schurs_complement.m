@@ -161,6 +161,37 @@ function test_with_schur_complement(camera_data)
   printf("[after optimizing]  reproj_error: %f px\n", norm(r));
 endfunction
 
+function test_marginalization(camera_data)
+  % Create graph
+  graph = f(camera_data);
+
+  % Reprojection error before optimization
+  graph.marg_param_ids = [graph.pose_param_ids(1)];
+
+  [H, g, r, param_idx] = graph_eval(graph);
+  printf("\n");
+  printf("[before optimizing] reproj_error: %f px\n", norm(r));
+
+  % % Marginalize oldest pose
+  % m = 6;
+  % r = rows(H) - m;
+  % [H_marg, g_marg] = schurs_complement(H, g, m, r);
+  %
+  % % Optimize
+  % lambda = 1e-4;
+  % H_marg = H_marg + lambda * eye(size(H_marg));
+  % dx = H_marg \ g_marg;
+  % dx = [zeros(m, 1); dx];
+  %
+  % % Update
+  % graph = graph_update(graph, param_idx, dx);
+  %
+  % % Reprojection error after optimization
+  % [H, g, r, param_idx] = graph_eval(graph);
+  %
+  % printf("[after optimizing]  reproj_error: %f px\n", norm(r));
+endfunction
+
 camera = setup_camera();
 
 poses = {};
@@ -176,4 +207,5 @@ observations{2} = [1, 2, 3, 4, 5];
 camera_data = setup_data(camera, poses, feature_data, observations);
 
 % test_without_schur_complement(camera_data);
-test_with_schur_complement(camera_data)
+% test_with_schur_complement(camera_data)
+test_marginalization(camera_data)

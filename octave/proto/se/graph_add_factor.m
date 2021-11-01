@@ -10,5 +10,18 @@ function [graph, factor_id] = graph_add_factor(graph, factor)
   % Add parameter to graph
   factor_id = length(graph.factors) + 1;
   factor.id = factor_id;
-  graph.factors{factor_id} = factor;
+  graph.factors = [graph.factors, factor];
+
+  % BA factor
+  if strcmp(factor.type, "ba_factor")
+    pose_id = factor.param_ids(1);
+    feature_id = factor.param_ids(2);
+    feature_pose_ids = graph.params{feature_id}.pose_ids;
+    graph.params{feature_id}.pose_ids = [feature_pose_ids, pose_id];
+  elseif strcmp(factor.type, "cam_factor")
+    pose_id = factor.param_ids(1);
+    feature_id = factor.param_ids(3);
+    feature_pose_ids = graph.params{feature_id}.pose_ids;
+    graph.params{feature_id}.pose_ids = [feature_pose_ids, pose_id];
+  endif
 endfunction

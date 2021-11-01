@@ -1,10 +1,12 @@
 function [H, g, residuals, param_idx] = graph_eval(graph)
+  % Parameter ids
   pose_param_ids = [];
   sb_param_ids = [];
   camera_param_ids = [];
   exts_param_ids = [];
   feature_param_ids = [];
 
+  % Parameter sizes
   pose_param_size = 0;
   sb_param_size = 0;
   camera_param_size = 0;
@@ -13,7 +15,7 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
 
   % Track parameters
   for i = 1:length(graph.factors)
-    factor = graph.factors{i};
+    factor = graph.factors(i);
     params = graph_get_params(graph, factor.param_ids);
 
     for j = 1:length(params)
@@ -85,7 +87,7 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
 	residuals = [];
 
   for k = 1:length(graph.factors)
-    factor = graph.factors{k};
+    factor = graph.factors(k);
     params = graph_get_params(graph, factor.param_ids);
     [r, jacobians] = factor.eval(factor, params);
 		residuals = [residuals; r];
