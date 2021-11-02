@@ -141,11 +141,11 @@ octave tests/core/linalg/test_schurs_complement.m && exit 0
 # octave tests/se/param/test_feature_init.m && exit 0
 # octave tests/se/param/test_pose_init.m && exit 0
 # octave tests/se/param/test_sb_init.m && exit 0
-octave tests/se/test_graph_add_factor.m && exit 0
+# octave tests/se/test_graph_add_factor.m && exit 0
 # octave tests/se/test_graph_add_param.m && exit 0
 # octave tests/se/test_graph_eval.m && exit 0
 # octave tests/se/test_graph_init.m && exit 0
-# octave tests/se/test_graph_remove_factor.m && exit 0
+octave tests/se/test_graph_remove_factor.m && exit 0
 # octave tests/se/test_io.m && exit 0
 # octave tests/se/test_vio.m && exit 0
 

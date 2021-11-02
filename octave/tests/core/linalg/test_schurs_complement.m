@@ -172,24 +172,24 @@ function test_marginalization(camera_data)
   printf("\n");
   printf("[before optimizing] reproj_error: %f px\n", norm(r));
 
-  % % Marginalize oldest pose
-  % m = 6;
-  % r = rows(H) - m;
-  % [H_marg, g_marg] = schurs_complement(H, g, m, r);
-  %
-  % % Optimize
-  % lambda = 1e-4;
-  % H_marg = H_marg + lambda * eye(size(H_marg));
-  % dx = H_marg \ g_marg;
-  % dx = [zeros(m, 1); dx];
-  %
-  % % Update
-  % graph = graph_update(graph, param_idx, dx);
-  %
-  % % Reprojection error after optimization
-  % [H, g, r, param_idx] = graph_eval(graph);
-  %
-  % printf("[after optimizing]  reproj_error: %f px\n", norm(r));
+  % Marginalize oldest pose
+  m = 6;
+  r = rows(H) - m;
+  [H_marg, g_marg] = schurs_complement(H, g, m, r);
+
+  % Optimize
+  lambda = 1e-4;
+  H_marg = H_marg + lambda * eye(size(H_marg));
+  dx = H_marg \ g_marg;
+  dx = [zeros(m, 1); dx];
+
+  % Update
+  graph = graph_update(graph, param_idx, dx);
+
+  % Reprojection error after optimization
+  [H, g, r, param_idx] = graph_eval(graph);
+
+  printf("[after optimizing]  reproj_error: %f px\n", norm(r));
 endfunction
 
 camera = setup_camera();
