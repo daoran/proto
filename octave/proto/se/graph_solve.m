@@ -5,7 +5,7 @@ function graph = graph_solve(graph)
   lambda = 1e-4;
 
   % Calculate initial cost
-  [H, g, r, param_idx] = graph_eval(graph);
+  [H, g, r, param_indices] = graph_eval(graph);
   cost_prev = 0.5 * r' * r;
   printf("iter[0] cost: %.2e, dcost = 0.00, lambda: %.2e\n", cost_prev, lambda);
 
@@ -22,8 +22,8 @@ function graph = graph_solve(graph)
     % dx = pcg(H_sparse, g, 1e-3, 100);
     % warning('on');
 
-    graph = graph_update(graph, param_idx, dx);
-    [H, g, r, param_idx] = graph_eval(graph);
+    graph = graph_update(graph, param_indices, dx);
+    [H, g, r, param_indices] = graph_eval(graph);
     cost = 0.5 * r' * r;
     dcost = cost_prev - cost;
     printf("iter[%d] cost: %.2e, dcost = %.2e, lambda: %.2e\n", i, cost, dcost, lambda);
@@ -51,8 +51,8 @@ function graph = graph_solve(graph)
       cost_prev = cost;
     else
       lambda *= 5.0;
-      graph = graph_update(graph, param_idx, -dx);
-      [H, g, r, param_idx] = graph_eval(graph);
+      graph = graph_update(graph, param_indices, -dx);
+      [H, g, r, param_indices] = graph_eval(graph);
       cost_prev = 0.5 * r' * r;
     endif
   end

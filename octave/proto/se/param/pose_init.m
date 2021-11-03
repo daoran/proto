@@ -7,6 +7,7 @@ function pose = pose_init(ts, data)
     data = tf_param(data);
   endif
 
+  pose.fixed = false;
   pose.type = "pose";
   pose.ts = ts;
   pose.param = data;

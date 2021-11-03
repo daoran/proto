@@ -1,4 +1,4 @@
-function [H, g, residuals, param_idx] = graph_eval(graph)
+function [H, g, residuals, param_indices] = graph_eval(graph)
   % Parameter ids
   pose_param_ids = [];
   sb_param_ids = [];
@@ -20,6 +20,10 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
 
     for j = 1:length(params)
       param = params{j};
+      if param.fixed
+        continue;
+      endif
+
       if strcmp(param.type, "pose")
         pose_param_ids = [pose_param_ids, param.id];
         pose_param_size = param.min_dims;
@@ -29,50 +33,50 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
       elseif strcmp(param.type, "extrinsics")
         exts_param_ids = [exts_param_ids, param.id];
         exts_param_size = param.min_dims;
-      elseif strcmp(param.type, "camera")
-        camera_param_ids = [camera_param_ids, param.id];
-        camera_param_size = param.min_dims;
       elseif strcmp(param.type, "feature")
         feature_param_ids = [feature_param_ids, param.id];
         feature_param_size = param.min_dims;
+      elseif strcmp(param.type, "camera")
+        camera_param_ids = [camera_param_ids, param.id];
+        camera_param_size = param.min_dims;
       endif
     endfor
   endfor
   pose_param_ids = unique(pose_param_ids);
   sb_param_ids = unique(sb_param_ids);
   exts_param_ids = unique(exts_param_ids);
-  camera_param_ids = unique(camera_param_ids);
   feature_param_ids = unique(feature_param_ids);
+  camera_param_ids = unique(camera_param_ids);
 
   % Assign global parameter order
   nb_params = 0;
   nb_params += length(pose_param_ids);
   nb_params += length(sb_param_ids);
   nb_params += length(exts_param_ids);
-  nb_params += length(camera_param_ids);
   nb_params += length(feature_param_ids);
+  nb_params += length(camera_param_ids);
 
-  param_idx = {};
+  param_indices = {};
   col_idx = 1;
   for i = 1:length(pose_param_ids)
-    param_idx{pose_param_ids(i)} = col_idx;
+    param_indices{pose_param_ids(i)} = col_idx;
     col_idx += pose_param_size;
   endfor
   for i = 1:length(sb_param_ids)
-    param_idx{sb_param_ids(i)} = col_idx;
+    param_indices{sb_param_ids(i)} = col_idx;
     col_idx += sb_param_size;
   endfor
   for i = 1:length(exts_param_ids)
-    param_idx{exts_param_ids(i)} = col_idx;
+    param_indices{exts_param_ids(i)} = col_idx;
     col_idx += exts_param_size;
   endfor
-  for i = 1:length(camera_param_ids)
-    param_idx{camera_param_ids(i)} = col_idx;
-    col_idx += camera_param_size;
-  endfor
   for i = 1:length(feature_param_ids)
-    param_idx{feature_param_ids(i)} = col_idx;
+    param_indices{feature_param_ids(i)} = col_idx;
     col_idx += feature_param_size;
+  endfor
+  for i = 1:length(camera_param_ids)
+    param_indices{camera_param_ids(i)} = col_idx;
+    col_idx += camera_param_size;
   endfor
 
   % Form Hessian
@@ -93,12 +97,18 @@ function [H, g, residuals, param_idx] = graph_eval(graph)
 		residuals = [residuals; r];
 
     for i = 1:length(params)
-      idx_i = param_idx{params{i}.id};
+      if params{i}.fixed
+        continue;
+      endif
+      idx_i = param_indices{params{i}.id};
       size_i = params{i}.min_dims;
       J_i = jacobians{i};
 
       for j = i:length(params)
-        idx_j = param_idx{params{j}.id};
+        if params{j}.fixed
+          continue;
+        endif
+        idx_j = param_indices{params{j}.id};
         size_j = params{j}.min_dims;
         J_j = jacobians{j};
 

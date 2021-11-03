@@ -6,6 +6,7 @@ function camera = camera_init(cam_idx, resolution,
   assert(length(proj_params) > 0 && columns(proj_params) == 1);
   assert(length(dist_params) > 0 && columns(dist_params) == 1);
 
+  camera.fixed = false;
   camera.type = "camera";
   camera.cam_idx = cam_idx;
   camera.resolution = resolution;

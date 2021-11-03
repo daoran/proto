@@ -7,6 +7,7 @@ function extrinsics = extrinsics_init(ts, data)
     data = tf_param(data);
   endif
 
+  extrinsics.fixed = false;
   extrinsics.type = "extrinsics";
   extrinsics.ts = ts;
   extrinsics.param = data;

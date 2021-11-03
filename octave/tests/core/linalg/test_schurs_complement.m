@@ -21,6 +21,7 @@ function camera = setup_camera()
   proj_params = [fx; fy; cx; cy];
   dist_params = [-0.01; 0.01; 1e-4; 1e-4];
   camera = pinhole_radtan4_init(cam_idx, resolution, proj_params, dist_params);
+  camera.fixed = true;
 endfunction
 
 function feature_data = setup_features(nb_features)
@@ -137,23 +138,23 @@ function test_with_schur_complement(camera_data)
   graph = f(camera_data);
 
   % Reprojection error before optimization
-  [H, g, r, param_idx] = graph_eval(graph);
+  [H, g, r, param_indices] = graph_eval(graph);
   printf("\n");
   printf("[before optimizing] reproj_error: %f px\n", norm(r));
 
-  % Marginalize oldest pose
-  m = 6;
-  r = rows(H) - m;
-  [H_marg, g_marg] = schurs_complement(H, g, m, r);
-
-  % Optimize
-  lambda = 1e-4;
-  H_marg = H_marg + lambda * eye(size(H_marg));
-  dx = H_marg \ g_marg;
-  dx = [zeros(m, 1); dx];
+  % % Marginalize oldest pose
+  % m = 6;
+  % r = rows(H) - m;
+  % [H_marg, g_marg] = schurs_complement(H, g, m, r);
+  %
+  % % Optimize
+  % lambda = 1e-4;
+  % H_marg = H_marg + lambda * eye(size(H_marg));
+  % dx = H_marg \ g_marg;
+  % dx = [zeros(m, 1); dx];
 
   % Update
-  graph = graph_update(graph, param_idx, dx);
+  graph = graph_update(graph, param_indices, dx);
 
   % Reprojection error after optimization
   [H, g, r, param_idx] = graph_eval(graph);
@@ -168,7 +169,7 @@ function test_marginalization(camera_data)
   % Reprojection error before optimization
   graph.marg_param_ids = [graph.pose_param_ids(1)];
 
-  [H, g, r, param_idx] = graph_eval(graph);
+  [H, g, r, param_indices] = graph_eval(graph);
   printf("\n");
   printf("[before optimizing] reproj_error: %f px\n", norm(r));
 
@@ -184,10 +185,10 @@ function test_marginalization(camera_data)
   dx = [zeros(m, 1); dx];
 
   % Update
-  graph = graph_update(graph, param_idx, dx);
+  graph = graph_update(graph, param_indices, dx);
 
   % Reprojection error after optimization
-  [H, g, r, param_idx] = graph_eval(graph);
+  [H, g, r, param_indices] = graph_eval(graph);
 
   printf("[after optimizing]  reproj_error: %f px\n", norm(r));
 endfunction
@@ -197,15 +198,19 @@ camera = setup_camera();
 poses = {};
 poses{1} = setup_camera_pose();
 poses{2} = setup_camera_pose();
+poses{3} = setup_camera_pose();
+poses{4} = setup_camera_pose();
 
-nb_features = 5;
+nb_features = 6;
 feature_data = setup_features(nb_features);
 
 observations = {};
-observations{1} = [1, 2];
-observations{2} = [1, 2, 3, 4, 5];
+observations{1} = [1, 2, 3];
+observations{2} = [2, 3, 4];
+observations{3} = [3, 4, 5];
+observations{4} = [4, 5, 6];
 camera_data = setup_data(camera, poses, feature_data, observations);
 
-% test_without_schur_complement(camera_data);
+test_without_schur_complement(camera_data);
 % test_with_schur_complement(camera_data)
-test_marginalization(camera_data)
+% test_marginalization(camera_data)
