@@ -4,9 +4,9 @@ function [H_marg, g_marg] = schurs_complement(H, g, m, r, precond=false)
   % H = [Hmm, Hmr
   %      Hrm, Hrr];
   Hmm = H(1:m, 1:m);
-  Hmr = H(1:m, m+1:m+r);
+  Hmr = H(1:m, m+1:end);
   Hrm = Hmr';
-  Hrr = H(m+1:m+r, m+1:m+r);
+  Hrr = H(m+1:end, m+1:end);
 
   % g = [gmm, grr];
   gmm = g(1:m);
@@ -18,9 +18,12 @@ function [H_marg, g_marg] = schurs_complement(H, g, m, r, precond=false)
   endif
 
   % Invert Hmm
-  [V, lambda] = eig(Hmm);
-  lambda_inv = diag(1.0 / diag(lambda));
-  Hmm_inv = V * lambda_inv * V';
+  assert(rank(Hmm) == rows(Hmm));
+  [V, Lambda] = eig(Hmm);
+  lambda = diag(Lambda);
+  lambda_inv = 1.0 ./ lambda;
+  Lambda_inv = diag(lambda_inv);
+  Hmm_inv = V * Lambda_inv * V';
 
   % Schurs complement
   H_marg = Hrr - Hrm * Hmm_inv * Hmr;

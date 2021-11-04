@@ -9,25 +9,21 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
   exts_param_ids = [];
   feature_param_ids = [];
 
-  marg_param_sizes = [];
+  marg_param_sizes = marg_factor.marg_param_sizes;
   pose_param_size = 0;
   sb_param_size = 0;
   camera_param_size = 0;
   exts_param_size = 0;
   feature_param_size = 0;
 
-  % Obtain marg param sizes
-  for i = 1:length(marg_param_ids)
-    param_id = marg_param_ids(i);
-    marg_param_sizes = [marg_param_sizes, params{param_id}.min_dims];
-  endfor
-
   % Track parameters
+  param_idx_offset = 0;
   for i = 1:length(marg_factor.factors)
     factor = marg_factor.factors(i);
 
     for j = 1:length(factor.param_ids)
-      param = params{factor.param_ids(j)};
+      idx = j + param_idx_offset;
+      param = params{idx};
 
       if strcmp(param.type, "pose")
         pose_param_ids = [pose_param_ids, param.id];
@@ -46,6 +42,8 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
         feature_param_size = param.min_dims;
       endif
     endfor
+
+    param_idx_offset += length(factor.param_ids);
   endfor
   pose_param_ids = setdiff(pose_param_ids, marg_param_ids);
   sb_param_ids = setdiff(sb_param_ids, marg_param_ids);
@@ -101,30 +99,21 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
 	g = zeros(param_size, 1);
 	r = [];
 
+  param_idx_offset = 0;
   for k = 1:length(marg_factor.factors)
     factor = marg_factor.factors(k);
     for x = 1:length(factor.param_ids)
-      factor_params{x} = params{factor.param_ids(x)};
+      factor_params{x} = params{x + param_idx_offset};
     end
     [residuals, jacobians] = factor.eval(factor, factor_params);
 		r = [r; residuals];
 
     for i = 1:length(factor_params)
-      if factor_params{i}.fixed
-        continue;
-      elseif any(marg_param_ids == factor_params{i}.id)
-        continue;
-      endif
       idx_i = param_indices{factor_params{i}.id};
       size_i = factor_params{i}.min_dims;
       J_i = jacobians{i};
 
       for j = i:length(factor_params)
-        if factor_params{j}.fixed
-          continue;
-        elseif any(marg_param_ids == factor_params{j}.id)
-          continue;
-        endif
         idx_j = param_indices{factor_params{j}.id};
         size_j = factor_params{j}.min_dims;
         J_j = jacobians{j};
@@ -148,6 +137,8 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
 			re = idx_i + (size_i - 1);
 			g(rs:re) += -J_i' * residuals;
     endfor  % Iterate params - i
+
+    param_idx_offset += length(factor.param_ids);
   endfor  % Iterate factors
 
   % Perform marginalization
@@ -156,14 +147,24 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
   [H_marg, g_marg] = schurs_complement(H, g, marg_size, remain_size);
 
   % figure(1);
-  % imagesc(normalize(H));
+  % imagesc(H);
   %
   % figure(2);
-  % imagesc(normalize(H_marg));
+  % imagesc(H_marg);
   % ginput();
 
-  % % Decompose Hessian back to J
-  % eig(H_marg)
+  % size(H_marg)
+  % rank(H_marg)
+
+  % Decompose Hessian back to J
+  % H_marg
+  % [V, Lambda] = eig(H_marg);
+  % H_marg
+  % Lambda
+  % lambda = diag(Lambda);
+  % lambda_inv = 1.0 ./ lambda;
+  % lambda
+  % lambda_sqrt = lambda.^0.5
 
   r = zeros(1, 1);
   jacs = zeros(1, 1);
