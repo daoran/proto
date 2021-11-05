@@ -8,25 +8,27 @@ function graph = graph_solve(graph)
   [H, g, r, param_indices] = graph_eval(graph);
   cost_prev = 0.5 * r' * r;
   printf("iter[0] cost: %.2e, dcost = 0.00, lambda: %.2e\n", cost_prev, lambda);
+  printf("reproj_error: %f\n", norm(r));
 
   nb_bad_iters = 0;
   for i = 1:max_iter
     % Levenberg-Marquardt
     H = H + lambda * eye(size(H));
-    dx = H \ g;
+    % dx = H \ g;
     % dx = pinv(H) * g;
     % dx = linsolve(H, g);
 
-    % warning('off');
-    % H_sparse = sparse(H);
-    % dx = pcg(H_sparse, g, 1e-3, 100);
-    % warning('on');
+    warning('off');
+    H_sparse = sparse(H);
+    dx = pcg(H_sparse, g, 1e-3, 100);
+    warning('on');
 
     graph = graph_update(graph, param_indices, dx);
     [H, g, r, param_indices] = graph_eval(graph);
     cost = 0.5 * r' * r;
     dcost = cost_prev - cost;
     printf("iter[%d] cost: %.2e, dcost = %.2e, lambda: %.2e\n", i, cost, dcost, lambda);
+    printf("reproj_error: %f\n", norm(r));
 
     % Termination criteria
     % -- Cost is low?
@@ -50,7 +52,7 @@ function graph = graph_solve(graph)
       nb_bad_iters = 0;
       cost_prev = cost;
     else
-      lambda *= 5.0;
+      lambda *= 8.0;
       graph = graph_update(graph, param_indices, -dx);
       [H, g, r, param_indices] = graph_eval(graph);
       cost_prev = 0.5 * r' * r;

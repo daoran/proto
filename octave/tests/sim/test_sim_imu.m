@@ -4,7 +4,8 @@ graphics_toolkit("fltk");
 sim_data = sim_imu(0.5, 1.0);
 fieldnames(sim_data)
 
-show_plots = 1;
+% show_plots = 1;
+show_plots = 0;
 if show_plots
   % Plot positions and velocities
   figure();

@@ -133,7 +133,13 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
 endfunction
 
 % Simulate imu data
-sim_data = sim_imu(2.0, 1.0);
+save_path = "/tmp/test_io.data";
+if length(glob(save_path)) == 0
+  sim_data = sim_imu(2.0, 1.0);
+  save("-binary", save_path, "sim_data");
+else
+  load(save_path);
+endif
 window_size = 10;
 g = [0.0; 0.0; 9.81];
 
@@ -211,7 +217,7 @@ for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
   [graph, sb_j_id] = graph_add_param(graph, sb_j);
   param_ids = [pose_i_id; sb_i_id; pose_j_id; sb_j_id];
   imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i);
-  graph = graph_add_factor(graph, imu_factor);
+  [graph, factor_id] = graph_add_factor(graph, imu_factor);
 
   % Update
   pose_i = pose_j;

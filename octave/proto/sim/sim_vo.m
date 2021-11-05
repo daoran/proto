@@ -1,7 +1,8 @@
 function sim_data = sim_vo(circle_r,
                            velocity,
                            C_SC0=euler321(deg2rad([-90.0, 0.0, -90.0])),
-                           r_SC0 = [0.01; 0.01; 0.05])
+                           r_SC0 = [0.01; 0.01; 0.05],
+                           nb_features=200)
   % cam0
   cam_idx = 0;
   image_width = 640;
@@ -19,7 +20,6 @@ function sim_data = sim_vo(circle_r,
   % Simulate features
   origin = [0; 0; 0];
   dim = [circle_r * 2; circle_r * 2; circle_r * 1.5];
-  nb_features = 2000;
   features = create_3d_features_perimeter(origin, dim, nb_features);
 
   % Simulate camera
@@ -45,6 +45,7 @@ function sim_data = sim_vo(circle_r,
   z_data = {};
   p_data = {};
 
+  % Simulate camera
   idx = 1;
   while (t <= time_taken)
     % Sensor pose
@@ -74,8 +75,20 @@ function sim_data = sim_vo(circle_r,
     t += dt;
   endwhile
 
+  % Form timeline
+  timeline = [];
+  for k = 1:length(cam_time)
+    event = {};
+    event.ts = cam_time(k);
+    event.cam_pose = cam_poses{k};
+    event.cam_z_data = cam_z_data{k};
+    event.cam_p_data = cam_p_data{k};
+    timeline = [timeline, event];
+  endfor
+
   % Simulation data
   sim_data = {};
+  sim_data.timeline = timeline;
   % -- Features
   sim_data.nb_features = nb_features;
   sim_data.features = features;

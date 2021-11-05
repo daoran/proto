@@ -114,7 +114,13 @@ function visualize(fig_title, graph, gnd_data)
 endfunction
 
 % Simulate imu data
-sim_data = sim_vio(2.0, 10.0);
+save_path = "/tmp/test_vio.data";
+if length(glob(save_path)) == 0
+  sim_data = sim_vio(2.0, 10.0);
+  save("-binary", save_path, "sim_data");
+else
+  load(save_path);
+endif
 g = [0.0; 0.0; 9.81];
 
 % IMU params
@@ -124,15 +130,19 @@ imu_params.noise_gyr = 0.004;   % gyroscope measurement noise stddev.
 imu_params.noise_ba = 0.00004;  % accelerometer bias random work noise stddev.
 imu_params.noise_bg = 2.0e-6;   % gyroscope bias random work noise stddev.
 
-% Create graph
-graph = graph_init();
+% Ground truth data
 gnd_data = {};
 gnd_data.imu_pos = [tf_trans(sim_data.imu_poses{1})];
 gnd_data.imu_att = [rad2deg(quat2euler(tf_quat(sim_data.imu_poses{1})))];
 gnd_data.imu_vel = [sim_data.imu_vel(:, 1)];
 gnd_data.exts = sim_data.T_SC0;
 
+% Create graph
+printf("Create factor graph\n");
+graph = graph_init();
+
 % -- Add features
+printf("Add features\n");
 fid2pid = {};
 for i = 1:rows(sim_data.features)
   p_W = sim_data.features(i, :)';
@@ -141,9 +151,11 @@ for i = 1:rows(sim_data.features)
 endfor
 
 % -- Add cam0
+printf("Add camera\n");
 [graph, cam_id] = graph_add_param(graph, sim_data.cam0);
 
 % -- Add imu-cam extrinsics
+printf("Add imu-camera extrinsics\n");
 T_SC0 = sim_data.T_SC0;
 T_SC0(1:3, 1:3) *= Exp(normrnd(0.0, 0.05, 3, 1)); % Add noise to rotation
 T_SC0(1:3, 4) += normrnd(0.0, 0.1, 3, 1);         % Add noise to translation
@@ -151,6 +163,7 @@ exts = extrinsics_init(sim_data.imu_time(1), T_SC0);
 [graph, exts_id] = graph_add_param(graph, exts);
 
 % -- Add initial pose and speed and biases
+printf("Add first imu factor\n");
 % ---- Pose i
 T_WS = sim_data.imu_poses{1};
 pose_i = pose_init(sim_data.imu_time(1), T_WS);
@@ -163,11 +176,13 @@ sb_i = sb_init(sim_data.imu_time(1), vel_i, bg_i, ba_i);
 [graph, sb_i_id] = graph_add_param(graph, sb_i);
 
 % -- Add pose factor (Add pose factor to lock the first pose at origin)
+printf("Add pose factor\n");
 pose_covar = 1e-8 * eye(6);
 pose_factor = pose_factor_init(0, [pose_i_id], sim_data.imu_poses{1}, pose_covar);
 graph = graph_add_factor(graph, pose_factor);
 
 % Add cam factor for first frame
+printf("Add first camera factor\n");
 event = sim_data.timeline(1);
 for i = 1:length(event.cam_p_data)
   fid = event.cam_p_data(i);
@@ -181,11 +196,14 @@ for i = 1:length(event.cam_p_data)
 endfor
 
 % Initialize imu buffer
+printf("Initialize imu buffer\n");
 event = sim_data.timeline(1);
 imu_buf = imu_buf_init(event.time, event.imu_acc, event.imu_gyr);
 
 % Loop through time
+printf("Loop through time\n");
 for k = 2:length(sim_data.timeline)
+  printf(".");
   event = sim_data.timeline(k);
   t = event.time;
 
@@ -241,6 +259,7 @@ for k = 2:length(sim_data.timeline)
     imu_buf = imu_buf_reset(t, event.imu_acc, event.imu_gyr);
   endif
 endfor
+printf("\n");
 
 
 % Visualize

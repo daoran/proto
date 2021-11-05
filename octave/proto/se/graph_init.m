@@ -1,7 +1,7 @@
 function graph = graph_init()
   % Parameters and factors
   graph.params = {};
-  graph.factors = [];
+  graph.factors = {};
 
   % Parameter ids
   graph.camera_param_ids = [];

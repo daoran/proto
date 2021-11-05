@@ -10,7 +10,7 @@ function [graph, factor_id] = graph_add_factor(graph, factor)
   % Add parameter to graph
   factor_id = length(graph.factors) + 1;
   factor.id = factor_id;
-  graph.factors = [graph.factors, factor];
+  graph.factors{length(graph.factors) + 1} = factor;
 
   % BA factor
   if strcmp(factor.type, "ba_factor")

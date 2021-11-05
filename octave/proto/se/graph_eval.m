@@ -15,7 +15,7 @@ function [H, g, residuals, param_indices] = graph_eval(graph)
 
   % Track parameters
   for i = 1:length(graph.factors)
-    factor = graph.factors(i);
+    factor = graph.factors{i};
     params = graph_get_params(graph, factor.param_ids);
 
     for j = 1:length(params)
@@ -91,7 +91,7 @@ function [H, g, residuals, param_indices] = graph_eval(graph)
 	residuals = [];
 
   for k = 1:length(graph.factors)
-    factor = graph.factors(k);
+    factor = graph.factors{k};
     params = graph_get_params(graph, factor.param_ids);
     [r, jacobians] = factor.eval(factor, params);
 		residuals = [residuals; r];
