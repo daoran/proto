@@ -20,16 +20,7 @@ printf("Create factor graph\n");
 inv_depth_mode = true;
 graph = graph_init();
 
-% % -- Add features
-% printf("Add features\n");
-% fid2pid = {};
-% for i = 1:rows(sim_data.features)
-%   p_W = sim_data.features(i, :)';
-%   [graph, param_id] = graph_add_param(graph, feature_init(i, p_W));
-%   fid2pid{i} = param_id;
-% endfor
-
-% -- Add cam0
+% Add cam0
 printf("Add camera\n");
 camera = sim_data.cam0;
 [graph, cam_id] = graph_add_param(graph, camera);
@@ -37,20 +28,20 @@ camera = sim_data.cam0;
 % Loop through time
 printf("Loop through time\n");
 
-% -- Initialize features container
+% Initialize features container
 cam_features = {};
 for i = 1:rows(sim_data.features)
   cam_features{i} = 0;
 endfor
 
-% -- Initialize first pose
+% Initialize first pose
 event = sim_data.timeline(1);
-% ---- Add camera pose
+% -- Add camera pose
 ts = event.ts;
 T_WC_k = event.cam_pose;
 pose = pose_init(ts, T_WC_k);
 [graph, pose_id] = graph_add_param(graph, pose);
-% ---- Add bundle adjustment factors
+% -- Add bundle adjustment factors
 for i = 1:length(event.cam_p_data)
   feature_idx = event.cam_p_data(i);
   z = event.cam_z_data(:, i);
@@ -134,6 +125,34 @@ for k = 2:length(sim_data.timeline)
       cam_features{feature_idx} = param_id;
     endif
   endfor
+
+  % % Compare estimated features against ground truth
+  % features_diff = [];
+  % points = [];
+  % for i = 1:length(cam_features)
+  %   if cam_features{i} != 0
+  %     % Ground truth feature position
+  %     p_W_gnd = sim_data.features(i, :)';
+  %
+  %     % Estimated feature position
+  %     param_id = cam_features{i};
+  %     feature = graph.params{param_id};
+  %     p_W_est = zeros(3, 1);
+  %     if strcmp(feature.parameterization, "XYZ")
+  %       p_W_est = feature.param;
+  %     elseif strcmp(feature.parameterization, "INVERSE_DEPTH")
+  %       p_W_est = idp_point(feature.param);
+  %     endif
+  %     points = [points, p_W_est];
+  %
+  %     % Compare
+  %     features_diff = [features_diff, norm(p_W_gnd - p_W_est)];
+  %     points = [points, p_W_est];
+  %   endif
+  % endfor
+  % scatter3(points(1, :), points(2, :), points(3, :));
+  % printf("points diff: %f\n", mean(features_diff));
+  % printf("\n");
 
   % Update
   draw_frame(T_WC_k);
