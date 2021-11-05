@@ -2,7 +2,7 @@ function sim_data = sim_vo(circle_r,
                            velocity,
                            C_SC0=euler321(deg2rad([-90.0, 0.0, -90.0])),
                            r_SC0 = [0.01; 0.01; 0.05],
-                           nb_features=200)
+                           nb_features=1000)
   % cam0
   cam_idx = 0;
   image_width = 640;

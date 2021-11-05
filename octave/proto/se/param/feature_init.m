@@ -9,7 +9,7 @@ function feature = feature_init(feature_id, x)
 
   if rows(x) == 3
     feature.parameterization = "XYZ";
-  else
+  elseif rows(x) == 6
     feature.parameterization = "INVERSE_DEPTH";
   endif
 endfunction
