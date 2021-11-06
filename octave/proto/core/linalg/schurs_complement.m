@@ -10,7 +10,7 @@ function [H_marg, g_marg] = schurs_complement(H, g, m, r, precond=false)
 
   % g = [gmm, grr];
   gmm = g(1:m);
-  grr = g(m+1:m+r);
+  grr = g(m+1:end);
 
   % Precondition Hmm
   if (precond)
@@ -24,8 +24,19 @@ function [H_marg, g_marg] = schurs_complement(H, g, m, r, precond=false)
   lambda_inv = 1.0 ./ lambda;
   Lambda_inv = diag(lambda_inv);
   Hmm_inv = V * Lambda_inv * V';
+  % Hmm_inv = inv(Hmm);
+  % Hmm_inv = pinv(Hmm);
 
   % Schurs complement
   H_marg = Hrr - Hrm * Hmm_inv * Hmr;
   g_marg = grr - Hrm * Hmm_inv * gmm;
+
+  % issymmetric(Hrr)
+  % issymmetric(Hmm)
+  % issymmetric(Hmm_inv)
+  % issymmetric(H_marg)
+
+  % figure(1);
+  % imshow(triu(H_marg) - tril(H_marg)');
+  % ginput();
 endfunction

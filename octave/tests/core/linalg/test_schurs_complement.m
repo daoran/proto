@@ -32,7 +32,7 @@ function feature_data = setup_features(nb_features)
   for i = 1:nb_features
     p_W = [10; rand(2, 1)];
     feature_data.points{i} = p_W;
-    feature_data.features{i} = feature_init(i, p_W + rand(3, 1) * 0.1);
+    feature_data.features{i} = feature_init(i, p_W + rand(3, 1) * 0.01);
   endfor
 endfunction
 
@@ -142,26 +142,33 @@ function test_with_schur_complement(camera_data)
   printf("\n");
   printf("[before optimizing] reproj_error: %f px\n", norm(r));
 
-  % Marginalize oldest pose
-  m = 6;
-  r = rows(H) - m;
-  [H_marg, g_marg] = schurs_complement(H, g, m, r);
-  imagesc(H_marg)
-  ginput()
+  rank(H)
+  rows(H)
+  assert(rank(H) == rows(H));
+  [V, Lambda] = eig(H);
+  % lambda = diag(Lambda)
+  % lambda_inv = 1.0 ./ lambda;
+  % lambda_sqrt = lambda.^0.5
+  % lambda_inv_sqrt = lambda_inv.^0.5;
 
-  % Optimize
-  lambda = 1e-4;
-  H_marg = H_marg + lambda * eye(size(H_marg));
-  dx = H_marg \ g_marg;
-  dx = [zeros(m, 1); dx];
-
-  % Update
-  graph = graph_update(graph, param_indices, dx);
-
-  % Reprojection error after optimization
-  [H, g, r, param_idx] = graph_eval(graph);
-
-  printf("[after optimizing]  reproj_error: %f px\n", norm(r));
+  % % Marginalize oldest pose
+  % m = 6;
+  % r = rows(H) - m;
+  % [H_marg, g_marg] = schurs_complement(H, g, m, r);
+  %
+  % % Optimize
+  % lambda = 1e-4;
+  % H_marg = H_marg + lambda * eye(size(H_marg));
+  % dx = pinv(H_marg) * g_marg;
+  % dx = [zeros(m, 1); dx];
+  %
+  % % Update
+  % graph = graph_update(graph, param_indices, dx);
+  %
+  % % Reprojection error after optimization
+  % [H, g, r, param_idx] = graph_eval(graph);
+  %
+  % printf("[after optimizing]  reproj_error: %f px\n", norm(r));
 endfunction
 
 camera = setup_camera();
@@ -171,15 +178,19 @@ poses{1} = setup_camera_pose();
 poses{2} = setup_camera_pose();
 poses{3} = setup_camera_pose();
 poses{4} = setup_camera_pose();
+poses{5} = setup_camera_pose();
+poses{6} = setup_camera_pose();
 
 nb_features = 6;
 feature_data = setup_features(nb_features);
 
 observations = {};
-observations{1} = [1, 2];
-observations{2} = [2, 3, 4];
+observations{1} = [1, 2, 3];
+observations{2} = [1, 2, 3, 4];
 observations{3} = [3, 4, 5];
 observations{4} = [4, 5, 6];
+observations{5} = [1, 2, 3, 4, 5, 6];
+observations{6} = [1, 2, 3, 4, 5, 6];
 camera_data = setup_data(camera, poses, feature_data, observations);
 
 % test_without_schur_complement(camera_data);

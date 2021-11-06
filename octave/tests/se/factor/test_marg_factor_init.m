@@ -86,17 +86,21 @@ function graph = test_setup()
   poses{2} = setup_camera_pose();
   poses{3} = setup_camera_pose();
   poses{4} = setup_camera_pose();
+  poses{5} = setup_camera_pose();
+  poses{6} = setup_camera_pose();
 
   % Setup features
-  nb_features = 10;
+  nb_features = 6;
   feature_data = setup_features(nb_features);
 
   % Setup camera data
   observations = {};
-  observations{1} = [1, 2, 3];
-  observations{2} = [2, 3, 4];
-  observations{3} = [3, 4, 5];
-  observations{4} = [4, 5, 6, 7, 8];
+  observations{1} = [2, 3, 4];
+  observations{2} = [2, 3];
+  observations{3} = [1, 3, 4, 5];
+  observations{4} = [1, 3, 4, 5];
+  observations{5} = [1, 3, 5, 6];
+  observations{6} = [1, 2, 3, 4];
   camera_data = setup_data(camera, poses, feature_data, observations);
 
   % Setup graph

@@ -19,7 +19,7 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
   % Track parameters
   param_idx_offset = 0;
   for i = 1:length(marg_factor.factors)
-    factor = marg_factor.factors(i);
+    factor = marg_factor.factors{i};
 
     for j = 1:length(factor.param_ids)
       idx = j + param_idx_offset;
@@ -101,7 +101,7 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
 
   param_idx_offset = 0;
   for k = 1:length(marg_factor.factors)
-    factor = marg_factor.factors(k);
+    factor = marg_factor.factors{k};
     for x = 1:length(factor.param_ids)
       factor_params{x} = params{x + param_idx_offset};
     end
@@ -141,30 +141,29 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
     param_idx_offset += length(factor.param_ids);
   endfor  % Iterate factors
 
-  % Perform marginalization
-  marg_size = sum(marg_param_sizes);
-  remain_size = rows(H) - marg_size;
-  [H_marg, g_marg] = schurs_complement(H, g, marg_size, remain_size);
-
-  % figure(1);
-  % imagesc(H);
-  %
-  % figure(2);
-  % imagesc(H_marg);
-  % ginput();
-
-  % size(H_marg)
-  % rank(H_marg)
+  % % Perform marginalization
+  % marg_size = sum(marg_param_sizes);
+  % remain_size = rows(H) - marg_size;
+  % [H_marg, g_marg] = schurs_complement(H, g, marg_size, remain_size);
 
   % Decompose Hessian back to J
-  % H_marg
-  % [V, Lambda] = eig(H_marg);
+  % assert(rank(H) == rows(H));
+  % [V, Lambda] = eig(H);
+  % lambda = diag(Lambda)
+  % lambda_inv = 1.0 ./ lambda;
+  % lambda_sqrt = lambda.^0.5
+  % lambda_inv_sqrt = lambda_inv.^0.5;
+
   % H_marg
   % Lambda
-  % lambda = diag(Lambda);
-  % lambda_inv = 1.0 ./ lambda;
-  % lambda
-  % lambda_sqrt = lambda.^0.5
+
+  % imagesc(triu(H_marg) - tril(H_marg)');
+  % ginput();
+  %
+  % jacs = diag(lambda_sqrt) * V';
+  % r = diag(lambda_inv_sqrt) * V' * g_marg;
+  %
+  % r
 
   r = zeros(1, 1);
   jacs = zeros(1, 1);
