@@ -39,6 +39,10 @@ function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
     ba = ba;
     bg = bg;
 
+    % Make sure determinant of rotation is 1 by normalizing the quaternion
+    dq = quat_normalize(rot2quat(dC));
+    dC = quat2rot(dq);
+
     % Continuous time transition matrix F
     F = zeros(15, 15);
     F(1:3, 4:6) = eye(3);
@@ -58,6 +62,9 @@ function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i)
     G_dt = G * dt;
     I_F_dt = eye(15) + F * dt;
     factor.state_F = I_F_dt * factor.state_F;
+    % imagesc(factor.state_F)
+    % colorbar;
+    % ginput()
     factor.state_P = I_F_dt * factor.state_P * I_F_dt' + G_dt * factor.Q * G_dt';
     factor.Dt += dt;
   endfor

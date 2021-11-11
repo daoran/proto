@@ -6,7 +6,7 @@ function [r, jacs] = imu_factor_eval(factor, params)
   pose_i = params{1};
   sb_i = params{2};
   pose_j = params{3};
-  sb_j= params{4};
+  sb_j = params{4};
 
   % Timestep i
   T_i = tf(pose_i.param);
@@ -39,7 +39,7 @@ function [r, jacs] = imu_factor_eval(factor, params)
   dr = factor.dr + dr_dba * dba + dr_dbg * dbg;
   dv = factor.dv + dv_dba * dba + dv_dbg * dbg;
   dC = factor.dC * Exp(dq_dbg * dbg);
-  dq = rot2quat(dC);
+  dq = quat_normalize(rot2quat(dC));
 
   % Form residuals
   sqrt_info = factor.sqrt_info;

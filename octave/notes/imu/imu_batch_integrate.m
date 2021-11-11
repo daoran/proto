@@ -3,9 +3,9 @@ function est = imu_batch_integrate(sim_data, method)
 
   % Initialize IMU state
   x_imu = imu_state_init();
-  x_imu.p_WS = sim_data.pos(:, 1);
-  x_imu.v_WS = sim_data.vel(:, 1);
-  x_imu.C_WS = tf_rot(sim_data.poses{1});
+  x_imu.p_WS = sim_data.imu_pos(:, 1);
+  x_imu.v_WS = sim_data.imu_vel(:, 1);
+  x_imu.C_WS = tf_rot(sim_data.imu_poses{1});
 
   % Batch integrate IMU measurements
   est_pos = [x_imu.p_WS];

@@ -6,7 +6,9 @@ trans = [0.1; 0.2; 0.3];
 T_WC = tf(rot, trans);
 data = tf_param(T_WC);
 pose_meas = pose_init(0, data);
-pose_est = pose_update(pose_meas, [0.1; 0.2; 0.3; 0.1; 0.2; 0.3]);
+% pose_est = pose_update(pose_meas, [0.1; 0.2; 0.3; 0.1; 0.2; 0.3]);
+pose_est = pose_update(pose_meas, [0.01; 0.01; 0.01; 0.01; 0.01; 0.01]);
+% pose_est = pose_meas
 
 % Setup graph
 graph = graph_init();
@@ -20,6 +22,8 @@ pose_factor = pose_factor_init(ts, param_ids, tf(pose_meas.param));
 % Evaluate factor
 params = graph_get_params(graph, pose_factor.param_ids);
 [r, jacobians] = pose_factor_eval(pose_factor, params);
+
+jacobians
 
 % Test jacobians
 step_size = 1e-8;

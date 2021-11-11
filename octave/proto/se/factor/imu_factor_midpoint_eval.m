@@ -14,15 +14,17 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   state_P = zeros(15, 15); % State covariance
 
   % Noise covariance matrix
-  Q = zeros(12, 12);
+  Q = zeros(18, 18);
   noise_acc = 0.08;    % accelerometer measurement noise standard deviation.
   noise_gyr = 0.004;   % gyroscope measurement noise standard deviation.
   noise_ba = 0.00004;  % accelerometer bias random work noise standard deviation.
   noise_bg = 2.0e-6;   % gyroscope bias random work noise standard deviation.
   Q(1:3, 1:3) = (noise_acc * noise_acc) * eye(3);
   Q(4:6, 4:6) = (noise_gyr * noise_gyr) * eye(3);
-  Q(7:9, 7:9) = (noise_ba * noise_ba) * eye(3);
-  Q(10:12, 10:12) = (noise_bg * noise_bg) * eye(3);
+  Q(7:9, 7:9) = (noise_acc * noise_acc) * eye(3);
+  Q(10:12, 10:12) = (noise_gyr * noise_gyr) * eye(3);
+  Q(12:15, 12:15) = (noise_ba * noise_ba) * eye(3);
+  Q(16:18, 16:18) = (noise_bg * noise_bg) * eye(3);
 
   dt = imu_ts(2) - imu_ts(1);
   dt_sq = dt * dt;
@@ -44,7 +46,7 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
                                                          dr, dv, dC, ba_i, bg_i, g);
     state_F = F * state_F;
 
-    % % Continuous time input matrix G
+    % Continuous time input matrix G
     % G = zeros(15, 12);
     % G(4:6, 1:3) = -dC;
     % G(7:9, 4:6) = -eye(3);
@@ -67,13 +69,16 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
 
     % % Propagate the state jacobian and covariance
     % I_F_dt = (eye(15) + F * dt);
-    % G_dt = G * dt;
+    G_dt = G * dt;
     % state_F = I_F_dt * state_F;
-    % state_P = I_F_dt * state_P * I_F_dt' + G_dt * Q * G_dt';
+    state_P = F * state_P * F' + G_dt * Q * G_dt';
 
     % Update time
     Dt += dt;
   endfor
+
+  % Square root info
+  sqrt_info = chol(inv(state_P));
 
   % Timestep i
   r_i = tf_trans(pose_i);
@@ -113,7 +118,7 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   err_rot = (2 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
   err_ba = ba_j - ba_i;
   err_bg = bg_j - bg_i;
-  r = [err_pos; err_vel; err_rot; err_ba; err_bg];
+  r = sqrt_info * [err_pos; err_vel; err_rot; err_ba; err_bg];
 
   % Form jacobians
   jacs{1} = zeros(15, 6);  % w.r.t pose i
@@ -126,6 +131,7 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
   jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
   jacs{1}(7:9, 4:6) = -Jr_inv(err_rot) * (C_j' * C_i);                             % dC w.r.t C_i
+  jacs{1} = sqrt_info * jacs{1};
 
   % -- Jacobian w.r.t. speed and biases i
   jacs{2}(1:3, 1:3) = -C_i' * Dt;  % dr w.r.t v_i
@@ -141,13 +147,17 @@ function [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g,
   jacs{2}(10:12, 4:6) = -eye(3);   % dba w.r.t ba
   jacs{2}(13:15, 7:9) = -eye(3);   % dbg w.r.t bg
 
+  jacs{2} = sqrt_info * jacs{2};
+
   % -- Jacobian w.r.t. pose j
   jacs{3}(1:3, 1:3) = C_i';                                                                       % dr w.r.t r_j
   jacs{3}(7:9, 4:6) = Jr_inv(err_rot);                                                           % dC w.r.t C_i
   % jacs{3}(7:9, 4:6) = quat_left(quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4, 2:4);
+  jacs{3} = sqrt_info * jacs{3};
 
   % -- Jacobian w.r.t. sb j
   jacs{4}(4:6, 1:3) = C_i';      % dv w.r.t v_j
   jacs{4}(10:12, 4:6) = eye(3);  % dv w.r.t ba_j
   jacs{4}(13:15, 7:9) = eye(3);  % dv w.r.t bg_j
+  jacs{4} = sqrt_info * jacs{4};
 endfunction
