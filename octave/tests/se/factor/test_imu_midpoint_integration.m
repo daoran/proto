@@ -7,8 +7,8 @@ sim_data = sim_imu(0.5, 1.0);
 start_idx = 10;
 end_idx = start_idx + 1;
 
-ts_i = sim_data.time(start_idx);
-ts_j = sim_data.time(end_idx);
+ts_i = sim_data.imu_time(start_idx);
+ts_j = sim_data.imu_time(end_idx);
 
 acc_i = sim_data.imu_acc(:, start_idx);
 gyr_i = sim_data.imu_gyr(:, start_idx);
@@ -17,11 +17,11 @@ gyr_j = sim_data.imu_gyr(:, end_idx);
 
 g = [0.0; 0.0; 9.81];
 
-pose_i = sim_data.poses{start_idx};
-sb_i = [sim_data.vel(:, start_idx); 1e-2 * eye(6, 1)];
+pose_i = sim_data.imu_poses{start_idx};
+sb_i = [sim_data.imu_vel(:, start_idx); 1e-2 * eye(6, 1)];
 
-pose_j = sim_data.poses{end_idx};
-sb_j = [sim_data.vel(:, end_idx); 1e-2 * eye(6, 1)];
+pose_j = sim_data.imu_poses{end_idx};
+sb_j = [sim_data.imu_vel(:, end_idx); 1e-2 * eye(6, 1)];
 
 % Evaluate imu midpoint integration
 r_i = zeros(3, 1);

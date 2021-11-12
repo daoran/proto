@@ -7,16 +7,16 @@ sim_data = sim_imu(0.5, 1.0);
 % N = length(sim_data.time);
 start_idx = 10;
 N = 1;
-imu_ts = sim_data.time(start_idx:start_idx+N);
+imu_ts = sim_data.imu_time(start_idx:start_idx+N);
 imu_acc = sim_data.imu_acc(:, start_idx:start_idx+N);
 imu_gyr = sim_data.imu_gyr(:, start_idx:start_idx+N);
 g = [0.0; 0.0; 9.81];
-pose_i = sim_data.poses{start_idx};
-sb_i = [sim_data.vel(:, start_idx); 1e-2 * eye(6, 1)];
-% sb_i = [sim_data.vel(:, start_idx); 0.0 * eye(6, 1)];
-pose_j = sim_data.poses{start_idx+N};
-sb_j = [sim_data.vel(:, start_idx+N); 1e-2 * eye(6, 1)];
-% sb_j = [sim_data.vel(:, start_idx+N); 0.0 * eye(6, 1)];
+pose_i = sim_data.imu_poses{start_idx};
+sb_i = [sim_data.imu_vel(:, start_idx); 1e-2 * eye(6, 1)];
+% sb_i = [sim_data.imu_vel(:, start_idx); 0.0 * eye(6, 1)];
+pose_j = sim_data.imu_poses{start_idx+N};
+sb_j = [sim_data.imu_vel(:, start_idx+N); 1e-2 * eye(6, 1)];
+% sb_j = [sim_data.imu_vel(:, start_idx+N); 0.0 * eye(6, 1)];
 
 % Evaluate imu factor
 [r, jacs] = imu_factor_midpoint_eval(imu_ts, imu_acc, imu_gyr, g, pose_i, sb_i, pose_j, sb_j);
@@ -33,6 +33,7 @@ for i = 1:6
 endfor
 
 if max(max(abs(jacs{1} - fdiff))) > 1e-4
+  printf("J_pose_i Failed!\n");
   jacs{1}
   fdiff
   jacs{1} - fdiff
@@ -50,14 +51,15 @@ for i = 1:9
 endfor
 
 if max(max(abs(jacs{2} - fdiff))) > 1e-4
-  jacs{2}
-  fdiff
+  printf("J_sb_i Failed!\n");
+  jacs{2};
+  fdiff;
   jacs{2} - fdiff
 else
   printf("J_sb_i Passed!\n");
 endif
 
-% -- Check jacobian w.r.t pose j
+% -- Check jacobian w.r.t pose j (DONE!)
 fdiff = zeros(15, 6);
 for i = 1:6
   pose_j_diff = perturb_pose(pose_j, step, i);
@@ -66,6 +68,7 @@ for i = 1:6
 endfor
 
 if max(max(abs(jacs{3} - fdiff))) > 1e-4
+  printf("J_pose_j Failed!\n");
   jacs{3}
   fdiff
   jacs{3} - fdiff
@@ -83,6 +86,7 @@ for i = 1:9
 endfor
 
 if max(max(abs(jacs{4} - fdiff))) > 1e-4
+  printf("J_sb_j Failed!\n");
   jacs{4}
   fdiff
   jacs{4} - fdiff

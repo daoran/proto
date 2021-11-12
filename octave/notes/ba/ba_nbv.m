@@ -599,7 +599,6 @@ printf("Perform NBV Optimization\n");
 [nbv_entropy, nbv_data, nbv_gnd] = ba_nbv_solve(data, data_gnd, start_idx);
 printf("----------------------------------------\n");
 
-
 % % Plot
 % plot_compare_data(data_gnd, batch_data);
 % title("Batch");
