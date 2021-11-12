@@ -141,15 +141,15 @@ function [r, jacs] = marg_factor_eval(marg_factor, params)
     param_idx_offset += length(factor.param_ids);
   endfor  % Iterate factors
 
-  % % Perform marginalization
-  % marg_size = sum(marg_param_sizes);
-  % remain_size = rows(H) - marg_size;
-  % [H_marg, g_marg] = schurs_complement(H, g, marg_size, remain_size);
+  % Perform marginalization
+  marg_size = sum(marg_param_sizes);
+  remain_size = rows(H) - marg_size;
+  [H_marg, g_marg] = schurs_complement(H, g, marg_size, remain_size);
 
   % Decompose Hessian back to J
-  % assert(rank(H) == rows(H));
-  % [V, Lambda] = eig(H);
-  % lambda = diag(Lambda)
+  assert(rank(H) == rows(H));
+  [V, Lambda] = eig(H);
+  lambda = diag(Lambda)
   % lambda_inv = 1.0 ./ lambda;
   % lambda_sqrt = lambda.^0.5
   % lambda_inv_sqrt = lambda_inv.^0.5;

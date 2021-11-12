@@ -90,17 +90,17 @@ function graph = test_setup()
   poses{6} = setup_camera_pose();
 
   % Setup features
-  nb_features = 6;
+  nb_features = 10;
   feature_data = setup_features(nb_features);
 
   % Setup camera data
   observations = {};
-  observations{1} = [2, 3, 4];
-  observations{2} = [2, 3];
-  observations{3} = [1, 3, 4, 5];
-  observations{4} = [1, 3, 4, 5];
-  observations{5} = [1, 3, 5, 6];
-  observations{6} = [1, 2, 3, 4];
+  observations{1} = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  observations{2} = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  observations{3} = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  observations{4} = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  observations{5} = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  observations{6} = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   camera_data = setup_data(camera, poses, feature_data, observations);
 
   % Setup graph
@@ -120,6 +120,13 @@ function graph = test_setup()
     % Add camera pose
     pose = camera_data.poses{k};
     [graph, pose_id] = graph_add_param(graph, pose);
+
+    % -- Add pose factor
+    if k == 1
+      T_WC = tf(pose.param);
+      pose_factor = pose_factor_init(0, [pose_id], T_WC);
+      graph = graph_add_factor(graph, pose_factor);
+    endif
 
     camera_view = camera_data.views{k};
     for i = 1:length(camera_view.feature_indices)
