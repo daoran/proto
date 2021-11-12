@@ -42,4 +42,3 @@ A = [y_i * Pi3T - Pi2T;
      x_j * Pj3T - Pj1T];
 
 A' * A
-
