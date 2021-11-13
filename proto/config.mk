@@ -1,13 +1,13 @@
-BLD_DIR=$(PWD)/build
-BIN_DIR=$(PWD)/build/bin
-INC_DIR=$(PWD)
-DEPS_DIR=$(PWD)/../deps
-TESTS_DIR=$(PWD)/tests
+BLD_DIR := $(PWD)/build
+BIN_DIR := $(PWD)/build/bin
+INC_DIR := $(PWD)
+DEPS_DIR := $(PWD)/../deps
+TESTS_DIR := $(PWD)/tests
 
 # COMPILER SETTINGS
-# CC=tcc
-CC=gcc
-CFLAGS=\
+# CC := tcc
+CC := gcc
+CFLAGS := \
 	-g \
 	-Wall \
 	-Wunused-result \
@@ -15,15 +15,19 @@ CFLAGS=\
 	-I$(DEPS_DIR)/include \
 	`sdl2-config --cflags`
 
-# GLFW3_LIBS=-L$(DEPS_DIR)/lib -lglfw3 -lrt -lm -ldl
-SDL2_LIBS=`sdl2-config --libs` -lSDL2_image
-GLEW_LIBS=-lGLEW
-# OPENGL_LIBS=$(GLFW3_LIBS) $(GLEW_LIBS) -lGL -L/usr/X11R6/lib -lX11
-OPENGL_LIBS=$(SDL2_LIBS) $(GLEW_LIBS) -lGL
-BLAS_LIBS=-lblas -llapack -llapacke
+# LIBRARIES
+SDL2_LIBS := `sdl2-config --libs` -lSDL2_image
+GLEW_LIBS := -lGLEW
+OPENGL_LIBS := $(SDL2_LIBS) $(GLEW_LIBS) -lGL
+BLAS_LIBS := -lblas -llapack -llapacke
+CERES_DEPS := -lgflags -lglog \
+							-llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod \
+							-lcxsparse
+CERES_LIBS := -lceres $(CERES_DEPS)
 
 LIBS=-L$(BLD_DIR) \
-	-lzero \
+	-lproto \
+	$(CERES_LIBS) \
 	$(OPENGL_LIBS) \
 	$(BLAS_LIBS) \
 	-lpthread \
@@ -39,7 +43,7 @@ COMPILE_OBJ = \
 	$(CC) $(CFLAGS) -c $< -o $@
 
 MAKE_STATIC_LIB = \
-	@echo "AR [libzero.a]"; \
+	@echo "AR [libproto.a]"; \
 	$(AR) $(ARFLAGS) $@ $^
 
 COMPILE_TEST_OBJ = \

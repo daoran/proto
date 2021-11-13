@@ -131,17 +131,17 @@ cd ./build/bin
 # ./test_proto --target test_equi4_point_jacobian
 # ./test_proto --target test_equi4_params_jacobian
 # ./test_proto --target test_pinhole_focal
-./test_proto --target test_pinhole_K
-./test_proto --target test_pinhole_project
-./test_proto --target test_pinhole_projection_matrix
-./test_proto --target test_pinhole_point_jacobian
-./test_proto --target test_pinhole_params_jacobian
-./test_proto --target test_pinhole_radtan4_project
-./test_proto --target test_pinhole_radtan4_project_jacobian
-./test_proto --target test_pinhole_radtan4_params_jacobian
-./test_proto --target test_pinhole_equi4_project
-./test_proto --target test_pinhole_equi4_project_jacobian
-./test_proto --target test_pinhole_equi4_params_jacobian
+# ./test_proto --target test_pinhole_K
+# ./test_proto --target test_pinhole_project
+# ./test_proto --target test_pinhole_projection_matrix
+# ./test_proto --target test_pinhole_point_jacobian
+# ./test_proto --target test_pinhole_params_jacobian
+# ./test_proto --target test_pinhole_radtan4_project
+# ./test_proto --target test_pinhole_radtan4_project_jacobian
+# ./test_proto --target test_pinhole_radtan4_params_jacobian
+# ./test_proto --target test_pinhole_equi4_project
+# ./test_proto --target test_pinhole_equi4_project_jacobian
+# ./test_proto --target test_pinhole_equi4_params_jacobian
 # PROTO-SF
 # ./test_proto --target test_pose_setup
 # ./test_proto --target test_speed_bias_setup
@@ -159,6 +159,7 @@ cd ./build/bin
 # ./test_proto --target test_imu_buf_clear
 # ./test_proto --target test_imu_buf_copy
 # ./test_proto --target test_imu_buf_print
+./test_proto --target test_ceres_solver
 
 # valgrind --leak-check=full ./test_traj_eval
 # time ./test_traj_eval

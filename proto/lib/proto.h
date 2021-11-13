@@ -27,6 +27,8 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 
+#include <ceres/c_api.h>
+
 #include "stb_image.h"
 
 #ifdef USE_CBLAS

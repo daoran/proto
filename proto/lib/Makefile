@@ -2,7 +2,7 @@ include ../config.mk
 
 SRCS = $(wildcard *.c)
 OBJS = $(addprefix $(BLD_DIR)/, $(SRCS:.c=.o))
-LIB = $(BLD_DIR)/libzero.a
+LIB = $(BLD_DIR)/libproto.a
 
 default: dirs shaders $(LIB)
 .PHONY: tests dirs shaders
@@ -19,5 +19,5 @@ shaders:
 $(BLD_DIR)/%.o: %.c %.h
 	$(COMPILE_OBJ)
 
-$(BLD_DIR)/libzero.a: $(OBJS)
+$(BLD_DIR)/libproto.a: $(OBJS)
 	$(MAKE_STATIC_LIB)

@@ -6,7 +6,7 @@ TESTS = $(addprefix $(BIN_DIR)/, $(SRCS:.c=))
 all: $(TESTS) test_data scripts
 .PHONY: test_data scripts
 
-$(BLD_DIR)/%.o: %.c $(BLD_DIR)/libzero.a
+$(BLD_DIR)/%.o: %.c $(BLD_DIR)/libproto.a
 	$(COMPILE_TEST_OBJ)
 
 $(BIN_DIR)/test_%: $(BLD_DIR)/test_%.o

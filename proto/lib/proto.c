@@ -4735,6 +4735,9 @@ void imu_factor_setup(imu_factor_t *factor,
 
     /* Continuous time transition matrix F */
     real_t F[15 * 15] = {0};
+    F[0] = 1.0;
+    F[3] = 1.0;
+    F[6] = 1.0;
     /* F(0:3, 3:6) = eye(3); */
     /* F(4:6, 7:9) = -dC * skewa_t; */
     /* F(4:6, 10:12) = -dC; */
@@ -4743,6 +4746,7 @@ void imu_factor_setup(imu_factor_t *factor,
 
     /* Continuous time input jacobian G */
     real_t G[15 * 12] = {0};
+    G[0] = 1.0;
     /* G(4 : 6, 1 : 3) = -dC; */
     /* G(7 : 9, 4 : 6) = -eye(3); */
     /* G(10 : 12, 7 : 9) = eye(3); */
