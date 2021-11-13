@@ -77,7 +77,7 @@ cd ./build/bin
 # ./test_proto --target test_mat_set
 # ./test_proto --target test_mat_val
 # ./test_proto --target test_mat_block_get
-# ./test_proto --target test_mat_block_set
+./test_proto --target test_mat_block_set
 # ./test_proto --target test_mat_diag_get
 # ./test_proto --target test_mat_diag_set
 # ./test_proto --target test_mat_triu
@@ -152,14 +152,17 @@ cd ./build/bin
 # ./test_proto --target test_pose_factor_eval
 # ./test_proto --target test_ba_factor_setup
 # ./test_proto --target test_ba_factor_eval
+# ./test_proto --target test_ba_factor_ceres_eval
 # ./test_proto --target test_cam_factor_setup
 # ./test_proto --target test_cam_factor_eval
+# ./test_proto --target test_cam_factor_ceres_eval
 # ./test_proto --target test_imu_buf_setup
 # ./test_proto --target test_imu_buf_add
 # ./test_proto --target test_imu_buf_clear
 # ./test_proto --target test_imu_buf_copy
 # ./test_proto --target test_imu_buf_print
-./test_proto --target test_ceres_solver
+# ./test_proto --target test_ceres_solver
+# ./test_proto --target test_solver_setup
 
 # valgrind --leak-check=full ./test_traj_eval
 # time ./test_traj_eval
@@ -183,6 +186,7 @@ cd ./build/bin
 # ./test_gui --target test_gl_prog_setup
 # ./test_gui --target test_gl_camera_setup
 # ./test_gui --target test_gui
+# ./test_gui --target test_imshow
 # gdb -ex run -ex bt -args ./test_gui --target test_gui_setup
 
 # ./test_imshow

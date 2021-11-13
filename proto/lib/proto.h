@@ -630,10 +630,10 @@ typedef struct ba_factor_t {
   real_t r[2];
   int r_size;
 
-  real_t J0[2 * 6]; /* Jacobian w.r.t camera pose T_WC */
-  real_t J1[2 * 3]; /* Jacobian w.r.t landmark */
-  real_t J2[2 * 8]; /* Jacobian w.r.t camera parameters */
-  real_t *jacs[4];
+  real_t J0[2 * 6];
+  real_t J1[2 * 3];
+  real_t J2[2 * 8];
+  real_t *jacs[3];
 } ba_factor_t;
 
 void ba_factor_setup(ba_factor_t *factor,
@@ -643,6 +643,10 @@ void ba_factor_setup(ba_factor_t *factor,
                      const real_t z[2],
                      const real_t var[2]);
 int ba_factor_eval(ba_factor_t *factor);
+int ba_factor_ceres_eval(void *factor,
+                         real_t **params,
+                         real_t *residuals,
+                         real_t **jacobians);
 
 // CAMERA FACTOR ///////////////////////////////////////////////////////////////
 
@@ -676,6 +680,10 @@ void cam_factor_setup(cam_factor_t *factor,
                       const real_t var[2]);
 void cam_factor_reset(cam_factor_t *factor);
 int cam_factor_eval(cam_factor_t *factor);
+int cam_factor_ceres_eval(void *factor,
+                          real_t **params,
+                          real_t *residuals,
+                          real_t **jacobians);
 
 // IMU FACTOR //////////////////////////////////////////////////////////////////
 
@@ -752,44 +760,37 @@ void imu_factor_setup(imu_factor_t *factor,
 void imu_factor_reset(imu_factor_t *factor);
 int imu_factor_eval(imu_factor_t *factor);
 
-// SOLVER //////////////////////////////////////////////////////////////////////
+// GRAPH ///////////////////////////////////////////////////////////////////////
 
-#define MAX_POSES 1000
-#define MAX_CAMS 4
-#define MAX_FEATURES 1000
-#define MAX_PARAMS MAX_POSES + MAX_CAMS + MAX_CAMS + MAX_FEATURES
-#define MAX_H_SIZE                                                             \
-  MAX_POSES * 6 + MAX_CAMS * 8 + MAX_CAMS * 6 + MAX_FEATURES * 3
-
-typedef struct solver_t {
-  cam_factor_t cam_factors[MAX_FEATURES];
+typedef struct graph_t {
+  cam_factor_t *cam_factors;
   int nb_cam_factors;
 
-  imu_factor_t imu_factors[MAX_POSES];
+  imu_factor_t *imu_factors;
   int nb_imu_factors;
 
-  pose_t poses[MAX_POSES];
+  pose_t *poses;
   int nb_poses;
 
-  camera_params_t cams[MAX_CAMS];
+  camera_params_t *cams;
   int nb_cams;
 
-  extrinsics_t extrinsics[MAX_CAMS];
+  extrinsics_t *extrinsics;
   int nb_extrinsics;
 
-  feature_t features[MAX_FEATURES];
+  feature_t *features;
   int nb_features;
 
-  real_t H[MAX_H_SIZE];
-  real_t g[MAX_H_SIZE];
-  real_t x[MAX_H_SIZE];
+  real_t *H;
+  real_t *g;
+  real_t *x;
   int x_size;
   int r_size;
-} solver_t;
+} graph_t;
 
-void solver_setup(solver_t *solver);
-void solver_print(solver_t *solver);
-int solver_eval(solver_t *solver) __attribute__((warn_unused_result));
-void solver_optimize(solver_t *solver);
+void graph_setup(graph_t *graph);
+void graph_print(graph_t *graph);
+int graph_eval(graph_t *graph) __attribute__((warn_unused_result));
+void graph_optimize(graph_t *graph);
 
 #endif // _PROTO_H_

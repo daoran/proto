@@ -403,10 +403,13 @@ int test_mat_block_get() {
 int test_mat_block_set() {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[4] = {0.0, 0.0, 0.0, 0.0};
-  mat_block_set(A, 3, 1, 1, 2, 2, B);
 
-  print_matrix("B", B, 2, 2);
   print_matrix("A", A, 3, 3);
+  print_matrix("B", B, 2, 2);
+  mat_block_set(A, 3, 1, 1, 2, 2, B);
+  print_matrix("A", A, 3, 3);
+  print_matrix("B", B, 2, 2);
+
   MU_CHECK(fltcmp(mat_val(A, 3, 1, 1), 0.0) == 0);
   MU_CHECK(fltcmp(mat_val(A, 3, 1, 2), 0.0) == 0);
   MU_CHECK(fltcmp(mat_val(A, 3, 2, 1), 0.0) == 0);
@@ -1283,36 +1286,6 @@ int test_linear_triangulation() {
   return 0;
 }
 
-int test_stereo_triangulation() {
-  /* Setup camera */
-  const int image_width = 640;
-  const int image_height = 480;
-  const real_t fov = 120.0;
-  const real_t fx = pinhole_focal(image_width, fov);
-  const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
-  const real_t proj_params[4] = {fx, fy, cx, cy};
-  real_t K[3 * 3];
-  pinhole_K(proj_params, K);
-
-  /* Setup camera pose T_WC0 */
-  const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
-  real_t T_WC0[4 * 4] = {0};
-  tf_euler_set(T_WC0, ypr_WC0);
-  tf_trans_set(T_WC0, r_WC0);
-
-  /* Setup camera pose T_WC1 */
-  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-  const real_t r_WC1[3] = {0.1, 0.1, 0.0};
-  real_t T_WC1[4 * 4] = {0};
-  tf_euler_set(T_WC1, euler_WC1);
-  tf_trans_set(T_WC1, r_WC1);
-
-  return 0;
-}
-
 /* RADTAN --------------------------------------------------------------------*/
 
 int test_radtan4_distort() {
@@ -2017,7 +1990,6 @@ int test_pose_factor_eval() {
   const int retval = pose_factor_eval(&pose_factor);
   print_matrix("pose_factor.r", pose_factor.r, 6, 1);
   print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
-
   MU_CHECK(retval == 0);
 
   return 0;
@@ -2083,13 +2055,8 @@ int test_ba_factor_setup() {
   ba_factor_t ba_factor;
   real_t var[2] = {1.0, 1.0};
   ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
-
   print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
   print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
-  print_matrix("ba_factor.r", ba_factor.r, 2, 1);
-  print_matrix("ba_factor.J0", ba_factor.J0, 2, 6);
-  print_matrix("ba_factor.J1", ba_factor.J1, 2, 3);
-  print_matrix("ba_factor.J2", ba_factor.J2, 2, 8);
 
   return 0;
 }
@@ -2137,10 +2104,67 @@ int test_ba_factor_eval() {
 
   print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
   print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
-  print_matrix("ba_factor.r", ba_factor.r, 2, 1);
-  print_matrix("ba_factor.J0", ba_factor.J0, 2, 6);
-  print_matrix("ba_factor.J1", ba_factor.J1, 2, 3);
-  print_matrix("ba_factor.J2", ba_factor.J2, 2, 8);
+  print_matrix("residuals", ba_factor.r, 2, 1);
+  print_matrix("J0", ba_factor.J0, 2, 6);
+  print_matrix("J1", ba_factor.J1, 2, 3);
+  print_matrix("J2", ba_factor.J2, 2, 8);
+
+  return 0;
+}
+
+int test_ba_factor_ceres_eval() {
+  /* Timestamp */
+  timestamp_t ts = 0;
+
+  /* Camera pose */
+  const real_t pose_data[7] = {0.01, 0.01, 0.0, -0.5, 0.5, -0.5, 0.5};
+  pose_t pose;
+  pose_setup(&pose, ts, pose_data);
+
+  /* Feature */
+  const real_t p_W[3] = {1.0, 0.0, 0.0};
+  feature_t feature;
+  feature_setup(&feature, p_W);
+
+  /* Camera parameters */
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_data[8] = {640, 480, 320, 240, 0.03, 0.01, 0.001, 0.001};
+  camera_params_t cam;
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+
+  /* Project point from world to image plane */
+  real_t T_WC[4 * 4] = {0};
+  real_t T_CW[4 * 4] = {0};
+  real_t p_C[3] = {0};
+  real_t z[2];
+  tf(pose_data, T_WC);
+  tf_inv(T_WC, T_CW);
+  tf_point(T_CW, p_W, p_C);
+  pinhole_radtan4_project(cam_data, p_C, z);
+
+  /* Bundle adjustment factor */
+  ba_factor_t ba_factor;
+  real_t var[2] = {1.0, 1.0};
+  ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
+
+  /* Evaluate bundle adjustment factor -- for ceres solver */
+  double *params[3] = {pose.data, feature.data, cam.data};
+  double residuals[2] = {0};
+  double J0[2 * 7] = {0};
+  double J1[2 * 3] = {0};
+  double J2[2 * 8] = {0};
+  double *jacobians[3] = {J0, J1, J2};
+  ba_factor_ceres_eval(&ba_factor, params, residuals, jacobians);
+
+  print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
+  print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
+  print_matrix("residuals", residuals, 2, 1);
+  print_matrix("J0", J0, 2, 7);
+  print_matrix("J1", J1, 2, 3);
+  print_matrix("J2", J2, 2, 8);
 
   return 0;
 }
@@ -2268,6 +2292,77 @@ int test_cam_factor_eval() {
   return 0;
 }
 
+int test_cam_factor_ceres_eval() {
+  /* Timestamp */
+  timestamp_t ts = 0;
+
+  /* Sensor pose */
+  pose_t pose;
+  const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
+  pose_setup(&pose, ts, pose_data);
+
+  /* Extrinsics */
+  extrinsics_t extrinsics;
+  const real_t exts_data[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+  extrinsics_setup(&extrinsics, exts_data);
+
+  /* Feature */
+  feature_t feature;
+  const real_t p_W[3] = {1.0, 0.0, 0.0};
+  feature_setup(&feature, p_W);
+
+  /* Camera parameters */
+  camera_params_t cam;
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+
+  /* Project point from world to image plane */
+  real_t T_WS[4 * 4] = {0};
+  real_t T_SW[4 * 4] = {0};
+  real_t T_SCi[4 * 4] = {0};
+  real_t T_CiS[4 * 4] = {0};
+  real_t T_CiW[4 * 4] = {0};
+  real_t p_Ci[3] = {0};
+  real_t z[2];
+  tf(pose_data, T_WS);
+  tf(exts_data, T_SCi);
+  tf_inv(T_WS, T_SW);
+  tf_inv(T_SCi, T_CiS);
+  dot(T_CiS, 4, 4, T_SW, 4, 4, T_CiW);
+  tf_point(T_CiW, p_W, p_Ci);
+  pinhole_radtan4_project(cam_data, p_Ci, z);
+
+  /* Setup camera factor */
+  cam_factor_t cam_factor;
+  real_t var[2] = {1.0, 1.0};
+  cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
+
+  /* Evaluate camera factor */
+  double *params[4] = {pose.data, extrinsics.data, feature.data, cam.data};
+  double residuals[2] = {0};
+  double J0[2 * 7] = {0};
+  double J1[2 * 7] = {0};
+  double J2[2 * 3] = {0};
+  double J3[2 * 8] = {0};
+  double *jacobians[4] = {J0, J1, J2, J3};
+  cam_factor_ceres_eval(&cam_factor, params, residuals, jacobians);
+  print_vector("z", z, 2);
+
+  print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
+  print_matrix("cam_factor.sqrt_info", cam_factor.sqrt_info, 2, 2);
+  print_matrix("cam_factor.r", cam_factor.r, 2, 1);
+  print_matrix("cam_factor.J0", cam_factor.J0, 2, 6);
+  print_matrix("cam_factor.J1", cam_factor.J1, 2, 6);
+  print_matrix("cam_factor.J2", cam_factor.J2, 2, 8);
+  print_matrix("cam_factor.J3", cam_factor.J3, 2, 3);
+
+  return 0;
+}
+
 int test_imu_buf_setup() {
   imu_buf_t imu_buf;
   imu_buf_setup(&imu_buf);
@@ -2380,7 +2475,7 @@ int test_imu_factor_setup() {
   return 0;
 }
 
-int test_ceres_solver() {
+int test_ceres_graph() {
   int num_observations = 67;
   double data[] = {
       0.000000e+00, 1.133898e+00, 7.500000e-02, 1.334902e+00, 1.500000e-01,
@@ -2470,16 +2565,16 @@ int test_ceres_solver() {
   return 0;
 }
 
-int test_solver_setup() {
-  solver_t solver;
-  solver_setup(&solver);
+int test_graph_setup() {
+  graph_t graph;
+  graph_setup(&graph);
   return 0;
 }
 
-int test_solver_print() {
-  solver_t solver;
-  solver_setup(&solver);
-  solver_print(&solver);
+int test_graph_print() {
+  graph_t graph;
+  graph_setup(&graph);
+  graph_print(&graph);
   return 0;
 }
 
@@ -2589,7 +2684,6 @@ void test_suite() {
   MU_ADD_TEST(test_image_free);
   /* -- GEOMETRY */
   MU_ADD_TEST(test_linear_triangulation);
-  MU_ADD_TEST(test_stereo_triangulation);
   /* -- RADTAN */
   MU_ADD_TEST(test_radtan4_distort);
   MU_ADD_TEST(test_radtan4_point_jacobian);
@@ -2628,9 +2722,11 @@ void test_suite() {
   /* -- BA factor */
   MU_ADD_TEST(test_ba_factor_setup);
   MU_ADD_TEST(test_ba_factor_eval);
+  MU_ADD_TEST(test_ba_factor_ceres_eval);
   /* -- Camera factor */
   MU_ADD_TEST(test_cam_factor_setup);
   MU_ADD_TEST(test_cam_factor_eval);
+  MU_ADD_TEST(test_cam_factor_ceres_eval);
   /* -- IMU factor */
   MU_ADD_TEST(test_imu_buf_setup);
   MU_ADD_TEST(test_imu_buf_add);
@@ -2639,12 +2735,12 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buf_print);
   MU_ADD_TEST(test_imu_factor_setup);
   /* MU_ADD_TEST(test_imu_factor_eval); */
-  /* -- Solver */
-  MU_ADD_TEST(test_ceres_solver);
-  /* MU_ADD_TEST(test_solver_setup); */
-  /* MU_ADD_TEST(test_solver_print); */
-  /* MU_ADD_TEST(test_solver_eval); */
-  /* MU_ADD_TEST(test_solver_solve); */
+  /* -- Graph */
+  MU_ADD_TEST(test_ceres_graph);
+  MU_ADD_TEST(test_graph_setup);
+  MU_ADD_TEST(test_graph_print);
+  /* MU_ADD_TEST(test_graph_eval); */
+  /* MU_ADD_TEST(test_graph_solve); */
 }
 
 MU_RUN_TESTS(test_suite)

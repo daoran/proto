@@ -4215,9 +4215,7 @@ int ba_factor_eval(ba_factor_t *factor) {
   /* -- Camera pose */
   real_t T_WC[4 * 4] = {0};
   tf(factor->pose->data, T_WC);
-  /* -- Feature */
   const real_t *p_W = factor->feature->data;
-  /* -- Camera params */
   const real_t *cam_params = factor->camera->data;
 
   /* Calculate residuals */
@@ -4229,11 +4227,11 @@ int ba_factor_eval(ba_factor_t *factor) {
   tf_point(T_CW, p_W, p_C);
   pinhole_radtan4_project(cam_params, p_C, z_hat);
   /* -- Residual */
-  real_t err[2] = {0};
-  err[0] = factor->z[0] - z_hat[0];
-  err[1] = factor->z[1] - z_hat[1];
+  real_t r[2] = {0};
+  r[0] = factor->z[0] - z_hat[0];
+  r[1] = factor->z[1] - z_hat[1];
   /* -- Weighted residual */
-  dot(factor->sqrt_info, 2, 2, err, 2, 1, factor->r);
+  dot(factor->sqrt_info, 2, 2, r, 2, 1, factor->r);
 
   /* Calculate jacobians */
   /* -- Form: -1 * sqrt_info */
@@ -4254,6 +4252,36 @@ int ba_factor_eval(ba_factor_t *factor) {
   ba_factor_camera_params_jacobian(neg_sqrt_info, J_cam_params, factor->J2);
 
   return 0;
+}
+
+int ba_factor_ceres_eval(void *factor,
+                         double **params,
+                         double *residuals,
+                         double **jacobians) {
+  assert(factor != NULL);
+  assert(params != NULL);
+  assert(residuals != NULL);
+  ba_factor_t *ba_factor = (ba_factor_t *) factor;
+  int retval = ba_factor_eval(ba_factor);
+
+  if (jacobians == NULL) {
+    return retval;
+  }
+
+  if (jacobians[0]) {
+    zeros(jacobians[0], 2, 7);
+    mat_block_set(jacobians[0], 7, 0, 0, 1, 5, ba_factor->J0);
+  }
+
+  if (jacobians[1]) {
+    mat_copy(ba_factor->J1, 2, 3, jacobians[1]);
+  }
+
+  if (jacobians[2]) {
+    mat_copy(ba_factor->J2, 2, 8, jacobians[2]);
+  }
+
+  return retval;
 }
 
 // CAMERA FACTOR ///////////////////////////////////////////////////////////////
@@ -4524,6 +4552,41 @@ int cam_factor_eval(cam_factor_t *factor) {
   return 0;
 }
 
+int cam_factor_ceres_eval(void *factor,
+                          double **params,
+                          double *residuals,
+                          double **jacobians) {
+  assert(factor != NULL);
+  assert(params != NULL);
+  assert(residuals != NULL);
+  cam_factor_t *cam_factor = (cam_factor_t *) factor;
+  int retval = cam_factor_eval(cam_factor);
+
+  if (jacobians == NULL) {
+    return retval;
+  }
+
+  if (jacobians[0]) {
+    zeros(jacobians[0], 2, 7);
+    mat_block_set(jacobians[0], 7, 0, 0, 1, 5, cam_factor->J0);
+  }
+
+  if (jacobians[1]) {
+    zeros(jacobians[1], 2, 7);
+    mat_block_set(jacobians[1], 7, 0, 0, 1, 5, cam_factor->J1);
+  }
+
+  if (jacobians[2]) {
+    mat_copy(cam_factor->J2, 2, 3, jacobians[2]);
+  }
+
+  if (jacobians[3]) {
+    mat_copy(cam_factor->J3, 2, 8, jacobians[3]);
+  }
+
+  return retval;
+}
+
 // IMU FACTOR //////////////////////////////////////////////////////////////////
 
 void imu_buf_setup(imu_buf_t *imu_buf) {
@@ -4784,49 +4847,62 @@ int imu_factor_eval(imu_factor_t *factor) {
   return 0;
 }
 
-// SOLVER //////////////////////////////////////////////////////////////////////
+// GRAPH //////////////////////////////////////////////////////////////////////
 
-void solver_setup(solver_t *solver) {
-  assert(solver);
+void graph_setup(graph_t *graph) {
+  assert(graph);
 
-  solver->nb_cam_factors = 0;
-  solver->nb_imu_factors = 0;
+  graph->cam_factors = NULL;
+  graph->nb_cam_factors = 0;
 
-  solver->nb_poses = 0;
-  solver->nb_cams = 0;
-  solver->nb_extrinsics = 0;
-  solver->nb_features = 0;
+  graph->imu_factors = NULL;
+  graph->nb_imu_factors = 0;
 
-  solver->x_size = 0;
-  solver->r_size = 0;
+  graph->poses = NULL;
+  graph->nb_poses = 0;
+
+  graph->cams = NULL;
+  graph->nb_cams = 0;
+
+  graph->extrinsics = NULL;
+  graph->nb_extrinsics = 0;
+
+  graph->features = NULL;
+  graph->nb_features = 0;
+
+  graph->H = NULL;
+  graph->g = NULL;
+  graph->x = NULL;
+  graph->x_size = 0;
+  graph->r_size = 0;
 }
 
-void solver_print(solver_t *solver) {
-  printf("solver:\n");
-  printf("r_size: %d\n", solver->r_size);
-  printf("x_size: %d\n", solver->x_size);
-  printf("nb_cam_factors: %d\n", solver->nb_cam_factors);
-  printf("nb_imu_factors: %d\n", solver->nb_imu_factors);
-  printf("nb_poses: %d\n", solver->nb_poses);
+void graph_print(graph_t *graph) {
+  printf("graph:\n");
+  printf("r_size: %d\n", graph->r_size);
+  printf("x_size: %d\n", graph->x_size);
+  printf("nb_cam_factors: %d\n", graph->nb_cam_factors);
+  printf("nb_imu_factors: %d\n", graph->nb_imu_factors);
+  printf("nb_poses: %d\n", graph->nb_poses);
 }
 
-static void solver_evaluator(solver_t *solver,
-                             int **param_orders,
-                             int *param_sizes,
-                             int nb_params,
-                             real_t *r,
-                             int r_size,
-                             real_t **jacs) {
-  real_t *H = solver->H;
-  int H_size = solver->x_size;
-  real_t *g = solver->g;
+static void graph_evaluator(graph_t *graph,
+                            int **param_orders,
+                            int *param_sizes,
+                            int nb_params,
+                            real_t *r,
+                            int r_size,
+                            real_t **jacs) {
+  real_t *H = graph->H;
+  int H_size = graph->x_size;
+  real_t *g = graph->g;
 
   for (int i = 0; i < nb_params; i++) {
     int *idx_i = param_orders[i];
     int size_i = param_sizes[i];
     const real_t *J_i = jacs[i];
 
-    real_t J_i_trans[MAX_H_SIZE] = {0};
+    real_t *J_i_trans = {0};
     mat_transpose(J_i, r_size, size_i, J_i_trans);
 
     for (int j = i; j < nb_params; j++) {
@@ -4834,7 +4910,7 @@ static void solver_evaluator(solver_t *solver,
       int size_j = param_sizes[i];
       const real_t *J_j = jacs[j];
 
-      real_t H_ij[MAX_H_SIZE] = {0};
+      real_t *H_ij = {0};
       dot(J_i_trans, size_i, r_size, J_j, r_size, size_j, H_ij);
 
       /* Fill Hessian H */
@@ -4848,7 +4924,7 @@ static void solver_evaluator(solver_t *solver,
       if (i == j) {
         mat_block_set(H, stride, rs, cs, re, ce, H_ij);
       } else {
-        real_t H_ji[MAX_H_SIZE] = {0};
+        real_t *H_ji = {0};
         mat_transpose(H_ij, size_i, size_j, H_ji);
         mat_block_set(H, stride, rs, cs, re, ce, H_ij);
         mat_block_set(H, stride, cs, rs, ce, re, H_ij);
@@ -4867,36 +4943,36 @@ static void solver_evaluator(solver_t *solver,
   }
 }
 
-int solver_eval(solver_t *solver) {
-  assert(solver != NULL);
+int graph_eval(graph_t *graph) {
+  assert(graph != NULL);
 
   int pose_idx = 0;
-  int lmks_idx = solver->nb_poses * 6;
-  int exts_idx = lmks_idx + solver->nb_features * 3;
-  int cams_idx = exts_idx + solver->nb_extrinsics * 6;
+  int lmks_idx = graph->nb_poses * 6;
+  int exts_idx = lmks_idx + graph->nb_features * 3;
+  int cams_idx = exts_idx + graph->nb_extrinsics * 6;
 
   /* Evaluate camera factors */
-  for (int i = 0; i < solver->nb_cam_factors; i++) {
-    cam_factor_t *factor = &solver->cam_factors[i];
+  for (int i = 0; i < graph->nb_cam_factors; i++) {
+    cam_factor_t *factor = &graph->cam_factors[i];
     cam_factor_eval(factor);
 
     int *param_orders[4] = {&pose_idx, &exts_idx, &cams_idx, &lmks_idx};
     int param_sizes[4] = {6, 6, 8, 3};
     int nb_params = 4;
 
-    solver_evaluator(solver,
-                     param_orders,
-                     param_sizes,
-                     nb_params,
-                     factor->r,
-                     factor->r_size,
-                     factor->jacs);
+    graph_evaluator(graph,
+                    param_orders,
+                    param_sizes,
+                    nb_params,
+                    factor->r,
+                    factor->r_size,
+                    factor->jacs);
   }
 
   return 0;
 }
 
-/* int solver_optimize(solver_t *solver) { */
+/* int graph_optimize(graph_t *graph) { */
 /*   struct timespec solve_tic = tic(); */
 /*   real_t lambda_k = 1e-4; */
 /*  */
@@ -4906,17 +4982,17 @@ int solver_eval(solver_t *solver) {
 /*  */
 /*   for (iter = 0; iter < max_iter; iter++) { */
 /*     #<{(| Cost k |)}># */
-/*     #<{(| x = solver_get_state(solver); |)}># */
-/*     #<{(| solver_eval(solver, H, g, &marg_size, &remain_size); |)}># */
+/*     #<{(| x = graph_get_state(graph); |)}># */
+/*     #<{(| graph_eval(graph, H, g, &marg_size, &remain_size); |)}># */
 /*     #<{(| const matx_t H_diag = (H.diagonal().asDiagonal()); |)}># */
 /*     #<{(| H = H + lambda_k * H_diag; |)}># */
 /*     #<{(| dx = H.ldlt().solve(g); |)}># */
-/*     #<{(| e = solver_residuals(solver); |)}># */
+/*     #<{(| e = graph_residuals(graph); |)}># */
 /*     #<{(| cost = 0.5 * e.transpose() * e; |)}># */
 /*  */
 /*     #<{(| Cost k+1 |)}># */
-/*     #<{(| solver_update(solver, dx); |)}># */
-/*     #<{(| e = solver_residuals(solver); |)}># */
+/*     #<{(| graph_update(graph, dx); |)}># */
+/*     #<{(| e = graph_residuals(graph); |)}># */
 /*     const real_t cost_k = 0.5 * e.transpose() * e; */
 /*  */
 /*     const real_t cost_delta = cost_k - cost; */
@@ -4950,7 +5026,7 @@ int solver_eval(solver_t *solver) {
 /*       cost = cost_k; */
 /*     } else { */
 /*       #<{(| Reject update |)}># */
-/*       #<{(| solver_set_state(solver, x); // Restore state |)}># */
+/*       #<{(| graph_set_state(graph, x); // Restore state |)}># */
 /*       lambda_k *= update_factor; */
 /*     } */
 /*  */
@@ -4965,6 +5041,6 @@ int solver_eval(solver_t *solver) {
 /*   #<{(| solve_time = toc(&solve_tic); |)}># */
 /*   #<{(| if (verbose) { |)}># */
 /*   #<{(|   printf("cost: %.2e\t", cost); |)}># */
-/*   #<{(|   printf("solver took: %.4fs\n", solve_time); |)}># */
+/*   #<{(|   printf("graph took: %.4fs\n", solve_time); |)}># */
 /*   #<{(| } |)}># */
 /* } */
