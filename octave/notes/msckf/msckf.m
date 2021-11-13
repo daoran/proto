@@ -216,7 +216,7 @@ function [r, H_x] = msckf_measurement_jacobian(msckf, ts, feature_ids, keypoints
   H_x = []; % State jacobian
   H_f = []; % Feature jacobian
 
-  for i = 1:length(feature_ids):
+  for i = 1:length(feature_ids)
     feature_id = feature_ids(i);
     z = keypoints{i};
   endfor
@@ -226,16 +226,25 @@ endfunction
 function msckf = msckf_measurement_update(msckf, ts, feature_ids, keypoints)
   msckf = msckf_augment_state(msckf);
 
+  % Marginalize out feature jacobians and residuals via QR decomposition
   H = [];
   r = [];
   [Q, R] = qr(H);
   H_thin = (Q' * H)(1:(15 + 6 * nb_cam_states), 1:end);
   r_thin = (Q' * r)(1:(15 + 6 * nb_cam_states));
 
-
+  % Calculate update
   % K = P * T' * inv(T * P * T' + R);
-  % x = x + K * y;
-  % P = (eye() - K * T) * P * (eye() - K * T)' + K * R * K';
+  K = msckf.P * H_thin' * inv(H_thin * msckf.P * H_thin' + msckf.R);
+  % K = (H_thin * msckf.P * H_thin' + msckf.R) \ (msckf.P * H_thin');
+  dx = K * r_thin;
+
+  % Update state-vector
+
+
+  % Update state-covariance
+  I_KH = (eye() - K * H_thin);
+  msckf.P = I_KH * msckf.P * I_KH' + K * msckf.R * K';
 endfunction
 
 % Kalman Filter
