@@ -1862,6 +1862,36 @@ int test_pinhole_equi4_params_jacobian() {
 }
 
 /******************************************************************************
+ * SIM
+ ******************************************************************************/
+
+// SIM FEATURES ////////////////////////////////////////////////////////////////
+
+int test_load_sim_features() {
+  sim_features_t *features_data = load_sim_features("/tmp/features.csv");
+  MU_CHECK(features_data->nb_features > 0);
+  free_sim_features(features_data);
+  return 0;
+}
+
+// SIM IMU /////////////////////////////////////////////////////////////////////
+
+int test_load_sim_imu() {
+  sim_imu_t *imu_data = load_sim_imu("/tmp/imu.csv");
+  free_sim_imu(imu_data);
+  return 0;
+}
+
+// SIM CAMERA //////////////////////////////////////////////////////////////////
+
+int test_load_sim_cam() {
+  char *frame_csv = "/tmp/sim_vio/cam0/data/700000000.csv";
+  sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
+  free_sim_cam_frame(frame_data);
+  return 0;
+}
+
+/******************************************************************************
  * SENSOR FUSION
  ******************************************************************************/
 
@@ -2100,14 +2130,20 @@ int test_ba_factor_eval() {
   ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
 
   /* Evaluate bundle adjustment factor */
-  ba_factor_eval(&ba_factor);
+  real_t *params[4] = {pose.data, feature.data, cam.data};
+  real_t residuals[2] = {0};
+  real_t J0[2 * 6] = {0};
+  real_t J1[2 * 3] = {0};
+  real_t J2[2 * 8] = {0};
+  real_t *jacobians[3] = {J0, J1, J2};
+  ba_factor_eval(&ba_factor, params, residuals, jacobians);
 
   print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
   print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
-  print_matrix("residuals", ba_factor.r, 2, 1);
-  print_matrix("J0", ba_factor.J0, 2, 6);
-  print_matrix("J1", ba_factor.J1, 2, 3);
-  print_matrix("J2", ba_factor.J2, 2, 8);
+  print_matrix("residuals", residuals, 2, 1);
+  print_matrix("J0", J0, 2, 6);
+  print_matrix("J1", J1, 2, 3);
+  print_matrix("J2", J2, 2, 8);
 
   return 0;
 }
@@ -2217,13 +2253,7 @@ int test_cam_factor_setup() {
   cam_factor_t cam_factor;
   real_t var[2] = {1.0, 1.0};
   cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
-
   print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
-  print_matrix("cam_factor.r", cam_factor.r, 2, 1);
-  print_matrix("cam_factor.J0", cam_factor.J0, 2, 6);
-  print_matrix("cam_factor.J1", cam_factor.J1, 2, 6);
-  print_matrix("cam_factor.J2", cam_factor.J2, 2, 8);
-  print_matrix("cam_factor.J3", cam_factor.J3, 2, 3);
 
   return 0;
 }
@@ -2278,16 +2308,23 @@ int test_cam_factor_eval() {
   cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
 
   /* Evaluate camera factor */
-  cam_factor_eval(&cam_factor);
+  real_t *params[4] = {pose.data, extrinsics.data, feature.data, cam.data};
+  real_t residuals[2] = {0};
+  real_t J0[2 * 6] = {0};
+  real_t J1[2 * 6] = {0};
+  real_t J2[2 * 3] = {0};
+  real_t J3[2 * 8] = {0};
+  real_t *jacobians[4] = {J0, J1, J2, J3};
+  cam_factor_eval(&cam_factor, params, residuals, jacobians);
   print_vector("z", z, 2);
 
   print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
   print_matrix("cam_factor.sqrt_info", cam_factor.sqrt_info, 2, 2);
-  print_matrix("cam_factor.r", cam_factor.r, 2, 1);
-  print_matrix("cam_factor.J0", cam_factor.J0, 2, 6);
-  print_matrix("cam_factor.J1", cam_factor.J1, 2, 6);
-  print_matrix("cam_factor.J2", cam_factor.J2, 2, 8);
-  print_matrix("cam_factor.J3", cam_factor.J3, 2, 3);
+  print_matrix("cam_factor.r", residuals, 2, 1);
+  print_matrix("cam_factor.J0", jacobians[0], 2, 6);
+  print_matrix("cam_factor.J1", jacobians[1], 2, 6);
+  print_matrix("cam_factor.J2", jacobians[2], 2, 8);
+  print_matrix("cam_factor.J3", jacobians[3], 2, 3);
 
   return 0;
 }
@@ -2354,11 +2391,11 @@ int test_cam_factor_ceres_eval() {
 
   print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
   print_matrix("cam_factor.sqrt_info", cam_factor.sqrt_info, 2, 2);
-  print_matrix("cam_factor.r", cam_factor.r, 2, 1);
-  print_matrix("cam_factor.J0", cam_factor.J0, 2, 6);
-  print_matrix("cam_factor.J1", cam_factor.J1, 2, 6);
-  print_matrix("cam_factor.J2", cam_factor.J2, 2, 8);
-  print_matrix("cam_factor.J3", cam_factor.J3, 2, 3);
+  print_matrix("cam_factor.r", residuals, 2, 1);
+  print_matrix("cam_factor.J0", jacobians[0], 2, 6);
+  print_matrix("cam_factor.J1", jacobians[1], 2, 6);
+  print_matrix("cam_factor.J2", jacobians[2], 2, 8);
+  print_matrix("cam_factor.J3", jacobians[3], 2, 3);
 
   return 0;
 }
@@ -2452,28 +2489,28 @@ int test_imu_buf_print() {
   return 0;
 }
 
-int test_imu_factor_setup() {
-  imu_factor_t imu_factor;
-  imu_params_t imu_params;
-  imu_buf_t imu_buf;
-
-  pose_t pose_i;
-  speed_biases_t sb_i;
-  pose_t pose_j;
-  speed_biases_t sb_j;
-
-  imu_buf_setup(&imu_buf);
-
-  imu_factor_setup(&imu_factor,
-                   &imu_params,
-                   &imu_buf,
-                   &pose_i,
-                   &sb_i,
-                   &pose_j,
-                   &sb_j);
-
-  return 0;
-}
+/* int test_imu_factor_setup() { */
+/*   imu_factor_t imu_factor; */
+/*   imu_params_t imu_params; */
+/*   imu_buf_t imu_buf; */
+/*  */
+/*   pose_t pose_i; */
+/*   speed_biases_t sb_i; */
+/*   pose_t pose_j; */
+/*   speed_biases_t sb_j; */
+/*  */
+/*   imu_buf_setup(&imu_buf); */
+/*  */
+/*   imu_factor_setup(&imu_factor, */
+/*                    &imu_params, */
+/*                    &imu_buf, */
+/*                    &pose_i, */
+/*                    &sb_i, */
+/*                    &pose_j, */
+/*                    &sb_j); */
+/*  */
+/*   return 0; */
+/* } */
 
 int test_ceres_graph() {
   int num_observations = 67;
@@ -2575,6 +2612,13 @@ int test_graph_print() {
   graph_t graph;
   graph_setup(&graph);
   graph_print(&graph);
+  return 0;
+}
+
+int test_graph_eval() {
+  graph_t graph;
+  graph_setup(&graph);
+
   return 0;
 }
 
@@ -2708,6 +2752,11 @@ void test_suite() {
   MU_ADD_TEST(test_pinhole_equi4_project_jacobian);
   MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
 
+  /* SIM */
+  MU_ADD_TEST(test_load_sim_features);
+  MU_ADD_TEST(test_load_sim_imu);
+  MU_ADD_TEST(test_load_sim_cam);
+
   /* SENSOR FUSION */
   /* -- Parameters */
   MU_ADD_TEST(test_pose_setup);
@@ -2733,13 +2782,13 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buf_clear);
   MU_ADD_TEST(test_imu_buf_copy);
   MU_ADD_TEST(test_imu_buf_print);
-  MU_ADD_TEST(test_imu_factor_setup);
+  /* MU_ADD_TEST(test_imu_factor_setup); */
   /* MU_ADD_TEST(test_imu_factor_eval); */
   /* -- Graph */
   MU_ADD_TEST(test_ceres_graph);
   MU_ADD_TEST(test_graph_setup);
   MU_ADD_TEST(test_graph_print);
-  /* MU_ADD_TEST(test_graph_eval); */
+  MU_ADD_TEST(test_graph_eval);
   /* MU_ADD_TEST(test_graph_solve); */
 }
 
