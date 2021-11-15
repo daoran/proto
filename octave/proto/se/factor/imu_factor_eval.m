@@ -1,6 +1,7 @@
 function [r, jacs] = imu_factor_eval(factor, params)
   assert(isstruct(factor));
   assert(length(params) == 4);
+  assert(strcmp(factor.integration_type, "euler") || strcmp(factor.integration_type, "midpoint"));
 
   % Map params
   pose_i = params{1};
@@ -49,8 +50,13 @@ function [r, jacs] = imu_factor_eval(factor, params)
   err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
   err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv;
   err_rot = (2 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
-  err_ba = zeros(3, 1);
-  err_bg = zeros(3, 1);
+  if strcmp(factor.integration_type, "euler")
+    err_ba = zeros(3, 1);
+    err_bg = zeros(3, 1);
+  elseif strcmp(factor.integration_type, "midpoint")
+    err_ba = ba_j - ba_i;
+    err_bg = bg_j - bg_i;
+  endif
   r = sqrt_info * [err_pos; err_vel; err_rot; err_ba; err_bg];
 
   % Form jacobians
@@ -60,10 +66,10 @@ function [r, jacs] = imu_factor_eval(factor, params)
   jacs{4} = zeros(15, 9);  % residuals w.r.t speed and biase j
 
   % -- Jacobian w.r.t. pose i
-  jacs{1}(1:3, 1:3) = -C_i';                                                       % dr w.r.t r_i
-  jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))); % dr w.r.t C_i
-  jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                       % dv w.r.t C_i
-  jacs{1}(7:9, 4:6) = -(quat_left(rot2quat(C_j' * C_i)) * quat_right(dq))(2:4, 2:4);
+  jacs{1}(1:3, 1:3) = -C_i';                                                         % dr w.r.t r_i
+  jacs{1}(1:3, 4:6) = skew(C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)));   % dr w.r.t C_i
+  jacs{1}(4:6, 4:6) = skew(C_i' * ((v_j - v_i) + (g * Dt)));                         % dv w.r.t C_i
+  jacs{1}(7:9, 4:6) = -(quat_left(rot2quat(C_j' * C_i)) * quat_right(dq))(2:4, 2:4); % dtheta w.r.t C_i
   jacs{1} = sqrt_info * jacs{1};
 
   % -- Jacobian w.r.t. speed and biases i
@@ -73,7 +79,11 @@ function [r, jacs] = imu_factor_eval(factor, params)
   jacs{2}(4:6, 1:3) = -C_i';       % dv w.r.t v_i
   jacs{2}(4:6, 4:6) = -dv_dba;     % dv w.r.t ba
   jacs{2}(4:6, 7:9) = -dv_dbg;     % dv w.r.t bg
-  jacs{2}(7:9, 7:9) = -quat_left(rot2quat(C_j' * C_i * factor.dC))(2:4, 2:4) * dq_dbg;
+  jacs{2}(7:9, 7:9) = -quat_left(rot2quat(C_j' * C_i * factor.dC))(2:4, 2:4) * dq_dbg;  % dtheta w.r.t C_i
+  if strcmp(factor.integration_type, "midpoint")
+    jacs{2}(10:12, 4:6) = -eye(3);   % dba w.r.t ba_i
+    jacs{2}(13:15, 7:9) = -eye(3);   % dbg w.r.t bg_i
+  endif
   jacs{2} = sqrt_info * jacs{2};
 
   % -- Jacobian w.r.t. pose j
@@ -82,6 +92,10 @@ function [r, jacs] = imu_factor_eval(factor, params)
   jacs{3} = sqrt_info * jacs{3};
 
   % -- Jacobian w.r.t. sb j
-  jacs{4}(4:6, 1:3) = C_i';       % dv w.r.t v_j
+  jacs{4}(4:6, 1:3) = C_i';                                             % dv w.r.t v_j
+  if strcmp(factor.integration_type, "midpoint")
+    jacs{4}(10:12, 4:6) = eye(3);                                      % dba w.r.t ba_j
+    jacs{4}(13:15, 7:9) = eye(3);                                      % dbg w.r.t bg_j
+  endif
   jacs{4} = sqrt_info * jacs{4};
 endfunction

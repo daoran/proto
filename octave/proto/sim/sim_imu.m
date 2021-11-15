@@ -1,7 +1,7 @@
 function sim_data = sim_imu(circle_r, velocity)
   imu_rate = 200.0;
-  circle_dist = 2.0 * pi * circle_r
-  time_taken = circle_dist / velocity
+  circle_dist = 2.0 * pi * circle_r;
+  time_taken = circle_dist / velocity;
   g = [0.0; 0.0; 9.81];
   printf("Simulating ideal IMU measurements ...\n");
   printf("imu_rate: %f\n", imu_rate);
@@ -10,7 +10,7 @@ function sim_data = sim_imu(circle_r, velocity)
   printf("time_taken: %f\n", time_taken);
 
   dt = 1.0 / imu_rate;
-  w = -2.0 * pi * (1.0 / time_taken)
+  w = -2.0 * pi * (1.0 / time_taken);
   t = 0;
 
   theta = pi;

@@ -41,21 +41,20 @@ function visualize(fig_title, graph, poses_gnd, vels_gnd)
     bg_est = [bg_est, sb_i.param(7:9)];
   endfor
 
-  figure();
-  subplot(211);
-  hold on;
-  plot(t, ba_est(1, :), 'r-', 'linewidth', 2.0);
-  plot(t, ba_est(2, :), 'g-', 'linewidth', 2.0);
-  plot(t, ba_est(3, :), 'b-', 'linewidth', 2.0);
-  xlabel('Time [s]');
-
-  subplot(212);
-  hold on;
-  plot(t, bg_est(1, :), 'r-', 'linewidth', 2.0);
-  plot(t, bg_est(2, :), 'g-', 'linewidth', 2.0);
-  plot(t, bg_est(3, :), 'b-', 'linewidth', 2.0);
-  xlabel('Time [s]');
-  ginput();
+  % figure();
+  % subplot(211);
+  % hold on;
+  % plot(t, ba_est(1, :), 'r-', 'linewidth', 2.0);
+  % plot(t, ba_est(2, :), 'g-', 'linewidth', 2.0);
+  % plot(t, ba_est(3, :), 'b-', 'linewidth', 2.0);
+  % xlabel('Time [s]');
+  %
+  % subplot(212);
+  % hold on;
+  % plot(t, bg_est(1, :), 'r-', 'linewidth', 2.0);
+  % plot(t, bg_est(2, :), 'g-', 'linewidth', 2.0);
+  % plot(t, bg_est(3, :), 'b-', 'linewidth', 2.0);
+  % xlabel('Time [s]');
 
   % Plot
   % | 1  | 2  | 3  | 4  | 5  | 6  | 7  |
@@ -193,7 +192,7 @@ for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
 
   % Pose j
   T_WS_j = sim_data.imu_poses{end_idx};
-  T_WS_j(1:3, 1:3) *= Exp(normrnd(0.0, 0.1, 3, 1)); % Add noise to rotation
+  T_WS_j(1:3, 1:3) *= Exp(normrnd(0.0, 0.01, 3, 1)); % Add noise to rotation
   T_WS_j(1:3, 4) += normrnd(0.0, 0.5, 3, 1);         % Add noise to translation
   pose_j = pose_init(imu_buf.ts(end), T_WS_j);
 
@@ -208,15 +207,18 @@ for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
   % Speed and bias j
   vel_j = sim_data.imu_vel(:, end_idx);
   vel_j += normrnd(0.0, 0.2, 3, 1); % Add noise to velocities
-  ba_j = zeros(3, 1);
-  bg_j = zeros(3, 1);
+  % ba_j = zeros(3, 1);
+  % bg_j = zeros(3, 1);
+  ba_j = normrnd(0.0, 1e-3, 3, 1);
+  bg_j = normrnd(0.0, 1e-4, 3, 1);
   sb_j = sb_init(imu_buf.ts(end), vel_j, bg_j, ba_j);
 
   % Add imu factor
   [graph, pose_j_id] = graph_add_param(graph, pose_j);
   [graph, sb_j_id] = graph_add_param(graph, sb_j);
   param_ids = [pose_i_id; sb_i_id; pose_j_id; sb_j_id];
-  imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i);
+  imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i, "euler");
+  % imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i, "midpoint");
   [graph, factor_id] = graph_add_factor(graph, imu_factor);
 
   % Update
@@ -225,9 +227,9 @@ for start_idx = 1:window_size:(length(sim_data.imu_time)-window_size);
   sb_i = sb_j;
   sb_i_id = sb_j_id;
 
-  if length(graph.factors) == 30
-    break;
-  endif
+  % if length(graph.factors) == 30
+  %   break;
+  % endif
 endfor
 
 % Visualize
@@ -236,7 +238,7 @@ print('-dpng', '-S1200,600', '/tmp/test_io-before.png')
 close;
 
 % Optimize
-graph = graph_solve(graph);
+graph = graph_solve(graph, 100);
 
 visualize("After Optimization", graph, poses_gnd, vels_gnd);
 print('-dpng', '-S1200,600', '/tmp/test_io-after')

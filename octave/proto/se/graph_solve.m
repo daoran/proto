@@ -15,12 +15,12 @@ function graph = graph_solve(graph, max_iter=10)
 
     if (rows(H) < 200)
       % dx = H \ g;
-      % dx = pinv(H) * g;
-      dx = linsolve(H, g);
+      dx = pinv(H) * g;
+      % dx = linsolve(H, g);
     else
       warning('off');
       H_sparse = sparse(H);
-      dx = pcg(H_sparse, g, 1e-3, 100);
+      dx = pcg(H_sparse, g, 1e-4, 1000);
       warning('on');
     endif
 

@@ -246,7 +246,7 @@ for k = 2:length(sim_data.timeline)
 
     % Add imu factor
     param_ids = [pose_i_id; sb_i_id; pose_j_id; sb_j_id];
-    imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i);
+    imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i, "euler");
     graph = graph_add_factor(graph, imu_factor);
 
     % Update
