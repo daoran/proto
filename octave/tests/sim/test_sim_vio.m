@@ -1,9 +1,22 @@
 addpath(genpath("proto"));
 graphics_toolkit("fltk");
 
-sim_data = sim_vio(0.5, 1.0);
+% Simulate imu data
+save_path = "/tmp/test_sim_vio.data";
+if length(glob(save_path)) == 0
+  circle_r = 0.5;
+  circle_velocity = 1.0;
+  sim_data = sim_vio(circle_r, circle_velocity)
+  save("-binary", save_path, "sim_data");
+else
+  load(save_path);
+endif
 
-show_plots = 1;
+
+save_sim_vio(sim_data, "/tmp/sim_vio");
+
+
+show_plots = 0;
 if show_plots
   % Plot scene
   figure();
