@@ -5,6 +5,55 @@
  ******************************************************************************/
 
 /**
+ * Extract filename from path.
+ */
+void path_file_name(const char *path, char *fname) {
+  assert(path != NULL);
+  assert(fname != NULL);
+
+  char path_copy[9046] = {0};
+  strcpy(path_copy, path);
+
+  char *base = strrchr(path_copy, '/');
+  base = base ? base + 1 : path_copy;
+
+  strcpy(fname, base);
+}
+
+/**
+ * Extract file extension from path.
+ */
+void path_file_ext(const char *path, char *ext) {
+  assert(path != NULL);
+  assert(ext != NULL);
+
+  char path_copy[9046] = {0};
+  strcpy(path_copy, path);
+
+  char *base = strrchr(path, '.');
+  if (base) {
+    base = base ? base + 1 : path_copy;
+    strcpy(ext, base);
+  } else {
+    ext[0] = '\0';
+  }
+}
+
+/**
+ * Extract dir name from path
+ */
+void path_dir_name(const char *path, char *dir_name) {
+  assert(path != NULL);
+  assert(dir_name != NULL);
+
+  char path_copy[9046] = {0};
+  strcpy(path_copy, path);
+
+  char *base = strrchr(path_copy, '/');
+  strncpy(dir_name, path_copy, base - path_copy + 1);
+}
+
+/**
  * List files in directory.
  * @returns List of files in directory
  */
@@ -3824,6 +3873,80 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 }
 
 /******************************************************************************
+ * SIM
+ ******************************************************************************/
+
+// SIM FEATURES ////////////////////////////////////////////////////////////////
+
+sim_features_t *load_sim_features(const char *csv_path) {
+  sim_features_t *features_data = malloc(sizeof(sim_features_t));
+  int nb_rows = 0;
+  int nb_cols = 0;
+  features_data->features = csv_data(csv_path, &nb_rows, &nb_cols);
+  features_data->nb_features = nb_rows;
+  return features_data;
+}
+
+void free_sim_features(sim_features_t *features_data) {
+  free(features_data->features);
+  free(features_data);
+}
+
+// SIM IMU ////////////////////////////////////////////////////////////////////
+
+sim_imu_t *load_sim_imu(const char *csv_path) {
+  sim_imu_t *imu_data = malloc(sizeof(sim_imu_t));
+
+  int nb_rows = 0;
+  int nb_cols = 0;
+  imu_data->data = csv_data(csv_path, &nb_rows, &nb_cols);
+  imu_data->nb_measurements = nb_rows;
+
+  return imu_data;
+}
+
+void free_sim_imu(sim_imu_t *imu_data) {
+  free(imu_data->data);
+  free(imu_data);
+}
+
+// SIM CAM /////////////////////////////////////////////////////////////////////
+
+static timestamp_t ts_from_path(const char *path) {
+  char fname[128] = {0};
+  char fext[128] = {0};
+  path_file_name(path, fname);
+  path_file_ext(path, fext);
+
+  char ts_str[128] = {0};
+  strncpy(ts_str, fname, strlen(fname) - strlen(fext) - 1);
+
+  char *ptr;
+  return strtol(ts_str, &ptr, 10);
+}
+
+sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
+  sim_cam_frame_t *frame_data = malloc(sizeof(sim_cam_frame_t));
+
+  /* typedef struct sim_cam_frame_t { */
+  /*   timestamp_t *cam_ts; */
+  /*   real_t *cam_pose; */
+  /*   real_t **measurement; */
+  /*   real_t **point_ids; */
+  /*   int nb_measurements; */
+  /* } sim_cam_frame_t; */
+
+  printf("ts: %ld\n", ts_from_path(csv_path));
+
+  return frame_data;
+}
+
+void free_sim_cam_frame(sim_cam_frame_t *frame_data) {}
+
+sim_cam_t *load_sim_cam(const char *csv_path);
+void free_sim_cam(sim_cam_t *cam_data);
+
+/******************************************************************************
  * SENSOR FUSION
  ******************************************************************************/
 
@@ -4111,18 +4234,6 @@ void ba_factor_setup(ba_factor_t *factor,
   /* Measurement */
   factor->z[0] = z[0];
   factor->z[1] = z[1];
-
-  /* Residual */
-  zeros(factor->r, 2, 1);
-  factor->r_size = 2;
-
-  /* Jacobians */
-  zeros(factor->J0, 2, 6);
-  zeros(factor->J1, 2, 3);
-  zeros(factor->J2, 2, 8);
-  factor->jacs[0] = factor->J0;
-  factor->jacs[1] = factor->J1;
-  factor->jacs[2] = factor->J2;
 }
 
 static void ba_factor_cam_pose_jacobian(const real_t Jh_weighted[2 * 3],
@@ -4205,18 +4316,18 @@ static void ba_factor_camera_params_jacobian(const real_t neg_sqrt_info[2 * 2],
   dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
 }
 
-int ba_factor_eval(ba_factor_t *factor) {
+int ba_factor_eval(ba_factor_t *factor,
+                   real_t **params,
+                   real_t *residuals,
+                   real_t **jacobians) {
   assert(factor != NULL);
-  assert(factor->pose);
-  assert(factor->feature);
-  assert(factor->camera);
 
   /* Map params */
   /* -- Camera pose */
   real_t T_WC[4 * 4] = {0};
-  tf(factor->pose->data, T_WC);
-  const real_t *p_W = factor->feature->data;
-  const real_t *cam_params = factor->camera->data;
+  tf(params[0], T_WC);
+  const real_t *p_W = params[1];
+  const real_t *cam_params = params[2];
 
   /* Calculate residuals */
   /* -- Project point from world to image plane */
@@ -4231,7 +4342,7 @@ int ba_factor_eval(ba_factor_t *factor) {
   r[0] = factor->z[0] - z_hat[0];
   r[1] = factor->z[1] - z_hat[1];
   /* -- Weighted residual */
-  dot(factor->sqrt_info, 2, 2, r, 2, 1, factor->r);
+  dot(factor->sqrt_info, 2, 2, r, 2, 1, residuals);
 
   /* Calculate jacobians */
   /* -- Form: -1 * sqrt_info */
@@ -4247,9 +4358,9 @@ int ba_factor_eval(ba_factor_t *factor) {
   real_t J_cam_params[2 * 8] = {0};
   pinhole_radtan4_params_jacobian(cam_params, p_C, J_cam_params);
   /* -- Fill jacobians */
-  ba_factor_cam_pose_jacobian(Jh_weighted, T_WC, p_W, factor->J0);
-  ba_factor_feature_jacobian(Jh_weighted, T_WC, factor->J1);
-  ba_factor_camera_params_jacobian(neg_sqrt_info, J_cam_params, factor->J2);
+  ba_factor_cam_pose_jacobian(Jh_weighted, T_WC, p_W, jacobians[0]);
+  ba_factor_feature_jacobian(Jh_weighted, T_WC, jacobians[1]);
+  ba_factor_camera_params_jacobian(neg_sqrt_info, J_cam_params, jacobians[2]);
 
   return 0;
 }
@@ -4261,8 +4372,13 @@ int ba_factor_ceres_eval(void *factor,
   assert(factor != NULL);
   assert(params != NULL);
   assert(residuals != NULL);
+
+  real_t J0[2 * 6] = {0};
+  real_t J1[2 * 3] = {0};
+  real_t J2[2 * 8] = {0};
+  real_t *factor_jacs[3] = {J0, J1, J2};
   ba_factor_t *ba_factor = (ba_factor_t *) factor;
-  int retval = ba_factor_eval(ba_factor);
+  int retval = ba_factor_eval(ba_factor, params, residuals, factor_jacs);
 
   if (jacobians == NULL) {
     return retval;
@@ -4270,15 +4386,15 @@ int ba_factor_ceres_eval(void *factor,
 
   if (jacobians[0]) {
     zeros(jacobians[0], 2, 7);
-    mat_block_set(jacobians[0], 7, 0, 0, 1, 5, ba_factor->J0);
+    mat_block_set(jacobians[0], 7, 0, 0, 1, 5, factor_jacs[0]);
   }
 
   if (jacobians[1]) {
-    mat_copy(ba_factor->J1, 2, 3, jacobians[1]);
+    mat_copy(factor_jacs[1], 2, 3, jacobians[1]);
   }
 
   if (jacobians[2]) {
-    mat_copy(ba_factor->J2, 2, 8, jacobians[2]);
+    mat_copy(factor_jacs[2], 2, 8, jacobians[2]);
   }
 
   return retval;
@@ -4322,30 +4438,6 @@ void cam_factor_setup(cam_factor_t *factor,
   /* Measurement */
   factor->z[0] = z[0];
   factor->z[1] = z[1];
-
-  /* Residual */
-  zeros(factor->r, 2, 1);
-  factor->r_size = 2;
-
-  /* Jacobians */
-  zeros(factor->J0, 2, 6); /* Jacobian w.r.t sensor pose T_WS */
-  zeros(factor->J1, 2, 6); /* Jacobian w.r.t sensor-camera extrinsics T_SCi */
-  zeros(factor->J2, 2, 3); /* Jacobian w.r.t landmark */
-  zeros(factor->J3, 2, 8); /* Jacobian w.r.t camera parameters */
-  factor->jacs[0] = factor->J0;
-  factor->jacs[1] = factor->J1;
-  factor->jacs[2] = factor->J2;
-  factor->jacs[3] = factor->J3;
-}
-
-void cam_factor_reset(cam_factor_t *factor) {
-  assert(factor != NULL);
-
-  zeros(factor->r, 2, 1);
-  zeros(factor->J0, 2, 6);
-  zeros(factor->J1, 2, 6);
-  zeros(factor->J2, 2, 3);
-  zeros(factor->J3, 2, 8);
 }
 
 static void cam_factor_sensor_pose_jacobian(const real_t Jh_weighted[2 * 3],
@@ -4494,7 +4586,10 @@ static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
   dot(Jh_weighted, 2, 3, C_CW, 3, 3, J);
 }
 
-int cam_factor_eval(cam_factor_t *factor) {
+int cam_factor_eval(cam_factor_t *factor,
+                    real_t **params,
+                    real_t *residuals,
+                    real_t **jacobians) {
   assert(factor != NULL);
   assert(factor->pose);
   assert(factor->extrinsics);
@@ -4504,31 +4599,31 @@ int cam_factor_eval(cam_factor_t *factor) {
   /* Map params */
   /* -- Sensor pose */
   real_t T_WS[4 * 4] = {0};
-  tf(factor->pose->data, T_WS);
+  tf(params[0], T_WS);
   /* -- Sensor-Camera extrinsics */
   real_t T_SC[4 * 4] = {0};
-  tf(factor->extrinsics->data, T_SC);
+  tf(params[1], T_SC);
   /* -- Camera pose */
   real_t T_WC[4 * 4] = {0};
   real_t T_CW[4 * 4] = {0};
   dot(T_WS, 4, 4, T_SC, 4, 4, T_WC);
   tf_inv(T_WC, T_CW);
   /* -- Feature */
-  const real_t *p_W = factor->feature->data;
+  const real_t *p_W = params[2];
   real_t p_C[3] = {0};
   tf_point(T_CW, p_W, p_C);
 
   /* Calculate residuals */
   /* -- Project point from world to image plane */
   real_t z_hat[2];
-  const real_t *cam_params = factor->camera->data;
+  const real_t *cam_params = params[3];
   pinhole_radtan4_project(cam_params, p_C, z_hat);
   /* -- Residual */
-  real_t err[2] = {0};
-  err[0] = factor->z[0] - z_hat[0];
-  err[1] = factor->z[1] - z_hat[1];
+  real_t r[2] = {0};
+  r[0] = factor->z[0] - z_hat[0];
+  r[1] = factor->z[1] - z_hat[1];
   /* -- Weighted residual */
-  dot(factor->sqrt_info, 2, 2, err, 2, 1, factor->r);
+  dot(factor->sqrt_info, 2, 2, r, 2, 1, residuals);
 
   /* Calculate jacobians */
   /* -- Form: -1 * sqrt_info */
@@ -4544,10 +4639,10 @@ int cam_factor_eval(cam_factor_t *factor) {
   real_t J_cam_params[2 * 8] = {0};
   pinhole_radtan4_params_jacobian(cam_params, p_C, J_cam_params);
   /* -- Fill jacobians */
-  cam_factor_sensor_pose_jacobian(Jh_weighted, T_WS, T_SC, p_W, factor->J0);
-  cam_factor_sensor_camera_jacobian(Jh_weighted, T_SC, p_C, factor->J1);
-  cam_factor_camera_params_jacobian(neg_sqrt_info, J_cam_params, factor->J2);
-  cam_factor_feature_jacobian(Jh_weighted, T_WS, T_SC, factor->J3);
+  cam_factor_sensor_pose_jacobian(Jh_weighted, T_WS, T_SC, p_W, jacobians[0]);
+  cam_factor_sensor_camera_jacobian(Jh_weighted, T_SC, p_C, jacobians[1]);
+  cam_factor_camera_params_jacobian(neg_sqrt_info, J_cam_params, jacobians[2]);
+  cam_factor_feature_jacobian(Jh_weighted, T_WS, T_SC, jacobians[3]);
 
   return 0;
 }
@@ -4560,7 +4655,13 @@ int cam_factor_ceres_eval(void *factor,
   assert(params != NULL);
   assert(residuals != NULL);
   cam_factor_t *cam_factor = (cam_factor_t *) factor;
-  int retval = cam_factor_eval(cam_factor);
+
+  real_t J0[2 * 6] = {0};
+  real_t J1[2 * 6] = {0};
+  real_t J2[2 * 3] = {0};
+  real_t J3[2 * 8] = {0};
+  real_t *factor_jacs[4] = {J0, J1, J2, J3};
+  int retval = cam_factor_eval(cam_factor, params, residuals, factor_jacs);
 
   if (jacobians == NULL) {
     return retval;
@@ -4568,20 +4669,20 @@ int cam_factor_ceres_eval(void *factor,
 
   if (jacobians[0]) {
     zeros(jacobians[0], 2, 7);
-    mat_block_set(jacobians[0], 7, 0, 0, 1, 5, cam_factor->J0);
+    mat_block_set(jacobians[0], 7, 0, 0, 1, 5, factor_jacs[0]);
   }
 
   if (jacobians[1]) {
     zeros(jacobians[1], 2, 7);
-    mat_block_set(jacobians[1], 7, 0, 0, 1, 5, cam_factor->J1);
+    mat_block_set(jacobians[1], 7, 0, 0, 1, 5, factor_jacs[1]);
   }
 
   if (jacobians[2]) {
-    mat_copy(cam_factor->J2, 2, 3, jacobians[2]);
+    mat_copy(factor_jacs[2], 2, 3, jacobians[2]);
   }
 
   if (jacobians[3]) {
-    mat_copy(cam_factor->J3, 2, 8, jacobians[3]);
+    mat_copy(factor_jacs[3], 2, 8, jacobians[3]);
   }
 
   return retval;
@@ -4668,162 +4769,163 @@ void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to) {
   to->size = from->size;
 }
 
-void imu_factor_setup(imu_factor_t *factor,
-                      imu_params_t *imu_params,
-                      imu_buf_t *imu_buf,
-                      pose_t *pose_i,
-                      speed_biases_t *sb_i,
-                      pose_t *pose_j,
-                      speed_biases_t *sb_j) {
-  /* Parameters */
-  factor->imu_params = imu_params;
-  imu_buf_copy(imu_buf, &factor->imu_buf);
-  factor->pose_i = pose_i;
-  factor->sb_i = sb_i;
-  factor->pose_j = pose_j;
-  factor->sb_j = sb_j;
-
-  /* Covariance and residuals */
-  zeros(factor->covar, 15, 15);
-  zeros(factor->r, 15, 1);
-  factor->r_size = 15;
-
-  /* Jacobians */
-  factor->jacs[0] = factor->J0;
-  factor->jacs[1] = factor->J1;
-  factor->jacs[2] = factor->J2;
-  factor->jacs[3] = factor->J3;
-  factor->nb_params = 4;
-
-  /* Pre-integration variables */
-  factor->Dt = 0.0;
-  eye(factor->F, 15, 15);   /* State jacobian */
-  zeros(factor->P, 15, 15); /* State covariance */
-
-  /* -- Noise matrix */
-  const real_t n_a = imu_params->n_a;
-  const real_t n_g = imu_params->n_g;
-  const real_t n_ba = imu_params->n_aw;
-  const real_t n_bg = imu_params->n_gw;
-  const real_t n_a_sq = n_a * n_a;
-  const real_t n_g_sq = n_g * n_g;
-  const real_t n_ba_sq = n_ba * n_ba;
-  const real_t n_bg_sq = n_bg * n_bg;
-  real_t Q_diag[12] = {0};
-  Q_diag[0] = n_a_sq;
-  Q_diag[1] = n_a_sq;
-  Q_diag[2] = n_a_sq;
-  Q_diag[3] = n_g_sq;
-  Q_diag[4] = n_g_sq;
-  Q_diag[5] = n_g_sq;
-  Q_diag[6] = n_ba_sq;
-  Q_diag[7] = n_ba_sq;
-  Q_diag[8] = n_ba_sq;
-  Q_diag[9] = n_bg_sq;
-  Q_diag[10] = n_bg_sq;
-  Q_diag[11] = n_bg_sq;
-  zeros(factor->Q, 12, 12);
-  mat_diag_set(factor->Q, 12, 12, Q_diag);
-
-  /* -- Setup relative position, velocity and rotation */
-  real_t dr[3] = {0};
-  real_t dv[3] = {0};
-  real_t dC[3 * 3] = {0};
-  real_t ba[3] = {0};
-  real_t bg[3] = {0};
-
-  zeros(factor->dr, 3, 1);
-  zeros(factor->dv, 3, 1);
-  eye(factor->dC, 3, 3);
-
-  ba[0] = sb_i->data[3];
-  ba[1] = sb_i->data[4];
-  ba[2] = sb_i->data[5];
-
-  bg[0] = sb_i->data[6];
-  bg[1] = sb_i->data[7];
-  bg[2] = sb_i->data[8];
-
-  /* Pre-integrate imu measuremenets */
-  for (int k = 0; k < imu_buf->size; k++) {
-    /* Euler integration */
-    const real_t ts_i = imu_buf->ts[k];
-    const real_t ts_j = imu_buf->ts[k + 1];
-    const real_t *a = imu_buf->acc[k];
-    const real_t *w = imu_buf->gyr[k];
-    const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
-    const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
-
-    /* Propagate IMU state using Euler method */
-    const real_t dt = ts_j - ts_i;
-    const real_t dt_sq = dt * dt;
-
-    /* dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq); */
-    real_t vel_int[3] = {dv[0], dv[1], dv[2]};
-    vec_scale(vel_int, 3, dt);
-
-    real_t acc_dint[3] = {0};
-    dot(dC, 3, 3, a_t, 3, 1, acc_dint);
-    vec_scale(acc_dint, 3, 0.5 * dt_sq);
-
-    dr[0] += vel_int[0] + acc_dint[0];
-    dr[1] += vel_int[1] + acc_dint[1];
-    dr[2] += vel_int[2] + acc_dint[2];
-
-    /* dv = dv + dC * a_t * dt; */
-    real_t dv_update[3] = {0};
-    real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt};
-    dot(dC, 3, 3, acc_int, 3, 1, dv_update);
-
-    dv[0] += dv_update[0];
-    dv[1] += dv_update[1];
-    dv[2] += dv_update[2];
-
-    /* dC = dC * Exp((w_t) * dt); */
-    real_t dC_old[3 * 3] = {0};
-    real_t C_update[3 * 3] = {0};
-    real_t w_int[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt};
-    mat_copy(dC, 3, 3, dC_old);
-    dot(dC_old, 3, 3, C_update, 3, 3, dC);
-
-    /* ba = ba; */
-    ba[0] = ba[0];
-    ba[1] = ba[1];
-    ba[2] = ba[2];
-
-    /* bg = bg; */
-    bg[0] = bg[0];
-    bg[1] = bg[1];
-    bg[2] = bg[2];
-
-    /* Continuous time transition matrix F */
-    real_t F[15 * 15] = {0};
-    F[0] = 1.0;
-    F[3] = 1.0;
-    F[6] = 1.0;
-    /* F(0:3, 3:6) = eye(3); */
-    /* F(4:6, 7:9) = -dC * skewa_t; */
-    /* F(4:6, 10:12) = -dC; */
-    /* F(7:9, 7:9) = -skew(w_t); */
-    /* F(7:9, 13:15) = -eye(3); */
-
-    /* Continuous time input jacobian G */
-    real_t G[15 * 12] = {0};
-    G[0] = 1.0;
-    /* G(4 : 6, 1 : 3) = -dC; */
-    /* G(7 : 9, 4 : 6) = -eye(3); */
-    /* G(10 : 12, 7 : 9) = eye(3); */
-    /* G(13 : 15, 10 : 12) = eye(3); */
-
-    /* Update */
-    /* G_dt = G * dt; */
-    /* I_F_dt = eye(15) + F * dt; */
-    /* factor.state_F = I_F_dt * factor.state_F; */
-    /* factor.state_P = */
-    /*     I_F_dt * factor.state_P * I_F_dt ' + G_dt * factor.Q * G_dt'; */
-    /* factor.Dt += dt; */
-  }
-}
+/* void imu_factor_setup(imu_factor_t *factor, */
+/*                       imu_params_t *imu_params, */
+/*                       imu_buf_t *imu_buf, */
+/*                       pose_t *pose_i, */
+/*                       speed_biases_t *sb_i, */
+/*                       pose_t *pose_j, */
+/*                       speed_biases_t *sb_j) { */
+/*   #<{(| Parameters |)}># */
+/*   factor->imu_params = imu_params; */
+/*   imu_buf_copy(imu_buf, &factor->imu_buf); */
+/*   factor->pose_i = pose_i; */
+/*   factor->sb_i = sb_i; */
+/*   factor->pose_j = pose_j; */
+/*   factor->sb_j = sb_j; */
+/*  */
+/*   #<{(| Covariance and residuals |)}># */
+/*   zeros(factor->covar, 15, 15); */
+/*   zeros(factor->r, 15, 1); */
+/*   factor->r_size = 15; */
+/*  */
+/*   #<{(| Jacobians |)}># */
+/*   factor->jacs[0] = factor->J0; */
+/*   factor->jacs[1] = factor->J1; */
+/*   factor->jacs[2] = factor->J2; */
+/*   factor->jacs[3] = factor->J3; */
+/*   factor->nb_params = 4; */
+/*  */
+/*   #<{(| Pre-integration variables |)}># */
+/*   factor->Dt = 0.0; */
+/*   eye(factor->F, 15, 15);   #<{(| State jacobian |)}># */
+/*   zeros(factor->P, 15, 15); #<{(| State covariance |)}># */
+/*  */
+/*   #<{(| -- Noise matrix |)}># */
+/*   const real_t n_a = imu_params->n_a; */
+/*   const real_t n_g = imu_params->n_g; */
+/*   const real_t n_ba = imu_params->n_aw; */
+/*   const real_t n_bg = imu_params->n_gw; */
+/*   const real_t n_a_sq = n_a * n_a; */
+/*   const real_t n_g_sq = n_g * n_g; */
+/*   const real_t n_ba_sq = n_ba * n_ba; */
+/*   const real_t n_bg_sq = n_bg * n_bg; */
+/*   real_t Q_diag[12] = {0}; */
+/*   Q_diag[0] = n_a_sq; */
+/*   Q_diag[1] = n_a_sq; */
+/*   Q_diag[2] = n_a_sq; */
+/*   Q_diag[3] = n_g_sq; */
+/*   Q_diag[4] = n_g_sq; */
+/*   Q_diag[5] = n_g_sq; */
+/*   Q_diag[6] = n_ba_sq; */
+/*   Q_diag[7] = n_ba_sq; */
+/*   Q_diag[8] = n_ba_sq; */
+/*   Q_diag[9] = n_bg_sq; */
+/*   Q_diag[10] = n_bg_sq; */
+/*   Q_diag[11] = n_bg_sq; */
+/*   zeros(factor->Q, 12, 12); */
+/*   mat_diag_set(factor->Q, 12, 12, Q_diag); */
+/*  */
+/*   #<{(| -- Setup relative position, velocity and rotation |)}># */
+/*   real_t dr[3] = {0}; */
+/*   real_t dv[3] = {0}; */
+/*   real_t dC[3 * 3] = {0}; */
+/*   real_t ba[3] = {0}; */
+/*   real_t bg[3] = {0}; */
+/*  */
+/*   zeros(factor->dr, 3, 1); */
+/*   zeros(factor->dv, 3, 1); */
+/*   eye(factor->dC, 3, 3); */
+/*  */
+/*   ba[0] = sb_i->data[3]; */
+/*   ba[1] = sb_i->data[4]; */
+/*   ba[2] = sb_i->data[5]; */
+/*  */
+/*   bg[0] = sb_i->data[6]; */
+/*   bg[1] = sb_i->data[7]; */
+/*   bg[2] = sb_i->data[8]; */
+/*  */
+/*   #<{(| Pre-integrate imu measuremenets |)}># */
+/*   for (int k = 0; k < imu_buf->size; k++) { */
+/*     #<{(| Euler integration |)}># */
+/*     const real_t ts_i = imu_buf->ts[k]; */
+/*     const real_t ts_j = imu_buf->ts[k + 1]; */
+/*     const real_t *a = imu_buf->acc[k]; */
+/*     const real_t *w = imu_buf->gyr[k]; */
+/*     const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]}; */
+/*     const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]}; */
+/*  */
+/*     #<{(| Propagate IMU state using Euler method |)}># */
+/*     const real_t dt = ts_j - ts_i; */
+/*     const real_t dt_sq = dt * dt; */
+/*  */
+/*     #<{(| dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq); |)}># */
+/*     real_t vel_int[3] = {dv[0], dv[1], dv[2]}; */
+/*     vec_scale(vel_int, 3, dt); */
+/*  */
+/*     real_t acc_dint[3] = {0}; */
+/*     dot(dC, 3, 3, a_t, 3, 1, acc_dint); */
+/*     vec_scale(acc_dint, 3, 0.5 * dt_sq); */
+/*  */
+/*     dr[0] += vel_int[0] + acc_dint[0]; */
+/*     dr[1] += vel_int[1] + acc_dint[1]; */
+/*     dr[2] += vel_int[2] + acc_dint[2]; */
+/*  */
+/*     #<{(| dv = dv + dC * a_t * dt; |)}># */
+/*     real_t dv_update[3] = {0}; */
+/*     real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt}; */
+/*     dot(dC, 3, 3, acc_int, 3, 1, dv_update); */
+/*  */
+/*     dv[0] += dv_update[0]; */
+/*     dv[1] += dv_update[1]; */
+/*     dv[2] += dv_update[2]; */
+/*  */
+/*     #<{(| dC = dC * Exp((w_t) * dt); |)}># */
+/*     real_t dC_old[3 * 3] = {0}; */
+/*     real_t C_update[3 * 3] = {0}; */
+/*     real_t w_int[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt}; */
+/*     mat_copy(dC, 3, 3, dC_old); */
+/*     dot(dC_old, 3, 3, C_update, 3, 3, dC); */
+/*  */
+/*     #<{(| ba = ba; |)}># */
+/*     ba[0] = ba[0]; */
+/*     ba[1] = ba[1]; */
+/*     ba[2] = ba[2]; */
+/*  */
+/*     #<{(| bg = bg; |)}># */
+/*     bg[0] = bg[0]; */
+/*     bg[1] = bg[1]; */
+/*     bg[2] = bg[2]; */
+/*  */
+/*     #<{(| Continuous time transition matrix F |)}># */
+/*     real_t F[15 * 15] = {0}; */
+/*     F[0] = 1.0; */
+/*     F[3] = 1.0; */
+/*     F[6] = 1.0; */
+/*     #<{(| F(0:3, 3:6) = eye(3); |)}># */
+/*     #<{(| F(4:6, 7:9) = -dC * skewa_t; |)}># */
+/*     #<{(| F(4:6, 10:12) = -dC; |)}># */
+/*     #<{(| F(7:9, 7:9) = -skew(w_t); |)}># */
+/*     #<{(| F(7:9, 13:15) = -eye(3); |)}># */
+/*  */
+/*     #<{(| Continuous time input jacobian G |)}># */
+/*     real_t G[15 * 12] = {0}; */
+/*     G[0] = 1.0; */
+/*     #<{(| G(4 : 6, 1 : 3) = -dC; |)}># */
+/*     #<{(| G(7 : 9, 4 : 6) = -eye(3); |)}># */
+/*     #<{(| G(10 : 12, 7 : 9) = eye(3); |)}># */
+/*     #<{(| G(13 : 15, 10 : 12) = eye(3); |)}># */
+/*  */
+/*     #<{(| Update |)}># */
+/*     #<{(| G_dt = G * dt; |)}># */
+/*     #<{(| I_F_dt = eye(15) + F * dt; |)}># */
+/*     #<{(| factor.state_F = I_F_dt * factor.state_F; |)}># */
+/*     #<{(| factor.state_P = |)}># */
+/*     #<{(|     I_F_dt * factor.state_P * I_F_dt ' + G_dt * factor.Q * G_dt';
+ * |)}># */
+/*     #<{(| factor.Dt += dt; |)}># */
+/*   } */
+/* } */
 
 void imu_factor_reset(imu_factor_t *factor) {
   zeros(factor->r, 15, 1);
@@ -4851,25 +4953,6 @@ int imu_factor_eval(imu_factor_t *factor) {
 
 void graph_setup(graph_t *graph) {
   assert(graph);
-
-  graph->cam_factors = NULL;
-  graph->nb_cam_factors = 0;
-
-  graph->imu_factors = NULL;
-  graph->nb_imu_factors = 0;
-
-  graph->poses = NULL;
-  graph->nb_poses = 0;
-
-  graph->cams = NULL;
-  graph->nb_cams = 0;
-
-  graph->extrinsics = NULL;
-  graph->nb_extrinsics = 0;
-
-  graph->features = NULL;
-  graph->nb_features = 0;
-
   graph->H = NULL;
   graph->g = NULL;
   graph->x = NULL;
@@ -4881,18 +4964,15 @@ void graph_print(graph_t *graph) {
   printf("graph:\n");
   printf("r_size: %d\n", graph->r_size);
   printf("x_size: %d\n", graph->x_size);
-  printf("nb_cam_factors: %d\n", graph->nb_cam_factors);
-  printf("nb_imu_factors: %d\n", graph->nb_imu_factors);
-  printf("nb_poses: %d\n", graph->nb_poses);
 }
 
-static void graph_evaluator(graph_t *graph,
-                            int **param_orders,
-                            int *param_sizes,
-                            int nb_params,
-                            real_t *r,
-                            int r_size,
-                            real_t **jacs) {
+void graph_evaluator(graph_t *graph,
+                     int **param_orders,
+                     int *param_sizes,
+                     int nb_params,
+                     real_t *r,
+                     int r_size,
+                     real_t **jacs) {
   real_t *H = graph->H;
   int H_size = graph->x_size;
   real_t *g = graph->g;
@@ -4949,25 +5029,25 @@ int graph_eval(graph_t *graph) {
   int pose_idx = 0;
   int lmks_idx = graph->nb_poses * 6;
   int exts_idx = lmks_idx + graph->nb_features * 3;
-  int cams_idx = exts_idx + graph->nb_extrinsics * 6;
+  int cams_idx = exts_idx + graph->nb_exts * 6;
 
-  /* Evaluate camera factors */
-  for (int i = 0; i < graph->nb_cam_factors; i++) {
-    cam_factor_t *factor = &graph->cam_factors[i];
-    cam_factor_eval(factor);
-
-    int *param_orders[4] = {&pose_idx, &exts_idx, &cams_idx, &lmks_idx};
-    int param_sizes[4] = {6, 6, 8, 3};
-    int nb_params = 4;
-
-    graph_evaluator(graph,
-                    param_orders,
-                    param_sizes,
-                    nb_params,
-                    factor->r,
-                    factor->r_size,
-                    factor->jacs);
-  }
+  /* #<{(| Evaluate camera factors |)}># */
+  /* for (int i = 0; i < graph->nb_cam_factors; i++) { */
+  /*   cam_factor_t *factor = &graph->cam_factors[i]; */
+  /*   #<{(| cam_factor_eval(factor); |)}># */
+  /*  */
+  /*   int *param_orders[4] = {&pose_idx, &exts_idx, &cams_idx, &lmks_idx}; */
+  /*   int param_sizes[4] = {6, 6, 8, 3}; */
+  /*   int nb_params = 4; */
+  /*  */
+  /*   #<{(| graph_evaluator(graph, |)}># */
+  /*   #<{(|                 param_orders, |)}># */
+  /*   #<{(|                 param_sizes, |)}># */
+  /*   #<{(|                 nb_params, |)}># */
+  /*   #<{(|                 factor->r, |)}># */
+  /*   #<{(|                 factor->r_size, |)}># */
+  /*   #<{(|                 factor->jacs); |)}># */
+  /* } */
 
   return 0;
 }

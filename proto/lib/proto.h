@@ -154,6 +154,9 @@
  * FILESYSTEM
  ******************************************************************************/
 
+void path_file_name(const char *path, char *fname);
+void path_file_ext(const char *path, char *ext);
+void path_dir_name(const char *path, char *dir_name);
 char **list_files(const char *path, int *nb_files);
 void list_files_free(char **data, const int n);
 char *file_read(const char *fp);
@@ -526,6 +529,52 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
                                    real_t J[2 * 8]);
 
 /******************************************************************************
+ * SIM
+ ******************************************************************************/
+
+// SIM FEATURES ////////////////////////////////////////////////////////////////
+
+typedef struct sim_features_t {
+  real_t **features;
+  int nb_features;
+} sim_features_t;
+
+sim_features_t *load_sim_features(const char *csv_path);
+void free_sim_features(sim_features_t *features_data);
+
+// SIM IMU /////////////////////////////////////////////////////////////////////
+
+typedef struct sim_imu_t {
+  real_t **data;
+  int nb_measurements;
+} sim_imu_t;
+
+sim_imu_t *load_sim_imu(const char *csv_path);
+void free_sim_imu(sim_imu_t *imu_data);
+
+// SIM CAM /////////////////////////////////////////////////////////////////////
+
+typedef struct sim_cam_frame_t {
+  timestamp_t *cam_ts;
+  real_t *cam_pose;
+  real_t **measurement;
+  real_t **point_ids;
+  int nb_measurements;
+} sim_cam_frame_t;
+
+typedef struct sim_cam_t {
+  timestamp_t *cam_ts;
+  real_t **cam_poses;
+  sim_cam_frame_t **frames;
+  int nb_frames;
+} sim_cam_t;
+
+sim_cam_frame_t *load_sim_cam_frame(const char *csv_path);
+void free_sim_cam_frame(sim_cam_frame_t *cam_data);
+sim_cam_t *load_sim_cam(const char *csv_path);
+void free_sim_cam(sim_cam_t *cam_data);
+
+/******************************************************************************
  * SENSOR FUSION
  ******************************************************************************/
 
@@ -626,14 +675,6 @@ typedef struct ba_factor_t {
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
   real_t z[2];
-
-  real_t r[2];
-  int r_size;
-
-  real_t J0[2 * 6];
-  real_t J1[2 * 3];
-  real_t J2[2 * 8];
-  real_t *jacs[3];
 } ba_factor_t;
 
 void ba_factor_setup(ba_factor_t *factor,
@@ -642,11 +683,14 @@ void ba_factor_setup(ba_factor_t *factor,
                      const camera_params_t *camera,
                      const real_t z[2],
                      const real_t var[2]);
-int ba_factor_eval(ba_factor_t *factor);
+int ba_factor_eval(ba_factor_t *factor,
+                   real_t **params,
+                   real_t *residuals,
+                   real_t **jacobians);
 int ba_factor_ceres_eval(void *factor,
-                         real_t **params,
-                         real_t *residuals,
-                         real_t **jacobians);
+                         double **params,
+                         double *residuals,
+                         double **jacobians);
 
 // CAMERA FACTOR ///////////////////////////////////////////////////////////////
 
@@ -660,15 +704,6 @@ typedef struct cam_factor_t {
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
   real_t z[2];
-
-  real_t r[2];
-  int r_size;
-
-  real_t J0[2 * 6]; /* Jacobian w.r.t sensor pose T_WS */
-  real_t J1[2 * 6]; /* Jacobian w.r.t sensor-camera extrinsics T_SCi */
-  real_t J2[2 * 3]; /* Jacobian w.r.t landmark */
-  real_t J3[2 * 8]; /* Jacobian w.r.t camera parameters */
-  real_t *jacs[4];
 } cam_factor_t;
 
 void cam_factor_setup(cam_factor_t *factor,
@@ -678,12 +713,14 @@ void cam_factor_setup(cam_factor_t *factor,
                       const camera_params_t *camera,
                       const real_t z[2],
                       const real_t var[2]);
-void cam_factor_reset(cam_factor_t *factor);
-int cam_factor_eval(cam_factor_t *factor);
+int cam_factor_eval(cam_factor_t *factor,
+                    real_t **params,
+                    real_t *residuals,
+                    real_t **jacobians);
 int cam_factor_ceres_eval(void *factor,
-                          real_t **params,
-                          real_t *residuals,
-                          real_t **jacobians);
+                          double **params,
+                          double *residuals,
+                          double **jacobians);
 
 // IMU FACTOR //////////////////////////////////////////////////////////////////
 
@@ -750,35 +787,55 @@ void imu_buf_clear(imu_buf_t *imu_buf);
 void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
 void imu_buf_print(const imu_buf_t *imu_buf);
 
-void imu_factor_setup(imu_factor_t *factor,
-                      imu_params_t *imu_params,
-                      imu_buf_t *imu_buf,
-                      pose_t *pose_i,
-                      speed_biases_t *sb_i,
-                      pose_t *pose_j,
-                      speed_biases_t *sb_j);
+/* void imu_factor_setup(imu_factor_t *factor, */
+/*                       imu_params_t *imu_params, */
+/*                       imu_buf_t *imu_buf, */
+/*                       pose_t *pose_i, */
+/*                       speed_biases_t *sb_i, */
+/*                       pose_t *pose_j, */
+/*                       speed_biases_t *sb_j); */
 void imu_factor_reset(imu_factor_t *factor);
 int imu_factor_eval(imu_factor_t *factor);
 
 // GRAPH ///////////////////////////////////////////////////////////////////////
 
-typedef struct graph_t {
+#define MAX_NB_FACTORS 1000
+
+#define POSE_FACTOR 1
+#define BA_FACTOR 2
+#define CAM_FACTOR 3
+#define IMU_FACTOR 4
+
+typedef struct feature_container_t {
+  feature_t *features;
+  int nb_features;
+} feature_container_t;
+
+typedef struct keyframe_t {
   cam_factor_t *cam_factors;
   int nb_cam_factors;
 
   imu_factor_t *imu_factors;
   int nb_imu_factors;
 
-  pose_t *poses;
+  pose_t *pose;
+} keyframe_t;
+
+typedef struct graph_t {
+  void *factors[MAX_NB_FACTORS];
+  int nb_factors;
+  int *factor_types;
+
+  pose_t **poses;
   int nb_poses;
 
-  camera_params_t *cams;
+  const extrinsics_t *extrinsics;
+  int nb_exts;
+
+  camera_params_t **cam_params;
   int nb_cams;
 
-  extrinsics_t *extrinsics;
-  int nb_extrinsics;
-
-  feature_t *features;
+  feature_t **features;
   int nb_features;
 
   real_t *H;
@@ -790,7 +847,8 @@ typedef struct graph_t {
 
 void graph_setup(graph_t *graph);
 void graph_print(graph_t *graph);
-int graph_eval(graph_t *graph) __attribute__((warn_unused_result));
+int graph_add_factor(graph_t *graph, void *factor, int factor_type);
+int graph_eval(graph_t *graph);
 void graph_optimize(graph_t *graph);
 
 #endif // _PROTO_H_
