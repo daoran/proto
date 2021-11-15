@@ -31,4 +31,5 @@ install glew
 install sdl2
 # install glfw
 install stb
+install suitesparse
 install yamlcpp

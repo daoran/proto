@@ -7,19 +7,19 @@ source "config.bash"
 # optimization
 # export CMAKE_EXTRA_ARGS="-DEigen3_DIR=${PREFIX}/share/eigen3/cmake/"
 
-# install_dependencies() {
-#     apt-get update -qq
-#     apt-get install -qq -y cmake \
-#                            libgoogle-glog-dev \
-#                            libatlas-base-dev \
-#                            libeigen3-dev \
-#                            libsuitesparse-dev
-# }
-#
-# # MAIN
-# install_dependencies
-# install_git_repo \
-#   https://github.com/ceres-solver/ceres-solver.git \
-#   ceres-solver
+install_dependencies() {
+    apt-get update -qq
+    apt-get install -qq -y cmake \
+                           libgoogle-glog-dev \
+                           libatlas-base-dev \
+                           libeigen3-dev \
+                           libsuitesparse-dev
+}
 
-apt_install libceres-dev
+# MAIN
+install_dependencies
+install_git_repo \
+  https://github.com/ceres-solver/ceres-solver.git \
+  ceres-solver
+
+# apt_install libceres-dev
