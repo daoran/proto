@@ -35,7 +35,7 @@ void path_file_ext(const char *path, char *fext) {
     base = base ? base + 1 : path_copy;
     strcpy(fext, base);
   } else {
-    ext[0] = '\0';
+    fext[0] = '\0';
   }
 }
 
@@ -58,6 +58,9 @@ void path_dir_name(const char *path, char *dir_name) {
  * @returns List of files in directory
  */
 char **list_files(const char *path, int *n) {
+  assert(path != NULL);
+  assert(n != NULL);
+
   struct dirent **namelist;
   int N = scandir(path, &namelist, 0, alphasort);
   if (N < 0) {
@@ -94,6 +97,7 @@ char **list_files(const char *path, int *n) {
  * Free list of files.
  */
 void list_files_free(char **data, const int n) {
+  assert(data != NULL);
   for (int i = 0; i < n; i++) {
     free(data[i]);
   }
@@ -107,6 +111,7 @@ void list_files_free(char **data, const int n) {
  * - Failure: NULL
  */
 char *file_read(const char *fp) {
+  assert(fp != NULL);
   FILE *f = fopen(fp, "rb");
   if (f == NULL) {
     return NULL;
@@ -130,6 +135,8 @@ char *file_read(const char *fp) {
  * Skip line in file.
  */
 void skip_line(FILE *fp) {
+  assert(fp != NULL);
+
   char header[BUFSIZ];
   char *retval = fgets(header, BUFSIZ, fp);
   if (retval == NULL) {
@@ -138,12 +145,22 @@ void skip_line(FILE *fp) {
 }
 
 /**
+ * Check if file exists.
+ * @returns
+ * - 1 File exists
+ * - 0 File does not exist
+ */
+int file_exists(const char *fp) { return (access(fp, F_OK) == 0) ? 1 : 0; }
+
+/**
  * Get number of rows in file.
  * @returns
  * - Number of rows in file
  * - -1 for failure.
  */
 int file_rows(const char *fp) {
+  assert(fp != NULL);
+
   FILE *file = fopen(fp, "rb");
   if (file == NULL) {
     fclose(file);
@@ -157,28 +174,35 @@ int file_rows(const char *fp) {
   while (getline(&line, &len, file) != -1) {
     nb_rows++;
   }
+  free(line);
+
+  /* Clean up */
+  fclose(file);
 
   return nb_rows;
 }
 
 /**
- * Copy file from path `src` to path `dest`.
+ * Copy file from path `src` to path `dst`.
  * @returns
  * - 0 for success
  * - -1 if src file could not be opend
- * - -2 if dest file could not be opened
+ * - -2 if dst file could not be opened
  */
-int file_copy(const char *src, const char *dest) {
+int file_copy(const char *src, const char *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
   FILE *src_file = fopen(src, "rb");
   if (src_file == NULL) {
     fclose(src_file);
     return -1;
   }
 
-  FILE *dest_file = fopen(dest, "wb");
-  if (dest_file == NULL) {
+  FILE *dst_file = fopen(dst, "wb");
+  if (dst_file == NULL) {
     fclose(src_file);
-    fclose(dest_file);
+    fclose(dst_file);
     return -2;
   }
 
@@ -187,7 +211,7 @@ int file_copy(const char *src, const char *dest) {
   ssize_t read = 0;
   while ((read = getline(&line, &len, src_file)) != -1) {
     printf("[%ld,%ld]-->%s", read, len, line);
-    fwrite(line, sizeof(char), read, dest_file);
+    fwrite(line, sizeof(char), read, dst_file);
   }
   if (line) {
     free(line);
@@ -195,7 +219,7 @@ int file_copy(const char *src, const char *dest) {
 
   /* Clean up */
   fclose(src_file);
-  fclose(dest_file);
+  fclose(dst_file);
 
   return 0;
 }
@@ -209,6 +233,7 @@ int file_copy(const char *src, const char *dest) {
  * @returns A heap memory allocated string
  */
 char *malloc_string(const char *s) {
+  assert(s != NULL);
   char *retval = malloc(sizeof(char) * strlen(s) + 1);
   strcpy(retval, s);
   return retval;
@@ -221,6 +246,7 @@ char *malloc_string(const char *s) {
  * - NULL for failure
  */
 static int *parse_iarray_line(char *line) {
+  assert(line != NULL);
   char entry[MAX_LINE_LENGTH] = {0};
   int index = 0;
   int *data = NULL;
@@ -254,6 +280,7 @@ static int *parse_iarray_line(char *line) {
  * - NULL for failure
  */
 int **load_iarrays(const char *csv_path, int *nb_arrays) {
+  assert(csv_path != NULL);
   FILE *csv_file = fopen(csv_path, "r");
   *nb_arrays = dsv_rows(csv_path);
   int **array = calloc(*nb_arrays, sizeof(int *));
@@ -280,6 +307,7 @@ int **load_iarrays(const char *csv_path, int *nb_arrays) {
  * - NULL for failure
  */
 static real_t *parse_darray_line(char *line) {
+  assert(line != NULL);
   char entry[MAX_LINE_LENGTH] = {0};
   int index = 0;
   real_t *data = NULL;
@@ -314,6 +342,8 @@ static real_t *parse_darray_line(char *line) {
  * - NULL for failure
  */
 real_t **load_darrays(const char *csv_path, int *nb_arrays) {
+  assert(csv_path != NULL);
+  assert(nb_arrays != NULL);
   FILE *csv_file = fopen(csv_path, "r");
   *nb_arrays = dsv_rows(csv_path);
   real_t **array = calloc(*nb_arrays, sizeof(real_t *));
@@ -340,6 +370,8 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays) {
  * - -1 for failure
  */
 int dsv_rows(const char *fp) {
+  assert(fp != NULL);
+
   /* Load file */
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
@@ -368,6 +400,8 @@ int dsv_rows(const char *fp) {
  * - -1 for failure
  */
 int dsv_cols(const char *fp, const char delim) {
+  assert(fp != NULL);
+
   /* Load file */
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
@@ -406,6 +440,8 @@ int dsv_cols(const char *fp, const char delim) {
  * - NULL for failure
  */
 char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
+  assert(fp != NULL);
+
   /* Load file */
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
@@ -528,6 +564,7 @@ dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
  * Free DSV data.
  */
 void dsv_free(real_t **data, const int nb_rows) {
+  assert(data != NULL);
   for (int i = 0; i < nb_rows; i++) {
     free(data[i]);
   }
@@ -542,6 +579,7 @@ void dsv_free(real_t **data, const int nb_rows) {
  * - NULL for failure
  */
 real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
+  assert(fp != NULL);
   return dsv_data(fp, ',', nb_rows, nb_cols);
 }
 
@@ -575,6 +613,7 @@ struct timespec tic() {
  * @returns Time elapsed in seconds
  */
 float toc(struct timespec *tic) {
+  assert(tic != NULL);
   struct timespec toc;
   float time_elasped;
 
@@ -589,7 +628,10 @@ float toc(struct timespec *tic) {
  * Toc, stop timer.
  * @returns Time elapsed in milli-seconds
  */
-float mtoc(struct timespec *tic) { return toc(tic) * 1000.0; }
+float mtoc(struct timespec *tic) {
+  assert(tic != NULL);
+  return toc(tic) * 1000.0;
+}
 
 /**
  * Get time now since epoch.
@@ -943,12 +985,19 @@ real_t median(const real_t *x, const size_t n) {
   /* Sort the values */
   qsort(vals, n, sizeof(real_t), fltcmp2);
 
-  // Return the median
-  size_t midpoint = n / 2.0;
+  /* Get median value */
+  const size_t midpoint = n / 2.0;
+  real_t median_value = 0.0;
   if ((n % 2) == 0) {
-    return (vals[n] + vals[n - 1]) / 2.0;
+    median_value = (vals[n] + vals[n - 1]) / 2.0;
+  } else {
+    median_value = vals[midpoint];
   }
-  return vals[midpoint];
+
+  /* Clean up */
+  free(vals);
+
+  return median_value;
 }
 
 /**
@@ -3887,9 +3936,12 @@ sim_features_t *load_sim_features(const char *csv_path) {
   return features_data;
 }
 
-void free_sim_features(sim_features_t *features_data) {
-  free(features_data->features);
-  free(features_data);
+void free_sim_features(sim_features_t *feature_data) {
+  for (int i = 0; i < feature_data->nb_features; i++) {
+    free(feature_data->features[i]);
+  }
+  free(feature_data->features);
+  free(feature_data);
 }
 
 // SIM IMU ////////////////////////////////////////////////////////////////////
@@ -3912,6 +3964,7 @@ void free_sim_imu(sim_imu_t *imu_data) {
 
 // SIM CAM /////////////////////////////////////////////////////////////////////
 
+/** Extract timestamp from path **/
 static timestamp_t ts_from_path(const char *path) {
   char fname[128] = {0};
   char fext[128] = {0};
@@ -3925,26 +3978,75 @@ static timestamp_t ts_from_path(const char *path) {
   return strtol(ts_str, &ptr, 10);
 }
 
+/**
+ * Load simulated camera frame
+ * @param csv_path Path to csv file
+ * @returns Simulated camera frame
+ */
 sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
+  /* Check if file exists */
+  if (file_exists(csv_path) == 0) {
+    return NULL;
+  }
+
+  /* Load csv data */
+  int nb_rows = 0;
+  int nb_cols = 0;
+  real_t **data = csv_data(csv_path, &nb_rows, &nb_cols);
+
+  /* Create sim_cam_frame_t */
   sim_cam_frame_t *frame_data = malloc(sizeof(sim_cam_frame_t));
+  frame_data->ts = ts_from_path(csv_path);
+  frame_data->feature_ids = malloc(sizeof(int) * nb_rows);
+  frame_data->keypoints = malloc(sizeof(real_t *) * nb_rows);
+  frame_data->nb_measurements = nb_rows;
+  for (int i = 0; i < nb_rows; i++) {
+    frame_data->feature_ids[i] = (int) data[i][0];
+    frame_data->keypoints[i] = malloc(sizeof(real_t) * 2);
+    frame_data->keypoints[i][0] = data[i][1];
+    frame_data->keypoints[i][1] = data[i][2];
+  }
 
-  /* typedef struct sim_cam_frame_t { */
-  /*   timestamp_t *cam_ts; */
-  /*   real_t *cam_pose; */
-  /*   real_t **measurement; */
-  /*   real_t **point_ids; */
-  /*   int nb_measurements; */
-  /* } sim_cam_frame_t; */
-
-  printf("ts: %ld\n", ts_from_path(csv_path));
+  /* Clean up */
+  csv_free(data, nb_rows);
 
   return frame_data;
 }
 
-void free_sim_cam_frame(sim_cam_frame_t *frame_data) {}
+/** Free simulated camera frame */
+void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
+  free(frame_data->feature_ids);
+  for (int i = 0; i < frame_data->nb_measurements; i++) {
+    free(frame_data->keypoints[i]);
+  }
+  free(frame_data->keypoints);
+  free(frame_data);
+}
 
-sim_cam_t *load_sim_cam(const char *csv_path);
-void free_sim_cam(sim_cam_t *cam_data);
+/**
+ * Load simulated camera data
+ * @param dir_path Directory path
+ * @returns Simulated camera data
+ */
+sim_cam_t *load_sim_cam(const char *dir_path) {
+  assert(dir_path != NULL);
+  sim_cam_t *cam_data = malloc(sizeof(sim_cam_t));
+
+  /* timestamp_t *cam_ts; */
+  /* real_t **cam_poses; */
+  /* sim_cam_frame_t **frames; */
+  /* int nb_frames; */
+
+  return cam_data;
+}
+
+/**
+ * Free simulated camera data
+ */
+void free_sim_cam(sim_cam_t *cam_data) {
+  assert(cam_data != NULL);
+  free(cam_data);
+}
 
 /******************************************************************************
  * SENSOR FUSION
@@ -5026,10 +5128,10 @@ void graph_evaluator(graph_t *graph,
 int graph_eval(graph_t *graph) {
   assert(graph != NULL);
 
-  int pose_idx = 0;
-  int lmks_idx = graph->nb_poses * 6;
-  int exts_idx = lmks_idx + graph->nb_features * 3;
-  int cams_idx = exts_idx + graph->nb_exts * 6;
+  /* int pose_idx = 0; */
+  /* int lmks_idx = graph->nb_poses * 6; */
+  /* int exts_idx = lmks_idx + graph->nb_features * 3; */
+  /* int cams_idx = exts_idx + graph->nb_exts * 6; */
 
   /* #<{(| Evaluate camera factors |)}># */
   /* for (int i = 0; i < graph->nb_cam_factors; i++) { */

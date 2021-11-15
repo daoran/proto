@@ -4,8 +4,10 @@
 /* TEST PARAMS */
 #define M 10
 #define N 10
-#define TEST_CSV "test_data/test_csv.csv"
-#define TEST_POSES_CSV "test_data/poses.csv"
+#define TEST_DATA_PATH "./test_data/"
+#define TEST_CSV TEST_DATA_PATH "test_csv.csv"
+#define TEST_POSES_CSV TEST_DATA_PATH "poses.csv"
+#define TEST_SIM_DATA TEST_DATA_PATH "sim_data"
 
 /******************************************************************************
  * LOGGING
@@ -93,6 +95,7 @@ int test_file_read() {
 int test_skip_line() {
   FILE *fp = fopen("test_data/poses.csv", "r");
   skip_line(fp);
+  fclose(fp);
 
   return 0;
 }
@@ -740,6 +743,10 @@ int test_lapack_svd() {
   print_vector("S", S, 4);
   print_matrix("U", U, m, n);
   print_matrix("V_t", V_t, m, n);
+
+  free(S);
+  free(U);
+  free(V_t);
 
   return 0;
 }
@@ -1911,6 +1918,21 @@ int test_load_sim_imu() {
 
 // SIM CAMERA //////////////////////////////////////////////////////////////////
 
+int test_load_sim_cam_frame() {
+  char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
+  sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
+
+  MU_CHECK(frame_data != NULL);
+  MU_CHECK(frame_data->ts == 100000000);
+  MU_CHECK(frame_data->feature_ids[0] == 1);
+  MU_CHECK(fltcmp(frame_data->keypoints[0][0], 575.6926273443431) == 0);
+  MU_CHECK(fltcmp(frame_data->keypoints[0][1], 361.6739266556907) == 0);
+
+  free_sim_cam_frame(frame_data);
+
+  return 0;
+}
+
 int test_load_sim_cam() {
   char *frame_csv = "/tmp/sim_vio/cam0/data/700000000.csv";
   sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
@@ -2539,95 +2561,98 @@ int test_imu_buf_print() {
 /*   return 0; */
 /* } */
 
-int test_ceres_graph() {
-  int num_observations = 67;
-  double data[] = {
-      0.000000e+00, 1.133898e+00, 7.500000e-02, 1.334902e+00, 1.500000e-01,
-      1.213546e+00, 2.250000e-01, 1.252016e+00, 3.000000e-01, 1.392265e+00,
-      3.750000e-01, 1.314458e+00, 4.500000e-01, 1.472541e+00, 5.250000e-01,
-      1.536218e+00, 6.000000e-01, 1.355679e+00, 6.750000e-01, 1.463566e+00,
-      7.500000e-01, 1.490201e+00, 8.250000e-01, 1.658699e+00, 9.000000e-01,
-      1.067574e+00, 9.750000e-01, 1.464629e+00, 1.050000e+00, 1.402653e+00,
-      1.125000e+00, 1.713141e+00, 1.200000e+00, 1.527021e+00, 1.275000e+00,
-      1.702632e+00, 1.350000e+00, 1.423899e+00, 1.425000e+00, 1.543078e+00,
-      1.500000e+00, 1.664015e+00, 1.575000e+00, 1.732484e+00, 1.650000e+00,
-      1.543296e+00, 1.725000e+00, 1.959523e+00, 1.800000e+00, 1.685132e+00,
-      1.875000e+00, 1.951791e+00, 1.950000e+00, 2.095346e+00, 2.025000e+00,
-      2.361460e+00, 2.100000e+00, 2.169119e+00, 2.175000e+00, 2.061745e+00,
-      2.250000e+00, 2.178641e+00, 2.325000e+00, 2.104346e+00, 2.400000e+00,
-      2.584470e+00, 2.475000e+00, 1.914158e+00, 2.550000e+00, 2.368375e+00,
-      2.625000e+00, 2.686125e+00, 2.700000e+00, 2.712395e+00, 2.775000e+00,
-      2.499511e+00, 2.850000e+00, 2.558897e+00, 2.925000e+00, 2.309154e+00,
-      3.000000e+00, 2.869503e+00, 3.075000e+00, 3.116645e+00, 3.150000e+00,
-      3.094907e+00, 3.225000e+00, 2.471759e+00, 3.300000e+00, 3.017131e+00,
-      3.375000e+00, 3.232381e+00, 3.450000e+00, 2.944596e+00, 3.525000e+00,
-      3.385343e+00, 3.600000e+00, 3.199826e+00, 3.675000e+00, 3.423039e+00,
-      3.750000e+00, 3.621552e+00, 3.825000e+00, 3.559255e+00, 3.900000e+00,
-      3.530713e+00, 3.975000e+00, 3.561766e+00, 4.050000e+00, 3.544574e+00,
-      4.125000e+00, 3.867945e+00, 4.200000e+00, 4.049776e+00, 4.275000e+00,
-      3.885601e+00, 4.350000e+00, 4.110505e+00, 4.425000e+00, 4.345320e+00,
-      4.500000e+00, 4.161241e+00, 4.575000e+00, 4.363407e+00, 4.650000e+00,
-      4.161576e+00, 4.725000e+00, 4.619728e+00, 4.800000e+00, 4.737410e+00,
-      4.875000e+00, 4.727863e+00, 4.950000e+00, 4.669206e+00,
-  };
-
-  /* This is the equivalent of a use-defined CostFunction in the C++ Ceres API.
-   * This is passed as a callback to the Ceres C API, which internally converts
-   * the callback into a CostFunction. */
-  int exponential_residual(void *user_data,
-                           double **parameters,
-                           double *residuals,
-                           double **jacobians) {
-    double *measurement = (double *) user_data;
-    double x = measurement[0];
-    double y = measurement[1];
-    double m = parameters[0][0];
-    double c = parameters[1][0];
-    residuals[0] = y - exp(m * x + c);
-    if (jacobians == NULL) {
-      return 1;
-    }
-    if (jacobians[0] != NULL) {
-      jacobians[0][0] = -x * exp(m * x + c); /* dr/dm */
-    }
-    if (jacobians[1] != NULL) {
-      jacobians[1][0] = -exp(m * x + c); /* dr/dc */
-    }
-    return 1;
-  }
-
-  /* Note: Typically it is better to compact m and c into one block,
-   * but in this case use separate blocks to illustrate the use of
-   * multiple parameter blocks. */
-  double m = 0.0;
-  double c = 0.0;
-  double *parameter_pointers[] = {&m, &c};
-  int parameter_sizes[] = {1, 1};
-  int i;
-  ceres_problem_t *problem;
-  /* Ceres has some internal stuff that needs to get initialized. */
-  ceres_init();
-  problem = ceres_create_problem();
-  /* Add all the residuals. */
-  for (i = 0; i < num_observations; ++i) {
-    ceres_problem_add_residual_block(problem,
-                                     exponential_residual, /* Cost function */
-                                     &data[2 * i],         /* Points to (x,y)
-                                                              measurement */
-                                     NULL,                 /* Loss function */
-                                     NULL, /* Loss function user data */
-                                     1,    /* Number of residuals */
-                                     2,    /* Number of parameter blocks */
-                                     parameter_sizes,
-                                     parameter_pointers);
-  }
-  ceres_solve(problem);
-  ceres_free_problem(problem);
-  printf("Initial m: 0.0, c: 0.0\n");
-  printf("Final m: %g, c: %g\n", m, c);
-
-  return 0;
-}
+// int test_ceres_graph() {
+//   int num_observations = 67;
+//   double data[] = {
+//       0.000000e+00, 1.133898e+00, 7.500000e-02, 1.334902e+00, 1.500000e-01,
+//       1.213546e+00, 2.250000e-01, 1.252016e+00, 3.000000e-01, 1.392265e+00,
+//       3.750000e-01, 1.314458e+00, 4.500000e-01, 1.472541e+00, 5.250000e-01,
+//       1.536218e+00, 6.000000e-01, 1.355679e+00, 6.750000e-01, 1.463566e+00,
+//       7.500000e-01, 1.490201e+00, 8.250000e-01, 1.658699e+00, 9.000000e-01,
+//       1.067574e+00, 9.750000e-01, 1.464629e+00, 1.050000e+00, 1.402653e+00,
+//       1.125000e+00, 1.713141e+00, 1.200000e+00, 1.527021e+00, 1.275000e+00,
+//       1.702632e+00, 1.350000e+00, 1.423899e+00, 1.425000e+00, 1.543078e+00,
+//       1.500000e+00, 1.664015e+00, 1.575000e+00, 1.732484e+00, 1.650000e+00,
+//       1.543296e+00, 1.725000e+00, 1.959523e+00, 1.800000e+00, 1.685132e+00,
+//       1.875000e+00, 1.951791e+00, 1.950000e+00, 2.095346e+00, 2.025000e+00,
+//       2.361460e+00, 2.100000e+00, 2.169119e+00, 2.175000e+00, 2.061745e+00,
+//       2.250000e+00, 2.178641e+00, 2.325000e+00, 2.104346e+00, 2.400000e+00,
+//       2.584470e+00, 2.475000e+00, 1.914158e+00, 2.550000e+00, 2.368375e+00,
+//       2.625000e+00, 2.686125e+00, 2.700000e+00, 2.712395e+00, 2.775000e+00,
+//       2.499511e+00, 2.850000e+00, 2.558897e+00, 2.925000e+00, 2.309154e+00,
+//       3.000000e+00, 2.869503e+00, 3.075000e+00, 3.116645e+00, 3.150000e+00,
+//       3.094907e+00, 3.225000e+00, 2.471759e+00, 3.300000e+00, 3.017131e+00,
+//       3.375000e+00, 3.232381e+00, 3.450000e+00, 2.944596e+00, 3.525000e+00,
+//       3.385343e+00, 3.600000e+00, 3.199826e+00, 3.675000e+00, 3.423039e+00,
+//       3.750000e+00, 3.621552e+00, 3.825000e+00, 3.559255e+00, 3.900000e+00,
+//       3.530713e+00, 3.975000e+00, 3.561766e+00, 4.050000e+00, 3.544574e+00,
+//       4.125000e+00, 3.867945e+00, 4.200000e+00, 4.049776e+00, 4.275000e+00,
+//       3.885601e+00, 4.350000e+00, 4.110505e+00, 4.425000e+00, 4.345320e+00,
+//       4.500000e+00, 4.161241e+00, 4.575000e+00, 4.363407e+00, 4.650000e+00,
+//       4.161576e+00, 4.725000e+00, 4.619728e+00, 4.800000e+00, 4.737410e+00,
+//       4.875000e+00, 4.727863e+00, 4.950000e+00, 4.669206e+00,
+//   };
+//
+//   /* This is the equivalent of a use-defined CostFunction in the C++ Ceres
+//   API.
+//    * This is passed as a callback to the Ceres C API, which internally
+//    converts
+//    * the callback into a CostFunction. */
+//   int exponential_residual(void *user_data,
+//                            double **parameters,
+//                            double *residuals,
+//                            double **jacobians) {
+//     double *measurement = (double *) user_data;
+//     double x = measurement[0];
+//     double y = measurement[1];
+//     double m = parameters[0][0];
+//     double c = parameters[1][0];
+//     residuals[0] = y - exp(m * x + c);
+//     if (jacobians == NULL) {
+//       return 1;
+//     }
+//     if (jacobians[0] != NULL) {
+//       jacobians[0][0] = -x * exp(m * x + c); /* dr/dm */
+//     }
+//     if (jacobians[1] != NULL) {
+//       jacobians[1][0] = -exp(m * x + c); /* dr/dc */
+//     }
+//     return 1;
+//   }
+//
+//   /* Note: Typically it is better to compact m and c into one block,
+//    * but in this case use separate blocks to illustrate the use of
+//    * multiple parameter blocks. */
+//   double m = 0.0;
+//   double c = 0.0;
+//   double *parameter_pointers[] = {&m, &c};
+//   int parameter_sizes[] = {1, 1};
+//   int i;
+//   ceres_problem_t *problem;
+//   /* Ceres has some internal stuff that needs to get initialized. */
+//   ceres_init();
+//   problem = ceres_create_problem();
+//   /* Add all the residuals. */
+//   for (i = 0; i < num_observations; ++i) {
+//     ceres_problem_add_residual_block(problem,
+//                                      exponential_residual, /* Cost function
+//                                      */ &data[2 * i],         /* Points to
+//                                      (x,y)
+//                                                               measurement */
+//                                      NULL,                 /* Loss function
+//                                      */ NULL, /* Loss function user data */
+//                                      1,    /* Number of residuals */
+//                                      2,    /* Number of parameter blocks */
+//                                      parameter_sizes,
+//                                      parameter_pointers);
+//   }
+//   ceres_solve(problem);
+//   ceres_free_problem(problem);
+//   printf("Initial m: 0.0, c: 0.0\n");
+//   printf("Final m: %g, c: %g\n", m, c);
+//
+//   return 0;
+// }
 
 int test_graph_setup() {
   graph_t graph;
@@ -2785,6 +2810,7 @@ void test_suite() {
   /* SIM */
   MU_ADD_TEST(test_load_sim_features);
   MU_ADD_TEST(test_load_sim_imu);
+  MU_ADD_TEST(test_load_sim_cam_frame);
   MU_ADD_TEST(test_load_sim_cam);
 
   /* SENSOR FUSION */
@@ -2815,7 +2841,7 @@ void test_suite() {
   /* MU_ADD_TEST(test_imu_factor_setup); */
   /* MU_ADD_TEST(test_imu_factor_eval); */
   /* -- Graph */
-  MU_ADD_TEST(test_ceres_graph);
+  /* MU_ADD_TEST(test_ceres_graph); */
   MU_ADD_TEST(test_graph_setup);
   MU_ADD_TEST(test_graph_print);
   MU_ADD_TEST(test_graph_eval);

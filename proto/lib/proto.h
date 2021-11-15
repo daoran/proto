@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 
-#include <ceres/c_api.h>
+/* #include <ceres/c_api.h> */
 
 #include "stb_image.h"
 
@@ -161,6 +161,7 @@ char **list_files(const char *path, int *nb_files);
 void list_files_free(char **data, const int n);
 char *file_read(const char *fp);
 void skip_line(FILE *fp);
+int file_exists(const char *fp);
 int file_rows(const char *fp);
 int file_copy(const char *src, const char *dest);
 
@@ -555,10 +556,9 @@ void free_sim_imu(sim_imu_t *imu_data);
 // SIM CAM /////////////////////////////////////////////////////////////////////
 
 typedef struct sim_cam_frame_t {
-  timestamp_t *cam_ts;
-  real_t *cam_pose;
-  real_t **measurement;
-  real_t **point_ids;
+  timestamp_t ts;
+  int *feature_ids;
+  real_t **keypoints;
   int nb_measurements;
 } sim_cam_frame_t;
 
@@ -571,7 +571,8 @@ typedef struct sim_cam_t {
 
 sim_cam_frame_t *load_sim_cam_frame(const char *csv_path);
 void free_sim_cam_frame(sim_cam_frame_t *cam_data);
-sim_cam_t *load_sim_cam(const char *csv_path);
+
+sim_cam_t *load_sim_cam(const char *dir_path);
 void free_sim_cam(sim_cam_t *cam_data);
 
 /******************************************************************************

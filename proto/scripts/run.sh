@@ -23,7 +23,6 @@ memcheck() {
 
 # make format_code
 ctags -R lib
-# make clean
 time make
 
 # doxygen
@@ -38,6 +37,9 @@ cd ./build/bin
 # ./test_proto --target test_log_error
 # ./test_proto --target test_log_warn
 # PROTO-FILE_SYSTEM
+# ./test_proto --target test_path_file_name
+# ./test_proto --target test_path_file_ext
+# ./test_proto --target test_path_dir_name
 # ./test_proto --target test_list_files
 # ./test_proto --target test_list_files_free
 # ./test_proto --target test_file_read
@@ -77,7 +79,7 @@ cd ./build/bin
 # ./test_proto --target test_mat_set
 # ./test_proto --target test_mat_val
 # ./test_proto --target test_mat_block_get
-./test_proto --target test_mat_block_set
+# ./test_proto --target test_mat_block_set
 # ./test_proto --target test_mat_diag_get
 # ./test_proto --target test_mat_diag_set
 # ./test_proto --target test_mat_triu
@@ -142,6 +144,11 @@ cd ./build/bin
 # ./test_proto --target test_pinhole_equi4_project
 # ./test_proto --target test_pinhole_equi4_project_jacobian
 # ./test_proto --target test_pinhole_equi4_params_jacobian
+# PROTO-SIM
+# ./test_proto --target test_load_sim_features
+# ./test_proto --target test_load_sim_imu
+valgrind --leak-check=full --show-leak-kinds=all   ./test_proto --target test_load_sim_cam_frame
+# ./test_proto --target test_load_sim_cam
 # PROTO-SF
 # ./test_proto --target test_pose_setup
 # ./test_proto --target test_speed_bias_setup
@@ -162,7 +169,9 @@ cd ./build/bin
 # ./test_proto --target test_imu_buf_copy
 # ./test_proto --target test_imu_buf_print
 # ./test_proto --target test_ceres_solver
-# ./test_proto --target test_solver_setup
+# ./test_proto --target test_graph_setup
+# ./test_proto --target test_graph_print
+# ./test_proto --target test_graph_eval
 
 # valgrind --leak-check=full ./test_traj_eval
 # time ./test_traj_eval
