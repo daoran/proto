@@ -155,7 +155,7 @@
  ******************************************************************************/
 
 void path_file_name(const char *path, char *fname);
-void path_file_ext(const char *path, char *ext);
+void path_file_ext(const char *path, char *fext);
 void path_dir_name(const char *path, char *dir_name);
 char **list_files(const char *path, int *nb_files);
 void list_files_free(char **data, const int n);

@@ -30,6 +30,33 @@ int test_log_warn() {
  * FILESYSTEM
  ******************************************************************************/
 
+int test_path_file_name() {
+  const char *path = "/tmp/hello_world.csv";
+  char fname[128] = {0};
+  path_file_name(path, fname);
+  MU_CHECK(strcmp(fname, "hello_world.csv") == 0);
+
+  return 0;
+}
+
+int test_path_file_ext() {
+  const char *path = "/tmp/hello_world.csv";
+  char fext[128] = {0};
+  path_file_ext(path, fext);
+  MU_CHECK(strcmp(fext, "csv") == 0);
+
+  return 0;
+}
+
+int test_path_dir_name() {
+  const char *path = "/tmp/hello_world.csv";
+  char dir_name[128] = {0};
+  path_dir_name(path, dir_name);
+  MU_CHECK(strcmp(dir_name, "/tmp") == 0);
+
+  return 0;
+}
+
 int test_list_files() {
   int nb_files = 0;
   char **files = list_files("/tmp", &nb_files);
@@ -2629,6 +2656,9 @@ void test_suite() {
   MU_ADD_TEST(test_log_warn);
 
   /* FILE SYSTEM */
+  MU_ADD_TEST(test_path_file_name);
+  MU_ADD_TEST(test_path_file_ext);
+  MU_ADD_TEST(test_path_dir_name);
   MU_ADD_TEST(test_list_files);
   MU_ADD_TEST(test_list_files_free);
   MU_ADD_TEST(test_file_read);

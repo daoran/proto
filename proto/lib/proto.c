@@ -23,9 +23,9 @@ void path_file_name(const char *path, char *fname) {
 /**
  * Extract file extension from path.
  */
-void path_file_ext(const char *path, char *ext) {
+void path_file_ext(const char *path, char *fext) {
   assert(path != NULL);
-  assert(ext != NULL);
+  assert(fext != NULL);
 
   char path_copy[9046] = {0};
   strcpy(path_copy, path);
@@ -33,7 +33,7 @@ void path_file_ext(const char *path, char *ext) {
   char *base = strrchr(path, '.');
   if (base) {
     base = base ? base + 1 : path_copy;
-    strcpy(ext, base);
+    strcpy(fext, base);
   } else {
     ext[0] = '\0';
   }
@@ -50,7 +50,7 @@ void path_dir_name(const char *path, char *dir_name) {
   strcpy(path_copy, path);
 
   char *base = strrchr(path_copy, '/');
-  strncpy(dir_name, path_copy, base - path_copy + 1);
+  strncpy(dir_name, path_copy, base - path_copy);
 }
 
 /**
