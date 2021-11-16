@@ -40,6 +40,7 @@ cd ./build/bin
 # ./test_proto --target test_path_file_name
 # ./test_proto --target test_path_file_ext
 # ./test_proto --target test_path_dir_name
+# ./test_proto --target test_path_join
 # ./test_proto --target test_list_files
 # ./test_proto --target test_list_files_free
 # ./test_proto --target test_file_read

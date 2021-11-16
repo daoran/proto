@@ -157,6 +157,7 @@
 void path_file_name(const char *path, char *fname);
 void path_file_ext(const char *path, char *fext);
 void path_dir_name(const char *path, char *dir_name);
+char *path_join(const char *x, const char *y);
 char **list_files(const char *path, int *nb_files);
 void list_files_free(char **data, const int n);
 char *file_read(const char *fp);
@@ -563,14 +564,16 @@ typedef struct sim_cam_frame_t {
 } sim_cam_frame_t;
 
 typedef struct sim_cam_data_t {
-  timestamp_t *cam_ts;
-  real_t **cam_poses;
   sim_cam_frame_t **frames;
   int nb_frames;
+
+  timestamp_t *ts;
+  real_t **poses;
 } sim_cam_data_t;
 
 sim_cam_frame_t *load_sim_cam_frame(const char *csv_path);
-void free_sim_cam_frame(sim_cam_frame_t *cam_data);
+void print_sim_cam_frame(sim_cam_frame_t *frame_data);
+void free_sim_cam_frame(sim_cam_frame_t *frame_data);
 
 sim_cam_data_t *load_sim_cam_data(const char *dir_path);
 void free_sim_cam_data(sim_cam_data_t *cam_data);

@@ -53,6 +53,24 @@ void path_dir_name(const char *path, char *dir_name) {
   strncpy(dir_name, path_copy, base - path_copy);
 }
 
+char *path_join(const char *x, const char *y) {
+  assert(x != NULL && y != NULL);
+
+  char *retval = NULL;
+  if (x[strlen(x) - 1] == '/') {
+    retval = malloc(sizeof(char) * (strlen(x) + strlen(y)) + 1);
+    strcpy(retval, x);
+    strcpy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
+  } else {
+    retval = malloc(sizeof(char) * (strlen(x) + strlen(y)) + 2);
+    strcpy(retval, x);
+    strcat(retval + strlen(retval), "/");
+    strcpy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
+  }
+
+  return retval;
+}
+
 /**
  * List files in directory.
  * @returns List of files in directory
@@ -3937,6 +3955,12 @@ sim_features_t *load_sim_features(const char *csv_path) {
 }
 
 void free_sim_features(sim_features_t *feature_data) {
+  /* Pre-check */
+  if (feature_data == NULL) {
+    return;
+  }
+
+  /* Free data */
   for (int i = 0; i < feature_data->nb_features; i++) {
     free(feature_data->features[i]);
   }
@@ -3958,6 +3982,12 @@ sim_imu_data_t *load_sim_imu_data(const char *csv_path) {
 }
 
 void free_sim_imu_data(sim_imu_data_t *imu_data) {
+  /* Pre-check */
+  if (imu_data == NULL) {
+    return;
+  }
+
+  /* Free data */
   for (int i = 0; i < imu_data->nb_measurements; i++) {
     free(imu_data->data[i]);
   }
@@ -4016,8 +4046,32 @@ sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
   return frame_data;
 }
 
-/** Free simulated camera frame */
+/**
+ * Print camera frame
+ */
+void print_sim_cam_frame(sim_cam_frame_t *frame_data) {
+  printf("ts: %ld\n", frame_data->ts);
+  printf("nb_frames: %d\n", frame_data->nb_measurements);
+  for (int i = 0; i < frame_data->nb_measurements; i++) {
+    const int feature_id = frame_data->feature_ids[i];
+    const real_t *kp = frame_data->keypoints[i];
+    printf("- ");
+    printf("feature_id: [%d], ", feature_id);
+    printf("kp: [%.2f, %.2f]\n", kp[0], kp[1]);
+  }
+  printf("\n");
+}
+
+/**
+ * Free simulated camera frame
+ */
 void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
+  /* Pre-check */
+  if (frame_data == NULL) {
+    return;
+  }
+
+  /* Free data */
   free(frame_data->feature_ids);
   for (int i = 0; i < frame_data->nb_measurements; i++) {
     free(frame_data->keypoints[i]);
@@ -4033,19 +4087,73 @@ void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
  */
 sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
   assert(dir_path != NULL);
+
+  /* Form csv file path */
+  char *csv_path = path_join(dir_path, "/data.csv");
+  if (file_exists(csv_path) == 0) {
+    free(csv_path);
+    return NULL;
+  }
+
+  /* Open csv file */
+  FILE *csv_file = fopen(csv_path, "r");
+  const int nb_rows = dsv_rows(csv_path);
+
+  /* Form sim_cam_data_t */
   sim_cam_data_t *cam_data = malloc(sizeof(sim_cam_data_t));
+  cam_data->frames = malloc(sizeof(sim_cam_frame_t *) * nb_rows);
+  cam_data->nb_frames = nb_rows;
+  cam_data->ts = malloc(sizeof(timestamp_t) * nb_rows);
+  cam_data->poses = malloc(sizeof(real_t *) * nb_rows);
 
-  /* int nb_files = 0; */
-  /* char **files = list_files(dir_path, &nb_files); */
-  /* for (int i = 0; i < nb_files; i++) { */
-  /*   printf("%s\n", files[i]); */
-  /* } */
-  /* printf("\n"); */
+  int line_idx = 0;
+  char line[MAX_LINE_LENGTH] = {0};
+  while (fgets(line, MAX_LINE_LENGTH, csv_file) != NULL) {
+    /* Skip line if its a comment */
+    if (line[0] == '#') {
+      continue;
+    }
 
-  /* timestamp_t *cam_ts; */
-  /* real_t **cam_poses; */
-  /* sim_cam_data_frame_t **frames; */
-  /* int nb_frames; */
+    /* Parse line */
+    timestamp_t ts;
+    double r[3] = {0};
+    double q[4] = {0};
+    sscanf(line,
+           "%ld,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
+           &ts,
+           &r[0],
+           &r[1],
+           &r[2],
+           &q[0],
+           &q[1],
+           &q[2],
+           &q[3]);
+
+    /* Add camera frame to sim_cam_data_t */
+    char fname[128] = {0};
+    sprintf(fname, "/data/%ld.csv", ts);
+    char *frame_csv = path_join(dir_path, fname);
+    cam_data->frames[line_idx] = load_sim_cam_frame(frame_csv);
+    free(frame_csv);
+
+    /* Add pose to sim_cam_data_t */
+    cam_data->ts[line_idx] = ts;
+    cam_data->poses[line_idx] = malloc(sizeof(real_t) * 7);
+    cam_data->poses[line_idx][0] = r[0];
+    cam_data->poses[line_idx][1] = r[1];
+    cam_data->poses[line_idx][2] = r[2];
+    cam_data->poses[line_idx][3] = q[0];
+    cam_data->poses[line_idx][4] = q[1];
+    cam_data->poses[line_idx][5] = q[2];
+    cam_data->poses[line_idx][6] = q[3];
+
+    /* Update */
+    line_idx++;
+  }
+
+  /* Clean up */
+  free(csv_path);
+  fclose(csv_file);
 
   return cam_data;
 }
@@ -4054,7 +4162,19 @@ sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
  * Free simulated camera data
  */
 void free_sim_cam_data(sim_cam_data_t *cam_data) {
-  assert(cam_data != NULL);
+  /* Pre-check */
+  if (cam_data == NULL) {
+    return;
+  }
+
+  /* Free data */
+  for (int k = 0; k < cam_data->nb_frames; k++) {
+    free_sim_cam_frame(cam_data->frames[k]);
+    free(cam_data->poses[k]);
+  }
+  free(cam_data->frames);
+  free(cam_data->ts);
+  free(cam_data->poses);
   free(cam_data);
 }
 

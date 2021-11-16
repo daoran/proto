@@ -59,6 +59,28 @@ int test_path_dir_name() {
   return 0;
 }
 
+int test_path_join() {
+  // Case A
+  {
+    const char *path_a = "/tmp/A";
+    const char *path_b = "B.csv";
+    char *c = path_join(path_a, path_b);
+    MU_CHECK(strcmp(c, "/tmp/A/B.csv") == 0);
+    free(c);
+  }
+
+  // Case B
+  {
+    const char *path_a = "/tmp/A/";
+    const char *path_b = "B.csv";
+    char *c = path_join(path_a, path_b);
+    MU_CHECK(strcmp(c, "/tmp/A/B.csv") == 0);
+    free(c);
+  }
+
+  return 0;
+}
+
 int test_list_files() {
   int nb_files = 0;
   char **files = list_files("/tmp", &nb_files);
@@ -1902,7 +1924,7 @@ int test_pinhole_equi4_params_jacobian() {
 // SIM FEATURES ////////////////////////////////////////////////////////////////
 
 int test_load_sim_features() {
-  char *csv_file = TEST_SIM_DATA "/features.csv";
+  const char *csv_file = TEST_SIM_DATA "/features.csv";
   sim_features_t *features_data = load_sim_features(csv_file);
   MU_CHECK(features_data->nb_features > 0);
   free_sim_features(features_data);
@@ -1912,7 +1934,7 @@ int test_load_sim_features() {
 // SIM IMU DATA ////////////////////////////////////////////////////////////////
 
 int test_load_sim_imu_data() {
-  char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
+  const char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
   sim_imu_data_t *imu_data = load_sim_imu_data(csv_file);
   free_sim_imu_data(imu_data);
   return 0;
@@ -1921,14 +1943,12 @@ int test_load_sim_imu_data() {
 // SIM CAMERA DATA /////////////////////////////////////////////////////////////
 
 int test_load_sim_cam_frame() {
-  char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
+  const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
   sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
 
   MU_CHECK(frame_data != NULL);
   MU_CHECK(frame_data->ts == 100000000);
   MU_CHECK(frame_data->feature_ids[0] == 1);
-  /* MU_CHECK(fltcmp(frame_data->keypoints[0][0], 575.6926273443431) == 0); */
-  /* MU_CHECK(fltcmp(frame_data->keypoints[0][1], 361.6739266556907) == 0); */
 
   free_sim_cam_frame(frame_data);
 
@@ -1936,8 +1956,9 @@ int test_load_sim_cam_frame() {
 }
 
 int test_load_sim_cam_data() {
-  char *dir_path = "/tmp/sim_vio/cam0/data";
+  const char *dir_path = TEST_SIM_DATA "/cam0";
   sim_cam_data_t *cam_data = load_sim_cam_data(dir_path);
+
   free_sim_cam_data(cam_data);
   return 0;
 }
@@ -2686,6 +2707,7 @@ void test_suite() {
   MU_ADD_TEST(test_path_file_name);
   MU_ADD_TEST(test_path_file_ext);
   MU_ADD_TEST(test_path_dir_name);
+  MU_ADD_TEST(test_path_join);
   MU_ADD_TEST(test_list_files);
   MU_ADD_TEST(test_list_files_free);
   MU_ADD_TEST(test_file_read);
