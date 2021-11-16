@@ -39,7 +39,7 @@ ctags -R .
 # octave notes/illum_invar.m && exit 0
 # octave notes/inv_depth_param.m && exit 0
 # octave notes/inv_depth_param_jacobian.m && exit 0
-octave notes/msckf/msckf.m && exit 0
+# octave notes/msckf/msckf.m && exit 0
 # octave notes/jacobians.m && exit 0
 # octave notes/least_squares.m && exit 0
 # octave notes/linear_triangulation.m && exit 0
@@ -154,7 +154,7 @@ octave notes/msckf/msckf.m && exit 0
 # octave tests/se/test_vo.m && exit 0
 
 # octave tests/sim/test_sim_imu.m
-# octave tests/sim/test_sim_vio.m
+octave tests/sim/test_sim_vio.m
 # octave tests/sim/test_sim_vo.m
 # octave tests/sim/test_trajectory_plot.m
 # octave tests/sim/test_trajectory_simulate.m

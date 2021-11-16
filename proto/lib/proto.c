@@ -3944,10 +3944,10 @@ void free_sim_features(sim_features_t *feature_data) {
   free(feature_data);
 }
 
-// SIM IMU ////////////////////////////////////////////////////////////////////
+// SIM IMU DATA ////////////////////////////////////////////////////////////////
 
-sim_imu_t *load_sim_imu(const char *csv_path) {
-  sim_imu_t *imu_data = malloc(sizeof(sim_imu_t));
+sim_imu_data_t *load_sim_imu_data(const char *csv_path) {
+  sim_imu_data_t *imu_data = malloc(sizeof(sim_imu_data_t));
 
   int nb_rows = 0;
   int nb_cols = 0;
@@ -3957,12 +3957,15 @@ sim_imu_t *load_sim_imu(const char *csv_path) {
   return imu_data;
 }
 
-void free_sim_imu(sim_imu_t *imu_data) {
+void free_sim_imu_data(sim_imu_data_t *imu_data) {
+  for (int i = 0; i < imu_data->nb_measurements; i++) {
+    free(imu_data->data[i]);
+  }
   free(imu_data->data);
   free(imu_data);
 }
 
-// SIM CAM /////////////////////////////////////////////////////////////////////
+// SIM CAMERA DATA /////////////////////////////////////////////////////////////
 
 /** Extract timestamp from path **/
 static timestamp_t ts_from_path(const char *path) {
@@ -4028,13 +4031,20 @@ void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
  * @param dir_path Directory path
  * @returns Simulated camera data
  */
-sim_cam_t *load_sim_cam(const char *dir_path) {
+sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
   assert(dir_path != NULL);
-  sim_cam_t *cam_data = malloc(sizeof(sim_cam_t));
+  sim_cam_data_t *cam_data = malloc(sizeof(sim_cam_data_t));
+
+  /* int nb_files = 0; */
+  /* char **files = list_files(dir_path, &nb_files); */
+  /* for (int i = 0; i < nb_files; i++) { */
+  /*   printf("%s\n", files[i]); */
+  /* } */
+  /* printf("\n"); */
 
   /* timestamp_t *cam_ts; */
   /* real_t **cam_poses; */
-  /* sim_cam_frame_t **frames; */
+  /* sim_cam_data_frame_t **frames; */
   /* int nb_frames; */
 
   return cam_data;
@@ -4043,7 +4053,7 @@ sim_cam_t *load_sim_cam(const char *dir_path) {
 /**
  * Free simulated camera data
  */
-void free_sim_cam(sim_cam_t *cam_data) {
+void free_sim_cam_data(sim_cam_data_t *cam_data) {
   assert(cam_data != NULL);
   free(cam_data);
 }

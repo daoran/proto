@@ -145,10 +145,10 @@ cd ./build/bin
 # ./test_proto --target test_pinhole_equi4_project_jacobian
 # ./test_proto --target test_pinhole_equi4_params_jacobian
 # PROTO-SIM
-# ./test_proto --target test_load_sim_features
-# ./test_proto --target test_load_sim_imu
-valgrind --leak-check=full --show-leak-kinds=all   ./test_proto --target test_load_sim_cam_frame
-# ./test_proto --target test_load_sim_cam
+# memcheck ./test_proto --target test_load_sim_features
+# memcheck ./test_proto --target test_load_sim_imu_data
+# memcheck ./test_proto --target test_load_sim_cam_frame
+memcheck ./test_proto --target test_load_sim_cam_data
 # PROTO-SF
 # ./test_proto --target test_pose_setup
 # ./test_proto --target test_speed_bias_setup
