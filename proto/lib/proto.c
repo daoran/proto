@@ -637,6 +637,8 @@ dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
 
 /**
  * Free DSV data.
+ * @param[in] data DSV data
+ * @param[in] nb_rows Number of rows
  */
 void dsv_free(real_t **data, const int nb_rows) {
   assert(data != NULL);
@@ -681,8 +683,7 @@ void csv_free(real_t **data, const int nb_rows) {
 
 /**
  * Tic, start timer.
- * @returns A timespec struct encapsulating the time instance when tic() is
- * called
+ * @returns A timespec encapsulating the time instance when tic() is called
  */
 struct timespec tic() {
   struct timespec time_start;
@@ -692,6 +693,7 @@ struct timespec tic() {
 
 /**
  * Toc, stop timer.
+ * @param[in] tic Time spec
  * @returns Time elapsed in seconds
  */
 float toc(struct timespec *tic) {
@@ -708,6 +710,7 @@ float toc(struct timespec *tic) {
 
 /**
  * Toc, stop timer.
+ * @param[in] tic Time spec
  * @returns Time elapsed in milli-seconds
  */
 float mtoc(struct timespec *tic) {
@@ -737,6 +740,14 @@ timestamp_t time_now() {
 /**
  * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
  * `port`. Returns `0` for success and `-1` for failure.
+ *
+ * @param[in] sockfd Socket file descriptor
+ * @param[out] ip IP address
+ * @param[out] port Port number
+ *
+ * @returns
+ * - 0 for success
+ * - -1 for failure
  */
 int ip_port_info(const int sockfd, char *ip, int *port) {
   assert(ip != NULL);
@@ -769,6 +780,8 @@ int ip_port_info(const int sockfd, char *ip, int *port) {
 
 /**
  * Configure TCP server
+ * @param[in] server TCP server
+ * @param[in] port Port number
  */
 int tcp_server_setup(tcp_server_t *server, const int port) {
   assert(server != NULL);
@@ -815,6 +828,8 @@ int tcp_server_setup(tcp_server_t *server, const int port) {
 
 /**
  * Loop TCP server
+ * @param[in] server TCP server
+ * @returns 0 for success, -1 for failure
  */
 int tcp_server_loop(tcp_server_t *server) {
   assert(server != NULL);
