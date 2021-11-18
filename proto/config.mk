@@ -22,7 +22,7 @@ BLAS_LIBS := -lblas -llapack -llapacke
 CERES_DEPS := -lgflags -lglog \
 							-llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod \
 							-lcxsparse
-CERES_LIBS := -lceres $(CERES_DEPS)
+CERES_LIBS := -L$(DEPS_DIR)/lib -lceres $(CERES_DEPS)
 
 LIBS=-L$(BLD_DIR) \
 	-lproto \
