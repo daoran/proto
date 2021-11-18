@@ -31,7 +31,7 @@ time make
 
 
 cd ./build/bin
-# ./test_proto
+./test_proto
 # PROTO-LOGGING
 # ./test_proto --target test_debug
 # ./test_proto --target test_log_error
@@ -172,7 +172,7 @@ cd ./build/bin
 # ./test_proto --target test_ceres_solver
 # ./test_proto --target test_graph_setup
 # ./test_proto --target test_graph_print
-memcheck ./test_proto --target test_graph_eval
+# memcheck ./test_proto --target test_graph_eval
 
 # valgrind --leak-check=full ./test_traj_eval
 # time ./test_traj_eval

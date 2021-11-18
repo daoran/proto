@@ -613,12 +613,28 @@ void speed_biases_print(const speed_biases_t *sb);
 
 // FEATURE /////////////////////////////////////////////////////////////////////
 
+#define MAX_FEATURES 10000
+
 typedef struct feature_t {
   real_t data[3];
 } feature_t;
 
 void feature_setup(feature_t *p, const real_t *param);
 void feature_print(const feature_t *feature);
+
+typedef struct features_t {
+  feature_t data[MAX_FEATURES];
+  int nb_features;
+  int status[MAX_FEATURES];
+} features_t;
+
+void features_setup(features_t *features);
+int features_exists(const features_t *features, const int feature_id);
+feature_t *features_get(features_t *features, const int feature_id);
+feature_t *features_add(features_t *features,
+                        const int feature_id,
+                        const real_t *param);
+void features_remove(features_t *features, const int feature_id);
 
 // EXTRINSICS //////////////////////////////////////////////////////////////////
 
@@ -785,9 +801,9 @@ typedef struct imu_factor_t {
 
 void imu_buf_setup(imu_buf_t *imu_buf);
 void imu_buf_add(imu_buf_t *imu_buf,
-                 timestamp_t ts,
-                 real_t acc[3],
-                 real_t gyr[3]);
+                 const timestamp_t ts,
+                 const real_t acc[3],
+                 const real_t gyr[3]);
 void imu_buf_clear(imu_buf_t *imu_buf);
 void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
 void imu_buf_print(const imu_buf_t *imu_buf);
@@ -800,7 +816,6 @@ void imu_buf_print(const imu_buf_t *imu_buf);
 /*                       pose_t *pose_j, */
 /*                       speed_biases_t *sb_j); */
 void imu_factor_reset(imu_factor_t *factor);
-int imu_factor_eval(imu_factor_t *factor);
 
 // GRAPH ///////////////////////////////////////////////////////////////////////
 
@@ -810,22 +825,6 @@ int imu_factor_eval(imu_factor_t *factor);
 #define BA_FACTOR 2
 #define CAM_FACTOR 3
 #define IMU_FACTOR 4
-
-#define MAX_FEATURES 10000
-
-typedef struct features_t {
-  feature_t data[MAX_FEATURES];
-  int nb_features;
-  int status[MAX_FEATURES];
-} features_t;
-
-void features_setup(features_t *features);
-int features_exists(const features_t *features, const int feature_id);
-feature_t *features_get(features_t *features, const int feature_id);
-feature_t *features_add(features_t *features,
-                        const int feature_id,
-                        const real_t *param);
-void features_remove(features_t *features, const int feature_id);
 
 typedef struct keyframe_t {
   cam_factor_t *cam_factors;

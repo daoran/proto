@@ -1016,9 +1016,9 @@ int test_tf_quat_get() {
   /* clang-format on */
 
   /* Create rotation matrix */
-  const real_t euler[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
+  const real_t ypr_in[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
   real_t C[9] = {0};
-  euler321(euler, C);
+  euler321(ypr_in, C);
   tf_rot_set(T, C);
 
   /* Extract quaternion from transform */
@@ -1026,12 +1026,13 @@ int test_tf_quat_get() {
   tf_quat_get(T, q);
 
   /* Convert quaternion back to euler angles */
-  real_t rpy[3] = {0};
-  quat2euler(q, rpy);
+  real_t ypr_out[3] = {0};
+  quat2euler(q, ypr_out);
+  print_vector("ypr_out", ypr_out, 3);
 
-  MU_CHECK(fltcmp(rad2deg(rpy[0]), 10.0) == 0);
-  MU_CHECK(fltcmp(rad2deg(rpy[1]), 20.0) == 0);
-  MU_CHECK(fltcmp(rad2deg(rpy[2]), 30.0) == 0);
+  MU_CHECK(fltcmp(rad2deg(ypr_out[0]), 10.0) == 0);
+  MU_CHECK(fltcmp(rad2deg(ypr_out[1]), 20.0) == 0);
+  MU_CHECK(fltcmp(rad2deg(ypr_out[2]), 30.0) == 0);
 
   return 0;
 }
