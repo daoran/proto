@@ -2690,9 +2690,69 @@ int test_graph_print() {
   return 0;
 }
 
+typedef struct cam_view_t {
+  pose_t pose;
+  ba_factor_t factors[1000];
+  int nb_factors;
+  camera_params_t *cam_params;
+} cam_view_t;
+
 int test_graph_eval() {
-  graph_t graph;
-  graph_setup(&graph);
+  /* Load test data */
+  const char *dir_path = TEST_SIM_DATA "/cam0";
+  sim_cam_data_t *cam_data = load_sim_cam_data(dir_path);
+
+  /* Camera parameters */
+  camera_params_t cam;
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
+
+  /* Features container */
+  features_t features;
+  features_setup(&features);
+
+  /* Loop over simulated camera frames */
+  const real_t var[2] = {1.0, 1.0};
+  cam_view_t *cam_views = malloc(sizeof(cam_view_t) * cam_data->nb_frames);
+  for (int k = 0; k < cam_data->nb_frames; k++) {
+    /* Camera frame */
+    const sim_cam_frame_t *frame = cam_data->frames[k];
+
+    /* Pose */
+    pose_t *pose = &cam_views[k].pose;
+    pose_setup(pose, frame->ts, cam_data->poses[k]);
+
+    /* Add factors */
+    cam_views[k].nb_factors = frame->nb_measurements;
+    for (int i = 0; i < frame->nb_measurements; i++) {
+      const int feature_id = frame->feature_ids[i];
+      const real_t *z = frame->keypoints[i];
+
+      /* Feature */
+      feature_t *feature = NULL;
+      if (features_exists(&features, feature_id)) {
+        feature = features_get(&features, feature_id);
+      } else {
+        const real_t param[3] = {0};
+        feature = features_add(&features, feature_id, param);
+      }
+
+      /* Factor */
+      ba_factor_t *factor = &cam_views[k].factors[i];
+      ba_factor_setup(factor, pose, feature, &cam, z, var);
+    }
+  }
+
+  /* graph_t graph; */
+  /* graph_setup(&graph); */
+
+  /* Clean up */
+  free(cam_views);
+  free_sim_cam_data(cam_data);
 
   return 0;
 }

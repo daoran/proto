@@ -6,6 +6,8 @@
 
 /**
  * Extract filename from path.
+ * @param[in] path Path to extract file extension from
+ * @param[out] fname File name
  */
 void path_file_name(const char *path, char *fname) {
   assert(path != NULL);
@@ -22,6 +24,8 @@ void path_file_name(const char *path, char *fname) {
 
 /**
  * Extract file extension from path.
+ * @param[in] path Path to extract file extension from
+ * @param[out] fext File extension
  */
 void path_file_ext(const char *path, char *fext) {
   assert(path != NULL);
@@ -41,6 +45,9 @@ void path_file_ext(const char *path, char *fext) {
 
 /**
  * Extract dir name from path
+ *
+ * @param[in] path Path to extract directory name from
+ * @param[out] dir_name Directory name
  */
 void path_dir_name(const char *path, char *dir_name) {
   assert(path != NULL);
@@ -53,6 +60,13 @@ void path_dir_name(const char *path, char *dir_name) {
   strncpy(dir_name, path_copy, base - path_copy);
 }
 
+/**
+ * Join two paths `x` and `y`
+ *
+ * @param[in] x First path
+ * @param[in] y Second path
+ * @returns Memory allocated path string
+ */
 char *path_join(const char *x, const char *y) {
   assert(x != NULL && y != NULL);
 
@@ -73,6 +87,8 @@ char *path_join(const char *x, const char *y) {
 
 /**
  * List files in directory.
+ * @param[in] path Path to directory
+ * @param[out] n Number of files in directory
  * @returns List of files in directory
  */
 char **list_files(const char *path, int *n) {
@@ -113,6 +129,8 @@ char **list_files(const char *path, int *n) {
 
 /**
  * Free list of files.
+ * @param[in] data Data
+ * @param[in] n Length of data
  */
 void list_files_free(char **data, const int n) {
   assert(data != NULL);
@@ -124,6 +142,7 @@ void list_files_free(char **data, const int n) {
 
 /**
  * Read file contents.
+ *
  * @returns
  * - Success: File contents
  * - Failure: NULL
@@ -151,6 +170,7 @@ char *file_read(const char *fp) {
 
 /**
  * Skip line in file.
+ * @param[in] fp File pointer
  */
 void skip_line(FILE *fp) {
   assert(fp != NULL);
@@ -164,6 +184,8 @@ void skip_line(FILE *fp) {
 
 /**
  * Check if file exists.
+ *
+ * @param[in] fp File pointer
  * @returns
  * - 1 File exists
  * - 0 File does not exist
@@ -172,6 +194,8 @@ int file_exists(const char *fp) { return (access(fp, F_OK) == 0) ? 1 : 0; }
 
 /**
  * Get number of rows in file.
+ *
+ * @param[in] fp File pointer
  * @returns
  * - Number of rows in file
  * - -1 for failure.
@@ -202,6 +226,9 @@ int file_rows(const char *fp) {
 
 /**
  * Copy file from path `src` to path `dst`.
+ *
+ * @param[in] src Source path
+ * @param[in] dst Destination path
  * @returns
  * - 0 for success
  * - -1 if src file could not be opend
@@ -248,6 +275,8 @@ int file_copy(const char *src, const char *dst) {
 
 /**
  * Allocate heap memory for string `s`.
+ *
+ * @param[in] s String
  * @returns A heap memory allocated string
  */
 char *malloc_string(const char *s) {
@@ -259,6 +288,8 @@ char *malloc_string(const char *s) {
 
 /**
  * Parse integer array line.
+ *
+ * @param[in] line Parse line
  * @returns
  * - 1D vector of integers
  * - NULL for failure
@@ -293,6 +324,9 @@ static int *parse_iarray_line(char *line) {
 
 /**
  * Parse 2D integer arrays from csv file.
+ *
+ * @param[in] csv_path Path to csv file
+ * @param[in] nb_arrays Number of arrarys
  * @returns
  * - List of 1D vector of integers
  * - NULL for failure
@@ -320,6 +354,8 @@ int **load_iarrays(const char *csv_path, int *nb_arrays) {
 
 /**
  * Parse real array line.
+ *
+ * @param[in] Parse array line
  * @returns
  * - 1D vector of real
  * - NULL for failure
@@ -355,6 +391,10 @@ static real_t *parse_darray_line(char *line) {
 /**
  * Parse 2D real arrays from csv file at `csv_path`, on success `nb_arrays`
  * will return number of arrays.
+ *
+ * @param[in] csv_path Path to csv file
+ * @param[in] nb_arrays Number of arrays
+ *
  * @returns
  * - List of 1D vector of reals
  * - NULL for failure
@@ -383,6 +423,8 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays) {
 
 /**
  * Get number of rows in a delimited file at `fp`.
+ *
+ * @param[in] fp Path to file
  * @returns
  * - Number of rows
  * - -1 for failure
@@ -413,6 +455,10 @@ int dsv_rows(const char *fp) {
 
 /**
  * Get number of columns in a delimited file at `fp`.
+ *
+ * @param[in] fp Path to file
+ * @param[in] delim Delimiter
+ *
  * @returns
  * - Number of columns
  * - -1 for failure
@@ -453,6 +499,11 @@ int dsv_cols(const char *fp, const char delim) {
 /**
  * Get the fields of the delimited file at `fp`, where `delim` is the value
  * separated symbol and `nb_fields` returns the length of the fields returned.
+ *
+ * @param[in] fp Path to file
+ * @param[in] delim Delimiter
+ * @param[out] nb_fields Number of fields
+ *
  * @returns
  * - List of field strings
  * - NULL for failure
@@ -511,6 +562,12 @@ char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
 
 /**
  * Load delimited separated value data as a matrix.
+ *
+ * @param[in] fp Path to file
+ * @param[in] delim Delimiter
+ * @param[out] nb_rows Number of rows
+ * @param[out] nb_cols Number of columns
+ *
  * @returns
  * - Matrix of DSV data
  * - NULL for failure
@@ -592,6 +649,11 @@ void dsv_free(real_t **data, const int nb_rows) {
 /**
  * Load comma separated data as a matrix, where `fp` is the csv file path, on
  * success `nb_rows` and `nb_cols` will be filled.
+ *
+ * @param[in] fp Path to file
+ * @param[out] nb_rows Number of rows
+ * @param[out] nb_cols Number of columns
+ *
  * @returns
  * - Matrix of CSV data
  * - NULL for failure
@@ -603,6 +665,8 @@ real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
 
 /**
  * Free CSV data.
+ * @param[in] data CSV data
+ * @param[in] nb_row Number of rows
  */
 void csv_free(real_t **data, const int nb_rows) {
   for (int i = 0; i < nb_rows; i++) {
@@ -2420,7 +2484,7 @@ void tf(const real_t params[7], real_t T[4 * 4]) {
  * Form 7x1 pose parameter vector `params` from 4x4 homogeneous transformation
  * matrix `T`.
  */
-void tf_params(const real_t T[4 * 4], real_t params[7]) {
+void tf_vector(const real_t T[4 * 4], real_t params[7]) {
   assert(T != NULL);
   assert(params != NULL);
 
@@ -2689,6 +2753,23 @@ void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
   /* Perturb translation */
   const real_t r_diff[3] = {r[0] + dr[0], r[1] + dr[1], r[2] + dr[2]};
   tf_trans_set(T, r_diff);
+}
+
+/**
+ * Print pose vector
+ */
+void print_pose_vector(const char *prefix, const real_t pose[7]) {
+  if (prefix) {
+    printf("%s: ", prefix);
+  }
+
+  for (int i = 0; i < 7; i++) {
+    printf("%.2f", pose[i]);
+    if ((i + 1) < 7) {
+      printf(", ");
+    }
+  }
+  printf("\n");
 }
 
 /**
@@ -3945,6 +4026,11 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 
 // SIM FEATURES ////////////////////////////////////////////////////////////////
 
+/**
+ * Load simulation feature data
+ * @param csv_path Path to csv file
+ * @returns Simulated feature data or NULL for failure
+ */
 sim_features_t *load_sim_features(const char *csv_path) {
   sim_features_t *features_data = malloc(sizeof(sim_features_t));
   int nb_rows = 0;
@@ -3954,6 +4040,9 @@ sim_features_t *load_sim_features(const char *csv_path) {
   return features_data;
 }
 
+/**
+ * Free simulation feature data
+ */
 void free_sim_features(sim_features_t *feature_data) {
   /* Pre-check */
   if (feature_data == NULL) {
@@ -3970,6 +4059,11 @@ void free_sim_features(sim_features_t *feature_data) {
 
 // SIM IMU DATA ////////////////////////////////////////////////////////////////
 
+/**
+ * Load simulation imu data
+ * @param csv_path Path to csv file
+ * @returns Simulated imu data or NULL for failure
+ */
 sim_imu_data_t *load_sim_imu_data(const char *csv_path) {
   sim_imu_data_t *imu_data = malloc(sizeof(sim_imu_data_t));
 
@@ -3981,6 +4075,9 @@ sim_imu_data_t *load_sim_imu_data(const char *csv_path) {
   return imu_data;
 }
 
+/**
+ * Free simulation imu data
+ */
 void free_sim_imu_data(sim_imu_data_t *imu_data) {
   /* Pre-check */
   if (imu_data == NULL) {
@@ -3997,7 +4094,10 @@ void free_sim_imu_data(sim_imu_data_t *imu_data) {
 
 // SIM CAMERA DATA /////////////////////////////////////////////////////////////
 
-/** Extract timestamp from path **/
+/**
+ * Extract timestamp from path
+ * @param[in] path Path to file
+ */
 static timestamp_t ts_from_path(const char *path) {
   char fname[128] = {0};
   char fext[128] = {0};
@@ -4013,8 +4113,8 @@ static timestamp_t ts_from_path(const char *path) {
 
 /**
  * Load simulated camera frame
- * @param csv_path Path to csv file
- * @returns Simulated camera frame
+ * @param[in] csv_path Path to csv file
+ * @returns Simulated camera frame or NULL for failure
  */
 sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
   /* Check if file exists */
@@ -4048,6 +4148,7 @@ sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
 
 /**
  * Print camera frame
+ * @param[in] frame_data Frame data
  */
 void print_sim_cam_frame(sim_cam_frame_t *frame_data) {
   printf("ts: %ld\n", frame_data->ts);
@@ -4064,6 +4165,7 @@ void print_sim_cam_frame(sim_cam_frame_t *frame_data) {
 
 /**
  * Free simulated camera frame
+ * @param[in] frame_data Frame data
  */
 void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
   /* Pre-check */
@@ -4082,8 +4184,8 @@ void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
 
 /**
  * Load simulated camera data
- * @param dir_path Directory path
- * @returns Simulated camera data
+ * @param[in] dir_path Directory path
+ * @returns Simulated camera data or NULL for failure
  */
 sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
   assert(dir_path != NULL);
@@ -4203,6 +4305,18 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   pose->data[6] = data[6]; /* qw */
 }
 
+void pose_print(const pose_t *pose) {
+  printf("ts: %ld, ", pose->ts);
+  printf("pose: [%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f]\n",
+         pose->data[0],
+         pose->data[1],
+         pose->data[2],
+         pose->data[3],
+         pose->data[4],
+         pose->data[5],
+         pose->data[6]);
+}
+
 // SPEED AND BIASES ////////////////////////////////////////////////////////////
 
 void speed_biases_setup(speed_biases_t *sb,
@@ -4310,6 +4424,12 @@ void camera_params_print(const camera_params_t *camera) {
 
 // POSE FACTOR /////////////////////////////////////////////////////////////////
 
+/**
+ * Setup pose factor
+ * @param[in] factor Pose factor
+ * @param[in] pose Pose
+ * @param[in] var Variance
+ */
 void pose_factor_setup(pose_factor_t *factor,
                        pose_t *pose,
                        const real_t var[6]) {
@@ -4357,12 +4477,18 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->jacs[0] = factor->J0;
 }
 
+/**
+ * Reset pose factor
+ */
 void pose_factor_reset(pose_factor_t *factor) {
   assert(factor != NULL);
   zeros(factor->r, 6, 1);
   zeros(factor->J0, 6, 6);
 }
 
+/**
+ * Evaluate pose factor
+ */
 int pose_factor_eval(pose_factor_t *factor) {
   assert(factor != NULL);
 
@@ -5182,6 +5308,36 @@ int imu_factor_eval(imu_factor_t *factor) {
 }
 
 // GRAPH //////////////////////////////////////////////////////////////////////
+
+void features_setup(features_t *features) {
+  assert(features);
+  features->nb_features = 0;
+  for (int i = 0; i < MAX_FEATURES; i++) {
+    features->status[i] = 0;
+  }
+}
+
+int features_exists(const features_t *features, const int feature_id) {
+  return features->status[feature_id];
+}
+
+feature_t *features_get(features_t *features, const int feature_id) {
+  return &features->data[feature_id];
+}
+
+feature_t *features_add(features_t *features,
+                        const int feature_id,
+                        const real_t *param) {
+  feature_setup(&features->data[feature_id], param);
+  features->status[feature_id] = 1;
+  return &features->data[feature_id];
+}
+
+void features_remove(features_t *features, const int feature_id) {
+  const real_t param[3] = {0};
+  feature_setup(&features->data[feature_id], param);
+  features->status[feature_id] = 0;
+}
 
 void graph_setup(graph_t *graph) {
   assert(graph);

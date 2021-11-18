@@ -149,7 +149,7 @@ cd ./build/bin
 # memcheck ./test_proto --target test_load_sim_features
 # memcheck ./test_proto --target test_load_sim_imu_data
 # memcheck ./test_proto --target test_load_sim_cam_frame
-memcheck ./test_proto --target test_load_sim_cam_data
+# memcheck ./test_proto --target test_load_sim_cam_data
 # PROTO-SF
 # ./test_proto --target test_pose_setup
 # ./test_proto --target test_speed_bias_setup
@@ -172,7 +172,7 @@ memcheck ./test_proto --target test_load_sim_cam_data
 # ./test_proto --target test_ceres_solver
 # ./test_proto --target test_graph_setup
 # ./test_proto --target test_graph_print
-# ./test_proto --target test_graph_eval
+memcheck ./test_proto --target test_graph_eval
 
 # valgrind --leak-check=full ./test_traj_eval
 # time ./test_traj_eval

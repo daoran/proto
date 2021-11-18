@@ -399,7 +399,7 @@ void lapack_chol_solve(const real_t *A,
  ******************************************************************************/
 
 void tf(const real_t params[7], real_t T[4 * 4]);
-void tf_params(const real_t T[4 * 4], real_t params[7]);
+void tf_vector(const real_t T[4 * 4], real_t params[7]);
 void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]);
 void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]);
 void tf_rot_get(const real_t T[4 * 4], real_t C[3 * 3]);
@@ -414,6 +414,7 @@ void tf_point(const real_t T[4 * 4], const real_t p[3], real_t retval[3]);
 void tf_hpoint(const real_t T[4 * 4], const real_t p[4], real_t retval[4]);
 void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i);
+void print_pose_vector(const char *prefix, const real_t pose[7]);
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R);
 void euler321(const real_t ypr[3], real_t C[3 * 3]);
 void euler2quat(const real_t ypr[3], real_t q[4]);
@@ -810,10 +811,21 @@ int imu_factor_eval(imu_factor_t *factor);
 #define CAM_FACTOR 3
 #define IMU_FACTOR 4
 
-typedef struct feature_container_t {
-  feature_t *features;
+#define MAX_FEATURES 10000
+
+typedef struct features_t {
+  feature_t data[MAX_FEATURES];
   int nb_features;
-} feature_container_t;
+  int status[MAX_FEATURES];
+} features_t;
+
+void features_setup(features_t *features);
+int features_exists(const features_t *features, const int feature_id);
+feature_t *features_get(features_t *features, const int feature_id);
+feature_t *features_add(features_t *features,
+                        const int feature_id,
+                        const real_t *param);
+void features_remove(features_t *features, const int feature_id);
 
 typedef struct keyframe_t {
   cam_factor_t *cam_factors;
