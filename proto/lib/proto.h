@@ -465,14 +465,6 @@ void linear_triangulation(const real_t P_i[3 * 4],
                           const real_t z_i[2],
                           const real_t z_j[2],
                           real_t p[3]);
-void stereo_triangulate(const real_t cam_i[4],
-                        const real_t cam_j[4],
-                        const real_t T_CiCj[4 * 4],
-                        const real_t *z_i,
-                        const real_t *z_j,
-                        const int n,
-                        real_t *points,
-                        int *inliers);
 
 // RADTAN //////////////////////////////////////////////////////////////////////
 
@@ -593,7 +585,8 @@ void free_sim_cam_data(sim_cam_data_t *cam_data);
 
 typedef struct pose_t {
   timestamp_t ts;
-  real_t data[7];
+  real_t pos[3];
+  real_t quat[4];
 } pose_t;
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
@@ -666,7 +659,8 @@ void camera_params_print(const camera_params_t *camera);
 // POSE FACTOR /////////////////////////////////////////////////////////////////
 
 typedef struct pose_factor_t {
-  real_t pose_meas[7];
+  real_t pos_meas[3];
+  real_t quat_meas[4];
   pose_t *pose_est;
   int nb_params;
 
@@ -675,8 +669,9 @@ typedef struct pose_factor_t {
   real_t r[6];
   int r_size;
 
-  real_t J0[6 * 6];
-  real_t *jacs[1];
+  real_t J0[6 * 3];
+  real_t J1[6 * 3];
+  real_t *jacs[2];
 } pose_factor_t;
 
 void pose_factor_setup(pose_factor_t *factor,

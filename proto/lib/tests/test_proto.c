@@ -1972,19 +1972,19 @@ int test_pose_setup() {
   timestamp_t ts = 1;
   pose_t pose;
 
-  real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
+  real_t data[7] = {0.1, 0.2, 0.3, 1.1, 2.2, 3.3, 1.0};
   pose_setup(&pose, ts, data);
 
   MU_CHECK(pose.ts == 1);
 
-  MU_CHECK(fltcmp(pose.data[0], 1.0) == 0.0);
-  MU_CHECK(fltcmp(pose.data[1], 0.0) == 0.0);
-  MU_CHECK(fltcmp(pose.data[2], 0.0) == 0.0);
-  MU_CHECK(fltcmp(pose.data[3], 0.0) == 0.0);
+  MU_CHECK(fltcmp(pose.pos[0], 0.1) == 0.0);
+  MU_CHECK(fltcmp(pose.pos[1], 0.2) == 0.0);
+  MU_CHECK(fltcmp(pose.pos[2], 0.3) == 0.0);
 
-  MU_CHECK(fltcmp(pose.data[4], 0.1) == 0.0);
-  MU_CHECK(fltcmp(pose.data[5], 0.2) == 0.0);
-  MU_CHECK(fltcmp(pose.data[6], 0.3) == 0.0);
+  MU_CHECK(fltcmp(pose.quat[0], 1.1) == 0.0);
+  MU_CHECK(fltcmp(pose.quat[1], 2.2) == 0.0);
+  MU_CHECK(fltcmp(pose.quat[2], 3.3) == 0.0);
+  MU_CHECK(fltcmp(pose.quat[3], 1.0) == 0.0);
 
   return 0;
 }
@@ -2069,7 +2069,8 @@ int test_pose_factor_setup() {
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   pose_factor_setup(&pose_factor, &pose, var);
 
-  print_matrix("pose_factor.pose_meas", pose_factor.pose_meas, 7, 1);
+  print_matrix("pose_factor.pos_meas", pose_factor.pos_meas, 3, 1);
+  print_matrix("pose_factor.quat_meas", pose_factor.quat_meas, 4, 1);
   print_matrix("pose_factor.covar", pose_factor.covar, 6, 6);
   print_matrix("pose_factor.r", pose_factor.r, 6, 1);
   print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
@@ -2092,7 +2093,8 @@ int test_pose_factor_eval() {
   /* Evaluate pose factor */
   const int retval = pose_factor_eval(&pose_factor);
   print_matrix("pose_factor.r", pose_factor.r, 6, 1);
-  print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
+  print_matrix("pose_factor.J0", pose_factor.J0, 6, 3);
+  print_matrix("pose_factor.J1", pose_factor.J1, 6, 3);
   MU_CHECK(retval == 0);
 
   return 0;
@@ -2203,7 +2205,7 @@ int test_ba_factor_eval() {
   ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
 
   /* Evaluate bundle adjustment factor */
-  real_t *params[4] = {pose.data, feature.data, cam.data};
+  real_t *params[4] = {pose.pos, pose.quat, feature.data, cam.data};
   real_t residuals[2] = {0};
   real_t J0[2 * 6] = {0};
   real_t J1[2 * 3] = {0};
@@ -2260,7 +2262,7 @@ int test_ba_factor_ceres_eval() {
   ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
 
   /* Evaluate bundle adjustment factor -- for ceres solver */
-  double *params[3] = {pose.data, feature.data, cam.data};
+  real_t *params[4] = {pose.pos, pose.quat, feature.data, cam.data};
   double residuals[2] = {0};
   double J0[2 * 7] = {0};
   double J1[2 * 3] = {0};
@@ -2381,7 +2383,11 @@ int test_cam_factor_eval() {
   cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
 
   /* Evaluate camera factor */
-  real_t *params[4] = {pose.data, extrinsics.data, feature.data, cam.data};
+  real_t *params[5] = {pose.pos,
+                       pose.quat,
+                       extrinsics.data,
+                       feature.data,
+                       cam.data};
   real_t residuals[2] = {0};
   real_t J0[2 * 6] = {0};
   real_t J1[2 * 6] = {0};
@@ -2452,7 +2458,11 @@ int test_cam_factor_ceres_eval() {
   cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
 
   /* Evaluate camera factor */
-  double *params[4] = {pose.data, extrinsics.data, feature.data, cam.data};
+  real_t *params[5] = {pose.pos,
+                       pose.quat,
+                       extrinsics.data,
+                       feature.data,
+                       cam.data};
   double residuals[2] = {0};
   double J0[2 * 7] = {0};
   double J1[2 * 7] = {0};
