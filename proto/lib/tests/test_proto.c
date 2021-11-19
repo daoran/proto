@@ -1981,10 +1981,10 @@ int test_pose_setup() {
   MU_CHECK(fltcmp(pose.pos[1], 0.2) == 0.0);
   MU_CHECK(fltcmp(pose.pos[2], 0.3) == 0.0);
 
-  MU_CHECK(fltcmp(pose.quat[0], 1.1) == 0.0);
-  MU_CHECK(fltcmp(pose.quat[1], 2.2) == 0.0);
-  MU_CHECK(fltcmp(pose.quat[2], 3.3) == 0.0);
-  MU_CHECK(fltcmp(pose.quat[3], 1.0) == 0.0);
+  MU_CHECK(fltcmp(pose.quat[0], 1.0) == 0.0);
+  MU_CHECK(fltcmp(pose.quat[1], 1.1) == 0.0);
+  MU_CHECK(fltcmp(pose.quat[2], 2.2) == 0.0);
+  MU_CHECK(fltcmp(pose.quat[3], 3.3) == 0.0);
 
   return 0;
 }
@@ -2072,8 +2072,6 @@ int test_pose_factor_setup() {
   print_matrix("pose_factor.pos_meas", pose_factor.pos_meas, 3, 1);
   print_matrix("pose_factor.quat_meas", pose_factor.quat_meas, 4, 1);
   print_matrix("pose_factor.covar", pose_factor.covar, 6, 6);
-  print_matrix("pose_factor.r", pose_factor.r, 6, 1);
-  print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
 
   return 0;
 }
@@ -2091,10 +2089,15 @@ int test_pose_factor_eval() {
   pose_factor_setup(&pose_factor, &pose, var);
 
   /* Evaluate pose factor */
-  const int retval = pose_factor_eval(&pose_factor);
-  print_matrix("pose_factor.r", pose_factor.r, 6, 1);
-  print_matrix("pose_factor.J0", pose_factor.J0, 6, 3);
-  print_matrix("pose_factor.J1", pose_factor.J1, 6, 3);
+  real_t *params[2] = {pose.pos, pose.quat};
+  real_t r[6] = {0};
+  real_t J0[6 * 3] = {0};
+  real_t J1[6 * 3] = {0};
+  real_t *jacs[2] = {J0, J1};
+  const int retval = pose_factor_eval(&pose_factor, params, r, jacs);
+  print_matrix("r", r, 6, 1);
+  print_matrix("J0", J0, 6, 3);
+  print_matrix("J1", J1, 6, 3);
   MU_CHECK(retval == 0);
 
   return 0;
@@ -2103,22 +2106,64 @@ int test_pose_factor_eval() {
 int test_pose_factor_jacobians() {
   /* Pose */
   timestamp_t ts = 1;
-  pose_t pose;
+  pose_t pose_meas;
   real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
-  pose_setup(&pose, ts, data);
+  pose_setup(&pose_meas, ts, data);
 
   /* Setup pose factor */
   pose_factor_t pose_factor;
-  real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
-  pose_factor_setup(&pose_factor, &pose, var);
+  real_t var[6] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+  pose_factor_setup(&pose_factor, &pose_meas, var);
 
   /* Evaluate pose factor */
-  /* const int retval = pose_factor_eval(&pose_factor); */
-  /* MU_CHECK(retval == 0); */
-  pose_factor_eval(&pose_factor);
+  real_t pos_est[3] = {0.11, 0.22, 0.33};
+  real_t quat_est[4] = {1.0, 0.0, 0.0, 0.0};
+  real_t *params[2] = {pos_est, quat_est};
+  real_t r[6] = {0};
+  real_t J0[6 * 3] = {0};
+  real_t J1[6 * 3] = {0};
+  real_t *jacs[2] = {J0, J1};
+  const int retval = pose_factor_eval(&pose_factor, params, r, jacs);
+  print_matrix("r", r, 6, 1);
+  print_matrix("J0", J0, 6, 3);
+  print_matrix("J1", J1, 6, 3);
+  MU_CHECK(retval == 0);
 
-  print_matrix("pose_factor.r", pose_factor.r, 6, 1);
-  print_matrix("pose_factor.J0", pose_factor.J0, 6, 6);
+  /* Check jacobians */
+  real_t step_size = 1e-5;
+  real_t tol = 1e-4;
+
+  /* -- Check position jacobian */
+  real_t J0_numdiff[6 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[6] = {0};
+    real_t r_diff[6] = {0};
+
+    params[0][i] += step_size;
+    pose_factor_eval(&pose_factor, params, r_fwd, NULL);
+    params[0][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 6);
+    vec_scale(r_diff, 6, 1.0 / step_size);
+    mat_col_set(J0_numdiff, 3, 6, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J0", J0_numdiff, J0, 6, 3, tol, 1) == 0);
+
+  /* -- Check position jacobian */
+  real_t J1_numdiff[6 * 3] = {0};
+  for (int i = 3; i < 6; i++) {
+    real_t r_fwd[6] = {0};
+    real_t r_diff[6] = {0};
+
+    quat_perturb(params[1], i - 3, step_size);
+    pose_factor_eval(&pose_factor, params, r_fwd, NULL);
+    quat_perturb(params[1], i - 3, -step_size);
+
+    vec_sub(r_fwd, r, r_diff, 6);
+    vec_scale(r_diff, 6, 1.0 / step_size);
+    mat_col_set(J1_numdiff, 3, 6, i - 3, r_diff);
+  }
+  MU_CHECK(check_jacobian("J1", J1_numdiff, J1, 6, 3, tol, 1) == 0);
 
   return 0;
 }
@@ -2672,7 +2717,8 @@ int test_imu_buf_print() {
 //                                      exponential_residual, /* Cost function
 //                                      */ &data[2 * i],         /* Points to
 //                                      (x,y)
-//                                                               measurement */
+//                                                               measurement
+//                                                               */
 //                                      NULL,                 /* Loss function
 //                                      */ NULL, /* Loss function user data */
 //                                      1,    /* Number of residuals */

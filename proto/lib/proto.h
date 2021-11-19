@@ -308,6 +308,11 @@ void mat_set(real_t *A,
 real_t
 mat_val(const real_t *A, const size_t stride, const size_t i, const size_t j);
 void mat_copy(const real_t *src, const int m, const int n, real_t *dest);
+void mat_col_set(real_t *A,
+                 const size_t stride,
+                 const int nb_rows,
+                 const int col_idx,
+                 const real_t *x);
 void mat_block_get(const real_t *A,
                    const size_t stride,
                    const size_t rs,
@@ -422,6 +427,8 @@ void rot2quat(const real_t C[3 * 3], real_t q[4]);
 void rot2euler(const real_t C[3 * 3], real_t ypr[3]);
 void quat2euler(const real_t q[4], real_t ypr[3]);
 void quat2rot(const real_t q[4], real_t C[3 * 3]);
+real_t quat_norm(const real_t q[4]);
+void quat_normalize(real_t q[4]);
 void quat_inv(const real_t q[4], real_t q_inv[4]);
 void quat_left(const real_t q[4], real_t left[4 * 4]);
 void quat_right(const real_t q[4], real_t right[4 * 4]);
@@ -429,6 +436,7 @@ void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_delta(const real_t dalpha[3], real_t dq[4]);
+void quat_perturb(real_t q[4], const int i, const real_t h);
 
 /******************************************************************************
  * Lie
@@ -666,19 +674,19 @@ typedef struct pose_factor_t {
 
   real_t covar[6 * 6];
   real_t sqrt_info[6 * 6];
-  real_t r[6];
-  int r_size;
-
-  real_t J0[6 * 3];
-  real_t J1[6 * 3];
-  real_t *jacs[2];
 } pose_factor_t;
 
 void pose_factor_setup(pose_factor_t *factor,
                        pose_t *pose,
                        const real_t var[6]);
-void pose_factor_reset(pose_factor_t *factor);
-int pose_factor_eval(pose_factor_t *factor);
+int pose_factor_eval(pose_factor_t *factor,
+                     real_t **params,
+                     real_t *residuals,
+                     real_t **jacobians);
+int pose_factor_ceres_eval(void *factor,
+                           double **params,
+                           double *residuals,
+                           double **jacobians);
 
 // BA FACTOR ///////////////////////////////////////////////////////////////////
 

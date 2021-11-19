@@ -22,7 +22,7 @@ memcheck() {
 # python3 scripts/tf_point.py
 
 # make format_code
-ctags -R lib
+# ctags -R lib
 time make
 
 # doxygen
@@ -31,7 +31,7 @@ time make
 
 
 cd ./build/bin
-./test_proto
+# ./test_proto
 # PROTO-LOGGING
 # ./test_proto --target test_debug
 # ./test_proto --target test_log_error
@@ -126,7 +126,6 @@ cd ./build/bin
 # PROTO-CV
 # ./test_proto --target test_lie_Exp_Log
 # ./test_proto --target test_linear_triangulation
-# ./test_proto --target test_stereo_triangulation
 # ./test_proto --target test_radtan4_distort
 # ./test_proto --target test_radtan4_point_jacobian
 # ./test_proto --target test_radtan4_params_jacobian
@@ -158,6 +157,7 @@ cd ./build/bin
 # ./test_proto --target test_camera_setup
 # ./test_proto --target test_pose_factor_setup
 # ./test_proto --target test_pose_factor_eval
+memcheck ./test_proto --target test_pose_factor_jacobians
 # ./test_proto --target test_ba_factor_setup
 # ./test_proto --target test_ba_factor_eval
 # ./test_proto --target test_ba_factor_ceres_eval

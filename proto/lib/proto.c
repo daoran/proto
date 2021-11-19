@@ -1144,7 +1144,7 @@ void print_matrix(const char *prefix,
   printf("%s:\n", prefix);
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
-      printf("%.2e  ", A[idx]);
+      printf("%f  ", A[idx]);
       idx++;
     }
     printf("\n");
@@ -1429,6 +1429,26 @@ void mat_copy(const real_t *src, const int m, const int n, real_t *dest) {
 
   for (int i = 0; i < (m * n); i++) {
     dest[i] = src[i];
+  }
+}
+
+/**
+ * Set matrix column.
+ *
+ * @param[in,out] A Matrix
+ * @param[in] stride Matrix stride
+ * @param[in] nb_rows Number of rows of A
+ * @param[in] col_idx Column index to change
+ * @param[in] x Column vector
+ */
+void mat_col_set(real_t *A,
+                 const size_t stride,
+                 const int nb_rows,
+                 const int col_idx,
+                 const real_t *x) {
+  int vec_idx = 0;
+  for (int i = 0; i < nb_rows; i++) {
+    A[i * stride + col_idx] = x[vec_idx++];
   }
 }
 
@@ -3075,6 +3095,18 @@ void quat2euler(const real_t q[4], real_t ypr[3]) {
   ypr[2] = t1;
 }
 
+real_t quat_norm(const real_t q[4]) {
+  return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+}
+
+void quat_normalize(real_t q[4]) {
+  const real_t n = quat_norm(q);
+  q[0] = q[0] / n;
+  q[1] = q[1] / n;
+  q[2] = q[2] / n;
+  q[3] = q[3] / n;
+}
+
 /**
  * Convert Quaternion `q` to 3x3 rotation matrix `C`.
  */
@@ -3244,6 +3276,27 @@ void quat_delta(const real_t dalpha[3], real_t dq[4]) {
   dq[1] = vector[0];
   dq[2] = vector[1];
   dq[3] = vector[2];
+}
+
+/**
+ * Perturb quaternion
+ * @param[in,out] q Quaternion to be perturbed
+ * @param[in] i i-th parameter to be perturbed (0-2 for x, y, or z axis)
+ * @param[in] h Perturbation step size
+ */
+void quat_perturb(real_t q[4], const int i, const real_t h) {
+  assert(i >= 0 && i <= 2);
+
+  /* Form small pertubation quaternion dq */
+  real_t dalpha[3] = {0};
+  real_t dq[4] = {0};
+  dalpha[i] = h;
+  quat_delta(dalpha, dq);
+
+  /* Perturb quaternion */
+  real_t q_[4] = {q[0], q[1], q[2], q[3]};
+  quat_mul(q_, dq, q);
+  quat_normalize(q);
 }
 
 /*****************************************************************************
@@ -4655,39 +4708,24 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->sqrt_info[21] = sqrt(1.0 / factor->covar[21]);
   factor->sqrt_info[28] = sqrt(1.0 / factor->covar[28]);
   factor->sqrt_info[35] = sqrt(1.0 / factor->covar[35]);
-
-  /* Residual */
-  zeros(factor->r, 6, 1);
-  factor->r_size = 6;
-
-  /* Jacobians */
-  zeros(factor->J0, 6, 3);
-  zeros(factor->J1, 6, 3);
-  factor->jacs[0] = factor->J0;
-  factor->jacs[1] = factor->J1;
-}
-
-/**
- * Reset pose factor
- * @param[in,out] factor Factor
- */
-void pose_factor_reset(pose_factor_t *factor) {
-  assert(factor != NULL);
-  zeros(factor->r, 6, 1);
-  zeros(factor->J0, 6, 3);
-  zeros(factor->J1, 6, 3);
 }
 
 /**
  * Evaluate pose factor
  * @param[in,out] factor Factor
+ * @param[in] params Parameters
+ * @param[in] residuals Residuals
+ * @param[out] jacobians Jacobians
  */
-int pose_factor_eval(pose_factor_t *factor) {
+int pose_factor_eval(pose_factor_t *factor,
+                     real_t **params,
+                     real_t *residuals,
+                     real_t **jacobians) {
   assert(factor != NULL);
 
   /* Map params */
-  const real_t *r_est = factor->pose_est->pos;
-  const real_t *q_est = factor->pose_est->quat;
+  const real_t *r_est = params[0];
+  const real_t *q_est = params[1];
   const real_t *r_meas = factor->pos_meas;
   const real_t *q_meas = factor->quat_meas;
 
@@ -4721,35 +4759,84 @@ int pose_factor_eval(pose_factor_t *factor) {
   r[3] = dtheta[0];
   r[4] = dtheta[1];
   r[5] = dtheta[2];
-  dot(factor->sqrt_info, 6, 6, r, 6, 1, factor->r);
+  dot(factor->sqrt_info, 6, 6, r, 6, 1, residuals);
 
   /* Calculate Jacobians */
-  /* clang-format off */
-  const real_t dqw = dq[0];
-  const real_t dqx = dq[1];
-  const real_t dqy = dq[2];
-  const real_t dqz = dq[3];
+  if (jacobians == NULL) {
+    return 0;
+  }
 
-  /* J0 = zeros(6, 3); */
-  /* J0(1:3, 1:3) = -eye(3); */
-  /* J0 = factor.sqrt_info * J0; */
-  real_t J0[6 * 3] = {0};
-  J0[0] = -1.0; J0[1] =  0.0; J0[2] =  0.0;
-  J0[3] =  0.0; J0[4] = -1.0; J0[5] =  0.0;
-  J0[6] =  0.0; J0[7] =  0.0; J0[8] = -1.0;
-  dot(factor->sqrt_info, 6, 6, J0, 6, 3, factor->jacs[0]);
+  if (jacobians[0]) {
+    /* J0 = zeros(6, 3); */
+    /* J0(1:3, 1:3) = -eye(3); */
+    /* J0 = factor.sqrt_info * J0; */
 
-  /* J1 = zeros(6, 3); */
-  /* J1(4:6, 4:6) = quat_left(dq)(2:4, 2:4); */
-  /* J1 = factor.sqrt_info * J1; */
-  real_t J1[6 * 3] = {0};
-  J1[9] =  dqw;  J1[10] = -dqz; J1[11] =  dqy;
-  J1[12] =  dqz; J1[13] =  dqw; J1[14] = -dqx;
-  J1[15] = -dqy; J1[16] =  dqx; J1[17] =  dqw;
-  dot(factor->sqrt_info, 6, 6, J1, 6, 3, factor->jacs[1]);
-  /* clang-format on */
+    /* clang-format off */
+    real_t J0[6 * 3] = {0};
+    J0[0] = -1.0; J0[1] =  0.0; J0[2] =  0.0;
+    J0[3] =  0.0; J0[4] = -1.0; J0[5] =  0.0;
+    J0[6] =  0.0; J0[7] =  0.0; J0[8] = -1.0;
+    dot(factor->sqrt_info, 6, 6, J0, 6, 3, jacobians[0]);
+    /* clang-format on */
+  }
+
+  if (jacobians[1]) {
+    /* J1 = zeros(6, 3); */
+    /* J1(4:6, 4:6) = quat_left(dq)(2:4, 2:4); */
+    /* J1 = factor.sqrt_info * J1; */
+
+    /* clang-format off */
+    const real_t dqw = dq[0];
+    const real_t dqx = dq[1];
+    const real_t dqy = dq[2];
+    const real_t dqz = dq[3];
+
+    real_t J1[6 * 3] = {0};
+    J1[9] =  dqw;  J1[10] = -dqz; J1[11] =  dqy;
+    J1[12] =  dqz; J1[13] =  dqw; J1[14] = -dqx;
+    J1[15] = -dqy; J1[16] =  dqx; J1[17] =  dqw;
+    dot(factor->sqrt_info, 6, 6, J1, 6, 3, jacobians[1]);
+    /* clang-format on */
+  }
 
   return 0;
+}
+
+/**
+ * Evaluate pose factor (wrapper for ceres-solver)
+ * @param[in,out] factor Factor
+ * @param[in] params Parameters
+ * @param[in] residuals Residuals
+ * @param[out] jacobians Jacobians
+ */
+int pose_factor_ceres_eval(void *factor,
+                           double **params,
+                           double *residuals,
+                           double **jacobians) {
+  assert(factor != NULL);
+  assert(factor != NULL);
+  assert(params != NULL);
+  assert(residuals != NULL);
+
+  real_t J0[6 * 3] = {0};
+  real_t J1[6 * 3] = {0};
+  real_t *factor_jacs[2] = {J0, J1};
+  pose_factor_t *pose_factor = (pose_factor_t *) factor;
+  int retval = pose_factor_eval(pose_factor, params, residuals, factor_jacs);
+
+  if (jacobians == NULL) {
+    return retval;
+  }
+
+  if (jacobians[0]) {
+    mat_copy(factor_jacs[0], 6, 3, jacobians[0]);
+  }
+
+  if (jacobians[1]) {
+    mat_copy(factor_jacs[1], 6, 3, jacobians[1]);
+  }
+
+  return retval;
 }
 
 // BA FACTOR ///////////////////////////////////////////////////////////////////
