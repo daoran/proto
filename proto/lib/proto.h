@@ -640,7 +640,8 @@ void features_remove(features_t *features, const int feature_id);
 // EXTRINSICS //////////////////////////////////////////////////////////////////
 
 typedef struct extrinsics_t {
-  real_t data[7];
+  real_t pos[3];
+  real_t quat[4];
 } extrinsics_t;
 
 void extrinsics_setup(extrinsics_t *extrinsics, const real_t *param);
