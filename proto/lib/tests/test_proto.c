@@ -437,6 +437,73 @@ int test_mat_val() {
   return 0;
 }
 
+int test_mat_copy() {
+  real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+  real_t B[9] = {0};
+
+  mat_copy(A, 3, 3, B);
+  for (int i = 0; i < 9; i++) {
+    MU_CHECK(fltcmp(B[i], i + 1.0) == 0);
+  }
+
+  return 0;
+}
+
+int test_mat_row_set() {
+  real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+  real_t B[3] = {0.0, 0.0, 0.0};
+
+  /* Set first row zeros */
+  mat_row_set(A, 3, 0, B);
+  for (int i = 0; i < 3; i++) {
+    MU_CHECK(fltcmp(A[i], 0.0) == 0);
+  }
+
+  /* Set second row zeros */
+  mat_row_set(A, 3, 1, B);
+  for (int i = 0; i < 6; i++) {
+    MU_CHECK(fltcmp(A[i], 0.0) == 0);
+  }
+
+  /* Set third row zeros */
+  mat_row_set(A, 3, 1, B);
+  for (int i = 0; i < 6; i++) {
+    MU_CHECK(fltcmp(A[i], 0.0) == 0);
+  }
+
+  return 0;
+}
+
+int test_mat_col_set() {
+  real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+  real_t B[3] = {0.0, 0.0, 0.0};
+
+  /* Set first column zeros */
+  mat_col_set(A, 3, 3, 0, B);
+  for (int i = 0; i < 3; i++) {
+    MU_CHECK(fltcmp(A[i * 3], 0.0) == 0);
+  }
+
+  /* Set second column zeros */
+  mat_col_set(A, 3, 3, 1, B);
+  for (int i = 0; i < 3; i++) {
+    MU_CHECK(fltcmp(A[(i * 3) + 1], 0.0) == 0);
+  }
+
+  /* Set third column zeros */
+  mat_col_set(A, 3, 3, 2, B);
+  for (int i = 0; i < 3; i++) {
+    MU_CHECK(fltcmp(A[(i * 3) + 2], 0.0) == 0);
+  }
+
+  /* Check whether full matrix is zeros */
+  for (int i = 0; i < 9; i++) {
+    MU_CHECK(fltcmp(A[i], 0.0) == 0);
+  }
+
+  return 0;
+}
+
 int test_mat_block_get() {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[4] = {0.0};
@@ -3017,6 +3084,9 @@ void test_suite() {
   MU_ADD_TEST(test_zeros);
   MU_ADD_TEST(test_mat_set);
   MU_ADD_TEST(test_mat_val);
+  MU_ADD_TEST(test_mat_copy);
+  MU_ADD_TEST(test_mat_row_set);
+  MU_ADD_TEST(test_mat_col_set);
   MU_ADD_TEST(test_mat_block_get);
   MU_ADD_TEST(test_mat_block_set);
   MU_ADD_TEST(test_mat_diag_get);

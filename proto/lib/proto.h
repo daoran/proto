@@ -308,12 +308,11 @@ void mat_set(real_t *A,
 real_t
 mat_val(const real_t *A, const size_t stride, const size_t i, const size_t j);
 void mat_copy(const real_t *src, const int m, const int n, real_t *dest);
-void mat_col_set(real_t *A,
-                 const size_t stride,
-                 const int nb_rows,
-                 const int col_idx,
-                 const real_t *x);
 void mat_row_set(real_t *A,
+                 const size_t stride,
+                 const int row_idx,
+                 const real_t *x);
+void mat_col_set(real_t *A,
                  const size_t stride,
                  const int nb_rows,
                  const int col_idx,

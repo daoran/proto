@@ -1353,6 +1353,19 @@ void mat_copy(const real_t *src, const int m, const int n, real_t *dest) {
 }
 
 /**
+ * Set matrix row.
+ */
+void mat_row_set(real_t *A,
+                 const size_t stride,
+                 const int row_idx,
+                 const real_t *x) {
+  int vec_idx = 0;
+  for (int i = 0; i < stride; i++) {
+    A[(stride * row_idx) + i] = x[vec_idx++];
+  }
+}
+
+/**
  * Set matrix column.
  */
 void mat_col_set(real_t *A,
