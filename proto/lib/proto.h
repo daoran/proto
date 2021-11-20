@@ -313,6 +313,11 @@ void mat_col_set(real_t *A,
                  const int nb_rows,
                  const int col_idx,
                  const real_t *x);
+void mat_row_set(real_t *A,
+                 const size_t stride,
+                 const int nb_rows,
+                 const int col_idx,
+                 const real_t *x);
 void mat_block_get(const real_t *A,
                    const size_t stride,
                    const size_t rs,

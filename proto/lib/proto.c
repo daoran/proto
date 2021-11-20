@@ -1130,6 +1130,10 @@ real_t stddev(const real_t *x, const size_t n) {
 
 /**
  * Print matrix `A` of size `m x n`.
+ * @param[in] prefix Prefix
+ * @param[in] A Matrix
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
  */
 void print_matrix(const char *prefix,
                   const real_t *A,
@@ -1154,6 +1158,9 @@ void print_matrix(const char *prefix,
 
 /**
  * Print vector `v` of length `n`.
+ * @param[in] prefix Prefix
+ * @param[in] v Vector
+ * @param[in] n Length of vector
  */
 void print_vector(const char *prefix, const real_t *v, const size_t n) {
   assert(prefix != NULL);
@@ -1171,6 +1178,9 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
 
 /**
  * Form identity matrix `A` of size `m x n`.
+ * @param[out] A Matrix
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
  */
 void eye(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
@@ -1188,6 +1198,9 @@ void eye(real_t *A, const size_t m, const size_t n) {
 
 /**
  * Form ones matrix `A` of size `m x n`.
+ * @param[out] A Matrix
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
  */
 void ones(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
@@ -1205,6 +1218,9 @@ void ones(real_t *A, const size_t m, const size_t n) {
 
 /**
  * Form zeros matrix `A` of size `m x n`.
+ * @param[out] A Matrix
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
  */
 void zeros(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
@@ -1222,6 +1238,8 @@ void zeros(real_t *A, const size_t m, const size_t n) {
 
 /**
  * Malloc matrix of size `m x n`.
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
  * @returns Heap allocated memory for the matrix.
  */
 real_t *mat_malloc(const size_t m, const size_t n) {
@@ -1232,6 +1250,12 @@ real_t *mat_malloc(const size_t m, const size_t n) {
 
 /**
  * Compare two matrices `A` and `B` of size `m x n`.
+ *
+ * @param[in] A Matrix A
+ * @param[in] B Matrix B
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
+ *
  * @returns
  * - 0 if A == B
  * - 1 if A > B
@@ -1262,6 +1286,13 @@ int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n) {
 /**
  * Check to see if two matrices `A` and `B` of size `m x n` are equal to a
  * tolerance.
+ *
+ * @param[in] A Matrix A
+ * @param[in] B Matrix B
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
+ * @param[in] tol Tolerance
+ *
  * @returns
  * - 0 if A == B
  * - -1 if A != B
@@ -1294,9 +1325,13 @@ int mat_equals(const real_t *A,
 
 /**
  * Save matrix `A` of size `m x n` to `save_path`.
- * @returns
- * - 0 Success
- * - -1 Failure
+ *
+ * @param[in] save_path CSV save path
+ * @param[in] A Matrix
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
+ *
+ * @returns 0 for success, -1 for failure
  */
 int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
   assert(save_path != NULL);
@@ -1328,6 +1363,11 @@ int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
 /**
  * Load matrix from file in `mat_path`, on success `nb_rows` and `nb_cols` will
  * be set respectively.
+ *
+ * @param[in] mat_path Matrix csv path
+ * @param[out] nb_rows Number of rows
+ * @param[out] nb_cols Number of columns
+ *
  * @returns Loaded matrix matrix
  */
 real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
@@ -1396,6 +1436,12 @@ real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
 
 /**
  * Set matrix `A` with value `val` at `(i, j)`.
+ *
+ * @param[in,out] A Matrix
+ * @param[in] stride Matrix stride
+ * @param[in] i Row index
+ * @param[in] j Column index
+ * @param[in] val Value
  */
 void mat_set(real_t *A,
              const size_t stride,
@@ -1409,6 +1455,10 @@ void mat_set(real_t *A,
 
 /**
  * Get value from matrix `A` with `stride` at `(i, j)`.
+ * @param[in] A Matrix
+ * @param[in] stride Matrix stride
+ * @param[in] i Row index
+ * @param[in] j Column index
  * @returns Matrix value at (i, j)
  */
 real_t
@@ -1456,6 +1506,14 @@ void mat_col_set(real_t *A,
  * Get matrix sub-block from `A` with `stride` from row and column start `rs`
  * and `cs`, to row and column end `re` and `ce`. The sub-block is written to
  * `block`.
+ *
+ * @param[in] A Matrix
+ * @param[in] stride Matrix stride
+ * @param[in] rs Row start index
+ * @param[in] cs Column start index
+ * @param[in] re Row end index
+ * @param[in] ce Column end index
+ * @param[out] block Matrix sub-block
  */
 void mat_block_get(const real_t *A,
                    const size_t stride,
@@ -1481,6 +1539,14 @@ void mat_block_get(const real_t *A,
 /**
  * Set matrix sub-block `block` to `A` with `stride` from row and column start
  * `rs` and `cs`, to row and column end `re` and `ce`.
+ *
+ * @param[in,out] A Matrix
+ * @param[in] stride Matrix stride
+ * @param[in] rs Row start index
+ * @param[in] cs Column start index
+ * @param[in] re Row end index
+ * @param[in] ce Column end index
+ * @param[in] block Matrix sub-block
  */
 void mat_block_set(real_t *A,
                    const size_t stride,
@@ -1505,6 +1571,11 @@ void mat_block_set(real_t *A,
 
 /**
  * Get diagonal vector `d` from matrix `A` of size `m x n`.
+ *
+ * @param[in] A Matrix
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
+ * @param[in] d Matrix diagonal vector
  */
 void mat_diag_get(const real_t *A, const int m, const int n, real_t *d) {
   int mat_index = 0;
@@ -1523,6 +1594,11 @@ void mat_diag_get(const real_t *A, const int m, const int n, real_t *d) {
 
 /**
  * Set the diagonal of matrix `A` of size `m x n` with vector `d`.
+ *
+ * @param[in,out] A Matrix
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
+ * @param[in] d Matrix diagonal vector
  */
 void mat_diag_set(real_t *A, const int m, const int n, const real_t *d) {
   assert(A != NULL);
@@ -1549,6 +1625,10 @@ void mat_diag_set(real_t *A, const int m, const int n, const real_t *d) {
 /**
  * Get upper triangular square matrix of `A` of size `m x m`, results are
  * outputted to `U`.
+ *
+ * @param[in] A Matrix
+ * @param[in] m Number of rows
+ * @param[out] U Upper triangular matrix
  */
 void mat_triu(const real_t *A, const size_t m, real_t *U) {
   assert(A != NULL);
@@ -1565,6 +1645,10 @@ void mat_triu(const real_t *A, const size_t m, real_t *U) {
 /**
  * Get lower triangular square matrix of `A` of size `m x m`, results are
  * outputted to `L`.
+ *
+ * @param[in] A Matrix
+ * @param[in] m Number of rows
+ * @param[out] L Lower triangular matrix
  */
 void mat_tril(const real_t *A, const size_t m, real_t *L) {
   assert(A != NULL);
@@ -1580,6 +1664,8 @@ void mat_tril(const real_t *A, const size_t m, real_t *L) {
 
 /**
  * Get the trace matrix of `A` of size `m x n`.
+ * @param[in] A Matrix
+ * @param[in] m Number of rows
  * @returns Trace of matrix A
  */
 real_t mat_trace(const real_t *A, const size_t m, const size_t n) {
@@ -1598,6 +1684,9 @@ real_t mat_trace(const real_t *A, const size_t m, const size_t n) {
 
 /**
  * Transpose of matrix `A` of size `m x n`, results are outputted to `A_t`.
+ * @param[in] A Matrix
+ * @param[in] m Number of rows
+ * @param[out] A_t Transpose of matrix A
  */
 void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
   assert(A != NULL && A != A_t);
@@ -1614,6 +1703,12 @@ void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
  * Add two matrices `A` and `B` of size `m x n`, results are outputted to `C`.
  *
  *     C = A + B
+ *
+ * @param[in] A First matrix
+ * @param[in] B Second matrix
+ * @param[out] C Result matrix
+ * @param[in] m Number of rows
+ * @param[in] n Number of columns
  */
 void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
   assert(A != NULL && B != NULL && C != NULL);
