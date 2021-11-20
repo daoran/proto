@@ -44,14 +44,6 @@ function [r, jacs] = cam_factor_eval(factor, params)
   % -- Jacobian w.r.t. pose T_WB
   jacs{1}(1:2, 1:3) = -1 * sqrt_info * Jh * C_CB * -C_BW;
   jacs{1}(1:2, 4:6) = -1 * sqrt_info * Jh * C_CB * -C_BW * skew(p_W - r_WB) * -C_WB;
-
-  p_W
-  r_WB
-
-  neg_C_CW = C_CB * -C_BW
-  S = skew(p_W - r_WB)
-  neg_C_WB = -C_WB
-
   % -- Jacobian w.r.t. camera extrinsics T_BCi
   jacs{2}(1:2, 1:3) = -1 * sqrt_info * Jh * -C_CB;
   jacs{2}(1:2, 4:6) = -1 * sqrt_info * Jh * -C_CB * skew(C_BCi * p_C) * -C_BCi;

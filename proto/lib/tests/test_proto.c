@@ -2037,9 +2037,9 @@ int test_extrinsics_setup() {
   MU_CHECK(fltcmp(extrinsics.pos[2], 3.0) == 0.0);
 
   MU_CHECK(fltcmp(extrinsics.quat[0], 1.0) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.quat[0], 0.1) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.quat[0], 0.2) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.quat[0], 0.3) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.quat[1], 0.1) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.quat[2], 0.2) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.quat[3], 0.3) == 0.0);
 
   return 0;
 }
@@ -2347,18 +2347,19 @@ int test_ba_factor_ceres_eval() {
   real_t var[2] = {1.0, 1.0};
   ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
 
-  /* Evaluate bundle adjustment factor -- for ceres solver */
+  /* Evaluate bundle adjustment factor */
   real_t *params[4] = {pose.pos, pose.quat, feature.data, cam.data};
-  double residuals[2] = {0};
-  double J0[2 * 7] = {0};
-  double J1[2 * 3] = {0};
-  double J2[2 * 8] = {0};
-  double *jacobians[3] = {J0, J1, J2};
-  ba_factor_ceres_eval(&ba_factor, params, residuals, jacobians);
+  real_t r[2] = {0};
+  real_t J0[2 * 3] = {0};
+  real_t J1[2 * 3] = {0};
+  real_t J2[2 * 3] = {0};
+  real_t J3[2 * 8] = {0};
+  real_t *jacs[4] = {J0, J1, J2, J3};
+  ba_factor_ceres_eval(&ba_factor, params, r, jacs);
 
-  print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
-  print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
-  print_matrix("residuals", residuals, 2, 1);
+  print_matrix("covar", ba_factor.covar, 2, 2);
+  print_matrix("sqrt_info", ba_factor.sqrt_info, 2, 2);
+  print_matrix("r", r, 2, 1);
   print_matrix("J0", J0, 2, 7);
   print_matrix("J1", J1, 2, 3);
   print_matrix("J2", J2, 2, 8);
@@ -3114,7 +3115,7 @@ void test_suite() {
   /* -- BA factor */
   MU_ADD_TEST(test_ba_factor_setup);
   MU_ADD_TEST(test_ba_factor_eval);
-  MU_ADD_TEST(test_ba_factor_ceres_eval);
+  /* MU_ADD_TEST(test_ba_factor_ceres_eval); */
   /* -- Camera factor */
   MU_ADD_TEST(test_cam_factor_setup);
   MU_ADD_TEST(test_cam_factor_eval);

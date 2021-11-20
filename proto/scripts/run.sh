@@ -31,7 +31,7 @@ time make
 
 
 cd ./build/bin
-# ./test_proto
+./test_proto
 # PROTO-LOGGING
 # ./test_proto --target test_debug
 # ./test_proto --target test_log_error
@@ -161,7 +161,7 @@ cd ./build/bin
 # ./test_proto --target test_ba_factor_eval
 # ./test_proto --target test_ba_factor_ceres_eval
 # ./test_proto --target test_cam_factor_setup
-./test_proto --target test_cam_factor_eval
+# ./test_proto --target test_cam_factor_eval
 # ./test_proto --target test_cam_factor_ceres_eval
 # ./test_proto --target test_imu_buf_setup
 # ./test_proto --target test_imu_buf_add

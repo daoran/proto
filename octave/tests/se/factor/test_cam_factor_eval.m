@@ -51,15 +51,10 @@ cam_factor = cam_factor_init(ts, param_ids, z);
 params = graph_get_params(graph, cam_factor.param_ids);
 [r, jacobians] = cam_factor_eval(cam_factor, params);
 
-% jacobians{1}
-% % jacobians{2}
-% % jacobians{3}
-% % jacobians{4}
-%
-% % Test jacobians
-% step_size = 1e-8;
-% threshold = 1e-4;
-% check_factor_jacobian(cam_factor, params, 1, "J_pose", step_size, threshold);
-% check_factor_jacobian(cam_factor, params, 2, "J_exts", step_size, threshold);
-% check_factor_jacobian(cam_factor, params, 3, "J_feature", step_size, threshold);
-% check_factor_jacobian(cam_factor, params, 4, "J_cam_params", step_size, threshold);
+% Test jacobians
+step_size = 1e-8;
+threshold = 1e-4;
+check_factor_jacobian(cam_factor, params, 1, "J_pose", step_size, threshold);
+check_factor_jacobian(cam_factor, params, 2, "J_exts", step_size, threshold);
+check_factor_jacobian(cam_factor, params, 3, "J_feature", step_size, threshold);
+check_factor_jacobian(cam_factor, params, 4, "J_cam_params", step_size, threshold);

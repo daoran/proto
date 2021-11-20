@@ -5,9 +5,7 @@
  ******************************************************************************/
 
 /**
- * Extract filename from path.
- * @param[in] path Path to extract file extension from
- * @param[out] fname File name
+ * Extract filename from `path` to `fname`.
  */
 void path_file_name(const char *path, char *fname) {
   assert(path != NULL);
@@ -23,9 +21,7 @@ void path_file_name(const char *path, char *fname) {
 }
 
 /**
- * Extract file extension from path.
- * @param[in] path Path to extract file extension from
- * @param[out] fext File extension
+ * Extract file extension from `path` to `fext`.
  */
 void path_file_ext(const char *path, char *fext) {
   assert(path != NULL);
@@ -44,10 +40,7 @@ void path_file_ext(const char *path, char *fext) {
 }
 
 /**
- * Extract dir name from path
- *
- * @param[in] path Path to extract directory name from
- * @param[out] dir_name Directory name
+ * Extract dir name from `path` to `dirname`.
  */
 void path_dir_name(const char *path, char *dir_name) {
   assert(path != NULL);
@@ -62,10 +55,6 @@ void path_dir_name(const char *path, char *dir_name) {
 
 /**
  * Join two paths `x` and `y`
- *
- * @param[in] x First path
- * @param[in] y Second path
- * @returns Memory allocated path string
  */
 char *path_join(const char *x, const char *y) {
   assert(x != NULL && y != NULL);
@@ -86,10 +75,8 @@ char *path_join(const char *x, const char *y) {
 }
 
 /**
- * List files in directory.
- * @param[in] path Path to directory
- * @param[out] n Number of files in directory
- * @returns List of files in directory
+ * List files in `path`.
+ * @returns List of files in directory and number of files `n`.
  */
 char **list_files(const char *path, int *n) {
   assert(path != NULL);
@@ -128,9 +115,7 @@ char **list_files(const char *path, int *n) {
 }
 
 /**
- * Free list of files.
- * @param[in] data Data
- * @param[in] n Length of data
+ * Free list of `files` of length `n`.
  */
 void list_files_free(char **data, const int n) {
   assert(data != NULL);
@@ -141,8 +126,7 @@ void list_files_free(char **data, const int n) {
 }
 
 /**
- * Read file contents.
- *
+ * Read file contents in file path `fp`.
  * @returns
  * - Success: File contents
  * - Failure: NULL
@@ -170,7 +154,6 @@ char *file_read(const char *fp) {
 
 /**
  * Skip line in file.
- * @param[in] fp File pointer
  */
 void skip_line(FILE *fp) {
   assert(fp != NULL);
@@ -184,8 +167,6 @@ void skip_line(FILE *fp) {
 
 /**
  * Check if file exists.
- *
- * @param[in] fp File pointer
  * @returns
  * - 1 File exists
  * - 0 File does not exist
@@ -193,9 +174,7 @@ void skip_line(FILE *fp) {
 int file_exists(const char *fp) { return (access(fp, F_OK) == 0) ? 1 : 0; }
 
 /**
- * Get number of rows in file.
- *
- * @param[in] fp File pointer
+ * Get number of rows in file `fp`.
  * @returns
  * - Number of rows in file
  * - -1 for failure.
@@ -226,9 +205,6 @@ int file_rows(const char *fp) {
 
 /**
  * Copy file from path `src` to path `dst`.
- *
- * @param[in] src Source path
- * @param[in] dst Destination path
  * @returns
  * - 0 for success
  * - -1 if src file could not be opend
@@ -275,9 +251,6 @@ int file_copy(const char *src, const char *dst) {
 
 /**
  * Allocate heap memory for string `s`.
- *
- * @param[in] s String
- * @returns A heap memory allocated string
  */
 char *malloc_string(const char *s) {
   assert(s != NULL);
@@ -288,8 +261,6 @@ char *malloc_string(const char *s) {
 
 /**
  * Parse integer array line.
- *
- * @param[in] line Parse line
  * @returns
  * - 1D vector of integers
  * - NULL for failure
@@ -324,9 +295,6 @@ static int *parse_iarray_line(char *line) {
 
 /**
  * Parse 2D integer arrays from csv file.
- *
- * @param[in] csv_path Path to csv file
- * @param[in] nb_arrays Number of arrarys
  * @returns
  * - List of 1D vector of integers
  * - NULL for failure
@@ -354,8 +322,6 @@ int **load_iarrays(const char *csv_path, int *nb_arrays) {
 
 /**
  * Parse real array line.
- *
- * @param[in] Parse array line
  * @returns
  * - 1D vector of real
  * - NULL for failure
@@ -391,10 +357,6 @@ static real_t *parse_darray_line(char *line) {
 /**
  * Parse 2D real arrays from csv file at `csv_path`, on success `nb_arrays`
  * will return number of arrays.
- *
- * @param[in] csv_path Path to csv file
- * @param[in] nb_arrays Number of arrays
- *
  * @returns
  * - List of 1D vector of reals
  * - NULL for failure
@@ -423,8 +385,6 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays) {
 
 /**
  * Get number of rows in a delimited file at `fp`.
- *
- * @param[in] fp Path to file
  * @returns
  * - Number of rows
  * - -1 for failure
@@ -455,10 +415,6 @@ int dsv_rows(const char *fp) {
 
 /**
  * Get number of columns in a delimited file at `fp`.
- *
- * @param[in] fp Path to file
- * @param[in] delim Delimiter
- *
  * @returns
  * - Number of columns
  * - -1 for failure
@@ -499,11 +455,6 @@ int dsv_cols(const char *fp, const char delim) {
 /**
  * Get the fields of the delimited file at `fp`, where `delim` is the value
  * separated symbol and `nb_fields` returns the length of the fields returned.
- *
- * @param[in] fp Path to file
- * @param[in] delim Delimiter
- * @param[out] nb_fields Number of fields
- *
  * @returns
  * - List of field strings
  * - NULL for failure
@@ -562,12 +513,6 @@ char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
 
 /**
  * Load delimited separated value data as a matrix.
- *
- * @param[in] fp Path to file
- * @param[in] delim Delimiter
- * @param[out] nb_rows Number of rows
- * @param[out] nb_cols Number of columns
- *
  * @returns
  * - Matrix of DSV data
  * - NULL for failure
@@ -637,8 +582,6 @@ dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
 
 /**
  * Free DSV data.
- * @param[in] data DSV data
- * @param[in] nb_rows Number of rows
  */
 void dsv_free(real_t **data, const int nb_rows) {
   assert(data != NULL);
@@ -651,11 +594,6 @@ void dsv_free(real_t **data, const int nb_rows) {
 /**
  * Load comma separated data as a matrix, where `fp` is the csv file path, on
  * success `nb_rows` and `nb_cols` will be filled.
- *
- * @param[in] fp Path to file
- * @param[out] nb_rows Number of rows
- * @param[out] nb_cols Number of columns
- *
  * @returns
  * - Matrix of CSV data
  * - NULL for failure
@@ -667,8 +605,6 @@ real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
 
 /**
  * Free CSV data.
- * @param[in] data CSV data
- * @param[in] nb_row Number of rows
  */
 void csv_free(real_t **data, const int nb_rows) {
   for (int i = 0; i < nb_rows; i++) {
@@ -693,7 +629,6 @@ struct timespec tic() {
 
 /**
  * Toc, stop timer.
- * @param[in] tic Time spec
  * @returns Time elapsed in seconds
  */
 float toc(struct timespec *tic) {
@@ -710,7 +645,6 @@ float toc(struct timespec *tic) {
 
 /**
  * Toc, stop timer.
- * @param[in] tic Time spec
  * @returns Time elapsed in milli-seconds
  */
 float mtoc(struct timespec *tic) {
@@ -740,11 +674,6 @@ timestamp_t time_now() {
 /**
  * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
  * `port`. Returns `0` for success and `-1` for failure.
- *
- * @param[in] sockfd Socket file descriptor
- * @param[out] ip IP address
- * @param[out] port Port number
- *
  * @returns
  * - 0 for success
  * - -1 for failure
@@ -780,8 +709,6 @@ int ip_port_info(const int sockfd, char *ip, int *port) {
 
 /**
  * Configure TCP server
- * @param[in] server TCP server
- * @param[in] port Port number
  */
 int tcp_server_setup(tcp_server_t *server, const int port) {
   assert(server != NULL);
@@ -828,7 +755,6 @@ int tcp_server_setup(tcp_server_t *server, const int port) {
 
 /**
  * Loop TCP server
- * @param[in] server TCP server
  * @returns 0 for success, -1 for failure
  */
 int tcp_server_loop(tcp_server_t *server) {
@@ -1130,10 +1056,6 @@ real_t stddev(const real_t *x, const size_t n) {
 
 /**
  * Print matrix `A` of size `m x n`.
- * @param[in] prefix Prefix
- * @param[in] A Matrix
- * @param[in] m Number of rows
- * @param[in] n Number of columns
  */
 void print_matrix(const char *prefix,
                   const real_t *A,
@@ -1158,9 +1080,6 @@ void print_matrix(const char *prefix,
 
 /**
  * Print vector `v` of length `n`.
- * @param[in] prefix Prefix
- * @param[in] v Vector
- * @param[in] n Length of vector
  */
 void print_vector(const char *prefix, const real_t *v, const size_t n) {
   assert(prefix != NULL);
@@ -1178,9 +1097,6 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
 
 /**
  * Form identity matrix `A` of size `m x n`.
- * @param[out] A Matrix
- * @param[in] m Number of rows
- * @param[in] n Number of columns
  */
 void eye(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
@@ -1198,9 +1114,6 @@ void eye(real_t *A, const size_t m, const size_t n) {
 
 /**
  * Form ones matrix `A` of size `m x n`.
- * @param[out] A Matrix
- * @param[in] m Number of rows
- * @param[in] n Number of columns
  */
 void ones(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
@@ -1218,9 +1131,6 @@ void ones(real_t *A, const size_t m, const size_t n) {
 
 /**
  * Form zeros matrix `A` of size `m x n`.
- * @param[out] A Matrix
- * @param[in] m Number of rows
- * @param[in] n Number of columns
  */
 void zeros(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
@@ -1238,9 +1148,6 @@ void zeros(real_t *A, const size_t m, const size_t n) {
 
 /**
  * Malloc matrix of size `m x n`.
- * @param[in] m Number of rows
- * @param[in] n Number of columns
- * @returns Heap allocated memory for the matrix.
  */
 real_t *mat_malloc(const size_t m, const size_t n) {
   assert(m > 0);
@@ -1250,11 +1157,6 @@ real_t *mat_malloc(const size_t m, const size_t n) {
 
 /**
  * Compare two matrices `A` and `B` of size `m x n`.
- *
- * @param[in] A Matrix A
- * @param[in] B Matrix B
- * @param[in] m Number of rows
- * @param[in] n Number of columns
  *
  * @returns
  * - 0 if A == B
@@ -1286,16 +1188,7 @@ int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n) {
 /**
  * Check to see if two matrices `A` and `B` of size `m x n` are equal to a
  * tolerance.
- *
- * @param[in] A Matrix A
- * @param[in] B Matrix B
- * @param[in] m Number of rows
- * @param[in] n Number of columns
- * @param[in] tol Tolerance
- *
- * @returns
- * - 0 if A == B
- * - -1 if A != B
+ * @returns 0 if A == B or -1 if A != B
  */
 int mat_equals(const real_t *A,
                const real_t *B,
@@ -1325,12 +1218,6 @@ int mat_equals(const real_t *A,
 
 /**
  * Save matrix `A` of size `m x n` to `save_path`.
- *
- * @param[in] save_path CSV save path
- * @param[in] A Matrix
- * @param[in] m Number of rows
- * @param[in] n Number of columns
- *
  * @returns 0 for success, -1 for failure
  */
 int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
@@ -1363,12 +1250,6 @@ int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
 /**
  * Load matrix from file in `mat_path`, on success `nb_rows` and `nb_cols` will
  * be set respectively.
- *
- * @param[in] mat_path Matrix csv path
- * @param[out] nb_rows Number of rows
- * @param[out] nb_cols Number of columns
- *
- * @returns Loaded matrix matrix
  */
 real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
   assert(mat_path != NULL);
@@ -1436,12 +1317,6 @@ real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
 
 /**
  * Set matrix `A` with value `val` at `(i, j)`.
- *
- * @param[in,out] A Matrix
- * @param[in] stride Matrix stride
- * @param[in] i Row index
- * @param[in] j Column index
- * @param[in] val Value
  */
 void mat_set(real_t *A,
              const size_t stride,
@@ -1455,11 +1330,6 @@ void mat_set(real_t *A,
 
 /**
  * Get value from matrix `A` with `stride` at `(i, j)`.
- * @param[in] A Matrix
- * @param[in] stride Matrix stride
- * @param[in] i Row index
- * @param[in] j Column index
- * @returns Matrix value at (i, j)
  */
 real_t
 mat_val(const real_t *A, const size_t stride, const size_t i, const size_t j) {
@@ -1484,12 +1354,6 @@ void mat_copy(const real_t *src, const int m, const int n, real_t *dest) {
 
 /**
  * Set matrix column.
- *
- * @param[in,out] A Matrix
- * @param[in] stride Matrix stride
- * @param[in] nb_rows Number of rows of A
- * @param[in] col_idx Column index to change
- * @param[in] x Column vector
  */
 void mat_col_set(real_t *A,
                  const size_t stride,
@@ -1506,14 +1370,6 @@ void mat_col_set(real_t *A,
  * Get matrix sub-block from `A` with `stride` from row and column start `rs`
  * and `cs`, to row and column end `re` and `ce`. The sub-block is written to
  * `block`.
- *
- * @param[in] A Matrix
- * @param[in] stride Matrix stride
- * @param[in] rs Row start index
- * @param[in] cs Column start index
- * @param[in] re Row end index
- * @param[in] ce Column end index
- * @param[out] block Matrix sub-block
  */
 void mat_block_get(const real_t *A,
                    const size_t stride,
@@ -1539,14 +1395,6 @@ void mat_block_get(const real_t *A,
 /**
  * Set matrix sub-block `block` to `A` with `stride` from row and column start
  * `rs` and `cs`, to row and column end `re` and `ce`.
- *
- * @param[in,out] A Matrix
- * @param[in] stride Matrix stride
- * @param[in] rs Row start index
- * @param[in] cs Column start index
- * @param[in] re Row end index
- * @param[in] ce Column end index
- * @param[in] block Matrix sub-block
  */
 void mat_block_set(real_t *A,
                    const size_t stride,
@@ -1571,11 +1419,6 @@ void mat_block_set(real_t *A,
 
 /**
  * Get diagonal vector `d` from matrix `A` of size `m x n`.
- *
- * @param[in] A Matrix
- * @param[in] m Number of rows
- * @param[in] n Number of columns
- * @param[in] d Matrix diagonal vector
  */
 void mat_diag_get(const real_t *A, const int m, const int n, real_t *d) {
   int mat_index = 0;
@@ -1594,11 +1437,6 @@ void mat_diag_get(const real_t *A, const int m, const int n, real_t *d) {
 
 /**
  * Set the diagonal of matrix `A` of size `m x n` with vector `d`.
- *
- * @param[in,out] A Matrix
- * @param[in] m Number of rows
- * @param[in] n Number of columns
- * @param[in] d Matrix diagonal vector
  */
 void mat_diag_set(real_t *A, const int m, const int n, const real_t *d) {
   assert(A != NULL);
@@ -1625,10 +1463,6 @@ void mat_diag_set(real_t *A, const int m, const int n, const real_t *d) {
 /**
  * Get upper triangular square matrix of `A` of size `m x m`, results are
  * outputted to `U`.
- *
- * @param[in] A Matrix
- * @param[in] m Number of rows
- * @param[out] U Upper triangular matrix
  */
 void mat_triu(const real_t *A, const size_t m, real_t *U) {
   assert(A != NULL);
@@ -1645,10 +1479,6 @@ void mat_triu(const real_t *A, const size_t m, real_t *U) {
 /**
  * Get lower triangular square matrix of `A` of size `m x m`, results are
  * outputted to `L`.
- *
- * @param[in] A Matrix
- * @param[in] m Number of rows
- * @param[out] L Lower triangular matrix
  */
 void mat_tril(const real_t *A, const size_t m, real_t *L) {
   assert(A != NULL);
@@ -1664,9 +1494,6 @@ void mat_tril(const real_t *A, const size_t m, real_t *L) {
 
 /**
  * Get the trace matrix of `A` of size `m x n`.
- * @param[in] A Matrix
- * @param[in] m Number of rows
- * @returns Trace of matrix A
  */
 real_t mat_trace(const real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
@@ -1684,9 +1511,6 @@ real_t mat_trace(const real_t *A, const size_t m, const size_t n) {
 
 /**
  * Transpose of matrix `A` of size `m x n`, results are outputted to `A_t`.
- * @param[in] A Matrix
- * @param[in] m Number of rows
- * @param[out] A_t Transpose of matrix A
  */
 void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
   assert(A != NULL && A != A_t);
@@ -1701,14 +1525,6 @@ void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
 
 /**
  * Add two matrices `A` and `B` of size `m x n`, results are outputted to `C`.
- *
- *     C = A + B
- *
- * @param[in] A First matrix
- * @param[in] B Second matrix
- * @param[out] C Result matrix
- * @param[in] m Number of rows
- * @param[in] n Number of columns
  */
 void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
   assert(A != NULL && B != NULL && C != NULL);
@@ -1722,9 +1538,6 @@ void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
 /**
  * Subtract two matrices `A` and `B` of size `m x n`, results are outputted to
  * matrix `C`.
- *
- *     C = A - B
- *
  */
 void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
   assert(A != NULL && B != NULL && C != NULL && B != C && A != C);
@@ -1737,9 +1550,6 @@ void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
 
 /**
  * Scale matrix `A` of size `m x n` inplace with `scale`.
- *
- *     A_new = scale * A
- *
  */
 void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale) {
   assert(A != NULL);
@@ -2371,10 +2181,6 @@ void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t) {
  * Cholesky decomposition. Takes a `m x m` matrix `A` and decomposes it into a
  * lower and upper triangular matrix `L` and `U` with Cholesky decomposition.
  * This function only returns the `L` triangular matrix.
- *
- * @param[in] A Matrix
- * @param[in] m Number of rows and columns of square matrix A
- * @param[out] L Lower triangular matrix
  */
 void chol(const real_t *A, const size_t m, real_t *L) {
   assert(A != NULL);
@@ -2405,11 +2211,6 @@ void chol(const real_t *A, const size_t m, real_t *L) {
 /**
  * Solve `Ax = b` using Cholesky decomposition, where `A` is a square matrix,
  * `b` is a vector and `x` is the solution vector of size `n`.
- *
- * @param[in] A Matrix
- * @param[in] b Vector
- * @param[out] x Solution vector
- * @param[in] n Number of rows and columns of square matrix A
  */
 void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
   assert(A != NULL);
@@ -2470,11 +2271,6 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
  * Solve Ax = b using LAPACK's implementation of Cholesky decomposition, where
  * `A` is a square matrix, `b` is a vector and `x` is the solution vector of
  * size `n`.
- *
- * @param[in] A Matrix
- * @param[in] b Vector
- * @param[out] x Solution vector
- * @param[in] m Number of rows and columns of square matrix A
  */
 void lapack_chol_solve(const real_t *A,
                        const real_t *b,
@@ -2597,9 +2393,6 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
  *
  *    pose = (translation, rotation)
  *    pose = (rx, ry, rz, qx, qy, qz, qw)
- *
- * @param[in] params Pose vector (rx, ry, rz, qx, qy, qz, qw)
- * @param[out] T Homogeneous transform
  */
 void tf(const real_t params[7], real_t T[4 * 4]) {
   assert(params != NULL);
@@ -2635,8 +2428,6 @@ void tf(const real_t params[7], real_t T[4 * 4]) {
 /**
  * Form 7x1 pose parameter vector `params` from 4x4 homogeneous transformation
  * matrix `T`.
- * @param[in] T Homogeneous transform
- * @param[out] params Pose vector (x, y, z, qx, qy, qz, qw)
  */
 void tf_vector(const real_t T[4 * 4], real_t params[7]) {
   assert(T != NULL);
@@ -2664,9 +2455,6 @@ void tf_vector(const real_t T[4 * 4], real_t params[7]) {
 /**
  * Decompose transform `T` into the rotation `C` and translation `r`
  * components.
- * @param[in] T Homogeneous transform
- * @param[out] C Rotation matrix
- * @param[out] r Translation vector
  */
 void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]) {
   assert(T != NULL);
@@ -2683,8 +2471,6 @@ void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]) {
 /**
  * Set the rotational component in the 4x4 transformation matrix `T` using a
  * 3x3 rotation matrix `C`.
- * @param[in,out] T Homogeneous transform
- * @param[in] C Rotation matrix
  */
 void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]) {
   assert(T != NULL);
@@ -2706,8 +2492,6 @@ void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]) {
 
 /**
  * Get the rotation matrix `C` from the 4x4 transformation matrix `T`.
- * @param[in] T Homogeneous transform
- * @param[out] C Rotation matrix
  */
 void tf_rot_get(const real_t T[4 * 4], real_t C[3 * 3]) {
   assert(T != NULL);
@@ -2730,8 +2514,6 @@ void tf_rot_get(const real_t T[4 * 4], real_t C[3 * 3]) {
 /**
  * Set the rotation component in the 4x4 transformation matrix `T` using a 4x1
  * quaternion `q`.
- * @param[in,out] T Homogeneous transform
- * @param[in] q Quaternion
  */
 void tf_quat_set(real_t T[4 * 4], const real_t q[4]) {
   assert(T != NULL);
@@ -2745,8 +2527,6 @@ void tf_quat_set(real_t T[4 * 4], const real_t q[4]) {
 
 /**
  * Get the quaternion `q` from the 4x4 transformation matrix `T`.
- * @param[in] T Homogeneous transform
- * @param[out] q Quaternion
  */
 void tf_quat_get(const real_t T[4 * 4], real_t q[4]) {
   assert(T != NULL);
@@ -2761,8 +2541,6 @@ void tf_quat_get(const real_t T[4 * 4], real_t q[4]) {
 /**
  * Set the rotational component in the 4x4 transformation matrix `T` using a
  * 3x1 euler angle vector `euler`.
- * @param[in,out] T Homogeneous transform (4 x 4)
- * @param[in] ypr Euler angles (yaw, pitch, roll)
  */
 void tf_euler_set(real_t T[4 * 4], const real_t ypr[3]) {
   assert(T != NULL);
@@ -2777,8 +2555,6 @@ void tf_euler_set(real_t T[4 * 4], const real_t ypr[3]) {
 /**
  * Get the rotational component in the 4x4 transformation matrix `T` in the
  * form of a 3x1 euler angle vector `ypr`.
- * @param[in] T Homogeneous transform (4 x 4)
- * @param[out] ypr Euler angles (yaw, pitch, roll)
  */
 void tf_euler_get(const real_t T[4 * 4], real_t ypr[3]) {
   assert(T != NULL);
@@ -2793,8 +2569,6 @@ void tf_euler_get(const real_t T[4 * 4], real_t ypr[3]) {
 /**
  * Set the translational component in the 4x4 transformation matrix `T` using
  * a 3x1 translation vector `r`.
- * @param[in,out] T Homogeneous transform (4 x 4)
- * @param[in] r Translation vector (3 x 1)
  */
 void tf_trans_set(real_t T[4 * 4], const real_t r[3]) {
   assert(T != NULL);
@@ -2808,8 +2582,6 @@ void tf_trans_set(real_t T[4 * 4], const real_t r[3]) {
 
 /**
  * Get the translational vector `r` from the 4x4 transformation matrix `T`.
- * @param[in] T Homogeneous transform (4 x 4)
- * @param[out] r Translation vector (3 x 1)
  */
 void tf_trans_get(const real_t T[4 * 4], real_t r[3]) {
   assert(T != NULL);
@@ -2824,8 +2596,6 @@ void tf_trans_get(const real_t T[4 * 4], real_t r[3]) {
 /**
  * Invert the 4x4 homogeneous transformation matrix `T` where results are
  * written to `T_inv`.
- * @param[in] T Homogeneous transform (4 x 4)
- * @param[out] T_inv Inverted homogeneous transform (4 x 4)
  */
 void tf_inv(const real_t T[4 * 4], real_t T_inv[4 * 4]) {
   assert(T != NULL);
@@ -2858,10 +2628,6 @@ void tf_inv(const real_t T[4 * 4], real_t T_inv[4 * 4]) {
 /**
  * Transform 3x1 point `p` using 4x4 homogeneous transformation matrix `T` and
  * output to 3x1 `retval`.
- *
- * @param[in] T Homogeneous transform
- * @param[in] p Point (3 x 1)
- * @param[out] retval Transformed point (3 x 1)
  */
 void tf_point(const real_t T[4 * 4], const real_t p[3], real_t retval[3]) {
   assert(T != NULL);
@@ -2881,10 +2647,6 @@ void tf_point(const real_t T[4 * 4], const real_t p[3], real_t retval[3]) {
 /**
  * Transform 4x1 homogeneous point `hp` using 4x4 homogeneous transformation
  * matrix `T` and output to 4x1 `retval`.
- *
- * @param[in] T Homogeneous transform
- * @param[in] hp Homogeneous point (4 x 1)
- * @param[out] retval Homogeneous transformed point (4 x 1)
  */
 void tf_hpoint(const real_t T[4 * 4], const real_t hp[4], real_t retval[4]) {
   assert(T != NULL);
@@ -2896,10 +2658,6 @@ void tf_hpoint(const real_t T[4 * 4], const real_t hp[4], real_t retval[4]) {
 /**
  * Perturb the `i`-th rotational component of a 4x4 homogeneous transformation
  * matrix `T` with `step_size`.
- *
- * @param[in,out] T Homogeneous transform
- * @param[in] step_size Step size
- * @param[in] i i-th translation axis
  */
 void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i) {
   assert(T != NULL);
@@ -2924,10 +2682,6 @@ void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i) {
 /**
  * Perturb the `i`-th translation component of a 4x4 homogeneous
  * transformation matrix with `step_size`.
- *
- * @param[in,out] T Homogeneous transform
- * @param[in] step_size Step size
- * @param[in] i i-th translation axis
  */
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
   assert(T != NULL);
@@ -2948,8 +2702,6 @@ void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
 
 /**
  * Print pose vector
- * @param[in] prefix Prefix
- * @param[out] pose Pose vector
  */
 void print_pose_vector(const char *prefix, const real_t pose[7]) {
   if (prefix) {
@@ -2968,10 +2720,6 @@ void print_pose_vector(const char *prefix, const real_t pose[7]) {
 /**
  * Convert rotation vector `rvec` to 3x3 rotation matrix `R`, where `eps` is
  * the tolerance to determine if the rotation is too small.
- *
- * @param[in] rvec Rotation vector (3 x 1)
- * @param[in] eps Epsilon
- * @param[out] R Rotation matrix (3 x 3)
  */
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R) {
   assert(rvec != NULL);
@@ -3036,8 +2784,6 @@ void rvec2rot(const real_t *rvec, const real_t eps, real_t *R) {
 /**
  * Convert Euler angles `ypr` (yaw, pitch, roll) in degrees to a 3x3 rotation
  * matrix `C`.
- * @param[in] ypr Euler angles (yaw, pitch, roll)
- * @param[out] C Rotation matrix
  */
 void euler321(const real_t ypr[3], real_t C[3 * 3]) {
   assert(ypr != NULL);
@@ -3063,8 +2809,6 @@ void euler321(const real_t ypr[3], real_t C[3 * 3]) {
 
 /**
  * Convert Euler angles `ypr` in radians to a Hamiltonian Quaternion.
- * @param[in] ypr Euler angles (yaw, pitch, roll)
- * @param[out] q Quaternion
  */
 void euler2quat(const real_t ypr[3], real_t q[4]) {
   const real_t psi = ypr[0];
@@ -3092,8 +2836,6 @@ void euler2quat(const real_t ypr[3], real_t q[4]) {
 
 /**
  * Convert 3x3 rotation matrix `C` to Quaternion `q`.
- * @param[in] C Rotation matrix
- * @param[out] q Quaternion
  */
 void rot2quat(const real_t C[3 * 3], real_t q[4]) {
   assert(C != NULL);
@@ -3150,8 +2892,6 @@ void rot2quat(const real_t C[3 * 3], real_t q[4]) {
 
 /**
  * Convert 3 x 3 rotation matrix `C` to euler angles `euler`.
- * @param[in] C Rotation matrix
- * @param[out] ypr Euler angles (yaw, pitch, roll)
  */
 void rot2euler(const real_t C[3 * 3], real_t ypr[3]) {
   assert(C != NULL);
@@ -3164,8 +2904,6 @@ void rot2euler(const real_t C[3 * 3], real_t ypr[3]) {
 
 /**
  * Convert Quaternion `q` to Euler angles 3x1 vector `euler`.
- * @param[in] q Quaternion
- * @param[out] ypr Euler angles (yaw, pitch, roll)
  */
 void quat2euler(const real_t q[4], real_t ypr[3]) {
   assert(q != NULL);
@@ -3236,8 +2974,6 @@ void quat2rot(const real_t q[4], real_t C[3 * 3]) {
 
 /**
  * Inverse Quaternion `q`.
- * @param[in] q Quaternion
- * @param[out] q_inv Inverted quaternion
  */
 void quat_inv(const real_t q[4], real_t q_inv[4]) {
   q_inv[0] = q[0];
@@ -3248,8 +2984,6 @@ void quat_inv(const real_t q[4], real_t q_inv[4]) {
 
 /**
  * Form Quaternion left multiplication matrix.
- * @param[in] q Quaternion
- * @param[out] left Left multiplication matrix
  */
 void quat_left(const real_t q[4], real_t left[4 * 4]) {
   const real_t qw = q[0];
@@ -3267,8 +3001,6 @@ void quat_left(const real_t q[4], real_t left[4 * 4]) {
 
 /**
  * Form Quaternion right multiplication matrix.
- * @param[in] q Quaternion
- * @param[out] right Right multiplication matrix
  */
 void quat_right(const real_t q[4], real_t right[4 * 4]) {
   const real_t qw = q[0];
@@ -3286,9 +3018,6 @@ void quat_right(const real_t q[4], real_t right[4 * 4]) {
 
 /**
  * Quaternion left-multiply `p` with `q`, results are outputted to `r`.
- * @param[in] p First quaternion
- * @param[in] q Second quaternion
- * @param[out] r Result quaternion
  */
 void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]) {
   assert(p != NULL);
@@ -3314,9 +3043,6 @@ void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]) {
 
 /**
  * Quaternion right-multiply `p` with `q`, results are outputted to `r`.
- * @param[in] p First quaternion
- * @param[in] q Second quaternion
- * @param[out] r Result quaternion
  */
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]) {
   assert(p != NULL);
@@ -3342,9 +3068,6 @@ void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]) {
 
 /**
  * Quaternion multiply `p` with `q`, results are outputted to `r`.
- * @param[in] p First quaternion
- * @param[in] q Second quaternion
- * @param[out] r Result quaternion
  */
 void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]) {
   assert(p != NULL);
@@ -3355,8 +3078,6 @@ void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]) {
 
 /**
  * Form delta quaternion `dq` from a small rotation vector `dalpha`.
- * @param[in] dalpha Small rotation vector
- * @param[out] dq Perturbation quaternion
  */
 void quat_delta(const real_t dalpha[3], real_t dq[4]) {
   assert(dalpha != NULL);
@@ -3375,9 +3096,6 @@ void quat_delta(const real_t dalpha[3], real_t dq[4]) {
 
 /**
  * Perturb quaternion
- * @param[in,out] q Quaternion to be perturbed
- * @param[in] i i-th parameter to be perturbed (0-2 for x, y, or z axis)
- * @param[in] h Perturbation step size
  */
 void quat_perturb(real_t q[4], const int i, const real_t h) {
   assert(i >= 0 && i <= 2);
@@ -3517,96 +3235,6 @@ void linear_triangulation(const real_t P_i[3 * 4],
   free(S);
   free(U);
   free(V_t);
-}
-
-/**
- * From two camera frames triangulate `n` 3D points with `cam_i` and `cam_j`
- * representing the pinhole parameters (fx, fy, cx, cy), `T_CiCj` as the 4x4
- * transformation matrix representing the extrinsics between first and second
- * camera frame and finally `z_i` and `z_j` are the image keypoints observed by
- * the two camera frames.
- */
-void stereo_triangulate(const real_t cam_i[4],
-                        const real_t cam_j[4],
-                        const real_t T_CiCj[4 * 4],
-                        const real_t *z_i,
-                        const real_t *z_j,
-                        const int n,
-                        real_t *points,
-                        int *inliers) {
-  /* Initialize the 3D points */
-  real_t P_i[3 * 4] = {0};
-  real_t P_j[3 * 4] = {0};
-  real_t origin[4 * 4] = {0};
-  eye(origin, 4, 4);
-  pinhole_projection_matrix(cam_i, origin, P_i);
-  pinhole_projection_matrix(cam_j, T_CiCj, P_j);
-  for (int i = 0; i < n; i++) {
-    linear_triangulation(P_i, P_j, &z_i[i * 2], &z_j[i * 2], &points[i * 3]);
-  }
-
-  /* #<{(| Bundle Adjustment |)}># */
-  /* real_t p_Ci[3] = {0}; */
-  /* real_t zhat_i[2] = {0}; */
-  /* real_t zhat_j[2] = {0}; */
-  /* const int r_size = (n * 2) * 2; #<{(| nb_points * vec2 * 2 cams |)}># */
-  /* const int H_size = n * 3;       #<{(| nb_points * vec3 |)}># */
-  /* real_t *r = malloc(sizeof(real_t) * r_size); */
-  /* real_t *H = malloc(sizeof(real_t) * H_size); */
-  /*  */
-  /* real_t J_i[2 * 3] = {0}; */
-  /* real_t J_j[2 * 3] = {0}; */
-  /* real_t C_CiCj[3 * 3] = {0}; */
-  /* real_t C_CjCi[3 * 3] = {0}; */
-  /* tf_rot_get(T_CiCj, C_CiCj); */
-  /* mat_transpose(C_CiCj, 3, 3, C_CjCi); */
-  /*  */
-  /* for (int i = 0; i < n; i++) { */
-  /*   vec_copy(&points[i * 3], 3, p_Ci); */
-  /*   pinhole_project(cam_i, p_Ci, zhat_i); */
-  /*   pinhole_project(cam_j, p_Ci, zhat_j); */
-  /*   r[(i * 2) + 0] = z_i[0] - zhat_i[0]; */
-  /*   r[(i * 2) + 1] = z_i[1] - zhat_i[1]; */
-  /*   r[(i * 2) + 2] = z_j[0] - zhat_j[0]; */
-  /*   r[(i * 2) + 3] = z_j[1] - zhat_j[1]; */
-  /*  */
-  /*   real_t x = p_Ci[0]; */
-  /*   real_t y = p_Ci[1]; */
-  /*   real_t z = p_Ci[2]; */
-  /*  */
-  /*   real_t dx_dp[2 * 3] = {0}; */
-  /*   dx_dp[0] = 1.0 / z; */
-  /*   dx_dp[1] = 0.0; */
-  /*   dx_dp[2] = -x / (z * z); */
-  /*   dx_dp[3] = 0.0; */
-  /*   dx_dp[4] = 1.0 / z; */
-  /*   dx_dp[5] = -y / (z * z); */
-  /*  */
-  /*   real_t dzi_dx[2 * 2] = {0}; */
-  /*   dzi_dx[0] = cam_i[0]; */
-  /*   dzi_dx[1] = 0.0; */
-  /*   dzi_dx[2] = 0.0; */
-  /*   dzi_dx[3] = cam_i[1]; */
-  /*  */
-  /*   real_t dzj_dx[2 * 2] = {0}; */
-  /*   dzj_dx[0] = cam_j[0]; */
-  /*   dzj_dx[1] = 0.0; */
-  /*   dzj_dx[2] = 0.0; */
-  /*   dzj_dx[3] = cam_j[1]; */
-  /*  */
-  /*   dot(dzi_dx, 2, 2, dx_dp, 2, 3, Jh_i); */
-  /*   dot(dzj_dx, 2, 2, dx_dp, 2, 3, Jh_j); */
-  /*  */
-  /*   mat_copy(Jh_i, 2, 3, J_i); */
-  /*   dot(Jh_j, 2, 3, C_CjCi, 3, 3, J_j); */
-  /*   #<{(| mat_block_set(real_t *A, |)}># */
-  /* } */
-
-  /* real_t C_WC[3 * 3] = {0}; */
-  /* real_t C_CW[3 * 3] = {0}; */
-  /* tf_rot_get(T_WC, C_WC); */
-  /* mat_transpose(C_WC, 3, 3, C_CW); */
-  /* dot(Jh_weighted, 2, 3, C_CW, 3, 3, J); */
 }
 
 // RADTAN //////////////////////////////////////////////////////////////////////
@@ -3976,10 +3604,6 @@ void pinhole_params_jacobian(const real_t params[4],
 
 /**
  * Projection of 3D point to image plane using Pinhole + Radial-Tangential.
- *
- * @param[in] params Intrinsics parameters (fx, fy, cx, cy, k1, k2, p1, p2)
- * @param[in] p_C 3x1 Point vector observed in camera frame
- * @param[out] x 2x1 Projected image point
  */
 void pinhole_radtan4_project(const real_t params[8],
                              const real_t p_C[3],
@@ -4008,10 +3632,6 @@ void pinhole_radtan4_project(const real_t params[8],
 
 /**
  * Projection Jacobian of Pinhole + Radial-Tangential.
- *
- * @param[in] params Intrinsics parameters (fx, fy, cx, cy, k1, k2, p1, p2)
- * @param[in] p_C 3x1 Point vector observed in camera frame
- * @param[out] J 2x3 Projection Jacobian
  */
 void pinhole_radtan4_project_jacobian(const real_t params[8],
                                       const real_t p_C[3],
@@ -4056,10 +3676,6 @@ void pinhole_radtan4_project_jacobian(const real_t params[8],
 
 /**
  * Parameter Jacobian of Pinhole + Radial-Tangential.
- *
- * @param[in] params Intrinsics parameters (fx, fy, cx, cy, k1, k2, p1, p2)
- * @param[in] p_C 3x1 Point vector observed in camera frame
- * @param[out] J 2x8 Parameter Jacobian
  */
 void pinhole_radtan4_params_jacobian(const real_t params[8],
                                      const real_t p_C[3],
@@ -4132,10 +3748,6 @@ void pinhole_radtan4_params_jacobian(const real_t params[8],
 
 /**
  * Projection of 3D point to image plane using Pinhole + Equi-Distant.
- *
- * @param[in] params Intrinsics parameters (fx, fy, cx, cy, k1, k2, k3, k4)
- * @param[in] p_C 3x1 Point vector observed in camera frame
- * @param[out] x 2x1 Projected image point
  */
 void pinhole_equi4_project(const real_t params[8],
                            const real_t p_C[3],
@@ -4164,10 +3776,6 @@ void pinhole_equi4_project(const real_t params[8],
 
 /**
  * Projection Jacobian of Pinhole + Equi-Distant.
- *
- * @param[in] params Intrinsics parameters (fx, fy, cx, cy, k1, k2, k3, k4)
- * @param[in] p_C 3x1 Point vector observed in camera frame
- * @param[out] J 2x3 Projection Jacobian
  */
 void pinhole_equi4_project_jacobian(const real_t params[8],
                                     const real_t p_C[3],
@@ -4285,8 +3893,6 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 
 /**
  * Load simulation feature data
- * @param csv_path Path to csv file
- * @returns Simulated feature data or NULL for failure
  */
 sim_features_t *load_sim_features(const char *csv_path) {
   sim_features_t *features_data = malloc(sizeof(sim_features_t));
@@ -4318,8 +3924,6 @@ void free_sim_features(sim_features_t *feature_data) {
 
 /**
  * Load simulation imu data
- * @param csv_path Path to csv file
- * @returns Simulated imu data or NULL for failure
  */
 sim_imu_data_t *load_sim_imu_data(const char *csv_path) {
   sim_imu_data_t *imu_data = malloc(sizeof(sim_imu_data_t));
@@ -4353,7 +3957,6 @@ void free_sim_imu_data(sim_imu_data_t *imu_data) {
 
 /**
  * Extract timestamp from path
- * @param[in] path Path to file
  */
 static timestamp_t ts_from_path(const char *path) {
   char fname[128] = {0};
@@ -4370,8 +3973,6 @@ static timestamp_t ts_from_path(const char *path) {
 
 /**
  * Load simulated camera frame
- * @param[in] csv_path Path to csv file
- * @returns Simulated camera frame or NULL for failure
  */
 sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
   /* Check if file exists */
@@ -4405,7 +4006,6 @@ sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
 
 /**
  * Print camera frame
- * @param[in] frame_data Frame data
  */
 void print_sim_cam_frame(sim_cam_frame_t *frame_data) {
   printf("ts: %ld\n", frame_data->ts);
@@ -4422,7 +4022,6 @@ void print_sim_cam_frame(sim_cam_frame_t *frame_data) {
 
 /**
  * Free simulated camera frame
- * @param[in] frame_data Frame data
  */
 void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
   /* Pre-check */
@@ -4441,8 +4040,6 @@ void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
 
 /**
  * Load simulated camera data
- * @param[in] dir_path Directory path
- * @returns Simulated camera data or NULL for failure
  */
 sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
   assert(dir_path != NULL);
@@ -4564,8 +4161,6 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
 
 /**
  * Print pose
- * @param[in] prefix Prefix
- * @param[in] poes Pose
  */
 void pose_print(const char *prefix, const pose_t *pose) {
   const timestamp_t ts = pose->ts;
@@ -4589,9 +4184,6 @@ void pose_print(const char *prefix, const pose_t *pose) {
 
 /**
  * Setup speed and biases
- * @param[out] sb Speed and biases
- * @param[in] ts Timestamp
- * @param[in] data Data (vx, vy, vz, ba_x, ba_y, ba_z, bg_x, bg_y, bg_z)
  */
 void speed_biases_setup(speed_biases_t *sb,
                         const timestamp_t ts,
@@ -4622,8 +4214,6 @@ void speed_biases_setup(speed_biases_t *sb,
 
 /**
  * Setup feature
- * @param[in] feature Feature
- * @param[in] data Data
  */
 void feature_setup(feature_t *feature, const real_t *data) {
   assert(feature != NULL);
@@ -4636,7 +4226,6 @@ void feature_setup(feature_t *feature, const real_t *data) {
 
 /**
  * Setup features
- * @param[out] feature Feature
  */
 void features_setup(features_t *features) {
   assert(features);
@@ -4656,9 +4245,6 @@ int features_exists(const features_t *features, const int feature_id) {
 
 /**
  * Returns pointer to feature with `feature_id`
- * @param[in] features Features
- * @param[in] feature_id Feature id
- * @returns Pointer to feature
  */
 feature_t *features_get(features_t *features, const int feature_id) {
   return &features->data[feature_id];
@@ -4666,9 +4252,6 @@ feature_t *features_get(features_t *features, const int feature_id) {
 
 /**
  * Add feature
- * @param[in,out] features Features
- * @param[in] feature_id Feature id
- * @param[in] param Feature data
  * @returns Pointer to feature
  */
 feature_t *features_add(features_t *features,
@@ -4681,8 +4264,6 @@ feature_t *features_add(features_t *features,
 
 /**
  * Remove feature with `feature_id`
- * @param[in,out] features Features
- * @param[in] feature_id Feature id
  */
 void features_remove(features_t *features, const int feature_id) {
   const real_t param[3] = {0};
@@ -4694,8 +4275,6 @@ void features_remove(features_t *features, const int feature_id) {
 
 /**
  * Setup extrinsics
- * @param[out] extrinsics Extrinsics
- * @param[in] data Data
  */
 void extrinsics_setup(extrinsics_t *exts, const real_t *data) {
   assert(exts != NULL);
@@ -4715,8 +4294,6 @@ void extrinsics_setup(extrinsics_t *exts, const real_t *data) {
 
 /**
  * Print extrinsics
- * @param[in] prefix Prefix
- * @param[in] exts Extrinsics
  */
 void extrinsics_print(const char *prefix, const extrinsics_t *exts) {
   const real_t x = exts->pos[0];
@@ -4737,12 +4314,6 @@ void extrinsics_print(const char *prefix, const extrinsics_t *exts) {
 
 /**
  * Setup camera parameters
- * @param[out] camera Camera parameters
- * @param[in] cam_idx Camera index
- * @param[in] cam_res Camera resolution
- * @param[in] proj_model Projection model
- * @param[in] dist_model Distortion model
- * @param[in] data Camera parameter data
  */
 void camera_params_setup(camera_params_t *camera,
                          const int cam_idx,
@@ -4775,7 +4346,6 @@ void camera_params_setup(camera_params_t *camera,
 
 /**
  * Print camera parameters
- * @param[in] camera Camera parameters
  */
 void camera_params_print(const camera_params_t *camera) {
   assert(camera != NULL);
@@ -4799,9 +4369,6 @@ void camera_params_print(const camera_params_t *camera) {
 
 /**
  * Setup pose factor
- * @param[out] factor Pose factor
- * @param[in] pose Pose
- * @param[in] var Variance
  */
 void pose_factor_setup(pose_factor_t *factor,
                        pose_t *pose,
@@ -4844,10 +4411,6 @@ void pose_factor_setup(pose_factor_t *factor,
 
 /**
  * Evaluate pose factor
- * @param[in,out] factor Factor
- * @param[in] params Parameters
- * @param[in] r_out Residuals
- * @param[out] J_out Jacobians
  */
 int pose_factor_eval(pose_factor_t *factor,
                      real_t **params,
@@ -4936,10 +4499,6 @@ int pose_factor_eval(pose_factor_t *factor,
 
 /**
  * Evaluate pose factor (wrapper for ceres-solver)
- * @param[in,out] factor Factor
- * @param[in] params Parameters
- * @param[in] r_out Residuals
- * @param[out] J_out Jacobians
  */
 int pose_factor_ceres_eval(void *factor,
                            double **params,
@@ -4975,11 +4534,6 @@ int pose_factor_ceres_eval(void *factor,
 
 /**
  * Setup bundle adjustment factor
- * @param[out] factor Factor
- * @param[in] feature Feature
- * @param[in] camera Camera parameters
- * @param[in] z Keypoint measurement
- * @param[in] var Variance
  */
 void ba_factor_setup(ba_factor_t *factor,
                      const pose_t *pose,
@@ -5018,10 +4572,6 @@ void ba_factor_setup(ba_factor_t *factor,
 
 /**
  * Camera pose jacobian
- * @param[in] Jh_weighted Weighted measureuemnt jacobian
- * @param[in] T_WC Camera pose in the world frame
- * @param[in] p_W Feature position in the world frame
- * @param[out] Camera pose jacobian
  */
 static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
                                     const real_t T_WC[4 * 4],
@@ -5084,9 +4634,6 @@ static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
 
 /**
  * Feature jacobian
- * @param[in] Jh_weighted Weighted measureuemnt jacobian
- * @param[in] T_WC Camera pose in the world frame
- * @param[out] J Feature jacobian
  */
 static void ba_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
                                        const real_t T_WC[4 * 4],
@@ -5107,9 +4654,6 @@ static void ba_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
 
 /**
  * Camera parameters jacobian
- * @param[in] neg_sqrt_info Negative square root info
- * @param[in] J_cam_params Camera parameter jacobian
- * @param[out] J Camera parameters jacobian
  */
 static void ba_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
                                       const real_t J_cam_params[2 * 8],
@@ -5125,12 +4669,6 @@ static void ba_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
 
 /**
  * Evaluate bundle adjustment factor
- *
- * @param[in,out] factor Factor
- * @param[in] params Parameters
- * @param[in] r_out Residuals
- * @param[out] J_out Jacobians
- *
  * @returns 0 for success, -1 for failure
  */
 int ba_factor_eval(ba_factor_t *factor,
@@ -5194,10 +4732,6 @@ int ba_factor_eval(ba_factor_t *factor,
 
 /**
  * Evaluate bundle adjustment factor (wrapper for ceres-solver)
- * @param[in,out] factor Factor
- * @param[in] params Parameters
- * @param[in] residuals Residuals
- * @param[out] J_out Jacobians
  * @returns 0 for success, -1 for failure
  */
 int ba_factor_ceres_eval(void *factor,
@@ -5208,45 +4742,13 @@ int ba_factor_ceres_eval(void *factor,
   assert(params != NULL);
   assert(r_out != NULL);
 
-  real_t J0[2 * 6] = {0};
-  real_t J1[2 * 3] = {0};
-  real_t J2[2 * 8] = {0};
-  real_t *factor_jacs[3] = {J0, J1, J2};
-  ba_factor_t *ba_factor = (ba_factor_t *) factor;
-  int retval = ba_factor_eval(ba_factor, params, r_out, factor_jacs);
-
-  if (J_out == NULL) {
-    return retval;
-  }
-
-  if (J_out[0]) {
-    zeros(J_out[0], 2, 7);
-    mat_block_set(J_out[0], 7, 0, 0, 1, 5, factor_jacs[0]);
-  }
-
-  if (J_out[1]) {
-    mat_copy(factor_jacs[1], 2, 3, J_out[1]);
-  }
-
-  if (J_out[2]) {
-    mat_copy(factor_jacs[2], 2, 8, J_out[2]);
-  }
-
-  return retval;
+  return 0;
 }
 
 // CAMERA FACTOR ///////////////////////////////////////////////////////////////
 
 /**
  * Setup camera factor
- *
- * @param[out] factor Factor
- * @param[in] pose Pose
- * @param[in] extrinsics Extrinsics
- * @param[in] feature Feature
- * @param[in] camera Camera parameters
- * @param[in] z Keypoint measurement
- * @param[in] var Measurement variance
  */
 void cam_factor_setup(cam_factor_t *factor,
                       const pose_t *pose,
@@ -5288,11 +4790,6 @@ void cam_factor_setup(cam_factor_t *factor,
 
 /**
  * Pose jacobian
- * @param[in] Jh_weighted Weighted measurement jacobian
- * @param[in] T_BC Extrinsics
- * @param[in] T_WB Body pose in world frame
- * @param[in] p_W Point in world frame
- * @param[out] J Body pose jacobian
  */
 static void cam_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
                                      const real_t T_WB[3 * 3],
@@ -5364,10 +4861,6 @@ static void cam_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
 
 /**
  * Body-camera extrinsics jacobian
- * @param[in] Jh_weighted Weighted measurement jacobian
- * @param[in] T_BC Body-camera Extrinsics
- * @param[in] p_C Point in camera frame
- * @param[out] J Body-camera extrinsics jacobian
  */
 static void cam_factor_extrinsics_jacobian(const real_t Jh_weighted[2 * 3],
                                            const real_t T_BC[3 * 3],
@@ -5427,9 +4920,6 @@ static void cam_factor_extrinsics_jacobian(const real_t Jh_weighted[2 * 3],
 
 /**
  * Camera parameters jacobian
- * @param[in] neg_sqrt_info Negative square root info
- * @param[in] J_cam_params Camera parameters jacobian
- * @param[out] J Camera parameters jacobian
  */
 static void cam_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
                                        const real_t J_cam_params[2 * 8],
@@ -5444,10 +4934,6 @@ static void cam_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
 
 /**
  * Feature jacobian
- * @param[in] Jh_weighted Weighted measurement jacobian
- * @param[in] T_WB Body pose in world frame
- * @param[in] T_BC Body-camera extrinsics
- * @param[out] J Feature jacobian
  */
 static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
                                         const real_t T_WB[4 * 4],
@@ -5478,10 +4964,6 @@ static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
 
 /**
  * Evaluate camera factor
- * @param[in,out] factor Factor
- * @param[in] params Parameters
- * @param[in] r_out Residuals
- * @param[out] J_out Jacobians
  */
 int cam_factor_eval(cam_factor_t *factor,
                     real_t **params,
@@ -5563,10 +5045,6 @@ int cam_factor_eval(cam_factor_t *factor,
 
 /**
  * Evaluate camera factor (ceres-solver wrapper)
- * @param[in,out] factor Factor
- * @param[in] params Parameters
- * @param[in] r_out Residuals
- * @param[out] J_out Jacobians
  */
 int cam_factor_ceres_eval(void *factor,
                           double **params,
@@ -5575,13 +5053,15 @@ int cam_factor_ceres_eval(void *factor,
   assert(factor != NULL);
   assert(params != NULL);
   assert(r_out != NULL);
-  cam_factor_t *cam_factor = (cam_factor_t *) factor;
 
-  real_t J0[2 * 6] = {0};
-  real_t J1[2 * 6] = {0};
+  real_t J0[2 * 3] = {0};
+  real_t J1[2 * 4] = {0};
   real_t J2[2 * 3] = {0};
-  real_t J3[2 * 8] = {0};
-  real_t *factor_jacs[4] = {J0, J1, J2, J3};
+  real_t J3[2 * 4] = {0};
+  real_t J4[2 * 8] = {0};
+  real_t J5[2 * 3] = {0};
+  real_t *factor_jacs[6] = {J0, J1, J2, J3, J4, J5};
+  cam_factor_t *cam_factor = (cam_factor_t *) factor;
   int retval = cam_factor_eval(cam_factor, params, r_out, factor_jacs);
 
   if (J_out == NULL) {
@@ -5589,13 +5069,12 @@ int cam_factor_ceres_eval(void *factor,
   }
 
   if (J_out[0]) {
-    zeros(J_out[0], 2, 7);
-    mat_block_set(J_out[0], 7, 0, 0, 1, 5, factor_jacs[0]);
+    mat_copy(factor_jacs[0], 2, 3, J_out[0]);
   }
 
   if (J_out[1]) {
-    zeros(J_out[1], 2, 7);
-    mat_block_set(J_out[1], 7, 0, 0, 1, 5, factor_jacs[1]);
+    zeros(J_out[1], 2, 3);
+    mat_block_set(J_out[1], 4, 0, 0, 1, 3, factor_jacs[1]);
   }
 
   if (J_out[2]) {
@@ -5603,7 +5082,16 @@ int cam_factor_ceres_eval(void *factor,
   }
 
   if (J_out[3]) {
-    mat_copy(factor_jacs[3], 2, 8, J_out[3]);
+    zeros(J_out[3], 2, 3);
+    mat_block_set(J_out[3], 4, 0, 0, 1, 3, factor_jacs[3]);
+  }
+
+  if (J_out[4]) {
+    mat_copy(factor_jacs[4], 2, 8, J_out[4]);
+  }
+
+  if (J_out[5]) {
+    mat_copy(factor_jacs[5], 2, 3, J_out[5]);
   }
 
   return retval;
@@ -5613,7 +5101,6 @@ int cam_factor_ceres_eval(void *factor,
 
 /**
  * Setup IMU buffer
- * @param[out] imu_buf IMU Buffer
  */
 void imu_buf_setup(imu_buf_t *imu_buf) {
   for (int k = 0; k < MAX_IMU_BUF_SIZE; k++) {
@@ -5633,7 +5120,6 @@ void imu_buf_setup(imu_buf_t *imu_buf) {
 
 /**
  * Print IMU buffer
- * @param[in] imu_buf IMU Buffer
  */
 void imu_buf_print(const imu_buf_t *imu_buf) {
   for (int k = 0; k < imu_buf->size; k++) {
@@ -5649,10 +5135,6 @@ void imu_buf_print(const imu_buf_t *imu_buf) {
 
 /**
  * Add measurement to IMU buffer
- * @param[out] imu_buf IMU Buffer
- * @param[in] ts Timestamp
- * @param[in] acc Accelerometer measurement
- * @param[in] gyr Gyroscope measurement
  */
 void imu_buf_add(imu_buf_t *imu_buf,
                  const timestamp_t ts,
@@ -5672,7 +5154,6 @@ void imu_buf_add(imu_buf_t *imu_buf,
 
 /**
  * Clear IMU buffer
- * @param[out] imu_buffer
  */
 void imu_buf_clear(imu_buf_t *imu_buf) {
   for (int k = 0; k < imu_buf->size; k++) {
@@ -5695,8 +5176,6 @@ void imu_buf_clear(imu_buf_t *imu_buf) {
 
 /**
  * Copy IMU buffer
- * @param[in] src Source
- * @param[in] dst Destination
  */
 void imu_buf_copy(const imu_buf_t *src, imu_buf_t *dst) {
   dst->size = 0;
@@ -5874,7 +5353,6 @@ void imu_buf_copy(const imu_buf_t *src, imu_buf_t *dst) {
 
 /**
  * Reset IMU Factor
- * @param[out] factor Factor
  */
 void imu_factor_reset(imu_factor_t *factor) {
   zeros(factor->r, 15, 1);
