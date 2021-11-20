@@ -157,12 +157,11 @@ cd ./build/bin
 # ./test_proto --target test_camera_setup
 # ./test_proto --target test_pose_factor_setup
 # ./test_proto --target test_pose_factor_eval
-memcheck ./test_proto --target test_pose_factor_jacobians
 # ./test_proto --target test_ba_factor_setup
 # ./test_proto --target test_ba_factor_eval
 # ./test_proto --target test_ba_factor_ceres_eval
 # ./test_proto --target test_cam_factor_setup
-# ./test_proto --target test_cam_factor_eval
+./test_proto --target test_cam_factor_eval
 # ./test_proto --target test_cam_factor_ceres_eval
 # ./test_proto --target test_imu_buf_setup
 # ./test_proto --target test_imu_buf_add

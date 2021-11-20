@@ -2029,17 +2029,17 @@ int test_feature_setup() {
 int test_extrinsics_setup() {
   extrinsics_t extrinsics;
 
-  real_t data[7] = {1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3};
+  real_t data[7] = {1.0, 2.0, 3.0, 0.1, 0.2, 0.3, 1.0};
   extrinsics_setup(&extrinsics, data);
 
-  MU_CHECK(fltcmp(extrinsics.data[0], 1.0) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.data[1], 0.0) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.data[2], 0.0) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.data[3], 0.0) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.pos[0], 1.0) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.pos[1], 2.0) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.pos[2], 3.0) == 0.0);
 
-  MU_CHECK(fltcmp(extrinsics.data[4], 0.1) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.data[5], 0.2) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.data[6], 0.3) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.quat[0], 1.0) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.quat[0], 0.1) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.quat[0], 0.2) == 0.0);
+  MU_CHECK(fltcmp(extrinsics.quat[0], 0.3) == 0.0);
 
   return 0;
 }
@@ -2100,70 +2100,41 @@ int test_pose_factor_eval() {
   print_matrix("J1", J1, 6, 3);
   MU_CHECK(retval == 0);
 
-  return 0;
-}
-
-int test_pose_factor_jacobians() {
-  /* Pose */
-  timestamp_t ts = 1;
-  pose_t pose_meas;
-  real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
-  pose_setup(&pose_meas, ts, data);
-
-  /* Setup pose factor */
-  pose_factor_t pose_factor;
-  real_t var[6] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-  pose_factor_setup(&pose_factor, &pose_meas, var);
-
-  /* Evaluate pose factor */
-  real_t pos_est[3] = {0.11, 0.22, 0.33};
-  real_t quat_est[4] = {1.0, 0.0, 0.0, 0.0};
-  real_t *params[2] = {pos_est, quat_est};
-  real_t r[6] = {0};
-  real_t J0[6 * 3] = {0};
-  real_t J1[6 * 3] = {0};
-  real_t *jacs[2] = {J0, J1};
-  const int retval = pose_factor_eval(&pose_factor, params, r, jacs);
-  print_matrix("r", r, 6, 1);
-  print_matrix("J0", J0, 6, 3);
-  print_matrix("J1", J1, 6, 3);
-  MU_CHECK(retval == 0);
-
   /* Check jacobians */
-  real_t step_size = 1e-5;
+  real_t step_size = 1e-8;
   real_t tol = 1e-4;
 
-  /* -- Check position jacobian */
-  real_t J0_numdiff[6 * 3] = {0};
+  /* -- Check pose position jacobian */
+  real_t J0_numdiff[2 * 3] = {0};
   for (int i = 0; i < 3; i++) {
-    real_t r_fwd[6] = {0};
-    real_t r_diff[6] = {0};
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
 
     params[0][i] += step_size;
     pose_factor_eval(&pose_factor, params, r_fwd, NULL);
     params[0][i] -= step_size;
 
-    vec_sub(r_fwd, r, r_diff, 6);
-    vec_scale(r_diff, 6, 1.0 / step_size);
-    mat_col_set(J0_numdiff, 3, 6, i, r_diff);
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J0_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J0", J0_numdiff, J0, 6, 3, tol, 1) == 0);
+  MU_CHECK(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
 
-  /* -- Check position jacobian */
-  real_t J1_numdiff[6 * 3] = {0};
-  for (int i = 3; i < 6; i++) {
-    real_t r_fwd[6] = {0};
-    real_t r_diff[6] = {0};
+  /* -- Check pose rotation jacobian */
+  real_t J1_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
 
-    quat_perturb(params[1], i - 3, step_size);
+    quat_perturb(params[1], i, step_size);
     pose_factor_eval(&pose_factor, params, r_fwd, NULL);
-    quat_perturb(params[1], i - 3, -step_size);
+    quat_perturb(params[1], i, -step_size);
 
-    vec_sub(r_fwd, r, r_diff, 6);
-    vec_scale(r_diff, 6, 1.0 / step_size);
-    mat_col_set(J1_numdiff, 3, 6, i - 3, r_diff);
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J1_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J1", J1_numdiff, J1, 6, 3, tol, 1) == 0);
+  MU_CHECK(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
 
   return 0;
 }
@@ -2205,8 +2176,8 @@ int test_ba_factor_setup() {
   ba_factor_t ba_factor;
   real_t var[2] = {1.0, 1.0};
   ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
-  print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
-  print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
+  print_matrix("covar", ba_factor.covar, 2, 2);
+  print_matrix("sqrt_info", ba_factor.sqrt_info, 2, 2);
 
   return 0;
 }
@@ -2251,19 +2222,89 @@ int test_ba_factor_eval() {
 
   /* Evaluate bundle adjustment factor */
   real_t *params[4] = {pose.pos, pose.quat, feature.data, cam.data};
-  real_t residuals[2] = {0};
-  real_t J0[2 * 6] = {0};
+  real_t r[2] = {0};
+  real_t J0[2 * 3] = {0};
   real_t J1[2 * 3] = {0};
-  real_t J2[2 * 8] = {0};
-  real_t *jacobians[3] = {J0, J1, J2};
-  ba_factor_eval(&ba_factor, params, residuals, jacobians);
+  real_t J2[2 * 3] = {0};
+  real_t J3[2 * 8] = {0};
+  real_t *jacs[4] = {J0, J1, J2, J3};
+  ba_factor_eval(&ba_factor, params, r, jacs);
 
-  print_matrix("ba_factor.covar", ba_factor.covar, 2, 2);
-  print_matrix("ba_factor.sqrt_info", ba_factor.sqrt_info, 2, 2);
-  print_matrix("residuals", residuals, 2, 1);
-  print_matrix("J0", J0, 2, 6);
+  print_matrix("covar", ba_factor.covar, 2, 2);
+  print_matrix("sqrt_info", ba_factor.sqrt_info, 2, 2);
+  print_matrix("r", r, 2, 1);
+  print_matrix("J0", J0, 2, 3);
   print_matrix("J1", J1, 2, 3);
-  print_matrix("J2", J2, 2, 8);
+  print_matrix("J2", J2, 2, 3);
+  print_matrix("J3", J3, 2, 8);
+
+  /* Check jacobians */
+  real_t step_size = 1e-8;
+  real_t tol = 1e-4;
+
+  /* -- Check pose position jacobian */
+  real_t J0_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    params[0][i] += step_size;
+    ba_factor_eval(&ba_factor, params, r_fwd, NULL);
+    params[0][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J0_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
+
+  /* -- Check pose rotation jacobian */
+  real_t J1_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    quat_perturb(params[1], i, step_size);
+    ba_factor_eval(&ba_factor, params, r_fwd, NULL);
+    quat_perturb(params[1], i, -step_size);
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J1_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
+
+  /* -- Check feature jacobian */
+  real_t J2_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    params[2][i] += step_size;
+    ba_factor_eval(&ba_factor, params, r_fwd, NULL);
+    params[2][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J2_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J2", J2_numdiff, J2, 2, 3, tol, 1) == 0);
+
+  /* -- Check camera parameters jacobian */
+  real_t J3_numdiff[2 * 8] = {0};
+  for (int i = 0; i < 8; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    params[3][i] += step_size;
+    ba_factor_eval(&ba_factor, params, r_fwd, NULL);
+    params[3][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J3_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J3", J3_numdiff, J3, 2, 3, tol, 1) == 0);
 
   return 0;
 }
@@ -2329,7 +2370,7 @@ int test_cam_factor_setup() {
   /* Timestamp */
   timestamp_t ts = 0;
 
-  /* Sensor pose */
+  /* Body pose */
   pose_t pose;
   const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
   pose_setup(&pose, ts, pose_data);
@@ -2354,18 +2395,18 @@ int test_cam_factor_setup() {
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   /* Project point from world to image plane */
-  real_t T_WS[4 * 4] = {0};
-  real_t T_SW[4 * 4] = {0};
-  real_t T_SCi[4 * 4] = {0};
-  real_t T_CiS[4 * 4] = {0};
+  real_t T_WB[4 * 4] = {0};
+  real_t T_BW[4 * 4] = {0};
+  real_t T_BCi[4 * 4] = {0};
+  real_t T_CiB[4 * 4] = {0};
   real_t T_CiW[4 * 4] = {0};
   real_t p_Ci[3] = {0};
   real_t z[2];
-  tf(pose_data, T_WS);
-  tf(exts_data, T_SCi);
-  tf_inv(T_WS, T_SW);
-  tf_inv(T_SCi, T_CiS);
-  dot(T_CiS, 4, 4, T_SW, 4, 4, T_CiW);
+  tf(pose_data, T_WB);
+  tf(exts_data, T_BCi);
+  tf_inv(T_WB, T_BW);
+  tf_inv(T_BCi, T_CiB);
+  dot(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
   tf_point(T_CiW, p_W, p_Ci);
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
@@ -2382,15 +2423,16 @@ int test_cam_factor_eval() {
   /* Timestamp */
   timestamp_t ts = 0;
 
-  /* Sensor pose */
+  /* Body pose */
   pose_t pose;
-  const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
+  const real_t pose_data[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
   pose_setup(&pose, ts, pose_data);
 
   /* Extrinsics */
-  extrinsics_t extrinsics;
-  const real_t exts_data[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
-  extrinsics_setup(&extrinsics, exts_data);
+  extrinsics_t cam_exts;
+  /* const real_t exts_data[7] = {0.0, 0.0, 0.0, -0.5, 0.5, -0.5, 0.5}; */
+  const real_t exts_data[7] = {0.01, 0.02, 0.03, -0.5, 0.5, -0.5, 0.5};
+  extrinsics_setup(&cam_exts, exts_data);
 
   /* Feature */
   feature_t feature;
@@ -2403,52 +2445,156 @@ int test_cam_factor_eval() {
   const int cam_res[2] = {640, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam_data[8] = {320, 240, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   /* Project point from world to image plane */
-  real_t T_WS[4 * 4] = {0};
-  real_t T_SW[4 * 4] = {0};
-  real_t T_SCi[4 * 4] = {0};
-  real_t T_CiS[4 * 4] = {0};
+  real_t T_WB[4 * 4] = {0};
+  real_t T_BW[4 * 4] = {0};
+  real_t T_BCi[4 * 4] = {0};
+  real_t T_CiB[4 * 4] = {0};
   real_t T_CiW[4 * 4] = {0};
   real_t p_Ci[3] = {0};
   real_t z[2];
-  tf(pose_data, T_WS);
-  tf(exts_data, T_SCi);
-  tf_inv(T_WS, T_SW);
-  tf_inv(T_SCi, T_CiS);
-  dot(T_CiS, 4, 4, T_SW, 4, 4, T_CiW);
+  tf(pose_data, T_WB);
+  tf(exts_data, T_BCi);
+  tf_inv(T_WB, T_BW);
+  tf_inv(T_BCi, T_CiB);
+  dot(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
   tf_point(T_CiW, p_W, p_Ci);
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   /* Setup camera factor */
   cam_factor_t cam_factor;
   real_t var[2] = {1.0, 1.0};
-  cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
+  cam_factor_setup(&cam_factor, &pose, &cam_exts, &feature, &cam, z, var);
 
   /* Evaluate camera factor */
-  real_t *params[5] = {pose.pos,
+  real_t *params[6] = {pose.pos,
                        pose.quat,
-                       extrinsics.data,
-                       feature.data,
-                       cam.data};
-  real_t residuals[2] = {0};
-  real_t J0[2 * 6] = {0};
-  real_t J1[2 * 6] = {0};
+                       cam_exts.pos,
+                       cam_exts.quat,
+                       cam.data,
+                       feature.data};
+  real_t r[2] = {0};
+  real_t J0[2 * 3] = {0};
+  real_t J1[2 * 3] = {0};
   real_t J2[2 * 3] = {0};
-  real_t J3[2 * 8] = {0};
-  real_t *jacobians[4] = {J0, J1, J2, J3};
-  cam_factor_eval(&cam_factor, params, residuals, jacobians);
-  print_vector("z", z, 2);
+  real_t J3[2 * 3] = {0};
+  real_t J4[2 * 8] = {0};
+  real_t J5[2 * 3] = {0};
+  real_t *jacs[6] = {J0, J1, J2, J3, J4, J5};
+  cam_factor_eval(&cam_factor, params, r, jacs);
 
-  print_matrix("cam_factor.covar", cam_factor.covar, 2, 2);
-  print_matrix("cam_factor.sqrt_info", cam_factor.sqrt_info, 2, 2);
-  print_matrix("cam_factor.r", residuals, 2, 1);
-  print_matrix("cam_factor.J0", jacobians[0], 2, 6);
-  print_matrix("cam_factor.J1", jacobians[1], 2, 6);
-  print_matrix("cam_factor.J2", jacobians[2], 2, 8);
-  print_matrix("cam_factor.J3", jacobians[3], 2, 3);
+  /* print_matrix("covar", cam_factor.covar, 2, 2); */
+  /* print_matrix("sqrt_info", cam_factor.sqrt_info, 2, 2); */
+  /* print_matrix("r", r, 2, 1); */
+  /* print_matrix("J0", J0, 2, 3); */
+  /* print_matrix("J1", jacs[1], 2, 3); */
+  /* print_matrix("J2", jacs[2], 2, 3); */
+  /* print_matrix("J3", jacs[3], 2, 3); */
+  /* print_matrix("J4", jacs[4], 2, 8); */
+  /* print_matrix("J5", jacs[5], 2, 3); */
+
+  /* Check jacobians */
+  real_t step_size = 1e-8;
+  real_t tol = 1e-4;
+
+  /* -- Check pose position jacobian */
+  real_t J0_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    params[0][i] += step_size;
+    cam_factor_eval(&cam_factor, params, r_fwd, NULL);
+    params[0][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J0_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
+
+  /* -- Check pose rotation jacobian */
+  real_t J1_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    quat_perturb(params[1], i, step_size);
+    cam_factor_eval(&cam_factor, params, r_fwd, NULL);
+    quat_perturb(params[1], i, -step_size);
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J1_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
+
+  /* -- Check extrinsics position jacobian */
+  real_t J2_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    params[2][i] += step_size;
+    cam_factor_eval(&cam_factor, params, r_fwd, NULL);
+    params[2][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J2_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J2", J2_numdiff, J2, 2, 3, tol, 1) == 0);
+
+  /* -- Check extrinsics rotation jacobian */
+  real_t J3_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    quat_perturb(params[3], i, step_size);
+    cam_factor_eval(&cam_factor, params, r_fwd, NULL);
+    quat_perturb(params[3], i, -step_size);
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J3_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J3", J3_numdiff, J3, 2, 3, tol, 1) == 0);
+
+  /* -- Check camera parameters jacobian */
+  real_t J4_numdiff[2 * 8] = {0};
+  for (int i = 0; i < 8; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    params[4][i] += step_size;
+    cam_factor_eval(&cam_factor, params, r_fwd, NULL);
+    params[4][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J4_numdiff, 8, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J4", J4_numdiff, J4, 2, 8, tol, 1) == 0);
+
+  /* -- Check feature jacobian */
+  real_t J5_numdiff[2 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    params[5][i] += step_size;
+    cam_factor_eval(&cam_factor, params, r_fwd, NULL);
+    params[5][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J5_numdiff, 3, 2, i, r_diff);
+  }
+  MU_CHECK(check_jacobian("J5", J5_numdiff, J5, 2, 3, tol, 1) == 0);
 
   return 0;
 }
@@ -2457,7 +2603,7 @@ int test_cam_factor_ceres_eval() {
   /* Timestamp */
   timestamp_t ts = 0;
 
-  /* Sensor pose */
+  /* Body pose */
   pose_t pose;
   const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
   pose_setup(&pose, ts, pose_data);
@@ -2482,18 +2628,18 @@ int test_cam_factor_ceres_eval() {
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   /* Project point from world to image plane */
-  real_t T_WS[4 * 4] = {0};
-  real_t T_SW[4 * 4] = {0};
-  real_t T_SCi[4 * 4] = {0};
-  real_t T_CiS[4 * 4] = {0};
+  real_t T_WB[4 * 4] = {0};
+  real_t T_BW[4 * 4] = {0};
+  real_t T_BCi[4 * 4] = {0};
+  real_t T_CiB[4 * 4] = {0};
   real_t T_CiW[4 * 4] = {0};
   real_t p_Ci[3] = {0};
   real_t z[2];
-  tf(pose_data, T_WS);
-  tf(exts_data, T_SCi);
-  tf_inv(T_WS, T_SW);
-  tf_inv(T_SCi, T_CiS);
-  dot(T_CiS, 4, 4, T_SW, 4, 4, T_CiW);
+  tf(pose_data, T_WB);
+  tf(exts_data, T_BCi);
+  tf_inv(T_WB, T_BW);
+  tf_inv(T_BCi, T_CiB);
+  dot(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
   tf_point(T_CiW, p_W, p_Ci);
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
@@ -2503,11 +2649,12 @@ int test_cam_factor_ceres_eval() {
   cam_factor_setup(&cam_factor, &pose, &extrinsics, &feature, &cam, z, var);
 
   /* Evaluate camera factor */
-  real_t *params[5] = {pose.pos,
+  real_t *params[6] = {pose.pos,
                        pose.quat,
-                       extrinsics.data,
-                       feature.data,
-                       cam.data};
+                       extrinsics.pos,
+                       extrinsics.quat,
+                       cam.data,
+                       feature.data};
   double residuals[2] = {0};
   double J0[2 * 7] = {0};
   double J1[2 * 7] = {0};
@@ -2964,7 +3111,6 @@ void test_suite() {
   /* -- Pose factor */
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
-  MU_ADD_TEST(test_pose_factor_jacobians);
   /* -- BA factor */
   MU_ADD_TEST(test_ba_factor_setup);
   MU_ADD_TEST(test_ba_factor_eval);

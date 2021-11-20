@@ -598,7 +598,7 @@ typedef struct pose_t {
 } pose_t;
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
-void pose_print(const pose_t *pose);
+void pose_print(const char *prefix, const pose_t *pose);
 
 // SPEED AND BIASES ////////////////////////////////////////////////////////////
 
@@ -645,7 +645,7 @@ typedef struct extrinsics_t {
 } extrinsics_t;
 
 void extrinsics_setup(extrinsics_t *extrinsics, const real_t *param);
-void extrinsics_print(const extrinsics_t *extrinsics);
+void extrinsics_print(const char *prefix, const extrinsics_t *exts);
 
 // CAMERA PARAMS ///////////////////////////////////////////////////////////////
 
