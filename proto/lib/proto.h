@@ -536,54 +536,6 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
                                    real_t J[2 * 8]);
 
 /******************************************************************************
- * SIM
- ******************************************************************************/
-
-// SIM FEATURES ////////////////////////////////////////////////////////////////
-
-typedef struct sim_features_t {
-  real_t **features;
-  int nb_features;
-} sim_features_t;
-
-sim_features_t *load_sim_features(const char *csv_path);
-void free_sim_features(sim_features_t *features_data);
-
-// SIM IMU DATA ////////////////////////////////////////////////////////////////
-
-typedef struct sim_imu_data_t {
-  real_t **data;
-  int nb_measurements;
-} sim_imu_data_t;
-
-sim_imu_data_t *load_sim_imu_data(const char *csv_path);
-void free_sim_imu_data(sim_imu_data_t *imu_data);
-
-// SIM CAM DATA ////////////////////////////////////////////////////////////////
-
-typedef struct sim_cam_frame_t {
-  timestamp_t ts;
-  int *feature_ids;
-  real_t **keypoints;
-  int nb_measurements;
-} sim_cam_frame_t;
-
-typedef struct sim_cam_data_t {
-  sim_cam_frame_t **frames;
-  int nb_frames;
-
-  timestamp_t *ts;
-  real_t **poses;
-} sim_cam_data_t;
-
-sim_cam_frame_t *load_sim_cam_frame(const char *csv_path);
-void print_sim_cam_frame(sim_cam_frame_t *frame_data);
-void free_sim_cam_frame(sim_cam_frame_t *frame_data);
-
-sim_cam_data_t *load_sim_cam_data(const char *dir_path);
-void free_sim_cam_data(sim_cam_data_t *cam_data);
-
-/******************************************************************************
  * SENSOR FUSION
  ******************************************************************************/
 
@@ -873,5 +825,53 @@ void graph_print(graph_t *graph);
 int graph_add_factor(graph_t *graph, void *factor, int factor_type);
 int graph_eval(graph_t *graph);
 void graph_optimize(graph_t *graph);
+
+/******************************************************************************
+ * SIM
+ ******************************************************************************/
+
+// SIM FEATURES ////////////////////////////////////////////////////////////////
+
+typedef struct sim_features_t {
+  real_t **features;
+  int nb_features;
+} sim_features_t;
+
+sim_features_t *load_sim_features(const char *csv_path);
+void free_sim_features(sim_features_t *features_data);
+
+// SIM IMU DATA ////////////////////////////////////////////////////////////////
+
+typedef struct sim_imu_data_t {
+  real_t **data;
+  int nb_measurements;
+} sim_imu_data_t;
+
+sim_imu_data_t *load_sim_imu_data(const char *csv_path);
+void free_sim_imu_data(sim_imu_data_t *imu_data);
+
+// SIM CAM DATA ////////////////////////////////////////////////////////////////
+
+typedef struct sim_cam_frame_t {
+  timestamp_t ts;
+  int *feature_ids;
+  real_t **keypoints;
+  int nb_measurements;
+} sim_cam_frame_t;
+
+typedef struct sim_cam_data_t {
+  sim_cam_frame_t **frames;
+  int nb_frames;
+
+  timestamp_t *ts;
+  real_t **poses;
+} sim_cam_data_t;
+
+sim_cam_frame_t *load_sim_cam_frame(const char *csv_path);
+void print_sim_cam_frame(sim_cam_frame_t *frame_data);
+void free_sim_cam_frame(sim_cam_frame_t *frame_data);
+
+sim_cam_data_t *load_sim_cam_data(const char *dir_path);
+void free_sim_cam_data(sim_cam_data_t *cam_data);
 
 #endif // _PROTO_H_

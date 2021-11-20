@@ -1986,52 +1986,6 @@ int test_pinhole_equi4_params_jacobian() {
 }
 
 /******************************************************************************
- * SIM
- ******************************************************************************/
-
-// SIM FEATURES ////////////////////////////////////////////////////////////////
-
-int test_load_sim_features() {
-  const char *csv_file = TEST_SIM_DATA "/features.csv";
-  sim_features_t *features_data = load_sim_features(csv_file);
-  MU_CHECK(features_data->nb_features > 0);
-  free_sim_features(features_data);
-  return 0;
-}
-
-// SIM IMU DATA ////////////////////////////////////////////////////////////////
-
-int test_load_sim_imu_data() {
-  const char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
-  sim_imu_data_t *imu_data = load_sim_imu_data(csv_file);
-  free_sim_imu_data(imu_data);
-  return 0;
-}
-
-// SIM CAMERA DATA /////////////////////////////////////////////////////////////
-
-int test_load_sim_cam_frame() {
-  const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
-  sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
-
-  MU_CHECK(frame_data != NULL);
-  MU_CHECK(frame_data->ts == 100000000);
-  MU_CHECK(frame_data->feature_ids[0] == 1);
-
-  free_sim_cam_frame(frame_data);
-
-  return 0;
-}
-
-int test_load_sim_cam_data() {
-  const char *dir_path = TEST_SIM_DATA "/cam0";
-  sim_cam_data_t *cam_data = load_sim_cam_data(dir_path);
-
-  free_sim_cam_data(cam_data);
-  return 0;
-}
-
-/******************************************************************************
  * SENSOR FUSION
  ******************************************************************************/
 
@@ -2949,6 +2903,52 @@ int test_imu_buf_print() {
 //   return 0;
 // }
 
+/******************************************************************************
+ * SIM
+ ******************************************************************************/
+
+// SIM FEATURES ////////////////////////////////////////////////////////////////
+
+int test_load_sim_features() {
+  const char *csv_file = TEST_SIM_DATA "/features.csv";
+  sim_features_t *features_data = load_sim_features(csv_file);
+  MU_CHECK(features_data->nb_features > 0);
+  free_sim_features(features_data);
+  return 0;
+}
+
+// SIM IMU DATA ////////////////////////////////////////////////////////////////
+
+int test_load_sim_imu_data() {
+  const char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
+  sim_imu_data_t *imu_data = load_sim_imu_data(csv_file);
+  free_sim_imu_data(imu_data);
+  return 0;
+}
+
+// SIM CAMERA DATA /////////////////////////////////////////////////////////////
+
+int test_load_sim_cam_frame() {
+  const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
+  sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
+
+  MU_CHECK(frame_data != NULL);
+  MU_CHECK(frame_data->ts == 100000000);
+  MU_CHECK(frame_data->feature_ids[0] == 1);
+
+  free_sim_cam_frame(frame_data);
+
+  return 0;
+}
+
+int test_load_sim_cam_data() {
+  const char *dir_path = TEST_SIM_DATA "/cam0";
+  sim_cam_data_t *cam_data = load_sim_cam_data(dir_path);
+
+  free_sim_cam_data(cam_data);
+  return 0;
+}
+
 int test_graph_setup() {
   graph_t graph;
   graph_setup(&graph);
@@ -3166,12 +3166,6 @@ void test_suite() {
   MU_ADD_TEST(test_pinhole_equi4_project_jacobian);
   MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
 
-  /* SIM */
-  MU_ADD_TEST(test_load_sim_features);
-  MU_ADD_TEST(test_load_sim_imu_data);
-  MU_ADD_TEST(test_load_sim_cam_frame);
-  MU_ADD_TEST(test_load_sim_cam_data);
-
   /* SENSOR FUSION */
   /* -- Parameters */
   MU_ADD_TEST(test_pose_setup);
@@ -3204,6 +3198,12 @@ void test_suite() {
   MU_ADD_TEST(test_graph_print);
   MU_ADD_TEST(test_graph_eval);
   /* MU_ADD_TEST(test_graph_solve); */
+
+  /* SIM */
+  MU_ADD_TEST(test_load_sim_features);
+  MU_ADD_TEST(test_load_sim_imu_data);
+  MU_ADD_TEST(test_load_sim_cam_frame);
+  MU_ADD_TEST(test_load_sim_cam_data);
 }
 
 MU_RUN_TESTS(test_suite)
