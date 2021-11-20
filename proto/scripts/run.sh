@@ -29,9 +29,8 @@ time make
 # python3 scripts/api.py
 # python3 scripts/api2.py
 
-
 cd ./build/bin
-./test_proto
+# ./test_proto
 # PROTO-LOGGING
 # ./test_proto --target test_debug
 # ./test_proto --target test_log_error
@@ -79,6 +78,9 @@ cd ./build/bin
 # ./test_proto --target test_protos
 # ./test_proto --target test_mat_set
 # ./test_proto --target test_mat_val
+# ./test_proto --target test_mat_copy
+# ./test_proto --target test_mat_row_set
+# ./test_proto --target test_mat_col_set
 # ./test_proto --target test_mat_block_get
 # ./test_proto --target test_mat_block_set
 # ./test_proto --target test_mat_diag_get
