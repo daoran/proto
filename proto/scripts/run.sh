@@ -20,16 +20,17 @@ memcheck() {
 # node js/proto.js
 
 # python3 scripts/tf_point.py
+python3 python/feature_tracker.py
 
 # make format_code
 # ctags -R lib
-time make
+# time make
 
 # doxygen
 # python3 scripts/api.py
 # python3 scripts/api2.py
 
-cd ./build/bin
+# cd ./build/bin
 # ./test_proto
 # PROTO-LOGGING
 # ./test_proto --target test_debug
