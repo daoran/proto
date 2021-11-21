@@ -9,12 +9,31 @@ import numpy as np
 data_path = '/data/euroc/raw/V1_01'
 
 
+class FeatureTrackingData:
+  def __init__(self, image, feature_ids, keypoints, descriptors):
+    self.image = image
+    self.feature_ids = feature_ids
+    self.keypoints = keypoints
+    self.descriptors = descriptors
+
+
+class FeatureMatches:
+  def __init__(self, data_i, data_j):
+    self.image_i = data_i.image
+    self.keypoints_i = data_i.keypoints
+    self.descriptors_i = data_i.descriptors
+
+    self.image_j = data_j.image
+    self.keypoints_j = data_j.keypoints
+    self.descriptors_j = data_j.descriptors
+
+
 class FeatureTracker:
   def __init__(self):
     # Settings
-    self.track_overlaps_only = True
-    # self.track_overlaps_only = False
-    self.match_overlaps = False
+    # self.mode = "OVERLAPS_ONLY"
+    self.mode = "OVERLAPS_ALLOWED"
+    # self.mode = "NO_OVERLAPS_ALLOWED"
 
     # Feature detector, descriptor and matcher
     self.feature = cv2.ORB_create(nfeatures=50)
@@ -78,7 +97,7 @@ class FeatureTracker:
       det_data[cam_idx] = {'image': image, 'keypoints': kps, 'descriptors': des}
 
     # Track overlaps only
-    if self.track_overlaps_only:
+    if self.mode == "OVERLAPS_ONLY":
       for cam_i, cam_j in self.cam_overlaps:
         # Image i, keypoints i and descriptors i
         img_i = det_data[cam_i]['image']
@@ -116,8 +135,9 @@ class FeatureTracker:
       cv2.imshow('viz', viz)
       cv2.waitKey(0)
 
-    # Track each cameras individually
-    else:
+    # Track additional overlaps
+    elif self.mode == "OVERLAPS_ALLOWED":
+      # TODO: FIX THE BELOW SO OVERLAPS ARE ALLOWED
       # Add to camera data
       for cam_idx in det_data.keys():
         image = det_data[cam_idx]['image']
@@ -133,6 +153,27 @@ class FeatureTracker:
         self.cam_data[cam_idx]['feature_ids'] = range(start_idx, end_idx)
         self.cam_data[cam_idx]['keypoints'] = kps
         self.cam_data[cam_idx]['descriptors'] = des
+
+    # Track each cameras individually
+    elif self.mode == "NO_OVERLAPS_ALLOWED":
+      # Add to camera data
+      for cam_idx in det_data.keys():
+        image = det_data[cam_idx]['image']
+        kps = det_data[cam_idx]['keypoints']
+        des = det_data[cam_idx]['descriptors']
+
+        nb_features_k = len(kps)
+        self.features_detected += nb_features_k
+        start_idx = self.features_detected - nb_features_k
+        end_idx = start_idx + nb_features_k
+
+        self.cam_data[cam_idx]['image'] = image
+        self.cam_data[cam_idx]['feature_ids'] = range(start_idx, end_idx)
+        self.cam_data[cam_idx]['keypoints'] = kps
+        self.cam_data[cam_idx]['descriptors'] = des
+
+    else:
+      raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
 
     # Keep camera images
     self.prev_camera_images = camera_images
