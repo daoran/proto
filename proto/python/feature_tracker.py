@@ -120,11 +120,8 @@ def grid_detect(detector, image, **kwargs):
         kps_all.append(kp)
         des_all.append(des[i, :])
 
-      print("cell_idx: %d, nb_kps: %d" % (cell_idx, len(kps_all)))
       cell_idx += 1
 
-  print("max_per_cell: %d" % max_per_cell)
-  print("total nb_kps: %d" % len(kps_all))
   viz = cv2.drawKeypoints(image, kps_all, None)
   cv2.imshow("viz", viz)
   cv2.waitKey(0)
@@ -168,8 +165,8 @@ class FeatureTracker:
   def __init__(self):
     # Settings
     self.mode = "OVERLAPS_ONLY"
-    # self.mode = "OVERLAPS_ALLOWED"
-    # self.mode = "NO_OVERLAPS_ALLOWED"
+    # self.mode = "NON_OVERLAPS_ONLY"
+    # self.mode = "DEFAULT"
 
     # Feature detector, descriptor and matcher
     self.feature = cv2.ORB_create(nfeatures=100)
@@ -208,12 +205,13 @@ class FeatureTracker:
 
     return det_data
 
-  def _match(self, data_i, data_j):
+  def _match(self, data_i, data_j, sort_matches=True):
     # Match
     (img_i, kps_i, des_i, _) = data_i.get_all()
     (img_j, kps_j, des_j, _) = data_j.get_all()
     matches = self.matcher.match(des_i, des_j)
-    # matches = sorted(matches, key=lambda x: x.distance)
+    if sort_matches:
+      matches = sorted(matches, key=lambda x: x.distance)
 
     # Form matched keypoints and desciptor data structures
     matches_new = []
@@ -246,11 +244,12 @@ class FeatureTracker:
     return range(start_idx, end_idx)
 
   def _initialize(self, camera_images):
-    # Detect features for each camera
-    det_data = self._detect_multicam(camera_images)
+    # Track both overlapping and non-overlapping feature
+    if self.mode == "DEFAULT":
+      # Detect features for each camera
+      det_data = self._detect_multicam(camera_images)
 
-    # Track overlaps only
-    if self.mode == "OVERLAPS_ONLY":
+      # Track overlaps
       for cam_i, cam_j in self.cam_overlaps:
         # Match keypoints and descriptors
         data_i = det_data[cam_i]
@@ -264,32 +263,44 @@ class FeatureTracker:
         self.cam_data[cam_i] = data_i
         self.cam_data[cam_j] = data_j
 
-    # # Track additional overlaps
-    # elif self.mode == "OVERLAPS_ALLOWED":
-    #   for cam_i, cam_j in self.cam_overlaps:
-    #     # Match keypoints and descriptors
-    #     data_i = det_data[cam_i]
-    #     data_j = det_data[cam_j]
-    #     (data_i, data_j, matches) = self._match(data_i, data_j)
-    #
-    #     # Add to camera data
-    #     feature_ids = self._form_feature_ids(len(kps))
-    #     data_i.feature_ids = feature_ids
-    #     data_j.feature_ids = feature_ids
-    #     self.cam_data[cam_i] = data_i
-    #     self.cam_data[cam_j] = data_j
-
-    # Track each cameras individually
-    elif self.mode == "NO_OVERLAPS_ALLOWED":
-      # Add to camera data
+      # Track non-overlaps
+      det_data = self._detect_multicam(camera_images)
       for cam_idx in det_data.keys():
-        # Match keypoints and descriptors
         data = det_data[cam_idx]
-
-        # Add to camera data
         data.feature_ids = _form_feature_ids(len(kps))
         self.cam_data[cam_idx] = data
 
+    # Track overlaps only
+    if self.mode == "OVERLAPS_ONLY":
+      # Detect features for each camera
+      det_data = self._detect_multicam(camera_images)
+
+      # Match overlapping features and add to camera data
+      for cam_i, cam_j in self.cam_overlaps:
+        # Match keypoints and descriptors
+        data_i = det_data[cam_i]
+        data_j = det_data[cam_j]
+        (data_i, data_j, matches) = self._match(data_i, data_j)
+
+        # Add to camera data
+        feature_ids = self._form_feature_ids(len(matches))
+        data_i.feature_ids = feature_ids
+        data_j.feature_ids = feature_ids
+        self.cam_data[cam_i] = data_i
+        self.cam_data[cam_j] = data_j
+
+    # Track each cameras individually
+    elif self.mode == "NON_OVERLAPS_ONLY":
+      # Detect features for each camera
+      det_data = self._detect_multicam(camera_images)
+
+      # Add to camera data
+      for cam_idx in det_data.keys():
+        data = det_data[cam_idx]
+        data.feature_ids = _form_feature_ids(len(kps))
+        self.cam_data[cam_idx] = data
+
+    # Invalid feature tracker mode
     else:
       raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
 
