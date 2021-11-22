@@ -12,6 +12,7 @@ data_path = '/data/euroc/raw/V1_01'
 
 
 def load_euroc_dataset(data_path):
+  """ Load EuRoC Dataset """
   # Form sensor paths
   imu0_path = os.path.join(data_path, 'mav0', 'imu0', 'data')
   cam0_path = os.path.join(data_path, 'mav0', 'cam0', 'data')
@@ -132,16 +133,24 @@ def grid_detect(detector, image, **kwargs):
 
 
 class FeaturesGrid:
-  def __init__(self):
+  def __init__(self, grid_rows, grid_cols, image_shape, keypoints, descriptors):
+    self.keypoints = keypoints
+    self.descriptors = descriptors
+    self.bins = []
+
+  def count(self, cell_idx):
     pass
 
 
 class FeatureTrackingData:
-  def __init__(self, image, feature_ids, keypoints, descriptors):
+  def __init__(self, image, keypoints, descriptors=None, feature_ids=None):
     self.image = image
-    self.feature_ids = feature_ids
     self.keypoints = keypoints
     self.descriptors = descriptors
+    self.feature_ids = feature_ids
+
+  def get_all(self):
+    return (self.image, self.keypoints, self.descriptors, self.feature_ids)
 
 
 class FeatureMatches:
@@ -158,8 +167,8 @@ class FeatureMatches:
 class FeatureTracker:
   def __init__(self):
     # Settings
-    # self.mode = "OVERLAPS_ONLY"
-    self.mode = "OVERLAPS_ALLOWED"
+    self.mode = "OVERLAPS_ONLY"
+    # self.mode = "OVERLAPS_ALLOWED"
     # self.mode = "NO_OVERLAPS_ALLOWED"
 
     # Feature detector, descriptor and matcher
@@ -183,24 +192,26 @@ class FeatureTracker:
 
   def _detect(self, image):
     assert image is not None
-    grid_detect(self.feature, image)
+    # grid_detect(self.feature, image)
 
     kps = self.feature.detect(image, None)
     kps, des = self.feature.compute(image, kps)
-    return (kps, des)
+    ft_data = FeatureTrackingData(image, kps, des)
+
+    return ft_data
 
   def _detect_multicam(self, camera_images):
     det_data = {}
     for cam_idx in self.cam_indices:
       image = camera_images[cam_idx]
-      kps, des = self._detect(image)
-      det_data[cam_idx] = {'image': image, 'keypoints': kps, 'descriptors': des}
+      det_data[cam_idx] = self._detect(image)
+
     return det_data
 
   def _match(self, data_i, data_j):
     # Match
-    img_i, kps_i, des_i = data_i
-    img_j, kps_j, des_j = data_j
+    (img_i, kps_i, des_i, _) = data_i.get_all()
+    (img_j, kps_j, des_j, _) = data_j.get_all()
     matches = self.matcher.match(des_i, des_j)
     # matches = sorted(matches, key=lambda x: x.distance)
 
@@ -222,9 +233,17 @@ class FeatureTracker:
       matches_new.append(cv2.DMatch(row_idx, row_idx, match.distance))
       row_idx += 1
 
-    data_i = (img_i, kps_i_new, des_i_new)
-    data_j = (img_j, kps_j_new, des_j_new)
+    # Form return data
+    data_i = FeatureTrackingData(img_i, kps_i_new, des_i_new)
+    data_j = FeatureTrackingData(img_j, kps_j_new, des_j_new)
     return (data_i, data_j, matches_new)
+
+  def _form_feature_ids(self, nb_kps):
+    nb_features_k = nb_kps
+    self.features_detected += nb_features_k
+    start_idx = self.features_detected - nb_features_k
+    end_idx = start_idx + nb_features_k
+    return range(start_idx, end_idx)
 
   def _initialize(self, camera_images):
     # Detect features for each camera
@@ -233,94 +252,43 @@ class FeatureTracker:
     # Track overlaps only
     if self.mode == "OVERLAPS_ONLY":
       for cam_i, cam_j in self.cam_overlaps:
-        # Image i, keypoints i and descriptors i
-        img_i = det_data[cam_i]['image']
-        kps_i = det_data[cam_i]['keypoints']
-        des_i = det_data[cam_i]['descriptors']
-        data_i = (img_i, kps_i, des_i)
-
-        # Image j, keypoints j and descriptors j
-        img_j = det_data[cam_j]['image']
-        kps_j = det_data[cam_j]['keypoints']
-        des_j = det_data[cam_j]['descriptors']
-        data_j = (img_j, kps_j, des_j)
-
         # Match keypoints and descriptors
-        pair_data = self._match(data_i, data_j)
-        ((img_i, kps_i, des_i), (img_j, kps_j, des_j), matches) = pair_data
+        data_i = det_data[cam_i]
+        data_j = det_data[cam_j]
+        (data_i, data_j, matches) = self._match(data_i, data_j)
 
         # Add to camera data
-        nb_features_k = len(kps_i) + len(kps_j)
-        self.features_detected += nb_features_k
-        start_idx = self.features_detected - nb_features_k
-        end_idx = start_idx + nb_features_k
+        feature_ids = self._form_feature_ids(len(matches))
+        data_i.feature_ids = feature_ids
+        data_j.feature_ids = feature_ids
+        self.cam_data[cam_i] = data_i
+        self.cam_data[cam_j] = data_j
 
-        self.cam_data[cam_i]['image'] = img_i
-        self.cam_data[cam_i]['feature_ids'] = range(start_idx, end_idx)
-        self.cam_data[cam_i]['keypoints'] = kps_i
-        self.cam_data[cam_i]['descriptors'] = des_i
-
-        self.cam_data[cam_j]['image'] = img_j
-        self.cam_data[cam_j]['feature_ids'] = range(start_idx, end_idx)
-        self.cam_data[cam_j]['keypoints'] = kps_j
-        self.cam_data[cam_j]['descriptors'] = des_j
-
-      # viz = cv2.drawMatches(img_i, kps_i, img_j, kps_j, matches, None)
-      # cv2.imshow('viz', viz)
-      # cv2.waitKey(0)
-
-    # Track additional overlaps
-    elif self.mode == "OVERLAPS_ALLOWED":
-      for cam_i, cam_j in self.cam_overlaps:
-        # Image i, keypoints i and descriptors i
-        img_i = det_data[cam_i]['image']
-        kps_i = det_data[cam_i]['keypoints']
-        des_i = det_data[cam_i]['descriptors']
-        data_i = (img_i, kps_i, des_i)
-
-        # Image j, keypoints j and descriptors j
-        img_j = det_data[cam_j]['image']
-        kps_j = det_data[cam_j]['keypoints']
-        des_j = det_data[cam_j]['descriptors']
-        data_j = (img_j, kps_j, des_j)
-
-        # Match keypoints and descriptors
-        pair_data = self._match(data_i, data_j)
-        ((img_i, kps_i, des_i), (img_j, kps_j, des_j), matches) = pair_data
-
-        # Add to camera data
-        nb_features_k = len(kps_i) + len(kps_j)
-        self.features_detected += nb_features_k
-        start_idx = self.features_detected - nb_features_k
-        end_idx = start_idx + nb_features_k
-
-        self.cam_data[cam_i]['image'] = img_i
-        self.cam_data[cam_i]['feature_ids'] = range(start_idx, end_idx)
-        self.cam_data[cam_i]['keypoints'] = kps_i
-        self.cam_data[cam_i]['descriptors'] = des_i
-
-        self.cam_data[cam_j]['image'] = img_j
-        self.cam_data[cam_j]['feature_ids'] = range(start_idx, end_idx)
-        self.cam_data[cam_j]['keypoints'] = kps_j
-        self.cam_data[cam_j]['descriptors'] = des_j
+    # # Track additional overlaps
+    # elif self.mode == "OVERLAPS_ALLOWED":
+    #   for cam_i, cam_j in self.cam_overlaps:
+    #     # Match keypoints and descriptors
+    #     data_i = det_data[cam_i]
+    #     data_j = det_data[cam_j]
+    #     (data_i, data_j, matches) = self._match(data_i, data_j)
+    #
+    #     # Add to camera data
+    #     feature_ids = self._form_feature_ids(len(kps))
+    #     data_i.feature_ids = feature_ids
+    #     data_j.feature_ids = feature_ids
+    #     self.cam_data[cam_i] = data_i
+    #     self.cam_data[cam_j] = data_j
 
     # Track each cameras individually
     elif self.mode == "NO_OVERLAPS_ALLOWED":
       # Add to camera data
       for cam_idx in det_data.keys():
-        image = det_data[cam_idx]['image']
-        kps = det_data[cam_idx]['keypoints']
-        des = det_data[cam_idx]['descriptors']
+        # Match keypoints and descriptors
+        data = det_data[cam_idx]
 
-        nb_features_k = len(kps)
-        self.features_detected += nb_features_k
-        start_idx = self.features_detected - nb_features_k
-        end_idx = start_idx + nb_features_k
-
-        self.cam_data[cam_idx]['image'] = image
-        self.cam_data[cam_idx]['feature_ids'] = range(start_idx, end_idx)
-        self.cam_data[cam_idx]['keypoints'] = kps
-        self.cam_data[cam_idx]['descriptors'] = des
+        # Add to camera data
+        data.feature_ids = _form_feature_ids(len(kps))
+        self.cam_data[cam_idx] = data
 
     else:
       raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
@@ -334,18 +302,16 @@ class FeatureTracker:
     for cam_idx in self.cam_indices:
       # Previous image, keypoints and descriptors
       img_km1 = self.prev_camera_images[cam_idx]
-      kps_km1 = self.cam_data[cam_idx]['keypoints']
-      des_km1 = self.cam_data[cam_idx]['descriptors']
-      data_km1 = (img_km1, kps_km1, des_km1)
+      data_km1 = self.cam_data[cam_idx]
 
       # Current image, keypoints and descriptors
       img_k = camera_images[cam_idx]
-      kps_k, des_k = self._detect(img_k)
-      data_k = (img_k, kps_k, des_k)
+      data_k = self._detect(img_k)
 
       # Match keypoints from past to current
-      pair_data = self._match(data_km1, data_k)
-      ((img_km1, kps_km1, des_km1), (img_k, kps_k, des_k), matches) = pair_data
+      (data_km1, data_k, matches) = self._match(data_km1, data_k)
+      (img_km1, kps_km1, _, _) = data_km1.get_all()
+      (img_k, kps_k, _, _) = data_k.get_all()
       viz.append(cv2.drawMatches(img_km1, kps_km1, img_k, kps_k, matches, None))
 
     # Form visualization image
@@ -382,7 +348,6 @@ class TestFeatureTracker(unittest.TestCase):
     img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
     ft_data = self.feature_tracker._detect(img0)
 
-  @unittest.skip("")
   def test_detect_multicam(self):
     # Load images
     ts = self.dataset['timestamps'][0]
@@ -395,7 +360,6 @@ class TestFeatureTracker(unittest.TestCase):
     camera_images['cam1'] = img1
     self.feature_tracker._detect_multicam(camera_images)
 
-  @unittest.skip("")
   def test_run(self):
     for ts in self.dataset['timestamps']:
       # Load images
