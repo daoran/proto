@@ -1,9 +1,35 @@
 import math
+
 import numpy as np
+
+###############################################################################
+# MATHS
+###############################################################################
+
+
+def isclose(a, b, tol=1e-8):
+  return math.isclose(a, b, abs_tol=tol)
+
 
 ###############################################################################
 # LINEAR ALGEBRA
 ###############################################################################
+
+
+def rows(x):
+  return x.shape[0]
+
+
+def columns(x):
+  return x.shape[1]
+
+
+def deg2rad(x):
+  return np.deg2rad(x)
+
+
+def rad2deg(x):
+  return np.rad2deg(x)
 
 
 def ones(x):
@@ -18,6 +44,10 @@ def eye(x):
   return np.eye(x)
 
 
+def diag(x):
+  return np.diagonal(x)
+
+
 def norm(v):
   return np.linalg.norm(v)
 
@@ -29,6 +59,22 @@ def normalize(v):
   return v / norm
 
 
+def inv(v):
+  return np.linalg.inv(v)
+
+
+def pinv(v):
+  return np.linalg.pinv(v)
+
+
+def rank(A):
+  return np.linalg.matrix_rank(A)
+
+
+def fullrank(A):
+  return rank(A) == A.shape[0]
+
+
 def skew(vec):
   assert (vec.shape == (3,) or vec.shape == (3, 1))
   return np.array([[0, -z, y], [z, 0, -x], [-y, x, 0]])
@@ -37,6 +83,10 @@ def skew(vec):
 def skew_inv(A):
   assert (A.shape == (3, 3))
   return np.array([A[2, 1], A(0, 2), A(1, 0)])
+
+
+def eig(v):
+  return np.linalg.eig(v)
 
 
 def fwdsubs(L, b):
@@ -75,6 +125,37 @@ def bwdsubs(U, b):
       raise RuntimeError('Matrix is singular!')
     x[j] = b[j] / U(j, j)
     b[0:j] = b[0:j] - U[0:j, j] * x[j]
+
+
+def schurs_complement(H, g, m, r, precond=False):
+  assert (H.shape[0] == (m + r))
+
+  # H = [Hmm, Hmr
+  #      Hrm, Hrr];
+  Hmm = H[0:m, 0:m]
+  Hmr = H[0:m, m:]
+  Hrm = Hmr.transpose()
+  Hrr = H[m:, m:]
+
+  # g = [gmm, grr]
+  gmm = g[1:]
+  grr = g[m:]
+
+  # Precondition Hmm
+  if (precond):
+    Hmm = 0.5 * (Hmm + Hmm.transpose())
+
+  # Invert Hmm
+  assert (rank(Hmm) == Hmm.shape[0])
+  (w, V) = eig(Hmm)
+  W_inv = diag(1.0 / w)
+  Hmm_inv = V * W_inv * V.transpose()
+
+  # Schurs complement
+  H_marg = Hrr - Hrm * Hmm_inv * Hmr
+  g_marg = grr - Hrm * Hmm_inv * gmm
+
+  return (H_marg, g_marg)
 
 
 def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
@@ -198,6 +279,13 @@ def Jr_inv(theta):
 def boxminus(C_a, C_b):
   # alpha = C_a [-] C_b
   alpha = Log(inv(C_b) * C_a)
+  return alpha
+
+
+def boxplus(C, alpha):
+  # C_updated = C [+] alpha
+  C_updated = C * Exp(alpha)
+  return C_updated
 
 
 ###############################################################################
@@ -205,21 +293,12 @@ def boxminus(C_a, C_b):
 ###############################################################################
 
 
-def axisangle2quat(axis, angle):
-  ax, ay, az = axis
-  qw = math.cos(angle / 2.0)
-  qx = ax * math.sin(angle / 2.0)
-  qy = ay * math.sin(angle / 2.0)
-  qz = az * math.sin(angle / 2.0)
-  return np.array([qw, qx, qy, qz])
+def homogeneous(p):
+  return np.array([*p, 1.0])
 
 
 def dehomogeneous(hp):
-  return hp[0:2, :]
-
-
-def homogeneous(p):
-  return np.array([p, np.ones(1, p.shape[1])])
+  return hp[0:3]
 
 
 def rotx(theta):
@@ -241,6 +320,60 @@ def rotz(theta):
   row1 = [math.sin(theta), math.cos(theta), 0.0]
   row2 = [0.0, 0.0, 1.0]
   return np.array([row0, row1, row2])
+
+
+def axisangle2quat(axis, angle):
+  ax, ay, az = axis
+  qw = math.cos(angle / 2.0)
+  qx = ax * math.sin(angle / 2.0)
+  qy = ay * math.sin(angle / 2.0)
+  qz = az * math.sin(angle / 2.0)
+  return np.array([qw, qx, qy, qz])
+
+
+def rvec2rot(rvec):
+  # If small rotation
+  theta = math.sqrt(rvec @ rvec)  # = norm(rvec), but faster
+  if theta < eps:
+    # yapf: disable
+    R = np.array([[1.0, -rvec[2], rvec[1]],
+                  [rvec[2], 1.0, -rvec[0]],
+                  [-rvec[1], rvec[0], 1.0]])
+    # yapf: enable
+    return R
+
+  # Convert rvec to rotation matrix
+  rvec = rvec / theta
+  x, y, z = rvec
+
+  c = math.cos(theta)
+  s = math.sin(theta)
+  C = 1 - c
+
+  xs = x * s
+  ys = y * s
+  zs = z * s
+
+  xC = x * C
+  yC = y * C
+  zC = z * C
+
+  xyC = x * yC
+  yzC = y * zC
+  zxC = z * xC
+
+  # yapf: disable
+  R = np.array([[x * xC + c, xyC - zs, zxC + ys],
+                [xyC + zs, y * yC + c, yzC - xs],
+                [zxC - ys, yzC + xs, z * zC + c]])
+  # yapf: enable
+  return R
+
+
+def vecs2axisangle(u, v):
+  angle = math.acos(u.transpose() * v)
+  ax = normalize(np.cross(u, v))
+  return ax * angle
 
 
 def euler2quat(yaw, pitch, roll):
@@ -281,17 +414,24 @@ def euler321(yaw, pitch, roll):
   theta = pitch
   phi = roll
 
-  C11 = cos(psi) * cos(theta)
-  C21 = sin(psi) * cos(theta)
-  C31 = -sin(theta)
+  cpsi = math.cos(psi)
+  spsi = math.sin(psi)
+  ctheta = math.cos(theta)
+  stheta = math.sin(theta)
+  cphi = math.cos(phi)
+  sphi = math.sin(phi)
 
-  C12 = cos(psi) * sin(theta) * sin(phi) - sin(psi) * cos(phi)
-  C22 = sin(psi) * sin(theta) * sin(phi) + cos(psi) * cos(phi)
-  C32 = cos(theta) * sin(phi)
+  C11 = cpsi * ctheta
+  C21 = spsi * ctheta
+  C31 = -stheta
 
-  C13 = cos(psi) * sin(theta) * cos(phi) + sin(psi) * sin(phi)
-  C23 = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi)
-  C33 = cos(theta) * cos(phi)
+  C12 = cpsi * stheta * sphi - spsi * cphi
+  C22 = spsi * stheta * sphi + cpsi * cphi
+  C32 = ctheta * sphi
+
+  C13 = cpsi * stheta * cphi + spsi * sphi
+  C23 = spsi * stheta * cphi - cpsi * sphi
+  C33 = ctheta * cphi
 
   return np.array([[C11, C12, C13], [C21, C22, C23], [C31, C32, C33]])
 
@@ -409,49 +549,7 @@ def rot2quat(C):
   return quat_normalize(np.array([qw, qx, qy, qz]))
 
 
-def rvec2rot(rvec):
-  # If small rotation
-  theta = math.sqrt(rvec @ rvec)  # = norm(rvec), but faster
-  if theta < eps:
-    # yapf: disable
-    R = np.array([[1.0, -rvec[2], rvec[1]],
-                  [rvec[2], 1.0, -rvec[0]],
-                  [-rvec[1], rvec[0], 1.0]])
-    # yapf: enable
-    return R
-
-  # Convert rvec to rotation matrix
-  rvec = rvec / theta
-  x, y, z = rvec
-
-  c = math.cos(theta)
-  s = math.sin(theta)
-  C = 1 - c
-
-  xs = x * s
-  ys = y * s
-  zs = z * s
-
-  xC = x * C
-  yC = y * C
-  zC = z * C
-
-  xyC = x * yC
-  yzC = y * zC
-  zxC = z * xC
-
-  # yapf: disable
-  R = np.array([[x * xC + c, xyC - zs, zxC + ys],
-                [xyC + zs, y * yC + c, yzC - xs],
-                [zxC - ys, yzC + xs, z * zC + c]])
-  # yapf: enable
-  return R
-
-
-def vecs2axisangle(u, v):
-  angle = math.acos(u.transpose() * v)
-  ax = normalize(np.cross(u, v))
-  return ax * angle
+# QUATERNION ##################################################################
 
 
 def quat_norm(q):
@@ -550,6 +648,9 @@ def quat_integrate(q_k, w, dt):
   return q_kp1
 
 
+# TF ##########################################################################
+
+
 def tf(rot, trans):
   C = None
   if rot.shape == (4,) or rot.shape == (4, 1):
@@ -593,3 +694,500 @@ def tf_vector(T):
   rx, ry, rz = tf_trans(T)
   qw, qx, qy, qz = tf_quat(T)
   return np.array([rx, ry, rz, qw, qx, qy, qz])
+
+
+###############################################################################
+# CV
+###############################################################################
+
+
+def lookat(cam_pos, target_pos, up_axis=[0.0, -1.0, 0.0]):
+  assert (cam_pos.shape == (3,) or cam_pos.shape == (3, 1))
+  assert (target_pos.shape == (3,) or target_pos.shape == (3, 1))
+  assert (up_axis.shape == (3,) or up_axis.shape == (3, 1))
+
+  # Note: If we were using OpenGL the cam_dir would be the opposite direction,
+  # since in OpenGL the camera forward is -z. In robotics however our camera is
+  # +z forward.
+  cam_dir = normalize((target_pos - cam_pos))
+  cam_right = normalize(cross(up_axis, cam_dir))
+  cam_up = cross(cam_dir, cam_right)
+
+  A = zeros(4, 4)
+  A[0, :] = [cam_right(1), cam_right(2), cam_right(3), 0.0]
+  A[1, :] = [cam_up(1), cam_up(2), cam_up(3), 0.0]
+  A[2, :] = [cam_dir(1), cam_dir(2), cam_dir(3), 0.0]
+  A[3, :] = [0.0, 0.0, 0.0, 1.0]
+
+  B = zeros(4, 4)
+  B[0, :] = [1.0, 0.0, 0.0, -cam_pos(1)]
+  B[1, :] = [0.0, 1.0, 0.0, -cam_pos(2)]
+  B[2, :] = [0.0, 0.0, 1.0, -cam_pos(3)]
+  B[3, :] = [0.0, 0.0, 0.0, 1.0]
+
+  T_camera_target = A @ B
+  T_target_camera = inv(T_camera_target)
+  return T_target_camera
+
+
+def linear_triangulation(P_i, P_j, z_i, z_j):
+  # Linear triangulation
+  # This function is used to triangulate a single 3D point observed by two
+  # camera frames (be it in time with the same camera, or two different cameras
+  # with known extrinsics)
+
+  # First three rows of P_i and P_j
+  P1T = P_i[0, :]
+  P2T = P_i[1, :]
+  P3T = P_i[2, :]
+  P1T_dash = P_j[0, :]
+  P2T_dash = P_j[1, :]
+  P3T_dash = P_j[2, :]
+
+  # Image point from the first and second frame
+  x, y = z_i
+  x_dash, y_dash = z_j
+
+  # Form the A matrix of AX = 0
+  A = zeros(4, 1)
+  # A = [y * P3T - P2T;
+  #      x * P3T - P1T;
+  #      y_dash * P3T_dash - P2T_dash;
+  #      x_dash * P3T_dash - P1T_dash];
+
+  # Use SVD to solve AX = 0
+  (_, _, V) = svd(A.transpose() * A)
+  hp = V[:, 3]  # Get the best result from SVD (last column of V)
+  hp = hp / hp(3)  # Normalize the homogeneous 3D point
+  p = hp[0:3]  # Return only the first three components (x, y, z)
+
+
+# PINHOLE #####################################################################
+
+
+def pinhole_project(proj_params, T_WC, p_W):
+  assert (len(proj_params) == 4)
+  assert (T_WC.shape == (4, 4))
+  assert (p_W.shape == (3, 1) or p_W.shape == (3,))
+
+  T_CW = tf_inv(T_WC)
+  p_C = tf_point(T_CW, p_W)
+
+  fx, fy, cx, cy = proj_params
+
+  x = np.array([p_C[0] / p_C[2], p_C(2) / p_C[2]])  # Project
+  z = np.array([fx * x[0] + cx, fy * x[1] + cy])
+  # Scale and center
+  return z
+
+
+def pinhole_K(params):
+  fx, fy, cx, cy = params
+  return np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
+
+
+def pinhole_params_jacobian(proj_params, x):
+  return np.array([[x[0], 0.0, 1.0, 0.0], [0.0, x[1], 0.0, 1.0]])
+
+
+def pinhole_point_jacobian(proj_params):
+  fx, fy, _, _ = proj_params
+  return np.array([[fx, 0.0], [0.0, fy]])
+
+
+# RADTAN4 #####################################################################
+
+
+def radtan4_distort(dist_params, p):
+  assert (len(dist_params) == 4)
+  assert (len(p) == 2)
+
+  # Distortion parameters
+  k1, k2, p1, p2 = dist_params
+
+  # Point
+  x, y = p
+
+  # Apply radial distortion
+  x2 = x * x
+  y2 = y * y
+  r2 = x2 + y2
+  r4 = r2 * r2
+  radial_factor = 1.0 + (k1 * r2) + (k2 * r4)
+  x_dash = x * radial_factor
+  y_dash = y * radial_factor
+
+  # Apply tangential distortion
+  xy = x * y
+  x_ddash = x_dash + (2.0 * p1 * xy + p2 * (r2 + 2.0 * x2))
+  y_ddash = y_dash + (p1 * (r2 + 2.0 * y2) + 2.0 * p2 * xy)
+  return np.array([x_ddash, y_ddash])
+
+
+def radtan4_undistort(dist_params, p0):
+  assert (len(dist_params) == 4)
+  assert (len(p) == 2)
+
+  # Distortion parameters
+  k1, k2, p1, p2 = dist_params
+
+  # Undistort
+  p = p0
+  max_iter = 5
+
+  for i in range(max_iter):
+    # Error
+    p_distorted = radtan4_distort(dist_params, p)
+    J = radtan4_point_jacobian(dist_params, p)
+    err = (p0 - p_distorted)
+
+    # Update
+    # dp = inv(J' * J) * J' * err
+    dp = pinv(J) * err
+    p = p + dp
+
+    # Check threshold
+    if (err.transpose() * err) < 1e-15:
+      break
+
+  return p
+
+
+def radtan4_params_jacobian(dist_params, p):
+  assert (len(dist_params) == 4)
+  assert (len(p) == 2)
+
+  # Distortion parameters
+  k1, k2, p1, p2 = dist_params
+
+  # Point
+  x, y = p
+
+  # Setup
+  x2 = x * x
+  y2 = y * y
+  xy = x * y
+  r2 = x2 + y2
+  r4 = r2 * r2
+
+  # Params Jacobian
+  J_params = zeros(2, 4)
+  J_params[0, 0] = x * r2
+  J_params[0, 1] = x * r4
+  J_params[0, 2] = 2.0 * xy
+  J_params[0, 3] = 3.0 * x2 + y2
+  J_params[1, 0] = y * r2
+  J_params[1, 1] = y * r4
+  J_params[1, 2] = x2 + 3.0 * y2
+  J_params[1, 3] = 2.0 * xy
+
+  return J_params
+
+
+# EQUI4 #######################################################################
+
+
+def equi4_distort(dist_params, p):
+  assert (len(dist_params) == 4)
+  assert (len(p) == 2)
+
+  # Distortion parameters
+  k1, k2, k3, k4 = dist_params
+
+  # Distort
+  x, y = p
+  r = math.sqrt(x * x + y * y)
+  th = math.atan(r)
+  th2 = th * th
+  th4 = th2 * th2
+  th6 = th4 * th2
+  th8 = th4 * th4
+  thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8)
+  s = thd / r
+  x_dash = s * x
+  y_dash = s * y
+  return np.array([x_dash, y_dash])
+
+
+def equi4_undistort(dist_params, p):
+  thd = math.sqrt(p(0) * p(0) + p(1) * p(1))
+
+  th = thd  # Initial guess
+  for i in range(20):
+    th2 = th * th
+    th4 = th2 * th2
+    th6 = th4 * th2
+    th8 = th4 * th4
+    th = thd / (1.0 + k1() * th2 + k2() * th4 + k3() * th6 + k4() * th8)
+
+  scaling = math.tan(th) / thd
+  return np.array([p[0] * scaling, p[1] * scaling])
+
+
+def equi4_params_jacobian(dist_params, p):
+  assert (len(dist_params) == 4)
+  assert (len(p) == 2)
+
+  # Distortion parameters
+  k1, k2, k3, k4 = dist_params
+
+  # Jacobian
+  x, y = p
+  r = math.sqrt(x**2 + y**2)
+  th = atan(r)
+
+  J_params = zeros(2, 4)
+  J_params[0, 0] = x * th**3 / r
+  J_params[0, 1] = x * th**5 / r
+  J_params[0, 2] = x * th**7 / r
+  J_params[0, 3] = x * th**9 / r
+
+  J_params[1, 0] = y * th**3 / r
+  J_params[1, 1] = y * th**5 / r
+  J_params[1, 2] = y * th**7 / r
+  J_params[1, 3] = y * th**9 / r
+
+  return J_params
+
+
+def equi4_point_jacobian(dist_params, p):
+  assert (len(dist_params) == 4)
+  assert (len(p) == 2)
+
+  # Distortion parameters
+  k1, k2, k3, k4 = dist_params
+
+  # Jacobian
+  x, y = p
+  r = math.sqrt(x**2 + y**2)
+
+  th = math.atan(r)
+  th2 = th**2
+  th4 = th**4
+  th6 = th**6
+  th8 = th**8
+  thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8)
+
+  th_r = 1.0 / (r * r + 1.0)
+  thd_th = 1.0 + 3.0 * k1 * th2
+  thd_th += 5.0 * k2 * th4
+  thd_th += 7.0 * k3 * th6
+  thd_th += 9.0 * k4 * th8
+  s_r = thd_th * th_r / r - thd / (r * r)
+  r_x = 1.0 / r * x
+  r_y = 1.0 / r * y
+
+  J_point = zeros(2, 2)
+  J_point[0, 0] = s + x * s_r * r_x
+  J_point[0, 1] = x * s_r * r_y
+  J_point[1, 0] = y * s_r * r_x
+  J_point[1, 1] = s + y * s_r * r_y
+
+  return J_point
+
+
+###############################################################################
+# CALIBRATION
+###############################################################################
+
+
+class CalibTarget:
+  def __init__(self):
+    self.nb_rows = 0.0
+    self.nb_cols = 0.0
+    self.tag_size = 0.0
+    self.tag_spacing = 0.0
+
+
+def calib_generate_poses(calib_target):
+  # Settings
+  calib_width = (calib_target.nb_cols - 1.0) * calib_target.tag_size
+  calib_height = (calib_target.nb_rows - 1.0) * calib_target.tag_size
+  calib_center = np.array([calib_width / 2.0, calib_height / 2.0, 0.0])
+
+  # Pose settings
+  x_range = np.linspace(-0.3, 0.3, 5)
+  y_range = np.linspace(-0.3, 0.3, 5)
+  z_range = np.linspace(0.2, 0.5, 5)
+
+  # Generate camera positions infront of the AprilGrid target r_TC
+  cam_pos = zeros(3, len(x_range) * len(y_range) * len(z_range))
+  pos_idx = 1
+  for i in range(len(x_range)):
+    for j in range(len(y_range)):
+      for k in range(len(z_range)):
+        x = x_range[i]
+        y = y_range[j]
+        z = z_range[k]
+        r_TC = np.array([x, y, z]) + calib_center  # Calib center as offset
+        cam_pos[:, pos_idx] = r_TC
+        pos_idx += 1
+
+  # For each position create a camera pose that "looks at" the AprilGrid
+  # center in the target frame, T_TC.
+  poses = []
+  for i in range(cam_pos.shape[1]):
+    T_TC = lookat(cam_pos[:, i], calib_center)
+    poses.append(T_TC)
+
+
+def calib_generate_random_poses(calib_target, nb_poses):
+  # Settings
+  calib_width = (calib_target.nb_cols - 1.0) * calib_target.tag_size
+  calib_height = (calib_target.nb_rows - 1.0) * calib_target.tag_size
+  calib_center = np.array([calib_width / 2.0, calib_height / 2.0, 0.0])
+
+  angle_range = np.deg2rad([-20.0, 20.0])
+  x_range = [-0.5, 0.5]
+  y_range = [-0.5, 0.5]
+  z_range = [0.5, 0.7]
+
+  # For each position create a camera pose that "looks at" the AprilGrid
+  # center in the target frame, T_TC.
+  poses = []
+  for i in range(nb_poses):
+    # Generate random pose
+    x = numpy.random.uniform(x_range[0], x_range[1])
+    y = numpy.random.uniform(y_range[0], y_range[1])
+    z = numpy.random.uniform(z_range[0], z_range[1])
+    r_TC = calib_center + np.array([x, y, z])
+    T_TC = lookat(r_TC, calib_center)
+
+    # Perturb the pose a little so it doesn't look at the center directly
+    yaw = numpy.random.uniform(angle_range)
+    pitch = numpy.random.uniform(angle_range)
+    roll = numpy.random.uniform(angle_range)
+    C_perturb = euler321(yaw, pitch, roll)
+    r_perturb = zeros(3, 1)
+    T_perturb = tf(C_perturb, r_perturb)
+
+    poses.append(T_perturb * T_TC)
+
+
+###############################################################################
+# SIMULATION
+###############################################################################
+
+# def camera_measurements(camera, T_WC, points_W):
+#   assert(T_WC.shape [4, 4]);
+#   assert(points_W.shape[0] == 3);
+#   assert(points_W.shape[1] > 0);
+#
+#   # Form projection matrix
+#   T_CW = tf_inv(T_WC)
+#   C_CW = tf_rot(T_CW)
+#   r_CW = tf_trans(T_CW)
+#   K = pinhole_K(camera.param(1:4))
+#   P = K @ np.array([C_CW, r_CW])
+
+#   # Setup
+#   image_width = camera.resolution(1);
+#   image_height = camera.resolution(2);
+#   nb_points = columns(points_W);
+#
+#   # Check points
+#   z = [];
+#   point_ids = [];
+#
+#   for i = 1:nb_points
+#     # Project point to image plane
+#     hp_W = homogeneous(points_W(:, i));
+#     x = P * hp_W;
+#
+#     # Check to see if point is infront of camera
+#     if x(3) < 1e-4
+#       continue;
+#     endif
+#
+#     # Normalize projected ray
+#     x(1) = x(1) / x(3);
+#     x(2) = x(2) / x(3);
+#     x(3) = x(3) / x(3);
+#     z_hat = [x(1); x(2)];
+#
+#     # Check to see if ray is within image plane
+#     x_ok = (x(1) < image_width) && (x(1) > 0.0);
+#     y_ok = (x(2) < image_height) && (x(2) > 0.0);
+#     if x_ok && y_ok
+#       z = [z, z_hat];
+#       point_ids = [point_ids, i];
+#     endif
+#   endfor
+#   assert(columns(z) == length(point_ids));
+# endfunction
+
+###############################################################################
+#                               UNITTESTS
+###############################################################################
+
+import unittest
+
+
+class LinearAlgebraTests(unittest.TestCase):
+  def test_homogeneous(self):
+    p = np.array([1.0, 2.0, 3.0])
+    hp = homogeneous(p)
+    self.assertTrue(hp[0] == 1.0)
+    self.assertTrue(hp[1] == 2.0)
+    self.assertTrue(hp[2] == 3.0)
+    self.assertTrue(len(hp) == 4)
+
+  def test_dehomogeneous(self):
+    hp = np.array([1.0, 2.0, 3.0, 1.0])
+    p = dehomogeneous(hp)
+    self.assertTrue(p[0] == 1.0)
+    self.assertTrue(p[1] == 2.0)
+    self.assertTrue(p[2] == 3.0)
+    self.assertTrue(len(p) == 3)
+
+  def test_euler2quat_and_quat2euler(self):
+    y_in = deg2rad(3.0)
+    p_in = deg2rad(2.0)
+    r_in = deg2rad(1.0)
+
+    q = euler2quat(y_in, p_in, r_in)
+    ypr_out = quat2euler(q)
+
+    self.assertTrue(len(q) == 4)
+    self.assertTrue(abs(y_in - ypr_out[0]) < 1e-5)
+    self.assertTrue(abs(p_in - ypr_out[1]) < 1e-5)
+    self.assertTrue(abs(r_in - ypr_out[2]) < 1e-5)
+
+  def test_euler321(self):
+    C = euler321(0.0, 0.0, 0.0)
+    self.assertTrue(np.array_equal(C, eye(3)))
+
+
+class TransformTests(unittest.TestCase):
+  def test_quat_mul(self):
+    p = euler2quat(deg2rad(3.0), deg2rad(2.0), deg2rad(1.0))
+    q = euler2quat(deg2rad(1.0), deg2rad(2.0), deg2rad(3.0))
+    r = quat_mul(p, q)
+
+  def test_quat_norm(self):
+    q = np.array([1.0, 0.0, 0.0, 0.0])
+    self.assertTrue(isclose(quat_norm(q), 1.0))
+
+  def test_quat_normalize(self):
+    q = np.array([1.0, 0.1, 0.2, 0.3])
+    q = quat_normalize(q)
+    self.assertTrue(isclose(quat_norm(q), 1.0))
+
+  def test_tf(self):
+    pass
+    # pose = [1.0; 0.0; 0.0; 0.0; 1.0; 2.0; 3.0];
+    # T = tf(pose);
+    # self.assertTrue(isequal(T(1:3, 1:3), eye(3)) == 1);
+    # self.assertTrue(isequal(T(1:3, 4), [1; 2; 3]) == 1);
+
+    # C = [[1.0, 0.0, 0.0];
+    #     [0.0, 2.0, 0.0];
+    #     [0.0, 0.0, 3.0]];
+    # r = [1.0; 2.0; 3.0];
+    # T = tf(C, r);
+    # self.assertTrue(isequal(T(1:3, 1:3), C) == 1);
+    # self.assertTrue(isequal(T(1:3, 4), r) == 1);
+
+
+if __name__ == '__main__':
+  unittest.main()
