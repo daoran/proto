@@ -1,4 +1,7 @@
+import os
+import sys
 import math
+import yaml
 
 import numpy as np
 
@@ -15,41 +18,16 @@ def isclose(a, b, tol=1e-8):
 # LINEAR ALGEBRA
 ###############################################################################
 
-
-def rows(x):
-  return x.shape[0]
-
-
-def columns(x):
-  return x.shape[1]
-
-
-def deg2rad(x):
-  return np.deg2rad(x)
-
-
-def rad2deg(x):
-  return np.rad2deg(x)
-
-
-def ones(x):
-  return np.ones(x)
-
-
-def zeros(x):
-  return np.zeros(x)
-
-
-def eye(x):
-  return np.eye(x)
-
-
-def diag(x):
-  return np.diagonal(x)
-
-
-def norm(v):
-  return np.linalg.norm(v)
+from numpy import rad2deg
+from numpy import deg2rad
+from numpy import zeros
+from numpy import eye
+from numpy import diagonal as diag
+from numpy.linalg import norm
+from numpy.linalg import inv
+from numpy.linalg import pinv
+from numpy.linalg import matrix_rank as rank
+from numpy.linalg import eig
 
 
 def normalize(v):
@@ -59,34 +37,18 @@ def normalize(v):
   return v / norm
 
 
-def inv(v):
-  return np.linalg.inv(v)
-
-
-def pinv(v):
-  return np.linalg.pinv(v)
-
-
-def rank(A):
-  return np.linalg.matrix_rank(A)
-
-
 def fullrank(A):
   return rank(A) == A.shape[0]
 
 
 def skew(vec):
-  assert (vec.shape == (3,) or vec.shape == (3, 1))
+  assert vec.shape == (3,) or vec.shape == (3, 1)
   return np.array([[0, -z, y], [z, 0, -x], [-y, x, 0]])
 
 
 def skew_inv(A):
-  assert (A.shape == (3, 3))
+  assert A.shape == (3, 3)
   return np.array([A[2, 1], A(0, 2), A(1, 0)])
-
-
-def eig(v):
-  return np.linalg.eig(v)
 
 
 def fwdsubs(L, b):
@@ -97,7 +59,7 @@ def fwdsubs(L, b):
   Output vector x is the solution to the linear system
   L x = b
   """
-  assert (L.shape[1] == b.shape[0])
+  assert L.shape[1] == b.shape[0]
   n = b.shape[0]
 
   x = np.zeros(n, 1)
@@ -116,7 +78,7 @@ def bwdsubs(U, b):
   Output vector x is the solution to the linear system
   U x = b
   """
-  assert (U.shape[1] == b.shape[0])
+  assert U.shape[1] == b.shape[0]
   n = b.shape[0]
 
   x = np.zeros(n, 1)
@@ -128,7 +90,7 @@ def bwdsubs(U, b):
 
 
 def schurs_complement(H, g, m, r, precond=False):
-  assert (H.shape[0] == (m + r))
+  assert H.shape[0] == (m + r)
 
   # H = [Hmm, Hmr
   #      Hrm, Hrr];
@@ -146,7 +108,7 @@ def schurs_complement(H, g, m, r, precond=False):
     Hmm = 0.5 * (Hmm + Hmm.transpose())
 
   # Invert Hmm
-  assert (rank(Hmm) == Hmm.shape[0])
+  assert rank(Hmm) == Hmm.shape[0]
   (w, V) = eig(Hmm)
   W_inv = diag(1.0 / w)
   Hmm_inv = V * W_inv * V.transpose()
@@ -193,7 +155,7 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
 
 
 def Exp(phi):
-  assert (phi.shape == (3,) or phi.shape == (3, 1))
+  assert phi.shape == (3,) or phi.shape == (3, 1)
   if (phi < 1e-3):
     C = eye(3) + skew(phi)
     return C
@@ -209,7 +171,7 @@ def Exp(phi):
 
 
 def Log(C):
-  assert (C.shape == (3, 3))
+  assert C.shape == (3, 3)
   # phi = acos((trace(C) - 1) / 2);
   # u = skew_inv(C - C') / (2 * sin(phi));
   # rvec = phi * u;
@@ -702,9 +664,9 @@ def tf_vector(T):
 
 
 def lookat(cam_pos, target_pos, up_axis=[0.0, -1.0, 0.0]):
-  assert (cam_pos.shape == (3,) or cam_pos.shape == (3, 1))
-  assert (target_pos.shape == (3,) or target_pos.shape == (3, 1))
-  assert (up_axis.shape == (3,) or up_axis.shape == (3, 1))
+  assert cam_pos.shape == (3,) or cam_pos.shape == (3, 1)
+  assert target_pos.shape == (3,) or target_pos.shape == (3, 1)
+  assert up_axis.shape == (3,) or up_axis.shape == (3, 1)
 
   # Note: If we were using OpenGL the cam_dir would be the opposite direction,
   # since in OpenGL the camera forward is -z. In robotics however our camera is
@@ -714,15 +676,15 @@ def lookat(cam_pos, target_pos, up_axis=[0.0, -1.0, 0.0]):
   cam_up = cross(cam_dir, cam_right)
 
   A = zeros(4, 4)
-  A[0, :] = [cam_right(1), cam_right(2), cam_right(3), 0.0]
-  A[1, :] = [cam_up(1), cam_up(2), cam_up(3), 0.0]
-  A[2, :] = [cam_dir(1), cam_dir(2), cam_dir(3), 0.0]
+  A[0, :] = [cam_right[0], cam_right[1], cam_right[2], 0.0]
+  A[1, :] = [cam_up[0], cam_up[1], cam_up[2], 0.0]
+  A[2, :] = [cam_dir[0], cam_dir[1], cam_dir[2], 0.0]
   A[3, :] = [0.0, 0.0, 0.0, 1.0]
 
   B = zeros(4, 4)
-  B[0, :] = [1.0, 0.0, 0.0, -cam_pos(1)]
-  B[1, :] = [0.0, 1.0, 0.0, -cam_pos(2)]
-  B[2, :] = [0.0, 0.0, 1.0, -cam_pos(3)]
+  B[0, :] = [1.0, 0.0, 0.0, -cam_pos[0]]
+  B[1, :] = [0.0, 1.0, 0.0, -cam_pos[1]]
+  B[2, :] = [0.0, 0.0, 1.0, -cam_pos[2]]
   B[3, :] = [0.0, 0.0, 0.0, 1.0]
 
   T_camera_target = A @ B
@@ -758,32 +720,30 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   # Use SVD to solve AX = 0
   (_, _, V) = svd(A.transpose() * A)
   hp = V[:, 3]  # Get the best result from SVD (last column of V)
-  hp = hp / hp(3)  # Normalize the homogeneous 3D point
+  hp = hp / hp[2]  # Normalize the homogeneous 3D point
   p = hp[0:3]  # Return only the first three components (x, y, z)
 
 
 # PINHOLE #####################################################################
 
 
-def pinhole_project(proj_params, T_WC, p_W):
-  assert (len(proj_params) == 4)
-  assert (T_WC.shape == (4, 4))
-  assert (p_W.shape == (3, 1) or p_W.shape == (3,))
-
-  T_CW = tf_inv(T_WC)
-  p_C = tf_point(T_CW, p_W)
-
-  fx, fy, cx, cy = proj_params
-
-  x = np.array([p_C[0] / p_C[2], p_C(2) / p_C[2]])  # Project
-  z = np.array([fx * x[0] + cx, fy * x[1] + cy])
-  # Scale and center
-  return z
-
-
 def pinhole_K(params):
   fx, fy, cx, cy = params
   return np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
+
+
+def pinhole_project(proj_params, p_C):
+  assert len(proj_params) == 4
+  assert len(p_C) == 3
+
+  # Project
+  x = np.array([p_C[0] / p_C[2], p_C[1] / p_C[2]])
+
+  # Scale and center
+  fx, fy, cx, cy = proj_params
+  z = np.array([fx * x[0] + cx, fy * x[1] + cy])
+
+  return z
 
 
 def pinhole_params_jacobian(proj_params, x):
@@ -799,8 +759,8 @@ def pinhole_point_jacobian(proj_params):
 
 
 def radtan4_distort(dist_params, p):
-  assert (len(dist_params) == 4)
-  assert (len(p) == 2)
+  assert len(dist_params) == 4
+  assert len(p) == 2
 
   # Distortion parameters
   k1, k2, p1, p2 = dist_params
@@ -825,8 +785,8 @@ def radtan4_distort(dist_params, p):
 
 
 def radtan4_undistort(dist_params, p0):
-  assert (len(dist_params) == 4)
-  assert (len(p) == 2)
+  assert len(dist_params) == 4
+  assert len(p) == 2
 
   # Distortion parameters
   k1, k2, p1, p2 = dist_params
@@ -854,8 +814,8 @@ def radtan4_undistort(dist_params, p0):
 
 
 def radtan4_params_jacobian(dist_params, p):
-  assert (len(dist_params) == 4)
-  assert (len(p) == 2)
+  assert len(dist_params) == 4
+  assert len(p) == 2
 
   # Distortion parameters
   k1, k2, p1, p2 = dist_params
@@ -888,8 +848,8 @@ def radtan4_params_jacobian(dist_params, p):
 
 
 def equi4_distort(dist_params, p):
-  assert (len(dist_params) == 4)
-  assert (len(p) == 2)
+  assert len(dist_params) == 4
+  assert len(p) == 2
 
   # Distortion parameters
   k1, k2, k3, k4 = dist_params
@@ -910,7 +870,7 @@ def equi4_distort(dist_params, p):
 
 
 def equi4_undistort(dist_params, p):
-  thd = math.sqrt(p(0) * p(0) + p(1) * p(1))
+  thd = math.sqrt(p(0) * p(0) + p[0] * p[0])
 
   th = thd  # Initial guess
   for i in range(20):
@@ -925,8 +885,8 @@ def equi4_undistort(dist_params, p):
 
 
 def equi4_params_jacobian(dist_params, p):
-  assert (len(dist_params) == 4)
-  assert (len(p) == 2)
+  assert len(dist_params) == 4
+  assert len(p) == 2
 
   # Distortion parameters
   k1, k2, k3, k4 = dist_params
@@ -951,8 +911,8 @@ def equi4_params_jacobian(dist_params, p):
 
 
 def equi4_point_jacobian(dist_params, p):
-  assert (len(dist_params) == 4)
-  assert (len(p) == 2)
+  assert len(dist_params) == 4
+  assert len(p) == 2
 
   # Distortion parameters
   k1, k2, k3, k4 = dist_params
@@ -984,6 +944,148 @@ def equi4_point_jacobian(dist_params, p):
   J_point[1, 1] = s + y * s_r * r_y
 
   return J_point
+
+
+# PINHOLE RADTAN4 #############################################################
+
+
+def pinhole_radtan4_project(proj_params, dist_params, p_C):
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(p_C) == 3
+
+  # Project
+  x = np.array([p_C[0] / p_C[2], p_C[1] / p_C[2]])
+
+  # Distort
+  x_dist = radtan4_distort(dist_params, x)
+
+  # Scale and center to image plane
+  fx, fy, cx, cy = proj_params
+  z = np.array([fx * x_dist[0] + cx, fy * x_dist[1] + cy])
+  return z
+
+
+def pinhole_radtan4_backproject(proj_params, dist_params, z):
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(z) == 2
+
+  # Convert image pixel coordinates to normalized retinal coordintes
+  fx, fy, cx, cy = proj_params
+  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy, 1.0])
+
+  # Undistort
+  x = radtan4_undistort(dist_params, x)
+
+  # 3D ray
+  p = np.array([x[0], x[1], 1.0])
+  return p
+
+
+def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C):
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(p_C) == 3
+
+  # Project 3D point
+  x = np.array([p_C[0] / p_C[2], p_C[1] / p_C[2]])
+
+  # Jacobian
+  J_proj = zeros(2, 3)
+  J_proj[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2]**2]
+  J_proj[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2]**2]
+  J_dist_point = radtan4_point_jacobian(dist_params, x)
+  J_proj_point = pinhole_point_jacobian(proj_params)
+  return J_proj_point @ J_dist_point @ J_proj
+
+
+def pinhole_radtan4_params_jacobian(proj_params, dist_params, p_C):
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(p_C) == 3
+
+  x = np.array([p_C[0] / p_C[2], p_C[1] / p_C[2]])  # Project 3D point
+  x_dist = radtan4_distort(dist_params, x)  # Distort point
+
+  J_proj_point = pinhole_point_jacobian(proj_params)
+  J_dist_params = radtan4_params_jacobian(dist_params, x)
+
+  J = zeros(2, 8)
+  J[0:2, 0:4] = pinhole_params_jacobian(proj_params, x_dist)
+  J[0:2, 4:8] = J_proj_point @ J_dist_params
+  return J
+
+
+# PINHOLE EQUI4 ###############################################################
+
+
+def pinhole_equi4_project(proj_params, dist_params, p_C):
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(p_C) == 3
+
+  # Project
+  x = np.array([p_C[0] / p_C[2], p_C[1] / p_C[2]])
+
+  # Distort
+  x_dist = equi4_distort(dist_params, x)
+
+  # Scale and center to image plane
+  fx, fy, cx, cy = proj_params
+  z = np.array([fx * x_dist[0] + cx, fy * x_dist[1] + cy])
+  return z
+
+
+def pinhole_equi4_backproject(proj_params, dist_params, z):
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(z) == 2
+
+  # Convert image pixel coordinates to normalized retinal coordintes
+  fx, fy, cx, cy = proj_params
+  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy, 1.0])
+
+  # Undistort
+  x = equi4_undistort(dist_params, x)
+
+  # 3D ray
+  p = np.array([x[0], x[1], 1.0])
+  return p
+
+
+def pinhole_equi4_project_jacobian(proj_params, dist_params, p_C):
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(p_C) == 3
+
+  # Project 3D point
+  x = np.array([p_C[0] / p_C[2], p_C[1] / p_C[2]])
+
+  # Jacobian
+  J_proj = zeros(2, 3)
+  J_proj[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2]**2]
+  J_proj[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2]**2]
+  J_dist_point = equi4_point_jacobian(dist_params, x)
+  J_proj_point = pinhole_point_jacobian(proj_params)
+  return J_proj_point @ J_dist_point @ J_proj
+
+
+def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C):
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(p_C) == 3
+
+  x = np.array([p_C[0] / p_C[2], p_C[1] / p_C[2]])  # Project 3D point
+  x_dist = equi4_distort(dist_params, x)  # Distort point
+
+  J_proj_point = pinhole_point_jacobian(proj_params)
+  J_dist_params = equi4_params_jacobian(dist_params, x)
+
+  J = zeros(2, 8)
+  J[0:2, 0:4] = pinhole_params_jacobian(proj_params, x_dist)
+  J[0:2, 4:8] = J_proj_point @ J_dist_params
+  return J
 
 
 ###############################################################################
@@ -1064,9 +1166,311 @@ def calib_generate_random_poses(calib_target, nb_poses):
     poses.append(T_perturb * T_TC)
 
 
+class AprilGrid:
+  def __init__(self, tag_rows=6, tag_cols=6, tag_size=0.088, tag_spacing=0.3):
+    self.tag_rows = tag_rows
+    self.tag_cols = tag_cols
+    self.tag_sizse = tag_size
+    self.tag_spacing = tag_spacing
+    self.object_points = self.object_points()
+    self.keypoints = {}
+
+  def grid_index(self, tag_id):
+    assert tag_id < (self.tag_rows * self.tag_cols) and id >= 0
+    i = floor(tag_id / self.tag_cols)
+    j = floor(rem(tag_id, self.tag_cols))
+    return (i, j)
+
+  def object_points(self):
+    object_points = []
+
+    nb_tags = self.tag_rows * self.tag_cols
+    for tag_id in range(nb_tags - 1):
+      # Calculate the AprilGrid index using tag id
+      [i, j] = self.grid_index(grid, tag_id)
+
+      # Calculate the x and y of the tag origin (bottom left corner of tag)
+      # relative to grid origin (bottom left corner of entire grid)
+      x = j * (self.tag_sizse + self.tag_sizse * self.tag_spacing)
+      y = i * (self.tag_sizse + self.tag_sizse * self.tag_spacing)
+
+      # Bottom left
+      pt_bl = [x, y, 0]
+      # Bottom right
+      pt_br = [x + self.tag_sizse, y, 0]
+      # Top right
+      pt_tr = [x + self.tag_sizse, y + self.tag_sizse, 0]
+      # Top left
+      pt_tl = [x, y + self.tag_sizse, 0]
+
+      # Tag object points
+      tag_points = [pt_bl, pt_br, pt_tr, pt_tl]
+
+      # Add to total object points
+      object_points.append(tag_points)
+
+    return object_points
+
+
 ###############################################################################
 # SIMULATION
 ###############################################################################
+
+
+class CameraEvent:
+  def __init__(self, ts, cam_idx, measurements):
+    self.ts = ts
+    self.cam_idx = cam_idx
+    self.measurements = measurements
+
+
+class ImuEvent:
+  def __init__(self, ts, imu_idx, acc, gyr):
+    self.ts = ts
+    self.imu_idx = imu_idx
+    self.acc = acc
+    self.gyr = gyr
+
+
+def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
+  features = zeros(nb_features, 3)
+  for i in range(nb_features):
+    features[i, 0] = randf(x_bounds)
+    features[i, 1] = randf(y_bounds)
+    features[i, 2] = randf(z_bounds)
+  return features
+
+
+def create_3d_features_perimeter(origin, dim, nb_features):
+  assert len(origin) == 3
+  assert len(dim) == 3
+  assert nb_features > 0
+
+  # Dimension of the outskirt
+  w = dim[0]
+  l = dim[1]
+  h = dim[2]
+
+  # Features per side
+  nb_fps = nb_features / 4.0
+
+  # Features in the east side
+  x_bounds = [origin[0] - w, origin[0] + w]
+  y_bounds = [origin[1] + l, origin[1] + l]
+  z_bounds = [origin[2] - h, origin[2] + h]
+  east_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+
+  # Features in the north side
+  x_bounds = [origin[0] + w, origin[0] + w]
+  y_bounds = [origin[1] - l, origin[1] + l]
+  z_bounds = [origin[2] - h, origin[2] + h]
+  north_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+
+  # Features in the west side
+  x_bounds = [origin[0] - w, origin[0] + w]
+  y_bounds = [origin[1] - l, origin[1] - l]
+  z_bounds = [origin[2] - h, origin[2] + h]
+  west_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+
+  # Features in the south side
+  x_bounds = [origin[0] - w, origin[0] - w]
+  y_bounds = [origin[1] - l, origin[1] + l]
+  z_bounds = [origin[2] - h, origin[2] + h]
+  south_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+
+  # Stack features and return
+  features = np.array(
+      [east_features, north_features, west_features, south_features])
+
+
+def sim_vo_circle(circle_r, velocity, **kwargs):
+  C_BC0 = euler321(deg2rad([-90.0, 0.0, -90.0]))
+  r_BC0 = [0.01, 0.01, 0.05]
+  T_BC0 = tf(C_BC0, r_BC0)
+  nb_features = 1000
+
+  # cam0
+  cam_idx = 0
+  image_width = 640
+  image_height = 480
+  resolution = [image_width, image_height]
+  fov = 90.0
+  fx = focal_length(image_width, fov)
+  fy = focal_length(image_width, fov)
+  cx = image_width / 2
+  cy = image_height / 2
+  proj_params = [fx, fy, cx, cy]
+  dist_params = [-0.01, 0.01, 1e-4, 1e-4]
+  cam0 = pinhole_radtan4_init(cam_idx, resolution, proj_params, dist_params)
+
+  # Simulate features
+  origin = [0, 0, 0]
+  dim = [circle_r * 2, circle_r * 2, circle_r * 1.5]
+  features = create_3d_features_perimeter(origin, dim, nb_features)
+
+  # Simulate camera
+  cam_rate = 20.0
+  circle_dist = 2.0 * pi * circle_r
+  time_taken = circle_dist / velocity
+
+  dt = 1.0 / cam_rate
+  w = -2.0 * pi * (1.0 / time_taken)
+  time = 0.0
+  theta = pi
+  yaw = pi / 2.0
+
+  cam_time = []
+  cam_poses = {}
+  cam_pos = []
+  cam_quat = []
+  cam_att = []
+  z_data = {}
+  p_data = {}
+
+  # Simulate camera
+  idx = 1
+  while (time <= time_taken):
+    # Body pose
+    rx = circle_r * cos(theta)
+    ry = circle_r * sin(theta)
+    rz = 0.0
+    r_WB = [rx, ry, rz]
+    rpy_WB = [0.0, 0.0, yaw]
+    C_WB = euler321(rpy_WB)
+    T_WB = tf(C_WB, r_WB)
+
+    # Camera pose
+    T_WC0 = T_WB * T_BC0
+    [z_data, p_data] = camera_measurements(cam0, T_WC0, features.transpose())
+    cam_time.append(time)
+    cam_poses[time] = T_WC0
+    cam_pos.append(tf_trans(T_WC0))
+    cam_quat.append(tf_quat(T_WC0))
+    cam_att.append(quat2euler(tf_quat(T_WC0)))
+    cam_z_data.append(z_data)
+    cam_p_data.append(p_data)
+
+    # Update
+    idx += 1
+    theta += w * dt
+    yaw += w * dt
+    time += dt
+
+  # # Form timeline
+  # timeline = []
+  # for k in range(cam_time):
+  #   event = {}
+  #   event.ts = cam_time(k)
+  #   event.cam_pose = cam_poses{k}
+  #   event.cam_z_data = cam_z_data{k}
+  #   event.cam_p_data = cam_p_data{k}
+  #   timeline.append(event)
+
+  # # Simulation data
+  # sim_data = {}
+  # sim_data.timeline = timeline
+  # # -- Features
+  # sim_data.nb_features = nb_features
+  # sim_data.features = features
+  # # -- Camera
+  # sim_data.T_BC0 = T_BC0
+  # sim_data.cam0 = cam0
+  # sim_data.cam_time = cam_time
+  # sim_data.cam_poses = cam_poses
+  # sim_data.cam_pos = cam_pos
+  # sim_data.cam_quat = cam_quat
+  # sim_data.cam_att = cam_att
+  # sim_data.cam_z_data = cam_z_data
+  # sim_data.cam_p_data = cam_p_data
+
+
+def sim_imu_circle(circle_r, velocity):
+  imu_rate = 200.0
+  circle_dist = 2.0 * pi * circle_r
+  time_taken = circle_dist / velocity
+  g = np.array([0.0, 0.0, 9.81])
+  print("Simulating ideal IMU measurements ...")
+  print("imu_rate: %f" % imu_rate)
+  print("circle_r: %f" % circle_r)
+  print("circle_dist: %f" % circle_dist)
+  print("time_taken: %f" % time_taken)
+
+  dt = 1.0 / imu_rate
+  w = -2.0 * pi * (1.0 / time_taken)
+  t = 0
+
+  theta = pi
+  yaw = pi / 2.0
+
+  imu_poses = []
+  imu_pos = []
+  imu_quat = []
+  imu_att = []
+  imu_vel = []
+
+  imu_time = []
+  imu_acc = []
+  imu_gyr = []
+
+  idx = 1
+  while (t <= time_taken):
+    # IMU pose
+    rx = circle_r * cos(theta)
+    ry = circle_r * sin(theta)
+    rz = 0.0
+    r_WS = np.array([rx, ry, rz])
+    rpy_WS = np.array([0.0, 0.0, yaw])
+    C_WS = euler321(rpy_WS)
+    T_WS = tf(C_WS, r_WS)
+
+    # IMU velocity
+    vx = -circle_r * w * sin(theta)
+    vy = circle_r * w * cos(theta)
+    vz = 0.0
+    v_WS = np.array([vx, vy, vz])
+
+    # IMU acceleration
+    ax = -circle_r * w * w * cos(theta)
+    ay = -circle_r * w * w * sin(theta)
+    az = 0.0
+    a_WS = np.array([ax, ay, az])
+
+    # IMU angular velocity
+    wx = 0.0
+    wy = 0.0
+    wz = w
+    w_WS = np.array([wx, wy, wz])
+
+    # IMU measurements
+    acc = C_WS.transpose() @ (a_WS + g)
+    gyr = C_WS.transpose() @ w_WS
+
+    # Update
+    imu_poses.append(T_WS)
+    imu_pos.append(tf_trans(T_WS))
+    imu_quat.append(tf_quat(T_WS))
+    imu_att.append(quat2euler(tf_quat(T_WS)))
+    imu_vel.append(v_WS)
+
+    imu_time.append(t)
+    imu_acc.append(acc)
+    imu_gyr.append(gyr)
+
+    idx += 1
+    theta += w * dt
+    yaw += w * dt
+    t += dt
+
+  # sim_data = {}
+  # sim_data.imu_poses = imu_poses
+  # sim_data.imu_pos = imu_pos
+  # sim_data.imu_quat = imu_quat
+  # sim_data.imu_att = imu_att
+  # sim_data.imu_vel = imu_vel
+  # sim_data.imu_time = imu_time
+  # sim_data.imu_acc = imu_acc
+  # sim_data.imu_gyr = imu_gyr
+
 
 # def camera_measurements(camera, T_WC, points_W):
 #   assert(T_WC.shape [4, 4]);
@@ -1081,8 +1485,8 @@ def calib_generate_random_poses(calib_target, nb_poses):
 #   P = K @ np.array([C_CW, r_CW])
 
 #   # Setup
-#   image_width = camera.resolution(1);
-#   image_height = camera.resolution(2);
+#   image_width = camera.resolution[0];
+#   image_height = camera.resolution[1];
 #   nb_points = columns(points_W);
 #
 #   # Check points
@@ -1095,19 +1499,19 @@ def calib_generate_random_poses(calib_target, nb_poses):
 #     x = P * hp_W;
 #
 #     # Check to see if point is infront of camera
-#     if x(3) < 1e-4
+#     if x[2] < 1e-4
 #       continue;
 #     endif
 #
 #     # Normalize projected ray
-#     x(1) = x(1) / x(3);
-#     x(2) = x(2) / x(3);
-#     x(3) = x(3) / x(3);
-#     z_hat = [x(1); x(2)];
+#     x[0] = x[0] / x[2];
+#     x[1] = x[1] / x[2];
+#     x[2] = x[2] / x[2];
+#     z_hat = [x[0]; x[1]];
 #
 #     # Check to see if ray is within image plane
-#     x_ok = (x(1) < image_width) && (x(1) > 0.0);
-#     y_ok = (x(2) < image_height) && (x(2) > 0.0);
+#     x_ok = (x[0] < image_width) and (x[0] > 0.0);
+#     y_ok = (x[1] < image_height) and (x[1] > 0.0);
 #     if x_ok && y_ok
 #       z = [z, z_hat];
 #       point_ids = [point_ids, i];
@@ -1124,6 +1528,16 @@ import unittest
 
 
 class LinearAlgebraTests(unittest.TestCase):
+  def test_pass(self):
+    pass
+
+
+class LieTests(unittest.TestCase):
+  def test_Exp_Log(self):
+    pass
+
+
+class TransformTests(unittest.TestCase):
   def test_homogeneous(self):
     p = np.array([1.0, 2.0, 3.0])
     hp = homogeneous(p)
@@ -1157,8 +1571,6 @@ class LinearAlgebraTests(unittest.TestCase):
     C = euler321(0.0, 0.0, 0.0)
     self.assertTrue(np.array_equal(C, eye(3)))
 
-
-class TransformTests(unittest.TestCase):
   def test_quat_mul(self):
     p = euler2quat(deg2rad(3.0), deg2rad(2.0), deg2rad(1.0))
     q = euler2quat(deg2rad(1.0), deg2rad(2.0), deg2rad(3.0))
