@@ -10,6 +10,10 @@ import numpy as np
 
 data_path = '/data/euroc/raw/V1_01'
 
+################################################################################
+# EUROC
+################################################################################
+
 
 def load_euroc_dataset(data_path):
   """ Load EuRoC Dataset """
@@ -46,6 +50,59 @@ def load_euroc_dataset(data_path):
   dataset['cam1'] = cam1_data
 
   return dataset
+
+
+################################################################################
+# CV
+################################################################################
+
+
+class FeatureGrid:
+  """
+  FeatureGrid
+
+  The idea is to take all the feature positions and put them into grid cells
+  across the full image space. This is so that one could keep track of how many
+  feautures are being tracked in each individual grid cell and act accordingly.
+
+  o-----> x
+  | ---------------------
+  | |  0 |  1 |  2 |  3 |
+  V ---------------------
+  y |  4 |  5 |  6 |  7 |
+    ---------------------
+    |  8 |  9 | 10 | 11 |
+    ---------------------
+    | 12 | 13 | 14 | 15 |
+    ---------------------
+
+    grid_x = ceil((max(1, kp_x) / img_w) * grid_cols) - 1.0
+    grid_y = ceil((max(1, kp_y) / img_h) * grid_rows) - 1.0
+    cell_id = int(grid_x + (grid_y * grid_cols))
+
+  """
+
+  def __init__(self, grid_rows, grid_cols, image_shape, keypoints):
+    assert len(image_shape) == 2
+    self.grid_rows = grid_rows
+    self.grid_cols = grid_cols
+    self.image_shape = image_shape
+    self.keypoints = keypoints
+
+    self.cell = [0 for i in range(self.grid_rows * self.grid_cols)]
+    for kp in keypoints:
+      self.cell[self.cell_index(kp)] += 1
+
+  def cell_index(self, kp):
+    kp_x, kp_y = kp
+    img_w, img_h = self.image_shape
+    grid_x = math.ceil((max(1, kp_x) / img_w) * self.grid_cols) - 1.0
+    grid_y = math.ceil((max(1, kp_y) / img_h) * self.grid_rows) - 1.0
+    cell_id = int(grid_x + (grid_y * self.grid_cols))
+    return cell_id
+
+  def count(self, cell_idx):
+    return self.cell[cell_idx]
 
 
 def klt(img_i, img_j, kps_i):
@@ -129,17 +186,23 @@ def grid_detect(detector, image, **kwargs):
   return kps_all, np.array(des_all)
 
 
-class FeaturesGrid:
-  def __init__(self, grid_rows, grid_cols, image_shape, keypoints, descriptors):
-    self.keypoints = keypoints
-    self.descriptors = descriptors
-    self.bins = []
-
-  def count(self, cell_idx):
-    pass
+################################################################################
+# FEATURE TRACKER
+################################################################################
 
 
 class FeatureTrackingData:
+  """ Feature tracking data per camera
+
+  This data structure keeps track of:
+
+  - Image
+  - Keypoints
+  - Descriptors
+  - Feature ids (optional)
+
+  """
+
   def __init__(self, image, keypoints, descriptors=None, feature_ids=None):
     self.image = image
     self.keypoints = keypoints
@@ -151,6 +214,18 @@ class FeatureTrackingData:
 
 
 class FeatureMatches:
+  """ Feature matches
+
+  This data structure keeps track of:
+
+  - Images
+  - Keypoints
+  - Descriptors
+
+  for feature matching.
+
+  """
+
   def __init__(self, data_i, data_j):
     self.image_i = data_i.image
     self.keypoints_i = data_i.keypoints
@@ -162,6 +237,11 @@ class FeatureMatches:
 
 
 class FeatureTracker:
+  """
+  Feature tracker
+
+  """
+
   def __init__(self):
     # Settings
     self.mode = "OVERLAPS_ONLY"
@@ -340,6 +420,37 @@ class FeatureTracker:
     self.frame_idx += 1
 
     return viz
+
+
+################################################################################
+# UNIT-TESTS
+################################################################################
+
+
+class TestFeatureGrid(unittest.TestCase):
+  def test_cell_index(self):
+    grid_rows = 4
+    grid_cols = 4
+    image_shape = (320, 280)
+    keypoints = [[0, 0], [320, 0], [0, 280], [320, 280]]
+    grid = FeatureGrid(grid_rows, grid_cols, image_shape, keypoints)
+
+    self.assertEqual(grid.cell[0], 1)
+    self.assertEqual(grid.cell[3], 1)
+    self.assertEqual(grid.cell[12], 1)
+    self.assertEqual(grid.cell[15], 1)
+
+  def test_count(self):
+    grid_rows = 4
+    grid_cols = 4
+    image_shape = (320, 280)
+    keypoints = [[0, 0], [320, 0], [0, 280], [320, 280]]
+    grid = FeatureGrid(grid_rows, grid_cols, image_shape, keypoints)
+
+    self.assertEqual(grid.count(0), 1)
+    self.assertEqual(grid.count(3), 1)
+    self.assertEqual(grid.count(12), 1)
+    self.assertEqual(grid.count(15), 1)
 
 
 class TestFeatureTracker(unittest.TestCase):
