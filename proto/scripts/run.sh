@@ -20,7 +20,7 @@ memcheck() {
 # node js/proto.js
 
 # python3 scripts/tf_point.py
-python3 python/feature_tracker.py TestFeatureGrid
+python3 python/feature_tracker.py TestCV.test_grid_detect
 
 # make format_code
 # ctags -R lib

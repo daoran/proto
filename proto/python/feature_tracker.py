@@ -105,6 +105,55 @@ class FeatureGrid:
     return self.cell[cell_idx]
 
 
+def grid_detect(detector, image, **kwargs):
+  """
+  Detect features uniformly using a grid system.
+  """
+  max_keypoints = kwargs.get('max_keypoints', 1000)
+  grid_rows = kwargs.get('grid_rows', 3)
+  grid_cols = kwargs.get('grid_cols', 3)
+
+  # Calculate number of grid cells and max corners per cell
+  image_height, image_width = image.shape
+  dx = int(math.ceil(float(image_width) / float(grid_cols)))
+  dy = int(math.ceil(float(image_height) / float(grid_rows)))
+  nb_cells = grid_rows * grid_cols
+  max_per_cell = math.floor(max_keypoints / nb_cells)
+  print("max_per_cell", max_per_cell)
+
+  # Detect corners in each grid cell
+  des_all = []
+  kps_all = []
+
+  cell_idx = 0
+  for x in range(0, image_width, dx):
+    for y in range(0, image_height, dy):
+      # Make sure roi width and height are not out of bounds
+      w = image_width - x if (x + dx > image_width) else dx
+      h = image_height - y if (y + dy > image_height) else dy
+
+      # Detect corners in grid cell
+      cs, ce, rs, re = (x, x + w, y, y + h)
+      kps = detector.detect(image[rs:re, cs:ce], None)
+      kps, des = detector.compute(image, kps)
+
+      # Offset actual keypoint position relative to full image
+      for i in range(min(len(kps), max_per_cell)):
+        kp = kps[i]
+        kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
+        kps_all.append(kp)
+        des_all.append(des[i, :])
+
+      cell_idx += 1
+
+  if kwargs.get('debug', False):
+    viz = cv2.drawKeypoints(image, kps_all, None)
+    cv2.imshow("viz", viz)
+    cv2.waitKey(0)
+
+  return kps_all, np.array(des_all)
+
+
 def klt(img_i, img_j, kps_i):
   """
   Track keypoints from image i to image j using optical flow.
@@ -137,53 +186,6 @@ def klt(img_i, img_j, kps_i):
       inliers.append(False)
 
   return (kps_i, kps_j, inliers)
-
-
-def grid_detect(detector, image, **kwargs):
-  """
-  Detect features uniformly using a grid system.
-  """
-  max_keypoints = kwargs.get('max_keypoints', 1000)
-  grid_rows = kwargs.get('grid_rows', 3)
-  grid_cols = kwargs.get('grid_cols', 3)
-
-  # Calculate number of grid cells and max corners per cell
-  image_height, image_width = image.shape
-  dx = int(math.ceil(float(image_width) / float(grid_cols)))
-  dy = int(math.ceil(float(image_height) / float(grid_rows)))
-  nb_cells = grid_rows * grid_cols
-  max_per_cell = math.floor(max_keypoints / nb_cells)
-
-  # Detect corners in each grid cell
-  des_all = []
-  kps_all = []
-
-  cell_idx = 0
-  for x in range(0, image_width, dx):
-    for y in range(0, image_height, dy):
-      # Make sure roi width and height are not out of bounds
-      w = image_width - x if (x + dx > image_width) else dx
-      h = image_height - y if (y + dy > image_height) else dy
-
-      # Detect corners in grid cell
-      cs, ce, rs, re = (x, x + w, y, y + h)
-      kps = detector.detect(image[rs:re, cs:ce], None)
-      kps, des = detector.compute(image, kps)
-
-      # Offset actual keypoint position relative to full image
-      for i in range(min(len(kps), max_per_cell)):
-        kp = kps[i]
-        kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
-        kps_all.append(kp)
-        des_all.append(des[i, :])
-
-      cell_idx += 1
-
-  viz = cv2.drawKeypoints(image, kps_all, None)
-  cv2.imshow("viz", viz)
-  cv2.waitKey(0)
-
-  return kps_all, np.array(des_all)
 
 
 ################################################################################
@@ -427,8 +429,20 @@ class FeatureTracker:
 ################################################################################
 
 
-class TestFeatureGrid(unittest.TestCase):
-  def test_cell_index(self):
+class TestEuoc(unittest.TestCase):
+  def test_load(self):
+    pass
+
+
+class TestCV(unittest.TestCase):
+  def setUp(self):
+    # Load test data
+    self.dataset = load_euroc_dataset(data_path)
+    ts = self.dataset['timestamps'][0]
+    self.img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
+    self.img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
+
+  def test_feature_grid_cell_index(self):
     grid_rows = 4
     grid_cols = 4
     image_shape = (320, 280)
@@ -440,7 +454,7 @@ class TestFeatureGrid(unittest.TestCase):
     self.assertEqual(grid.cell[12], 1)
     self.assertEqual(grid.cell[15], 1)
 
-  def test_count(self):
+  def test_feature_grid_count(self):
     grid_rows = 4
     grid_cols = 4
     image_shape = (320, 280)
@@ -451,6 +465,18 @@ class TestFeatureGrid(unittest.TestCase):
     self.assertEqual(grid.count(3), 1)
     self.assertEqual(grid.count(12), 1)
     self.assertEqual(grid.count(15), 1)
+
+  def test_grid_detect(self):
+    debug = False
+    feature = cv2.ORB_create(nfeatures=100)
+    kps, des = grid_detect(feature, self.img0, debug=debug)
+    self.assertTrue(len(kps) > 0)
+    self.assertEqual(des.shape[0], len(kps))
+
+  # def test_klt(self):
+  #   cv2.imshow('viz', self.img0)
+  #   if cv2.waitKey(0) == ord('q'):
+  #     return
 
 
 class TestFeatureTracker(unittest.TestCase):
