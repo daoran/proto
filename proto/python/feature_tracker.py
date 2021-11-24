@@ -112,6 +112,7 @@ def grid_detect(detector, image, **kwargs):
   max_keypoints = kwargs.get('max_keypoints', 1000)
   grid_rows = kwargs.get('grid_rows', 3)
   grid_cols = kwargs.get('grid_cols', 3)
+  prev_kps = kwargs.get('prev_kps', [])
 
   # Calculate number of grid cells and max corners per cell
   image_height, image_width = image.shape
@@ -119,9 +120,9 @@ def grid_detect(detector, image, **kwargs):
   dy = int(math.ceil(float(image_height) / float(grid_rows)))
   nb_cells = grid_rows * grid_cols
   max_per_cell = math.floor(max_keypoints / nb_cells)
-  print("max_per_cell", max_per_cell)
 
   # Detect corners in each grid cell
+  feature_grid = FeatureGrid(grid_rows, grid_cols, image.shape, prev_kps)
   des_all = []
   kps_all = []
 
@@ -138,7 +139,8 @@ def grid_detect(detector, image, **kwargs):
       kps, des = detector.compute(image, kps)
 
       # Offset actual keypoint position relative to full image
-      for i in range(min(len(kps), max_per_cell)):
+      cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
+      for i in range(min(len(kps), cell_vacancy)):
         kp = kps[i]
         kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
         kps_all.append(kp)
@@ -154,16 +156,17 @@ def grid_detect(detector, image, **kwargs):
   return kps_all, np.array(des_all)
 
 
-def klt(img_i, img_j, kps_i):
+def optflow_track(img_i, img_j, pts_i, **kwargs):
   """
-  Track keypoints from image i to image j using optical flow.
+  Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
+  flow.
   """
   # Track using optical flow
   patch_size = 10
   criteria = cv2.TermCriteria_COUNT
   criteria |= cv2.TermCriteria_EPS
-  criteria |= max_iter
-  criteria |= epsilon
+  criteria |= kwargs.get('max_iter', 100)
+  # criteria |= epsilon
 
   config = {}
   config['windSize'] = (patch_size, patch_size)
@@ -171,21 +174,28 @@ def klt(img_i, img_j, kps_i):
   config['criteria'] = criteria
   config['flags'] = cv2.OPTFLOW_USE_INITIAL_FLOW
 
-  track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, kps_i, None, criteria)
-  (kps_j, optflow_mask, errs) = track_results
+  track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, pts_i, None, criteria)
+  (pts_j, optflow_mask, errs) = track_results
 
   # Remove outliers using RANSAC
-  F, fundmat_mask = cv2.findFundamentalMat(kps_i, kps_j, cv2.FM_8POINT)
+  F, fundmat_mask = cv2.findFundamentalMat(pts_i, pts_j, cv2.FM_8POINT)
 
   # Update or mark feature as lost
   inliers = []
-  for i in range(len(kps_i)):
+  for i in range(len(pts_i)):
     if optflow_mask[i] and fundmat_mask[i]:
       inliers.append(True)
     else:
       inliers.append(False)
 
-  return (kps_i, kps_j, inliers)
+  if kwargs.get('debug', False):
+    viz_i = cv2.drawKeypoints(img_i, pts_i, None)
+    viz_j = cv2.drawKeypoints(img_i, pts_j, None)
+    viz = np.hconcat(viz_i, viz_j)
+    cv2.imshow('viz', viz)
+    cv2.waitKey(0)
+
+  return (pts_i, pts_j, inliers)
 
 
 ################################################################################
@@ -264,27 +274,35 @@ class FeatureTracker:
 
   def add_camera(self, cam_idx):
     self.cam_indices.append(cam_idx)
-    self.cam_data[cam_idx] = {"keypoints": None, "descriptors": None}
+    self.cam_data[cam_idx] = None
 
   def add_overlap(self, cam_i_idx, cam_j_idx):
     self.cam_overlaps.append((cam_i_idx, cam_j_idx))
 
-  def _detect(self, image):
+  def _get_keypoints(self, cam_idx):
+    keypoints = []
+    if self.cam_data[cam_idx] is not None:
+      keypoints = self.cam_data[cam_idx].keypoints
+    return keypoints
+
+  def _form_feature_ids(self, nb_kps):
+    self.features_detected += nb_kps
+    start_idx = self.features_detected - nb_kps
+    end_idx = start_idx + nb_kps
+    return range(start_idx, end_idx)
+
+  def _detect(self, image, prev_kps=[]):
     assert image is not None
-    # grid_detect(self.feature, image)
-
-    kps = self.feature.detect(image, None)
-    kps, des = self.feature.compute(image, kps)
+    kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
     ft_data = FeatureTrackingData(image, kps, des)
-
     return ft_data
 
   def _detect_multicam(self, camera_images):
     det_data = {}
     for cam_idx in self.cam_indices:
       image = camera_images[cam_idx]
-      det_data[cam_idx] = self._detect(image)
-
+      prev_kps = self._get_keypoints(cam_idx)
+      det_data[cam_idx] = self._detect(image, prev_kps)
     return det_data
 
   def _match(self, data_i, data_j, sort_matches=True):
@@ -318,71 +336,43 @@ class FeatureTracker:
     data_j = FeatureTrackingData(img_j, kps_j_new, des_j_new)
     return (data_i, data_j, matches_new)
 
-  def _form_feature_ids(self, nb_kps):
-    nb_features_k = nb_kps
-    self.features_detected += nb_features_k
-    start_idx = self.features_detected - nb_features_k
-    end_idx = start_idx + nb_features_k
-    return range(start_idx, end_idx)
+  def _detect_overlaps(self, camera_images):
+    # Detect features for each camera
+    det_data = self._detect_multicam(camera_images)
 
-  def _initialize(self, camera_images):
-    # Track both overlapping and non-overlapping feature
-    if self.mode == "DEFAULT":
-      # Detect features for each camera
-      det_data = self._detect_multicam(camera_images)
-
-      # Track overlaps
-      for cam_i, cam_j in self.cam_overlaps:
-        # Match keypoints and descriptors
-        data_i = det_data[cam_i]
-        data_j = det_data[cam_j]
-        (data_i, data_j, matches) = self._match(data_i, data_j)
-
-        # Add to camera data
-        feature_ids = self._form_feature_ids(len(matches))
-        data_i.feature_ids = feature_ids
-        data_j.feature_ids = feature_ids
-        self.cam_data[cam_i] = data_i
-        self.cam_data[cam_j] = data_j
-
-      # Track non-overlaps
-      det_data = self._detect_multicam(camera_images)
-      for cam_idx in det_data.keys():
-        data = det_data[cam_idx]
-        data.feature_ids = _form_feature_ids(len(kps))
-        self.cam_data[cam_idx] = data
-
-    # Track overlaps only
-    if self.mode == "OVERLAPS_ONLY":
-      # Detect features for each camera
-      det_data = self._detect_multicam(camera_images)
-
-      # Match overlapping features and add to camera data
-      for cam_i, cam_j in self.cam_overlaps:
-        # Match keypoints and descriptors
-        data_i = det_data[cam_i]
-        data_j = det_data[cam_j]
-        (data_i, data_j, matches) = self._match(data_i, data_j)
-
-        # Add to camera data
-        feature_ids = self._form_feature_ids(len(matches))
-        data_i.feature_ids = feature_ids
-        data_j.feature_ids = feature_ids
-        self.cam_data[cam_i] = data_i
-        self.cam_data[cam_j] = data_j
-
-    # Track each cameras individually
-    elif self.mode == "NON_OVERLAPS_ONLY":
-      # Detect features for each camera
-      det_data = self._detect_multicam(camera_images)
+    # Add features
+    for cam_i, cam_j in self.cam_overlaps:
+      # Match keypoints and descriptors
+      data_i = det_data[cam_i]
+      data_j = det_data[cam_j]
+      (data_i, data_j, matches) = self._match(data_i, data_j)
 
       # Add to camera data
-      for cam_idx in det_data.keys():
-        data = det_data[cam_idx]
-        data.feature_ids = _form_feature_ids(len(kps))
-        self.cam_data[cam_idx] = data
+      feature_ids = self._form_feature_ids(len(matches))
+      data_i.feature_ids = feature_ids
+      data_j.feature_ids = feature_ids
+      self.cam_data[cam_i] = data_i
+      self.cam_data[cam_j] = data_j
 
-    # Invalid feature tracker mode
+  def _detect_nonoverlaps(self, camera_images):
+    # Detect features for each camera
+    det_data = self._detect_multicam(camera_images)
+
+    # Add features
+    for cam_idx in det_data.keys():
+      data = det_data[cam_idx]
+      data.feature_ids = _form_feature_ids(len(kps))
+      self.cam_data[cam_idx] = data
+
+  def _initialize(self, camera_images):
+    # Detect new features
+    if self.mode == "DEFAULT":
+      self._detect_overlaps(camera_images)
+      self._detect_nonoverlaps(camera_images)
+    elif self.mode == "OVERLAPS_ONLY":
+      self._detect_overlaps(camera_images)
+    elif self.mode == "NON_OVERLAPS_ONLY":
+      self._detect_nonoverlaps(camera_images)
     else:
       raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
 
@@ -431,7 +421,7 @@ class FeatureTracker:
 
 class TestEuoc(unittest.TestCase):
   def test_load(self):
-    pass
+    self.dataset = load_euroc_dataset(data_path)
 
 
 class TestCV(unittest.TestCase):
@@ -473,10 +463,16 @@ class TestCV(unittest.TestCase):
     self.assertTrue(len(kps) > 0)
     self.assertEqual(des.shape[0], len(kps))
 
-  # def test_klt(self):
-  #   cv2.imshow('viz', self.img0)
-  #   if cv2.waitKey(0) == ord('q'):
-  #     return
+  def test_optflow_track(self):
+    debug = True
+
+    # Detect
+    feature = cv2.ORB_create(nfeatures=100)
+    kps, des = grid_detect(feature, self.img0)
+    print(kps.dtype)
+
+    # Track
+    optflow_track(self.img0, self.img1, kps, debug=debug)
 
 
 class TestFeatureTracker(unittest.TestCase):
