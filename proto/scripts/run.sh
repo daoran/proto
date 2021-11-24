@@ -20,8 +20,10 @@ memcheck() {
 # node js/proto.js
 
 # python3 scripts/tf_point.py
-# python3 python/feature_tracker.py TestCV.test_klt
-python3 python/feature_tracker.py TestFeatureTracker.test_run
+# python3 python/proto.py TestCV.test_klt
+# python3 python/proto.py TestFeatureTracker.test_match
+python3 python/proto.py TestFeatureTracker.test_detect_overlaps
+# python3 python/proto.py TestFeatureTracker.test_run
 
 # make format_code
 # ctags -R lib
