@@ -646,30 +646,42 @@ def tf(rot, trans):
 
 
 def tf_rot(T):
+  """ Return rotation matrix from 4x4 homogeneous transform """
   return T[0:3, 0:3]
 
 
 def tf_quat(T):
+  """ Return quaternion from 4x4 homogeneous transform """
   return rot2quat(tf_rot(T))
 
 
 def tf_inv(T):
+  """ Invert 4x4 homogeneous transform """
   return np.linalg.inv(T)
 
 
 def tf_point(T, p):
+  """ Transform 3d point """
   assert p.shape == (3,) or p.shape == (3, 1)
   hpoint = np.array([p[0], p[1], p[2], 1.0])
   return (T @ hpoint)[0:3]
 
 
+def tf_hpoint(T, hp):
+  """ Transform 3d point """
+  assert hp.shape == (4,) or hp.shape == (4, 1)
+  return (T @ hpoint)[0:3]
+
+
 def tf_decompose(tf):
+  """ Decompose into rotation matrix and translation vector"""
   C = tf_rot(tf)
   r = tf_trans(tf)
   return (C, r)
 
 
 def tf_vector(T):
+  """ Return pose vector """
   rx, ry, rz = tf_trans(T)
   qw, qx, qy, qz = tf_quat(T)
   return np.array([rx, ry, rz, qw, qx, qy, qz])
@@ -683,6 +695,7 @@ def tf_vector(T):
 
 
 def lookat(cam_pos, target_pos, up_axis=[0.0, -1.0, 0.0]):
+  """ Form look at matrix """
   assert cam_pos.shape == (3,) or cam_pos.shape == (3, 1)
   assert target_pos.shape == (3,) or target_pos.shape == (3, 1)
   assert up_axis.shape == (3,) or up_axis.shape == (3, 1)
@@ -754,11 +767,13 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
 
 
 def pinhole_K(params):
+  """ Form camera matrix K """
   fx, fy, cx, cy = params
   return np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
 
 
 def pinhole_project(proj_params, p_C):
+  """ Project 3D point onto image plane using pinhole camera model """
   assert len(proj_params) == 4
   assert len(p_C) == 3
 
@@ -773,10 +788,12 @@ def pinhole_project(proj_params, p_C):
 
 
 def pinhole_params_jacobian(proj_params, x):
+  """ Form pinhole parameter jacobian """
   return np.array([[x[0], 0.0, 1.0, 0.0], [0.0, x[1], 0.0, 1.0]])
 
 
 def pinhole_point_jacobian(proj_params):
+  """ Form pinhole point jacobian """
   fx, fy, _, _ = proj_params
   return np.array([[fx, 0.0], [0.0, fy]])
 
@@ -785,6 +802,7 @@ def pinhole_point_jacobian(proj_params):
 
 
 def radtan4_distort(dist_params, p):
+  """ Distort point with Radial-Tangential distortion """
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -811,6 +829,7 @@ def radtan4_distort(dist_params, p):
 
 
 def radtan4_undistort(dist_params, p0):
+  """ Un-distort point with Radial-Tangential distortion """
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -840,6 +859,7 @@ def radtan4_undistort(dist_params, p0):
 
 
 def radtan4_params_jacobian(dist_params, p):
+  """ Radial-Tangential distortion parameter jacobian """
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -874,6 +894,7 @@ def radtan4_params_jacobian(dist_params, p):
 
 
 def equi4_distort(dist_params, p):
+  """ Distort point with Equi-distant distortion """
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -896,6 +917,7 @@ def equi4_distort(dist_params, p):
 
 
 def equi4_undistort(dist_params, p):
+  """ Undistort point using Equi-distant distortion """
   thd = sqrt(p(0) * p(0) + p[0] * p[0])
 
   th = thd  # Initial guess
@@ -911,6 +933,7 @@ def equi4_undistort(dist_params, p):
 
 
 def equi4_params_jacobian(dist_params, p):
+  """ Equi-distant distortion params jacobian """
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -937,6 +960,7 @@ def equi4_params_jacobian(dist_params, p):
 
 
 def equi4_point_jacobian(dist_params, p):
+  """ Equi-distant distortion point jacobian """
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -976,6 +1000,7 @@ def equi4_point_jacobian(dist_params, p):
 
 
 def pinhole_radtan4_project(proj_params, dist_params, p_C):
+  """ Pinhole + Radial-Tangential project """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -993,6 +1018,7 @@ def pinhole_radtan4_project(proj_params, dist_params, p_C):
 
 
 def pinhole_radtan4_backproject(proj_params, dist_params, z):
+  """ Pinhole + Radial-Tangential back-project """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(z) == 2
@@ -1010,6 +1036,7 @@ def pinhole_radtan4_backproject(proj_params, dist_params, z):
 
 
 def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C):
+  """ Pinhole + Radial-Tangential project jacobian """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -1027,6 +1054,7 @@ def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C):
 
 
 def pinhole_radtan4_params_jacobian(proj_params, dist_params, p_C):
+  """ Pinhole + Radial-Tangential params jacobian """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -1047,6 +1075,7 @@ def pinhole_radtan4_params_jacobian(proj_params, dist_params, p_C):
 
 
 def pinhole_equi4_project(proj_params, dist_params, p_C):
+  """ Pinhole + Equi-distant project """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -1064,6 +1093,7 @@ def pinhole_equi4_project(proj_params, dist_params, p_C):
 
 
 def pinhole_equi4_backproject(proj_params, dist_params, z):
+  """ Pinhole + Equi-distant back-project """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(z) == 2
@@ -1081,6 +1111,7 @@ def pinhole_equi4_backproject(proj_params, dist_params, z):
 
 
 def pinhole_equi4_project_jacobian(proj_params, dist_params, p_C):
+  """ Pinhole + Equi-distant project jacobian """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -1098,6 +1129,7 @@ def pinhole_equi4_project_jacobian(proj_params, dist_params, p_C):
 
 
 def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C):
+  """ Pinhole + Equi-distant params jacobian """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -1134,6 +1166,22 @@ def draw_matches(img_i, img_j, kps_i, kps_j):
     cv2.circle(viz, (pt_i[0], pt_i[1]), radius, color, thickness)
     cv2.circle(viz, (pt_j[0], pt_j[1]), radius, color, thickness)
     cv2.line(viz, pt_i, pt_j, color, 1, 8)
+
+  return viz
+
+
+def draw_points(img, pts, inliers=None):
+  if inliers is None:
+    inliers = [1 for i in range(len(pts))]
+
+  radius = 3
+  color = (0, 255, 0)
+  thickness = 1
+
+  viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+  for n in range(len(pts)):
+    if inliers[n]:
+      cv2.circle(viz, (pts[n][0], pts[n][1]), radius, color, thickness)
 
   return viz
 
@@ -1240,22 +1288,23 @@ def grid_detect(detector, image, **kwargs):
 def optflow_track(img_i, img_j, pts_i, **kwargs):
   """
   Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
-  flow.
+  flow. Returns a tuple of `(pts_i, pts_j, inliers)` points in image i, j and a
+  vector of inliers.
   """
   # Track using optical flow
-  patch_size = 10
-  criteria = cv2.TermCriteria_COUNT
-  criteria |= cv2.TermCriteria_EPS
-  criteria |= kwargs.get('max_iter', 100)
-  # criteria |= epsilon
+  patch_size = kwargs.get('patch_size', 40)
+  max_iter = kwargs.get('max_iter', 100)
+  epsilon = kwargs.get('epsilon', 0.01)
+  crit = (cv2.TermCriteria_COUNT | cv2.TermCriteria_EPS, max_iter, epsilon)
 
   config = {}
-  config['windSize'] = (patch_size, patch_size)
-  config['maxLevel'] = 2
-  config['criteria'] = criteria
+  config['winSize'] = (patch_size, patch_size)
+  config['maxLevel'] = 3
+  config['criteria'] = crit
   config['flags'] = cv2.OPTFLOW_USE_INITIAL_FLOW
 
-  track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, pts_i, None, criteria)
+  pts_j = np.array(pts_i)
+  track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, pts_i, pts_j, **config)
   (pts_j, optflow_mask, errs) = track_results
 
   # Remove outliers using RANSAC
@@ -1264,15 +1313,15 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
   # Update or mark feature as lost
   inliers = []
   for i in range(len(pts_i)):
-    if optflow_mask[i] and fundmat_mask[i]:
+    if optflow_mask[i, 0] and fundmat_mask[i, 0]:
       inliers.append(True)
     else:
       inliers.append(False)
 
   if kwargs.get('debug', False):
-    viz_i = cv2.drawKeypoints(img_i, pts_i, None)
-    viz_j = cv2.drawKeypoints(img_i, pts_j, None)
-    viz = np.hconcat(viz_i, viz_j)
+    viz_i = draw_points(img_i, pts_i, inliers)
+    viz_j = draw_points(img_j, pts_j, inliers)
+    viz = cv2.hconcat([viz_i, viz_j])
     cv2.imshow('viz', viz)
     cv2.waitKey(0)
 
@@ -1389,8 +1438,6 @@ class FeatureTracker:
     # Form feature tracking data
     data_i = FeatureTrackingData(img_i, kps_i_new, des_i_new)
     data_j = FeatureTrackingData(img_j, kps_j_new, des_j_new)
-
-    # Use optical flow to further refine the match
 
     return (data_i, data_j, matches_new)
 
@@ -2188,15 +2235,18 @@ class TestFeatureTracking(unittest.TestCase):
     self.assertEqual(des.shape[0], len(kps))
 
   def test_optflow_track(self):
-    debug = True
+    debug = False
 
     # Detect
     feature = cv2.ORB_create(nfeatures=100)
     kps, des = grid_detect(feature, self.img0)
-    print(kps.dtype)
 
     # Track
-    optflow_track(self.img0, self.img1, kps, debug=debug)
+    pts_i = np.array([kp.pt for kp in kps], dtype=np.float32)
+    track_results = optflow_track(self.img0, self.img1, pts_i, debug=debug)
+    (pts_i, pts_j, inliers) = track_results
+
+    self.assertTrue(len(pts_i) == len(pts_j))
 
 
 class TestFeatureTracker(unittest.TestCase):
@@ -2223,58 +2273,41 @@ class TestFeatureTracker(unittest.TestCase):
     ft_data = self.feature_tracker._detect(img0)
 
   def test_detect_multicam(self):
-    # Load images
-    ts = self.dataset['timestamps'][0]
-    img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-    img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
-
     # Feed camera images to feature tracker
     camera_images = {}
-    camera_images['cam0'] = img0
-    camera_images['cam1'] = img1
+    camera_images['cam0'] = self.img0
+    camera_images['cam1'] = self.img1
     self.feature_tracker._detect_multicam(camera_images)
 
   def test_match(self):
     debug = True
 
     # Load images
-    ts = self.dataset['timestamps'][0]
-    img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-    img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
-
     camera_images = {}
-    camera_images['cam0'] = img0
-    camera_images['cam1'] = img1
+    camera_images['cam0'] = self.img0
+    camera_images['cam1'] = self.img1
 
     # Detect
-    fd0 = self.feature_tracker._detect(img0)
-    fd1 = self.feature_tracker._detect(img1)
-    # self.feature_tracker._detect_multicam(camera_images)
-    # fd0 = self.feature_tracker.cam_data['cam0']
-    # fd1 = self.feature_tracker.cam_data['cam1']
+    fd0 = self.feature_tracker._detect(self.img0)
+    fd1 = self.feature_tracker._detect(self.img1)
     (data_i, data_j, matches) = self.feature_tracker._match(fd0, fd1)
     self.assertEqual(len(data_i.keypoints), len(data_j.keypoints))
 
-    # Visaulize
+    # Visualize
     if debug:
       kps0 = data_i.keypoints
       kps1 = data_j.keypoints
-      viz = cv2.drawMatches(img0, kps0, img1, kps1, matches, None)
+      viz = cv2.drawMatches(self.img0, kps0, self.img1, kps1, matches, None)
       cv2.imshow('viz', viz)
       cv2.waitKey(0)
 
   def test_detect_overlaps(self):
     debug = True
 
-    # Load images
-    ts = self.dataset['timestamps'][0]
-    img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-    img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
-
     # Feed camera images to feature tracker
     camera_images = {}
-    camera_images['cam0'] = img0
-    camera_images['cam1'] = img1
+    camera_images['cam0'] = self.img0
+    camera_images['cam1'] = self.img1
     self.feature_tracker._detect_overlaps(camera_images)
 
     # Visualize
