@@ -2,9 +2,10 @@ import os
 import sys
 import glob
 import math
-import yaml
+from dataclasses import dataclass
 
 import cv2
+import yaml
 import numpy as np
 
 ###############################################################################
@@ -316,9 +317,9 @@ def aa2quat(angle, axis):
   Convert angle-axis to quaternion
 
   Source:
-  Page 22, eq (101), section "Quaternion and rotation vector" in
   Sola, Joan. "Quaternion kinematics for the error-state Kalman filter." arXiv
   preprint arXiv:1711.02508 (2017).
+  [Page 22, eq (101), "Quaternion and rotation vector"]
   """
   ax, ay, az = axis
   qw = cos(angle / 2.0)
@@ -375,10 +376,13 @@ def vecs2axisangle(u, v):
 
 def euler321(yaw, pitch, roll):
   """
+  Convert yaw, pitch, roll in radians to a 3x3 rotation matrix.
+
+  Source:
   Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
   Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
   Princeton University Press, 1999. Print.
-  Page 85-86, "The Aerospace Sequence"
+  [Page 85-86, "The Aerospace Sequence"]
   """
   psi = yaw
   theta = pitch
@@ -408,10 +412,13 @@ def euler321(yaw, pitch, roll):
 
 def euler2quat(yaw, pitch, roll):
   """
+  Convert yaw, pitch, roll in radians to a quaternion.
+
+  Source:
   Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
   Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
   Princeton University Press, 1999. Print.
-  Page 166-167, "Euler Angles to Quaternion"
+  [Page 166-167, "Euler Angles to Quaternion"]
   """
   psi = yaw  # Yaw
   theta = pitch  # Pitch
@@ -435,10 +442,13 @@ def euler2quat(yaw, pitch, roll):
 
 def quat2euler(q):
   """
+  Convert quaternion to euler angles (yaw, pitch, roll).
+
+  Source:
   Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
   Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
   Princeton University Press, 1999. Print.
-  Page 168, "Quaternion to Euler Angles"
+  [Page 168, "Quaternion to Euler Angles"]
   """
   qw, qx, qy, qz = q
 
@@ -463,9 +473,12 @@ def quat2euler(q):
 
 def quat2rot(q):
   """
+  Convert quaternion to 3x3 rotation matrix.
+
+  Source:
   Blanco, Jose-Luis. "A tutorial on se (3) transformation parameterizations
   and on-manifold optimization." University of Malaga, Tech. Rep 3 (2010): 6.
-  Page 18, Equation (2.20)
+  [Page 18, Equation (2.20)]
   """
   assert len(q) == 4
   qw, qx, qy, qz = q
@@ -492,12 +505,18 @@ def quat2rot(q):
 
 
 def rot2euler(C):
+  """
+  Convert 3x3 rotation matrix to euler angles (yaw, pitch, roll).
+  """
   assert C.shape == (3, 3)
   q = rot2quat(C)
   return quat2euler(q)
 
 
 def rot2quat(C):
+  """
+  Convert 3x3 rotation matrix to quaternion.
+  """
   assert C.shape == (3, 3)
 
   m00 = R[0, 0]
@@ -550,27 +569,32 @@ def rot2quat(C):
 
 
 def quat_norm(q):
+  """ Returns norm of a quaternion """
   qw, qx, qy, qz = q
   return sqrt(qw**2 + qx**2 + qy**2 + qz**2)
 
 
 def quat_normalize(q):
+  """ Normalize quaternion """
   n = quat_norm(q)
   qw, qx, qy, qz = q
   return np.array([qw / n, qx / n, qy / n, qz / n])
 
 
 def quat_conj(q):
+  """ Return conjugate quaternion """
   qw, qx, qy, qz = q
   q_conj = np.array([qw, -qx, -qy, -qz])
   return q_conj
 
 
 def quat_inv(q):
+  """ Invert quaternion """
   return quat_conj(q)
 
 
 def quat_left(q):
+  """ Quaternion left product matrix """
   qw, qx, qy, qz = q
   # yapf: disable
   L = np.array([qw, -qx, -qy, -qz,
@@ -582,6 +606,7 @@ def quat_left(q):
 
 
 def quat_right(q):
+  """ Quaternion right product matrix """
   qw, qx, qy, qz = q
   # yapf: disable
   R = np.array([qw, -qx, -qy, -qz,
@@ -593,6 +618,7 @@ def quat_right(q):
 
 
 def quat_lmul(p, q):
+  """ Quaternion left multiply """
   assert len(p) == 4
   assert len(q) == 4
   lprod = quat_left(p)
@@ -600,6 +626,7 @@ def quat_lmul(p, q):
 
 
 def quat_rmul(p, q):
+  """ Quaternion right multiply """
   assert len(p) == 4
   assert len(q) == 4
   rprod = quat_right(q)
@@ -607,6 +634,7 @@ def quat_rmul(p, q):
 
 
 def quat_mul(p, q):
+  """ Quaternion multiply p * q """
   return quat_lmul(p, q)
 
 
@@ -617,6 +645,7 @@ def quat_omega(w):
 
 
 def quat_delta(dalpha):
+  """ Form quaternion from small angle rotation vector dalpha """
   half_norm = 0.5 * norm(dalpha)
   scalar = cos(half_norm)
   vector = sinc(half_norm) * 0.5 * dalpha
@@ -649,6 +678,11 @@ def quat_integrate(q_k, w, dt):
 
 
 def tf(rot, trans):
+  """
+  Form 4x4 homogeneous transformation matrix from rotation `rot` and
+  translation `trans`. Where the rotation component `rot` can be a rotation
+  matrix or a quaternion.
+  """
   C = None
   if rot.shape == (4,) or rot.shape == (4, 1):
     C = quat2rot(rot)
@@ -703,6 +737,82 @@ def tf_vector(T):
   rx, ry, rz = tf_trans(T)
   qw, qx, qy, qz = tf_quat(T)
   return np.array([rx, ry, rz, qw, qx, qy, qz])
+
+###############################################################################
+# MATPLOTLIB
+###############################################################################
+
+def plot_set_axes_equal(ax):
+  """
+  Make axes of 3D plot have equal scale so that spheres appear as spheres,
+  cubes as cubes, etc..  This is one possible solution to Matplotlib's
+  ax.set_aspect('equal') and ax.axis('equal') not working for 3D.
+
+  Input
+    ax: a matplotlib axis, e.g., as output from plt.gca().
+  """
+  x_limits = ax.get_xlim3d()
+  y_limits = ax.get_ylim3d()
+  z_limits = ax.get_zlim3d()
+
+  x_range = abs(x_limits[1] - x_limits[0])
+  x_middle = np.mean(x_limits)
+  y_range = abs(y_limits[1] - y_limits[0])
+  y_middle = np.mean(y_limits)
+  z_range = abs(z_limits[1] - z_limits[0])
+  z_middle = np.mean(z_limits)
+
+  # The plot bounding box is a sphere in the sense of the infinity
+  # norm, hence I call half the max range the plot radius.
+  plot_radius = 0.5 * max([x_range, y_range, z_range])
+
+  ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+  ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+  ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+
+
+def plot_tf(ax, T, **kwargs):
+  """
+  Plot 4x4 Homogeneous Transform
+
+  Args:
+
+    ax (matplotlib.axes.Axes): Plot axes object
+    T (np.array): 4x4 homogeneous transform (i.e. Pose in the world frame)
+
+  Keyword args:
+
+    size (float): Size of the coordinate-axes
+    linewidth (float): Thickness of the coordinate-axes
+    name (str): Frame name
+    name_offset (np.array or list): Position offset for displaying the frame's name
+    fontsize (float): Frame font size
+    fontweight (float): Frame font weight
+
+  """
+  size = kwargs.get('size', 1)
+  linewidth = kwargs.get('linewidth', 3)
+  name = kwargs.get('name', None)
+  name_offset = kwargs.get('name_offset', [0, 0, -0.01])
+  fontsize = kwargs.get('fontsize', 10)
+  fontweight = kwargs.get('fontweight', 'bold')
+  colors = kwargs.get('colors', ['r-', 'g-', 'b-'])
+
+  p_f = np.array([[0, 0, 0, 1], [size, 0, 0, 1], [0, size, 0, 1], [0, 0, size, 1]]).T
+  p_0 = T @ p_f
+  X = np.append([p_0[:, 0].T], [p_0[:, 1].T], axis=0)
+  Y = np.append([p_0[:, 0].T], [p_0[:, 2].T], axis=0)
+  Z = np.append([p_0[:, 0].T], [p_0[:, 3].T], axis=0)
+
+  ax.plot3D(X[:, 0], X[:, 1], X[:, 2], colors[0], linewidth=linewidth)
+  ax.plot3D(Y[:, 0], Y[:, 1], Y[:, 2], colors[1], linewidth=linewidth)
+  ax.plot3D(Z[:, 0], Z[:, 1], Z[:, 2], colors[2], linewidth=linewidth)
+
+  if name is not None:
+    x = X[0, 0] + name_offset[0]
+    y = X[0, 1] + name_offset[1]
+    z = X[0, 2] + name_offset[2]
+    ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
 
 
 ###############################################################################
@@ -1251,6 +1361,10 @@ class Feature:
 
 
 def draw_matches(img_i, img_j, kps_i, kps_j):
+  """
+  Draw keypoint matches between images `img_i` and `img_j` with keypoints
+  `kps_i` and `kps_j`
+  """
   assert len(kps_i) == len(kps_j)
 
   nb_kps = len(kps_i)
@@ -1272,6 +1386,11 @@ def draw_matches(img_i, img_j, kps_i, kps_j):
 
 
 def draw_points(img, pts, inliers=None):
+  """
+  Draw points `pts` on image `img`. The `inliers` boolean list is optional
+  and is expected to be the same size as `pts` denoting whether the point
+  should be drawn or not.
+  """
   if inliers is None:
     inliers = [1 for i in range(len(pts))]
 
@@ -1643,16 +1762,17 @@ class FeatureTracker:
 # CALIBRATION
 ###############################################################################
 
-
+@dataclass
 class CalibTarget:
-  def __init__(self):
-    self.nb_rows = 0.0
-    self.nb_cols = 0.0
-    self.tag_size = 0.0
-    self.tag_spacing = 0.0
+  """ Calibration Target """
+  nb_rows: int = 0
+  nb_cols: int = 0
+  tag_size: float = 0.0
+  tag_spacing: float = 0.0
 
 
 def calib_generate_poses(calib_target):
+  """ Generate calibration poses infront of the calibration target """
   # Settings
   calib_width = (calib_target.nb_cols - 1.0) * calib_target.tag_size
   calib_height = (calib_target.nb_rows - 1.0) * calib_target.tag_size
@@ -1685,6 +1805,7 @@ def calib_generate_poses(calib_target):
 
 
 def calib_generate_random_poses(calib_target, nb_poses):
+  """ Generate random calibration poses infront of the calibration target """
   # Settings
   calib_width = (calib_target.nb_cols - 1.0) * calib_target.tag_size
   calib_height = (calib_target.nb_rows - 1.0) * calib_target.tag_size
@@ -1718,6 +1839,7 @@ def calib_generate_random_poses(calib_target, nb_poses):
 
 
 class AprilGrid:
+  """ AprilGrid """
   def __init__(self, tag_rows=6, tag_cols=6, tag_size=0.088, tag_spacing=0.3):
     self.tag_rows = tag_rows
     self.tag_cols = tag_cols
@@ -1812,22 +1934,22 @@ def load_euroc_dataset(data_path):
 ###############################################################################
 
 
+@dataclass
 class CameraEvent:
-  def __init__(self, ts, cam_idx, measurements):
-    self.ts = ts
-    self.cam_idx = cam_idx
-    self.measurements = measurements
+  ts: int
+  cam_idx: int
+  measurements: np.array
 
-
+@dataclass
 class ImuEvent:
-  def __init__(self, ts, imu_idx, acc, gyr):
-    self.ts = ts
-    self.imu_idx = imu_idx
-    self.acc = acc
-    self.gyr = gyr
+  ts: int
+  imu_idx: int
+  acc: np.array
+  gyr: np.array
 
 
 def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
+  """ Create 3D features randomly """
   features = zeros((nb_features, 3))
   for i in range(nb_features):
     features[i, 0] = randf(x_bounds)
@@ -1837,6 +1959,7 @@ def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
 
 
 def create_3d_features_perimeter(origin, dim, nb_features):
+  """ Create 3D features in a square """
   assert len(origin) == 3
   assert len(dim) == 3
   assert nb_features > 0
@@ -1879,6 +2002,7 @@ def create_3d_features_perimeter(origin, dim, nb_features):
 
 
 def sim_vo_circle(circle_r, velocity, **kwargs):
+  """ Simulate a camera going around in a circle """
   C_BC0 = euler321(deg2rad([-90.0, 0.0, -90.0]))
   r_BC0 = [0.01, 0.01, 0.05]
   T_BC0 = tf(C_BC0, r_BC0)
@@ -1980,6 +2104,7 @@ def sim_vo_circle(circle_r, velocity, **kwargs):
 
 
 def sim_imu_circle(circle_r, velocity):
+  """ Simulate an IMU going around in a circle """
   imu_rate = 200.0
   circle_dist = 2.0 * pi * circle_r
   time_taken = circle_dist / velocity
