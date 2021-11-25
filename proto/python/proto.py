@@ -3,6 +3,8 @@ import sys
 import glob
 import math
 from dataclasses import dataclass
+from typing import Optional
+
 
 import cv2
 import yaml
@@ -1273,50 +1275,9 @@ def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C):
   J[0:2, 4:8] = J_proj_point @ J_dist_params
   return J
 
+# CAMERA GEOMETRY #############################################################
 
-###############################################################################
-# STATE ESTIMATION
-###############################################################################
-
-# STATE VARIABLES #############################################################
-
-
-class StateVariable:
-  def __init__(self, se_type, fixed, params, min_dims, fix):
-    self.type = se_type
-    self.fix = fix
-    self.params = None
-    self.min_dims = min_dims
-
-
-class Pose:
-  def __init__(self, ts, data, fix=False):
-    # Convert pose data from 4x4 homogenous transformation matrix to
-    # pose vector (rx, ry, rz, qw, qx, qy, qz)
-    if data.shape == (4, 4):
-      data = tf_param(data)
-
-    self.fix = fix
-    self.type = "pose"
-    self.ts = ts
-    self.param = data
-    self.min_dims = 6
-
-
-class Extrinsics:
-  def __init__(self, data, fix=False):
-    # Convert pose data from 4x4 homogenous transformation matrix to
-    # pose vector (rx, ry, rz, qw, qx, qy, qz)
-    if data.shape == (4, 4):
-      data = tf_param(data)
-
-    self.fix = fix
-    self.type = "extrinsics"
-    self.param = data
-    self.min_dims = 6
-
-
-class CameraParameters:
+class CameraGeometry:
   def __init__(self, cam_idx, resolution, proj_model, dist_model, proj_params,
                dist_params, fix):
     self.fix = fix
@@ -1342,19 +1303,39 @@ class CameraParameters:
       self.J_param_fn = pinhole_equi4_params_jacobian
 
 
-class Feature:
-  def __init__(self, feature_id, x, fix):
-    self.fix = fix
-    self.type = "feature"
-    self.feature_id = feature_id
-    self.param = x
-    self.min_dims = len(x)
-    self.pose_ids = []
+###############################################################################
+# STATE ESTIMATION
+###############################################################################
 
-    if len(x) == 3:
-      self.parameterization = "XYZ"
-    elif len(x) == 6:
-      self.parameterization = "INVERSE_DEPTH"
+# STATE VARIABLES #############################################################
+
+@dataclass
+class StateVariable:
+  ts: int
+  var_type: str
+  param: np.array
+  parameterization: str
+  min_dims: int
+  fix: bool
+
+
+def pose_setup(ts, param, fix = False):
+  param = tf_param(param) if param.shape == (4, 4) else param
+  return StateVariable(ts, "pose", param, None, 6, fix)
+
+
+def extrinsics_setup(param, fix = False):
+  param = tf_param(param) if param.shape == (4, 4) else param
+  return StateVariable(None, "extrinsics", param, None, 6, fix)
+
+
+def camera_params_setup(param, fix = False):
+  return StateVariable(None, "camera", param, None, len(param), fix)
+
+
+def feature_setup(param, fix = False):
+  return StateVariable(None, "feature", param, None, len(param), fix)
+
 
 
 # FEATURE TRACKING #############################################################
@@ -1626,7 +1607,9 @@ class FeatureTracker:
 
   def _detect(self, cam_idx, image, prev_kps=[]):
     assert image is not None
-    kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
+    # kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
+    kps = detector.detect(image[rs:re, cs:ce], None)
+    kps, des = detector.compute(image, kps)
     ft_data = FeatureTrackingData(cam_idx, image, kps, des)
     return ft_data
 
