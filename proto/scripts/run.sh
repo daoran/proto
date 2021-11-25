@@ -20,9 +20,11 @@ memcheck() {
 # node js/proto.js
 
 # python3 scripts/tf_point.py
+# python3 python/proto.py TestLinearAlgebra
+python3 python/proto.py TestTransform
 # python3 python/proto.py TestCV.test_klt
 # python3 python/proto.py TestFeatureTracking.test_optflow_track
-python3 python/proto.py TestFeatureTracker.test_match
+# python3 python/proto.py TestFeatureTracker.test_match
 # python3 python/proto.py TestFeatureTracker.test_detect_overlaps
 # python3 python/proto.py TestFeatureTracker.test_run
 

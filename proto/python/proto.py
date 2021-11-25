@@ -24,6 +24,7 @@ from math import pi
 from numpy import rad2deg
 from numpy import deg2rad
 from numpy import zeros
+from numpy import ones
 from numpy import eye
 from numpy import diagonal as diag
 from numpy.linalg import norm
@@ -46,12 +47,13 @@ def fullrank(A):
 
 def skew(vec):
   assert vec.shape == (3,) or vec.shape == (3, 1)
+  x, y, z = vec
   return np.array([[0, -z, y], [z, 0, -x], [-y, x, 0]])
 
 
 def skew_inv(A):
   assert A.shape == (3, 3)
-  return np.array([A[2, 1], A(0, 2), A(1, 0)])
+  return np.array([A[2, 1], A[0, 2], A[1, 0]])
 
 
 def fwdsubs(L, b):
@@ -123,16 +125,24 @@ def schurs_complement(H, g, m, r, precond=False):
   return (H_marg, g_marg)
 
 
-def matrix_equal(A, B, tol, verbose=False):
+def matrix_equal(A, B, tol=1e-8, verbose=False):
   diff = A - B
 
-  for i in range(diff.shape[0]):
-    for j in range(diff.shape[1]):
-      if (abs(diff[i, j]) > tol):
+  if len(diff.shape) == 1:
+    for i in range(len(diff)):
+      if (abs(diff[i]) > tol):
         if verbose:
           print("A - B:")
           print(diff)
-        return False
+
+  elif len(diff.shape) == 2:
+    for i in range(diff.shape[0]):
+      for j in range(diff.shape[1]):
+        if (abs(diff[i, j]) > tol):
+          if verbose:
+            print("A - B:")
+            print(diff)
+          return False
 
   return True
 
@@ -281,7 +291,7 @@ def dehomogeneous(hp):
 
 
 def rotx(theta):
-  row0 = [0.0, 1.0, 0.0]
+  row0 = [1.0, 0.0, 0.0]
   row1 = [0.0, cos(theta), -sin(theta)]
   row2 = [0.0, sin(theta), cos(theta)]
   return np.array([row0, row1, row2])
@@ -301,7 +311,15 @@ def rotz(theta):
   return np.array([row0, row1, row2])
 
 
-def axisangle2quat(axis, angle):
+def aa2quat(angle, axis):
+  """
+  Convert angle-axis to quaternion
+
+  Source:
+  Page 22, eq (101), section "Quaternion and rotation vector" in
+  Sola, Joan. "Quaternion kinematics for the error-state Kalman filter." arXiv
+  preprint arXiv:1711.02508 (2017).
+  """
   ax, ay, az = axis
   qw = cos(angle / 2.0)
   qx = ax * sin(angle / 2.0)
@@ -355,33 +373,6 @@ def vecs2axisangle(u, v):
   return ax * angle
 
 
-def euler2quat(yaw, pitch, roll):
-  """
-  Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
-  Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
-  Princeton University Press, 1999. Print.
-  Page 166-167, "Euler Angles to Quaternion"
-  """
-  psi = yaw  # Yaw
-  theta = pitch  # Pitch
-  phi = roll  # Roll
-
-  c_phi = cos(phi / 2.0)
-  c_theta = cos(theta / 2.0)
-  c_psi = cos(psi / 2.0)
-  s_phi = sin(phi / 2.0)
-  s_theta = sin(theta / 2.0)
-  s_psi = sin(psi / 2.0)
-
-  qw = c_psi * c_theta * c_phi + s_psi * s_theta * s_phi
-  qx = c_psi * c_theta * s_phi - s_psi * s_theta * c_phi
-  qy = c_psi * s_theta * c_phi + s_psi * c_theta * s_phi
-  qz = s_psi * c_theta * c_phi - c_psi * s_theta * s_phi
-
-  mag = sqrt(qw**2 + qx**2 + qy**2 + qz**2)
-  return np.array([qw / mag, qx / mag, qy / mag, qz / mag])
-
-
 def euler321(yaw, pitch, roll):
   """
   Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
@@ -413,6 +404,33 @@ def euler321(yaw, pitch, roll):
   C33 = ctheta * cphi
 
   return np.array([[C11, C12, C13], [C21, C22, C23], [C31, C32, C33]])
+
+
+def euler2quat(yaw, pitch, roll):
+  """
+  Kuipers, Jack B. Quaternions and Rotation Sequences: A Primer with
+  Applications to Orbits, Aerospace, and Virtual Reality. Princeton, N.J:
+  Princeton University Press, 1999. Print.
+  Page 166-167, "Euler Angles to Quaternion"
+  """
+  psi = yaw  # Yaw
+  theta = pitch  # Pitch
+  phi = roll  # Roll
+
+  c_phi = cos(phi / 2.0)
+  c_theta = cos(theta / 2.0)
+  c_psi = cos(psi / 2.0)
+  s_phi = sin(phi / 2.0)
+  s_theta = sin(theta / 2.0)
+  s_psi = sin(psi / 2.0)
+
+  qw = c_psi * c_theta * c_phi + s_psi * s_theta * s_phi
+  qx = c_psi * c_theta * s_phi - s_psi * s_theta * c_phi
+  qy = c_psi * s_theta * c_phi + s_psi * c_theta * s_phi
+  qz = s_psi * c_theta * c_phi - c_psi * s_theta * s_phi
+
+  mag = sqrt(qw**2 + qx**2 + qy**2 + qz**2)
+  return np.array([qw / mag, qx / mag, qy / mag, qz / mag])
 
 
 def quat2euler(q):
@@ -1146,6 +1164,89 @@ def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C):
   return J
 
 
+###############################################################################
+# STATE ESTIMATION
+###############################################################################
+
+# STATE VARIABLES #############################################################
+
+
+class StateVariable:
+  def __init__(self, se_type, fixed, params, min_dims, fix):
+    self.type = se_type
+    self.fix = fix
+    self.params = None
+    self.min_dims = min_dims
+
+
+class Pose:
+  def __init__(self, ts, data, fix=False):
+    # Convert pose data from 4x4 homogenous transformation matrix to
+    # pose vector (rx, ry, rz, qw, qx, qy, qz)
+    if data.shape == (4, 4):
+      data = tf_param(data)
+
+    self.fix = fix
+    self.type = "pose"
+    self.ts = ts
+    self.param = data
+    self.min_dims = 6
+
+
+class Extrinsics:
+  def __init__(self, data, fix=False):
+    # Convert pose data from 4x4 homogenous transformation matrix to
+    # pose vector (rx, ry, rz, qw, qx, qy, qz)
+    if data.shape == (4, 4):
+      data = tf_param(data)
+
+    self.fix = fix
+    self.type = "extrinsics"
+    self.param = data
+    self.min_dims = 6
+
+
+class CameraParameters:
+  def __init__(self, cam_idx, resolution, proj_model, dist_model, proj_params,
+               dist_params, fix):
+    self.fix = fix
+    self.type = "camera"
+    self.cam_idx = cam_idx
+    self.resolution = resolution
+    self.proj_model = proj_model
+    self.dist_model = dist_model
+    self.param = np.array([proj_params, dist_params])
+    self.proj_params_size = len(proj_params)
+    self.dist_params_size = len(dist_params)
+    self.min_dims = self.proj_params + self.dist_params
+
+    if proj_model == "pinhole" and dist_model == "radtan4":
+      self.project_fn = pinhole_radtan4_project
+      self.backproject_fn = pinhole_radtan4_backproject
+      self.J_proj_fn = pinhole_radtan4_project_jacobian
+      self.J_param_fn = pinhole_radtan4_params_jacobian
+    elif proj_model == "pinhole" and dist_model == "equi4":
+      self.project_fn = pinhole_equi4_project
+      self.backproject_fn = pinhole_equi4_backproject
+      self.J_proj_fn = pinhole_equi4_project_jacobian
+      self.J_param_fn = pinhole_equi4_params_jacobian
+
+
+class Feature:
+  def __init__(self, feature_id, x, fix):
+    self.fix = fix
+    self.type = "feature"
+    self.feature_id = feature_id
+    self.param = x
+    self.min_dims = len(x)
+    self.pose_ids = []
+
+    if len(x) == 3:
+      self.parameterization = "XYZ"
+    elif len(x) == 6:
+      self.parameterization = "INVERSE_DEPTH"
+
+
 # FEATURE TRACKING #############################################################
 
 
@@ -1205,8 +1306,8 @@ class FeatureGrid:
     | 12 | 13 | 14 | 15 |
     ---------------------
 
-    grid_x = ceil((max(1, kp_x) / img_w) * grid_cols) - 1.0
-    grid_y = ceil((max(1, kp_y) / img_h) * grid_rows) - 1.0
+    grid_x = ceil((max(1, pixel_x) / img_w) * grid_cols) - 1.0
+    grid_y = ceil((max(1, pixel_y) / img_h) * grid_rows) - 1.0
     cell_id = int(grid_x + (grid_y * grid_cols))
 
   """
@@ -1223,10 +1324,10 @@ class FeatureGrid:
       self.cell[self.cell_index(kp)] += 1
 
   def cell_index(self, kp):
-    kp_x, kp_y = kp
+    pixel_x, pixel_y = kp.pt
     img_w, img_h = self.image_shape
-    grid_x = math.ceil((max(1, kp_x) / img_w) * self.grid_cols) - 1.0
-    grid_y = math.ceil((max(1, kp_y) / img_h) * self.grid_rows) - 1.0
+    grid_x = math.ceil((max(1, pixel_x) / img_w) * self.grid_cols) - 1.0
+    grid_y = math.ceil((max(1, pixel_y) / img_h) * self.grid_rows) - 1.0
     cell_id = int(grid_x + (grid_y * self.grid_cols))
     return cell_id
 
@@ -1239,8 +1340,8 @@ def grid_detect(detector, image, **kwargs):
   Detect features uniformly using a grid system.
   """
   max_keypoints = kwargs.get('max_keypoints', 1000)
-  grid_rows = kwargs.get('grid_rows', 3)
-  grid_cols = kwargs.get('grid_cols', 3)
+  grid_rows = kwargs.get('grid_rows', 4)
+  grid_cols = kwargs.get('grid_cols', 4)
   prev_kps = kwargs.get('prev_kps', [])
 
   # Calculate number of grid cells and max corners per cell
@@ -1340,14 +1441,21 @@ class FeatureTrackingData:
 
   """
 
-  def __init__(self, image, keypoints, descriptors=None, feature_ids=None):
+  def __init__(self,
+               cam_idx,
+               image,
+               keypoints,
+               descriptors=None,
+               feature_ids=None):
+    self.cam_idx = cam_idx
     self.image = image
     self.keypoints = keypoints
     self.descriptors = descriptors
     self.feature_ids = feature_ids
 
   def get_all(self):
-    return (self.image, self.keypoints, self.descriptors, self.feature_ids)
+    return (self.cam_idx, self.image, self.keypoints, self.descriptors,
+            self.feature_ids)
 
 
 class FeatureTracker:
@@ -1358,8 +1466,8 @@ class FeatureTracker:
 
   def __init__(self):
     # Settings
-    # self.mode = "DEFAULT"
-    self.mode = "OVERLAPS_ONLY"
+    self.mode = "DEFAULT"
+    # self.mode = "OVERLAPS_ONLY"
     # self.mode = "NON_OVERLAPS_ONLY"
 
     # Feature detector, descriptor and matcher
@@ -1371,14 +1479,16 @@ class FeatureTracker:
     self.features_detected = 0
     self.prev_camera_images = None
     self.cam_indices = []
-    self.cam_params = []
-    self.cam_exts = []
+    self.cam_params = {}
+    self.cam_exts = {}
     self.cam_overlaps = []
     self.cam_data = {}
 
   def add_camera(self, cam_idx, cam_params=None, cam_exts=None):
     self.cam_indices.append(cam_idx)
     self.cam_data[cam_idx] = None
+    self.cam_params[cam_idx] = cam_params
+    self.cam_exts[cam_idx] = cam_exts
 
   def add_overlap(self, cam_i_idx, cam_j_idx):
     self.cam_overlaps.append((cam_i_idx, cam_j_idx))
@@ -1395,10 +1505,10 @@ class FeatureTracker:
     end_idx = start_idx + nb_kps
     return range(start_idx, end_idx)
 
-  def _detect(self, image, prev_kps=[]):
+  def _detect(self, cam_idx, image, prev_kps=[]):
     assert image is not None
     kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
-    ft_data = FeatureTrackingData(image, kps, des)
+    ft_data = FeatureTrackingData(cam_idx, image, kps, des)
     return ft_data
 
   def _detect_multicam(self, camera_images):
@@ -1406,13 +1516,13 @@ class FeatureTracker:
     for cam_idx in self.cam_indices:
       image = camera_images[cam_idx]
       prev_kps = self._get_keypoints(cam_idx)
-      det_data[cam_idx] = self._detect(image, prev_kps)
+      det_data[cam_idx] = self._detect(cam_idx, image, prev_kps)
     return det_data
 
   def _match(self, data_i, data_j, sort_matches=True):
     # Match
-    (img_i, kps_i, des_i, _) = data_i.get_all()
-    (img_j, kps_j, des_j, _) = data_j.get_all()
+    (cam_i, img_i, kps_i, des_i, _) = data_i.get_all()
+    (cam_j, img_j, kps_j, des_j, _) = data_j.get_all()
     matches = self.matcher.match(des_i, des_j)
     if sort_matches:
       matches = sorted(matches, key=lambda x: x.distance)
@@ -1436,32 +1546,21 @@ class FeatureTracker:
       row_idx += 1
 
     # Form feature tracking data
-    data_i = FeatureTrackingData(img_i, kps_i_new, des_i_new)
-    data_j = FeatureTrackingData(img_j, kps_j_new, des_j_new)
+    data_i = FeatureTrackingData(cam_i, img_i, kps_i_new, des_i_new)
+    data_j = FeatureTrackingData(cam_j, img_j, kps_j_new, des_j_new)
 
     return (data_i, data_j, matches_new)
 
   def _detect_overlaps(self, camera_images):
     # Detect features for each camera
-    # det_data = self._detect_multicam(camera_images)
+    det_data = self._detect_multicam(camera_images)
 
     # Add features
     for cam_i, cam_j in self.cam_overlaps:
       # Match keypoints and descriptors
-      # data_i = det_data[cam_i]
-      # data_j = det_data[cam_j]
-      fdi = self._detect(np.array(camera_images[cam_i]))
-      fdj = self._detect(np.array(camera_images[cam_j]))
-      print(cam_i, cam_j)
-      (data_new_i, data_new_j, matches) = self._match(fdi, fdj)
-
-      img0 = camera_images[cam_i]
-      img1 = camera_images[cam_j]
-      kps0 = data_new_i.keypoints
-      kps1 = data_new_j.keypoints
-      viz = cv2.drawMatches(img0, kps0, img1, kps1, matches, None)
-      cv2.imshow('viz', viz)
-      cv2.waitKey(0)
+      fdi = det_data[cam_i]
+      fdj = det_data[cam_j]
+      (data_i, data_j, matches) = self._match(fdi, fdj)
 
       # Add to camera data
       feature_ids = self._form_feature_ids(len(matches))
@@ -1515,12 +1614,12 @@ class FeatureTracker:
 
       # Current image, keypoints and descriptors
       img_k = camera_images[cam_idx]
-      data_k = self._detect(img_k)
+      data_k = self._detect(cam_idx, img_k)
 
       # Match keypoints from past to current
       (data_km1, data_k, matches) = self._match(data_km1, data_k)
-      (img_km1, kps_km1, _, _) = data_km1.get_all()
-      (img_k, kps_k, _, _) = data_k.get_all()
+      (_, img_km1, kps_km1, _, _) = data_km1.get_all()
+      (_, img_k, kps_k, _, _) = data_k.get_all()
       viz.append(cv2.drawMatches(img_km1, kps_km1, img_k, kps_k, matches, None))
 
     # Form visualization image
@@ -2026,8 +2125,43 @@ import unittest
 
 
 class TestLinearAlgebra(unittest.TestCase):
-  def test_pass(self):
-    pass
+  def test_normalize(self):
+    x = np.array([1.0, 2.0, 3.0])
+    n = norm(x)
+    x_prime = normalize(x)
+    self.assertTrue(isclose(norm(x_prime), 1.0))
+
+  def test_skew(self):
+    x = np.array([1.0, 2.0, 3.0])
+    S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
+    self.assertTrue(matrix_equal(S, skew(x)))
+
+  def test_skew_inv(self):
+    x = np.array([1.0, 2.0, 3.0])
+    S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
+    self.assertTrue(matrix_equal(x, skew_inv(S)))
+
+  def test_matrix_equal(self):
+    A = ones((3, 3))
+    B = ones((3, 3))
+    self.assertTrue(matrix_equal(A, B))
+
+    C = 2.0 * ones((3, 3))
+    self.assertFalse(matrix_equal(A, C))
+
+  # def test_check_jacobian(self):
+  #   step_size = 1e-6
+  #   threshold = 1e-5
+  #
+  #   x = 2
+  #   y0 = x**2
+  #   y1 = (x + step_size)**2
+  #   jac = 2 * x
+  #   fdiff = y1 - y0
+  #
+  #   jac_name = "jac"
+  #   fdiff = (y1 - y0) / step_size
+  #   self.assertTrue(check_jacobian(jac_name, fdiff, jac, threshold))
 
 
 class TestLie(unittest.TestCase):
@@ -2055,6 +2189,37 @@ class TestTransform(unittest.TestCase):
     self.assertTrue(p[2] == 3.0)
     self.assertTrue(len(p) == 3)
 
+  def test_rotx(self):
+    x = np.array([0.0, 1.0, 0.0])
+    C = rotx(deg2rad(90.0))
+    x_prime = C @ x
+    self.assertTrue(np.allclose(x_prime, [0.0, 0.0, 1.0]))
+
+  def test_roty(self):
+    x = np.array([1.0, 0.0, 0.0])
+    C = roty(deg2rad(90.0))
+    x_prime = C @ x
+    self.assertTrue(np.allclose(x_prime, [0.0, 0.0, -1.0]))
+
+  def test_rotz(self):
+    x = np.array([1.0, 0.0, 0.0])
+    C = rotz(deg2rad(90.0))
+    x_prime = C @ x
+    self.assertTrue(np.allclose(x_prime, [0.0, 1.0, 0.0]))
+
+  def test_aa2quat(self):
+    pass
+
+  def test_rvec2rot(self):
+    pass
+
+  def test_vecs2axisangle(self):
+    pass
+
+  def test_euler321(self):
+    C = euler321(0.0, 0.0, 0.0)
+    self.assertTrue(np.array_equal(C, eye(3)))
+
   def test_euler2quat_and_quat2euler(self):
     y_in = deg2rad(3.0)
     p_in = deg2rad(2.0)
@@ -2068,14 +2233,14 @@ class TestTransform(unittest.TestCase):
     self.assertTrue(abs(p_in - ypr_out[1]) < 1e-5)
     self.assertTrue(abs(r_in - ypr_out[2]) < 1e-5)
 
-  def test_euler321(self):
-    C = euler321(0.0, 0.0, 0.0)
-    self.assertTrue(np.array_equal(C, eye(3)))
+  def test_quat2rot(self):
+    pass
 
-  def test_quat_mul(self):
-    p = euler2quat(deg2rad(3.0), deg2rad(2.0), deg2rad(1.0))
-    q = euler2quat(deg2rad(1.0), deg2rad(2.0), deg2rad(3.0))
-    r = quat_mul(p, q)
+  def test_rot2euler(self):
+    pass
+
+  def test_rot2quat(self):
+    pass
 
   def test_quat_norm(self):
     q = np.array([1.0, 0.0, 0.0, 0.0])
@@ -2085,6 +2250,20 @@ class TestTransform(unittest.TestCase):
     q = np.array([1.0, 0.1, 0.2, 0.3])
     q = quat_normalize(q)
     self.assertTrue(isclose(quat_norm(q), 1.0))
+
+  def test_quat_conj(self):
+    pass
+
+  def test_quat_inv(self):
+    pass
+
+  def test_quat_mul(self):
+    p = euler2quat(deg2rad(3.0), deg2rad(2.0), deg2rad(1.0))
+    q = euler2quat(deg2rad(1.0), deg2rad(2.0), deg2rad(3.0))
+    r = quat_mul(p, q)
+
+  def test_quat_omega(self):
+    pass
 
   def test_tf(self):
     pass
@@ -2288,8 +2467,8 @@ class TestFeatureTracker(unittest.TestCase):
     camera_images['cam1'] = self.img1
 
     # Detect
-    fd0 = self.feature_tracker._detect(self.img0)
-    fd1 = self.feature_tracker._detect(self.img1)
+    fd0 = self.feature_tracker._detect('cam0', self.img0)
+    fd1 = self.feature_tracker._detect('cam1', self.img1)
     (data_i, data_j, matches) = self.feature_tracker._match(fd0, fd1)
     self.assertEqual(len(data_i.keypoints), len(data_j.keypoints))
 
@@ -2325,36 +2504,36 @@ class TestFeatureTracker(unittest.TestCase):
   def test_detect_nonoverlaps(self):
     pass
 
-  # def test_initialize(self):
-  #   ts = self.dataset['timestamps'][0]
-  #   img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-  #   img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
-  #
-  #   camera_images = {}
-  #   camera_images['cam0'] = img0
-  #   camera_images['cam1'] = img1
-  #   self.feature_tracker._initialize(camera_images)
-  #
-  # def test_run(self):
-  #   for ts in self.dataset['timestamps']:
-  #     # Load images
-  #     img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-  #     img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
-  #
-  #     # Feed camera images to feature tracker
-  #     camera_images = {}
-  #     camera_images['cam0'] = img0
-  #     camera_images['cam1'] = img1
-  #     viz = self.feature_tracker.update(ts, camera_images)
-  #
-  #     # # Visualize
-  #     sys.stdout.flush()
-  #     if cv2.waitKey(0) == ord('q'):
-  #       break
-  #     # if viz is not None:
-  #     #   cv2.imshow('viz', viz)
-  #     #   if cv2.waitKey(0) == ord('q'):
-  #     #     break
+  def test_initialize(self):
+    ts = self.dataset['timestamps'][0]
+    img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
+    img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
+
+    camera_images = {}
+    camera_images['cam0'] = img0
+    camera_images['cam1'] = img1
+    self.feature_tracker._initialize(camera_images)
+
+  def test_run(self):
+    for ts in self.dataset['timestamps']:
+      print(ts)
+      # Load images
+      img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
+      img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
+
+      # Feed camera images to feature tracker
+      camera_images = {}
+      camera_images['cam0'] = img0
+      camera_images['cam1'] = img1
+      viz = self.feature_tracker.update(ts, camera_images)
+
+      # Visualize
+      sys.stdout.flush()
+      cv2.imshow('viz', viz)
+      # if cv2.waitKey(0) == ord('q'):
+      #   break
+      if cv2.waitKey(1) == ord('q'):
+        break
 
 
 # CALIBRATION #################################################################
