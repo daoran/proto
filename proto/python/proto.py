@@ -104,7 +104,7 @@ def schurs_complement(H, g, m, r, precond=False):
   #      Hrm, Hrr];
   Hmm = H[0:m, 0:m]
   Hmr = H[0:m, m:]
-  Hrm = Hmr.transpose()
+  Hrm = Hmr.T
   Hrr = H[m:, m:]
 
   # g = [gmm, grr]
@@ -113,13 +113,13 @@ def schurs_complement(H, g, m, r, precond=False):
 
   # Precondition Hmm
   if (precond):
-    Hmm = 0.5 * (Hmm + Hmm.transpose())
+    Hmm = 0.5 * (Hmm + Hmm.T)
 
   # Invert Hmm
   assert rank(Hmm) == Hmm.shape[0]
   (w, V) = eig(Hmm)
   W_inv = diag(1.0 / w)
-  Hmm_inv = V * W_inv * V.transpose()
+  Hmm_inv = V * W_inv * V.T
 
   # Schurs complement
   H_marg = Hrr - Hrm * Hmm_inv * Hmr
@@ -236,10 +236,10 @@ def Log(C):
 
 def Jr(theta):
   """
-  Equation (8) in:
   Forster, Christian, et al. "IMU preintegration on manifold for efficient
   visual-inertial maximum-a-posteriori estimation." Georgia Institute of
   Technology, 2015.
+  [Page 2, Equation (8)]
   """
   theta_norm = norm(theta)
   theta_norm_sq = theta_norm * theta_norm
@@ -371,7 +371,7 @@ def rvec2rot(rvec):
 
 
 def vecs2axisangle(u, v):
-  angle = math.acos(u.transpose() * v)
+  angle = math.acos(u.T * v)
   ax = normalize(np.cross(u, v))
   return ax * angle
 
@@ -886,7 +886,7 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   #      x_dash * P3T_dash - P1T_dash];
 
   # Use SVD to solve AX = 0
-  (_, _, V) = svd(A.transpose() * A)
+  (_, _, V) = svd(A.T * A)
   hp = V[:, 3]  # Get the best result from SVD (last column of V)
   hp = hp / hp[2]  # Normalize the homogeneous 3D point
   p = hp[0:3]  # Return only the first three components (x, y, z)
@@ -982,7 +982,7 @@ def radtan4_undistort(dist_params, p0):
     p = p + dp
 
     # Check threshold
-    if (err.transpose() * err) < 1e-15:
+    if (err.T * err) < 1e-15:
       break
 
   return p
@@ -2043,7 +2043,7 @@ def sim_vo_circle(circle_r, velocity, **kwargs):
 
     # Camera pose
     T_WC0 = T_WB * T_BC0
-    [z_data, p_data] = camera_measurements(cam0, T_WC0, features.transpose())
+    [z_data, p_data] = camera_measurements(cam0, T_WC0, features.T)
     cam_time.append(time)
     cam_poses[time] = T_WC0
     cam_pos.append(tf_trans(T_WC0))
@@ -2145,8 +2145,8 @@ def sim_imu_circle(circle_r, velocity):
     w_WS = np.array([wx, wy, wz])
 
     # IMU measurements
-    acc = C_WS.transpose() @ (a_WS + g)
-    gyr = C_WS.transpose() @ w_WS
+    acc = C_WS.T @ (a_WS + g)
+    gyr = C_WS.T @ w_WS
 
     # Update
     imu_poses.append(T_WS)
