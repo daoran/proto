@@ -2,6 +2,7 @@ import os
 import sys
 import glob
 import math
+import random
 from dataclasses import dataclass
 from typing import Optional
 
@@ -14,11 +15,12 @@ import numpy as np
 # MATHS
 ###############################################################################
 
+from math import pi
 from math import isclose
+from math import sqrt
 from math import cos
 from math import sin
-from math import sqrt
-from math import pi
+from math import tan
 
 ###############################################################################
 # LINEAR ALGEBRA
@@ -521,17 +523,17 @@ def rot2quat(C):
   """
   assert C.shape == (3, 3)
 
-  m00 = R[0, 0]
-  m01 = R[0, 1]
-  m02 = R[0, 2]
+  m00 = C[0, 0]
+  m01 = C[0, 1]
+  m02 = C[0, 2]
 
-  m10 = R[1, 0]
-  m11 = R[1, 1]
-  m12 = R[1, 2]
+  m10 = C[1, 0]
+  m11 = C[1, 1]
+  m12 = C[1, 2]
 
-  m20 = R[2, 0]
-  m21 = R[2, 1]
-  m22 = R[2, 2]
+  m20 = C[2, 0]
+  m21 = C[2, 1]
+  m22 = C[2, 2]
 
   tr = m00 + m11 + m22
 
@@ -709,6 +711,11 @@ def tf_quat(T):
   return rot2quat(tf_rot(T))
 
 
+def tf_trans(T):
+  """ Return translation vector from 4x4 homogeneous transform """
+  return T[0:3, 3]
+
+
 def tf_inv(T):
   """ Invert 4x4 homogeneous transform """
   return np.linalg.inv(T)
@@ -743,6 +750,8 @@ def tf_vector(T):
 ###############################################################################
 # MATPLOTLIB
 ###############################################################################
+
+import matplotlib.pylab as plt
 
 def plot_set_axes_equal(ax):
   """
@@ -894,6 +903,14 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
 
 
 # PINHOLE #####################################################################
+
+
+def focal_length(image_width, fov_deg):
+  """
+  Estimated focal length based on `image_width` and field of fiew `fov_deg`
+  in degrees.
+  """
+  return (image_width / 2.0) / tan(deg2rad(fov_deg / 2.0))
 
 
 def pinhole_K(params):
@@ -1529,6 +1546,7 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
   return (pts_i, pts_j, inliers)
 
 
+@dataclass
 class FeatureTrackingData:
   """ Feature tracking data per camera
 
@@ -1540,6 +1558,11 @@ class FeatureTrackingData:
   - Feature ids (optional)
 
   """
+  # cam_idx: int
+  # image: np.array
+  # keypoints: np.array
+  # descriptors:  np.array
+  # feature_ids:
 
   def __init__(self,
                cam_idx,
@@ -1571,7 +1594,7 @@ class FeatureTracker:
     # self.mode = "NON_OVERLAPS_ONLY"
 
     # Feature detector, descriptor and matcher
-    self.feature = cv2.ORB_create(nfeatures=100)
+    self.feature = cv2.ORB_create(nfeatures=1000)
     self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     # Data
@@ -1608,8 +1631,8 @@ class FeatureTracker:
   def _detect(self, cam_idx, image, prev_kps=[]):
     assert image is not None
     # kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
-    kps = detector.detect(image[rs:re, cs:ce], None)
-    kps, des = detector.compute(image, kps)
+    kps = self.feature.detect(image, None)
+    kps, des = self.feature.compute(image, kps)
     ft_data = FeatureTrackingData(cam_idx, image, kps, des)
     return ft_data
 
@@ -1872,11 +1895,36 @@ class AprilGrid:
 # DATASET
 ################################################################################
 
+# TIMELINE######################################################################
+
+@dataclass
+class CameraEvent:
+  ts: int
+  cam_idx: int
+  measurements: np.array
+
+
+@dataclass
+class ImuEvent:
+  ts: int
+  imu_idx: int
+  acc: np.array
+  gyr: np.array
+
+
+@dataclass
+class Timeline:
+  events: dict
+
 # EUROC ########################################################################
 
 
 def load_euroc_dataset(data_path):
   """ Load EuRoC Dataset """
+  # Check if directory exists
+  if os.path.isdir(data_path) is False:
+    raise RuntimeError(f"Path {data_path} does not exist!")
+
   # Form sensor paths
   imu0_path = os.path.join(data_path, 'mav0', 'imu0', 'data')
   cam0_path = os.path.join(data_path, 'mav0', 'cam0', 'data')
@@ -1916,28 +1964,15 @@ def load_euroc_dataset(data_path):
 # SIMULATION
 ###############################################################################
 
-
-@dataclass
-class CameraEvent:
-  ts: int
-  cam_idx: int
-  measurements: np.array
-
-@dataclass
-class ImuEvent:
-  ts: int
-  imu_idx: int
-  acc: np.array
-  gyr: np.array
-
+# UTILS #######################################################################
 
 def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
   """ Create 3D features randomly """
   features = zeros((nb_features, 3))
   for i in range(nb_features):
-    features[i, 0] = randf(x_bounds)
-    features[i, 1] = randf(y_bounds)
-    features[i, 2] = randf(z_bounds)
+    features[i, 0] = random.uniform(*x_bounds)
+    features[i, 1] = random.uniform(*y_bounds)
+    features[i, 2] = random.uniform(*z_bounds)
   return features
 
 
@@ -1948,45 +1983,109 @@ def create_3d_features_perimeter(origin, dim, nb_features):
   assert nb_features > 0
 
   # Dimension of the outskirt
-  w = dim[0]
-  l = dim[1]
-  h = dim[2]
+  w, l, h = dim
 
   # Features per side
-  nb_fps = nb_features / 4.0
+  nb_fps = int(nb_features / 4.0)
 
   # Features in the east side
   x_bounds = [origin[0] - w, origin[0] + w]
   y_bounds = [origin[1] + l, origin[1] + l]
   z_bounds = [origin[2] - h, origin[2] + h]
-  east_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+  east = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
 
   # Features in the north side
   x_bounds = [origin[0] + w, origin[0] + w]
   y_bounds = [origin[1] - l, origin[1] + l]
   z_bounds = [origin[2] - h, origin[2] + h]
-  north_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+  north = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
 
   # Features in the west side
   x_bounds = [origin[0] - w, origin[0] + w]
   y_bounds = [origin[1] - l, origin[1] - l]
   z_bounds = [origin[2] - h, origin[2] + h]
-  west_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+  west = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
 
   # Features in the south side
   x_bounds = [origin[0] - w, origin[0] - w]
   y_bounds = [origin[1] - l, origin[1] + l]
   z_bounds = [origin[2] - h, origin[2] + h]
-  south_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+  south = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
 
   # Stack features and return
-  features = np.array(
-      [east_features, north_features, west_features, south_features])
+  return np.block([[east], [north], [west], [south]])
+
+
+# def camera_measurements(camera, T_WC, points_W):
+#   assert(T_WC.shape [4, 4]);
+#   assert(points_W.shape[0] == 3);
+#   assert(points_W.shape[1] > 0);
+#
+#   # Form projection matrix
+#   T_CW = tf_inv(T_WC)
+#   C_CW = tf_rot(T_CW)
+#   r_CW = tf_trans(T_CW)
+#   K = pinhole_K(camera.param(1:4))
+#   P = K @ np.array([C_CW, r_CW])
+#
+#   # Setup
+#   image_width = camera.resolution[0];
+#   image_height = camera.resolution[1];
+#   nb_points = columns(points_W);
+#
+#   # Check points
+#   z = [];
+#   point_ids = [];
+#
+#   for i = 1:nb_points
+#     # Project point to image plane
+#     hp_W = homogeneous(points_W(:, i));
+#     x = P * hp_W;
+#
+#     # Check to see if point is infront of camera
+#     if x[2] < 1e-4
+#       continue;
+#     endif
+#
+#     # Normalize projected ray
+#     x[0] = x[0] / x[2];
+#     x[1] = x[1] / x[2];
+#     x[2] = x[2] / x[2];
+#     z_hat = [x[0]; x[1]];
+#
+#     # Check to see if ray is within image plane
+#     x_ok = (x[0] < image_width) and (x[0] > 0.0);
+#     y_ok = (x[1] < image_height) and (x[1] > 0.0);
+#     if x_ok && y_ok
+#       z = [z, z_hat];
+#       point_ids = [point_ids, i];
+#     endif
+#   endfor
+
+
+# SIMULATION###################################################################
+
+@dataclass
+class SimCameraData:
+  cam_idx: int
+  timestamps: list
+  poses: list
+  features: np.array
+  measurements: dict
+
+
+@dataclass
+class SimImuData:
+  imu_idx: int
+  timestamps: list
+  poses: list
+  acc: dict
+  gyr: dict
 
 
 def sim_vo_circle(circle_r, velocity, **kwargs):
   """ Simulate a camera going around in a circle """
-  C_BC0 = euler321(deg2rad([-90.0, 0.0, -90.0]))
+  C_BC0 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
   r_BC0 = [0.01, 0.01, 0.05]
   T_BC0 = tf(C_BC0, r_BC0)
   nb_features = 1000
@@ -2005,6 +2104,14 @@ def sim_vo_circle(circle_r, velocity, **kwargs):
   dist_params = [-0.01, 0.01, 1e-4, 1e-4]
   cam0 = pinhole_radtan4_init(cam_idx, resolution, proj_params, dist_params)
 
+  cam_time = []
+  cam_poses = {}
+  cam_pos = []
+  cam_quat = []
+  cam_att = []
+  z_data = {}
+  p_data = {}
+
   # Simulate features
   origin = [0, 0, 0]
   dim = [circle_r * 2, circle_r * 2, circle_r * 1.5]
@@ -2021,16 +2128,13 @@ def sim_vo_circle(circle_r, velocity, **kwargs):
   theta = pi
   yaw = pi / 2.0
 
-  cam_time = []
-  cam_poses = {}
-  cam_pos = []
-  cam_quat = []
-  cam_att = []
-  z_data = {}
-  p_data = {}
-
   # Simulate camera
-  idx = 1
+  print("Simulating camera measurements ...")
+  print(f"cam_rate: {cam_rate} [Hz]")
+  print(f"circle_r: {circle_r} [m]")
+  print(f"circle_dist: {circle_dist:.2f} [m]")
+  print(f"time_taken: {time_taken:.2f} [s]")
+
   while (time <= time_taken):
     # Body pose
     rx = circle_r * cos(theta)
@@ -2053,7 +2157,6 @@ def sim_vo_circle(circle_r, velocity, **kwargs):
     cam_p_data.append(p_data)
 
     # Update
-    idx += 1
     theta += w * dt
     yaw += w * dt
     time += dt
@@ -2092,11 +2195,6 @@ def sim_imu_circle(circle_r, velocity):
   circle_dist = 2.0 * pi * circle_r
   time_taken = circle_dist / velocity
   g = np.array([0.0, 0.0, 9.81])
-  print("Simulating ideal IMU measurements ...")
-  print("imu_rate: %f" % imu_rate)
-  print("circle_r: %f" % circle_r)
-  print("circle_dist: %f" % circle_dist)
-  print("time_taken: %f" % time_taken)
 
   dt = 1.0 / imu_rate
   w = -2.0 * pi * (1.0 / time_taken)
@@ -2115,6 +2213,12 @@ def sim_imu_circle(circle_r, velocity):
   imu_acc = []
   imu_gyr = []
 
+  print("Simulating ideal IMU measurements ...")
+  print(f"imu_rate: {imu_rate} [Hz]")
+  print(f"circle_r: {circle_r} [m]")
+  print(f"circle_dist: {circle_dist:.2f} [m]")
+  print(f"time_taken: {time_taken:.2f} [s]")
+
   idx = 1
   while (t <= time_taken):
     # IMU pose
@@ -2122,8 +2226,7 @@ def sim_imu_circle(circle_r, velocity):
     ry = circle_r * sin(theta)
     rz = 0.0
     r_WS = np.array([rx, ry, rz])
-    rpy_WS = np.array([0.0, 0.0, yaw])
-    C_WS = euler321(rpy_WS)
+    C_WS = euler321(yaw, 0.0, 0.0)
     T_WS = tf(C_WS, r_WS)
 
     # IMU velocity
@@ -2174,54 +2277,6 @@ def sim_imu_circle(circle_r, velocity):
   # sim_data.imu_acc = imu_acc
   # sim_data.imu_gyr = imu_gyr
 
-
-# def camera_measurements(camera, T_WC, points_W):
-#   assert(T_WC.shape [4, 4]);
-#   assert(points_W.shape[0] == 3);
-#   assert(points_W.shape[1] > 0);
-#
-#   # Form projection matrix
-#   T_CW = tf_inv(T_WC)
-#   C_CW = tf_rot(T_CW)
-#   r_CW = tf_trans(T_CW)
-#   K = pinhole_K(camera.param(1:4))
-#   P = K @ np.array([C_CW, r_CW])
-
-#   # Setup
-#   image_width = camera.resolution[0];
-#   image_height = camera.resolution[1];
-#   nb_points = columns(points_W);
-#
-#   # Check points
-#   z = [];
-#   point_ids = [];
-#
-#   for i = 1:nb_points
-#     # Project point to image plane
-#     hp_W = homogeneous(points_W(:, i));
-#     x = P * hp_W;
-#
-#     # Check to see if point is infront of camera
-#     if x[2] < 1e-4
-#       continue;
-#     endif
-#
-#     # Normalize projected ray
-#     x[0] = x[0] / x[2];
-#     x[1] = x[1] / x[2];
-#     x[2] = x[2] / x[2];
-#     z_hat = [x[0]; x[1]];
-#
-#     # Check to see if ray is within image plane
-#     x_ok = (x[0] < image_width) and (x[0] > 0.0);
-#     y_ok = (x[1] < image_height) and (x[1] > 0.0);
-#     if x_ok && y_ok
-#       z = [z, z_hat];
-#       point_ids = [point_ids, i];
-#     endif
-#   endfor
-#   assert(columns(z) == length(point_ids));
-# endfunction
 
 ###############################################################################
 #                               UNITTESTS
@@ -2638,10 +2693,10 @@ class TestFeatureTracker(unittest.TestCase):
       # Visualize
       sys.stdout.flush()
       cv2.imshow('viz', viz)
-      # if cv2.waitKey(0) == ord('q'):
-      #   break
-      if cv2.waitKey(1) == ord('q'):
+      if cv2.waitKey(0) == ord('q'):
         break
+      # if cv2.waitKey(1) == ord('q'):
+      #   break
 
 
 # CALIBRATION #################################################################
@@ -2665,7 +2720,48 @@ class TestEuoc(unittest.TestCase):
 
 
 class TestSimulation(unittest.TestCase):
-  def test_dummy(self):
+  def test_create_3d_features(self):
+    debug = False
+    x_bounds = np.array([-10.0, 10.0])
+    y_bounds = np.array([-10.0, 10.0])
+    z_bounds = np.array([-10.0, 10.0])
+    nb_features = 1000
+    features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_features)
+
+    if debug:
+      fig = plt.figure()
+      ax = fig.gca(projection='3d')
+      ax.scatter(features[:, 0], features[:, 1], features[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plt.show()
+
+  def test_create_3d_features_perimeter(self):
+    debug = False
+    origin = np.array([0.0, 0.0, 0.0])
+    dim = np.array([10.0, 10.0, 5.0])
+    nb_features = 1000
+    features = create_3d_features_perimeter(origin, dim, nb_features)
+
+    if debug:
+      fig = plt.figure()
+      ax = fig.gca(projection='3d')
+      ax.scatter(features[:, 0], features[:, 1], features[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plt.show()
+
+  def test_sim_vo_circle(self):
+    circle_r = 5.0
+    velocity = 1.0
+    sim_vo_circle(circle_r, velocity)
+
+  def test_sim_imu_circle(self):
+    circle_r = 5.0
+    velocity = 1.0
+    sim_imu_circle(circle_r, velocity)
     pass
 
 
