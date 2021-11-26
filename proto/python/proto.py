@@ -2,6 +2,7 @@ import os
 import sys
 import glob
 import math
+import random
 from dataclasses import dataclass
 from typing import Optional
 
@@ -743,6 +744,8 @@ def tf_vector(T):
 ###############################################################################
 # MATPLOTLIB
 ###############################################################################
+
+import matplotlib.pylab as plt
 
 def plot_set_axes_equal(ax):
   """
@@ -1529,6 +1532,7 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
   return (pts_i, pts_j, inliers)
 
 
+@dataclass
 class FeatureTrackingData:
   """ Feature tracking data per camera
 
@@ -1540,6 +1544,11 @@ class FeatureTrackingData:
   - Feature ids (optional)
 
   """
+  # cam_idx: int
+  # image: np.array
+  # keypoints: np.array
+  # descriptors:  np.array
+  # feature_ids:
 
   def __init__(self,
                cam_idx,
@@ -1571,7 +1580,7 @@ class FeatureTracker:
     # self.mode = "NON_OVERLAPS_ONLY"
 
     # Feature detector, descriptor and matcher
-    self.feature = cv2.ORB_create(nfeatures=100)
+    self.feature = cv2.ORB_create(nfeatures=1000)
     self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     # Data
@@ -1608,8 +1617,8 @@ class FeatureTracker:
   def _detect(self, cam_idx, image, prev_kps=[]):
     assert image is not None
     # kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
-    kps = detector.detect(image[rs:re, cs:ce], None)
-    kps, des = detector.compute(image, kps)
+    kps = self.feature.detect(image, None)
+    kps, des = self.feature.compute(image, kps)
     ft_data = FeatureTrackingData(cam_idx, image, kps, des)
     return ft_data
 
@@ -1877,6 +1886,10 @@ class AprilGrid:
 
 def load_euroc_dataset(data_path):
   """ Load EuRoC Dataset """
+  # Check if directory exists
+  if os.path.isdir(data_path) is False:
+    raise RuntimeError(f"Path {data_path} does not exist!")
+
   # Form sensor paths
   imu0_path = os.path.join(data_path, 'mav0', 'imu0', 'data')
   cam0_path = os.path.join(data_path, 'mav0', 'cam0', 'data')
@@ -1923,6 +1936,7 @@ class CameraEvent:
   cam_idx: int
   measurements: np.array
 
+
 @dataclass
 class ImuEvent:
   ts: int
@@ -1931,13 +1945,18 @@ class ImuEvent:
   gyr: np.array
 
 
+@dataclass
+class Timeline:
+  events: dict
+
+
 def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
   """ Create 3D features randomly """
   features = zeros((nb_features, 3))
   for i in range(nb_features):
-    features[i, 0] = randf(x_bounds)
-    features[i, 1] = randf(y_bounds)
-    features[i, 2] = randf(z_bounds)
+    features[i, 0] = random.uniform(*x_bounds)
+    features[i, 1] = random.uniform(*y_bounds)
+    features[i, 2] = random.uniform(*z_bounds)
   return features
 
 
@@ -1948,40 +1967,37 @@ def create_3d_features_perimeter(origin, dim, nb_features):
   assert nb_features > 0
 
   # Dimension of the outskirt
-  w = dim[0]
-  l = dim[1]
-  h = dim[2]
+  w, l, h = dim
 
   # Features per side
-  nb_fps = nb_features / 4.0
+  nb_fps = int(nb_features / 4.0)
 
   # Features in the east side
   x_bounds = [origin[0] - w, origin[0] + w]
   y_bounds = [origin[1] + l, origin[1] + l]
   z_bounds = [origin[2] - h, origin[2] + h]
-  east_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+  east = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
 
   # Features in the north side
   x_bounds = [origin[0] + w, origin[0] + w]
   y_bounds = [origin[1] - l, origin[1] + l]
   z_bounds = [origin[2] - h, origin[2] + h]
-  north_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+  north = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
 
   # Features in the west side
   x_bounds = [origin[0] - w, origin[0] + w]
   y_bounds = [origin[1] - l, origin[1] - l]
   z_bounds = [origin[2] - h, origin[2] + h]
-  west_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+  west = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
 
   # Features in the south side
   x_bounds = [origin[0] - w, origin[0] - w]
   y_bounds = [origin[1] - l, origin[1] + l]
   z_bounds = [origin[2] - h, origin[2] + h]
-  south_features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+  south = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
 
   # Stack features and return
-  features = np.array(
-      [east_features, north_features, west_features, south_features])
+  return np.block([[east], [north], [west], [south]])
 
 
 def sim_vo_circle(circle_r, velocity, **kwargs):
@@ -2638,10 +2654,10 @@ class TestFeatureTracker(unittest.TestCase):
       # Visualize
       sys.stdout.flush()
       cv2.imshow('viz', viz)
-      # if cv2.waitKey(0) == ord('q'):
-      #   break
-      if cv2.waitKey(1) == ord('q'):
+      if cv2.waitKey(0) == ord('q'):
         break
+      # if cv2.waitKey(1) == ord('q'):
+      #   break
 
 
 # CALIBRATION #################################################################
@@ -2665,7 +2681,48 @@ class TestEuoc(unittest.TestCase):
 
 
 class TestSimulation(unittest.TestCase):
-  def test_dummy(self):
+  def test_create_3d_features(self):
+    debug = True
+    x_bounds = np.array([-10.0, 10.0])
+    y_bounds = np.array([-10.0, 10.0])
+    z_bounds = np.array([-10.0, 10.0])
+    nb_features = 1000
+    features = create_3d_features(x_bounds, y_bounds, z_bounds, nb_features)
+
+    if debug:
+      fig = plt.figure()
+      ax = fig.gca(projection='3d')
+      ax.scatter(features[:, 0], features[:, 1], features[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plt.show()
+
+  def test_create_3d_features_perimeter(self):
+    debug = False
+    origin = np.array([0.0, 0.0, 0.0])
+    dim = np.array([10.0, 10.0, 5.0])
+    nb_features = 1000
+    features = create_3d_features_perimeter(origin, dim, nb_features)
+
+    if debug:
+      fig = plt.figure()
+      ax = fig.gca(projection='3d')
+      ax.scatter(features[:, 0], features[:, 1], features[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plt.show()
+
+  def test_sim_vo_circle(self):
+    circle_r = 5.0
+    velocity = 1.0
+    sim_vo_circle(circle_r, velocity)
+
+  def test_sim_imu_circle(self):
+    circle_r = 5.0
+    velocity = 1.0
+    sim_imu_circle(circle_r, velocity)
     pass
 
 
