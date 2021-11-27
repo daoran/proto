@@ -2,9 +2,13 @@ import os
 import sys
 import glob
 import math
+import copy
 import random
 from dataclasses import dataclass
+from dataclasses import field
+from types import FunctionType
 from typing import Optional
+from typing import List
 
 
 import cv2
@@ -28,6 +32,7 @@ from math import tan
 
 from numpy import rad2deg
 from numpy import deg2rad
+from numpy import sinc
 from numpy import zeros
 from numpy import ones
 from numpy import eye
@@ -37,6 +42,7 @@ from numpy.linalg import inv
 from numpy.linalg import pinv
 from numpy.linalg import matrix_rank as rank
 from numpy.linalg import eig
+from numpy.linalg import cholesky as chol
 
 
 def normalize(v):
@@ -152,33 +158,115 @@ def matrix_equal(A, B, tol=1e-8, verbose=False):
   return True
 
 
-def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
-  failed = False
-  d = (fdiff - jac)
+def check_jacobian(jac_name, fdiff, jac, threshold, verbose=True):
+  """ Check jacobians """
 
-  # Compare matrices
-  for i in range(d.shape[0]):
-    for j in range(d.shape[1]):
-      delta = d[i, j]
-      if (abs(delta) > threshold):
-        failed = True
-
-  if failed:
-    retval = -1
+  # Check if numerical diff is same as analytical jacobian
+  if matrix_equal(fdiff, jac, threshold):
     if verbose:
-      print("Check [%s] failed!" % jac_name)
+      print(f"Check [{jac_name}] passed!")
+    return True
+
+  # Failed - print differences
+  if verbose:
     fdiff_minus_jac = fdiff - jac
     num_diff = fdiff
 
-    # delta
-    if verbose:
-      print("----------------------------------------")
-  else:
-    if verbose:
-      print("Check [%s] passed!" % jac_name)
-    retval = 0
+    print(f"Check [{jac_name}] failed!")
+    print("-" * 60)
 
-  return retval
+    print("J_fdiff - J:")
+    print(np.round(fdiff_minus_jac, 4))
+    print()
+
+    print("J_fdiff:")
+    print(np.round(fdiff, 4))
+    print()
+
+    print("J:")
+    print(np.round(jac, 4))
+    print()
+
+    print("-" * 60)
+
+  return True
+
+
+###############################################################################
+# GEOMETRY
+###############################################################################
+
+
+def circle_loss(c, x, y):
+    """
+    Calculate the algebraic distance between the data points and the mean
+    circle centered at c=(xc, yc)
+    """
+    xc, yc = c
+    # Euclidean dist from center (xc, yc)
+    Ri = np.sqrt((x - xc)**2 + (y - yc)**2)
+    return Ri - Ri.mean()
+
+
+def find_circle(x, y):
+    """
+    Find the circle center and radius given (x, y) data points using least
+    squares. Returns `(circle_center, circle_radius, residual)`
+    """
+    x_m = np.mean(x)
+    y_m = np.mean(y)
+    center_init = x_m, y_m
+    center, ier = optimize.leastsq(circle_loss, center_init, args=(x,y))
+
+    radii = np.sqrt((x - xc)**2 + (y - yc)**2)
+    radius = radii.mean()
+    residual = np.sum((radii - radius)**2)
+
+    return (center, radius, residual)
+
+
+def bresenham(p0, p1):
+    """
+    Bresenham's line algorithm is a line drawing algorithm that determines the
+    points of an n-dimensional raster that should be selected in order to form
+    a close approximation to a straight line between two points. It is commonly
+    used to draw line primitives in a bitmap image (e.g. on a computer screen),
+    as it uses only integer addition, subtraction and bit shifting, all of
+    which are very cheap operations in standard computer architectures.
+
+    Args:
+
+      p0 (np.array): Starting point (x, y)
+      p1 (np.array): End point (x, y)
+
+    Returns:
+
+      A list of (x, y) intermediate points from p0 to p1.
+
+    """
+    x0, y0 = p0
+    x1, y1 = p1
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+    sx = 1.0 if x0 < x1 else -1.0
+    sy = 1.0 if y0 < y1 else -1.0
+    err = dx - dy
+
+    line = []
+    while True:
+      line.append([x0, y0])
+      if x0 == x1 and y0 == y1:
+        return line
+
+      e2 = 2*err
+      if e2 > -dy:
+        # overshot in the y direction
+        err = err - dy
+        x0 = x0 + sx
+      if e2 < dx:
+        # overshot in the x direction
+        err = err + dx
+        y0 = y0 + sy
 
 
 ###############################################################################
@@ -288,14 +376,17 @@ def boxplus(C, alpha):
 
 
 def homogeneous(p):
+  """ Turn point `p` into its homogeneous form """
   return np.array([*p, 1.0])
 
 
 def dehomogeneous(hp):
+  """ De-homogenize point `hp` into `p` """
   return hp[0:3]
 
 
 def rotx(theta):
+  """ Form rotation matrix around x axis """
   row0 = [1.0, 0.0, 0.0]
   row1 = [0.0, cos(theta), -sin(theta)]
   row2 = [0.0, sin(theta), cos(theta)]
@@ -303,6 +394,7 @@ def rotx(theta):
 
 
 def roty(theta):
+  """ Form rotation matrix around y axis """
   row0 = [cos(theta), 0.0, sin(theta)]
   row1 = [0.0, 1.0, 0.0]
   row2 = [-sin(theta), 0.0, cos(theta)]
@@ -310,6 +402,7 @@ def roty(theta):
 
 
 def rotz(theta):
+  """ Form rotation matrix around z axis """
   row0 = [cos(theta), -sin(theta), 0.0]
   row1 = [sin(theta), cos(theta), 0.0]
   row2 = [0.0, 0.0, 1.0]
@@ -334,6 +427,7 @@ def aa2quat(angle, axis):
 
 
 def rvec2rot(rvec):
+  """ Rotation vector to rotation matrix """
   # If small rotation
   theta = sqrt(rvec @ rvec)  # = norm(rvec), but faster
   if theta < eps:
@@ -373,6 +467,7 @@ def rvec2rot(rvec):
 
 
 def vecs2axisangle(u, v):
+  """ From 2 vectors form an axis-angle vector """
   angle = math.acos(u.T * v)
   ax = normalize(np.cross(u, v))
   return ax * angle
@@ -653,7 +748,11 @@ def quat_delta(dalpha):
   half_norm = 0.5 * norm(dalpha)
   scalar = cos(half_norm)
   vector = sinc(half_norm) * 0.5 * dalpha
-  dq = np.array([scalar, vector])  # (qw, qx, qy, qz)
+
+  dqw = scalar
+  dqx, dqy, dqz = vector
+  dq = np.array([dqw, dqx, dqy, dqz])
+
   return dq
 
 
@@ -741,11 +840,53 @@ def tf_decompose(tf):
   return (C, r)
 
 
-def tf_vector(T):
-  """ Return pose vector """
-  rx, ry, rz = tf_trans(T)
-  qw, qx, qy, qz = tf_quat(T)
-  return np.array([rx, ry, rz, qw, qx, qy, qz])
+def tf_perturb(T, i, step_size):
+  """ Perturb transformation matrix """
+  assert i >= 0 and i <= 5
+
+  # Setup
+  C = tf_rot(T)
+  r = tf_trans(T)
+
+  if i >= 0 and i <= 2:
+    # Perturb translation
+    r[i] += step_size
+
+  elif i >= 3 and i <= 5:
+    # Perturb rotation
+    rvec = np.array([0.0, 0.0, 0.0])
+    rvec[i - 3] = step_size
+
+    q = rot2quat(C)
+    dq = quat_delta(rvec)
+
+    q_diff = quat_mul(q, dq)
+    q_diff = quat_normalize(q_diff)
+
+    C = quat2rot(q_diff);
+
+  return tf(C, r)
+
+###############################################################################
+# YAML
+###############################################################################
+
+
+def load_yaml(yaml_path):
+  """ Load YAML and return a named tuple """
+  assert(yaml_path is not None)
+  assert(yaml_path != "")
+
+  # Load yaml_file
+  yaml_data = None
+  with open(yaml_path, "r") as stream:
+      yaml_data = yaml.safe_load(stream)
+
+  # Convert dict to named tuple
+  data = json.dumps(yaml_data) # Python dict to json
+  data = json.loads(data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+  return data
+
 
 ###############################################################################
 # MATPLOTLIB
@@ -809,20 +950,35 @@ def plot_tf(ax, T, **kwargs):
   fontweight = kwargs.get('fontweight', 'bold')
   colors = kwargs.get('colors', ['r-', 'g-', 'b-'])
 
-  p_f = np.array([[0, 0, 0, 1], [size, 0, 0, 1], [0, size, 0, 1], [0, 0, size, 1]]).T
-  p_0 = T @ p_f
-  X = np.append([p_0[:, 0].T], [p_0[:, 1].T], axis=0)
-  Y = np.append([p_0[:, 0].T], [p_0[:, 2].T], axis=0)
-  Z = np.append([p_0[:, 0].T], [p_0[:, 3].T], axis=0)
+  r = tf_trans(T)
+  origin = r
+  x_axis = T @ np.array([size * 1.0, 0.0, 0.0, 1.0])
+  y_axis = T @ np.array([0.0, size * 1.0, 0.0, 1.0])
+  z_axis = T @ np.array([0.0, 0.0, size * 1.0, 1.0])
 
-  ax.plot3D(X[:, 0], X[:, 1], X[:, 2], colors[0], linewidth=linewidth)
-  ax.plot3D(Y[:, 0], Y[:, 1], Y[:, 2], colors[1], linewidth=linewidth)
-  ax.plot3D(Z[:, 0], Z[:, 1], Z[:, 2], colors[2], linewidth=linewidth)
+  # Draw x-axis
+  ax.plot([origin[0], x_axis[0]],
+          [origin[1], x_axis[1]],
+          [origin[2], x_axis[2]],
+          colors[0])
 
+  # Draw y-axis
+  ax.plot([origin[0], y_axis[0]],
+          [origin[1], y_axis[1]],
+          [origin[2], y_axis[2]],
+          colors[1])
+
+  # Draw z-axis
+  ax.plot([origin[0], z_axis[0]],
+          [origin[1], z_axis[1]],
+          [origin[2], z_axis[2]],
+          colors[2])
+
+  # Draw label
   if name is not None:
-    x = X[0, 0] + name_offset[0]
-    y = X[0, 1] + name_offset[1]
-    z = X[0, 2] + name_offset[2]
+    x = origin + name_offset[0]
+    y = origin + name_offset[1]
+    z = origin + name_offset[2]
     ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
 
 
@@ -873,6 +1029,18 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   This function is used to triangulate a single 3D point observed by two
   camera frames (be it in time with the same camera, or two different cameras
   with known extrinsics).
+
+  Args:
+
+    P_i (np.array): First camera 3x4 projection matrix
+    P_j (np.array): Second camera 3x4 projection matrix
+    z_i (np.array): First keypoint measurement
+    z_j (np.array): Second keypoint measurement
+
+  Returns:
+
+    p_Ci (np.array): 3D point w.r.t first camera
+
   """
 
   # First three rows of P_i and P_j
@@ -973,6 +1141,36 @@ def radtan4_distort(dist_params, p):
   x_ddash = x_dash + (2.0 * p1 * xy + p2 * (r2 + 2.0 * x2))
   y_ddash = y_dash + (p1 * (r2 + 2.0 * y2) + 2.0 * p2 * xy)
   return np.array([x_ddash, y_ddash])
+
+
+def radtan4_point_jacobian(dist_params, p):
+  assert len(dist_params) == 4
+  assert len(p) == 2
+
+  # Distortion parameters
+  k1, k2, p1, p2 = dist_params
+
+  # Point
+  x, y = p
+
+  # Apply radial distortion
+  x2 = x * x
+  y2 = y * y
+  r2 = x2 + y2
+  r4 = r2 * r2
+
+  # Point Jacobian
+  # Let u = [x; y] normalized point
+  # Let u' be the distorted u
+  # The jacobian of u' w.r.t. u (or du'/du) is:
+  J_point = zeros((2, 2))
+  J_point[0, 0] = k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x *(2 * k1 * x + 4 * k2 *x * r2) + 1
+  J_point[1, 0] = 2.0 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2)
+  J_point[0, 1] = J_point[1, 0]
+  J_point[1, 1] = k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2) + 1
+  # Above is generated using sympy
+
+  return J_point
 
 
 def radtan4_undistort(dist_params, p0):
@@ -1197,6 +1395,7 @@ def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C):
   J_proj[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2]**2]
   J_dist_point = radtan4_point_jacobian(dist_params, x)
   J_proj_point = pinhole_point_jacobian(proj_params)
+
   return J_proj_point @ J_dist_point @ J_proj
 
 
@@ -1294,31 +1493,75 @@ def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C):
 
 # CAMERA GEOMETRY #############################################################
 
+@dataclass
 class CameraGeometry:
-  def __init__(self, cam_idx, resolution, proj_model, dist_model, proj_params,
-               dist_params, fix):
-    self.fix = fix
-    self.type = "camera"
-    self.cam_idx = cam_idx
-    self.resolution = resolution
-    self.proj_model = proj_model
-    self.dist_model = dist_model
-    self.param = np.array([proj_params, dist_params])
-    self.proj_params_size = len(proj_params)
-    self.dist_params_size = len(dist_params)
-    self.min_dims = self.proj_params + self.dist_params
+  cam_idx: int
+  resolution: tuple
+  proj_model: str
+  dist_model: str
+  proj_params_size: int
+  dist_params_size: int
 
-    if proj_model == "pinhole" and dist_model == "radtan4":
-      self.project_fn = pinhole_radtan4_project
-      self.backproject_fn = pinhole_radtan4_backproject
-      self.J_proj_fn = pinhole_radtan4_project_jacobian
-      self.J_param_fn = pinhole_radtan4_params_jacobian
-    elif proj_model == "pinhole" and dist_model == "equi4":
-      self.project_fn = pinhole_equi4_project
-      self.backproject_fn = pinhole_equi4_backproject
-      self.J_proj_fn = pinhole_equi4_project_jacobian
-      self.J_param_fn = pinhole_equi4_params_jacobian
+  project_fn: FunctionType
+  backproject_fn: FunctionType
+  J_proj_fn: FunctionType
+  J_params_fn: FunctionType
 
+  def project(self, params, p_C):
+    proj_params = params[:self.proj_params_size]
+    dist_params = params[-self.dist_params_size:]
+    return self.project_fn(proj_params, dist_params, p_C)
+
+  def backproject(self, params, z):
+    proj_params = params[:self.proj_params_size]
+    dist_params = params[-self.dist_params_size:]
+    return self.project_fn(proj_params, dist_params, z)
+
+  def J_proj(self, params, p_C):
+    proj_params = params[:self.proj_params_size]
+    dist_params = params[-self.dist_params_size:]
+    return self.J_proj_fn(proj_params, dist_params, p_C)
+
+  def J_params(self, params, p_C):
+    proj_params = params[:self.proj_params_size]
+    dist_params = params[-self.dist_params_size:]
+    return self.J_params_fn(proj_params, dist_params, p_C)
+
+
+def pinhole_radtan4_setup(cam_idx, cam_res):
+  """ Setup Pinhole + Radtan4 camera geometry """
+  return CameraGeometry(cam_idx,
+                        cam_res,
+                        "pinhole",
+                        "radtan4",
+                        4, 4,
+                        pinhole_radtan4_project,
+                        pinhole_radtan4_backproject,
+                        pinhole_radtan4_project_jacobian,
+                        pinhole_radtan4_params_jacobian)
+
+
+def pinhole_equi4_setup(cam_idx, cam_res):
+  """ Setup Pinhole + Equi camera geometry """
+  return CameraGeometry(cam_idx,
+                        cam_res,
+                        "pinhole",
+                        "equi4",
+                        4, 4,
+                        pinhole_equi4_project,
+                        pinhole_equi4_backproject,
+                        pinhole_equi4_project_jacobian,
+                        pinhole_equi4_params_jacobian)
+
+
+def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
+  """ Setup camera geometry """
+  if proj_model == "pinhole" and dist_model == "radtan4":
+    return pinhole_radtan4_setup(cam_idx, cam_res)
+  elif proj_model == "pinhole" and dist_model == "equi4":
+    return pinhole_radtan4_setup(cam_idx, cam_res)
+  else:
+    raise RuntimeError(f"Unrecognized [{proj_model}]-[{dist_model}] combo!")
 
 ###############################################################################
 # STATE ESTIMATION
@@ -1336,23 +1579,253 @@ class StateVariable:
   fix: bool
 
 
+def tf2pose(T):
+  """ Form pose vector """
+  rx, ry, rz = tf_trans(T)
+  qw, qx, qy, qz = tf_quat(T)
+  return np.array([rx, ry, rz, qx, qy, qz, qw])
+
+def pose2tf(pose_vec):
+  """ Convert pose vector to transformation matrix """
+  rx, ry, rz = pose_vec[0:3]
+  qx, qy, qz, qw = pose_vec[3:7]
+  return tf(np.array([qw, qx, qy, qz]), np.array([rx, ry, rz]))
+
 def pose_setup(ts, param, fix = False):
-  param = tf_param(param) if param.shape == (4, 4) else param
+  """ Forms pose state-variable """
+  param = tf2pose(param) if param.shape == (4, 4) else param
   return StateVariable(ts, "pose", param, None, 6, fix)
 
 
 def extrinsics_setup(param, fix = False):
-  param = tf_param(param) if param.shape == (4, 4) else param
+  """ Forms extrinsics state-variable """
+  param = tf2pose(param) if param.shape == (4, 4) else param
   return StateVariable(None, "extrinsics", param, None, 6, fix)
 
 
 def camera_params_setup(param, fix = False):
+  """ Forms camera parameters state-variable """
   return StateVariable(None, "camera", param, None, len(param), fix)
 
 
 def feature_setup(param, fix = False):
+  """ Forms feature state-variable """
   return StateVariable(None, "feature", param, None, len(param), fix)
 
+
+def perturb_state_variable(sv, i, step_size):
+  """ Perturb state variable """
+  if sv.var_type == "pose" or sv.var_type == "extrinsics":
+    T = pose2tf(sv.param)
+    T_dash = tf_perturb(T, i, step_size)
+    sv.param = tf2pose(T_dash)
+  else:
+    sv.param[i] += step_size
+
+  return sv
+
+
+# FACTORS ######################################################################
+
+@dataclass
+class Factor:
+  """ Factor """
+  factor_type: str
+  param_ids: str
+  measurement: np.array
+  covar: np.array
+  eval_fn: FunctionType
+  factor_data: Optional[dict] = None
+
+  def __post_init__(self):
+    self.sqrt_info = chol(inv(self.covar))
+
+  def eval(self, params):
+    return self.eval_fn(self, params)
+
+
+def pose_factor_setup(param_ids, measurement, covar=eye(6)):
+  """ Setup Pose Factor """
+  assert len(param_ids) == 1
+  assert measurement.shape == (4, 4)
+  assert covar.shape == (6, 6)
+
+  # Pose factor eval function
+  def pose_factor_eval(factor, params):
+    # Measured pose
+    T_meas = factor.measurement
+    q_meas = tf_quat(T_meas)
+    r_meas = tf_trans(T_meas)
+
+    # Estimated pose
+    pose_est = params[0]
+    T_est = pose2tf(pose_est.param)
+    q_est = tf_quat(T_est)
+    r_est = tf_trans(T_est)
+
+    # Form residuals (pose - pose_est)
+    dr = r_meas - r_est
+    dq = quat_mul(quat_inv(q_meas), q_est)
+    dtheta = 2 * dq[1:4]
+    r = factor.sqrt_info @ np.block([dr, dtheta])
+
+    # Form jacobians
+    J = zeros((6, 6))
+    J[0:3, 0:3] = -eye(3)
+    J[3:6, 3:6] = quat_left(dq)[1:4, 1:4]
+    J = factor.sqrt_info @ J
+    return (r, [J])
+
+  return Factor("pose_factor", param_ids, measurement, covar, pose_factor_eval)
+
+
+def ba_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
+  """ Setup BA factor """
+  assert len(param_ids) == 3
+  assert len(z) == 2
+  assert covar.shape == (2, 2)
+
+  # BA factor eval function
+  def ba_factor_eval(factor, params):
+    assert factor is not None
+    assert len(params) == 3
+
+    # Map params
+    cam_pose, feature, cam_params = params
+
+    # Project point in world frame to image plane
+    cam_geom = factor.factor_data['cam_geom']
+    T_WC = pose2tf(cam_pose.param)
+    z_hat = zeros((2, 1))
+    p_W = zeros((3, 1))
+    p_W = feature.param;
+    p_C = tf_point(inv(T_WC), p_W)
+    z_hat = cam_geom.project(cam_params.param, p_C)
+
+    # Calculate residual
+    sqrt_info = factor.sqrt_info
+    z = factor.measurement
+    r = sqrt_info @ (z - z_hat)
+
+    # Calculate Jacobians
+    # -- Measurement model jacobian
+    neg_sqrt_info = -1.0 * sqrt_info
+    Jh = cam_geom.J_proj(cam_params.param, p_C)
+    Jh_weighted = neg_sqrt_info @ Jh
+    # -- Jacobian w.r.t. camera pose T_WC
+    C_WC = tf_rot(T_WC)
+    C_CW = C_WC.T
+    r_WC = tf_trans(T_WC)
+    J0 = zeros((2, 6))  # w.r.t Camera pose T_WC
+    J0[0:2, 0:3] = Jh_weighted @ -C_CW
+    J0[0:2, 3:6] = Jh_weighted @ -C_CW @ skew(p_W - r_WC) @ -C_WC
+    # -- Jacobian w.r.t. feature
+    J1 = None
+    J1 = zeros((2, 3))
+    J1 = Jh_weighted @ C_CW
+    # -- Jacobian w.r.t. camera parameters
+    J_cam_params = cam_geom.J_params(cam_params.param, p_C)
+    J2 = zeros((2, 8))
+    J2 = neg_sqrt_info @ J_cam_params
+
+    return (r, [J0, J1, J2])
+
+  # Return ba factor
+  data = {'cam_geom': cam_geom}
+  return Factor("ba_factor", param_ids, z, covar, ba_factor_eval, data)
+
+
+def vision_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
+  assert len(param_ids) == 4
+  assert len(z) == 2
+  assert covar.shape == (2, 2)
+
+  # Vision factor eval function
+  def vision_factor_eval(factor, params):
+    assert factor is not None
+    assert len(params) == 4
+
+    # Map params
+    pose, cam_exts, feature, cam_params = params
+
+    # Project point in world frame to image plane
+    cam_geom = factor.factor_data['cam_geom']
+    T_WB = pose2tf(pose.param)
+    T_BCi = pose2tf(cam_exts.param)
+    p_W = feature.param
+    p_C = tf_point(inv(T_WB @ T_BCi), p_W)
+    z_hat = cam_geom.project(cam_params.param, p_C)
+
+    # Calculate residual
+    sqrt_info = factor.sqrt_info
+    z = factor.measurement
+    r = sqrt_info @ (z - z_hat)
+
+    # Calculate Jacobians
+    C_BCi = tf_rot(T_BCi)
+    C_WB = tf_rot(T_WB)
+    C_CB = C_BCi.T
+    C_BW = C_WB.T
+    C_CW = C_CB @ C_WB.T
+    r_WB = tf_trans(T_WB)
+    neg_sqrt_info = -1.0 * sqrt_info
+    # -- Measurement model jacobian
+    Jh = cam_geom.J_proj(cam_params.param, p_C)
+    Jh_weighted = neg_sqrt_info @ Jh
+    # -- Jacobian w.r.t. pose T_WB
+    J0 = zeros((2, 6))
+    J0[0:2, 0:3] = Jh_weighted @ C_CB @ -C_BW
+    J0[0:2, 3:6] = Jh_weighted @ C_CB @ -C_BW @ skew(p_W - r_WB) @ -C_WB
+    # -- Jacobian w.r.t. camera extrinsics T_BCi
+    J1 = zeros((2, 6))
+    J1[0:2, 0:3] = Jh_weighted @ -C_CB
+    J1[0:2, 3:6] = Jh_weighted @ -C_CB @ skew(C_BCi @ p_C) @ -C_BCi
+    # -- Jacobian w.r.t. feature
+    J2 = zeros((2, 3))
+    J2 = Jh_weighted @ C_CW
+    # -- Jacobian w.r.t. camera parameters
+    J_cam_params = cam_geom.J_params(cam_params.param, p_C)
+    J3 = zeros((2, 8))
+    J3 = neg_sqrt_info @ J_cam_params
+
+    return (r, [J0, J1, J2, J3])
+
+  # Return vision factor
+  data = {'cam_geom': cam_geom}
+  return Factor("vision_factor", param_ids, z, covar, vision_factor_eval, data)
+
+
+def check_factor_jacobian(factor, params, param_idx, jac_name, **kwargs):
+  """ Check factor jacobian """
+
+  # Step size and threshold
+  step_size = kwargs.get('step_size', 1e-8)
+  threshold = kwargs.get('threshold', 1e-4)
+  verbose = kwargs.get('verbose', False)
+
+  # Calculate baseline
+  r, jacs = factor.eval(params)
+
+  # Numerical diff
+  J_fdiff = zeros((len(r), params[param_idx].min_dims))
+  for i in range(params[param_idx].min_dims):
+    # Forward difference and evaluate
+    params_fwd = copy.deepcopy(params)
+    param = params_fwd[param_idx]
+    params_fwd[param_idx] = perturb_state_variable(param, i, 0.5 * step_size)
+    r_fwd, _ = factor.eval(params_fwd)
+
+    # Backward difference and evaluate
+    params_bwd = copy.deepcopy(params)
+    param = params_bwd[param_idx]
+    params_bwd[param_idx] = perturb_state_variable(param, i, -0.5 * step_size)
+    r_bwd, _ = factor.eval(params_bwd)
+
+    # Central finite difference
+    J_fdiff[:, i] = (r_fwd - r_bwd) / step_size
+
+  J = jacs[param_idx]
+  return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
 
 
 # FEATURE TRACKING #############################################################
@@ -1438,10 +1911,15 @@ class FeatureGrid:
 
     self.cell = [0 for i in range(self.grid_rows * self.grid_cols)]
     for kp in keypoints:
-      self.cell[self.cell_index(kp)] += 1
+      if hasattr(kp, 'pt'):
+        # cv2.KeyPoint
+        self.cell[self.cell_index(kp.pt)] += 1
+      else:
+        # Tuple
+        self.cell[self.cell_index(kp)] += 1
 
-  def cell_index(self, kp):
-    pixel_x, pixel_y = kp.pt
+  def cell_index(self, pt):
+    pixel_x, pixel_y = pt
     img_w, img_h = self.image_shape
     grid_x = math.ceil((max(1, pixel_x) / img_w) * self.grid_cols) - 1.0
     grid_y = math.ceil((max(1, pixel_y) / img_h) * self.grid_rows) - 1.0
@@ -1589,9 +2067,9 @@ class FeatureTracker:
 
   def __init__(self):
     # Settings
-    self.mode = "DEFAULT"
-    # self.mode = "OVERLAPS_ONLY"
-    # self.mode = "NON_OVERLAPS_ONLY"
+    self.mode = "TRACK_DEFAULT"
+    # self.mode = "TRACK_OVERLAPS"
+    # self.mode = "TRACK_INDEPENDENT"
 
     # Feature detector, descriptor and matcher
     self.feature = cv2.ORB_create(nfeatures=1000)
@@ -1707,12 +2185,12 @@ class FeatureTracker:
 
   def _initialize(self, camera_images):
     # Detect new features
-    if self.mode == "DEFAULT":
+    if self.mode == "TRACK_DEFAULT":
       self._detect_overlaps(camera_images)
       self._detect_nonoverlaps(camera_images)
-    elif self.mode == "OVERLAPS_ONLY":
+    elif self.mode == "TRACK_OVERLAPS":
       self._detect_overlaps(camera_images)
-    elif self.mode == "NON_OVERLAPS_ONLY":
+    elif self.mode == "TRACK_INDEPENDENT":
       self._detect_nonoverlaps(camera_images)
     else:
       raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
@@ -1844,25 +2322,18 @@ def calib_generate_random_poses(calib_target, nb_poses):
     poses.append(T_perturb * T_TC)
 
 
+@dataclass
 class AprilGrid:
   """ AprilGrid """
-  def __init__(self, tag_rows=6, tag_cols=6, tag_size=0.088, tag_spacing=0.3):
-    self.tag_rows = tag_rows
-    self.tag_cols = tag_cols
-    self.tag_sizse = tag_size
-    self.tag_spacing = tag_spacing
-    self.object_points = self.object_points()
-    self.keypoints = {}
+  tag_rows: int = 6
+  tag_cols: int = 6
+  tag_sizse: float = 0.088
+  tag_spacing: float = 0.3
+  keypoints: List = field(default_factory=[])
 
-  def grid_index(self, tag_id):
-    assert tag_id < (self.tag_rows * self.tag_cols) and id >= 0
-    i = floor(tag_id / self.tag_cols)
-    j = floor(rem(tag_id, self.tag_cols))
-    return (i, j)
-
-  def object_points(self):
-    object_points = []
-
+  def __post_init__(self):
+    # Form object points
+    self.object_points = []
     nb_tags = self.tag_rows * self.tag_cols
     for tag_id in range(nb_tags - 1):
       # Calculate the AprilGrid index using tag id
@@ -1886,9 +2357,13 @@ class AprilGrid:
       tag_points = [pt_bl, pt_br, pt_tr, pt_tl]
 
       # Add to total object points
-      object_points.append(tag_points)
+      self.object_points.append(tag_points)
 
-    return object_points
+  def grid_index(self, tag_id):
+    assert tag_id < (self.tag_rows * self.tag_cols) and id >= 0
+    i = floor(tag_id / self.tag_cols)
+    j = floor(rem(tag_id, self.tag_cols))
+    return (i, j)
 
 
 ################################################################################
@@ -1896,6 +2371,7 @@ class AprilGrid:
 ################################################################################
 
 # TIMELINE######################################################################
+
 
 @dataclass
 class CameraEvent:
@@ -1915,6 +2391,7 @@ class ImuEvent:
 @dataclass
 class Timeline:
   events: dict
+
 
 # EUROC ########################################################################
 
@@ -2063,7 +2540,7 @@ def create_3d_features_perimeter(origin, dim, nb_features):
 #   endfor
 
 
-# SIMULATION###################################################################
+# SIMULATION ##################################################################
 
 @dataclass
 class SimCameraData:
@@ -2102,7 +2579,7 @@ def sim_vo_circle(circle_r, velocity, **kwargs):
   cy = image_height / 2
   proj_params = [fx, fy, cx, cy]
   dist_params = [-0.01, 0.01, 1e-4, 1e-4]
-  cam0 = pinhole_radtan4_init(cam_idx, resolution, proj_params, dist_params)
+  cam0 = pinhole_radtan4_setup(cam_idx, resolution, proj_params, dist_params)
 
   cam_time = []
   cam_poses = {}
@@ -2527,6 +3004,128 @@ class TestCV(unittest.TestCase):
 
     self.assertTrue(matrix_equal(finite_diff, J, tol, True))
 
+# STATE ESTIMATION ############################################################
+
+class TestFactors(unittest.TestCase):
+  def test_pose_factor(self):
+    # Setup camera pose T_WC
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0);
+    trans = np.array([0.1, 0.2, 0.3])
+    T_WC = tf(rot, trans)
+    pose_meas = pose_setup(0, T_WC)
+
+    rot = euler2quat(-pi / 2.0 + 0.01, 0.0 + 0.01, -pi / 2.0 + 0.01);
+    trans = np.array([0.1 + 0.01, 0.2 + 0.01, 0.3 + 0.01])
+    T_WC_diff = tf(rot, trans)
+    pose_est = pose_setup(0, T_WC_diff)
+
+    # Create factor
+    ts = 0;
+    param_ids = [0]
+    pose_factor = pose_factor_setup(param_ids, T_WC)
+
+    # Evaluate factor
+    params = [pose_est]
+    r, jacs = pose_factor.eval(params)
+
+    # Test jacobians
+    check_factor_jacobian(pose_factor, params, 0, "J_pose")
+
+  def test_ba_factor(self):
+    # Setup camera pose T_WC
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0);
+    trans = np.array([0.1, 0.2, 0.3])
+    T_WC = tf(rot, trans)
+    cam_pose = pose_setup(0, T_WC)
+
+    # Setup cam0
+    cam_idx = 0
+    img_w = 640
+    img_h = 480
+    cam_res = [img_w, img_h]
+    fov = 60.0
+    fx = focal_length(img_w, fov)
+    fy = focal_length(img_h, fov)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    cam_params = camera_params_setup([fx, fy, cx, cy, -0.01, 0.01, 1e-4, 1e-4])
+    cam_geom = pinhole_radtan4_setup(cam_idx, cam_res)
+
+    # Setup feature
+    p_W = np.array([10, random.uniform(0.0, 1.0), random.uniform(0.0, 1.0)])
+    # -- Feature XYZ parameterization
+    feature = feature_setup(p_W)
+    # # -- Feature inverse depth parameterization
+    # param = idp_param(camera, T_WC, z)
+    # feature = feature_init(0, param)
+    # -- Calculate image point
+    p_C = tf_point(inv(T_WC), p_W)
+    z = cam_geom.project(cam_params.param, p_C)
+
+    # Setup factor
+    param_ids = [0, 1, 2]
+    ba_factor = ba_factor_setup(param_ids, z, cam_geom)
+
+    # Evaluate factor
+    params = [cam_pose, feature, cam_params]
+    r, jacs = ba_factor.eval(params)
+
+    # Test jacobians
+    check_factor_jacobian(ba_factor, params, 0, "J_cam_pose")
+    check_factor_jacobian(ba_factor, params, 1, "J_feature")
+    check_factor_jacobian(ba_factor, params, 2, "J_cam_params")
+
+  def test_vision_factor(self):
+    # Setup camera extrinsics T_BCi
+    rot = euler2quat(0.01, 0.01, 0.03);
+    trans = np.array([0.001, 0.002, 0.003])
+    T_WB = tf(rot, trans)
+    pose = pose_setup(0, T_WB)
+
+    # Setup camera extrinsics T_BCi
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0);
+    trans = np.array([0.1, 0.2, 0.3])
+    T_BCi = tf(rot, trans)
+    cam_exts = extrinsics_setup(T_BCi)
+
+    # Setup cam0
+    cam_idx = 0
+    img_w = 640
+    img_h = 480
+    cam_res = [img_w, img_h]
+    fov = 60.0
+    fx = focal_length(img_w, fov)
+    fy = focal_length(img_h, fov)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    cam_params = camera_params_setup([fx, fy, cx, cy, -0.01, 0.01, 1e-4, 1e-4])
+    cam_geom = pinhole_radtan4_setup(cam_idx, cam_res)
+
+    # Setup feature
+    p_W = np.array([10, random.uniform(0.0, 1.0), random.uniform(0.0, 1.0)])
+    # -- Feature XYZ parameterization
+    feature = feature_setup(p_W)
+    # # -- Feature inverse depth parameterization
+    # param = idp_param(camera, T_WC, z)
+    # feature = feature_init(0, param)
+    # -- Calculate image point
+    T_WCi = T_WB * T_BCi
+    p_C = tf_point(inv(T_WCi), p_W)
+    z = cam_geom.project(cam_params.param, p_C)
+
+    # Setup factor
+    param_ids = [0, 1, 2, 3]
+    vision_factor = vision_factor_setup(param_ids, z, cam_geom)
+
+    # Evaluate factor
+    params = [pose, cam_exts, feature, cam_params]
+    r, jacs = vision_factor.eval(params)
+
+    # Test jacobians
+    check_factor_jacobian(vision_factor, params, 0, "J_pose")
+    check_factor_jacobian(vision_factor, params, 1, "J_cam_exts")
+    check_factor_jacobian(vision_factor, params, 2, "J_feature")
+    check_factor_jacobian(vision_factor, params, 3, "J_cam_params")
 
 class TestFeatureTracking(unittest.TestCase):
   def setUp(self):
@@ -2561,8 +3160,8 @@ class TestFeatureTracking(unittest.TestCase):
     grid_rows = 4
     grid_cols = 4
     image_shape = (320, 280)
-    keypoints = [[0, 0], [320, 0], [0, 280], [320, 280]]
-    grid = FeatureGrid(grid_rows, grid_cols, image_shape, keypoints)
+    pts = [[0, 0], [320, 0], [0, 280], [320, 280]]
+    grid = FeatureGrid(grid_rows, grid_cols, image_shape, pts)
 
     self.assertEqual(grid.count(0), 1)
     self.assertEqual(grid.count(3), 1)
@@ -2612,7 +3211,7 @@ class TestFeatureTracker(unittest.TestCase):
     # Load and detect features from single image
     ts = self.dataset['timestamps'][0]
     img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-    ft_data = self.feature_tracker._detect(img0)
+    ft_data = self.feature_tracker._detect(0, img0)
 
   def test_detect_multicam(self):
     # Feed camera images to feature tracker
@@ -2622,7 +3221,7 @@ class TestFeatureTracker(unittest.TestCase):
     self.feature_tracker._detect_multicam(camera_images)
 
   def test_match(self):
-    debug = True
+    debug = False
 
     # Load images
     camera_images = {}
@@ -2644,7 +3243,7 @@ class TestFeatureTracker(unittest.TestCase):
       cv2.waitKey(0)
 
   def test_detect_overlaps(self):
-    debug = True
+    debug = False
 
     # Feed camera images to feature tracker
     camera_images = {}
@@ -2661,8 +3260,10 @@ class TestFeatureTracker(unittest.TestCase):
       kps_i = data_i.keypoints
       kps_j = data_j.keypoints
       viz = draw_matches(img_i, img_j, kps_i, kps_j)
-      cv2.imshow('viz', viz)
-      cv2.waitKey(0)
+
+      if debug:
+        cv2.imshow('viz', viz)
+        cv2.waitKey(0)
 
   def test_detect_nonoverlaps(self):
     pass
@@ -2677,26 +3278,26 @@ class TestFeatureTracker(unittest.TestCase):
     camera_images['cam1'] = img1
     self.feature_tracker._initialize(camera_images)
 
-  def test_run(self):
-    for ts in self.dataset['timestamps']:
-      print(ts)
-      # Load images
-      img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-      img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
-
-      # Feed camera images to feature tracker
-      camera_images = {}
-      camera_images['cam0'] = img0
-      camera_images['cam1'] = img1
-      viz = self.feature_tracker.update(ts, camera_images)
-
-      # Visualize
-      sys.stdout.flush()
-      cv2.imshow('viz', viz)
-      if cv2.waitKey(0) == ord('q'):
-        break
-      # if cv2.waitKey(1) == ord('q'):
-      #   break
+  # def test_run(self):
+  #   for ts in self.dataset['timestamps']:
+  #     print(ts)
+  #     # Load images
+  #     img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
+  #     img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
+  #
+  #     # Feed camera images to feature tracker
+  #     camera_images = {}
+  #     camera_images['cam0'] = img0
+  #     camera_images['cam1'] = img1
+  #     viz = self.feature_tracker.update(ts, camera_images)
+  #
+  #     # # Visualize
+  #     # sys.stdout.flush()
+  #     # cv2.imshow('viz', viz)
+  #     # if cv2.waitKey(0) == ord('q'):
+  #     #   break
+  #     # if cv2.waitKey(1) == ord('q'):
+  #     #   break
 
 
 # CALIBRATION #################################################################
@@ -2717,8 +3318,6 @@ class TestEuoc(unittest.TestCase):
 
 
 # SIMULATION  #################################################################
-
-
 class TestSimulation(unittest.TestCase):
   def test_create_3d_features(self):
     debug = False
@@ -2753,17 +3352,16 @@ class TestSimulation(unittest.TestCase):
       ax.set_zlabel("z [m]")
       plt.show()
 
-  def test_sim_vo_circle(self):
-    circle_r = 5.0
-    velocity = 1.0
-    sim_vo_circle(circle_r, velocity)
-
-  def test_sim_imu_circle(self):
-    circle_r = 5.0
-    velocity = 1.0
-    sim_imu_circle(circle_r, velocity)
-    pass
-
+  # def test_sim_vo_circle(self):
+  #   circle_r = 5.0
+  #   velocity = 1.0
+  #   sim_vo_circle(circle_r, velocity)
+  #
+  # def test_sim_imu_circle(self):
+  #   circle_r = 5.0
+  #   velocity = 1.0
+  #   sim_imu_circle(circle_r, velocity)
+  #   pass
 
 if __name__ == '__main__':
   unittest.main()
