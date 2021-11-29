@@ -4,16 +4,17 @@ import glob
 import math
 import copy
 import random
-from dataclasses import dataclass
-from dataclasses import field
+from collections import namedtuple
 from types import FunctionType
 from typing import Optional
 from typing import List
+# from typing import Dict
+from dataclasses import dataclass
+from dataclasses import field
 
-
-import cv2
 import yaml
 import numpy as np
+import cv2
 
 ###############################################################################
 # MATHS
@@ -46,20 +47,23 @@ from numpy.linalg import cholesky as chol
 
 
 def normalize(v):
-  norm = np.linalg.norm(v)
-  if norm == 0:
+  """ Normalize vector """
+  n = np.linalg.norm(v)
+  if n == 0:
     return v
-  return v / norm
+  return v / n
 
 
 def fullrank(A):
+  """ Check if matrix A is full rank """
   return rank(A) == A.shape[0]
 
 
 def skew(vec):
+  """ Form skew-symmetric matrix from vector `vec` """
   assert vec.shape == (3,) or vec.shape == (3, 1)
   x, y, z = vec
-  return np.array([[0, -z, y], [z, 0, -x], [-y, x, 0]])
+  return np.array([[0.0, -z, y], [z, 0.0, -x], [-y, x, 0.0]])
 
 
 def skew_inv(A):
@@ -198,35 +202,35 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=True):
 
 
 def circle_loss(c, x, y):
-    """
+  """
     Calculate the algebraic distance between the data points and the mean
     circle centered at c=(xc, yc)
     """
-    xc, yc = c
-    # Euclidean dist from center (xc, yc)
-    Ri = np.sqrt((x - xc)**2 + (y - yc)**2)
-    return Ri - Ri.mean()
+  xc, yc = c
+  # Euclidean dist from center (xc, yc)
+  Ri = np.sqrt((x - xc)**2 + (y - yc)**2)
+  return Ri - Ri.mean()
 
 
 def find_circle(x, y):
-    """
+  """
     Find the circle center and radius given (x, y) data points using least
     squares. Returns `(circle_center, circle_radius, residual)`
     """
-    x_m = np.mean(x)
-    y_m = np.mean(y)
-    center_init = x_m, y_m
-    center, ier = optimize.leastsq(circle_loss, center_init, args=(x,y))
+  x_m = np.mean(x)
+  y_m = np.mean(y)
+  center_init = x_m, y_m
+  center, ier = optimize.leastsq(circle_loss, center_init, args=(x, y))
 
-    radii = np.sqrt((x - xc)**2 + (y - yc)**2)
-    radius = radii.mean()
-    residual = np.sum((radii - radius)**2)
+  radii = np.sqrt((x - xc)**2 + (y - yc)**2)
+  radius = radii.mean()
+  residual = np.sum((radii - radius)**2)
 
-    return (center, radius, residual)
+  return (center, radius, residual)
 
 
 def bresenham(p0, p1):
-    """
+  """
     Bresenham's line algorithm is a line drawing algorithm that determines the
     points of an n-dimensional raster that should be selected in order to form
     a close approximation to a straight line between two points. It is commonly
@@ -244,29 +248,29 @@ def bresenham(p0, p1):
       A list of (x, y) intermediate points from p0 to p1.
 
     """
-    x0, y0 = p0
-    x1, y1 = p1
-    dx = abs(x1 - x0)
-    dy = abs(y1 - y0)
-    sx = 1.0 if x0 < x1 else -1.0
-    sy = 1.0 if y0 < y1 else -1.0
-    err = dx - dy
+  x0, y0 = p0
+  x1, y1 = p1
+  dx = abs(x1 - x0)
+  dy = abs(y1 - y0)
+  sx = 1.0 if x0 < x1 else -1.0
+  sy = 1.0 if y0 < y1 else -1.0
+  err = dx - dy
 
-    line = []
-    while True:
-      line.append([x0, y0])
-      if x0 == x1 and y0 == y1:
-        return line
+  line = []
+  while True:
+    line.append([x0, y0])
+    if x0 == x1 and y0 == y1:
+      return line
 
-      e2 = 2*err
-      if e2 > -dy:
-        # overshot in the y direction
-        err = err - dy
-        x0 = x0 + sx
-      if e2 < dx:
-        # overshot in the x direction
-        err = err + dx
-        y0 = y0 + sy
+    e2 = 2 * err
+    if e2 > -dy:
+      # overshot in the y direction
+      err = err - dy
+      x0 = x0 + sx
+    if e2 < dx:
+      # overshot in the x direction
+      err = err + dx
+      y0 = y0 + sy
 
 
 ###############################################################################
@@ -276,7 +280,7 @@ def bresenham(p0, p1):
 
 def Exp(phi):
   assert phi.shape == (3,) or phi.shape == (3, 1)
-  if (phi < 1e-3):
+  if (norm(phi) < 1e-3):
     C = eye(3) + skew(phi)
     return C
   else:
@@ -286,7 +290,7 @@ def Exp(phi):
 
     C = eye(3)
     C += (sin(phi_norm) / phi_norm) * phi_skew
-    C += ((1 - cos(phi_norm)) / phi_norm ^ 2) * phi_skew_sq
+    C += ((1 - cos(phi_norm)) / phi_norm**2) * phi_skew_sq
     return C
 
 
@@ -863,9 +867,10 @@ def tf_perturb(T, i, step_size):
     q_diff = quat_mul(q, dq)
     q_diff = quat_normalize(q_diff)
 
-    C = quat2rot(q_diff);
+    C = quat2rot(q_diff)
 
   return tf(C, r)
+
 
 ###############################################################################
 # YAML
@@ -874,17 +879,18 @@ def tf_perturb(T, i, step_size):
 
 def load_yaml(yaml_path):
   """ Load YAML and return a named tuple """
-  assert(yaml_path is not None)
-  assert(yaml_path != "")
+  assert (yaml_path is not None)
+  assert (yaml_path != "")
 
   # Load yaml_file
   yaml_data = None
   with open(yaml_path, "r") as stream:
-      yaml_data = yaml.safe_load(stream)
+    yaml_data = yaml.safe_load(stream)
 
   # Convert dict to named tuple
-  data = json.dumps(yaml_data) # Python dict to json
-  data = json.loads(data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+  data = json.dumps(yaml_data)  # Python dict to json
+  data = json.loads(
+      data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
   return data
 
 
@@ -893,6 +899,7 @@ def load_yaml(yaml_path):
 ###############################################################################
 
 import matplotlib.pylab as plt
+
 
 def plot_set_axes_equal(ax):
   """
@@ -957,22 +964,16 @@ def plot_tf(ax, T, **kwargs):
   z_axis = T @ np.array([0.0, 0.0, size * 1.0, 1.0])
 
   # Draw x-axis
-  ax.plot([origin[0], x_axis[0]],
-          [origin[1], x_axis[1]],
-          [origin[2], x_axis[2]],
-          colors[0])
+  ax.plot([origin[0], x_axis[0]], [origin[1], x_axis[1]],
+          [origin[2], x_axis[2]], colors[0])
 
   # Draw y-axis
-  ax.plot([origin[0], y_axis[0]],
-          [origin[1], y_axis[1]],
-          [origin[2], y_axis[2]],
-          colors[1])
+  ax.plot([origin[0], y_axis[0]], [origin[1], y_axis[1]],
+          [origin[2], y_axis[2]], colors[1])
 
   # Draw z-axis
-  ax.plot([origin[0], z_axis[0]],
-          [origin[1], z_axis[1]],
-          [origin[2], z_axis[2]],
-          colors[2])
+  ax.plot([origin[0], z_axis[0]], [origin[1], z_axis[1]],
+          [origin[2], z_axis[2]], colors[2])
 
   # Draw label
   if name is not None:
@@ -1164,10 +1165,12 @@ def radtan4_point_jacobian(dist_params, p):
   # Let u' be the distorted u
   # The jacobian of u' w.r.t. u (or du'/du) is:
   J_point = zeros((2, 2))
-  J_point[0, 0] = k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x *(2 * k1 * x + 4 * k2 *x * r2) + 1
+  J_point[0, 0] = k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (
+      2 * k1 * x + 4 * k2 * x * r2) + 1
   J_point[1, 0] = 2.0 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2)
   J_point[0, 1] = J_point[1, 0]
-  J_point[1, 1] = k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (2 * k1 * y + 4 * k2 * y * r2) + 1
+  J_point[1, 1] = k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (
+      2 * k1 * y + 4 * k2 * y * r2) + 1
   # Above is generated using sympy
 
   return J_point
@@ -1491,7 +1494,9 @@ def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C):
   J[0:2, 4:8] = J_proj_point @ J_dist_params
   return J
 
+
 # CAMERA GEOMETRY #############################################################
+
 
 @dataclass
 class CameraGeometry:
@@ -1508,21 +1513,25 @@ class CameraGeometry:
   J_params_fn: FunctionType
 
   def project(self, params, p_C):
+    """ Project point `p_C` to image plane """
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
     return self.project_fn(proj_params, dist_params, p_C)
 
   def backproject(self, params, z):
+    """ Back project image point `z` """
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
     return self.project_fn(proj_params, dist_params, z)
 
   def J_proj(self, params, p_C):
+    """ Form Jacobian w.r.t. p_C """
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
     return self.J_proj_fn(proj_params, dist_params, p_C)
 
   def J_params(self, params, p_C):
+    """ Form Jacobian w.r.t. camera parameters """
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
     return self.J_params_fn(proj_params, dist_params, p_C)
@@ -1530,26 +1539,16 @@ class CameraGeometry:
 
 def pinhole_radtan4_setup(cam_idx, cam_res):
   """ Setup Pinhole + Radtan4 camera geometry """
-  return CameraGeometry(cam_idx,
-                        cam_res,
-                        "pinhole",
-                        "radtan4",
-                        4, 4,
-                        pinhole_radtan4_project,
-                        pinhole_radtan4_backproject,
+  return CameraGeometry(cam_idx, cam_res, "pinhole", "radtan4", 4, 4,
+                        pinhole_radtan4_project, pinhole_radtan4_backproject,
                         pinhole_radtan4_project_jacobian,
                         pinhole_radtan4_params_jacobian)
 
 
 def pinhole_equi4_setup(cam_idx, cam_res):
   """ Setup Pinhole + Equi camera geometry """
-  return CameraGeometry(cam_idx,
-                        cam_res,
-                        "pinhole",
-                        "equi4",
-                        4, 4,
-                        pinhole_equi4_project,
-                        pinhole_equi4_backproject,
+  return CameraGeometry(cam_idx, cam_res, "pinhole", "equi4", 4, 4,
+                        pinhole_equi4_project, pinhole_equi4_backproject,
                         pinhole_equi4_project_jacobian,
                         pinhole_equi4_params_jacobian)
 
@@ -1563,11 +1562,13 @@ def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
   else:
     raise RuntimeError(f"Unrecognized [{proj_model}]-[{dist_model}] combo!")
 
+
 ###############################################################################
 # STATE ESTIMATION
 ###############################################################################
 
 # STATE VARIABLES #############################################################
+
 
 @dataclass
 class StateVariable:
@@ -1585,30 +1586,38 @@ def tf2pose(T):
   qw, qx, qy, qz = tf_quat(T)
   return np.array([rx, ry, rz, qx, qy, qz, qw])
 
+
 def pose2tf(pose_vec):
   """ Convert pose vector to transformation matrix """
   rx, ry, rz = pose_vec[0:3]
   qx, qy, qz, qw = pose_vec[3:7]
   return tf(np.array([qw, qx, qy, qz]), np.array([rx, ry, rz]))
 
-def pose_setup(ts, param, fix = False):
+
+def pose_setup(ts, param, fix=False):
   """ Forms pose state-variable """
   param = tf2pose(param) if param.shape == (4, 4) else param
   return StateVariable(ts, "pose", param, None, 6, fix)
 
 
-def extrinsics_setup(param, fix = False):
+def speed_biases_setup(ts, vel, ba, bg, fix=False):
+  """ Forms speed and biases state-variable """
+  param = np.block([vel, ba, bg])
+  return StateVariable(ts, "speed_and_biases", param, None, len(param), fix)
+
+
+def extrinsics_setup(param, fix=False):
   """ Forms extrinsics state-variable """
   param = tf2pose(param) if param.shape == (4, 4) else param
   return StateVariable(None, "extrinsics", param, None, 6, fix)
 
 
-def camera_params_setup(param, fix = False):
+def camera_params_setup(param, fix=False):
   """ Forms camera parameters state-variable """
   return StateVariable(None, "camera", param, None, len(param), fix)
 
 
-def feature_setup(param, fix = False):
+def feature_setup(param, fix=False):
   """ Forms feature state-variable """
   return StateVariable(None, "feature", param, None, len(param), fix)
 
@@ -1627,6 +1636,7 @@ def perturb_state_variable(sv, i, step_size):
 
 # FACTORS ######################################################################
 
+
 @dataclass
 class Factor:
   """ Factor """
@@ -1635,7 +1645,7 @@ class Factor:
   measurement: np.array
   covar: np.array
   eval_fn: FunctionType
-  factor_data: Optional[dict] = None
+  data: Optional[dict] = None
 
   def __post_init__(self):
     self.sqrt_info = chol(inv(self.covar))
@@ -1694,11 +1704,11 @@ def ba_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
     cam_pose, feature, cam_params = params
 
     # Project point in world frame to image plane
-    cam_geom = factor.factor_data['cam_geom']
+    cam_geom = factor.data['cam_geom']
     T_WC = pose2tf(cam_pose.param)
     z_hat = zeros((2, 1))
     p_W = zeros((3, 1))
-    p_W = feature.param;
+    p_W = feature.param
     p_C = tf_point(inv(T_WC), p_W)
     z_hat = cam_geom.project(cam_params.param, p_C)
 
@@ -1749,7 +1759,7 @@ def vision_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
     pose, cam_exts, feature, cam_params = params
 
     # Project point in world frame to image plane
-    cam_geom = factor.factor_data['cam_geom']
+    cam_geom = factor.data['cam_geom']
     T_WB = pose2tf(pose.param)
     T_BCi = pose2tf(cam_exts.param)
     p_W = feature.param
@@ -1793,6 +1803,198 @@ def vision_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
   # Return vision factor
   data = {'cam_geom': cam_geom}
   return Factor("vision_factor", param_ids, z, covar, vision_factor_eval, data)
+
+
+class ImuBuffer:
+  def __init__(self):
+    self.ts = []
+    self.acc = []
+    self.gyr = []
+
+
+@dataclass
+class ImuParams:
+  noise_acc: np.array
+  noise_gyr: np.array
+  noise_ba: np.array
+  noise_bg: np.array
+  g: np.array = np.array([0.0, 0.0, 9.81])
+
+
+def imu_factor_propagate(imu_buf, imu_params, sb_i):
+  # Setup
+  Dt = 0.0
+  g = imu_params.g
+  state_F = eye(15, 15)  # State jacobian
+  state_P = zeros((15, 15))  # State covariance
+
+  # Noise matrix Q
+  Q = zeros((12, 12))
+  Q[0:3, 0:3] = imu_params.noise_acc**2 * eye(3)
+  Q[3:6, 3:6] = imu_params.noise_gyr**2 * eye(3)
+  Q[6:9, 6:9] = imu_params.noise_ba**2 * eye(3)
+  Q[9:12, 9:12] = imu_params.noise_bg**2 * eye(3)
+
+  # Pre-integrate relative position, velocity, rotation and biases
+  dr = np.array([0.0, 0.0, 0.0])  # Relative position
+  dv = np.array([0.0, 0.0, 0.0])  # Relative velocity
+  dC = eye(3, 3)  # Relative rotation
+  ba_i = sb_i.param[3:6]  # Accel biase at i
+  bg_i = sb_i.param[6:9]  # Gyro biase at i
+
+  # Pre-integrate imu measuremenets
+  for k in range(len(imu_buf.ts) - 1):
+    # Timestep
+    ts_i = imu_buf.ts[k]
+    ts_j = imu_buf.ts[k + 1]
+    dt = ts_j - ts_i
+    dt_sq = dt * dt
+
+    # Accelerometer and gyroscope measurements
+    acc_i = imu_buf.acc[k]
+    gyr_i = imu_buf.gyr[k]
+    acc_j = imu_buf.acc[k + 1]
+    gyr_j = imu_buf.gyr[k + 1]
+
+    # Propagate IMU state using Euler method
+    dr = dr + (dv * dt) + (0.5 * dC @ (acc_i - ba_i) * dt_sq)
+    dv = dv + dC @ (acc_i - ba_i) * dt
+    dC = dC @ Exp((gyr_i - bg_i) * dt)
+    ba = ba_i
+    bg = bg_i
+
+    # Make sure determinant of rotation is 1 by normalizing the quaternion
+    dq = quat_normalize(rot2quat(dC))
+    dC = quat2rot(dq)
+
+    # Continuous time transition matrix F
+    F = zeros((15, 15))
+    F[0:3, 3:6] = eye(3)
+    F[3:6, 6:9] = -dC @ skew(acc_i - ba_i)
+    F[3:6, 9:12] = -dC
+    F[6:9, 6:9] = -skew(gyr_i - bg_i)
+    F[6:9, 12:15] = -eye(3)
+
+    # Continuous time input jacobian G
+    G = zeros((15, 12))
+    G[3:6, 0:3] = -dC
+    G[6:9, 3:6] = -eye(3)
+    G[9:12, 6:9] = eye(3)
+    G[12:15, 9:12] = eye(3)
+
+    # Update
+    G_dt = G * dt
+    I_F_dt = eye(15) + F * dt
+    state_F = I_F_dt @ state_F
+    state_P = I_F_dt @ state_P @ I_F_dt.T + G_dt @ Q @ G_dt.T
+    Dt += dt
+
+  # Update
+  fields = ['dr', 'dv', 'dC', 'ba', 'bg', 'Dt', 'state_F', 'state_P', 'g']
+  ImuFactorData = namedtuple('ImuFactorData', " ".join(fields))
+  return ImuFactorData(dr, dv, dC, ba_i, bg_i, Dt, state_F, state_P, g)
+
+
+def imu_factor_eval(factor, params):
+  # Map params
+  pose_i, sb_i, pose_j, sb_j = params
+
+  # Timestep i
+  T_i = pose2tf(pose_i.param)
+  r_i = tf_trans(T_i)
+  C_i = tf_rot(T_i)
+  q_i = tf_quat(T_i)
+  v_i = sb_i.param[0:3]
+  ba_i = sb_i.param[3:6]
+  bg_i = sb_i.param[6:9]
+
+  # Timestep j
+  T_j = pose2tf(pose_j.param)
+  r_j = tf_trans(T_j)
+  C_j = tf_rot(T_j)
+  q_j = tf_quat(T_j)
+  v_j = sb_j.param[0:3]
+  ba_j = sb_j.param[3:6]
+  bg_j = sb_j.param[6:9]
+
+  # Correct the relative position, velocity and orientation
+  # -- Extract jacobians from error-state jacobian
+  dr_dba = factor.data.state_F[0:3, 9:12]
+  dr_dbg = factor.data.state_F[0:3, 13:15]
+  dv_dba = factor.data.state_F[3:6, 9:12]
+  dv_dbg = factor.data.state_F[3:6, 13:15]
+  dq_dbg = factor.data.state_F[6:9, 13:15]
+  dba = ba_i - factor.data.ba
+  dbg = bg_i - factor.data.bg
+  # -- Correct the relative position, velocity and rotation
+  print(factor.data.dr)
+  print(dr_dba)
+  print(dba)
+  print(dr_dbg)
+  print(dbg)
+  dr_dba @ dba.reshape((3, 1))
+  dr = factor.data.dr + dr_dba @ dba.reshape((3, 1)) + dr_dbg @ dbg
+  dv = factor.data.dv + dv_dba @ dba + dv_dbg @ dbg
+  dC = factor.data.dC @ Exp(dq_dbg @ dbg)
+  dq = quat_normalize(rot2quat(dC))
+
+  # Form residuals
+  sqrt_info = factor.sqrt_info
+  g = factor.data.g
+  Dt = factor.data.Dt
+  Dt_sq = Dt * Dt
+  err_pos = (C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr
+  err_vel = (C_i.T @ ((v_j - v_i) + (g * Dt))) - dv
+  err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))[1:4]
+  err_ba = np.array([0.0, 0.0, 0.0])
+  err_bg = np.array([0.0, 0.0, 0.0])
+  r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
+
+  # Form jacobians
+  J0 = zeros((15, 6))  # residuals w.r.t pose i
+  J1 = zeros((15, 9))  # residuals w.r.t speed and biase i
+  J2 = zeros((15, 6))  # residuals w.r.t pose j
+  J3 = zeros((15, 9))  # residuals w.r.t speed and biase j
+
+  # -- Jacobian w.r.t. pose i
+  J0[0:3, 0:3] = -C_i.T  # dr w.r.t r_i
+  J0[0:3, 3:6] = skew(C_i.T @ ((r_j - r_i) - (v_i * Dt) +
+                               (0.5 * g * Dt_sq)))  # dr w.r.t C_i
+  J0[3:6, 3:6] = skew(C_i.T @ ((v_j - v_i) + (g * Dt)))  # dv w.r.t C_i
+  J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i))
+                   @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
+  J0 = sqrt_info @ J0
+
+  # -- Jacobian w.r.t. speed and biases i
+  J1[0:3, 0:3] = -C_i.T * Dt  # dr w.r.t v_i
+  J1[0:3, 3:6] = -dr_dba  # dr w.r.t ba
+  J1[0:3, 6:9] = -dr_dbg  # dr w.r.t bg
+  J1[3:6, 0:3] = -C_i.T  # dv w.r.t v_i
+  J1[3:6, 3:6] = -dv_dba  # dv w.r.t ba
+  J1[3:6, 6:9] = -dv_dbg  # dv w.r.t bg
+  J1[6:9, 6:9] = -quat_left(rot2quat(
+      C_j.T @ C_i @ factor.data.dC))[1:4, 1:4] @ dq_dbg  # dtheta w.r.t C_i
+  J1 = sqrt_info @ J1
+
+  # -- Jacobian w.r.t. pose j
+  J2[0:3, 0:3] = C_i.T  # dr w.r.t r_j
+  J2[6:9, 3:6] = quat_left(rot2quat(
+      dC.T @ C_i.T @ C_j))[1:4, 1:4]  # dtheta w.r.t C_j
+  J2 = sqrt_info @ J2
+
+  # -- Jacobian w.r.t. sb j
+  J3[3:6, 0:3] = C_i.T  # dv w.r.t v_j
+  J3 = sqrt_info @ J3
+
+  return (r, [J0, J1, J2, J3])
+
+
+def imu_factor_setup(param_ids, imu_buf, imu_params, sb_i):
+  """ Setup IMU factor """
+  assert len(param_ids) == 4
+  data = imu_factor_propagate(imu_buf, imu_params, sb_i)
+  covar = inv(data.state_P)
+  return Factor("imu_factor", param_ids, None, covar, imu_factor_eval, data)
 
 
 def check_factor_jacobian(factor, params, param_idx, jac_name, **kwargs):
@@ -2036,6 +2238,7 @@ class FeatureTrackingData:
   - Feature ids (optional)
 
   """
+
   # cam_idx: int
   # image: np.array
   # keypoints: np.array
@@ -2108,9 +2311,9 @@ class FeatureTracker:
 
   def _detect(self, cam_idx, image, prev_kps=[]):
     assert image is not None
-    # kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
-    kps = self.feature.detect(image, None)
-    kps, des = self.feature.compute(image, kps)
+    kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
+    # kps = self.feature.detect(image, None)
+    # kps, des = self.feature.compute(image, kps)
     ft_data = FeatureTrackingData(cam_idx, image, kps, des)
     return ft_data
 
@@ -2245,6 +2448,7 @@ class FeatureTracker:
 ###############################################################################
 # CALIBRATION
 ###############################################################################
+
 
 @dataclass
 class CalibTarget:
@@ -2443,6 +2647,7 @@ def load_euroc_dataset(data_path):
 
 # UTILS #######################################################################
 
+
 def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
   """ Create 3D features randomly """
   features = zeros((nb_features, 3))
@@ -2539,25 +2744,38 @@ def create_3d_features_perimeter(origin, dim, nb_features):
 #     endif
 #   endfor
 
-
 # SIMULATION ##################################################################
 
-@dataclass
+
 class SimCameraData:
-  cam_idx: int
-  timestamps: list
-  poses: list
-  features: np.array
-  measurements: dict
+  def __init__(self, cam_idx):
+    self.cam_idx = imu_idx
+    self.time = []
+    self.poses = {}
+    self.features = np.array
+    self.measurements = {}
 
 
-@dataclass
 class SimImuData:
-  imu_idx: int
-  timestamps: list
-  poses: list
-  acc: dict
-  gyr: dict
+  def __init__(self, imu_idx):
+    self.imu_idx = imu_idx
+    self.time = []
+    self.poses = {}
+    self.vel = {}
+    self.acc = {}
+    self.gyr = {}
+
+  def form_imu_buffer(self, start_idx, end_idx):
+    imu_buf = ImuBuffer()
+
+    imu_buf.ts = self.time[start_idx:end_idx]
+    imu_buf.acc = []
+    imu_buf.gyr = []
+    for ts in self.time:
+      imu_buf.acc.append(self.acc[ts])
+      imu_buf.gyr.append(self.gyr[ts])
+
+    return imu_buf
 
 
 def sim_vo_circle(circle_r, velocity, **kwargs):
@@ -2680,23 +2898,13 @@ def sim_imu_circle(circle_r, velocity):
   theta = pi
   yaw = pi / 2.0
 
-  imu_poses = []
-  imu_pos = []
-  imu_quat = []
-  imu_att = []
-  imu_vel = []
-
-  imu_time = []
-  imu_acc = []
-  imu_gyr = []
-
   print("Simulating ideal IMU measurements ...")
   print(f"imu_rate: {imu_rate} [Hz]")
   print(f"circle_r: {circle_r} [m]")
   print(f"circle_dist: {circle_dist:.2f} [m]")
   print(f"time_taken: {time_taken:.2f} [s]")
 
-  idx = 1
+  sim_data = SimImuData(0)
   while (t <= time_taken):
     # IMU pose
     rx = circle_r * cos(theta)
@@ -2729,30 +2937,17 @@ def sim_imu_circle(circle_r, velocity):
     gyr = C_WS.T @ w_WS
 
     # Update
-    imu_poses.append(T_WS)
-    imu_pos.append(tf_trans(T_WS))
-    imu_quat.append(tf_quat(T_WS))
-    imu_att.append(quat2euler(tf_quat(T_WS)))
-    imu_vel.append(v_WS)
+    sim_data.time.append(t)
+    sim_data.poses[t] = T_WS
+    sim_data.vel[t] = v_WS
+    sim_data.acc[t] = acc
+    sim_data.gyr[t] = gyr
 
-    imu_time.append(t)
-    imu_acc.append(acc)
-    imu_gyr.append(gyr)
-
-    idx += 1
     theta += w * dt
     yaw += w * dt
     t += dt
 
-  # sim_data = {}
-  # sim_data.imu_poses = imu_poses
-  # sim_data.imu_pos = imu_pos
-  # sim_data.imu_quat = imu_quat
-  # sim_data.imu_att = imu_att
-  # sim_data.imu_vel = imu_vel
-  # sim_data.imu_time = imu_time
-  # sim_data.imu_acc = imu_acc
-  # sim_data.imu_gyr = imu_gyr
+  return sim_data
 
 
 ###############################################################################
@@ -2909,16 +3104,16 @@ class TestTransform(unittest.TestCase):
     pass
     # pose = [1.0; 0.0; 0.0; 0.0; 1.0; 2.0; 3.0];
     # T = tf(pose);
-    # self.assertTrue(isequal(T(1:3, 1:3), eye(3)) == 1);
-    # self.assertTrue(isequal(T(1:3, 4), [1; 2; 3]) == 1);
+    # self.assertTrue(isequal(T(0:3, 0:3), eye(3)) == 1);
+    # self.assertTrue(isequal(T(0:3, 4), [1; 2; 3]) == 1);
 
     # C = [[1.0, 0.0, 0.0];
     #     [0.0, 2.0, 0.0];
     #     [0.0, 0.0, 3.0]];
     # r = [1.0; 2.0; 3.0];
     # T = tf(C, r);
-    # self.assertTrue(isequal(T(1:3, 1:3), C) == 1);
-    # self.assertTrue(isequal(T(1:3, 4), r) == 1);
+    # self.assertTrue(isequal(T(0:3, 0:3), C) == 1);
+    # self.assertTrue(isequal(T(0:3, 4), r) == 1);
 
 
 # CV ##########################################################################
@@ -3004,23 +3199,25 @@ class TestCV(unittest.TestCase):
 
     self.assertTrue(matrix_equal(finite_diff, J, tol, True))
 
+
 # STATE ESTIMATION ############################################################
+
 
 class TestFactors(unittest.TestCase):
   def test_pose_factor(self):
     # Setup camera pose T_WC
-    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0);
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
     T_WC = tf(rot, trans)
     pose_meas = pose_setup(0, T_WC)
 
-    rot = euler2quat(-pi / 2.0 + 0.01, 0.0 + 0.01, -pi / 2.0 + 0.01);
+    rot = euler2quat(-pi / 2.0 + 0.01, 0.0 + 0.01, -pi / 2.0 + 0.01)
     trans = np.array([0.1 + 0.01, 0.2 + 0.01, 0.3 + 0.01])
     T_WC_diff = tf(rot, trans)
     pose_est = pose_setup(0, T_WC_diff)
 
     # Create factor
-    ts = 0;
+    ts = 0
     param_ids = [0]
     pose_factor = pose_factor_setup(param_ids, T_WC)
 
@@ -3033,7 +3230,7 @@ class TestFactors(unittest.TestCase):
 
   def test_ba_factor(self):
     # Setup camera pose T_WC
-    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0);
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
     T_WC = tf(rot, trans)
     cam_pose = pose_setup(0, T_WC)
@@ -3077,13 +3274,13 @@ class TestFactors(unittest.TestCase):
 
   def test_vision_factor(self):
     # Setup camera extrinsics T_BCi
-    rot = euler2quat(0.01, 0.01, 0.03);
+    rot = euler2quat(0.01, 0.01, 0.03)
     trans = np.array([0.001, 0.002, 0.003])
     T_WB = tf(rot, trans)
     pose = pose_setup(0, T_WB)
 
     # Setup camera extrinsics T_BCi
-    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0);
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
     T_BCi = tf(rot, trans)
     cam_exts = extrinsics_setup(T_BCi)
@@ -3126,6 +3323,106 @@ class TestFactors(unittest.TestCase):
     check_factor_jacobian(vision_factor, params, 1, "J_cam_exts")
     check_factor_jacobian(vision_factor, params, 2, "J_feature")
     check_factor_jacobian(vision_factor, params, 3, "J_cam_params")
+
+  def test_imu_factor_propagate(self):
+    # Simulate imu data
+    circle_r = 5.0
+    velocity = 1.0
+    sim_data = sim_imu_circle(circle_r, velocity)
+
+    # Setup imu parameters
+    noise_acc = 0.08  # accelerometer measurement noise stddev.
+    noise_gyr = 0.004  # gyroscope measurement noise stddev.
+    noise_ba = 0.00004  # accelerometer bias random work noise stddev.
+    noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
+    imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
+
+    # Setup imu buffer
+    start_idx = 0
+    end_idx = len(sim_data.time) - 1
+    imu_buf = sim_data.form_imu_buffer(start_idx, end_idx)
+
+    # Pose i
+    ts_i = imu_buf.ts[start_idx]
+    T_WS_i = sim_data.poses[ts_i]
+    pose_i = pose_setup(ts_i, T_WS_i)
+
+    # Speed and bias i
+    ts_i = imu_buf.ts[start_idx]
+    vel_i = sim_data.vel[ts_i]
+    ba_i = np.array([0.0, 0.0, 0.0])
+    bg_i = np.array([0.0, 0.0, 0.0])
+    sb_i = speed_biases_setup(ts_i, vel_i, bg_i, ba_i)
+
+    data = imu_factor_propagate(imu_buf, imu_params, sb_i)
+
+    dT = tf(data.dC, data.dr)
+    T_WS_j_est = T_WS_i @ dT
+
+    ts_j = imu_buf.ts[-1]
+    T_WS_j_gnd = sim_data.poses[ts_j]
+
+    print(np.round(T_WS_j_est, 4))
+    print(np.round(T_WS_j_gnd, 4))
+
+    # print(data.dr)
+    # print(data.dv)
+    # print(data.dC)
+    # print(data.ba)
+    # print(data.bg)
+    # print(data.Dt)
+
+  def test_imu_factor(self):
+    # Simulate imu data
+    circle_r = 5.0
+    velocity = 1.0
+    sim_data = sim_imu_circle(circle_r, velocity)
+
+    # Setup imu parameters
+    noise_acc = 0.08  # accelerometer measurement noise stddev.
+    noise_gyr = 0.004  # gyroscope measurement noise stddev.
+    noise_ba = 0.00004  # accelerometer bias random work noise stddev.
+    noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
+    imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
+
+    # Setup imu buffer
+    start_idx = 0
+    end_idx = 10
+    imu_buf = sim_data.form_imu_buffer(start_idx, end_idx)
+
+    # Pose i
+    ts_i = imu_buf.ts[start_idx]
+    T_WS_i = sim_data.poses[ts_i]
+    pose_i = pose_setup(ts_i, T_WS_i)
+
+    # Pose j
+    ts_j = imu_buf.ts[end_idx - 1]
+    T_WS_j = sim_data.poses[ts_j]
+    pose_j = pose_setup(ts_j, T_WS_i)
+
+    # Speed and bias i
+    vel_i = sim_data.vel[ts_i]
+    ba_i = np.array([0.0, 0.0, 0.0])
+    bg_i = np.array([0.0, 0.0, 0.0])
+    sb_i = speed_biases_setup(ts_i, vel_i, bg_i, ba_i)
+
+    # Speed and bias j
+    vel_j = sim_data.vel[ts_j]
+    ba_j = np.array([0.0, 0.0, 0.0])
+    bg_j = np.array([0.0, 0.0, 0.0])
+    sb_j = speed_biases_setup(ts_j, vel_j, bg_j, ba_j)
+
+    # Setup IMU factor
+    param_ids = [0, 1, 2, 3]
+    imu_factor = imu_factor_setup(param_ids, imu_buf, imu_params, sb_i)
+
+    # Evaluate factor
+    params = [pose_i, sb_i, pose_j, sb_j]
+    r, jacs = imu_factor.eval(params)
+
+    # Test jacobians
+    check_factor_jacobian(imu_factor, params, 0, "J_pose_i")
+
 
 class TestFeatureTracking(unittest.TestCase):
   def setUp(self):
@@ -3221,7 +3518,7 @@ class TestFeatureTracker(unittest.TestCase):
     self.feature_tracker._detect_multicam(camera_images)
 
   def test_match(self):
-    debug = False
+    debug = True
 
     # Load images
     camera_images = {}
@@ -3240,6 +3537,7 @@ class TestFeatureTracker(unittest.TestCase):
       kps1 = data_j.keypoints
       viz = cv2.drawMatches(self.img0, kps0, self.img1, kps1, matches, None)
       cv2.imshow('viz', viz)
+      cv2.imwrite("/tmp/match-grid.png", viz)
       cv2.waitKey(0)
 
   def test_detect_overlaps(self):
@@ -3318,6 +3616,8 @@ class TestEuoc(unittest.TestCase):
 
 
 # SIMULATION  #################################################################
+
+
 class TestSimulation(unittest.TestCase):
   def test_create_3d_features(self):
     debug = False
@@ -3356,12 +3656,53 @@ class TestSimulation(unittest.TestCase):
   #   circle_r = 5.0
   #   velocity = 1.0
   #   sim_vo_circle(circle_r, velocity)
-  #
-  # def test_sim_imu_circle(self):
-  #   circle_r = 5.0
-  #   velocity = 1.0
-  #   sim_imu_circle(circle_r, velocity)
-  #   pass
+
+  def test_sim_imu_circle(self):
+    debug = True
+    circle_r = 5.0
+    velocity = 1.0
+    sim_data = sim_imu_circle(circle_r, velocity)
+
+    pos = np.array([tf_trans(v) for k, v in sim_data.poses.items()])
+    vel = np.array([v for k, v in sim_data.vel.items()])
+    acc = np.array([v for k, v in sim_data.acc.items()])
+    gyr = np.array([v for k, v in sim_data.gyr.items()])
+
+    if debug:
+      fig = plt.figure()
+      plt.subplot(411)
+      plt.plot(pos[:, 0], pos[:, 1], 'r-')
+      plt.xlabel("Time [s]")
+      plt.ylabel("Displacement [m]")
+      plt.title("IMU Position")
+
+      plt.subplot(412)
+      plt.plot(sim_data.time, vel[:, 0], 'r-')
+      plt.plot(sim_data.time, vel[:, 1], 'g-')
+      plt.plot(sim_data.time, vel[:, 2], 'b-')
+      plt.xlabel("Time [s]")
+      plt.ylabel("Velocity [ms^-1]")
+      plt.title("IMU Velocity")
+
+      plt.subplot(413)
+      plt.plot(sim_data.time, acc[:, 0], 'r-')
+      plt.plot(sim_data.time, acc[:, 1], 'g-')
+      plt.plot(sim_data.time, acc[:, 2], 'b-')
+      plt.xlabel("Time [s]")
+      plt.ylabel("Acceleration [ms^-2]")
+      plt.title("Accelerometer Measurements")
+
+      plt.subplot(414)
+      plt.plot(sim_data.time, gyr[:, 0], 'r-')
+      plt.plot(sim_data.time, gyr[:, 1], 'g-')
+      plt.plot(sim_data.time, gyr[:, 2], 'b-')
+      plt.xlabel("Time [s]")
+      plt.ylabel("Angular Velocity [rad s^-1]")
+      plt.title("Gyroscope Measurements")
+
+      plt.subplots_adjust(hspace=0.9)
+      plt.show()
+
 
 if __name__ == '__main__':
   unittest.main()
