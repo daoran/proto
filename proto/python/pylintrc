@@ -1,5 +1,7 @@
 [MASTER]
 
+jobs=8
+
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code.
@@ -13,8 +15,13 @@ disable=
   too-many-function-args,
   too-many-locals,
   too-many-lines,
+  too-many-statements,
+  too-many-instance-attributes,
   too-few-public-methods,
-  wrong-import-order
+  assignment-from-no-return,
+  ungrouped-imports,
+  wrong-import-order,
+  wrong-import-position,
 
 
 [FORMAT]
