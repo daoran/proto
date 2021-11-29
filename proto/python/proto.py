@@ -1186,12 +1186,13 @@ def radtan4_point_jacobian(dist_params, p):
   # Let u' be the distorted u
   # The jacobian of u' w.r.t. u (or du'/du) is:
   J_point = zeros((2, 2))
-  J_point[0, 0] = k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x + x * (
-      2 * k1 * x + 4 * k2 * x * r2) + 1
-  J_point[1, 0] = 2.0 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2)
+  J_point[0, 0] = k1 * r2 + k2 * r4 + 2.0 * p1 * y + 6.0 * p2 * x
+  J_point[0, 0] += x * (2.0 * k1 * x + 4.0 * k2 * x * r2) + 1.0
+  J_point[1, 0] = 2.0 * p1 * x + 2.0 * p2 * y
+  J_point[1, 0] += y * (2.0 * k1 * x + 4.0 * k2 * x * r2)
   J_point[0, 1] = J_point[1, 0]
-  J_point[1, 1] = k1 * r2 + k2 * r4 + 6 * p1 * y + 2 * p2 * x + y * (
-      2 * k1 * y + 4 * k2 * y * r2) + 1
+  J_point[1, 1] = k1 * r2 + k2 * r4 + 6.0 * p1 * y + 2.0 * p2 * x
+  J_point[1, 1] += y * (2.0 * k1 * y + 4.0 * k2 * y * r2) + 1.0
   # Above is generated using sympy
 
   return J_point
@@ -1346,6 +1347,7 @@ def equi4_point_jacobian(dist_params, p):
   thd_th += 5.0 * k2 * th4
   thd_th += 7.0 * k3 * th6
   thd_th += 9.0 * k4 * th8
+  s = thd / r
   s_r = thd_th * th_r / r - thd / (r * r)
   r_x = 1.0 / r * x
   r_y = 1.0 / r * y
@@ -1951,8 +1953,6 @@ def imu_factor_eval(factor, params):
   C_j = tf_rot(T_j)
   q_j = tf_quat(T_j)
   v_j = sb_j.param[0:3]
-  # ba_j = sb_j.param[3:6]
-  # bg_j = sb_j.param[6:9]
 
   # Correct the relative position, velocity and orientation
   # -- Extract jacobians from error-state jacobian
@@ -2179,6 +2179,8 @@ def grid_detect(detector, image, **kwargs):
   grid_rows = kwargs.get('grid_rows', 4)
   grid_cols = kwargs.get('grid_cols', 4)
   prev_kps = kwargs.get('prev_kps', [])
+  if prev_kps is None:
+    prev_kps = []
 
   # Calculate number of grid cells and max corners per cell
   image_height, image_width = image.shape
@@ -2277,24 +2279,11 @@ class FeatureTrackingData:
   - Feature ids (optional)
 
   """
-
-  # cam_idx: int
-  # image: np.array
-  # keypoints: np.array
-  # descriptors:  np.array
-  # feature_ids:
-
-  def __init__(self,
-               cam_idx,
-               image,
-               keypoints,
-               descriptors=None,
-               feature_ids=None):
-    self.cam_idx = cam_idx
-    self.image = image
-    self.keypoints = keypoints
-    self.descriptors = descriptors
-    self.feature_ids = feature_ids
+  cam_idx: int
+  image: np.array
+  keypoints: List[np.array]
+  descriptors: np.array = None
+  feature_ids: List[int] = None
 
   def get_all(self):
     """ Get all data """
@@ -2319,6 +2308,7 @@ class FeatureTracker:
     self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     # Data
+    self.prev_ts = None
     self.frame_idx = 0
     self.features_detected = 0
     self.prev_camera_images = None
@@ -2351,13 +2341,12 @@ class FeatureTracker:
     end_idx = start_idx + nb_kps
     return range(start_idx, end_idx)
 
-  def _detect(self, cam_idx, image, prev_kps=[]):
+  def _detect(self, cam_idx, image, prev_kps=None):
     assert image is not None
     kps, des = grid_detect(self.feature, image, prev_kps=prev_kps)
     # kps = self.feature.detect(image, None)
     # kps, des = self.feature.compute(image, kps)
-    ft_data = FeatureTrackingData(cam_idx, image, kps, des)
-    return ft_data
+    return FeatureTrackingData(cam_idx, image, kps, des)
 
   def _detect_multicam(self, camera_images):
     det_data = {}
@@ -2450,7 +2439,7 @@ class FeatureTracker:
 
     return cv2.hconcat(viz)
 
-  def _track_features(self, ts, camera_images):
+  def _track_features(self, camera_images):
     # Track features through time
     viz = []
     for cam_idx in self.cam_indices:
@@ -2478,10 +2467,11 @@ class FeatureTracker:
     if self.frame_idx == 0:
       viz = self._initialize(camera_images)
     else:
-      viz = self._track_features(ts, camera_images)
+      viz = self._track_features(camera_images)
 
     # Update
     self.frame_idx += 1
+    self.prev_ts = ts
 
     return viz
 
@@ -3005,6 +2995,9 @@ def sim_imu_circle(circle_r, velocity):
 
 import unittest
 
+# euroc_data_path = '/data/euroc/raw/V1_01'
+euroc_data_path = '/data/euroc/V1_01'
+
 # LINEAR ALGEBRA ##############################################################
 
 
@@ -3299,7 +3292,6 @@ class TestFactors(unittest.TestCase):
     rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
     T_WC = tf(rot, trans)
-    pose_meas = pose_setup(0, T_WC)
 
     rot = euler2quat(-pi / 2.0 + 0.01, 0.0 + 0.01, -pi / 2.0 + 0.01)
     trans = np.array([0.1 + 0.01, 0.2 + 0.01, 0.3 + 0.01])
@@ -3307,13 +3299,12 @@ class TestFactors(unittest.TestCase):
     pose_est = pose_setup(0, T_WC_diff)
 
     # Create factor
-    ts = 0
     param_ids = [0]
     pose_factor = pose_factor_setup(param_ids, T_WC)
 
     # Evaluate factor
     params = [pose_est]
-    r, jacs = pose_factor.eval(params)
+    pose_factor.eval(params)
 
     # Test jacobians
     self.assertTrue(check_factor_jacobian(pose_factor, params, 0, "J_pose"))
@@ -3356,7 +3347,7 @@ class TestFactors(unittest.TestCase):
 
     # Evaluate factor
     params = [cam_pose, feature, cam_params]
-    r, jacs = ba_factor.eval(params)
+    ba_factor.eval(params)
 
     # Test jacobians
     self.assertTrue(check_factor_jacobian(ba_factor, params, 0, "J_cam_pose"))
@@ -3364,6 +3355,7 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(check_factor_jacobian(ba_factor, params, 2, "J_cam_params"))
 
   def test_vision_factor(self):
+    """ Test vision factor """
     # Setup camera extrinsics T_BCi
     rot = euler2quat(0.01, 0.01, 0.03)
     trans = np.array([0.001, 0.002, 0.003])
@@ -3465,6 +3457,8 @@ class TestFactors(unittest.TestCase):
     # print(data.bg)
     # print(data.Dt)
 
+    self.assertTrue(True)
+
   # def test_imu_factor(self):
   #   """ Test IMU factor """
   #   # Simulate imu data
@@ -3524,8 +3518,7 @@ class TestFeatureTracking(unittest.TestCase):
 
   def setUp(self):
     # Load test data
-    data_path = '/data/euroc/raw/V1_01'
-    self.dataset = load_euroc_dataset(data_path)
+    self.dataset = load_euroc_dataset(euroc_data_path)
 
     # Setup test images
     ts = self.dataset['timestamps'][0]
@@ -3595,8 +3588,7 @@ class TestFeatureTracker(unittest.TestCase):
 
   def setUp(self):
     # Load test data
-    data_path = '/data/euroc/raw/V1_01'
-    self.dataset = load_euroc_dataset(data_path)
+    self.dataset = load_euroc_dataset(euroc_data_path)
 
     # Setup test images
     ts = self.dataset['timestamps'][0]
@@ -3615,6 +3607,8 @@ class TestFeatureTracker(unittest.TestCase):
     ts = self.dataset['timestamps'][0]
     img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
     ft_data = self.feature_tracker._detect(0, img0)
+    self.assertTrue(ft_data.cam_idx == 0)
+    self.assertTrue(len(ft_data.keypoints) > 0)
 
   def test_detect_multicam(self):
     """ Test FeatureTracker._detect_multicam() """

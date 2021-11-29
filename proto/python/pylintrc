@@ -22,6 +22,12 @@ disable=
   ungrouped-imports,
   wrong-import-order,
   wrong-import-position,
+  protected-access,
+
+
+[TYPECHECK]
+
+ignored-modules = numpy
 
 
 [FORMAT]
