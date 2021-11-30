@@ -14,7 +14,6 @@ from collections import namedtuple
 from types import FunctionType
 from typing import Optional
 from typing import List
-# from typing import Dict
 
 import cv2
 import yaml
@@ -2748,64 +2747,56 @@ def create_3d_features_perimeter(origin, dim, nb_features):
   return np.block([[east], [north], [west], [south]])
 
 
-# def camera_measurements(camera, T_WC, points_W):
-#   assert(T_WC.shape [4, 4]);
-#   assert(points_W.shape[0] == 3);
-#   assert(points_W.shape[1] > 0);
-#
-#   # Form projection matrix
-#   T_CW = tf_inv(T_WC)
-#   C_CW = tf_rot(T_CW)
-#   r_CW = tf_trans(T_CW)
-#   K = pinhole_K(camera.param(1:4))
-#   P = K @ np.array([C_CW, r_CW])
-#
-#   # Setup
-#   image_width = camera.resolution[0];
-#   image_height = camera.resolution[1];
-#   nb_points = columns(points_W);
-#
-#   # Check points
-#   z = [];
-#   point_ids = [];
-#
-#   for i = 1:nb_points
-#     # Project point to image plane
-#     hp_W = homogeneous(points_W(:, i));
-#     x = P * hp_W;
-#
-#     # Check to see if point is infront of camera
-#     if x[2] < 1e-4
-#       continue;
-#     endif
-#
-#     # Normalize projected ray
-#     x[0] = x[0] / x[2];
-#     x[1] = x[1] / x[2];
-#     x[2] = x[2] / x[2];
-#     z_hat = [x[0]; x[1]];
-#
-#     # Check to see if ray is within image plane
-#     x_ok = (x[0] < image_width) and (x[0] > 0.0);
-#     y_ok = (x[1] < image_height) and (x[1] > 0.0);
-#     if x_ok && y_ok
-#       z = [z, z_hat];
-#       point_ids = [point_ids, i];
-#     endif
-#   endfor
-
 # SIMULATION ##################################################################
+
+
+class SimCameraFrame:
+  """ Sim camera frame """
+
+  def __init__(self, time, cam_idx, camera, T_WCi, points_W):
+    assert T_WCi.shape == (4, 4)
+    assert points_W.shape[0] > 0
+    assert points_W.shape[1] == 3
+
+    self.time = time
+    self.cam_idx = cam_idx
+    self.feature_ids = []
+    self.measurements = []
+
+    # Setup
+    T_CiW = tf_inv(T_WCi)
+    cam_geom = camera.data
+    cam_params = camera.param
+    img_w, img_h = cam_geom.resolution
+    nb_points = points_W.shape[1]
+
+    # Simulate camera frame
+    self.measurements = []
+    self.feature_ids = []
+
+    for i in range(nb_points):
+      # Project point from world frame to camera frame
+      p_W = points_W[i, :]
+      p_C = tf_point(T_CiW, p_W)
+      z = cam_geom.project(cam_params, p_C)
+
+      # Check to see if image point is within image plane
+      x_ok = (z[0] < img_w) and (z[0] > 0.0)
+      y_ok = (z[1] < img_h) and (z[1] > 0.0)
+      if x_ok and y_ok:
+        self.measurements.append(z)
+        self.feature_ids.append(i)
 
 
 class SimCameraData:
   """ Sim camera data """
 
-  def __init__(self, cam_idx):
+  def __init__(self, cam_idx, features):
     self.cam_idx = cam_idx
+    self.features = features
     self.time = []
     self.poses = {}
-    self.features = np.array
-    self.measurements = {}
+    self.cam_frames = {}
 
 
 class SimImuData:
@@ -2833,109 +2824,75 @@ class SimImuData:
     return imu_buf
 
 
-# def sim_vo_circle(circle_r, velocity):
-#   """ Simulate a camera going around in a circle """
-#   C_BC0 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
-#   r_BC0 = [0.01, 0.01, 0.05]
-#   T_BC0 = tf(C_BC0, r_BC0)
-#   nb_features = 1000
-#
-#   # cam0
-#   cam_idx = 0
-#   image_width = 640
-#   image_height = 480
-#   resolution = [image_width, image_height]
-#   fov = 90.0
-#   fx = focal_length(image_width, fov)
-#   fy = focal_length(image_width, fov)
-#   cx = image_width / 2
-#   cy = image_height / 2
-#   proj_params = [fx, fy, cx, cy]
-#   dist_params = [-0.01, 0.01, 1e-4, 1e-4]
-#   cam0 = pinhole_radtan4_setup(cam_idx, resolution, proj_params, dist_params)
-#
-#   cam_time = []
-#   cam_poses = {}
-#   cam_pos = []
-#   cam_quat = []
-#   cam_att = []
-#   z_data = {}
-#   p_data = {}
-#
-#   # Simulate features
-#   origin = [0, 0, 0]
-#   dim = [circle_r * 2, circle_r * 2, circle_r * 1.5]
-#   features = create_3d_features_perimeter(origin, dim, nb_features)
-#
-#   # Simulate camera
-#   cam_rate = 20.0
-#   circle_dist = 2.0 * pi * circle_r
-#   time_taken = circle_dist / velocity
-#
-#   dt = 1.0 / cam_rate
-#   w = -2.0 * pi * (1.0 / time_taken)
-#   time = 0.0
-#   theta = pi
-#   yaw = pi / 2.0
-#
-#   # Simulate camera
-#   print("Simulating camera measurements ...")
-#   print(f"cam_rate: {cam_rate} [Hz]")
-#   print(f"circle_r: {circle_r} [m]")
-#   print(f"circle_dist: {circle_dist:.2f} [m]")
-#   print(f"time_taken: {time_taken:.2f} [s]")
-#
-#   while time <= time_taken:
-#     # Body pose
-#     rx = circle_r * cos(theta)
-#     ry = circle_r * sin(theta)
-#     rz = 0.0
-#     r_WB = [rx, ry, rz]
-#     C_WB = euler321(yaw, 0.0, 0.0)
-#     T_WB = tf(C_WB, r_WB)
-#
-#     # Camera pose
-#     T_WC0 = T_WB * T_BC0
-#     [z_data, p_data] = camera_measurements(cam0, T_WC0, features.T)
-#     cam_time.append(time)
-#     cam_poses[time] = T_WC0
-#     cam_pos.append(tf_trans(T_WC0))
-#     cam_quat.append(tf_quat(T_WC0))
-#     cam_att.append(quat2euler(tf_quat(T_WC0)))
-#     cam_z_data.append(z_data)
-#     cam_p_data.append(p_data)
-#
-#     # Update
-#     theta += w * dt
-#     yaw += w * dt
-#     time += dt
-#
-#   # # Form timeline
-#   # timeline = []
-#   # for k in range(cam_time):
-#   #   event = {}
-#   #   event.ts = cam_time(k)
-#   #   event.cam_pose = cam_poses{k}
-#   #   event.cam_z_data = cam_z_data{k}
-#   #   event.cam_p_data = cam_p_data{k}
-#   #   timeline.append(event)
-#
-#   # # Simulation data
-#   # sim_data = {}
-#   # sim_data.timeline = timeline
-#   # # -- Features
-#   # sim_data.nb_features = nb_features
-#   # sim_data.features = features
-#   # # -- Camera
-#   # sim_data.T_BC0 = T_BC0
-#   # sim_data.cam0 = cam0
-#   # sim_data.cam_time = cam_time
-#   # sim_data.cam_poses = cam_poses
-#   # sim_data.cam_pos = cam_pos
-#   # sim_data.cam_quat = cam_quat
-#   # sim_data.cam_att = cam_att
-#   # sim_data.cam_z_data = cam_z_data
-#   # sim_data.cam_p_data = cam_p_data
+def sim_vo_circle(circle_r, velocity):
+  """ Simulate a camera going around in a circle """
+  C_BC0 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
+  r_BC0 = [0.01, 0.01, 0.05]
+  T_BC0 = tf(C_BC0, r_BC0)
+  nb_features = 1000
+
+  # cam0
+  cam_idx = 0
+  img_w = 640
+  img_h = 480
+  res = [img_w, img_h]
+  fov = 90.0
+  fx = focal_length(img_w, fov)
+  fy = focal_length(img_w, fov)
+  cx = img_w / 2
+  cy = img_h / 2
+  proj_params = [fx, fy, cx, cy]
+  dist_params = [-0.01, 0.01, 1e-4, 1e-4]
+  params = np.block([*proj_params, *dist_params])
+  cam0 = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
+
+  # Simulate features
+  origin = [0, 0, 0]
+  dim = [circle_r * 2, circle_r * 2, circle_r * 1.5]
+  features = create_3d_features_perimeter(origin, dim, nb_features)
+
+  # Simulate camera
+  cam_rate = 20.0
+  circle_dist = 2.0 * pi * circle_r
+  time_taken = circle_dist / velocity
+
+  dt = 1.0 / cam_rate
+  w = -2.0 * pi * (1.0 / time_taken)
+  t = 0.0
+  theta = pi
+  yaw = pi / 2.0
+
+  # Simulate camera
+  print("Simulating camera measurements ...")
+  print(f"cam_rate: {cam_rate} [Hz]")
+  print(f"circle_r: {circle_r} [m]")
+  print(f"circle_dist: {circle_dist:.2f} [m]")
+  print(f"time_taken: {time_taken:.2f} [s]")
+
+  cam_idx = 0
+  sim_data = SimCameraData(cam_idx, features)
+
+  while t <= time_taken:
+    # Body pose
+    rx = circle_r * cos(theta)
+    ry = circle_r * sin(theta)
+    rz = 0.0
+    r_WB = [rx, ry, rz]
+    C_WB = euler321(yaw, 0.0, 0.0)
+    T_WB = tf(C_WB, r_WB)
+
+    # Simulate camera pose and camera frame
+    T_WC0 = T_WB * T_BC0
+    sim_data.time.append(t)
+    sim_data.poses[t] = T_WC0
+    sim_data.cam_frames[t] = SimCameraFrame(t, cam_idx, cam0, T_WC0, features)
+
+    # Update
+    theta += w * dt
+    yaw += w * dt
+    t += dt
+
+  return sim_data
 
 
 def sim_imu_circle(circle_r, velocity):
@@ -3184,7 +3141,7 @@ class TestTransform(unittest.TestCase):
     p = euler2quat(deg2rad(3.0), deg2rad(2.0), deg2rad(1.0))
     q = euler2quat(deg2rad(1.0), deg2rad(2.0), deg2rad(3.0))
     r = quat_mul(p, q)
-    self.assertEqual(r, r)
+    self.assertTrue(True)
 
   def test_quat_omega(self):
     """ Test quat_omega() """
@@ -3338,7 +3295,7 @@ class TestFactors(unittest.TestCase):
     cam_idx = 0
     img_w = 640
     img_h = 480
-    cam_res = [img_w, img_h]
+    res = [img_w, img_h]
     fov = 60.0
     fx = focal_length(img_w, fov)
     fy = focal_length(img_h, fov)
@@ -3346,7 +3303,7 @@ class TestFactors(unittest.TestCase):
     cy = img_h / 2.0
     params = [fx, fy, cx, cy, -0.01, 0.01, 1e-4, 1e-4]
     cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
-    cam_geom = camera_geometry_setup(cam_idx, cam_res, "pinhole", "radtan4")
+    cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
 
     # Setup feature
     p_W = np.array([10, random.uniform(0.0, 1.0), random.uniform(0.0, 1.0)])
@@ -3390,7 +3347,7 @@ class TestFactors(unittest.TestCase):
     cam_idx = 0
     img_w = 640
     img_h = 480
-    cam_res = [img_w, img_h]
+    res = [img_w, img_h]
     fov = 60.0
     fx = focal_length(img_w, fov)
     fy = focal_length(img_h, fov)
@@ -3398,7 +3355,7 @@ class TestFactors(unittest.TestCase):
     cy = img_h / 2.0
     params = [fx, fy, cx, cy, -0.01, 0.01, 1e-4, 1e-4]
     cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
-    cam_geom = camera_geometry_setup(cam_idx, cam_res, "pinhole", "radtan4")
+    cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
 
     # Setup feature
     p_W = np.array([10, random.uniform(0.0, 1.0), random.uniform(0.0, 1.0)])
@@ -3449,7 +3406,6 @@ class TestFactors(unittest.TestCase):
     # Pose i
     ts_i = imu_buf.ts[start_idx]
     T_WS_i = sim_data.poses[ts_i]
-    pose_i = pose_setup(ts_i, T_WS_i)
 
     # Speed and bias i
     ts_i = imu_buf.ts[start_idx]
@@ -3756,10 +3712,30 @@ class TestSimulation(unittest.TestCase):
       ax.set_zlabel("z [m]")
       plt.show()
 
-  # def test_sim_vo_circle(self):
-  #   circle_r = 5.0
-  #   velocity = 1.0
-  #   sim_vo_circle(circle_r, velocity)
+  def test_sim_vo_circle(self):
+    """ Test sim_vo_circle() """
+    debug = False
+    circle_r = 5.0
+    velocity = 1.0
+    sim_data = sim_vo_circle(circle_r, velocity)
+
+    self.assertTrue(sim_data is not None)
+    self.assertTrue(sim_data.cam_idx == 0)
+    self.assertTrue(sim_data.features.shape[0] > 0)
+    self.assertTrue(sim_data.features.shape[1] == 3)
+    self.assertTrue(len(sim_data.poses) == len(sim_data.cam_frames))
+
+    if debug:
+      pos = np.array([tf_trans(v) for k, v in sim_data.poses.items()])
+
+      plt.figure()
+      plt.plot(pos[:, 0], pos[:, 1], 'r-')
+      plt.xlabel("Time [s]")
+      plt.ylabel("Displacement [m]")
+      plt.title("Camera Position")
+
+      # plt.subplots_adjust(hspace=0.9)
+      plt.show()
 
   def test_sim_imu_circle(self):
     """ Test sim_imu_circle() """
@@ -3767,14 +3743,19 @@ class TestSimulation(unittest.TestCase):
     circle_r = 5.0
     velocity = 1.0
     sim_data = sim_imu_circle(circle_r, velocity)
-    self.assertTrue(sim_data is not None)
 
-    pos = np.array([tf_trans(v) for k, v in sim_data.poses.items()])
-    vel = np.array([v for k, v in sim_data.vel.items()])
-    acc = np.array([v for k, v in sim_data.acc.items()])
-    gyr = np.array([v for k, v in sim_data.gyr.items()])
+    self.assertTrue(sim_data is not None)
+    self.assertTrue(len(sim_data.time) == len(sim_data.poses))
+    self.assertTrue(len(sim_data.time) == len(sim_data.vel))
+    self.assertTrue(len(sim_data.time) == len(sim_data.acc))
+    self.assertTrue(len(sim_data.time) == len(sim_data.gyr))
 
     if debug:
+      pos = np.array([tf_trans(v) for k, v in sim_data.poses.items()])
+      vel = np.array([v for k, v in sim_data.vel.items()])
+      acc = np.array([v for k, v in sim_data.acc.items()])
+      gyr = np.array([v for k, v in sim_data.gyr.items()])
+
       plt.figure()
       plt.subplot(411)
       plt.plot(pos[:, 0], pos[:, 1], 'r-')

@@ -23,7 +23,7 @@ memcheck() {
 # python3 python/proto.py
 # python3 python/proto.py TestLinearAlgebra
 # python3 python/proto.py TestTransform
-# python3 python/proto.py TestCV.test_klt
+# python3 python/proto.py TestCV
 # python3 python/proto.py TestFactors.test_pose_factor
 # python3 python/proto.py TestFactors.test_ba_factor
 # python3 python/proto.py TestFactors.test_vision_factor
@@ -32,8 +32,9 @@ memcheck() {
 # python3 python/proto.py TestFeatureTracking.test_optflow_track
 # python3 python/proto.py TestFeatureTracker.test_detect
 # python3 python/proto.py TestFeatureTracker.test_detect_overlaps
-python3 python/proto.py TestFeatureTracker.test_initialize
+# python3 python/proto.py TestFeatureTracker.test_initialize
 # python3 python/proto.py TestFeatureTracker.test_run
+# python3 python/proto.py TestSimulation.test_sim_vo_circle
 # python3 python/proto.py TestSimulation.test_sim_imu_circle
 
 # make format_code
