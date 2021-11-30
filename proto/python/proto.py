@@ -1064,23 +1064,23 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   """
 
   # First three rows of P_i and P_j
-  P1T = P_i[0, :]
-  P2T = P_i[1, :]
-  P3T = P_i[2, :]
-  P1T_dash = P_j[0, :]
-  P2T_dash = P_j[1, :]
-  P3T_dash = P_j[2, :]
+  P1T_i = P_i[0, :]
+  P2T_i = P_i[1, :]
+  P3T_i = P_i[2, :]
+  P1T_j = P_j[0, :]
+  P2T_j = P_j[1, :]
+  P3T_j = P_j[2, :]
 
   # Image point from the first and second frame
-  x, y = z_i
-  x_dash, y_dash = z_j
+  x_i, y_i = z_i
+  x_j, y_j = z_j
 
   # Form the A matrix of AX = 0
-  A = zeros((4, 1))
-  # A = [y * P3T - P2T;
-  #      x * P3T - P1T;
-  #      y_dash * P3T_dash - P2T_dash;
-  #      x_dash * P3T_dash - P1T_dash];
+  A = zeros((4, 4))
+  A[0, :] = x_i * P3T_i - P1T_i
+  A[1, :] = y_i * P3T_i - P2T_i
+  A[2, :] = x_j * P3T_j - P1T_j
+  A[3, :] = y_j * P3T_j - P2T_j
 
   # Use SVD to solve AX = 0
   (_, _, V) = svd(A.T * A)
@@ -1105,6 +1105,20 @@ def pinhole_K(params):
   """ Form camera matrix K """
   fx, fy, cx, cy = params
   return np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
+
+
+def pinhole_P(params, T_WC):
+  """ Form 3x4 projection matrix P """
+  K = pinhole_K(params)
+  T_CW = inv(T_WC)
+  C = tf_rot(T_CW)
+  r = tf_trans(T_CW)
+
+  P = zeros((3, 4))
+  P[0:3, 0:3] = C
+  P[0:3, 3] = r
+  P = K @ P
+  return P
 
 
 def pinhole_project(proj_params, p_C):
@@ -1214,11 +1228,11 @@ def radtan4_undistort(dist_params, p0):
 
     # Update
     # dp = inv(J' * J) * J' * err
-    dp = pinv(J) * err
+    dp = pinv(J) @ err
     p = p + dp
 
     # Check threshold
-    if (err.T * err) < 1e-15:
+    if (err.T @ err) < 1e-15:
       break
 
   return p
@@ -1399,6 +1413,21 @@ def pinhole_radtan4_backproject(proj_params, dist_params, z):
   return p
 
 
+def pinhole_radtan4_undistort(proj_params, dist_params, z):
+  """ Pinhole + Radial-Tangential undistort """
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(z) == 2
+
+  # Back project and undistort
+  fx, fy, cx, cy = proj_params
+  p = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy])
+  p_undist = radtan4_undistort(dist_params, p)
+
+  # Project undistorted point to image plane
+  return np.array([p_undist[0] * fx + cx, p_undist[1] * fy + cy])
+
+
 def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C):
   """ Pinhole + Radial-Tangential project jacobian """
   assert len(proj_params) == 4
@@ -1475,6 +1504,21 @@ def pinhole_equi4_backproject(proj_params, dist_params, z):
   return p
 
 
+def pinhole_equi4_undistort(proj_params, dist_params, z):
+  """ Pinhole + Equi-distant undistort """
+  assert len(proj_params) == 4
+  assert len(dist_params) == 4
+  assert len(z) == 2
+
+  # Back project and undistort
+  fx, fy, cx, cy = proj_params
+  p = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy])
+  p_undist = equi4_undistort(dist_params, p)
+
+  # Project undistorted point to image plane
+  return np.array([p_undist[0] * fx + cx, p_undist[1] * fy + cy])
+
+
 def pinhole_equi4_project_jacobian(proj_params, dist_params, p_C):
   """ Pinhole + Equi-distant project jacobian """
   assert len(proj_params) == 4
@@ -1526,8 +1570,17 @@ class CameraGeometry:
 
   project_fn: FunctionType
   backproject_fn: FunctionType
+  undistort_fn: FunctionType
   J_proj_fn: FunctionType
   J_params_fn: FunctionType
+
+  def proj_params(self, params):
+    """ Extract projection parameters """
+    return params[:self.proj_params_size]
+
+  def dist_params(self, params):
+    """ Extract distortion parameters """
+    return params[-self.dist_params_size:]
 
   def project(self, params, p_C):
     """ Project point `p_C` with camera parameters `params` """
@@ -1540,6 +1593,12 @@ class CameraGeometry:
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
     return self.project_fn(proj_params, dist_params, z)
+
+  def undistort(self, params, z):
+    """ Undistort image point `z` with camera parameters `params` """
+    proj_params = params[:self.proj_params_size]
+    dist_params = params[-self.dist_params_size:]
+    return self.undistort_fn(proj_params, dist_params, z)
 
   def J_proj(self, params, p_C):
     """ Form Jacobian w.r.t. p_C """
@@ -1556,17 +1615,17 @@ class CameraGeometry:
 
 def pinhole_radtan4_setup(cam_idx, cam_res):
   """ Setup Pinhole + Radtan4 camera geometry """
-  return CameraGeometry(cam_idx, cam_res, "pinhole", "radtan4", 4, 4,
-                        pinhole_radtan4_project, pinhole_radtan4_backproject,
-                        pinhole_radtan4_project_jacobian,
-                        pinhole_radtan4_params_jacobian)
+  return CameraGeometry(
+      cam_idx, cam_res, "pinhole", "radtan4", 4, 4, pinhole_radtan4_project,
+      pinhole_radtan4_backproject, pinhole_radtan4_undistort,
+      pinhole_radtan4_project_jacobian, pinhole_radtan4_params_jacobian)
 
 
 def pinhole_equi4_setup(cam_idx, cam_res):
   """ Setup Pinhole + Equi camera geometry """
   return CameraGeometry(cam_idx, cam_res, "pinhole", "equi4", 4, 4,
                         pinhole_equi4_project, pinhole_equi4_backproject,
-                        pinhole_equi4_project_jacobian,
+                        pinhole_equi4_undistort, pinhole_equi4_project_jacobian,
                         pinhole_equi4_params_jacobian)
 
 
@@ -2363,6 +2422,31 @@ class FeatureTracker:
     end_idx = start_idx + nb_kps
     return range(start_idx, end_idx)
 
+  def _triangulate(self, idx_i, idx_j, z_i, z_j):
+    # Setup
+    cam_i = self.cam_params[idx_i]
+    cam_j = self.cam_params[idx_j]
+    cam_geom_i = cam_i.data
+    cam_geom_j = cam_j.data
+    cam_exts_i = self.cam_exts[idx_i]
+    cam_exts_j = self.cam_exts[idx_j]
+
+    # Form projection matrices P_i and P_j
+    T_BCi = pose2tf(cam_exts_i.param)
+    T_BCj = pose2tf(cam_exts_j.param)
+    T_CiCj = inv(T_BCi) @ T_BCj
+    P_i = pinhole_P(cam_geom_i.proj_params(cam_i.param), eye(4))
+    P_j = pinhole_P(cam_geom_j.proj_params(cam_i.param), T_CiCj)
+
+    # Undistort image points z_i and z_j
+    x_i = cam_geom_i.undistort(cam_i.param, z_i)
+    x_j = cam_geom_j.undistort(cam_j.param, z_j)
+
+    # Linear triangulate
+    p_Ci = linear_triangulation(P_i, P_j, x_i, x_j)
+
+    return p_Ci
+
   def _detect(self, image, prev_kps=None):
     assert image is not None
     kwargs = {'prev_kps': prev_kps, 'optflow_mode': True}
@@ -2387,25 +2471,25 @@ class FeatureTracker:
       pts_i = np.array([kp.pt for kp in kps_i], dtype=np.float32)
       (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
 
-      # # Reject outliers based on reprojection error
-      # reproj_inliers = []
-      # cam_i = self.cam_params[idx_i].data
-      # cam_j = self.cam_params[idx_j].data
-      # for n in range(nb_pts):
-      #   z_i = pts_i[n]
-      #   z_j = pts_i[n]
-      #   p_Ci = linear_triangulation(P_i, P_j, z_i, z_j)
-      #   if p_Ci[2] < 0.0:
-      #     reproj_inliers.append(False)
-      #     continue
-      #
-      #   z_i_hat = cam_i.project(cam_i.param, p_Ci)
-      #   reproj_error = norm(z_i - z_i_hat)
-      #   if reproj_error > 5.0:
-      #     reproj_inliers.append(False)
-      #     continue
-      #
-      #   reproj_inliers.append(True)
+      # Reject outliers based on reprojection error
+      reproj_inliers = []
+      cam_i = self.cam_params[idx_i]
+      cam_geom_i = cam_i.data
+      for n in range(nb_pts):
+        z_i = pts_i[n]
+        z_j = pts_j[n]
+        p_Ci = self._triangulate(idx_i, idx_j, z_i, z_j)
+        if p_Ci[2] < 0.0:
+          reproj_inliers.append(False)
+          continue
+
+        z_i_hat = cam_geom_i.project(cam_i.param, p_Ci)
+        reproj_error = norm(z_i - z_i_hat)
+        if reproj_error > 5.0:
+          reproj_inliers.append(False)
+          continue
+
+        reproj_inliers.append(True)
 
       # Process results
       kps_i = []
@@ -3564,10 +3648,39 @@ class TestFeatureTracker(unittest.TestCase):
     self.img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
     self.img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
 
+    # Setup cameras
+    res = [752, 480]
+    # -- cam0
+    proj_params = [458.654, 457.296, 367.215, 248.375]
+    dist_params = [-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05]
+    params = np.block([*proj_params, *dist_params])
+    cam0 = camera_params_setup(0, res, "pinhole", "radtan4", params)
+    # -- cam1
+    proj_params = [457.587, 456.134, 379.999, 255.238]
+    dist_params = [-0.28368365, 0.07451284, -0.00010473, -3.55590700e-05]
+    params = np.block([*proj_params, *dist_params])
+    cam1 = camera_params_setup(1, res, "pinhole", "radtan4", params)
+
+    # Setup camera extrinsics
+    # -- cam0
+    row0 = [0.014865542981, -0.99988092969, 0.0041402967942, -0.021640145497]
+    row1 = [0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768]
+    row2 = [-0.02577443669, 0.003756188357, 0.999660727178, 0.00981073058949]
+    row3 = [0.0, 0.0, 0.0, 1.0]
+    T_BC0 = np.array([row0, row1, row2, row3])
+    cam0_exts = extrinsics_setup(T_BC0)
+    # -- cam1
+    row0 = [0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556]
+    row1 = [0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024]
+    row2 = [-0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038]
+    row3 = [0.0, 0.0, 0.0, 1.0]
+    T_BC1 = np.array([row0, row1, row2, row3])
+    cam1_exts = extrinsics_setup(T_BC1)
+
     # Setup feature tracker
     self.feature_tracker = FeatureTracker()
-    self.feature_tracker.add_camera(0, None, None)
-    self.feature_tracker.add_camera(1, None, None)
+    self.feature_tracker.add_camera(0, cam0, cam0_exts)
+    self.feature_tracker.add_camera(1, cam1, cam1_exts)
     self.feature_tracker.add_overlap(0, 1)
 
   def test_detect(self):
