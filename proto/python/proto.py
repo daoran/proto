@@ -1083,9 +1083,9 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   A[3, :] = y_j * P3T_j - P2T_j
 
   # Use SVD to solve AX = 0
-  (_, _, V) = svd(A.T * A)
-  hp = V[:, 3]  # Get the best result from SVD (last column of V)
-  hp = hp / hp[2]  # Normalize the homogeneous 3D point
+  (_, _, Vh) = svd(A.T @ A)
+  hp = Vh.T[:, -1]  # Get the best result from SVD (last column of V)
+  hp = hp / hp[-1]  # Normalize the homogeneous 3D point
   p = hp[0:3]  # Return only the first three components (x, y, z)
   return p
 
@@ -3258,8 +3258,8 @@ class TestCV(unittest.TestCase):
     # Camera
     img_w = 640
     img_h = 480
-    fx = 320.0
-    fy = 320.0
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
     cx = img_w / 2.0
     cy = img_h / 2.0
     self.proj_params = [fx, fy, cx, cy]
@@ -3275,6 +3275,41 @@ class TestCV(unittest.TestCase):
     # Point w.r.t camera
     self.p_C = tf_point(inv(self.T_WC), self.p_W)
     self.x = np.array([self.p_C[0] / self.p_C[2], self.p_C[1] / self.p_C[2]])
+
+  def test_linear_triangulation(self):
+    """ Test linear_triangulation() """
+    # Camera i - Camera j extrinsics
+    C_CiCj = eye(3)
+    r_CiCj = np.array([0.05, 0.0, 0.0])
+    T_CiCj = tf(C_CiCj, r_CiCj)
+
+    # Camera 0 pose in world frame
+    C_WCi = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WCi = np.array([0.0, 0.0, 0.0])
+    T_WCi = tf(C_WCi, r_WCi)
+
+    # Camera 1 pose in world frame
+    T_WCj = T_WCi @ T_CiCj
+
+    # Projection matrices P_i and P_j
+    P_i = pinhole_P(self.proj_params, eye(4))
+    P_j = pinhole_P(self.proj_params, T_CiCj)
+
+    # Test multiple times
+    nb_tests = 100
+    for _ in range(nb_tests):
+      # Project feature point p_W to image plane
+      x = np.random.uniform(-0.05, 0.05)
+      y = np.random.uniform(-0.05, 0.05)
+      p_W = np.array([10.0, x, y])
+      p_Ci_gnd = tf_point(inv(T_WCi), p_W)
+      p_Cj_gnd = tf_point(inv(T_WCj), p_W)
+      z_i = pinhole_project(self.proj_params, p_Ci_gnd)
+      z_j = pinhole_project(self.proj_params, p_Cj_gnd)
+
+      # Triangulate
+      p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
+      self.assertTrue(np.allclose(p_Ci_est, p_Ci_gnd))
 
   def test_pinhole_K(self):
     """ Test pinhole_K() """
