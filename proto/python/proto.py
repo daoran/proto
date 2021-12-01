@@ -2294,6 +2294,9 @@ def grid_detect(detector, image, **kwargs):
       if optflow_mode:
         kps = detector.detect(roi_image)
         kps = sort_keypoints(kps)
+
+        # TODO: Add a way to sapce out the detected keypoints
+
       else:
         kps = detector.detect(roi_image, None)
         kps, des = detector.compute(roi_image, kps)
@@ -2500,10 +2503,11 @@ class FeatureTracker:
     """ Draw visualization image """
     viz = []
 
-    radius = 2
+    radius = 4
     green = (0, 255, 0)
     yellow = (0, 255, 255)
-    thickness = cv2.FILLED
+    # thickness = cv2.FILLED
+    thickness = 1
     linetype = cv2.LINE_AA
 
     for cam_idx in self.cam_params:
@@ -2738,62 +2742,62 @@ class FeatureTracker:
     return (pts_i, pts_j, inliers)
 
   def _track_features(self, camera_images):
-    # # Track features through time
-    # for cam_idx in self.cam_indices:
-    #   # Track through time
-    #   track_results = self._track_through_time(camera_images, cam_idx)
-    #   (_, pts_k, feature_ids, inliers) = track_results
-    #
-    #   # Process results
-    #   kps_k = []
-    #   f_ids = []
-    #   kp_size = 31
-    #   for n, status in enumerate(inliers):
-    #     if status:
-    #       kps_k.append(cv2.KeyPoint(pts_k[n][0], pts_k[n][1], kp_size))
-    #       f_ids.append(feature_ids[n])
-    #
-    #   # Update feature tracking data
-    #   img_k = camera_images[cam_idx]
-    #   data_k = FeatureTrackingData(cam_idx, img_k, kps_k, None, f_ids)
-    #   self.cam_data[cam_idx] = data_k
-    #
-    #   # Update feature lifetimes
-    #   for feature_id in f_ids:
-    #     self.feature_lifetimes[feature_id] += 1
-
-    # Loop through camera overlaps
-    for idx_i, idx_j in self.cam_overlaps:
+    # Track features through time
+    for cam_idx in self.cam_indices:
       # Track through time
-      track_results = self._track_through_time(camera_images, idx_i)
-      (_, pts_i, feature_ids, time_inliers) = track_results
-
-      # Track through extrinsics
-      track_results = self._track_stereo(camera_images, idx_i, idx_j, pts_i)
-      (pts_i, pts_j, exts_inliers) = track_results
+      track_results = self._track_through_time(camera_images, cam_idx)
+      (_, pts_k, feature_ids, inliers) = track_results
 
       # Process results
-      kps_i = []
-      kps_j = []
+      kps_k = []
       f_ids = []
       kp_size = 31
-      nb_pts = len(pts_i)
-      for n in range(nb_pts):
-        if time_inliers[n] and exts_inliers[n]:
-          kps_i.append(cv2.KeyPoint(pts_i[n][0], pts_i[n][1], kp_size))
-          kps_j.append(cv2.KeyPoint(pts_j[n][0], pts_j[n][1], kp_size))
+      for n, status in enumerate(inliers):
+        if status:
+          kps_k.append(cv2.KeyPoint(pts_k[n][0], pts_k[n][1], kp_size))
           f_ids.append(feature_ids[n])
 
-      img_i = camera_images[idx_i]
-      img_j = camera_images[idx_j]
-      data_i = FeatureTrackingData(idx_i, img_i, kps_i, None, f_ids)
-      data_j = FeatureTrackingData(idx_j, img_j, kps_j, None, f_ids)
-      self.cam_data[idx_i] = data_i
-      self.cam_data[idx_j] = data_j
+      # Update feature tracking data
+      img_k = camera_images[cam_idx]
+      data_k = FeatureTrackingData(cam_idx, img_k, kps_k, None, f_ids)
+      self.cam_data[cam_idx] = data_k
 
       # Update feature lifetimes
       for feature_id in f_ids:
         self.feature_lifetimes[feature_id] += 1
+
+    # # Loop through camera overlaps
+    # for idx_i, idx_j in self.cam_overlaps:
+    #   # Track through time
+    #   track_results = self._track_through_time(camera_images, idx_i)
+    #   (_, pts_i, feature_ids, time_inliers) = track_results
+    #
+    #   # Track through extrinsics
+    #   track_results = self._track_stereo(camera_images, idx_i, idx_j, pts_i)
+    #   (pts_i, pts_j, exts_inliers) = track_results
+    #
+    #   # Process results
+    #   kps_i = []
+    #   kps_j = []
+    #   f_ids = []
+    #   kp_size = 31
+    #   nb_pts = len(pts_i)
+    #   for n in range(nb_pts):
+    #     if time_inliers[n] and exts_inliers[n]:
+    #       kps_i.append(cv2.KeyPoint(pts_i[n][0], pts_i[n][1], kp_size))
+    #       kps_j.append(cv2.KeyPoint(pts_j[n][0], pts_j[n][1], kp_size))
+    #       f_ids.append(feature_ids[n])
+    #
+    #   img_i = camera_images[idx_i]
+    #   img_j = camera_images[idx_j]
+    #   data_i = FeatureTrackingData(idx_i, img_i, kps_i, None, f_ids)
+    #   data_j = FeatureTrackingData(idx_j, img_j, kps_j, None, f_ids)
+    #   self.cam_data[idx_i] = data_i
+    #   self.cam_data[idx_j] = data_j
+    #
+    #   # Update feature lifetimes
+    #   for feature_id in f_ids:
+    #     self.feature_lifetimes[feature_id] += 1
 
   def update(self, ts, camera_images):
     """ Update Feature Tracker """
@@ -2818,10 +2822,10 @@ class FeatureTracker:
 @dataclass
 class CalibTarget:
   """ Calibration Target """
-  nb_rows: int = 0
-  nb_cols: int = 0
-  tag_size: float = 0.0
-  tag_spacing: float = 0.0
+  nb_rows: int
+  nb_cols: int
+  tag_size: float
+  tag_spacing: float
 
 
 def calib_generate_poses(calib_target):
@@ -2991,47 +2995,50 @@ class EuRoCSensor:
     self.distortion_coefficients = config.distortion_coefficients
 
 
-def load_euroc_dataset(data_path):
-  """ Load EuRoC Dataset """
-  # Check if directory exists
-  if os.path.isdir(data_path) is False:
-    raise RuntimeError(f"Path {data_path} does not exist!")
+class EuRoCDataset:
+  """ EuRoC Dataset """
 
-  # Form sensor paths
-  # imu0_path = os.path.join(data_path, 'mav0', 'imu0', 'data')
-  cam0_path = os.path.join(data_path, 'mav0', 'cam0')
-  cam1_path = os.path.join(data_path, 'mav0', 'cam1')
+  def __init__(self, data_path):
+    # Form sensor paths
+    # imu0_path = os.path.join(data_path, 'mav0', 'imu0', 'data')
+    self.cam0_path = os.path.join(data_path, 'mav0', 'cam0')
+    self.cam1_path = os.path.join(data_path, 'mav0', 'cam1')
 
-  # Data
-  timestamps = []
-  cam0_images = {}
-  cam1_images = {}
+    self.timestamps = []
+    self.cam0_images = {}
+    self.cam1_images = {}
+    self.cam0_config = {}
+    self.cam1_config = {}
 
-  # Get camera0 data
-  cam0_image_paths = sorted(glob.glob(os.path.join(cam0_path, 'data', '*.png')))
-  for img_file in cam0_image_paths:
-    ts_str, _ = os.path.basename(img_file).split('.')
-    ts = int(ts_str)
-    cam0_images[ts] = img_file
-    timestamps.append(ts)
-  cam0_config = EuRoCSensor(os.path.join(cam0_path, 'sensor.yaml'))
+    self._load_euroc_dataset(data_path)
 
-  # Get camera1 data
-  cam1_image_paths = sorted(glob.glob(os.path.join(cam1_path, 'data', '*.png')))
-  for img_file in cam1_image_paths:
-    ts_str, _ = os.path.basename(img_file).split('.')
-    ts = int(ts_str)
-    cam1_images[ts] = img_file
-    timestamps.append(ts)
-  cam1_config = EuRoCSensor(os.path.join(cam1_path, 'sensor.yaml'))
+  def _load_euroc_dataset(self, data_path):
+    # Check if directory exists
+    if os.path.isdir(data_path) is False:
+      raise RuntimeError(f"Path {data_path} does not exist!")
 
-  # Form dataset
-  dataset = {}
-  dataset['timestamps'] = sorted(set(timestamps))
-  dataset['cam0'] = {'images': cam0_images, 'config': cam0_config}
-  dataset['cam1'] = {'images': cam1_images, 'config': cam1_config}
+    # Get camera0 data
+    self.cam0_image_paths = sorted(
+        glob.glob(os.path.join(self.cam0_path, 'data', '*.png')))
+    for img_file in self.cam0_image_paths:
+      ts_str, _ = os.path.basename(img_file).split('.')
+      ts = int(ts_str)
+      self.cam0_images[ts] = img_file
+      self.timestamps.append(ts)
+    self.cam0_config = EuRoCSensor(os.path.join(self.cam0_path, 'sensor.yaml'))
 
-  return dataset
+    # Get camera1 data
+    self.cam1_image_paths = sorted(
+        glob.glob(os.path.join(self.cam1_path, 'data', '*.png')))
+    for img_file in self.cam1_image_paths:
+      ts_str, _ = os.path.basename(img_file).split('.')
+      ts = int(ts_str)
+      self.cam1_images[ts] = img_file
+      self.timestamps.append(ts)
+    self.cam1_config = EuRoCSensor(os.path.join(self.cam1_path, 'sensor.yaml'))
+
+    # Timestamps
+    self.timestamps = sorted(list(set(self.timestamps)))
 
 
 ###############################################################################
@@ -3872,14 +3879,12 @@ class TestFeatureTracking(unittest.TestCase):
 
   def setUp(self):
     # Load test data
-    self.dataset = load_euroc_dataset(euroc_data_path)
+    self.dataset = EuRoCDataset(euroc_data_path)
 
     # Setup test images
-    ts = self.dataset['timestamps'][0]
-    self.img0 = cv2.imread(self.dataset['cam0']['images'][ts],
-                           cv2.IMREAD_GRAYSCALE)
-    self.img1 = cv2.imread(self.dataset['cam1']['images'][ts],
-                           cv2.IMREAD_GRAYSCALE)
+    ts = self.dataset.timestamps[0]
+    self.img0 = cv2.imread(self.dataset.cam0_images[ts], cv2.IMREAD_GRAYSCALE)
+    self.img1 = cv2.imread(self.dataset.cam1_images[ts], cv2.IMREAD_GRAYSCALE)
 
   def test_feature_grid_cell_index(self):
     """ Test FeatureGrid.grid_cell_index() """
@@ -3938,28 +3943,28 @@ class TestFeatureTracker(unittest.TestCase):
 
   def setUp(self):
     # Load test data
-    self.dataset = load_euroc_dataset(euroc_data_path)
+    self.dataset = EuRoCDataset(euroc_data_path)
 
     # Setup test images
-    ts = self.dataset['timestamps'][0]
-    img0_path = self.dataset['cam0']['images'][ts]
-    img1_path = self.dataset['cam1']['images'][ts]
+    ts = self.dataset.timestamps[0]
+    img0_path = self.dataset.cam0_images[ts]
+    img1_path = self.dataset.cam1_images[ts]
     self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
     self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
 
     # Setup cameras
     # -- cam0
-    res = self.dataset['cam0']['config'].resolution
-    proj_params = self.dataset['cam0']['config'].intrinsics
-    dist_params = self.dataset['cam0']['config'].distortion_coefficients
+    res = self.dataset.cam0_config.resolution
+    proj_params = self.dataset.cam0_config.intrinsics
+    dist_params = self.dataset.cam0_config.distortion_coefficients
     proj_model = "pinhole"
     dist_model = "radtan4"
     params = np.block([*proj_params, *dist_params])
     cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
     # -- cam1
-    res = self.dataset['cam1']['config'].resolution
-    proj_params = self.dataset['cam1']['config'].intrinsics
-    dist_params = self.dataset['cam1']['config'].distortion_coefficients
+    res = self.dataset.cam1_config.resolution
+    proj_params = self.dataset.cam1_config.intrinsics
+    dist_params = self.dataset.cam1_config.distortion_coefficients
     proj_model = "pinhole"
     dist_model = "radtan4"
     params = np.block([*proj_params, *dist_params])
@@ -3967,10 +3972,10 @@ class TestFeatureTracker(unittest.TestCase):
 
     # Setup camera extrinsics
     # -- cam0
-    T_BC0 = self.dataset['cam0']['config'].T_BS
+    T_BC0 = self.dataset.cam0_config.T_BS
     cam0_exts = extrinsics_setup(T_BC0)
     # -- cam1
-    T_BC1 = self.dataset['cam1']['config'].T_BS
+    T_BC1 = self.dataset.cam1_config.T_BS
     cam1_exts = extrinsics_setup(T_BC1)
 
     # Setup feature tracker
@@ -4066,10 +4071,10 @@ class TestFeatureTracker(unittest.TestCase):
 
   def test_update(self):
     """ Test FeatureTracker.update() """
-    for ts in self.dataset['timestamps']:
+    for ts in self.dataset.timestamps:
       # Load images
-      img0_path = self.dataset['cam0']['images'][ts]
-      img1_path = self.dataset['cam1']['images'][ts]
+      img0_path = self.dataset.cam0_images[ts]
+      img1_path = self.dataset.cam1_images[ts]
       img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
       img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
 
@@ -4111,7 +4116,7 @@ class TestEuoc(unittest.TestCase):
   def test_load(self):
     """ Test load """
     data_path = '/data/euroc/raw/V1_01'
-    dataset = load_euroc_dataset(data_path)
+    dataset = EuRoCDataset(data_path)
     self.assertTrue(dataset is not None)
 
 
