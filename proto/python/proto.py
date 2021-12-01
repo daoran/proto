@@ -2367,14 +2367,14 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
   vector of inliers.
   """
   # Track using optical flow
-  patch_size = kwargs.get('patch_size', 10)
+  patch_size = kwargs.get('patch_size', 50)
   max_iter = kwargs.get('max_iter', 10)
-  epsilon = kwargs.get('epsilon', 0.001)
+  epsilon = kwargs.get('epsilon', 0.01)
   crit = (cv2.TermCriteria_COUNT | cv2.TermCriteria_EPS, max_iter, epsilon)
 
   config = {}
   config['winSize'] = (patch_size, patch_size)
-  config['maxLevel'] = 1
+  config['maxLevel'] = 3
   config['criteria'] = crit
   config['flags'] = cv2.OPTFLOW_USE_INITIAL_FLOW
 
@@ -2458,16 +2458,16 @@ class FeatureTracker:
 
   def __init__(self):
     # Settings
-    # self.mode = "TRACK_DEFAULT"
+    self.mode = "TRACK_DEFAULT"
     # self.mode = "TRACK_OVERLAPS"
-    self.mode = "TRACK_INDEPENDENT"
+    # self.mode = "TRACK_INDEPENDENT"
 
     # Data
     self.prev_ts = None
     self.frame_idx = 0
     self.detector = cv2.FastFeatureDetector_create(threshold=50)
     self.features_detected = 0
-    self.features_overlapping = []
+    self.features_overlapping = set()
     self.prev_camera_images = None
 
     self.feature_lifetimes = {}
@@ -2500,24 +2500,29 @@ class FeatureTracker:
     """ Draw visualization image """
     viz = []
 
-    cam_idx = 0
-    img = self.prev_camera_images[cam_idx]
-    data = self.cam_data[cam_idx]
-    viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-
     radius = 2
     green = (0, 255, 0)
+    yellow = (0, 255, 255)
     thickness = cv2.FILLED
     linetype = cv2.LINE_AA
 
-    for n, kp in enumerate(data.keypoints):
-      feature_id = data.feature_ids[n]
-      lifetime = self.feature_lifetimes[feature_id]
-      if lifetime >= 1:
-        p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
-        cv2.circle(viz, p, radius, green, thickness, lineType=linetype)
+    for cam_idx in self.cam_params:
+      img = self.prev_camera_images[cam_idx]
+      data = self.cam_data[cam_idx]
+      cam_viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
 
-    return viz
+      for n, kp in enumerate(data.keypoints):
+        feature_id = data.feature_ids[n]
+        lifetime = self.feature_lifetimes[feature_id]
+        color = green if feature_id in self.features_overlapping else yellow
+
+        if lifetime >= 2:
+          p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
+          cv2.circle(cam_viz, p, radius, color, thickness, lineType=linetype)
+
+      viz.append(cam_viz)
+
+    return cv2.hconcat(viz)
 
     # for cam_idx in self.cam_indices:
     #   img = self.prev_camera_images[cam_idx]
@@ -2555,7 +2560,7 @@ class FeatureTracker:
     self.features_detected += nb_kps
     start_idx = self.features_detected - nb_kps
     end_idx = start_idx + nb_kps
-    return range(start_idx, end_idx)
+    return list(range(start_idx, end_idx))
 
   def _triangulate(self, idx_i, idx_j, z_i, z_j):
     # Setup
@@ -2617,8 +2622,8 @@ class FeatureTracker:
     return kps
 
   def _detect_overlaps(self, camera_images):
-    # Clear booking
-    self.features_overlapping = []
+    # # Clear booking
+    # self.features_overlapping = []
 
     # Loop through camera overlaps
     for idx_i, idx_j in self.cam_overlaps:
@@ -2649,9 +2654,9 @@ class FeatureTracker:
           kps_j.append(cv2.KeyPoint(pts_j[n][0], pts_j[n][1], kp_size))
           nb_inliers += 1
 
-      # Add to camera data
+      # Add / update camera data
       feature_ids = self._form_feature_ids(nb_inliers)
-      self.features_overlapping = feature_ids
+      self.features_overlapping.update(feature_ids)
       if self.cam_data[idx_i] is None:
         data_i = FeatureTrackingData(idx_i, img_i, kps_i, None, feature_ids)
         data_j = FeatureTrackingData(idx_j, img_j, kps_j, None, feature_ids)
@@ -2675,6 +2680,7 @@ class FeatureTracker:
       prev_kps = self._get_keypoints(cam_idx)
       kps = self._detect(img, prev_kps=prev_kps)
 
+      # Add / update camera data
       feature_ids = self._form_feature_ids(len(kps))
       if self.cam_data[cam_idx] is None:
         data = FeatureTrackingData(cam_idx, img, kps, None, feature_ids)
@@ -2792,7 +2798,6 @@ class FeatureTracker:
   def update(self, ts, camera_images):
     """ Update Feature Tracker """
     # Track features
-    viz = None
     if self.frame_idx == 0:
       self._detect_new(camera_images)
     else:
@@ -2803,8 +2808,6 @@ class FeatureTracker:
     self.frame_idx += 1
     self.prev_ts = ts
     self.prev_camera_images = camera_images
-
-    return viz
 
 
 ###############################################################################
@@ -3945,32 +3948,29 @@ class TestFeatureTracker(unittest.TestCase):
     self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
 
     # Setup cameras
-    res = [752, 480]
     # -- cam0
-    proj_params = [458.654, 457.296, 367.215, 248.375]
-    dist_params = [-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05]
+    res = self.dataset['cam0']['config'].resolution
+    proj_params = self.dataset['cam0']['config'].intrinsics
+    dist_params = self.dataset['cam0']['config'].distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
     params = np.block([*proj_params, *dist_params])
-    cam0 = camera_params_setup(0, res, "pinhole", "radtan4", params)
+    cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
     # -- cam1
-    proj_params = [457.587, 456.134, 379.999, 255.238]
-    dist_params = [-0.28368365, 0.07451284, -0.00010473, -3.55590700e-05]
+    res = self.dataset['cam1']['config'].resolution
+    proj_params = self.dataset['cam1']['config'].intrinsics
+    dist_params = self.dataset['cam1']['config'].distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
     params = np.block([*proj_params, *dist_params])
-    cam1 = camera_params_setup(1, res, "pinhole", "radtan4", params)
+    cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
 
     # Setup camera extrinsics
     # -- cam0
-    row0 = [0.014865542981, -0.99988092969, 0.0041402967942, -0.021640145497]
-    row1 = [0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768]
-    row2 = [-0.02577443669, 0.003756188357, 0.999660727178, 0.00981073058949]
-    row3 = [0.0, 0.0, 0.0, 1.0]
-    T_BC0 = np.array([row0, row1, row2, row3])
+    T_BC0 = self.dataset['cam0']['config'].T_BS
     cam0_exts = extrinsics_setup(T_BC0)
     # -- cam1
-    row0 = [0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556]
-    row1 = [0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024]
-    row2 = [-0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038]
-    row3 = [0.0, 0.0, 0.0, 1.0]
-    T_BC1 = np.array([row0, row1, row2, row3])
+    T_BC1 = self.dataset['cam1']['config'].T_BS
     cam1_exts = extrinsics_setup(T_BC1)
 
     # Setup feature tracker
