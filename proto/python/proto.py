@@ -2223,9 +2223,13 @@ class FeatureGrid:
     for kp in keypoints:
       if hasattr(kp, 'pt'):
         # cv2.KeyPoint
+        assert (kp.pt[0] >= 0 and kp.pt[0] <= image_shape[1])
+        assert (kp.pt[1] >= 0 and kp.pt[1] <= image_shape[0])
         self.cell[self.cell_index(kp.pt)] += 1
       else:
         # Tuple
+        assert (kp[0] >= 0 and kp[0] <= image_shape[1])
+        assert (kp[1] >= 0 and kp[1] <= image_shape[0])
         self.cell[self.cell_index(kp)] += 1
 
   def cell_index(self, pt):
@@ -2255,7 +2259,7 @@ def grid_detect(detector, image, **kwargs):
   Detect features uniformly using a grid system.
   """
   optflow_mode = kwargs.get('optflow_mode', False)
-  max_keypoints = kwargs.get('max_keypoints', 120)
+  max_keypoints = kwargs.get('max_keypoints', 240)
   grid_rows = kwargs.get('grid_rows', 3)
   grid_cols = kwargs.get('grid_cols', 4)
   prev_kps = kwargs.get('prev_kps', [])
@@ -2296,8 +2300,6 @@ def grid_detect(detector, image, **kwargs):
 
       # Offset keypoints
       cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
-      print(f"cell_idx: {cell_idx}, vacancy: {cell_vacancy}")
-      sys.stdout.flush()
       if cell_vacancy <= 0:
         continue
 
@@ -2312,37 +2314,42 @@ def grid_detect(detector, image, **kwargs):
       cell_idx += 1
 
   # Debug
-  if kwargs.get('debug', True):
+  if kwargs.get('debug', False):
     # Setup
     viz = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     kps_grid = FeatureGrid(grid_rows, grid_cols, image.shape, kps_all)
 
     # Visualization properties
-    color = (0, 0, 255)
+    red = (0, 0, 255)
+    yellow = (0, 255, 255)
     linetype = cv2.LINE_AA
     font = cv2.FONT_HERSHEY_SIMPLEX
 
     # -- Draw horizontal lines
     for x in range(0, image_width, dx):
-      cv2.line(viz, (x, 0), (x, image_height), color, 1, linetype)
+      cv2.line(viz, (x, 0), (x, image_height), red, 1, linetype)
 
     # -- Draw vertical lines
     for y in range(0, image_height, dy):
-      cv2.line(viz, (0, y), (image_width, y), color, 1, linetype)
+      cv2.line(viz, (0, y), (image_width, y), red, 1, linetype)
 
     # -- Draw bin numbers
     cell_idx = 0
     for y in range(0, image_height, dy):
       for x in range(0, image_width, dx):
         text = str(kps_grid.count(cell_idx))
+        origin = (x + 10, y + 40)
+        viz = cv2.putText(viz, text, origin, font, 0.5, red, 1, linetype)
+
+        text = str(feature_grid.count(cell_idx))
         origin = (x + 10, y + 20)
-        viz = cv2.putText(viz, text, origin, font, 0.5, color, 1, linetype)
+        viz = cv2.putText(viz, text, origin, font, 0.5, yellow, 1, linetype)
+
         cell_idx += 1
 
     # -- Draw keypoints
-    viz = draw_points(viz, kps_all, color=(0, 0, 255))
-    viz = draw_points(viz, prev_kps, color=(0, 255, 255))
-
+    viz = draw_points(viz, kps_all, color=red)
+    viz = draw_points(viz, prev_kps, color=yellow)
     cv2.imshow("viz", viz)
     cv2.waitKey(0)
 
@@ -2373,15 +2380,26 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
 
   pts_j = np.array(pts_i)
   track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, pts_i, pts_j, **config)
-  (pts_j, optflow_mask, _) = track_results
+  (pts_j, optflow_inliers, _) = track_results
 
   # Remove outliers using RANSAC
-  _, fundmat_mask = cv2.findFundamentalMat(pts_i, pts_j, cv2.FM_8POINT)
+  _, fundmat_inliers = cv2.findFundamentalMat(pts_i, pts_j, cv2.FM_8POINT)
+
+  # Make sure keypoints are within image dimensions
+  bound_inliers = []
+  img_h, img_w = img_j.shape
+  for p in pts_j:
+    x_ok = p[0] >= 0 and p[0] <= img_w
+    y_ok = p[1] >= 0 and p[1] <= img_h
+    if x_ok and y_ok:
+      bound_inliers.append(True)
+    else:
+      bound_inliers.append(False)
 
   # Update or mark feature as lost
   inliers = []
   for i in range(len(pts_i)):
-    if optflow_mask[i, 0] and fundmat_mask[i, 0]:
+    if optflow_inliers[i, 0] and fundmat_inliers[i, 0] and bound_inliers[i]:
       inliers.append(True)
     else:
       inliers.append(False)
@@ -2441,13 +2459,13 @@ class FeatureTracker:
   def __init__(self):
     # Settings
     # self.mode = "TRACK_DEFAULT"
-    self.mode = "TRACK_OVERLAPS"
-    # self.mode = "TRACK_INDEPENDENT"
+    # self.mode = "TRACK_OVERLAPS"
+    self.mode = "TRACK_INDEPENDENT"
 
     # Data
     self.prev_ts = None
     self.frame_idx = 0
-    self.detector = cv2.FastFeatureDetector_create(threshold=100)
+    self.detector = cv2.FastFeatureDetector_create(threshold=50)
     self.features_detected = 0
     self.features_overlapping = []
     self.prev_camera_images = None
@@ -2482,11 +2500,6 @@ class FeatureTracker:
     """ Draw visualization image """
     viz = []
 
-    # cam_idx = 0
-    # img = self.prev_camera_images[cam_idx]
-    # data = self.cam_data[cam_idx]
-    # viz.append(draw_points(img, data.keypoints))
-
     cam_idx = 0
     img = self.prev_camera_images[cam_idx]
     data = self.cam_data[cam_idx]
@@ -2500,7 +2513,7 @@ class FeatureTracker:
     for n, kp in enumerate(data.keypoints):
       feature_id = data.feature_ids[n]
       lifetime = self.feature_lifetimes[feature_id]
-      if lifetime > 2:
+      if lifetime >= 1:
         p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
         cv2.circle(viz, p, radius, green, thickness, lineType=linetype)
 
@@ -2614,6 +2627,8 @@ class FeatureTracker:
       img_j = camera_images[idx_j]
       prev_kps = self._get_keypoints(idx_i)
       kps_i = self._detect(img_i, prev_kps=prev_kps)
+      if len(kps_i) < 10:
+        continue
 
       # Track keypoint from cam_i to cam_j using optical flow
       kp_size = kps_i[0].size
@@ -2637,10 +2652,18 @@ class FeatureTracker:
       # Add to camera data
       feature_ids = self._form_feature_ids(nb_inliers)
       self.features_overlapping = feature_ids
-      data_i = FeatureTrackingData(idx_i, img_i, kps_i, None, feature_ids)
-      data_j = FeatureTrackingData(idx_j, img_j, kps_j, None, feature_ids)
-      self.cam_data[idx_i] = data_i
-      self.cam_data[idx_j] = data_j
+      if self.cam_data[idx_i] is None:
+        data_i = FeatureTrackingData(idx_i, img_i, kps_i, None, feature_ids)
+        data_j = FeatureTrackingData(idx_j, img_j, kps_j, None, feature_ids)
+        self.cam_data[idx_i] = data_i
+        self.cam_data[idx_j] = data_j
+      else:
+        self.cam_data[idx_i].image = img_i
+        self.cam_data[idx_j].image = img_j
+        self.cam_data[idx_i].keypoints.extend(kps_i)
+        self.cam_data[idx_j].keypoints.extend(kps_j)
+        self.cam_data[idx_i].feature_ids.extend(feature_ids)
+        self.cam_data[idx_j].feature_ids.extend(feature_ids)
 
       # Update feature lifetimes
       for feature_id in feature_ids:
@@ -2653,8 +2676,13 @@ class FeatureTracker:
       kps = self._detect(img, prev_kps=prev_kps)
 
       feature_ids = self._form_feature_ids(len(kps))
-      data = FeatureTrackingData(cam_idx, img, kps, None, feature_ids)
-      self.cam_data[cam_idx] = data
+      if self.cam_data[cam_idx] is None:
+        data = FeatureTrackingData(cam_idx, img, kps, None, feature_ids)
+        self.cam_data[cam_idx] = data
+      else:
+        self.cam_data[cam_idx].image = img
+        self.cam_data[cam_idx].keypoints.extend(kps)
+        self.cam_data[cam_idx].feature_ids.extend(feature_ids)
 
       # Update feature lifetimes
       for feature_id in feature_ids:
@@ -2723,6 +2751,10 @@ class FeatureTracker:
     #   img_k = camera_images[cam_idx]
     #   data_k = FeatureTrackingData(cam_idx, img_k, kps_k, None, f_ids)
     #   self.cam_data[cam_idx] = data_k
+    #
+    #   # Update feature lifetimes
+    #   for feature_id in f_ids:
+    #     self.feature_lifetimes[feature_id] += 1
 
     # Loop through camera overlaps
     for idx_i, idx_j in self.cam_overlaps:
@@ -2756,7 +2788,6 @@ class FeatureTracker:
       # Update feature lifetimes
       for feature_id in f_ids:
         self.feature_lifetimes[feature_id] += 1
-        # print(feature_id, self.feature_lifetimes[feature_id])
 
   def update(self, ts, camera_images):
     """ Update Feature Tracker """
@@ -4052,10 +4083,12 @@ class TestFeatureTracker(unittest.TestCase):
       # Visualize
       sys.stdout.flush()
       cv2.imshow('viz', viz)
-      if cv2.waitKey(0) == ord('q'):
-        break
+      # if cv2.waitKey(0) == ord('q'):
+      #   break
       # if cv2.waitKey(10) == ord('q'):
       #   break
+      if cv2.waitKey(1) == ord('q'):
+        break
 
 
 # CALIBRATION #################################################################
