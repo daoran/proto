@@ -2130,7 +2130,7 @@ def check_factor_jacobian(factor, params, param_idx, jac_name, **kwargs):
 # FEATURE TRACKING #############################################################
 
 
-def draw_matches(img_i, img_j, kps_i, kps_j):
+def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs):
   """
   Draw keypoint matches between images `img_i` and `img_j` with keypoints
   `kps_i` and `kps_j`
@@ -2143,7 +2143,8 @@ def draw_matches(img_i, img_j, kps_i, kps_j):
 
   color = (0, 255, 0)
   radius = 3
-  thickness = 1
+  thickness = kwargs.get('thickness', cv2.FILLED)
+  linetype = kwargs.get('linetype', cv2.LINE_AA)
 
   for n in range(nb_kps):
     pt_i = None
@@ -2155,30 +2156,30 @@ def draw_matches(img_i, img_j, kps_i, kps_j):
       pt_i = (int(kps_i[n][0]), int(kps_i[n][1]))
       pt_j = (int(kps_j[n][0] + img_i.shape[1]), int(kps_j[n][1]))
 
-    cv2.circle(viz, (pt_i[0], pt_i[1]), radius, color, thickness)
-    cv2.circle(viz, (pt_j[0], pt_j[1]), radius, color, thickness)
-    cv2.line(viz, pt_i, pt_j, color, 1, 8)
+    cv2.circle(viz, pt_i, radius, color, thickness, lineType=linetype)
+    cv2.circle(viz, pt_j, radius, color, thickness, lineType=linetype)
+    cv2.line(viz, pt_i, pt_j, color, 1, linetype)
 
   return viz
 
 
-def draw_points(img, pts, inliers=None):
+def draw_points(img, kps, inliers=None, **kwargs):
   """
-  Draw points `pts` on image `img`. The `inliers` boolean list is optional
-  and is expected to be the same size as `pts` denoting whether the point
+  Draw points `kps` on image `img`. The `inliers` boolean list is optional
+  and is expected to be the same size as `kps` denoting whether the point
   should be drawn or not.
   """
-  if inliers is None:
-    inliers = [1 for i in range(len(pts))]
-
-  radius = 3
-  color = (0, 255, 0)
-  thickness = 1
+  inliers = [1 for i in range(len(kps))] if inliers is None else inliers
+  radius = kwargs.get('radius', 2)
+  color = kwargs.get('color', (0, 255, 0))
+  thickness = kwargs.get('thickness', cv2.FILLED)
+  linetype = kwargs.get('linetype', cv2.LINE_AA)
 
   viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-  for n, pt in enumerate(pts):
+  for n, kp in enumerate(kps):
     if inliers[n]:
-      cv2.circle(viz, (pt[0], pt[1]), radius, color, thickness)
+      p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
+      cv2.circle(viz, p, radius, color, thickness, lineType=linetype)
 
   return viz
 
@@ -2238,13 +2239,21 @@ class FeatureGrid:
     return self.cell[cell_idx]
 
 
+def sort_keypoints(kps):
+  """ Sort a list of cv2.KeyPoint based on their response """
+  responses = [kp.response for kp in kps]
+  indices = range(len(responses))
+  indices = sorted(indices, key=lambda i: responses[i], reverse=True)
+  return [kps[i] for i in indices]
+
+
 def grid_detect(detector, image, **kwargs):
   """
   Detect features uniformly using a grid system.
   """
   optflow_mode = kwargs.get('optflow_mode', False)
   max_keypoints = kwargs.get('max_keypoints', 200)
-  grid_rows = kwargs.get('grid_rows', 4)
+  grid_rows = kwargs.get('grid_rows', 3)
   grid_cols = kwargs.get('grid_cols', 4)
   prev_kps = kwargs.get('prev_kps', [])
   if prev_kps is None:
@@ -2276,18 +2285,35 @@ def grid_detect(detector, image, **kwargs):
       kps = None
       des = None
       if optflow_mode:
-        kps = detector.detect(roi_image)
+        # kps = detector.detect(roi_image)
+        # kps = sort_keypoints(kps)
+
+        kps = cv2.goodFeaturesToTrack(roi_image, max_per_cell, 0.1, 10)
+        if kps is not None:
+          kps = [p[0] for p in kps]
+        else:
+          kps = []
+
       else:
         kps = detector.detect(roi_image, None)
         kps, des = detector.compute(roi_image, kps)
 
+      # kps = [cv2.KeyPoint(p[0], p[1], 32) for p in kps]
+      # kps_all.extend(kps)
+
       # Offset keypoints
       cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
-      for i in range(min(len(kps), cell_vacancy)):
-        kp = kps[i]
-        kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
-        kps_all.append(kp)
-        des_all.append(des[i, :] if optflow_mode is False else None)
+      limit = min(len(kps), cell_vacancy)
+      # print(
+      #     f"cell kps: {len(kps)}, cell_vacancy: {cell_vacancy}, limit: {limit}")
+      # for i in range(limit):
+      #   kp = kps[i]
+      #   kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
+      #   kps_all.append(kp)
+      #   des_all.append(des[i, :] if optflow_mode is False else None)
+      for i in range(limit):
+        p = kps[i]
+        kps_all.append(cv2.KeyPoint(p[0] + x, p[1] + y, 32))
 
       # Update cell_idx
       cell_idx += 1
@@ -2312,14 +2338,14 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
   vector of inliers.
   """
   # Track using optical flow
-  patch_size = kwargs.get('patch_size', 40)
-  max_iter = kwargs.get('max_iter', 100)
-  epsilon = kwargs.get('epsilon', 0.01)
+  patch_size = kwargs.get('patch_size', 10)
+  max_iter = kwargs.get('max_iter', 10)
+  epsilon = kwargs.get('epsilon', 0.001)
   crit = (cv2.TermCriteria_COUNT | cv2.TermCriteria_EPS, max_iter, epsilon)
 
   config = {}
   config['winSize'] = (patch_size, patch_size)
-  config['maxLevel'] = 3
+  config['maxLevel'] = 1
   config['criteria'] = crit
   config['flags'] = cv2.OPTFLOW_USE_INITIAL_FLOW
 
@@ -2392,19 +2418,19 @@ class FeatureTracker:
 
   def __init__(self):
     # Settings
-    # self.mode = "TRACK_DEFAULT"
-    self.mode = "TRACK_OVERLAPS"
+    self.mode = "TRACK_DEFAULT"
+    # self.mode = "TRACK_OVERLAPS"
     # self.mode = "TRACK_INDEPENDENT"
 
     # Data
     self.prev_ts = None
     self.frame_idx = 0
-    self.detector = cv2.FastFeatureDetector_create(threshold=25)
+    self.detector = cv2.FastFeatureDetector_create(threshold=100)
     self.features_detected = 0
     self.features_overlapping = []
     self.prev_camera_images = None
 
-    self.kf_num_features = None
+    self.feature_lifetimes = {}
 
     self.cam_indices = []
     self.cam_params = {}
@@ -2426,10 +2452,55 @@ class FeatureTracker:
   def num_tracking(self):
     """ Return number of features tracking """
     feature_ids = []
-    for cam_idx, cam_data in self.cam_data.items():
+    for _, cam_data in self.cam_data.items():
       feature_ids.extend(cam_data.feature_ids)
-
     return len(set(feature_ids))
+
+  def visualize(self):
+    """ Draw visualization image """
+    viz = []
+
+    # cam_idx = 0
+    # img = self.prev_camera_images[cam_idx]
+    # data = self.cam_data[cam_idx]
+    # viz.append(draw_points(img, data.keypoints))
+
+    cam_idx = 0
+    img = self.prev_camera_images[cam_idx]
+    data = self.cam_data[cam_idx]
+    viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
+    radius = 2
+    green = (0, 255, 0)
+    thickness = cv2.FILLED
+    linetype = cv2.LINE_AA
+
+    for n, kp in enumerate(data.keypoints):
+      feature_id = data.feature_ids[n]
+      lifetime = self.feature_lifetimes[feature_id]
+      if lifetime > 2:
+        p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
+        cv2.circle(viz, p, radius, green, thickness, lineType=linetype)
+
+    return viz
+
+    # for cam_idx in self.cam_indices:
+    #   img = self.prev_camera_images[cam_idx]
+    #   data = self.cam_data[cam_idx]
+    #   viz.append(draw_points(img, data.keypoints))
+
+    # for idx_i, idx_j in self.cam_overlaps:
+    #   img_i = self.prev_camera_images[idx_i]
+    #   img_j = self.prev_camera_images[idx_j]
+    #
+    #   data_i = self.cam_data[idx_i]
+    #   data_j = self.cam_data[idx_j]
+    #   kps_i = data_i.keypoints
+    #   kps_j = data_j.keypoints
+    #
+    #   viz.append(draw_matches(img_i, img_j, kps_i, kps_j))
+
+    # return cv2.hconcat(viz)
 
   def _get_keypoints(self, cam_idx):
     keypoints = None
@@ -2476,6 +2547,34 @@ class FeatureTracker:
 
     return p_Ci
 
+  def _reproj_filter(self, idx_i, idx_j, pts_i, pts_j):
+    assert len(pts_i) == len(pts_j)
+
+    # Reject outliers based on reprojection error
+    reproj_inliers = []
+    cam_i = self.cam_params[idx_i]
+    cam_geom_i = cam_i.data
+
+    nb_pts = len(pts_i)
+    for n in range(nb_pts):
+      # Triangulate
+      z_i = pts_i[n]
+      z_j = pts_j[n]
+      p_Ci = self._triangulate(idx_i, idx_j, z_i, z_j)
+      if p_Ci[2] < 0.0:
+        reproj_inliers.append(False)
+        continue
+
+      # Reproject
+      z_i_hat = cam_geom_i.project(cam_i.param, p_Ci)
+      reproj_error = norm(z_i - z_i_hat)
+      if reproj_error > 10.0:
+        reproj_inliers.append(False)
+        continue
+      reproj_inliers.append(True)
+
+    return reproj_inliers
+
   def _detect(self, image, prev_kps=None):
     assert image is not None
     kwargs = {'prev_kps': prev_kps, 'optflow_mode': True}
@@ -2501,24 +2600,7 @@ class FeatureTracker:
       (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
 
       # Reject outliers based on reprojection error
-      reproj_inliers = []
-      cam_i = self.cam_params[idx_i]
-      cam_geom_i = cam_i.data
-      for n in range(nb_pts):
-        z_i = pts_i[n]
-        z_j = pts_j[n]
-        p_Ci = self._triangulate(idx_i, idx_j, z_i, z_j)
-        if p_Ci[2] < 0.0:
-          reproj_inliers.append(False)
-          continue
-
-        z_i_hat = cam_geom_i.project(cam_i.param, p_Ci)
-        reproj_error = norm(z_i - z_i_hat)
-        if reproj_error > 5.0:
-          reproj_inliers.append(False)
-          continue
-
-        reproj_inliers.append(True)
+      reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
 
       # Process results
       kps_i = []
@@ -2538,6 +2620,10 @@ class FeatureTracker:
       self.cam_data[idx_i] = data_i
       self.cam_data[idx_j] = data_j
 
+      # Update feature lifetimes
+      for feature_id in feature_ids:
+        self.feature_lifetimes[feature_id] = 1
+
   def _detect_nonoverlaps(self, camera_images):
     for cam_idx in self.cam_params:
       img = camera_images[cam_idx]
@@ -2548,7 +2634,11 @@ class FeatureTracker:
       data = FeatureTrackingData(cam_idx, img, kps, None, feature_ids)
       self.cam_data[cam_idx] = data
 
-  def _initialize(self, camera_images):
+      # Update feature lifetimes
+      for feature_id in feature_ids:
+        self.feature_lifetimes[feature_id] = 1
+
+  def _detect_new(self, camera_images):
     # Detect new features
     if self.mode == "TRACK_DEFAULT":
       self._detect_overlaps(camera_images)
@@ -2560,137 +2650,106 @@ class FeatureTracker:
     else:
       raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
 
-    # Keep camera images
-    self.prev_camera_images = camera_images
+  def _track_through_time(self, camera_images, cam_idx):
+    # Setup images
+    img_km1 = self.prev_camera_images[cam_idx]
+    img_k = camera_images[cam_idx]
 
-    # Draw visualization image
-    viz = []
-    for cam_idx in self.cam_indices:
-      img = self.prev_camera_images[cam_idx]
-      data = self.cam_data[cam_idx]
-      viz.append(cv2.drawKeypoints(img, data.keypoints, None))
+    # Setup keypoints and feature_ids
+    kps_km1 = self._get_keypoints(cam_idx)
+    feature_ids = self._get_feature_ids(cam_idx)
+    pts_km1 = np.array([kp.pt for kp in kps_km1], dtype=np.float32)
 
-    return cv2.hconcat(viz)
+    # Track
+    (pts_km1, pts_k, inliers) = optflow_track(img_km1, img_k, pts_km1)
+
+    return (pts_km1, pts_k, feature_ids, inliers)
+
+  def _track_stereo(self, camera_images, idx_i, idx_j, pts_i):
+    # Track
+    img_i = camera_images[idx_i]
+    img_j = camera_images[idx_j]
+    (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
+
+    # Reject outliers based on reprojection error
+    reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
+
+    # Logical AND optflow_inliers and reproj_inliers
+    optflow_inliers = np.array(optflow_inliers)
+    reproj_inliers = np.array(reproj_inliers)
+    inliers = optflow_inliers & reproj_inliers
+
+    return (pts_i, pts_j, inliers)
 
   def _track_features(self, camera_images):
-    # Track features through time
-    viz = []
-    track_data = {}
-
+    # # Track features through time
     # for cam_idx in self.cam_indices:
+    #   # Track through time
+    #   track_results = self._track_through_time(camera_images, cam_idx)
+    #   (_, pts_k, feature_ids, inliers) = track_results
+    #
+    #   # Process results
+    #   kps_k = []
+    #   f_ids = []
+    #   kp_size = 31
+    #   for n, status in enumerate(inliers):
+    #     if status:
+    #       kps_k.append(cv2.KeyPoint(pts_k[n][0], pts_k[n][1], kp_size))
+    #       f_ids.append(feature_ids[n])
+    #
+    #   # Update feature tracking data
     #   img_k = camera_images[cam_idx]
-    #   img_km1 = self.prev_camera_images[cam_idx]
-    #   data_km1 = self.cam_data[cam_idx]
-    #
-    #   # Optical flow track
-    #   pts_km1 = np.array([kp.pt for kp in data_km1.keypoints], dtype=np.float32)
-    #   (pts_km1, pts_k, optflow_inliers) = optflow_track(img_km1, img_k, pts_km1)
-    #
-    #   # RANSAC
-    #   _, fundmat_mask = cv2.findFundamentalMat(pts_km1, pts_k, cv2.FM_8POINT)
-    #
-    #   feature_ids = data_km1.feature_ids
-    #   inliers = []
-    #   cam_pts = []
-    #   cam_feature_ids = []
-    #   for n, optflow_status in enumerate(optflow_inliers):
-    #     if optflow_status and fundmat_mask[n, 0]:
-    #       cam_pts.append(pts_k[n])
-    #       cam_feature_ids.append(feature_ids[n])
-    #       inliers.append(True)
-    #     else:
-    #       inliers.append(False)
-    #   track_data[cam_idx] = (cam_pts, cam_feature_ids)
-    #
-    #   (pts_km1, pts_k) = optflow_filter_outliers(pts_km1, pts_k, inliers)
-    #   viz.append(draw_matches(img_km1, img_k, pts_km1, pts_k))
+    #   data_k = FeatureTrackingData(cam_idx, img_k, kps_k, None, f_ids)
+    #   self.cam_data[cam_idx] = data_k
 
     # Loop through camera overlaps
     for idx_i, idx_j in self.cam_overlaps:
-      # Detect keypoints observed from cam_i
-      img_i = camera_images[idx_i]
-      img_j = camera_images[idx_j]
+      # Track through time
+      track_results = self._track_through_time(camera_images, idx_i)
+      (_, pts_i, feature_ids, time_inliers) = track_results
 
-      # Track from cam_i at km1 to cam_i at k using optical flow
-      img_i_km1 = self.prev_camera_images[idx_i]
-      kps_i_prev = self._get_keypoints(idx_i)
-      feature_ids = self._get_feature_ids(idx_i)
-      pts_i_km1 = np.array([kp.pt for kp in kps_i_prev], dtype=np.float32)
-      (_, pts_i, time_inliers) = optflow_track(img_i_km1, img_i, pts_i_km1)
-      assert len(pts_i) == len(pts_i_km1)
-
-      # Track from cam_i to cam_j using optical flow
-      nb_pts = len(pts_i)
-      (pts_i, pts_j, exts_inliers) = optflow_track(img_i, img_j, pts_i)
-      assert len(pts_i) == len(pts_i_km1)
-      assert len(pts_i) == len(pts_j)
-
-      # Reject outliers based on reprojection error
-      reproj_inliers = []
-      cam_i = self.cam_params[idx_i]
-      cam_geom_i = cam_i.data
-      for n in range(nb_pts):
-        # Triangulate feature
-        z_i = pts_i[n]
-        z_j = pts_j[n]
-        p_Ci = self._triangulate(idx_i, idx_j, z_i, z_j)
-        if p_Ci[2] < 0.0 or p_Ci[2] > 10.0:
-          reproj_inliers.append(False)
-          continue
-
-        # Reproject feature
-        z_i_hat = cam_geom_i.project(cam_i.param, p_Ci)
-        reproj_error = norm(z_i - z_i_hat)
-        if reproj_error > 5.0:
-          reproj_inliers.append(False)
-          continue
-        reproj_inliers.append(True)
+      # Track through extrinsics
+      track_results = self._track_stereo(camera_images, idx_i, idx_j, pts_i)
+      (pts_i, pts_j, exts_inliers) = track_results
 
       # Process results
-      pts_tracked_i_km1 = []
-      pts_tracked_i = []
-      pts_tracked_j = []
-      feature_ids_tracked = []
-      for n in range(len(pts_i)):
-        if time_inliers[n] and exts_inliers[n] and reproj_inliers[n]:
-          pts_tracked_i_km1.append(pts_i_km1[n])
-          pts_tracked_i.append(pts_i[n])
-          pts_tracked_j.append(pts_j[n])
-          feature_ids_tracked.append(feature_ids[n])
-      track_data[idx_i] = (pts_tracked_i, feature_ids_tracked)
-      track_data[idx_j] = (pts_tracked_j, feature_ids_tracked)
-      viz.append(
-          draw_matches(img_i_km1, img_i, pts_tracked_i_km1, pts_tracked_i))
+      kps_i = []
+      kps_j = []
+      f_ids = []
+      kp_size = 31
+      nb_pts = len(pts_i)
+      for n in range(nb_pts):
+        if time_inliers[n] and exts_inliers[n]:
+          kps_i.append(cv2.KeyPoint(pts_i[n][0], pts_i[n][1], kp_size))
+          kps_j.append(cv2.KeyPoint(pts_j[n][0], pts_j[n][1], kp_size))
+          f_ids.append(feature_ids[n])
 
-    # Form visualization image
-    return cv2.vconcat(viz), track_data
+      img_i = camera_images[idx_i]
+      img_j = camera_images[idx_j]
+      data_i = FeatureTrackingData(idx_i, img_i, kps_i, None, f_ids)
+      data_j = FeatureTrackingData(idx_j, img_j, kps_j, None, f_ids)
+      self.cam_data[idx_i] = data_i
+      self.cam_data[idx_j] = data_j
+
+      # Update feature lifetimes
+      for feature_id in f_ids:
+        self.feature_lifetimes[feature_id] += 1
+        # print(feature_id, self.feature_lifetimes[feature_id])
 
   def update(self, ts, camera_images):
     """ Update Feature Tracker """
     # Track features
     viz = None
     if self.frame_idx == 0:
-      viz = self._initialize(camera_images)
+      self._detect_new(camera_images)
     else:
-      viz, track_data = self._track_features(camera_images)
-
-      feature_ids_all = []
-      for _, data in track_data.items():
-        _, feature_ids = data
-        feature_ids_all.extend(feature_ids)
-
-      print(f"tracked: {len(set(feature_ids_all))}")
-      nb_tracking = len(set(feature_ids_all))
-      if self.kf_num_features is None:
-        self.kf_num_features = nb_tracking
-      else:
-        if (nb_tracking / self.kf_num_features) < 0.95:
-          self._initialize(camera_images)
-          self.kf_num_features = None
+      self._track_features(camera_images)
+      self._detect_new(camera_images)
 
     # Update
     self.frame_idx += 1
     self.prev_ts = ts
+    self.prev_camera_images = camera_images
 
     return viz
 
@@ -2853,6 +2912,29 @@ class Timeline:
 # EUROC ########################################################################
 
 
+class EuRoCSensor:
+  """ EuRoC Sensor """
+
+  def __init__(self, yaml_path):
+    # Load yaml file
+    config = load_yaml(yaml_path)
+
+    # General sensor definitions.
+    self.sensor_type = config.sensor_type
+    self.comment = config.comment
+
+    # Sensor extrinsics wrt. the body-frame.
+    self.T_BS = np.array(config.T_BS.data).reshape((4, 4))
+
+    # Camera specific definitions.
+    self.rate_hz = config.rate_hz
+    self.resolution = config.resolution
+    self.camera_model = config.camera_model
+    self.intrinsics = config.intrinsics
+    self.distortion_model = config.distortion_model
+    self.distortion_coefficients = config.distortion_coefficients
+
+
 def load_euroc_dataset(data_path):
   """ Load EuRoC Dataset """
   # Check if directory exists
@@ -2861,35 +2943,37 @@ def load_euroc_dataset(data_path):
 
   # Form sensor paths
   # imu0_path = os.path.join(data_path, 'mav0', 'imu0', 'data')
-  cam0_path = os.path.join(data_path, 'mav0', 'cam0', 'data')
-  cam1_path = os.path.join(data_path, 'mav0', 'cam1', 'data')
+  cam0_path = os.path.join(data_path, 'mav0', 'cam0')
+  cam1_path = os.path.join(data_path, 'mav0', 'cam1')
 
   # Data
   timestamps = []
-  cam0_data = {}
-  cam1_data = {}
+  cam0_images = {}
+  cam1_images = {}
 
   # Get camera0 data
-  cam0_image_paths = sorted(glob.glob(os.path.join(cam0_path, '*.png')))
+  cam0_image_paths = sorted(glob.glob(os.path.join(cam0_path, 'data', '*.png')))
   for img_file in cam0_image_paths:
     ts_str, _ = os.path.basename(img_file).split('.')
     ts = int(ts_str)
-    cam0_data[ts] = img_file
+    cam0_images[ts] = img_file
     timestamps.append(ts)
+  cam0_config = EuRoCSensor(os.path.join(cam0_path, 'sensor.yaml'))
 
   # Get camera1 data
-  cam1_image_paths = sorted(glob.glob(os.path.join(cam1_path, '*.png')))
+  cam1_image_paths = sorted(glob.glob(os.path.join(cam1_path, 'data', '*.png')))
   for img_file in cam1_image_paths:
     ts_str, _ = os.path.basename(img_file).split('.')
     ts = int(ts_str)
-    cam1_data[ts] = img_file
+    cam1_images[ts] = img_file
     timestamps.append(ts)
+  cam1_config = EuRoCSensor(os.path.join(cam1_path, 'sensor.yaml'))
 
   # Form dataset
   dataset = {}
   dataset['timestamps'] = sorted(set(timestamps))
-  dataset['cam0'] = cam0_data
-  dataset['cam1'] = cam1_data
+  dataset['cam0'] = {'images': cam0_images, 'config': cam0_config}
+  dataset['cam1'] = {'images': cam1_images, 'config': cam1_config}
 
   return dataset
 
@@ -3172,9 +3256,9 @@ def sim_imu_circle(circle_r, velocity):
 
 import unittest
 
-# euroc_data_path = '/data/euroc/raw/V1_01'
+euroc_data_path = '/data/euroc/raw/V1_01'
 
-euroc_data_path = '/data/euroc/V1_01'
+# euroc_data_path = '/data/euroc/V1_01'
 
 # LINEAR ALGEBRA ##############################################################
 
@@ -3736,8 +3820,10 @@ class TestFeatureTracking(unittest.TestCase):
 
     # Setup test images
     ts = self.dataset['timestamps'][0]
-    self.img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-    self.img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
+    self.img0 = cv2.imread(self.dataset['cam0']['images'][ts],
+                           cv2.IMREAD_GRAYSCALE)
+    self.img1 = cv2.imread(self.dataset['cam1']['images'][ts],
+                           cv2.IMREAD_GRAYSCALE)
 
   def test_feature_grid_cell_index(self):
     """ Test FeatureGrid.grid_cell_index() """
@@ -3800,8 +3886,10 @@ class TestFeatureTracker(unittest.TestCase):
 
     # Setup test images
     ts = self.dataset['timestamps'][0]
-    self.img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-    self.img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
+    img0_path = self.dataset['cam0']['images'][ts]
+    img1_path = self.dataset['cam1']['images'][ts]
+    self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+    self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
 
     # Setup cameras
     res = [752, 480]
@@ -3841,9 +3929,7 @@ class TestFeatureTracker(unittest.TestCase):
   def test_detect(self):
     """ Test FeatureTracker._detect() """
     # Load and detect features from single image
-    ts = self.dataset['timestamps'][0]
-    img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-    kps = self.feature_tracker._detect(img0)
+    kps = self.feature_tracker._detect(self.img0)
     self.assertTrue(len(kps) > 0)
 
   def test_detect_overlaps(self):
@@ -3912,18 +3998,14 @@ class TestFeatureTracker(unittest.TestCase):
         cv2.imshow('viz', viz)
         cv2.waitKey(0)
 
-  def test_initialize(self):
-    """ Test FeatureTracker.initialize() """
+  def test_detect_new(self):
+    """ Test FeatureTracker.detect_new() """
     debug = True
 
-    ts = self.dataset['timestamps'][0]
-    img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-    img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
-
     camera_images = {}
-    camera_images[0] = img0
-    camera_images[1] = img1
-    viz = self.feature_tracker._initialize(camera_images)
+    camera_images[0] = self.img0
+    camera_images[1] = self.img1
+    viz = self.feature_tracker._detect_new(camera_images)
 
     if debug:
       cv2.imshow('viz', viz)
@@ -3932,16 +4014,18 @@ class TestFeatureTracker(unittest.TestCase):
   def test_update(self):
     """ Test FeatureTracker.update() """
     for ts in self.dataset['timestamps']:
-      print(ts)
       # Load images
-      img0 = cv2.imread(self.dataset['cam0'][ts], cv2.IMREAD_GRAYSCALE)
-      img1 = cv2.imread(self.dataset['cam1'][ts], cv2.IMREAD_GRAYSCALE)
+      img0_path = self.dataset['cam0']['images'][ts]
+      img1_path = self.dataset['cam1']['images'][ts]
+      img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+      img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
 
       # Feed camera images to feature tracker
       camera_images = {}
       camera_images[0] = img0
       camera_images[1] = img1
-      viz = self.feature_tracker.update(ts, camera_images)
+      self.feature_tracker.update(ts, camera_images)
+      viz = self.feature_tracker.visualize()
 
       # Visualize
       sys.stdout.flush()
