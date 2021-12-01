@@ -2175,7 +2175,10 @@ def draw_points(img, kps, inliers=None, **kwargs):
   thickness = kwargs.get('thickness', cv2.FILLED)
   linetype = kwargs.get('linetype', cv2.LINE_AA)
 
-  viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+  viz = img
+  if len(img.shape) == 2:
+    viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
   for n, kp in enumerate(kps):
     if inliers[n]:
       p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
@@ -2228,7 +2231,7 @@ class FeatureGrid:
   def cell_index(self, pt):
     """ Return cell index based on point `pt` """
     pixel_x, pixel_y = pt
-    img_w, img_h = self.image_shape
+    img_h, img_w = self.image_shape
     grid_x = math.ceil((max(1, pixel_x) / img_w) * self.grid_cols) - 1.0
     grid_y = math.ceil((max(1, pixel_y) / img_h) * self.grid_rows) - 1.0
     cell_id = int(grid_x + (grid_y * self.grid_cols))
@@ -2252,7 +2255,7 @@ def grid_detect(detector, image, **kwargs):
   Detect features uniformly using a grid system.
   """
   optflow_mode = kwargs.get('optflow_mode', False)
-  max_keypoints = kwargs.get('max_keypoints', 200)
+  max_keypoints = kwargs.get('max_keypoints', 120)
   grid_rows = kwargs.get('grid_rows', 3)
   grid_cols = kwargs.get('grid_cols', 4)
   prev_kps = kwargs.get('prev_kps', [])
@@ -2272,8 +2275,8 @@ def grid_detect(detector, image, **kwargs):
   kps_all = []
 
   cell_idx = 0
-  for x in range(0, image_width, dx):
-    for y in range(0, image_height, dy):
+  for y in range(0, image_height, dy):
+    for x in range(0, image_width, dx):
       # Make sure roi width and height are not out of bounds
       w = image_width - x if (x + dx > image_width) else dx
       h = image_height - y if (y + dy > image_height) else dy
@@ -2285,50 +2288,69 @@ def grid_detect(detector, image, **kwargs):
       kps = None
       des = None
       if optflow_mode:
-        # kps = detector.detect(roi_image)
-        # kps = sort_keypoints(kps)
-
-        kps = cv2.goodFeaturesToTrack(roi_image, max_per_cell, 0.1, 10)
-        if kps is not None:
-          kps = [p[0] for p in kps]
-        else:
-          kps = []
-
+        kps = detector.detect(roi_image)
+        kps = sort_keypoints(kps)
       else:
         kps = detector.detect(roi_image, None)
         kps, des = detector.compute(roi_image, kps)
 
-      # kps = [cv2.KeyPoint(p[0], p[1], 32) for p in kps]
-      # kps_all.extend(kps)
-
       # Offset keypoints
       cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
+      print(f"cell_idx: {cell_idx}, vacancy: {cell_vacancy}")
+      sys.stdout.flush()
+      if cell_vacancy <= 0:
+        continue
+
       limit = min(len(kps), cell_vacancy)
-      # print(
-      #     f"cell kps: {len(kps)}, cell_vacancy: {cell_vacancy}, limit: {limit}")
-      # for i in range(limit):
-      #   kp = kps[i]
-      #   kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
-      #   kps_all.append(kp)
-      #   des_all.append(des[i, :] if optflow_mode is False else None)
       for i in range(limit):
-        p = kps[i]
-        kps_all.append(cv2.KeyPoint(p[0] + x, p[1] + y, 32))
+        kp = kps[i]
+        kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
+        kps_all.append(kp)
+        des_all.append(des[i, :] if optflow_mode is False else None)
 
       # Update cell_idx
       cell_idx += 1
 
   # Debug
-  if kwargs.get('debug', False):
-    viz = cv2.drawKeypoints(image, kps_all, None)
+  if kwargs.get('debug', True):
+    # Setup
+    viz = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    kps_grid = FeatureGrid(grid_rows, grid_cols, image.shape, kps_all)
+
+    # Visualization properties
+    color = (0, 0, 255)
+    linetype = cv2.LINE_AA
+    font = cv2.FONT_HERSHEY_SIMPLEX
+
+    # -- Draw horizontal lines
+    for x in range(0, image_width, dx):
+      cv2.line(viz, (x, 0), (x, image_height), color, 1, linetype)
+
+    # -- Draw vertical lines
+    for y in range(0, image_height, dy):
+      cv2.line(viz, (0, y), (image_width, y), color, 1, linetype)
+
+    # -- Draw bin numbers
+    cell_idx = 0
+    for y in range(0, image_height, dy):
+      for x in range(0, image_width, dx):
+        text = str(kps_grid.count(cell_idx))
+        origin = (x + 10, y + 20)
+        viz = cv2.putText(viz, text, origin, font, 0.5, color, 1, linetype)
+        cell_idx += 1
+
+    # -- Draw keypoints
+    viz = draw_points(viz, kps_all, color=(0, 0, 255))
+    viz = draw_points(viz, prev_kps, color=(0, 255, 255))
+
     cv2.imshow("viz", viz)
     cv2.waitKey(0)
 
   # Return
   if optflow_mode:
     return kps_all
-  else:
-    return kps_all, np.array(des_all)
+
+  return kps_all, np.array(des_all)
 
 
 def optflow_track(img_i, img_j, pts_i, **kwargs):
@@ -2418,8 +2440,8 @@ class FeatureTracker:
 
   def __init__(self):
     # Settings
-    self.mode = "TRACK_DEFAULT"
-    # self.mode = "TRACK_OVERLAPS"
+    # self.mode = "TRACK_DEFAULT"
+    self.mode = "TRACK_OVERLAPS"
     # self.mode = "TRACK_INDEPENDENT"
 
     # Data
@@ -3256,9 +3278,9 @@ def sim_imu_circle(circle_r, velocity):
 
 import unittest
 
-euroc_data_path = '/data/euroc/raw/V1_01'
+# euroc_data_path = '/data/euroc/raw/V1_01'
 
-# euroc_data_path = '/data/euroc/V1_01'
+euroc_data_path = '/data/euroc/V1_01'
 
 # LINEAR ALGEBRA ##############################################################
 
@@ -3853,7 +3875,7 @@ class TestFeatureTracking(unittest.TestCase):
 
   def test_grid_detect(self):
     """ Test grid_detect() """
-    debug = False
+    debug = True
     feature = cv2.ORB_create(nfeatures=100)
     kps, des = grid_detect(feature, self.img0, debug=debug)
     self.assertTrue(len(kps) > 0)
@@ -4030,10 +4052,10 @@ class TestFeatureTracker(unittest.TestCase):
       # Visualize
       sys.stdout.flush()
       cv2.imshow('viz', viz)
-      # if cv2.waitKey(0) == ord('q'):
-      #   break
-      if cv2.waitKey(10) == ord('q'):
+      if cv2.waitKey(0) == ord('q'):
         break
+      # if cv2.waitKey(10) == ord('q'):
+      #   break
 
 
 # CALIBRATION #################################################################
