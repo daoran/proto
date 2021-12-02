@@ -29,6 +29,8 @@ memcheck() {
 # python3 python/proto.py TestFactors.test_vision_factor
 # python3 python/proto.py TestFactors.test_imu_factor_propagate
 # python3 python/proto.py TestFactors.test_imu_factor
+# python3 python/proto.py TestFeatureTracking.test_spread_keypoints
+# python3 python/proto.py TestFeatureTracking.test_grid_detect
 # python3 python/proto.py TestFeatureTracking.test_optflow_track
 # python3 python/proto.py TestFeatureTracker.test_detect
 # python3 python/proto.py TestFeatureTracker.test_detect_overlaps
