@@ -2513,7 +2513,8 @@ def ransac(pts_i, pts_j, cam_i, cam_j):
 
 @dataclass
 class FeatureTrackingData:
-  """ Feature tracking data per camera
+  """ 
+  Feature tracking data per camera
 
   This data structure keeps track of:
 
@@ -2536,10 +2537,7 @@ class FeatureTrackingData:
 
 
 class FeatureTracker:
-  """
-  Feature tracker
-
-  """
+  """ Feature tracker """
 
   def __init__(self):
     # Settings
@@ -2610,6 +2608,7 @@ class FeatureTracker:
     return cv2.hconcat(viz)
 
   def _get_keypoints(self, cam_idx):
+    """ Get keypoints observed by camera `cam_idx` """
     keypoints = None
     if self.cam_data[cam_idx] is not None:
       keypoints = self.cam_data[cam_idx].keypoints
@@ -2617,6 +2616,7 @@ class FeatureTracker:
     return keypoints
 
   def _get_feature_ids(self, cam_idx):
+    """ Get feature ids observed by camera `cam_idx` """
     feature_ids = None
     if self.cam_data[cam_idx] is not None:
       feature_ids = self.cam_data[cam_idx].feature_ids
@@ -2624,12 +2624,14 @@ class FeatureTracker:
     return feature_ids
 
   def _form_feature_ids(self, nb_kps):
+    """ Form list of feature ids for new features to be added """
     self.features_detected += nb_kps
     start_idx = self.features_detected - nb_kps
     end_idx = start_idx + nb_kps
     return list(range(start_idx, end_idx))
 
   def _triangulate(self, idx_i, idx_j, z_i, z_j):
+    """ Triangulate feature """
     # Setup
     cam_i = self.cam_params[idx_i]
     cam_j = self.cam_params[idx_j]
@@ -2655,6 +2657,8 @@ class FeatureTracker:
     return p_Ci
 
   def _reproj_filter(self, idx_i, idx_j, pts_i, pts_j):
+    """ Filter features by triangulating them via a stereo-pair and see if the
+    reprojection error is reasonable """
     assert idx_i != idx_j
     assert len(pts_i) == len(pts_j)
 
@@ -2685,6 +2689,7 @@ class FeatureTracker:
 
   @staticmethod
   def _filter_outliers(cam_idxs, cam_pts, inliers, kp_size, feature_ids=None):
+    """ Filter outliers """
     # Setup
     kps = {}
     f_ids = []
@@ -2715,6 +2720,7 @@ class FeatureTracker:
     return kps
 
   def _add_features(self, cam_idxs, cam_imgs, cam_pts, kp_size, inliers=None):
+    """ Add features """
     # Pre-check
     assert cam_idxs
     assert all(cam_idx in cam_imgs for cam_idx in cam_idxs)
@@ -2748,6 +2754,7 @@ class FeatureTracker:
         self.feature_overlaps[fid] = 2
 
   def _update_features(self, cam_idxs, cam_imgs, cam_pts, fids, inliers):
+    """ Update features """
     # Pre-check
     assert cam_idxs
     assert all(cam_idx in cam_imgs for cam_idx in cam_idxs)
@@ -2774,12 +2781,14 @@ class FeatureTracker:
           del self.feature_overlaps[fid]
 
   def _detect(self, image, prev_kps=None):
+    """ Detect """
     assert image is not None
     kwargs = {'prev_kps': prev_kps, 'optflow_mode': True}
     kps = grid_detect(self.detector, image, **kwargs)
     return kps
 
   def _detect_overlaps(self, camera_images):
+    """ Detect overlapping features """
     # Loop through camera overlaps
     for idx_i, idx_j in self.cam_overlaps:
       # Detect keypoints observed from cam_i
@@ -2824,6 +2833,8 @@ class FeatureTracker:
       self._add_features([idx], {idx: img}, {idx: kps}, kp_size)
 
   def _detect_new(self, camera_images):
+    """ Detect new features """
+
     # Detect new features
     if self.mode == "TRACK_DEFAULT":
       self._detect_overlaps(camera_images)
@@ -2836,6 +2847,8 @@ class FeatureTracker:
       raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
 
   def _track_through_time(self, camera_images, cam_idx):
+    """ Track features through time """
+
     # Setup images
     img_km1 = self.prev_camera_images[cam_idx]
     img_k = camera_images[cam_idx]
@@ -2860,6 +2873,7 @@ class FeatureTracker:
     return (pts_km1, pts_k, feature_ids, inliers)
 
   def _track_stereo(self, camera_images, idx_i, idx_j, pts_i):
+    """ Track feature through stereo-pair """
     # Optical flow
     img_i = camera_images[idx_i]
     img_j = camera_images[idx_j]
@@ -2882,6 +2896,7 @@ class FeatureTracker:
     return (pts_i, pts_j, inliers)
 
   def _track_features(self, camera_images):
+    """ Track features """
     # Track features in each camera
     for idx in self.cam_idxs:
       # Track through time
