@@ -35,7 +35,7 @@ memcheck() {
 # python3 python/proto.py TestFeatureTracker.test_detect
 # python3 python/proto.py TestFeatureTracker.test_detect_overlaps
 # python3 python/proto.py TestFeatureTracker.test_initialize
-python3 python/proto.py TestFeatureTracker.test_update
+# python3 python/proto.py TestFeatureTracker.test_update
 # python3 python/proto.py TestSimulation.test_sim_vo_circle
 # python3 python/proto.py TestSimulation.test_sim_imu_circle
 

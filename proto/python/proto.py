@@ -2248,11 +2248,24 @@ def spread_keypoints(img, kps, min_dist, **kwargs):
 
   # Debug
   if debug:
+    img = draw_keypoints(img, kps_results, radius=3)
+
     plt.figure()
-    plt.subplot(211)
-    plt.imshow(A)
-    plt.subplot(212)
-    plt.imshow(img, cmap='gray', vmin=0, vmax=255)
+
+    ax = plt.subplot(121)
+    ax.imshow(A)
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+
+    ax = plt.subplot(122)
+    ax.imshow(img)
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+
     plt.show()
 
   return kps_results
@@ -2355,7 +2368,7 @@ def grid_detect(detector, image, **kwargs):
       kps = None
       des = None
       if optflow_mode:
-        # detector.setNonmaxSuppression(1)
+        detector.setNonmaxSuppression(1)
         kps = detector.detect(roi_image)
         kps = sort_keypoints(kps)
 
@@ -2406,12 +2419,12 @@ def grid_detect(detector, image, **kwargs):
     for y in range(0, image_height, dy):
       for x in range(0, image_width, dx):
         text = str(kps_grid.count(cell_idx))
-        origin = (x + 10, y + 40)
+        origin = (x + 10, y + 20)
         viz = cv2.putText(viz, text, origin, font, 0.5, red, 1, linetype)
 
-        text = str(feature_grid.count(cell_idx))
-        origin = (x + 10, y + 20)
-        viz = cv2.putText(viz, text, origin, font, 0.5, yellow, 1, linetype)
+        # text = str(feature_grid.count(cell_idx))
+        # origin = (x + 10, y + 20)
+        # viz = cv2.putText(viz, text, origin, font, 0.5, yellow, 1, linetype)
 
         cell_idx += 1
 
@@ -3465,9 +3478,9 @@ def sim_imu_circle(circle_r, velocity):
 
 import unittest
 
-# euroc_data_path = '/data/euroc/raw/V1_01'
+euroc_data_path = '/data/euroc/raw/V1_01'
 
-euroc_data_path = '/data/euroc/raw/MH_01'
+# euroc_data_path = '/data/euroc/raw/MH_01'
 
 # LINEAR ALGEBRA ##############################################################
 
@@ -4028,18 +4041,24 @@ class TestFeatureTracking(unittest.TestCase):
     self.dataset = EurocDataset(euroc_data_path)
 
     # Setup test images
-    ts = self.dataset.timestamps[0]
+    ts = self.dataset.timestamps[800]
     self.img0 = cv2.imread(self.dataset.cam0_images[ts], cv2.IMREAD_GRAYSCALE)
     self.img1 = cv2.imread(self.dataset.cam1_images[ts], cv2.IMREAD_GRAYSCALE)
 
   def test_spread_keypoints(self):
     """ Test spread_keypoints() """
-    img = np.zeros((140, 160))
+    # img = np.zeros((140, 160))
+    # kps = []
+    # kps.append(cv2.KeyPoint(10, 10, 0, 0.0, 0.0, 0))
+    # kps.append(cv2.KeyPoint(150, 130, 0, 0.0, 0.0, 1))
+    # kps = spread_keypoints(img, kps, 5, debug=True)
 
-    kps = []
-    kps.append(cv2.KeyPoint(10, 10, 0, 0.0, 0.0, 0))
-    kps.append(cv2.KeyPoint(150, 130, 0, 0.0, 0.0, 1))
-    spread_keypoints(img, kps, 5, debug=True)
+    detector = cv2.FastFeatureDetector_create(threshold=50)
+    kwargs = {'optflow_mode': True, 'debug': False}
+    kps = grid_detect(detector, self.img0, **kwargs)
+    kps = spread_keypoints(self.img0, kps, 20, debug=False)
+
+    self.assertTrue(len(kps))
 
   def test_feature_grid_cell_index(self):
     """ Test FeatureGrid.grid_cell_index() """
@@ -4069,11 +4088,17 @@ class TestFeatureTracking(unittest.TestCase):
 
   def test_grid_detect(self):
     """ Test grid_detect() """
-    debug = True
-    feature = cv2.ORB_create(nfeatures=100)
-    kps, des = grid_detect(feature, self.img0, debug=debug)
+    debug = False
+
+    # detector = cv2.ORB_create(nfeatures=500)
+    # kps, des = grid_detect(detector, self.img0, **kwargs)
+    # self.assertTrue(len(kps) > 0)
+    # self.assertEqual(des.shape[0], len(kps))
+
+    detector = cv2.FastFeatureDetector_create(threshold=50)
+    kwargs = {'optflow_mode': True, 'debug': debug}
+    kps = grid_detect(detector, self.img0, **kwargs)
     self.assertTrue(len(kps) > 0)
-    self.assertEqual(des.shape[0], len(kps))
 
   def test_optflow_track(self):
     """ Test optflow_track() """
