@@ -37,6 +37,21 @@ from math import acos
 from math import atan
 
 ###############################################################################
+# TIME
+###############################################################################
+
+
+def sec2ts(time_s):
+  """ Convert time in seconds to timestamp """
+  return int(time_s * 1e9)
+
+
+def ts2sec(ts):
+  """ Convert timestamp to seconds """
+  return float(ts * 1e-9)
+
+
+###############################################################################
 # LINEAR ALGEBRA
 ###############################################################################
 
@@ -1895,9 +1910,9 @@ def vision_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
 @dataclass
 class ImuBuffer:
   """ IMU buffer """
-  ts: List = field(default_factory=[])
-  acc: List = field(default_factory=[])
-  gyr: List = field(default_factory=[])
+  ts: List[int]
+  acc: List[np.array]
+  gyr: List[np.array]
 
 
 @dataclass
@@ -3277,12 +3292,12 @@ def create_3d_features_perimeter(origin, dim, nb_features):
 class SimCameraFrame:
   """ Sim camera frame """
 
-  def __init__(self, time, cam_idx, camera, T_WCi, points_W):
+  def __init__(self, ts, cam_idx, camera, T_WCi, points_W):
     assert T_WCi.shape == (4, 4)
     assert points_W.shape[0] > 0
     assert points_W.shape[1] == 3
 
-    self.time = time
+    self.ts = ts
     self.cam_idx = cam_idx
     self.feature_ids = []
     self.measurements = []
@@ -3318,7 +3333,7 @@ class SimCameraData:
   def __init__(self, cam_idx, features):
     self.cam_idx = cam_idx
     self.features = features
-    self.time = []
+    self.timestamps = []
     self.poses = {}
     self.cam_frames = {}
 
@@ -3328,7 +3343,7 @@ class SimImuData:
 
   def __init__(self, imu_idx):
     self.imu_idx = imu_idx
-    self.time = []
+    self.timestamps = []
     self.poses = {}
     self.vel = {}
     self.acc = {}
@@ -3336,16 +3351,14 @@ class SimImuData:
 
   def form_imu_buffer(self, start_idx, end_idx):
     """ Form ImuBuffer """
-    imu_buf = ImuBuffer()
-
-    imu_buf.ts = self.time[start_idx:end_idx]
-    imu_buf.acc = []
-    imu_buf.gyr = []
+    imu_ts = self.time[start_idx:end_idx]
+    imu_acc = []
+    imu_gyr = []
     for ts in self.time:
-      imu_buf.acc.append(self.acc[ts])
-      imu_buf.gyr.append(self.gyr[ts])
+      imu_acc.append(self.acc[ts])
+      imu_gyr.append(self.gyr[ts])
 
-    return imu_buf
+    return ImuBuffer(imu_ts, imu_acc, imu_gyr)
 
 
 def sim_vo_circle(circle_r, velocity):
@@ -3382,7 +3395,7 @@ def sim_vo_circle(circle_r, velocity):
 
   dt = 1.0 / cam_rate
   w = -2.0 * pi * (1.0 / time_taken)
-  t = 0.0
+  time = 0.0
   theta = pi
   yaw = pi / 2.0
 
@@ -3396,7 +3409,9 @@ def sim_vo_circle(circle_r, velocity):
   cam_idx = 0
   sim_data = SimCameraData(cam_idx, features)
 
-  while t <= time_taken:
+  while time <= time_taken:
+    ts = sec2ts(time)
+
     # Body pose
     rx = circle_r * cos(theta)
     ry = circle_r * sin(theta)
@@ -3407,14 +3422,14 @@ def sim_vo_circle(circle_r, velocity):
 
     # Simulate camera pose and camera frame
     T_WC0 = T_WB * T_BC0
-    sim_data.time.append(t)
-    sim_data.poses[t] = T_WC0
-    sim_data.cam_frames[t] = SimCameraFrame(t, cam_idx, cam0, T_WC0, features)
+    sim_data.timestamps.append(ts)
+    sim_data.poses[ts] = T_WC0
+    sim_data.cam_frames[ts] = SimCameraFrame(ts, cam_idx, cam0, T_WC0, features)
 
     # Update
     theta += w * dt
     yaw += w * dt
-    t += dt
+    time += dt
 
   return sim_data
 
@@ -3428,7 +3443,7 @@ def sim_imu_circle(circle_r, velocity):
 
   dt = 1.0 / imu_rate
   w = -2.0 * pi * (1.0 / time_taken)
-  t = 0
+  time = 0
 
   theta = pi
   yaw = pi / 2.0
@@ -3441,7 +3456,10 @@ def sim_imu_circle(circle_r, velocity):
 
   imu_idx = 0
   sim_data = SimImuData(imu_idx)
-  while t <= time_taken:
+  while time <= time_taken:
+    # Timestamp
+    ts = sec2ts(time)
+
     # IMU pose
     rx = circle_r * cos(theta)
     ry = circle_r * sin(theta)
@@ -3473,15 +3491,15 @@ def sim_imu_circle(circle_r, velocity):
     gyr = C_WS.T @ w_WS
 
     # Update
-    sim_data.time.append(t)
-    sim_data.poses[t] = T_WS
-    sim_data.vel[t] = v_WS
-    sim_data.acc[t] = acc
-    sim_data.gyr[t] = gyr
+    sim_data.timestamps.append(ts)
+    sim_data.poses[ts] = T_WS
+    sim_data.vel[ts] = v_WS
+    sim_data.acc[ts] = acc
+    sim_data.gyr[ts] = gyr
 
     theta += w * dt
     yaw += w * dt
-    t += dt
+    time += dt
 
   return sim_data
 
@@ -3959,7 +3977,7 @@ class TestFactors(unittest.TestCase):
 
     # Setup imu buffer
     start_idx = 0
-    end_idx = len(sim_data.time) - 1
+    end_idx = len(sim_data.timestamps) - 1
     imu_buf = sim_data.form_imu_buffer(start_idx, end_idx)
 
     # Pose i
@@ -4388,10 +4406,10 @@ class TestSimulation(unittest.TestCase):
     sim_data = sim_imu_circle(circle_r, velocity)
 
     self.assertTrue(sim_data is not None)
-    self.assertTrue(len(sim_data.time) == len(sim_data.poses))
-    self.assertTrue(len(sim_data.time) == len(sim_data.vel))
-    self.assertTrue(len(sim_data.time) == len(sim_data.acc))
-    self.assertTrue(len(sim_data.time) == len(sim_data.gyr))
+    self.assertTrue(len(sim_data.timestamps) == len(sim_data.poses))
+    self.assertTrue(len(sim_data.timestamps) == len(sim_data.vel))
+    self.assertTrue(len(sim_data.timestamps) == len(sim_data.acc))
+    self.assertTrue(len(sim_data.timestamps) == len(sim_data.gyr))
 
     if debug:
       pos = np.array([tf_trans(v) for k, v in sim_data.poses.items()])
@@ -4407,25 +4425,25 @@ class TestSimulation(unittest.TestCase):
       plt.title("IMU Position")
 
       plt.subplot(412)
-      plt.plot(sim_data.time, vel[:, 0], 'r-')
-      plt.plot(sim_data.time, vel[:, 1], 'g-')
-      plt.plot(sim_data.time, vel[:, 2], 'b-')
+      plt.plot(sim_data.timestamps, vel[:, 0], 'r-')
+      plt.plot(sim_data.timestamps, vel[:, 1], 'g-')
+      plt.plot(sim_data.timestamps, vel[:, 2], 'b-')
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
       plt.title("IMU Velocity")
 
       plt.subplot(413)
-      plt.plot(sim_data.time, acc[:, 0], 'r-')
-      plt.plot(sim_data.time, acc[:, 1], 'g-')
-      plt.plot(sim_data.time, acc[:, 2], 'b-')
+      plt.plot(sim_data.timestamps, acc[:, 0], 'r-')
+      plt.plot(sim_data.timestamps, acc[:, 1], 'g-')
+      plt.plot(sim_data.timestamps, acc[:, 2], 'b-')
       plt.xlabel("Time [s]")
       plt.ylabel("Acceleration [ms^-2]")
       plt.title("Accelerometer Measurements")
 
       plt.subplot(414)
-      plt.plot(sim_data.time, gyr[:, 0], 'r-')
-      plt.plot(sim_data.time, gyr[:, 1], 'g-')
-      plt.plot(sim_data.time, gyr[:, 2], 'b-')
+      plt.plot(sim_data.timestamps, gyr[:, 0], 'r-')
+      plt.plot(sim_data.timestamps, gyr[:, 1], 'g-')
+      plt.plot(sim_data.timestamps, gyr[:, 2], 'b-')
       plt.xlabel("Time [s]")
       plt.ylabel("Angular Velocity [rad s^-1]")
       plt.title("Gyroscope Measurements")
