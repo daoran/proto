@@ -2496,7 +2496,7 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
   return (pts_i, pts_j, inliers)
 
 
-def optflow_filter_outliers(pts_i, pts_j, inliers):
+def filter_outliers(pts_i, pts_j, inliers):
   """ Filter outliers """
   pts_out_i = []
   pts_out_j = []
@@ -2526,7 +2526,7 @@ def ransac(pts_i, pts_j, cam_i, cam_j):
 
 @dataclass
 class FeatureTrackingData:
-  """ 
+  """
   Feature tracking data per camera
 
   This data structure keeps track of:
