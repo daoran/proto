@@ -2595,31 +2595,6 @@ class FeatureTracker:
         feature_ids.extend(cam_data.feature_ids)
     return len(set(feature_ids))
 
-  def visualize(self):
-    """ Draw visualization image """
-    viz = []
-
-    radius = 4
-    green = (0, 255, 0)
-    yellow = (0, 255, 255)
-    thickness = 1
-    linetype = cv2.LINE_AA
-
-    for cam_idx in self.cam_params:
-      img = self.prev_camera_images[cam_idx]
-      data = self.cam_data[cam_idx]
-      cam_viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-
-      for n, kp in enumerate(data.keypoints):
-        feature_id = data.feature_ids[n]
-        color = green if feature_id in self.feature_overlaps else yellow
-        p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
-        cv2.circle(cam_viz, p, radius, color, thickness, lineType=linetype)
-
-      viz.append(cam_viz)
-
-    return cv2.hconcat(viz)
-
   def _get_keypoints(self, cam_idx):
     """ Get keypoints observed by camera `cam_idx` """
     keypoints = None
@@ -2938,6 +2913,45 @@ class FeatureTracker:
     self.frame_idx += 1
     self.prev_ts = ts
     self.prev_camera_images = camera_images
+
+    return self.cam_data
+
+
+def visualize_tracking(ft_data):
+  """ Visualize feature tracking data """
+  viz = []
+
+  radius = 4
+  green = (0, 255, 0)
+  yellow = (0, 255, 255)
+  thickness = 1
+  linetype = cv2.LINE_AA
+
+  # Find overlaps
+  fids = {}
+  feature_overlaps = set()
+  for _, cam_data in ft_data.items():
+    for n, _ in enumerate(cam_data.keypoints):
+      fid = cam_data.feature_ids[n]
+      fids[fid] = (fids[fid] + 1) if fid in fids else 1
+
+      if fids[fid] > 1:
+        feature_overlaps.add(fid)
+
+  # Draw features being tracked in each camera
+  for _, cam_data in ft_data.items():
+    img = cam_data.image
+    cam_viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
+    for n, kp in enumerate(cam_data.keypoints):
+      fid = cam_data.feature_ids[n]
+      color = green if fid in feature_overlaps else yellow
+      p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
+      cv2.circle(cam_viz, p, radius, color, thickness, lineType=linetype)
+
+    viz.append(cam_viz)
+
+  return cv2.hconcat(viz)
 
 
 ###############################################################################
@@ -4262,8 +4276,8 @@ class TestFeatureTracker(unittest.TestCase):
       camera_images = {}
       camera_images[0] = img0
       camera_images[1] = img1
-      self.feature_tracker.update(ts, camera_images)
-      viz = self.feature_tracker.visualize()
+      ft_data = self.feature_tracker.update(ts, camera_images)
+      viz = visualize_tracking(ft_data)
 
       # Visualize
       sys.stdout.flush()
