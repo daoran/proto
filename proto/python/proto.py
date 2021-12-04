@@ -3106,7 +3106,8 @@ class CameraEvent:
   """ Camera Event """
   ts: int
   cam_idx: int
-  measurements: np.array
+  feature_ids: List[int]
+  measurements: List[np.array]
 
 
 @dataclass
@@ -3121,7 +3122,35 @@ class ImuEvent:
 @dataclass
 class Timeline:
   """ Timeline """
-  events: dict
+
+  def __init__(self):
+    self.data = {}
+
+  def num_timestamps(self):
+    """ Return number of timestamps """
+    return len(self.data)
+
+  def num_events(self):
+    """ Return number of events """
+    nb_events = 0
+    for _, events in self.data:
+      nb_events += len(events)
+    return nb_events
+
+  def get_timestamps(self):
+    """ Get timestamps """
+    return self.data.keys()
+
+  def add_event(self, ts, event):
+    """ Add event """
+    if ts not in self.data:
+      self.data[ts] = [event]
+    else:
+      self.data[ts].append(event)
+
+  def get_events(self, ts):
+    """ Get events """
+    return self.data[ts]
 
 
 # EUROC ########################################################################
@@ -3307,7 +3336,7 @@ class SimCameraFrame:
     cam_geom = camera.data
     cam_params = camera.param
     img_w, img_h = cam_geom.resolution
-    nb_points = points_W.shape[1]
+    nb_points = points_W.shape[0]
 
     # Simulate camera frame
     self.measurements = []
@@ -3335,7 +3364,7 @@ class SimCameraData:
     self.features = features
     self.timestamps = []
     self.poses = {}
-    self.cam_frames = {}
+    self.frames = {}
 
 
 class SimImuData:
@@ -3351,10 +3380,10 @@ class SimImuData:
 
   def form_imu_buffer(self, start_idx, end_idx):
     """ Form ImuBuffer """
-    imu_ts = self.time[start_idx:end_idx]
+    imu_ts = self.timestamps[start_idx:end_idx]
     imu_acc = []
     imu_gyr = []
-    for ts in self.time:
+    for ts in self.timestamps:
       imu_acc.append(self.acc[ts])
       imu_gyr.append(self.gyr[ts])
 
@@ -3364,9 +3393,9 @@ class SimImuData:
 def sim_vo_circle(circle_r, velocity):
   """ Simulate a camera going around in a circle """
   C_BC0 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
-  r_BC0 = [0.01, 0.01, 0.05]
+  r_BC0 = [0.0, 0.0, 0.0]
   T_BC0 = tf(C_BC0, r_BC0)
-  nb_features = 1000
+  nb_features = 200
 
   # cam0
   cam_idx = 0
@@ -3389,7 +3418,7 @@ def sim_vo_circle(circle_r, velocity):
   features = create_3d_features_perimeter(origin, dim, nb_features)
 
   # Simulate camera
-  cam_rate = 20.0
+  cam_rate = 10.0
   circle_dist = 2.0 * pi * circle_r
   time_taken = circle_dist / velocity
 
@@ -3400,11 +3429,11 @@ def sim_vo_circle(circle_r, velocity):
   yaw = pi / 2.0
 
   # Simulate camera
-  print("Simulating camera measurements ...")
-  print(f"cam_rate: {cam_rate} [Hz]")
-  print(f"circle_r: {circle_r} [m]")
-  print(f"circle_dist: {circle_dist:.2f} [m]")
-  print(f"time_taken: {time_taken:.2f} [s]")
+  # print("Simulating camera measurements ...")
+  # print(f"cam_rate: {cam_rate} [Hz]")
+  # print(f"circle_r: {circle_r} [m]")
+  # print(f"circle_dist: {circle_dist:.2f} [m]")
+  # print(f"time_taken: {time_taken:.2f} [s]")
 
   cam_idx = 0
   sim_data = SimCameraData(cam_idx, features)
@@ -3421,10 +3450,10 @@ def sim_vo_circle(circle_r, velocity):
     T_WB = tf(C_WB, r_WB)
 
     # Simulate camera pose and camera frame
-    T_WC0 = T_WB * T_BC0
+    T_WC0 = T_WB @ T_BC0
     sim_data.timestamps.append(ts)
     sim_data.poses[ts] = T_WC0
-    sim_data.cam_frames[ts] = SimCameraFrame(ts, cam_idx, cam0, T_WC0, features)
+    sim_data.frames[ts] = SimCameraFrame(ts, cam_idx, cam0, T_WC0, features)
 
     # Update
     theta += w * dt
@@ -3448,11 +3477,11 @@ def sim_imu_circle(circle_r, velocity):
   theta = pi
   yaw = pi / 2.0
 
-  print("Simulating ideal IMU measurements ...")
-  print(f"imu_rate: {imu_rate} [Hz]")
-  print(f"circle_r: {circle_r} [m]")
-  print(f"circle_dist: {circle_dist:.2f} [m]")
-  print(f"time_taken: {time_taken:.2f} [s]")
+  # print("Simulating ideal IMU measurements ...")
+  # print(f"imu_rate: {imu_rate} [Hz]")
+  # print(f"circle_r: {circle_r} [m]")
+  # print(f"circle_dist: {circle_dist:.2f} [m]")
+  # print(f"time_taken: {time_taken:.2f} [s]")
 
   imu_idx = 0
   sim_data = SimImuData(imu_idx)
@@ -3502,6 +3531,35 @@ def sim_imu_circle(circle_r, velocity):
     time += dt
 
   return sim_data
+
+
+class SimData:
+  """ Sim data """
+
+  def __init__(self, circle_r, velocity):
+    # Simulate imu and camera data
+    self.imu_data = sim_imu_circle(circle_r, velocity)
+    self.cam_data = sim_vo_circle(circle_r, velocity)
+
+    # Form timeline
+    self.timeline = Timeline()
+
+    # -- Add imu events
+    imu_idx = self.imu_data.imu_idx
+    for ts in self.imu_data.timestamps:
+      acc = self.imu_data.acc[ts]
+      gyr = self.imu_data.gyr[ts]
+      imu_event = ImuEvent(ts, imu_idx, acc, gyr)
+      self.timeline.add_event(ts, imu_event)
+
+    # -- Add camera events
+    cam_idx = self.cam_data.cam_idx
+    for ts in self.cam_data.timestamps:
+      frame = self.cam_data.frames[ts]
+      fids = frame.feature_ids
+      kps = frame.measurements
+      cam_event = CameraEvent(ts, cam_idx, fids, kps)
+      self.timeline.add_event(ts, cam_event)
 
 
 ###############################################################################
@@ -4384,7 +4442,7 @@ class TestSimulation(unittest.TestCase):
     self.assertTrue(sim_data.cam_idx == 0)
     self.assertTrue(sim_data.features.shape[0] > 0)
     self.assertTrue(sim_data.features.shape[1] == 3)
-    self.assertTrue(len(sim_data.poses) == len(sim_data.cam_frames))
+    self.assertTrue(len(sim_data.poses) == len(sim_data.frames))
 
     if debug:
       pos = np.array([tf_trans(v) for k, v in sim_data.poses.items()])
@@ -4448,6 +4506,25 @@ class TestSimulation(unittest.TestCase):
       plt.ylabel("Angular Velocity [rad s^-1]")
       plt.title("Gyroscope Measurements")
 
+      plt.subplots_adjust(hspace=0.9)
+      plt.show()
+
+  def test_sim_data(self):
+    """ Test SimData() """
+    debug = False
+    circle_r = 5.0
+    velocity = 1.0
+    sim_data = SimData(circle_r, velocity)
+    self.assertTrue(sim_data is not None)
+
+    if debug:
+      pos = np.array([tf_trans(v) for k, v in sim_data.cam_data.poses.items()])
+
+      plt.figure()
+      plt.plot(pos[:, 0], pos[:, 1], 'r-')
+      plt.xlabel("Displacement [m]")
+      plt.ylabel("Displacement [m]")
+      plt.title("Camera Position")
       plt.subplots_adjust(hspace=0.9)
       plt.show()
 
