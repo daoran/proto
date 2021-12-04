@@ -3111,6 +3111,14 @@ class CameraEvent:
 
 
 @dataclass
+class CameraImageEvent:
+  """ Camera Event """
+  ts: int
+  cam_idx: int
+  image_path: str
+
+
+@dataclass
 class ImuEvent:
   """ IMU Event """
   ts: int
@@ -3204,12 +3212,20 @@ class EurocDataset:
     self.cam0_path = os.path.join(data_path, 'mav0', 'cam0')
     self.cam1_path = os.path.join(data_path, 'mav0', 'cam1')
 
+    # Data
     self.timestamps = []
-    self.cam0_images = {}
-    self.cam1_images = {}
+    # -- Configs
+    self.imu0_config = {}
     self.cam0_config = {}
     self.cam1_config = {}
+    # -- Measurements
+    self.imu0_data = {}
+    self.cam0_images = {}
+    self.cam1_images = {}
+    # -- Timeline
+    self.timeline = Timeline()
 
+    # Load
     self._load_euroc_dataset(data_path)
 
   def _load_imu_data(self):
@@ -3250,12 +3266,29 @@ class EurocDataset:
       raise RuntimeError(f"Path {data_path} does not exist!")
 
     # Load data
-    self.imu_config, self.imu_data = self._load_imu_data()
+    self.imu0_config, self.imu0_data = self._load_imu_data()
     self.cam0_config, self.cam0_images = self._load_camera_data(self.cam0_path)
     self.cam1_config, self.cam1_images = self._load_camera_data(self.cam1_path)
 
     # Timestamps
     self.timestamps = sorted(list(set(self.timestamps)))
+
+    # Form timeline
+    # -- Add imu0 events
+    imu_idx = 0
+    for ts in self.imu0_data.timestamps:
+      acc = self.imu0_data.acc[ts]
+      gyr = self.imu0_data.gyr[ts]
+      imu_event = ImuEvent(ts, imu_idx, acc, gyr)
+      self.timeline.add_event(ts, imu_event)
+
+    # -- Add cam0 events
+    for ts, img_path in self.cam0_images.items():
+      self.timeline.add_event(ts, CameraImageEvent(ts, 0, img_path))
+
+    # -- Add cam1 events
+    for ts, img_path in self.cam1_images.items():
+      self.timeline.add_event(ts, CameraImageEvent(ts, 1, img_path))
 
 
 ###############################################################################
