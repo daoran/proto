@@ -8,6 +8,7 @@ import math
 import copy
 import random
 import json
+from enum import Enum
 from dataclasses import dataclass
 from dataclasses import field
 from collections import namedtuple
@@ -20,7 +21,12 @@ import cv2
 import yaml
 import numpy as np
 import scipy
+import scipy.sparse
+import scipy.sparse.linalg
 import pandas
+
+import cProfile
+from pstats import Stats
 
 ###############################################################################
 # MATHS
@@ -35,6 +41,12 @@ from math import sin
 from math import tan
 from math import acos
 from math import atan
+
+
+def rmse(errors):
+  """ Root Mean Squared Error """
+  return np.sqrt(np.mean(errors**2))
+
 
 ###############################################################################
 # TIME
@@ -80,7 +92,7 @@ def normalize(v):
   return v / n
 
 
-def fullrank(A):
+def full_rank(A):
   """ Check if matrix A is full rank """
   return rank(A) == A.shape[0]
 
@@ -904,6 +916,20 @@ def tf_perturb(T, i, step_size):
   return tf(C, r)
 
 
+def tf_update(T, dx):
+  """ Update transformation matrix """
+  assert T.shape == (4, 4)
+
+  q = tf_quat(T)
+  r = tf_trans(T)
+
+  dr = dx[0:3]
+  dalpha = dx[3:6]
+  dq = quat_delta(dalpha)
+
+  return tf(quat_mul(q, dq), r + dr)
+
+
 ###############################################################################
 # YAML
 ###############################################################################
@@ -1675,6 +1701,15 @@ class StateVariable:
   data: Optional[dict] = None
 
 
+class StateVariableType(Enum):
+  """ State Variable Type """
+  POSE = 1
+  EXTRINSICS = 2
+  FEATURE = 3
+  CAMERA = 4
+  SPEED_AND_BIASES = 5
+
+
 def tf2pose(T):
   """ Form pose vector """
   rx, ry, rz = tf_trans(T)
@@ -1695,12 +1730,6 @@ def pose_setup(ts, param, fix=False):
   return StateVariable(ts, "pose", param, None, 6, fix)
 
 
-def speed_biases_setup(ts, vel, ba, bg, fix=False):
-  """ Forms speed and biases state-variable """
-  param = np.block([vel, ba, bg])
-  return StateVariable(ts, "speed_and_biases", param, None, len(param), fix)
-
-
 def extrinsics_setup(param, fix=False):
   """ Forms extrinsics state-variable """
   param = tf2pose(param) if param.shape == (4, 4) else param
@@ -1718,6 +1747,12 @@ def feature_setup(param, fix=False):
   return StateVariable(None, "feature", param, None, len(param), fix)
 
 
+def speed_biases_setup(ts, vel, ba, bg, fix=False):
+  """ Forms speed and biases state-variable """
+  param = np.block([vel, ba, bg])
+  return StateVariable(ts, "speed_and_biases", param, None, len(param), fix)
+
+
 def perturb_state_variable(sv, i, step_size):
   """ Perturb state variable """
   if sv.var_type == "pose" or sv.var_type == "extrinsics":
@@ -1728,6 +1763,16 @@ def perturb_state_variable(sv, i, step_size):
     sv.param[i] += step_size
 
   return sv
+
+
+def update_state_variable(sv, dx):
+  """ Update state variable """
+  if sv.var_type == "pose" or sv.var_type == "extrinsics":
+    T = pose2tf(sv.param)
+    T_prime = tf_update(T, dx)
+    sv.param = tf2pose(T_prime)
+  else:
+    sv.param += dx
 
 
 # FACTORS ######################################################################
@@ -2142,6 +2187,199 @@ def check_factor_jacobian(factor, params, param_idx, jac_name, **kwargs):
 
   J = jacs[param_idx]
   return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
+
+
+# FACTOR GRAPH ################################################################
+
+
+class FactorGraph:
+  """ Factor Graph """
+
+  def __init__(self):
+    # Parameters and factors
+    self.params = {}
+    self.factors = {}
+
+    # Solver
+    self.solver_nb_iters = 5
+    self.solver_lambda = 5
+
+  def add_param(self, param):
+    """ Add param """
+    # Add param
+    param_id = len(self.params)
+    self.params[param_id] = param
+    return param_id
+
+  def add_factor(self, factor):
+    """ Add factor """
+    # Double check if params exists
+    for param_id in factor.param_ids:
+      if param_id not in self.params:
+        raise RuntimeError(f"Parameter [{param_id}] does not exist!")
+
+    # Add factor
+    factor_id = len(self.factors)
+    self.factors[factor_id] = factor
+    return factor_id
+
+  def _evaluate(self):
+    """ Evaluate """
+    # Parameter ids
+    pose_param_ids = set()
+    sb_param_ids = set()
+    camera_param_ids = set()
+    exts_param_ids = set()
+    feature_param_ids = set()
+
+    # Track parameters
+    nb_params = 0
+    for _, factor in self.factors.items():
+      for i, param_id in enumerate(factor.param_ids):
+        param = self.params[param_id]
+
+        if param.fix:
+          continue
+        elif param.var_type == "pose":
+          pose_param_ids.add(param_id)
+        elif param.var_type == "speed_and_biases":
+          sb_param_ids.add(param_id)
+        elif param.var_type == "extrinsics":
+          exts_param_ids.add(param_id)
+        elif param.var_type == "feature":
+          feature_param_ids.add(param_id)
+        elif param.var_type == "camera":
+          camera_param_ids.add(param_id)
+        nb_params += 1
+
+    # Assign global parameter order
+    param_ids_list = []
+    param_ids_list.append(pose_param_ids)
+    param_ids_list.append(sb_param_ids)
+    param_ids_list.append(exts_param_ids)
+    param_ids_list.append(feature_param_ids)
+    param_ids_list.append(camera_param_ids)
+
+    param_idxs = {}
+    col_idx = 0
+    for param_ids in param_ids_list:
+      for param_id in param_ids:
+        param_idxs[param_id] = col_idx
+        col_idx += self.params[param_id].min_dims
+
+    # Form Hessian
+    param_size = col_idx
+    H = zeros((param_size, param_size))
+    g = zeros(param_size)
+    residuals = []
+
+    for _, factor in self.factors.items():
+      factor_param_ids = factor.param_ids
+      factor_params = [self.params[param_id] for param_id in factor_param_ids]
+      r, jacobians = factor.eval(factor_params)
+      residuals.append(r)
+
+      nb_params = len(factor_params)
+      for i in range(nb_params):
+        param_i = self.params[factor_param_ids[i]]
+        if param_i.fix:
+          continue
+        idx_i = param_idxs[factor_param_ids[i]]
+        size_i = param_i.min_dims
+        J_i = jacobians[i]
+
+        for j in range(i, nb_params):
+          param_j = self.params[factor_param_ids[j]]
+          if param_j.fix:
+            continue
+          idx_j = param_idxs[factor_param_ids[j]]
+          size_j = param_j.min_dims
+          J_j = jacobians[j]
+
+          rs = idx_i
+          re = idx_i + size_i
+          cs = idx_j
+          ce = idx_j + size_j
+
+          if i == j:
+            # Diagonal
+            H[rs:re, cs:ce] += J_i.T @ J_j
+          else:
+            # Off-Diagonal
+            H[rs:re, cs:ce] += J_i.T @ J_j
+            H[cs:ce, rs:re] += H[rs:re, cs:ce].T
+
+        rs = idx_i
+        re = idx_i + size_i
+        g[rs:re] += (-J_i.T @ r)
+
+    return (param_idxs, H, g, r)
+
+  @staticmethod
+  def _cost(r):
+    """ Cost """
+    return 0.5 * r.T @ r
+
+  def _get_factor_params(self, factor):
+    """ Get factor parameters """
+    return [self.params[param_id] for param_id in factor.param_ids]
+
+  def _get_reproj_errors(self):
+    """ Get reprojection errors """
+    target_factors = ["ba_factor", "vision_factor"]
+
+    reproj_errors = []
+    for _, factor in self.factors.items():
+      if factor.factor_type in target_factors:
+        factor_params = self._get_factor_params(factor)
+        r, _ = factor.eval(factor_params)
+        reproj_errors.append(norm(r))
+
+    return np.array(reproj_errors)
+
+  def _print(self, iter_k, r):
+    """ Print to console """
+    rmse_vision = rmse(self._get_reproj_errors())
+
+    print(f"iter[{iter_k}]: ", end="")
+    print(f"rms_reproj_error: {rmse_vision:.2f} px", end=", ")
+    print(f"cost: {self._cost(r):.2e}")
+    sys.stdout.flush()
+
+  def _update(self, param_idxs, dx):
+    """ Update """
+    for param_id, param in self.params.items():
+      # Check if param even exists
+      if param_id not in param_idxs:
+        continue
+
+      # Update parameter
+      start = param_idxs[param_id]
+      end = start + param.min_dims
+      param_dx = dx[start:end]
+      update_state_variable(param, param_dx)
+
+  def solve(self):
+    """ Solve """
+    lambda_k = self.solver_lambda
+    (param_idxs, H, g, r) = self._evaluate()
+    self._print(0, r)
+
+    for i in range(1, self.solver_nb_iters):
+      # H = H + lambda_k * eye(H.shape[0])
+      # dx = pinv(H) @ g
+      # dx = np.linalg.solve(H, g)
+
+      # sH = scipy.sparse.csc_matrix(H)
+      # dx = scipy.sparse.linalg.spsolve(sH, g)
+
+      H = H + lambda_k * eye(H.shape[0])
+      c, low = scipy.linalg.cho_factor(H)
+      dx = scipy.linalg.cho_solve((c, low), g)
+
+      self._update(param_idxs, dx)
+      (param_idxs, H, g, r) = self._evaluate()
+      self._print(i, r)
 
 
 # FEATURE TRACKING #############################################################
@@ -2969,6 +3207,46 @@ def visualize_tracking(ft_data):
   return cv2.hconcat(viz)
 
 
+# STATE-ESTIMATOR #############################################################
+
+
+class KeyFrame:
+  """ Key Frame """
+
+  def __init__(self, ts, images, data):
+    self.ts = ts
+    self.images = images
+    self.data = data
+
+
+class Tracker:
+  """ Tracker """
+
+  def __init__(self):
+    self.feature_tracker = FeatureTracker()
+    self.keyframes = []
+
+    self.cam_params = {}
+    self.cam_exts = {}
+
+  def add_camera(self, cam_idx, cam_params, cam_exts):
+    """ Add camera """
+    self.cam_params[cam_idx] = cam_params
+    self.cam_exts[cam_idx] = cam_exts
+    self.feature_tracker.add_camera(cam_idx, cam_params, cam_exts)
+
+  def add_overlap(self, idx_i, idx_j):
+    """ Add overlap """
+    self.feature_tracker.add_overlap(idx_i, idx_j)
+
+  def vision_callback(self, ts, images):
+    """ Vision callback """
+    ft_data = self.feature_tracker.update(ts, images)
+    self.keyframes.append(KeyFrame(ts, images, ft_data))
+
+    return ft_data
+
+
 ###############################################################################
 # CALIBRATION
 ###############################################################################
@@ -3234,16 +3512,23 @@ class EurocDataset:
 
     # Load data
     imu_data = pandas.read_csv(os.path.join(self.imu0_path, 'data.csv'))
-    ts = imu_data['#timestamp [ns]']
+    timestamps = imu_data['#timestamp [ns]']
     gyr_x = imu_data['w_RS_S_x [rad s^-1]']
     gyr_y = imu_data['w_RS_S_y [rad s^-1]']
     gyr_z = imu_data['w_RS_S_z [rad s^-1]']
     acc_x = imu_data['a_RS_S_x [m s^-2]']
     acc_y = imu_data['a_RS_S_y [m s^-2]']
     acc_z = imu_data['a_RS_S_z [m s^-2]']
-    gyr = np.block([[gyr_x], [gyr_y], [gyr_z]])
-    acc = np.block([[acc_x], [acc_y], [acc_z]])
-    data = EurocImuData(ts, acc, gyr)
+
+    gyr_data = {}
+    acc_data = {}
+    idx = 0
+    for ts in timestamps:
+      acc_data[ts] = np.array([acc_x[idx], acc_y[idx], acc_z[idx]])
+      gyr_data[ts] = np.array([gyr_x[idx], gyr_y[idx], gyr_z[idx]])
+      idx += 1
+
+    data = EurocImuData(timestamps, acc_data, gyr_data)
 
     return (config, data)
 
@@ -3392,8 +3677,9 @@ class SimCameraFrame:
 class SimCameraData:
   """ Sim camera data """
 
-  def __init__(self, cam_idx, features):
+  def __init__(self, cam_idx, camera, features):
     self.cam_idx = cam_idx
+    self.camera = camera
     self.features = features
     self.timestamps = []
     self.poses = {}
@@ -3443,7 +3729,7 @@ def sim_vo_circle(circle_r, velocity):
   proj_params = [fx, fy, cx, cy]
   dist_params = [-0.01, 0.01, 1e-4, 1e-4]
   params = np.block([*proj_params, *dist_params])
-  cam0 = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
+  cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
 
   # Simulate features
   origin = [0, 0, 0]
@@ -3469,9 +3755,10 @@ def sim_vo_circle(circle_r, velocity):
   # print(f"time_taken: {time_taken:.2f} [s]")
 
   cam_idx = 0
-  sim_data = SimCameraData(cam_idx, features)
+  sim_data = SimCameraData(cam_idx, cam_params, features)
 
   while time <= time_taken:
+    # Timestamp
     ts = sec2ts(time)
 
     # Body pose
@@ -3486,7 +3773,8 @@ def sim_vo_circle(circle_r, velocity):
     T_WC0 = T_WB @ T_BC0
     sim_data.timestamps.append(ts)
     sim_data.poses[ts] = T_WC0
-    sim_data.frames[ts] = SimCameraFrame(ts, cam_idx, cam0, T_WC0, features)
+    sim_data.frames[ts] = SimCameraFrame(ts, cam_idx, cam_params, T_WC0,
+                                         features)
 
     # Update
     theta += w * dt
@@ -4156,6 +4444,122 @@ class TestFactors(unittest.TestCase):
   #   self.assertTrue(check_factor_jacobian(factor, params, 0, "J_pose_i"))
 
 
+class TestFactorGraph(unittest.TestCase):
+  """ Test Factor Graph """
+
+  @classmethod
+  def setUpClass(cls):
+    super(TestFactorGraph, cls).setUpClass()
+    circle_r = 1.0
+    velocity = 1.0
+    cls.sim_data = sim_vo_circle(circle_r, velocity)
+
+  def setUp(self):
+    self.prof = cProfile.Profile()
+    self.prof.enable()
+
+  def tearDown(self):
+    stats = Stats(self.prof)
+    stats.strip_dirs()
+    stats.sort_stats('cumtime').print_stats(10)
+    print()
+
+  def test_factor_graph_add_param(self):
+    """ Test FactorGrpah.add_param() """
+    # Setup camera pose T_WC
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
+    trans = np.array([0.1, 0.2, 0.3])
+    T_WC = tf(rot, trans)
+    pose0 = pose_setup(0, T_WC)
+    pose1 = pose_setup(1, T_WC)
+
+    # Add params
+    graph = FactorGraph()
+    pose0_id = graph.add_param(pose0)
+    pose1_id = graph.add_param(pose1)
+
+    # Assert
+    self.assertEqual(pose0_id, 0)
+    self.assertEqual(pose1_id, 1)
+    self.assertNotEqual(pose0, pose1)
+    self.assertEqual(graph.params[pose0_id], pose0)
+    self.assertEqual(graph.params[pose1_id], pose1)
+
+  def test_factor_graph_add_factor(self):
+    """ Test FactorGrpah.add_factor() """
+    # Setup factor graph
+    graph = FactorGraph()
+
+    # Setup camera pose T_WC
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
+    trans = np.array([0.1, 0.2, 0.3])
+    T_WC = tf(rot, trans)
+    pose = pose_setup(0, T_WC)
+    pose_id = graph.add_param(pose)
+
+    # Create factor
+    param_ids = [pose_id]
+    pose_factor = pose_factor_setup(param_ids, T_WC)
+    pose_factor_id = graph.add_factor(pose_factor)
+
+    # Assert
+    self.assertEqual(len(graph.params), 1)
+    self.assertEqual(len(graph.factors), 1)
+    self.assertEqual(graph.factors[pose_factor_id], pose_factor)
+
+  def test_factor_graph_evaluate(self):
+    """ Test FactorGraph.evaluate() """
+    # Sim data
+    sim_data = TestFactorGraph.sim_data
+
+    # Setup factor graph
+    graph = FactorGraph()
+
+    # -- Add features
+    features = sim_data.features
+    feature_ids = []
+    for i in range(features.shape[0]):
+      p_W = features[i, :]
+      feature = feature_setup(p_W)
+      feature_ids.append(graph.add_param(feature))
+
+    # -- Add cam0
+    cam0 = sim_data.camera
+    cam0_geom = cam0.data
+    cam0_id = graph.add_param(cam0)
+
+    # Build bundle adjustment problem
+    nb_poses = 0
+    for ts in sim_data.timestamps:
+      # Camera frame at ts
+      cam_frame = sim_data.frames[ts]
+
+      # Add camera pose T_WC0
+      T_WC0 = sim_data.poses[ts]
+      T_WC0 = tf_update(T_WC0, np.array([0.01, 0.01, 0.01, 0.0, 0.0, 0.0]))
+      pose = pose_setup(ts, T_WC0)
+      pose_id = graph.add_param(pose)
+      nb_poses += 1
+
+      # Add ba factors
+      for i, idx in enumerate(cam_frame.feature_ids):
+        z = cam_frame.measurements[i]
+        param_ids = [pose_id, feature_ids[idx], cam0_id]
+        graph.add_factor(ba_factor_setup(param_ids, z, cam0_geom))
+
+      if nb_poses >= 5:
+        break
+
+    graph.solve()
+
+    errors = graph._get_reproj_errors()
+    self.assertTrue(rmse(errors) < 0.1)
+
+  def test_factor_graph_solve(self):
+    """ Test FactorGraph.solve() """
+    pass
+
+
 class TestFeatureTracking(unittest.TestCase):
   """ Test feature tracking functions """
 
@@ -4386,6 +4790,74 @@ class TestFeatureTracker(unittest.TestCase):
       camera_images[0] = img0
       camera_images[1] = img1
       ft_data = self.feature_tracker.update(ts, camera_images)
+      viz = visualize_tracking(ft_data)
+
+      # Visualize
+      sys.stdout.flush()
+      cv2.imshow('viz', viz)
+      # if cv2.waitKey(0) == ord('q'):
+      #   break
+      if cv2.waitKey(1) == ord('q'):
+        break
+
+
+class TestStateEstimator(unittest.TestCase):
+  """ Test State Estimator """
+
+  def setUp(self):
+    # Load test data
+    self.dataset = EurocDataset(euroc_data_path)
+
+    # Setup test images
+    ts = self.dataset.timestamps[0]
+    img0_path = self.dataset.cam0_images[ts]
+    img1_path = self.dataset.cam1_images[ts]
+    self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+    self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+    # Setup cameras
+    # -- cam0
+    res = self.dataset.cam0_config.resolution
+    proj_params = self.dataset.cam0_config.intrinsics
+    dist_params = self.dataset.cam0_config.distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    params = np.block([*proj_params, *dist_params])
+    self.cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
+    # -- cam1
+    res = self.dataset.cam1_config.resolution
+    proj_params = self.dataset.cam1_config.intrinsics
+    dist_params = self.dataset.cam1_config.distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    params = np.block([*proj_params, *dist_params])
+    self.cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
+
+    # Setup camera extrinsics
+    # -- cam0
+    T_BC0 = self.dataset.cam0_config.T_BS
+    self.cam0_exts = extrinsics_setup(T_BC0)
+    # -- cam1
+    T_BC1 = self.dataset.cam1_config.T_BS
+    self.cam1_exts = extrinsics_setup(T_BC1)
+
+    # Setup tracker
+    self.tracker = Tracker()
+    self.tracker.add_camera(0, self.cam0, self.cam0_exts)
+    self.tracker.add_camera(1, self.cam1, self.cam1_exts)
+    self.tracker.add_overlap(0, 1)
+
+  def test_tracker_vision_callback(self):
+    """ Test Tracker.vision_callback() """
+    for ts in self.dataset.timestamps[100:]:
+      # Load images
+      img0_path = self.dataset.cam0_images[ts]
+      img1_path = self.dataset.cam1_images[ts]
+      img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+      img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+      # Feed camera images to feature tracker
+      ft_data = self.tracker.vision_callback(ts, {0: img0, 1: img1})
       viz = visualize_tracking(ft_data)
 
       # Visualize

@@ -29,6 +29,8 @@ memcheck() {
 # python3 python/proto.py TestFactors.test_vision_factor
 # python3 python/proto.py TestFactors.test_imu_factor_propagate
 # python3 python/proto.py TestFactors.test_imu_factor
+# python3 python/proto.py TestFactorGraph
+python3 python/proto.py TestFactorGraph.test_factor_graph_evaluate
 # python3 python/proto.py TestFeatureTracking.test_spread_keypoints
 # python3 python/proto.py TestFeatureTracking.test_grid_detect
 # python3 python/proto.py TestFeatureTracking.test_optflow_track
@@ -36,9 +38,10 @@ memcheck() {
 # python3 python/proto.py TestFeatureTracker.test_detect_overlaps
 # python3 python/proto.py TestFeatureTracker.test_initialize
 # python3 python/proto.py TestFeatureTracker.test_update
+# python3 python/proto.py TestStateEstimator
 # python3 python/proto.py TestSimulation.test_sim_imu_circle
 # python3 python/proto.py TestSimulation.test_sim_imu_circle
-python3 python/proto.py TestSimulation.test_sim_data
+# python3 python/proto.py TestSimulation.test_sim_data
 
 # make format_code
 # ctags -R lib
