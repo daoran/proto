@@ -2223,8 +2223,34 @@ class FactorGraph:
     self.factors[factor_id] = factor
     return factor_id
 
-  def _evaluate(self):
-    """ Evaluate """
+  def _get_factor_params(self, factor):
+    """ Get factor parameters """
+    return [self.params[param_id] for param_id in factor.param_ids]
+
+  def _get_reproj_errors(self):
+    """ Get reprojection errors """
+    target_factors = ["ba_factor", "vision_factor"]
+
+    reproj_errors = []
+    for _, factor in self.factors.items():
+      if factor.factor_type in target_factors:
+        factor_params = self._get_factor_params(factor)
+        r, _ = factor.eval(factor_params)
+        reproj_errors.append(norm(r))
+
+    return np.array(reproj_errors)
+
+  def _print(self, iter_k, r):
+    """ Print to console """
+    rmse_vision = rmse(self._get_reproj_errors())
+
+    print(f"iter[{iter_k}]: ", end="")
+    print(f"rms_reproj_error: {rmse_vision:.2f} px", end=", ")
+    print(f"cost: {self._cost(r):.2e}")
+    sys.stdout.flush()
+
+  def _form_param_indices(self):
+    """ Form parameter indices """
     # Parameter ids
     pose_param_ids = set()
     sb_param_ids = set()
@@ -2235,7 +2261,7 @@ class FactorGraph:
     # Track parameters
     nb_params = 0
     for _, factor in self.factors.items():
-      for i, param_id in enumerate(factor.param_ids):
+      for _, param_id in enumerate(factor.param_ids):
         param = self.params[param_id]
 
         if param.fix:
@@ -2261,14 +2287,16 @@ class FactorGraph:
     param_ids_list.append(camera_param_ids)
 
     param_idxs = {}
-    col_idx = 0
+    param_size = 0
     for param_ids in param_ids_list:
       for param_id in param_ids:
-        param_idxs[param_id] = col_idx
-        col_idx += self.params[param_id].min_dims
+        param_idxs[param_id] = param_size
+        param_size += self.params[param_id].min_dims
 
-    # Form Hessian
-    param_size = col_idx
+    return (param_idxs, param_size)
+
+  def _form_hessian(self, param_idxs, param_size):
+    """ Form Hessian matrix H """
     H = zeros((param_size, param_size))
     g = zeros(param_size)
     residuals = []
@@ -2313,38 +2341,13 @@ class FactorGraph:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
+    return (H, g, np.array(r))
+
+  def _evaluate(self):
+    """ Evaluate """
+    (param_idxs, param_size) = self._form_param_indices()
+    (H, g, r) = self._form_hessian(param_idxs, param_size)
     return (param_idxs, H, g, r)
-
-  @staticmethod
-  def _cost(r):
-    """ Cost """
-    return 0.5 * r.T @ r
-
-  def _get_factor_params(self, factor):
-    """ Get factor parameters """
-    return [self.params[param_id] for param_id in factor.param_ids]
-
-  def _get_reproj_errors(self):
-    """ Get reprojection errors """
-    target_factors = ["ba_factor", "vision_factor"]
-
-    reproj_errors = []
-    for _, factor in self.factors.items():
-      if factor.factor_type in target_factors:
-        factor_params = self._get_factor_params(factor)
-        r, _ = factor.eval(factor_params)
-        reproj_errors.append(norm(r))
-
-    return np.array(reproj_errors)
-
-  def _print(self, iter_k, r):
-    """ Print to console """
-    rmse_vision = rmse(self._get_reproj_errors())
-
-    print(f"iter[{iter_k}]: ", end="")
-    print(f"rms_reproj_error: {rmse_vision:.2f} px", end=", ")
-    print(f"cost: {self._cost(r):.2e}")
-    sys.stdout.flush()
 
   def _update(self, param_idxs, dx):
     """ Update """
@@ -2358,6 +2361,11 @@ class FactorGraph:
       end = start + param.min_dims
       param_dx = dx[start:end]
       update_state_variable(param, param_dx)
+
+  @staticmethod
+  def _cost(r):
+    """ Cost """
+    return 0.5 * r.T @ r
 
   def solve(self):
     """ Solve """
@@ -4455,10 +4463,54 @@ class TestFactorGraph(unittest.TestCase):
     cls.sim_data = sim_vo_circle(circle_r, velocity)
 
   def setUp(self):
+    # Setup profiler
     self.prof = cProfile.Profile()
     self.prof.enable()
 
+    # Factor graph
+    self.graph = FactorGraph()
+    self.setupFactorGraph()
+
+  def setupFactorGraph(self):
+    """ Setup Factor Graph """
+    # Sim data
+    sim_data = TestFactorGraph.sim_data
+
+    # Setup factor graph
+    # -- Add features
+    features = sim_data.features
+    feature_ids = []
+    for i in range(features.shape[0]):
+      p_W = features[i, :]
+      feature = feature_setup(p_W)
+      feature_ids.append(self.graph.add_param(feature))
+
+    # -- Add cam0
+    cam0 = sim_data.camera
+    cam0_geom = cam0.data
+    cam0_id = self.graph.add_param(cam0)
+
+    # -- Build bundle adjustment problem
+    nb_poses = 0
+    for ts in sim_data.timestamps:
+      # Camera frame at ts
+      cam_frame = sim_data.frames[ts]
+
+      # Add camera pose T_WC0
+      T_WC0 = sim_data.poses[ts]
+      # T_WC0 = tf_update(T_WC0, np.array([0.01, 0.01, 0.01, 0.0, 0.0, 0.0]))
+      pose = pose_setup(ts, T_WC0)
+      pose_id = self.graph.add_param(pose)
+      nb_poses += 1
+
+      # Add ba factors
+      for i, idx in enumerate(cam_frame.feature_ids):
+        z = cam_frame.measurements[i]
+        param_ids = [pose_id, feature_ids[idx], cam0_id]
+        self.graph.add_factor(ba_factor_setup(param_ids, z, cam0_geom))
+
   def tearDown(self):
+    # Get profiler stats
     stats = Stats(self.prof)
     stats.strip_dirs()
     stats.sort_stats('cumtime').print_stats(10)
@@ -4507,57 +4559,11 @@ class TestFactorGraph(unittest.TestCase):
     self.assertEqual(len(graph.factors), 1)
     self.assertEqual(graph.factors[pose_factor_id], pose_factor)
 
-  def test_factor_graph_evaluate(self):
-    """ Test FactorGraph.evaluate() """
-    # Sim data
-    sim_data = TestFactorGraph.sim_data
-
-    # Setup factor graph
-    graph = FactorGraph()
-
-    # -- Add features
-    features = sim_data.features
-    feature_ids = []
-    for i in range(features.shape[0]):
-      p_W = features[i, :]
-      feature = feature_setup(p_W)
-      feature_ids.append(graph.add_param(feature))
-
-    # -- Add cam0
-    cam0 = sim_data.camera
-    cam0_geom = cam0.data
-    cam0_id = graph.add_param(cam0)
-
-    # Build bundle adjustment problem
-    nb_poses = 0
-    for ts in sim_data.timestamps:
-      # Camera frame at ts
-      cam_frame = sim_data.frames[ts]
-
-      # Add camera pose T_WC0
-      T_WC0 = sim_data.poses[ts]
-      T_WC0 = tf_update(T_WC0, np.array([0.01, 0.01, 0.01, 0.0, 0.0, 0.0]))
-      pose = pose_setup(ts, T_WC0)
-      pose_id = graph.add_param(pose)
-      nb_poses += 1
-
-      # Add ba factors
-      for i, idx in enumerate(cam_frame.feature_ids):
-        z = cam_frame.measurements[i]
-        param_ids = [pose_id, feature_ids[idx], cam0_id]
-        graph.add_factor(ba_factor_setup(param_ids, z, cam0_geom))
-
-      if nb_poses >= 5:
-        break
-
-    graph.solve()
-
-    errors = graph._get_reproj_errors()
-    self.assertTrue(rmse(errors) < 0.1)
-
   def test_factor_graph_solve(self):
     """ Test FactorGraph.solve() """
-    pass
+    self.graph.solve()
+    errors = self.graph._get_reproj_errors()
+    self.assertTrue(rmse(errors) < 0.1)
 
 
 class TestFeatureTracking(unittest.TestCase):
