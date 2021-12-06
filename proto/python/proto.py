@@ -2175,7 +2175,7 @@ def imu_factor_setup(param_ids, imu_buf, imu_params, sb_i):
   """ Setup IMU factor """
   assert len(param_ids) == 4
   data = imu_factor_propagate(imu_buf, imu_params, sb_i)
-  covar = inv(data.state_P)
+  covar = pinv(data.state_P)
   return Factor("imu_factor", param_ids, None, covar, imu_factor_eval, data)
 
 
@@ -2224,8 +2224,9 @@ class FactorGraph:
     self.factors = {}
 
     # Solver
-    self.solver_nb_iters = 5
-    self.solver_lambda = 5
+    self.solver_max_iter = 5
+    # self.solver_lambda = 1e-4
+    self.solver_lambda = 1e-4
 
   def add_param(self, param):
     """ Add param """
@@ -2265,10 +2266,10 @@ class FactorGraph:
 
   def _print_to_console(self, iter_k, r):
     """ Print to console """
-    rmse_vision = rmse(self._get_reproj_errors())
+    # rmse_vision = rmse(self._get_reproj_errors())
 
     print(f"iter[{iter_k}]: ", end="")
-    print(f"rms_reproj_error: {rmse_vision:.2f} px", end=", ")
+    # print(f"rms_reproj_error: {rmse_vision:.2f} px", end=", ")
     print(f"cost: {self._cost(r):.2e}")
     sys.stdout.flush()
 
@@ -2399,7 +2400,7 @@ class FactorGraph:
     print(f"nb_params: {len(self.params)}")
     self._print_to_console(0, r)
 
-    for i in range(1, self.solver_nb_iters):
+    for i in range(1, self.solver_max_iter):
       # H = H + lambda_k * eye(H.shape[0])
       # dx = pinv(H) @ g
       # dx = np.linalg.solve(H, g)
@@ -3755,9 +3756,10 @@ class SimData:
     self.nb_features = 200
 
     # Trajectory data
+    self.g = np.array([0.0, 0.0, 9.81])
     self.circle_dist = 2.0 * pi * circle_r
     self.time_taken = self.circle_dist / self.circle_v
-    self.g = np.array([0.0, 0.0, 9.81])
+    self.w = -2.0 * pi * (1.0 / self.time_taken)
     self.theta_init = pi
     self.yaw_init = pi / 2.0
     self.features = self._setup_features()
@@ -3817,7 +3819,6 @@ class SimData:
 
     time = 0.0
     dt = 1.0 / self.imu_rate
-    w = -2.0 * pi * (1.0 / self.time_taken)
     theta = self.theta_init
     yaw = self.yaw_init
 
@@ -3834,21 +3835,21 @@ class SimData:
       T_WS = tf(C_WS, r_WS)
 
       # IMU velocity
-      vx = -self.circle_r * w * sin(theta)
-      vy = self.circle_r * w * cos(theta)
+      vx = -self.circle_r * self.w * sin(theta)
+      vy = self.circle_r * self.w * cos(theta)
       vz = 0.0
       v_WS = np.array([vx, vy, vz])
 
       # IMU acceleration
-      ax = -self.circle_r * w * w * cos(theta)
-      ay = -self.circle_r * w * w * sin(theta)
+      ax = -self.circle_r * self.w**2 * cos(theta)
+      ay = -self.circle_r * self.w**2 * sin(theta)
       az = 0.0
       a_WS = np.array([ax, ay, az])
 
       # IMU angular velocity
       wx = 0.0
       wy = 0.0
-      wz = w
+      wz = self.w
       w_WS = np.array([wx, wy, wz])
 
       # IMU measurements
@@ -3862,8 +3863,8 @@ class SimData:
       sim_data.acc[ts] = acc
       sim_data.gyr[ts] = gyr
 
-      theta += w * dt
-      yaw += w * dt
+      theta += self.w * dt
+      yaw += self.w * dt
       time += dt
 
     return sim_data
@@ -3873,8 +3874,7 @@ class SimData:
     sim_data = SimCameraData(cam_idx, cam_params, self.features)
 
     time = 0.0
-    dt = 1.0 / self.imu_rate
-    w = -2.0 * pi * (1.0 / self.time_taken)
+    dt = 1.0 / self.cam_rate
     theta = self.theta_init
     yaw = self.yaw_init
 
@@ -3898,8 +3898,8 @@ class SimData:
       sim_data.frames[ts] = cam_frame
 
       # Update
-      theta += w * dt
-      yaw += w * dt
+      theta += self.w * dt
+      yaw += self.w * dt
       time += dt
 
     return sim_data
@@ -4558,11 +4558,14 @@ class TestFactorGraph(unittest.TestCase):
   def test_factor_graph_solve_vo(self):
     """ Test FactorGraph.solve() """
     # Sim data
-    circle_r = 1.0
-    velocity = 1.0
-    sim_data = sim_vo_circle(circle_r, velocity)
+    circle_r = 5.0
+    circle_v = 1.0
+    pickle_path = '/tmp/sim_data.pickle'
+    sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
 
     # Setup factor graph
+    poses_init = []
+    poses_est = []
     graph = FactorGraph()
 
     # -- Add features
@@ -4570,25 +4573,33 @@ class TestFactorGraph(unittest.TestCase):
     feature_ids = []
     for i in range(features.shape[0]):
       p_W = features[i, :]
+      p_W += np.random.rand(3) * 0.1  # perturb feature
       feature = feature_setup(p_W)
       feature_ids.append(graph.add_param(feature))
 
     # -- Add cam0
-    cam0 = sim_data.camera
-    cam0_geom = cam0.data
-    cam0_id = graph.add_param(cam0)
+    cam0_data = sim_data.mcam_data[0]
+    cam0_params = cam0_data.camera
+    cam0_geom = cam0_params.data
+    cam0_id = graph.add_param(cam0_params)
 
     # -- Build bundle adjustment problem
     nb_poses = 0
-    for ts in sim_data.timestamps:
+    for ts in cam0_data.timestamps:
       # Camera frame at ts
-      cam_frame = sim_data.frames[ts]
+      cam_frame = cam0_data.frames[ts]
 
       # Add camera pose T_WC0
-      T_WC0 = sim_data.poses[ts]
-      T_WC0 = tf_update(T_WC0, np.array([0.01, 0.01, 0.01, 0.0, 0.0, 0.0]))
+      T_WC0 = cam0_data.poses[ts]
+      # -- Perturb camera pose
+      trans_rand = np.random.rand(3)
+      rvec_rand = np.random.rand(3) * 0.1
+      T_WC0 = tf_update(T_WC0, np.block([*trans_rand, *rvec_rand]))
+      # -- Add to graph
       pose = pose_setup(ts, T_WC0)
       pose_id = graph.add_param(pose)
+      poses_init.append(T_WC0)
+      poses_est.append(pose)
       nb_poses += 1
 
       # Add ba factors
@@ -4598,13 +4609,115 @@ class TestFactorGraph(unittest.TestCase):
         graph.add_factor(ba_factor_setup(param_ids, z, cam0_geom))
 
     # Solve
-    prof = profile_start()
+    # prof = profile_start()
     graph.solve()
-    profile_stop(prof)
+    # profile_stop(prof)
+
+    pos_init = np.array([tf_trans(T) for T in poses_init])
+    pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
+
+    plt.figure()
+    plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
+    plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
+    plt.xlabel("Displacement [m]")
+    plt.ylabel("Displacement [m]")
+    plt.show()
 
     # Asserts
     errors = graph._get_reproj_errors()
     self.assertTrue(rmse(errors) < 0.1)
+
+  def test_factor_graph_solve_vio(self):
+    """ Test FactorGraph.solve() """
+    # Sim data
+    circle_r = 5.0
+    circle_v = 1.0
+    pickle_path = '/tmp/sim_data.pickle'
+    sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
+
+    # Imu params
+    noise_acc = 0.08  # accelerometer measurement noise stddev.
+    noise_gyr = 0.004  # gyroscope measurement noise stddev.
+    noise_ba = 0.00004  # accelerometer bias random work noise stddev.
+    noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
+    imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
+
+    # Setup factor graph
+    imu0_data = sim_data.imu0_data
+    start_idx = 0
+    end_idx = 1000
+    # end_idx = len(imu0_data.timestamps) - 2
+
+    poses_init = []
+    poses_est = []
+    graph = FactorGraph()
+
+    # -- Pose i
+    ts_i = imu0_data.timestamps[start_idx]
+    T_WS_i = imu0_data.poses[ts_i]
+    # trans_rand = np.random.rand(3)
+    # rvec_rand = np.random.rand(3) * 0.1
+    # T_WS_i = tf_update(T_WS_i, np.block([*trans_rand, *rvec_rand]))
+    pose_i = pose_setup(ts_i, T_WS_i)
+    pose_i_id = graph.add_param(pose_i)
+    poses_init.append(T_WS_i)
+    poses_est.append(pose_i)
+
+    # -- Speed and biases i
+    vel_i = imu0_data.vel[ts_i]
+    ba_i = np.array([0.0, 0.0, 0.0])
+    bg_i = np.array([0.0, 0.0, 0.0])
+    sb_i = speed_biases_setup(ts_i, vel_i, ba_i, bg_i)
+    sb_i_id = graph.add_param(sb_i)
+
+    # print(pose2tf(pose_i.param))
+    # print(sb_i.param)
+
+    window_size = 10
+    for ts_idx in range(start_idx + window_size, end_idx, window_size):
+      # -- Pose j
+      ts_j = imu0_data.timestamps[ts_idx]
+      T_WS_j = imu0_data.poses[ts_j]
+      trans_rand = np.random.rand(3)
+      rvec_rand = np.random.rand(3) * 0.1
+      T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
+      pose_j = pose_setup(ts_j, T_WS_j)
+      pose_j_id = graph.add_param(pose_j)
+      poses_init.append(T_WS_j)
+      poses_est.append(pose_j)
+
+      # -- Speed and biases j
+      vel_j = imu0_data.vel[ts_j]
+      ba_j = np.array([0.0, 0.0, 0.0])
+      bg_j = np.array([0.0, 0.0, 0.0])
+      sb_j = speed_biases_setup(ts_j, vel_j, ba_j, bg_j)
+      sb_j_id = graph.add_param(sb_j)
+
+      # -- Imu Factor
+      param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
+      imu_buf = imu0_data.form_imu_buffer(ts_idx - window_size, ts_idx)
+      factor = imu_factor_setup(param_ids, imu_buf, imu_params, sb_i)
+      graph.add_factor(factor)
+
+      # -- Update
+      pose_i = pose_j
+      sb_i = sb_j
+
+    # # Solve
+    # # prof = profile_start()
+    graph.solver_max_iter = 100
+    graph.solve()
+    # # profile_stop(prof)
+
+    pos_init = np.array([tf_trans(T) for T in poses_init])
+    pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
+
+    plt.figure()
+    plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
+    plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
+    plt.xlabel("Displacement [m]")
+    plt.ylabel("Displacement [m]")
+    plt.show()
 
 
 class TestFeatureTracking(unittest.TestCase):
