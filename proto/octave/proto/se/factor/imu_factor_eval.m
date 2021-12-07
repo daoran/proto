@@ -47,8 +47,10 @@ function [r, jacs] = imu_factor_eval(factor, params)
   g = factor.g;
   Dt = factor.Dt;
   Dt_sq = Dt * Dt;
-  err_pos = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))) - dr;
-  err_vel = (C_i' * ((v_j - v_i) + (g * Dt))) - dv;
+  dr_meas = (C_i' * ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)));
+  dv_meas = (C_i' * ((v_j - v_i) + (g * Dt)));
+  err_pos = dr_meas - dr;
+  err_vel = dv_meas - dv;
   err_rot = (2 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))(2:4);
   if strcmp(factor.integration_type, "euler")
     err_ba = zeros(3, 1);
@@ -57,7 +59,22 @@ function [r, jacs] = imu_factor_eval(factor, params)
     err_ba = ba_j - ba_i;
     err_bg = bg_j - bg_i;
   endif
-  r = sqrt_info * [err_pos; err_vel; err_rot; err_ba; err_bg];
+  r = [err_pos; err_vel; err_rot; err_ba; err_bg];
+  r = sqrt_info * r;
+
+  % dr_meas
+  % dr
+  % dv_meas
+  % dv
+  % dq
+  % q_i
+  % q_j
+
+
+  % imagesc(factor.state_F)
+  % imagesc(sqrt_info)
+  % colorbar()
+  % ginput()
 
   % Form jacobians
   jacs{1} = zeros(15, 6);  % residuals w.r.t pose i

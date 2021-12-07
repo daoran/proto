@@ -150,6 +150,12 @@ function factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i, integrat
     factor.Dt += dt;
   endfor
 
+  % figure()
+  % % imagesc(factor.state_P)
+  % imagesc(chol(inv(factor.state_P)))
+  % colorbar()
+  % ginput()
+
   % Update
   factor.dr = dr;
   factor.dv = dv;

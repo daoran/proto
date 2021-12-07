@@ -10,7 +10,7 @@ else
 endif
 
 % Test settings
-window_size = 10;
+window_size = 20;
 g = [0.0; 0.0; 9.81];
 
 % IMU params
@@ -37,10 +37,10 @@ for i = 1:window_size:(length(sim_data.imu_time)-window_size);
 
   % Speed and bias i
   vel_i = sim_data.imu_vel(:, start_idx);
-  % ba_i = zeros(3, 1);
-  % bg_i = zeros(3, 1);
-  ba_i = 1e-3 * ones(3, 1);
-  bg_i = 1e-4 * ones(3, 1);
+  ba_i = zeros(3, 1);
+  bg_i = zeros(3, 1);
+  % ba_i = 1e-3 * ones(3, 1);
+  % bg_i = 1e-4 * ones(3, 1);
   sb_i = sb_init(imu_buf.ts(1), vel_i, bg_i, ba_i);
 
   % Pose j
@@ -49,10 +49,10 @@ for i = 1:window_size:(length(sim_data.imu_time)-window_size);
 
   % Speed and bias j
   vel_j = sim_data.imu_vel(:, end_idx);
-  % ba_j = zeros(3, 1);
-  % bg_j = zeros(3, 1);
-  ba_j = 1e-4 * ones(3, 1);
-  bg_j = 1e-5 * ones(3, 1);
+  ba_j = zeros(3, 1);
+  bg_j = zeros(3, 1);
+  % ba_j = 1e-4 * ones(3, 1);
+  % bg_j = 1e-5 * ones(3, 1);
   sb_j = sb_init(imu_buf.ts(end), vel_j, bg_j, ba_j);
 
   % Setup graph
@@ -64,11 +64,11 @@ for i = 1:window_size:(length(sim_data.imu_time)-window_size);
 
   % Create factor
   param_ids = [pose_i_id; sb_i_id; pose_j_id; sb_j_id];
-  imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i, "midpoint");
+  imu_factor = imu_factor_init(param_ids, imu_buf, imu_params, sb_i, "euler");
 
   % Evaluate factor
   params = graph_get_params(graph, imu_factor.param_ids);
-  imu_factor.sqrt_info = eye(15);
+  % imu_factor.sqrt_info = eye(15);
   [r, jacobians] = imu_factor_eval(imu_factor, params);
 
   % Check propagation
@@ -77,13 +77,18 @@ for i = 1:window_size:(length(sim_data.imu_time)-window_size);
   C_WS_j_gnd = tf_rot(T_WS_j);
   % -- Position
   trans_diff = norm(tf_trans(T_WS_j) - tf_trans(T_WS_j_est));
-  assert(trans_diff < 0.05);
+  % assert(trans_diff < 0.05);
   % -- Rotation
   dC = C_WS_j_gnd' * C_WS_j_est;
   dq = quat_normalize(rot2quat(dC));
   dC = quat2rot(dq);
   rpy_diff = rad2deg(acos((trace(dC) - 1.0) / 2.0));
   assert(rpy_diff < 1.0);
+
+  T_WS_j_est
+  cost = 0.5 * r' * r
+
+  break
 
   % Test jacobians
   step_size = 1e-8;

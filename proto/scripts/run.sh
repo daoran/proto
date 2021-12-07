@@ -30,7 +30,8 @@ memcheck() {
 # python3 python/proto.py TestFactors.test_imu_factor_propagate
 # python3 python/proto.py TestFactors.test_imu_factor
 # python3 python/proto.py TestFactorGraph
-python3 python/proto.py TestFactorGraph.test_factor_graph_solve
+# python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vo
+python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vio
 # python3 python/proto.py TestFeatureTracking.test_spread_keypoints
 # python3 python/proto.py TestFeatureTracking.test_grid_detect
 # python3 python/proto.py TestFeatureTracking.test_optflow_track

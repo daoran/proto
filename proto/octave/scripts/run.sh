@@ -137,7 +137,7 @@ ctags -R .
 # octave tests/se/factor/test_ba_factor_init.m && exit 0
 # octave tests/se/factor/test_ba_factor_eval.m && exit 0
 # octave tests/se/factor/test_cam_factor_eval.m && exit 0
-# octave tests/se/factor/test_imu_factor_eval.m && exit 0
+octave tests/se/factor/test_imu_factor_eval.m && exit 0
 # octave tests/se/factor/test_marg_factor_init.m && exit 0
 # octave tests/se/factor/test_pose_factor_eval.m && exit 0
 # octave tests/se/param/test_camera_init.m && exit 0
@@ -154,7 +154,7 @@ ctags -R .
 # octave tests/se/test_vo.m && exit 0
 
 # octave tests/sim/test_sim_imu.m
-octave tests/sim/test_sim_vio.m
+# octave tests/sim/test_sim_vio.m
 # octave tests/sim/test_sim_vo.m
 # octave tests/sim/test_trajectory_plot.m
 # octave tests/sim/test_trajectory_simulate.m
