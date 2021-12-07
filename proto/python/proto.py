@@ -2075,11 +2075,6 @@ def imu_factor_propagate(imu_buf, imu_params, sb_i):
     state_P = I_F_dt @ state_P @ I_F_dt.T + G_dt @ Q @ G_dt.T
     Dt += dt
 
-  # plt.imshow(chol(inv(state_P)))
-  # plt.imshow(state_F)
-  # plt.colorbar()
-  # plt.show()
-
   # Update
   return ImuFactorData(state_F, state_P, dr, dv, dC, ba, bg, g, Dt)
 
@@ -2121,8 +2116,8 @@ def imu_factor_eval(factor, params):
   dq = quat_normalize(rot2quat(dC))
 
   # Form residuals
-  # sqrt_info = factor.sqrt_info
-  sqrt_info = chol(inv(factor.data.state_P))
+  sqrt_info = factor.sqrt_info
+  # sqrt_info = chol(inv(factor.data.state_P))
   g = factor.data.g
   Dt = factor.data.Dt
   Dt_sq = Dt * Dt
@@ -2135,20 +2130,7 @@ def imu_factor_eval(factor, params):
   err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))[1:4]
   err_ba = np.array([0.0, 0.0, 0.0])
   err_bg = np.array([0.0, 0.0, 0.0])
-  r = np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
-
-  # print(f"dr_meas: {dr_meas}")
-  # print(f"dr: {dr}")
-  # print(f"dq: {dq}")
-  # print(f"q_i: {q_i}")
-  # print(f"q_j: {q_j}")
-  # print(f"r: {r}")
-  r = sqrt_info @ r
-
-  # plt.imshow(sqrt_info)
-  # plt.imshow(chol(inv(factor.data.state_P)))
-  # plt.colorbar()
-  # plt.show()
+  r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
 
   # Form jacobians
   J0 = zeros((15, 6))  # residuals w.r.t pose i
@@ -2195,7 +2177,7 @@ def imu_factor_setup(param_ids, imu_buf, imu_params, sb_i):
   """ Setup IMU factor """
   assert len(param_ids) == 4
   data = imu_factor_propagate(imu_buf, imu_params, sb_i)
-  covar = pinv(data.state_P)
+  covar = data.state_P
   return Factor("imu_factor", param_ids, None, covar, imu_factor_eval, data)
 
 
@@ -2290,7 +2272,7 @@ class FactorGraph:
 
     print(f"iter[{iter_k}]: ", end="")
     # print(f"rms_reproj_error: {rmse_vision:.2f} px", end=", ")
-    print(f"cost: {self._cost(r):.2e}")
+    print(f"cost: {self.cost(r):.2e}")
     sys.stdout.flush()
 
   def _form_param_indices(self):
@@ -2406,8 +2388,14 @@ class FactorGraph:
       param_dx = dx[start:end]
       update_state_variable(param, param_dx)
 
+  def residuals(self):
+    """ Residuals """
+    (param_idxs, param_size) = self._form_param_indices()
+    (_, _, r) = self._form_hessian(param_idxs, param_size)
+    return r
+
   @staticmethod
-  def _cost(r):
+  def cost(r):
     """ Cost """
     return 0.5 * r.T @ r
 
@@ -4597,7 +4585,7 @@ class TestFactorGraph(unittest.TestCase):
     self.assertEqual(graph.factors[pose_factor_id], pose_factor)
 
   def test_factor_graph_solve_vo(self):
-    """ Test FactorGraph.solve() """
+    """ Test solving a visual odometry problem """
     # Sim data
     circle_r = 5.0
     circle_v = 1.0
@@ -4668,11 +4656,8 @@ class TestFactorGraph(unittest.TestCase):
     errors = graph._get_reproj_errors()
     self.assertTrue(rmse(errors) < 0.1)
 
-  def test_factor_graph_solve_vio(self):
-    """ Test FactorGraph.solve() """
-    # debug = False
-    debug = True
-
+  def test_factor_graph_solve_io(self):
+    """ Test solving a pure imu odometry problem """
     # Sim data
     circle_r = 5.0
     circle_v = 1.0
@@ -4691,8 +4676,8 @@ class TestFactorGraph(unittest.TestCase):
     window_size = 5
     start_idx = 0
     # end_idx = 200
-    end_idx = 2000
-    # end_idx = len(imu0_data.timestamps) - 2
+    # end_idx = 2000
+    end_idx = int((len(imu0_data.timestamps) - 1) / 2.0)
 
     poses_init = []
     poses_est = []
@@ -4701,9 +4686,6 @@ class TestFactorGraph(unittest.TestCase):
     # -- Pose i
     ts_i = imu0_data.timestamps[start_idx]
     T_WS_i = imu0_data.poses[ts_i]
-    # trans_rand = np.random.rand(3)
-    # rvec_rand = np.random.rand(3) * 0.1
-    # T_WS_i = tf_update(T_WS_i, np.block([*trans_rand, *rvec_rand]))
     pose_i = pose_setup(ts_i, T_WS_i)
     pose_i_id = graph.add_param(pose_i)
     poses_init.append(T_WS_i)
@@ -4720,11 +4702,14 @@ class TestFactorGraph(unittest.TestCase):
       # -- Pose j
       ts_j = imu0_data.timestamps[ts_idx]
       T_WS_j = imu0_data.poses[ts_j]
-      trans_rand = np.random.rand(3) * 0.1
+      # ---- Pertrub pose j
+      trans_rand = np.random.rand(3) * 0.5
       rvec_rand = np.random.rand(3) * 0.1
       T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
+      # ---- Add to factor graph
       pose_j = pose_setup(ts_j, T_WS_j)
       pose_j_id = graph.add_param(pose_j)
+      # ---- Keep track of initial and estimate pose
       poses_init.append(T_WS_j)
       poses_est.append(pose_j)
 
@@ -4747,11 +4732,15 @@ class TestFactorGraph(unittest.TestCase):
       sb_i_id = sb_j_id
       sb_i = sb_j
 
-    # # Solve
-    # # prof = profile_start()
+    # Solve
+    # prof = profile_start()
     graph.solve()
-    # # profile_stop(prof)
+    # profile_stop(prof)
+    r = graph.residuals()
+    self.assertTrue(graph.cost(r) < 1.0)
 
+    debug = False
+    # debug = True
     if debug:
       pos_init = np.array([tf_trans(T) for T in poses_init])
       pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])

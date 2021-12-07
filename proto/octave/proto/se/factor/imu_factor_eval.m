@@ -59,22 +59,7 @@ function [r, jacs] = imu_factor_eval(factor, params)
     err_ba = ba_j - ba_i;
     err_bg = bg_j - bg_i;
   endif
-  r = [err_pos; err_vel; err_rot; err_ba; err_bg];
-  r = sqrt_info * r;
-
-  % dr_meas
-  % dr
-  % dv_meas
-  % dv
-  % dq
-  % q_i
-  % q_j
-
-
-  % imagesc(factor.state_F)
-  % imagesc(sqrt_info)
-  % colorbar()
-  % ginput()
+  r = sqrt_info * [err_pos; err_vel; err_rot; err_ba; err_bg];
 
   % Form jacobians
   jacs{1} = zeros(15, 6);  % residuals w.r.t pose i
