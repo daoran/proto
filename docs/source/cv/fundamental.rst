@@ -57,4 +57,3 @@ By stacking each point as a matrix
 Since three points in general are rarely linearly independent, it follows that
 the :math:`3 \times 4` matrix compsed of the points :math:`\Vec{p}_{i}` as rows
 has rank 3.
-

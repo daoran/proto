@@ -93,40 +93,6 @@ for i = 1:window_size:(length(sim_data.imu_time)-window_size);
   % Test jacobians
   step_size = 1e-8;
   threshold = 1e-3;
-
-  % [_, jacobians] = imu_factor_eval(imu_factor, params);
-  % octave_Q = imu_factor.Q;
-  % octave_F = imu_factor.state_F;
-  % octave_P = imu_factor.state_P;
-  % octave_info = inv(octave_P);
-  % octave_sqrt_info = imu_factor.sqrt_info;
-  % octave_J_pose_i = jacobians{1};
-  % octave_J_sb_i = jacobians{2};
-  % octave_J_pose_j = jacobians{3};
-  % octave_J_sb_j = jacobians{4};
-  %
-  % cpp_Q = csvread("/tmp/Q.csv");
-  % cpp_F = csvread("/tmp/F.csv");
-  % cpp_P = csvread("/tmp/P.csv");
-  % cpp_info = csvread("/tmp/info.csv");
-  % cpp_sqrt_info = csvread("/tmp/sqrt_info.csv");
-  % cpp_J_pose_i = csvread("/tmp/J_pose_i.csv")(1:15, 1:6);
-  % cpp_J_sb_i = csvread("/tmp/J_sb_i.csv");
-  % cpp_J_pose_j = csvread("/tmp/J_pose_j.csv")(1:15, 1:6);
-  % cpp_J_sb_j = csvread("/tmp/J_sb_j.csv");
-
-  % A = octave_Q;
-  % B = cpp_Q;
-
-  % A = octave_F;
-  % B = cpp_F;
-
-  % A = octave_P;
-  % B = cpp_P;
-
-  % compare_matrices("Octave", A, "C++", B);
-  % ginput()
-
   check_factor_jacobian(imu_factor, params, 1, "J_pose_i", step_size, threshold);
   check_factor_jacobian(imu_factor, params, 2, "J_sb_i", step_size, threshold);
   check_factor_jacobian(imu_factor, params, 3, "J_pose_j", step_size, threshold);

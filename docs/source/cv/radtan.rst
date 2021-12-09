@@ -1,8 +1,10 @@
-Radial Tangential Distortion
+Radial-Tangential Distortion
 ============================
 
-Lens distortion generally exist in all camera lenses, therefore it is vital
-we model the distortions observed. The most common distortion model is the
+.. _radtan-distortion:
+
+Lens distortion generally exist in all camera lenses, therefore it is vital the
+distortions observed are modelled. The most common distortion model is the
 radial-tangential (or simply as radtan) distortion model. The two main
 distortion components, as the name suggests, are the radial and tangential
 distortion.
@@ -11,7 +13,7 @@ Radial distortion occurs due to the shape of the lens, where light passing
 through the center undergoes no refraction, and light passing through the edges
 of the lens, undergoes through severe bending causing the radial distortion.
 
-.. image:: imgs/radial_distortion.png
+.. figure:: imgs/radial_distortion.png
   :align: center
 
 
@@ -19,7 +21,7 @@ Tangential distortion, on the other hand, is mainly due to camera sensor
 mis-alignment during the manufacturing process. It occurs when the camera
 sensor is not in parallel with the lens.
 
-.. image:: imgs/tangential_distortion.png
+.. figure:: imgs/tangential_distortion.png
   :align: center
 
 The combined radial-tangential distortion is modelled using a polynomial
@@ -67,6 +69,7 @@ Radial Tangential Parameter Jacobian
 ------------------------------------
 
 .. math::
+
   \begin{align}
     \dfrac{\partial{\Vec{x}'}}{\partial{\Vec{d}}} &=
       \begin{bmatrix}

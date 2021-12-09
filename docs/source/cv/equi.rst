@@ -1,4 +1,4 @@
-Equi-distant Distortion
+Equi-Distant Distortion
 =======================
 
 .. math::

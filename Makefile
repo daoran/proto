@@ -62,5 +62,5 @@ format_code:
 	@bash ./scripts/format_code.bash
 
 docs:
-	# @cd docs && xdg-open http://127.0.0.1:8000 && python -m SimpleHTTPServer 8000
-	@cd docs && xdg-open http://127.0.0.1:35729 && livereload
+	@sleep 3 && xdg-open http://127.0.0.1:8000 &
+	@sphinx-autobuild docs/source docs/build/html

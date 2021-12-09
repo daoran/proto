@@ -44,6 +44,7 @@
    cv/twoview.rst
    cv/triangulation.rst
    cv/ba.rst
+   cv/feature_tracking.rst
 
 .. toctree::
    :hidden:

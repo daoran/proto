@@ -1976,12 +1976,65 @@ def vision_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
   return Factor("vision_factor", param_ids, z, covar, vision_factor_eval, data)
 
 
-@dataclass
 class ImuBuffer:
   """ IMU buffer """
-  ts: List[int]
-  acc: List[np.array]
-  gyr: List[np.array]
+
+  def __init__(self, ts=None, acc=None, gyr=None):
+    self.ts = ts if ts is not None else []
+    self.acc = acc if acc is not None else []
+    self.gyr = gyr if gyr is not None else []
+
+  def add(self, ts, acc, gyr):
+    """ Add imu measurement """
+    self.ts.append(ts)
+    self.acc.append(acc)
+    self.gyr.append(gyr)
+
+  def add_event(self, imu_event):
+    """ Add imu event """
+    self.ts.append(imu_event.ts)
+    self.acc.append(imu_event.acc)
+    self.gyr.append(imu_event.gyr)
+
+  def length(self):
+    """ Return length of imu buffer """
+    return len(self.ts)
+
+
+class MultiCameraBuffer:
+  """ Multi-camera buffer """
+
+  def __init__(self, nb_cams):
+    self.nb_cams = nb_cams
+    self._ts = []
+    self._data = {}
+
+  def reset(self):
+    """ Reset buffer """
+    self._ts = []
+    self._data = {}
+
+  def add_event(self, cam_event):
+    """ Add camera event """
+    assert isinstance(cam_event, CameraEvent)
+    self._ts.append(cam_event.ts)
+    self._data[cam_event.cam_idx] = cam_event
+
+  def ready(self):
+    """ Check whether buffer has all the camera frames ready """
+    check_ts_same = (len(set(self._ts)) == 1)
+    check_ts_len = (len(self._ts) == self.nb_cams)
+    check_data = (len(self._data) == self.nb_cams)
+    check_cam_indices = (len(set(self._data.keys())) == self.nb_cams)
+    return check_ts_same and check_ts_len and check_data and check_cam_indices
+
+  def get_camera_indices(self):
+    """ Get camera indices """
+    return self._data.keys()
+
+  def get_data(self, cam_idx):
+    """ Get camera event data """
+    return self._data[cam_idx]
 
 
 @dataclass
@@ -3250,6 +3303,10 @@ def visualize_tracking(ft_data):
   return cv2.hconcat(viz)
 
 
+class SimFeatureTracker:
+  """ Sim Feature tracker """
+
+
 # STATE-ESTIMATOR #############################################################
 
 
@@ -3265,10 +3322,13 @@ class KeyFrame:
 class Tracker:
   """ Tracker """
 
-  def __init__(self):
-    self.feature_tracker = FeatureTracker()
-    self.keyframes = []
+  def __init__(self, feature_tracker):
+    self.feature_tracker = feature_tracker
+    self.imu_started = False
+    self.cams_started = False
 
+    self.keyframes = []
+    self.imu_buf = ImuBuffer()
     self.cam_params = {}
     self.cam_exts = {}
 
@@ -3282,10 +3342,18 @@ class Tracker:
     """ Add overlap """
     self.feature_tracker.add_overlap(idx_i, idx_j)
 
+  def inertial_callback(self, ts, acc, gyr):
+    """ Inertial callback """
+    self.imu_buf.add(ts, acc, gyr)
+    self.imu_started = True
+
   def vision_callback(self, ts, images):
     """ Vision callback """
-    ft_data = self.feature_tracker.update(ts, images)
-    self.keyframes.append(KeyFrame(ts, images, ft_data))
+    if self.imu_started is False:
+      return
+
+    # ft_data = self.feature_tracker.update(ts, images)
+    # self.keyframes.append(KeyFrame(ts, images, ft_data))
 
     return ft_data
 
@@ -4657,7 +4725,7 @@ class TestFactorGraph(unittest.TestCase):
     self.assertTrue(rmse(errors) < 0.1)
 
   def test_factor_graph_solve_io(self):
-    """ Test solving a pure imu odometry problem """
+    """ Test solving a pure inertial odometry problem """
     # Sim data
     circle_r = 5.0
     circle_v = 1.0
@@ -4739,8 +4807,8 @@ class TestFactorGraph(unittest.TestCase):
     r = graph.residuals()
     self.assertTrue(graph.cost(r) < 1.0)
 
-    debug = False
-    # debug = True
+    # debug = False
+    debug = True
     if debug:
       pos_init = np.array([tf_trans(T) for T in poses_init])
       pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
@@ -4751,6 +4819,61 @@ class TestFactorGraph(unittest.TestCase):
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")
       plt.show()
+
+  def test_factor_graph_solve_vio(self):
+    """ Test solving a visual inertial odometry problem """
+    # Sim data
+    circle_r = 5.0
+    circle_v = 1.0
+    pickle_path = '/tmp/sim_data.pickle'
+    sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
+
+    # Imu params
+    noise_acc = 0.08  # accelerometer measurement noise stddev.
+    noise_gyr = 0.004  # gyroscope measurement noise stddev.
+    noise_ba = 0.00004  # accelerometer bias random work noise stddev.
+    noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
+    imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
+
+    # Setup factor graph
+    poses_init = []
+    poses_est = []
+    pose_k = None
+    mcam_buf = MultiCameraBuffer(2)
+    tracker = Tracker()
+
+    # -- Add cam0
+    cam0_idx = 0
+    cam0_data = sim_data.mcam_data[cam0_idx]
+    cam0_params = cam0_data.camera
+    cam0_exts = extrinsics_setup(sim_data.T_BC0)
+    tracker.add_camera(cam0_idx, cam0_params, cam0_exts)
+
+    # -- Add cam1
+    cam1_idx = 1
+    cam1_data = sim_data.mcam_data[cam1_idx]
+    cam1_params = cam1_data.camera
+    cam1_exts = extrinsics_setup(sim_data.T_BC1)
+    tracker.add_camera(cam1_idx, cam1_params, cam1_exts)
+
+    # -- Add camera overlap
+    tracker.add_overlap(cam0_idx, cam1_idx)
+
+    # -- Loop through simulation data
+    for ts in sim_data.timeline.get_timestamps():
+      events = sim_data.timeline.get_events(ts)
+      for event in events:
+        if isinstance(event, ImuEvent):
+          tracker.inertial_callback(event.ts, event.acc, event.gyr)
+
+        elif isinstance(event, CameraEvent):
+          mcam_buf.add_event(event)
+          if mcam_buf.ready():
+            cam0_data = mcam_buf.get_data(cam0_idx)
+            cam1_data = mcam_buf.get_data(cam1_idx)
+
+            # tracker.vision_callback(ts, )
+            mcam_buf.reset()
 
 
 class TestFeatureTracking(unittest.TestCase):

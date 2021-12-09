@@ -1,6 +1,8 @@
 Pinhole Camera Model
 ====================
 
+.. _pinhole-camera-model:
+
 The pinhole camera model describes how 3D scene points are projected onto the
 2D image plane of an ideal pinhole camera. The model makes the assumption that
 light rays emitted from an object in the scene pass through the pinhole of the
@@ -11,7 +13,10 @@ expressed in the camera frame, :math:`\frame_{C}`, projected on to the camera's
 2D image plane :math:`(u, v)` is written as,
 
 .. math::
-  u = \dfrac{p_x f_{x}}{p_z} + c_x \quad v = \dfrac{p_y f_{y}}{p_z} + c_y
+
+  u = \dfrac{p_{x} \cdot f_{x}}{p_{z}} + c_{x} 
+  \quad \quad
+  v = \dfrac{p_{y} \cdot f_{y}}{p_{z}} + c_{y}
 
 where :math:`f_{x}` and :math:`f_{y}` denote the focal lengths, :math:`c_{x}`
 and :math:`c_{y}` represents the principal point offset in the :math:`x` and
@@ -19,7 +24,7 @@ and :math:`c_{y}` represents the principal point offset in the :math:`x` and
 
 .. math::
 
-  \Vec{x}_{C} = \Mat{K} \Vec{p}_{C}
+  \Vec{x}_{C} = \Mat{K} \cdot \Vec{p}_{C}
 
 .. math::
 
@@ -43,8 +48,8 @@ combination with a distortion model in the hope of minimizing projection errors
 from 3D to 2D. Common distortion models used in conjuction with the pinhole
 camera model includes:
 
-* Radial-tangential distortion
-* Equi-distant distortion
+* :ref:`Radial-Tangential Distortion`
+* :ref:`Equi-Distant Distortion`
 
 
 
