@@ -227,6 +227,30 @@ def matrix_equal(A, B, tol=1e-8, verbose=False):
   return True
 
 
+def plot_compare_matrices(title_A, A, title_B, B):
+  """ Plot compare matrices """
+  plt.matshow(A)
+  plt.colorbar()
+  plt.title(title_A)
+
+  plt.matshow(B)
+  plt.colorbar()
+  plt.title(title_B)
+
+  diff = A - B
+  plt.matshow(diff)
+  plt.colorbar()
+  plt.title(f"{title_A} - {title_B}")
+
+  print(f"max_coeff({title_A}): {np.max(np.max(A))}")
+  print(f"max_coeff({title_B}): {np.max(np.max(B))}")
+  print(f"min_coeff({title_A}): {np.min(np.min(A))}")
+  print(f"min_coeff({title_B}): {np.min(np.min(B))}")
+  print(f"max_diff: {np.max(np.max(np.abs(diff)))}")
+
+  plt.show()
+
+
 def check_jacobian(jac_name, fdiff, jac, threshold, verbose=True):
   """ Check jacobians """
 
@@ -1814,7 +1838,7 @@ class Factor:
   sqrt_info: np.array = None
 
   def __post_init__(self):
-    self.sqrt_info = chol(inv(self.covar))
+    self.sqrt_info = chol(inv(self.covar)).T
 
   def eval(self, params):
     """ Evaluate factor """
@@ -3998,7 +4022,10 @@ class SimData:
         frame = cam_data.frames[ts]
         fids = frame.feature_ids
         kps = frame.measurements
-        sim_img = np.block([fids, kps])
+
+        sim_img = []
+        for i, fid in enumerate(fids):
+          sim_img.append([fid, kps[i]])
 
         cam_event = CameraEvent(ts, cam_idx, sim_img)
         timeline.add_event(ts, cam_event)
@@ -4521,7 +4548,7 @@ class TestFactors(unittest.TestCase):
 
     # Setup imu buffer
     start_idx = 0
-    end_idx = 20
+    end_idx = 10
     # end_idx = len(imu_data.timestamps) - 1
     imu_buf = imu_data.form_imu_buffer(start_idx, end_idx)
 
@@ -4539,25 +4566,15 @@ class TestFactors(unittest.TestCase):
     # Propagate imu measurements
     data = imu_factor_propagate(imu_buf, imu_params, sb_i)
 
-    # dT = tf(data.dC, data.dr)
-    # T_WS_j_est = T_WS_i @ dT
-    # ts_j = imu_buf.ts[-1]
-    # T_WS_j_gnd = imu_data.poses[ts_j]
-    # print(np.round(T_WS_j_est, 4))
-    # print(np.round(T_WS_j_gnd, 4))
-
     # Check propagation
-    ts_j = imu_data.timestamps[end_idx]
+    ts_j = imu_data.timestamps[end_idx - 1]
     T_WS_j_est = T_WS_i @ tf(data.dC, data.dr)
     C_WS_j_est = tf_rot(T_WS_j_est)
     T_WS_j_gnd = imu_data.poses[ts_j]
     C_WS_j_gnd = tf_rot(T_WS_j_gnd)
     # -- Position
     trans_diff = norm(tf_trans(T_WS_j_gnd) - tf_trans(T_WS_j_est))
-    print(f"T_WS_j_est:\n {np.round(T_WS_j_est, 5)}", end="\n\n")
-    # print()
-    # print(f"T_WS_j_gnd:\n {T_WS_j_gnd}")
-    # self.assertTrue(trans_diff < 0.05)
+    self.assertTrue(trans_diff < 0.05)
     # -- Rotation
     dC = C_WS_j_gnd.T * C_WS_j_est
     dq = quat_normalize(rot2quat(dC))
@@ -4582,7 +4599,7 @@ class TestFactors(unittest.TestCase):
 
     # Setup imu buffer
     start_idx = 0
-    end_idx = 20
+    end_idx = 10
     imu_buf = imu_data.form_imu_buffer(start_idx, end_idx)
 
     # Pose i
@@ -4611,25 +4628,15 @@ class TestFactors(unittest.TestCase):
     param_ids = [0, 1, 2, 3]
     factor = imu_factor_setup(param_ids, imu_buf, imu_params, sb_i)
 
-    # print(f"dr: {factor.data.dr}")
-    # print(f"dv: {factor.data.dv}")
-    # print(f"dC: \n{factor.data.dC}")
-    # print(f"ba: {factor.data.ba}")
-    # print(f"bg: {factor.data.bg}")
-    # print(f"Dt: {factor.data.Dt}")
-
     # Evaluate factor
     params = [pose_i, sb_i, pose_j, sb_j]
-    # r, jacs = factor.eval(params)
-    r, _ = factor.eval(params)
-    # factor.eval(params)
-    print(f"cost: {0.5 * r.T @ r}")
+    factor.eval(params)
 
-    # # Test jacobians
-    # self.assertTrue(check_factor_jacobian(factor, params, 0, "J_pose_i"))
-    # self.assertTrue(check_factor_jacobian(factor, params, 1, "J_sb_i"))
-    # self.assertTrue(check_factor_jacobian(factor, params, 2, "J_pose_j"))
-    # self.assertTrue(check_factor_jacobian(factor, params, 3, "J_sb_j"))
+    # Test jacobians
+    self.assertTrue(check_factor_jacobian(factor, params, 0, "J_pose_i"))
+    self.assertTrue(check_factor_jacobian(factor, params, 1, "J_sb_i"))
+    self.assertTrue(check_factor_jacobian(factor, params, 2, "J_pose_j"))
+    self.assertTrue(check_factor_jacobian(factor, params, 3, "J_sb_j"))
 
 
 class TestFactorGraph(unittest.TestCase):
@@ -4775,6 +4782,7 @@ class TestFactorGraph(unittest.TestCase):
 
     poses_init = []
     poses_est = []
+    sb_est = []
     graph = FactorGraph()
 
     # -- Pose i
@@ -4791,21 +4799,19 @@ class TestFactorGraph(unittest.TestCase):
     bg_i = np.array([0.0, 0.0, 0.0])
     sb_i = speed_biases_setup(ts_i, vel_i, ba_i, bg_i)
     sb_i_id = graph.add_param(sb_i)
+    sb_est.append(sb_i)
 
     for ts_idx in range(start_idx + window_size, end_idx, window_size):
       # -- Pose j
       ts_j = imu0_data.timestamps[ts_idx]
       T_WS_j = imu0_data.poses[ts_j]
       # ---- Pertrub pose j
-      trans_rand = np.random.rand(3) * 0.5
-      rvec_rand = np.random.rand(3) * 0.1
-      T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
+      # trans_rand = np.random.rand(3) * 0.05
+      # rvec_rand = np.random.rand(3) * 0.01
+      # T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
       # ---- Add to factor graph
       pose_j = pose_setup(ts_j, T_WS_j)
       pose_j_id = graph.add_param(pose_j)
-      # ---- Keep track of initial and estimate pose
-      poses_init.append(T_WS_j)
-      poses_est.append(pose_j)
 
       # -- Speed and biases j
       vel_j = imu0_data.vel[ts_j]
@@ -4813,6 +4819,11 @@ class TestFactorGraph(unittest.TestCase):
       bg_j = np.array([0.0, 0.0, 0.0])
       sb_j = speed_biases_setup(ts_j, vel_j, ba_j, bg_j)
       sb_j_id = graph.add_param(sb_j)
+
+      # ---- Keep track of initial and estimate pose
+      poses_init.append(T_WS_j)
+      poses_est.append(pose_j)
+      sb_est.append(sb_j)
 
       # -- Imu Factor
       param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
@@ -4839,11 +4850,34 @@ class TestFactorGraph(unittest.TestCase):
       pos_init = np.array([tf_trans(T) for T in poses_init])
       pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
 
+      sb_ts0 = sb_est[0].ts
+      sb_time = np.array([ts2sec(sb.ts - sb_ts0) for sb in sb_est])
+      vel_est = np.array([sb.param[0:3] for sb in sb_est])
+      ba_est = np.array([sb.param[3:6] for sb in sb_est])
+      bg_est = np.array([sb.param[6:9] for sb in sb_est])
+
       plt.figure()
+      plt.subplot(411)
       plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
       plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")
+
+      plt.subplot(412)
+      plt.plot(sb_time, vel_est[:, 0], 'r-')
+      plt.plot(sb_time, vel_est[:, 1], 'g-')
+      plt.plot(sb_time, vel_est[:, 2], 'b-')
+
+      plt.subplot(413)
+      plt.plot(sb_time, ba_est[:, 0], 'r-')
+      plt.plot(sb_time, ba_est[:, 1], 'g-')
+      plt.plot(sb_time, ba_est[:, 2], 'b-')
+
+      plt.subplot(414)
+      plt.plot(sb_time, bg_est[:, 0], 'r-')
+      plt.plot(sb_time, bg_est[:, 1], 'g-')
+      plt.plot(sb_time, bg_est[:, 2], 'b-')
+
       plt.show()
 
   def test_factor_graph_solve_vio(self):
