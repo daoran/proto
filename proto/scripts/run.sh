@@ -32,7 +32,7 @@ memcheck() {
 # python3 python/proto.py TestFactorGraph
 # python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vo
 # python3 python/proto.py TestFactorGraph.test_factor_graph_solve_io
-python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vio
+# python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vio
 # python3 python/proto.py TestFeatureTracking.test_spread_keypoints
 # python3 python/proto.py TestFeatureTracking.test_grid_detect
 # python3 python/proto.py TestFeatureTracking.test_optflow_track
@@ -41,9 +41,8 @@ python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vio
 # python3 python/proto.py TestFeatureTracker.test_initialize
 # python3 python/proto.py TestFeatureTracker.test_update
 # python3 python/proto.py TestStateEstimator
-# python3 python/proto.py TestSimulation.test_sim_imu_circle
-# python3 python/proto.py TestSimulation.test_sim_imu_circle
 # python3 python/proto.py TestSimulation.test_sim_data
+python3 python/proto.py TestSimulation.test_sim_feature_tracker
 
 # make format_code
 # ctags -R lib

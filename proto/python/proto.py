@@ -3157,6 +3157,7 @@ class FeatureTracker:
       self._add_features(indices, imgs, pts, kp_size, inliers)
 
   def _detect_nonoverlaps(self, camera_images):
+    """ Detect non-overlapping features """
     for idx in self.cam_params:
       # Detect keypoints
       img = camera_images[idx]
@@ -3301,10 +3302,6 @@ def visualize_tracking(ft_data):
     viz.append(cam_viz)
 
   return cv2.hconcat(viz)
-
-
-class SimFeatureTracker:
-  """ Sim Feature tracker """
 
 
 # STATE-ESTIMATOR #############################################################
@@ -3495,15 +3492,6 @@ class CameraEvent:
   """ Camera Event """
   ts: int
   cam_idx: int
-  feature_ids: List[int]
-  measurements: List[np.array]
-
-
-@dataclass
-class CameraImageEvent:
-  """ Camera Event """
-  ts: int
-  cam_idx: int
   image_path: str
 
 
@@ -3680,11 +3668,11 @@ class EurocDataset:
 
     # -- Add cam0 events
     for ts, img_path in self.cam0_images.items():
-      self.timeline.add_event(ts, CameraImageEvent(ts, 0, img_path))
+      self.timeline.add_event(ts, CameraEvent(ts, 0, img_path))
 
     # -- Add cam1 events
     for ts, img_path in self.cam1_images.items():
-      self.timeline.add_event(ts, CameraImageEvent(ts, 1, img_path))
+      self.timeline.add_event(ts, CameraEvent(ts, 1, img_path))
 
 
 ###############################################################################
@@ -3847,6 +3835,7 @@ class SimData:
 
     # Simulate camera
     self.mcam_data = {}
+    self.cam_exts = {}
     if kwargs.get("sim_cams", True):
       # -- cam0
       self.cam0_params = self._setup_camera(0)
@@ -3854,6 +3843,7 @@ class SimData:
       r_BC0 = np.array([0.0, 0.0, 0.0])
       self.T_BC0 = tf(C_BC0, r_BC0)
       self.mcam_data[0] = self._sim_cam(0, self.cam0_params, self.T_BC0)
+      self.cam_exts[0] = extrinsics_setup(self.T_BC0)
       # -- cam1
       self.cam1_params = self._setup_camera(1)
       C_BC1 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
@@ -3861,9 +3851,18 @@ class SimData:
       self.T_BC1 = tf(C_BC1, r_BC1)
       # -- Multicam data
       self.mcam_data[1] = self._sim_cam(1, self.cam1_params, self.T_BC1)
+      self.cam_exts[1] = extrinsics_setup(self.T_BC1)
 
     # Timeline
     self.timeline = self._form_timeline()
+
+  def get_camera_params(self, cam_idx):
+    """ Get camera parameters """
+    return self.mcam_data[cam_idx].camera
+
+  def get_camera_extrinsics(self, cam_idx):
+    """ Get camera extrinsics """
+    return self.cam_exts[cam_idx]
 
   @staticmethod
   def _setup_camera(cam_idx):
@@ -3999,7 +3998,9 @@ class SimData:
         frame = cam_data.frames[ts]
         fids = frame.feature_ids
         kps = frame.measurements
-        cam_event = CameraEvent(ts, cam_idx, fids, kps)
+        sim_img = np.block([fids, kps])
+
+        cam_event = CameraEvent(ts, cam_idx, sim_img)
         timeline.add_event(ts, cam_event)
 
     return timeline
@@ -4019,6 +4020,31 @@ class SimData:
         f.flush()
 
     return sim_data
+
+
+class SimFeatureTracker(FeatureTracker):
+  """ Sim Feature Tracker """
+
+  def __init__(self, sim_data):
+    super().__init__()
+    self.sim_data = sim_data
+
+  def update(self, ts, camera_images):
+    """ Update Sim Feature Tracker """
+    # if self.frame_idx == 0:
+    #   self._detect_new(camera_images)
+    #   self.features_tracking = self.num_tracking()
+    # else:
+    #   self._track_features(camera_images)
+    #   if (self.num_tracking() / self.features_tracking) < 0.7:
+    #     self._detect_new(camera_images)
+
+    # Update
+    self.frame_idx += 1
+    self.prev_ts = ts
+    self.prev_camera_images = camera_images
+
+    return None
 
 
 ###############################################################################
@@ -4840,7 +4866,8 @@ class TestFactorGraph(unittest.TestCase):
     poses_est = []
     pose_k = None
     mcam_buf = MultiCameraBuffer(2)
-    tracker = Tracker()
+    feature_tracker = FeatureTracker()
+    tracker = Tracker(feature_tracker)
 
     # -- Add cam0
     cam0_idx = 0
@@ -5158,7 +5185,8 @@ class TestStateEstimator(unittest.TestCase):
     self.cam1_exts = extrinsics_setup(T_BC1)
 
     # Setup tracker
-    self.tracker = Tracker()
+    feature_tracker = FeatureTracker()
+    self.tracker = Tracker(feature_tracker)
     self.tracker.add_camera(0, self.cam0, self.cam0_exts)
     self.tracker.add_camera(1, self.cam1, self.cam1_exts)
     self.tracker.add_overlap(0, 1)
@@ -5326,6 +5354,24 @@ class TestSimulation(unittest.TestCase):
 
       plt.subplots_adjust(hspace=0.9)
       plt.show()
+
+  def test_sim_feature_tracker(self):
+    """ Test SimFeatureTracker """
+    # Sim data
+    circle_r = 5.0
+    circle_v = 1.0
+    pickle_path = '/tmp/sim_data.pickle'
+    sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
+    cam0_params = sim_data.get_camera_params(0)
+    cam1_params = sim_data.get_camera_params(1)
+    cam0_exts = sim_data.get_camera_exts(0)
+    cam1_exts = sim_data.get_camera_exts(1)
+
+    # Sim feature tracker
+    feature_tracker = SimFeatureTracker(sim_data)
+    feature_tracker.add_camera(0, cam0_params, cam0_exts)
+    feature_tracker.add_camera(1, cam1_params, cam1_exts)
+    feature_tracker.add_overlap(0, 1)
 
 
 if __name__ == '__main__':
