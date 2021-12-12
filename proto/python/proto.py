@@ -5520,8 +5520,8 @@ class TestFeatureTracker(unittest.TestCase):
         break
 
 
-class TestStateEstimator(unittest.TestCase):
-  """ Test State Estimator """
+class TestTracker(unittest.TestCase):
+  """ Test Tracker """
 
   def setUp(self):
     # Load test data
@@ -5533,6 +5533,13 @@ class TestStateEstimator(unittest.TestCase):
     img1_path = self.dataset.cam1_images[ts]
     self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
     self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+    # Imu params
+    noise_acc = 0.08  # accelerometer measurement noise stddev.
+    noise_gyr = 0.004  # gyroscope measurement noise stddev.
+    noise_ba = 0.00004  # accelerometer bias random work noise stddev.
+    noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
+    imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
 
     # Setup cameras
     # -- cam0
@@ -5563,30 +5570,177 @@ class TestStateEstimator(unittest.TestCase):
     # Setup tracker
     feature_tracker = FeatureTracker()
     self.tracker = Tracker(feature_tracker)
+    self.tracker.add_imu(imu_params)
     self.tracker.add_camera(0, self.cam0, self.cam0_exts)
     self.tracker.add_camera(1, self.cam1, self.cam1_exts)
     self.tracker.add_overlap(0, 1)
 
-  def test_tracker_vision_callback(self):
-    """ Test Tracker.vision_callback() """
-    for ts in self.dataset.timestamps[100:]:
-      # Load images
-      img0_path = self.dataset.cam0_images[ts]
-      img1_path = self.dataset.cam1_images[ts]
-      img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
-      img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+  def test_tracker_add_camera(self):
+    """ Test Tracker.add_camera() """
+    self.assertTrue(len(self.tracker.cam_params), 2)
+    self.assertTrue(len(self.tracker.cam_geoms), 2)
+    self.assertTrue(len(self.tracker.cam_exts), 2)
 
-      # Feed camera images to feature tracker
-      ft_data = self.tracker.vision_callback(ts, {0: img0, 1: img1})
-      viz = visualize_tracking(ft_data)
+  def test_tracker_set_initial_pose(self):
+    """ Test Tracker.set_initial_pose() """
+    self.tracker.set_initial_pose(eye(4))
+    self.assertTrue(self.tracker.pose_init is not None)
+    self.assertTrue(np.array_equal(self.tracker.pose_init, eye(4)))
 
-      # Visualize
-      sys.stdout.flush()
-      cv2.imshow('viz', viz)
-      # if cv2.waitKey(0) == ord('q'):
-      #   break
-      if cv2.waitKey(1) == ord('q'):
-        break
+  def test_tracker_inertial_callback(self):
+    """ Test Tracker.inertial_callback() """
+    ts = 0
+    acc = np.array([0.0, 0.0, 10.0])
+    gyr = np.array([0.0, 0.0, 0.0])
+    self.tracker.inertial_callback(ts, acc, gyr)
+    self.assertEqual(self.tracker.imu_buf.length(), 1)
+    self.assertTrue(self.tracker.imu_started)
+
+  def test_tracker_triangulate(self):
+    """ Test Tracker._triangulate() """
+    # Feature in world frame
+    p_W = np.array([1.0, 0.01, 0.02])
+
+    # Body pose in world frame
+    C_WB = euler321(*deg2rad([-90.0, 0.0, -90.0]))
+    r_WB = np.array([0.0, 0.0, 0.0])
+    T_WB = tf(C_WB, r_WB)
+
+    # Camera parameters and geometry
+    cam_i = 0
+    cam_j = 1
+    cam_params_i = self.tracker.cam_params[cam_i]
+    cam_params_j = self.tracker.cam_params[cam_j]
+    cam_geom_i = self.tracker.cam_geoms[cam_i]
+    cam_geom_j = self.tracker.cam_geoms[cam_j]
+
+    # Camera extrinsics
+    T_BCi = pose2tf(self.tracker.cam_exts[cam_i].param)
+    T_BCj = pose2tf(self.tracker.cam_exts[cam_j].param)
+
+    # Point relative to cam_i and cam_j
+    p_Ci = tf_point(inv(T_WB @ T_BCi), p_W)
+    p_Cj = tf_point(inv(T_WB @ T_BCj), p_W)
+
+    # Image point z_i and z_j
+    z_i = cam_geom_i.project(cam_params_i.param, p_Ci)
+    z_j = cam_geom_j.project(cam_params_j.param, p_Cj)
+
+    # Triangulate
+    p_W_est = self.tracker._triangulate(cam_i, cam_j, z_i, z_j, T_WB)
+
+    # Assert
+    self.assertTrue(np.allclose(p_W_est, p_W))
+
+  def test_tracker_add_pose(self):
+    """ Test Tracker._add_pose() """
+    # Timestamp
+    ts = 0
+
+    # Body pose in world frame
+    C_WB = euler321(*deg2rad([-90.0, 0.0, -90.0]))
+    r_WB = np.array([0.0, 0.0, 0.0])
+    T_WB = tf(C_WB, r_WB)
+
+    # Add pose
+    pose = self.tracker._add_pose(ts, T_WB)
+    self.assertTrue(pose is not None)
+
+  def test_tracker_add_feature(self):
+    """ Test Tracker._add_feature() """
+    # Feature in world frame
+    p_W = np.array([1.0, 0.01, 0.02])
+
+    # Body pose in world frame
+    C_WB = euler321(*deg2rad([-90.0, 0.0, -90.0]))
+    r_WB = np.array([0.0, 0.0, 0.0])
+    T_WB = tf(C_WB, r_WB)
+
+    # Project world point to image plane
+    cam_idx = 0
+    cam_params = self.tracker.cam_params[cam_idx]
+    cam_geom = self.tracker.cam_geoms[cam_idx]
+    T_BC = pose2tf(self.tracker.cam_exts[cam_idx].param)
+    p_C = tf_point(inv(T_WB @ T_BC), p_W)
+    z = cam_geom.project(cam_params.param, p_C)
+
+    # Add feature
+    fid = 0
+    ts = 0
+    self.tracker._add_feature(fid, ts, cam_idx, z)
+
+    # Assert
+    self.assertTrue(fid in self.tracker.features)
+    self.assertEqual(len(self.tracker.features), 1)
+
+  def test_tracker_update_feature(self):
+    """ Test Tracker._update_feature() """
+    # Feature in world frame
+    p_W = np.array([1.0, 0.01, 0.02])
+
+    # Body pose in world frame
+    C_WB = euler321(*deg2rad([-90.0, 0.0, -90.0]))
+    r_WB = np.array([0.0, 0.0, 0.0])
+    T_WB = tf(C_WB, r_WB)
+
+    # Camera parameters and geometry
+    cam_i = 0
+    cam_j = 1
+    cam_params_i = self.tracker.cam_params[cam_i]
+    cam_params_j = self.tracker.cam_params[cam_j]
+    cam_geom_i = self.tracker.cam_geoms[cam_i]
+    cam_geom_j = self.tracker.cam_geoms[cam_j]
+
+    # Project p_W to image point z_i and z_j
+    T_BCi = pose2tf(self.tracker.cam_exts[cam_i].param)
+    T_BCj = pose2tf(self.tracker.cam_exts[cam_j].param)
+    p_Ci = tf_point(inv(T_WB @ T_BCi), p_W)
+    p_Cj = tf_point(inv(T_WB @ T_BCj), p_W)
+    z_i = cam_geom_i.project(cam_params_i.param, p_Ci)
+    z_j = cam_geom_j.project(cam_params_j.param, p_Cj)
+
+    # Add feature
+    fid = 0
+    ts = 0
+    self.tracker._add_feature(fid, ts, cam_i, z_i)
+    self.tracker._update_feature(fid, ts, cam_j, z_j, T_WB)
+
+    # Assert
+    feature = self.tracker.features[fid]
+    p_W_est = feature.param
+    self.assertTrue(fid in self.tracker.features)
+    self.assertEqual(len(self.tracker.features), 1)
+    self.assertTrue(feature.data.initialized())
+    self.assertTrue(np.allclose(p_W_est, p_W))
+
+  def test_tracker_process_features(self):
+    """ Test Tracker._process_features() """
+    pass
+
+  def test_tracker_add_keyframe(self):
+    """ Test Tracker._add_keyframe() """
+    pass
+
+  # def test_tracker_vision_callback(self):
+  #   """ Test Tracker.vision_callback() """
+  #   for ts in self.dataset.timestamps[100:]:
+  #     # Load images
+  #     img0_path = self.dataset.cam0_images[ts]
+  #     img1_path = self.dataset.cam1_images[ts]
+  #     img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+  #     img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+  #
+  #     # Feed camera images to feature tracker
+  #     ft_data = self.tracker.vision_callback(ts, {0: img0, 1: img1})
+  #     viz = visualize_tracking(ft_data)
+  #
+  #     # Visualize
+  #     sys.stdout.flush()
+  #     cv2.imshow('viz', viz)
+  #     # if cv2.waitKey(0) == ord('q'):
+  #     #   break
+  #     if cv2.waitKey(1) == ord('q'):
+  #       break
 
 
 # CALIBRATION #################################################################
