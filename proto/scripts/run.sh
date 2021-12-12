@@ -41,6 +41,7 @@ memcheck() {
 # python3 python/proto.py TestFeatureTracker.test_initialize
 # python3 python/proto.py TestFeatureTracker.test_update
 # python3 python/proto.py TestStateEstimator
+# python3 python/proto.py TestSimulation.test_sim_camera_frame
 # python3 python/proto.py TestSimulation.test_sim_data
 python3 python/proto.py TestSimulation.test_sim_feature_tracker
 

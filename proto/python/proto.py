@@ -3556,7 +3556,7 @@ class Timeline:
 
   def get_timestamps(self):
     """ Get timestamps """
-    return self.data.keys()
+    return sorted(list(self.data.keys()))
 
   def add_event(self, ts, event):
     """ Add event """
@@ -3794,7 +3794,7 @@ class SimCameraFrame:
       p_W = features[i, :]
       p_C = tf_point(T_CiW, p_W)
       if p_C[2] < 0.0:
-        return
+        continue
 
       # Check to see if image point is within image plane
       z = self.cam_geom.project(self.cam_params, p_C)
@@ -3803,6 +3803,10 @@ class SimCameraFrame:
       if x_ok and y_ok:
         self.measurements.append(z)
         self.feature_ids.append(i)
+
+  def num_measurements(self):
+    """ Return number of measurements """
+    return len(self.measurements)
 
   def draw_measurements(self):
     """ Returns camera measurements in an image """
@@ -3856,7 +3860,7 @@ class SimData:
     self.circle_v = circle_v
     self.cam_rate = 10.0
     self.imu_rate = 200.0
-    self.nb_features = 1000
+    self.nb_features = 200
 
     # Trajectory data
     self.g = np.array([0.0, 0.0, 9.81])
@@ -3902,6 +3906,31 @@ class SimData:
   def get_camera_extrinsics(self, cam_idx):
     """ Get camera extrinsics """
     return self.cam_exts[cam_idx]
+
+  def plot_scene(self):
+    """ Plot 3D Scene """
+    # Setup
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+
+    # Plot features
+    features = sim_data.features
+    ax.scatter3D(features[:, 0], features[:, 1], features[:, 2])
+
+    # Plot camera frames
+    idx = 0
+    for ts, T_WB in sim_data.imu0_data.poses.items():
+      if idx % 100 == 0:
+        T_BC0 = pose2tf(sim_data.cam_exts[0].param)
+        T_BC1 = pose2tf(sim_data.cam_exts[1].param)
+        plot_tf(ax, T_WB @ T_BC0)
+        plot_tf(ax, T_WB @ T_BC1)
+      if idx > 3000:
+        break
+      idx += 1
+
+    # Show
+    plt.show()
 
   @staticmethod
   def create_or_load(circle_r, circle_v, pickle_path):
@@ -5475,63 +5504,30 @@ class TestSimulation(unittest.TestCase):
 
     # Loop through timeline events
     mcam_buf = MultiCameraBuffer(2)
-    # for ts in sim_data.timeline.get_timestamps():
-    #   for event in sim_data.timeline.get_events(ts):
-    #     if isinstance(event, CameraEvent):
-    #       if event.cam_idx == 0:
-    #         kps = [data[1] for data in event.image]
-    #         print(ts, len(kps))
-    #         sys.stdout.flush()
-    #         img0 = np.zeros((img_h, img_w), dtype=np.uint8)
-    #         viz = draw_keypoints(img0, kps)
-    #         cv2.imshow('viz', viz)
-    #         cv2.waitKey(100)
-
-    # mcam_buf.add(event.ts, event.cam_idx, event.image)
-    # if mcam_buf.ready():
-    #   mcam_data = mcam_buf.get_data()
-    #   # ft_data = feature_tracker.update(ts, mcam_data)
-    #   # self.assertTrue(ft_data is not None)
-    #
-    #   img0 = np.zeros((img_h, img_w), dtype=np.uint8)
-    #   kps = [data[1] for data in mcam_data[0]]
-    #
-    #   # print(len(kps))
-    #   viz = draw_keypoints(img0, kps)
-    #   cv2.imshow('viz', viz)
-    #   cv2.waitKey(10)
-    #
-    #   mcam_buf.reset()
-
-    cam0_data = sim_data.mcam_data[0]
-    for ts in cam0_data.timestamps:
-      cam_frame = cam0_data.frames[ts]
-      kps = [kp for kp in cam_frame.measurements]
-      print(ts, len(kps))
+    for ts in sim_data.timeline.get_timestamps():
+      print(ts, len(sim_data.timeline.get_events(ts)))
       sys.stdout.flush()
-      img0 = np.zeros((img_h, img_w), dtype=np.uint8)
-      viz = draw_keypoints(img0, kps)
-      cv2.imshow('viz', viz)
-      cv2.waitKey(100)
+      for event in sim_data.timeline.get_events(ts):
+        if isinstance(event, CameraEvent):
 
-    # features = sim_data.features
-    #
-    # fig = plt.figure()
-    # ax = plt.axes(projection='3d')
-    # ax.scatter3D(features[:, 0], features[:, 1], features[:, 2])
-    #
-    # idx = 0
-    # for ts, T_WB in sim_data.imu0_data.poses.items():
-    #   if idx % 100 == 0:
-    #     T_BC0 = pose2tf(sim_data.cam_exts[0].param)
-    #     T_BC1 = pose2tf(sim_data.cam_exts[1].param)
-    #     plot_tf(ax, T_WB @ T_BC0)
-    #     plot_tf(ax, T_WB @ T_BC1)
-    #   if idx > 3000:
-    #     break
-    #   idx += 1
-    #
-    # plt.show()
+          mcam_buf.add(event.ts, event.cam_idx, event.image)
+          if mcam_buf.ready():
+            mcam_data = mcam_buf.get_data()
+            ft_data = feature_tracker.update(ts, mcam_data)
+
+            # img0 = np.zeros((img_h, img_w), dtype=np.uint8)
+            # kps = [kp for kp in ft_data[0].keypoints]
+            # viz = draw_keypoints(img0, kps)
+            # cv2.imshow('viz', viz)
+            # cv2.waitKey(0)
+
+            self.assertTrue(ft_data is not None)
+            self.assertTrue(ft_data[0].keypoints)
+            self.assertTrue(ft_data[1].keypoints)
+            self.assertTrue(ft_data[0].feature_ids)
+            self.assertTrue(ft_data[1].feature_ids)
+
+            mcam_buf.reset()
 
 
 if __name__ == '__main__':
