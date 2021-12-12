@@ -2038,11 +2038,10 @@ class MultiCameraBuffer:
     self._ts = []
     self._data = {}
 
-  def add_event(self, cam_event):
+  def add(self, ts, cam_idx, data):
     """ Add camera event """
-    assert isinstance(cam_event, CameraEvent)
-    self._ts.append(cam_event.ts)
-    self._data[cam_event.cam_idx] = cam_event
+    self._ts.append(ts)
+    self._data[cam_idx] = data
 
   def ready(self):
     """ Check whether buffer has all the camera frames ready """
@@ -2056,9 +2055,9 @@ class MultiCameraBuffer:
     """ Get camera indices """
     return self._data.keys()
 
-  def get_data(self, cam_idx):
-    """ Get camera event data """
-    return self._data[cam_idx]
+  def get_data(self):
+    """ Get camera data """
+    return self._data
 
 
 @dataclass
@@ -2556,7 +2555,12 @@ def draw_keypoints(img, kps, inliers=None, **kwargs):
 
   for n, kp in enumerate(kps):
     if inliers[n]:
-      p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
+      p = None
+      if hasattr(kp, 'pt'):
+        p = (int(kp.pt[0]), int(kp.pt[1]))
+      else:
+        p = (int(kp[0]), int(kp[1]))
+
       cv2.circle(viz, p, radius, color, thickness, lineType=linetype)
 
   return viz
@@ -2912,7 +2916,7 @@ class FeatureTrackingData:
   """
   cam_idx: int
   image: np.array
-  keypoints: List[np.array]
+  keypoints: List[cv2.KeyPoint]
   descriptors: np.array = None
   feature_ids: List[int] = None
 
@@ -2941,7 +2945,7 @@ class FeatureTracker:
     self.features_detected = 0
     self.features_tracking = 0
     self.feature_overlaps = {}
-    self.prev_camera_images = None
+    self.prev_mcam_imgs = None
 
     self.cam_idxs = []
     self.cam_params = {}
@@ -2967,6 +2971,10 @@ class FeatureTracker:
       if cam_data is not None:
         feature_ids.extend(cam_data.feature_ids)
     return len(set(feature_ids))
+
+  def _get_camera_indices(self):
+    """ Get camera indices """
+    return [cam_idx for cam_idx, _ in self.cam_params]
 
   def _get_keypoints(self, cam_idx):
     """ Get keypoints observed by camera `cam_idx` """
@@ -3080,11 +3088,11 @@ class FeatureTracker:
 
     return kps
 
-  def _add_features(self, cam_idxs, cam_imgs, cam_pts, kp_size, inliers=None):
+  def _add_features(self, cam_idxs, mcam_imgs, cam_pts, kp_size, inliers=None):
     """ Add features """
     # Pre-check
     assert cam_idxs
-    assert all(cam_idx in cam_imgs for cam_idx in cam_idxs)
+    assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
     assert all(cam_idx in cam_pts for cam_idx in cam_idxs)
 
     # Check if inliers is set else initialize it
@@ -3098,7 +3106,7 @@ class FeatureTracker:
     nb_inliers = int(np.sum(inliers))
     fids = self._form_feature_ids(nb_inliers)
     for idx in cam_idxs:
-      img = cam_imgs[idx]
+      img = mcam_imgs[idx]
       kps = cam_kps[idx]
 
       if self.cam_data[idx] is None:
@@ -3114,11 +3122,11 @@ class FeatureTracker:
       for fid in fids:
         self.feature_overlaps[fid] = 2
 
-  def _update_features(self, cam_idxs, cam_imgs, cam_pts, fids, inliers):
+  def _update_features(self, cam_idxs, mcam_imgs, cam_pts, fids, inliers):
     """ Update features """
     # Pre-check
     assert cam_idxs
-    assert all(cam_idx in cam_imgs for cam_idx in cam_idxs)
+    assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
     assert all(cam_idx in cam_pts for cam_idx in cam_idxs)
 
     # Filter outliers
@@ -3127,7 +3135,7 @@ class FeatureTracker:
 
     # Update camera data
     for idx in cam_idxs:
-      img = cam_imgs[idx]
+      img = mcam_imgs[idx]
       kps = cam_kps[idx]
       self.cam_data[idx] = FeatureTrackingData(idx, img, kps, None, fids)
 
@@ -3148,13 +3156,13 @@ class FeatureTracker:
     kps = grid_detect(self.detector, image, **kwargs)
     return kps
 
-  def _detect_overlaps(self, camera_images):
+  def _detect_overlaps(self, mcam_imgs):
     """ Detect overlapping features """
     # Loop through camera overlaps
     for idx_i, idx_j in self.cam_overlaps:
       # Detect keypoints observed from cam_i
-      img_i = camera_images[idx_i]
-      img_j = camera_images[idx_j]
+      img_i = mcam_imgs[idx_i]
+      img_j = mcam_imgs[idx_j]
       prev_kps = self._get_keypoints(idx_i)
       kps_i = self._detect(img_i, prev_kps=prev_kps)
       if len(kps_i) < 10:
@@ -3180,11 +3188,11 @@ class FeatureTracker:
       inliers = optflow_inliers & ransac_inliers & reproj_inliers
       self._add_features(indices, imgs, pts, kp_size, inliers)
 
-  def _detect_nonoverlaps(self, camera_images):
+  def _detect_nonoverlaps(self, mcam_imgs):
     """ Detect non-overlapping features """
     for idx in self.cam_params:
       # Detect keypoints
-      img = camera_images[idx]
+      img = mcam_imgs[idx]
       prev_kps = self._get_keypoints(idx)
       kps = self._detect(img, prev_kps=prev_kps)
 
@@ -3194,26 +3202,26 @@ class FeatureTracker:
       kp_size = kps[0].size
       self._add_features([idx], {idx: img}, {idx: kps}, kp_size)
 
-  def _detect_new(self, camera_images):
+  def _detect_new(self, mcam_imgs):
     """ Detect new features """
 
     # Detect new features
     if self.mode == "TRACK_DEFAULT":
-      self._detect_overlaps(camera_images)
-      self._detect_nonoverlaps(camera_images)
+      self._detect_overlaps(mcam_imgs)
+      self._detect_nonoverlaps(mcam_imgs)
     elif self.mode == "TRACK_OVERLAPS":
-      self._detect_overlaps(camera_images)
+      self._detect_overlaps(mcam_imgs)
     elif self.mode == "TRACK_INDEPENDENT":
-      self._detect_nonoverlaps(camera_images)
+      self._detect_nonoverlaps(mcam_imgs)
     else:
       raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
 
-  def _track_through_time(self, camera_images, cam_idx):
+  def _track_through_time(self, mcam_imgs, cam_idx):
     """ Track features through time """
 
     # Setup images
-    img_km1 = self.prev_camera_images[cam_idx]
-    img_k = camera_images[cam_idx]
+    img_km1 = self.prev_mcam_imgs[cam_idx]
+    img_k = mcam_imgs[cam_idx]
 
     # Setup keypoints and feature_ids
     kps_km1 = self._get_keypoints(cam_idx)
@@ -3234,11 +3242,11 @@ class FeatureTracker:
 
     return (pts_km1, pts_k, feature_ids, inliers)
 
-  def _track_stereo(self, camera_images, idx_i, idx_j, pts_i):
+  def _track_stereo(self, mcam_imgs, idx_i, idx_j, pts_i):
     """ Track feature through stereo-pair """
     # Optical flow
-    img_i = camera_images[idx_i]
-    img_j = camera_images[idx_j]
+    img_i = mcam_imgs[idx_i]
+    img_j = mcam_imgs[idx_j]
     (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
 
     # RANSAC
@@ -3257,36 +3265,36 @@ class FeatureTracker:
 
     return (pts_i, pts_j, inliers)
 
-  def _track_features(self, camera_images):
+  def _track_features(self, mcam_imgs):
     """ Track features """
     # Track features in each camera
     for idx in self.cam_idxs:
       # Track through time
-      track_results = self._track_through_time(camera_images, idx)
+      track_results = self._track_through_time(mcam_imgs, idx)
       (_, pts_k, feature_ids, inliers) = track_results
 
       # Update features
       idxs = [idx]
-      imgs = {idx: camera_images[idx]}
+      imgs = {idx: mcam_imgs[idx]}
       pts = {idx: pts_k}
       self._update_features(idxs, imgs, pts, feature_ids, inliers)
 
-  def update(self, ts, camera_images):
+  def update(self, ts, mcam_imgs):
     """ Update Feature Tracker """
     # Track features
     if self.frame_idx == 0:
-      self._detect_new(camera_images)
+      self._detect_new(mcam_imgs)
       self.features_tracking = self.num_tracking()
 
     else:
-      self._track_features(camera_images)
+      self._track_features(mcam_imgs)
       if (self.num_tracking() / self.features_tracking) < 0.7:
-        self._detect_new(camera_images)
+        self._detect_new(mcam_imgs)
 
     # Update
     self.frame_idx += 1
     self.prev_ts = ts
-    self.prev_camera_images = camera_images
+    self.prev_mcam_imgs = mcam_imgs
 
     return self.cam_data
 
@@ -3516,7 +3524,7 @@ class CameraEvent:
   """ Camera Event """
   ts: int
   cam_idx: int
-  image_path: str
+  image: np.array
 
 
 @dataclass
@@ -3762,39 +3770,46 @@ def create_3d_features_perimeter(origin, dim, nb_features):
 class SimCameraFrame:
   """ Sim camera frame """
 
-  def __init__(self, ts, cam_idx, camera, T_WCi, points_W):
+  def __init__(self, ts, cam_idx, camera, T_WCi, features):
     assert T_WCi.shape == (4, 4)
-    assert points_W.shape[0] > 0
-    assert points_W.shape[1] == 3
+    assert features.shape[0] > 0
+    assert features.shape[1] == 3
 
     self.ts = ts
     self.cam_idx = cam_idx
+    self.T_WCi = T_WCi
+    self.cam_geom = camera.data
+    self.cam_params = camera.param
     self.feature_ids = []
     self.measurements = []
 
     # Setup
-    T_CiW = tf_inv(T_WCi)
-    cam_geom = camera.data
-    cam_params = camera.param
-    img_w, img_h = cam_geom.resolution
-    nb_points = points_W.shape[0]
+    img_w, img_h = self.cam_geom.resolution
+    nb_points = features.shape[0]
 
     # Simulate camera frame
-    self.measurements = []
-    self.feature_ids = []
-
+    T_CiW = tf_inv(self.T_WCi)
     for i in range(nb_points):
       # Project point from world frame to camera frame
-      p_W = points_W[i, :]
+      p_W = features[i, :]
       p_C = tf_point(T_CiW, p_W)
-      z = cam_geom.project(cam_params, p_C)
+      if p_C[2] < 0.0:
+        return
 
       # Check to see if image point is within image plane
+      z = self.cam_geom.project(self.cam_params, p_C)
       x_ok = (z[0] < img_w) and (z[0] > 0.0)
       y_ok = (z[1] < img_h) and (z[1] > 0.0)
       if x_ok and y_ok:
         self.measurements.append(z)
         self.feature_ids.append(i)
+
+  def draw_measurements(self):
+    """ Returns camera measurements in an image """
+    kps = [kp for kp in self.measurements]
+    img_w, img_h = self.cam_geom.resolution
+    img = np.zeros((img_h, img_w), dtype=np.uint8)
+    return draw_keypoints(img, kps)
 
 
 class SimCameraData:
@@ -3841,7 +3856,7 @@ class SimData:
     self.circle_v = circle_v
     self.cam_rate = 10.0
     self.imu_rate = 200.0
-    self.nb_features = 200
+    self.nb_features = 1000
 
     # Trajectory data
     self.g = np.array([0.0, 0.0, 9.81])
@@ -3889,19 +3904,35 @@ class SimData:
     return self.cam_exts[cam_idx]
 
   @staticmethod
+  def create_or_load(circle_r, circle_v, pickle_path):
+    """ Create or load SimData """
+    sim_data = None
+
+    if os.path.exists(pickle_path):
+      with open(pickle_path, 'rb') as f:
+        sim_data = pickle.load(f)
+    else:
+      sim_data = SimData(circle_r, circle_v)
+      with open(pickle_path, 'wb') as f:
+        pickle.dump(sim_data, f)
+        f.flush()
+
+    return sim_data
+
+  @staticmethod
   def _setup_camera(cam_idx):
     """ Setup camera """
     res = [640, 480]
-    fov = 90.0
+    fov = 120.0
     fx = focal_length(res[0], fov)
     fy = focal_length(res[0], fov)
     cx = res[0] / 2.0
-    cy = res[0] / 2.0
+    cy = res[1] / 2.0
 
     proj_model = "pinhole"
     dist_model = "radtan4"
     proj_params = [fx, fy, cx, cy]
-    dist_params = [-0.01, 0.01, 1e-4, 1e-4]
+    dist_params = [0.0, 0.0, 0.0, 0.0]
     params = np.block([*proj_params, *dist_params])
 
     return camera_params_setup(cam_idx, res, proj_model, dist_model, params)
@@ -4032,46 +4063,27 @@ class SimData:
 
     return timeline
 
-  @staticmethod
-  def create_or_load(circle_r, circle_v, pickle_path):
-    """ Create or load SimData """
-    sim_data = None
-
-    if os.path.exists(pickle_path):
-      with open(pickle_path, 'rb') as f:
-        sim_data = pickle.load(f)
-    else:
-      sim_data = SimData(circle_r, circle_v)
-      with open(pickle_path, 'wb') as f:
-        pickle.dump(sim_data, f)
-        f.flush()
-
-    return sim_data
-
 
 class SimFeatureTracker(FeatureTracker):
   """ Sim Feature Tracker """
 
-  def __init__(self, sim_data):
-    super().__init__()
-    self.sim_data = sim_data
+  def __init__(self):
+    FeatureTracker.__init__(self)
 
-  def update(self, ts, camera_images):
+  def update(self, ts, mcam_imgs):
     """ Update Sim Feature Tracker """
-    # if self.frame_idx == 0:
-    #   self._detect_new(camera_images)
-    #   self.features_tracking = self.num_tracking()
-    # else:
-    #   self._track_features(camera_images)
-    #   if (self.num_tracking() / self.features_tracking) < 0.7:
-    #     self._detect_new(camera_images)
+    for cam_idx, cam_data in mcam_imgs.items():
+      kps = [data[1] for data in cam_data]
+      fids = [data[0] for data in cam_data]
+      ft_data = FeatureTrackingData(cam_idx, None, kps, None, fids)
+      self.cam_data[cam_idx] = ft_data
 
     # Update
     self.frame_idx += 1
     self.prev_ts = ts
-    self.prev_camera_images = camera_images
+    self.prev_mcam_imgs = mcam_imgs
 
-    return None
+    return self.cam_data
 
 
 ###############################################################################
@@ -4900,7 +4912,7 @@ class TestFactorGraph(unittest.TestCase):
     poses_est = []
     pose_k = None
     mcam_buf = MultiCameraBuffer(2)
-    feature_tracker = FeatureTracker()
+    feature_tracker = SimFeatureTracker()
     tracker = Tracker(feature_tracker)
 
     # -- Add cam0
@@ -4928,10 +4940,9 @@ class TestFactorGraph(unittest.TestCase):
           tracker.inertial_callback(event.ts, event.acc, event.gyr)
 
         elif isinstance(event, CameraEvent):
-          mcam_buf.add_event(event)
+          mcam_buf.add(event.ts, event.cam_idx, event.image)
           if mcam_buf.ready():
-            cam0_data = mcam_buf.get_data(cam0_idx)
-            cam1_data = mcam_buf.get_data(cam1_idx)
+            mcam_data = mcam_buf.get_data()
 
             # tracker.vision_callback(ts, )
             mcam_buf.reset()
@@ -5167,10 +5178,10 @@ class TestFeatureTracker(unittest.TestCase):
       camera_images[0] = img0
       camera_images[1] = img1
       ft_data = self.feature_tracker.update(ts, camera_images)
-      viz = visualize_tracking(ft_data)
 
       # Visualize
       sys.stdout.flush()
+      viz = visualize_tracking(ft_data)
       cv2.imshow('viz', viz)
       # if cv2.waitKey(0) == ord('q'):
       #   break
@@ -5314,6 +5325,57 @@ class TestSimulation(unittest.TestCase):
       ax.set_zlabel("z [m]")
       plt.show()
 
+  def test_sim_camera_frame(self):
+    """ Test SimCameraFrame() """
+    # Camera properties
+    cam_idx = 0
+    img_w = 640
+    img_h = 480
+    res = [img_w, img_h]
+    fov = 120.0
+    fx = focal_length(img_w, fov)
+    fy = focal_length(img_w, fov)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+
+    # Camera parameters
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    proj_params = [fx, fy, cx, cy]
+    dist_params = [0.0, 0.0, 0.0, 0.0]
+    params = np.block([*proj_params, *dist_params])
+    camera = camera_params_setup(cam_idx, res, proj_model, dist_model, params)
+
+    # Features
+    features = []
+    for i in np.linspace(-2.0, 2.0, 5):
+      for j in np.linspace(-2.0, 2.0, 5):
+        x = 1.0
+        y = j
+        z = i
+        features.append(np.array([x, y, z]))
+    features = np.array(features)
+
+    # Camera pose
+    C_WC0 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
+    r_WC0 = np.array([0.0, 0.0, 0.0])
+    T_WC0 = tf(C_WC0, r_WC0)
+
+    # Camera frame
+    ts = 0
+    cam_frame = SimCameraFrame(ts, cam_idx, camera, T_WC0, features)
+    self.assertEqual(len(cam_frame.measurements), 9)
+
+    # Visualize
+    # debug = True
+    debug = False
+    if debug:
+      kps = [kp for kp in cam_frame.measurements]
+      img0 = np.zeros((img_h, img_w), dtype=np.uint8)
+      viz = draw_keypoints(img0, kps)
+      cv2.imshow('viz', viz)
+      cv2.waitKey(0)
+
   def test_sim_data(self):
     """ Test SimData() """
     debug_cam = False
@@ -5398,14 +5460,78 @@ class TestSimulation(unittest.TestCase):
     sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
     cam0_params = sim_data.get_camera_params(0)
     cam1_params = sim_data.get_camera_params(1)
-    cam0_exts = sim_data.get_camera_exts(0)
-    cam1_exts = sim_data.get_camera_exts(1)
+    cam0_exts = sim_data.get_camera_extrinsics(0)
+    cam1_exts = sim_data.get_camera_extrinsics(1)
+
+    # Image size
+    cam_res = cam0_params.data.resolution
+    img_w, img_h = cam_res
 
     # Sim feature tracker
-    feature_tracker = SimFeatureTracker(sim_data)
+    feature_tracker = SimFeatureTracker()
     feature_tracker.add_camera(0, cam0_params, cam0_exts)
     feature_tracker.add_camera(1, cam1_params, cam1_exts)
     feature_tracker.add_overlap(0, 1)
+
+    # Loop through timeline events
+    mcam_buf = MultiCameraBuffer(2)
+    # for ts in sim_data.timeline.get_timestamps():
+    #   for event in sim_data.timeline.get_events(ts):
+    #     if isinstance(event, CameraEvent):
+    #       if event.cam_idx == 0:
+    #         kps = [data[1] for data in event.image]
+    #         print(ts, len(kps))
+    #         sys.stdout.flush()
+    #         img0 = np.zeros((img_h, img_w), dtype=np.uint8)
+    #         viz = draw_keypoints(img0, kps)
+    #         cv2.imshow('viz', viz)
+    #         cv2.waitKey(100)
+
+    # mcam_buf.add(event.ts, event.cam_idx, event.image)
+    # if mcam_buf.ready():
+    #   mcam_data = mcam_buf.get_data()
+    #   # ft_data = feature_tracker.update(ts, mcam_data)
+    #   # self.assertTrue(ft_data is not None)
+    #
+    #   img0 = np.zeros((img_h, img_w), dtype=np.uint8)
+    #   kps = [data[1] for data in mcam_data[0]]
+    #
+    #   # print(len(kps))
+    #   viz = draw_keypoints(img0, kps)
+    #   cv2.imshow('viz', viz)
+    #   cv2.waitKey(10)
+    #
+    #   mcam_buf.reset()
+
+    cam0_data = sim_data.mcam_data[0]
+    for ts in cam0_data.timestamps:
+      cam_frame = cam0_data.frames[ts]
+      kps = [kp for kp in cam_frame.measurements]
+      print(ts, len(kps))
+      sys.stdout.flush()
+      img0 = np.zeros((img_h, img_w), dtype=np.uint8)
+      viz = draw_keypoints(img0, kps)
+      cv2.imshow('viz', viz)
+      cv2.waitKey(100)
+
+    # features = sim_data.features
+    #
+    # fig = plt.figure()
+    # ax = plt.axes(projection='3d')
+    # ax.scatter3D(features[:, 0], features[:, 1], features[:, 2])
+    #
+    # idx = 0
+    # for ts, T_WB in sim_data.imu0_data.poses.items():
+    #   if idx % 100 == 0:
+    #     T_BC0 = pose2tf(sim_data.cam_exts[0].param)
+    #     T_BC1 = pose2tf(sim_data.cam_exts[1].param)
+    #     plot_tf(ax, T_WB @ T_BC0)
+    #     plot_tf(ax, T_WB @ T_BC1)
+    #   if idx > 3000:
+    #     break
+    #   idx += 1
+    #
+    # plt.show()
 
 
 if __name__ == '__main__':
