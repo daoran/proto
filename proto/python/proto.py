@@ -1,5 +1,24 @@
 """
 Proto
+
+Contains the following library code useful for prototyping robotic algorithms:
+
+- YAML
+- TIME
+- PROFILING
+- MATHS
+- LINEAR ALGEBRA
+- GEOMETRY
+- LIE
+- TRANSFORM
+- MATPLOTLIB
+- CV
+- DATASET
+- STATE ESTIMATION
+- CALIBRATION
+- SIMULATION
+- UNITTESTS
+
 """
 import os
 import sys
@@ -28,6 +47,44 @@ import pandas
 
 import cProfile
 from pstats import Stats
+
+###############################################################################
+# YAML
+###############################################################################
+
+
+def load_yaml(yaml_path):
+  """ Load YAML and return a named tuple """
+  assert yaml_path is not None
+  assert yaml_path != ""
+
+  # Load yaml_file
+  yaml_data = None
+  with open(yaml_path, "r") as stream:
+    yaml_data = yaml.safe_load(stream)
+
+  # Convert dict to named tuple
+  data = json.dumps(yaml_data)  # Python dict to json
+  data = json.loads(
+      data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+
+  return data
+
+
+###############################################################################
+# TIME
+###############################################################################
+
+
+def sec2ts(time_s):
+  """ Convert time in seconds to timestamp """
+  return int(time_s * 1e9)
+
+
+def ts2sec(ts):
+  """ Convert timestamp to seconds """
+  return float(ts * 1e-9)
+
 
 ###############################################################################
 # PROFILING
@@ -69,21 +126,6 @@ from math import atan
 def rmse(errors):
   """ Root Mean Squared Error """
   return np.sqrt(np.mean(errors**2))
-
-
-###############################################################################
-# TIME
-###############################################################################
-
-
-def sec2ts(time_s):
-  """ Convert time in seconds to timestamp """
-  return int(time_s * 1e9)
-
-
-def ts2sec(ts):
-  """ Convert timestamp to seconds """
-  return float(ts * 1e-9)
 
 
 ###############################################################################
@@ -979,29 +1021,6 @@ def tf_update(T, dx):
 
 
 ###############################################################################
-# YAML
-###############################################################################
-
-
-def load_yaml(yaml_path):
-  """ Load YAML and return a named tuple """
-  assert yaml_path is not None
-  assert yaml_path != ""
-
-  # Load yaml_file
-  yaml_data = None
-  with open(yaml_path, "r") as stream:
-    yaml_data = yaml.safe_load(stream)
-
-  # Convert dict to named tuple
-  data = json.dumps(yaml_data)  # Python dict to json
-  data = json.loads(
-      data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
-
-  return data
-
-
-###############################################################################
 # MATPLOTLIB
 ###############################################################################
 
@@ -1728,6 +1747,201 @@ def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
     return pinhole_radtan4_setup(cam_idx, cam_res)
   else:
     raise RuntimeError(f"Unrecognized [{proj_model}]-[{dist_model}] combo!")
+
+
+################################################################################
+# DATASET
+################################################################################
+
+# TIMELINE######################################################################
+
+
+@dataclass
+class CameraEvent:
+  """ Camera Event """
+  ts: int
+  cam_idx: int
+  image: np.array
+
+
+@dataclass
+class ImuEvent:
+  """ IMU Event """
+  ts: int
+  imu_idx: int
+  acc: np.array
+  gyr: np.array
+
+
+@dataclass
+class Timeline:
+  """ Timeline """
+
+  def __init__(self):
+    self.data = {}
+
+  def num_timestamps(self):
+    """ Return number of timestamps """
+    return len(self.data)
+
+  def num_events(self):
+    """ Return number of events """
+    nb_events = 0
+    for _, events in self.data:
+      nb_events += len(events)
+    return nb_events
+
+  def get_timestamps(self):
+    """ Get timestamps """
+    return sorted(list(self.data.keys()))
+
+  def add_event(self, ts, event):
+    """ Add event """
+    if ts not in self.data:
+      self.data[ts] = [event]
+    else:
+      self.data[ts].append(event)
+
+  def get_events(self, ts):
+    """ Get events """
+    return self.data[ts]
+
+
+# EUROC ########################################################################
+
+
+class EurocSensor:
+  """ Euroc Sensor """
+
+  def __init__(self, yaml_path):
+    # Load yaml file
+    config = load_yaml(yaml_path)
+
+    # General sensor definitions.
+    self.sensor_type = config.sensor_type
+    self.comment = config.comment
+
+    # Sensor extrinsics wrt. the body-frame.
+    self.T_BS = np.array(config.T_BS.data).reshape((4, 4))
+
+    # Camera specific definitions.
+    if config.sensor_type == "camera":
+      self.rate_hz = config.rate_hz
+      self.resolution = config.resolution
+      self.camera_model = config.camera_model
+      self.intrinsics = config.intrinsics
+      self.distortion_model = config.distortion_model
+      self.distortion_coefficients = config.distortion_coefficients
+
+    elif config.sensor_type == "imu":
+      self.rate_hz = config.rate_hz
+      self.gyro_noise_density = config.gyroscope_noise_density
+      self.gyro_random_walk = config.gyroscope_random_walk
+      self.accel_noise_density = config.accelerometer_noise_density
+      self.accel_random_walk = config.accelerometer_random_walk
+
+
+@dataclass
+class EurocImuData:
+  """ Euroc Imu data """
+  timestamps: List[float]
+  acc: Dict[float, np.array]
+  gyr: Dict[float, np.array]
+
+
+class EurocDataset:
+  """ Euroc Dataset """
+
+  def __init__(self, data_path):
+    # Form sensor paths
+    self.imu0_path = os.path.join(data_path, 'mav0', 'imu0')
+    self.cam0_path = os.path.join(data_path, 'mav0', 'cam0')
+    self.cam1_path = os.path.join(data_path, 'mav0', 'cam1')
+
+    # Data
+    self.timestamps = []
+    # -- Configs
+    self.imu0_config = {}
+    self.cam0_config = {}
+    self.cam1_config = {}
+    # -- Measurements
+    self.imu0_data = {}
+    self.cam0_images = {}
+    self.cam1_images = {}
+    # -- Timeline
+    self.timeline = Timeline()
+
+    # Load
+    self._load_euroc_dataset(data_path)
+
+  def _load_imu_data(self):
+    # Load config
+    config = EurocSensor(os.path.join(self.imu0_path, 'sensor.yaml'))
+
+    # Load data
+    imu_data = pandas.read_csv(os.path.join(self.imu0_path, 'data.csv'))
+    timestamps = imu_data['#timestamp [ns]']
+    gyr_x = imu_data['w_RS_S_x [rad s^-1]']
+    gyr_y = imu_data['w_RS_S_y [rad s^-1]']
+    gyr_z = imu_data['w_RS_S_z [rad s^-1]']
+    acc_x = imu_data['a_RS_S_x [m s^-2]']
+    acc_y = imu_data['a_RS_S_y [m s^-2]']
+    acc_z = imu_data['a_RS_S_z [m s^-2]']
+
+    gyr_data = {}
+    acc_data = {}
+    idx = 0
+    for ts in timestamps:
+      acc_data[ts] = np.array([acc_x[idx], acc_y[idx], acc_z[idx]])
+      gyr_data[ts] = np.array([gyr_x[idx], gyr_y[idx], gyr_z[idx]])
+      idx += 1
+
+    data = EurocImuData(timestamps, acc_data, gyr_data)
+
+    return (config, data)
+
+  def _load_camera_data(self, cam_path):
+    config = EurocSensor(os.path.join(cam_path, 'sensor.yaml'))
+    image_paths = sorted(glob.glob(os.path.join(cam_path, 'data', '*.png')))
+    images = {}
+
+    for img_file in image_paths:
+      ts_str, _ = os.path.basename(img_file).split('.')
+      ts = int(ts_str)
+      images[ts] = img_file
+      self.timestamps.append(ts)
+
+    return (config, images)
+
+  def _load_euroc_dataset(self, data_path):
+    # Check if directory exists
+    if os.path.isdir(data_path) is False:
+      raise RuntimeError(f"Path {data_path} does not exist!")
+
+    # Load data
+    self.imu0_config, self.imu0_data = self._load_imu_data()
+    self.cam0_config, self.cam0_images = self._load_camera_data(self.cam0_path)
+    self.cam1_config, self.cam1_images = self._load_camera_data(self.cam1_path)
+
+    # Timestamps
+    self.timestamps = sorted(list(set(self.timestamps)))
+
+    # Form timeline
+    # -- Add imu0 events
+    imu_idx = 0
+    for ts in self.imu0_data.timestamps:
+      acc = self.imu0_data.acc[ts]
+      gyr = self.imu0_data.gyr[ts]
+      imu_event = ImuEvent(ts, imu_idx, acc, gyr)
+      self.timeline.add_event(ts, imu_event)
+
+    # -- Add cam0 events
+    for ts, img_path in self.cam0_images.items():
+      self.timeline.add_event(ts, CameraEvent(ts, 0, img_path))
+
+    # -- Add cam1 events
+    for ts, img_path in self.cam1_images.items():
+      self.timeline.add_event(ts, CameraEvent(ts, 1, img_path))
 
 
 ###############################################################################
@@ -3794,201 +4008,6 @@ class AprilGrid:
     return (i, j)
 
 
-################################################################################
-# DATASET
-################################################################################
-
-# TIMELINE######################################################################
-
-
-@dataclass
-class CameraEvent:
-  """ Camera Event """
-  ts: int
-  cam_idx: int
-  image: np.array
-
-
-@dataclass
-class ImuEvent:
-  """ IMU Event """
-  ts: int
-  imu_idx: int
-  acc: np.array
-  gyr: np.array
-
-
-@dataclass
-class Timeline:
-  """ Timeline """
-
-  def __init__(self):
-    self.data = {}
-
-  def num_timestamps(self):
-    """ Return number of timestamps """
-    return len(self.data)
-
-  def num_events(self):
-    """ Return number of events """
-    nb_events = 0
-    for _, events in self.data:
-      nb_events += len(events)
-    return nb_events
-
-  def get_timestamps(self):
-    """ Get timestamps """
-    return sorted(list(self.data.keys()))
-
-  def add_event(self, ts, event):
-    """ Add event """
-    if ts not in self.data:
-      self.data[ts] = [event]
-    else:
-      self.data[ts].append(event)
-
-  def get_events(self, ts):
-    """ Get events """
-    return self.data[ts]
-
-
-# EUROC ########################################################################
-
-
-class EurocSensor:
-  """ Euroc Sensor """
-
-  def __init__(self, yaml_path):
-    # Load yaml file
-    config = load_yaml(yaml_path)
-
-    # General sensor definitions.
-    self.sensor_type = config.sensor_type
-    self.comment = config.comment
-
-    # Sensor extrinsics wrt. the body-frame.
-    self.T_BS = np.array(config.T_BS.data).reshape((4, 4))
-
-    # Camera specific definitions.
-    if config.sensor_type == "camera":
-      self.rate_hz = config.rate_hz
-      self.resolution = config.resolution
-      self.camera_model = config.camera_model
-      self.intrinsics = config.intrinsics
-      self.distortion_model = config.distortion_model
-      self.distortion_coefficients = config.distortion_coefficients
-
-    elif config.sensor_type == "imu":
-      self.rate_hz = config.rate_hz
-      self.gyro_noise_density = config.gyroscope_noise_density
-      self.gyro_random_walk = config.gyroscope_random_walk
-      self.accel_noise_density = config.accelerometer_noise_density
-      self.accel_random_walk = config.accelerometer_random_walk
-
-
-@dataclass
-class EurocImuData:
-  """ Euroc Imu data """
-  timestamps: List[float]
-  acc: Dict[float, np.array]
-  gyr: Dict[float, np.array]
-
-
-class EurocDataset:
-  """ Euroc Dataset """
-
-  def __init__(self, data_path):
-    # Form sensor paths
-    self.imu0_path = os.path.join(data_path, 'mav0', 'imu0')
-    self.cam0_path = os.path.join(data_path, 'mav0', 'cam0')
-    self.cam1_path = os.path.join(data_path, 'mav0', 'cam1')
-
-    # Data
-    self.timestamps = []
-    # -- Configs
-    self.imu0_config = {}
-    self.cam0_config = {}
-    self.cam1_config = {}
-    # -- Measurements
-    self.imu0_data = {}
-    self.cam0_images = {}
-    self.cam1_images = {}
-    # -- Timeline
-    self.timeline = Timeline()
-
-    # Load
-    self._load_euroc_dataset(data_path)
-
-  def _load_imu_data(self):
-    # Load config
-    config = EurocSensor(os.path.join(self.imu0_path, 'sensor.yaml'))
-
-    # Load data
-    imu_data = pandas.read_csv(os.path.join(self.imu0_path, 'data.csv'))
-    timestamps = imu_data['#timestamp [ns]']
-    gyr_x = imu_data['w_RS_S_x [rad s^-1]']
-    gyr_y = imu_data['w_RS_S_y [rad s^-1]']
-    gyr_z = imu_data['w_RS_S_z [rad s^-1]']
-    acc_x = imu_data['a_RS_S_x [m s^-2]']
-    acc_y = imu_data['a_RS_S_y [m s^-2]']
-    acc_z = imu_data['a_RS_S_z [m s^-2]']
-
-    gyr_data = {}
-    acc_data = {}
-    idx = 0
-    for ts in timestamps:
-      acc_data[ts] = np.array([acc_x[idx], acc_y[idx], acc_z[idx]])
-      gyr_data[ts] = np.array([gyr_x[idx], gyr_y[idx], gyr_z[idx]])
-      idx += 1
-
-    data = EurocImuData(timestamps, acc_data, gyr_data)
-
-    return (config, data)
-
-  def _load_camera_data(self, cam_path):
-    config = EurocSensor(os.path.join(cam_path, 'sensor.yaml'))
-    image_paths = sorted(glob.glob(os.path.join(cam_path, 'data', '*.png')))
-    images = {}
-
-    for img_file in image_paths:
-      ts_str, _ = os.path.basename(img_file).split('.')
-      ts = int(ts_str)
-      images[ts] = img_file
-      self.timestamps.append(ts)
-
-    return (config, images)
-
-  def _load_euroc_dataset(self, data_path):
-    # Check if directory exists
-    if os.path.isdir(data_path) is False:
-      raise RuntimeError(f"Path {data_path} does not exist!")
-
-    # Load data
-    self.imu0_config, self.imu0_data = self._load_imu_data()
-    self.cam0_config, self.cam0_images = self._load_camera_data(self.cam0_path)
-    self.cam1_config, self.cam1_images = self._load_camera_data(self.cam1_path)
-
-    # Timestamps
-    self.timestamps = sorted(list(set(self.timestamps)))
-
-    # Form timeline
-    # -- Add imu0 events
-    imu_idx = 0
-    for ts in self.imu0_data.timestamps:
-      acc = self.imu0_data.acc[ts]
-      gyr = self.imu0_data.gyr[ts]
-      imu_event = ImuEvent(ts, imu_idx, acc, gyr)
-      self.timeline.add_event(ts, imu_event)
-
-    # -- Add cam0 events
-    for ts, img_path in self.cam0_images.items():
-      self.timeline.add_event(ts, CameraEvent(ts, 0, img_path))
-
-    # -- Add cam1 events
-    for ts, img_path in self.cam1_images.items():
-      self.timeline.add_event(ts, CameraEvent(ts, 1, img_path))
-
-
 ###############################################################################
 # SIMULATION
 ###############################################################################
@@ -4200,19 +4219,19 @@ class SimData:
   def plot_scene(self):
     """ Plot 3D Scene """
     # Setup
-    fig = plt.figure()
+    plt.figure()
     ax = plt.axes(projection='3d')
 
     # Plot features
-    features = sim_data.features
+    features = self.features
     ax.scatter3D(features[:, 0], features[:, 1], features[:, 2])
 
     # Plot camera frames
     idx = 0
-    for ts, T_WB in sim_data.imu0_data.poses.items():
+    for _, T_WB in self.imu0_data.poses.items():
       if idx % 100 == 0:
-        T_BC0 = pose2tf(sim_data.cam_exts[0].param)
-        T_BC1 = pose2tf(sim_data.cam_exts[1].param)
+        T_BC0 = pose2tf(self.cam_exts[0].param)
+        T_BC1 = pose2tf(self.cam_exts[1].param)
         plot_tf(ax, T_WB @ T_BC0)
         plot_tf(ax, T_WB @ T_BC1)
       if idx > 3000:
@@ -4742,6 +4761,19 @@ class TestCV(unittest.TestCase):
       finite_diff[0:2, i] = (z_diff - z) / step_size
 
     self.assertTrue(matrix_equal(finite_diff, J, tol, True))
+
+
+# DATASET  ####################################################################
+
+
+class TestEuoc(unittest.TestCase):
+  """ Test Euroc dataset loader """
+
+  def test_load(self):
+    """ Test load """
+    data_path = '/data/euroc/raw/V1_01'
+    dataset = EurocDataset(data_path)
+    self.assertTrue(dataset is not None)
 
 
 # STATE ESTIMATION ############################################################
@@ -5753,19 +5785,6 @@ class TestCalibration(unittest.TestCase):
   def test_dummy(self):
     """ Test dummy """
     pass
-
-
-# DATASET  ####################################################################
-
-
-class TestEuoc(unittest.TestCase):
-  """ Test Euroc dataset loader """
-
-  def test_load(self):
-    """ Test load """
-    data_path = '/data/euroc/raw/V1_01'
-    dataset = EurocDataset(data_path)
-    self.assertTrue(dataset is not None)
 
 
 # SIMULATION  #################################################################
