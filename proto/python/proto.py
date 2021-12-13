@@ -331,6 +331,60 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=True):
 ###############################################################################
 
 
+def lerp(x0, x1, t):
+  """ Linear interpolation """
+  return (1.0 - t) * x0 + t * x1
+
+
+def lerp2d(p0, p1, t):
+  """ Linear interpolation 2D """
+  assert len(p0) == 2
+  assert len(p1) == 2
+  assert t <= 1.0 and t >= 0.0
+  x = lerp(p0[0], p1[0], t)
+  y = lerp(p0[1], p1[1], t)
+  return np.array([x, y])
+
+
+def lerp3d(p0, p1, t):
+  """ Linear interpolation 3D """
+  assert len(p0) == 3
+  assert len(p1) == 3
+  assert t <= 1.0 and t >= 0.0
+  x = lerp(p0[0], p1[0], t)
+  y = lerp(p0[1], p1[1], t)
+  z = lerp(p0[2], p1[2], t)
+  return np.array([x, y, z])
+
+
+def circle(r, theta):
+  """ Circle """
+  x = r * cos(theta)
+  y = r * sin(theta)
+  return np.array([x, y])
+
+
+def sphere(rho, theta, phi):
+  """
+  Sphere
+
+  Args:
+
+    rho (float): Sphere radius
+    theta (float): longitude [rad]
+    phi (float): Latitude [rad]
+
+  Returns:
+
+    Point on sphere
+
+  """
+  x = rho * sin(theta) * cos(phi)
+  y = rho * sin(theta) * sin(phi)
+  z = rho * cos(theta)
+  return np.array([x, y, z])
+
+
 def circle_loss(c, x, y):
   """
     Calculate the algebraic distance between the data points and the mean
@@ -1849,11 +1903,24 @@ class EurocImuData:
   gyr: Dict[float, np.array]
 
 
+@dataclass
+class EurocGroundTruth:
+  """ Euroc ground truth """
+
+  def __init__(self):
+    self.timestamps = []
+    self.T_WB = {}
+    self.v_WB = {}
+    self.w_WB = {}
+    self.a_WB = {}
+
+
 class EurocDataset:
   """ Euroc Dataset """
 
   def __init__(self, data_path):
     # Form sensor paths
+    self.data_path = data_path
     self.imu0_path = os.path.join(data_path, 'mav0', 'imu0')
     self.cam0_path = os.path.join(data_path, 'mav0', 'cam0')
     self.cam1_path = os.path.join(data_path, 'mav0', 'cam1')
@@ -1913,6 +1980,39 @@ class EurocDataset:
 
     return (config, images)
 
+  def _load_ground_truth(self):
+    dir_name = 'state_groundtruth_estimate0'
+    data_dir = os.path.join(self.data_path, 'mav0', dir_name)
+    data_csv = os.path.join(data_dir, 'data.csv')
+
+    gt_data = EurocGroundTruth()
+    df = pandas.read_csv(data_csv)
+    df = df.rename(columns=lambda x: x.strip())
+    for _, row in df.iterrows():
+      ts = row['#timestamp']
+
+      rx = row['p_RS_R_x [m]']
+      ry = row['p_RS_R_y [m]']
+      rz = row['p_RS_R_z [m]']
+      qw = row['q_RS_w []']
+      qx = row['q_RS_x []']
+      qy = row['q_RS_y []']
+      qz = row['q_RS_z []']
+      r_WB = np.array([rx, ry, rz])
+      q_WB = np.array([qw, qx, qy, qz])
+      T_WB = tf(q_WB, r_WB)
+
+      vx = row['v_RS_R_x [m s^-1]']
+      vy = row['v_RS_R_y [m s^-1]']
+      vz = row['v_RS_R_z [m s^-1]']
+      v_WB = np.array([vx, vy, vz])
+
+      gt_data.timestamps.append(ts)
+      gt_data.T_WB[ts] = T_WB
+      gt_data.v_WB[ts] = v_WB
+
+    return gt_data
+
   def _load_euroc_dataset(self, data_path):
     # Check if directory exists
     if os.path.isdir(data_path) is False:
@@ -1922,6 +2022,7 @@ class EurocDataset:
     self.imu0_config, self.imu0_data = self._load_imu_data()
     self.cam0_config, self.cam0_images = self._load_camera_data(self.cam0_path)
     self.cam1_config, self.cam1_images = self._load_camera_data(self.cam1_path)
+    self._load_ground_truth()
 
     # Timestamps
     self.timestamps = sorted(list(set(self.timestamps)))
@@ -3793,7 +3894,9 @@ class Tracker:
 
     Args:
 
+      ts (int): Timestamp
       ft_data (Dict[int, FeatureTrackerData]): Multi-camera feature tracker data
+      pose (StateVariable): Body pose in world frame
 
     """
     # Add or update feature
@@ -4766,7 +4869,7 @@ class TestCV(unittest.TestCase):
 # DATASET  ####################################################################
 
 
-class TestEuoc(unittest.TestCase):
+class TestEuroc(unittest.TestCase):
   """ Test Euroc dataset loader """
 
   def test_load(self):
@@ -5748,7 +5851,19 @@ class TestTracker(unittest.TestCase):
 
   def test_tracker_process_features(self):
     """ Test Tracker._process_features() """
-    pass
+    for ts in self.dataset.timestamps[100:]:
+      T_WB = self.dataset.imu0_data.poses[ts]
+      pose = pose_setup(ts, T_WB)
+
+      # Load images
+      img0_path = self.dataset.cam0_images[ts]
+      img1_path = self.dataset.cam1_images[ts]
+      img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+      img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+      # Feed camera images to feature tracker
+      ft_data = self.tracker.feature_tracker.update(ts, {0: img0, 1: img1})
+      self.tracker._process_features(ts, ft_data, pose)
 
   def test_tracker_add_keyframe(self):
     """ Test Tracker._add_keyframe() """
