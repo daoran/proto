@@ -2537,14 +2537,15 @@ class FactorGraph:
     """ Cost """
     return 0.5 * r.T @ r
 
-  def solve(self):
+  def solve(self, verbose=False):
     """ Solve """
     lambda_k = self.solver_lambda
     (param_idxs, H, g, r) = self._evaluate()
 
-    print(f"nb_factors: {len(self.factors)}")
-    print(f"nb_params: {len(self.params)}")
-    self._print_to_console(0, r)
+    if verbose:
+      print(f"nb_factors: {len(self.factors)}")
+      print(f"nb_params: {len(self.params)}")
+      self._print_to_console(0, r)
 
     for i in range(1, self.solver_max_iter):
       # H = H + lambda_k * eye(H.shape[0])
@@ -2560,7 +2561,8 @@ class FactorGraph:
 
       self._update(param_idxs, dx)
       (param_idxs, H, g, r) = self._evaluate()
-      self._print_to_console(i, r)
+      if verbose:
+        self._print_to_console(i, r)
 
 
 # FEATURE TRACKING #############################################################
@@ -2831,7 +2833,8 @@ def grid_detect(detector, image, **kwargs):
       cell_idx += 1
 
   # Space out the keypoints
-  kps_all = spread_keypoints(image, kps_all, 20, prev_kps=prev_kps)
+  if optflow_mode:
+    kps_all = spread_keypoints(image, kps_all, 20, prev_kps=prev_kps)
 
   # Debug
   if kwargs.get('debug', False):
@@ -5083,15 +5086,18 @@ class TestFactorGraph(unittest.TestCase):
     graph.solve()
     # profile_stop(prof)
 
-    pos_init = np.array([tf_trans(T) for T in poses_init])
-    pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
+    # Visualize
+    debug = False
+    if debug:
+      pos_init = np.array([tf_trans(T) for T in poses_init])
+      pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
 
-    plt.figure()
-    plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
-    plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
-    plt.xlabel("Displacement [m]")
-    plt.ylabel("Displacement [m]")
-    plt.show()
+      plt.figure()
+      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
+      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
+      plt.xlabel("Displacement [m]")
+      plt.ylabel("Displacement [m]")
+      plt.show()
 
     # Asserts
     errors = graph._get_reproj_errors()
@@ -5146,9 +5152,9 @@ class TestFactorGraph(unittest.TestCase):
       ts_j = imu0_data.timestamps[ts_idx]
       T_WS_j = imu0_data.poses[ts_j]
       # ---- Pertrub pose j
-      # trans_rand = np.random.rand(3) * 0.05
-      # rvec_rand = np.random.rand(3) * 0.01
-      # T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
+      trans_rand = np.random.rand(3) * 0.05
+      rvec_rand = np.random.rand(3) * 0.01
+      T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
       # ---- Add to factor graph
       pose_j = pose_setup(ts_j, T_WS_j)
       pose_j_id = graph.add_param(pose_j)
@@ -5184,8 +5190,8 @@ class TestFactorGraph(unittest.TestCase):
     r = graph.residuals()
     self.assertTrue(graph.cost(r) < 1.0)
 
-    # debug = False
-    debug = True
+    debug = False
+    # debug = True
     if debug:
       pos_init = np.array([tf_trans(T) for T in poses_init])
       pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
@@ -5220,6 +5226,7 @@ class TestFactorGraph(unittest.TestCase):
 
       plt.show()
 
+  @unittest.skip("")
   def test_factor_graph_solve_vio(self):
     """ Test solving a visual inertial odometry problem """
     # Sim data
@@ -5268,10 +5275,10 @@ class TestFactorGraph(unittest.TestCase):
     mcam_buf = MultiCameraBuffer(2)
 
     for ts in sim_data.timeline.get_timestamps():
-      events = sim_data.timeline.get_events(ts)
-      for event in events:
+      for event in sim_data.timeline.get_events(ts):
         if isinstance(event, ImuEvent):
           tracker.inertial_callback(event.ts, event.acc, event.gyr)
+
         elif isinstance(event, CameraEvent):
           mcam_buf.add(ts, event.cam_idx, event.image)
           if mcam_buf.ready():
@@ -5310,7 +5317,7 @@ class TestFeatureTracking(unittest.TestCase):
     """ Test FeatureGrid.grid_cell_index() """
     grid_rows = 4
     grid_cols = 4
-    image_shape = (320, 280)
+    image_shape = (280, 320)
     keypoints = [[0, 0], [320, 0], [0, 280], [320, 280]]
     grid = FeatureGrid(grid_rows, grid_cols, image_shape, keypoints)
 
@@ -5323,7 +5330,7 @@ class TestFeatureTracking(unittest.TestCase):
     """ Test FeatureGrid.count() """
     grid_rows = 4
     grid_cols = 4
-    image_shape = (320, 280)
+    image_shape = (280, 320)
     pts = [[0, 0], [320, 0], [0, 280], [320, 280]]
     grid = FeatureGrid(grid_rows, grid_cols, image_shape, pts)
 
@@ -5348,7 +5355,7 @@ class TestFeatureTracking(unittest.TestCase):
 
   def test_optflow_track(self):
     """ Test optflow_track() """
-    debug = True
+    debug = False
 
     # Detect
     feature = cv2.ORB_create(nfeatures=100)
@@ -5421,10 +5428,8 @@ class TestFeatureTracker(unittest.TestCase):
     debug = False
 
     # Feed camera images to feature tracker
-    camera_images = {}
-    camera_images[0] = self.img0
-    camera_images[1] = self.img1
-    self.feature_tracker._detect_overlaps(camera_images)
+    mcam_imgs = {0: self.img0, 1: self.img1}
+    self.feature_tracker._detect_overlaps(mcam_imgs)
 
     # Assert
     data_i = self.feature_tracker.cam_data[0]
@@ -5438,8 +5443,8 @@ class TestFeatureTracker(unittest.TestCase):
 
     # Visualize
     for cam_i, cam_j in self.feature_tracker.cam_overlaps:
-      img_i = camera_images[cam_i]
-      img_j = camera_images[cam_j]
+      img_i = mcam_imgs[cam_i]
+      img_j = mcam_imgs[cam_j]
       data_i = self.feature_tracker.cam_data[cam_i]
       data_j = self.feature_tracker.cam_data[cam_j]
       kps_i = data_i.keypoints
@@ -5457,18 +5462,16 @@ class TestFeatureTracker(unittest.TestCase):
 
   def test_detect_nonoverlaps(self):
     """ Test FeatureTracker._detect_nonoverlaps() """
-    debug = True
+    debug = False
 
     # Feed camera images to feature tracker
-    camera_images = {}
-    camera_images[0] = self.img0
-    camera_images[1] = self.img1
-    self.feature_tracker._detect_nonoverlaps(camera_images)
+    mcam_imgs = {0: self.img0, 1: self.img1}
+    self.feature_tracker._detect_nonoverlaps(mcam_imgs)
 
     # Visualize
     for cam_i, cam_j in self.feature_tracker.cam_overlaps:
-      img_i = camera_images[cam_i]
-      img_j = camera_images[cam_j]
+      img_i = mcam_imgs[cam_i]
+      img_j = mcam_imgs[cam_j]
       data_i = self.feature_tracker.cam_data[cam_i]
       data_j = self.feature_tracker.cam_data[cam_j]
       kps_i = data_i.keypoints
@@ -5484,12 +5487,10 @@ class TestFeatureTracker(unittest.TestCase):
 
   def test_detect_new(self):
     """ Test FeatureTracker.detect_new() """
-    debug = True
+    debug = False
 
-    camera_images = {}
-    camera_images[0] = self.img0
-    camera_images[1] = self.img1
-    viz = self.feature_tracker._detect_new(camera_images)
+    mcam_imgs = {0: self.img0, 1: self.img1}
+    viz = self.feature_tracker._detect_new(mcam_imgs)
 
     if debug:
       cv2.imshow('viz', viz)
@@ -5497,7 +5498,7 @@ class TestFeatureTracker(unittest.TestCase):
 
   def test_update(self):
     """ Test FeatureTracker.update() """
-    for ts in self.dataset.timestamps[1000:]:
+    for ts in self.dataset.timestamps[1000:1100]:
       # Load images
       img0_path = self.dataset.cam0_images[ts]
       img1_path = self.dataset.cam1_images[ts]
@@ -5505,19 +5506,19 @@ class TestFeatureTracker(unittest.TestCase):
       img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
 
       # Feed camera images to feature tracker
-      camera_images = {}
-      camera_images[0] = img0
-      camera_images[1] = img1
-      ft_data = self.feature_tracker.update(ts, camera_images)
+      mcam_imgs = {0: img0, 1: img1}
+      ft_data = self.feature_tracker.update(ts, mcam_imgs)
 
       # Visualize
-      sys.stdout.flush()
-      viz = visualize_tracking(ft_data)
-      cv2.imshow('viz', viz)
-      # if cv2.waitKey(0) == ord('q'):
-      #   break
-      if cv2.waitKey(1) == ord('q'):
-        break
+      debug = False
+      if debug:
+        sys.stdout.flush()
+        viz = visualize_tracking(ft_data)
+        cv2.imshow('viz', viz)
+        # if cv2.waitKey(0) == ord('q'):
+        #   break
+        if cv2.waitKey(1) == ord('q'):
+          break
 
 
 class TestTracker(unittest.TestCase):
