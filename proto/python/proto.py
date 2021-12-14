@@ -36,7 +36,7 @@ from collections import namedtuple
 from types import FunctionType
 from typing import Optional
 from typing import List
-from typing import Dict
+# from typing import Dict
 
 import cv2
 import yaml
@@ -962,6 +962,42 @@ def quat_integrate(q_k, w, dt):
   return q_kp1
 
 
+def quat_slerp(q_i, q_j, t):
+  """ Quaternion Slerp `q_i` and `q_j` with parameter `t` """
+  assert len(q_i) == 4
+  assert len(q_j) == 4
+  assert t >= 0.0 and t <= 1.0
+
+  # Compute the cosine of the angle between the two vectors.
+  dot_result = q_i @ q_j
+
+  # If the dot product is negative, slerp won't take
+  # the shorter path. Note that q_j and -q_j are equivalent when
+  # the negation is applied to all four components. Fix by
+  # reversing one quaternion.
+  if dot_result < 0.0:
+    q_j = -q_j
+    dot_result = -dot_result
+
+  DOT_THRESHOLD = 0.9995
+  if dot_result > DOT_THRESHOLD:
+    # If the inputs are too close for comfort, linearly interpolate
+    # and normalize the result.
+    return q_i + t * (q_j - q_i)
+
+  # Since dot is in range [0, DOT_THRESHOLD], acos is safe
+  theta_0 = acos(dot_result)  # theta_0 = angle between input vectors
+  theta = theta_0 * t  # theta = angle between q_i and result
+  sin_theta = sin(theta)  # compute this value only once
+  sin_theta_0 = sin(theta_0)  # compute this value only once
+
+  # == sin(theta_0 - theta) / sin(theta_0)
+  s0 = cos(theta) - dot_result * sin_theta / sin_theta_0
+  s1 = sin_theta / sin_theta_0
+
+  return (s0 * q_i) + (s1 * q_j)
+
+
 # TF ##########################################################################
 
 
@@ -1030,6 +1066,27 @@ def tf_decompose(T):
   C = tf_rot(T)
   r = tf_trans(T)
   return (C, r)
+
+
+def tf_lerp(pose_i, pose_j, t):
+  """ Interpolate pose `pose_i` and `pose_j` with parameter `t` """
+  assert pose_i.shape == (4, 4)
+  assert pose_j.shape == (4, 4)
+  assert t >= 0.0 and t <= 1.0
+
+  # Decompose start pose
+  r_i = tf_trans(pose_i)
+  q_i = tf_quat(pose_i)
+
+  # Decompose end pose
+  r_j = tf_trans(pose_j)
+  q_j = tf_quat(pose_j)
+
+  # Interpolate translation and rotation
+  r_lerp = lerp(r_i, r_j, t)
+  q_lerp = quat_slerp(q_i, q_j, t)
+
+  return tf(q_lerp, r_lerp)
 
 
 def tf_perturb(T, i, step_size):
@@ -2025,6 +2082,28 @@ class EurocDataset:
       timeline.add_event(ts, CameraEvent(ts, 1, img_path))
 
     return timeline
+
+  def get_ground_truth_pose(self, ts):
+    """ Get ground truth pose T_WB at timestamp `ts` """
+    # Pre-check
+    if ts <= self.ground_truth.timestamps[0]:
+      raise RuntimeError(f"{ts} <= ground_truth.timestamps[0]")
+    elif ts >= self.ground_truth.timestamps[-1]:
+      raise RuntimeError(f"{ts} >= ground_truth.timestamps[-1]")
+
+    # Loop throught timestamps
+    for k, ground_truth_ts in enumerate(self.ground_truth.timestamps):
+      if ts == ground_truth_ts:
+        return self.ground_truth.T_WB[ts]
+      elif self.ground_truth.timestamps[k] > ts:
+        ts_i = self.ground_truth.timestamps[k - 1]
+        ts_j = self.ground_truth.timestamps[k]
+        alpha = float(ts_j - ts) / float(ts_j - ts_i)
+        pose_i = self.ground_truth.T_WB[ts_i]
+        pose_j = self.ground_truth.T_WB[ts_j]
+        return tf_lerp(pose_i, pose_j, alpha)
+
+    return None
 
 
 ###############################################################################
@@ -4666,15 +4745,24 @@ class TestTransform(unittest.TestCase):
 
   def test_quat2rot(self):
     """ Test quat2rot() """
-    pass
+    ypr = np.array([0.1, 0.2, 0.3])
+    C_i = euler321(*ypr)
+    C_j = quat2rot(euler2quat(*ypr))
+    self.assertTrue(np.allclose(C_i, C_j))
 
   def test_rot2euler(self):
     """ Test rot2euler() """
-    pass
+    ypr = np.array([0.1, 0.2, 0.3])
+    C = euler321(*ypr)
+    euler = rot2euler(C)
+    self.assertTrue(np.allclose(ypr, euler))
 
   def test_rot2quat(self):
     """ Test rot2quat() """
-    pass
+    ypr = np.array([0.1, 0.2, 0.3])
+    C = euler321(*ypr)
+    q = rot2quat(C)
+    self.assertTrue(np.allclose(quat2euler(q), ypr))
 
   def test_quat_norm(self):
     """ Test quat_norm() """
@@ -4689,11 +4777,17 @@ class TestTransform(unittest.TestCase):
 
   def test_quat_conj(self):
     """ Test quat_conj() """
-    pass
+    ypr = np.array([0.1, 0.0, 0.0])
+    q = rot2quat(euler321(*ypr))
+    q_conj = quat_conj(q)
+    self.assertTrue(np.allclose(quat2euler(q_conj), -1.0 * ypr))
 
   def test_quat_inv(self):
     """ Test quat_inv() """
-    pass
+    ypr = np.array([0.1, 0.0, 0.0])
+    q = rot2quat(euler321(*ypr))
+    q_inv = quat_inv(q)
+    self.assertTrue(np.allclose(quat2euler(q_inv), -1.0 * ypr))
 
   def test_quat_mul(self):
     """ Test quat_mul() """
@@ -4706,21 +4800,31 @@ class TestTransform(unittest.TestCase):
     """ Test quat_omega() """
     pass
 
+  def test_quat_slerp(self):
+    """ Test quat_slerp() """
+    q_i = rot2quat(euler321(0.1, 0.0, 0.0))
+    q_j = rot2quat(euler321(0.2, 0.0, 0.0))
+    q_k = quat_slerp(q_i, q_j, 0.5)
+    self.assertTrue(np.allclose(quat2euler(q_k), [0.15, 0.0, 0.0]))
+
+    q_i = rot2quat(euler321(0.0, 0.1, 0.0))
+    q_j = rot2quat(euler321(0.0, 0.2, 0.0))
+    q_k = quat_slerp(q_i, q_j, 0.5)
+    self.assertTrue(np.allclose(quat2euler(q_k), [0.0, 0.15, 0.0]))
+
+    q_i = rot2quat(euler321(0.0, 0.0, 0.1))
+    q_j = rot2quat(euler321(0.0, 0.0, 0.2))
+    q_k = quat_slerp(q_i, q_j, 0.5)
+    self.assertTrue(np.allclose(quat2euler(q_k), [0.0, 0.0, 0.15]))
+
   def test_tf(self):
     """ Test tf() """
-    pass
-    # pose = [1.0; 0.0; 0.0; 0.0; 1.0; 2.0; 3.0];
-    # T = tf(pose);
-    # self.assertTrue(isequal(T(0:3, 0:3), eye(3)) == 1);
-    # self.assertTrue(isequal(T(0:3, 4), [1; 2; 3]) == 1);
+    r = np.array([1.0, 2.0, 3.0])
+    q = np.array([0.0, 0.0, 0.0, 1.0])
+    T = tf(q, r)
 
-    # C = [[1.0, 0.0, 0.0];
-    #     [0.0, 2.0, 0.0];
-    #     [0.0, 0.0, 3.0]];
-    # r = [1.0; 2.0; 3.0];
-    # T = tf(C, r);
-    # self.assertTrue(isequal(T(0:3, 0:3), C) == 1);
-    # self.assertTrue(isequal(T(0:3, 4), r) == 1);
+    self.assertTrue(np.allclose(T[0:3, 0:3], quat2rot(q)))
+    self.assertTrue(np.allclose(T[0:3, 3], r))
 
 
 # CV ##########################################################################
@@ -5102,6 +5206,17 @@ class TestFactors(unittest.TestCase):
 class TestFactorGraph(unittest.TestCase):
   """ Test Factor Graph """
 
+  @classmethod
+  def setUpClass(cls):
+    super(TestFactorGraph, cls).setUpClass()
+    circle_r = 5.0
+    circle_v = 1.0
+    pickle_path = '/tmp/sim_data.pickle'
+    cls.sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
+
+  def setUp(self):
+    self.sim_data = TestFactorGraph.sim_data
+
   def test_factor_graph_add_param(self):
     """ Test FactorGrpah.add_param() """
     # Setup camera pose T_WC
@@ -5148,13 +5263,9 @@ class TestFactorGraph(unittest.TestCase):
   def test_factor_graph_solve_vo(self):
     """ Test solving a visual odometry problem """
     # Sim data
-    circle_r = 5.0
-    circle_v = 1.0
-    pickle_path = '/tmp/sim_data.pickle'
-    sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
-    cam0_data = sim_data.get_camera_data(0)
-    cam0_params = sim_data.get_camera_params(0)
-    cam0_geom = sim_data.get_camera_geometry(0)
+    cam0_data = self.sim_data.get_camera_data(0)
+    cam0_params = self.sim_data.get_camera_params(0)
+    cam0_geom = self.sim_data.get_camera_geometry(0)
 
     # Setup factor graph
     poses_init = []
@@ -5162,7 +5273,7 @@ class TestFactorGraph(unittest.TestCase):
     graph = FactorGraph()
 
     # -- Add features
-    features = sim_data.features
+    features = self.sim_data.features
     feature_ids = []
     for i in range(features.shape[0]):
       p_W = features[i, :]
@@ -5222,12 +5333,6 @@ class TestFactorGraph(unittest.TestCase):
 
   def test_factor_graph_solve_io(self):
     """ Test solving a pure inertial odometry problem """
-    # Sim data
-    circle_r = 5.0
-    circle_v = 1.0
-    pickle_path = '/tmp/sim_data.pickle'
-    sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
-
     # Imu params
     noise_acc = 0.08  # accelerometer measurement noise stddev.
     noise_gyr = 0.004  # gyroscope measurement noise stddev.
@@ -5236,7 +5341,7 @@ class TestFactorGraph(unittest.TestCase):
     imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
 
     # Setup factor graph
-    imu0_data = sim_data.imu0_data
+    imu0_data = self.sim_data.imu0_data
     window_size = 5
     start_idx = 0
     # end_idx = 200
@@ -5346,12 +5451,6 @@ class TestFactorGraph(unittest.TestCase):
   @unittest.skip("")
   def test_factor_graph_solve_vio(self):
     """ Test solving a visual inertial odometry problem """
-    # Sim data
-    circle_r = 5.0
-    circle_v = 1.0
-    pickle_path = '/tmp/sim_data.pickle'
-    sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
-
     # Imu params
     noise_acc = 0.08  # accelerometer measurement noise stddev.
     noise_gyr = 0.004  # gyroscope measurement noise stddev.
@@ -5364,8 +5463,8 @@ class TestFactorGraph(unittest.TestCase):
     tracker = Tracker(feature_tracker)
 
     # -- Set initial pose
-    ts0 = sim_data.imu0_data.timestamps[0]
-    T_WB = sim_data.imu0_data.poses[ts0]
+    ts0 = self.sim_data.imu0_data.timestamps[0]
+    T_WB = self.sim_data.imu0_data.poses[ts0]
     tracker.set_initial_pose(T_WB)
 
     # -- Add imu
@@ -5373,16 +5472,16 @@ class TestFactorGraph(unittest.TestCase):
 
     # -- Add cam0
     cam0_idx = 0
-    cam0_data = sim_data.mcam_data[cam0_idx]
+    cam0_data = self.sim_data.mcam_data[cam0_idx]
     cam0_params = cam0_data.camera
-    cam0_exts = extrinsics_setup(sim_data.T_BC0)
+    cam0_exts = extrinsics_setup(self.sim_data.T_BC0)
     tracker.add_camera(cam0_idx, cam0_params, cam0_exts)
 
     # -- Add cam1
     cam1_idx = 1
-    cam1_data = sim_data.mcam_data[cam1_idx]
+    cam1_data = self.sim_data.mcam_data[cam1_idx]
     cam1_params = cam1_data.camera
-    cam1_exts = extrinsics_setup(sim_data.T_BC1)
+    cam1_exts = extrinsics_setup(self.sim_data.T_BC1)
     tracker.add_camera(cam1_idx, cam1_params, cam1_exts)
 
     # -- Add camera overlap
@@ -5391,8 +5490,8 @@ class TestFactorGraph(unittest.TestCase):
     # -- Loop through simulation data
     mcam_buf = MultiCameraBuffer(2)
 
-    for ts in sim_data.timeline.get_timestamps():
-      for event in sim_data.timeline.get_events(ts):
+    for ts in self.sim_data.timeline.get_timestamps():
+      for event in self.sim_data.timeline.get_events(ts):
         if isinstance(event, ImuEvent):
           tracker.inertial_callback(event.ts, event.acc, event.gyr)
 
@@ -5550,8 +5649,8 @@ class TestFeatureTracker(unittest.TestCase):
 
   def test_detect_overlaps(self):
     """ Test FeatureTracker._detect_overlaps() """
-    # debug = False
-    debug = True
+    debug = False
+    # debug = True
 
     # Feed camera images to feature tracker
     mcam_imgs = {0: self.img0, 1: self.img1}
@@ -5846,21 +5945,24 @@ class TestTracker(unittest.TestCase):
     self.assertTrue(feature.data.initialized())
     self.assertTrue(np.allclose(p_W_est, p_W))
 
-  # def test_tracker_process_features(self):
-  #   """ Test Tracker._process_features() """
-  #   for ts in self.dataset.timestamps[100:]:
-  #     T_WB = self.dataset.imu0_data.poses[ts]
-  #     pose = pose_setup(ts, T_WB)
-  #
-  #     # Load images
-  #     img0_path = self.dataset.cam0_images[ts]
-  #     img1_path = self.dataset.cam1_images[ts]
-  #     img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
-  #     img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
-  #
-  #     # Feed camera images to feature tracker
-  #     ft_data = self.tracker.feature_tracker.update(ts, {0: img0, 1: img1})
-  #     self.tracker._process_features(ts, ft_data, pose)
+  def test_tracker_process_features(self):
+    """ Test Tracker._process_features() """
+
+    for ts in self.dataset.cam0_data.timestamps[50:]:
+      T_WB = self.dataset.get_ground_truth_pose(ts)
+      pose = pose_setup(ts, T_WB)
+
+      # Load images
+      img0_path = self.dataset.cam0_data.image_paths[ts]
+      img1_path = self.dataset.cam1_data.image_paths[ts]
+      img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+      img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+      # Feed camera images to feature tracker
+      ft_data = self.tracker.feature_tracker.update(ts, {0: img0, 1: img1})
+      self.tracker._process_features(ts, ft_data, pose)
+
+      break
 
   def test_tracker_add_keyframe(self):
     """ Test Tracker._add_keyframe() """
