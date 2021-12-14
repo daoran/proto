@@ -2083,6 +2083,17 @@ class EurocDataset:
 
     return timeline
 
+  def get_camera_image(self, cam_idx, ts):
+    """ Get camera image """
+    img_path = None
+    if cam_idx == 0:
+      img_path = self.cam0_data.image_paths[ts]
+    elif cam_idx == 1:
+      img_path = self.cam1_data.image_paths[ts]
+    else:
+      raise RuntimeError("cam_idx has to be 0 or 1")
+    return cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
   def get_ground_truth_pose(self, ts):
     """ Get ground truth pose T_WB at timestamp `ts` """
     # Pre-check
@@ -2160,6 +2171,7 @@ class FeatureMeasurements:
 
   def update(self, ts, cam_idx, z):
     """ Add feature measurement """
+    assert len(z) == 2
     if ts not in self._data:
       self._data[ts] = {}
     self._data[ts][cam_idx] = z
@@ -3355,16 +3367,32 @@ class FeatureTrackerData:
   - Feature ids (optional)
 
   """
-  cam_idx: int
-  image: np.array
-  keypoints: List[cv2.KeyPoint]
-  descriptors: np.array = None
-  feature_ids: List[int] = None
 
-  def get_all(self):
-    """ Get all data """
-    return (self.cam_idx, self.image, self.keypoints, self.descriptors,
-            self.feature_ids)
+  def __init__(self, cam_idx, image, keypoints, feature_ids=None):
+    self.cam_idx = cam_idx
+    self.image = image
+    self.keypoints = list(keypoints)
+    self.feature_ids = list(feature_ids)
+
+  def add(self, fid, kp):
+    """ Add measurement """
+    assert isinstance(fid, int)
+    assert hasattr(kp, 'pt')
+    self.keypoints.append(kp)
+    self.feature_ids.append(fid)
+    assert len(self.keypoints) == len(self.feature_ids)
+
+  def update(self, image, fids, kps):
+    """ Extend measurements """
+    assert len(kps) == len(fids)
+    self.image = np.array(image)
+
+    if kps:
+      assert hasattr(kps[0], 'pt')
+
+    self.feature_ids.extend(fids)
+    self.keypoints.extend(kps)
+    assert len(self.keypoints) == len(self.feature_ids)
 
 
 class FeatureTracker:
@@ -3517,7 +3545,8 @@ class FeatureTracker:
         if hasattr(p, 'pt'):
           kps[cam_idx].append(p)  # cv2.KeyPoint already
         else:
-          kps[cam_idx].append(cv2.KeyPoint(p[0], p[1], kp_size))
+          kp = cv2.KeyPoint(p[0], p[1], kp_size)
+          kps[cam_idx].append(kp)
 
         # Feature id
         if feature_ids is not None:
@@ -3540,7 +3569,7 @@ class FeatureTracker:
     if inliers is None:
       inliers = [1 for i, _ in enumerate(cam_pts[cam_idxs[0]])]
 
-    # Filter outliers
+    # Filter outliers - also converts np.array to cv2.KeyPoint
     cam_kps = self._filter_outliers(cam_idxs, cam_pts, inliers, kp_size)
 
     # Add camera data
@@ -3549,14 +3578,11 @@ class FeatureTracker:
     for idx in cam_idxs:
       img = mcam_imgs[idx]
       kps = cam_kps[idx]
-
+      assert len(kps) == len(fids)
       if self.cam_data[idx] is None:
-        ft_data = FeatureTrackerData(idx, img, kps, None, fids)
-        self.cam_data[idx] = ft_data
+        self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
       else:
-        self.cam_data[idx].image = img
-        self.cam_data[idx].keypoints.extend(kps)
-        self.cam_data[idx].feature_ids.extend(fids)
+        self.cam_data[idx].update(img, fids, kps)
 
     # Update overlapping features
     if len(cam_idxs) > 1:
@@ -3578,7 +3604,7 @@ class FeatureTracker:
     for idx in cam_idxs:
       img = mcam_imgs[idx]
       kps = cam_kps[idx]
-      self.cam_data[idx] = FeatureTrackerData(idx, img, kps, None, fids)
+      self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
 
     # Update lost features
     fids_out = set(fids)
@@ -3726,7 +3752,6 @@ class FeatureTracker:
     if self.frame_idx == 0:
       self._detect_new(mcam_imgs)
       self.features_tracking = self.num_tracking()
-
     else:
       self._track_features(mcam_imgs)
       if (self.num_tracking() / self.features_tracking) < 0.7:
@@ -3905,7 +3930,7 @@ class Tracker:
     """ Get last pose """
     return pose2tf(self.keyframes[-1].pose.param)
 
-  def _add_feature(self, fid, ts, cam_idx, z):
+  def _add_feature(self, fid, ts, cam_idx, kp):
     """
     Add feature
 
@@ -3914,16 +3939,17 @@ class Tracker:
       fid (int): Feature id
       ts (int): Timestamp
       cam_idx (int): Camera index
-      z (np.array): Image point measurement
+      kp (cv2.KeyPoint): Key point
 
     """
+    assert hasattr(kp, 'pt')
     self.features[fid] = feature_setup(zeros((3,)))
-    self.features[fid].data.update(ts, cam_idx, z)
+    self.features[fid].data.update(ts, cam_idx, kp.pt)
     feature_pid = self.graph.add_param(self.features[fid])
     self.features[fid].set_param_id(feature_pid)
     return feature_pid
 
-  def _update_feature(self, fid, ts, cam_idx, z, T_WB):
+  def _update_feature(self, fid, ts, cam_idx, kp, T_WB):
     """
     Update feature
 
@@ -3932,12 +3958,12 @@ class Tracker:
       fid (int): Feature id
       ts (int): Timestamp
       cam_idx (int): Camera index
-      z (np.array): Image point measurement
+      kp (cv2.KeyPoint): Key point
       T_WB (np.array): Body pose in world frame
 
     """
     # Update feature
-    self.features[fid].data.update(ts, cam_idx, z)
+    self.features[fid].data.update(ts, cam_idx, kp.pt)
 
     # Initialize overlapping features
     has_inited = self.features[fid].data.initialized()
@@ -3964,12 +3990,11 @@ class Tracker:
     T_WB = pose2tf(pose.param)
 
     for cam_idx, cam_data in ft_data.items():
-      for i, fid in enumerate(cam_data.feature_ids):
-        z = cam_data.keypoints[i]
+      for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
         if fid not in self.features:
-          self._add_feature(fid, ts, cam_idx, z)
+          self._add_feature(fid, ts, cam_idx, kp)
         else:
-          self._update_feature(fid, ts, cam_idx, z, T_WB)
+          self._update_feature(fid, ts, cam_idx, kp, T_WB)
 
   def _add_keyframe(self, ts, mcam_imgs, ft_data, pose):
     """
@@ -3992,8 +4017,9 @@ class Tracker:
       cam_exts = self.cam_exts[cam_idx]
 
       # Form vision factors
-      for i, fid in enumerate(cam_data.feature_ids):
+      for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
         feature = self.features[fid]
+        z = kp.pt
 
         # Form vision factor
         param_ids = []
@@ -4001,7 +4027,6 @@ class Tracker:
         param_ids.append(cam_exts.param_id)
         param_ids.append(feature.param_id)
         param_ids.append(cam_params.param_id)
-        z = cam_data.keypoints[i]
         factor = vision_factor_setup(param_ids, z, cam_geom)
         vision_factors.append(factor)
         self.graph.add_factor(factor)
@@ -4577,7 +4602,7 @@ class SimFeatureTracker(FeatureTracker):
     for cam_idx, cam_data in mcam_imgs.items():
       kps = [data[1] for data in cam_data]
       fids = [data[0] for data in cam_data]
-      ft_data = FeatureTrackerData(cam_idx, None, kps, None, fids)
+      ft_data = FeatureTrackerData(cam_idx, None, kps, fids)
       self.cam_data[cam_idx] = ft_data
 
     # Update
@@ -5743,8 +5768,6 @@ class TestFeatureTracker(unittest.TestCase):
         sys.stdout.flush()
         viz = visualize_tracking(ft_data)
         cv2.imshow('viz', viz)
-        # if cv2.waitKey(0) == ord('q'):
-        #   break
         if cv2.waitKey(1) == ord('q'):
           break
 
@@ -5899,7 +5922,8 @@ class TestTracker(unittest.TestCase):
     # Add feature
     fid = 0
     ts = 0
-    self.tracker._add_feature(fid, ts, cam_idx, z)
+    kp = cv2.KeyPoint(z[0], z[1], 0)
+    self.tracker._add_feature(fid, ts, cam_idx, kp)
 
     # Assert
     self.assertTrue(fid in self.tracker.features)
@@ -5934,8 +5958,10 @@ class TestTracker(unittest.TestCase):
     # Add feature
     fid = 0
     ts = 0
-    self.tracker._add_feature(fid, ts, cam_i, z_i)
-    self.tracker._update_feature(fid, ts, cam_j, z_j, T_WB)
+    kp_i = cv2.KeyPoint(z_i[0], z_i[1], 0)
+    kp_j = cv2.KeyPoint(z_j[0], z_j[1], 0)
+    self.tracker._add_feature(fid, ts, cam_i, kp_i)
+    self.tracker._update_feature(fid, ts, cam_j, kp_j, T_WB)
 
     # Assert
     feature = self.tracker.features[fid]
@@ -5953,10 +5979,8 @@ class TestTracker(unittest.TestCase):
       pose = pose_setup(ts, T_WB)
 
       # Load images
-      img0_path = self.dataset.cam0_data.image_paths[ts]
-      img1_path = self.dataset.cam1_data.image_paths[ts]
-      img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
-      img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+      img0 = self.dataset.get_camera_image(0, ts)
+      img1 = self.dataset.get_camera_image(1, ts)
 
       # Feed camera images to feature tracker
       ft_data = self.tracker.feature_tracker.update(ts, {0: img0, 1: img1})
