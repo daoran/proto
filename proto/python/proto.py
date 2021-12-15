@@ -3915,7 +3915,7 @@ class Tracker:
     self.keyframes = []
 
     # Settings
-    self.window_size = 5
+    self.window_size = 10
 
   def nb_cams(self):
     """ Return number of cameras """
@@ -4122,19 +4122,23 @@ class Tracker:
     # Pop the front of the queue
     self.keyframes.pop(0)
 
-  def _filter_keyframe_factors(self):
+  def _filter_keyframe_factors(self, filter_from=0):
     """ Filter keyframe factors """
-    errors = self.graph._get_reproj_errors()
-    threshold = 3.0 * np.std(errors)
-
     removed = 0
-    for kf in self.keyframes:
-      filtered_factors = []
+
+    for kf in self.keyframes[filter_from:]:
+      # Calculate reprojection error
+      reproj_errors = []
       for factor in list(kf.vision_factors):
         factor_params = self.graph._get_factor_params(factor)
         r, _ = factor.eval(factor_params)
-        reproj_error = norm(r)
+        reproj_errors.append(norm(r))
 
+      # Filter factors
+      threshold = 3.0 * np.std(reproj_errors)
+      filtered_factors = []
+
+      for reproj_error, factor in zip(reproj_errors, kf.vision_factors):
         if reproj_error >= threshold:
           self.graph.remove_factor(factor)
           removed += 1
@@ -4177,7 +4181,7 @@ class Tracker:
       self.graph.solve(True)
       self._filter_keyframe_factors()
 
-    if len(self.keyframes) >= self.window_size:
+    if len(self.keyframes) > self.window_size:
       self._pop_old_keyframe()
 
     errors = self.graph._get_reproj_errors()
@@ -6155,7 +6159,7 @@ class TestTracker(unittest.TestCase):
     poses_gnd = []
 
     # Loop through timestamps
-    for k, ts in enumerate(self.dataset.cam0_data.timestamps[100:300]):
+    for k, ts in enumerate(self.dataset.cam0_data.timestamps[0:300]):
       # Get ground truth pose
       T_WB = self.dataset.get_ground_truth_pose(ts)
       if T_WB is None:
