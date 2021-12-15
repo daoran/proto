@@ -84,7 +84,7 @@ def sec2ts(time_s):
 
 def ts2sec(ts):
   """ Convert timestamp to seconds """
-  return float(ts * 1e-9)
+  return ts * 1e-9
 
 
 ###############################################################################
@@ -1221,6 +1221,51 @@ def plot_tf(ax, T, **kwargs):
     y = origin + name_offset[1]
     z = origin + name_offset[2]
     ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
+
+
+def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel):
+  """
+  Plot XYZ plot
+
+  Args:
+
+    title (str): Plot title
+    data (Dict[str, pandas.DataFrame]): Plot data
+    key_time (str): Dictionary key for timestamps
+    key_x (str): Dictionary key x-axis
+    key_y (str): Dictionary key y-axis
+    key_z (str): Dictionary key z-axis
+    ylabel (str): Y-axis label
+
+  """
+  axis = ['x', 'y', 'z']
+  colors = ["r", "g", "b"]
+  keys = [key_x, key_y, key_z]
+  line_styles = ["--", "-", "x"]
+
+  # Time
+  time_data = {}
+  for label, series_data in data.items():
+    ts0 = series_data[key_time][0]
+    time_data[label] = ts2sec(series_data[key_time].to_numpy() - ts0)
+
+  # Plot subplots
+  plt.figure()
+  for i in range(3):
+    plt.subplot(3, 1, i + 1)
+
+    for (label, series_data), line in zip(data.items(), line_styles):
+      line_style = colors[i] + line
+      x_data = time_data[label]
+      y_data = series_data[keys[i]].to_numpy()
+      plt.plot(x_data, y_data, line_style, label=label)
+
+    plt.xlabel("Time [s]")
+    plt.ylabel(ylabel)
+    plt.legend(loc=0)
+    plt.title(f"{title} in {axis[i]}-axis")
+
+  plt.subplots_adjust(hspace=0.65)
 
 
 ###############################################################################
@@ -2757,6 +2802,7 @@ class FactorGraph:
     self.solver_max_iter = 5
     # self.solver_lambda = 1e-4
     self.solver_lambda = 1e-4
+    self.solver_cost = 0.0
 
   def add_param(self, param):
     """ Add param """
@@ -2915,6 +2961,7 @@ class FactorGraph:
     """ Evaluate """
     (param_idxs, param_size) = self._form_param_indices()
     (H, g, r) = self._form_hessian(param_idxs, param_size)
+    self.solver_cost = self.cost(r)
     return (param_idxs, H, g, r)
 
   def _update(self, param_idxs, dx):
@@ -2945,6 +2992,7 @@ class FactorGraph:
     """ Solve """
     lambda_k = self.solver_lambda
     (param_idxs, H, g, r) = self._evaluate()
+    self.solver_prev_cost = self.solver_cost
 
     if verbose:
       print(f"nb_factors: {len(self.factors)}")
@@ -2952,25 +3000,32 @@ class FactorGraph:
       self._print_to_console(0, r)
 
     for i in range(1, self.solver_max_iter):
-      # H = H + lambda_k * eye(H.shape[0])
-      # dx = pinv(H) @ g
+      H = H + lambda_k * eye(H.shape[0])
+      dx = pinv(H) @ g
       # dx = np.linalg.solve(H, g)
 
       # sH = scipy.sparse.csc_matrix(H)
       # dx = scipy.sparse.linalg.spsolve(sH, g)
 
-      H = H + lambda_k * eye(H.shape[0])
-      c, low = scipy.linalg.cho_factor(H)
-      dx = scipy.linalg.cho_solve((c, low), g)
+      # H = H + lambda_k * eye(H.shape[0])
+      # c, low = scipy.linalg.cho_factor(H)
+      # dx = scipy.linalg.cho_solve((c, low), g)
 
       self._update(param_idxs, dx)
       (param_idxs, H, g, r) = self._evaluate()
 
-      if self.cost(r) < 0.0:
+      dcost = self.solver_prev_cost - self.solver_cost
+      if self.solver_cost < 0.0:
+        return
+      elif dcost < 0.0:
+        self._update(param_idxs, -dx)
         return
 
       if verbose:
         self._print_to_console(i, r)
+
+      # Update
+      self.solver_prev_cost = self.solver_cost
 
 
 # FEATURE TRACKING #############################################################
@@ -4056,8 +4111,8 @@ class Tracker:
     # Form keyframe
     self.keyframes.append(KeyFrame(ts, mcam_imgs, pose, vision_factors))
 
-  def _pop_keyframe(self):
-    """ Pop keyframe """
+  def _pop_old_keyframe(self):
+    """ Pop old keyframe """
     # Remove pose parameter and vision factors
     kf = self.keyframes[0]
     self.graph.remove_param(kf.pose)
@@ -4066,6 +4121,26 @@ class Tracker:
 
     # Pop the front of the queue
     self.keyframes.pop(0)
+
+  def _filter_keyframe_factors(self):
+    """ Filter keyframe factors """
+    errors = self.graph._get_reproj_errors()
+    threshold = 3.0 * np.std(errors)
+
+    removed = 0
+    for kf in self.keyframes:
+      filtered_factors = []
+      for factor in list(kf.vision_factors):
+        factor_params = self.graph._get_factor_params(factor)
+        r, _ = factor.eval(factor_params)
+        reproj_error = norm(r)
+
+        if reproj_error >= threshold:
+          self.graph.remove_factor(factor)
+          removed += 1
+        else:
+          filtered_factors.append(factor)
+      kf.vision_factors = filtered_factors
 
   def vision_callback(self, ts, mcam_imgs):
     """
@@ -4100,9 +4175,10 @@ class Tracker:
 
     if self.nb_keyframes() != 1:
       self.graph.solve(True)
+      self._filter_keyframe_factors()
 
     if len(self.keyframes) >= self.window_size:
-      self._pop_keyframe()
+      self._pop_old_keyframe()
 
     errors = self.graph._get_reproj_errors()
     print(f"reproj_error:", end=" [")
@@ -4111,7 +4187,6 @@ class Tracker:
     print(f"rms: {rmse(errors):.2f}", end=", ")
     print(f"max: {np.max(errors):.2f}", end="]\n")
     print(f"nb_keyframes: {self.nb_keyframes()}")
-    print()
     print()
 
 
@@ -6071,8 +6146,16 @@ class TestTracker(unittest.TestCase):
     # Disable imu in Tracker
     self.tracker.imu_params = None
 
+    # Create csv files
+    pose_est_csv = open("/tmp/poses_est.csv", "w")
+    pose_gnd_csv = open("/tmp/poses_gnd.csv", "w")
+    pose_est_csv.write("ts,rx,ry,rz,qw,qx,qy,qz\n")
+    pose_gnd_csv.write("ts,rx,ry,rz,qw,qx,qy,qz\n")
+    poses_est = []
+    poses_gnd = []
+
     # Loop through timestamps
-    for k, ts in enumerate(self.dataset.cam0_data.timestamps[100:]):
+    for k, ts in enumerate(self.dataset.cam0_data.timestamps[100:300]):
       # Get ground truth pose
       T_WB = self.dataset.get_ground_truth_pose(ts)
       if T_WB is None:
@@ -6088,9 +6171,23 @@ class TestTracker(unittest.TestCase):
       # self.assertEqual(self.tracker.nb_keyframes(), 1)
 
       last_kf = self.tracker.keyframes[-1]
-      print(f"{k}")
-      print("T_WB [est]:", np.round(tf2pose(pose2tf(last_kf.pose.param)), 4))
-      print("T_WB [gnd]:", np.round(tf2pose(T_WB), 4))
+      poses_est.append(tf2pose(pose2tf(last_kf.pose.param)))
+      poses_gnd.append(tf2pose(T_WB))
+      print(f"frame_idx: {k}")
+      pose_est_csv.write("%ld,%f,%f,%f,%f,%f,%f,%f\n" % (ts, *poses_est[-1]))
+      pose_gnd_csv.write("%ld,%f,%f,%f,%f,%f,%f,%f\n" % (ts, *poses_gnd[-1]))
+
+    # Close csv files
+    pose_est_csv.close()
+    pose_gndcsv.close()
+
+    # Plot
+    poses_gnd = pandas.read_csv("/tmp/poses_gnd.csv")
+    poses_est = pandas.read_csv("/tmp/poses_est.csv")
+    title = "Displacement"
+    data = {"Ground Truth": poses_gnd, "Estimate": poses_est}
+    plot_xyz(title, data, 'ts', 'rx', 'ry', 'rz', 'Displacement [m]')
+    plt.show()
 
 
 # CALIBRATION #################################################################
