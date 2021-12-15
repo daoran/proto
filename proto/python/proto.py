@@ -2098,9 +2098,9 @@ class EurocDataset:
     """ Get ground truth pose T_WB at timestamp `ts` """
     # Pre-check
     if ts <= self.ground_truth.timestamps[0]:
-      raise RuntimeError(f"{ts} <= ground_truth.timestamps[0]")
+      return None
     elif ts >= self.ground_truth.timestamps[-1]:
-      raise RuntimeError(f"{ts} >= ground_truth.timestamps[-1]")
+      return None
 
     # Loop throught timestamps
     for k, ground_truth_ts in enumerate(self.ground_truth.timestamps):
@@ -2265,16 +2265,20 @@ def update_state_variable(sv, dx):
 @dataclass
 class Factor:
   """ Factor """
-  factor_type: str
-  param_ids: str
-  measurement: np.array
-  covar: np.array
-  eval_fn: FunctionType
-  data: Optional[dict] = None
-  sqrt_info: np.array = None
 
-  def __post_init__(self):
+  def __init__(self, ftype, pids, z, covar, eval_fn, data=None):
+    self.factor_id = None
+    self.factor_type = ftype
+    self.param_ids = pids
+    self.measurement = z
+    self.covar = covar
+    self.eval_fn = eval_fn
+    self.data = data
     self.sqrt_info = chol(inv(self.covar)).T
+
+  def set_factor_id(self, fid):
+    """ Set factor id """
+    self.factor_id = fid
 
   def eval(self, params):
     """ Evaluate factor """
@@ -2759,6 +2763,7 @@ class FactorGraph:
     # Add param
     param_id = self._next_param_id
     self.params[param_id] = param
+    self.params[param_id].set_param_id(param_id)
     self._next_param_id += 1
     return param_id
 
@@ -2772,8 +2777,19 @@ class FactorGraph:
     # Add factor
     factor_id = self._next_factor_id
     self.factors[factor_id] = factor
+    self.factors[factor_id].set_factor_id(factor_id)
     self._next_factor_id += 1
     return factor_id
+
+  def remove_param(self, param):
+    """ Remove param """
+    assert param.param_id in self.params
+    del self.params[param.param_id]
+
+  def remove_factor(self, factor):
+    """ Remove factor """
+    assert factor.factor_id in self.factors
+    del self.factors[factor.factor_id]
 
   def _get_factor_params(self, factor):
     """ Get factor parameters """
@@ -2949,6 +2965,10 @@ class FactorGraph:
 
       self._update(param_idxs, dx)
       (param_idxs, H, g, r) = self._evaluate()
+
+      if self.cost(r) < 0.0:
+        return
+
       if verbose:
         self._print_to_console(i, r)
 
@@ -3839,6 +3859,9 @@ class Tracker:
     self.features = {}
     self.keyframes = []
 
+    # Settings
+    self.window_size = 5
+
   def nb_cams(self):
     """ Return number of cameras """
     return len(self.cam_params)
@@ -3860,12 +3883,8 @@ class Tracker:
     self.cam_params[cam_idx] = cam_params
     self.cam_geoms[cam_idx] = cam_params.data
     self.cam_exts[cam_idx] = cam_exts
-
-    cam_params_pid = self.graph.add_param(cam_params)
-    cam_exts_pid = self.graph.add_param(cam_exts)
-    cam_params.set_param_id(cam_params_pid)
-    cam_exts.set_param_id(cam_exts_pid)
-
+    self.graph.add_param(cam_params)
+    self.graph.add_param(cam_exts)
     self.feature_tracker.add_camera(cam_idx, cam_params, cam_exts)
 
   def add_overlap(self, cam_i, cam_j):
@@ -3907,9 +3926,12 @@ class Tracker:
 
     # Linear triangulate
     p_Ci = linear_triangulation(P_i, P_j, x_i, x_j)
+    if p_Ci[2] < 0.0:
+      return None
+
+    # Transform feature from camera frame to world frame
     T_BCi = pose2tf(self.cam_exts[cam_i].param)
     p_W = tf_point(T_WB @ T_BCi, p_Ci)
-
     return p_W
 
   def _add_pose(self, ts, T_WB):
@@ -3922,8 +3944,7 @@ class Tracker:
 
     """
     pose = pose_setup(ts, T_WB)
-    pose_pid = self.graph.add_param(pose)
-    pose.set_param_id(pose_pid)
+    self.graph.add_param(pose)
     return pose
 
   def _get_last_pose(self):
@@ -3946,7 +3967,6 @@ class Tracker:
     self.features[fid] = feature_setup(zeros((3,)))
     self.features[fid].data.update(ts, cam_idx, kp.pt)
     feature_pid = self.graph.add_param(self.features[fid])
-    self.features[fid].set_param_id(feature_pid)
     return feature_pid
 
   def _update_feature(self, fid, ts, cam_idx, kp, T_WB):
@@ -3973,8 +3993,9 @@ class Tracker:
       cam_i, z_i = overlaps[0]
       cam_j, z_j = overlaps[1]
       p_W = self._triangulate(cam_i, cam_j, z_i, z_j, T_WB)
-      self.features[fid].param = p_W
-      self.features[fid].data.set_initialized()
+      if p_W is not None:
+        self.features[fid].param = p_W
+        self.features[fid].data.set_initialized()
 
   def _process_features(self, ts, ft_data, pose):
     """ Process features
@@ -4005,7 +4026,7 @@ class Tracker:
       ts (int): Timestamp
       mcam_imgs (Dict[int, np.array]): Multi-camera images
       ft_data (Dict[int, FeatureTrackerData]): Multi-camera features
-      pose: Pose
+      pose (Pose): Body pose in world frame
 
     """
     vision_factors = []
@@ -4019,7 +4040,8 @@ class Tracker:
       # Form vision factors
       for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
         feature = self.features[fid]
-        z = kp.pt
+        if feature.data.initialized() is False:
+          continue
 
         # Form vision factor
         param_ids = []
@@ -4027,13 +4049,23 @@ class Tracker:
         param_ids.append(cam_exts.param_id)
         param_ids.append(feature.param_id)
         param_ids.append(cam_params.param_id)
-        factor = vision_factor_setup(param_ids, z, cam_geom)
+        factor = vision_factor_setup(param_ids, kp.pt, cam_geom)
         vision_factors.append(factor)
         self.graph.add_factor(factor)
 
     # Form keyframe
-    kf = KeyFrame(ts, mcam_imgs, pose, vision_factors)
-    self.keyframes.append(kf)
+    self.keyframes.append(KeyFrame(ts, mcam_imgs, pose, vision_factors))
+
+  def _pop_keyframe(self):
+    """ Pop keyframe """
+    # Remove pose parameter and vision factors
+    kf = self.keyframes[0]
+    self.graph.remove_param(kf.pose)
+    for factor in kf.vision_factors:
+      self.graph.remove_factor(factor)
+
+    # Pop the front of the queue
+    self.keyframes.pop(0)
 
   def vision_callback(self, ts, mcam_imgs):
     """
@@ -4047,8 +4079,8 @@ class Tracker:
     """
     assert self.pose_init is not None
 
-    # Has IMU started?
-    if self.imu_started is False:
+    # Has IMU?
+    if self.imu_params is not None and self.imu_started is False:
       return
 
     # Perform feature tracking
@@ -4066,10 +4098,21 @@ class Tracker:
     self._process_features(ts, ft_data, pose)
     self._add_keyframe(ts, mcam_imgs, ft_data, pose)
 
-    print(f"nb_factors: {len(self.graph.factors)}")
-    print(f"nb_params: {len(self.graph.params)}")
-    sys.stdout.flush()
-    self.graph.solve()
+    if self.nb_keyframes() != 1:
+      self.graph.solve(True)
+
+    if len(self.keyframes) >= self.window_size:
+      self._pop_keyframe()
+
+    errors = self.graph._get_reproj_errors()
+    print(f"reproj_error:", end=" [")
+    print(f"mean: {np.mean(errors):.2f}", end=", ")
+    print(f"median: {np.median(errors):.2f}", end=", ")
+    print(f"rms: {rmse(errors):.2f}", end=", ")
+    print(f"max: {np.max(errors):.2f}", end="]\n")
+    print(f"nb_keyframes: {self.nb_keyframes()}")
+    print()
+    print()
 
 
 ###############################################################################
@@ -5778,57 +5821,69 @@ class TestTracker(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     super(TestTracker, cls).setUpClass()
+    # Load dataset
     cls.dataset = EurocDataset(euroc_data_path)
-
-  def setUp(self):
-    # Setup test images
-    self.dataset = TestTracker.dataset
-    ts = self.dataset.cam0_data.timestamps[0]
-    img0_path = self.dataset.cam0_data.image_paths[ts]
-    img1_path = self.dataset.cam1_data.image_paths[ts]
-    self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
-    self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+    ts0 = cls.dataset.cam0_data.timestamps[0]
+    cls.img0 = cls.dataset.get_camera_image(0, ts0)
+    cls.img1 = cls.dataset.get_camera_image(1, ts0)
 
     # Imu params
     noise_acc = 0.08  # accelerometer measurement noise stddev.
     noise_gyr = 0.004  # gyroscope measurement noise stddev.
     noise_ba = 0.00004  # accelerometer bias random work noise stddev.
     noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
-    imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
+    cls.imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
 
     # Setup cameras
     # -- cam0
-    res = self.dataset.cam0_data.config.resolution
-    proj_params = self.dataset.cam0_data.config.intrinsics
-    dist_params = self.dataset.cam0_data.config.distortion_coefficients
+    res = cls.dataset.cam0_data.config.resolution
+    proj_params = cls.dataset.cam0_data.config.intrinsics
+    dist_params = cls.dataset.cam0_data.config.distortion_coefficients
     proj_model = "pinhole"
     dist_model = "radtan4"
     params = np.block([*proj_params, *dist_params])
-    self.cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
+    cls.cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
+    cls.cam0.fix = True
     # -- cam1
-    res = self.dataset.cam1_data.config.resolution
-    proj_params = self.dataset.cam1_data.config.intrinsics
-    dist_params = self.dataset.cam1_data.config.distortion_coefficients
+    res = cls.dataset.cam1_data.config.resolution
+    proj_params = cls.dataset.cam1_data.config.intrinsics
+    dist_params = cls.dataset.cam1_data.config.distortion_coefficients
     proj_model = "pinhole"
     dist_model = "radtan4"
     params = np.block([*proj_params, *dist_params])
-    self.cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
+    cls.cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
+    cls.cam1.fix = True
 
     # Setup camera extrinsics
     # -- cam0
-    T_BC0 = self.dataset.cam0_data.config.T_BS
-    self.cam0_exts = extrinsics_setup(T_BC0)
+    T_BC0 = cls.dataset.cam0_data.config.T_BS
+    cls.cam0_exts = extrinsics_setup(T_BC0)
+    cls.cam0_exts.fix = True
     # -- cam1
-    T_BC1 = self.dataset.cam1_data.config.T_BS
-    self.cam1_exts = extrinsics_setup(T_BC1)
+    T_BC1 = cls.dataset.cam1_data.config.T_BS
+    cls.cam1_exts = extrinsics_setup(T_BC1)
+    cls.cam1_exts.fix = True
+
+  def setUp(self):
+    # Setup test dataset
+    self.dataset = TestTracker.dataset
+    self.imu_params = TestTracker.imu_params
+    self.cam0 = TestTracker.cam0
+    self.cam1 = TestTracker.cam1
+    self.cam0_exts = TestTracker.cam0_exts
+    self.cam1_exts = TestTracker.cam1_exts
 
     # Setup tracker
+    ts0 = self.dataset.ground_truth.timestamps[0]
+    T_WB = self.dataset.ground_truth.T_WB[ts0]
+
     feature_tracker = FeatureTracker()
     self.tracker = Tracker(feature_tracker)
-    self.tracker.add_imu(imu_params)
+    self.tracker.add_imu(self.imu_params)
     self.tracker.add_camera(0, self.cam0, self.cam0_exts)
     self.tracker.add_camera(1, self.cam1, self.cam1_exts)
     self.tracker.add_overlap(0, 1)
+    self.tracker.set_initial_pose(T_WB)
 
   def test_tracker_add_camera(self):
     """ Test Tracker.add_camera() """
@@ -5838,9 +5893,7 @@ class TestTracker(unittest.TestCase):
 
   def test_tracker_set_initial_pose(self):
     """ Test Tracker.set_initial_pose() """
-    self.tracker.set_initial_pose(eye(4))
     self.assertTrue(self.tracker.pose_init is not None)
-    self.assertTrue(np.array_equal(self.tracker.pose_init, eye(4)))
 
   def test_tracker_inertial_callback(self):
     """ Test Tracker.inertial_callback() """
@@ -5974,44 +6027,70 @@ class TestTracker(unittest.TestCase):
   def test_tracker_process_features(self):
     """ Test Tracker._process_features() """
 
-    for ts in self.dataset.cam0_data.timestamps[50:]:
+    for ts in self.dataset.cam0_data.timestamps:
+      # Get ground truth pose
       T_WB = self.dataset.get_ground_truth_pose(ts)
-      pose = pose_setup(ts, T_WB)
-
-      # Load images
-      img0 = self.dataset.get_camera_image(0, ts)
-      img1 = self.dataset.get_camera_image(1, ts)
+      if T_WB is None:
+        continue
 
       # Feed camera images to feature tracker
+      img0 = self.dataset.get_camera_image(0, ts)
+      img1 = self.dataset.get_camera_image(1, ts)
       ft_data = self.tracker.feature_tracker.update(ts, {0: img0, 1: img1})
-      self.tracker._process_features(ts, ft_data, pose)
 
+      # Process features
+      pose = self.tracker._add_pose(ts, T_WB)
+      self.tracker._process_features(ts, ft_data, pose)
+      self.assertTrue(self.tracker.nb_features() > 0)
       break
 
   def test_tracker_add_keyframe(self):
     """ Test Tracker._add_keyframe() """
-    pass
+    for ts in self.dataset.cam0_data.timestamps:
+      # Get ground truth pose
+      T_WB = self.dataset.get_ground_truth_pose(ts)
+      if T_WB is None:
+        continue
 
-  # def test_tracker_vision_callback(self):
-  #   """ Test Tracker.vision_callback() """
-  #   for ts in self.dataset.timestamps[100:]:
-  #     # Load images
-  #     img0_path = self.dataset.cam0_images[ts]
-  #     img1_path = self.dataset.cam1_images[ts]
-  #     img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
-  #     img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
-  #
-  #     # Feed camera images to feature tracker
-  #     ft_data = self.tracker.vision_callback(ts, {0: img0, 1: img1})
-  #     viz = visualize_tracking(ft_data)
-  #
-  #     # Visualize
-  #     sys.stdout.flush()
-  #     cv2.imshow('viz', viz)
-  #     # if cv2.waitKey(0) == ord('q'):
-  #     #   break
-  #     if cv2.waitKey(1) == ord('q'):
-  #       break
+      # Feed camera images to feature tracker
+      img0 = self.dataset.get_camera_image(0, ts)
+      img1 = self.dataset.get_camera_image(1, ts)
+      mcam_imgs = {0: img0, 1: img1}
+      ft_data = self.tracker.feature_tracker.update(ts, mcam_imgs)
+
+      # Process features
+      pose = self.tracker._add_pose(ts, T_WB)
+      self.tracker._process_features(ts, ft_data, pose)
+      self.tracker._add_keyframe(ts, mcam_imgs, ft_data, pose)
+      self.assertTrue(self.tracker.nb_features() > 0)
+      self.assertEqual(self.tracker.nb_keyframes(), 1)
+      break
+
+  def test_tracker_vision_callback(self):
+    """ Test Tracker.vision_callback() """
+    # Disable imu in Tracker
+    self.tracker.imu_params = None
+
+    # Loop through timestamps
+    for k, ts in enumerate(self.dataset.cam0_data.timestamps[100:]):
+      # Get ground truth pose
+      T_WB = self.dataset.get_ground_truth_pose(ts)
+      if T_WB is None:
+        continue
+
+      # Vision callback
+      img0 = self.dataset.get_camera_image(0, ts)
+      img1 = self.dataset.get_camera_image(1, ts)
+      self.tracker.vision_callback(ts, {0: img0, 1: img1})
+
+      # print(f"{ts}, {self.tracker.nb_features()}")
+      # self.assertTrue(self.tracker.nb_features() > 0)
+      # self.assertEqual(self.tracker.nb_keyframes(), 1)
+
+      last_kf = self.tracker.keyframes[-1]
+      print(f"{k}")
+      print("T_WB [est]:", np.round(tf2pose(pose2tf(last_kf.pose.param)), 4))
+      print("T_WB [gnd]:", np.round(tf2pose(T_WB), 4))
 
 
 # CALIBRATION #################################################################
