@@ -6179,7 +6179,7 @@ class TestTracker(unittest.TestCase):
 
     # Close csv files
     pose_est_csv.close()
-    pose_gndcsv.close()
+    pose_gnd_csv.close()
 
     # Plot
     poses_gnd = pandas.read_csv("/tmp/poses_gnd.csv")
