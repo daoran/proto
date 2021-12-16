@@ -1,23 +1,30 @@
-include ../config.mk
+include config.mk
 
-SRCS = $(wildcard *.c)
-OBJS = $(addprefix $(BLD_DIR)/, $(SRCS:.c=.o))
-LIB = $(BLD_DIR)/libproto.a
+LIB := $(BLD_DIR)/libproto.a
+TEST := $(BIN_DIR)/test_proto
 
-default: dirs shaders $(LIB)
-.PHONY: tests dirs shaders
-
-tests:
-	@make -C tests
+default: dirs $(LIB) $(TEST)
+.PHONY: dirs shaders run_tests clean tests_data
 
 dirs:
 	@mkdir -p $(BLD_DIR)
+	@mkdir -p $(BIN_DIR)
 
 shaders:
+	@mkdir -p $(BIN_DIR)/shaders
 	@cp -r shaders $(BIN_DIR)
+
+run_tests: dirs shaders $(LIB) $(TEST)
+	./build/bin/test_proto
+
+clean:
+	@rm -rf build
 
 $(BLD_DIR)/%.o: %.c %.h
 	$(COMPILE_OBJ)
 
-$(BLD_DIR)/libproto.a: $(OBJS)
+$(LIB): $(BLD_DIR)/gui.o $(BLD_DIR)/proto.o
 	$(MAKE_STATIC_LIB)
+
+$(BIN_DIR)/test_%: test_%.c
+	$(MAKE_TEST)

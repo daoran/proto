@@ -18,7 +18,7 @@ memcheck() {
 # $ARDUINO --upload firmware/firmware.ino
 
 # node js/proto.js
-cd python && ctags proto.py && cd -
+# cd python && ctags proto.py && cd -
 
 # python3 python/proto.py
 # python3 python/proto.py TestLinearAlgebra
@@ -54,7 +54,7 @@ cd python && ctags proto.py && cd -
 # python3 python/proto.py TestFeatureTracker.test_update
 # python3 python/proto.py TestTracker
 # python3 python/proto.py TestTracker.test_tracker_process_features
-python3 python/proto.py TestTracker.test_tracker_vision_callback
+# python3 python/proto.py TestTracker.test_tracker_vision_callback
 # python3 python/proto.py TestCalibration
 # python3 python/proto.py TestEuroc
 # python3 python/proto.py TestSimulation
@@ -66,7 +66,7 @@ python3 python/proto.py TestTracker.test_tracker_vision_callback
 
 # make format_code
 # ctags -R lib
-# time make
+time make
 
 # doxygen
 # python3 scripts/api.py

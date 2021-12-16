@@ -24,7 +24,7 @@ CERES_DEPS := -lgflags -lglog \
 							-lcxsparse
 CERES_LIBS := -L$(DEPS_DIR)/lib -lceres $(CERES_DEPS)
 
-LIBS=-L$(BLD_DIR) \
+DEPS=-L$(BLD_DIR) \
 	-lproto \
 	$(CERES_LIBS) \
 	$(OPENGL_LIBS) \
@@ -43,14 +43,11 @@ COMPILE_OBJ = \
 
 MAKE_STATIC_LIB = \
 	@echo "AR [libproto.a]"; \
-	$(AR) $(ARFLAGS) $@ $^
+	$(AR) $(ARFLAGS) $@ $^ > /dev/null 2>&1
 
 COMPILE_TEST_OBJ = \
 	$(CC) $(CFLAGS) -c $< -o $@
 
 MAKE_TEST = \
-	echo "TEST [$(shell basename $@)]"; \
-	$(CC) $(CFLAGS) \
-		$(subst $(BIN_DIR), $(BLD_DIR), $@.o) \
-		-o $@ \
-		$(LIBS)
+	@echo "TEST [$(shell basename $@)]"; \
+	$(CC) $(CFLAGS) $< -o $@ $(DEPS)

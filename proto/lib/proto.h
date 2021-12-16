@@ -5,6 +5,8 @@
 #define MAX_LINE_LENGTH 9046
 #define USE_CBLAS
 #define USE_LAPACK
+/* #define USE_CERES */
+#define USE_STB_IMAGE
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
 
@@ -27,16 +29,16 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 
-/* #include <ceres/c_api.h> */
-
-#include "stb_image.h"
-
 #ifdef USE_CBLAS
 #include <cblas.h>
 #endif
 
 #ifdef USE_LAPACK
 #include <lapacke.h>
+#endif
+
+#ifdef USE_CERES
+#include <ceres/c_api.h>
 #endif
 
 /******************************************************************************
@@ -205,6 +207,9 @@ struct timespec tic();
 float toc(struct timespec *tic);
 float mtoc(struct timespec *tic);
 timestamp_t time_now();
+
+real_t ts2sec(const timestamp_t ts);
+timestamp_t sec2ts(const real_t time_s);
 
 /******************************************************************************
  * NETWORK
@@ -825,6 +830,18 @@ void graph_print(graph_t *graph);
 int graph_add_factor(graph_t *graph, void *factor, int factor_type);
 int graph_eval(graph_t *graph);
 void graph_optimize(graph_t *graph);
+
+/******************************************************************************
+ * DATASET
+ ******************************************************************************/
+
+pose_t *load_poses(const char *fp, int *nb_poses);
+int **assoc_pose_data(pose_t *gnd_poses,
+                      size_t nb_gnd_poses,
+                      pose_t *est_poses,
+                      size_t nb_est_poses,
+                      double threshold,
+                      size_t *nb_matches);
 
 /******************************************************************************
  * SIM

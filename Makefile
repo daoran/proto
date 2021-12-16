@@ -40,7 +40,7 @@ debug:
 	@cd proto; make -s -DDEBUG
 
 release:
-	@cd proto; make -s
+	@cd proto; make -s lib
 
 install:
 	@if [ ! -d proto/build ]; then \

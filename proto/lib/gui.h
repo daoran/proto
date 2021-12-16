@@ -8,7 +8,6 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
-// #include <GLFW/glfw3.h>
 
 #define SDL_DISABLE_IMMINTRIN_H 1
 #include <SDL2/SDL.h>
