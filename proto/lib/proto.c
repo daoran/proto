@@ -17,12 +17,12 @@ void path_file_name(const char *path, char *fname) {
   assert(fname != NULL);
 
   char path_copy[9046] = {0};
-  strcpy(path_copy, path);
+  strncpy(path_copy, path, strlen(path));
 
   char *base = strrchr(path_copy, '/');
   base = base ? base + 1 : path_copy;
 
-  strcpy(fname, base);
+  strncpy(fname, base, strlen(base));
 }
 
 /**
@@ -33,12 +33,12 @@ void path_file_ext(const char *path, char *fext) {
   assert(fext != NULL);
 
   char path_copy[9046] = {0};
-  strcpy(path_copy, path);
+  strncpy(path_copy, path, strlen(path));
 
   char *base = strrchr(path, '.');
   if (base) {
     base = base ? base + 1 : path_copy;
-    strcpy(fext, base);
+    strncpy(fext, base, strlen(base));
   } else {
     fext[0] = '\0';
   }
@@ -52,7 +52,7 @@ void path_dir_name(const char *path, char *dir_name) {
   assert(dir_name != NULL);
 
   char path_copy[9046] = {0};
-  strcpy(path_copy, path);
+  strncpy(path_copy, path, strlen(path));
 
   char *base = strrchr(path_copy, '/');
   strncpy(dir_name, path_copy, base - path_copy);
@@ -104,12 +104,13 @@ char **list_files(const char *path, int *n) {
   /* Create list of files */
   for (int i = 2; i < N; i++) {
     char fp[9046] = {0};
-    strcat(fp, path);
-    strcat(fp, (fp[strlen(fp) - 1] == '/') ? "" : "/");
-    strcat(fp, namelist[i]->d_name);
+    const char *c = (fp[strlen(fp) - 1] == '/') ? "" : "/";
+    strncat(fp, path, strlen(path));
+    strncat(fp, c, strlen(c));
+    strncat(fp, namelist[i]->d_name, strlen(namelist[i]->d_name));
 
     files[*n] = malloc(sizeof(char) * (strlen(fp) + 1));
-    strcpy(files[*n], fp);
+    strncpy(files[*n], fp, strlen(fp));
     (*n)++;
 
     free(namelist[i]);
@@ -260,7 +261,7 @@ int file_copy(const char *src, const char *dst) {
 char *malloc_string(const char *s) {
   assert(s != NULL);
   char *retval = malloc(sizeof(char) * strlen(s) + 1);
-  strcpy(retval, s);
+  strncpy(retval, s, strlen(s));
   return retval;
 }
 
@@ -481,7 +482,7 @@ char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
     if (line[0] != '#') {
       break;
     } else {
-      strcpy(field_line, line);
+      strncpy(field_line, line, strlen(line));
     }
   }
 
@@ -533,12 +534,6 @@ dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
     return NULL;
   }
 
-  /* Initialize memory for dsv data */
-  real_t **data = malloc(sizeof(real_t *) * *nb_rows);
-  for (int i = 0; i < *nb_rows; i++) {
-    data[i] = malloc(sizeof(real_t) * *nb_cols);
-  }
-
   /* Load file */
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
@@ -551,6 +546,12 @@ dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
   int row_idx = 0;
   int col_idx = 0;
 
+  /* Initialize memory for dsv data */
+  real_t **data = malloc(sizeof(real_t *) * *nb_rows);
+  /* for (int i = 0; i < *nb_rows; i++) { */
+  /*   data[i] = malloc(sizeof(real_t) * *nb_cols); */
+  /* } */
+
   /* Loop through data line by line */
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
     /* Ignore if comment line */
@@ -559,6 +560,7 @@ dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
     }
 
     /* Iterate through values in line separated by commas */
+    data[row_idx] = malloc(sizeof(real_t) * *nb_cols);
     char entry[100] = {0};
     for (size_t i = 0; i < strlen(line); i++) {
       char c = line[i];
@@ -717,7 +719,7 @@ int ip_port_info(const int sockfd, char *ip, int *port) {
     *port = ntohs(s->sin6_port);
     inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
   }
-  strcpy(ip, ipstr);
+  strncpy(ip, ipstr, strlen(ipstr));
 
   return 0;
 }
@@ -811,7 +813,7 @@ int tcp_client_setup(tcp_client_t *client,
   assert(server_ip != NULL);
 
   /* Setup client struct */
-  strcpy(client->server_ip, server_ip);
+  strncpy(client->server_ip, server_ip, strlen(server_ip));
   client->server_port = server_port;
   client->sockfd = -1;
 
@@ -1285,6 +1287,7 @@ real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
   FILE *infile = fopen(mat_path, "r");
   if (infile == NULL) {
     fclose(infile);
+    free(A);
     return NULL;
   }
 
@@ -4110,8 +4113,8 @@ void camera_params_setup(camera_params_t *camera,
   camera->resolution[0] = cam_res[0];
   camera->resolution[1] = cam_res[1];
 
-  strcpy(camera->proj_model, proj_model);
-  strcpy(camera->dist_model, dist_model);
+  strncpy(camera->proj_model, proj_model, strlen(proj_model));
+  strncpy(camera->dist_model, dist_model, strlen(dist_model));
 
   camera->data[0] = data[0];
   camera->data[1] = data[1];
@@ -5655,9 +5658,18 @@ sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
     return NULL;
   }
 
+  /* Check number of rows */
+  const int nb_rows = dsv_rows(csv_path);
+  if (nb_rows == 0) {
+    free(csv_path);
+    return NULL;
+  }
+
   /* Open csv file */
   FILE *csv_file = fopen(csv_path, "r");
-  const int nb_rows = dsv_rows(csv_path);
+  if (csv_file == NULL) {
+    return NULL;
+  }
 
   /* Form sim_cam_data_t */
   sim_cam_data_t *cam_data = malloc(sizeof(sim_cam_data_t));

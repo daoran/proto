@@ -17,9 +17,12 @@ memcheck() {
 # $ARDUINO --upload firmware/firmware.ino --port /dev/ttyUSB0
 # $ARDUINO --upload firmware/firmware.ino
 
+###############################################################################
+# PYTHON
+###############################################################################
+
 # node js/proto.js
 # cd python && ctags proto.py && cd -
-
 # python3 python/proto.py
 # python3 python/proto.py TestLinearAlgebra
 # python3 python/proto.py TestTransform
@@ -64,13 +67,13 @@ memcheck() {
 # python3 python/proto.py TestSimulation.test_sim_data
 # python3 python/proto.py TestSimulation.test_sim_feature_tracker
 
+###############################################################################
+# C
+###############################################################################
+
 # make format_code
 # ctags -R lib
-time make
-
-# doxygen
-# python3 scripts/api.py
-# python3 scripts/api2.py
+# time make
 
 # cd ./build/bin
 # ./test_proto
