@@ -546,13 +546,8 @@ dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
   int row_idx = 0;
   int col_idx = 0;
 
-  /* Initialize memory for dsv data */
-  real_t **data = malloc(sizeof(real_t *) * *nb_rows);
-  /* for (int i = 0; i < *nb_rows; i++) { */
-  /*   data[i] = malloc(sizeof(real_t) * *nb_cols); */
-  /* } */
-
   /* Loop through data line by line */
+  real_t **data = malloc(sizeof(real_t *) * *nb_rows);
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
     /* Ignore if comment line */
     if (line[0] == '#') {

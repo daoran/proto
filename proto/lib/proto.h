@@ -1,6 +1,9 @@
 #ifndef PROTO_H_
 #define PROTO_H_
 
+#define _DEFAULT_SOURCE 1
+
+/** PROTO SETTINGS **/
 #define PRECISION 2
 #define MAX_LINE_LENGTH 9046
 #define USE_CBLAS
@@ -9,7 +12,6 @@
 #define USE_STB_IMAGE
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
-#define _DEFAULT_SOURCE 1
 
 #include <stdio.h>
 #include <stdlib.h>
