@@ -4202,10 +4202,28 @@ class Tracker:
 @dataclass
 class CalibTarget:
   """ Calibration Target """
-  nb_rows: int
-  nb_cols: int
-  tag_size: float
-  tag_spacing: float
+
+  def __init__(self, nb_rows, nb_cols, tag_size, tag_spacing):
+    self.nb_rows = nb_rows
+    self.nb_cols = nb_cols
+    self.tag_size = tag_size
+    self.tag_spacing = tag_spacing
+
+    # Create chessboard grid
+    nb_corners = nb_rows * nb_cols
+    object_points = zeros((3, nb_corners))
+    pt_idx = 0
+    for i in range(nb_rows):
+      for j in range(nb_cols):
+        object_points[:, pt_idx] = np.array([[j - 1], [i - 1]])
+        idx += 1
+
+    # Chessboard struct
+    self.nb_rows = nb_rows
+    self.nb_cols = nb_cols
+    self.nb_corners = nb_corners
+    self.tag_size = tag_size
+    self.object_points = tag_size * object_points
 
 
 def calib_generate_poses(calib_target):
@@ -4220,7 +4238,7 @@ def calib_generate_poses(calib_target):
   y_range = np.linspace(-0.3, 0.3, 5)
   z_range = np.linspace(0.2, 0.5, 5)
 
-  # Generate camera positions infront of the AprilGrid target r_TC
+  # Generate camera positions infront of the calib target r_TC
   cam_pos = zeros((3, len(x_range) * len(y_range) * len(z_range)))
   pos_idx = 1
   for x in x_range:
@@ -4230,7 +4248,7 @@ def calib_generate_poses(calib_target):
         cam_pos[:, pos_idx] = r_TC
         pos_idx += 1
 
-  # For each position create a camera pose that "looks at" the AprilGrid
+  # For each position create a camera pose that "looks at" the calib
   # center in the target frame, T_TC.
   poses = []
   for i in range(cam_pos.shape[1]):
@@ -4250,7 +4268,7 @@ def calib_generate_random_poses(calib_target, nb_poses):
   y_range = [-0.5, 0.5]
   z_range = [0.5, 0.7]
 
-  # For each position create a camera pose that "looks at" the AprilGrid
+  # For each position create a camera pose that "looks at" the calibration
   # center in the target frame, T_TC.
   poses = []
   for _ in range(nb_poses):
@@ -4273,50 +4291,91 @@ def calib_generate_random_poses(calib_target, nb_poses):
   return poses
 
 
-@dataclass
 class AprilGrid:
   """ AprilGrid """
-  tag_rows: int = 6
-  tag_cols: int = 6
-  tag_sizse: float = 0.088
-  tag_spacing: float = 0.3
-  keypoints: List = field(default_factory=[])
-  object_points: List = field(default_factory=[])
 
-  def __post_init__(self):
-    # Form object points
-    self.object_points = []
-    nb_tags = self.tag_rows * self.tag_cols
-    for tag_id in range(nb_tags - 1):
-      # Calculate the AprilGrid index using tag id
-      [i, j] = self.grid_index(tag_id)
+  def __init__(self, tag_rows=6, tag_cols=6, tag_size=0.088, tag_spacing=0.3):
+    self.tag_rows = tag_rows
+    self.tag_cols = tag_cols
+    self.tag_size = tag_size
+    self.tag_spacing = tag_spacing
+    self.nb_tags = self.tag_rows * self.tag_cols
+    self.data = {}
 
-      # Calculate the x and y of the tag origin (bottom left corner of tag)
-      # relative to grid origin (bottom left corner of entire grid)
-      x = j * (self.tag_sizse + self.tag_sizse * self.tag_spacing)
-      y = i * (self.tag_sizse + self.tag_sizse * self.tag_spacing)
+  def get_object_point(self, tag_id, corner_idx):
+    """ Form object point """
+    # Calculate the AprilGrid index using tag id
+    [i, j] = self.get_grid_index(tag_id)
 
+    # Calculate the x and y of the tag origin (bottom left corner of tag)
+    # relative to grid origin (bottom left corner of entire grid)
+    x = j * (self.tag_size + self.tag_size * self.tag_spacing)
+    y = i * (self.tag_size + self.tag_size * self.tag_spacing)
+
+    # Corners from bottom left in counter-clockwise fashion
+    if corner_idx == 0:
       # Bottom left
-      pt_bl = [x, y, 0]
+      return np.array([x, y, 0])
+    elif corner_idx == 1:
       # Bottom right
-      pt_br = [x + self.tag_sizse, y, 0]
+      return np.array([x + self.tag_size, y, 0])
+    elif corner_idx == 2:
       # Top right
-      pt_tr = [x + self.tag_sizse, y + self.tag_sizse, 0]
+      return np.array([x + self.tag_size, y + self.tag_size, 0])
+    elif corner_idx == 3:
       # Top left
-      pt_tl = [x, y + self.tag_sizse, 0]
+      return np.array([x, y + self.tag_size, 0])
 
-      # Tag object points
-      tag_points = [pt_bl, pt_br, pt_tr, pt_tl]
+    raise RuntimeError(f"Invalid tag_id[{tag_id}] corner_idx[{corner_idx}]!")
 
-      # Add to total object points
-      self.object_points.append(tag_points)
+  def get_object_points(self):
+    """ Form object points """
+    object_points = []
+    for tag_id in range(self.nb_tags):
+      for corner_idx in range(4):
+        object_points.append(self.get_object_point(tag_id, corner_idx))
+    return np.array(object_points)
 
-  def grid_index(self, tag_id):
+  def get_center(self):
+    """ Calculate center of aprilgrid """
+    x = (self.tag_cols / 2.0) * self.tag_size
+    x += ((self.tag_cols / 2.0) - 1) * self.tag_spacing * self.tag_size
+    x += 0.5 * self.tag_spacing * self.tag_size
+
+    y = (self.tag_rows / 2.0) * self.tag_size
+    y += ((self.tag_rows / 2.0) - 1) * self.tag_spacing * self.tag_size
+    y += 0.5 * self.tag_spacing * self.tag_size
+
+    return np.array([x, y])
+
+  def get_grid_index(self, tag_id):
     """ Calculate grid index from tag id """
-    assert tag_id < (self.tag_rows * self.tag_cols) and id >= 0
-    i = floor(tag_id / self.tag_cols)
-    j = floor(tag_id % self.tag_cols)
+    assert tag_id < (self.nb_tags) and tag_id >= 0
+    i = int(tag_id / self.tag_cols)
+    j = int(tag_id % self.tag_cols)
     return (i, j)
+
+  def add_keypoint(self, tag_id, corner_idx, kp):
+    """ Add keypoint """
+    if tag_id not in self.data:
+      self.data[tag_id] = {}
+    self.data[tag_id][corner_idx] = kp
+
+  def remove_keypoint(self, tag_id, corner_idx):
+    """ Remove keypoint """
+    assert tag_id in self.data
+    assert corner_idx in self.data[tag_id]
+    del self.data[tag_id][corner_idx]
+
+  def get_measurements(self):
+    """ Get measurements """
+    data = []
+    for tag_id, tag_data in self.data.items():
+      for corner_idx, kp in tag_data.items():
+        obj_point = self.get_object_point(tag_id, corner_idx)
+        data.append((tag_id, corner_idx, kp, obj_point))
+
+    return data
 
 
 ###############################################################################
@@ -6203,6 +6262,23 @@ class TestCalibration(unittest.TestCase):
   def test_dummy(self):
     """ Test dummy """
     pass
+
+
+class TestAprilGrid(unittest.TestCase):
+  """ Test aprilgrid """
+
+  def test_aprilgrid(self):
+    """ Test aprilgrid """
+    grid = AprilGrid()
+    self.assertTrue(grid is not None)
+
+    # debug = True
+    debug = False
+    if debug:
+      plt.figure()
+      obj_pts = grid.get_object_points()
+      plt.plot(obj_pts[:, 0], obj_pts[:, 1], '.')
+      plt.show()
 
 
 # SIMULATION  #################################################################
