@@ -1197,23 +1197,28 @@ def plot_tf(ax, T, **kwargs):
   fontweight = kwargs.get('fontweight', 'bold')
   colors = kwargs.get('colors', ['r-', 'g-', 'b-'])
 
-  r = tf_trans(T)
-  origin = r
-  x_axis = T @ np.array([size * 1.0, 0.0, 0.0, 1.0])
-  y_axis = T @ np.array([0.0, size * 1.0, 0.0, 1.0])
-  z_axis = T @ np.array([0.0, 0.0, size * 1.0, 1.0])
+  origin = tf_trans(T)
+  lx = tf_point(T, np.array([size, 0.0, 0.0]))
+  ly = tf_point(T, np.array([0.0, size, 0.0]))
+  lz = tf_point(T, np.array([0.0, 0.0, size]))
 
   # Draw x-axis
-  ax.plot([origin[0], x_axis[0]], [origin[1], x_axis[1]],
-          [origin[2], x_axis[2]], colors[0])
+  px = [origin[0], lx[0]]
+  py = [origin[1], lx[1]]
+  pz = [origin[2], lx[2]]
+  ax.plot(px, py, pz, colors[0])
 
   # Draw y-axis
-  ax.plot([origin[0], y_axis[0]], [origin[1], y_axis[1]],
-          [origin[2], y_axis[2]], colors[1])
+  px = [origin[0], ly[0]]
+  py = [origin[1], ly[1]]
+  pz = [origin[2], ly[2]]
+  ax.plot(px, py, pz, colors[1])
 
   # Draw z-axis
-  ax.plot([origin[0], z_axis[0]], [origin[1], z_axis[1]],
-          [origin[2], z_axis[2]], colors[2])
+  px = [origin[0], lz[0]]
+  py = [origin[1], lz[1]]
+  pz = [origin[2], lz[2]]
+  ax.plot(px, py, pz, colors[2])
 
   # Draw label
   if name is not None:
@@ -1277,33 +1282,26 @@ def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel):
 
 def lookat(cam_pos, target_pos, **kwargs):
   """ Form look at matrix """
-  up_axis = kwargs.get('up_axis', [0.0, -1.0, 0.0])
-  assert cam_pos.shape == (3,) or cam_pos.shape == (3, 1)
-  assert target_pos.shape == (3,) or target_pos.shape == (3, 1)
-  assert up_axis.shape == (3,) or up_axis.shape == (3, 1)
+  up_axis = kwargs.get('up_axis', np.array([0.0, -1.0, 0.0]))
+  assert len(cam_pos) == 3
+  assert len(target_pos) == 3
+  assert len(up_axis) == 3
 
   # Note: If we were using OpenGL the cam_dir would be the opposite direction,
   # since in OpenGL the camera forward is -z. In robotics however our camera is
   # +z forward.
-  cam_dir = normalize((target_pos - cam_pos))
-  cam_right = normalize(cross(up_axis, cam_dir))
-  cam_up = cross(cam_dir, cam_right)
+  cam_z = normalize(target_pos - cam_pos)
+  cam_x = normalize(cross(up_axis, cam_z))
+  cam_y = cross(cam_z, cam_x)
 
-  A = zeros((4, 4))
-  A[0, :] = [cam_right[0], cam_right[1], cam_right[2], 0.0]
-  A[1, :] = [cam_up[0], cam_up[1], cam_up[2], 0.0]
-  A[2, :] = [cam_dir[0], cam_dir[1], cam_dir[2], 0.0]
-  A[3, :] = [0.0, 0.0, 0.0, 1.0]
+  T_WC = zeros((4, 4))
+  T_WC[0:3, 0] = cam_x.T
+  T_WC[0:3, 1] = cam_y.T
+  T_WC[0:3, 2] = cam_z.T
+  T_WC[0:3, 3] = cam_pos
+  T_WC[3, 3] = 1.0
 
-  B = zeros(4, 4)
-  B[0, :] = [1.0, 0.0, 0.0, -cam_pos[0]]
-  B[1, :] = [0.0, 1.0, 0.0, -cam_pos[1]]
-  B[2, :] = [0.0, 0.0, 1.0, -cam_pos[2]]
-  B[3, :] = [0.0, 0.0, 0.0, 1.0]
-
-  T_camera_target = A @ B
-  T_target_camera = inv(T_camera_target)
-  return T_target_camera
+  return T_WC
 
 
 # GEOMETRY ####################################################################
@@ -4199,98 +4197,6 @@ class Tracker:
 ###############################################################################
 
 
-@dataclass
-class CalibTarget:
-  """ Calibration Target """
-
-  def __init__(self, nb_rows, nb_cols, tag_size, tag_spacing):
-    self.nb_rows = nb_rows
-    self.nb_cols = nb_cols
-    self.tag_size = tag_size
-    self.tag_spacing = tag_spacing
-
-    # Create chessboard grid
-    nb_corners = nb_rows * nb_cols
-    object_points = zeros((3, nb_corners))
-    pt_idx = 0
-    for i in range(nb_rows):
-      for j in range(nb_cols):
-        object_points[:, pt_idx] = np.array([[j - 1], [i - 1]])
-        idx += 1
-
-    # Chessboard struct
-    self.nb_rows = nb_rows
-    self.nb_cols = nb_cols
-    self.nb_corners = nb_corners
-    self.tag_size = tag_size
-    self.object_points = tag_size * object_points
-
-
-def calib_generate_poses(calib_target):
-  """ Generate calibration poses infront of the calibration target """
-  # Settings
-  calib_width = (calib_target.nb_cols - 1.0) * calib_target.tag_size
-  calib_height = (calib_target.nb_rows - 1.0) * calib_target.tag_size
-  calib_center = np.array([calib_width / 2.0, calib_height / 2.0, 0.0])
-
-  # Pose settings
-  x_range = np.linspace(-0.3, 0.3, 5)
-  y_range = np.linspace(-0.3, 0.3, 5)
-  z_range = np.linspace(0.2, 0.5, 5)
-
-  # Generate camera positions infront of the calib target r_TC
-  cam_pos = zeros((3, len(x_range) * len(y_range) * len(z_range)))
-  pos_idx = 1
-  for x in x_range:
-    for y in y_range:
-      for z in z_range:
-        r_TC = np.array([x, y, z]) + calib_center  # Calib center as offset
-        cam_pos[:, pos_idx] = r_TC
-        pos_idx += 1
-
-  # For each position create a camera pose that "looks at" the calib
-  # center in the target frame, T_TC.
-  poses = []
-  for i in range(cam_pos.shape[1]):
-    T_TC = lookat(cam_pos[:, i], calib_center)
-    poses.append(T_TC)
-
-
-def calib_generate_random_poses(calib_target, nb_poses):
-  """ Generate random calibration poses infront of the calibration target """
-  # Settings
-  calib_width = (calib_target.nb_cols - 1.0) * calib_target.tag_size
-  calib_height = (calib_target.nb_rows - 1.0) * calib_target.tag_size
-  calib_center = np.array([calib_width / 2.0, calib_height / 2.0, 0.0])
-
-  att_range = [deg2rad(-20.0), deg2rad(20.0)]
-  x_range = [-0.5, 0.5]
-  y_range = [-0.5, 0.5]
-  z_range = [0.5, 0.7]
-
-  # For each position create a camera pose that "looks at" the calibration
-  # center in the target frame, T_TC.
-  poses = []
-  for _ in range(nb_poses):
-    # Generate random pose
-    x = np.random.uniform(x_range[0], x_range[1])
-    y = np.random.uniform(y_range[0], y_range[1])
-    z = np.random.uniform(z_range[0], z_range[1])
-    r_TC = calib_center + np.array([x, y, z])
-    T_TC = lookat(r_TC, calib_center)
-
-    # Perturb the pose a little so it doesn't look at the center directly
-    yaw = np.random.uniform(att_range)
-    pitch = np.random.uniform(att_range)
-    roll = np.random.uniform(att_range)
-    C_perturb = euler321(yaw, pitch, roll)
-    r_perturb = zeros((3, 1))
-    T_perturb = tf(C_perturb, r_perturb)
-    poses.append(T_TC * T_perturb)
-
-  return poses
-
-
 class AprilGrid:
   """ AprilGrid """
 
@@ -4376,6 +4282,71 @@ class AprilGrid:
         data.append((tag_id, corner_idx, kp, obj_point))
 
     return data
+
+  def plot(self, ax, T_WF):
+    """ Plot """
+    obj_pts = self.get_object_points()
+    for row_idx in range(obj_pts.shape[0]):
+      r_FFi = obj_pts[row_idx, :]
+      r_WFi = tf_point(T_WF, r_FFi)
+      ax.plot(r_WFi[0], r_WFi[1], r_WFi[2], 'r.')
+
+
+def calib_generate_poses(calib_target, **kwargs):
+  """ Generate calibration poses infront of the calibration target """
+  # Pose settings
+  x_range = kwargs.get('x_range', np.linspace(-0.3, 0.3, 5))
+  y_range = kwargs.get('y_range', np.linspace(-0.3, 0.3, 5))
+  z_range = kwargs.get('z_range', np.linspace(0.3, 0.5, 5))
+
+  # Generate camera positions infront of the calib target r_FC
+  calib_center = np.array([*calib_target.get_center(), 0.0])
+  cam_pos = []
+  pos_idx = 0
+  for x in x_range:
+    for y in y_range:
+      for z in z_range:
+        r_FC = np.array([x, y, z]) + calib_center
+        cam_pos.append(r_FC)
+        pos_idx += 1
+
+  # For each position create a camera pose that "looks at" the calib
+  # center in the target frame, T_FC.
+  return [lookat(r_FC, calib_center) for r_FC in cam_pos]
+
+
+def calib_generate_random_poses(calib_target, nb_poses=30, **kwargs):
+  """ Generate random calibration poses infront of the calibration target """
+  # Settings
+  att_range = kwargs.get('att_range', [deg2rad(-20.0), deg2rad(20.0)])
+  x_range = kwargs.get('x_range', [-0.5, 0.5])
+  y_range = kwargs.get('y_range', [-0.5, 0.5])
+  z_range = kwargs.get('z_range', [0.5, 0.7])
+
+  # For each position create a camera pose that "looks at" the calibration
+  # center in the target frame, T_FC.
+  calib_center = np.array([*calib_target.get_center(), 0.0])
+  poses = []
+
+  for _ in range(nb_poses):
+    # Generate random pose
+    x = np.random.uniform(x_range[0], x_range[1])
+    y = np.random.uniform(y_range[0], y_range[1])
+    z = np.random.uniform(z_range[0], z_range[1])
+    r_FC = calib_center + np.array([x, y, z])
+    T_FC = lookat(r_FC, calib_center)
+
+    # Perturb the pose a little so it doesn't look at the center directly
+    yaw = np.random.uniform(*att_range)
+    pitch = np.random.uniform(*att_range)
+    roll = np.random.uniform(*att_range)
+    C_perturb = euler321(yaw, pitch, roll)
+    r_perturb = zeros((3,))
+    T_perturb = tf(C_perturb, r_perturb)
+
+    poses.append(T_FC @ T_perturb)
+
+  return poses
 
 
 ###############################################################################
@@ -6259,14 +6230,6 @@ class TestTracker(unittest.TestCase):
 class TestCalibration(unittest.TestCase):
   """ Test calibration functions """
 
-  def test_dummy(self):
-    """ Test dummy """
-    pass
-
-
-class TestAprilGrid(unittest.TestCase):
-  """ Test aprilgrid """
-
   def test_aprilgrid(self):
     """ Test aprilgrid """
     grid = AprilGrid()
@@ -6278,6 +6241,62 @@ class TestAprilGrid(unittest.TestCase):
       plt.figure()
       obj_pts = grid.get_object_points()
       plt.plot(obj_pts[:, 0], obj_pts[:, 1], '.')
+      plt.show()
+
+  def test_calib_generate_poses(self):
+    """ Test calib_generate_poses() """
+    # Calibration target
+    calib_target = AprilGrid()
+    poses = calib_generate_poses(calib_target)
+    self.assertTrue(len(poses) > 0)
+
+    # Calibration target pose in world frame
+    C_WF = euler321(-pi / 2.0, 0.0, deg2rad(80.0))
+    r_WF = np.array([0.0, 0.0, 0.0])
+    T_WF = tf(C_WF, r_WF)
+
+    # debug = True
+    debug = False
+    if debug:
+      plt.figure()
+      ax = plt.axes(projection='3d')
+
+      calib_target.plot(ax, T_WF)
+      for T_FC in poses:
+        plot_tf(ax, T_WF @ T_FC, size=0.05)
+
+      plot_set_axes_equal(ax)
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plt.show()
+
+  def test_calib_generate_random_poses(self):
+    """ Test calib_generate_random_poses() """
+    # Calibration target
+    calib_target = AprilGrid()
+    poses = calib_generate_random_poses(calib_target)
+    self.assertTrue(len(poses) > 0)
+
+    # Calibration target pose in world frame
+    C_WF = euler321(-pi / 2.0, 0.0, deg2rad(80.0))
+    r_WF = np.array([0.0, 0.0, 0.0])
+    T_WF = tf(C_WF, r_WF)
+
+    debug = True
+    # debug = False
+    if debug:
+      plt.figure()
+      ax = plt.axes(projection='3d')
+
+      calib_target.plot(ax, T_WF)
+      for T_FC in poses:
+        plot_tf(ax, T_WF @ T_FC, size=0.05)
+
+      plot_set_axes_equal(ax)
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
       plt.show()
 
 
