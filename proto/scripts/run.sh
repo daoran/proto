@@ -52,9 +52,10 @@ memcheck() {
 # python3 python/proto.py TestFeatureTracker
 # python3 python/proto.py TestFeatureTracker.test_detect
 # python3 python/proto.py TestFeatureTracker.test_detect_overlaps
+# python3 python/proto.py TestFeatureTracker.test_detect_nonoverlaps
 # python3 python/proto.py TestFeatureTracker.test_detect_new
 # python3 python/proto.py TestFeatureTracker.test_initialize
-# python3 python/proto.py TestFeatureTracker.test_update
+python3 python/proto.py TestFeatureTracker.test_update
 # python3 python/proto.py TestTracker
 # python3 python/proto.py TestTracker.test_tracker_process_features
 # python3 python/proto.py TestTracker.test_tracker_vision_callback

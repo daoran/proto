@@ -3427,10 +3427,9 @@ def ransac(pts_i, pts_j, cam_i, cam_j):
   return inliers.flatten()
 
 
-@dataclass
 class FeatureTrackerData:
   """
-  Feature tracking data per camera
+  Feature tracking data *per camera*
 
   This data structure keeps track of:
 
@@ -3488,11 +3487,12 @@ class FeatureTracker:
     self.features_tracking = 0
     self.feature_overlaps = {}
     self.prev_mcam_imgs = None
+    self.kp_size = 0
 
     self.cam_idxs = []
     self.cam_params = {}
     self.cam_exts = {}
-    self.cam_overlaps = []
+    self.cam_overlaps = {}
     self.cam_data = {}
 
   def add_camera(self, cam_idx, cam_params, cam_exts):
@@ -3504,7 +3504,9 @@ class FeatureTracker:
 
   def add_overlap(self, cam_i_idx, cam_j_idx):
     """ Add overlap """
-    self.cam_overlaps.append((cam_i_idx, cam_j_idx))
+    if cam_i_idx not in self.cam_overlaps:
+      self.cam_overlaps[cam_i_idx] = []
+    self.cam_overlaps[cam_i_idx].append(cam_j_idx)
 
   def num_tracking(self):
     """ Return number of features tracking """
@@ -3598,56 +3600,14 @@ class FeatureTracker:
 
     return reproj_inliers
 
-  @staticmethod
-  def _filter_outliers(cam_idxs, cam_pts, inliers, kp_size, feature_ids=None):
-    """ Filter outliers """
-    # Setup
-    kps = {}
-    f_ids = []
-
-    # Loop through each camear
-    for cam_idx in cam_idxs:
-      kps[cam_idx] = []
-
-      for n, p in enumerate(cam_pts[cam_idx]):
-        # Check if inlier
-        if not inliers[n]:
-          continue
-
-        # Process keypoint
-        if hasattr(p, 'pt'):
-          kps[cam_idx].append(p)  # cv2.KeyPoint already
-        else:
-          kp = cv2.KeyPoint(p[0], p[1], kp_size)
-          kps[cam_idx].append(kp)
-
-        # Feature id
-        if feature_ids is not None:
-          f_ids.append(feature_ids[n])
-
-    # Return
-    if feature_ids:
-      return kps, f_ids
-
-    return kps
-
-  def _add_features(self, cam_idxs, mcam_imgs, cam_pts, kp_size, inliers=None):
+  def _add_features(self, cam_idxs, mcam_imgs, cam_kps, fids):
     """ Add features """
     # Pre-check
     assert cam_idxs
     assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
-    assert all(cam_idx in cam_pts for cam_idx in cam_idxs)
-
-    # Check if inliers is set else initialize it
-    if inliers is None:
-      inliers = [1 for i, _ in enumerate(cam_pts[cam_idxs[0]])]
-
-    # Filter outliers - also converts np.array to cv2.KeyPoint
-    cam_kps = self._filter_outliers(cam_idxs, cam_pts, inliers, kp_size)
+    assert all(cam_idx in cam_kps for cam_idx in cam_idxs)
 
     # Add camera data
-    nb_inliers = int(np.sum(inliers))
-    fids = self._form_feature_ids(nb_inliers)
     for idx in cam_idxs:
       img = mcam_imgs[idx]
       kps = cam_kps[idx]
@@ -3662,16 +3622,12 @@ class FeatureTracker:
       for fid in fids:
         self.feature_overlaps[fid] = 2
 
-  def _update_features(self, cam_idxs, mcam_imgs, cam_pts, fids, inliers):
+  def _update_features(self, cam_idxs, mcam_imgs, cam_kps, fids):
     """ Update features """
     # Pre-check
     assert cam_idxs
     assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
-    assert all(cam_idx in cam_pts for cam_idx in cam_idxs)
-
-    # Filter outliers
-    fids_in = list(fids)
-    cam_kps, fids = self._filter_outliers(cam_idxs, cam_pts, inliers, 0, fids)
+    assert all(cam_idx in cam_kps for cam_idx in cam_idxs)
 
     # Update camera data
     for idx in cam_idxs:
@@ -3679,54 +3635,70 @@ class FeatureTracker:
       kps = cam_kps[idx]
       self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
 
-    # Update lost features
-    fids_out = set(fids)
-    fids_lost = [x for x in fids_in if x not in fids_out]
-    for fid in fids_lost:
-      # feature overlaps
-      if fid in self.feature_overlaps:
-        self.feature_overlaps[fid] -= 1
-        if self.feature_overlaps[fid] == 0:
-          del self.feature_overlaps[fid]
+    # # Update lost features
+    # fids_out = set(fids)
+    # fids_lost = [x for x in fids_in if x not in fids_out]
+    # for fid in fids_lost:
+    #   # feature overlaps
+    #   if fid in self.feature_overlaps:
+    #     self.feature_overlaps[fid] -= 1
+    #     if self.feature_overlaps[fid] == 0:
+    #       del self.feature_overlaps[fid]
 
   def _detect(self, image, prev_kps=None):
     """ Detect """
     assert image is not None
     kwargs = {'prev_kps': prev_kps, 'optflow_mode': True}
     kps = grid_detect(self.detector, image, **kwargs)
+    self.kp_size = kps[0].size if len(kps) else 0
     return kps
 
   def _detect_overlaps(self, mcam_imgs):
     """ Detect overlapping features """
     # Loop through camera overlaps
-    for idx_i, idx_j in self.cam_overlaps:
-      # Detect keypoints observed from cam_i
+    for idx_i, overlaps in self.cam_overlaps.items():
+      # Detect keypoints observed from idx_i (primary camera)
+      cam_i = self.cam_params[idx_i]
       img_i = mcam_imgs[idx_i]
-      img_j = mcam_imgs[idx_j]
       prev_kps = self._get_keypoints(idx_i)
       kps_i = self._detect(img_i, prev_kps=prev_kps)
-      if len(kps_i) < 10:
+      pts_i = np.array([kp.pt for kp in kps_i], dtype=np.float32)
+      fids_new = self._form_feature_ids(len(kps_i))
+      if not kps_i:
         continue
 
-      # Track keypoint from cam_i to cam_j using optical flow
-      kp_size = kps_i[0].size
-      pts_i = np.array([kp.pt for kp in kps_i], dtype=np.float32)
-      (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
+      # Track feature from camera idx_i to idx_j (primary to secondary camera)
+      for idx_j in overlaps:
+        # Optical flow
+        img_j = mcam_imgs[idx_j]
+        (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
 
-      # RANSAC
-      cam_i = self.cam_params[idx_i]
-      cam_j = self.cam_params[idx_j]
-      ransac_inliers = ransac(pts_i, pts_j, cam_i, cam_j)
+        # RANSAC
+        ransac_inliers = []
+        if len(kps_i) < 10:
+          ransac_inliers = np.array([True for _, _ in enumerate(kps_i)])
+        else:
+          cam_j = self.cam_params[idx_j]
+          ransac_inliers = ransac(pts_i, pts_j, cam_i, cam_j)
 
-      # Reject outliers based on reprojection error
-      reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
+        # Reprojection filter
+        reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
 
-      # Add features
-      indices = [idx_i, idx_j]
-      imgs = {idx_i: img_i, idx_j: img_j}
-      pts = {idx_i: pts_i, idx_j: pts_j}
-      inliers = optflow_inliers & ransac_inliers & reproj_inliers
-      self._add_features(indices, imgs, pts, kp_size, inliers)
+        # Filter outliers
+        inliers = optflow_inliers & ransac_inliers & reproj_inliers
+        kps_j = [cv2.KeyPoint(p[0], p[1], self.kp_size) for p in pts_j]
+        fids = []
+        cam_kps = {idx_i: [], idx_j: []}
+        for i, inlier in enumerate(inliers):
+          if inlier:
+            fids.append(fids_new[i])
+            cam_kps[idx_i].append(kps_i[i])
+            cam_kps[idx_j].append(kps_j[i])
+
+        # Add features
+        cam_idxs = [idx_i, idx_j]
+        cam_imgs = {idx_i: img_i, idx_j: img_j}
+        self._add_features(cam_idxs, cam_imgs, cam_kps, fids)
 
   def _detect_nonoverlaps(self, mcam_imgs):
     """ Detect non-overlapping features """
@@ -3735,12 +3707,12 @@ class FeatureTracker:
       img = mcam_imgs[idx]
       prev_kps = self._get_keypoints(idx)
       kps = self._detect(img, prev_kps=prev_kps)
-
-      # Add features
       if not kps:
         return
-      kp_size = kps[0].size
-      self._add_features([idx], {idx: img}, {idx: kps}, kp_size)
+
+      # Add features
+      fids = self._form_feature_ids(len(kps))
+      self._add_features([idx], {idx: img}, {idx: kps}, fids)
 
   def _detect_new(self, mcam_imgs):
     """ Detect new features """
@@ -3811,13 +3783,21 @@ class FeatureTracker:
     for idx in self.cam_idxs:
       # Track through time
       track_results = self._track_through_time(mcam_imgs, idx)
-      (_, pts_k, feature_ids, inliers) = track_results
+      (_, pts_k, fids_old, inliers) = track_results
+
+      fids = []
+      kps = []
+      for i, inlier in enumerate(inliers):
+        if inlier:
+          pt = pts_k[i]
+          fids.append(fids_old[i])
+          kps.append(cv2.KeyPoint(pt[0], pt[1], self.kp_size))
 
       # Update features
-      idxs = [idx]
-      imgs = {idx: mcam_imgs[idx]}
-      pts = {idx: pts_k}
-      self._update_features(idxs, imgs, pts, feature_ids, inliers)
+      cam_idxs = [idx]
+      cam_imgs = {idx: mcam_imgs[idx]}
+      cam_kps = {idx: kps}
+      self._update_features(cam_idxs, cam_imgs, cam_kps, fids)
 
   def update(self, ts, mcam_imgs):
     """ Update Feature Tracker """
@@ -4315,10 +4295,11 @@ def calib_generate_poses(calib_target, **kwargs):
   return [lookat(r_FC, calib_center) for r_FC in cam_pos]
 
 
-def calib_generate_random_poses(calib_target, nb_poses=30, **kwargs):
+def calib_generate_random_poses(calib_target, **kwargs):
   """ Generate random calibration poses infront of the calibration target """
   # Settings
-  att_range = kwargs.get('att_range', [deg2rad(-20.0), deg2rad(20.0)])
+  nb_poses = kwargs.get('nb_poses', 30)
+  att_range = kwargs.get('att_range', [deg2rad(-10.0), deg2rad(10.0)])
   x_range = kwargs.get('x_range', [-0.5, 0.5])
   y_range = kwargs.get('y_range', [-0.5, 0.5])
   z_range = kwargs.get('z_range', [0.5, 0.7])
@@ -5844,7 +5825,8 @@ class TestFeatureTracker(unittest.TestCase):
     self.assertTrue(len(kps_i) == len(overlapping_ids))
 
     # Visualize
-    for cam_i, cam_j in self.feature_tracker.cam_overlaps:
+    for cam_i, overlaps in self.feature_tracker.cam_overlaps.items():
+      cam_j = overlaps[0]
       img_i = mcam_imgs[cam_i]
       img_j = mcam_imgs[cam_j]
       data_i = self.feature_tracker.cam_data[cam_i]
@@ -5869,7 +5851,8 @@ class TestFeatureTracker(unittest.TestCase):
     self.feature_tracker._detect_nonoverlaps(mcam_imgs)
 
     # Visualize
-    for cam_i, cam_j in self.feature_tracker.cam_overlaps:
+    for cam_i, overlaps in self.feature_tracker.cam_overlaps.items():
+      cam_j = overlaps[0]
       img_i = mcam_imgs[cam_i]
       img_j = mcam_imgs[cam_j]
       data_i = self.feature_tracker.cam_data[cam_i]
@@ -5902,7 +5885,8 @@ class TestFeatureTracker(unittest.TestCase):
 
   def test_update(self):
     """ Test FeatureTracker.update() """
-    for ts in self.dataset.cam0_data.timestamps[1000:1100]:
+    # for ts in self.dataset.cam0_data.timestamps[1000:2000]:
+    for ts in self.dataset.cam0_data.timestamps:
       # Load images
       img0_path = self.dataset.cam0_data.image_paths[ts]
       img1_path = self.dataset.cam1_data.image_paths[ts]
@@ -5914,8 +5898,8 @@ class TestFeatureTracker(unittest.TestCase):
       ft_data = self.feature_tracker.update(ts, mcam_imgs)
 
       # Visualize
-      debug = False
-      # debug = True
+      # debug = False
+      debug = True
       if debug:
         sys.stdout.flush()
         viz = visualize_tracking(ft_data)
@@ -6283,8 +6267,8 @@ class TestCalibration(unittest.TestCase):
     r_WF = np.array([0.0, 0.0, 0.0])
     T_WF = tf(C_WF, r_WF)
 
-    debug = True
-    # debug = False
+    # debug = True
+    debug = False
     if debug:
       plt.figure()
       ax = plt.axes(projection='3d')
