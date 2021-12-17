@@ -1222,9 +1222,9 @@ def plot_tf(ax, T, **kwargs):
 
   # Draw label
   if name is not None:
-    x = origin + name_offset[0]
-    y = origin + name_offset[1]
-    z = origin + name_offset[2]
+    x = origin[0] + name_offset[0]
+    y = origin[1] + name_offset[1]
+    z = origin[2] + name_offset[2]
     ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
 
 
@@ -2158,6 +2158,147 @@ class EurocDataset:
         return tf_lerp(pose_i, pose_j, alpha)
 
     return None
+
+
+# KITTI #######################################################################
+
+
+class KittiCameraData:
+  """ KittiCameraDataset """
+
+  def __init__(self, cam_idx, seq_path):
+    self.cam_idx = cam_idx
+    self.seq_path = seq_path
+    self.cam_path = Path(self.seq_path, "image_" + str(self.cam_idx).zfill(2))
+    self.img_dir = Path(self.cam_path, "data")
+    self.img_paths = sorted(glob.glob(str(Path(self.img_dir, "*.png"))))
+
+
+class KittiRawDataset:
+  """ KittiRawDataset """
+
+  def __init__(self, data_dir, date, seq, is_sync):
+    # Paths
+    self.data_dir = data_dir
+    self.date = date
+    self.seq = seq.zfill(4)
+    self.sync = "sync" if is_sync else "extract"
+    self.seq_name = "_".join([self.date, "drive", self.seq, self.sync])
+    self.seq_path = Path(self.data_dir, self.date, self.seq_name)
+
+    # Camera data
+    self.cam0_data = KittiCameraData(0, self.seq_path)
+    self.cam1_data = KittiCameraData(1, self.seq_path)
+    self.cam2_data = KittiCameraData(2, self.seq_path)
+    self.cam3_data = KittiCameraData(3, self.seq_path)
+
+    # Calibration
+    calib_cam_to_cam_filepath = Path(self.data_dir, "calib_cam_to_cam.txt")
+    calib_imu_to_velo_filepath = Path(self.data_dir, "calib_imu_to_velo.txt")
+    calib_velo_to_cam_filepath = Path(self.data_dir, "calib_velo_to_cam.txt")
+    self.calib_cam_to_cam = self._read_calib_file(calib_cam_to_cam_filepath)
+    self.calib_imu_to_velo = self._read_calib_file(calib_imu_to_velo_filepath)
+    self.calib_velo_to_cam = self._read_calib_file(calib_velo_to_cam_filepath)
+
+  @classmethod
+  def _read_calib_file(cls, fp):
+    data = {}
+    with open(fp, 'r') as f:
+      for line in f.readlines():
+        key, value = line.split(':', 1)
+        # The only non-float values in these files are dates, which
+        # we don't care about anyway
+        try:
+          data[key] = np.array([float(x) for x in value.split()])
+        except ValueError:
+          pass
+      return data
+
+  def nb_camera_images(self, cam_idx=0):
+    """ Return number of camera images """
+    assert cam_idx >= 0 and cam_idx <= 3
+    if cam_idx == 0:
+      return len(self.cam0_data.img_paths)
+    elif cam_idx == 1:
+      return len(self.cam1_data.img_paths)
+    elif cam_idx == 2:
+      return len(self.cam2_data.img_paths)
+    elif cam_idx == 3:
+      return len(self.cam3_data.img_paths)
+
+    return None
+
+  def get_velodyne_extrinsics(self):
+    """ Get velodyne extrinsics """
+    # Form imu-velo extrinsics T_BV
+    C_VB = self.calib_imu_to_velo['R'].reshape((3, 3))
+    r_VB = self.calib_imu_to_velo['T']
+    T_VB = tf(C_VB, r_VB)
+    T_BV = inv(T_VB)
+    return T_BV
+
+  def get_camera_extrinsics(self, cam_idx):
+    """ Get camera extrinsics T_BCi """
+    # Form imu-velo extrinsics T_VB
+    C_VB = self.calib_imu_to_velo['R'].reshape((3, 3))
+    r_VB = self.calib_imu_to_velo['T']
+    T_VB = tf(C_VB, r_VB)
+
+    # Form velo-cam extrinsics T_C0V
+    C_C0V = self.calib_velo_to_cam['R'].reshape((3, 3))
+    r_C0V = self.calib_velo_to_cam['T']
+    T_C0V = tf(C_C0V, r_C0V)
+
+    # Form cam-cam extrinsics T_CiC0
+    cam_str = str(cam_idx)
+    C_CiC0 = self.calib_cam_to_cam['R_' + cam_str.zfill(2)].reshape((3, 3))
+    r_CiC0 = self.calib_cam_to_cam['T_' + cam_str.zfill(2)]
+    T_CiC0 = tf(C_CiC0, r_CiC0)
+
+    # Form camera extrinsics T_BC0
+    T_CiB = T_CiC0 @ T_C0V @ T_VB
+    T_BCi = inv(T_CiB)
+
+    return T_BCi
+
+  def get_camera_image(self, cam_idx, **kwargs):
+    """ Get camera image """
+    assert cam_idx >= 0 and cam_idx <= 3
+    imread_flag = kwargs.get('imread_flag', cv2.IMREAD_GRAYSCALE)
+    img_idx = kwargs['index']
+
+    if cam_idx == 0:
+      return cv2.imread(self.cam0_data.img_paths[img_idx], imread_flag)
+    elif cam_idx == 1:
+      return cv2.imread(self.cam1_data.img_paths[img_idx], imread_flag)
+    elif cam_idx == 2:
+      return cv2.imread(self.cam2_data.img_paths[img_idx], imread_flag)
+    elif cam_idx == 3:
+      return cv2.imread(self.cam3_data.img_paths[img_idx], imread_flag)
+
+    return None
+
+  def plot_frames(self):
+    """ Plot Frames """
+    T_BV = self.get_velodyne_extrinsics()
+    T_BC0 = self.get_camera_extrinsics(0)
+    T_BC1 = self.get_camera_extrinsics(1)
+    T_BC2 = self.get_camera_extrinsics(2)
+    T_BC3 = self.get_camera_extrinsics(3)
+
+    plt.figure()
+    ax = plt.axes(projection='3d')
+    plot_tf(ax, eye(4), size=0.1, name="imu")
+    plot_tf(ax, T_BV, size=0.1, name="velo")
+    plot_tf(ax, T_BC0, size=0.1, name="cam0")
+    plot_tf(ax, T_BC1, size=0.1, name="cam1")
+    plot_tf(ax, T_BC2, size=0.1, name="cam2")
+    plot_tf(ax, T_BC3, size=0.1, name="cam3")
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
 
 
 ###############################################################################
@@ -5120,6 +5261,37 @@ class TestEuroc(unittest.TestCase):
     """ Test load """
     data_path = '/data/euroc/raw/V1_01'
     dataset = EurocDataset(data_path)
+    self.assertTrue(dataset is not None)
+
+
+class TestKitti(unittest.TestCase):
+  """ Test KITTI dataset loader """
+
+  def test_load(self):
+    """ Test load """
+    data_dir = '/data/kitti'
+    date = "2011_09_26"
+    seq = "93"
+    dataset = KittiRawDataset(data_dir, date, seq, True)
+    # dataset.plot_frames()
+
+    for i in range(dataset.nb_camera_images()):
+      cam0_img = dataset.get_camera_image(0, index=i)
+      cam1_img = dataset.get_camera_image(1, index=i)
+      cam2_img = dataset.get_camera_image(2, index=i)
+      cam3_img = dataset.get_camera_image(3, index=i)
+
+      img_size = cam0_img.shape
+      img_new_size = (int(img_size[1] / 2.0), int(img_size[0] / 2.0))
+
+      cam0_img = cv2.resize(cam0_img, img_new_size)
+      cam1_img = cv2.resize(cam1_img, img_new_size)
+      cam2_img = cv2.resize(cam2_img, img_new_size)
+      cam3_img = cv2.resize(cam3_img, img_new_size)
+
+      cv2.imshow("viz", cv2.vconcat([cam0_img, cam1_img, cam2_img, cam3_img]))
+      cv2.waitKey(0)
+
     self.assertTrue(dataset is not None)
 
 
