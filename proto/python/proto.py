@@ -3559,11 +3559,15 @@ def ransac(pts_i, pts_j, cam_i, cam_j):
   cam_geom_j = cam_j.data
 
   # Undistort points
-  points_i = np.array([cam_geom_i.undistort(cam_i.param, p) for p in pts_i])
-  points_j = np.array([cam_geom_j.undistort(cam_j.param, p) for p in pts_j])
+  pts_i_ud = np.array([cam_geom_i.undistort(cam_i.param, p) for p in pts_i])
+  pts_j_ud = np.array([cam_geom_j.undistort(cam_j.param, p) for p in pts_j])
 
   # Ransac via OpenCV's find fundamental matrix
-  _, inliers = cv2.findFundamentalMat(points_i, points_j, cv2.FM_8POINT)
+  method = cv2.FM_RANSAC
+  reproj_thresh = 0.75
+  confidence = 0.99
+  args = [pts_i_ud, pts_j_ud, method, reproj_thresh, confidence]
+  _, inliers = cv2.findFundamentalMat(*args)
 
   return inliers.flatten()
 
@@ -3791,7 +3795,7 @@ class FeatureTracker:
     assert image is not None
     kwargs = {'prev_kps': prev_kps, 'optflow_mode': True}
     kps = grid_detect(self.detector, image, **kwargs)
-    self.kp_size = kps[0].size if len(kps) else 0
+    self.kp_size = kps[0].size if kps else 0
     return kps
 
   def _detect_overlaps(self, mcam_imgs):
@@ -3812,7 +3816,7 @@ class FeatureTracker:
       for idx_j in overlaps:
         # Optical flow
         img_j = mcam_imgs[idx_j]
-        (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
+        (_, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
 
         # RANSAC
         ransac_inliers = []
@@ -3885,8 +3889,12 @@ class FeatureTracker:
     (pts_km1, pts_k, optflow_inliers) = optflow_track(img_km1, img_k, pts_km1)
 
     # RANSAC
-    cam = self.cam_params[cam_idx]
-    ransac_inliers = ransac(pts_km1, pts_k, cam, cam)
+    ransac_inliers = []
+    if len(kps_km1) < 10:
+      ransac_inliers = np.array([True for _, _ in enumerate(kps_km1)])
+    else:
+      cam = self.cam_params[cam_idx]
+      ransac_inliers = ransac(pts_km1, pts_k, cam, cam)
 
     # Form inliers list
     optflow_inliers = np.array(optflow_inliers)
@@ -3948,7 +3956,7 @@ class FeatureTracker:
       self.features_tracking = self.num_tracking()
     else:
       self._track_features(mcam_imgs)
-      if (self.num_tracking() / self.features_tracking) < 0.7:
+      if (self.num_tracking() / self.features_tracking) < 0.8:
         self._detect_new(mcam_imgs)
 
     # Update
@@ -6057,8 +6065,8 @@ class TestFeatureTracker(unittest.TestCase):
 
   def test_update(self):
     """ Test FeatureTracker.update() """
-    # for ts in self.dataset.cam0_data.timestamps[1000:2000]:
-    for ts in self.dataset.cam0_data.timestamps:
+    for ts in self.dataset.cam0_data.timestamps[1000:]:
+      # for ts in self.dataset.cam0_data.timestamps:
       # Load images
       img0_path = self.dataset.cam0_data.image_paths[ts]
       img1_path = self.dataset.cam1_data.image_paths[ts]
