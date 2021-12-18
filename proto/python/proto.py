@@ -2483,7 +2483,7 @@ class PoseFactor(Factor):
     assert covar.shape == (6, 6)
     Factor.__init__(self, "PoseFactor", pids, z, covar)
 
-  def eval(self, params):
+  def eval(self, params, **kwargs):
     """ Evaluate """
     assert len(params) == 1
     assert len(params[0]) == 7
@@ -2503,6 +2503,8 @@ class PoseFactor(Factor):
     dq = quat_mul(quat_inv(q_meas), q_est)
     dtheta = 2 * dq[1:4]
     r = self.sqrt_info @ np.block([dr, dtheta])
+    if kwargs.get('only_residuals', False):
+      return r
 
     # Form jacobians
     J = zeros((6, 6))
@@ -2568,7 +2570,7 @@ class BAFactor(Factor):
     Factor.__init__(self, "BAFactor", pids, z, covar)
     self.cam_geom = cam_geom
 
-  def eval(self, params):
+  def eval(self, params, **kwargs):
     """ Evaluate """
     assert len(params) == 3
     assert len(params[0]) == 7
@@ -2590,6 +2592,8 @@ class BAFactor(Factor):
     sqrt_info = self.sqrt_info
     z = self.measurement
     r = sqrt_info @ (z - z_hat)
+    if kwargs.get('only_residuals', False):
+      return r
 
     # Calculate Jacobians
     # -- Measurement model jacobian
@@ -2624,7 +2628,7 @@ class VisionFactor(Factor):
     Factor.__init__(self, "VisionFactor", pids, z, covar)
     self.cam_geom = cam_geom
 
-  def eval(self, params):
+  def eval(self, params, **kwargs):
     """ Evaluate """
     assert len(params) == 4
     assert len(params[0]) == 7
@@ -2646,6 +2650,8 @@ class VisionFactor(Factor):
     sqrt_info = self.sqrt_info
     z = self.measurement
     r = sqrt_info @ (z - z_hat)
+    if kwargs.get('only_residuals', False):
+      return r
 
     # Calculate Jacobians
     C_BCi = tf_rot(T_BCi)
@@ -2817,7 +2823,7 @@ class ImuFactor(Factor):
 
     return ImuFactorData(state_F, state_P, dr, dv, dC, ba, bg, g, Dt)
 
-  def eval(self, params):
+  def eval(self, params, **kwargs):
     """ Evaluate IMU factor """
     assert len(params) == 4
     assert len(params[0]) == 7
@@ -2874,6 +2880,8 @@ class ImuFactor(Factor):
     err_ba = np.array([0.0, 0.0, 0.0])
     err_bg = np.array([0.0, 0.0, 0.0])
     r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
+    if kwargs.get('only_residuals', False):
+      return r
 
     # Form jacobians
     J0 = zeros((15, 6))  # residuals w.r.t pose i
@@ -2998,10 +3006,6 @@ class FactorGraph:
     assert factor.factor_id in self.factors
     del self.factors[factor.factor_id]
 
-  def _get_factor_params(self, factor):
-    """ Get factor parameters """
-    return [self.params[param_id].param for param_id in factor.param_ids]
-
   def _get_reproj_errors(self):
     """ Get reprojection errors """
     target_factors = ["BAFactor", "VisionFactor"]
@@ -3009,19 +3013,25 @@ class FactorGraph:
     reproj_errors = []
     for _, factor in self.factors.items():
       if factor.factor_type in target_factors:
-        factor_params = self._get_factor_params(factor)
-        r, _ = factor.eval(factor_params)
+        params = [self.params[pid].param for pid in factor.param_ids]
+        r, _ = factor.eval(params)
         reproj_errors.append(norm(r))
 
-    return np.array(reproj_errors)
+    return np.array(reproj_errors).flatten()
 
-  def _print_to_console(self, iter_k, r):
+  @staticmethod
+  def _print_to_console(iter_k, lambda_k, cost_kp1, cost_k):
     """ Print to console """
-    # rmse_vision = rmse(self._get_reproj_errors())
 
-    print(f"iter[{iter_k}]: ", end="")
-    # print(f"rms_reproj_error: {rmse_vision:.2f} px", end=", ")
-    print(f"cost: {self.cost(r):.2e}")
+    print(f"iter[{iter_k}]:", end=" ")
+    print(f"lambda: {lambda_k:.2e}", end=", ")
+    print(f"cost: {cost_kp1:.2e}", end=", ")
+    print(f"dcost: {cost_kp1 - cost_k:.2e}", end=" ")
+    print()
+
+    # rmse_vision = rmse(self._get_reproj_errors())
+    # print(f"rms_reproj_error: {rmse_vision:.2f} px")
+
     sys.stdout.flush()
 
   def _form_param_indices(self):
@@ -3038,7 +3048,6 @@ class FactorGraph:
     for _, factor in self.factors.items():
       for _, param_id in enumerate(factor.param_ids):
         param = self.params[param_id]
-
         if param.fix:
           continue
         elif param.var_type == "pose":
@@ -3070,32 +3079,32 @@ class FactorGraph:
 
     return (param_idxs, param_size)
 
-  def _form_hessian(self, param_idxs, param_size):
+  def _form_hessian(self, params, param_idxs, param_size):
     """ Form Hessian matrix H """
     H = zeros((param_size, param_size))
     g = zeros(param_size)
     residuals = []
 
+    # Iterative over factors
     for _, factor in self.factors.items():
-      factor_param_ids = factor.param_ids
-      factor_params = self._get_factor_params(factor)
+      factor_params = [params[pid].param for pid in factor.param_ids]
       r, jacobians = factor.eval(factor_params)
       residuals.append(r)
 
       nb_params = len(factor_params)
       for i in range(nb_params):
-        param_i = self.params[factor_param_ids[i]]
+        param_i = params[factor.param_ids[i]]
         if param_i.fix:
           continue
-        idx_i = param_idxs[factor_param_ids[i]]
+        idx_i = param_idxs[factor.param_ids[i]]
         size_i = param_i.min_dims
         J_i = jacobians[i]
 
         for j in range(i, nb_params):
-          param_j = self.params[factor_param_ids[j]]
+          param_j = params[factor.param_ids[j]]
           if param_j.fix:
             continue
-          idx_j = param_idxs[factor_param_ids[j]]
+          idx_j = param_idxs[factor.param_ids[j]]
           size_j = param_j.min_dims
           J_j = jacobians[j]
 
@@ -3116,18 +3125,38 @@ class FactorGraph:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
-    return (H, g, np.array(r))
+    return (H, g, np.array(residuals).flatten())
 
-  def _evaluate(self):
+  def _evaluate(self, params):
     """ Evaluate """
     (param_idxs, param_size) = self._form_param_indices()
-    (H, g, r) = self._form_hessian(param_idxs, param_size)
-    self.solver_cost = self.cost(r)
-    return (param_idxs, H, g, r)
+    (H, g, r) = self._form_hessian(params, param_idxs, param_size)
+    cost = 0.5 * r.T @ r
+    return ((H, g, r), param_idxs, cost)
 
-  def _update(self, param_idxs, dx):
+  def _calculate_residuals(self, params):
+    """ Calculate Residuals """
+    residuals = []
+
+    for _, factor in self.factors.items():
+      factor_params = [params[pid].param for pid in factor.param_ids]
+      r = factor.eval(factor_params, only_residuals=True)
+      residuals.append(r)
+
+    return np.array(residuals).flatten()
+
+  def _calculate_cost(self, params):
+    """ Calculate Cost """
+    r = self._calculate_residuals(params)
+    return 0.5 * (r.T @ r)
+
+  @staticmethod
+  def _update(params_k, param_idxs, dx):
     """ Update """
-    for param_id, param in self.params.items():
+    params_kp1 = copy.deepcopy(params_k)
+    # params_kp1 = params_k
+
+    for param_id, param in params_kp1.items():
       # Check if param even exists
       if param_id not in param_idxs:
         continue
@@ -3138,55 +3167,63 @@ class FactorGraph:
       param_dx = dx[start:end]
       update_state_variable(param, param_dx)
 
-  def residuals(self):
-    """ Residuals """
-    (param_idxs, param_size) = self._form_param_indices()
-    (_, _, r) = self._form_hessian(param_idxs, param_size)
-    return r
+    return params_kp1
 
   @staticmethod
-  def cost(r):
-    """ Cost """
-    return 0.5 * r.T @ r
+  def _solve_for_dx(lambda_k, H, g):
+    # Damp Hessian
+    # H = H + lambda_k * eye(H.shape[0])
+    H = H + lambda_k * np.diag(H.diagonal())
+
+    # # Pseudo inverse
+    # dx = pinv(H) @ g
+    # dx = np.linalg.solve(H, g)
+
+    # Cholesky decomposition
+    c, low = scipy.linalg.cho_factor(H)
+    dx = scipy.linalg.cho_solve((c, low), g)
+
+    # # Sparse cholesky decomposition
+    # sH = scipy.sparse.csc_matrix(H)
+    # dx = scipy.sparse.linalg.spsolve(sH, g)
+
+    return dx
 
   def solve(self, verbose=False):
     """ Solve """
     lambda_k = self.solver_lambda
-    (param_idxs, H, g, r) = self._evaluate()
-    self.solver_prev_cost = self.solver_cost
+    params_k = copy.deepcopy(self.params)
+    cost_k = self._calculate_cost(params_k)
 
+    # First evaluation
     if verbose:
       print(f"nb_factors: {len(self.factors)}")
       print(f"nb_params: {len(self.params)}")
-      self._print_to_console(0, r)
+      self._print_to_console(0, lambda_k, cost_k, 0)
 
+    # Iterate
     for i in range(1, self.solver_max_iter):
-      # H = H + lambda_k * eye(H.shape[0])
-      # dx = pinv(H) @ g
-      # dx = np.linalg.solve(H, g)
+      # Update and calculate cost
+      ((H, g, _), param_idxs, cost_k) = self._evaluate(params_k)
+      dx = self._solve_for_dx(lambda_k, H, g)
+      params_kp1 = self._update(params_k, param_idxs, dx)
+      cost_kp1 = self._calculate_cost(params_kp1)
 
-      # sH = scipy.sparse.csc_matrix(H)
-      # dx = scipy.sparse.linalg.spsolve(sH, g)
+      if cost_kp1 < cost_k:
+        # Accept update
+        params_k = params_kp1
+        lambda_k /= 10.0
 
-      H = H + lambda_k * eye(H.shape[0])
-      c, low = scipy.linalg.cho_factor(H)
-      dx = scipy.linalg.cho_solve((c, low), g)
-
-      self._update(param_idxs, dx)
-      (param_idxs, H, g, r) = self._evaluate()
-
-      dcost = self.solver_prev_cost - self.solver_cost
-      if self.solver_cost < 0.0:
-        return
-      elif dcost < 0.0:
-        self._update(param_idxs, -dx)
-        return
+      else:
+        # Reject update
+        params_k = params_k
+        lambda_k *= 10.0
 
       if verbose:
-        self._print_to_console(i, r)
+        self._print_to_console(i, lambda_k, cost_kp1, cost_k)
 
-      # Update
-      self.solver_prev_cost = self.solver_cost
+    # Finish
+    self.params = params_k
 
 
 # FEATURE TRACKING #############################################################
@@ -5600,7 +5637,7 @@ class TestFactorGraph(unittest.TestCase):
 
     # Create factor
     param_ids = [pose_id]
-    pose_factor = pose_factor_setup(param_ids, T_WC)
+    pose_factor = PoseFactor(param_ids, T_WC)
     pose_factor_id = graph.add_factor(pose_factor)
 
     # Assert
@@ -5659,25 +5696,25 @@ class TestFactorGraph(unittest.TestCase):
 
     # Solve
     # prof = profile_start()
-    graph.solve()
+    graph.solve(True)
     # profile_stop(prof)
 
-    # Visualize
-    debug = False
-    if debug:
-      pos_init = np.array([tf_trans(T) for T in poses_init])
-      pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
-
-      plt.figure()
-      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
-      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
-      plt.xlabel("Displacement [m]")
-      plt.ylabel("Displacement [m]")
-      plt.show()
-
-    # Asserts
-    errors = graph._get_reproj_errors()
-    self.assertTrue(rmse(errors) < 0.1)
+    # # Visualize
+    # debug = False
+    # if debug:
+    #   pos_init = np.array([tf_trans(T) for T in poses_init])
+    #   pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
+    #
+    #   plt.figure()
+    #   plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
+    #   plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
+    #   plt.xlabel("Displacement [m]")
+    #   plt.ylabel("Displacement [m]")
+    #   plt.show()
+    #
+    # # Asserts
+    # errors = graph._get_reproj_errors()
+    # self.assertTrue(rmse(errors) < 0.1)
 
   def test_factor_graph_solve_io(self):
     """ Test solving a pure inertial odometry problem """
