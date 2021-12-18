@@ -1839,6 +1839,18 @@ class CameraGeometry:
   J_proj_fn: FunctionType
   J_params_fn: FunctionType
 
+  def get_proj_params_size(self):
+    """ Return projection parameter size """
+    return self.proj_params_size
+
+  def get_dist_params_size(self):
+    """ Return distortion parameter size """
+    return self.dist_params_size
+
+  def get_params_size(self):
+    """ Return parameter size """
+    return self.get_proj_params_size() + self.get_dist_params_size()
+
   def proj_params(self, params):
     """ Extract projection parameters """
     return params[:self.proj_params_size]
@@ -2446,46 +2458,43 @@ def update_state_variable(sv, dx):
 # FACTORS ######################################################################
 
 
-@dataclass
 class Factor:
   """ Factor """
 
-  def __init__(self, ftype, pids, z, covar, eval_fn, data=None):
+  def __init__(self, ftype, pids, z, covar):
     self.factor_id = None
     self.factor_type = ftype
     self.param_ids = pids
     self.measurement = z
     self.covar = covar
-    self.eval_fn = eval_fn
-    self.data = data
     self.sqrt_info = chol(inv(self.covar)).T
 
   def set_factor_id(self, fid):
     """ Set factor id """
     self.factor_id = fid
 
+
+class PoseFactor(Factor):
+  """ Pose Factor """
+
+  def __init__(self, pids, z, covar):
+    assert len(pids) == 1
+    assert z.shape == (4, 4)
+    assert covar.shape == (6, 6)
+    Factor.__init__(self, "PoseFactor", pids, z, covar)
+
   def eval(self, params):
-    """ Evaluate factor """
-    return self.eval_fn(self, params)
+    """ Evaluate """
+    assert len(params) == 1
+    assert len(params[0]) == 7
 
-
-def pose_factor_setup(param_ids, measurement, covar=eye(6)):
-  """ Setup Pose Factor """
-  assert len(param_ids) == 1
-  assert measurement.shape == (4, 4)
-  assert covar.shape == (6, 6)
-
-  # Pose factor eval function
-  def pose_factor_eval(factor, params):
-    """ Evaluate pose factor """
     # Measured pose
-    T_meas = factor.measurement
+    T_meas = self.measurement
     q_meas = tf_quat(T_meas)
     r_meas = tf_trans(T_meas)
 
     # Estimated pose
-    pose_est = params[0]
-    T_est = pose2tf(pose_est.param)
+    T_est = pose2tf(params[0])
     q_est = tf_quat(T_est)
     r_est = tf_trans(T_est)
 
@@ -2493,160 +2502,15 @@ def pose_factor_setup(param_ids, measurement, covar=eye(6)):
     dr = r_meas - r_est
     dq = quat_mul(quat_inv(q_meas), q_est)
     dtheta = 2 * dq[1:4]
-    r = factor.sqrt_info @ np.block([dr, dtheta])
+    r = self.sqrt_info @ np.block([dr, dtheta])
 
     # Form jacobians
     J = zeros((6, 6))
     J[0:3, 0:3] = -eye(3)
     J[3:6, 3:6] = quat_left(dq)[1:4, 1:4]
-    J = factor.sqrt_info @ J
+    J = self.sqrt_info @ J
+
     return (r, [J])
-
-  return Factor("pose_factor", param_ids, measurement, covar, pose_factor_eval)
-
-
-def ba_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
-  """ Setup BA factor """
-  assert len(param_ids) == 3
-  assert len(z) == 2
-  assert covar.shape == (2, 2)
-
-  # BA factor eval function
-  def ba_factor_eval(factor, params):
-    """ Evaluate bundle adjustment factor """
-    assert factor is not None
-    assert len(params) == 3
-
-    # Map params
-    cam_pose, feature, cam_params = params
-
-    # Project point in world frame to image plane
-    cam_geom = factor.data['cam_geom']
-    T_WC = pose2tf(cam_pose.param)
-    z_hat = zeros((2, 1))
-    p_W = zeros((3, 1))
-    p_W = feature.param
-    p_C = tf_point(inv(T_WC), p_W)
-    z_hat = cam_geom.project(cam_params.param, p_C)
-
-    # Calculate residual
-    sqrt_info = factor.sqrt_info
-    z = factor.measurement
-    r = sqrt_info @ (z - z_hat)
-
-    # Calculate Jacobians
-    # -- Measurement model jacobian
-    neg_sqrt_info = -1.0 * sqrt_info
-    Jh = cam_geom.J_proj(cam_params.param, p_C)
-    Jh_weighted = neg_sqrt_info @ Jh
-    # -- Jacobian w.r.t. camera pose T_WC
-    C_WC = tf_rot(T_WC)
-    C_CW = C_WC.T
-    r_WC = tf_trans(T_WC)
-    J0 = zeros((2, 6))  # w.r.t Camera pose T_WC
-    J0[0:2, 0:3] = Jh_weighted @ -C_CW
-    J0[0:2, 3:6] = Jh_weighted @ -C_CW @ skew(p_W - r_WC) @ -C_WC
-    # -- Jacobian w.r.t. feature
-    J1 = None
-    J1 = zeros((2, 3))
-    J1 = Jh_weighted @ C_CW
-    # -- Jacobian w.r.t. camera parameters
-    J_cam_params = cam_geom.J_params(cam_params.param, p_C)
-    J2 = zeros((2, 8))
-    J2 = neg_sqrt_info @ J_cam_params
-
-    return (r, [J0, J1, J2])
-
-  # Return ba factor
-  data = {'cam_geom': cam_geom}
-  return Factor("ba_factor", param_ids, z, covar, ba_factor_eval, data)
-
-
-def vision_factor_setup(param_ids, z, cam_geom, covar=eye(2)):
-  """ Form vision factor """
-  assert len(param_ids) == 4
-  assert len(z) == 2
-  assert covar.shape == (2, 2)
-
-  # Vision factor eval function
-  def vision_factor_eval(factor, params):
-    """ Evaluate vision factor """
-    assert factor is not None
-    assert len(params) == 4
-
-    # Map params
-    pose, cam_exts, feature, cam_params = params
-
-    # Project point in world frame to image plane
-    cam_geom = factor.data['cam_geom']
-    T_WB = pose2tf(pose.param)
-    T_BCi = pose2tf(cam_exts.param)
-    p_W = feature.param
-    p_C = tf_point(inv(T_WB @ T_BCi), p_W)
-    z_hat = cam_geom.project(cam_params.param, p_C)
-
-    # Calculate residual
-    sqrt_info = factor.sqrt_info
-    z = factor.measurement
-    r = sqrt_info @ (z - z_hat)
-
-    # Calculate Jacobians
-    C_BCi = tf_rot(T_BCi)
-    C_WB = tf_rot(T_WB)
-    C_CB = C_BCi.T
-    C_BW = C_WB.T
-    C_CW = C_CB @ C_WB.T
-    r_WB = tf_trans(T_WB)
-    neg_sqrt_info = -1.0 * sqrt_info
-    # -- Measurement model jacobian
-    Jh = cam_geom.J_proj(cam_params.param, p_C)
-    Jh_weighted = neg_sqrt_info @ Jh
-    # -- Jacobian w.r.t. pose T_WB
-    J0 = zeros((2, 6))
-    J0[0:2, 0:3] = Jh_weighted @ C_CB @ -C_BW
-    J0[0:2, 3:6] = Jh_weighted @ C_CB @ -C_BW @ skew(p_W - r_WB) @ -C_WB
-    # -- Jacobian w.r.t. camera extrinsics T_BCi
-    J1 = zeros((2, 6))
-    J1[0:2, 0:3] = Jh_weighted @ -C_CB
-    J1[0:2, 3:6] = Jh_weighted @ -C_CB @ skew(C_BCi @ p_C) @ -C_BCi
-    # -- Jacobian w.r.t. feature
-    J2 = zeros((2, 3))
-    J2 = Jh_weighted @ C_CW
-    # -- Jacobian w.r.t. camera parameters
-    J_cam_params = cam_geom.J_params(cam_params.param, p_C)
-    J3 = zeros((2, 8))
-    J3 = neg_sqrt_info @ J_cam_params
-
-    return (r, [J0, J1, J2, J3])
-
-  # Return vision factor
-  data = {'cam_geom': cam_geom}
-  return Factor("vision_factor", param_ids, z, covar, vision_factor_eval, data)
-
-
-class ImuBuffer:
-  """ IMU buffer """
-
-  def __init__(self, ts=None, acc=None, gyr=None):
-    self.ts = ts if ts is not None else []
-    self.acc = acc if acc is not None else []
-    self.gyr = gyr if gyr is not None else []
-
-  def add(self, ts, acc, gyr):
-    """ Add imu measurement """
-    self.ts.append(ts)
-    self.acc.append(acc)
-    self.gyr.append(gyr)
-
-  def add_event(self, imu_event):
-    """ Add imu event """
-    self.ts.append(imu_event.ts)
-    self.acc.append(imu_event.acc)
-    self.gyr.append(imu_event.gyr)
-
-  def length(self):
-    """ Return length of imu buffer """
-    return len(self.ts)
 
 
 class MultiCameraBuffer:
@@ -2694,6 +2558,150 @@ class MultiCameraBuffer:
     return self._data
 
 
+class BAFactor(Factor):
+  """ BA Factor """
+
+  def __init__(self, cam_geom, pids, z, covar=eye(2)):
+    assert len(pids) == 3
+    assert len(z) == 2
+    assert covar.shape == (2, 2)
+    Factor.__init__(self, "BAFactor", pids, z, covar)
+    self.cam_geom = cam_geom
+
+  def eval(self, params):
+    """ Evaluate """
+    assert len(params) == 3
+    assert len(params[0]) == 7
+    assert len(params[1]) == 3
+    assert len(params[2]) == self.cam_geom.get_params_size()
+
+    # Map params
+    cam_pose, feature, cam_params = params
+
+    # Project point in world frame to image plane
+    T_WC = pose2tf(cam_pose)
+    z_hat = zeros((2, 1))
+    p_W = zeros((3, 1))
+    p_W = feature
+    p_C = tf_point(inv(T_WC), p_W)
+    z_hat = self.cam_geom.project(cam_params, p_C)
+
+    # Calculate residual
+    sqrt_info = self.sqrt_info
+    z = self.measurement
+    r = sqrt_info @ (z - z_hat)
+
+    # Calculate Jacobians
+    # -- Measurement model jacobian
+    neg_sqrt_info = -1.0 * sqrt_info
+    Jh = self.cam_geom.J_proj(cam_params, p_C)
+    Jh_weighted = neg_sqrt_info @ Jh
+    # -- Jacobian w.r.t. camera pose T_WC
+    C_WC = tf_rot(T_WC)
+    C_CW = C_WC.T
+    r_WC = tf_trans(T_WC)
+    J0 = zeros((2, 6))  # w.r.t Camera pose T_WC
+    J0[0:2, 0:3] = Jh_weighted @ -C_CW
+    J0[0:2, 3:6] = Jh_weighted @ -C_CW @ skew(p_W - r_WC) @ -C_WC
+    # -- Jacobian w.r.t. feature
+    J1 = zeros((2, 3))
+    J1 = Jh_weighted @ C_CW
+    # -- Jacobian w.r.t. camera parameters
+    J_cam_params = self.cam_geom.J_params(cam_params, p_C)
+    J2 = zeros((2, 8))
+    J2 = neg_sqrt_info @ J_cam_params
+
+    return (r, [J0, J1, J2])
+
+
+class VisionFactor(Factor):
+  """ Vision Factor """
+
+  def __init__(self, cam_geom, pids, z, covar=eye(2)):
+    assert len(pids) == 4
+    assert len(z) == 2
+    assert covar.shape == (2, 2)
+    Factor.__init__(self, "VisionFactor", pids, z, covar)
+    self.cam_geom = cam_geom
+
+  def eval(self, params):
+    """ Evaluate """
+    assert len(params) == 4
+    assert len(params[0]) == 7
+    assert len(params[1]) == 7
+    assert len(params[2]) == 3
+    assert len(params[3]) == self.cam_geom.get_params_size()
+
+    # Map params
+    pose, cam_exts, feature, cam_params = params
+
+    # Project point in world frame to image plane
+    T_WB = pose2tf(pose)
+    T_BCi = pose2tf(cam_exts)
+    p_W = feature
+    p_C = tf_point(inv(T_WB @ T_BCi), p_W)
+    z_hat = self.cam_geom.project(cam_params, p_C)
+
+    # Calculate residual
+    sqrt_info = self.sqrt_info
+    z = self.measurement
+    r = sqrt_info @ (z - z_hat)
+
+    # Calculate Jacobians
+    C_BCi = tf_rot(T_BCi)
+    C_WB = tf_rot(T_WB)
+    C_CB = C_BCi.T
+    C_BW = C_WB.T
+    C_CW = C_CB @ C_WB.T
+    r_WB = tf_trans(T_WB)
+    neg_sqrt_info = -1.0 * sqrt_info
+    # -- Measurement model jacobian
+    Jh = self.cam_geom.J_proj(cam_params, p_C)
+    Jh_weighted = neg_sqrt_info @ Jh
+    # -- Jacobian w.r.t. pose T_WB
+    J0 = zeros((2, 6))
+    J0[0:2, 0:3] = Jh_weighted @ C_CB @ -C_BW
+    J0[0:2, 3:6] = Jh_weighted @ C_CB @ -C_BW @ skew(p_W - r_WB) @ -C_WB
+    # -- Jacobian w.r.t. camera extrinsics T_BCi
+    J1 = zeros((2, 6))
+    J1[0:2, 0:3] = Jh_weighted @ -C_CB
+    J1[0:2, 3:6] = Jh_weighted @ -C_CB @ skew(C_BCi @ p_C) @ -C_BCi
+    # -- Jacobian w.r.t. feature
+    J2 = zeros((2, 3))
+    J2 = Jh_weighted @ C_CW
+    # -- Jacobian w.r.t. camera parameters
+    J_cam_params = self.cam_geom.J_params(cam_params, p_C)
+    J3 = zeros((2, 8))
+    J3 = neg_sqrt_info @ J_cam_params
+
+    return (r, [J0, J1, J2, J3])
+
+
+class ImuBuffer:
+  """ IMU buffer """
+
+  def __init__(self, ts=None, acc=None, gyr=None):
+    self.ts = ts if ts is not None else []
+    self.acc = acc if acc is not None else []
+    self.gyr = gyr if gyr is not None else []
+
+  def add(self, ts, acc, gyr):
+    """ Add imu measurement """
+    self.ts.append(ts)
+    self.acc.append(acc)
+    self.gyr.append(gyr)
+
+  def add_event(self, imu_event):
+    """ Add imu event """
+    self.ts.append(imu_event.ts)
+    self.acc.append(imu_event.acc)
+    self.gyr.append(imu_event.gyr)
+
+  def length(self):
+    """ Return length of imu buffer """
+    return len(self.ts)
+
+
 @dataclass
 class ImuParams:
   """ IMU parameters """
@@ -2718,209 +2726,225 @@ class ImuFactorData:
   Dt: float
 
 
-def imu_factor_propagate(imu_buf, imu_params, sb_i):
-  """ IMU factor propagate """
-  # Setup
-  Dt = 0.0
-  g = imu_params.g
-  state_F = eye(15)  # State jacobian
-  state_P = zeros((15, 15))  # State covariance
+class ImuFactor(Factor):
+  """ Imu Factor """
 
-  # Noise matrix Q
-  Q = zeros((12, 12))
-  Q[0:3, 0:3] = imu_params.noise_acc**2 * eye(3)
-  Q[3:6, 3:6] = imu_params.noise_gyr**2 * eye(3)
-  Q[6:9, 6:9] = imu_params.noise_ba**2 * eye(3)
-  Q[9:12, 9:12] = imu_params.noise_bg**2 * eye(3)
+  def __init__(self, pids, imu_params, imu_buf, sb_i):
+    assert len(pids) == 4
+    self.imu_params = imu_params
+    self.imu_buf = imu_buf
 
-  # Pre-integrate relative position, velocity, rotation and biases
-  dr = np.array([0.0, 0.0, 0.0])  # Relative position
-  dv = np.array([0.0, 0.0, 0.0])  # Relative velocity
-  dC = eye(3)  # Relative rotation
-  ba_i = sb_i.param[3:6]  # Accel biase at i
-  bg_i = sb_i.param[6:9]  # Gyro biase at i
+    data = self.propagate(imu_buf, imu_params, sb_i)
+    Factor.__init__(self, "ImuFactor", pids, None, data.state_P)
 
-  # Pre-integrate imu measuremenets
-  for k in range(len(imu_buf.ts) - 1):
-    # Timestep
-    ts_i = imu_buf.ts[k]
-    ts_j = imu_buf.ts[k + 1]
-    dt = ts2sec(ts_j - ts_i)
-    dt_sq = dt * dt
+    self.state_F = data.state_F
+    self.state_P = data.state_P
+    self.dr = data.dr
+    self.dv = data.dv
+    self.dC = data.dC
+    self.ba = data.ba
+    self.bg = data.bg
+    self.g = data.g
+    self.Dt = data.Dt
 
-    # Accelerometer and gyroscope measurements
-    acc_i = imu_buf.acc[k]
-    gyr_i = imu_buf.gyr[k]
+  @staticmethod
+  def propagate(imu_buf, imu_params, sb_i):
+    """ Propagate imu measurements """
+    # Setup
+    Dt = 0.0
+    g = imu_params.g
+    state_F = eye(15)  # State jacobian
+    state_P = zeros((15, 15))  # State covariance
 
-    # Propagate IMU state using Euler method
-    dr = dr + (dv * dt) + (0.5 * dC @ (acc_i - ba_i) * dt_sq)
-    dv = dv + dC @ (acc_i - ba_i) * dt
-    dC = dC @ Exp((gyr_i - bg_i) * dt)
-    ba = ba_i
-    bg = bg_i
+    # Noise matrix Q
+    Q = zeros((12, 12))
+    Q[0:3, 0:3] = imu_params.noise_acc**2 * eye(3)
+    Q[3:6, 3:6] = imu_params.noise_gyr**2 * eye(3)
+    Q[6:9, 6:9] = imu_params.noise_ba**2 * eye(3)
+    Q[9:12, 9:12] = imu_params.noise_bg**2 * eye(3)
 
-    # Make sure determinant of rotation is 1 by normalizing the quaternion
+    # Pre-integrate relative position, velocity, rotation and biases
+    dr = np.array([0.0, 0.0, 0.0])  # Relative position
+    dv = np.array([0.0, 0.0, 0.0])  # Relative velocity
+    dC = eye(3)  # Relative rotation
+    ba_i = sb_i.param[3:6]  # Accel biase at i
+    bg_i = sb_i.param[6:9]  # Gyro biase at i
+
+    # Pre-integrate imu measuremenets
+    for k in range(len(imu_buf.ts) - 1):
+      # Timestep
+      ts_i = imu_buf.ts[k]
+      ts_j = imu_buf.ts[k + 1]
+      dt = ts2sec(ts_j - ts_i)
+      dt_sq = dt * dt
+
+      # Accelerometer and gyroscope measurements
+      acc_i = imu_buf.acc[k]
+      gyr_i = imu_buf.gyr[k]
+
+      # Propagate IMU state using Euler method
+      dr = dr + (dv * dt) + (0.5 * dC @ (acc_i - ba_i) * dt_sq)
+      dv = dv + dC @ (acc_i - ba_i) * dt
+      dC = dC @ Exp((gyr_i - bg_i) * dt)
+      ba = ba_i
+      bg = bg_i
+
+      # Make sure determinant of rotation is 1 by normalizing the quaternion
+      dq = quat_normalize(rot2quat(dC))
+      dC = quat2rot(dq)
+
+      # Continuous time transition matrix F
+      F = zeros((15, 15))
+      F[0:3, 3:6] = eye(3)
+      F[3:6, 6:9] = -1.0 * dC @ skew(acc_i - ba_i)
+      F[3:6, 9:12] = -1.0 * dC
+      F[6:9, 6:9] = -1.0 * skew(gyr_i - bg_i)
+      F[6:9, 12:15] = -eye(3)
+
+      # Continuous time input jacobian G
+      G = zeros((15, 12))
+      G[3:6, 0:3] = -1.0 * dC
+      G[6:9, 3:6] = -eye(3)
+      G[9:12, 6:9] = eye(3)
+      G[12:15, 9:12] = eye(3)
+
+      # Update
+      G_dt = G * dt
+      I_F_dt = eye(15) + F * dt
+      state_F = I_F_dt @ state_F
+      state_P = I_F_dt @ state_P @ I_F_dt.T + G_dt @ Q @ G_dt.T
+      Dt += dt
+
+    return ImuFactorData(state_F, state_P, dr, dv, dC, ba, bg, g, Dt)
+
+  def eval(self, params):
+    """ Evaluate IMU factor """
+    assert len(params) == 4
+    assert len(params[0]) == 7
+    assert len(params[1]) == 9
+    assert len(params[2]) == 7
+    assert len(params[3]) == 9
+
+    # Map params
+    pose_i, sb_i, pose_j, sb_j = params
+
+    # Timestep i
+    T_i = pose2tf(pose_i)
+    r_i = tf_trans(T_i)
+    C_i = tf_rot(T_i)
+    q_i = tf_quat(T_i)
+    v_i = sb_i[0:3]
+    ba_i = sb_i[3:6]
+    bg_i = sb_i[6:9]
+
+    # Timestep j
+    T_j = pose2tf(pose_j)
+    r_j = tf_trans(T_j)
+    C_j = tf_rot(T_j)
+    q_j = tf_quat(T_j)
+    v_j = sb_j[0:3]
+
+    # Correct the relative position, velocity and orientation
+    # -- Extract jacobians from error-state jacobian
+    dr_dba = self.state_F[0:3, 9:12]
+    dr_dbg = self.state_F[0:3, 12:15]
+    dv_dba = self.state_F[3:6, 9:12]
+    dv_dbg = self.state_F[3:6, 12:15]
+    dq_dbg = self.state_F[6:9, 12:15]
+    dba = ba_i - self.ba
+    dbg = bg_i - self.bg
+    # -- Correct the relative position, velocity and rotation
+    dr = self.dr + dr_dba @ dba + dr_dbg @ dbg
+    dv = self.dv + dv_dba @ dba + dv_dbg @ dbg
+    dC = self.dC @ Exp(dq_dbg @ dbg)
     dq = quat_normalize(rot2quat(dC))
-    dC = quat2rot(dq)
 
-    # Continuous time transition matrix F
-    F = zeros((15, 15))
-    F[0:3, 3:6] = eye(3)
-    F[3:6, 6:9] = -1.0 * dC @ skew(acc_i - ba_i)
-    F[3:6, 9:12] = -1.0 * dC
-    F[6:9, 6:9] = -1.0 * skew(gyr_i - bg_i)
-    F[6:9, 12:15] = -eye(3)
+    # Form residuals
+    sqrt_info = self.sqrt_info
+    g = self.g
+    Dt = self.Dt
+    Dt_sq = Dt * Dt
 
-    # Continuous time input jacobian G
-    G = zeros((15, 12))
-    G[3:6, 0:3] = -1.0 * dC
-    G[6:9, 3:6] = -eye(3)
-    G[9:12, 6:9] = eye(3)
-    G[12:15, 9:12] = eye(3)
+    dr_meas = (C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)))
+    dv_meas = (C_i.T @ ((v_j - v_i) + (g * Dt)))
 
-    # Update
-    G_dt = G * dt
-    I_F_dt = eye(15) + F * dt
-    state_F = I_F_dt @ state_F
-    state_P = I_F_dt @ state_P @ I_F_dt.T + G_dt @ Q @ G_dt.T
-    Dt += dt
+    err_pos = dr_meas - dr
+    err_vel = dv_meas - dv
+    err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))[1:4]
+    err_ba = np.array([0.0, 0.0, 0.0])
+    err_bg = np.array([0.0, 0.0, 0.0])
+    r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
 
-  # Update
-  return ImuFactorData(state_F, state_P, dr, dv, dC, ba, bg, g, Dt)
+    # Form jacobians
+    J0 = zeros((15, 6))  # residuals w.r.t pose i
+    J1 = zeros((15, 9))  # residuals w.r.t speed and biase i
+    J2 = zeros((15, 6))  # residuals w.r.t pose j
+    J3 = zeros((15, 9))  # residuals w.r.t speed and biase j
 
+    # -- Jacobian w.r.t. pose i
+    # yapf: disable
+    J0[0:3, 0:3] = -C_i.T  # dr w.r.t r_i
+    J0[0:3, 3:6] = skew(dr_meas)  # dr w.r.t C_i
+    J0[3:6, 3:6] = skew(dv_meas)  # dv w.r.t C_i
+    J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
+    J0 = sqrt_info @ J0
+    # yapf: enable
 
-def imu_factor_eval(factor, params):
-  """ Evaluate IMU factor """
-  # Map params
-  pose_i, sb_i, pose_j, sb_j = params
+    # -- Jacobian w.r.t. speed and biases i
+    # yapf: disable
+    J1[0:3, 0:3] = -C_i.T * Dt  # dr w.r.t v_i
+    J1[0:3, 3:6] = -dr_dba  # dr w.r.t ba
+    J1[0:3, 6:9] = -dr_dbg  # dr w.r.t bg
+    J1[3:6, 0:3] = -C_i.T  # dv w.r.t v_i
+    J1[3:6, 3:6] = -dv_dba  # dv w.r.t ba
+    J1[3:6, 6:9] = -dv_dbg  # dv w.r.t bg
+    J1[6:9, 6:9] = -quat_left(rot2quat(C_j.T @ C_i @ self.dC))[1:4, 1:4] @ dq_dbg  # dtheta w.r.t C_i
+    J1 = sqrt_info @ J1
+    # yapf: enable
 
-  # Timestep i
-  T_i = pose2tf(pose_i.param)
-  r_i = tf_trans(T_i)
-  C_i = tf_rot(T_i)
-  q_i = tf_quat(T_i)
-  v_i = sb_i.param[0:3]
-  ba_i = sb_i.param[3:6]
-  bg_i = sb_i.param[6:9]
+    # -- Jacobian w.r.t. pose j
+    # yapf: disable
+    J2[0:3, 0:3] = C_i.T  # dr w.r.t r_j
+    J2[6:9, 3:6] = quat_left(rot2quat(dC.T @ C_i.T @ C_j))[1:4, 1:4]  # dtheta w.r.t C_j
+    J2 = sqrt_info @ J2
+    # yapf: enable
 
-  # Timestep j
-  T_j = pose2tf(pose_j.param)
-  r_j = tf_trans(T_j)
-  C_j = tf_rot(T_j)
-  q_j = tf_quat(T_j)
-  v_j = sb_j.param[0:3]
+    # -- Jacobian w.r.t. sb j
+    J3[3:6, 0:3] = C_i.T  # dv w.r.t v_j
+    J3 = sqrt_info @ J3
 
-  # Correct the relative position, velocity and orientation
-  # -- Extract jacobians from error-state jacobian
-  dr_dba = factor.data.state_F[0:3, 9:12]
-  dr_dbg = factor.data.state_F[0:3, 12:15]
-  dv_dba = factor.data.state_F[3:6, 9:12]
-  dv_dbg = factor.data.state_F[3:6, 12:15]
-  dq_dbg = factor.data.state_F[6:9, 12:15]
-  dba = ba_i - factor.data.ba
-  dbg = bg_i - factor.data.bg
-  # -- Correct the relative position, velocity and rotation
-  dr = factor.data.dr + dr_dba @ dba + dr_dbg @ dbg
-  dv = factor.data.dv + dv_dba @ dba + dv_dbg @ dbg
-  dC = factor.data.dC @ Exp(dq_dbg @ dbg)
-  dq = quat_normalize(rot2quat(dC))
-
-  # Form residuals
-  sqrt_info = factor.sqrt_info
-  # sqrt_info = chol(inv(factor.data.state_P))
-  g = factor.data.g
-  Dt = factor.data.Dt
-  Dt_sq = Dt * Dt
-
-  dr_meas = (C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)))
-  dv_meas = (C_i.T @ ((v_j - v_i) + (g * Dt)))
-
-  err_pos = dr_meas - dr
-  err_vel = dv_meas - dv
-  err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))[1:4]
-  err_ba = np.array([0.0, 0.0, 0.0])
-  err_bg = np.array([0.0, 0.0, 0.0])
-  r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
-
-  # Form jacobians
-  J0 = zeros((15, 6))  # residuals w.r.t pose i
-  J1 = zeros((15, 9))  # residuals w.r.t speed and biase i
-  J2 = zeros((15, 6))  # residuals w.r.t pose j
-  J3 = zeros((15, 9))  # residuals w.r.t speed and biase j
-
-  # -- Jacobian w.r.t. pose i
-  # yapf: disable
-  J0[0:3, 0:3] = -C_i.T  # dr w.r.t r_i
-  J0[0:3, 3:6] = skew(dr_meas)  # dr w.r.t C_i
-  J0[3:6, 3:6] = skew(dv_meas)  # dv w.r.t C_i
-  J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
-  J0 = sqrt_info @ J0
-  # yapf: enable
-
-  # -- Jacobian w.r.t. speed and biases i
-  # yapf: disable
-  J1[0:3, 0:3] = -C_i.T * Dt  # dr w.r.t v_i
-  J1[0:3, 3:6] = -dr_dba  # dr w.r.t ba
-  J1[0:3, 6:9] = -dr_dbg  # dr w.r.t bg
-  J1[3:6, 0:3] = -C_i.T  # dv w.r.t v_i
-  J1[3:6, 3:6] = -dv_dba  # dv w.r.t ba
-  J1[3:6, 6:9] = -dv_dbg  # dv w.r.t bg
-  J1[6:9, 6:9] = -quat_left(rot2quat(C_j.T @ C_i @ factor.data.dC))[1:4, 1:4] @ dq_dbg  # dtheta w.r.t C_i
-  J1 = sqrt_info @ J1
-  # yapf: enable
-
-  # -- Jacobian w.r.t. pose j
-  # yapf: disable
-  J2[0:3, 0:3] = C_i.T  # dr w.r.t r_j
-  J2[6:9, 3:6] = quat_left(rot2quat(dC.T @ C_i.T @ C_j))[1:4, 1:4]  # dtheta w.r.t C_j
-  J2 = sqrt_info @ J2
-  # yapf: enable
-
-  # -- Jacobian w.r.t. sb j
-  J3[3:6, 0:3] = C_i.T  # dv w.r.t v_j
-  J3 = sqrt_info @ J3
-
-  return (r, [J0, J1, J2, J3])
+    return (r, [J0, J1, J2, J3])
 
 
-def imu_factor_setup(param_ids, imu_buf, imu_params, sb_i):
-  """ Setup IMU factor """
-  assert len(param_ids) == 4
-  data = imu_factor_propagate(imu_buf, imu_params, sb_i)
-  covar = data.state_P
-  return Factor("imu_factor", param_ids, None, covar, imu_factor_eval, data)
-
-
-def check_factor_jacobian(factor, params, param_idx, jac_name, **kwargs):
+def check_factor_jacobian(factor, fvars, var_idx, jac_name, **kwargs):
   """ Check factor jacobian """
 
   # Step size and threshold
-  step_size = kwargs.get('step_size', 1e-8)
+  h = kwargs.get('step_size', 1e-8)
   threshold = kwargs.get('threshold', 1e-4)
   verbose = kwargs.get('verbose', False)
 
   # Calculate baseline
+  params = [sv.param for sv in fvars]
   r, jacs = factor.eval(params)
 
   # Numerical diff
-  J_fdiff = zeros((len(r), params[param_idx].min_dims))
-  for i in range(params[param_idx].min_dims):
+  J_fdiff = zeros((len(r), fvars[var_idx].min_dims))
+  for i in range(fvars[var_idx].min_dims):
     # Forward difference and evaluate
-    params_fwd = copy.deepcopy(params)
-    param = params_fwd[param_idx]
-    params_fwd[param_idx] = perturb_state_variable(param, i, 0.5 * step_size)
-    r_fwd, _ = factor.eval(params_fwd)
+    vars_fwd = copy.deepcopy(fvars)
+    vars_fwd[var_idx] = perturb_state_variable(vars_fwd[var_idx], i, 0.5 * h)
+    r_fwd, _ = factor.eval([sv.param for sv in vars_fwd])
 
     # Backward difference and evaluate
-    params_bwd = copy.deepcopy(params)
-    param = params_bwd[param_idx]
-    params_bwd[param_idx] = perturb_state_variable(param, i, -0.5 * step_size)
-    r_bwd, _ = factor.eval(params_bwd)
+    vars_bwd = copy.deepcopy(fvars)
+    vars_bwd[var_idx] = perturb_state_variable(vars_bwd[var_idx], i, -0.5 * h)
+    r_bwd, _ = factor.eval([sv.param for sv in vars_bwd])
 
     # Central finite difference
-    J_fdiff[:, i] = (r_fwd - r_bwd) / step_size
+    J_fdiff[:, i] = (r_fwd - r_bwd) / h
 
-  J = jacs[param_idx]
+  J = jacs[var_idx]
   return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
 
 
@@ -2939,13 +2963,11 @@ class FactorGraph:
 
     # Solver
     self.solver_max_iter = 5
-    # self.solver_lambda = 1e-4
     self.solver_lambda = 1e-4
     self.solver_cost = 0.0
 
   def add_param(self, param):
     """ Add param """
-    # Add param
     param_id = self._next_param_id
     self.params[param_id] = param
     self.params[param_id].set_param_id(param_id)
@@ -2978,11 +3000,11 @@ class FactorGraph:
 
   def _get_factor_params(self, factor):
     """ Get factor parameters """
-    return [self.params[param_id] for param_id in factor.param_ids]
+    return [self.params[param_id].param for param_id in factor.param_ids]
 
   def _get_reproj_errors(self):
     """ Get reprojection errors """
-    target_factors = ["ba_factor", "vision_factor"]
+    target_factors = ["BAFactor", "VisionFactor"]
 
     reproj_errors = []
     for _, factor in self.factors.items():
@@ -3056,7 +3078,7 @@ class FactorGraph:
 
     for _, factor in self.factors.items():
       factor_param_ids = factor.param_ids
-      factor_params = [self.params[param_id] for param_id in factor_param_ids]
+      factor_params = self._get_factor_params(factor)
       r, jacobians = factor.eval(factor_params)
       residuals.append(r)
 
@@ -3139,16 +3161,16 @@ class FactorGraph:
       self._print_to_console(0, r)
 
     for i in range(1, self.solver_max_iter):
-      H = H + lambda_k * eye(H.shape[0])
-      dx = pinv(H) @ g
+      # H = H + lambda_k * eye(H.shape[0])
+      # dx = pinv(H) @ g
       # dx = np.linalg.solve(H, g)
 
       # sH = scipy.sparse.csc_matrix(H)
       # dx = scipy.sparse.linalg.spsolve(sH, g)
 
-      # H = H + lambda_k * eye(H.shape[0])
-      # c, low = scipy.linalg.cho_factor(H)
-      # dx = scipy.linalg.cho_solve((c, low), g)
+      H = H + lambda_k * eye(H.shape[0])
+      c, low = scipy.linalg.cho_factor(H)
+      dx = scipy.linalg.cho_solve((c, low), g)
 
       self._update(param_idxs, dx)
       (param_idxs, H, g, r) = self._evaluate()
@@ -4231,7 +4253,7 @@ class Tracker:
         param_ids.append(cam_exts.param_id)
         param_ids.append(feature.param_id)
         param_ids.append(cam_params.param_id)
-        factor = vision_factor_setup(param_ids, kp.pt, cam_geom)
+        factor = VisionFactor(cam_geom, param_ids, kp.pt)
         vision_factors.append(factor)
         self.graph.add_factor(factor)
 
@@ -5323,14 +5345,12 @@ class TestFactors(unittest.TestCase):
 
     # Create factor
     param_ids = [0]
-    pose_factor = pose_factor_setup(param_ids, T_WC)
-
-    # Evaluate factor
-    params = [pose_est]
-    pose_factor.eval(params)
+    covar = eye(6)
+    factor = PoseFactor(param_ids, T_WC, covar)
 
     # Test jacobians
-    self.assertTrue(check_factor_jacobian(pose_factor, params, 0, "J_pose"))
+    fvars = [pose_est]
+    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_pose"))
 
   def test_ba_factor(self):
     """ Test ba factor """
@@ -5367,16 +5387,13 @@ class TestFactors(unittest.TestCase):
 
     # Setup factor
     param_ids = [0, 1, 2]
-    ba_factor = ba_factor_setup(param_ids, z, cam_geom)
-
-    # Evaluate factor
-    params = [cam_pose, feature, cam_params]
-    ba_factor.eval(params)
+    factor = BAFactor(cam_geom, param_ids, z)
 
     # Test jacobians
-    self.assertTrue(check_factor_jacobian(ba_factor, params, 0, "J_cam_pose"))
-    self.assertTrue(check_factor_jacobian(ba_factor, params, 1, "J_feature"))
-    self.assertTrue(check_factor_jacobian(ba_factor, params, 2, "J_cam_params"))
+    fvars = [cam_pose, feature, cam_params]
+    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_cam_pose"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_feature"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_cam_params"))
 
   def test_vision_factor(self):
     """ Test vision factor """
@@ -5420,18 +5437,14 @@ class TestFactors(unittest.TestCase):
 
     # Setup factor
     param_ids = [0, 1, 2, 3]
-    factor = vision_factor_setup(param_ids, z, cam_geom)
-
-    # Evaluate factor
-    params = [pose, cam_exts, feature, cam_params]
-    # r, jacs = factor.eval(params)
-    factor.eval(params)
+    factor = VisionFactor(cam_geom, param_ids, z)
 
     # Test jacobians
-    self.assertTrue(check_factor_jacobian(factor, params, 0, "J_pose"))
-    self.assertTrue(check_factor_jacobian(factor, params, 1, "J_cam_exts"))
-    self.assertTrue(check_factor_jacobian(factor, params, 2, "J_feature"))
-    self.assertTrue(check_factor_jacobian(factor, params, 3, "J_cam_params"))
+    fvars = [pose, cam_exts, feature, cam_params]
+    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_pose"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_cam_exts"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_feature"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 3, "J_cam_params"))
 
   def test_imu_factor_propagate(self):
     """ Test IMU factor propagate """
@@ -5466,7 +5479,7 @@ class TestFactors(unittest.TestCase):
     sb_i = speed_biases_setup(ts_i, vel_i, bg_i, ba_i)
 
     # Propagate imu measurements
-    data = imu_factor_propagate(imu_buf, imu_params, sb_i)
+    data = ImuFactor.propagate(imu_buf, imu_params, sb_i)
 
     # Check propagation
     ts_j = imu_data.timestamps[end_idx - 1]
@@ -5528,17 +5541,14 @@ class TestFactors(unittest.TestCase):
 
     # Setup IMU factor
     param_ids = [0, 1, 2, 3]
-    factor = imu_factor_setup(param_ids, imu_buf, imu_params, sb_i)
-
-    # Evaluate factor
-    params = [pose_i, sb_i, pose_j, sb_j]
-    factor.eval(params)
+    factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
 
     # Test jacobians
-    self.assertTrue(check_factor_jacobian(factor, params, 0, "J_pose_i"))
-    self.assertTrue(check_factor_jacobian(factor, params, 1, "J_sb_i"))
-    self.assertTrue(check_factor_jacobian(factor, params, 2, "J_pose_j"))
-    self.assertTrue(check_factor_jacobian(factor, params, 3, "J_sb_j"))
+    fvars = [pose_i, sb_i, pose_j, sb_j]
+    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_pose_i"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_sb_i"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_pose_j"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 3, "J_sb_j"))
 
 
 class TestFactorGraph(unittest.TestCase):
@@ -5645,7 +5655,7 @@ class TestFactorGraph(unittest.TestCase):
       for i, idx in enumerate(cam_frame.feature_ids):
         z = cam_frame.measurements[i]
         param_ids = [pose_id, feature_ids[idx], cam0_id]
-        graph.add_factor(ba_factor_setup(param_ids, z, cam0_geom))
+        graph.add_factor(BAFactor(cam0_geom, param_ids, z))
 
     # Solve
     # prof = profile_start()
@@ -5734,7 +5744,7 @@ class TestFactorGraph(unittest.TestCase):
       # -- Imu Factor
       param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
       imu_buf = imu0_data.form_imu_buffer(ts_idx - window_size, ts_idx)
-      factor = imu_factor_setup(param_ids, imu_buf, imu_params, sb_i)
+      factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
       graph.add_factor(factor)
 
       # -- Update
