@@ -2569,6 +2569,7 @@ class BAFactor(Factor):
     assert covar.shape == (2, 2)
     Factor.__init__(self, "BAFactor", pids, z, covar)
     self.cam_geom = cam_geom
+    self.reproj_error = None
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -2591,6 +2592,7 @@ class BAFactor(Factor):
     # Calculate residual
     sqrt_info = self.sqrt_info
     z = self.measurement
+    self.reproj_error = norm(z - z_hat)
     r = sqrt_info @ (z - z_hat)
     if kwargs.get('only_residuals', False):
       return r
@@ -2627,6 +2629,7 @@ class VisionFactor(Factor):
     assert covar.shape == (2, 2)
     Factor.__init__(self, "VisionFactor", pids, z, covar)
     self.cam_geom = cam_geom
+    self.reproj_error = None
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -2649,6 +2652,7 @@ class VisionFactor(Factor):
     # Calculate residual
     sqrt_info = self.sqrt_info
     z = self.measurement
+    self.reproj_error = norm(z - z_hat)
     r = sqrt_info @ (z - z_hat)
     if kwargs.get('only_residuals', False):
       return r
@@ -3013,9 +3017,8 @@ class FactorGraph:
     reproj_errors = []
     for _, factor in self.factors.items():
       if factor.factor_type in target_factors:
-        params = [self.params[pid].param for pid in factor.param_ids]
-        r, _ = factor.eval(params)
-        reproj_errors.append(norm(r))
+        factor.eval([self.params[pid].param for pid in factor.param_ids])
+        reproj_errors.append(factor.reproj_error)
 
     return np.array(reproj_errors).flatten()
 
@@ -3171,6 +3174,7 @@ class FactorGraph:
 
   @staticmethod
   def _solve_for_dx(lambda_k, H, g):
+    """ Solve for dx """
     # Damp Hessian
     # H = H + lambda_k * eye(H.shape[0])
     H = H + lambda_k * np.diag(H.diagonal())
@@ -3209,6 +3213,7 @@ class FactorGraph:
       params_kp1 = self._update(params_k, param_idxs, dx)
       cost_kp1 = self._calculate_cost(params_kp1)
 
+      # Accept or reject update
       if cost_kp1 < cost_k:
         # Accept update
         params_k = params_kp1
@@ -3219,6 +3224,7 @@ class FactorGraph:
         params_k = params_k
         lambda_k *= 10.0
 
+      # Verbose
       if verbose:
         self._print_to_console(i, lambda_k, cost_kp1, cost_k)
 
@@ -4395,6 +4401,32 @@ class AprilGrid:
     self.tag_spacing = tag_spacing
     self.nb_tags = self.tag_rows * self.tag_cols
     self.data = {}
+
+  @staticmethod
+  def load(csv_file):
+    """ Load AprilGrid """
+    # Load csv file
+    csv_data = pandas.read_csv(csv_file)
+    if csv_data.shape[0] == 0:
+      return None
+
+    # AprilGrid properties
+    tag_rows = csv_data['tag_rows'][0]
+    tag_cols = csv_data['tag_cols'][0]
+    tag_size = csv_data['tag_size'][0]
+    tag_spacing = csv_data['tag_spacing'][0]
+
+    # AprilGrid measurements
+    tag_indices = csv_data['tag_id']
+    corner_indices = csv_data['corner_idx']
+    kps = np.array([csv_data['kp_x'], csv_data['kp_y']]).T
+
+    # Form AprilGrid
+    grid = AprilGrid(tag_rows, tag_cols, tag_size, tag_spacing)
+    for tag_id, corner_idx, kp in zip(tag_indices, corner_indices, kps):
+      grid.add_keypoint(tag_id, corner_idx, kp)
+
+    return grid
 
   def get_object_point(self, tag_id, corner_idx):
     """ Form object point """
@@ -6443,15 +6475,23 @@ class TestCalibration(unittest.TestCase):
 
   def test_aprilgrid(self):
     """ Test aprilgrid """
-    grid = AprilGrid()
-    self.assertTrue(grid is not None)
+    # grid = AprilGrid()
+    # self.assertTrue(grid is not None)
 
-    # debug = True
-    debug = False
+    grid = AprilGrid.load(
+        "/tmp/aprilgrid_test/mono/cam0/1403709383937837056.csv")
+
+    debug = True
+    # debug = False
     if debug:
-      plt.figure()
-      obj_pts = grid.get_object_points()
-      plt.plot(obj_pts[:, 0], obj_pts[:, 1], '.')
+      _, ax = plt.subplots()
+      for _, _, kp, _ in grid.get_measurements():
+        ax.plot(kp[0], kp[1], 'r.')
+      ax.xaxis.tick_top()
+      ax.xaxis.set_label_position('top')
+      ax.set_xlim([0, 752])
+      ax.set_ylim([0, 480])
+      ax.set_ylim(ax.get_ylim()[::-1])
       plt.show()
 
   def test_calib_generate_poses(self):
