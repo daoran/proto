@@ -4,6 +4,7 @@ lib:
 	@make -C lib -s
 
 python:
+	@make -C lib -s run_tests
 	@cd python && python3 proto.py
 
 clean:
