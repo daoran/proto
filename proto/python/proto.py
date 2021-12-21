@@ -265,6 +265,53 @@ def schurs_complement(H, g, m, r, precond=False):
 
   return (H_marg, g_marg)
 
+def is_pd(B):
+  """Returns true when input is positive-definite, via Cholesky"""
+  try:
+    _ = chol(B)
+    return True
+  except np.linalg.LinAlgError:
+    return False
+
+def nearest_pd(A):
+  """Find the nearest positive-definite matrix to input
+
+  A Python/Numpy port of John D'Errico's `nearestSPD` MATLAB code [1], which
+  credits [2].
+
+  [1] https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd
+
+  [2] N.J. Higham, "Computing a nearest symmetric positive semidefinite
+  matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
+  """
+  B = (A + A.T) / 2
+  _, s, V = svd(B)
+  H = np.dot(V.T, np.dot(np.diag(s), V))
+  A2 = (B + H) / 2
+  A3 = (A2 + A2.T) / 2
+
+  if is_pd(A3):
+    return A3
+
+  spacing = np.spacing(np.linalg.norm(A))
+  # The above is different from [1]. It appears that MATLAB's `chol` Cholesky
+  # decomposition will accept matrixes with exactly 0-eigenvalue, whereas
+  # Numpy's will not. So where [1] uses `eps(mineig)` (where `eps` is Matlab
+  # for `np.spacing`), we use the above definition. CAVEAT: our `spacing`
+  # will be much larger than [1]'s `eps(mineig)`, since `mineig` is usually on
+  # the order of 1e-16, and `eps(1e-16)` is on the order of 1e-34, whereas
+  # `spacing` will, for Gaussian random matrixes of small dimension, be on
+  # othe order of 1e-16. In practice, both ways converge, as the unit test
+  # below suggests.
+  I = np.eye(A.shape[0])
+  k = 1
+  while not is_pd(A3):
+    mineig = np.min(np.real(np.linalg.eigvals(A3)))
+    A3 += I * (-mineig * k**2 + spacing)
+    k += 1
+
+  return A3
+
 
 def matrix_equal(A, B, tol=1e-8, verbose=False):
   """ Compare matrices `A` and `B` """
@@ -2931,6 +2978,7 @@ class ImuFactor(Factor):
       state_P = I_F_dt @ state_P @ I_F_dt.T + G_dt @ Q @ G_dt.T
       Dt += dt
 
+    state_P = (state_P + state_P.T) / 2.0
     return ImuFactorData(state_F, state_P, dr, dv, dC, ba, bg, g, Dt)
 
   def eval(self, params, **kwargs):
@@ -3122,8 +3170,9 @@ class FactorGraph:
     reproj_errors = []
     for _, factor in self.factors.items():
       if factor.factor_type in target_factors:
-        factor.eval([self.params[pid].param for pid in factor.param_ids])
-        reproj_errors.append(factor.reproj_error)
+        factor_params = [self.params[pid].param for pid in factor.param_ids]
+        if factor.eval(factor_params) is not None:
+          reproj_errors.append(factor.reproj_error)
 
     return np.array(reproj_errors).flatten()
 
@@ -3262,7 +3311,6 @@ class FactorGraph:
   def _update(params_k, param_idxs, dx):
     """ Update """
     params_kp1 = copy.deepcopy(params_k)
-    # params_kp1 = params_k
 
     for param_id, param in params_kp1.items():
       # Check if param even exists
@@ -3281,8 +3329,8 @@ class FactorGraph:
   def _solve_for_dx(lambda_k, H, g):
     """ Solve for dx """
     # Damp Hessian
-    # H = H + lambda_k * eye(H.shape[0])
-    H = H + lambda_k * np.diag(H.diagonal())
+    H = H + lambda_k * eye(H.shape[0])
+    # H = H + lambda_k * np.diag(H.diagonal())
 
     # # Pseudo inverse
     # dx = pinv(H) @ g
@@ -3352,7 +3400,7 @@ def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs):
 
   nb_kps = len(kps_i)
   viz = cv2.hconcat([img_i, img_j])
-  viz = cv2.cvtColor(viz, cv2.COLOR_GRAY2RGB)
+  viz = cv2.cvtColor(viz, cv2.COLOR_GRAY2RG)
 
   color = (0, 255, 0)
   radius = 3
@@ -5968,7 +6016,6 @@ class TestFactorGraph(unittest.TestCase):
     errors = graph._get_reproj_errors()
     self.assertTrue(rmse(errors) < 0.1)
 
-  @unittest.skip("")
   def test_factor_graph_solve_io(self):
     """ Test solving a pure inertial odometry problem """
     # Imu params
@@ -5990,6 +6037,7 @@ class TestFactorGraph(unittest.TestCase):
     poses_est = []
     sb_est = []
     graph = FactorGraph()
+    graph.solver_lambda = 1e4
 
     # -- Pose i
     ts_i = imu0_data.timestamps[start_idx]
@@ -5997,7 +6045,7 @@ class TestFactorGraph(unittest.TestCase):
     pose_i = pose_setup(ts_i, T_WS_i)
     pose_i_id = graph.add_param(pose_i)
     poses_init.append(T_WS_i)
-    poses_est.append(pose_i)
+    poses_est.append(pose_i_id)
 
     # -- Speed and biases i
     vel_i = imu0_data.vel[ts_i]
@@ -6005,14 +6053,14 @@ class TestFactorGraph(unittest.TestCase):
     bg_i = np.array([0.0, 0.0, 0.0])
     sb_i = speed_biases_setup(ts_i, vel_i, ba_i, bg_i)
     sb_i_id = graph.add_param(sb_i)
-    sb_est.append(sb_i)
+    sb_est.append(sb_i_id)
 
     for ts_idx in range(start_idx + window_size, end_idx, window_size):
       # -- Pose j
       ts_j = imu0_data.timestamps[ts_idx]
       T_WS_j = imu0_data.poses[ts_j]
       # ---- Pertrub pose j
-      trans_rand = np.random.rand(3) * 0.05
+      trans_rand = np.random.rand(3)
       rvec_rand = np.random.rand(3) * 0.01
       T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
       # ---- Add to factor graph
@@ -6028,8 +6076,8 @@ class TestFactorGraph(unittest.TestCase):
 
       # ---- Keep track of initial and estimate pose
       poses_init.append(T_WS_j)
-      poses_est.append(pose_j)
-      sb_est.append(sb_j)
+      poses_est.append(pose_j_id)
+      sb_est.append(sb_j_id)
 
       # -- Imu Factor
       param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
@@ -6044,18 +6092,22 @@ class TestFactorGraph(unittest.TestCase):
       sb_i = sb_j
 
     # Solve
-    # prof = profile_start()
-    graph.solve()
-    # profile_stop(prof)
-    r = graph.residuals()
-    self.assertTrue(graph.cost(r) < 1.0)
-
     debug = False
     # debug = True
+    # prof = profile_start()
+    graph.solve(debug)
+    # profile_stop(prof)
+
     if debug:
       pos_init = np.array([tf_trans(T) for T in poses_init])
-      pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
 
+      pos_est = []
+      for pose_pid in poses_est:
+        pose = graph.params[pose_pid]
+        pos_est.append(tf_trans(pose2tf(pose.param)))
+      pos_est = np.array(pos_est)
+
+      sb_est = [graph.params[pid] for pid in sb_est]
       sb_ts0 = sb_est[0].ts
       sb_time = np.array([ts2sec(sb.ts - sb_ts0) for sb in sb_est])
       vel_est = np.array([sb.param[0:3] for sb in sb_est])
