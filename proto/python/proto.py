@@ -265,6 +265,7 @@ def schurs_complement(H, g, m, r, precond=False):
 
   return (H_marg, g_marg)
 
+
 def is_pd(B):
   """Returns true when input is positive-definite, via Cholesky"""
   try:
@@ -272,6 +273,7 @@ def is_pd(B):
     return True
   except np.linalg.LinAlgError:
     return False
+
 
 def nearest_pd(A):
   """Find the nearest positive-definite matrix to input
@@ -2825,14 +2827,14 @@ class CalibVisionFactor(Factor):
     C_BF = tf_rot(T_BF)
     J0 = zeros((2, 6))
     J0[0:2, 0:3] = Jh_weighted @ C_CiB
-    J0[0:2, 3:6] = Jh_weighted @ C_CiB @ skew(C_BF @ self.r_FFi)
+    J0[0:2, 3:6] = Jh_weighted @ C_CiB @ -C_BF @ skew(self.r_FFi)
     # -- Jacobians w.r.t T_BCi
-    C_CiB = tf_rot(T_CiB)
-    C_BCi = C_CiB.transpose()
-    r_CiFi = tf_point(T_CiB @ T_BF, self.r_FFi)
+    r_BFi = tf_point(T_BF, self.r_FFi)
+    r_BCi = tf_trans(T_BCi)
+    C_BCi = tf_rot(T_BCi)
     J1 = zeros((2, 6))
-    J1[0:2, 0:3] = -1 * Jh_weighted @ C_CiB
-    J1[0:2, 3:6] = -1 * Jh_weighted @ C_CiB @ skew(C_BCi @ r_CiFi)
+    J1[0:2, 0:3] = Jh_weighted @ -C_CiB
+    J1[0:2, 3:6] = Jh_weighted @ -C_CiB @ skew(r_BFi - r_BCi) @ -C_BCi
     # -- Jacobians w.r.t cam params
     J_cam_params = self.cam_geom.J_params(cam_params, r_CiFi)
     J2 = neg_sqrt_info @ J_cam_params
@@ -5767,8 +5769,8 @@ class TestFactors(unittest.TestCase):
     rel_pose = pose_setup(0, T_BF)
     cam_exts = extrinsics_setup(T_BCi)
     fvars = [rel_pose, cam_exts, cam_params]
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_rel_pose"))
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_cam_exts"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_rel_pose"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_cam_exts"))
     self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_cam_params"))
 
   def test_imu_factor_propagate(self):
