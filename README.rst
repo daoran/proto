@@ -23,6 +23,9 @@ dependencies and building of ``proto``, the make targets are as follows::
     release:
       Build proto in release mode.
 
+    run_tests:
+      Run tests
+
     install:
       Install proto to $PREFIX. By default this is "/usr/local".
 

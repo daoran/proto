@@ -67,13 +67,13 @@ char *path_join(const char *x, const char *y) {
   char *retval = NULL;
   if (x[strlen(x) - 1] == '/') {
     retval = malloc(sizeof(char) * (strlen(x) + strlen(y)) + 1);
-    strcpy(retval, x);
-    strcpy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
+    string_copy(retval, x);
+    string_copy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
   } else {
     retval = malloc(sizeof(char) * (strlen(x) + strlen(y)) + 2);
-    strcpy(retval, x);
+    string_copy(retval, x);
     strcat(retval + strlen(retval), "/");
-    strcpy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
+    string_copy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
   }
 
   return retval;
@@ -105,9 +105,9 @@ char **list_files(const char *path, int *n) {
   for (int i = 2; i < N; i++) {
     char fp[9046] = {0};
     const char *c = (fp[strlen(fp) - 1] == '/') ? "" : "/";
-    strncat(fp, path, strlen(path));
-    strncat(fp, c, strlen(c));
-    strncat(fp, namelist[i]->d_name, strlen(namelist[i]->d_name));
+    string_cat(fp, path);
+    string_cat(fp, c);
+    string_cat(fp, namelist[i]->d_name);
 
     files[*n] = malloc(sizeof(char) * (strlen(fp) + 1));
     strncpy(files[*n], fp, strlen(fp));
@@ -256,12 +256,30 @@ int file_copy(const char *src, const char *dst) {
  ******************************************************************************/
 
 /**
+ * String copy from `src` to `dst`.
+ */
+size_t string_copy(char *dst, const char *src) {
+  strncpy(dst, src, strlen(src));
+  dst[strlen(src)] = '\0'; /* strncpy does not null terminate */
+  return strlen(dst);
+}
+
+/**
+ * Concatenate string from `src` to `dst`.
+ */
+void string_cat(char *dst, const char *src) {
+  strncat(dst, src, strlen(src));
+  dst[strlen(src)] = '\0'; /* strncat does not null terminate */
+}
+
+/**
  * Allocate heap memory for string `s`.
  */
-char *malloc_string(const char *s) {
+char *string_malloc(const char *s) {
   assert(s != NULL);
   char *retval = malloc(sizeof(char) * strlen(s) + 1);
   strncpy(retval, s, strlen(s));
+  retval[strlen(s)] = '\0'; /* strncpy does not null terminate */
   return retval;
 }
 
@@ -502,8 +520,8 @@ char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
 
     if (c == ',' || c == '\n') {
       /* Add field name to fields */
-      fields[field_idx] = malloc_string(field_name);
-      memset(field_name, '\0', sizeof(char) * 100);
+      fields[field_idx] = string_malloc(field_name);
+      memset(field_name, '\0', 100);
       field_idx++;
     } else {
       /* Append field name */

@@ -15,8 +15,8 @@ define usage
   release:
     Build proto in release mode.
 
-	run_tests:
-		Run tests
+  run_tests:
+    Run tests
 
   install:
     Install proto to '$$PREFIX'. By default this is "/usr/local".
@@ -46,7 +46,7 @@ release:
 	@cd proto; make -s lib
 
 run_tests:
-	@cd proto; make -s python
+	@cd proto; make -s run_tests
 
 install:
 	@if [ ! -d proto/build ]; then \

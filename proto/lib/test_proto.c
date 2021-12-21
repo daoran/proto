@@ -144,8 +144,8 @@ int test_file_copy() {
  * DATA
  ******************************************************************************/
 
-int test_malloc_string() {
-  char *s = malloc_string("hello world!");
+int test_string_malloc() {
+  char *s = string_malloc("hello world!");
   MU_CHECK(strcmp(s, "hello world!") == 0);
   free(s);
   return 0;
@@ -167,10 +167,13 @@ int test_dsv_fields() {
   int nb_fields = 0;
   char **fields = dsv_fields(TEST_CSV, ',', &nb_fields);
   const char *expected[10] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"};
+  if (fields == NULL) {
+    printf("File not found [%s]\n", TEST_CSV);
+    return -1;
+  }
 
   MU_CHECK(nb_fields == 10);
   for (int i = 0; i < nb_fields; i++) {
-    /* printf("field[%d]: %s\n", i, fields[i]); */
     MU_CHECK(strcmp(fields[i], expected[i]) == 0);
     free(fields[i]);
   }
@@ -3108,7 +3111,7 @@ void test_suite() {
   MU_ADD_TEST(test_file_copy);
 
   /* DATA */
-  MU_ADD_TEST(test_malloc_string);
+  MU_ADD_TEST(test_string_malloc);
   MU_ADD_TEST(test_dsv_rows);
   MU_ADD_TEST(test_dsv_cols);
   MU_ADD_TEST(test_dsv_fields);

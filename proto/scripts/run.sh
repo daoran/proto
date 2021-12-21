@@ -41,7 +41,7 @@ memcheck() {
 # python3 python/proto.py TestFactors.test_imu_factor_propagate
 # python3 python/proto.py TestFactors.test_imu_factor
 # python3 python/proto.py TestFactorGraph
-python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vo
+# python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vo
 # python3 python/proto.py TestFactorGraph.test_factor_graph_solve_io
 # python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vio
 # python3 python/proto.py TestFeatureTracking
@@ -69,7 +69,7 @@ python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vo
 # python3 python/proto.py TestSimulation.test_sim_camera_frame
 # python3 python/proto.py TestSimulation.test_sim_data
 # python3 python/proto.py TestSimulation.test_sim_feature_tracker
-cd python && ctags proto.py
+# cd python && ctags proto.py
 
 ###############################################################################
 # C
@@ -77,10 +77,10 @@ cd python && ctags proto.py
 
 # make format_code
 # ctags -R lib
-# time make
+time make
 
-# cd ./build/bin
-# ./test_proto
+cd ./build/bin
+./test_proto
 # PROTO-LOGGING
 # ./test_proto --target test_debug
 # ./test_proto --target test_log_error

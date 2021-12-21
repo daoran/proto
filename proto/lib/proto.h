@@ -183,7 +183,9 @@ typedef double real_t;
 #error "Precision not defined!"
 #endif
 
-char *malloc_string(const char *s);
+size_t string_copy(char *dst, const char *src);
+void string_cat(char *dst, const char *src);
+char *string_malloc(const char *s);
 int **load_iarrays(const char *csv_path, int *nb_arrays);
 real_t **load_darrays(const char *csv_path, int *nb_arrays);
 
