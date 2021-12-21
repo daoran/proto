@@ -3082,7 +3082,6 @@ class FactorGraph:
     # Solver
     self.solver_max_iter = 5
     self.solver_lambda = 1e-4
-    self.solver_cost = 0.0
 
   def add_param(self, param):
     """ Add param """
@@ -3338,7 +3337,7 @@ class FactorGraph:
         self._print_to_console(i, lambda_k, cost_kp1, cost_k)
 
     # Finish
-    self.params = params_k
+    self.params = copy.deepcopy(params_k)
 
 
 # FEATURE TRACKING #############################################################
@@ -5825,9 +5824,9 @@ class TestFactors(unittest.TestCase):
     fvars = [pose_i, sb_i, pose_j, sb_j]
     self.assertTrue(factor)
     # self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_pose_i"))
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_sb_i"))
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_pose_j"))
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 3, "J_sb_j"))
+    # self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_sb_i", verbose=True))
+    # self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_pose_j", verbose=True))
+    # self.assertTrue(check_factor_jacobian(factor, fvars, 3, "J_sb_j", verbose=True))
 
 
 class TestFactorGraph(unittest.TestCase):
@@ -5896,6 +5895,7 @@ class TestFactorGraph(unittest.TestCase):
     cam0_geom = self.sim_data.get_camera_geometry(0)
 
     # Setup factor graph
+    poses_gnd = []
     poses_init = []
     poses_est = []
     graph = FactorGraph()
@@ -5905,8 +5905,8 @@ class TestFactorGraph(unittest.TestCase):
     feature_ids = []
     for i in range(features.shape[0]):
       p_W = features[i, :]
-      p_W += np.random.rand(3) * 0.1  # perturb feature
-      feature = feature_setup(p_W)
+      # p_W += np.random.rand(3) * 0.1  # perturb feature
+      feature = feature_setup(p_W, fix=True)
       feature_ids.append(graph.add_param(feature))
 
     # -- Add cam0
@@ -5919,16 +5919,17 @@ class TestFactorGraph(unittest.TestCase):
       cam_frame = cam0_data.frames[ts]
 
       # Add camera pose T_WC0
-      T_WC0 = cam0_data.poses[ts]
+      T_WC0_gnd = cam0_data.poses[ts]
       # -- Perturb camera pose
       trans_rand = np.random.rand(3)
       rvec_rand = np.random.rand(3) * 0.1
-      T_WC0 = tf_update(T_WC0, np.block([*trans_rand, *rvec_rand]))
+      T_WC0_init = tf_update(T_WC0_gnd, np.block([*trans_rand, *rvec_rand]))
       # -- Add to graph
-      pose = pose_setup(ts, T_WC0)
+      pose = pose_setup(ts, T_WC0_init)
       pose_id = graph.add_param(pose)
-      poses_init.append(T_WC0)
-      poses_est.append(pose)
+      poses_gnd.append(T_WC0_gnd)
+      poses_init.append(T_WC0_init)
+      poses_est.append(pose_id)
       nb_poses += 1
 
       # Add ba factors
@@ -5938,26 +5939,34 @@ class TestFactorGraph(unittest.TestCase):
         graph.add_factor(BAFactor(cam0_geom, param_ids, z))
 
     # Solve
+    # debug = True
+    debug = False
     # prof = profile_start()
-    graph.solve(False)
+    graph.solve(debug)
     # profile_stop(prof)
 
-    # # Visualize
-    # debug = False
-    # if debug:
-    #   pos_init = np.array([tf_trans(T) for T in poses_init])
-    #   pos_est = np.array([tf_trans(pose2tf(pose.param)) for pose in poses_est])
-    #
-    #   plt.figure()
-    #   plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
-    #   plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
-    #   plt.xlabel("Displacement [m]")
-    #   plt.ylabel("Displacement [m]")
-    #   plt.show()
-    #
-    # # Asserts
-    # errors = graph._get_reproj_errors()
-    # self.assertTrue(rmse(errors) < 0.1)
+    # Visualize
+    if debug:
+      pos_gnd = np.array([tf_trans(T) for T in poses_gnd])
+      pos_init = np.array([tf_trans(T) for T in poses_init])
+      pos_est = []
+      for pose_pid in poses_est:
+        pose = graph.params[pose_pid]
+        pos_est.append(tf_trans(pose2tf(pose.param)))
+      pos_est = np.array(pos_est)
+
+      plt.figure()
+      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'g-', label="Ground Truth")
+      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-', label="Initial")
+      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-', label="Estimated")
+      plt.xlabel("Displacement [m]")
+      plt.ylabel("Displacement [m]")
+      plt.legend(loc=0)
+      plt.show()
+
+    # Asserts
+    errors = graph._get_reproj_errors()
+    self.assertTrue(rmse(errors) < 0.1)
 
   @unittest.skip("")
   def test_factor_graph_solve_io(self):
