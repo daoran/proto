@@ -37,10 +37,11 @@ memcheck() {
 # python3 python/proto.py TestFactors.test_pose_factor
 # python3 python/proto.py TestFactors.test_ba_factor
 # python3 python/proto.py TestFactors.test_vision_factor
+# python3 python/proto.py TestFactors.test_calib_vision_factor
 # python3 python/proto.py TestFactors.test_imu_factor_propagate
 # python3 python/proto.py TestFactors.test_imu_factor
 # python3 python/proto.py TestFactorGraph
-# python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vo
+python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vo
 # python3 python/proto.py TestFactorGraph.test_factor_graph_solve_io
 # python3 python/proto.py TestFactorGraph.test_factor_graph_solve_vio
 # python3 python/proto.py TestFeatureTracking
@@ -55,18 +56,20 @@ memcheck() {
 # python3 python/proto.py TestFeatureTracker.test_detect_nonoverlaps
 # python3 python/proto.py TestFeatureTracker.test_detect_new
 # python3 python/proto.py TestFeatureTracker.test_initialize
-python3 python/proto.py TestFeatureTracker.test_update
+# python3 python/proto.py TestFeatureTracker.test_update
 # python3 python/proto.py TestTracker
 # python3 python/proto.py TestTracker.test_tracker_process_features
 # python3 python/proto.py TestTracker.test_tracker_vision_callback
 # python3 python/proto.py TestCalibration
 # python3 python/proto.py TestEuroc
+# python3 python/proto.py TestKitti
 # python3 python/proto.py TestSimulation
 # python3 python/proto.py TestSimulation.test_create_3d_features
 # python3 python/proto.py TestSimulation.test_create_3d_features_perimeter
 # python3 python/proto.py TestSimulation.test_sim_camera_frame
 # python3 python/proto.py TestSimulation.test_sim_data
 # python3 python/proto.py TestSimulation.test_sim_feature_tracker
+cd python && ctags proto.py
 
 ###############################################################################
 # C

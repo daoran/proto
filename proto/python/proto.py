@@ -215,6 +215,25 @@ def bwdsubs(U, b):
     b[0:j] = b[0:j] - U[0:j, j] * x[j]
 
 
+def solve_svd(A, b):
+  """
+  Solve Ax = b with SVD
+  """
+  # compute svd of A
+  U, s, Vh = svd(A)
+
+  # U diag(s) Vh x = b <=> diag(s) Vh x = U.T b = c
+  c = np.dot(U.T, b)
+
+  # diag(s) Vh x = c <=> Vh x = diag(1/s) c = w (trivial inversion of a diagonal matrix)
+  w = np.dot(np.diag(1 / s), c)
+
+  # Vh x = w <=> x = Vh.H w (where .H stands for hermitian = conjugate transpose)
+  x = np.dot(Vh.conj().T, w)
+
+  return x
+
+
 def schurs_complement(H, g, m, r, precond=False):
   """ Shurs-complement """
   assert H.shape[0] == (m + r)
@@ -433,7 +452,7 @@ def bresenham(p0, p1):
 
       A list of (x, y) intermediate points from p0 to p1.
 
-    """
+  """
   x0, y0 = p0
   x1, y1 = p1
   dx = abs(x1 - x0)
@@ -1861,9 +1880,22 @@ class CameraGeometry:
 
   def project(self, params, p_C):
     """ Project point `p_C` with camera parameters `params` """
+    # Make sure point is infront of camera
+    if p_C[2] < 0.0:
+      return None
+
+    # Project
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
-    return self.project_fn(proj_params, dist_params, p_C)
+    z = self.project_fn(proj_params, dist_params, p_C)
+
+    # Make sure image point is within image bounds
+    x_ok = z[0] >= 0.0 and z[0] <= self.resolution[0]
+    y_ok = z[1] >= 0.0 and z[1] <= self.resolution[1]
+    if x_ok and y_ok:
+      return z
+
+    return None
 
   def backproject(self, params, z):
     """ Back-project image point `z` with camera parameters `params` """
@@ -2578,6 +2610,12 @@ class BAFactor(Factor):
     assert len(params[1]) == 3
     assert len(params[2]) == self.cam_geom.get_params_size()
 
+    # Setup
+    r = np.array([0.0, 0.0])
+    J0 = zeros((2, 6))
+    J1 = zeros((2, 3))
+    J2 = zeros((2, self.cam_geom.get_params_size()))
+
     # Map params
     cam_pose, feature, cam_params = params
 
@@ -2588,6 +2626,10 @@ class BAFactor(Factor):
     p_W = feature
     p_C = tf_point(inv(T_WC), p_W)
     z_hat = self.cam_geom.project(cam_params, p_C)
+    if z_hat is None:
+      if kwargs.get('only_residuals', False):
+        return r
+      return (r, [J0, J1, J2])
 
     # Calculate residual
     sqrt_info = self.sqrt_info
@@ -2614,7 +2656,7 @@ class BAFactor(Factor):
     J1 = Jh_weighted @ C_CW
     # -- Jacobian w.r.t. camera parameters
     J_cam_params = self.cam_geom.J_params(cam_params, p_C)
-    J2 = zeros((2, 8))
+    J2 = zeros((2, self.cam_geom.get_params_size()))
     J2 = neg_sqrt_info @ J_cam_params
 
     return (r, [J0, J1, J2])
@@ -2685,6 +2727,70 @@ class VisionFactor(Factor):
     J3 = neg_sqrt_info @ J_cam_params
 
     return (r, [J0, J1, J2, J3])
+
+
+class CalibVisionFactor(Factor):
+  """ Calibration Vision Factor """
+
+  def __init__(self, cam_geom, pids, tag_id, corner_idx, r_FFi, z,
+               covar=eye(2)):
+    assert len(pids) == 3
+    assert len(z) == 2
+    assert covar.shape == (2, 2)
+    Factor.__init__(self, "CalibReprojFactor", pids, z, covar)
+    self.cam_geom = cam_geom
+    self.tag_id = tag_id
+    self.corner_idx = corner_idx
+    self.r_FFi = r_FFi
+    self.reproj_error = None
+
+  def eval(self, params, **kwargs):
+    """ Evaluate """
+    assert len(params) == 3
+    assert len(params[0]) == 7
+    assert len(params[1]) == 7
+    assert len(params[2]) == self.cam_geom.get_params_size()
+
+    # Map parameters out
+    T_BF = pose2tf(params[0])
+    T_BCi = pose2tf(params[1])
+    cam_params = params[2]
+
+    # Transform and project point to image plane
+    T_CiB = inv(T_BCi)
+    r_CiFi = tf_point(T_CiB @ T_BF, self.r_FFi)
+    z_hat = self.cam_geom.project(cam_params, r_CiFi)
+
+    # Calculate residual
+    sqrt_info = self.sqrt_info
+    z = self.measurement
+    self.reproj_error = norm(z - z_hat)
+    r = sqrt_info @ (z - z_hat)
+    if kwargs.get('only_residuals', False):
+      return r
+
+    # Calculate Jacobians
+    neg_sqrt_info = -1.0 * sqrt_info
+    Jh = self.cam_geom.J_proj(cam_params, r_CiFi)
+    Jh_weighted = neg_sqrt_info @ Jh
+    # -- Jacobians w.r.t relative camera pose T_BF
+    C_CiB = tf_rot(T_CiB)
+    C_BF = tf_rot(T_BF)
+    J0 = zeros((2, 6))
+    J0[0:2, 0:3] = Jh_weighted @ C_CiB
+    J0[0:2, 3:6] = Jh_weighted @ C_CiB @ skew(C_BF @ self.r_FFi)
+    # -- Jacobians w.r.t T_BCi
+    C_CiB = tf_rot(T_CiB)
+    C_BCi = C_CiB.transpose()
+    r_CiFi = tf_point(T_CiB @ T_BF, self.r_FFi)
+    J1 = zeros((2, 6))
+    J1[0:2, 0:3] = -1 * Jh_weighted @ C_CiB
+    J1[0:2, 3:6] = -1 * Jh_weighted @ C_CiB @ skew(C_BCi @ r_CiFi)
+    # -- Jacobians w.r.t cam params
+    J_cam_params = self.cam_geom.J_params(cam_params, r_CiFi)
+    J2 = neg_sqrt_info @ J_cam_params
+
+    return (r, [J0, J1, J2])
 
 
 class ImuBuffer:
@@ -2934,7 +3040,7 @@ def check_factor_jacobian(factor, fvars, var_idx, jac_name, **kwargs):
   # Step size and threshold
   h = kwargs.get('step_size', 1e-8)
   threshold = kwargs.get('threshold', 1e-4)
-  verbose = kwargs.get('verbose', False)
+  verbose = kwargs.get('verbose', True)
 
   # Calculate baseline
   params = [sv.param for sv in fvars]
@@ -3187,6 +3293,9 @@ class FactorGraph:
     c, low = scipy.linalg.cho_factor(H)
     dx = scipy.linalg.cho_solve((c, low), g)
 
+    # # SVD
+    # dx = solve_svd(H, g)
+
     # # Sparse cholesky decomposition
     # sH = scipy.sparse.csc_matrix(H)
     # dx = scipy.sparse.linalg.spsolve(sH, g)
@@ -3203,7 +3312,7 @@ class FactorGraph:
     if verbose:
       print(f"nb_factors: {len(self.factors)}")
       print(f"nb_params: {len(self.params)}")
-      self._print_to_console(0, lambda_k, cost_k, 0)
+      self._print_to_console(0, lambda_k, cost_k, cost_k)
 
     # Iterate
     for i in range(1, self.solver_max_iter):
@@ -4570,6 +4679,56 @@ def calib_generate_random_poses(calib_target, **kwargs):
   return poses
 
 
+class CalibView:
+  """ Calibration View """
+
+  def __init__(self, ts, cam_idx, grid):
+    self.ts = ts
+    self.cam_idx = cam_idx
+    self.reproj_errors = []
+
+
+class Calibrator:
+  """ Calibrator """
+
+  def __init__(self):
+    # Parameters
+    self.cam_params = {}
+    self.cam_geoms = {}
+    self.cam_exts = {}
+    self.imu_params = None
+
+    # Data
+    self.calib_views = {}
+
+  def nb_cams(self):
+    """ Return number of cameras """
+    return len(self.cam_params)
+
+  def add_camera(self, cam_idx, cam_res, proj_model, dist_model):
+    """ Add camera """
+    fx = focal_length(cam_res[0], 90.0)
+    fy = focal_length(cam_res[1], 90.0)
+    cx = cam_res[0] / 2.0
+    cy = cam_res[1] / 2.0
+    params = [fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0]
+    args = [cam_idx, cam_res, proj_model, dist_model, params]
+    cam_params = camera_params_setup(*args)
+
+    fix_exts = True if cam_idx == 0 else False
+    self.cam_params[cam_idx] = cam_params
+    self.cam_geoms[cam_idx] = cam_params.data
+    self.cam_exts = extrinsics_setup(eye(4), fix=fix_exts)
+
+  def add_imu(self, imu_params):
+    """ Add imu """
+    self.imu_params = imu_params
+
+  def add_camera_view(self, ts, cam_idx, grid):
+    """ Add camera view """
+    self.calib_views[ts] = CalibView(ts, cam_idx, grid)
+
+
 ###############################################################################
 # SIMULATION
 ###############################################################################
@@ -4646,24 +4805,16 @@ class SimCameraFrame:
     self.feature_ids = []
     self.measurements = []
 
-    # Setup
-    img_w, img_h = self.cam_geom.resolution
-    nb_points = features.shape[0]
-
     # Simulate camera frame
+    nb_points = features.shape[0]
     T_CiW = tf_inv(self.T_WCi)
+
     for i in range(nb_points):
       # Project point from world frame to camera frame
       p_W = features[i, :]
       p_C = tf_point(T_CiW, p_W)
-      if p_C[2] < 0.0:
-        continue
-
-      # Check to see if image point is within image plane
       z = self.cam_geom.project(self.cam_params, p_C)
-      x_ok = (z[0] < img_w) and (z[0] > 0.0)
-      y_ok = (z[1] < img_h) and (z[1] > 0.0)
-      if x_ok and y_ok:
+      if z is not None:
         self.measurements.append(z)
         self.feature_ids.append(i)
 
@@ -5466,7 +5617,7 @@ class TestFactors(unittest.TestCase):
 
   def test_vision_factor(self):
     """ Test vision factor """
-    # Setup camera extrinsics T_BCi
+    # Setup camera pose T_WB
     rot = euler2quat(0.01, 0.01, 0.03)
     trans = np.array([0.001, 0.002, 0.003])
     T_WB = tf(rot, trans)
@@ -5514,6 +5665,60 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_cam_exts"))
     self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_feature"))
     self.assertTrue(check_factor_jacobian(factor, fvars, 3, "J_cam_params"))
+
+  def test_calib_vision_factor(self):
+    """ Test CalibVisionFactor """
+    # Calibration target pose T_WF
+    C_WF = euler321(-pi / 2.0, 0.0, deg2rad(80.0))
+    r_WF = np.array([0.001, 0.001, 0.001])
+    T_WF = tf(C_WF, r_WF)
+
+    # Body pose T_WB
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
+    trans = np.array([-10.0, 0.0, 0.0])
+    T_WB = tf(rot, trans)
+
+    # Relative pose T_BF
+    T_BF = inv(T_WB) @ T_WF
+
+    # Camera extrinsics T_BCi
+    rot = eye(3)
+    trans = np.array([0.001, 0.002, 0.003])
+    T_BCi = tf(rot, trans)
+
+    # Camera 0
+    cam_idx = 0
+    img_w = 640
+    img_h = 480
+    res = [img_w, img_h]
+    fov = 90.0
+    fx = focal_length(img_w, fov)
+    fy = focal_length(img_h, fov)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    params = [fx, fy, cx, cy, -0.01, 0.01, 1e-4, 1e-4]
+    cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
+    cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
+
+    # Test factor
+    grid = AprilGrid()
+    tag_id = 1
+    corner_idx = 2
+    r_FFi = grid.get_object_point(tag_id, corner_idx)
+    T_CiF = inv(T_BCi) @ T_BF
+    r_CiFi = tf_point(T_CiF, r_FFi)
+    z = cam_geom.project(cam_params.param, r_CiFi)
+
+    pids = [0, 1, 2]
+    factor = CalibVisionFactor(cam_geom, pids, tag_id, corner_idx, r_FFi, z)
+
+    # Test jacobianstf(rot, trans)
+    rel_pose = pose_setup(0, T_BF)
+    cam_exts = extrinsics_setup(T_BCi)
+    fvars = [rel_pose, cam_exts, cam_params]
+    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_rel_pose"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_cam_exts"))
+    self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_cam_params"))
 
   def test_imu_factor_propagate(self):
     """ Test IMU factor propagate """
@@ -6480,9 +6685,10 @@ class TestCalibration(unittest.TestCase):
 
     grid = AprilGrid.load(
         "/tmp/aprilgrid_test/mono/cam0/1403709383937837056.csv")
+    self.assertTrue(grid is not None)
 
-    debug = True
-    # debug = False
+    # debug = True
+    debug = False
     if debug:
       _, ax = plt.subplots()
       for _, _, kp, _ in grid.get_measurements():
@@ -6549,6 +6755,14 @@ class TestCalibration(unittest.TestCase):
       ax.set_ylabel("y [m]")
       ax.set_zlabel("z [m]")
       plt.show()
+
+  def test_calibrator(self):
+    """ Test Calibrator """
+    grid_csvs = glob.glob("/tmp/aprilgrid_test/mono/cam0/*.csv")
+    grids0 = [AprilGrid.load(csv_path) for csv_path in grid_csvs]
+
+    calib = Calibrator()
+    calib.add_camera(0, [752, 480], "pinhole", "radtan4")
 
 
 # SIMULATION  #################################################################
