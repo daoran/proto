@@ -37,7 +37,7 @@ install() {
 
 install_base() {
   apt_install dialog apt-utils git mercurial cmake g++ clang tcc
-  apt_install python3-pip
+  apt_install python3-pip python3-setuptools
 
   pip3 install dataclasses
   pip3 install numpy
