@@ -1,3 +1,4 @@
+include config.mk
 .PHONY: lib python
 
 lib:
@@ -8,5 +9,5 @@ run_tests:
 	@cd python && python3 proto.py
 
 clean:
-	@rm -rf build
-	@echo cleaned!
+	@rm -rf ${BLD_DIR}
+	@echo "[./$(shell realpath --relative-to ${PWD}/.. ${BLD_DIR})] cleaned!"
