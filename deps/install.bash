@@ -9,12 +9,12 @@ export DEBIAN_FRONTEND="noninteractive"
 export PREFIX=$PREFIX
 export DOWNLOAD_PATH=$DOWNLOAD_PATH
 
-check_dir $PREFIX/bin
-check_dir $PREFIX/include
-check_dir $PREFIX/lib
-check_dir $PREFIX/log
-check_dir $PREFIX/share
-check_dir $PREFIX/src
+check_dir "$PREFIX/bin"
+check_dir "$PREFIX/include"
+check_dir "$PREFIX/lib"
+check_dir "$PREFIX/log"
+check_dir "$PREFIX/share"
+check_dir "$PREFIX/src"
 
 apt_update
 install_base

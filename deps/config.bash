@@ -26,7 +26,7 @@ apt_install() {
 
 install() {
   echo -n "Installing $1 ..."
-  if "$SCRIPTPATH/scripts"/install_"$1".bash > log/install.log 2>&1; then
+  if "$SCRIPTPATH/scripts/install_$1.bash" > log/install.log 2>&1; then
     echo -e "\033[0;32m OK! \033[0m"
   else
     echo -e "\033[0;31m FAILED! \033[0m"
@@ -37,24 +37,26 @@ install() {
 
 install_base() {
   apt_install dialog apt-utils git mercurial cmake g++ clang tcc
+  apt_install python3-pip
+  pip3 install dataclasses
 }
 
 # $1 - Git Repo URL
 # $2 - Repo folder name
 clone_git_repo() {
-  cd $DOWNLOAD_PATH
+  cd "$DOWNLOAD_PATH" || exit
   if [ ! -d "$2" ]; then
     git clone "$1" "$2"
   fi
-  cd - > /dev/null
+  cd - > /dev/null || exit
 }
 
 # $1 - Git Repo URL
 # $2 - Repo folder name
 install_git_repo() {
     # Clone repo
-    mkdir -p $DOWNLOAD_PATH
-    cd $DOWNLOAD_PATH || return
+    mkdir -p "$DOWNLOAD_PATH"
+    cd "$DOWNLOAD_PATH" || return
     if [ ! -d "$2" ]; then
       git clone "$1" "$2"
     fi
@@ -68,8 +70,8 @@ install_git_repo() {
     cd build || return
     cmake .. \
       -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      $CMAKE_EXTRA_ARGS
+      -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+      "$CMAKE_EXTRA_ARGS"
 
     # Compile and install
     make -j2 && make install
@@ -79,7 +81,7 @@ install_git_repo() {
 # $2 - Repo folder name
 install_hg_repo() {
     # Clone repo
-    mkdir -p $DOWNLOAD_PATH
+    mkdir -p "$DOWNLOAD_PATH"
     cd "$DOWNLOAD_PATH" || return
     if [ ! -d "$2" ]; then
       hg clone "$1" "$2"
@@ -93,9 +95,9 @@ install_hg_repo() {
     mkdir -p build
     cd build || return
     cmake .. \
-      -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      $CMAKE_EXTRA_ARGS
+      -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+      -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+      "$CMAKE_EXTRA_ARGS"
 
     # Compile and install
     make -j2 && make install
@@ -105,8 +107,8 @@ install_hg_repo() {
 # "$2" - Repo folder name
 install_zip_repo() {
   # Download repo
-  mkdir -p $DOWNLOAD_PATH
-  cd $DOWNLOAD_PATH || return
+  mkdir -p "$DOWNLOAD_PATH"
+  cd "$DOWNLOAD_PATH" || return
   if [ ! -f "$2".zip ]; then
     wget --no-check-certificate "$1" -O "$2".zip
   fi
@@ -117,9 +119,9 @@ install_zip_repo() {
   mkdir -p build
   cd build || return
   cmake .. \
-    -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    $CMAKE_EXTRA_ARGS
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+    "$CMAKE_EXTRA_ARGS"
 
   make -j"$(nproc)" && make install
 }
