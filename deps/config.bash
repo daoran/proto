@@ -39,10 +39,12 @@ install_base() {
   apt_install dialog apt-utils git mercurial cmake g++ clang tcc
   apt_install python3-pip python3-setuptools
 
+  pip3 install --upgrade pip
   pip3 install dataclasses
   pip3 install numpy
   pip3 install scipy
   pip3 install pandas
+  pip3 install scikit-build
   pip3 install opencv-python
 }
 
