@@ -43,9 +43,10 @@ install_base() {
   pip3 install dataclasses
   pip3 install numpy
   pip3 install scipy
-  pip3 install pandas
   pip3 install scikit-build
+  pip3 install pandas
   pip3 install opencv-python
+  pip3 install matplotlib
 }
 
 # $1 - Git Repo URL
