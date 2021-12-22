@@ -45,7 +45,7 @@ debug:
 release:
 	@cd proto; make -s lib
 
-run_tests:
+run_tests: release
 	@cd proto; make -s run_tests
 
 install:

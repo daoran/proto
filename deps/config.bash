@@ -38,7 +38,12 @@ install() {
 install_base() {
   apt_install dialog apt-utils git mercurial cmake g++ clang tcc
   apt_install python3-pip
+
   pip3 install dataclasses
+  pip3 install numpy
+  pip3 install scipy
+  pip3 install pandas
+  pip3 install opencv-python
 }
 
 # $1 - Git Repo URL
