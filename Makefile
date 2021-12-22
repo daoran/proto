@@ -46,7 +46,9 @@ release:
 	@cd proto; make -s lib
 
 run_tests: release
-	@cd proto; make -s run_tests
+	@bash scripts/euroc_mav_dataset.bash \
+		 && cd proto \
+	   && make -s run_tests
 
 install:
 	@if [ ! -d proto/build ]; then \
