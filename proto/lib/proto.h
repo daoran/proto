@@ -77,14 +77,15 @@
  * LOGGING
  ******************************************************************************/
 
-#define KRED "\x1B[1;31m" ///< Console color red
-#define KGRN "\x1B[1;32m" ///< Console color green
-#define KYEL "\x1B[1;33m" ///< Console color yellow
-#define KBLU "\x1B[1;34m" ///< Console color blue
-#define KMAG "\x1B[1;35m" ///< Console color magenta
-#define KCYN "\x1B[1;36m" ///< Console color cyan
-#define KWHT "\x1B[1;37m" ///< Console color white
-#define KNRM "\x1B[1;0m"  ///< Reset console color
+/** Terminal ANSI colors */
+#define KRED "\x1B[1;31m"
+#define KGRN "\x1B[1;32m"
+#define KYEL "\x1B[1;33m"
+#define KBLU "\x1B[1;34m"
+#define KMAG "\x1B[1;35m"
+#define KCYN "\x1B[1;36m"
+#define KWHT "\x1B[1;37m"
+#define KNRM "\x1B[1;0m"
 
 /** Macro function that returns the caller's filename */
 #define __FILENAME__                                                           \
@@ -92,7 +93,6 @@
 
 /**
  * Debug
- *
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
@@ -104,7 +104,6 @@
 
 /**
  * Log info
- *
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
@@ -117,7 +116,6 @@
 
 /**
  * Log error
- *
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
@@ -130,7 +128,6 @@
 
 /**
  * Log warn
- *
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */

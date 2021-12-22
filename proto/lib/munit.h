@@ -13,69 +13,24 @@ static int nb_passed = 0;
 static int nb_failed = 0;
 static char *test_target_name = NULL;
 
-/* MACROS */
-#define ENABLE_TERM_COLORS 0
-#define KNRM "\x1B[1;0m"
-#define KRED "\x1B[1;31m"
-#define KGRN "\x1B[1;32m"
-#define KYEL "\x1B[1;33m"
-#define KBLU "\x1B[1;34m"
-#define KMAG "\x1B[1;35m"
-#define KCYN "\x1B[1;36m"
-#define KWHT "\x1B[1;37m"
-
 /* MUNIT */
-#if ENABLE_TERM_COLORS
-#define MU_LOG_ERROR(TEST, FUNC, LINENO)                                       \
-  printf("%sERROR!%s [%s:%d] %s %sFAILED!%s\n",                                \
-         KRED,                                                                 \
-         KNRM,                                                                 \
-         FUNC,                                                                 \
-         LINENO,                                                               \
-         #TEST,                                                                \
-         KRED,                                                                 \
-         KNRM);
+#define MU_LOG_DIR "/tmp"
+#define MU_ENABLE_TERM_COLORS 0
 
-#define MU_TEST_PASSED(TEST)                                                   \
-  printf("%s-> [%s] %s", KBLU, #TEST, KNRM);                                   \
-  printf("%sOK!%s\n", KGRN, KNRM);                                             \
-  fflush(stdout);                                                              \
-  nb_passed++;
-
-#define MU_TEST_FAILED(TEST)                                                   \
-  printf("%s-> [%s] %s", KBLU, #TEST, KNRM);                                   \
-  printf("%sFAILED!%s\n", KRED, KNRM);                                         \
-  fflush(stdout);                                                              \
-  nb_failed++;
-
-#define MU_PRINT_STATS()                                                       \
-  printf("%s%d tests%s, ", KWHT, nb_tests, KNRM);                              \
-  printf("%s%d passed%s, ", KGRN, nb_tests, KNRM);                             \
-  printf("%s%d failed%s\n\n", KRED, nb_failed, KNRM);
-
+#if MU_ENABLE_TERM_COLORS == 1
+#define MU_RED "\x1B[1;31m"
+#define MU_GRN "\x1B[1;32m"
+#define MU_WHT "\x1B[1;37m"
+#define MU_NRM "\x1B[1;0m"
 #else
-#define MU_LOG_ERROR(TEST, FUNC, LINENO)                                       \
-  printf("ERROR! [%s:%d] %s FAILED!\n", FUNC, LINENO, #TEST);
-
-#define MU_TEST_PASSED(TEST)                                                   \
-  printf("-> [%s] ", #TEST);                                                   \
-  printf("OK!\n");                                                             \
-  fflush(stdout);                                                              \
-  nb_passed++;
-
-#define MU_TEST_FAILED(TEST)                                                   \
-  printf("-> [%s] ", #TEST);                                                   \
-  printf("FAILED!\n");                                                         \
-  fflush(stdout);                                                              \
-  nb_failed++;
-
-#define MU_PRINT_STATS()                                                       \
-  printf("%d tests, ", nb_tests);                                              \
-  printf("%d passed, ", nb_passed);                                            \
-  printf("%d failed\n", nb_failed);                                            \
-  printf("\n");
-
+#define MU_RED
+#define MU_GRN
+#define MU_WHT
+#define MU_NRM
 #endif
+
+#define MU_LOG_ERROR(TEST, FUNC, LINENO)                                       \
+  printf(MU_RED "ERROR!" MU_NRM " [%s:%d] %s\n", FUNC, LINENO, #TEST);
 
 #define MU_CHECK(TEST)                                                         \
   do {                                                                         \
@@ -85,42 +40,75 @@ static char *test_target_name = NULL;
     }                                                                          \
   } while (0)
 
+#define MU_PRINT_LOG(LOG_PATH)                                                 \
+  /* Open log file */                                                          \
+  printf("TEST LOG [%s]\n", LOG_PATH);                                         \
+  FILE *log_file = fopen(LOG_PATH, "rb");                                      \
+  if (log_file == NULL) {                                                      \
+    return;                                                                    \
+  }                                                                            \
+                                                                               \
+  /* Get log file length */                                                    \
+  fseek(log_file, 0, SEEK_END);                                                \
+  size_t log_length = ftell(log_file);                                         \
+  fseek(log_file, 0, SEEK_SET);                                                \
+                                                                               \
+  char buf[9046] = {0};                                                        \
+  fread(buf, 1, log_length, log_file);                                         \
+  printf("%s\n\n", buf);                                                       \
+  fflush(stdout);                                                              \
+  fclose(log_file);
+
+#define MU_TEST_PASSED(TEST, LOG_PATH)                                         \
+  printf("-> [%s] ", #TEST);                                                   \
+  printf(MU_GRN "OK!\n" MU_NRM);                                               \
+  fflush(stdout);                                                              \
+  remove(LOG_PATH);                                                            \
+  nb_passed++;
+
+#define MU_TEST_FAILED(TEST, LOG_PATH)                                         \
+  printf("-> [%s] ", #TEST);                                                   \
+  printf(MU_RED "FAILED!\n" MU_NRM);                                           \
+  fflush(stdout);                                                              \
+  MU_PRINT_LOG(LOG_PATH);                                                      \
+  nb_failed++;
+
+#define MU_PRINT_STATS()                                                       \
+  printf(MU_WHT "%d tests" MU_NRM ", ", nb_tests);                             \
+  printf(MU_GRN "%d passed" MU_NRM ", ", nb_passed);                           \
+  printf(MU_RED "%d failed\n" MU_NRM, nb_failed);                              \
+  printf("\n");
+
 #define MU_ADD_TEST(TEST)                                                      \
   do {                                                                         \
+    /* Check if test target is set and current test is test target */          \
     if (test_target_name != NULL && strcmp(test_target_name, #TEST) != 0) {    \
       continue;                                                                \
     }                                                                          \
                                                                                \
-    const char *output_path = "/tmp/output.log";                               \
+    /* Redirect stdout and stderr to file */                                   \
+    char *log_path = MU_LOG_DIR "/mu_" #TEST ".log";                           \
     int stdout_fd = 0;                                                         \
     int stderr_fd = 0;                                                         \
-    int output_fd = 0;                                                         \
-    if (streams_redirect(output_path, &stdout_fd, &stderr_fd, &output_fd) ==   \
-        -1) {                                                                  \
+    int log_fd = 0;                                                            \
+    if (streams_redirect(log_path, &stdout_fd, &stderr_fd, &log_fd) == -1) {   \
       printf("Failed to redirect streams!\n");                                 \
       exit(-1);                                                                \
     }                                                                          \
                                                                                \
-    int retval = TEST();                                                       \
+    /* Run test */                                                             \
+    int test_retval = TEST();                                                  \
                                                                                \
-    streams_restore(stdout_fd, stderr_fd, output_fd);                          \
+    /* Restore stdout and stderr */                                            \
+    streams_restore(stdout_fd, stderr_fd, log_fd);                             \
                                                                                \
-    if (retval == -1) {                                                        \
-      MU_TEST_FAILED(TEST);                                                    \
+    /* Keep track of test results */                                           \
+    if (test_retval == -1) {                                                   \
+      MU_TEST_FAILED(TEST, log_path);                                          \
     } else {                                                                   \
-      MU_TEST_PASSED(TEST);                                                    \
+      MU_TEST_PASSED(TEST, log_path);                                          \
     }                                                                          \
     nb_tests++;                                                                \
-  } while (0)
-
-#define MU_REPORT()                                                            \
-  do {                                                                         \
-    MU_PRINT_STATS();                                                          \
-    if (nb_failed != 0) {                                                      \
-      return -1;                                                               \
-    } else {                                                                   \
-      return 0;                                                                \
-    }                                                                          \
   } while (0)
 
 #define MU_RUN_TESTS(TEST_SUITE)                                               \
@@ -131,8 +119,8 @@ static char *test_target_name = NULL;
     }                                                                          \
                                                                                \
     TEST_SUITE();                                                              \
-    MU_REPORT();                                                               \
-    return 0;                                                                  \
+    MU_PRINT_STATS();                                                          \
+    return (nb_failed) ? -1 : 0;                                               \
   }
 
 #define RUN_PYTHON_SCRIPT(A)                                                   \
@@ -157,7 +145,7 @@ int streams_redirect(const char *output_path,
   *stderr_fd = dup(STDERR_FILENO);
 
   /* Open stdout log file */
-  *output_fd = open(output_path, O_RDWR | O_CREAT | O_APPEND, 0600);
+  *output_fd = open(output_path, O_RDWR | O_CREAT, 0600);
   if (*output_fd == -1) {
     perror("opening output.log");
     return -1;
