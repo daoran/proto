@@ -6,7 +6,7 @@ lib:
 
 run_tests:
 	@cd ./build/bin/ && ./test_proto
-	@cd python && python3 proto.py
+	# @cd python && python3 proto.py
 
 clean:
 	@rm -rf ${BLD_DIR}
