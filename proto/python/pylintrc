@@ -18,6 +18,7 @@ disable=
   too-many-statements,
   too-many-branches,
   too-many-instance-attributes,
+  too-many-public-methods,
   too-few-public-methods,
   line-too-long,
   assignment-from-no-return,
@@ -29,7 +30,7 @@ disable=
 
 [TYPECHECK]
 
-ignored-modules = numpy
+ignored-modules = numpy,cv2
 
 
 [FORMAT]
