@@ -14,6 +14,7 @@ Contains the following library code useful for prototyping robotic algorithms:
 - MATPLOTLIB
 - CV
 - DATASET
+- FILTER
 - STATE ESTIMATION
 - CALIBRATION
 - SIMULATION
@@ -2393,6 +2394,34 @@ class KittiRawDataset:
 
 
 ###############################################################################
+# FILTER
+###############################################################################
+
+
+def compl_filter(gyro, accel, dt, roll, pitch):
+  """
+  A simple complementary filter that uses `gyro` and `accel` measurements to
+  estimate the attitude in `roll` and `pitch`. Where `dt` is the update
+  rate of the `gyro` measurements in seconds.
+  """
+  # Calculate pitch and roll using gyroscope
+  wx, wy, _ = gyro
+  gyro_roll = (wx * dt) + roll
+  gyro_pitch = (wy * dt) + pitch
+
+  # Calculate pitch and roll using accelerometer
+  ax, ay, az = accel
+  accel_roll = (atan(ay / sqrt(ax * ay + az * az))) * 180.0 / pi
+  accel_pitch = (atan(ax / sqrt(ay * ay + az * az))) * 180.0 / pi
+
+  # Complimentary filter
+  pitch = (0.98 * gyro_pitch) + (0.02 * accel_pitch)
+  roll = (0.98 * gyro_roll) + (0.02 * accel_roll)
+
+  return (roll, pitch)
+
+
+###############################################################################
 # STATE ESTIMATION
 ###############################################################################
 
@@ -2648,7 +2677,19 @@ class BAFactor(Factor):
     assert covar.shape == (2, 2)
     Factor.__init__(self, "BAFactor", pids, z, covar)
     self.cam_geom = cam_geom
-    self.reproj_error = None
+
+  def get_reproj_error(self, cam_pose, feature, cam_params):
+    """ Get reprojection error """
+    T_WC = pose2tf(cam_pose)
+    p_W = feature
+    p_C = tf_point(inv(T_WC), p_W)
+    status, z_hat = self.cam_geom.project(cam_params, p_C)
+    if status is False:
+      return None
+
+    z = self.measurement
+    reproj_error = norm(z - z_hat)
+    return reproj_error
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -2677,7 +2718,6 @@ class BAFactor(Factor):
     # Calculate residual
     sqrt_info = self.sqrt_info
     z = self.measurement
-    self.reproj_error = norm(z - z_hat)
     r = sqrt_info @ (z - z_hat)
     if kwargs.get('only_residuals', False):
       return r
@@ -2716,7 +2756,20 @@ class VisionFactor(Factor):
     assert covar.shape == (2, 2)
     Factor.__init__(self, "VisionFactor", pids, z, covar)
     self.cam_geom = cam_geom
-    self.reproj_error = None
+
+  def get_reproj_error(self, pose, cam_exts, feature, cam_params):
+    """ Get reprojection error """
+    T_WB = pose2tf(pose)
+    T_BCi = pose2tf(cam_exts)
+    p_W = feature
+    p_C = tf_point(inv(T_WB @ T_BCi), p_W)
+    status, z_hat = self.cam_geom.project(cam_params, p_C)
+    if status is False:
+      return None
+
+    z = self.measurement
+    reproj_error = norm(z - z_hat)
+    return reproj_error
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -2744,7 +2797,6 @@ class VisionFactor(Factor):
     # Calculate residual
     sqrt_info = self.sqrt_info
     z = self.measurement
-    self.reproj_error = norm(z - z_hat)
     r = sqrt_info @ (z - z_hat)
     if kwargs.get('only_residuals', False):
       return r
@@ -2790,26 +2842,31 @@ class CalibVisionFactor(Factor):
     assert len(grid_data) == 4
     assert covar.shape == (2, 2)
     tag_id, corner_idx, r_FFi, z = grid_data
-    Factor.__init__(self, "CalibReprojFactor", pids, z, covar)
+    Factor.__init__(self, "CalibVisionFactor", pids, z, covar)
     self.cam_geom = cam_geom
     self.tag_id = tag_id
     self.corner_idx = corner_idx
     self.r_FFi = r_FFi
-    self.reproj_error = None
 
-  def get_reproj_error(self, pose, cam_exts, cam_params):
-    """ Get reprojection error """
-    T_BF = pose2tf(pose.param)
-    T_BCi = pose2tf(cam_exts.param)
+  def get_residual(self, pose, cam_exts, cam_params):
+    """ Get residual """
+    T_BF = pose2tf(pose)
+    T_BCi = pose2tf(cam_exts)
     T_CiB = inv(T_BCi)
     r_CiFi = tf_point(T_CiB @ T_BF, self.r_FFi)
-    status, z_hat = self.cam_geom.project(cam_params.param, r_CiFi)
+    status, z_hat = self.cam_geom.project(cam_params, r_CiFi)
     if status is False:
       return None
 
-    z = self.measurement
-    reproj_error = norm(z - z_hat)
-    return reproj_error
+    r = self.measurement - z_hat
+    return r
+
+  def get_reproj_error(self, pose, cam_exts, cam_params):
+    """ Get reprojection error """
+    r = self.get_residual(pose, cam_exts, cam_params)
+    if r is None:
+      return None
+    return norm(r)
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -2825,9 +2882,9 @@ class CalibVisionFactor(Factor):
     J2 = zeros((2, self.cam_geom.get_params_size()))
 
     # Map parameters out
-    T_BF = pose2tf(params[0])
-    T_BCi = pose2tf(params[1])
-    cam_params = params[2]
+    pose, cam_exts, cam_params = params
+    T_BF = pose2tf(pose)
+    T_BCi = pose2tf(cam_exts)
 
     # Transform and project point to image plane
     T_CiB = inv(T_BCi)
@@ -2837,7 +2894,6 @@ class CalibVisionFactor(Factor):
     # Calculate residual
     sqrt_info = self.sqrt_info
     z = self.measurement
-    self.reproj_error = norm(z - z_hat)
     r = sqrt_info @ (z - z_hat)
     if kwargs.get('only_residuals', False):
       return r
@@ -3192,16 +3248,17 @@ class FactorGraph:
     assert factor.factor_id in self.factors
     del self.factors[factor.factor_id]
 
-  def _get_reproj_errors(self):
+  def get_reproj_errors(self):
     """ Get reprojection errors """
-    target_factors = ["BAFactor", "VisionFactor"]
+    target_factors = ["BAFactor", "VisionFactor", "CalibVisionFactor"]
 
     reproj_errors = []
     for _, factor in self.factors.items():
       if factor.factor_type in target_factors:
         factor_params = [self.params[pid].param for pid in factor.param_ids]
-        if factor.eval(factor_params) is not None:
-          reproj_errors.append(factor.reproj_error)
+        retval = factor.get_reproj_error(*factor_params)
+        if retval is not None:
+          reproj_errors.append(retval)
 
     return np.array(reproj_errors).flatten()
 
@@ -3298,11 +3355,9 @@ class FactorGraph:
           cs = idx_j
           ce = idx_j + size_j
 
-          if i == j:
-            # Diagonal
+          if i == j:  # Diagonal
             H[rs:re, cs:ce] += J_i.T @ J_j
-          else:
-            # Off-Diagonal
+          else:  # Off-Diagonal
             H[rs:re, cs:ce] += J_i.T @ J_j
             H[cs:ce, rs:re] += H[rs:re, cs:ce].T
 
@@ -3362,13 +3417,15 @@ class FactorGraph:
 
     # # Pseudo inverse
     # dx = pinv(H) @ g
+
+    # # Linear solver
     # dx = np.linalg.solve(H, g)
 
-    # Cholesky decomposition
+    # # Cholesky decomposition
     c, low = scipy.linalg.cho_factor(H)
     dx = scipy.linalg.cho_solve((c, low), g)
 
-    # # SVD
+    # SVD
     # dx = solve_svd(H, g)
 
     # # Sparse cholesky decomposition
@@ -4568,7 +4625,7 @@ class Tracker:
     if len(self.keyframes) > self.window_size:
       self._pop_old_keyframe()
 
-    errors = self.graph._get_reproj_errors()
+    errors = self.graph.get_reproj_errors()
     print(f"reproj_error:", end=" [")
     print(f"mean: {np.mean(errors):.2f}", end=", ")
     print(f"median: {np.median(errors):.2f}", end=", ")
@@ -4836,6 +4893,7 @@ class Calibrator:
 
     # Data
     self.graph = FactorGraph()
+    self.poses = {}
     self.calib_views = {}
 
   def get_num_cams(self):
@@ -4876,33 +4934,38 @@ class Calibrator:
     T_CiF = grid.solvepnp(cam_params)
     T_BCi = pose2tf(cam_exts.param)
     T_BF = T_BCi @ T_CiF
-    pose = pose_setup(ts, T_BF)
-    self.graph.add_param(pose)
+    self.poses[ts] = pose_setup(ts, T_BF)
 
     # CalibView
-    self.calib_views[ts] = CalibView(pose, cam_params, cam_exts, grid)
-
-    # Solve
+    self.graph.add_param(self.poses[ts])
+    self.calib_views[ts] = CalibView(self.poses[ts], cam_params, cam_exts, grid)
     for factor in self.calib_views[ts].factors:
       self.graph.add_factor(factor)
 
-    # if len(self.calib_views) >= 5:
-    #   self.graph.solve(True)
-
-    if len(self.calib_views) >= 10:
+    # Solve
+    if len(self.calib_views) >= 5:
+      self.graph.solver_max_iter = 10
       self.graph.solve(True)
-      print()
 
       # Calculate reprojection error
-      reproj_errors = []
-      for _, calib_view in self.calib_views.items():
-        reproj_errors.extend(calib_view.get_reproj_errors())
-      reproj_errors = np.array(reproj_errors)
-
+      reproj_errors = self.graph.get_reproj_errors()
       print(f"nb_reproj_errors: {len(reproj_errors)}")
       print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
+      print()
       # plt.hist(reproj_errors)
       # plt.show()
+
+  def solve(self):
+    """ Solve """
+    self.graph.solver_max_iter = 30
+    self.graph.solve(True)
+
+    reproj_errors = self.graph.get_reproj_errors()
+    print(f"nb_cams: {self.get_num_cams()}")
+    print(f"nb_views: {self.get_num_views()}")
+    print(f"nb_reproj_errors: {len(reproj_errors)}")
+    print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
+    sys.stdout.flush()
 
 
 ###############################################################################
@@ -5323,6 +5386,107 @@ class SimFeatureTracker(FeatureTracker):
     # cv2.imshow('viz', viz)
     # cv2.waitKey(0)
     pass
+
+
+###############################################################################
+# CONTROL
+###############################################################################
+
+
+class PID:
+  """ PID controller """
+
+  def __init__(self, k_p, k_i, k_d):
+    self.k_p = k_p
+    self.k_i = k_i
+    self.k_d = k_d
+
+    self.error_p = 0.0
+    self.error_i = 0.0
+    self.error_d = 0.0
+    self.error_prev = 0.0
+    self.error_sum = 0.0
+
+  def update(self, setpoint, actual, dt):
+    """ Update """
+    # Calculate errors
+    error = setpoint - actual
+    self.error_sum += error * dt
+
+    # Calculate output
+    self.error_p = self.k_p * error
+    self.error_i = self.k_i * self.error_sum
+    self.error_d = self.k_d * (error - self.error_prev) / dt
+    output = self.error_p + self.error_i + self.error_d
+
+    # Keep track of error
+    self.error_prev = error
+
+    return output
+
+  def reset(self):
+    """ Reset """
+
+
+class CarrotController:
+  """ Carrot Controller """
+
+  def __init__(self):
+    self.waypoints = []
+    self.wp_start = None
+    self.wp_end = None
+    self.wp_index = None
+    self.look_ahead_dist = 0.0
+
+  def _calculate_closest_point(self, pos):
+    """ Calculate closest point """
+    v1 = pos - self.wp_start
+    v2 = self.wp_end - self.wp_start
+    t = v1 @ v2 / v2.squaredNorm()
+    pt = self.wp_start + t * v2
+
+    return (t, pt)
+
+  def _calculate_carrot_point(self, pos):
+    """ Calculate carrot point """
+    assert len(pos) == 3
+
+    t, closest_pt = self._calculate_closest_point(pos)
+    carrot_pt = None
+
+    if t == -1:
+      # Closest point is before wp_start
+      carrot_pt = self.wp_start
+
+    elif t == 0:
+      # Closest point is between wp_start wp_end
+      u = self.wp_end - self.wp_start
+      v = u / norm(u)
+      carrot_pt = closest_pt + self.look_ahead_dist * v
+
+    elif t == 1:
+      # Closest point is after wp_end
+      carrot_pt = self.wp_end
+
+    return (t, carrot_pt)
+
+  def update(self, pos):
+    """ Update """
+    assert len(pos) == 3
+    # Calculate new carot point
+    status, carrot_pt = self._calculate_carrot_point(pos)
+
+    # Check if there are more waypoints
+    if (self.wp_index + 1) == len(self.waypoints):
+      return None
+
+    # Update waypoints
+    if status == 1:
+      self.wp_index += 1
+      self.wp_start = self.wp_end
+      self.wp_end = self.waypoints[self.wp_index]
+
+    return carrot_pt
 
 
 ###############################################################################
@@ -6138,7 +6302,7 @@ class TestFactorGraph(unittest.TestCase):
       plt.show()
 
     # Asserts
-    errors = graph._get_reproj_errors()
+    errors = graph.get_reproj_errors()
     self.assertTrue(rmse(errors) < 0.1)
 
   def test_factor_graph_solve_io(self):
@@ -6982,9 +7146,10 @@ class TestCalibration(unittest.TestCase):
     for grid in grids:
       if grid is not None:
         calib.add_camera_view(grid.ts, cam_idx, grid)
-
-    print(f"nb_cams: {calib.get_num_cams()}")
-    print(f"nb_views: {calib.get_num_views()}")
+        if calib.get_num_views() == 10:
+          break
+    # -- Solve
+    calib.solve()
 
 
 # SIMULATION  #################################################################
