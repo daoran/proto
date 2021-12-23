@@ -37,18 +37,16 @@ deps:
 	@make -s -C deps
 
 clean:
-	@cd proto; make -s clean
+	@cd proto && make -s clean
 
 debug:
-	@cd proto; make -s -DDEBUG
+	@cd proto && make -s -DDEBUG
 
 release:
-	@cd proto; make -s lib
+	@cd proto && make -s lib
 
 run_tests: release
-	@bash scripts/euroc_mav_dataset.bash \
-		 && cd proto \
-	   && make -s run_tests
+	@cd proto && make -s run_tests
 
 install:
 	@if [ ! -d proto/build ]; then \
