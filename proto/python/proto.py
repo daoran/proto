@@ -114,7 +114,7 @@ def profile_stop(prof, **kwargs):
 from math import pi
 from math import isclose
 from math import sqrt
-from math import floor
+# from math import floor
 from math import cos
 from math import sin
 from math import tan
@@ -1927,22 +1927,22 @@ class CameraGeometry:
 
   def project(self, params, p_C):
     """ Project point `p_C` with camera parameters `params` """
-    # Make sure point is infront of camera
-    if p_C[2] < 0.0:
-      return None
-
     # Project
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
     z = self.project_fn(proj_params, dist_params, p_C)
 
+    # Make sure point is infront of camera
+    if p_C[2] < 0.0:
+      return False, z
+
     # Make sure image point is within image bounds
     x_ok = z[0] >= 0.0 and z[0] <= self.resolution[0]
     y_ok = z[1] >= 0.0 and z[1] <= self.resolution[1]
     if x_ok and y_ok:
-      return z
+      return True, z
 
-    return None
+    return False, z
 
   def backproject(self, params, z):
     """ Back-project image point `z` with camera parameters `params` """
@@ -1990,7 +1990,7 @@ def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
   if proj_model == "pinhole" and dist_model == "radtan4":
     return pinhole_radtan4_setup(cam_idx, cam_res)
   elif proj_model == "pinhole" and dist_model == "equi4":
-    return pinhole_radtan4_setup(cam_idx, cam_res)
+    return pinhole_equi4_setup(cam_idx, cam_res)
   else:
     raise RuntimeError(f"Unrecognized [{proj_model}]-[{dist_model}] combo!")
 
@@ -2672,11 +2672,7 @@ class BAFactor(Factor):
     p_W = zeros((3, 1))
     p_W = feature
     p_C = tf_point(inv(T_WC), p_W)
-    z_hat = self.cam_geom.project(cam_params, p_C)
-    if z_hat is None:
-      if kwargs.get('only_residuals', False):
-        return r
-      return (r, [J0, J1, J2])
+    status, z_hat = self.cam_geom.project(cam_params, p_C)
 
     # Calculate residual
     sqrt_info = self.sqrt_info
@@ -2687,6 +2683,8 @@ class BAFactor(Factor):
       return r
 
     # Calculate Jacobians
+    if status is False:
+      return (r, [J0, J1, J2])
     # -- Measurement model jacobian
     neg_sqrt_info = -1.0 * sqrt_info
     Jh = self.cam_geom.J_proj(cam_params, p_C)
@@ -2728,15 +2726,20 @@ class VisionFactor(Factor):
     assert len(params[2]) == 3
     assert len(params[3]) == self.cam_geom.get_params_size()
 
-    # Map params
-    pose, cam_exts, feature, cam_params = params
+    # Setup
+    r = np.array([0.0, 0.0])
+    J0 = zeros((2, 6))
+    J1 = zeros((2, 6))
+    J2 = zeros((2, 3))
+    J3 = zeros((2, self.cam_geom.get_params_size()))
 
     # Project point in world frame to image plane
+    pose, cam_exts, feature, cam_params = params
     T_WB = pose2tf(pose)
     T_BCi = pose2tf(cam_exts)
     p_W = feature
     p_C = tf_point(inv(T_WB @ T_BCi), p_W)
-    z_hat = self.cam_geom.project(cam_params, p_C)
+    status, z_hat = self.cam_geom.project(cam_params, p_C)
 
     # Calculate residual
     sqrt_info = self.sqrt_info
@@ -2747,6 +2750,9 @@ class VisionFactor(Factor):
       return r
 
     # Calculate Jacobians
+    if status is False:
+      return (r, [J0, J1, J2, J3])
+
     C_BCi = tf_rot(T_BCi)
     C_WB = tf_rot(T_WB)
     C_CB = C_BCi.T
@@ -2779,11 +2785,11 @@ class VisionFactor(Factor):
 class CalibVisionFactor(Factor):
   """ Calibration Vision Factor """
 
-  def __init__(self, cam_geom, pids, tag_id, corner_idx, r_FFi, z,
-               covar=eye(2)):
+  def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
     assert len(pids) == 3
-    assert len(z) == 2
+    assert len(grid_data) == 4
     assert covar.shape == (2, 2)
+    tag_id, corner_idx, r_FFi, z = grid_data
     Factor.__init__(self, "CalibReprojFactor", pids, z, covar)
     self.cam_geom = cam_geom
     self.tag_id = tag_id
@@ -2791,12 +2797,32 @@ class CalibVisionFactor(Factor):
     self.r_FFi = r_FFi
     self.reproj_error = None
 
+  def get_reproj_error(self, pose, cam_exts, cam_params):
+    """ Get reprojection error """
+    T_BF = pose2tf(pose.param)
+    T_BCi = pose2tf(cam_exts.param)
+    T_CiB = inv(T_BCi)
+    r_CiFi = tf_point(T_CiB @ T_BF, self.r_FFi)
+    status, z_hat = self.cam_geom.project(cam_params.param, r_CiFi)
+    if status is False:
+      return None
+
+    z = self.measurement
+    reproj_error = norm(z - z_hat)
+    return reproj_error
+
   def eval(self, params, **kwargs):
     """ Evaluate """
     assert len(params) == 3
     assert len(params[0]) == 7
     assert len(params[1]) == 7
     assert len(params[2]) == self.cam_geom.get_params_size()
+
+    # Setup
+    r = np.array([0.0, 0.0])
+    J0 = zeros((2, 6))
+    J1 = zeros((2, 6))
+    J2 = zeros((2, self.cam_geom.get_params_size()))
 
     # Map parameters out
     T_BF = pose2tf(params[0])
@@ -2806,7 +2832,7 @@ class CalibVisionFactor(Factor):
     # Transform and project point to image plane
     T_CiB = inv(T_BCi)
     r_CiFi = tf_point(T_CiB @ T_BF, self.r_FFi)
-    z_hat = self.cam_geom.project(cam_params, r_CiFi)
+    status, z_hat = self.cam_geom.project(cam_params, r_CiFi)
 
     # Calculate residual
     sqrt_info = self.sqrt_info
@@ -2817,6 +2843,9 @@ class CalibVisionFactor(Factor):
       return r
 
     # Calculate Jacobians
+    if status is False:
+      return (r, [J0, J1, J2])
+
     neg_sqrt_info = -1.0 * sqrt_info
     Jh = self.cam_geom.J_proj(cam_params, r_CiFi)
     Jh_weighted = neg_sqrt_info @ Jh
@@ -3236,18 +3265,17 @@ class FactorGraph:
 
     return (param_idxs, param_size)
 
-  def _form_hessian(self, params, param_idxs, param_size):
-    """ Form Hessian matrix H """
+  def _linearize(self, params, param_idxs, param_size):
+    """ Linearize non-linear problem """
     H = zeros((param_size, param_size))
     g = zeros(param_size)
-    residuals = []
 
-    # Iterative over factors
+    # Form Hessian and R.H.S of Gauss newton
     for _, factor in self.factors.items():
       factor_params = [params[pid].param for pid in factor.param_ids]
       r, jacobians = factor.eval(factor_params)
-      residuals.append(r)
 
+      # Form Hessian
       nb_params = len(factor_params)
       for i in range(nb_params):
         param_i = params[factor.param_ids[i]]
@@ -3278,18 +3306,18 @@ class FactorGraph:
             H[rs:re, cs:ce] += J_i.T @ J_j
             H[cs:ce, rs:re] += H[rs:re, cs:ce].T
 
+        # Form R.H.S. Gauss Newton g
         rs = idx_i
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
-    return (H, g, np.array(residuals).flatten())
+    return (H, g)
 
   def _evaluate(self, params):
     """ Evaluate """
     (param_idxs, param_size) = self._form_param_indices()
-    (H, g, r) = self._form_hessian(params, param_idxs, param_size)
-    cost = 0.5 * r.T @ r
-    return ((H, g, r), param_idxs, cost)
+    (H, g) = self._linearize(params, param_idxs, param_size)
+    return ((H, g), param_idxs)
 
   def _calculate_residuals(self, params):
     """ Calculate Residuals """
@@ -3364,14 +3392,19 @@ class FactorGraph:
     # Iterate
     for i in range(1, self.solver_max_iter):
       # Update and calculate cost
-      ((H, g, _), param_idxs, cost_k) = self._evaluate(params_k)
+      ((H, g), param_idxs) = self._evaluate(params_k)
       dx = self._solve_for_dx(lambda_k, H, g)
       params_kp1 = self._update(params_k, param_idxs, dx)
       cost_kp1 = self._calculate_cost(params_kp1)
 
+      # Verbose
+      if verbose:
+        self._print_to_console(i, lambda_k, cost_kp1, cost_k)
+
       # Accept or reject update
       if cost_kp1 < cost_k:
         # Accept update
+        cost_k = cost_kp1
         params_k = params_kp1
         lambda_k /= 10.0
 
@@ -3380,12 +3413,11 @@ class FactorGraph:
         params_k = params_k
         lambda_k *= 10.0
 
-      # Verbose
-      if verbose:
-        self._print_to_console(i, lambda_k, cost_kp1, cost_k)
-
-    # Finish
-    self.params = copy.deepcopy(params_k)
+    # Finish - set the original params the optimized values
+    # Note: The reason we don't just do `self.params = params_k` is because
+    # that would destroy the references to outside `FactorGraph()`.
+    for param_id, param in params_k.items():
+      self.params[param_id].param = param.param
 
 
 # FEATURE TRACKING #############################################################
@@ -4481,7 +4513,8 @@ class Tracker:
       # Calculate reprojection error
       reproj_errors = []
       for factor in list(kf.vision_factors):
-        factor_params = self.graph._get_factor_params(factor)
+        # factor_params = self.graph._get_factor_params(factor)
+        factor_params = []
         r, _ = factor.eval(factor_params)
         reproj_errors.append(norm(r))
 
@@ -4559,6 +4592,7 @@ class AprilGrid:
     self.tag_size = tag_size
     self.tag_spacing = tag_spacing
     self.nb_tags = self.tag_rows * self.tag_cols
+    self.ts = None
     self.data = {}
 
   @staticmethod
@@ -4570,6 +4604,7 @@ class AprilGrid:
       return None
 
     # AprilGrid properties
+    ts = csv_data['#ts'][0]
     tag_rows = csv_data['tag_rows'][0]
     tag_cols = csv_data['tag_cols'][0]
     tag_size = csv_data['tag_size'][0]
@@ -4583,7 +4618,7 @@ class AprilGrid:
     # Form AprilGrid
     grid = AprilGrid(tag_rows, tag_cols, tag_size, tag_spacing)
     for tag_id, corner_idx, kp in zip(tag_indices, corner_indices, kps):
-      grid.add_keypoint(tag_id, corner_idx, kp)
+      grid.add_keypoint(ts, tag_id, corner_idx, kp)
 
     return grid
 
@@ -4640,8 +4675,9 @@ class AprilGrid:
     j = int(tag_id % self.tag_cols)
     return (i, j)
 
-  def add_keypoint(self, tag_id, corner_idx, kp):
+  def add_keypoint(self, ts, tag_id, corner_idx, kp):
     """ Add keypoint """
+    self.ts = ts
     if tag_id not in self.data:
       self.data[tag_id] = {}
     self.data[tag_id][corner_idx] = kp
@@ -4658,9 +4694,38 @@ class AprilGrid:
     for tag_id, tag_data in self.data.items():
       for corner_idx, kp in tag_data.items():
         obj_point = self.get_object_point(tag_id, corner_idx)
-        data.append((tag_id, corner_idx, kp, obj_point))
+        data.append((tag_id, corner_idx, obj_point, kp))
 
     return data
+
+  def solvepnp(self, cam_params):
+    """ Estimate relative transform between camera and aprilgrid """
+    # Check if we actually have data to work with
+    if not self.data:
+      return None
+
+    # Create object points (counter-clockwise, from bottom left)
+    cam_geom = cam_params.data
+    obj_pts = []
+    img_pts = []
+    for (_, _, r_FFi, z) in self.get_measurements():
+      img_pts.append(cam_geom.undistort(cam_params.param, z))
+      obj_pts.append(r_FFi)
+    obj_pts = np.array(obj_pts)
+    img_pts = np.array(img_pts)
+
+    # Solve pnp
+    K = pinhole_K(cam_params.param[0:4])
+    D = np.array([0.0, 0.0, 0.0, 0.0])
+    flags = cv2.SOLVEPNP_ITERATIVE
+    _, rvec, tvec = cv2.solvePnP(obj_pts, img_pts, K, D, False, flags=flags)
+
+    # Form relative tag pose as a 4x4 transform matrix
+    C, _ = cv2.Rodrigues(rvec)
+    r = tvec.flatten()
+    T_CF = tf(C, r)
+
+    return T_CF
 
   def plot(self, ax, T_WF):
     """ Plot """
@@ -4732,10 +4797,31 @@ def calib_generate_random_poses(calib_target, **kwargs):
 class CalibView:
   """ Calibration View """
 
-  def __init__(self, ts, cam_idx, grid):
-    self.ts = ts
-    self.cam_idx = cam_idx
-    self.reproj_errors = []
+  def __init__(self, pose, cam_params, cam_exts, grid):
+    self.ts = grid.ts
+    self.pose = pose
+    self.cam_idx = cam_params.data.cam_idx
+    self.cam_params = cam_params
+    self.cam_geom = cam_params.data
+    self.cam_exts = cam_exts
+    self.grid = grid
+    self.factors = []
+
+    pids = [pose.param_id, cam_exts.param_id, cam_params.param_id]
+    for grid_data in grid.get_measurements():
+      self.factors.append(CalibVisionFactor(self.cam_geom, pids, grid_data))
+
+  def get_reproj_errors(self):
+    """ Get reprojection errors """
+    reproj_errors = []
+
+    factor_params = [self.pose, self.cam_exts, self.cam_params]
+    for factor in self.factors:
+      reproj_error = factor.get_reproj_error(*factor_params)
+      if reproj_error is not None:
+        reproj_errors.append(reproj_error)
+
+    return reproj_errors
 
 
 class Calibrator:
@@ -4743,17 +4829,22 @@ class Calibrator:
 
   def __init__(self):
     # Parameters
-    self.cam_params = {}
     self.cam_geoms = {}
+    self.cam_params = {}
     self.cam_exts = {}
     self.imu_params = None
 
     # Data
+    self.graph = FactorGraph()
     self.calib_views = {}
 
-  def nb_cams(self):
+  def get_num_cams(self):
     """ Return number of cameras """
     return len(self.cam_params)
+
+  def get_num_views(self):
+    """ Return number of views """
+    return len(self.calib_views)
 
   def add_camera(self, cam_idx, cam_res, proj_model, dist_model):
     """ Add camera """
@@ -4766,9 +4857,12 @@ class Calibrator:
     cam_params = camera_params_setup(*args)
 
     fix_exts = True if cam_idx == 0 else False
-    self.cam_params[cam_idx] = cam_params
     self.cam_geoms[cam_idx] = cam_params.data
-    self.cam_exts = extrinsics_setup(eye(4), fix=fix_exts)
+    self.cam_params[cam_idx] = cam_params
+    self.cam_exts[cam_idx] = extrinsics_setup(eye(4), fix=fix_exts)
+
+    self.graph.add_param(self.cam_params[cam_idx])
+    self.graph.add_param(self.cam_exts[cam_idx])
 
   def add_imu(self, imu_params):
     """ Add imu """
@@ -4776,7 +4870,39 @@ class Calibrator:
 
   def add_camera_view(self, ts, cam_idx, grid):
     """ Add camera view """
-    self.calib_views[ts] = CalibView(ts, cam_idx, grid)
+    # Estimate relative pose T_BF
+    cam_params = self.cam_params[cam_idx]
+    cam_exts = self.cam_exts[cam_idx]
+    T_CiF = grid.solvepnp(cam_params)
+    T_BCi = pose2tf(cam_exts.param)
+    T_BF = T_BCi @ T_CiF
+    pose = pose_setup(ts, T_BF)
+    self.graph.add_param(pose)
+
+    # CalibView
+    self.calib_views[ts] = CalibView(pose, cam_params, cam_exts, grid)
+
+    # Solve
+    for factor in self.calib_views[ts].factors:
+      self.graph.add_factor(factor)
+
+    # if len(self.calib_views) >= 5:
+    #   self.graph.solve(True)
+
+    if len(self.calib_views) >= 10:
+      self.graph.solve(True)
+      print()
+
+      # Calculate reprojection error
+      reproj_errors = []
+      for _, calib_view in self.calib_views.items():
+        reproj_errors.extend(calib_view.get_reproj_errors())
+      reproj_errors = np.array(reproj_errors)
+
+      print(f"nb_reproj_errors: {len(reproj_errors)}")
+      print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
+      # plt.hist(reproj_errors)
+      # plt.show()
 
 
 ###############################################################################
@@ -5207,8 +5333,6 @@ import unittest
 
 euroc_data_path = '/data/euroc/raw/V1_01'
 
-# euroc_data_path = '/data/euroc/raw/MH_01'
-
 # LINEAR ALGEBRA ##############################################################
 
 
@@ -5559,8 +5683,7 @@ class TestEuroc(unittest.TestCase):
 
   def test_load(self):
     """ Test load """
-    data_path = '/data/euroc/raw/V1_01'
-    dataset = EurocDataset(data_path)
+    dataset = EurocDataset(euroc_data_path)
     self.assertTrue(dataset is not None)
 
 
@@ -5761,7 +5884,8 @@ class TestFactors(unittest.TestCase):
     z = cam_geom.project(cam_params.param, r_CiFi)
 
     pids = [0, 1, 2]
-    factor = CalibVisionFactor(cam_geom, pids, tag_id, corner_idx, r_FFi, z)
+    grid_data = (tag_id, corner_idx, r_FFi, z)
+    factor = CalibVisionFactor(cam_geom, pids, grid_data)
 
     # Test jacobianstf(rot, trans)
     rel_pose = pose_setup(0, T_BF)
@@ -5874,7 +5998,8 @@ class TestFactors(unittest.TestCase):
     # self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_pose_i"))
     # self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_sb_i", verbose=True))
     # self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_pose_j", verbose=True))
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 3, "J_sb_j", verbose=True))
+    self.assertTrue(
+        check_factor_jacobian(factor, fvars, 3, "J_sb_j", verbose=True))
 
 
 class TestFactorGraph(unittest.TestCase):
@@ -6748,27 +6873,38 @@ class TestTracker(unittest.TestCase):
 class TestCalibration(unittest.TestCase):
   """ Test calibration functions """
 
-  # def test_aprilgrid(self):
-  #   """ Test aprilgrid """
-  #   # grid = AprilGrid()
-  #   # self.assertTrue(grid is not None)
-  #
-  #   grid = AprilGrid.load(
-  #       "/tmp/aprilgrid_test/mono/cam0/1403709383937837056.csv")
-  #   self.assertTrue(grid is not None)
-  #
-  #   # debug = True
-  #   debug = False
-  #   if debug:
-  #     _, ax = plt.subplots()
-  #     for _, _, kp, _ in grid.get_measurements():
-  #       ax.plot(kp[0], kp[1], 'r.')
-  #     ax.xaxis.tick_top()
-  #     ax.xaxis.set_label_position('top')
-  #     ax.set_xlim([0, 752])
-  #     ax.set_ylim([0, 480])
-  #     ax.set_ylim(ax.get_ylim()[::-1])
-  #     plt.show()
+  def test_aprilgrid(self):
+    """ Test aprilgrid """
+    # grid = AprilGrid()
+    # self.assertTrue(grid is not None)
+
+    grid = AprilGrid.load(
+        "/tmp/aprilgrid_test/mono/cam0/1403709383937837056.csv")
+    self.assertTrue(grid is not None)
+
+    dataset = EurocDataset(euroc_data_path)
+    res = dataset.cam0_data.config.resolution
+    proj_params = dataset.cam0_data.config.intrinsics
+    dist_params = dataset.cam0_data.config.distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    params = np.block([*proj_params, *dist_params])
+    cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
+
+    grid.solvepnp(cam0)
+
+    # debug = True
+    debug = False
+    if debug:
+      _, ax = plt.subplots()
+      for _, _, kp, _ in grid.get_measurements():
+        ax.plot(kp[0], kp[1], 'r.')
+      ax.xaxis.tick_top()
+      ax.xaxis.set_label_position('top')
+      ax.set_xlim([0, 752])
+      ax.set_ylim([0, 480])
+      ax.set_ylim(ax.get_ylim()[::-1])
+      plt.show()
 
   def test_calib_generate_poses(self):
     """ Test calib_generate_poses() """
@@ -6828,11 +6964,27 @@ class TestCalibration(unittest.TestCase):
 
   def test_calibrator(self):
     """ Test Calibrator """
+    # Setup
     grid_csvs = glob.glob("/tmp/aprilgrid_test/mono/cam0/*.csv")
-    grids0 = [AprilGrid.load(csv_path) for csv_path in grid_csvs]
+    grids = [AprilGrid.load(csv_path) for csv_path in grid_csvs]
+    self.assertTrue(len(grid_csvs) > 0)
+    self.assertTrue(len(grids) > 0)
 
+    # Calibrator
     calib = Calibrator()
-    calib.add_camera(0, [752, 480], "pinhole", "radtan4")
+    # -- Add cam0
+    cam_idx = 0
+    cam_res = [752, 480]
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    calib.add_camera(cam_idx, cam_res, proj_model, dist_model)
+    # -- Add camera views
+    for grid in grids:
+      if grid is not None:
+        calib.add_camera_view(grid.ts, cam_idx, grid)
+
+    print(f"nb_cams: {calib.get_num_cams()}")
+    print(f"nb_views: {calib.get_num_views()}")
 
 
 # SIMULATION  #################################################################
