@@ -53,6 +53,7 @@ static char *test_target_name = NULL;
   size_t log_length = ftell(log_file);                                         \
   fseek(log_file, 0, SEEK_SET);                                                \
                                                                                \
+  /* Print log and close log file */                                           \
   char buf[9046] = {0};                                                        \
   fread(buf, 1, log_length, log_file);                                         \
   printf("%s\n\n", buf);                                                       \
