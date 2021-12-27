@@ -1,0 +1,9 @@
+dataclasses
+numpy
+scipy
+scikit-build
+pandas
+opencv-python
+matplotlib
+asyncio
+websockets

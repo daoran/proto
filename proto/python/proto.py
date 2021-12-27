@@ -25,6 +25,7 @@ import os
 import sys
 import glob
 import math
+import time
 import copy
 import random
 import pickle
@@ -35,7 +36,6 @@ from dataclasses import dataclass
 from collections import namedtuple
 from types import FunctionType
 from typing import Optional
-# from typing import Dict
 
 import cv2
 import yaml
@@ -5490,6 +5490,34 @@ class CarrotController:
 
 
 ###############################################################################
+# Visualizer
+###############################################################################
+
+import asyncio
+import websockets
+
+
+class DevServer:
+  """ Dev server """
+
+  def __init__(self, loop_fn):
+    self.host = "0.0.0.0"
+    self.port = 8080
+    self.loop_fn = loop_fn
+
+  def run(self):
+    """ Run server """
+    start_server = websockets.serve(self.loop_fn, self.host, self.port)
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
+
+  @staticmethod
+  def stop():
+    """ Stop server """
+    asyncio.get_event_loop().stop()
+
+
+###############################################################################
 #                               UNITTESTS
 ###############################################################################
 
@@ -7356,6 +7384,37 @@ class TestSimulation(unittest.TestCase):
             self.assertTrue(ft_data[1].keypoints)
             self.assertTrue(ft_data[0].feature_ids)
             self.assertTrue(ft_data[1].feature_ids)
+
+
+# VISUALIZER ###################################################################
+
+
+async def fake_loop(ws, _):
+  """ Simulates a simulation or dev loop """
+  # Loop
+  index = 0
+  while True:
+    index += 1
+    time.sleep(0.01)
+    msg = json.dumps({"index": index, "val": np.random.random()})
+    await ws.send(msg)
+
+    if index == 1000:
+      break
+
+  # Important
+  await ws.close()
+  DevServer.stop()
+
+
+class TestViz(unittest.TestCase):
+  """ Test Viz """
+
+  def test_server(self):
+    """ Test DevServer() """
+    viz_server = DevServer(fake_loop)
+    viz_server.run()
+    self.assertTrue(viz_server is not None)
 
 
 if __name__ == '__main__':

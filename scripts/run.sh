@@ -14,14 +14,10 @@ memcheck() {
   valgrind --leak-check=full $1 $2 $3
 }
 
-# $ARDUINO --upload firmware/firmware.ino --port /dev/ttyUSB0
-# $ARDUINO --upload firmware/firmware.ino
-
 ###############################################################################
 # PYTHON
 ###############################################################################
 
-# node js/proto.js
 # cd python && ctags proto.py && cd -
 # python3 proto/python/proto.py
 # python3 proto/python/proto.py TestLinearAlgebra
@@ -62,7 +58,7 @@ memcheck() {
 # python3 proto/python/proto.py TestTracker.test_tracker_vision_callback
 # python3 proto/python/proto.py TestCalibration
 # python3 proto/python/proto.py TestCalibration.test_aprilgrid
-python3 proto/python/proto.py TestCalibration.test_calibrator
+# python3 proto/python/proto.py TestCalibration.test_calibrator
 # python3 proto/python/proto.py TestEuroc
 # python3 proto/python/proto.py TestKitti
 # python3 proto/python/proto.py TestSimulation
@@ -71,7 +67,7 @@ python3 proto/python/proto.py TestCalibration.test_calibrator
 # python3 proto/python/proto.py TestSimulation.test_sim_camera_frame
 # python3 proto/python/proto.py TestSimulation.test_sim_data
 # python3 proto/python/proto.py TestSimulation.test_sim_feature_tracker
-# cd python && ctags proto.py
+python3 proto/python/proto.py TestViz.test_server
 
 ###############################################################################
 # C
@@ -252,7 +248,9 @@ python3 proto/python/proto.py TestCalibration.test_calibrator
 # ./test_gui --target test_imshow
 # gdb -ex run -ex bt -args ./test_gui --target test_gui_setup
 
-# ./test_imshow
-# ./test_imshow2
-# gdb -ex run -ex bt ./test_imshow
-# ./test_template
+###############################################################################
+# ARDUINO
+###############################################################################
+
+# $ARDUINO --upload firmware/firmware.ino --port /dev/ttyUSB0
+# $ARDUINO --upload firmware/firmware.ino
