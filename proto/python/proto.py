@@ -5539,38 +5539,16 @@ class MultiPlot:
     self.emit_rate = 8.0  # Hz
     self.last_updated = datetime.now()
 
-  @staticmethod
-  def _title_to_div_id(title):
-    return title.lower().replace(" ", "_") + "_plot"
-
-  @staticmethod
-  def _form_traces(trace_names):
-    colors = [
-        "#3498db",  # Blue
-        "#c0392b",  # Red
-        "#1abc9c",  # Green
-        "#8e44ad",  # Purple
-        "#2c3e50",  # Black
-    ]
-
-    traces = []
-    for i, name in enumerate(trace_names):
-      line = {"color": colors[i], "width": 2}
-      traces.append({"x": [], "y": [], "name": name, "line": line})
-
-    return traces
-
   def _add_plot(self, title, xlabel, ylabel, trace_names, **kwargs):
     conf = {}
     conf["title"] = title
-    conf["width"] = kwargs.get("width", 320)
-    conf["height"] = kwargs.get("height", 300)
-    conf["div_id"] = self._title_to_div_id(title)
+    conf["width"] = kwargs.get("width", 300)
+    conf["height"] = kwargs.get("height", 280)
     conf["buf_size"] = kwargs.get("buf_size", 100)
-    conf["traces"] = self._form_traces(trace_names)
+    conf["trace_names"] = trace_names
     conf["xlabel"] = xlabel
     conf["ylabel"] = ylabel
-    conf["show_legend"] = True if len(conf["traces"]) > 1 else False
+    conf["show_legend"] = True if len(trace_names) > 1 else False
     self.plots.append(conf)
 
   def add_pos_xy_plot(self, **kwargs):
@@ -7646,7 +7624,7 @@ class TestViz(unittest.TestCase):
     z = np.random.random()
     gnd = np.random.random(3)
     est = np.random.random(3)
-    multi_plot = MultiPlot()
+    multi_plot = MultiPlot(has_gnd=True)
     multi_plot.add_pos_xy_data(est=est, gnd=gnd)
     multi_plot.add_pos_z_data(t, est=z, gnd=x)
     multi_plot.add_roll_data(t, est=x, gnd=y)
@@ -7655,6 +7633,10 @@ class TestViz(unittest.TestCase):
     multi_plot.add_pos_error_data(t, y)
     multi_plot.add_att_error_data(t, x)
     multi_plot.add_reproj_error_data(t, x, y)
+
+    # import pprint
+    # pprint.pprint(multi_plot.get_plots())
+
     self.assertTrue(multi_plot is not None)
 
   def test_server(self):

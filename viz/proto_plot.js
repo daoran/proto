@@ -15,7 +15,7 @@ class PlotXY {
    *     height: (int) Plot height in pixels
    *     div_id: (str) Div element id
    *     buf_size: (int) Plot buffer size
-   *     traces: {name: (str), line: (JSON)}
+   *     trace_names: (List[str]) List of trace names
    *     xlabel: (str) xlabel
    *     ylabel: (str) ylabel
    * }
@@ -26,23 +26,21 @@ class PlotXY {
     this.title = plot_config["title"];
     this.width = plot_config["width"];
     this.height = plot_config["height"];
-    this.div_id = plot_config["div_id"];
     this.buf_size = plot_config["buf_size"];
-    this.traces = plot_config["traces"];
+    this.trace_names = plot_config["trace_names"];
     this.xlabel = plot_config["xlabel"];
     this.ylabel = plot_config["ylabel"];
     this.show_legend = plot_config["show_legend"];
 
     // Prepare traces
-    assert(Array.isArray(plot_config["traces"]));
-    this.trace_names = [];
+    this.traces = this._form_traces(this.trace_names);
     this.trace_idxs = [];
-    for (var i = 0; i < this.traces.length; i++) {
-      this.trace_names.push(this.traces[i]["name"]);
+    for (var i = 0; i < this.trace_names.length; i++) {
       this.trace_idxs.push(i);
     }
 
     // Plotly settings
+    this.div_id = this._title_to_div_id(this.title);
     this.layout = {
       autosize : false,
       width : this.width,
@@ -70,6 +68,29 @@ class PlotXY {
     document.body.appendChild(this.div);
     // -- Add plot to div
     Plotly.newPlot(this.div_id, this.traces, this.layout, {});
+  }
+
+  _title_to_div_id(title) {
+    return title.toLowerCase().replace(" ", "_") + "_plot"
+  }
+
+  _form_traces(trace_names) {
+    var colors = [
+      "#0000ff", // Blue
+      "#ff0000", // Red
+      "#00ff00", // Green
+      "#ff00ff", // Purple
+      "#000000", // Black
+    ];
+
+    var traces = [];
+    for (var i = 0; i < trace_names.length; i++) {
+      var name = trace_names[i];
+      var line = {"color" : colors[i], "width" : 2};
+      traces.push({"x" : [], "y" : [], "name" : name, "line" : line});
+    }
+
+    return traces;
   }
 
   /**
