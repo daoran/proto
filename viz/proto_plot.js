@@ -28,10 +28,8 @@ class PlotXY {
     });
 
     // Prepare traces
-    this.trace_idxs = [];
     this.trace_names = [];
     for (var i = 0; i < this.traces.length; i++) {
-      this.trace_idxs.push(i);
       this.trace_names.push(this.traces[i].name);
     }
 
@@ -218,12 +216,12 @@ function setup_session() {
   // On message
   ws.onmessage = function(event) {
     var data = JSON.parse(event.data);
+    console.log(data);
     multi_plot.update(data);
   };
 
   // On close
   ws.onclose = function() {
-    console.log("Disconnected from server!");
     // Retry to connect to server every 1s
     setTimeout(function() { setup_session(); }, 1000);
   };
