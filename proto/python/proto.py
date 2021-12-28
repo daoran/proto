@@ -5493,16 +5493,16 @@ class CarrotController:
 # Visualizer
 ###############################################################################
 
-import asyncio
 import websockets
+import asyncio
 
 
 class DevServer:
   """ Dev server """
 
   def __init__(self, loop_fn):
-    self.host = "0.0.0.0"
-    self.port = 8080
+    self.host = "127.0.0.1"
+    self.port = 5000
     self.loop_fn = loop_fn
 
   def run(self):
@@ -7389,15 +7389,123 @@ class TestSimulation(unittest.TestCase):
 # VISUALIZER ###################################################################
 
 
+class MultiPlotData:
+  """ MultiPlotData """
+
+  def __init__(self):
+    self.pos_xy = {"Position X-Y": {}}
+    self.pos_z = {"Position Z": {}}
+    self.pos_err = {"Position Error": {}}
+    self.att = {"Attitude": {}}
+    self.att_err = {"Attitude Error": {}}
+    self.reproj_err = {"Reprojection Error": {}}
+
+  def add_pos_xy_data(self, **kwargs):
+    """ Add Position X-Y Data """
+    if "gnd" in kwargs:
+      gnd = kwargs["gnd"]
+      self.pos_xy["Position X-Y"]["Ground-Truth"] = {"x": gnd[0], "y": gnd[1]}
+
+    if "est" in kwargs:
+      est = kwargs["est"]
+      self.pos_xy["Position X-Y"]["Estimate"] = {"x": est[0], "y": est[1]}
+
+  def add_pos_z_data(self, time_s, **kwargs):
+    """ Add Position Z Data """
+    if "gnd" in kwargs:
+      gnd = kwargs["gnd"]
+      self.pos_z["Position Z"]["Ground-Truth"] = {"x": time_s, "y": gnd}
+
+    if "est" in kwargs:
+      est = kwargs["est"]
+      self.pos_z["Position Z"]["Estimate"] = {"x": time_s, "y": est}
+
+  def add_pos_error_data(self, time_s, error):
+    """ Add Position Error Data """
+    self.pos_err["Position Error"]["Error"] = {"x": time_s, "y": error}
+
+  def add_att_data(self, time_s, **kwargs):
+    """ Add Attitude Data """
+    if "gnd" in kwargs:
+      gnd = kwargs["gnd"]
+      self.att["Attitude"] = {"Ground-Truth": {}}
+      self.att["Attitude"]["Ground-Truth"]["roll"] = {}
+      self.att["Attitude"]["Ground-Truth"]["roll"]["x"] = time_s
+      self.att["Attitude"]["Ground-Truth"]["roll"]["y"] = gnd[0]
+      self.att["Attitude"]["Ground-Truth"]["pitch"] = {}
+      self.att["Attitude"]["Ground-Truth"]["pitch"]["x"] = time_s
+      self.att["Attitude"]["Ground-Truth"]["pitch"]["y"] = gnd[1]
+      self.att["Attitude"]["Ground-Truth"]["yaw"] = {}
+      self.att["Attitude"]["Ground-Truth"]["yaw"]["x"] = time_s
+      self.att["Attitude"]["Ground-Truth"]["yaw"]["y"] = gnd[2]
+
+    if "est" in kwargs:
+      est = kwargs["est"]
+      self.att["Attitude"] = {"Estimate": {}}
+      self.att["Attitude"]["Estimate"]["roll"] = {}
+      self.att["Attitude"]["Estimate"]["roll"]["x"] = time_s
+      self.att["Attitude"]["Estimate"]["roll"]["y"] = est[0]
+      self.att["Attitude"]["Estimate"]["pitch"] = {}
+      self.att["Attitude"]["Estimate"]["pitch"]["x"] = time_s
+      self.att["Attitude"]["Estimate"]["pitch"]["y"] = est[1]
+      self.att["Attitude"]["Estimate"]["yaw"] = {}
+      self.att["Attitude"]["Estimate"]["yaw"]["x"] = time_s
+      self.att["Attitude"]["Estimate"]["yaw"]["y"] = est[2]
+
+  def add_att_error_data(self, time_s, error):
+    """ Add Attitude Error Data """
+    self.att_err["Attitude Error"]["Error"] = {"x": time_s, "y": error}
+
+  def add_reproj_error_data(self, time_s, reproj_rmse, reproj_mean):
+    """ Add Reprojection Error Data """
+    plot_title = "Reprojection Error"
+    self.reproj_err[plot_title]["Mean"] = {"x": time_s, "y": reproj_rmse}
+    self.reproj_err[plot_title]["RMSE"] = {"x": time_s, "y": reproj_mean}
+
+  def get_json(self):
+    """ Get JSON String """
+    plots = []
+    plots.append(self.pos_xy)
+    plots.append(self.pos_z)
+    plots.append(self.pos_err)
+    plots.append(self.att)
+    plots.append(self.att_err)
+    plots.append(self.reproj_err)
+
+    msg = {}
+    for plot in plots:
+      key = list(plot.keys())[0]
+      msg[key] = plot[key]
+
+    return json.dumps(msg)
+
+
 async def fake_loop(ws, _):
   """ Simulates a simulation or dev loop """
+  # Setup plot
+  print("Connected to client!")
+
   # Loop
   index = 0
   while True:
     index += 1
-    time.sleep(0.01)
-    msg = json.dumps({"index": index, "val": np.random.random()})
-    await ws.send(msg)
+    time.sleep(0.1)
+
+    t = index
+    x = np.random.random()
+    y = np.random.random()
+    z = np.random.random()
+    gnd = np.random.random(3)
+    est = np.random.random(3)
+    multi_plot = MultiPlotData()
+    multi_plot.add_pos_xy_data(est=est, gnd=gnd)
+    multi_plot.add_pos_z_data(t, est=z, gnd=x)
+    multi_plot.add_att_data(t, est=est, gnd=gnd)
+    multi_plot.add_pos_error_data(t, y)
+    multi_plot.add_att_error_data(t, x)
+    multi_plot.add_reproj_error_data(t, x, y)
+
+    await ws.send(multi_plot.get_json())
 
     if index == 1000:
       break
