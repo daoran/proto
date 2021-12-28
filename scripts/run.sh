@@ -67,6 +67,7 @@ memcheck() {
 # python3 proto/python/proto.py TestSimulation.test_sim_camera_frame
 # python3 proto/python/proto.py TestSimulation.test_sim_data
 # python3 proto/python/proto.py TestSimulation.test_sim_feature_tracker
+# python3 proto/python/proto.py TestViz.test_multiplot
 python3 proto/python/proto.py TestViz.test_server
 
 ###############################################################################

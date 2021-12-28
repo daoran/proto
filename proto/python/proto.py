@@ -30,6 +30,8 @@ import copy
 import random
 import pickle
 import json
+import signal
+from datetime import datetime
 from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass
@@ -5507,14 +5509,224 @@ class DevServer:
 
   def run(self):
     """ Run server """
-    start_server = websockets.serve(self.loop_fn, self.host, self.port)
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
+    kwargs = {"ping_timeout": 1, "close_timeout": 1}
+    server = websockets.serve(self.loop_fn, self.host, self.port, **kwargs)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(server)
+    loop.run_forever()
 
   @staticmethod
   def stop():
     """ Stop server """
     asyncio.get_event_loop().stop()
+
+
+class MultiPlot:
+  """ MultiPlot """
+
+  def __init__(self, has_gnd=False):
+    self.plots = []
+    self.add_pos_xy_plot(has_gnd=has_gnd)
+    self.add_pos_z_plot(has_gnd=has_gnd)
+    self.add_roll_plot(has_gnd=has_gnd)
+    self.add_pitch_plot(has_gnd=has_gnd)
+    self.add_yaw_plot(has_gnd=has_gnd)
+    self.add_pos_error_plot()
+    self.add_att_error_plot()
+    self.add_reproj_error_plot()
+
+    self.plot_data = {}
+    self.emit_rate = 8.0  # Hz
+    self.last_updated = datetime.now()
+
+  @staticmethod
+  def _title_to_div_id(title):
+    return title.lower().replace(" ", "_") + "_plot"
+
+  @staticmethod
+  def _form_traces(trace_names):
+    colors = [
+        "#3498db",  # Blue
+        "#c0392b",  # Red
+        "#1abc9c",  # Green
+        "#8e44ad",  # Purple
+        "#2c3e50",  # Black
+    ]
+
+    traces = []
+    for i, name in enumerate(trace_names):
+      line = {"color": colors[i], "width": 2}
+      traces.append({"x": [], "y": [], "name": name, "line": line})
+
+    return traces
+
+  def _add_plot(self, title, xlabel, ylabel, trace_names, **kwargs):
+    conf = {}
+    conf["title"] = title
+    conf["width"] = kwargs.get("width", 320)
+    conf["height"] = kwargs.get("height", 300)
+    conf["div_id"] = self._title_to_div_id(title)
+    conf["buf_size"] = kwargs.get("buf_size", 100)
+    conf["traces"] = self._form_traces(trace_names)
+    conf["xlabel"] = xlabel
+    conf["ylabel"] = ylabel
+    conf["show_legend"] = True if len(conf["traces"]) > 1 else False
+    self.plots.append(conf)
+
+  def add_pos_xy_plot(self, **kwargs):
+    """ Add Position X-Y Data """
+    title = "Position X-Y"
+    xlabel = "x [m]"
+    ylabel = "y [m]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot(title, xlabel, ylabel, trace_names)
+
+  def add_pos_z_plot(self, **kwargs):
+    """ Add Position Z Data """
+    xlabel = "Time [s]"
+    ylabel = "y [m]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot("Position Z", xlabel, ylabel, trace_names)
+
+  def add_roll_plot(self, **kwargs):
+    """ Add Roll Data """
+    xlabel = "Time [s]"
+    ylabel = "Attitude [deg]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot("Roll", xlabel, ylabel, trace_names)
+
+  def add_pitch_plot(self, **kwargs):
+    """ Add Roll Data """
+    xlabel = "Time [s]"
+    ylabel = "Attitude [deg]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot("Pitch", xlabel, ylabel, trace_names)
+
+  def add_yaw_plot(self, **kwargs):
+    """ Add Yaw Data """
+    xlabel = "Time [s]"
+    ylabel = "Attitude [deg]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot("Yaw", xlabel, ylabel, trace_names)
+
+  def add_pos_error_plot(self):
+    """ Add Position Error Data """
+    title = "Position Error"
+    xlabel = "Time [s]"
+    ylabel = "Position Error [m]"
+    trace_names = ["Error"]
+    self._add_plot(title, xlabel, ylabel, trace_names)
+
+  def add_att_error_plot(self):
+    """ Add Attitude Error Data """
+    title = "Attitude Error"
+    xlabel = "Time [s]"
+    ylabel = "Position Error [m]"
+    trace_names = ["Error"]
+    self._add_plot(title, xlabel, ylabel, trace_names)
+
+  def add_reproj_error_plot(self):
+    """ Add Reprojection Error Data """
+    title = "Reprojection Error"
+    xlabel = "Time [s]"
+    ylabel = "Reprojection Error [px]"
+    trace_names = ["Mean", "RMSE"]
+    self._add_plot(title, xlabel, ylabel, trace_names)
+
+  def _form_plot_data(self, plot_title, time_s, **kwargs):
+    gnd = kwargs.get("gnd")
+    est = kwargs.get("est")
+    err = kwargs.get("err")
+
+    conf = {plot_title: {}}
+    if gnd:
+      conf[plot_title]["Ground-Truth"] = {"x": time_s, "y": gnd}
+
+    if est:
+      conf[plot_title]["Estimate"] = {"x": time_s, "y": est}
+
+    if err:
+      conf[plot_title]["Error"] = {"x": time_s, "y": err}
+
+    self.plot_data.update(conf)
+
+  def add_pos_xy_data(self, **kwargs):
+    """ Add Position X-Y Data """
+    plot_title = "Position X-Y"
+    conf = {plot_title: {}}
+
+    if "gnd" in kwargs:
+      gnd = kwargs["gnd"]
+      conf[plot_title]["Ground-Truth"] = {"x": gnd[0], "y": gnd[1]}
+
+    if "est" in kwargs:
+      est = kwargs["est"]
+      conf[plot_title]["Estimate"] = {"x": est[0], "y": est[1]}
+
+    self.plot_data.update(conf)
+
+  def add_pos_z_data(self, time_s, **kwargs):
+    """ Add Position Z Data """
+    self._form_plot_data("Position Z", time_s, **kwargs)
+
+  def add_roll_data(self, time_s, **kwargs):
+    """ Add Roll Data """
+    self._form_plot_data("Roll", time_s, **kwargs)
+
+  def add_pitch_data(self, time_s, **kwargs):
+    """ Add Roll Data """
+    self._form_plot_data("Pitch", time_s, **kwargs)
+
+  def add_yaw_data(self, time_s, **kwargs):
+    """ Add Yaw Data """
+    self._form_plot_data("Yaw", time_s, **kwargs)
+
+  def add_pos_error_data(self, time_s, error):
+    """ Add Position Error Data """
+    self._form_plot_data("Position Error", time_s, err=error)
+
+  def add_att_error_data(self, time_s, error):
+    """ Add Attitude Error Data """
+    self._form_plot_data("Attitude Error", time_s, err=error)
+
+  def add_reproj_error_data(self, time_s, reproj_rmse, reproj_mean):
+    """ Add Reprojection Error Data """
+    plot_title = "Reprojection Error"
+    conf = {plot_title: {}}
+    conf[plot_title]["Mean"] = {"x": time_s, "y": reproj_rmse}
+    conf[plot_title]["RMSE"] = {"x": time_s, "y": reproj_mean}
+    self.plot_data.update(conf)
+
+  def get_plots(self):
+    """ Get plots """
+    return json.dumps(self.plots)
+
+  def get_plot_data(self):
+    """ Get plot data """
+    return json.dumps(self.plot_data)
+
+  async def emit_data(self, ws):
+    """ Emit data """
+    time_now = datetime.now()
+    time_diff = (time_now - self.last_updated).total_seconds()
+    if time_diff > (1.0 / self.emit_rate):
+      await ws.send(self.get_plot_data())
+      self.last_updated = time_now
 
 
 ###############################################################################
@@ -7389,107 +7601,18 @@ class TestSimulation(unittest.TestCase):
 # VISUALIZER ###################################################################
 
 
-class MultiPlotData:
-  """ MultiPlotData """
-
-  def __init__(self):
-    self.pos_xy = {"Position X-Y": {}}
-    self.pos_z = {"Position Z": {}}
-    self.pos_err = {"Position Error": {}}
-    self.att = {"Attitude": {}}
-    self.att_err = {"Attitude Error": {}}
-    self.reproj_err = {"Reprojection Error": {}}
-
-  def add_pos_xy_data(self, **kwargs):
-    """ Add Position X-Y Data """
-    if "gnd" in kwargs:
-      gnd = kwargs["gnd"]
-      self.pos_xy["Position X-Y"]["Ground-Truth"] = {"x": gnd[0], "y": gnd[1]}
-
-    if "est" in kwargs:
-      est = kwargs["est"]
-      self.pos_xy["Position X-Y"]["Estimate"] = {"x": est[0], "y": est[1]}
-
-  def add_pos_z_data(self, time_s, **kwargs):
-    """ Add Position Z Data """
-    if "gnd" in kwargs:
-      gnd = kwargs["gnd"]
-      self.pos_z["Position Z"]["Ground-Truth"] = {"x": time_s, "y": gnd}
-
-    if "est" in kwargs:
-      est = kwargs["est"]
-      self.pos_z["Position Z"]["Estimate"] = {"x": time_s, "y": est}
-
-  def add_pos_error_data(self, time_s, error):
-    """ Add Position Error Data """
-    self.pos_err["Position Error"]["Error"] = {"x": time_s, "y": error}
-
-  def add_att_data(self, time_s, **kwargs):
-    """ Add Attitude Data """
-    if "gnd" in kwargs:
-      gnd = kwargs["gnd"]
-      self.att["Attitude"] = {"Ground-Truth": {}}
-      self.att["Attitude"]["Ground-Truth"]["roll"] = {}
-      self.att["Attitude"]["Ground-Truth"]["roll"]["x"] = time_s
-      self.att["Attitude"]["Ground-Truth"]["roll"]["y"] = gnd[0]
-      self.att["Attitude"]["Ground-Truth"]["pitch"] = {}
-      self.att["Attitude"]["Ground-Truth"]["pitch"]["x"] = time_s
-      self.att["Attitude"]["Ground-Truth"]["pitch"]["y"] = gnd[1]
-      self.att["Attitude"]["Ground-Truth"]["yaw"] = {}
-      self.att["Attitude"]["Ground-Truth"]["yaw"]["x"] = time_s
-      self.att["Attitude"]["Ground-Truth"]["yaw"]["y"] = gnd[2]
-
-    if "est" in kwargs:
-      est = kwargs["est"]
-      self.att["Attitude"] = {"Estimate": {}}
-      self.att["Attitude"]["Estimate"]["roll"] = {}
-      self.att["Attitude"]["Estimate"]["roll"]["x"] = time_s
-      self.att["Attitude"]["Estimate"]["roll"]["y"] = est[0]
-      self.att["Attitude"]["Estimate"]["pitch"] = {}
-      self.att["Attitude"]["Estimate"]["pitch"]["x"] = time_s
-      self.att["Attitude"]["Estimate"]["pitch"]["y"] = est[1]
-      self.att["Attitude"]["Estimate"]["yaw"] = {}
-      self.att["Attitude"]["Estimate"]["yaw"]["x"] = time_s
-      self.att["Attitude"]["Estimate"]["yaw"]["y"] = est[2]
-
-  def add_att_error_data(self, time_s, error):
-    """ Add Attitude Error Data """
-    self.att_err["Attitude Error"]["Error"] = {"x": time_s, "y": error}
-
-  def add_reproj_error_data(self, time_s, reproj_rmse, reproj_mean):
-    """ Add Reprojection Error Data """
-    plot_title = "Reprojection Error"
-    self.reproj_err[plot_title]["Mean"] = {"x": time_s, "y": reproj_rmse}
-    self.reproj_err[plot_title]["RMSE"] = {"x": time_s, "y": reproj_mean}
-
-  def get_json(self):
-    """ Get JSON String """
-    plots = []
-    plots.append(self.pos_xy)
-    plots.append(self.pos_z)
-    plots.append(self.pos_err)
-    plots.append(self.att)
-    plots.append(self.att_err)
-    plots.append(self.reproj_err)
-
-    msg = {}
-    for plot in plots:
-      key = list(plot.keys())[0]
-      msg[key] = plot[key]
-
-    return json.dumps(msg)
-
-
 async def fake_loop(ws, _):
   """ Simulates a simulation or dev loop """
-  # Setup plot
+  # Setup plots
   print("Connected to client!")
+  multi_plot = MultiPlot(has_gnd=True)
+  await ws.send(multi_plot.get_plots())
 
   # Loop
   index = 0
+
   while True:
     index += 1
-    time.sleep(0.1)
 
     t = index
     x = np.random.random()
@@ -7497,18 +7620,15 @@ async def fake_loop(ws, _):
     z = np.random.random()
     gnd = np.random.random(3)
     est = np.random.random(3)
-    multi_plot = MultiPlotData()
     multi_plot.add_pos_xy_data(est=est, gnd=gnd)
     multi_plot.add_pos_z_data(t, est=z, gnd=x)
-    multi_plot.add_att_data(t, est=est, gnd=gnd)
+    multi_plot.add_roll_data(t, est=x, gnd=y)
+    multi_plot.add_pitch_data(t, est=x, gnd=y)
+    multi_plot.add_yaw_data(t, est=x, gnd=y)
     multi_plot.add_pos_error_data(t, y)
     multi_plot.add_att_error_data(t, x)
     multi_plot.add_reproj_error_data(t, x, y)
-
-    await ws.send(multi_plot.get_json())
-
-    if index == 1000:
-      break
+    await multi_plot.emit_data(ws)
 
   # Important
   await ws.close()
@@ -7517,6 +7637,25 @@ async def fake_loop(ws, _):
 
 class TestViz(unittest.TestCase):
   """ Test Viz """
+
+  def test_multiplot(self):
+    """ Test MultiPlot() """
+    t = 0
+    x = np.random.random()
+    y = np.random.random()
+    z = np.random.random()
+    gnd = np.random.random(3)
+    est = np.random.random(3)
+    multi_plot = MultiPlot()
+    multi_plot.add_pos_xy_data(est=est, gnd=gnd)
+    multi_plot.add_pos_z_data(t, est=z, gnd=x)
+    multi_plot.add_roll_data(t, est=x, gnd=y)
+    multi_plot.add_pitch_data(t, est=x, gnd=y)
+    multi_plot.add_yaw_data(t, est=x, gnd=y)
+    multi_plot.add_pos_error_data(t, y)
+    multi_plot.add_att_error_data(t, x)
+    multi_plot.add_reproj_error_data(t, x, y)
+    self.assertTrue(multi_plot is not None)
 
   def test_server(self):
     """ Test DevServer() """
