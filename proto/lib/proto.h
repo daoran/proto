@@ -278,6 +278,45 @@ int list_remove_destroy(list_t *list,
                         int (*cmp)(const void *, const void *),
                         void (*free_func)(void *));
 
+// STACK ///////////////////////////////////////////////////////////////////////
+
+typedef struct stack_t_node_t {
+  void *value;
+  struct stack_node_t *next;
+  struct stack_node_t *prev;
+} stack_node_t;
+
+typedef struct stack_t {
+  int size;
+  stack_node_t *root;
+  stack_node_t *end;
+} stack_t;
+
+stack_t *stack_new(void);
+void stack_destroy_traverse(stack_node_t *n, void (*free_func)(void *));
+void stack_clear_destroy(stack_t *s, void (*free_func)(void *));
+void stack_destroy(stack_t *s);
+int stack_push(stack_t *s, void *value);
+void *stack_pop(stack_t *s);
+
+// QUEUE ///////////////////////////////////////////////////////////////////////
+
+struct queue {
+  int count;
+  list_t *queue;
+};
+
+/* FUNCTIONS */
+struct queue *queue_new(void);
+void queue_destroy(struct queue *q);
+int queue_enqueue(struct queue *q, void *data);
+void *queue_dequeue(struct queue *q);
+int queue_count(struct queue *q);
+int queue_empty(struct queue *q);
+int queue_full(struct queue *q);
+void *queue_first(struct queue *q);
+void *queue_last(struct queue *q);
+
 /******************************************************************************
  * TIME
  ******************************************************************************/

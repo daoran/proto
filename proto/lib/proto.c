@@ -1102,6 +1102,135 @@ int list_remove_destroy(list_t *list,
   return 0;
 }
 
+// STACK ///////////////////////////////////////////////////////////////////////
+
+stack_t *stack_new(void) {
+  stack_t *s = malloc(sizeof(stack_t));
+  s->size = 0;
+  s->root = NULL;
+  s->end = NULL;
+  return s;
+}
+
+void stack_destroy_traverse(stack_node_t *n, void (*free_func)(void *)) {
+  if (n->next) {
+    stack_destroy_traverse(n->next, free_func);
+  }
+  if (free_func) {
+    free_func(n->value);
+  }
+  free(n);
+  n = NULL;
+}
+
+void stack_clear_destroy(stack_t *s, void (*free_func)(void *)) {
+  if (s->root) {
+    stack_destroy_traverse(s->root, free_func);
+  }
+  free(s);
+  s = NULL;
+}
+
+void stack_destroy(stack_t *s) {
+  if (s->root) {
+    stack_destroy_traverse(s->root, NULL);
+  }
+  free(s);
+  s = NULL;
+}
+
+int stack_push(stack_t *s, void *value) {
+  stack_node_t *n = malloc(sizeof(stack_node_t));
+  if (n == NULL) {
+    return -1;
+  }
+
+  stack_node_t *prev_end = s->end;
+  n->value = value;
+  n->next = NULL;
+  n->prev = prev_end;
+
+  if (s->size == 0) {
+    s->root = n;
+    s->end = n;
+  } else {
+    prev_end->next = n;
+    s->end = n;
+  }
+  s->size++;
+
+  return 0;
+}
+
+void *stack_pop(stack_t *s) {
+  void *value = s->end->value;
+  stack_node_t *previous = s->end->prev;
+
+  free(s->end);
+  if (s->size > 1) {
+    previous->next = NULL;
+    s->end = previous;
+  } else {
+    s->root = NULL;
+    s->end = NULL;
+  }
+  s->size--;
+
+  return value;
+}
+
+// QUEUE ///////////////////////////////////////////////////////////////////////
+
+struct queue *queue_new(void) {
+  struct queue *q = calloc(1, sizeof(struct queue));
+  q->queue = list_new();
+  q->count = 0;
+  return q;
+}
+
+void queue_destroy(struct queue *q) {
+  assert(q != NULL);
+  list_destroy(q->queue);
+  free(q);
+  q = NULL;
+}
+
+int queue_enqueue(struct queue *q, void *data) {
+  assert(q != NULL);
+  list_push(q->queue, data);
+  q->count++;
+  return 0;
+}
+
+void *queue_dequeue(struct queue *q) {
+  assert(q != NULL);
+  void *data = list_pop_front(q->queue);
+  q->count--;
+
+  return data;
+}
+
+int queue_empty(struct queue *q) {
+  assert(q != NULL);
+  return (q->count == 0) ? 1 : 0;
+}
+
+void *queue_first(struct queue *q) {
+  assert(q != NULL);
+  if (q->count != 0) {
+    return q->queue->first->value;
+  }
+  return NULL;
+}
+
+void *queue_last(struct queue *q) {
+  assert(q != NULL);
+  if (q->count != 0) {
+    return q->queue->last->value;
+  }
+  return NULL;
+}
+
 /******************************************************************************
  * TIME
  ******************************************************************************/
