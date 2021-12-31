@@ -4,51 +4,30 @@ CATKIN_WS=~/catkin_ws
 
 .PHONY: default deps debug release install ros format_code docs
 
-define usage
-[TARGETS]:
-  deps:
-    Install proto dependencies.
+help:
+	@echo "\033[1;34m[make targets]:\033[0m"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+		| sort \
+		| awk 'BEGIN {FS = ":.*?## "}; \
+			{printf "\033[1;36m%-15s\033[0m%s\n", $$1, $$2}'
 
-  debug:
-    Build proto in debug mode.
-
-  release:
-    Build proto in release mode.
-
-  run_tests:
-    Run tests
-
-  install:
-    Install proto to '$$PREFIX'. By default this is "/usr/local".
-
-  format_code:
-    Format proto code using clang-format.
-
-  docs:
-    Start a webserver to write docs.
-endef
-export usage
-
-default:
-	@echo "$$usage"
-
-deps:
+deps: ## Install dependencies
 	@echo "[Installing Dependencies]"
 	@make -s -C deps
 
-clean:
+clean: ## Clean build
 	@cd proto && make -s clean
 
-debug:
+debug: ## Build in debug mode
 	@cd proto && make -s -DDEBUG
 
-release:
+build: ## Build in release mode
 	@cd proto && make -s lib
 
-run_tests: release
+run_tests: release  ## Run unit-tests
 	@cd proto && make -s run_tests
 
-install:
+install: ## Install proto
 	@if [ ! -d proto/build ]; then \
 		echo "Error: Not built yet!"; \
 		exit 1; \
@@ -57,16 +36,16 @@ install:
 		make -s install; \
 	fi
 
-ros:
+ros: ## Build proto_ros
 	@mkdir -p ${CATKIN_WS}/src
 	@cd ${CATKIN_WS}/src && ln -sf ${PROJ_PATH}/proto_ros . \
 		&& . /opt/ros/melodic/setup.sh \
 		&& cd .. \
 		&& catkin build proto_ros -DCMAKE_BUILD_TYPE=RELEASE -j2
 
-format_code:
+format_code: ## Format code
 	@bash ./scripts/format_code.bash
 
-docs:
+docs: ## Build docs
 	@sleep 3 && xdg-open http://127.0.0.1:8000 &
 	@sphinx-autobuild docs/source docs/build/html

@@ -10,7 +10,7 @@ jobs:
       run: make deps
 
     - name: Build libproto
-      run: make release
+      run: make build
 
     - name: Run tests
       run: make run_tests

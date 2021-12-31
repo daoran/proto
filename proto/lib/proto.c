@@ -634,6 +634,475 @@ void csv_free(real_t **data, const int nb_rows) {
 }
 
 /******************************************************************************
+ * DATA-STRUCTURES
+ ******************************************************************************/
+
+// DARRAY //////////////////////////////////////////////////////////////////////
+
+darray_t *darray_new(size_t element_size, size_t initial_max) {
+  assert(element_size > 0);
+  assert(initial_max > 0);
+
+  darray_t *array = malloc(sizeof(darray_t));
+  if (array == NULL) {
+    return NULL;
+  }
+
+  array->end = 0;
+  array->max = (int) initial_max;
+  array->element_size = element_size;
+  array->expand_rate = DEFAULT_EXPAND_RATE;
+  array->contents = calloc(initial_max, sizeof(void *));
+  if (array->contents) {
+    free(array);
+    return NULL;
+  }
+
+  return array;
+}
+
+void darray_clear(darray_t *array) {
+  assert(array != NULL);
+  for (int i = 0; i < array->max; i++) {
+    FREE_MEM(array->contents[i], free);
+  }
+}
+
+void darray_destroy(darray_t *array) {
+  if (array) {
+    if (array->contents) {
+      free(array->contents);
+    }
+    free(array);
+  }
+}
+
+void darray_clear_destroy(darray_t *array) {
+  if (array) {
+    darray_clear(array);
+    darray_destroy(array);
+  }
+}
+
+int darray_push(darray_t *array, void *el) {
+  assert(array != NULL);
+
+  /* Push */
+  array->contents[array->end] = el;
+  array->end++;
+
+  /* Expand darray if necessary */
+  if (array->end >= array->max) {
+    return darray_expand(array);
+  }
+
+  return 0;
+}
+
+void *darray_pop(darray_t *array) {
+  assert(array != NULL);
+
+  /* pop */
+  void *el = darray_remove(array, array->end - 1);
+  array->end--;
+
+  /* contract */
+  int expanded = array->end > (int) array->expand_rate;
+  int trailing_memory = array->end % (int) array->expand_rate;
+  if (expanded && trailing_memory) {
+    darray_contract(array);
+  }
+
+  return el;
+}
+
+int darray_contains(darray_t *array,
+                    void *el,
+                    int (*cmp)(const void *, const void *)) {
+  assert(array != NULL);
+  assert(el != NULL);
+  assert(cmp != NULL);
+
+  /* Check first element */
+  void *element = darray_get(array, 0);
+  if (element != NULL && cmp(element, el) == 0) {
+    return 1;
+  }
+
+  /* Rest of element */
+  for (int i = 0; i < array->end; i++) {
+    element = darray_get(array, i);
+    if (element != NULL && cmp(element, el) == 0) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+darray_t *darray_copy(darray_t *array) {
+  assert(array != NULL);
+
+  /* Copy first element */
+  darray_t *array_copy = darray_new(array->element_size, (size_t) array->max);
+  void *el = darray_get(array, 0);
+  void *el_copy = NULL;
+
+  if (el != NULL) {
+    el_copy = darray_new_element(array_copy);
+    memcpy(el_copy, el, array->element_size);
+    darray_set(array_copy, 0, el_copy);
+  }
+
+  /* Copy the rest of the elements */
+  for (int i = 1; i < array->end; i++) {
+    el = darray_get(array, i);
+    el_copy = NULL;
+
+    if (el != NULL) {
+      memcpy(el_copy, el, array->element_size);
+      darray_set(array_copy, i, el);
+    }
+  }
+
+  return array_copy;
+}
+
+void *darray_new_element(darray_t *array) {
+  assert(array != NULL);
+  assert(array->element_size > 0);
+  return calloc(1, array->element_size);
+}
+
+void *darray_first(darray_t *array) {
+  assert(array != NULL);
+  return array->contents[0];
+}
+
+void *darray_last(darray_t *array) {
+  assert(array != NULL);
+  return array->contents[array->end - 1];
+}
+
+void darray_set(darray_t *array, int i, void *el) {
+  assert(array != NULL);
+  assert(i < array->max);
+
+  /* Set */
+  array->contents[i] = el;
+
+  /* Update end */
+  if (i > array->end) {
+    array->end = i;
+  }
+}
+
+void *darray_get(darray_t *array, int i) {
+  assert(array != NULL);
+  assert(i < array->max);
+  return array->contents[i];
+}
+
+void *darray_update(darray_t *array, int i, void *el) {
+  assert(array != NULL);
+  assert(i < array->max);
+  void *old_el;
+
+  /* Update */
+  old_el = darray_get(array, i);
+  darray_set(array, i, el);
+
+  return old_el;
+}
+
+void *darray_remove(darray_t *array, int i) {
+  assert(array != NULL);
+  void *el = array->contents[i];
+  array->contents[i] = NULL;
+  return el;
+}
+
+static inline int darray_resize(darray_t *array, size_t new_max) {
+  assert(array != NULL);
+
+  /* Calculate new max and size */
+  int old_max = (int) array->max;
+  array->max = (int) new_max;
+
+  /* Reallocate new memory */
+  void *contents = realloc(array->contents, new_max * sizeof(void *));
+  CHECK_MEM(contents);
+  array->contents = contents;
+
+  /* Initialize new memory to NULL */
+  for (int i = old_max; i < (int) new_max; i++) {
+    array->contents[i] = NULL;
+  }
+
+  return 0;
+error:
+  return -1;
+}
+
+int darray_expand(darray_t *array) {
+  assert(array != NULL);
+  assert(array->max > 0);
+
+  size_t old_max = (size_t) array->max;
+  size_t new_max = (size_t) array->max + array->expand_rate;
+  int res = darray_resize(array, new_max);
+  if (res != 0) {
+    return -1;
+  }
+  memset(array->contents + old_max, 0, array->expand_rate + 1);
+
+  return 0;
+}
+
+int darray_contract(darray_t *array) {
+  assert(array != NULL);
+  assert(array->max > 0);
+
+  /* Contract */
+  int new_size = 0;
+  if (array->end < (int) array->expand_rate) {
+    new_size = (int) array->expand_rate;
+  } else {
+    new_size = array->end;
+  }
+
+  return darray_resize(array, (size_t) new_size + 1);
+}
+
+// LIST ////////////////////////////////////////////////////////////////////////
+
+list_t *list_new(void) {
+  list_t *list = calloc(1, sizeof(list_t));
+  list->length = 0;
+  list->first = NULL;
+  list->last = NULL;
+  return list;
+}
+
+void list_destroy(list_t *list) {
+  assert(list != NULL);
+
+  list_node_t *node;
+  list_node_t *next_node;
+
+  /* destroy */
+  node = list->first;
+  while (node != NULL) {
+    next_node = node->next;
+    FREE_MEM(node, free);
+    node = next_node;
+  }
+
+  free(list);
+}
+
+void list_clear(list_t *list) {
+  assert(list != NULL);
+
+  list_node_t *node;
+  list_node_t *next_node;
+
+  node = list->first;
+  while (node != NULL) {
+    next_node = node->next;
+    free(node->value);
+    node = next_node;
+  }
+}
+
+void list_clear_destroy(list_t *list) {
+  assert(list != NULL);
+
+  list_node_t *node = list->first;
+  while (node != NULL) {
+    list_node_t *next_node = node->next;
+    free(node->value);
+    free(node);
+    node = next_node;
+  }
+  free(list);
+}
+
+void list_push(list_t *list, void *value) {
+  assert(list != NULL);
+  assert(value != NULL);
+
+  /* Initialize node */
+  list_node_t *node = calloc(1, sizeof(list_node_t));
+  CHECK_MEM(node);
+  node->value = value;
+
+  /* Push node */
+  if (list->last == NULL) {
+    list->first = node;
+    list->last = node;
+  } else {
+    list->last->next = node;
+    node->prev = list->last;
+    list->last = node;
+  }
+
+  list->length++;
+error:
+  return;
+}
+
+void *list_pop(list_t *list) {
+  assert(list != NULL);
+
+  /* get last */
+  list_node_t *last = list->last;
+  if (last == NULL) {
+    return NULL;
+  }
+
+  void *value = last->value;
+  list_node_t *before_last = last->prev;
+  free(last);
+
+  /* pop */
+  if (before_last == NULL && list->length == 1) {
+    list->last = NULL;
+    list->first = NULL;
+  } else {
+    list->last = before_last;
+  }
+  list->length--;
+
+  if (before_last == NULL) {
+    return NULL;
+  }
+  before_last->next = NULL;
+
+  return value;
+}
+
+void *list_pop_front(list_t *list) {
+  assert(list != NULL);
+  assert(list->first != NULL);
+
+  /* pop front */
+  list_node_t *first_node = list->first;
+  void *data = first_node->value;
+  list_node_t *next_node = first_node->next;
+
+  if (next_node != NULL) {
+    list->first = next_node;
+  } else {
+    list->first = NULL;
+  }
+  list->length--;
+
+  /* clean up */
+  free(first_node);
+
+  return data;
+}
+
+void *list_shift(list_t *list) {
+  assert(list != NULL);
+  void *value;
+  list_node_t *first;
+  list_node_t *second;
+
+  /* shift */
+  first = list->first;
+  value = first->value;
+  second = list->first->next;
+
+  list->first = second;
+  list->length--;
+  free(first);
+
+  return value;
+}
+
+void list_unshift(list_t *list, void *value) {
+  assert(list != NULL);
+
+  /* unshift */
+  list_node_t *node = calloc(1, sizeof(list_node_t));
+  CHECK_MEM(node);
+  node->value = value;
+
+  if (list->first == NULL) {
+    list->first = node;
+    list->last = node;
+  } else {
+    node->next = list->first;
+    list->first->prev = node;
+    list->first = node;
+  }
+
+  list->length++;
+
+error:
+  return;
+}
+
+void *list_remove(list_t *list,
+                  void *value,
+                  int (*cmp)(const void *, const void *)) {
+  assert(list != NULL);
+  assert(value != NULL);
+  assert(cmp != NULL);
+
+  /* iterate list */
+  list_node_t *node = list->first;
+  while (node != NULL) {
+
+    /* compare target with node value */
+    if (cmp(node->value, value) == 0) {
+      value = node->value;
+
+      if (list->length == 1) {
+        /* last node in list */
+        list->first = NULL;
+        list->last = NULL;
+
+      } else if (node == list->first) {
+        /* first node in list */
+        list->first = node->next;
+        node->next->prev = NULL;
+
+      } else if (node == list->last) {
+        /* in the case of removing last node in list */
+        list->last = node->prev;
+        node->prev->next = NULL;
+
+      } else {
+        /* remove others */
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+      }
+      list->length--;
+      free(node);
+
+      return value;
+    }
+
+    node = node->next;
+  }
+
+  return NULL;
+}
+
+int list_remove_destroy(list_t *list,
+                        void *value,
+                        int (*cmp)(const void *, const void *),
+                        void (*free_func)(void *)) {
+  assert(list != NULL);
+  void *result = list_remove(list, value, cmp);
+  free_func(result);
+  return 0;
+}
+
+/******************************************************************************
  * TIME
  ******************************************************************************/
 

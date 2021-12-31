@@ -45,36 +45,7 @@
 #endif
 
 /******************************************************************************
- * MACROS
- ******************************************************************************/
-
-/**
- * Mark variable unused.
- * @param[in] expr Variable to mark as unused
- */
-#define UNUSED(expr)                                                           \
-  do {                                                                         \
-    (void) (expr);                                                             \
-  } while (0)
-
-/**
- * Check if condition is satisfied.
- *
- * If the condition is not satisfied a message M will be logged and a goto
- * error is called.
- *
- * @param[in] A Condition to be checked
- * @param[in] M Error message
- * @param[in] ... Varadic arguments for error message
- */
-#define CHECK(A, M, ...)                                                       \
-  if (!(A)) {                                                                  \
-    LOG_ERROR(M, ##__VA_ARGS__);                                               \
-    goto error;                                                                \
-  }
-
-/******************************************************************************
- * LOGGING
+ * LOGGING / MACROS
  ******************************************************************************/
 
 /** Terminal ANSI colors */
@@ -152,6 +123,44 @@
           ##__VA_ARGS__);                                                      \
   exit(-1)
 
+/**
+ * Mark variable unused.
+ * @param[in] expr Variable to mark as unused
+ */
+#define UNUSED(expr)                                                           \
+  do {                                                                         \
+    (void) (expr);                                                             \
+  } while (0)
+
+/**
+ * Check if condition is satisfied.
+ *
+ * If the condition is not satisfied a message M will be logged and a goto
+ * error is called.
+ *
+ * @param[in] A Condition to be checked
+ * @param[in] M Error message
+ * @param[in] ... Varadic arguments for error message
+ */
+#define CHECK(A, M, ...)                                                       \
+  if (!(A)) {                                                                  \
+    LOG_ERROR(M, ##__VA_ARGS__);                                               \
+    goto error;                                                                \
+  }
+
+/**
+ * Check memory
+ */
+#define CHECK_MEM(A) CHECK((A), "out of memory.")
+
+/**
+ * Free memory
+ */
+#define FREE_MEM(TARGET, FREE_FUNC)                                            \
+  if (TARGET) {                                                                \
+    FREE_FUNC((void *) TARGET);                                                \
+  }
+
 /******************************************************************************
  * FILESYSTEM
  ******************************************************************************/
@@ -197,6 +206,77 @@ void csv_free(real_t **data, const int nb_rows);
 
 /* real_t *load_matrix(const char *file_path); */
 /* real_t *load_vector(const char *file_path); */
+
+/******************************************************************************
+ * DATA-STRUCTURES
+ ******************************************************************************/
+
+// DARRAY //////////////////////////////////////////////////////////////////////
+
+typedef struct darray_t {
+  int end;
+  int max;
+  size_t element_size;
+  size_t expand_rate;
+  void **contents;
+} darray_t;
+
+/* CONSTANTS */
+#ifndef DEFAULT_EXPAND_RATE
+#define DEFAULT_EXPAND_RATE 300
+#endif
+
+darray_t *darray_new(size_t element_size, size_t initial_max);
+void darray_destroy(darray_t *array);
+void darray_clear(darray_t *array);
+void darray_clear_destroy(darray_t *array);
+int darray_push(darray_t *array, void *el);
+void *darray_pop(darray_t *array);
+int darray_contains(darray_t *array,
+                    void *el,
+                    int (*cmp)(const void *, const void *));
+darray_t *darray_copy(darray_t *array);
+void *darray_new_element(darray_t *array);
+void *darray_first(darray_t *array);
+void *darray_last(darray_t *array);
+void darray_set(darray_t *array, int i, void *el);
+void *darray_get(darray_t *array, int i);
+void *darray_update(darray_t *array, int i, void *el);
+void *darray_remove(darray_t *array, int i);
+int darray_expand(darray_t *array);
+int darray_contract(darray_t *array);
+
+// LIST ////////////////////////////////////////////////////////////////////////
+
+typedef struct list_node_t {
+  struct list_node_t *next;
+  struct list_node_t *prev;
+  void *value;
+} list_node_t;
+
+typedef struct list_t {
+  int length;
+  list_node_t *first;
+  list_node_t *last;
+} list_t;
+
+/* FUNCTIONS */
+list_t *list_new(void);
+void list_destroy(list_t *list);
+void list_clear(list_t *list);
+void list_clear_destroy(list_t *list);
+void list_push(list_t *list, void *value);
+void *list_pop(list_t *list);
+void *list_pop_front(list_t *list);
+void *list_shift(list_t *list);
+void list_unshift(list_t *list, void *value);
+void *list_remove(list_t *list,
+                  void *target,
+                  int (*cmp)(const void *, const void *));
+int list_remove_destroy(list_t *list,
+                        void *value,
+                        int (*cmp)(const void *, const void *),
+                        void (*free_func)(void *));
 
 /******************************************************************************
  * TIME
