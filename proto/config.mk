@@ -10,6 +10,7 @@ CC := gcc
 CFLAGS := \
 	-g \
 	-Wall \
+	-Wpedantic \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
 	`sdl2-config --cflags`
