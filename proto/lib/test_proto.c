@@ -36,7 +36,7 @@ int test_path_file_name() {
   const char *path = "/tmp/hello_world.csv";
   char fname[128] = {0};
   path_file_name(path, fname);
-  MU_CHECK(strcmp(fname, "hello_world.csv") == 0);
+  MU_ASSERT(strcmp(fname, "hello_world.csv") == 0);
 
   return 0;
 }
@@ -45,7 +45,7 @@ int test_path_file_ext() {
   const char *path = "/tmp/hello_world.csv";
   char fext[128] = {0};
   path_file_ext(path, fext);
-  MU_CHECK(strcmp(fext, "csv") == 0);
+  MU_ASSERT(strcmp(fext, "csv") == 0);
 
   return 0;
 }
@@ -54,7 +54,7 @@ int test_path_dir_name() {
   const char *path = "/tmp/hello_world.csv";
   char dir_name[128] = {0};
   path_dir_name(path, dir_name);
-  MU_CHECK(strcmp(dir_name, "/tmp") == 0);
+  MU_ASSERT(strcmp(dir_name, "/tmp") == 0);
 
   return 0;
 }
@@ -65,7 +65,7 @@ int test_path_join() {
     const char *path_a = "/tmp/A";
     const char *path_b = "B.csv";
     char *c = path_join(path_a, path_b);
-    MU_CHECK(strcmp(c, "/tmp/A/B.csv") == 0);
+    MU_ASSERT(strcmp(c, "/tmp/A/B.csv") == 0);
     free(c);
   }
 
@@ -74,7 +74,7 @@ int test_path_join() {
     const char *path_a = "/tmp/A/";
     const char *path_b = "B.csv";
     char *c = path_join(path_a, path_b);
-    MU_CHECK(strcmp(c, "/tmp/A/B.csv") == 0);
+    MU_ASSERT(strcmp(c, "/tmp/A/B.csv") == 0);
     free(c);
   }
 
@@ -84,8 +84,8 @@ int test_path_join() {
 int test_list_files() {
   int nb_files = 0;
   char **files = list_files("/tmp", &nb_files);
-  MU_CHECK(files != NULL);
-  MU_CHECK(nb_files != 0);
+  MU_ASSERT(files != NULL);
+  MU_ASSERT(nb_files != 0);
 
   /* printf("nb_files: %d\n", nb_files); */
   for (int i = 0; i < nb_files; i++) {
@@ -108,7 +108,7 @@ int test_list_files_free() {
 int test_file_read() {
   char *text = file_read("test_data/poses.csv");
   /* printf("%s\n", text); */
-  MU_CHECK(text != NULL);
+  MU_ASSERT(text != NULL);
   free(text);
 
   return 0;
@@ -124,7 +124,7 @@ int test_skip_line() {
 
 int test_file_rows() {
   int nb_rows = file_rows("test_data/poses.csv");
-  MU_CHECK(nb_rows > 0);
+  MU_ASSERT(nb_rows > 0);
   return 0;
 }
 
@@ -132,8 +132,8 @@ int test_file_copy() {
   int retval = file_copy("test_data/poses.csv", "/tmp/poses.csv");
   char *text0 = file_read("test_data/poses.csv");
   char *text1 = file_read("/tmp/poses.csv");
-  MU_CHECK(retval == 0);
-  MU_CHECK(strcmp(text0, text1) == 0);
+  MU_ASSERT(retval == 0);
+  MU_ASSERT(strcmp(text0, text1) == 0);
   free(text0);
   free(text1);
 
@@ -146,20 +146,20 @@ int test_file_copy() {
 
 int test_string_malloc() {
   char *s = string_malloc("hello world!");
-  MU_CHECK(strcmp(s, "hello world!") == 0);
+  MU_ASSERT(strcmp(s, "hello world!") == 0);
   free(s);
   return 0;
 }
 
 int test_dsv_rows() {
   int nb_rows = dsv_rows(TEST_CSV);
-  MU_CHECK(nb_rows == 10);
+  MU_ASSERT(nb_rows == 10);
   return 0;
 }
 
 int test_dsv_cols() {
   int nb_cols = dsv_cols(TEST_CSV, ',');
-  MU_CHECK(nb_cols == 10);
+  MU_ASSERT(nb_cols == 10);
   return 0;
 }
 
@@ -172,9 +172,9 @@ int test_dsv_fields() {
     return -1;
   }
 
-  MU_CHECK(nb_fields == 10);
+  MU_ASSERT(nb_fields == 10);
   for (int i = 0; i < nb_fields; i++) {
-    MU_CHECK(strcmp(fields[i], expected[i]) == 0);
+    MU_ASSERT(strcmp(fields[i], expected[i]) == 0);
     free(fields[i]);
   }
   free(fields);
@@ -190,7 +190,7 @@ int test_dsv_data() {
   int index = 0;
   for (int i = 0; i < nb_rows; i++) {
     for (int j = 0; j < nb_rows; j++) {
-      MU_CHECK(fltcmp(data[i][j], index + 1) == 0);
+      MU_ASSERT(fltcmp(data[i][j], index + 1) == 0);
       index++;
     }
   }
@@ -231,14 +231,14 @@ int test_tic() {
 int test_toc() {
   struct timespec t_start = tic();
   sleep(1.0);
-  MU_CHECK(fabs(toc(&t_start) - 1.0) < 1e-2);
+  MU_ASSERT(fabs(toc(&t_start) - 1.0) < 1e-2);
   return 0;
 }
 
 int test_mtoc() {
   struct timespec t_start = tic();
   sleep(1.0);
-  MU_CHECK(fabs(mtoc(&t_start) - 1000) < 1);
+  MU_ASSERT(fabs(mtoc(&t_start) - 1000) < 1);
   return 0;
 }
 
@@ -253,37 +253,37 @@ int test_time_now() {
  ******************************************************************************/
 
 int test_min() {
-  MU_CHECK(MIN(1, 2) == 1);
-  MU_CHECK(MIN(2, 1) == 1);
+  MU_ASSERT(MIN(1, 2) == 1);
+  MU_ASSERT(MIN(2, 1) == 1);
   return 0;
 }
 
 int test_max() {
-  MU_CHECK(MAX(1, 2) == 2);
-  MU_CHECK(MAX(2, 1) == 2);
+  MU_ASSERT(MAX(1, 2) == 2);
+  MU_ASSERT(MAX(2, 1) == 2);
   return 0;
 }
 
 int test_randf() {
   const real_t val = randf(0.0, 10.0);
-  MU_CHECK(val < 10.0);
-  MU_CHECK(val > 0.0);
+  MU_ASSERT(val < 10.0);
+  MU_ASSERT(val > 0.0);
   return 0;
 }
 
 int test_deg2rad() {
-  MU_CHECK(fltcmp(deg2rad(180.0f), M_PI) == 0);
+  MU_ASSERT(fltcmp(deg2rad(180.0f), M_PI) == 0);
   return 0;
 }
 
 int test_rad2deg() {
-  MU_CHECK(fltcmp(rad2deg(M_PI), 180.0f) == 0);
+  MU_ASSERT(fltcmp(rad2deg(M_PI), 180.0f) == 0);
   return 0;
 }
 
 int test_fltcmp() {
-  MU_CHECK(fltcmp(1.0, 1.0) == 0);
-  MU_CHECK(fltcmp(1.0, 1.01) != 0);
+  MU_ASSERT(fltcmp(1.0, 1.0) == 0);
+  MU_ASSERT(fltcmp(1.0, 1.01) != 0);
   return 0;
 }
 
@@ -291,19 +291,19 @@ int test_fltcmp2() {
   const real_t x = 1.0f;
   const real_t y = 1.0f;
   const real_t z = 1.01f;
-  MU_CHECK(fltcmp2(&x, &y) == 0);
-  MU_CHECK(fltcmp2(&x, &z) != 0);
+  MU_ASSERT(fltcmp2(&x, &y) == 0);
+  MU_ASSERT(fltcmp2(&x, &z) != 0);
   return 0;
 }
 
 int test_pythag() {
-  MU_CHECK(fltcmp(pythag(3.0, 4.0), 5.0) == 0);
+  MU_ASSERT(fltcmp(pythag(3.0, 4.0), 5.0) == 0);
   return 0;
 }
 
 int test_lerp() {
-  MU_CHECK(fltcmp(lerp(0.0, 1.0, 0.5), 0.5) == 0);
-  MU_CHECK(fltcmp(lerp(0.0, 10.0, 0.8), 8.0) == 0);
+  MU_ASSERT(fltcmp(lerp(0.0, 1.0, 0.5), 0.5) == 0);
+  MU_ASSERT(fltcmp(lerp(0.0, 10.0, 0.8), 8.0) == 0);
   return 0;
 }
 
@@ -314,9 +314,9 @@ int test_lerp3() {
   real_t t = 0.5;
 
   lerp3(a, b, t, c);
-  MU_CHECK(fltcmp(c[0], 0.5) == 0);
-  MU_CHECK(fltcmp(c[1], 1.5) == 0);
-  MU_CHECK(fltcmp(c[2], 2.5) == 0);
+  MU_ASSERT(fltcmp(c[0], 0.5) == 0);
+  MU_ASSERT(fltcmp(c[1], 1.5) == 0);
+  MU_ASSERT(fltcmp(c[2], 2.5) == 0);
 
   return 0;
 }
@@ -325,31 +325,31 @@ int test_sinc() { return 0; }
 
 int test_mean() {
   real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
-  MU_CHECK(fltcmp(mean(vals, 4), 2.5) == 0);
+  MU_ASSERT(fltcmp(mean(vals, 4), 2.5) == 0);
 
   return 0;
 }
 
 int test_median() {
   real_t vals[5] = {1.0, 2.0, 0.0, 3.0, 4.0};
-  MU_CHECK(fltcmp(median(vals, 5), 2.0) == 0);
+  MU_ASSERT(fltcmp(median(vals, 5), 2.0) == 0);
 
   real_t vals2[6] = {1.0, 2.0, 0.0, 3.0, 4.0, 5.0};
-  MU_CHECK(fltcmp(median(vals2, 6), 2.5f) == 0);
+  MU_ASSERT(fltcmp(median(vals2, 6), 2.5f) == 0);
 
   return 0;
 }
 
 int test_var() {
   real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
-  MU_CHECK(fltcmp(var(vals, 4), 1.666666667) == 0);
+  MU_ASSERT(fltcmp(var(vals, 4), 1.666666667) == 0);
 
   return 0;
 }
 
 int test_stddev() {
   real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
-  MU_CHECK(fltcmp(stddev(vals, 4), sqrt(1.666666667)) == 0);
+  MU_ASSERT(fltcmp(stddev(vals, 4), sqrt(1.666666667)) == 0);
 
   return 0;
 }
@@ -369,7 +369,7 @@ int test_eye() {
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
       real_t expected = (i == j) ? 1.0 : 0.0;
-      MU_CHECK(fltcmp(A[idx], expected) == 0);
+      MU_ASSERT(fltcmp(A[idx], expected) == 0);
       idx++;
     }
   }
@@ -387,7 +387,7 @@ int test_ones() {
   size_t cols = 5;
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
-      MU_CHECK((fabs(A[idx] - 1.0) < 1e-5));
+      MU_ASSERT((fabs(A[idx] - 1.0) < 1e-5));
       idx++;
     }
   }
@@ -405,7 +405,7 @@ int test_zeros() {
   size_t cols = 5;
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
-      MU_CHECK((fabs(A[idx] - 0.0) < 1e-5));
+      MU_ASSERT((fabs(A[idx] - 0.0) < 1e-5));
       idx++;
     }
   }
@@ -421,9 +421,9 @@ int test_mat_set() {
   mat_set(A, 3, 2, 2, 1.0);
 
   /* print_matrix("A", A, 3, 3); */
-  MU_CHECK(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 1, 1), 1.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 2, 2), 1.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 1, 1), 1.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 2, 2), 1.0) == 0);
 
   return 0;
 }
@@ -432,10 +432,10 @@ int test_mat_val() {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
 
   /* print_matrix("A", A, 3, 3); */
-  MU_CHECK(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 0, 1), 2.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 0, 2), 3.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 1, 0), 4.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 0, 1), 2.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 0, 2), 3.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 1, 0), 4.0) == 0);
 
   return 0;
 }
@@ -446,7 +446,7 @@ int test_mat_copy() {
 
   mat_copy(A, 3, 3, B);
   for (int i = 0; i < 9; i++) {
-    MU_CHECK(fltcmp(B[i], i + 1.0) == 0);
+    MU_ASSERT(fltcmp(B[i], i + 1.0) == 0);
   }
 
   return 0;
@@ -459,19 +459,19 @@ int test_mat_row_set() {
   /* Set first row zeros */
   mat_row_set(A, 3, 0, B);
   for (int i = 0; i < 3; i++) {
-    MU_CHECK(fltcmp(A[i], 0.0) == 0);
+    MU_ASSERT(fltcmp(A[i], 0.0) == 0);
   }
 
   /* Set second row zeros */
   mat_row_set(A, 3, 1, B);
   for (int i = 0; i < 6; i++) {
-    MU_CHECK(fltcmp(A[i], 0.0) == 0);
+    MU_ASSERT(fltcmp(A[i], 0.0) == 0);
   }
 
   /* Set third row zeros */
   mat_row_set(A, 3, 1, B);
   for (int i = 0; i < 6; i++) {
-    MU_CHECK(fltcmp(A[i], 0.0) == 0);
+    MU_ASSERT(fltcmp(A[i], 0.0) == 0);
   }
 
   return 0;
@@ -484,24 +484,24 @@ int test_mat_col_set() {
   /* Set first column zeros */
   mat_col_set(A, 3, 3, 0, B);
   for (int i = 0; i < 3; i++) {
-    MU_CHECK(fltcmp(A[i * 3], 0.0) == 0);
+    MU_ASSERT(fltcmp(A[i * 3], 0.0) == 0);
   }
 
   /* Set second column zeros */
   mat_col_set(A, 3, 3, 1, B);
   for (int i = 0; i < 3; i++) {
-    MU_CHECK(fltcmp(A[(i * 3) + 1], 0.0) == 0);
+    MU_ASSERT(fltcmp(A[(i * 3) + 1], 0.0) == 0);
   }
 
   /* Set third column zeros */
   mat_col_set(A, 3, 3, 2, B);
   for (int i = 0; i < 3; i++) {
-    MU_CHECK(fltcmp(A[(i * 3) + 2], 0.0) == 0);
+    MU_ASSERT(fltcmp(A[(i * 3) + 2], 0.0) == 0);
   }
 
   /* Check whether full matrix is zeros */
   for (int i = 0; i < 9; i++) {
-    MU_CHECK(fltcmp(A[i], 0.0) == 0);
+    MU_ASSERT(fltcmp(A[i], 0.0) == 0);
   }
 
   return 0;
@@ -514,10 +514,10 @@ int test_mat_block_get() {
 
   print_matrix("A", A, 3, 3);
   print_matrix("B", B, 2, 2);
-  MU_CHECK(fltcmp(mat_val(B, 2, 0, 0), 5.0) == 0);
-  MU_CHECK(fltcmp(mat_val(B, 2, 0, 1), 6.0) == 0);
-  MU_CHECK(fltcmp(mat_val(B, 2, 1, 0), 8.0) == 0);
-  MU_CHECK(fltcmp(mat_val(B, 2, 1, 1), 9.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(B, 2, 0, 0), 5.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(B, 2, 0, 1), 6.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(B, 2, 1, 0), 8.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(B, 2, 1, 1), 9.0) == 0);
 
   return 0;
 }
@@ -532,10 +532,10 @@ int test_mat_block_set() {
   print_matrix("A", A, 3, 3);
   print_matrix("B", B, 2, 2);
 
-  MU_CHECK(fltcmp(mat_val(A, 3, 1, 1), 0.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 1, 2), 0.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 2, 1), 0.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 2, 2), 0.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 1, 1), 0.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 1, 2), 0.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 2, 1), 0.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 2, 2), 0.0) == 0);
 
   return 0;
 }
@@ -547,9 +547,9 @@ int test_mat_diag_get() {
 
   print_matrix("A", A, 3, 3);
   print_vector("d", d, 3);
-  MU_CHECK(fltcmp(d[0], 1.0) == 0);
-  MU_CHECK(fltcmp(d[1], 5.0) == 0);
-  MU_CHECK(fltcmp(d[2], 9.0) == 0);
+  MU_ASSERT(fltcmp(d[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(d[1], 5.0) == 0);
+  MU_ASSERT(fltcmp(d[2], 9.0) == 0);
 
   return 0;
 }
@@ -560,9 +560,9 @@ int test_mat_diag_set() {
   mat_diag_set(A, 3, 3, d);
 
   print_matrix("A", A, 3, 3);
-  MU_CHECK(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 1, 1), 2.0) == 0);
-  MU_CHECK(fltcmp(mat_val(A, 3, 2, 2), 3.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 1, 1), 2.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(A, 3, 2, 2), 3.0) == 0);
 
   return 0;
 }
@@ -603,7 +603,7 @@ int test_mat_trace() {
                   13.0, 14.0, 15.0, 16.0};
   /* clang-format on */
   const real_t tr = mat_trace(A, 4, 4);
-  MU_CHECK(fltcmp(tr, 1.0 + 6.0 + 11.0 + 16.0) == 0.0);
+  MU_ASSERT(fltcmp(tr, 1.0 + 6.0 + 11.0 + 16.0) == 0.0);
 
   return 0;
 }
@@ -704,9 +704,9 @@ int test_dot() {
   dot(A, 3, 3, B, 3, 1, C);
   print_vector("C", C, 3);
 
-  MU_CHECK(fltcmp(C[0], 14.0) == 0);
-  MU_CHECK(fltcmp(C[1], 32.0) == 0);
-  MU_CHECK(fltcmp(C[2], 50.0) == 0);
+  MU_ASSERT(fltcmp(C[0], 14.0) == 0);
+  MU_ASSERT(fltcmp(C[1], 32.0) == 0);
+  MU_ASSERT(fltcmp(C[2], 50.0) == 0);
 
   return 0;
 }
@@ -718,17 +718,17 @@ int test_skew() {
   skew(x, S);
   print_matrix("S", S, 3, 3);
 
-  MU_CHECK(fltcmp(S[0], 0.0) == 0);
-  MU_CHECK(fltcmp(S[1], -3.0) == 0);
-  MU_CHECK(fltcmp(S[2], 2.0) == 0);
+  MU_ASSERT(fltcmp(S[0], 0.0) == 0);
+  MU_ASSERT(fltcmp(S[1], -3.0) == 0);
+  MU_ASSERT(fltcmp(S[2], 2.0) == 0);
 
-  MU_CHECK(fltcmp(S[3], 3.0) == 0);
-  MU_CHECK(fltcmp(S[4], 0.0) == 0);
-  MU_CHECK(fltcmp(S[5], -1.0) == 0);
+  MU_ASSERT(fltcmp(S[3], 3.0) == 0);
+  MU_ASSERT(fltcmp(S[4], 0.0) == 0);
+  MU_ASSERT(fltcmp(S[5], -1.0) == 0);
 
-  MU_CHECK(fltcmp(S[6], -2.0) == 0);
-  MU_CHECK(fltcmp(S[7], 1.0) == 0);
-  MU_CHECK(fltcmp(S[8], 0.0) == 0);
+  MU_ASSERT(fltcmp(S[6], -2.0) == 0);
+  MU_ASSERT(fltcmp(S[7], 1.0) == 0);
+  MU_ASSERT(fltcmp(S[8], 0.0) == 0);
 
   return 0;
 }
@@ -750,7 +750,7 @@ int test_check_jacobian() {
                                 n,
                                 threshold,
                                 print);
-    MU_CHECK(retval == 0);
+    MU_ASSERT(retval == 0);
   }
 
   // Negative test
@@ -764,7 +764,7 @@ int test_check_jacobian() {
                                 n,
                                 threshold,
                                 print);
-    MU_CHECK(retval == -1);
+    MU_ASSERT(retval == -1);
   }
 
   return 0;
@@ -773,43 +773,6 @@ int test_check_jacobian() {
 /******************************************************************************
  * SVD
  ******************************************************************************/
-
-int test_svd() {
-  real_t A[M * N];
-  real_t A_orig[M * N];
-  for (int i = 0; i < (M * N); i++) {
-    A[i] = randf(0.0, 1.0);
-    A_orig[i] = A[i];
-  }
-
-  real_t d[N];
-  real_t V[N * N];
-  struct timespec t = tic();
-  int retval = svd(A, M, N, d, V);
-  printf("time taken: %fs\n", toc(&t));
-  if (retval != 0) {
-    printf("The algorithm computing SVD failed to converge.\n");
-    exit(1);
-  }
-
-  /* A = U * S * V_t */
-  real_t S[N * N];
-  mat_diag_set(S, N, N, d);
-
-  real_t US[M * N];
-  real_t USV[M * M];
-  real_t V_t[N * N];
-  mat_transpose(V, N, N, V_t);
-  dot(A, M, N, S, N, N, US);
-  dot(US, M, N, V_t, N, N, USV);
-
-  print_matrix("A", A_orig, M, N);
-  printf("\n");
-  print_matrix("USV", USV, M, N);
-  MU_CHECK(mat_equals(A_orig, USV, M, N, 1e-5) == 0);
-
-  return 0;
-}
 
 int test_lapack_svd() {
   /* clang-format off */
@@ -880,7 +843,7 @@ int test_chol() {
   }
 
   int retval = mat_equals(A, LLt, n, n, 1e-5);
-  MU_CHECK(retval == 0);
+  MU_ASSERT(retval == 0);
 
   return 0;
 }
@@ -902,9 +865,9 @@ int test_chol_solve() {
   printf("time taken: [%fs]\n", toc(&t));
   print_vector("x", x, n);
 
-  MU_CHECK(fltcmp(x[0], 1.0) == 0);
-  MU_CHECK(fltcmp(x[1], 1.0) == 0);
-  MU_CHECK(fltcmp(x[2], 1.0) == 0);
+  MU_ASSERT(fltcmp(x[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(x[1], 1.0) == 0);
+  MU_ASSERT(fltcmp(x[2], 1.0) == 0);
 
   return 0;
 }
@@ -950,9 +913,9 @@ int test_chol_solve2() {
   printf("time taken: [%fs]\n", toc(&t));
   print_vector("x", x, m);
 
-  /* MU_CHECK(fltcmp(x[0], 1.0) == 0); */
-  /* MU_CHECK(fltcmp(x[1], 1.0) == 0); */
-  /* MU_CHECK(fltcmp(x[2], 1.0) == 0); */
+  /* MU_ASSERT(fltcmp(x[0], 1.0) == 0); */
+  /* MU_ASSERT(fltcmp(x[1], 1.0) == 0); */
+  /* MU_ASSERT(fltcmp(x[2], 1.0) == 0); */
 
   return 0;
 }
@@ -972,25 +935,25 @@ int test_tf_rot_set() {
   tf_rot_set(T, C);
   /* print_matrix("T", T, 4, 4); */
 
-  MU_CHECK(fltcmp(T[0], 1.0) == 0);
-  MU_CHECK(fltcmp(T[1], 1.0) == 0);
-  MU_CHECK(fltcmp(T[2], 1.0) == 0);
-  MU_CHECK(fltcmp(T[3], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[1], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[2], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[3], 0.0) == 0);
 
-  MU_CHECK(fltcmp(T[4], 1.0) == 0);
-  MU_CHECK(fltcmp(T[5], 1.0) == 0);
-  MU_CHECK(fltcmp(T[6], 1.0) == 0);
-  MU_CHECK(fltcmp(T[7], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[4], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[5], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[6], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[7], 0.0) == 0);
 
-  MU_CHECK(fltcmp(T[8], 1.0) == 0);
-  MU_CHECK(fltcmp(T[9], 1.0) == 0);
-  MU_CHECK(fltcmp(T[10], 1.0) == 0);
-  MU_CHECK(fltcmp(T[11], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[8], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[9], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[10], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[11], 0.0) == 0);
 
-  MU_CHECK(fltcmp(T[12], 0.0) == 0);
-  MU_CHECK(fltcmp(T[13], 0.0) == 0);
-  MU_CHECK(fltcmp(T[14], 0.0) == 0);
-  MU_CHECK(fltcmp(T[15], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[12], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[13], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[14], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[15], 0.0) == 0);
 
   return 0;
 }
@@ -1002,25 +965,25 @@ int test_tf_trans_set() {
   tf_trans_set(T, r);
   /* print_matrix("T", T, 4, 4); */
 
-  MU_CHECK(fltcmp(T[0], 0.0) == 0);
-  MU_CHECK(fltcmp(T[1], 0.0) == 0);
-  MU_CHECK(fltcmp(T[2], 0.0) == 0);
-  MU_CHECK(fltcmp(T[3], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[0], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[1], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[2], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[3], 1.0) == 0);
 
-  MU_CHECK(fltcmp(T[4], 0.0) == 0);
-  MU_CHECK(fltcmp(T[5], 0.0) == 0);
-  MU_CHECK(fltcmp(T[6], 0.0) == 0);
-  MU_CHECK(fltcmp(T[7], 2.0) == 0);
+  MU_ASSERT(fltcmp(T[4], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[5], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[6], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[7], 2.0) == 0);
 
-  MU_CHECK(fltcmp(T[8], 0.0) == 0);
-  MU_CHECK(fltcmp(T[9], 0.0) == 0);
-  MU_CHECK(fltcmp(T[10], 0.0) == 0);
-  MU_CHECK(fltcmp(T[11], 3.0) == 0);
+  MU_ASSERT(fltcmp(T[8], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[9], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[10], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[11], 3.0) == 0);
 
-  MU_CHECK(fltcmp(T[12], 0.0) == 0);
-  MU_CHECK(fltcmp(T[13], 0.0) == 0);
-  MU_CHECK(fltcmp(T[14], 0.0) == 0);
-  MU_CHECK(fltcmp(T[15], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[12], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[13], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[14], 0.0) == 0);
+  MU_ASSERT(fltcmp(T[15], 0.0) == 0);
 
   return 0;
 }
@@ -1039,9 +1002,9 @@ int test_tf_trans_get() {
   tf_trans_get(T, r);
   print_vector("r", r, 3);
 
-  MU_CHECK(fltcmp(r[0], 4.0) == 0);
-  MU_CHECK(fltcmp(r[1], 8.0) == 0);
-  MU_CHECK(fltcmp(r[2], 12.0) == 0);
+  MU_ASSERT(fltcmp(r[0], 4.0) == 0);
+  MU_ASSERT(fltcmp(r[1], 8.0) == 0);
+  MU_ASSERT(fltcmp(r[2], 12.0) == 0);
 
   return 0;
 }
@@ -1061,17 +1024,17 @@ int test_tf_rot_get() {
   tf_rot_get(T, C);
   print_matrix("C", C, 3, 3);
 
-  MU_CHECK(fltcmp(C[0], 1.0) == 0);
-  MU_CHECK(fltcmp(C[1], 2.0) == 0);
-  MU_CHECK(fltcmp(C[2], 3.0) == 0);
+  MU_ASSERT(fltcmp(C[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(C[1], 2.0) == 0);
+  MU_ASSERT(fltcmp(C[2], 3.0) == 0);
 
-  MU_CHECK(fltcmp(C[3], 5.0) == 0);
-  MU_CHECK(fltcmp(C[4], 6.0) == 0);
-  MU_CHECK(fltcmp(C[5], 7.0) == 0);
+  MU_ASSERT(fltcmp(C[3], 5.0) == 0);
+  MU_ASSERT(fltcmp(C[4], 6.0) == 0);
+  MU_ASSERT(fltcmp(C[5], 7.0) == 0);
 
-  MU_CHECK(fltcmp(C[6], 9.0) == 0);
-  MU_CHECK(fltcmp(C[7], 10.0) == 0);
-  MU_CHECK(fltcmp(C[8], 11.0) == 0);
+  MU_ASSERT(fltcmp(C[6], 9.0) == 0);
+  MU_ASSERT(fltcmp(C[7], 10.0) == 0);
+  MU_ASSERT(fltcmp(C[8], 11.0) == 0);
 
   return 0;
 }
@@ -1100,9 +1063,9 @@ int test_tf_quat_get() {
   quat2euler(q, ypr_out);
   print_vector("ypr_out", ypr_out, 3);
 
-  MU_CHECK(fltcmp(rad2deg(ypr_out[0]), 10.0) == 0);
-  MU_CHECK(fltcmp(rad2deg(ypr_out[1]), 20.0) == 0);
-  MU_CHECK(fltcmp(rad2deg(ypr_out[2]), 30.0) == 0);
+  MU_ASSERT(fltcmp(rad2deg(ypr_out[0]), 10.0) == 0);
+  MU_ASSERT(fltcmp(rad2deg(ypr_out[1]), 20.0) == 0);
+  MU_ASSERT(fltcmp(rad2deg(ypr_out[2]), 30.0) == 0);
 
   return 0;
 }
@@ -1141,7 +1104,7 @@ int test_tf_inv() {
   int idx = 0;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      MU_CHECK(fltcmp(T_inv_inv[idx], T[idx]) == 0);
+      MU_ASSERT(fltcmp(T_inv_inv[idx], T[idx]) == 0);
     }
   }
 
@@ -1207,9 +1170,9 @@ int test_tf_perturb_rot() {
   print_matrix("T", T, 4, 4);
 
   /* Assert */
-  MU_CHECK(fltcmp(T[0], 1.0) == 0);
-  MU_CHECK(fltcmp(T[5], 1.0) != 0);
-  MU_CHECK(fltcmp(T[10], 1.0) != 0);
+  MU_ASSERT(fltcmp(T[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(T[5], 1.0) != 0);
+  MU_ASSERT(fltcmp(T[10], 1.0) != 0);
 
   return 0;
 }
@@ -1229,9 +1192,9 @@ int test_tf_perturb_trans() {
   print_matrix("T", T, 4, 4);
 
   /* Assert */
-  MU_CHECK(fltcmp(T[3], 1.01) == 0);
-  MU_CHECK(fltcmp(T[7], 2.0) == 0);
-  MU_CHECK(fltcmp(T[11], 3.0) == 0);
+  MU_ASSERT(fltcmp(T[3], 1.01) == 0);
+  MU_ASSERT(fltcmp(T[7], 2.0) == 0);
+  MU_ASSERT(fltcmp(T[11], 3.0) == 0);
 
   return 0;
 }
@@ -1298,7 +1261,7 @@ int test_quat2rot() {
   quat2rot(q, rot);
 
   for (int i = 0; i < 9; i++) {
-    MU_CHECK(fltcmp(C[i], rot[i]) == 0);
+    MU_ASSERT(fltcmp(C[i], rot[i]) == 0);
   }
 
   return 0;
@@ -1321,9 +1284,9 @@ int test_lie_Exp_Log() {
   print_matrix("C", C, 3, 3);
   print_vector("rvec", rvec, 3);
 
-  MU_CHECK(fltcmp(phi[0], rvec[0]) == 0);
-  MU_CHECK(fltcmp(phi[1], rvec[1]) == 0);
-  MU_CHECK(fltcmp(phi[2], rvec[2]) == 0);
+  MU_ASSERT(fltcmp(phi[0], rvec[0]) == 0);
+  MU_ASSERT(fltcmp(phi[1], rvec[1]) == 0);
+  MU_ASSERT(fltcmp(phi[2], rvec[2]) == 0);
 
   return 0;
 }
@@ -1407,7 +1370,7 @@ int test_linear_triangulation() {
     const real_t norm = vec_norm(diff, 3);
     /* print_vector("p_W [gnd]", p_W, 3); */
     /* print_vector("p_W [est]", p_W_est, 3); */
-    MU_CHECK(norm < 1e-4);
+    MU_ASSERT(norm < 1e-4);
   }
 
   return 0;
@@ -1585,7 +1548,7 @@ int test_equi4_params_jacobian() {
 
 int test_pinhole_focal() {
   const real_t focal = pinhole_focal(640, 90.0);
-  MU_CHECK(fltcmp(focal, 320.0) == 0);
+  MU_ASSERT(fltcmp(focal, 320.0) == 0);
   return 0;
 }
 
@@ -1594,17 +1557,17 @@ int test_pinhole_K() {
   real_t K[3 * 3] = {0};
   pinhole_K(params, K);
 
-  MU_CHECK(fltcmp(K[0], 1.0) == 0);
-  MU_CHECK(fltcmp(K[1], 0.0) == 0);
-  MU_CHECK(fltcmp(K[2], 3.0) == 0);
+  MU_ASSERT(fltcmp(K[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(K[1], 0.0) == 0);
+  MU_ASSERT(fltcmp(K[2], 3.0) == 0);
 
-  MU_CHECK(fltcmp(K[3], 0.0) == 0);
-  MU_CHECK(fltcmp(K[4], 2.0) == 0);
-  MU_CHECK(fltcmp(K[5], 4.0) == 0);
+  MU_ASSERT(fltcmp(K[3], 0.0) == 0);
+  MU_ASSERT(fltcmp(K[4], 2.0) == 0);
+  MU_ASSERT(fltcmp(K[5], 4.0) == 0);
 
-  MU_CHECK(fltcmp(K[6], 0.0) == 0);
-  MU_CHECK(fltcmp(K[7], 0.0) == 0);
-  MU_CHECK(fltcmp(K[8], 1.0) == 0);
+  MU_ASSERT(fltcmp(K[6], 0.0) == 0);
+  MU_ASSERT(fltcmp(K[7], 0.0) == 0);
+  MU_ASSERT(fltcmp(K[8], 1.0) == 0);
 
   return 0;
 }
@@ -1646,8 +1609,8 @@ int test_pinhole_projection_matrix() {
   pinhole_project(params, p_C, z_gnd);
 
   /* Assert */
-  MU_CHECK(fltcmp(z_gnd[0], z[0]) == 0);
-  MU_CHECK(fltcmp(z_gnd[1], z[1]) == 0);
+  MU_ASSERT(fltcmp(z_gnd[0], z[0]) == 0);
+  MU_ASSERT(fltcmp(z_gnd[1], z[1]) == 0);
 
   return 0;
 }
@@ -1666,8 +1629,8 @@ int test_pinhole_project() {
 
   /* print_vector("p_C", p_C, 3); */
   /* print_vector("z", z, 2); */
-  MU_CHECK(fltcmp(z[0], 320.0) == 0);
-  MU_CHECK(fltcmp(z[1], 240.0) == 0);
+  MU_ASSERT(fltcmp(z[0], 320.0) == 0);
+  MU_ASSERT(fltcmp(z[1], 240.0) == 0);
 
   return 0;
 }
@@ -1705,7 +1668,7 @@ int test_pinhole_point_jacobian() {
   }
 
   /* Assert */
-  MU_CHECK(check_jacobian("J_point", J_numdiff, J_point, 2, 2, tol, 0) == 0);
+  MU_ASSERT(check_jacobian("J_point", J_numdiff, J_point, 2, 2, tol, 0) == 0);
 
   return 0;
 }
@@ -1745,7 +1708,7 @@ int test_pinhole_params_jacobian() {
   }
 
   /* Assert */
-  MU_CHECK(check_jacobian("J_params", J_numdiff, J_params, 2, 4, tol, 0) == 0);
+  MU_ASSERT(check_jacobian("J_params", J_numdiff, J_params, 2, 4, tol, 0) == 0);
 
   return 0;
 }
@@ -1771,8 +1734,8 @@ int test_pinhole_radtan4_project() {
   pinhole_radtan4_project(params, p_C, x);
 
   /* print_vector("x", x, 2); */
-  MU_CHECK(fltcmp(x[0], 323.204000) == 0);
-  MU_CHECK(fltcmp(x[1], 166.406400) == 0);
+  MU_ASSERT(fltcmp(x[0], 323.204000) == 0);
+  MU_ASSERT(fltcmp(x[1], 166.406400) == 0);
 
   return 0;
 }
@@ -1817,7 +1780,7 @@ int test_pinhole_radtan4_project_jacobian() {
   /* Assert */
   /* print_matrix("J_numdiff", J_numdiff, 2, 3); */
   /* print_matrix("J", J, 2, 3); */
-  MU_CHECK(check_jacobian("J", J_numdiff, J, 2, 3, tol, 0) == 0);
+  MU_ASSERT(check_jacobian("J", J_numdiff, J, 2, 3, tol, 0) == 0);
 
   return 0;
 }
@@ -1864,7 +1827,7 @@ int test_pinhole_radtan4_params_jacobian() {
   /* Assert */
   /* print_matrix("J_numdiff", J_numdiff, 2, 8); */
   /* print_matrix("J_params", J_params, 2, 8); */
-  MU_CHECK(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
+  MU_ASSERT(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
 
   return 0;
 }
@@ -1890,8 +1853,8 @@ int test_pinhole_equi4_project() {
   pinhole_equi4_project(params, p_C, x);
 
   /* print_vector("x", x, 2); */
-  MU_CHECK(fltcmp(x[0], 323.199627) == 0);
-  MU_CHECK(fltcmp(x[1], 166.399254) == 0);
+  MU_ASSERT(fltcmp(x[0], 323.199627) == 0);
+  MU_ASSERT(fltcmp(x[1], 166.399254) == 0);
 
   return 0;
 }
@@ -1936,7 +1899,7 @@ int test_pinhole_equi4_project_jacobian() {
   /* Assert */
   /* print_matrix("J_numdiff", J_numdiff, 2, 3); */
   /* print_matrix("J", J, 2, 3); */
-  MU_CHECK(check_jacobian("J", J_numdiff, J, 2, 3, tol, 0) == 0);
+  MU_ASSERT(check_jacobian("J", J_numdiff, J, 2, 3, tol, 0) == 0);
 
   return 0;
 }
@@ -1983,7 +1946,7 @@ int test_pinhole_equi4_params_jacobian() {
   /* Assert */
   /* print_matrix("J_numdiff", J_numdiff, 2, 8); */
   /* print_matrix("J_params", J_params, 2, 8); */
-  MU_CHECK(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
+  MU_ASSERT(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
 
   return 0;
 }
@@ -1999,16 +1962,16 @@ int test_pose_setup() {
   real_t data[7] = {0.1, 0.2, 0.3, 1.1, 2.2, 3.3, 1.0};
   pose_setup(&pose, ts, data);
 
-  MU_CHECK(pose.ts == 1);
+  MU_ASSERT(pose.ts == 1);
 
-  MU_CHECK(fltcmp(pose.pos[0], 0.1) == 0.0);
-  MU_CHECK(fltcmp(pose.pos[1], 0.2) == 0.0);
-  MU_CHECK(fltcmp(pose.pos[2], 0.3) == 0.0);
+  MU_ASSERT(fltcmp(pose.pos[0], 0.1) == 0.0);
+  MU_ASSERT(fltcmp(pose.pos[1], 0.2) == 0.0);
+  MU_ASSERT(fltcmp(pose.pos[2], 0.3) == 0.0);
 
-  MU_CHECK(fltcmp(pose.quat[0], 1.0) == 0.0);
-  MU_CHECK(fltcmp(pose.quat[1], 1.1) == 0.0);
-  MU_CHECK(fltcmp(pose.quat[2], 2.2) == 0.0);
-  MU_CHECK(fltcmp(pose.quat[3], 3.3) == 0.0);
+  MU_ASSERT(fltcmp(pose.quat[0], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(pose.quat[1], 1.1) == 0.0);
+  MU_ASSERT(fltcmp(pose.quat[2], 2.2) == 0.0);
+  MU_ASSERT(fltcmp(pose.quat[3], 3.3) == 0.0);
 
   return 0;
 }
@@ -2020,19 +1983,19 @@ int test_speed_biases_setup() {
   real_t data[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   speed_biases_setup(&sb, ts, data);
 
-  MU_CHECK(sb.ts == 1);
+  MU_ASSERT(sb.ts == 1);
 
-  MU_CHECK(fltcmp(sb.data[0], 1.0) == 0.0);
-  MU_CHECK(fltcmp(sb.data[1], 2.0) == 0.0);
-  MU_CHECK(fltcmp(sb.data[2], 3.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[0], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[1], 2.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[2], 3.0) == 0.0);
 
-  MU_CHECK(fltcmp(sb.data[3], 4.0) == 0.0);
-  MU_CHECK(fltcmp(sb.data[4], 5.0) == 0.0);
-  MU_CHECK(fltcmp(sb.data[5], 6.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[3], 4.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[4], 5.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[5], 6.0) == 0.0);
 
-  MU_CHECK(fltcmp(sb.data[6], 7.0) == 0.0);
-  MU_CHECK(fltcmp(sb.data[7], 8.0) == 0.0);
-  MU_CHECK(fltcmp(sb.data[8], 9.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[6], 7.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[7], 8.0) == 0.0);
+  MU_ASSERT(fltcmp(sb.data[8], 9.0) == 0.0);
 
   return 0;
 }
@@ -2043,9 +2006,9 @@ int test_feature_setup() {
   real_t data[3] = {0.1, 0.2, 0.3};
   feature_setup(&feature, data);
 
-  MU_CHECK(fltcmp(feature.data[0], 0.1) == 0.0);
-  MU_CHECK(fltcmp(feature.data[1], 0.2) == 0.0);
-  MU_CHECK(fltcmp(feature.data[2], 0.3) == 0.0);
+  MU_ASSERT(fltcmp(feature.data[0], 0.1) == 0.0);
+  MU_ASSERT(fltcmp(feature.data[1], 0.2) == 0.0);
+  MU_ASSERT(fltcmp(feature.data[2], 0.3) == 0.0);
 
   return 0;
 }
@@ -2056,14 +2019,14 @@ int test_extrinsics_setup() {
   real_t data[7] = {1.0, 2.0, 3.0, 0.1, 0.2, 0.3, 1.0};
   extrinsics_setup(&extrinsics, data);
 
-  MU_CHECK(fltcmp(extrinsics.pos[0], 1.0) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.pos[1], 2.0) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.pos[2], 3.0) == 0.0);
+  MU_ASSERT(fltcmp(extrinsics.pos[0], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(extrinsics.pos[1], 2.0) == 0.0);
+  MU_ASSERT(fltcmp(extrinsics.pos[2], 3.0) == 0.0);
 
-  MU_CHECK(fltcmp(extrinsics.quat[0], 1.0) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.quat[1], 0.1) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.quat[2], 0.2) == 0.0);
-  MU_CHECK(fltcmp(extrinsics.quat[3], 0.3) == 0.0);
+  MU_ASSERT(fltcmp(extrinsics.quat[0], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(extrinsics.quat[1], 0.1) == 0.0);
+  MU_ASSERT(fltcmp(extrinsics.quat[2], 0.2) == 0.0);
+  MU_ASSERT(fltcmp(extrinsics.quat[3], 0.3) == 0.0);
 
   return 0;
 }
@@ -2122,7 +2085,7 @@ int test_pose_factor_eval() {
   print_matrix("r", r, 6, 1);
   print_matrix("J0", J0, 6, 3);
   print_matrix("J1", J1, 6, 3);
-  MU_CHECK(retval == 0);
+  MU_ASSERT(retval == 0);
 
   /* Check jacobians */
   real_t step_size = 1e-8;
@@ -2142,7 +2105,7 @@ int test_pose_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J0_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
 
   /* -- Check pose rotation jacobian */
   real_t J1_numdiff[2 * 3] = {0};
@@ -2158,7 +2121,7 @@ int test_pose_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J1_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
 
   return 0;
 }
@@ -2280,7 +2243,7 @@ int test_ba_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J0_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
 
   /* -- Check pose rotation jacobian */
   real_t J1_numdiff[2 * 3] = {0};
@@ -2296,7 +2259,7 @@ int test_ba_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J1_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
 
   /* -- Check feature jacobian */
   real_t J2_numdiff[2 * 3] = {0};
@@ -2312,7 +2275,7 @@ int test_ba_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J2_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J2", J2_numdiff, J2, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J2", J2_numdiff, J2, 2, 3, tol, 1) == 0);
 
   /* -- Check camera parameters jacobian */
   real_t J3_numdiff[2 * 8] = {0};
@@ -2328,7 +2291,7 @@ int test_ba_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J3_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J3", J3_numdiff, J3, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J3", J3_numdiff, J3, 2, 3, tol, 1) == 0);
 
   return 0;
 }
@@ -2539,7 +2502,7 @@ int test_cam_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J0_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
 
   /* -- Check pose rotation jacobian */
   real_t J1_numdiff[2 * 3] = {0};
@@ -2555,7 +2518,7 @@ int test_cam_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J1_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
 
   /* -- Check extrinsics position jacobian */
   real_t J2_numdiff[2 * 3] = {0};
@@ -2571,7 +2534,7 @@ int test_cam_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J2_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J2", J2_numdiff, J2, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J2", J2_numdiff, J2, 2, 3, tol, 1) == 0);
 
   /* -- Check extrinsics rotation jacobian */
   real_t J3_numdiff[2 * 3] = {0};
@@ -2587,7 +2550,7 @@ int test_cam_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J3_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J3", J3_numdiff, J3, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J3", J3_numdiff, J3, 2, 3, tol, 1) == 0);
 
   /* -- Check camera parameters jacobian */
   real_t J4_numdiff[2 * 8] = {0};
@@ -2603,7 +2566,7 @@ int test_cam_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J4_numdiff, 8, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J4", J4_numdiff, J4, 2, 8, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J4", J4_numdiff, J4, 2, 8, tol, 1) == 0);
 
   /* -- Check feature jacobian */
   real_t J5_numdiff[2 * 3] = {0};
@@ -2619,7 +2582,7 @@ int test_cam_factor_eval() {
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J5_numdiff, 3, 2, i, r_diff);
   }
-  MU_CHECK(check_jacobian("J5", J5_numdiff, J5, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J5", J5_numdiff, J5, 2, 3, tol, 1) == 0);
 
   return 0;
 }
@@ -2717,14 +2680,14 @@ int test_imu_buf_add() {
   imu_buf_add(&imu_buf, ts, acc, gyr);
   imu_buf_print(&imu_buf);
 
-  MU_CHECK(imu_buf.size == 1);
-  MU_CHECK(imu_buf.ts[0] == ts);
-  MU_CHECK(fltcmp(imu_buf.acc[0][0], 1.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.acc[0][1], 2.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.acc[0][2], 3.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.gyr[0][0], 1.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.gyr[0][1], 2.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.gyr[0][2], 3.0) == 0);
+  MU_ASSERT(imu_buf.size == 1);
+  MU_ASSERT(imu_buf.ts[0] == ts);
+  MU_ASSERT(fltcmp(imu_buf.acc[0][0], 1.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.acc[0][1], 2.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.acc[0][2], 3.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.gyr[0][0], 1.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.gyr[0][1], 2.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.gyr[0][2], 3.0) == 0);
 
   return 0;
 }
@@ -2739,14 +2702,14 @@ int test_imu_buf_clear() {
   imu_buf_add(&imu_buf, ts, acc, gyr);
   imu_buf_clear(&imu_buf);
 
-  MU_CHECK(imu_buf.size == 0);
-  MU_CHECK(imu_buf.ts[0] == 0);
-  MU_CHECK(fltcmp(imu_buf.acc[0][0], 0.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.acc[0][1], 0.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.acc[0][2], 0.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.gyr[0][0], 0.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.gyr[0][1], 0.0) == 0);
-  MU_CHECK(fltcmp(imu_buf.gyr[0][2], 0.0) == 0);
+  MU_ASSERT(imu_buf.size == 0);
+  MU_ASSERT(imu_buf.ts[0] == 0);
+  MU_ASSERT(fltcmp(imu_buf.acc[0][0], 0.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.acc[0][1], 0.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.acc[0][2], 0.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.gyr[0][0], 0.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.gyr[0][1], 0.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf.gyr[0][2], 0.0) == 0);
 
   return 0;
 }
@@ -2764,14 +2727,14 @@ int test_imu_buf_copy() {
   imu_buf_setup(&imu_buf2);
   imu_buf_copy(&imu_buf, &imu_buf2);
 
-  MU_CHECK(imu_buf2.size == 1);
-  MU_CHECK(imu_buf2.ts[0] == ts);
-  MU_CHECK(fltcmp(imu_buf2.acc[0][0], 1.0) == 0);
-  MU_CHECK(fltcmp(imu_buf2.acc[0][1], 2.0) == 0);
-  MU_CHECK(fltcmp(imu_buf2.acc[0][2], 3.0) == 0);
-  MU_CHECK(fltcmp(imu_buf2.gyr[0][0], 1.0) == 0);
-  MU_CHECK(fltcmp(imu_buf2.gyr[0][1], 2.0) == 0);
-  MU_CHECK(fltcmp(imu_buf2.gyr[0][2], 3.0) == 0);
+  MU_ASSERT(imu_buf2.size == 1);
+  MU_ASSERT(imu_buf2.ts[0] == ts);
+  MU_ASSERT(fltcmp(imu_buf2.acc[0][0], 1.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf2.acc[0][1], 2.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf2.acc[0][2], 3.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf2.gyr[0][0], 1.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf2.gyr[0][1], 2.0) == 0);
+  MU_ASSERT(fltcmp(imu_buf2.gyr[0][2], 3.0) == 0);
 
   return 0;
 }
@@ -2975,7 +2938,7 @@ int test_assoc_pose_data() {
 int test_load_sim_features() {
   const char *csv_file = TEST_SIM_DATA "/features.csv";
   sim_features_t *features_data = load_sim_features(csv_file);
-  MU_CHECK(features_data->nb_features > 0);
+  MU_ASSERT(features_data->nb_features > 0);
   free_sim_features(features_data);
   return 0;
 }
@@ -2995,9 +2958,9 @@ int test_load_sim_cam_frame() {
   const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
   sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
 
-  MU_CHECK(frame_data != NULL);
-  MU_CHECK(frame_data->ts == 100000000);
-  MU_CHECK(frame_data->feature_ids[0] == 1);
+  MU_ASSERT(frame_data != NULL);
+  MU_ASSERT(frame_data->ts == 100000000);
+  MU_ASSERT(frame_data->feature_ids[0] == 1);
 
   free_sim_cam_frame(frame_data);
 
