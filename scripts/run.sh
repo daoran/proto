@@ -68,7 +68,7 @@ memcheck() {
 # python3 proto/python/proto.py TestSimulation.test_sim_data
 # python3 proto/python/proto.py TestSimulation.test_sim_feature_tracker
 # python3 proto/python/proto.py TestViz.test_multiplot
-python3 proto/python/proto.py TestViz.test_server
+# python3 proto/python/proto.py TestViz.test_server
 
 ###############################################################################
 # C
@@ -76,153 +76,158 @@ python3 proto/python/proto.py TestViz.test_server
 
 # make format_code
 # ctags -R lib
-# time make
+time make clean
+time make build
 
-# cd ./build/bin
+run_test() {
+  cd ./proto/build/bin;
+  ./test_proto --target="$1"
+}
+
 # ./test_proto
 # PROTO-LOGGING
-# ./test_proto --target test_debug
-# ./test_proto --target test_log_error
-# ./test_proto --target test_log_warn
+# run_test test_debug
+run_test test_log_error
+# run_test test_log_warn
 # PROTO-FILE_SYSTEM
-# ./test_proto --target test_path_file_name
-# ./test_proto --target test_path_file_ext
-# ./test_proto --target test_path_dir_name
-# ./test_proto --target test_path_join
-# ./test_proto --target test_list_files
-# ./test_proto --target test_list_files_free
-# ./test_proto --target test_file_read
-#  ./test_proto --target test_file_copy
+# run_test test_path_file_name
+# run_test test_path_file_ext
+# run_test test_path_dir_name
+# run_test test_path_join
+# run_test test_list_files
+# run_test test_list_files_free
+# run_test test_file_read
+#  run_test test_file_copy
 # PROTO-DATA
-# ./test_proto --target test_malloc_string
-# ./test_proto --target test_dsv_rows
-# ./test_proto --target test_dsv_cols
-# ./test_proto --target test_dsv_fields
-# ./test_proto --target test_dsv_data
-# ./test_proto --target test_dsv_free
+# run_test test_malloc_string
+# run_test test_dsv_rows
+# run_test test_dsv_cols
+# run_test test_dsv_fields
+# run_test test_dsv_data
+# run_test test_dsv_free
 # PROTO-TIME
-# ./test_proto --target test_tic
-# ./test_proto --target test_toc
-# ./test_proto --target test_mtoc
-# ./test_proto --target test_time_now
+# run_test test_tic
+# run_test test_toc
+# run_test test_mtoc
+# run_test test_time_now
 # PROTO-MATHS
-# ./test_proto --target test_min
-# ./test_proto --target test_max
-# ./test_proto --target test_randf
-# ./test_proto --target test_deg2rad
-# ./test_proto --target test_rad2deg
-# ./test_proto --target test_fltcmp
-# ./test_proto --target test_fltcmp2
-# ./test_proto --target test_pythag
-# ./test_proto --target test_lerp
-# ./test_proto --target test_lerp3
-# ./test_proto --target test_sinc
-# ./test_proto --target test_mean
-# ./test_proto --target test_median
-# ./test_proto --target test_var
-# ./test_proto --target test_stddev
+# run_test test_min
+# run_test test_max
+# run_test test_randf
+# run_test test_deg2rad
+# run_test test_rad2deg
+# run_test test_fltcmp
+# run_test test_fltcmp2
+# run_test test_pythag
+# run_test test_lerp
+# run_test test_lerp3
+# run_test test_sinc
+# run_test test_mean
+# run_test test_median
+# run_test test_var
+# run_test test_stddev
 # PROTO-LINEAR_ALGEBRA
-# ./test_proto --target test_eye
-# ./test_proto --target test_ones
-# ./test_proto --target test_protos
-# ./test_proto --target test_mat_set
-# ./test_proto --target test_mat_val
-# ./test_proto --target test_mat_copy
-# ./test_proto --target test_mat_row_set
-# ./test_proto --target test_mat_col_set
-# ./test_proto --target test_mat_block_get
-# ./test_proto --target test_mat_block_set
-# ./test_proto --target test_mat_diag_get
-# ./test_proto --target test_mat_diag_set
-# ./test_proto --target test_mat_triu
-# ./test_proto --target test_mat_tril
-# ./test_proto --target test_mat_trace
-# ./test_proto --target test_mat_transpose
-# ./test_proto --target test_mat_add
-# ./test_proto --target test_mat_sub
-# ./test_proto --target test_mat_scale
-# ./test_proto --target test_vec_add
-# ./test_proto --target test_vec_sub
-# ./test_proto --target test_dot
-# ./test_proto --target test_skew
-# ./test_proto --target test_check_jacobian
+# run_test test_eye
+# run_test test_ones
+# run_test test_protos
+# run_test test_mat_set
+# run_test test_mat_val
+# run_test test_mat_copy
+# run_test test_mat_row_set
+# run_test test_mat_col_set
+# run_test test_mat_block_get
+# run_test test_mat_block_set
+# run_test test_mat_diag_get
+# run_test test_mat_diag_set
+# run_test test_mat_triu
+# run_test test_mat_tril
+# run_test test_mat_trace
+# run_test test_mat_transpose
+# run_test test_mat_add
+# run_test test_mat_sub
+# run_test test_mat_scale
+# run_test test_vec_add
+# run_test test_vec_sub
+# run_test test_dot
+# run_test test_skew
+# run_test test_check_jacobian
 # PROTO-SVD
-# ./test_proto --target test_svd
-# ./test_proto --target test_svdcomp
-# ./test_proto --target test_pinv
+# run_test test_svd
+# run_test test_svdcomp
+# run_test test_pinv
 # PROTO-CHOL
-# ./test_proto --target test_chol
-# ./test_proto --target test_chol_lls_solve
-# ./test_proto --target test_chol_lls_solve2
-# ./test_proto --target test_chol_Axb
+# run_test test_chol
+# run_test test_chol_lls_solve
+# run_test test_chol_lls_solve2
+# run_test test_chol_Axb
 # PROTO-TIME
 # PROTO-TRANSFORMS
-# ./test_proto --target test_tf_set_rot
-# ./test_proto --target test_tf_set_trans
-# ./test_proto --target test_tf_trans
-# ./test_proto --target test_tf_rot
-# ./test_proto --target test_tf_quat
-# ./test_proto --target test_tf_inv
-# ./test_proto --target test_tf_point
-# ./test_proto --target test_tf_hpoint
-# ./test_proto --target test_tf_perturb_rot
-# ./test_proto --target test_tf_perturb_trans
-# ./test_proto --target test_quat2rot
+# run_test test_tf_set_rot
+# run_test test_tf_set_trans
+# run_test test_tf_trans
+# run_test test_tf_rot
+# run_test test_tf_quat
+# run_test test_tf_inv
+# run_test test_tf_point
+# run_test test_tf_hpoint
+# run_test test_tf_perturb_rot
+# run_test test_tf_perturb_trans
+# run_test test_quat2rot
 # PROTO-POSE
-# ./test_proto --target test_pose_init
-# ./test_proto --target test_pose_set_get_quat
-# ./test_proto --target test_pose_set_get_trans
-# ./test_proto --target test_pose2tf
-# ./test_proto --target test_load_poses
+# run_test test_pose_init
+# run_test test_pose_set_get_quat
+# run_test test_pose_set_get_trans
+# run_test test_pose2tf
+# run_test test_load_poses
 # PROTO-CV
-# ./test_proto --target test_lie_Exp_Log
-# ./test_proto --target test_linear_triangulation
-# ./test_proto --target test_radtan4_distort
-# ./test_proto --target test_radtan4_point_jacobian
-# ./test_proto --target test_radtan4_params_jacobian
-# ./test_proto --target test_equi4_distort
-# ./test_proto --target test_equi4_point_jacobian
-# ./test_proto --target test_equi4_params_jacobian
-# ./test_proto --target test_pinhole_focal
-# ./test_proto --target test_pinhole_K
-# ./test_proto --target test_pinhole_project
-# ./test_proto --target test_pinhole_projection_matrix
-# ./test_proto --target test_pinhole_point_jacobian
-# ./test_proto --target test_pinhole_params_jacobian
-# ./test_proto --target test_pinhole_radtan4_project
-# ./test_proto --target test_pinhole_radtan4_project_jacobian
-# ./test_proto --target test_pinhole_radtan4_params_jacobian
-# ./test_proto --target test_pinhole_equi4_project
-# ./test_proto --target test_pinhole_equi4_project_jacobian
-# ./test_proto --target test_pinhole_equi4_params_jacobian
+# run_test test_lie_Exp_Log
+# run_test test_linear_triangulation
+# run_test test_radtan4_distort
+# run_test test_radtan4_point_jacobian
+# run_test test_radtan4_params_jacobian
+# run_test test_equi4_distort
+# run_test test_equi4_point_jacobian
+# run_test test_equi4_params_jacobian
+# run_test test_pinhole_focal
+# run_test test_pinhole_K
+# run_test test_pinhole_project
+# run_test test_pinhole_projection_matrix
+# run_test test_pinhole_point_jacobian
+# run_test test_pinhole_params_jacobian
+# run_test test_pinhole_radtan4_project
+# run_test test_pinhole_radtan4_project_jacobian
+# run_test test_pinhole_radtan4_params_jacobian
+# run_test test_pinhole_equi4_project
+# run_test test_pinhole_equi4_project_jacobian
+# run_test test_pinhole_equi4_params_jacobian
 # PROTO-SIM
-# memcheck ./test_proto --target test_load_sim_features
-# memcheck ./test_proto --target test_load_sim_imu_data
-# memcheck ./test_proto --target test_load_sim_cam_frame
-# memcheck ./test_proto --target test_load_sim_cam_data
+# memcheck run_test test_load_sim_features
+# memcheck run_test test_load_sim_imu_data
+# memcheck run_test test_load_sim_cam_frame
+# memcheck run_test test_load_sim_cam_data
 # PROTO-SF
-# ./test_proto --target test_pose_setup
-# ./test_proto --target test_speed_bias_setup
-# ./test_proto --target test_landmark_setup
-# ./test_proto --target test_extrinsics_setup
-# ./test_proto --target test_camera_setup
-# ./test_proto --target test_pose_factor_setup
-# ./test_proto --target test_pose_factor_eval
-# ./test_proto --target test_ba_factor_setup
-# ./test_proto --target test_ba_factor_eval
-# ./test_proto --target test_ba_factor_ceres_eval
-# ./test_proto --target test_cam_factor_setup
-# ./test_proto --target test_cam_factor_eval
-# ./test_proto --target test_cam_factor_ceres_eval
-# ./test_proto --target test_imu_buf_setup
-# ./test_proto --target test_imu_buf_add
-# ./test_proto --target test_imu_buf_clear
-# ./test_proto --target test_imu_buf_copy
-# ./test_proto --target test_imu_buf_print
-# ./test_proto --target test_ceres_solver
-# ./test_proto --target test_graph_setup
-# ./test_proto --target test_graph_print
-# memcheck ./test_proto --target test_graph_eval
+# run_test test_pose_setup
+# run_test test_speed_bias_setup
+# run_test test_landmark_setup
+# run_test test_extrinsics_setup
+# run_test test_camera_setup
+# run_test test_pose_factor_setup
+# run_test test_pose_factor_eval
+# run_test test_ba_factor_setup
+# run_test test_ba_factor_eval
+# run_test test_ba_factor_ceres_eval
+# run_test test_cam_factor_setup
+# run_test test_cam_factor_eval
+# run_test test_cam_factor_ceres_eval
+# run_test test_imu_buf_setup
+# run_test test_imu_buf_add
+# run_test test_imu_buf_clear
+# run_test test_imu_buf_copy
+# run_test test_imu_buf_print
+# run_test test_ceres_solver
+# run_test test_graph_setup
+# run_test test_graph_print
+# memcheck run_test test_graph_eval
 
 # valgrind --leak-check=full ./test_traj_eval
 # time ./test_traj_eval
