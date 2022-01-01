@@ -67,47 +67,44 @@
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
-#ifdef NDEBUG
-#define DEBUG(M, ...)
-#else
-#define DEBUG(M, ...) fprintf(stdout, "[DEBUG] " M "\n", ##__VA_ARGS__)
-#endif
+#define DEBUG(...)                                                             \
+  do {                                                                         \
+    fprintf(stderr, "[DEBUG] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0);
 
 /**
  * Log info
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
-#define LOG_INFO(M, ...)                                                       \
-  fprintf(stderr,                                                              \
-          "[INFO] [%s:%d] " M "\n",                                            \
-          __FILENAME__,                                                        \
-          __LINE__,                                                            \
-          ##__VA_ARGS__)
+#define LOG_INFO(...)                                                          \
+  do {                                                                         \
+    fprintf(stderr, "[INFO] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);    \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0)
 
 /**
  * Log error
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
-#define LOG_ERROR(M, ...)                                                      \
-  fprintf(stderr,                                                              \
-          KRED "[ERROR] [%s:%d] " M KNRM "\n",                                 \
-          __FILENAME__,                                                        \
-          __LINE__,                                                            \
-          ##__VA_ARGS__)
+#define LOG_ERROR(...)                                                         \
+  do {                                                                         \
+    fprintf(stderr, "[ERROR] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0)
 
 /**
  * Log warn
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
-#define LOG_WARN(M, ...)                                                       \
-  fprintf(stderr,                                                              \
-          KYEL "[WARN] [%s:%d] " M KNRM "\n",                                  \
-          __FILENAME__,                                                        \
-          __LINE__,                                                            \
-          ##__VA_ARGS__)
+#define LOG_WARN(...)                                                          \
+  do {                                                                         \
+    fprintf(stderr, "[WARN] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);    \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0)
 
 /**
  * Fatal
@@ -115,12 +112,11 @@
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
-#define FATAL(M, ...)                                                          \
-  fprintf(stdout,                                                              \
-          KRED "[FATAL] [%s:%d] " M KNRM "\n",                                 \
-          __FILENAME__,                                                        \
-          __LINE__,                                                            \
-          ##__VA_ARGS__);                                                      \
+#define FATAL(...)                                                             \
+  do {                                                                         \
+    fprintf(stderr, "[FATAL] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0);                                                                 \
   exit(-1)
 
 /**
@@ -213,6 +209,10 @@ void csv_free(real_t **data, const int nb_rows);
 
 // DARRAY //////////////////////////////////////////////////////////////////////
 
+#ifndef DEFAULT_EXPAND_RATE
+#define DEFAULT_EXPAND_RATE 300
+#endif
+
 typedef struct darray_t {
   int end;
   int max;
@@ -220,11 +220,6 @@ typedef struct darray_t {
   size_t expand_rate;
   void **contents;
 } darray_t;
-
-/* CONSTANTS */
-#ifndef DEFAULT_EXPAND_RATE
-#define DEFAULT_EXPAND_RATE 300
-#endif
 
 darray_t *darray_new(size_t element_size, size_t initial_max);
 void darray_destroy(darray_t *array);
@@ -248,11 +243,12 @@ int darray_contract(darray_t *array);
 
 // LIST ////////////////////////////////////////////////////////////////////////
 
-typedef struct list_node_t {
-  struct list_node_t *next;
-  struct list_node_t *prev;
+typedef struct list_node_t list_node_t;
+struct list_node_t {
+  list_node_t *next;
+  list_node_t *prev;
   void *value;
-} list_node_t;
+};
 
 typedef struct list_t {
   int length;
@@ -260,8 +256,7 @@ typedef struct list_t {
   list_node_t *last;
 } list_t;
 
-/* FUNCTIONS */
-list_t *list_new(void);
+list_t *list_new();
 void list_destroy(list_t *list);
 void list_clear(list_t *list);
 void list_clear_destroy(list_t *list);
@@ -280,7 +275,7 @@ int list_remove_destroy(list_t *list,
 
 // STACK ///////////////////////////////////////////////////////////////////////
 
-typedef struct stack_t_node_t {
+typedef struct stack_node_t {
   void *value;
   struct stack_node_t *next;
   struct stack_node_t *prev;
@@ -292,7 +287,7 @@ typedef struct stack_t {
   stack_node_t *end;
 } stack_t;
 
-stack_t *stack_new(void);
+stack_t *stack_new();
 void stack_destroy_traverse(stack_node_t *n, void (*free_func)(void *));
 void stack_clear_destroy(stack_t *s, void (*free_func)(void *));
 void stack_destroy(stack_t *s);
@@ -306,8 +301,7 @@ struct queue {
   list_t *queue;
 };
 
-/* FUNCTIONS */
-struct queue *queue_new(void);
+struct queue *queue_new();
 void queue_destroy(struct queue *q);
 int queue_enqueue(struct queue *q, void *data);
 void *queue_dequeue(struct queue *q);
@@ -317,12 +311,45 @@ int queue_full(struct queue *q);
 void *queue_first(struct queue *q);
 void *queue_last(struct queue *q);
 
+// HASHMAP /////////////////////////////////////////////////////////////////////
+
+#ifndef DEFEAULT_NUMBER_OF_BUCKETS
+#define DEFAULT_NUMBER_OF_BUCKETS 10000
+#endif
+
+typedef struct hashmap_node_t {
+  uint32_t hash;
+  void *key;
+  void *value;
+} hashmap_node_t;
+
+typedef struct hashmap_t {
+  darray_t *buckets;
+  int (*cmp)(void *, void *);
+  uint32_t (*hash)(void *);
+
+  int copy_kv;
+  void *(*k_copy)(void *);
+  void *(*v_copy)(void *);
+  void (*k_free)(void *);
+  void (*v_free)(void *);
+} hashmap_t;
+
+hashmap_t *hashmap_new();
+void hashmap_clear_destroy(hashmap_t *map);
+void hashmap_destroy(hashmap_t *map);
+int hashmap_set(hashmap_t *map, void *key, void *data);
+void *hashmap_get(hashmap_t *map, void *key);
+int hashmap_traverse(hashmap_t *map,
+                     int (*hashmap_traverse_cb)(hashmap_node_t *node));
+void *hashmap_delete(hashmap_t *map, void *key);
+
 /******************************************************************************
  * TIME
  ******************************************************************************/
 
 /** Timestamp Type */
-typedef uint64_t timestamp_t;
+typedef int64_t timestamp_t;
 
 struct timespec tic();
 float toc(struct timespec *tic);
@@ -508,8 +535,6 @@ void cblas_dot(const real_t *A,
 /******************************************************************************
  * SVD
  ******************************************************************************/
-
-int svd(real_t *A, const int m, const int n, real_t *w, real_t *V);
 
 #ifdef USE_LAPACK
 void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t);

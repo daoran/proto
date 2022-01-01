@@ -72,7 +72,7 @@ char *path_join(const char *x, const char *y) {
   } else {
     retval = malloc(sizeof(char) * (strlen(x) + strlen(y)) + 2);
     string_copy(retval, x);
-    strcat(retval + strlen(retval), "/");
+    string_cat(retval + strlen(retval), "/");
     string_copy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
   }
 
@@ -831,7 +831,9 @@ static inline int darray_resize(darray_t *array, size_t new_max) {
 
   /* Reallocate new memory */
   void *contents = realloc(array->contents, new_max * sizeof(void *));
-  CHECK_MEM(contents);
+  if (contents == NULL) {
+    return -1;
+  }
   array->contents = contents;
 
   /* Initialize new memory to NULL */
@@ -840,8 +842,6 @@ static inline int darray_resize(darray_t *array, size_t new_max) {
   }
 
   return 0;
-error:
-  return -1;
 }
 
 int darray_expand(darray_t *array) {
@@ -876,7 +876,7 @@ int darray_contract(darray_t *array) {
 
 // LIST ////////////////////////////////////////////////////////////////////////
 
-list_t *list_new(void) {
+list_t *list_new() {
   list_t *list = calloc(1, sizeof(list_t));
   list->length = 0;
   list->first = NULL;
@@ -934,7 +934,9 @@ void list_push(list_t *list, void *value) {
 
   /* Initialize node */
   list_node_t *node = calloc(1, sizeof(list_node_t));
-  CHECK_MEM(node);
+  if (node == NULL) {
+    return;
+  }
   node->value = value;
 
   /* Push node */
@@ -948,8 +950,6 @@ void list_push(list_t *list, void *value) {
   }
 
   list->length++;
-error:
-  return;
 }
 
 void *list_pop(list_t *list) {
@@ -1027,7 +1027,9 @@ void list_unshift(list_t *list, void *value) {
 
   /* unshift */
   list_node_t *node = calloc(1, sizeof(list_node_t));
-  CHECK_MEM(node);
+  if (node == NULL) {
+    return;
+  }
   node->value = value;
 
   if (list->first == NULL) {
@@ -1040,9 +1042,6 @@ void list_unshift(list_t *list, void *value) {
   }
 
   list->length++;
-
-error:
-  return;
 }
 
 void *list_remove(list_t *list,
@@ -1104,7 +1103,7 @@ int list_remove_destroy(list_t *list,
 
 // STACK ///////////////////////////////////////////////////////////////////////
 
-stack_t *stack_new(void) {
+stack_t *stack_new() {
   stack_t *s = malloc(sizeof(stack_t));
   s->size = 0;
   s->root = NULL;
@@ -1181,7 +1180,7 @@ void *stack_pop(stack_t *s) {
 
 // QUEUE ///////////////////////////////////////////////////////////////////////
 
-struct queue *queue_new(void) {
+struct queue *queue_new() {
   struct queue *q = calloc(1, sizeof(struct queue));
   q->queue = list_new();
   q->count = 0;
@@ -1229,6 +1228,300 @@ void *queue_last(struct queue *q) {
     return q->queue->last->value;
   }
   return NULL;
+}
+
+// HASHMAP /////////////////////////////////////////////////////////////////////
+
+static inline int default_cmp(void *a, void *b) { return strcmp(a, b); }
+
+static uint32_t default_hash(void *a) {
+  /* simple bob jenkins's hash algorithm */
+  char *k = a;
+  uint32_t hash = 0;
+  for (uint32_t i = 0; i < strlen(a); i++) {
+    hash += (uint32_t) k[i];
+    hash += (hash << 10);
+    hash ^= (hash >> 6);
+  }
+
+  hash += (hash << 3);
+  hash ^= (hash >> 11);
+  hash += (hash << 15);
+
+  return hash;
+}
+
+static inline void *default_key_copy(void *target) {
+  return string_malloc(target);
+}
+
+static inline void *default_value_copy(void *target) {
+  return string_malloc(target);
+}
+
+hashmap_t *hashmap_new() {
+  hashmap_t *map = malloc(sizeof(hashmap_t));
+  if (map == NULL) {
+    return NULL;
+  }
+
+  /* Create bucket */
+  map->buckets = darray_new(sizeof(darray_t *), DEFAULT_NUMBER_OF_BUCKETS);
+  map->buckets->end = map->buckets->max; // fake out expanding it
+  if (map->buckets) {
+    free(map);
+    return NULL;
+  }
+
+  /* Set comparator and hash functions */
+  map->cmp = default_cmp;
+  map->hash = default_hash;
+
+  /* Set key and value copy functions */
+  map->copy_kv = 1;
+  map->k_copy = default_key_copy;
+  map->v_copy = default_value_copy;
+  map->k_free = free;
+  map->v_free = free;
+
+  return map;
+}
+
+static void free_bucket(darray_t *bucket) {
+  assert(bucket != NULL);
+
+  for (int i = 0; i < bucket->end; i++) {
+    hashmap_node_t *n = darray_get(bucket, i);
+    free(n);
+  }
+
+  darray_destroy(bucket);
+}
+
+static void clear_free_bucket(hashmap_t *map, darray_t *bucket) {
+  assert(map != NULL);
+  assert(bucket != NULL);
+
+  /* Clear free bucket */
+  for (int i = 0; i < bucket->end; i++) {
+    hashmap_node_t *n = darray_get(bucket, i);
+    map->k_free(n->key);
+    map->k_free(n->value);
+    free(n);
+  }
+
+  darray_destroy(bucket);
+}
+
+static void free_buckets(hashmap_t *map) {
+  assert(map != NULL);
+
+  /* Free buckets */
+  for (int i = 0; i < map->buckets->end; i++) {
+    darray_t *bucket = darray_get(map->buckets, i);
+
+    if (bucket) {
+      if (map->copy_kv) {
+        clear_free_bucket(map, bucket);
+      } else {
+        free_bucket(bucket);
+      }
+    }
+  }
+
+  darray_destroy(map->buckets);
+}
+
+void hashmap_clear_destroy(hashmap_t *map) {
+  if (map) {
+    if (map->buckets) {
+      free_buckets(map);
+    }
+    free(map);
+  }
+}
+
+void hashmap_destroy(hashmap_t *map) {
+  if (map) {
+    if (map->buckets) {
+      free_buckets(map);
+    }
+    free(map);
+  }
+}
+
+static hashmap_node_t *hashmap_node_new(uint32_t h, void *k, void *v) {
+  assert(k != NULL);
+  assert(v != NULL);
+
+  /* Setup */
+  hashmap_node_t *node = calloc(1, sizeof(hashmap_node_t));
+  if (node == NULL) {
+    return NULL;
+  }
+
+  /* Create hashmap node */
+  node->key = k;
+  node->value = v;
+  node->hash = h;
+
+  return node;
+}
+
+static darray_t *
+hashmap_find_bucket(hashmap_t *map, void *k, int create, uint32_t *hash_out) {
+  assert(map != NULL);
+  assert(k != NULL);
+  assert(hash_out != NULL);
+
+  /* Pre-check */
+  uint32_t hash = map->hash(k);
+  int bucket_n = hash % DEFAULT_NUMBER_OF_BUCKETS;
+  if ((bucket_n >= 0) == 0) {
+    return NULL;
+  }
+  *hash_out = hash; /* Store it for return so caller can use it */
+
+  /* Find bucket */
+  darray_t *bucket = darray_get(map->buckets, bucket_n);
+
+  /* Coundn't find bucket, create one instead */
+  if (!bucket && create) {
+    /* New bucket, set it up */
+    bucket = darray_new(sizeof(void *), DEFAULT_NUMBER_OF_BUCKETS);
+    if (bucket == NULL) {
+      return NULL;
+    }
+    darray_set(map->buckets, bucket_n, bucket);
+  }
+
+  return bucket;
+}
+
+int hashmap_set(hashmap_t *map, void *k, void *v) {
+  assert(map != NULL);
+  assert(map->k_copy != NULL);
+  assert(map->v_copy != NULL);
+  assert(k != NULL);
+  assert(v != NULL);
+
+  /* Pre-check */
+  uint32_t hash = 0;
+  darray_t *bucket = hashmap_find_bucket(map, k, 1, &hash);
+  if (bucket == NULL) {
+    return -1;
+  }
+
+  /* set hashmap  */
+  hashmap_node_t *node = hashmap_node_new(hash, map->k_copy(k), map->v_copy(v));
+  if (node == NULL) {
+    return -1;
+  }
+  darray_push(bucket, node);
+
+  return 0;
+}
+
+static inline int
+hashmap_get_node(hashmap_t *map, uint32_t hash, darray_t *bucket, void *k) {
+  assert(map != NULL);
+  assert(bucket != NULL);
+  assert(k != NULL);
+
+  for (int i = 0; i < bucket->end; i++) {
+    hashmap_node_t *node = darray_get(bucket, i);
+    if (node->hash == hash && map->cmp(node->key, k) == 0) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+void *hashmap_get(hashmap_t *map, void *k) {
+  assert(map != NULL);
+  assert(k != NULL);
+
+  /* Find bucket */
+  uint32_t hash = 0;
+  darray_t *bucket = hashmap_find_bucket(map, k, 0, &hash);
+  if (bucket == NULL) {
+    return NULL;
+  }
+
+  /* Find hashmap node */
+  int i = hashmap_get_node(map, hash, bucket, k);
+  if (i == -1) {
+    return NULL;
+  }
+
+  /* Get value */
+  hashmap_node_t *node = darray_get(bucket, i);
+  if (node == NULL) {
+    return NULL;
+  }
+
+  return node->value;
+}
+
+int hashmap_traverse(hashmap_t *map,
+                     int (*hashmap_traverse_cb)(hashmap_node_t *)) {
+  assert(map != NULL);
+  assert(hashmap_traverse_cb != NULL);
+
+  /* Traverse */
+  int rc = 0;
+  for (int i = 0; i < map->buckets->end; i++) {
+    darray_t *bucket = darray_get(map->buckets, i);
+
+    if (bucket) {
+      for (int j = 0; j < bucket->end; j++) {
+        hashmap_node_t *node = darray_get(bucket, j);
+        rc = hashmap_traverse_cb(node);
+
+        if (rc != 0) {
+          return rc;
+        }
+      }
+    }
+  }
+
+  return 0;
+}
+
+void *hashmap_delete(hashmap_t *map, void *k) {
+  assert(map != NULL);
+  assert(k != NULL);
+
+  /* Find bucket containing hashmap node */
+  uint32_t hash = 0;
+  darray_t *bucket = hashmap_find_bucket(map, k, 0, &hash);
+  if (bucket == NULL) {
+    return NULL;
+  }
+
+  /* From bucket get hashmap node and free it */
+  int i = hashmap_get_node(map, hash, bucket, k);
+  if (i == -1) {
+    return NULL;
+  }
+
+  /* Get node */
+  hashmap_node_t *node = darray_get(bucket, i);
+  void *v = node->value;
+  if (map->copy_kv) {
+    map->k_free(node->key);
+  }
+  free(node);
+
+  /* Check to see if last element in bucket is a node */
+  hashmap_node_t *ending = darray_pop(bucket);
+  if (ending != node) {
+    /* Alright looks like it's not the last one, swap it */
+    darray_set(bucket, i, ending);
+  }
+
+  return v;
 }
 
 /******************************************************************************
@@ -2527,278 +2820,6 @@ void cblas_dot(const real_t *A,
 /******************************************************************************
  * SVD
  ******************************************************************************/
-
-/**
- * SVD decomposition
-
- * Takes a `m x n` matrix `A` and decomposes it into `UDV`, where `U`, `V` are
- * left and right orthogonal transformation matrices, and `D` is a diagonal
- * matrix of singular values.
- *
- * The input matrix `A` to be decomposed, gets overwritten with `U`. Where `w`
- * is the singular values of `A` and `V` is the right orthogonal transformation
- * matrix.
- *
- * This routine is adapted from svdecomp.c in XLISP-STAT 2.1 which is code from
- * Numerical Recipes adapted by Luke Tierney and David Betz.
- *
- * @returns
- * - 0 for success
- * - -1 for failure
- */
-int svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
-  /* assert(m < n); */
-  int flag, i, its, j, jj, k, l, nm;
-  real_t c, f, h, s, x, y, z;
-  real_t anorm = 0.0, g = 0.0, scale = 0.0;
-
-  /* Householder reduction to bidiagonal form */
-  real_t *rv1 = malloc(sizeof(real_t) * n);
-  for (i = 0; i < n; i++) {
-    /* left-hand reduction */
-    l = i + 1;
-    rv1[i] = scale * g;
-    g = s = scale = 0.0;
-    if (i < m) {
-      for (k = i; k < m; k++) {
-        scale += fabs(A[k * n + i]);
-      }
-
-      if (scale) {
-        for (k = i; k < m; k++) {
-          A[k * n + i] = (A[k * n + i] / scale);
-          s += (A[k * n + i] * A[k * n + i]);
-        }
-
-        f = A[i * n + i];
-        g = -SIGN2(sqrt(s), f);
-        h = f * g - s;
-        A[i * n + i] = (f - g);
-
-        if (i != n - 1) {
-          for (j = l; j < n; j++) {
-            for (s = 0.0, k = i; k < m; k++) {
-              s += (A[k * n + i] * A[k * n + j]);
-            }
-            f = s / h;
-            for (k = i; k < m; k++) {
-              A[k * n + j] += (f * A[k * n + i]);
-            }
-          }
-        }
-
-        for (k = i; k < m; k++) {
-          A[k * n + i] = (A[k * n + i] * scale);
-        }
-      }
-    }
-    w[i] = (scale * g);
-
-    /* right-hand reduction */
-    g = s = scale = 0.0;
-    if (i < m && i != n - 1) {
-      for (k = l; k < n; k++) {
-        scale += fabs(A[i * n + k]);
-      }
-
-      if (scale) {
-        for (k = l; k < n; k++) {
-          A[i * n + k] = (A[i * n + k] / scale);
-          s += (A[i * n + k] * A[i * n + k]);
-        }
-
-        f = A[i * n + l];
-        g = -SIGN2(sqrt(s), f);
-        h = f * g - s;
-        A[i * n + l] = (f - g);
-
-        for (k = l; k < n; k++) {
-          rv1[k] = A[i * n + k] / h;
-        }
-
-        if (i != m - 1) {
-          for (j = l; j < m; j++) {
-            for (s = 0.0, k = l; k < n; k++) {
-              s += (A[j * n + k] * A[i * n + k]);
-            }
-            for (k = l; k < n; k++) {
-              A[j * n + k] += (s * rv1[k]);
-            }
-          }
-        }
-        for (k = l; k < n; k++)
-          A[i * n + k] = (A[i * n + k] * scale);
-      }
-    }
-    anorm = MAX(anorm, (fabs(w[i]) + fabs(rv1[i])));
-  }
-
-  /* Accumulate the right-hand transformation */
-  for (i = n - 1; i >= 0; i--) {
-    if (i < n - 1) {
-      if (g) {
-        for (j = l; j < n; j++) {
-          V[j * n + i] = ((A[i * n + j] / A[i * n + l]) / g);
-        }
-        /* real_t division to avoid underflow */
-        for (j = l; j < n; j++) {
-          for (s = 0.0, k = l; k < n; k++) {
-            s += (A[i * n + k] * V[k * n + j]);
-          }
-          for (k = l; k < n; k++) {
-            V[k * n + j] += (s * V[k * n + i]);
-          }
-        }
-      }
-      for (j = l; j < n; j++) {
-        V[i * n + j] = V[j * n + i] = 0.0;
-      }
-    }
-    V[i * n + i] = 1.0;
-    g = rv1[i];
-    l = i;
-  }
-
-  /* accumulate the left-hand transformation */
-  for (i = n - 1; i >= 0; i--) {
-    l = i + 1;
-    g = w[i];
-    if (i < n - 1) {
-      for (j = l; j < n; j++) {
-        A[i * n + j] = 0.0;
-      }
-    }
-    if (g) {
-      g = 1.0 / g;
-      if (i != n - 1) {
-        for (j = l; j < n; j++) {
-          for (s = 0.0, k = l; k < m; k++) {
-            s += (A[k * n + i] * A[k * n + j]);
-          }
-          f = (s / A[i * n + i]) * g;
-
-          for (k = i; k < m; k++) {
-            A[k * n + j] += (f * A[k * n + i]);
-          }
-        }
-      }
-      for (j = i; j < m; j++) {
-        A[j * n + i] = (A[j * n + i] * g);
-      }
-    } else {
-      for (j = i; j < m; j++) {
-        A[j * n + i] = 0.0;
-      }
-    }
-    ++A[i * n + i];
-  }
-
-  /* diagonalize the bidiagonal form */
-  for (k = n - 1; k >= 0; k--) {     /* loop over singular values */
-    for (its = 0; its < 30; its++) { /* loop over allowed iterations */
-      flag = 1;
-      for (l = k; l >= 0; l--) { /* test for splitting */
-        nm = l - 1;
-        if (fabs(rv1[l]) + anorm == anorm) {
-          flag = 0;
-          break;
-        }
-        if (fabs(w[nm]) + anorm == anorm)
-          break;
-      }
-      if (flag) {
-        c = 0.0;
-        s = 1.0;
-        for (i = l; i <= k; i++) {
-          f = s * rv1[i];
-          if (fabs(f) + anorm != anorm) {
-            g = w[i];
-            h = pythag(f, g);
-            w[i] = h;
-            h = 1.0 / h;
-            c = g * h;
-            s = (-f * h);
-            for (j = 0; j < m; j++) {
-              y = A[j * n + nm];
-              z = A[j * n + i];
-              A[j * n + nm] = y * c + z * s;
-              A[j * n + i] = z * c - y * s;
-            }
-          }
-        }
-      }
-      z = w[k];
-      if (l == k) {    /* convergence */
-        if (z < 0.0) { /* make singular value nonnegative */
-          w[k] = (-z);
-          for (j = 0; j < n; j++)
-            V[j * n + k] = (-V[j * n + k]);
-        }
-        break;
-      }
-      if (its >= 30) {
-        free((void *) rv1);
-        fprintf(stderr, "No convergence after 30,000! iterations \n");
-        return (0);
-      }
-
-      /* Shift from bottom 2 x 2 minor */
-      x = w[l];
-      nm = k - 1;
-      y = w[nm];
-      g = rv1[nm];
-      h = rv1[k];
-      f = ((y - z) * (y + z) + (g - h) * (g + h)) / (2.0 * h * y);
-      g = pythag(f, 1.0);
-      f = ((x - z) * (x + z) + h * ((y / (f + SIGN2(g, f))) - h)) / x;
-
-      /* next QR transformation */
-      c = s = 1.0;
-      for (j = l; j <= nm; j++) {
-        i = j + 1;
-        g = rv1[i];
-        y = w[i];
-        h = s * g;
-        g = c * g;
-        z = pythag(f, h);
-        rv1[j] = z;
-        c = f / z;
-        s = h / z;
-        f = x * c + g * s;
-        g = g * c - x * s;
-        h = y * s;
-        y = y * c;
-        for (jj = 0; jj < n; jj++) {
-          x = V[(jj * n) + j];
-          z = V[(jj * n) + i];
-          V[jj * n + j] = x * c + z * s;
-          V[jj * n + i] = z * c - x * s;
-        }
-        z = pythag(f, h);
-        w[j] = z;
-        if (z) {
-          z = 1.0 / z;
-          c = f * z;
-          s = h * z;
-        }
-        f = (c * g) + (s * y);
-        x = (c * y) - (s * g);
-        for (jj = 0; jj < m; jj++) {
-          y = A[jj * n + j];
-          z = A[jj * n + i];
-          A[jj * n + j] = (y * c + z * s);
-          A[jj * n + i] = (z * c - y * s);
-        }
-      }
-      rv1[l] = 0.0;
-      rv1[k] = f;
-      w[k] = x;
-    }
-  }
-
-  free(rv1);
-  return 0;
-}
 
 #ifdef USE_LAPACK
 void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t) {
@@ -6279,6 +6300,7 @@ sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
   /* Open csv file */
   FILE *csv_file = fopen(csv_path, "r");
   if (csv_file == NULL) {
+    free(csv_path);
     return NULL;
   }
 
