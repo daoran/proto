@@ -19,7 +19,7 @@ memcheck() {
 ###############################################################################
 
 # cd python && ctags proto.py && cd -
-# python3 proto/python/proto.py
+python3 proto/python/proto.py
 # python3 proto/python/proto.py TestLinearAlgebra
 # python3 proto/python/proto.py TestTransform
 # python3 proto/python/proto.py TestTransform.test_quat2rot
@@ -51,7 +51,6 @@ memcheck() {
 # python3 proto/python/proto.py TestFeatureTracker.test_detect_overlaps
 # python3 proto/python/proto.py TestFeatureTracker.test_detect_nonoverlaps
 # python3 proto/python/proto.py TestFeatureTracker.test_detect_new
-# python3 proto/python/proto.py TestFeatureTracker.test_initialize
 # python3 proto/python/proto.py TestFeatureTracker.test_update
 # python3 proto/python/proto.py TestTracker
 # python3 proto/python/proto.py TestTracker.test_tracker_process_features
@@ -76,18 +75,26 @@ memcheck() {
 
 # make format_code
 # ctags -R lib
-time make clean
-time make build
+# time make clean
+# time make build
 
-run_test() {
+run_all_tests() {
+  time make build
   cd ./proto/build/bin;
-  ./test_proto --target="$1"
+  ./test_proto
 }
 
-# ./test_proto
+run_test() {
+  time make build
+  cd ./proto/build/bin;
+  ./test_proto --target "$1"
+}
+
+# PROTO
+# run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
-run_test test_log_error
+# run_test test_log_error
 # run_test test_log_warn
 # PROTO-FILE_SYSTEM
 # run_test test_path_file_name
@@ -105,6 +112,27 @@ run_test test_log_error
 # run_test test_dsv_fields
 # run_test test_dsv_data
 # run_test test_dsv_free
+# PROTO-DATA-STRUCTURE
+# run_test test_darray_new_and_destroy
+# run_test test_darray_push_pop
+# run_test test_darray_contains
+# run_test test_darray_copy
+# run_test test_darray_new_element
+# run_test test_darray_set_and_get
+# run_test test_darray_update
+# run_test test_darray_remove
+# run_test test_darray_expand_and_contract
+# run_test test_list_new_and_destroy
+# run_test test_list_push_pop
+# run_test test_list_shift
+# run_test test_list_unshift
+# run_test test_list_remove
+# run_test test_list_remove_destroy
+# run_test test_stack_new_and_destroy
+# run_test test_stack_push
+# run_test test_stack_pop
+# run_test test_queue_new_and_destroy
+# run_test test_queue_enqueue_dequeue
 # PROTO-TIME
 # run_test test_tic
 # run_test test_toc
