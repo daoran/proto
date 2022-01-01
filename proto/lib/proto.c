@@ -407,18 +407,27 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays) {
   return array;
 }
 
+/**
+ * Allocate heap memory for integer `val`.
+ */
 int *int_malloc(const int val) {
   int *i = malloc(sizeof(int));
   *i = val;
   return i;
 }
 
+/**
+ * Allocate heap memory for float `val`.
+ */
 float *float_malloc(const float val) {
   float *f = malloc(sizeof(float));
   *f = val;
   return f;
 }
 
+/**
+ * Allocate heap memory for double `val`.
+ */
 double *double_malloc(const double val) {
   double *d = malloc(sizeof(double));
   *d = val;
@@ -973,17 +982,16 @@ void list_push(list_t *list, void *value) {
 void *list_pop(list_t *list) {
   assert(list != NULL);
 
-  /* get last */
+  /* Get last */
   list_node_t *last = list->last;
   if (last == NULL) {
     return NULL;
   }
-
   void *value = last->value;
   list_node_t *before_last = last->prev;
   free(last);
 
-  /* pop */
+  /* Pop */
   if (before_last == NULL && list->length == 1) {
     list->last = NULL;
     list->first = NULL;
@@ -1024,14 +1032,10 @@ void *list_pop_front(list_t *list) {
 
 void *list_shift(list_t *list) {
   assert(list != NULL);
-  void *value;
-  list_node_t *first;
-  list_node_t *second;
 
-  /* shift */
-  first = list->first;
-  value = first->value;
-  second = list->first->next;
+  list_node_t *first = list->first;
+  void *value = first->value;
+  list_node_t *second = list->first->next;
 
   list->first = second;
   list->length--;
@@ -1043,7 +1047,6 @@ void *list_shift(list_t *list) {
 void list_unshift(list_t *list, void *value) {
   assert(list != NULL);
 
-  /* unshift */
   list_node_t *node = calloc(1, sizeof(list_node_t));
   if (node == NULL) {
     return;
@@ -1069,31 +1072,31 @@ void *list_remove(list_t *list,
   assert(value != NULL);
   assert(cmp != NULL);
 
-  /* iterate list */
+  /* Iterate list */
   list_node_t *node = list->first;
   while (node != NULL) {
 
-    /* compare target with node value */
+    /* Compare target with node value */
     if (cmp(node->value, value) == 0) {
       value = node->value;
 
       if (list->length == 1) {
-        /* last node in list */
+        /* Last node in list */
         list->first = NULL;
         list->last = NULL;
 
       } else if (node == list->first) {
-        /* first node in list */
+        /* First node in list */
         list->first = node->next;
         node->next->prev = NULL;
 
       } else if (node == list->last) {
-        /* in the case of removing last node in list */
+        /* In the case of removing last node in list */
         list->last = node->prev;
         node->prev->next = NULL;
 
       } else {
-        /* remove others */
+        /* Remove others */
         node->prev->next = node->next;
         node->next->prev = node->prev;
       }
@@ -1134,7 +1137,6 @@ void stack_destroy_traverse(stack_node_t *n, void (*free_func)(void *)) {
     stack_destroy_traverse(n->next, free_func);
   }
   if (free_func) {
-    printf("HERE\n");
     free_func(n->value);
   }
   free(n);
@@ -1287,7 +1289,7 @@ hashmap_t *hashmap_new() {
   /* Create bucket */
   map->buckets = darray_new(sizeof(darray_t *), DEFAULT_NUMBER_OF_BUCKETS);
   map->buckets->end = map->buckets->max; // fake out expanding it
-  if (map->buckets) {
+  if (map->buckets == NULL) {
     free(map);
     return NULL;
   }

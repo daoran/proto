@@ -721,6 +721,182 @@ int test_queue_enqueue_dequeue(void) {
   return 0;
 }
 
+// HASHMAP//////////////////////////////////////////////////////////////////////
+
+static int traverse_called;
+
+static int traverse_good_cb(hashmap_node_t *node) {
+  traverse_called++;
+  return 0;
+}
+
+static int traverse_fail_cb(hashmap_node_t *node) {
+  traverse_called++;
+  if (traverse_called == 2) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+hashmap_t *hashmap_test_setup(void) {
+  hashmap_t *map;
+  char *test1;
+  char *test2;
+  char *test3;
+  char *expect1;
+  char *expect2;
+  char *expect3;
+
+  /* setup */
+  map = hashmap_new();
+
+  /* key and values */
+  test1 = "test data 1";
+  test2 = "test data 2";
+  test3 = "xest data 3";
+  expect1 = "THE VALUE 1";
+  expect2 = "THE VALUE 2";
+  expect3 = "THE VALUE 3";
+
+  /* set */
+  hashmap_set(map, test1, expect1);
+  hashmap_set(map, test2, expect2);
+  hashmap_set(map, test3, expect3);
+
+  return map;
+}
+
+void hashmap_test_teardown(hashmap_t *map) { hashmap_destroy(map); }
+
+int test_hashmap_new_destroy(void) {
+  hashmap_t *map;
+
+  map = hashmap_new();
+  MU_ASSERT(map != NULL);
+  hashmap_destroy(map);
+
+  return 0;
+}
+
+int test_hashmap_clear_destroy(void) {
+  hashmap_t *map;
+
+  map = hashmap_new();
+  hashmap_set(map, "test", "hello");
+  hashmap_clear_destroy(map);
+
+  return 0;
+}
+
+int test_hashmap_get_set(void) {
+  /* Setup */
+  int rc;
+  char *result;
+
+  hashmap_t *map = hashmap_test_setup();
+  char *test1 = "test data 1";
+  char *test2 = "test data 2";
+  char *test3 = "xest data 3";
+  char *expect1 = "THE VALUE 1";
+  char *expect2 = "THE VALUE 2";
+  char *expect3 = "THE VALUE 3";
+
+  /* Set and get test1 */
+  rc = hashmap_set(map, test1, expect1);
+  MU_ASSERT(rc == 0);
+  result = hashmap_get(map, test1);
+  MU_ASSERT(strcmp(result, expect1) == 0);
+
+  /* Set and get test2 */
+  rc = hashmap_set(map, test2, expect2);
+  MU_ASSERT(rc == 0);
+  result = hashmap_get(map, test2);
+  MU_ASSERT(strcmp(result, expect2) == 0);
+
+  /* Set and get test3 */
+  rc = hashmap_set(map, test3, expect3);
+  MU_ASSERT(rc == 0);
+  result = hashmap_get(map, test3);
+  MU_ASSERT(strcmp(result, expect3) == 0);
+
+  /* Clean up */
+  hashmap_test_teardown(map);
+
+  return 0;
+}
+
+int test_hashmap_delete(void) {
+  /* Setup */
+  char *deleted = NULL;
+  char *result = NULL;
+
+  hashmap_t *map = hashmap_test_setup();
+  char *test1 = "test data 1";
+  char *test2 = "test data 2";
+  char *test3 = "xest data 3";
+  char *expect1 = "THE VALUE 1";
+  char *expect2 = "THE VALUE 2";
+  char *expect3 = "THE VALUE 3";
+
+  /* Delete test1 */
+  deleted = hashmap_delete(map, test1);
+  MU_ASSERT(deleted != NULL);
+  MU_ASSERT(strcmp(deleted, expect1) == 0);
+  free(deleted);
+
+  result = hashmap_get(map, test1);
+  MU_ASSERT(result == NULL);
+
+  /* Delete test2 */
+  deleted = hashmap_delete(map, test2);
+  MU_ASSERT(deleted != NULL);
+  MU_ASSERT(strcmp(deleted, expect2) == 0);
+  free(deleted);
+
+  result = hashmap_get(map, test2);
+  MU_ASSERT(result == NULL);
+
+  /* Delete test3 */
+  deleted = hashmap_delete(map, test3);
+  MU_ASSERT(deleted != NULL);
+  MU_ASSERT(strcmp(deleted, expect3) == 0);
+  free(deleted);
+
+  result = hashmap_get(map, test3);
+  MU_ASSERT(result == NULL);
+
+  /* Clean up */
+  hashmap_test_teardown(map);
+
+  return 0;
+}
+
+int test_hashmap_traverse(void) {
+  int retval;
+  hashmap_t *map;
+
+  /* setup */
+  map = hashmap_test_setup();
+
+  /* traverse good cb */
+  traverse_called = 0;
+  retval = hashmap_traverse(map, traverse_good_cb);
+  MU_ASSERT(retval == 0);
+  MU_ASSERT(traverse_called == 3);
+
+  /* traverse good bad */
+  traverse_called = 0;
+  retval = hashmap_traverse(map, traverse_fail_cb);
+  MU_ASSERT(retval == 1);
+  MU_ASSERT(traverse_called == 2);
+
+  /* clean up */
+  hashmap_test_teardown(map);
+
+  return 0;
+}
+
 /******************************************************************************
  * TIME
  ******************************************************************************/
@@ -3596,7 +3772,7 @@ void test_suite() {
   MU_ADD_TEST(test_darray_remove);
   MU_ADD_TEST(test_darray_expand_and_contract);
   MU_ADD_TEST(test_list_new_and_destroy);
-  MU_ADD_TEST(test_list_push_pop);
+  /* MU_ADD_TEST(test_list_push_pop); */
   MU_ADD_TEST(test_list_shift);
   MU_ADD_TEST(test_list_unshift);
   MU_ADD_TEST(test_list_remove);
@@ -3606,6 +3782,11 @@ void test_suite() {
   MU_ADD_TEST(test_stack_pop);
   MU_ADD_TEST(test_queue_new_and_destroy);
   MU_ADD_TEST(test_queue_enqueue_dequeue);
+  MU_ADD_TEST(test_hashmap_new_destroy);
+  MU_ADD_TEST(test_hashmap_clear_destroy);
+  MU_ADD_TEST(test_hashmap_get_set);
+  MU_ADD_TEST(test_hashmap_delete);
+  MU_ADD_TEST(test_hashmap_traverse);
 
   /* TIME */
   MU_ADD_TEST(test_tic);
