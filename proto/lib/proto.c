@@ -784,7 +784,7 @@ darray_t *darray_copy(darray_t *array) {
   /* Copy the rest of the elements */
   for (int i = 1; i < array->end; i++) {
     el = darray_get(array, i);
-    el_copy = NULL;
+    /* el_copy = NULL; */
 
     if (el != NULL) {
       memcpy(el_copy, el, array->element_size);
@@ -917,7 +917,7 @@ void list_destroy(list_t *list) {
   list_node_t *node;
   list_node_t *next_node;
 
-  /* destroy */
+  /* Destroy */
   node = list->first;
   while (node != NULL) {
     next_node = node->next;
@@ -1256,7 +1256,7 @@ void *queue_last(queue_t *q) {
 static inline int default_cmp(void *a, void *b) { return strcmp(a, b); }
 
 static uint32_t default_hash(void *a) {
-  /* simple bob jenkins's hash algorithm */
+  /* Simple bob jenkins's hash algorithm */
   char *k = a;
   uint32_t hash = 0;
   for (uint32_t i = 0; i < strlen(a); i++) {
@@ -1433,7 +1433,7 @@ int hashmap_set(hashmap_t *map, void *k, void *v) {
     return -1;
   }
 
-  /* set hashmap  */
+  /* Set hashmap  */
   hashmap_node_t *node = hashmap_node_new(hash, map->k_copy(k), map->v_copy(v));
   if (node == NULL) {
     return -1;

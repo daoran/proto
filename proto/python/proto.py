@@ -130,6 +130,57 @@ def rmse(errors):
   return np.sqrt(np.mean(errors**2))
 
 
+# function [r_ellipse, X0, Y0] = error_ellipse_2d(x, y, chisq_val=0)
+#   % -- Calculate the eigenvectors and eigenvalues
+#   data = [x y];
+#   covariance = cov(data);
+#   [eigenvec, eigenval] = eig(covariance);
+#
+#   % -- Get the index of the largest eigenvector
+#   [largest_eigenvec_ind_c, r] = find(eigenval == max(max(eigenval)));
+#   largest_eigenvec = eigenvec(:, largest_eigenvec_ind_c);
+#
+#   % -- Get the largest eigenvalue
+#   largest_eigenval = max(max(eigenval));
+#
+#   % -- Get the smallest eigenvector and eigenvalue
+#   if (largest_eigenvec_ind_c == 1)
+#     smallest_eigenval = max(eigenval(:,2))
+#     smallest_eigenvec = eigenvec(:,2);
+#   else
+#     smallest_eigenval = max(eigenval(:,1))
+#     smallest_eigenvec = eigenvec(1,:);
+#   end
+#
+#   % Calculate the angle between the x-axis and the largest eigenvector
+#   angle = atan2(largest_eigenvec(2), largest_eigenvec(1));
+#   % -- This angle is between -pi and pi.
+#   % -- Let's shift it such that the angle is between 0 and 2pi
+#   if (angle < 0)
+#     angle = angle + 2*pi;
+#   end
+#   % -- Get the coordinates of the data mean
+#   avg = mean(data);
+#   X0 = avg(1);
+#   Y0 = avg(2);
+#   % -- Get the 95% confidence interval error ellipse
+#   if chisq_val == 0
+#     chisq_val = sqrt(5.99);  % 95% confidence level
+#     % chisq_val = sqrt(4.61);  % 90% confidence level
+#   endif
+#   theta_grid = linspace(0, 2*pi);
+#   phi = angle;
+#   a = chisq_val * sqrt(largest_eigenval);
+#   b = chisq_val * sqrt(smallest_eigenval);
+#   % -- Ellipse in x and y coordinates
+#   ellipse_x_r  = a*cos( theta_grid );
+#   ellipse_y_r  = b*sin( theta_grid );
+#   % -- Define a rotation matrix
+#   R = [ cos(phi) sin(phi); -sin(phi) cos(phi) ];
+#   % -- Let's rotate the ellipse to some angle phi
+#   r_ellipse = [ellipse_x_r; ellipse_y_r]' * R;
+# endfunction
+
 ###############################################################################
 # LINEAR ALGEBRA
 ###############################################################################
@@ -3479,6 +3530,208 @@ class FactorGraph:
       self.params[param_id].param = param.param
 
 
+# KALMAN FILTER ################################################################
+
+
+class KalmanFilter:
+  """
+  Kalman Filter
+
+  Predict
+  x = F * x + B * u;
+  P = F * P * F' + G * Q * G';
+
+  Update
+  y = z - H * x
+  K = P * T' * inv(T * P * T' + R);
+  x = x + K * y;
+  P = (I - K * T) * P * (I - K * T)' + K * R * K';
+  """
+
+  def __init__(self):
+    pass
+
+
+# MSCKF ########################################################################
+
+
+class MSCKF:
+  """ Multi-State Constraint Kalman Filter """
+
+  def __init__(self):
+    # Settings
+    self.window_size = 5
+    # -- IMU
+    self.imu_rate = 200.0
+    # -- Process noise
+    self.sigma_na = 0.01
+    self.sigma_nw = 0.01
+    self.sigma_ba = 0.01
+    self.sigma_bg = 0.01
+
+    # Stats
+    self.prev_ts = 0.0
+
+    # State Vector [r, v, q, ba, bg]
+    self.state_r_WS = np.array([0.0, 0.0, 0.0])
+    self.state_v_WS = np.array([0.0, 0.0, 0.0])
+    self.state_C_WS = eye(3)
+    self.state_ba = np.array([0.0, 0.0, 0.0])
+    self.state_bg = np.array([0.0, 0.0, 0.0])
+    self.state_g = np.array([0, 0, 9.81])
+
+    # State Jacobian and covariance
+    self.F = eye(15)
+    self.P = eye(15)
+
+    # Process noise matrix Q
+    self.Q = zeros((12, 12))
+    self.Q[0:3, 0:3] = self.sigma_na**2 * eye(3)
+    self.Q[3:6, 3:6] = self.sigma_nw**2 * eye(3)
+    self.Q[6:9, 6:9] = self.sigma_ba**2 * eye(3)
+    self.Q[9:12, 9:12] = self.sigma_bg**2 * eye(3)
+
+    # Features
+    self.features = {}
+
+  def prediction_update(self, ts, a_m, w_m):
+    """ Prediction update """
+    # Setup
+    v_WS_k = self.state_v_WS
+    C_WS_k = self.state_C_WS
+    q_WS_k = rot2quat(C_WS_k)
+    ba = self.state_ba
+    bg = self.state_bg
+    g = self.state_g
+    dt = 1.0 / self.imu_rate
+
+    # Prediction update via Runge-Kutta 4th Order
+    a = a_m - ba
+    w = w_m - bg
+    # -- Integrate orientation at time k + dt (kpdt: k plus dt)
+    q_WS_kpdt = quat_integrate(q_WS_k, w, dt)
+    C_WS_kpdt = quat2rot(q_WS_kpdt)
+    # -- Integrate orientation at time k + dt / 2 (kphdt: k plus half dt)
+    q_WS_kphdt = quat_integrate(q_WS_k, w, dt / 2.0)
+    C_WS_kphdt = quat2rot(q_WS_kphdt)
+    # -- k1 = f(tn, yn)
+    k1_v_dot = C_WS_k @ a - g
+    k1_p_dot = v_WS_k
+    # -- k2 = f(tn + dt / 2, yn + k1 * dt / 2)
+    k2_v_dot = C_WS_kphdt @ a - g
+    k2_p_dot = v_WS_k + k1_v_dot * dt / 2.0
+    # -- k3 = f(tn + dt / 2, yn + k2 * dt / 2)
+    k3_v_dot = C_WS_kphdt @ a - g
+    k3_p_dot = v_WS_k + k2_v_dot * dt / 2.0
+    # -- k4 = f(tn + dt, tn + k3 * dt)
+    k4_v_dot = C_WS_kpdt @ a - g
+    k4_p_dot = v_WS_k + k3_v_dot * dt
+    # -- Update predicted state
+    self.state_r_WS += dt / 6.0 * (
+        k1_p_dot + 2.0 * k2_p_dot + 2.0 * k3_p_dot + k4_p_dot)
+    self.state_v_WS += dt / 6.0 * (
+        k1_v_dot + 2.0 * k2_v_dot + 2.0 * k3_v_dot + k4_v_dot)
+    self.state_C_WS = C_WS_kpdt
+
+    # Jacobian of process model w.r.t. error vector - F
+    F = zeros((15, 15))
+    F[0:3, 3:6] = eye(3)
+    F[3:6, 6:9] = -1.0 * self.state_C_WS @ skew(a)
+    F[3:6, 9:12] = -1.0 * self.state_C_WS
+    F[6:9, 6:9] = -1.0 * skew(w)
+    F[6:9, 13:15] = -eye(3)
+
+    # Jacobian of process model w.r.t. impulse vector - G
+    G = zeros((15, 12))
+    G[3:6, 0:3] = -1.0 * self.state_C_WS
+    G[6:9, 3:6] = -eye(3)
+    G[9:12, 6:9] = eye(3)
+    G[13:15, 9:12] = eye(3)
+
+    # State covariance matrix P
+    G_dt = G * dt
+    I_F_dt = eye(15) + F * dt
+    self.F = I_F_dt @ self.F
+    self.P = I_F_dt @ self.P @ I_F_dt.T + G_dt @ self.Q @ G_dt.T
+    self.prev_ts = ts
+
+  # def augment_state(self):
+  #   T_WS = tf(self.C_WS, self.r_WS)
+  #   T_SC = tf(self.C_WS, self.r_WS)
+  #
+  #   r_SC = tf_trans(T_SC)
+  #   C_SC = tf_rot(T_SC)
+  #   C_WS = tf_rot(T_WS)
+  #
+  #   J = zeros(6, 15 + self.window_size)
+  #   J[0:3, 0:3] = C_SC
+  #   J[3:6, 0:3] = skew(C_WS @ r_SC)
+  #
+  #   P_aug = np.block([eye(6 * self.window_size + 15), J])
+  #   self.P = P_aug @ self.P @ P_aug.T
+  #
+  # def feature_jacobian(self, ts, feature_ids, keypoints):
+  #   # Get camera pose in world frame
+  #   T_WS = tf(self.C_WS, self.r_WS)
+  #   T_SC = tf(self.C_SC, self.r_SC)
+  #   T_WC = T_WS @ T_SC
+  #
+  #   # Transform feature position to image point z_hat
+  #   p_W = self.features[feature_id]
+  #   p_C = tf_point(inv(T_WC), p_W)
+  #   C_WC = tf_rot(T_WC)
+  #   z_hat = np.array([p_C(1) / p_C(3), p_C(2) / p_C(3)])
+  #
+  #   # Form residual
+  #   r = z - z_hat
+  #
+  #   # Form jacobians
+  #   J_i = 1.0 / p_C(3) * np.array(
+  #       [1.0, 0.0, -p_C(1) / p_C(3), 0.0, 1.0, -p_C(2) / p_C(3)])
+  #   H_x = [J_i * skew(p_C), -J_i * skew(C_WC)]
+  #   H_f = J_i * skew(C_WC)
+  #
+  #   # Project residuals and feature Jacobian to Null Space of state Jacobian
+  #   [U, S, V] = svd(H_f)
+  #   A = U[:, 0:(2 * nb_cam_states)]
+  #   r = A.T * H_f
+  #   H_x = A.T * H_x
+  #
+  #   return (r, H_x)
+  #
+  # def measurement_jacobian(msckf, ts, feature_ids, keypoints):
+  #   # Iterate over all features currently tracking and form a measurement
+  #   # jacobian
+  #   H_x = []  # State jacobian
+  #   H_f = []  # Feature jacobian
+  #
+  #   # for i, fid in enumerate(feature_ids):
+  #   #   feature_id = feature_ids(i)
+  #   #   z = keypoints{i}
+  #   return (r, H_x)
+  #
+  # def measurement_update(self, ts, feature_ids, keypoints):
+  #   self.augment_state()
+  #
+  #   # Marginalize out feature jacobians and residuals via QR decomposition
+  #   H = []
+  #   r = []
+  #   [Q, R] = qr(H)
+  #   H_thin = (Q.T @ H)[0:(15 + 6 * nb_cam_states), 1:end]
+  #   r_thin = (Q.T @ r)[0:(15 + 6 * nb_cam_states)]
+  #
+  #   # Calculate update
+  #   # K = P * T.T * inv(T * P * T.T + R)
+  #   K = self.P @ H_thin.T @ inv(H_thin @ self.P @ H_thin.T + self.R)
+  #   dx = K @ r_thin
+  #
+  #   # Update state-vector
+  #
+  #   # Update state-covariance
+  #   I_KH = (eye() - K @ H_thin)
+  #   self.P = I_KH @ self.P @ I_KH.T + K @ self.R @ K.T
+
+
 # FEATURE TRACKING #############################################################
 
 
@@ -5498,6 +5751,8 @@ class CarrotController:
 import websockets
 import asyncio
 
+from subprocess import Popen, PIPE
+
 
 class DevServer:
   """ Dev server """
@@ -5506,6 +5761,16 @@ class DevServer:
     self.host = "127.0.0.1"
     self.port = 5000
     self.loop_fn = loop_fn
+
+  def __del__(self):
+    process = Popen([f"lsof", "-i", ":{self.port}"], stdout=PIPE, stderr=PIPE)
+    stdout, _ = process.communicate()
+    for process in str(stdout.decode("utf-8")).split("\n")[1:]:
+      data = [x for x in process.split(" ") if x != '']
+      if len(data) <= 1:
+        continue
+      print(f"killing {data[1]}")
+      os.kill(int(data[1]), signal.SIGKILL)
 
   def run(self):
     """ Run server """
