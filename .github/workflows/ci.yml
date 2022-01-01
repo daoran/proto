@@ -13,7 +13,7 @@ jobs:
       run: make build
 
     - name: Run tests
-      run: make run_tests
+      run: make tests
 
     # - name: Build ROS interface
     #   run: make ros

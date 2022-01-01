@@ -7,7 +7,6 @@ CATKIN_WS=~/catkin_ws
 help:
 	@echo "\033[1;34m[make targets]:\033[0m"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| sort \
 		| awk 'BEGIN {FS = ":.*?## "}; \
 			{printf "\033[1;36m%-15s\033[0m%s\n", $$1, $$2}'
 
@@ -24,7 +23,7 @@ debug: ## Build in debug mode
 build: ## Build in release mode
 	@cd proto && make -s lib
 
-run_tests: release  ## Run unit-tests
+tests: release  ## Run unit-tests
 	@cd proto && make -s run_tests
 
 install: ## Install proto
