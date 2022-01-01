@@ -653,7 +653,7 @@ darray_t *darray_new(size_t element_size, size_t initial_max) {
   array->element_size = element_size;
   array->expand_rate = DEFAULT_EXPAND_RATE;
   array->contents = calloc(initial_max, sizeof(void *));
-  if (array->contents) {
+  if (array->contents == NULL) {
     free(array);
     return NULL;
   }
@@ -1793,6 +1793,33 @@ real_t deg2rad(const real_t d) { return d * (M_PI / 180.0); }
 real_t rad2deg(const real_t r) { return r * (180.0 / M_PI); }
 
 /**
+ * Compare ints.
+ * @returns
+ * - 0 if v1 == v2
+ * - 1 if v1 > v2
+ * - -1 if v1 < v2
+ */
+int intcmp(const int x, int y) {
+  if (x > y) {
+    return 1;
+  } else if (x < y) {
+    return -1;
+  }
+  return 0;
+}
+
+/**
+ Compare ints.
+ * @returns
+ * - 0 if v1 == v2
+ * - 1 if v1 > v2
+ * - -1 if v1 < v2
+ */
+int intcmp2(const void *x, const void *y) {
+  return intcmp(*(int *) x, *(int *) y);
+}
+
+/**
  * Compare reals.
  * @returns
  * - 0 if x == y
@@ -1819,15 +1846,14 @@ int fltcmp(const real_t x, const real_t y) {
 int fltcmp2(const void *x, const void *y) {
   assert(x != NULL);
   assert(y != NULL);
+  return fltcmp(*(real_t *) x, *(real_t *) y);
+}
 
-  const real_t diff = (*(real_t *) x - *(real_t *) y);
-  if (fabs(diff) < CMP_TOL) {
-    return 0;
-  } else if (diff > 0) {
-    return 1;
-  }
-
-  return -1;
+/**
+ * Compare strings.
+ */
+int strcmp2(const void *x, const void *y) {
+  return strcmp((char *) x, (char *) y);
 }
 
 /**

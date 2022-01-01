@@ -214,7 +214,7 @@ int mu_run_python(const char *script_path) {
 #define MU_ASSERT(TEST)                                                        \
   do {                                                                         \
     if ((TEST) == 0) {                                                         \
-      printf(MU_RED "ERROR!" MU_NRM " [%s:%d] %s\n",                           \
+      printf(MU_RED "ERROR!" MU_NRM " [%s:%d] %s FAILED!\n",                   \
              __func__,                                                         \
              __LINE__,                                                         \
              #TEST);                                                           \

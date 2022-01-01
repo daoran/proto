@@ -296,20 +296,20 @@ void *stack_pop(stack_t *s);
 
 // QUEUE ///////////////////////////////////////////////////////////////////////
 
-struct queue {
+typedef struct queue_t {
   int count;
   list_t *queue;
-};
+} queue_t;
 
-struct queue *queue_new();
-void queue_destroy(struct queue *q);
-int queue_enqueue(struct queue *q, void *data);
-void *queue_dequeue(struct queue *q);
-int queue_count(struct queue *q);
-int queue_empty(struct queue *q);
-int queue_full(struct queue *q);
-void *queue_first(struct queue *q);
-void *queue_last(struct queue *q);
+queue_t *queue_new();
+void queue_destroy(queue_t *q);
+int queue_enqueue(queue_t *q, void *data);
+void *queue_dequeue(queue_t *q);
+int queue_count(queue_t *q);
+int queue_empty(queue_t *q);
+int queue_full(queue_t *q);
+void *queue_first(queue_t *q);
+void *queue_last(queue_t *q);
 
 // HASHMAP /////////////////////////////////////////////////////////////////////
 
@@ -419,8 +419,11 @@ int tcp_client_loop(tcp_client_t *client);
 float randf(float a, float b);
 real_t deg2rad(const real_t d);
 real_t rad2deg(const real_t r);
+int intcmp(const int x, const int y);
+int intcmp2(const void *x, const void *y);
 int fltcmp(const real_t x, const real_t y);
 int fltcmp2(const void *x, const void *y);
+int strcmp2(const void *x, const void *y);
 real_t pythag(const real_t a, const real_t b);
 real_t lerp(const real_t a, const real_t b, const real_t t);
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);

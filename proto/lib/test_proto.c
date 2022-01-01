@@ -218,6 +218,514 @@ int test_csv_data() {
 }
 
 /******************************************************************************
+ * DATA-STRUCTURE
+ ******************************************************************************/
+
+// DARRAY //////////////////////////////////////////////////////////////////////
+
+int test_darray_new_and_destroy(void) {
+  darray_t *array = darray_new(sizeof(int), 100);
+
+  MU_ASSERT(array != NULL);
+  MU_ASSERT(array->contents != NULL);
+  MU_ASSERT(array->end == 0);
+  MU_ASSERT(array->element_size == sizeof(int));
+  MU_ASSERT(array->max == 100);
+
+  darray_destroy(array);
+  return 0;
+}
+
+int test_darray_push_pop(void) {
+  darray_t *test_darray = darray_new(sizeof(int), 100);
+
+  /* test push */
+  for (int i = 0; i < 1000; i++) {
+    int *val = darray_new_element(test_darray);
+    *val = i * 333;
+    darray_push(test_darray, val);
+  }
+  MU_ASSERT(test_darray->max == 1300);
+
+  /* test pop */
+  for (int i = 999; i >= 0; i--) {
+    int *val = darray_pop(test_darray);
+    MU_ASSERT(val != NULL);
+    MU_ASSERT(*val == i * 333);
+    free(val);
+  }
+
+  darray_clear_destroy(test_darray);
+  return 0;
+}
+
+int test_darray_contains(void) {
+  darray_t *test_darray = darray_new(sizeof(int), 100);
+
+  /* set element in array */
+  int *val = darray_new_element(test_darray);
+  *val = 99;
+  darray_set(test_darray, 0, val);
+
+  /* test contains */
+  int res = darray_contains(test_darray, val, intcmp2);
+  MU_ASSERT(res == 1);
+
+  darray_clear_destroy(test_darray);
+  return 0;
+}
+
+int test_darray_copy(void) {
+  darray_t *test_darray = darray_new(sizeof(int), 100);
+
+  /* set element in array */
+  int *val = darray_new_element(test_darray);
+  *val = 99;
+  darray_set(test_darray, 0, val);
+
+  /* test copy */
+  darray_t *array_copy = darray_copy(test_darray);
+  int *val_copy = darray_get(array_copy, 0);
+  MU_ASSERT(val != val_copy);
+  MU_ASSERT(intcmp2(val, val_copy) == 0);
+
+  darray_clear_destroy(test_darray);
+  darray_clear_destroy(array_copy);
+  return 0;
+}
+
+int test_darray_new_element(void) {
+  darray_t *test_darray = darray_new(sizeof(int), 100);
+
+  /* test new */
+  int *val1 = darray_new_element(test_darray);
+  int *val2 = darray_new_element(test_darray);
+
+  MU_ASSERT(val1 != NULL);
+  MU_ASSERT(val2 != NULL);
+
+  free(val1);
+  free(val2);
+
+  darray_clear_destroy(test_darray);
+  return 0;
+}
+
+int test_darray_set_and_get(void) {
+  darray_t *test_darray = darray_new(sizeof(int), 100);
+
+  /* test set element */
+  int *val1 = darray_new_element(test_darray);
+  int *val2 = darray_new_element(test_darray);
+  darray_set(test_darray, 0, val1);
+  darray_set(test_darray, 1, val2);
+
+  /* test get element */
+  MU_ASSERT(darray_get(test_darray, 0) == val1);
+  MU_ASSERT(darray_get(test_darray, 1) == val2);
+
+  darray_clear_destroy(test_darray);
+  return 0;
+}
+
+int test_darray_update(void) {
+  darray_t *test_darray = darray_new(sizeof(int), 100);
+
+  /* set element */
+  int *new_val1 = darray_new_element(test_darray);
+  int *new_val2 = darray_new_element(test_darray);
+  *new_val1 = 123;
+  *new_val2 = 987;
+
+  /* update */
+  darray_update(test_darray, 0, new_val1);
+  darray_update(test_darray, 1, new_val2);
+
+  /* assert */
+  MU_ASSERT(darray_get(test_darray, 0) == new_val1);
+  MU_ASSERT(darray_get(test_darray, 1) == new_val2);
+
+  darray_clear_destroy(test_darray);
+  return 0;
+}
+
+int test_darray_remove(void) {
+  darray_t *test_darray = darray_new(sizeof(int), 100);
+
+  /* set elements */
+  int *val_1 = darray_new_element(test_darray);
+  int *val_2 = darray_new_element(test_darray);
+  *val_1 = 123;
+  *val_2 = 987;
+  darray_set(test_darray, 0, val_1);
+  darray_set(test_darray, 1, val_2);
+
+  /* remove element at index = 0 */
+  int *result = darray_remove(test_darray, 0);
+  MU_ASSERT(result != NULL);
+  MU_ASSERT(*result == *val_1);
+  MU_ASSERT(darray_get(test_darray, 0) == NULL);
+  free(result);
+
+  /* remove element at index = 1 */
+  result = darray_remove(test_darray, 1);
+  MU_ASSERT(result != NULL);
+  MU_ASSERT(*result == *val_2);
+  MU_ASSERT(darray_get(test_darray, 1) == NULL);
+  free(result);
+
+  darray_clear_destroy(test_darray);
+  return 0;
+}
+
+int test_darray_expand_and_contract(void) {
+  darray_t *test_darray = darray_new(sizeof(int), 100);
+
+  /* test expand */
+  size_t old_max = (unsigned int) test_darray->max;
+  darray_expand(test_darray);
+  MU_ASSERT((unsigned int) test_darray->max ==
+            old_max + test_darray->expand_rate);
+
+  /* test contract */
+  darray_contract(test_darray);
+  MU_ASSERT((unsigned int) test_darray->max == test_darray->expand_rate + 1);
+
+  darray_clear_destroy(test_darray);
+  return 0;
+}
+
+// LIST ////////////////////////////////////////////////////////////////////////
+
+int test_list_new_and_destroy(void) {
+  list_t *list = list_new();
+  MU_ASSERT(list != NULL);
+  list_clear_destroy(list);
+  return 0;
+}
+
+int test_list_push_pop(void) {
+  /* Setup */
+  list_t *list = list_new();
+  char *t1 = string_malloc("test1 data");
+  char *t2 = string_malloc("test2 data");
+  char *t3 = string_malloc("test3 data");
+
+  /* Push tests */
+  list_push(list, t1);
+  MU_ASSERT(strcmp(list->last->value, t1) == 0);
+
+  list_push(list, t2);
+  MU_ASSERT(strcmp(list->last->value, t2) == 0);
+
+  list_push(list, t3);
+  MU_ASSERT(strcmp(list->last->value, t3) == 0);
+  MU_ASSERT(list->length == 3);
+
+  /* Pop tests */
+  char *val = list_pop(list);
+  MU_ASSERT(val == t3);
+  MU_ASSERT(list->first->value == t1);
+  MU_ASSERT(list->last->value == t2);
+  MU_ASSERT(list->length == 2);
+  free(val);
+
+  val = list_pop(list);
+  MU_ASSERT(val == t2);
+  MU_ASSERT(list->first->value == t1);
+  MU_ASSERT(list->last->value == t1);
+  MU_ASSERT(list->length == 1);
+  free(val);
+
+  val = list_pop(list);
+  MU_ASSERT(val == t1);
+  MU_ASSERT(list->first == NULL);
+  MU_ASSERT(list->last == NULL);
+  MU_ASSERT(list->length == 0);
+  free(val);
+
+  list_clear_destroy(list);
+  return 0;
+}
+
+int test_list_shift(void) {
+  /* Setup */
+  list_t *list = list_new();
+  char *t1 = string_malloc("test1 data");
+  char *t2 = string_malloc("test2 data");
+
+  /* Push elements */
+  list_push(list, t1);
+  list_push(list, t2);
+
+  /* Shift */
+  char *val = list_shift(list);
+  MU_ASSERT(val == t1);
+  MU_ASSERT(list->length == 1);
+  free(val);
+
+  val = list_shift(list);
+  MU_ASSERT(val == t2);
+  MU_ASSERT(list->length == 0);
+  free(val);
+
+  list_clear_destroy(list);
+  return 0;
+}
+
+int test_list_unshift(void) {
+  /* Setup */
+  list_t *list = list_new();
+  char *t1 = string_malloc("test1 data");
+  char *t2 = string_malloc("test2 data");
+  char *t3 = string_malloc("test3 data");
+
+  /* Unshift */
+  list_unshift(list, t1);
+  MU_ASSERT(strcmp(list->first->value, t1) == 0);
+  MU_ASSERT(strcmp(list->first->value, t1) == 0);
+  MU_ASSERT(list->length == 1);
+
+  list_unshift(list, t2);
+  MU_ASSERT(strcmp(list->first->value, t2) == 0);
+  MU_ASSERT(strcmp(list->first->value, t2) == 0);
+  MU_ASSERT(list->length == 2);
+
+  list_unshift(list, t3);
+  MU_ASSERT(strcmp(list->first->value, t3) == 0);
+  MU_ASSERT(strcmp(list->first->value, t3) == 0);
+  MU_ASSERT(list->length == 3);
+  list_clear_destroy(list);
+
+  return 0;
+}
+
+int test_list_remove(void) {
+  /* Push elements */
+  list_t *list = list_new();
+  char *t1 = string_malloc("test1 data");
+  char *t2 = string_malloc("test2 data");
+  char *t3 = string_malloc("test3 data");
+  list_push(list, t1);
+  list_push(list, t2);
+  list_push(list, t3);
+
+  /* Remove 2nd value */
+  void *value = list_remove(list, t2, strcmp2);
+  free(value);
+
+  /* Assert */
+  MU_ASSERT(list->length == 2);
+  MU_ASSERT(strcmp(list->first->next->value, t3) == 0);
+  MU_ASSERT(strcmp(list->first->value, t1) == 0);
+
+  /* Remove 2nd value */
+  value = list_remove(list, t3, strcmp2);
+  free(value);
+
+  /* Assert */
+  MU_ASSERT(list->length == 1);
+  MU_ASSERT(list->first->next == NULL);
+  MU_ASSERT(strcmp(list->first->value, t1) == 0);
+  list_clear_destroy(list);
+
+  return 0;
+}
+
+int test_list_remove_destroy(void) {
+  /* Setup */
+  list_t *list = list_new();
+  char *t1 = string_malloc("test1 data");
+  char *t2 = string_malloc("test2 data");
+  char *t3 = string_malloc("test3 data");
+
+  /* Push elements */
+  list_push(list, t1);
+  list_push(list, t2);
+  list_push(list, t3);
+
+  /* Remove 2nd value */
+  int result = list_remove_destroy(list, t2, strcmp2, free);
+
+  /* Assert */
+  MU_ASSERT(result == 0);
+  MU_ASSERT(list->length == 2);
+  MU_ASSERT(strcmp(list->first->next->value, t3) == 0);
+  MU_ASSERT(strcmp(list->first->value, t1) == 0);
+
+  /* Remove 2nd value */
+  result = list_remove_destroy(list, t3, strcmp2, free);
+
+  /* Assert */
+  MU_ASSERT(result == 0);
+  MU_ASSERT(list->length == 1);
+  MU_ASSERT(list->first->next == NULL);
+  MU_ASSERT(strcmp(list->first->value, t1) == 0);
+  list_clear_destroy(list);
+
+  return 0;
+}
+
+// STACK ///////////////////////////////////////////////////////////////////////
+
+int test_stack_new_and_destroy(void) {
+  stack_t *s = stack_new();
+
+  MU_ASSERT(s->size == 0);
+  MU_ASSERT(s->root == NULL);
+  MU_ASSERT(s->end == NULL);
+
+  stack_clear_destroy(s, free);
+  return 0;
+}
+
+int test_stack_push(void) {
+  stack_t *s = stack_new();
+  float *f1 = malloc_float(2.0);
+  float *f2 = malloc_float(4.0);
+  float *f3 = malloc_float(8.0);
+
+  /* push float 1 */
+  stack_push(s, f1);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f1) == 0);
+  MU_ASSERT(s->size == 1);
+  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(s->end->prev == NULL);
+
+  /* push float 2 */
+  stack_push(s, f2);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f2) == 0);
+  MU_ASSERT(s->size == 2);
+  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(s->end->prev->value == f1);
+  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) f1) == 0);
+
+  /* push float 3 */
+  stack_push(s, f3);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f3) == 0);
+  MU_ASSERT(s->size == 3);
+  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(s->end->prev->value == f2);
+  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) f2) == 0);
+
+  stack_clear_destroy(s, free);
+  return 0;
+}
+
+int test_stack_pop(void) {
+  stack_t *s = stack_new();
+  float *f1 = malloc_float(2.0);
+  float *f2 = malloc_float(4.0);
+  float *f3 = malloc_float(8.0);
+  float *flt_ptr;
+
+  /* push float 1 */
+  stack_push(s, f1);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f1) == 0);
+  MU_ASSERT(s->size == 1);
+  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(s->end->prev == NULL);
+
+  /* push float 2 */
+  stack_push(s, f2);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f2) == 0);
+  MU_ASSERT(s->size == 2);
+  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(s->end->prev->value == f1);
+  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) f1) == 0);
+
+  /* push float 3 */
+  stack_push(s, f3);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f3) == 0);
+  MU_ASSERT(s->size == 3);
+  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(s->end->prev->value == f2);
+  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) f2) == 0);
+
+  /* pop float 3 */
+  flt_ptr = stack_pop(s);
+  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) f3) == 0);
+  MU_ASSERT(s->size == 2);
+  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) f1) == 0);
+  free(flt_ptr);
+
+  /* pop float 2 */
+  flt_ptr = stack_pop(s);
+  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) f2) == 0);
+  MU_ASSERT(s->size == 1);
+  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) f1) == 0);
+  free(flt_ptr);
+
+  /* pop float 1 */
+  flt_ptr = stack_pop(s);
+  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) f1) == 0);
+  MU_ASSERT(s->size == 0);
+  MU_ASSERT(s->root == NULL);
+  MU_ASSERT(s->end == NULL);
+  free(flt_ptr);
+
+  stack_clear_destroy(s, free);
+  return 0;
+}
+
+// QUEUE ///////////////////////////////////////////////////////////////////////
+
+int test_queue_new_and_destroy(void) {
+  queue_t *q = queue_new();
+  MU_ASSERT(q != NULL);
+  MU_ASSERT(q->count == 0);
+  queue_destroy(q);
+
+  return 0;
+}
+
+int test_queue_enqueue_dequeue(void) {
+  queue_t *q = queue_new();
+  char *t1 = "test1 data";
+  char *t2 = "test2 data";
+  char *t3 = "test3 data";
+
+  /* Enqueue tests */
+  queue_enqueue(q, t1);
+  MU_ASSERT(queue_first(q) == t1);
+  MU_ASSERT(queue_last(q) == t1);
+  MU_ASSERT(q->count == 1);
+
+  queue_enqueue(q, t2);
+  MU_ASSERT(queue_first(q) == t1);
+  MU_ASSERT(queue_last(q) == t2);
+  MU_ASSERT(q->count == 2);
+
+  queue_enqueue(q, t3);
+  MU_ASSERT(queue_first(q) == t1);
+  MU_ASSERT(queue_last(q) == t3);
+  MU_ASSERT(q->count == 3);
+
+  /* Dequeue tests */
+  char *val = queue_dequeue(q);
+  MU_ASSERT(val == t1);
+  MU_ASSERT(queue_first(q) == t2);
+  MU_ASSERT(queue_last(q) == t3);
+  MU_ASSERT(q->count == 2);
+
+  val = queue_dequeue(q);
+  MU_ASSERT(val == t2);
+  MU_ASSERT(queue_first(q) == t3);
+  MU_ASSERT(queue_last(q) == t3);
+  MU_ASSERT(q->count == 1);
+
+  val = queue_dequeue(q);
+  MU_ASSERT(val == t3);
+  MU_ASSERT(queue_first(q) == NULL);
+  MU_ASSERT(queue_last(q) == NULL);
+  MU_ASSERT(q->count == 0);
+
+  return 0;
+}
+
+/******************************************************************************
  * TIME
  ******************************************************************************/
 
@@ -3080,6 +3588,28 @@ void test_suite() {
   MU_ADD_TEST(test_dsv_fields);
   MU_ADD_TEST(test_dsv_data);
   MU_ADD_TEST(test_dsv_free);
+
+  /* DATA-STRUCTURE */
+  MU_ADD_TEST(test_darray_new_and_destroy);
+  MU_ADD_TEST(test_darray_push_pop);
+  MU_ADD_TEST(test_darray_contains);
+  MU_ADD_TEST(test_darray_copy);
+  MU_ADD_TEST(test_darray_new_element);
+  MU_ADD_TEST(test_darray_set_and_get);
+  MU_ADD_TEST(test_darray_update);
+  MU_ADD_TEST(test_darray_remove);
+  MU_ADD_TEST(test_darray_expand_and_contract);
+  MU_ADD_TEST(test_list_new_and_destroy);
+  MU_ADD_TEST(test_list_push_pop);
+  MU_ADD_TEST(test_list_shift);
+  MU_ADD_TEST(test_list_unshift);
+  MU_ADD_TEST(test_list_remove);
+  MU_ADD_TEST(test_list_remove_destroy);
+  MU_ADD_TEST(test_stack_new_and_destroy);
+  MU_ADD_TEST(test_stack_push);
+  MU_ADD_TEST(test_stack_pop);
+  MU_ADD_TEST(test_queue_new_and_destroy);
+  MU_ADD_TEST(test_queue_enqueue_dequeue);
 
   /* TIME */
   MU_ADD_TEST(test_tic);
