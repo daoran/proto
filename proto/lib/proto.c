@@ -407,6 +407,24 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays) {
   return array;
 }
 
+int *int_malloc(const int val) {
+  int *i = malloc(sizeof(int));
+  *i = val;
+  return i;
+}
+
+float *float_malloc(const float val) {
+  float *f = malloc(sizeof(float));
+  *f = val;
+  return f;
+}
+
+double *double_malloc(const double val) {
+  double *d = malloc(sizeof(double));
+  *d = val;
+  return d;
+}
+
 /**
  * Get number of rows in a delimited file at `fp`.
  * @returns
@@ -1116,6 +1134,7 @@ void stack_destroy_traverse(stack_node_t *n, void (*free_func)(void *)) {
     stack_destroy_traverse(n->next, free_func);
   }
   if (free_func) {
+    printf("HERE\n");
     free_func(n->value);
   }
   free(n);
@@ -1180,28 +1199,28 @@ void *stack_pop(stack_t *s) {
 
 // QUEUE ///////////////////////////////////////////////////////////////////////
 
-struct queue *queue_new() {
-  struct queue *q = calloc(1, sizeof(struct queue));
+queue_t *queue_new() {
+  queue_t *q = calloc(1, sizeof(queue_t));
   q->queue = list_new();
   q->count = 0;
   return q;
 }
 
-void queue_destroy(struct queue *q) {
+void queue_destroy(queue_t *q) {
   assert(q != NULL);
   list_destroy(q->queue);
   free(q);
   q = NULL;
 }
 
-int queue_enqueue(struct queue *q, void *data) {
+int queue_enqueue(queue_t *q, void *data) {
   assert(q != NULL);
   list_push(q->queue, data);
   q->count++;
   return 0;
 }
 
-void *queue_dequeue(struct queue *q) {
+void *queue_dequeue(queue_t *q) {
   assert(q != NULL);
   void *data = list_pop_front(q->queue);
   q->count--;
@@ -1209,12 +1228,12 @@ void *queue_dequeue(struct queue *q) {
   return data;
 }
 
-int queue_empty(struct queue *q) {
+int queue_empty(queue_t *q) {
   assert(q != NULL);
   return (q->count == 0) ? 1 : 0;
 }
 
-void *queue_first(struct queue *q) {
+void *queue_first(queue_t *q) {
   assert(q != NULL);
   if (q->count != 0) {
     return q->queue->first->value;
@@ -1222,7 +1241,7 @@ void *queue_first(struct queue *q) {
   return NULL;
 }
 
-void *queue_last(struct queue *q) {
+void *queue_last(queue_t *q) {
   assert(q != NULL);
   if (q->count != 0) {
     return q->queue->last->value;

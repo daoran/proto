@@ -145,11 +145,6 @@
   }
 
 /**
- * Check memory
- */
-#define CHECK_MEM(A) CHECK((A), "out of memory.")
-
-/**
  * Free memory
  */
 #define FREE_MEM(TARGET, FREE_FUNC)                                            \
@@ -191,6 +186,10 @@ char *string_malloc(const char *s);
 int **load_iarrays(const char *csv_path, int *nb_arrays);
 real_t **load_darrays(const char *csv_path, int *nb_arrays);
 
+int *int_malloc(const int val);
+float *float_malloc(const float val);
+double *double_malloc(const double val);
+
 int dsv_rows(const char *fp);
 int dsv_cols(const char *fp, const char delim);
 char **dsv_fields(const char *fp, const char delim, int *nb_fields);
@@ -199,9 +198,6 @@ void dsv_free(real_t **data, const int nb_rows);
 
 real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols);
 void csv_free(real_t **data, const int nb_rows);
-
-/* real_t *load_matrix(const char *file_path); */
-/* real_t *load_vector(const char *file_path); */
 
 /******************************************************************************
  * DATA-STRUCTURES
@@ -275,11 +271,12 @@ int list_remove_destroy(list_t *list,
 
 // STACK ///////////////////////////////////////////////////////////////////////
 
-typedef struct stack_node_t {
+typedef struct stack_node_t stack_node_t;
+struct stack_node_t {
   void *value;
-  struct stack_node_t *next;
-  struct stack_node_t *prev;
-} stack_node_t;
+  stack_node_t *next;
+  stack_node_t *prev;
+};
 
 typedef struct stack_t {
   int size;

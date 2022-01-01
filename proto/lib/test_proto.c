@@ -575,98 +575,94 @@ int test_stack_new_and_destroy(void) {
   MU_ASSERT(s->root == NULL);
   MU_ASSERT(s->end == NULL);
 
-  stack_clear_destroy(s, free);
+  stack_destroy(s);
   return 0;
 }
 
 int test_stack_push(void) {
   stack_t *s = stack_new();
-  float *f1 = malloc_float(2.0);
-  float *f2 = malloc_float(4.0);
-  float *f3 = malloc_float(8.0);
+  float f1 = 2.0;
+  float f2 = 4.0;
+  float f3 = 8.0;
 
   /* push float 1 */
-  stack_push(s, f1);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f1) == 0);
+  stack_push(s, &f1);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f1) == 0);
   MU_ASSERT(s->size == 1);
-  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(s->root->value == &f1);
   MU_ASSERT(s->end->prev == NULL);
 
   /* push float 2 */
-  stack_push(s, f2);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f2) == 0);
+  stack_push(s, &f2);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f2) == 0);
   MU_ASSERT(s->size == 2);
-  MU_ASSERT(s->root->value == f1);
-  MU_ASSERT(s->end->prev->value == f1);
-  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) f1) == 0);
+  MU_ASSERT(s->root->value == &f1);
+  MU_ASSERT(s->end->prev->value == &f1);
+  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f1) == 0);
 
   /* push float 3 */
-  stack_push(s, f3);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f3) == 0);
+  stack_push(s, &f3);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f3) == 0);
   MU_ASSERT(s->size == 3);
-  MU_ASSERT(s->root->value == f1);
-  MU_ASSERT(s->end->prev->value == f2);
-  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) f2) == 0);
+  MU_ASSERT(s->root->value == &f1);
+  MU_ASSERT(s->end->prev->value == &f2);
+  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f2) == 0);
 
-  stack_clear_destroy(s, free);
+  stack_destroy(s);
   return 0;
 }
 
 int test_stack_pop(void) {
   stack_t *s = stack_new();
-  float *f1 = malloc_float(2.0);
-  float *f2 = malloc_float(4.0);
-  float *f3 = malloc_float(8.0);
-  float *flt_ptr;
+  float f1 = 2.0;
+  float f2 = 4.0;
+  float f3 = 8.0;
 
   /* push float 1 */
-  stack_push(s, f1);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f1) == 0);
+  stack_push(s, &f1);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f1) == 0);
   MU_ASSERT(s->size == 1);
-  MU_ASSERT(s->root->value == f1);
+  MU_ASSERT(s->root->value == &f1);
   MU_ASSERT(s->end->prev == NULL);
 
   /* push float 2 */
-  stack_push(s, f2);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f2) == 0);
+  stack_push(s, &f2);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f2) == 0);
   MU_ASSERT(s->size == 2);
-  MU_ASSERT(s->root->value == f1);
-  MU_ASSERT(s->end->prev->value == f1);
-  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) f1) == 0);
+  MU_ASSERT(s->root->value == &f1);
+  MU_ASSERT(s->end->prev->value == &f1);
+  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f1) == 0);
 
   /* push float 3 */
-  stack_push(s, f3);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) f3) == 0);
+  stack_push(s, &f3);
+  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f3) == 0);
   MU_ASSERT(s->size == 3);
-  MU_ASSERT(s->root->value == f1);
-  MU_ASSERT(s->end->prev->value == f2);
-  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) f2) == 0);
+  MU_ASSERT(s->root->value == &f1);
+  MU_ASSERT(s->end->prev->value == &f2);
+  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f2) == 0);
 
   /* pop float 3 */
-  flt_ptr = stack_pop(s);
-  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) f3) == 0);
+  float *flt_ptr = stack_pop(s);
+  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f3) == 0);
   MU_ASSERT(s->size == 2);
-  MU_ASSERT(s->root->value == f1);
-  MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) f1) == 0);
-  free(flt_ptr);
+  MU_ASSERT(s->root->value == &f1);
+  MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) &f1) == 0);
 
   /* pop float 2 */
   flt_ptr = stack_pop(s);
-  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) f2) == 0);
+  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f2) == 0);
   MU_ASSERT(s->size == 1);
-  MU_ASSERT(s->root->value == f1);
-  MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) f1) == 0);
-  free(flt_ptr);
+  MU_ASSERT(s->root->value == &f1);
+  MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) &f1) == 0);
 
   /* pop float 1 */
   flt_ptr = stack_pop(s);
-  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) f1) == 0);
+  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f1) == 0);
   MU_ASSERT(s->size == 0);
   MU_ASSERT(s->root == NULL);
   MU_ASSERT(s->end == NULL);
-  free(flt_ptr);
 
-  stack_clear_destroy(s, free);
+  stack_destroy(s);
   return 0;
 }
 
