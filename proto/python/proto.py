@@ -3319,22 +3319,28 @@ def check_factor_jacobian(factor, fvars, var_idx, jac_name, **kwargs):
   return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
 
 
-# FACTOR GRAPH ################################################################
+# SOLVER #######################################################################
 
 
-class FactorGraph:
-  """ Factor Graph """
+class Solver:
+  """ Solver """
 
   def __init__(self):
-    # Parameters and factors
     self._next_param_id = 0
     self._next_factor_id = 0
-    self.params = {}
     self.factors = {}
-
-    # Solver
+    self.params = {}
     self.solver_max_iter = 5
     self.solver_lambda = 1e-4
+
+  def add(self, factor, factor_params):
+    """ Add factor and parameters """
+    assert factor.factor_id is not None
+    assert len(factor_params) >= 1
+    assert factor_params[0].param_id is not None
+    self.factors[factor.factor_id] = factor
+    for param in factor_params:
+      self.params[param.param_id] = param
 
   def add_param(self, param):
     """ Add param """
@@ -3357,30 +3363,6 @@ class FactorGraph:
     self.factors[factor_id].set_factor_id(factor_id)
     self._next_factor_id += 1
     return factor_id
-
-  def remove_param(self, param):
-    """ Remove param """
-    assert param.param_id in self.params
-    del self.params[param.param_id]
-
-  def remove_factor(self, factor):
-    """ Remove factor """
-    assert factor.factor_id in self.factors
-    del self.factors[factor.factor_id]
-
-  def get_reproj_errors(self):
-    """ Get reprojection errors """
-    target_factors = ["BAFactor", "VisionFactor", "CalibVisionFactor"]
-
-    reproj_errors = []
-    for _, factor in self.factors.items():
-      if factor.factor_type in target_factors:
-        factor_params = [self.params[pid].param for pid in factor.param_ids]
-        retval = factor.get_reproj_error(*factor_params)
-        if retval is not None:
-          reproj_errors.append(retval)
-
-    return np.array(reproj_errors).flatten()
 
   @staticmethod
   def _print_to_console(iter_k, lambda_k, cost_kp1, cost_k):
@@ -3438,18 +3420,25 @@ class FactorGraph:
 
     param_idxs = {}
     param_size = 0
+    m = 0
+    r = 0
     for param_type in param_order:
       for param_id in marg_param_ids[param_type]:
         param_idxs[param_id] = param_size
         param_size += self.params[param_id].min_dims
+        m += param_size
+
       for param_id in param_ids[param_type]:
         param_idxs[param_id] = param_size
         param_size += self.params[param_id].min_dims
+        r += param_size
 
-    return (param_idxs, param_size)
+    return (param_idxs, param_size, m, r)
 
-  def _linearize(self, params, param_idxs, param_size):
+  def _linearize(self, params):
     """ Linearize non-linear problem """
+    # Setup
+    (param_idxs, param_size, m, r) = self._form_param_indices()
     H = zeros((param_size, param_size))
     g = zeros(param_size)
 
@@ -3492,13 +3481,11 @@ class FactorGraph:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
-    return (H, g)
+    # Marginalize old states with Schurs Complement
+    if m > 0:
+      H, g = schurs_complement(H, g, m, r)
 
-  def _evaluate(self, params):
-    """ Evaluate """
-    (param_idxs, param_size) = self._form_param_indices()
-    (H, g) = self._linearize(params, param_idxs, param_size)
-    return ((H, g), param_idxs)
+    return (H, g, param_idxs)
 
   def _calculate_residuals(self, params):
     """ Calculate Residuals """
@@ -3575,7 +3562,7 @@ class FactorGraph:
     # Iterate
     for i in range(1, self.solver_max_iter):
       # Update and calculate cost
-      ((H, g), param_idxs) = self._evaluate(params_k)
+      (H, g, param_idxs) = self._linearize(params_k)
       dx = self._solve_for_dx(lambda_k, H, g)
       params_kp1 = self._update(params_k, param_idxs, dx)
       cost_kp1 = self._calculate_cost(params_kp1)
@@ -3601,6 +3588,78 @@ class FactorGraph:
     # that would destroy the references to outside `FactorGraph()`.
     for param_id, param in params_k.items():
       self.params[param_id].param = param.param
+
+
+# FACTOR GRAPH ################################################################
+
+
+class FactorGraph:
+  """ Factor Graph """
+
+  def __init__(self):
+    # Parameters and factors
+    self._next_param_id = 0
+    self._next_factor_id = 0
+    self.params = {}
+    self.factors = {}
+
+    # Solver
+    self.solver_max_iter = 5
+    self.solver_lambda = 1e-4
+
+  def add_param(self, param):
+    """ Add param """
+    param_id = self._next_param_id
+    self.params[param_id] = param
+    self.params[param_id].set_param_id(param_id)
+    self._next_param_id += 1
+    return param_id
+
+  def add_factor(self, factor):
+    """ Add factor """
+    # Double check if params exists
+    for param_id in factor.param_ids:
+      if param_id not in self.params:
+        raise RuntimeError(f"Parameter [{param_id}] does not exist!")
+
+    # Add factor
+    factor_id = self._next_factor_id
+    self.factors[factor_id] = factor
+    self.factors[factor_id].set_factor_id(factor_id)
+    self._next_factor_id += 1
+    return factor_id
+
+  def remove_param(self, param):
+    """ Remove param """
+    assert param.param_id in self.params
+    del self.params[param.param_id]
+
+  def remove_factor(self, factor):
+    """ Remove factor """
+    assert factor.factor_id in self.factors
+    del self.factors[factor.factor_id]
+
+  def get_reproj_errors(self):
+    """ Get reprojection errors """
+    target_factors = ["BAFactor", "VisionFactor", "CalibVisionFactor"]
+
+    reproj_errors = []
+    for _, factor in self.factors.items():
+      if factor.factor_type in target_factors:
+        factor_params = [self.params[pid].param for pid in factor.param_ids]
+        retval = factor.get_reproj_error(*factor_params)
+        if retval is not None:
+          reproj_errors.append(retval)
+
+    return np.array(reproj_errors).flatten()
+
+  def solve(self, verbose=False):
+    """ Solve """
+    solver = Solver()
+    for _, factor in self.factors.items():
+      factor_params = [self.params[pid] for pid in factor.param_ids]
+      solver.add(factor, factor_params)
+    solver.solve(verbose)
 
 
 # KALMAN FILTER ################################################################
@@ -7696,7 +7755,6 @@ class TestCalibration(unittest.TestCase):
       ax.set_zlabel("z [m]")
       plt.show()
 
-  @unittest.skip("")
   def test_calibrator(self):
     """ Test Calibrator """
     # Setup
