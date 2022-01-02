@@ -2501,6 +2501,7 @@ class StateVariable:
   fix: bool
   data: Optional[dict] = None
   param_id: int = None
+  marginalize: bool = False
 
   def set_param_id(self, pid):
     """ Set parameter id """
@@ -3399,11 +3400,20 @@ class FactorGraph:
   def _form_param_indices(self):
     """ Form parameter indices """
     # Parameter ids
-    pose_param_ids = set()
-    sb_param_ids = set()
-    camera_param_ids = set()
-    exts_param_ids = set()
-    feature_param_ids = set()
+    marg_param_ids = {
+        'pose': set(),
+        'speed_and_biases': set(),
+        'feature': set(),
+        'camera': set(),
+        'extrinsics': set(),
+    }
+    param_ids = {
+        'pose': set(),
+        'speed_and_biases': set(),
+        'feature': set(),
+        'camera': set(),
+        'extrinsics': set(),
+    }
 
     # Track parameters
     nb_params = 0
@@ -3412,30 +3422,27 @@ class FactorGraph:
         param = self.params[param_id]
         if param.fix:
           continue
-        elif param.var_type == "pose":
-          pose_param_ids.add(param_id)
-        elif param.var_type == "speed_and_biases":
-          sb_param_ids.add(param_id)
-        elif param.var_type == "extrinsics":
-          exts_param_ids.add(param_id)
-        elif param.var_type == "feature":
-          feature_param_ids.add(param_id)
-        elif param.var_type == "camera":
-          camera_param_ids.add(param_id)
+        elif param.marginalize:
+          marg_param_ids[param.var_type].add(param_id)
+        else:
+          param_ids[param.var_type].add(param_id)
         nb_params += 1
 
     # Assign global parameter order
-    param_ids_list = []
-    param_ids_list.append(pose_param_ids)
-    param_ids_list.append(sb_param_ids)
-    param_ids_list.append(exts_param_ids)
-    param_ids_list.append(feature_param_ids)
-    param_ids_list.append(camera_param_ids)
+    param_order = []
+    param_order.append("pose")
+    param_order.append("speed_and_biases")
+    param_order.append("feature")
+    param_order.append("camera")
+    param_order.append("extrinsics")
 
     param_idxs = {}
     param_size = 0
-    for param_ids in param_ids_list:
-      for param_id in param_ids:
+    for param_type in param_order:
+      for param_id in marg_param_ids[param_type]:
+        param_idxs[param_id] = param_size
+        param_size += self.params[param_id].min_dims
+      for param_id in param_ids[param_type]:
         param_idxs[param_id] = param_size
         param_size += self.params[param_id].min_dims
 
@@ -6828,8 +6835,8 @@ class TestFactorGraph(unittest.TestCase):
         graph.add_factor(BAFactor(cam0_geom, param_ids, z))
 
     # Solve
-    # debug = True
-    debug = False
+    debug = True
+    # debug = False
     # prof = profile_start()
     graph.solve(debug)
     # profile_stop(prof)

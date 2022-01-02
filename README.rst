@@ -12,28 +12,16 @@ Build
 -----
 
 For convenience there is a ``Makefile`` that automates the installation of
-dependencies and building of ``proto``, the make targets are as follows::
+dependencies and building of ``proto``. To install dependencies, build and test
+``proto`` simply issue the following commands:
 
-    deps:
-      Install proto dependencies.
+.. code-block::
 
-    debug:
-      Build proto in debug mode.
+   make deps
+   make install
+   make tests
 
-    release:
-      Build proto in release mode.
-
-    run_tests:
-      Run tests
-
-    install:
-      Install proto to $PREFIX. By default this is "/usr/local".
-
-    ros:
-      Build the ROS interface to `proto` (a.k.a `proto_ros`).
-
-    format_code:
-      Format proto code using clang-format.
+alternatively just type ``make help`` to bring up other make targets.
 
 
 License
