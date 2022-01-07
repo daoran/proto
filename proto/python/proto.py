@@ -3326,8 +3326,6 @@ class Solver:
   """ Solver """
 
   def __init__(self):
-    self._next_param_id = 0
-    self._next_factor_id = 0
     self.factors = {}
     self.params = {}
     self.solver_max_iter = 5
@@ -3344,11 +3342,7 @@ class Solver:
 
   def add_param(self, param):
     """ Add param """
-    param_id = self._next_param_id
-    self.params[param_id] = param
-    self.params[param_id].set_param_id(param_id)
-    self._next_param_id += 1
-    return param_id
+    self.params[param.param_id] = param
 
   def add_factor(self, factor):
     """ Add factor """
@@ -3358,11 +3352,7 @@ class Solver:
         raise RuntimeError(f"Parameter [{param_id}] does not exist!")
 
     # Add factor
-    factor_id = self._next_factor_id
-    self.factors[factor_id] = factor
-    self.factors[factor_id].set_factor_id(factor_id)
-    self._next_factor_id += 1
-    return factor_id
+    self.factors[factor.factor_id] = factor
 
   @staticmethod
   def _print_to_console(iter_k, lambda_k, cost_kp1, cost_k):
@@ -3602,8 +3592,6 @@ class FactorGraph:
     self._next_factor_id = 0
     self.params = {}
     self.factors = {}
-
-    # Solver
     self.solver_max_iter = 5
     self.solver_lambda = 1e-4
 
@@ -3656,6 +3644,8 @@ class FactorGraph:
   def solve(self, verbose=False):
     """ Solve """
     solver = Solver()
+    solver.solver_max_iter = self.solver_max_iter
+    solver.solver_lambda = self.solver_lambda
     for _, factor in self.factors.items():
       factor_params = [self.params[pid] for pid in factor.param_ids]
       solver.add(factor, factor_params)
@@ -6894,8 +6884,8 @@ class TestFactorGraph(unittest.TestCase):
         graph.add_factor(BAFactor(cam0_geom, param_ids, z))
 
     # Solve
-    debug = True
-    # debug = False
+    # debug = True
+    debug = False
     # prof = profile_start()
     graph.solve(debug)
     # profile_stop(prof)
@@ -6999,8 +6989,8 @@ class TestFactorGraph(unittest.TestCase):
       sb_i = sb_j
 
     # Solve
-    debug = False
-    # debug = True
+    # debug = False
+    debug = True
     # prof = profile_start()
     graph.solve(debug)
     # profile_stop(prof)
@@ -7755,6 +7745,7 @@ class TestCalibration(unittest.TestCase):
       ax.set_zlabel("z [m]")
       plt.show()
 
+  @unittest.skip("")
   def test_calibrator(self):
     """ Test Calibrator """
     # Setup
