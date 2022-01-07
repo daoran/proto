@@ -2701,6 +2701,37 @@ class Factor:
     """ Set factor id """
     self.factor_id = fid
 
+  def check_jacobian(self, fvars, var_idx, jac_name, **kwargs):
+    """ Check factor jacobian """
+
+    # Step size and threshold
+    h = kwargs.get('step_size', 1e-8)
+    threshold = kwargs.get('threshold', 1e-4)
+    verbose = kwargs.get('verbose', False)
+
+    # Calculate baseline
+    params = [sv.param for sv in fvars]
+    r, jacs = self.eval(params)
+
+    # Numerical diff
+    J_fdiff = zeros((len(r), fvars[var_idx].min_dims))
+    for i in range(fvars[var_idx].min_dims):
+      # Forward difference and evaluate
+      vars_fwd = copy.deepcopy(fvars)
+      vars_fwd[var_idx] = perturb_state_variable(vars_fwd[var_idx], i, 0.5 * h)
+      r_fwd, _ = self.eval([sv.param for sv in vars_fwd])
+
+      # Backward difference and evaluate
+      vars_bwd = copy.deepcopy(fvars)
+      vars_bwd[var_idx] = perturb_state_variable(vars_bwd[var_idx], i, -0.5 * h)
+      r_bwd, _ = self.eval([sv.param for sv in vars_bwd])
+
+      # Central finite difference
+      J_fdiff[:, i] = (r_fwd - r_bwd) / h
+
+    J = jacs[var_idx]
+    return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
+
 
 class PoseFactor(Factor):
   """ Pose Factor """
@@ -3069,6 +3100,40 @@ class ImuBuffer:
     """ Return length of imu buffer """
     return len(self.ts)
 
+  def extract(self, ts_start, ts_end):
+    """ Form ImuBuffer """
+    imu_ts = []
+    imu_acc = []
+    imu_gyr = []
+
+    # Extract data between ts_start and ts_end
+    remove_idx = 0
+    for k, ts in enumerate(self.ts):
+      if ts >= ts_start and ts <= ts_end:
+        imu_ts.append(ts)
+        imu_acc.append(self.acc[k])
+        imu_gyr.append(self.gyr[k])
+        if ts < ts_end:
+          remove_idx = k
+
+      elif ts > ts_end:
+        break
+
+    # Remove data before ts_end
+    self.ts = self.ts[remove_idx + 1:]
+    self.acc = self.acc[remove_idx + 1:]
+    self.gyr = self.gyr[remove_idx + 1:]
+
+    return ImuBuffer(imu_ts, imu_acc, imu_gyr)
+
+  def print(self, extra_newline=False):
+    """ Print """
+    for ts, acc, gyr in zip(self.ts, self.acc, self.gyr):
+      print(f"ts: [{ts}], acc: {acc}, gyr: {gyr}")
+
+    if extra_newline:
+      print()
+
 
 @dataclass
 class ImuParams:
@@ -3287,38 +3352,6 @@ class ImuFactor(Factor):
     return (r, [J0, J1, J2, J3])
 
 
-def check_factor_jacobian(factor, fvars, var_idx, jac_name, **kwargs):
-  """ Check factor jacobian """
-
-  # Step size and threshold
-  h = kwargs.get('step_size', 1e-8)
-  threshold = kwargs.get('threshold', 1e-4)
-  verbose = kwargs.get('verbose', False)
-
-  # Calculate baseline
-  params = [sv.param for sv in fvars]
-  r, jacs = factor.eval(params)
-
-  # Numerical diff
-  J_fdiff = zeros((len(r), fvars[var_idx].min_dims))
-  for i in range(fvars[var_idx].min_dims):
-    # Forward difference and evaluate
-    vars_fwd = copy.deepcopy(fvars)
-    vars_fwd[var_idx] = perturb_state_variable(vars_fwd[var_idx], i, 0.5 * h)
-    r_fwd, _ = factor.eval([sv.param for sv in vars_fwd])
-
-    # Backward difference and evaluate
-    vars_bwd = copy.deepcopy(fvars)
-    vars_bwd[var_idx] = perturb_state_variable(vars_bwd[var_idx], i, -0.5 * h)
-    r_bwd, _ = factor.eval([sv.param for sv in vars_bwd])
-
-    # Central finite difference
-    J_fdiff[:, i] = (r_fwd - r_bwd) / h
-
-  J = jacs[var_idx]
-  return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
-
-
 # SOLVER #######################################################################
 
 
@@ -3423,6 +3456,18 @@ class Solver:
         param_size += self.params[param_id].min_dims
         r += param_size
 
+    # # Assign global parameter order - based on the order of factors
+    # param_idxs = {}
+    # param_size = 0
+    # m = 0
+    # r = 0
+    # for _, factor in self.factors.items():
+    #   for _, param_id in enumerate(factor.param_ids):
+    #     if param_id not in param_idxs:
+    #       param = self.params[param_id]
+    #       param_idxs[param_id] = param_size
+    #       param_size += param.min_dims
+
     return (param_idxs, param_size, m, r)
 
   def _linearize(self, params):
@@ -3515,8 +3560,8 @@ class Solver:
   def _solve_for_dx(lambda_k, H, g):
     """ Solve for dx """
     # Damp Hessian
-    H = H + lambda_k * eye(H.shape[0])
-    # H = H + lambda_k * np.diag(H.diagonal())
+    # H = H + lambda_k * eye(H.shape[0])
+    H = H + lambda_k * np.diag(H.diagonal())
 
     # # Pseudo inverse
     # dx = pinv(H) @ g
@@ -6513,7 +6558,7 @@ class TestFactors(unittest.TestCase):
 
     # Test jacobians
     fvars = [pose_est]
-    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_pose"))
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose"))
 
   def test_ba_factor(self):
     """ Test ba factor """
@@ -6555,9 +6600,9 @@ class TestFactors(unittest.TestCase):
 
     # Test jacobians
     fvars = [cam_pose, feature, cam_params]
-    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_cam_pose"))
-    self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_feature"))
-    self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_cam_params"))
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_cam_pose"))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_feature"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_cam_params"))
 
   def test_vision_factor(self):
     """ Test vision factor """
@@ -6606,10 +6651,10 @@ class TestFactors(unittest.TestCase):
 
     # Test jacobians
     fvars = [pose, cam_exts, feature, cam_params]
-    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_pose"))
-    self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_cam_exts"))
-    self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_feature"))
-    self.assertTrue(check_factor_jacobian(factor, fvars, 3, "J_cam_params"))
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose"))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
 
   def test_calib_vision_factor(self):
     """ Test CalibVisionFactor """
@@ -6663,9 +6708,34 @@ class TestFactors(unittest.TestCase):
     rel_pose = pose_setup(0, T_BF)
     cam_exts = extrinsics_setup(T_BCi)
     fvars = [rel_pose, cam_exts, cam_params]
-    self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_rel_pose"))
-    self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_cam_exts"))
-    self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_cam_params"))
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_rel_pose"))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_cam_params"))
+
+  def test_imu_buffer(self):
+    """ Test IMU Buffer """
+    imu_buf = ImuBuffer()
+
+    # Fill in 10 measurements from ts: 0 - 10
+    for k in range(10):
+      ts = k
+      acc = np.array([0.0 + k, 0.0 + k, 0.0 + k])
+      gyr = np.array([0.0 + k, 0.0 + k, 0.0 + k])
+      imu_buf.add(ts, acc, gyr)
+
+    # Extract measurements from ts: 4 - 7
+    imu_buf2 = imu_buf.extract(4, 7)
+
+    self.assertTrue(imu_buf.length() == 3)
+    self.assertTrue(imu_buf.ts[0] == 7)
+    self.assertTrue(imu_buf.ts[-1] == 9)
+
+    self.assertTrue(imu_buf2.length() == 4)
+    self.assertTrue(imu_buf2.ts[0] == 4)
+    self.assertTrue(imu_buf2.ts[-1] == 7)
+
+    imu_buf.print(True)
+    imu_buf2.print(True)
 
   def test_imu_factor_propagate(self):
     """ Test IMU factor propagate """
@@ -6765,13 +6835,14 @@ class TestFactors(unittest.TestCase):
     factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
 
     # Test jacobians
+    # yapf: disable
     fvars = [pose_i, sb_i, pose_j, sb_j]
     self.assertTrue(factor)
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 0, "J_pose_i"))
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 1, "J_sb_i", verbose=True))
-    # self.assertTrue(check_factor_jacobian(factor, fvars, 2, "J_pose_j", verbose=True))
-    # self.assertTrue(
-    #     check_factor_jacobian(factor, fvars, 3, "J_sb_j", verbose=True))
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j", threshold=1e-3))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
+    # yapf: enable
 
 
 class TestFactorGraph(unittest.TestCase):
@@ -6924,7 +6995,7 @@ class TestFactorGraph(unittest.TestCase):
 
     # Setup factor graph
     imu0_data = self.sim_data.imu0_data
-    window_size = 5
+    window_size = 20
     start_idx = 0
     # end_idx = 200
     # end_idx = 2000
@@ -6934,7 +7005,7 @@ class TestFactorGraph(unittest.TestCase):
     poses_est = []
     sb_est = []
     graph = FactorGraph()
-    graph.solver_lambda = 1e4
+    graph.solver_lambda = 1e10
 
     # -- Pose i
     ts_i = imu0_data.timestamps[start_idx]
@@ -6987,6 +7058,9 @@ class TestFactorGraph(unittest.TestCase):
       pose_i = pose_j
       sb_i_id = sb_j_id
       sb_i = sb_j
+
+      if len(graph.factors) == 1:
+        break
 
     # Solve
     # debug = False
@@ -7041,7 +7115,7 @@ class TestFactorGraph(unittest.TestCase):
 
       plt.show()
 
-  @unittest.skip("")
+  # @unittest.skip("")
   def test_factor_graph_solve_vio(self):
     """ Test solving a visual inertial odometry problem """
     # Imu params
@@ -7051,48 +7125,140 @@ class TestFactorGraph(unittest.TestCase):
     noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
     imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
 
+    # Sim data
+    cam_idx = 0
+    cam_data = self.sim_data.get_camera_data(cam_idx)
+    cam_params = self.sim_data.get_camera_params(cam_idx)
+    cam_geom = self.sim_data.get_camera_geometry(cam_idx)
+    cam_exts = self.sim_data.get_camera_extrinsics(cam_idx)
+    cam_exts.fix = True
+
     # Setup factor graph
-    feature_tracker = SimFeatureTracker()
-    tracker = Tracker(feature_tracker)
+    poses_gnd = []
+    poses_init = []
+    poses_est = []
+    graph = FactorGraph()
 
-    # -- Set initial pose
-    ts0 = self.sim_data.imu0_data.timestamps[0]
-    T_WB = self.sim_data.imu0_data.poses[ts0]
-    tracker.set_initial_pose(T_WB)
+    # -- Add features
+    features = self.sim_data.features
+    feature_ids = []
+    for i in range(features.shape[0]):
+      p_W = features[i, :]
+      # p_W += np.random.rand(3) * 0.1  # perturb feature
+      feature = feature_setup(p_W, fix=True)
+      feature_ids.append(graph.add_param(feature))
 
-    # -- Add imu
-    tracker.add_imu(imu_params)
+    # -- Add cam
+    cam_id = graph.add_param(cam_params)
+    exts_id = graph.add_param(cam_exts)
+    T_BC_gnd = pose2tf(cam_exts.param)
+    T_CB_gnd = inv(T_BC_gnd)
 
-    # -- Add cam0
-    cam0_idx = 0
-    cam0_data = self.sim_data.mcam_data[cam0_idx]
-    cam0_params = cam0_data.camera
-    cam0_exts = extrinsics_setup(self.sim_data.T_BC0)
-    tracker.add_camera(cam0_idx, cam0_params, cam0_exts)
-
-    # -- Add cam1
-    cam1_idx = 1
-    cam1_data = self.sim_data.mcam_data[cam1_idx]
-    cam1_params = cam1_data.camera
-    cam1_exts = extrinsics_setup(self.sim_data.T_BC1)
-    tracker.add_camera(cam1_idx, cam1_params, cam1_exts)
-
-    # -- Add camera overlap
-    tracker.add_overlap(cam0_idx, cam1_idx)
-
-    # -- Loop through simulation data
-    mcam_buf = MultiCameraBuffer(2)
+    # -- Build bundle adjustment problem
+    imu_buf = ImuBuffer()
 
     for ts in self.sim_data.timeline.get_timestamps():
       for event in self.sim_data.timeline.get_events(ts):
         if isinstance(event, ImuEvent):
-          tracker.inertial_callback(event.ts, event.acc, event.gyr)
+          imu_buf.add_event(event)
 
-        elif isinstance(event, CameraEvent):
-          mcam_buf.add(ts, event.cam_idx, event.image)
-          if mcam_buf.ready():
-            tracker.vision_callback(ts, mcam_buf.get_data())
-            mcam_buf.reset()
+        elif isinstance(event, CameraEvent) and event.cam_idx == cam_idx:
+          # Camera frame at ts
+          cam_frame = cam_data.frames[ts]
+
+          # Add camera pose T_WC
+          T_WC_gnd = cam_data.poses[ts]
+          T_WB_gnd = T_WC_gnd @ T_CB_gnd
+          # -- Perturb camera pose
+          trans_rand = np.random.rand(3)
+          rvec_rand = np.random.rand(3) * 0.1
+          T_perturb = np.block([*trans_rand, *rvec_rand])
+          T_WB_init = tf_update(T_WB_gnd, T_perturb)
+          # -- Add to graph
+          pose = pose_setup(ts, T_WB_init)
+          pose_id = graph.add_param(pose)
+          poses_gnd.append(T_WB_gnd)
+          poses_init.append(T_WB_init)
+          poses_est.append(pose_id)
+
+          # Add vision factors
+          for i, idx in enumerate(cam_frame.feature_ids):
+            z = cam_frame.measurements[i]
+            param_ids = [pose_id, exts_id, feature_ids[idx], cam_id]
+            graph.add_factor(VisionFactor(cam_geom, param_ids, z))
+
+    # Solve
+    debug = True
+    # debug = False
+    # prof = profile_start()
+    graph.solve(debug)
+    # profile_stop(prof)
+
+    # Visualize
+    if debug:
+      pos_gnd = np.array([tf_trans(T) for T in poses_gnd])
+      pos_init = np.array([tf_trans(T) for T in poses_init])
+      pos_est = []
+      for pose_pid in poses_est:
+        pose = graph.params[pose_pid]
+        pos_est.append(tf_trans(pose2tf(pose.param)))
+      pos_est = np.array(pos_est)
+
+      plt.figure()
+      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'g-', label="Ground Truth")
+      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-', label="Initial")
+      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-', label="Estimated")
+      plt.xlabel("Displacement [m]")
+      plt.ylabel("Displacement [m]")
+      plt.legend(loc=0)
+      plt.show()
+
+    # Asserts
+    errors = graph.get_reproj_errors()
+    self.assertTrue(rmse(errors) < 0.1)
+
+    # # Setup factor graph
+    # feature_tracker = SimFeatureTracker()
+    # tracker = Tracker(feature_tracker)
+    #
+    # # -- Set initial pose
+    # ts0 = self.sim_data.imu0_data.timestamps[0]
+    # T_WB = self.sim_data.imu0_data.poses[ts0]
+    # tracker.set_initial_pose(T_WB)
+    #
+    # # -- Add imu
+    # tracker.add_imu(imu_params)
+    #
+    # # -- Add cam0
+    # cam0_idx = 0
+    # cam0_data = self.sim_data.mcam_data[cam0_idx]
+    # cam0_params = cam0_data.camera
+    # cam0_exts = extrinsics_setup(self.sim_data.T_BC0)
+    # tracker.add_camera(cam0_idx, cam0_params, cam0_exts)
+    #
+    # # -- Add cam1
+    # cam1_idx = 1
+    # cam1_data = self.sim_data.mcam_data[cam1_idx]
+    # cam1_params = cam1_data.camera
+    # cam1_exts = extrinsics_setup(self.sim_data.T_BC1)
+    # tracker.add_camera(cam1_idx, cam1_params, cam1_exts)
+    #
+    # # -- Add camera overlap
+    # tracker.add_overlap(cam0_idx, cam1_idx)
+    #
+    # # -- Loop through simulation data
+    # mcam_buf = MultiCameraBuffer(2)
+    #
+    # for ts in self.sim_data.timeline.get_timestamps():
+    #   for event in self.sim_data.timeline.get_events(ts):
+    #     if isinstance(event, ImuEvent):
+    #       tracker.inertial_callback(event.ts, event.acc, event.gyr)
+    #
+    #     elif isinstance(event, CameraEvent):
+    #       mcam_buf.add(ts, event.cam_idx, event.image)
+    #       if mcam_buf.ready():
+    #         tracker.vision_callback(ts, mcam_buf.get_data())
+    #         mcam_buf.reset()
 
 
 class TestFeatureTracking(unittest.TestCase):
