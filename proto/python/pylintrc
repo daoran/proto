@@ -21,6 +21,7 @@ disable=
   too-many-public-methods,
   too-few-public-methods,
   line-too-long,
+  len-as-condition,
   assignment-from-no-return,
   ungrouped-imports,
   wrong-import-order,
