@@ -19,7 +19,7 @@ memcheck() {
 ###############################################################################
 
 # cd python && ctags proto.py && cd -
-python3 proto/python/proto.py
+# python3 proto/python/proto.py
 # python3 proto/python/proto.py TestLinearAlgebra
 # python3 proto/python/proto.py TestTransform
 # python3 proto/python/proto.py TestTransform.test_quat2rot
@@ -38,7 +38,7 @@ python3 proto/python/proto.py
 # python3 proto/python/proto.py TestFactors.test_imu_factor
 # python3 proto/python/proto.py TestFactorGraph
 # python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_vo
-# python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_io
+python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_io
 # python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_vio
 # python3 proto/python/proto.py TestFeatureTracking
 # python3 proto/python/proto.py TestFeatureTracking.test_feature_grid_cell_index
