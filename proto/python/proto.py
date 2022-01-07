@@ -3102,27 +3102,69 @@ class ImuBuffer:
 
   def extract(self, ts_start, ts_end):
     """ Form ImuBuffer """
+    assert ts_start >= self.ts[0]
+    assert ts_end <= self.ts[-1]
     imu_ts = []
     imu_acc = []
     imu_gyr = []
 
     # Extract data between ts_start and ts_end
     remove_idx = 0
-    for k, ts in enumerate(self.ts):
-      if ts >= ts_start and ts <= ts_end:
-        imu_ts.append(ts)
-        imu_acc.append(self.acc[k])
-        imu_gyr.append(self.gyr[k])
-        if ts < ts_end:
-          remove_idx = k
+    ts_km1 = None
+    acc_km1 = None
+    gyr_km1 = None
 
-      elif ts > ts_end:
+    for k, ts_k in enumerate(self.ts):
+      # Check if within the extraction zone
+      if ts_k < ts_start:
+        continue
+
+      # Setup
+      acc_k = self.acc[k]
+      gyr_k = self.gyr[k]
+
+      # Interpolate start or end?
+      if len(imu_ts) == 0 and ts_k > ts_start:
+        # Interpolate start
+        ts_km1 = self.ts[k - 1]
+        acc_km1 = self.acc[k - 1]
+        gyr_km1 = self.gyr[k - 1]
+
+        alpha = (ts_start - ts_km1) / (ts_k - ts_km1)
+        ts_km1 = ts_start
+        acc_km1 = (1.0 - alpha) * acc_km1 + alpha * acc_k
+        gyr_km1 = (1.0 - alpha) * gyr_km1 + alpha * gyr_k
+
+        imu_ts.append(ts_km1)
+        imu_acc.append(acc_km1)
+        imu_gyr.append(gyr_km1)
+
+      elif ts_k > ts_end:
+        # Interpolate end
+        ts_km1 = self.ts[k - 1]
+        acc_km1 = self.acc[k - 1]
+        gyr_km1 = self.gyr[k - 1]
+        alpha = (ts_end - ts_km1) / (ts_k - ts_km1)
+        ts_k = ts_end
+        acc_k = (1.0 - alpha) * acc_km1 + alpha * acc_k
+        gyr_k = (1.0 - alpha) * gyr_km1 + alpha * gyr_k
+
+      # Add to subset
+      imu_ts.append(ts_k)
+      imu_acc.append(acc_k)
+      imu_gyr.append(gyr_k)
+
+      # End?
+      if ts_k == ts_end:
         break
 
+      # Update
+      remove_idx = k
+
     # Remove data before ts_end
-    self.ts = self.ts[remove_idx + 1:]
-    self.acc = self.acc[remove_idx + 1:]
-    self.gyr = self.gyr[remove_idx + 1:]
+    self.ts = self.ts[remove_idx:]
+    self.acc = self.acc[remove_idx:]
+    self.gyr = self.gyr[remove_idx:]
 
     return ImuBuffer(imu_ts, imu_acc, imu_gyr)
 
@@ -6714,28 +6756,54 @@ class TestFactors(unittest.TestCase):
 
   def test_imu_buffer(self):
     """ Test IMU Buffer """
+    # Extract measurements from ts: 4 - 7
     imu_buf = ImuBuffer()
-
-    # Fill in 10 measurements from ts: 0 - 10
     for k in range(10):
       ts = k
       acc = np.array([0.0 + k, 0.0 + k, 0.0 + k])
       gyr = np.array([0.0 + k, 0.0 + k, 0.0 + k])
       imu_buf.add(ts, acc, gyr)
 
-    # Extract measurements from ts: 4 - 7
+    # print("Original imu_buf:")
+    # imu_buf.print(True)
     imu_buf2 = imu_buf.extract(4, 7)
+    # print("Extracted imu_buf2 (ts: 4 - 7):")
+    # imu_buf2.print(True)
+    # print("Modified imu_buf:")
+    # imu_buf.print(True)
 
-    self.assertTrue(imu_buf.length() == 3)
-    self.assertTrue(imu_buf.ts[0] == 7)
+    self.assertTrue(imu_buf.length() == 4)
+    self.assertTrue(imu_buf.ts[0] == 6)
     self.assertTrue(imu_buf.ts[-1] == 9)
 
     self.assertTrue(imu_buf2.length() == 4)
     self.assertTrue(imu_buf2.ts[0] == 4)
     self.assertTrue(imu_buf2.ts[-1] == 7)
 
-    imu_buf.print(True)
-    imu_buf2.print(True)
+  def test_imu_buffer_with_interpolation(self):
+    # Interpolation test
+    imu_buf = ImuBuffer()
+    for k in range(10):
+      ts = k
+      acc = np.array([0.0 + k, 0.0 + k, 0.0 + k])
+      gyr = np.array([0.0 + k, 0.0 + k, 0.0 + k])
+      imu_buf.add(ts, acc, gyr)
+
+    # print("Original imu_buf:")
+    # imu_buf.print(True)
+    imu_buf2 = imu_buf.extract(4.25, 8.9)
+    # print("Extracted imu_buf2 (ts: 4.25 - 8.9):")
+    # imu_buf2.print(True)
+    # print("Modified imu_buf:")
+    # imu_buf.print(True)
+
+    self.assertTrue(imu_buf.length() == 2)
+    self.assertTrue(imu_buf.ts[0] == 8)
+    self.assertTrue(imu_buf.ts[-1] == 9)
+
+    self.assertTrue(imu_buf2.length() == 6)
+    self.assertTrue(imu_buf2.ts[0] == 4.25)
+    self.assertTrue(imu_buf2.ts[-1] == 8.9)
 
   def test_imu_factor_propagate(self):
     """ Test IMU factor propagate """
