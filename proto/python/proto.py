@@ -317,6 +317,7 @@ def websocket_encode_frame(payload, **kwargs):
   Source:
 
     https://datatracker.ietf.org/doc/html/rfc6455#section-5.1
+    https://websockets.readthedocs.io/en/7.0/_modules/websockets/framing.html
 
   """
   fin = kwargs.get("fin", 1)  # Assume last frame
@@ -358,94 +359,55 @@ def websocket_encode_frame(payload, **kwargs):
   return frame.getvalue()
 
 
-# def websocket_decode_frame(payload):
-#   """
-#   Decoding Payload Length
-#   -----------------------
-#
-#   To read the payload data, you must know when to stop reading. That's why the
-#   payload length is important to know. Unfortunately, this is somewhat
-#   complicated. To read it, follow these steps:
-#
-#   1. Read bits 9-15 (inclusive) and interpret that as an unsigned integer. If
-#   it's 125 or less, then that's the length; you're done. If it's 126, go to
-#   step 2. If it's 127, go to step 3.
-#
-#   2. Read the next 16 bits and interpret those as an unsigned integer. You're
-#   done.
-#
-#   3. Read the next 64 bits and interpret those as an unsigned integer. (The
-#   most significant bit must be 0.) You're done.
-#   """
-#   # struct websocket_frame *ws_frame;
-#   # unsigned char header[2];
-#   # unsigned char buf_2bytes[2];
-#   # unsigned char *buf_8bytes[8];
-#   # unsigned char mask[4];
-#   # unsigned long long i;
-#   # char *payload_data;
-#   # int retval;
-#   #
-#   # /* setup */
-#   # ws_frame = websocket_frame_new();
-#   # bzero(header, 2);
-#   # bzero(buf_2bytes, 2);
-#   # bzero(buf_8bytes, 8);
-#   # bzero(mask, 4);
-#   #
-#   # /* parse header */
-#   # retval = (int)recv(connfd, header, 2, 0);
-#   # silent_check(retval != 0);
-#   # ws_frame->header = header[0];
-#   # ws_frame->payload_size = header[1] & 0x7F;
-#   #
-#   # /* additional payload size */
-#   # if (ws_frame->payload_size == 126) {
-#   #   /* obtain extended data size - 2 bytes */
-#   #   retval = (int)recv(connfd, buf_2bytes, 2, 0);
-#   #   silent_check(retval != 0);
-#   #
-#   #   /* parse payload size */
-#   #   ws_frame->payload_size = (((unsigned long long)buf_2bytes[0] << 8) |
-#   #                             ((unsigned long long)buf_2bytes[1]));
-#   #
-#   # } else if (ws_frame->payload_size == 127) {
-#   #   /* obtain extended data size - 8 bytes */
-#   #   retval = (int)recv(connfd, buf_8bytes, 8, 0);
-#   #   silent_check(retval != 0);
-#   #
-#   #   /* parse payload size */
-#   #   ws_frame->payload_size =
-#   #       ((((unsigned long long)buf_8bytes[0] << 56) & 0xFF00000000000000U) |
-#   #        (((unsigned long long)buf_8bytes[1] << 48) & 0x00FF000000000000U) |
-#   #        (((unsigned long long)buf_8bytes[2] << 40) & 0x0000FF0000000000U) |
-#   #        (((unsigned long long)buf_8bytes[3] << 32) & 0x000000FF00000000U) |
-#   #        (((unsigned long long)buf_8bytes[4] << 24) & 0x00000000FF000000U) |
-#   #        (((unsigned long long)buf_8bytes[5] << 16) & 0x0000000000FF0000U) |
-#   #        (((unsigned long long)buf_8bytes[6] << 8) & 0x000000000000FF00U) |
-#   #        (((unsigned long long)buf_8bytes[7]) & 0x00000000000000FFU));
-#   # }
-#   #
-#   # /* recv mask */
-#   # if (websocket_frame_mask_enabled(header)) {
-#   #   retval = (int)recv(connfd, mask, 4, 0);
-#   #   silent_check(retval != 0);
-#   # }
-#   #
-#   # /* recv payload */
-#   # if (ws_frame->payload_size) {
-#   #   payload_data = calloc(1, sizeof(char) * ws_frame->payload_size);
-#   #   retval = (int)recv(connfd, payload_data, ws_frame->payload_size, 0);
-#   #   silent_check(retval != 0);
-#   #
-#   #   /* decode payload data with mask */
-#   #   if (websocket_frame_mask_enabled(header)) {
-#   #     for (i = 0; i < ws_frame->payload_size; i++) {
-#   #       payload_data[i] = payload_data[i] ^ mask[i % 4];
-#   #     }
-#   #   }
-#   #   ws_frame->payload_data = payload_data;
-#   # }
+def websocket_decode_frame(reader, mask):
+  """
+  Decode WebSocket Frame
+
+  To read the payload data, you must know when to stop reading. That's why the
+  payload length is important to know. Unfortunately, this is somewhat
+  complicated. To read it, follow these steps:
+
+  1. Read bits 9-15 (inclusive) and interpret that as an unsigned integer. If
+  it's 125 or less, then that's the length; you're done. If it's 126, go to
+  step 2. If it's 127, go to step 3.
+
+  2. Read the next 16 bits and interpret those as an unsigned integer. You're
+  done.
+
+  3. Read the next 64 bits and interpret those as an unsigned integer. (The
+  most significant bit must be 0.) You're done.
+  """
+  # Read the header.
+  data = yield from reader(2)
+  head1, head2 = struct.unpack('!BB', data)
+
+  # -- While not Pythonic, this is marginally faster than calling bool().
+  fin = True if head1 & 0b10000000 else False
+  rsv1 = True if head1 & 0b01000000 else False
+  rsv2 = True if head1 & 0b00100000 else False
+  rsv3 = True if head1 & 0b00010000 else False
+  opcode = head1 & 0b00001111
+
+  if (True if head2 & 0b10000000 else False) != mask:
+    raise RuntimeError("Incorrect masking")
+
+  length = head2 & 0b01111111
+  if length == 126:
+    data = yield from reader(2)
+    length, = struct.unpack('!H', data)
+  elif length == 127:
+    data = yield from reader(8)
+    length, = struct.unpack('!Q', data)
+
+  if mask:
+    mask_bits = yield from reader(4)
+
+  # Read payload
+  data = yield from reader(length)
+  if mask:
+    data = websocket_apply_mask(data, mask_bits)
+
+  return data
 
 
 class DebugServer:
@@ -476,10 +438,13 @@ class DebugServer:
     resp = websocket_handshake_response(ws_key)
     self.conn.send(str.encode(resp))
 
-    payload = "Hello World!"
-    frame = websocket_encode_frame(payload)
-    self.conn.send(frame)
-    time.sleep(2)
+    idx = 0
+    while True:
+      payload = f"Hello World! {idx}"
+      frame = websocket_encode_frame(payload)
+      self.conn.send(frame)
+      # time.sleep(0.01)
+      idx += 1
 
   def __enter__(self):
     return self
@@ -6602,7 +6567,9 @@ class TestNetwork(unittest.TestCase):
   def test_websocket_encode_frame(self):
     """ Test WebSocket Frame """
     payload = "Hello World!"
-    print(websocket_encode_frame(payload))
+    frame = websocket_encode_frame(payload)
+    # payload2 = websocket_decode_frame(frame)
+    self.assertTrue(frame is not None)
 
   def test_debug_server(self):
     """ Test Debug Server """
