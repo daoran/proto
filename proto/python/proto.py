@@ -25,11 +25,13 @@ import os
 import sys
 import glob
 import math
-# import time
+import time
 import copy
 import random
 import pickle
 import json
+import io
+import struct
 import signal
 import socket
 import base64
@@ -236,6 +238,216 @@ def websocket_handshake_response(ws_key):
   return http_form_response(101, headers)
 
 
+def websocket_frame_fin_bit(data_frame):
+  """ WebSocket Frame Fin Bit """
+  return data_frame[0] >> 7
+
+
+def websocket_frame_rsv_bit(data_frame):
+  """ WebSocket Frame Reserve Bit """
+  return (data_frame[0] ^ 0x80) >> 4
+
+
+def websocket_frame_op_code(data_frame):
+  """ WebSocket Frame OP code """
+  return data_frame[0] & 0x0F
+
+
+def websocket_frame_mask_enabled(data_frame):
+  """ WebSocket Frame Mask Enabled """
+  return data_frame[1] >> 7
+
+
+def websocket_apply_mask(data: bytes, mask: bytes) -> bytes:
+  """
+  Apply masking to the data of a WebSocket message.
+  Args:
+      data: data to mask.
+      mask: 4-bytes mask.
+  """
+  if len(mask) != 4:
+    raise ValueError("mask must contain 4 bytes")
+
+  data_int = int.from_bytes(data, sys.byteorder)
+  mask_repeated = mask * (len(data) // 4) + mask[:len(data) % 4]
+  mask_int = int.from_bytes(mask_repeated, sys.byteorder)
+  return (data_int ^ mask_int).to_bytes(len(data), sys.byteorder)
+
+
+def websocket_encode_frame(payload, **kwargs):
+  """
+  WebSocket Frame Format:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-------+-+-------------+-------------------------------+
+    |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+    |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+    |N|V|V|V|       |S|             |   (if payload len==126/127)   |
+    | |1|2|3|       |K|             |                               |
+    +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+    |     Extended payload length continued, if payload len == 127  |
+    + - - - - - - - - - - - - - - - +-------------------------------+
+    |                               |Masking-key, if MASK set to 1  |
+    +-------------------------------+-------------------------------+
+    | Masking-key (continued)       |          Payload Data         |
+    +-------------------------------- - - - - - - - - - - - - - - - +
+    :                     Payload Data continued ...                :
+    + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+    |                     Payload Data continued ...                |
+    +---------------------------------------------------------------+
+
+  The MASK bit tells whether the message is encoded. Messages from the client
+  must be masked, so your server must expect this to be 1. (In fact, section
+  5.1 of the spec says that your server must disconnect from a client if that
+  client sends an unmasked message.) When sending a frame back to the client,
+  do not mask it and do not set the mask bit. We'll explain masking later.
+  Note: You must mask messages even when using a secure socket. RSV1-3 can be
+  ignored, they are for extensions.
+
+  The opcode field defines how to interpret the payload data: 0x0 for
+  continuation, 0x1 for text (which is always encoded in UTF-8), 0x2 for
+  binary, and other so-called "control codes" that will be discussed later. In
+  this version of WebSockets, 0x3 to 0x7 and 0xB to 0xF have no meaning.
+
+  The FIN bit tells whether this is the last message in a series. If it's 0,
+  then the server keeps listening for more parts of the message; otherwise, the
+  server should consider the message delivered. More on this later.
+
+  Source:
+
+    https://datatracker.ietf.org/doc/html/rfc6455#section-5.1
+
+  """
+  fin = kwargs.get("fin", 1)  # Assume last frame
+  rsv1 = kwargs.get("rsv1", 0)
+  rsv2 = kwargs.get("rsv2", 0)
+  rsv3 = kwargs.get("rsv3", 0)
+  opcode = kwargs.get("opcode", 0x1)  # Assume text data
+  mask = kwargs.get("mask", 0)
+
+  # Form WebSocket Frame
+  frame = io.BytesIO()
+  length = len(payload)
+
+  # -- Header
+  # yapf:disable
+  head1 = ((0b10000000 if fin else 0)
+           | (0b01000000 if rsv1 else 0)
+           | (0b00100000 if rsv2 else 0)
+           | (0b00010000 if rsv3 else 0)
+           | opcode)
+  head2 = 0b10000000 if mask else 0
+  # yapf:enable
+  if length < 126:
+    frame.write(struct.pack('!BB', head1, head2 | length))
+  elif length < 65536:
+    frame.write(struct.pack('!BBH', head1, head2 | 126, length))
+  else:
+    frame.write(struct.pack('!BBQ', head1, head2 | 127, length))
+
+  # -- Payload
+  if mask:
+    mask_bits = struct.pack('!I', random.getrandbits(32))
+    masked_payload = websocket_apply_mask(payload, mask_bits)
+    frame.write(mask_bits)
+    frame.write(masked_payload)
+  else:
+    frame.write(str.encode(payload))
+
+  return frame.getvalue()
+
+
+# def websocket_decode_frame(payload):
+#   """
+#   Decoding Payload Length
+#   -----------------------
+#
+#   To read the payload data, you must know when to stop reading. That's why the
+#   payload length is important to know. Unfortunately, this is somewhat
+#   complicated. To read it, follow these steps:
+#
+#   1. Read bits 9-15 (inclusive) and interpret that as an unsigned integer. If
+#   it's 125 or less, then that's the length; you're done. If it's 126, go to
+#   step 2. If it's 127, go to step 3.
+#
+#   2. Read the next 16 bits and interpret those as an unsigned integer. You're
+#   done.
+#
+#   3. Read the next 64 bits and interpret those as an unsigned integer. (The
+#   most significant bit must be 0.) You're done.
+#   """
+#   # struct websocket_frame *ws_frame;
+#   # unsigned char header[2];
+#   # unsigned char buf_2bytes[2];
+#   # unsigned char *buf_8bytes[8];
+#   # unsigned char mask[4];
+#   # unsigned long long i;
+#   # char *payload_data;
+#   # int retval;
+#   #
+#   # /* setup */
+#   # ws_frame = websocket_frame_new();
+#   # bzero(header, 2);
+#   # bzero(buf_2bytes, 2);
+#   # bzero(buf_8bytes, 8);
+#   # bzero(mask, 4);
+#   #
+#   # /* parse header */
+#   # retval = (int)recv(connfd, header, 2, 0);
+#   # silent_check(retval != 0);
+#   # ws_frame->header = header[0];
+#   # ws_frame->payload_size = header[1] & 0x7F;
+#   #
+#   # /* additional payload size */
+#   # if (ws_frame->payload_size == 126) {
+#   #   /* obtain extended data size - 2 bytes */
+#   #   retval = (int)recv(connfd, buf_2bytes, 2, 0);
+#   #   silent_check(retval != 0);
+#   #
+#   #   /* parse payload size */
+#   #   ws_frame->payload_size = (((unsigned long long)buf_2bytes[0] << 8) |
+#   #                             ((unsigned long long)buf_2bytes[1]));
+#   #
+#   # } else if (ws_frame->payload_size == 127) {
+#   #   /* obtain extended data size - 8 bytes */
+#   #   retval = (int)recv(connfd, buf_8bytes, 8, 0);
+#   #   silent_check(retval != 0);
+#   #
+#   #   /* parse payload size */
+#   #   ws_frame->payload_size =
+#   #       ((((unsigned long long)buf_8bytes[0] << 56) & 0xFF00000000000000U) |
+#   #        (((unsigned long long)buf_8bytes[1] << 48) & 0x00FF000000000000U) |
+#   #        (((unsigned long long)buf_8bytes[2] << 40) & 0x0000FF0000000000U) |
+#   #        (((unsigned long long)buf_8bytes[3] << 32) & 0x000000FF00000000U) |
+#   #        (((unsigned long long)buf_8bytes[4] << 24) & 0x00000000FF000000U) |
+#   #        (((unsigned long long)buf_8bytes[5] << 16) & 0x0000000000FF0000U) |
+#   #        (((unsigned long long)buf_8bytes[6] << 8) & 0x000000000000FF00U) |
+#   #        (((unsigned long long)buf_8bytes[7]) & 0x00000000000000FFU));
+#   # }
+#   #
+#   # /* recv mask */
+#   # if (websocket_frame_mask_enabled(header)) {
+#   #   retval = (int)recv(connfd, mask, 4, 0);
+#   #   silent_check(retval != 0);
+#   # }
+#   #
+#   # /* recv payload */
+#   # if (ws_frame->payload_size) {
+#   #   payload_data = calloc(1, sizeof(char) * ws_frame->payload_size);
+#   #   retval = (int)recv(connfd, payload_data, ws_frame->payload_size, 0);
+#   #   silent_check(retval != 0);
+#   #
+#   #   /* decode payload data with mask */
+#   #   if (websocket_frame_mask_enabled(header)) {
+#   #     for (i = 0; i < ws_frame->payload_size; i++) {
+#   #       payload_data[i] = payload_data[i] ^ mask[i % 4];
+#   #     }
+#   #   }
+#   #   ws_frame->payload_data = payload_data;
+#   # }
+
+
 class DebugServer:
   """ Debug Server """
 
@@ -263,6 +475,11 @@ class DebugServer:
     # Respond
     resp = websocket_handshake_response(ws_key)
     self.conn.send(str.encode(resp))
+
+    payload = "Hello World!"
+    frame = websocket_encode_frame(payload)
+    self.conn.send(frame)
+    time.sleep(2)
 
   def __enter__(self):
     return self
@@ -6381,6 +6598,11 @@ class TestNetwork(unittest.TestCase):
     ws_key = "dGhlIHNhbXBsZSBub25jZQ=="
     ws_hash = "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
     self.assertTrue(websocket_hash(ws_key) == ws_hash)
+
+  def test_websocket_encode_frame(self):
+    """ Test WebSocket Frame """
+    payload = "Hello World!"
+    print(websocket_encode_frame(payload))
 
   def test_debug_server(self):
     """ Test Debug Server """
