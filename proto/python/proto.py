@@ -25,12 +25,15 @@ import os
 import sys
 import glob
 import math
-import time
+# import time
 import copy
 import random
 import pickle
 import json
 import signal
+import socket
+import base64
+import hashlib
 from datetime import datetime
 from pathlib import Path
 from enum import Enum
@@ -108,6 +111,165 @@ def profile_stop(prof, **kwargs):
   stats = Stats(prof)
   stats.strip_dirs()
   stats.sort_stats(key).print_stats(N)
+
+
+###############################################################################
+# NETWORK
+###############################################################################
+
+
+def http_status_code_string(code):
+  """ Convert status code to string """
+  status_code_str = {
+      100: "100 Continue",
+      101: "101 Switching Protocols",
+      200: "200 OK",
+      201: "201 Created",
+      202: "202 Accepted",
+      203: "203 Non-Authoritative Information",
+      204: "204 No Content",
+      205: "205 Reset Content",
+      206: "206 Partial Content",
+      300: "300 Multiple Choices",
+      301: "301 Moved Permanently",
+      302: "302 Found",
+      303: "303 See Other",
+      304: "304 Not Modified",
+      305: "305 Use Proxy",
+      307: "307 Temporary Redirect",
+      400: "400 Bad Request",
+      401: "401 Unauthorized",
+      402: "402 Payment Required",
+      403: "403 Forbidden",
+      404: "404 Not Found",
+      405: "405 Method Not Allowed",
+      406: "406 Not Acceptable",
+      407: "407 Proxy Authentication Required",
+      408: "408 Request Time-out",
+      409: "409 Conflict",
+      410: "410 Gone",
+      411: "411 Length Required",
+      412: "412 Precondition Failed",
+      413: "413 Request Entity Too Large",
+      414: "414 Request-URI Too Large",
+      415: "415 Unsupported Media Type",
+      416: "416 Requested range not satisfiable",
+      417: "417 Expectation Failed",
+      500: "500 Internal Server Error",
+      501: "501 Not Implemented",
+      502: "502 Bad Gateway",
+      503: "503 Service Unavailable",
+      504: "504 Gateway Time-out",
+      505: "505 HTTP Version not supported"
+  }
+
+  return status_code_str[code]
+
+
+def http_parse_request(msg_str):
+  """ Parse HTTP Request """
+  # Parse method, path and HTTP protocol
+  msg = msg_str.split("\r\n")
+  method, path, protocol = msg[0].split(" ")
+
+  # Parse headers
+  headers = {}
+  for element in msg[1:]:
+    kv = element.strip().split(":", 1)
+    key = kv[0].strip()
+    if len(key) == 0:
+      continue
+    headers[key] = kv[1].strip()
+
+  return (protocol, method, path, headers)
+
+
+def http_form_request(method, path, headers, protocol="HTTP/1.1"):
+  """ Form HTTP request """
+  msg = f"{method} {path} {protocol}"
+  msg += "\r\n"
+
+  for hdr, val in headers.items():
+    msg += f"{hdr}: {val}"
+    msg += "\r\n"
+
+  msg += "\r\n"  # End of message
+  return msg
+
+
+def http_form_response(status_code, headers, protocol="HTTP/1.1"):
+  """ Form HTTP request """
+  msg = f"{protocol} {status_code}"
+  msg += "\r\n"
+
+  for hdr, val in headers.items():
+    msg += f"{hdr}: {val}"
+    msg += "\r\n"
+
+  # End of message
+  msg += "\r\n"
+  return msg
+
+
+def websocket_hash(ws_key):
+  """
+  This hashing function:
+  1. Appends '258EAFA5-E914-47DA-95CA-C5AB0DC85B11' to Sec-WebSocket-Key
+      from the client's request header
+  2. Applies the key to the SHA-1 hashing function
+  3. Encodes results with Base64
+  """
+  WS_UUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+  key = ws_key + WS_UUID
+  hash_sha1 = hashlib.sha1(key.encode('utf-8')).digest()
+  return base64.b64encode(hash_sha1).decode('ascii')
+
+
+def websocket_handshake_response(ws_key):
+  """ Create websocket handshake response """
+  ws_hash = websocket_hash(ws_key)
+  headers = {
+      "Upgrade": "websocket",
+      "Connection": "Upgrade",
+      "Sec-WebSocket-Accept": ws_hash
+  }
+  return http_form_response(101, headers)
+
+
+class DebugServer:
+  """ Debug Server """
+
+  def __init__(self):
+    self.host = '127.0.0.1'
+    self.port = 5000
+
+    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    self.sock.bind((self.host, self.port))
+    self.sock.listen()
+    self.conn, self.client_addr = self.sock.accept()
+
+    # Get request
+    buf_size = 4096
+    request_string = self.conn.recv(buf_size, 0).decode("ascii")
+    (protocol, method, _, headers) = http_parse_request(request_string)
+    assert protocol == "HTTP/1.1"
+    assert method == "GET"
+    assert "Upgrade" in headers
+    assert "Connection" in headers
+    assert "Sec-WebSocket-Key" in headers
+    ws_key = headers["Sec-WebSocket-Key"]
+
+    # Respond
+    resp = websocket_handshake_response(ws_key)
+    self.conn.send(str.encode(resp))
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    self.conn.close()
+    self.sock.close()
 
 
 ###############################################################################
@@ -3404,7 +3566,7 @@ class Solver:
     self.factors = {}
     self.params = {}
     self.solver_max_iter = 5
-    self.solver_lambda = 1e-4
+    self.solver_lambda = 1e4
 
   def add(self, factor, factor_params):
     """ Add factor and parameters """
@@ -3566,14 +3728,16 @@ class Solver:
 
   def _calculate_residuals(self, params):
     """ Calculate Residuals """
-    residuals = []
+    residuals = np.array([])
 
     for _, factor in self.factors.items():
       factor_params = [params[pid].param for pid in factor.param_ids]
       r = factor.eval(factor_params, only_residuals=True)
-      residuals.append(r)
+      # residuals.append(r)
+      residuals = np.append(residuals, r)
 
-    return np.array(residuals).flatten()
+    # return np.array(residuals).flatten()
+    return residuals
 
   def _calculate_cost(self, params):
     """ Calculate Cost """
@@ -3602,25 +3766,23 @@ class Solver:
   def _solve_for_dx(lambda_k, H, g):
     """ Solve for dx """
     # Damp Hessian
-    # H = H + lambda_k * eye(H.shape[0])
-    H = H + lambda_k * np.diag(H.diagonal())
+    H = H + lambda_k * eye(H.shape[0])
+    # H = H + lambda_k * np.diag(H.diagonal())
 
     # # Pseudo inverse
     # dx = pinv(H) @ g
 
-    # # Linear solver
-    # dx = np.linalg.solve(H, g)
-
-    # # Cholesky decomposition
+    # Cholesky decomposition
     c, low = scipy.linalg.cho_factor(H)
     dx = scipy.linalg.cho_solve((c, low), g)
 
-    # SVD
+    # # SVD
     # dx = solve_svd(H, g)
 
-    # # Sparse cholesky decomposition
+    # Sparse cholesky decomposition
     # sH = scipy.sparse.csc_matrix(H)
     # dx = scipy.sparse.linalg.spsolve(sH, g)
+    # dx = scipy.sparse.linalg.spsolve(H, g, permc_spec="NATURAL")
 
     return dx
 
@@ -3649,6 +3811,7 @@ class Solver:
         self._print_to_console(i, lambda_k, cost_kp1, cost_k)
 
       # Accept or reject update
+      # dcost = cost_kp1 - cost_k
       if cost_kp1 < cost_k:
         # Accept update
         cost_k = cost_kp1
@@ -3659,6 +3822,10 @@ class Solver:
         # Reject update
         params_k = params_k
         lambda_k *= 10.0
+
+      # # Termination criteria
+      # if dcost > -1e-5:
+      #   break
 
     # Finish - set the original params the optimized values
     # Note: The reason we don't just do `self.params = params_k` is because
@@ -3680,7 +3847,7 @@ class FactorGraph:
     self.params = {}
     self.factors = {}
     self.solver_max_iter = 5
-    self.solver_lambda = 1e-4
+    self.solver_lambda = 1e4
 
   def add_param(self, param):
     """ Add param """
@@ -5701,15 +5868,12 @@ class SimData:
     """ Simulate IMU """
     sim_data = SimImuData(imu_idx)
 
-    time = 0.0
-    dt = 1.0 / self.imu_rate
+    ts = 0
+    dt_ns = sec2ts(1.0 / self.imu_rate)
     theta = self.theta_init
     yaw = self.yaw_init
 
-    while time <= self.time_taken:
-      # Timestamp
-      ts = sec2ts(time)
-
+    while ts <= sec2ts(self.time_taken):
       # IMU pose
       rx = self.circle_r * cos(theta)
       ry = self.circle_r * sin(theta)
@@ -5747,9 +5911,9 @@ class SimData:
       sim_data.acc[ts] = acc
       sim_data.gyr[ts] = gyr
 
-      theta += self.w * dt
-      yaw += self.w * dt
-      time += dt
+      theta += self.w * ts2sec(dt_ns)
+      yaw += self.w * ts2sec(dt_ns)
+      ts += dt_ns
 
     return sim_data
 
@@ -5757,15 +5921,12 @@ class SimData:
     """ Simulate camera """
     sim_data = SimCameraData(cam_idx, cam_params, self.features)
 
-    time = 0.0
-    dt = 1.0 / self.cam_rate
+    ts = 0
+    dt_ns = sec2ts(1.0 / self.cam_rate)
     theta = self.theta_init
     yaw = self.yaw_init
 
-    while time <= self.time_taken:
-      # Timestamp
-      ts = sec2ts(time)
-
+    while ts <= sec2ts(self.time_taken):
       # Body pose
       rx = self.circle_r * cos(theta)
       ry = self.circle_r * sin(theta)
@@ -5782,9 +5943,9 @@ class SimData:
       sim_data.frames[ts] = cam_frame
 
       # Update
-      theta += self.w * dt
-      yaw += self.w * dt
-      time += dt
+      theta += self.w * ts2sec(dt_ns)
+      yaw += self.w * ts2sec(dt_ns)
+      ts += dt_ns
 
     return sim_data
 
@@ -6188,6 +6349,44 @@ class MultiPlot:
 import unittest
 
 euroc_data_path = '/data/euroc/raw/V1_01'
+
+# NETWORK #####################################################################
+
+
+class TestNetwork(unittest.TestCase):
+  """ Test Network """
+
+  def test_http_parse_request(self):
+    """ Test Parsing HTTP Request """
+    request_string = """GET / HTTP/1.1\r\n
+                        Host: localhost:8080\r\n
+                        User-Agent: Mozilla/5.0\r\n
+                        Accept-Language: en-GB,en;q=0.5\r\n
+                        Accept-Encoding: gzip, deflate\r\n
+                        Connection: keep-alive\r\n
+                        Upgrade-Insecure-Requests: 1\r\n
+                        Sec-Fetch-Dest: document\r\n
+                        Sec-Fetch-Mode: navigate\r\n
+                        Sec-Fetch-Site: cross-site\r\n
+                        Cache-Control: max-age=0\r\n\r\n"""
+    (protocol, method, path, headers) = http_parse_request(request_string)
+    self.assertTrue(protocol == "HTTP/1.1")
+    self.assertTrue(method == "GET")
+    self.assertTrue(path == "/")
+    self.assertTrue(headers["Host"] == "localhost:8080")
+    self.assertTrue(headers["User-Agent"] == "Mozilla/5.0")
+
+  def test_websocket_hash(self):
+    """ Test WebSocket Upgrade Response """
+    ws_key = "dGhlIHNhbXBsZSBub25jZQ=="
+    ws_hash = "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+    self.assertTrue(websocket_hash(ws_key) == ws_hash)
+
+  def test_debug_server(self):
+    """ Test Debug Server """
+    server = DebugServer()
+    self.assertTrue(server is not None)
+
 
 # LINEAR ALGEBRA ##############################################################
 
@@ -6781,6 +6980,7 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(imu_buf2.ts[-1] == 7)
 
   def test_imu_buffer_with_interpolation(self):
+    """ Test IMU Buffer with interpolation """
     # Interpolation test
     imu_buf = ImuBuffer()
     for k in range(10):
@@ -6890,13 +7090,13 @@ class TestFactors(unittest.TestCase):
     vel_i = imu_data.vel[ts_i]
     ba_i = np.array([0.0, 0.0, 0.0])
     bg_i = np.array([0.0, 0.0, 0.0])
-    sb_i = speed_biases_setup(ts_i, vel_i, bg_i, ba_i)
+    sb_i = speed_biases_setup(ts_i, vel_i, ba_i, bg_i)
 
     # Speed and bias j
     vel_j = imu_data.vel[ts_j]
     ba_j = np.array([0.0, 0.0, 0.0])
     bg_j = np.array([0.0, 0.0, 0.0])
-    sb_j = speed_biases_setup(ts_j, vel_j, bg_j, ba_j)
+    sb_j = speed_biases_setup(ts_j, vel_j, ba_j, bg_j)
 
     # Setup IMU factor
     param_ids = [0, 1, 2, 3]
@@ -7067,13 +7267,13 @@ class TestFactorGraph(unittest.TestCase):
     start_idx = 0
     # end_idx = 200
     # end_idx = 2000
-    end_idx = int((len(imu0_data.timestamps) - 1) / 2.0)
+    # end_idx = int((len(imu0_data.timestamps) - 1) / 2.0)
+    end_idx = len(imu0_data.timestamps)
 
     poses_init = []
     poses_est = []
     sb_est = []
     graph = FactorGraph()
-    graph.solver_lambda = 1e10
 
     # -- Pose i
     ts_i = imu0_data.timestamps[start_idx]
@@ -7126,9 +7326,6 @@ class TestFactorGraph(unittest.TestCase):
       pose_i = pose_j
       sb_i_id = sb_j_id
       sb_i = sb_j
-
-      if len(graph.factors) == 1:
-        break
 
     # Solve
     # debug = False
@@ -7199,6 +7396,7 @@ class TestFactorGraph(unittest.TestCase):
     cam_params = self.sim_data.get_camera_params(cam_idx)
     cam_geom = self.sim_data.get_camera_geometry(cam_idx)
     cam_exts = self.sim_data.get_camera_extrinsics(cam_idx)
+    cam_params.fix = True
     cam_exts.fix = True
 
     # Setup factor graph
@@ -7206,14 +7404,16 @@ class TestFactorGraph(unittest.TestCase):
     poses_init = []
     poses_est = []
     graph = FactorGraph()
+    graph.solver_lambda = 1e4
+    graph.solver_max_iter = 10
 
     # -- Add features
     features = self.sim_data.features
     feature_ids = []
     for i in range(features.shape[0]):
       p_W = features[i, :]
-      # p_W += np.random.rand(3) * 0.1  # perturb feature
-      feature = feature_setup(p_W, fix=True)
+      p_W += np.random.rand(3) * 0.1  # perturb feature
+      feature = feature_setup(p_W, fix=False)
       feature_ids.append(graph.add_param(feature))
 
     # -- Add cam
@@ -7223,41 +7423,67 @@ class TestFactorGraph(unittest.TestCase):
     T_CB_gnd = inv(T_BC_gnd)
 
     # -- Build bundle adjustment problem
-    imu_buf = ImuBuffer()
+    imu_data = ImuBuffer()
+    poses = []
+    sbs = []
 
-    for ts in self.sim_data.timeline.get_timestamps():
-      for event in self.sim_data.timeline.get_events(ts):
+    for ts_k in self.sim_data.timeline.get_timestamps():
+      for event in self.sim_data.timeline.get_events(ts_k):
         if isinstance(event, ImuEvent):
-          imu_buf.add_event(event)
+          imu_data.add_event(event)
 
         elif isinstance(event, CameraEvent) and event.cam_idx == cam_idx:
-          # Camera frame at ts
-          cam_frame = cam_data.frames[ts]
+          if imu_data.length() == 0:
+            continue
 
-          # Add camera pose T_WC
-          T_WC_gnd = cam_data.poses[ts]
+          # Vision factors
+          # -- Add camera pose T_WC
+          T_WC_gnd = cam_data.poses[ts_k]
           T_WB_gnd = T_WC_gnd @ T_CB_gnd
-          # -- Perturb camera pose
+          # ---- Perturb camera pose
           trans_rand = np.random.rand(3)
           rvec_rand = np.random.rand(3) * 0.1
           T_perturb = np.block([*trans_rand, *rvec_rand])
           T_WB_init = tf_update(T_WB_gnd, T_perturb)
-          # -- Add to graph
-          pose = pose_setup(ts, T_WB_init)
+          # ---- Add to graph
+          pose = pose_setup(ts_k, T_WB_init)
+          poses.append(pose)
           pose_id = graph.add_param(pose)
           poses_gnd.append(T_WB_gnd)
           poses_init.append(T_WB_init)
           poses_est.append(pose_id)
-
-          # Add vision factors
-          for i, idx in enumerate(cam_frame.feature_ids):
-            z = cam_frame.measurements[i]
+          # -- Speed and biases
+          vel_j = self.sim_data.imu0_data.vel[ts_k]
+          ba_j = np.array([0.0, 0.0, 0.0])
+          bg_j = np.array([0.0, 0.0, 0.0])
+          sb = speed_biases_setup(ts_k, vel_j, bg_j, ba_j)
+          graph.add_param(sb)
+          sbs.append(sb)
+          # -- Add vision factors
+          for i, idx in enumerate(cam_data.frames[ts_k].feature_ids):
+            z = cam_data.frames[ts_k].measurements[i]
             param_ids = [pose_id, exts_id, feature_ids[idx], cam_id]
             graph.add_factor(VisionFactor(cam_geom, param_ids, z))
 
+          # Imu factor
+          if len(poses) >= 2:
+            ts_km1 = poses[-2].ts
+            pose_i_id = poses[-2].param_id
+            pose_j_id = poses[-1].param_id
+            sb_i_id = sbs[-2].param_id
+            sb_j_id = sbs[-1].param_id
+            param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
+
+            # print(f"ts_k: {ts_k}")
+            # print(f"imu.ts[-1]: {imu_data.ts[-1]}")
+            if ts_k <= imu_data.ts[-1]:
+              imu_buf = imu_data.extract(ts_km1, ts_k)
+              graph.add_factor(
+                  ImuFactor(param_ids, imu_params, imu_buf, sbs[-2]))
+
     # Solve
-    debug = True
-    # debug = False
+    # debug = True
+    debug = False
     # prof = profile_start()
     graph.solve(debug)
     # profile_stop(prof)
@@ -7284,49 +7510,6 @@ class TestFactorGraph(unittest.TestCase):
     # Asserts
     errors = graph.get_reproj_errors()
     self.assertTrue(rmse(errors) < 0.1)
-
-    # # Setup factor graph
-    # feature_tracker = SimFeatureTracker()
-    # tracker = Tracker(feature_tracker)
-    #
-    # # -- Set initial pose
-    # ts0 = self.sim_data.imu0_data.timestamps[0]
-    # T_WB = self.sim_data.imu0_data.poses[ts0]
-    # tracker.set_initial_pose(T_WB)
-    #
-    # # -- Add imu
-    # tracker.add_imu(imu_params)
-    #
-    # # -- Add cam0
-    # cam0_idx = 0
-    # cam0_data = self.sim_data.mcam_data[cam0_idx]
-    # cam0_params = cam0_data.camera
-    # cam0_exts = extrinsics_setup(self.sim_data.T_BC0)
-    # tracker.add_camera(cam0_idx, cam0_params, cam0_exts)
-    #
-    # # -- Add cam1
-    # cam1_idx = 1
-    # cam1_data = self.sim_data.mcam_data[cam1_idx]
-    # cam1_params = cam1_data.camera
-    # cam1_exts = extrinsics_setup(self.sim_data.T_BC1)
-    # tracker.add_camera(cam1_idx, cam1_params, cam1_exts)
-    #
-    # # -- Add camera overlap
-    # tracker.add_overlap(cam0_idx, cam1_idx)
-    #
-    # # -- Loop through simulation data
-    # mcam_buf = MultiCameraBuffer(2)
-    #
-    # for ts in self.sim_data.timeline.get_timestamps():
-    #   for event in self.sim_data.timeline.get_events(ts):
-    #     if isinstance(event, ImuEvent):
-    #       tracker.inertial_callback(event.ts, event.acc, event.gyr)
-    #
-    #     elif isinstance(event, CameraEvent):
-    #       mcam_buf.add(ts, event.cam_idx, event.image)
-    #       if mcam_buf.ready():
-    #         tracker.vision_callback(ts, mcam_buf.get_data())
-    #         mcam_buf.reset()
 
 
 class TestFeatureTracking(unittest.TestCase):
