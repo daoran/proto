@@ -32,6 +32,8 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 
+#include <openssl/sha.h>
+
 #ifdef USE_CBLAS
 #include <cblas.h>
 #endif
@@ -183,6 +185,8 @@ typedef double real_t;
 size_t string_copy(char *dst, const char *src);
 void string_cat(char *dst, const char *src);
 char *string_malloc(const char *s);
+char *string_strip(char *s);
+
 int **load_iarrays(const char *csv_path, int *nb_arrays);
 real_t **load_darrays(const char *csv_path, int *nb_arrays);
 
@@ -389,6 +393,122 @@ int tcp_client_setup(tcp_client_t *client,
                      const char *server_ip,
                      const int server_port);
 int tcp_client_loop(tcp_client_t *client);
+
+// HTTP ////////////////////////////////////////////////////////////////////////
+
+/**
+ * HTTP Status Code
+ */
+#define HTTP_STATUS_100 "100 Continue"
+#define HTTP_STATUS_101 "101 Switching Protocols"
+#define HTTP_STATUS_200 "200 OK"
+#define HTTP_STATUS_201 "201 Created"
+#define HTTP_STATUS_202 "202 Accepted"
+#define HTTP_STATUS_203 "203 Non-Authoritative Information"
+#define HTTP_STATUS_204 "204 No Content"
+#define HTTP_STATUS_205 "205 Reset Content"
+#define HTTP_STATUS_206 "206 Partial Content"
+#define HTTP_STATUS_300 "300 Multiple Choices"
+#define HTTP_STATUS_301 "301 Moved Permanently"
+#define HTTP_STATUS_302 "302 Found"
+#define HTTP_STATUS_303 "303 See Other"
+#define HTTP_STATUS_304 "304 Not Modified"
+#define HTTP_STATUS_305 "305 Use Proxy"
+#define HTTP_STATUS_307 "307 Temporary Redirect"
+#define HTTP_STATUS_400 "400 Bad Request"
+#define HTTP_STATUS_401 "401 Unauthorized"
+#define HTTP_STATUS_402 "402 Payment Required"
+#define HTTP_STATUS_403 "403 Forbidden"
+#define HTTP_STATUS_404 "404 Not Found"
+#define HTTP_STATUS_405 "405 Method Not Allowed"
+#define HTTP_STATUS_406 "406 Not Acceptable"
+#define HTTP_STATUS_407 "407 Proxy Authentication Required"
+#define HTTP_STATUS_408 "408 Request Time-out"
+#define HTTP_STATUS_409 "409 Conflict"
+#define HTTP_STATUS_410 "410 Gone"
+#define HTTP_STATUS_411 "411 Length Required"
+#define HTTP_STATUS_412 "412 Precondition Failed"
+#define HTTP_STATUS_413 "413 Request Entity Too Large"
+#define HTTP_STATUS_414 "414 Request-URI Too Large"
+#define HTTP_STATUS_415 "415 Unsupported Media Type"
+#define HTTP_STATUS_416 "416 Requested range not satisfiable"
+#define HTTP_STATUS_417 "417 Expectation Failed"
+#define HTTP_STATUS_500 "500 Internal Server Error"
+#define HTTP_STATUS_501 "501 Not Implemented"
+#define HTTP_STATUS_502 "502 Bad Gateway"
+#define HTTP_STATUS_503 "503 Service Unavailable"
+#define HTTP_STATUS_504 "504 Gateway Time-out"
+#define HTTP_STATUS_505 "505 HTTP Version not supported"
+
+#define WS_FIN 0x80
+#define WS_CONT 0x00
+#define WS_TEXT 0x01
+#define WS_BIN 0x02
+#define WS_CLOSE 0x08
+#define WS_PING 0x09
+#define WS_PONG 0xA
+#define WS_MASK_ON 0x80
+#define WS_MASK_OFF 0x00
+
+#define WEBSOCKET_HANDSHAKE_RESPONSE                                           \
+  "HTTP/1.1 101 Switching Protocols\r\n"                                       \
+  "Upgrade: websocket\r\n"                                                     \
+  "Connection: Upgrade\r\n"                                                    \
+  "Sec-WebSocket-Accept: %s\r\n"                                               \
+  "\r\n"
+
+typedef struct http_msg_t {
+  /* Protocol version */
+  char *protocol;
+
+  /* Request */
+  char *method;
+  char *path;
+
+  /* Response */
+  char *status;
+
+  /* Headers */
+  char *user_agent;
+  char *host;
+  char *upgrade;
+  char *connection;
+  char *sec_websocket_key;
+  char *sec_websocket_version;
+} http_msg_t;
+
+typedef struct ws_frame_t {
+  uint8_t header;
+  uint8_t mask[4];
+
+  size_t payload_size;
+  void *payload_data;
+} ws_frame_t;
+
+char *base64_encode(const uint8_t *data, size_t in_len, size_t *out_len);
+uint8_t *base64_decode(const char *data, size_t in_len, size_t *out_len);
+
+void http_msg_setup(http_msg_t *msg);
+void http_msg_free(http_msg_t *msg);
+void http_msg_print(http_msg_t *msg);
+int http_parse_request(char *msg_str, http_msg_t *msg);
+
+ws_frame_t *ws_frame_malloc();
+void ws_frame_free(ws_frame_t *frame);
+void ws_frame_print(ws_frame_t *frame);
+uint8_t *ws_frame_serialize(ws_frame_t *frame);
+int ws_frame_fin_bit(uint8_t *data_frame);
+int ws_frame_rsv_bit(uint8_t *data_frame);
+int ws_frame_op_code(uint8_t *data_frame);
+int ws_frame_mask_enabled(uint8_t *data_frame);
+ws_frame_t *ws_frame_parse(int connfd);
+
+char *ws_recv(int connfd);
+void ws_send(int connfd, char *msg);
+char *ws_read(ws_frame_t *ws_frame);
+char *ws_hash(const char *ws_key);
+int ws_handshake(const int connfd);
+int ws_server();
 
 /******************************************************************************
  * MATHS

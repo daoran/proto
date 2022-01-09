@@ -929,6 +929,74 @@ int test_time_now() {
 }
 
 /******************************************************************************
+ * NETWORK
+ ******************************************************************************/
+
+int test_tcp_server_setup() {
+  tcp_server_t server;
+  const int port = 8080;
+  tcp_server_setup(&server, port);
+  return 0;
+}
+
+int test_http_msg_setup() {
+  http_msg_t msg;
+  http_msg_setup(&msg);
+
+  return 0;
+}
+
+int test_http_msg_print() {
+  char buf[9046] = "\
+GET /chat HTTP/1.1\r\n\
+Host: example.com:8000\r\n\
+Upgrade: websocket\r\n\
+Connection: Upgrade\r\n\
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\
+Sec-WebSocket-Version: 13\r\n\
+\r\n";
+  http_msg_t msg;
+  http_msg_setup(&msg);
+  http_parse_request(buf, &msg);
+  http_msg_print(&msg);
+  http_msg_free(&msg);
+
+  return 0;
+}
+
+int test_http_parse_request() {
+  char buf[9046] = "\
+GET /chat HTTP/1.1\r\n\
+Host: example.com:8000\r\n\
+Upgrade: websocket\r\n\
+Connection: Upgrade\r\n\
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\
+Sec-WebSocket-Version: 13\r\n\
+\r\n";
+
+  http_msg_t msg;
+  http_msg_setup(&msg);
+  http_parse_request(buf, &msg);
+  http_msg_print(&msg);
+  http_msg_free(&msg);
+
+  return 0;
+}
+
+int test_ws_hash() {
+  char *key = "dGhlIHNhbXBsZSBub25jZQ==";
+  char *hash = ws_hash(key);
+  MU_ASSERT(strcmp(hash, "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") == 0);
+  free(hash);
+  return 0;
+}
+
+int test_ws_server() {
+  ws_server();
+  return 0;
+}
+
+/******************************************************************************
  * MATHS
  ******************************************************************************/
 
@@ -3793,6 +3861,12 @@ void test_suite() {
   MU_ADD_TEST(test_toc);
   MU_ADD_TEST(test_mtoc);
   MU_ADD_TEST(test_time_now);
+
+  /* NETWORK */
+  MU_ADD_TEST(test_tcp_server_setup);
+  MU_ADD_TEST(test_http_parse_request);
+  MU_ADD_TEST(test_ws_hash);
+  MU_ADD_TEST(test_ws_server);
 
   /* MATHS */
   MU_ADD_TEST(test_min);
