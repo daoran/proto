@@ -20,6 +20,7 @@ SDL2_LIBS := `sdl2-config --libs` -lSDL2_image
 GLEW_LIBS := -lGLEW
 OPENGL_LIBS := $(SDL2_LIBS) $(GLEW_LIBS) -lGL
 BLAS_LIBS := -lblas -llapack -llapacke
+OPENSSL_LIBS := -lssl -lcrypto
 CERES_DEPS := -lgflags -lglog \
 							-llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod \
 							-lcxsparse
@@ -30,6 +31,7 @@ DEPS=-L$(BLD_DIR) \
 	$(CERES_LIBS) \
 	$(OPENGL_LIBS) \
 	$(BLAS_LIBS) \
+	$(OPENSSL_LIBS) \
 	-lpthread \
   -lm
 
