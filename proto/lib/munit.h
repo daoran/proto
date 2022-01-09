@@ -14,6 +14,7 @@ static int nb_failed = 0;
 static char *test_target_name = NULL;
 
 /* MUNIT */
+#define MU_REDIRECT_STREAMS 1
 #define MU_LOG_DIR "/tmp"
 #define MU_KEEP_LOGS 1
 #define MU_ENABLE_TERM_COLORS 0
@@ -112,34 +113,11 @@ void mu_print_log(const char *log_path) {
 }
 
 /**
- * Mark test passed
- * @param[in] test_name Test name
- * @param[in] log_path Path to log file
- * @param[in] keep_log Flag to keep log or not
- */
-void mu_test_passed(const char *test_name,
-                    const char *log_path,
-                    const int keep_log) {
-  printf("-> [%s] ", test_name);
-  printf(MU_GRN "OK!\n" MU_NRM);
-  fflush(stdout);
-  nb_passed++;
-  if (keep_log == 0) {
-    remove(log_path);
-  }
-}
-
-/**
  * Mark test failed
  * @param[in] test_name Test name
  * @param[in] log_path Path to log file
  */
 void mu_test_failed(const char *test_name, const char *log_path) {
-  printf("-> [%s] ", test_name);
-  printf(MU_RED "FAILED!\n" MU_NRM);
-  fflush(stdout);
-  mu_print_log(log_path);
-  nb_failed++;
 }
 
 /**
@@ -156,11 +134,16 @@ void mu_print_stats() {
  * Run unittests
  * @param[in] test_name Test name
  * @param[in] test_ptr Pointer to unittest
+ * @param[in] redirect Redirect stdout and stderr to file
  * @param[in] keep_logs Flag to keep log or not
  */
 void mu_run_test(const char *test_name,
                  int (*test_ptr)(),
+                 const int redirect,
                  const int keep_logs) {
+  printf("-> [%s] ", test_name);
+  fflush(stdout);
+
   /* Check if test target is set and current test is test target */
   if (test_target_name != NULL && strcmp(test_target_name, test_name) != 0) {
     return;
@@ -168,27 +151,38 @@ void mu_run_test(const char *test_name,
 
   /* Redirect stdout and stderr to file */
   char log_path[1024] = {0};
-  sprintf(log_path, "%s/mu_%s.log", MU_LOG_DIR, test_name);
-
   int stdout_fd = 0;
   int stderr_fd = 0;
   int log_fd = 0;
-  if (streams_redirect(log_path, &stdout_fd, &stderr_fd, &log_fd) == -1) {
-    printf("Failed to redirect streams!\n");
-    exit(-1);
+  if (redirect) {
+    sprintf(log_path, "%s/mu_%s.log", MU_LOG_DIR, test_name);
+    if (streams_redirect(log_path, &stdout_fd, &stderr_fd, &log_fd) == -1) {
+      printf("Failed to redirect streams!\n");
+      exit(-1);
+    }
   }
 
   /* Run test */
   int test_retval = (*test_ptr)();
 
   /* Restore stdout and stderr */
-  streams_restore(stdout_fd, stderr_fd, log_fd);
+  if (redirect) {
+    streams_restore(stdout_fd, stderr_fd, log_fd);
+  }
 
   /* Keep track of test results */
   if (test_retval == 0) {
-    mu_test_passed(test_name, log_path, MU_KEEP_LOGS);
+    printf(MU_GRN "OK!\n" MU_NRM);
+    fflush(stdout);
+    nb_passed++;
+    if (redirect && keep_logs == 0) {
+      remove(log_path);
+    }
   } else {
-    mu_test_failed(test_name, log_path);
+    printf(MU_RED "FAILED!\n" MU_NRM);
+    fflush(stdout);
+    mu_print_log(log_path);
+    nb_failed++;
   }
   nb_tests++;
 }
@@ -226,7 +220,8 @@ int mu_run_python(const char *script_path) {
  * Add unittest
  * @param[in] TEST Test function
  */
-#define MU_ADD_TEST(TEST) mu_run_test(#TEST, TEST, MU_KEEP_LOGS);
+#define MU_ADD_TEST(TEST)                                                      \
+  mu_run_test(#TEST, TEST, MU_REDIRECT_STREAMS, MU_KEEP_LOGS);
 
 /**
  * Run all unit-tests
