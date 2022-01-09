@@ -20,6 +20,10 @@ memcheck() {
 
 # cd python && ctags proto.py && cd -
 # python3 proto/python/proto.py
+# python3 proto/python/proto.py TestNetwork.test_http_parse_request
+# python3 proto/python/proto.py TestNetwork.test_websocket_hash
+# python3 proto/python/proto.py TestNetwork.test_websocket_encode_frame
+# python3 proto/python/proto.py TestNetwork.test_debug_server
 # python3 proto/python/proto.py TestLinearAlgebra
 # python3 proto/python/proto.py TestTransform
 # python3 proto/python/proto.py TestTransform.test_quat2rot
@@ -34,11 +38,13 @@ memcheck() {
 # python3 proto/python/proto.py TestFactors.test_ba_factor
 # python3 proto/python/proto.py TestFactors.test_vision_factor
 # python3 proto/python/proto.py TestFactors.test_calib_vision_factor
+# python3 proto/python/proto.py TestFactors.test_imu_buffer
+# python3 proto/python/proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto/python/proto.py TestFactors.test_imu_factor_propagate
 # python3 proto/python/proto.py TestFactors.test_imu_factor
 # python3 proto/python/proto.py TestFactorGraph
 # python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_vo
-python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_io
+# python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_io
 # python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_vio
 # python3 proto/python/proto.py TestFeatureTracking
 # python3 proto/python/proto.py TestFeatureTracking.test_feature_grid_cell_index
@@ -138,6 +144,12 @@ run_test() {
 # run_test test_toc
 # run_test test_mtoc
 # run_test test_time_now
+# PROTO-NETWORK
+# run_test test_tcp_server_setup
+# run_test test_http_parse_request
+# run_test test_websocket_hash
+# run_test test_ws_handshake_respond
+run_test test_ws_server
 # PROTO-MATHS
 # run_test test_min
 # run_test test_max
