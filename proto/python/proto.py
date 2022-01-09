@@ -413,38 +413,35 @@ def websocket_decode_frame(reader, mask):
 class DebugServer:
   """ Debug Server """
 
-  def __init__(self):
-    self.host = '127.0.0.1'
-    self.port = 5000
+  def __init__(self, callback, **kwargs):
+    self.host = kwargs.get("host", '127.0.0.1')
+    self.port = kwargs.get("port", 5000)
+    self.callback = callback
 
+    # Setup TCP server and start listening
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.sock.bind((self.host, self.port))
     self.sock.listen()
     self.conn, self.client_addr = self.sock.accept()
 
-    # Get request
+    # Get WebSocket handshake request
     buf_size = 4096
     request_string = self.conn.recv(buf_size, 0).decode("ascii")
-    (protocol, method, _, headers) = http_parse_request(request_string)
-    assert protocol == "HTTP/1.1"
-    assert method == "GET"
-    assert "Upgrade" in headers
-    assert "Connection" in headers
-    assert "Sec-WebSocket-Key" in headers
-    ws_key = headers["Sec-WebSocket-Key"]
+    (_, _, _, headers) = http_parse_request(request_string)
+    if "Sec-WebSocket-Key" not in headers:
+      raise RuntimeError("Debug server is expecting a websocket handshake!")
 
-    # Respond
+    # Respond to handshake request and establish connection
+    ws_key = headers["Sec-WebSocket-Key"]
     resp = websocket_handshake_response(ws_key)
     self.conn.send(str.encode(resp))
 
-    idx = 0
+    # Loop
     while True:
-      payload = f"Hello World! {idx}"
+      payload = callback()
       frame = websocket_encode_frame(payload)
       self.conn.send(frame)
-      # time.sleep(0.01)
-      idx += 1
 
   def __enter__(self):
     return self
@@ -6535,6 +6532,12 @@ euroc_data_path = '/data/euroc/raw/V1_01'
 # NETWORK #####################################################################
 
 
+def test_websocket_callback():
+  """ Test WebSocket Callback """
+  time.sleep(1)
+  return "Hello World"
+
+
 class TestNetwork(unittest.TestCase):
   """ Test Network """
 
@@ -6568,12 +6571,34 @@ class TestNetwork(unittest.TestCase):
     """ Test WebSocket Frame """
     payload = "Hello World!"
     frame = websocket_encode_frame(payload)
-    # payload2 = websocket_decode_frame(frame)
     self.assertTrue(frame is not None)
+
+  # def test_websocket_decode_frame(self):
+  #   """ Test WebSocket Frame """
+  #   host = '127.0.0.1'
+  #   port = 5000
+  #   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  #   sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+  #   sock.bind((host, port))
+  #   sock.listen()
+  #   conn, _ = sock.accept()
+  #
+  #   # Request
+  #   buf_size = 4096
+  #   req_str = conn.recv(buf_size, 0).decode("ascii")
+  #   (_, _, _, headers) = http_parse_request(req_str)
+  #   ws_key = headers["Sec-WebSocket-Key"]
+  #
+  #   # Respond
+  #   resp = websocket_handshake_response(ws_key)
+  #   conn.send(str.encode(resp))
+  #
+  #   # Decode websocket frame
+  #   data = websocket_decode_frame(conn)
 
   def test_debug_server(self):
     """ Test Debug Server """
-    server = DebugServer()
+    server = DebugServer(test_websocket_callback)
     self.assertTrue(server is not None)
 
 
