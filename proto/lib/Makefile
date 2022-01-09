@@ -19,7 +19,7 @@ test_data: dirs
 $(BLD_DIR)/%.o: %.c %.h
 	$(COMPILE_OBJ)
 
-$(LIB): $(BLD_DIR)/gui.o $(BLD_DIR)/proto.o
+$(LIB): $(BLD_DIR)/proto.o
 	$(MAKE_STATIC_LIB)
 
 $(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
