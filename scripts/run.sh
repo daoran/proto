@@ -63,7 +63,7 @@ memcheck() {
 # python3 proto/python/proto.py TestTracker.test_tracker_vision_callback
 # python3 proto/python/proto.py TestCalibration
 # python3 proto/python/proto.py TestCalibration.test_aprilgrid
-# python3 proto/python/proto.py TestCalibration.test_calibrator
+python3 proto/python/proto.py TestCalibration.test_calibrator
 # python3 proto/python/proto.py TestEuroc
 # python3 proto/python/proto.py TestKitti
 # python3 proto/python/proto.py TestSimulation
@@ -94,6 +94,7 @@ run_test() {
   time make build
   cd ./proto/build/bin;
   ./test_proto --target "$1"
+  cd -
 }
 
 # PROTO
@@ -149,7 +150,7 @@ run_test() {
 # run_test test_http_parse_request
 # run_test test_websocket_hash
 # run_test test_ws_handshake_respond
-run_test test_ws_server
+# run_test test_ws_server
 # PROTO-MATHS
 # run_test test_min
 # run_test test_max
@@ -267,31 +268,37 @@ run_test test_ws_server
 # run_test test_ceres_solver
 # run_test test_graph_setup
 # run_test test_graph_print
-# memcheck run_test test_graph_eval
+# run_test test_graph_eval
+# PROTO-SIM
+# run_test test_load_sim_features
+# run_test test_load_sim_imu_data
+# run_test test_load_sim_cam_frame
+# run_test test_load_sim_cam_data
+# PROTO-GUI
+# run_test test_gl_zeros
+# run_test test_gl_ones
+# run_test test_gl_eye
+# run_test test_gl_matf_set
+# run_test test_gl_matf_val
+# run_test test_gl_transpose
+# run_test test_gl_equals
+# run_test test_gl_vec3_cross
+# run_test test_gl_dot
+# run_test test_gl_norm
+# run_test test_gl_normalize
+# run_test test_gl_perspective
+# run_test test_gl_lookat
+# run_test test_shader_compile
+# run_test test_shader_link
+# run_test test_gl_prog_setup
+# run_test test_gl_camera_setup
+# run_test test_gui
+# run_test test_imshow
 
 # valgrind --leak-check=full ./test_traj_eval
 # time ./test_traj_eval
 
 # ./test_gui
-# ./test_gui --target test_gl_zeros
-# ./test_gui --target test_gl_ones
-# ./test_gui --target test_gl_eye
-# ./test_gui --target test_gl_matf_set
-# ./test_gui --target test_gl_matf_val
-# ./test_gui --target test_gl_transpose
-# ./test_gui --target test_gl_equals
-# ./test_gui --target test_gl_vec3_cross
-# ./test_gui --target test_gl_dot
-# ./test_gui --target test_gl_norm
-# ./test_gui --target test_gl_normalize
-# ./test_gui --target test_gl_perspective
-# ./test_gui --target test_gl_lookat
-# ./test_gui --target test_shader_compile
-# ./test_gui --target test_shader_link
-# ./test_gui --target test_gl_prog_setup
-# ./test_gui --target test_gl_camera_setup
-# ./test_gui --target test_gui
-# ./test_gui --target test_imshow
 # gdb -ex run -ex bt -args ./test_gui --target test_gui_setup
 
 ###############################################################################
