@@ -3955,8 +3955,13 @@ class Solver:
     c, low = scipy.linalg.cho_factor(H)
     dx = scipy.linalg.cho_solve((c, low), g)
 
-    # # SVD
+    # SVD
     # dx = solve_svd(H, g)
+
+    # # QR
+    # q, r = np.linalg.qr(H)
+    # p = np.dot(q.T, g)
+    # dx = np.dot(np.linalg.inv(r), p)
 
     # Sparse cholesky decomposition
     # sH = scipy.sparse.csc_matrix(H)
@@ -5453,11 +5458,11 @@ class Tracker:
 class AprilGrid:
   """ AprilGrid """
 
-  def __init__(self, tag_rows=6, tag_cols=6, tag_size=0.088, tag_spacing=0.3):
-    self.tag_rows = tag_rows
-    self.tag_cols = tag_cols
-    self.tag_size = tag_size
-    self.tag_spacing = tag_spacing
+  def __init__(self, **kwargs):
+    self.tag_rows = kwargs.get("tag_rows", 6)
+    self.tag_cols = kwargs.get("tag_cols", 6)
+    self.tag_size = kwargs.get("tag_size", 0.088)
+    self.tag_spacing = kwargs.get("tag_spacing", 0.3)
     self.nb_tags = self.tag_rows * self.tag_cols
     self.ts = None
     self.data = {}
@@ -5554,6 +5559,11 @@ class AprilGrid:
     assert tag_id in self.data
     assert corner_idx in self.data[tag_id]
     del self.data[tag_id][corner_idx]
+
+  def add_tag_data(self, ts, tag_data):
+    """ Add tag data """
+    for (tag_id, corner_idx, kp_x, kp_y) in tag_data:
+      self.add_keypoint(ts, tag_id, corner_idx, np.array([kp_x, kp_y]))
 
   def get_measurements(self):
     """ Get measurements """
@@ -8376,31 +8386,61 @@ class TestCalibration(unittest.TestCase):
       ax.set_zlabel("z [m]")
       plt.show()
 
-  @unittest.skip("")
+  # @unittest.skip("")
   def test_calibrator(self):
     """ Test Calibrator """
-    # Setup
-    grid_csvs = glob.glob("/tmp/aprilgrid_test/mono/cam0/*.csv")
-    grids = [AprilGrid.load(csv_path) for csv_path in grid_csvs]
-    self.assertTrue(len(grid_csvs) > 0)
-    self.assertTrue(len(grids) > 0)
+    import apriltag_pybind as apriltag
 
-    # Calibrator
-    calib = Calibrator()
-    # -- Add cam0
-    cam_idx = 0
-    cam_res = [752, 480]
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    calib.add_camera(cam_idx, cam_res, proj_model, dist_model)
-    # -- Add camera views
-    for grid in grids:
-      if grid is not None:
-        calib.add_camera_view(grid.ts, cam_idx, grid)
-        if calib.get_num_views() == 10:
-          break
-    # -- Solve
-    calib.solve()
+    cam0_imgs = glob.glob("/data/euroc/calib/cam_april/mav0/cam0/data/*.png")
+    cam0_imgs = sorted(cam0_imgs)
+
+    # Loop through images
+    imshow_timeout = 1
+    for img_path in cam0_imgs:
+      img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+      tag_data = apriltag.detect(img)
+      if not tag_data:
+        continue
+
+      # Visualize detection
+      viz = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+      for (tag_id, corner_idx, kp_x, kp_y) in tag_data:
+        pt = (int(kp_x), int(kp_y))
+        radius = 5
+        color = (0, 0, 255)
+        thickness = 2
+        cv2.circle(viz, pt, radius, color, thickness)
+      cv2.imshow("viz", viz)
+      key = cv2.waitKey(imshow_timeout)
+      if key == ord('q'):
+        break
+      elif key == ord('p'):
+        imshow_timeout = 0 if imshow_timeout else 1
+      elif key == ord('s'):
+        imshow_timeout = 0
+
+    # # Setup
+    # grid_csvs = glob.glob("/tmp/aprilgrid_test/mono/cam0/*.csv")
+    # grids = [AprilGrid.load(csv_path) for csv_path in grid_csvs]
+    # self.assertTrue(len(grid_csvs) > 0)
+    # self.assertTrue(len(grids) > 0)
+    #
+    # # Calibrator
+    # calib = Calibrator()
+    # # -- Add cam0
+    # cam_idx = 0
+    # cam_res = [752, 480]
+    # proj_model = "pinhole"
+    # dist_model = "radtan4"
+    # calib.add_camera(cam_idx, cam_res, proj_model, dist_model)
+    # # -- Add camera views
+    # for grid in grids:
+    #   if grid is not None:
+    #     calib.add_camera_view(grid.ts, cam_idx, grid)
+    #     if calib.get_num_views() == 10:
+    #       break
+    # # -- Solve
+    # calib.solve()
 
 
 # SIMULATION  #################################################################
