@@ -78,8 +78,7 @@ install_git_repo() {
     cd build || return
     cmake .. \
       -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-      -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-      "$CMAKE_EXTRA_ARGS"
+      -DCMAKE_INSTALL_PREFIX="$PREFIX"
 
     # Compile and install
     make -j2 && make install
