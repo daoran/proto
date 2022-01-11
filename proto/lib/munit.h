@@ -14,7 +14,7 @@ static int nb_failed = 0;
 static char *test_target_name = NULL;
 
 /* MUNIT */
-#define MU_REDIRECT_STREAMS 1
+#define MU_REDIRECT_STREAMS 0
 #define MU_LOG_DIR "/tmp"
 #define MU_KEEP_LOGS 1
 #define MU_ENABLE_TERM_COLORS 0
@@ -141,9 +141,6 @@ void mu_run_test(const char *test_name,
                  int (*test_ptr)(),
                  const int redirect,
                  const int keep_logs) {
-  printf("-> [%s] ", test_name);
-  fflush(stdout);
-
   /* Check if test target is set and current test is test target */
   if (test_target_name != NULL && strcmp(test_target_name, test_name) != 0) {
     return;
@@ -171,6 +168,7 @@ void mu_run_test(const char *test_name,
   }
 
   /* Keep track of test results */
+  printf("-> [%s] ", test_name);
   if (test_retval == 0) {
     printf(MU_GRN "OK!\n" MU_NRM);
     fflush(stdout);
