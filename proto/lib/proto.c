@@ -88,8 +88,8 @@ char **list_files(const char *path, int *n) {
   assert(n != NULL);
 
   struct dirent **namelist;
-  int N = scandir(path, &namelist, 0, alphasort);
-  if (N < 0) {
+  int nb_files = scandir(path, &namelist, 0, alphasort);
+  if (nb_files < 0) {
     return NULL;
   }
 
@@ -98,13 +98,13 @@ char **list_files(const char *path, int *n) {
   free(namelist[1]);
 
   /* Allocate memory for list of files */
-  char **files = malloc(sizeof(char *) * (N - 2));
+  char **files = malloc(sizeof(char *) * (nb_files - 2));
   *n = 0;
 
   /* Create list of files */
-  for (int i = 2; i < N; i++) {
+  for (int i = 2; i < nb_files; i++) {
     char fp[9046] = {0};
-    const char *c = (fp[strlen(fp) - 1] == '/') ? "" : "/";
+    const char *c = (path[strlen(path) - 1] == '/') ? "" : "/";
     string_cat(fp, path);
     string_cat(fp, c);
     string_cat(fp, namelist[i]->d_name);
@@ -261,7 +261,7 @@ int file_copy(const char *src, const char *dst) {
  * String copy from `src` to `dst`.
  */
 size_t string_copy(char *dst, const char *src) {
-  memset(dst, '\0', sizeof(char) * strlen(dst));
+  dst[0] = '\0';
   strncpy(dst, src, strlen(src));
   dst[strlen(src)] = '\0'; /* strncpy does not null terminate */
   return strlen(dst);
