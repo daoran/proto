@@ -3472,9 +3472,9 @@ class ImuBuffer:
         gyr_km1 = self.gyr[k - 1]
 
         alpha = (ts_start - ts_km1) / (ts_k - ts_km1)
-        ts_km1 = ts_start
         acc_km1 = (1.0 - alpha) * acc_km1 + alpha * acc_k
         gyr_km1 = (1.0 - alpha) * gyr_km1 + alpha * gyr_k
+        ts_km1 = ts_start
 
         imu_ts.append(ts_km1)
         imu_acc.append(acc_km1)
@@ -3485,10 +3485,11 @@ class ImuBuffer:
         ts_km1 = self.ts[k - 1]
         acc_km1 = self.acc[k - 1]
         gyr_km1 = self.gyr[k - 1]
+
         alpha = (ts_end - ts_km1) / (ts_k - ts_km1)
-        ts_k = ts_end
         acc_k = (1.0 - alpha) * acc_km1 + alpha * acc_k
         gyr_k = (1.0 - alpha) * gyr_km1 + alpha * gyr_k
+        ts_k = ts_end
 
       # Add to subset
       imu_ts.append(ts_k)
@@ -8391,7 +8392,7 @@ class TestCalibration(unittest.TestCase):
     """ Test Calibrator """
     import apriltag_pybind as apriltag
 
-    cam0_imgs = glob.glob("/data/euroc/calib/cam_april/mav0/cam0/data/*.png")
+    cam0_imgs = glob.glob("/data/euroc/cam_april/mav0/cam0/data/*.png")
     cam0_imgs = sorted(cam0_imgs)
 
     # Loop through images
