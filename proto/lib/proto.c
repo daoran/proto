@@ -6995,6 +6995,7 @@ void free_sim_cam_data(sim_cam_data_t *cam_data) {
 /******************************************************************************
  * GUI
  *****************************************************************************/
+#ifdef USE_GUI
 
 // OPENGL UTILS ////////////////////////////////////////////////////////////////
 
@@ -8427,3 +8428,4 @@ void imshow_loop(imshow_t *imshow) {
   SDL_DestroyWindow(imshow->window);
   SDL_Quit();
 }
+#endif /* USE_GUI */

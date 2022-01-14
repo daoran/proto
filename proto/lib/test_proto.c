@@ -3818,6 +3818,7 @@ int test_graph_eval() {
 /*******************************************************************************
  * GUI
  ******************************************************************************/
+#ifdef USE_GUI
 
 // OPENGL UTILS ////////////////////////////////////////////////////////////////
 
@@ -4328,6 +4329,8 @@ int test_imshow() {
   return 0;
 }
 
+#endif /* USE_GUI */
+
 void test_suite() {
   /* LOGGING */
   MU_ADD_TEST(test_debug);
@@ -4541,6 +4544,7 @@ void test_suite() {
   /* MU_ADD_TEST(test_load_sim_cam_data); */
 
   /* GUI */
+#ifdef USE_GUI
   MU_ADD_TEST(test_gl_zeros);
   MU_ADD_TEST(test_gl_ones);
   MU_ADD_TEST(test_gl_eye);
@@ -4559,7 +4563,8 @@ void test_suite() {
   /* MU_ADD_TEST(test_gl_prog_setup); */
   /* MU_ADD_TEST(test_gl_camera_setup); */
   /* MU_ADD_TEST(test_gui); */
-  /* MU_ADD_TEST(test_imshow); */
+  MU_ADD_TEST(test_imshow);
+#endif /* USE_GUI */
 }
 
 MU_RUN_TESTS(test_suite)

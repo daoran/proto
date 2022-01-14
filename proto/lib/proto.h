@@ -8,8 +8,9 @@
 #define MAX_LINE_LENGTH 9046
 #define USE_CBLAS
 #define USE_LAPACK
-/* #define USE_CERES */
+#define USE_CERES
 #define USE_STB_IMAGE
+#define USE_GUI
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
 
@@ -1168,6 +1169,7 @@ void free_sim_cam_data(sim_cam_data_t *cam_data);
 /******************************************************************************
  * GUI
  *****************************************************************************/
+#ifdef USE_GUI
 
 // OPENGL UTILS ////////////////////////////////////////////////////////////////
 
@@ -1391,5 +1393,6 @@ void imshow_event_handler(imshow_t *gui);
 void imshow_setup(imshow_t *imshow, const char *fp);
 void imshow_reset(imshow_t *imshow);
 void imshow_loop(imshow_t *imshow);
+#endif /* USE_GUI */
 
 #endif // PROTO_H_
