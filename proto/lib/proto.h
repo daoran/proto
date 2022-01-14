@@ -6,11 +6,11 @@
 /** PROTO SETTINGS **/
 #define PRECISION 2
 #define MAX_LINE_LENGTH 9046
-#define USE_CBLAS
+/* #define USE_CBLAS */
 #define USE_LAPACK
 #define USE_CERES
 #define USE_STB_IMAGE
-#define USE_GUI
+/* #define USE_GUI */
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
 

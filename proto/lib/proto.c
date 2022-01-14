@@ -2539,12 +2539,14 @@ real_t median(const real_t *x, const size_t n) {
   qsort(vals, n, sizeof(real_t), fltcmp2);
 
   /* Get median value */
-  const size_t midpoint = n / 2.0;
   real_t median_value = 0.0;
   if ((n % 2) == 0) {
-    median_value = (vals[n] + vals[n - 1]) / 2.0;
+    const int bwd_idx = (int) (n - 1) / 2.0;
+    const int fwd_idx = (int) (n + 1) / 2.0;
+    median_value = (vals[bwd_idx] + vals[fwd_idx]) / 2.0;
   } else {
-    median_value = vals[midpoint];
+    const int midpoint_idx = n / 2.0;
+    median_value = vals[midpoint_idx];
   }
 
   /* Clean up */
@@ -4310,7 +4312,7 @@ void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]) {
   };
   /* clang-format on */
 
-  cblas_dot(lprod, 4, 4, q, 4, 1, r);
+  dot(lprod, 4, 4, q, 4, 1, r);
 }
 
 /**
