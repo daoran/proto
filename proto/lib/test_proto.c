@@ -1083,11 +1083,17 @@ int test_mean() {
 }
 
 int test_median() {
-  real_t vals[5] = {1.0, 2.0, 0.0, 3.0, 4.0};
-  MU_ASSERT(fltcmp(median(vals, 5), 2.0) == 0);
+  {
+    const real_t vals[5] = {2.0, 3.0, 1.0, 4.0, 5.0};
+    const real_t retval = median(vals, 5);
+    MU_ASSERT(fltcmp(retval, 3.0) == 0);
+  }
 
-  real_t vals2[6] = {1.0, 2.0, 0.0, 3.0, 4.0, 5.0};
-  MU_ASSERT(fltcmp(median(vals2, 6), 2.5f) == 0);
+  {
+    const real_t vals2[6] = {2.0, 3.0, 1.0, 4.0, 5.0, 6.0};
+    const real_t retval = median(vals2, 6);
+    MU_ASSERT(fltcmp(retval, 3.5) == 0);
+  }
 
   return 0;
 }
@@ -1366,12 +1372,11 @@ int test_mat_transpose() {
   mat_transpose(A, 3, 3, C);
   print_matrix("C", C, 3, 3);
 
-  real_t B[3 * 4] =
-      {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
-  real_t D[9] = {0.0};
-  print_matrix("B", B, 3, 4);
-  mat_transpose(B, 3, 4, D);
-  print_matrix("D", D, 4, 3);
+  real_t B[2 * 3] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+  real_t D[3 * 2] = {0.0};
+  print_matrix("B", B, 2, 3);
+  mat_transpose(B, 2, 3, D);
+  print_matrix("D", D, 3, 2);
 
   return 0;
 }
@@ -1526,6 +1531,8 @@ int test_check_jacobian() {
  * SVD
  ******************************************************************************/
 
+#ifdef USE_LAPACK
+
 int test_lapack_svd() {
   /* clang-format off */
   real_t A[6 * 4] = {
@@ -1557,6 +1564,8 @@ int test_lapack_svd() {
 
   return 0;
 }
+
+#endif /* USE LAPACK */
 
 /******************************************************************************
  * CHOL
@@ -4441,7 +4450,9 @@ void test_suite() {
 
   /* SVD */
   /* MU_ADD_TEST(test_svd); */
+#ifdef USE_LAPACK
   MU_ADD_TEST(test_lapack_svd);
+#endif /* USE LAPACK */
 
   /* CHOL */
   MU_ADD_TEST(test_chol);
