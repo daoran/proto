@@ -63,7 +63,7 @@ memcheck() {
 # python3 proto/python/proto.py TestTracker.test_tracker_vision_callback
 # python3 proto/python/proto.py TestCalibration
 # python3 proto/python/proto.py TestCalibration.test_aprilgrid
-python3 proto/python/proto.py TestCalibration.test_calibrator
+# python3 proto/python/proto.py TestCalibration.test_calibrator
 # python3 proto/python/proto.py TestEuroc
 # python3 proto/python/proto.py TestKitti
 # python3 proto/python/proto.py TestSimulation
