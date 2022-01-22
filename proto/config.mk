@@ -1,7 +1,7 @@
 BLD_DIR := $(PWD)/build
 BIN_DIR := $(PWD)/build/bin
 INC_DIR := $(PWD)
-DEPS_DIR := $(PWD)/../deps
+DEPS_DIR := $(PWD)/deps
 TESTS_DIR := $(PWD)/tests
 
 # COMPILER SETTINGS
