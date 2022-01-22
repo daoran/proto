@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-debug() {
+run_gdb() {
   gdb \
     -ex=run \
     -ex=bt \
@@ -10,7 +10,7 @@ debug() {
     --args "$1" "$2" "$3"
 }
 
-memcheck() {
+run_memcheck() {
   valgrind --leak-check=full $1 $2 $3
 }
 
@@ -63,7 +63,7 @@ memcheck() {
 # python3 proto/python/proto.py TestTracker.test_tracker_vision_callback
 # python3 proto/python/proto.py TestCalibration
 # python3 proto/python/proto.py TestCalibration.test_aprilgrid
-# python3 proto/python/proto.py TestCalibration.test_calibrator
+python3 proto/python/proto.py TestCalibration.test_calibrator
 # python3 proto/python/proto.py TestEuroc
 # python3 proto/python/proto.py TestKitti
 # python3 proto/python/proto.py TestSimulation
@@ -83,6 +83,11 @@ memcheck() {
 # ctags -R lib
 # time make clean
 # time make build
+# time make debug
+# export ASAN_OPTIONS=print_legend=0 && time make tests
+# export ASAN_OPTIONS=print_legend=0 \
+#   && cd ./proto/build/bin/ \
+#   && ./test_proto --target test_mat_transpose
 
 run_all_tests() {
   time make build

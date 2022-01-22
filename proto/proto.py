@@ -1543,6 +1543,48 @@ def tf_update(T, dx):
   return tf(quat_mul(q, dq), r + dr)
 
 
+def load_extrinsics(csv_path):
+  """ Load Extrinsics """
+  csv_data = pandas.read_csv(csv_path)
+
+  rx = csv_data["rx"]
+  ry = csv_data["ry"]
+  rz = csv_data["rz"]
+  r = np.array([rx, ry, rz])
+
+  qw = csv_data["qw"]
+  qx = csv_data["qx"]
+  qy = csv_data["qy"]
+  qz = csv_data["qz"]
+  q = np.array([qw, qx, qy, qz])
+
+  return tf(q, r)
+
+
+def load_poses(csv_path):
+  """ Load poses """
+  csv_data = pandas.read_csv(csv_path)
+  pose_data = []
+
+  for row_idx in range(csv_data.shape[0]):
+    pose_ts = csv_data["#ts"][row_idx]
+
+    rx = csv_data["rx"][row_idx]
+    ry = csv_data["ry"][row_idx]
+    rz = csv_data["rz"][row_idx]
+    r = np.array([rx, ry, rz])
+
+    qw = csv_data["qw"][row_idx]
+    qx = csv_data["qx"][row_idx]
+    qy = csv_data["qy"][row_idx]
+    qz = csv_data["qz"][row_idx]
+    q = np.array([qw, qx, qy, qz])
+
+    pose_data.append((pose_ts, tf(q, r)))
+
+  return pose_data
+
+
 ###############################################################################
 # MATPLOTLIB
 ###############################################################################
@@ -3952,9 +3994,9 @@ class Solver:
     # # Pseudo inverse
     # dx = pinv(H) @ g
 
-    # Cholesky decomposition
-    c, low = scipy.linalg.cho_factor(H)
-    dx = scipy.linalg.cho_solve((c, low), g)
+    # # Cholesky decomposition
+    # c, low = scipy.linalg.cho_factor(H)
+    # dx = scipy.linalg.cho_solve((c, low), g)
 
     # SVD
     # dx = solve_svd(H, g)
@@ -3965,9 +4007,9 @@ class Solver:
     # dx = np.dot(np.linalg.inv(r), p)
 
     # Sparse cholesky decomposition
-    # sH = scipy.sparse.csc_matrix(H)
-    # dx = scipy.sparse.linalg.spsolve(sH, g)
-    # dx = scipy.sparse.linalg.spsolve(H, g, permc_spec="NATURAL")
+    sH = scipy.sparse.csc_matrix(H)
+    dx = scipy.sparse.linalg.spsolve(sH, g)
+    dx = scipy.sparse.linalg.spsolve(H, g, permc_spec="NATURAL")
 
     return dx
 
@@ -4011,6 +4053,16 @@ class Solver:
       # # Termination criteria
       # if dcost > -1e-5:
       #   break
+
+    # (H, _, _) = self._linearize(params_k)
+    # P = np.linalg.inv(H)
+    # P = P[-8:, -8:]
+    # n = P.shape[0]
+    # print(f"n: {n}")
+    # print(f"det(P): {np.linalg.det(P)}", end=", ")
+    # print(f"rank(P): {np.linalg.matrix_rank(P)}", end=", ")
+    # print(f"size(P): {P.shape}", end=", ")
+    # print(f"H(P): {0.5 * np.log((2.0 * pi * np.exp(1))**n * np.linalg.det(P))}")
 
     # Finish - set the original params the optimized values
     # Note: The reason we don't just do `self.params = params_k` is because
@@ -5387,8 +5439,8 @@ class Tracker:
       reproj_errors = []
       for factor in list(kf.vision_factors):
         # factor_params = self.graph._get_factor_params(factor)
-        factor_params = []
-        r, _ = factor.eval(factor_params)
+        params = [self.graph.params[pid].param for pid in factor.param_ids]
+        r, _ = factor.eval(params)
         reproj_errors.append(norm(r))
 
       # Filter factors
@@ -5489,7 +5541,13 @@ class AprilGrid:
     kps = np.array([csv_data['kp_x'], csv_data['kp_y']]).T
 
     # Form AprilGrid
-    grid = AprilGrid(tag_rows, tag_cols, tag_size, tag_spacing)
+    grid_conf = {
+        "tag_rows": tag_rows,
+        "tag_cols": tag_cols,
+        "tag_size": tag_size,
+        "tag_spacing": tag_spacing
+    }
+    grid = AprilGrid(**grid_conf)
     for tag_id, corner_idx, kp in zip(tag_indices, corner_indices, kps):
       grid.add_keypoint(ts, tag_id, corner_idx, kp)
 
@@ -6538,7 +6596,7 @@ class MultiPlot:
 
 import unittest
 
-euroc_data_path = '/data/euroc/raw/V1_01'
+euroc_data_path = '/data/euroc/V1_01'
 
 # NETWORK #####################################################################
 
@@ -8242,7 +8300,7 @@ class TestTracker(unittest.TestCase):
       self.assertEqual(self.tracker.nb_keyframes(), 1)
       break
 
-  @unittest.skip("")
+  # @unittest.skip("")
   def test_tracker_vision_callback(self):
     """ Test Tracker.vision_callback() """
     # Disable imu in Tracker
@@ -8390,58 +8448,58 @@ class TestCalibration(unittest.TestCase):
   # @unittest.skip("")
   def test_calibrator(self):
     """ Test Calibrator """
-    import apriltag_pybind as apriltag
-
-    cam0_imgs = glob.glob("/data/euroc/cam_april/mav0/cam0/data/*.png")
-    cam0_imgs = sorted(cam0_imgs)
-
-    # Loop through images
-    imshow_timeout = 1
-    for img_path in cam0_imgs:
-      img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-      tag_data = apriltag.detect(img)
-      if not tag_data:
-        continue
-
-      # Visualize detection
-      viz = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-      for (tag_id, corner_idx, kp_x, kp_y) in tag_data:
-        pt = (int(kp_x), int(kp_y))
-        radius = 5
-        color = (0, 0, 255)
-        thickness = 2
-        cv2.circle(viz, pt, radius, color, thickness)
-      cv2.imshow("viz", viz)
-      key = cv2.waitKey(imshow_timeout)
-      if key == ord('q'):
-        break
-      elif key == ord('p'):
-        imshow_timeout = 0 if imshow_timeout else 1
-      elif key == ord('s'):
-        imshow_timeout = 0
-
-    # # Setup
-    # grid_csvs = glob.glob("/tmp/aprilgrid_test/mono/cam0/*.csv")
-    # grids = [AprilGrid.load(csv_path) for csv_path in grid_csvs]
-    # self.assertTrue(len(grid_csvs) > 0)
-    # self.assertTrue(len(grids) > 0)
+    # import apriltag_pybind as apriltag
     #
-    # # Calibrator
-    # calib = Calibrator()
-    # # -- Add cam0
-    # cam_idx = 0
-    # cam_res = [752, 480]
-    # proj_model = "pinhole"
-    # dist_model = "radtan4"
-    # calib.add_camera(cam_idx, cam_res, proj_model, dist_model)
-    # # -- Add camera views
-    # for grid in grids:
-    #   if grid is not None:
-    #     calib.add_camera_view(grid.ts, cam_idx, grid)
-    #     if calib.get_num_views() == 10:
-    #       break
-    # # -- Solve
-    # calib.solve()
+    # cam0_imgs = glob.glob("/data/euroc/cam_april/mav0/cam0/data/*.png")
+    # cam0_imgs = sorted(cam0_imgs)
+    #
+    # # Loop through images
+    # imshow_timeout = 1
+    # for img_path in cam0_imgs:
+    #   img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    #   tag_data = apriltag.detect(img)
+    #   if not tag_data:
+    #     continue
+    #
+    #   # Visualize detection
+    #   viz = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    #   for (tag_id, corner_idx, kp_x, kp_y) in tag_data:
+    #     pt = (int(kp_x), int(kp_y))
+    #     radius = 5
+    #     color = (0, 0, 255)
+    #     thickness = 2
+    #     cv2.circle(viz, pt, radius, color, thickness)
+    #   cv2.imshow("viz", viz)
+    #   key = cv2.waitKey(imshow_timeout)
+    #   if key == ord('q'):
+    #     break
+    #   elif key == ord('p'):
+    #     imshow_timeout = 0 if imshow_timeout else 1
+    #   elif key == ord('s'):
+    #     imshow_timeout = 0
+
+    # Setup
+    grid_csvs = glob.glob("/data/euroc/cam_april/grid0/cam0/*.csv")
+    grids = [AprilGrid.load(csv_path) for csv_path in grid_csvs]
+    self.assertTrue(len(grid_csvs) > 0)
+    self.assertTrue(len(grids) > 0)
+
+    # Calibrator
+    calib = Calibrator()
+    # -- Add cam0
+    cam_idx = 0
+    cam_res = [752, 480]
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    calib.add_camera(cam_idx, cam_res, proj_model, dist_model)
+    # -- Add camera views
+    for grid in grids:
+      if grid is not None:
+        calib.add_camera_view(grid.ts, cam_idx, grid)
+        # if calib.get_num_views() == 10:
+        #   break
+    # -- Solve
+    calib.solve()
 
 
 # SIMULATION  #################################################################
