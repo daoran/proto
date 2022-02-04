@@ -23,7 +23,7 @@ install boost
 install ceres
 install eigen
 install lapacke
-install opencv3
+install opencv
 install apriltag
 # install octomap
 install fast
