@@ -1740,7 +1740,7 @@ def plot_tf(ax, T, **kwargs):
     ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
 
 
-def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel):
+def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
   """
   Plot XYZ plot
 
@@ -1758,7 +1758,7 @@ def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel):
   axis = ['x', 'y', 'z']
   colors = ["r", "g", "b"]
   keys = [key_x, key_y, key_z]
-  line_styles = ["--", "-", "x"]
+  line_styles = kwargs.get("line_styles", ["--", "-", "x"])
 
   # Time
   time_data = {}
