@@ -107,9 +107,7 @@ run_test() {
 }
 
 tmux send-keys -t dev -R "\
-make clean \
-&& make build \
-&& time make tests
+make tests
 " C-m C-m
 exit
 

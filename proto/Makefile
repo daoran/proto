@@ -29,5 +29,5 @@ $(LIB): $(BLD_DIR)/proto.o
 $(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
 	$(MAKE_TEST)
 
-tests: $(BIN_DIR)/test_proto
+tests: $(LIB) $(BIN_DIR)/test_proto
 	$(BIN_DIR)/test_proto
