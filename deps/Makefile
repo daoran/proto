@@ -21,4 +21,6 @@ dirs:
 	@mkdir -p src
 
 install: dirs
+	@echo "[Installing Dependencies]"
 	@sudo bash install.bash
+	@echo "done!"

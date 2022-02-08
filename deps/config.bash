@@ -1,5 +1,6 @@
 # Configurations
 BUILD_TYPE="Release"
+ROS_VERSION="noetic"
 
 # $1 - Directory to check
 check_dir() {
