@@ -4,7 +4,7 @@ LIB := $(BLD_DIR)/libproto.a
 TEST := $(BIN_DIR)/test_proto
 
 default: dirs $(LIB) shaders test_data $(TEST)
-.PHONY: dirs shaders test_data
+.PHONY: dirs shaders test_data tests
 
 dirs:
 	@mkdir -p $(BLD_DIR)
@@ -28,3 +28,6 @@ $(LIB): $(BLD_DIR)/proto.o
 
 $(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
 	$(MAKE_TEST)
+
+tests: $(BIN_DIR)/test_proto
+	$(BIN_DIR)/test_proto

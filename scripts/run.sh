@@ -63,7 +63,7 @@ run_memcheck() {
 # python3 proto/python/proto.py TestTracker.test_tracker_vision_callback
 # python3 proto/python/proto.py TestCalibration
 # python3 proto/python/proto.py TestCalibration.test_aprilgrid
-python3 proto/python/proto.py TestCalibration.test_calibrator
+# python3 proto/python/proto.py TestCalibration.test_calibrator
 # python3 proto/python/proto.py TestEuroc
 # python3 proto/python/proto.py TestKitti
 # python3 proto/python/proto.py TestSimulation
@@ -78,6 +78,10 @@ python3 proto/python/proto.py TestCalibration.test_calibrator
 ###############################################################################
 # C
 ###############################################################################
+
+# make clean
+# time make build
+# time make tests
 
 # make format_code
 # ctags -R lib
@@ -101,6 +105,14 @@ run_test() {
   ./test_proto --target "$1"
   cd -
 }
+
+tmux send-keys -t dev -R "\
+make clean \
+&& make build \
+&& time make tests
+" C-m C-m
+exit
+
 
 # PROTO
 # run_all_tests

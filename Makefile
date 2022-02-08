@@ -17,8 +17,11 @@ docs: ## Build docs
 	@sleep 3 && xdg-open http://127.0.0.1:8000 &
 	@sphinx-autobuild docs/source docs/build/html
 
-proto: ## Build libproto
+build: ## Build libproto
 	@cd proto && make -s
+
+tests: ## Run unittests
+	@cd proto && make -s tests
 
 clean: ## Clean
 	@cd proto && make -s clean

@@ -6,12 +6,11 @@ TESTS_DIR := $(PWD)/tests
 
 # COMPILER SETTINGS
 # CC := tcc
-# CC := gcc
-CC := clang
+CC := gcc
+# CC := clang
 CFLAGS := \
 	-g \
 	-Wall \
-  -fsanitize=address \
 	-Wpedantic \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
