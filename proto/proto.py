@@ -72,8 +72,9 @@ def load_yaml(yaml_path):
 
   # Convert dict to named tuple
   data = json.dumps(yaml_data)  # Python dict to json
-  data = json.loads(
-      data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+  data = json.loads(data,
+                    object_hook=lambda d: namedtuple('X', d.keys())
+                    (*d.values()))
 
   return data
 
@@ -412,7 +413,6 @@ def websocket_decode_frame(reader, mask):
 
 class DebugServer:
   """ Debug Server """
-
   def __init__(self, callback, **kwargs):
     self.host = kwargs.get("host", '127.0.0.1')
     self.port = kwargs.get("port", 5000)
@@ -1654,12 +1654,11 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
   # two-dimensionl dataset.
   ell_radius_x = np.sqrt(1 + pearson)
   ell_radius_y = np.sqrt(1 - pearson)
-  ellipse = matplotlib.patches.Ellipse(
-      (0, 0),
-      width=ell_radius_x * 2,
-      height=ell_radius_y * 2,
-      facecolor=facecolor,
-      **kwargs)
+  ellipse = matplotlib.patches.Ellipse((0, 0),
+                                       width=ell_radius_x * 2,
+                                       height=ell_radius_y * 2,
+                                       facecolor=facecolor,
+                                       **kwargs)
 
   # Calculating the stdandard deviation of x from
   # the squareroot of the variance and multiplying
@@ -2417,10 +2416,11 @@ class CameraGeometry:
 
 def pinhole_radtan4_setup(cam_idx, cam_res):
   """ Setup Pinhole + Radtan4 camera geometry """
-  return CameraGeometry(
-      cam_idx, cam_res, "pinhole", "radtan4", 4, 4, pinhole_radtan4_project,
-      pinhole_radtan4_backproject, pinhole_radtan4_undistort,
-      pinhole_radtan4_project_jacobian, pinhole_radtan4_params_jacobian)
+  return CameraGeometry(cam_idx, cam_res, "pinhole", "radtan4", 4, 4,
+                        pinhole_radtan4_project, pinhole_radtan4_backproject,
+                        pinhole_radtan4_undistort,
+                        pinhole_radtan4_project_jacobian,
+                        pinhole_radtan4_params_jacobian)
 
 
 def pinhole_equi4_setup(cam_idx, cam_res):
@@ -2468,7 +2468,6 @@ class ImuEvent:
 @dataclass
 class Timeline:
   """ Timeline """
-
   def __init__(self):
     self.data = {}
 
@@ -2504,7 +2503,6 @@ class Timeline:
 
 class EurocSensor:
   """ Euroc Sensor """
-
   def __init__(self, yaml_path):
     # Load yaml file
     config = load_yaml(yaml_path)
@@ -2535,7 +2533,6 @@ class EurocSensor:
 
 class EurocImuData:
   """ Euroc Imu data """
-
   def __init__(self, data_dir):
     self.imu_dir = Path(data_dir, 'mav0', 'imu0')
     self.config = EurocSensor(Path(self.imu_dir, 'sensor.yaml'))
@@ -2566,7 +2563,6 @@ class EurocImuData:
 
 class EurocCameraData:
   """ Euroc Camera data """
-
   def __init__(self, data_dir, cam_idx):
     self.cam_idx = cam_idx
     self.cam_dir = Path(data_dir, 'mav0', 'cam' + str(cam_idx))
@@ -2589,7 +2585,6 @@ class EurocCameraData:
 
 class EurocGroundTruth:
   """ Euroc ground truth """
-
   def __init__(self, data_dir):
     self.timestamps = []
     self.T_WB = {}
@@ -2629,7 +2624,6 @@ class EurocGroundTruth:
 
 class EurocDataset:
   """ Euroc Dataset """
-
   def __init__(self, data_path):
     # Data path
     self.data_path = data_path
@@ -2702,7 +2696,6 @@ class EurocDataset:
 
 class KittiCameraData:
   """ KittiCameraDataset """
-
   def __init__(self, cam_idx, seq_path):
     self.cam_idx = cam_idx
     self.seq_path = seq_path
@@ -2713,7 +2706,6 @@ class KittiCameraData:
 
 class KittiRawDataset:
   """ KittiRawDataset """
-
   def __init__(self, data_dir, date, seq, is_sync):
     # Paths
     self.data_dir = data_dir
@@ -2902,7 +2894,6 @@ class StateVariableType(Enum):
 
 class FeatureMeasurements:
   """ Feature measurements """
-
   def __init__(self):
     self._init = False
     self._data = {}
@@ -3071,7 +3062,6 @@ def idp_point(param):
 
 class Factor:
   """ Factor """
-
   def __init__(self, ftype, pids, z, covar):
     self.factor_id = None
     self.factor_type = ftype
@@ -3118,7 +3108,6 @@ class Factor:
 
 class PoseFactor(Factor):
   """ Pose Factor """
-
   def __init__(self, pids, z, covar):
     assert len(pids) == 1
     assert z.shape == (4, 4)
@@ -3159,7 +3148,6 @@ class PoseFactor(Factor):
 
 class MultiCameraBuffer:
   """ Multi-camera buffer """
-
   def __init__(self, nb_cams=0):
     self.nb_cams = nb_cams
     self._ts = []
@@ -3204,7 +3192,6 @@ class MultiCameraBuffer:
 
 class BAFactor(Factor):
   """ BA Factor """
-
   def __init__(self, cam_geom, pids, z, covar=eye(2)):
     assert len(pids) == 3
     assert len(z) == 2
@@ -3283,7 +3270,6 @@ class BAFactor(Factor):
 
 class VisionFactor(Factor):
   """ Vision Factor """
-
   def __init__(self, cam_geom, pids, z, covar=eye(2)):
     assert len(pids) == 4
     assert len(z) == 2
@@ -3370,7 +3356,6 @@ class VisionFactor(Factor):
 
 class CalibVisionFactor(Factor):
   """ Calibration Vision Factor """
-
   def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
     assert len(pids) == 3
     assert len(grid_data) == 4
@@ -3461,7 +3446,6 @@ class CalibVisionFactor(Factor):
 
 class ImuBuffer:
   """ IMU buffer """
-
   def __init__(self, ts=None, acc=None, gyr=None):
     self.ts = ts if ts is not None else []
     self.acc = acc if acc is not None else []
@@ -3587,7 +3571,6 @@ class ImuFactorData:
 
 class ImuFactor(Factor):
   """ Imu Factor """
-
   def __init__(self, pids, imu_params, imu_buf, sb_i):
     assert len(pids) == 4
     self.imu_params = imu_params
@@ -3846,7 +3829,6 @@ class MargFactor(Factor):
 
 class Solver:
   """ Solver """
-
   def __init__(self):
     self.factors = {}
     self.params = {}
@@ -4106,7 +4088,6 @@ class Solver:
 
 class FactorGraph:
   """ Factor Graph """
-
   def __init__(self):
     # Parameters and factors
     self._next_param_id = 0
@@ -4190,7 +4171,6 @@ class KalmanFilter:
   x = x + K * y;
   P = (I - K * T) * P * (I - K * T)' + K * R * K';
   """
-
   def __init__(self):
     pass
 
@@ -4200,7 +4180,6 @@ class KalmanFilter:
 
 class MSCKF:
   """ Multi-State Constraint Kalman Filter """
-
   def __init__(self):
     # Settings
     self.window_size = 5
@@ -4270,10 +4249,10 @@ class MSCKF:
     k4_v_dot = C_WS_kpdt @ a - g
     k4_p_dot = v_WS_k + k3_v_dot * dt
     # -- Update predicted state
-    self.state_r_WS += dt / 6.0 * (
-        k1_p_dot + 2.0 * k2_p_dot + 2.0 * k3_p_dot + k4_p_dot)
-    self.state_v_WS += dt / 6.0 * (
-        k1_v_dot + 2.0 * k2_v_dot + 2.0 * k3_v_dot + k4_v_dot)
+    self.state_r_WS += dt / 6.0 * (k1_p_dot + 2.0 * k2_p_dot + 2.0 * k3_p_dot +
+                                   k4_p_dot)
+    self.state_v_WS += dt / 6.0 * (k1_v_dot + 2.0 * k2_v_dot + 2.0 * k3_v_dot +
+                                   k4_v_dot)
     self.state_C_WS = C_WS_kpdt
 
     # Jacobian of process model w.r.t. error vector - F
@@ -4546,7 +4525,6 @@ class FeatureGrid:
     cell_id = int(grid_x + (grid_y * grid_cols))
 
   """
-
   def __init__(self, grid_rows, grid_cols, image_shape, keypoints):
     assert len(image_shape) == 2
     self.grid_rows = grid_rows
@@ -4792,7 +4770,6 @@ class FeatureTrackerData:
   - Feature ids (optional)
 
   """
-
   def __init__(self, cam_idx, image, keypoints, feature_ids=None):
     self.cam_idx = cam_idx
     self.image = image
@@ -4822,7 +4799,6 @@ class FeatureTrackerData:
 
 class FeatureTracker:
   """ Feature tracker """
-
   def __init__(self):
     # Settings
     self.mode = "TRACK_DEFAULT"
@@ -5220,7 +5196,6 @@ def visualize_tracking(ft_data):
 
 class KeyFrame:
   """ Key Frame """
-
   def __init__(self, ts, images, pose, vision_factors):
     self.ts = ts
     self.images = images
@@ -5230,7 +5205,6 @@ class KeyFrame:
 
 class Tracker:
   """ Tracker """
-
   def __init__(self, feature_tracker):
     # Feature tracker
     self.feature_tracker = feature_tracker
@@ -5540,7 +5514,6 @@ class Tracker:
 
 class AprilGrid:
   """ AprilGrid """
-
   def __init__(self, **kwargs):
     self.tag_rows = kwargs.get("tag_rows", 6)
     self.tag_cols = kwargs.get("tag_cols", 6)
@@ -5762,7 +5735,6 @@ def calib_generate_random_poses(calib_target, **kwargs):
 
 class CalibView:
   """ Calibration View """
-
   def __init__(self, pose, cam_params, cam_exts, grid):
     self.ts = grid.ts
     self.pose = pose
@@ -5792,7 +5764,6 @@ class CalibView:
 
 class Calibrator:
   """ Calibrator """
-
   def __init__(self):
     # Parameters
     self.cam_geoms = {}
@@ -5939,7 +5910,6 @@ def create_3d_features_perimeter(origin, dim, nb_features):
 
 class SimCameraFrame:
   """ Sim camera frame """
-
   def __init__(self, ts, cam_idx, camera, T_WCi, features):
     assert T_WCi.shape == (4, 4)
     assert features.shape[0] > 0
@@ -5980,7 +5950,6 @@ class SimCameraFrame:
 
 class SimCameraData:
   """ Sim camera data """
-
   def __init__(self, cam_idx, camera, features):
     self.cam_idx = cam_idx
     self.camera = camera
@@ -5992,7 +5961,6 @@ class SimCameraData:
 
 class SimImuData:
   """ Sim imu data """
-
   def __init__(self, imu_idx):
     self.imu_idx = imu_idx
     self.timestamps = []
@@ -6015,7 +5983,6 @@ class SimImuData:
 
 class SimData:
   """ Sim data """
-
   def __init__(self, circle_r, circle_v, **kwargs):
     # Settings
     self.circle_r = circle_r
@@ -6259,7 +6226,6 @@ class SimData:
 
 class SimFeatureTracker(FeatureTracker):
   """ Sim Feature Tracker """
-
   def __init__(self):
     FeatureTracker.__init__(self)
 
@@ -6298,7 +6264,6 @@ class SimFeatureTracker(FeatureTracker):
 
 class PID:
   """ PID controller """
-
   def __init__(self, k_p, k_i, k_d):
     self.k_p = k_p
     self.k_i = k_i
@@ -6333,7 +6298,6 @@ class PID:
 
 class CarrotController:
   """ Carrot Controller """
-
   def __init__(self):
     self.waypoints = []
     self.wp_start = None
@@ -6404,7 +6368,6 @@ from subprocess import Popen, PIPE
 
 class DevServer:
   """ Dev server """
-
   def __init__(self, loop_fn):
     self.host = "127.0.0.1"
     self.port = 5000
@@ -6436,7 +6399,6 @@ class DevServer:
 
 class MultiPlot:
   """ MultiPlot """
-
   def __init__(self, has_gnd=False):
     self.plots = []
     self.add_pos_xy_plot(has_gnd=has_gnd)
@@ -6639,7 +6601,6 @@ def test_websocket_callback():
 
 class TestNetwork(unittest.TestCase):
   """ Test Network """
-
   def test_http_parse_request(self):
     """ Test Parsing HTTP Request """
     request_string = """GET / HTTP/1.1\r\n
@@ -6706,7 +6667,6 @@ class TestNetwork(unittest.TestCase):
 
 class TestLinearAlgebra(unittest.TestCase):
   """ Test Linear Algebra """
-
   def test_normalize(self):
     """ Test normalize() """
     x = np.array([1.0, 2.0, 3.0])
@@ -6751,7 +6711,6 @@ class TestLinearAlgebra(unittest.TestCase):
 
 class TestLie(unittest.TestCase):
   """ Test Lie algebra functions """
-
   def test_Exp_Log(self):
     """ Test Exp() and Log() """
     pass
@@ -6762,7 +6721,6 @@ class TestLie(unittest.TestCase):
 
 class TestTransform(unittest.TestCase):
   """ Test transform functions """
-
   def test_homogeneous(self):
     """ Test homogeneous() """
     p = np.array([1.0, 2.0, 3.0])
@@ -6923,7 +6881,6 @@ class TestTransform(unittest.TestCase):
 
 class TestCV(unittest.TestCase):
   """ Test computer vision functions """
-
   def setUp(self):
     # Camera
     img_w = 640
@@ -7048,7 +7005,6 @@ class TestCV(unittest.TestCase):
 
 class TestEuroc(unittest.TestCase):
   """ Test Euroc dataset loader """
-
   def test_load(self):
     """ Test load """
     dataset = EurocDataset(euroc_data_path)
@@ -7057,7 +7013,6 @@ class TestEuroc(unittest.TestCase):
 
 class TestKitti(unittest.TestCase):
   """ Test KITTI dataset loader """
-
   @unittest.skip("")
   def test_load(self):
     """ Test load """
@@ -7092,7 +7047,6 @@ class TestKitti(unittest.TestCase):
 
 class TestFactors(unittest.TestCase):
   """ Test factors """
-
   def test_pose_factor(self):
     """ Test pose factor """
     # Setup camera pose T_WC
@@ -7428,7 +7382,6 @@ class TestFactors(unittest.TestCase):
 
 class TestFactorGraph(unittest.TestCase):
   """ Test Factor Graph """
-
   @classmethod
   def setUpClass(cls):
     super(TestFactorGraph, cls).setUpClass()
@@ -7827,7 +7780,6 @@ class TestFactorGraph(unittest.TestCase):
 
 class TestFeatureTracking(unittest.TestCase):
   """ Test feature tracking functions """
-
   @classmethod
   def setUpClass(cls):
     super(TestFeatureTracking, cls).setUpClass()
@@ -7917,7 +7869,6 @@ class TestFeatureTracking(unittest.TestCase):
 
 class TestFeatureTracker(unittest.TestCase):
   """ Test FeatureTracker """
-
   @classmethod
   def setUpClass(cls):
     super(TestFeatureTracker, cls).setUpClass()
@@ -8076,7 +8027,6 @@ class TestFeatureTracker(unittest.TestCase):
 
 class TestTracker(unittest.TestCase):
   """ Test Tracker """
-
   @classmethod
   def setUpClass(cls):
     super(TestTracker, cls).setUpClass()
@@ -8385,7 +8335,6 @@ class TestTracker(unittest.TestCase):
 
 class TestCalibration(unittest.TestCase):
   """ Test calibration functions """
-
   def test_aprilgrid(self):
     """ Test aprilgrid """
     # grid = AprilGrid()
@@ -8537,7 +8486,6 @@ class TestCalibration(unittest.TestCase):
 
 class TestSimulation(unittest.TestCase):
   """ Test simulation functions """
-
   def test_create_3d_features(self):
     """ Test create 3D features """
     debug = False
@@ -8777,7 +8725,6 @@ async def fake_loop(ws, _):
 
 class TestViz(unittest.TestCase):
   """ Test Viz """
-
   def test_multiplot(self):
     """ Test MultiPlot() """
     t = 0
