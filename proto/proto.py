@@ -3778,6 +3778,69 @@ class ImuFactor(Factor):
     return (r, [J0, J1, J2, J3])
 
 
+class MargFactor(Factor):
+  """ Marginalization Factor """
+
+  def __init__(self, pids):
+    assert len(pids) > 0
+    Factor.__init__(self, "MargFactor", pids, None, data.state_P)
+
+    self.r0 = None  # Linearized residuals
+    self.J0 = None  # Linearized jacobians
+    self.x0 = None  # Linearized estimates
+
+  def shur_complement(H, b, m, r):
+    """ Schur complement """
+    H_mm = H[0:m, 0:m]
+    H_mr = H[0:m, m:]
+    H_rm = H[m:, 0:m]
+    H_rr = H[m:, m:]
+
+    b_mm = b[:m]
+    b_rr = b[m:]
+
+    H_mm = 0.5 * (H_mm + H_mm.T)  # Enforce symmetry
+    w, V = np.linalg.eig(H_mm)
+    for idx, w_i in enumerate(w):
+      if w_i < 1e-12:
+        w[idx] = 0.0
+
+    Lambda_inv = np.diag(1.0 / w)
+    H_mm_inv = V @ Lambda_inv @ V.T
+    H_marg = H_rr - (H_rm @ H_mm_inv @ H_mr)
+    b_marg = b_rr - (H_rm @ H_mm_inv @ b_mm)
+
+    return (H_marg, b_marg)
+
+  def decomp_hessian(H):
+    """ Decompose Hessian into E' * E """
+    w, V = np.linalg.eig(H)
+    for idx, w_i in enumerate(w):
+      if w_i < 1e-12:
+        w[idx] = 0.0
+
+    S_sqrt = np.diag(w**0.5)
+    E = S_sqrt @ V.T
+
+    return E
+
+  def marginalize(self):
+    """ Marginalize """
+    pass
+
+  def calc_delta_chi(self):
+    """ Calculate Delta Chi """
+    pass
+
+  def eval(self, params, **kwargs):
+    """ Evaluate Marginalization Factor """
+
+    r = np.zeros((2, 2))
+    if kwargs.get('only_residuals', False):
+      return r
+
+
+
 # SOLVER #######################################################################
 
 
@@ -3831,13 +3894,6 @@ class Solver:
   def _form_param_indices(self):
     """ Form parameter indices """
     # Parameter ids
-    marg_param_ids = {
-        'pose': set(),
-        'speed_and_biases': set(),
-        'feature': set(),
-        'camera': set(),
-        'extrinsics': set(),
-    }
     param_ids = {
         'pose': set(),
         'speed_and_biases': set(),
@@ -3853,8 +3909,6 @@ class Solver:
         param = self.params[param_id]
         if param.fix:
           continue
-        elif param.marginalize:
-          marg_param_ids[param.var_type].add(param_id)
         else:
           param_ids[param.var_type].add(param_id)
         nb_params += 1
@@ -3869,37 +3923,17 @@ class Solver:
 
     param_idxs = {}
     param_size = 0
-    m = 0
-    r = 0
     for param_type in param_order:
-      for param_id in marg_param_ids[param_type]:
-        param_idxs[param_id] = param_size
-        param_size += self.params[param_id].min_dims
-        m += param_size
-
       for param_id in param_ids[param_type]:
         param_idxs[param_id] = param_size
         param_size += self.params[param_id].min_dims
-        r += param_size
 
-    # # Assign global parameter order - based on the order of factors
-    # param_idxs = {}
-    # param_size = 0
-    # m = 0
-    # r = 0
-    # for _, factor in self.factors.items():
-    #   for _, param_id in enumerate(factor.param_ids):
-    #     if param_id not in param_idxs:
-    #       param = self.params[param_id]
-    #       param_idxs[param_id] = param_size
-    #       param_size += param.min_dims
-
-    return (param_idxs, param_size, m, r)
+    return (param_idxs, param_size)
 
   def _linearize(self, params):
     """ Linearize non-linear problem """
     # Setup
-    (param_idxs, param_size, m, r) = self._form_param_indices()
+    (param_idxs, param_size) = self._form_param_indices()
     H = zeros((param_size, param_size))
     g = zeros(param_size)
 
@@ -3941,10 +3975,6 @@ class Solver:
         rs = idx_i
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
-
-    # Marginalize old states with Schurs Complement
-    if m > 0:
-      H, g = schurs_complement(H, g, m, r)
 
     return (H, g, param_idxs)
 
@@ -3994,9 +4024,9 @@ class Solver:
     # # Pseudo inverse
     # dx = pinv(H) @ g
 
-    # # Cholesky decomposition
-    # c, low = scipy.linalg.cho_factor(H)
-    # dx = scipy.linalg.cho_solve((c, low), g)
+    # Cholesky decomposition
+    c, low = scipy.linalg.cho_factor(H)
+    dx = scipy.linalg.cho_solve((c, low), g)
 
     # SVD
     # dx = solve_svd(H, g)
@@ -4006,10 +4036,10 @@ class Solver:
     # p = np.dot(q.T, g)
     # dx = np.dot(np.linalg.inv(r), p)
 
-    # Sparse cholesky decomposition
-    sH = scipy.sparse.csc_matrix(H)
-    dx = scipy.sparse.linalg.spsolve(sH, g)
-    dx = scipy.sparse.linalg.spsolve(H, g, permc_spec="NATURAL")
+    # # Sparse cholesky decomposition
+    # sH = scipy.sparse.csc_matrix(H)
+    # dx = scipy.sparse.linalg.spsolve(sH, g)
+    # dx = scipy.sparse.linalg.spsolve(H, g, permc_spec="NATURAL")
 
     return dx
 
@@ -5821,18 +5851,18 @@ class Calibrator:
     for factor in self.calib_views[ts].factors:
       self.graph.add_factor(factor)
 
-    # Solve
-    if len(self.calib_views) >= 5:
-      self.graph.solver_max_iter = 10
-      self.graph.solve(True)
-
-      # Calculate reprojection error
-      reproj_errors = self.graph.get_reproj_errors()
-      print(f"nb_reproj_errors: {len(reproj_errors)}")
-      print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
-      print()
-      # plt.hist(reproj_errors)
-      # plt.show()
+    # # Solve
+    # if len(self.calib_views) >= 5:
+    #   self.graph.solver_max_iter = 10
+    #   self.graph.solve(True)
+    #
+    #   # Calculate reprojection error
+    #   reproj_errors = self.graph.get_reproj_errors()
+    #   print(f"nb_reproj_errors: {len(reproj_errors)}")
+    #   print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
+    #   print()
+    #   # plt.hist(reproj_errors)
+    #   # plt.show()
 
   def solve(self):
     """ Solve """
@@ -8479,7 +8509,7 @@ class TestCalibration(unittest.TestCase):
     #     imshow_timeout = 0
 
     # Setup
-    grid_csvs = glob.glob("/data/euroc/cam_april/grid0/cam0/*.csv")
+    grid_csvs = glob.glob("/data/euroc/cam_april/mav0/grid0/cam0/*.csv")
     grids = [AprilGrid.load(csv_path) for csv_path in grid_csvs]
     self.assertTrue(len(grid_csvs) > 0)
     self.assertTrue(len(grids) > 0)
@@ -8496,8 +8526,8 @@ class TestCalibration(unittest.TestCase):
     for grid in grids:
       if grid is not None:
         calib.add_camera_view(grid.ts, cam_idx, grid)
-        # if calib.get_num_views() == 10:
-        #   break
+        if calib.get_num_views() == 10:
+          break
     # -- Solve
     calib.solve()
 
