@@ -18,62 +18,62 @@ run_memcheck() {
 # PYTHON
 ###############################################################################
 
-# cd python && ctags proto.py && cd -
-# python3 proto/python/proto.py
-# python3 proto/python/proto.py TestNetwork.test_http_parse_request
-# python3 proto/python/proto.py TestNetwork.test_websocket_hash
-# python3 proto/python/proto.py TestNetwork.test_websocket_encode_frame
-# python3 proto/python/proto.py TestNetwork.test_debug_server
-# python3 proto/python/proto.py TestLinearAlgebra
-# python3 proto/python/proto.py TestTransform
-# python3 proto/python/proto.py TestTransform.test_quat2rot
-# python3 proto/python/proto.py TestTransform.test_rot2quat
-# python3 proto/python/proto.py TestTransform.test_rot2euler
-# python3 proto/python/proto.py TestTransform.test_quat_inv
-# python3 proto/python/proto.py TestTransform.test_quat_conj
-# python3 proto/python/proto.py TestTransform.test_quat_slerp
-# python3 proto/python/proto.py TestCV
-# python3 proto/python/proto.py TestFactors
-# python3 proto/python/proto.py TestFactors.test_pose_factor
-# python3 proto/python/proto.py TestFactors.test_ba_factor
-# python3 proto/python/proto.py TestFactors.test_vision_factor
-# python3 proto/python/proto.py TestFactors.test_calib_vision_factor
-# python3 proto/python/proto.py TestFactors.test_imu_buffer
-# python3 proto/python/proto.py TestFactors.test_imu_buffer_with_interpolation
-# python3 proto/python/proto.py TestFactors.test_imu_factor_propagate
-# python3 proto/python/proto.py TestFactors.test_imu_factor
-# python3 proto/python/proto.py TestFactorGraph
-# python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_vo
-# python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_io
-# python3 proto/python/proto.py TestFactorGraph.test_factor_graph_solve_vio
-# python3 proto/python/proto.py TestFeatureTracking
-# python3 proto/python/proto.py TestFeatureTracking.test_feature_grid_cell_index
-# python3 proto/python/proto.py TestFeatureTracking.test_feature_grid_count
-# python3 proto/python/proto.py TestFeatureTracking.test_spread_keypoints
-# python3 proto/python/proto.py TestFeatureTracking.test_grid_detect
-# python3 proto/python/proto.py TestFeatureTracking.test_optflow_track
-# python3 proto/python/proto.py TestFeatureTracker
-# python3 proto/python/proto.py TestFeatureTracker.test_detect
-# python3 proto/python/proto.py TestFeatureTracker.test_detect_overlaps
-# python3 proto/python/proto.py TestFeatureTracker.test_detect_nonoverlaps
-# python3 proto/python/proto.py TestFeatureTracker.test_detect_new
-# python3 proto/python/proto.py TestFeatureTracker.test_update
-# python3 proto/python/proto.py TestTracker
-# python3 proto/python/proto.py TestTracker.test_tracker_process_features
-# python3 proto/python/proto.py TestTracker.test_tracker_vision_callback
-# python3 proto/python/proto.py TestCalibration
-# python3 proto/python/proto.py TestCalibration.test_aprilgrid
-# python3 proto/python/proto.py TestCalibration.test_calibrator
-# python3 proto/python/proto.py TestEuroc
-# python3 proto/python/proto.py TestKitti
-# python3 proto/python/proto.py TestSimulation
-# python3 proto/python/proto.py TestSimulation.test_create_3d_features
-# python3 proto/python/proto.py TestSimulation.test_create_3d_features_perimeter
-# python3 proto/python/proto.py TestSimulation.test_sim_camera_frame
-# python3 proto/python/proto.py TestSimulation.test_sim_data
-# python3 proto/python/proto.py TestSimulation.test_sim_feature_tracker
-# python3 proto/python/proto.py TestViz.test_multiplot
-# python3 proto/python/proto.py TestViz.test_server
+ctags -R .
+# python3 proto/proto.py
+# python3 proto/proto.py TestNetwork.test_http_parse_request
+# python3 proto/proto.py TestNetwork.test_websocket_hash
+# python3 proto/proto.py TestNetwork.test_websocket_encode_frame
+# python3 proto/proto.py TestNetwork.test_debug_server
+# python3 proto/proto.py TestLinearAlgebra
+# python3 proto/proto.py TestTransform
+# python3 proto/proto.py TestTransform.test_quat2rot
+# python3 proto/proto.py TestTransform.test_rot2quat
+# python3 proto/proto.py TestTransform.test_rot2euler
+# python3 proto/proto.py TestTransform.test_quat_inv
+# python3 proto/proto.py TestTransform.test_quat_conj
+# python3 proto/proto.py TestTransform.test_quat_slerp
+# python3 proto/proto.py TestCV
+# python3 proto/proto.py TestFactors
+# python3 proto/proto.py TestFactors.test_pose_factor
+# python3 proto/proto.py TestFactors.test_ba_factor
+# python3 proto/proto.py TestFactors.test_vision_factor
+# python3 proto/proto.py TestFactors.test_calib_vision_factor
+# python3 proto/proto.py TestFactors.test_imu_buffer
+# python3 proto/proto.py TestFactors.test_imu_buffer_with_interpolation
+# python3 proto/proto.py TestFactors.test_imu_factor_propagate
+# python3 proto/proto.py TestFactors.test_imu_factor
+# python3 proto/proto.py TestFactorGraph
+# python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_vo
+# python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_io
+# python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_vio
+# python3 proto/proto.py TestFeatureTracking
+# python3 proto/proto.py TestFeatureTracking.test_feature_grid_cell_index
+# python3 proto/proto.py TestFeatureTracking.test_feature_grid_count
+# python3 proto/proto.py TestFeatureTracking.test_spread_keypoints
+# python3 proto/proto.py TestFeatureTracking.test_grid_detect
+# python3 proto/proto.py TestFeatureTracking.test_optflow_track
+# python3 proto/proto.py TestFeatureTracker
+# python3 proto/proto.py TestFeatureTracker.test_detect
+# python3 proto/proto.py TestFeatureTracker.test_detect_overlaps
+# python3 proto/proto.py TestFeatureTracker.test_detect_nonoverlaps
+# python3 proto/proto.py TestFeatureTracker.test_detect_new
+# python3 proto/proto.py TestFeatureTracker.test_update
+# python3 proto/proto.py TestTracker
+# python3 proto/proto.py TestTracker.test_tracker_process_features
+# python3 proto/proto.py TestTracker.test_tracker_vision_callback
+# python3 proto/proto.py TestCalibration
+# python3 proto/proto.py TestCalibration.test_aprilgrid
+python3 proto/proto.py TestCalibration.test_calibrator
+# python3 proto/proto.py TestEuroc
+# python3 proto/proto.py TestKitti
+# python3 proto/proto.py TestSimulation
+# python3 proto/proto.py TestSimulation.test_create_3d_features
+# python3 proto/proto.py TestSimulation.test_create_3d_features_perimeter
+# python3 proto/proto.py TestSimulation.test_sim_camera_frame
+# python3 proto/proto.py TestSimulation.test_sim_data
+# python3 proto/proto.py TestSimulation.test_sim_feature_tracker
+# python3 proto/proto.py TestViz.test_multiplot
+# python3 proto/proto.py TestViz.test_server
 
 ###############################################################################
 # C
@@ -106,10 +106,11 @@ run_test() {
   cd -
 }
 
-tmux send-keys -t dev -R "\
-make tests
-" C-m C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+# make tests
+# " C-m C-m
+# exit
 
 
 # PROTO
