@@ -1,10 +1,136 @@
-\documentclass[11pt,twoside,a4paper]{article}
-\begin{document}
-
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
 
 \input{notations}
 
+\begin{document}
+
+
 \section{Introduction}
+
+
+\section{Nonlinear Least Squares}
+
+\begin{align}
+  \min_{\Vec{x}} \cost(\Vec{x})
+    &=
+      \dfrac{1}{2}
+      \sum_{i}
+      \Vec{e}_{i}^{\transpose} \Mat{W} \Vec{e}_{i} \\
+    &=
+      \dfrac{1}{2} \enspace
+      \Vec{e}_{i}^{\transpose}(\Vec{x})
+      \Mat{W}
+      \Vec{e}_{i}(\Vec{x})
+\end{align}
+
+where the error function, $\Vec{e}(\cdot)$, depends on the optimization
+parameter, $\Vec{x} \in \real^{n}$. The error function,
+$\Vec{e}(\cdot)$, has a form of
+\begin{align}
+  \Vec{e}_{i} =
+    \Vec{z} - \Vec{h}(\Vec{x})
+\end{align}
+is defined as the difference between the measured value, $\Vec{z}$, and
+the estimated value calculated using the measurement function,
+$\Vec{h}(\cdot)$.  Since the error function, $\Vec{e}(\Vec{x})$, is
+non-linear, it is approximated with the first-order Taylor series,
+\begin{align}
+  \Vec{e}(\Vec{x})
+    \approx
+      \Vec{e}(\bar{\Vec{x}}) +
+      \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+\end{align}
+where
+\begin{align}
+  \Mat{E}(\bar{\Vec{x}}) =
+    \dfrac{\partial\Vec{e}(\Vec{x})}{\partial\Vec{x}}
+    \bigg\rvert_{\Vec{x}_{k}}
+\enspace \enspace
+  \Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}
+\end{align}
+\begin{align}
+  \dfrac{\partial{\cost}}{\partial{\Vec{x}}} =
+    \dfrac{\partial{\cost}}{\partial{\Vec{e}}}
+    \dfrac{\partial{\Vec{e}}}{\partial{\Vec{x}}}
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\cost}}{\partial{\Vec{e}}} &=
+    \dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
+    \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
+  %
+  \dfrac{\partial{\Vec{e}}}{\partial{\Vec{x}}} &=
+    \Vec{e}(\bar{\Vec{x}}) +
+    \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
+    \Mat{E}(\bar{\Vec{x}})
+\end{align}
+
+\begin{align}
+  \dfrac{\partial{\cost}}{\partial{\Vec{x}}}
+    &=
+      (\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
+    % Line 2
+    &=
+      (
+        \Vec{e}(\bar{\Vec{x}}) + \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+      )^{\transpose} \Mat{W}
+      \Mat{E}(\bar{\Vec{x}}) \\
+    % Line 3
+    &=
+      \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}})
+      + \Delta\Vec{x}^{\transpose}
+        \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+      = 0 \\
+    % Line 4
+    \Delta\Vec{x}^{\transpose}
+      \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+    &=
+      - \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}}) \\
+    % Line 5
+    \underbrace{
+      \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+    }_{\Mat{H}}
+      \Delta\Vec{x}
+    &=
+    \underbrace{
+      - \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
+    }_{\Vec{b}}
+\end{align}
+
+Solve the normal equations $\Mat{H}\Delta\Vec{x} = \Vec{b}$ for
+$\Delta\Vec{x}$ using the Cholesky or QR-decompositon. Once
+$\Delta\Vec{x}$ is found the best estimate $\bar{\Vec{x}}$ can be
+updated via,
+
+\begin{align}
+  \bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x}.
+\end{align}
+
+
+
+\section{Schur Complement}
+
+Let $\Mat{M}$ be a matrix that consists of block matrices
+$\Mat{A}$, $\Mat{B}$, $\Mat{C}$, $\Mat{D}$,
+
+\begin{align}
+  \Mat{M} =
+  \begin{bmatrix}
+    \Mat{A} & \Mat{B} \\
+    \Mat{C} & \Mat{D}
+  \end{bmatrix}
+\end{align}
+
+if $\Mat{A}$ is invertible, the Schur's complement of the block
+$\Mat{A}$ of the matrix $\Mat{B}$ is the defined by
+
+\begin{aligned}
+  \Mat{M}/\Mat{A} &= \Mat{D} - \Mat{C} \Mat{A}^{-1} \Mat{B} \\
+  \Mat{M}/\Mat{D} &= \Mat{A} - \Mat{B} \Mat{D}^{-1} \Mat{C}
+\end{aligned}
 
 
 
