@@ -27,7 +27,6 @@
    stats/stddev.rst
    stats/stderr.rst
    stats/bayes.rst
-   stats/chisq_test.rst
 
 
 .. toctree::
