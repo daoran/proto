@@ -18,7 +18,7 @@ run_memcheck() {
 # PYTHON
 ###############################################################################
 
-ctags -R .
+ctags proto/proto.c proto/proto.py
 # python3 proto/proto.py
 # python3 proto/proto.py TestNetwork.test_http_parse_request
 # python3 proto/proto.py TestNetwork.test_websocket_hash
@@ -63,7 +63,7 @@ ctags -R .
 # python3 proto/proto.py TestTracker.test_tracker_vision_callback
 # python3 proto/proto.py TestCalibration
 # python3 proto/proto.py TestCalibration.test_aprilgrid
-python3 proto/proto.py TestCalibration.test_calibrator
+# python3 proto/proto.py TestCalibration.test_calibrator
 # python3 proto/proto.py TestEuroc
 # python3 proto/proto.py TestKitti
 # python3 proto/proto.py TestSimulation
@@ -72,6 +72,7 @@ python3 proto/proto.py TestCalibration.test_calibrator
 # python3 proto/proto.py TestSimulation.test_sim_camera_frame
 # python3 proto/proto.py TestSimulation.test_sim_data
 # python3 proto/proto.py TestSimulation.test_sim_feature_tracker
+python3 proto/proto.py TestSimulation.test_sim_arm
 # python3 proto/proto.py TestViz.test_multiplot
 # python3 proto/proto.py TestViz.test_server
 
