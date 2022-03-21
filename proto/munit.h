@@ -17,7 +17,7 @@ static char *test_target_name = NULL;
 #define MU_REDIRECT_STREAMS 1
 #define MU_LOG_DIR "/tmp"
 #define MU_KEEP_LOGS 1
-#define MU_ENABLE_TERM_COLORS 1
+#define MU_ENABLE_TERM_COLORS 0
 
 #if MU_ENABLE_TERM_COLORS == 1
 #define MU_RED "\x1B[1;31m"
@@ -124,9 +124,10 @@ void mu_test_failed(const char *test_name, const char *log_path) {
  * Print test stats
  */
 void mu_print_stats() {
-  printf(MU_WHT "%d tests" MU_NRM ", ", nb_tests);
-  printf(MU_GRN "%d passed" MU_NRM ", ", nb_passed);
-  printf(MU_RED "%d failed\n" MU_NRM, nb_failed);
+  printf("\n");
+  printf(MU_WHT "Ran %d tests" MU_NRM "\n", nb_tests);
+  printf(MU_GRN "- %d passed" MU_NRM "\n", nb_passed);
+  printf(MU_RED "- %d failed\n" MU_NRM "\n", nb_failed);
   printf("\n");
 }
 

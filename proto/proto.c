@@ -2893,7 +2893,7 @@ void mat_row_set(real_t *A,
                  const int row_idx,
                  const real_t *x) {
   int vec_idx = 0;
-  for (int i = 0; i < stride; i++) {
+  for (size_t i = 0; i < stride; i++) {
     A[(stride * row_idx) + i] = x[vec_idx++];
   }
 }
@@ -5766,6 +5766,7 @@ int ba_factor_ceres_eval(void *factor,
   assert(factor != NULL);
   assert(params != NULL);
   assert(r_out != NULL);
+  UNUSED(J_out);
 
   return 0;
 }

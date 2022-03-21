@@ -188,7 +188,7 @@ typedef float real_t;
 #elif PRECISION == 2
 typedef double real_t;
 #else
-#error "Precision not defined!"
+#error "Floating Point Precision not defined!"
 #endif
 
 size_t string_copy(char *dst, const char *src);

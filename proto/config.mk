@@ -28,7 +28,7 @@ CERES_DEPS := -lgflags -lglog \
 CERES_LIBS := -L$(DEPS_DIR)/lib -lceres $(CERES_DEPS)
 
 DEPS=-L$(BLD_DIR) \
-	-lproto \
+  -lproto \
 	$(CERES_LIBS) \
 	$(OPENGL_LIBS) \
 	$(BLAS_LIBS) \
@@ -53,5 +53,5 @@ COMPILE_TEST_OBJ = \
 	$(CC) $(CFLAGS) -c $< -o $@
 
 MAKE_TEST = \
-	@echo "TEST [$(shell basename $@)]"; \
+	echo "TEST [$(shell basename $@)]"; \
 	$(CC) $(CFLAGS) $< -o $@ $(DEPS)
