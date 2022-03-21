@@ -1592,6 +1592,7 @@ def load_poses(csv_path):
 import matplotlib.pylab as plt
 import matplotlib.patches
 import matplotlib.transforms
+from mpl_toolkits import mplot3d
 
 
 def plot_set_axes_equal(ax):
@@ -6257,6 +6258,30 @@ class SimFeatureTracker(FeatureTracker):
     pass
 
 
+def dh_matrix(theta, d, a, alpha):
+  """ Denavit-Hartenburg Matrix """
+  ctheta = np.cos(theta)
+  stheta = np.sin(theta)
+  calpha = np.cos(alpha)
+  salpha = np.sin(alpha)
+
+  row0 = [ctheta, -stheta * calpha, stheta * salpha, a * ctheta]
+  row1 = [stheta, ctheta * calpha, -ctheta * salpha, a * stheta]
+  row2 = [0.0, salpha, calpha, d]
+  row3 = [0.0, 0.0, 0.0, 1.0]
+  return np.array([row0, row1, row2, row3])
+
+
+class RobotArmSimulation:
+  """ RobotArmSimulation """
+  def __init__(self, **kwargs):
+    # Settings
+    pass
+
+
+
+
+
 ###############################################################################
 # CONTROL
 ###############################################################################
@@ -8684,6 +8709,46 @@ class TestSimulation(unittest.TestCase):
             self.assertTrue(ft_data[1].keypoints)
             self.assertTrue(ft_data[0].feature_ids)
             self.assertTrue(ft_data[1].feature_ids)
+
+  def test_sim_arm(self):
+    """ Plot Sim Arm """
+    # Source: https://www.ohio.edu/mechanical-faculty/williams/html/PDF/BaxterKinematics.pdf
+
+    # Base link in world frame
+    T_WB = tf(eye(3), [0.0, 0.0, 0.0])
+
+    # DH-Parameters
+    theta0 = deg2rad(0.0)
+    theta1 = deg2rad(0.0)
+    theta2 = deg2rad(0.0)
+    L0 = 0.27035
+    L1 = 0.2
+    L2 = 0.34635
+    # theta, d, a, alpha
+    link0 = [deg2rad(0.0) + theta0, L0, 0.0, deg2rad(-90.0)]
+    link1 = [deg2rad(0.0) + theta1, 0.0, L1, deg2rad(0.0)]
+    # link2 = [deg2rad(90.0) + theta2, 0.0, L2, deg2rad(90)]
+
+    T_BL0 = dh_matrix(*link0)
+    T_L0L1 = dh_matrix(*link1)
+    # T_L1L2 = dh_matrix(*link2)
+
+    # Visualize
+    dpi = 96.0
+    fig_dim = [800.0 / dpi, 800.0 / dpi]
+    plt.figure(figsize=fig_dim, dpi=dpi)
+    ax = plt.gca(projection='3d')
+
+    plot_tf(ax, T_WB, size=0.05, name="base")
+    plot_tf(ax, T_WB @ T_BL0, size=0.05, name="L0")
+    plot_tf(ax, T_WB @ T_BL0 @ T_L0L1, size=0.05, name="L1")
+    # plot_tf(ax, T_WB @ T_BL0 @ T_L0L1 @ T_L1L2, size=0.1, name="L2")
+
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
 
 
 # VISUALIZER ###################################################################
