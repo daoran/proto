@@ -4,13 +4,12 @@ $fn = 50;
 frame_w = 30.5;
 frame_d = 30.5;
 frame_h = 2.0;
-
 screw_w = 2.0;
-screw_h = 2.5;
-
+screw_h = 2.0;
 fcu_w = 60.0;
 fcu_d = 40.0;
 fcu_h = 2.0;
+raise_h = frame_h;
 
 module standoff(standoff_thickness, screw_w, screw_h, center=true) {
   standoff_r = (screw_w / 2.0) + standoff_thickness;
@@ -51,24 +50,24 @@ module frame(frame_w, frame_d, frame_h, screw_w, screw_h) {
 frame(frame_w, frame_d, frame_h, screw_w, screw_h);
 
 // Top-frame
-translate([0.0, 0.0, 5.0])
+translate([0.0, 0.0, raise_h])
   frame(fcu_w, fcu_d, fcu_h, screw_w, screw_h);
 
 // Support that joins the bottom and top frames together
-translate([fcu_w * 0.2, 0.0, 5.0 + frame_h / 2.0])
+translate([fcu_w * 0.2, 0.0, raise_h + frame_h / 2.0])
   cube([1.0, fcu_d, frame_h], center=true);
 
-translate([-fcu_w * 0.2, 0.0, 5.0 + frame_h / 2.0])
+translate([-fcu_w * 0.2, 0.0, raise_h + frame_h / 2.0])
   cube([1.0, fcu_d, frame_h], center=true);
 
-translate([fcu_w * 0.2 - 0.5, frame_d / 2.0 - 0.5, frame_h])
-  cube([1.0, 1.0, 5.0 - frame_h], center=false);
-
-translate([-fcu_w * 0.2 - 0.5, frame_d / 2.0 - 0.5, frame_h])
-  cube([1.0, 1.0, 5.0 - frame_h], center=false);
-
-translate([fcu_w * 0.2 - 0.5, -frame_d / 2.0 - 0.5, frame_h])
-  cube([1.0, 1.0, 5.0 - frame_h], center=false);
-
-translate([-fcu_w * 0.2 - 0.5, -frame_d / 2.0 - 0.5, frame_h])
-  cube([1.0, 1.0, 5.0 - frame_h], center=false);
+// translate([fcu_w * 0.2 - 0.5, frame_d / 2.0 - 0.5, frame_h])
+//   cube([1.0, 1.0, raise_h - frame_h], center=false);
+//
+// translate([-fcu_w * 0.2 - 0.5, frame_d / 2.0 - 0.5, frame_h])
+//   cube([1.0, 1.0, raise_h - frame_h], center=false);
+//
+// translate([fcu_w * 0.2 - 0.5, -frame_d / 2.0 - 0.5, frame_h])
+//   cube([1.0, 1.0, raise_h - frame_h], center=false);
+//
+// translate([-fcu_w * 0.2 - 0.5, -frame_d / 2.0 - 0.5, frame_h])
+//   cube([1.0, 1.0, raise_h - frame_h], center=false);
