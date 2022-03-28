@@ -81,7 +81,7 @@ bottom_frame(frame_w, frame_d, frame_h, 3.1, frame_h);
 
 // Top-frame
 translate([0.0, 0.0, 0.0])
-  top_frame(fcu_w, fcu_d, frame_h, screw_w, 6.0);
+  top_frame(fcu_w, fcu_d, frame_h, screw_w, 10.0);
 
 // // Top-frame supports
 // translate([fcu_w * 0.15, 0.0, raise_h + frame_h / 2.0])
