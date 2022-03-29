@@ -1,0 +1,248 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gauge Freedom &#8212; proto alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Marginalization" href="marginalization.html" />
+    <link rel="prev" title="IMU Preintegration" href="imu.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="gauge-freedom">
+<h1>Gauge Freedom<a class="headerlink" href="#gauge-freedom" title="Permalink to this headline">¶</a></h1>
+<p>Gauge theory is borrowed from physics.</p>
+<p>Accurate structure from motion or vision based state estimation is hard. One
+hurdle is addressing the accuracy quantitatively. There are two main problems
+that arise:</p>
+<ul class="simple">
+<li><p><strong>Inherent Physical Indeterminancy</strong>: cause by loss of information
+while projecting 3D objects onto a 2D image plane.</p></li>
+<li><p><strong>Overparameterized Problem</strong>: e.g. a shape model that can be
+parameterized by a vector, each representing the absolute position and
+orientation of the object could itself be indeterminant.</p></li>
+</ul>
+<p>It is well known that a vision only bundle adjustment has 7 unobserable
+degrees-of-freedom (DoF), while for a VI-system, the global position and global
+yaw is not observable, a total of four unobservable DoFs. These unobservable
+DoFs (a.k.a gauge freedoms) have to be handled properly.</p>
+<p>There are three main approaches to address the unobservability in a VI-system.
+They are:</p>
+<ul class="simple">
+<li><p>Gauge fixation</p></li>
+<li><p>Gauge prior</p></li>
+<li><p>Free gauge</p></li>
+</ul>
+<div class="section" id="gauge-fixation">
+<h2>Gauge fixation<a class="headerlink" href="#gauge-fixation" title="Permalink to this headline">¶</a></h2>
+<p>Gauge fixation method works by decreasing the number of optimization parameters
+to where there are no unobservable states left for the opitmization problem to
+optimize. This is to ensure the Hessian is well conditioned and invertable.
+This approach enforces hard constraints to the solution.</p>
+<p>The standard method to update orientation variables such as a rotation,
+<span class="math notranslate nohighlight">\(\rot\)</span>, during the iterations of a non-linear least squares solver is to
+use local coordinates, where at the <cite>k</cite>-th iteration, the update is</p>
+<div class="math notranslate nohighlight" id="equation-opt-rot-std-update">
+<span class="eqno">(1)<a class="headerlink" href="#equation-opt-rot-std-update" title="Permalink to this equation">¶</a></span>\[\rot^{k + 1} = \text{Exp}(\delta \boldsymbol{\phi}^{k}) \rot^{k} .\]</div>
+<p>Setting the <span class="math notranslate nohighlight">\(z\)</span> component of <span class="math notranslate nohighlight">\(\boldsymbol{\phi}^{k}\)</span> to 0 allows
+fixating the yaw with respect to <span class="math notranslate nohighlight">\(\rot^{k}\)</span>. However, concatenating
+several such updates over <span class="math notranslate nohighlight">\(K\)</span>-iterations,</p>
+<div class="math notranslate nohighlight">
+\[\rot^{K} = \prod^{K-1}_{k=0} \text{Exp}(\delta \boldsymbol{\phi}^{k}) ,\]</div>
+<p>does not fixate the yaw with respect to the initial rotation <span class="math notranslate nohighlight">\(\rot^{0}\)</span>,
+and therefore, this parameterization cannot be used to fix the yaw-value of
+<span class="math notranslate nohighlight">\(\rot^{K}\)</span> to that of the initial value <span class="math notranslate nohighlight">\(\rot^{0}\)</span>.</p>
+<p>Although pose fixation or prior can be applied to any camera pose, it is common
+practice to fixate the first camera.</p>
+<div class="math notranslate nohighlight">
+\[\pos_{0} = \pos^{0}_{0} ,
+\enspace
+\Delta \boldsymbol{\phi}_{0 z}
+  \dot{=} \, \Vec{e}^{\transpose}_{z} \boldsymbol{\phi}_{0} = 0 \, ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(\pos^{0}_{0}\)</span> is the initial position of the first camera. Which
+is equivalent to setting the corresponding columns of the Jacobian of the
+residual vector to zero, namely <span class="math notranslate nohighlight">\(\jac_{\pos_0} = 0\)</span>, <span class="math notranslate nohighlight">\(\jac_{\Delta
+\phi_{0 z}} = 0\)</span>.  Thus, for rotations of the other camera poses, the standard
+iterative update Eq.~eqref{eq:opt-rot_std_update} is used, and, for the first
+camera rotation, <span class="math notranslate nohighlight">\(\rot_{0}\)</span>, a more convenient parameterization is used.
+Instead of directly using <span class="math notranslate nohighlight">\(\rot_{0}\)</span>, a left-multiplicative increment is
+used.</p>
+<div class="math notranslate nohighlight">
+\[\rot_{0} = \text{Exp}(\Delta \boldsymbol{\phi}_{0}) \rot^{0}_{0} \, ,\]</div>
+<p>where the rotation vector <span class="math notranslate nohighlight">\(\Delta \boldsymbol{\phi}_{0}\)</span> is initialized
+to zero and updated.</p>
+</div>
+<div class="section" id="gauge-prior">
+<h2>Gauge prior<a class="headerlink" href="#gauge-prior" title="Permalink to this headline">¶</a></h2>
+<p>Gauge prior augments the objective function with an additional penalty to favor
+a solution that satisfies certain constraints in a soft manner.</p>
+<div class="math notranslate nohighlight">
+\[\Norm{\Vec{e}^{\pos}_{0}}^{2}_{\Sigma^{\pos}_{0}} \, ,
+\quad \text{where} \quad
+\Vec{e}^{\pos}_{0}(\boldsymbol{\theta})
+  \enspace \dot{=} \enspace
+  (\pos_{0} - \pos^{0}_{0}, \enspace \Delta \phi_{0 z})\]</div>
+</div>
+<div class="section" id="free-gauge">
+<h2>Free gauge<a class="headerlink" href="#free-gauge" title="Permalink to this headline">¶</a></h2>
+<p>Free gauge is the most general, lets the optimization parameters evolve freely.
+In order to deal with the singularity with the Hessian, the pseudo inverse is
+used or some preconditioning method inorder to make the Hessian
+well-conditioned and invertible.</p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">proto</a></h1>
+
+
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/nlls.html">Non-linear Least Squares</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="euler.html">Euler Angles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quaternions.html">Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="diff_calc.html">Differential Calculus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="covar_recovery.html">Covariance Recovery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Gauge Freedom</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#gauge-fixation">Gauge fixation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gauge-prior">Gauge prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#free-gauge">Free gauge</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="marginalization.html">Marginalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../mav/mpc.html">Outerloop Linear MPC for MAV</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="imu.html" title="previous chapter">IMU Preintegration</a></li>
+      <li>Next: <a href="marginalization.html" title="next chapter">Marginalization</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Chris Choi.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/se/gauge.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/chutsu/proto" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inverting a Matrix &#8212; proto alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="LU Decomposition" href="lu.html" />
+    <link rel="prev" title="Condition Number" href="cond.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="inverting-a-matrix">
+<h1>Inverting a Matrix<a class="headerlink" href="#inverting-a-matrix" title="Permalink to this headline">¶</a></h1>
+<p>Inverting a matrix in linear algebra is often avoidable and recommended.</p>
+<ul class="simple">
+<li><p>Inverting a Matrix with Cholesky Decomposition</p></li>
+<li><p>Pseudo Inverse of a Matrix with SVD</p></li>
+</ul>
+<div class="section" id="inverting-a-matrix-with-cholesky-decomposition">
+<h2>Inverting a Matrix with Cholesky Decomposition<a class="headerlink" href="#inverting-a-matrix-with-cholesky-decomposition" title="Permalink to this headline">¶</a></h2>
+<p>Let matrix <span class="math notranslate nohighlight">\(\Mat{A}\)</span> be invertible, using the identity:</p>
+<div class="math notranslate nohighlight">
+\[\Mat{A} \Mat{A}^{-1} = \I\]</div>
+<p>we can solve for the inverse of <span class="math notranslate nohighlight">\(\Mat{A}\)</span> by using Cholesky
+decomposition, but first lets rewrite the above by first decomposing
+<span class="math notranslate nohighlight">\(\Mat{A} = \Mat{L} \Mat{L}^{\transpose}\)</span> and rearrange the terms such
+that we can take advantage of back substition,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  (\Mat{L} \Mat{L}^{\transpose}) \Mat{A}^{-1} &amp;= \I \\
+  (\Mat{L}^{\transpose}) \Mat{L} \Mat{A}^{-1} &amp;= \I \\
+  \Mat{L} \Mat{A}^{-1} &amp;= (\Mat{L}^{\transpose})^{-1}  \\
+\end{align}\end{split}\]</div>
+</div>
+<div class="section" id="pseudo-inverse-of-a-matrix-with-svd">
+<h2>Pseudo Inverse of a Matrix with SVD<a class="headerlink" href="#pseudo-inverse-of-a-matrix-with-svd" title="Permalink to this headline">¶</a></h2>
+<div class="math notranslate nohighlight">
+\[\Mat{A} = \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \Mat{A}^{\dagger}
+     &amp;= (\Mat{A}^{\transpose} \Mat{A})^{-1} \Mat{A}^{\transpose} \\
+     &amp;= ((\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose}
+           (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose}))^{-1}
+        (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
+     &amp;= ((\Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose}
+           \Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{-1}
+        (\Mat{U} \Mat{\Sigma} \Mat{V}^{\transpose})^{\transpose} \\
+     &amp;= (\Mat{V} \Mat{\Sigma}^{2} \Mat{V}^{\transpose})^{-1}
+           \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+     &amp;= (\Mat{V}^{\transpose})^{-1} \Mat{\Sigma}^{-2} \Mat{V}^{-1}
+           \Mat{V} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+     &amp;= \Mat{V} \Mat{\Sigma}^{-2} \Mat{\Sigma} \Mat{U}^{\transpose} \\
+     &amp;= \Mat{V} \Mat{\Sigma}^{-1} \Mat{U}^{\transpose} \\
+\end{align}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Mat{\Sigma}^{-1}\)</span> is the pseudo inverse of <span class="math notranslate nohighlight">\(\Mat{\Sigma}\)</span>,
+which is formed by replacing everey non-zero diagonal entry by its reciprocal
+and transposing the resulting matrix.</p>
+</div>
+<div class="section" id="invert-lower-triangular-matrix">
+<h2>Invert Lower Triangular Matrix<a class="headerlink" href="#invert-lower-triangular-matrix" title="Permalink to this headline">¶</a></h2>
+<p>If we have a lower triangular matrix <span class="math notranslate nohighlight">\(\Mat{L}\)</span> and our objective is to
+find <span class="math notranslate nohighlight">\(\Mat{L}^{-1}\)</span>, we can use the property</p>
+<div class="math notranslate nohighlight">
+\[\begin{align}
+  \Mat{L}\Mat{L}^{-1} = \I,
+\end{align}\]</div>
+<p>and use forward-substitution to solve for <span class="math notranslate nohighlight">\(\Mat{L}^{-1}\)</span> column by
+column, staring from the first column <span class="math notranslate nohighlight">\(j\)</span>.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \begin{bmatrix}
+    l_{11} &amp; 0 &amp; \dots &amp; 0 \\
+    l_{21} &amp; l_{22} &amp; \dots &amp; 0 \\
+    \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+    l_{m1} &amp; l_{m2} &amp; \dots &amp; l_{mn}
+  \end{bmatrix}
+  \begin{bmatrix}
+    a_{1j} \\
+    a_{2j} \\
+    \vdots \\
+    a_{mj}
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    1 \\
+    0 \\
+    \vdots \\
+    0
+  \end{bmatrix}
+\end{align}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  &amp; l_{11} a_{1j} = 1 \\
+  &amp; l_{21} a_{1j} + l_{22} a_{2j} = 0 \\
+  &amp; \qquad\qquad\qquad\vdots \\
+  &amp; l_{m1} a_{1j} + l_{m2} a_{2j} + \dots + l_{mn} a_{mj} = 0
+\end{align}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  &amp; a_{1j} = 1 / l_{11} \\
+  &amp; a_{2j} = - l_{21} a_{1j} / l_{22} \\
+  &amp; \qquad\qquad\qquad\vdots \\
+  &amp; a_{mj} = (-l_{m1} a_{1j} - l_{m2} a_{2j}
+              - \dots - l_{m,j-1} a_{m-1,j}) / l_{mn}
+\end{align}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{align}
+  a_{ij} = \dfrac{I_{ij} - \sum_{j=i+1}^{1} l_{ij} a_{i}}{l_{ii}}
+  \quad
+  \text{where} \; i = n, n - 1, \cdots, 1
+\end{align}\]</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">proto</a></h1>
+
+
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cond.html">Condition Number</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Inverting a Matrix</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#inverting-a-matrix-with-cholesky-decomposition">Inverting a Matrix with Cholesky Decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pseudo-inverse-of-a-matrix-with-svd">Pseudo Inverse of a Matrix with SVD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#invert-lower-triangular-matrix">Invert Lower Triangular Matrix</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nlls.html">Non-linear Least Squares</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../se/euler.html">Euler Angles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/quaternions.html">Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/diff_calc.html">Differential Calculus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/covar_recovery.html">Covariance Recovery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/gauge.html">Gauge Freedom</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/marginalization.html">Marginalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../mav/mpc.html">Outerloop Linear MPC for MAV</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="cond.html" title="previous chapter">Condition Number</a></li>
+      <li>Next: <a href="lu.html" title="next chapter">LU Decomposition</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Chris Choi.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/linalg/inv.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/chutsu/proto" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

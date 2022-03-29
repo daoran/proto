@@ -1,0 +1,249 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Non-linear Least Squares &#8212; proto alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Mean" href="../stats/mean.html" />
+    <link rel="prev" title="Linear Least Squares" href="lls.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="non-linear-least-squares">
+<h1>Non-linear Least Squares<a class="headerlink" href="#non-linear-least-squares" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="gauss-newton">
+<h2>Gauss Newton<a class="headerlink" href="#gauss-newton" title="Permalink to this headline">¶</a></h2>
+<div class="math notranslate nohighlight">
+\[\begin{split}\min_{\Vec{x}} \cost(\Vec{x})
+  &amp;=
+    \dfrac{1}{2}
+    \sum_{i}
+    \Vec{e}_{i}^{\transpose} \Mat{W} \Vec{e}_{i} \\
+  &amp;=
+    \dfrac{1}{2} \enspace
+    \Vec{e}_{i}^{\transpose}(\Vec{x})
+    \Mat{W}
+    \Vec{e}_{i}(\Vec{x})\end{split}\]</div>
+<p>where the error function, <span class="math notranslate nohighlight">\(\Vec{e}(\cdot)\)</span>, depends on the optimization
+parameter, <span class="math notranslate nohighlight">\(\Vec{x} \in \real^{n}\)</span>. The error function,
+<span class="math notranslate nohighlight">\(\Vec{e}(\cdot)\)</span>, has a form of</p>
+<div class="math notranslate nohighlight">
+\[\Vec{e}_{i} =
+  \Vec{z} - \Vec{h}(\Vec{x})\]</div>
+<p>is defined as the difference between the measured value, <span class="math notranslate nohighlight">\(\Vec{z}\)</span>, and
+the estimated value calculated using the measurement function,
+<span class="math notranslate nohighlight">\(\Vec{h}(\cdot)\)</span>.  Since the error function, <span class="math notranslate nohighlight">\(\Vec{e}(\Vec{x})\)</span>, is
+non-linear, it is approximated with the first-order Taylor series,</p>
+<div class="math notranslate nohighlight">
+\[\Vec{e}(\Vec{x})
+  \approx
+    \Vec{e}(\bar{\Vec{x}}) +
+    \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Mat{E}(\bar{\Vec{x}}) =
+\dfrac{\partial\Vec{e}(\Vec{x})}{\partial\Vec{x}} \bigg\rvert_{\Vec{x}_{k}}\)</span>
+and <span class="math notranslate nohighlight">\(\Delta{\Vec{x}} = \Vec{x} - \bar{\Vec{x}}\)</span>.</p>
+<div class="math notranslate nohighlight">
+\[\dfrac{\partial{\cost}}{\partial{\Vec{x}}} =
+  \dfrac{\partial{\cost}}{\partial{\Vec{e}}}
+  \dfrac{\partial{\Vec{e}}}{\partial{\Vec{x}}}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\dfrac{\partial{\cost}}{\partial{\Vec{e}}} &amp;=
+  \dfrac{1}{2} \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \Vec{e}(\Vec{x}) =
+  \Vec{e}^{\transpose}(\Vec{x}) \Mat{W} \\
+%
+\dfrac{\partial{\Vec{e}}}{\partial{\Vec{x}}} &amp;=
+  \Vec{e}(\bar{\Vec{x}}) +
+  \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x} =
+  \Mat{E}(\bar{\Vec{x}})\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\dfrac{\partial{\cost}}{\partial{\Vec{x}}}
+  &amp;=
+    (\Vec{e}^{\transpose}(\Vec{x}) \Mat{W}) (\Mat{E}(\bar{\Vec{x}})) \\
+  % Line 2
+  &amp;=
+    (
+      \Vec{e}(\bar{\Vec{x}}) + \Mat{E}(\bar{\Vec{x}}) \Delta\Vec{x}
+    )^{\transpose} \Mat{W}
+    \Mat{E}(\bar{\Vec{x}}) \\
+  % Line 3
+  &amp;=
+    \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}})
+    + \Delta\Vec{x}^{\transpose}
+      \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+    = 0 \\\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}% Line 4
+\Delta\Vec{x}^{\transpose}
+  \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+&amp;=
+  - \Vec{e}^{\transpose}(\bar{\Vec{x}}) \Mat{W} \Mat{E}(\bar{\Vec{x}}) \\
+% Line 5
+\underbrace{
+  \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Mat{E}(\bar{\Vec{x}})
+}_{\Mat{H}}
+  \Delta\Vec{x}
+&amp;=
+\underbrace{
+  - \Mat{E}(\bar{\Vec{x}})^{\transpose} \Mat{W} \Vec{e}(\bar{\Vec{x}})
+}_{\Vec{b}}\end{split}\]</div>
+<p>Solve the normal equations <span class="math notranslate nohighlight">\(\Mat{H}\Delta\Vec{x} = \Vec{b}\)</span> for
+<span class="math notranslate nohighlight">\(\Delta\Vec{x}\)</span> using the Cholesky or QR-decompositon. Once
+<span class="math notranslate nohighlight">\(\Delta\Vec{x}\)</span> is found the best estimate <span class="math notranslate nohighlight">\(\bar{\Vec{x}}\)</span> can be
+updated via,</p>
+<div class="math notranslate nohighlight">
+\[\bar{\Vec{x}}_{k + 1} = \bar{\Vec{x}}_{k} + \Delta\Vec{x}.\]</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">proto</a></h1>
+
+
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Non-linear Least Squares</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#gauss-newton">Gauss Newton</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../se/euler.html">Euler Angles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/quaternions.html">Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/diff_calc.html">Differential Calculus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/covar_recovery.html">Covariance Recovery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/gauge.html">Gauge Freedom</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/marginalization.html">Marginalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../mav/mpc.html">Outerloop Linear MPC for MAV</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="lls.html" title="previous chapter">Linear Least Squares</a></li>
+      <li>Next: <a href="../stats/mean.html" title="next chapter">Mean</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Chris Choi.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/linalg/nlls.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/chutsu/proto" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

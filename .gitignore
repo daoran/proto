@@ -16,7 +16,7 @@ bin
 obj
 tags
 build
-docs/_build
+docs/doctrees
 deps/bin
 deps/include
 deps/lib

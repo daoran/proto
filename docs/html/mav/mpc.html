@@ -1,0 +1,494 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Outerloop Linear MPC for MAV &#8212; proto alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Error-State Kalman Filter" href="../se/eskf.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="outerloop-linear-mpc-for-mav">
+<h1>Outerloop Linear MPC for MAV<a class="headerlink" href="#outerloop-linear-mpc-for-mav" title="Permalink to this headline">¶</a></h1>
+<p>Position tracking is achieved by means of a cascaded connection of a Model
+Predictive Controller (MPC) for the MAV position and a PID controller for its
+attitude. This approach is motivated by the fact the majority of commercially
+available flight controllers come with a pre-implemented attitude controller
+which requires little or even no tuning, enabling easy adaptation to a wide
+range of platforms.</p>
+<div class="section" id="linear-model">
+<h2>Linear Model<a class="headerlink" href="#linear-model" title="Permalink to this headline">¶</a></h2>
+<p>The linear model of the MAV in navigation frame <span class="math notranslate nohighlight">\(\frame_{N}\)</span> (or body frame)
+is,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\dVel_{N} = \begin{bmatrix}
+    g \dot{\theta} - c_{x} \dot{x} \\
+    -g \dot{\phi} - c_{y} \dot{y} \\
+    T - c_{z} \dot{z}
+\end{bmatrix}\end{split}\]</div>
+<p>The closed loop attitude dynamics is modelled as a first order system. Namely
+the roll and pitch are:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \ddot{\theta} &amp;=
+    -b_{\ddot{\theta}\theta} \theta
+    -b_{\ddot{\theta}\dot{\theta}} \dot{\theta}
+    +b_{\theta^{r}} \theta^{r} \\
+  \ddot{\phi} &amp;=
+    -b_{\ddot{\phi}\phi} \phi
+    -b_{\ddot{\phi}\dot{\phi}} \dot{\phi}
+    +b_{\phi^{r}} \phi^{r}
+\end{align}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(b_{(\cdot)}\)</span> are constants of the first order system. The values
+of these constants are obtained by performing system identification of the MAV.
+Yaw is omitted above because the reference yaw command <span class="math notranslate nohighlight">\(\psi^{r}\)</span> will be
+passed directly to the inner-loop attitude control, therefore it is not
+considered here in the outer-loop linear MPC controller.</p>
+<p>The state vector <span class="math notranslate nohighlight">\(\state\)</span> is,</p>
+<div class="math notranslate nohighlight">
+\[\state = \begin{bmatrix}
+  x \enspace \dot{x} \enspace \theta \enspace \dot{\theta}
+  \enspace \enspace
+  y \enspace \dot{y} \enspace \phi \enspace \dot{\phi} \enspace
+  \enspace \enspace
+  z \enspace \dot{z}
+\end{bmatrix} \in \real^{10}\]</div>
+<p>The input vector <span class="math notranslate nohighlight">\(\u\)</span> to the linear model contains reference roll <span class="math notranslate nohighlight">\(\theta^{r}\)</span>,
+pitch <span class="math notranslate nohighlight">\(\phi^{r}\)</span> and thrust <cite>T^{r}</cite>, or written as</p>
+<div class="math notranslate nohighlight">
+\[\u = \begin{bmatrix}
+  \theta^{r}
+  \enspace \phi^{r}
+  \enspace T^{r}
+\end{bmatrix}\]</div>
+<p>Time-invariant state space representation:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \dot{\state} &amp;=
+      \underbrace{
+          \begin{bmatrix}
+              \Mat{A}_{\text{LON}} &amp; \Vec{0} &amp; \Vec{0} \\
+              \Vec{0} &amp; \Mat{A}_{\text{LAT}} &amp; \Vec{0} \\
+              \Vec{0} &amp; \Vec{0} &amp; \Mat{A}_{\text{ALT}}
+          \end{bmatrix}
+      }_{\Mat{A}}
+      \Vec{x}
+      +
+      \underbrace{
+          \begin{bmatrix}
+              \Mat{B}_{\text{LON}} &amp; \Vec{0} &amp; \Vec{0} \\
+              \Vec{0} &amp; \Mat{B}_{\text{LAT}} &amp; \Vec{0} \\
+              \Vec{0} &amp; \Vec{0} &amp; \Mat{B}_{\text{ALT}}
+          \end{bmatrix}
+      }_{\Mat{B}} \Vec{u} \\
+  \Vec{y} &amp;= \Mat{C} \Vec{x}
+\end{align}\end{split}\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \Mat{A}_{\text{LON}} &amp;= \begin{bmatrix}
+      0 &amp; 1 &amp; 0 \\
+      0 &amp; -c_{x} &amp; g \\
+      0 &amp; 0 &amp; -b_{\theta}
+  \end{bmatrix}
+  ,&amp;
+  &amp;\quad
+  &amp;\Mat{B}_{\text{LON}} &amp;= \begin{bmatrix}
+      0 \\
+      0 \\
+      b_{\theta^{r}}
+  \end{bmatrix} \\
+  \Mat{A}_{\text{LAT}} &amp;= \begin{bmatrix}
+      0 &amp; 1 &amp; 0 \\
+      0 &amp; -c_{x} &amp; -g \\
+      0 &amp; 0 &amp; -b_{\phi}
+  \end{bmatrix}
+  ,&amp;
+  &amp;\quad
+  &amp;\Mat{B}_{\text{LAT}} &amp;= \begin{bmatrix}
+      0 \\
+      0 \\
+      b_{\phi^{r}}
+  \end{bmatrix} \\
+  \Mat{A}_{\text{ALT}} &amp;= \begin{bmatrix}
+      0 &amp; 1 \\
+      0 &amp; -c_{z}
+  \end{bmatrix}
+  ,&amp;
+  &amp;\quad
+  &amp;\Mat{B}_{\text{ALT}} &amp;= \begin{bmatrix}
+      0 \\
+      1
+  \end{bmatrix}
+\end{align}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[% C Matrix
+\Mat{C} = \Mat{I}_{8 \times 8} .\]</div>
+<p>Since the controller is implemented in discrete time, the equations are
+discretized using zero order hold for the input <cite>u</cite>. The discrete equivalent of
+the matrices <span class="math notranslate nohighlight">\(\Mat{A}\)</span>, <span class="math notranslate nohighlight">\(\Mat{B}\)</span> and <span class="math notranslate nohighlight">\(\Mat{C}\)</span> can be obtained by.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \Mat{A}_{d} &amp;= e^{\Mat{A} dt} \\
+  \Mat{B}_{d} &amp;= \left( \int_{0}^{dt} e^{\Mat{A}\tau} d\tau \right) \Mat{B} \\
+  \Mat{C}_{d} &amp;= \Mat{C}
+\end{align}\end{split}\]</div>
+<p>The discretization step <cite>dt</cite> coincides with the control update rate and was set
+to 50ms.</p>
+</div>
+<div class="section" id="mpc-formulated-as-a-qp-problem">
+<h2>MPC Formulated as a QP Problem<a class="headerlink" href="#mpc-formulated-as-a-qp-problem" title="Permalink to this headline">¶</a></h2>
+<p>Our goal is to obtain an optimal input sequence <span class="math notranslate nohighlight">\(\bar{\u}^{\ast} =
+\u_{0}^{\ast} \dots \u_{N-1}^{\ast}\)</span> which is the solution of the following
+optimization problem:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+      &amp; \bar{\u}^{\ast} = \Argmin{\u_{0} \dots \u_{N - 1}} J, \\
+      s.t. : \enspace
+                      &amp; \state_{k + 1} = \Mat{A}_{d} \state_{k} + \Mat{B}_{d} \u_{k}, \\
+                      &amp; \mathbf{y}_{k} = \Mat{C}_{d} \state_{k}, \\
+                      &amp; \mathbf{x}_{0} = \hat{\Mat{x}}_{0}, \\
+                      &amp; \hat{\u}_{\text{min}} \leq \u \leq \u_{\text{max}}
+\end{align}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[      J = \sum_{k = 0}^{N - 1}
+\left(
+  \Norm{\Mat{Q}_{k + 1} (\Vec{y}_{k + 1} - \Vec{s}_{k + 1}^{y})}_{2}^{2}
+  + \Norm{\Mat{R}_{k} (\Vec{u}_{k} - \Vec{s}_{k}^{u})}_{2}^{2}
+\right)\]</div>
+<p>where:</p>
+<ul class="simple">
+<li><p>:math:<span class="math notranslate nohighlight">\(\state_{k + 1} \in \real^{n}\)</span>: system state at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
+<li><p>:math:<span class="math notranslate nohighlight">\(\hat{\state}_{0} \in \real^{n}\)</span>: estimated state at time 0</p></li>
+<li><p>:math:<span class="math notranslate nohighlight">\(\Vec{y}_{k} \in \real^{p}\)</span>: system output at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
+<li><p>:math:<span class="math notranslate nohighlight">\(\Vec{u}_{k}\)</span>: system input at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
+<li><p>:math:<span class="math notranslate nohighlight">\(\Vec{s}_{k}^{y} \in \real^{p}\)</span>: reference output at time <span class="math notranslate nohighlight">\(k\)</span>
+(given)</p></li>
+<li><p>:math:<span class="math notranslate nohighlight">\(\Vec{s}_{k}^{u} \in \real^{m}\)</span>: reference input at time <span class="math notranslate nohighlight">\(k\)</span>
+(given)</p></li>
+<li><p>:math:<span class="math notranslate nohighlight">\(\Mat{R}_{k} \in \real^{m \times m}\)</span>: input gain matrix (tuning
+parameters)</p></li>
+<li><p>:math:<span class="math notranslate nohighlight">\(\Mat{Q}_{k} \in \real^{n \times n}\)</span>: output gain matrix (tuning
+parameters)</p></li>
+</ul>
+<p>By concatenating the two squared 2-norms that appear in the cost function <cite>J</cite>,
+we can rewrite it as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}J = \Norm{\begin{matrix}
+    \Mat{Q}_{1} (\Vec{y}_{1} - \Vec{s}_{1}^{y}) \\
+    \Mat{Q}_{2} (\Vec{y}_{2} - \Vec{s}_{2}^{y}) \\
+    \vdots \\
+    \Mat{Q}_{N} (\Vec{y}_{N} - \Vec{s}_{N}^{y}) \\
+    \Mat{R}_{0} (\Vec{u}_{0} - \Vec{s}_{0}^{u}) \\
+    \Mat{R}_{1} (\Vec{u}_{1} - \Vec{s}_{1}^{u}) \\
+    \vdots \\
+    \Mat{R}_{N-1} (\Vec{u}_{N-1} - \Vec{s}_{N-1}^{u}) \\
+\end{matrix}}_{2}^{2}\end{split}\]</div>
+<p>and stacking the <span class="math notranslate nohighlight">\(\Mat{Q}\)</span> and <span class="math notranslate nohighlight">\(\Mat{R}\)</span> as,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}J = \Norm{
+        \begin{matrix}
+            \bar{\Mat{Q}}(\bar{\Vec{y}} - \bar{\Vec{s}}^{y}) \\
+            \bar{\Mat{R}}(\bar{\Vec{u}} - \bar{\Vec{s}}^{u})
+        \end{matrix}
+    }_{2}^{2}.\end{split}\]</div>
+<p>The problem with the current formulation is the equality constraints
+<span class="math notranslate nohighlight">\(\Vec{x}_{k + 1}\)</span>, <span class="math notranslate nohighlight">\(\Vec{y}_{k}\)</span> and <span class="math notranslate nohighlight">\(\state_{0}\)</span> may not be valid in practice
+due to imperfect model, and/or sensor measurement noise. If the equality
+constraints are invalid the optimized solution will not be feasible. Instead,
+the equality constraints can be eliminated by rewriting <span class="math notranslate nohighlight">\(\bar{\Vec{y}}\)</span> to
+depend only on the initial state <span class="math notranslate nohighlight">\(\state_{0}\)</span> instead of <span class="math notranslate nohighlight">\(\state_{k - 1}\)</span>. In
+other words from this,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \state_{1} &amp;= \Mat{A}_{d} \state_{0} + \Mat{B}_{d} \Vec{u}_{0} \\
+  \state_{2} &amp;= \Mat{A}_{d} \state_{1} + \Mat{B}_{d} \Vec{u}_{1} \\
+  \state_{3} &amp;= \Mat{A}_{d} \state_{2} + \Mat{B}_{d} \Vec{u}_{2} \\
+  &amp; \qquad \qquad \vdots \\
+  \state_{N} &amp;= \Mat{A}_{d} \state_{N-1} + \Mat{B}_{d} \Vec{u}_{N-1}
+\end{align}\end{split}\]</div>
+<p>to this,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \state_{1} &amp;= \Mat{A}_{d} \state_{0} + \Mat{B}_{d} \Vec{u}_{0} \\
+  \state_{2} &amp;= \Mat{A}_{d}^{2} \state_{0}
+              + \Mat{A}_{d} \Mat{B}_{d} \Vec{u}_{0}
+              + \Mat{B}_{d} \Vec{u}_{1} \\
+  \state_{3} &amp;= \Mat{A}_{d}^{3} \state_{0}
+              + \Mat{A}_{d}^{2} \Mat{B}_{d} \Vec{u}_{0}
+              + \Mat{A}_{d} \Mat{B}_{d} \Vec{u}_{1}
+              + \Mat{B}_{d} \Vec{u}_{2} \\
+  &amp; \qquad \qquad \qquad \vdots \\
+  \state_{N} &amp;= \Mat{A}_{d}^{N} \state_{0}
+              + \Mat{A}_{d}^{N-1}\Mat{B}_{d} \Vec{u}_{0}
+              + \dots
+              + \Mat{B} \Vec{u}_{N-1}
+  \bar{\state} = \mathbf{\Phi} \state_{0} + \mathbf{\Gamma} \bar{\Vec{u}}
+\end{align}\end{split}\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}% xbar
+&amp;\bar{\state} = \begin{bmatrix}
+    \state_{1} \\
+    \state_{2} \\
+    \vdots \\
+    \state_{N}
+\end{bmatrix},
+% Phi
+&amp;\mathbf{\Phi} = \begin{bmatrix}
+    \Mat{A}_{d} \\
+    \Mat{A}_{d}^{2} \\
+    \vdots \\
+    \Mat{A}_{d}^{N}
+\end{bmatrix} \\
+% Gamma
+&amp;\mathbf{\Gamma} = \begin{bmatrix}
+    \Mat{B}_{d} &amp; \mathbf{0} &amp; \dots &amp; \mathbf{0} \\
+    \Mat{A}_{d} \Mat{B}_{d} &amp; \Mat{B}_{d} &amp; \dots &amp; \mathbf{0} \\
+    \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+    \Mat{A}_{d}^{N-1} \Mat{B}_{d} &amp; \Mat{A}_{d}^{N-2} \Mat{B}_{d} &amp; \dots &amp; \Mat{B}_{d} \\
+\end{bmatrix},
+% ubar
+&amp;\bar{\Vec{u}} = \begin{bmatrix}
+    \Vec{u}_{0} \\
+    \Vec{u}_{1} \\
+    \vdots \\
+    \Vec{u}_{N-1}
+\end{bmatrix} .\end{split}\]</div>
+<p>Rewriting <span class="math notranslate nohighlight">\(\bar{\Vec{y}}\)</span> with the above,</p>
+<div class="math notranslate nohighlight">
+\[\bar{\Vec{y}} = \bar{\Mat{C}} \bar{\Vec{x}}
+    = \bar{\Mat{C}} \mathbf{\Phi} \hat{\state}
+    + \bar{\Mat{C}} \mathbf{\Gamma} \bar{\Vec{u}},\]</div>
+<p>and substituting into the cost function <cite>J</cite>, collect the <span class="math notranslate nohighlight">\(\bar{\Vec{u}}\)</span>
+terms and rearrange so that it is in the form of <span class="math notranslate nohighlight">\(\Mat{A}\Vec{\state} -
+\Vec{b}\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  % Line 1
+  J &amp;= \Norm{\begin{matrix}
+      \bar{\Mat{Q}} (\bar{\Mat{C}} \mathbf{\Phi} \state_{0}
+          + \mathbf{\Gamma} \bar{\Vec{u}}
+          - \bar{\Vec{s}}^{y}) \\
+      \bar{\Mat{R}} (\bar{\Vec{u}} - \bar{\Vec{s}}^{u})
+  \end{matrix}}_{2}^{2} \\
+  % Line 2
+  &amp;= \Norm{\begin{matrix}
+      \bar{\Mat{Q}} \bar{\Mat{C}} \mathbf{\Phi} \state_{0}
+          + \bar{\Mat{Q}} \mathbf{\Gamma} \bar{\Vec{u}}
+          - \bar{\Mat{Q}} \bar{\Vec{s}}^{y} \\
+      \bar{\Mat{R}} \bar{\Vec{u}} - \bar{\Mat{R}} \bar{\Vec{s}}^{u}
+  \end{matrix}}_{2}^{2} \\
+  % Line 3
+  &amp;= \Norm{
+      \underbrace{
+          \left(\begin{matrix}
+              \bar{\Mat{Q}} \bar{\Mat{C}} \mathbf{\Gamma} \\
+              \bar{\Mat{R}}
+          \end{matrix}\right) \bar{\Vec{u}}
+      -
+          \left(\begin{matrix}
+              \bar{\Mat{Q}} \bar{\Vec{s}}^{y}
+                + \bar{\Mat{Q}} \bar{\Mat{C}}
+                  \mathbf{\Phi} \state_{0} \\
+              \bar{\Mat{R}} \bar{\Vec{s}}^{u}
+          \end{matrix}\right)
+      }_{\Mat{A}\Vec{x} - \Vec{b}}
+  }_{2}^{2}
+\end{align}\end{split}\]</div>
+<p>then expanding the equation out and ignoring the constant term (i.e.
+<span class="math notranslate nohighlight">\(\Vec{b}^{\transpose}\Vec{b}\)</span>) gives,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  J =
+  \underbrace{
+      \bar{\Vec{u}}^{\transpose}
+      \left(\begin{matrix}
+          \bar{\Mat{Q}} \bar{\Mat{C}} \mathbf{\Gamma} \\
+          \bar{\Mat{R}}
+      \end{matrix}\right)^{\transpose}
+      \left(\begin{matrix}
+          \bar{\Mat{Q}} \bar{\Mat{C}} \mathbf{\Gamma} \\
+          \bar{\Mat{R}}
+      \end{matrix}\right)
+      \bar{\Vec{u}} \\
+      - 2
+      \left(\begin{matrix}
+          \bar{\Mat{Q}} \bar{\Vec{s}}^{y}
+          + \bar{\Mat{Q}} \bar{\Mat{C}} \mathbf{\Phi} \state_{0} \\
+          \bar{\Mat{R}} \bar{\Vec{s}}^{u}
+      \end{matrix}\right)^{\transpose}
+      \left(\begin{matrix}
+          \bar{\Mat{Q}} \bar{\Mat{C}} \mathbf{\Gamma} \\
+          \bar{\Mat{R}}
+      \end{matrix}\right)
+      \bar{\Vec{u}}
+  }_{
+      \Vec{x}^{\transpose} \Mat{A}^{\transpose}\Mat{A}\Vec{x}
+      - 2 \Vec{b}^{\transpose} \Mat{A} \Vec{x}
+  }
+\end{align}\end{split}\]</div>
+<p>With the cost function in quadratic form, the optimization problem is now
+transformed into the following equivalent QP with inequality constraints:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+      &amp; \bar{\u}^{\ast} = \Argmin{\u_{0} \dots \u_{N - 1}}
+                      J , \\
+      s.t. :
+                      &amp; \hat{\u}_{\text{min}} \leq \u \leq \u_{\text{max}}
+\end{align}\end{split}\]</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">proto</a></h1>
+
+
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/nlls.html">Non-linear Least Squares</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../se/euler.html">Euler Angles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/quaternions.html">Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/diff_calc.html">Differential Calculus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/covar_recovery.html">Covariance Recovery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/gauge.html">Gauge Freedom</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/marginalization.html">Marginalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../se/eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Outerloop Linear MPC for MAV</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#linear-model">Linear Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mpc-formulated-as-a-qp-problem">MPC Formulated as a QP Problem</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../se/eskf.html" title="previous chapter">Error-State Kalman Filter</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Chris Choi.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/mav/mpc.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/chutsu/proto" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

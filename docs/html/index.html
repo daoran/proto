@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>proto &#8212; proto alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Rank" href="linalg/rank.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="proto">
+<h1>proto<a class="headerlink" href="#proto" title="Permalink to this headline">¶</a></h1>
+<a class="reference external image-reference" href="https://github.com/chutsu/proto/actions?query=ci"><img alt="https://github.com/chutsu/proto/workflows/ci/badge.svg" src="https://github.com/chutsu/proto/workflows/ci/badge.svg" /></a>
+<p><code class="docutils literal notranslate"><span class="pre">proto</span></code> contain notes and code used to learn about different aspects of
+robotics. From estimation, mapping to control and planning.</p>
+<div class="section" id="build">
+<h2>Build<a class="headerlink" href="#build" title="Permalink to this headline">¶</a></h2>
+<p>For convenience there is a <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> that automates the installation of
+dependencies and building of <code class="docutils literal notranslate"><span class="pre">proto</span></code>. To install dependencies, build and test
+<code class="docutils literal notranslate"><span class="pre">proto</span></code> simply issue the following commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">make</span> <span class="n">deps</span>
+<span class="n">make</span> <span class="n">install</span>
+<span class="n">make</span> <span class="n">tests</span>
+</pre></div>
+</div>
+<p>alternatively just type <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">help</span></code> to bring up other make targets.</p>
+</div>
+<div class="section" id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<p>The source code is released under MIT license.</p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">proto</a></h1>
+
+
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="linalg/rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linalg/nlls.html">Non-linear Least Squares</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="se/euler.html">Euler Angles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se/quaternions.html">Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se/diff_calc.html">Differential Calculus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se/covar_recovery.html">Covariance Recovery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se/shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se/imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se/gauge.html">Gauge Freedom</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se/marginalization.html">Marginalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se/eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="mav/mpc.html">Outerloop Linear MPC for MAV</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="linalg/rank.html" title="next chapter">Rank</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Chris Choi.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/chutsu/proto" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
