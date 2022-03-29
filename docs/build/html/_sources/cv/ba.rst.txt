@@ -174,7 +174,7 @@ Camera Pose :math:`\Tf{W}{C}`
     \dfrac{\partial{\Pt{C}{P}}}{\partial{\quat_{WC}^{-1}}}
     \dfrac{\partial{\quat_{WC}^{-1}}}{\partial{\quat_{WC}}}
       &= (-\Skew{\Rot{W}{C}^{-1} \left( \Pt{W}{P} - \Trans{W}{C} \right)})
-         (-\Rot{W}{C}^{-1}) \\ 
+         (-\Rot{W}{C}^{-1}) \\
       & \text{using skew property:} \enspace \Skew{\rot \enspace \Vec{v}}
         = \rot \Skew{\Vec{v}} \rot^{\transpose} \\
       &= (-\Rot{W}{C}^{-1} \Skew{\left( \Pt{W}{P} - \Trans{W}{C} \right)}

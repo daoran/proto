@@ -19,6 +19,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Mean" href="../stats/mean.html" />
     <link rel="prev" title="Error-State Kalman Filter" href="../se/eskf.html" /> 
 </head>
 
@@ -37,32 +38,8 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/rank.html">Rank</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/trace.html">Trace</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/cond.html">Condition Number</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/inv.html">Inverting a Matrix</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/lu.html">LU Decomposition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/chol.html">Cholesky Decomposition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/qr.html">QR Decomposition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/svd.html">SVD Decomposition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/schurs.html">Shurs’ Complement</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/ssole.html">Solving System of Linear Equations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/lls.html">Linear Least Squares</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../linalg/nlls.html">Non-linear Least Squares</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
@@ -92,6 +69,29 @@
 <li class="toctree-l2"><a class="reference internal" href="#mpc-formulated-as-a-qp-problem">MPC Formulated as a QP Problem</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/nlls.html">Non-linear Least Squares</a></li>
 </ul>
 
         </div>
@@ -268,17 +268,17 @@ optimization problem:</p>
 \right)\]</div>
 <p>where:</p>
 <ul class="simple">
-<li><p>:math:<span class="math notranslate nohighlight">\(\state_{k + 1} \in \real^{n}\)</span>: system state at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
-<li><p>:math:<span class="math notranslate nohighlight">\(\hat{\state}_{0} \in \real^{n}\)</span>: estimated state at time 0</p></li>
-<li><p>:math:<span class="math notranslate nohighlight">\(\Vec{y}_{k} \in \real^{p}\)</span>: system output at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
-<li><p>:math:<span class="math notranslate nohighlight">\(\Vec{u}_{k}\)</span>: system input at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
-<li><p>:math:<span class="math notranslate nohighlight">\(\Vec{s}_{k}^{y} \in \real^{p}\)</span>: reference output at time <span class="math notranslate nohighlight">\(k\)</span>
+<li><p><span class="math notranslate nohighlight">\(\state_{k + 1} \in \real^{n}\)</span>: system state at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\hat{\state}_{0} \in \real^{n}\)</span>: estimated state at time 0</p></li>
+<li><p><span class="math notranslate nohighlight">\(\Vec{y}_{k} \in \real^{p}\)</span>: system output at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\Vec{u}_{k}\)</span>: system input at time <span class="math notranslate nohighlight">\(k\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\Vec{s}_{k}^{y} \in \real^{p}\)</span>: reference output at time <span class="math notranslate nohighlight">\(k\)</span>
 (given)</p></li>
-<li><p>:math:<span class="math notranslate nohighlight">\(\Vec{s}_{k}^{u} \in \real^{m}\)</span>: reference input at time <span class="math notranslate nohighlight">\(k\)</span>
+<li><p><span class="math notranslate nohighlight">\(\Vec{s}_{k}^{u} \in \real^{m}\)</span>: reference input at time <span class="math notranslate nohighlight">\(k\)</span>
 (given)</p></li>
-<li><p>:math:<span class="math notranslate nohighlight">\(\Mat{R}_{k} \in \real^{m \times m}\)</span>: input gain matrix (tuning
+<li><p><span class="math notranslate nohighlight">\(\Mat{R}_{k} \in \real^{m \times m}\)</span>: input gain matrix (tuning
 parameters)</p></li>
-<li><p>:math:<span class="math notranslate nohighlight">\(\Mat{Q}_{k} \in \real^{n \times n}\)</span>: output gain matrix (tuning
+<li><p><span class="math notranslate nohighlight">\(\Mat{Q}_{k} \in \real^{n \times n}\)</span>: output gain matrix (tuning
 parameters)</p></li>
 </ul>
 <p>By concatenating the two squared 2-norms that appear in the cost function <cite>J</cite>,
@@ -292,14 +292,14 @@ we can rewrite it as:</p>
     \Mat{R}_{0} (\Vec{u}_{0} - \Vec{s}_{0}^{u}) \\
     \Mat{R}_{1} (\Vec{u}_{1} - \Vec{s}_{1}^{u}) \\
     \vdots \\
-    \Mat{R}_{N-1} (\Vec{u}_{N-1} - \Vec{s}_{N-1}^{u}) \\
+    \; \Mat{R}_{N-1} (\Vec{u}_{N-1} - \Vec{s}_{N-1}^{u}) \\
 \end{matrix}}_{2}^{2}\end{split}\]</div>
 <p>and stacking the <span class="math notranslate nohighlight">\(\Mat{Q}\)</span> and <span class="math notranslate nohighlight">\(\Mat{R}\)</span> as,</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}J = \Norm{
         \begin{matrix}
-            \bar{\Mat{Q}}(\bar{\Vec{y}} - \bar{\Vec{s}}^{y}) \\
-            \bar{\Mat{R}}(\bar{\Vec{u}} - \bar{\Vec{s}}^{u})
+            \; \bar{\Mat{Q}}(\bar{\Vec{y}} - \bar{\Vec{s}}^{y}) \\
+            \; \bar{\Mat{R}}(\bar{\Vec{u}} - \bar{\Vec{s}}^{u})
         \end{matrix}
     }_{2}^{2}.\end{split}\]</div>
 <p>The problem with the current formulation is the equality constraints
@@ -455,6 +455,7 @@ transformed into the following equivalent QP with inequality constraints:</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../se/eskf.html" class="btn btn-neutral float-left" title="Error-State Kalman Filter" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../stats/mean.html" class="btn btn-neutral float-right" title="Mean" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

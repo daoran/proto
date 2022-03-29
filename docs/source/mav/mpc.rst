@@ -185,17 +185,17 @@ optimization problem:
 
 where:
 
-* :math::math:`\state_{k + 1} \in \real^{n}`: system state at time :math:`k`
-* :math::math:`\hat{\state}_{0} \in \real^{n}`: estimated state at time 0
-* :math::math:`\Vec{y}_{k} \in \real^{p}`: system output at time :math:`k`
-* :math::math:`\Vec{u}_{k}`: system input at time :math:`k`
-* :math::math:`\Vec{s}_{k}^{y} \in \real^{p}`: reference output at time :math:`k`
+* :math:`\state_{k + 1} \in \real^{n}`: system state at time :math:`k`
+* :math:`\hat{\state}_{0} \in \real^{n}`: estimated state at time 0
+* :math:`\Vec{y}_{k} \in \real^{p}`: system output at time :math:`k`
+* :math:`\Vec{u}_{k}`: system input at time :math:`k`
+* :math:`\Vec{s}_{k}^{y} \in \real^{p}`: reference output at time :math:`k`
   (given)
-* :math::math:`\Vec{s}_{k}^{u} \in \real^{m}`: reference input at time :math:`k`
+* :math:`\Vec{s}_{k}^{u} \in \real^{m}`: reference input at time :math:`k`
   (given)
-* :math::math:`\Mat{R}_{k} \in \real^{m \times m}`: input gain matrix (tuning
+* :math:`\Mat{R}_{k} \in \real^{m \times m}`: input gain matrix (tuning
   parameters)
-* :math::math:`\Mat{Q}_{k} \in \real^{n \times n}`: output gain matrix (tuning
+* :math:`\Mat{Q}_{k} \in \real^{n \times n}`: output gain matrix (tuning
   parameters)
 
 By concatenating the two squared 2-norms that appear in the cost function `J`,
@@ -211,7 +211,7 @@ we can rewrite it as:
         \Mat{R}_{0} (\Vec{u}_{0} - \Vec{s}_{0}^{u}) \\
         \Mat{R}_{1} (\Vec{u}_{1} - \Vec{s}_{1}^{u}) \\
         \vdots \\
-        \Mat{R}_{N-1} (\Vec{u}_{N-1} - \Vec{s}_{N-1}^{u}) \\
+        \; \Mat{R}_{N-1} (\Vec{u}_{N-1} - \Vec{s}_{N-1}^{u}) \\
     \end{matrix}}_{2}^{2}
 
 and stacking the :math:`\Mat{Q}` and :math:`\Mat{R}` as,
@@ -220,8 +220,8 @@ and stacking the :math:`\Mat{Q}` and :math:`\Mat{R}` as,
 
     J = \Norm{
             \begin{matrix}
-                \bar{\Mat{Q}}(\bar{\Vec{y}} - \bar{\Vec{s}}^{y}) \\
-                \bar{\Mat{R}}(\bar{\Vec{u}} - \bar{\Vec{s}}^{u})
+                \; \bar{\Mat{Q}}(\bar{\Vec{y}} - \bar{\Vec{s}}^{y}) \\
+                \; \bar{\Mat{R}}(\bar{\Vec{u}} - \bar{\Vec{s}}^{u})
             \end{matrix}
         }_{2}^{2}.
 

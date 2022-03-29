@@ -3,7 +3,6 @@
    :maxdepth: 2
    :caption: Computer Vision
 
-   cv/fundamental.rst
    cv/pinhole.rst
    cv/radtan.rst
    cv/equi.rst
@@ -14,6 +13,41 @@
    cv/ba.rst
    cv/feature_tracking.rst
 
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: State Estimation
+
+   se/euler.rst
+   se/quaternions.rst
+   se/diff_calc.rst
+   se/covar_recovery.rst
+   se/shannon.rst
+   se/imu.rst
+   se/gauge.rst
+   se/marginalization.rst
+   se/eskf.rst
+
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: MAV
+
+   mav/mpc.rst
+
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Statistics
+
+   stats/mean.rst
+   stats/variance.rst
+   stats/stddev.rst
+   stats/stderr.rst
+   stats/bayes.rst
 
 .. toctree::
    :hidden:
@@ -32,40 +66,6 @@
    linalg/ssole.rst
    linalg/lls.rst
    linalg/nlls.rst
-
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: Statistics
-
-   stats/mean.rst
-   stats/variance.rst
-   stats/stddev.rst
-   stats/stderr.rst
-   stats/bayes.rst
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: State Estimation
-
-   se/euler.rst
-   se/quaternions.rst
-   se/diff_calc.rst
-   se/covar_recovery.rst
-   se/shannon.rst
-   se/imu.rst
-   se/gauge.rst
-   se/marginalization.rst
-   se/eskf.rst
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: MAV
-
-   mav/mpc.rst
 
 
 .. include:: ../../README.rst
