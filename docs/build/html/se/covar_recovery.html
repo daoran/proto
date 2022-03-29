@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Covariance Recovery &mdash; proto alpha documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Shannon Information" href="shannon.html" />
+    <link rel="prev" title="Differential Calculus" href="diff_calc.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> proto
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/nlls.html">Non-linear Least Squares</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="euler.html">Euler Angles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quaternions.html">Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="diff_calc.html">Differential Calculus</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Covariance Recovery</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#derivation-of-covariance-recovery-using-square-root-matrix">Derivation of Covariance Recovery using Square Root Matrix</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gauge.html">Gauge Freedom</a></li>
+<li class="toctree-l1"><a class="reference internal" href="marginalization.html">Marginalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../mav/mpc.html">Outerloop Linear MPC for MAV</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">proto</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Covariance Recovery</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/se/covar_recovery.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="covariance-recovery">
+<h1>Covariance Recovery<a class="headerlink" href="#covariance-recovery" title="Permalink to this headline"></a></h1>
+<p>The Hessian matrix <span class="math notranslate nohighlight">\(\Mat{H}\)</span> is known to be related to the marginal
+covariance matrix <span class="math notranslate nohighlight">\(\covar\)</span> by <span class="math notranslate nohighlight">\(\covar = \Mat{H}^{-1}\)</span>. However,
+inverting <span class="math notranslate nohighlight">\(\Mat{H}\)</span> can be expensive and impossible if it is not
+well-conditioned. The objective in the following is to recover the marginal
+covariance matrix without explicitly inverting <span class="math notranslate nohighlight">\(\Mat{H}\)</span>.</p>
+<p>This can be done by decomposing the Hessian <span class="math notranslate nohighlight">\(\Mat{H}\)</span> is into a lower and
+upper triangular matrix, <span class="math notranslate nohighlight">\(\Mat{R}^{\transpose} \Mat{R}\)</span> using either
+Cholesky or QR factorization. Then let us write,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}(\Mat{R}^{\transpose} \Mat{R})
+(\Mat{R}^{\transpose} \Mat{R})^{-1}
+  &amp;= \I \\
+(\Mat{R}^{\transpose} \Mat{R}) \covar &amp;= \I \\
+\Mat{R} \covar &amp;= (\Mat{R}^{\transpose})^{-1}.\end{split}\]</div>
+<p>and using back-substitution on the last equation to solve for <span class="math notranslate nohighlight">\(\covar\)</span>
+results in the following two general equations for any diagonal and
+off-diagonal values of <span class="math notranslate nohighlight">\(\covar\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\boxed{
+  \sigma_{ii} =
+  \dfrac{1}{u_{ii}}
+  \left(
+    l_{ii}
+    -\sum_{j=i+1}^{n} u_{i,j} \sigma_{j,i}
+  \right)
+}\]</div>
+<div class="math notranslate nohighlight">
+\[\boxed{
+  \sigma_{il} =
+  \dfrac{1}{u_{ii}}
+  \left(
+    -\sum_{j=i+1}^{l} u_{i,j} \sigma_{j,l}
+    -\sum_{j=l+1}^{n} u_{i,j} \sigma_{j,l}
+  \right)
+}\]</div>
+<p><strong>Note</strong> that the summations only apply to non-zero entries of single
+columns or rows of the sparse matrix <span class="math notranslate nohighlight">\(\Mat{R}\)</span>.</p>
+<div class="section" id="derivation-of-covariance-recovery-using-square-root-matrix">
+<h2>Derivation of Covariance Recovery using Square Root Matrix<a class="headerlink" href="#derivation-of-covariance-recovery-using-square-root-matrix" title="Permalink to this headline"></a></h2>
+<div class="math notranslate nohighlight">
+\[\Mat{R} \covar = (\Mat{R}^{\transpose})^{-1}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\underbrace{
+  \begin{bmatrix}
+    u_{11} &amp; u_{12} &amp; \cdots &amp; u_{1n} \\
+    0 &amp; u_{22} &amp; \cdots &amp; u_{2n} \\
+    \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+    0 &amp; 0 &amp; \cdots &amp; u_{nn} \\
+  \end{bmatrix}
+}_{\Mat{R}}
+\underbrace{
+  \begin{bmatrix}
+    \sigma_{1,1} &amp; \sigma_{1,2} &amp; \dots &amp; \sigma_{1,n} \\
+    \sigma_{2,1} &amp; \sigma_{2,2} &amp; \dots &amp; \sigma_{2,n} \\
+    \vdots &amp; \vdots &amp; \vdots &amp; \vdots \\
+    \sigma_{n,1} &amp; \sigma_{n,2} &amp; \dots &amp; \sigma_{n,n} \\
+  \end{bmatrix}
+}_{\covar}
+=
+\underbrace{
+\begin{bmatrix}
+  l_{11} &amp; 0 &amp; \dots &amp; 0 \\
+  l_{21} &amp; l_{22} &amp; \dots &amp; 0 \\
+  \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+  l_{m1} &amp; l_{m2} &amp; \dots &amp; l_{nn}
+\end{bmatrix}
+}_{(\Mat{R}^{\transpose})^{-1}}\end{split}\]</div>
+<p>The trick to solving for <span class="math notranslate nohighlight">\(\covar\)</span> is the fact the term
+<span class="math notranslate nohighlight">\((\Mat{R}^{\transpose})^{-1}\)</span> is not actually evaluated. Instead, we take
+advantage of the struture of the lower triangular matrix to solve a system of
+equations via back-substituion. For one, we know for a fact the inverse of the
+diagonals in <span class="math notranslate nohighlight">\((\Mat{R}^{\transpose})^{-1}\)</span> is the reciprocal of itself,
+i.e.  <span class="math notranslate nohighlight">\(l_{ii} = 1 / u_{ii}\)</span> (a known property of inverting diagonal
+matrices).  Secondly, by performing back-substition the lower triangle values
+of <span class="math notranslate nohighlight">\((\Mat{R}^{\transpose})^{-1}\)</span> are not required.</p>
+<p>Lets see an example, suppose <span class="math notranslate nohighlight">\(\Mat{R}\)</span>, <span class="math notranslate nohighlight">\(\covar\)</span>, and
+<span class="math notranslate nohighlight">\((\Mat{R}^{\transpose})^{-1}\)</span> are <span class="math notranslate nohighlight">\(4 \times 4\)</span> matrices,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{bmatrix}
+  u_{11} &amp; u_{12} &amp; u_{13} &amp; u_{14} \\
+  0 &amp; u_{22} &amp; u_{23} &amp; u_{24} \\
+  0 &amp; 0 &amp; u_{33} &amp; u_{34} \\
+  0 &amp; 0 &amp; 0 &amp; u_{44}
+\end{bmatrix}
+\begin{bmatrix}
+  \sigma_{11} &amp; \sigma_{12} &amp; \sigma_{13} &amp; \sigma_{14} \\
+  \sigma_{21} &amp; \sigma_{22} &amp; \sigma_{23} &amp; \sigma_{24} \\
+  \sigma_{31} &amp; \sigma_{32} &amp; \sigma_{33} &amp; \sigma_{34} \\
+  \sigma_{41} &amp; \sigma_{42} &amp; \sigma_{43} &amp; \sigma_{44}
+\end{bmatrix}
+=
+\begin{bmatrix}
+  l_{11} &amp; 0 &amp; 0 &amp; 0 \\
+  l_{21} &amp; l_{22} &amp; 0 &amp; 0 \\
+  l_{31} &amp; l_{32} &amp; l_{33} &amp; 0 \\
+  l_{41} &amp; l_{42} &amp; l_{43} &amp; l_{44}
+\end{bmatrix},\end{split}\]</div>
+<p>to workout <span class="math notranslate nohighlight">\(\covar\)</span> we only need to find the values of the diagonals and
+upper triangular matrix of <span class="math notranslate nohighlight">\(\covar\)</span> (because a covariance matrix is
+symmetrical).  If we write out the matrix multiplication, and rearrange w.r.t
+values of <span class="math notranslate nohighlight">\(\covar\)</span> for each column in <span class="math notranslate nohighlight">\(\covar\)</span> we get:</p>
+<p><strong>1st Column of</strong> <span class="math notranslate nohighlight">\(\covar\)</span></p>
+<div class="math notranslate nohighlight">
+\[\begin{align}
+   u_{11} \sigma_{11}
+      + u_{12} \sigma_{21}
+      + u_{13} \sigma_{31}
+      + u_{14} \sigma_{41} &amp;= l_{11}
+\end{align}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{align}
+  \sigma_{11} &amp;=
+    (l_{11} -u_{12} \sigma_{21}
+    - u_{13} \sigma_{31}
+    - u_{14} \sigma_{41}) / u_{11}
+\end{align}\]</div>
+<p><strong>2nd Column of</strong> <span class="math notranslate nohighlight">\(\covar\)</span></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}u_{11} \sigma_{12}
+  + u_{12} \sigma_{22}
+  + u_{13} \sigma_{32}
+  + u_{14} \sigma_{42} &amp;= 0 \\
+u_{22} \sigma_{22}
+  + u_{23} \sigma_{32}
+  + u_{24} \sigma_{42} &amp;= l_{22}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\sigma_{12} &amp;= (-u_{12} \sigma_{22}
+  - u_{13} \sigma_{32} - u_{14} \sigma_{42}) / u_{11} \\
+\sigma_{22} &amp;= (l_{22} -u_{23} \sigma_{32}
+  - u_{24} \sigma_{42}) / u_{22}\end{split}\]</div>
+<p><strong>3rd Column of</strong> <span class="math notranslate nohighlight">\(\covar\)</span></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}u_{11} \sigma_{13}
+  + u_{12} \sigma_{23}
+  + u_{13} \sigma_{33}
+  + u_{14} \sigma_{43} &amp;= 0 \\
+u_{22} \sigma_{23}
+  + u_{23} \sigma_{33}
+  + u_{24} \sigma_{43} &amp;= 0 \\
+u_{33} \sigma_{33}
+  + u_{34} \sigma_{43} &amp;= l_{33}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\sigma_{13} &amp;= (-u_{12} \sigma_{23}
+  - u_{13} \sigma_{33}
+  - u_{14} \sigma_{43}) / u_{11} \\
+\sigma_{23} &amp;= (-u_{23} \sigma_{33}
+  - u_{24} \sigma_{43}) / u_{22} \\
+\sigma_{33} &amp;= (l_{33} - u_{34} \sigma_{43}) / u_{33}\end{split}\]</div>
+<p><strong>4th Column of</strong> <span class="math notranslate nohighlight">\(\covar\)</span></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}u_{11} \sigma_{14}
+   + u_{12} \sigma_{24}
+   + u_{13} \sigma_{34}
+   + u_{14} \sigma_{44} &amp;= 0 \\
+u_{22} \sigma_{24} + u_{23} \sigma_{34} + u_{24} \sigma_{44} &amp;= 0 \\
+u_{33} \sigma_{34} + u_{34} \sigma_{44} &amp;= 0 \\
+u_{44} \sigma_{44} &amp;= l_{44}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\sigma_{14} &amp;= (-u_{12} \sigma_{24}
+   - u_{13} \sigma_{34}
+   - u_{14} \sigma_{44}) / u_{11} \\
+\sigma_{24} &amp;= (-u_{23} \sigma_{34}
+   - u_{24} \sigma_{44}) / u_{22}  \\
+\sigma_{34} &amp;= (-u_{34} \sigma_{44}) / u_{33} \\
+\sigma_{44} &amp;= l_{44} / u_{44}\end{split}\]</div>
+<p>Collecting the diagonal and off-diagonal terms we can form general equations to
+find any values in <span class="math notranslate nohighlight">\(\covar\)</span>:</p>
+<p><strong>Diagonals</strong></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+   % Line 1
+   \color{blue}{\sigma_{11}} &amp;=
+     (\color{brown}{l_{11}}
+     \color{magenta}{-u_{12} \sigma_{21}
+     - u_{13} \sigma_{31}
+     - u_{14} \sigma_{41}})
+     / \color{red}{u_{11}} \\
+   % Line 2
+   \color{blue}{\sigma_{22}} &amp;=
+     (\color{brown}{l_{22}}
+     \color{magenta}{-u_{23} \sigma_{32}
+     - u_{24} \sigma_{42}})
+     / \color{red}{u_{22}} \\
+   % Line 3
+   \color{blue}{\sigma_{33}} &amp;=
+     (\color{brown}{l_{33}}
+     \color{magenta}{-u_{34} \sigma_{43}})
+     / \color{red}{u_{33}} \\
+   % Line 4
+   \color{blue}{\sigma_{44}} &amp;=
+      \color{brown}{l_{44}} / \color{red}{u_{44}}
+\end{align}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{align}
+  \color{blue}{{\sigma}_{ii}} =
+    \color{red}{\dfrac{1}{{u}_{ii}}}
+    \left(
+      \color{brown}{l_{ii}}
+      \color{magenta}{-{\sum}_{j=i+1}^{n} u_{i,j} {\sigma}_{j,i}}
+    \right)
+\end{align}\]</div>
+<p>Since we know that the inverse of the diagonals are its reciprocal, <cite>l_{ii}</cite>
+can be written as <span class="math notranslate nohighlight">\(\frac{1}{u_{ii}}\)</span> giving us the general formula for the
+diagonals of <span class="math notranslate nohighlight">\(\covar\)</span> as,</p>
+<div class="math notranslate nohighlight">
+\[\boxed{
+\color{blue}{\sigma_{ii}} =
+  \color{red}{\dfrac{1}{u_{ii}}}
+  \left(
+    \color{brown}{\dfrac{1}{u_{ii}}}
+    \color{magenta}{-\sum_{j=i+1}^{n} u_{i,j} \sigma_{j,i}}
+  \right)
+}\]</div>
+<p><strong>Off-Diagonals</strong></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\color{blue}{\sigma_{12}} &amp;=
+  (\color{magenta}{-u_{12} \sigma_{22}}
+  \color{purple}{-u_{13} \sigma_{32} - u_{14} \sigma_{42}})
+  / \color{red}{u_{11}} \\
+\color{blue}{\sigma_{13}} &amp;=
+  (\color{magenta}{-u_{12} \sigma_{23}}
+  \color{purple}{-u_{13} \sigma_{33} - u_{14} \sigma_{43}})
+  / \color{red}{u_{11}} \\
+\color{blue}{\sigma_{14}} &amp;=
+  (\color{magenta}{-u_{12} \sigma_{24}}
+  \color{purple}{-u_{13} \sigma_{34} - u_{14} \sigma_{44}})
+  / \color{red}{u_{11}} \\ \\
+\color{blue}{\sigma_{23}} &amp;=
+  (\color{magenta}{-u_{23} \sigma_{33}}
+  \color{purple}{-u_{24} \sigma_{43}})
+  / \color{red}{u_{22}} \\
+\color{blue}{\sigma_{24}} &amp;=
+  (\color{magenta}{-u_{23} \sigma_{34}}
+  \color{purple}{-u_{24} \sigma_{44}})
+  / \color{red}{u_{22}}  \\ \\
+\color{blue}{\sigma_{34}} &amp;=
+  (\color{magenta}{-u_{34} \sigma_{44}})
+  / \color{red}{u_{33}}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\boxed{
+  \color{blue}{\sigma_{il}} =
+  \color{red}{\dfrac{1}{u_{ii}}}
+  \left(
+    \color{magenta}{-\sum_{j=i+1}^{l} u_{i,j} \sigma_{j,l}}
+    \color{purple}{-\sum_{j=l+1}^{n} u_{i,j} \sigma_{j,l}}
+  \right)
+}\]</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="diff_calc.html" class="btn btn-neutral float-left" title="Differential Calculus" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="shannon.html" class="btn btn-neutral float-right" title="Shannon Information" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Chris Choi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

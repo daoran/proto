@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marginalization &mdash; proto alpha documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Error-State Kalman Filter" href="eskf.html" />
+    <link rel="prev" title="Gauge Freedom" href="gauge.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> proto
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/nlls.html">Non-linear Least Squares</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="euler.html">Euler Angles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quaternions.html">Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="diff_calc.html">Differential Calculus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="covar_recovery.html">Covariance Recovery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gauge.html">Gauge Freedom</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Marginalization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#using-shur-s-complement-for-marginalization">Using Shur’s Complement for marginalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#derivation-of-schur-s-complement-for-marginalization">Derivation of Schur’s Complement for Marginalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#first-estimate-jacobians-fej">First Estimate Jacobians (FEJ)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../mav/mpc.html">Outerloop Linear MPC for MAV</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">proto</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Marginalization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/se/marginalization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="marginalization">
+<h1>Marginalization<a class="headerlink" href="#marginalization" title="Permalink to this headline"></a></h1>
+<p>As a reminder, marginalization is about having a joint density <cite>p(x, y)</cite>
+over two variables <cite>x</cite> and <cite>y</cite>, and we would like to marginalize out or
+“eliminate a variable”, lets say <cite>y</cite> in this case:</p>
+<div class="math notranslate nohighlight">
+\[p(x) = \int_{y} p(x, y)\]</div>
+<p>resulting in a density <cite>p(x)</cite> over the remaining variable <cite>x</cite>.</p>
+<p>Now, if the density was in covariance form with mean <span class="math notranslate nohighlight">\(\boldsymbol{\mu}\)</span>
+and covariance <span class="math notranslate nohighlight">\(\mathbf{\Sigma}\)</span>, partitioned as follows:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}p(x, y) = \mathcal{N}(
+  % Mean
+  \begin{bmatrix}
+    \boldsymbol\mu_{x} \\
+    \boldsymbol\mu_{y}
+  \end{bmatrix},
+  % Covariance
+  \begin{bmatrix}
+    \mathbf\Sigma_{xx}, \mathbf\Sigma_{xy} \\
+    \mathbf\Sigma_{yx}, \mathbf\Sigma_{yy}
+  \end{bmatrix}
+)\end{split}\]</div>
+<p>marginalization is simple, as the corresponding sub-block
+<span class="math notranslate nohighlight">\(\mathbf{\Sigma}_{xx}\)</span> already contains the covariance on <cite>x</cite> i.e.,</p>
+<div class="math notranslate nohighlight">
+\[p(x) = \mathcal{N}(
+  % Mean
+  \boldsymbol\mu_{x},
+  % Covariance
+    \mathbf\Sigma_{xx}
+).\]</div>
+<p>In the nonlinear-least squares formulation, however, we can only obtain the
+covariance <span class="math notranslate nohighlight">\(\mathbf{\Sigma}\)</span> with the following property,</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{\Sigma} = \Mat{H}^{-1}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Mat{H}\)</span> is the Hessian matrix in a Gauss-Newton system
+(<span class="math notranslate nohighlight">\(\Mat{H}\delta\Vec{x} = \Vec{b}\)</span>).</p>
+<div class="section" id="using-shur-s-complement-for-marginalization">
+<h2>Using Shur’s Complement for marginalization<a class="headerlink" href="#using-shur-s-complement-for-marginalization" title="Permalink to this headline"></a></h2>
+<p>First let <span class="math notranslate nohighlight">\(\state_1\)</span> be the states to be marginalized out,
+<span class="math notranslate nohighlight">\(\state_{2}\)</span> be the set of states related to those by error terms, and
+<span class="math notranslate nohighlight">\(\state_{\rho}\)</span> be the set of remaining states. Partitioning the Hessian, error
+state and R.H.S of the Gauss-Newton system gives:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{bmatrix}
+  \Mat{H}_{11} &amp; \Mat{H}_{12} \\
+  \Mat{H}_{21} &amp; \Mat{H}_{22}
+\end{bmatrix}
+\begin{bmatrix}
+  \delta\state_{1} \\
+  \delta\state_{2}
+\end{bmatrix}
+=
+\begin{bmatrix}
+  \Vec{b}_{1} \\
+  \Vec{b}_{2}
+\end{bmatrix}\end{split}\]</div>
+<p>and applying the Shur complement operation yields:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Mat{H}^{\ast}_{22}
+&amp;=
+\Mat{H}_{22} -
+\Mat{H}_{21}
+\Mat{H}_{11}^{-1}
+\Mat{H}_{12}
+\\
+\Vec{b}^{\ast}_{2}
+&amp;=
+\Vec{b}_{2} -
+\Mat{H}_{21}
+\Mat{H}_{11}^{-1}
+\Vec{b}_{1}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Vec{b}^{\ast}_{2}\)</span> and
+<span class="math notranslate nohighlight">\(\Mat{H}^{\ast}_{22}\)</span> are non-linear functions of
+<span class="math notranslate nohighlight">\(\state_2\)</span> and <span class="math notranslate nohighlight">\(\state_1\)</span>.</p>
+</div>
+<div class="section" id="derivation-of-schur-s-complement-for-marginalization">
+<h2>Derivation of Schur’s Complement for Marginalization<a class="headerlink" href="#derivation-of-schur-s-complement-for-marginalization" title="Permalink to this headline"></a></h2>
+<p>From the Gauss-Newton system, <span class="math notranslate nohighlight">\(\Mat{H} \delta\Vec{x} = \Vec{b}\)</span>, we can
+derive the marginalization of the old states in <span class="math notranslate nohighlight">\(\delta\Vec{x}\)</span> algebraically.
+Let us decompose the system as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}% H
+\begin{bmatrix}
+\Mat{H}_{11} &amp; \Mat{H}_{12} \\
+\Mat{H}_{21} &amp; \Mat{H}_{22}
+\end{bmatrix}
+% x
+\begin{bmatrix}
+\delta\Vec{x}_{1} \\
+\delta\Vec{x}_{2}
+\end{bmatrix}
+=
+% b
+\begin{bmatrix}
+\Vec{b}_{1} \\
+\Vec{b}_{2}
+\end{bmatrix}\end{split}\]</div>
+<p>If we multiply out the block matrices and vectors out we get:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}% Line 1
+\Mat{H}_{11} \delta\Vec{x}_{1} + \Mat{H}_{12} \delta\Vec{x}_{2}
+= \Vec{b}_{1} \\
+% Line 2
+\Mat{H}_{21} \delta\Vec{x}_{1} + \Mat{H}_{22} \delta\Vec{x}_{2}
+= \Vec{b}_{2}\end{split}\]</div>
+<p>Suppose we want to marginalize out the <span class="math notranslate nohighlight">\(\delta\Vec{x}_{2}\)</span>, the second equation
+above can be rearranged w.r.t. <span class="math notranslate nohighlight">\(\delta\Vec{x}_{2}\)</span> like so:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}% Line 1
+\Mat{H}_{21} \delta\Vec{x}_{1} + \Mat{H}_{22} \delta\Vec{x}_{2}
+&amp;= \Vec{b}_{2} \\
+% Line 2
+\Mat{H}_{22} \delta\Vec{x}_{2}
+&amp;= \Vec{b}_{2} - \Mat{H}_{21} \delta\Vec{x}_{1} \\
+% Line 3
+\delta\Vec{x}_{2}
+&amp;= \Mat{H}_{22}^{-1} \Vec{b}_{2}
+- \Mat{H}_{22}^{-1} \Mat{H}_{21} \delta\Vec{x}_{1} \\\end{split}\]</div>
+<p>substituting <span class="math notranslate nohighlight">\(\delta\Vec{x}_{2}\)</span> back into <span class="math notranslate nohighlight">\(\Mat{H}_{11} \delta\Vec{x}_{1} +
+\Mat{H}_{12} \delta\Vec{x}_{2} = \Vec{b}_{1}\)</span>, and rearranging the terms so it is
+w.r.t <span class="math notranslate nohighlight">\(\delta\Vec{x}_{1}\)</span> to get:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}% Line 1
+\Mat{H}_{11} \delta\Vec{x}_{1} + \Mat{H}_{12}
+(\Mat{H}_{22}^{-1} \Vec{b}_{2}
+- \Mat{H}_{22}^{-1} \Mat{H}_{21} \delta\Vec{x}_{1})
+&amp;= \Vec{b}_{1} \\
+% Line 2
+\Mat{H}_{11} \delta\Vec{x}_{1}
++ \Mat{H}_{12} \Mat{H}_{22}^{-1} \Vec{b}_{2}
+- \Mat{H}_{12} \Mat{H}_{22}^{-1} \Mat{H}_{21} \delta\Vec{x}_{1}
+&amp;= \Vec{b}_{1} \\
+% Line 3
+(\Mat{H}_{11}
+- \Mat{H}_{12}\Mat{H}_{22}^{-1}\Mat{H}_{21}) \delta\Vec{x}_{1}
+&amp;= \Vec{b}_{1} - \Mat{H}_{12} \Mat{H}_{22}^{-1} \Vec{b}_{2}\end{split}\]</div>
+<p>thus the Schur Complement of <span class="math notranslate nohighlight">\(\Mat{H}_{22}\)</span> in <span class="math notranslate nohighlight">\(\Mat{H}\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Mat{H} / \Mat{H}_{22} &amp;=
+  \Mat{H}_{11}
+  - \Mat{H}_{12} \Mat{H}_{22}^{-1} \Mat{H}_{21} \\
+  \Vec{b} / \Vec{b}_{2} &amp;=
+    \Vec{b}_{1} - \Mat{H}_{12} \Mat{H}_{22}^{-1} \Vec{b}_{2}\end{split}\]</div>
+<p>If you want to marginalize out <span class="math notranslate nohighlight">\(\delta\Vec{x}_{1}\)</span> you can follow the same
+process above but w.r.t <span class="math notranslate nohighlight">\(\Vec{x}_{1}\)</span>.</p>
+</div>
+<div class="section" id="first-estimate-jacobians-fej">
+<h2>First Estimate Jacobians (FEJ)<a class="headerlink" href="#first-estimate-jacobians-fej" title="Permalink to this headline"></a></h2>
+<p>In the context of real time state-estimation, a fixed-lag smoother provides a
+way to bound the optimization problem in order to operate in real time. The
+method to remove old states in the state vector is called <em>marginalization</em>. To
+perform marginalization the Schur’s complement is used to marginalize out old
+states.</p>
+<p>Simply performing marginalization, however, introduces estimator
+inconsistencies.</p>
+<p>Let us consider the following scenario. A state vector, <span class="math notranslate nohighlight">\(\state\)</span>, during
+the time interval <span class="math notranslate nohighlight">\([0, k]\)</span> will contain <cite>m</cite> old states to be marginalized
+out and <cite>r</cite> remain states which we wish to keep. i.e. <span class="math notranslate nohighlight">\(\state =
+[\state_{m}^{\transpose} \quad \state_{r}^{\transpose}]^{\transpose}\)</span>. Then the
+cost function, <cite>c(cdot)</cite>, can be written as a function of <span class="math notranslate nohighlight">\(\state\)</span> at
+time <cite>k</cite> as,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}c(\state_{k}) &amp;= c(\state_{m}, \state_{r}) \\
+              &amp;= c(\state_{m}) + c(\state_{r}).\end{split}\]</div>
+<p>The intuition behind the above is since the state at time <cite>k</cite> can be
+partitioned into <cite>m</cite> and <cite>r</cite>, the cost can also be decomposed. Utilizing this
+property, the multivariate optimization can also be decomposed as follows,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\min_{\state_{m}, \state_{r}} c(\state_{m}, \state_{r})
+  &amp;= \min_{\state_{r}} (\min_{\state_{m}} c(\state_{m}, \state_{r})) \\
+  &amp;= \min_{\state_{r}} (c(\state_{r}) + \min_{\state_{m}} c(\state_{m})) .\end{split}\]</div>
+<p>The equation above shows the minimization problem can be solved by first
+optimizing for the states <span class="math notranslate nohighlight">\(\state_{m}\)</span>, and then forming a prior towards
+the problem of solving for <span class="math notranslate nohighlight">\(\state_{r}\)</span>. The reformulation of the
+minimization problem entails no approximation.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gauge.html" class="btn btn-neutral float-left" title="Gauge Freedom" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="eskf.html" class="btn btn-neutral float-right" title="Error-State Kalman Filter" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Chris Choi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,3 +1,4 @@
+# Latex
 *.aux
 *.bbl
 *.blg
@@ -9,27 +10,24 @@
 *.synctex.gz
 *.fdb_latexmk
 *.fls
-
 *~
 
-bin
-obj
-tags
-build
-docs/doctrees
+# Proto
+proto/build
+
+# Docs
+docs/build/doctrees
+
+# Dependencies
 deps/bin
 deps/include
 deps/lib
 deps/share
 deps/src
 
-# matlab
-*.mat
-*.mex
-*.o
-octave-workspace
-
-# misc
+# Python
 .ropeproject
-
 *.pyc
+
+# Misc
+tags

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Differential Calculus &mdash; proto alpha documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Covariance Recovery" href="covar_recovery.html" />
+    <link rel="prev" title="Quaternions" href="quaternions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> proto
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/nlls.html">Non-linear Least Squares</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="euler.html">Euler Angles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quaternions.html">Quaternions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Differential Calculus</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#special-orthogonal-group-so-3">Special Orthogonal Group <span class="math notranslate nohighlight">\(\SO{3}\)</span></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#exponential-map">Exponential Map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logarithmic-map">Logarithmic Map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#properties">Properties</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="covar_recovery.html">Covariance Recovery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gauge.html">Gauge Freedom</a></li>
+<li class="toctree-l1"><a class="reference internal" href="marginalization.html">Marginalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../mav/mpc.html">Outerloop Linear MPC for MAV</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">proto</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Differential Calculus</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/se/diff_calc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="differential-calculus">
+<h1>Differential Calculus<a class="headerlink" href="#differential-calculus" title="Permalink to this headline"></a></h1>
+<p>Lie Group <span class="math notranslate nohighlight">\(\SO{3}\)</span></p>
+<ul class="simple">
+<li><p>Not a vector space</p></li>
+<li><p>Has no addition operator</p></li>
+<li><p>Has no subtraction operator</p></li>
+</ul>
+<p>State estimation frameworks rely on small differences and gradients in order to
+correct the state estimate. Orientations unlike translation and velocity do not
+have an addition operator, as such it is more involving to update or find the
+gradients of orientations. Forunately, since orientations are a special
+orhogonal group <span class="math notranslate nohighlight">\(\SO{3}\)</span> as well as a Lie group, an exponential map
+exists that relates to its Lie algebra allowing orientations to be perturbed
+and its gradients calculated.</p>
+<p>Elements in Lie algebra are abstract vectors and not suitable for actual
+computations. A basis <span class="math notranslate nohighlight">\(\Mat{B} = [\Vec{\boldsymbol{\varphi}}_{1}
+\enspace \Vec{\boldsymbol{\varphi}}_{2} \enspace
+\Vec{\boldsymbol{\varphi}}_{3}]\)</span> can be used to extend the map to
+<span class="math notranslate nohighlight">\(\Real{3}\)</span>.</p>
+<p>The definition of an exponential map <span class="math notranslate nohighlight">\(\text{exp} : \Real{3} \mapsto
+\SO{3}\)</span> of a coordinate tuple <span class="math notranslate nohighlight">\(\boldsymbol{\varphi} (\varphi_1, \varphi_2,
+\varphi_3) \in \Real{3}\)</span> is defined by</p>
+<div class="math notranslate nohighlight">
+\[\text{exp}(\boldsymbol{\varphi}) := Exp(
+  \vec{\boldsymbol{\varphi}}_{1}\varphi_{1},
+  \vec{\boldsymbol{\varphi}}_{2}\varphi_{2},
+  \vec{\boldsymbol{\varphi}}_{3}\varphi_{3}
+)\]</div>
+<div class="math notranslate nohighlight">
+\[Exp((t + s) \vec{\boldsymbol{\varphi}}) =
+  Exp(t\vec{\boldsymbol{\varphi}}) \circ Exp(s\vec{\boldsymbol{\varphi}})
+\qquad
+\forall t, s \in \real, \forall \vec{\boldsymbol{\varphi}} \in\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\boxplus :&amp; \SO{3} \times \Real{3} \rightarrow \SO{3}, \\
+  &amp;\Phi, \boldsymbol{\varphi}
+    \mapsto \text{exp}(\boldsymbol{\varphi}) \circ \Phi, \\
+\boxminus :&amp; \SO{3} \times \SO{3} \rightarrow \Real{3}, \\
+  &amp;\Phi_1, \Phi_2 \mapsto \text{log}(\Phi_1 \circ \Phi_{2}^{-1})\end{split}\]</div>
+<p>Similar to regular addition and subtraction, both operators have the following
+identities,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Phi \boxplus \Vec{0} &amp;= \Phi \\
+(\Phi \boxplus \boldsymbol{\varphi}) \boxminus \Phi &amp;= \boldsymbol{\varphi} \\
+\Phi_1 \boxplus (\Phi_2 \boxminus \Phi_1) &amp;= \Phi_2\end{split}\]</div>
+<div class="section" id="special-orthogonal-group-so-3">
+<h2>Special Orthogonal Group <span class="math notranslate nohighlight">\(\SO{3}\)</span><a class="headerlink" href="#special-orthogonal-group-so-3" title="Permalink to this headline"></a></h2>
+<p>Special Orthogonal Group <span class="math notranslate nohighlight">\(\SO{3}\)</span> describes the group of 3D rotation
+matrices and it is formally defined as <span class="math notranslate nohighlight">\(\SO{3} \dot{=} \{ \rot \in
+\real^{3 \times 3} : \rot^{\transpose} \rot = \I, \Det{\rot} = 1 \}\)</span> .  The
+group operation is the usual matrix multiplication, and the inverse is the
+matrix transpose. The group <span class="math notranslate nohighlight">\(\SO{3}\)</span> also forms a smooth manifold. The
+tangent space to the manifold (at the identity) is denoted <span class="math notranslate nohighlight">\(\so(3)\)</span>,
+which is also called the <em>Lie algebra</em> and coincides with the space of <cite>3
+times 3</cite> skew symmetric matrices.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\angvel \in \real^{3},
+\enspace
+\Skew{\angvel} = \begin{bmatrix}
+  0 &amp; -\omega_{3} &amp; \omega_{2} \\
+  \omega_{3} &amp; 0 &amp; -\omega_{1} \\
+  -\omega_{2} &amp; \omega_{1} &amp; 0
+\end{bmatrix}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\text{Exp}: \real^{3} \rightarrow \SO{3} ;
+\enspace
+\boldsymbol{\phi} \rightarrow \text{exp}(\Skew{\boldsymbol{\phi}}) \\
+\text{Log}: \SO{3} \rightarrow \real^{3} ;
+\enspace
+\rot \rightarrow \Skew{\text{log}(\rot)}\end{split}\]</div>
+<div class="section" id="exponential-map">
+<h3>Exponential Map<a class="headerlink" href="#exponential-map" title="Permalink to this headline"></a></h3>
+<p>The <em>exponential map</em> (at the identity) <span class="math notranslate nohighlight">\(\text{exp}: \mathfrak{so}(3)
+\rightarrow \SO{3}\)</span> associates an element of the Lie Algebra to a rotation:</p>
+<div class="math notranslate nohighlight">
+\[\text{exp}(\Skew{\boldsymbol{\phi}}) =
+  \I
+  + \dfrac{\sin(|| \boldsymbol{\phi} ||)}
+          {|| \boldsymbol{\phi} ||}
+      \Skew{\boldsymbol{\phi}}
+  + \dfrac{1 - \cos(|| \boldsymbol{\phi} ||)}
+          {|| \boldsymbol{\phi} ||^{2}}
+      \Skew{\boldsymbol{\phi}}^{2}\]</div>
+</div>
+<div class="section" id="logarithmic-map">
+<h3>Logarithmic Map<a class="headerlink" href="#logarithmic-map" title="Permalink to this headline"></a></h3>
+<p>The <em>logarithmic map</em> (at the identity) associates rotation matrix
+<span class="math notranslate nohighlight">\(\rot \in \SO{3}\)</span> to a skew symmetric matrix:</p>
+<div class="math notranslate nohighlight">
+\[\log(\rot) = \dfrac{\psi \cdot (\rot - \rot^{\transpose})}{2 \sin(\psi)},
+\enspace
+\psi = \cos^{-1} \left( \dfrac{\Trace{\rot) - 1}}{2} \right)\]</div>
+</div>
+<div class="section" id="properties">
+<h3>Properties<a class="headerlink" href="#properties" title="Permalink to this headline"></a></h3>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \rot \text{Exp}(\boldsymbol{\phi}) \rot^{\transpose}
+  &amp;= \text{Exp}(\rot \Skew{\boldsymbol{\phi}} \rot^{\transpose}) \\
+  &amp;= \text{Exp}(\rot \boldsymbol{\phi}) \\
+  &amp;= \text{Exp}(\boldsymbol{\phi}) \rot \\
+  &amp;= \rot^{\transpose} \text{Exp}(\boldsymbol{\phi}) \rot
+\end{align}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\text{Exp}(\boldsymbol{\phi} + \delta\boldsymbol{\phi}) \approx
+  \text{Exp}(\boldsymbol{\phi})
+  \text{Exp}(\jac_{r}(\boldsymbol{\phi}) \delta\boldsymbol{\phi})\]</div>
+<div class="math notranslate nohighlight">
+\[\text{Log}(
+  \text{Exp}(\boldsymbol{\phi})
+  \text{Exp}(\delta\boldsymbol{\phi})
+)
+\approx
+\boldsymbol{\phi} + \jac_{r}^{-1}(\boldsymbol{\phi})
+  \delta\boldsymbol{\phi}\]</div>
+<div class="math notranslate nohighlight">
+\[\jac_{r}(\boldsymbol{\phi}) =
+  \I
+  - \dfrac{1 - \cos(||\boldsymbol{\phi}||)}{||\boldsymbol{\phi}||^{2}}
+  + \dfrac{||\boldsymbol{\phi} - \sin(||\boldsymbol{\phi}||)}
+    {||\boldsymbol{\phi^{3}}||}
+  (\Skew{\boldsymbol{\phi}})^{2}\]</div>
+<div class="math notranslate nohighlight">
+\[\jac_{r}^{-1}(\boldsymbol{\phi}) =
+  \I
+  - \dfrac{1}{2} \Skew{\boldsymbol{\phi}}
+  + \left(
+    \dfrac{1}{||\boldsymbol{\phi}||^{2}}
+    + \dfrac{1 + \cos(||\boldsymbol{\phi}||}
+      {2 ||\boldsymbol{\phi}||^{2} \sin(||\boldsymbol{\phi}||)}
+  \right)
+  \Skew{\boldsymbol{\phi}}^{2}\]</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quaternions.html" class="btn btn-neutral float-left" title="Quaternions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="covar_recovery.html" class="btn btn-neutral float-right" title="Covariance Recovery" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Chris Choi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

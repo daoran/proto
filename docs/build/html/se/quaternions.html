@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quaternions &mdash; proto alpha documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Differential Calculus" href="diff_calc.html" />
+    <link rel="prev" title="Euler Angles" href="euler.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> proto
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/rank.html">Rank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/trace.html">Trace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/cond.html">Condition Number</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/inv.html">Inverting a Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lu.html">LU Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/chol.html">Cholesky Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/qr.html">QR Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/svd.html">SVD Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/schurs.html">Shurs’ Complement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/ssole.html">Solving System of Linear Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/lls.html">Linear Least Squares</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linalg/nlls.html">Non-linear Least Squares</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cv/fundamental.html">Computer Vision Fundamentals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/triangulation.html">Triangulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/ba.html">Bundle Adjustment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="euler.html">Euler Angles</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quaternions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#main-quaternion-properties">Main Quaternion Properties</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sum">Sum</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#product">Product</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#conjugate">Conjugate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#norm">Norm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quaternion-from-two-vectors">Quaternion from Two Vectors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-attitude-from-gravity-and-accelerometer-vectors">Example: Attitude from gravity and accelerometer vectors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#quaternion-to-rotation-matrix">Quaternion to Rotation Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rotation-matrix-to-quaternion">Rotation Matrix to Quaternion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="diff_calc.html">Differential Calculus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="covar_recovery.html">Covariance Recovery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shannon.html">Shannon Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu.html">IMU Preintegration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gauge.html">Gauge Freedom</a></li>
+<li class="toctree-l1"><a class="reference internal" href="marginalization.html">Marginalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="eskf.html">Error-State Kalman Filter</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">MAV</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../mav/mpc.html">Outerloop Linear MPC for MAV</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">proto</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Quaternions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/se/quaternions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="quaternions">
+<h1>Quaternions<a class="headerlink" href="#quaternions" title="Permalink to this headline"></a></h1>
+<p>A quaternion, <span class="math notranslate nohighlight">\(\Vec{q} \in \real^{4}\)</span>, generally has the following form</p>
+<div class="math notranslate nohighlight">
+\[\quat = q_{w} + q_{x} \mathbf{i} + q_{y} \mathbf{j} + q_{z} \mathbf{k},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\{ q_{w}, q_{x}, q_{y}, q_{z} \} \in \real\)</span> and <span class="math notranslate nohighlight">\(\{
+\mathbf{i}, \mathbf{j}, \mathbf{k} \}\)</span> are the imaginary numbers satisfying</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  &amp;\mathbf{i}^{2}
+  = \mathbf{j}^{2}
+  = \mathbf{k}^{2}
+  = \mathbf{ijk}
+  = -1 \\
+  \mathbf{ij} = -\mathbf{ji} &amp;= \mathbf{k}, \enspace
+  \mathbf{jk} = -\mathbf{kj} = \mathbf{i}, \enspace
+  \mathbf{ki} = -\mathbf{ik} = \mathbf{j}
+\end{align}\end{split}\]</div>
+<p>corresponding to the Hamiltonian convention. The quaternion can be written as a
+4 element vector consisting of a textit{real} (textit{scalar}) part,
+<span class="math notranslate nohighlight">\(q_{w}\)</span>, and textit{imaginary} (textit{vector}) part <span class="math notranslate nohighlight">\(\quat_{v}\)</span>
+as,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\quat =
+\begin{bmatrix} q_{w} \\ \quat_{v} \end{bmatrix} =
+\begin{bmatrix} q_{w} \\ q_{x} \\ q_{y} \\ q_{z} \end{bmatrix}\end{split}\]</div>
+<p>There are other quaternion conventions, for example, the JPL convention. A more
+detailed discussion between Hamiltonian and JPL quaternion convention is
+discussed in cite{Sola2017}.</p>
+<div class="section" id="main-quaternion-properties">
+<h2>Main Quaternion Properties<a class="headerlink" href="#main-quaternion-properties" title="Permalink to this headline"></a></h2>
+<div class="section" id="sum">
+<h3>Sum<a class="headerlink" href="#sum" title="Permalink to this headline"></a></h3>
+<p>Let <span class="math notranslate nohighlight">\(\Vec{p}\)</span> and <span class="math notranslate nohighlight">\(\Vec{q}\)</span> be two quaternions, the sum of both
+quaternions is,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Vec{p} \pm \Vec{q} =
+\begin{bmatrix} p_w \\ \Vec{p}_{v} \end{bmatrix}
+\pm
+\begin{bmatrix} q_w \\ \Vec{q}_{v} \end{bmatrix} =
+\begin{bmatrix} p_w \pm q_w \\ \Vec{p}_{v} \pm \Vec{q}_{v} \end{bmatrix}.\end{split}\]</div>
+<p>The sum between two quaternions <span class="math notranslate nohighlight">\(\Vec{p}\)</span> and <span class="math notranslate nohighlight">\(\Vec{q}\)</span> is
+<strong>commutative</strong> and <strong>associative</strong>.</p>
+<div class="math notranslate nohighlight">
+\[\Vec{p} + \Vec{q} = \Vec{q} + \Vec{p}\]</div>
+<div class="math notranslate nohighlight">
+\[\Vec{p} + (\Vec{q} + \Vec{r}) = (\Vec{p} + \Vec{q}) + \Vec{r}\]</div>
+</div>
+</div>
+<div class="section" id="product">
+<h2>Product<a class="headerlink" href="#product" title="Permalink to this headline"></a></h2>
+<p>The quaternion multiplication (or product) of two quaternions <span class="math notranslate nohighlight">\(\Vec{p}\)</span>
+and <span class="math notranslate nohighlight">\(\Vec{q}\)</span>, denoted by <span class="math notranslate nohighlight">\(\otimes\)</span> is defined as</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  \Vec{p} \otimes \Vec{q}
+    &amp;=
+    (p_w + p_x \mathbf{i} + p_y \mathbf{j} + p_z \mathbf{k})
+    (q_w + q_x \mathbf{i} + q_y \mathbf{j} + q_z \mathbf{k}) \\
+    &amp;=
+    \begin{matrix}
+      &amp;(p_w q_w - p_x q_x - p_y q_y - p_z q_z)&amp; \\
+      &amp;(p_w q_x + p_x q_w + p_y q_z - p_z q_y)&amp; \mathbf{i}\\
+      &amp;(p_w q_y - p_y q_w + p_z q_x + p_x q_z)&amp; \mathbf{j}\\
+      &amp;(p_w q_z + p_z q_w - p_x q_y + p_y q_x)&amp; \mathbf{k}\\
+    \end{matrix} \\
+    &amp;=
+    \begin{bmatrix}
+      p_w q_w - p_x q_x - p_y q_y - p_z q_z \\
+      p_w q_x + p_x q_w + p_y q_z - p_z q_y \\
+      p_w q_y - p_y q_w + p_z q_x + p_x q_z \\
+      p_w q_z + p_z q_w - p_x q_y + p_y q_x \\
+    \end{bmatrix} \\
+    &amp;=
+    \begin{bmatrix}
+      p_w q_w - \Transpose{\Vec{p}_{v}} \Vec{q}_{v} \\
+      p_w \Vec{q}_{v} + q_w \Vec{p}_{v} + \Vec{p}_{v} \times \Vec{q}_{v}
+    \end{bmatrix}.
+\end{align}\end{split}\]</div>
+<p>The quaternion product is <strong>not commutative</strong> in the general case. There are
+exceptions to the general non-commutative rule, where either <span class="math notranslate nohighlight">\(\Vec{p}\)</span> or
+<span class="math notranslate nohighlight">\(\Vec{q}\)</span> is real such that <span class="math notranslate nohighlight">\(\Vec{p}_{v} \times \Vec{q}_{v} = 0\)</span>,
+or when both <span class="math notranslate nohighlight">\(\Vec{p}_v\)</span> and <span class="math notranslate nohighlight">\(\Vec{q}_v\)</span> are parallel,
+<span class="math notranslate nohighlight">\(\Vec{p}_v || \Vec{q}_v\)</span>. Only in these cirmcumstances is the quaternion
+product commutative.,</p>
+<div class="math notranslate nohighlight">
+\[{\Vec{p} \otimes \Vec{q} \neq \Vec{q} \otimes \Vec{p}} \enspace .\]</div>
+<p>The quaternion product is however <strong>associative</strong>,</p>
+<div class="math notranslate nohighlight">
+\[\Vec{p} \otimes (\Vec{q} \otimes \Vec{r})
+= (\Vec{p} \otimes \Vec{q}) \otimes \Vec{r}\]</div>
+<p>and <strong>distributive over the sum</strong></p>
+<div class="math notranslate nohighlight">
+\[\Vec{p} \otimes (\Vec{q} + \Vec{r}) =
+\Vec{p} \otimes \Vec{q} + \Vec{p} \otimes \Vec{r}
+\quad \text{and} \quad
+(\Vec{p} \otimes \Vec{q}) + \Vec{r} =
+\Vec{p} \otimes \Vec{r} + \Vec{q} \otimes \Vec{r}\]</div>
+<p>The quaternion product can alternatively be expressed in matrix form as</p>
+<div class="math notranslate nohighlight">
+\[\Vec{p} \otimes \Vec{q} = [\Vec{p}]_{L} \Vec{q}
+\quad \text{and} \quad
+\Vec{p} \otimes \Vec{q} = [\Vec{q}]_{R} \Vec{p} \enspace ,\]</div>
+<p>where <span class="math notranslate nohighlight">\([\Vec{p}]_{L}\)</span> and <span class="math notranslate nohighlight">\([\Vec{q}]_{R}\)</span> are the left and right
+quaternion-product matrices which are derived from
+eqref{eq:quaternion_product},</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}[\Vec{p}]_{L} =
+\begin{bmatrix}
+  p_w &amp; -p_x &amp; -p_y &amp; -p_z \\
+  p_x &amp; p_w &amp; -p_z &amp; p_y \\
+  p_y &amp; p_z &amp; p_w &amp; -p_x \\
+  p_z &amp; -p_y &amp; p_x &amp; p_w
+\end{bmatrix},
+\quad \text{and} \quad
+[\Vec{q}]_{R} =
+\begin{bmatrix}
+  q_w &amp; -q_x &amp; -q_y &amp; -q_z \\
+  q_x &amp; q_w &amp; q_z &amp; -q_y \\
+  q_y &amp; -q_z &amp; q_w &amp; q_x \\
+  q_z &amp; q_y &amp; -q_x &amp; q_w
+\end{bmatrix},\end{split}\]</div>
+<p>or inspecting a compact form can be derived as,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}[\Vec{p}]_{L} =
+\begin{bmatrix}
+  0 &amp; -\Transpose{\Vec{p}_{v}} \\
+  \Vec{p}_w \I_{3 \times 3} + \Vec{p}_{v} &amp;
+  \Vec{p}_w \I_{3 \times 3} -\Skew{\Vec{p}_{v}}
+\end{bmatrix}\end{split}\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}[\Vec{q}]_{R} =
+\begin{bmatrix}
+  0 &amp; -\Transpose{\Vec{q}_{v}} \\
+  \Vec{q}_w \I_{3 \times 3} + \Vec{q}_{v} &amp;
+  \Vec{q}_w \I_{3 \times 3} -\Skew{\Vec{q}_{v}}
+\end{bmatrix},\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Skew{\bullet}\)</span> is the skew operator that produces a matrix cross
+product matrix, and is defined as,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Skew{\Vec{v}} =
+\begin{bmatrix}
+  0 &amp; -v_{3} &amp; v_{2} \\
+  v_{3} &amp; 0 &amp; -v_{1} \\
+  -v_{2} &amp; v_{1} &amp; 0
+\end{bmatrix},
+\quad
+\Vec{v} \in \Real{3}\end{split}\]</div>
+</div>
+<div class="section" id="conjugate">
+<h2>Conjugate<a class="headerlink" href="#conjugate" title="Permalink to this headline"></a></h2>
+<p>The conjugate operator for quaternion, <span class="math notranslate nohighlight">\({(\bullet)}^{\ast}\)</span>, is defined
+as</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\quat^{\ast}
+=
+\begin{bmatrix}
+  q_w \\
+  - \Vec{q}_v
+\end{bmatrix}
+=
+\begin{bmatrix}
+  q_w \\
+  - q_x \\
+  - q_y \\
+  - q_z
+\end{bmatrix}.\end{split}\]</div>
+<p>This has the properties</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\quat \otimes \quat^{-1}
+= \quat^{-1} \otimes \quat
+= q_{w}^{2} + q_{x}^{2} + q_{y}^{2} + q_{z}^{2}
+=
+\begin{bmatrix}
+  q_{w}^{2} + q_{x}^{2} + q_{y}^{2} + q_{z}^{2} \\
+  \Vec{0}
+\end{bmatrix},\end{split}\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[(\Vec{p} \otimes \Vec{q})^{\ast}
+= \Vec{q}^{\ast} \otimes \Vec{p}^{\ast}.\]</div>
+</div>
+<div class="section" id="norm">
+<h2>Norm<a class="headerlink" href="#norm" title="Permalink to this headline"></a></h2>
+<p>The norm of a quaternion is defined by</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+ \Norm{\quat} &amp;= \sqrt{\quat \otimes \quat^{\ast}} \\
+   &amp;= \sqrt{\quat^{\ast} \otimes \quat} \\
+   &amp;= \sqrt{q_{w}^{2} + q_{x}^{2} + q_{y}^{2} + q_{z}^{2}}
+   \enspace \in \real,
+\end{align}\end{split}\]</div>
+<p>and has the property</p>
+<div class="math notranslate nohighlight">
+\[\Norm{\Vec{p} \otimes \Vec{q}} =
+\Norm{\Vec{q} \otimes \Vec{p}} =
+\Norm{\Vec{p}} \Norm{\Vec{q}}\]</div>
+</div>
+<div class="section" id="quaternion-from-two-vectors">
+<h2>Quaternion from Two Vectors<a class="headerlink" href="#quaternion-from-two-vectors" title="Permalink to this headline"></a></h2>
+<p>TODO: Need to reword the beginning.
+Using the properties of the cross and dot product</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Vec{u} \cdot \Vec{v} &amp;=
+  \Norm{\Vec{u}} \Norm{\Vec{v}} \cos \theta \\
+\Norm{\Vec{u} \times \Vec{v}} &amp;=
+  \Norm{\Vec{u}} \Norm{\Vec{v}} \Norm{\sin \theta} ,\end{split}\]</div>
+<p>the axis angle, <span class="math notranslate nohighlight">\(\boldsymbol{\theta} \in \Real{3}\)</span>, can be obtained from
+<span class="math notranslate nohighlight">\(\Vec{u}\)</span> and <span class="math notranslate nohighlight">\(\Vec{v}\)</span> with</p>
+<div class="math notranslate nohighlight" id="equation-axis-angle">
+<span class="eqno">(1)<a class="headerlink" href="#equation-axis-angle" title="Permalink to this equation"></a></span>\[\begin{split}\begin{align}
+  %-- Axis-angle
+  \boldsymbol{\theta} &amp;= \theta \Vec{e} \\
+  % -- Angle
+  \theta &amp;= \cos^{-1}(
+    \dfrac{\Vec{u} \cdot \Vec{v}}
+          {\Norm{\Vec{u}} \Norm{\Vec{v}}}
+  ) \quad , \enspace \theta \in \real \\
+  % -- Axis
+  \Vec{e} &amp;=
+    \dfrac{\Vec{u} \times \Vec{v}}{\Norm{\Vec{u} \times \Vec{v}}}
+    \quad , \enspace \Vec{e} \in \Real{3}
+\end{align}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Vec{e}\)</span> is the unit vector that defines the rotation axis and <span class="math notranslate nohighlight">\(\theta\)</span>
+is the rotation angle about <span class="math notranslate nohighlight">\(\Vec{e}\)</span>. Once the axis angle,
+<span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, is obtained a quaternion can be formed</p>
+<div class="math notranslate nohighlight" id="equation-axis-angle-to-quaternion">
+<span class="eqno">(2)<a class="headerlink" href="#equation-axis-angle-to-quaternion" title="Permalink to this equation"></a></span>\[\quat =
+  \cos \dfrac{\theta}{2}
+  + \Vec{i} \sin \dfrac{\theta}{2} e_{x}
+  + \Vec{j} \sin \dfrac{\theta}{2} e_{y}
+  + \Vec{k} \sin \dfrac{\theta}{2} e_{z}\]</div>
+<div class="section" id="example-attitude-from-gravity-and-accelerometer-vectors">
+<h3>Example: Attitude from gravity and accelerometer vectors<a class="headerlink" href="#example-attitude-from-gravity-and-accelerometer-vectors" title="Permalink to this headline"></a></h3>
+<p>In robotics knowing the attitude of the system is often required. An Inertial
+Measurement Unit (IMU) is commonly used to obtain this information. Using the
+method described previously, a gravity vector along with an accelerometer
+measurement vector can be used to obtain an attitude in form of a quaternion.</p>
+<p>Let <span class="math notranslate nohighlight">\(\Vec{g} \in \Real{3}\)</span> be the gravity vector, and <span class="math notranslate nohighlight">\(\Vec{a}_{m}
+\in \Real{3}\)</span> be the accelerometer measurement from an IMU. With the two
+vectors <span class="math notranslate nohighlight">\(\Vec{g}\)</span> and <span class="math notranslate nohighlight">\(\Vec{a}_{m}\)</span> a quaternion <span class="math notranslate nohighlight">\(\quat_{WS}\)</span>
+expressing the rotation of the IMU sensor frame, <span class="math notranslate nohighlight">\(\frame_{S}\)</span>, with
+respect to the world frame, <span class="math notranslate nohighlight">\(\frame_{W}\)</span>, can be calculated given that
+values for <span class="math notranslate nohighlight">\(\Vec{g}\)</span> and <span class="math notranslate nohighlight">\(\Vec{a}_{m}\)</span> are known. For example let</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  % -- Gravity vector
+  \Vec{g} &amp;= \Transpose{\begin{bmatrix} 0 &amp; 0 &amp; -9.81 \end{bmatrix}} \\
+  % -- Accelerometer measurement vector
+  \Vec{a}_{m} &amp;= \Transpose{
+    \begin{bmatrix}
+      9.2681 &amp;
+      -0.310816 &amp;
+      -3.14984
+    \end{bmatrix}
+  } ,
+\end{align}\end{split}\]</div>
+<p>taken from the first measurement of the <cite>imu_april</cite> calibration sequence of the
+EuRoC MAV dataset.</p>
+<p>Before calculating the axis-angle, however, it should be noted that when an
+accelerometer is at rest the measurement reading in the z-axis is positive
+instead of negative. The reason is accelerometers measures acceleration by
+measuring the displacement of a proof mass that is suspended with springs. For
+example, if gravity is ignored and the accelerometer moves upwards, the proof
+mass will be displaced towards the bottom of the accelerometer. This is
+interpreted as an acceleration in the upwards direction, and so when the
+accelerometer is at rest on a flat surface, gravity pulls on the proof mass
+yeilding a positive measurement in the upwards direction. To resolve this issue
+the gravity vector is negated, and so <span class="math notranslate nohighlight">\(\Vec{u} = -\Vec{g}\)</span> and
+<span class="math notranslate nohighlight">\(\Vec{v} = \Vec{a}_{m}\)</span>. Using <a class="reference internal" href="#equation-axis-angle">(1)</a> the axis-angle obtained
+is:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  % -- Axis-Angle
+  \theta &amp;= 1.8982 \\
+  \Vec{e} &amp;= \Transpose{
+    \begin{bmatrix}
+      0.03352 &amp;
+      0.99944 &amp;
+      0.00000
+    \end{bmatrix}
+  }
+\end{align}\end{split}\]</div>
+<p>Finally the quaternion, <span class="math notranslate nohighlight">\(\quat_{WS}\)</span>, can be calculated using
+<a class="reference internal" href="#equation-axis-angle-to-quaternion">(2)</a> resulting in</p>
+<div class="math notranslate nohighlight">
+\[\quat_{WS} = \Transpose{
+  \begin{bmatrix}
+    0.58240 &amp;
+    0.02725 &amp;
+    0.81245 &amp;
+    0.00000
+  \end{bmatrix}
+} \enspace .\]</div>
+</div>
+</div>
+<div class="section" id="quaternion-to-rotation-matrix">
+<h2>Quaternion to Rotation Matrix<a class="headerlink" href="#quaternion-to-rotation-matrix" title="Permalink to this headline"></a></h2>
+<div class="math notranslate nohighlight">
+\[\begin{split}\rot\{\quat \} = \begin{bmatrix}
+  q_w^2 + q_x^2 - q_y^2 - q_z^2
+  &amp; 2(q_x q_y - q_w q_z)
+  &amp; 2(q_x q_z + q_w q_y) \\
+  2(q_x q_y + q_w q_z)
+  &amp; q_w^2 - q_x^2 + q_y^2 - q_z^2
+  &amp; 2(q_y q_z - q_w q_x) \\
+  2(q_x q_y - q_w q_y)
+  &amp; 2(q_y q_z + q_w q_x)
+  &amp; q_w^2 - q_x^2 - q_y^2 + q_z^2
+\end{bmatrix}\end{split}\]</div>
+</div>
+<div class="section" id="rotation-matrix-to-quaternion">
+<h2>Rotation Matrix to Quaternion<a class="headerlink" href="#rotation-matrix-to-quaternion" title="Permalink to this headline"></a></h2>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+  q_w &amp;= \dfrac{\sqrt{1 + m_{11} + m_{22} + m_{33}}}{2} \\
+  q_x &amp;= \dfrac{m_{32} - m_{23}}{4 q_w} \\
+  q_y &amp;= \dfrac{m_{13} - m_{31}}{4 q_w} \\
+  q_z &amp;= \dfrac{m_{21} - m_{02}}{4 q_w}
+\end{align}\end{split}\]</div>
+<p>Note, while the equations seems straight forward in practice, however,the trace
+of the rotation matrix need to be checked inorder to guarantee correctness.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="euler.html" class="btn btn-neutral float-left" title="Euler Angles" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="diff_calc.html" class="btn btn-neutral float-right" title="Differential Calculus" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Chris Choi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
