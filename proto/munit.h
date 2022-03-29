@@ -47,7 +47,7 @@ int streams_redirect(const char *output_path,
   *stderr_fd = dup(STDERR_FILENO);
 
   /* Open stdout log file */
-  *output_fd = open(output_path, O_RDWR | O_CREAT, 0600);
+  *output_fd = open(output_path, O_RDWR | O_CREAT | O_TRUNC, 0600);
   if (*output_fd == -1) {
     perror("opening output.log");
     return -1;
