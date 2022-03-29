@@ -18,7 +18,7 @@ run_memcheck() {
 # PYTHON
 ###############################################################################
 
-ctags proto/proto.c proto/proto.py
+# ctags proto/proto.c proto/proto.py
 # python3 proto/proto.py
 # python3 proto/proto.py TestNetwork.test_http_parse_request
 # python3 proto/proto.py TestNetwork.test_websocket_hash
@@ -72,7 +72,7 @@ ctags proto/proto.c proto/proto.py
 # python3 proto/proto.py TestSimulation.test_sim_camera_frame
 # python3 proto/proto.py TestSimulation.test_sim_data
 # python3 proto/proto.py TestSimulation.test_sim_feature_tracker
-python3 proto/proto.py TestSimulation.test_sim_arm
+# python3 proto/proto.py TestSimulation.test_sim_arm
 # python3 proto/proto.py TestViz.test_multiplot
 # python3 proto/proto.py TestViz.test_server
 
@@ -107,15 +107,8 @@ run_test() {
   cd -
 }
 
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "\
-# make tests
-# " C-m C-m
-# exit
-
-
 # PROTO
-# run_all_tests
+run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
@@ -317,6 +310,17 @@ run_test() {
 
 # ./test_gui
 # gdb -ex run -ex bt -args ./test_gui --target test_gui_setup
+
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto \
+#   && time make build \
+#   && cd ./proto/build/bin \
+#   && ./test_proto --target test_cam_factor_eval \
+#   && cd ~/projects/proto
+# " C-m C-m
+# exit
+
 
 ###############################################################################
 # ARDUINO
