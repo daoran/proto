@@ -1,6 +1,23 @@
 .. toctree::
    :hidden:
    :maxdepth: 2
+   :caption: Computer Vision
+
+   cv/fundamental.rst
+   cv/pinhole.rst
+   cv/radtan.rst
+   cv/equi.rst
+   cv/illum_invar.rst
+   cv/optical_flow.rst
+   cv/twoview.rst
+   cv/triangulation.rst
+   cv/ba.rst
+   cv/feature_tracking.rst
+
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
    :caption: Linear Algebra
 
    linalg/rank.rst
@@ -27,23 +44,6 @@
    stats/stddev.rst
    stats/stderr.rst
    stats/bayes.rst
-
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: Computer Vision
-
-   cv/fundamental.rst
-   cv/pinhole.rst
-   cv/radtan.rst
-   cv/equi.rst
-   cv/illum_invar.rst
-   cv/optical_flow.rst
-   cv/twoview.rst
-   cv/triangulation.rst
-   cv/ba.rst
-   cv/feature_tracking.rst
 
 .. toctree::
    :hidden:

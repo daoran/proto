@@ -55,12 +55,12 @@ Properties
   \Trace{\Mat{ABCD}} &=
     \Trace{\Mat{BCDA}} =
     \Trace{\Mat{CDAB}} =
-    \Trace{\Mat{DABC}} & \textit{Cyclic Property}\\
+    \Trace{\Mat{DABC}} & \text{Cyclic Property}\\
   % Property 8
-  \Trace{\Mat{ABC}} &\neq \Trace{\Mat{ACB}} & \textit{iff not symmetric} \\
+  \Trace{\Mat{ABC}} &\neq \Trace{\Mat{ACB}} & \text{iff not symmetric} \\
   % Property 9
   \Trace{\Mat{AB}} &\neq \Trace{\Mat{A}} \; \Trace{\Mat{B}} \\
   % Property 10
   \Trace{\Mat{A} \otimes \Mat{B}} &= \Trace{\Mat{A}} \; \Trace{\Mat{B}}
-    & \textit{Trace of Kronecker product} \\
+    & \text{Trace of Kronecker product} \\
 
