@@ -2621,7 +2621,8 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
   size_t idx = 0;
   printf("%s: ", prefix);
   for (size_t i = 0; i < n; i++) {
-    printf("%.4f ", v[idx]);
+    /* printf("%.4f ", v[idx]); */
+    printf("%.10f ", v[idx]);
     idx++;
   }
   printf("\n");
@@ -4202,6 +4203,15 @@ void quat2euler(const real_t q[4], real_t ypr[3]) {
   ypr[2] = t1;
 }
 
+void quat_print(const char *prefix, const real_t q[4]) {
+  printf("%s: [w: %.10f, x: %.10f, y: %.10f, z: %.10f]\n",
+         prefix,
+         q[0],
+         q[1],
+         q[2],
+         q[3]);
+}
+
 real_t quat_norm(const real_t q[4]) {
   return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
 }
@@ -4303,16 +4313,10 @@ void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]) {
   const real_t py = p[2];
   const real_t pz = p[3];
 
-  /* clang-format off */
-  const real_t lprod[4*4] = {
-    pw, -px, -py, -pz,
-    px, pw, -pz, py,
-    py, pz, pw, -px,
-    pz, -py, px, pw
-  };
-  /* clang-format on */
-
-  dot(lprod, 4, 4, q, 4, 1, r);
+  r[0] = pw * q[0] - px * q[1] - py * q[2] - pz * q[3];
+  r[1] = px * q[0] + pw * q[1] - pz * q[2] + py * q[3];
+  r[2] = py * q[0] + pz * q[1] + pw * q[2] - px * q[3];
+  r[3] = pz * q[0] - py * q[1] + px * q[2] + pw * q[3];
 }
 
 /**
@@ -4328,16 +4332,10 @@ void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]) {
   const real_t qy = q[2];
   const real_t qz = q[3];
 
-  /* clang-format off */
-  const real_t rprod[4*4] = {
-    qw, -qx, -qy, -qz,
-    qx, qw, qz, -qy,
-    qy, -qz, qw, qx,
-    qz, qy, -qx, qw
-  };
-  /* clang-format on */
-
-  dot(rprod, 4, 4, p, 4, 1, r);
+  r[0] = qw * q[0] - qx * q[1] - qy * q[2] - qz * q[3];
+  r[0] = qx * q[0] + qw * q[1] + qz * q[2] - qy * q[3];
+  r[0] = qy * q[0] - qz * q[1] + qw * q[2] + qx * q[3];
+  r[0] = qz * q[0] + qy * q[1] - qx * q[2] + qw * q[3];
 }
 
 /**
@@ -4380,10 +4378,15 @@ void quat_perturb(real_t q[4], const int i, const real_t h) {
   dalpha[i] = h;
   quat_delta(dalpha, dq);
 
+  print_vector("q", q, 4);
+
   /* Perturb quaternion */
   real_t q_[4] = {q[0], q[1], q[2], q[3]};
   quat_mul(q_, dq, q);
   quat_normalize(q);
+
+  print_vector("dq", dq, 4);
+  print_vector("q_diff", q, 4);
 }
 
 /*****************************************************************************
@@ -5611,15 +5614,15 @@ static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   /* Jh_weighted = -1 * sqrt_info * Jh; */
   /* J_pos = Jh_weighted * -C_CW; */
   /* J_rot = Jh_weighted * -C_CW * skew(p_W - r_WC) * -C_WC; */
-  /* J = [J_rot, J_pos] */
+  /* J = [J_pos, J_rot] */
 
   /* Setup */
   real_t C_WC[3 * 3] = {0};
   real_t C_CW[3 * 3] = {0};
   real_t r_WC[3] = {0};
   tf_rot_get(T_WC, C_WC);
-  mat_transpose(C_WC, 3, 3, C_CW);
   tf_trans_get(T_WC, r_WC);
+  mat_transpose(C_WC, 3, 3, C_CW);
 
   /* J_pos = -1 * sqrt_info * Jh * -C_CW; */
   real_t neg_C_CW[3 * 3] = {0};
@@ -5730,6 +5733,18 @@ int ba_factor_eval(ba_factor_t *factor,
   r[1] = factor->z[1] - z_hat[1];
   /* -- Weighted residual */
   dot(factor->sqrt_info, 2, 2, r, 2, 1, r_out);
+
+  /* print_vector("cam_params", cam_params, 8); */
+  /* print_vector("r_WC", r_WCi, 3); */
+  print_vector("q_WC", q_WCi, 4);
+  /* print_vector("p_W", p_W, 3); */
+  /* print_vector("p_Ci", p_Ci, 3); */
+  /* print_vector("z_hat", z_hat, 2); */
+  /* print_vector("z", factor->z, 2); */
+  /* print_vector("r", r, 2); */
+  /* print_matrix("sqrt_info", factor->sqrt_info, 2, 2); */
+  /* print_vector("r_out", r_out, 2); */
+  printf("\n");
 
   /* Calculate jacobians */
   if (J_out == NULL) {
