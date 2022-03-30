@@ -3736,11 +3736,20 @@ void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]) {
   assert(C != NULL);
   assert(r != NULL);
 
-  /* clang-format off */
-  C[0] = T[0]; C[1] = T[1]; C[2] = T[2];  r[0] = T[3];
-  C[3] = T[4]; C[4] = T[5]; C[5] = T[6];  r[1] = T[7];
-  C[6] = T[8]; C[7] = T[9]; C[8] = T[10]; r[1] = T[11];
-  /* clang-format on */
+  C[0] = T[0];
+  C[1] = T[1];
+  C[2] = T[2];
+  r[0] = T[3];
+
+  C[3] = T[4];
+  C[4] = T[5];
+  C[5] = T[6];
+  r[1] = T[7];
+
+  C[6] = T[8];
+  C[7] = T[9];
+  C[8] = T[10];
+  r[1] = T[11];
 }
 
 /**
@@ -3877,26 +3886,59 @@ void tf_inv(const real_t T[4 * 4], real_t T_inv[4 * 4]) {
   assert(T_inv != NULL);
   assert(T != T_inv);
 
-  /* Get original rotation and translation component */
+  /**
+   * Transformation T comprises of rotation C and translation r:
+   *
+   *   T = [C0, C1, C2, r0]
+   *       [C3, C4, C5, r1]
+   *       [C6, C7, C8, r2]
+   *       [0, 0, 0, 1]
+   *
+   * The inverse is therefore:
+   *
+   *   C_inv = C^T
+   *   r_inv = -C^T * r
+   *
+   *   T_inv = [C0, C3, C6, -C0*r0 - C3*r1 - C6*r2]
+   *           [C1, C4, C7, -C1*r0 - C4*r1 - C7*r2]
+   *           [C2, C5, C8, -C2*r0 - C5*r1 - C8*r2]
+   *           [0, 0, 0, 1]
+   */
+
+  /* Get rotation and translation components */
   real_t C[3 * 3] = {0};
   real_t r[3] = {0};
   tf_rot_get(T, C);
   tf_trans_get(T, r);
 
-  /* Invert rotation component */
-  real_t C_inv[3 * 3] = {0};
-  mat_transpose(C, 3, 3, C_inv);
+  /* Invert translation */
+  real_t r_out[3] = {0};
+  r_out[0] = -C[0] * r[0] - C[3] * r[1] - C[6] * r[2];
+  r_out[1] = -C[1] * r[0] - C[4] * r[1] - C[7] * r[2];
+  r_out[2] = -C[2] * r[0] - C[5] * r[1] - C[8] * r[2];
 
-  /* Set rotation component */
-  tf_rot_set(T_inv, C_inv);
+  /* First row */
+  T_inv[0] = C[0];
+  T_inv[1] = C[3];
+  T_inv[2] = C[6];
+  T_inv[3] = r_out[0];
 
-  /* Set translation component */
-  real_t r_inv[3] = {0};
-  mat_scale(C_inv, 3, 3, -1.0);
-  dot(C_inv, 3, 3, r, 3, 1, r_inv);
-  tf_trans_set(T_inv, r_inv);
+  /* Second row */
+  T_inv[4] = C[1];
+  T_inv[5] = C[4];
+  T_inv[6] = C[7];
+  T_inv[7] = r_out[1];
 
-  /* Make sure the last element is 1 */
+  /* Third row */
+  T_inv[8] = C[2];
+  T_inv[9] = C[5];
+  T_inv[10] = C[8];
+  T_inv[11] = r_out[2];
+
+  /* Fourth row */
+  T_inv[12] = 0.0;
+  T_inv[13] = 0.0;
+  T_inv[14] = 0.0;
   T_inv[15] = 1.0;
 }
 
@@ -4068,18 +4110,29 @@ void euler321(const real_t ypr[3], real_t C[3 * 3]) {
   const real_t theta = ypr[1];
   const real_t phi = ypr[2];
 
+  const real_t cpsi = cos(psi);
+  const real_t spsi = sin(psi);
+
+  const real_t ctheta = cos(theta);
+  const real_t stheta = sin(theta);
+
+  const real_t cphi = cos(phi);
+  const real_t sphi = sin(phi);
+
   /* 1st row */
-  C[0] = cos(psi) * cos(theta);
-  C[1] = cos(psi) * sin(theta) * sin(phi) - sin(psi) * cos(phi);
-  C[2] = cos(psi) * sin(theta) * cos(phi) + sin(psi) * sin(phi);
+  C[0] = cpsi * ctheta;
+  C[1] = cpsi * stheta * sphi - spsi * cphi;
+  C[2] = cpsi * stheta * cphi + spsi * sphi;
+
   /* 2nd row */
-  C[3] = sin(psi) * cos(theta);
-  C[4] = sin(psi) * sin(theta) * sin(phi) + cos(psi) * cos(phi);
-  C[5] = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi);
+  C[3] = spsi * ctheta;
+  C[4] = spsi * stheta * sphi + cpsi * cphi;
+  C[5] = spsi * stheta * cphi - cpsi * sphi;
+
   /* 3rd row */
-  C[6] = -sin(theta);
-  C[7] = cos(theta) * sin(phi);
-  C[8] = cos(theta) * cos(phi);
+  C[6] = -stheta;
+  C[7] = ctheta * sphi;
+  C[8] = ctheta * cphi;
 }
 
 /**
@@ -4090,17 +4143,17 @@ void euler2quat(const real_t ypr[3], real_t q[4]) {
   const real_t theta = ypr[1];
   const real_t phi = ypr[2];
 
-  const real_t c_phi = cos(phi / 2.0);
-  const real_t c_theta = cos(theta / 2.0);
-  const real_t c_psi = cos(psi / 2.0);
-  const real_t s_phi = sin(phi / 2.0);
-  const real_t s_theta = sin(theta / 2.0);
-  const real_t s_psi = sin(psi / 2.0);
+  const real_t cphi = cos(phi / 2.0);
+  const real_t ctheta = cos(theta / 2.0);
+  const real_t cpsi = cos(psi / 2.0);
+  const real_t sphi = sin(phi / 2.0);
+  const real_t stheta = sin(theta / 2.0);
+  const real_t spsi = sin(psi / 2.0);
 
-  const real_t qx = s_phi * c_theta * c_psi - c_phi * s_theta * s_psi;
-  const real_t qy = c_phi * s_theta * c_psi + s_phi * c_theta * s_psi;
-  const real_t qz = c_phi * c_theta * s_psi - s_phi * s_theta * c_psi;
-  const real_t qw = c_phi * c_theta * c_psi + s_phi * s_theta * s_psi;
+  const real_t qx = sphi * ctheta * cpsi - cphi * stheta * spsi;
+  const real_t qy = cphi * stheta * cpsi + sphi * ctheta * spsi;
+  const real_t qz = cphi * ctheta * spsi - sphi * stheta * cpsi;
+  const real_t qw = cphi * ctheta * cpsi + sphi * stheta * spsi;
 
   const real_t mag = sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
   q[0] = qw / mag;
@@ -4203,6 +4256,9 @@ void quat2euler(const real_t q[4], real_t ypr[3]) {
   ypr[2] = t1;
 }
 
+/**
+ * Print Quaternion
+ */
 void quat_print(const char *prefix, const real_t q[4]) {
   printf("%s: [w: %.10f, x: %.10f, y: %.10f, z: %.10f]\n",
          prefix,
@@ -4212,16 +4268,33 @@ void quat_print(const char *prefix, const real_t q[4]) {
          q[3]);
 }
 
+/**
+ * Return Quaternion norm
+ */
 real_t quat_norm(const real_t q[4]) {
   return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
 }
 
+/**
+ * Normalize Quaternion
+ */
 void quat_normalize(real_t q[4]) {
   const real_t n = quat_norm(q);
   q[0] = q[0] / n;
   q[1] = q[1] / n;
   q[2] = q[2] / n;
   q[3] = q[3] / n;
+}
+
+/**
+ * Normalize Quaternion
+ */
+void quat_normalize_copy(const real_t q[4], real_t q_normalized[4]) {
+  const real_t n = quat_norm(q);
+  q_normalized[0] = q[0] / n;
+  q_normalized[1] = q[1] / n;
+  q_normalized[2] = q[2] / n;
+  q_normalized[3] = q[3] / n;
 }
 
 /**
@@ -4548,7 +4621,7 @@ void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
   /* Apply tangential distortion */
   const real_t xy = x * y;
   const real_t x_ddash = x_dash + (2.0 * p1 * xy + p2 * (r2 + 2.0 * x2));
-  const real_t y_ddash = y_dash + (p1 * (r2 + 2.0 * y2) + 2.0 * p2 * xy);
+  const real_t y_ddash = y_dash + (2.0 * p2 * xy + p1 * (r2 + 2.0 * y2));
 
   /* Distorted point */
   p_d[0] = x_ddash;
