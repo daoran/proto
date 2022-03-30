@@ -2986,20 +2986,6 @@ int test_ba_factor_eval() {
   real_t *jacs[4] = {J0, J1, J2, J3};
   ba_factor_eval(&ba_factor, params, r, jacs);
 
-  /* print_vector("p_W", p_W, 3); */
-  /* print_vector("p_C", p_C, 3); */
-  /* print_vector("z", z, 2); */
-  /* print_vector("cam_params", cam.data, 8); */
-  /* pose_print("T_WC", &pose); */
-
-  /* print_matrix("covar", ba_factor.covar, 2, 2); */
-  /* print_matrix("sqrt_info", ba_factor.sqrt_info, 2, 2); */
-  /* print_matrix("r", r, 2, 1); */
-  /* print_matrix("J0", J0, 2, 3); */
-  /* print_matrix("J1", J1, 2, 3); */
-  /* print_matrix("J2", J2, 2, 3); */
-  /* print_matrix("J3", J3, 2, 8); */
-
   /* Check jacobians */
   const real_t step_size = 1e-8;
   const real_t tol = 1e-4;
@@ -3129,13 +3115,6 @@ int test_ba_factor_ceres_eval() {
   real_t *jacs[4] = {J0, J1, J2, J3};
   ba_factor_ceres_eval(&ba_factor, params, r, jacs);
 
-  print_matrix("covar", ba_factor.covar, 2, 2);
-  print_matrix("sqrt_info", ba_factor.sqrt_info, 2, 2);
-  print_matrix("r", r, 2, 1);
-  print_matrix("J0", J0, 2, 7);
-  print_matrix("J1", J1, 2, 3);
-  print_matrix("J2", J2, 2, 8);
-
   return 0;
 }
 
@@ -3258,16 +3237,6 @@ int test_cam_factor_eval() {
   real_t J5[2 * 3] = {0};
   real_t *jacs[6] = {J0, J1, J2, J3, J4, J5};
   cam_factor_eval(&cam_factor, params, r, jacs);
-
-  /* print_matrix("covar", cam_factor.covar, 2, 2); */
-  /* print_matrix("sqrt_info", cam_factor.sqrt_info, 2, 2); */
-  /* print_matrix("r", r, 2, 1); */
-  /* print_matrix("J0", J0, 2, 3); */
-  /* print_matrix("J1", jacs[1], 2, 3); */
-  /* print_matrix("J2", jacs[2], 2, 3); */
-  /* print_matrix("J3", jacs[3], 2, 3); */
-  /* print_matrix("J4", jacs[4], 2, 8); */
-  /* print_matrix("J5", jacs[5], 2, 3); */
 
   /* Check jacobians */
   real_t step_size = 1e-8;
