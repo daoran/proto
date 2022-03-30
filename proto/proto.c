@@ -3228,6 +3228,39 @@ void dot(const real_t *A,
   assert(A_m > 0 && A_n > 0 && B_m > 0 && B_n > 0);
   assert(A_n == B_m);
 
+#ifdef USE_CBLAS
+#if PRECISION == 1
+  cblas_sgemm(CblasRowMajor, /* Matrix data arrangement */
+              CblasNoTrans,  /* Transpose A */
+              CblasNoTrans,  /* Transpose B */
+              A_m,           /* Number of rows in A and C */
+              B_n,           /* Number of cols in B and C */
+              A_n,           /* Number of cols in A */
+              1.0,           /* Scaling factor for the product of A and B */
+              A,             /* Matrix A */
+              A_n,           /* First dimension of A */
+              B,             /* Matrix B */
+              B_n,           /* First dimension of B */
+              0.0,           /* Scale factor for C */
+              C,             /* Output */
+              B_n);          /* First dimension of C */
+#elif PRECISION == 2
+  cblas_dgemm(CblasRowMajor, /* Matrix data arrangement */
+              CblasNoTrans,  /* Transpose A */
+              CblasNoTrans,  /* Transpose B */
+              A_m,           /* Number of rows in A and C */
+              B_n,           /* Number of cols in B and C */
+              A_n,           /* Number of cols in A */
+              1.0,           /* Scaling factor for the product of A and B */
+              A,             /* Matrix A */
+              A_n,           /* First dimension of A */
+              B,             /* Matrix B */
+              B_n,           /* First dimension of B */
+              0.0,           /* Scale factor for C */
+              C,             /* Output */
+              B_n);          /* First dimension of C */
+#endif
+#else
   size_t m = A_m;
   size_t n = B_n;
 
@@ -3238,6 +3271,8 @@ void dot(const real_t *A,
       }
     }
   }
+
+#endif
 }
 
 /**
@@ -3377,57 +3412,6 @@ int check_jacobian(const char *jac_name,
 
   return retval;
 }
-
-#ifdef USE_CBLAS
-/**
- * Dot product of two matrices or vectors `A` and `B` of size `A_m x A_n` and
- * `B_m x B_n` using CBLAS. Results are written to `C`.
- */
-void cblas_dot(const real_t *A,
-               const size_t A_m,
-               const size_t A_n,
-               const real_t *B,
-               const size_t B_m,
-               const size_t B_n,
-               real_t *C) {
-  UNUSED(B_m);
-  assert(A != NULL && B != NULL && C != NULL);
-  assert(A_m > 0 && A_n > 0 && B_m > 0 && B_n > 0);
-  assert(A_n == B_m);
-
-#if PRECISION == 1
-  cblas_sgemm(CblasRowMajor, /* Matrix data arrangement */
-              CblasNoTrans,  /* Transpose A */
-              CblasNoTrans,  /* Transpose B */
-              A_m,           /* Number of rows in A and C */
-              B_n,           /* Number of cols in B and C */
-              A_n,           /* Number of cols in A */
-              1.0,           /* Scaling factor for the product of A and B */
-              A,             /* Matrix A */
-              A_n,           /* First dimension of A */
-              B,             /* Matrix B */
-              B_n,           /* First dimension of B */
-              0.0,           /* Scale factor for C */
-              C,             /* Output */
-              B_n);          /* First dimension of C */
-#elif PRECISION == 2
-  cblas_dgemm(CblasRowMajor, /* Matrix data arrangement */
-              CblasNoTrans,  /* Transpose A */
-              CblasNoTrans,  /* Transpose B */
-              A_m,           /* Number of rows in A and C */
-              B_n,           /* Number of cols in B and C */
-              A_n,           /* Number of cols in A */
-              1.0,           /* Scaling factor for the product of A and B */
-              A,             /* Matrix A */
-              A_n,           /* First dimension of A */
-              B,             /* Matrix B */
-              B_n,           /* First dimension of B */
-              0.0,           /* Scale factor for C */
-              C,             /* Output */
-              B_n);          /* First dimension of C */
-#endif
-}
-#endif
 
 /******************************************************************************
  * SVD
@@ -4015,6 +3999,24 @@ void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
   /* Perturb translation */
   const real_t r_diff[3] = {r[0] + dr[0], r[1] + dr[1], r[2] + dr[2]};
   tf_trans_set(T, r_diff);
+}
+
+/**
+ * Chain `N` homogeneous transformations `tfs`.
+ */
+void tf_chain(const real_t **tfs, const int N, real_t T_out[4 * 4]) {
+  assert(tfs != NULL);
+  assert(T_out != NULL);
+
+  /* Initialize T_out with the first transform in tfs */
+  mat_copy(tfs[0], 4, 4, T_out);
+
+  /* Chain transforms */
+  for (int i = 1; i < N; i++) {
+    real_t T_from[4 * 4] = {0};
+    mat_copy(T_out, 4, 4, T_from);
+    dot(T_from, 4, 4, tfs[i], 4, 4, T_out);
+  }
 }
 
 /**

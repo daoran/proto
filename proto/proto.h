@@ -651,16 +651,6 @@ int check_jacobian(const char *jac_name,
                    const real_t tol,
                    const int verbose);
 
-#ifdef USE_CBLAS
-void cblas_dot(const real_t *A,
-               const size_t A_m,
-               const size_t A_n,
-               const real_t *B,
-               const size_t B_m,
-               const size_t B_n,
-               real_t *C);
-#endif
-
 /******************************************************************************
  * SVD
  ******************************************************************************/
@@ -703,6 +693,7 @@ void tf_point(const real_t T[4 * 4], const real_t p[3], real_t retval[3]);
 void tf_hpoint(const real_t T[4 * 4], const real_t p[4], real_t retval[4]);
 void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i);
+void tf_chain(const real_t **tfs, const int nb_tfs, real_t T_out[4 * 4]);
 void print_pose_vector(const char *prefix, const real_t pose[7]);
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R);
 void euler321(const real_t ypr[3], real_t C[3 * 3]);
