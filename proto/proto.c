@@ -5807,18 +5807,6 @@ int ba_factor_eval(ba_factor_t *factor,
   /* -- Weighted residual */
   dot(factor->sqrt_info, 2, 2, r, 2, 1, r_out);
 
-  /* print_vector("cam_params", cam_params, 8); */
-  /* print_vector("r_WC", r_WCi, 3); */
-  print_vector("q_WC", q_WCi, 4);
-  /* print_vector("p_W", p_W, 3); */
-  /* print_vector("p_Ci", p_Ci, 3); */
-  /* print_vector("z_hat", z_hat, 2); */
-  /* print_vector("z", factor->z, 2); */
-  /* print_vector("r", r, 2); */
-  /* print_matrix("sqrt_info", factor->sqrt_info, 2, 2); */
-  /* print_vector("r_out", r_out, 2); */
-  printf("\n");
-
   /* Calculate jacobians */
   if (J_out == NULL) {
     return 0;
