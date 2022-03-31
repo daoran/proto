@@ -1960,6 +1960,11 @@ int test_tf_perturb_trans() {
   return 0;
 }
 
+int test_tf_chain() {
+
+  return 0;
+}
+
 int test_euler321() {
   /* Euler to rotation matrix */
   const real_t euler[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
@@ -4457,6 +4462,7 @@ void test_suite() {
   MU_ADD_TEST(test_tf_hpoint);
   MU_ADD_TEST(test_tf_perturb_rot);
   MU_ADD_TEST(test_tf_perturb_trans);
+  MU_ADD_TEST(test_tf_chain);
   MU_ADD_TEST(test_euler321);
   MU_ADD_TEST(test_rot2quat);
   MU_ADD_TEST(test_quat2euler);
