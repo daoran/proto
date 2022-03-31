@@ -18,6 +18,8 @@ run_memcheck() {
 # PYTHON
 ###############################################################################
 
+# python3 scripts/codegen.py
+
 # ctags proto/proto.c proto/proto.py
 # python3 proto/proto.py
 # python3 proto/proto.py TestNetwork.test_http_parse_request
