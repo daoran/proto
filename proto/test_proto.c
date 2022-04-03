@@ -2,8 +2,8 @@
 #include "proto.h"
 
 /* TEST PARAMS */
-#define M 10
-#define N 10
+/* #define M 10 */
+/* #define N 10 */
 #define TEST_DATA_PATH "./test_data/"
 #define TEST_CSV TEST_DATA_PATH "test_csv.csv"
 #define TEST_POSES_CSV TEST_DATA_PATH "poses.csv"
@@ -1961,6 +1961,45 @@ int test_tf_perturb_trans() {
 }
 
 int test_tf_chain() {
+  /* First transform */
+  const real_t r0[3] = {0.0, 0.0, 0.1};
+  const real_t euler0[3] = {deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
+  real_t T0[4 * 4] = {0};
+  real_t C0[9] = {0};
+
+  euler321(euler0, C0);
+  tf_rot_set(T0, C0);
+  tf_trans_set(T0, r0);
+  T0[15] = 1.0;
+
+  /* Second transform */
+  const real_t r1[3] = {0.0, 0.0, 0.1};
+  const real_t euler1[3] = {deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
+  real_t T1[4 * 4] = {0};
+  real_t C1[9] = {0};
+
+  euler321(euler1, C1);
+  tf_rot_set(T1, C1);
+  tf_trans_set(T1, r1);
+  T1[15] = 1.0;
+
+  /* Third transform */
+  const real_t r2[3] = {0.0, 0.0, 0.1};
+  const real_t euler2[3] = {deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
+  real_t T2[4 * 4] = {0};
+  real_t C2[9] = {0};
+
+  euler321(euler2, C2);
+  tf_rot_set(T2, C2);
+  tf_trans_set(T2, r2);
+  T2[15] = 1.0;
+
+  /* Chain transforms */
+  const real_t *tfs[3] = {T0, T1, T2};
+  const int N = 3;
+  real_t T_out[4 * 4] = {0};
+  tf_chain(tfs, N, T_out);
+  print_matrix("T_out", T_out, 4, 4);
 
   return 0;
 }
@@ -2061,7 +2100,8 @@ int test_lie_Exp_Log() {
  * CV
  ******************************************************************************/
 
-/* IMAGE ---------------------------------------------------------------------*/
+/* IMAGE
+ * ---------------------------------------------------------------------*/
 
 int test_image_setup() {
   return 0;
@@ -2079,7 +2119,8 @@ int test_image_free() {
   return 0;
 }
 
-/* GEOMETRY ------------------------------------------------------------------*/
+/* GEOMETRY
+ * ------------------------------------------------------------------*/
 
 int test_linear_triangulation() {
   /* Setup camera */
@@ -2150,7 +2191,8 @@ int test_linear_triangulation() {
   return 0;
 }
 
-/* RADTAN --------------------------------------------------------------------*/
+/* RADTAN
+ * --------------------------------------------------------------------*/
 
 int test_radtan4_distort() {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
@@ -2234,7 +2276,8 @@ int test_radtan4_params_jacobian() {
   return 0;
 }
 
-/* EQUI ----------------------------------------------------------------------*/
+/* EQUI
+ * ----------------------------------------------------------------------*/
 
 int test_equi4_distort() {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
@@ -2318,7 +2361,8 @@ int test_equi4_params_jacobian() {
   return 0;
 }
 
-/* PINHOLE -------------------------------------------------------------------*/
+/* PINHOLE
+ * -------------------------------------------------------------------*/
 
 int test_pinhole_focal() {
   const real_t focal = pinhole_focal(640, 90.0);
@@ -2487,7 +2531,8 @@ int test_pinhole_params_jacobian() {
   return 0;
 }
 
-/* PINHOLE-RADTAN4 -----------------------------------------------------------*/
+/* PINHOLE-RADTAN4
+ * -----------------------------------------------------------*/
 
 int test_pinhole_radtan4_project() {
   /* Camera parameters */
@@ -2606,7 +2651,8 @@ int test_pinhole_radtan4_params_jacobian() {
   return 0;
 }
 
-/* PINHOLE-EQUI4 -------------------------------------------------------------*/
+/* PINHOLE-EQUI4
+ * -------------------------------------------------------------*/
 
 int test_pinhole_equi4_project() {
   /* Camera parameters */
@@ -3692,7 +3738,8 @@ int test_assoc_pose_data() {
  * SIM
  ******************************************************************************/
 
-// SIM FEATURES ////////////////////////////////////////////////////////////////
+// SIM FEATURES
+// ////////////////////////////////////////////////////////////////
 
 int test_load_sim_features() {
   const char *csv_file = TEST_SIM_DATA "/features.csv";
@@ -3702,7 +3749,8 @@ int test_load_sim_features() {
   return 0;
 }
 
-// SIM IMU DATA ////////////////////////////////////////////////////////////////
+// SIM IMU DATA
+// ////////////////////////////////////////////////////////////////
 
 int test_load_sim_imu_data() {
   const char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
@@ -3711,7 +3759,8 @@ int test_load_sim_imu_data() {
   return 0;
 }
 
-// SIM CAMERA DATA /////////////////////////////////////////////////////////////
+// SIM CAMERA DATA
+// /////////////////////////////////////////////////////////////
 
 int test_load_sim_cam_frame() {
   const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
@@ -3819,7 +3868,8 @@ int test_graph_eval() {
  ******************************************************************************/
 #ifdef USE_GUI
 
-// OPENGL UTILS ////////////////////////////////////////////////////////////////
+// OPENGL UTILS
+// ////////////////////////////////////////////////////////////////
 
 int test_gl_zeros() {
   /* clang-format off */
@@ -4105,7 +4155,8 @@ int test_gl_lookat() {
   return 0;
 }
 
-// SHADER //////////////////////////////////////////////////////////////////////
+// SHADER
+// //////////////////////////////////////////////////////////////////////
 
 int test_shader_compile() {
   /* SDL init */
@@ -4206,7 +4257,8 @@ int test_shader_link() {
   return 0;
 }
 
-// GL PROGRAM //////////////////////////////////////////////////////////////////
+// GL PROGRAM
+// //////////////////////////////////////////////////////////////////
 
 int test_gl_prog_setup() {
   /* SDL init */
@@ -4252,7 +4304,8 @@ int test_gl_prog_setup() {
   return 0;
 }
 
-// GL-CAMERA ///////////////////////////////////////////////////////////////////
+// GL-CAMERA
+// ///////////////////////////////////////////////////////////////////
 
 int test_gl_camera_setup() {
   int window_width = 640;
@@ -4292,7 +4345,8 @@ int test_gl_camera_setup() {
   return 0;
 }
 
-// GUI /////////////////////////////////////////////////////////////////////////
+// GUI
+// /////////////////////////////////////////////////////////////////////////
 
 int test_gui() {
   gui_t gui;
@@ -4306,7 +4360,8 @@ int test_gui() {
   return 0;
 }
 
-// IMSHOW //////////////////////////////////////////////////////////////////////
+// IMSHOW
+// //////////////////////////////////////////////////////////////////////
 
 int test_imshow() {
   imshow_t imshow;
