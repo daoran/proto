@@ -44,7 +44,7 @@ module stack_module(w, h, plate=1, plate_holes=1) {
   tol = 1.1;
   screw_size = 5;
   screw_hsize = screw_size / 2.0;
-  support_h = 5;
+  support_h = h;
 
   col_start = 30.0;
   col_end = w - col_start;
@@ -68,7 +68,7 @@ module stack_module(w, h, plate=1, plate_holes=1) {
       }
       // Plate holes
       if (plate_holes) {
-        hole_r = 10;
+        hole_r = 6;
         a = w / 5.0;
         b = sqrt(a * a + a * a);
 
@@ -139,11 +139,27 @@ module nuc_stack(w, h) {
   // Parameters
   pcb_w = 95.0;
   pcb_d = 90.4;
-  standoff_h = 10.0;
+  standoff_h = 12.0;
   standoff_r = 2.5;
 
   translate([0.0, 0.0, h / 2])
     nuc_standoffs(pcb_w, pcb_d, standoff_h, standoff_r);
+
+  difference() {
+    translate([-w / 2.0 - 4.5, 0.0, 0.0])
+      cube([8.0, 90.0, h], center=true);
+
+    translate([-w / 2.0 - 4.5, 0.0, 0.0])
+      cube([4.0, 85.0, h + 0.1], center=true);
+  }
+
+  difference() {
+    translate([w / 2.0 + 4.5, 0.0, 0.0])
+      cube([8.0, 50.0, h], center=true);
+
+    translate([w / 2.0 + 4.5, 0.0, 0.0])
+      cube([4.0, 45.0, h + 0.1], center=true);
+  }
 
   stack_module(w, h);
 }
@@ -200,11 +216,11 @@ module realsense_holder() {
 }
 
 module assembly() {
-  stack_w = 140;
-  stack_d = 140;
+  stack_w = 110;
+  stack_d = 110;
   stack_h = 3.0;
 
-  // // Intel NUC
+  // Intel NUC
   // #translate([0, 0, -16.5]) {
   //   rotate([90.0, 0.0, 90.0]) {
   //     import("/home/chutsu/components/NUC7i5DN.stl");
