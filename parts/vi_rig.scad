@@ -40,9 +40,24 @@ module nuc_standoffs(w, d, h, r) {
   };
 }
 
-module stack_module(w, h, plate=1, plate_holes=1) {
+module pololu_standoffs() {
+  screw_size = 3.0;
+  screw_hsize = screw_size / 2.0;
+  tol = 1.2;
+
+  mount_w = 43.2;
+  mount_d = 10.2;
+  mount_h = 5.0;
+
+  translate([mount_w / 2.0, mount_d / 2.0, mount_h / 2.0])
+    standoff(h=mount_h, r=screw_hsize * tol);
+  translate([-mount_w / 2.0, -mount_d / 2.0, mount_h / 2.0])
+    standoff(h=mount_h, r=screw_hsize * tol);
+}
+
+module stack_module(w, h, plate=1, plate_holes=1, side_holes=1) {
   tol = 1.1;
-  screw_size = 5;
+  screw_size = 3;
   screw_hsize = screw_size / 2.0;
   support_h = h;
 
@@ -94,14 +109,16 @@ module stack_module(w, h, plate=1, plate_holes=1) {
         }
       }
       // Side holes
-      for (i = [0 : 90 : 360] ){
-        rotate([0, 0, i]) {
-          translate([(w / 2.0) - 12.0, 0.0, 0.0])
-            cube([12, w * 0.4, support_h + 0.01], center=true);
-          translate([(w / 2.0) - 12.0, (w * 0.4) / 2, 0.0])
-            cylinder(support_h + 0.01, r=6, center=true);
-          translate([(w / 2.0) - 12.0, -(w * 0.4) / 2, 0.0])
-            cylinder(support_h + 0.01, r=6, center=true);
+      if (side_holes) {
+        for (i = [0 : 90 : 360] ){
+          rotate([0, 0, i]) {
+            translate([(w / 2.0) - 12.0, 0.0, 0.0])
+              cube([12, w * 0.4, support_h + 0.01], center=true);
+            translate([(w / 2.0) - 12.0, (w * 0.4) / 2, 0.0])
+              cylinder(support_h + 0.01, r=6, center=true);
+            translate([(w / 2.0) - 12.0, -(w * 0.4) / 2, 0.0])
+              cylinder(support_h + 0.01, r=6, center=true);
+          }
         }
       }
     }
@@ -128,11 +145,49 @@ module stack_module(w, h, plate=1, plate_holes=1) {
   for (i = [0 : 90 : 360] ){
     rotate([0, 0, i]) {
       translate([0.0, w / 2.0, 0.0]) {
-        // Support
-        cube([w - 12 + 3, support_h, support_h],  center=true);
+        cube([w - screw_size - 1, support_h, support_h],  center=true);
       }
     }
   }
+}
+
+module top_stack(w, h, batt_w, batt_d, batt_h) {
+  screw_size = 3.0;
+  screw_hsize = screw_size / 2.0;
+  tol = 1.2;
+
+  // Stack module plate
+  difference() {
+    stack_module(w, h, 1, 0, 0);
+
+    // Battery strap holes
+    translate([0.0, batt_w / 2.0 + 3, 0.0])
+      cube([25, 3, h + 0.01], center=true);
+    translate([0.0, -batt_w / 2.0 - 3, 0.0])
+      cube([25, 3, h + 0.01], center=true);
+    // Extra mount holes
+    translate([(w - 30) / 2.0, 35, 0.0])
+      cylinder(h + 0.01, r=screw_hsize * tol, center=true);
+    translate([-(w - 30) / 2.0, 35, 0.0])
+      cylinder(h + 0.01, r=screw_hsize * tol, center=true);
+    translate([(w - 30) / 2.0, -35, 0.0])
+      cylinder(h + 0.01, r=screw_hsize * tol, center=true);
+    translate([-(w - 30) / 2.0, -35, 0.0])
+      cylinder(h + 0.01, r=screw_hsize * tol, center=true);
+  }
+
+  // Rear cable rails
+  difference() {
+    translate([-w / 2.0 - 4.5, 0.0, 0.0])
+      cube([8.0, 90.0, h], center=true);
+
+    translate([-w / 2.0 - 4.5, 0.0, 0.0])
+      cube([4.0, 85.0, h + 0.1], center=true);
+  }
+
+  // Voltage-regulator standoffs
+  translate([0.0, 40.0, h / 2.0])
+    pololu_standoffs();
 }
 
 module nuc_stack(w, h) {
@@ -142,9 +197,20 @@ module nuc_stack(w, h) {
   standoff_h = 12.0;
   standoff_r = 2.5;
 
+  // NUC standoffs
   translate([0.0, 0.0, h / 2])
     nuc_standoffs(pcb_w, pcb_d, standoff_h, standoff_r);
 
+  // Front cable rails
+  difference() {
+    translate([w / 2.0 + 4.5, 0.0, 0.0])
+      cube([8.0, 50.0, h], center=true);
+
+    translate([w / 2.0 + 4.5, 0.0, 0.0])
+      cube([4.0, 45.0, h + 0.1], center=true);
+  }
+
+  // Rear cable rails
   difference() {
     translate([-w / 2.0 - 4.5, 0.0, 0.0])
       cube([8.0, 90.0, h], center=true);
@@ -153,13 +219,6 @@ module nuc_stack(w, h) {
       cube([4.0, 85.0, h + 0.1], center=true);
   }
 
-  difference() {
-    translate([w / 2.0 + 4.5, 0.0, 0.0])
-      cube([8.0, 50.0, h], center=true);
-
-    translate([w / 2.0 + 4.5, 0.0, 0.0])
-      cube([4.0, 45.0, h + 0.1], center=true);
-  }
 
   stack_module(w, h);
 }
@@ -220,27 +279,49 @@ module assembly() {
   stack_d = 110;
   stack_h = 3.0;
 
-  // Intel NUC
-  // #translate([0, 0, -16.5]) {
-  //   rotate([90.0, 0.0, 90.0]) {
-  //     import("/home/chutsu/components/NUC7i5DN.stl");
-  //   }
-  // }
+  batt_w = 48.0;
+  batt_d = 140.0;
+  batt_h = 27.0;
 
-  // // Intel RealSense D435i
-  // translate([stack_w + 10, 0, 0]) {
-  //   rotate([90.0, 0.0, 90.0]) {
-  //     #import("/home/chutsu/components/Intel_RealSense_Depth_Camera_D435.stl");
-  //   }
-  // }
+  pololu_w = 48.3;
+  pololu_d = 15.2;
+
+  // Intel NUC
+  #translate([0, 0, -14]) {
+    rotate([90.0, 0.0, 90.0]) {
+      import("/home/chutsu/components/NUC7i5DN.stl");
+    }
+  }
+
+  // Intel RealSense D435i
+  translate([stack_w + 10, 0, 0]) {
+    rotate([90.0, 0.0, 90.0]) {
+      #import("/home/chutsu/components/Intel_RealSense_Depth_Camera_D435.stl");
+    }
+  }
+
+  // Pololu Voltage Regulator U3V50X
+  color([0, 1, 0])
+    translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 38.5]) {
+      rotate([0.0, 0.0, 0.0]) {
+        import("/home/chutsu/components/Pololu-U3V50X.stl");
+      }
+    }
+
+  // Battery
+  translate([0.0, 0.0, 32.0])
+    rotate([0.0, 0.0, 90.0])
+      translate([0.0, 0.0, batt_h / 2.0 + stack_h / 2.0])
+        #cube([batt_w, batt_d, batt_h], center=true);
+
 
   // translate([120.0, 0.0, 0.0])
   //   rotate([90.0, 0.0, -90.0])
   // #realsense_holder();
 
-  // // Top stack
-  // translate([0.0, 0.0, 30.0])
-  //   stack_module(stack_w, stack_h, 1, 0);
+  // Top stack
+  translate([0.0, 0.0, 32.0])
+    top_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
 
   // Intel NUC stack module
   nuc_stack(stack_w, stack_h);
