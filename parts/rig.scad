@@ -234,7 +234,7 @@ module realsense_holder() {
 
   // rotate([0.0, 180.0, 0.0])
   //   translate([0.0, 0.0, mount_h / 2.0 + 25])
-  //   import("/home/chutsu/components/Intel_RealSense_Depth_Camera_D435.stl");
+  //   import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/Intel_RealSense_Depth_Camera_D435.stl");
 
   // Main back plate
   difference() {
@@ -287,32 +287,35 @@ module assembly() {
   pololu_d = 15.2;
 
   // Intel NUC
-  #translate([0, 0, -14]) {
+  color([0.0, 0.0, 1.0])
+  translate([0, 0, -14]) {
     rotate([90.0, 0.0, 90.0]) {
-      import("/home/chutsu/components/NUC7i5DN.stl");
+      import("/home/chutsu/projects/proto_parts/Intel_NUC7i5DN/NUC7i5DN.stl");
     }
   }
 
   // Intel RealSense D435i
+  color([1.0, 0.0, 0.0])
   translate([stack_w + 10, 0, 0]) {
     rotate([90.0, 0.0, 90.0]) {
-      #import("/home/chutsu/components/Intel_RealSense_Depth_Camera_D435.stl");
+      import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/Intel_RealSense_Depth_Camera_D435.stl");
     }
   }
 
   // Pololu Voltage Regulator U3V50X
   color([0, 1, 0])
-    translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 38.5]) {
-      rotate([0.0, 0.0, 0.0]) {
-        import("/home/chutsu/components/Pololu-U3V50X.stl");
-      }
+  translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 38.5]) {
+    rotate([0.0, 0.0, 0.0]) {
+      import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.stl");
     }
+  }
 
   // Battery
+  color([1.0, 0.0, 1.0])
   translate([0.0, 0.0, 32.0])
     rotate([0.0, 0.0, 90.0])
       translate([0.0, 0.0, batt_h / 2.0 + stack_h / 2.0])
-        #cube([batt_w, batt_d, batt_h], center=true);
+        cube([batt_w, batt_d, batt_h], center=true);
 
 
   // translate([120.0, 0.0, 0.0])
