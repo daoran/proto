@@ -151,6 +151,33 @@ module stack_module(w, h, plate=1, plate_holes=1, side_holes=1) {
   }
 }
 
+module stack_spacer(h, nut_counter_sink=1) {
+  screw_size = 3.0;
+  screw_hsize = screw_size / 2.0;
+  nut_w = 6.5;
+  nut_h = 2.5;
+  tol = 0.2;
+
+  translate([0.0, 0.0, h / 2.0]) {
+    difference() {
+      // Spacer body
+      cylinder(h=h, r=screw_hsize + 2.5, center=true);
+
+      // Thread hole
+      cylinder(h=h + 0.01, r=screw_hsize + tol, center=true);
+      // Nut counter sinks
+      if (nut_counter_sink) {
+        translate([0.0, 0.0, h / 2.0 - nut_h / 2.0]) {
+          cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+        }
+        translate([0.0, 0.0, -h / 2.0 + nut_h / 2.0]) {
+          cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+        }
+      }
+    }
+  }
+}
+
 module top_stack(w, h, batt_w, batt_d, batt_h) {
   screw_size = 3.0;
   screw_hsize = screw_size / 2.0;
@@ -223,8 +250,9 @@ module nuc_stack(w, h) {
   stack_module(w, h);
 }
 
-module realsense_holder() {
+module realsense_stack(w, h) {
   screw_size = 3.0;
+  screw_hsize = screw_size / 2.0;
   tol = 0.2;
 
   holes_w = 45.0;
@@ -232,11 +260,52 @@ module realsense_holder() {
   mount_d = 20.0;
   mount_h = 3.0;
 
-  // rotate([0.0, 180.0, 0.0])
-  //   translate([0.0, 0.0, mount_h / 2.0 + 25])
-  //   import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/Intel_RealSense_Depth_Camera_D435.stl");
+  // Stack frame top
+  translate([0.0, 0.0, 0.0])
+    stack_module(w, h, plate=0, plate_holes=0, side_holes=0);
 
-  // Main back plate
+  // Stack frame bottom
+  translate([0.0, 0.0, mount_d + h / 2.0])
+    stack_module(w, h, plate=0, plate_holes=0, side_holes=0);
+
+  // Corner spacers
+  for (i = [0 : 90 : 360] ){
+    rotate([0, 0, i]) {
+      difference() {
+        // Spacer
+        translate([w / 2.0, w / 2.0, mount_d / 2.0]) {
+          cylinder(mount_d, r=screw_hsize * 2.3, center=true);
+        }
+
+        // Hole
+        translate([w / 2.0, w / 2.0, mount_d / 2.0]) {
+          cylinder(mount_d + 0.01, r=screw_hsize + tol, center=true);
+        }
+      }
+    }
+  }
+
+  // Cable management
+  difference() {
+    cube([w, 20.0, mount_h],  center=true);
+
+    translate([0.0, 5.0, 0.0])
+      cube([10.0, 2.0, mount_h + 0.01],  center=true);
+    translate([0.0, -5.0, 0.0])
+      cube([10.0, 2.0, mount_h + 0.01],  center=true);
+    translate([w * 0.25, 5.0, 0.0])
+      cube([10.0, 2.0, mount_h + 0.01],  center=true);
+    translate([w * 0.25, -5.0, 0.0])
+      cube([10.0, 2.0, mount_h + 0.01],  center=true);
+    translate([-w * 0.25, 5.0, 0.0])
+      cube([10.0, 2.0, mount_h + 0.01],  center=true);
+    translate([-w * 0.25, -5.0, 0.0])
+      cube([10.0, 2.0, mount_h + 0.01],  center=true);
+  }
+
+  // Realsense back plate
+  translate([w / 2.0, 0.0, mount_d / 2.0 + h / 2.0])
+  rotate([90.0, 0.0, 90.0])
   difference() {
     cube([mount_w, mount_d, mount_h],  center=true);
 
@@ -247,34 +316,9 @@ module realsense_holder() {
       cylinder(h=mount_h + 0.01, r=(screw_size / 2.0) + tol, center=true);
     }
   }
-
-  // // Cable management
-  // translate([0.0, 0.0, mount_h / 2.0 + 6.0 / 2.0])
-  //   cube([30, 15.0, 6],  center=true);
-
-  // Lip
-  lip_w = mount_w; 
-  lip_d = 3.0;
-  lip_h = 25.0;
-  // x = -mount_w / 2.0 + lip_w / 2.0;
-  x = 0.0;
-  y = -mount_d / 2.0 + lip_d / 2.0;
-  z = mount_h / 2.0 + lip_h / 2.0;
-
-  difference() {
-    translate([x, y, z])
-      cube([lip_w, 3.0, lip_h],  center=true);
-
-    translate([lip_w / 2.0 - 10, -mount_d / 2.0 + lip_d / 2.0, lip_h - 8.0])
-      rotate([90.0, 0.0, 0.0])
-        cylinder(h=lip_d + 0.01, r=(screw_size / 2.0) + tol, center=true);
-    translate([-lip_w / 2.0 + 10, -mount_d / 2.0 + lip_d / 2.0, lip_h - 8.0])
-      rotate([90.0, 0.0, 0.0])
-        cylinder(h=lip_d + 0.01, r=(screw_size / 2.0) + tol, center=true);
-  }
 }
 
-module assembly() {
+module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
   stack_w = 110;
   stack_d = 110;
   stack_h = 3.0;
@@ -287,54 +331,65 @@ module assembly() {
   pololu_d = 15.2;
 
   // Intel NUC
-  color([0.0, 0.0, 1.0])
-  translate([0, 0, -14]) {
-    rotate([90.0, 0.0, 90.0]) {
-      import("/home/chutsu/projects/proto_parts/Intel_NUC7i5DN/NUC7i5DN.stl");
+  if (show_sbc) {
+    color([0.0, 0.0, 1.0])
+    translate([0, 0, -14]) {
+      rotate([90.0, 0.0, 90.0]) {
+        import("/home/chutsu/projects/proto_parts/Intel_NUC7i5DN/NUC7i5DN.stl");
+      }
     }
   }
 
   // Intel RealSense D435i
-  color([1.0, 0.0, 0.0])
-  translate([stack_w + 10, 0, 0]) {
-    rotate([90.0, 0.0, 90.0]) {
-      import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/Intel_RealSense_Depth_Camera_D435.stl");
+  if (show_cam) {
+    color([1.0, 0.0, 0.0])
+    translate([stack_w / 2.0 + 26.5, 0, -12.5]) {
+      rotate([90.0, 0.0, 90.0]) {
+        import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/Intel_RealSense_Depth_Camera_D435.stl");
+      }
     }
   }
 
   // Pololu Voltage Regulator U3V50X
-  color([0, 1, 0])
-  translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 38.5]) {
-    rotate([0.0, 0.0, 0.0]) {
-      import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.stl");
+  if (show_voltreg) {
+    color([0, 1, 0])
+    translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 38.5]) {
+      rotate([0.0, 0.0, 0.0]) {
+        import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.stl");
+      }
     }
   }
 
   // Battery
-  color([1.0, 0.0, 1.0])
-  translate([0.0, 0.0, 32.0])
-    rotate([0.0, 0.0, 90.0])
-      translate([0.0, 0.0, batt_h / 2.0 + stack_h / 2.0])
-        cube([batt_w, batt_d, batt_h], center=true);
-
-
-  // translate([120.0, 0.0, 0.0])
-  //   rotate([90.0, 0.0, -90.0])
-  // #realsense_holder();
+  if (show_batt) {
+    color([1.0, 0.0, 1.0])
+    translate([0.0, 0.0, 33.0])
+      rotate([0.0, 0.0, 90.0])
+        translate([0.0, 0.0, batt_h / 2.0 + stack_h / 2.0])
+          cube([batt_w, batt_d, batt_h], center=true);
+  }
 
   // Top stack
-  translate([0.0, 0.0, 32.0])
+  translate([0.0, 0.0, 33.0])
     top_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
 
   // Intel NUC stack module
   nuc_stack(stack_w, stack_h);
 
-  // // Bottom stack
-  // translate([0.0, 0.0, -30.0])
-  //   stack_module(stack_w, stack_h, 1);
+  // NUC stack spacers
+  for (i = [0 : 90 : 360] ){
+    rotate([0, 0, i]) {
+      translate([stack_w / 2.0, stack_d / 2.0, stack_h / 2.0])
+        stack_spacer(30.0);
+    }
+  }
+
+  // RealSense holder
+  translate([0.0, 0.0, -24.0])
+    realsense_stack(stack_w, stack_h);
 }
 
 // Main
-assembly();
-
-// realsense_holder();
+// assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
+stack_spacer(30.0);
+// realsense_stack();
