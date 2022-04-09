@@ -178,6 +178,44 @@ module stack_spacer(h, nut_counter_sink=1) {
   }
 }
 
+module spacer_tool() {
+  h = 25.0;
+  screw_size = 3.0;
+  screw_hsize = screw_size / 2.0;
+  nut_w = 6.5;
+  nut_h = 3;
+  tol = 0.2;
+
+  wing_w = 35.0;
+  wing_d = 8.0;
+  wing_h = 5.0;
+
+  translate([0.0, 0.0, h / 2.0]) {
+    difference() {
+      // Spacer body
+      cylinder(h=h, r=screw_hsize + 2.5, center=true);
+
+      // Thread hole
+      cylinder(h=h + 0.01, r=screw_hsize + tol, center=true);
+      // Nut counter sinks
+      translate([0.0, 0.0, h / 2.0 - nut_h / 2.0]) {
+        cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+      }
+      translate([0.0, 0.0, -h / 2.0 + nut_h / 2.0]) {
+        cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+      }
+    }
+  }
+
+  translate([0.0, 0.0, wing_h / 2.0 + nut_h])
+  difference() {
+    cube([wing_w, wing_d, wing_h], center=true);
+
+    // Thread hole
+    cylinder(h=h + 0.01, r=screw_hsize + tol, center=true);
+  }
+}
+
 module top_stack(w, h, batt_w, batt_d, batt_h) {
   screw_size = 3.0;
   screw_hsize = screw_size / 2.0;
@@ -391,4 +429,5 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
 
 // Main
 assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
+// spacer_tool();
 // realsense_stack();
