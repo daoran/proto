@@ -284,25 +284,25 @@ int list_remove_destroy(list_t *list,
 
 // STACK ///////////////////////////////////////////////////////////////////////
 
-typedef struct stack_node_t stack_node_t;
-struct stack_node_t {
+typedef struct mstack_node_t mstack_node_t;
+struct mstack_node_t {
   void *value;
-  stack_node_t *next;
-  stack_node_t *prev;
+  mstack_node_t *next;
+  mstack_node_t *prev;
 };
 
-typedef struct stack_t {
+typedef struct mstack_t {
   int size;
-  stack_node_t *root;
-  stack_node_t *end;
-} stack_t;
+  mstack_node_t *root;
+  mstack_node_t *end;
+} mstack_t;
 
-stack_t *stack_new();
-void stack_destroy_traverse(stack_node_t *n, void (*free_func)(void *));
-void stack_clear_destroy(stack_t *s, void (*free_func)(void *));
-void stack_destroy(stack_t *s);
-int stack_push(stack_t *s, void *value);
-void *stack_pop(stack_t *s);
+mstack_t *stack_new();
+void mstack_destroy_traverse(mstack_node_t *n, void (*free_func)(void *));
+void mstack_clear_destroy(mstack_t *s, void (*free_func)(void *));
+void mstack_destroy(mstack_t *s);
+int mstack_push(mstack_t *s, void *value);
+void *mstack_pop(mstack_t *s);
 
 // QUEUE ///////////////////////////////////////////////////////////////////////
 

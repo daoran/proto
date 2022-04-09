@@ -1155,17 +1155,17 @@ int list_remove_destroy(list_t *list,
 
 // STACK ///////////////////////////////////////////////////////////////////////
 
-stack_t *stack_new() {
-  stack_t *s = malloc(sizeof(stack_t));
+mstack_t *stack_new() {
+  mstack_t *s = malloc(sizeof(mstack_t));
   s->size = 0;
   s->root = NULL;
   s->end = NULL;
   return s;
 }
 
-void stack_destroy_traverse(stack_node_t *n, void (*free_func)(void *)) {
+void mstack_destroy_traverse(mstack_node_t *n, void (*free_func)(void *)) {
   if (n->next) {
-    stack_destroy_traverse(n->next, free_func);
+    mstack_destroy_traverse(n->next, free_func);
   }
   if (free_func) {
     free_func(n->value);
@@ -1174,29 +1174,29 @@ void stack_destroy_traverse(stack_node_t *n, void (*free_func)(void *)) {
   n = NULL;
 }
 
-void stack_clear_destroy(stack_t *s, void (*free_func)(void *)) {
+void mstack_clear_destroy(mstack_t *s, void (*free_func)(void *)) {
   if (s->root) {
-    stack_destroy_traverse(s->root, free_func);
+    mstack_destroy_traverse(s->root, free_func);
   }
   free(s);
   s = NULL;
 }
 
-void stack_destroy(stack_t *s) {
+void mstack_destroy(mstack_t *s) {
   if (s->root) {
-    stack_destroy_traverse(s->root, NULL);
+    mstack_destroy_traverse(s->root, NULL);
   }
   free(s);
   s = NULL;
 }
 
-int stack_push(stack_t *s, void *value) {
-  stack_node_t *n = malloc(sizeof(stack_node_t));
+int mstack_push(mstack_t *s, void *value) {
+  mstack_node_t *n = malloc(sizeof(mstack_node_t));
   if (n == NULL) {
     return -1;
   }
 
-  stack_node_t *prev_end = s->end;
+  mstack_node_t *prev_end = s->end;
   n->value = value;
   n->next = NULL;
   n->prev = prev_end;
@@ -1213,9 +1213,9 @@ int stack_push(stack_t *s, void *value) {
   return 0;
 }
 
-void *stack_pop(stack_t *s) {
+void *mstack_pop(mstack_t *s) {
   void *value = s->end->value;
-  stack_node_t *previous = s->end->prev;
+  mstack_node_t *previous = s->end->prev;
 
   free(s->end);
   if (s->size > 1) {

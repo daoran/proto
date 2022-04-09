@@ -568,32 +568,32 @@ int test_list_remove_destroy(void) {
 
 // STACK ///////////////////////////////////////////////////////////////////////
 
-int test_stack_new_and_destroy(void) {
-  stack_t *s = stack_new();
+int test_mstack_new_and_destroy(void) {
+  mstack_t *s = stack_new();
 
   MU_ASSERT(s->size == 0);
   MU_ASSERT(s->root == NULL);
   MU_ASSERT(s->end == NULL);
 
-  stack_destroy(s);
+  mstack_destroy(s);
   return 0;
 }
 
-int test_stack_push(void) {
-  stack_t *s = stack_new();
+int test_mstack_push(void) {
+  mstack_t *s = stack_new();
   float f1 = 2.0;
   float f2 = 4.0;
   float f3 = 8.0;
 
   /* push float 1 */
-  stack_push(s, &f1);
+  mstack_push(s, &f1);
   MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f1) == 0);
   MU_ASSERT(s->size == 1);
   MU_ASSERT(s->root->value == &f1);
   MU_ASSERT(s->end->prev == NULL);
 
   /* push float 2 */
-  stack_push(s, &f2);
+  mstack_push(s, &f2);
   MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f2) == 0);
   MU_ASSERT(s->size == 2);
   MU_ASSERT(s->root->value == &f1);
@@ -601,32 +601,32 @@ int test_stack_push(void) {
   MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f1) == 0);
 
   /* push float 3 */
-  stack_push(s, &f3);
+  mstack_push(s, &f3);
   MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f3) == 0);
   MU_ASSERT(s->size == 3);
   MU_ASSERT(s->root->value == &f1);
   MU_ASSERT(s->end->prev->value == &f2);
   MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f2) == 0);
 
-  stack_destroy(s);
+  mstack_destroy(s);
   return 0;
 }
 
-int test_stack_pop(void) {
-  stack_t *s = stack_new();
+int test_mstack_pop(void) {
+  mstack_t *s = stack_new();
   float f1 = 2.0;
   float f2 = 4.0;
   float f3 = 8.0;
 
   /* push float 1 */
-  stack_push(s, &f1);
+  mstack_push(s, &f1);
   MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f1) == 0);
   MU_ASSERT(s->size == 1);
   MU_ASSERT(s->root->value == &f1);
   MU_ASSERT(s->end->prev == NULL);
 
   /* push float 2 */
-  stack_push(s, &f2);
+  mstack_push(s, &f2);
   MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f2) == 0);
   MU_ASSERT(s->size == 2);
   MU_ASSERT(s->root->value == &f1);
@@ -634,7 +634,7 @@ int test_stack_pop(void) {
   MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f1) == 0);
 
   /* push float 3 */
-  stack_push(s, &f3);
+  mstack_push(s, &f3);
   MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f3) == 0);
   MU_ASSERT(s->size == 3);
   MU_ASSERT(s->root->value == &f1);
@@ -642,27 +642,27 @@ int test_stack_pop(void) {
   MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f2) == 0);
 
   /* pop float 3 */
-  float *flt_ptr = stack_pop(s);
+  float *flt_ptr = mstack_pop(s);
   MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f3) == 0);
   MU_ASSERT(s->size == 2);
   MU_ASSERT(s->root->value == &f1);
   MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) &f1) == 0);
 
   /* pop float 2 */
-  flt_ptr = stack_pop(s);
+  flt_ptr = mstack_pop(s);
   MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f2) == 0);
   MU_ASSERT(s->size == 1);
   MU_ASSERT(s->root->value == &f1);
   MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) &f1) == 0);
 
   /* pop float 1 */
-  flt_ptr = stack_pop(s);
+  flt_ptr = mstack_pop(s);
   MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f1) == 0);
   MU_ASSERT(s->size == 0);
   MU_ASSERT(s->root == NULL);
   MU_ASSERT(s->end == NULL);
 
-  stack_destroy(s);
+  mstack_destroy(s);
   return 0;
 }
 
@@ -4423,9 +4423,9 @@ void test_suite() {
   MU_ADD_TEST(test_list_unshift);
   MU_ADD_TEST(test_list_remove);
   MU_ADD_TEST(test_list_remove_destroy);
-  MU_ADD_TEST(test_stack_new_and_destroy);
-  MU_ADD_TEST(test_stack_push);
-  MU_ADD_TEST(test_stack_pop);
+  MU_ADD_TEST(test_mstack_new_and_destroy);
+  MU_ADD_TEST(test_mstack_push);
+  MU_ADD_TEST(test_mstack_pop);
   MU_ADD_TEST(test_queue_new_and_destroy);
   MU_ADD_TEST(test_queue_enqueue_dequeue);
   MU_ADD_TEST(test_hashmap_new_destroy);
