@@ -257,7 +257,7 @@ module realsense_stack(w, h) {
 
   holes_w = 45.0;
   mount_w = 65.0;
-  mount_d = 20.0;
+  mount_d = 25.0;
   mount_h = 3.0;
 
   // Stack frame top
@@ -343,7 +343,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
   // Intel RealSense D435i
   if (show_cam) {
     color([1.0, 0.0, 0.0])
-    translate([stack_w / 2.0 + 26.5, 0, -12.5]) {
+    translate([stack_w / 2.0 + 26.5, 0, -16]) {
       rotate([90.0, 0.0, 90.0]) {
         import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/Intel_RealSense_Depth_Camera_D435.stl");
       }
@@ -385,11 +385,10 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
   }
 
   // RealSense holder
-  translate([0.0, 0.0, -24.0])
+  translate([0.0, 0.0, -30.0])
     realsense_stack(stack_w, stack_h);
 }
 
 // Main
-// assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
-stack_spacer(30.0);
+assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
 // realsense_stack();
