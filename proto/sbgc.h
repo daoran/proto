@@ -16,12 +16,12 @@
 #endif
 
 /**
- * SBGC Log info
+ * Log info
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
-#ifndef SBGC_LOG_INFO
-#define SBGC_LOG_INFO(...)                                                     \
+#ifndef SBGC_INFO
+#define SBGC_INFO(...)                                                         \
   do {                                                                         \
     fprintf(stderr,                                                            \
             "[SBGC-INFO] [%s:%d:%s()]: ",                                      \
@@ -30,15 +30,15 @@
             __func__);                                                         \
     fprintf(stderr, __VA_ARGS__);                                              \
   } while (0)
-#endif // SBGC_LOG_INFO
+#endif // SBGC_INFO
 
 /**
- * SBGC Log error
+ * Log error
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
-#ifndef SBGC_LOG_ERROR_
-#define SBGC_LOG_ERROR(...)                                                    \
+#ifndef SBGC_ERROR
+#define SBGC_ERROR(...)                                                        \
   do {                                                                         \
     fprintf(stderr,                                                            \
             "[SBGC-ERROR] [%s:%d:%s()]: ",                                     \
@@ -47,7 +47,7 @@
             __func__);                                                         \
     fprintf(stderr, __VA_ARGS__);                                              \
   } while (0)
-#endif // SBGC_LOG_ERROR
+#endif // SBGC_ERROR
 
 /* GENERAL */
 #define SBGC_CMD_MAX_BYTES 255
@@ -223,11 +223,11 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
 
 // SBGC UTILS ////////////////////////////////////////////////////////////////
 
-int set_interface_attribs(int fd, int speed, int parity) {
+int sbgc_set_interface_attributes(int fd, int speed, int parity) {
   struct termios tty;
   memset(&tty, 0, sizeof(tty));
   if (tcgetattr(fd, &tty) != 0) {
-    printf("error %d from tcgetattr", errno);
+    SBGC_ERROR("%d from tcgetattr", errno);
     return -1;
   }
 
@@ -253,19 +253,19 @@ int set_interface_attribs(int fd, int speed, int parity) {
   tty.c_cflag &= ~CRTSCTS;
 
   if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-    printf("error %d from tcsetattr", errno);
+    SBGC_ERROR("%d from tcsetattr", errno);
     return -1;
   }
 
   return 0;
 }
 
-void set_blocking(int fd, int should_block) {
+void sbgc_set_blocking(int fd, int should_block) {
   struct termios tty;
 
   memset(&tty, 0, sizeof tty);
   if (tcgetattr(fd, &tty) != 0) {
-    printf("error %d from tggetattr", errno);
+    SBGC_ERROR("%d from tggetattr", errno);
     return;
   }
 
@@ -273,7 +273,7 @@ void set_blocking(int fd, int should_block) {
   tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
 
   if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-    printf("error %d setting term attributes", errno);
+    SBGC_ERROR("%d setting term attributes", errno);
   }
 }
 
@@ -399,7 +399,7 @@ int sbgc_frame_parse_body(sbgc_frame_t *frame, uint8_t *data) {
   /* Check the body checksum */
   expected_checksum = expected_checksum % 256;
   if (frame->data_checksum != expected_checksum) {
-    SBGC_LOG_ERROR("Failed body checksum!");
+    SBGC_ERROR("Failed body checksum!");
     free(frame->data);
     return -1;
   }
@@ -413,14 +413,14 @@ int sbgc_frame_parse_frame(sbgc_frame_t *frame, uint8_t *data) {
   /* Parse header */
   retval = sbgc_frame_parse_header(frame, data);
   if (retval == -1) {
-    SBGC_LOG_ERROR("Failed to parse header!");
+    SBGC_ERROR("Failed to parse header!");
     return -1;
   }
 
   /* Parse body */
   retval = sbgc_frame_parse_body(frame, data);
   if (retval == -1) {
-    SBGC_LOG_ERROR("Failed to parse body!");
+    SBGC_ERROR("Failed to parse body!");
     return -1;
   }
 
@@ -483,8 +483,8 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
   }
 
   /* Configure serial commnication */
-  set_interface_attribs(sbgc->serial, B115200, 0);
-  set_blocking(sbgc->serial, 1);
+  sbgc_set_interface_attributes(sbgc->serial, B115200, 0);
+  sbgc_set_blocking(sbgc->serial, 1);
   sbgc->connected = 1;
 
   return 0;
@@ -559,14 +559,14 @@ int sbgc_read(const sbgc_t *sbgc,
   uint8_t buffer[150];
   int16_t nb_bytes = read(sbgc->serial, buffer, read_length);
   if (nb_bytes <= 0 || nb_bytes != read_length) {
-    SBGC_LOG_ERROR("Failed to read SBGC frame!");
+    SBGC_ERROR("Failed to read SBGC frame!");
     return -1;
   }
 
   /* Parse sbgc frame */
   int retval = sbgc_frame_parse_frame(frame, buffer);
   if (retval == -1) {
-    SBGC_LOG_ERROR("Failed to parse SBGC frame!");
+    SBGC_ERROR("Failed to parse SBGC frame!");
     return -1;
   }
 
@@ -617,14 +617,14 @@ int sbgc_info(sbgc_t *sbgc) {
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_BOARD_INFO);
   if (sbgc_send(sbgc, &frame) == -1) {
-    SBGC_LOG_ERROR("Failed to request SBGC board info!");
+    SBGC_ERROR("Failed to request SBGC board info!");
     return -1;
   }
 
   // Obtain board info
   sbgc_frame_t info;
   if (sbgc_read(sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &info) == -1) {
-    SBGC_LOG_ERROR("Failed to parse SBGC frame for board info!");
+    SBGC_ERROR("Failed to parse SBGC frame for board info!");
     return -1;
   }
   sbgc->board_version = info.data[0];
@@ -642,13 +642,13 @@ int sbgc_get_realtime_data_4(sbgc_t *sbgc) {
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_REALTIME_DATA_4);
   if (sbgc_send(sbgc, &frame) == -1) {
-    SBGC_LOG_ERROR("Failed to request SBGC realtime data!");
+    SBGC_ERROR("Failed to request SBGC realtime data!");
     return -1;
   }
 
   /* Obtain real time data */
   if (sbgc_read(sbgc, 129, &frame) == -1) {
-    SBGC_LOG_ERROR("Failed to parse SBGC frame for realtime data!");
+    SBGC_ERROR("Failed to parse SBGC frame for realtime data!");
     return -1;
   }
 
@@ -690,14 +690,14 @@ int sbgc_get_realtime_data(sbgc_t *sbgc) {
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_REALTIME_DATA_3);
   if (sbgc_send(sbgc, &frame) == -1) {
-    SBGC_LOG_ERROR("Failed to request SBGC realtime data!");
+    SBGC_ERROR("Failed to request SBGC realtime data!");
     return -1;
   }
 
   // Obtain real time data
   sbgc_frame_t info;
   if (sbgc_read(sbgc, 68, &info) == -1) {
-    SBGC_LOG_ERROR("Failed to parse SBGC frame for realtime data!");
+    SBGC_ERROR("Failed to parse SBGC frame for realtime data!");
     return -1;
   }
 
@@ -735,13 +735,13 @@ int sbgc_get_angle_ext(sbgc_t *sbgc) {
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_GET_ANGLES_EXT);
   if (sbgc_send(sbgc, &frame) == -1) {
-    SBGC_LOG_ERROR("Failed to request SBGC realtime data!");
+    SBGC_ERROR("Failed to request SBGC realtime data!");
     return -1;
   }
 
   /* Obtain real time data */
   if (sbgc_read(sbgc, 54, &frame) == -1) {
-    SBGC_LOG_ERROR("Failed to parse SBGC frame for realtime data!");
+    SBGC_ERROR("Failed to parse SBGC frame for realtime data!");
     return -1;
   }
 
@@ -856,13 +856,15 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
   return 0;
 }
 
-#endif // SBGC_IMPLEMENTATION
+#endif /* SBGC_IMPLEMENTATION */
 
 //////////////////////////////////////////////////////////////////////////////
 //                                UNITTESTS                                 //
 //////////////////////////////////////////////////////////////////////////////
 
 #ifdef SBGC_UNITTEST
+
+#include <stdio.h>
 
 /* UNITESTS GLOBAL VARIABLES */
 static int nb_tests = 0;
@@ -906,7 +908,7 @@ void run_test(const char *test_name, int (*test_ptr)()) {
  * Add unittest
  * @param[in] TEST Test function
  */
-#define TEST(TEST_FN) mu_run_test(#TEST_FN, TEST_FN);
+#define TEST(TEST_FN) run_test(#TEST_FN, TEST_FN);
 
 /**
  * Unit-test assert
@@ -926,7 +928,7 @@ void run_test(const char *test_name, int (*test_ptr)()) {
 int test_sbgc_connect_disconnect() {
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0") == 0);
-  TEST_ASSERT(sbgc_disconnect(&sbgc, "/dev/ttyUSB0") == 0);
+  TEST_ASSERT(sbgc_disconnect(&sbgc) == 0);
   return 0;
 }
 
@@ -936,13 +938,13 @@ int test_sbgc_send() {
   TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0") == 0);
 
   /* Motors on */
-  sbgc_frame_frame_t frame0;
+  sbgc_frame_t frame0;
   sbgc_frame_set_cmd(&frame0, SBGC_CMD_MOTORS_ON);
   TEST_ASSERT(sbgc_send(&sbgc, &frame0) == 0);
   sleep(1);
 
   /* Motors off */
-  sbgc_frame_frame_t frame1;
+  sbgc_frame_t frame1;
   sbgc_frame_set_cmd(&frame1, SBGC_CMD_MOTORS_OFF);
   TEST_ASSERT(sbgc_send(&sbgc, &frame1) == 0);
   sleep(1);
@@ -956,13 +958,13 @@ int test_sbgc_read() {
   TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0"));
 
   /* Send request */
-  sbgc_frame_frame_t req;
+  sbgc_frame_t req;
   sbgc_frame_set_cmd(&req, SBGC_CMD_BOARD_INFO);
   sbgc_send(&sbgc, &req);
 
   /* Get response */
-  sbgc_frame_frame_t resp;
-  sbgc_read(&sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, resp);
+  sbgc_frame_t resp;
+  sbgc_read(&sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &resp);
 
   /* Assert */
   TEST_ASSERT(resp.data_size == 18);
@@ -1007,7 +1009,7 @@ int test_sbgc_set_angle() {
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
   // Test Roll
-  SBGC_LOG_INFO("Testing roll!");
+  SBGC_INFO("Testing roll!");
   sbgc_set_angle(&sbgc, -20, 0, 0);
   sleep(2);
 
@@ -1015,22 +1017,22 @@ int test_sbgc_set_angle() {
     sbgc_set_angle(&sbgc, target_angle, 0, 0);
     sleep(2);
 
-    sbgc_get_real_time_data(&sbgc);
+    sbgc_get_realtime_data(&sbgc);
     TEST_ASSERT((sbgc.data.camera_angles[0] - target_angle) < 2.0);
   }
 
   // Zero gimal
-  SBGC_LOG_INFO("Zero-ing gimbal!");
+  SBGC_INFO("Zero-ing gimbal!");
   sbgc_set_angle(&sbgc, 0, 0, 0);
   sleep(2);
 
   // Test Pitch
-  SBGC_LOG_INFO("Testing pitch!");
+  SBGC_INFO("Testing pitch!");
   for (int target_angle = 0; target_angle <= 20; target_angle += 5) {
     sbgc_set_angle(&sbgc, 0, target_angle, 0);
     sleep(2);
 
-    sbgc_get_real_time_data(&sbgc);
+    sbgc_get_realtime_data(&sbgc);
     TEST_ASSERT((sbgc.data.camera_angles[1] - target_angle) < 2.0);
   }
   sbgc_off(&sbgc);
@@ -1045,7 +1047,7 @@ int test_sbgc_set_angle_speed() {
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
   /* Set angle with speed */
-  TEST_ASSERT(sbgc_set_angle_(&sbgc, speed(0, 10, 0, 0, -2, 0)) == 0);
+  TEST_ASSERT(sbgc_set_angle_speed(&sbgc, 0, 10, 0, 0, -2, 0) == 0);
   TEST_ASSERT(sbgc_off(&sbgc) == 0);
   sleep(3);
 
@@ -1064,4 +1066,4 @@ int main(int argc, char *argv[]) {
   return (nb_failed) ? -1 : 0;
 }
 
-#endif // SBGC_UNITTEST
+#endif /* SBGC_UNITTEST */

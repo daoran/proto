@@ -128,7 +128,7 @@
 #define CFG_NAVSPG_DYNMODEL 0x20110021
 
 /*****************************************************************************
- * UTILS
+ * UBX UTILS
  ****************************************************************************/
 
 /* DEBUG */
@@ -160,59 +160,13 @@
   exit(-1);
 #endif
 
-int8_t ubx_int8(const uint8_t *data, const size_t offset) {
-  return (int8_t)(data[offset]);
-}
-
-uint8_t ubx_uint8(const uint8_t *data, const size_t offset) {
-  return (uint8_t)(data[offset]);
-}
-
-int16_t ubx_int16(const uint8_t *data, const size_t offset) {
-  return (int16_t)((data[offset + 1] << 8) | (data[offset]));
-}
-
-uint16_t ubx_uint16(const uint8_t *data, const size_t offset) {
-  return (uint16_t)((data[offset + 1] << 8) | (data[offset]));
-}
-
-int32_t ubx_int32(const uint8_t *data, const size_t offset) {
-  return (int32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
-                   (data[offset + 1] << 8) | (data[offset]));
-}
-
-uint32_t ubx_uint32(const uint8_t *data, const size_t offset) {
-  return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
-                    (data[offset + 1] << 8) | (data[offset]));
-}
-
-/** Obtain the IP and Port number from the network socket file descriptor **/
-int ubx_ip_port_info(const int sockfd, char *ip, int *port) {
-  struct sockaddr_storage addr;
-  socklen_t len = sizeof addr;
-  if (getpeername(sockfd, (struct sockaddr *) &addr, &len) != 0) {
-    return -1;
-  }
-
-  /* Deal with both IPv4 and IPv6: */
-  char ipstr[INET6_ADDRSTRLEN];
-
-  if (addr.ss_family == AF_INET) {
-    /* IPV4 */
-    struct sockaddr_in *s = (struct sockaddr_in *) &addr;
-    *port = ntohs(s->sin_port);
-    inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
-  } else {
-    /* IPV6 */
-    struct sockaddr_in6 *s = (struct sockaddr_in6 *) &addr;
-    *port = ntohs(s->sin6_port);
-    inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
-  }
-  strcpy(ip, ipstr);
-  /* ip = std::string{ipstr}; */
-
-  return 0;
-}
+int8_t ubx_int8(const uint8_t *data, const size_t offset);
+uint8_t ubx_uint8(const uint8_t *data, const size_t offset);
+int16_t ubx_int16(const uint8_t *data, const size_t offset);
+uint16_t ubx_uint16(const uint8_t *data, const size_t offset);
+int32_t ubx_int32(const uint8_t *data, const size_t offset);
+uint32_t ubx_uint32(const uint8_t *data, const size_t offset);
+int ubx_ip_port_info(const int sockfd, char *ip, int *port);
 
 /*****************************************************************************
  * UBX UART
@@ -227,89 +181,14 @@ typedef struct ubx_uart_t {
   int parity;
 } ubx_uart_t;
 
-/* Source: https://stackoverflow.com/a/38318768/154688 */
-static int ubx_set_interface_attributes(int fd, int speed) {
-  struct termios tty;
-  if (tcgetattr(fd, &tty) < 0) {
-    printf("Error from tcgetattr: %s\n", strerror(errno));
-    return -1;
-  }
-
-  cfsetospeed(&tty, (speed_t) speed);
-  cfsetispeed(&tty, (speed_t) speed);
-
-  tty.c_cflag |= (CLOCAL | CREAD); /* ignore modem controls */
-  tty.c_cflag &= ~CSIZE;
-  tty.c_cflag |= CS8;      /* 8-bit characters */
-  tty.c_cflag &= ~PARENB;  /* no parity bit */
-  tty.c_cflag &= ~CSTOPB;  /* only need 1 stop bit */
-  tty.c_cflag &= ~CRTSCTS; /* no hardware flowcontrol */
-
-  /* Setup for non-canonical mode */
-  tty.c_iflag &=
-      ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-  tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-  tty.c_oflag &= ~OPOST;
-
-  /* Fetch bytes as they become available */
-  tty.c_cc[VMIN] = 1;
-  tty.c_cc[VTIME] = 1;
-
-  if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-    printf("Error from tcsetattr: %s\n", strerror(errno));
-    return -1;
-  }
-  return 0;
-}
-
-int ubx_uart_connect(ubx_uart_t *uart, char *port) {
-  /* Connect */
-  strcpy(uart->port, port);
-  uart->connfd = open(uart->port, O_RDWR | O_NOCTTY | O_SYNC);
-  if (uart->connfd < 0) {
-    return -1;
-  }
-  uart->connected = 1;
-
-  /* Set serial attributes */
-  if (ubx_set_interface_attributes(uart->connfd, uart->speed) != 0) {
-    return -1;
-  }
-
-  return 0;
-}
-
-int ubx_uart_disconnect(ubx_uart_t *uart) {
-  if (close(uart->connfd) != 0) {
-    return -1;
-  }
-  uart->connected = -1;
-  uart->connfd = -1;
-
-  return 0;
-}
-
+int ubx_uart_connect(ubx_uart_t *uart, char *port);
+int ubx_uart_disconnect(ubx_uart_t *uart);
 int ubx_uart_write(const ubx_uart_t *uart,
                    const uint8_t *payload,
-                   const size_t length) {
-  ssize_t retval = write(uart->connfd, payload, length);
-  if (retval != (ssize_t) length) {
-    return -1;
-  }
-
-  return 0;
-}
-
+                   const size_t length);
 int ubx_uart_read(const ubx_uart_t *uart,
                   uint8_t *payload,
-                  const size_t length) {
-  ssize_t retval = read(uart->connfd, payload, length);
-  if (retval < 0) {
-    return -1;
-  }
-
-  return 0;
-}
+                  const size_t length);
 
 /*****************************************************************************
  * UBX Message
@@ -453,6 +332,321 @@ typedef struct ubx_mon_rf_t {
   int8_t ofs_q[UBX_MON_RF_MAX_BLOCKS];
   uint8_t mag_q[UBX_MON_RF_MAX_BLOCKS];
 } ubx_mon_rf_t;
+
+void ubx_msg_init(ubx_msg_t *msg);
+void ubx_msg_checksum(const uint8_t msg_class,
+                      const uint8_t msg_id,
+                      const uint16_t payload_length,
+                      const uint8_t *payload,
+                      uint8_t *ck_a,
+                      uint8_t *ck_b);
+uint8_t ubx_msg_is_valid(const ubx_msg_t *msg);
+void ubx_msg_build(ubx_msg_t *msg,
+                   const uint8_t msg_class,
+                   const uint8_t msg_id,
+                   const uint16_t length,
+                   const uint8_t *payload);
+void ubx_msg_parse(ubx_msg_t *msg, const uint8_t *data);
+void ubx_msg_serialize(const ubx_msg_t *msg,
+                       uint8_t *frame,
+                       size_t *frame_size);
+void ubx_msg_print(const ubx_msg_t *msg);
+ubx_nav_dop_t ubx_nav_dop(const ubx_msg_t *msg);
+ubx_nav_eoe_t ubx_nav_eoe(const ubx_msg_t *msg);
+ubx_nav_hpposllh_t ubx_nav_hpposllh(const ubx_msg_t *msg);
+ubx_nav_pvt_t ubx_nav_pvt(const ubx_msg_t *msg);
+ubx_nav_status_t ubx_nav_status(const ubx_msg_t *msg);
+ubx_nav_svin_t ubx_nav_svin(const ubx_msg_t *msg);
+ubx_nav_velned_t ubx_nav_velned(const ubx_msg_t *msg);
+ubx_rxm_rtcm_t ubx_rxm_rtcm(const ubx_msg_t *msg);
+ubx_mon_rf_t ubx_mon_rf(const ubx_msg_t *msg);
+void print_ubx_nav_hpposllh(const ubx_nav_hpposllh_t *msg);
+void print_ubx_nav_pvt(const ubx_nav_pvt_t *msg);
+void print_ubx_nav_status(const ubx_nav_status_t *msg);
+void print_ubx_nav_svin(const ubx_nav_svin_t *msg);
+void print_ubx_rxm_rtcm(const ubx_rxm_rtcm_t *msg);
+
+/*****************************************************************************
+ * UBX Stream Parser
+ ****************************************************************************/
+
+/* UBX Stream Parser States */
+#define SYNC_1 0
+#define SYNC_2 1
+#define MSG_CLASS 2
+#define MSG_ID 3
+#define PAYLOAD_LENGTH_LOW 4
+#define PAYLOAD_LENGTH_HI 5
+#define PAYLOAD_DATA 6
+#define CK_A 7
+#define CK_B 8
+
+/* UBX Stream Parser */
+typedef struct ubx_parser_t {
+  uint8_t state;
+  uint8_t buf_data[9046];
+  size_t buf_pos;
+  ubx_msg_t msg;
+} ubx_parser_t;
+
+void ubx_parser_init(ubx_parser_t *parser);
+void ubx_parser_reset(ubx_parser_t *parser);
+int ubx_parser_update(ubx_parser_t *parser, uint8_t data);
+
+/*****************************************************************************
+ * RTCM3 Stream Parser
+ ****************************************************************************/
+
+/* RTCM3 Stream Parser */
+typedef struct rtcm3_parser_t {
+  uint8_t buf_data[9046];
+  size_t buf_pos;
+  size_t msg_len;
+  size_t msg_type;
+} rtcm3_parser_t;
+
+void rtcm3_parser_init(rtcm3_parser_t *parser);
+void rtcm3_parser_reset(rtcm3_parser_t *parser);
+int rtcm3_parser_update(rtcm3_parser_t *parser, uint8_t data);
+
+/*****************************************************************************
+ * UBlox
+ ****************************************************************************/
+
+#define UBLOX_MAX_CONNS 10
+#define UBLOX_READY 0
+#define UBLOX_PARSING_UBX 1
+#define UBLOX_PARSING_RTCM3 2
+
+typedef struct ublox_t ublox_t;
+typedef void (*ubx_msg_callback)(ublox_t *ublox);
+typedef void (*rtcm3_msg_callback)(ublox_t *ublox);
+
+/* UBlox */
+typedef struct ublox_t {
+  int state;
+  uint8_t ok;
+  ubx_uart_t *uart;
+
+  int sockfd;
+  int conns[UBLOX_MAX_CONNS];
+  size_t nb_conns;
+
+  ubx_parser_t ubx_parser;
+  rtcm3_parser_t rtcm3_parser;
+
+  ubx_msg_callback ubx_cb;
+  rtcm3_msg_callback rtcm3_cb;
+
+} ublox_t;
+
+int ublox_init(ublox_t *ublox, ubx_uart_t *uart);
+void ublox_disconnect(ublox_t *ublox);
+int ublox_reset(ublox_t *ublox);
+int ubx_write(const ublox_t *ublox,
+              uint8_t msg_class,
+              uint8_t msg_id,
+              uint16_t length,
+              uint8_t *payload);
+int ubx_poll(const ublox_t *ublox,
+             const uint8_t msg_class,
+             const uint8_t msg_id,
+             uint16_t *payload_length,
+             uint8_t *payload,
+             const uint8_t expect_ack,
+             const int retry);
+int ubx_read_ack(const ublox_t *ublox,
+                 const uint8_t msg_class,
+                 const uint8_t msg_id);
+int ubx_get(const ublox_t *ublox,
+            const uint8_t layer,
+            const uint32_t key,
+            uint32_t *val);
+int ubx_set(const ublox_t *ublox,
+            const uint8_t layer,
+            const uint32_t key,
+            const uint32_t val,
+            const uint8_t val_size);
+
+/****************************** Ublox GPS Mode ******************************/
+
+void ublox_version(const ublox_t *ublox);
+int ublox_parse_ubx(ublox_t *ublox, uint8_t data);
+int ublox_gps_config(ublox_t *ublox);
+int ublox_run(ublox_t *ublox, int *loop);
+
+/**************************** Ublox Base Station ****************************/
+
+void ublox_broadcast_rtcm3(ublox_t *ublox);
+int ublox_parse_rtcm3(ublox_t *ublox, uint8_t data);
+int ublox_base_station_config(ublox_t *base);
+int ublox_base_run(ublox_t *base, const int port, int *loop);
+
+/******************************* Ublox Rover ********************************/
+
+int ublox_rover_config(ublox_t *rover);
+int ublox_rover_run(ublox_t *rover,
+                    const char *base_ip,
+                    const int base_port,
+                    int *loop);
+
+#endif /* UBX_H */
+
+//////////////////////////////////////////////////////////////////////////////
+//                             IMPLEMENTATION                               //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef UBX_IMPLEMENTATION
+
+/*****************************************************************************
+ * UBX UTILS
+ ****************************************************************************/
+
+int8_t ubx_int8(const uint8_t *data, const size_t offset) {
+  return (int8_t)(data[offset]);
+}
+
+uint8_t ubx_uint8(const uint8_t *data, const size_t offset) {
+  return (uint8_t)(data[offset]);
+}
+
+int16_t ubx_int16(const uint8_t *data, const size_t offset) {
+  return (int16_t)((data[offset + 1] << 8) | (data[offset]));
+}
+
+uint16_t ubx_uint16(const uint8_t *data, const size_t offset) {
+  return (uint16_t)((data[offset + 1] << 8) | (data[offset]));
+}
+
+int32_t ubx_int32(const uint8_t *data, const size_t offset) {
+  return (int32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
+                   (data[offset + 1] << 8) | (data[offset]));
+}
+
+uint32_t ubx_uint32(const uint8_t *data, const size_t offset) {
+  return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
+                    (data[offset + 1] << 8) | (data[offset]));
+}
+
+/** Obtain the IP and Port number from the network socket file descriptor **/
+int ubx_ip_port_info(const int sockfd, char *ip, int *port) {
+  struct sockaddr_storage addr;
+  socklen_t len = sizeof addr;
+  if (getpeername(sockfd, (struct sockaddr *) &addr, &len) != 0) {
+    return -1;
+  }
+
+  /* Deal with both IPv4 and IPv6: */
+  char ipstr[INET6_ADDRSTRLEN];
+
+  if (addr.ss_family == AF_INET) {
+    /* IPV4 */
+    struct sockaddr_in *s = (struct sockaddr_in *) &addr;
+    *port = ntohs(s->sin_port);
+    inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+  } else {
+    /* IPV6 */
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *) &addr;
+    *port = ntohs(s->sin6_port);
+    inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
+  }
+  strcpy(ip, ipstr);
+  /* ip = std::string{ipstr}; */
+
+  return 0;
+}
+
+/*****************************************************************************
+ * UBX UART
+ ****************************************************************************/
+
+/* Source: https://stackoverflow.com/a/38318768/154688 */
+static int ubx_set_interface_attributes(int fd, int speed) {
+  struct termios tty;
+  if (tcgetattr(fd, &tty) < 0) {
+    printf("Error from tcgetattr: %s\n", strerror(errno));
+    return -1;
+  }
+
+  cfsetospeed(&tty, (speed_t) speed);
+  cfsetispeed(&tty, (speed_t) speed);
+
+  tty.c_cflag |= (CLOCAL | CREAD); /* ignore modem controls */
+  tty.c_cflag &= ~CSIZE;
+  tty.c_cflag |= CS8;      /* 8-bit characters */
+  tty.c_cflag &= ~PARENB;  /* no parity bit */
+  tty.c_cflag &= ~CSTOPB;  /* only need 1 stop bit */
+  tty.c_cflag &= ~CRTSCTS; /* no hardware flowcontrol */
+
+  /* Setup for non-canonical mode */
+  tty.c_iflag &=
+      ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+  tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+  tty.c_oflag &= ~OPOST;
+
+  /* Fetch bytes as they become available */
+  tty.c_cc[VMIN] = 1;
+  tty.c_cc[VTIME] = 1;
+
+  if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+    printf("Error from tcsetattr: %s\n", strerror(errno));
+    return -1;
+  }
+  return 0;
+}
+
+int ubx_uart_connect(ubx_uart_t *uart, char *port) {
+  /* Connect */
+  strcpy(uart->port, port);
+  uart->connfd = open(uart->port, O_RDWR | O_NOCTTY | O_SYNC);
+  if (uart->connfd < 0) {
+    return -1;
+  }
+  uart->connected = 1;
+
+  /* Set serial attributes */
+  if (ubx_set_interface_attributes(uart->connfd, uart->speed) != 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
+int ubx_uart_disconnect(ubx_uart_t *uart) {
+  if (close(uart->connfd) != 0) {
+    return -1;
+  }
+  uart->connected = -1;
+  uart->connfd = -1;
+
+  return 0;
+}
+
+int ubx_uart_write(const ubx_uart_t *uart,
+                   const uint8_t *payload,
+                   const size_t length) {
+  ssize_t retval = write(uart->connfd, payload, length);
+  if (retval != (ssize_t) length) {
+    return -1;
+  }
+
+  return 0;
+}
+
+int ubx_uart_read(const ubx_uart_t *uart,
+                  uint8_t *payload,
+                  const size_t length) {
+  ssize_t retval = read(uart->connfd, payload, length);
+  if (retval < 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
+/*****************************************************************************
+ * UBX Message
+ ****************************************************************************/
 
 void ubx_msg_init(ubx_msg_t *msg) {
   msg->ok = 0;
@@ -847,7 +1041,7 @@ void print_ubx_nav_status(const ubx_nav_status_t *msg) {
   printf("flags: %d", msg->flags);
   printf("\t");
 
-  const uint8_t diff_corr = (msg->fix_status & 0b00000001);
+  const uint8_t diff_corr = (msg->fix_status & 0x1); /* 0b00000001 */
   if (diff_corr) {
     printf("diff corr avail?: true");
   } else {
@@ -856,14 +1050,14 @@ void print_ubx_nav_status(const ubx_nav_status_t *msg) {
   printf("\t");
   printf("\t");
 
-  const uint8_t map_matching = (msg->fix_status & 0b11000000);
-  if (map_matching == 0b00) {
+  const uint8_t map_matching = (msg->fix_status & 0xC0); /* 0b11000000 */
+  if (map_matching == 0x0 /* 0b00 */) {
     printf("map matching: none");
-  } else if (map_matching == 0b01) {
+  } else if (map_matching == 0x1 /* 0b01 */) {
     printf("map matching: valid but not used");
-  } else if (map_matching == 0b10) {
+  } else if (map_matching == 0x2 /* 0b10 */) {
     printf("map matching: valid and used");
-  } else if (map_matching == 0b11) {
+  } else if (map_matching == 0x3 /* 0b11 */) {
     printf("map matching: valid and used");
   }
   printf("\t");
@@ -910,25 +1104,6 @@ void print_ubx_rxm_rtcm(const ubx_rxm_rtcm_t *msg) {
 /*****************************************************************************
  * UBX Stream Parser
  ****************************************************************************/
-
-/* UBX Stream Parser States */
-#define SYNC_1 0
-#define SYNC_2 1
-#define MSG_CLASS 2
-#define MSG_ID 3
-#define PAYLOAD_LENGTH_LOW 4
-#define PAYLOAD_LENGTH_HI 5
-#define PAYLOAD_DATA 6
-#define CK_A 7
-#define CK_B 8
-
-/* UBX Stream Parser */
-typedef struct ubx_parser_t {
-  uint8_t state;
-  uint8_t buf_data[9046];
-  size_t buf_pos;
-  ubx_msg_t msg;
-} ubx_parser_t;
 
 void ubx_parser_init(ubx_parser_t *parser) {
   parser->state = SYNC_1;
@@ -1008,14 +1183,6 @@ int ubx_parser_update(ubx_parser_t *parser, uint8_t data) {
  * RTCM3 Stream Parser
  ****************************************************************************/
 
-/* RTCM3 Stream Parser */
-typedef struct rtcm3_parser_t {
-  uint8_t buf_data[9046];
-  size_t buf_pos;
-  size_t msg_len;
-  size_t msg_type;
-} rtcm3_parser_t;
-
 void rtcm3_parser_init(rtcm3_parser_t *parser) {
   for (size_t i = 0; i < 9046; i++) {
     parser->buf_data[i] = 0;
@@ -1082,33 +1249,6 @@ int rtcm3_parser_update(rtcm3_parser_t *parser, uint8_t data) {
 /*****************************************************************************
  * UBlox
  ****************************************************************************/
-
-#define UBLOX_MAX_CONNS 10
-#define UBLOX_READY 0
-#define UBLOX_PARSING_UBX 1
-#define UBLOX_PARSING_RTCM3 2
-
-typedef struct ublox_t ublox_t;
-typedef void (*ubx_msg_callback)(ublox_t *ublox);
-typedef void (*rtcm3_msg_callback)(ublox_t *ublox);
-
-/* UBlox */
-typedef struct ublox_t {
-  int state;
-  uint8_t ok;
-  ubx_uart_t *uart;
-
-  int sockfd;
-  int conns[UBLOX_MAX_CONNS];
-  size_t nb_conns;
-
-  ubx_parser_t ubx_parser;
-  rtcm3_parser_t rtcm3_parser;
-
-  ubx_msg_callback ubx_cb;
-  rtcm3_msg_callback rtcm3_cb;
-
-} ublox_t;
 
 int ublox_init(ublox_t *ublox, ubx_uart_t *uart) {
   ublox->state = UBLOX_READY;
@@ -1383,10 +1523,6 @@ retry:
   }
 }
 
-/*****************************************************************************
- * Ublox
- ****************************************************************************/
-
 /****************************** Ublox GPS Mode ******************************/
 
 void ublox_version(const ublox_t *ublox) {
@@ -1468,6 +1604,8 @@ int ublox_run(ublox_t *ublox, int *loop) {
       ublox_parse_ubx(ublox, data);
     }
   }
+
+  return 0;
 }
 
 /**************************** Ublox Base Station ****************************/
@@ -1775,4 +1913,489 @@ int ublox_rover_run(ublox_t *rover,
   return 0;
 }
 
-#endif /* UBX_H */
+#endif /* UBX_IMPLEMENTATION */
+
+//////////////////////////////////////////////////////////////////////////////
+//                                UNITTESTS                                 //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef UBX_UNITTEST
+
+#include <signal.h>
+
+/* UNITESTS GLOBAL VARIABLES */
+static int nb_tests = 0;
+static int nb_passed = 0;
+static int nb_failed = 0;
+
+#define ENABLE_TERM_COLORS 0
+#if ENABLE_TERM_COLORS == 1
+#define TERM_RED "\x1B[1;31m"
+#define TERM_GRN "\x1B[1;32m"
+#define TERM_WHT "\x1B[1;37m"
+#define TERM_NRM "\x1B[1;0m"
+#else
+#define TERM_RED
+#define TERM_GRN
+#define TERM_WHT
+#define TERM_NRM
+#endif
+
+/**
+ * Run unittests
+ * @param[in] test_name Test name
+ * @param[in] test_ptr Pointer to unittest
+ */
+void run_test(const char *test_name, int (*test_ptr)()) {
+  printf("-> [%s] ", test_name);
+
+  if ((*test_ptr)() == 0) {
+    printf(TERM_GRN "OK!\n" TERM_NRM);
+    fflush(stdout);
+    nb_passed++;
+  } else {
+    printf(TERM_RED "FAILED!\n" TERM_NRM);
+    fflush(stdout);
+    nb_failed++;
+  }
+  nb_tests++;
+}
+
+/**
+ * Add unittest
+ * @param[in] TEST Test function
+ */
+#define TEST(TEST_FN) run_test(#TEST_FN, TEST_FN);
+
+/**
+ * Unit-test assert
+ * @param[in] TEST Test condition
+ */
+#define TEST_ASSERT(TEST)                                                      \
+  do {                                                                         \
+    if ((TEST) == 0) {                                                         \
+      printf(TERM_RED "ERROR!" TERM_NRM " [%s:%d] %s FAILED!\n",               \
+             __func__,                                                         \
+             __LINE__,                                                         \
+             #TEST);                                                           \
+      return -1;                                                               \
+    }                                                                          \
+  } while (0)
+
+int loop = 1;
+static void signal_handler(int sig) {
+  loop = 0;
+}
+
+/*****************************************************************************
+ * UBX Message
+ ****************************************************************************/
+
+int test_ubx_msg_init() {
+  ubx_msg_t msg;
+  ubx_msg_init(&msg);
+
+  TEST_ASSERT(msg.ok == 0);
+  TEST_ASSERT(msg.msg_class == 0);
+  TEST_ASSERT(msg.msg_id == 0);
+  TEST_ASSERT(msg.payload_length == 0);
+  TEST_ASSERT(msg.payload[0] == 0);
+  TEST_ASSERT(msg.ck_a == 0);
+  TEST_ASSERT(msg.ck_b == 0);
+
+  return 0;
+}
+
+int test_ubx_msg_checksum() {
+  /* Create frame */
+  uint8_t data[10] = {0};
+  data[0] = 0xB5; /* SYNC 1 */
+  data[1] = 0x62; /* SYNC 2 */
+  data[2] = 0x01; /* Message class */
+  data[3] = 0x22; /* Message id */
+  data[4] = 0x0;  /* Payload length low */
+  data[5] = 0x0;  /* Payload length hi */
+
+  /* Calculate checksum */
+  ubx_msg_checksum(data[2],
+                   data[3],
+                   (data[4] << 8) | (data[5]),
+                   NULL,
+                   &data[6],
+                   &data[7]);
+
+  TEST_ASSERT(data[6] == 0x23);
+  TEST_ASSERT(data[7] == 0x6a);
+
+  return 0;
+}
+
+int test_ubx_msg_is_valid() {
+  return 0;
+}
+
+int test_ubx_msg_build() {
+  ubx_msg_t msg;
+  uint8_t msg_class = 0x01;
+  uint8_t msg_id = 0x22;
+  uint16_t payload_length = 0x00;
+  ubx_msg_build(&msg, msg_class, msg_id, payload_length, NULL);
+
+  TEST_ASSERT(msg.msg_class == msg_class);
+  TEST_ASSERT(msg.msg_id == msg_id);
+  TEST_ASSERT(msg.payload_length == payload_length);
+
+  return 0;
+}
+
+int test_ubx_msg_parse_and_serialize() {
+  /* Create frame */
+  uint8_t data[10] = {0};
+  data[0] = 0xB5; /* SYNC 1 */
+  data[1] = 0x62; /* SYNC 2 */
+  data[2] = 0x01; /* Message class */
+  data[3] = 0x22; /* Message id */
+  data[4] = 0x0;  /* Payload length low */
+  data[5] = 0x0;  /* Payload length hi */
+  /* -- Calculate checksum */
+  ubx_msg_checksum(data[2],
+                   data[3],
+                   (data[4] << 8) | (data[5]),
+                   NULL,
+                   &data[6],
+                   &data[7]);
+
+  /* Parse */
+  ubx_msg_t msg;
+  ubx_msg_parse(&msg, data);
+  TEST_ASSERT(msg.ok);
+  TEST_ASSERT(msg.msg_class == 0x01);
+  TEST_ASSERT(msg.msg_id == 0x22);
+  TEST_ASSERT(msg.payload_length == 0x0);
+  TEST_ASSERT(msg.ck_a == 0x23);
+  TEST_ASSERT(msg.ck_b == 0x6a);
+
+  /* Serialize */
+  uint8_t frame[1024] = {0};
+  size_t frame_size = 0;
+  ubx_msg_serialize(&msg, frame, &frame_size);
+
+  TEST_ASSERT(frame_size == 8);
+  for (size_t i = 0; i < frame_size; i++) {
+    TEST_ASSERT(frame[i] == data[i]);
+  }
+
+  return 0;
+}
+
+int test_ubx_msg_print() {
+  ubx_msg_t msg;
+
+  uint8_t msg_class = 0x01;
+  uint8_t msg_id = 0x22;
+  uint16_t payload_length = 0x00;
+  ubx_msg_build(&msg, msg_class, msg_id, payload_length, NULL);
+  ubx_msg_print(&msg);
+
+  return 0;
+}
+
+/*****************************************************************************
+ * UBX Stream Parser
+ ****************************************************************************/
+
+int test_ubx_parser_init() {
+  ubx_parser_t parser;
+
+  ubx_parser_init(&parser);
+  TEST_ASSERT(parser.state == SYNC_1);
+  TEST_ASSERT(parser.buf_data[0] == '\0');
+  TEST_ASSERT(parser.buf_pos == 0);
+
+  return 0;
+}
+
+int test_ubx_parser_reset() {
+  ubx_parser_t parser;
+
+  ubx_parser_reset(&parser);
+  TEST_ASSERT(parser.state == SYNC_1);
+  TEST_ASSERT(parser.buf_data[0] == '\0');
+  TEST_ASSERT(parser.buf_pos == 0);
+
+  return 0;
+}
+
+int test_ubx_parser_update() {
+  ubx_parser_t parser;
+
+  ubx_parser_update(&parser, 0x0);
+
+  return 0;
+}
+
+/*****************************************************************************
+ * UBLOX
+ ****************************************************************************/
+
+int test_ublox_init() {
+  /* Setup UART connection to UBlox */
+  ubx_uart_t uart;
+  if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
+    UBX_ERROR("Failed to connect to ublox!");
+    return -1;
+  }
+
+  /* Setup UBlox */
+  ublox_t ublox;
+  if (ublox_init(&ublox, &uart) != 0) {
+    UBX_ERROR("Failed to setup ublox!");
+    return -1;
+  }
+
+  /* Clean up */
+  ublox_disconnect(&ublox);
+  sleep(2);
+
+  return 0;
+}
+
+int test_ublox_version() {
+  /* Setup UART connection to UBlox */
+  ubx_uart_t uart;
+  if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
+    UBX_ERROR("Failed to connect to ublox!");
+    return -1;
+  }
+
+  /* Setup UBlox */
+  ublox_t ublox;
+  if (ublox_init(&ublox, &uart) != 0) {
+    UBX_ERROR("Failed to setup ublox!");
+    return -1;
+  }
+
+  /* Print UBlox version */
+  ublox_version(&ublox);
+
+  /* Clean up */
+  ublox_disconnect(&ublox);
+  sleep(1);
+
+  return 0;
+}
+
+int test_ubx_set_and_get() {
+  /* Setup UART connection to UBlox */
+  ubx_uart_t uart;
+  if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
+    UBX_ERROR("Failed to connect to ublox!");
+    return -1;
+  }
+
+  /* Setup UBlox */
+  ublox_t ublox;
+  if (ublox_init(&ublox, &uart) != 0) {
+    UBX_ERROR("Failed to setup ublox!");
+    return -1;
+  }
+
+  uint32_t key = CFG_MSGOUT_RTCM_3X_TYPE1005_USB;
+  uint32_t val = 1;
+  uint8_t val_size = 1;
+  ubx_set(&ublox, 1, key, val, val_size);
+
+  ublox_reset(&ublox);
+
+  uint32_t value = 0;
+  ubx_get(&ublox, 0, key, &value);
+  TEST_ASSERT(value == val);
+
+  /* Clean up */
+  ublox_disconnect(&ublox);
+  sleep(1);
+
+  return 0;
+}
+
+int test_ublox_parse_rtcm3() {
+  /* Setup UART connection to UBlox */
+  ubx_uart_t uart;
+  if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
+    UBX_ERROR("Failed to connect to ublox!");
+    return -1;
+  }
+
+  /* Setup UBlox */
+  ublox_t ublox;
+  if (ublox_init(&ublox, &uart) != 0) {
+    UBX_ERROR("Failed to setup ublox!");
+    return -1;
+  }
+
+  // clang-format off
+  uint8_t data[25 + 129 + 201 + 176 + 14] = {
+    // RTCM3 1005
+    0xD3, 0x00, 0x13, 0x3E, 0xD0, 0x00, 0x03, 0x89, 0x43, 0x50, 0xA5, 0x6B,
+    0xBF, 0xF8, 0xEC, 0xBB, 0xD8, 0x0B, 0x91, 0x87, 0xEA, 0xA2, 0x09, 0xAA,
+    0xF3,
+    // RTCM3 1074
+    0xD3, 0x00, 0x7B, 0x43, 0x20, 0x00, 0x4B, 0x63, 0xBE, 0x62, 0x00, 0x00,
+    0x00, 0x00, 0x8C, 0x35, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x80, 0x00,
+    0x55, 0xFE, 0x88, 0x9C, 0x8C, 0x86, 0x94, 0xA0, 0xA5, 0x6B, 0x9C, 0x6E,
+    0xCE, 0x73, 0x19, 0x2B, 0xE5, 0x08, 0x8A, 0x1E, 0xE7, 0x79, 0x5D, 0xF1,
+    0x9D, 0x62, 0x57, 0xDD, 0x9D, 0xB7, 0x60, 0x77, 0xD0, 0xDE, 0x3E, 0x71,
+    0x1C, 0x7D, 0x01, 0x15, 0x14, 0xFB, 0xB6, 0x13, 0xCB, 0x11, 0x5F, 0x19,
+    0xF9, 0xBC, 0x4E, 0x26, 0xF7, 0x5B, 0x67, 0xDB, 0xF0, 0xF0, 0x77, 0x77,
+    0x01, 0xB8, 0xB4, 0xF9, 0xBB, 0x9B, 0xE5, 0x08, 0xBD, 0xDD, 0xDD, 0xDD,
+    0xDD, 0xDD, 0x00, 0x18, 0x59, 0x7E, 0x76, 0x5D, 0x75, 0xD3, 0x46, 0xF8,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4B, 0x63, 0xF7,
+    // RTCM3 1077
+    0xD3, 0x00, 0xC3, 0x43, 0x50, 0x00, 0x4B, 0x63, 0xDD, 0xA2, 0x00, 0x00,
+    0x00, 0x00, 0x8C, 0x35, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x80, 0x00,
+    0x55, 0xFE, 0x88, 0x9C, 0x8C, 0x86, 0x94, 0xA0, 0xA4, 0x00, 0x00, 0x00,
+    0x16, 0xA9, 0xBE, 0xEC, 0xE7, 0x51, 0x72, 0xC6, 0x53, 0x01, 0xF2, 0x13,
+    0x07, 0xEF, 0xFF, 0xB9, 0x04, 0x25, 0xEC, 0x9F, 0xA9, 0xC6, 0xE8, 0x33,
+    0xB5, 0x67, 0x87, 0x80, 0xF7, 0x85, 0x6C, 0x98, 0x1E, 0xC6, 0x1B, 0x78,
+    0xA1, 0x7A, 0x46, 0x7A, 0xA6, 0xC7, 0x61, 0xE9, 0x86, 0x35, 0x37, 0xFE,
+    0x4E, 0x1B, 0xA7, 0xD5, 0xED, 0x8A, 0x14, 0x1E, 0x10, 0xF9, 0xE1, 0x61,
+    0x9D, 0xE0, 0x93, 0xA0, 0x06, 0xC9, 0xC8, 0x06, 0x0B, 0x76, 0x1E, 0x96,
+    0x14, 0x1D, 0x6C, 0xDD, 0xE1, 0x73, 0xD3, 0xE0, 0x80, 0xC8, 0xDA, 0xB6,
+    0xAD, 0xAB, 0x6A, 0xDB, 0xB6, 0xAD, 0xBB, 0x6A, 0xDB, 0xB6, 0xAD, 0xB8,
+    0x00, 0xC0, 0x2C, 0x0B, 0xC3, 0x30, 0xB0, 0x2E, 0x0B, 0x82, 0xE0, 0x98,
+    0x23, 0x07, 0xC0, 0x40, 0xD8, 0x2D, 0x8E, 0x04, 0x3D, 0xB1, 0xBB, 0x5E,
+    0x0F, 0x67, 0x1E, 0x4F, 0xC5, 0x6F, 0x8C, 0x1E, 0x22, 0xFC, 0x66, 0xA0,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x39, 0xE7,
+    // RTCM3 1097
+    0xD3, 0x00, 0xAA, 0x44, 0x90, 0x00, 0x4B, 0x63, 0xCE, 0x02, 0x00, 0x00,
+    0x20, 0x18, 0x00, 0xC0, 0x08, 0x00, 0x00, 0x00, 0x20, 0x01, 0x00, 0x00,
+    0x7F, 0xFA, 0xBA, 0x42, 0x52, 0x6A, 0x62, 0xC8, 0x00, 0x00, 0x07, 0x77,
+    0xEC, 0xC7, 0xD4, 0x97, 0x89, 0xAF, 0x03, 0xC8, 0x06, 0xB7, 0xD8, 0x1F,
+    0x09, 0x80, 0x04, 0x10, 0xCE, 0xCE, 0x59, 0x6C, 0x15, 0x30, 0x95, 0x09,
+    0x87, 0xDC, 0x48, 0xB9, 0x48, 0x8A, 0x2F, 0x81, 0xD9, 0x66, 0x1F, 0x99,
+    0x3F, 0x1A, 0x8F, 0xF1, 0x21, 0x6F, 0xBB, 0xB5, 0x7B, 0xDC, 0x2F, 0xB3,
+    0x2B, 0x57, 0xB0, 0xEB, 0x60, 0x25, 0x52, 0x98, 0x1F, 0xC6, 0xD0, 0x2D,
+    0x5D, 0x50, 0x28, 0x8A, 0x70, 0x77, 0x09, 0x68, 0x7E, 0x2F, 0xD7, 0xC6,
+    0x96, 0x3F, 0xC4, 0xBC, 0xBF, 0xEF, 0xCB, 0x2F, 0xF0, 0x26, 0x13, 0x68,
+    0xDB, 0xB6, 0x8D, 0xBB, 0x68, 0xDA, 0x36, 0x8D, 0xBB, 0x68, 0xDB, 0xB6,
+    0x8D, 0xB8, 0x00, 0x5A, 0x16, 0x05, 0xA1, 0x58, 0x56, 0x15, 0x85, 0xA1,
+    0x70, 0x60, 0x17, 0x85, 0x21, 0x50, 0x1A, 0x1E, 0x34, 0x16, 0x0D, 0x10,
+    0x1B, 0x47, 0x08, 0x5E, 0x0F, 0x39, 0x7F, 0xB3, 0x0F, 0x8E, 0x31, 0x1C,
+    0x4A, 0x4D, 0x6C, 0x99, 0xB8, 0x05, 0xDC, 0x86,
+    // RTCM3 1230
+    0xD3, 0x00, 0x08, 0x4C, 0xE0, 0x00, 0x8A, 0x00, 0x00, 0x00, 0x00, 0xA8,
+    0xF7, 0x2A,
+  };
+  // clang-format on
+
+  for (int i = 0; i < 25 + 129 + 201 + 176 + 14; i++) {
+    if (ublox_parse_rtcm3(&ublox, data[i])) {
+      TEST_ASSERT(ublox.rtcm3_parser.buf_pos == 0);
+      TEST_ASSERT(ublox.rtcm3_parser.msg_len == 0);
+    }
+  }
+
+  /* Clean up */
+  ublox_disconnect(&ublox);
+  sleep(1);
+
+  return 0;
+}
+
+int test_ublox_run() {
+  /* Setup UART connection to UBlox */
+  ubx_uart_t uart;
+  if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
+    UBX_ERROR("Failed to connect to ublox!");
+    return -1;
+  }
+
+  /* Setup ublox */
+  ublox_t ublox;
+  if (ublox_init(&ublox, &uart) != 0) {
+    UBX_ERROR("Failed to initialize ublox!");
+    return -1;
+  }
+
+  /* Configure and run Ublox in GPS mode */
+  loop = 1;
+  ublox_run(&ublox, &loop);
+
+  return 0;
+}
+
+int test_ublox_base() {
+  /* Setup UART connection to UBlox */
+  ubx_uart_t uart;
+  if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
+    UBX_ERROR("Failed to connect to ublox!");
+    return -1;
+  }
+
+  /* Setup UBlox */
+  ublox_t base;
+  if (ublox_init(&base, &uart) != 0) {
+    UBX_ERROR("Failed to initialize ublox!");
+    return -1;
+  }
+
+  /* Run base station */
+  loop = 1;
+  ublox_base_run(&base, 1234, &loop);
+
+  return 0;
+}
+
+int test_ublox_rover() {
+  /* Setup UART connection to UBlox */
+  ubx_uart_t uart;
+  if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
+    UBX_ERROR("Failed to connect to ublox!");
+    return -1;
+  }
+
+  /* Setup rover */
+  ublox_t rover;
+  if (ublox_init(&rover, &uart) != 0) {
+    UBX_ERROR("Failed to initialize ublox!");
+    return -1;
+  }
+
+  /* Run rover */
+  char *ip = "127.0.0.1";
+  int port = 1234;
+  loop = 1;
+  ublox_rover_run(&rover, ip, port, &loop);
+
+  return 0;
+}
+
+int main(int argc, char *argv[]) {
+  signal(SIGINT, signal_handler);
+
+  TEST(test_ubx_msg_init);
+  TEST(test_ubx_msg_checksum);
+  TEST(test_ubx_msg_is_valid);
+  TEST(test_ubx_msg_build);
+  TEST(test_ubx_msg_parse_and_serialize);
+  TEST(test_ubx_msg_print);
+
+  TEST(test_ubx_parser_init);
+  TEST(test_ubx_parser_reset);
+  TEST(test_ubx_parser_update);
+
+  TEST(test_ublox_init);
+  TEST(test_ublox_version);
+  TEST(test_ubx_set_and_get);
+  TEST(test_ublox_parse_rtcm3);
+  TEST(test_ublox_run);
+  /* TEST(test_ublox_base);  */
+  /* TEST(test_ublox_rover);  */
+
+  return (nb_failed) ? -1 : 0;
+}
+
+#endif /* UBX_UNITTEST */

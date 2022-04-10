@@ -1,9 +1,11 @@
 include config.mk
 
 LIB := $(BLD_DIR)/libproto.a
-TEST := $(BIN_DIR)/test_proto
+TEST_PROTO := $(BIN_DIR)/test_proto
+TEST_SBGC := $(BIN_DIR)/test_sbgc
+TEST_UBX := $(BIN_DIR)/test_ubx
 
-default: dirs $(LIB) shaders test_data $(TEST)
+default: dirs $(LIB) shaders test_data $(TEST_PROTO) $(TEST_SBGC) $(TEST_UBX)
 .PHONY: dirs shaders test_data tests
 
 dirs:
