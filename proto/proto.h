@@ -12,7 +12,9 @@
 #define USE_STB_IMAGE
 /* #define USE_GUI */
 
+#ifndef WARN_UNUSED
 #define WARN_UNUSED __attribute__((warn_unused_result))
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +56,8 @@
 #define SDL_DISABLE_IMMINTRIN_H 1
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+
+#include "sbgc.h"
 
 /******************************************************************************
  * LOGGING / MACROS
