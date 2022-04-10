@@ -866,6 +866,8 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
 
 #include <stdio.h>
 
+#define SBGC_DEV "/dev/ttyUSB0"
+
 /* UNITESTS GLOBAL VARIABLES */
 static int nb_tests = 0;
 static int nb_passed = 0;
@@ -927,7 +929,7 @@ void run_test(const char *test_name, int (*test_ptr)()) {
 
 int test_sbgc_connect_disconnect() {
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0") == 0);
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_disconnect(&sbgc) == 0);
   return 0;
 }
@@ -935,7 +937,7 @@ int test_sbgc_connect_disconnect() {
 int test_sbgc_send() {
   /* Connect */
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0") == 0);
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
 
   /* Motors on */
   sbgc_frame_t frame0;
@@ -955,7 +957,7 @@ int test_sbgc_send() {
 int test_sbgc_read() {
   /* Connect */
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0"));
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV));
 
   /* Send request */
   sbgc_frame_t req;
@@ -975,7 +977,7 @@ int test_sbgc_read() {
 int test_sbgc_info() {
   /* Connect */
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0"));
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV));
 
   /* Get board info */
   sbgc_info(&sbgc);
@@ -991,7 +993,7 @@ int test_sbgc_info() {
 int test_sbgc_get_realtime_data() {
   /* Connect */
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0") == 0);
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
 
   /* Get imu data */
   for (int i = 0; i < 100; ++i) {
@@ -1005,7 +1007,7 @@ int test_sbgc_get_realtime_data() {
 int test_sbgc_set_angle() {
   /* Connect and turn motors on */
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0") == 0);
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
   // Test Roll
@@ -1043,7 +1045,7 @@ int test_sbgc_set_angle() {
 int test_sbgc_set_angle_speed() {
   /* Connect and turn motors on */
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, "/dev/ttyUSB0") == 0);
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
   /* Set angle with speed */
