@@ -213,7 +213,7 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
                          const float roll_speed,
                          const float pitch_speed,
                          const float yaw_speed);
-#endif // SBGC_H
+#endif /* SBGC_H */
 
 //////////////////////////////////////////////////////////////////////////////
 //                             IMPLEMENTATION                               //
@@ -613,7 +613,7 @@ int sbgc_off(const sbgc_t *sbgc) {
 }
 
 int sbgc_info(sbgc_t *sbgc) {
-  // Request board info
+  /* Request board info */
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_BOARD_INFO);
   if (sbgc_send(sbgc, &frame) == -1) {
@@ -621,7 +621,7 @@ int sbgc_info(sbgc_t *sbgc) {
     return -1;
   }
 
-  // Obtain board info
+  /* Obtain board info */
   sbgc_frame_t info;
   if (sbgc_read(sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &info) == -1) {
     SBGC_ERROR("Failed to parse SBGC frame for board info!");
@@ -686,7 +686,7 @@ int sbgc_get_realtime_data_4(sbgc_t *sbgc) {
 }
 
 int sbgc_get_realtime_data(sbgc_t *sbgc) {
-  // Request real time data
+  /* Request real time data */
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_REALTIME_DATA_3);
   if (sbgc_send(sbgc, &frame) == -1) {
@@ -694,7 +694,7 @@ int sbgc_get_realtime_data(sbgc_t *sbgc) {
     return -1;
   }
 
-  // Obtain real time data
+  /* Obtain real time data */
   sbgc_frame_t info;
   if (sbgc_read(sbgc, 68, &info) == -1) {
     SBGC_ERROR("Failed to parse SBGC frame for realtime data!");
@@ -1010,7 +1010,7 @@ int test_sbgc_set_angle() {
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
-  // Test Roll
+  /* Test Roll */
   SBGC_INFO("Testing roll!");
   sbgc_set_angle(&sbgc, -20, 0, 0);
   sleep(2);
