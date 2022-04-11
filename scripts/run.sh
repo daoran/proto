@@ -19,6 +19,7 @@ run_memcheck() {
 ###############################################################################
 
 # python3 scripts/codegen.py
+python3 scripts/comment_converter.py
 
 # ctags proto/proto.c proto/proto.py
 # python3 proto/proto.py
@@ -110,7 +111,7 @@ run_test() {
 }
 
 # PROTO
-run_all_tests
+# run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
