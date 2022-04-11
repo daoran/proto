@@ -1051,25 +1051,25 @@ void print_ubx_nav_status(const ubx_nav_status_t *msg) {
   printf("\t");
 
   const uint8_t map_matching = (msg->fix_status & 0xC0); // 0b11000000
-  if (map_matching == 0x0 // 0b00   ) {
+  if (map_matching == 0x0) {
     printf("map matching: none");
-} else if (map_matching == 0x1 // 0b01   ) {
+  } else if (map_matching == 0x1) {
     printf("map matching: valid but not used");
-} else if (map_matching == 0x2 // 0b10   ) {
+  } else if (map_matching == 0x2) {
     printf("map matching: valid and used");
-} else if (map_matching == 0x3 // 0b11   ) {
+  } else if (map_matching == 0x3) {
     printf("map matching: valid and used");
-}
-printf("\t");
+  }
+  printf("\t");
 
-printf("flags2: %d", msg->flags2);
-printf("\t");
+  printf("flags2: %d", msg->flags2);
+  printf("\t");
 
-printf("ttff: %d", msg->ttff);
-printf("\t");
+  printf("ttff: %d", msg->ttff);
+  printf("\t");
 
-printf("msss: %d", msg->msss);
-printf("\n");
+  printf("msss: %d", msg->msss);
+  printf("\n");
 }
 
 void print_ubx_nav_svin(const ubx_nav_svin_t *msg) {
