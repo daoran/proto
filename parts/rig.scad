@@ -192,27 +192,16 @@ module spacer_tool() {
 
   translate([0.0, 0.0, h / 2.0]) {
     difference() {
-      // Spacer body
-      cylinder(h=h, r=screw_hsize + 2.5, center=true);
+      // Tool body
+      union() {
+        cylinder(h=h, r=screw_hsize + 2.5, center=true);
+        translate([0.0, 0.0, -h / 2.0 + wing_h / 2.0])
+        cube([wing_w, wing_d, wing_h], center=true);
+      }
 
-      // Thread hole
-      cylinder(h=h + 0.01, r=screw_hsize + tol, center=true);
-      // Nut counter sinks
-      translate([0.0, 0.0, h / 2.0 - nut_h / 2.0]) {
-        cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
-      }
-      translate([0.0, 0.0, -h / 2.0 + nut_h / 2.0]) {
-        cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
-      }
+      // Tool hole
+      cylinder(h=h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
     }
-  }
-
-  translate([0.0, 0.0, wing_h / 2.0 + nut_h])
-  difference() {
-    cube([wing_w, wing_d, wing_h], center=true);
-
-    // Thread hole
-    cylinder(h=h + 0.01, r=screw_hsize + tol, center=true);
   }
 }
 
@@ -428,6 +417,6 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
 }
 
 // Main
-assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
-// spacer_tool();
+/* assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1); */
+spacer_tool();
 // realsense_stack();
