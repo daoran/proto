@@ -10,7 +10,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-/* MACROS */
+// MACROS
 #ifndef WARN_UNUSED
 #define WARN_UNUSED __attribute__((warn_unused_result))
 #endif
@@ -49,7 +49,7 @@
   } while (0)
 #endif // SBGC_ERROR
 
-/* GENERAL */
+// GENERAL
 #define SBGC_CMD_MAX_BYTES 255
 #define SBGC_CMD_PAYLOAD_BYTES 5
 #define SBGC_DEG_PER_BIT 0.02197265625    // deg per bit
@@ -57,7 +57,7 @@
 #define SBGC_ACC_UNIT (1.0 / 512.0)       // G
 #define SBGC_GYRO_UNIT 0.06103701895      // deg per sec
 
-/* CMD ID */
+// CMD ID
 #define SBGC_CMD_READ_PARAMS 82
 #define SBGC_CMD_WRITE_PARAMS 87
 #define SBGC_CMD_REALTIME_DATA 68
@@ -79,7 +79,7 @@
 #define SBGC_CMD_GET_ANGLES 73
 #define SBGC_CMD_GET_ANGLES_EXT 61
 #define SBGC_CMD_CONFIRM 67
-/* BOARD v3.x only */
+// BOARD v3.x only
 #define SBGC_CMD_BOARD_INFO_3 20
 #define SBGC_CMD_READ_PARAMS_3 21
 #define SBGC_CMD_WRITE_PARAMS_3 22
@@ -108,12 +108,12 @@
 #define SBGC_CMD_CALIB_INFO 49
 #define SBGC_CMD_BOOT_MODE_3 51
 
-/* CMD FRAME SIZE */
+// CMD FRAME SIZE
 #define SBGC_MIN_FRAME_SIZE 5 // 4 bytes for header + 1 body checksum
 #define SBGC_CMD_BOARD_INFO_FRAME_SIZE 5 + 18
 #define SBGC_CMD_REALTIME_DATA_3_FRAME_SIZE 5 + 63
 
-/* CMD CONTROL */
+// CMD CONTROL
 #define SBGC_MODE_NO_CONTROL 0
 #define SBGC_MODE_SPEED 1
 #define SBGC_MODE_ANGLE 2
@@ -121,7 +121,7 @@
 #define SBGC_MODE_RC 4
 #define SBGC_MODE_ANGLE_REL_FRAME 5
 
-/* SYSTEM ERRORS */
+// SYSTEM ERRORS
 // ERR_NO_SENSOR (1<<0)
 // ERR_CALIB_ACC (1<<1)
 // ERR_SET_POWER (1<<2)
@@ -213,7 +213,7 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
                          const float roll_speed,
                          const float pitch_speed,
                          const float yaw_speed);
-#endif /* SBGC_H */
+#endif // SBGC_H
 
 //////////////////////////////////////////////////////////////////////////////
 //                             IMPLEMENTATION                               //
@@ -312,13 +312,13 @@ float sbgc_parse_angle(const uint8_t *data,
 void sbgc_frame_print(const sbgc_frame_t *frame) {
   int i;
 
-  /* Header */
+  // Header
   printf("[%d]: %c\n", 0, '>');
   printf("[%d]: %c\n", 1, frame->cmd_id);
   printf("[%d]: %d\n", 2, frame->data_size);
   printf("[%d]: %d\n", 3, frame->header_checksum);
 
-  /* Body */
+  // Body
   for (i = 4; i < (frame->data_size + 4); i++) {
     printf("[%d]: %d\n", i, frame->data[i]);
   }
@@ -362,17 +362,17 @@ void sbgc_frame_set_cmd(sbgc_frame_t *frame, int cmd_id) {
 int sbgc_frame_parse_header(sbgc_frame_t *frame, uint8_t *data) {
   uint8_t expected_checksum;
 
-  /* Pre-check */
+  // Pre-check
   if (data[0] != '>') {
     return -1;
   }
 
-  /* Parse header */
+  // Parse header
   frame->cmd_id = data[1];
   frame->data_size = data[2];
   frame->header_checksum = data[3];
 
-  /* Check the header checksum */
+  // Check the header checksum
   expected_checksum = (frame->cmd_id + frame->data_size) % 256;
   if (frame->header_checksum != expected_checksum) {
     return -1;
@@ -385,18 +385,18 @@ int sbgc_frame_parse_body(sbgc_frame_t *frame, uint8_t *data) {
   uint8_t i;
   uint8_t expected_checksum;
 
-  /* Setup */
+  // Setup
   expected_checksum = 0x0;
   frame->data = malloc(sizeof(uint8_t) * frame->data_size);
 
-  /* Parse body */
+  // Parse body
   for (i = 0; i < frame->data_size; i++) {
     frame->data[i] = data[4 + i]; // +4 because header is 4 bytes
     expected_checksum += data[4 + i];
   }
   frame->data_checksum = data[4 + i];
 
-  /* Check the body checksum */
+  // Check the body checksum
   expected_checksum = expected_checksum % 256;
   if (frame->data_checksum != expected_checksum) {
     SBGC_ERROR("Failed body checksum!");
@@ -410,14 +410,14 @@ int sbgc_frame_parse_body(sbgc_frame_t *frame, uint8_t *data) {
 int sbgc_frame_parse_frame(sbgc_frame_t *frame, uint8_t *data) {
   int retval;
 
-  /* Parse header */
+  // Parse header
   retval = sbgc_frame_parse_header(frame, data);
   if (retval == -1) {
     SBGC_ERROR("Failed to parse header!");
     return -1;
   }
 
-  /* Parse body */
+  // Parse body
   retval = sbgc_frame_parse_body(frame, data);
   if (retval == -1) {
     SBGC_ERROR("Failed to parse body!");
@@ -430,7 +430,7 @@ int sbgc_frame_parse_frame(sbgc_frame_t *frame, uint8_t *data) {
 // SBGC DATA /////////////////////////////////////////////////////////////////
 
 void sbgc_data_t_print(sbgc_data_t *data) {
-  /* Accelerometer and gyroscope */
+  // Accelerometer and gyroscope
   printf("accelerometer: %.2f\t%.2f\t%.2f\n",
          data->accel[0],
          data->accel[1],
@@ -441,7 +441,7 @@ void sbgc_data_t_print(sbgc_data_t *data) {
          data->gyro[2]);
   printf("\n");
 
-  /* Angles */
+  // Angles
   printf("camera_angles: %.2f\t%.2f\t%.2f\n",
          data->camera_angles[0],
          data->camera_angles[1],
@@ -455,7 +455,7 @@ void sbgc_data_t_print(sbgc_data_t *data) {
          data->rc_angles[1],
          data->rc_angles[2]);
 
-  /* Misc */
+  // Misc
   printf("cycle_time: %d\n", data->cycle_time);
   printf("i2c_error_count: %d\n", data->i2c_error_count);
   printf("system_error: %d\n", data->system_error);
@@ -476,13 +476,13 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
   sbgc->board_features = 0;
   sbgc->connection_flags = 0;
 
-  /* Open serial port */
+  // Open serial port
   sbgc->serial = open(sbgc->port, O_RDWR | O_NOCTTY | O_SYNC);
   if (sbgc->serial < 0) {
     return -1;
   }
 
-  /* Configure serial commnication */
+  // Configure serial commnication
   sbgc_set_interface_attributes(sbgc->serial, B115200, 0);
   sbgc_set_blocking(sbgc->serial, 1);
   sbgc->connected = 1;
@@ -513,32 +513,32 @@ void sbgc_reset(sbgc_t *sbgc) {
 }
 
 int sbgc_send(const sbgc_t *sbgc, const sbgc_frame_t *frame) {
-  /* Check connection */
+  // Check connection
   if (sbgc->connected == 0) {
     return -1;
   }
 
-  /* Check command data size */
+  // Check command data size
   int data_size_limit;
   data_size_limit = SBGC_CMD_MAX_BYTES - SBGC_CMD_PAYLOAD_BYTES;
   if (frame->data_size >= data_size_limit) {
     return -1;
   }
 
-  /* Header */
+  // Header
   ssize_t retval = 0;
-  const uint8_t start = 0x3E; /* ">" character */
+  const uint8_t start = 0x3E; // ">" character
   retval += write(sbgc->serial, &start, 1);
   retval += write(sbgc->serial, &frame->cmd_id, 1);
   retval += write(sbgc->serial, &frame->data_size, 1);
 
-  /* Body */
+  // Body
   retval += write(sbgc->serial, &frame->header_checksum, 1);
   retval += write(sbgc->serial, frame->data, frame->data_size);
   retval += write(sbgc->serial, &frame->data_checksum, 1);
 
-  /* Flush */
-  tcflush(sbgc->serial, TCIOFLUSH); /* VERY CRITICAL */
+  // Flush
+  tcflush(sbgc->serial, TCIOFLUSH); // VERY CRITICAL
   usleep(10 * 1000);
   if (retval != (5 + frame->data_size)) {
     printf("Opps! frame wasn't sent completely!\n");
@@ -550,12 +550,12 @@ int sbgc_send(const sbgc_t *sbgc, const sbgc_frame_t *frame) {
 int sbgc_read(const sbgc_t *sbgc,
               const uint8_t read_length,
               sbgc_frame_t *frame) {
-  /* Check connection */
+  // Check connection
   if (sbgc->connected == 0) {
     return -1;
   }
 
-  /* Send query */
+  // Send query
   uint8_t buffer[150];
   int16_t nb_bytes = read(sbgc->serial, buffer, read_length);
   if (nb_bytes <= 0 || nb_bytes != read_length) {
@@ -563,7 +563,7 @@ int sbgc_read(const sbgc_t *sbgc,
     return -1;
   }
 
-  /* Parse sbgc frame */
+  // Parse sbgc frame
   int retval = sbgc_frame_parse_frame(frame, buffer);
   if (retval == -1) {
     SBGC_ERROR("Failed to parse SBGC frame!");
@@ -585,7 +585,7 @@ int sbgc_off(const sbgc_t *sbgc) {
     return -1;
   }
 
-  /* Turn off motor control */
+  // Turn off motor control
   {
     uint8_t data[13];
     data[0] = SBGC_MODE_NO_CONTROL;
@@ -600,7 +600,7 @@ int sbgc_off(const sbgc_t *sbgc) {
     }
   }
 
-  /* Turn off motors */
+  // Turn off motors
   {
     sbgc_frame_t frame;
     sbgc_frame_set_cmd(&frame, SBGC_CMD_MOTORS_OFF);
@@ -613,7 +613,7 @@ int sbgc_off(const sbgc_t *sbgc) {
 }
 
 int sbgc_info(sbgc_t *sbgc) {
-  /* Request board info */
+  // Request board info
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_BOARD_INFO);
   if (sbgc_send(sbgc, &frame) == -1) {
@@ -621,7 +621,7 @@ int sbgc_info(sbgc_t *sbgc) {
     return -1;
   }
 
-  /* Obtain board info */
+  // Obtain board info
   sbgc_frame_t info;
   if (sbgc_read(sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &info) == -1) {
     SBGC_ERROR("Failed to parse SBGC frame for board info!");
@@ -638,7 +638,7 @@ int sbgc_info(sbgc_t *sbgc) {
 }
 
 int sbgc_get_realtime_data_4(sbgc_t *sbgc) {
-  /* Request real time data */
+  // Request real time data
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_REALTIME_DATA_4);
   if (sbgc_send(sbgc, &frame) == -1) {
@@ -646,13 +646,13 @@ int sbgc_get_realtime_data_4(sbgc_t *sbgc) {
     return -1;
   }
 
-  /* Obtain real time data */
+  // Obtain real time data
   if (sbgc_read(sbgc, 129, &frame) == -1) {
     SBGC_ERROR("Failed to parse SBGC frame for realtime data!");
     return -1;
   }
 
-  /* Parse real time data */
+  // Parse real time data
   sbgc->data.accel[0] = sbgc_parse_accel(frame.data, 1, 0);
   sbgc->data.accel[1] = sbgc_parse_accel(frame.data, 5, 4);
   sbgc->data.accel[2] = sbgc_parse_accel(frame.data, 9, 8);
@@ -686,7 +686,7 @@ int sbgc_get_realtime_data_4(sbgc_t *sbgc) {
 }
 
 int sbgc_get_realtime_data(sbgc_t *sbgc) {
-  /* Request real time data */
+  // Request real time data
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_REALTIME_DATA_3);
   if (sbgc_send(sbgc, &frame) == -1) {
@@ -694,14 +694,14 @@ int sbgc_get_realtime_data(sbgc_t *sbgc) {
     return -1;
   }
 
-  /* Obtain real time data */
+  // Obtain real time data
   sbgc_frame_t info;
   if (sbgc_read(sbgc, 68, &info) == -1) {
     SBGC_ERROR("Failed to parse SBGC frame for realtime data!");
     return -1;
   }
 
-  /* Parse real time data */
+  // Parse real time data
   sbgc->data.accel[0] = sbgc_parse_accel(frame.data, 1, 0);
   sbgc->data.accel[1] = sbgc_parse_accel(frame.data, 5, 4);
   sbgc->data.accel[2] = sbgc_parse_accel(frame.data, 9, 8);
@@ -731,7 +731,7 @@ int sbgc_get_realtime_data(sbgc_t *sbgc) {
 }
 
 int sbgc_get_angle_ext(sbgc_t *sbgc) {
-  /* Request real time data */
+  // Request real time data
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_GET_ANGLES_EXT);
   if (sbgc_send(sbgc, &frame) == -1) {
@@ -739,7 +739,7 @@ int sbgc_get_angle_ext(sbgc_t *sbgc) {
     return -1;
   }
 
-  /* Obtain real time data */
+  // Obtain real time data
   if (sbgc_read(sbgc, 54, &frame) == -1) {
     SBGC_ERROR("Failed to parse SBGC frame for realtime data!");
     return -1;
@@ -764,40 +764,40 @@ int sbgc_set_angle(const sbgc_t *sbgc,
                    const float roll,
                    const float pitch,
                    const float yaw) {
-  /* Adjust roll, pitch and yaw */
+  // Adjust roll, pitch and yaw
   const int16_t roll_adjusted = roll / SBGC_DEG_PER_BIT;
   const int16_t pitch_adjusted = pitch / SBGC_DEG_PER_BIT;
   const int16_t yaw_adjusted = yaw / SBGC_DEG_PER_BIT;
 
-  /* Control mode */
+  // Control mode
   uint8_t data[13];
   data[0] = SBGC_MODE_ANGLE;
 
-  /* Speed roll */
+  // Speed roll
   data[1] = 0;
   data[2] = 0;
 
-  /* Angle roll */
+  // Angle roll
   data[3] = ((roll_adjusted >> 0) & 0xff);
   data[4] = ((roll_adjusted >> 8) & 0xff);
 
-  /* Speed pitch */
+  // Speed pitch
   data[5] = 0;
   data[6] = 0;
 
-  /* Angle pitch */
+  // Angle pitch
   data[7] = ((pitch_adjusted >> 0) & 0xff);
   data[8] = ((pitch_adjusted >> 8) & 0xff);
 
-  /* Speed yaw */
+  // Speed yaw
   data[9] = 0;
   data[10] = 0;
 
-  /* Angle yaw */
+  // Angle yaw
   data[11] = ((yaw_adjusted >> 0) & 0xff);
   data[12] = ((yaw_adjusted >> 8) & 0xff);
 
-  /* Build frame and send */
+  // Build frame and send
   sbgc_frame_t frame;
   sbgc_frame_set_frame(&frame, SBGC_CMD_CONTROL, data, 13);
   sbgc_send(sbgc, &frame);
@@ -812,7 +812,7 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
                          const float roll_speed,
                          const float pitch_speed,
                          const float yaw_speed) {
-  /* Adjust roll, pitch and yaw */
+  // Adjust roll, pitch and yaw
   const int16_t roll_adjusted = roll / SBGC_DEG_PER_BIT;
   const int16_t pitch_adjusted = pitch / SBGC_DEG_PER_BIT;
   const int16_t yaw_adjusted = yaw / SBGC_DEG_PER_BIT;
@@ -820,35 +820,35 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
   const int16_t pitch_speed_adjusted = pitch_speed / SBGC_DEG_SEC_PER_BIT;
   const int16_t yaw_speed_adjusted = yaw_speed / SBGC_DEG_SEC_PER_BIT;
 
-  /* Control mode */
+  // Control mode
   uint8_t data[13];
   data[0] = SBGC_MODE_SPEED_ANGLE;
 
-  /* Speed roll */
+  // Speed roll
   data[1] = ((roll_speed_adjusted >> 0) & 0xff);
   data[2] = ((roll_speed_adjusted >> 8) & 0xff);
 
-  /* Angle roll */
+  // Angle roll
   data[3] = ((roll_adjusted >> 0) & 0xff);
   data[4] = ((roll_adjusted >> 8) & 0xff);
 
-  /* Speed pitch */
+  // Speed pitch
   data[5] = ((pitch_speed_adjusted >> 0) & 0xff);
   data[6] = ((pitch_speed_adjusted >> 8) & 0xff);
 
-  /* Angle pitch */
+  // Angle pitch
   data[7] = ((pitch_adjusted >> 0) & 0xff);
   data[8] = ((pitch_adjusted >> 8) & 0xff);
 
-  /* Speed yaw */
+  // Speed yaw
   data[9] = ((yaw_speed_adjusted >> 0) & 0xff);
   data[10] = ((yaw_speed_adjusted >> 8) & 0xff);
 
-  /* Angle yaw */
+  // Angle yaw
   data[11] = ((yaw_adjusted >> 0) & 0xff);
   data[12] = ((yaw_adjusted >> 8) & 0xff);
 
-  /* Build frame and send */
+  // Build frame and send
   sbgc_frame_t frame;
   sbgc_frame_set_frame(&frame, SBGC_CMD_CONTROL, data, 13);
   sbgc_send(sbgc, &frame);
@@ -856,7 +856,7 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
   return 0;
 }
 
-#endif /* SBGC_IMPLEMENTATION */
+#endif // SBGC_IMPLEMENTATION
 
 //////////////////////////////////////////////////////////////////////////////
 //                                UNITTESTS                                 //
@@ -868,7 +868,7 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
 
 #define SBGC_DEV "/dev/ttyUSB0"
 
-/* UNITESTS GLOBAL VARIABLES */
+// UNITESTS GLOBAL VARIABLES
 static int nb_tests = 0;
 static int nb_passed = 0;
 static int nb_failed = 0;
@@ -935,17 +935,17 @@ int test_sbgc_connect_disconnect() {
 }
 
 int test_sbgc_send() {
-  /* Connect */
+  // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
 
-  /* Motors on */
+  // Motors on
   sbgc_frame_t frame0;
   sbgc_frame_set_cmd(&frame0, SBGC_CMD_MOTORS_ON);
   TEST_ASSERT(sbgc_send(&sbgc, &frame0) == 0);
   sleep(1);
 
-  /* Motors off */
+  // Motors off
   sbgc_frame_t frame1;
   sbgc_frame_set_cmd(&frame1, SBGC_CMD_MOTORS_OFF);
   TEST_ASSERT(sbgc_send(&sbgc, &frame1) == 0);
@@ -955,31 +955,31 @@ int test_sbgc_send() {
 }
 
 int test_sbgc_read() {
-  /* Connect */
+  // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV));
 
-  /* Send request */
+  // Send request
   sbgc_frame_t req;
   sbgc_frame_set_cmd(&req, SBGC_CMD_BOARD_INFO);
   sbgc_send(&sbgc, &req);
 
-  /* Get response */
+  // Get response
   sbgc_frame_t resp;
   sbgc_read(&sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &resp);
 
-  /* Assert */
+  // Assert
   TEST_ASSERT(resp.data_size == 18);
 
   return 0;
 }
 
 int test_sbgc_info() {
-  /* Connect */
+  // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV));
 
-  /* Get board info */
+  // Get board info
   sbgc_info(&sbgc);
   printf("board version: %d\n", sbgc.board_version);
   printf("firmware version: %d\n", sbgc.firmware_version);
@@ -991,11 +991,11 @@ int test_sbgc_info() {
 }
 
 int test_sbgc_get_realtime_data() {
-  /* Connect */
+  // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
 
-  /* Get imu data */
+  // Get imu data
   for (int i = 0; i < 100; ++i) {
     sbgc_get_realtime_data(&sbgc);
     sbgc_data_t_print(&sbgc.data);
@@ -1005,12 +1005,12 @@ int test_sbgc_get_realtime_data() {
 }
 
 int test_sbgc_set_angle() {
-  /* Connect and turn motors on */
+  // Connect and turn motors on
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
-  /* Test Roll */
+  // Test Roll
   SBGC_INFO("Testing roll!");
   sbgc_set_angle(&sbgc, -20, 0, 0);
   sleep(2);
@@ -1043,12 +1043,12 @@ int test_sbgc_set_angle() {
 }
 
 int test_sbgc_set_angle_speed() {
-  /* Connect and turn motors on */
+  // Connect and turn motors on
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
-  /* Set angle with speed */
+  // Set angle with speed
   TEST_ASSERT(sbgc_set_angle_speed(&sbgc, 0, 10, 0, 0, -2, 0) == 0);
   TEST_ASSERT(sbgc_off(&sbgc) == 0);
   sleep(3);
@@ -1068,4 +1068,4 @@ int main(int argc, char *argv[]) {
   return (nb_failed) ? -1 : 0;
 }
 
-#endif /* SBGC_UNITTEST */
+#endif // SBGC_UNITTEST
