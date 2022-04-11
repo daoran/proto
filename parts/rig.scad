@@ -408,20 +408,77 @@ module rig_handle(w, h) {
   support_h = h;
   tol = 0.2;
 
-  translate([0.0, 0.0, 0.0]) {
+  // Lower
+  translate([0.0, 0.0, support_h / 2.0]) {
     difference() {
-      // Ring
-      translate([0.0, w / 2.0, 0.0]) {
-        cylinder(support_h, r=screw_hsize * 2.3, center=true);
+      // Rings
+      union() {
+        translate([0.0, w / 2.0, 0.0]) {
+          cylinder(support_h, r=screw_hsize * 2.3, center=true);
+        }
+        translate([0.0, -w / 2.0, 0.0]) {
+          cylinder(support_h, r=screw_hsize * 2.3, center=true);
+        }
       }
 
       // Hole
       translate([0.0, w / 2.0, 0.0]) {
         cylinder(support_h + 0.01, r=screw_hsize + tol, center=true);
       }
+      translate([0.0, -w / 2.0, 0.0]) {
+        cylinder(support_h + 0.01, r=screw_hsize + tol, center=true);
+      }
+    }
+
+    // Support
+    translate([0.0, 0.0, 0.0]) {
+      cube([support_h, w - screw_size - 1, support_h],  center=true);
     }
   }
 
+  // Upper
+  translate([0.0, 0.0, 70.0 - support_h / 2.0]) {
+    difference() {
+      // Rings
+      union() {
+        translate([0.0, w / 2.0, 0.0]) {
+          cylinder(support_h, r=screw_hsize * 2.3, center=true);
+        }
+        translate([0.0, -w / 2.0, 0.0]) {
+          cylinder(support_h, r=screw_hsize * 2.3, center=true);
+        }
+      }
+
+      // Hole
+      translate([0.0, w / 2.0, 0.0]) {
+        cylinder(support_h + 0.01, r=screw_hsize + tol, center=true);
+      }
+      translate([0.0, -w / 2.0, 0.0]) {
+        cylinder(support_h + 0.01, r=screw_hsize + tol, center=true);
+      }
+    }
+
+    // Support
+    translate([0.0, 0.0, 0.0]) {
+      cube([support_h, w - screw_size - 1, support_h],  center=true);
+    }
+  }
+
+  // Handle
+  handle_d = 25.0;
+  translate([-handle_d, 0.0, support_h / 2.0])
+    cube([handle_d * 2, 20.0 * 2.0, support_h],  center=true);
+
+  translate([-handle_d, 0.0, 70.0 - support_h / 2.0])
+    cube([handle_d * 2, 20.0 * 2.0, support_h],  center=true);
+
+  translate([-handle_d * 2.0, 0.0, 0.0])
+    difference() {
+      cylinder(70.0, r = 20.0);
+
+      // translate([0.0, 0.0, 70.0 / 2.0])
+      //   #cylinder(70.0 + 0.01, r = 18, center=true);
+    }
 }
 
 module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
@@ -506,7 +563,7 @@ batt_d = 140.0;
 batt_h = 27.0;
 
 // spacer_tool();
-// rig_handle(stack_w, stack_h);
-pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
+rig_handle(stack_w, stack_h);
+// pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
 // realsense_stack(stack_w, stack_h);
 // nuc_stack(stack_w, stack_h);
