@@ -1,23 +1,47 @@
 $fn = 40;
 
-module standoff(h=11, r=2) {
+module standoff(h, r, cst=1, csb=0) {
   nipple_h = h * 0.8;
+  screw_size = 2.0;
+  screw_hsize = screw_size / 2.0;
+  nut_w = 4.35;
+  nut_h = 1.45;
+  tol = 0.2;
 
 	// Standoff
   difference() {
+    // Standoff body
     cylinder(h=h, r=r, center=true);
 
-    translate([0.0, 0.0, h / 2.0 - nipple_h / 2.0])
-      cylinder(h=nipple_h + 0.1, r=0.8, center=true);
+    // Screw hole
+    translate([0.0, 0.0, h / 2.0 - nipple_h / 2.0]) {
+      cylinder(h=nipple_h + 0.1, r=screw_hsize + tol, center=true);
+    }
+
+    // Nut-counter-sink top
+    if (cst) {
+      translate([0.0, 0.0, h / 2.0 - nut_h / 2.0]) {
+        cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+      }
+    }
+
+    // Nut-counter-sink bottom
+    if (csb) {
+      translate([0.0, 0.0, -h / 2.0 + nut_h / 2.0]) {
+        cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+      }
+    }
   }
 
 	// Fillet
-	fillet_h_inc = 0.1;
-	fillet_h = 2.0;
-	for (fillet_height = [fillet_h_inc:fillet_h_inc:fillet_h]) {
-		translate([0.0, 0.0, -h / 2.0 + fillet_height])
-			cylinder(h=0.1, r=r * 1.5 - fillet_height);
-	}
+	if (csb == 0) {
+    fillet_h_inc = 0.1;
+    fillet_h = 2.0;
+    for (fillet_height = [fillet_h_inc:fillet_h_inc:fillet_h]) {
+      translate([0.0, 0.0, -h / 2.0 + fillet_height])
+        cylinder(h=0.1, r=r * 1.5 - fillet_height);
+    }
+  }
 }
 
 module nuc_standoffs(w, d, h, r) {
@@ -41,18 +65,18 @@ module nuc_standoffs(w, d, h, r) {
 }
 
 module pololu_standoffs() {
-  screw_size = 3.0;
+  screw_size = 2.0;
   screw_hsize = screw_size / 2.0;
   tol = 1.2;
 
   mount_w = 43.2;
   mount_d = 10.2;
-  mount_h = 5.0;
+  mount_h = 6.0;
 
   translate([mount_w / 2.0, mount_d / 2.0, mount_h / 2.0])
-    standoff(h=mount_h, r=screw_hsize * tol);
+    standoff(h=mount_h, r=2.5);
   translate([-mount_w / 2.0, -mount_d / 2.0, mount_h / 2.0])
-    standoff(h=mount_h, r=screw_hsize * tol);
+    standoff(h=mount_h, r=2.5);
 }
 
 module stack_module(w, h, plate=1, plate_holes=1, side_holes=1) {
@@ -205,29 +229,75 @@ module spacer_tool() {
   }
 }
 
-module top_stack(w, h, batt_w, batt_d, batt_h) {
+module pwr_stack(w, h, batt_w, batt_d, batt_h) {
   screw_size = 3.0;
   screw_hsize = screw_size / 2.0;
+  mount_r = 2.5;
+  nut_w = 6.5;
+  nut_h = 3;
+  nut_s = 3.0; // nut-spacing
   tol = 1.2;
 
   // Stack module plate
   difference() {
-    stack_module(w, h, 1, 0, 0);
+    union() {
+      stack_module(w, h, 1, 0, 0);
+
+      translate([(w - 30) / 2.0, 35, 0.0])
+        cylinder(h + nut_h + nut_s, r=screw_hsize + mount_r, center=true);
+      translate([-(w - 30) / 2.0, 35, 0.0])
+        cylinder(h + nut_h + nut_s, r=screw_hsize + mount_r, center=true);
+      translate([(w - 30) / 2.0, -35, 0.0])
+        cylinder(h + nut_h + nut_s, r=screw_hsize + mount_r, center=true);
+      translate([-(w - 30) / 2.0, -35, 0.0])
+        cylinder(h + nut_h + nut_s, r=screw_hsize + mount_r, center=true);
+    }
 
     // Battery strap holes
     translate([0.0, batt_w / 2.0 + 3, 0.0])
-      cube([25, 3, h + 0.01], center=true);
+      cube([25, 3, h * 2.0 + 0.01], center=true);
     translate([0.0, -batt_w / 2.0 - 3, 0.0])
-      cube([25, 3, h + 0.01], center=true);
-    // Extra mount holes
+      cube([25, 3, h * 2.0 + 0.01], center=true);
+
+    // Mount holes
     translate([(w - 30) / 2.0, 35, 0.0])
-      cylinder(h + 0.01, r=screw_hsize * tol, center=true);
+      cylinder(h + nut_h + nut_s + 0.01, r=screw_hsize * tol, center=true);
     translate([-(w - 30) / 2.0, 35, 0.0])
-      cylinder(h + 0.01, r=screw_hsize * tol, center=true);
+      cylinder(h + nut_h + nut_s + 0.01, r=screw_hsize * tol, center=true);
     translate([(w - 30) / 2.0, -35, 0.0])
-      cylinder(h + 0.01, r=screw_hsize * tol, center=true);
+      cylinder(h + nut_h + nut_s + 0.01, r=screw_hsize * tol, center=true);
     translate([-(w - 30) / 2.0, -35, 0.0])
-      cylinder(h + 0.01, r=screw_hsize * tol, center=true);
+      cylinder(h + nut_h + nut_s + 0.01, r=screw_hsize * tol, center=true);
+
+    // Mount nut counter sinks
+    // -- Front left
+    translate([(w - 30) / 2.0, 35, (h + nut_h + nut_s) / 2.0 - nut_h / 2.0]) {
+      cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+    }
+    translate([(w - 30) / 2.0, 35, -1.0 * ((h + nut_h + nut_s) / 2.0 - nut_h / 2.0)]) {
+      cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+    }
+    // -- Front right
+    translate([(w - 30) / 2.0, -35, (h + nut_h + nut_s) / 2.0 - nut_h / 2.0]) {
+      cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+    }
+    translate([(w - 30) / 2.0, -35, -1.0 * ((h + nut_h + nut_s) / 2.0 - nut_h / 2.0)]) {
+      cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+    }
+    // -- Back right
+    translate([-(w - 30) / 2.0, -35, (h + nut_h + nut_s) / 2.0 - nut_h / 2.0]) {
+      cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+    }
+    translate([-(w - 30) / 2.0, -35, -1.0 * ((h + nut_h + nut_s) / 2.0 - nut_h / 2.0)]) {
+      cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+    }
+    // -- Back left
+    translate([-(w - 30) / 2.0, 35, (h + nut_h + nut_s) / 2.0 - nut_h / 2.0]) {
+      cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+    }
+    translate([-(w - 30) / 2.0, 35, -1.0 * ((h + nut_h + nut_s) / 2.0 - nut_h / 2.0)]) {
+      cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+    }
   }
 
   // Rear cable rails
@@ -251,9 +321,8 @@ module nuc_stack(w, h) {
   standoff_h = 12.0;
   standoff_r = 2.5;
 
-  // NUC standoffs
-  translate([0.0, 0.0, h / 2])
-    nuc_standoffs(pcb_w, pcb_d, standoff_h, standoff_r);
+  // NUC plate
+  stack_module(w, h);
 
   // Front cable rails
   difference() {
@@ -273,8 +342,9 @@ module nuc_stack(w, h) {
       cube([4.0, 85.0, h + 0.1], center=true);
   }
 
-
-  stack_module(w, h);
+  // NUC standoffs
+  translate([0.0, 0.0, h / 2])
+    nuc_standoffs(pcb_w, pcb_d, standoff_h, standoff_r);
 }
 
 module realsense_stack(w, h) {
@@ -380,7 +450,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
   // Pololu Voltage Regulator U3V50X
   if (show_voltreg) {
     color([0, 1, 0])
-    translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 38.5]) {
+    translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 40.5]) {
       rotate([0.0, 0.0, 0.0]) {
         import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.stl");
       }
@@ -396,9 +466,9 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
           cube([batt_w, batt_d, batt_h], center=true);
   }
 
-  // Top stack
+  // PWR stack
   translate([0.0, 0.0, 33.0])
-    top_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
+    pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
 
   // Intel NUC stack module
   nuc_stack(stack_w, stack_h);
@@ -416,7 +486,18 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
     realsense_stack(stack_w, stack_h);
 }
 
-// Main
-/* assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1); */
-spacer_tool();
+// ASSEMBLY
+assembly(show_sbc=0, show_cam=1, show_voltreg=1, show_batt=1);
 // realsense_stack();
+
+// PRINTS
+// stack_w = 110;
+// stack_h = 3.0;
+// batt_w = 48.0;
+// batt_d = 140.0;
+// batt_h = 27.0;
+
+// spacer_tool();
+// pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
+// realsense_stack(stack_w, stack_h);
+// nuc_stack(stack_w, stack_h);
