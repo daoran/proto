@@ -10,7 +10,7 @@
 #define USE_LAPACK
 #define USE_CERES
 #define USE_STB_IMAGE
-/* #define USE_GUI */
+// #define USE_GUI   
 
 #ifndef WARN_UNUSED
 #define WARN_UNUSED __attribute__((warn_unused_result))
@@ -471,17 +471,17 @@ int tcp_client_loop(tcp_client_t *client);
   "\r\n"
 
 typedef struct http_msg_t {
-  /* Protocol version */
+  // Protocol version   
   char *protocol;
 
-  /* Request */
+  // Request   
   char *method;
   char *path;
 
-  /* Response */
+  // Response   
   char *status;
 
-  /* Headers */
+  // Headers   
   char *user_agent;
   char *host;
   char *upgrade;
@@ -1015,24 +1015,24 @@ typedef struct imu_factor_t {
   real_t r[15];
   int r_size;
 
-  real_t J0[2 * 6]; /* Jacobian w.r.t pose i */
-  real_t J1[2 * 9]; /* Jacobian w.r.t speed and biases i */
-  real_t J2[2 * 6]; /* Jacobian w.r.t pose j */
-  real_t J3[2 * 9]; /* Jacobian w.r.t speed and biases j */
+  real_t J0[2 * 6]; // Jacobian w.r.t pose i   
+  real_t J1[2 * 9]; // Jacobian w.r.t speed and biases i   
+  real_t J2[2 * 6]; // Jacobian w.r.t pose j   
+  real_t J3[2 * 9]; // Jacobian w.r.t speed and biases j   
   real_t *jacs[4];
   int nb_params;
 
-  /* Preintegration variables */
+  // Preintegration variables   
   real_t Dt;
-  real_t F[15 * 15]; /* State jacobian */
-  real_t P[15 * 15]; /* State covariance */
-  real_t Q[15 * 15]; /* Noise matrix */
+  real_t F[15 * 15]; // State jacobian   
+  real_t P[15 * 15]; // State covariance   
+  real_t Q[15 * 15]; // Noise matrix   
 
-  real_t dr[3];     /* Relative position */
-  real_t dv[3];     /* Relative velocity */
-  real_t dC[3 * 3]; /* Relative rotation */
-  real_t ba[3];     /* Accel biase */
-  real_t bg[3];     /* Gyro biase */
+  real_t dr[3];     // Relative position   
+  real_t dv[3];     // Relative velocity   
+  real_t dC[3 * 3]; // Relative rotation   
+  real_t ba[3];     // Accel biase   
+  real_t bg[3];     // Gyro biase   
 
 } imu_factor_t;
 
@@ -1045,13 +1045,13 @@ void imu_buf_clear(imu_buf_t *imu_buf);
 void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
 void imu_buf_print(const imu_buf_t *imu_buf);
 
-/* void imu_factor_setup(imu_factor_t *factor, */
-/*                       imu_params_t *imu_params, */
-/*                       imu_buf_t *imu_buf, */
-/*                       pose_t *pose_i, */
-/*                       speed_biases_t *sb_i, */
-/*                       pose_t *pose_j, */
-/*                       speed_biases_t *sb_j); */
+// void imu_factor_setup(imu_factor_t *factor,   
+//                       imu_params_t *imu_params,   
+//                       imu_buf_t *imu_buf,   
+//                       pose_t *pose_i,   
+//                       speed_biases_t *sb_i,   
+//                       pose_t *pose_j,   
+//                       speed_biases_t *sb_j);   
 void imu_factor_reset(imu_factor_t *factor);
 
 // GRAPH ///////////////////////////////////////////////////////////////////////
@@ -1390,6 +1390,6 @@ void imshow_event_handler(imshow_t *gui);
 void imshow_setup(imshow_t *imshow, const char *fp);
 void imshow_reset(imshow_t *imshow);
 void imshow_loop(imshow_t *imshow);
-#endif /* USE_GUI */
+#endif // USE_GUI   
 
 #endif // PROTO_H_
