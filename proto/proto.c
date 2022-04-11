@@ -96,15 +96,15 @@ char **list_files(const char *path, int *n) {
     return NULL;
   }
 
-  /* The first two are '.' and '..' */
+  // The first two are '.' and '..'
   free(namelist[0]);
   free(namelist[1]);
 
-  /* Allocate memory for list of files */
+  // Allocate memory for list of files
   char **files = malloc(sizeof(char *) * (nb_files - 2));
   *n = 0;
 
-  /* Create list of files */
+  // Create list of files
   for (int i = 2; i < nb_files; i++) {
     char fp[9046] = {0};
     const char *c = (path[strlen(path) - 1] == '/') ? "" : "/";
@@ -199,7 +199,7 @@ int file_rows(const char *fp) {
     return -1;
   }
 
-  /* Obtain number of lines */
+  // Obtain number of lines
   int nb_rows = 0;
   char *line = NULL;
   size_t len = 0;
@@ -208,7 +208,7 @@ int file_rows(const char *fp) {
   }
   free(line);
 
-  /* Clean up */
+  // Clean up
   fclose(file);
 
   return nb_rows;
@@ -249,7 +249,7 @@ int file_copy(const char *src, const char *dst) {
     free(line);
   }
 
-  /* Clean up */
+  // Clean up
   fclose(src_file);
   fclose(dst_file);
 
@@ -266,7 +266,7 @@ int file_copy(const char *src, const char *dst) {
 size_t string_copy(char *dst, const char *src) {
   dst[0] = '\0';
   strncpy(dst, src, strlen(src));
-  dst[strlen(src)] = '\0'; /* strncpy does not null terminate */
+  dst[strlen(src)] = '\0'; // strncpy does not null terminate
   return strlen(dst);
 }
 
@@ -276,7 +276,7 @@ size_t string_copy(char *dst, const char *src) {
 void string_cat(char *dst, const char *src) {
   size_t dst_len = strlen(dst);
   strncat(dst + dst_len, src, strlen(src));
-  dst[dst_len + strlen(src)] = '\0'; /* strncat does not null terminate */
+  dst[dst_len + strlen(src)] = '\0'; // strncat does not null terminate
 }
 
 /**
@@ -286,7 +286,7 @@ char *string_malloc(const char *s) {
   assert(s != NULL);
   char *retval = malloc(sizeof(char) * strlen(s) + 1);
   strncpy(retval, s, strlen(s));
-  retval[strlen(s)] = '\0'; /* strncpy does not null terminate */
+  retval[strlen(s)] = '\0'; // strncpy does not null terminate
   return retval;
 }
 
@@ -296,22 +296,22 @@ char *string_malloc(const char *s) {
 char *string_strip(char *s) {
   char *end;
 
-  /* Trim leading space */
+  // Trim leading space
   while (*s == ' ') {
     s++;
   }
 
-  if (*s == 0) { /* All spaces? */
+  if (*s == 0) { // All spaces?
     return s;
   }
 
-  /* Trim trailing space */
+  // Trim trailing space
   end = s + strlen(s) - 1;
   while (end > s && *end == ' ') {
     end--;
   }
 
-  /* Write new null terminator character */
+  // Write new null terminator character
   end[1] = '\0';
 
   return s;
@@ -477,13 +477,13 @@ double *double_malloc(const double val) {
 int dsv_rows(const char *fp) {
   assert(fp != NULL);
 
-  /* Load file */
+  // Load file
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
     return -1;
   }
 
-  /* Loop through lines */
+  // Loop through lines
   int nb_rows = 0;
   char line[MAX_LINE_LENGTH] = {0};
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
@@ -492,7 +492,7 @@ int dsv_rows(const char *fp) {
     }
   }
 
-  /* Cleanup */
+  // Cleanup
   fclose(infile);
 
   return nb_rows;
@@ -507,13 +507,13 @@ int dsv_rows(const char *fp) {
 int dsv_cols(const char *fp, const char delim) {
   assert(fp != NULL);
 
-  /* Load file */
+  // Load file
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
     return -1;
   }
 
-  /* Get line that isn't the header */
+  // Get line that isn't the header
   char line[MAX_LINE_LENGTH] = {0};
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
     if (line[0] != '#') {
@@ -521,7 +521,7 @@ int dsv_cols(const char *fp, const char delim) {
     }
   }
 
-  /* Parse line to obtain number of elements */
+  // Parse line to obtain number of elements
   int nb_elements = 1;
   int found_separator = 0;
   for (size_t i = 0; i < MAX_LINE_LENGTH; i++) {
@@ -531,7 +531,7 @@ int dsv_cols(const char *fp, const char delim) {
     }
   }
 
-  /* Cleanup */
+  // Cleanup
   fclose(infile);
 
   return (found_separator) ? nb_elements : -1;
@@ -547,14 +547,14 @@ int dsv_cols(const char *fp, const char delim) {
 char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
   assert(fp != NULL);
 
-  /* Load file */
+  // Load file
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
     fclose(infile);
     return NULL;
   }
 
-  /* Get last header line */
+  // Get last header line
   char field_line[MAX_LINE_LENGTH] = {0};
   char line[MAX_LINE_LENGTH] = {0};
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
@@ -565,7 +565,7 @@ char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
     }
   }
 
-  /* Parse fields */
+  // Parse fields
   *nb_fields = dsv_cols(fp, delim);
   char **fields = malloc(sizeof(char *) * *nb_fields);
   int field_idx = 0;
@@ -574,23 +574,23 @@ char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
   for (size_t i = 0; i < strlen(field_line); i++) {
     char c = field_line[i];
 
-    /* Ignore # and ' ' */
+    // Ignore # and ' '
     if (c == '#' || c == ' ') {
       continue;
     }
 
     if (c == ',' || c == '\n') {
-      /* Add field name to fields */
+      // Add field name to fields
       fields[field_idx] = string_malloc(field_name);
       memset(field_name, '\0', 100);
       field_idx++;
     } else {
-      /* Append field name */
+      // Append field name
       field_name[strlen(field_name)] = c;
     }
   }
 
-  /* Cleanup */
+  // Cleanup
   fclose(infile);
 
   return fields;
@@ -606,34 +606,34 @@ real_t **
 dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
   assert(fp != NULL);
 
-  /* Obtain number of rows and columns in dsv data */
+  // Obtain number of rows and columns in dsv data
   *nb_rows = dsv_rows(fp);
   *nb_cols = dsv_cols(fp, delim);
   if (*nb_rows == -1 || *nb_cols == -1) {
     return NULL;
   }
 
-  /* Load file */
+  // Load file
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
     fclose(infile);
     return NULL;
   }
 
-  /* Loop through data */
+  // Loop through data
   char line[MAX_LINE_LENGTH] = {0};
   int row_idx = 0;
   int col_idx = 0;
 
-  /* Loop through data line by line */
+  // Loop through data line by line
   real_t **data = malloc(sizeof(real_t *) * *nb_rows);
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-    /* Ignore if comment line */
+    // Ignore if comment line
     if (line[0] == '#') {
       continue;
     }
 
-    /* Iterate through values in line separated by commas */
+    // Iterate through values in line separated by commas
     data[row_idx] = malloc(sizeof(real_t) * *nb_cols);
     char entry[100] = {0};
     for (size_t i = 0; i < strlen(line); i++) {
@@ -655,7 +655,7 @@ dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols) {
     row_idx++;
   }
 
-  /* Clean up */
+  // Clean up
   fclose(infile);
 
   return data;
@@ -748,11 +748,11 @@ void darray_clear_destroy(darray_t *array) {
 int darray_push(darray_t *array, void *el) {
   assert(array != NULL);
 
-  /* Push */
+  // Push
   array->contents[array->end] = el;
   array->end++;
 
-  /* Expand darray if necessary */
+  // Expand darray if necessary
   if (array->end >= array->max) {
     return darray_expand(array);
   }
@@ -763,11 +763,11 @@ int darray_push(darray_t *array, void *el) {
 void *darray_pop(darray_t *array) {
   assert(array != NULL);
 
-  /* pop */
+  // pop
   void *el = darray_remove(array, array->end - 1);
   array->end--;
 
-  /* contract */
+  // contract
   int expanded = array->end > (int) array->expand_rate;
   int trailing_memory = array->end % (int) array->expand_rate;
   if (expanded && trailing_memory) {
@@ -784,13 +784,13 @@ int darray_contains(darray_t *array,
   assert(el != NULL);
   assert(cmp != NULL);
 
-  /* Check first element */
+  // Check first element
   void *element = darray_get(array, 0);
   if (element != NULL && cmp(element, el) == 0) {
     return 1;
   }
 
-  /* Rest of element */
+  // Rest of element
   for (int i = 0; i < array->end; i++) {
     element = darray_get(array, i);
     if (element != NULL && cmp(element, el) == 0) {
@@ -804,7 +804,7 @@ int darray_contains(darray_t *array,
 darray_t *darray_copy(darray_t *array) {
   assert(array != NULL);
 
-  /* Copy first element */
+  // Copy first element
   darray_t *array_copy = darray_new(array->element_size, (size_t) array->max);
   void *el = darray_get(array, 0);
   void *el_copy = NULL;
@@ -815,10 +815,10 @@ darray_t *darray_copy(darray_t *array) {
     darray_set(array_copy, 0, el_copy);
   }
 
-  /* Copy the rest of the elements */
+  // Copy the rest of the elements
   for (int i = 1; i < array->end; i++) {
     el = darray_get(array, i);
-    /* el_copy = NULL; */
+    // el_copy = NULL;
 
     if (el != NULL) {
       memcpy(el_copy, el, array->element_size);
@@ -849,10 +849,10 @@ void darray_set(darray_t *array, int i, void *el) {
   assert(array != NULL);
   assert(i < array->max);
 
-  /* Set */
+  // Set
   array->contents[i] = el;
 
-  /* Update end */
+  // Update end
   if (i > array->end) {
     array->end = i;
   }
@@ -869,7 +869,7 @@ void *darray_update(darray_t *array, int i, void *el) {
   assert(i < array->max);
   void *old_el;
 
-  /* Update */
+  // Update
   old_el = darray_get(array, i);
   darray_set(array, i, el);
 
@@ -886,18 +886,18 @@ void *darray_remove(darray_t *array, int i) {
 static inline int darray_resize(darray_t *array, size_t new_max) {
   assert(array != NULL);
 
-  /* Calculate new max and size */
+  // Calculate new max and size
   int old_max = (int) array->max;
   array->max = (int) new_max;
 
-  /* Reallocate new memory */
+  // Reallocate new memory
   void *contents = realloc(array->contents, new_max * sizeof(void *));
   if (contents == NULL) {
     return -1;
   }
   array->contents = contents;
 
-  /* Initialize new memory to NULL */
+  // Initialize new memory to NULL
   for (int i = old_max; i < (int) new_max; i++) {
     array->contents[i] = NULL;
   }
@@ -924,7 +924,7 @@ int darray_contract(darray_t *array) {
   assert(array != NULL);
   assert(array->max > 0);
 
-  /* Contract */
+  // Contract
   int new_size = 0;
   if (array->end < (int) array->expand_rate) {
     new_size = (int) array->expand_rate;
@@ -951,7 +951,7 @@ void list_destroy(list_t *list) {
   list_node_t *node;
   list_node_t *next_node;
 
-  /* Destroy */
+  // Destroy
   node = list->first;
   while (node != NULL) {
     next_node = node->next;
@@ -993,14 +993,14 @@ void list_push(list_t *list, void *value) {
   assert(list != NULL);
   assert(value != NULL);
 
-  /* Initialize node */
+  // Initialize node
   list_node_t *node = calloc(1, sizeof(list_node_t));
   if (node == NULL) {
     return;
   }
   node->value = value;
 
-  /* Push node */
+  // Push node
   if (list->last == NULL) {
     list->first = node;
     list->last = node;
@@ -1016,7 +1016,7 @@ void list_push(list_t *list, void *value) {
 void *list_pop(list_t *list) {
   assert(list != NULL);
 
-  /* Get last */
+  // Get last
   list_node_t *last = list->last;
   if (last == NULL) {
     return NULL;
@@ -1025,7 +1025,7 @@ void *list_pop(list_t *list) {
   list_node_t *before_last = last->prev;
   free(last);
 
-  /* Pop */
+  // Pop
   if (before_last == NULL && list->length == 1) {
     list->last = NULL;
     list->first = NULL;
@@ -1046,7 +1046,7 @@ void *list_pop_front(list_t *list) {
   assert(list != NULL);
   assert(list->first != NULL);
 
-  /* pop front */
+  // pop front
   list_node_t *first_node = list->first;
   void *data = first_node->value;
   list_node_t *next_node = first_node->next;
@@ -1058,7 +1058,7 @@ void *list_pop_front(list_t *list) {
   }
   list->length--;
 
-  /* clean up */
+  // clean up
   free(first_node);
 
   return data;
@@ -1106,31 +1106,31 @@ void *list_remove(list_t *list,
   assert(value != NULL);
   assert(cmp != NULL);
 
-  /* Iterate list */
+  // Iterate list
   list_node_t *node = list->first;
   while (node != NULL) {
 
-    /* Compare target with node value */
+    // Compare target with node value
     if (cmp(node->value, value) == 0) {
       value = node->value;
 
       if (list->length == 1) {
-        /* Last node in list */
+        // Last node in list
         list->first = NULL;
         list->last = NULL;
 
       } else if (node == list->first) {
-        /* First node in list */
+        // First node in list
         list->first = node->next;
         node->next->prev = NULL;
 
       } else if (node == list->last) {
-        /* In the case of removing last node in list */
+        // In the case of removing last node in list
         list->last = node->prev;
         node->prev->next = NULL;
 
       } else {
-        /* Remove others */
+        // Remove others
         node->prev->next = node->next;
         node->next->prev = node->prev;
       }
@@ -1292,7 +1292,7 @@ static inline int default_cmp(void *a, void *b) {
 }
 
 static uint32_t default_hash(void *a) {
-  /* Simple bob jenkins's hash algorithm */
+  // Simple bob jenkins's hash algorithm
   char *k = a;
   uint32_t hash = 0;
   for (uint32_t i = 0; i < strlen(a); i++) {
@@ -1322,7 +1322,7 @@ hashmap_t *hashmap_new() {
     return NULL;
   }
 
-  /* Create bucket */
+  // Create bucket
   map->buckets = darray_new(sizeof(darray_t *), DEFAULT_NUMBER_OF_BUCKETS);
   map->buckets->end = map->buckets->max; // fake out expanding it
   if (map->buckets == NULL) {
@@ -1330,11 +1330,11 @@ hashmap_t *hashmap_new() {
     return NULL;
   }
 
-  /* Set comparator and hash functions */
+  // Set comparator and hash functions
   map->cmp = default_cmp;
   map->hash = default_hash;
 
-  /* Set key and value copy functions */
+  // Set key and value copy functions
   map->copy_kv = 1;
   map->k_copy = default_key_copy;
   map->v_copy = default_value_copy;
@@ -1359,7 +1359,7 @@ static void clear_free_bucket(hashmap_t *map, darray_t *bucket) {
   assert(map != NULL);
   assert(bucket != NULL);
 
-  /* Clear free bucket */
+  // Clear free bucket
   for (int i = 0; i < bucket->end; i++) {
     hashmap_node_t *n = darray_get(bucket, i);
     map->k_free(n->key);
@@ -1373,7 +1373,7 @@ static void clear_free_bucket(hashmap_t *map, darray_t *bucket) {
 static void free_buckets(hashmap_t *map) {
   assert(map != NULL);
 
-  /* Free buckets */
+  // Free buckets
   for (int i = 0; i < map->buckets->end; i++) {
     darray_t *bucket = darray_get(map->buckets, i);
 
@@ -1411,13 +1411,13 @@ static hashmap_node_t *hashmap_node_new(uint32_t h, void *k, void *v) {
   assert(k != NULL);
   assert(v != NULL);
 
-  /* Setup */
+  // Setup
   hashmap_node_t *node = calloc(1, sizeof(hashmap_node_t));
   if (node == NULL) {
     return NULL;
   }
 
-  /* Create hashmap node */
+  // Create hashmap node
   node->key = k;
   node->value = v;
   node->hash = h;
@@ -1431,20 +1431,20 @@ hashmap_find_bucket(hashmap_t *map, void *k, int create, uint32_t *hash_out) {
   assert(k != NULL);
   assert(hash_out != NULL);
 
-  /* Pre-check */
+  // Pre-check
   uint32_t hash = map->hash(k);
   int bucket_n = hash % DEFAULT_NUMBER_OF_BUCKETS;
   if ((bucket_n >= 0) == 0) {
     return NULL;
   }
-  *hash_out = hash; /* Store it for return so caller can use it */
+  *hash_out = hash; // Store it for return so caller can use it
 
-  /* Find bucket */
+  // Find bucket
   darray_t *bucket = darray_get(map->buckets, bucket_n);
 
-  /* Coundn't find bucket, create one instead */
+  // Coundn't find bucket, create one instead
   if (!bucket && create) {
-    /* New bucket, set it up */
+    // New bucket, set it up
     bucket = darray_new(sizeof(void *), DEFAULT_NUMBER_OF_BUCKETS);
     if (bucket == NULL) {
       return NULL;
@@ -1462,14 +1462,14 @@ int hashmap_set(hashmap_t *map, void *k, void *v) {
   assert(k != NULL);
   assert(v != NULL);
 
-  /* Pre-check */
+  // Pre-check
   uint32_t hash = 0;
   darray_t *bucket = hashmap_find_bucket(map, k, 1, &hash);
   if (bucket == NULL) {
     return -1;
   }
 
-  /* Set hashmap  */
+  // Set hashmap
   hashmap_node_t *node = hashmap_node_new(hash, map->k_copy(k), map->v_copy(v));
   if (node == NULL) {
     return -1;
@@ -1499,20 +1499,20 @@ void *hashmap_get(hashmap_t *map, void *k) {
   assert(map != NULL);
   assert(k != NULL);
 
-  /* Find bucket */
+  // Find bucket
   uint32_t hash = 0;
   darray_t *bucket = hashmap_find_bucket(map, k, 0, &hash);
   if (bucket == NULL) {
     return NULL;
   }
 
-  /* Find hashmap node */
+  // Find hashmap node
   int i = hashmap_get_node(map, hash, bucket, k);
   if (i == -1) {
     return NULL;
   }
 
-  /* Get value */
+  // Get value
   hashmap_node_t *node = darray_get(bucket, i);
   if (node == NULL) {
     return NULL;
@@ -1526,7 +1526,7 @@ int hashmap_traverse(hashmap_t *map,
   assert(map != NULL);
   assert(hashmap_traverse_cb != NULL);
 
-  /* Traverse */
+  // Traverse
   int rc = 0;
   for (int i = 0; i < map->buckets->end; i++) {
     darray_t *bucket = darray_get(map->buckets, i);
@@ -1550,20 +1550,20 @@ void *hashmap_delete(hashmap_t *map, void *k) {
   assert(map != NULL);
   assert(k != NULL);
 
-  /* Find bucket containing hashmap node */
+  // Find bucket containing hashmap node
   uint32_t hash = 0;
   darray_t *bucket = hashmap_find_bucket(map, k, 0, &hash);
   if (bucket == NULL) {
     return NULL;
   }
 
-  /* From bucket get hashmap node and free it */
+  // From bucket get hashmap node and free it
   int i = hashmap_get_node(map, hash, bucket, k);
   if (i == -1) {
     return NULL;
   }
 
-  /* Get node */
+  // Get node
   hashmap_node_t *node = darray_get(bucket, i);
   void *v = node->value;
   if (map->copy_kv) {
@@ -1571,10 +1571,10 @@ void *hashmap_delete(hashmap_t *map, void *k) {
   }
   free(node);
 
-  /* Check to see if last element in bucket is a node */
+  // Check to see if last element in bucket is a node
   hashmap_node_t *ending = darray_pop(bucket);
   if (ending != node) {
-    /* Alright looks like it's not the last one, swap it */
+    // Alright looks like it's not the last one, swap it
     darray_set(bucket, i, ending);
   }
 
@@ -1695,19 +1695,19 @@ int ip_port_info(const int sockfd, char *ip, int *port) {
 int tcp_server_setup(tcp_server_t *server, const int port) {
   assert(server != NULL);
 
-  /* Setup server struct */
+  // Setup server struct
   server->port = port;
   server->sockfd = -1;
   server->conn = -1;
 
-  /* Create socket */
+  // Create socket
   server->sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (server->sockfd == -1) {
     LOG_ERROR("Socket creation failed...");
     return -1;
   }
 
-  /* Socket options */
+  // Socket options
   const int en = 1;
   const size_t int_sz = sizeof(int);
   if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEADDR, &en, int_sz) < 0) {
@@ -1717,14 +1717,14 @@ int tcp_server_setup(tcp_server_t *server, const int port) {
     LOG_ERROR("setsockopt(SO_REUSEPORT) failed");
   }
 
-  /* Assign IP, PORT */
+  // Assign IP, PORT
   struct sockaddr_in addr;
   bzero(&addr, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
   addr.sin_port = htons(server->port);
 
-  /* Bind newly created socket to given IP */
+  // Bind newly created socket to given IP
   int retval = bind(server->sockfd, (struct sockaddr *) &addr, sizeof(addr));
   if (retval != 0) {
     LOG_ERROR("Socket bind failed: %s", strerror(errno));
@@ -1741,16 +1741,16 @@ int tcp_server_setup(tcp_server_t *server, const int port) {
 int tcp_server_loop(tcp_server_t *server) {
   assert(server != NULL);
 
-  /* Server is ready to listen */
+  // Server is ready to listen
   if ((listen(server->sockfd, 5)) != 0) {
     LOG_ERROR("Listen failed...");
     return -1;
   }
 
-  /* Accept the data packet from client and verification */
+  // Accept the data packet from client and verification
   DEBUG("Server ready!");
   while (1) {
-    /* Accept incomming connections */
+    // Accept incomming connections
     struct sockaddr_in sockaddr;
     socklen_t len = sizeof(sockaddr);
     int connfd = accept(server->sockfd, (struct sockaddr *) &sockaddr, &len);
@@ -1776,19 +1776,19 @@ int tcp_client_setup(tcp_client_t *client,
   assert(client != NULL);
   assert(server_ip != NULL);
 
-  /* Setup client struct */
+  // Setup client struct
   strncpy(client->server_ip, server_ip, strlen(server_ip));
   client->server_port = server_port;
   client->sockfd = -1;
 
-  /* Create socket */
+  // Create socket
   client->sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (client->sockfd == -1) {
     LOG_ERROR("Socket creation failed!");
     return -1;
   }
 
-  /* Assign IP, PORT */
+  // Assign IP, PORT
   struct sockaddr_in server;
   size_t server_size = sizeof(server);
   bzero(&server, server_size);
@@ -1796,7 +1796,7 @@ int tcp_client_setup(tcp_client_t *client,
   server.sin_addr.s_addr = inet_addr(client->server_ip);
   server.sin_port = htons(client->server_port);
 
-  /* Connect to server */
+  // Connect to server
   if (connect(client->sockfd, (struct sockaddr *) &server, server_size) != 0) {
     LOG_ERROR("Failed to connect to server!");
     return -1;
@@ -1846,8 +1846,8 @@ char *base64_encode(const uint8_t *data, size_t in_len, size_t *out_len) {
   uint32_t triple;
   char *encoded_data;
 
-  *out_len = (4 * ((in_len + 2) / 3));    /* length of the encoding string */
-  encoded_data = calloc(1, *out_len + 1); /* +1 for the null char */
+  *out_len = (4 * ((in_len + 2) / 3));    // length of the encoding string
+  encoded_data = calloc(1, *out_len + 1); // +1 for the null char
 
   if (encoded_data == NULL) {
     return NULL;
@@ -1934,17 +1934,17 @@ uint8_t *base64_decode(const char *data, size_t in_len, size_t *out_len) {
 }
 
 void http_msg_setup(http_msg_t *msg) {
-  /* Protocol */
+  // Protocol
   msg->protocol = NULL;
 
-  /* Request */
+  // Request
   msg->method = NULL;
   msg->path = NULL;
 
-  /* Response */
+  // Response
   msg->status = NULL;
 
-  /* Headers */
+  // Headers
   msg->user_agent = NULL;
   msg->host = NULL;
   msg->upgrade = NULL;
@@ -1954,17 +1954,17 @@ void http_msg_setup(http_msg_t *msg) {
 }
 
 void http_msg_free(http_msg_t *msg) {
-  /* Protocol */
+  // Protocol
   FREE_MEM(msg->protocol, free);
 
-  /* Request */
+  // Request
   FREE_MEM(msg->method, free);
   FREE_MEM(msg->path, free);
 
-  /* Response */
+  // Response
   FREE_MEM(msg->status, free);
 
-  /* Headers */
+  // Headers
   FREE_MEM(msg->user_agent, free);
   FREE_MEM(msg->host, free);
   FREE_MEM(msg->upgrade, free);
@@ -2017,22 +2017,22 @@ int http_parse_request(char *msg_str, http_msg_t *msg) {
     string_copy(line, line_tok);
 
     if (line_idx == 0) {
-      /* Parse request line */
-      /* Method */
+      // Parse request line
+      // Method
       char *tok_end = NULL;
       char *tok = __strtok_r(line, " ", &tok_end);
       msg->method = string_malloc(tok);
 
-      /* Path */
+      // Path
       tok = __strtok_r(NULL, " ", &tok_end);
       msg->path = string_malloc(tok);
 
-      /* Protocol */
+      // Protocol
       tok = __strtok_r(NULL, " ", &tok_end);
       msg->protocol = string_malloc(tok);
 
     } else {
-      /* Parse headers */
+      // Parse headers
       char *tok_end = NULL;
       char *tok = __strtok_r(line, " ", &tok_end);
 
@@ -2083,7 +2083,7 @@ ws_frame_t *ws_frame_malloc() {
 }
 
 void ws_frame_free(ws_frame_t *frame) {
-  /* FREE_MEM(frame->payload_data, free); */
+  // FREE_MEM(frame->payload_data, free);
   FREE_MEM(frame, free);
 }
 
@@ -2098,12 +2098,12 @@ void ws_frame_print(ws_frame_t *frame) {
 }
 
 uint8_t *ws_frame_serialize(ws_frame_t *frame) {
-  /* Setup */
+  // Setup
   uint8_t header[10];
   bzero(header, 10);
   header[0] = frame->header;
 
-  /* Payload details */
+  // Payload details
   size_t header_size = 0;
   size_t payload_size = frame->payload_size;
 
@@ -2130,7 +2130,7 @@ uint8_t *ws_frame_serialize(ws_frame_t *frame) {
     header_size = 10;
   }
 
-  /* Serialize ws frame */
+  // Serialize ws frame
   size_t frame_size = header_size + payload_size;
   uint8_t *frame_bytes = calloc(1, frame_size);
   memcpy(frame_bytes, header, header_size);
@@ -2155,7 +2155,7 @@ int ws_frame_mask_enabled(uint8_t *data_frame) {
 }
 
 ws_frame_t *ws_frame_parse(int connfd) {
-  /* Parse header */
+  // Parse header
   uint8_t header[2] = {0};
   int retval = (int) recv(connfd, header, 2, 0);
   if (retval != 0) {
@@ -2165,28 +2165,28 @@ ws_frame_t *ws_frame_parse(int connfd) {
   ws_frame->header = header[0];
   ws_frame->payload_size = header[1] & 0x7F;
 
-  /* Additional payload size */
+  // Additional payload size
   if (ws_frame->payload_size == 126) {
-    /* Obtain extended data size - 2 bytes */
+    // Obtain extended data size - 2 bytes
     uint8_t buf_2bytes[2] = {0};
     retval = (int) recv(connfd, buf_2bytes, 2, 0);
     if (retval != 0) {
       goto error;
     }
 
-    /* Parse payload size */
+    // Parse payload size
     ws_frame->payload_size = (((unsigned long long) buf_2bytes[0] << 8) |
                               ((unsigned long long) buf_2bytes[1]));
 
   } else if (ws_frame->payload_size == 127) {
-    /* Obtain extended data size - 8 bytes */
+    // Obtain extended data size - 8 bytes
     uint8_t buf_8bytes[8] = {0};
     retval = (int) recv(connfd, buf_8bytes, 8, 0);
     if (retval != 0) {
       goto error;
     }
 
-    /* Parse payload size */
+    // Parse payload size
     ws_frame->payload_size =
         ((((unsigned long long) buf_8bytes[0] << 56) & 0xFF00000000000000U) |
          (((unsigned long long) buf_8bytes[1] << 48) & 0x00FF000000000000U) |
@@ -2198,7 +2198,7 @@ ws_frame_t *ws_frame_parse(int connfd) {
          (((unsigned long long) buf_8bytes[7]) & 0x00000000000000FFU));
   }
 
-  /* Recv mask */
+  // Recv mask
   uint8_t mask[4] = {0};
   if (ws_frame_mask_enabled(header)) {
     retval = (int) recv(connfd, mask, 4, 0);
@@ -2207,7 +2207,7 @@ ws_frame_t *ws_frame_parse(int connfd) {
     }
   }
 
-  /* Recv payload */
+  // Recv payload
   if (ws_frame->payload_size) {
     char *payload_data = calloc(1, sizeof(char) * ws_frame->payload_size);
     retval = (int) recv(connfd, payload_data, ws_frame->payload_size, 0);
@@ -2215,7 +2215,7 @@ ws_frame_t *ws_frame_parse(int connfd) {
       goto error;
     }
 
-    /* Decode payload data with mask */
+    // Decode payload data with mask
     if (ws_frame_mask_enabled(header)) {
       for (size_t i = 0; i < ws_frame->payload_size; i++) {
         payload_data[i] = payload_data[i] ^ mask[i % 4];
@@ -2240,17 +2240,17 @@ char *ws_recv(int connfd) {
 }
 
 void ws_send(int connfd, char *msg) {
-  /* Setup */
+  // Setup
   ws_frame_t *frame = ws_frame_malloc();
   frame->header = WS_FIN | WS_TEXT;
   frame->payload_size = strlen(msg);
   frame->payload_data = msg;
 
-  /* Write */
+  // Write
   uint8_t *frame_bytes = ws_frame_serialize(frame);
   write(connfd, frame_bytes, frame->payload_size + 2);
 
-  /* Clean up */
+  // Clean up
   free(frame_bytes);
   ws_frame_free(frame);
 }
@@ -2268,28 +2268,28 @@ char *ws_read(ws_frame_t *ws_frame) {
 }
 
 char *ws_hash(const char *ws_key) {
-  /* Concatenate websocket key and guid */
+  // Concatenate websocket key and guid
   const char *WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   char key[1024] = {0};
   string_copy(key, ws_key);
   string_cat(key, WS_GUID);
 
-  /* Perform SHA1 hash on key */
+  // Perform SHA1 hash on key
   uint8_t hash[SHA_DIGEST_LENGTH];
   memset(hash, '\0', SHA_DIGEST_LENGTH);
   SHA1((const uint8_t *) key, strlen(key), hash);
 
-  /* Encode SHA1 hash with base64 encoding */
+  // Encode SHA1 hash with base64 encoding
   size_t length = 0;
   return base64_encode(hash, SHA_DIGEST_LENGTH, &length);
 }
 
 int ws_handshake(const int connfd) {
-  /* Get incoming websocket handshake request */
+  // Get incoming websocket handshake request
   char buf[9046] = {0};
   recv(connfd, buf, 9046, 0);
 
-  /* Parse HTTP Request */
+  // Parse HTTP Request
   http_msg_t req;
   http_msg_setup(&req);
   http_parse_request(buf, &req);
@@ -2298,12 +2298,12 @@ int ws_handshake(const int connfd) {
     return -1;
   }
 
-  /* Get WebSocket Key */
+  // Get WebSocket Key
   char ws_key[128] = {0};
   string_copy(ws_key, req.sec_websocket_key);
   http_msg_free(&req);
 
-  /* Respond websocket handshake and establish connection */
+  // Respond websocket handshake and establish connection
   char *hash = ws_hash(ws_key);
   char resp[1024] = {0};
   snprintf(resp, sizeof(resp), WEBSOCKET_HANDSHAKE_RESPONSE, hash);
@@ -2314,20 +2314,20 @@ int ws_handshake(const int connfd) {
 }
 
 int ws_server() {
-  /* Setup server */
+  // Setup server
   tcp_server_t server;
   const int port = 5000;
   if (tcp_server_setup(&server, port) != 0) {
     return -1;
   }
 
-  /* Server is ready to listen */
+  // Server is ready to listen
   if ((listen(server.sockfd, 5)) != 0) {
     LOG_ERROR("Listen failed...");
     return -1;
   }
 
-  /* Accept incomming connections */
+  // Accept incomming connections
   struct sockaddr_in sockaddr;
   socklen_t len = sizeof(sockaddr);
   int connfd = accept(server.sockfd, (struct sockaddr *) &sockaddr, &len);
@@ -2336,7 +2336,7 @@ int ws_server() {
     return -1;
   }
 
-  /* Perform websocket handshake */
+  // Perform websocket handshake
   ws_handshake(connfd);
 
   while (1) {
@@ -2532,16 +2532,16 @@ real_t median(const real_t *x, const size_t n) {
   assert(x != NULL);
   assert(n > 0);
 
-  /* Make a copy of the original input vector x */
+  // Make a copy of the original input vector x
   real_t *vals = malloc(sizeof(real_t) * n);
   for (size_t i = 0; i < n; i++) {
     vals[i] = x[i];
   }
 
-  /* Sort the values */
+  // Sort the values
   qsort(vals, n, sizeof(real_t), fltcmp2);
 
-  /* Get median value */
+  // Get median value
   real_t median_value = 0.0;
   if ((n % 2) == 0) {
     const int bwd_idx = (int) (n - 1) / 2.0;
@@ -2552,7 +2552,7 @@ real_t median(const real_t *x, const size_t n) {
     median_value = vals[midpoint_idx];
   }
 
-  /* Clean up */
+  // Clean up
   free(vals);
 
   return median_value;
@@ -2624,7 +2624,7 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
   size_t idx = 0;
   printf("%s: ", prefix);
   for (size_t i = 0; i < n; i++) {
-    /* printf("%.4f ", v[idx]); */
+    // printf("%.4f ", v[idx]);
     printf("%.10f ", v[idx]);
     idx++;
   }
@@ -2792,17 +2792,17 @@ real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
   assert(nb_rows != NULL);
   assert(nb_cols != NULL);
 
-  /* Obtain number of rows and columns in csv data */
+  // Obtain number of rows and columns in csv data
   *nb_rows = dsv_rows(mat_path);
   *nb_cols = dsv_cols(mat_path, ',');
   if (*nb_rows == -1 || *nb_cols == -1) {
     return NULL;
   }
 
-  /* Initialize memory for csv data */
+  // Initialize memory for csv data
   real_t *A = malloc(sizeof(real_t) * *nb_rows * *nb_cols);
 
-  /* Load file */
+  // Load file
   FILE *infile = fopen(mat_path, "r");
   if (infile == NULL) {
     fclose(infile);
@@ -2810,20 +2810,20 @@ real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
     return NULL;
   }
 
-  /* Loop through data */
+  // Loop through data
   char line[MAX_LINE_LENGTH] = {0};
   int row_idx = 0;
   int col_idx = 0;
   int idx = 0;
 
-  /* Loop through data line by line */
+  // Loop through data line by line
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-    /* Ignore if comment line */
+    // Ignore if comment line
     if (line[0] == '#') {
       continue;
     }
 
-    /* Iterate through values in line separated by commas */
+    // Iterate through values in line separated by commas
     char entry[100] = {0};
     for (size_t i = 0; i < strlen(line); i++) {
       char c = line[i];
@@ -2846,7 +2846,7 @@ real_t *mat_load(const char *mat_path, int *nb_rows, int *nb_cols) {
     row_idx++;
   }
 
-  /* Clean up */
+  // Clean up
   fclose(infile);
 
   return A;
@@ -3233,35 +3233,35 @@ void dot(const real_t *A,
 
 #ifdef USE_CBLAS
 #if PRECISION == 1
-  cblas_sgemm(CblasRowMajor, /* Matrix data arrangement */
-              CblasNoTrans,  /* Transpose A */
-              CblasNoTrans,  /* Transpose B */
-              A_m,           /* Number of rows in A and C */
-              B_n,           /* Number of cols in B and C */
-              A_n,           /* Number of cols in A */
-              1.0,           /* Scaling factor for the product of A and B */
-              A,             /* Matrix A */
-              A_n,           /* First dimension of A */
-              B,             /* Matrix B */
-              B_n,           /* First dimension of B */
-              0.0,           /* Scale factor for C */
-              C,             /* Output */
-              B_n);          /* First dimension of C */
+  cblas_sgemm(CblasRowMajor, // Matrix data arrangement
+              CblasNoTrans,  // Transpose A
+              CblasNoTrans,  // Transpose B
+              A_m,           // Number of rows in A and C
+              B_n,           // Number of cols in B and C
+              A_n,           // Number of cols in A
+              1.0,           // Scaling factor for the product of A and B
+              A,             // Matrix A
+              A_n,           // First dimension of A
+              B,             // Matrix B
+              B_n,           // First dimension of B
+              0.0,           // Scale factor for C
+              C,             // Output
+              B_n);          // First dimension of C
 #elif PRECISION == 2
-  cblas_dgemm(CblasRowMajor, /* Matrix data arrangement */
-              CblasNoTrans,  /* Transpose A */
-              CblasNoTrans,  /* Transpose B */
-              A_m,           /* Number of rows in A and C */
-              B_n,           /* Number of cols in B and C */
-              A_n,           /* Number of cols in A */
-              1.0,           /* Scaling factor for the product of A and B */
-              A,             /* Matrix A */
-              A_n,           /* First dimension of A */
-              B,             /* Matrix B */
-              B_n,           /* First dimension of B */
-              0.0,           /* Scale factor for C */
-              C,             /* Output */
-              B_n);          /* First dimension of C */
+  cblas_dgemm(CblasRowMajor, // Matrix data arrangement
+              CblasNoTrans,  // Transpose A
+              CblasNoTrans,  // Transpose B
+              A_m,           // Number of rows in A and C
+              B_n,           // Number of cols in B and C
+              A_n,           // Number of cols in A
+              1.0,           // Scaling factor for the product of A and B
+              A,             // Matrix A
+              A_n,           // First dimension of A
+              B,             // Matrix B
+              B_n,           // First dimension of B
+              0.0,           // Scale factor for C
+              C,             // Output
+              B_n);          // First dimension of C
 #endif
 #else
   size_t m = A_m;
@@ -3285,17 +3285,17 @@ void skew(const real_t x[3], real_t A[3 * 3]) {
   assert(x != NULL);
   assert(A != NULL);
 
-  /* First row */
+  // First row
   A[0] = 0.0;
   A[1] = -x[2];
   A[2] = x[1];
 
-  /* Second row */
+  // Second row
   A[3] = x[2];
   A[4] = 0.0;
   A[5] = -x[0];
 
-  /* Third row */
+  // Third row
   A[6] = -x[1];
   A[7] = x[0];
   A[8] = 0.0;
@@ -3385,7 +3385,7 @@ int check_jacobian(const char *jac_name,
   real_t *delta = mat_malloc(m, n);
   mat_sub(fdiff, jac, delta, m, n);
 
-  /* Check if any of the values are beyond the tol */
+  // Check if any of the values are beyond the tol
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
       if (fabs(mat_val(delta, n, i, j)) >= tol) {
@@ -3394,7 +3394,7 @@ int check_jacobian(const char *jac_name,
     }
   }
 
-  /* Print result */
+  // Print result
   if (ok == 0) {
     if (verbose) {
       LOG_ERROR("Bad jacobian [%s]!\n", jac_name);
@@ -3410,7 +3410,7 @@ int check_jacobian(const char *jac_name,
     retval = 0;
   }
 
-  /* Clean up */
+  // Clean up
   free(delta);
 
   return retval;
@@ -3480,18 +3480,18 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
   assert(x != NULL);
   assert(n > 0);
 
-  /* Allocate memory */
+  // Allocate memory
   real_t *L = calloc(n * n, sizeof(real_t));
   real_t *Lt = calloc(n * n, sizeof(real_t));
   real_t *y = calloc(n, sizeof(real_t));
 
-  /* Cholesky decomposition */
+  // Cholesky decomposition
   chol(A, n, L);
   mat_transpose(L, n, n, Lt);
 
-  /* Forward substitution */
-  /* Ax = b -> LLt x = b. */
-  /* Let y = Lt x, L y = b (Solve for y) */
+  // Forward substitution
+  // Ax = b -> LLt x = b.
+  // Let y = Lt x, L y = b (Solve for y)
   for (int i = 0; i < (int) n; i++) {
     real_t alpha = b[i];
 
@@ -3506,8 +3506,8 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
     }
   }
 
-  /* Backward substitution */
-  /* Now we have y, we can go back to (Lt x = y) and solve for x */
+  // Backward substitution
+  // Now we have y, we can go back to (Lt x = y) and solve for x
   for (int i = n - 1; i >= 0; i--) {
     real_t alpha = y[i];
 
@@ -3522,7 +3522,7 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
     }
   }
 
-  /* Clean up */
+  // Clean up
   free(y);
   free(L);
   free(Lt);
@@ -3543,7 +3543,7 @@ void lapack_chol_solve(const real_t *A,
   assert(x != NULL);
   assert(m > 0);
 
-  /* Cholesky Decomposition */
+  // Cholesky Decomposition
   int info = 0;
   int lda = m;
   int n = m;
@@ -3559,7 +3559,7 @@ void lapack_chol_solve(const real_t *A,
     fprintf(stderr, "Failed to decompose A using Cholesky Decomposition!\n");
   }
 
-  /* Solve Ax = b using Cholesky decomposed A from above */
+  // Solve Ax = b using Cholesky decomposed A from above
   vec_copy(b, m, x);
   int nhrs = 1;
   int ldb = m;
@@ -3595,13 +3595,13 @@ void lie_Exp(const real_t phi[3], real_t C[3 * 3]) {
   dot(phi_skew, 3, 3, phi_skew, 3, 3, phi_skew_sq);
 
   if (phi_norm < 1e-3) {
-    /* C = eye(3) + skew(phi); */
+    // C = eye(3) + skew(phi);
     eye(C, 3, 3);
     mat_add(C, phi_skew, C, 3, 3);
   } else {
-    /* C = eye(3); */
-    /* C += (sin(phi_norm) / phi_norm) * phi_skew; */
-    /* C += ((1 - cos(phi_norm)) / phi_norm ^ 2) * phi_skew_sq; */
+    // C = eye(3);
+    // C += (sin(phi_norm) / phi_norm) * phi_skew;
+    // C += ((1 - cos(phi_norm)) / phi_norm ^ 2) * phi_skew_sq;
     real_t A[3 * 3] = {0};
     mat_copy(phi_skew, 3, 3, A);
     mat_scale(A, 3, 3, (sin(phi_norm) / phi_norm));
@@ -3892,37 +3892,37 @@ void tf_inv(const real_t T[4 * 4], real_t T_inv[4 * 4]) {
    *           [0, 0, 0, 1]
    */
 
-  /* Get rotation and translation components */
+  // Get rotation and translation components
   real_t C[3 * 3] = {0};
   real_t r[3] = {0};
   tf_rot_get(T, C);
   tf_trans_get(T, r);
 
-  /* Invert translation */
+  // Invert translation
   real_t r_out[3] = {0};
   r_out[0] = -C[0] * r[0] - C[3] * r[1] - C[6] * r[2];
   r_out[1] = -C[1] * r[0] - C[4] * r[1] - C[7] * r[2];
   r_out[2] = -C[2] * r[0] - C[5] * r[1] - C[8] * r[2];
 
-  /* First row */
+  // First row
   T_inv[0] = C[0];
   T_inv[1] = C[3];
   T_inv[2] = C[6];
   T_inv[3] = r_out[0];
 
-  /* Second row */
+  // Second row
   T_inv[4] = C[1];
   T_inv[5] = C[4];
   T_inv[6] = C[7];
   T_inv[7] = r_out[1];
 
-  /* Third row */
+  // Third row
   T_inv[8] = C[2];
   T_inv[9] = C[5];
   T_inv[10] = C[8];
   T_inv[11] = r_out[2];
 
-  /* Fourth row */
+  // Fourth row
   T_inv[12] = 0.0;
   T_inv[13] = 0.0;
   T_inv[14] = 0.0;
@@ -3967,15 +3967,15 @@ void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i) {
   assert(T != NULL);
   assert(i >= 0 && i <= 2);
 
-  /* Build perturb drvec */
+  // Build perturb drvec
   real_t drvec[3] = {0};
   drvec[i] = step_size;
 
-  /* Decompose transform to rotation and translation */
+  // Decompose transform to rotation and translation
   real_t C[3 * 3] = {0};
   tf_rot_get(T, C);
 
-  /* Perturb rotation */
+  // Perturb rotation
   real_t C_rvec[3 * 3] = {0};
   real_t C_diff[3 * 3] = {0};
   rvec2rot(drvec, 1e-8, C_rvec);
@@ -3991,15 +3991,15 @@ void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i) {
   assert(T != NULL);
   assert(i >= 0 && i <= 2);
 
-  /* Build perturb dr */
+  // Build perturb dr
   real_t dr[3] = {0};
   dr[i] = step_size;
 
-  /* Decompose transform get translation */
+  // Decompose transform get translation
   real_t r[3] = {0};
   tf_trans_get(T, r);
 
-  /* Perturb translation */
+  // Perturb translation
   const real_t r_diff[3] = {r[0] + dr[0], r[1] + dr[1], r[2] + dr[2]};
   tf_trans_set(T, r_diff);
 }
@@ -4011,10 +4011,10 @@ void tf_chain(const real_t **tfs, const int N, real_t T_out[4 * 4]) {
   assert(tfs != NULL);
   assert(T_out != NULL);
 
-  /* Initialize T_out with the first transform in tfs */
+  // Initialize T_out with the first transform in tfs
   mat_copy(tfs[0], 4, 4, T_out);
 
-  /* Chain transforms */
+  // Chain transforms
   for (int i = 1; i < N; i++) {
     real_t T_from[4 * 4] = {0};
     mat_copy(T_out, 4, 4, T_from);
@@ -4048,11 +4048,11 @@ void rvec2rot(const real_t *rvec, const real_t eps, real_t *R) {
   assert(eps > 0);
   assert(R != NULL);
 
-  /* Magnitude of rvec */
+  // Magnitude of rvec
   const real_t theta = sqrt(rvec[0] * rvec[0] + rvec[1] * rvec[1]);
   // ^ basically norm(rvec), but faster
 
-  /* Check if rotation is too small */
+  // Check if rotation is too small
   if (theta < eps) {
     R[0] = 1.0;
     R[1] = -rvec[2];
@@ -4067,7 +4067,7 @@ void rvec2rot(const real_t *rvec, const real_t eps, real_t *R) {
     return;
   }
 
-  /* Convert rvec to rotation matrix */
+  // Convert rvec to rotation matrix
   real_t rvec_normed[3] = {rvec[0], rvec[1], rvec[2]};
   vec_scale(rvec_normed, 3, 1 / theta);
   const real_t x = rvec_normed[0];
@@ -4124,17 +4124,17 @@ void euler321(const real_t ypr[3], real_t C[3 * 3]) {
   const real_t cphi = cos(phi);
   const real_t sphi = sin(phi);
 
-  /* 1st row */
+  // 1st row
   C[0] = cpsi * ctheta;
   C[1] = cpsi * stheta * sphi - spsi * cphi;
   C[2] = cpsi * stheta * cphi + spsi * sphi;
 
-  /* 2nd row */
+  // 2nd row
   C[3] = spsi * ctheta;
   C[4] = spsi * stheta * sphi + cpsi * cphi;
   C[5] = spsi * stheta * cphi - cpsi * sphi;
 
-  /* 3rd row */
+  // 3rd row
   C[6] = -stheta;
   C[7] = ctheta * sphi;
   C[8] = ctheta * cphi;
@@ -4319,16 +4319,16 @@ void quat2rot(const real_t q[4], real_t C[3 * 3]) {
   const real_t qz2 = qz * qz;
   const real_t qw2 = qw * qw;
 
-  /* Homogeneous form */
-  /* -- 1st row */
+  // Homogeneous form
+  // -- 1st row
   C[0] = qw2 + qx2 - qy2 - qz2;
   C[1] = 2 * (qx * qy - qw * qz);
   C[2] = 2 * (qx * qz + qw * qy);
-  /* -- 2nd row */
+  // -- 2nd row
   C[3] = 2 * (qx * qy + qw * qz);
   C[4] = qw2 - qx2 + qy2 - qz2;
   C[5] = 2 * (qy * qz - qw * qx);
-  /* -- 3rd row */
+  // -- 3rd row
   C[6] = 2 * (qx * qz - qw * qy);
   C[7] = 2 * (qy * qz + qw * qx);
   C[8] = qw2 - qx2 - qy2 + qz2;
@@ -4353,12 +4353,24 @@ void quat_left(const real_t q[4], real_t left[4 * 4]) {
   const real_t qy = q[2];
   const real_t qz = q[3];
 
-  /* clang-format off */
-  left[0]  = qw; left[1]  = -qx; left[2]  = -qy; left[3]  = -qz;
-  left[4]  = qx; left[5]  =  qw; left[6]  = -qz; left[7]  =  qy;
-  left[8]  = qy; left[9]  =  qz; left[10] =  qw; left[11] = -qx;
-  left[12] = qz; left[13] = -qy; left[14] =  qx; left[15] =  qw;
-  /* clang-format on */
+  // clang-format off
+  left[0] = qw;
+  left[1] = -qx;
+  left[2] = -qy;
+  left[3] = -qz;
+  left[4] = qx;
+  left[5] = qw;
+  left[6] = -qz;
+  left[7] = qy;
+  left[8] = qy;
+  left[9] = qz;
+  left[10] = qw;
+  left[11] = -qx;
+  left[12] = qz;
+  left[13] = -qy;
+  left[14] = qx;
+  left[15] = qw;
+  // clang-format on
 }
 
 /**
@@ -4370,12 +4382,24 @@ void quat_right(const real_t q[4], real_t right[4 * 4]) {
   const real_t qy = q[2];
   const real_t qz = q[3];
 
-  /* clang-format off */
-  right[0]  = qw; right[1]  = -qx; right[2]  = -qy; right[3]  = -qz;
-  right[4]  = qx; right[5]  =  qw; right[6]  =  qz; right[7]  = -qy;
-  right[8]  = qy; right[9]  = -qz; right[10] =  qw; right[11] =  qx;
-  right[12] = qz; right[13] =  qy; right[14] = -qx; right[15] =  qw;
-  /* clang-format on */
+  // clang-format off
+  right[0] = qw;
+  right[1] = -qx;
+  right[2] = -qy;
+  right[3] = -qz;
+  right[4] = qx;
+  right[5] = qw;
+  right[6] = qz;
+  right[7] = -qy;
+  right[8] = qy;
+  right[9] = -qz;
+  right[10] = qw;
+  right[11] = qx;
+  right[12] = qz;
+  right[13] = qy;
+  right[14] = -qx;
+  right[15] = qw;
+  // clang-format on
 }
 
 /**
@@ -4450,7 +4474,7 @@ void quat_delta(const real_t dalpha[3], real_t dq[4]) {
 void quat_perturb(real_t q[4], const int i, const real_t h) {
   assert(i >= 0 && i <= 2);
 
-  /* Form small pertubation quaternion dq */
+  // Form small pertubation quaternion dq
   real_t dalpha[3] = {0};
   real_t dq[4] = {0};
   dalpha[i] = h;
@@ -4458,7 +4482,7 @@ void quat_perturb(real_t q[4], const int i, const real_t h) {
 
   print_vector("q", q, 4);
 
-  /* Perturb quaternion */
+  // Perturb quaternion
   real_t q_[4] = {q[0], q[1], q[2], q[3]};
   quat_mul(q_, dq, q);
   quat_normalize(q);
@@ -4541,34 +4565,34 @@ void linear_triangulation(const real_t P_i[3 * 4],
                           const real_t z_i[2],
                           const real_t z_j[2],
                           real_t p[3]) {
-  /* Form A matrix */
+  // Form A matrix
   real_t A[4 * 4] = {0};
-  /* -- ROW 1 */
+  // -- ROW 1
   A[0] = -P_i[4] + P_i[8] * z_i[1];
   A[1] = -P_i[5] + P_i[9] * z_i[1];
   A[2] = P_i[10] * z_i[1] - P_i[6];
   A[3] = P_i[11] * z_i[1] - P_i[7];
-  /* -- ROW 2 */
+  // -- ROW 2
   A[4] = -P_i[0] + P_i[8] * z_i[0];
   A[5] = -P_i[1] + P_i[9] * z_i[0];
   A[6] = P_i[10] * z_i[0] - P_i[2];
   A[7] = P_i[11] * z_i[0] - P_i[3];
-  /* -- ROW 3 */
+  // -- ROW 3
   A[8] = -P_j[4] + P_j[8] * z_j[1];
   A[9] = -P_j[5] + P_j[9] * z_j[1];
   A[10] = P_j[10] * z_j[1] - P_j[6];
   A[11] = P_j[11] * z_j[1] - P_j[7];
-  /* -- ROW 4 */
+  // -- ROW 4
   A[12] = -P_j[0] + P_j[8] * z_j[0];
   A[13] = -P_j[1] + P_j[9] * z_j[0];
   A[14] = P_j[10] * z_j[0] - P_j[2];
   A[15] = P_j[11] * z_j[0] - P_j[3];
 
-  /* Form A_t */
+  // Form A_t
   real_t A_t[4 * 4] = {0};
   mat_transpose(A, 4, 4, A_t);
 
-  /* SVD */
+  // SVD
   real_t A2[4 * 4] = {0};
   dot(A_t, 4, 4, A, 4, 4, A2);
 
@@ -4577,7 +4601,7 @@ void linear_triangulation(const real_t P_i[3 * 4],
   real_t *V_t = NULL;
   lapack_svd(A2, 4, 4, &S, &U, &V_t);
 
-  /* Get last row of V_t and normalize the scale to obtain the 3D point */
+  // Get last row of V_t and normalize the scale to obtain the 3D point
   const real_t x = V_t[12];
   const real_t y = V_t[13];
   const real_t z = V_t[14];
@@ -4586,7 +4610,7 @@ void linear_triangulation(const real_t P_i[3 * 4],
   p[1] = y / w;
   p[2] = z / w;
 
-  /* Clean up */
+  // Clean up
   free(S);
   free(U);
   free(V_t);
@@ -4604,17 +4628,17 @@ void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
   assert(p != NULL);
   assert(p_d != NULL);
 
-  /* Distortion parameters */
+  // Distortion parameters
   const real_t k1 = params[0];
   const real_t k2 = params[1];
   const real_t p1 = params[2];
   const real_t p2 = params[3];
 
-  /* Point */
+  // Point
   const real_t x = p[0];
   const real_t y = p[1];
 
-  /* Apply radial distortion */
+  // Apply radial distortion
   const real_t x2 = x * x;
   const real_t y2 = y * y;
   const real_t r2 = x2 + y2;
@@ -4623,12 +4647,12 @@ void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
   const real_t x_dash = x * radial_factor;
   const real_t y_dash = y * radial_factor;
 
-  /* Apply tangential distortion */
+  // Apply tangential distortion
   const real_t xy = x * y;
   const real_t x_ddash = x_dash + (2.0 * p1 * xy + p2 * (r2 + 2.0 * x2));
   const real_t y_ddash = y_dash + (2.0 * p2 * xy + p1 * (r2 + 2.0 * y2));
 
-  /* Distorted point */
+  // Distorted point
   p_d[0] = x_ddash;
   p_d[1] = y_ddash;
 }
@@ -4644,23 +4668,23 @@ void radtan4_point_jacobian(const real_t params[4],
   assert(p != NULL);
   assert(J_point != NULL);
 
-  /* Distortion parameters */
+  // Distortion parameters
   const real_t k1 = params[0];
   const real_t k2 = params[1];
   const real_t p1 = params[2];
   const real_t p2 = params[3];
 
-  /* Point */
+  // Point
   const real_t x = p[0];
   const real_t y = p[1];
 
-  /* Apply radial distortion */
+  // Apply radial distortion
   const real_t x2 = x * x;
   const real_t y2 = y * y;
   const real_t r2 = x2 + y2;
   const real_t r4 = r2 * r2;
 
-  /* Point Jacobian is 2x2 */
+  // Point Jacobian is 2x2
   J_point[0] = k1 * r2 + k2 * r4 + 2 * p1 * y + 6 * p2 * x;
   J_point[0] += x * (2 * k1 * x + 4 * k2 * x * r2) + 1;
   J_point[1] = 2 * p1 * x + 2 * p2 * y + y * (2 * k1 * x + 4 * k2 * x * r2);
@@ -4681,18 +4705,18 @@ void radtan4_params_jacobian(const real_t params[4],
   assert(J_param != NULL);
   UNUSED(params);
 
-  /* Point */
+  // Point
   const real_t x = p[0];
   const real_t y = p[1];
 
-  /* Setup */
+  // Setup
   const real_t x2 = x * x;
   const real_t y2 = y * y;
   const real_t xy = x * y;
   const real_t r2 = x2 + y2;
   const real_t r4 = r2 * r2;
 
-  /* Param Jacobian is 2x4 */
+  // Param Jacobian is 2x4
   J_param[0] = x * r2;
   J_param[1] = x * r4;
   J_param[2] = 2 * xy;
@@ -4772,7 +4796,7 @@ void equi4_point_jacobian(const real_t params[4],
   const real_t r_x = 1.0 / r * x;
   const real_t r_y = 1.0 / r * y;
 
-  /* Point Jacobian is 2x2 */
+  // Point Jacobian is 2x2
   J_point[0] = s + x * s_r * r_x;
   J_point[1] = x * s_r * r_y;
   J_point[2] = y * s_r * r_x;
@@ -4802,7 +4826,7 @@ void equi4_params_jacobian(const real_t params[4],
   const real_t th7 = th5 * th2;
   const real_t th9 = th7 * th2;
 
-  /* Param Jacobian is 2x4 */
+  // Param Jacobian is 2x4
   J_param[0] = x * th3 / r;
   J_param[1] = x * th5 / r;
   J_param[2] = x * th7 / r;
@@ -4863,21 +4887,21 @@ void pinhole_projection_matrix(const real_t params[4],
   assert(T != NULL);
   assert(P != NULL);
 
-  /* Form K matrix */
+  // Form K matrix
   real_t K[3 * 3] = {0};
   pinhole_K(params, K);
 
-  /* Invert camera pose */
+  // Invert camera pose
   real_t T_inv[4 * 4] = {0};
   tf_inv(T, T_inv);
 
-  /* Extract rotation and translation component */
+  // Extract rotation and translation component
   real_t C[3 * 3] = {0};
   real_t r[3] = {0};
   tf_rot_get(T_inv, C);
   tf_trans_get(T_inv, r);
 
-  /* Form [C | r] matrix */
+  // Form [C | r] matrix
   real_t Cr[3 * 4] = {0};
   Cr[0] = C[0];
   Cr[1] = C[1];
@@ -4894,7 +4918,7 @@ void pinhole_projection_matrix(const real_t params[4],
   Cr[10] = C[8];
   Cr[11] = r[2];
 
-  /* Form projection matrix P = K * [C | r] */
+  // Form projection matrix P = K * [C | r]
   dot(K, 3, 3, Cr, 3, 4, P);
 }
 
@@ -4967,15 +4991,15 @@ void pinhole_radtan4_project(const real_t params[8],
   assert(p_C != NULL);
   assert(x != NULL);
 
-  /* Project */
+  // Project
   const real_t p[2] = {p_C[0] / p_C[2], p_C[1] / p_C[2]};
 
-  /* Distort */
+  // Distort
   const real_t d[4] = {params[4], params[5], params[6], params[7]};
   real_t p_d[2] = {0};
   radtan4_distort(d, p, p_d);
 
-  /* Scale and center */
+  // Scale and center
   const real_t fx = params[0];
   const real_t fy = params[1];
   const real_t cx = params[2];
@@ -4995,13 +5019,13 @@ void pinhole_radtan4_project_jacobian(const real_t params[8],
   assert(p_C != NULL);
   assert(J != NULL);
 
-  /* Project */
+  // Project
   const real_t x = p_C[0];
   const real_t y = p_C[1];
   const real_t z = p_C[2];
   const real_t p[2] = {x / z, y / z};
 
-  /* Projection Jacobian */
+  // Projection Jacobian
   real_t J_p[2 * 3] = {0};
   J_p[0] = 1.0 / z;
   J_p[1] = 0.0;
@@ -5010,7 +5034,7 @@ void pinhole_radtan4_project_jacobian(const real_t params[8],
   J_p[4] = 1.0 / z;
   J_p[5] = -y / (z * z);
 
-  /* Distortion Point Jacobian */
+  // Distortion Point Jacobian
   const real_t k1 = params[4];
   const real_t k2 = params[5];
   const real_t p1 = params[6];
@@ -5019,11 +5043,11 @@ void pinhole_radtan4_project_jacobian(const real_t params[8],
   real_t J_d[2 * 2] = {0};
   radtan4_point_jacobian(d, p, J_d);
 
-  /* Project Point Jacobian */
+  // Project Point Jacobian
   real_t J_k[2 * 3] = {0};
   pinhole_point_jacobian(params, J_k);
 
-  /* J = J_k * J_d * J_p; */
+  // J = J_k * J_d * J_p;
   real_t J_dp[2 * 3] = {0};
   dot(J_d, 2, 2, J_p, 2, 3, J_dp);
   dot(J_k, 2, 2, J_dp, 2, 3, J);
@@ -5051,33 +5075,33 @@ void pinhole_radtan4_params_jacobian(const real_t params[8],
   const real_t p2 = params[7];
   const real_t d[4] = {k1, k2, p1, p2};
 
-  /* Project */
+  // Project
   const real_t x = p_C[0];
   const real_t y = p_C[1];
   const real_t z = p_C[2];
   const real_t p[2] = {x / z, y / z};
 
-  /* Distort */
+  // Distort
   real_t p_d[2] = {0};
   radtan4_distort(d, p, p_d);
 
-  /* Project params Jacobian: J_proj_params */
+  // Project params Jacobian: J_proj_params
   real_t J_proj_params[2 * 4] = {0};
   pinhole_params_jacobian(k, p_d, J_proj_params);
 
-  /* Project point Jacobian: J_proj_point */
+  // Project point Jacobian: J_proj_point
   real_t J_proj_point[2 * 2] = {0};
   pinhole_point_jacobian(k, J_proj_point);
 
-  /* Distortion point Jacobian: J_dist_params */
+  // Distortion point Jacobian: J_dist_params
   real_t J_dist_params[2 * 4] = {0};
   radtan4_params_jacobian(d, p, J_dist_params);
 
-  /* Radtan4 params Jacobian: J_radtan4 */
+  // Radtan4 params Jacobian: J_radtan4
   real_t J_radtan4[2 * 4] = {0};
   dot(J_proj_point, 2, 2, J_dist_params, 2, 4, J_radtan4);
 
-  /* J = [J_proj_params, J_proj_point * J_dist_params] */
+  // J = [J_proj_params, J_proj_point * J_dist_params]
   J[0] = J_proj_params[0];
   J[1] = J_proj_params[1];
   J[2] = J_proj_params[2];
@@ -5111,15 +5135,15 @@ void pinhole_equi4_project(const real_t params[8],
   assert(p_C != NULL);
   assert(x != NULL);
 
-  /* Project */
+  // Project
   const real_t p[2] = {p_C[0] / p_C[2], p_C[1] / p_C[2]};
 
-  /* Distort */
+  // Distort
   const real_t d[4] = {params[4], params[5], params[6], params[7]};
   real_t p_d[2] = {0};
   equi4_distort(d, p, p_d);
 
-  /* Scale and center */
+  // Scale and center
   const real_t fx = params[0];
   const real_t fy = params[1];
   const real_t cx = params[2];
@@ -5139,13 +5163,13 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
   assert(p_C != NULL);
   assert(J != NULL);
 
-  /* Project */
+  // Project
   const real_t x = p_C[0];
   const real_t y = p_C[1];
   const real_t z = p_C[2];
   const real_t p[2] = {x / z, y / z};
 
-  /* Projection Jacobian */
+  // Projection Jacobian
   real_t J_p[2 * 3] = {0};
   J_p[0] = 1.0 / z;
   J_p[1] = 0.0;
@@ -5154,7 +5178,7 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
   J_p[4] = 1.0 / z;
   J_p[5] = -y / (z * z);
 
-  /* Distortion Point Jacobian */
+  // Distortion Point Jacobian
   const real_t k1 = params[4];
   const real_t k2 = params[5];
   const real_t k3 = params[6];
@@ -5163,11 +5187,11 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
   real_t J_d[2 * 2] = {0};
   equi4_point_jacobian(d, p, J_d);
 
-  /* Project Point Jacobian */
+  // Project Point Jacobian
   real_t J_k[2 * 3] = {0};
   pinhole_point_jacobian(params, J_k);
 
-  /* J = J_k * J_d * J_p; */
+  // J = J_k * J_d * J_p;
   real_t J_dp[2 * 3] = {0};
   dot(J_d, 2, 2, J_p, 2, 3, J_dp);
   dot(J_k, 2, 2, J_dp, 2, 3, J);
@@ -5192,33 +5216,33 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
   const real_t p2 = params[7];
   const real_t d[4] = {k1, k2, p1, p2};
 
-  /* Project */
+  // Project
   const real_t x = p_C[0];
   const real_t y = p_C[1];
   const real_t z = p_C[2];
   const real_t p[2] = {x / z, y / z};
 
-  /* Distort */
+  // Distort
   real_t p_d[2] = {0};
   equi4_distort(d, p, p_d);
 
-  /* Project params Jacobian: J_proj_params */
+  // Project params Jacobian: J_proj_params
   real_t J_proj_params[2 * 4] = {0};
   pinhole_params_jacobian(k, p_d, J_proj_params);
 
-  /* Project point Jacobian: J_proj_point */
+  // Project point Jacobian: J_proj_point
   real_t J_proj_point[2 * 2] = {0};
   pinhole_point_jacobian(k, J_proj_point);
 
-  /* Distortion point Jacobian: J_dist_params */
+  // Distortion point Jacobian: J_dist_params
   real_t J_dist_params[2 * 4] = {0};
   equi4_params_jacobian(d, p, J_dist_params);
 
-  /* Radtan4 params Jacobian: J_equi4 */
+  // Radtan4 params Jacobian: J_equi4
   real_t J_equi4[2 * 4] = {0};
   dot(J_proj_point, 2, 2, J_dist_params, 2, 4, J_equi4);
 
-  /* J = [J_proj_params, J_proj_point * J_dist_params] */
+  // J = [J_proj_params, J_proj_point * J_dist_params]
   J[0] = J_proj_params[0];
   J[1] = J_proj_params[1];
   J[2] = J_proj_params[2];
@@ -5250,19 +5274,19 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   assert(pose != NULL);
   assert(data != NULL);
 
-  /* Timestamp */
+  // Timestamp
   pose->ts = ts;
 
-  /* Translation */
-  pose->pos[0] = data[0]; /* rx */
-  pose->pos[1] = data[1]; /* ry */
-  pose->pos[2] = data[2]; /* rz */
+  // Translation
+  pose->pos[0] = data[0]; // rx
+  pose->pos[1] = data[1]; // ry
+  pose->pos[2] = data[2]; // rz
 
-  /* Rotation (Quaternion) */
-  pose->quat[0] = data[6]; /* qw */
-  pose->quat[1] = data[3]; /* qx */
-  pose->quat[2] = data[4]; /* qy */
-  pose->quat[3] = data[5]; /* qz */
+  // Rotation (Quaternion)
+  pose->quat[0] = data[6]; // qw
+  pose->quat[1] = data[3]; // qx
+  pose->quat[2] = data[4]; // qy
+  pose->quat[3] = data[5]; // qz
 }
 
 /**
@@ -5297,20 +5321,20 @@ void speed_biases_setup(speed_biases_t *sb,
   assert(sb != NULL);
   assert(data != NULL);
 
-  /* Timestamp */
+  // Timestamp
   sb->ts = ts;
 
-  /* Velocity */
+  // Velocity
   sb->data[0] = data[0];
   sb->data[1] = data[1];
   sb->data[2] = data[2];
 
-  /* Accel biases */
+  // Accel biases
   sb->data[3] = data[3];
   sb->data[4] = data[4];
   sb->data[5] = data[5];
 
-  /* Gyro biases */
+  // Gyro biases
   sb->data[6] = data[6];
   sb->data[7] = data[7];
   sb->data[8] = data[8];
@@ -5386,16 +5410,16 @@ void extrinsics_setup(extrinsics_t *exts, const real_t *data) {
   assert(exts != NULL);
   assert(data != NULL);
 
-  /* Translation */
-  exts->pos[0] = data[0]; /* rx */
-  exts->pos[1] = data[1]; /* ry */
-  exts->pos[2] = data[2]; /* rz */
+  // Translation
+  exts->pos[0] = data[0]; // rx
+  exts->pos[1] = data[1]; // ry
+  exts->pos[2] = data[2]; // rz
 
-  /* Rotation (Quaternion) */
-  exts->quat[0] = data[6]; /* qw */
-  exts->quat[1] = data[3]; /* qx */
-  exts->quat[2] = data[4]; /* qy */
-  exts->quat[3] = data[5]; /* qz */
+  // Rotation (Quaternion)
+  exts->quat[0] = data[6]; // qw
+  exts->quat[1] = data[3]; // qx
+  exts->quat[2] = data[4]; // qy
+  exts->quat[3] = data[5]; // qz
 }
 
 /**
@@ -5483,11 +5507,11 @@ void pose_factor_setup(pose_factor_t *factor,
   assert(pose != NULL);
   assert(var != NULL);
 
-  /* Parameters */
+  // Parameters
   factor->pose_est = pose;
   factor->nb_params = 1;
 
-  /* Measurement */
+  // Measurement
   factor->pos_meas[0] = pose->pos[0];
   factor->pos_meas[1] = pose->pos[1];
   factor->pos_meas[2] = pose->pos[2];
@@ -5496,7 +5520,7 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->quat_meas[2] = pose->quat[2];
   factor->quat_meas[3] = pose->quat[3];
 
-  /* Measurement covariance matrix */
+  // Measurement covariance matrix
   zeros(factor->covar, 6, 6);
   factor->covar[0] = 1.0 / (var[0] * var[0]);
   factor->covar[7] = 1.0 / (var[1] * var[1]);
@@ -5505,7 +5529,7 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->covar[28] = 1.0 / (var[4] * var[4]);
   factor->covar[35] = 1.0 / (var[5] * var[5]);
 
-  /* Square root information matrix */
+  // Square root information matrix
   zeros(factor->sqrt_info, 6, 6);
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
   factor->sqrt_info[7] = sqrt(1.0 / factor->covar[7]);
@@ -5524,35 +5548,35 @@ int pose_factor_eval(pose_factor_t *factor,
                      real_t **J_out) {
   assert(factor != NULL);
 
-  /* Map params */
+  // Map params
   const real_t *r_est = params[0];
   const real_t *q_est = params[1];
   const real_t *r_meas = factor->pos_meas;
   const real_t *q_meas = factor->quat_meas;
 
-  /* Calculate pose error */
-  /* -- Translation error */
-  /* dr = r_meas - r_est; */
+  // Calculate pose error
+  // -- Translation error
+  // dr = r_meas - r_est;
   real_t dr[3] = {0};
   dr[0] = r_meas[0] - r_est[0];
   dr[1] = r_meas[1] - r_est[1];
   dr[2] = r_meas[2] - r_est[2];
 
-  /* -- Rotation error */
-  /* dq = quat_mul(quat_inv(q_meas), q_est); */
+  // -- Rotation error
+  // dq = quat_mul(quat_inv(q_meas), q_est);
   real_t dq[4] = {0};
   real_t q_meas_inv[4] = {0};
   quat_inv(q_meas, q_meas_inv);
   quat_mul(q_meas_inv, q_est, dq);
 
-  /* dtheta = 2 * dq; */
+  // dtheta = 2 * dq;
   real_t dtheta[3] = {0};
   dtheta[0] = 2 * dq[1];
   dtheta[1] = 2 * dq[2];
   dtheta[2] = 2 * dq[3];
 
-  /* -- Set residuals */
-  /* r = factor.sqrt_info * [dr; dtheta]; */
+  // -- Set residuals
+  // r = factor.sqrt_info * [dr; dtheta];
   real_t r[6] = {0};
   r[0] = dr[0];
   r[1] = dr[1];
@@ -5562,42 +5586,54 @@ int pose_factor_eval(pose_factor_t *factor,
   r[5] = dtheta[2];
   dot(factor->sqrt_info, 6, 6, r, 6, 1, r_out);
 
-  /* Calculate Jacobians */
+  // Calculate Jacobians
   if (J_out == NULL) {
     return 0;
   }
 
   if (J_out[0]) {
-    /* J0 = zeros(6, 3); */
-    /* J0(1:3, 1:3) = -eye(3); */
-    /* J0 = factor.sqrt_info * J0; */
+    // J0 = zeros(6, 3);
+    // J0(1:3, 1:3) = -eye(3);
+    // J0 = factor.sqrt_info * J0;
 
-    /* clang-format off */
+    // clang-format off
     real_t J0[6 * 3] = {0};
-    J0[0] = -1.0; J0[1] =  0.0; J0[2] =  0.0;
-    J0[3] =  0.0; J0[4] = -1.0; J0[5] =  0.0;
-    J0[6] =  0.0; J0[7] =  0.0; J0[8] = -1.0;
+    J0[0] = -1.0;
+    J0[1] = 0.0;
+    J0[2] = 0.0;
+    J0[3] = 0.0;
+    J0[4] = -1.0;
+    J0[5] = 0.0;
+    J0[6] = 0.0;
+    J0[7] = 0.0;
+    J0[8] = -1.0;
     dot(factor->sqrt_info, 6, 6, J0, 6, 3, J_out[0]);
-    /* clang-format on */
+    // clang-format on
   }
 
   if (J_out[1]) {
-    /* J1 = zeros(6, 3); */
-    /* J1(4:6, 4:6) = quat_left(dq)(2:4, 2:4); */
-    /* J1 = factor.sqrt_info * J1; */
+    // J1 = zeros(6, 3);
+    // J1(4:6, 4:6) = quat_left(dq)(2:4, 2:4);
+    // J1 = factor.sqrt_info * J1;
 
-    /* clang-format off */
+    // clang-format off
     const real_t dqw = dq[0];
     const real_t dqx = dq[1];
     const real_t dqy = dq[2];
     const real_t dqz = dq[3];
 
     real_t J1[6 * 3] = {0};
-    J1[9] =  dqw;  J1[10] = -dqz; J1[11] =  dqy;
-    J1[12] =  dqz; J1[13] =  dqw; J1[14] = -dqx;
-    J1[15] = -dqy; J1[16] =  dqx; J1[17] =  dqw;
+    J1[9] = dqw;
+    J1[10] = -dqz;
+    J1[11] = dqy;
+    J1[12] = dqz;
+    J1[13] = dqw;
+    J1[14] = -dqx;
+    J1[15] = -dqy;
+    J1[16] = dqx;
+    J1[17] = dqw;
     dot(factor->sqrt_info, 6, 6, J1, 6, 3, J_out[1]);
-    /* clang-format on */
+    // clang-format on
   }
 
   return 0;
@@ -5653,25 +5689,25 @@ void ba_factor_setup(ba_factor_t *factor,
   assert(camera != NULL);
   assert(var != NULL);
 
-  /* Parameters */
+  // Parameters
   factor->pose = pose;
   factor->feature = feature;
   factor->camera = camera;
   factor->nb_params = 3;
 
-  /* Measurement covariance */
+  // Measurement covariance
   factor->covar[0] = 1.0 / (var[0] * var[0]);
   factor->covar[1] = 0.0;
   factor->covar[2] = 0.0;
   factor->covar[3] = 1.0 / (var[1] * var[1]);
 
-  /* Square-root information matrix */
+  // Square-root information matrix
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
   factor->sqrt_info[1] = 0.0;
   factor->sqrt_info[2] = 0.0;
   factor->sqrt_info[3] = sqrt(1.0 / factor->covar[3]);
 
-  /* Measurement */
+  // Measurement
   factor->z[0] = z[0];
   factor->z[1] = z[1];
 }
@@ -5684,17 +5720,17 @@ static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
                                     const real_t p_W[3],
                                     real_t *J_pos,
                                     real_t *J_rot) {
-  /* Pre-check */
+  // Pre-check
   if (J_pos == NULL || J_rot == NULL) {
     return;
   }
 
-  /* Jh_weighted = -1 * sqrt_info * Jh; */
-  /* J_pos = Jh_weighted * -C_CW; */
-  /* J_rot = Jh_weighted * -C_CW * skew(p_W - r_WC) * -C_WC; */
-  /* J = [J_pos, J_rot] */
+  // Jh_weighted = -1 * sqrt_info * Jh;
+  // J_pos = Jh_weighted * -C_CW;
+  // J_rot = Jh_weighted * -C_CW * skew(p_W - r_WC) * -C_WC;
+  // J = [J_pos, J_rot]
 
-  /* Setup */
+  // Setup
   real_t C_WC[3 * 3] = {0};
   real_t C_CW[3 * 3] = {0};
   real_t r_WC[3] = {0};
@@ -5702,7 +5738,7 @@ static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   tf_trans_get(T_WC, r_WC);
   mat_transpose(C_WC, 3, 3, C_CW);
 
-  /* J_pos = -1 * sqrt_info * Jh * -C_CW; */
+  // J_pos = -1 * sqrt_info * Jh * -C_CW;
   real_t neg_C_CW[3 * 3] = {0};
   mat_copy(C_CW, 3, 3, neg_C_CW);
   mat_scale(neg_C_CW, 3, 3, -1.0);
@@ -5744,13 +5780,13 @@ static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
 static void ba_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
                                        const real_t T_WC[4 * 4],
                                        real_t *J) {
-  /* Pre-check */
+  // Pre-check
   if (J == NULL) {
     return;
   }
 
-  /* Jh_weighted = -1 * sqrt_info * Jh; */
-  /* J = Jh_weighted * C_CW; */
+  // Jh_weighted = -1 * sqrt_info * Jh;
+  // J = Jh_weighted * C_CW;
   real_t C_WC[3 * 3] = {0};
   real_t C_CW[3 * 3] = {0};
   tf_rot_get(T_WC, C_WC);
@@ -5764,12 +5800,12 @@ static void ba_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
 static void ba_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
                                       const real_t J_cam_params[2 * 8],
                                       real_t *J) {
-  /* Pre-check */
+  // Pre-check
   if (J == NULL) {
     return;
   }
 
-  /* J = -1 * sqrt_info * J_cam_params; */
+  // J = -1 * sqrt_info * J_cam_params;
   dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
 }
 
@@ -5785,50 +5821,50 @@ int ba_factor_eval(ba_factor_t *factor,
   assert(params != NULL);
   assert(r_out != NULL);
 
-  /* Map params */
+  // Map params
   const real_t *r_WCi = params[0];
   const real_t *q_WCi = params[1];
   const real_t *p_W = params[2];
   const real_t *cam_params = params[3];
 
-  /* Camera pose */
+  // Camera pose
   real_t T_WCi[4 * 4] = {0};
   eye(T_WCi, 4, 4);
   tf_trans_set(T_WCi, r_WCi);
   tf_quat_set(T_WCi, q_WCi);
 
-  /* Calculate residuals */
-  /* -- Project point from world to image plane */
+  // Calculate residuals
+  // -- Project point from world to image plane
   real_t T_CiW[4 * 4] = {0};
   real_t p_Ci[3] = {0};
   real_t z_hat[2];
   tf_inv(T_WCi, T_CiW);
   tf_point(T_CiW, p_W, p_Ci);
   pinhole_radtan4_project(cam_params, p_Ci, z_hat);
-  /* -- Residual */
+  // -- Residual
   real_t r[2] = {0};
   r[0] = factor->z[0] - z_hat[0];
   r[1] = factor->z[1] - z_hat[1];
-  /* -- Weighted residual */
+  // -- Weighted residual
   dot(factor->sqrt_info, 2, 2, r, 2, 1, r_out);
 
-  /* Calculate jacobians */
+  // Calculate jacobians
   if (J_out == NULL) {
     return 0;
   }
-  /* -- Form: -1 * sqrt_info */
+  // -- Form: -1 * sqrt_info
   real_t neg_sqrt_info[2 * 2] = {0};
   mat_copy(factor->sqrt_info, 2, 2, neg_sqrt_info);
   mat_scale(neg_sqrt_info, 2, 2, -1.0);
-  /* -- Form: Jh_weighted = -1 * sqrt_info * Jh */
+  // -- Form: Jh_weighted = -1 * sqrt_info * Jh
   real_t Jh[2 * 3] = {0};
   real_t Jh_weighted[2 * 3] = {0};
   pinhole_radtan4_project_jacobian(cam_params, p_Ci, Jh);
   dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_weighted);
-  /* -- Form: J_cam_params */
+  // -- Form: J_cam_params
   real_t J_cam_params[2 * 8] = {0};
   pinhole_radtan4_params_jacobian(cam_params, p_Ci, J_cam_params);
-  /* -- Fill jacobians */
+  // -- Fill jacobians
   ba_factor_pose_jacobian(Jh_weighted, T_WCi, p_W, J_out[0], J_out[1]);
   ba_factor_feature_jacobian(Jh_weighted, T_WCi, J_out[2]);
   ba_factor_camera_jacobian(neg_sqrt_info, J_cam_params, J_out[3]);
@@ -5871,26 +5907,26 @@ void cam_factor_setup(cam_factor_t *factor,
   assert(camera != NULL);
   assert(var != NULL);
 
-  /* Parameters */
+  // Parameters
   factor->pose = pose;
   factor->extrinsics = extrinsics;
   factor->feature = feature;
   factor->camera = camera;
   factor->nb_params = 4;
 
-  /* Measurement covariance matrix */
+  // Measurement covariance matrix
   factor->covar[0] = 1.0 / (var[0] * var[0]);
   factor->covar[1] = 0.0;
   factor->covar[2] = 0.0;
   factor->covar[3] = 1.0 / (var[1] * var[1]);
 
-  /* Square-root information matrix */
+  // Square-root information matrix
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
   factor->sqrt_info[1] = 0.0;
   factor->sqrt_info[2] = 0.0;
   factor->sqrt_info[3] = sqrt(1.0 / factor->covar[3]);
 
-  /* Measurement */
+  // Measurement
   factor->z[0] = z[0];
   factor->z[1] = z[1];
 }
@@ -5914,12 +5950,12 @@ static void cam_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   assert(J_pos != NULL);
   assert(J_rot != NULL);
 
-  /* Jh_weighted = -1 * sqrt_info * Jh; */
-  /* J_pos = Jh_weighted * C_CB * -C_BW; */
-  /* J_rot = Jh_weighted * C_CB * C_BW * skew(p_W - r_WB) * -C_WB; */
-  /* J = [J_pos, J_rot]; */
+  // Jh_weighted = -1 * sqrt_info * Jh;
+  // J_pos = Jh_weighted * C_CB * -C_BW;
+  // J_rot = Jh_weighted * C_CB * C_BW * skew(p_W - r_WB) * -C_WB;
+  // J = [J_pos, J_rot];
 
-  /* Setup */
+  // Setup
   real_t C_WB[3 * 3] = {0};
   real_t C_BC[3 * 3] = {0};
   real_t C_BW[3 * 3] = {0};
@@ -5932,21 +5968,21 @@ static void cam_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   mat_transpose(C_BC, 3, 3, C_CB);
   dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
 
-  /* Form: -C_BW */
+  // Form: -C_BW
   real_t neg_C_BW[3 * 3] = {0};
   mat_copy(C_BW, 3, 3, neg_C_BW);
   mat_scale(neg_C_BW, 3, 3, -1.0);
 
-  /* Form: -C_CW */
+  // Form: -C_CW
   real_t neg_C_CW[3 * 3] = {0};
   dot(C_CB, 3, 3, neg_C_BW, 3, 3, neg_C_CW);
 
-  /* Form: -C_WB */
+  // Form: -C_WB
   real_t neg_C_WB[3 * 3] = {0};
   mat_copy(C_WB, 3, 3, neg_C_WB);
   mat_scale(neg_C_WB, 3, 3, -1.0);
 
-  /* Form: C_CB * -C_BW * skew(p_W - r_WB) * -C_WB */
+  // Form: C_CB * -C_BW * skew(p_W - r_WB) * -C_WB
   real_t r_WB[3] = {0};
   real_t p[3] = {0};
   real_t S[3 * 3] = {0};
@@ -5959,10 +5995,10 @@ static void cam_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   dot(neg_C_CW, 3, 3, S, 3, 3, A);
   dot(A, 3, 3, neg_C_WB, 3, 3, B);
 
-  /* Form: J_pos = Jh_weighted * C_CB * -C_BW; */
+  // Form: J_pos = Jh_weighted * C_CB * -C_BW;
   dot(Jh_weighted, 2, 3, neg_C_CW, 3, 3, J_pos);
 
-  /* Form: J_rot = Jh_weighted * C_CB * -C_BW * skew(p_W - r_WB) * -C_WB; */
+  // Form: J_rot = Jh_weighted * C_CB * -C_BW * skew(p_W - r_WB) * -C_WB;
   dot(Jh_weighted, 2, 3, B, 3, 3, J_rot);
 }
 
@@ -5983,11 +6019,11 @@ static void cam_factor_extrinsics_jacobian(const real_t Jh_weighted[2 * 3],
   assert(J_pos != NULL);
   assert(J_rot != NULL);
 
-  /* Jh_weighted = -1 * sqrt_info * Jh; */
-  /* J_pos = Jh_weighted * -C_CB; */
-  /* J_rot = Jh_weighted * C_CB * skew(C_BC * p_C); */
+  // Jh_weighted = -1 * sqrt_info * Jh;
+  // J_pos = Jh_weighted * -C_CB;
+  // J_rot = Jh_weighted * C_CB * skew(C_BC * p_C);
 
-  /* Setup */
+  // Setup
   real_t C_BC[3 * 3] = {0};
   real_t C_CB[3 * 3] = {0};
   real_t C_BW[3 * 3] = {0};
@@ -5997,17 +6033,17 @@ static void cam_factor_extrinsics_jacobian(const real_t Jh_weighted[2 * 3],
   mat_transpose(C_BC, 3, 3, C_CB);
   dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
 
-  /* Form: -C_CB */
+  // Form: -C_CB
   real_t neg_C_CB[3 * 3] = {0};
   mat_copy(C_CB, 3, 3, neg_C_CB);
   mat_scale(neg_C_CB, 3, 3, -1.0);
 
-  /* Form: -C_BC */
+  // Form: -C_BC
   real_t neg_C_BC[3 * 3] = {0};
   mat_copy(C_BC, 3, 3, neg_C_BC);
   mat_scale(neg_C_BC, 3, 3, -1.0);
 
-  /* Form: -C_CB * skew(C_BC * p_C) * -C_BC */
+  // Form: -C_CB * skew(C_BC * p_C) * -C_BC
   real_t p[3] = {0};
   real_t S[3 * 3] = {0};
   dot(C_BC, 3, 3, p_C, 3, 1, p);
@@ -6018,10 +6054,10 @@ static void cam_factor_extrinsics_jacobian(const real_t Jh_weighted[2 * 3],
   dot(neg_C_CB, 3, 3, S, 3, 3, A);
   dot(A, 3, 3, neg_C_BC, 3, 3, B);
 
-  /* Form: J_rot = Jh_weighted * -C_CB; */
+  // Form: J_rot = Jh_weighted * -C_CB;
   dot(Jh_weighted, 2, 3, neg_C_CB, 3, 3, J_pos);
 
-  /* Form: J_pos = Jh_weighted * -C_CB * skew(C_BC * p_C) * -C_BC; */
+  // Form: J_pos = Jh_weighted * -C_CB * skew(C_BC * p_C) * -C_BC;
   dot(Jh_weighted, 2, 3, B, 3, 3, J_rot);
 }
 
@@ -6035,7 +6071,7 @@ static void cam_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
   assert(J_cam_params != NULL);
   assert(J != NULL);
 
-  /* J = -1 * sqrt_info * J_cam_params; */
+  // J = -1 * sqrt_info * J_cam_params;
   dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
 }
 
@@ -6054,10 +6090,10 @@ static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
   assert(T_BC != NULL);
   assert(J != NULL);
 
-  /* Jh_weighted = -1 * sqrt_info * Jh; */
-  /* J = Jh_weighted * C_CW; */
+  // Jh_weighted = -1 * sqrt_info * Jh;
+  // J = Jh_weighted * C_CW;
 
-  /* Setup */
+  // Setup
   real_t T_WC[4 * 4] = {0};
   real_t C_WC[3 * 3] = {0};
   real_t C_CW[3 * 3] = {0};
@@ -6065,7 +6101,7 @@ static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
   tf_rot_get(T_WC, C_WC);
   mat_transpose(C_WC, 3, 3, C_CW);
 
-  /* Form: J = -1 * sqrt_info * Jh * C_CW; */
+  // Form: J = -1 * sqrt_info * Jh * C_CW;
   dot(Jh_weighted, 2, 3, C_CW, 3, 3, J);
 }
 
@@ -6084,7 +6120,7 @@ int cam_factor_eval(cam_factor_t *factor,
   assert(params != NULL);
   assert(r_out != NULL);
 
-  /* Map params */
+  // Map params
   const real_t *r_WB = params[0];
   const real_t *q_WB = params[1];
   const real_t *r_BCi = params[2];
@@ -6092,56 +6128,56 @@ int cam_factor_eval(cam_factor_t *factor,
   const real_t *cam_params = params[4];
   const real_t *p_W = params[5];
 
-  /* Body pose */
+  // Body pose
   real_t T_WB[4 * 4] = {0};
   eye(T_WB, 4, 4);
   tf_trans_set(T_WB, r_WB);
   tf_quat_set(T_WB, q_WB);
 
-  /* Body-camera extrinsics */
+  // Body-camera extrinsics
   real_t T_BCi[4 * 4] = {0};
   eye(T_BCi, 4, 4);
   tf_trans_set(T_BCi, r_BCi);
   tf_quat_set(T_BCi, q_BCi);
 
-  /* Form camera pose */
+  // Form camera pose
   real_t T_WCi[4 * 4] = {0};
   real_t T_CiW[4 * 4] = {0};
   dot(T_WB, 4, 4, T_BCi, 4, 4, T_WCi);
   tf_inv(T_WCi, T_CiW);
 
-  /* Transform feature from world to camera frame */
+  // Transform feature from world to camera frame
   real_t p_Ci[3] = {0};
   tf_point(T_CiW, p_W, p_Ci);
 
-  /* Calculate residuals */
-  /* -- Project point from world to image plane */
+  // Calculate residuals
+  // -- Project point from world to image plane
   real_t z_hat[2];
   pinhole_radtan4_project(cam_params, p_Ci, z_hat);
-  /* -- Residual */
+  // -- Residual
   real_t r[2] = {0};
   r[0] = factor->z[0] - z_hat[0];
   r[1] = factor->z[1] - z_hat[1];
-  /* -- Weighted residual */
+  // -- Weighted residual
   dot(factor->sqrt_info, 2, 2, r, 2, 1, r_out);
 
-  /* Calculate jacobians */
+  // Calculate jacobians
   if (J_out == NULL) {
     return 0;
   }
-  /* -- Form: -1 * sqrt_info */
+  // -- Form: -1 * sqrt_info
   real_t neg_sqrt_info[2 * 2] = {0};
   mat_copy(factor->sqrt_info, 2, 2, neg_sqrt_info);
   mat_scale(neg_sqrt_info, 2, 2, -1.0);
-  /* -- Form: Jh_ = -1 * sqrt_info * Jh */
+  // -- Form: Jh_ = -1 * sqrt_info * Jh
   real_t Jh[2 * 3] = {0};
   real_t Jh_[2 * 3] = {0};
   pinhole_radtan4_project_jacobian(cam_params, p_Ci, Jh);
   dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_);
-  /* -- Form: J_cam_params */
+  // -- Form: J_cam_params
   real_t J_cam_params[2 * 8] = {0};
   pinhole_radtan4_params_jacobian(cam_params, p_Ci, J_cam_params);
-  /* -- Fill jacobians */
+  // -- Fill jacobians
   cam_factor_pose_jacobian(Jh_, T_WB, T_BCi, p_W, J_out[0], J_out[1]);
   cam_factor_extrinsics_jacobian(Jh_, T_BCi, p_Ci, J_out[2], J_out[3]);
   cam_factor_camera_jacobian(neg_sqrt_info, J_cam_params, J_out[4]);
@@ -6300,163 +6336,163 @@ void imu_buf_copy(const imu_buf_t *src, imu_buf_t *dst) {
   dst->size = src->size;
 }
 
-/* void imu_factor_setup(imu_factor_t *factor, */
-/*                       imu_params_t *imu_params, */
-/*                       imu_buf_t *imu_buf, */
-/*                       pose_t *pose_i, */
-/*                       speed_biases_t *sb_i, */
-/*                       pose_t *pose_j, */
-/*                       speed_biases_t *sb_j) { */
-/*   #<{(| Parameters |)}># */
-/*   factor->imu_params = imu_params; */
-/*   imu_buf_copy(imu_buf, &factor->imu_buf); */
-/*   factor->pose_i = pose_i; */
-/*   factor->sb_i = sb_i; */
-/*   factor->pose_j = pose_j; */
-/*   factor->sb_j = sb_j; */
-/*  */
-/*   #<{(| Covariance and residuals |)}># */
-/*   zeros(factor->covar, 15, 15); */
-/*   zeros(factor->r, 15, 1); */
-/*   factor->r_size = 15; */
-/*  */
-/*   #<{(| Jacobians |)}># */
-/*   factor->jacs[0] = factor->J0; */
-/*   factor->jacs[1] = factor->J1; */
-/*   factor->jacs[2] = factor->J2; */
-/*   factor->jacs[3] = factor->J3; */
-/*   factor->nb_params = 4; */
-/*  */
-/*   #<{(| Pre-integration variables |)}># */
-/*   factor->Dt = 0.0; */
-/*   eye(factor->F, 15, 15);   #<{(| State jacobian |)}># */
-/*   zeros(factor->P, 15, 15); #<{(| State covariance |)}># */
-/*  */
-/*   #<{(| -- Noise matrix |)}># */
-/*   const real_t n_a = imu_params->n_a; */
-/*   const real_t n_g = imu_params->n_g; */
-/*   const real_t n_ba = imu_params->n_aw; */
-/*   const real_t n_bg = imu_params->n_gw; */
-/*   const real_t n_a_sq = n_a * n_a; */
-/*   const real_t n_g_sq = n_g * n_g; */
-/*   const real_t n_ba_sq = n_ba * n_ba; */
-/*   const real_t n_bg_sq = n_bg * n_bg; */
-/*   real_t Q_diag[12] = {0}; */
-/*   Q_diag[0] = n_a_sq; */
-/*   Q_diag[1] = n_a_sq; */
-/*   Q_diag[2] = n_a_sq; */
-/*   Q_diag[3] = n_g_sq; */
-/*   Q_diag[4] = n_g_sq; */
-/*   Q_diag[5] = n_g_sq; */
-/*   Q_diag[6] = n_ba_sq; */
-/*   Q_diag[7] = n_ba_sq; */
-/*   Q_diag[8] = n_ba_sq; */
-/*   Q_diag[9] = n_bg_sq; */
-/*   Q_diag[10] = n_bg_sq; */
-/*   Q_diag[11] = n_bg_sq; */
-/*   zeros(factor->Q, 12, 12); */
-/*   mat_diag_set(factor->Q, 12, 12, Q_diag); */
-/*  */
-/*   #<{(| -- Setup relative position, velocity and rotation |)}># */
-/*   real_t dr[3] = {0}; */
-/*   real_t dv[3] = {0}; */
-/*   real_t dC[3 * 3] = {0}; */
-/*   real_t ba[3] = {0}; */
-/*   real_t bg[3] = {0}; */
-/*  */
-/*   zeros(factor->dr, 3, 1); */
-/*   zeros(factor->dv, 3, 1); */
-/*   eye(factor->dC, 3, 3); */
-/*  */
-/*   ba[0] = sb_i->data[3]; */
-/*   ba[1] = sb_i->data[4]; */
-/*   ba[2] = sb_i->data[5]; */
-/*  */
-/*   bg[0] = sb_i->data[6]; */
-/*   bg[1] = sb_i->data[7]; */
-/*   bg[2] = sb_i->data[8]; */
-/*  */
-/*   #<{(| Pre-integrate imu measuremenets |)}># */
-/*   for (int k = 0; k < imu_buf->size; k++) { */
-/*     #<{(| Euler integration |)}># */
-/*     const real_t ts_i = imu_buf->ts[k]; */
-/*     const real_t ts_j = imu_buf->ts[k + 1]; */
-/*     const real_t *a = imu_buf->acc[k]; */
-/*     const real_t *w = imu_buf->gyr[k]; */
-/*     const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]}; */
-/*     const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]}; */
-/*  */
-/*     #<{(| Propagate IMU state using Euler method |)}># */
-/*     const real_t dt = ts_j - ts_i; */
-/*     const real_t dt_sq = dt * dt; */
-/*  */
-/*     #<{(| dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq); |)}># */
-/*     real_t vel_int[3] = {dv[0], dv[1], dv[2]}; */
-/*     vec_scale(vel_int, 3, dt); */
-/*  */
-/*     real_t acc_dint[3] = {0}; */
-/*     dot(dC, 3, 3, a_t, 3, 1, acc_dint); */
-/*     vec_scale(acc_dint, 3, 0.5 * dt_sq); */
-/*  */
-/*     dr[0] += vel_int[0] + acc_dint[0]; */
-/*     dr[1] += vel_int[1] + acc_dint[1]; */
-/*     dr[2] += vel_int[2] + acc_dint[2]; */
-/*  */
-/*     #<{(| dv = dv + dC * a_t * dt; |)}># */
-/*     real_t dv_update[3] = {0}; */
-/*     real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt}; */
-/*     dot(dC, 3, 3, acc_int, 3, 1, dv_update); */
-/*  */
-/*     dv[0] += dv_update[0]; */
-/*     dv[1] += dv_update[1]; */
-/*     dv[2] += dv_update[2]; */
-/*  */
-/*     #<{(| dC = dC * Exp((w_t) * dt); |)}># */
-/*     real_t dC_old[3 * 3] = {0}; */
-/*     real_t C_update[3 * 3] = {0}; */
-/*     real_t w_int[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt}; */
-/*     mat_copy(dC, 3, 3, dC_old); */
-/*     dot(dC_old, 3, 3, C_update, 3, 3, dC); */
-/*  */
-/*     #<{(| ba = ba; |)}># */
-/*     ba[0] = ba[0]; */
-/*     ba[1] = ba[1]; */
-/*     ba[2] = ba[2]; */
-/*  */
-/*     #<{(| bg = bg; |)}># */
-/*     bg[0] = bg[0]; */
-/*     bg[1] = bg[1]; */
-/*     bg[2] = bg[2]; */
-/*  */
-/*     #<{(| Continuous time transition matrix F |)}># */
-/*     real_t F[15 * 15] = {0}; */
-/*     F[0] = 1.0; */
-/*     F[3] = 1.0; */
-/*     F[6] = 1.0; */
-/*     #<{(| F(0:3, 3:6) = eye(3); |)}># */
-/*     #<{(| F(4:6, 7:9) = -dC * skewa_t; |)}># */
-/*     #<{(| F(4:6, 10:12) = -dC; |)}># */
-/*     #<{(| F(7:9, 7:9) = -skew(w_t); |)}># */
-/*     #<{(| F(7:9, 13:15) = -eye(3); |)}># */
-/*  */
-/*     #<{(| Continuous time input jacobian G |)}># */
-/*     real_t G[15 * 12] = {0}; */
-/*     G[0] = 1.0; */
-/*     #<{(| G(4 : 6, 1 : 3) = -dC; |)}># */
-/*     #<{(| G(7 : 9, 4 : 6) = -eye(3); |)}># */
-/*     #<{(| G(10 : 12, 7 : 9) = eye(3); |)}># */
-/*     #<{(| G(13 : 15, 10 : 12) = eye(3); |)}># */
-/*  */
-/*     #<{(| Update |)}># */
-/*     #<{(| G_dt = G * dt; |)}># */
-/*     #<{(| I_F_dt = eye(15) + F * dt; |)}># */
-/*     #<{(| factor.state_F = I_F_dt * factor.state_F; |)}># */
-/*     #<{(| factor.state_P = |)}># */
+// void imu_factor_setup(imu_factor_t *factor,
+//                       imu_params_t *imu_params,
+//                       imu_buf_t *imu_buf,
+//                       pose_t *pose_i,
+//                       speed_biases_t *sb_i,
+//                       pose_t *pose_j,
+//                       speed_biases_t *sb_j) {
+//   #<{(| Parameters |)}>#
+//   factor->imu_params = imu_params;
+//   imu_buf_copy(imu_buf, &factor->imu_buf);
+//   factor->pose_i = pose_i;
+//   factor->sb_i = sb_i;
+//   factor->pose_j = pose_j;
+//   factor->sb_j = sb_j;
+//
+//   #<{(| Covariance and residuals |)}>#
+//   zeros(factor->covar, 15, 15);
+//   zeros(factor->r, 15, 1);
+//   factor->r_size = 15;
+//
+//   #<{(| Jacobians |)}>#
+//   factor->jacs[0] = factor->J0;
+//   factor->jacs[1] = factor->J1;
+//   factor->jacs[2] = factor->J2;
+//   factor->jacs[3] = factor->J3;
+//   factor->nb_params = 4;
+//
+//   #<{(| Pre-integration variables |)}>#
+//   factor->Dt = 0.0;
+//   eye(factor->F, 15, 15);   #<{(| State jacobian |)}>#
+//   zeros(factor->P, 15, 15); #<{(| State covariance |)}>#
+//
+//   #<{(| -- Noise matrix |)}>#
+//   const real_t n_a = imu_params->n_a;
+//   const real_t n_g = imu_params->n_g;
+//   const real_t n_ba = imu_params->n_aw;
+//   const real_t n_bg = imu_params->n_gw;
+//   const real_t n_a_sq = n_a * n_a;
+//   const real_t n_g_sq = n_g * n_g;
+//   const real_t n_ba_sq = n_ba * n_ba;
+//   const real_t n_bg_sq = n_bg * n_bg;
+//   real_t Q_diag[12] = {0};
+//   Q_diag[0] = n_a_sq;
+//   Q_diag[1] = n_a_sq;
+//   Q_diag[2] = n_a_sq;
+//   Q_diag[3] = n_g_sq;
+//   Q_diag[4] = n_g_sq;
+//   Q_diag[5] = n_g_sq;
+//   Q_diag[6] = n_ba_sq;
+//   Q_diag[7] = n_ba_sq;
+//   Q_diag[8] = n_ba_sq;
+//   Q_diag[9] = n_bg_sq;
+//   Q_diag[10] = n_bg_sq;
+//   Q_diag[11] = n_bg_sq;
+//   zeros(factor->Q, 12, 12);
+//   mat_diag_set(factor->Q, 12, 12, Q_diag);
+//
+//   #<{(| -- Setup relative position, velocity and rotation |)}>#
+//   real_t dr[3] = {0};
+//   real_t dv[3] = {0};
+//   real_t dC[3 * 3] = {0};
+//   real_t ba[3] = {0};
+//   real_t bg[3] = {0};
+//
+//   zeros(factor->dr, 3, 1);
+//   zeros(factor->dv, 3, 1);
+//   eye(factor->dC, 3, 3);
+//
+//   ba[0] = sb_i->data[3];
+//   ba[1] = sb_i->data[4];
+//   ba[2] = sb_i->data[5];
+//
+//   bg[0] = sb_i->data[6];
+//   bg[1] = sb_i->data[7];
+//   bg[2] = sb_i->data[8];
+//
+//   #<{(| Pre-integrate imu measuremenets |)}>#
+//   for (int k = 0; k < imu_buf->size; k++) {
+//     #<{(| Euler integration |)}>#
+//     const real_t ts_i = imu_buf->ts[k];
+//     const real_t ts_j = imu_buf->ts[k + 1];
+//     const real_t *a = imu_buf->acc[k];
+//     const real_t *w = imu_buf->gyr[k];
+//     const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
+//     const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
+//
+//     #<{(| Propagate IMU state using Euler method |)}>#
+//     const real_t dt = ts_j - ts_i;
+//     const real_t dt_sq = dt * dt;
+//
+//     #<{(| dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq); |)}>#
+//     real_t vel_int[3] = {dv[0], dv[1], dv[2]};
+//     vec_scale(vel_int, 3, dt);
+//
+//     real_t acc_dint[3] = {0};
+//     dot(dC, 3, 3, a_t, 3, 1, acc_dint);
+//     vec_scale(acc_dint, 3, 0.5 * dt_sq);
+//
+//     dr[0] += vel_int[0] + acc_dint[0];
+//     dr[1] += vel_int[1] + acc_dint[1];
+//     dr[2] += vel_int[2] + acc_dint[2];
+//
+//     #<{(| dv = dv + dC * a_t * dt; |)}>#
+//     real_t dv_update[3] = {0};
+//     real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt};
+//     dot(dC, 3, 3, acc_int, 3, 1, dv_update);
+//
+//     dv[0] += dv_update[0];
+//     dv[1] += dv_update[1];
+//     dv[2] += dv_update[2];
+//
+//     #<{(| dC = dC * Exp((w_t) * dt); |)}>#
+//     real_t dC_old[3 * 3] = {0};
+//     real_t C_update[3 * 3] = {0};
+//     real_t w_int[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt};
+//     mat_copy(dC, 3, 3, dC_old);
+//     dot(dC_old, 3, 3, C_update, 3, 3, dC);
+//
+//     #<{(| ba = ba; |)}>#
+//     ba[0] = ba[0];
+//     ba[1] = ba[1];
+//     ba[2] = ba[2];
+//
+//     #<{(| bg = bg; |)}>#
+//     bg[0] = bg[0];
+//     bg[1] = bg[1];
+//     bg[2] = bg[2];
+//
+//     #<{(| Continuous time transition matrix F |)}>#
+//     real_t F[15 * 15] = {0};
+//     F[0] = 1.0;
+//     F[3] = 1.0;
+//     F[6] = 1.0;
+//     #<{(| F(0:3, 3:6) = eye(3); |)}>#
+//     #<{(| F(4:6, 7:9) = -dC * skewa_t; |)}>#
+//     #<{(| F(4:6, 10:12) = -dC; |)}>#
+//     #<{(| F(7:9, 7:9) = -skew(w_t); |)}>#
+//     #<{(| F(7:9, 13:15) = -eye(3); |)}>#
+//
+//     #<{(| Continuous time input jacobian G |)}>#
+//     real_t G[15 * 12] = {0};
+//     G[0] = 1.0;
+//     #<{(| G(4 : 6, 1 : 3) = -dC; |)}>#
+//     #<{(| G(7 : 9, 4 : 6) = -eye(3); |)}>#
+//     #<{(| G(10 : 12, 7 : 9) = eye(3); |)}>#
+//     #<{(| G(13 : 15, 10 : 12) = eye(3); |)}>#
+//
+//     #<{(| Update |)}>#
+//     #<{(| G_dt = G * dt; |)}>#
+//     #<{(| I_F_dt = eye(15) + F * dt; |)}>#
+//     #<{(| factor.state_F = I_F_dt * factor.state_F; |)}>#
+//     #<{(| factor.state_P = |)}>#
 /*     #<{(|     I_F_dt * factor.state_P * I_F_dt ' + G_dt * factor.Q * G_dt';
  * |)}># */
-/*     #<{(| factor.Dt += dt; |)}># */
-/*   } */
-/* } */
+//     #<{(| factor.Dt += dt; |)}>#
+//   }
+// }
 
 /**
  * Reset IMU Factor
@@ -6468,11 +6504,11 @@ void imu_factor_reset(imu_factor_t *factor) {
   zeros(factor->J2, 2, 6);
   zeros(factor->J3, 2, 9);
 
-  zeros(factor->dr, 3, 1); /* Relative position */
-  zeros(factor->dv, 3, 1); /* Relative velocity */
-  eye(factor->dC, 3, 3);   /* Relative rotation */
-  zeros(factor->ba, 3, 1); /* Accel bias */
-  zeros(factor->bg, 3, 1); /* Gyro bias */
+  zeros(factor->dr, 3, 1); // Relative position
+  zeros(factor->dv, 3, 1); // Relative velocity
+  eye(factor->dC, 3, 3);   // Relative rotation
+  zeros(factor->ba, 3, 1); // Accel bias
+  zeros(factor->bg, 3, 1); // Gyro bias
 }
 
 // GRAPH //////////////////////////////////////////////////////////////////////
@@ -6519,9 +6555,9 @@ void graph_evaluator(graph_t *graph,
       real_t *H_ij = {0};
       dot(J_i_trans, size_i, r_size, J_j, r_size, size_j, H_ij);
 
-      /* Fill Hessian H */
-      /* H_ij = J_i' * J_j */
-      /* H_ji = H_ij' */
+      // Fill Hessian H
+      // H_ij = J_i' * J_j
+      // H_ji = H_ij'
       int stride = H_size;
       int rs = *idx_i;
       int cs = *idx_j;
@@ -6536,14 +6572,14 @@ void graph_evaluator(graph_t *graph,
         mat_block_set(H, stride, cs, rs, ce, re, H_ij);
       }
 
-      /* Fill in the R.H.S of H dx = g */
-      /* g = -J_i * r */
+      // Fill in the R.H.S of H dx = g
+      // g = -J_i * r
       mat_scale(J_i_trans, H_size, r_size, -1);
       dot(J_i_trans, H_size, r_size, r, r_size, 1, g);
     }
   }
 
-  /* Update parameter order */
+  // Update parameter order
   for (int i = 0; i < nb_params; i++) {
     param_orders[i] = param_orders[i] + param_sizes[i];
   }
@@ -6552,104 +6588,104 @@ void graph_evaluator(graph_t *graph,
 int graph_eval(graph_t *graph) {
   assert(graph != NULL);
 
-  /* int pose_idx = 0; */
-  /* int lmks_idx = graph->nb_poses * 6; */
-  /* int exts_idx = lmks_idx + graph->nb_features * 3; */
-  /* int cams_idx = exts_idx + graph->nb_exts * 6; */
+  // int pose_idx = 0;
+  // int lmks_idx = graph->nb_poses * 6;
+  // int exts_idx = lmks_idx + graph->nb_features * 3;
+  // int cams_idx = exts_idx + graph->nb_exts * 6;
 
-  /* #<{(| Evaluate camera factors |)}># */
-  /* for (int i = 0; i < graph->nb_cam_factors; i++) { */
-  /*   cam_factor_t *factor = &graph->cam_factors[i]; */
-  /*   #<{(| cam_factor_eval(factor); |)}># */
-  /*  */
-  /*   int *param_orders[4] = {&pose_idx, &exts_idx, &cams_idx, &lmks_idx}; */
-  /*   int param_sizes[4] = {6, 6, 8, 3}; */
-  /*   int nb_params = 4; */
-  /*  */
-  /*   #<{(| graph_evaluator(graph, |)}># */
-  /*   #<{(|                 param_orders, |)}># */
-  /*   #<{(|                 param_sizes, |)}># */
-  /*   #<{(|                 nb_params, |)}># */
-  /*   #<{(|                 factor->r, |)}># */
-  /*   #<{(|                 factor->r_size, |)}># */
-  /*   #<{(|                 factor->jacs); |)}># */
-  /* } */
+  // #<{(| Evaluate camera factors |)}>#
+  // for (int i = 0; i < graph->nb_cam_factors; i++) {
+  //   cam_factor_t *factor = &graph->cam_factors[i];
+  //   #<{(| cam_factor_eval(factor); |)}>#
+  //
+  //   int *param_orders[4] = {&pose_idx, &exts_idx, &cams_idx, &lmks_idx};
+  //   int param_sizes[4] = {6, 6, 8, 3};
+  //   int nb_params = 4;
+  //
+  //   #<{(| graph_evaluator(graph, |)}>#
+  //   #<{(|                 param_orders, |)}>#
+  //   #<{(|                 param_sizes, |)}>#
+  //   #<{(|                 nb_params, |)}>#
+  //   #<{(|                 factor->r, |)}>#
+  //   #<{(|                 factor->r_size, |)}>#
+  //   #<{(|                 factor->jacs); |)}>#
+  // }
 
   return 0;
 }
 
-/* int graph_optimize(graph_t *graph) { */
-/*   struct timespec solve_tic = tic(); */
-/*   real_t lambda_k = 1e-4; */
-/*  */
-/*   int iter = 0; */
-/*   int max_iter = 10; */
-/*   int verbose = 1; */
-/*  */
-/*   for (iter = 0; iter < max_iter; iter++) { */
-/*     #<{(| Cost k |)}># */
-/*     #<{(| x = graph_get_state(graph); |)}># */
-/*     #<{(| graph_eval(graph, H, g, &marg_size, &remain_size); |)}># */
-/*     #<{(| const matx_t H_diag = (H.diagonal().asDiagonal()); |)}># */
-/*     #<{(| H = H + lambda_k * H_diag; |)}># */
-/*     #<{(| dx = H.ldlt().solve(g); |)}># */
-/*     #<{(| e = graph_residuals(graph); |)}># */
-/*     #<{(| cost = 0.5 * e.transpose() * e; |)}># */
-/*  */
-/*     #<{(| Cost k+1 |)}># */
-/*     #<{(| graph_update(graph, dx); |)}># */
-/*     #<{(| e = graph_residuals(graph); |)}># */
-/*     const real_t cost_k = 0.5 * e.transpose() * e; */
-/*  */
-/*     const real_t cost_delta = cost_k - cost; */
-/*     const real_t solve_time = toc(&solve_tic); */
-/*     const real_t iter_time = (iter == 0) ? 0 : (solve_time / iter); */
-/*  */
-/*     if (verbose) { */
-/*       printf("iter[%d] ", iter); */
-/*       printf("cost[%.2e] ", cost); */
-/*       printf("cost_k[%.2e] ", cost_k); */
-/*       printf("cost_delta[%.2e] ", cost_delta); */
-/*       printf("lambda[%.2e] ", lambda_k); */
-/*       printf("iter_time[%.4f] ", iter_time); */
-/*       printf("solve_time[%.4f]  ", solve_time); */
-/*       printf("\n"); */
-/*  */
-/*       // // Calculate reprojection error */
-/*       // size_t nb_keypoints = e.size() / 2.0; */
-/*       // real_t sse = 0.0; */
-/*       // for (size_t i = 0; i < nb_keypoints; i++) { */
-/*       //   sse += pow(e.segment(i * 2, 2).norm(), 2); */
-/*       // } */
-/*       // const real_t rmse = sqrt(sse / nb_keypoints); */
-/*       // printf("rmse reproj error: %.2f\n", rmse); */
-/*     } */
-/*  */
-/*     #<{(| Determine whether to accept update |)}># */
-/*     if (cost_k < cost) { */
-/*       #<{(| Accept update |)}># */
-/*       lambda_k /= update_factor; */
-/*       cost = cost_k; */
-/*     } else { */
-/*       #<{(| Reject update |)}># */
-/*       #<{(| graph_set_state(graph, x); // Restore state |)}># */
-/*       lambda_k *= update_factor; */
-/*     } */
-/*  */
-/*     #<{(| Termination criterias |)}># */
-/*     if (fabs(cost_delta) < cost_change_threshold) { */
-/*       break; */
-/*     } else if ((solve_time + iter_time) > time_limit) { */
-/*       break; */
-/*     } */
-/*   } */
-/*  */
-/*   #<{(| solve_time = toc(&solve_tic); |)}># */
-/*   #<{(| if (verbose) { |)}># */
-/*   #<{(|   printf("cost: %.2e\t", cost); |)}># */
-/*   #<{(|   printf("graph took: %.4fs\n", solve_time); |)}># */
-/*   #<{(| } |)}># */
-/* } */
+// int graph_optimize(graph_t *graph) {
+//   struct timespec solve_tic = tic();
+//   real_t lambda_k = 1e-4;
+//
+//   int iter = 0;
+//   int max_iter = 10;
+//   int verbose = 1;
+//
+//   for (iter = 0; iter < max_iter; iter++) {
+//     #<{(| Cost k |)}>#
+//     #<{(| x = graph_get_state(graph); |)}>#
+//     #<{(| graph_eval(graph, H, g, &marg_size, &remain_size); |)}>#
+//     #<{(| const matx_t H_diag = (H.diagonal().asDiagonal()); |)}>#
+//     #<{(| H = H + lambda_k * H_diag; |)}>#
+//     #<{(| dx = H.ldlt().solve(g); |)}>#
+//     #<{(| e = graph_residuals(graph); |)}>#
+//     #<{(| cost = 0.5 * e.transpose() * e; |)}>#
+//
+//     #<{(| Cost k+1 |)}>#
+//     #<{(| graph_update(graph, dx); |)}>#
+//     #<{(| e = graph_residuals(graph); |)}>#
+//     const real_t cost_k = 0.5 * e.transpose() * e;
+//
+//     const real_t cost_delta = cost_k - cost;
+//     const real_t solve_time = toc(&solve_tic);
+//     const real_t iter_time = (iter == 0) ? 0 : (solve_time / iter);
+//
+//     if (verbose) {
+//       printf("iter[%d] ", iter);
+//       printf("cost[%.2e] ", cost);
+//       printf("cost_k[%.2e] ", cost_k);
+//       printf("cost_delta[%.2e] ", cost_delta);
+//       printf("lambda[%.2e] ", lambda_k);
+//       printf("iter_time[%.4f] ", iter_time);
+//       printf("solve_time[%.4f]  ", solve_time);
+//       printf("\n");
+//
+//       // // Calculate reprojection error
+//       // size_t nb_keypoints = e.size() / 2.0;
+//       // real_t sse = 0.0;
+//       // for (size_t i = 0; i < nb_keypoints; i++) {
+//       //   sse += pow(e.segment(i * 2, 2).norm(), 2);
+//       // }
+//       // const real_t rmse = sqrt(sse / nb_keypoints);
+//       // printf("rmse reproj error: %.2f\n", rmse);
+//     }
+//
+//     #<{(| Determine whether to accept update |)}>#
+//     if (cost_k < cost) {
+//       #<{(| Accept update |)}>#
+//       lambda_k /= update_factor;
+//       cost = cost_k;
+//     } else {
+//       #<{(| Reject update |)}>#
+//       #<{(| graph_set_state(graph, x); // Restore state |)}>#
+//       lambda_k *= update_factor;
+//     }
+//
+//     #<{(| Termination criterias |)}>#
+//     if (fabs(cost_delta) < cost_change_threshold) {
+//       break;
+//     } else if ((solve_time + iter_time) > time_limit) {
+//       break;
+//     }
+//   }
+//
+//   #<{(| solve_time = toc(&solve_tic); |)}>#
+//   #<{(| if (verbose) { |)}>#
+//   #<{(|   printf("cost: %.2e\t", cost); |)}>#
+//   #<{(|   printf("graph took: %.4fs\n", solve_time); |)}>#
+//   #<{(| } |)}>#
+// }
 
 /******************************************************************************
  * DATASET
@@ -6658,17 +6694,17 @@ int graph_eval(graph_t *graph) {
 static int
 parse_pose_data(const int i, const int j, const char *entry, pose_t *poses) {
   switch (j) {
-    /* Timestamp */
+    // Timestamp
     case 0:
       poses[i].ts = strtol(entry, NULL, 0);
       break;
-    /* Translation */
+    // Translation
     case 1:
     case 2:
     case 3:
       poses[i].pos[j - 1] = strtod(entry, NULL);
       break;
-    /* Orientation */
+    // Orientation
     case 4:
     case 5:
     case 6:
@@ -6690,18 +6726,18 @@ pose_t *load_poses(const char *fp, int *nb_poses) {
   assert(fp != NULL);
   assert(nb_poses != NULL);
 
-  /* Obtain number of rows and columns in dsv data */
+  // Obtain number of rows and columns in dsv data
   int nb_rows = dsv_rows(fp);
   int nb_cols = dsv_cols(fp, ',');
   if (nb_rows == -1 || nb_cols == -1) {
     return NULL;
   }
 
-  /* Initialize memory for pose data */
+  // Initialize memory for pose data
   *nb_poses = nb_rows;
   pose_t *poses = malloc(sizeof(pose_t) * nb_rows);
 
-  /* Load file */
+  // Load file
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
     fclose(infile);
@@ -6709,19 +6745,19 @@ pose_t *load_poses(const char *fp, int *nb_poses) {
     return NULL;
   }
 
-  /* Loop through data */
+  // Loop through data
   char line[MAX_LINE_LENGTH] = {0};
   int row_idx = 0;
   int col_idx = 0;
 
-  /* Loop through data line by line */
+  // Loop through data line by line
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-    /* Ignore if comment line */
+    // Ignore if comment line
     if (line[0] == '#') {
       continue;
     }
 
-    /* Iterate through values in line separated by commas */
+    // Iterate through values in line separated by commas
     char entry[100] = {0};
     for (size_t i = 0; i < strlen(line); i++) {
       char c = line[i];
@@ -6745,7 +6781,7 @@ pose_t *load_poses(const char *fp, int *nb_poses) {
     row_idx++;
   }
 
-  /* Clean up */
+  // Clean up
   fclose(infile);
 
   return poses;
@@ -6773,23 +6809,23 @@ int **assoc_pose_data(pose_t *gnd_poses,
   int **matches = malloc(sizeof(int *) * k_end);
 
   while ((gnd_idx + 1) < nb_gnd_poses && (est_idx + 1) < nb_est_poses) {
-    /* Calculate time difference between ground truth and estimate */
+    // Calculate time difference between ground truth and estimate
     double gnd_k_time = ts2sec(gnd_poses[gnd_idx].ts);
     double est_k_time = ts2sec(est_poses[est_idx].ts);
     double t_k_diff = fabs(gnd_k_time - est_k_time);
 
-    /* Check to see if next ground truth timestamp forms a smaller time diff */
+    // Check to see if next ground truth timestamp forms a smaller time diff
     double t_kp1_diff = threshold;
     if ((gnd_idx + 1) < nb_gnd_poses) {
       double gnd_kp1_time = ts2sec(gnd_poses[gnd_idx + 1].ts);
       t_kp1_diff = fabs(gnd_kp1_time - est_k_time);
     }
 
-    /* Conditions to call this pair (ground truth and estimate) a match */
+    // Conditions to call this pair (ground truth and estimate) a match
     int threshold_met = t_k_diff < threshold;
     int smallest_diff = t_k_diff < t_kp1_diff;
 
-    /* Mark pairs as a match or increment appropriate indicies */
+    // Mark pairs as a match or increment appropriate indicies
     if (threshold_met && smallest_diff) {
       matches[match_idx] = malloc(sizeof(int) * 2);
       matches[match_idx][0] = gnd_idx;
@@ -6807,7 +6843,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
     }
   }
 
-  /* Clean up */
+  // Clean up
   if (match_idx == 0) {
     free(matches);
     matches = NULL;
@@ -6839,12 +6875,12 @@ sim_features_t *load_sim_features(const char *csv_path) {
  * Free simulation feature data
  */
 void free_sim_features(sim_features_t *feature_data) {
-  /* Pre-check */
+  // Pre-check
   if (feature_data == NULL) {
     return;
   }
 
-  /* Free data */
+  // Free data
   for (int i = 0; i < feature_data->nb_features; i++) {
     free(feature_data->features[i]);
   }
@@ -6872,12 +6908,12 @@ sim_imu_data_t *load_sim_imu_data(const char *csv_path) {
  * Free simulation imu data
  */
 void free_sim_imu_data(sim_imu_data_t *imu_data) {
-  /* Pre-check */
+  // Pre-check
   if (imu_data == NULL) {
     return;
   }
 
-  /* Free data */
+  // Free data
   for (int i = 0; i < imu_data->nb_measurements; i++) {
     free(imu_data->data[i]);
   }
@@ -6907,17 +6943,17 @@ static timestamp_t ts_from_path(const char *path) {
  * Load simulated camera frame
  */
 sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
-  /* Check if file exists */
+  // Check if file exists
   if (file_exists(csv_path) == 0) {
     return NULL;
   }
 
-  /* Load csv data */
+  // Load csv data
   int nb_rows = 0;
   int nb_cols = 0;
   real_t **data = csv_data(csv_path, &nb_rows, &nb_cols);
 
-  /* Create sim_cam_frame_t */
+  // Create sim_cam_frame_t
   sim_cam_frame_t *frame_data = malloc(sizeof(sim_cam_frame_t));
   frame_data->ts = ts_from_path(csv_path);
   frame_data->feature_ids = malloc(sizeof(int) * nb_rows);
@@ -6930,7 +6966,7 @@ sim_cam_frame_t *load_sim_cam_frame(const char *csv_path) {
     frame_data->keypoints[i][1] = data[i][2];
   }
 
-  /* Clean up */
+  // Clean up
   csv_free(data, nb_rows);
 
   return frame_data;
@@ -6956,12 +6992,12 @@ void print_sim_cam_frame(sim_cam_frame_t *frame_data) {
  * Free simulated camera frame
  */
 void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
-  /* Pre-check */
+  // Pre-check
   if (frame_data == NULL) {
     return;
   }
 
-  /* Free data */
+  // Free data
   free(frame_data->feature_ids);
   for (int i = 0; i < frame_data->nb_measurements; i++) {
     free(frame_data->keypoints[i]);
@@ -6976,28 +7012,28 @@ void free_sim_cam_frame(sim_cam_frame_t *frame_data) {
 sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
   assert(dir_path != NULL);
 
-  /* Form csv file path */
+  // Form csv file path
   char *csv_path = path_join(dir_path, "/data.csv");
   if (file_exists(csv_path) == 0) {
     free(csv_path);
     return NULL;
   }
 
-  /* Check number of rows */
+  // Check number of rows
   const int nb_rows = dsv_rows(csv_path);
   if (nb_rows == 0) {
     free(csv_path);
     return NULL;
   }
 
-  /* Open csv file */
+  // Open csv file
   FILE *csv_file = fopen(csv_path, "r");
   if (csv_file == NULL) {
     free(csv_path);
     return NULL;
   }
 
-  /* Form sim_cam_data_t */
+  // Form sim_cam_data_t
   sim_cam_data_t *cam_data = malloc(sizeof(sim_cam_data_t));
   cam_data->frames = malloc(sizeof(sim_cam_frame_t *) * nb_rows);
   cam_data->nb_frames = nb_rows;
@@ -7007,12 +7043,12 @@ sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
   int line_idx = 0;
   char line[MAX_LINE_LENGTH] = {0};
   while (fgets(line, MAX_LINE_LENGTH, csv_file) != NULL) {
-    /* Skip line if its a comment */
+    // Skip line if its a comment
     if (line[0] == '#') {
       continue;
     }
 
-    /* Parse line */
+    // Parse line
     timestamp_t ts;
     double r[3] = {0};
     double q[4] = {0};
@@ -7027,14 +7063,14 @@ sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
            &q[2],
            &q[3]);
 
-    /* Add camera frame to sim_cam_data_t */
+    // Add camera frame to sim_cam_data_t
     char fname[128] = {0};
     sprintf(fname, "/data/%ld.csv", ts);
     char *frame_csv = path_join(dir_path, fname);
     cam_data->frames[line_idx] = load_sim_cam_frame(frame_csv);
     free(frame_csv);
 
-    /* Add pose to sim_cam_data_t */
+    // Add pose to sim_cam_data_t
     cam_data->ts[line_idx] = ts;
     cam_data->poses[line_idx] = malloc(sizeof(real_t) * 7);
     cam_data->poses[line_idx][0] = r[0];
@@ -7045,11 +7081,11 @@ sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
     cam_data->poses[line_idx][5] = q[2];
     cam_data->poses[line_idx][6] = q[3];
 
-    /* Update */
+    // Update
     line_idx++;
   }
 
-  /* Clean up */
+  // Clean up
   free(csv_path);
   fclose(csv_file);
 
@@ -7060,12 +7096,12 @@ sim_cam_data_t *load_sim_cam_data(const char *dir_path) {
  * Free simulated camera data
  */
 void free_sim_cam_data(sim_cam_data_t *cam_data) {
-  /* Pre-check */
+  // Pre-check
   if (cam_data == NULL) {
     return;
   }
 
-  /* Free data */
+  // Free data
   for (int k = 0; k < cam_data->nb_frames; k++) {
     free_sim_cam_frame(cam_data->frames[k]);
     free(cam_data->poses[k]);
@@ -7320,24 +7356,24 @@ void gl_lookat(const GLfloat eye[3],
                const GLfloat at[3],
                const GLfloat up[3],
                GLfloat V[4 * 4]) {
-  /* Z-axis: Camera forward */
+  // Z-axis: Camera forward
   GLfloat z[3] = {0};
   gl_sub(at, eye, 3, 1, z);
   gl_normalize(z, 3);
 
-  /* X-axis: Camera right */
+  // X-axis: Camera right
   GLfloat x[3] = {0};
   gl_vec3f_cross(z, up, x);
   gl_normalize(x, 3);
 
-  /* Y-axis: Camera up */
+  // Y-axis: Camera up
   GLfloat y[3] = {0};
   gl_vec3f_cross(x, z, y);
 
-  /* Negate z-axis */
+  // Negate z-axis
   gl_scale(-1.0f, z, 3, 1);
 
-  /* Form rotation component */
+  // Form rotation component
   GLfloat R[4 * 4] = {0};
   R[0] = x[0];
   R[1] = y[0];
@@ -7359,7 +7395,7 @@ void gl_lookat(const GLfloat eye[3],
   R[14] = 0.0f;
   R[15] = 1.0f;
 
-  /* Form translation component */
+  // Form translation component
   GLfloat T[4 * 4] = {0};
   T[0] = 1.0f;
   T[1] = 0.0f;
@@ -7381,7 +7417,7 @@ void gl_lookat(const GLfloat eye[3],
   T[14] = -eye[2];
   T[15] = 1.0f;
 
-  /* Form view matrix */
+  // Form view matrix
   gl_zeros(V, 4, 4);
   gl_dot(R, 4, 4, T, 4, 4, V);
 }
@@ -7603,27 +7639,27 @@ void gl_camera_setup(gl_camera_t *camera,
 }
 
 void gl_camera_update(gl_camera_t *camera) {
-  /* Front vector */
+  // Front vector
   camera->front[0] = sin(camera->yaw) * cos(camera->pitch);
   camera->front[1] = sin(camera->pitch);
   camera->front[2] = cos(camera->yaw) * cos(camera->pitch);
   gl_normalize(camera->front, 3);
 
-  /* Right vector */
+  // Right vector
   gl_vec3f_cross(camera->front, camera->world_up, camera->right);
   gl_normalize(camera->right, 3);
 
-  /* Up vector */
+  // Up vector
   gl_vec3f_cross(camera->right, camera->front, camera->up);
   gl_normalize(camera->up, 3);
 
-  /* Projection matrix */
+  // Projection matrix
   const float width = (float) *(camera->window_width);
   const float height = (float) *(camera->window_height);
   const float aspect = width / height;
   gl_perspective(camera->fov, aspect, camera->near, camera->far, camera->P);
 
-  /* View matrix */
+  // View matrix
   GLfloat eye[3] = {0};
   eye[0] = camera->focal[0] + camera->radius * sin(camera->yaw);
   eye[1] = camera->focal[1] + camera->radius * cos(camera->pitch);
@@ -7635,19 +7671,19 @@ void gl_camera_rotate(gl_camera_t *camera,
                       const float factor,
                       const float dx,
                       const float dy) {
-  /* Update yaw and pitch */
+  // Update yaw and pitch
   float pitch = camera->pitch;
   float yaw = camera->yaw;
   yaw -= dx * factor;
   pitch += dy * factor;
 
-  /* Constrain pitch and yaw */
+  // Constrain pitch and yaw
   pitch = (pitch <= (-M_PI / 2.0) + 1e-5) ? (-M_PI / 2.0) + 1e-5 : pitch;
   pitch = (pitch > 0.0) ? 0.0 : pitch;
   yaw = (yaw > M_PI) ? yaw - 2 * M_PI : yaw;
   yaw = (yaw < -M_PI) ? yaw + 2 * M_PI : yaw;
 
-  /* Update camera attitude */
+  // Update camera attitude
   camera->pitch = pitch;
   camera->yaw = yaw;
   gl_camera_update(camera);
@@ -7657,8 +7693,8 @@ void gl_camera_pan(gl_camera_t *camera,
                    const float factor,
                    const float dx,
                    const float dy) {
-  /* camera->focal -= (dy * mouse_sensitivity) * camera->front; */
-  /* camera->focal += (dx * mouse_sensitivity) * camera->right; */
+  // camera->focal -= (dy * mouse_sensitivity) * camera->front;
+  // camera->focal += (dx * mouse_sensitivity) * camera->right;
   const GLfloat dx_scaled = dx * factor;
   const GLfloat dy_scaled = dy * factor;
   GLfloat front[3] = {camera->front[0], camera->front[1], camera->front[2]};
@@ -7668,7 +7704,7 @@ void gl_camera_pan(gl_camera_t *camera,
   gl_sub(camera->focal, front, 3, 1, camera->focal);
   gl_add(camera->focal, right, 3, 1, camera->focal);
 
-  /* limit focal point y-axis */
+  // limit focal point y-axis
   camera->focal[1] = (camera->focal[1] < 0) ? 0 : camera->focal[1];
   gl_camera_update(camera);
 }
@@ -7695,7 +7731,7 @@ void gl_camera_zoom(gl_camera_t *camera,
 
 // GL-PRIMITIVES ///////////////////////////////////////////////////////////////
 
-/* GL CUBE *******************************************************************/
+// GL CUBE ******************************************************************
 
 void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]) {
   // Entity transform
@@ -7704,7 +7740,7 @@ void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]) {
   entity->T[13] = pos[1];
   entity->T[14] = pos[2];
 
-  /* Shader program */
+  // Shader program
   char *vs = file_read("./shaders/cube.vert");
   char *fs = file_read("./shaders/cube.frag");
   entity->program_id = gl_prog_setup(vs, fs, NULL);
@@ -7818,13 +7854,13 @@ void gl_cube_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glBindVertexArray(0); // Unbind VAO
 }
 
-/* GL CAMERA FRAME ***********************************************************/
+// GL CAMERA FRAME **********************************************************
 
 void gl_camera_frame_setup(gl_entity_t *entity) {
-  /* Entity transform */
+  // Entity transform
   gl_eye(entity->T, 4, 4);
 
-  /* Shader program */
+  // Shader program
   char *vs = file_read("./shaders/camera_frame.vert");
   char *fs = file_read("./shaders/camera_frame.frag");
   entity->program_id = gl_prog_setup(vs, fs, NULL);
@@ -7923,13 +7959,13 @@ void gl_camera_frame_draw(const gl_entity_t *entity,
   glLineWidth(original_line_width);
 }
 
-/* GL AXIS FRAME **************************************************************/
+// GL AXIS FRAME *************************************************************
 
 void gl_axis_frame_setup(gl_entity_t *entity) {
-  /* Entity transform */
+  // Entity transform
   gl_eye(entity->T, 4, 4);
 
-  /* Shader program */
+  // Shader program
   char *vs = file_read("./shaders/axis_frame.vert");
   char *fs = file_read("./shaders/axis_frame.frag");
   entity->program_id = gl_prog_setup(vs, fs, NULL);
@@ -8056,13 +8092,13 @@ static GLfloat *glgrid_create_vertices(int grid_size) {
   return vertices;
 }
 
-/* GL GRID ********************************************************************/
+// GL GRID *******************************************************************
 
 void gl_grid_setup(gl_entity_t *entity) {
-  /* Entity transform */
+  // Entity transform
   gl_eye(entity->T, 4, 4);
 
-  /* Shader program */
+  // Shader program
   char *vs = file_read("./shaders/grid.vert");
   char *fs = file_read("./shaders/grid.frag");
   entity->program_id = gl_prog_setup(vs, fs, NULL);
@@ -8159,14 +8195,14 @@ void gui_mouse_callback(gui_t *gui, const SDL_Event event) {
                       event.button.button == SDL_BUTTON_X1);
 
   if (gui->left_click) {
-    /* Rotate camera */
+    // Rotate camera
     if (gui->last_cursor_set == 0) {
       gui->last_cursor_set = 1;
     } else if (gui->last_cursor_set) {
       gl_camera_rotate(&gui->camera, gui->mouse_sensitivity, dx, dy);
     }
   } else if (gui->right_click) {
-    /* Pan camera */
+    // Pan camera
     if (gui->last_cursor_set == 0) {
       gui->last_cursor_set = 1;
     } else if (gui->last_cursor_set) {
@@ -8175,7 +8211,7 @@ void gui_mouse_callback(gui_t *gui, const SDL_Event event) {
   } else if (event.wheel.type == SDL_MOUSEWHEEL && event.wheel.y) {
     gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, 0, event.wheel.y);
   } else {
-    /* Reset cursor */
+    // Reset cursor
     gui->left_click = 0;
     gui->right_click = 0;
     gui->last_cursor_set = 0;
@@ -8206,18 +8242,18 @@ void gui_event_handler(gui_t *gui) {
 }
 
 void gui_setup(gui_t *gui) {
-  /* SDL init */
+  // SDL init
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     FATAL("SDL_Init Error: %s/n", SDL_GetError());
   }
 
-  /* Get display size */
+  // Get display size
   SDL_DisplayMode disp_mode;
   SDL_GetCurrentDisplayMode(0, &disp_mode);
   const int disp_w = disp_mode.w;
   const int disp_h = disp_mode.h;
 
-  /* Window */
+  // Window
   const char *title = "Hello World!";
   const int w = 640;
   const int h = 480;
@@ -8230,7 +8266,7 @@ void gui_setup(gui_t *gui) {
   }
   SDL_SetWindowResizable(gui->window, 1);
 
-  /* OpenGL context */
+  // OpenGL context
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
@@ -8238,18 +8274,18 @@ void gui_setup(gui_t *gui) {
   SDL_GL_SetSwapInterval(1);
   UNUSED(context);
 
-  /* GLEW */
+  // GLEW
   GLenum err = glewInit();
   if (err != GLEW_OK) {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
   }
 
-  /* Camera */
+  // Camera
   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
   gui->movement_speed = 50.0f;
   gui->mouse_sensitivity = 0.02f;
 
-  /* Cursor */
+  // Cursor
   gui->left_click = 0;
   gui->right_click = 0;
   gui->last_cursor_set = 0;
@@ -8258,11 +8294,11 @@ void gui_setup(gui_t *gui) {
 }
 
 void gui_reset(gui_t *gui) {
-  /* Camera */
+  // Camera
   gui->movement_speed = 50.0f;
   gui->mouse_sensitivity = 0.02f;
 
-  /* Cursor */
+  // Cursor
   gui->left_click = 0;
   gui->right_click = 0;
   gui->last_cursor_set = 0;
@@ -8381,52 +8417,52 @@ void draw_circle(SDL_Renderer *renderer,
   }
 }
 
-/* void draw_circle(SDL_Renderer *renderer, */
-/*                  int32_t centreX, */
-/*                  int32_t centreY, */
-/*                  int32_t radius, */
-/*                  const SDL_Color color) { */
-/*   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a); */
-/*   const int32_t diameter = (radius * 2); */
-/*  */
-/*   int32_t x = (radius - 1); */
-/*   int32_t y = 0; */
-/*   int32_t tx = 1; */
-/*   int32_t ty = 1; */
-/*   int32_t error = (tx - diameter); */
-/*  */
-/*   while (x >= y) { */
-/*     //  Each of the following renders an octant of the circle */
-/*     SDL_RenderDrawPoint(renderer, centreX + x, centreY - y); */
-/*     SDL_RenderDrawPoint(renderer, centreX + x, centreY + y); */
-/*     SDL_RenderDrawPoint(renderer, centreX - x, centreY - y); */
-/*     SDL_RenderDrawPoint(renderer, centreX - x, centreY + y); */
-/*     SDL_RenderDrawPoint(renderer, centreX + y, centreY - x); */
-/*     SDL_RenderDrawPoint(renderer, centreX + y, centreY + x); */
-/*     SDL_RenderDrawPoint(renderer, centreX - y, centreY - x); */
-/*     SDL_RenderDrawPoint(renderer, centreX - y, centreY + x); */
-/*  */
-/*     if (error <= 0) { */
-/*       ++y; */
-/*       error += ty; */
-/*       ty += 2; */
-/*     } */
-/*  */
-/*     if (error > 0) { */
-/*       --x; */
-/*       tx += 2; */
-/*       error += (tx - diameter); */
-/*     } */
-/*   } */
-/* } */
+// void draw_circle(SDL_Renderer *renderer,
+//                  int32_t centreX,
+//                  int32_t centreY,
+//                  int32_t radius,
+//                  const SDL_Color color) {
+//   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+//   const int32_t diameter = (radius * 2);
+//
+//   int32_t x = (radius - 1);
+//   int32_t y = 0;
+//   int32_t tx = 1;
+//   int32_t ty = 1;
+//   int32_t error = (tx - diameter);
+//
+//   while (x >= y) {
+//     //  Each of the following renders an octant of the circle
+//     SDL_RenderDrawPoint(renderer, centreX + x, centreY - y);
+//     SDL_RenderDrawPoint(renderer, centreX + x, centreY + y);
+//     SDL_RenderDrawPoint(renderer, centreX - x, centreY - y);
+//     SDL_RenderDrawPoint(renderer, centreX - x, centreY + y);
+//     SDL_RenderDrawPoint(renderer, centreX + y, centreY - x);
+//     SDL_RenderDrawPoint(renderer, centreX + y, centreY + x);
+//     SDL_RenderDrawPoint(renderer, centreX - y, centreY - x);
+//     SDL_RenderDrawPoint(renderer, centreX - y, centreY + x);
+//
+//     if (error <= 0) {
+//       ++y;
+//       error += ty;
+//       ty += 2;
+//     }
+//
+//     if (error > 0) {
+//       --x;
+//       tx += 2;
+//       error += (tx - diameter);
+//     }
+//   }
+// }
 
 void imshow_setup(imshow_t *im, const char *fp) {
-  /* SDL init */
+  // SDL init
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     FATAL("SDL_Init Error: %s/n", SDL_GetError());
   }
 
-  /* Load image */
+  // Load image
   im->image_surface = IMG_Load(fp);
   if (im->image_surface == NULL) {
     FATAL("Failed to load image [%s]!", fp);
@@ -8434,13 +8470,13 @@ void imshow_setup(imshow_t *im, const char *fp) {
   const int img_w = im->image_surface->w;
   const int img_h = im->image_surface->h;
 
-  /* Get display size */
+  // Get display size
   SDL_DisplayMode disp_mode;
   SDL_GetCurrentDisplayMode(0, &disp_mode);
   const int disp_w = disp_mode.w;
   const int disp_h = disp_mode.h;
 
-  /* Create window */
+  // Create window
   const int x = disp_w / 2 - img_w / 2;
   const int y = disp_h / 2 - img_h / 2;
   const int w = img_w;
@@ -8452,17 +8488,17 @@ void imshow_setup(imshow_t *im, const char *fp) {
   SDL_SetWindowPosition(im->window, x, y);
   SDL_SetWindowResizable(im->window, 1);
 
-  /* Clear render */
+  // Clear render
   SDL_SetRenderDrawColor(im->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(im->renderer);
 
-  /* Show image */
+  // Show image
   SDL_Texture *texture =
       SDL_CreateTextureFromSurface(im->renderer, im->image_surface);
   SDL_RenderCopy(im->renderer, texture, NULL, NULL);
   SDL_RenderPresent(im->renderer);
 
-  /* Draw circles */
+  // Draw circles
   const int x_min = 0;
   const int y_min = 0;
   const int x_max = img_w;
@@ -8480,7 +8516,7 @@ void imshow_setup(imshow_t *im, const char *fp) {
   }
   SDL_RenderPresent(im->renderer);
 
-  /* Cursor */
+  // Cursor
   im->left_click = 0;
   im->right_click = 0;
   im->last_cursor_set = 0;
@@ -8489,11 +8525,11 @@ void imshow_setup(imshow_t *im, const char *fp) {
 }
 
 void imshow_reset(imshow_t *imshow) {
-  /* Camera */
+  // Camera
   imshow->movement_speed = 50.0f;
   imshow->mouse_sensitivity = 0.02f;
 
-  /* Cursor */
+  // Cursor
   imshow->left_click = 0;
   imshow->right_click = 0;
   imshow->last_cursor_set = 0;
@@ -8512,4 +8548,4 @@ void imshow_loop(imshow_t *imshow) {
   SDL_DestroyWindow(imshow->window);
   SDL_Quit();
 }
-#endif /* USE_GUI */
+#endif // USE_GUI
