@@ -530,7 +530,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
     color([0.0, 0.0, 1.0])
     translate([0, 0, -14]) {
       rotate([90.0, 0.0, 90.0]) {
-        import("/home/chutsu/projects/proto_parts/Intel_NUC7i5DN/NUC7i5DN.STL");
+        import("../proto_parts/Intel_NUC7i5DN/NUC7i5DN.STL");
       }
     }
   }
@@ -540,7 +540,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
     color([1.0, 0.0, 0.0])
     translate([stack_w / 2.0 + 26.5, 0, -16]) {
       rotate([90.0, 0.0, 90.0]) {
-        import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/D435i.STL");
+        import("../proto_parts/Intel_RealSense_D435i/D435i.STL");
       }
     }
   }
@@ -562,7 +562,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
         color([0, 1, 0])
         rotate([0.0, 0.0, 0.0]) {
           translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 4.5]) {
-            import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.STL");
+            import("../proto_parts/Pololu_U3V50X/Pololu-U3V50X.STL");
           }
         }
       }

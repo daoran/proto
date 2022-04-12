@@ -1,0 +1,3 @@
+[submodule "proto_parts"]
+	path = proto_parts
+	url = git@github.com:chutsu/proto_parts.git
