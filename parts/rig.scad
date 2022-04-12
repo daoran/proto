@@ -1,6 +1,6 @@
 $fn = 40;
 
-module standoff(h, r, cst=1, csb=0) {
+module standoff(h, r, cst=1, csb=0, fillet=1) {
   nipple_h = h * 0.8;
   screw_size = 2.0;
   screw_hsize = screw_size / 2.0;
@@ -34,7 +34,7 @@ module standoff(h, r, cst=1, csb=0) {
   }
 
 	// Fillet
-	if (csb == 0) {
+	if (csb == 0 && fillet == 1) {
     fillet_h_inc = 0.1;
     fillet_h = 2.0;
     for (fillet_height = [fillet_h_inc:fillet_h_inc:fillet_h]) {
@@ -74,9 +74,9 @@ module pololu_standoffs() {
   mount_h = 3.0;
 
   translate([mount_w / 2.0, mount_d / 2.0, mount_h / 2.0])
-    standoff(h=mount_h, r=3.25);
+    standoff(h=mount_h, r=3.25, cst=1, csb=0, fillet=0);
   translate([-mount_w / 2.0, -mount_d / 2.0, mount_h / 2.0])
-    standoff(h=mount_h, r=3.25);
+    standoff(h=mount_h, r=3.25, cst=1, csb=0, fillet=0);
 }
 
 module stack_module(w, h, plate=1, plate_holes=1, side_holes=1) {
@@ -548,7 +548,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
   // Battery
   if (show_batt) {
     color([1.0, 0.0, 1.0])
-    translate([0.0, 0.0, 33.0])
+    translate([0.0, 0.0, 34.0])
       rotate([0.0, 0.0, 90.0])
         translate([0.0, 0.0, batt_h / 2.0 + stack_h / 2.0])
           cube([batt_w, batt_d, batt_h], center=true);
@@ -588,18 +588,18 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
 }
 
 // ASSEMBLY
-assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
+// assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
 
 // PRINTS
-// stack_w = 110;
-// stack_h = 3.0;
-// batt_w = 48.0;
-// batt_d = 140.0;
-// batt_h = 27.0;
+stack_w = 110;
+stack_h = 3.0;
+batt_w = 48.0;
+batt_d = 140.0;
+batt_h = 27.0;
 
 // nut_tool();
 // rig_feet();
 // rig_handle(stack_w, stack_h);
-// pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
+pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
 // nuc_stack(stack_w, stack_h);
 // realsense_stack(stack_w, stack_h);
