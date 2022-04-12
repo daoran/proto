@@ -4,7 +4,7 @@ module standoff(h, r, cst=1, csb=0) {
   nipple_h = h * 0.8;
   screw_size = 2.0;
   screw_hsize = screw_size / 2.0;
-  nut_w = 4.35;
+  nut_w = 4.7;
   nut_h = 1.45;
   tol = 0.2;
 
@@ -71,7 +71,7 @@ module pololu_standoffs() {
 
   mount_w = 43.2;
   mount_d = 10.2;
-  mount_h = 6.0;
+  mount_h = 3.0;
 
   translate([mount_w / 2.0, mount_d / 2.0, mount_h / 2.0])
     standoff(h=mount_h, r=3.25);
@@ -236,6 +236,31 @@ module nut_tool() {
   }
 }
 
+module rig_feet(h=3) {
+  screw_size = 3.0;
+  screw_hsize = screw_size / 2.0;
+  nut_w = 6.5;
+  nut_h = 2.5;
+  tol = 0.2;
+
+    difference() {
+      // Spacer body
+      cylinder(h=h, r=screw_hsize + 2.5);
+
+      // Thread hole
+      translate([0.0, 0.0, 1.0]) {
+        cylinder(h=h - 2.0, r=screw_hsize + tol);
+      }
+      // Nut counter sinks
+      translate([0.0, 0.0, h - nut_h / 2.0]) {
+        cylinder(h=nut_h + 0.01, r=nut_w / 2.0, $fn=6);
+      }
+    }
+
+  // translate([0.0, 0.0, 0.0])
+  //   #cylinder(h=h, r=screw_hsize + 2.5);
+}
+
 module pwr_stack(w, h, batt_w, batt_d, batt_h) {
   screw_size = 3.0;
   screw_hsize = screw_size / 2.0;
@@ -294,14 +319,14 @@ module pwr_stack(w, h, batt_w, batt_d, batt_h) {
     }
   }
 
-  // Rear cable rails
-  difference() {
-    translate([-w / 2.0 - 4.5, 0.0, 0.0])
-      cube([8.0, 90.0, h], center=true);
+  // // Cable rails
+  // difference() {
+  //   translate([-w / 2.0 - 4.5, 0.0, 0.0])
+  //     cube([8.0, 90.0, h], center=true);
 
-    translate([-w / 2.0 - 4.5, 0.0, 0.0])
-      cube([4.0, 85.0, h + 0.1], center=true);
-  }
+  //   translate([-w / 2.0 - 4.5, 0.0, 0.0])
+  //     cube([4.0, 85.0, h + 0.1], center=true);
+  // }
 
   // Voltage-regulator standoffs
   translate([0.0, 40.0, h / 2.0])
@@ -313,7 +338,7 @@ module nuc_stack(w, h) {
   pcb_w = 95.0;
   pcb_d = 90.4;
   standoff_h = 12.0;
-  standoff_r = 2.5;
+  standoff_r = 3;
 
   // NUC plate
   stack_module(w, h);
@@ -520,16 +545,6 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
     }
   }
 
-  // Pololu Voltage Regulator U3V50X
-  if (show_voltreg) {
-    color([0, 1, 0])
-    translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 40.5]) {
-      rotate([0.0, 0.0, 0.0]) {
-        import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.STL");
-      }
-    }
-  }
-
   // Battery
   if (show_batt) {
     color([1.0, 0.0, 1.0])
@@ -540,8 +555,21 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
   }
 
   // PWR stack
-  translate([0.0, 0.0, 33.0])
-    pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
+  translate([0.0, 0.0, 34]) {
+    rotate([180.0, 0.0, 180.0]) {
+      // Pololu Voltage Regulator U3V50X
+      if (show_voltreg) {
+        color([0, 1, 0])
+        rotate([0.0, 0.0, 0.0]) {
+          translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 4.5]) {
+            import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.STL");
+          }
+        }
+      }
+      pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
+    }
+  }
+
 
   // Intel NUC stack module
   nuc_stack(stack_w, stack_h);
@@ -549,7 +577,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
   // NUC stack spacers
   for (i = [0 : 90 : 360] ){
     rotate([0, 0, i]) {
-      translate([stack_w / 2.0, stack_d / 2.0, stack_h / 2.0])
+      translate([stack_w / 2.0, stack_d / 2.0, stack_h / 2.0 + 0.5])
         stack_spacer(30.0);
     }
   }
@@ -560,17 +588,18 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
 }
 
 // ASSEMBLY
-// assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
+assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
 
 // PRINTS
-stack_w = 110;
-stack_h = 3.0;
-batt_w = 48.0;
-batt_d = 140.0;
-batt_h = 27.0;
+// stack_w = 110;
+// stack_h = 3.0;
+// batt_w = 48.0;
+// batt_d = 140.0;
+// batt_h = 27.0;
 
-nut_tool();
+// nut_tool();
+// rig_feet();
 // rig_handle(stack_w, stack_h);
 // pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
-// realsense_stack(stack_w, stack_h);
 // nuc_stack(stack_w, stack_h);
+// realsense_stack(stack_w, stack_h);
