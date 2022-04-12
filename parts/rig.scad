@@ -215,7 +215,7 @@ module nut_tool() {
   tool_h = 20.0;
   screw_size = 2.0;
   screw_hsize = screw_size / 2.0;
-  nut_w = 4.3;
+  nut_w = 4.7;
 
   wing_w = 35.0;
   wing_d = 8.0;
@@ -505,7 +505,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
     color([0.0, 0.0, 1.0])
     translate([0, 0, -14]) {
       rotate([90.0, 0.0, 90.0]) {
-        import("/home/chutsu/projects/proto_parts/Intel_NUC7i5DN/NUC7i5DN.stl");
+        import("/home/chutsu/projects/proto_parts/Intel_NUC7i5DN/NUC7i5DN.STL");
       }
     }
   }
@@ -515,7 +515,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
     color([1.0, 0.0, 0.0])
     translate([stack_w / 2.0 + 26.5, 0, -16]) {
       rotate([90.0, 0.0, 90.0]) {
-        import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/Intel_RealSense_Depth_Camera_D435.stl");
+        import("/home/chutsu/projects/proto_parts/Intel_RealSense_D435i/D435i.STL");
       }
     }
   }
@@ -525,7 +525,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
     color([0, 1, 0])
     translate([-pololu_w / 2.0, (-pololu_d / 2.0) + 40.0, 40.5]) {
       rotate([0.0, 0.0, 0.0]) {
-        import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.stl");
+        import("/home/chutsu/projects/proto_parts/Pololu_U3V50X/Pololu-U3V50X.STL");
       }
     }
   }
@@ -560,7 +560,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
 }
 
 // ASSEMBLY
-assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
+// assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
 
 // PRINTS
 stack_w = 110;
@@ -569,7 +569,7 @@ batt_w = 48.0;
 batt_d = 140.0;
 batt_h = 27.0;
 
-// nut_tool();
+nut_tool();
 // rig_handle(stack_w, stack_h);
 // pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
 // realsense_stack(stack_w, stack_h);
