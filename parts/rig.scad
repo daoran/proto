@@ -74,9 +74,9 @@ module pololu_standoffs() {
   mount_h = 6.0;
 
   translate([mount_w / 2.0, mount_d / 2.0, mount_h / 2.0])
-    standoff(h=mount_h, r=2.5);
+    standoff(h=mount_h, r=3.25);
   translate([-mount_w / 2.0, -mount_d / 2.0, mount_h / 2.0])
-    standoff(h=mount_h, r=2.5);
+    standoff(h=mount_h, r=3.25);
 }
 
 module stack_module(w, h, plate=1, plate_holes=1, side_holes=1) {
@@ -154,7 +154,7 @@ module stack_module(w, h, plate=1, plate_holes=1, side_holes=1) {
       difference() {
         // Ring
         translate([w / 2.0, w / 2.0, 0.0]) {
-          cylinder(support_h, r=screw_hsize * 2.3, center=true);
+          cylinder(support_h, r=screw_hsize + 2.5, center=true);
         }
 
         // Hole
@@ -202,29 +202,36 @@ module stack_spacer(h, nut_counter_sink=1) {
   }
 }
 
-module spacer_tool() {
-  h = 25.0;
-  screw_size = 3.0;
-  screw_hsize = screw_size / 2.0;
-  nut_w = 6.5;
-  nut_h = 3;
+module nut_tool() {
   tol = 0.2;
+
+  // M3 size
+  // tool_h = 25.0;
+  // screw_size = 3.0;
+  // screw_hsize = screw_size / 2.0;
+  // nut_w = 6.5;
+
+  // M2 size
+  tool_h = 20.0;
+  screw_size = 2.0;
+  screw_hsize = screw_size / 2.0;
+  nut_w = 4.3;
 
   wing_w = 35.0;
   wing_d = 8.0;
   wing_h = 5.0;
 
-  translate([0.0, 0.0, h / 2.0]) {
+  translate([0.0, 0.0, tool_h / 2.0]) {
     difference() {
       // Tool body
       union() {
-        cylinder(h=h, r=screw_hsize + 2.5, center=true);
-        translate([0.0, 0.0, -h / 2.0 + wing_h / 2.0])
+        cylinder(h=tool_h, r=screw_hsize + 2.5, center=true);
+        translate([0.0, 0.0, -tool_h / 2.0 + wing_h / 2.0])
         cube([wing_w, wing_d, wing_h], center=true);
       }
 
       // Tool hole
-      cylinder(h=h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
+      cylinder(h=tool_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
     }
   }
 }
@@ -358,7 +365,7 @@ module realsense_stack(w, h) {
       difference() {
         // Spacer
         translate([w / 2.0, w / 2.0, mount_d / 2.0]) {
-          cylinder(mount_d, r=screw_hsize * 2.3, center=true);
+          cylinder(mount_d, r=screw_hsize + 2.5, center=true);
         }
 
         // Hole
@@ -553,7 +560,7 @@ module assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1) {
 }
 
 // ASSEMBLY
-// assembly(show_sbc=0, show_cam=1, show_voltreg=1, show_batt=1);
+assembly(show_sbc=1, show_cam=1, show_voltreg=1, show_batt=1);
 
 // PRINTS
 stack_w = 110;
@@ -562,8 +569,8 @@ batt_w = 48.0;
 batt_d = 140.0;
 batt_h = 27.0;
 
-// spacer_tool();
-rig_handle(stack_w, stack_h);
+// nut_tool();
+// rig_handle(stack_w, stack_h);
 // pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
 // realsense_stack(stack_w, stack_h);
 // nuc_stack(stack_w, stack_h);
