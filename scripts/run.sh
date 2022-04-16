@@ -19,7 +19,7 @@ run_memcheck() {
 ###############################################################################
 
 # python3 scripts/codegen.py
-python3 scripts/comment_converter.py
+# python3 scripts/comment_converter.py
 
 # ctags proto/proto.c proto/proto.py
 # python3 proto/proto.py
@@ -329,5 +329,15 @@ run_test() {
 # ARDUINO
 ###############################################################################
 
-# $ARDUINO --upload firmware/firmware.ino --port /dev/ttyUSB0
-# $ARDUINO --upload firmware/firmware.ino
+# arduino --upload firmware/firmware.ino --port /dev/ttyUSB0
+# arduino --upload firmware/firmware.ino
+# arduino firmware/firmware.ino
+
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "\
+  cd ~/projects/proto \
+  && arduino --upload firmware/firmware.ino
+" C-m C-m
+exit
+
+# && cu -l /dev/ttyACM0 -s 115200
