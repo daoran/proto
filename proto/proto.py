@@ -1718,26 +1718,29 @@ def plot_tf(ax, T, **kwargs):
   px = [origin[0], lx[0]]
   py = [origin[1], lx[1]]
   pz = [origin[2], lx[2]]
-  ax.plot(px, py, pz, colors[0])
+  xaxis = ax.plot(px, py, pz, colors[0])[0]
 
   # Draw y-axis
   px = [origin[0], ly[0]]
   py = [origin[1], ly[1]]
   pz = [origin[2], ly[2]]
-  ax.plot(px, py, pz, colors[1])
+  yaxis = ax.plot(px, py, pz, colors[1])[0]
 
   # Draw z-axis
   px = [origin[0], lz[0]]
   py = [origin[1], lz[1]]
   pz = [origin[2], lz[2]]
-  ax.plot(px, py, pz, colors[2])
+  zaxis = ax.plot(px, py, pz, colors[2])[0]
 
   # Draw label
   if name is not None:
     x = origin[0] + name_offset[0]
     y = origin[1] + name_offset[1]
     z = origin[2] + name_offset[2]
-    ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
+    text = ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
+    return (xaxis, yaxis, zaxis, text)
+
+  return (xaxis, yaxis, zaxis)
 
 
 def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
@@ -5591,6 +5594,14 @@ class AprilGrid:
         object_points.append(self.get_object_point(tag_id, corner_idx))
     return np.array(object_points)
 
+  def get_dimensions(self):
+    """ Get AprilGrid dimensions """
+    spacing_x = (self.tag_cols - 1) * self.tag_spacing * self.tag_size
+    spacing_y = (self.tag_rows - 1) * self.tag_spacing * self.tag_size
+    width = self.tag_cols * self.tag_size + spacing_x
+    height = self.tag_rows * self.tag_size + spacing_y
+    return (width, height)
+
   def get_center(self):
     """ Calculate center of aprilgrid """
     x = (self.tag_cols / 2.0) * self.tag_size
@@ -5601,7 +5612,7 @@ class AprilGrid:
     y += ((self.tag_rows / 2.0) - 1) * self.tag_spacing * self.tag_size
     y += 0.5 * self.tag_spacing * self.tag_size
 
-    return np.array([x, y])
+    return np.array([x, y, 0.0])
 
   def get_grid_index(self, tag_id):
     """ Calculate grid index from tag id """
@@ -5670,10 +5681,16 @@ class AprilGrid:
   def plot(self, ax, T_WF):
     """ Plot """
     obj_pts = self.get_object_points()
+
+    points = []
     for row_idx in range(obj_pts.shape[0]):
       r_FFi = obj_pts[row_idx, :]
       r_WFi = tf_point(T_WF, r_FFi)
-      ax.plot(r_WFi[0], r_WFi[1], r_WFi[2], 'r.')
+      points.append(r_WFi)
+    points = np.array(points)
+
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2])
+    plot_tf(ax, T_WF, size=self.tag_size)
 
 
 def calib_generate_poses(calib_target, **kwargs):
@@ -5684,7 +5701,7 @@ def calib_generate_poses(calib_target, **kwargs):
   z_range = kwargs.get('z_range', np.linspace(0.3, 0.5, 5))
 
   # Generate camera positions infront of the calib target r_FC
-  calib_center = np.array([*calib_target.get_center(), 0.0])
+  calib_center = calib_target.get_center()
   cam_pos = []
   pos_idx = 0
   for x in x_range:
@@ -5710,7 +5727,7 @@ def calib_generate_random_poses(calib_target, **kwargs):
 
   # For each position create a camera pose that "looks at" the calibration
   # center in the target frame, T_FC.
-  calib_center = np.array([*calib_target.get_center(), 0.0])
+  calib_center = calib_target.get_center()
   poses = []
 
   for _ in range(nb_poses):
