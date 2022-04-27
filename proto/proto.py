@@ -1206,7 +1206,8 @@ def quat2rot(q):
 
 def rot2euler(C):
   """
-  Convert 3x3 rotation matrix to euler angles (yaw, pitch, roll).
+  Convert 3x3 rotation matrix to euler angles (yaw, pitch, roll). The result is
+  also equivalent to rotation around (z, y, x) axes.
   """
   assert C.shape == (3, 3)
   q = rot2quat(C)
