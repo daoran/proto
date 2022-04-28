@@ -29,6 +29,7 @@
             __LINE__,                                                          \
             __func__);                                                         \
     fprintf(stderr, __VA_ARGS__);                                              \
+    fprintf(stderr, "\n");                                                     \
   } while (0)
 #endif // SBGC_INFO
 
@@ -46,6 +47,7 @@
             __LINE__,                                                          \
             __func__);                                                         \
     fprintf(stderr, __VA_ARGS__);                                              \
+    fprintf(stderr, "\n");                                                     \
   } while (0)
 #endif // SBGC_ERROR
 
@@ -79,7 +81,6 @@
 #define SBGC_CMD_GET_ANGLES 73
 #define SBGC_CMD_GET_ANGLES_EXT 61
 #define SBGC_CMD_CONFIRM 67
-// BOARD v3.x only
 #define SBGC_CMD_BOARD_INFO_3 20
 #define SBGC_CMD_READ_PARAMS_3 21
 #define SBGC_CMD_WRITE_PARAMS_3 22
@@ -562,6 +563,10 @@ int sbgc_read(const sbgc_t *sbgc,
     SBGC_ERROR("Failed to read SBGC frame!");
     return -1;
   }
+  for (int i = 0; i < nb_bytes; i++) {
+    printf("%c", buffer[i]);
+  }
+  printf("\n");
 
   // Parse sbgc frame
   int retval = sbgc_frame_parse_frame(frame, buffer);
@@ -616,6 +621,7 @@ int sbgc_info(sbgc_t *sbgc) {
   // Request board info
   sbgc_frame_t frame;
   sbgc_frame_set_cmd(&frame, SBGC_CMD_BOARD_INFO);
+  SBGC_INFO("Sending board info request!");
   if (sbgc_send(sbgc, &frame) == -1) {
     SBGC_ERROR("Failed to request SBGC board info!");
     return -1;
@@ -623,6 +629,7 @@ int sbgc_info(sbgc_t *sbgc) {
 
   // Obtain board info
   sbgc_frame_t info;
+  SBGC_INFO("Read board info request!");
   if (sbgc_read(sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &info) == -1) {
     SBGC_ERROR("Failed to parse SBGC frame for board info!");
     return -1;
@@ -977,7 +984,7 @@ int test_sbgc_read() {
 int test_sbgc_info() {
   // Connect
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV));
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
 
   // Get board info
   sbgc_info(&sbgc);
@@ -1057,13 +1064,13 @@ int test_sbgc_set_angle_speed() {
 }
 
 int main(int argc, char *argv[]) {
-  TEST(test_sbgc_connect_disconnect);
-  TEST(test_sbgc_send);
-  TEST(test_sbgc_read);
+  // TEST(test_sbgc_connect_disconnect);
+  // TEST(test_sbgc_send);
+  // TEST(test_sbgc_read);
   TEST(test_sbgc_info);
-  TEST(test_sbgc_get_realtime_data);
-  TEST(test_sbgc_set_angle);
-  TEST(test_sbgc_set_angle_speed);
+  // TEST(test_sbgc_get_realtime_data);
+  // TEST(test_sbgc_set_angle);
+  // TEST(test_sbgc_set_angle_speed);
 
   return (nb_failed) ? -1 : 0;
 }
