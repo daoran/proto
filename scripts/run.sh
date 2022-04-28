@@ -19,7 +19,7 @@ run_memcheck() {
 ###############################################################################
 
 # python3 scripts/codegen.py
-python3 scripts/comment_converter.py
+# python3 scripts/comment_converter.py
 
 # ctags proto/proto.c proto/proto.py
 # python3 proto/proto.py
@@ -109,6 +109,15 @@ run_test() {
   ./test_proto --target "$1"
   cd -
 }
+
+run_sbgc_tests() {
+  time make build
+  cd ./proto/build/bin;
+  ./test_sbgc
+  cd -
+}
+
+# run_sbgc_tests
 
 # PROTO
 # run_all_tests
