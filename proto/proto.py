@@ -1718,26 +1718,29 @@ def plot_tf(ax, T, **kwargs):
   px = [origin[0], lx[0]]
   py = [origin[1], lx[1]]
   pz = [origin[2], lx[2]]
-  ax.plot(px, py, pz, colors[0])
+  xaxis = ax.plot(px, py, pz, colors[0])[0]
 
   # Draw y-axis
   px = [origin[0], ly[0]]
   py = [origin[1], ly[1]]
   pz = [origin[2], ly[2]]
-  ax.plot(px, py, pz, colors[1])
+  yaxis = ax.plot(px, py, pz, colors[1])[0]
 
   # Draw z-axis
   px = [origin[0], lz[0]]
   py = [origin[1], lz[1]]
   pz = [origin[2], lz[2]]
-  ax.plot(px, py, pz, colors[2])
+  zaxis = ax.plot(px, py, pz, colors[2])[0]
 
   # Draw label
   if name is not None:
     x = origin[0] + name_offset[0]
     y = origin[1] + name_offset[1]
     z = origin[2] + name_offset[2]
-    ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
+    text = ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
+    return (xaxis, yaxis, zaxis, text)
+
+  return (xaxis, yaxis, zaxis)
 
 
 def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
@@ -5670,10 +5673,16 @@ class AprilGrid:
   def plot(self, ax, T_WF):
     """ Plot """
     obj_pts = self.get_object_points()
+
+    points = []
     for row_idx in range(obj_pts.shape[0]):
       r_FFi = obj_pts[row_idx, :]
       r_WFi = tf_point(T_WF, r_FFi)
-      ax.plot(r_WFi[0], r_WFi[1], r_WFi[2], 'r.')
+      points.append(r_WFi)
+    points = np.array(points)
+
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2], 'r.')
+    plot_tf(ax, T_WF, size=self.tag_size)
 
 
 def calib_generate_poses(calib_target, **kwargs):
