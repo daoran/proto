@@ -1206,7 +1206,8 @@ def quat2rot(q):
 
 def rot2euler(C):
   """
-  Convert 3x3 rotation matrix to euler angles (yaw, pitch, roll).
+  Convert 3x3 rotation matrix to euler angles (yaw, pitch, roll). The result is
+  also equivalent to rotation around (z, y, x) axes.
   """
   assert C.shape == (3, 3)
   q = rot2quat(C)
@@ -5594,6 +5595,14 @@ class AprilGrid:
         object_points.append(self.get_object_point(tag_id, corner_idx))
     return np.array(object_points)
 
+  def get_dimensions(self):
+    """ Get AprilGrid dimensions """
+    spacing_x = (self.tag_cols - 1) * self.tag_spacing * self.tag_size
+    spacing_y = (self.tag_rows - 1) * self.tag_spacing * self.tag_size
+    width = self.tag_cols * self.tag_size + spacing_x
+    height = self.tag_rows * self.tag_size + spacing_y
+    return (width, height)
+
   def get_center(self):
     """ Calculate center of aprilgrid """
     x = (self.tag_cols / 2.0) * self.tag_size
@@ -5604,7 +5613,7 @@ class AprilGrid:
     y += ((self.tag_rows / 2.0) - 1) * self.tag_spacing * self.tag_size
     y += 0.5 * self.tag_spacing * self.tag_size
 
-    return np.array([x, y])
+    return np.array([x, y, 0.0])
 
   def get_grid_index(self, tag_id):
     """ Calculate grid index from tag id """
@@ -5693,7 +5702,7 @@ def calib_generate_poses(calib_target, **kwargs):
   z_range = kwargs.get('z_range', np.linspace(0.3, 0.5, 5))
 
   # Generate camera positions infront of the calib target r_FC
-  calib_center = np.array([*calib_target.get_center(), 0.0])
+  calib_center = calib_target.get_center()
   cam_pos = []
   pos_idx = 0
   for x in x_range:
@@ -5719,7 +5728,7 @@ def calib_generate_random_poses(calib_target, **kwargs):
 
   # For each position create a camera pose that "looks at" the calibration
   # center in the target frame, T_FC.
-  calib_center = np.array([*calib_target.get_center(), 0.0])
+  calib_center = calib_target.get_center()
   poses = []
 
   for _ in range(nb_poses):
