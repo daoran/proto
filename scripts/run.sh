@@ -110,6 +110,15 @@ run_test() {
   cd -
 }
 
+run_sbgc_tests() {
+  time make build
+  cd ./proto/build/bin;
+  ./test_sbgc
+  cd -
+}
+
+# run_sbgc_tests
+
 # PROTO
 # run_all_tests
 # PROTO-LOGGING

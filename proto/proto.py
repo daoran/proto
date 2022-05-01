@@ -5689,7 +5689,7 @@ class AprilGrid:
       points.append(r_WFi)
     points = np.array(points)
 
-    ax.scatter(points[:, 0], points[:, 1], points[:, 2])
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2], 'r.')
     plot_tf(ax, T_WF, size=self.tag_size)
 
 
