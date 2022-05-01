@@ -383,13 +383,13 @@ def websocket_decode_frame(reader, mask):
   head1, head2 = struct.unpack('!BB', data)
 
   # -- While not Pythonic, this is marginally faster than calling bool().
-  fin = True if head1 & 0b10000000 else False
-  rsv1 = True if head1 & 0b01000000 else False
-  rsv2 = True if head1 & 0b00100000 else False
-  rsv3 = True if head1 & 0b00010000 else False
-  opcode = head1 & 0b00001111
+  # fin = True if head1 & 0b10000000 else False
+  # rsv1 = True if head1 & 0b01000000 else False
+  # rsv2 = True if head1 & 0b00100000 else False
+  # rsv3 = True if head1 & 0b00010000 else False
+  # opcode = head1 & 0b00001111
 
-  if (True if head2 & 0b10000000 else False) != mask:
+  if (head2 & 0b10000000) != mask:
     raise RuntimeError("Incorrect masking")
 
   length = head2 & 0b01111111
