@@ -752,7 +752,7 @@ def lerp2d(p0, p1, t):
   """ Linear interpolation 2D """
   assert len(p0) == 2
   assert len(p1) == 2
-  assert t <= 1.0 and t >= 0.0
+  assert 0.0 <= t <= 1.0
   x = lerp(p0[0], p1[0], t)
   y = lerp(p0[1], p1[1], t)
   return np.array([x, y])
@@ -762,7 +762,7 @@ def lerp3d(p0, p1, t):
   """ Linear interpolation 3D """
   assert len(p0) == 3
   assert len(p1) == 3
-  assert t <= 1.0 and t >= 0.0
+  assert 0.0 <= t <= 1.0
   x = lerp(p0[0], p1[0], t)
   y = lerp(p0[1], p1[1], t)
   z = lerp(p0[2], p1[2], t)
@@ -812,7 +812,7 @@ def find_circle(x, y):
   """
     Find the circle center and radius given (x, y) data points using least
     squares. Returns `(circle_center, circle_radius, residual)`
-    """
+  """
   x_m = np.mean(x)
   y_m = np.mean(y)
   center_init = x_m, y_m
@@ -1484,7 +1484,7 @@ def tf_lerp(pose_i, pose_j, t):
   """ Interpolate pose `pose_i` and `pose_j` with parameter `t` """
   assert pose_i.shape == (4, 4)
   assert pose_j.shape == (4, 4)
-  assert t >= 0.0 and t <= 1.0
+  assert 0.0 <= t <= 1.0
 
   # Decompose start pose
   r_i = tf_trans(pose_i)
@@ -2750,7 +2750,8 @@ class KittiRawDataset:
 
   def nb_camera_images(self, cam_idx=0):
     """ Return number of camera images """
-    assert cam_idx >= 0 and cam_idx <= 3
+    assert cam_idx >= 0
+    assert cam_idx <= 3
     if cam_idx == 0:
       return len(self.cam0_data.img_paths)
     elif cam_idx == 1:
