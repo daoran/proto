@@ -1378,7 +1378,7 @@ def quat_slerp(q_i, q_j, t):
   """ Quaternion Slerp `q_i` and `q_j` with parameter `t` """
   assert len(q_i) == 4
   assert len(q_j) == 4
-  assert t >= 0.0 and t <= 1.0
+  assert 0.0 <= t <= 1.0
 
   # Compute the cosine of the angle between the two vectors.
   dot_result = q_i @ q_j
@@ -2760,8 +2760,8 @@ class KittiRawDataset:
       return len(self.cam2_data.img_paths)
     elif cam_idx == 3:
       return len(self.cam3_data.img_paths)
-
-    return None
+    else:
+      return None
 
   def get_velodyne_extrinsics(self):
     """ Get velodyne extrinsics """
@@ -3769,7 +3769,6 @@ class ImuFactor(Factor):
 
 class MargFactor(Factor):
   """ Marginalization Factor """
-
   def __init__(self, pids):
     assert len(pids) > 0
     Factor.__init__(self, "MargFactor", pids, None, data.state_P)
@@ -3827,7 +3826,6 @@ class MargFactor(Factor):
     r = np.zeros((2, 2))
     if kwargs.get('only_residuals', False):
       return r
-
 
 
 # SOLVER #######################################################################
@@ -6298,9 +6296,6 @@ class RobotArmSimulation:
     pass
 
 
-
-
-
 ###############################################################################
 # CONTROL
 ###############################################################################
@@ -8389,14 +8384,14 @@ class TestCalibration(unittest.TestCase):
     self.assertTrue(grid is not None)
 
     dataset = EurocDataset(euroc_data_path)
+    cam_idx = 0
     res = dataset.cam0_data.config.resolution
     proj_params = dataset.cam0_data.config.intrinsics
     dist_params = dataset.cam0_data.config.distortion_coefficients
     proj_model = "pinhole"
     dist_model = "radtan4"
     params = np.block([*proj_params, *dist_params])
-    cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
-
+    cam0 = camera_params_setup(cam_idx, res, proj_model, dist_model, params)
     grid.solvepnp(cam0)
 
     # debug = True
