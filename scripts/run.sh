@@ -278,6 +278,8 @@ run_test() {
 # run_test test_imu_buf_clear
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
+run_test test_imu_factor_setup
+# run_test test_imu_factor_eval
 # run_test test_ceres_solver
 # run_test test_graph_setup
 # run_test test_graph_print
@@ -333,11 +335,11 @@ run_test() {
 # arduino --upload firmware/firmware.ino
 # arduino firmware/firmware.ino
 
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "\
-  cd ~/projects/proto \
-  && arduino --upload firmware/firmware.ino
-" C-m C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto \
+#   && arduino --upload firmware/firmware.ino
+# " C-m C-m
+# exit
 
 # && cu -l /dev/ttyACM0 -s 115200
