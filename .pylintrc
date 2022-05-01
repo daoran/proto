@@ -27,6 +27,7 @@ disable=
   wrong-import-order,
   wrong-import-position,
   protected-access,
+  chained-comparison
 
 
 [TYPECHECK]
