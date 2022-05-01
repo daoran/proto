@@ -6336,163 +6336,180 @@ void imu_buf_copy(const imu_buf_t *src, imu_buf_t *dst) {
   dst->size = src->size;
 }
 
-// void imu_factor_setup(imu_factor_t *factor,
-//                       imu_params_t *imu_params,
-//                       imu_buf_t *imu_buf,
-//                       pose_t *pose_i,
-//                       speed_biases_t *sb_i,
-//                       pose_t *pose_j,
-//                       speed_biases_t *sb_j) {
-//   #<{(| Parameters |)}>#
-//   factor->imu_params = imu_params;
-//   imu_buf_copy(imu_buf, &factor->imu_buf);
-//   factor->pose_i = pose_i;
-//   factor->sb_i = sb_i;
-//   factor->pose_j = pose_j;
-//   factor->sb_j = sb_j;
-//
-//   #<{(| Covariance and residuals |)}>#
-//   zeros(factor->covar, 15, 15);
-//   zeros(factor->r, 15, 1);
-//   factor->r_size = 15;
-//
-//   #<{(| Jacobians |)}>#
-//   factor->jacs[0] = factor->J0;
-//   factor->jacs[1] = factor->J1;
-//   factor->jacs[2] = factor->J2;
-//   factor->jacs[3] = factor->J3;
-//   factor->nb_params = 4;
-//
-//   #<{(| Pre-integration variables |)}>#
-//   factor->Dt = 0.0;
-//   eye(factor->F, 15, 15);   #<{(| State jacobian |)}>#
-//   zeros(factor->P, 15, 15); #<{(| State covariance |)}>#
-//
-//   #<{(| -- Noise matrix |)}>#
-//   const real_t n_a = imu_params->n_a;
-//   const real_t n_g = imu_params->n_g;
-//   const real_t n_ba = imu_params->n_aw;
-//   const real_t n_bg = imu_params->n_gw;
-//   const real_t n_a_sq = n_a * n_a;
-//   const real_t n_g_sq = n_g * n_g;
-//   const real_t n_ba_sq = n_ba * n_ba;
-//   const real_t n_bg_sq = n_bg * n_bg;
-//   real_t Q_diag[12] = {0};
-//   Q_diag[0] = n_a_sq;
-//   Q_diag[1] = n_a_sq;
-//   Q_diag[2] = n_a_sq;
-//   Q_diag[3] = n_g_sq;
-//   Q_diag[4] = n_g_sq;
-//   Q_diag[5] = n_g_sq;
-//   Q_diag[6] = n_ba_sq;
-//   Q_diag[7] = n_ba_sq;
-//   Q_diag[8] = n_ba_sq;
-//   Q_diag[9] = n_bg_sq;
-//   Q_diag[10] = n_bg_sq;
-//   Q_diag[11] = n_bg_sq;
-//   zeros(factor->Q, 12, 12);
-//   mat_diag_set(factor->Q, 12, 12, Q_diag);
-//
-//   #<{(| -- Setup relative position, velocity and rotation |)}>#
-//   real_t dr[3] = {0};
-//   real_t dv[3] = {0};
-//   real_t dC[3 * 3] = {0};
-//   real_t ba[3] = {0};
-//   real_t bg[3] = {0};
-//
-//   zeros(factor->dr, 3, 1);
-//   zeros(factor->dv, 3, 1);
-//   eye(factor->dC, 3, 3);
-//
-//   ba[0] = sb_i->data[3];
-//   ba[1] = sb_i->data[4];
-//   ba[2] = sb_i->data[5];
-//
-//   bg[0] = sb_i->data[6];
-//   bg[1] = sb_i->data[7];
-//   bg[2] = sb_i->data[8];
-//
-//   #<{(| Pre-integrate imu measuremenets |)}>#
-//   for (int k = 0; k < imu_buf->size; k++) {
-//     #<{(| Euler integration |)}>#
-//     const real_t ts_i = imu_buf->ts[k];
-//     const real_t ts_j = imu_buf->ts[k + 1];
-//     const real_t *a = imu_buf->acc[k];
-//     const real_t *w = imu_buf->gyr[k];
-//     const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
-//     const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
-//
-//     #<{(| Propagate IMU state using Euler method |)}>#
-//     const real_t dt = ts_j - ts_i;
-//     const real_t dt_sq = dt * dt;
-//
-//     #<{(| dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq); |)}>#
-//     real_t vel_int[3] = {dv[0], dv[1], dv[2]};
-//     vec_scale(vel_int, 3, dt);
-//
-//     real_t acc_dint[3] = {0};
-//     dot(dC, 3, 3, a_t, 3, 1, acc_dint);
-//     vec_scale(acc_dint, 3, 0.5 * dt_sq);
-//
-//     dr[0] += vel_int[0] + acc_dint[0];
-//     dr[1] += vel_int[1] + acc_dint[1];
-//     dr[2] += vel_int[2] + acc_dint[2];
-//
-//     #<{(| dv = dv + dC * a_t * dt; |)}>#
-//     real_t dv_update[3] = {0};
-//     real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt};
-//     dot(dC, 3, 3, acc_int, 3, 1, dv_update);
-//
-//     dv[0] += dv_update[0];
-//     dv[1] += dv_update[1];
-//     dv[2] += dv_update[2];
-//
-//     #<{(| dC = dC * Exp((w_t) * dt); |)}>#
-//     real_t dC_old[3 * 3] = {0};
-//     real_t C_update[3 * 3] = {0};
-//     real_t w_int[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt};
-//     mat_copy(dC, 3, 3, dC_old);
-//     dot(dC_old, 3, 3, C_update, 3, 3, dC);
-//
-//     #<{(| ba = ba; |)}>#
-//     ba[0] = ba[0];
-//     ba[1] = ba[1];
-//     ba[2] = ba[2];
-//
-//     #<{(| bg = bg; |)}>#
-//     bg[0] = bg[0];
-//     bg[1] = bg[1];
-//     bg[2] = bg[2];
-//
-//     #<{(| Continuous time transition matrix F |)}>#
-//     real_t F[15 * 15] = {0};
-//     F[0] = 1.0;
-//     F[3] = 1.0;
-//     F[6] = 1.0;
-//     #<{(| F(0:3, 3:6) = eye(3); |)}>#
-//     #<{(| F(4:6, 7:9) = -dC * skewa_t; |)}>#
-//     #<{(| F(4:6, 10:12) = -dC; |)}>#
-//     #<{(| F(7:9, 7:9) = -skew(w_t); |)}>#
-//     #<{(| F(7:9, 13:15) = -eye(3); |)}>#
-//
-//     #<{(| Continuous time input jacobian G |)}>#
-//     real_t G[15 * 12] = {0};
-//     G[0] = 1.0;
-//     #<{(| G(4 : 6, 1 : 3) = -dC; |)}>#
-//     #<{(| G(7 : 9, 4 : 6) = -eye(3); |)}>#
-//     #<{(| G(10 : 12, 7 : 9) = eye(3); |)}>#
-//     #<{(| G(13 : 15, 10 : 12) = eye(3); |)}>#
-//
-//     #<{(| Update |)}>#
-//     #<{(| G_dt = G * dt; |)}>#
-//     #<{(| I_F_dt = eye(15) + F * dt; |)}>#
-//     #<{(| factor.state_F = I_F_dt * factor.state_F; |)}>#
-//     #<{(| factor.state_P = |)}>#
-/*     #<{(|     I_F_dt * factor.state_P * I_F_dt ' + G_dt * factor.Q * G_dt';
- * |)}># */
-//     #<{(| factor.Dt += dt; |)}>#
-//   }
-// }
+static void imu_factor_propagate_step(imu_factor_t *factor,
+                                      const real_t a[3],
+                                      const real_t w[3],
+                                      const real_t dt) {
+  // Setup
+  const real_t dt_sq = dt * dt;
+  real_t *dr = factor->dr;
+  real_t *dv = factor->dv;
+  real_t *dC = factor->dC;
+  real_t *ba = factor->ba;
+  real_t *bg = factor->bg;
+
+  // Compensate accelerometer and gyroscope measurements
+  const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
+  const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
+
+  // Update position:
+  // dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq);
+  real_t vel_int[3] = {dv[0], dv[1], dv[2]};
+  vec_scale(vel_int, 3, dt);
+
+  real_t acc_dint[3] = {0};
+  dot(dC, 3, 3, a_t, 3, 1, acc_dint);
+  vec_scale(acc_dint, 3, 0.5 * dt_sq);
+
+  dr[0] += vel_int[0] + acc_dint[0];
+  dr[1] += vel_int[1] + acc_dint[1];
+  dr[2] += vel_int[2] + acc_dint[2];
+
+  // Update velocity
+  // dv = dv + dC * a_t * dt;
+  real_t dv_update[3] = {0};
+  real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt};
+  dot(dC, 3, 3, acc_int, 3, 1, dv_update);
+  dv[0] += dv_update[0];
+  dv[1] += dv_update[1];
+  dv[2] += dv_update[2];
+
+  // Update rotation
+  // dC = dC * Exp((w_t) * dt);
+  real_t dC_old[3 * 3] = {0};
+  real_t C_update[3 * 3] = {0};
+  real_t w_int[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt};
+  mat_copy(dC, 3, 3, dC_old);
+  dot(dC_old, 3, 3, C_update, 3, 3, dC);
+
+  // Update accelerometer biases
+  // ba = ba;
+  // NOOP
+
+  // Update gyroscope biases
+  // bg = bg;
+  // NOOP
+
+  // Form continuous time transition matrix F
+  real_t I_F_dt[15 * 15] = {0};
+  // F[0 : 3, 3 : 6] = eye(3);
+  I_F_dt[0] = 1.0;
+  I_F_dt[3] = 1.0;
+  I_F_dt[6] = 1.0;
+  // F[4 : 6, 7 : 9] = - dC * skew(a_t);
+  // F[4 : 6, 10 : 12] = - dC;
+  // F[7 : 9, 7 : 9] = - skew(w_t);
+  // F[7 : 9, 13 : 15] = - eye(3);
+  // I_F_dt = eye(15) + F * dt;
+  for (int i = 0; i < (15 * 15); i++) {
+    I_F_dt[i] = I_F_dt[i] * dt;
+  }
+
+  // Form continuous time input jacobian G
+  real_t G_dt[15 * 15] = {0};
+  // G[4 : 6, 1 : 3] = - dC;
+  // G[7 : 9, 4 : 6] = - eye(3);
+  // G[10 : 12, 7 : 9] = eye(3);
+  // G[13 : 15, 10 : 12] = eye(3);
+  // G_dt = G * dt;
+  for (int i = 0; i < (15 * 15); i++) {
+    G_dt[i] = G_dt[i] * dt;
+    if (i == 0 || i % 6 == 0) {
+      G_dt[i] = 1.0 + G_dt[i];
+    }
+  }
+
+  // Update state matrix F and P
+  // F = I_F_dt * factor.state_F;
+  // P = I_F_dt * P * I_F_dt' + G_dt * Q * G_dt';
+}
+
+void imu_factor_setup(imu_factor_t *factor,
+                      imu_params_t *imu_params,
+                      imu_buf_t *imu_buf,
+                      pose_t *pose_i,
+                      speed_biases_t *sb_i,
+                      pose_t *pose_j,
+                      speed_biases_t *sb_j) {
+  // Parameters
+  factor->imu_params = imu_params;
+  imu_buf_copy(imu_buf, &factor->imu_buf);
+  factor->pose_i = pose_i;
+  factor->sb_i = sb_i;
+  factor->pose_j = pose_j;
+  factor->sb_j = sb_j;
+
+  // Covariance and residuals
+  zeros(factor->covar, 15, 15);
+  zeros(factor->r, 15, 1);
+  factor->r_size = 15;
+
+  // Jacobians
+  factor->jacs[0] = factor->J0;
+  factor->jacs[1] = factor->J1;
+  factor->jacs[2] = factor->J2;
+  factor->jacs[3] = factor->J3;
+  factor->nb_params = 4;
+
+  // Pre - integration variables
+  factor->Dt = 0.0;
+  eye(factor->F, 15, 15);
+  // State jacobianzeros(factor->P, 15, 15);
+  // State covariance
+
+  // -- Noise matrix
+  const real_t n_a = imu_params->n_a;
+  const real_t n_g = imu_params->n_g;
+  const real_t n_ba = imu_params->n_aw;
+  const real_t n_bg = imu_params->n_gw;
+  const real_t n_a_sq = n_a * n_a;
+  const real_t n_g_sq = n_g * n_g;
+  const real_t n_ba_sq = n_ba * n_ba;
+  const real_t n_bg_sq = n_bg * n_bg;
+  real_t Q_diag[12] = {0};
+  Q_diag[0] = n_a_sq;
+  Q_diag[1] = n_a_sq;
+  Q_diag[2] = n_a_sq;
+  Q_diag[3] = n_g_sq;
+  Q_diag[4] = n_g_sq;
+  Q_diag[5] = n_g_sq;
+  Q_diag[6] = n_ba_sq;
+  Q_diag[7] = n_ba_sq;
+  Q_diag[8] = n_ba_sq;
+  Q_diag[9] = n_bg_sq;
+  Q_diag[10] = n_bg_sq;
+  Q_diag[11] = n_bg_sq;
+  zeros(factor->Q, 12, 12);
+  mat_diag_set(factor->Q, 12, 12, Q_diag);
+
+  // Setup
+  // -- Relative position
+  zeros(factor->dr, 3, 1);
+  // -- Relative velocity
+  zeros(factor->dv, 3, 1);
+  // -- Relative rotation
+  eye(factor->dC, 3, 3);
+  // -- Accelerometer bias
+  factor->ba[0] = sb_i->data[3];
+  factor->ba[1] = sb_i->data[4];
+  factor->ba[2] = sb_i->data[5];
+  // -- Gyroscope bias
+  factor->bg[0] = sb_i->data[6];
+  factor->bg[1] = sb_i->data[7];
+  factor->bg[2] = sb_i->data[8];
+
+  // Pre-integrate imu measuremenets
+  for (int k = 0; k < imu_buf->size; k++) {
+    // Euler integration
+    const timestamp_t ts_i = imu_buf->ts[k];
+    const timestamp_t ts_j = imu_buf->ts[k + 1];
+    const real_t dt = ts_j - ts_i;
+    const real_t *a = imu_buf->acc[k];
+    const real_t *w = imu_buf->gyr[k];
+    imu_factor_propagate_step(factor, a, w, dt);
+    factor->Dt += dt;
+  }
+}
 
 /**
  * Reset IMU Factor
