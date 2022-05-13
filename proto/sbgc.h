@@ -51,6 +51,14 @@
   } while (0)
 #endif // SBGC_ERROR
 
+#define SBGC_EXEC(FN)                                                          \
+  do {                                                                         \
+    int retval = (FN);                                                         \
+    if (retval != 0) {                                                         \
+      return retval;                                                           \
+    }                                                                          \
+  } while (0)
+
 // GENERAL
 #define SBGC_CMD_MAX_BYTES 255
 #define SBGC_CMD_PAYLOAD_BYTES 5
@@ -110,8 +118,7 @@
 #define SBGC_CMD_BOOT_MODE_3 51
 
 // CMD FRAME SIZE
-#define SBGC_MIN_FRAME_SIZE 5 // 4 bytes for header + 1 body checksum
-#define SBGC_CMD_BOARD_INFO_FRAME_SIZE 5 + 18
+#define SBGC_CMD_BOARD_INFO_FRAME_SIZE 6 + 18
 #define SBGC_CMD_REALTIME_DATA_3_FRAME_SIZE 5 + 63
 
 // CMD CONTROL
@@ -137,12 +144,22 @@
 // ERR_SYSTEM (1<<10)
 // ERR_EMERGENCY_STOP (1<<11)
 
+// SBGC ERRORS
+#define SBGC_NOT_CONNECTED -1
+#define SBGC_DISCONNECT_FAILED -2
+#define SBGC_INVALID_START -3
+#define SBGC_INVALID_HEADER -4
+#define SBGC_INVALID_PAYLOAD_SIZE -5
+#define SBGC_INVALID_CRC16 -6
+#define SBGC_SEND_FAILED -7
+#define SBGC_READ_FAILED -8
+
 typedef struct sbgc_frame_t {
   uint8_t cmd_id;
-  uint8_t data_size;
+  uint8_t payload_size;
   uint8_t header_checksum;
-  uint8_t *data;
-  uint8_t data_checksum;
+  uint8_t payload[256];
+  uint8_t crc16[2];
 
 } sbgc_frame_t;
 
@@ -169,24 +186,16 @@ typedef struct sbgc_t {
 
   uint8_t board_version;
   uint16_t firmware_version;
-  uint8_t debug_mode;
+  uint8_t state_flags;
   uint16_t board_features;
   uint8_t connection_flags;
 } sbgc_t;
 
 void sbgc_frame_print(const sbgc_frame_t *frame);
-void sbgc_frame_set_header(sbgc_frame_t *frame,
-                           uint8_t cmd_id,
-                           uint8_t data_size);
-void sbgc_frame_set_checksum(sbgc_frame_t *frame);
-void sbgc_frame_set_body(sbgc_frame_t *frame, uint8_t *data);
-void sbgc_frame_set_frame(sbgc_frame_t *frame,
-                          int cmd_id,
-                          uint8_t *data,
-                          int data_size);
-void sbgc_frame_set_cmd(sbgc_frame_t *frame, int cmd_id);
-int sbgc_frame_parse_header(sbgc_frame_t *frame, uint8_t *data);
-int sbgc_frame_parse_body(sbgc_frame_t *frame, uint8_t *data);
+void sbgc_frame_setup(sbgc_frame_t *frame,
+                      int cmd_id,
+                      uint8_t *data,
+                      uint16_t payload_size);
 int sbgc_frame_parse_frame(sbgc_frame_t *frame, uint8_t *data);
 void sbgc_data_t_print(sbgc_data_t *data);
 
@@ -308,29 +317,28 @@ float sbgc_parse_angle(const uint8_t *data,
   return SBGC_DEG_PER_BIT * sbgc_s16bit(data, hi_byte, low_byte);
 }
 
-void sbgc_crc16_update(uint16_t length, uint8_t *data, uint8_t crc[2]) {
-  uint16_t counter;
+void sbgc_crc16(const uint8_t *payload,
+                const uint16_t payload_size,
+                uint8_t crc[2]) {
+  crc[0] = 0.0;
+  crc[1] = 0.0;
+
   uint16_t polynom = 0x8005;
-  uint16_t crc_register = (uint16_t) crc[0] | ((uint16_t) crc[1] << 8);
-  uint8_t shift_register;
-  uint8_t data_bit, crc_bit;
-  for (counter = 0; counter < length; counter++) {
-    for (shift_register = 0x01; shift_register > 0x00; shift_register <<= 1) {
-      data_bit = (data[counter] & shift_register) ? 1 : 0;
-      crc_bit = crc_register >> 15;
-      crc_register <<= 1;
+  uint16_t crc_reg = (uint16_t) crc[0] | ((uint16_t) crc[1] << 8);
+
+  for (uint8_t i = 0; i < payload_size; i++) {
+    for (uint8_t shift_reg = 0x01; shift_reg > 0x00; shift_reg <<= 1) {
+      uint8_t data_bit = (payload[i] & shift_reg) ? 1 : 0;
+      uint8_t crc_bit = crc_reg >> 15;
+      crc_reg <<= 1;
+
       if (data_bit != crc_bit)
-        crc_register ^= polynom;
+        crc_reg ^= polynom;
     }
   }
-  crc[0] = crc_register;
-  crc[1] = (crc_register >> 8);
-}
 
-void sbgc_crc16_calculate(uint16_t length, uint8_t *data, uint8_t crc[2]) {
-  crc[0] = 0;
-  crc[1] = 0;
-  crc16_update(length, data, crc);
+  crc[0] = crc_reg;
+  crc[1] = (crc_reg >> 8);
 }
 
 // SBGC FRAME ////////////////////////////////////////////////////////////////
@@ -339,115 +347,84 @@ void sbgc_frame_print(const sbgc_frame_t *frame) {
   int i;
 
   // Header
-  printf("[%d]: %c\n", 0, '>');
-  printf("[%d]: %c\n", 1, frame->cmd_id);
-  printf("[%d]: %d\n", 2, frame->data_size);
-  printf("[%d]: %d\n", 3, frame->header_checksum);
+  printf("[%d]: 0x%x\n", 0, '$');
+  printf("[%d]: 0x%x\n", 1, frame->cmd_id);
+  printf("[%d]: 0x%x\n", 2, frame->payload_size);
+  printf("[%d]: 0x%x\n", 3, frame->header_checksum);
 
-  // Body
-  for (i = 4; i < (frame->data_size + 4); i++) {
-    printf("[%d]: %d\n", i, frame->data[i]);
+  // Payload
+  for (i = 4; i < (frame->payload_size + 4); i++) {
+    printf("[%d]: 0x%x\n", i, frame->payload[i]);
   }
-  printf("[%d]: %d\n", i, frame->data_checksum);
+
+  // CRC16
+  printf("[%d]: 0x%x\n", (frame->payload_size + 4 + 1), frame->crc16[0]);
+  printf("[%d]: 0x%x\n", (frame->payload_size + 4 + 2), frame->crc16[1]);
 }
 
-void sbgc_frame_set_header(sbgc_frame_t *frame,
-                           uint8_t cmd_id,
-                           uint8_t data_size) {
+void sbgc_frame_setup(sbgc_frame_t *frame,
+                      int cmd_id,
+                      uint8_t *payload,
+                      uint16_t payload_size) {
+  // Header
   frame->cmd_id = cmd_id;
-  frame->data_size = data_size;
-  frame->header_checksum = (frame->cmd_id + frame->data_size) % 256;
-}
+  frame->payload_size = payload_size;
+  frame->header_checksum = (frame->cmd_id + frame->payload_size) % 256;
 
-void sbgc_frame_set_checksum(sbgc_frame_t *frame) {
-  frame->data_checksum = 0x0;
-  for (int i = 0; i < frame->data_size; i++) {
-    frame->data_checksum += frame->data[i];
+  // Payload
+  for (uint8_t i = 0; i < payload_size; i++) {
+    frame->payload[i] = payload[i];
   }
-  frame->data_checksum = frame->data_checksum % 256;
+
+  // CRC16
+  const uint16_t bitstr_len = frame->payload_size + 3;
+  uint8_t bitstr[256] = {0};
+  bitstr[0] = frame->cmd_id;
+  bitstr[1] = frame->payload_size;
+  bitstr[2] = frame->header_checksum;
+  for (uint8_t i = 0; i < frame->payload_size; i++) {
+    bitstr[3 + i] = frame->payload[i];
+  }
+  sbgc_crc16(bitstr, bitstr_len, frame->crc16);
 }
 
-void sbgc_frame_set_body(sbgc_frame_t *frame, uint8_t *data) {
-  frame->data = data;
-  sbgc_frame_set_checksum(frame);
-}
-
-void sbgc_frame_set_frame(sbgc_frame_t *frame,
-                          int cmd_id,
-                          uint8_t *data,
-                          int data_size) {
-  sbgc_frame_set_header(frame, (uint8_t) cmd_id, (uint8_t) data_size);
-  sbgc_frame_set_body(frame, data);
-}
-
-void sbgc_frame_set_cmd(sbgc_frame_t *frame, int cmd_id) {
-  sbgc_frame_set_header(frame, (uint8_t) cmd_id, 0);
-  sbgc_frame_set_body(frame, NULL);
-}
-
-int sbgc_frame_parse_header(sbgc_frame_t *frame, uint8_t *data) {
-  uint8_t expected_checksum;
-
+int sbgc_frame_parse_frame(sbgc_frame_t *frame, uint8_t *data) {
   // Pre-check
-  if (data[0] != '>') {
-    return -1;
+  if (data[0] != '$') {
+    return SBGC_INVALID_START;
   }
 
   // Parse header
   frame->cmd_id = data[1];
-  frame->data_size = data[2];
+  frame->payload_size = data[2];
   frame->header_checksum = data[3];
-
-  // Check the header checksum
-  expected_checksum = (frame->cmd_id + frame->data_size) % 256;
+  uint8_t expected_checksum = (frame->cmd_id + frame->payload_size) % 256;
   if (frame->header_checksum != expected_checksum) {
-    return -1;
+    return SBGC_INVALID_HEADER;
   }
 
-  return 0;
-}
-
-int sbgc_frame_parse_body(sbgc_frame_t *frame, uint8_t *data) {
-  uint8_t i;
-  uint8_t expected_checksum;
-
-  // Setup
-  expected_checksum = 0x0;
-  frame->data = malloc(sizeof(uint8_t) * frame->data_size);
-
-  // Parse body
-  for (i = 0; i < frame->data_size; i++) {
-    frame->data[i] = data[4 + i]; // +4 because header is 4 bytes
-    expected_checksum += data[4 + i];
-  }
-  frame->data_checksum = data[4 + i];
-
-  // Check the body checksum
-  expected_checksum = expected_checksum % 256;
-  if (frame->data_checksum != expected_checksum) {
-    SBGC_ERROR("Failed body checksum!");
-    free(frame->data);
-    return -1;
+  // Parse payload
+  for (uint8_t i = 0; i < frame->payload_size; i++) {
+    frame->payload[i] = data[4 + i];
   }
 
-  return 0;
-}
-
-int sbgc_frame_parse_frame(sbgc_frame_t *frame, uint8_t *data) {
-  int retval;
-
-  // Parse header
-  retval = sbgc_frame_parse_header(frame, data);
-  if (retval == -1) {
-    SBGC_ERROR("Failed to parse header!");
-    return -1;
+  // CRC16
+  // -- Calculate expected CRC16
+  const uint16_t bitstr_len = frame->payload_size + 3;
+  uint8_t bitstr[256] = {0};
+  bitstr[0] = frame->cmd_id;
+  bitstr[1] = frame->payload_size;
+  bitstr[2] = frame->header_checksum;
+  for (uint8_t i = 0; i < frame->payload_size; i++) {
+    bitstr[3 + i] = frame->payload[i];
   }
-
-  // Parse body
-  retval = sbgc_frame_parse_body(frame, data);
-  if (retval == -1) {
-    SBGC_ERROR("Failed to parse body!");
-    return -1;
+  uint8_t crc16[2] = {0};
+  sbgc_crc16(bitstr, bitstr_len, crc16);
+  // -- Verify with obtained CRC16
+  frame->crc16[0] = data[4 + frame->payload_size];
+  frame->crc16[1] = data[4 + frame->payload_size + 1];
+  if (crc16[0] != frame->crc16[0] || crc16[1] != frame->crc16[1]) {
+    return SBGC_INVALID_CRC16;
   }
 
   return 0;
@@ -498,14 +475,15 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
 
   sbgc->board_version = 0;
   sbgc->firmware_version = 0;
-  sbgc->debug_mode = 0;
+  sbgc->state_flags = 0;
   sbgc->board_features = 0;
   sbgc->connection_flags = 0;
 
   // Open serial port
   sbgc->serial = open(sbgc->port, O_RDWR | O_NOCTTY | O_SYNC);
-  if (sbgc->serial < 0) {
-    return -1;
+  if (sbgc->serial == -1) {
+    printf("Oh dear, open()! %s\n", strerror(errno));
+    return SBGC_NOT_CONNECTED;
   }
 
   // Configure serial commnication
@@ -518,7 +496,7 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
 
 int sbgc_disconnect(sbgc_t *sbgc) {
   if (close(sbgc->serial) != 0) {
-    return -1;
+    return SBGC_DISCONNECT_FAILED;
   }
 
   sbgc->connected = 0;
@@ -533,7 +511,7 @@ void sbgc_reset(sbgc_t *sbgc) {
 
   sbgc->board_version = 0;
   sbgc->firmware_version = 0;
-  sbgc->debug_mode = 0;
+  sbgc->state_flags = 0;
   sbgc->board_features = 0;
   sbgc->connection_flags = 0;
 }
@@ -541,33 +519,33 @@ void sbgc_reset(sbgc_t *sbgc) {
 int sbgc_send(const sbgc_t *sbgc, const sbgc_frame_t *frame) {
   // Check connection
   if (sbgc->connected == 0) {
-    return -1;
+    return SBGC_NOT_CONNECTED;
   }
 
   // Check command data size
-  int data_size_limit;
-  data_size_limit = SBGC_CMD_MAX_BYTES - SBGC_CMD_PAYLOAD_BYTES;
-  if (frame->data_size >= data_size_limit) {
-    return -1;
+  int payload_size_limit;
+  payload_size_limit = SBGC_CMD_MAX_BYTES - SBGC_CMD_PAYLOAD_BYTES;
+  if (frame->payload_size >= payload_size_limit) {
+    return SBGC_INVALID_PAYLOAD_SIZE;
   }
 
   // Header
   ssize_t retval = 0;
-  const uint8_t start = 0x3E; // ">" character
+  const uint8_t start = 0x24; // "$" character
   retval += write(sbgc->serial, &start, 1);
   retval += write(sbgc->serial, &frame->cmd_id, 1);
-  retval += write(sbgc->serial, &frame->data_size, 1);
-
-  // Body
+  retval += write(sbgc->serial, &frame->payload_size, 1);
   retval += write(sbgc->serial, &frame->header_checksum, 1);
-  retval += write(sbgc->serial, frame->data, frame->data_size);
-  retval += write(sbgc->serial, &frame->data_checksum, 1);
+
+  // Payload
+  retval += write(sbgc->serial, frame->payload, frame->payload_size);
+  retval += write(sbgc->serial, frame->crc16, 2);
 
   // Flush
   tcflush(sbgc->serial, TCIOFLUSH); // VERY CRITICAL
   usleep(10 * 1000);
-  if (retval != (5 + frame->data_size)) {
-    printf("Opps! frame wasn't sent completely!\n");
+  if (retval != (6 + frame->payload_size)) {
+    return SBGC_SEND_FAILED;
   }
 
   return 0;
@@ -582,22 +560,16 @@ int sbgc_read(const sbgc_t *sbgc,
   }
 
   // Send query
-  uint8_t buffer[150];
-  int16_t nb_bytes = read(sbgc->serial, buffer, read_length);
+  uint8_t buf[256] = {0};
+  int16_t nb_bytes = read(sbgc->serial, buf, read_length);
   if (nb_bytes <= 0 || nb_bytes != read_length) {
-    SBGC_ERROR("Failed to read SBGC frame!");
-    return -1;
+    return SBGC_READ_FAILED;
   }
-  for (int i = 0; i < nb_bytes; i++) {
-    printf("%c", buffer[i]);
-  }
-  printf("\n");
 
   // Parse sbgc frame
-  int retval = sbgc_frame_parse_frame(frame, buffer);
-  if (retval == -1) {
-    SBGC_ERROR("Failed to parse SBGC frame!");
-    return -1;
+  int retval = sbgc_frame_parse_frame(frame, buf);
+  if (retval != 0) {
+    return retval;
   }
 
   return 0;
@@ -605,14 +577,14 @@ int sbgc_read(const sbgc_t *sbgc,
 
 int sbgc_on(const sbgc_t *sbgc) {
   sbgc_frame_t frame;
-  sbgc_frame_set_cmd(&frame, SBGC_CMD_MOTORS_ON);
+  sbgc_frame_setup(&frame, SBGC_CMD_MOTORS_ON, NULL, 0);
   return sbgc_send(sbgc, &frame);
 }
 
 int sbgc_off(const sbgc_t *sbgc) {
   // Check connection
   if (sbgc->connected == 0) {
-    return -1;
+    return SBGC_NOT_CONNECTED;
   }
 
   // Turn off motor control
@@ -624,19 +596,15 @@ int sbgc_off(const sbgc_t *sbgc) {
     }
 
     sbgc_frame_t frame;
-    sbgc_frame_set_frame(&frame, SBGC_CMD_CONTROL, data, 13);
-    if (sbgc_send(sbgc, &frame) != 0) {
-      return -2;
-    }
+    sbgc_frame_setup(&frame, SBGC_CMD_CONTROL, data, 13);
+    SBGC_EXEC(sbgc_send(sbgc, &frame));
   }
 
   // Turn off motors
   {
     sbgc_frame_t frame;
-    sbgc_frame_set_cmd(&frame, SBGC_CMD_MOTORS_OFF);
-    if (sbgc_send(sbgc, &frame) != 0) {
-      return -2;
-    }
+    sbgc_frame_setup(&frame, SBGC_CMD_MOTORS_OFF, NULL, 0);
+    SBGC_EXEC(sbgc_send(sbgc, &frame));
   }
 
   return 0;
@@ -645,26 +613,19 @@ int sbgc_off(const sbgc_t *sbgc) {
 int sbgc_info(sbgc_t *sbgc) {
   // Request board info
   sbgc_frame_t frame;
-  sbgc_frame_set_cmd(&frame, SBGC_CMD_BOARD_INFO);
-  SBGC_INFO("Sending board info request!");
-  if (sbgc_send(sbgc, &frame) == -1) {
-    SBGC_ERROR("Failed to request SBGC board info!");
-    return -1;
-  }
+  sbgc_frame_setup(&frame, SBGC_CMD_BOARD_INFO, NULL, 0);
+  SBGC_EXEC(sbgc_send(sbgc, &frame));
 
   // Obtain board info
   sbgc_frame_t info;
-  SBGC_INFO("Read board info request!");
-  if (sbgc_read(sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &info) == -1) {
-    SBGC_ERROR("Failed to parse SBGC frame for board info!");
-    return -1;
-  }
-  sbgc->board_version = info.data[0];
-  sbgc->firmware_version = (info.data[2] << 8) | (info.data[1] & 0xff);
-  sbgc->debug_mode = info.data[3];
-  sbgc->board_features = (info.data[5] << 8) | (info.data[4] & 0xff);
-  sbgc->connection_flags = info.data[6];
-  free(frame.data);
+  SBGC_EXEC(sbgc_read(sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &info));
+
+  // Parse info
+  sbgc->board_version = info.payload[0];
+  sbgc->firmware_version = (info.payload[2] << 8) | (info.payload[1] & 0xff);
+  sbgc->state_flags = info.payload[3];
+  sbgc->board_features = (info.payload[5] << 8) | (info.payload[4] & 0xff);
+  sbgc->connection_flags = info.payload[6];
 
   return 0;
 }
@@ -672,7 +633,7 @@ int sbgc_info(sbgc_t *sbgc) {
 int sbgc_get_realtime_data_4(sbgc_t *sbgc) {
   // Request real time data
   sbgc_frame_t frame;
-  sbgc_frame_set_cmd(&frame, SBGC_CMD_REALTIME_DATA_4);
+  // sbgc_frame_set_cmd(&frame, SBGC_CMD_REALTIME_DATA_4);
   if (sbgc_send(sbgc, &frame) == -1) {
     SBGC_ERROR("Failed to request SBGC realtime data!");
     return -1;
@@ -685,34 +646,34 @@ int sbgc_get_realtime_data_4(sbgc_t *sbgc) {
   }
 
   // Parse real time data
-  sbgc->data.accel[0] = sbgc_parse_accel(frame.data, 1, 0);
-  sbgc->data.accel[1] = sbgc_parse_accel(frame.data, 5, 4);
-  sbgc->data.accel[2] = sbgc_parse_accel(frame.data, 9, 8);
+  sbgc->data.accel[0] = sbgc_parse_accel(frame.payload, 1, 0);
+  sbgc->data.accel[1] = sbgc_parse_accel(frame.payload, 5, 4);
+  sbgc->data.accel[2] = sbgc_parse_accel(frame.payload, 9, 8);
 
-  sbgc->data.gyro[0] = sbgc_parse_gyro(frame.data, 3, 2);
-  sbgc->data.gyro[1] = sbgc_parse_gyro(frame.data, 7, 6);
-  sbgc->data.gyro[2] = sbgc_parse_gyro(frame.data, 11, 10);
+  sbgc->data.gyro[0] = sbgc_parse_gyro(frame.payload, 3, 2);
+  sbgc->data.gyro[1] = sbgc_parse_gyro(frame.payload, 7, 6);
+  sbgc->data.gyro[2] = sbgc_parse_gyro(frame.payload, 11, 10);
 
-  sbgc->data.camera_angles[0] = sbgc_parse_angle(frame.data, 33, 32);
-  sbgc->data.camera_angles[1] = sbgc_parse_angle(frame.data, 35, 34);
-  sbgc->data.camera_angles[2] = sbgc_parse_angle(frame.data, 37, 36);
+  sbgc->data.camera_angles[0] = sbgc_parse_angle(frame.payload, 33, 32);
+  sbgc->data.camera_angles[1] = sbgc_parse_angle(frame.payload, 35, 34);
+  sbgc->data.camera_angles[2] = sbgc_parse_angle(frame.payload, 37, 36);
 
-  sbgc->data.frame_angles[0] = sbgc_parse_angle(frame.data, 39, 38);
-  sbgc->data.frame_angles[1] = sbgc_parse_angle(frame.data, 41, 40);
-  sbgc->data.frame_angles[2] = sbgc_parse_angle(frame.data, 43, 42);
+  sbgc->data.frame_angles[0] = sbgc_parse_angle(frame.payload, 39, 38);
+  sbgc->data.frame_angles[1] = sbgc_parse_angle(frame.payload, 41, 40);
+  sbgc->data.frame_angles[2] = sbgc_parse_angle(frame.payload, 43, 42);
 
-  sbgc->data.rc_angles[0] = sbgc_parse_angle(frame.data, 45, 44);
-  sbgc->data.rc_angles[1] = sbgc_parse_angle(frame.data, 47, 45);
-  sbgc->data.rc_angles[2] = sbgc_parse_angle(frame.data, 49, 46);
+  sbgc->data.rc_angles[0] = sbgc_parse_angle(frame.payload, 45, 44);
+  sbgc->data.rc_angles[1] = sbgc_parse_angle(frame.payload, 47, 45);
+  sbgc->data.rc_angles[2] = sbgc_parse_angle(frame.payload, 49, 46);
 
-  sbgc->data.encoder_angles[0] = sbgc_parse_angle(frame.data, 64, 63);
-  sbgc->data.encoder_angles[1] = sbgc_parse_angle(frame.data, 66, 65);
-  sbgc->data.encoder_angles[2] = sbgc_parse_angle(frame.data, 68, 67);
+  sbgc->data.encoder_angles[0] = sbgc_parse_angle(frame.payload, 64, 63);
+  sbgc->data.encoder_angles[1] = sbgc_parse_angle(frame.payload, 66, 65);
+  sbgc->data.encoder_angles[2] = sbgc_parse_angle(frame.payload, 68, 67);
 
-  sbgc->data.cycle_time = sbgc_u16bit(frame.data, 51, 50);
-  sbgc->data.i2c_error_count = sbgc_u16bit(frame.data, 53, 52);
-  sbgc->data.system_error = sbgc_u16bit(frame.data, 15, 14);
-  sbgc->data.battery_level = sbgc_u16bit(frame.data, 56, 55);
+  sbgc->data.cycle_time = sbgc_u16bit(frame.payload, 51, 50);
+  sbgc->data.i2c_error_count = sbgc_u16bit(frame.payload, 53, 52);
+  sbgc->data.system_error = sbgc_u16bit(frame.payload, 15, 14);
+  sbgc->data.battery_level = sbgc_u16bit(frame.payload, 56, 55);
 
   return 0;
 }
@@ -720,44 +681,38 @@ int sbgc_get_realtime_data_4(sbgc_t *sbgc) {
 int sbgc_get_realtime_data(sbgc_t *sbgc) {
   // Request real time data
   sbgc_frame_t frame;
-  sbgc_frame_set_cmd(&frame, SBGC_CMD_REALTIME_DATA_3);
-  if (sbgc_send(sbgc, &frame) == -1) {
-    SBGC_ERROR("Failed to request SBGC realtime data!");
-    return -1;
-  }
+  sbgc_frame_setup(&frame, SBGC_CMD_REALTIME_DATA_3, NULL, 0);
+  SBGC_EXEC(sbgc_send(sbgc, &frame));
 
   // Obtain real time data
   sbgc_frame_t info;
-  if (sbgc_read(sbgc, 68, &info) == -1) {
-    SBGC_ERROR("Failed to parse SBGC frame for realtime data!");
-    return -1;
-  }
+  SBGC_EXEC(sbgc_read(sbgc, 69, &info));
 
   // Parse real time data
-  sbgc->data.accel[0] = sbgc_parse_accel(frame.data, 1, 0);
-  sbgc->data.accel[1] = sbgc_parse_accel(frame.data, 5, 4);
-  sbgc->data.accel[2] = sbgc_parse_accel(frame.data, 9, 8);
+  sbgc->data.accel[0] = sbgc_parse_accel(frame.payload, 1, 0);
+  sbgc->data.accel[1] = sbgc_parse_accel(frame.payload, 5, 4);
+  sbgc->data.accel[2] = sbgc_parse_accel(frame.payload, 9, 8);
 
-  sbgc->data.gyro[0] = sbgc_parse_gyro(frame.data, 3, 2);
-  sbgc->data.gyro[1] = sbgc_parse_gyro(frame.data, 7, 6);
-  sbgc->data.gyro[2] = sbgc_parse_gyro(frame.data, 11, 10);
+  sbgc->data.gyro[0] = sbgc_parse_gyro(frame.payload, 3, 2);
+  sbgc->data.gyro[1] = sbgc_parse_gyro(frame.payload, 7, 6);
+  sbgc->data.gyro[2] = sbgc_parse_gyro(frame.payload, 11, 10);
 
-  sbgc->data.camera_angles[0] = sbgc_parse_angle(frame.data, 33, 32);
-  sbgc->data.camera_angles[1] = sbgc_parse_angle(frame.data, 35, 34);
-  sbgc->data.camera_angles[2] = sbgc_parse_angle(frame.data, 37, 36);
+  sbgc->data.camera_angles[0] = sbgc_parse_angle(frame.payload, 33, 32);
+  sbgc->data.camera_angles[1] = sbgc_parse_angle(frame.payload, 35, 34);
+  sbgc->data.camera_angles[2] = sbgc_parse_angle(frame.payload, 37, 36);
 
-  sbgc->data.frame_angles[0] = sbgc_parse_angle(frame.data, 39, 38);
-  sbgc->data.frame_angles[1] = sbgc_parse_angle(frame.data, 41, 40);
-  sbgc->data.frame_angles[2] = sbgc_parse_angle(frame.data, 43, 42);
+  sbgc->data.frame_angles[0] = sbgc_parse_angle(frame.payload, 39, 38);
+  sbgc->data.frame_angles[1] = sbgc_parse_angle(frame.payload, 41, 40);
+  sbgc->data.frame_angles[2] = sbgc_parse_angle(frame.payload, 43, 42);
 
-  sbgc->data.rc_angles[0] = sbgc_parse_angle(frame.data, 45, 44);
-  sbgc->data.rc_angles[1] = sbgc_parse_angle(frame.data, 47, 45);
-  sbgc->data.rc_angles[2] = sbgc_parse_angle(frame.data, 49, 46);
+  sbgc->data.rc_angles[0] = sbgc_parse_angle(frame.payload, 45, 44);
+  sbgc->data.rc_angles[1] = sbgc_parse_angle(frame.payload, 47, 45);
+  sbgc->data.rc_angles[2] = sbgc_parse_angle(frame.payload, 49, 46);
 
-  sbgc->data.cycle_time = sbgc_u16bit(frame.data, 51, 50);
-  sbgc->data.i2c_error_count = sbgc_u16bit(frame.data, 53, 52);
-  sbgc->data.system_error = sbgc_u16bit(frame.data, 15, 14);
-  sbgc->data.battery_level = sbgc_u16bit(frame.data, 56, 55);
+  sbgc->data.cycle_time = sbgc_u16bit(frame.payload, 51, 50);
+  sbgc->data.i2c_error_count = sbgc_u16bit(frame.payload, 53, 52);
+  sbgc->data.system_error = sbgc_u16bit(frame.payload, 15, 14);
+  sbgc->data.battery_level = sbgc_u16bit(frame.payload, 56, 55);
 
   return 0;
 }
@@ -765,7 +720,7 @@ int sbgc_get_realtime_data(sbgc_t *sbgc) {
 int sbgc_get_angle_ext(sbgc_t *sbgc) {
   // Request real time data
   sbgc_frame_t frame;
-  sbgc_frame_set_cmd(&frame, SBGC_CMD_GET_ANGLES_EXT);
+  // sbgc_frame_set_cmd(&frame, SBGC_CMD_GET_ANGLES_EXT);
   if (sbgc_send(sbgc, &frame) == -1) {
     SBGC_ERROR("Failed to request SBGC realtime data!");
     return -1;
@@ -777,17 +732,17 @@ int sbgc_get_angle_ext(sbgc_t *sbgc) {
     return -1;
   }
 
-  sbgc->data.camera_angles[0] = sbgc_parse_angle(frame.data, 1, 0);
-  sbgc->data.camera_angles[1] = sbgc_parse_angle(frame.data, 19, 18);
-  sbgc->data.camera_angles[2] = sbgc_parse_angle(frame.data, 37, 36);
+  sbgc->data.camera_angles[0] = sbgc_parse_angle(frame.payload, 1, 0);
+  sbgc->data.camera_angles[1] = sbgc_parse_angle(frame.payload, 19, 18);
+  sbgc->data.camera_angles[2] = sbgc_parse_angle(frame.payload, 37, 36);
 
-  sbgc->data.rc_angles[0] = sbgc_parse_angle(frame.data, 3, 2);
-  sbgc->data.rc_angles[1] = sbgc_parse_angle(frame.data, 21, 20);
-  sbgc->data.rc_angles[2] = sbgc_parse_angle(frame.data, 39, 38);
+  sbgc->data.rc_angles[0] = sbgc_parse_angle(frame.payload, 3, 2);
+  sbgc->data.rc_angles[1] = sbgc_parse_angle(frame.payload, 21, 20);
+  sbgc->data.rc_angles[2] = sbgc_parse_angle(frame.payload, 39, 38);
 
-  sbgc->data.encoder_angles[0] = sbgc_parse_angle(frame.data, 8, 4);
-  sbgc->data.encoder_angles[1] = sbgc_parse_angle(frame.data, 26, 22);
-  sbgc->data.encoder_angles[2] = sbgc_parse_angle(frame.data, 44, 40);
+  sbgc->data.encoder_angles[0] = sbgc_parse_angle(frame.payload, 8, 4);
+  sbgc->data.encoder_angles[1] = sbgc_parse_angle(frame.payload, 26, 22);
+  sbgc->data.encoder_angles[2] = sbgc_parse_angle(frame.payload, 44, 40);
 
   return 0;
 }
@@ -831,7 +786,7 @@ int sbgc_set_angle(const sbgc_t *sbgc,
 
   // Build frame and send
   sbgc_frame_t frame;
-  sbgc_frame_set_frame(&frame, SBGC_CMD_CONTROL, data, 13);
+  sbgc_frame_setup(&frame, SBGC_CMD_CONTROL, data, 13);
   sbgc_send(sbgc, &frame);
 
   return 0;
@@ -882,7 +837,7 @@ int sbgc_set_angle_speed(const sbgc_t *sbgc,
 
   // Build frame and send
   sbgc_frame_t frame;
-  sbgc_frame_set_frame(&frame, SBGC_CMD_CONTROL, data, 13);
+  sbgc_frame_setup(&frame, SBGC_CMD_CONTROL, data, 13);
   sbgc_send(sbgc, &frame);
 
   return 0;
@@ -924,10 +879,8 @@ static int nb_failed = 0;
  * @param[in] test_ptr Pointer to unittest
  */
 void run_test(const char *test_name, int (*test_ptr)()) {
-  printf("-> [%s] ", test_name);
-
   if ((*test_ptr)() == 0) {
-    printf(TERM_GRN "OK!\n" TERM_NRM);
+    printf("-> [%s] " TERM_GRN "OK!\n" TERM_NRM, test_name);
     fflush(stdout);
     nb_passed++;
   } else {
@@ -971,17 +924,17 @@ int test_sbgc_send() {
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
 
-  // Motors on
-  sbgc_frame_t frame0;
-  sbgc_frame_set_cmd(&frame0, SBGC_CMD_MOTORS_ON);
-  TEST_ASSERT(sbgc_send(&sbgc, &frame0) == 0);
-  sleep(1);
+  // // Motors on
+  // sbgc_frame_t frame0;
+  // sbgc_frame_set_cmd(&frame0, SBGC_CMD_MOTORS_ON);
+  // TEST_ASSERT(sbgc_send(&sbgc, &frame0) == 0);
+  // sleep(1);
 
-  // Motors off
-  sbgc_frame_t frame1;
-  sbgc_frame_set_cmd(&frame1, SBGC_CMD_MOTORS_OFF);
-  TEST_ASSERT(sbgc_send(&sbgc, &frame1) == 0);
-  sleep(1);
+  // // Motors off
+  // sbgc_frame_t frame1;
+  // sbgc_frame_set_cmd(&frame1, SBGC_CMD_MOTORS_OFF);
+  // TEST_ASSERT(sbgc_send(&sbgc, &frame1) == 0);
+  // sleep(1);
 
   return 0;
 }
@@ -989,19 +942,19 @@ int test_sbgc_send() {
 int test_sbgc_read() {
   // Connect
   sbgc_t sbgc;
-  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV));
+  TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
 
   // Send request
   sbgc_frame_t req;
-  sbgc_frame_set_cmd(&req, SBGC_CMD_BOARD_INFO);
-  sbgc_send(&sbgc, &req);
+  sbgc_frame_setup(&req, SBGC_CMD_BOARD_INFO, NULL, 0);
+  TEST_ASSERT(sbgc_send(&sbgc, &req) == 0);
 
   // Get response
   sbgc_frame_t resp;
-  sbgc_read(&sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &resp);
+  TEST_ASSERT(sbgc_read(&sbgc, SBGC_CMD_BOARD_INFO_FRAME_SIZE, &resp) == 0);
 
   // Assert
-  TEST_ASSERT(resp.data_size == 18);
+  TEST_ASSERT(resp.payload_size == 18);
 
   return 0;
 }
@@ -1013,11 +966,11 @@ int test_sbgc_info() {
 
   // Get board info
   sbgc_info(&sbgc);
-  printf("board version: %d\n", sbgc.board_version);
-  printf("firmware version: %d\n", sbgc.firmware_version);
-  printf("debug mode: %d\n", sbgc.debug_mode);
-  printf("board features: %d\n", sbgc.board_features);
-  printf("connection flags: %d\n", sbgc.connection_flags);
+  // printf("board version: %d\n", sbgc.board_version);
+  // printf("firmware version: %d\n", sbgc.firmware_version);
+  // printf("state_flags: %d\n", sbgc.state_flags);
+  // printf("board features: %d\n", sbgc.board_features);
+  // printf("connection flags: %d\n", sbgc.connection_flags);
 
   return 0;
 }
@@ -1026,10 +979,15 @@ int test_sbgc_get_realtime_data() {
   // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
+  TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
   // Get imu data
   for (int i = 0; i < 100; ++i) {
-    sbgc_get_realtime_data(&sbgc);
+    int retval = sbgc_get_realtime_data(&sbgc);
+    if (retval != 0) {
+      printf("retval: %d\n", retval);
+      return -1;
+    }
     sbgc_data_t_print(&sbgc.data);
   }
 
@@ -1089,11 +1047,11 @@ int test_sbgc_set_angle_speed() {
 }
 
 int main(int argc, char *argv[]) {
-  // TEST(test_sbgc_connect_disconnect);
-  // TEST(test_sbgc_send);
-  // TEST(test_sbgc_read);
+  TEST(test_sbgc_connect_disconnect);
+  TEST(test_sbgc_send);
+  TEST(test_sbgc_read);
   TEST(test_sbgc_info);
-  // TEST(test_sbgc_get_realtime_data);
+  TEST(test_sbgc_get_realtime_data);
   // TEST(test_sbgc_set_angle);
   // TEST(test_sbgc_set_angle_speed);
 
