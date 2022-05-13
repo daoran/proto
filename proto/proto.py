@@ -1698,6 +1698,7 @@ def plot_tf(ax, T, **kwargs):
     name_offset (np.array or list): Position offset for displaying the frame's name
     fontsize (float): Frame font size
     fontweight (float): Frame font weight
+    colors (tuple of floats): Axes colors in x, y and z
 
   """
   assert T.shape == (4, 4)
@@ -3768,7 +3769,6 @@ class ImuFactor(Factor):
 
 class MargFactor(Factor):
   """ Marginalization Factor """
-
   def __init__(self, pids):
     assert len(pids) > 0
     Factor.__init__(self, "MargFactor", pids, None, data.state_P)
@@ -3826,7 +3826,6 @@ class MargFactor(Factor):
     r = np.zeros((2, 2))
     if kwargs.get('only_residuals', False):
       return r
-
 
 
 # SOLVER #######################################################################
@@ -6295,9 +6294,6 @@ class RobotArmSimulation:
   def __init__(self, **kwargs):
     # Settings
     pass
-
-
-
 
 
 ###############################################################################
