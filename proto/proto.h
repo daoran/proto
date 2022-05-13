@@ -1045,13 +1045,13 @@ void imu_buf_clear(imu_buf_t *imu_buf);
 void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
 void imu_buf_print(const imu_buf_t *imu_buf);
 
-// void imu_factor_setup(imu_factor_t *factor,
-//                       imu_params_t *imu_params,
-//                       imu_buf_t *imu_buf,
-//                       pose_t *pose_i,
-//                       speed_biases_t *sb_i,
-//                       pose_t *pose_j,
-//                       speed_biases_t *sb_j);
+void imu_factor_setup(imu_factor_t *factor,
+                      imu_params_t *imu_params,
+                      imu_buf_t *imu_buf,
+                      pose_t *pose_i,
+                      speed_biases_t *sb_i,
+                      pose_t *pose_j,
+                      speed_biases_t *sb_j);
 void imu_factor_reset(imu_factor_t *factor);
 
 // GRAPH ///////////////////////////////////////////////////////////////////////

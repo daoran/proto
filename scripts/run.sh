@@ -288,6 +288,8 @@ run_sbgc_tests
 # run_test test_imu_buf_clear
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
+run_test test_imu_factor_setup
+# run_test test_imu_factor_eval
 # run_test test_ceres_solver
 # run_test test_graph_setup
 # run_test test_graph_print

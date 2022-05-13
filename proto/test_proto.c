@@ -3557,28 +3557,27 @@ int test_imu_buf_print() {
   return 0;
 }
 
-/* int test_imu_factor_setup() { */
-/*   imu_factor_t imu_factor; */
-/*   imu_params_t imu_params; */
-/*   imu_buf_t imu_buf; */
-/*  */
-/*   pose_t pose_i; */
-/*   speed_biases_t sb_i; */
-/*   pose_t pose_j; */
-/*   speed_biases_t sb_j; */
-/*  */
-/*   imu_buf_setup(&imu_buf); */
-/*  */
-/*   imu_factor_setup(&imu_factor, */
-/*                    &imu_params, */
-/*                    &imu_buf, */
-/*                    &pose_i, */
-/*                    &sb_i, */
-/*                    &pose_j, */
-/*                    &sb_j); */
-/*  */
-/*   return 0; */
-/* } */
+int test_imu_factor_setup() {
+  imu_factor_t imu_factor;
+  imu_params_t imu_params;
+  imu_buf_t imu_buf;
+
+  pose_t pose_i;
+  speed_biases_t sb_i;
+  pose_t pose_j;
+  speed_biases_t sb_j;
+
+  imu_buf_setup(&imu_buf);
+  imu_factor_setup(&imu_factor,
+                   &imu_params,
+                   &imu_buf,
+                   &pose_i,
+                   &sb_i,
+                   &pose_j,
+                   &sb_j);
+
+  return 0;
+}
 
 // int test_ceres_graph() {
 //   int num_observations = 67;
@@ -4578,7 +4577,7 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buf_clear);
   MU_ADD_TEST(test_imu_buf_copy);
   MU_ADD_TEST(test_imu_buf_print);
-  /* MU_ADD_TEST(test_imu_factor_setup); */
+  MU_ADD_TEST(test_imu_factor_setup);
   /* MU_ADD_TEST(test_imu_factor_eval); */
   /* -- Graph */
   /* MU_ADD_TEST(test_ceres_graph); */
