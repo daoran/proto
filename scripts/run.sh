@@ -111,13 +111,14 @@ run_test() {
 }
 
 run_sbgc_tests() {
+  touch proto/proto.c;
   time make build
   cd ./proto/build/bin;
   ./test_sbgc
   cd -
 }
 
-# run_sbgc_tests
+run_sbgc_tests
 
 # PROTO
 # run_all_tests
@@ -342,11 +343,11 @@ run_sbgc_tests() {
 # arduino --upload firmware/firmware.ino
 # arduino firmware/firmware.ino
 
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "\
-  cd ~/projects/proto \
-  && arduino --upload firmware/firmware.ino
-" C-m C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto \
+#   && arduino --upload firmware/firmware.ino
+# " C-m C-m
+# exit
 
 # && cu -l /dev/ttyACM0 -s 115200
