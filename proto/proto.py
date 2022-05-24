@@ -1337,7 +1337,11 @@ def quat_mul(p, q):
 
 def quat_omega(w):
   """ Quaternion omega matrix """
-  return np.block([[-1.0 * skew(w), w], [w.T, 0.0]])
+  Omega = np.zeros((4, 4))
+  Omega[0, 1:4] = -w.T
+  Omega[1:4, 0] = w
+  Omega[1:4, 1:4] = -skew(w)
+  return Omega
 
 
 def quat_delta(dalpha):
@@ -6018,6 +6022,11 @@ class SimData:
     self.yaw_init = pi / 2.0
     self.features = self._setup_features()
 
+    # print(f"circle_r: {self.circle_r}")
+    # print(f"circle_v: {self.circle_v}")
+    # print(f"circle_dist: {self.circle_dist}")
+    # print(f"time_taken: {self.time_taken}")
+
     # Simulate IMU
     self.imu0_data = None
     if kwargs.get("sim_imu", True):
@@ -7314,8 +7323,8 @@ class TestFactors(unittest.TestCase):
   def test_imu_factor_propagate(self):
     """ Test IMU factor propagate """
     # Sim imu data
-    circle_r = 0.5
-    circle_v = 1.0
+    circle_r = 0.1
+    circle_v = 0.2
     sim_data = SimData(circle_r, circle_v, sim_cams=False)
     imu_data = sim_data.imu0_data
 
@@ -7345,6 +7354,10 @@ class TestFactors(unittest.TestCase):
 
     # Propagate imu measurements
     data = ImuFactor.propagate(imu_buf, imu_params, sb_i)
+    print(f"dr: {data.dr}")
+    print(f"dv: {data.dv}")
+    print(f"dC: {data.dC}")
+    print(f"Dt: {data.Dt}")
 
     # Check propagation
     ts_j = imu_data.timestamps[end_idx - 1]
