@@ -106,6 +106,7 @@ run_all_tests() {
 run_test() {
   time make build
   cd ./proto/build/bin;
+  # gdb -ex run -ex bt --args ./test_proto --target "$1"
   ./test_proto --target "$1"
   cd -
 }
