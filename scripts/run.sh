@@ -112,13 +112,14 @@ run_test() {
 }
 
 run_sbgc_tests() {
+  touch proto/proto.c;
   time make build
   cd ./proto/build/bin;
   ./test_sbgc
   cd -
 }
 
-# run_sbgc_tests
+run_sbgc_tests
 
 # PROTO
 # run_all_tests
@@ -288,7 +289,7 @@ run_sbgc_tests() {
 # run_test test_imu_buf_clear
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
-run_test test_imu_factor_setup
+# run_test test_imu_factor_setup
 # run_test test_imu_factor_eval
 # run_test test_ceres_solver
 # run_test test_graph_setup
