@@ -206,6 +206,7 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays);
 int *int_malloc(const int val);
 float *float_malloc(const float val);
 double *double_malloc(const double val);
+real_t *vector_malloc(const real_t *vec, const real_t N);
 
 int dsv_rows(const char *fp);
 int dsv_cols(const char *fp, const char delim);

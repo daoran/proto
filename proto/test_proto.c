@@ -3557,17 +3557,154 @@ int test_imu_buf_print() {
   return 0;
 }
 
+typedef struct imu_test_data_t {
+  int nb_measurements;
+  real_t *timestamps;
+  real_t **poses;
+  real_t **velocities;
+  real_t **imu_acc;
+  real_t **imu_gyr;
+} imu_test_data_t;
+
+static int setup_imu_test_data(imu_test_data_t *test_data) {
+  // Circle trajectory configurations
+  const real_t imu_rate = 200.0;
+  const real_t circle_r = 0.1;
+  const real_t circle_v = 0.2;
+  const real_t circle_dist = 2.0 * M_PI * circle_r;
+  const real_t time_taken = circle_dist / circle_v;
+  const real_t w = -2.0 * M_PI * (1.0 / time_taken);
+  const real_t theta_init = M_PI;
+  const real_t yaw_init = M_PI / 2.0;
+
+  // Allocate memory for test data
+  test_data->nb_measurements = time_taken * imu_rate;
+  test_data->timestamps = malloc(sizeof(real_t) * test_data->nb_measurements);
+  test_data->poses = malloc(sizeof(real_t *) * test_data->nb_measurements);
+  test_data->velocities = malloc(sizeof(real_t *) * test_data->nb_measurements);
+  test_data->imu_acc = malloc(sizeof(real_t *) * test_data->nb_measurements);
+  test_data->imu_gyr = malloc(sizeof(real_t *) * test_data->nb_measurements);
+
+  // Simulate IMU poses
+  const real_t dt = 1.0 / imu_rate;
+  timestamp_t ts = 0.0;
+  real_t theta = theta_init;
+  real_t yaw = yaw_init;
+
+  for (int k = 0; k < test_data->nb_measurements; k++) {
+    // IMU pose
+    // -- Position
+    const real_t rx = circle_r * cos(theta);
+    const real_t ry = circle_r * sin(theta);
+    const real_t rz = 0.0;
+    // -- Orientation
+    const real_t ypr[3] = {yaw, 0.0, 0.0};
+    real_t q[4] = {0};
+    euler2quat(ypr, q);
+    // -- Pose vector
+    const real_t pose[7] = {rx, ry, rz, q[0], q[1], q[2], q[3]};
+    print_vector("pose", pose, 7);
+
+    // IMU velocity
+    const real_t vx = -circle_r * w * sin(theta);
+    const real_t vy = circle_r * w * cos(theta);
+    const real_t vz = 0.0;
+    const real_t v_WS[3] = {vx, vy, vz};
+
+    // IMU acceleration
+    const real_t ax = -circle_r * w * w * cos(theta);
+    const real_t ay = -circle_r * w * w * sin(theta);
+    const real_t az = 0.0;
+    const real_t a_WS[3] = {ax, ay, az};
+
+    // IMU angular velocity
+    const real_t wx = 0.0;
+    const real_t wy = 0.0;
+    const real_t wz = w;
+    const real_t w_WS[3] = {wx, wy, wz};
+
+    // IMU measurements
+    real_t C_WS[3 * 3] = {0};
+    real_t C_SW[3 * 3] = {0};
+    quat2rot(q, C_WS);
+    mat_transpose(C_WS, 3, 3, C_SW);
+    // -- Accelerometer measurement
+    real_t acc[3] = {0};
+    dot(C_SW, 3, 3, a_WS, 3, 1, acc);
+    acc[2] += 10.0;
+    // -- Gyroscope measurement
+    real_t gyr[3] = {0};
+    dot(C_SW, 3, 3, w_WS, 3, 1, gyr);
+
+    // Update
+    test_data->timestamps[k] = ts;
+    test_data->poses[k] = vector_malloc(pose, 7);
+    test_data->velocities[k] = vector_malloc(v_WS, 3);
+    test_data->imu_acc[k] = vector_malloc(acc, 3);
+    test_data->imu_gyr[k] = vector_malloc(gyr, 3);
+
+    theta += w * dt;
+    yaw += w * dt;
+    ts += sec2ts(dt);
+  }
+
+  return 0;
+}
+
+static void free_imu_test_data(imu_test_data_t *test_data) {
+  test_data->nb_measurements = 0;
+
+  for (int k = 0; k < test_data->nb_measurements; k++) {
+    free(test_data->poses[k]);
+    free(test_data->velocities[k]);
+    free(test_data->imu_acc[k]);
+    free(test_data->imu_gyr[k]);
+  }
+
+  free(test_data->poses);
+  free(test_data->velocities);
+  free(test_data->imu_acc);
+  free(test_data->imu_gyr);
+}
+
 int test_imu_factor_setup() {
-  imu_factor_t imu_factor;
-  imu_params_t imu_params;
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data);
+
+  // Setup IMU buffer
   imu_buf_t imu_buf;
-
-  pose_t pose_i;
-  speed_biases_t sb_i;
-  pose_t pose_j;
-  speed_biases_t sb_j;
-
   imu_buf_setup(&imu_buf);
+  for (int k = 0; k < test_data.nb_measurements; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *acc = test_data.imu_acc[k];
+    const real_t *gyr = test_data.imu_gyr[k];
+    imu_buf_add(&imu_buf, ts, acc, gyr);
+  }
+
+  // Setup IMU factor
+  const int idx_i = 0;
+  const int idx_j = test_data.nb_measurements - 1;
+  const timestamp_t ts_i = test_data.timestamps[idx_i];
+  const timestamp_t ts_j = test_data.timestamps[idx_j];
+  const real_t *vi = test_data.velocities[idx_i];
+  const real_t *vj = test_data.velocities[idx_j];
+  const real_t sb_i_data[9] = {vi[0], vi[1], vi[2], 0, 0, 0, 0, 0, 0};
+  const real_t sb_j_data[9] = {vj[0], vj[1], vj[2], 0, 0, 0, 0, 0, 0};
+  pose_t pose_i;
+  pose_t pose_j;
+  speed_biases_t sb_i;
+  speed_biases_t sb_j;
+  pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
+  pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
+  speed_biases_setup(&sb_i, ts_i, sb_i_data);
+  speed_biases_setup(&sb_j, ts_j, sb_j_data);
+
+  pose_print("pose_i", &pose_i);
+  pose_print("pose_j", &pose_j);
+
+  imu_params_t imu_params;
+  imu_factor_t imu_factor;
   imu_factor_setup(&imu_factor,
                    &imu_params,
                    &imu_buf,
@@ -3576,6 +3713,18 @@ int test_imu_factor_setup() {
                    &pose_j,
                    &sb_j);
 
+  MU_ASSERT(imu_factor.pose_i == &pose_i);
+  MU_ASSERT(imu_factor.sb_i == &sb_i);
+  MU_ASSERT(imu_factor.pose_i == &pose_i);
+  MU_ASSERT(imu_factor.sb_j == &sb_j);
+
+  print_vector("dr", imu_factor.dr, 3);
+  print_vector("dv", imu_factor.dv, 3);
+  print_matrix("dC", imu_factor.dC, 3, 3);
+  printf("Dt: %f\n", imu_factor.Dt);
+
+  // Clean up
+  free_imu_test_data(&test_data);
   return 0;
 }
 

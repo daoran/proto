@@ -469,6 +469,17 @@ double *double_malloc(const double val) {
 }
 
 /**
+ * Allocate heap memory for vector `vec` with length `N`.
+ */
+real_t *vector_malloc(const real_t *vec, const real_t N) {
+  real_t *retval = malloc(sizeof(real_t) * N);
+  for (int i = 0; i < N; i++) {
+    retval[i] = vec[i];
+  }
+  return retval;
+}
+
+/**
  * Get number of rows in a delimited file at `fp`.
  * @returns
  * - Number of rows
@@ -6336,6 +6347,9 @@ void imu_buf_copy(const imu_buf_t *src, imu_buf_t *dst) {
   dst->size = src->size;
 }
 
+/**
+ * Propagate IMU measurements
+ */
 static void imu_factor_propagate_step(imu_factor_t *factor,
                                       const real_t a[3],
                                       const real_t w[3],
@@ -6424,6 +6438,9 @@ static void imu_factor_propagate_step(imu_factor_t *factor,
   // P = I_F_dt * P * I_F_dt' + G_dt * Q * G_dt';
 }
 
+/**
+ * IMU Factor setup
+ */
 void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
                       imu_buf_t *imu_buf,
@@ -6499,11 +6516,13 @@ void imu_factor_setup(imu_factor_t *factor,
   factor->bg[2] = sb_i->data[8];
 
   // Pre-integrate imu measuremenets
+  real_t dt = 0.0;
   for (int k = 0; k < imu_buf->size; k++) {
-    // Euler integration
-    const timestamp_t ts_i = imu_buf->ts[k];
-    const timestamp_t ts_j = imu_buf->ts[k + 1];
-    const real_t dt = ts_j - ts_i;
+    if (k + 1 < imu_buf->size) {
+      const timestamp_t ts_i = imu_buf->ts[k];
+      const timestamp_t ts_j = imu_buf->ts[k + 1];
+      dt = ts2sec(ts_j - ts_i);
+    }
     const real_t *a = imu_buf->acc[k];
     const real_t *w = imu_buf->gyr[k];
     imu_factor_propagate_step(factor, a, w, dt);
