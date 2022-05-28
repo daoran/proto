@@ -1030,11 +1030,11 @@ typedef struct imu_factor_t {
   real_t P[15 * 15]; // State covariance
   real_t Q[15 * 15]; // Noise matrix
 
-  real_t dr[3];     // Relative position
-  real_t dv[3];     // Relative velocity
-  real_t dC[3 * 3]; // Relative rotation
-  real_t ba[3];     // Accel biase
-  real_t bg[3];     // Gyro biase
+  real_t dr[3]; // Relative position
+  real_t dv[3]; // Relative velocity
+  real_t dq[4]; // Relative rotation
+  real_t ba[3]; // Accel biase
+  real_t bg[3]; // Gyro biase
 
 } imu_factor_t;
 
@@ -1047,6 +1047,14 @@ void imu_buf_clear(imu_buf_t *imu_buf);
 void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
 void imu_buf_print(const imu_buf_t *imu_buf);
 
+void imu_factor_propagate_step(real_t r[3],
+                               real_t v[3],
+                               real_t q[4],
+                               real_t ba[3],
+                               real_t bg[3],
+                               const real_t a[3],
+                               const real_t w[3],
+                               const real_t dt);
 void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
                       imu_buf_t *imu_buf,
