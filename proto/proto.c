@@ -3719,10 +3719,10 @@ void tf_vector(const real_t T[4 * 4], real_t params[7]) {
   params[1] = r[1];
   params[2] = r[2];
 
-  params[3] = q[1];
-  params[4] = q[2];
-  params[5] = q[3];
-  params[6] = q[0];
+  params[3] = q[0];
+  params[4] = q[1];
+  params[5] = q[2];
+  params[6] = q[3];
 }
 
 /**
@@ -5304,10 +5304,10 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   pose->pos[2] = data[2]; // rz
 
   // Rotation (Quaternion)
-  pose->quat[0] = data[6]; // qw
-  pose->quat[1] = data[3]; // qx
-  pose->quat[2] = data[4]; // qy
-  pose->quat[3] = data[5]; // qz
+  pose->quat[0] = data[3]; // qw
+  pose->quat[1] = data[4]; // qx
+  pose->quat[2] = data[5]; // qy
+  pose->quat[3] = data[6]; // qz
 }
 
 /**
@@ -6532,7 +6532,7 @@ void imu_factor_setup(imu_factor_t *factor,
   // -- Relative velocity
   zeros(factor->dv, 3, 1);
   // -- Relative rotation
-  eye(factor->dC, 3, 3);
+  quat_setup(factor->dq);
   // -- Accelerometer bias
   factor->ba[0] = sb_i->data[3];
   factor->ba[1] = sb_i->data[4];
@@ -6569,7 +6569,7 @@ void imu_factor_reset(imu_factor_t *factor) {
 
   zeros(factor->dr, 3, 1); // Relative position
   zeros(factor->dv, 3, 1); // Relative velocity
-  eye(factor->dC, 3, 3);   // Relative rotation
+  quat_setup(factor->dq);  // Relative rotation
   zeros(factor->ba, 3, 1); // Accel bias
   zeros(factor->bg, 3, 1); // Gyro bias
 }
