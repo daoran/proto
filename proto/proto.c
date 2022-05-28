@@ -6415,57 +6415,6 @@ void imu_factor_propagate_step(real_t r[3],
 }
 
 /**
- * IMU Factor - Propagate IMU measurement
- */
-static void imu_factor_propagate_step(imu_factor_t *factor,
-                                      const real_t a[3],
-                                      const real_t w[3],
-                                      const real_t dt) {
-  // Update state
-  imu_propagate_step(factor->dr,
-                     factor->dv,
-                     factor->dq,
-                     factor->ba,
-                     factor->bg,
-                     a,
-                     w,
-                     dt);
-
-  // Form continuous time transition matrix F
-  real_t I_F_dt[15 * 15] = {0};
-  // F[0 : 3, 3 : 6] = eye(3);
-  I_F_dt[0] = 1.0;
-  I_F_dt[3] = 1.0;
-  I_F_dt[6] = 1.0;
-  // F[4 : 6, 7 : 9] = - dC * skew(a_t);
-  // F[4 : 6, 10 : 12] = - dC;
-  // F[7 : 9, 7 : 9] = - skew(w_t);
-  // F[7 : 9, 13 : 15] = - eye(3);
-  // I_F_dt = eye(15) + F * dt;
-  for (int i = 0; i < (15 * 15); i++) {
-    I_F_dt[i] = I_F_dt[i] * dt;
-  }
-
-  // Form continuous time input jacobian G
-  real_t G_dt[15 * 15] = {0};
-  // G[4 : 6, 1 : 3] = - dC;
-  // G[7 : 9, 4 : 6] = - eye(3);
-  // G[10 : 12, 7 : 9] = eye(3);
-  // G[13 : 15, 10 : 12] = eye(3);
-  // G_dt = G * dt;
-  for (int i = 0; i < (15 * 15); i++) {
-    G_dt[i] = G_dt[i] * dt;
-    if (i == 0 || i % 6 == 0) {
-      G_dt[i] = 1.0 + G_dt[i];
-    }
-  }
-
-  // Update state matrix F and P
-  // F = I_F_dt * factor.state_F;
-  // P = I_F_dt * P * I_F_dt' + G_dt * Q * G_dt';
-}
-
-/**
  * IMU Factor setup
  */
 void imu_factor_setup(imu_factor_t *factor,
@@ -6552,7 +6501,49 @@ void imu_factor_setup(imu_factor_t *factor,
     }
     const real_t *a = imu_buf->acc[k];
     const real_t *w = imu_buf->gyr[k];
-    imu_factor_propagate_step(factor, a, w, dt);
+
+    // Propagate
+    imu_factor_propagate_step(factor->dr,
+                              factor->dv,
+                              factor->dq,
+                              factor->ba,
+                              factor->bg,
+                              a,
+                              w,
+                              dt);
+
+    // Form continuous time transition matrix F
+    real_t I_F_dt[15 * 15] = {0};
+    // F[0 : 3, 3 : 6] = eye(3);
+    I_F_dt[0] = 1.0;
+    I_F_dt[3] = 1.0;
+    I_F_dt[6] = 1.0;
+    // F[4 : 6, 7 : 9] = - dC * skew(a_t);
+    // F[4 : 6, 10 : 12] = - dC;
+    // F[7 : 9, 7 : 9] = - skew(w_t);
+    // F[7 : 9, 13 : 15] = - eye(3);
+    // I_F_dt = eye(15) + F * dt;
+    for (int i = 0; i < (15 * 15); i++) {
+      I_F_dt[i] = I_F_dt[i] * dt;
+    }
+
+    // Form continuous time input jacobian G
+    real_t G_dt[15 * 15] = {0};
+    // G[4 : 6, 1 : 3] = - dC;
+    // G[7 : 9, 4 : 6] = - eye(3);
+    // G[10 : 12, 7 : 9] = eye(3);
+    // G[13 : 15, 10 : 12] = eye(3);
+    // G_dt = G * dt;
+    for (int i = 0; i < (15 * 15); i++) {
+      G_dt[i] = G_dt[i] * dt;
+      if (i == 0 || i % 6 == 0) {
+        G_dt[i] = 1.0 + G_dt[i];
+      }
+    }
+
+    // Update state matrix F and P
+    // F = I_F_dt * factor.state_F;
+    // P = I_F_dt * P * I_F_dt' + G_dt * Q * G_dt';
     factor->Dt += dt;
   }
 }
