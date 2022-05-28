@@ -4446,9 +4446,9 @@ void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]) {
   const real_t qz = q[3];
 
   r[0] = qw * q[0] - qx * q[1] - qy * q[2] - qz * q[3];
-  r[0] = qx * q[0] + qw * q[1] + qz * q[2] - qy * q[3];
-  r[0] = qy * q[0] - qz * q[1] + qw * q[2] + qx * q[3];
-  r[0] = qz * q[0] + qy * q[1] - qx * q[2] + qw * q[3];
+  r[1] = qx * q[0] + qw * q[1] + qz * q[2] - qy * q[3];
+  r[2] = qy * q[0] - qz * q[1] + qw * q[2] + qx * q[3];
+  r[3] = qz * q[0] + qy * q[1] - qx * q[2] + qw * q[3];
 }
 
 /**
