@@ -707,7 +707,7 @@ void rot2quat(const real_t C[3 * 3], real_t q[4]);
 void rot2euler(const real_t C[3 * 3], real_t ypr[3]);
 void quat2euler(const real_t q[4], real_t ypr[3]);
 void quat2rot(const real_t q[4], real_t C[3 * 3]);
-void quat_print(const char *prefix, const real_t q[4]);
+void print_quat(const char *prefix, const real_t q[4]);
 real_t quat_norm(const real_t q[4]);
 void quat_setup(real_t q[4]);
 void quat_normalize(real_t q[4]);

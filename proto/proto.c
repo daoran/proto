@@ -4275,7 +4275,7 @@ void quat2euler(const real_t q[4], real_t ypr[3]) {
 /**
  * Print Quaternion
  */
-void quat_print(const char *prefix, const real_t q[4]) {
+void print_quat(const char *prefix, const real_t q[4]) {
   printf("%s: [w: %.10f, x: %.10f, y: %.10f, z: %.10f]\n",
          prefix,
          q[0],
