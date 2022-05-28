@@ -6358,53 +6358,52 @@ void imu_buf_copy(const imu_buf_t *src, imu_buf_t *dst) {
 }
 
 /**
- * Propagate IMU measurements
+ * Propagate IMU measurement
  */
-static void imu_factor_propagate_step(imu_factor_t *factor,
-                                      const real_t a[3],
-                                      const real_t w[3],
-                                      const real_t dt) {
-  // Setup
-  const real_t dt_sq = dt * dt;
-  real_t *dr = factor->dr;
-  real_t *dv = factor->dv;
-  real_t *dC = factor->dC;
-  real_t *ba = factor->ba;
-  real_t *bg = factor->bg;
-
+void imu_factor_propagate_step(real_t r[3],
+                               real_t v[3],
+                               real_t q[4],
+                               real_t ba[3],
+                               real_t bg[3],
+                               const real_t a[3],
+                               const real_t w[3],
+                               const real_t dt) {
   // Compensate accelerometer and gyroscope measurements
   const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
   const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
 
   // Update position:
   // dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq);
-  real_t vel_int[3] = {dv[0], dv[1], dv[2]};
-  vec_scale(vel_int, 3, dt);
-
   real_t acc_dint[3] = {0};
-  dot(dC, 3, 3, a_t, 3, 1, acc_dint);
-  vec_scale(acc_dint, 3, 0.5 * dt_sq);
-
-  dr[0] += vel_int[0] + acc_dint[0];
-  dr[1] += vel_int[1] + acc_dint[1];
-  dr[2] += vel_int[2] + acc_dint[2];
+  real_t C[3 * 3] = {0};
+  quat2rot(q, C);
+  dot(C, 3, 3, a_t, 3, 1, acc_dint);
+  r[0] += (v[0] * dt) + (0.5 * acc_dint[0] * dt * dt);
+  r[1] += (v[1] * dt) + (0.5 * acc_dint[1] * dt * dt);
+  r[2] += (v[2] * dt) + (0.5 * acc_dint[2] * dt * dt);
 
   // Update velocity
   // dv = dv + dC * a_t * dt;
-  real_t dv_update[3] = {0};
+  real_t v_new[3] = {0};
   real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt};
-  dot(dC, 3, 3, acc_int, 3, 1, dv_update);
-  dv[0] += dv_update[0];
-  dv[1] += dv_update[1];
-  dv[2] += dv_update[2];
+  dot(C, 3, 3, acc_int, 3, 1, v_new);
+  v[0] += v_new[0];
+  v[1] += v_new[1];
+  v[2] += v_new[2];
 
   // Update rotation
-  // dC = dC * Exp((w_t) * dt);
-  real_t dC_old[3 * 3] = {0};
-  real_t C_update[3 * 3] = {0};
-  real_t w_int[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt};
-  mat_copy(dC, 3, 3, dC_old);
-  dot(dC_old, 3, 3, C_update, 3, 3, dC);
+  // dq = quat_mul(dq, [1.0, 0.5 * wx * dt, 0.5 * wy * dt, 0.5 * wz * dt]);
+  real_t q_int[4] = {0};
+  real_t q_new[4] = {0};
+  q_int[0] = 1.0;
+  q_int[1] = 0.5 * w_t[0] * dt;
+  q_int[2] = 0.5 * w_t[1] * dt;
+  q_int[3] = 0.5 * w_t[2] * dt;
+  quat_mul(q, q_int, q_new);
+  q[0] = q_new[0];
+  q[1] = q_new[1];
+  q[2] = q_new[2];
+  q[3] = q_new[3];
 
   // Update accelerometer biases
   // ba = ba;
@@ -6413,6 +6412,24 @@ static void imu_factor_propagate_step(imu_factor_t *factor,
   // Update gyroscope biases
   // bg = bg;
   // NOOP
+}
+
+/**
+ * IMU Factor - Propagate IMU measurement
+ */
+static void imu_factor_propagate_step(imu_factor_t *factor,
+                                      const real_t a[3],
+                                      const real_t w[3],
+                                      const real_t dt) {
+  // Update state
+  imu_propagate_step(factor->dr,
+                     factor->dv,
+                     factor->dq,
+                     factor->ba,
+                     factor->bg,
+                     a,
+                     w,
+                     dt);
 
   // Form continuous time transition matrix F
   real_t I_F_dt[15 * 15] = {0};

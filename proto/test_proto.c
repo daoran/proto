@@ -3605,19 +3605,19 @@ static int setup_imu_test_data(imu_test_data_t *test_data) {
     const real_t pose[7] = {rx, ry, rz, q[0], q[1], q[2], q[3]};
     print_vector("pose", pose, 7);
 
-    // IMU velocity
+    // Velocity
     const real_t vx = -circle_r * w * sin(theta);
     const real_t vy = circle_r * w * cos(theta);
     const real_t vz = 0.0;
     const real_t v_WS[3] = {vx, vy, vz};
 
-    // IMU acceleration
+    // Acceleration
     const real_t ax = -circle_r * w * w * cos(theta);
     const real_t ay = -circle_r * w * w * sin(theta);
     const real_t az = 0.0;
     const real_t a_WS[3] = {ax, ay, az};
 
-    // IMU angular velocity
+    // Angular velocity
     const real_t wx = 0.0;
     const real_t wy = 0.0;
     const real_t wz = w;
@@ -3665,6 +3665,92 @@ static void free_imu_test_data(imu_test_data_t *test_data) {
   free(test_data->velocities);
   free(test_data->imu_acc);
   free(test_data->imu_gyr);
+}
+
+int test_imu_factor_propagate_step() {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data);
+
+  // Setup IMU buffer
+  imu_buf_t imu_buf;
+  imu_buf_setup(&imu_buf);
+  for (int k = 0; k < test_data.nb_measurements; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *acc = test_data.imu_acc[k];
+    const real_t *gyr = test_data.imu_gyr[k];
+    imu_buf_add(&imu_buf, ts, acc, gyr);
+  }
+
+  // Setup state
+  const real_t *pose_init = test_data.poses[0];
+  const real_t *vel_init = test_data.velocities[0];
+
+  real_t r[3] = {pose_init[0], pose_init[1], pose_init[2]};
+  real_t v[3] = {vel_init[0], vel_init[1], vel_init[2]};
+  real_t q[4] = {pose_init[3], pose_init[4], pose_init[5], pose_init[6]};
+  real_t ba[3] = {0};
+  real_t bg[3] = {0};
+
+  // Integrate imu measuremenets
+  FILE *est_csv = fopen("/tmp/imu_est.csv", "w");
+  fprintf(est_csv, "ts,rx,ry,rz,qw,qx,qy,qz,vx,vy,vz\n");
+
+  real_t dt = 0.0;
+  for (int k = 0; k < imu_buf.size; k++) {
+    if (k + 1 < imu_buf.size) {
+      const timestamp_t ts_i = imu_buf.ts[k];
+      const timestamp_t ts_j = imu_buf.ts[k + 1];
+      dt = ts2sec(ts_j) - ts2sec(ts_i);
+    }
+    const timestamp_t ts = imu_buf.ts[k];
+    const real_t *a = imu_buf.acc[k];
+    const real_t *w = imu_buf.gyr[k];
+    imu_factor_propagate_step(r, v, q, ba, bg, a, w, dt);
+
+    // real_t C_est[3 * 3] = {0};
+    // real_t C_gnd[3 * 3] = {0};
+    // real_t C_gnd_T[3 * 3] = {0};
+    // real_t dC[3 * 3] = {0};
+    // const real_t *pose = test_data.poses[k];
+    // const real_t q_gnd[4] = {pose[3], pose[4], pose[5], pose[6]};
+    // quat2rot(q, C_est);
+    // quat2rot(q_gnd, C_gnd);
+    // mat_transpose(C_gnd, 3, 3, C_gnd_T);
+    // dot(C_gnd_T, 3, 3, C_est, 3, 3, dC);
+    // const real_t ddeg = rad2deg(acos((mat_trace(dC, 3, 3) - 1.0) / 2.0));
+
+    // const real_t *pose = test_data.poses[k];
+    // const real_t r_gnd[3] = {pose[0], pose[1], pose[2]};
+    // const real_t dr[3] = {r_gnd[0] - r[0], r_gnd[1] - r[1], r_gnd[2] - r[2]};
+    // const real_t dpos = vec_norm(dr, 3);
+    // printf("dpos: %f\n", dpos);
+
+    fprintf(est_csv, "%ld,", ts);
+    fprintf(est_csv, "%f,%f,%f,", r[0], r[1], r[2]);
+    fprintf(est_csv, "%f,%f,%f,%f,", q[0], q[1], q[2], q[3]);
+    fprintf(est_csv, "%f,%f,%f\n", v[0], v[1], v[2]);
+  }
+  fclose(est_csv);
+
+  // Save ground-truth data
+  FILE *gnd_csv = fopen("/tmp/imu_gnd.csv", "w");
+  fprintf(gnd_csv, "ts,rx,ry,rz,qw,qx,qy,qz,vx,vy,vz\n");
+  for (int k = 0; k < test_data.nb_measurements; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *pose = test_data.poses[k];
+    const real_t *v = test_data.velocities[k];
+    const real_t r[3] = {pose[0], pose[1], pose[2]};
+    const real_t q[4] = {pose[3], pose[4], pose[5], pose[6]};
+
+    fprintf(gnd_csv, "%ld,", ts);
+    fprintf(gnd_csv, "%f,%f,%f,", r[0], r[1], r[2]);
+    fprintf(gnd_csv, "%f,%f,%f,%f,", q[0], q[1], q[2], q[3]);
+    fprintf(gnd_csv, "%f,%f,%f\n", v[0], v[1], v[2]);
+  }
+  fclose(gnd_csv);
+
+  return 0;
 }
 
 int test_imu_factor_setup() {
@@ -3720,7 +3806,7 @@ int test_imu_factor_setup() {
 
   print_vector("dr", imu_factor.dr, 3);
   print_vector("dv", imu_factor.dv, 3);
-  print_matrix("dC", imu_factor.dC, 3, 3);
+  print_quat("dq", imu_factor.dq);
   printf("Dt: %f\n", imu_factor.Dt);
 
   // Clean up
