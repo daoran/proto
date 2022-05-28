@@ -3603,7 +3603,7 @@ static int setup_imu_test_data(imu_test_data_t *test_data) {
     euler2quat(ypr, q);
     // -- Pose vector
     const real_t pose[7] = {rx, ry, rz, q[0], q[1], q[2], q[3]};
-    print_vector("pose", pose, 7);
+    // print_vector("pose", pose, 7);
 
     // Velocity
     const real_t vx = -circle_r * w * sin(theta);
@@ -4812,6 +4812,7 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buf_clear);
   MU_ADD_TEST(test_imu_buf_copy);
   MU_ADD_TEST(test_imu_buf_print);
+  MU_ADD_TEST(test_imu_factor_propagate_step);
   MU_ADD_TEST(test_imu_factor_setup);
   /* MU_ADD_TEST(test_imu_factor_eval); */
   /* -- Graph */
