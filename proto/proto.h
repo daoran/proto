@@ -1173,6 +1173,10 @@ void free_sim_cam_frame(sim_cam_frame_t *frame_data);
 sim_cam_data_t *load_sim_cam_data(const char *dir_path);
 void free_sim_cam_data(sim_cam_data_t *cam_data);
 
+real_t **sim_create_features(const real_t origin[3],
+                             const real_t dim[3],
+                             const int nb_features);
+
 /******************************************************************************
  * GUI
  *****************************************************************************/

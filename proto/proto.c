@@ -7166,6 +7166,83 @@ void free_sim_cam_data(sim_cam_data_t *cam_data) {
   free(cam_data);
 }
 
+/**
+ * Simulate 3D features
+ */
+real_t **sim_create_features(const real_t origin[3],
+                             const real_t dim[3],
+                             const int nb_features) {
+  assert(origin != NULL);
+  assert(dim != NULL);
+  assert(nb_features > 0);
+
+  // Setup
+  const real_t w = dim[0];
+  const real_t l = dim[1];
+  const real_t h = dim[2];
+  const int features_per_side = nb_features / 4.0;
+  int feature_idx = 0;
+  real_t **features = malloc(sizeof(real_t *) * nb_features);
+
+  // Features in the east side
+  {
+    const real_t x_bounds[2] = {origin[0] - w, origin[0] + w};
+    const real_t y_bounds[2] = {origin[1] + l, origin[1] + l};
+    const real_t z_bounds[2] = {origin[2] - h, origin[2] + h};
+    for (int i = 0; i < features_per_side; i++) {
+      features[feature_idx] = malloc(sizeof(real_t) * 3);
+      features[feature_idx][0] = randf(x_bounds[0], x_bounds[1]);
+      features[feature_idx][1] = randf(y_bounds[0], y_bounds[1]);
+      features[feature_idx][2] = randf(z_bounds[0], z_bounds[1]);
+      feature_idx++;
+    }
+  }
+
+  // Features in the north side
+  {
+    const real_t x_bounds[2] = {origin[0] + w, origin[0] + w};
+    const real_t y_bounds[2] = {origin[1] - l, origin[1] + l};
+    const real_t z_bounds[2] = {origin[2] - h, origin[2] + h};
+    for (int i = 0; i < features_per_side; i++) {
+      features[feature_idx] = malloc(sizeof(real_t) * 3);
+      features[feature_idx][0] = randf(x_bounds[0], x_bounds[1]);
+      features[feature_idx][1] = randf(y_bounds[0], y_bounds[1]);
+      features[feature_idx][2] = randf(z_bounds[0], z_bounds[1]);
+      feature_idx++;
+    }
+  }
+
+  // Features in the west side
+  {
+    const real_t x_bounds[2] = {origin[0] - w, origin[0] + w};
+    const real_t y_bounds[2] = {origin[1] - l, origin[1] - l};
+    const real_t z_bounds[2] = {origin[2] - h, origin[2] + h};
+    for (int i = 0; i < features_per_side; i++) {
+      features[feature_idx] = malloc(sizeof(real_t) * 3);
+      features[feature_idx][0] = randf(x_bounds[0], x_bounds[1]);
+      features[feature_idx][1] = randf(y_bounds[0], y_bounds[1]);
+      features[feature_idx][2] = randf(z_bounds[0], z_bounds[1]);
+      feature_idx++;
+    }
+  }
+
+  // Features in the south side
+  {
+    const real_t x_bounds[2] = {origin[0] - w, origin[0] - w};
+    const real_t y_bounds[2] = {origin[1] - l, origin[1] + l};
+    const real_t z_bounds[2] = {origin[2] - h, origin[2] + h};
+    for (int i = 0; i < features_per_side; i++) {
+      features[feature_idx] = malloc(sizeof(real_t) * 3);
+      features[feature_idx][0] = randf(x_bounds[0], x_bounds[1]);
+      features[feature_idx][1] = randf(y_bounds[0], y_bounds[1]);
+      features[feature_idx][2] = randf(z_bounds[0], z_bounds[1]);
+      feature_idx++;
+    }
+  }
+
+  return features;
+}
+
 /******************************************************************************
  * GUI
  *****************************************************************************/
