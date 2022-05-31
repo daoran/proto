@@ -4820,10 +4820,10 @@ void test_suite() {
   /* MU_ADD_TEST(test_assoc_pose_data); */
 
   /* SIM */
-  MU_ADD_TEST(test_load_sim_features);
-  MU_ADD_TEST(test_load_sim_imu_data);
-  MU_ADD_TEST(test_load_sim_cam_frame);
-  /* MU_ADD_TEST(test_load_sim_cam_data); */
+  MU_ADD_TEST(test_sim_features_load);
+  MU_ADD_TEST(test_sim_imu_data_load);
+  MU_ADD_TEST(test_sim_camera_frame_load);
+  /* MU_ADD_TEST(test_load_sim_camera_data); */
 
   /* GUI */
 #ifdef USE_GUI
