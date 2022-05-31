@@ -3972,48 +3972,44 @@ int test_assoc_pose_data() {
  * SIM
  ******************************************************************************/
 
-// SIM FEATURES
-// ////////////////////////////////////////////////////////////////
+// SIM FEATURES //////////////////////////////////////////////////////////////
 
-int test_load_sim_features() {
+int test_sim_features_load() {
   const char *csv_file = TEST_SIM_DATA "/features.csv";
-  sim_features_t *features_data = load_sim_features(csv_file);
+  sim_features_t *features_data = sim_features_load(csv_file);
   MU_ASSERT(features_data->nb_features > 0);
-  free_sim_features(features_data);
+  sim_features_free(features_data);
   return 0;
 }
 
-// SIM IMU DATA
-// ////////////////////////////////////////////////////////////////
+// SIM IMU DATA //////////////////////////////////////////////////////////////
 
-int test_load_sim_imu_data() {
+int test_sim_imu_data_load() {
   const char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
-  sim_imu_data_t *imu_data = load_sim_imu_data(csv_file);
-  free_sim_imu_data(imu_data);
+  sim_imu_data_t *imu_data = sim_imu_data_load(csv_file);
+  sim_imu_data_free(imu_data);
   return 0;
 }
 
-// SIM CAMERA DATA
-// /////////////////////////////////////////////////////////////
+// SIM CAMERA DATA ///////////////////////////////////////////////////////////
 
-int test_load_sim_cam_frame() {
+int test_sim_camera_frame_load() {
   const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
-  sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
+  sim_camera_frame_t *frame_data = sim_camera_frame_load(frame_csv);
 
   MU_ASSERT(frame_data != NULL);
   MU_ASSERT(frame_data->ts == 100000000);
   MU_ASSERT(frame_data->feature_ids[0] == 1);
 
-  free_sim_cam_frame(frame_data);
+  sim_camera_frame_free(frame_data);
 
   return 0;
 }
 
-int test_load_sim_cam_data() {
+int test_load_sim_camera_data() {
   const char *dir_path = TEST_SIM_DATA "/cam0";
-  sim_cam_data_t *cam_data = load_sim_cam_data(dir_path);
-
-  free_sim_cam_data(cam_data);
+  sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
+  sim_camera_data_free(cam_data);
   return 0;
 }
 
@@ -4040,7 +4036,7 @@ typedef struct cam_view_t {
 int test_graph_eval() {
   /* Load test data */
   const char *dir_path = TEST_SIM_DATA "/cam0";
-  sim_cam_data_t *cam_data = load_sim_cam_data(dir_path);
+  sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
 
   /* Camera parameters */
   camera_params_t cam;
@@ -4060,7 +4056,7 @@ int test_graph_eval() {
   cam_view_t *cam_views = malloc(sizeof(cam_view_t) * cam_data->nb_frames);
   for (int k = 0; k < cam_data->nb_frames; k++) {
     /* Camera frame */
-    const sim_cam_frame_t *frame = cam_data->frames[k];
+    const sim_camera_frame_t *frame = cam_data->frames[k];
 
     /* Pose */
     pose_t *pose = &cam_views[k].pose;
@@ -4092,7 +4088,7 @@ int test_graph_eval() {
 
   /* Clean up */
   free(cam_views);
-  free_sim_cam_data(cam_data);
+  sim_camera_data_free(cam_data);
 
   return 0;
 }

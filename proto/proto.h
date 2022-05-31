@@ -1136,8 +1136,8 @@ typedef struct sim_features_t {
   int nb_features;
 } sim_features_t;
 
-sim_features_t *load_sim_features(const char *csv_path);
-void free_sim_features(sim_features_t *features_data);
+sim_features_t *sim_features_load(const char *csv_path);
+void sim_features_free(sim_features_t *features_data);
 
 // SIM IMU DATA ////////////////////////////////////////////////////////////////
 
@@ -1146,32 +1146,32 @@ typedef struct sim_imu_data_t {
   int nb_measurements;
 } sim_imu_data_t;
 
-sim_imu_data_t *load_sim_imu_data(const char *csv_path);
-void free_sim_imu_data(sim_imu_data_t *imu_data);
+sim_imu_data_t *sim_imu_data_load(const char *csv_path);
+void sim_imu_data_free(sim_imu_data_t *imu_data);
 
 // SIM CAM DATA ////////////////////////////////////////////////////////////////
 
-typedef struct sim_cam_frame_t {
+typedef struct sim_camera_frame_t {
   timestamp_t ts;
   int *feature_ids;
   real_t **keypoints;
   int nb_measurements;
-} sim_cam_frame_t;
+} sim_camera_frame_t;
 
-typedef struct sim_cam_data_t {
-  sim_cam_frame_t **frames;
+typedef struct sim_camera_data_t {
+  sim_camera_frame_t **frames;
   int nb_frames;
 
   timestamp_t *ts;
   real_t **poses;
-} sim_cam_data_t;
+} sim_camera_data_t;
 
-sim_cam_frame_t *load_sim_cam_frame(const char *csv_path);
-void print_sim_cam_frame(sim_cam_frame_t *frame_data);
-void free_sim_cam_frame(sim_cam_frame_t *frame_data);
+sim_camera_frame_t *sim_camera_frame_load(const char *csv_path);
+void print_sim_camera_frame(sim_camera_frame_t *frame_data);
+void sim_camera_frame_free(sim_camera_frame_t *frame_data);
 
-sim_cam_data_t *load_sim_cam_data(const char *dir_path);
-void free_sim_cam_data(sim_cam_data_t *cam_data);
+sim_camera_data_t *sim_camera_data_load(const char *dir_path);
+void sim_camera_data_free(sim_camera_data_t *cam_data);
 
 real_t **sim_create_features(const real_t origin[3],
                              const real_t dim[3],
