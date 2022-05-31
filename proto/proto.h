@@ -1167,7 +1167,7 @@ typedef struct sim_camera_data_t {
 } sim_camera_data_t;
 
 sim_camera_frame_t *sim_camera_frame_load(const char *csv_path);
-void print_sim_camera_frame(sim_camera_frame_t *frame_data);
+void sim_camera_frame_print(sim_camera_frame_t *frame_data);
 void sim_camera_frame_free(sim_camera_frame_t *frame_data);
 
 sim_camera_data_t *sim_camera_data_load(const char *dir_path);

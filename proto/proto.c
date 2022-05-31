@@ -7029,7 +7029,7 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
 /**
  * Print camera frame
  */
-void print_sim_camera_frame(sim_camera_frame_t *frame_data) {
+void sim_camera_frame_print(sim_camera_frame_t *frame_data) {
   printf("ts: %ld\n", frame_data->ts);
   printf("nb_frames: %d\n", frame_data->nb_measurements);
   for (int i = 0; i < frame_data->nb_measurements; i++) {
