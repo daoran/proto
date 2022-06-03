@@ -5383,34 +5383,51 @@ void pose_print(const char *prefix, const pose_t *pose) {
   printf("quat: (%.2f, %.2f, %.2f, %.2f)\n", qw, qx, qy, qz);
 }
 
-// SPEED AND BIASES ////////////////////////////////////////////////////////////
+// VELOCITY ////////////////////////////////////////////////////////////////////
+
+/**
+ * Setup velocity
+ */
+void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]) {
+  assert(vel != NULL);
+  assert(v != NULL);
+
+  // Timestamp
+  vel->ts = ts;
+
+  // Accel biases
+  vel->v[0] = v[0];
+  vel->v[1] = v[1];
+  vel->v[2] = v[2];
+}
+
+void velocity_print(const velocity_t *vel);
+
+// IMU BIASES /////////////////////////////////////////////////////////////////
 
 /**
  * Setup speed and biases
  */
-void speed_biases_setup(speed_biases_t *sb,
-                        const timestamp_t ts,
-                        const real_t *data) {
+void imu_biases_setup(imu_biases_t *sb,
+                      const timestamp_t ts,
+                      const real_t ba[3],
+                      const real_t bg[3]) {
   assert(sb != NULL);
-  assert(data != NULL);
+  assert(ba != NULL);
+  assert(bg != NULL);
 
   // Timestamp
   sb->ts = ts;
 
-  // Velocity
-  sb->data[0] = data[0];
-  sb->data[1] = data[1];
-  sb->data[2] = data[2];
-
   // Accel biases
-  sb->data[3] = data[3];
-  sb->data[4] = data[4];
-  sb->data[5] = data[5];
+  sb->ba[0] = ba[0];
+  sb->ba[1] = ba[1];
+  sb->ba[2] = ba[2];
 
   // Gyro biases
-  sb->data[6] = data[6];
-  sb->data[7] = data[7];
-  sb->data[8] = data[8];
+  sb->bg[0] = bg[0];
+  sb->bg[1] = bg[1];
+  sb->bg[2] = bg[2];
 }
 
 // FEATURE /////////////////////////////////////////////////////////////////////

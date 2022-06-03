@@ -849,17 +849,27 @@ typedef struct pose_t {
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_print(const char *prefix, const pose_t *pose);
 
-// SPEED AND BIASES ////////////////////////////////////////////////////////////
+// VELOCITY ////////////////////////////////////////////////////////////////////
 
-typedef struct speed_biases_t {
+typedef struct velocity_t {
   timestamp_t ts;
-  real_t data[9];
-} speed_biases_t;
+  real_t v[3];
+} velocity_t;
 
-void speed_biases_setup(speed_biases_t *sb,
-                        const timestamp_t ts,
-                        const real_t *param);
-void speed_biases_print(const speed_biases_t *sb);
+void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
+
+// IMU BIASES /////////////////////////////////////////////////////////////////
+
+typedef struct imu_biases_t {
+  timestamp_t ts;
+  real_t ba[3];
+  real_t bg[3];
+} imu_biases_t;
+
+void imu_biases_setup(imu_biases_t *sb,
+                      const timestamp_t ts,
+                      const real_t ba[3],
+                      const real_t bg[3]);
 
 // FEATURE /////////////////////////////////////////////////////////////////////
 
