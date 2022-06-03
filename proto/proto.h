@@ -644,6 +644,20 @@ void dot(const real_t *A,
          const size_t B_m,
          const size_t B_n,
          real_t *C);
+void dot_XtAX(const real_t *X,
+              const size_t X_m,
+              const size_t X_n,
+              const real_t *A,
+              const size_t A_m,
+              const size_t A_n,
+              real_t *Y);
+void dot_XAXt(const real_t *X,
+              const size_t X_m,
+              const size_t X_n,
+              const real_t *A,
+              const size_t A_m,
+              const size_t A_n,
+              real_t *Y);
 void skew(const real_t x[3], real_t A[3 * 3]);
 void skew_inv(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);

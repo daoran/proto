@@ -3290,6 +3290,58 @@ void dot(const real_t *A,
 }
 
 /**
+ * Mulitply Y = X' * A * X
+ */
+void dot_XtAX(const real_t *X,
+              const size_t X_m,
+              const size_t X_n,
+              const real_t *A,
+              const size_t A_m,
+              const size_t A_n,
+              real_t *Y) {
+  assert(X != NULL);
+  assert(A != NULL);
+  assert(Y != NULL);
+  assert(X_m == A_m);
+
+  real_t *XtA = malloc(sizeof(real_t) * (X_m * A_m));
+  real_t *Xt = malloc(sizeof(real_t) * (X_m * X_n));
+
+  mat_transpose(X, X_m, X_n, Xt);
+  dot(Xt, X_n, X_m, A, A_m, A_n, XtA);
+  dot(XtA, X_m, A_m, Xt, X_n, X_m, Y);
+
+  free(Xt);
+  free(XtA);
+}
+
+/**
+ * Mulitply Y = X * A * X'
+ */
+void dot_XAXt(const real_t *X,
+              const size_t X_m,
+              const size_t X_n,
+              const real_t *A,
+              const size_t A_m,
+              const size_t A_n,
+              real_t *Y) {
+  assert(X != NULL);
+  assert(A != NULL);
+  assert(Y != NULL);
+  assert(X_n == A_m);
+
+  real_t *XA = malloc(sizeof(real_t) * (X_n * A_m));
+  real_t *Xt = malloc(sizeof(real_t) * (X_m * X_n));
+
+  mat_transpose(A, A_m, A_n, Xt);
+  dot(X, X_m, X_n, A, A_m, A_n, XA);
+  dot(XA, X_n, A_m, Xt, X_n, X_m, Y);
+
+  free(Xt);
+  free(XA);
+}
+
+/**
  * Create skew-symmetric matrix `A` from a 3x1 vector `x`.
  */
 void skew(const real_t x[3], real_t A[3 * 3]) {
