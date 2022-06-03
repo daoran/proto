@@ -6467,6 +6467,136 @@ void imu_factor_propagate_step(real_t r[3],
 }
 
 /**
+ * Form IMU Noise Matrix Q
+ */
+static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
+                                     real_t Q[12 * 12]) {
+  assert(imu_params != NULL);
+  assert(Q != NULL);
+
+  const real_t n_a_sq = imu_params->n_a * imu_params->n_a;
+  const real_t n_g_sq = imu_params->n_g * imu_params->n_g;
+  const real_t n_ba_sq = imu_params->n_aw * imu_params->n_aw;
+  const real_t n_bg_sq = imu_params->n_gw * imu_params->n_gw;
+
+  zeros(Q, 12, 12);
+  Q[0] = n_a_sq;
+  Q[13] = n_a_sq;
+  Q[26] = n_a_sq;
+  Q[39] = n_g_sq;
+  Q[52] = n_g_sq;
+  Q[65] = n_g_sq;
+  Q[78] = n_ba_sq;
+  Q[91] = n_ba_sq;
+  Q[104] = n_ba_sq;
+  Q[117] = n_bg_sq;
+  Q[130] = n_bg_sq;
+  Q[143] = n_bg_sq;
+}
+
+/**
+ * Form IMU Transition Matrix F
+ */
+static void imu_factor_form_F_matrix(const real_t dq[4],
+                                     const real_t ba[3],
+                                     const real_t bg[3],
+                                     const real_t a[3],
+                                     const real_t w[3],
+                                     const real_t dt,
+                                     real_t I_F_dt[15 * 15]) {
+  // Convert quaternion to rotation matrix
+  real_t dC[3 * 3] = {0};
+  quat2rot(dq, dC);
+
+  // Compensate accelerometer and gyroscope measurements
+  const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
+  const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
+
+  // Form continuous time transition matrix F
+  // -- Initialize memory for F
+  zeros(I_F_dt, 15, 15);
+  // -- F[0:3, 3:6] = eye(3);
+  real_t F0[3 * 3] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
+  mat_block_set(I_F_dt, 15, 0, 0, 3, 3, F0);
+  // -- F[4:6, 7:9] = -dC * skew(a_t);
+  real_t F1[3 * 3] = {0};
+  real_t skew_a_t[3 * 3] = {0};
+  skew(a_t, skew_a_t);
+  dot(dC, 3, 3, skew_a_t, 3, 3, F1);
+  mat_block_set(I_F_dt, 15, 4, 7, 6, 9, F1);
+  // -- F[4:6, 10:12] = -dC;
+  real_t F2[3 * 3] = {0};
+  for (int idx = 0; idx < 9; idx++) {
+    F2[idx] = -1.0 * dC[idx];
+  }
+  mat_block_set(I_F_dt, 15, 4, 10, 6, 12, F2);
+  // -- F[7:9, 7:9] = -skew(w_t);
+  real_t F3[3 * 3] = {0};
+  F3[0] = 0.0;
+  F3[1] = w_t[2];
+  F3[2] = -w_t[1];
+  F3[3] = -w_t[2];
+  F3[4] = 0.0;
+  F3[5] = w_t[0];
+  F3[6] = w_t[1];
+  F3[7] = -w_t[0];
+  F3[8] = 0.0;
+  mat_block_set(I_F_dt, 15, 7, 9, 7, 9, F3);
+  // -- F[7:9, 13:15] = -eye(3);
+  real_t F4[3 * 3] = {-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0};
+  mat_block_set(I_F_dt, 15, 7, 9, 13, 15, F4);
+
+  // Discretize continuous time transition matrix
+  // I_F_dt = eye(15) + F * dt;
+  for (int idx = 0; idx < (15 * 15); idx++) {
+    if (idx == 0 || idx % 16 == 0) {
+      I_F_dt[idx] = 1.0 + I_F_dt[idx] * dt;
+    } else {
+      I_F_dt[idx] = I_F_dt[idx] * dt;
+    }
+  }
+}
+
+/**
+ * Form IMU Input Matrix G
+ */
+void imu_factor_form_G_matrix(const real_t dq[4],
+                              const real_t dt,
+                              real_t G_dt[15 * 12]) {
+  // Setup
+  real_t dC[3 * 3] = {0};
+  quat2rot(dq, dC);
+  zeros(G_dt, 15, 12);
+
+  real_t neg_eye[3 * 3] = {0};
+  real_t pos_eye[3 * 3] = {0};
+  for (int idx = 0; idx < 9; idx += 4) {
+    neg_eye[idx] = -1.0;
+    pos_eye[idx] = 1.0;
+  }
+
+  // Form continuous input matrix G
+  // -- G[4:6, 1:3] = -dC;
+  real_t G0[3 * 3] = {0};
+  for (int idx = 0; idx < 9; idx++) {
+    G0[idx] = -1.0 * dC[idx];
+  }
+  mat_block_set(G_dt, 12, 3, 0, 5, 2, G0);
+  // -- G[7:9, 4:6] = -eye(3);
+  mat_block_set(G_dt, 12, 6, 3, 8, 5, neg_eye);
+  // -- G[10:12, 7:9] = eye(3);
+  mat_block_set(G_dt, 12, 9, 6, 11, 8, pos_eye);
+  // -- G[13:15, 10:12] = eye(3);
+  mat_block_set(G_dt, 12, 12, 9, 14, 11, pos_eye);
+
+  // Discretize G
+  // G_dt = G * dt;
+  for (int idx = 0; idx < (15 * 12); idx++) {
+    G_dt[idx] = G_dt[idx] * dt;
+  }
+}
+
+/**
  * IMU Factor setup
  */
 void imu_factor_setup(imu_factor_t *factor,
