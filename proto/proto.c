@@ -3498,6 +3498,51 @@ void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t) {
 }
 #endif
 
+/**
+ * Pseudo inverse of matrix A with SVD
+ */
+void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv) {
+  // Asserts
+  assert(m == n);
+
+  // Decompose A = U * S * V_t
+  real_t *s = NULL;
+  real_t *U = NULL;
+  real_t *V_t = NULL;
+  lapack_svd(A, m, n, &s, &U, &V_t);
+
+  real_t *U_t = malloc(sizeof(real_t) * m * n);
+  real_t *V = malloc(sizeof(real_t) * m * n);
+  mat_transpose(U, m, n, U_t);
+  mat_transpose(V_t, m, n, V);
+
+  // Form S_inv diagonal matrix
+  real_t *S_inv = malloc(sizeof(real_t) * m * n);
+  zeros(S_inv, n, m);
+  for (int idx = 0; idx < m; idx++) {
+    const int diag_idx = idx * n + idx;
+    if (s[idx] > 1e-8) {
+      S_inv[diag_idx] = 1.0 / s[idx];
+    } else {
+      S_inv[diag_idx] = 0.0;
+    }
+  }
+
+  // A_inv = V_t * S_inv * U
+  real_t *V_Sinv = malloc(sizeof(real_t) * m * m);
+  dot(V, m, n, S_inv, n, m, V_Sinv);
+  dot(V_Sinv, m, m, U_t, m, n, A_inv);
+
+  // Clean up
+  free(s);
+  free(S_inv);
+  free(U);
+  free(U_t);
+  free(V);
+  free(V_t);
+  free(V_Sinv);
+}
+
 /******************************************************************************
  * CHOL
  ******************************************************************************/

@@ -1565,6 +1565,38 @@ int test_lapack_svd() {
   return 0;
 }
 
+int test_lapack_svd_inverse() {
+  // clang-format off
+  const int A_m = 4;
+  const int A_n = 4;
+  real_t A[4 * 4] = {
+     7.52, -1.10, -7.95,  1.08,
+    -0.76,  0.62,  9.34, -7.10,
+     5.13,  6.62, -5.66,  0.87,
+    -4.75,  8.52,  5.75,  5.30,
+  };
+  real_t A_original[4 * 4] = {
+     7.52, -1.10, -7.95,  1.08,
+    -0.76,  0.62,  9.34, -7.10,
+     5.13,  6.62, -5.66,  0.87,
+    -4.75,  8.52,  5.75,  5.30,
+  };
+  // clang-format on
+
+  // Invert matrix A using SVD
+  real_t A_inv[4 * 4] = {0};
+  lapack_svd_inverse(A, A_m, A_n, A_inv);
+
+  // Inverse check: A * A_inv = eye
+  real_t inv_check[4 * 4] = {0};
+  dot(A_original, A_m, A_n, A_inv, A_n, A_m, inv_check);
+  for (int i = 0; i < 4; i++) {
+    MU_ASSERT(fltcmp(inv_check[i * 4 + i], 1.0) == 0);
+  }
+
+  return 0;
+}
+
 #endif /* USE LAPACK */
 
 /******************************************************************************
