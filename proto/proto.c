@@ -2947,7 +2947,8 @@ void mat_block_get(const real_t *A,
   size_t idx = 0;
   for (size_t i = rs; i <= re; i++) {
     for (size_t j = cs; j <= ce; j++) {
-      block[idx] = mat_val(A, stride, i, j);
+      // block[idx] = mat_val(A, stride, i, j);
+      block[idx] = A[(i * stride) + j];
       idx++;
     }
   }
@@ -6286,12 +6287,12 @@ int cam_factor_eval(cam_factor_t *factor,
                     real_t *r_out,
                     real_t **J_out) {
   assert(factor != NULL);
+  assert(params != NULL);
+  assert(r_out != NULL);
   assert(factor->pose);
   assert(factor->extrinsics);
   assert(factor->feature);
   assert(factor->camera);
-  assert(params != NULL);
-  assert(r_out != NULL);
 
   // Map params
   const real_t *r_WB = params[0];
@@ -6559,11 +6560,9 @@ void imu_factor_propagate_step(real_t r[3],
 
   // Update accelerometer biases
   // ba = ba;
-  // NOOP
 
   // Update gyroscope biases
   // bg = bg;
-  // NOOP
 }
 
 /**
@@ -6824,33 +6823,255 @@ void imu_factor_reset(imu_factor_t *factor) {
   zeros(factor->bg, 3, 1); // Gyro bias
 }
 
-// GRAPH //////////////////////////////////////////////////////////////////////
+/**
+ * Evaluate IMU factor
+ */
+int imu_factor_eval(imu_factor_t *factor,
+                    real_t **params,
+                    real_t *r_out,
+                    real_t **J_out) {
+  assert(factor != NULL);
+  assert(params != NULL);
+  assert(r_out != NULL);
+  assert(factor->pose_i);
+  assert(factor->pose_j);
+  assert(factor->vel_i);
+  assert(factor->vel_j);
+  assert(factor->biases_i);
+  assert(factor->biases_j);
 
-void graph_setup(graph_t *graph) {
-  assert(graph);
-  graph->H = NULL;
-  graph->g = NULL;
-  graph->x = NULL;
-  graph->x_size = 0;
-  graph->r_size = 0;
+  // Map params
+  const real_t *r_i = params[0];
+  const real_t *q_i = params[1];
+  const real_t *v_i = params[2];
+  const real_t *ba_i = params[3];
+  const real_t *bg_i = params[4];
+
+  const real_t *r_j = params[5];
+  const real_t *q_j = params[6];
+  const real_t *v_j = params[7];
+  const real_t *ba_j = params[8];
+  const real_t *bg_j = params[9];
+
+  // Correct the relative position, velocity and rotation
+  // -- Extract jacobians from error-state jacobian
+  real_t dr_dba[3 * 3] = {0};
+  real_t dr_dbg[3 * 3] = {0};
+  real_t dv_dba[3 * 3] = {0};
+  real_t dv_dbg[3 * 3] = {0};
+  real_t dq_dbg[3 * 3] = {0};
+  real_t dba[3] = {0};
+  real_t dbg[3] = {0};
+  mat_block_get(factor->F, 15, 0, 9, 3, 12, dr_dba);
+  mat_block_get(factor->F, 15, 0, 12, 3, 15, dr_dbg);
+  mat_block_get(factor->F, 15, 3, 9, 6, 12, dv_dba);
+  mat_block_get(factor->F, 15, 3, 12, 6, 15, dv_dbg);
+  mat_block_get(factor->F, 15, 6, 12, 9, 15, dq_dbg);
+  dba[0] = ba_i[0] - factor->ba[0];
+  dba[1] = ba_i[1] - factor->ba[1];
+  dba[2] = ba_i[2] - factor->ba[2];
+  dbg[0] = bg_i[0] - factor->bg[0];
+  dbg[1] = bg_i[1] - factor->bg[1];
+  dbg[2] = bg_i[2] - factor->bg[2];
+  // -- Correct relative position
+  // dr = dr + dr_dba * dba + dr_dbg * dbg
+  real_t dr[3] = {0};
+  {
+    real_t ba_correction[3] = {0};
+    real_t bg_correction[3] = {0};
+    dot(dr_dba, 3, 3, dba, 3, 1, ba_correction);
+    dot(dr_dbg, 3, 3, dbg, 3, 1, bg_correction);
+    dr[0] = factor->dr[0] + ba_correction[0] + bg_correction[0];
+    dr[1] = factor->dr[1] + ba_correction[1] + bg_correction[1];
+    dr[2] = factor->dr[2] + ba_correction[2] + bg_correction[2];
+  }
+  // -- Correct relative velocity
+  // dv = dv + dv_dba * dba + dv_dbg * dbg
+  real_t dv[3] = {0};
+  {
+    real_t ba_correction[3] = {0};
+    real_t bg_correction[3] = {0};
+    dot(dv_dba, 3, 3, dba, 3, 1, ba_correction);
+    dot(dv_dbg, 3, 3, dbg, 3, 1, bg_correction);
+    dv[0] = factor->dv[0] + ba_correction[0] + bg_correction[0];
+    dv[1] = factor->dv[1] + ba_correction[1] + bg_correction[1];
+    dv[2] = factor->dv[2] + ba_correction[2] + bg_correction[2];
+  }
+  // -- Correct relative rotation
+  // dq = quat_mul(dq, [1.0, 0.5 * dq_dbg * dbg])
+  real_t dq[4] = {0};
+  {
+    real_t theta[3] = {0};
+    dot(dq_dbg, 3, 3, dbg, 3, 1, theta);
+
+    real_t q_correction[4] = {0};
+    q_correction[0] = 1.0;
+    q_correction[1] = 0.5 * theta[0];
+    q_correction[2] = 0.5 * theta[1];
+    q_correction[3] = 0.5 * theta[2];
+
+    quat_mul(factor->dq, q_correction, dq);
+    quat_normalize(dq);
+  }
+
+  // Form residuals
+  // sqrt_info = self.sqrt_info
+  const real_t g_W[3] = {0.0, 0.0, 10.0};
+  const real_t Dt = factor->Dt;
+  const real_t Dt_sq = Dt * Dt;
+  real_t C_i[3] = {0};
+  real_t C_it[3] = {0};
+  quat2rot(q_i, C_i);
+  mat_transpose(C_i, 3, 3, C_it);
+
+  // dr_est = C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g_W * Dt_sq))
+  real_t dr_est[3] = {0};
+  {
+    real_t dr_tmp[3] = {0};
+    dr_tmp[0] = (r_j[0] - r_i[0]) - (v_i[0] * Dt) + (0.5 * g_W[0] * Dt_sq);
+    dr_tmp[1] = (r_j[1] - r_i[1]) - (v_i[1] * Dt) + (0.5 * g_W[1] * Dt_sq);
+    dr_tmp[2] = (r_j[2] - r_i[2]) - (v_i[2] * Dt) + (0.5 * g_W[2] * Dt_sq);
+
+    dot(C_it, 3, 3, dr_tmp, 3, 1, dr_est);
+  }
+
+  // dv_est = C_i.T @ ((v_j - v_i) + (g_W * Dt))
+  real_t dv_est[3] = {0};
+  {
+    real_t dv_tmp[3] = {0};
+    dv_tmp[0] = (v_j[0] - v_i[0]) + (g_W[0] * Dt);
+    dv_tmp[1] = (v_j[1] - v_i[1]) + (g_W[1] * Dt);
+    dv_tmp[2] = (v_j[2] - v_i[2]) + (g_W[2] * Dt);
+
+    dot(C_it, 3, 3, dv_tmp, 3, 1, dv_est);
+  }
+
+  // err_pos = dr_est - dr
+  real_t err_pos[3] = {0.0, 0.0, 0.0};
+  err_pos[0] = dr_est[0] - dr[0];
+  err_pos[1] = dr_est[1] - dr[1];
+  err_pos[2] = dr_est[2] - dr[2];
+
+  // err_vel = dv_est - dv
+  real_t err_vel[3] = {0.0, 0.0, 0.0};
+  err_vel[0] = dv_est[0] - dv[0];
+  err_vel[1] = dv_est[1] - dv[1];
+  err_vel[2] = dv_est[2] - dv[2];
+
+  // err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))[1:4]
+  real_t err_rot[3] = {0.0, 0.0, 0.0};
+  {
+    real_t dq_inv[4] = {0};
+    real_t q_i_inv[4] = {0};
+    real_t q_i_inv_j[4] = {0};
+    real_t err_quat[4] = {0};
+
+    quat_inv(factor->dq, dq_inv);
+    quat_inv(q_i, q_i_inv);
+    quat_mul(q_i_inv, q_j, q_i_inv_j);
+    quat_mul(dq_inv, q_i_inv_j, err_quat);
+
+    err_rot[0] = 2.0 * err_quat[1];
+    err_rot[1] = 2.0 * err_quat[2];
+    err_rot[2] = 2.0 * err_quat[3];
+  }
+
+  // err_ba = [0.0, 0.0, 0.0]
+  real_t err_ba[3] = {0.0, 0.0, 0.0};
+
+  // err_bg = [0.0, 0.0, 0.0]
+  real_t err_bg[3] = {0.0, 0.0, 0.0};
+
+  // Residual vector
+  // r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
+  {
+    real_t r_raw[15] = {0};
+    r_raw[0] = err_pos[0];
+    r_raw[1] = err_pos[1];
+    r_raw[2] = err_pos[2];
+
+    r_raw[3] = err_vel[0];
+    r_raw[4] = err_vel[1];
+    r_raw[5] = err_vel[2];
+
+    r_raw[6] = err_rot[0];
+    r_raw[7] = err_rot[1];
+    r_raw[8] = err_rot[2];
+
+    r_raw[9] = err_ba[0];
+    r_raw[10] = err_ba[1];
+    r_raw[11] = err_ba[2];
+
+    r_raw[12] = err_bg[0];
+    r_raw[13] = err_bg[1];
+    r_raw[14] = err_bg[2];
+  }
+
+  // // Form jacobians
+  // J0 = zeros((15, 6))  // residuals w.r.t pose i
+  // J1 = zeros((15, 9))  // residuals w.r.t speed and biase i
+  // J2 = zeros((15, 6))  // residuals w.r.t pose j
+  // J3 = zeros((15, 9))  // residuals w.r.t speed and biase j
+
+  // // -- Jacobian w.r.t. pose i
+  // // yapf: disable
+  // J0[0:3, 0:3] = -C_i.T  // dr w.r.t r_i
+  // J0[0:3, 3:6] = skew(dr_est)  // dr w.r.t C_i
+  // J0[3:6, 3:6] = skew(dv_est)  // dv w.r.t C_i
+  // J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4,
+  // 1:4]  // dtheta w.r.t C_i J0 = sqrt_info @ J0 // yapf: enable
+
+  // // -- Jacobian w.r.t. speed and biases i
+  // // yapf: disable
+  // J1[0:3, 0:3] = -C_i.T * Dt  // dr w.r.t v_i
+  // J1[0:3, 3:6] = -dr_dba  // dr w.r.t ba
+  // J1[0:3, 6:9] = -dr_dbg  // dr w.r.t bg
+  // J1[3:6, 0:3] = -C_i.T  // dv w.r.t v_i
+  // J1[3:6, 3:6] = -dv_dba  // dv w.r.t ba
+  // J1[3:6, 6:9] = -dv_dbg  // dv w.r.t bg
+  // J1[6:9, 6:9] = -quat_left(rot2quat(C_j.T @ C_i @ self.dC))[1:4, 1:4] @
+  // dq_dbg  // dtheta w.r.t C_i J1 = sqrt_info @ J1 // yapf: enable
+
+  // // -- Jacobian w.r.t. pose j
+  // // yapf: disable
+  // J2[0:3, 0:3] = C_i.T  // dr w.r.t r_j
+  // J2[6:9, 3:6] = quat_left(rot2quat(dC.T @ C_i.T @ C_j))[1:4, 1:4]  // dtheta
+  // w.r.t C_j J2 = sqrt_info @ J2 // yapf: enable
+
+  // // -- Jacobian w.r.t. sb j
+  // J3[3:6, 0:3] = C_i.T  // dv w.r.t v_j
+  // J3 = sqrt_info @ J3
+
+  return 0;
 }
 
-void graph_print(graph_t *graph) {
-  printf("graph:\n");
-  printf("r_size: %d\n", graph->r_size);
-  printf("x_size: %d\n", graph->x_size);
+// SOLVER ////////////////////////////////////////////////////////////////////
+
+void solver_setup(solver_t *solver) {
+  assert(solver);
+  solver->H = NULL;
+  solver->g = NULL;
+  solver->x = NULL;
+  solver->x_size = 0;
+  solver->r_size = 0;
 }
 
-void graph_evaluator(graph_t *graph,
-                     int **param_orders,
-                     int *param_sizes,
-                     int nb_params,
-                     real_t *r,
-                     int r_size,
-                     real_t **jacs) {
-  real_t *H = graph->H;
-  int H_size = graph->x_size;
-  real_t *g = graph->g;
+void solver_print(solver_t *solver) {
+  printf("solver:\n");
+  printf("r_size: %d\n", solver->r_size);
+  printf("x_size: %d\n", solver->x_size);
+}
+
+void solver_evaluator(solver_t *solver,
+                      int **param_orders,
+                      int *param_sizes,
+                      int nb_params,
+                      real_t *r,
+                      int r_size,
+                      real_t **jacs) {
+  real_t *H = solver->H;
+  int H_size = solver->x_size;
+  real_t *g = solver->g;
 
   for (int i = 0; i < nb_params; i++) {
     int *idx_i = param_orders[i];
@@ -6898,24 +7119,24 @@ void graph_evaluator(graph_t *graph,
   }
 }
 
-int graph_eval(graph_t *graph) {
-  assert(graph != NULL);
+int solver_eval(solver_t *solver) {
+  assert(solver != NULL);
 
   // int pose_idx = 0;
-  // int lmks_idx = graph->nb_poses * 6;
-  // int exts_idx = lmks_idx + graph->nb_features * 3;
-  // int cams_idx = exts_idx + graph->nb_exts * 6;
+  // int lmks_idx = solver->nb_poses * 6;
+  // int exts_idx = lmks_idx + solver->nb_features * 3;
+  // int cams_idx = exts_idx + solver->nb_exts * 6;
 
   // #<{(| Evaluate camera factors |)}>#
-  // for (int i = 0; i < graph->nb_cam_factors; i++) {
-  //   cam_factor_t *factor = &graph->cam_factors[i];
+  // for (int i = 0; i < solver->nb_cam_factors; i++) {
+  //   cam_factor_t *factor = &solver->cam_factors[i];
   //   #<{(| cam_factor_eval(factor); |)}>#
   //
   //   int *param_orders[4] = {&pose_idx, &exts_idx, &cams_idx, &lmks_idx};
   //   int param_sizes[4] = {6, 6, 8, 3};
   //   int nb_params = 4;
   //
-  //   #<{(| graph_evaluator(graph, |)}>#
+  //   #<{(| solver_evaluator(solver, |)}>#
   //   #<{(|                 param_orders, |)}>#
   //   #<{(|                 param_sizes, |)}>#
   //   #<{(|                 nb_params, |)}>#
@@ -6927,7 +7148,7 @@ int graph_eval(graph_t *graph) {
   return 0;
 }
 
-// int graph_optimize(graph_t *graph) {
+// int solver_optimize(solver_t *solver) {
 //   struct timespec solve_tic = tic();
 //   real_t lambda_k = 1e-4;
 //
@@ -6937,17 +7158,17 @@ int graph_eval(graph_t *graph) {
 //
 //   for (iter = 0; iter < max_iter; iter++) {
 //     #<{(| Cost k |)}>#
-//     #<{(| x = graph_get_state(graph); |)}>#
-//     #<{(| graph_eval(graph, H, g, &marg_size, &remain_size); |)}>#
+//     #<{(| x = solver_get_state(solver); |)}>#
+//     #<{(| solver_eval(solver, H, g, &marg_size, &remain_size); |)}>#
 //     #<{(| const matx_t H_diag = (H.diagonal().asDiagonal()); |)}>#
 //     #<{(| H = H + lambda_k * H_diag; |)}>#
 //     #<{(| dx = H.ldlt().solve(g); |)}>#
-//     #<{(| e = graph_residuals(graph); |)}>#
+//     #<{(| e = solver_residuals(solver); |)}>#
 //     #<{(| cost = 0.5 * e.transpose() * e; |)}>#
 //
 //     #<{(| Cost k+1 |)}>#
-//     #<{(| graph_update(graph, dx); |)}>#
-//     #<{(| e = graph_residuals(graph); |)}>#
+//     #<{(| solver_update(solver, dx); |)}>#
+//     #<{(| e = solver_residuals(solver); |)}>#
 //     const real_t cost_k = 0.5 * e.transpose() * e;
 //
 //     const real_t cost_delta = cost_k - cost;
@@ -6981,7 +7202,7 @@ int graph_eval(graph_t *graph) {
 //       cost = cost_k;
 //     } else {
 //       #<{(| Reject update |)}>#
-//       #<{(| graph_set_state(graph, x); // Restore state |)}>#
+//       #<{(| solver_set_state(solver, x); // Restore state |)}>#
 //       lambda_k *= update_factor;
 //     }
 //
@@ -6996,7 +7217,7 @@ int graph_eval(graph_t *graph) {
 //   #<{(| solve_time = toc(&solve_tic); |)}>#
 //   #<{(| if (verbose) { |)}>#
 //   #<{(|   printf("cost: %.2e\t", cost); |)}>#
-//   #<{(|   printf("graph took: %.4fs\n", solve_time); |)}>#
+//   #<{(|   printf("solver took: %.4fs\n", solve_time); |)}>#
 //   #<{(| } |)}>#
 // }
 
@@ -7170,7 +7391,8 @@ int **assoc_pose_data(pose_t *gnd_poses,
  * SIM
  ******************************************************************************/
 
-// SIM FEATURES ////////////////////////////////////////////////////////////////
+// SIM FEATURES
+// ////////////////////////////////////////////////////////////////
 
 /**
  * Load simulation feature data
@@ -7201,7 +7423,8 @@ void sim_features_free(sim_features_t *feature_data) {
   free(feature_data);
 }
 
-// SIM IMU DATA ////////////////////////////////////////////////////////////////
+// SIM IMU DATA
+// ////////////////////////////////////////////////////////////////
 
 /**
  * Load simulation imu data
@@ -7234,7 +7457,8 @@ void sim_imu_data_free(sim_imu_data_t *imu_data) {
   free(imu_data);
 }
 
-// SIM CAMERA DATA /////////////////////////////////////////////////////////////
+// SIM CAMERA DATA
+// /////////////////////////////////////////////////////////////
 
 /**
  * Extract timestamp from path
@@ -7502,12 +7726,29 @@ real_t **sim_create_features(const real_t origin[3],
   return features;
 }
 
+void sim_circle_trajectory() {
+  real_t circle_r = 1.0;
+  real_t circle_v = 1.0;
+  real_t cam_rate = 10.0;
+  real_t imu_rate = 200.0;
+  int nb_features = 1000;
+
+  // Trajectory data
+  real_t g[3] = {0.0, 0.0, 9.81};
+  real_t circle_dist = 2.0 * M_PI * circle_r;
+  real_t time_taken = circle_dist / circle_v;
+  real_t w = -2.0 * M_PI * (1.0 / time_taken);
+  real_t theta_init = M_PI;
+  real_t yaw_init = M_PI / 2.0;
+}
+
 /******************************************************************************
  * GUI
  *****************************************************************************/
 #ifdef USE_GUI
 
-// OPENGL UTILS ////////////////////////////////////////////////////////////////
+// OPENGL UTILS
+// ////////////////////////////////////////////////////////////////
 
 GLfloat gl_deg2rad(const GLfloat d) {
   return d * M_PI / 180.0f;
@@ -7812,7 +8053,8 @@ void gl_lookat(const GLfloat eye[3],
   gl_dot(R, 4, 4, T, 4, 4, V);
 }
 
-// SHADER //////////////////////////////////////////////////////////////////////
+// SHADER
+// //////////////////////////////////////////////////////////////////////
 
 GLuint shader_compile(const char *shader_src, const int type) {
   if (shader_src == NULL) {
@@ -7868,7 +8110,8 @@ GLuint shaders_link(const GLuint vertex_shader,
   return program;
 }
 
-// GL PROGRAM //////////////////////////////////////////////////////////////////
+// GL PROGRAM
+// //////////////////////////////////////////////////////////////////
 
 GLuint gl_prog_setup(const char *vs_src,
                      const char *fs_src,
@@ -8003,7 +8246,8 @@ int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4 * 4]) {
   return 0;
 }
 
-// GL-CAMERA ///////////////////////////////////////////////////////////////////
+// GL-CAMERA
+// ///////////////////////////////////////////////////////////////////
 
 void gl_camera_setup(gl_camera_t *camera,
                      int *window_width,
@@ -8119,7 +8363,8 @@ void gl_camera_zoom(gl_camera_t *camera,
   gl_camera_update(camera);
 }
 
-// GL-PRIMITIVES ///////////////////////////////////////////////////////////////
+// GL-PRIMITIVES
+// ///////////////////////////////////////////////////////////////
 
 // GL CUBE ******************************************************************
 
@@ -8547,7 +8792,8 @@ void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glBindVertexArray(0); // Unbind VAO
 }
 
-// GUI /////////////////////////////////////////////////////////////////////////
+// GUI
+// /////////////////////////////////////////////////////////////////////////
 
 void gui_window_callback(gui_t *gui, const SDL_Event event) {
   if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
@@ -8746,7 +8992,8 @@ void gui_loop(gui_t *gui) {
   SDL_Quit();
 }
 
-// IMSHOW //////////////////////////////////////////////////////////////////////
+// IMSHOW
+// //////////////////////////////////////////////////////////////////////
 
 void imshow_window_callback(imshow_t *imshow, const SDL_Event event) {
   if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {

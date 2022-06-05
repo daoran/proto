@@ -658,10 +658,12 @@ void dot_XAXt(const real_t *X,
               const size_t A_m,
               const size_t A_n,
               real_t *Y);
+
 void skew(const real_t x[3], real_t A[3 * 3]);
 void skew_inv(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
+
 int check_jacobian(const char *jac_name,
                    const real_t *fdiff,
                    const real_t *jac,
@@ -675,7 +677,9 @@ int check_jacobian(const char *jac_name,
  ******************************************************************************/
 
 #ifdef USE_LAPACK
-void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t);
+void lapack_svd(
+    real_t *A, const int m, const int n, real_t **s, real_t **U, real_t **V_t);
+void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv);
 #endif
 
 /******************************************************************************
@@ -686,6 +690,7 @@ void chol(const real_t *A, const size_t n, real_t *L);
 void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n);
 
 #ifdef USE_LAPACK
+void lapack_chol(const real_t *A, const size_t m, real_t *L);
 void lapack_chol_solve(const real_t *A,
                        const real_t *b,
                        real_t *x,
@@ -1034,10 +1039,13 @@ typedef struct imu_factor_t {
   imu_buf_t imu_buf;
   pose_t *pose_i;
   pose_t *pose_j;
-  speed_biases_t *sb_i;
-  speed_biases_t *sb_j;
+  velocity_t *vel_i;
+  velocity_t *vel_j;
+  imu_biases_t *biases_i;
+  imu_biases_t *biases_j;
 
   real_t covar[15 * 15];
+  real_t sqrt_info[15 * 15];
   real_t r[15];
   int r_size;
 
@@ -1052,7 +1060,7 @@ typedef struct imu_factor_t {
   real_t Dt;
   real_t F[15 * 15]; // State jacobian
   real_t P[15 * 15]; // State covariance
-  real_t Q[15 * 15]; // Noise matrix
+  real_t Q[12 * 12]; // Noise matrix
 
   real_t dr[3]; // Relative position
   real_t dv[3]; // Relative velocity
@@ -1083,12 +1091,18 @@ void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
                       imu_buf_t *imu_buf,
                       pose_t *pose_i,
-                      speed_biases_t *sb_i,
+                      velocity_t *v_i,
+                      imu_biases_t *biases_i,
                       pose_t *pose_j,
-                      speed_biases_t *sb_j);
+                      velocity_t *v_j,
+                      imu_biases_t *biases_j);
 void imu_factor_reset(imu_factor_t *factor);
+int imu_factor_eval(imu_factor_t *factor,
+                    real_t **params,
+                    real_t *residuals,
+                    real_t **jacobians);
 
-// GRAPH ///////////////////////////////////////////////////////////////////////
+// SOLVER ////////////////////////////////////////////////////////////////////
 
 #define MAX_NB_FACTORS 1000
 
@@ -1107,7 +1121,7 @@ typedef struct keyframe_t {
   pose_t *pose;
 } keyframe_t;
 
-typedef struct graph_t {
+typedef struct solver_t {
   void *factors[MAX_NB_FACTORS];
   int nb_factors;
   int *factor_types;
@@ -1129,13 +1143,13 @@ typedef struct graph_t {
   real_t *x;
   int x_size;
   int r_size;
-} graph_t;
+} solver_t;
 
-void graph_setup(graph_t *graph);
-void graph_print(graph_t *graph);
-int graph_add_factor(graph_t *graph, void *factor, int factor_type);
-int graph_eval(graph_t *graph);
-void graph_optimize(graph_t *graph);
+void solver_setup(solver_t *solver);
+void solver_print(solver_t *solver);
+int solver_add_factor(solver_t *solver, void *factor, int factor_type);
+int solver_eval(solver_t *solver);
+void solver_optimize(solver_t *solver);
 
 /******************************************************************************
  * DATASET
