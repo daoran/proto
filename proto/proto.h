@@ -614,7 +614,6 @@ void mat_block_get(const real_t *A,
 void mat_block_set(real_t *A,
                    const size_t stride,
                    const size_t rs,
-                   const size_t cs,
                    const size_t re,
                    const size_t cs,
                    const size_t ce,
@@ -734,6 +733,7 @@ void quat_normalize(real_t q[4]);
 void quat_normalize_copy(const real_t q[4], real_t q_normalized[4]);
 void quat_inv(const real_t q[4], real_t q_inv[4]);
 void quat_left(const real_t q[4], real_t left[4 * 4]);
+void quat_left_xyz(const real_t q[4], real_t left_xyz[3 * 3]);
 void quat_right(const real_t q[4], real_t right[4 * 4]);
 void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]);
@@ -1044,18 +1044,12 @@ typedef struct imu_factor_t {
   velocity_t *vel_j;
   imu_biases_t *biases_i;
   imu_biases_t *biases_j;
+  int nb_params;
 
   real_t covar[15 * 15];
   real_t sqrt_info[15 * 15];
   real_t r[15];
   int r_size;
-
-  real_t J0[2 * 6]; // Jacobian w.r.t pose i
-  real_t J1[2 * 9]; // Jacobian w.r.t speed and biases i
-  real_t J2[2 * 6]; // Jacobian w.r.t pose j
-  real_t J3[2 * 9]; // Jacobian w.r.t speed and biases j
-  real_t *jacs[4];
-  int nb_params;
 
   // Preintegration variables
   real_t Dt;

@@ -2961,7 +2961,6 @@ void mat_block_get(const real_t *A,
 void mat_block_set(real_t *A,
                    const size_t stride,
                    const size_t rs,
-                   const size_t cs,
                    const size_t re,
                    const size_t cs,
                    const size_t ce,
@@ -4512,22 +4511,26 @@ void quat_left(const real_t q[4], real_t left[4 * 4]) {
   const real_t qz = q[3];
 
   // clang-format off
-  left[0] = qw;
-  left[1] = -qx;
-  left[2] = -qy;
-  left[3] = -qz;
-  left[4] = qx;
-  left[5] = qw;
-  left[6] = -qz;
-  left[7] = qy;
-  left[8] = qy;
-  left[9] = qz;
-  left[10] = qw;
-  left[11] = -qx;
-  left[12] = qz;
-  left[13] = -qy;
-  left[14] = qx;
-  left[15] = qw;
+  left[0]  = qw; left[1]  = -qx; left[2]  = -qy; left[3]  = -qz;
+  left[4]  = qx; left[5]  = qw;  left[6]  = -qz; left[7]  = qy;
+  left[8]  = qy; left[9]  = qz;  left[10] = qw;  left[11] = -qx;
+  left[12] = qz; left[13] = -qy; left[14] = qx;  left[15] = qw;
+  // clang-format on
+}
+
+/**
+ * Form Quaternion left multiplication matrix.
+ */
+void quat_left_xyz(const real_t q[4], real_t left_xyz[3 * 3]) {
+  const real_t qw = q[0];
+  const real_t qx = q[1];
+  const real_t qy = q[2];
+  const real_t qz = q[3];
+
+  // clang-format off
+  left_xyz[0]  = qw; left_xyz[1] = -qz; left_xyz[2]  = qy;
+  left_xyz[3]  = qz; left_xyz[4] = qw;  left_xyz[5] = -qx;
+  left_xyz[6] = -qy; left_xyz[7] = qx;  left_xyz[8] = qw;
   // clang-format on
 }
 
@@ -6392,7 +6395,7 @@ int cam_factor_ceres_eval(void *factor,
 
   if (J_out[1]) {
     zeros(J_out[1], 2, 3);
-    mat_block_set(J_out[1], 4, 0, 0, 1, 3, factor_jacs[1]);
+    mat_block_set(J_out[1], 4, 0, 1, 0, 3, factor_jacs[1]);
   }
 
   if (J_out[2]) {
@@ -6401,7 +6404,7 @@ int cam_factor_ceres_eval(void *factor,
 
   if (J_out[3]) {
     zeros(J_out[3], 2, 3);
-    mat_block_set(J_out[3], 4, 0, 0, 1, 3, factor_jacs[3]);
+    mat_block_set(J_out[3], 4, 0, 1, 0, 3, factor_jacs[3]);
   }
 
   if (J_out[4]) {
@@ -6617,13 +6620,13 @@ static void imu_factor_form_F_matrix(const real_t dq[4],
   zeros(I_F_dt, 15, 15);
   // -- F[0:3, 3:6] = eye(3);
   real_t F0[3 * 3] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
-  mat_block_set(I_F_dt, 15, 0, 0, 3, 3, F0);
+  mat_block_set(I_F_dt, 15, 0, 3, 3, 6, F0);
   // -- F[4:6, 7:9] = -dC * skew(a_t);
   real_t F1[3 * 3] = {0};
   real_t skew_a_t[3 * 3] = {0};
   skew(a_t, skew_a_t);
   dot(dC, 3, 3, skew_a_t, 3, 3, F1);
-  mat_block_set(I_F_dt, 15, 4, 7, 6, 9, F1);
+  mat_block_set(I_F_dt, 15, 4, 6, 7, 9, F1);
   // -- F[4:6, 10:12] = -dC;
   real_t F2[3 * 3] = {0};
   for (int idx = 0; idx < 9; idx++) {
@@ -6681,13 +6684,13 @@ void imu_factor_form_G_matrix(const real_t dq[4],
   for (int idx = 0; idx < 9; idx++) {
     G0[idx] = -1.0 * dC[idx];
   }
-  mat_block_set(G_dt, 12, 3, 0, 5, 2, G0);
+  mat_block_set(G_dt, 12, 3, 5, 0, 2, G0);
   // -- G[7:9, 4:6] = -eye(3);
-  mat_block_set(G_dt, 12, 6, 3, 8, 5, neg_eye);
+  mat_block_set(G_dt, 12, 6, 8, 3, 5, neg_eye);
   // -- G[10:12, 7:9] = eye(3);
-  mat_block_set(G_dt, 12, 9, 6, 11, 8, pos_eye);
+  mat_block_set(G_dt, 12, 9, 11, 6, 8, pos_eye);
   // -- G[13:15, 10:12] = eye(3);
-  mat_block_set(G_dt, 12, 12, 9, 14, 11, pos_eye);
+  mat_block_set(G_dt, 12, 12, 14, 9, 11, pos_eye);
 
   // Discretize G
   // G_dt = G * dt;
@@ -6717,18 +6720,12 @@ void imu_factor_setup(imu_factor_t *factor,
   factor->vel_j = vel_j;
   factor->biases_i = biases_i;
   factor->biases_j = biases_j;
+  factor->nb_params = 10;
 
   // Covariance and residuals
   zeros(factor->covar, 15, 15);
   zeros(factor->r, 15, 1);
   factor->r_size = 15;
-
-  // Jacobians
-  factor->jacs[0] = factor->J0;
-  factor->jacs[1] = factor->J1;
-  factor->jacs[2] = factor->J2;
-  factor->jacs[3] = factor->J3;
-  factor->nb_params = 4;
 
   // Pre - integration variables
   factor->Dt = 0.0;
@@ -6811,12 +6808,7 @@ void imu_factor_setup(imu_factor_t *factor,
  * Reset IMU Factor
  */
 void imu_factor_reset(imu_factor_t *factor) {
-  zeros(factor->r, 15, 1);
-  zeros(factor->J0, 2, 6);
-  zeros(factor->J1, 2, 9);
-  zeros(factor->J2, 2, 6);
-  zeros(factor->J3, 2, 9);
-
+  zeros(factor->r, 15, 1); // Residuals
   zeros(factor->dr, 3, 1); // Relative position
   zeros(factor->dv, 3, 1); // Relative velocity
   quat_setup(factor->dq);  // Relative rotation
@@ -6847,12 +6839,11 @@ int imu_factor_eval(imu_factor_t *factor,
   const real_t *v_i = params[2];
   const real_t *ba_i = params[3];
   const real_t *bg_i = params[4];
-
   const real_t *r_j = params[5];
   const real_t *q_j = params[6];
   const real_t *v_j = params[7];
-  const real_t *ba_j = params[8];
-  const real_t *bg_j = params[9];
+  // const real_t *ba_j = params[8];
+  // const real_t *bg_j = params[9];
 
   // Correct the relative position, velocity and rotation
   // -- Extract jacobians from error-state jacobian
@@ -7011,40 +7002,144 @@ int imu_factor_eval(imu_factor_t *factor,
   }
 
   // Form jacobians
-  zeros(factor->J0, 15, 6); // residuals w.r.t pose i
-  zeros(factor->J1, 15, 9); // residuals w.r.t speed and biase i
-  zeros(factor->J2, 15, 6); // residuals w.r.t pose j
-  zeros(factor->J3, 15, 9); // residuals w.r.t speed and biase j
+  if (J_out == NULL) {
+    return 0;
+  }
+  // -- Setup
+  real_t dC[3 * 3] = {0};
+  real_t C_j[3 * 3] = {0};
+  real_t C_jt[3 * 3] = {0};
+  real_t C_ji[3 * 3] = {0};
+  real_t C_ji_dC[3 * 3] = {0};
+  real_t qji_dC[4] = {0};
+  real_t left_xyz[3 * 3] = {0};
+  quat2rot(factor->dq, dC);
+  quat2rot(q_j, C_j);
+  mat_transpose(C_j, 3, 3, C_jt);
+  dot(C_jt, 3, 3, C_i, 3, 3, C_ji);
+  dot(C_ji, 3, 3, dC, 3, 3, C_ji_dC);
+  rot2quat(C_ji_dC, qji_dC);
+  quat_left_xyz(qji_dC, left_xyz);
+  for (int i = 0; i < 9; i++) {
+    left_xyz[i] *= -1.0;
+  }
+  // -- Jacobian w.r.t. r_i
+  if (J_out[0]) {
+    // yapf: disable
+    real_t J0[15 * 3] = {0};
+    real_t drij_dri[3 * 3] = {0};
+    for (int idx = 0; idx < 9; idx++) {
+      drij_dri[idx] = -1.0 * C_it[idx];
+    }
+    mat_block_set(J0, 15, 0, 3, 0, 3, drij_dri);
+    dot(factor->sqrt_info, 15, 15, J0, 15, 3, J_out[0]);
+  }
 
-  // // -- Jacobian w.r.t. pose i
-  // // yapf: disable
-  // J0[0:3, 0:3] = -C_i.T  // dr w.r.t r_i
-  // J0[0:3, 3:6] = skew(dr_est)  // dr w.r.t C_i
-  // J0[3:6, 3:6] = skew(dv_est)  // dv w.r.t C_i
-  // J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @
-  // quat_right(dq))[1:4, 1:4]  // dtheta w.r.t C_i J0 = sqrt_info @ J0 //
-  // yapf: enable
+  // -- Jacobian w.r.t. q_i
+  if (J_out[1]) {
+    // -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]
+    real_t drij_dCi[3 * 3] = {0};
+    real_t dvij_dCi[3 * 3] = {0};
+    real_t dtheta_dCi[3 * 3] = {0};
 
-  // // -- Jacobian w.r.t. speed and biases i
-  // // yapf: disable
-  // J1[0:3, 0:3] = -C_i.T * Dt  // dr w.r.t v_i
-  // J1[0:3, 3:6] = -dr_dba  // dr w.r.t ba
-  // J1[0:3, 6:9] = -dr_dbg  // dr w.r.t bg
-  // J1[3:6, 0:3] = -C_i.T  // dv w.r.t v_i
-  // J1[3:6, 3:6] = -dv_dba  // dv w.r.t ba
-  // J1[3:6, 6:9] = -dv_dbg  // dv w.r.t bg
-  // J1[6:9, 6:9] = -quat_left(rot2quat(C_j.T @ C_i @ self.dC))[1:4, 1:4] @
-  // dq_dbg  // dtheta w.r.t C_i J1 = sqrt_info @ J1 // yapf: enable
+    skew(dr_est, drij_dCi);
+    skew(dv_est, dvij_dCi);
 
-  // // -- Jacobian w.r.t. pose j
-  // // yapf: disable
-  // J2[0:3, 0:3] = C_i.T  // dr w.r.t r_j
-  // J2[6:9, 3:6] = quat_left(rot2quat(dC.T @ C_i.T @ C_j))[1:4, 1:4]  //
-  // dtheta w.r.t C_j J2 = sqrt_info @ J2 // yapf: enable
+    real_t J1[15 * 3] = {0};
+    mat_block_set(J1, 15, 0, 3, 0, 3, drij_dCi);
+    mat_block_set(J1, 15, 3, 6, 0, 3, dvij_dCi);
+    mat_block_set(J1, 15, 6, 9, 0, 3, dtheta_dCi);
+    dot(factor->sqrt_info, 15, 15, J1, 15, 3, J_out[1]);
+  }
 
-  // // -- Jacobian w.r.t. sb j
-  // J3[3:6, 0:3] = C_i.T  // dv w.r.t v_j
-  // J3 = sqrt_info @ J3
+  // -- Jacobian w.r.t. v_i
+  if (J_out[2]) {
+    real_t drij_dvi[3 * 3] = {0};
+    real_t dvij_dvi[3 * 3] = {0};
+    for (int idx = 0; idx < 9; idx++) {
+      drij_dvi[idx] = -1.0 * C_it[idx] * factor->Dt;
+      dvij_dvi[idx] = -1.0 * C_it[idx];
+    }
+
+    real_t J2[15 * 3] = {0};
+    mat_block_set(J2, 15, 0, 3, 0, 3, drij_dvi);
+    mat_block_set(J2, 15, 3, 6, 0, 3, dvij_dvi);
+    dot(factor->sqrt_info, 15, 15, J2, 15, 3, J_out[2]);
+  }
+
+  // -- Jacobian w.r.t ba_i
+  if (J_out[3]) {
+    real_t drij_dbai[3 * 3] = {0};
+    real_t dvij_dbai[3 * 3] = {0};
+    for (int idx = 0; idx < 9; idx++) {
+      drij_dbai[idx] = -1.0 * dr_dba[idx];
+      dvij_dbai[idx] = -1.0 * dr_dba[idx];
+    }
+
+    real_t J3[15 * 3] = {0};
+    mat_block_set(J3, 15, 0, 3, 0, 3, drij_dbai);
+    mat_block_set(J3, 15, 3, 6, 0, 3, dvij_dbai);
+    dot(factor->sqrt_info, 15, 15, J3, 15, 3, J_out[3]);
+  }
+
+  // -- Jacobian w.r.t bg_i
+  if (J_out[4]) {
+    real_t drij_dbgi[3 * 3] = {0};
+    real_t dvij_dbgi[3 * 3] = {0};
+    real_t dtheta_dbgi[3 * 3] = {0};
+
+    for (int idx = 0; idx < 9; idx++) {
+      drij_dbgi[idx] = -1.0 * dr_dbg[idx];
+      dvij_dbgi[idx] = -1.0 * dr_dbg[idx];
+    }
+    dot(left_xyz, 3, 3, dq_dbg, 3, 3, dtheta_dbgi);
+
+    real_t J4[15 * 3] = {0};
+    mat_block_set(J4, 15, 0, 3, 0, 3, drij_dbgi);
+    mat_block_set(J4, 15, 3, 6, 0, 3, dvij_dbgi);
+    mat_block_set(J4, 15, 6, 9, 0, 3, dtheta_dbgi);
+    dot(factor->sqrt_info, 15, 15, J4, 15, 3, J_out[4]);
+  }
+
+  // -- Jacobian w.r.t. r_j
+  if (J_out[5]) {
+    real_t drij_drj[3 * 3] = {0};
+    mat_copy(C_it, 3, 3, drij_drj);
+
+    real_t J5[15 * 3] = {0};
+    mat_block_set(J5, 15, 0, 3, 0, 3, drij_drj);
+    dot(factor->sqrt_info, 15, 15, J5, 15, 3, J_out[5]);
+  }
+
+  // -- Jacobian w.r.t. q_j
+  if (J_out[6]) {
+    real_t dtheta_dqj[3 * 3] = {0};
+    quat_left_xyz(qji_dC, dtheta_dqj);
+
+    real_t J6[15 * 3] = {0};
+    mat_block_set(J6, 15, 6, 9, 0, 3, dtheta_dqj);
+    dot(factor->sqrt_info, 15, 15, J6, 15, 3, J_out[6]);
+  }
+
+  // -- Jacobian w.r.t. v_j
+  if (J_out[7]) {
+    real_t dv_dvj[3 * 3] = {0};
+    mat_copy(C_it, 3, 3, dv_dvj);
+
+    real_t J7[15 * 3] = {0};
+    mat_block_set(J7, 15, 3, 6, 0, 3, dv_dvj);
+    dot(factor->sqrt_info, 15, 15, J7, 15, 3, J_out[6]);
+  }
+
+  // -- Jacobian w.r.t. ba_j
+  if (J_out[8]) {
+    zeros(J_out[8], 15, 3);
+  }
+
+  // -- Jacobian w.r.t. bg_j
+  if (J_out[9]) {
+    zeros(J_out[9], 15, 3);
+  }
 
   return 0;
 }
@@ -7102,12 +7197,12 @@ void solver_evaluator(solver_t *solver,
       int re = rs + size_i;
       int ce = cs + size_j;
       if (i == j) {
-        mat_block_set(H, stride, rs, cs, re, ce, H_ij);
+        mat_block_set(H, stride, rs, re, cs, ce, H_ij);
       } else {
         real_t *H_ji = {0};
         mat_transpose(H_ij, size_i, size_j, H_ji);
-        mat_block_set(H, stride, rs, cs, re, ce, H_ij);
-        mat_block_set(H, stride, cs, rs, ce, re, H_ij);
+        mat_block_set(H, stride, rs, re, cs, ce, H_ij);
+        mat_block_set(H, stride, cs, ce, rs, re, H_ij);
       }
 
       // Fill in the R.H.S of H dx = g
