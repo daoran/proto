@@ -616,6 +616,7 @@ void mat_block_set(real_t *A,
                    const size_t rs,
                    const size_t cs,
                    const size_t re,
+                   const size_t cs,
                    const size_t ce,
                    const real_t *block);
 void mat_diag_get(const real_t *A, const int m, const int n, real_t *d);
