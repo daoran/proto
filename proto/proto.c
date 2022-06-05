@@ -3484,16 +3484,20 @@ int check_jacobian(const char *jac_name,
  ******************************************************************************/
 
 #ifdef USE_LAPACK
-void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t) {
+/**
+ * Decompose matrix A with SVD
+ */
+void lapack_svd(
+    real_t *A, const int m, const int n, real_t **s, real_t **U, real_t **V_t) {
   const int lda = n;
   const int diag_size = (m < n) ? m : n;
-  *S = malloc(sizeof(real_t) * diag_size);
+  *s = malloc(sizeof(real_t) * diag_size);
   *U = malloc(sizeof(real_t) * m * m);
   *V_t = malloc(sizeof(real_t) * n * n);
 #if PRECISION == 1
-  LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *S, *U, m, *V_t, n);
+  LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *s, *U, m, *V_t, n);
 #elif PRECISION == 2
-  LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *S, *U, m, *V_t, n);
+  LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *s, *U, m, *V_t, n);
 #endif
 }
 #endif
@@ -3637,6 +3641,40 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
 }
 
 #ifdef USE_LAPACK
+/**
+ * Decompose matrix A to lower triangular matrix L
+ */
+void lapack_chol(const real_t *A, const size_t m, real_t *L) {
+  assert(A != NULL);
+  assert(m > 0);
+  assert(L != NULL);
+
+  // Cholesky Decomposition
+  int info = 0;
+  int lda = m;
+  int n = m;
+  char uplo = 'L';
+  mat_copy(A, m, m, L);
+#if PRECISION == 1
+  spotrf_(&uplo, &n, L, &lda, &info);
+#elif PRECISION == 2
+  dpotrf_(&uplo, &n, L, &lda, &info);
+#endif
+  if (info != 0) {
+    fprintf(stderr, "Failed to decompose A using Cholesky Decomposition!\n");
+  }
+
+  // Transpose and zero upper triangular result
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = i; j < m; j++) {
+      if (i != j) {
+        L[(j * m) + i] = L[(i * m) + j];
+        L[(i * m) + j] = 0.0;
+      }
+    }
+  }
+}
+
 /**
  * Solve Ax = b using LAPACK's implementation of Cholesky decomposition, where
  * `A` is a square matrix, `b` is a vector and `x` is the solution vector of

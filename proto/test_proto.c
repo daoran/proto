@@ -1534,7 +1534,7 @@ int test_check_jacobian() {
 #ifdef USE_LAPACK
 
 int test_lapack_svd() {
-  /* clang-format off */
+  // clang-format off
   real_t A[6 * 4] = {
      7.52, -1.10, -7.95,  1.08,
     -0.76,  0.62,  9.34, -7.10,
@@ -1543,22 +1543,22 @@ int test_lapack_svd() {
      1.33,  4.91, -5.49, -3.52,
     -2.40, -6.77,  2.34,  3.95
   };
-  /* clang-format on */
+  // clang-format on
 
   const int m = 6;
   const int n = 4;
-  real_t *S = NULL;
+  real_t *s = NULL;
   real_t *U = NULL;
   real_t *V_t = NULL;
 
-  lapack_svd(A, m, n, &S, &U, &V_t);
+  lapack_svd(A, m, n, &s, &U, &V_t);
 
   print_matrix("A", A, m, n);
-  print_vector("S", S, 4);
   print_matrix("U", U, m, n);
+  print_vector("s", s, n);
   print_matrix("V_t", V_t, m, n);
 
-  free(S);
+  free(s);
   free(U);
   free(V_t);
 
@@ -1604,14 +1604,14 @@ int test_lapack_svd_inverse() {
  ******************************************************************************/
 
 int test_chol() {
-  /* clang-format off */
+  // clang-format off
   const int n = 3;
   real_t A[9] = {
     4.0, 12.0, -16.0,
     12.0, 37.0, -43.0,
     -16.0, -43.0, 98.0
   };
-  /* clang-format on */
+  // clang-format on
 
   struct timespec t = tic();
   real_t L[9] = {0};
@@ -1642,7 +1642,7 @@ int test_chol() {
 }
 
 int test_chol_solve() {
-  /* clang-format off */
+  // clang-format off
   const int n = 3;
   real_t A[9] = {
     2.0, -1.0, 0.0,
@@ -1651,7 +1651,7 @@ int test_chol_solve() {
   };
   real_t b[3] = {1.0, 0.0, 0.0};
   real_t x[3] = {0.0, 0.0, 0.0};
-  /* clang-format on */
+  // clang-format on
 
   struct timespec t = tic();
   chol_solve(A, b, x, n);
@@ -1666,7 +1666,45 @@ int test_chol_solve() {
 }
 
 #ifdef USE_LAPACK
-int test_chol_solve2() {
+int test_lapack_chol() {
+  // clang-format off
+  const int n = 3;
+  real_t A[9] = {
+    4.0, 12.0, -16.0,
+    12.0, 37.0, -43.0,
+    -16.0, -43.0, 98.0
+  };
+  // clang-format on
+
+  struct timespec t = tic();
+  real_t L[9] = {0};
+  lapack_chol(A, n, L);
+  printf("time taken: [%fs]\n", toc(&t));
+
+  real_t Lt[9] = {0};
+  real_t LLt[9] = {0};
+  mat_transpose(L, n, n, Lt);
+  dot(L, n, n, Lt, n, n, LLt);
+
+  int debug = 1;
+  // int debug = 0;
+  if (debug) {
+    print_matrix("L", L, n, n);
+    printf("\n");
+    print_matrix("Lt", Lt, n, n);
+    printf("\n");
+    print_matrix("LLt", LLt, n, n);
+    printf("\n");
+    print_matrix("A", A, n, n);
+  }
+
+  int retval = mat_equals(A, LLt, n, n, 1e-5);
+  MU_ASSERT(retval == 0);
+
+  return 0;
+}
+
+int test_lapack_chol_solve() {
   /* #<{(| clang-format off |)}># */
   /* const int m = 3; */
   /* const real_t A[9] = { */
@@ -4753,13 +4791,15 @@ void test_suite() {
   /* MU_ADD_TEST(test_svd); */
 #ifdef USE_LAPACK
   MU_ADD_TEST(test_lapack_svd);
+  MU_ADD_TEST(test_lapack_svd_inverse);
 #endif /* USE LAPACK */
 
   /* CHOL */
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
 #ifdef USE_LAPACK
-  MU_ADD_TEST(test_chol_solve2);
+  MU_ADD_TEST(test_lapack_chol);
+  MU_ADD_TEST(test_lapack_chol_solve);
 #endif
 
   /* TRANSFORMS */
