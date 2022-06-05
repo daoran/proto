@@ -3843,18 +3843,24 @@ int test_imu_factor_setup() {
   const int idx_j = test_data.nb_measurements - 1;
   const timestamp_t ts_i = test_data.timestamps[idx_i];
   const timestamp_t ts_j = test_data.timestamps[idx_j];
-  const real_t *vi = test_data.velocities[idx_i];
-  const real_t *vj = test_data.velocities[idx_j];
-  const real_t sb_i_data[9] = {vi[0], vi[1], vi[2], 0, 0, 0, 0, 0, 0};
-  const real_t sb_j_data[9] = {vj[0], vj[1], vj[2], 0, 0, 0, 0, 0, 0};
+  const real_t *v_i = test_data.velocities[idx_i];
+  const real_t ba_i[3] = {0, 0, 0};
+  const real_t bg_i[3] = {0, 0, 0};
+  const real_t *v_j = test_data.velocities[idx_j];
+  const real_t ba_j[3] = {0, 0, 0};
+  const real_t bg_j[3] = {0, 0, 0};
   pose_t pose_i;
   pose_t pose_j;
-  speed_biases_t sb_i;
-  speed_biases_t sb_j;
+  velocity_t vel_i;
+  velocity_t vel_j;
+  imu_biases_t biases_i;
+  imu_biases_t biases_j;
   pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
   pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
-  speed_biases_setup(&sb_i, ts_i, sb_i_data);
-  speed_biases_setup(&sb_j, ts_j, sb_j_data);
+  velocity_setup(&vel_i, ts_i, v_i);
+  velocity_setup(&vel_j, ts_j, v_j);
+  imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
+  imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
 
   pose_print("pose_i", &pose_i);
   pose_print("pose_j", &pose_j);
@@ -3865,14 +3871,18 @@ int test_imu_factor_setup() {
                    &imu_params,
                    &imu_buf,
                    &pose_i,
-                   &sb_i,
+                   &vel_i,
+                   &biases_i,
                    &pose_j,
-                   &sb_j);
+                   &vel_j,
+                   &biases_j);
 
   MU_ASSERT(imu_factor.pose_i == &pose_i);
-  MU_ASSERT(imu_factor.sb_i == &sb_i);
+  MU_ASSERT(imu_factor.vel_i == &vel_i);
+  MU_ASSERT(imu_factor.biases_i == &biases_i);
   MU_ASSERT(imu_factor.pose_i == &pose_i);
-  MU_ASSERT(imu_factor.sb_j == &sb_j);
+  MU_ASSERT(imu_factor.vel_j == &vel_j);
+  MU_ASSERT(imu_factor.biases_j == &biases_j);
 
   print_vector("dr", imu_factor.dr, 3);
   print_vector("dv", imu_factor.dv, 3);

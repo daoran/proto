@@ -6703,16 +6703,20 @@ void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
                       imu_buf_t *imu_buf,
                       pose_t *pose_i,
-                      speed_biases_t *sb_i,
+                      velocity_t *vel_i,
+                      imu_biases_t *biases_i,
                       pose_t *pose_j,
-                      speed_biases_t *sb_j) {
+                      velocity_t *vel_j,
+                      imu_biases_t *biases_j) {
   // Parameters
   factor->imu_params = imu_params;
   imu_buf_copy(imu_buf, &factor->imu_buf);
   factor->pose_i = pose_i;
-  factor->sb_i = sb_i;
   factor->pose_j = pose_j;
-  factor->sb_j = sb_j;
+  factor->vel_i = vel_i;
+  factor->vel_j = vel_j;
+  factor->biases_i = biases_i;
+  factor->biases_j = biases_j;
 
   // Covariance and residuals
   zeros(factor->covar, 15, 15);
@@ -6728,50 +6732,18 @@ void imu_factor_setup(imu_factor_t *factor,
 
   // Pre - integration variables
   factor->Dt = 0.0;
-  eye(factor->F, 15, 15);
-  // State jacobianzeros(factor->P, 15, 15);
-  // State covariance
+  eye(factor->F, 15, 15);   // State jacobian
+  zeros(factor->P, 15, 15); // State covariance
 
   // -- Noise matrix
-  const real_t n_a = imu_params->n_a;
-  const real_t n_g = imu_params->n_g;
-  const real_t n_ba = imu_params->n_aw;
-  const real_t n_bg = imu_params->n_gw;
-  const real_t n_a_sq = n_a * n_a;
-  const real_t n_g_sq = n_g * n_g;
-  const real_t n_ba_sq = n_ba * n_ba;
-  const real_t n_bg_sq = n_bg * n_bg;
-  real_t Q_diag[12] = {0};
-  Q_diag[0] = n_a_sq;
-  Q_diag[1] = n_a_sq;
-  Q_diag[2] = n_a_sq;
-  Q_diag[3] = n_g_sq;
-  Q_diag[4] = n_g_sq;
-  Q_diag[5] = n_g_sq;
-  Q_diag[6] = n_ba_sq;
-  Q_diag[7] = n_ba_sq;
-  Q_diag[8] = n_ba_sq;
-  Q_diag[9] = n_bg_sq;
-  Q_diag[10] = n_bg_sq;
-  Q_diag[11] = n_bg_sq;
-  zeros(factor->Q, 12, 12);
-  mat_diag_set(factor->Q, 12, 12, Q_diag);
+  imu_factor_form_Q_matrix(imu_params, factor->Q);
 
   // Setup
-  // -- Relative position
-  zeros(factor->dr, 3, 1);
-  // -- Relative velocity
-  zeros(factor->dv, 3, 1);
-  // -- Relative rotation
-  quat_setup(factor->dq);
-  // -- Accelerometer bias
-  factor->ba[0] = sb_i->data[3];
-  factor->ba[1] = sb_i->data[4];
-  factor->ba[2] = sb_i->data[5];
-  // -- Gyroscope bias
-  factor->bg[0] = sb_i->data[6];
-  factor->bg[1] = sb_i->data[7];
-  factor->bg[2] = sb_i->data[8];
+  zeros(factor->dr, 3, 1);               // Relative position
+  zeros(factor->dv, 3, 1);               // Relative velocity
+  quat_setup(factor->dq);                // Relative rotation
+  vec_copy(biases_i->ba, 3, factor->ba); // Accelerometer bias
+  vec_copy(biases_i->bg, 3, factor->bg); // Gyroscope bias
 
   // Pre-integrate imu measuremenets
   real_t dt = 0.0;
@@ -6794,40 +6766,45 @@ void imu_factor_setup(imu_factor_t *factor,
                               w,
                               dt);
 
-    // Form continuous time transition matrix F
+    // Transition Matrix F
     real_t I_F_dt[15 * 15] = {0};
-    // F[0 : 3, 3 : 6] = eye(3);
-    I_F_dt[0] = 1.0;
-    I_F_dt[3] = 1.0;
-    I_F_dt[6] = 1.0;
-    // F[4 : 6, 7 : 9] = - dC * skew(a_t);
-    // F[4 : 6, 10 : 12] = - dC;
-    // F[7 : 9, 7 : 9] = - skew(w_t);
-    // F[7 : 9, 13 : 15] = - eye(3);
-    // I_F_dt = eye(15) + F * dt;
-    for (int i = 0; i < (15 * 15); i++) {
-      I_F_dt[i] = I_F_dt[i] * dt;
-    }
+    imu_factor_form_F_matrix(factor->dq,
+                             factor->ba,
+                             factor->bg,
+                             a,
+                             w,
+                             dt,
+                             I_F_dt);
 
-    // Form continuous time input jacobian G
-    real_t G_dt[15 * 15] = {0};
-    // G[4 : 6, 1 : 3] = - dC;
-    // G[7 : 9, 4 : 6] = - eye(3);
-    // G[10 : 12, 7 : 9] = eye(3);
-    // G[13 : 15, 10 : 12] = eye(3);
-    // G_dt = G * dt;
-    for (int i = 0; i < (15 * 15); i++) {
-      G_dt[i] = G_dt[i] * dt;
-      if (i == 0 || i % 6 == 0) {
-        G_dt[i] = 1.0 + G_dt[i];
-      }
-    }
+    // Input jacobian G
+    real_t G_dt[15 * 12] = {0};
+    imu_factor_form_G_matrix(factor->dq, dt, G_dt);
 
     // Update state matrix F and P
-    // F = I_F_dt * factor.state_F;
+    // F = I_F_dt * F;
+    real_t F_prev[15 * 15] = {0};
+    mat_copy(factor->F, 15, 15, F_prev);
+    dot(I_F_dt, 15, 15, F_prev, 15, 15, factor->F);
     // P = I_F_dt * P * I_F_dt' + G_dt * Q * G_dt';
+    real_t P_prev[15 * 15] = {0};
+    real_t A[15 * 15] = {0};
+    real_t B[15 * 15] = {0};
+    mat_copy(factor->P, 15, 15, P_prev);
+    dot_XtAX(I_F_dt, 15, 15, factor->P, 15, 15, A);
+    dot_XtAX(G_dt, 15, 12, factor->Q, 12, 12, B);
+    mat_add(A, B, factor->P, 15, 15);
+
+    // Update overall dt
     factor->Dt += dt;
   }
+
+  // Covariance
+  mat_copy(factor->P, 15, 15, factor->covar);
+
+  // Square root information
+  real_t info[15 * 15] = {0};
+  lapack_svd_inverse(factor->covar, 15, 15, info);
+  lapack_chol(info, 15, factor->sqrt_info);
 }
 
 /**
