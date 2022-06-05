@@ -6983,7 +6983,7 @@ int imu_factor_eval(imu_factor_t *factor,
   real_t err_bg[3] = {0.0, 0.0, 0.0};
 
   // Residual vector
-  // r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
+  // r = sqrt_info * [err_pos; err_vel; err_rot; err_ba; err_bg]
   {
     real_t r_raw[15] = {0};
     r_raw[0] = err_pos[0];
@@ -7005,21 +7005,24 @@ int imu_factor_eval(imu_factor_t *factor,
     r_raw[12] = err_bg[0];
     r_raw[13] = err_bg[1];
     r_raw[14] = err_bg[2];
+
+    dot(factor->sqrt_info, 15, 15, r_raw, 15, 1, factor->r);
   }
 
-  // // Form jacobians
-  // J0 = zeros((15, 6))  // residuals w.r.t pose i
-  // J1 = zeros((15, 9))  // residuals w.r.t speed and biase i
-  // J2 = zeros((15, 6))  // residuals w.r.t pose j
-  // J3 = zeros((15, 9))  // residuals w.r.t speed and biase j
+  // Form jacobians
+  zeros(factor->J0, 15, 6); // residuals w.r.t pose i
+  zeros(factor->J1, 15, 9); // residuals w.r.t speed and biase i
+  zeros(factor->J2, 15, 6); // residuals w.r.t pose j
+  zeros(factor->J3, 15, 9); // residuals w.r.t speed and biase j
 
   // // -- Jacobian w.r.t. pose i
   // // yapf: disable
   // J0[0:3, 0:3] = -C_i.T  // dr w.r.t r_i
   // J0[0:3, 3:6] = skew(dr_est)  // dr w.r.t C_i
   // J0[3:6, 3:6] = skew(dv_est)  // dv w.r.t C_i
-  // J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4,
-  // 1:4]  // dtheta w.r.t C_i J0 = sqrt_info @ J0 // yapf: enable
+  // J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @
+  // quat_right(dq))[1:4, 1:4]  // dtheta w.r.t C_i J0 = sqrt_info @ J0 //
+  // yapf: enable
 
   // // -- Jacobian w.r.t. speed and biases i
   // // yapf: disable
@@ -7035,8 +7038,8 @@ int imu_factor_eval(imu_factor_t *factor,
   // // -- Jacobian w.r.t. pose j
   // // yapf: disable
   // J2[0:3, 0:3] = C_i.T  // dr w.r.t r_j
-  // J2[6:9, 3:6] = quat_left(rot2quat(dC.T @ C_i.T @ C_j))[1:4, 1:4]  // dtheta
-  // w.r.t C_j J2 = sqrt_info @ J2 // yapf: enable
+  // J2[6:9, 3:6] = quat_left(rot2quat(dC.T @ C_i.T @ C_j))[1:4, 1:4]  //
+  // dtheta w.r.t C_j J2 = sqrt_info @ J2 // yapf: enable
 
   // // -- Jacobian w.r.t. sb j
   // J3[3:6, 0:3] = C_i.T  // dv w.r.t v_j
