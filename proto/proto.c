@@ -4641,15 +4641,10 @@ void quat_perturb(real_t q[4], const int i, const real_t h) {
   dalpha[i] = h;
   quat_delta(dalpha, dq);
 
-  print_vector("q", q, 4);
-
   // Perturb quaternion
   real_t q_[4] = {q[0], q[1], q[2], q[3]};
   quat_mul(q_, dq, q);
   quat_normalize(q);
-
-  print_vector("dq", dq, 4);
-  print_vector("q_diff", q, 4);
 }
 
 /*****************************************************************************
