@@ -32,3 +32,25 @@ clean: ## Clean
 # 		&& . /opt/ros/melodic/setup.sh \
 # 		&& cd .. \
 # 		&& catkin build proto_ros -DCMAKE_BUILD_TYPE=RELEASE -j2
+
+ubuntu_usb:  ## Create Ubuntu USB boot-stick
+	@echo "[Create Ubuntu install USB stick]"
+	@sudo usb-creator-gtk
+
+setup_chrony_server:  ## Setup chrony server
+	@sudo apt-get remove ntp ntpdate -qq
+	@sudo apt-get install chrony -qq
+	@sudo cp configs/chrony_server.conf /etc/chrony/chrony.conf
+	@sudo systemctl restart chrony.service
+	@sleep 2
+	@sudo systemctl --no-pager status chrony.service
+	chronyc sourcestats
+
+setup_chrony_client:  ## Setup chrony client
+	@sudo apt-get remove ntp ntpdate -qq
+	@sudo apt-get install chrony -qq
+	@sudo cp configs/chrony_client.conf /etc/chrony/chrony.conf
+	@sudo systemctl restart chrony.service
+	@sleep 2
+	@sudo systemctl --no-pager status chrony.service
+	chronyc sources
