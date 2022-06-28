@@ -10,7 +10,7 @@
 #define USE_LAPACK
 #define USE_CERES
 #define USE_STB_IMAGE
-// #define USE_GUI
+#define USE_GUI
 
 #ifndef WARN_UNUSED
 #define WARN_UNUSED __attribute__((warn_unused_result))
@@ -206,6 +206,7 @@ real_t **load_darrays(const char *csv_path, int *nb_arrays);
 int *int_malloc(const int val);
 float *float_malloc(const float val);
 double *double_malloc(const double val);
+real_t *vector_malloc(const real_t *vec, const real_t N);
 
 int dsv_rows(const char *fp);
 int dsv_cols(const char *fp, const char delim);
@@ -613,8 +614,8 @@ void mat_block_get(const real_t *A,
 void mat_block_set(real_t *A,
                    const size_t stride,
                    const size_t rs,
-                   const size_t cs,
                    const size_t re,
+                   const size_t cs,
                    const size_t ce,
                    const real_t *block);
 void mat_diag_get(const real_t *A, const int m, const int n, real_t *d);
@@ -643,10 +644,26 @@ void dot(const real_t *A,
          const size_t B_m,
          const size_t B_n,
          real_t *C);
+void dot_XtAX(const real_t *X,
+              const size_t X_m,
+              const size_t X_n,
+              const real_t *A,
+              const size_t A_m,
+              const size_t A_n,
+              real_t *Y);
+void dot_XAXt(const real_t *X,
+              const size_t X_m,
+              const size_t X_n,
+              const real_t *A,
+              const size_t A_m,
+              const size_t A_n,
+              real_t *Y);
+
 void skew(const real_t x[3], real_t A[3 * 3]);
 void skew_inv(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
+
 int check_jacobian(const char *jac_name,
                    const real_t *fdiff,
                    const real_t *jac,
@@ -660,7 +677,9 @@ int check_jacobian(const char *jac_name,
  ******************************************************************************/
 
 #ifdef USE_LAPACK
-void lapack_svd(real_t *A, int m, int n, real_t **S, real_t **U, real_t **V_t);
+void lapack_svd(
+    real_t *A, const int m, const int n, real_t **s, real_t **U, real_t **V_t);
+void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv);
 #endif
 
 /******************************************************************************
@@ -671,6 +690,7 @@ void chol(const real_t *A, const size_t n, real_t *L);
 void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n);
 
 #ifdef USE_LAPACK
+void lapack_chol(const real_t *A, const size_t m, real_t *L);
 void lapack_chol_solve(const real_t *A,
                        const real_t *b,
                        real_t *x,
@@ -706,12 +726,14 @@ void rot2quat(const real_t C[3 * 3], real_t q[4]);
 void rot2euler(const real_t C[3 * 3], real_t ypr[3]);
 void quat2euler(const real_t q[4], real_t ypr[3]);
 void quat2rot(const real_t q[4], real_t C[3 * 3]);
-void quat_print(const char *prefix, const real_t q[4]);
+void print_quat(const char *prefix, const real_t q[4]);
 real_t quat_norm(const real_t q[4]);
+void quat_setup(real_t q[4]);
 void quat_normalize(real_t q[4]);
 void quat_normalize_copy(const real_t q[4], real_t q_normalized[4]);
 void quat_inv(const real_t q[4], real_t q_inv[4]);
 void quat_left(const real_t q[4], real_t left[4 * 4]);
+void quat_left_xyz(const real_t q[4], real_t left_xyz[3 * 3]);
 void quat_right(const real_t q[4], real_t right[4 * 4]);
 void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]);
@@ -833,17 +855,27 @@ typedef struct pose_t {
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_print(const char *prefix, const pose_t *pose);
 
-// SPEED AND BIASES ////////////////////////////////////////////////////////////
+// VELOCITY ////////////////////////////////////////////////////////////////////
 
-typedef struct speed_biases_t {
+typedef struct velocity_t {
   timestamp_t ts;
-  real_t data[9];
-} speed_biases_t;
+  real_t v[3];
+} velocity_t;
 
-void speed_biases_setup(speed_biases_t *sb,
-                        const timestamp_t ts,
-                        const real_t *param);
-void speed_biases_print(const speed_biases_t *sb);
+void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
+
+// IMU BIASES /////////////////////////////////////////////////////////////////
+
+typedef struct imu_biases_t {
+  timestamp_t ts;
+  real_t ba[3];
+  real_t bg[3];
+} imu_biases_t;
+
+void imu_biases_setup(imu_biases_t *sb,
+                      const timestamp_t ts,
+                      const real_t ba[3],
+                      const real_t bg[3]);
 
 // FEATURE /////////////////////////////////////////////////////////////////////
 
@@ -1008,31 +1040,28 @@ typedef struct imu_factor_t {
   imu_buf_t imu_buf;
   pose_t *pose_i;
   pose_t *pose_j;
-  speed_biases_t *sb_i;
-  speed_biases_t *sb_j;
+  velocity_t *vel_i;
+  velocity_t *vel_j;
+  imu_biases_t *biases_i;
+  imu_biases_t *biases_j;
+  int nb_params;
 
   real_t covar[15 * 15];
+  real_t sqrt_info[15 * 15];
   real_t r[15];
   int r_size;
-
-  real_t J0[2 * 6]; // Jacobian w.r.t pose i
-  real_t J1[2 * 9]; // Jacobian w.r.t speed and biases i
-  real_t J2[2 * 6]; // Jacobian w.r.t pose j
-  real_t J3[2 * 9]; // Jacobian w.r.t speed and biases j
-  real_t *jacs[4];
-  int nb_params;
 
   // Preintegration variables
   real_t Dt;
   real_t F[15 * 15]; // State jacobian
   real_t P[15 * 15]; // State covariance
-  real_t Q[15 * 15]; // Noise matrix
+  real_t Q[12 * 12]; // Noise matrix
 
-  real_t dr[3];     // Relative position
-  real_t dv[3];     // Relative velocity
-  real_t dC[3 * 3]; // Relative rotation
-  real_t ba[3];     // Accel biase
-  real_t bg[3];     // Gyro biase
+  real_t dr[3]; // Relative position
+  real_t dv[3]; // Relative velocity
+  real_t dq[4]; // Relative rotation
+  real_t ba[3]; // Accel biase
+  real_t bg[3]; // Gyro biase
 
 } imu_factor_t;
 
@@ -1045,16 +1074,30 @@ void imu_buf_clear(imu_buf_t *imu_buf);
 void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
 void imu_buf_print(const imu_buf_t *imu_buf);
 
+void imu_factor_propagate_step(real_t r[3],
+                               real_t v[3],
+                               real_t q[4],
+                               real_t ba[3],
+                               real_t bg[3],
+                               const real_t a[3],
+                               const real_t w[3],
+                               const real_t dt);
 void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
                       imu_buf_t *imu_buf,
                       pose_t *pose_i,
-                      speed_biases_t *sb_i,
+                      velocity_t *v_i,
+                      imu_biases_t *biases_i,
                       pose_t *pose_j,
-                      speed_biases_t *sb_j);
+                      velocity_t *v_j,
+                      imu_biases_t *biases_j);
 void imu_factor_reset(imu_factor_t *factor);
+int imu_factor_eval(imu_factor_t *factor,
+                    real_t **params,
+                    real_t *residuals,
+                    real_t **jacobians);
 
-// GRAPH ///////////////////////////////////////////////////////////////////////
+// SOLVER ////////////////////////////////////////////////////////////////////
 
 #define MAX_NB_FACTORS 1000
 
@@ -1073,7 +1116,7 @@ typedef struct keyframe_t {
   pose_t *pose;
 } keyframe_t;
 
-typedef struct graph_t {
+typedef struct solver_t {
   void *factors[MAX_NB_FACTORS];
   int nb_factors;
   int *factor_types;
@@ -1095,13 +1138,13 @@ typedef struct graph_t {
   real_t *x;
   int x_size;
   int r_size;
-} graph_t;
+} solver_t;
 
-void graph_setup(graph_t *graph);
-void graph_print(graph_t *graph);
-int graph_add_factor(graph_t *graph, void *factor, int factor_type);
-int graph_eval(graph_t *graph);
-void graph_optimize(graph_t *graph);
+void solver_setup(solver_t *solver);
+void solver_print(solver_t *solver);
+int solver_add_factor(solver_t *solver, void *factor, int factor_type);
+int solver_eval(solver_t *solver);
+void solver_optimize(solver_t *solver);
 
 /******************************************************************************
  * DATASET
@@ -1126,8 +1169,8 @@ typedef struct sim_features_t {
   int nb_features;
 } sim_features_t;
 
-sim_features_t *load_sim_features(const char *csv_path);
-void free_sim_features(sim_features_t *features_data);
+sim_features_t *sim_features_load(const char *csv_path);
+void sim_features_free(sim_features_t *features_data);
 
 // SIM IMU DATA ////////////////////////////////////////////////////////////////
 
@@ -1136,32 +1179,36 @@ typedef struct sim_imu_data_t {
   int nb_measurements;
 } sim_imu_data_t;
 
-sim_imu_data_t *load_sim_imu_data(const char *csv_path);
-void free_sim_imu_data(sim_imu_data_t *imu_data);
+sim_imu_data_t *sim_imu_data_load(const char *csv_path);
+void sim_imu_data_free(sim_imu_data_t *imu_data);
 
 // SIM CAM DATA ////////////////////////////////////////////////////////////////
 
-typedef struct sim_cam_frame_t {
+typedef struct sim_camera_frame_t {
   timestamp_t ts;
   int *feature_ids;
   real_t **keypoints;
   int nb_measurements;
-} sim_cam_frame_t;
+} sim_camera_frame_t;
 
-typedef struct sim_cam_data_t {
-  sim_cam_frame_t **frames;
+typedef struct sim_camera_data_t {
+  sim_camera_frame_t **frames;
   int nb_frames;
 
   timestamp_t *ts;
   real_t **poses;
-} sim_cam_data_t;
+} sim_camera_data_t;
 
-sim_cam_frame_t *load_sim_cam_frame(const char *csv_path);
-void print_sim_cam_frame(sim_cam_frame_t *frame_data);
-void free_sim_cam_frame(sim_cam_frame_t *frame_data);
+sim_camera_frame_t *sim_camera_frame_load(const char *csv_path);
+void sim_camera_frame_print(sim_camera_frame_t *frame_data);
+void sim_camera_frame_free(sim_camera_frame_t *frame_data);
 
-sim_cam_data_t *load_sim_cam_data(const char *dir_path);
-void free_sim_cam_data(sim_cam_data_t *cam_data);
+sim_camera_data_t *sim_camera_data_load(const char *dir_path);
+void sim_camera_data_free(sim_camera_data_t *cam_data);
+
+real_t **sim_create_features(const real_t origin[3],
+                             const real_t dim[3],
+                             const int nb_features);
 
 /******************************************************************************
  * GUI

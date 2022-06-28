@@ -1326,13 +1326,13 @@ int test_mat_diag_set() {
 }
 
 int test_mat_triu() {
-  /* clang-format off */
+  // clang-format off
   real_t A[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
                   9.0, 10.0, 11.0, 12.0,
                   13.0, 14.0, 15.0, 16.0};
   real_t U[16] = {0};
-  /* clang-format on */
+  // clang-format on
   mat_triu(A, 4, U);
   print_matrix("U", U, 4, 4);
 
@@ -1340,13 +1340,13 @@ int test_mat_triu() {
 }
 
 int test_mat_tril() {
-  /* clang-format off */
+  // clang-format off
   real_t A[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
                   9.0, 10.0, 11.0, 12.0,
                   13.0, 14.0, 15.0, 16.0};
   real_t L[16] = {0};
-  /* clang-format on */
+  // clang-format on
   mat_tril(A, 4, L);
   print_matrix("L", L, 4, 4);
 
@@ -1354,12 +1354,12 @@ int test_mat_tril() {
 }
 
 int test_mat_trace() {
-  /* clang-format off */
+  // clang-format off
   real_t A[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
                   9.0, 10.0, 11.0, 12.0,
                   13.0, 14.0, 15.0, 16.0};
-  /* clang-format on */
+  // clang-format on
   const real_t tr = mat_trace(A, 4, 4);
   MU_ASSERT(fltcmp(tr, 1.0 + 6.0 + 11.0 + 16.0) == 0.0);
 
@@ -1534,7 +1534,7 @@ int test_check_jacobian() {
 #ifdef USE_LAPACK
 
 int test_lapack_svd() {
-  /* clang-format off */
+  // clang-format off
   real_t A[6 * 4] = {
      7.52, -1.10, -7.95,  1.08,
     -0.76,  0.62,  9.34, -7.10,
@@ -1543,24 +1543,56 @@ int test_lapack_svd() {
      1.33,  4.91, -5.49, -3.52,
     -2.40, -6.77,  2.34,  3.95
   };
-  /* clang-format on */
+  // clang-format on
 
   const int m = 6;
   const int n = 4;
-  real_t *S = NULL;
+  real_t *s = NULL;
   real_t *U = NULL;
   real_t *V_t = NULL;
 
-  lapack_svd(A, m, n, &S, &U, &V_t);
+  lapack_svd(A, m, n, &s, &U, &V_t);
 
   print_matrix("A", A, m, n);
-  print_vector("S", S, 4);
   print_matrix("U", U, m, n);
+  print_vector("s", s, n);
   print_matrix("V_t", V_t, m, n);
 
-  free(S);
+  free(s);
   free(U);
   free(V_t);
+
+  return 0;
+}
+
+int test_lapack_svd_inverse() {
+  // clang-format off
+  const int A_m = 4;
+  const int A_n = 4;
+  real_t A[4 * 4] = {
+     7.52, -1.10, -7.95,  1.08,
+    -0.76,  0.62,  9.34, -7.10,
+     5.13,  6.62, -5.66,  0.87,
+    -4.75,  8.52,  5.75,  5.30,
+  };
+  real_t A_original[4 * 4] = {
+     7.52, -1.10, -7.95,  1.08,
+    -0.76,  0.62,  9.34, -7.10,
+     5.13,  6.62, -5.66,  0.87,
+    -4.75,  8.52,  5.75,  5.30,
+  };
+  // clang-format on
+
+  // Invert matrix A using SVD
+  real_t A_inv[4 * 4] = {0};
+  lapack_svd_inverse(A, A_m, A_n, A_inv);
+
+  // Inverse check: A * A_inv = eye
+  real_t inv_check[4 * 4] = {0};
+  dot(A_original, A_m, A_n, A_inv, A_n, A_m, inv_check);
+  for (int i = 0; i < 4; i++) {
+    MU_ASSERT(fltcmp(inv_check[i * 4 + i], 1.0) == 0);
+  }
 
   return 0;
 }
@@ -1572,14 +1604,14 @@ int test_lapack_svd() {
  ******************************************************************************/
 
 int test_chol() {
-  /* clang-format off */
+  // clang-format off
   const int n = 3;
   real_t A[9] = {
     4.0, 12.0, -16.0,
     12.0, 37.0, -43.0,
     -16.0, -43.0, 98.0
   };
-  /* clang-format on */
+  // clang-format on
 
   struct timespec t = tic();
   real_t L[9] = {0};
@@ -1610,7 +1642,7 @@ int test_chol() {
 }
 
 int test_chol_solve() {
-  /* clang-format off */
+  // clang-format off
   const int n = 3;
   real_t A[9] = {
     2.0, -1.0, 0.0,
@@ -1619,7 +1651,7 @@ int test_chol_solve() {
   };
   real_t b[3] = {1.0, 0.0, 0.0};
   real_t x[3] = {0.0, 0.0, 0.0};
-  /* clang-format on */
+  // clang-format on
 
   struct timespec t = tic();
   chol_solve(A, b, x, n);
@@ -1634,7 +1666,45 @@ int test_chol_solve() {
 }
 
 #ifdef USE_LAPACK
-int test_chol_solve2() {
+int test_lapack_chol() {
+  // clang-format off
+  const int n = 3;
+  real_t A[9] = {
+    4.0, 12.0, -16.0,
+    12.0, 37.0, -43.0,
+    -16.0, -43.0, 98.0
+  };
+  // clang-format on
+
+  struct timespec t = tic();
+  real_t L[9] = {0};
+  lapack_chol(A, n, L);
+  printf("time taken: [%fs]\n", toc(&t));
+
+  real_t Lt[9] = {0};
+  real_t LLt[9] = {0};
+  mat_transpose(L, n, n, Lt);
+  dot(L, n, n, Lt, n, n, LLt);
+
+  int debug = 1;
+  // int debug = 0;
+  if (debug) {
+    print_matrix("L", L, n, n);
+    printf("\n");
+    print_matrix("Lt", Lt, n, n);
+    printf("\n");
+    print_matrix("LLt", LLt, n, n);
+    printf("\n");
+    print_matrix("A", A, n, n);
+  }
+
+  int retval = mat_equals(A, LLt, n, n, 1e-5);
+  MU_ASSERT(retval == 0);
+
+  return 0;
+}
+
+int test_lapack_chol_solve() {
   /* #<{(| clang-format off |)}># */
   /* const int m = 3; */
   /* const real_t A[9] = { */
@@ -1656,7 +1726,7 @@ int test_chol_solve2() {
   /* print_matrix("a", a, 3, 3); */
   /* mat_save("/tmp/A.csv", A, m, m); */
 
-  /* clang-format off */
+  // clang-format off
   int m = 4;
   real_t A[16] = {
     4.16, -3.12, 0.56, -0.10,
@@ -1666,7 +1736,7 @@ int test_chol_solve2() {
   };
   real_t b[4] = {1.0, 0.0, 0.0, 0.0};
   real_t x[4] = {0.0, 0.0, 0.0, 0.0};
-  /* clang-format on */
+  // clang-format on
 
   struct timespec t = tic();
   lapack_chol_solve(A, b, x, m);
@@ -1750,12 +1820,12 @@ int test_tf_trans_set() {
 }
 
 int test_tf_trans_get() {
-  /* clang-format off */
+  // clang-format off
   real_t T[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
                   9.0, 10.0, 11.0, 12.0,
                   13.0, 14.0, 15.0, 16.0};
-  /* clang-format on */
+  // clang-format on
   print_matrix("T", T, 4, 4);
 
   /* Get translation vector */
@@ -1772,12 +1842,12 @@ int test_tf_trans_get() {
 
 int test_tf_rot_get() {
   /* Transform */
-  /* clang-format off */
+  // clang-format off
   real_t T[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
                   9.0, 10.0, 11.0, 12.0,
                   13.0, 14.0, 15.0, 16.0};
-  /* clang-format on */
+  // clang-format on
   print_matrix("T", T, 4, 4);
 
   /* Get rotation matrix */
@@ -1802,12 +1872,12 @@ int test_tf_rot_get() {
 
 int test_tf_quat_get() {
   /* Transform */
-  /* clang-format off */
+  // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 0.0,
                   0.0, 1.0, 0.0, 0.0,
                   0.0, 0.0, 1.0, 0.0,
                   0.0, 0.0, 0.0, 1.0};
-  /* clang-format on */
+  // clang-format on
 
   /* Create rotation matrix */
   const real_t ypr_in[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
@@ -1833,12 +1903,12 @@ int test_tf_quat_get() {
 
 int test_tf_inv() {
   /* Create Transform */
-  /* clang-format off */
+  // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 0.0,
                   0.0, 1.0, 0.0, 0.0,
                   0.0, 0.0, 1.0, 0.0,
                   0.0, 0.0, 0.0, 1.0};
-  /* clang-format on */
+  // clang-format on
   /* -- Set rotation component */
   const real_t euler[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
   real_t C[9] = {0};
@@ -1874,12 +1944,12 @@ int test_tf_inv() {
 
 int test_tf_point() {
   /* Transform */
-  /* clang-format off */
+  // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 1.0,
                   0.0, 1.0, 0.0, 2.0,
                   0.0, 0.0, 1.0, 3.0,
                   0.0, 0.0, 0.0, 1.0};
-  /* clang-format on */
+  // clang-format on
   print_matrix("T", T, 4, 4);
 
   /* Point */
@@ -1896,12 +1966,12 @@ int test_tf_point() {
 
 int test_tf_hpoint() {
   /* Transform */
-  /* clang-format off */
+  // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 1.0,
                   0.0, 1.0, 0.0, 2.0,
                   0.0, 0.0, 1.0, 3.0,
                   0.0, 0.0, 0.0, 1.0};
-  /* clang-format on */
+  // clang-format on
   print_matrix("T", T, 4, 4);
 
   /* Homogeneous point */
@@ -1918,12 +1988,12 @@ int test_tf_hpoint() {
 
 int test_tf_perturb_rot() {
   /* Transform */
-  /* clang-format off */
+  // clang-format off
   real_t T[4 * 4] = {1.0, 0.0, 0.0, 1.0,
                      0.0, 1.0, 0.0, 2.0,
                      0.0, 0.0, 1.0, 3.0,
                      0.0, 0.0, 0.0, 1.0};
-  /* clang-format on */
+  // clang-format on
 
   /* Perturb rotation */
   const real_t step_size = 1e-2;
@@ -1940,12 +2010,12 @@ int test_tf_perturb_rot() {
 
 int test_tf_perturb_trans() {
   /* Transform */
-  /* clang-format off */
+  // clang-format off
   real_t T[4 * 4] = {1.0, 0.0, 0.0, 1.0,
                      0.0, 1.0, 0.0, 2.0,
                      0.0, 0.0, 1.0, 3.0,
                      0.0, 0.0, 0.0, 1.0};
-  /* clang-format on */
+  // clang-format on
 
   /* Perturb translation */
   const real_t step_size = 1e-2;
@@ -2100,9 +2170,6 @@ int test_lie_Exp_Log() {
  * CV
  ******************************************************************************/
 
-/* IMAGE
- * ---------------------------------------------------------------------*/
-
 int test_image_setup() {
   return 0;
 }
@@ -2118,9 +2185,6 @@ int test_image_print_properties() {
 int test_image_free() {
   return 0;
 }
-
-/* GEOMETRY
- * ------------------------------------------------------------------*/
 
 int test_linear_triangulation() {
   /* Setup camera */
@@ -2190,9 +2254,6 @@ int test_linear_triangulation() {
 
   return 0;
 }
-
-/* RADTAN
- * --------------------------------------------------------------------*/
 
 int test_radtan4_distort() {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
@@ -2276,9 +2337,6 @@ int test_radtan4_params_jacobian() {
   return 0;
 }
 
-/* EQUI
- * ----------------------------------------------------------------------*/
-
 int test_equi4_distort() {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
@@ -2360,9 +2418,6 @@ int test_equi4_params_jacobian() {
 
   return 0;
 }
-
-/* PINHOLE
- * -------------------------------------------------------------------*/
 
 int test_pinhole_focal() {
   const real_t focal = pinhole_focal(640, 90.0);
@@ -2531,9 +2586,6 @@ int test_pinhole_params_jacobian() {
   return 0;
 }
 
-/* PINHOLE-RADTAN4
- * -----------------------------------------------------------*/
-
 int test_pinhole_radtan4_project() {
   /* Camera parameters */
   const int img_w = 640;
@@ -2650,9 +2702,6 @@ int test_pinhole_radtan4_params_jacobian() {
 
   return 0;
 }
-
-/* PINHOLE-EQUI4
- * -------------------------------------------------------------*/
 
 int test_pinhole_equi4_project() {
   /* Camera parameters */
@@ -2796,26 +2845,23 @@ int test_pose_setup() {
   return 0;
 }
 
-int test_speed_biases_setup() {
+int test_imu_biases_setup() {
   timestamp_t ts = 1;
-  speed_biases_t sb;
+  imu_biases_t biases;
 
-  real_t data[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
-  speed_biases_setup(&sb, ts, data);
+  real_t ba[3] = {1.0, 2.0, 3.0};
+  real_t bg[3] = {4.0, 5.0, 6.0};
+  imu_biases_setup(&biases, ts, ba, bg);
 
-  MU_ASSERT(sb.ts == 1);
+  MU_ASSERT(biases.ts == 1);
 
-  MU_ASSERT(fltcmp(sb.data[0], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(sb.data[1], 2.0) == 0.0);
-  MU_ASSERT(fltcmp(sb.data[2], 3.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.ba[0], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.ba[1], 2.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.ba[2], 3.0) == 0.0);
 
-  MU_ASSERT(fltcmp(sb.data[3], 4.0) == 0.0);
-  MU_ASSERT(fltcmp(sb.data[4], 5.0) == 0.0);
-  MU_ASSERT(fltcmp(sb.data[5], 6.0) == 0.0);
-
-  MU_ASSERT(fltcmp(sb.data[6], 7.0) == 0.0);
-  MU_ASSERT(fltcmp(sb.data[7], 8.0) == 0.0);
-  MU_ASSERT(fltcmp(sb.data[8], 9.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.bg[0], 4.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.bg[1], 5.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.bg[2], 6.0) == 0.0);
 
   return 0;
 }
@@ -3557,25 +3603,270 @@ int test_imu_buf_print() {
   return 0;
 }
 
-int test_imu_factor_setup() {
-  imu_factor_t imu_factor;
-  imu_params_t imu_params;
+typedef struct imu_test_data_t {
+  int nb_measurements;
+  real_t *timestamps;
+  real_t **poses;
+  real_t **velocities;
+  real_t **imu_acc;
+  real_t **imu_gyr;
+} imu_test_data_t;
+
+static int setup_imu_test_data(imu_test_data_t *test_data) {
+  // Circle trajectory configurations
+  const real_t imu_rate = 200.0;
+  const real_t circle_r = 0.1;
+  const real_t circle_v = 0.2;
+  const real_t circle_dist = 2.0 * M_PI * circle_r;
+  const real_t time_taken = circle_dist / circle_v;
+  const real_t w = -2.0 * M_PI * (1.0 / time_taken);
+  const real_t theta_init = M_PI;
+  const real_t yaw_init = M_PI / 2.0;
+
+  // Allocate memory for test data
+  test_data->nb_measurements = time_taken * imu_rate;
+  test_data->timestamps = malloc(sizeof(real_t) * test_data->nb_measurements);
+  test_data->poses = malloc(sizeof(real_t *) * test_data->nb_measurements);
+  test_data->velocities = malloc(sizeof(real_t *) * test_data->nb_measurements);
+  test_data->imu_acc = malloc(sizeof(real_t *) * test_data->nb_measurements);
+  test_data->imu_gyr = malloc(sizeof(real_t *) * test_data->nb_measurements);
+
+  // Simulate IMU poses
+  const real_t dt = 1.0 / imu_rate;
+  timestamp_t ts = 0.0;
+  real_t theta = theta_init;
+  real_t yaw = yaw_init;
+
+  for (int k = 0; k < test_data->nb_measurements; k++) {
+    // IMU pose
+    // -- Position
+    const real_t rx = circle_r * cos(theta);
+    const real_t ry = circle_r * sin(theta);
+    const real_t rz = 0.0;
+    // -- Orientation
+    const real_t ypr[3] = {yaw, 0.0, 0.0};
+    real_t q[4] = {0};
+    euler2quat(ypr, q);
+    // -- Pose vector
+    const real_t pose[7] = {rx, ry, rz, q[0], q[1], q[2], q[3]};
+    // print_vector("pose", pose, 7);
+
+    // Velocity
+    const real_t vx = -circle_r * w * sin(theta);
+    const real_t vy = circle_r * w * cos(theta);
+    const real_t vz = 0.0;
+    const real_t v_WS[3] = {vx, vy, vz};
+
+    // Acceleration
+    const real_t ax = -circle_r * w * w * cos(theta);
+    const real_t ay = -circle_r * w * w * sin(theta);
+    const real_t az = 0.0;
+    const real_t a_WS[3] = {ax, ay, az};
+
+    // Angular velocity
+    const real_t wx = 0.0;
+    const real_t wy = 0.0;
+    const real_t wz = w;
+    const real_t w_WS[3] = {wx, wy, wz};
+
+    // IMU measurements
+    real_t C_WS[3 * 3] = {0};
+    real_t C_SW[3 * 3] = {0};
+    quat2rot(q, C_WS);
+    mat_transpose(C_WS, 3, 3, C_SW);
+    // -- Accelerometer measurement
+    real_t acc[3] = {0};
+    dot(C_SW, 3, 3, a_WS, 3, 1, acc);
+    acc[2] += 10.0;
+    // -- Gyroscope measurement
+    real_t gyr[3] = {0};
+    dot(C_SW, 3, 3, w_WS, 3, 1, gyr);
+
+    // Update
+    test_data->timestamps[k] = ts;
+    test_data->poses[k] = vector_malloc(pose, 7);
+    test_data->velocities[k] = vector_malloc(v_WS, 3);
+    test_data->imu_acc[k] = vector_malloc(acc, 3);
+    test_data->imu_gyr[k] = vector_malloc(gyr, 3);
+
+    theta += w * dt;
+    yaw += w * dt;
+    ts += sec2ts(dt);
+  }
+
+  return 0;
+}
+
+static void free_imu_test_data(imu_test_data_t *test_data) {
+  test_data->nb_measurements = 0;
+
+  for (int k = 0; k < test_data->nb_measurements; k++) {
+    free(test_data->poses[k]);
+    free(test_data->velocities[k]);
+    free(test_data->imu_acc[k]);
+    free(test_data->imu_gyr[k]);
+  }
+
+  free(test_data->poses);
+  free(test_data->velocities);
+  free(test_data->imu_acc);
+  free(test_data->imu_gyr);
+}
+
+int test_imu_factor_propagate_step() {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data);
+
+  // Setup IMU buffer
   imu_buf_t imu_buf;
-
-  pose_t pose_i;
-  speed_biases_t sb_i;
-  pose_t pose_j;
-  speed_biases_t sb_j;
-
   imu_buf_setup(&imu_buf);
+  for (int k = 0; k < test_data.nb_measurements; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *acc = test_data.imu_acc[k];
+    const real_t *gyr = test_data.imu_gyr[k];
+    imu_buf_add(&imu_buf, ts, acc, gyr);
+  }
+
+  // Setup state
+  const real_t *pose_init = test_data.poses[0];
+  const real_t *vel_init = test_data.velocities[0];
+
+  real_t r[3] = {pose_init[0], pose_init[1], pose_init[2]};
+  real_t v[3] = {vel_init[0], vel_init[1], vel_init[2]};
+  real_t q[4] = {pose_init[3], pose_init[4], pose_init[5], pose_init[6]};
+  real_t ba[3] = {0};
+  real_t bg[3] = {0};
+
+  // Integrate imu measuremenets
+  FILE *est_csv = fopen("/tmp/imu_est.csv", "w");
+  fprintf(est_csv, "ts,rx,ry,rz,qw,qx,qy,qz,vx,vy,vz\n");
+
+  real_t dt = 0.0;
+  for (int k = 0; k < imu_buf.size; k++) {
+    if (k + 1 < imu_buf.size) {
+      const timestamp_t ts_i = imu_buf.ts[k];
+      const timestamp_t ts_j = imu_buf.ts[k + 1];
+      dt = ts2sec(ts_j) - ts2sec(ts_i);
+    }
+    const timestamp_t ts = imu_buf.ts[k];
+    const real_t *a = imu_buf.acc[k];
+    const real_t *w = imu_buf.gyr[k];
+    imu_factor_propagate_step(r, v, q, ba, bg, a, w, dt);
+
+    // real_t C_est[3 * 3] = {0};
+    // real_t C_gnd[3 * 3] = {0};
+    // real_t C_gnd_T[3 * 3] = {0};
+    // real_t dC[3 * 3] = {0};
+    // const real_t *pose = test_data.poses[k];
+    // const real_t q_gnd[4] = {pose[3], pose[4], pose[5], pose[6]};
+    // quat2rot(q, C_est);
+    // quat2rot(q_gnd, C_gnd);
+    // mat_transpose(C_gnd, 3, 3, C_gnd_T);
+    // dot(C_gnd_T, 3, 3, C_est, 3, 3, dC);
+    // const real_t ddeg = rad2deg(acos((mat_trace(dC, 3, 3) - 1.0) / 2.0));
+
+    // const real_t *pose = test_data.poses[k];
+    // const real_t r_gnd[3] = {pose[0], pose[1], pose[2]};
+    // const real_t dr[3] = {r_gnd[0] - r[0], r_gnd[1] - r[1], r_gnd[2] - r[2]};
+    // const real_t dpos = vec_norm(dr, 3);
+    // printf("dpos: %f\n", dpos);
+
+    fprintf(est_csv, "%ld,", ts);
+    fprintf(est_csv, "%f,%f,%f,", r[0], r[1], r[2]);
+    fprintf(est_csv, "%f,%f,%f,%f,", q[0], q[1], q[2], q[3]);
+    fprintf(est_csv, "%f,%f,%f\n", v[0], v[1], v[2]);
+  }
+  fclose(est_csv);
+
+  // Save ground-truth data
+  FILE *gnd_csv = fopen("/tmp/imu_gnd.csv", "w");
+  fprintf(gnd_csv, "ts,rx,ry,rz,qw,qx,qy,qz,vx,vy,vz\n");
+  for (int k = 0; k < test_data.nb_measurements; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *pose = test_data.poses[k];
+    const real_t *v = test_data.velocities[k];
+    const real_t r[3] = {pose[0], pose[1], pose[2]};
+    const real_t q[4] = {pose[3], pose[4], pose[5], pose[6]};
+
+    fprintf(gnd_csv, "%ld,", ts);
+    fprintf(gnd_csv, "%f,%f,%f,", r[0], r[1], r[2]);
+    fprintf(gnd_csv, "%f,%f,%f,%f,", q[0], q[1], q[2], q[3]);
+    fprintf(gnd_csv, "%f,%f,%f\n", v[0], v[1], v[2]);
+  }
+  fclose(gnd_csv);
+
+  return 0;
+}
+
+int test_imu_factor_setup() {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data);
+
+  // Setup IMU buffer
+  imu_buf_t imu_buf;
+  imu_buf_setup(&imu_buf);
+  for (int k = 0; k < test_data.nb_measurements; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *acc = test_data.imu_acc[k];
+    const real_t *gyr = test_data.imu_gyr[k];
+    imu_buf_add(&imu_buf, ts, acc, gyr);
+  }
+
+  // Setup IMU factor
+  const int idx_i = 0;
+  const int idx_j = test_data.nb_measurements - 1;
+  const timestamp_t ts_i = test_data.timestamps[idx_i];
+  const timestamp_t ts_j = test_data.timestamps[idx_j];
+  const real_t *v_i = test_data.velocities[idx_i];
+  const real_t ba_i[3] = {0, 0, 0};
+  const real_t bg_i[3] = {0, 0, 0};
+  const real_t *v_j = test_data.velocities[idx_j];
+  const real_t ba_j[3] = {0, 0, 0};
+  const real_t bg_j[3] = {0, 0, 0};
+  pose_t pose_i;
+  pose_t pose_j;
+  velocity_t vel_i;
+  velocity_t vel_j;
+  imu_biases_t biases_i;
+  imu_biases_t biases_j;
+  pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
+  pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
+  velocity_setup(&vel_i, ts_i, v_i);
+  velocity_setup(&vel_j, ts_j, v_j);
+  imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
+  imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
+
+  pose_print("pose_i", &pose_i);
+  pose_print("pose_j", &pose_j);
+
+  imu_params_t imu_params;
+  imu_factor_t imu_factor;
   imu_factor_setup(&imu_factor,
                    &imu_params,
                    &imu_buf,
                    &pose_i,
-                   &sb_i,
+                   &vel_i,
+                   &biases_i,
                    &pose_j,
-                   &sb_j);
+                   &vel_j,
+                   &biases_j);
 
+  MU_ASSERT(imu_factor.pose_i == &pose_i);
+  MU_ASSERT(imu_factor.vel_i == &vel_i);
+  MU_ASSERT(imu_factor.biases_i == &biases_i);
+  MU_ASSERT(imu_factor.pose_i == &pose_i);
+  MU_ASSERT(imu_factor.vel_j == &vel_j);
+  MU_ASSERT(imu_factor.biases_j == &biases_j);
+
+  print_vector("dr", imu_factor.dr, 3);
+  print_vector("dv", imu_factor.dv, 3);
+  print_quat("dq", imu_factor.dq);
+  printf("Dt: %f\n", imu_factor.Dt);
+
+  // Clean up
+  free_imu_test_data(&test_data);
   return 0;
 }
 
@@ -3673,6 +3964,86 @@ int test_imu_factor_setup() {
 //   return 0;
 // }
 
+int test_solver_setup() {
+  solver_t solver;
+  solver_setup(&solver);
+  return 0;
+}
+
+int test_solver_print() {
+  solver_t solver;
+  solver_setup(&solver);
+  solver_print(&solver);
+  return 0;
+}
+
+typedef struct cam_view_t {
+  pose_t pose;
+  ba_factor_t factors[1000];
+  int nb_factors;
+  camera_params_t *cam_params;
+} cam_view_t;
+
+int test_solver_eval() {
+  /* Load test data */
+  const char *dir_path = TEST_SIM_DATA "/cam0";
+  sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
+
+  /* Camera parameters */
+  camera_params_t cam;
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
+
+  /* Features container */
+  features_t features;
+  features_setup(&features);
+
+  /* Loop over simulated camera frames */
+  const real_t var[2] = {1.0, 1.0};
+  cam_view_t *cam_views = malloc(sizeof(cam_view_t) * cam_data->nb_frames);
+  for (int k = 0; k < cam_data->nb_frames; k++) {
+    /* Camera frame */
+    const sim_camera_frame_t *frame = cam_data->frames[k];
+
+    /* Pose */
+    pose_t *pose = &cam_views[k].pose;
+    pose_setup(pose, frame->ts, cam_data->poses[k]);
+
+    /* Add factors */
+    cam_views[k].nb_factors = frame->nb_measurements;
+    for (int i = 0; i < frame->nb_measurements; i++) {
+      const int feature_id = frame->feature_ids[i];
+      const real_t *z = frame->keypoints[i];
+
+      /* Feature */
+      feature_t *feature = NULL;
+      if (features_exists(&features, feature_id)) {
+        feature = features_get(&features, feature_id);
+      } else {
+        const real_t param[3] = {0};
+        feature = features_add(&features, feature_id, param);
+      }
+
+      /* Factor */
+      ba_factor_t *factor = &cam_views[k].factors[i];
+      ba_factor_setup(factor, pose, feature, &cam, z, var);
+    }
+  }
+
+  /* solver_t solver; */
+  /* solver_setup(&solver); */
+
+  /* Clean up */
+  free(cam_views);
+  sim_camera_data_free(cam_data);
+
+  return 0;
+}
+
 /******************************************************************************
  * DATASET
  ******************************************************************************/
@@ -3737,128 +4108,44 @@ int test_assoc_pose_data() {
  * SIM
  ******************************************************************************/
 
-// SIM FEATURES
-// ////////////////////////////////////////////////////////////////
+// SIM FEATURES //////////////////////////////////////////////////////////////
 
-int test_load_sim_features() {
+int test_sim_features_load() {
   const char *csv_file = TEST_SIM_DATA "/features.csv";
-  sim_features_t *features_data = load_sim_features(csv_file);
+  sim_features_t *features_data = sim_features_load(csv_file);
   MU_ASSERT(features_data->nb_features > 0);
-  free_sim_features(features_data);
+  sim_features_free(features_data);
   return 0;
 }
 
-// SIM IMU DATA
-// ////////////////////////////////////////////////////////////////
+// SIM IMU DATA //////////////////////////////////////////////////////////////
 
-int test_load_sim_imu_data() {
+int test_sim_imu_data_load() {
   const char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
-  sim_imu_data_t *imu_data = load_sim_imu_data(csv_file);
-  free_sim_imu_data(imu_data);
+  sim_imu_data_t *imu_data = sim_imu_data_load(csv_file);
+  sim_imu_data_free(imu_data);
   return 0;
 }
 
-// SIM CAMERA DATA
-// /////////////////////////////////////////////////////////////
+// SIM CAMERA DATA ///////////////////////////////////////////////////////////
 
-int test_load_sim_cam_frame() {
+int test_sim_camera_frame_load() {
   const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
-  sim_cam_frame_t *frame_data = load_sim_cam_frame(frame_csv);
+  sim_camera_frame_t *frame_data = sim_camera_frame_load(frame_csv);
 
   MU_ASSERT(frame_data != NULL);
   MU_ASSERT(frame_data->ts == 100000000);
   MU_ASSERT(frame_data->feature_ids[0] == 1);
 
-  free_sim_cam_frame(frame_data);
+  sim_camera_frame_free(frame_data);
 
   return 0;
 }
 
-int test_load_sim_cam_data() {
+int test_sim_camera_data_load() {
   const char *dir_path = TEST_SIM_DATA "/cam0";
-  sim_cam_data_t *cam_data = load_sim_cam_data(dir_path);
-
-  free_sim_cam_data(cam_data);
-  return 0;
-}
-
-int test_graph_setup() {
-  graph_t graph;
-  graph_setup(&graph);
-  return 0;
-}
-
-int test_graph_print() {
-  graph_t graph;
-  graph_setup(&graph);
-  graph_print(&graph);
-  return 0;
-}
-
-typedef struct cam_view_t {
-  pose_t pose;
-  ba_factor_t factors[1000];
-  int nb_factors;
-  camera_params_t *cam_params;
-} cam_view_t;
-
-int test_graph_eval() {
-  /* Load test data */
-  const char *dir_path = TEST_SIM_DATA "/cam0";
-  sim_cam_data_t *cam_data = load_sim_cam_data(dir_path);
-
-  /* Camera parameters */
-  camera_params_t cam;
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
-
-  /* Features container */
-  features_t features;
-  features_setup(&features);
-
-  /* Loop over simulated camera frames */
-  const real_t var[2] = {1.0, 1.0};
-  cam_view_t *cam_views = malloc(sizeof(cam_view_t) * cam_data->nb_frames);
-  for (int k = 0; k < cam_data->nb_frames; k++) {
-    /* Camera frame */
-    const sim_cam_frame_t *frame = cam_data->frames[k];
-
-    /* Pose */
-    pose_t *pose = &cam_views[k].pose;
-    pose_setup(pose, frame->ts, cam_data->poses[k]);
-
-    /* Add factors */
-    cam_views[k].nb_factors = frame->nb_measurements;
-    for (int i = 0; i < frame->nb_measurements; i++) {
-      const int feature_id = frame->feature_ids[i];
-      const real_t *z = frame->keypoints[i];
-
-      /* Feature */
-      feature_t *feature = NULL;
-      if (features_exists(&features, feature_id)) {
-        feature = features_get(&features, feature_id);
-      } else {
-        const real_t param[3] = {0};
-        feature = features_add(&features, feature_id, param);
-      }
-
-      /* Factor */
-      ba_factor_t *factor = &cam_views[k].factors[i];
-      ba_factor_setup(factor, pose, feature, &cam, z, var);
-    }
-  }
-
-  /* graph_t graph; */
-  /* graph_setup(&graph); */
-
-  /* Clean up */
-  free(cam_views);
-  free_sim_cam_data(cam_data);
-
+  sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
+  sim_camera_data_free(cam_data);
   return 0;
 }
 
@@ -3867,18 +4154,17 @@ int test_graph_eval() {
  ******************************************************************************/
 #ifdef USE_GUI
 
-// OPENGL UTILS
-// ////////////////////////////////////////////////////////////////
+// OPENGL UTILS //////////////////////////////////////////////////////////////
 
 int test_gl_zeros() {
-  /* clang-format off */
+  // clang-format off
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
   GLfloat expected[3*3] = {0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0};
-  /* clang-format on */
+  // clang-format on
 
   gl_zeros(A, 3, 3);
   gl_print_matrix("A", A, 3, 3);
@@ -3888,14 +4174,14 @@ int test_gl_zeros() {
 }
 
 int test_gl_ones() {
-  /* clang-format off */
+  // clang-format off
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
   GLfloat expected[3*3] = {1.0, 1.0, 1.0,
                            1.0, 1.0, 1.0,
                            1.0, 1.0, 1.0};
-  /* clang-format on */
+  // clang-format on
 
   gl_ones(A, 3, 3);
   gl_print_matrix("A", A, 3, 3);
@@ -3906,7 +4192,7 @@ int test_gl_ones() {
 
 int test_gl_eye() {
   /* Check 4x4 matrix */
-  /* clang-format off */
+  // clang-format off
   GLfloat A[4*4] = {0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0, 0.0,
@@ -3915,13 +4201,13 @@ int test_gl_eye() {
                              0.0, 1.0, 0.0, 0.0,
                              0.0, 0.0, 1.0, 0.0,
                              0.0, 0.0, 0.0, 1.0};
-  /* clang-format on */
+  // clang-format on
   gl_eye(A, 4, 4);
   gl_print_matrix("A", A, 4, 4);
   MU_ASSERT(gl_equals(A, A_expected, 4, 4, 1e-8));
 
   /* Check 3x4 matrix */
-  /* clang-format off */
+  // clang-format off
   GLfloat B[3*4] = {0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
@@ -3930,7 +4216,7 @@ int test_gl_eye() {
                              0.0, 1.0, 0.0,
                              0.0, 0.0, 1.0,
                              0.0, 0.0, 0.0};
-  /* clang-format on */
+  // clang-format on
   gl_eye(B, 3, 4);
   gl_print_matrix("B", B, 3, 4);
   MU_ASSERT(gl_equals(B, B_expected, 3, 4, 1e-8));
@@ -3939,7 +4225,7 @@ int test_gl_eye() {
 }
 
 int test_gl_equals() {
-  /* clang-format off */
+  // clang-format off
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
@@ -3949,7 +4235,7 @@ int test_gl_equals() {
   GLfloat C[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 10.0};
-  /* clang-format on */
+  // clang-format on
 
   /* Assert */
   MU_ASSERT(gl_equals(A, B, 3, 3, 1e-8) == 1);
@@ -3959,12 +4245,12 @@ int test_gl_equals() {
 }
 
 int test_gl_matf_set() {
-  /* clang-format off */
+  // clang-format off
   GLfloat A[3*4] = {0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0};
-  /* clang-format on */
+  // clang-format on
 
   gl_matf_set(A, 3, 4, 0, 1, 1.0);
   gl_matf_set(A, 3, 4, 1, 0, 2.0);
@@ -3976,12 +4262,12 @@ int test_gl_matf_set() {
 }
 
 int test_gl_matf_val() {
-  /* clang-format off */
+  // clang-format off
   GLfloat A[3*4] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0,
                     10.0, 11.0, 12.0};
-  /* clang-format on */
+  // clang-format on
 
   const float tol = 1e-4;
   MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 0) - 1.0) < tol);
@@ -4005,11 +4291,11 @@ int test_gl_matf_val() {
 
 int test_gl_transpose() {
   /* Transpose a 3x3 matrix */
-  /* clang-format off */
+  // clang-format off
   GLfloat A[3*3] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0};
-  /* clang-format on */
+  // clang-format on
   GLfloat A_t[3 * 3] = {0};
 
   gl_transpose(A, 3, 3, A_t);
@@ -4017,12 +4303,12 @@ int test_gl_transpose() {
   gl_print_matrix("A_t", A_t, 3, 3);
 
   /* Transpose a 3x4 matrix */
-  /* clang-format off */
+  // clang-format off
   GLfloat B[3*4] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0,
                     10.0, 11.0, 12.0};
-  /* clang-format on */
+  // clang-format on
   GLfloat B_t[3 * 4] = {0};
   gl_transpose(B, 3, 4, B_t);
   gl_print_matrix("B", B, 3, 4);
@@ -4047,23 +4333,23 @@ int test_gl_vec3_cross() {
 }
 
 int test_gl_dot() {
-  /* clang-format off */
+  // clang-format off
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
   GLfloat B[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
-  /* clang-format on */
+  // clang-format on
   GLfloat C[3 * 3] = {0.0};
   gl_dot(A, 3, 3, B, 3, 3, C);
 
   /* Assert */
-  /* clang-format off */
+  // clang-format off
   GLfloat expected[3*3] = {30.0f, 66.0f, 102.0f,
                            36.0f, 81.0f, 126.0f,
                            42.0f, 96.0f, 150.0f};
-  /* clang-format on */
+  // clang-format on
   gl_print_matrix("C", C, 3, 3);
   gl_print_matrix("expected", expected, 3, 3);
   MU_ASSERT(gl_equals(C, expected, 3, 3, 1e-8));
@@ -4104,12 +4390,12 @@ int test_gl_perspective() {
   GLfloat P[4 * 4] = {0};
   gl_perspective(fov, ratio, near, far, P);
 
-  /* clang-format off */
+  // clang-format off
   const GLfloat P_expected[4*4] = {1.886051, 0.000000, 0.000000, 0.000000,
                                    0.000000, 1.732051, 0.000000, 0.000000,
                                    0.000000, 0.000000, -1.002002, -1.000000,
                                    0.000000, 0.000000, -0.200200, 0.000000};
-  /* clang-format on */
+  // clang-format on
   printf("fov: %f\n", fov);
   printf("ratio: %f\n", ratio);
   printf("near: %f\n", near);
@@ -4137,12 +4423,12 @@ int test_gl_lookat() {
   GLfloat V[4 * 4] = {0};
   gl_lookat(eye, focal, world_up, V);
 
-  /* clang-format off */
+  // clang-format off
   const GLfloat V_expected[4*4] = {0.707107, 0.500000, -0.500000, 0.000000,
                                    -0.000000, 0.707107, 0.707107, 0.000000,
                                    0.707107, -0.500000, 0.500000, 0.000000,
                                    0.000000, 0.000000, -14.142136, 1.000000};
-  /* clang-format on */
+  // clang-format on
   /* gl_print_vector("eye", eye, 3); */
   /* gl_print_vector("focal", focal, 3); */
   /* gl_print_vector("world_up", world_up, 3); */
@@ -4154,8 +4440,7 @@ int test_gl_lookat() {
   return 0;
 }
 
-// SHADER
-// //////////////////////////////////////////////////////////////////////
+// SHADER ////////////////////////////////////////////////////////////////////
 
 int test_shader_compile() {
   /* SDL init */
@@ -4492,13 +4777,15 @@ void test_suite() {
   /* MU_ADD_TEST(test_svd); */
 #ifdef USE_LAPACK
   MU_ADD_TEST(test_lapack_svd);
+  MU_ADD_TEST(test_lapack_svd_inverse);
 #endif /* USE LAPACK */
 
   /* CHOL */
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
 #ifdef USE_LAPACK
-  MU_ADD_TEST(test_chol_solve2);
+  MU_ADD_TEST(test_lapack_chol);
+  MU_ADD_TEST(test_lapack_chol_solve);
 #endif
 
   /* TRANSFORMS */
@@ -4522,78 +4809,65 @@ void test_suite() {
   MU_ADD_TEST(test_lie_Exp_Log);
 
   /* CV */
-  /* -- IMAGE */
   MU_ADD_TEST(test_image_setup);
   MU_ADD_TEST(test_image_load);
   MU_ADD_TEST(test_image_print_properties);
   MU_ADD_TEST(test_image_free);
-  /* -- GEOMETRY */
   MU_ADD_TEST(test_linear_triangulation);
-  /* -- RADTAN */
   MU_ADD_TEST(test_radtan4_distort);
   MU_ADD_TEST(test_radtan4_point_jacobian);
   MU_ADD_TEST(test_radtan4_params_jacobian);
-  /* -- EQUI */
   MU_ADD_TEST(test_equi4_distort);
   MU_ADD_TEST(test_equi4_point_jacobian);
   MU_ADD_TEST(test_equi4_params_jacobian);
-  /* -- PINHOLE */
   MU_ADD_TEST(test_pinhole_focal);
   MU_ADD_TEST(test_pinhole_K);
   MU_ADD_TEST(test_pinhole_projection_matrix);
   MU_ADD_TEST(test_pinhole_project);
   MU_ADD_TEST(test_pinhole_point_jacobian);
   MU_ADD_TEST(test_pinhole_params_jacobian);
-  /* -- PINHOLE-RADTAN4  */
   MU_ADD_TEST(test_pinhole_radtan4_project);
   MU_ADD_TEST(test_pinhole_radtan4_project_jacobian);
   MU_ADD_TEST(test_pinhole_radtan4_params_jacobian);
-  /* -- PINHOLE-EQUI4  */
   MU_ADD_TEST(test_pinhole_equi4_project);
   MU_ADD_TEST(test_pinhole_equi4_project_jacobian);
   MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
 
   /* SENSOR FUSION */
-  /* -- Parameters */
   MU_ADD_TEST(test_pose_setup);
-  MU_ADD_TEST(test_speed_biases_setup);
+  MU_ADD_TEST(test_imu_biases_setup);
   MU_ADD_TEST(test_feature_setup);
   MU_ADD_TEST(test_extrinsics_setup);
-  MU_ADD_TEST(test_camera_params_setup);
-  /* -- Pose factor */
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
-  /* -- BA factor */
   MU_ADD_TEST(test_ba_factor_setup);
   MU_ADD_TEST(test_ba_factor_eval);
   /* MU_ADD_TEST(test_ba_factor_ceres_eval); */
-  /* -- Camera factor */
   MU_ADD_TEST(test_cam_factor_setup);
   MU_ADD_TEST(test_cam_factor_eval);
   MU_ADD_TEST(test_cam_factor_ceres_eval);
-  /* -- IMU factor */
   MU_ADD_TEST(test_imu_buf_setup);
   MU_ADD_TEST(test_imu_buf_add);
   MU_ADD_TEST(test_imu_buf_clear);
   MU_ADD_TEST(test_imu_buf_copy);
   MU_ADD_TEST(test_imu_buf_print);
+  MU_ADD_TEST(test_imu_factor_propagate_step);
   MU_ADD_TEST(test_imu_factor_setup);
   /* MU_ADD_TEST(test_imu_factor_eval); */
-  /* -- Graph */
   /* MU_ADD_TEST(test_ceres_graph); */
-  MU_ADD_TEST(test_graph_setup);
-  MU_ADD_TEST(test_graph_print);
-  /* MU_ADD_TEST(test_graph_eval); */
-  /* MU_ADD_TEST(test_graph_solve); */
+  MU_ADD_TEST(test_solver_setup);
+  MU_ADD_TEST(test_solver_print);
+  /* MU_ADD_TEST(test_solver_eval); */
+  /* MU_ADD_TEST(test_solver_solve); */
 
   /* DATASET */
   /* MU_ADD_TEST(test_assoc_pose_data); */
 
   /* SIM */
-  MU_ADD_TEST(test_load_sim_features);
-  MU_ADD_TEST(test_load_sim_imu_data);
-  MU_ADD_TEST(test_load_sim_cam_frame);
-  /* MU_ADD_TEST(test_load_sim_cam_data); */
+  MU_ADD_TEST(test_sim_features_load);
+  MU_ADD_TEST(test_sim_imu_data_load);
+  MU_ADD_TEST(test_sim_camera_frame_load);
+  MU_ADD_TEST(test_sim_camera_data_load);
 
   /* GUI */
 #ifdef USE_GUI
