@@ -1,13 +1,14 @@
 $fn = 50;
 
-m2_screw_hole = 3.2;
+m2_screw_hole = 3.3;
+m3_screw_hole = 4.3;
 rs_mount_width = 45.0;
 bar_width = 6.0;
 bar_height = 8.0;
 mount_width = 122.0;
 cage_width = 120.0;
 cage_length = 60.0;
-spacer_length = 22 - (bar_height + bar_width);
+spacer_length = 26 - (bar_height + bar_width);
 
 module spacer(length) {
   difference() {
@@ -36,41 +37,47 @@ module mocap_cage(bar_width, cage_width, cage_length) {
           cube([bar_width, bar_width, cage_length], center=true);
     }
 
+    // Mount holes
+    translate([0.0, cage_width / 2.0 - bar_width / 2.0, 0.0])
+      cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+    translate([0.0, -(cage_width / 2.0 - bar_width / 2.0), 0.0])
+      cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+
     // Screw holes
-    for (spacing = [0.0:0.2:0.3]) {
+    for (spacing = [0.0:0.25:0.3]) {
       translate([cage_length / 2.0 - bar_width / 2.0, cage_width * spacing, 0.0])
-        cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+        cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
       translate([cage_length / 2.0 - bar_width / 2.0, -cage_width * spacing, 0.0])
-        cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+        cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
 
       translate([-(cage_length / 2.0 - bar_width / 2.0), cage_width * spacing, 0.0])
-        cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+        cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
       translate([-(cage_length / 2.0 - bar_width / 2.0), -cage_width * spacing, 0.0])
-        cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+        cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
     }
 
-    for (spacing = [0.0:0.2:0.3]) {
+    for (spacing = [0.2:0.2:0.3]) {
       translate([cage_length * spacing, cage_width / 2.0 - bar_width / 2.0, 0.0])
-        cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+        cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
       translate([-cage_length * spacing, cage_width / 2.0 - bar_width / 2.0, 0.0])
-        cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+        cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
 
       translate([cage_length * spacing, -(cage_width / 2.0 - bar_width / 2.0), 0.0])
-        cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+        cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
       translate([-cage_length * spacing, -(cage_width / 2.0 - bar_width / 2.0), 0.0])
-        cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+        cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
     }
 
     corner_w = (cage_width/ 2.0 - bar_width / 2.0);
     corner_l = (cage_length / 2.0 - bar_width / 2.0);
     translate([corner_l, corner_w, 0.0])
-      cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+      cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
     translate([corner_l, -corner_w, 0.0])
-      cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+      cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
     translate([-corner_l, -corner_w, 0.0])
-      cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+      cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
     translate([-corner_l, corner_w, 0.0])
-      cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
+      cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
   }
 }
 
@@ -148,15 +155,12 @@ module mocap_mount() {
 //   rotate([0.0, 90.0, 0.0])
 //     mocap_mount();
 
-// // Cage
-// translate([-bar_width / 2.0, 0.0, 15.0])
-//   mocap_cage(bar_width, cage_width, cage_length);
+// Cage
+translate([-bar_width / 2.0, 0.0, 19.0])
+  mocap_cage(bar_width, cage_width, cage_length);
 
-// // Spacers
-// translate([-bar_width / 2.0, cage_width / 2.0 - bar_width / 2.0, 8.0])
-//   spacer(spacer_length);
-// translate([-bar_width / 2.0, -(cage_width / 2.0 - bar_width / 2.0), 8.0])
-//   spacer(spacer_length);
-
-// mocap_mount();
-// mocap_bar(100.0, bar_width);
+// Spacers
+translate([-bar_width / 2.0, cage_width / 2.0 - bar_width / 2.0, 10.0])
+  spacer(spacer_length);
+translate([-bar_width / 2.0, -(cage_width / 2.0 - bar_width / 2.0), 10.0])
+  spacer(spacer_length);
