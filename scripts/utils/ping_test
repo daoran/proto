@@ -1,0 +1,46 @@
+#!/bin/bash
+set -e
+TIMEOUT=300
+SAMPLE_TIME=0.2
+COUNT=$(echo "$TIMEOUT/$SAMPLE_TIME" | bc)
+SCRIPT_PATH="`dirname \"$0\"`"
+
+# Show usage
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <ping host>"
+  exit 99
+fi
+
+# PING DATA COLLECTION
+TIME=0
+echo "Ping test [time: ${TIMEOUT}s | sample time: ${SAMPLE_TIME}s]"
+echo -n "" > ping-"$1".csv
+ping -c$COUNT -i$SAMPLE_TIME $* | while read line; do
+  echo -n "."
+
+  # Skip header
+  [[ "$line" =~ ^PING ]] && continue
+
+  # Skip non-positive responses
+  [[ ! "$line" =~ "bytes from" ]] && continue
+
+  # Extract seq
+  seq=${line##*icmp_seq=}
+  seq=${seq%% *}
+
+  # Extract pint
+  ping=${line##*time=}
+  ping=${ping%% *}
+
+  # Extract address field
+  addr=${line##*bytes from }
+  addr=${addr%%:*}
+
+  echo "$seq,$TIME,$ping,$addr" >> ping-"$1".csv
+  TIME=$(echo "$TIME + $SAMPLE_TIME" | bc)
+done
+echo ""
+echo "Data saved to [ping-$1.csv]"
+
+# PLOT DATA
+$SCRIPT_PATH/plot_ping_test ping-$1.csv
