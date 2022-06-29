@@ -3615,8 +3615,8 @@ typedef struct imu_test_data_t {
 static int setup_imu_test_data(imu_test_data_t *test_data) {
   // Circle trajectory configurations
   const real_t imu_rate = 200.0;
-  const real_t circle_r = 0.1;
-  const real_t circle_v = 0.2;
+  const real_t circle_r = 1.0;
+  const real_t circle_v = 0.1;
   const real_t circle_dist = 2.0 * M_PI * circle_r;
   const real_t time_taken = circle_dist / circle_v;
   const real_t w = -2.0 * M_PI * (1.0 / time_taken);
@@ -3721,7 +3721,7 @@ int test_imu_factor_propagate_step() {
   // Setup IMU buffer
   imu_buf_t imu_buf;
   imu_buf_setup(&imu_buf);
-  for (int k = 0; k < test_data.nb_measurements; k++) {
+  for (int k = 0; k < 9; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
@@ -3732,9 +3732,9 @@ int test_imu_factor_propagate_step() {
   const real_t *pose_init = test_data.poses[0];
   const real_t *vel_init = test_data.velocities[0];
 
-  real_t r[3] = {pose_init[0], pose_init[1], pose_init[2]};
-  real_t v[3] = {vel_init[0], vel_init[1], vel_init[2]};
-  real_t q[4] = {pose_init[3], pose_init[4], pose_init[5], pose_init[6]};
+  real_t r[3] = {0.0, 0.0, 0.0};
+  real_t v[3] = {0.0, 0.0, 0.0};
+  real_t q[4] = {1.0, 0.0, 0.0, 0.0};
   real_t ba[3] = {0};
   real_t bg[3] = {0};
 
@@ -3742,6 +3742,7 @@ int test_imu_factor_propagate_step() {
   FILE *est_csv = fopen("/tmp/imu_est.csv", "w");
   fprintf(est_csv, "ts,rx,ry,rz,qw,qx,qy,qz,vx,vy,vz\n");
 
+  real_t Dt = 0.0;
   real_t dt = 0.0;
   for (int k = 0; k < imu_buf.size; k++) {
     if (k + 1 < imu_buf.size) {
@@ -3753,6 +3754,7 @@ int test_imu_factor_propagate_step() {
     const real_t *a = imu_buf.acc[k];
     const real_t *w = imu_buf.gyr[k];
     imu_factor_propagate_step(r, v, q, ba, bg, a, w, dt);
+    Dt += dt;
 
     // real_t C_est[3 * 3] = {0};
     // real_t C_gnd[3 * 3] = {0};
@@ -3778,6 +3780,11 @@ int test_imu_factor_propagate_step() {
     fprintf(est_csv, "%f,%f,%f\n", v[0], v[1], v[2]);
   }
   fclose(est_csv);
+
+  printf("dr: %f, %f, %f\n", r[0], r[1], r[2]);
+  printf("dv: %f, %f, %f\n", v[0], v[1], v[2]);
+  printf("dq: %f, %f, %f, %f\n", q[0], q[1], q[2], q[3]);
+  printf("Dt: %f\n", Dt);
 
   // Save ground-truth data
   FILE *gnd_csv = fopen("/tmp/imu_gnd.csv", "w");

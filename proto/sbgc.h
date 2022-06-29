@@ -894,6 +894,7 @@ int test_sbgc_info() {
 
   // Get board info
   sbgc_info(&sbgc);
+
   // printf("board version: %d\n", sbgc.board_version);
   // printf("firmware version: %d\n", sbgc.firmware_version);
   // printf("state_flags: %d\n", sbgc.state_flags);

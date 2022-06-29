@@ -4630,6 +4630,14 @@ void quat_delta(const real_t dalpha[3], real_t dq[4]) {
 }
 
 /**
+ * Update quaternion with small update dalpha.
+ */
+void quat_update(const real_t q[4], const real_t dalpha[3], real_t q_new[4]) {
+  const real_t dq[4] = {1.0, 0.5 * dalpha[0], 0.5 * dalpha[1], 0.5 * dalpha[2]};
+  quat_mul(q, dq, q_new);
+}
+
+/**
  * Perturb quaternion
  */
 void quat_perturb(real_t q[4], const int i, const real_t h) {
@@ -6536,22 +6544,22 @@ void imu_factor_propagate_step(real_t r[3],
 
   // Update velocity
   // dv = dv + dC * a_t * dt;
-  real_t v_new[3] = {0};
+  real_t dv[3] = {0};
   real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt};
-  dot(C, 3, 3, acc_int, 3, 1, v_new);
-  v[0] += v_new[0];
-  v[1] += v_new[1];
-  v[2] += v_new[2];
+  dot(C, 3, 3, acc_int, 3, 1, dv);
+  v[0] += dv[0];
+  v[1] += dv[1];
+  v[2] += dv[2];
 
   // Update rotation
   // dq = quat_mul(dq, [1.0, 0.5 * wx * dt, 0.5 * wy * dt, 0.5 * wz * dt]);
-  real_t q_int[4] = {0};
+  real_t dq[4] = {0};
   real_t q_new[4] = {0};
-  q_int[0] = 1.0;
-  q_int[1] = 0.5 * w_t[0] * dt;
-  q_int[2] = 0.5 * w_t[1] * dt;
-  q_int[3] = 0.5 * w_t[2] * dt;
-  quat_mul(q, q_int, q_new);
+  dq[0] = 1.0;
+  dq[1] = 0.5 * w_t[0] * dt;
+  dq[2] = 0.5 * w_t[1] * dt;
+  dq[3] = 0.5 * w_t[2] * dt;
+  quat_mul(q, dq, q_new);
   q[0] = q_new[0];
   q[1] = q_new[1];
   q[2] = q_new[2];
@@ -7015,9 +7023,6 @@ int imu_factor_eval(imu_factor_t *factor,
   dot(C_ji, 3, 3, dC, 3, 3, C_ji_dC);
   rot2quat(C_ji_dC, qji_dC);
   quat_left_xyz(qji_dC, left_xyz);
-  for (int i = 0; i < 9; i++) {
-    left_xyz[i] *= -1.0;
-  }
   // -- Jacobian w.r.t. r_i
   if (J_out[0]) {
     // yapf: disable
@@ -7032,13 +7037,16 @@ int imu_factor_eval(imu_factor_t *factor,
 
   // -- Jacobian w.r.t. q_i
   if (J_out[1]) {
-    // -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]
     real_t drij_dCi[3 * 3] = {0};
     real_t dvij_dCi[3 * 3] = {0};
     real_t dtheta_dCi[3 * 3] = {0};
 
     skew(dr_est, drij_dCi);
     skew(dv_est, dvij_dCi);
+    mat_copy(left_xyz, 3, 3, dtheta_dCi);
+    for (int i = 0; i < 9; i++) {
+      dtheta_dCi[i] *= -1.0;
+    }
 
     real_t J1[15 * 3] = {0};
     mat_block_set(J1, 15, 0, 3, 0, 3, drij_dCi);
@@ -7087,7 +7095,11 @@ int imu_factor_eval(imu_factor_t *factor,
       drij_dbgi[idx] = -1.0 * dr_dbg[idx];
       dvij_dbgi[idx] = -1.0 * dr_dbg[idx];
     }
+
     dot(left_xyz, 3, 3, dq_dbg, 3, 3, dtheta_dbgi);
+    for (int i = 0; i < 9; i++) {
+      dtheta_dbgi[i] *= -1.0;
+    }
 
     real_t J4[15 * 3] = {0};
     mat_block_set(J4, 15, 0, 3, 0, 3, drij_dbgi);

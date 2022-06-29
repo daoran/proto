@@ -7324,8 +7324,8 @@ class TestFactors(unittest.TestCase):
   def test_imu_factor_propagate(self):
     """ Test IMU factor propagate """
     # Sim imu data
-    circle_r = 0.1
-    circle_v = 0.2
+    circle_r = 1.0
+    circle_v = 0.1
     sim_data = SimData(circle_r, circle_v, sim_cams=False)
     imu_data = sim_data.imu0_data
 
@@ -7357,8 +7357,10 @@ class TestFactors(unittest.TestCase):
     data = ImuFactor.propagate(imu_buf, imu_params, sb_i)
     print(f"dr: {data.dr}")
     print(f"dv: {data.dv}")
-    print(f"dC: {data.dC}")
+    print(f"dq: {rot2quat(data.dC)}")
     print(f"Dt: {data.Dt}")
+    np.savetxt("/tmp/state_F.csv", data.state_F, delimiter=",")
+    np.savetxt("/tmp/state_P.csv", data.state_P, delimiter=",")
 
     # Check propagation
     ts_j = imu_data.timestamps[end_idx - 1]

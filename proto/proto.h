@@ -739,6 +739,7 @@ void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_delta(const real_t dalpha[3], real_t dq[4]);
+void quat_update(const real_t q[4], const real_t dalpha[3], real_t q_new[4]);
 void quat_perturb(real_t q[4], const int i, const real_t h);
 
 /******************************************************************************
@@ -1014,7 +1015,7 @@ int cam_factor_ceres_eval(void *factor,
 
 // IMU FACTOR //////////////////////////////////////////////////////////////////
 
-#define MAX_IMU_BUF_SIZE 10000
+#define MAX_IMU_BUF_SIZE 1000
 
 typedef struct imu_params_t {
   uint64_t param_id;
@@ -1062,7 +1063,6 @@ typedef struct imu_factor_t {
   real_t dq[4]; // Relative rotation
   real_t ba[3]; // Accel biase
   real_t bg[3]; // Gyro biase
-
 } imu_factor_t;
 
 void imu_buf_setup(imu_buf_t *imu_buf);
@@ -1092,6 +1092,7 @@ void imu_factor_setup(imu_factor_t *factor,
                       velocity_t *v_j,
                       imu_biases_t *biases_j);
 void imu_factor_reset(imu_factor_t *factor);
+int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
 int imu_factor_eval(imu_factor_t *factor,
                     real_t **params,
                     real_t *residuals,

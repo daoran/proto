@@ -63,7 +63,7 @@ run_memcheck() {
 # python3 proto/proto.py TestFeatureTracker.test_update
 # python3 proto/proto.py TestTracker
 # python3 proto/proto.py TestTracker.test_tracker_process_features
-# python3 proto/proto.py TestTracker.test_tracker_vision_callback
+python3 proto/proto.py TestTracker.test_tracker_vision_callback
 # python3 proto/proto.py TestCalibration
 # python3 proto/proto.py TestCalibration.test_aprilgrid
 # python3 proto/proto.py TestCalibration.test_calibrator
@@ -119,7 +119,7 @@ run_sbgc_tests() {
   cd -
 }
 
-run_sbgc_tests
+# run_sbgc_tests
 
 # PROTO
 # run_all_tests
@@ -290,11 +290,12 @@ run_sbgc_tests
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
 # run_test test_imu_factor_setup
+# run_test test_imu_factor_propagate_step
 # run_test test_imu_factor_eval
 # run_test test_ceres_solver
-# run_test test_graph_setup
-# run_test test_graph_print
-# run_test test_graph_eval
+# run_test test_solver_setup
+# run_test test_solver_print
+# run_test test_solver_eval
 # PROTO-SIM
 # run_test test_load_sim_features
 # run_test test_load_sim_imu_data
