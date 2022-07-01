@@ -726,11 +726,13 @@ int test_queue_enqueue_dequeue(void) {
 static int traverse_called;
 
 static int traverse_good_cb(hashmap_node_t *node) {
+  UNUSED(node);
   traverse_called++;
   return 0;
 }
 
 static int traverse_fail_cb(hashmap_node_t *node) {
+  UNUSED(node);
   traverse_called++;
   if (traverse_called == 2) {
     return 1;
