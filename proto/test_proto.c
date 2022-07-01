@@ -3789,7 +3789,7 @@ int test_imu_factor_propagate_step() {
   // Save ground-truth data
   FILE *gnd_csv = fopen("/tmp/imu_gnd.csv", "w");
   fprintf(gnd_csv, "ts,rx,ry,rz,qw,qx,qy,qz,vx,vy,vz\n");
-  for (int k = 0; k < test_data.nb_measurements; k++) {
+  for (size_t k = 0; k < test_data.nb_measurements; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *pose = test_data.poses[k];
     const real_t *v = test_data.velocities[k];
