@@ -1747,7 +1747,7 @@ int tcp_server_setup(tcp_server_t *server, const int port) {
 
 /**
  * Loop TCP server
- * @returns 0 for success, -1 for failure
+ * @returns `0` for success, `-1` for failure
  */
 int tcp_server_loop(tcp_server_t *server) {
   assert(server != NULL);
@@ -2765,7 +2765,7 @@ int mat_equals(const real_t *A,
 
 /**
  * Save matrix `A` of size `m x n` to `save_path`.
- * @returns 0 for success, -1 for failure
+ * @returns `0` for success, `-1` for failure
  */
 int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
   assert(save_path != NULL);
@@ -5568,7 +5568,7 @@ int features_exists(const features_t *features, const int feature_id) {
 }
 
 /**
- * Returns pointer to feature with `feature_id`
+ * @returns pointer to feature with `feature_id`
  */
 feature_t *features_get(features_t *features, const int feature_id) {
   return &features->data[feature_id];
@@ -5735,6 +5735,15 @@ void pose_factor_setup(pose_factor_t *factor,
 
 /**
  * Evaluate pose factor
+ *
+ * Parameter `params`:
+ * 1. Position r_est
+ * 2. Quaternion q_est
+ *
+ * Residuals `r_out` represents the pose error [6x1]
+ * Jacobians `J_out` with respect to `params`
+ *
+ * @returns `0` for success, `-1` for failure
  */
 int pose_factor_eval(pose_factor_t *factor,
                      real_t **params,
@@ -6005,7 +6014,17 @@ static void ba_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
 
 /**
  * Evaluate bundle adjustment factor
- * @returns 0 for success, -1 for failure
+ *
+ * Parameter `params`:
+ * 1. Position r_WCi
+ * 2. Quaternion q_WCi
+ * 3. Feature p_W
+ * 4. Camera i parameters
+ *
+ * Residuals `r_out` represents the reprojection error [2x1]
+ * Jacobians `J_out` with respect to `params`
+ *
+ * @returns `0` for success, `-1` for failure
  */
 int ba_factor_eval(ba_factor_t *factor,
                    real_t **params,
@@ -6068,7 +6087,7 @@ int ba_factor_eval(ba_factor_t *factor,
 
 /**
  * Evaluate bundle adjustment factor (wrapper for ceres-solver)
- * @returns 0 for success, -1 for failure
+ * @returns `0` for success, `-1` for failure
  */
 int ba_factor_ceres_eval(void *factor,
                          double **params,
@@ -6301,6 +6320,19 @@ static void cam_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
 
 /**
  * Evaluate camera factor
+ *
+ * Parameter `params`:
+ * 1. Position r_WB
+ * 2. Quaternion q_WB
+ * 3. Body-Camera i Extrinsics - Translation r_BCi
+ * 4. Body-Camera i Extrinsics - Quaternion q_BCi
+ * 5. Camera i parameters
+ * 6. Feature p_W
+ *
+ * Residuals `r_out` camera reprojection error
+ * Jacobians `J_out` with respect to `params`
+ *
+ * @returns `0` for success, `-1` for failure
  */
 int cam_factor_eval(cam_factor_t *factor,
                     real_t **params,
@@ -6821,6 +6853,23 @@ void imu_factor_reset(imu_factor_t *factor) {
 
 /**
  * Evaluate IMU factor
+ *
+ * Parameter `params`:
+ * 1. Position i
+ * 2. Quaternion i
+ * 3. Velocity i
+ * 4. Accelerometer Bias i
+ * 5. Gyroscope Bias i
+ * 6. Position_j
+ * 7. Quaternion_j
+ * 8. Velocity_j
+ * 9. Accelerometer Bias_j
+ * 10. Gyroscope Bias_j
+ *
+ * Residuals `r_out` represents the IMU error [15x1]
+ * Jacobians `J_out` with respect to `params`
+ *
+ * @returns `0` for success, `-1` for failure
  */
 int imu_factor_eval(imu_factor_t *factor,
                     real_t **params,
