@@ -1286,7 +1286,7 @@ int test_mat_block_set() {
 
   print_matrix("A", A, 3, 3);
   print_matrix("B", B, 2, 2);
-  mat_block_set(A, 3, 1, 1, 2, 2, B);
+  mat_block_set(A, 3, 1, 2, 1, 2, B);
   print_matrix("A", A, 3, 3);
   print_matrix("B", B, 2, 2);
 
@@ -2828,7 +2828,7 @@ int test_pose_setup() {
   timestamp_t ts = 1;
   pose_t pose;
 
-  real_t data[7] = {0.1, 0.2, 0.3, 1.1, 2.2, 3.3, 1.0};
+  real_t data[7] = {0.1, 0.2, 0.3, 1.0, 1.1, 2.2, 3.3};
   pose_setup(&pose, ts, data);
 
   MU_ASSERT(pose.ts == 1);
@@ -3604,7 +3604,7 @@ int test_imu_buf_print() {
 }
 
 typedef struct imu_test_data_t {
-  int nb_measurements;
+  size_t nb_measurements;
   real_t *timestamps;
   real_t **poses;
   real_t **velocities;
@@ -3637,7 +3637,7 @@ static int setup_imu_test_data(imu_test_data_t *test_data) {
   real_t theta = theta_init;
   real_t yaw = yaw_init;
 
-  for (int k = 0; k < test_data->nb_measurements; k++) {
+  for (size_t k = 0; k < test_data->nb_measurements; k++) {
     // IMU pose
     // -- Position
     const real_t rx = circle_r * cos(theta);
@@ -3698,15 +3698,14 @@ static int setup_imu_test_data(imu_test_data_t *test_data) {
 }
 
 static void free_imu_test_data(imu_test_data_t *test_data) {
-  test_data->nb_measurements = 0;
-
-  for (int k = 0; k < test_data->nb_measurements; k++) {
+  for (size_t k = 0; k < test_data->nb_measurements; k++) {
     free(test_data->poses[k]);
     free(test_data->velocities[k]);
     free(test_data->imu_acc[k]);
     free(test_data->imu_gyr[k]);
   }
 
+  free(test_data->timestamps);
   free(test_data->poses);
   free(test_data->velocities);
   free(test_data->imu_acc);
@@ -3729,9 +3728,8 @@ int test_imu_factor_propagate_step() {
   }
 
   // Setup state
-  const real_t *pose_init = test_data.poses[0];
-  const real_t *vel_init = test_data.velocities[0];
-
+  // const real_t *pose_init = test_data.poses[0];
+  // const real_t *vel_init = test_data.velocities[0];
   real_t r[3] = {0.0, 0.0, 0.0};
   real_t v[3] = {0.0, 0.0, 0.0};
   real_t q[4] = {1.0, 0.0, 0.0, 0.0};
@@ -3814,7 +3812,7 @@ int test_imu_factor_setup() {
   // Setup IMU buffer
   imu_buf_t imu_buf;
   imu_buf_setup(&imu_buf);
-  for (int k = 0; k < test_data.nb_measurements; k++) {
+  for (int k = 0; k < 10; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
@@ -3823,7 +3821,7 @@ int test_imu_factor_setup() {
 
   // Setup IMU factor
   const int idx_i = 0;
-  const int idx_j = test_data.nb_measurements - 1;
+  const int idx_j = 10 - 1;
   const timestamp_t ts_i = test_data.timestamps[idx_i];
   const timestamp_t ts_j = test_data.timestamps[idx_j];
   const real_t *v_i = test_data.velocities[idx_i];
@@ -3845,10 +3843,19 @@ int test_imu_factor_setup() {
   imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
   imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
 
+  printf("idx_i: %d, idx_j: %d\n", idx_i, idx_j);
   pose_print("pose_i", &pose_i);
   pose_print("pose_j", &pose_j);
 
   imu_params_t imu_params;
+  imu_params.imu_idx = 0;
+  imu_params.rate = 200.0;
+  imu_params.sigma_a = 0.08;
+  imu_params.sigma_g = 0.004;
+  imu_params.sigma_aw = 0.00004;
+  imu_params.sigma_gw = 2.0e-6;
+  imu_params.g = 9.81;
+
   imu_factor_t imu_factor;
   imu_factor_setup(&imu_factor,
                    &imu_params,
@@ -3860,17 +3867,20 @@ int test_imu_factor_setup() {
                    &vel_j,
                    &biases_j);
 
+  print_vector("dr", imu_factor.dr, 3);
+  print_vector("dv", imu_factor.dv, 3);
+  print_quat("dq", imu_factor.dq);
+  printf("Dt: %f\n", imu_factor.Dt);
+
+  mat_save("/tmp/F_test.csv", imu_factor.F, 15, 15);
+  mat_save("/tmp/P_test.csv", imu_factor.P, 15, 15);
+
   MU_ASSERT(imu_factor.pose_i == &pose_i);
   MU_ASSERT(imu_factor.vel_i == &vel_i);
   MU_ASSERT(imu_factor.biases_i == &biases_i);
   MU_ASSERT(imu_factor.pose_i == &pose_i);
   MU_ASSERT(imu_factor.vel_j == &vel_j);
   MU_ASSERT(imu_factor.biases_j == &biases_j);
-
-  print_vector("dr", imu_factor.dr, 3);
-  print_vector("dv", imu_factor.dv, 3);
-  print_quat("dq", imu_factor.dq);
-  printf("Dt: %f\n", imu_factor.Dt);
 
   // Clean up
   free_imu_test_data(&test_data);

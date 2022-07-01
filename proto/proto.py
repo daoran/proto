@@ -7381,8 +7381,8 @@ class TestFactors(unittest.TestCase):
   def test_imu_factor(self):
     """ Test IMU factor """
     # Simulate imu data
-    circle_r = 0.5
-    circle_v = 1.0
+    circle_r = 1.0
+    circle_v = 0.1
     sim_data = SimData(circle_r, circle_v, sim_cams=False)
     imu_data = sim_data.imu0_data
 
@@ -7423,6 +7423,18 @@ class TestFactors(unittest.TestCase):
     # Setup IMU factor
     param_ids = [0, 1, 2, 3]
     factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
+
+    # Print
+    print(f"pose_i: {np.round(pose_i.param, 4)}")
+    print(f"pose_j: {np.round(pose_j.param, 4)}")
+    print(f"dr: {factor.dr}")
+    print(f"dv: {factor.dv}")
+    print(f"dq: {rot2quat(factor.dC)}")
+    print(f"Dt: {factor.Dt}")
+
+    # Save matrix F, P and Q
+    np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
+    np.savetxt("/tmp/P.csv", factor.state_P, delimiter=",")
 
     # Test jacobians
     # yapf: disable

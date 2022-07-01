@@ -44,7 +44,7 @@ run_memcheck() {
 # python3 proto/proto.py TestFactors.test_imu_buffer
 # python3 proto/proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto/proto.py TestFactors.test_imu_factor_propagate
-# python3 proto/proto.py TestFactors.test_imu_factor
+python3 proto/proto.py TestFactors.test_imu_factor
 # python3 proto/proto.py TestFactorGraph
 # python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_vo
 # python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_io
@@ -63,7 +63,7 @@ run_memcheck() {
 # python3 proto/proto.py TestFeatureTracker.test_update
 # python3 proto/proto.py TestTracker
 # python3 proto/proto.py TestTracker.test_tracker_process_features
-python3 proto/proto.py TestTracker.test_tracker_vision_callback
+# python3 proto/proto.py TestTracker.test_tracker_vision_callback
 # python3 proto/proto.py TestCalibration
 # python3 proto/proto.py TestCalibration.test_aprilgrid
 # python3 proto/proto.py TestCalibration.test_calibrator
@@ -98,17 +98,39 @@ python3 proto/proto.py TestTracker.test_tracker_vision_callback
 #   && ./test_proto --target test_mat_transpose
 
 run_all_tests() {
-  time make build
-  cd ./proto/build/bin;
-  ./test_proto
+  # cd ~/projects/proto
+  # time make build
+  # cd ./proto/build/bin;
+  # ./test_proto
+  # cd -
+
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "\
+    cd ~/projects/proto
+    time make build
+    cd ./proto/build/bin;
+    ./test_proto
+    cd -
+  " C-m C-m
+  exit
 }
 
 run_test() {
   time make build
   cd ./proto/build/bin;
-  # gdb -ex run -ex bt --args ./test_proto --target "$1"
   ./test_proto --target "$1"
+  # valgrind ./test_proto --target "$1"
+  # gdb -ex run -ex bt --args ./test_proto --target "$1"
   cd -
+
+  # tmux send-keys -t dev -R C-l C-m
+  # tmux send-keys -t dev -R "\
+  #   time make build
+  #   cd ./proto/build/bin;
+  #   valgrind --leak-check=full ./test_proto --target "$1"
+  #   cd -
+  # " C-m C-m
+  # exit
 }
 
 run_sbgc_tests() {
@@ -122,7 +144,7 @@ run_sbgc_tests() {
 # run_sbgc_tests
 
 # PROTO
-# run_all_tests
+run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
@@ -289,8 +311,8 @@ run_sbgc_tests() {
 # run_test test_imu_buf_clear
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
-# run_test test_imu_factor_setup
 # run_test test_imu_factor_propagate_step
+# run_test test_imu_factor_setup
 # run_test test_imu_factor_eval
 # run_test test_ceres_solver
 # run_test test_solver_setup

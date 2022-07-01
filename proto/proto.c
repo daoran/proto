@@ -3331,15 +3331,15 @@ void dot_XAXt(const real_t *X,
   assert(Y != NULL);
   assert(X_n == A_m);
 
-  real_t *XA = malloc(sizeof(real_t) * (X_n * A_m));
+  real_t *XA = malloc(sizeof(real_t) * (X_m * A_n));
   real_t *Xt = malloc(sizeof(real_t) * (X_m * X_n));
 
-  mat_transpose(A, A_m, A_n, Xt);
   dot(X, X_m, X_n, A, A_m, A_n, XA);
+  mat_transpose(X, X_m, X_n, Xt);
   dot(XA, X_n, A_m, Xt, X_n, X_m, Y);
 
-  free(Xt);
   free(XA);
+  free(Xt);
 }
 
 /**
@@ -4632,9 +4632,22 @@ void quat_delta(const real_t dalpha[3], real_t dq[4]) {
 /**
  * Update quaternion with small update dalpha.
  */
-void quat_update(const real_t q[4], const real_t dalpha[3], real_t q_new[4]) {
+void quat_update(real_t q[4], const real_t dalpha[3]) {
   const real_t dq[4] = {1.0, 0.5 * dalpha[0], 0.5 * dalpha[1], 0.5 * dalpha[2]};
+  real_t q_new[4] = {0};
   quat_mul(q, dq, q_new);
+  q[0] = q_new[0];
+  q[1] = q_new[1];
+  q[2] = q_new[2];
+  q[3] = q_new[3];
+}
+
+/**
+ * Update quaternion with angular velocity and dt.
+ */
+void quat_update_dt(real_t q[4], const real_t w[3], const real_t dt) {
+  real_t dalpha[3] = {w[0] * dt, w[1] * dt, w[2] * dt};
+  quat_update(q, dalpha);
 }
 
 /**
@@ -5432,7 +5445,7 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
  * SENSOR FUSION
  ******************************************************************************/
 
-// POSE ////////////////////////////////////////////////////////////////////////
+// POSE //////////////////////////////////////////////////////////////////////
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   assert(pose != NULL);
@@ -5469,12 +5482,12 @@ void pose_print(const char *prefix, const pose_t *pose) {
   const real_t qz = pose->quat[3];
 
   printf("[%s] ", prefix);
-  printf("ts: %ld, ", ts);
-  printf("pos: (%.2f, %.2f, %.2f), ", x, y, z);
-  printf("quat: (%.2f, %.2f, %.2f, %.2f)\n", qw, qx, qy, qz);
+  printf("ts: %19ld, ", ts);
+  printf("pos: (%f, %f, %f), ", x, y, z);
+  printf("quat: (%f, %f, %f, %f)\n", qw, qx, qy, qz);
 }
 
-// VELOCITY ////////////////////////////////////////////////////////////////////
+// VELOCITY //////////////////////////////////////////////////////////////////
 
 /**
  * Setup velocity
@@ -6552,18 +6565,7 @@ void imu_factor_propagate_step(real_t r[3],
   v[2] += dv[2];
 
   // Update rotation
-  // dq = quat_mul(dq, [1.0, 0.5 * wx * dt, 0.5 * wy * dt, 0.5 * wz * dt]);
-  real_t dq[4] = {0};
-  real_t q_new[4] = {0};
-  dq[0] = 1.0;
-  dq[1] = 0.5 * w_t[0] * dt;
-  dq[2] = 0.5 * w_t[1] * dt;
-  dq[3] = 0.5 * w_t[2] * dt;
-  quat_mul(q, dq, q_new);
-  q[0] = q_new[0];
-  q[1] = q_new[1];
-  q[2] = q_new[2];
-  q[3] = q_new[3];
+  quat_update_dt(q, w_t, dt);
 
   // Update accelerometer biases
   // ba = ba;
@@ -6580,24 +6582,24 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
   assert(imu_params != NULL);
   assert(Q != NULL);
 
-  const real_t n_a_sq = imu_params->n_a * imu_params->n_a;
-  const real_t n_g_sq = imu_params->n_g * imu_params->n_g;
-  const real_t n_ba_sq = imu_params->n_aw * imu_params->n_aw;
-  const real_t n_bg_sq = imu_params->n_gw * imu_params->n_gw;
+  const real_t sigma_a_sq = imu_params->sigma_a * imu_params->sigma_a;
+  const real_t sigma_g_sq = imu_params->sigma_g * imu_params->sigma_g;
+  const real_t sigma_ba_sq = imu_params->sigma_aw * imu_params->sigma_aw;
+  const real_t sigma_bg_sq = imu_params->sigma_gw * imu_params->sigma_gw;
 
   zeros(Q, 12, 12);
-  Q[0] = n_a_sq;
-  Q[13] = n_a_sq;
-  Q[26] = n_a_sq;
-  Q[39] = n_g_sq;
-  Q[52] = n_g_sq;
-  Q[65] = n_g_sq;
-  Q[78] = n_ba_sq;
-  Q[91] = n_ba_sq;
-  Q[104] = n_ba_sq;
-  Q[117] = n_bg_sq;
-  Q[130] = n_bg_sq;
-  Q[143] = n_bg_sq;
+  Q[0] = sigma_a_sq;
+  Q[13] = sigma_a_sq;
+  Q[26] = sigma_a_sq;
+  Q[39] = sigma_g_sq;
+  Q[52] = sigma_g_sq;
+  Q[65] = sigma_g_sq;
+  Q[78] = sigma_ba_sq;
+  Q[91] = sigma_ba_sq;
+  Q[104] = sigma_ba_sq;
+  Q[117] = sigma_bg_sq;
+  Q[130] = sigma_bg_sq;
+  Q[143] = sigma_bg_sq;
 }
 
 /**
@@ -6622,35 +6624,33 @@ static void imu_factor_form_F_matrix(const real_t dq[4],
   // -- Initialize memory for F
   zeros(I_F_dt, 15, 15);
   // -- F[0:3, 3:6] = eye(3);
-  real_t F0[3 * 3] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
-  mat_block_set(I_F_dt, 15, 0, 3, 3, 6, F0);
+  I_F_dt[3] = 1.0;
+  I_F_dt[19] = 1.0;
+  I_F_dt[35] = 1.0;
   // -- F[4:6, 7:9] = -dC * skew(a_t);
   real_t F1[3 * 3] = {0};
   real_t skew_a_t[3 * 3] = {0};
   skew(a_t, skew_a_t);
   dot(dC, 3, 3, skew_a_t, 3, 3, F1);
-  mat_block_set(I_F_dt, 15, 4, 6, 7, 9, F1);
+  mat_block_set(I_F_dt, 15, 3, 5, 6, 8, F1);
   // -- F[4:6, 10:12] = -dC;
   real_t F2[3 * 3] = {0};
   for (int idx = 0; idx < 9; idx++) {
     F2[idx] = -1.0 * dC[idx];
   }
-  mat_block_set(I_F_dt, 15, 4, 10, 6, 12, F2);
+  mat_block_set(I_F_dt, 15, 3, 5, 9, 11, F2);
   // -- F[7:9, 7:9] = -skew(w_t);
   real_t F3[3 * 3] = {0};
-  F3[0] = 0.0;
   F3[1] = w_t[2];
   F3[2] = -w_t[1];
   F3[3] = -w_t[2];
-  F3[4] = 0.0;
   F3[5] = w_t[0];
   F3[6] = w_t[1];
   F3[7] = -w_t[0];
-  F3[8] = 0.0;
-  mat_block_set(I_F_dt, 15, 7, 9, 7, 9, F3);
+  mat_block_set(I_F_dt, 15, 6, 8, 6, 8, F3);
   // -- F[7:9, 13:15] = -eye(3);
   real_t F4[3 * 3] = {-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0};
-  mat_block_set(I_F_dt, 15, 7, 9, 13, 15, F4);
+  mat_block_set(I_F_dt, 15, 6, 8, 12, 14, F4);
 
   // Discretize continuous time transition matrix
   // I_F_dt = eye(15) + F * dt;
@@ -6666,9 +6666,9 @@ static void imu_factor_form_F_matrix(const real_t dq[4],
 /**
  * Form IMU Input Matrix G
  */
-void imu_factor_form_G_matrix(const real_t dq[4],
-                              const real_t dt,
-                              real_t G_dt[15 * 12]) {
+static void imu_factor_form_G_matrix(const real_t dq[4],
+                                     const real_t dt,
+                                     real_t G_dt[15 * 12]) {
   // Setup
   real_t dC[3 * 3] = {0};
   quat2rot(dq, dC);
@@ -6730,12 +6730,12 @@ void imu_factor_setup(imu_factor_t *factor,
   zeros(factor->r, 15, 1);
   factor->r_size = 15;
 
-  // Pre - integration variables
+  // Pre-integration variables
   factor->Dt = 0.0;
   eye(factor->F, 15, 15);   // State jacobian
   zeros(factor->P, 15, 15); // State covariance
 
-  // -- Noise matrix
+  // Noise matrix
   imu_factor_form_Q_matrix(imu_params, factor->Q);
 
   // Setup
@@ -6747,7 +6747,7 @@ void imu_factor_setup(imu_factor_t *factor,
 
   // Pre-integrate imu measuremenets
   real_t dt = 0.0;
-  for (int k = 0; k < imu_buf->size; k++) {
+  for (int k = 0; k < (imu_buf->size - 1); k++) {
     if (k + 1 < imu_buf->size) {
       const timestamp_t ts_i = imu_buf->ts[k];
       const timestamp_t ts_j = imu_buf->ts[k + 1];
@@ -6790,8 +6790,8 @@ void imu_factor_setup(imu_factor_t *factor,
     real_t A[15 * 15] = {0};
     real_t B[15 * 15] = {0};
     mat_copy(factor->P, 15, 15, P_prev);
-    dot_XtAX(I_F_dt, 15, 15, factor->P, 15, 15, A);
-    dot_XtAX(G_dt, 15, 12, factor->Q, 12, 12, B);
+    dot_XAXt(I_F_dt, 15, 15, factor->P, 15, 15, A);
+    dot_XAXt(G_dt, 15, 12, factor->Q, 12, 12, B);
     mat_add(A, B, factor->P, 15, 15);
 
     // Update overall dt
@@ -7497,8 +7497,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
  * SIM
  ******************************************************************************/
 
-// SIM FEATURES
-// ////////////////////////////////////////////////////////////////
+// SIM FEATURES //////////////////////////////////////////////////////////////
 
 /**
  * Load simulation feature data
@@ -7529,8 +7528,7 @@ void sim_features_free(sim_features_t *feature_data) {
   free(feature_data);
 }
 
-// SIM IMU DATA
-// ////////////////////////////////////////////////////////////////
+// SIM IMU DATA //////////////////////////////////////////////////////////////
 
 /**
  * Load simulation imu data
@@ -7563,8 +7561,7 @@ void sim_imu_data_free(sim_imu_data_t *imu_data) {
   free(imu_data);
 }
 
-// SIM CAMERA DATA
-// /////////////////////////////////////////////////////////////
+// SIM CAMERA DATA ///////////////////////////////////////////////////////////
 
 /**
  * Extract timestamp from path
@@ -7832,29 +7829,28 @@ real_t **sim_create_features(const real_t origin[3],
   return features;
 }
 
-void sim_circle_trajectory() {
-  real_t circle_r = 1.0;
-  real_t circle_v = 1.0;
-  real_t cam_rate = 10.0;
-  real_t imu_rate = 200.0;
-  int nb_features = 1000;
+// void sim_circle_trajectory() {
+//   real_t circle_r = 1.0;
+//   real_t circle_v = 1.0;
+//   real_t cam_rate = 10.0;
+//   real_t imu_rate = 200.0;
+//   int nb_features = 1000;
 
-  // Trajectory data
-  real_t g[3] = {0.0, 0.0, 9.81};
-  real_t circle_dist = 2.0 * M_PI * circle_r;
-  real_t time_taken = circle_dist / circle_v;
-  real_t w = -2.0 * M_PI * (1.0 / time_taken);
-  real_t theta_init = M_PI;
-  real_t yaw_init = M_PI / 2.0;
-}
+//   // Trajectory data
+//   real_t g[3] = {0.0, 0.0, 9.81};
+//   real_t circle_dist = 2.0 * M_PI * circle_r;
+//   real_t time_taken = circle_dist / circle_v;
+//   real_t w = -2.0 * M_PI * (1.0 / time_taken);
+//   real_t theta_init = M_PI;
+//   real_t yaw_init = M_PI / 2.0;
+// }
 
 /******************************************************************************
  * GUI
  *****************************************************************************/
 #ifdef USE_GUI
 
-// OPENGL UTILS
-// ////////////////////////////////////////////////////////////////
+// OPENGL UTILS //////////////////////////////////////////////////////////////
 
 GLfloat gl_deg2rad(const GLfloat d) {
   return d * M_PI / 180.0f;
@@ -8159,8 +8155,7 @@ void gl_lookat(const GLfloat eye[3],
   gl_dot(R, 4, 4, T, 4, 4, V);
 }
 
-// SHADER
-// //////////////////////////////////////////////////////////////////////
+// SHADER ////////////////////////////////////////////////////////////////////
 
 GLuint shader_compile(const char *shader_src, const int type) {
   if (shader_src == NULL) {
@@ -8216,8 +8211,7 @@ GLuint shaders_link(const GLuint vertex_shader,
   return program;
 }
 
-// GL PROGRAM
-// //////////////////////////////////////////////////////////////////
+// GL PROGRAM ////////////////////////////////////////////////////////////////
 
 GLuint gl_prog_setup(const char *vs_src,
                      const char *fs_src,
@@ -8352,8 +8346,7 @@ int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4 * 4]) {
   return 0;
 }
 
-// GL-CAMERA
-// ///////////////////////////////////////////////////////////////////
+// GL-CAMERA /////////////////////////////////////////////////////////////////
 
 void gl_camera_setup(gl_camera_t *camera,
                      int *window_width,
@@ -8469,10 +8462,9 @@ void gl_camera_zoom(gl_camera_t *camera,
   gl_camera_update(camera);
 }
 
-// GL-PRIMITIVES
-// ///////////////////////////////////////////////////////////////
+// GL-PRIMITIVES /////////////////////////////////////////////////////////////
 
-// GL CUBE ******************************************************************
+// GL CUBE ///////////////////////////////////////////////////////////////////
 
 void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]) {
   // Entity transform
@@ -8595,7 +8587,7 @@ void gl_cube_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glBindVertexArray(0); // Unbind VAO
 }
 
-// GL CAMERA FRAME **********************************************************
+// GL CAMERA FRAME ///////////////////////////////////////////////////////////
 
 void gl_camera_frame_setup(gl_entity_t *entity) {
   // Entity transform
@@ -8700,7 +8692,7 @@ void gl_camera_frame_draw(const gl_entity_t *entity,
   glLineWidth(original_line_width);
 }
 
-// GL AXIS FRAME *************************************************************
+// GL AXIS FRAME /////////////////////////////////////////////////////////////
 
 void gl_axis_frame_setup(gl_entity_t *entity) {
   // Entity transform
@@ -8833,7 +8825,7 @@ static GLfloat *glgrid_create_vertices(int grid_size) {
   return vertices;
 }
 
-// GL GRID *******************************************************************
+// GL GRID ///////////////////////////////////////////////////////////////////
 
 void gl_grid_setup(gl_entity_t *entity) {
   // Entity transform
@@ -8898,8 +8890,7 @@ void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glBindVertexArray(0); // Unbind VAO
 }
 
-// GUI
-// /////////////////////////////////////////////////////////////////////////
+// GUI ///////////////////////////////////////////////////////////////////////
 
 void gui_window_callback(gui_t *gui, const SDL_Event event) {
   if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
@@ -9098,8 +9089,7 @@ void gui_loop(gui_t *gui) {
   SDL_Quit();
 }
 
-// IMSHOW
-// //////////////////////////////////////////////////////////////////////
+// IMSHOW ////////////////////////////////////////////////////////////////////
 
 void imshow_window_callback(imshow_t *imshow, const SDL_Event event) {
   if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
