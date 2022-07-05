@@ -113,14 +113,6 @@ void mu_print_log(const char *log_path) {
 }
 
 /**
- * Mark test failed
- * @param[in] test_name Test name
- * @param[in] log_path Path to log file
- */
-void mu_test_failed(const char *test_name, const char *log_path) {
-}
-
-/**
  * Print test stats
  */
 void mu_print_stats() {

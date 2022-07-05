@@ -739,7 +739,8 @@ void quat_lmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_rmul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_mul(const real_t p[4], const real_t q[4], real_t r[4]);
 void quat_delta(const real_t dalpha[3], real_t dq[4]);
-void quat_update(const real_t q[4], const real_t dalpha[3], real_t q_new[4]);
+void quat_update(real_t q[4], const real_t dalpha[3]);
+void quat_update_dt(real_t q[4], const real_t w[3], const real_t dt);
 void quat_perturb(real_t q[4], const int i, const real_t h);
 
 /******************************************************************************
@@ -1018,14 +1019,13 @@ int cam_factor_ceres_eval(void *factor,
 #define MAX_IMU_BUF_SIZE 1000
 
 typedef struct imu_params_t {
-  uint64_t param_id;
   int imu_idx;
   real_t rate;
 
-  real_t n_aw;
-  real_t n_gw;
-  real_t n_a;
-  real_t n_g;
+  real_t sigma_aw;
+  real_t sigma_gw;
+  real_t sigma_a;
+  real_t sigma_g;
   real_t g;
 } imu_params_t;
 
