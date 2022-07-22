@@ -44,7 +44,7 @@ run_memcheck() {
 # python3 proto/proto.py TestFactors.test_imu_buffer
 # python3 proto/proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto/proto.py TestFactors.test_imu_factor_propagate
-python3 proto/proto.py TestFactors.test_imu_factor
+# python3 proto/proto.py TestFactors.test_imu_factor
 # python3 proto/proto.py TestFactorGraph
 # python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_vo
 # python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_io
@@ -78,6 +78,8 @@ python3 proto/proto.py TestFactors.test_imu_factor
 # python3 proto/proto.py TestSimulation.test_sim_arm
 # python3 proto/proto.py TestViz.test_multiplot
 # python3 proto/proto.py TestViz.test_server
+
+python3 proto/robot_arm.py
 
 ###############################################################################
 # C
@@ -116,21 +118,21 @@ run_all_tests() {
 }
 
 run_test() {
-  time make build
-  cd ./proto/build/bin;
-  ./test_proto --target "$1"
-  # valgrind ./test_proto --target "$1"
-  # gdb -ex run -ex bt --args ./test_proto --target "$1"
-  cd -
+  # time make build
+  # cd ./proto/build/bin;
+  # # ./test_proto --target "$1"
+  # # valgrind ./test_proto --target "$1"
+  # gdb -ex run -ex bt -ex quit --args ./test_proto --target "$1"
+  # cd -
 
-  # tmux send-keys -t dev -R C-l C-m
-  # tmux send-keys -t dev -R "\
-  #   time make build
-  #   cd ./proto/build/bin;
-  #   valgrind --leak-check=full ./test_proto --target "$1"
-  #   cd -
-  # " C-m C-m
-  # exit
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "\
+    time make build
+    cd ./proto/build/bin
+    ./test_proto --target $1
+    cd -
+  " C-m C-m
+  exit
 }
 
 run_sbgc_tests() {
@@ -144,7 +146,7 @@ run_sbgc_tests() {
 # run_sbgc_tests
 
 # PROTO
-run_all_tests
+# run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
