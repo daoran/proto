@@ -3345,7 +3345,7 @@ void dot_XAXt(const real_t *X,
 /**
  * Create skew-symmetric matrix `A` from a 3x1 vector `x`.
  */
-void skew(const real_t x[3], real_t A[3 * 3]) {
+void hat(const real_t x[3], real_t A[3 * 3]) {
   assert(x != NULL);
   assert(A != NULL);
 
@@ -3368,7 +3368,7 @@ void skew(const real_t x[3], real_t A[3 * 3]) {
 /**
  * Opposite of the skew-symmetric matrix
  */
-void skew_inv(const real_t A[3 * 3], real_t x[3]) {
+void vee(const real_t A[3 * 3], real_t x[3]) {
   assert(A != NULL);
   assert(x != NULL);
 
@@ -3470,6 +3470,9 @@ int check_jacobian(const char *jac_name,
   } else {
     if (verbose) {
       printf("Check [%s] ok!\n", jac_name);
+      // print_matrix("analytical jac", jac, m, n);
+      // print_matrix("num diff jac", fdiff, m, n);
+      // print_matrix("difference matrix", delta, m, n);
     }
     retval = 0;
   }
@@ -3738,11 +3741,11 @@ void lie_Exp(const real_t phi[3], real_t C[3 * 3]) {
   real_t phi_skew[3 * 3] = {0};
   real_t phi_skew_sq[3 * 3] = {0};
 
-  skew(phi, phi_skew);
+  hat(phi, phi_skew);
   dot(phi_skew, 3, 3, phi_skew, 3, 3, phi_skew_sq);
 
   if (phi_norm < 1e-3) {
-    // C = eye(3) + skew(phi);
+    // C = eye(3) + hat(phi);
     eye(C, 3, 3);
     mat_add(C, phi_skew, C, 3, 3);
   } else {
@@ -3772,7 +3775,7 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
 
   /**
    * phi = acos((trace(C) - 1) / 2);
-   * vec = skew_inv(C - C') / (2 * sin(phi));
+   * vec = vee(C - C') / (2 * sin(phi));
    * rvec = phi * vec;
    */
   const real_t tr = C[0] + C[4] + C[8];
@@ -3783,7 +3786,7 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
   mat_transpose(C, 3, 3, C_t);
   mat_sub(C, C_t, dC, 3, 3);
   real_t u[3] = {0};
-  skew_inv(dC, u);
+  vee(dC, u);
   const real_t s = 1.0 / (2 * sin(phi));
   const real_t vec[3] = {s * u[0], s * u[1], s * u[2]};
 
@@ -5691,6 +5694,117 @@ void camera_params_print(const camera_params_t *camera) {
 
 // POSE FACTOR /////////////////////////////////////////////////////////////////
 
+int check_factor_jacobian(const void *factor,
+                          FACTOR_EVAL_PTR,
+                          real_t **params,
+                          real_t **jacobians,
+                          const int r_size,
+                          const int param_size,
+                          const int param_idx,
+                          const real_t step_size,
+                          const real_t tol,
+                          const int verbose) {
+  // Form jacobian name
+  char J_name[10] = {0};
+  if (snprintf(J_name, 10, "J%d", param_idx) <= 0) {
+    return -1;
+  }
+
+  // Setup
+  real_t *r = calloc(r_size, sizeof(real_t));
+  real_t *J_numdiff = calloc(r_size * param_size, sizeof(real_t));
+
+  // Evaluate factor
+  if (factor_eval(factor, params, r, NULL) != 0) {
+    return -2;
+  }
+
+  // Numerical diff - forward finite difference
+  for (int i = 0; i < param_size; i++) {
+    real_t *r_fwd = calloc(r_size, sizeof(real_t));
+    real_t *r_diff = calloc(r_size, sizeof(real_t));
+
+    params[param_idx][i] += step_size;
+    factor_eval(factor, params, r_fwd, NULL);
+    params[param_idx][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, r_size);
+    vec_scale(r_diff, r_size, 1.0 / step_size);
+    mat_col_set(J_numdiff, param_size, r_size, i, r_diff);
+
+    free(r_fwd);
+    free(r_diff);
+  }
+
+  // Check jacobian
+  const int retval = check_jacobian(J_name,
+                                    J_numdiff,
+                                    jacobians[param_idx],
+                                    r_size,
+                                    param_size,
+                                    tol,
+                                    verbose);
+  free(r);
+  free(J_numdiff);
+
+  return retval;
+}
+
+int check_factor_quaternion_jacobian(const void *factor,
+                                     FACTOR_EVAL_PTR,
+                                     real_t **params,
+                                     real_t **jacobians,
+                                     const int r_size,
+                                     const int param_idx,
+                                     const real_t step_size,
+                                     const real_t tol,
+                                     const int verbose) {
+  // Form jacobian name
+  char J_name[10] = {0};
+  if (snprintf(J_name, 10, "J%d", param_idx) <= 0) {
+    return -1;
+  }
+
+  // Setup
+  const int param_size = 3;
+  real_t *r = calloc(r_size, sizeof(real_t));
+  real_t *J_numdiff = calloc(r_size * param_size, sizeof(real_t));
+
+  // Evaluate factor
+  if (factor_eval(factor, params, r, NULL) != 0) {
+    return -2;
+  }
+
+  for (int i = 0; i < param_size; i++) {
+    real_t *r_fwd = calloc(r_size, sizeof(real_t));
+    real_t *r_diff = calloc(r_size, sizeof(real_t));
+
+    quat_perturb(params[param_idx], i, step_size);
+    factor_eval(factor, params, r_fwd, NULL);
+    quat_perturb(params[param_idx], i, -step_size);
+
+    vec_sub(r_fwd, r, r_diff, r_size);
+    vec_scale(r_diff, r_size, 1.0 / step_size);
+    mat_col_set(J_numdiff, param_size, r_size, i, r_diff);
+
+    free(r_fwd);
+    free(r_diff);
+  }
+
+  // Check Jacobian
+  const int retval = check_jacobian(J_name,
+                                    J_numdiff,
+                                    jacobians[param_idx],
+                                    r_size,
+                                    param_size,
+                                    tol,
+                                    verbose);
+  free(r);
+  free(J_numdiff);
+
+  return retval;
+}
+
 /**
  * Setup pose factor
  */
@@ -5745,17 +5859,18 @@ void pose_factor_setup(pose_factor_t *factor,
  *
  * @returns `0` for success, `-1` for failure
  */
-int pose_factor_eval(pose_factor_t *factor,
+int pose_factor_eval(const void *factor,
                      real_t **params,
                      real_t *r_out,
                      real_t **J_out) {
   assert(factor != NULL);
+  const pose_factor_t *pose_factor = (const pose_factor_t *) factor;
 
   // Map params
   const real_t *r_est = params[0];
   const real_t *q_est = params[1];
-  const real_t *r_meas = factor->pos_meas;
-  const real_t *q_meas = factor->quat_meas;
+  const real_t *r_meas = pose_factor->pos_meas;
+  const real_t *q_meas = pose_factor->quat_meas;
 
   // Calculate pose error
   // -- Translation error
@@ -5787,7 +5902,7 @@ int pose_factor_eval(pose_factor_t *factor,
   r[3] = dtheta[0];
   r[4] = dtheta[1];
   r[5] = dtheta[2];
-  dot(factor->sqrt_info, 6, 6, r, 6, 1, r_out);
+  dot(pose_factor->sqrt_info, 6, 6, r, 6, 1, r_out);
 
   // Calculate Jacobians
   if (J_out == NULL) {
@@ -5810,7 +5925,7 @@ int pose_factor_eval(pose_factor_t *factor,
     J0[6] = 0.0;
     J0[7] = 0.0;
     J0[8] = -1.0;
-    dot(factor->sqrt_info, 6, 6, J0, 6, 3, J_out[0]);
+    dot(pose_factor->sqrt_info, 6, 6, J0, 6, 3, J_out[0]);
     // clang-format on
   }
 
@@ -5835,7 +5950,7 @@ int pose_factor_eval(pose_factor_t *factor,
     J1[15] = -dqy;
     J1[16] = dqx;
     J1[17] = dqw;
-    dot(factor->sqrt_info, 6, 6, J1, 6, 3, J_out[1]);
+    dot(pose_factor->sqrt_info, 6, 6, J1, 6, 3, J_out[1]);
     // clang-format on
   }
 
@@ -5930,7 +6045,7 @@ static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
 
   // Jh_weighted = -1 * sqrt_info * Jh;
   // J_pos = Jh_weighted * -C_CW;
-  // J_rot = Jh_weighted * -C_CW * skew(p_W - r_WC) * -C_WC;
+  // J_rot = Jh_weighted * -C_CW * hat(p_W - r_WC) * -C_WC;
   // J = [J_pos, J_rot]
 
   // Setup
@@ -5949,11 +6064,11 @@ static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
 
   /**
    * Jh_weighted = -1 * sqrt_info * Jh;
-   * J_rot = Jh_weighted * -C_CW * skew(p_W - r_WC) * -C_WC;
+   * J_rot = Jh_weighted * -C_CW * hat(p_W - r_WC) * -C_WC;
    * where:
    *
    *   A = -C_CW;
-   *   B = skew(p_W - r_WC);
+   *   B = hat(p_W - r_WC);
    *   C = -C_WC;
    */
   real_t A[3 * 3] = {0};
@@ -5964,7 +6079,7 @@ static void ba_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   dp[0] = p_W[0] - r_WC[0];
   dp[1] = p_W[1] - r_WC[1];
   dp[2] = p_W[2] - r_WC[2];
-  skew(dp, B);
+  hat(dp, B);
 
   real_t C[3 * 3] = {0};
   mat_copy(C_WC, 3, 3, C);
@@ -6165,7 +6280,7 @@ static void cam_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
 
   // Jh_weighted = -1 * sqrt_info * Jh;
   // J_pos = Jh_weighted * C_CB * -C_BW;
-  // J_rot = Jh_weighted * C_CB * C_BW * skew(p_W - r_WB) * -C_WB;
+  // J_rot = Jh_weighted * C_CB * C_BW * hat(p_W - r_WB) * -C_WB;
   // J = [J_pos, J_rot];
 
   // Setup
@@ -6195,13 +6310,13 @@ static void cam_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   mat_copy(C_WB, 3, 3, neg_C_WB);
   mat_scale(neg_C_WB, 3, 3, -1.0);
 
-  // Form: C_CB * -C_BW * skew(p_W - r_WB) * -C_WB
+  // Form: C_CB * -C_BW * hat(p_W - r_WB) * -C_WB
   real_t r_WB[3] = {0};
   real_t p[3] = {0};
   real_t S[3 * 3] = {0};
   tf_trans_get(T_WB, r_WB);
   vec_sub(p_W, r_WB, p, 3);
-  skew(p, S);
+  hat(p, S);
 
   real_t A[3 * 3] = {0};
   real_t B[3 * 3] = {0};
@@ -6211,7 +6326,7 @@ static void cam_factor_pose_jacobian(const real_t Jh_weighted[2 * 3],
   // Form: J_pos = Jh_weighted * C_CB * -C_BW;
   dot(Jh_weighted, 2, 3, neg_C_CW, 3, 3, J_pos);
 
-  // Form: J_rot = Jh_weighted * C_CB * -C_BW * skew(p_W - r_WB) * -C_WB;
+  // Form: J_rot = Jh_weighted * C_CB * -C_BW * hat(p_W - r_WB) * -C_WB;
   dot(Jh_weighted, 2, 3, B, 3, 3, J_rot);
 }
 
@@ -6234,7 +6349,7 @@ static void cam_factor_extrinsics_jacobian(const real_t Jh_weighted[2 * 3],
 
   // Jh_weighted = -1 * sqrt_info * Jh;
   // J_pos = Jh_weighted * -C_CB;
-  // J_rot = Jh_weighted * C_CB * skew(C_BC * p_C);
+  // J_rot = Jh_weighted * C_CB * hat(C_BC * p_C);
 
   // Setup
   real_t C_BC[3 * 3] = {0};
@@ -6256,11 +6371,11 @@ static void cam_factor_extrinsics_jacobian(const real_t Jh_weighted[2 * 3],
   mat_copy(C_BC, 3, 3, neg_C_BC);
   mat_scale(neg_C_BC, 3, 3, -1.0);
 
-  // Form: -C_CB * skew(C_BC * p_C) * -C_BC
+  // Form: -C_CB * hat(C_BC * p_C) * -C_BC
   real_t p[3] = {0};
   real_t S[3 * 3] = {0};
   dot(C_BC, 3, 3, p_C, 3, 1, p);
-  skew(p, S);
+  hat(p, S);
 
   real_t A[3 * 3] = {0};
   real_t B[3 * 3] = {0};
@@ -6270,7 +6385,7 @@ static void cam_factor_extrinsics_jacobian(const real_t Jh_weighted[2 * 3],
   // Form: J_rot = Jh_weighted * -C_CB;
   dot(Jh_weighted, 2, 3, neg_C_CB, 3, 3, J_pos);
 
-  // Form: J_pos = Jh_weighted * -C_CB * skew(C_BC * p_C) * -C_BC;
+  // Form: J_pos = Jh_weighted * -C_CB * hat(C_BC * p_C) * -C_BC;
   dot(Jh_weighted, 2, 3, B, 3, 3, J_rot);
 }
 
@@ -6659,10 +6774,10 @@ static void imu_factor_form_F_matrix(const real_t dq[4],
   I_F_dt[3] = 1.0;
   I_F_dt[19] = 1.0;
   I_F_dt[35] = 1.0;
-  // -- F[4:6, 7:9] = -dC * skew(a_t);
+  // -- F[4:6, 7:9] = -dC * hat(a_t);
   real_t F1[3 * 3] = {0};
   real_t skew_a_t[3 * 3] = {0};
-  skew(a_t, skew_a_t);
+  hat(a_t, skew_a_t);
   dot(dC, 3, 3, skew_a_t, 3, 3, F1);
   mat_block_set(I_F_dt, 15, 3, 5, 6, 8, F1);
   // -- F[4:6, 10:12] = -dC;
@@ -6671,7 +6786,7 @@ static void imu_factor_form_F_matrix(const real_t dq[4],
     F2[idx] = -1.0 * dC[idx];
   }
   mat_block_set(I_F_dt, 15, 3, 5, 9, 11, F2);
-  // -- F[7:9, 7:9] = -skew(w_t);
+  // -- F[7:9, 7:9] = -hat(w_t);
   real_t F3[3 * 3] = {0};
   F3[1] = w_t[2];
   F3[2] = -w_t[1];
@@ -7049,6 +7164,7 @@ int imu_factor_eval(imu_factor_t *factor,
     r_raw[12] = err_bg[0];
     r_raw[13] = err_bg[1];
     r_raw[14] = err_bg[2];
+    print_vector("r_raw", r_raw, 15);
 
     dot(factor->sqrt_info, 15, 15, r_raw, 15, 1, factor->r);
   }
@@ -7074,13 +7190,12 @@ int imu_factor_eval(imu_factor_t *factor,
   quat_left_xyz(qji_dC, left_xyz);
   // -- Jacobian w.r.t. r_i
   if (J_out[0]) {
-    // yapf: disable
     real_t J0[15 * 3] = {0};
     real_t drij_dri[3 * 3] = {0};
     for (int idx = 0; idx < 9; idx++) {
       drij_dri[idx] = -1.0 * C_it[idx];
     }
-    mat_block_set(J0, 15, 0, 3, 0, 3, drij_dri);
+    mat_block_set(J0, 3, 0, 2, 0, 2, drij_dri);
     dot(factor->sqrt_info, 15, 15, J0, 15, 3, J_out[0]);
   }
 
@@ -7090,17 +7205,17 @@ int imu_factor_eval(imu_factor_t *factor,
     real_t dvij_dCi[3 * 3] = {0};
     real_t dtheta_dCi[3 * 3] = {0};
 
-    skew(dr_est, drij_dCi);
-    skew(dv_est, dvij_dCi);
+    hat(dr_est, drij_dCi);
+    hat(dv_est, dvij_dCi);
     mat_copy(left_xyz, 3, 3, dtheta_dCi);
     for (int i = 0; i < 9; i++) {
       dtheta_dCi[i] *= -1.0;
     }
 
     real_t J1[15 * 3] = {0};
-    mat_block_set(J1, 15, 0, 3, 0, 3, drij_dCi);
-    mat_block_set(J1, 15, 3, 6, 0, 3, dvij_dCi);
-    mat_block_set(J1, 15, 6, 9, 0, 3, dtheta_dCi);
+    mat_block_set(J1, 3, 0, 2, 0, 2, drij_dCi);
+    mat_block_set(J1, 3, 3, 5, 0, 2, dvij_dCi);
+    mat_block_set(J1, 3, 6, 8, 0, 2, dtheta_dCi);
     dot(factor->sqrt_info, 15, 15, J1, 15, 3, J_out[1]);
   }
 
@@ -7114,8 +7229,8 @@ int imu_factor_eval(imu_factor_t *factor,
     }
 
     real_t J2[15 * 3] = {0};
-    mat_block_set(J2, 15, 0, 3, 0, 3, drij_dvi);
-    mat_block_set(J2, 15, 3, 6, 0, 3, dvij_dvi);
+    mat_block_set(J2, 3, 0, 2, 0, 2, drij_dvi);
+    mat_block_set(J2, 3, 3, 5, 0, 2, dvij_dvi);
     dot(factor->sqrt_info, 15, 15, J2, 15, 3, J_out[2]);
   }
 
@@ -7129,8 +7244,8 @@ int imu_factor_eval(imu_factor_t *factor,
     }
 
     real_t J3[15 * 3] = {0};
-    mat_block_set(J3, 15, 0, 3, 0, 3, drij_dbai);
-    mat_block_set(J3, 15, 3, 6, 0, 3, dvij_dbai);
+    mat_block_set(J3, 3, 0, 2, 0, 2, drij_dbai);
+    mat_block_set(J3, 3, 3, 5, 0, 2, dvij_dbai);
     dot(factor->sqrt_info, 15, 15, J3, 15, 3, J_out[3]);
   }
 
@@ -7151,9 +7266,9 @@ int imu_factor_eval(imu_factor_t *factor,
     }
 
     real_t J4[15 * 3] = {0};
-    mat_block_set(J4, 15, 0, 3, 0, 3, drij_dbgi);
-    mat_block_set(J4, 15, 3, 6, 0, 3, dvij_dbgi);
-    mat_block_set(J4, 15, 6, 9, 0, 3, dtheta_dbgi);
+    mat_block_set(J4, 3, 0, 2, 0, 2, drij_dbgi);
+    mat_block_set(J4, 3, 3, 5, 0, 2, dvij_dbgi);
+    mat_block_set(J4, 3, 6, 8, 0, 2, dtheta_dbgi);
     dot(factor->sqrt_info, 15, 15, J4, 15, 3, J_out[4]);
   }
 
@@ -7163,7 +7278,7 @@ int imu_factor_eval(imu_factor_t *factor,
     mat_copy(C_it, 3, 3, drij_drj);
 
     real_t J5[15 * 3] = {0};
-    mat_block_set(J5, 15, 0, 3, 0, 3, drij_drj);
+    mat_block_set(J5, 3, 0, 2, 0, 2, drij_drj);
     dot(factor->sqrt_info, 15, 15, J5, 15, 3, J_out[5]);
   }
 
@@ -7173,7 +7288,7 @@ int imu_factor_eval(imu_factor_t *factor,
     quat_left_xyz(qji_dC, dtheta_dqj);
 
     real_t J6[15 * 3] = {0};
-    mat_block_set(J6, 15, 6, 9, 0, 3, dtheta_dqj);
+    mat_block_set(J6, 3, 6, 8, 0, 2, dtheta_dqj);
     dot(factor->sqrt_info, 15, 15, J6, 15, 3, J_out[6]);
   }
 
@@ -7183,7 +7298,7 @@ int imu_factor_eval(imu_factor_t *factor,
     mat_copy(C_it, 3, 3, dv_dvj);
 
     real_t J7[15 * 3] = {0};
-    mat_block_set(J7, 15, 3, 6, 0, 3, dv_dvj);
+    mat_block_set(J7, 3, 3, 5, 0, 2, dv_dvj);
     dot(factor->sqrt_info, 15, 15, J7, 15, 3, J_out[6]);
   }
 

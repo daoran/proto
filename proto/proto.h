@@ -934,6 +934,33 @@ void camera_params_print(const camera_params_t *camera);
 
 // POSE FACTOR /////////////////////////////////////////////////////////////////
 
+#define FACTOR_EVAL_PTR                                                        \
+  int (*factor_eval)(const void *factor,                                       \
+                     real_t **params,                                          \
+                     real_t *residuals,                                        \
+                     real_t **jacobians)
+
+int check_factor_jacobian(const void *factor,
+                          FACTOR_EVAL_PTR,
+                          real_t **params,
+                          real_t **jacobians,
+                          const int r_size,
+                          const int param_size,
+                          const int param_idx,
+                          const real_t step_size,
+                          const real_t tol,
+                          const int verbose);
+
+int check_factor_quaternion_jacobian(const void *factor,
+                                     FACTOR_EVAL_PTR,
+                                     real_t **params,
+                                     real_t **jacobians,
+                                     const int r_size,
+                                     const int param_idx,
+                                     const real_t step_size,
+                                     const real_t tol,
+                                     const int verbose);
+
 typedef struct pose_factor_t {
   real_t pos_meas[3];
   real_t quat_meas[4];
@@ -947,7 +974,7 @@ typedef struct pose_factor_t {
 void pose_factor_setup(pose_factor_t *factor,
                        pose_t *pose,
                        const real_t var[6]);
-int pose_factor_eval(pose_factor_t *factor,
+int pose_factor_eval(const void *factor,
                      real_t **params,
                      real_t *residuals,
                      real_t **jacobians);

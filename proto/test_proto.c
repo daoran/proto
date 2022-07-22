@@ -2950,14 +2950,15 @@ int test_pose_factor_eval() {
   real_t J1[6 * 3] = {0};
   real_t *jacs[2] = {J0, J1};
   const int retval = pose_factor_eval(&pose_factor, params, r, jacs);
-  print_matrix("r", r, 6, 1);
-  print_matrix("J0", J0, 6, 3);
-  print_matrix("J1", J1, 6, 3);
   MU_ASSERT(retval == 0);
+  // print_matrix("r", r, 6, 1);
+  // print_matrix("J0", J0, 6, 3);
+  // print_matrix("J1", J1, 6, 3);
 
   /* Check jacobians */
-  real_t step_size = 1e-8;
-  real_t tol = 1e-4;
+  const int r_size = 6;
+  const real_t step_size = 1e-8;
+  const real_t tol = 1e-4;
 
   /* -- Check pose position jacobian */
   real_t J0_numdiff[2 * 3] = {0};
@@ -2976,20 +2977,20 @@ int test_pose_factor_eval() {
   MU_ASSERT(check_jacobian("J0", J0_numdiff, J0, 2, 3, tol, 1) == 0);
 
   /* -- Check pose rotation jacobian */
-  real_t J1_numdiff[2 * 3] = {0};
+  real_t J1_numdiff[6 * 3] = {0};
   for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
+    real_t r_fwd[6] = {0};
+    real_t r_diff[6] = {0};
 
     quat_perturb(params[1], i, step_size);
     pose_factor_eval(&pose_factor, params, r_fwd, NULL);
     quat_perturb(params[1], i, -step_size);
 
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J1_numdiff, 3, 2, i, r_diff);
+    vec_sub(r_fwd, r, r_diff, 6);
+    vec_scale(r_diff, 6, 1.0 / step_size);
+    mat_col_set(J1_numdiff, 3, 6, i, r_diff);
   }
-  MU_ASSERT(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 1) == 0);
+  MU_ASSERT(check_jacobian("J1", J1_numdiff, J1, 6, 3, tol, 1) == 0);
 
   return 0;
 }
@@ -3845,9 +3846,87 @@ int test_imu_factor_setup() {
   imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
   imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
 
+  imu_params_t imu_params;
+  imu_params.imu_idx = 0;
+  imu_params.rate = 200.0;
+  imu_params.sigma_a = 0.08;
+  imu_params.sigma_g = 0.004;
+  imu_params.sigma_aw = 0.00004;
+  imu_params.sigma_gw = 2.0e-6;
+  imu_params.g = 9.81;
+
+  imu_factor_t imu_factor;
+  imu_factor_setup(&imu_factor,
+                   &imu_params,
+                   &imu_buf,
+                   &pose_i,
+                   &vel_i,
+                   &biases_i,
+                   &pose_j,
+                   &vel_j,
+                   &biases_j);
+
   printf("idx_i: %d, idx_j: %d\n", idx_i, idx_j);
   pose_print("pose_i", &pose_i);
   pose_print("pose_j", &pose_j);
+  print_vector("dr", imu_factor.dr, 3);
+  print_vector("dv", imu_factor.dv, 3);
+  print_quat("dq", imu_factor.dq);
+  printf("Dt: %f\n", imu_factor.Dt);
+  mat_save("/tmp/F_test.csv", imu_factor.F, 15, 15);
+  mat_save("/tmp/P_test.csv", imu_factor.P, 15, 15);
+
+  MU_ASSERT(imu_factor.pose_i == &pose_i);
+  MU_ASSERT(imu_factor.vel_i == &vel_i);
+  MU_ASSERT(imu_factor.biases_i == &biases_i);
+  MU_ASSERT(imu_factor.pose_i == &pose_i);
+  MU_ASSERT(imu_factor.vel_j == &vel_j);
+  MU_ASSERT(imu_factor.biases_j == &biases_j);
+
+  // Clean up
+  free_imu_test_data(&test_data);
+
+  return 0;
+}
+
+int test_imu_factor_eval() {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data);
+
+  // Setup IMU buffer
+  imu_buf_t imu_buf;
+  imu_buf_setup(&imu_buf);
+  for (int k = 0; k < 10; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *acc = test_data.imu_acc[k];
+    const real_t *gyr = test_data.imu_gyr[k];
+    imu_buf_add(&imu_buf, ts, acc, gyr);
+  }
+
+  // Setup IMU factor
+  const int idx_i = 0;
+  const int idx_j = 10 - 1;
+  const timestamp_t ts_i = test_data.timestamps[idx_i];
+  const timestamp_t ts_j = test_data.timestamps[idx_j];
+  const real_t *v_i = test_data.velocities[idx_i];
+  const real_t ba_i[3] = {0, 0, 0};
+  const real_t bg_i[3] = {0, 0, 0};
+  const real_t *v_j = test_data.velocities[idx_j];
+  const real_t ba_j[3] = {0, 0, 0};
+  const real_t bg_j[3] = {0, 0, 0};
+  pose_t pose_i;
+  pose_t pose_j;
+  velocity_t vel_i;
+  velocity_t vel_j;
+  imu_biases_t biases_i;
+  imu_biases_t biases_j;
+  pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
+  pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
+  velocity_setup(&vel_i, ts_i, v_i);
+  velocity_setup(&vel_j, ts_j, v_j);
+  imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
+  imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
 
   imu_params_t imu_params;
   imu_params.imu_idx = 0;
@@ -3869,23 +3948,60 @@ int test_imu_factor_setup() {
                    &vel_j,
                    &biases_j);
 
-  print_vector("dr", imu_factor.dr, 3);
-  print_vector("dv", imu_factor.dv, 3);
-  print_quat("dq", imu_factor.dq);
-  printf("Dt: %f\n", imu_factor.Dt);
+  /* Evaluate IMU factor */
+  real_t *params[10] = {pose_i.pos,
+                        pose_i.quat,
+                        vel_i.v,
+                        biases_i.ba,
+                        biases_i.bg,
+                        pose_j.pos,
+                        pose_j.quat,
+                        vel_j.v,
+                        biases_j.ba,
+                        biases_j.bg};
+  real_t r[15] = {0};
+  real_t J0[15 * 3] = {0};
+  real_t J1[15 * 3] = {0};
+  real_t J2[15 * 3] = {0};
+  real_t J3[15 * 3] = {0};
+  real_t J4[15 * 3] = {0};
+  real_t J5[15 * 3] = {0};
+  real_t J6[15 * 3] = {0};
+  real_t J7[15 * 3] = {0};
+  real_t J8[15 * 3] = {0};
+  real_t J9[15 * 3] = {0};
+  real_t *jacs[10] = {J0, J1, J2, J3, J4, J5, J6, J7, J8, J9};
+  imu_factor_eval(&imu_factor, params, r, jacs);
+  // print_vector("r", imu_factor.r, 15);
+  // print_matrix("J0", J0, 15, 3);
 
-  mat_save("/tmp/F_test.csv", imu_factor.F, 15, 15);
-  mat_save("/tmp/P_test.csv", imu_factor.P, 15, 15);
+  // Check jacobians
+  const int r_size = 15;
+  real_t step_size = 1e-8;
+  real_t tol = 1e-4;
 
-  MU_ASSERT(imu_factor.pose_i == &pose_i);
-  MU_ASSERT(imu_factor.vel_i == &vel_i);
-  MU_ASSERT(imu_factor.biases_i == &biases_i);
-  MU_ASSERT(imu_factor.pose_i == &pose_i);
-  MU_ASSERT(imu_factor.vel_j == &vel_j);
-  MU_ASSERT(imu_factor.biases_j == &biases_j);
+  // -- Check pose i position jacobian
+  real_t J0_numdiff[15 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    real_t r_fwd[15] = {0};
+    real_t r_diff[15] = {0};
+
+    params[0][i] += step_size;
+    imu_factor_eval(&imu_factor, params, r_fwd, NULL);
+    params[0][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, r_size);
+    vec_scale(r_diff, r_size, 1.0 / step_size);
+    mat_col_set(J0_numdiff, 3, r_size, i, r_diff);
+  }
+  print_matrix("J0_numdiff", J0_numdiff, 15, 3);
+  MU_ASSERT(check_jacobian("J0", J0_numdiff, J0, r_size, 3, tol, 1) == 0);
+
+  // -- Check pose i rotation jacobian
 
   // Clean up
   free_imu_test_data(&test_data);
+
   return 0;
 }
 
@@ -4872,7 +4988,7 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buf_print);
   MU_ADD_TEST(test_imu_factor_propagate_step);
   MU_ADD_TEST(test_imu_factor_setup);
-  /* MU_ADD_TEST(test_imu_factor_eval); */
+  MU_ADD_TEST(test_imu_factor_eval);
   /* MU_ADD_TEST(test_ceres_graph); */
   MU_ADD_TEST(test_solver_setup);
   MU_ADD_TEST(test_solver_print);
