@@ -1470,11 +1470,11 @@ int test_dot() {
   return 0;
 }
 
-int test_skew() {
+int test_hat() {
   real_t x[3] = {1.0, 2.0, 3.0};
   real_t S[3 * 3] = {0};
 
-  skew(x, S);
+  hat(x, S);
   print_matrix("S", S, 3, 3);
 
   MU_ASSERT(fltcmp(S[0], 0.0) == 0);
@@ -3972,30 +3972,30 @@ int test_imu_factor_eval() {
   real_t J9[15 * 3] = {0};
   real_t *jacs[10] = {J0, J1, J2, J3, J4, J5, J6, J7, J8, J9};
   imu_factor_eval(&imu_factor, params, r, jacs);
-  // print_vector("r", imu_factor.r, 15);
+  print_vector("r", r, 15);
   // print_matrix("J0", J0, 15, 3);
 
-  // Check jacobians
-  const int r_size = 15;
-  real_t step_size = 1e-8;
-  real_t tol = 1e-4;
+  // // Check jacobians
+  // const int r_size = 15;
+  // real_t step_size = 1e-8;
+  // real_t tol = 1e-4;
 
-  // -- Check pose i position jacobian
-  real_t J0_numdiff[15 * 3] = {0};
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[15] = {0};
-    real_t r_diff[15] = {0};
+  // // -- Check pose i position jacobian
+  // real_t J0_numdiff[15 * 3] = {0};
+  // for (int i = 0; i < 3; i++) {
+  //   real_t r_fwd[15] = {0};
+  //   real_t r_diff[15] = {0};
 
-    params[0][i] += step_size;
-    imu_factor_eval(&imu_factor, params, r_fwd, NULL);
-    params[0][i] -= step_size;
+  //   params[0][i] += step_size;
+  //   imu_factor_eval(&imu_factor, params, r_fwd, NULL);
+  //   params[0][i] -= step_size;
 
-    vec_sub(r_fwd, r, r_diff, r_size);
-    vec_scale(r_diff, r_size, 1.0 / step_size);
-    mat_col_set(J0_numdiff, 3, r_size, i, r_diff);
-  }
-  print_matrix("J0_numdiff", J0_numdiff, 15, 3);
-  MU_ASSERT(check_jacobian("J0", J0_numdiff, J0, r_size, 3, tol, 1) == 0);
+  //   vec_sub(r_fwd, r, r_diff, r_size);
+  //   vec_scale(r_diff, r_size, 1.0 / step_size);
+  //   mat_col_set(J0_numdiff, 3, r_size, i, r_diff);
+  // }
+  // print_matrix("J0_numdiff", J0_numdiff, 15, 3);
+  // MU_ASSERT(check_jacobian("J0", J0_numdiff, J0, r_size, 3, tol, 1) == 0);
 
   // -- Check pose i rotation jacobian
 
@@ -4905,7 +4905,7 @@ void test_suite() {
   MU_ADD_TEST(test_vec_add);
   MU_ADD_TEST(test_vec_sub);
   MU_ADD_TEST(test_dot);
-  MU_ADD_TEST(test_skew);
+  MU_ADD_TEST(test_hat);
   MU_ADD_TEST(test_check_jacobian);
 
   /* SVD */

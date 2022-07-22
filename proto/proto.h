@@ -659,8 +659,8 @@ void dot_XAXt(const real_t *X,
               const size_t A_n,
               real_t *Y);
 
-void skew(const real_t x[3], real_t A[3 * 3]);
-void skew_inv(const real_t A[3 * 3], real_t x[3]);
+void hat(const real_t x[3], real_t A[3 * 3]);
+void vee(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
 
