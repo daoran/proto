@@ -44,6 +44,7 @@ module mocap_cage(bar_width, cage_width, cage_length) {
       cylinder(h=bar_width + 0.1, r=m2_screw_hole / 2.0, center=true);
 
     // Screw holes
+    // -- Width holes
     for (spacing = [0.0:0.25:0.3]) {
       translate([cage_length / 2.0 - bar_width / 2.0, cage_width * spacing, 0.0])
         cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
@@ -55,7 +56,22 @@ module mocap_cage(bar_width, cage_width, cage_length) {
       translate([-(cage_length / 2.0 - bar_width / 2.0), -cage_width * spacing, 0.0])
         cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
     }
+    for (spacing = [0.1:0.25:0.4]) {
+      translate([cage_length / 2.0 - bar_width / 2.0, cage_width * spacing, 0.0])
+        rotate([0.0, 90.0, 0.0])
+          cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
+      translate([cage_length / 2.0 - bar_width / 2.0, -cage_width * spacing, 0.0])
+        rotate([0.0, 90.0, 0.0])
+          cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
 
+      translate([-(cage_length / 2.0 - bar_width / 2.0), cage_width * spacing, 0.0])
+        rotate([0.0, 90.0, 0.0])
+          cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
+      translate([-(cage_length / 2.0 - bar_width / 2.0), -cage_width * spacing, 0.0])
+        rotate([0.0, 90.0, 0.0])
+          cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
+    }
+    // -- Length holes
     for (spacing = [0.2:0.2:0.3]) {
       translate([cage_length * spacing, cage_width / 2.0 - bar_width / 2.0, 0.0])
         cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
@@ -67,7 +83,22 @@ module mocap_cage(bar_width, cage_width, cage_length) {
       translate([-cage_length * spacing, -(cage_width / 2.0 - bar_width / 2.0), 0.0])
         cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
     }
+    for (spacing = [0.1:0.2:0.4]) {
+      translate([cage_length * spacing, cage_width / 2.0 - bar_width / 2.0, 0.0])
+        rotate([90.0, 0.0, 0.0])
+          cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
+      translate([-cage_length * spacing, cage_width / 2.0 - bar_width / 2.0, 0.0])
+        rotate([90.0, 0.0, 0.0])
+          cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
 
+      translate([cage_length * spacing, -(cage_width / 2.0 - bar_width / 2.0), 0.0])
+        rotate([90.0, 0.0, 0.0])
+          cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
+      translate([-cage_length * spacing, -(cage_width / 2.0 - bar_width / 2.0), 0.0])
+        rotate([90.0, 0.0, 0.0])
+          cylinder(h=bar_width + 0.1, r=m3_screw_hole / 2.0, center=true);
+    }
+    // -- Corner holes
     corner_w = (cage_width/ 2.0 - bar_width / 2.0);
     corner_l = (cage_length / 2.0 - bar_width / 2.0);
     translate([corner_l, corner_w, 0.0])
