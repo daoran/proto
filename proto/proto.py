@@ -507,14 +507,14 @@ def full_rank(A):
   return rank(A) == A.shape[0]
 
 
-def skew(vec):
+def hat(vec):
   """ Form skew-symmetric matrix from vector `vec` """
   assert vec.shape == (3,) or vec.shape == (3, 1)
   x, y, z = vec
   return np.array([[0.0, -z, y], [z, 0.0, -x], [-y, x, 0.0]])
 
 
-def skew_inv(A):
+def vee(A):
   """ Form skew symmetric matrix vector """
   assert A.shape == (3, 3)
   return np.array([A[2, 1], A[0, 2], A[1, 0]])
@@ -879,11 +879,11 @@ def Exp(phi):
   """ Exponential Map """
   assert phi.shape == (3,) or phi.shape == (3, 1)
   if norm(phi) < 1e-3:
-    C = eye(3) + skew(phi)
+    C = eye(3) + hat(phi)
     return C
 
   phi_norm = norm(phi)
-  phi_skew = skew(phi)
+  phi_skew = hat(phi)
   phi_skew_sq = phi_skew @ phi_skew
 
   C = eye(3)
@@ -896,7 +896,7 @@ def Log(C):
   """ Logarithmic Map """
   assert C.shape == (3, 3)
   # phi = acos((trace(C) - 1) / 2);
-  # u = skew_inv(C - C') / (2 * sin(phi));
+  # u = vee(C - C') / (2 * sin(phi));
   # rvec = phi * u;
 
   C00, C01, C02 = C[0, :]
@@ -943,7 +943,7 @@ def Jr(theta):
   theta_norm = norm(theta)
   theta_norm_sq = theta_norm * theta_norm
   theta_norm_cube = theta_norm_sq * theta_norm
-  theta_skew = skew(theta)
+  theta_skew = hat(theta)
   theta_skew_sq = theta_skew @ theta_skew
 
   J = eye(3)
@@ -956,7 +956,7 @@ def Jr_inv(theta):
   """ Inverse right jacobian """
   theta_norm = norm(theta)
   theta_norm_sq = theta_norm * theta_norm
-  theta_skew = skew(theta)
+  theta_skew = hat(theta)
   theta_skew_sq = theta_skew @ theta_skew
 
   A = 1.0 / theta_norm_sq
@@ -1021,9 +1021,9 @@ def rotz(theta):
   return np.array([row0, row1, row2])
 
 
-def aa2quat(angle, axis):
+def aa2quat(axis, angle):
   """
-  Convert angle-axis to quaternion
+  Convert Axis-angle to quaternion
 
   Source:
   Sola, Joan. "Quaternion kinematics for the error-state Kalman filter." arXiv
@@ -1038,17 +1038,17 @@ def aa2quat(angle, axis):
   return np.array([qw, qx, qy, qz])
 
 
-def rvec2rot(rvec):
-  """ Rotation vector to rotation matrix """
+def aa2rot(aa):
+  """ Axis-angle to rotation matrix """
   # If small rotation
-  theta = sqrt(rvec @ rvec)  # = norm(rvec), but faster
+  theta = sqrt(aa @ aa)  # = norm(aa), but faster
   eps = 1e-8
   if theta < eps:
-    return skew(rvec)
+    return hat(aa)
 
-  # Convert rvec to rotation matrix
-  rvec = rvec / theta
-  x, y, z = rvec
+  # Convert aa to rotation matrix
+  aa = aa / theta
+  x, y, z = aa
 
   c = cos(theta)
   s = sin(theta)
@@ -1072,7 +1072,20 @@ def rvec2rot(rvec):
   return np.array([row0, row1, row2])
 
 
-def vecs2axisangle(u, v):
+def aa_vec(axis, angle):
+  """ Form Axis-Angle Vector """
+  assert axis.shape[0] == 3
+  return axis * angle
+
+
+def aa_decomp(aa):
+  """ Decompose an axis-angle into its components """
+  w = aa / np.linalg.norm(aa)
+  theta = np.linalg.norm(aa)
+  return w, theta
+
+
+def vecs2aa(u, v):
   """ From 2 vectors form an axis-angle vector """
   angle = math.acos(u.T * v)
   ax = normalize(np.cross(u, v))
@@ -1340,7 +1353,7 @@ def quat_omega(w):
   Omega = np.zeros((4, 4))
   Omega[0, 1:4] = -w.T
   Omega[1:4, 0] = w
-  Omega[1:4, 1:4] = -skew(w)
+  Omega[1:4, 1:4] = -hat(w)
   return Omega
 
 
@@ -3267,7 +3280,7 @@ class BAFactor(Factor):
     r_WC = tf_trans(T_WC)
     J0 = zeros((2, 6))  # w.r.t Camera pose T_WC
     J0[0:2, 0:3] = Jh_weighted @ -C_CW
-    J0[0:2, 3:6] = Jh_weighted @ -C_CW @ skew(p_W - r_WC) @ -C_WC
+    J0[0:2, 3:6] = Jh_weighted @ -C_CW @ hat(p_W - r_WC) @ -C_WC
     # -- Jacobian w.r.t. feature
     J1 = zeros((2, 3))
     J1 = Jh_weighted @ C_CW
@@ -3349,11 +3362,11 @@ class VisionFactor(Factor):
     # -- Jacobian w.r.t. pose T_WB
     J0 = zeros((2, 6))
     J0[0:2, 0:3] = Jh_weighted @ C_CB @ -C_BW
-    J0[0:2, 3:6] = Jh_weighted @ C_CB @ -C_BW @ skew(p_W - r_WB) @ -C_WB
+    J0[0:2, 3:6] = Jh_weighted @ C_CB @ -C_BW @ hat(p_W - r_WB) @ -C_WB
     # -- Jacobian w.r.t. camera extrinsics T_BCi
     J1 = zeros((2, 6))
     J1[0:2, 0:3] = Jh_weighted @ -C_CB
-    J1[0:2, 3:6] = Jh_weighted @ -C_CB @ skew(C_BCi @ p_C) @ -C_BCi
+    J1[0:2, 3:6] = Jh_weighted @ -C_CB @ hat(C_BCi @ p_C) @ -C_BCi
     # -- Jacobian w.r.t. feature
     J2 = zeros((2, 3))
     J2 = Jh_weighted @ C_CW
@@ -3440,14 +3453,14 @@ class CalibVisionFactor(Factor):
     C_BF = tf_rot(T_BF)
     J0 = zeros((2, 6))
     J0[0:2, 0:3] = Jh_weighted @ C_CiB
-    J0[0:2, 3:6] = Jh_weighted @ C_CiB @ -C_BF @ skew(self.r_FFi)
+    J0[0:2, 3:6] = Jh_weighted @ C_CiB @ -C_BF @ hat(self.r_FFi)
     # -- Jacobians w.r.t T_BCi
     r_BFi = tf_point(T_BF, self.r_FFi)
     r_BCi = tf_trans(T_BCi)
     C_BCi = tf_rot(T_BCi)
     J1 = zeros((2, 6))
     J1[0:2, 0:3] = Jh_weighted @ -C_CiB
-    J1[0:2, 3:6] = Jh_weighted @ -C_CiB @ skew(r_BFi - r_BCi) @ -C_BCi
+    J1[0:2, 3:6] = Jh_weighted @ -C_CiB @ hat(r_BFi - r_BCi) @ -C_BCi
     # -- Jacobians w.r.t cam params
     J_cam_params = self.cam_geom.J_params(cam_params, r_CiFi)
     J2 = neg_sqrt_info @ J_cam_params
@@ -3649,9 +3662,9 @@ class ImuFactor(Factor):
       # Continuous time transition matrix F
       F = zeros((15, 15))
       F[0:3, 3:6] = eye(3)
-      F[3:6, 6:9] = -1.0 * dC @ skew(acc_i - ba_i)
+      F[3:6, 6:9] = -1.0 * dC @ hat(acc_i - ba_i)
       F[3:6, 9:12] = -1.0 * dC
-      F[6:9, 6:9] = -1.0 * skew(gyr_i - bg_i)
+      F[6:9, 6:9] = -1.0 * hat(gyr_i - bg_i)
       F[6:9, 12:15] = -eye(3)
 
       # Continuous time input jacobian G
@@ -3740,8 +3753,8 @@ class ImuFactor(Factor):
     # -- Jacobian w.r.t. pose i
     # yapf: disable
     J0[0:3, 0:3] = -C_i.T  # dr w.r.t r_i
-    J0[0:3, 3:6] = skew(dr_meas)  # dr w.r.t C_i
-    J0[3:6, 3:6] = skew(dv_meas)  # dv w.r.t C_i
+    J0[0:3, 3:6] = hat(dr_meas)  # dr w.r.t C_i
+    J0[3:6, 3:6] = hat(dv_meas)  # dv w.r.t C_i
     J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
     J0 = sqrt_info @ J0
     # yapf: enable
@@ -4267,9 +4280,9 @@ class MSCKF:
     # Jacobian of process model w.r.t. error vector - F
     F = zeros((15, 15))
     F[0:3, 3:6] = eye(3)
-    F[3:6, 6:9] = -1.0 * self.state_C_WS @ skew(a)
+    F[3:6, 6:9] = -1.0 * self.state_C_WS @ hat(a)
     F[3:6, 9:12] = -1.0 * self.state_C_WS
-    F[6:9, 6:9] = -1.0 * skew(w)
+    F[6:9, 6:9] = -1.0 * hat(w)
     F[6:9, 13:15] = -eye(3)
 
     # Jacobian of process model w.r.t. impulse vector - G
@@ -4296,7 +4309,7 @@ class MSCKF:
   #
   #   J = zeros(6, 15 + self.window_size)
   #   J[0:3, 0:3] = C_SC
-  #   J[3:6, 0:3] = skew(C_WS @ r_SC)
+  #   J[3:6, 0:3] = hat(C_WS @ r_SC)
   #
   #   P_aug = np.block([eye(6 * self.window_size + 15), J])
   #   self.P = P_aug @ self.P @ P_aug.T
@@ -4319,8 +4332,8 @@ class MSCKF:
   #   # Form jacobians
   #   J_i = 1.0 / p_C(3) * np.array(
   #       [1.0, 0.0, -p_C(1) / p_C(3), 0.0, 1.0, -p_C(2) / p_C(3)])
-  #   H_x = [J_i * skew(p_C), -J_i * skew(C_WC)]
-  #   H_f = J_i * skew(C_WC)
+  #   H_x = [J_i * hat(p_C), -J_i * hat(C_WC)]
+  #   H_f = J_i * hat(C_WC)
   #
   #   # Project residuals and feature Jacobian to Null Space of state Jacobian
   #   [U, S, V] = svd(H_f)
@@ -5536,7 +5549,18 @@ class AprilGrid:
   def load(csv_file):
     """ Load AprilGrid """
     # Load csv file
-    csv_data = pandas.read_csv(csv_file)
+    dtype = {
+        "#ts": int,
+        "tag_rows": int,
+        "tag_cols": int,
+        "tag_size": float,
+        "tag_spacing": float,
+        "tag_id": int,
+        "corner_idx": int,
+        "kp_x": float,
+        "kp_y": float,
+    }
+    csv_data = pandas.read_csv(csv_file, dtype=dtype)
     if csv_data.shape[0] == 0:
       return None
 
@@ -6722,17 +6746,17 @@ class TestLinearAlgebra(unittest.TestCase):
     x_prime = normalize(x)
     self.assertTrue(isclose(norm(x_prime), 1.0))
 
-  def test_skew(self):
-    """ Test skew() """
+  def test_hat(self):
+    """ Test hat() """
     x = np.array([1.0, 2.0, 3.0])
     S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
-    self.assertTrue(matrix_equal(S, skew(x)))
+    self.assertTrue(matrix_equal(S, hat(x)))
 
-  def test_skew_inv(self):
-    """ Test skew_inv() """
+  def test_vee(self):
+    """ Test vee() """
     x = np.array([1.0, 2.0, 3.0])
     S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
-    self.assertTrue(matrix_equal(x, skew_inv(S)))
+    self.assertTrue(matrix_equal(x, vee(S)))
 
   def test_matrix_equal(self):
     """ Test matrix_equal() """
@@ -6814,12 +6838,12 @@ class TestTransform(unittest.TestCase):
     """ Test aa2quat() """
     pass
 
-  def test_rvec2rot(self):
+  def test_aa2rot(self):
     """ Test rvec2quat() """
     pass
 
-  def test_vecs2axisangle(self):
-    """ Test vecs2axisangle() """
+  def test_vecs2aa(self):
+    """ Test vecs2aa() """
     pass
 
   def test_euler321(self):
@@ -7422,15 +7446,19 @@ class TestFactors(unittest.TestCase):
 
     # Setup IMU factor
     param_ids = [0, 1, 2, 3]
+    fvars = [pose_i, sb_i, pose_j, sb_j]
     factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
 
     # Print
+    params = [sv.param for sv in fvars]
+    r, _ = factor.eval(params)
     print(f"pose_i: {np.round(pose_i.param, 4)}")
     print(f"pose_j: {np.round(pose_j.param, 4)}")
     print(f"dr: {factor.dr}")
     print(f"dv: {factor.dv}")
     print(f"dq: {rot2quat(factor.dC)}")
     print(f"Dt: {factor.Dt}")
+    print(f"residuals: {r}")
 
     # Save matrix F, P and Q
     np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
@@ -7438,7 +7466,6 @@ class TestFactors(unittest.TestCase):
 
     # Test jacobians
     # yapf: disable
-    fvars = [pose_i, sb_i, pose_j, sb_j]
     self.assertTrue(factor)
     self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
