@@ -234,27 +234,36 @@ class RobotArmSandbox:
 
     return camera_params_setup(cam_idx, res, proj_model, dist_model, params)
 
-  def simulate_camera_frame(self):
+  def get_end_effector_tf(self):
+    """ Get End-Effector Transform """
+    T_B1 = poe(self.s1, self.th1)
+    T_12 = poe(self.s2, self.th2)
+    T_23 = poe(self.s3, self.th3)
+    T_BE = T_B1 @ T_12 @ T_23 @ self.M
+    return T_B1, T_BE
+
+  def get_camera_measurements(self):
     """ Simulate camera frame """
     cam_geom = self.cam_params.data
     _, T_BE = self.get_end_effector_tf()
     T_WC = T_BE @ self.T_EC
     T_CW = np.linalg.inv(T_WC)
 
-    measurements = []
+    keypoints = []
     object_points = self.calib_target.get_object_points()
     for r_FFi in object_points:
       r_C = tf_point(T_CW @ self.T_WF, r_FFi)
       status, z = cam_geom.project(self.cam_params.param, r_C)
       if status:
-        measurements.append(z)
+        keypoints.append(z)
 
-    return np.array(measurements)
+    return np.array(keypoints)
 
-  def plot_camera_frame(self, measurements):
+  def plot_camera_frame(self):
     """ Plot camera frame """
     cam_geom = self.cam_params.data
     cam_res = cam_geom.resolution
+    measurements = self.get_camera_measurements()
 
     plt.figure()
     ax = plt.subplot(111)
@@ -266,14 +275,6 @@ class RobotArmSandbox:
     ax.xaxis.tick_top()
     ax.xaxis.set_label_position('top')
     plt.show()
-
-  def get_end_effector_tf(self):
-    """ Get End-Effector Transform """
-    T_B1 = poe(self.s1, self.th1)
-    T_12 = poe(self.s2, self.th2)
-    T_23 = poe(self.s3, self.th3)
-    T_BE = T_B1 @ T_12 @ T_23 @ self.M
-    return T_B1, T_BE
 
   def visualize_scene(self):
     """ Visualize Scene """
@@ -298,8 +299,25 @@ def main():
   """ Main function """
   sandbox = RobotArmSandbox()
   # sandbox.visualize_scene()
-  measurements = sandbox.simulate_camera_frame()
-  sandbox.plot_camera_frame(measurements)
+  # sandbox.plot_camera_frame()
+  # measurements = sandbox.get_camera_measurements()
+
+  cam_params = sandbox.cam_params.param
+  cam_geom = sandbox.cam_params.data
+  T_WF = sandbox.T_WF
+  _, T_BE = sandbox.get_end_effector_tf()
+  T_WC = T_BE @ sandbox.T_EC
+  T_CW = np.linalg.inv(T_WC)
+  p_FFi = sandbox.calib_target.get_object_points()[0]
+
+  p_C = tf_point(T_CW @ T_WF, p_FFi)
+  status, z = cam_geom.project(cam_params, p_C)
+  print(f"status: {status}, z: {z}")
+
+  # dr__dr_CFi = dr__dh @ dh__dx_dash @ dx_dash__dx @ dx__dp_CFi @ dp_CFi__dT_CB
+  # p_CFi = inv(T_WB @ T_BE @ T_EC) @ T_WF
+
+  # dp_CFi/dT_CE
 
 
 if __name__ == "__main__":
