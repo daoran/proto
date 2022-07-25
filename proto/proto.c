@@ -4697,6 +4697,7 @@ void image_setup(image_t *img,
 image_t *image_load(const char *file_path) {
   assert(file_path != NULL);
 
+#ifdef USE_STB_IMAGE
   int img_w = 0;
   int img_h = 0;
   int img_c = 0;
@@ -4712,6 +4713,9 @@ image_t *image_load(const char *file_path) {
   img->channels = img_c;
   img->data = data;
   return img;
+#else
+  FATAL("Not Implemented!");
+#endif
 }
 
 /**
