@@ -315,7 +315,7 @@ def main():
   print(f"status: {status}, z: {z}")
 
   # dr__dr_CFi = dr__dh @ dh__dx_dash @ dx_dash__dx @ dx__dp_CFi @ dp_CFi__dT_CB
-  # p_CFi = inv(T_WB @ T_BE @ T_EC) @ T_WF
+  # p_CFi = inv(T_EC) @ inv(T_BE) @  inv(T_WB) @ T_WF
 
   # dp_CFi/dT_CE
 

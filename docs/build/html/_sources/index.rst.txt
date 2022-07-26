@@ -1,11 +1,9 @@
 .. toctree::
    :hidden:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Computer Vision
 
-   cv/pinhole.rst
-   cv/radtan.rst
-   cv/equi.rst
+   cv/camera_models.rst
    cv/illum_invar.rst
    cv/optical_flow.rst
    cv/twoview.rst
@@ -16,7 +14,7 @@
 
 .. toctree::
    :hidden:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: State Estimation
 
    se/euler.rst
@@ -32,7 +30,7 @@
 
 .. toctree::
    :hidden:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: MAV
 
    mav/mpc.rst
@@ -40,18 +38,14 @@
 
 .. toctree::
    :hidden:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Statistics
 
-   stats/mean.rst
-   stats/variance.rst
-   stats/stddev.rst
-   stats/stderr.rst
-   stats/bayes.rst
+   stats/stats.rst
 
 .. toctree::
    :hidden:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Linear Algebra
 
    linalg/rank.rst

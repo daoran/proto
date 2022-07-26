@@ -18,7 +18,9 @@
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" /> 
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Differential Calculus" href="diff_calc.html" />
+    <link rel="prev" title="Euler Angles" href="euler.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -38,9 +40,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../cv/pinhole.html">Pinhole Camera Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../cv/radtan.html">Radial-Tangential Distortion</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../cv/equi.html">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html">Pinhole Camera Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html#radial-tangential-distortion">Radial-Tangential Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html#equi-distant-distortion">Equi-Distant Distortion</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
@@ -49,9 +51,24 @@
 <li class="toctree-l1"><a class="reference internal" href="../cv/feature_tracking.html">Feature Tracking</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">State Estimation</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="rotations.html">Euler Angles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="rotations.html#quaternions">Quaternions</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="euler.html">Euler Angles</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quaternions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#main-quaternion-properties">Main Quaternion Properties</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sum">Sum</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#product">Product</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#conjugate">Conjugate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#norm">Norm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quaternion-from-two-vectors">Quaternion from Two Vectors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-attitude-from-gravity-and-accelerometer-vectors">Example: Attitude from gravity and accelerometer vectors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#quaternion-to-rotation-matrix">Quaternion to Rotation Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rotation-matrix-to-quaternion">Rotation Matrix to Quaternion</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="diff_calc.html">Differential Calculus</a></li>
 <li class="toctree-l1"><a class="reference internal" href="covar_recovery.html">Covariance Recovery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="shannon.html">Shannon Information</a></li>
@@ -66,11 +83,11 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../stats/mean.html">Mean</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/variance.html">Variance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stddev.html">Standard Deviation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stderr.html">Standard Error</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/bayes.html">Bayes Theorem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html">Mean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#variance">Variance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#standard-deviation">Standard Deviation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#standard-error">Standard Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#bayes-theorem">Bayes Theorem</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
 <ul>
@@ -441,7 +458,10 @@ of the rotation matrix need to be checked inorder to guarantee correctness.</p>
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="euler.html" class="btn btn-neutral float-left" title="Euler Angles" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="diff_calc.html" class="btn btn-neutral float-right" title="Differential Calculus" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 
