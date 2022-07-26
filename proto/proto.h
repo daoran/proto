@@ -10,7 +10,7 @@
 #define USE_LAPACK
 #define USE_CERES
 #define USE_STB_IMAGE
-#define USE_GUI
+// #define USE_GUI
 
 #ifndef WARN_UNUSED
 #define WARN_UNUSED __attribute__((warn_unused_result))
