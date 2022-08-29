@@ -237,7 +237,7 @@ typedef struct uart_t {
 void uart_setup(uart_t *uart, int baud = 115200) {
   uart->serial_in = &Serial;
   uart->serial_out = &Serial;
-  Serial.begin(baud);
+  Serial1.begin(baud);
 }
 
 void uart_read_byte(const uart_t *uart, uint8_t *b) {
@@ -454,25 +454,24 @@ void i2c_print_addrs(uart_t *uart) {
 
 //// PWM ///////////////////////////////////////////////////////////////////////
 
+#define PWM_PERIOD_MIN 0.05
+#define PWM_PERIOD_MAX 0.1
+#define PWM_PERIOD_DIFF (0.1 - 0.05)
+
 typedef struct pwm_t {
   uint8_t *pins;
   uint8_t nb_pins;
   int res;
   float freq;
   float range_max;
-  float min;
-  float max;
 } pwm_t;
 
 void pwm_setup(pwm_t *pwm,
                uint8_t *pins,
                const uint8_t nb_pins,
-               const int res = 15,
-               const float freq = 1000) {
-  for (uint8_t i = 0; i < nb_pins; i++) {
-    analogWriteFrequency(pins[i], freq);
-  }
-
+               const uint8_t res = 15,
+               const float freq = 50) {
+  // Setup PWM Resolution
   float range_max = 0.0f;
   analogWriteResolution(res);
   switch (res) {
@@ -526,6 +525,16 @@ void pwm_setup(pwm_t *pwm,
       break;
   }
 
+  // Set PWM Frequency
+  for (uint8_t i = 0; i < nb_pins; i++) {
+    analogWriteFrequency(pins[i], freq);
+  }
+
+  // Initialize
+  for (uint8_t i = 0; i < nb_pins; i++) {
+    analogWrite(pwm->pins[i], PWM_PERIOD_MIN * range_max);
+  }
+
   pwm->pins = pins;
   pwm->nb_pins = nb_pins;
   pwm->res = res;
@@ -534,9 +543,8 @@ void pwm_setup(pwm_t *pwm,
 }
 
 void pwm_set(pwm_t *pwm, const uint8_t idx, const float val) {
-  const float time_width = pwm->min + ((pwm->max - pwm->min) * val);
-  const float duty_cycle = (1.0 / time_width) / pwm->freq;
-  analogWrite(pwm->pins[idx], pwm->range_max * duty_cycle);
+  const float duty_cycle = PWM_PERIOD_MIN + (PWM_PERIOD_DIFF * val);
+  analogWrite(pwm->pins[idx], duty_cycle * pwm->range_max);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -549,79 +557,70 @@ void sbus_setup() {
   // - 8 data bits
   // - Even parity bit
   // - 2 stop bits
-  HardwareSerial *bus = &Serial1;
+  HardwareSerial *bus = &Serial2;
   bus->begin(100000, SERIAL_8E2);
   bus->flush();
 }
 
-uint8_t sbus_read_byte() {
-  return Serial1.read();
+int8_t sbus_read_byte(uint8_t *data) {
+  if (Serial2.available()) {
+    *data = Serial2.read();
+    return 0;
+  } else {
+    return -1;
+  }
 }
 
 void sbus_read(uint8_t *data, const size_t size) {
-  Serial1.readBytes(data, size);
+  Serial2.readBytes(data, size);
 }
 
 void sbus_write_byte(const uint8_t data) {
-  Serial1.write(data);
+  Serial2.write(data);
 }
 
 void sbus_write(const uint8_t *data, const size_t size) {
-  Serial1.write(data, size);
+  Serial2.write(data, size);
 }
 
-void sbus_update(uart_t *uart) {
+int8_t sbus_update(uint16_t ch[16],
+                   uint8_t *frame_lost,
+                   uint8_t *failsafe_activated) {
   // Get sbus frame data
-  /* uint8_t frame[25] = {0}; */
-  /* frame[0] = sbus_read_byte(); */
-  /* if (frame[0] != 0x0F) { */
-  /*   uart_printf(uart, "Failed!\n"); */
-  /*   return; */
-  /* } else { */
-  /*   sbus_read(&frame[1], 24); */
-  /* } */
-  if (Serial1.available()) {
-    uart_printf(uart, "%X\n", sbus_read_byte());
-  } else {
-    uart_printf(uart, "nothing...\n");
+  uint8_t frame[25] = {0};
+  if (sbus_read_byte(&frame[0]) == -1 || frame[0] != 0x0F) {
+    return -1;
   }
+  sbus_read(&frame[1], 24);
 
   // Parse sbus frame
   // -- Parse flag
-  /* uint8_t frame_lost = (frame[23] & (1 << 5)); */
-  /* uint8_t failsafe_activated = (frame[23] & (1 << 4)); */
+  *frame_lost = (frame[23] & (1 << 5));
+  *failsafe_activated = (frame[23] & (1 << 4));
   // -- Parse channel data
-  /* uint16_t ch[16] = {0}; */
-  /* ch[0] = ((frame[1] | frame[2] << 8) & 0x07FF); */
-  /* ch[1] = ((frame[2] >> 3 | frame[3] << 5) & 0x07FF); */
-  /* ch[2] = ((frame[3] >> 6 | frame[4] << 2 | frame[5] << 10) & 0x07FF); */
-  /* ch[3] = ((frame[5] >> 1 | frame[6] << 7) & 0x07FF); */
-  /* ch[4] = ((frame[6] >> 4 | frame[7] << 4) & 0x07FF); */
-  /* ch[5] = ((frame[7] >> 7 | frame[8] << 1 | frame[8] << 9) & 0x07FF); */
-  /* ch[6] = ((frame[9] >> 2 | frame[10] << 6) & 0x07FF); */
-  /* ch[7] = ((frame[10] >> 5 | frame[11] << 3) & 0x07FF); */
-  /* ch[8] = ((frame[12] | frame[13] << 8) & 0x07FF); */
-  /* ch[9] = ((frame[13] >> 3 | frame[14] << 5) & 0x07FF); */
-  /* ch[10] = ( (frame[14] >> 6 | frame[15] << 2 | frame[16] << 10) & 0x07FF);
-   */
-  /* ch[11] = ((frame[16] >> 1 | frame[17] << 7) & 0x07FF); */
-  /* ch[12] = ((frame[17] >> 4 | frame[18] << 4) & 0x07FF); */
-  /* ch[13] = ( (frame[18] >> 7 | frame[19] << 1 | frame[20] << 9) & 0x07FF);
-   */
-  /* ch[14] = ((frame[20] >> 2 | frame[21] << 6) & 0x07FF); */
-  /* ch[15] = ((frame[21] >> 5 | frame[22] << 3) & 0x07FF); */
-  /*  */
-  /* char ch_str[10] = {0}; */
-  /* itoa(ch[0], ch_str, 10); */
+  for (uint8_t i = 0; i < 16; i++) {
+    ch[i] = 0;
+  }
+  ch[0] = ((frame[1] | frame[2] << 8) & 0x07FF);
+  ch[1] = ((frame[2] >> 3 | frame[3] << 5) & 0x07FF);
+  ch[2] = ((frame[3] >> 6 | frame[4] << 2 | frame[5] << 10) & 0x07FF);
+  ch[3] = ((frame[5] >> 1 | frame[6] << 7) & 0x07FF);
+  ch[4] = ((frame[6] >> 4 | frame[7] << 4) & 0x07FF);
+  ch[5] = ((frame[7] >> 7 | frame[8] << 1 | frame[8] << 9) & 0x07FF);
+  ch[6] = ((frame[9] >> 2 | frame[10] << 6) & 0x07FF);
+  ch[7] = ((frame[10] >> 5 | frame[11] << 3) & 0x07FF);
+  ch[8] = ((frame[12] | frame[13] << 8) & 0x07FF);
+  ch[9] = ((frame[13] >> 3 | frame[14] << 5) & 0x07FF);
+  ch[10] = ((frame[14] >> 6 | frame[15] << 2 | frame[16] << 10) & 0x07FF);
 
-  /* uart_printf(uart, "HERE!\n"); */
-  /* uart_printf(uart, "%d, ", ch[0]); */
-  /* uart_printf(uart, "%d, ", ch[1]); */
-  /* uart_printf(uart, "%d, ", ch[2]); */
-  /* uart_printf(uart, "%d\n", ch[3]); */
+  ch[11] = ((frame[16] >> 1 | frame[17] << 7) & 0x07FF);
+  ch[12] = ((frame[17] >> 4 | frame[18] << 4) & 0x07FF);
+  ch[13] = ((frame[18] >> 7 | frame[19] << 1 | frame[20] << 9) & 0x07FF);
 
-  /* uart_printf(uart, ch_str); */
-  /* uart_printf(uart, "\r\n"); */
+  ch[14] = ((frame[20] >> 2 | frame[21] << 6) & 0x07FF);
+  ch[15] = ((frame[21] >> 5 | frame[22] << 3) & 0x07FF);
+
+  return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1305,6 +1304,21 @@ int8_t mpu6050_set_accel_range(const mpu6050_t *imu, const int8_t range) {
 
 //////////////////////////////////////////////////////////////////////////////
 
+// COMPLEMENTARY FILTER //////////////////////////////////////////////////////
+
+typedef struct complementary_filter_t {
+  float phi;
+  float theta;
+  float psi;
+} complementary_filter_t;
+
+void compute_tilt(const float accel[3], float *phi, float *theta) {
+  *phi = atan2(accel[1], accel[2]);
+  *theta = atan2(-accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 // PID CONTROLLER ////////////////////////////////////////////////////////////
 
 typedef struct pid_ctrl_t {
@@ -1385,7 +1399,7 @@ void fcu_setup(struct fcu_t *fcu) {
   // Comms
   uart_setup(&fcu->uart);
   i2c_setup();
-  //  sbus_setup();
+  sbus_setup();
 
   // Sensors
   mpu6050_setup(&fcu->imu);
