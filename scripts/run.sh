@@ -41,6 +41,7 @@ run_memcheck() {
 # python3 proto/proto.py TestFactors.test_ba_factor
 # python3 proto/proto.py TestFactors.test_vision_factor
 # python3 proto/proto.py TestFactors.test_calib_vision_factor
+# python3 proto/proto.py TestFactors.test_two_state_vision_factor
 # python3 proto/proto.py TestFactors.test_imu_buffer
 # python3 proto/proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto/proto.py TestFactors.test_imu_factor_propagate
@@ -79,7 +80,7 @@ run_memcheck() {
 # python3 proto/proto.py TestViz.test_multiplot
 # python3 proto/proto.py TestViz.test_server
 
-python3 proto/robot_arm.py
+# python3 proto/robot_arm.py
 
 ###############################################################################
 # C
@@ -367,7 +368,7 @@ run_sbgc_tests() {
 # ARDUINO
 ###############################################################################
 
-# arduino --upload firmware/firmware.ino --port /dev/ttyUSB0
+arduino --upload firmware/firmware.ino --port /dev/ttyUSB0
 # arduino --upload firmware/firmware.ino
 # arduino firmware/firmware.ino
 

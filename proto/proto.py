@@ -721,16 +721,16 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
     print(f"Check [{jac_name}] failed!")
     print("-" * 60)
 
-    print("J_fdiff - J:")
-    print(np.round(fdiff_minus_jac, 4))
-    print()
-
     print("J_fdiff:")
     print(np.round(fdiff, 4))
     print()
 
     print("J:")
     print(np.round(jac, 4))
+    print()
+
+    print("J_fdiff - J:")
+    print(np.round(fdiff_minus_jac, 4))
     print()
 
     print("-" * 60)
@@ -2436,6 +2436,26 @@ class CameraGeometry:
     dist_params = params[-self.dist_params_size:]
     return self.J_params_fn(proj_params, dist_params, p_C)
 
+  def keypoint2idp(self, params, kp, depth=0.5):
+    """ Keypoint to Inverse Depth Parameterization """
+    fx, fy, cx, cy = self.proj_params(params)
+
+    u = (kp[0] - cx) / fx
+    v = (kp[1] - cy) / fy
+    w = 1.0
+
+    theta = math.atan2(u, w)
+    phi = math.atan2(-v, np.sqrt(u**2 + w**2))
+
+    return np.array([theta, phi, depth])
+
+  @staticmethod
+  def idp2vector(idp):
+    """ Inverse Depth Parameterization to Vector """
+    theta, phi, depth = idp
+    p = np.array([cos(phi) * sin(theta), -sin(phi), cos(phi) * cos(theta)])
+    return depth * p
+
 
 def pinhole_radtan4_setup(cam_idx, cam_res):
   """ Setup Pinhole + Radtan4 camera geometry """
@@ -3002,6 +3022,18 @@ def speed_biases_setup(ts, vel, ba, bg, **kwargs):
   return StateVariable(ts, "speed_and_biases", param, None, len(param), fix)
 
 
+def inverse_depth_setup(param, **kwargs):
+  """ Form inverse depth state-variable """
+  fix = kwargs.get('fix', False)
+  return StateVariable(None, "inverse_depth", param, None, 1, fix)
+
+
+def time_delay_setup(param, **kwargs):
+  """ Form time delay state-variable """
+  fix = kwargs.get('fix', False)
+  return StateVariable(None, "time_delay", param, None, 1, fix)
+
+
 def perturb_state_variable(sv, i, step_size):
   """ Perturb state variable """
   if sv.var_type == "pose" or sv.var_type == "extrinsics":
@@ -3229,12 +3261,11 @@ class BAFactor(Factor):
     p_W = feature
     p_C = tf_point(inv(T_WC), p_W)
     status, z_hat = self.cam_geom.project(cam_params, p_C)
-    if status is False:
-      return None
 
     z = self.measurement
     reproj_error = norm(z - z_hat)
-    return reproj_error
+
+    return status, reproj_error
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -3308,12 +3339,11 @@ class VisionFactor(Factor):
     p_W = feature
     p_C = tf_point(inv(T_WB @ T_BCi), p_W)
     status, z_hat = self.cam_geom.project(cam_params, p_C)
-    if status is False:
-      return None
 
     z = self.measurement
     reproj_error = norm(z - z_hat)
-    return reproj_error
+
+    return status, reproj_error
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -3398,18 +3428,13 @@ class CalibVisionFactor(Factor):
     T_CiB = inv(T_BCi)
     r_CiFi = tf_point(T_CiB @ T_BF, self.r_FFi)
     status, z_hat = self.cam_geom.project(cam_params, r_CiFi)
-    if status is False:
-      return None
-
     r = self.measurement - z_hat
-    return r
+    return status, r
 
   def get_reproj_error(self, pose, cam_exts, cam_params):
     """ Get reprojection error """
-    r = self.get_residual(pose, cam_exts, cam_params)
-    if r is None:
-      return None
-    return norm(r)
+    status, r = self.get_residual(pose, cam_exts, cam_params)
+    return status, norm(r)
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -3466,6 +3491,112 @@ class CalibVisionFactor(Factor):
     J2 = neg_sqrt_info @ J_cam_params
 
     return (r, [J0, J1, J2])
+
+
+class TwoStateVisionFactor(Factor):
+  """ Two State Vision Factor """
+  def __init__(self, cam_geom, pids, z_km1, v_km1, z_k, v_k, covar=eye(2)):
+    assert len(pids) == 6
+    assert len(z_km1) == 2
+    assert len(z_k) == 2
+    assert covar.shape == (2, 2)
+
+    measurement = [z_km1, v_km1, z_k, v_k]
+    Factor.__init__(self, "TwoStateVisionFactor", pids, measurement, covar)
+    self.cam_geom = cam_geom
+
+  def get_residual(self, pose_km1, pose_k, cam_exts, inv_depth_km1, time_delay,
+                   cam_params):
+    """ Get Residual """
+    T_WB_km1 = pose2tf(pose_km1)
+    T_WB_k = pose2tf(pose_k)
+    T_BCi = pose2tf(cam_exts)
+
+    T_WCi_km1 = T_WB_km1 @ T_BCi
+    T_WCi_k = T_WB_k @ T_BCi
+
+    z_km1, v_km1, z_k, v_k = self.measurement
+    fx, fy, cx, cy = self.cam_geom.proj_params(cam_params)
+    u = ((z_km1[0] + time_delay * v_km1[0] - cx) / fx)
+    v = ((z_km1[1] + time_delay * v_km1[1] - cy) / fy)
+    depth_km1 = (1.0 / inv_depth_km1)
+    p_Ci_km1 = np.array([depth_km1 * u, depth_km1 * v, depth_km1])
+    p_Ci_k = tf_point(inv(T_WCi_k) @ T_WCi_km1, p_Ci_km1)
+    status, z_k_hat = self.cam_geom.project(cam_params, p_Ci_k)
+
+    z_k[0] = z_k[0] + time_delay * v_k[0]
+    z_k[1] = z_k[1] + time_delay * v_k[1]
+
+    return status, (z_k - z_k_hat)
+
+  def get_reproj_error(self, pose_km1, pose_k, cam_exts, depth_km1, time_delay,
+                       cam_params):
+    """ Get reprojection error """
+    status, r = self.get_residual(pose_km1, pose_k, cam_exts, depth_km1,
+                                  time_delay, cam_params)
+    return status, norm(r)
+
+  def eval(self, params, **kwargs):
+    """ Evaluate """
+    assert len(params) == 6
+    assert len(params[0]) == 7  # pose_km1
+    assert len(params[1]) == 7  # pose_k
+    assert len(params[2]) == 7  # cam_exts
+    assert type(params[3]) == float  # depth_km1
+    assert type(params[4]) == float  # time_delay
+    assert len(params[5]) == self.cam_geom.get_params_size()  # cam_params
+
+    # Calculate residual
+    pose_km1, pose_k, cam_exts, inv_depth_km1, time_delay, cam_params = params
+
+    T_WB_km1 = pose2tf(pose_km1)
+    T_WB_k = pose2tf(pose_k)
+    T_BCi = pose2tf(cam_exts)
+    T_WCi_km1 = T_WB_km1 @ T_BCi
+    T_WCi_k = T_WB_k @ T_BCi
+
+    z_km1, v_km1, z_k, v_k = self.measurement
+    fx, fy, cx, cy = self.cam_geom.proj_params(cam_params)
+    u = (z_km1[0] + time_delay * v_km1[0] - cx) / fx
+    v = (z_km1[1] + time_delay * v_km1[1] - cy) / fy
+    depth_km1 = (1.0 / inv_depth_km1)
+    p_Ci_km1 = np.array([depth_km1 * u, depth_km1 * v, depth_km1])
+    p_Ci_k = tf_point(inv(T_WCi_k) @ T_WCi_km1, p_Ci_km1)
+    status, z_k_hat = self.cam_geom.project(cam_params, p_Ci_k)
+
+    z_k[0] = z_k[0] + time_delay * v_k[0]
+    z_k[1] = z_k[1] + time_delay * v_k[1]
+    r = self.sqrt_info @ (z_k - z_k_hat)
+    if kwargs.get('only_residuals', False):
+      return r
+
+    # Calculate Jacobians
+    neg_sqrt_info = -1.0 * self.sqrt_info
+    J0 = zeros((2, 6))  # pose_km1
+    J1 = zeros((2, 6))  # pose_k
+    J2 = zeros((2, 6))  # cam_exts
+    J3 = zeros((2, 1))  # depth_km1
+    J4 = zeros((2, 1))  # time_delay
+    J5 = zeros((2, self.cam_geom.get_params_size()))  # cam_params
+    if status is False:
+      return (r, [J0, J1, J2, J3, J4, J5])
+
+    # -- Jacobians w.r.t cam params
+    # J_cam_params = self.cam_geom.J_params(cam_params, p_Ci_k)
+    # J5 = neg_sqrt_info @ J_cam_params
+
+    proj_params = self.cam_geom.proj_params(cam_params)
+    dist_params = self.cam_geom.dist_params(cam_params)
+    x = np.array([p_Ci_k[0] / p_Ci_k[2], p_Ci_k[1] / p_Ci_k[2]])
+    x_dist = radtan4_distort(dist_params, x)
+    J_proj_point = pinhole_point_jacobian(proj_params)
+    J_dist_params = radtan4_params_jacobian(dist_params, x)
+    J_cam_params = zeros((2, 8))
+    J_cam_params[0:2, 0:4] = pinhole_params_jacobian(x_dist)
+    J_cam_params[0:2, 4:8] = J_proj_point @ J_dist_params
+    J5 = neg_sqrt_info @ J_cam_params
+
+    return (r, [J0, J1, J2, J3, J4, J5])
 
 
 class ImuBuffer:
@@ -3890,7 +4021,7 @@ class Solver:
     print(f"dcost: {cost_kp1 - cost_k:.2e}", end=" ")
     print()
 
-    # rmse_vision = rmse(self._get_reproj_errors())
+    # status, rmse_vision = rmse(self._get_reproj_errors())
     # print(f"rms_reproj_error: {rmse_vision:.2f} px")
 
     sys.stdout.flush()
@@ -4159,9 +4290,9 @@ class FactorGraph:
     for _, factor in self.factors.items():
       if factor.factor_type in target_factors:
         factor_params = [self.params[pid].param for pid in factor.param_ids]
-        retval = factor.get_reproj_error(*factor_params)
-        if retval is not None:
-          reproj_errors.append(retval)
+        status, error = factor.get_reproj_error(*factor_params)
+        if status:
+          reproj_errors.append(error)
 
     return np.array(reproj_errors).flatten()
 
@@ -5602,8 +5733,8 @@ class CalibView:
 
     factor_params = [self.pose, self.cam_exts, self.cam_params]
     for factor in self.factors:
-      reproj_error = factor.get_reproj_error(*factor_params)
-      if reproj_error is not None:
+      status, reproj_error = factor.get_reproj_error(*factor_params)
+      if status:
         reproj_errors.append(reproj_error)
 
     return reproj_errors
@@ -7092,6 +7223,69 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 0, "J_rel_pose"))
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
     self.assertTrue(factor.check_jacobian(fvars, 2, "J_cam_params"))
+
+  def test_two_state_vision_factor(self):
+    """ Test Two State Vision Factor """
+    # Point in the world
+    p_W = np.array([1.0, 0.01, 0.01])
+
+    # Camera 0
+    cam_idx = 0
+    img_w = 640
+    img_h = 480
+    res = [img_w, img_h]
+    fov = 90.0
+    fx = focal_length(img_w, fov)
+    fy = focal_length(img_h, fov)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    params = [fx, fy, cx, cy, -0.01, 0.01, 1e-4, 1e-4]
+    cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
+    cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
+
+    # Body pose T_WB_km1
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
+    trans_km1 = np.array([0.0, 0.0, 0.0])
+    trans_k = np.array([0.01, 0.01, 0.01])
+    T_WB_km1 = tf(rot, trans_km1)
+    T_WB_k = tf(rot, trans_k)
+
+    # Camera extrinsics T_BCi
+    rot = eye(3)
+    trans = np.array([0.001, 0.002, 0.003])
+    trans = np.array([0.0, 0.0, 0.0])
+    T_BCi = tf(rot, trans)
+
+    # keypoint image measurement
+    p_Ci_km1 = tf_point(inv(T_WB_km1 @ T_BCi), p_W)
+    p_Ci_k = tf_point(inv(T_WB_k @ T_BCi), p_W)
+    status, z_km1 = cam_geom.project(cam_params.param, p_Ci_km1)
+    status, z_k = cam_geom.project(cam_params.param, p_Ci_k)
+    v_km1 = z_k - z_km1
+    v_k = z_k - z_km1
+
+    # Two State Vision Factor
+    pose_km1 = pose_setup(0, T_WB_km1)
+    pose_k = pose_setup(1, T_WB_k)
+    cam_exts = extrinsics_setup(T_BCi)
+    inverse_depth = inverse_depth_setup(1.0)
+    time_delay = time_delay_setup(0.0)
+    fvars = [pose_km1, pose_k, cam_exts, inverse_depth, time_delay, cam_params]
+    pids = [0, 1, 2, 3, 4, 5]
+    factor = TwoStateVisionFactor(cam_geom, pids, z_km1, v_km1, z_k, v_k)
+
+    # pose_km1 = tf2pose(T_WB_km1)
+    # pose_k = tf2pose(T_WB_k)
+    # cam_exts = tf2pose(T_BCi)
+    # inv_depth_km1 = 0.5
+    # time_delay = 0.0
+    # r = factor.get_residual(pose_km1, pose_k, cam_exts, inv_depth_km1,
+    #                         time_delay, cam_params.param)
+    # print(f"residual: {r}")
+
+    # Test jacobians
+    kwargs = {"verbose": True}
+    self.assertTrue(factor.check_jacobian(fvars, 5, "J_cam_params", **kwargs))
 
   def test_imu_buffer(self):
     """ Test IMU Buffer """

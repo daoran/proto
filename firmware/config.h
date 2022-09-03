@@ -1,0 +1,26 @@
+#define I2C_MAX_BUF_LEN 1024
+
+#define PWM_PERIOD_MIN 0.05
+#define PWM_PERIOD_MAX 0.1
+#define PWM_PERIOD_DIFF (0.1 - 0.05)
+#define PWM_VALUE_MAX 1800.0
+#define PWM_VALUE_MIN 180.0
+
+#define HCSR04_PIN_TRIGGER 20
+#define HCSR04_PIN_ECHO 21
+#define HCSR04_MAX_DIST_CM 400
+#define HCSR04_MAX_TIMEOUT_MS 0
+
+#define ROLL_PID_KP 0.1
+#define ROLL_PID_KI 0.0
+#define ROLL_PID_KD 0.0
+
+#define PITCH_PID_KP 0.1
+#define PITCH_PID_KI 0.0
+#define PITCH_PID_KD 0.0
+
+#define YAW_PID_KP 0.1
+#define YAW_PID_KI 0.0
+#define YAW_PID_KD 0.0
+
+#define COMPL_FILTER_ALPHA 0.95

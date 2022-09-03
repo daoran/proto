@@ -8,6 +8,8 @@
 #include <Wire.h>
 #include <Arduino.h>
 
+#include "config.h"
+
 #define UNUSED(expr)                                                           \
   do {                                                                         \
     (void) (expr);                                                             \
@@ -182,18 +184,18 @@ void tf_quat(const float T[4 * 4], float q[4]) {
   rot2quat(C, q);
 }
 
-/* void __assert(const char *__func, */
-/*               const char *__file, */
-/*               int __lineno, const char *__sexp) { */
-/*   // transmit diagnostic informations through serial link. */
-/*   Serial.println(__func); */
-/*   Serial.println(__file); */
-/*   Serial.println(__lineno, DEC); */
-/*   Serial.println(__sexp); */
-/*   Serial.flush(); */
-/*   // abort program execution. */
-/*   abort(); */
-/* } */
+// void __assert(const char *__func,
+//               const char *__file,
+//               int __lineno, const char *__sexp) {
+//   // transmit diagnostic informations through serial link.
+//   Serial.println(__func);
+//   Serial.println(__file);
+//   Serial.println(__lineno, DEC);
+//   Serial.println(__sexp);
+//   Serial.flush();
+//   // abort program execution.
+//   abort();
+// }
 
 // GPIO /////////////////////////////////////////////////////////////////////
 
@@ -343,8 +345,6 @@ void uart_printf(const uart_t *uart, const char *fmt, ...) {
 
 // I2C ///////////////////////////////////////////////////////////////////////
 
-#define I2C_MAX_BUF_LEN 1024
-
 void i2c_setup() {
   Wire.setClock(400000);
   Wire.begin();
@@ -454,10 +454,6 @@ void i2c_print_addrs(uart_t *uart) {
 
 //// PWM ///////////////////////////////////////////////////////////////////////
 
-#define PWM_PERIOD_MIN 0.05
-#define PWM_PERIOD_MAX 0.1
-#define PWM_PERIOD_DIFF (0.1 - 0.05)
-
 typedef struct pwm_t {
   uint8_t *pins;
   uint8_t nb_pins;
@@ -470,7 +466,14 @@ void pwm_setup(pwm_t *pwm,
                uint8_t *pins,
                const uint8_t nb_pins,
                const uint8_t res = 15,
-               const float freq = 50) {
+               const float freq = 50);
+void pwm_set(pwm_t *pwm, const uint8_t idx, const float val);
+
+void pwm_setup(pwm_t *pwm,
+               uint8_t *pins,
+               const uint8_t nb_pins,
+               const uint8_t res,
+               const float freq) {
   // Setup PWM Resolution
   float range_max = 0.0f;
   analogWriteResolution(res);
@@ -532,7 +535,7 @@ void pwm_setup(pwm_t *pwm,
 
   // Initialize
   for (uint8_t i = 0; i < nb_pins; i++) {
-    analogWrite(pwm->pins[i], PWM_PERIOD_MIN * range_max);
+    analogWrite(pins[i], PWM_PERIOD_MIN * range_max);
   }
 
   pwm->pins = pins;
@@ -1049,7 +1052,7 @@ int8_t mpu6050_set_accel_range(const mpu6050_t *imu, const int8_t range);
 
 int8_t mpu6050_setup(mpu6050_t *imu) {
   int8_t retval = 0;
-  int8_t dplf = 1;
+  int8_t dplf = 6;
   int8_t accel_range = 0;
   int8_t gyro_range = 0;
 
@@ -1306,15 +1309,36 @@ int8_t mpu6050_set_accel_range(const mpu6050_t *imu, const int8_t range) {
 
 // COMPLEMENTARY FILTER //////////////////////////////////////////////////////
 
-typedef struct complementary_filter_t {
-  float phi;
-  float theta;
-  float psi;
-} complementary_filter_t;
+typedef struct compl_filter_t {
+  float alpha;
+  float roll;
+  float pitch;
+  float yaw;
+} compl_filter_t;
 
-void compute_tilt(const float accel[3], float *phi, float *theta) {
-  *phi = atan2(accel[1], accel[2]);
-  *theta = atan2(-accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
+void compl_filter_setup(compl_filter_t *filter,
+                        const float alpha,
+                        const float a[3]) {
+  filter->alpha = alpha;
+  filter->roll = atan2(a[1], a[2]);
+  filter->pitch = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
+  filter->yaw = 0.0;
+}
+
+void compl_filter_update(compl_filter_t *filter,
+                         const float a[3],
+                         const float w[3],
+                         const float dt_s) {
+  const float roll_a = atan2(a[1], a[2]);
+  const float pitch_a = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
+
+  const float roll_w = filter->roll + w[0] * dt_s;
+  const float pitch_w = filter->pitch + w[1] * dt_s;
+  const float yaw_w = filter->yaw + w[2] * dt_s;
+
+  filter->roll = (1.0 - filter->alpha) * roll_w + roll_a;
+  filter->pitch = (1.0 - filter->alpha) * pitch_w + pitch_a;
+  filter->yaw = 0.0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1350,12 +1374,8 @@ void pid_ctrl_setup(pid_ctrl_t *pid,
   pid->kd = kd;
 }
 
-float pid_ctrl_update(pid_ctrl_t *pid,
-                      const float setpoint,
-                      const float actual,
-                      const float dt) {
+float pid_ctrl_update(pid_ctrl_t *pid, const float error, const float dt) {
   // Calculate errors
-  const float error = setpoint - actual;
   pid->error_sum += error * dt;
 
   // Calculate output
@@ -1377,38 +1397,62 @@ void pid_ctrl_reset(pid_ctrl_t *pid) {
   pid->error_d = 0.0;
 }
 
-// FCU ///////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 
-// CONFIG
-#define HCSR04_PIN_TRIGGER 20
-#define HCSR04_PIN_ECHO 21
-#define HCSR04_MAX_DIST_CM 400
-#define HCSR04_MAX_TIMEOUT_MS 0
+// ATTITUDE CONTROLLER ///////////////////////////////////////////////////////
 
-typedef struct fcu_t {
-  // Comms
-  uart_t uart;
+typedef struct att_ctrl_t {
+  pid_ctrl_t roll_pid;
+  pid_ctrl_t pitch_pid;
+  pid_ctrl_t yaw_pid;
+} att_ctrl_t;
 
-  // Sensors
-  mpu6050_t imu;
-  bmp280_t bmp;
-  hcsr04_t uds;
-} fcu_t;
+void att_ctrl_setup(att_ctrl_t *att_ctrl) {
+  pid_ctrl_t *roll_pid = &att_ctrl->roll_pid;
+  pid_ctrl_t *pitch_pid = &att_ctrl->pitch_pid;
+  pid_ctrl_t *yaw_pid = &att_ctrl->yaw_pid;
+  pid_ctrl_setup(roll_pid, ROLL_PID_KP, ROLL_PID_KI, ROLL_PID_KD);
+  pid_ctrl_setup(pitch_pid, PITCH_PID_KP, PITCH_PID_KI, PITCH_PID_KD);
+  pid_ctrl_setup(yaw_pid, YAW_PID_KP, YAW_PID_KI, YAW_PID_KD);
+}
 
-void fcu_setup(struct fcu_t *fcu) {
-  // Comms
-  uart_setup(&fcu->uart);
-  i2c_setup();
-  sbus_setup();
+void att_ctrl_update(att_ctrl_t *att_ctrl,
+                     const float roll_desired,
+                     const float pitch_desired,
+                     const float yaw_desired,
+                     const float thrust_desired,
+                     const float roll_actual,
+                     const float pitch_actual,
+                     const float yaw_actual,
+                     const float dt,
+                     float outputs[4]) {
+  // Calculate roll error
+  const float roll_error = roll_desired - roll_actual;
 
-  // Sensors
-  mpu6050_setup(&fcu->imu);
-  bmp280_setup(&fcu->bmp);
-  hcsr04_setup(&fcu->uds,
-               HCSR04_PIN_TRIGGER,
-               HCSR04_PIN_ECHO,
-               HCSR04_MAX_DIST_CM,
-               HCSR04_MAX_TIMEOUT_MS);
+  // Calculate pitch error
+  const float pitch_error = pitch_desired - pitch_actual;
+
+  // Calculate yaw error
+  float yaw_error = yaw_desired - yaw_actual;
+  yaw_error += (yaw_error > M_PI) ? -M_PI : 0.0;
+  yaw_error += (yaw_error < -M_PI) ? +M_PI : 0.0;
+
+  // PID controller on roll, pitch and yaw
+  const float r = pid_ctrl_update(&att_ctrl->roll_pid, roll_error, dt);
+  const float p = pid_ctrl_update(&att_ctrl->pitch_pid, pitch_error, dt);
+  const float y = pid_ctrl_update(&att_ctrl->yaw_pid, yaw_error, dt);
+
+  // Map PIDs to motor outputs
+  outputs[0] = -p - y + thrust_desired;
+  outputs[1] = -r + y + thrust_desired;
+  outputs[2] = p - y + thrust_desired;
+  outputs[3] = r + y + thrust_desired;
+
+  // Clamp outputs between 0.0 and 1.0
+  for (uint8_t i = 0; i < 4; i++) {
+    outputs[i] = (outputs[i] < 0.0) ? 0.0 : outputs[i];
+    outputs[i] = (outputs[i] > 1.0) ? 1.0 : outputs[i];
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
