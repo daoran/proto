@@ -455,106 +455,50 @@ void i2c_print_addrs(uart_t *uart) {
 //// PWM ///////////////////////////////////////////////////////////////////////
 
 typedef struct pwm_t {
-  uint8_t *pins;
-  uint8_t nb_pins;
-  int res;
-  float freq;
-  float range_max;
+  float value[PWM_NUM_PINS];
 } pwm_t;
 
-void pwm_setup(pwm_t *pwm,
-               uint8_t *pins,
-               const uint8_t nb_pins,
-               const uint8_t res = 15,
-               const float freq = 50);
-void pwm_set(pwm_t *pwm, const uint8_t idx, const float val);
-
-void pwm_setup(pwm_t *pwm,
-               uint8_t *pins,
-               const uint8_t nb_pins,
-               const uint8_t res,
-               const float freq) {
+void pwm_setup(pwm_t *pwm) {
   // Setup PWM Resolution
   float range_max = 0.0f;
-  analogWriteResolution(res);
-  switch (res) {
-    case 16:
-      range_max = 65535.0f;
-      break;
-    case 15:
-      range_max = 32767.0f;
-      break;
-    case 14:
-      range_max = 16383.0f;
-      break;
-    case 13:
-      range_max = 8191.0f;
-      break;
-    case 12:
-      range_max = 4095.0f;
-      break;
-    case 11:
-      range_max = 2047.0f;
-      break;
-    case 10:
-      range_max = 1023.0f;
-      break;
-    case 9:
-      range_max = 511.0f;
-      break;
-    case 8:
-      range_max = 255.0f;
-      break;
-    case 7:
-      range_max = 127.0f;
-      break;
-    case 6:
-      range_max = 63.0f;
-      break;
-    case 5:
-      range_max = 31.0f;
-      break;
-    case 4:
-      range_max = 15.0f;
-      break;
-    case 3:
-      range_max = 7.0f;
-      break;
-    case 2:
-      range_max = 3.0f;
-      break;
-    default:
-      range_max = 255.0f;
-      break;
-  }
+  analogWriteResolution(PWM_RESOLUTION_BITS);
 
   // Set PWM Frequency
-  for (uint8_t i = 0; i < nb_pins; i++) {
-    analogWriteFrequency(pins[i], freq);
-  }
+  analogWriteFrequency(PWM_PIN_0, PWM_FREQUENCY_HZ);
+  analogWriteFrequency(PWM_PIN_1, PWM_FREQUENCY_HZ);
+  analogWriteFrequency(PWM_PIN_2, PWM_FREQUENCY_HZ);
+  analogWriteFrequency(PWM_PIN_3, PWM_FREQUENCY_HZ);
 
-  // Initialize
-  for (uint8_t i = 0; i < nb_pins; i++) {
-    analogWrite(pins[i], PWM_PERIOD_MIN * range_max);
-  }
-
-  pwm->pins = pins;
-  pwm->nb_pins = nb_pins;
-  pwm->res = res;
-  pwm->freq = freq;
-  pwm->range_max = range_max;
+  // Initialize PWMs
+  analogWrite(PWM_PIN_0, PWM_PERIOD_MIN * range_max);
+  analogWrite(PWM_PIN_1, PWM_PERIOD_MIN * range_max);
+  analogWrite(PWM_PIN_2, PWM_PERIOD_MIN * range_max);
+  analogWrite(PWM_PIN_3, PWM_PERIOD_MIN * range_max);
+  pwm->value[0] = 0.0;
+  pwm->value[1] = 0.0;
+  pwm->value[2] = 0.0;
+  pwm->value[3] = 0.0;
 }
 
-void pwm_set(pwm_t *pwm, const uint8_t idx, const float val) {
+void pwm_set(pwm_t *pwm, const uint8_t pin_idx, const float val) {
+  const uint8_t pins[4] = {PWM_PIN_0, PWM_PIN_1, PWM_PIN_2, PWM_PIN_3};
   const float duty_cycle = PWM_PERIOD_MIN + (PWM_PERIOD_DIFF * val);
-  analogWrite(pwm->pins[idx], duty_cycle * pwm->range_max);
+  const float analog_value = duty_cycle * PWM_RANGE_MAX_15_BITS;
+  analogWrite(pins[pin_idx], analog_value);
+  pwm->value[pin_idx] = val;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 // SBUS //////////////////////////////////////////////////////////////////////
 
-void sbus_setup() {
+typedef struct sbus_t {
+  uint16_t ch[16];
+  uint8_t frame_lost;
+  uint8_t failsafe_activated;
+} sbus_t;
+
+void sbus_setup(sbus_t *sbus) {
   // The SBUS protocol uses inverted serial logic with:
   // - Baud rate of 100000
   // - 8 data bits
@@ -563,6 +507,12 @@ void sbus_setup() {
   HardwareSerial *bus = &Serial2;
   bus->begin(100000, SERIAL_8E2);
   bus->flush();
+
+  for (uint8_t i = 0; i < 16; i++) {
+    sbus->ch[i] = 0;
+  }
+  sbus->frame_lost = 0;
+  sbus->failsafe_activated = 0;
 }
 
 int8_t sbus_read_byte(uint8_t *data) {
@@ -586,9 +536,7 @@ void sbus_write(const uint8_t *data, const size_t size) {
   Serial2.write(data, size);
 }
 
-int8_t sbus_update(uint16_t ch[16],
-                   uint8_t *frame_lost,
-                   uint8_t *failsafe_activated) {
+int8_t sbus_update(sbus_t *sbus) {
   // Get sbus frame data
   uint8_t frame[25] = {0};
   if (sbus_read_byte(&frame[0]) == -1 || frame[0] != 0x0F) {
@@ -598,30 +546,30 @@ int8_t sbus_update(uint16_t ch[16],
 
   // Parse sbus frame
   // -- Parse flag
-  *frame_lost = (frame[23] & (1 << 5));
-  *failsafe_activated = (frame[23] & (1 << 4));
+  sbus->frame_lost = (frame[23] & (1 << 5));
+  sbus->failsafe_activated = (frame[23] & (1 << 4));
   // -- Parse channel data
   for (uint8_t i = 0; i < 16; i++) {
-    ch[i] = 0;
+    sbus->ch[i] = 0;
   }
-  ch[0] = ((frame[1] | frame[2] << 8) & 0x07FF);
-  ch[1] = ((frame[2] >> 3 | frame[3] << 5) & 0x07FF);
-  ch[2] = ((frame[3] >> 6 | frame[4] << 2 | frame[5] << 10) & 0x07FF);
-  ch[3] = ((frame[5] >> 1 | frame[6] << 7) & 0x07FF);
-  ch[4] = ((frame[6] >> 4 | frame[7] << 4) & 0x07FF);
-  ch[5] = ((frame[7] >> 7 | frame[8] << 1 | frame[8] << 9) & 0x07FF);
-  ch[6] = ((frame[9] >> 2 | frame[10] << 6) & 0x07FF);
-  ch[7] = ((frame[10] >> 5 | frame[11] << 3) & 0x07FF);
-  ch[8] = ((frame[12] | frame[13] << 8) & 0x07FF);
-  ch[9] = ((frame[13] >> 3 | frame[14] << 5) & 0x07FF);
-  ch[10] = ((frame[14] >> 6 | frame[15] << 2 | frame[16] << 10) & 0x07FF);
+  sbus->ch[0] = ((frame[1] | frame[2] << 8) & 0x07FF);
+  sbus->ch[1] = ((frame[2] >> 3 | frame[3] << 5) & 0x07FF);
+  sbus->ch[2] = ((frame[3] >> 6 | frame[4] << 2 | frame[5] << 10) & 0x07FF);
+  sbus->ch[3] = ((frame[5] >> 1 | frame[6] << 7) & 0x07FF);
+  sbus->ch[4] = ((frame[6] >> 4 | frame[7] << 4) & 0x07FF);
+  sbus->ch[5] = ((frame[7] >> 7 | frame[8] << 1 | frame[8] << 9) & 0x07FF);
+  sbus->ch[6] = ((frame[9] >> 2 | frame[10] << 6) & 0x07FF);
+  sbus->ch[7] = ((frame[10] >> 5 | frame[11] << 3) & 0x07FF);
+  sbus->ch[8] = ((frame[12] | frame[13] << 8) & 0x07FF);
+  sbus->ch[9] = ((frame[13] >> 3 | frame[14] << 5) & 0x07FF);
+  sbus->ch[10] = ((frame[14] >> 6 | frame[15] << 2 | frame[16] << 10) & 0x07FF);
 
-  ch[11] = ((frame[16] >> 1 | frame[17] << 7) & 0x07FF);
-  ch[12] = ((frame[17] >> 4 | frame[18] << 4) & 0x07FF);
-  ch[13] = ((frame[18] >> 7 | frame[19] << 1 | frame[20] << 9) & 0x07FF);
+  sbus->ch[11] = ((frame[16] >> 1 | frame[17] << 7) & 0x07FF);
+  sbus->ch[12] = ((frame[17] >> 4 | frame[18] << 4) & 0x07FF);
+  sbus->ch[13] = ((frame[18] >> 7 | frame[19] << 1 | frame[20] << 9) & 0x07FF);
 
-  ch[14] = ((frame[20] >> 2 | frame[21] << 6) & 0x07FF);
-  ch[15] = ((frame[21] >> 5 | frame[22] << 3) & 0x07FF);
+  sbus->ch[14] = ((frame[20] >> 2 | frame[21] << 6) & 0x07FF);
+  sbus->ch[15] = ((frame[21] >> 5 | frame[22] << 3) & 0x07FF);
 
   return 0;
 }
@@ -635,7 +583,6 @@ typedef struct hcsr04_t {
   uint8_t pin_echo;
   unsigned short max_dist_cm;
   unsigned long max_timeout_ms;
-
 } hcsr04_t;
 
 void hcsr04_setup(hcsr04_t *sensor,
@@ -1425,7 +1372,8 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
                      const float pitch_actual,
                      const float yaw_actual,
                      const float dt,
-                     float outputs[4]) {
+                     float outputs[4],
+                     uart_t *uart) {
   // Calculate roll error
   const float roll_error = roll_desired - roll_actual;
 
@@ -1447,6 +1395,15 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
   outputs[1] = -r + y + thrust_desired;
   outputs[2] = p - y + thrust_desired;
   outputs[3] = r + y + thrust_desired;
+
+  if (uart) {
+    // uart_printf(uart, "dt:%f ", dt);
+    // uart_printf(uart, "roll_error:%f ", roll_error);
+    // uart_printf(uart, "pitch_error:%f ", pitch_error);
+    // uart_printf(uart, "r:%f ", 2.0 * roll_error);
+    // uart_printf(uart, "p:%f ", p);
+    // uart_printf(&uart, "\r\n");
+  }
 
   // Clamp outputs between 0.0 and 1.0
   for (uint8_t i = 0; i < 4; i++) {
