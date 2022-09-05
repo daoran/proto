@@ -460,7 +460,6 @@ typedef struct pwm_t {
 
 void pwm_setup(pwm_t *pwm) {
   // Setup PWM Resolution
-  float range_max = 0.0f;
   analogWriteResolution(PWM_RESOLUTION_BITS);
 
   // Set PWM Frequency
@@ -470,10 +469,10 @@ void pwm_setup(pwm_t *pwm) {
   analogWriteFrequency(PWM_PIN_3, PWM_FREQUENCY_HZ);
 
   // Initialize PWMs
-  analogWrite(PWM_PIN_0, PWM_PERIOD_MIN * range_max);
-  analogWrite(PWM_PIN_1, PWM_PERIOD_MIN * range_max);
-  analogWrite(PWM_PIN_2, PWM_PERIOD_MIN * range_max);
-  analogWrite(PWM_PIN_3, PWM_PERIOD_MIN * range_max);
+  analogWrite(PWM_PIN_0, PWM_PERIOD_MIN * PWM_RANGE_MAX);
+  analogWrite(PWM_PIN_1, PWM_PERIOD_MIN * PWM_RANGE_MAX);
+  analogWrite(PWM_PIN_2, PWM_PERIOD_MIN * PWM_RANGE_MAX);
+  analogWrite(PWM_PIN_3, PWM_PERIOD_MIN * PWM_RANGE_MAX);
   pwm->value[0] = 0.0;
   pwm->value[1] = 0.0;
   pwm->value[2] = 0.0;
@@ -483,7 +482,7 @@ void pwm_setup(pwm_t *pwm) {
 void pwm_set(pwm_t *pwm, const uint8_t pin_idx, const float val) {
   const uint8_t pins[4] = {PWM_PIN_0, PWM_PIN_1, PWM_PIN_2, PWM_PIN_3};
   const float duty_cycle = PWM_PERIOD_MIN + (PWM_PERIOD_DIFF * val);
-  const float analog_value = duty_cycle * PWM_RANGE_MAX_15_BITS;
+  const float analog_value = duty_cycle * PWM_RANGE_MAX;
   analogWrite(pins[pin_idx], analog_value);
   pwm->value[pin_idx] = val;
 }
@@ -563,11 +562,9 @@ int8_t sbus_update(sbus_t *sbus) {
   sbus->ch[8] = ((frame[12] | frame[13] << 8) & 0x07FF);
   sbus->ch[9] = ((frame[13] >> 3 | frame[14] << 5) & 0x07FF);
   sbus->ch[10] = ((frame[14] >> 6 | frame[15] << 2 | frame[16] << 10) & 0x07FF);
-
   sbus->ch[11] = ((frame[16] >> 1 | frame[17] << 7) & 0x07FF);
   sbus->ch[12] = ((frame[17] >> 4 | frame[18] << 4) & 0x07FF);
   sbus->ch[13] = ((frame[18] >> 7 | frame[19] << 1 | frame[20] << 9) & 0x07FF);
-
   sbus->ch[14] = ((frame[20] >> 2 | frame[21] << 6) & 0x07FF);
   sbus->ch[15] = ((frame[21] >> 5 | frame[22] << 3) & 0x07FF);
 
@@ -1000,8 +997,8 @@ int8_t mpu6050_set_accel_range(const mpu6050_t *imu, const int8_t range);
 int8_t mpu6050_setup(mpu6050_t *imu) {
   int8_t retval = 0;
   int8_t dplf = 6;
-  int8_t accel_range = 0;
-  int8_t gyro_range = 0;
+  int8_t gyro_range = 1;
+  int8_t accel_range = 2;
 
   // Set dplf
   mpu6050_set_dplf(imu, dplf);
@@ -1281,10 +1278,10 @@ void compl_filter_update(compl_filter_t *filter,
 
   const float roll_w = filter->roll + w[0] * dt_s;
   const float pitch_w = filter->pitch + w[1] * dt_s;
-  const float yaw_w = filter->yaw + w[2] * dt_s;
+  // const float yaw_w = filter->yaw + w[2] * dt_s;
 
-  filter->roll = (1.0 - filter->alpha) * roll_w + roll_a;
-  filter->pitch = (1.0 - filter->alpha) * pitch_w + pitch_a;
+  filter->roll = (1.0 - filter->alpha) * roll_a + filter->alpha * roll_w;
+  filter->pitch = (1.0 - filter->alpha) * pitch_a + filter->alpha * pitch_w;
   filter->yaw = 0.0;
 }
 
@@ -1391,10 +1388,10 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
   const float y = pid_ctrl_update(&att_ctrl->yaw_pid, yaw_error, dt);
 
   // Map PIDs to motor outputs
-  outputs[0] = -p - y + thrust_desired;
-  outputs[1] = -r + y + thrust_desired;
-  outputs[2] = p - y + thrust_desired;
-  outputs[3] = r + y + thrust_desired;
+  outputs[0] = thrust_desired - r + p;
+  outputs[1] = thrust_desired - r - p;
+  outputs[2] = thrust_desired + r + p;
+  outputs[3] = thrust_desired + r - p;
 
   if (uart) {
     // uart_printf(uart, "dt:%f ", dt);
@@ -1408,7 +1405,7 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
   // Clamp outputs between 0.0 and 1.0
   for (uint8_t i = 0; i < 4; i++) {
     outputs[i] = (outputs[i] < 0.0) ? 0.0 : outputs[i];
-    outputs[i] = (outputs[i] > 1.0) ? 1.0 : outputs[i];
+    outputs[i] = (outputs[i] > 0.2) ? 0.2 : outputs[i];
   }
 }
 
