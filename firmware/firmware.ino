@@ -5,6 +5,8 @@ uint32_t time_prev_us = 0;
 float estimation_time_s = 0;
 float control_time_s = 0;
 uint32_t control_last_updated = 0;
+uint8_t failsafe = 0;
+
 sbus_t sbus;
 uart_t uart;
 pwm_t pwm;
@@ -26,6 +28,11 @@ void estimation_task(const float dt_s) {
   // uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
   // uart_printf(&uart, "\r\n");
 
+  float max_tilt = 40.0;
+  if (filter.roll > deg2rad(max_tilt) || filter.roll < deg2rad(-max_tilt)) {
+    failsafe = 1;
+  }
+
   // Reset timer
   estimation_time_s = 0.0;
 }
@@ -44,12 +51,25 @@ void control_task(const uint32_t time_us, const float dt_s) {
   }
 
   // Arm switch on?
-  if (sbus.ch[4] < ((PWM_VALUE_MAX - PWM_VALUE_MIN) / 2.0)) {
+  const uint8_t arm = (sbus.ch[4] < ((PWM_VALUE_MAX - PWM_VALUE_MIN) / 2.0));
+  if (arm) {
     control_time_s = 0;
+    failsafe = 0;
     pwm_set(&pwm, 0, 0.0);
     pwm_set(&pwm, 1, 0.0);
     pwm_set(&pwm, 2, 0.0);
     pwm_set(&pwm, 3, 0.0);
+    return;
+  }
+
+  // Failsafe
+  if (failsafe) {
+    pwm_set(&pwm, 0, 0.0);
+    pwm_set(&pwm, 1, 0.0);
+    pwm_set(&pwm, 2, 0.0);
+    pwm_set(&pwm, 3, 0.0);
+    control_time_s = 0;
+    control_last_updated = time_us;
     return;
   }
 
@@ -107,11 +127,6 @@ void control_task(const uint32_t time_us, const float dt_s) {
     pwm_set(&pwm, 3, outputs[3]);
   }
 
-  uart_printf(&uart, "control_time_prev:%d ", control_last_updated);
-  uart_printf(&uart, "control_time_now:%d ", time_us);
-  uart_printf(&uart, "control_time_diff:%d ", time_us - control_last_updated);
-  uart_printf(&uart, "\r\n");
-
   // Reset timer
   control_time_s = 0;
   control_last_updated = time_us;
@@ -137,17 +152,12 @@ void setup() {
 
 // Loop
 void loop() {
-  // for (uint8_t i = 0; i < 4; i++) {
-  //   pwm_set(&pwm, i, 0.1);
-  //   delay(500);
-  //   pwm_set(&pwm, i, 0.0);
-  // }
-  // delay(5000);
-
   const uint32_t time_now_us = micros();
   const uint32_t dt_us = time_now_us - time_prev_us;
   const float dt_s = dt_us * 1e-6;
+
   estimation_task(dt_s);
   control_task(time_now_us, dt_s);
+
   time_prev_us = time_now_us;
 }
