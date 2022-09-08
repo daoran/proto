@@ -975,6 +975,7 @@ typedef struct mpu6050_t {
   float gyro_sensitivity;
   float accel[3];
   float gyro[3];
+  float gyro_offset[3];
 
   float temperature;
   float sample_rate;
@@ -982,6 +983,7 @@ typedef struct mpu6050_t {
 } mpu6050_t;
 
 int8_t mpu6050_setup(mpu6050_t *imu);
+void mpu6050_calibrate(mpu6050_t *imu);
 uint8_t mpu6050_ping(const mpu6050_t *imu);
 int8_t mpu6050_get_data(mpu6050_t *imu);
 int8_t mpu6050_set_dplf(const mpu6050_t *imu, const uint8_t setting);
@@ -1057,9 +1059,30 @@ int8_t mpu6050_setup(mpu6050_t *imu) {
   // Get sample rate
   imu->sample_rate = mpu6050_get_sample_rate(imu);
 
+  // Calibrate IMU
+  mpu6050_calibrate(imu);
+
   return 0;
 error:
   return -1;
+}
+
+void mpu6050_calibrate(mpu6050_t *imu) {
+  float wx = 0.0;
+  float wy = 0.0;
+  float wz = 0.0;
+
+  uint16_t nb_samples = 2000;
+  for (uint16_t i = 0; i < nb_samples; i++) {
+    mpu6050_get_data(imu);
+    wx += imu->gyro[0];
+    wy += imu->gyro[1];
+    wz += imu->gyro[2];
+  }
+
+  imu->gyro_offset[0] = wx / (float) nb_samples;
+  imu->gyro_offset[1] = wy / (float) nb_samples;
+  imu->gyro_offset[2] = wz / (float) nb_samples;
 }
 
 uint8_t mpu6050_ping(const mpu6050_t *imu) {
