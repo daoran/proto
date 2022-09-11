@@ -1,136 +1,27 @@
 #include "firmware.h"
+#include "Adafruit_AHRS_Mahony.h"
 
 // GLOBAL VARIABLES
-uint32_t time_prev_us = 0;
-float estimation_time_s = 0;
-float control_time_s = 0;
-uint32_t control_last_updated = 0;
+uint32_t task0_last_updated_us = 0;
+uint32_t task1_last_updated_us = 0;
+uint32_t telem_last_updated_us = 0;
+uint8_t arm = 1;
 uint8_t failsafe = 0;
+
+float thrust_desired = 0.0;
+float roll_desired = 0.0;
+float pitch_desired = 0.0;
+float yaw_desired = 0.0;
+float outputs[4] = {0.0, 0.0, 0.0, 0.0};
 
 sbus_t sbus;
 uart_t uart;
 pwm_t pwm;
 mpu6050_t imu;
-compl_filter_t filter;
+// compl_filter_t filter;
+// mahony_filter_t filter;
+Adafruit_Mahony filter;
 att_ctrl_t att_ctrl;
-
-// IMU Task
-void estimation_task(const float dt_s) {
-  estimation_time_s += dt_s;
-  if (estimation_time_s < IMU_SAMPLE_PERIOD_S) {
-    return;
-  }
-
-  mpu6050_get_data(&imu);
-  compl_filter_update(&filter, imu.accel, imu.gyro, dt_s);
-  // uart_printf(&uart, "roll:%f ", rad2deg(filter.roll));
-  // uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch));
-  // uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
-  // uart_printf(&uart, "\r\n");
-
-  float max_tilt = 40.0;
-  if (filter.roll > deg2rad(max_tilt) || filter.roll < deg2rad(-max_tilt)) {
-    failsafe = 1;
-  }
-
-  // Reset timer
-  estimation_time_s = 0.0;
-}
-
-// Control Task
-void control_task(const uint32_t time_us, const float dt_s) {
-  // Check loop time
-  control_time_s += dt_s;
-  if (control_time_s < SBUS_SAMPLE_PERIOD_S) {
-    return;
-  }
-
-  // Get SBUS data
-  if (sbus_update(&sbus) != 0) {
-    return;
-  }
-
-  // Arm switch on?
-  const uint8_t arm = (sbus.ch[4] < ((PWM_VALUE_MAX - PWM_VALUE_MIN) / 2.0));
-  if (arm) {
-    control_time_s = 0;
-    failsafe = 0;
-    pwm_set(&pwm, 0, 0.0);
-    pwm_set(&pwm, 1, 0.0);
-    pwm_set(&pwm, 2, 0.0);
-    pwm_set(&pwm, 3, 0.0);
-    return;
-  }
-
-  // Failsafe
-  if (failsafe) {
-    pwm_set(&pwm, 0, 0.0);
-    pwm_set(&pwm, 1, 0.0);
-    pwm_set(&pwm, 2, 0.0);
-    pwm_set(&pwm, 3, 0.0);
-    control_time_s = 0;
-    control_last_updated = time_us;
-    return;
-  }
-
-  // Calculate motor controls
-  const float thrust_desired =
-      (sbus.ch[0] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
-  const float roll_actual = filter.roll;
-  const float pitch_actual = filter.pitch;
-  const float yaw_actual = filter.yaw;
-
-  const float roll_desired = 0.0;
-  const float pitch_desired = 0.0;
-  const float yaw_desired = 0.0;
-  float outputs[4] = {0.0, 0.0, 0.0, 0.0};
-  att_ctrl_update(&att_ctrl,
-                  roll_desired,
-                  pitch_desired,
-                  yaw_desired,
-                  thrust_desired,
-                  roll_actual,
-                  pitch_actual,
-                  yaw_actual,
-                  dt_s,
-                  outputs,
-                  &uart);
-
-  // uart_printf(&uart, "ch0:%d ", ch[0]);
-  // uart_printf(&uart, "ch1:%d ", ch[1]);
-  // uart_printf(&uart, "ch2:%d ", ch[2]);
-  // uart_printf(&uart, "ch3:%d ", ch[3]);
-  // uart_printf(&uart, "ch4:%d ", ch[4]);
-  // uart_printf(&uart, "\r\n");
-
-  // uart_printf(&uart, "outputs[0]:%f ", outputs[0]);
-  // uart_printf(&uart, "outputs[1]:%f ", outputs[1]);
-  // uart_printf(&uart, "outputs[2]:%f ", outputs[2]);
-  // uart_printf(&uart, "outputs[3]:%f ", outputs[3]);
-  // uart_printf(&uart, "\r\n");
-
-  // Set motor speeds
-  // pwm_set(&pwm, 0, outputs[0]);
-  // pwm_set(&pwm, 1, outputs[1]);
-  // pwm_set(&pwm, 2, outputs[2]);
-  // pwm_set(&pwm, 3, outputs[3]);
-
-  if ((time_us - control_last_updated) > 300000) {
-    pwm_set(&pwm, 0, 0.0);
-    pwm_set(&pwm, 1, 0.0);
-    pwm_set(&pwm, 2, 0.0);
-    pwm_set(&pwm, 3, 0.0);
-  } else {
-    pwm_set(&pwm, 0, outputs[0]);
-    pwm_set(&pwm, 1, outputs[1]);
-    pwm_set(&pwm, 2, outputs[2]);
-    pwm_set(&pwm, 3, outputs[3]);
-  }
-
-  // Reset timer
-  control_time_s = 0;
-  control_last_updated = time_us;
-}
 
 // Setup
 void setup() {
@@ -146,18 +37,172 @@ void setup() {
   mpu6050_get_data(&imu);
 
   // Control
-  compl_filter_setup(&filter, COMPL_FILTER_ALPHA, imu.accel);
+  // compl_filter_setup(&filter, COMPL_FILTER_ALPHA, imu.accel);
+  const float roll = atan2(imu.accel[1], imu.accel[2]);
+  const float pitch =
+      atan2(-imu.accel[0],
+            sqrt(imu.accel[1] * imu.accel[1] + imu.accel[2] * imu.accel[2]));
+  const float yaw = 0.0;
+  const float rpy[3] = {roll, pitch, yaw};
+  float q[4] = {1.0, 0.0, 0.0, 0.0};
+  euler2quat(rpy, q);
+  // mahony_filter_setup(&filter);
+  filter.setQuaternion(q[0], q[1], q[2], q[3]);
   att_ctrl_setup(&att_ctrl);
+
+  // Update times
+  const uint32_t time_now_us = micros();
+  task0_last_updated_us = time_now_us;
+  task1_last_updated_us = time_now_us;
+}
+
+// Estimation Task
+void task0() {
+  // Check loop time
+  const uint32_t time_now_us = micros();
+  const float dt_s = (time_now_us - task0_last_updated_us) * 1e-6;
+  if (dt_s < IMU_SAMPLE_PERIOD_S) {
+    return;
+  }
+
+  // Estimate attitude
+  mpu6050_get_data(&imu);
+  const float acc[3] = {imu.accel[0], imu.accel[1], imu.accel[2]};
+  const float gyr[3] = {imu.gyro[0] - imu.gyro_offset[0],
+                        imu.gyro[1] - imu.gyro_offset[1],
+                        imu.gyro[2] - imu.gyro_offset[2]};
+  // compl_filter_update(&filter, acc, gyr, dt_s);
+  // mahony_filter_update(&filter, acc, gyr, dt_s);
+  filter.updateIMU(gyr[0] * 57.29578,
+                   gyr[1] * 57.29578,
+                   gyr[2] * 57.29578,
+                   acc[0],
+                   acc[1],
+                   acc[2],
+                   dt_s);
+
+  // Check tilt
+  const float max_tilt = deg2rad(60.0);
+  // if (filter.roll > max_tilt || filter.roll < -max_tilt) {
+  //   failsafe = 1;
+  // } else if (filter.pitch > max_tilt || filter.pitch < -max_tilt) {
+  //   failsafe = 1;
+  // }
+  if (filter.getRoll() > max_tilt || filter.getRoll() < -max_tilt) {
+    failsafe = 1;
+  } else if (filter.getPitch() > max_tilt || filter.getPitch() < -max_tilt) {
+    failsafe = 1;
+  }
+
+  // Calculate control outputs
+  att_ctrl_update(&att_ctrl,
+                  roll_desired,
+                  pitch_desired,
+                  yaw_desired,
+                  thrust_desired,
+                  filter.getRoll(),
+                  filter.getPitch(),
+                  filter.getYaw(),
+                  dt_s,
+                  outputs,
+                  &uart);
+
+  // Set motor PWMs
+  if (arm && failsafe == 0) {
+    pwm_set(&pwm, 0, outputs[0]);
+    pwm_set(&pwm, 1, outputs[1]);
+    pwm_set(&pwm, 2, outputs[2]);
+    pwm_set(&pwm, 3, outputs[3]);
+  } else {
+    pwm_set(&pwm, 0, 0.0);
+    pwm_set(&pwm, 1, 0.0);
+    pwm_set(&pwm, 2, 0.0);
+    pwm_set(&pwm, 3, 0.0);
+  }
+
+  // Update last updated
+  task0_last_updated_us = time_now_us;
+}
+
+// Control Task
+void task1() {
+  // Check loop time
+  const uint32_t time_now_us = micros();
+  const float dt_s = (time_now_us - task1_last_updated_us) * 1e-6;
+  if (dt_s < (1.0 / 50.0)) {
+    return;
+  }
+
+  // Get SBUS data
+  if (sbus_update(&sbus) != 0) {
+    return;
+  }
+
+  // Parse SBUS signal
+  arm = sbus_arm(&sbus);
+  thrust_desired = sbus_thrust(&sbus);
+  roll_desired = sbus_roll(&sbus);
+  pitch_desired = sbus_pitch(&sbus);
+  yaw_desired = sbus_yaw(&sbus);
+
+  // Radio lost?
+  if (us2sec(time_now_us - task1_last_updated_us) > 0.3) {
+    arm = 0;
+    failsafe = 1;
+  }
+
+  // Reset failsafe
+  if (arm == 0) {
+    failsafe = 0;
+    // filter.yaw = 0.0;
+  }
+
+  // Update last updated
+  task1_last_updated_us = time_now_us;
+}
+
+void transmit_telemetry() {
+  // Check loop time
+  const uint32_t time_now_us = micros();
+  const float dt_s = (time_now_us - telem_last_updated_us) * 1e-6;
+  if (dt_s < (1.0 / 100.0)) {
+    return;
+  }
+
+  uart_printf(&uart, "ts:%d ", micros());
+  char dt_str[10]; //  Hold The Convert Data
+  dtostrf(dt_s, 10, 10, dt_str);
+  uart_printf(&uart, "dt:%s ", dt_str);
+
+  for (uint8_t i = 0; i < 16; i++) {
+    uart_printf(&uart, "ch[%d]:%d ", i, sbus.ch[i]);
+  }
+  // uart_printf(&uart, "roll:%f ", rad2deg(filter.roll));
+  // uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch));
+  // uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
+  uart_printf(&uart, "roll:%f ", rad2deg(filter.getRollRadians()));
+  uart_printf(&uart, "pitch:%f ", rad2deg(filter.getPitchRadians()));
+  uart_printf(&uart, "yaw:%f ", rad2deg(filter.getYawRadians()));
+
+  uart_printf(&uart, "thrust_desired:%f ", rad2deg(thrust_desired));
+  uart_printf(&uart, "roll_desired:%f ", rad2deg(roll_desired));
+  uart_printf(&uart, "pitch_desired:%f ", rad2deg(pitch_desired));
+  uart_printf(&uart, "yaw_desired:%f ", rad2deg(yaw_desired));
+
+  uart_printf(&uart, "outputs[0]:%f ", outputs[0]);
+  uart_printf(&uart, "outputs[1]:%f ", outputs[1]);
+  uart_printf(&uart, "outputs[2]:%f ", outputs[2]);
+  uart_printf(&uart, "outputs[3]:%f ", outputs[3]);
+
+  uart_printf(&uart, "\r\n");
+
+  // Update last updated
+  telem_last_updated_us = time_now_us;
 }
 
 // Loop
 void loop() {
-  const uint32_t time_now_us = micros();
-  const uint32_t dt_us = time_now_us - time_prev_us;
-  const float dt_s = dt_us * 1e-6;
-
-  estimation_task(dt_s);
-  control_task(time_now_us, dt_s);
-
-  time_prev_us = time_now_us;
+  task0();
+  task1();
+  transmit_telemetry();
 }

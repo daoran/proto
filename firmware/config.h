@@ -42,8 +42,6 @@
 #define PWM_RANGE_MAX 7.0f
 #elif PWM_RESOLUTION_BITS == 2
 #define PWM_RANGE_MAX 3.0f
-#elif PWM_RESOLUTION_BITS == 1
-#define PWM_RANGE_MAX 255.0f
 #endif
 
 #define HCSR04_PIN_TRIGGER 20
@@ -51,15 +49,15 @@
 #define HCSR04_MAX_DIST_CM 400
 #define HCSR04_MAX_TIMEOUT_MS 0
 
-#define IMU_SAMPLE_PERIOD_S 0.002 // 500Hz
-#define SBUS_SAMPLE_PERIOD_S 0.01 // 100Hz
+#define IMU_SAMPLE_PERIOD_S 0.00166668 // 600Hz
+#define SBUS_SAMPLE_PERIOD_S 0.01      // 100Hz
 #define COMPL_FILTER_ALPHA 0.995
-#define ROLL_PID_KP 0.0
+#define ROLL_PID_KP 0.025
 #define ROLL_PID_KI 0.0
-#define ROLL_PID_KD 0.0
-#define PITCH_PID_KP 0.1
+#define ROLL_PID_KD 0.00
+#define PITCH_PID_KP 0.05
 #define PITCH_PID_KI 0.0
-#define PITCH_PID_KD 0.0
-#define YAW_PID_KP 0.0
+#define PITCH_PID_KD 0.001
+#define YAW_PID_KP 0.02
 #define YAW_PID_KI 0.0
 #define YAW_PID_KD 0.0

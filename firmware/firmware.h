@@ -23,6 +23,10 @@ inline float rad2deg(const float r) {
   return r * (180.0 / M_PI);
 }
 
+inline float us2sec(const uint32_t us) {
+  return us * 1e-6;
+}
+
 inline int8_t int8(const uint8_t *data, const size_t offset) {
   return (int8_t)(data[offset]);
 }
@@ -47,6 +51,40 @@ inline int32_t int32(const uint8_t *data, const size_t offset) {
 inline uint32_t uint32(const uint8_t *data, const size_t offset) {
   return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
                     (data[offset + 1] << 8) | (data[offset]));
+}
+
+float inv_sqrt(const float x) {
+  // Source: https://en.wikipedia.org/wiki/Fast_inverse_square_root
+  union {
+    float f;
+    uint32_t i;
+  } conv = {.f = x};
+  conv.i = 0x5f3759df - (conv.i >> 1);
+  conv.f *= 1.5F - (x * 0.5F * conv.f * conv.f);
+  return conv.f;
+}
+
+void euler2quat(const float rpy[3], float q[4]) {
+  const float phi = rpy[0];
+  const float theta = rpy[1];
+  const float psi = rpy[2];
+
+  const float cphi = cos(phi / 2.0);
+  const float ctheta = cos(theta / 2.0);
+  const float cpsi = cos(psi / 2.0);
+  const float sphi = sin(phi / 2.0);
+  const float stheta = sin(theta / 2.0);
+  const float spsi = sin(psi / 2.0);
+
+  const float qx = sphi * ctheta * cpsi - cphi * stheta * spsi;
+  const float qy = cphi * stheta * cpsi + sphi * ctheta * spsi;
+  const float qz = cphi * ctheta * spsi - sphi * stheta * cpsi;
+  const float qw = cphi * ctheta * cpsi + sphi * stheta * spsi;
+  const float N = sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
+  q[0] = qw / N;
+  q[1] = qx / N;
+  q[2] = qy / N;
+  q[3] = qz / N;
 }
 
 void euler321(const float euler[3], float C[3 * 3]) {
@@ -156,6 +194,26 @@ void rot2quat(const float C[3 * 3], float q[4]) {
   q[3] = qz;
 }
 
+float quat_norm(const float q[4]) {
+  const float qw2 = q[0] * q[0];
+  const float qx2 = q[1] * q[1];
+  const float qy2 = q[2] * q[2];
+  const float qz2 = q[3] * q[3];
+  return sqrt(qw2 + qx2 + qy2 + qz2);
+}
+
+void quat_normalize(float q[4]) {
+  const float qw2 = q[0] * q[0];
+  const float qx2 = q[1] * q[1];
+  const float qy2 = q[2] * q[2];
+  const float qz2 = q[3] * q[3];
+  const float inv_norm = inv_sqrt(qw2 + qx2 + qy2 + qz2);
+  q[0] *= inv_norm;
+  q[1] *= inv_norm;
+  q[2] *= inv_norm;
+  q[3] *= inv_norm;
+}
+
 void tf_trans(const float T[16], float r[3]) {
   r[0] = T[3];
   r[1] = T[7];
@@ -242,6 +300,10 @@ void uart_setup(uart_t *uart, int baud = 115200) {
   Serial1.begin(baud);
 }
 
+uint8_t uart_in_ready(const uart_t *uart) {
+  return uart->serial_in->available();
+}
+
 void uart_read_byte(const uart_t *uart, uint8_t *b) {
   *b = uart->serial_in->read();
 }
@@ -295,7 +357,7 @@ void uart_printf(const uart_t *uart, const char *fmt, ...) {
   for (int i = 0; fmt[i] != '\0'; i++) {
     if (fmt[i] == '%') {
       // Look for specification of number of decimal places
-      int places = 2;
+      int places = 4;
       if (fmt[i + 1] >= '0' && fmt[i + 1] <= '9') {
         places = fmt[i + 1] - '0';
         i++;
@@ -346,7 +408,8 @@ void uart_printf(const uart_t *uart, const char *fmt, ...) {
 // I2C ///////////////////////////////////////////////////////////////////////
 
 void i2c_setup() {
-  Wire.setClock(400000);
+  // Wire.setClock(400000);
+  Wire.setClock(3400000);
   Wire.begin();
 }
 
@@ -538,10 +601,28 @@ void sbus_write(const uint8_t *data, const size_t size) {
 int8_t sbus_update(sbus_t *sbus) {
   // Get sbus frame data
   uint8_t frame[25] = {0};
-  if (sbus_read_byte(&frame[0]) == -1 || frame[0] != 0x0F) {
+  // if (sbus_read_byte(&frame[0]) == -1 || frame[0] != 0x0F) {
+  //   Serial2.clear();
+  //   return -1;
+  // }
+  // sbus_read(frame, 25);
+  // Serial2.clear();
+
+  uint8_t new_frame = 0;
+  while (Serial2.available()) {
+    uint8_t byte = Serial2.read();
+    if (byte != 0x0f) {
+      continue;
+    } else {
+      Serial2.readBytes(&frame[1], 24);
+      Serial2.clear();
+      new_frame = 1;
+      break;
+    }
+  }
+  if (new_frame == 0) {
     return -1;
   }
-  sbus_read(&frame[1], 24);
 
   // Parse sbus frame
   // -- Parse flag
@@ -569,6 +650,50 @@ int8_t sbus_update(sbus_t *sbus) {
   sbus->ch[15] = ((frame[21] >> 5 | frame[22] << 3) & 0x07FF);
 
   return 0;
+}
+
+float sbus_thrust(const sbus_t *sbus) {
+  return (sbus->ch[0] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
+}
+
+float sbus_roll(const sbus_t *sbus) {
+  // Within deadband
+  if (sbus->ch[1] > 950 && sbus->ch[1] < 1050) {
+    return 0.0;
+  }
+
+  // Outside deadband
+  float max_tilt = deg2rad(20.0);
+  float val = (sbus->ch[1] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
+  return max_tilt * val;
+}
+
+float sbus_pitch(const sbus_t *sbus) {
+  // Within deadband
+  if (sbus->ch[2] > 950 && sbus->ch[2] < 1050) {
+    return 0.0;
+  }
+
+  // Outside deadband
+  float max_tilt = deg2rad(20.0);
+  float val = (sbus->ch[2] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
+  return max_tilt * val;
+}
+
+float sbus_yaw(const sbus_t *sbus) {
+  // Within deadband
+  if (sbus->ch[3] > 950 && sbus->ch[3] < 1050) {
+    return 0.0;
+  }
+
+  // Outside deadband
+  float max_tilt = deg2rad(20.0);
+  float val = (sbus->ch[3] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
+  return max_tilt * val;
+}
+
+uint8_t sbus_arm(const sbus_t *sbus) {
+  return (sbus->ch[4] > ((PWM_VALUE_MAX - PWM_VALUE_MIN) / 2.0));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -857,120 +982,118 @@ void bmp280_get_data(const bmp280_t *bmp280,
 #define MPU6050_ADDRESS_AD0_HIGH 0x69 // addr pin high (VCC)
 
 // REGISTER ADDRESSES
-#define MPU6050_REG_XG_OFFS_TC 0x00
-#define MPU6050_REG_YG_OFFS_TC 0x01
-#define MPU6050_REG_ZG_OFFS_TC 0x02
-#define MPU6050_REG_X_FINE_GAIN 0x03
-#define MPU6050_REG_Y_FINE_GAIN 0x04
-#define MPU6050_REG_Z_FINE_GAIN 0x05
-#define MPU6050_REG_XA_OFFS_H 0x06
-#define MPU6050_REG_XA_OFFS_L_TC 0x07
-#define MPU6050_REG_YA_OFFS_H 0x08
-#define MPU6050_REG_YA_OFFS_L_TC 0x09
-#define MPU6050_REG_ZA_OFFS_H 0x0A
-#define MPU6050_REG_ZA_OFFS_L_TC 0x0B
-#define MPU6050_REG_XG_OFFS_USRH 0x13
-#define MPU6050_REG_XG_OFFS_USRL 0x14
-#define MPU6050_REG_YG_OFFS_USRH 0x15
-#define MPU6050_REG_YG_OFFS_USRL 0x16
-#define MPU6050_REG_ZG_OFFS_USRH 0x17
-#define MPU6050_REG_ZG_OFFS_USRL 0x18
-#define MPU6050_REG_SMPLRT_DIV 0x19
-#define MPU6050_REG_CONFIG 0x1A
-#define MPU6050_REG_GYRO_CONFIG 0x1B
-#define MPU6050_REG_ACCEL_CONFIG 0x1C
-#define MPU6050_REG_FF_THR 0x1D
-#define MPU6050_REG_FF_DUR 0x1E
-#define MPU6050_REG_MOT_THR 0x1F
-#define MPU6050_REG_MOT_DUR 0x20
-#define MPU6050_REG_ZRMOT_THR 0x21
-#define MPU6050_REG_ZRMOT_DUR 0x22
-#define MPU6050_REG_FIFO_EN 0x23
-#define MPU6050_REG_I2C_MST_CTRL 0x24
-#define MPU6050_REG_I2C_SLV0_ADDR 0x25
-#define MPU6050_REG_I2C_SLV0_REG 0x26
-#define MPU6050_REG_I2C_SLV0_CTRL 0x27
-#define MPU6050_REG_I2C_SLV1_ADDR 0x28
-#define MPU6050_REG_I2C_SLV1_REG 0x29
-#define MPU6050_REG_I2C_SLV1_CTRL 0x2A
-#define MPU6050_REG_I2C_SLV2_ADDR 0x2B
-#define MPU6050_REG_I2C_SLV2_REG 0x2C
-#define MPU6050_REG_I2C_SLV2_CTRL 0x2D
-#define MPU6050_REG_I2C_SLV3_ADDR 0x2E
-#define MPU6050_REG_I2C_SLV3_REG 0x2F
-#define MPU6050_REG_I2C_SLV3_CTRL 0x30
-#define MPU6050_REG_I2C_SLV4_ADDR 0x31
-#define MPU6050_REG_I2C_SLV4_REG 0x32
-#define MPU6050_REG_I2C_SLV4_DO 0x33
-#define MPU6050_REG_I2C_SLV4_CTRL 0x34
-#define MPU6050_REG_I2C_SLV4_DI 0x35
-#define MPU6050_REG_I2C_MST_STATUS 0x36
-#define MPU6050_REG_INT_PIN_CFG 0x37
-#define MPU6050_REG_INT_ENABLE 0x38
-#define MPU6050_REG_DMP_INT_STATUS 0x39
-#define MPU6050_REG_INT_STATUS 0x3A
-#define MPU6050_REG_ACCEL_XOUT_H 0x3B
-#define MPU6050_REG_ACCEL_XOUT_L 0x3C
-#define MPU6050_REG_ACCEL_YOUT_H 0x3D
-#define MPU6050_REG_ACCEL_YOUT_L 0x3E
-#define MPU6050_REG_ACCEL_ZOUT_H 0x3F
-#define MPU6050_REG_ACCEL_ZOUT_L 0x40
-#define MPU6050_REG_TEMP_OUT_H 0x41
-#define MPU6050_REG_TEMP_OUT_L 0x42
-#define MPU6050_REG_GYRO_XOUT_H 0x43
-#define MPU6050_REG_GYRO_XOUT_L 0x44
-#define MPU6050_REG_GYRO_YOUT_H 0x45
-#define MPU6050_REG_GYRO_YOUT_L 0x46
-#define MPU6050_REG_GYRO_ZOUT_H 0x47
-#define MPU6050_REG_GYRO_ZOUT_L 0x48
-#define MPU6050_REG_EXT_SENS_DATA_00 0x49
-#define MPU6050_REG_EXT_SENS_DATA_01 0x4A
-#define MPU6050_REG_EXT_SENS_DATA_02 0x4B
-#define MPU6050_REG_EXT_SENS_DATA_03 0x4C
-#define MPU6050_REG_EXT_SENS_DATA_04 0x4D
-#define MPU6050_REG_EXT_SENS_DATA_05 0x4E
-#define MPU6050_REG_EXT_SENS_DATA_06 0x4F
-#define MPU6050_REG_EXT_SENS_DATA_07 0x50
-#define MPU6050_REG_EXT_SENS_DATA_08 0x51
-#define MPU6050_REG_EXT_SENS_DATA_09 0x52
-#define MPU6050_REG_EXT_SENS_DATA_10 0x53
-#define MPU6050_REG_EXT_SENS_DATA_11 0x54
-#define MPU6050_REG_EXT_SENS_DATA_12 0x55
-#define MPU6050_REG_EXT_SENS_DATA_13 0x56
-#define MPU6050_REG_EXT_SENS_DATA_14 0x57
-#define MPU6050_REG_EXT_SENS_DATA_15 0x58
-#define MPU6050_REG_EXT_SENS_DATA_16 0x59
-#define MPU6050_REG_EXT_SENS_DATA_17 0x5A
-#define MPU6050_REG_EXT_SENS_DATA_18 0x5B
-#define MPU6050_REG_EXT_SENS_DATA_19 0x5C
-#define MPU6050_REG_EXT_SENS_DATA_20 0x5D
-#define MPU6050_REG_EXT_SENS_DATA_21 0x5E
-#define MPU6050_REG_EXT_SENS_DATA_22 0x5F
-#define MPU6050_REG_EXT_SENS_DATA_23 0x60
-#define MPU6050_REG_MOT_DETECT_STATUS 0x61
-#define MPU6050_REG_I2C_SLV0_DO 0x63
-#define MPU6050_REG_I2C_SLV1_DO 0x64
-#define MPU6050_REG_I2C_SLV2_DO 0x65
-#define MPU6050_REG_I2C_SLV3_DO 0x66
-#define MPU6050_REG_I2C_MST_DELAY_CTRL 0x67
-#define MPU6050_REG_SIGNAL_PATH_RESET 0x68
-#define MPU6050_REG_MOT_DETECT_CTRL 0x69
-#define MPU6050_REG_USER_CTRL 0x6A
-#define MPU6050_REG_PWR_MGMT_1 0x6B
-#define MPU6050_REG_PWR_MGMT_2 0x6C
-#define MPU6050_REG_BANK_SEL 0x6D
-#define MPU6050_REG_MEM_START_ADDR 0x6E
-#define MPU6050_REG_MEM_R_W 0x6F
-#define MPU6050_REG_DMP_CFG_1 0x70
-#define MPU6050_REG_DMP_CFG_2 0x71
-#define MPU6050_REG_FIFO_COUNTH 0x72
-#define MPU6050_REG_FIFO_COUNTL 0x73
-#define MPU6050_REG_FIFO_R_W 0x74
-#define MPU6050_REG_WHO_AM_I 0x75
+#define MPU6050_XG_OFFS_TC 0x00
+#define MPU6050_YG_OFFS_TC 0x01
+#define MPU6050_ZG_OFFS_TC 0x02
+#define MPU6050_X_FINE_GAIN 0x03
+#define MPU6050_Y_FINE_GAIN 0x04
+#define MPU6050_Z_FINE_GAIN 0x05
+#define MPU6050_XA_OFFS_H 0x06
+#define MPU6050_XA_OFFS_L_TC 0x07
+#define MPU6050_YA_OFFS_H 0x08
+#define MPU6050_YA_OFFS_L_TC 0x09
+#define MPU6050_ZA_OFFS_H 0x0A
+#define MPU6050_ZA_OFFS_L_TC 0x0B
+#define MPU6050_XG_OFFS_USRH 0x13
+#define MPU6050_XG_OFFS_USRL 0x14
+#define MPU6050_YG_OFFS_USRH 0x15
+#define MPU6050_YG_OFFS_USRL 0x16
+#define MPU6050_ZG_OFFS_USRH 0x17
+#define MPU6050_ZG_OFFS_USRL 0x18
+#define MPU6050_SMPLRT_DIV 0x19
+#define MPU6050_CONFIG 0x1A
+#define MPU6050_GYRO_CONFIG 0x1B
+#define MPU6050_ACCEL_CONFIG 0x1C
+#define MPU6050_FF_THR 0x1D
+#define MPU6050_FF_DUR 0x1E
+#define MPU6050_MOT_THR 0x1F
+#define MPU6050_MOT_DUR 0x20
+#define MPU6050_ZRMOT_THR 0x21
+#define MPU6050_ZRMOT_DUR 0x22
+#define MPU6050_FIFO_EN 0x23
+#define MPU6050_I2C_MST_CTRL 0x24
+#define MPU6050_I2C_SLV0_ADDR 0x25
+#define MPU6050_I2C_SLV0_REG 0x26
+#define MPU6050_I2C_SLV0_CTRL 0x27
+#define MPU6050_I2C_SLV1_ADDR 0x28
+#define MPU6050_I2C_SLV1_REG 0x29
+#define MPU6050_I2C_SLV1_CTRL 0x2A
+#define MPU6050_I2C_SLV2_ADDR 0x2B
+#define MPU6050_I2C_SLV2_REG 0x2C
+#define MPU6050_I2C_SLV2_CTRL 0x2D
+#define MPU6050_I2C_SLV3_ADDR 0x2E
+#define MPU6050_I2C_SLV3_REG 0x2F
+#define MPU6050_I2C_SLV3_CTRL 0x30
+#define MPU6050_I2C_SLV4_ADDR 0x31
+#define MPU6050_I2C_SLV4_REG 0x32
+#define MPU6050_I2C_SLV4_DO 0x33
+#define MPU6050_I2C_SLV4_CTRL 0x34
+#define MPU6050_I2C_SLV4_DI 0x35
+#define MPU6050_I2C_MST_STATUS 0x36
+#define MPU6050_INT_PIN_CFG 0x37
+#define MPU6050_INT_ENABLE 0x38
+#define MPU6050_DMP_INT_STATUS 0x39
+#define MPU6050_INT_STATUS 0x3A
+#define MPU6050_ACCEL_XOUT_H 0x3B
+#define MPU6050_ACCEL_XOUT_L 0x3C
+#define MPU6050_ACCEL_YOUT_H 0x3D
+#define MPU6050_ACCEL_YOUT_L 0x3E
+#define MPU6050_ACCEL_ZOUT_H 0x3F
+#define MPU6050_ACCEL_ZOUT_L 0x40
+#define MPU6050_TEMP_OUT_H 0x41
+#define MPU6050_TEMP_OUT_L 0x42
+#define MPU6050_GYRO_XOUT_H 0x43
+#define MPU6050_GYRO_XOUT_L 0x44
+#define MPU6050_GYRO_YOUT_H 0x45
+#define MPU6050_GYRO_YOUT_L 0x46
+#define MPU6050_GYRO_ZOUT_H 0x47
+#define MPU6050_GYRO_ZOUT_L 0x48
+#define MPU6050_EXT_SENS_DATA_00 0x49
+#define MPU6050_EXT_SENS_DATA_01 0x4A
+#define MPU6050_EXT_SENS_DATA_02 0x4B
+#define MPU6050_EXT_SENS_DATA_03 0x4C
+#define MPU6050_EXT_SENS_DATA_04 0x4D
+#define MPU6050_EXT_SENS_DATA_05 0x4E
+#define MPU6050_EXT_SENS_DATA_06 0x4F
+#define MPU6050_EXT_SENS_DATA_07 0x50
+#define MPU6050_EXT_SENS_DATA_08 0x51
+#define MPU6050_EXT_SENS_DATA_09 0x52
+#define MPU6050_EXT_SENS_DATA_10 0x53
+#define MPU6050_EXT_SENS_DATA_11 0x54
+#define MPU6050_EXT_SENS_DATA_12 0x55
+#define MPU6050_EXT_SENS_DATA_13 0x56
+#define MPU6050_EXT_SENS_DATA_14 0x57
+#define MPU6050_EXT_SENS_DATA_15 0x58
+#define MPU6050_EXT_SENS_DATA_16 0x59
+#define MPU6050_EXT_SENS_DATA_17 0x5A
+#define MPU6050_EXT_SENS_DATA_18 0x5B
+#define MPU6050_EXT_SENS_DATA_19 0x5C
+#define MPU6050_EXT_SENS_DATA_20 0x5D
+#define MPU6050_EXT_SENS_DATA_21 0x5E
+#define MPU6050_EXT_SENS_DATA_22 0x5F
+#define MPU6050_EXT_SENS_DATA_23 0x60
+#define MPU6050_MOT_DETECT_STATUS 0x61
+#define MPU6050_I2C_SLV0_DO 0x63
+#define MPU6050_I2C_SLV1_DO 0x64
+#define MPU6050_I2C_SLV2_DO 0x65
+#define MPU6050_I2C_SLV3_DO 0x66
+#define MPU6050_I2C_MST_DELAY_CTRL 0x67
+#define MPU6050_SIGNAL_PATH_RESET 0x68
+#define MPU6050_MOT_DETECT_CTRL 0x69
+#define MPU6050_USER_CTRL 0x6A
+#define MPU6050_PWR_MGMT_1 0x6B
+#define MPU6050_PWR_MGMT_2 0x6C
+#define MPU6050_BANK_SEL 0x6D
+#define MPU6050_MEM_START_ADDR 0x6E
+#define MPU6050_MEM_R_W 0x6F
+#define MPU6050_DMP_CFG_1 0x70
+#define MPU6050_DMP_CFG_2 0x71
+#define MPU6050_FIFO_COUNTH 0x72
+#define MPU6050_FIFO_COUNTL 0x73
+#define MPU6050_FIFO_R_W 0x74
+#define MPU6050_WHO_AM_I 0x75
 
 typedef struct mpu6050_t {
-  int8_t ok;
-
   float accel_sensitivity;
   float gyro_sensitivity;
   float accel[3];
@@ -1012,7 +1135,7 @@ int8_t mpu6050_setup(mpu6050_t *imu) {
   }
 
   // Set power management register
-  i2c_write_byte(MPU6050_ADDRESS, MPU6050_REG_PWR_MGMT_1, 0x00);
+  i2c_write_byte(MPU6050_ADDRESS, MPU6050_PWR_MGMT_1, 0x00);
 
   // Configure gyro range
   if (mpu6050_set_gyro_range(imu, gyro_range) != 0) {
@@ -1072,7 +1195,7 @@ void mpu6050_calibrate(mpu6050_t *imu) {
   float wy = 0.0;
   float wz = 0.0;
 
-  uint16_t nb_samples = 2000;
+  uint16_t nb_samples = 5000;
   for (uint16_t i = 0; i < nb_samples; i++) {
     mpu6050_get_data(imu);
     wx += imu->gyro[0];
@@ -1087,13 +1210,13 @@ void mpu6050_calibrate(mpu6050_t *imu) {
 
 uint8_t mpu6050_ping(const mpu6050_t *imu) {
   UNUSED(imu);
-  return i2c_read_byte(MPU6050_ADDRESS, MPU6050_REG_WHO_AM_I);
+  return i2c_read_byte(MPU6050_ADDRESS, MPU6050_WHO_AM_I);
 }
 
 int8_t mpu6050_get_data(mpu6050_t *imu) {
   // Read data
   uint8_t raw_data[14] = {0};
-  i2c_read_bytes(MPU6050_ADDRESS, MPU6050_REG_ACCEL_XOUT_H, 14, raw_data);
+  i2c_read_bytes(MPU6050_ADDRESS, MPU6050_ACCEL_XOUT_H, 14, raw_data);
 
   // Accelerometer
   const float g = 9.81; // Gravitational constant
@@ -1154,7 +1277,7 @@ int8_t mpu6050_set_dplf(const mpu6050_t *imu, const uint8_t setting) {
   }
 
   // Set DPLF
-  i2c_write_byte(MPU6050_ADDRESS, MPU6050_REG_CONFIG, (char) setting);
+  i2c_write_byte(MPU6050_ADDRESS, MPU6050_CONFIG, (char) setting);
 
   return 0;
 }
@@ -1163,20 +1286,20 @@ int8_t mpu6050_get_dplf(const mpu6050_t *imu) {
   UNUSED(imu);
 
   uint8_t data[1] = {0x00};
-  i2c_read_bytes(MPU6050_ADDRESS, MPU6050_REG_CONFIG, 1, data);
+  i2c_read_bytes(MPU6050_ADDRESS, MPU6050_CONFIG, 1, data);
   data[0] = data[0] & 0b00000111;
   return data[0];
 }
 
 int8_t mpu6050_set_sample_rate_div(const mpu6050_t *imu, const int8_t div) {
   UNUSED(imu);
-  i2c_write_byte(MPU6050_ADDRESS, MPU6050_REG_SMPLRT_DIV, div);
+  i2c_write_byte(MPU6050_ADDRESS, MPU6050_SMPLRT_DIV, div);
   return 0;
 }
 
 int8_t mpu6050_get_sample_rate_div(const mpu6050_t *imu) {
   UNUSED(imu);
-  return i2c_read_byte(MPU6050_ADDRESS, MPU6050_REG_SMPLRT_DIV);
+  return i2c_read_byte(MPU6050_ADDRESS, MPU6050_SMPLRT_DIV);
 }
 
 int8_t mpu6050_get_sample_rate(const mpu6050_t *imu) {
@@ -1208,7 +1331,7 @@ int8_t mpu6050_get_gyro_range(const mpu6050_t *imu, int8_t *range) {
   UNUSED(imu);
 
   // Get gyro config
-  const uint8_t data = i2c_read_byte(MPU6050_ADDRESS, MPU6050_REG_GYRO_CONFIG);
+  const uint8_t data = i2c_read_byte(MPU6050_ADDRESS, MPU6050_GYRO_CONFIG);
 
   // Get gyro range bytes
   *range = (data >> 3) & 0b00000011;
@@ -1226,7 +1349,7 @@ int8_t mpu6050_set_gyro_range(const mpu6050_t *imu, const int8_t range) {
 
   // Set sample rate
   uint8_t data = range << 3;
-  i2c_write_byte(MPU6050_ADDRESS, MPU6050_REG_GYRO_CONFIG, data);
+  i2c_write_byte(MPU6050_ADDRESS, MPU6050_GYRO_CONFIG, data);
 
   // Double check
   int8_t gyro_range = 0;
@@ -1242,7 +1365,7 @@ int8_t mpu6050_get_accel_range(const mpu6050_t *imu, int8_t *range) {
   UNUSED(imu);
 
   // Get accel config
-  uint8_t data = i2c_read_byte(MPU6050_ADDRESS, MPU6050_REG_ACCEL_CONFIG);
+  uint8_t data = i2c_read_byte(MPU6050_ADDRESS, MPU6050_ACCEL_CONFIG);
 
   // Get accel range bytes
   *range = (data >> 3) & 0b00000011;
@@ -1260,7 +1383,7 @@ int8_t mpu6050_set_accel_range(const mpu6050_t *imu, const int8_t range) {
 
   // Set sample rate
   uint8_t data = range << 3;
-  i2c_write_byte(MPU6050_ADDRESS, MPU6050_REG_ACCEL_CONFIG, data);
+  i2c_write_byte(MPU6050_ADDRESS, MPU6050_ACCEL_CONFIG, data);
 
   // Double check
   int8_t accel_range = 0;
@@ -1273,6 +1396,242 @@ int8_t mpu6050_set_accel_range(const mpu6050_t *imu, const int8_t range) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+
+//// MPU9250 ///////////////////////////////////////////////////////////////////
+
+//// GENERAL
+//#define MPU9250_ADDRESS 0x68
+//#define MPU9250_ADDRESS_AD0_LOW 0x68  // addr pin low (GND) [default]
+//#define MPU9250_ADDRESS_AD0_HIGH 0x69 // addr pin high (VCC)
+
+//// REGISTER ADDRESSES
+//#define MPU9250_SELF_TEST_X_GYRO 0x00
+//#define MPU9250_SELF_TEST_Y_GYRO 0x01
+//#define MPU9250_SELF_TEST_Z_GYRO 0x02
+//#define MPU9250_SELF_TEST_X_ACCEL 0x0D
+//#define MPU9250_SELF_TEST_Y_ACCEL 0x0E
+//#define MPU9250_SELF_TEST_Z_ACCEL 0x0F
+//#define MPU9250_XG_OFFSET_H 0x13
+//#define MPU9250_XG_OFFSET_L 0x14
+//#define MPU9250_YG_OFFSET_H 0x15
+//#define MPU9250_YG_OFFSET_L 0x16
+//#define MPU9250_ZG_OFFSET_H 0x17
+//#define MPU9250_ZG_OFFSET_L 0x18
+//#define MPU9250_SMPLRT_DIV 0x19
+//#define MPU9250_CONFIG 0x1A
+//#define MPU9250_GYRO_CONFIG 0x1B
+//#define MPU9250_ACCEL_CONFIG 0x1C
+//#define MPU9250_ACCEL_CONFIG2 0x1D
+//#define MPU9250_LP_ACCEL_ODR 0x1E
+//#define MPU9250_WOM_THR 0x1F
+//#define MPU9250_FIFO_EN 0x23
+//#define MPU9250_I2C_MST_CTRL 0x24
+//#define MPU9250_I2C_SLV0_ADDR 0x25
+//#define MPU9250_I2C_SLV0_REG 0x26
+//#define MPU9250_I2C_SLV0_CTRL 0x27
+//#define MPU9250_I2C_SLV1_ADDR 0x28
+//#define MPU9250_I2C_SLV1_REG 0x29
+//#define MPU9250_I2C_SLV1_CTRL 0x2A
+//#define MPU9250_I2C_SLV2_ADDR 0x28
+//#define MPU9250_I2C_SLV2_REG 0x2C
+//#define MPU9250_I2C_SLV2_CTRL 0x2D
+//#define MPU9250_I2C_SLV3_ADDR 0x2E
+//#define MPU9250_I2C_SLV3_REG 0x2F
+//#define MPU9250_I2C_SLV3_CTRL 0x30
+//#define MPU9250_I2C_SLV4_ADDR 0x31
+//#define MPU9250_I2C_SLV4_REG 0x32
+//#define MPU9250_I2C_SLV4_DO 0x33
+//#define MPU9250_I2C_SLV4_CTRL 0x34
+//#define MPU9250_I2C_SLV4_DI 0x35
+//#define MPU9250_I2C_MST_STATUS 0x36
+//#define MPU9250_INT_PIN_CFG 0x37
+//#define MPU9250_INT_ENABLE 0x38
+//#define MPU9250_INT_STATUS 0x3A
+//#define MPU9250_ACCEL_XOUT_H 0x3B
+//#define MPU9250_ACCEL_XOUT_L 0x3C
+//#define MPU9250_ACCEL_YOUT_H 0x3D
+//#define MPU9250_ACCEL_YOUT_L 0x3E
+//#define MPU9250_ACCEL_ZOUT_H 0x3F
+//#define MPU9250_ACCEL_ZOUT_L 0x40
+//#define MPU9250_TEMP_OUT_H 0x41
+//#define MPU9250_TEMP_OUT_L 0x42
+//#define MPU9250_GYRO_XOUT_H 0x43
+//#define MPU9250_GYRO_XOUT_L 0x44
+//#define MPU9250_GYRO_YOUT_H 0x45
+//#define MPU9250_GYRO_YOUT_L 0x46
+//#define MPU9250_GYRO_ZOUT_H 0x47
+//#define MPU9250_GYRO_ZOUT_L 0x48
+//#define MPU9250_EXT_SENS_DATA_00 0x49
+//#define MPU9250_EXT_SENS_DATA_01 0x4A
+//#define MPU9250_EXT_SENS_DATA_02 0x4B
+//#define MPU9250_EXT_SENS_DATA_03 0x4C
+//#define MPU9250_EXT_SENS_DATA_04 0x4D
+//#define MPU9250_EXT_SENS_DATA_05 0x4E
+//#define MPU9250_EXT_SENS_DATA_06 0x4F
+//#define MPU9250_EXT_SENS_DATA_07 0x50
+//#define MPU9250_EXT_SENS_DATA_08 0x51
+//#define MPU9250_EXT_SENS_DATA_09 0x52
+//#define MPU9250_EXT_SENS_DATA_10 0x53
+//#define MPU9250_EXT_SENS_DATA_11 0x54
+//#define MPU9250_EXT_SENS_DATA_12 0x55
+//#define MPU9250_EXT_SENS_DATA_13 0x56
+//#define MPU9250_EXT_SENS_DATA_14 0x57
+//#define MPU9250_EXT_SENS_DATA_15 0x58
+//#define MPU9250_EXT_SENS_DATA_16 0x59
+//#define MPU9250_EXT_SENS_DATA_17 0x5A
+//#define MPU9250_EXT_SENS_DATA_18 0x5B
+//#define MPU9250_EXT_SENS_DATA_19 0x5C
+//#define MPU9250_EXT_SENS_DATA_20 0x5D
+//#define MPU9250_EXT_SENS_DATA_21 0x5E
+//#define MPU9250_EXT_SENS_DATA_22 0x5F
+//#define MPU9250_EXT_SENS_DATA_23 0x60
+//#define MPU9250_I2C_SLV0_DO 0x63
+//#define MPU9250_I2C_SLV1_DO 0x64
+//#define MPU9250_I2C_SLV2_DO 0x65
+//#define MPU9250_I2C_SLV3_DO 0x66
+//#define MPU9250_I2C_MST_DELAY_CTRL 0x67
+//#define MPU9250_SIGNAL_PATH_RESET 0x68
+//#define MPU9250_MOT_DETECT_CTRL 0x69
+//#define MPU9250_USER_CTRL 0x6A
+//#define MPU9250_PWR_MGMT_1 0x6B
+//#define MPU9250_PWR_MGMT_2 0x6C
+//#define MPU9250_FIFO_COUNTH 0x72
+//#define MPU9250_FIFO_COUNTL 0x73
+//#define MPU9250_FIFO_R_W 0x74
+//#define MPU9250_WHO_AM_I 0x75
+//#define MPU9250_XA_OFFSET_H 0x77
+//#define MPU9250_XA_OFFSET_L 0x78
+//#define MPU9250_YA_OFFSET_H 0x7A
+//#define MPU9250_YA_OFFSET_L 0x7B
+//#define MPU9250_ZA_OFFSET_H 0x7D
+//#define MPU9250_ZA_OFFSET_L 0x7E
+
+//#define AK8963_I2C_ADDR 0x0c
+//#define AK8963_Device_ID 0x48
+//#define AK8963_WHO_AM_I 0x00
+//#define AK8963_INFO 0x01
+//#define AK8963_ST1 0x02
+//#define AK8963_XOUT_L 0x03
+//#define AK8963_XOUT_H 0x04
+//#define AK8963_YOUT_L 0x05
+//#define AK8963_YOUT_H 0x06
+//#define AK8963_ZOUT_L 0x07
+//#define AK8963_ZOUT_H 0x08
+//#define AK8963_ST2 0x09
+//#define AK8963_CNTL 0x0A
+//#define AK8963_ASTC 0x0C
+//#define AK8963_I2CDIS 0x0F
+//#define AK8963_ASAX 0x10
+//#define AK8963_ASAY 0x11
+//#define AK8963_ASAZ 0x12
+
+// typedef struct mpu9250_t {
+//  float accel_sensitivity;
+//  float gyro_sensitivity;
+//  float mag_sensitivity;
+//  float accel[3];
+//  float gyro[3];
+//  float gyro_offset[3];
+
+//  float temperature;
+//  float sample_rate;
+//  int8_t dplf_config;
+//} mpu9250_t;
+
+// void mpu9250_setup(mpu9250_t *imu);
+// void mpu9250_calibrate(mpu9250_t *imu);
+// void mpu9250_get_data(mpu6050_t *imu);
+
+// void mpu9250_setup(mpu9250_t *imu) {
+//  int8_t retval = 0;
+//  int8_t dplf = 6;
+//  int8_t gyro_range = 1;
+//  int8_t accel_range = 2;
+
+//  uint8_t config = 0;
+//  uint8_t gyro_config = 0;
+//  uint8_t accel_config = 0;
+//  i2c_write_byte(MPU9250_ADDRESS, MPU9250_CONFIG, config);
+//  i2c_write_byte(MPU9250_ADDRESS, MPU9250_GYRO_CONFIG, gyro_config);
+//  i2c_write_byte(MPU9250_ADDRESS, MPU9250_ACCEL_CONFIG, accel_config);
+//}
+
+// void mpu9250_calibrate(mpu9250_t *imu) {
+//  float wx = 0.0;
+//  float wy = 0.0;
+//  float wz = 0.0;
+
+//  uint16_t nb_samples = 5000;
+//  for (uint16_t i = 0; i < nb_samples; i++) {
+//    mpu9250_get_data(imu);
+//    wx += imu->gyro[0];
+//    wy += imu->gyro[1];
+//    wz += imu->gyro[2];
+//  }
+
+//  imu->gyro_offset[0] = wx / (float) nb_samples;
+//  imu->gyro_offset[1] = wy / (float) nb_samples;
+//  imu->gyro_offset[2] = wz / (float) nb_samples;
+//}
+
+// void mpu9250_get_data(mpu9250_t *imu) {
+//  // Read data
+//  uint8_t raw_data[14] = {0};
+//  i2c_read_bytes(MPU9250_ADDRESS, MPU9250_ACCEL_XOUT_H, 14, raw_data);
+
+//  // Accelerometer
+//  const float g = 9.81; // Gravitational constant
+//  const int16_t raw_x = (raw_data[0] << 8) | (raw_data[1]);
+//  const int16_t raw_y = (raw_data[2] << 8) | (raw_data[3]);
+//  const int16_t raw_z = (raw_data[4] << 8) | (raw_data[5]);
+//  imu->accel[0] = (raw_x / imu->accel_sensitivity) * g;
+//  imu->accel[1] = (raw_y / imu->accel_sensitivity) * g;
+//  imu->accel[2] = (raw_z / imu->accel_sensitivity) * g;
+
+//  // Temperature
+//  const int8_t raw_temp = (raw_data[6] << 8) | (raw_data[7]);
+//  imu->temperature = raw_temp / 340.0 + 36.53;
+
+//  // Gyroscope
+//  const int16_t gyro_raw_x = (raw_data[8] << 8) | (raw_data[9]);
+//  const int16_t gyro_raw_y = (raw_data[10] << 8) | (raw_data[11]);
+//  const int16_t gyro_raw_z = (raw_data[12] << 8) | (raw_data[13]);
+//  imu->gyro[0] = deg2rad(gyro_raw_x / imu->gyro_sensitivity);
+//  imu->gyro[1] = deg2rad(gyro_raw_y / imu->gyro_sensitivity);
+//  imu->gyro[2] = deg2rad(gyro_raw_z / imu->gyro_sensitivity);
+
+//  const int16_t mag_raw_x = (raw_data[16] << 8 | raw_data[15]);
+//  const int16_t mag_raw_y = (raw_data[18] << 8 | raw_data[17]);
+//  const int16_t mag_raw_z = (raw_data[20] << 8 | raw_data[19]);
+//  imu->mag[0] = mag_raw_x * imu->mag_scale[0];
+//  imu->mag[1] = mag_raw_y * imu->mag_scale[1];
+//  imu->mag[2] = mag_raw_z * imu->mag_scale[2];
+//}
+
+// void mpu9250_magnetometer_read(const mpu9250_t *imu,
+//                               uint8_t reg,
+//                               uint8_t count,
+//                               uint8_t *data) {
+//  i2c_write_byte(MPU9250_I2C_ADDR,
+//                 MPU9250_I2C_SLV0_ADDR,
+//                 AK8963_I2C_ADDR | 0x80);
+//  i2c_write_byte(MPU9250_I2C_ADDR, MPU9250_I2C_SLV0_REG, reg);
+//  i2c_write_byte(MPU9250_I2C_ADDR, MPU9250_I2C_SLV0_EN, count);
+//  delay(1);
+//  i2c_read_bytes(MPU9250_I2C_ADDR, MPU9250_EXT_SENS_DATA_00, count, data);
+//}
+
+// void mpu9250_magnetometer_write(const mpu9250_t *imu,
+//                                const uint8_t reg,
+//                                const uint8_t data) {
+//  i2c_write_byte(MPU9250_I2C_ADDR, MPU9250_I2C_SLV0_ADDR, AK8963_I2C_ADDR);
+//  i2c_write_byte(MPU9250_I2C_ADDR, MPU9250_I2C_SLV0_REG, reg);
+//  i2c_write_byte(MPU9250_I2C_ADDR, MPU9250_I2C_SLV0_DO, data);
+//  i2c_write_byte(MPU9250_I2C_ADDR, MPU9250_I2C_SLV0_CTRL, 0x80 |
+//  sizeof(data));
+//}
+
+////////////////////////////////////////////////////////////////////////////////
 
 // COMPLEMENTARY FILTER //////////////////////////////////////////////////////
 
@@ -1301,11 +1660,144 @@ void compl_filter_update(compl_filter_t *filter,
 
   const float roll_w = filter->roll + w[0] * dt_s;
   const float pitch_w = filter->pitch + w[1] * dt_s;
-  // const float yaw_w = filter->yaw + w[2] * dt_s;
+  const float yaw_w = filter->yaw + w[2] * dt_s;
 
   filter->roll = (1.0 - filter->alpha) * roll_a + filter->alpha * roll_w;
   filter->pitch = (1.0 - filter->alpha) * pitch_a + filter->alpha * pitch_w;
+  filter->yaw = yaw_w;
+
+  // const float qw_km1 = filter->q[0];
+  // const float qx_km1 = filter->q[1];
+  // const float qy_km1 = filter->q[2];
+  // const float qz_km1 = filter->q[3];
+  // const float hdt = dt_s / 2.0;
+  // const float q_gyro[4] =
+  //     {qw_km1 - hdt * wx * qx_km1 - hdt * wy * qy_km1 - hdt * wz * qz_km1,
+  //      qx_km1 + hdt * wx * qw_km1 - hdt * wy * qz_km1 + hdt * wz * qy_km1,
+  //      qy_km1 + hdt * wx * qz_km1 + hdt * wy * qw_km1 - hdt * wz * qx_km1,
+  //      qz_km1 - hdt * wx * qy_km1 + hdt * wy * qx_km1 + hdt * wz * qw_km1};
+
+  // const float phi = atan2(a[1], a[2]);
+  // const float theta = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
+  // const float psi = atan2(2 * (qx * qy + qz * qw), (qw2 + qx2 - qy2 - qz2));
+  // const float cphi = cos(phi / 2.0);
+  // const float ctheta = cos(theta / 2.0);
+  // const float cpsi = cos(psi / 2.0);
+  // const float sphi = sin(phi / 2.0);
+  // const float stheta = sin(theta / 2.0);
+  // const float spsi = sin(psi / 2.0);
+  // const float q_accel[4] = {sphi * ctheta * cpsi - cphi * stheta * spsi,
+  //                           cphi * stheta * cpsi + sphi * ctheta * spsi,
+  //                           cphi * ctheta * spsi - sphi * stheta * cpsi,
+  //                           cphi * ctheta * cpsi + sphi * stheta * spsi};
+
+  // const float q_k[4] = {(1.0 - alpha) * q_gyro[0] + alpha * q_accel[0],
+  //                       (1.0 - alpha) * q_gyro[1] + alpha * q_accel[1],
+  //                       (1.0 - alpha) * q_gyro[2] + alpha * q_accel[2],
+  //                       (1.0 - alpha) * q_gyro[3] + alpha * q_accel[3]};
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+// MAHONY FILTER /////////////////////////////////////////////////////////////
+
+typedef struct mahony_filter_t {
+  float q[4];
+
+  float kp;
+  float ki;
+
+  float integralFBx;
+  float integralFBy;
+  float integralFBz;
+
+  float roll;
+  float pitch;
+  float yaw;
+
+} mahony_filter_t;
+
+void mahony_filter_setup(mahony_filter_t *filter) {
+  filter->q[0] = 1.0;
+  filter->q[1] = 0.0;
+  filter->q[2] = 0.0;
+  filter->q[3] = 0.0;
+
+  filter->kp = 2.0 * 0.5;
+  filter->ki = 0.0;
+
+  filter->integralFBx = 0.0;
+  filter->integralFBy = 0.0;
+  filter->integralFBz = 0.0;
+
+  filter->roll = 0.0;
+  filter->pitch = 0.0;
   filter->yaw = 0.0;
+}
+
+void mahony_filter_update(mahony_filter_t *filter,
+                          const float a[3],
+                          const float w[3],
+                          const float dt) {
+  // Normalise accelerometer measurement
+  const float acc_inv_norm = inv_sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+  const float ax = a[0] * acc_inv_norm;
+  const float ay = a[1] * acc_inv_norm;
+  const float az = a[2] * acc_inv_norm;
+
+  // Estimated direction of gravity and vector perpendicular to magnetic
+  // flux
+  const float qw = filter->q[0];
+  const float qx = filter->q[1];
+  const float qy = filter->q[2];
+  const float qz = filter->q[3];
+  const float halfvx = qx * qz - qw * qy;
+  const float halfvy = qw * qx + qy * qz;
+  const float halfvz = qw * qw - 0.5f + qz * qz;
+
+  // Error is sum of cross product between estimated and measured direction
+  // of gravity
+  const float halfex = (ay * halfvz - az * halfvy);
+  const float halfey = (az * halfvx - ax * halfvz);
+  const float halfez = (ax * halfvy - ay * halfvx);
+
+  // Compute and apply integral feedback if enabled
+  float wx = w[0];
+  float wy = w[1];
+  float wz = w[2];
+  if (filter->ki > 0.0f) {
+    // Integral error scaled by Ki
+    filter->integralFBx += filter->ki * halfex * dt;
+    filter->integralFBy += filter->ki * halfey * dt;
+    filter->integralFBz += filter->ki * halfez * dt;
+
+    // Apply integral feedback
+    wx += filter->integralFBx;
+    wy += filter->integralFBy;
+    wz += filter->integralFBz;
+  } else {
+    // Prevent integral windup
+    filter->integralFBx = 0.0f;
+    filter->integralFBy = 0.0f;
+    filter->integralFBz = 0.0f;
+  }
+
+  // Integrate rate of change of quaternion
+  wx = (0.5f * dt) * wx + filter->kp * halfex;
+  wy = (0.5f * dt) * wx + filter->kp * halfey;
+  wz = (0.5f * dt) * wx + filter->kp * halfez;
+  filter->q[0] += -qx * wx - qy * wy - qz * wz;
+  filter->q[1] += qw * wx + qy * wz - qz * wy;
+  filter->q[2] += qw * wy - qx * wz + qz * wx;
+  filter->q[3] += qw * wz + qx * wy - qy * wx;
+  quat_normalize(filter->q);
+
+  // Quaternion to euler
+  float rpy[3] = {0.0, 0.0, 0.0};
+  quat2euler(filter->q, rpy);
+  filter->roll = rpy[0];
+  filter->pitch = rpy[1];
+  filter->yaw = rpy[2];
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1379,7 +1871,8 @@ void att_ctrl_setup(att_ctrl_t *att_ctrl) {
   pid_ctrl_t *pitch_pid = &att_ctrl->pitch_pid;
   pid_ctrl_t *yaw_pid = &att_ctrl->yaw_pid;
   pid_ctrl_setup(roll_pid, ROLL_PID_KP, ROLL_PID_KI, ROLL_PID_KD);
-  pid_ctrl_setup(pitch_pid, PITCH_PID_KP, PITCH_PID_KI, PITCH_PID_KD);
+  pid_ctrl_setup(pitch_pid, ROLL_PID_KP, ROLL_PID_KI, ROLL_PID_KD);
+  // pid_ctrl_setup(pitch_pid, PITCH_PID_KP, PITCH_PID_KI, PITCH_PID_KD);
   pid_ctrl_setup(yaw_pid, YAW_PID_KP, YAW_PID_KI, YAW_PID_KD);
 }
 
@@ -1402,33 +1895,55 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
 
   // Calculate yaw error
   float yaw_error = yaw_desired - yaw_actual;
-  yaw_error += (yaw_error > M_PI) ? -M_PI : 0.0;
-  yaw_error += (yaw_error < -M_PI) ? +M_PI : 0.0;
+  if (yaw_error > M_PI) {
+    yaw_error -= M_PI;
+  } else if (yaw_error < -M_PI) {
+    yaw_error += M_PI;
+  }
+  // yaw_error += (yaw_error < -M_PI) ? +M_PI : 0.0;
 
   // PID controller on roll, pitch and yaw
   const float r = pid_ctrl_update(&att_ctrl->roll_pid, roll_error, dt);
   const float p = pid_ctrl_update(&att_ctrl->pitch_pid, pitch_error, dt);
   const float y = pid_ctrl_update(&att_ctrl->yaw_pid, yaw_error, dt);
 
-  // Map PIDs to motor outputs
-  outputs[0] = thrust_desired - r + p;
-  outputs[1] = thrust_desired - r - p;
-  outputs[2] = thrust_desired + r + p;
-  outputs[3] = thrust_desired + r - p;
+  // Map PIDs to motor outputs:
+  //
+  //             x
+  //    3     1  ^
+  //     \___/   |
+  //     |___|   |
+  //     /   \   |
+  //    2     0  |
+  // y <---------o
+  //
+  outputs[0] = thrust_desired - r + p - y;
+  outputs[1] = thrust_desired - r - p + y;
+  outputs[2] = thrust_desired + r + p + y;
+  outputs[3] = thrust_desired + r - p - y;
 
   if (uart) {
-    // uart_printf(uart, "dt:%f ", dt);
-    // uart_printf(uart, "roll_error:%f ", roll_error);
-    // uart_printf(uart, "pitch_error:%f ", pitch_error);
-    // uart_printf(uart, "r:%f ", 2.0 * roll_error);
-    // uart_printf(uart, "p:%f ", p);
-    // uart_printf(&uart, "\r\n");
+    // char dt_str[10]; //  Hold The Convert Data
+    // dtostrf(dt, 10, 10, dt_str);
+    // uart_printf(uart, "dt:%s ", dt_str);
+    //
+    // uart_printf(uart, "Min:-1.0 ");
+    // uart_printf(uart, "roll_actual:%f ", roll_actual);
+    // uart_printf(uart, "roll_desired:%f ", roll_desired);
+    // uart_printf(uart, "r:%f ", r);
+    // uart_printf(uart, "t:%f ", thrust_desired);
+    // uart_printf(uart, "Max:1.0 ");
+    // // uart_printf(uart, "pitch_error:%f ", pitch_error);
+    // uart_printf(uart, "yaw_error:%f ", yaw_error);
+    // // uart_printf(uart, "r:%f ", 2.0 * roll_error);
+    // // uart_printf(uart, "p:%f ", p);
+    // uart_printf(uart, "\r\n");
   }
 
   // Clamp outputs between 0.0 and 1.0
   for (uint8_t i = 0; i < 4; i++) {
     outputs[i] = (outputs[i] < 0.0) ? 0.0 : outputs[i];
-    outputs[i] = (outputs[i] > 0.2) ? 0.2 : outputs[i];
+    outputs[i] = (outputs[i] > 1.0) ? 1.0 : outputs[i];
   }
 }
 

@@ -32,7 +32,9 @@ class LinePlot:
     self.data[x_key] = []
     for i, y_key in enumerate(self.y_keys):
       self.data[y_key] = []
-      self.curves[y_key] = self.plot.plot(pen=self.colors[i], name=y_key)
+      self.curves[y_key] = self.plot.plot(pen=self.colors[i],
+                                          name=y_key,
+                                          skipFiniteCheck=True)
 
   def update(self, data):
     """ Update """
@@ -114,6 +116,22 @@ class FirmwareDebugger:
         **kwargs,
     )
 
+    title = "Motor Outputs"
+    x_key = "ts"
+    y_keys = ["outputs[0]", "outputs[1]", "outputs[2]", "outputs[3]"]
+    x_label = "Time [s]"
+    y_label = "Motor Thrust [%]"
+    kwargs = {"y_min": 0.0, "y_max": 1.0}
+    self.motors_plot = LinePlot(
+        self.win,
+        title,
+        x_key,
+        y_keys,
+        x_label,
+        y_label,
+        **kwargs,
+    )
+
   def _start_plots(self):
     """ Start plots """
     timer = QtCore.QTimer()
@@ -128,6 +146,7 @@ class FirmwareDebugger:
     data['ts'] = data['ts'] * 1e-6
     self.sbus_plot.update(data)
     self.imu_plot.update(data)
+    self.motors_plot.update(data)
 
   @staticmethod
   def parse_serial_data(line):
