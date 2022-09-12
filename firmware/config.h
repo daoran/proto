@@ -54,10 +54,10 @@
 #define SBUS_SAMPLE_PERIOD_S 0.01      // 100Hz
 #define ROLL_PID_KP 0.05
 #define ROLL_PID_KI 0.0
-#define ROLL_PID_KD 0.00
+#define ROLL_PID_KD 0.005
 #define PITCH_PID_KP 0.05
 #define PITCH_PID_KI 0.0
 #define PITCH_PID_KD 0.001
-#define YAW_PID_KP 0.0
+#define YAW_PID_KP -0.005
 #define YAW_PID_KI 0.0
 #define YAW_PID_KD 0.0
