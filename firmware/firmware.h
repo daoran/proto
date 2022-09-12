@@ -1121,7 +1121,7 @@ int8_t mpu6050_set_accel_range(const mpu6050_t *imu, const int8_t range);
 
 int8_t mpu6050_setup(mpu6050_t *imu) {
   int8_t retval = 0;
-  int8_t dplf = 6;
+  int8_t dplf = 3;
   int8_t gyro_range = 1;
   int8_t accel_range = 2;
 
@@ -1633,72 +1633,6 @@ int8_t mpu6050_set_accel_range(const mpu6050_t *imu, const int8_t range) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// COMPLEMENTARY FILTER //////////////////////////////////////////////////////
-
-typedef struct compl_filter_t {
-  float alpha;
-  float roll;
-  float pitch;
-  float yaw;
-} compl_filter_t;
-
-void compl_filter_setup(compl_filter_t *filter,
-                        const float alpha,
-                        const float a[3]) {
-  filter->alpha = alpha;
-  filter->roll = atan2(a[1], a[2]);
-  filter->pitch = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
-  filter->yaw = 0.0;
-}
-
-void compl_filter_update(compl_filter_t *filter,
-                         const float a[3],
-                         const float w[3],
-                         const float dt_s) {
-  const float roll_a = atan2(a[1], a[2]);
-  const float pitch_a = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
-
-  const float roll_w = filter->roll + w[0] * dt_s;
-  const float pitch_w = filter->pitch + w[1] * dt_s;
-  const float yaw_w = filter->yaw + w[2] * dt_s;
-
-  filter->roll = (1.0 - filter->alpha) * roll_a + filter->alpha * roll_w;
-  filter->pitch = (1.0 - filter->alpha) * pitch_a + filter->alpha * pitch_w;
-  filter->yaw = yaw_w;
-
-  // const float qw_km1 = filter->q[0];
-  // const float qx_km1 = filter->q[1];
-  // const float qy_km1 = filter->q[2];
-  // const float qz_km1 = filter->q[3];
-  // const float hdt = dt_s / 2.0;
-  // const float q_gyro[4] =
-  //     {qw_km1 - hdt * wx * qx_km1 - hdt * wy * qy_km1 - hdt * wz * qz_km1,
-  //      qx_km1 + hdt * wx * qw_km1 - hdt * wy * qz_km1 + hdt * wz * qy_km1,
-  //      qy_km1 + hdt * wx * qz_km1 + hdt * wy * qw_km1 - hdt * wz * qx_km1,
-  //      qz_km1 - hdt * wx * qy_km1 + hdt * wy * qx_km1 + hdt * wz * qw_km1};
-
-  // const float phi = atan2(a[1], a[2]);
-  // const float theta = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
-  // const float psi = atan2(2 * (qx * qy + qz * qw), (qw2 + qx2 - qy2 - qz2));
-  // const float cphi = cos(phi / 2.0);
-  // const float ctheta = cos(theta / 2.0);
-  // const float cpsi = cos(psi / 2.0);
-  // const float sphi = sin(phi / 2.0);
-  // const float stheta = sin(theta / 2.0);
-  // const float spsi = sin(psi / 2.0);
-  // const float q_accel[4] = {sphi * ctheta * cpsi - cphi * stheta * spsi,
-  //                           cphi * stheta * cpsi + sphi * ctheta * spsi,
-  //                           cphi * ctheta * spsi - sphi * stheta * cpsi,
-  //                           cphi * ctheta * cpsi + sphi * stheta * spsi};
-
-  // const float q_k[4] = {(1.0 - alpha) * q_gyro[0] + alpha * q_accel[0],
-  //                       (1.0 - alpha) * q_gyro[1] + alpha * q_accel[1],
-  //                       (1.0 - alpha) * q_gyro[2] + alpha * q_accel[2],
-  //                       (1.0 - alpha) * q_gyro[3] + alpha * q_accel[3]};
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
 // MAHONY FILTER /////////////////////////////////////////////////////////////
 
 typedef struct mahony_filter_t {
@@ -1724,7 +1658,7 @@ void mahony_filter_setup(mahony_filter_t *filter) {
   filter->q[3] = 0.0;
 
   filter->kp = 2.0 * 0.5;
-  filter->ki = 0.0;
+  filter->ki = 2.0 * 0.1;
 
   filter->integralFBx = 0.0;
   filter->integralFBy = 0.0;
@@ -1783,9 +1717,12 @@ void mahony_filter_update(mahony_filter_t *filter,
   }
 
   // Integrate rate of change of quaternion
-  wx = (0.5f * dt) * wx + filter->kp * halfex;
-  wy = (0.5f * dt) * wx + filter->kp * halfey;
-  wz = (0.5f * dt) * wx + filter->kp * halfez;
+  wx += filter->kp * halfex;
+  wy += filter->kp * halfey;
+  wz += filter->kp * halfez;
+  wx *= (0.5f * dt);
+  wy *= (0.5f * dt);
+  wz *= (0.5f * dt);
   filter->q[0] += -qx * wx - qy * wy - qz * wz;
   filter->q[1] += qw * wx + qy * wz - qz * wy;
   filter->q[2] += qw * wy - qx * wz + qz * wx;
@@ -1798,6 +1735,12 @@ void mahony_filter_update(mahony_filter_t *filter,
   filter->roll = rpy[0];
   filter->pitch = rpy[1];
   filter->yaw = rpy[2];
+}
+
+void mahony_filter_reset_yaw(mahony_filter_t *filter) {
+  const float rpy[3] = {filter->roll, filter->pitch, 0.0};
+  filter->yaw = 0.0;
+  euler2quat(rpy, filter->q);
 }
 
 //////////////////////////////////////////////////////////////////////////////
