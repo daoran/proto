@@ -1,3 +1,4 @@
+#define GRAVITY 9.81
 #define I2C_MAX_BUF_LEN 1024
 
 #define PWM_PIN_0 2
@@ -51,13 +52,12 @@
 
 #define IMU_SAMPLE_PERIOD_S 0.00166668 // 600Hz
 #define SBUS_SAMPLE_PERIOD_S 0.01      // 100Hz
-#define COMPL_FILTER_ALPHA 0.995
-#define ROLL_PID_KP 0.025
+#define ROLL_PID_KP 0.05
 #define ROLL_PID_KI 0.0
 #define ROLL_PID_KD 0.00
 #define PITCH_PID_KP 0.05
 #define PITCH_PID_KI 0.0
 #define PITCH_PID_KD 0.001
-#define YAW_PID_KP 0.02
+#define YAW_PID_KP 0.0
 #define YAW_PID_KI 0.0
 #define YAW_PID_KD 0.0
