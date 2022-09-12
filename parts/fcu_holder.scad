@@ -20,7 +20,7 @@ module standoff(standoff_thickness, screw_w, screw_h, cst=false, center=true) {
 
     if (cst) {
       nut_h = 2.0;
-      nut_w = 4.32;
+      nut_w = 5.2;
       translate([0.0, 0.0, screw_h / 2.0 - nut_h / 2.0]) {
         cylinder(h=nut_h + 0.1, r=nut_w / 2.0, $fn=6, center=true);
       }
@@ -58,7 +58,7 @@ module base(frame_w, frame_d, frame_h, screw_w, screw_h) {
 
 module fcu_holder(frame_w, frame_d, frame_h, screw_w, screw_h) {
   // Stand-offs
-  standoff_thickness = 1.5;
+  standoff_thickness = 2.2;
   translate([frame_w / 2.0, frame_d / 2.0, screw_h / 2.0])
     standoff(standoff_thickness, screw_w, screw_h, 1);
   translate([-frame_w / 2.0, frame_d / 2.0, screw_h / 2.0])
