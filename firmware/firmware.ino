@@ -155,30 +155,34 @@ void transmit_telemetry() {
     return;
   }
 
-  // uart_printf(&uart, "ts:%d ", micros());
-  // char dt_str[10]; //  Hold The Convert Data
-  // dtostrf(dt_s, 10, 10, dt_str);
-  // uart_printf(&uart, "dt:%s ", dt_str);
+  uart_printf(&uart, "ts:%d ", micros());
+  char dt_str[10]; //  Hold The Convert Data
+  dtostrf(dt_s, 10, 10, dt_str);
+  uart_printf(&uart, "dt:%s ", dt_str);
 
-  // for (uint8_t i = 0; i < 16; i++) {
-  //   uart_printf(&uart, "ch[%d]:%d ", i, sbus.ch[i]);
-  // }
+  for (uint8_t i = 0; i < 16; i++) {
+    uart_printf(&uart, "ch[%d]:%d ", i, sbus.ch[i]);
+  }
+
+  uart_printf(&uart, "accel_x:%f ", imu.accel[0]);
+  uart_printf(&uart, "accel_y:%f ", imu.accel[1]);
+  uart_printf(&uart, "accel_z:%f ", imu.accel[2]);
+  uart_printf(&uart, "gyro_x:%f ", imu.gyro[0]);
+  uart_printf(&uart, "gyro_y:%f ", imu.gyro[1]);
+  uart_printf(&uart, "gyro_z:%f ", imu.gyro[2]);
   uart_printf(&uart, "roll:%f ", rad2deg(filter.roll));
   uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch));
   uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
-  // uart_printf(&uart, "roll:%f ", rad2deg(filter.getRollRadians()));
-  // uart_printf(&uart, "pitch:%f ", rad2deg(filter.getPitchRadians()));
-  // uart_printf(&uart, "yaw:%f ", rad2deg(filter.getYawRadians()));
 
-  // uart_printf(&uart, "thrust_desired:%f ", rad2deg(thrust_desired));
-  // uart_printf(&uart, "roll_desired:%f ", rad2deg(roll_desired));
-  // uart_printf(&uart, "pitch_desired:%f ", rad2deg(pitch_desired));
-  // uart_printf(&uart, "yaw_desired:%f ", rad2deg(yaw_desired));
+  uart_printf(&uart, "thrust_desired:%f ", rad2deg(thrust_desired));
+  uart_printf(&uart, "roll_desired:%f ", rad2deg(roll_desired));
+  uart_printf(&uart, "pitch_desired:%f ", rad2deg(pitch_desired));
+  uart_printf(&uart, "yaw_desired:%f ", rad2deg(yaw_desired));
 
-  // uart_printf(&uart, "outputs[0]:%f ", outputs[0]);
-  // uart_printf(&uart, "outputs[1]:%f ", outputs[1]);
-  // uart_printf(&uart, "outputs[2]:%f ", outputs[2]);
-  // uart_printf(&uart, "outputs[3]:%f ", outputs[3]);
+  uart_printf(&uart, "outputs[0]:%f ", outputs[0]);
+  uart_printf(&uart, "outputs[1]:%f ", outputs[1]);
+  uart_printf(&uart, "outputs[2]:%f ", outputs[2]);
+  uart_printf(&uart, "outputs[3]:%f ", outputs[3]);
 
   uart_printf(&uart, "\r\n");
 

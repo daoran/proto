@@ -22,7 +22,7 @@ class LinePlot:
       self.plot.setLimits(yMin=y_min, yMax=y_max)
       self.plot.setYRange(y_min, y_max, padding=padding_y)
 
-    self.win_size = kwargs.get("win_size", 0)
+    self.win_size = kwargs.get("win_size", 1000)
     self.colors = kwargs.get("colors", ["r", "g", "b", "w"])
     self.x_key = x_key
     self.y_keys = y_keys
@@ -39,14 +39,9 @@ class LinePlot:
   def update(self, data):
     """ Update """
     self.data[self.x_key].append(data[self.x_key])
-
-    x_window = self.data[self.x_key][-self.win_size:]
-    x_min = x_window[0]
-    x_max = x_window[-1]
-    self.plot.setXRange(x_min, x_max)
-
     for y_key in self.y_keys:
       self.data[y_key].append(data[y_key])
+      x_window = self.data[self.x_key][-self.win_size:]
       y_window = self.data[y_key][-self.win_size:]
       self.curves[y_key].setData(x_window, y_window)
 
@@ -81,7 +76,7 @@ class FirmwareDebugger:
     """ Setup GUI """
     self.app = pg.mkQApp("Firmware Debugger")
     self.win = pg.GraphicsLayoutWidget(show=True, title="Firmware Debugger")
-    self.win.resize(640, 480)
+    self.win.resize(1920, 600)
     pg.setConfigOptions(antialias=True)
 
     title = "SBUS"
@@ -100,13 +95,45 @@ class FirmwareDebugger:
         **kwargs,
     )
 
+    title = "Gyroscope"
+    x_key = "ts"
+    y_keys = ["gyro_x", "gyro_y", "gyro_z"]
+    x_label = "Time [s]"
+    y_label = "Angular Velocity [rad / s]"
+    kwargs = {"y_min": -5.0, "y_max": 5.0}
+    self.accel_plot = LinePlot(
+        self.win,
+        title,
+        x_key,
+        y_keys,
+        x_label,
+        y_label,
+        **kwargs,
+    )
+
+    title = "Accelerometer"
+    x_key = "ts"
+    y_keys = ["accel_x", "accel_y", "accel_z"]
+    x_label = "Time [s]"
+    y_label = "Acceleration [m / s^2]"
+    kwargs = {"y_min": -12.0, "y_max": 12.0}
+    self.gyro_plot = LinePlot(
+        self.win,
+        title,
+        x_key,
+        y_keys,
+        x_label,
+        y_label,
+        **kwargs,
+    )
+
     title = "Attitude"
     x_key = "ts"
     y_keys = ["roll", "pitch", "yaw"]
     x_label = "Time [s]"
     y_label = "Attitude [deg]"
     kwargs = {"y_min": -60.0, "y_max": 60.0}
-    self.imu_plot = LinePlot(
+    self.attitude_plot = LinePlot(
         self.win,
         title,
         x_key,
@@ -135,7 +162,7 @@ class FirmwareDebugger:
   def _start_plots(self):
     """ Start plots """
     timer = QtCore.QTimer()
-    timer.setInterval(0)
+    timer.setInterval(1)
     timer.timeout.connect(self._update_plots)
     timer.start()
     pg.exec()
@@ -145,7 +172,9 @@ class FirmwareDebugger:
     data = self.parse_serial_data(self.s.readline())
     data['ts'] = data['ts'] * 1e-6
     self.sbus_plot.update(data)
-    self.imu_plot.update(data)
+    self.gyro_plot.update(data)
+    self.accel_plot.update(data)
+    self.attitude_plot.update(data)
     self.motors_plot.update(data)
 
   @staticmethod
