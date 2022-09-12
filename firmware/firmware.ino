@@ -1,11 +1,10 @@
 #include "firmware.h"
-#include "Adafruit_AHRS_Mahony.h"
 
 // GLOBAL VARIABLES
 uint32_t task0_last_updated_us = 0;
 uint32_t task1_last_updated_us = 0;
 uint32_t telem_last_updated_us = 0;
-uint8_t arm = 1;
+uint8_t arm = 0;
 uint8_t failsafe = 0;
 
 float thrust_desired = 0.0;
@@ -18,9 +17,7 @@ sbus_t sbus;
 uart_t uart;
 pwm_t pwm;
 mpu6050_t imu;
-// compl_filter_t filter;
-// mahony_filter_t filter;
-Adafruit_Mahony filter;
+mahony_filter_t filter;
 att_ctrl_t att_ctrl;
 
 // Setup
@@ -37,7 +34,6 @@ void setup() {
   mpu6050_get_data(&imu);
 
   // Control
-  // compl_filter_setup(&filter, COMPL_FILTER_ALPHA, imu.accel);
   const float roll = atan2(imu.accel[1], imu.accel[2]);
   const float pitch =
       atan2(-imu.accel[0],
@@ -46,8 +42,11 @@ void setup() {
   const float rpy[3] = {roll, pitch, yaw};
   float q[4] = {1.0, 0.0, 0.0, 0.0};
   euler2quat(rpy, q);
-  // mahony_filter_setup(&filter);
-  filter.setQuaternion(q[0], q[1], q[2], q[3]);
+  mahony_filter_setup(&filter);
+  filter.q[0] = q[0];
+  filter.q[1] = q[1];
+  filter.q[2] = q[2];
+  filter.q[3] = q[3];
   att_ctrl_setup(&att_ctrl);
 
   // Update times
@@ -71,26 +70,13 @@ void task0() {
   const float gyr[3] = {imu.gyro[0] - imu.gyro_offset[0],
                         imu.gyro[1] - imu.gyro_offset[1],
                         imu.gyro[2] - imu.gyro_offset[2]};
-  // compl_filter_update(&filter, acc, gyr, dt_s);
-  // mahony_filter_update(&filter, acc, gyr, dt_s);
-  filter.updateIMU(gyr[0] * 57.29578,
-                   gyr[1] * 57.29578,
-                   gyr[2] * 57.29578,
-                   acc[0],
-                   acc[1],
-                   acc[2],
-                   dt_s);
+  mahony_filter_update(&filter, acc, gyr, dt_s);
 
   // Check tilt
   const float max_tilt = deg2rad(60.0);
-  // if (filter.roll > max_tilt || filter.roll < -max_tilt) {
-  //   failsafe = 1;
-  // } else if (filter.pitch > max_tilt || filter.pitch < -max_tilt) {
-  //   failsafe = 1;
-  // }
-  if (filter.getRoll() > max_tilt || filter.getRoll() < -max_tilt) {
+  if (filter.roll > max_tilt || filter.roll < -max_tilt) {
     failsafe = 1;
-  } else if (filter.getPitch() > max_tilt || filter.getPitch() < -max_tilt) {
+  } else if (filter.pitch > max_tilt || filter.pitch < -max_tilt) {
     failsafe = 1;
   }
 
@@ -100,9 +86,9 @@ void task0() {
                   pitch_desired,
                   yaw_desired,
                   thrust_desired,
-                  filter.getRoll(),
-                  filter.getPitch(),
-                  filter.getYaw(),
+                  filter.roll,
+                  filter.pitch,
+                  filter.yaw,
                   dt_s,
                   outputs,
                   &uart);
@@ -154,7 +140,7 @@ void task1() {
   // Reset failsafe
   if (arm == 0) {
     failsafe = 0;
-    // filter.yaw = 0.0;
+    mahony_filter_reset_yaw(&filter);
   }
 
   // Update last updated
@@ -169,30 +155,30 @@ void transmit_telemetry() {
     return;
   }
 
-  uart_printf(&uart, "ts:%d ", micros());
-  char dt_str[10]; //  Hold The Convert Data
-  dtostrf(dt_s, 10, 10, dt_str);
-  uart_printf(&uart, "dt:%s ", dt_str);
+  // uart_printf(&uart, "ts:%d ", micros());
+  // char dt_str[10]; //  Hold The Convert Data
+  // dtostrf(dt_s, 10, 10, dt_str);
+  // uart_printf(&uart, "dt:%s ", dt_str);
 
-  for (uint8_t i = 0; i < 16; i++) {
-    uart_printf(&uart, "ch[%d]:%d ", i, sbus.ch[i]);
-  }
-  // uart_printf(&uart, "roll:%f ", rad2deg(filter.roll));
-  // uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch));
-  // uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
-  uart_printf(&uart, "roll:%f ", rad2deg(filter.getRollRadians()));
-  uart_printf(&uart, "pitch:%f ", rad2deg(filter.getPitchRadians()));
-  uart_printf(&uart, "yaw:%f ", rad2deg(filter.getYawRadians()));
+  // for (uint8_t i = 0; i < 16; i++) {
+  //   uart_printf(&uart, "ch[%d]:%d ", i, sbus.ch[i]);
+  // }
+  uart_printf(&uart, "roll:%f ", rad2deg(filter.roll));
+  uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch));
+  uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
+  // uart_printf(&uart, "roll:%f ", rad2deg(filter.getRollRadians()));
+  // uart_printf(&uart, "pitch:%f ", rad2deg(filter.getPitchRadians()));
+  // uart_printf(&uart, "yaw:%f ", rad2deg(filter.getYawRadians()));
 
-  uart_printf(&uart, "thrust_desired:%f ", rad2deg(thrust_desired));
-  uart_printf(&uart, "roll_desired:%f ", rad2deg(roll_desired));
-  uart_printf(&uart, "pitch_desired:%f ", rad2deg(pitch_desired));
-  uart_printf(&uart, "yaw_desired:%f ", rad2deg(yaw_desired));
+  // uart_printf(&uart, "thrust_desired:%f ", rad2deg(thrust_desired));
+  // uart_printf(&uart, "roll_desired:%f ", rad2deg(roll_desired));
+  // uart_printf(&uart, "pitch_desired:%f ", rad2deg(pitch_desired));
+  // uart_printf(&uart, "yaw_desired:%f ", rad2deg(yaw_desired));
 
-  uart_printf(&uart, "outputs[0]:%f ", outputs[0]);
-  uart_printf(&uart, "outputs[1]:%f ", outputs[1]);
-  uart_printf(&uart, "outputs[2]:%f ", outputs[2]);
-  uart_printf(&uart, "outputs[3]:%f ", outputs[3]);
+  // uart_printf(&uart, "outputs[0]:%f ", outputs[0]);
+  // uart_printf(&uart, "outputs[1]:%f ", outputs[1]);
+  // uart_printf(&uart, "outputs[2]:%f ", outputs[2]);
+  // uart_printf(&uart, "outputs[3]:%f ", outputs[3]);
 
   uart_printf(&uart, "\r\n");
 
