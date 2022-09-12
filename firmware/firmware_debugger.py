@@ -22,7 +22,7 @@ class LinePlot:
       self.plot.setLimits(yMin=y_min, yMax=y_max)
       self.plot.setYRange(y_min, y_max, padding=padding_y)
 
-    self.win_size = kwargs.get("win_size", 500)
+    self.win_size = kwargs.get("win_size", 0)
     self.colors = kwargs.get("colors", ["r", "g", "b", "w"])
     self.x_key = x_key
     self.y_keys = y_keys
