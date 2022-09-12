@@ -23,6 +23,13 @@ inline float rad2deg(const float r) {
   return r * (180.0 / M_PI);
 }
 
+inline uint8_t within(const float value, const float lower, const float upper) {
+  if (lower <= value && value <= upper) {
+    return 1;
+  }
+  return 0;
+}
+
 inline float us2sec(const uint32_t us) {
   return us * 1e-6;
 }
