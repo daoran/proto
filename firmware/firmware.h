@@ -659,6 +659,10 @@ int8_t sbus_update(sbus_t *sbus) {
   return 0;
 }
 
+float sbus_value(const sbus_t *sbus, const uint8_t ch_idx) {
+  return (sbus->ch[ch_idx] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
+}
+
 float sbus_thrust(const sbus_t *sbus) {
   return (sbus->ch[0] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
 }
@@ -670,9 +674,7 @@ float sbus_roll(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  float max_tilt = deg2rad(60.0);
-  float val = (sbus->ch[1] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
-  return max_tilt * val;
+  return MAX_TILT_RAD * sbus_value(sbus, 1);
 }
 
 float sbus_pitch(const sbus_t *sbus) {
@@ -682,9 +684,7 @@ float sbus_pitch(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  float max_tilt = deg2rad(60.0);
-  float val = (sbus->ch[2] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
-  return max_tilt * val;
+  return MAX_TILT_RAD * sbus_value(sbus, 2);
 }
 
 float sbus_yaw(const sbus_t *sbus) {
@@ -694,9 +694,7 @@ float sbus_yaw(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  float max_tilt = deg2rad(60.0);
-  float val = (sbus->ch[3] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
-  return max_tilt * val;
+  return MAX_TILT_RAD * sbus_value(sbus, 3);
 }
 
 uint8_t sbus_arm(const sbus_t *sbus) {
@@ -1450,11 +1448,12 @@ typedef struct mahony_filter_t {
 
 } mahony_filter_t;
 
-void mahony_filter_setup(mahony_filter_t *filter) {
-  filter->q[0] = 1.0;
-  filter->q[1] = 0.0;
-  filter->q[2] = 0.0;
-  filter->q[3] = 0.0;
+void mahony_filter_setup(mahony_filter_t *filter, const float a[3]) {
+  const float roll = atan2(a[1], a[2]);
+  const float pitch = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
+  const float yaw = 0.0;
+  const float rpy[3] = {roll, pitch, yaw};
+  euler2quat(rpy, filter->q);
 
   filter->kp = 2.0 * 0.5;
   filter->ki = 2.0 * 0.0;

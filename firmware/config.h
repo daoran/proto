@@ -1,4 +1,6 @@
 #define GRAVITY 9.81
+#define MAX_TILT_RAD 1.0472
+
 #define I2C_MAX_BUF_LEN 1024
 
 #define PWM_PIN_0 2

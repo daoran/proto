@@ -34,19 +34,7 @@ void setup() {
   mpu6050_get_data(&imu);
 
   // Control
-  const float roll = atan2(imu.accel[1], imu.accel[2]);
-  const float pitch =
-      atan2(-imu.accel[0],
-            sqrt(imu.accel[1] * imu.accel[1] + imu.accel[2] * imu.accel[2]));
-  const float yaw = 0.0;
-  const float rpy[3] = {roll, pitch, yaw};
-  float q[4] = {1.0, 0.0, 0.0, 0.0};
-  euler2quat(rpy, q);
-  mahony_filter_setup(&filter);
-  filter.q[0] = q[0];
-  filter.q[1] = q[1];
-  filter.q[2] = q[2];
-  filter.q[3] = q[3];
+  mahony_filter_setup(&filter, imu->accel);
   att_ctrl_setup(&att_ctrl);
 
   // Update times
@@ -73,10 +61,9 @@ void task0() {
   mahony_filter_update(&filter, acc, gyr, dt_s);
 
   // Check tilt
-  const float max_tilt = deg2rad(60.0);
-  if (filter.roll > max_tilt || filter.roll < -max_tilt) {
-    failsafe = 1;
-  } else if (filter.pitch > max_tilt || filter.pitch < -max_tilt) {
+  const uint8_t roll_ok = within(filter.roll, -MAX_TILT_RAD, MAX_TILT_RAD);
+  const uint8_t pitch_ok = within(filter.pitch, -MAX_TILT_RAD, MAX_TILT_RAD);
+  if (roll_ok == 0 || pitch_ok == 0) {
     failsafe = 1;
   }
 
