@@ -96,7 +96,7 @@ module fcu_holder(frame_w, frame_d, frame_h, screw_w, screw_h) {
 module battery_holder() {
   padding = 5.0;
 
-  translate([0.0, 0.0, (batt_h + padding) / 2.0])
+  translate([0.0, 0.0, (batt_h) / 2.0])
     difference() {
       // Body
       cube([batt_w + padding, batt_d + padding, batt_h + padding], center=true);
@@ -151,11 +151,11 @@ module battery_holder() {
     cube([standoff_thickness, 7.0, 10.0], center=true);
 }
 
-// Base
-base(frame_w, frame_d, frame_h, 3.1, frame_h);
+// // Base
+// base(frame_w, frame_d, frame_h, 3.1, frame_h);
 
-// FCU Holder
-fcu_holder(fcu_w, fcu_d, frame_h, screw_w, 10.0);
+// // FCU Holder
+// fcu_holder(fcu_w, fcu_d, frame_h, screw_w, 10.0);
 
 // Battery Holder
 translate([0.0, 0.0, 40.0])
