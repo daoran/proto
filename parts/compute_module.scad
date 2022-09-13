@@ -177,6 +177,7 @@ module board_camera() {
   pcb_width = 30.0;
   pcb_thickness = 1.58;
   pcb_hole = 2.1;
+  mount_w = 24.5;
   lens_hole = 2.0;
 
   difference() {
@@ -195,7 +196,7 @@ module board_camera() {
     // Mount holes
     for (i = [1 : 4]) {
       rotate([0.0, 0.0, i * 90.0])
-        translate([24.5 / 2.0, 24.5 / 2.0, pcb_thickness / 2.0])
+        translate([mount_w / 2.0, mount_w / 2.0, pcb_thickness / 2.0])
           cylinder(h=pcb_thickness + 0.01, r=pcb_hole / 2.0, center=true);
     }
   }
@@ -512,6 +513,28 @@ module sbgc_frame(mount_w, mount_d, show_sbgc=1, show_pololu=1) {
   }
 }
 
+module stereo_camera_stack() {
+  baseline = 70.0;
+  camera_w = 30.0;
+  camera_mount_w = 24.5;
+
+  // Board-cameras
+  translate([0.0, baseline / 2.0, standoff_h + 2.0]) board_camera();
+  translate([0.0, -baseline / 2.0, standoff_h + 2.0]) board_camera();
+
+  // Board camera frames
+  translate([0.0, baseline / 2.0, 0.0])
+    frame(camera_mount_w, camera_mount_w, screw_w, standoff_w, standoff_h + 2, standoff_h);
+  translate([0.0, -baseline / 2.0, 0.0])
+    frame(camera_mount_w, camera_mount_w, screw_w, standoff_w, standoff_h + 2, standoff_h);
+
+  // Join camera frames
+  frame(camera_mount_w, baseline - camera_w + standoff_h, screw_w, standoff_w, standoff_h, standoff_h);
+
+  // Mount frame
+  frame(18.5, 18.5, screw_w, standoff_w, standoff_h, standoff_h);
+}
+
 module prototype_stack() {
   spacer_h = batt_h + 10;
 
@@ -538,15 +561,26 @@ module compute_stack() {
     rotate(-90)
     sbgc_frame(odroid_mount_w, odroid_mount_d);
 
-  translate([0.0, 0.0, -40 - standoff_h - 1])
+  translate([0.0, 0.0, -90 - standoff_h - 1])
     rotate(90)
     landing_frame(odroid_mount_w, odroid_mount_d);
+
+  rotate([0, 90, 90])
+    translate([50.0, 0.0, 40.0])
+      rotate([0.0, 0.0, 0.0])
+        stereo_camera_stack();
+}
+
+module print() {
+  // prototype_stack();
+  // compute_stack();
 }
 
 // Main
 // prototype_stack();
 // compute_stack();
-// board_camera();
+stereo_camera_stack();
 
 // stack_spacer(batt_h + 2, nut_counter_sink=1);
+// odroid_frame(mav_mount_w, mav_mount_d, 1);
 // sbgc_frame(odroid_mount_w, odroid_mount_d);
