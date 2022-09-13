@@ -23,7 +23,7 @@ class LinePlot:
       self.plot.setYRange(y_min, y_max, padding=padding_y)
 
     self.win_size = kwargs.get("win_size", 1000)
-    self.colors = kwargs.get("colors", ["r", "g", "b", "w"])
+    self.colors = kwargs.get("colors", ["r", "g", "b", "c", "y", "m"])
     self.x_key = x_key
     self.y_keys = y_keys
     self.data = {}
@@ -129,7 +129,14 @@ class FirmwareDebugger:
 
     title = "Attitude"
     x_key = "ts"
-    y_keys = ["roll", "pitch", "yaw"]
+    y_keys = [
+        "roll",
+        "pitch",
+        "yaw",
+        "roll_desired",
+        "pitch_desired",
+        "yaw_desired",
+    ]
     x_label = "Time [s]"
     y_label = "Attitude [deg]"
     kwargs = {"y_min": -60.0, "y_max": 60.0}

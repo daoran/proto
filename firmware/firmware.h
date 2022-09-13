@@ -15,14 +15,24 @@
     (void) (expr);                                                             \
   } while (0)
 
+/**
+ * Convert degrees to radians
+ */
 inline float deg2rad(const float d) {
   return d * (M_PI / 180.0);
 }
 
+/**
+ * Convert radians to degrees
+ */
 inline float rad2deg(const float r) {
   return r * (180.0 / M_PI);
 }
 
+/**
+ * Check if `value` is within `lower` and `upper`.
+ * @returns 1 or 0 for success or failure
+ */
 inline uint8_t within(const float value, const float lower, const float upper) {
   if (lower <= value && value <= upper) {
     return 1;
@@ -30,36 +40,60 @@ inline uint8_t within(const float value, const float lower, const float upper) {
   return 0;
 }
 
+/**
+ * Convert micro-seconds (us) to seconds (s)
+ */
 inline float us2sec(const uint32_t us) {
   return us * 1e-6;
 }
 
+/**
+ * Form `int8_t` from bytes from `data` with an `offset`
+ */
 inline int8_t int8(const uint8_t *data, const size_t offset) {
   return (int8_t)(data[offset]);
 }
 
+/**
+ * Form `uint8_t` from bytes from `data` with an `offset`
+ */
 inline uint8_t uint8(const uint8_t *data, const size_t offset) {
   return (uint8_t)(data[offset]);
 }
 
+/**
+ * Form `int16_t` from bytes from `data` with an `offset`
+ */
 inline int16_t int16(const uint8_t *data, const size_t offset) {
   return (int16_t)((data[offset + 1] << 8) | (data[offset]));
 }
 
+/**
+ * Form `uint16_t` from bytes from `data` with an `offset`
+ */
 inline uint16_t uint16(const uint8_t *data, const size_t offset) {
   return (uint16_t)((data[offset + 1] << 8) | (data[offset]));
 }
 
+/**
+ * Form `int32_t` from bytes from `data` with an `offset`
+ */
 inline int32_t int32(const uint8_t *data, const size_t offset) {
   return (int32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
                    (data[offset + 1] << 8) | (data[offset]));
 }
 
+/**
+ * Form `uint32_t` from bytes from `data` with an `offset`
+ */
 inline uint32_t uint32(const uint8_t *data, const size_t offset) {
   return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
                     (data[offset + 1] << 8) | (data[offset]));
 }
 
+/**
+ * Fast inverse square-root
+ */
 float inv_sqrt(const float x) {
   // Source: https://en.wikipedia.org/wiki/Fast_inverse_square_root
   union {
@@ -71,6 +105,58 @@ float inv_sqrt(const float x) {
   return conv.f;
 }
 
+/**
+ * Calculate mean from vector `x` of length `n`.
+ * @returns Mean of x
+ */
+real_t mean(const real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
+  real_t sum = 0.0;
+  for (size_t i = 0; i < n; i++) {
+    sum += x[i];
+  }
+  return sum / n;
+}
+
+/**
+ * Calculate median from vector `x` of length `n`.
+ * @returns Median of x
+ */
+real_t median(const real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
+  // Make a copy of the original input vector x
+  real_t *vals = malloc(sizeof(real_t) * n);
+  for (size_t i = 0; i < n; i++) {
+    vals[i] = x[i];
+  }
+
+  // Sort the values
+  qsort(vals, n, sizeof(real_t), fltcmp2);
+
+  // Get median value
+  real_t median_value = 0.0;
+  if ((n % 2) == 0) {
+    const int bwd_idx = (int) (n - 1) / 2.0;
+    const int fwd_idx = (int) (n + 1) / 2.0;
+    median_value = (vals[bwd_idx] + vals[fwd_idx]) / 2.0;
+  } else {
+    const int midpoint_idx = n / 2.0;
+    median_value = vals[midpoint_idx];
+  }
+
+  // Clean up
+  free(vals);
+
+  return median_value;
+}
+
+/**
+ * Convert Euler angles `rpy` in radians to a Hamiltonian Quaternion.
+ */
 void euler2quat(const float rpy[3], float q[4]) {
   const float phi = rpy[0];
   const float theta = rpy[1];
@@ -94,6 +180,10 @@ void euler2quat(const float rpy[3], float q[4]) {
   q[3] = qz / N;
 }
 
+/**
+ * Convert Euler angles `rpy` (roll, pitch, yaw) in degrees to a 3x3 rotation
+ * matrix `C`.
+ */
 void euler321(const float euler[3], float C[3 * 3]) {
   assert(euler != NULL);
   assert(C != NULL);
@@ -125,6 +215,9 @@ void euler321(const float euler[3], float C[3 * 3]) {
   C[8] = ctheta * cphi;
 }
 
+/**
+ * Convert Quaternion `q` to Euler angles 3x1 vector `euler`.
+ */
 void quat2euler(const float q[4], float euler[3]) {
   assert(q != NULL);
   assert(euler != NULL);
@@ -148,6 +241,9 @@ void quat2euler(const float q[4], float euler[3]) {
   euler[2] = t3;
 }
 
+/**
+ * Convert 3x3 rotation matrix `C` to Quaternion `q`.
+ */
 void rot2quat(const float C[3 * 3], float q[4]) {
   assert(C != NULL);
   assert(q != NULL);
@@ -201,6 +297,9 @@ void rot2quat(const float C[3 * 3], float q[4]) {
   q[3] = qz;
 }
 
+/**
+ * Return Quaternion norm
+ */
 float quat_norm(const float q[4]) {
   const float qw2 = q[0] * q[0];
   const float qx2 = q[1] * q[1];
@@ -209,6 +308,9 @@ float quat_norm(const float q[4]) {
   return sqrt(qw2 + qx2 + qy2 + qz2);
 }
 
+/**
+ * Normalize Quaternion
+ */
 void quat_normalize(float q[4]) {
   const float qw2 = q[0] * q[0];
   const float qx2 = q[1] * q[1];
@@ -221,13 +323,19 @@ void quat_normalize(float q[4]) {
   q[3] *= inv_norm;
 }
 
-void tf_trans(const float T[16], float r[3]) {
+/**
+ * Get the translational vector `r` from the 4x4 transformation matrix `T`.
+ */
+void tf_trans_get(const float T[16], float r[3]) {
   r[0] = T[3];
   r[1] = T[7];
   r[2] = T[11];
 }
 
-void tf_rot(const float T[16], float C[9]) {
+/**
+ * Get the rotation matrix `C` from the 4x4 transformation matrix `T`.
+ */
+void tf_rot_get(const float T[16], float C[9]) {
   C[0] = T[0];
   C[1] = T[1];
   C[2] = T[2];
@@ -239,7 +347,10 @@ void tf_rot(const float T[16], float C[9]) {
   C[8] = T[8];
 }
 
-void tf_quat(const float T[4 * 4], float q[4]) {
+/**
+ * Get the quaternion `q` from the 4x4 transformation matrix `T`.
+ */
+void tf_quat_get(const float T[4 * 4], float q[4]) {
   assert(T != NULL);
   assert(q != NULL);
   assert(T != q);
@@ -674,7 +785,9 @@ float sbus_roll(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  return MAX_TILT_RAD * sbus_value(sbus, 1);
+  const float pwm_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN);
+  const float pwm_mean = pwm_diff / 2.0;
+  return (MAX_TILT_RAD / 1.5) * ((sbus->ch[1] - 1000) / (pwm_diff / 2.0));
 }
 
 float sbus_pitch(const sbus_t *sbus) {
@@ -684,7 +797,9 @@ float sbus_pitch(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  return MAX_TILT_RAD * sbus_value(sbus, 2);
+  const float pwm_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN);
+  const float pwm_mean = pwm_diff / 2.0;
+  return (MAX_TILT_RAD / 1.5) * ((sbus->ch[2] - 1000) / (pwm_diff / 2.0));
 }
 
 float sbus_yaw(const sbus_t *sbus) {
@@ -694,7 +809,9 @@ float sbus_yaw(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  return MAX_TILT_RAD * sbus_value(sbus, 3);
+  const float pwm_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN);
+  const float pwm_mean = pwm_diff / 2.0;
+  return (MAX_TILT_RAD * 1.5) * ((sbus->ch[3] - 1000) / (pwm_diff / 2.0));
 }
 
 uint8_t sbus_arm(const sbus_t *sbus) {
@@ -1142,9 +1259,6 @@ void mpu6050_setup(mpu6050_t *imu) {
   }
   const uint8_t sample_div = i2c_read_byte(MPU6050_ADDRESS, MPU6050_SMPLRT_DIV);
   imu->sample_rate = gyro_rate / (1 + sample_div);
-
-  // Calibrate IMU
-  mpu6050_calibrate(imu);
 }
 
 void mpu6050_calibrate(mpu6050_t *imu) {
@@ -1152,8 +1266,8 @@ void mpu6050_calibrate(mpu6050_t *imu) {
   float wy = 0.0;
   float wz = 0.0;
 
-  uint16_t nb_samples = 5000;
-  for (uint16_t i = 0; i < nb_samples; i++) {
+  uint16_t nb_samples = 2000;
+  for (uint32_t i = 0; i < nb_samples; i++) {
     mpu6050_get_data(imu);
     wx += imu->gyro[0];
     wy += imu->gyro[1];
@@ -1539,6 +1653,10 @@ void mahony_filter_reset_yaw(mahony_filter_t *filter) {
   const float rpy[3] = {filter->roll, filter->pitch, 0.0};
   filter->yaw = 0.0;
   euler2quat(rpy, filter->q);
+
+  filter->integralFBx = 0.0f;
+  filter->integralFBy = 0.0f;
+  filter->integralFBz = 0.0f;
 }
 
 //////////////////////////////////////////////////////////////////////////////

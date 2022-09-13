@@ -60,6 +60,6 @@
 #define PITCH_PID_KP 0.05
 #define PITCH_PID_KI 0.0
 #define PITCH_PID_KD 0.001
-#define YAW_PID_KP -0.005
+#define YAW_PID_KP -0.05
 #define YAW_PID_KI 0.0
 #define YAW_PID_KD 0.0

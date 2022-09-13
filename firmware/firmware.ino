@@ -5,6 +5,7 @@ uint32_t task0_last_updated_us = 0;
 uint32_t task1_last_updated_us = 0;
 uint32_t telem_last_updated_us = 0;
 uint8_t arm = 0;
+uint8_t mav_ready = 0;
 uint8_t failsafe = 0;
 
 float thrust_desired = 0.0;
@@ -31,10 +32,11 @@ void setup() {
 
   // Sensors
   mpu6050_setup(&imu);
+  mpu6050_calibrate(&imu);
   mpu6050_get_data(&imu);
 
   // Control
-  mahony_filter_setup(&filter, imu->accel);
+  mahony_filter_setup(&filter, imu.accel);
   att_ctrl_setup(&att_ctrl);
 
   // Update times
@@ -51,6 +53,12 @@ void task0() {
   if (dt_s < IMU_SAMPLE_PERIOD_S) {
     return;
   }
+
+  // // Calibrate IMU
+  // if (mav_ready == 0) {
+  //   mpu6050_calibrate(&imu);
+  //   mav_ready = 1;
+  // }
 
   // Estimate attitude
   mpu6050_get_data(&imu);
@@ -121,11 +129,13 @@ void task1() {
   // Radio lost?
   if (us2sec(time_now_us - task1_last_updated_us) > 0.3) {
     arm = 0;
+    mav_ready = 0;
     failsafe = 1;
   }
 
   // Reset failsafe
   if (arm == 0) {
+    mav_ready = 0;
     failsafe = 0;
     mahony_filter_reset_yaw(&filter);
   }
@@ -146,6 +156,8 @@ void transmit_telemetry() {
   char dt_str[10]; //  Hold The Convert Data
   dtostrf(dt_s, 10, 10, dt_str);
   uart_printf(&uart, "dt:%s ", dt_str);
+  uart_printf(&uart, "arm:%d ", arm);
+  uart_printf(&uart, "mav_ready:%d ", mav_ready);
 
   for (uint8_t i = 0; i < 16; i++) {
     uart_printf(&uart, "ch[%d]:%d ", i, sbus.ch[i]);
