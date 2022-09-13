@@ -4,10 +4,21 @@ mount_d = 37.5;
 screw_w = 2.7;
 standoff_w = 6.0;
 standoff_h = 5.0;
+
 odroid_w = 59.0;
 odroid_d = 83.0;
 odroid_mount_w = 52.0;
 odroid_mount_d = 76.0;
+
+pololu_w = 48.3;
+pololu_d = 15.2;
+pololu_mount_w = 43.2;
+pololu_mount_d = 10.2;
+
+sbgc_w = 40.0;
+sbgc_d = 25.0;
+sbgc_mount_w = 23.5;
+sbgc_mount_d = 19.0;
 
 module stack_spacer(h, nut_counter_sink=1) {
   screw_size = 3.0;
@@ -121,41 +132,6 @@ module frame(w, d, screw_w, standoff_w, standoff_h, support_h, nut_cst=0, nut_cs
   }
 }
 
-module odroid_frame() {
-  // FPV frame
-  frame(mount_w, mount_d, screw_w, standoff_w, standoff_h + 10, standoff_h, 0, 1);
-
-  // Odroid frame
-  rotate([180.0, 0.0, 90.0])
-    translate([0.0, 0.0, -standoff_h])
-      frame(odroid_mount_w, odroid_mount_d, screw_w, standoff_w, standoff_h + 5, standoff_h, 0, 0);
-
-  // Supports
-  positions = [
-    [odroid_mount_d / 4.0, odroid_mount_w / 2.0 - 3.7, standoff_h / 2.0],
-    [-odroid_mount_d / 4.0, odroid_mount_w / 2.0 - 3.7, standoff_h / 2.0],
-    [odroid_mount_d / 4.0, -odroid_mount_w / 2.0 + 3.7, standoff_h / 2.0],
-    [-odroid_mount_d / 4.0, -odroid_mount_w / 2.0 + 3.7, standoff_h / 2.0]
-  ];
-  for (pos = positions) {
-    translate(pos) {
-      cube([3.0, 6.0, standoff_h], center=true);
-    }
-  }
-
-  positions2 = [
-    [odroid_mount_d / 2.0 - 6.0, odroid_mount_w / 4.0, standoff_h / 2.0],
-    [odroid_mount_d / 2.0 - 6.0, -odroid_mount_w / 4.0, standoff_h / 2.0],
-    [-odroid_mount_d / 2.0 + 6.0, odroid_mount_w / 4.0, standoff_h / 2.0],
-    [-odroid_mount_d / 2.0 + 6.0, -odroid_mount_w / 4.0, standoff_h / 2.0]
-  ];
-  for (pos = positions2) {
-    translate(pos) {
-      cube([12.0, 3.0, standoff_h], center=true);
-    }
-  }
-}
-
 module landing_frame() {
   leg_w = 5.0;
   leg_l = 20.0;
@@ -201,11 +177,86 @@ module landing_frame() {
   }
 }
 
-// Main
-odroid_frame();
-// landing_frame();
+module odroid_frame() {
+  // FPV frame
+  frame(mount_w, mount_d, screw_w, standoff_w, standoff_h + 10, standoff_h, 0, 1);
 
-color([1, 0.0, 0.0])
-  rotate([-90.0, 0.0, 0.0])
-    translate([-odroid_d / 2, 2.2, -odroid_w / 2])
-      import("../proto_parts/Odroid_XU4/Odroid_XU4.STL");
+  // // Pololu PSU frame
+  // translate([-53.0, 0.0, standoff_h])
+  //   rotate([180.0, 0.0, 90.0])
+  //     frame(pololu_mount_w, pololu_mount_d, screw_w, standoff_w, standoff_h + 5.0, standoff_h, 0, 1);
+  // translate([-42.0, 10.0, standoff_h / 2.0])
+  //   cube([10.0, 3.0, standoff_h], center=true);
+  // translate([-42.0, -10.0, standoff_h / 2.0])
+  //   cube([10.0, 3.0, standoff_h], center=true);
+
+  // Odroid frame
+  rotate([180.0, 0.0, 90.0])
+    translate([0.0, 0.0, -standoff_h])
+      frame(odroid_mount_w, odroid_mount_d, screw_w, standoff_w, standoff_h + 5, standoff_h, 0, 0);
+
+  // Supports
+  positions = [
+    [odroid_mount_d / 4.0, odroid_mount_w / 2.0 - 3.7, standoff_h / 2.0],
+    [-odroid_mount_d / 4.0, odroid_mount_w / 2.0 - 3.7, standoff_h / 2.0],
+    [odroid_mount_d / 4.0, -odroid_mount_w / 2.0 + 3.7, standoff_h / 2.0],
+    [-odroid_mount_d / 4.0, -odroid_mount_w / 2.0 + 3.7, standoff_h / 2.0]
+  ];
+  for (pos = positions) {
+    translate(pos) {
+      cube([3.0, 6.0, standoff_h], center=true);
+    }
+  }
+
+  positions2 = [
+    [odroid_mount_d / 2.0 - 6.0, odroid_mount_w / 4.0, standoff_h / 2.0],
+    [odroid_mount_d / 2.0 - 6.0, -odroid_mount_w / 4.0, standoff_h / 2.0],
+    [-odroid_mount_d / 2.0 + 6.0, odroid_mount_w / 4.0, standoff_h / 2.0],
+    [-odroid_mount_d / 2.0 + 6.0, -odroid_mount_w / 4.0, standoff_h / 2.0]
+  ];
+  for (pos = positions2) {
+    translate(pos) {
+      cube([12.0, 3.0, standoff_h], center=true);
+    }
+  }
+}
+
+module sbgc_frame() {
+  // Pololu PSU frame
+  translate([10.0, 0.0, 0.0])
+  frame(pololu_mount_w, pololu_mount_d, screw_w, standoff_w, standoff_h + 5.0, standoff_h, 0, 1);
+
+  // SBGC frame
+  frame(sbgc_mount_w, sbgc_mount_d, screw_w, standoff_w, standoff_h + 5.0, standoff_h, 0, 1);
+
+  // Supports
+  // translate([-42.0, 10.0, standoff_h / 2.0])
+  //   cube([10.0, 3.0, standoff_h], center=true);
+  // translate([-42.0, -10.0, standoff_h / 2.0])
+  //   cube([10.0, 3.0, standoff_h], center=true);
+}
+
+// Main
+// landing_frame();
+// odroid_frame();
+sbgc_frame();
+
+// // Odroid XU4
+// color([1, 0.0, 0.0])
+//   rotate([-90.0, 0.0, 0.0])
+//     translate([-odroid_d / 2, 2.2, -odroid_w / 2])
+//       import("../proto_parts/Odroid_XU4/Odroid_XU4.STL");
+
+// // Pololu PSU
+// rotate([180.0, 0.0, 90.0])
+//   translate([-pololu_w / 2, -pololu_d / 2 - 53, 5.0])
+//     import("../proto_parts/Pololu_U3V50X/Pololu-U3V50X.STL");
+
+// // Simple BGC
+// rotate([180.0, 0.0, 0.0])
+//   translate([-sbgc_w / 2, -sbgc_d / 2, 30.0])
+//     import("../proto_parts/SimpleBGC_Tiny/Tiny_revC_PCB.stl");
+
+// Simple BGC
+translate([-sbgc_w / 2, -sbgc_d / 2, 10.0])
+  import("../proto_parts/SimpleBGC_Tiny/Tiny_revC_PCB.stl");
