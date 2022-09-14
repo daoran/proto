@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 import sys
+import time
 
 import serial
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
+from PyQt5.QtCore import QTimer
 
 
-class LinePlot:
-  """ Line Plot """
+class RTLinePlot:
+  """ Real-Time Line Plot """
   def __init__(self, win, title, x_key, y_keys, x_label, y_label, **kwargs):
     self.plot = win.addPlot(title=title)
     self.plot.addLegend()
     self.plot.setLabel("bottom", x_label)
     self.plot.setLabel("left", y_label)
+    self.plot.setDownsampling(mode='peak')
+    self.plot.setClipToView(True)
 
     y_min = kwargs.get("y_min")
     y_max = kwargs.get("y_max")
@@ -22,7 +26,7 @@ class LinePlot:
       self.plot.setLimits(yMin=y_min, yMax=y_max)
       self.plot.setYRange(y_min, y_max, padding=padding_y)
 
-    self.win_size = kwargs.get("win_size", 1000)
+    self.win_size = kwargs.get("win_size", 100)
     self.colors = kwargs.get("colors", ["r", "g", "b", "c", "y", "m"])
     self.x_key = x_key
     self.y_keys = y_keys
@@ -60,13 +64,13 @@ class FirmwareDebugger:
   def _setup_uart(self):
     """ Setup UART comms """
     # Setup serial communication
-    self.s = serial.Serial()
-    self.s.port = '/dev/ttyACM0'
-    self.s.baudrate = 115200
-    self.s.timeout = 10
-    self.s.open()
+    self.serial = serial.Serial()
+    self.serial.port = '/dev/ttyACM0'
+    self.serial.baudrate = 115200
+    self.serial.timeout = 10
+    self.serial.open()
 
-    if self.s.is_open is True:
+    if self.serial.is_open is True:
       print("Connected to FCU ...")
     else:
       print("Failed to connect to FCU ...")
@@ -85,7 +89,7 @@ class FirmwareDebugger:
     x_label = "Time [s]"
     y_label = "SBUS Value"
     kwargs = {"y_min": 175, "y_max": 1850}
-    self.sbus_plot = LinePlot(
+    self.sbus_plot = RTLinePlot(
         self.win,
         title,
         x_key,
@@ -101,7 +105,7 @@ class FirmwareDebugger:
     x_label = "Time [s]"
     y_label = "Angular Velocity [rad / s]"
     kwargs = {"y_min": -5.0, "y_max": 5.0}
-    self.accel_plot = LinePlot(
+    self.accel_plot = RTLinePlot(
         self.win,
         title,
         x_key,
@@ -117,7 +121,7 @@ class FirmwareDebugger:
     x_label = "Time [s]"
     y_label = "Acceleration [m / s^2]"
     kwargs = {"y_min": -12.0, "y_max": 12.0}
-    self.gyro_plot = LinePlot(
+    self.gyro_plot = RTLinePlot(
         self.win,
         title,
         x_key,
@@ -140,7 +144,7 @@ class FirmwareDebugger:
     x_label = "Time [s]"
     y_label = "Attitude [deg]"
     kwargs = {"y_min": -60.0, "y_max": 60.0}
-    self.attitude_plot = LinePlot(
+    self.attitude_plot = RTLinePlot(
         self.win,
         title,
         x_key,
@@ -156,7 +160,7 @@ class FirmwareDebugger:
     x_label = "Time [s]"
     y_label = "Motor Thrust [%]"
     kwargs = {"y_min": 0.0, "y_max": 1.0}
-    self.motors_plot = LinePlot(
+    self.motors_plot = RTLinePlot(
         self.win,
         title,
         x_key,
@@ -168,15 +172,14 @@ class FirmwareDebugger:
 
   def _start_plots(self):
     """ Start plots """
-    timer = QtCore.QTimer()
-    timer.setInterval(1)
+    timer = QTimer()
     timer.timeout.connect(self._update_plots)
     timer.start()
     pg.exec()
 
   def _update_plots(self):
     """ Update plots """
-    data = self.parse_serial_data(self.s.readline())
+    data = self.parse_serial_data(self.serial.readline())
     data['ts'] = data['ts'] * 1e-6
     self.sbus_plot.update(data)
     self.gyro_plot.update(data)

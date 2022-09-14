@@ -4,10 +4,11 @@
 uint32_t task0_last_updated_us = 0;
 uint32_t task1_last_updated_us = 0;
 uint32_t telem_last_updated_us = 0;
-uint8_t arm = 0;
+uint8_t mav_arm = 0;
 uint8_t mav_ready = 0;
-uint8_t failsafe = 0;
+uint8_t mav_failsafe = 0;
 
+float attitude_offset[3] = {0.0, 0.0, 0.0};
 float thrust_desired = 0.0;
 float roll_desired = 0.0;
 float pitch_desired = 0.0;
@@ -33,7 +34,6 @@ void setup() {
   // Sensors
   mpu6050_setup(&imu);
   mpu6050_calibrate(&imu);
-  mpu6050_get_data(&imu);
 
   // Control
   mahony_filter_setup(&filter, imu.accel);
@@ -54,11 +54,35 @@ void task0() {
     return;
   }
 
-  // // Calibrate IMU
-  // if (mav_ready == 0) {
-  //   mpu6050_calibrate(&imu);
-  //   mav_ready = 1;
-  // }
+  // Calibrate IMU and level horizon
+  if (mav_arm == 1 && mav_ready == 0) {
+    // Calibrate IMU
+    mpu6050_calibrate(&imu);
+
+    // Calibrate level-horizon
+    float a[3] = {0};
+    uint16_t nb_samples = 100;
+    for (uint32_t i = 0; i < nb_samples; i++) {
+      mpu6050_get_data(&imu);
+      a[0] += imu.accel[0];
+      a[1] += imu.accel[1];
+      a[2] += imu.accel[2];
+    }
+    a[0] /= (float) nb_samples;
+    a[1] /= (float) nb_samples;
+    a[2] /= (float) nb_samples;
+    attitude_offset[0] = atan2(a[1], a[2]);
+    attitude_offset[1] = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
+    attitude_offset[2] = 0.0;
+
+    // Reset timing
+    const uint32_t time_now_us = micros();
+    task0_last_updated_us = time_now_us;
+    task1_last_updated_us = time_now_us;
+    mav_ready = 1;
+
+    return;
+  }
 
   // Estimate attitude
   mpu6050_get_data(&imu);
@@ -67,12 +91,15 @@ void task0() {
                         imu.gyro[1] - imu.gyro_offset[1],
                         imu.gyro[2] - imu.gyro_offset[2]};
   mahony_filter_update(&filter, acc, gyr, dt_s);
+  const float roll_actual = filter.roll - attitude_offset[0];
+  const float pitch_actual = filter.pitch - attitude_offset[1];
+  const float yaw_actual = filter.yaw - attitude_offset[2];
 
   // Check tilt
-  const uint8_t roll_ok = within(filter.roll, -MAX_TILT_RAD, MAX_TILT_RAD);
-  const uint8_t pitch_ok = within(filter.pitch, -MAX_TILT_RAD, MAX_TILT_RAD);
+  const uint8_t roll_ok = within(roll_actual, -MAX_TILT_RAD, MAX_TILT_RAD);
+  const uint8_t pitch_ok = within(pitch_actual, -MAX_TILT_RAD, MAX_TILT_RAD);
   if (roll_ok == 0 || pitch_ok == 0) {
-    failsafe = 1;
+    mav_failsafe = 1;
   }
 
   // Calculate control outputs
@@ -81,15 +108,15 @@ void task0() {
                   pitch_desired,
                   yaw_desired,
                   thrust_desired,
-                  filter.roll,
-                  filter.pitch,
-                  filter.yaw,
+                  roll_actual,
+                  pitch_actual,
+                  yaw_actual,
                   dt_s,
                   outputs,
                   &uart);
 
   // Set motor PWMs
-  if (arm && failsafe == 0) {
+  if (mav_arm && mav_failsafe == 0) {
     pwm_set(&pwm, 0, outputs[0]);
     pwm_set(&pwm, 1, outputs[1]);
     pwm_set(&pwm, 2, outputs[2]);
@@ -120,7 +147,7 @@ void task1() {
   }
 
   // Parse SBUS signal
-  arm = sbus_arm(&sbus);
+  mav_arm = sbus_arm(&sbus);
   thrust_desired = sbus_thrust(&sbus);
   roll_desired = sbus_roll(&sbus);
   pitch_desired = sbus_pitch(&sbus);
@@ -128,15 +155,15 @@ void task1() {
 
   // Radio lost?
   if (us2sec(time_now_us - task1_last_updated_us) > 0.3) {
-    arm = 0;
+    mav_arm = 0;
     mav_ready = 0;
-    failsafe = 1;
+    mav_failsafe = 1;
   }
 
   // Reset failsafe
-  if (arm == 0) {
+  if (mav_arm == 0) {
     mav_ready = 0;
-    failsafe = 0;
+    mav_failsafe = 0;
     mahony_filter_reset_yaw(&filter);
   }
 
@@ -148,7 +175,7 @@ void transmit_telemetry() {
   // Check loop time
   const uint32_t time_now_us = micros();
   const float dt_s = (time_now_us - telem_last_updated_us) * 1e-6;
-  if (dt_s < (1.0 / 100.0)) {
+  if (dt_s < (1.0 / 20.0)) {
     return;
   }
 
@@ -156,7 +183,7 @@ void transmit_telemetry() {
   char dt_str[10]; //  Hold The Convert Data
   dtostrf(dt_s, 10, 10, dt_str);
   uart_printf(&uart, "dt:%s ", dt_str);
-  uart_printf(&uart, "arm:%d ", arm);
+  uart_printf(&uart, "mav_arm:%d ", mav_arm);
   uart_printf(&uart, "mav_ready:%d ", mav_ready);
 
   for (uint8_t i = 0; i < 16; i++) {
@@ -169,9 +196,16 @@ void transmit_telemetry() {
   uart_printf(&uart, "gyro_x:%f ", imu.gyro[0]);
   uart_printf(&uart, "gyro_y:%f ", imu.gyro[1]);
   uart_printf(&uart, "gyro_z:%f ", imu.gyro[2]);
-  uart_printf(&uart, "roll:%f ", rad2deg(filter.roll));
-  uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch));
-  uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
+
+  const float roll_actual = filter.roll - attitude_offset[0];
+  const float pitch_actual = filter.pitch - attitude_offset[1];
+  const float yaw_actual = filter.yaw - attitude_offset[2];
+  uart_printf(&uart, "roll:%f ", rad2deg(roll_actual));
+  uart_printf(&uart, "pitch:%f ", rad2deg(pitch_actual));
+  uart_printf(&uart, "yaw:%f ", rad2deg(yaw_actual));
+  // uart_printf(&uart, "roll:%f ", rad2deg(filter.roll));
+  // uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch));
+  // uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
 
   uart_printf(&uart, "thrust_desired:%f ", rad2deg(thrust_desired));
   uart_printf(&uart, "roll_desired:%f ", rad2deg(roll_desired));

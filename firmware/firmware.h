@@ -10,6 +10,10 @@
 
 #include "config.h"
 
+#ifndef CMP_TOL
+#define CMP_TOL 1e-6
+#endif
+
 #define UNUSED(expr)                                                           \
   do {                                                                         \
     (void) (expr);                                                             \
@@ -27,6 +31,23 @@ inline float deg2rad(const float d) {
  */
 inline float rad2deg(const float r) {
   return r * (180.0 / M_PI);
+}
+
+/**
+ * Compare reals.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int fltcmp(const void *x, const void *y) {
+  if (fabs(*(float *) x - *(float *) y) < CMP_TOL) {
+    return 0;
+  } else if (x > y) {
+    return 1;
+  }
+
+  return -1;
 }
 
 /**
@@ -109,11 +130,11 @@ float inv_sqrt(const float x) {
  * Calculate mean from vector `x` of length `n`.
  * @returns Mean of x
  */
-real_t mean(const real_t *x, const size_t n) {
+float mean(const float *x, const size_t n) {
   assert(x != NULL);
   assert(n > 0);
 
-  real_t sum = 0.0;
+  float sum = 0.0;
   for (size_t i = 0; i < n; i++) {
     sum += x[i];
   }
@@ -124,21 +145,21 @@ real_t mean(const real_t *x, const size_t n) {
  * Calculate median from vector `x` of length `n`.
  * @returns Median of x
  */
-real_t median(const real_t *x, const size_t n) {
+float median(const float *x, const size_t n) {
   assert(x != NULL);
   assert(n > 0);
 
   // Make a copy of the original input vector x
-  real_t *vals = malloc(sizeof(real_t) * n);
+  float *vals = (float *) malloc(sizeof(float) * n);
   for (size_t i = 0; i < n; i++) {
     vals[i] = x[i];
   }
 
   // Sort the values
-  qsort(vals, n, sizeof(real_t), fltcmp2);
+  qsort(vals, n, sizeof(float), fltcmp);
 
   // Get median value
-  real_t median_value = 0.0;
+  float median_value = 0.0;
   if ((n % 2) == 0) {
     const int bwd_idx = (int) (n - 1) / 2.0;
     const int fwd_idx = (int) (n + 1) / 2.0;
@@ -356,7 +377,7 @@ void tf_quat_get(const float T[4 * 4], float q[4]) {
   assert(T != q);
 
   float C[3 * 3] = {0};
-  tf_rot(T, C);
+  tf_rot_get(T, C);
   rot2quat(C, q);
 }
 
@@ -1786,16 +1807,12 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
     // dtostrf(dt, 10, 10, dt_str);
     // uart_printf(uart, "dt:%s ", dt_str);
     //
-    // uart_printf(uart, "Min:-1.0 ");
     // uart_printf(uart, "roll_actual:%f ", roll_actual);
     // uart_printf(uart, "roll_desired:%f ", roll_desired);
     // uart_printf(uart, "r:%f ", r);
     // uart_printf(uart, "t:%f ", thrust_desired);
-    // uart_printf(uart, "Max:1.0 ");
-    // // uart_printf(uart, "pitch_error:%f ", pitch_error);
+    // uart_printf(uart, "pitch_error:%f ", pitch_error);
     // uart_printf(uart, "yaw_error:%f ", yaw_error);
-    // // uart_printf(uart, "r:%f ", 2.0 * roll_error);
-    // // uart_printf(uart, "p:%f ", p);
     // uart_printf(uart, "\r\n");
   }
 
