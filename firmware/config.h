@@ -1,5 +1,7 @@
 #define GRAVITY 9.81
 #define MAX_TILT_RAD 1.0472
+#define THROTTLE_MIN 0.05
+#define THROTTLE_MAX 1.0
 
 #define I2C_MAX_BUF_LEN 1024
 

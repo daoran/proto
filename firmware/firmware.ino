@@ -1,20 +1,22 @@
 #include "firmware.h"
 
 // GLOBAL VARIABLES
+// -- Timers
 uint32_t task0_last_updated_us = 0;
 uint32_t task1_last_updated_us = 0;
 uint32_t telem_last_updated_us = 0;
+// -- Flags
 uint8_t mav_arm = 0;
 uint8_t mav_ready = 0;
 uint8_t mav_failsafe = 0;
-
+// -- Control
 float attitude_offset[3] = {0.0, 0.0, 0.0};
 float thrust_desired = 0.0;
 float roll_desired = 0.0;
 float pitch_desired = 0.0;
 float yaw_desired = 0.0;
 float outputs[4] = {0.0, 0.0, 0.0, 0.0};
-
+// -- Components
 sbus_t sbus;
 uart_t uart;
 pwm_t pwm;
@@ -45,6 +47,56 @@ void setup() {
   task1_last_updated_us = time_now_us;
 }
 
+// Reset timers
+void reset_timers() {
+  const uint32_t time_now_us = micros();
+  task0_last_updated_us = time_now_us;
+  task1_last_updated_us = time_now_us;
+}
+
+// Reset flags
+void reset_flags() {
+  mav_arm = 0;
+  mav_ready = 0;
+  mav_failsafe = 0;
+}
+
+// Startup Sequence
+void startup_seqeunce() {
+  // Calibrate IMU
+  mpu6050_calibrate(&imu);
+
+  // Calibrate level-horizon
+  float a[3] = {0};
+  uint16_t nb_samples = 100;
+  for (uint32_t i = 0; i < nb_samples; i++) {
+    mpu6050_get_data(&imu);
+    a[0] += imu.accel[0];
+    a[1] += imu.accel[1];
+    a[2] += imu.accel[2];
+  }
+  a[0] /= (float) nb_samples;
+  a[1] /= (float) nb_samples;
+  a[2] /= (float) nb_samples;
+  attitude_offset[0] = atan2(a[1], a[2]);
+  attitude_offset[1] = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
+  attitude_offset[2] = 0.0;
+
+  // Motor startup sequence
+  pwm_set(&pwm, 2, THROTTLE_MIN);
+  delay(500);
+  pwm_set(&pwm, 3, THROTTLE_MIN);
+  delay(500);
+  pwm_set(&pwm, 1, THROTTLE_MIN);
+  delay(500);
+  pwm_set(&pwm, 0, THROTTLE_MIN);
+  delay(500);
+
+  // Reset timing
+  reset_timers();
+  mav_ready = 1;
+}
+
 // Estimation Task
 void task0() {
   // Check loop time
@@ -56,31 +108,7 @@ void task0() {
 
   // Calibrate IMU and level horizon
   if (mav_arm == 1 && mav_ready == 0) {
-    // Calibrate IMU
-    mpu6050_calibrate(&imu);
-
-    // Calibrate level-horizon
-    float a[3] = {0};
-    uint16_t nb_samples = 100;
-    for (uint32_t i = 0; i < nb_samples; i++) {
-      mpu6050_get_data(&imu);
-      a[0] += imu.accel[0];
-      a[1] += imu.accel[1];
-      a[2] += imu.accel[2];
-    }
-    a[0] /= (float) nb_samples;
-    a[1] /= (float) nb_samples;
-    a[2] /= (float) nb_samples;
-    attitude_offset[0] = atan2(a[1], a[2]);
-    attitude_offset[1] = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
-    attitude_offset[2] = 0.0;
-
-    // Reset timing
-    const uint32_t time_now_us = micros();
-    task0_last_updated_us = time_now_us;
-    task1_last_updated_us = time_now_us;
-    mav_ready = 1;
-
+    startup_seqeunce();
     return;
   }
 

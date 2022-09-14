@@ -34,6 +34,150 @@ inline float rad2deg(const float r) {
 }
 
 /**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int uint8cmp(const void *x, const void *y) {
+  if (*(uint8_t *) x < *(uint8_t *) y) {
+    return -1;
+  } else if (*(uint8_t *) x > *(uint8_t *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int int8cmp(const void *x, const void *y) {
+  if (*(int8_t *) x < *(int8_t *) y) {
+    return -1;
+  } else if (*(int8_t *) x > *(int8_t *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int uint16cmp(const void *x, const void *y) {
+  if (*(uint16_t *) x < *(uint16_t *) y) {
+    return -1;
+  } else if (*(uint16_t *) x > *(uint16_t *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int int16cmp(const void *x, const void *y) {
+  if (*(int16_t *) x < *(int16_t *) y) {
+    return -1;
+  } else if (*(int16_t *) x > *(int16_t *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int uint32cmp(const void *x, const void *y) {
+  if (*(uint32_t *) x < *(uint32_t *) y) {
+    return -1;
+  } else if (*(uint32_t *) x > *(uint32_t *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int int32cmp(const void *x, const void *y) {
+  if (*(int32_t *) x < *(int32_t *) y) {
+    return -1;
+  } else if (*(int32_t *) x > *(int32_t *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int uint64cmp(const void *x, const void *y) {
+  if (*(uint64_t *) x < *(uint64_t *) y) {
+    return -1;
+  } else if (*(uint64_t *) x > *(uint64_t *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int int64cmp(const void *x, const void *y) {
+  if (*(int64_t *) x < *(int64_t *) y) {
+    return -1;
+  } else if (*(int64_t *) x > *(int64_t *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Compare int.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+int intcmp(const void *x, const void *y) {
+  if (*(int *) x < *(int *) y) {
+    return -1;
+  } else if (*(int *) x > *(int *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
  * Compare reals.
  * @returns
  * - 0 if x == y
@@ -695,6 +839,9 @@ void pwm_set(pwm_t *pwm, const uint8_t pin_idx, const float val) {
 
 typedef struct sbus_t {
   uint16_t ch[16];
+  uint16_t buf[16][5];
+  uint8_t buf_idx;
+  uint8_t buf_capacity;
   uint8_t frame_lost;
   uint8_t failsafe_activated;
 } sbus_t;
@@ -711,49 +858,26 @@ void sbus_setup(sbus_t *sbus) {
 
   for (uint8_t i = 0; i < 16; i++) {
     sbus->ch[i] = 0;
+    for (uint8_t j = 0; j < 5; j++) {
+      sbus->buf[i][j] = 0;
+    }
   }
+  sbus->buf_idx = 0;
+  sbus->buf_capacity = 0;
   sbus->frame_lost = 0;
   sbus->failsafe_activated = 0;
 }
 
-int8_t sbus_read_byte(uint8_t *data) {
-  if (Serial2.available()) {
-    *data = Serial2.read();
-    return 0;
-  } else {
-    return -1;
-  }
-}
-
-void sbus_read(uint8_t *data, const size_t size) {
-  Serial2.readBytes(data, size);
-}
-
-void sbus_write_byte(const uint8_t data) {
-  Serial2.write(data);
-}
-
-void sbus_write(const uint8_t *data, const size_t size) {
-  Serial2.write(data, size);
-}
-
 int8_t sbus_update(sbus_t *sbus) {
   // Get sbus frame data
-  uint8_t frame[25] = {0};
-  // if (sbus_read_byte(&frame[0]) == -1 || frame[0] != 0x0F) {
-  //   Serial2.clear();
-  //   return -1;
-  // }
-  // sbus_read(frame, 25);
-  // Serial2.clear();
-
+  uint8_t f[25] = {0};
   uint8_t new_frame = 0;
   while (Serial2.available()) {
     uint8_t byte = Serial2.read();
     if (byte != 0x0f) {
       continue;
     } else {
-      Serial2.readBytes(&frame[1], 24);
+      Serial2.readBytes(&f[1], 24);
       Serial2.clear();
       new_frame = 1;
       break;
@@ -765,28 +889,66 @@ int8_t sbus_update(sbus_t *sbus) {
 
   // Parse sbus frame
   // -- Parse flag
-  sbus->frame_lost = (frame[23] & (1 << 5));
-  sbus->failsafe_activated = (frame[23] & (1 << 4));
+  sbus->frame_lost = (f[23] & (1 << 5));
+  sbus->failsafe_activated = (f[23] & (1 << 4));
   // -- Parse channel data
   for (uint8_t i = 0; i < 16; i++) {
     sbus->ch[i] = 0;
   }
-  sbus->ch[0] = ((frame[1] | frame[2] << 8) & 0x07FF);
-  sbus->ch[1] = ((frame[2] >> 3 | frame[3] << 5) & 0x07FF);
-  sbus->ch[2] = ((frame[3] >> 6 | frame[4] << 2 | frame[5] << 10) & 0x07FF);
-  sbus->ch[3] = ((frame[5] >> 1 | frame[6] << 7) & 0x07FF);
-  sbus->ch[4] = ((frame[6] >> 4 | frame[7] << 4) & 0x07FF);
-  sbus->ch[5] = ((frame[7] >> 7 | frame[8] << 1 | frame[8] << 9) & 0x07FF);
-  sbus->ch[6] = ((frame[9] >> 2 | frame[10] << 6) & 0x07FF);
-  sbus->ch[7] = ((frame[10] >> 5 | frame[11] << 3) & 0x07FF);
-  sbus->ch[8] = ((frame[12] | frame[13] << 8) & 0x07FF);
-  sbus->ch[9] = ((frame[13] >> 3 | frame[14] << 5) & 0x07FF);
-  sbus->ch[10] = ((frame[14] >> 6 | frame[15] << 2 | frame[16] << 10) & 0x07FF);
-  sbus->ch[11] = ((frame[16] >> 1 | frame[17] << 7) & 0x07FF);
-  sbus->ch[12] = ((frame[17] >> 4 | frame[18] << 4) & 0x07FF);
-  sbus->ch[13] = ((frame[18] >> 7 | frame[19] << 1 | frame[20] << 9) & 0x07FF);
-  sbus->ch[14] = ((frame[20] >> 2 | frame[21] << 6) & 0x07FF);
-  sbus->ch[15] = ((frame[21] >> 5 | frame[22] << 3) & 0x07FF);
+  const uint8_t buf_idx = sbus->buf_idx;
+  sbus->buf[0][buf_idx] = ((f[1] | f[2] << 8) & 0x07FF);
+  sbus->buf[1][buf_idx] = ((f[2] >> 3 | f[3] << 5) & 0x07FF);
+  sbus->buf[2][buf_idx] = ((f[3] >> 6 | f[4] << 2 | f[5] << 10) & 0x07FF);
+  sbus->buf[3][buf_idx] = ((f[5] >> 1 | f[6] << 7) & 0x07FF);
+  sbus->buf[4][buf_idx] = ((f[6] >> 4 | f[7] << 4) & 0x07FF);
+  sbus->buf[5][buf_idx] = ((f[7] >> 7 | f[8] << 1 | f[8] << 9) & 0x07FF);
+  sbus->buf[6][buf_idx] = ((f[9] >> 2 | f[10] << 6) & 0x07FF);
+  sbus->buf[7][buf_idx] = ((f[10] >> 5 | f[11] << 3) & 0x07FF);
+  sbus->buf[8][buf_idx] = ((f[12] | f[13] << 8) & 0x07FF);
+  sbus->buf[9][buf_idx] = ((f[13] >> 3 | f[14] << 5) & 0x07FF);
+  sbus->buf[10][buf_idx] = ((f[14] >> 6 | f[15] << 2 | f[16] << 10) & 0x07FF);
+  sbus->buf[11][buf_idx] = ((f[16] >> 1 | f[17] << 7) & 0x07FF);
+  sbus->buf[12][buf_idx] = ((f[17] >> 4 | f[18] << 4) & 0x07FF);
+  sbus->buf[13][buf_idx] = ((f[18] >> 7 | f[19] << 1 | f[20] << 9) & 0x07FF);
+  sbus->buf[14][buf_idx] = ((f[20] >> 2 | f[21] << 6) & 0x07FF);
+  sbus->buf[15][buf_idx] = ((f[21] >> 5 | f[22] << 3) & 0x07FF);
+  sbus->buf_idx++;
+  if (sbus->buf_idx >= 4) {
+    sbus->buf_idx = 0;
+    sbus->buf_capacity = (sbus->buf_capacity >= 5) ? 5 : sbus->buf_capacity;
+  }
+
+  // Set sbus values
+  for (uint8_t i = 0; i < 16; i++) {
+    if (sbus->buf_capacity >= 5) {
+      // Make a copy of the buffer
+      uint16_t vals[5] = {0};
+      for (uint8_t j = 0; j < 5; j++) {
+        vals[j] = sbus->buf[i][j];
+      }
+
+      // Sort values
+      qsort(vals, 5, sizeof(uint16_t), uint16cmp);
+
+      // Get median value
+      uint16_t median = 0.0;
+      uint8_t n = 5;
+      if ((n % 2) == 0) {
+        const uint8_t bwd_idx = (uint8_t)(n - 1) / 2.0;
+        const uint8_t fwd_idx = (uint8_t)(n + 1) / 2.0;
+        median = (vals[bwd_idx] + vals[fwd_idx]) / 2.0;
+      } else {
+        const uint8_t mid_idx = n / 2.0;
+        median = vals[mid_idx];
+      }
+
+      // Set median
+      sbus->ch[i] = median;
+
+    } else {
+      sbus->ch[i] = sbus->buf[i][sbus->buf_idx];
+    }
+  }
 
   return 0;
 }
@@ -1818,8 +1980,8 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
 
   // Clamp outputs between 0.0 and 1.0
   for (uint8_t i = 0; i < 4; i++) {
-    outputs[i] = (outputs[i] < 0.0) ? 0.0 : outputs[i];
-    outputs[i] = (outputs[i] > 1.0) ? 1.0 : outputs[i];
+    outputs[i] = (outputs[i] < THROTTLE_MIN) ? THROTTLE_MIN : outputs[i];
+    outputs[i] = (outputs[i] > THROTTLE_MAX) ? THROTTLE_MAX : outputs[i];
   }
 }
 
