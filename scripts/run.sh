@@ -189,6 +189,11 @@ run_sbgc_tests() {
 # run_test test_stack_pop
 # run_test test_queue_new_and_destroy
 # run_test test_queue_enqueue_dequeue
+# run_test test_hashmap_new_destroy
+# run_test test_hashmap_clear_destroy
+# run_test test_hashmap_get_set
+# run_test test_hashmap_delete
+# run_test test_hashmap_traverse
 # PROTO-TIME
 # run_test test_tic
 # run_test test_toc
@@ -368,9 +373,10 @@ run_sbgc_tests() {
 # ARDUINO
 ###############################################################################
 
-arduino --upload firmware/firmware.ino --port /dev/ttyUSB0
-# arduino --upload firmware/firmware.ino
-# arduino firmware/firmware.ino
+arduino --upload firmware/firmware.ino
+# arduino --verify firmware/firmware.ino
+# python3 firmware/firmware_debugger.py
+# python3 firmware/debugger.py
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "\
