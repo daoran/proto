@@ -2,9 +2,9 @@
 
 // GLOBAL VARIABLES
 // -- Timers
-uint32_t task0_last_updated_us = 0;
-uint32_t task1_last_updated_us = 0;
-uint32_t telem_last_updated_us = 0;
+uint32_t task_control_last_updated_us = 0;
+uint32_t task_rc_last_updated_us = 0;
+uint32_t task_telem_last_updated_us = 0;
 // -- Flags
 uint8_t mav_arm = 0;
 uint8_t mav_ready = 0;
@@ -43,15 +43,15 @@ void setup() {
 
   // Update times
   const uint32_t time_now_us = micros();
-  task0_last_updated_us = time_now_us;
-  task1_last_updated_us = time_now_us;
+  task_control_last_updated_us = time_now_us;
+  task_rc_last_updated_us = time_now_us;
 }
 
 // Reset timers
 void reset_timers() {
   const uint32_t time_now_us = micros();
-  task0_last_updated_us = time_now_us;
-  task1_last_updated_us = time_now_us;
+  task_control_last_updated_us = time_now_us;
+  task_rc_last_updated_us = time_now_us;
 }
 
 // Reset flags
@@ -63,24 +63,37 @@ void reset_flags() {
 
 // Startup Sequence
 void startup_seqeunce() {
-  // Calibrate IMU
+  // Calibrate gyroscope
+  // const uint16_t nb_gyro_samples = 2000;
+  // imu.gyro_offset[0] = 0.0;
+  // imu.gyro_offset[1] = 0.0;
+  // imu.gyro_offset[2] = 0.0;
+  // for (uint32_t i = 0; i < nb_gyro_samples; i++) {
+  //   mpu6050_get_data(&imu);
+  //   imu.gyro_offset[0] += imu.gyro[0];
+  //   imu.gyro_offset[1] += imu.gyro[1];
+  //   imu.gyro_offset[2] += imu.gyro[2];
+  // }
+  // imu.gyro_offset[0] /= (float) nb_gyro_samples;
+  // imu.gyro_offset[1] /= (float) nb_gyro_samples;
+  // imu.gyro_offset[2] /= (float) nb_gyro_samples;
   mpu6050_calibrate(&imu);
 
-  // Calibrate level-horizon
-  float a[3] = {0};
-  uint16_t nb_samples = 100;
-  for (uint32_t i = 0; i < nb_samples; i++) {
-    mpu6050_get_data(&imu);
-    a[0] += imu.accel[0];
-    a[1] += imu.accel[1];
-    a[2] += imu.accel[2];
-  }
-  a[0] /= (float) nb_samples;
-  a[1] /= (float) nb_samples;
-  a[2] /= (float) nb_samples;
-  attitude_offset[0] = atan2(a[1], a[2]);
-  attitude_offset[1] = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
-  attitude_offset[2] = 0.0;
+  // // Calibrate level-horizon
+  // const uint16_t nb_accel_samples = 100;
+  // float a[3] = {0.0, 0.0, 0.0};
+  // for (uint32_t i = 0; i < nb_accel_samples; i++) {
+  //   mpu6050_get_data(&imu);
+  //   a[0] += imu.accel[0];
+  //   a[1] += imu.accel[1];
+  //   a[2] += imu.accel[2];
+  // }
+  // a[0] /= (float) nb_accel_samples;
+  // a[1] /= (float) nb_accel_samples;
+  // a[2] /= (float) nb_accel_samples;
+  // attitude_offset[0] = atan2(a[1], a[2]);
+  // attitude_offset[1] = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
+  // attitude_offset[2] = 0.0;
 
   // Motor startup sequence
   pwm_set(&pwm, 2, THROTTLE_MIN);
@@ -98,15 +111,15 @@ void startup_seqeunce() {
 }
 
 // Estimation Task
-void task0() {
+void task_control() {
   // Check loop time
   const uint32_t time_now_us = micros();
-  const float dt_s = (time_now_us - task0_last_updated_us) * 1e-6;
+  const float dt_s = (time_now_us - task_control_last_updated_us) * 1e-6;
   if (dt_s < IMU_SAMPLE_PERIOD_S) {
     return;
   }
 
-  // Calibrate IMU and level horizon
+  // Launch startup sequence
   if (mav_arm == 1 && mav_ready == 0) {
     startup_seqeunce();
     return;
@@ -157,15 +170,15 @@ void task0() {
   }
 
   // Update last updated
-  task0_last_updated_us = time_now_us;
+  task_control_last_updated_us = time_now_us;
 }
 
-// Control Task
-void task1() {
+// RC Task
+void task_rc() {
   // Check loop time
   const uint32_t time_now_us = micros();
-  const float dt_s = (time_now_us - task1_last_updated_us) * 1e-6;
-  if (dt_s < (1.0 / 50.0)) {
+  const float dt_s = (time_now_us - task_rc_last_updated_us) * 1e-6;
+  if (dt_s < RC_SAMPLE_PERIOD_S) {
     return;
   }
 
@@ -182,7 +195,7 @@ void task1() {
   yaw_desired = sbus_yaw(&sbus);
 
   // Radio lost?
-  if (us2sec(time_now_us - task1_last_updated_us) > 0.3) {
+  if (us2sec(time_now_us - task_rc_last_updated_us) > 0.3) {
     mav_arm = 0;
     mav_ready = 0;
     mav_failsafe = 1;
@@ -196,14 +209,14 @@ void task1() {
   }
 
   // Update last updated
-  task1_last_updated_us = time_now_us;
+  task_rc_last_updated_us = time_now_us;
 }
 
-void transmit_telemetry() {
+void task_telem() {
   // Check loop time
   const uint32_t time_now_us = micros();
-  const float dt_s = (time_now_us - telem_last_updated_us) * 1e-6;
-  if (dt_s < (1.0 / 20.0)) {
+  const float dt_s = (time_now_us - task_telem_last_updated_us) * 1e-6;
+  if (dt_s < TELEM_SAMPLE_PERIOD_S) {
     return;
   }
 
@@ -248,12 +261,12 @@ void transmit_telemetry() {
   uart_printf(&uart, "\r\n");
 
   // Update last updated
-  telem_last_updated_us = time_now_us;
+  task_telem_last_updated_us = time_now_us;
 }
 
 // Loop
 void loop() {
-  task0();
-  task1();
-  transmit_telemetry();
+  task_control();
+  task_rc();
+  task_telem();
 }
