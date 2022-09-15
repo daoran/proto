@@ -18,5 +18,6 @@ apt_install "ros-$ROS_VERSION-desktop"
 apt_install "ros-$ROS_VERSION-gazebo-dev*"
 apt_install python3-catkin-tools
 apt_install python3-rosdep
+apt_install python3-rosbag
 sudo rosdep init
 rosdep update

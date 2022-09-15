@@ -157,10 +157,10 @@ module battery_holder() {
 // // FCU Holder
 // fcu_holder(fcu_w, fcu_d, frame_h, screw_w, 10.0);
 
-// Battery Holder
-translate([0.0, 0.0, 40.0])
-  rotate([0.0, 0.0, 90.0])
-    battery_holder();
+// // Battery Holder
+// translate([0.0, 0.0, 40.0])
+//   rotate([0.0, 0.0, 90.0])
+//     battery_holder();
 
 // // Battery
 // translate([0.0, 0.0, 60.0])
