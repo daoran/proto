@@ -825,82 +825,104 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1) {
 
   // Camera
   if (show_camera) {
-    translate([standoff_h / 2, 0, camera_mount_point])
+    translate([-12.0, 0, camera_mount_point - standoff_h / 2])
       rotate([90, 0, 90])
         stereo_camera_frame();
   }
 
   // Motor
   if (show_motor) {
-    translate([0.0, 0.0, -motor_h])
+    translate([0.0, 0.0, -motor_h + 0.01])
         gimbal_motor(has_encoders);
   }
 
   // IMU
   if (show_imu) {
-    rotate([0, -90, 0])
-      translate([camera_mount_point - 22.25, 0.0, 4])
-        mpu6050();
+    translate([0, 0, camera_mount_point - standoff_h / 2])
+      rotate([-90, 0, -90])
+        translate([20, 0, 6])
+          mpu6050();
   }
 
   // IMU mount frame
   imu_mount_w = 15.5;
   rotate([0, -90, 0])
-    translate([camera_mount_point - 17.0, 0.0, -standoff_h / 2.0])
-      frame(0.0, 15.5,
-            M2_screw_w, M2_nut_w, M2_nut_h,
-            standoff_w - 3, standoff_h + 2, standoff_h,
-            0, 1);
+    translate([camera_mount_point - standoff_h / 2, -25.0, (standoff_h + 2) / 2])
+        rotate([180.0, 0, 0])
+        frame(15.5, 0,
+              M2_screw_w, M2_nut_w, M2_nut_h,
+              standoff_w - 3, standoff_h + 5, standoff_h + 2,
+              0, 1);
+  translate([0.0, -22.0, camera_mount_point - standoff_h / 2])
+    cube([6.0, 6.0, 9.0], center=true);
+
 
   // Motor mount frame
   motor_mount_w = 13.2;
   frame(motor_mount_w, motor_mount_w,
         M2_screw_w, M2_nut_w, M2_nut_h,
-        standoff_w - 3, standoff_h, standoff_h,
+        standoff_w, standoff_h, standoff_h,
         0, 0);
-
-  // Supports for the base
-  translate([0, 0, standoff_h / 2 + 4])
-    cube([motor_mount_w + 3.0, standoff_h, standoff_h], center=true);
-  translate([0, 0, standoff_h / 2 + 4])
-    rotate(90)
-      cube([motor_mount_w + 3.0, standoff_h, standoff_h], center=true);
+  translate([motor_mount_w / 2 + 1.2, 0, standoff_h / 2])
+    cube([6.0, 10.0, standoff_h], center=true);
+  translate([-motor_mount_w / 2 - 1.2, 0, standoff_h / 2])
+    cube([6.0, 10.0, standoff_h], center=true);
+  translate([0, motor_mount_w / 2 + 1.2, standoff_h / 2])
+    cube([10.0, 6.0, standoff_h], center=true);
+  translate([0, -motor_mount_w / 2 - 1.2, standoff_h / 2])
+    cube([10.0, 6.0, standoff_h], center=true);
 
   // Camera mount frame
   camera_mount_w = 18.5;
-  translate([0, 0, camera_mount_point])
+  translate([0, 0, camera_mount_point - standoff_h / 2])
     rotate([0, 90, 0])
-      translate([0, 0, -standoff_h / 2.0])
-  frame(camera_mount_w, camera_mount_w,
-        M2_screw_w, M2_nut_w, M2_nut_h,
-        standoff_w - 3, standoff_h, standoff_h,
-        0, 1);
+      translate([0, 0, -standoff_h / 2.0 - 1])
+        frame(camera_mount_w, camera_mount_w,
+              M2_screw_w, M2_nut_w, M2_nut_h,
+              standoff_w, standoff_h + 2, standoff_h + 2,
+              1, 0);
 
   // Supports
   support_h = camera_mount_point * 2;
-  pivot_h = 6.0;
+  pivot_h = 5.0;
   pivot_disc_h = 2.0;
   pivot_disc_r = 7.0 / 2.0;
   difference() {
-    // Main support body
-    translate([0, 0, support_h / 2])
-      cube([standoff_h, standoff_h, support_h], center=true);
+    x = 0;
+    y = 19.0;
+    h = support_h - standoff_h;
+    union() {
+      // Main support body
+      translate([-x, -y, h / 2])
+        cube([standoff_h + 2, standoff_h + 1, h], center=true);
+      translate([-x, y, h / 2])
+        cube([standoff_h + 2, standoff_h + 1, h], center=true);
+      translate([-x, 0, standoff_h / 2])
+        cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
+      translate([-x, 0, standoff_h / 2 + h - standoff_h])
+        cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
 
-    // Trim the end for a pivot cylinder
-    translate([0, 0, support_h - pivot_h / 2])
-      cube([standoff_h + 0.01, standoff_h + 0.01, pivot_h + 0.01], center=true);
+      // Frame supports
+      translate([-x, 0, support_h / 2 - standoff_h / 2])
+        cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
+      translate([-x, 0, support_h / 3 + 1])
+        cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
+      translate([-x, 0, support_h / 1.5 - 5])
+        cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
+    }
+
 
     // Trim the base end
     translate([0, 0, standoff_h / 2])
-      cube([standoff_h + 0.01, standoff_h + 0.01, standoff_h + 0.01], center=true);
+      cube([6.0 + 0.1, 10.0 + 0.3, standoff_h + 0.1], center=true);
   }
 
   // Pivot
-  translate([0, 0, support_h - pivot_h / 2])
+  translate([0, 0, support_h - standoff_h + pivot_h / 2])
     cylinder(r=5/2, h=pivot_h, center=true);
 
   // Pivot disc
-  translate([0, 0, support_h - pivot_h - pivot_disc_h / 2])
+  translate([0, 0, support_h - standoff_h - pivot_disc_h / 2])
     cylinder(r=pivot_disc_r, h=pivot_disc_h, center=true);
 }
 
@@ -937,8 +959,8 @@ module pivot_frame(has_encoders=0) {
   }
 }
 
-module roll_frame(has_encoders=0, show_pitch_frame=0) {
-  camera_mount_point = 58.0;
+module roll_frame(has_encoders=0, show_pitch_frame=1) {
+  camera_mount_point = 59.0;
   motor_r = 35.0 / 2.0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_w = 13.2;
@@ -957,7 +979,7 @@ module roll_frame(has_encoders=0, show_pitch_frame=0) {
       base_mount_d = (has_encoders) ? 14.2 : 20.5;
         frame(base_mount_d, base_mount_d,
               M2_screw_w, M2_nut_w, M2_nut_h,
-              standoff_w, standoff_h, standoff_h);
+              standoff_w, standoff_h+ 2, standoff_h + 2);
 
       // Pivot frame
       translate([0.0, 0.0, camera_mount_point * 2 + motor_h - standoff_h / 2 + 6]) {
@@ -967,7 +989,7 @@ module roll_frame(has_encoders=0, show_pitch_frame=0) {
 
       // Roll bar
       translate([-(roll_bar_d + 2) + 10.0 / 2.0, (roll_bar_d - 2) / 2 - 2.0, standoff_h / 2])
-        cube([(roll_bar_d + 5) / 2 , standoff_h, standoff_h], center=true);
+        #cube([(roll_bar_d + 5) / 2 , standoff_h, standoff_h], center=true);
       translate([-(roll_bar_d + 2) + 10.0 / 2.0, -(roll_bar_d - 2) / 2 + 2.0, standoff_h / 2])
         cube([(roll_bar_d + 5) / 2 , standoff_h, standoff_h], center=true);
       translate([-(roll_bar_d + 3), 0.0, (roll_bar_w + 1) / 2])
@@ -1061,7 +1083,7 @@ module print() {
 // odroid_frame(mav_mount_w, mav_mount_d, 0);
 // sbgc_frame(odroid_mount_w, odroid_mount_d, 0, 0);
 // stereo_camera_frame();
-pitch_frame();
+// pitch_frame();
 // pivot_frame();
-// roll_frame();
+roll_frame();
 // gimbal_frame(odroid_mount_w, odroid_mount_d);
