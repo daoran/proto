@@ -64,36 +64,27 @@ void reset_flags() {
 // Startup Sequence
 void startup_seqeunce() {
   // Calibrate gyroscope
-  // const uint16_t nb_gyro_samples = 2000;
-  // imu.gyro_offset[0] = 0.0;
-  // imu.gyro_offset[1] = 0.0;
-  // imu.gyro_offset[2] = 0.0;
-  // for (uint32_t i = 0; i < nb_gyro_samples; i++) {
-  //   mpu6050_get_data(&imu);
-  //   imu.gyro_offset[0] += imu.gyro[0];
-  //   imu.gyro_offset[1] += imu.gyro[1];
-  //   imu.gyro_offset[2] += imu.gyro[2];
-  // }
-  // imu.gyro_offset[0] /= (float) nb_gyro_samples;
-  // imu.gyro_offset[1] /= (float) nb_gyro_samples;
-  // imu.gyro_offset[2] /= (float) nb_gyro_samples;
-  mpu6050_calibrate(&imu);
-
-  // // Calibrate level-horizon
-  // const uint16_t nb_accel_samples = 100;
-  // float a[3] = {0.0, 0.0, 0.0};
-  // for (uint32_t i = 0; i < nb_accel_samples; i++) {
-  //   mpu6050_get_data(&imu);
-  //   a[0] += imu.accel[0];
-  //   a[1] += imu.accel[1];
-  //   a[2] += imu.accel[2];
-  // }
-  // a[0] /= (float) nb_accel_samples;
-  // a[1] /= (float) nb_accel_samples;
-  // a[2] /= (float) nb_accel_samples;
-  // attitude_offset[0] = atan2(a[1], a[2]);
-  // attitude_offset[1] = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
-  // attitude_offset[2] = 0.0;
+  const uint16_t nb_samples = 1000;
+  float w[3] = {0.0, 0.0, 0.0};
+  float a[3] = {0.0, 0.0, 0.0};
+  for (uint32_t i = 0; i < nb_samples; i++) {
+    mpu6050_get_data(&imu);
+    w[0] += imu.gyro[0];
+    w[1] += imu.gyro[1];
+    w[2] += imu.gyro[2];
+    a[0] += imu.accel[0];
+    a[1] += imu.accel[1];
+    a[2] += imu.accel[2];
+  }
+  imu.gyro_offset[0] = w[0] / (float) nb_samples;
+  imu.gyro_offset[1] = w[1] / (float) nb_samples;
+  imu.gyro_offset[2] = w[2] / (float) nb_samples;
+  a[0] /= (float) nb_samples;
+  a[1] /= (float) nb_samples;
+  a[2] /= (float) nb_samples;
+  attitude_offset[0] = atan2(a[1], a[2]);
+  attitude_offset[1] = atan2(-a[0], sqrt(a[1] * a[1] + a[2] * a[2]));
+  attitude_offset[2] = 0.0;
 
   // Motor startup sequence
   pwm_set(&pwm, 2, THROTTLE_MIN);
@@ -234,19 +225,14 @@ void task_telem() {
   uart_printf(&uart, "accel_x:%f ", imu.accel[0]);
   uart_printf(&uart, "accel_y:%f ", imu.accel[1]);
   uart_printf(&uart, "accel_z:%f ", imu.accel[2]);
-  uart_printf(&uart, "gyro_x:%f ", imu.gyro[0]);
-  uart_printf(&uart, "gyro_y:%f ", imu.gyro[1]);
-  uart_printf(&uart, "gyro_z:%f ", imu.gyro[2]);
 
-  const float roll_actual = filter.roll - attitude_offset[0];
-  const float pitch_actual = filter.pitch - attitude_offset[1];
-  const float yaw_actual = filter.yaw - attitude_offset[2];
-  uart_printf(&uart, "roll:%f ", rad2deg(roll_actual));
-  uart_printf(&uart, "pitch:%f ", rad2deg(pitch_actual));
-  uart_printf(&uart, "yaw:%f ", rad2deg(yaw_actual));
-  // uart_printf(&uart, "roll:%f ", rad2deg(filter.roll));
-  // uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch));
-  // uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw));
+  uart_printf(&uart, "gyro_x:%f ", imu.gyro[0] - imu.gyro_offset[0]);
+  uart_printf(&uart, "gyro_y:%f ", imu.gyro[1] - imu.gyro_offset[1]);
+  uart_printf(&uart, "gyro_z:%f ", imu.gyro[2] - imu.gyro_offset[2]);
+
+  uart_printf(&uart, "roll:%f ", rad2deg(filter.roll - attitude_offset[0]));
+  uart_printf(&uart, "pitch:%f ", rad2deg(filter.pitch - attitude_offset[1]));
+  uart_printf(&uart, "yaw:%f ", rad2deg(filter.yaw - attitude_offset[2]));
 
   uart_printf(&uart, "thrust_desired:%f ", rad2deg(thrust_desired));
   uart_printf(&uart, "roll_desired:%f ", rad2deg(roll_desired));

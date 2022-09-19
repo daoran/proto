@@ -57,9 +57,9 @@
 #define IMU_SAMPLE_PERIOD_S 0.00166668 // 600Hz
 #define RC_SAMPLE_PERIOD_S 0.02        // 50Hz
 #define TELEM_SAMPLE_PERIOD_S 0.05     // 20Hz
-#define ROLL_PID_KP 0.05
+#define ROLL_PID_KP 0.1
 #define ROLL_PID_KI 0.0
-#define ROLL_PID_KD 0.005
+#define ROLL_PID_KD 0.01
 #define PITCH_PID_KP 0.05
 #define PITCH_PID_KI 0.0
 #define PITCH_PID_KD 0.001

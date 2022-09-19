@@ -968,9 +968,9 @@ float sbus_roll(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  const float pwm_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN);
-  const float pwm_mean = pwm_diff / 2.0;
-  return (MAX_TILT_RAD / 1.5) * ((sbus->ch[1] - 1000) / (pwm_diff / 2.0));
+  const float pwm_half_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN) / 2.0;
+  const float pwm_mean = pwm_half_diff + PWM_VALUE_MIN;
+  return (MAX_TILT_RAD / 1.5) * ((sbus->ch[1] - pwm_mean) / pwm_half_diff);
 }
 
 float sbus_pitch(const sbus_t *sbus) {
@@ -980,9 +980,9 @@ float sbus_pitch(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  const float pwm_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN);
-  const float pwm_mean = pwm_diff / 2.0;
-  return (MAX_TILT_RAD / 1.5) * ((sbus->ch[2] - 1000) / (pwm_diff / 2.0));
+  const float pwm_half_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN) / 2.0;
+  const float pwm_mean = pwm_half_diff + PWM_VALUE_MIN;
+  return (MAX_TILT_RAD / 1.5) * ((sbus->ch[2] - pwm_mean) / pwm_half_diff);
 }
 
 float sbus_yaw(const sbus_t *sbus) {
@@ -992,9 +992,9 @@ float sbus_yaw(const sbus_t *sbus) {
   }
 
   // Outside deadband
-  const float pwm_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN);
-  const float pwm_mean = pwm_diff / 2.0;
-  return (MAX_TILT_RAD * 1.5) * ((sbus->ch[3] - 1000) / (pwm_diff / 2.0));
+  const float pwm_half_diff = (PWM_VALUE_MAX - PWM_VALUE_MIN) / 2.0;
+  const float pwm_mean = pwm_half_diff + PWM_VALUE_MIN;
+  return (MAX_TILT_RAD / 1.5) * ((sbus->ch[3] - pwm_mean) / pwm_half_diff);
 }
 
 uint8_t sbus_arm(const sbus_t *sbus) {
@@ -1417,7 +1417,7 @@ void mpu6050_get_data(mpu6050_t *imu);
 
 void mpu6050_setup(mpu6050_t *imu) {
   // Config
-  imu->dplf_config = 0;
+  imu->dplf_config = 3;
   i2c_write_byte(MPU6050_ADDRESS, MPU6050_CONFIG, imu->dplf_config);
 
   // Power management

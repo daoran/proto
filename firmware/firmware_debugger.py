@@ -19,12 +19,12 @@ class RTLinePlot:
     self.plot.setDownsampling(mode='peak')
     self.plot.setClipToView(True)
 
-    y_min = kwargs.get("y_min")
-    y_max = kwargs.get("y_max")
-    padding_y = kwargs.get("padding_y", 10)
-    if y_min and y_max:
-      self.plot.setLimits(yMin=y_min, yMax=y_max)
-      self.plot.setYRange(y_min, y_max, padding=padding_y)
+    self.y_min = kwargs.get("y_min")
+    self.y_max = kwargs.get("y_max")
+    self.y_padding = kwargs.get("y_padding", 10)
+    if self.y_min and self.y_max:
+      self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
+      self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
 
     self.win_size = kwargs.get("win_size", 100)
     self.colors = kwargs.get("colors", ["r", "g", "b", "c", "y", "m"])
@@ -48,6 +48,9 @@ class RTLinePlot:
       x_window = self.data[self.x_key][-self.win_size:]
       y_window = self.data[y_key][-self.win_size:]
       self.curves[y_key].setData(x_window, y_window)
+
+      self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
+      self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
 
 
 class FirmwareDebugger:
