@@ -42,6 +42,10 @@ batt_h = 26.0;
 batt_frame_w = batt_d + 8.99;
 batt_frame_d = batt_w - 20;
 
+roll_rod_mount_w = 35.0;
+roll_rod_mount_d = 10.0;
+roll_rod_mount_h = 10.0;
+
 module propeller_nut_wrench() {
   // M5 Nut Wrench
   wrench_h = 20.0;
@@ -939,86 +943,134 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1) {
 module pivot_frame(has_encoders=0) {
   pivot_frame_h = 6.0;
   base_mount_d = (has_encoders) ? 14.2 : 20.5;
+  mount_w = roll_rod_mount_w;
+  mount_d = roll_rod_mount_d;
+  mount_h = roll_rod_mount_h;
 
   difference() {
     // Body
     union() {
-      // frame(base_mount_d, base_mount_d,
-      //       M2_screw_w, M2_nut_w, M2_nut_h,
-      //       standoff_w, pivot_frame_h, pivot_frame_h);
+      // Main Body
+      translate([0, 0, mount_h / 2])
+        cylinder(r=20.0 / 2, h=mount_h, center=true);
 
-      translate([0, 0, pivot_frame_h / 2])
-        cube([20.0, 20.0, pivot_frame_h], center=true);
+      // Mount
+      translate([-mount_w, mount_d, mount_h / 2])
+        cylinder(r=standoff_w / 2, h=mount_h, center=true);
+      translate([-mount_w, -mount_d, mount_h / 2])
+        cylinder(r=standoff_w / 2, h=mount_h, center=true);
+
+      // Join body and mount together
+      translate([-mount_w / 2, 0, mount_h / 2])
+        cube([mount_w, 20.0 + standoff_w, mount_h], center=true);
+      translate([0, mount_d, mount_h / 2])
+        cylinder(r=standoff_w / 2, h=mount_h, center=true);
+      translate([0, -mount_d, mount_h / 2])
+        cylinder(r=standoff_w / 2, h=mount_h, center=true);
     }
 
-    // // Mount holes
-    // x = base_mount_d / 2;
-    // y = base_mount_d / 2;
-    // z = pivot_frame_h / 2;
-    // positions = [[x, y, z], [-x, y, z], [x, -y, z], [-x, -y, z]];
-    // for (pos = positions) {
-    //   translate(pos) {
-    //     cylinder(r=M2_screw_w / 2, h=pivot_frame_h + 0.1, center=true);
-    //   }
-    // }
+    // Mount holes
+    translate([-mount_w, mount_d, mount_h / 2])
+      cylinder(r=M3_screw_w / 2, h=mount_h + 0.1, center=true);
+    translate([-mount_w, -mount_d, mount_h / 2])
+      cylinder(r=M3_screw_w / 2, h=mount_h + 0.1, center=true);
 
     // Bearing counter-sink
-    translate([0, 0, pivot_frame_h / 2 + 1])
-      cylinder(r=15 / 2, h=pivot_frame_h, center=true);
-    cylinder(r=6.0 / 2, h=pivot_frame_h, center=true);
+    translate([0, 0, mount_h / 2 + 1])
+      cylinder(r=15 / 2, h=mount_h, center=true);
+    cylinder(r=5.4 / 2, h=mount_h, center=true);
   }
 }
 
 module roll_frame(has_encoders=0, show_pitch_frame=1) {
   camera_mount_point = 59.0;
+
   motor_r = 35.0 / 2.0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_w = 13.2;
-  roll_bar_w = camera_mount_point * 2 + motor_h;
-  roll_bar_d = 22.0;
-  base_mount_d = (has_encoders) ? 14.2 : 20.5;
+  motor_mount_d = (has_encoders) ? 14.2 : 20.5;
+  motor_mount_h = 8.0;
+
+  mount_w = roll_rod_mount_w;
+  mount_d = roll_rod_mount_d;
+  mount_h = roll_rod_mount_h;
 
   // Pitch frame
   if (show_pitch_frame) {
-    translate([0.0, 0.0,  motor_h + standoff_h]) 
+    translate([0.0, 0.0,  motor_h + standoff_h])
       pitch_frame(has_encoders);
   }
 
   difference() {
     union() {
       // Motor frame
-      frame(base_mount_d, base_mount_d,
-            M2_screw_w, M2_nut_w, M2_nut_h,
-            standoff_w, standoff_h + 2, standoff_h);
+      translate([motor_mount_d / 2, motor_mount_d / 2, motor_mount_h / 2])
+        cylinder(r=standoff_w / 2.0, h=motor_mount_h, center=true);
+      translate([motor_mount_d / 2, -motor_mount_d / 2, motor_mount_h / 2])
+        cylinder(r=standoff_w / 2.0, h=motor_mount_h, center=true);
+      translate([-motor_mount_d / 2, motor_mount_d / 2, motor_mount_h / 2])
+        cylinder(r=standoff_w / 2.0, h=motor_mount_h, center=true);
+      translate([-motor_mount_d / 2, -motor_mount_d / 2, motor_mount_h / 2])
+        cylinder(r=standoff_w / 2.0, h=motor_mount_h, center=true);
+      translate([0, motor_mount_d / 2, standoff_h / 2])
+        cube([motor_mount_d, standoff_w, standoff_h], center=true);
+      translate([0, -motor_mount_d / 2, standoff_h / 2])
+        cube([motor_mount_d, standoff_w, standoff_h], center=true);
+      translate([motor_mount_d / 2, 0.0, standoff_h / 2])
+        cube([standoff_w, motor_mount_d, standoff_h], center=true);
+      translate([-motor_mount_d / 2, 0.0, standoff_h / 2])
+        cube([standoff_w, motor_mount_d, standoff_h], center=true);
+
+
+      // Roll bar mount
+      translate([-mount_w, mount_d, mount_h / 2])
+        cylinder(r=standoff_w / 2.0, h=mount_h, center=true);
+      translate([-mount_w, -mount_d, mount_h / 2])
+        cylinder(r=standoff_w / 2.0, h=mount_h, center=true);
+
+      translate([motor_mount_d / 2, mount_d, standoff_h / 2])
+        cylinder(r=standoff_w / 2.0, h=standoff_h, center=true);
+      translate([motor_mount_d / 2, -mount_d, standoff_h / 2])
+        cylinder(r=standoff_w / 2.0, h=standoff_h, center=true);
+
+      x = (motor_mount_d / 2) + (mount_w - (motor_mount_d / 2)) / 2 - motor_mount_d / 2;
+      w = (mount_w + (motor_mount_d / 2));
+      translate([-x, mount_d, standoff_h / 2])
+        cube([w, standoff_w, standoff_h], center=true);
+      translate([-x, -mount_d, standoff_h / 2])
+        cube([w, standoff_w, standoff_h], center=true);
+      translate([-mount_w, 0.0, standoff_h / 2])
+        cube([standoff_w, mount_d * 2, standoff_h], center=true);
+      translate([motor_mount_d / 2, 0.0, standoff_h / 2])
+        cube([standoff_w, mount_d * 2, standoff_h], center=true);
 
       // Pivot frame
       translate([0.0, 0.0, camera_mount_point * 2 + motor_h - standoff_h / 2 + 6.5]) {
         rotate([180.0, 0, 0])
         pivot_frame(has_encoders);
       }
-
-      // Roll bar
-      translate([-(roll_bar_d + 2) + 10.0 / 2.0, 0.0, standoff_h / 2])
-        cube([(roll_bar_d + 5) / 2 + 3, roll_bar_d - 2, standoff_h], center=true);
-      translate([-(roll_bar_d + 3), 0.0, (roll_bar_w + 1) / 2])
-        cube([standoff_h, roll_bar_d - 2.0, roll_bar_w + 1], center=true);
-      translate([-17.0, 0.0, camera_mount_point * 2 + motor_h - standoff_h / 2 + 3.5])
-        cube([20.0, 20.0, standoff_h + 2.0], center=true);
     }
 
-    translate([-(roll_bar_d + 3), motor_mount_w / 2, (roll_bar_w + 1) / 2])
-      cube([standoff_h + 0.1, 2.0, 90], center=true);
-    translate([-(roll_bar_d + 3), -motor_mount_w / 2, (roll_bar_w + 1) / 2])
-      cube([standoff_h + 0.1, 2.0, 90], center=true);
 
-    translate([-base_mount_d / 2, base_mount_d / 2, (standoff_h + 2) / 2])
-      cylinder(r=M2_screw_w / 2.0, h=(standoff_h + 2) + 0.01, center=true);
-    translate([-base_mount_d / 2, -base_mount_d / 2, (standoff_h + 2) / 2])
-      cylinder(r=M2_screw_w / 2.0, h=(standoff_h + 2) + 0.01, center=true);
-    translate([base_mount_d / 2, -base_mount_d / 2, (standoff_h + 2) / 2])
-      cylinder(r=M2_screw_w / 2.0, h=(standoff_h + 2) + 0.01, center=true);
-    translate([base_mount_d / 2, base_mount_d / 2, (standoff_h + 2) / 2])
-      cylinder(r=M2_screw_w / 2.0, h=(standoff_h + 2) + 0.01, center=true);
+    // Roll bar holes
+    translate([-mount_w, mount_d, mount_h / 2])
+      cylinder(r=M3_screw_w / 2.0, h=mount_h + 0.1, center=true);
+    translate([-mount_w, -mount_d, mount_h / 2])
+      cylinder(r=M3_screw_w / 2.0, h=mount_h + 0.1, center=true);
+    translate([-mount_w, mount_d, M3_nut_h / 2])
+      cylinder(r=M3_nut_w / 2.0, h=M3_nut_h + 0.1, $fn=6, center=true);
+    translate([-mount_w, -mount_d, M3_nut_h / 2])
+      cylinder(r=M3_nut_w / 2.0, h=M3_nut_h + 0.1, $fn=6, center=true);
+
+    // Motor mount holes
+    translate([-motor_mount_d / 2, motor_mount_d / 2, motor_mount_h / 2])
+      cylinder(r=M2_screw_w / 2.0, h=motor_mount_h + 0.01, center=true);
+    translate([-motor_mount_d / 2, -motor_mount_d / 2, motor_mount_h / 2])
+      cylinder(r=M2_screw_w / 2.0, h=motor_mount_h + 0.01, center=true);
+    translate([motor_mount_d / 2, -motor_mount_d / 2, motor_mount_h / 2])
+      cylinder(r=M2_screw_w / 2.0, h=motor_mount_h + 0.01, center=true);
+    translate([motor_mount_d / 2, motor_mount_d / 2, motor_mount_h / 2])
+      cylinder(r=M2_screw_w / 2.0, h=motor_mount_h + 0.01, center=true);
   }
 }
 
@@ -1050,13 +1102,13 @@ module bottom_stack() {
 module print() {
   // nut_tool();
 
-  // Top stack
-  // -- FCU frame
-  translate([0, 120, 0])
-    fcu_frame();
-  // -- Battery frame
-  translate([80.0, 120.0, 0.0])
-    battery_frame();
+  // // Top stack
+  // // -- FCU frame
+  // translate([0, 120, 0])
+  //   fcu_frame();
+  // // -- Battery frame
+  // translate([80.0, 120.0, 0.0])
+  //   battery_frame();
   // // -- Spacers
   // translate([120.0, 120 + 10.0, 0.0])
   //   stack_spacer(fcu_h, nut_counter_sink=1);
