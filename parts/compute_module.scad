@@ -752,6 +752,13 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1) {
   camera_mount_point = 58.0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
 
+  camera_mount_w = 18.5;
+  support_h = camera_mount_point * 2;
+  motor_mount_w = 13.2;
+  pivot_h = 5.0;
+  pivot_disc_h = 2.0;
+  pivot_disc_r = 7.0 / 2.0;
+
   // Camera
   if (show_camera) {
     translate([-12.0, 0, camera_mount_point - standoff_h / 2])
@@ -765,29 +772,27 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1) {
         gimbal_motor(has_encoders);
   }
 
-  // IMU
-  if (show_imu) {
-    translate([0, 0, camera_mount_point - standoff_h / 2])
-      rotate([-90, 0, -90])
-        translate([20, 0, 6])
-          mpu6050();
-  }
+  // // IMU
+  // if (show_imu) {
+  //   translate([0, 0, camera_mount_point - standoff_h / 2])
+  //     rotate([-90, 0, -90])
+  //       translate([20, 0, 6])
+  //         mpu6050();
+  // }
 
-  // IMU mount frame
-  imu_mount_w = 15.5;
-  rotate([0, -90, 0])
-    translate([camera_mount_point - standoff_h / 2, -25.0, (standoff_h + 2) / 2])
-        rotate([180.0, 0, 0])
-        frame(15.5, 0,
-              M2_screw_w, M2_nut_w, M2_nut_h,
-              standoff_w - 3, standoff_h + 5, standoff_h + 2,
-              0, 1);
-  translate([0.0, -22.0, camera_mount_point - standoff_h / 2])
-    cube([6.0, 6.0, 9.0], center=true);
+  // // IMU mount
+  // imu_mount_w = 15.5;
+  // rotate([0, -90, 0])
+  //   translate([camera_mount_point - standoff_h / 2, -25.0, (standoff_h + 2) / 2])
+  //       rotate([180.0, 0, 0])
+  //       frame(15.5, 0,
+  //             M2_screw_w, M2_nut_w, M2_nut_h,
+  //             standoff_w - 3, standoff_h + 5, standoff_h + 2,
+  //             0, 1);
+  // translate([0.0, -22.0, camera_mount_point - standoff_h / 2])
+  //   cube([6.0, 6.0, 9.0], center=true);
 
-
-  // Motor mount frame
-  motor_mount_w = 13.2;
+  // Motor mount
   frame(motor_mount_w, motor_mount_w,
         M2_screw_w, M2_nut_w, M2_nut_h,
         standoff_w, standoff_h, standoff_h,
@@ -801,21 +806,7 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1) {
   translate([0, -motor_mount_w / 2 - 1.2, standoff_h / 2])
     cube([10.0, 6.0, standoff_h], center=true);
 
-  // Camera mount frame
-  camera_mount_w = 18.5;
-  translate([0, 0, camera_mount_point - standoff_h / 2])
-    rotate([0, 90, 0])
-      translate([0, 0, -standoff_h / 2.0 - 1])
-        frame(camera_mount_w, camera_mount_w,
-              M2_screw_w, M2_nut_w, M2_nut_h,
-              standoff_w, standoff_h + 2, standoff_h + 2,
-              1, 0);
-
   // Supports
-  support_h = camera_mount_point * 2;
-  pivot_h = 5.0;
-  pivot_disc_h = 2.0;
-  pivot_disc_r = 7.0 / 2.0;
   difference() {
     x = 0;
     y = 19.0;
@@ -823,22 +814,34 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1) {
     union() {
       // Main support body
       translate([-x, -y, h / 2])
-        cube([standoff_h + 2, standoff_h + 1, h], center=true);
+        cube([standoff_h + 2, standoff_h, h], center=true);
       translate([-x, y, h / 2])
-        cube([standoff_h + 2, standoff_h + 1, h], center=true);
+        cube([standoff_h + 2, standoff_h, h], center=true);
       translate([-x, 0, standoff_h / 2])
         cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
       translate([-x, 0, standoff_h / 2 + h - standoff_h])
         cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
 
-      // Frame supports
-      translate([-x, 0, support_h / 2 - standoff_h / 2])
-        cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
-      translate([-x, 0, support_h / 3 + 1])
-        cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
-      translate([-x, 0, support_h / 1.5 - 5])
-        cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
+      // Camera mount supports
+      translate([-x, 0, support_h / 2 - standoff_h / 2 + camera_mount_w / 2])
+        cube([standoff_h + 2, 36 + 2, standoff_h + 1], center=true);
+      translate([-x, 0, support_h / 2 - standoff_h / 2 - camera_mount_w / 2])
+        cube([standoff_h + 2, 36 + 2, standoff_h + 1], center=true);
     }
+
+    // Camera mount holes
+    translate([-x, camera_mount_w / 2, support_h / 2 - standoff_h / 2 + camera_mount_w / 2])
+      rotate([0, 90, 0])
+        cylinder(r=M2_screw_w / 2, h=standoff_h + 2.01, center=true);
+    translate([-x, -camera_mount_w / 2, support_h / 2 - standoff_h / 2 + camera_mount_w / 2])
+      rotate([0, 90, 0])
+        cylinder(r=M2_screw_w / 2, h=standoff_h + 2.01, center=true);
+    translate([-x, camera_mount_w / 2, support_h / 2 - standoff_h / 2 - camera_mount_w / 2])
+      rotate([0, 90, 0])
+        cylinder(r=M2_screw_w / 2, h=standoff_h + 2.01, center=true);
+    translate([-x, -camera_mount_w / 2, support_h / 2 - standoff_h / 2 - camera_mount_w / 2])
+      rotate([0, 90, 0])
+        cylinder(r=M2_screw_w / 2, h=standoff_h + 2.01, center=true);
 
 
     // Trim the base end
@@ -849,6 +852,8 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1) {
   // Pivot
   translate([0, 0, support_h - standoff_h + pivot_h / 2])
     cylinder(r=5/2, h=pivot_h, center=true);
+  translate([0, 0, support_h - standoff_h + 0.5])
+    cylinder(r=7/2, h=1, center=true);
 
   // Pivot disc
   translate([0, 0, support_h - standoff_h - pivot_disc_h / 2])
@@ -1136,7 +1141,7 @@ module roll_frame(has_encoders=0, show_pivot_frame=1, show_pitch_frame=1) {
   roll_motor_frame();
 }
 
-module top_stack(show_fcu=0, show_battery=1) {
+module top_stack(show_fcu=1, show_battery=1) {
   // FCU Frame
   fcu_frame(show_fcu);
 
@@ -1236,12 +1241,11 @@ module print() {
 // fcu_frame(show_fcu);
 // stack_spacer(batt_h + 2, nut_counter_sink=1);
 // odroid_frame(mav_mount_w, mav_mount_d, 0);
-sbgc_frame(odroid_mount_w, odroid_mount_d, 0, 0);
+// sbgc_frame(odroid_mount_w, odroid_mount_d, 0, 0);
 // stereo_camera_frame();
 // pitch_frame();
 // roll_pivot_frame();
 // roll_motor_frame();
 // roll_bar_frame();
-// roll_mount_frame();
-// roll_frame();
+roll_frame();
 // gimbal_frame(odroid_mount_w, odroid_mount_d);
