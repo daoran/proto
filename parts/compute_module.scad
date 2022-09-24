@@ -1010,24 +1010,12 @@ module roll_bar_frame(has_encoders=0) {
         cube([standoff_w, motor_mount_w, standoff_h], center=true);
 
       // Rod mount body
-      h = 15;
-      translate([motor_mount_d / 2, 0, h / 2])
-        cube([8, motor_mount_w - 8, h], center=true);
-      translate([-motor_mount_d / 2, 0, h / 2])
-        cube([8, motor_mount_w - 8, h], center=true);
-      translate([motor_mount_d / 2, max_y, h / 2])
-        cube([8, motor_mount_w - 8, h], center=true);
-      translate([motor_mount_d / 2, min_y, h / 2])
-        cube([8, motor_mount_w - 8, h], center=true);
-      translate([-motor_mount_d / 2, max_y, h / 2])
-        cube([8, motor_mount_w - 8, h], center=true);
-      translate([-motor_mount_d / 2, min_y, h / 2])
-        cube([8, motor_mount_w - 8, h], center=true);
-
-      translate([motor_mount_d /2, 0, support_h / 2])
-       cube([motor_mount_w - 8, roll_bar_w, support_h], center=true);
-      translate([-motor_mount_d /2, 0, support_h / 2])
-       cube([motor_mount_w - 8, roll_bar_w, support_h], center=true);
+      translate([motor_mount_d / 2, 0, (standoff_w - 1) / 2])
+        rotate([90, 0, 0])
+          cube([standoff_w, standoff_w -1, roll_bar_w], center=true);
+      translate([-motor_mount_d / 2, 0, (standoff_w - 1) / 2])
+        rotate([90, 0, 0])
+          cube([standoff_w, standoff_w -1, roll_bar_w], center=true);
     }
 
     // Motor mount holes
@@ -1041,12 +1029,12 @@ module roll_bar_frame(has_encoders=0) {
       cylinder(r=M2_screw_w / 2.0, h=motor_mount_h + 0.01, center=true);
 
     // Rod mount holes
-    translate([motor_mount_d / 2, 0, motor_mount_h + 6 / 2 + 1])
+    translate([motor_mount_d / 2, 0, (standoff_w - 1) / 2])
       rotate([90, 0, 0])
-        cylinder(r=M3_screw_w / 2, h=roll_bar_w + 30, center=true);
-    translate([-motor_mount_d / 2, 0, motor_mount_h + 6 / 2 + 1])
+        cylinder(r=M3_screw_w / 2, h=roll_bar_w + 30 + 0.1, center=true);
+    translate([-motor_mount_d / 2, 0, (standoff_w - 1) / 2])
       rotate([90, 0, 0])
-        cylinder(r=M3_screw_w / 2, h=roll_bar_w + 30, center=true);
+        cylinder(r=M3_screw_w / 2, h=roll_bar_w + 30 + 0.1, center=true);
   }
 }
 
@@ -1135,12 +1123,12 @@ module roll_frame(has_encoders=0, show_pivot_frame=1, show_pitch_frame=1) {
     z = motor_mount_h + camera_mount_point;
     translate([-mount_w, 0.0, z])
       rotate([90, 0, 90])
-        translate([0.0, 0.0, -12.0])
+        translate([0.0, 0.0, -4])
           roll_bar_frame();
 
     translate([-mount_w, 0.0, z])
       rotate([0, 90, 0])
-        translate([0, 0, -12 - motor_h])
+        translate([0, 0, -4 - motor_h])
           gimbal_motor(has_encoders);
   }
 
@@ -1253,7 +1241,7 @@ module print() {
 // pitch_frame();
 // roll_pivot_frame();
 // roll_motor_frame();
-roll_bar_frame();
+// roll_bar_frame();
 // roll_mount_frame();
-// roll_frame();
+roll_frame();
 // gimbal_frame(odroid_mount_w, odroid_mount_d);
