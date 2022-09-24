@@ -486,12 +486,13 @@ module odroid_frame(mount_w, mount_d, show_odroid=0) {
   difference() {
     union() {
       // Mount frame
-      frame(mount_w, mount_d, M3_screw_w, M3_nut_w, M3_nut_h,
+      frame(mount_w, mount_d, 
+            M3_screw_w, M3_nut_w, M3_nut_h,
             standoff_w, standoff_h, standoff_h, 0, 0);
 
       // Odroid frame
       frame(odroid_mount_w, odroid_mount_d,
-            M2_screw_w, M2_nut_w, M2_nut_h,
+            M3_screw_w, M3_nut_w, M3_nut_h,
             standoff_w, standoff_h, standoff_h, 0, 1);
 
       // Mount supports
@@ -512,13 +513,12 @@ module odroid_frame(mount_w, mount_d, show_odroid=0) {
         cylinder(r=M3_screw_w / 2, h=20, center=true);
     }
   }
-
 }
 
 module sbgc_frame(mount_w, mount_d, show_sbgc=1, show_pololu=1) {
   // Mount frame
   frame(mount_w, mount_d,
-        M2_screw_w, M2_nut_w, M2_nut_h,
+        M3_screw_w, M3_nut_w, M3_nut_h,
         standoff_w, standoff_h, standoff_h);
 
   // Pololu PSU
@@ -1236,12 +1236,12 @@ module print() {
 // fcu_frame(show_fcu);
 // stack_spacer(batt_h + 2, nut_counter_sink=1);
 // odroid_frame(mav_mount_w, mav_mount_d, 0);
-// sbgc_frame(odroid_mount_w, odroid_mount_d, 0, 0);
+sbgc_frame(odroid_mount_w, odroid_mount_d, 0, 0);
 // stereo_camera_frame();
 // pitch_frame();
 // roll_pivot_frame();
 // roll_motor_frame();
 // roll_bar_frame();
 // roll_mount_frame();
-roll_frame();
+// roll_frame();
 // gimbal_frame(odroid_mount_w, odroid_mount_d);
