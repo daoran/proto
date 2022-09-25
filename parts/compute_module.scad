@@ -36,6 +36,9 @@ sbgc_d = 25.0;
 sbgc_mount_w = 23.1;
 sbgc_mount_d = 19.0;
 
+stereo_baseline = 70.0;
+pitch_frame_w = stereo_baseline + standoff_h * 4 + 30;
+
 batt_w = 76.0;
 batt_d = 35.0;
 batt_h = 26.0;
@@ -575,8 +578,7 @@ module sbgc_frame(mount_w, mount_d, show_sbgc=1, show_pololu=1) {
 
 module stereo_camera_frame(show_cameras=1) {
   mount_w = 18.5;
-  baseline = 70.0;
-  camera_w = 30.0;
+  baseline = stereo_baseline;
   camera_mount_w = 24.5;
 
   // Mount frame
@@ -772,11 +774,8 @@ module gimbal_frame(mount_w, mount_d, show_roll_frame=1) {
 }
 
 module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual_motors=1) {
-  camera_mount_point = 58.0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
-
   camera_mount_w = 18.5;
-  support_h = camera_mount_point * 2;
   motor_mount_w = 13.2;
   pivot_h = 5.0;
   pivot_disc_h = 2.0;
@@ -784,7 +783,7 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
 
   // Camera
   if (show_camera) {
-    translate([-12.0, 0, camera_mount_point - standoff_h / 2])
+    translate([-12.0, 0, pitch_frame_w / 2 - standoff_h / 2])
       rotate([90, 0, 90])
         stereo_camera_frame();
   }
@@ -795,7 +794,7 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
         gimbal_motor(has_encoders);
 
     if (dual_motors) {
-      translate([0.0, 0.0, support_h - standoff_h + motor_h + 0.01])
+      translate([0.0, 0.0, pitch_frame_w - standoff_h + motor_h + 0.01])
         rotate([180, 0, 0])
           gimbal_motor(has_encoders);
     }
@@ -803,7 +802,7 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
 
   // IMU
   if (show_imu) {
-    translate([0,  20, camera_mount_point - standoff_h / 2])
+    translate([0,  20, pitch_frame_w / 2 - standoff_h / 2])
       rotate([-90, 180, -90])
         translate([0, 0, 6])
           mpu6050();
@@ -812,13 +811,13 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
   // IMU mount
   imu_mount_w = 15.5;
   rotate([0, -90, 0])
-    translate([camera_mount_point - standoff_h / 2, 25, (standoff_h + 2) / 2])
+    translate([pitch_frame_w / 2 - standoff_h / 2, 25, (standoff_h + 2) / 2])
         rotate([180.0, 0, 0])
         frame(15.5, 0,
               M2_screw_w, M2_nut_w, M2_nut_h,
               standoff_w - 3, standoff_h + 5, standoff_h + 2,
               0, 1);
-  translate([0.0, 22.0, camera_mount_point - standoff_h / 2])
+  translate([0.0, 22.0, pitch_frame_w / 2 - standoff_h / 2])
     cube([6.0, 6.0, 10.0], center=true);
 
   // Motor mount
@@ -836,7 +835,7 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
     cube([10.0, 6.0, standoff_h], center=true);
 
   if (dual_motors) {
-    translate([0, 0, support_h - standoff_h * 2]) {
+    translate([0, 0, pitch_frame_w - standoff_h * 2]) {
       frame(motor_mount_w, motor_mount_w,
             M2_screw_w, M2_nut_w, M2_nut_h,
             standoff_w, standoff_h, standoff_h,
@@ -856,7 +855,7 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
   difference() {
     x = 0;
     y = 19.0;
-    h = support_h - standoff_h;
+    h = pitch_frame_w - standoff_h;
     union() {
       // Main support body
       translate([-x, -y, h / 2])
@@ -869,29 +868,29 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
         cube([standoff_h + 2, 36 + 2, standoff_h], center=true);
 
       // Camera mount supports
-      translate([-x, 0, support_h / 2 - standoff_h / 2 + camera_mount_w / 2])
+      translate([-x, 0, pitch_frame_w / 2 - standoff_h / 2 + camera_mount_w / 2])
         cube([standoff_h + 2, 36 + 2, standoff_h + 3], center=true);
-      translate([-x, 0, support_h / 2 - standoff_h / 2 - camera_mount_w / 2])
+      translate([-x, 0, pitch_frame_w / 2 - standoff_h / 2 - camera_mount_w / 2])
         cube([standoff_h + 2, 36 + 2, standoff_h + 3], center=true);
     }
 
     // Camera mount holes
-    translate([-x, camera_mount_w / 2, support_h / 2 - standoff_h / 2 + camera_mount_w / 2])
+    translate([-x, camera_mount_w / 2, pitch_frame_w / 2 - standoff_h / 2 + camera_mount_w / 2])
       rotate([0, 90, 0])
         cylinder(r=M2_screw_w / 2, h=standoff_h + 2.01, center=true);
-    translate([-x, -camera_mount_w / 2, support_h / 2 - standoff_h / 2 + camera_mount_w / 2])
+    translate([-x, -camera_mount_w / 2, pitch_frame_w / 2 - standoff_h / 2 + camera_mount_w / 2])
       rotate([0, 90, 0])
         cylinder(r=M2_screw_w / 2, h=standoff_h + 2.01, center=true);
-    translate([-x, camera_mount_w / 2, support_h / 2 - standoff_h / 2 - camera_mount_w / 2])
+    translate([-x, camera_mount_w / 2, pitch_frame_w / 2 - standoff_h / 2 - camera_mount_w / 2])
       rotate([0, 90, 0])
         cylinder(r=M2_screw_w / 2, h=standoff_h + 2.01, center=true);
-    translate([-x, -camera_mount_w / 2, support_h / 2 - standoff_h / 2 - camera_mount_w / 2])
+    translate([-x, -camera_mount_w / 2, pitch_frame_w / 2 - standoff_h / 2 - camera_mount_w / 2])
       rotate([0, 90, 0])
         cylinder(r=M2_screw_w / 2, h=standoff_h + 2.01, center=true);
 
     // Camera mount counter-sink holes
-    z0 = support_h / 2 - standoff_h / 2 + camera_mount_w / 2;
-    z1 = support_h / 2 - standoff_h / 2 - camera_mount_w / 2;
+    z0 = pitch_frame_w / 2 - standoff_h / 2 + camera_mount_w / 2;
+    z1 = pitch_frame_w / 2 - standoff_h / 2 - camera_mount_w / 2;
     translate([-x + M2_nut_h, camera_mount_w / 2, z0])
       rotate([0, 90, 0])
         cylinder(r=M2_nut_w / 2, h=M2_nut_h + 0.1, $fn=6, center=true);
@@ -917,13 +916,13 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
 
   if (dual_motors == 0) {
     // Pivot
-    translate([0, 0, support_h - standoff_h + pivot_h / 2])
+    translate([0, 0, pitch_frame_w - standoff_h + pivot_h / 2])
       cylinder(r=5/2, h=pivot_h, center=true);
-    translate([0, 0, support_h - standoff_h + 0.5])
+    translate([0, 0, pitch_frame_w - standoff_h + 0.5])
       cylinder(r=7/2, h=1, center=true);
 
     // Pivot disc
-    translate([0, 0, support_h - standoff_h - pivot_disc_h / 2])
+    translate([0, 0, pitch_frame_w - standoff_h - pivot_disc_h / 2])
       cylinder(r=pivot_disc_r, h=pivot_disc_h, center=true);
   }
 }
@@ -971,8 +970,6 @@ module roll_pivot_frame(has_encoders=0) {
 }
 
 module roll_motor_frame(has_encoders=0) {
-  camera_mount_point = 59.0;
-
   motor_r = 35.0 / 2.0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_w = 13.2;
@@ -1119,8 +1116,6 @@ module roll_bar_frame(has_encoders=0) {
 }
 
 module roll_frame(has_encoders=0, show_pivot_frame=1, show_pitch_frame=1, dual_motors=1) {
-  camera_mount_point = 59.0;
-
   motor_r = 35.0 / 2.0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_w = 13.2;
@@ -1133,17 +1128,17 @@ module roll_frame(has_encoders=0, show_pivot_frame=1, show_pitch_frame=1, dual_m
 
   // Pitch frame
   if (show_pitch_frame) {
-    translate([0, camera_mount_point - motor_h + 12, mount_w + 4])
+    translate([0, pitch_frame_w / 2 - standoff_h / 2, mount_w + 4])
       rotate([90, -90, 0])
         pitch_frame(has_encoders, dual_motors=dual_motors);
   }
 
   // Pivot frame
   if (show_pivot_frame && dual_motors == 0) {
-    z = camera_mount_point + motor_h + roll_rod_mount_h + 2 - 24;
+    z = pitch_frame_w / 2 + motor_h + roll_rod_mount_h + 2 - 24;
     translate([0, -z, 4 + mount_w]) {
       rotate([0, -90, -90])
-      roll_pivot_frame(has_encoders);
+        roll_pivot_frame(has_encoders);
     }
   }
 
@@ -1160,11 +1155,11 @@ module roll_frame(has_encoders=0, show_pivot_frame=1, show_pitch_frame=1, dual_m
   }
 
   // Roll motor frame
-  translate([0, 150 / 2, 36])
+  translate([0, pitch_frame_w / 2 + standoff_h / 2 + motor_h, 36])
     rotate([90, -90, 0])
       roll_motor_frame();
   if (dual_motors) {
-    translate([0, -150 / 2, 36])
+    translate([0, -pitch_frame_w / 2 - standoff_h / 2 - motor_h, 36])
       rotate([-90, -90, 0])
         roll_motor_frame();
   }
