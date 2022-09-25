@@ -713,7 +713,7 @@ module gimbal_frame(mount_w, mount_d, show_roll_frame=1) {
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_d = (has_encoders) ? 14.2 : 20.5;
   frame_h = motor_mount_d + 20;
-  plate_h = 8.0;
+  plate_h = 10.0;
   plate_d = standoff_w;
 
   // Show roll frame
@@ -764,10 +764,10 @@ module gimbal_frame(mount_w, mount_d, show_roll_frame=1) {
     // Rod mount gaps
     translate([0, mount_d / 2, 0])
       rotate([0, 90, 0])
-        cube([standoff_w + 0.01, standoff_w + 0.01, frame_h * 0.6], center=true);
+        cube([standoff_w + 2.01, standoff_w + 0.01, frame_h * 0.6], center=true);
     translate([0, -mount_d / 2, 0])
       rotate([0, 90, 0])
-        cube([standoff_w + 0.01, standoff_w + 0.01, frame_h * 0.6], center=true);
+        cube([standoff_w + 2.01, standoff_w + 0.01, frame_h * 0.6], center=true);
   }
 }
 
@@ -1190,18 +1190,18 @@ module top_stack(show_fcu=1, show_battery=1) {
 module bottom_stack() {
   rotate([180, 0, 180])
     rotate(0)
-    odroid_frame(mav_mount_w, mav_mount_d, 1);
+      odroid_frame(mav_mount_w, mav_mount_d, 1);
 
   translate([0.0, 0.0, -25.0])
     rotate([180, 0, 180])
-    sbgc_frame(odroid_mount_w, odroid_mount_d);
+      sbgc_frame(odroid_mount_w, odroid_mount_d);
 
   translate([odroid_mount_w / 2, 0.0, -50.0])
     rotate([0, 90, 0])
       gimbal_frame(odroid_mount_w, odroid_mount_d);
 
-  translate([0.0, 0.0, -70 - standoff_h - 1])
-    landing_frame(odroid_mount_w, odroid_mount_d);
+//   translate([0.0, 0.0, -70 - standoff_h - 1])
+//     landing_frame(odroid_mount_w, odroid_mount_d);
 }
 
 module print() {
@@ -1278,7 +1278,7 @@ module print() {
 
 // Assembly Development
 // top_stack();
-// bottom_stack();
+bottom_stack();
 
 // Component Development
 // battery_frame(batt_frame_w, batt_frame_d);
