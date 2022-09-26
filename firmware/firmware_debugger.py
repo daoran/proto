@@ -34,7 +34,7 @@ class RTLinePlot:
       self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
       self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
 
-    self.win_size = kwargs.get("win_size", 100)
+    self.win_size = kwargs.get("win_size", 5000)
     self.colors = kwargs.get("colors", ["r", "g", "b", "c", "y", "m"])
     self.x_key = x_key
     self.y_keys = y_keys
@@ -48,15 +48,18 @@ class RTLinePlot:
                                           name=y_key,
                                           skipFiniteCheck=True)
 
-  def update(self, data):
-    """ Update """
+  def update_data(self, data):
+    """ Update Data """
     self.data[self.x_key].append(data[self.x_key])
     for y_key in self.y_keys:
       self.data[y_key].append(data[y_key])
+
+  def update_plots(self):
+    """ Update Plots """
+    for y_key in self.y_keys:
       x_window = self.data[self.x_key][-self.win_size:]
       y_window = self.data[y_key][-self.win_size:]
       self.curves[y_key].setData(x_window, y_window)
-
       self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
       self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
 
@@ -67,6 +70,7 @@ class FirmwareDebugger:
     self.s = None  # Serial
     self.app = None
     self.win = None
+    self.last_plotted = None
 
     self._setup_uart()
     self._setup_gui()
@@ -78,7 +82,7 @@ class FirmwareDebugger:
     self.serial = serial.Serial()
     self.serial.port = '/dev/ttyACM0'
     self.serial.baudrate = 115200
-    self.serial.timeout = 10
+    self.serial.timeout = 0
     self.serial.open()
 
     if self.serial.is_open is True:
@@ -190,13 +194,29 @@ class FirmwareDebugger:
 
   def _update_plots(self):
     """ Update plots """
-    data = self.parse_serial_data(self.serial.readline())
-    data['ts'] = data['ts'] * 1e-6
-    self.sbus_plot.update(data)
-    self.gyro_plot.update(data)
-    self.accel_plot.update(data)
-    self.attitude_plot.update(data)
-    self.motors_plot.update(data)
+
+    line = self.serial.readline()
+    if line is None:
+      return
+
+    while line:
+      data = self.parse_serial_data(line)
+      data['ts'] = data['ts'] * 1e-6
+      self.sbus_plot.update_data(data)
+      self.gyro_plot.update_data(data)
+      self.accel_plot.update_data(data)
+      self.attitude_plot.update_data(data)
+      self.motors_plot.update_data(data)
+      line = self.serial.readline()
+
+    time_now = time.time()
+    if self.last_plotted is None or (time_now - self.last_plotted) > 0.05:
+      self.sbus_plot.update_plots()
+      self.gyro_plot.update_plots()
+      self.accel_plot.update_plots()
+      self.attitude_plot.update_plots()
+      self.motors_plot.update_plots()
+      self.last_plotted = time.time()
 
   @staticmethod
   def parse_serial_data(line):
