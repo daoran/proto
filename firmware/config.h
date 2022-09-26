@@ -55,8 +55,10 @@
 #define HCSR04_MAX_TIMEOUT_MS 0
 
 #define IMU_SAMPLE_PERIOD_S 0.00166668 // 600Hz
-#define RC_SAMPLE_PERIOD_S 0.02        // 50Hz
-#define TELEM_SAMPLE_PERIOD_S 0.05     // 20Hz
+// #define IMU_SAMPLE_PERIOD_S 0.002  // 500Hz
+// #define IMU_SAMPLE_PERIOD_S 0.005  // 200Hz
+#define RC_SAMPLE_PERIOD_S 0.02    // 50Hz
+#define TELEM_SAMPLE_PERIOD_S 0.05 // 20Hz
 #define ROLL_PID_KP 0.1
 #define ROLL_PID_KI 0.0
 #define ROLL_PID_KD 0.01

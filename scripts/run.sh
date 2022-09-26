@@ -373,10 +373,9 @@ run_sbgc_tests() {
 # ARDUINO
 ###############################################################################
 
-arduino --upload firmware/firmware.ino
-# arduino --verify firmware/firmware.ino
-# python3 firmware/firmware_debugger.py
-# python3 firmware/debugger.py
+# arduino-cli compile -b teensy:avr:teensy40 firmware
+# arduino-cli upload -b teensy:avr:teensy40 -p usb1/1-6 firmware
+python3 firmware/firmware_debugger.py
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "\

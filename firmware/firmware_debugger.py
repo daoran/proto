@@ -1,20 +1,51 @@
 #!/usr/bin/env python3
+"""
+Firmware Debugger
+"""
 import sys
 import time
 import subprocess
 import importlib
+import traceback
 
-import serial
-import numpy as np
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore
-from PyQt5.QtCore import QTimer
+try:
+  import serial
+  import numpy as np
+  import pyqtgraph as pg
+  from PyQt5.QtCore import QTimer
+  import matplotlib.pylab as plt
+except ImportError:
+  print(traceback.format_exc())
 
 
-def install_pkg(package):
+def install_package(package):
   """ Install package """
   if importlib.util.find_spec(package) is None:
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+
+def parse_serial_data_line(line):
+  """ Parse serial data """
+  data = {}
+
+  line = line.strip()
+  if len(line) == 0:
+    return data
+
+  if type(line) is str:
+    for el in line.split(" "):
+      key = el.split(":")[0].strip()
+      val = float(el.split(":")[1].strip())
+      data[key] = val
+  else:
+    for el in line.split(b" "):
+      key = el.split(b":")[0].strip().decode("ascii")
+      val = float(el.split(b":")[1].strip())
+      data[key] = val
+
+  data['ts'] = data['ts'] * 1e-6
+
+  return data
 
 
 class RTLinePlot:
@@ -34,7 +65,7 @@ class RTLinePlot:
       self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
       self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
 
-    self.win_size = kwargs.get("win_size", 5000)
+    self.win_size = kwargs.get("win_size", 1000)
     self.colors = kwargs.get("colors", ["r", "g", "b", "c", "y", "m"])
     self.x_key = x_key
     self.y_keys = y_keys
@@ -72,6 +103,7 @@ class FirmwareDebugger:
     self.win = None
     self.last_plotted = None
 
+    self.log = open("/tmp/debugger.log", "w")
     self._setup_uart()
     self._setup_gui()
     self._start_plots()
@@ -195,20 +227,22 @@ class FirmwareDebugger:
   def _update_plots(self):
     """ Update plots """
 
+    # Read serial buffer
     line = self.serial.readline()
     if line is None:
       return
 
     while line:
-      data = self.parse_serial_data(line)
-      data['ts'] = data['ts'] * 1e-6
+      data = parse_serial_data_line(line)
       self.sbus_plot.update_data(data)
       self.gyro_plot.update_data(data)
       self.accel_plot.update_data(data)
       self.attitude_plot.update_data(data)
       self.motors_plot.update_data(data)
       line = self.serial.readline()
+      self.log.write(line.decode("ascii"))
 
+    # Update plots
     time_now = time.time()
     if self.last_plotted is None or (time_now - self.last_plotted) > 0.05:
       self.sbus_plot.update_plots()
@@ -218,22 +252,67 @@ class FirmwareDebugger:
       self.motors_plot.update_plots()
       self.last_plotted = time.time()
 
-  @staticmethod
-  def parse_serial_data(line):
-    """ Parse serial data """
-    line = line.strip()
-
-    data = {}
-    for el in line.split(b" "):
-      key = el.split(b":")[0].strip().decode("ascii")
-      val = float(el.split(b":")[1].strip())
-      data[key] = val
-
-    return data
-
 
 if __name__ == "__main__":
-  install_pkg("pyserial")
-  install_pkg("numpy")
-  install_pkg("pyqtgraph")
-  FirmwareDebugger()
+  install_package("pyserial")
+  install_package("numpy")
+  install_package("pyqtgraph")
+
+  # Parse debugger log
+  data = {
+      "telem_ts": [],
+      "ts": [],
+      "mav_arm": [],
+      "mav_ready": [],
+      "ch[0]": [],
+      "ch[1]": [],
+      "ch[2]": [],
+      "ch[3]": [],
+      "ch[4]": [],
+      "ch[5]": [],
+      "ch[6]": [],
+      "ch[7]": [],
+      "ch[8]": [],
+      "ch[9]": [],
+      "ch[10]": [],
+      "ch[11]": [],
+      "ch[12]": [],
+      "ch[13]": [],
+      "ch[14]": [],
+      "ch[15]": [],
+      "accel_x": [],
+      "accel_y": [],
+      "accel_z": [],
+      "gyro_x": [],
+      "gyro_y": [],
+      "gyro_z": [],
+      "roll_desired": [],
+      "pitch_desired": [],
+      "yaw_desired": [],
+      "thrust_desired": [],
+      "outputs[0]": [],
+      "outputs[1]": [],
+      "outputs[2]": [],
+      "outputs[3]": [],
+  }
+  for line_num, line in enumerate(open("/tmp/debugger.log", "r")):
+    data_k = parse_serial_data_line(line)
+    for key in data:
+      data[key].append(data_k[key])
+
+  # Convert list to numpy array
+  for key in data:
+    data[key] = np.array(data[key])
+
+  # Plot outputs
+  fig = plt.figure()
+  plt.plot(data['ts'], data['outputs[0]'] * 100.0, 'r-', label="output0")
+  plt.plot(data['ts'], data['outputs[1]'] * 100.0, 'g-', label="output1")
+  plt.plot(data['ts'], data['outputs[2]'] * 100.0, 'b-', label="output2")
+  plt.plot(data['ts'], data['outputs[3]'] * 100.0, 'k-', label="output3")
+  plt.xlabel("Time [s]")
+  plt.ylabel("Motor Output [%]")
+  plt.legend()
+  plt.show()
+
+  # FirmwareDebugger()
