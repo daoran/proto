@@ -837,9 +837,11 @@ void pwm_set(pwm_t *pwm, const uint8_t pin_idx, const float val) {
 
 // SBUS //////////////////////////////////////////////////////////////////////
 
+#define SBUS_BUF_SIZE 10
+
 typedef struct sbus_t {
   uint16_t ch[16];
-  uint16_t buf[16][5];
+  uint16_t buf[16][SBUS_BUF_SIZE];
   uint8_t buf_idx;
   uint8_t buf_capacity;
   uint8_t frame_lost;
@@ -858,7 +860,7 @@ void sbus_setup(sbus_t *sbus) {
 
   for (uint8_t i = 0; i < 16; i++) {
     sbus->ch[i] = 0;
-    for (uint8_t j = 0; j < 5; j++) {
+    for (uint8_t j = 0; j < SBUS_BUF_SIZE; j++) {
       sbus->buf[i][j] = 0;
     }
   }
@@ -913,26 +915,29 @@ int8_t sbus_update(sbus_t *sbus) {
   sbus->buf[14][buf_idx] = ((f[20] >> 2 | f[21] << 6) & 0x07FF);
   sbus->buf[15][buf_idx] = ((f[21] >> 5 | f[22] << 3) & 0x07FF);
   sbus->buf_idx++;
-  if (sbus->buf_idx >= 4) {
+  sbus->buf_capacity++;
+  if (sbus->buf_idx >= (SBUS_BUF_SIZE - 1)) {
     sbus->buf_idx = 0;
-    sbus->buf_capacity = (sbus->buf_capacity >= 5) ? 5 : sbus->buf_capacity;
+    sbus->buf_capacity = (sbus->buf_capacity >= SBUS_BUF_SIZE)
+                             ? SBUS_BUF_SIZE
+                             : sbus->buf_capacity;
   }
 
   // Set sbus values
   for (uint8_t i = 0; i < 16; i++) {
-    if (sbus->buf_capacity >= 5) {
+    if (sbus->buf_capacity >= SBUS_BUF_SIZE) {
       // Make a copy of the buffer
-      uint16_t vals[5] = {0};
-      for (uint8_t j = 0; j < 5; j++) {
+      uint16_t vals[SBUS_BUF_SIZE] = {0};
+      for (uint8_t j = 0; j < SBUS_BUF_SIZE; j++) {
         vals[j] = sbus->buf[i][j];
       }
 
       // Sort values
-      qsort(vals, 5, sizeof(uint16_t), uint16cmp);
+      qsort(vals, SBUS_BUF_SIZE, sizeof(uint16_t), uint16cmp);
 
       // Get median value
       uint16_t median = 0.0;
-      uint8_t n = 5;
+      uint8_t n = SBUS_BUF_SIZE;
       if ((n % 2) == 0) {
         const uint8_t bwd_idx = (uint8_t)(n - 1) / 2.0;
         const uint8_t fwd_idx = (uint8_t)(n + 1) / 2.0;

@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 import sys
 import time
+import subprocess
+import importlib
 
 import serial
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 from PyQt5.QtCore import QTimer
+
+
+def install_pkg(package):
+  """ Install package """
+  if importlib.util.find_spec(package) is None:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 
 class RTLinePlot:
@@ -205,4 +213,7 @@ class FirmwareDebugger:
 
 
 if __name__ == "__main__":
+  install_pkg("pyserial")
+  install_pkg("numpy")
+  install_pkg("pyqtgraph")
   FirmwareDebugger()
