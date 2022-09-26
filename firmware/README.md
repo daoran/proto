@@ -37,7 +37,6 @@
   arduino-cli upload -b teensy:avr:teensy40 -p usb1/1-6
 ```
 
-$$ x = {-b \pm \sqrt{b^2-4ac} \over 2a} $$
 
-[1]: _udev_rules: https://www.pjrc.com/teensy/00-teensy.rules
-[2]: _install_arduino_cli: https://arduino.github.io/arduino-cli/0.27/installation/
+[1]: https://www.pjrc.com/teensy/00-teensy.rules
+[2]: https://arduino.github.io/arduino-cli/0.27/installation/
