@@ -103,16 +103,17 @@ class RTLinePlot:
 class FirmwareDebugger:
   """ Firmware Debugger """
   def __init__(self, **kwargs):
-    log_file = kwargs.get("log_file")
-
+    self.log_file = kwargs.get("log_file")
+    self.offline_mode = (self.log_file is not None)
+    self.win_size = -1 if self.offline_mode else 1000
     self.s = None  # Serial
     self.app = None
     self.win = None
     self.last_plotted = None
 
     self._setup_gui()
-    if log_file:
-      self._load_log_data(log_file)
+    if self.log_file:
+      self._load_log_data(self.log_file)
     else:
       self.log = open("/tmp/debugger.log", "w")
       self._setup_uart()
@@ -137,31 +138,15 @@ class FirmwareDebugger:
     """ Setup GUI """
     self.app = pg.mkQApp("Firmware Debugger")
     self.win = pg.GraphicsLayoutWidget(show=True, title="Firmware Debugger")
-    self.win.resize(1920, 600)
+    self.win.resize(1910, 768)
     pg.setConfigOptions(antialias=True)
-
-    title = "SBUS"
-    x_key = "ts"
-    y_keys = ["ch[0]", "ch[1]", "ch[2]", "ch[3]"]
-    x_label = "Time [s]"
-    y_label = "SBUS Value"
-    kwargs = {"y_min": 175, "y_max": 1850}
-    self.sbus_plot = RTLinePlot(
-        self.win,
-        title,
-        x_key,
-        y_keys,
-        x_label,
-        y_label,
-        **kwargs,
-    )
 
     title = "Gyroscope"
     x_key = "ts"
     y_keys = ["gyro_x", "gyro_y", "gyro_z"]
     x_label = "Time [s]"
     y_label = "Angular Velocity [rad / s]"
-    kwargs = {"y_min": -5.0, "y_max": 5.0}
+    kwargs = {"y_min": -5.0, "y_max": 5.0, "win_size": self.win_size}
     self.accel_plot = RTLinePlot(
         self.win,
         title,
@@ -171,14 +156,13 @@ class FirmwareDebugger:
         y_label,
         **kwargs,
     )
-    self.accel_plot.set_xlink(self.sbus_plot)
 
     title = "Accelerometer"
     x_key = "ts"
     y_keys = ["accel_x", "accel_y", "accel_z"]
     x_label = "Time [s]"
     y_label = "Acceleration [m / s^2]"
-    kwargs = {"y_min": -12.0, "y_max": 12.0}
+    kwargs = {"y_min": -12.0, "y_max": 12.0, "win_size": self.win_size}
     self.gyro_plot = RTLinePlot(
         self.win,
         title,
@@ -202,7 +186,7 @@ class FirmwareDebugger:
     ]
     x_label = "Time [s]"
     y_label = "Attitude [deg]"
-    kwargs = {"y_min": -60.0, "y_max": 60.0}
+    kwargs = {"y_min": -60.0, "y_max": 60.0, "win_size": self.win_size}
     self.attitude_plot = RTLinePlot(
         self.win,
         title,
@@ -214,12 +198,30 @@ class FirmwareDebugger:
     )
     self.attitude_plot.set_xlink(self.gyro_plot)
 
+    self.win.nextRow()
+    title = "SBUS"
+    x_key = "ts"
+    y_keys = ["ch[0]", "ch[1]", "ch[2]", "ch[3]"]
+    x_label = "Time [s]"
+    y_label = "SBUS Value"
+    kwargs = {"y_min": 175, "y_max": 1850, "win_size": self.win_size}
+    self.sbus_plot = RTLinePlot(
+        self.win,
+        title,
+        x_key,
+        y_keys,
+        x_label,
+        y_label,
+        **kwargs,
+    )
+    self.sbus_plot.set_xlink(self.attitude_plot)
+
     title = "Motor Outputs"
     x_key = "ts"
     y_keys = ["outputs[0]", "outputs[1]", "outputs[2]", "outputs[3]"]
     x_label = "Time [s]"
     y_label = "Motor Thrust [%]"
-    kwargs = {"y_min": 0.0, "y_max": 1.0}
+    kwargs = {"y_min": 0.0, "y_max": 1.0, "win_size": self.win_size}
     self.motors_plot = RTLinePlot(
         self.win,
         title,
@@ -231,7 +233,6 @@ class FirmwareDebugger:
     )
     self.motors_plot.set_xlink(self.attitude_plot)
 
-    self.win.nextRow()
     title = "Control Rate"
     x_key = "ts"
     y_keys = ["rate"]
@@ -258,14 +259,6 @@ class FirmwareDebugger:
 
   def _load_log_data(self, log_file):
     """ Load log data """
-    # Disable window size in plots
-    self.sbus_plot.win_size = -1
-    self.gyro_plot.win_size = -1
-    self.accel_plot.win_size = -1
-    self.attitude_plot.win_size = -1
-    self.motors_plot.win_size = -1
-    self.rate_plot.win_size = -1
-
     # Load log data to plots
     ts = []
     for line in open(log_file, "r"):
