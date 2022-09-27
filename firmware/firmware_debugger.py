@@ -79,6 +79,10 @@ class RTLinePlot:
                                           name=y_key,
                                           skipFiniteCheck=True)
 
+  def set_xlink(self, rt_plot):
+    """ Set xlink """
+    self.plot.setXLink(rt_plot.plot)
+
   def update_data(self, data):
     """ Update Data """
     self.data[self.x_key].append(data[self.x_key])
@@ -91,22 +95,28 @@ class RTLinePlot:
       x_window = self.data[self.x_key][-self.win_size:]
       y_window = self.data[y_key][-self.win_size:]
       self.curves[y_key].setData(x_window, y_window)
-      self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
-      self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
+      if self.y_min and self.y_max:
+        self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
+        self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
 
 
 class FirmwareDebugger:
   """ Firmware Debugger """
-  def __init__(self):
+  def __init__(self, **kwargs):
+    log_file = kwargs.get("log_file")
+
     self.s = None  # Serial
     self.app = None
     self.win = None
     self.last_plotted = None
 
-    self.log = open("/tmp/debugger.log", "w")
-    self._setup_uart()
     self._setup_gui()
-    self._start_plots()
+    if log_file:
+      self._load_log_data(log_file)
+    else:
+      self.log = open("/tmp/debugger.log", "w")
+      self._setup_uart()
+      self._start_plots()
 
   def _setup_uart(self):
     """ Setup UART comms """
@@ -161,6 +171,7 @@ class FirmwareDebugger:
         y_label,
         **kwargs,
     )
+    self.accel_plot.set_xlink(self.sbus_plot)
 
     title = "Accelerometer"
     x_key = "ts"
@@ -177,6 +188,7 @@ class FirmwareDebugger:
         y_label,
         **kwargs,
     )
+    self.gyro_plot.set_xlink(self.accel_plot)
 
     title = "Attitude"
     x_key = "ts"
@@ -200,6 +212,7 @@ class FirmwareDebugger:
         y_label,
         **kwargs,
     )
+    self.attitude_plot.set_xlink(self.gyro_plot)
 
     title = "Motor Outputs"
     x_key = "ts"
@@ -216,6 +229,25 @@ class FirmwareDebugger:
         y_label,
         **kwargs,
     )
+    self.motors_plot.set_xlink(self.attitude_plot)
+
+    self.win.nextRow()
+    title = "Control Rate"
+    x_key = "ts"
+    y_keys = ["rate"]
+    x_label = "Time [s]"
+    y_label = "Rate [Hz]"
+    # kwargs = {"y_min": 0.0, "y_max": 1000.0}
+    self.rate_plot = RTLinePlot(
+        self.win,
+        title,
+        x_key,
+        y_keys,
+        x_label,
+        y_label,
+        **kwargs,
+    )
+    self.rate_plot.set_xlink(self.motors_plot)
 
   def _start_plots(self):
     """ Start plots """
@@ -224,9 +256,45 @@ class FirmwareDebugger:
     timer.start()
     pg.exec()
 
+  def _load_log_data(self, log_file):
+    """ Load log data """
+    # Disable window size in plots
+    self.sbus_plot.win_size = -1
+    self.gyro_plot.win_size = -1
+    self.accel_plot.win_size = -1
+    self.attitude_plot.win_size = -1
+    self.motors_plot.win_size = -1
+    self.rate_plot.win_size = -1
+
+    # Load log data to plots
+    ts = []
+    for line in open(log_file, "r"):
+      data = parse_serial_data_line(line)
+      ts.append(data['ts'])
+      self.sbus_plot.update_data(data)
+      self.gyro_plot.update_data(data)
+      self.accel_plot.update_data(data)
+      self.attitude_plot.update_data(data)
+      self.motors_plot.update_data(data)
+
+    for k, dt in enumerate(np.diff(ts)):
+      rate = 1.0 / dt
+      self.rate_plot.update_data({"ts": ts[k], "rate": rate})
+
+    # Update plots
+    self.sbus_plot.update_plots()
+    self.gyro_plot.update_plots()
+    self.accel_plot.update_plots()
+    self.attitude_plot.update_plots()
+    self.motors_plot.update_plots()
+    self.rate_plot.update_plots()
+    self.last_plotted = time.time()
+
+    # Run GUI
+    pg.exec()
+
   def _update_plots(self):
     """ Update plots """
-
     # Read serial buffer
     line = self.serial.readline()
     if line is None:
@@ -257,62 +325,4 @@ if __name__ == "__main__":
   install_package("pyserial")
   install_package("numpy")
   install_package("pyqtgraph")
-
-  # Parse debugger log
-  data = {
-      "telem_ts": [],
-      "ts": [],
-      "mav_arm": [],
-      "mav_ready": [],
-      "ch[0]": [],
-      "ch[1]": [],
-      "ch[2]": [],
-      "ch[3]": [],
-      "ch[4]": [],
-      "ch[5]": [],
-      "ch[6]": [],
-      "ch[7]": [],
-      "ch[8]": [],
-      "ch[9]": [],
-      "ch[10]": [],
-      "ch[11]": [],
-      "ch[12]": [],
-      "ch[13]": [],
-      "ch[14]": [],
-      "ch[15]": [],
-      "accel_x": [],
-      "accel_y": [],
-      "accel_z": [],
-      "gyro_x": [],
-      "gyro_y": [],
-      "gyro_z": [],
-      "roll_desired": [],
-      "pitch_desired": [],
-      "yaw_desired": [],
-      "thrust_desired": [],
-      "outputs[0]": [],
-      "outputs[1]": [],
-      "outputs[2]": [],
-      "outputs[3]": [],
-  }
-  for line_num, line in enumerate(open("/tmp/debugger.log", "r")):
-    data_k = parse_serial_data_line(line)
-    for key in data:
-      data[key].append(data_k[key])
-
-  # Convert list to numpy array
-  for key in data:
-    data[key] = np.array(data[key])
-
-  # Plot outputs
-  fig = plt.figure()
-  plt.plot(data['ts'], data['outputs[0]'] * 100.0, 'r-', label="output0")
-  plt.plot(data['ts'], data['outputs[1]'] * 100.0, 'g-', label="output1")
-  plt.plot(data['ts'], data['outputs[2]'] * 100.0, 'b-', label="output2")
-  plt.plot(data['ts'], data['outputs[3]'] * 100.0, 'k-', label="output3")
-  plt.xlabel("Time [s]")
-  plt.ylabel("Motor Output [%]")
-  plt.legend()
-  plt.show()
-
-  # FirmwareDebugger()
+  FirmwareDebugger(log_file="/tmp/debugger.log")
