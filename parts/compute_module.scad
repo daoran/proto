@@ -4,6 +4,8 @@ M2_nut_w = 4.9;
 M2_nut_h = 2.0;
 
 M3_screw_w = 3.2;
+M3_caphead_w = 6.0;
+M3_caphead_h = 3.0;
 M3_nut_w = 6.5;
 M3_nut_h = 2.5;
 
@@ -462,6 +464,31 @@ module landing_frame(w, d) {
       }
     }
 
+  }
+}
+
+module landing_feet() {
+  feet_l = 30.0;
+  feet_w = 10.0;
+  feet_h = 8.0;
+  support_h = 20.0 - 4;
+
+  difference() {
+    union() {
+      // Support
+      translate([(feet_l - feet_w) / 2, 0, support_h / 2])
+        cylinder(r=feet_w / 2, h=support_h, center=true);
+
+      // Feet
+      translate([0, 0, feet_h / 2])
+        cube([feet_l, feet_w, feet_h], center=true);
+    }
+
+    // Support hole
+    translate([(feet_l - feet_w) / 2, 0, support_h / 2])
+      cylinder(r=M3_screw_w / 2, h=support_h + 0.1, center=true);
+    translate([(feet_l - feet_w) / 2, 0, (M3_caphead_h + 1) / 2])
+      cylinder(r=M3_caphead_w / 2, h=(M3_caphead_h + 1) + 0.1, center=true);
   }
 }
 
@@ -1273,7 +1300,7 @@ module print() {
 
 // Assembly Development
 // top_stack();
-bottom_stack();
+// bottom_stack();
 
 // Component Development
 // battery_frame(batt_frame_w, batt_frame_d);
@@ -1281,6 +1308,7 @@ bottom_stack();
 // stack_spacer(batt_h + 2, nut_counter_sink=1);
 // odroid_frame(mav_mount_w, mav_mount_d, 0);
 // landing_frame(mav_mount_w, mav_mount_d);
+landing_feet();
 // sbgc_frame(odroid_mount_w, odroid_mount_d, 0, 0);
 // stereo_camera_frame();
 // pitch_frame(0, 0, 0, 0);
