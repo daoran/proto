@@ -49,12 +49,13 @@ def parse_serial_data_line(line):
   return data
 
 
-def record_telemetry_data(save_path, record_time):
+def record_telemetry_data(save_path, record_duration):
   """ Record Telemetry Data """
+  # Connect to FCU
   s = serial.Serial()
   s.port = '/dev/ttyACM0'
   s.baudrate = 921600
-  s.timeout = 0.1
+  s.timeout = 10
   s.open()
 
   if s.is_open is True:
@@ -63,22 +64,20 @@ def record_telemetry_data(save_path, record_time):
     print("Failed to connect to FCU ...")
     sys.exit(-1)
 
-  time.sleep(2)
+  # Record
   line = s.readline()
   if line is None:
     return
 
-  time_start = time.time()
   data = []
+  time_start = time.time()
   while line:
     data.append(line.decode("ascii"))
     line = s.readline()
-
-    if (time.time() - time_start) > record_time:
-      print((time.time() - time_start))
-      print("BREAK!")
+    if (time.time() - time_start) > record_duration:
       break
 
+  # Save data
   log_file = open(save_path, "w")
   for data_line in data:
     log_file.write(data_line)
@@ -86,9 +85,6 @@ def record_telemetry_data(save_path, record_time):
 
 def analyze_timestamps():
   """ Analyze Timestamps """
-  import numpy as np
-  import matplotlib.pylab as plt
-
   log_file = "/tmp/debugger.log"
   record_duration = 10.0
 
@@ -115,7 +111,7 @@ def analyze_timestamps():
   plt.plot(timestamps[start_idx:], rates, 'ro')
   plt.ylim([0, 1000])
   plt.xlabel("Time [s]")
-  plt.xlabel("Rate [Hz]")
+  plt.ylabel("Rate [Hz]")
   plt.show()
 
 
@@ -197,7 +193,7 @@ class FirmwareDebugger:
     # Setup serial communication
     self.serial = serial.Serial()
     self.serial.port = '/dev/ttyACM0'
-    self.serial.baudrate = 115200
+    self.serial.baudrate = 921600
     self.serial.timeout = 0
     self.serial.open()
 
@@ -306,13 +302,13 @@ class FirmwareDebugger:
     )
     self.motors_plot.set_xlink(self.attitude_plot)
 
-    title = "Control Rate"
+    title = "Velocity"
     x_key = "ts"
-    y_keys = ["rate"]
+    y_keys = ["vz"]
     x_label = "Time [s]"
-    y_label = "Rate [Hz]"
-    # kwargs = {"y_min": 0.0, "y_max": 1000.0}
-    self.rate_plot = RTLinePlot(
+    y_label = "Velocity [ms^-1]"
+    kwargs = {"y_min": -0.01, "y_max": 0.01, "win_size": self.win_size}
+    self.vel_plot = RTLinePlot(
         self.win,
         title,
         x_key,
@@ -321,7 +317,7 @@ class FirmwareDebugger:
         y_label,
         **kwargs,
     )
-    self.rate_plot.set_xlink(self.motors_plot)
+    self.vel_plot.set_xlink(self.motors_plot)
 
   def _start_plots(self):
     """ Start plots """
@@ -336,16 +332,12 @@ class FirmwareDebugger:
     for line in open(log_file, "r"):
       data = parse_serial_data_line(line)
       self.timestamps.append(data['ts'])
+
       self.sbus_plot.update_data(data)
       self.gyro_plot.update_data(data)
       self.accel_plot.update_data(data)
       self.attitude_plot.update_data(data)
       self.motors_plot.update_data(data)
-
-    for k, dt in enumerate(np.diff(self.timestamps)):
-      ts = self.timestamps[k]
-      rate = 1.0 / dt
-      self.rate_plot.update_data({"ts": ts, "rate": rate})
 
     # Update plots
     self.sbus_plot.update_plots()
@@ -353,7 +345,6 @@ class FirmwareDebugger:
     self.accel_plot.update_plots()
     self.attitude_plot.update_plots()
     self.motors_plot.update_plots()
-    self.rate_plot.update_plots()
     self.last_plotted = time.time()
 
     # Run GUI
@@ -369,20 +360,12 @@ class FirmwareDebugger:
     while line:
       data = parse_serial_data_line(line)
       self.timestamps.append(data['ts'])
-
       self.sbus_plot.update_data(data)
       self.gyro_plot.update_data(data)
       self.accel_plot.update_data(data)
       self.attitude_plot.update_data(data)
       self.motors_plot.update_data(data)
-
-      if len(self.timestamps) > 2:
-        ts_km1 = self.timestamps[-2]
-        ts_k = self.timestamps[-1]
-        dt = ts_k - ts_km1
-        rate = 1.0 / dt
-        self.rate_plot.update_data({"ts": ts_k, "rate": rate})
-
+      self.vel_plot.update_data(data)
       self.log.write(line.decode("ascii"))
       line = self.serial.readline()
 
@@ -394,7 +377,7 @@ class FirmwareDebugger:
       self.accel_plot.update_plots()
       self.attitude_plot.update_plots()
       self.motors_plot.update_plots()
-      self.rate_plot.update_plots()
+      self.vel_plot.update_plots()
       self.last_plotted = time.time()
 
 
@@ -402,8 +385,9 @@ if __name__ == "__main__":
   install_package("pyserial")
   install_package("numpy")
   install_package("pyqtgraph")
+  # analyze_timestamps()
 
-  # parser = argparse.ArgumentParser()
-  # parser.add_argument("--log_file", nargs="?", default=None)
-  # args = parser.parse_args()
-  # FirmwareDebugger(log_file=args.log_file)
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--log_file", nargs="?", default=None)
+  args = parser.parse_args()
+  FirmwareDebugger(log_file=args.log_file)

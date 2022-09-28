@@ -257,6 +257,38 @@ inline uint32_t uint32(const uint8_t *data, const size_t offset) {
 }
 
 /**
+ * Convert float to bytes
+ */
+void float2bytes(const float f, uint8_t b[4]) {
+  union {
+    uint8_t b[4];
+    float f;
+  } data;
+
+  data.f = f;
+  b[0] = data.b[0];
+  b[1] = data.b[1];
+  b[2] = data.b[2];
+  b[3] = data.b[3];
+}
+
+/**
+ * Convert bytes to float
+ */
+void bytes2float(const uint8_t b[4], float *f) {
+  union {
+    char b[4];
+    float f;
+  } data;
+
+  data.b[0] = b[0];
+  data.b[1] = b[1];
+  data.b[2] = b[2];
+  data.b[3] = b[3];
+  *f = data.f;
+}
+
+/**
  * Fast inverse square-root
  */
 float inv_sqrt(const float x) {
@@ -378,6 +410,29 @@ void euler321(const float euler[3], float C[3 * 3]) {
   C[6] = -stheta;
   C[7] = ctheta * sphi;
   C[8] = ctheta * cphi;
+}
+
+/**
+ * Dot product of two matrices or vectors `A` and `B` of size `A_m x A_n` and
+ * `B_m x B_n`. Results are written to `C`.
+ */
+void dot(const float *A,
+         const size_t A_m,
+         const size_t A_n,
+         const float *B,
+         const size_t B_m,
+         const size_t B_n,
+         float *C) {
+  size_t m = A_m;
+  size_t n = B_n;
+
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = 0; j < n; j++) {
+      for (size_t k = 0; k < A_n; k++) {
+        C[(i * n) + j] += A[(i * A_n) + k] * B[(k * B_n) + j];
+      }
+    }
+  }
 }
 
 /**
@@ -577,10 +632,10 @@ typedef struct uart_t {
   Print *serial_out;
 } uart_t;
 
-void uart_setup(uart_t *uart, int baud = 115200) {
+void uart_setup(uart_t *uart, int baud = 921600) {
   uart->serial_in = &Serial;
   uart->serial_out = &Serial;
-  Serial1.begin(baud);
+  Serial.begin(baud);
 }
 
 uint8_t uart_in_ready(const uart_t *uart) {
@@ -1414,6 +1469,7 @@ typedef struct mpu6050_t {
   float temperature;
 
   float gyro_offset[3];
+  float gravity;
 } mpu6050_t;
 
 void mpu6050_setup(mpu6050_t *imu);
@@ -1450,21 +1506,35 @@ void mpu6050_setup(mpu6050_t *imu) {
 }
 
 void mpu6050_calibrate(mpu6050_t *imu) {
-  float wx = 0.0;
-  float wy = 0.0;
-  float wz = 0.0;
+  float wx_sum = 0.0;
+  float wy_sum = 0.0;
+  float wz_sum = 0.0;
+  float ax_sum = 0.0;
+  float ay_sum = 0.0;
+  float az_sum = 0.0;
 
   uint16_t nb_samples = 2000;
   for (uint32_t i = 0; i < nb_samples; i++) {
     mpu6050_get_data(imu);
-    wx += imu->gyro[0];
-    wy += imu->gyro[1];
-    wz += imu->gyro[2];
+
+    wx_sum += imu->gyro[0];
+    wy_sum += imu->gyro[1];
+    wz_sum += imu->gyro[2];
+
+    ax_sum += imu->accel[0];
+    ay_sum += imu->accel[1];
+    az_sum += imu->accel[2];
   }
 
-  imu->gyro_offset[0] = wx / (float) nb_samples;
-  imu->gyro_offset[1] = wy / (float) nb_samples;
-  imu->gyro_offset[2] = wz / (float) nb_samples;
+  imu->gyro_offset[0] = wx_sum / (float) nb_samples;
+  imu->gyro_offset[1] = wy_sum / (float) nb_samples;
+  imu->gyro_offset[2] = wz_sum / (float) nb_samples;
+
+  ax_sum = ax_sum / (float) nb_samples;
+  ay_sum = ay_sum / (float) nb_samples;
+  az_sum = az_sum / (float) nb_samples;
+
+  imu->gravity = sqrt(ax_sum * ax_sum + ay_sum * ay_sum + az_sum * az_sum);
 }
 
 void mpu6050_get_data(mpu6050_t *imu) {
@@ -1987,6 +2057,148 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
   for (uint8_t i = 0; i < 4; i++) {
     outputs[i] = (outputs[i] < THROTTLE_MIN) ? THROTTLE_MIN : outputs[i];
     outputs[i] = (outputs[i] > THROTTLE_MAX) ? THROTTLE_MAX : outputs[i];
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+// TELEMETRY DATA ////////////////////////////////////////////////////////////
+
+#define TELEM_BUF_SIZE 10
+
+typedef struct telemetry_t {
+  uint16_t buf_size;
+
+  uint32_t ts[TELEM_BUF_SIZE];
+  uint8_t mav_arm[TELEM_BUF_SIZE];
+  uint8_t mav_ready[TELEM_BUF_SIZE];
+  uint8_t mav_failsafe[TELEM_BUF_SIZE];
+
+  float acc[TELEM_BUF_SIZE][3];
+  float gyr[TELEM_BUF_SIZE][3];
+  float actual[TELEM_BUF_SIZE][4];
+
+  uint16_t sbus[TELEM_BUF_SIZE][16];
+  float desired[TELEM_BUF_SIZE][4];
+  float outputs[TELEM_BUF_SIZE][4];
+} telemetry_t;
+
+void telemetry_setup(telemetry_t *telem) {
+  telem->buf_size = 0;
+
+  for (size_t k = 0; k < TELEM_BUF_SIZE; k++) {
+    telem->ts[k] = 0;
+    telem->mav_arm[k] = 0;
+    telem->mav_ready[k] = 0;
+    telem->mav_failsafe[k] = 0;
+
+    for (size_t i = 0; i < 3; i++) {
+      telem->acc[k][i] = 0;
+      telem->gyr[k][i] = 0;
+      telem->actual[k][i] = 0;
+    }
+
+    for (size_t i = 0; i < 16; i++) {
+      telem->sbus[k][i] = 0;
+    }
+    for (size_t i = 0; i < 4; i++) {
+      telem->desired[k][i] = 0;
+      telem->outputs[k][i] = 0;
+    }
+  }
+}
+
+void telemetry_reset(telemetry_t *telem) {
+  telemetry_setup(telem);
+}
+
+void telemetry_record(telemetry_t *telem,
+                      const uint32_t ts_us,
+                      const uint8_t mav_arm,
+                      const uint8_t mav_ready,
+                      const uint8_t mav_failsafe,
+                      const float acc[3],
+                      const float gyr[3],
+                      const float actual[4],
+                      const float desired[3],
+                      const float outputs[4],
+                      const uint16_t sbus_channels[16]) {
+  const uint16_t buf_size = telem->buf_size;
+
+  telem->ts[buf_size] = ts_us;
+  telem->mav_arm[buf_size] = mav_arm;
+  telem->mav_ready[buf_size] = mav_ready;
+  telem->mav_failsafe[buf_size] = mav_failsafe;
+
+  telem->acc[buf_size][0] = acc[0];
+  telem->acc[buf_size][1] = acc[1];
+  telem->acc[buf_size][2] = acc[2];
+
+  telem->gyr[buf_size][0] = gyr[0];
+  telem->gyr[buf_size][1] = gyr[1];
+  telem->gyr[buf_size][2] = gyr[2];
+
+  telem->actual[buf_size][0] = actual[0];
+  telem->actual[buf_size][1] = actual[1];
+  telem->actual[buf_size][2] = actual[2];
+  telem->actual[buf_size][3] = actual[3];
+
+  telem->desired[buf_size][0] = desired[0];
+  telem->desired[buf_size][1] = desired[1];
+  telem->desired[buf_size][2] = desired[2];
+  telem->desired[buf_size][3] = desired[3];
+
+  telem->outputs[buf_size][0] = outputs[0];
+  telem->outputs[buf_size][1] = outputs[1];
+  telem->outputs[buf_size][2] = outputs[2];
+  telem->outputs[buf_size][3] = outputs[3];
+
+  for (uint8_t i = 0; i < 16; i++) {
+    telem->sbus[buf_size][i] = sbus_channels[i];
+  }
+  telem->buf_size++;
+}
+
+void telemetry_transmit(telemetry_t *telem, uart_t *uart) {
+  const uint32_t ts_telem = micros();
+
+  for (uint16_t k = 0; k < telem->buf_size; k++) {
+    char s[1024] = {0};
+    sprintf(s, "telem_ts:%ld ", ts_telem);
+    sprintf(s + strlen(s), "ts:%ld ", telem->ts[k]);
+    sprintf(s + strlen(s), "mav_arm:%d ", telem->mav_arm[k]);
+    sprintf(s + strlen(s), "mav_ready:%d ", telem->mav_ready[k]);
+
+    for (uint8_t i = 0; i < 16; i++) {
+      sprintf(s + strlen(s), "ch[%d]:%d ", i, telem->sbus[k][i]);
+    }
+
+    sprintf(s + strlen(s), "accel_x:%f ", telem->acc[k][0]);
+    sprintf(s + strlen(s), "accel_y:%f ", telem->acc[k][1]);
+    sprintf(s + strlen(s), "accel_z:%f ", telem->acc[k][2]);
+
+    sprintf(s + strlen(s), "gyro_x:%f ", telem->gyr[k][0]);
+    sprintf(s + strlen(s), "gyro_y:%f ", telem->gyr[k][1]);
+    sprintf(s + strlen(s), "gyro_z:%f ", telem->gyr[k][2]);
+
+    sprintf(s + strlen(s), "roll:%f ", rad2deg(telem->actual[k][0]));
+    sprintf(s + strlen(s), "pitch:%f ", rad2deg(telem->actual[k][1]));
+    sprintf(s + strlen(s), "yaw:%f ", rad2deg(telem->actual[k][2]));
+    sprintf(s + strlen(s), "vz:%f ", telem->actual[k][3]);
+
+    sprintf(s + strlen(s), "roll_desired:%f ", rad2deg(telem->desired[k][0]));
+    sprintf(s + strlen(s), "pitch_desired:%f ", rad2deg(telem->desired[k][1]));
+    sprintf(s + strlen(s), "yaw_desired:%f ", rad2deg(telem->desired[k][2]));
+    sprintf(s + strlen(s), "thrust_desired:%f ", telem->desired[k][3]);
+
+    sprintf(s + strlen(s), "outputs[0]:%f ", telem->outputs[k][0]);
+    sprintf(s + strlen(s), "outputs[1]:%f ", telem->outputs[k][1]);
+    sprintf(s + strlen(s), "outputs[2]:%f ", telem->outputs[k][2]);
+    sprintf(s + strlen(s), "outputs[3]:%f ", telem->outputs[k][3]);
+
+    sprintf(s + strlen(s), "\r\n");
+
+    uart_printf(uart, "%s", s);
   }
 }
 
