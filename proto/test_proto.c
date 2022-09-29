@@ -10,7 +10,7 @@
 #define TEST_SIM_DATA TEST_DATA_PATH "sim_data"
 
 /******************************************************************************
- * LOGGING
+ * MACROS
  ******************************************************************************/
 
 int test_debug() {
@@ -25,6 +25,15 @@ int test_log_error() {
 
 int test_log_warn() {
   LOG_WARN("Hello World!");
+  return 0;
+}
+
+int test_median_value() {
+  real_t median = 0.0f;
+  real_t buf[5] = {4.0, 1.0, 0.0, 3.0, 2.0};
+  MEDIAN_VALUE(real_t, fltcmp2, buf, 5, median);
+  MU_ASSERT(fltcmp(median, 2.0) == 0);
+
   return 0;
 }
 
@@ -4801,10 +4810,11 @@ int test_imshow() {
 #endif /* USE_GUI */
 
 void test_suite() {
-  /* LOGGING */
+  /* MACROS */
   MU_ADD_TEST(test_debug);
   MU_ADD_TEST(test_log_error);
   MU_ADD_TEST(test_log_warn);
+  MU_ADD_TEST(test_median_value);
 
   /* FILE SYSTEM */
   MU_ADD_TEST(test_path_file_name);

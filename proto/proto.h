@@ -167,6 +167,27 @@
     FREE_FUNC((void *) TARGET);                                                \
   }
 
+/**
+ * Median value in buffer
+ */
+#define MEDIAN_VALUE(DATA_TYPE, DATA_CMP, BUF, BUF_SIZE, MEDIAN_VAR)           \
+  {                                                                            \
+    DATA_TYPE VALUES[BUF_SIZE] = {0};                                          \
+    for (size_t i = 0; i < BUF_SIZE; i++) {                                    \
+      VALUES[i] = BUF[i];                                                      \
+    }                                                                          \
+                                                                               \
+    qsort(VALUES, BUF_SIZE, sizeof(DATA_TYPE), DATA_CMP);                      \
+    if ((BUF_SIZE % 2) == 0) {                                                 \
+      const size_t bwd_idx = (size_t)(BUF_SIZE - 1) / 2.0;                     \
+      const size_t fwd_idx = (size_t)(BUF_SIZE + 1) / 2.0;                     \
+      MEDIAN_VAR = (VALUES[bwd_idx] + VALUES[fwd_idx]) / 2.0;                  \
+    } else {                                                                   \
+      const size_t mid_idx = (BUF_SIZE - 1) / 2;                               \
+      MEDIAN_VAR = VALUES[mid_idx];                                            \
+    }                                                                          \
+  }
+
 /******************************************************************************
  * FILESYSTEM
  ******************************************************************************/
