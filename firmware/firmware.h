@@ -892,13 +892,8 @@ void pwm_set(pwm_t *pwm, const uint8_t pin_idx, const float val) {
 
 // SBUS //////////////////////////////////////////////////////////////////////
 
-#define SBUS_BUF_SIZE 10
-
 typedef struct sbus_t {
   uint16_t ch[16];
-  uint16_t buf[16][SBUS_BUF_SIZE];
-  uint8_t buf_idx;
-  uint8_t buf_capacity;
   uint8_t frame_lost;
   uint8_t failsafe_activated;
 } sbus_t;
@@ -915,12 +910,7 @@ void sbus_setup(sbus_t *sbus) {
 
   for (uint8_t i = 0; i < 16; i++) {
     sbus->ch[i] = 0;
-    for (uint8_t j = 0; j < SBUS_BUF_SIZE; j++) {
-      sbus->buf[i][j] = 0;
-    }
   }
-  sbus->buf_idx = 0;
-  sbus->buf_capacity = 0;
   sbus->frame_lost = 0;
   sbus->failsafe_activated = 0;
 }
@@ -949,66 +939,22 @@ int8_t sbus_update(sbus_t *sbus) {
   sbus->frame_lost = (f[23] & (1 << 5));
   sbus->failsafe_activated = (f[23] & (1 << 4));
   // -- Parse channel data
-  for (uint8_t i = 0; i < 16; i++) {
-    sbus->ch[i] = 0;
-  }
-  const uint8_t buf_idx = sbus->buf_idx;
-  sbus->buf[0][buf_idx] = ((f[1] | f[2] << 8) & 0x07FF);
-  sbus->buf[1][buf_idx] = ((f[2] >> 3 | f[3] << 5) & 0x07FF);
-  sbus->buf[2][buf_idx] = ((f[3] >> 6 | f[4] << 2 | f[5] << 10) & 0x07FF);
-  sbus->buf[3][buf_idx] = ((f[5] >> 1 | f[6] << 7) & 0x07FF);
-  sbus->buf[4][buf_idx] = ((f[6] >> 4 | f[7] << 4) & 0x07FF);
-  sbus->buf[5][buf_idx] = ((f[7] >> 7 | f[8] << 1 | f[8] << 9) & 0x07FF);
-  sbus->buf[6][buf_idx] = ((f[9] >> 2 | f[10] << 6) & 0x07FF);
-  sbus->buf[7][buf_idx] = ((f[10] >> 5 | f[11] << 3) & 0x07FF);
-  sbus->buf[8][buf_idx] = ((f[12] | f[13] << 8) & 0x07FF);
-  sbus->buf[9][buf_idx] = ((f[13] >> 3 | f[14] << 5) & 0x07FF);
-  sbus->buf[10][buf_idx] = ((f[14] >> 6 | f[15] << 2 | f[16] << 10) & 0x07FF);
-  sbus->buf[11][buf_idx] = ((f[16] >> 1 | f[17] << 7) & 0x07FF);
-  sbus->buf[12][buf_idx] = ((f[17] >> 4 | f[18] << 4) & 0x07FF);
-  sbus->buf[13][buf_idx] = ((f[18] >> 7 | f[19] << 1 | f[20] << 9) & 0x07FF);
-  sbus->buf[14][buf_idx] = ((f[20] >> 2 | f[21] << 6) & 0x07FF);
-  sbus->buf[15][buf_idx] = ((f[21] >> 5 | f[22] << 3) & 0x07FF);
-  sbus->buf_idx++;
-  sbus->buf_capacity++;
-  if (sbus->buf_idx >= (SBUS_BUF_SIZE - 1)) {
-    sbus->buf_idx = 0;
-    sbus->buf_capacity = (sbus->buf_capacity >= SBUS_BUF_SIZE)
-                             ? SBUS_BUF_SIZE
-                             : sbus->buf_capacity;
-  }
-
-  // Set sbus values
-  for (uint8_t i = 0; i < 16; i++) {
-    if (sbus->buf_capacity >= SBUS_BUF_SIZE) {
-      // Make a copy of the buffer
-      uint16_t vals[SBUS_BUF_SIZE] = {0};
-      for (uint8_t j = 0; j < SBUS_BUF_SIZE; j++) {
-        vals[j] = sbus->buf[i][j];
-      }
-
-      // Sort values
-      qsort(vals, SBUS_BUF_SIZE, sizeof(uint16_t), uint16cmp);
-
-      // Get median value
-      uint16_t median = 0.0;
-      uint8_t n = SBUS_BUF_SIZE;
-      if ((n % 2) == 0) {
-        const uint8_t bwd_idx = (uint8_t)(n - 1) / 2.0;
-        const uint8_t fwd_idx = (uint8_t)(n + 1) / 2.0;
-        median = (vals[bwd_idx] + vals[fwd_idx]) / 2.0;
-      } else {
-        const uint8_t mid_idx = n / 2.0;
-        median = vals[mid_idx];
-      }
-
-      // Set median
-      sbus->ch[i] = median;
-
-    } else {
-      sbus->ch[i] = sbus->buf[i][sbus->buf_idx];
-    }
-  }
+  sbus->ch[0] = ((f[1] | f[2] << 8) & 0x07FF);
+  sbus->ch[1] = ((f[2] >> 3 | f[3] << 5) & 0x07FF);
+  sbus->ch[2] = ((f[3] >> 6 | f[4] << 2 | f[5] << 10) & 0x07FF);
+  sbus->ch[3] = ((f[5] >> 1 | f[6] << 7) & 0x07FF);
+  sbus->ch[4] = ((f[6] >> 4 | f[7] << 4) & 0x07FF);
+  sbus->ch[5] = ((f[7] >> 7 | f[8] << 1 | f[8] << 9) & 0x07FF);
+  sbus->ch[6] = ((f[9] >> 2 | f[10] << 6) & 0x07FF);
+  sbus->ch[7] = ((f[10] >> 5 | f[11] << 3) & 0x07FF);
+  sbus->ch[8] = ((f[12] | f[13] << 8) & 0x07FF);
+  sbus->ch[9] = ((f[13] >> 3 | f[14] << 5) & 0x07FF);
+  sbus->ch[10] = ((f[14] >> 6 | f[15] << 2 | f[16] << 10) & 0x07FF);
+  sbus->ch[11] = ((f[16] >> 1 | f[17] << 7) & 0x07FF);
+  sbus->ch[12] = ((f[17] >> 4 | f[18] << 4) & 0x07FF);
+  sbus->ch[13] = ((f[18] >> 7 | f[19] << 1 | f[20] << 9) & 0x07FF);
+  sbus->ch[14] = ((f[20] >> 2 | f[21] << 6) & 0x07FF);
+  sbus->ch[15] = ((f[21] >> 5 | f[22] << 3) & 0x07FF);
 
   return 0;
 }
