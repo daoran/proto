@@ -37,6 +37,15 @@ int test_median_value() {
   return 0;
 }
 
+int test_mean_value() {
+  real_t mean = 0.0f;
+  real_t buf[5] = {0.0, 1.0, 2.0, 3.0, 4.0};
+  MEAN_VALUE(real_t, buf, 5, mean);
+  MU_ASSERT(fltcmp(mean, 2.0) == 0);
+
+  return 0;
+}
+
 /******************************************************************************
  * FILESYSTEM
  ******************************************************************************/
@@ -4815,6 +4824,7 @@ void test_suite() {
   MU_ADD_TEST(test_log_error);
   MU_ADD_TEST(test_log_warn);
   MU_ADD_TEST(test_median_value);
+  MU_ADD_TEST(test_mean_value);
 
   /* FILE SYSTEM */
   MU_ADD_TEST(test_path_file_name);

@@ -188,6 +188,18 @@
     }                                                                          \
   }
 
+/**
+ * Mean value in buffer
+ */
+#define MEAN_VALUE(DATA_TYPE, BUF, BUF_SIZE, MEAN_VAR)                         \
+  {                                                                            \
+    DATA_TYPE VALUE = 0;                                                       \
+    for (size_t i = 0; i < BUF_SIZE; i++) {                                    \
+      VALUE += BUF[i];                                                         \
+    }                                                                          \
+    MEAN_VAR = VALUE / (real_t) BUF_SIZE;                                      \
+  }
+
 /******************************************************************************
  * FILESYSTEM
  ******************************************************************************/
