@@ -127,10 +127,10 @@ class RTLinePlot:
 
     self.y_min = kwargs.get("y_min")
     self.y_max = kwargs.get("y_max")
-    self.y_padding = kwargs.get("y_padding", 10)
+    self.y_padding = kwargs.get("y_padding", 1)
     if self.y_min and self.y_max:
-      self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
-      self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
+      # self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
+      self.plot.setYRange(self.y_min, self.y_max)
 
     self.win_size = kwargs.get("win_size", 1000)
     self.colors = kwargs.get("colors", ["r", "g", "b", "c", "y", "m"])
@@ -164,8 +164,8 @@ class RTLinePlot:
       y_window = self.data[y_key][-self.win_size:]
       self.curves[y_key].setData(x_window, y_window)
       if self.y_min and self.y_max:
-        self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
-        self.plot.setYRange(self.y_min, self.y_max, padding=self.y_padding)
+        # self.plot.setLimits(yMin=self.y_min, yMax=self.y_max)
+        self.plot.setYRange(self.y_min, self.y_max)
 
 
 class FirmwareDebugger:
@@ -249,9 +249,9 @@ class FirmwareDebugger:
         "roll",
         "pitch",
         "yaw",
-        "roll_desired",
-        "pitch_desired",
-        "yaw_desired",
+        "roll_setpoint",
+        "pitch_setpoint",
+        "yaw_setpoint",
     ]
     x_label = "Time [s]"
     y_label = "Attitude [deg]"
@@ -270,7 +270,7 @@ class FirmwareDebugger:
     self.win.nextRow()
     title = "SBUS"
     x_key = "ts"
-    y_keys = ["ch[0]", "ch[1]", "ch[2]", "ch[3]"]
+    y_keys = ["ch[0]", "ch[1]", "ch[2]", "ch[3]", "ch[4]", "ch[5]"]
     x_label = "Time [s]"
     y_label = "SBUS Value"
     kwargs = {"y_min": 175, "y_max": 1850, "win_size": self.win_size}
@@ -302,13 +302,13 @@ class FirmwareDebugger:
     )
     self.motors_plot.set_xlink(self.attitude_plot)
 
-    title = "Velocity"
+    title = "Height"
     x_key = "ts"
-    y_keys = ["vz"]
+    y_keys = ["height"]
     x_label = "Time [s]"
-    y_label = "Velocity [ms^-1]"
-    kwargs = {"y_min": -0.01, "y_max": 0.01, "win_size": self.win_size}
-    self.vel_plot = RTLinePlot(
+    y_label = "Height [m]"
+    kwargs = {"win_size": self.win_size}
+    self.height_plot = RTLinePlot(
         self.win,
         title,
         x_key,
@@ -317,7 +317,7 @@ class FirmwareDebugger:
         y_label,
         **kwargs,
     )
-    self.vel_plot.set_xlink(self.motors_plot)
+    self.height_plot.set_xlink(self.motors_plot)
 
   def _start_plots(self):
     """ Start plots """
@@ -338,6 +338,7 @@ class FirmwareDebugger:
       self.accel_plot.update_data(data)
       self.attitude_plot.update_data(data)
       self.motors_plot.update_data(data)
+      self.height_plot.update_data(data)
 
     # Update plots
     self.sbus_plot.update_plots()
@@ -345,6 +346,7 @@ class FirmwareDebugger:
     self.accel_plot.update_plots()
     self.attitude_plot.update_plots()
     self.motors_plot.update_plots()
+    self.height_plot.update_plots()
     self.last_plotted = time.time()
 
     # Run GUI
@@ -365,7 +367,7 @@ class FirmwareDebugger:
       self.accel_plot.update_data(data)
       self.attitude_plot.update_data(data)
       self.motors_plot.update_data(data)
-      self.vel_plot.update_data(data)
+      self.height_plot.update_data(data)
       self.log.write(line.decode("ascii"))
       line = self.serial.readline()
 
@@ -377,7 +379,7 @@ class FirmwareDebugger:
       self.accel_plot.update_plots()
       self.attitude_plot.update_plots()
       self.motors_plot.update_plots()
-      self.vel_plot.update_plots()
+      self.height_plot.update_plots()
       self.last_plotted = time.time()
 
 
@@ -385,6 +387,12 @@ if __name__ == "__main__":
   install_package("pyserial")
   install_package("numpy")
   install_package("pyqtgraph")
+
+  # log_file = "/tmp/debugger.log"
+  # record_duration = 5.0
+  # record_telemetry_data(log_file, record_duration)
+  # FirmwareDebugger(log_file=log_file)
+
   # analyze_timestamps()
 
   parser = argparse.ArgumentParser()

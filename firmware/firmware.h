@@ -14,10 +14,50 @@
 #define CMP_TOL 1e-6
 #endif
 
+/**
+ * Mark variable unused
+ */
 #define UNUSED(expr)                                                           \
   do {                                                                         \
     (void) (expr);                                                             \
   } while (0)
+
+/** Return max **/
+#define MAX(x, y)                                                              \
+  ({                                                                           \
+    __typeof__(x) _x = (x);                                                    \
+    __typeof__(y) _y = (y);                                                    \
+    _x > _y ? _x : _y;                                                         \
+  })
+
+/** Return min **/
+#define MIN(x, y)                                                              \
+  ({                                                                           \
+    __typeof__(x) _x = (x);                                                    \
+    __typeof__(y) _y = (y);                                                    \
+    _x < _y ? _x : _y;                                                         \
+  })
+
+/**
+ * Median value in buffer
+ */
+#define MEDIAN_VALUE(DATA_TYPE, DATA_CMP, BUF, BUF_SIZE, MEDIAN_VAR)           \
+  {                                                                            \
+    DATA_TYPE VALUES[BUF_SIZE] = {0};                                          \
+    for (size_t i = 0; i < BUF_SIZE; i++) {                                    \
+      VALUES[i] = BUF[i];                                                      \
+    }                                                                          \
+                                                                               \
+    qsort(VALUES, BUF_SIZE, sizeof(DATA_TYPE), DATA_CMP);                      \
+    if ((BUF_SIZE % 2) == 0) {                                                 \
+      const size_t bwd_idx = (size_t)(BUF_SIZE - 1) / 2.0;                     \
+      const size_t fwd_idx = (size_t)(BUF_SIZE + 1) / 2.0;                     \
+      MEDIAN_VAR = (VALUES[bwd_idx] + VALUES[fwd_idx]) / 2.0;                  \
+    } else {                                                                   \
+      const size_t mid_idx = (BUF_SIZE - 1) / 2;                               \
+      MEDIAN_VAR = VALUES[mid_idx];                                            \
+    }                                                                          \
+  }
 
 /**
  * Convert degrees to radians
@@ -964,6 +1004,10 @@ float sbus_value(const sbus_t *sbus, const uint8_t ch_idx) {
 }
 
 float sbus_thrust(const sbus_t *sbus) {
+  return (sbus->ch[0] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
+}
+
+float sbus_altitude(const sbus_t *sbus) {
   return (sbus->ch[0] - PWM_VALUE_MIN) / (PWM_VALUE_MAX - PWM_VALUE_MIN);
 }
 
@@ -1933,42 +1977,42 @@ void att_ctrl_setup(att_ctrl_t *att_ctrl) {
   pid_ctrl_t *roll_pid = &att_ctrl->roll_pid;
   pid_ctrl_t *pitch_pid = &att_ctrl->pitch_pid;
   pid_ctrl_t *yaw_pid = &att_ctrl->yaw_pid;
+
   pid_ctrl_setup(roll_pid, ROLL_PID_KP, ROLL_PID_KI, ROLL_PID_KD);
   pid_ctrl_setup(pitch_pid, ROLL_PID_KP, ROLL_PID_KI, ROLL_PID_KD);
-  // pid_ctrl_setup(pitch_pid, PITCH_PID_KP, PITCH_PID_KI, PITCH_PID_KD);
   pid_ctrl_setup(yaw_pid, YAW_PID_KP, YAW_PID_KI, YAW_PID_KD);
 }
 
 void att_ctrl_update(att_ctrl_t *att_ctrl,
-                     const float roll_desired,
-                     const float pitch_desired,
-                     const float yaw_desired,
-                     const float thrust_desired,
-                     const float roll_actual,
-                     const float pitch_actual,
-                     const float yaw_actual,
+                     const float setpoint[4],
+                     const float actual[3],
                      const float dt,
-                     float outputs[4],
-                     uart_t *uart) {
+                     float outputs[4]) {
   // Calculate roll error
+  const float roll_desired = setpoint[0];
+  const float roll_actual = actual[0];
   const float roll_error = roll_desired - roll_actual;
 
   // Calculate pitch error
+  const float pitch_desired = setpoint[1];
+  const float pitch_actual = actual[1];
   const float pitch_error = pitch_desired - pitch_actual;
 
   // Calculate yaw error
+  const float yaw_desired = setpoint[2];
+  const float yaw_actual = actual[2];
   float yaw_error = yaw_desired - yaw_actual;
   if (yaw_error > M_PI) {
     yaw_error -= M_PI;
   } else if (yaw_error < -M_PI) {
     yaw_error += M_PI;
   }
-  // yaw_error += (yaw_error < -M_PI) ? +M_PI : 0.0;
 
   // PID controller on roll, pitch and yaw
   const float r = pid_ctrl_update(&att_ctrl->roll_pid, roll_error, dt);
   const float p = pid_ctrl_update(&att_ctrl->pitch_pid, pitch_error, dt);
   const float y = pid_ctrl_update(&att_ctrl->yaw_pid, yaw_error, dt);
+  const float t = setpoint[3];
 
   // Map PIDs to motor outputs:
   //
@@ -1980,24 +2024,10 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
   //    2     0  |
   // y <---------o
   //
-  outputs[0] = thrust_desired - r + p - y;
-  outputs[1] = thrust_desired - r - p + y;
-  outputs[2] = thrust_desired + r + p + y;
-  outputs[3] = thrust_desired + r - p - y;
-
-  if (uart) {
-    // char dt_str[10]; //  Hold The Convert Data
-    // dtostrf(dt, 10, 10, dt_str);
-    // uart_printf(uart, "dt:%s ", dt_str);
-    //
-    // uart_printf(uart, "roll_actual:%f ", roll_actual);
-    // uart_printf(uart, "roll_desired:%f ", roll_desired);
-    // uart_printf(uart, "r:%f ", r);
-    // uart_printf(uart, "t:%f ", thrust_desired);
-    // uart_printf(uart, "pitch_error:%f ", pitch_error);
-    // uart_printf(uart, "yaw_error:%f ", yaw_error);
-    // uart_printf(uart, "\r\n");
-  }
+  outputs[0] = t - r + p - y;
+  outputs[1] = t - r - p + y;
+  outputs[2] = t + r + p + y;
+  outputs[3] = t + r - p - y;
 
   // Clamp outputs between 0.0 and 1.0
   for (uint8_t i = 0; i < 4; i++) {
@@ -2022,10 +2052,11 @@ typedef struct telemetry_t {
 
   float acc[TELEM_BUF_SIZE][3];
   float gyr[TELEM_BUF_SIZE][3];
-  float actual[TELEM_BUF_SIZE][4];
+  float attitude[TELEM_BUF_SIZE][3];
+  float height[TELEM_BUF_SIZE];
 
   uint16_t sbus[TELEM_BUF_SIZE][16];
-  float desired[TELEM_BUF_SIZE][4];
+  float setpoint[TELEM_BUF_SIZE][4];
   float outputs[TELEM_BUF_SIZE][4];
 } telemetry_t;
 
@@ -2041,14 +2072,14 @@ void telemetry_setup(telemetry_t *telem) {
     for (size_t i = 0; i < 3; i++) {
       telem->acc[k][i] = 0;
       telem->gyr[k][i] = 0;
-      telem->actual[k][i] = 0;
+      telem->attitude[k][i] = 0;
     }
 
     for (size_t i = 0; i < 16; i++) {
       telem->sbus[k][i] = 0;
     }
     for (size_t i = 0; i < 4; i++) {
-      telem->desired[k][i] = 0;
+      telem->setpoint[k][i] = 0;
       telem->outputs[k][i] = 0;
     }
   }
@@ -2065,8 +2096,8 @@ void telemetry_record(telemetry_t *telem,
                       const uint8_t mav_failsafe,
                       const float acc[3],
                       const float gyr[3],
-                      const float actual[4],
-                      const float desired[3],
+                      const float state[4],
+                      const float setpoint[3],
                       const float outputs[4],
                       const uint16_t sbus_channels[16]) {
   const uint16_t buf_size = telem->buf_size;
@@ -2084,15 +2115,15 @@ void telemetry_record(telemetry_t *telem,
   telem->gyr[buf_size][1] = gyr[1];
   telem->gyr[buf_size][2] = gyr[2];
 
-  telem->actual[buf_size][0] = actual[0];
-  telem->actual[buf_size][1] = actual[1];
-  telem->actual[buf_size][2] = actual[2];
-  telem->actual[buf_size][3] = actual[3];
+  telem->attitude[buf_size][0] = state[0];
+  telem->attitude[buf_size][1] = state[1];
+  telem->attitude[buf_size][2] = state[2];
+  telem->height[buf_size] = state[3];
 
-  telem->desired[buf_size][0] = desired[0];
-  telem->desired[buf_size][1] = desired[1];
-  telem->desired[buf_size][2] = desired[2];
-  telem->desired[buf_size][3] = desired[3];
+  telem->setpoint[buf_size][0] = setpoint[0];
+  telem->setpoint[buf_size][1] = setpoint[1];
+  telem->setpoint[buf_size][2] = setpoint[2];
+  telem->setpoint[buf_size][3] = setpoint[3];
 
   telem->outputs[buf_size][0] = outputs[0];
   telem->outputs[buf_size][1] = outputs[1];
@@ -2127,15 +2158,18 @@ void telemetry_transmit(telemetry_t *telem, uart_t *uart) {
     sprintf(s + strlen(s), "gyro_y:%f ", telem->gyr[k][1]);
     sprintf(s + strlen(s), "gyro_z:%f ", telem->gyr[k][2]);
 
-    sprintf(s + strlen(s), "roll:%f ", rad2deg(telem->actual[k][0]));
-    sprintf(s + strlen(s), "pitch:%f ", rad2deg(telem->actual[k][1]));
-    sprintf(s + strlen(s), "yaw:%f ", rad2deg(telem->actual[k][2]));
-    sprintf(s + strlen(s), "vz:%f ", telem->actual[k][3]);
+    sprintf(s + strlen(s), "roll:%f ", rad2deg(telem->attitude[k][0]));
+    sprintf(s + strlen(s), "pitch:%f ", rad2deg(telem->attitude[k][1]));
+    sprintf(s + strlen(s), "yaw:%f ", rad2deg(telem->attitude[k][2]));
+    sprintf(s + strlen(s), "height:%f ", telem->height[k]);
 
-    sprintf(s + strlen(s), "roll_desired:%f ", rad2deg(telem->desired[k][0]));
-    sprintf(s + strlen(s), "pitch_desired:%f ", rad2deg(telem->desired[k][1]));
-    sprintf(s + strlen(s), "yaw_desired:%f ", rad2deg(telem->desired[k][2]));
-    sprintf(s + strlen(s), "thrust_desired:%f ", telem->desired[k][3]);
+    const float r = rad2deg(telem->setpoint[k][0]);
+    const float p = rad2deg(telem->setpoint[k][1]);
+    const float y = rad2deg(telem->setpoint[k][2]);
+    sprintf(s + strlen(s), "roll_setpoint:%f ", r);
+    sprintf(s + strlen(s), "pitch_setpoint:%f ", p);
+    sprintf(s + strlen(s), "yaw_setpoint:%f ", y);
+    sprintf(s + strlen(s), "thrust_setpoint:%f ", telem->setpoint[k][3]);
 
     sprintf(s + strlen(s), "outputs[0]:%f ", telem->outputs[k][0]);
     sprintf(s + strlen(s), "outputs[1]:%f ", telem->outputs[k][1]);

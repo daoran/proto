@@ -1,3 +1,4 @@
+#define DEBUG_MODE 0
 #define GRAVITY 9.81
 #define MAX_TILT_RAD 1.0472
 #define THROTTLE_MIN 0.05
@@ -59,13 +60,17 @@
 // #define IMU_SAMPLE_PERIOD_S 0.00333333333f // 300Hz
 // #define IMU_SAMPLE_PERIOD_S 0.005f  // 200Hz
 #define RC_SAMPLE_PERIOD_S 0.02    // 50Hz
+#define BMP_SAMPLE_PERIOD_S 0.01   // 100Hz
 #define TELEM_SAMPLE_PERIOD_S 0.05 // 20Hz
-#define ROLL_PID_KP 0.1
-#define ROLL_PID_KI 0.0
-#define ROLL_PID_KD 0.01
-#define PITCH_PID_KP 0.05
-#define PITCH_PID_KI 0.0
-#define PITCH_PID_KD 0.001
-#define YAW_PID_KP -0.05
-#define YAW_PID_KI 0.0
-#define YAW_PID_KD 0.0
+#define ROLL_PID_KP 0.1f
+#define ROLL_PID_KI 0.0f
+#define ROLL_PID_KD 0.01f
+#define PITCH_PID_KP 0.05f
+#define PITCH_PID_KI 0.0f
+#define PITCH_PID_KD 0.001f
+#define YAW_PID_KP -0.05f
+#define YAW_PID_KI 0.0f
+#define YAW_PID_KD 0.0f
+#define VZ_PID_KP 10.0f
+#define VZ_PID_KI 0.0f
+#define VZ_PID_KD 0.0f
