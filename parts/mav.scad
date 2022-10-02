@@ -24,9 +24,9 @@ peg_inner_screw_hole_w = 50.0;
 peg_outer_screw_hole_w = 90.0;
 
 frame_h = 4.0;
-frame_standoff_w = 12.0;
+frame_standoff_w = 8.0;
 frame_standoff_h = 10.0;
-frame_support_w = 10.0;
+frame_support_w = 8.0;
 frame_support_h = 5.0;
 
 
@@ -209,6 +209,7 @@ module motor_harness(w, d, h, show_motor=1) {
 module mav_motor_mount(w, d, h, arm_w, mode=0, show_motor=1) {
   standoff_w = 8.0;
   support_w = 3.5;
+  divit_tol = 0.5;
 
   // Show motor
   if (show_motor) {
@@ -260,7 +261,7 @@ module mav_motor_mount(w, d, h, arm_w, mode=0, show_motor=1) {
 
     // Divit for the motor arm
     translate([0, 0, -arm_w / 2 + 1.5])
-      cube([arm_w + 0.01, d + support_w + 0.01, arm_w], center=true);
+      cube([arm_w + divit_tol, d + support_w + divit_tol, arm_w], center=true);
   }
 }
 
@@ -376,12 +377,82 @@ module mav_arm_supports(counter_sink_type=0) {
 module mav_frame(frame_standoff_w, frame_standoff_h,
                  frame_support_w, frame_support_h) {
   outer_w = peg_outer_screw_hole_w;
-  frame_w = sqrt(pow(outer_w, 2) + pow(outer_w, 2)) / 2;
+  mount_w = sqrt(pow(outer_w, 2) + pow(outer_w, 2)) / 2;
+  frame_w = 90.0;
+  frame_d = 40.0;
 
-  frame(frame_w, frame_w,
-        M3_screw_w, M3_nut_w, M3_nut_h,
-        frame_standoff_w, frame_standoff_h,
-        frame_support_w, frame_support_h);
+  difference() {
+    union() {
+      // Mount frame
+      frame(mount_w, mount_w,
+            M3_screw_w, M3_nut_w, M3_nut_h,
+            frame_standoff_w, frame_support_h,
+            frame_support_w, frame_support_h);
+
+      // Mav frame
+      frame(frame_d, frame_w,
+            M3_screw_w, M3_nut_w, M3_nut_h,
+            frame_standoff_w, frame_standoff_h,
+            frame_support_w, frame_support_h);
+    }
+
+    // Screw counter sink
+    translate([mount_w / 2, mount_w / 2, frame_support_h - M3_caphead_h / 2])
+      cylinder(r=M3_caphead_w / 2, h=M3_caphead_h + 0.01, center=true);
+    translate([-mount_w / 2, mount_w / 2, frame_support_h - M3_caphead_h / 2])
+      cylinder(r=M3_caphead_w / 2, h=M3_caphead_h + 0.01, center=true);
+    translate([mount_w / 2, -mount_w / 2, frame_support_h - M3_caphead_h / 2])
+      cylinder(r=M3_caphead_w / 2, h=M3_caphead_h + 0.01, center=true);
+    translate([-mount_w / 2, -mount_w / 2, frame_support_h - M3_caphead_h / 2])
+      cylinder(r=M3_caphead_w / 2, h=M3_caphead_h + 0.01, center=true);
+
+    // Screw counter sink
+    translate([frame_d / 2, frame_w / 2, M3_nut_h / 2])
+      cylinder(r=M3_nut_w / 2, h=M3_nut_h + 0.01, $fn=6, center=true);
+    translate([-frame_d / 2, frame_w / 2, M3_nut_h / 2])
+      cylinder(r=M3_nut_w / 2, h=M3_nut_h + 0.01, $fn=6, center=true);
+    translate([frame_d / 2, -frame_w / 2, M3_nut_h / 2])
+      cylinder(r=M3_nut_w / 2, h=M3_nut_h + 0.01, $fn=6, center=true);
+    translate([-frame_d / 2, -frame_w / 2, M3_nut_h / 2])
+      cylinder(r=M3_nut_w / 2, h=M3_nut_h + 0.01, $fn=6, center=true);
+  }
+}
+
+module mav_payload_frame(frame_standoff_w, frame_standoff_h,
+                         frame_support_w, frame_support_h,
+                         nut_counter_sink=1) {
+  outer_w = peg_outer_screw_hole_w;
+  mount_w = sqrt(pow(outer_w, 2) + pow(outer_w, 2)) / 2;
+  frame_w = 90.0;
+  frame_d = 40.0;
+
+  difference() {
+    union() {
+      // Mount frame
+      frame(mount_w, mount_w,
+            M3_screw_w, M3_nut_w, M3_nut_h,
+            frame_standoff_w, frame_support_h,
+            frame_support_w, frame_support_h);
+
+      // Mav frame
+      frame(frame_d, frame_w,
+            M3_screw_w, M3_nut_w, M3_nut_h,
+            frame_standoff_w, frame_standoff_h,
+            frame_support_w, frame_support_h);
+    }
+
+    if (nut_counter_sink) {
+      // Nut counter sink
+      translate([mount_w / 2, mount_w / 2, frame_support_h - M3_nut_h / 2])
+        cylinder(r=M3_nut_w / 2, h=M3_nut_h + 0.01, $fn=6, center=true);
+      translate([-mount_w / 2, mount_w / 2, frame_support_h - M3_nut_h / 2])
+        cylinder(r=M3_nut_w / 2, h=M3_nut_h + 0.01, $fn=6, center=true);
+      translate([mount_w / 2, -mount_w / 2, frame_support_h - M3_nut_h / 2])
+        cylinder(r=M3_nut_w / 2, h=M3_nut_h + 0.01, $fn=6, center=true);
+      translate([-mount_w / 2, -mount_w / 2, frame_support_h - M3_nut_h / 2])
+        cylinder(r=M3_nut_w / 2, h=M3_nut_h + 0.01, $fn=6, center=true);
+    }
+  }
 }
 
 module mav_assembly() {
@@ -398,17 +469,27 @@ module mav_assembly() {
 
   // Arm supports
   rotate(45) {
+    // Top support
     translate([0, 0, arm_w + 0.01])
       mav_arm_supports(0);
+
+    // Bottom support
     rotate([180, 0, 0])
       translate([0, 0, 0.01])
         mav_arm_supports(1);
   }
 
   // Frame
-  translate([0.0, 0.0, 4 + arm_w + 0.1 + 5])
-    mav_frame(frame_standoff_w, frame_standoff_h,
-              frame_support_w, frame_support_h);
+  // -- Top Frame
+  translate([0.0, 0.0, 4 + arm_w + 0.1])
+    rotate(90)
+      mav_frame(frame_standoff_w, frame_standoff_h,
+                frame_support_w, frame_support_h);
+  // -- Bottom Frame
+  translate([0.0, 0.0, -4 + 0.1])
+    rotate([180, 0, 0])
+      mav_payload_frame(frame_standoff_w, frame_standoff_h,
+                        frame_support_w, frame_support_h);
 }
 
 module print() {
@@ -449,6 +530,5 @@ mav_assembly();
 // mav_arm_peg(peg_inner_w, peg_outer_w,
 //             peg_inner_screw_hole_w, peg_outer_screw_hole_w);
 // mav_arm_supports();
-mav_frame(frame_w,
-          frame_standoff_w, frame_standoff_h,
-          frame_support_w, frame_support_h);
+// mav_frame(frame_standoff_w, frame_standoff_h,
+//           frame_support_w, frame_support_h);
