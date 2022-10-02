@@ -516,7 +516,7 @@ module odroid_frame(mount_w, mount_d, show_odroid=0) {
   difference() {
     union() {
       // Mount frame
-      frame(mount_w, mount_d, 
+      frame(mount_w, mount_d,
             M3_screw_w, M3_nut_w, M3_nut_h,
             standoff_w, standoff_h, standoff_h, 0, 0);
 
