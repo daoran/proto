@@ -206,6 +206,80 @@ module motor_harness(w, d, h, show_motor=1) {
   }
 }
 
+module motor_harness2(w, d, h, show_motor=1) {
+  standoff_w = 8.0;
+  standoff_h = 5.0;
+  support_w = 3.5;
+  support_h = 3.0;
+
+  motor_hole_w = 19.0;
+  motor_hole_d = 16.0;
+  motor_hole_h = 6.0;
+
+  // Show motor
+  if (show_motor) {
+    translate([0, 0, motor_hole_h + 0.01]) mav_motor();
+  }
+
+  // Motor mount
+  difference() {
+    // Mount body
+    union() {
+      // Motor supports
+      translate([0, motor_hole_w / 2, motor_hole_h / 2])
+        cylinder(r=4, h=motor_hole_h, center=true);
+      translate([0, -motor_hole_w / 2, motor_hole_h / 2])
+        cylinder(r=4, h=motor_hole_h, center=true);
+      translate([motor_hole_d / 2, 0, motor_hole_h / 2])
+        cylinder(r=4, h=motor_hole_h, center=true);
+      translate([-motor_hole_d / 2, 0, motor_hole_h / 2])
+        cylinder(r=4, h=motor_hole_h, center=true);
+
+      translate([0, 0, support_h / 2])
+        cube([motor_hole_d, 8, support_h], center=true);
+      translate([0, 0, support_h / 2])
+        cube([8, motor_hole_w, support_h], center=true);
+
+      // y = sqrt(w * w + w * w) - support_w;
+      // translate([0, 0, support_h / 2])
+      //   cube([8.0, y, support_h], center=true);
+      // translate([0, 0, support_h / 2])
+      //   cube([y, 8.0, support_h], center=true);
+    }
+
+    // Mount hole
+    translate([0, motor_hole_w / 2, motor_hole_h / 2])
+      cylinder(r=M3_screw_w / 2, h=motor_hole_h + 0.01, center=true);
+    translate([0, -motor_hole_w / 2, motor_hole_h / 2])
+      cylinder(r=M3_screw_w / 2, h=motor_hole_h + 0.01, center=true);
+    translate([motor_hole_d / 2, 0, motor_hole_h / 2])
+      cylinder(r=M3_screw_w / 2, h=motor_hole_h + 0.01, center=true);
+    translate([-motor_hole_d / 2, 0, motor_hole_h / 2])
+      cylinder(r=M3_screw_w / 2, h=motor_hole_h + 0.01, center=true);
+
+    // Mount hole conter sink
+    translate([0, motor_hole_w / 2, M3_caphead_h / 2])
+      cylinder(r=M3_caphead_w / 2, h=M3_caphead_h + 0.01, center=true);
+    translate([0, -motor_hole_w / 2, M3_caphead_h / 2])
+      cylinder(r=M3_caphead_w / 2, h=M3_caphead_h + 0.01, center=true);
+    // translate([motor_hole_d / 2, 0, M3_caphead_h / 2])
+    //   cylinder(r=M3_caphead_w / 2, h=M3_caphead_h + 0.01, center=true);
+    // translate([-motor_hole_d / 2, 0, M3_caphead_h / 2])
+    //   cylinder(r=M3_caphead_w / 2, h=M3_caphead_h + 0.01, center=true);
+  }
+}
+
+module motor_harness2_spacer(w, d, h, show_motor=1) {
+  standoff_w = 8.0;
+  standoff_h = 5.0;
+  support_w = 3.5;
+  support_h = 3.0;
+
+  motor_hole_w = 19.0;
+  motor_hole_d = 16.0;
+  motor_hole_h = 6.0;
+}
+
 module mav_motor_mount(w, d, h, arm_w, mode=0, show_motor=1) {
   standoff_w = 8.0;
   support_w = 3.5;
@@ -516,7 +590,7 @@ module print() {
 
 // Main
 // print();
-mav_assembly();
+// mav_assembly();
 
 // Develop
 // mav_motor_mount(motor_mount_w, motor_mount_d, motor_mount_h, arm_w,
@@ -526,6 +600,8 @@ mav_assembly();
 //                 mode=1,
 //                 show_motor=0);
 // motor_harness(motor_mount_w, motor_mount_d, motor_mount_h, show_motor=0);
+// motor_harness2(motor_mount_w, motor_mount_d, motor_mount_h, show_motor=1);
+motor_harness2_spacer(motor_mount_w, motor_mount_d, motor_mount_h, show_motor=1);
 // mav_arm(arm_w, arm_l);
 // mav_arm_peg(peg_inner_w, peg_outer_w,
 //             peg_inner_screw_hole_w, peg_outer_screw_hole_w);
