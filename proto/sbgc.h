@@ -169,7 +169,7 @@ typedef struct sbgc_data_t {
 
   float camera_angles[3];
   float frame_angles[3];
-  float rc_angles[3];
+  float target_angles[3];
   float encoder_angles[3];
 
   int cycle_time;
@@ -480,10 +480,10 @@ void sbgc_data_t_print(sbgc_data_t *data) {
          data->frame_angles[0],
          data->frame_angles[1],
          data->frame_angles[2]);
-  printf("rc_angles: %.2f\t%.2f\t%.2f\n",
-         data->rc_angles[0],
-         data->rc_angles[1],
-         data->rc_angles[2]);
+  printf("target_angles: %.2f\t%.2f\t%.2f\n",
+         data->target_angles[0],
+         data->target_angles[1],
+         data->target_angles[2]);
 
   // Misc
   printf("cycle_time: %d\n", data->cycle_time);
@@ -695,30 +695,30 @@ int sbgc_update(sbgc_t *sbgc) {
   SBGC_EXEC(sbgc_read(sbgc, 69, &info));
 
   // Parse real time data
-  sbgc->data.accel[0] = sbgc_parse_accel(frame.payload, 1, 0);
-  sbgc->data.accel[1] = sbgc_parse_accel(frame.payload, 5, 4);
-  sbgc->data.accel[2] = sbgc_parse_accel(frame.payload, 9, 8);
+  sbgc->data.accel[0] = sbgc_parse_accel(info.payload, 1, 0);
+  sbgc->data.accel[1] = sbgc_parse_accel(info.payload, 5, 4);
+  sbgc->data.accel[2] = sbgc_parse_accel(info.payload, 9, 8);
 
-  sbgc->data.gyro[0] = sbgc_parse_gyro(frame.payload, 3, 2);
-  sbgc->data.gyro[1] = sbgc_parse_gyro(frame.payload, 7, 6);
-  sbgc->data.gyro[2] = sbgc_parse_gyro(frame.payload, 11, 10);
+  sbgc->data.gyro[0] = sbgc_parse_gyro(info.payload, 3, 2);
+  sbgc->data.gyro[1] = sbgc_parse_gyro(info.payload, 7, 6);
+  sbgc->data.gyro[2] = sbgc_parse_gyro(info.payload, 11, 10);
 
-  sbgc->data.camera_angles[0] = sbgc_parse_angle(frame.payload, 33, 32);
-  sbgc->data.camera_angles[1] = sbgc_parse_angle(frame.payload, 35, 34);
-  sbgc->data.camera_angles[2] = sbgc_parse_angle(frame.payload, 37, 36);
+  sbgc->data.camera_angles[0] = sbgc_parse_angle(info.payload, 33, 32);
+  sbgc->data.camera_angles[1] = sbgc_parse_angle(info.payload, 35, 34);
+  sbgc->data.camera_angles[2] = sbgc_parse_angle(info.payload, 37, 36);
 
-  sbgc->data.frame_angles[0] = sbgc_parse_angle(frame.payload, 39, 38);
-  sbgc->data.frame_angles[1] = sbgc_parse_angle(frame.payload, 41, 40);
-  sbgc->data.frame_angles[2] = sbgc_parse_angle(frame.payload, 43, 42);
+  sbgc->data.frame_angles[0] = sbgc_parse_angle(info.payload, 39, 38);
+  sbgc->data.frame_angles[1] = sbgc_parse_angle(info.payload, 41, 40);
+  sbgc->data.frame_angles[2] = sbgc_parse_angle(info.payload, 43, 42);
 
-  sbgc->data.rc_angles[0] = sbgc_parse_angle(frame.payload, 45, 44);
-  sbgc->data.rc_angles[1] = sbgc_parse_angle(frame.payload, 47, 45);
-  sbgc->data.rc_angles[2] = sbgc_parse_angle(frame.payload, 49, 46);
+  sbgc->data.target_angles[0] = sbgc_parse_angle(info.payload, 45, 44);
+  sbgc->data.target_angles[1] = sbgc_parse_angle(info.payload, 47, 45);
+  sbgc->data.target_angles[2] = sbgc_parse_angle(info.payload, 49, 46);
 
-  sbgc->data.cycle_time = sbgc_u16bit(frame.payload, 51, 50);
-  sbgc->data.i2c_error_count = sbgc_u16bit(frame.payload, 53, 52);
-  sbgc->data.system_error = sbgc_u16bit(frame.payload, 15, 14);
-  sbgc->data.battery_level = sbgc_u16bit(frame.payload, 56, 55);
+  sbgc->data.cycle_time = sbgc_u16bit(info.payload, 51, 50);
+  sbgc->data.i2c_error_count = sbgc_u16bit(info.payload, 53, 52);
+  sbgc->data.system_error = sbgc_u16bit(info.payload, 15, 14);
+  sbgc->data.battery_level = sbgc_u16bit(info.payload, 56, 55);
 
   return 0;
 }
@@ -895,11 +895,11 @@ int test_sbgc_info() {
   // Get board info
   sbgc_info(&sbgc);
 
-  // printf("board version: %d\n", sbgc.board_version);
-  // printf("firmware version: %d\n", sbgc.firmware_version);
-  // printf("state_flags: %d\n", sbgc.state_flags);
-  // printf("board features: %d\n", sbgc.board_features);
-  // printf("connection flags: %d\n", sbgc.connection_flags);
+  printf("board version: %d\n", sbgc.board_version);
+  printf("firmware version: %d\n", sbgc.firmware_version);
+  printf("state_flags: %d\n", sbgc.state_flags);
+  printf("board features: %d\n", sbgc.board_features);
+  printf("connection flags: %d\n", sbgc.connection_flags);
 
   return 0;
 }
@@ -929,6 +929,11 @@ int test_sbgc_set_angle() {
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
 
+  // Zero gimal
+  SBGC_INFO("Zero-ing gimbal!");
+  sbgc_set_angle(&sbgc, 0, 0, 0);
+  sleep(2);
+
   // Test Roll
   SBGC_INFO("Testing roll!");
   sbgc_set_angle(&sbgc, -20, 0, 0);
@@ -936,6 +941,8 @@ int test_sbgc_set_angle() {
 
   for (int target_angle = -20; target_angle <= 20; target_angle += 5) {
     sbgc_set_angle(&sbgc, target_angle, 0, 0);
+    printf("Setting roll to %d\n", target_angle);
+    fflush(stdout);
     sleep(2);
 
     sbgc_update(&sbgc);
@@ -949,25 +956,34 @@ int test_sbgc_set_angle() {
 
   // Test Pitch
   SBGC_INFO("Testing pitch!");
-  for (int target_angle = 0; target_angle <= 20; target_angle += 5) {
+  for (int target_angle = 0; target_angle <= 60; target_angle += 10) {
     sbgc_set_angle(&sbgc, 0, target_angle, 0);
+    printf("Setting pitch to %d\n", target_angle);
+    fflush(stdout);
     sleep(2);
 
     sbgc_update(&sbgc);
     TEST_ASSERT((sbgc.data.camera_angles[1] - target_angle) < 2.0);
   }
+
+  // Zero gimal
+  SBGC_INFO("Zero-ing gimbal!");
+  sbgc_set_angle(&sbgc, 0, 0, 0);
+  sleep(2);
+
+  // Switch off
   sbgc_off(&sbgc);
 
   return 0;
 }
 
 int main(int argc, char *argv[]) {
-  TEST(test_sbgc_connect_disconnect);
-  TEST(test_sbgc_send);
-  TEST(test_sbgc_read);
-  TEST(test_sbgc_info);
-  TEST(test_sbgc_update);
-  // TEST(test_sbgc_set_angle);
+  // TEST(test_sbgc_connect_disconnect);
+  // TEST(test_sbgc_send);
+  // TEST(test_sbgc_read);
+  // TEST(test_sbgc_info);
+  // TEST(test_sbgc_update);
+  TEST(test_sbgc_set_angle);
 
   return (nb_failed) ? -1 : 0;
 }
