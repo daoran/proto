@@ -1,5 +1,7 @@
 $fn = 50;
 M2_screw_w = 2.7;
+M2_caphead_w = 3.75;
+M2_caphead_h = 2.0;
 M2_nut_w = 4.9;
 M2_nut_h = 2.0;
 
@@ -73,6 +75,54 @@ module lipo_battery(c=[0.4, 0.4, 0.4]) {
   color(c)
     cube([batt_w, batt_d, batt_h], center=true);
 }
+
+module encoder_board() {
+  w = 22;
+  d = 28;
+  h = 1.5;
+
+  chip_w = 5;
+  chip_d = 4;
+  chip_h = 0.5;
+
+  hole_w = 2.5;
+  mount_w = 18;
+  mount_d = 11;
+
+  offset_y = d / 2;
+
+  translate([0, -offset_y / 2, 0])
+  difference() {
+    union() {
+      // Body
+      color([0, 1, 0])
+        translate([0, 0, h / 2])
+          cube([w, d, h], center=true);
+
+      // Encoder chip
+      color([0, 0, 0])
+        translate([0, d / 2 - 7, h])
+          cube([chip_w, chip_d, chip_h], center=true);
+    }
+
+    // Mount holes
+    translate([mount_w / 2, (mount_d + offset_y) / 2, h / 2])
+      cylinder(r=hole_w / 2, h=h + 0.1, center=true);
+    translate([-mount_w / 2, (mount_d + offset_y) / 2, h / 2])
+      cylinder(r=hole_w / 2, h=h + 0.1, center=true);
+    translate([mount_w / 2, (-mount_d + offset_y) / 2, h / 2])
+      cylinder(r=hole_w / 2, h=h + 0.1, center=true);
+    translate([-mount_w / 2, (-mount_d + offset_y) / 2, h / 2])
+      cylinder(r=hole_w / 2, h=h + 0.1, center=true);
+
+    // Solder holes
+    translate([-(7 * 2.54) / 2, -d / 2 + 1.5, 0])
+      for (i = [0:7])
+        translate([i * 2.54, 0, h / 2])
+          cylinder(r=0.5, h=h + 0.1, center=true);
+  }
+}
+
 
 module stack_spacer(h, nut_counter_sink=1) {
   screw_size = M3_screw_w;
@@ -284,9 +334,9 @@ module frame(w, d, screw_w, nut_w, nut_h,
     for (pos_idx = disable) {
       x = positions[pos_idx][0];
       y = positions[pos_idx][1];
-      z = positions[pos_idx][2] + (standoff_h - support_h) - 0.5;
+      z = positions[pos_idx][2] + support_h;
       translate([x, y, z]) {
-        cylinder(r=standoff_w / 2.0 + 0.01, h=support_h, center=true);
+        cylinder(r=standoff_w / 2.0 + 0.01, h=standoff_h, center=true);
       }
     }
   }
@@ -329,7 +379,7 @@ module fcu_frame(show_fcu=0) {
             standoff_w, standoff_h -2, standoff_h -2);
 
       // FCU frame
-      frame(fcu_mount_w, fcu_mount_d, 
+      frame(fcu_mount_w, fcu_mount_d,
             M2_screw_w, M2_nut_w, M2_nut_h,
             standoff_w - 2.5, fcu_standoff_h, fcu_support_h, 0, 1);
 
@@ -414,6 +464,59 @@ module battery_frame(mount_w, mount_d, show_battery=0) {
     //   #cube([3.0, 15, standoff_h + 0.1], center=true);
     // translate([-batt_frame_w / 2 + 3, 0, standoff_h / 2])
     //   cube([3.0, 15, standoff_h + 0.1], center=true);
+  }
+}
+
+module encoder_frame(show_encoder=1) {
+  mount_w = 18;
+  mount_d = 11;
+
+  standoff_w = 6;
+  standoff_h = 4;
+  support_h = 2;
+
+  motor_mount_d = 20.0;
+
+  difference() {
+      union() {
+      // Show encoder
+      if (show_encoder) {
+        translate([0, 0, standoff_h + 0.01]) encoder_board();
+      }
+
+      // Encoder frame
+      frame(mount_w, mount_d,
+            M2_screw_w, M2_nut_w, M2_nut_h,
+            standoff_w, standoff_h, support_h);
+
+      // Motor frame
+      rotate(45)
+        frame(motor_mount_d, motor_mount_d,
+              M2_screw_w, M2_nut_w, M2_nut_h,
+              standoff_w, standoff_h + 1.5 + M2_caphead_h, support_h,
+              disable=[2]);
+
+      // Supports
+      w = sqrt(pow(motor_mount_d, 2) + pow(motor_mount_d, 2)) - standoff_w / 2;
+      translate([0, 0, support_h / 2])
+        cube([w, 3.0, support_h], center=true);
+      translate([0, 0, support_h / 2])
+        cube([3.0, w, support_h], center=true);
+    }
+
+    // Mount holes
+    hole_positions = [
+      [mount_w / 2, mount_d / 2, support_h / 2],
+      [mount_w / 2, -mount_d / 2, support_h / 2],
+      [-mount_w / 2, mount_d / 2, support_h / 2],
+      [-mount_w / 2, -mount_d / 2, support_h / 2]
+    ];
+    for (hole_pos = hole_positions) {
+      translate(hole_pos) {
+        cylinder(r=M2_screw_w / 2, h=support_h + 0.1, center=true);
+        cylinder(r=M2_nut_w / 2, h=M2_nut_h + 0.1, $fn=6, center=true);
+      }
+    }
   }
 }
 
@@ -1304,11 +1407,12 @@ module print() {
 
 // Component Development
 // battery_frame(batt_frame_w, batt_frame_d);
+encoder_frame(0);
 // fcu_frame(show_fcu);
 // stack_spacer(batt_h + 2, nut_counter_sink=1);
 // odroid_frame(mav_mount_w, mav_mount_d, 0);
 // landing_frame(mav_mount_w, mav_mount_d);
-landing_feet();
+// landing_feet();
 // sbgc_frame(odroid_mount_w, odroid_mount_d, 0, 0);
 // stereo_camera_frame();
 // pitch_frame(0, 0, 0, 0);
