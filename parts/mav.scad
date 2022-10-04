@@ -150,7 +150,7 @@ module motor_mount(w, d, h, show_motor=1) {
 
   // Show motor
   if (show_motor) {
-    translate([0, 0, motor_hole_h + 0.01]) mav_motor();
+    rotate(90) translate([0, 0, motor_hole_h + 0.01]) mav_motor();
   }
 
   // Motor mount
