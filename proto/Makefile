@@ -16,6 +16,12 @@ CFLAGS := \
 	-I$(DEPS_DIR)/include \
 	`sdl2-config --cflags`
 
+TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
+TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config gstreamer-video-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config gobject-introspection-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config tcam --cflags)
+
 
 # LIBRARIES
 SDL2_LIBS := `sdl2-config --libs` -lSDL2_image
@@ -27,6 +33,11 @@ CERES_DEPS := -lgflags -lglog \
 							-llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod \
 							-lcxsparse
 CERES_LIBS := -L$(DEPS_DIR)/lib -lceres $(CERES_DEPS)
+
+TIS_LIBS:=$(shell pkg-config gstreamer-1.0 --libs)
+TIS_LIBS+=$(shell pkg-config gstreamer-video-1.0 --libs)
+TIS_LIBS+=$(shell pkg-config gobject-introspection-1.0 --libs)
+TIS_LIBS+=$(shell pkg-config tcam --libs)
 
 
 # DEPENDENCIES
@@ -79,6 +90,9 @@ $(LIB): $(BLD_DIR)/proto.o
 $(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
 	echo "TEST [$(shell basename $@)]"; \
 	$(CC) $(CFLAGS) $< -o $@ $(DEPS)
+
+tiscam_driver: tiscam_driver.c
+	$(CC) -g -Wall -Wextra -O0 $(TIS_CFLAGS) $< -o $@ $(TIS_LIBS)
 
 tests: $(LIB) $(BIN_DIR)/test_proto
 	$(BIN_DIR)/test_proto
