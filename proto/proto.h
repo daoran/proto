@@ -49,13 +49,14 @@
 #include <ceres/c_api.h>
 #endif
 
+#ifdef USE_GUI
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
-
 #define SDL_DISABLE_IMMINTRIN_H 1
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#endif
 
 #include "sbgc.h"
 
