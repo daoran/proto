@@ -8,19 +8,22 @@ TESTS_DIR := $(PWD)/tests
 
 # COMPILER SETTINGS
 CC := gcc
+
+SDL2_CFLAGS:=$(shell sdl2-config --cflags)
+TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
+TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config gstreamer-video-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config gobject-introspection-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config tcam --cflags)
 CFLAGS := \
 	-g \
 	-Wall \
 	-Wpedantic \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
-	`sdl2-config --cflags`
+	$(SDL2_CFLAGS) \
+	$(TIS_CFLAGS)
 
-TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
-TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config gstreamer-video-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config gobject-introspection-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config tcam --cflags)
 
 
 # LIBRARIES
@@ -92,7 +95,7 @@ $(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
 	$(CC) $(CFLAGS) $< -o $@ $(DEPS)
 
 tiscam_driver: tiscam_driver.c
-	$(CC) $(TIS_CFLAGS) $< -o $(BIN_DIR)/$@ $(TIS_LIBS)
+	$(CC) $(CFLAGS) $< -o $(BIN_DIR)/$@ $(TIS_LIBS) $(SDL2_LIBS)
 
 tests: $(LIB) $(BIN_DIR)/test_proto
 	$(BIN_DIR)/test_proto
