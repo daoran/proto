@@ -145,7 +145,7 @@ run_sbgc_tests() {
 }
 
 # run_sbgc_tests
-cd proto && make tiscam_driver
+cd proto && make tiscam_driver && ./build/bin/tiscam_driver
 
 # PROTO
 # run_all_tests
