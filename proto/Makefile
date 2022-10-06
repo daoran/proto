@@ -92,7 +92,7 @@ $(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
 	$(CC) $(CFLAGS) $< -o $@ $(DEPS)
 
 tiscam_driver: tiscam_driver.c
-	$(CC) -g -Wall -Wextra -O0 $(TIS_CFLAGS) $< -o $(BIN_DIR)/$@ $(TIS_LIBS)
+	$(CC) $(TIS_CFLAGS) $< -o $(BIN_DIR)/$@ $(TIS_LIBS)
 
 tests: $(LIB) $(BIN_DIR)/test_proto
 	$(BIN_DIR)/test_proto
