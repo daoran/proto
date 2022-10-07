@@ -14,18 +14,6 @@ SDL_Window *window;
 SDL_Renderer *renderer;
 SDL_Texture *texture;
 
-static int SDL_CalculatePitch(Uint32 format, int width) {
-  int pitch;
-
-  if (SDL_ISPIXELFORMAT_FOURCC(format) || SDL_BITSPERPIXEL(format) >= 8) {
-    pitch = (width * SDL_BYTESPERPIXEL(format));
-  } else {
-    pitch = ((width * SDL_BITSPERPIXEL(format)) + 7) / 8;
-  }
-  pitch = (pitch + 3) & ~3; /* 4-byte aligning for speed */
-  return pitch;
-}
-
 static GstFlowReturn callback(GstElement *sink,
                               void *user_data __attribute__((unused))) {
   // Retrieve buffer data
@@ -36,25 +24,33 @@ static GstFlowReturn callback(GstElement *sink,
   }
 
   GstBuffer *buffer = gst_sample_get_buffer(sample);
-  GstMapInfo info;
+  GstMapInfo frame;
 
-  if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
+  if (gst_buffer_map(buffer, &frame, GST_MAP_READ)) {
     GstVideoInfo *video_info = gst_video_info_new();
     if (!gst_video_info_from_caps(video_info, gst_sample_get_caps(sample))) {
       g_warning("Failed to parse video info");
       return GST_FLOW_ERROR;
     }
 
-    printf("video format: %s\n", video_info->finfo->name);
-    // printf("video_resolution: %dx%d\n", video_info->width,
-    // video_info->height);
-
     GstVideoFormat format = video_info->finfo->format;
     const int img_width = video_info->width;
-    const int pitch = SDL_CalculatePitch(format, img_width);
-    SDL_UpdateTexture(texture, NULL, info.data, img_width * 4);
+    SDL_UpdateTexture(texture, NULL, frame.data, img_width * 4);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
+
+    FILE *img = fopen("/tmp/test.csv", "w");
+    for (int i = 0; i < frame.size; i += 4) {
+      // Assuming BGRX format
+      const uint8_t b = frame.data[i];
+      const uint8_t g = frame.data[i + 1];
+      const uint8_t r = frame.data[i + 2];
+      const uint8_t v = 0.3 * r + 0.59 * g + 0.11 * b;
+      fprintf(img, "%d ", v);
+    }
+    fflush(img);
+    fclose(img);
+    exit(0);
 
     // Clean up
     gst_buffer_unmap(buffer, &info);
@@ -93,7 +89,7 @@ int main(int argc, char *argv[]) {
   const int win_y = disp_h / 2 - img_h / 2;
   const int win_w = img_w;
   const int win_h = img_h;
-  window = SDL_CreateWindow("Simple YUV Window",
+  window = SDL_CreateWindow("TIS Camera",
                             win_x,
                             win_y,
                             win_w,
@@ -103,7 +99,7 @@ int main(int argc, char *argv[]) {
 
   // Clear render
   texture = SDL_CreateTexture(renderer,
-                              SDL_PIXELFORMAT_BGRX8888,
+                              SDL_PIXELFORMAT_BGRA32,
                               SDL_TEXTUREACCESS_STREAMING,
                               img_w,
                               img_h);
@@ -112,9 +108,6 @@ int main(int argc, char *argv[]) {
   const char *serial = "19220362";
   const char *pipeline_str =
       "tcambin name=source ! videoconvert ! appsink name=sink";
-
-  // const char *pipeline_str = "videotestsrc pattern=ball ! videoconvert ! "
-  //                            "video/x-raw,format=YUY2 ! appsink name=sink";
   GError *err = NULL;
   GstElement *pipeline = gst_parse_launch(pipeline_str, &err);
   if (pipeline == NULL) {

@@ -21,7 +21,7 @@ module propeller_nut_wrench() {
 module hex_key_tool() {
   tool_w = 5.0;
   tool_h = 5.0;
-  bit_w = 2.5;
+  bit_w = 3.0;
   bit_h = 3.0;
 
   // Tool bit

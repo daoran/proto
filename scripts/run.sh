@@ -145,7 +145,22 @@ run_sbgc_tests() {
 }
 
 # run_sbgc_tests
-cd proto && make tiscam_driver && ./build/bin/tiscam_driver
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "\
+cd ~/projects/proto/proto && make tiscam_driver && ./build/bin/tiscam_driver
+" C-m C-m
+exit
+
+# gst-launch-1.0 v4l2src device=/dev/video2 \
+#   ! capsfilter caps=video/x-bayer,width=744,height=480,format=gbrg \
+#   ! bayer2rgb \
+#   ! capsfilter caps=video/x-raw,width=744,height=480,format=RGBx \
+#   ! videoconvert \
+#   ! autovideosink
+
+# format="video/x-bayer, format=gbrg, width=640, height=480,framerate=30/1"
+# displayformat="video/x-raw, format=GRAY8, width=640, height=480,framerate=30/1"
+# gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
 # run_all_tests
