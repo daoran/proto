@@ -4,7 +4,6 @@
 // -- Timers
 uint32_t task_control_last_updated_us = 0;
 uint32_t task_rc_last_updated_us = 0;
-uint32_t task_bmp_last_updated_us = 0;
 uint32_t task_telem_last_updated_us = 0;
 // -- Flags
 uint8_t mav_arm = 0;
@@ -200,29 +199,6 @@ void task_rc() {
   task_rc_last_updated_us = time_now_us;
 }
 
-// Pressure Task
-void task_bmp() {
-  // Check loop time
-  const uint32_t time_now_us = micros();
-  const float dt_s = (time_now_us - task_bmp_last_updated_us) * 1e-6;
-  if (dt_s < BMP_SAMPLE_PERIOD_S) {
-    return;
-  }
-
-  // Get temperature and pressure
-  float temperature = 0.0f;
-  float pressure_Pa = 0.0f;
-  bmp280_get_data(&bmp, &temperature, &pressure_Pa);
-
-  // Calculate height above sealevel
-  const float pressure_hPa = pressure_Pa / 100;
-  const float sealevel_hPa = 1013.25f;
-  state[3] = 44330.0 * (1.0 - pow(pressure_hPa / sealevel_hPa, 0.1903));
-
-  // Update last updated
-  task_bmp_last_updated_us = time_now_us;
-}
-
 // Telemetry Task
 void task_telem() {
   // Check loop time
@@ -253,10 +229,9 @@ void task_telem() {
 
 // Loop
 void loop() {
-  task_control();
-  task_rc();
-  // task_bmp();
+  // task_control();
+  // task_rc();
 #if DEBUG_MODE == 1
-  task_telem();
+  // task_telem();
 #endif
 }
