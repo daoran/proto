@@ -20,7 +20,6 @@
 // sbus_t sbus;
 uart_t uart;
 // pwm_t pwm;
-// mpu6050_t imu;
 mpu9250_t imu;
 // mahony_filter_t filter;
 // att_ctrl_t att_ctrl;
@@ -37,10 +36,9 @@ void setup() {
   // telemetry_setup(&telem);
   // delay(1000);
 
-  // // Sensors
-  // mpu6050_setup(&imu);
-  // mpu6050_calibrate(&imu);
+  // Sensors
   mpu9250_setup(&imu);
+  mpu9250_calibrate(&imu);
 
   // // Control
   // mahony_filter_setup(&filter, imu.accel);
@@ -74,7 +72,7 @@ void setup() {
 //   const uint16_t nb_samples = 1000;
 //   float w[3] = {0.0, 0.0, 0.0};
 //   for (uint32_t i = 0; i < nb_samples; i++) {
-//     mpu6050_get_data(&imu);
+//     mpu9250_get_data(&imu);
 //     w[0] += imu.gyro[0];
 //     w[1] += imu.gyro[1];
 //     w[2] += imu.gyro[2];
@@ -114,7 +112,7 @@ void setup() {
 //   }
 
 //   // Get IMU data
-//   mpu6050_get_data(&imu);
+//   mpu9250_get_data(&imu);
 //   acc[0] = imu.accel[0];
 //   acc[1] = imu.accel[1];
 //   acc[2] = imu.accel[2];

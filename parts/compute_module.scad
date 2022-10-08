@@ -319,9 +319,9 @@ module frame(w, d, screw_w, nut_w, nut_h,
     for (pos_idx = disable) {
       x = positions[pos_idx][0];
       y = positions[pos_idx][1];
-      z = positions[pos_idx][2] + (standoff_h - support_h) - 0.5;
+      z = positions[pos_idx][2] + support_h / 2;
       translate([x, y, z]) {
-        cylinder(r=standoff_w / 2.0 + 0.01, h=support_h, center=true);
+        cylinder(r=standoff_w / 2.0 + 0.01, h=(standoff_h - support_h) + 0.01, center=true);
       }
     }
   }
@@ -479,7 +479,7 @@ module encoder_frame(show_encoder=1) {
       rotate(45)
         frame(motor_mount_d, motor_mount_d,
               M2_screw_w, M2_nut_w, M2_nut_h,
-              standoff_w, standoff_h + 1.5 + M2_caphead_h, 
+              standoff_w, standoff_h + 1.5 + M2_caphead_h,
               standoff_w, support_h,
               disable=[2]);
 
@@ -840,14 +840,20 @@ module gimbal_yaw_frame(mount_w, mount_d, show_roll_frame=1) {
   support_w = 8.0;
   support_h = 8.0;
 
+  encoder_h = 7.5;
   roll_mount_h = 50;
-  roll_mount_d = 40;
+  roll_mount_d = 48;
 
   // Show roll frame
   if (show_roll_frame) {
     rotate([0, 90, 0])
-      translate([-roll_mount_h, 0.0, motor_h - roll_mount_d - 0.01])
+      translate([-roll_mount_h, 0.0, -roll_mount_d + motor_h + encoder_h - 0.01])
         gimbal_roll_frame();
+
+    rotate([0, 90, 0])
+      translate([-roll_mount_h, 0.0, -roll_mount_d])
+        rotate([0, 0, -45])
+          encoder_frame(1);
   }
 
   // Yaw frame
@@ -867,7 +873,7 @@ module gimbal_yaw_frame(mount_w, mount_d, show_roll_frame=1) {
                 standoff_w, standoff_h,
                 support_w, support_h);
 
-      // Horizontal support
+      // Horizontal supports
       hx = motor_mount_d / 2 + roll_mount_d + support_h;
       hy = motor_mount_w / 2 + standoff_w;
       translate([motor_mount_d / 2, 0, support_h / 2]) {
@@ -878,12 +884,12 @@ module gimbal_yaw_frame(mount_w, mount_d, show_roll_frame=1) {
         translate([-hx + support_w / 2, 0, 0])
           cube([support_w, motor_mount_d + support_w, support_h], center=true);
       }
-      translate([(motor_mount_d - standoff_w) / 2, 0, support_h / 2])
-        cube([support_w, motor_mount_d + support_w + 2, support_h], center=true);
-      translate([-(motor_mount_d - standoff_w) / 2, 0, support_h / 2])
-        cube([support_w, motor_mount_d + support_w + 2, support_h], center=true);
+      translate([motor_mount_d / 2, 0, support_h / 2])
+        cube([support_w, hy * 2 + support_w, support_h], center=true);
+      translate([-motor_mount_d / 2, 0, support_h / 2])
+        cube([support_w, hy * 2 + support_w, support_h], center=true);
 
-      // Vertical support
+      // Vertical supports
       vx = roll_mount_d + standoff_h / 2;
       vy = motor_mount_w / 2 + standoff_w;
       vz = roll_mount_h + motor_mount_d / 2 + support_w / 2;
@@ -891,6 +897,18 @@ module gimbal_yaw_frame(mount_w, mount_d, show_roll_frame=1) {
         cube([support_h, support_w, vz], center=true);
       translate([-vx, -vy, vz / 2])
         cube([support_h, support_w, vz], center=true);
+
+      // Diagonal supports
+      dz = 35;
+      dx_offset = 12;
+      dx = roll_mount_d + standoff_h / 2 - dx_offset;
+      dy = motor_mount_w / 2 + standoff_w;
+      translate([-dx, dy, dz / 2])
+        rotate([0, -45, 0])
+          cube([support_h, support_w, dz], center=true);
+      translate([-dx, -dy, dz / 2])
+        rotate([0, -45, 0])
+          cube([support_h, support_w, dz], center=true);
     }
 
     // Yaw motor mount holes
@@ -933,6 +951,9 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1, show_roll_frame=0) {
 
   // Show yaw frame
   if (show_yaw_frame) {
+    translate([0, 0, standoff_h])
+      gimbal_motor();
+
     translate([0, 0, standoff_h + motor_h])
       gimbal_yaw_frame();
   }
@@ -1491,8 +1512,8 @@ module print() {
 // roll_motor_frame();
 // roll_bar_frame();
 // gimbal_roll_frame();
-gimbal_yaw_frame();
-// gimbal_frame(mav_mount_w, mav_mount_d);
+// gimbal_yaw_frame();
+gimbal_frame(mav_mount_w, mav_mount_d);
 
 // color([0.0, 0.0, 1.0])
 //   translate([0, 0, -40])
