@@ -11,8 +11,13 @@ M3_caphead_h = 3.0;
 M3_nut_w = 6.5;
 M3_nut_h = 2.5;
 
+// standoff_w = 9.0;
+// standoff_h = 4.0;
+
 standoff_w = 9.0;
 standoff_h = 4.0;
+support_w = 6.0;
+support_h = 6.0;
 
 fcu_w = 60.0;
 fcu_d = 40.0;
@@ -456,8 +461,9 @@ module encoder_frame(show_encoder=1) {
   mount_w = 18;
   mount_d = 11;
 
-  standoff_w = 6;
+  standoff_w = 5;
   standoff_h = 4;
+  support_w = 4;
   support_h = 2;
 
   motor_mount_d = 20.0;
@@ -473,22 +479,22 @@ module encoder_frame(show_encoder=1) {
       frame(mount_w, mount_d,
             M2_screw_w, M2_nut_w, M2_nut_h,
             standoff_w, standoff_h,
-            standoff_w, support_h);
+            support_w, support_h);
 
       // Motor frame
       rotate(45)
         frame(motor_mount_d, motor_mount_d,
               M2_screw_w, M2_nut_w, M2_nut_h,
               standoff_w, standoff_h + 1.5 + M2_caphead_h,
-              standoff_w, support_h,
+              support_w, support_h,
               disable=[2]);
 
-      // Supports
-      w = sqrt(pow(motor_mount_d, 2) + pow(motor_mount_d, 2)) - standoff_w / 2;
-      translate([0, 0, support_h / 2])
-        cube([w, 3.0, support_h], center=true);
-      translate([0, 0, support_h / 2])
-        cube([3.0, w, support_h], center=true);
+      // // Supports
+      // w = sqrt(pow(motor_mount_d, 2) + pow(motor_mount_d, 2)) - standoff_w / 2;
+      // translate([0, 0, support_h / 2])
+      //   cube([w, 3.0, support_h], center=true);
+      // translate([0, 0, support_h / 2])
+      //   cube([3.0, w, support_h], center=true);
     }
 
     // Mount holes
@@ -639,7 +645,8 @@ module sbgc_frame(mount_w, mount_d, show_sbgc=1, show_pololu=1) {
   // Mount frame
   frame(mount_w, mount_d,
         M3_screw_w, M3_nut_w, M3_nut_h,
-        standoff_w, standoff_h, standoff_h);
+        standoff_w, standoff_h,
+        support_w, standoff_h);
 
   // Pololu PSU
   if (show_pololu) {
@@ -942,10 +949,10 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_d = (has_encoders) ? 14.2 : 20.5;
 
-  standoff_w = 10.0;
-  standoff_h = 10.0;
-  support_w = 8.0;
-  support_h = 5.0;
+  // standoff_w = 10.0;
+  // standoff_h = 10.0;
+  // support_w = 8.0;
+  // support_h = 5.0;
 
   roll_mount_w = 30.0;
   roll_mount_h = 50.0;
@@ -970,7 +977,7 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
       // Mount frame
       frame(mount_w, mount_d,
             M3_screw_w, M3_nut_w, M3_nut_h,
-            standoff_w, standoff_h,
+            standoff_w, support_h,
             support_w, support_h);
 
       // Supports
@@ -1002,7 +1009,7 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
   }
 }
 
-module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual_motors=1) {
+module gimbal_pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual_motors=1) {
   motor_h = (has_encoders) ? 25.0 : 15.0;
   camera_mount_w = 18.5;
   motor_mount_w = 13.2;
@@ -1157,7 +1164,7 @@ module pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual
   }
 }
 
-module roll_pivot_frame(has_encoders=0) {
+module gimbal_roll_pivot_frame(has_encoders=0) {
   pivot_frame_h = 6.0;
   base_mount_d = (has_encoders) ? 14.2 : 20.5;
   mount_w = roll_rod_mount_w;
@@ -1199,7 +1206,7 @@ module roll_pivot_frame(has_encoders=0) {
   }
 }
 
-module roll_motor_frame(has_encoders=0) {
+module gimbal_roll_motor_frame(has_encoders=0) {
   motor_r = 35.0 / 2.0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_w = 13.2;
@@ -1281,7 +1288,7 @@ module roll_motor_frame(has_encoders=0) {
   }
 }
 
-module roll_bar_frame(has_encoders=0) {
+module gimbal_roll_bar_frame(has_encoders=0) {
   motor_mount_w = 13.2;
   motor_mount_d = (has_encoders) ? 14.2 : 20.5;
   motor_mount_h = 8.0;
@@ -1361,7 +1368,7 @@ module gimbal_roll_frame(has_encoders=0, show_pitch_frame=1, dual_motors=1) {
     // Pitch frame
     translate([0, pitch_frame_w / 2 - standoff_h / 2, mount_w + 4])
       rotate([90, -90, 0])
-        pitch_frame(has_encoders, dual_motors=dual_motors);
+        gimbal_pitch_frame(has_encoders, dual_motors=dual_motors);
 
     // Roll rods
     color([0.4, 0.4, 0.4]) {
@@ -1377,16 +1384,16 @@ module gimbal_roll_frame(has_encoders=0, show_pitch_frame=1, dual_motors=1) {
   // Roll motor frame
   translate([0, pitch_frame_w / 2 + standoff_h / 2 + motor_h, 36])
     rotate([90, -90, 0])
-      roll_motor_frame();
+      gimbal_roll_motor_frame();
   if (dual_motors) {
     translate([0, -pitch_frame_w / 2 - standoff_h / 2 - motor_h, 36])
       rotate([-90, -90, 0])
-        roll_motor_frame();
+        gimbal_roll_motor_frame();
   }
 
   // Roll mount frame
   if (show_pitch_frame) {
-    roll_bar_frame();
+    gimbal_roll_bar_frame();
 
     translate([0, 0, -motor_h])
       gimbal_motor(has_encoders);
@@ -1461,19 +1468,19 @@ module print() {
 
   // -- Roll Frame
   translate([0.0, -100.0, 0.0])
-    rotate(90) roll_motor_frame();
+    rotate(90) gimbal_roll_motor_frame();
   translate([25.0, -100 - 0.0, 0.0])
     stack_spacer(10.0, nut_counter_sink=1);
   translate([25.0, -100 - 10.0, 0.0])
     stack_spacer(10.0, nut_counter_sink=1);
   translate([60.0, -100.0, 0.0])
-    rotate(90) roll_pivot_frame();
+    rotate(90) gimbal_roll_pivot_frame();
   translate([90.0, -100.0 - 0.0, 0.0])
     stack_spacer(10.0, nut_counter_sink=1);
   translate([90.0, -100.0 - 10.0, 0.0])
     stack_spacer(10.0, nut_counter_sink=1);
   translate([120.0, -110.0, 0.0])
-    roll_bar_frame();
+    gimbal_roll_bar_frame();
   translate([150.0, -100.0 - 0.0, 0.0])
     stack_spacer(10.0, nut_counter_sink=1);
   translate([150.0, -100.0 - 10.0, 0.0])
@@ -1485,7 +1492,7 @@ module print() {
 
   // -- Pitch Frame
   translate([190.0, -100.0, 0.0])
-    pitch_frame(0, 0, 0);
+    gimbal_pitch_frame(0, 0, 0);
 }
 
 // Main
@@ -1497,7 +1504,7 @@ module print() {
 
 // Component Development
 // battery_frame(batt_frame_w, batt_frame_d);
-// encoder_frame(0);
+encoder_frame(0);
 // fcu_frame(show_fcu);
 // stack_spacer(batt_h + 2, nut_counter_sink=1);
 // odroid_frame(mav_mount_w, mav_mount_d, 0);
@@ -1505,13 +1512,13 @@ module print() {
 // landing_feet();
 // sbgc_frame(mav_mount_w, mav_mount_d, 1, 1);
 // stereo_camera_frame();
-// pitch_frame(0, 0, 0, 0);
-// roll_pivot_frame();
-// roll_motor_frame();
-// roll_bar_frame();
+// gimbal_pitch_frame(0, 0, 0, 0);
+// gimbal_roll_pivot_frame();
+// gimbal_roll_motor_frame();
+// gimbal_roll_bar_frame();
 // gimbal_roll_frame();
 // gimbal_yaw_frame();
-gimbal_frame(mav_mount_w, mav_mount_d);
+// gimbal_frame(mav_mount_w, mav_mount_d);
 
 // color([0.0, 0.0, 1.0])
 //   translate([0, 0, -40])
