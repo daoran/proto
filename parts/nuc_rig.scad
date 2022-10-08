@@ -202,40 +202,6 @@ module stack_spacer(h, nut_counter_sink=1) {
   }
 }
 
-module nut_tool() {
-  tol = 0.2;
-
-  // M3 size
-  // tool_h = 25.0;
-  // screw_size = 3.0;
-  // screw_hsize = screw_size / 2.0;
-  // nut_w = 6.5;
-
-  // M2 size
-  tool_h = 20.0;
-  screw_size = 2.0;
-  screw_hsize = screw_size / 2.0;
-  nut_w = 4.7;
-
-  wing_w = 35.0;
-  wing_d = 8.0;
-  wing_h = 5.0;
-
-  translate([0.0, 0.0, tool_h / 2.0]) {
-    difference() {
-      // Tool body
-      union() {
-        cylinder(h=tool_h, r=screw_hsize + 2.5, center=true);
-        translate([0.0, 0.0, -tool_h / 2.0 + wing_h / 2.0])
-        cube([wing_w, wing_d, wing_h], center=true);
-      }
-
-      // Tool hole
-      cylinder(h=tool_h + 0.01, r=nut_w / 2.0, $fn=6, center=true);
-    }
-  }
-}
-
 module rig_feet(h=3) {
   screw_size = 3.0;
   screw_hsize = screw_size / 2.0;
@@ -597,9 +563,8 @@ batt_w = 48.0;
 batt_d = 140.0;
 batt_h = 27.0;
 
-// nut_tool();
 // rig_feet();
 // rig_handle(stack_w, stack_h);
 // pwr_stack(stack_w, stack_h, batt_w, batt_d, batt_h);
-// nuc_stack(stack_w, stack_h);
+nuc_stack(stack_w, stack_h);
 // realsense_stack(stack_w, stack_h);
