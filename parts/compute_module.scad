@@ -899,26 +899,27 @@ module gimbal_yaw_frame(mount_w, mount_d, show_roll_frame=1) {
         cube([support_h, support_w, vz], center=true);
 
       // Diagonal supports
-      dz = 35;
-      dx_offset = 12;
+      dl = 50;
+      dz = 18;
+      dx_offset = 20;
       dx = roll_mount_d + standoff_h / 2 - dx_offset;
       dy = motor_mount_w / 2 + standoff_w;
-      translate([-dx, dy, dz / 2])
-        rotate([0, -45, 0])
-          cube([support_h, support_w, dz], center=true);
-      translate([-dx, -dy, dz / 2])
-        rotate([0, -45, 0])
-          cube([support_h, support_w, dz], center=true);
+      translate([-dx, dy, dz])
+        rotate([0, -55, 0])
+          cube([support_h, support_w, dl], center=true);
+      translate([-dx, -dy, dz])
+        rotate([0, -55, 0])
+          cube([support_h, support_w, dl], center=true);
     }
 
     // Yaw motor mount holes
     for (i = [1:4]) {
       rotate(90 * i)
         translate([motor_mount_w / 2, motor_mount_w / 2, standoff_h / 2])
-          cylinder(r=M2_screw_w / 2, h=standoff_h + 0.01, center=true);
+          cylinder(r=M2_screw_w / 2, h=support_h + 0.01, center=true);
     }
-    translate([0, 0, standoff_h / 2])
-      cylinder(r=10.0 / 2.0, h=standoff_h + 0.01, center=true);
+    translate([0, 0, support_h / 2])
+      cylinder(r=10.0 / 2.0, h=support_h + 0.01, center=true);
 
     // Roll motor mount holes
     rotate([0, 90, 0]) {
@@ -936,7 +937,7 @@ module gimbal_yaw_frame(mount_w, mount_d, show_roll_frame=1) {
   }
 }
 
-module gimbal_frame(mount_w, mount_d, show_yaw_frame=1, show_roll_frame=0) {
+module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
   has_encoders = 0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_d = (has_encoders) ? 14.2 : 20.5;
@@ -951,18 +952,11 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1, show_roll_frame=0) {
 
   // Show yaw frame
   if (show_yaw_frame) {
-    translate([0, 0, standoff_h])
+    translate([0, 0, support_h + 0.01])
       gimbal_motor();
 
-    translate([0, 0, standoff_h + motor_h])
+    translate([0, 0, support_h + motor_h])
       gimbal_yaw_frame();
-  }
-
-  // Show roll frame
-  if (show_roll_frame) {
-    rotate([0, 0, 0])
-      translate([0, 0, standoff_h / 2 + motor_h + plate_h - standoff_h + 0.1])
-        gimbal_roll_frame(has_encoders);
   }
 
   difference() {
@@ -970,7 +964,7 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1, show_roll_frame=0) {
       // Yaw motor mount
       frame(motor_mount_d, motor_mount_d,
             M2_screw_w, M2_nut_w, M2_nut_h,
-            standoff_w, standoff_h,
+            standoff_w, support_h,
             support_w, support_h);
 
       // Mount frame
@@ -990,6 +984,10 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1, show_roll_frame=0) {
         cube([mount_w, support_w, support_h], center=true);
     }
 
+    // Yaw motor center holes
+    translate([0, 0, support_h / 2])
+      cylinder(r=10, h=support_h + 0.01, center=true);
+
     // Yaw motor mount holes
     positions = [
       [motor_mount_d / 2, motor_mount_d / 2, standoff_h / 2],
@@ -999,7 +997,7 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1, show_roll_frame=0) {
     ];
     for (pos = positions) {
       translate(pos)
-        cylinder(r=M2_screw_w / 2, h=standoff_h, center=true);
+        cylinder(r=M2_screw_w / 2, h=standoff_h + 0.01, center=true);
     }
   }
 }
