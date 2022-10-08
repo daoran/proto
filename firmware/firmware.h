@@ -6,6 +6,7 @@
 #include <assert.h>
 
 #include <Wire.h>
+#include <SPI.h>
 #include <Arduino.h>
 
 #include "config.h"
@@ -893,6 +894,54 @@ void i2c_print_addrs(uart_t *uart) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// SPI /////////////////////////////////////////////////////////////////////////
+
+#define SPI_READ 0x80
+#define SPI_WRITE_CLOCK 1000000
+#define SPI_READ_CLOCK 15000000
+
+void spi_setup() {
+  SPI.begin();
+  pinMode(10, OUTPUT);
+}
+
+uint8_t spi_read_byte(const uint8_t cs, const uint8_t reg) {
+  uint8_t data[1] = {0};
+
+  SPI.beginTransaction(SPISettings(SPI_READ_CLOCK, MSBFIRST, SPI_MODE3));
+  digitalWrite(cs, LOW);
+  SPI.transfer(reg | SPI_READ);
+  SPI.transfer(data, 1);
+  digitalWrite(cs, HIGH);
+  SPI.endTransaction();
+
+  return data[0];
+}
+
+void spi_read_bytes(const uint8_t cs,
+                    const uint8_t reg,
+                    const uint8_t len,
+                    uint8_t *data) {
+  SPI.beginTransaction(SPISettings(SPI_READ_CLOCK, MSBFIRST, SPI_MODE3));
+  digitalWrite(cs, LOW);
+  SPI.transfer(reg | SPI_READ);
+  SPI.transfer(data, len);
+  digitalWrite(cs, HIGH);
+  SPI.endTransaction();
+}
+
+void spi_write_byte(const uint8_t cs, const uint8_t reg, const uint8_t value) {
+  SPI.beginTransaction(SPISettings(SPI_WRITE_CLOCK, MSBFIRST, SPI_MODE3));
+  digitalWrite(cs, LOW);
+  SPI.transfer(reg);
+  SPI.transfer(value);
+  digitalWrite(cs, HIGH);
+  SPI.endTransaction();
+  delay(10);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 //// PWM ///////////////////////////////////////////////////////////////////////
 
 typedef struct pwm_t {
@@ -1336,216 +1385,286 @@ void mpu6050_get_data(mpu6050_t *imu) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-//// MPU9250 ///////////////////////////////////////////////////////////////////
+// MPU9250 ///////////////////////////////////////////////////////////////////
 
-//// GENERAL
-//#define MPU9250_ADDRESS 0x68
-//#define MPU9250_ADDRESS_AD0_LOW 0x68  // addr pin low (GND) [default]
-//#define MPU9250_ADDRESS_AD0_HIGH 0x69 // addr pin high (VCC)
+// REGISTER ADDRESSES
+#define MPU9250_SELF_TEST_X_GYRO 0x00
+#define MPU9250_SELF_TEST_Y_GYRO 0x01
+#define MPU9250_SELF_TEST_Z_GYRO 0x02
+#define MPU9250_SELF_TEST_X_ACCEL 0x0D
+#define MPU9250_SELF_TEST_Y_ACCEL 0x0E
+#define MPU9250_SELF_TEST_Z_ACCEL 0x0F
+#define MPU9250_XG_OFFSET_H 0x13
+#define MPU9250_XG_OFFSET_L 0x14
+#define MPU9250_YG_OFFSET_H 0x15
+#define MPU9250_YG_OFFSET_L 0x16
+#define MPU9250_ZG_OFFSET_H 0x17
+#define MPU9250_ZG_OFFSET_L 0x18
+#define MPU9250_SMPLRT_DIV 0x19
+#define MPU9250_CONFIG 0x1A
+#define MPU9250_GYRO_CONFIG 0x1B
+#define MPU9250_ACCEL_CONFIG 0x1C
+#define MPU9250_ACCEL_CONFIG2 0x1D
+#define MPU9250_LP_ACCEL_ODR 0x1E
+#define MPU9250_WOM_THR 0x1F
+#define MPU9250_FIFO_EN 0x23
+#define MPU9250_I2C_MST_CTRL 0x24
+#define MPU9250_I2C_SLV0_ADDR 0x25
+#define MPU9250_I2C_SLV0_REG 0x26
+#define MPU9250_I2C_SLV0_CTRL 0x27
+#define MPU9250_I2C_SLV1_ADDR 0x28
+#define MPU9250_I2C_SLV1_REG 0x29
+#define MPU9250_I2C_SLV1_CTRL 0x2A
+#define MPU9250_I2C_SLV2_ADDR 0x28
+#define MPU9250_I2C_SLV2_REG 0x2C
+#define MPU9250_I2C_SLV2_CTRL 0x2D
+#define MPU9250_I2C_SLV3_ADDR 0x2E
+#define MPU9250_I2C_SLV3_REG 0x2F
+#define MPU9250_I2C_SLV3_CTRL 0x30
+#define MPU9250_I2C_SLV4_ADDR 0x31
+#define MPU9250_I2C_SLV4_REG 0x32
+#define MPU9250_I2C_SLV4_DO 0x33
+#define MPU9250_I2C_SLV4_CTRL 0x34
+#define MPU9250_I2C_SLV4_DI 0x35
+#define MPU9250_I2C_MST_STATUS 0x36
+#define MPU9250_INT_PIN_CFG 0x37
+#define MPU9250_INT_ENABLE 0x38
+#define MPU9250_INT_STATUS 0x3A
+#define MPU9250_ACCEL_XOUT_H 0x3B
+#define MPU9250_ACCEL_XOUT_L 0x3C
+#define MPU9250_ACCEL_YOUT_H 0x3D
+#define MPU9250_ACCEL_YOUT_L 0x3E
+#define MPU9250_ACCEL_ZOUT_H 0x3F
+#define MPU9250_ACCEL_ZOUT_L 0x40
+#define MPU9250_TEMP_OUT_H 0x41
+#define MPU9250_TEMP_OUT_L 0x42
+#define MPU9250_GYRO_XOUT_H 0x43
+#define MPU9250_GYRO_XOUT_L 0x44
+#define MPU9250_GYRO_YOUT_H 0x45
+#define MPU9250_GYRO_YOUT_L 0x46
+#define MPU9250_GYRO_ZOUT_H 0x47
+#define MPU9250_GYRO_ZOUT_L 0x48
+#define MPU9250_EXT_SENS_DATA_00 0x49
+#define MPU9250_EXT_SENS_DATA_01 0x4A
+#define MPU9250_EXT_SENS_DATA_02 0x4B
+#define MPU9250_EXT_SENS_DATA_03 0x4C
+#define MPU9250_EXT_SENS_DATA_04 0x4D
+#define MPU9250_EXT_SENS_DATA_05 0x4E
+#define MPU9250_EXT_SENS_DATA_06 0x4F
+#define MPU9250_EXT_SENS_DATA_07 0x50
+#define MPU9250_EXT_SENS_DATA_08 0x51
+#define MPU9250_EXT_SENS_DATA_09 0x52
+#define MPU9250_EXT_SENS_DATA_10 0x53
+#define MPU9250_EXT_SENS_DATA_11 0x54
+#define MPU9250_EXT_SENS_DATA_12 0x55
+#define MPU9250_EXT_SENS_DATA_13 0x56
+#define MPU9250_EXT_SENS_DATA_14 0x57
+#define MPU9250_EXT_SENS_DATA_15 0x58
+#define MPU9250_EXT_SENS_DATA_16 0x59
+#define MPU9250_EXT_SENS_DATA_17 0x5A
+#define MPU9250_EXT_SENS_DATA_18 0x5B
+#define MPU9250_EXT_SENS_DATA_19 0x5C
+#define MPU9250_EXT_SENS_DATA_20 0x5D
+#define MPU9250_EXT_SENS_DATA_21 0x5E
+#define MPU9250_EXT_SENS_DATA_22 0x5F
+#define MPU9250_EXT_SENS_DATA_23 0x60
+#define MPU9250_I2C_SLV0_DO 0x63
+#define MPU9250_I2C_SLV1_DO 0x64
+#define MPU9250_I2C_SLV2_DO 0x65
+#define MPU9250_I2C_SLV3_DO 0x66
+#define MPU9250_I2C_MST_DELAY_CTRL 0x67
+#define MPU9250_SIGNAL_PATH_RESET 0x68
+#define MPU9250_MOT_DETECT_CTRL 0x69
+#define MPU9250_USER_CTRL 0x6A
+#define MPU9250_PWR_MGMT_1 0x6B
+#define MPU9250_PWR_MGMT_2 0x6C
+#define MPU9250_FIFO_COUNTH 0x72
+#define MPU9250_FIFO_COUNTL 0x73
+#define MPU9250_FIFO_R_W 0x74
+#define MPU9250_WHO_AM_I 0x75
+#define MPU9250_XA_OFFSET_H 0x77
+#define MPU9250_XA_OFFSET_L 0x78
+#define MPU9250_YA_OFFSET_H 0x7A
+#define MPU9250_YA_OFFSET_L 0x7B
+#define MPU9250_ZA_OFFSET_H 0x7D
+#define MPU9250_ZA_OFFSET_L 0x7E
 
-//// REGISTER ADDRESSES
-//#define MPU9250_SELF_TEST_X_GYRO 0x00
-//#define MPU9250_SELF_TEST_Y_GYRO 0x01
-//#define MPU9250_SELF_TEST_Z_GYRO 0x02
-//#define MPU9250_SELF_TEST_X_ACCEL 0x0D
-//#define MPU9250_SELF_TEST_Y_ACCEL 0x0E
-//#define MPU9250_SELF_TEST_Z_ACCEL 0x0F
-//#define MPU9250_XG_OFFSET_H 0x13
-//#define MPU9250_XG_OFFSET_L 0x14
-//#define MPU9250_YG_OFFSET_H 0x15
-//#define MPU9250_YG_OFFSET_L 0x16
-//#define MPU9250_ZG_OFFSET_H 0x17
-//#define MPU9250_ZG_OFFSET_L 0x18
-//#define MPU9250_SMPLRT_DIV 0x19
-//#define MPU9250_CONFIG 0x1A
-//#define MPU9250_GYRO_CONFIG 0x1B
-//#define MPU9250_ACCEL_CONFIG 0x1C
-//#define MPU9250_ACCEL_CONFIG2 0x1D
-//#define MPU9250_LP_ACCEL_ODR 0x1E
-//#define MPU9250_WOM_THR 0x1F
-//#define MPU9250_FIFO_EN 0x23
-//#define MPU9250_I2C_MST_CTRL 0x24
-//#define MPU9250_I2C_SLV0_ADDR 0x25
-//#define MPU9250_I2C_SLV0_REG 0x26
-//#define MPU9250_I2C_SLV0_CTRL 0x27
-//#define MPU9250_I2C_SLV1_ADDR 0x28
-//#define MPU9250_I2C_SLV1_REG 0x29
-//#define MPU9250_I2C_SLV1_CTRL 0x2A
-//#define MPU9250_I2C_SLV2_ADDR 0x28
-//#define MPU9250_I2C_SLV2_REG 0x2C
-//#define MPU9250_I2C_SLV2_CTRL 0x2D
-//#define MPU9250_I2C_SLV3_ADDR 0x2E
-//#define MPU9250_I2C_SLV3_REG 0x2F
-//#define MPU9250_I2C_SLV3_CTRL 0x30
-//#define MPU9250_I2C_SLV4_ADDR 0x31
-//#define MPU9250_I2C_SLV4_REG 0x32
-//#define MPU9250_I2C_SLV4_DO 0x33
-//#define MPU9250_I2C_SLV4_CTRL 0x34
-//#define MPU9250_I2C_SLV4_DI 0x35
-//#define MPU9250_I2C_MST_STATUS 0x36
-//#define MPU9250_INT_PIN_CFG 0x37
-//#define MPU9250_INT_ENABLE 0x38
-//#define MPU9250_INT_STATUS 0x3A
-//#define MPU9250_ACCEL_XOUT_H 0x3B
-//#define MPU9250_ACCEL_XOUT_L 0x3C
-//#define MPU9250_ACCEL_YOUT_H 0x3D
-//#define MPU9250_ACCEL_YOUT_L 0x3E
-//#define MPU9250_ACCEL_ZOUT_H 0x3F
-//#define MPU9250_ACCEL_ZOUT_L 0x40
-//#define MPU9250_TEMP_OUT_H 0x41
-//#define MPU9250_TEMP_OUT_L 0x42
-//#define MPU9250_GYRO_XOUT_H 0x43
-//#define MPU9250_GYRO_XOUT_L 0x44
-//#define MPU9250_GYRO_YOUT_H 0x45
-//#define MPU9250_GYRO_YOUT_L 0x46
-//#define MPU9250_GYRO_ZOUT_H 0x47
-//#define MPU9250_GYRO_ZOUT_L 0x48
-//#define MPU9250_EXT_SENS_DATA_00 0x49
-//#define MPU9250_EXT_SENS_DATA_01 0x4A
-//#define MPU9250_EXT_SENS_DATA_02 0x4B
-//#define MPU9250_EXT_SENS_DATA_03 0x4C
-//#define MPU9250_EXT_SENS_DATA_04 0x4D
-//#define MPU9250_EXT_SENS_DATA_05 0x4E
-//#define MPU9250_EXT_SENS_DATA_06 0x4F
-//#define MPU9250_EXT_SENS_DATA_07 0x50
-//#define MPU9250_EXT_SENS_DATA_08 0x51
-//#define MPU9250_EXT_SENS_DATA_09 0x52
-//#define MPU9250_EXT_SENS_DATA_10 0x53
-//#define MPU9250_EXT_SENS_DATA_11 0x54
-//#define MPU9250_EXT_SENS_DATA_12 0x55
-//#define MPU9250_EXT_SENS_DATA_13 0x56
-//#define MPU9250_EXT_SENS_DATA_14 0x57
-//#define MPU9250_EXT_SENS_DATA_15 0x58
-//#define MPU9250_EXT_SENS_DATA_16 0x59
-//#define MPU9250_EXT_SENS_DATA_17 0x5A
-//#define MPU9250_EXT_SENS_DATA_18 0x5B
-//#define MPU9250_EXT_SENS_DATA_19 0x5C
-//#define MPU9250_EXT_SENS_DATA_20 0x5D
-//#define MPU9250_EXT_SENS_DATA_21 0x5E
-//#define MPU9250_EXT_SENS_DATA_22 0x5F
-//#define MPU9250_EXT_SENS_DATA_23 0x60
-//#define MPU9250_I2C_SLV0_DO 0x63
-//#define MPU9250_I2C_SLV1_DO 0x64
-//#define MPU9250_I2C_SLV2_DO 0x65
-//#define MPU9250_I2C_SLV3_DO 0x66
-//#define MPU9250_I2C_MST_DELAY_CTRL 0x67
-//#define MPU9250_SIGNAL_PATH_RESET 0x68
-//#define MPU9250_MOT_DETECT_CTRL 0x69
-//#define MPU9250_USER_CTRL 0x6A
-//#define MPU9250_PWR_MGMT_1 0x6B
-//#define MPU9250_PWR_MGMT_2 0x6C
-//#define MPU9250_FIFO_COUNTH 0x72
-//#define MPU9250_FIFO_COUNTL 0x73
-//#define MPU9250_FIFO_R_W 0x74
-//#define MPU9250_WHO_AM_I 0x75
-//#define MPU9250_XA_OFFSET_H 0x77
-//#define MPU9250_XA_OFFSET_L 0x78
-//#define MPU9250_YA_OFFSET_H 0x7A
-//#define MPU9250_YA_OFFSET_L 0x7B
-//#define MPU9250_ZA_OFFSET_H 0x7D
-//#define MPU9250_ZA_OFFSET_L 0x7E
+#define AK8963_I2C_ADDR 0x0c
+#define AK8963_Device_ID 0x48
+#define AK8963_WHO_AM_I 0x00
+#define AK8963_INFO 0x01
+#define AK8963_ST1 0x02
+#define AK8963_XOUT_L 0x03
+#define AK8963_XOUT_H 0x04
+#define AK8963_YOUT_L 0x05
+#define AK8963_YOUT_H 0x06
+#define AK8963_ZOUT_L 0x07
+#define AK8963_ZOUT_H 0x08
+#define AK8963_ST2 0x09
+#define AK8963_CNTL 0x0A
+#define AK8963_ASTC 0x0C
+#define AK8963_I2CDIS 0x0F
+#define AK8963_ASAX 0x10
+#define AK8963_ASAY 0x11
+#define AK8963_ASAZ 0x12
 
-//#define AK8963_I2C_ADDR 0x0c
-//#define AK8963_Device_ID 0x48
-//#define AK8963_WHO_AM_I 0x00
-//#define AK8963_INFO 0x01
-//#define AK8963_ST1 0x02
-//#define AK8963_XOUT_L 0x03
-//#define AK8963_XOUT_H 0x04
-//#define AK8963_YOUT_L 0x05
-//#define AK8963_YOUT_H 0x06
-//#define AK8963_ZOUT_L 0x07
-//#define AK8963_ZOUT_H 0x08
-//#define AK8963_ST2 0x09
-//#define AK8963_CNTL 0x0A
-//#define AK8963_ASTC 0x0C
-//#define AK8963_I2CDIS 0x0F
-//#define AK8963_ASAX 0x10
-//#define AK8963_ASAY 0x11
-//#define AK8963_ASAZ 0x12
+typedef struct mpu9250_t {
+  uint8_t cs_pin = 10;
 
-// typedef struct mpu9250_t {
-//  float accel_sensitivity;
-//  float gyro_sensitivity;
-//  float mag_sensitivity;
-//  float accel[3];
-//  float gyro[3];
-//  float gyro_offset[3];
+  int8_t dplf_config;
+  float sample_rate;
+  float accel_sensitivity;
+  float gyro_sensitivity;
+  float mag_sensitivity;
 
-//  float temperature;
-//  float sample_rate;
-//  int8_t dplf_config;
-//} mpu9250_t;
+  float accel[3];
+  float gyro[3];
+  float temperature;
 
-// void mpu9250_setup(mpu9250_t *imu);
-// void mpu9250_calibrate(mpu9250_t *imu);
-// void mpu9250_get_data(mpu6050_t *imu);
+  float gyro_offset[3];
+  float gravity;
+} mpu9250_t;
 
-// void mpu9250_setup(mpu9250_t *imu) {
-//  int8_t retval = 0;
-//  int8_t dplf = 6;
-//  int8_t gyro_range = 1;
-//  int8_t accel_range = 2;
+void mpu9250_setup(mpu9250_t *imu);
+void mpu9250_calibrate(mpu9250_t *imu);
+void mpu9250_config_dplf(mpu9250_t *imu, const uint8_t dplf_cfg);
+void mpu9250_config_gyro(mpu9250_t *imu, const uint8_t fs_sel);
+void mpu9250_config_accel(mpu9250_t *imu, const uint8_t afs_sel);
+float mpu9250_get_sample_rate(mpu9250_t *imu);
+void mpu9250_get_data(mpu9250_t *imu);
 
-//  uint8_t config = 0;
-//  uint8_t gyro_config = 0;
-//  uint8_t accel_config = 0;
-//  i2c_write_byte(MPU9250_ADDRESS, MPU9250_CONFIG, config);
-//  i2c_write_byte(MPU9250_ADDRESS, MPU9250_GYRO_CONFIG, gyro_config);
-//  i2c_write_byte(MPU9250_ADDRESS, MPU9250_ACCEL_CONFIG, accel_config);
-//}
+void mpu9250_setup(mpu9250_t *imu) {
+  // Power management
+  spi_write_byte(imu->cs_pin, MPU9250_PWR_MGMT_1, 0x00);
 
-// void mpu9250_calibrate(mpu9250_t *imu) {
-//  float wx = 0.0;
-//  float wy = 0.0;
-//  float wz = 0.0;
+  // Configure
+  mpu9250_config_dplf(imu, 3);
+  mpu9250_config_gyro(imu, 1);
+  mpu9250_config_accel(imu, 2);
+  mpu9250_get_sample_rate(mpu9250_t * imu);
+}
 
-//  uint16_t nb_samples = 5000;
-//  for (uint16_t i = 0; i < nb_samples; i++) {
-//    mpu9250_get_data(imu);
-//    wx += imu->gyro[0];
-//    wy += imu->gyro[1];
-//    wz += imu->gyro[2];
-//  }
+void mpu9250_calibrate(mpu9250_t *imu) {
+  float wx_sum = 0.0;
+  float wy_sum = 0.0;
+  float wz_sum = 0.0;
+  float ax_sum = 0.0;
+  float ay_sum = 0.0;
+  float az_sum = 0.0;
 
-//  imu->gyro_offset[0] = wx / (float) nb_samples;
-//  imu->gyro_offset[1] = wy / (float) nb_samples;
-//  imu->gyro_offset[2] = wz / (float) nb_samples;
-//}
+  uint16_t nb_samples = 2000;
+  for (uint32_t i = 0; i < nb_samples; i++) {
+    mpu9250_get_data(imu);
 
-// void mpu9250_get_data(mpu9250_t *imu) {
-//  // Read data
-//  uint8_t raw_data[14] = {0};
-//  i2c_read_bytes(MPU9250_ADDRESS, MPU9250_ACCEL_XOUT_H, 14, raw_data);
+    wx_sum += imu->gyro[0];
+    wy_sum += imu->gyro[1];
+    wz_sum += imu->gyro[2];
 
-//  // Accelerometer
-//  const float g = 9.81; // Gravitational constant
-//  const int16_t raw_x = (raw_data[0] << 8) | (raw_data[1]);
-//  const int16_t raw_y = (raw_data[2] << 8) | (raw_data[3]);
-//  const int16_t raw_z = (raw_data[4] << 8) | (raw_data[5]);
-//  imu->accel[0] = (raw_x / imu->accel_sensitivity) * g;
-//  imu->accel[1] = (raw_y / imu->accel_sensitivity) * g;
-//  imu->accel[2] = (raw_z / imu->accel_sensitivity) * g;
+    ax_sum += imu->accel[0];
+    ay_sum += imu->accel[1];
+    az_sum += imu->accel[2];
+  }
 
-//  // Temperature
-//  const int8_t raw_temp = (raw_data[6] << 8) | (raw_data[7]);
-//  imu->temperature = raw_temp / 340.0 + 36.53;
+  imu->gyro_offset[0] = wx_sum / (float) nb_samples;
+  imu->gyro_offset[1] = wy_sum / (float) nb_samples;
+  imu->gyro_offset[2] = wz_sum / (float) nb_samples;
 
-//  // Gyroscope
-//  const int16_t gyro_raw_x = (raw_data[8] << 8) | (raw_data[9]);
-//  const int16_t gyro_raw_y = (raw_data[10] << 8) | (raw_data[11]);
-//  const int16_t gyro_raw_z = (raw_data[12] << 8) | (raw_data[13]);
-//  imu->gyro[0] = deg2rad(gyro_raw_x / imu->gyro_sensitivity);
-//  imu->gyro[1] = deg2rad(gyro_raw_y / imu->gyro_sensitivity);
-//  imu->gyro[2] = deg2rad(gyro_raw_z / imu->gyro_sensitivity);
+  ax_sum = ax_sum / (float) nb_samples;
+  ay_sum = ay_sum / (float) nb_samples;
+  az_sum = az_sum / (float) nb_samples;
 
-//  const int16_t mag_raw_x = (raw_data[16] << 8 | raw_data[15]);
-//  const int16_t mag_raw_y = (raw_data[18] << 8 | raw_data[17]);
-//  const int16_t mag_raw_z = (raw_data[20] << 8 | raw_data[19]);
-//  imu->mag[0] = mag_raw_x * imu->mag_scale[0];
-//  imu->mag[1] = mag_raw_y * imu->mag_scale[1];
-//  imu->mag[2] = mag_raw_z * imu->mag_scale[2];
-//}
+  imu->gravity = sqrt(ax_sum * ax_sum + ay_sum * ay_sum + az_sum * az_sum);
+}
+
+void mpu9250_config_dplf(mpu9250_t *imu, const uint8_t dplf_cfg) {
+  imu->dplf_config = dplf_cfg;
+  spi_write_byte(imu->cs_pin, MPU9250_CONFIG, imu->dplf_config);
+}
+
+void mpu9250_config_gyro(mpu9250_t *imu, const uint8_t fs_sel) {
+  const int8_t gyro_config = fs_sel << 3;
+  switch (fs_sel) {
+    case 0:
+      imu->gyro_sensitivity = 250.0f; // 131 deg/s
+      break;
+    case 1:
+      imu->gyro_sensitivity = 65.5f; // 500 deg/s
+      break;
+    case 2:
+      imu->gyro_sensitivity = 32.8f; // 1000 deg/s
+      break;
+    case 3:
+      imu->gyro_sensitivity = 16.4f; // 2000 deg/s
+      break;
+  }
+  spi_write_byte(imu->cs_pin, MPU9250_GYRO_CONFIG, gyro_config);
+}
+
+void mpu9250_config_accel(mpu9250_t *imu, const uint8_t afs_sel) {
+  const int8_t accel_config = afs_sel << 3;
+  switch (afs_sel) {
+    case 0:
+      imu->accel_sensitivity = 16384.0f; // 2g
+      break;
+    case 1:
+      imu->accel_sensitivity = 8192.0f; // 4g
+      break;
+    case 2:
+      imu->accel_sensitivity = 4096.0f; // 8g
+      break;
+    case 3:
+      imu->accel_sensitivity = 2048.0f; // 16g
+      break;
+  }
+  spi_write_byte(imu->cs_pin, MPU9250_ACCEL_CONFIG, accel_config);
+}
+
+float mpu9250_get_sample_rate(mpu9250_t *imu) {
+  uint16_t gyro_rate = 0;
+  if (imu->dplf_config == 0 || imu->dplf_config == 7) {
+    gyro_rate = 8000;
+  } else if (imu->dplf_config >= 1 || imu->dplf_config <= 6) {
+    gyro_rate = 1000;
+  }
+  const uint8_t sample_div = spi_read_byte(imu->cs_pin, MPU9250_SMPLRT_DIV);
+  imu->sample_rate = gyro_rate / (1 + sample_div);
+
+  return imu->sample_rate;
+}
+
+void mpu9250_get_data(mpu9250_t *imu) {
+  // Read data
+  uint8_t raw_data[14] = {0};
+  spi_read_bytes(imu->cs_pin, MPU9250_ACCEL_XOUT_H, 14, raw_data);
+
+  // Accelerometer
+  const float g = 9.81; // Gravitational constant
+  const int16_t raw_x = (raw_data[0] << 8) | (raw_data[1]);
+  const int16_t raw_y = (raw_data[2] << 8) | (raw_data[3]);
+  const int16_t raw_z = (raw_data[4] << 8) | (raw_data[5]);
+  imu->accel[0] = (raw_x / imu->accel_sensitivity) * g;
+  imu->accel[1] = (raw_y / imu->accel_sensitivity) * g;
+  imu->accel[2] = (raw_z / imu->accel_sensitivity) * g;
+
+  // Temperature
+  const int8_t raw_temp = (raw_data[6] << 8) | (raw_data[7]);
+  imu->temperature = raw_temp / 340.0 + 36.53;
+
+  // Gyroscope
+  const int16_t gyro_raw_x = (raw_data[8] << 8) | (raw_data[9]);
+  const int16_t gyro_raw_y = (raw_data[10] << 8) | (raw_data[11]);
+  const int16_t gyro_raw_z = (raw_data[12] << 8) | (raw_data[13]);
+  imu->gyro[0] = deg2rad(gyro_raw_x / imu->gyro_sensitivity);
+  imu->gyro[1] = deg2rad(gyro_raw_y / imu->gyro_sensitivity);
+  imu->gyro[2] = deg2rad(gyro_raw_z / imu->gyro_sensitivity);
+
+  // const int16_t mag_raw_x = (raw_data[16] << 8 | raw_data[15]);
+  // const int16_t mag_raw_y = (raw_data[18] << 8 | raw_data[17]);
+  // const int16_t mag_raw_z = (raw_data[20] << 8 | raw_data[19]);
+  // imu->mag[0] = mag_raw_x * imu->mag_scale[0];
+  // imu->mag[1] = mag_raw_y * imu->mag_scale[1];
+  // imu->mag[2] = mag_raw_z * imu->mag_scale[2];
+}
 
 // void mpu9250_magnetometer_read(const mpu9250_t *imu,
 //                               uint8_t reg,
