@@ -144,12 +144,15 @@ run_sbgc_tests() {
   cd -
 }
 
+dev_tiscam() {
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "\
+  cd ~/projects/proto/proto && make tiscam_driver && ./build/bin/tiscam_driver
+  " C-m C-m
+  exit
+}
+
 # run_sbgc_tests
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "\
-cd ~/projects/proto/proto && make tiscam_driver && ./build/bin/tiscam_driver
-" C-m C-m
-exit
 
 # gst-launch-1.0 v4l2src device=/dev/video2 \
 #   ! capsfilter caps=video/x-bayer,width=744,height=480,format=gbrg \
@@ -389,8 +392,8 @@ exit
 # ARDUINO
 ###############################################################################
 
-# arduino-cli compile -b teensy:avr:teensy40 firmware
-# arduino-cli upload -b teensy:avr:teensy40 -p usb1/1-6 firmware
+arduino-cli compile -b teensy:avr:teensy40 firmware
+arduino-cli upload -b teensy:avr:teensy40 -p usb1/1-6 firmware
 # python3 firmware/firmware_debugger.py
 
 # tmux send-keys -t dev -R C-l C-m
