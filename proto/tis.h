@@ -33,24 +33,24 @@ void viz_update(viz_t *viz, const uint8_t *img_data, const int pitch);
 void viz_loop(viz_t *viz);
 void bgr2csv(const GstMapInfo *frame);
 
-typedef struct tiscam_t {
+typedef struct tis_t {
   int cam_idx;
   const char *serial;
   GstElement *pipeline;
-
   viz_t *viz;
-} tiscam_t;
+} tis_t;
 
 void gst_setup(int argc, char *argv[]);
-GstFlowReturn frame_callback(GstElement *sink, void *user_data);
-int tiscam_setup(tiscam_t *cam,
-                 const int cam_idx,
-                 const char *serial,
-                 viz_t *viz);
-void tiscam_run(tiscam_t *cam);
-void tiscam_cleanup(tiscam_t *cam);
+GstFlowReturn tis_callback(GstElement *sink, void *user_data);
+int tis_setup(tis_t *cam, const int cam_idx, const char *serial, viz_t *viz);
+void tis_run(tis_t *cam);
+void tis_cleanup(tis_t *cam);
 
 #endif // TIS_H
+
+//////////////////////////////////////////////////////////////////////////////
+//                             IMPLEMENTATION                               //
+//////////////////////////////////////////////////////////////////////////////
 
 #ifdef TIS_IMPLEMENTATION
 
@@ -151,8 +151,8 @@ void gst_setup(int argc, char *argv[]) {
 }
 
 /** Camera callback **/
-GstFlowReturn frame_callback(GstElement *sink, void *user_data) {
-  tiscam_t *cam = (tiscam_t *) user_data;
+GstFlowReturn tis_callback(GstElement *sink, void *user_data) {
+  tis_t *cam = (tis_t *) user_data;
 
   // Retrieve buffer data
   GstSample *sample = NULL;
@@ -203,10 +203,7 @@ GstFlowReturn frame_callback(GstElement *sink, void *user_data) {
 }
 
 /** Setup TIS Camera **/
-int tiscam_setup(tiscam_t *cam,
-                 const int cam_idx,
-                 const char *serial,
-                 viz_t *viz) {
+int tis_setup(tis_t *cam, const int cam_idx, const char *serial, viz_t *viz) {
   // Properties
   cam->cam_idx = cam_idx;
   cam->serial = serial;
@@ -236,24 +233,28 @@ int tiscam_setup(tiscam_t *cam,
   // Setup pipeline sink
   GstElement *sink = gst_bin_get_by_name(GST_BIN(pipeline), "sink");
   g_object_set(G_OBJECT(sink), "emit-signals", TRUE, NULL);
-  g_signal_connect(sink, "new-sample", G_CALLBACK(frame_callback), cam);
+  g_signal_connect(sink, "new-sample", G_CALLBACK(tis_callback), cam);
   gst_object_unref(sink);
 
   return 0;
 }
 
 /** Run TIS camera **/
-void tiscam_run(tiscam_t *cam) {
+void tis_run(tis_t *cam) {
   gst_element_set_state(cam->pipeline, GST_STATE_PLAYING);
 }
 
 /** Clean up TIS camera **/
-void tiscam_cleanup(tiscam_t *cam) {
+void tis_cleanup(tis_t *cam) {
   gst_element_set_state(cam->pipeline, GST_STATE_NULL);
   gst_object_unref(cam->pipeline);
 }
 
 #endif // TIS_IMPLEMENTATION
+
+//////////////////////////////////////////////////////////////////////////////
+//                                UNITTESTS                                 //
+//////////////////////////////////////////////////////////////////////////////
 
 #ifdef TIS_UNITTEST
 
@@ -261,24 +262,24 @@ int main(int argc, char *argv[]) {
   gst_setup(argc, argv);
 
   // Setup
-  // int cam_idx = 0;
-  // const char *cam_serial = "19220362";
-  int cam_idx = 1;
-  const char *cam_serial = "19220363";
-  tiscam_t cam;
+  int cam_idx = 0;
+  const char *cam_serial = "19220362";
+  // int cam_idx = 1;
+  // const char *cam_serial = "19220363";
+  tis_t cam;
   viz_t viz;
 
   viz_setup(&viz, "TIS Camera", 744, 480);
-  if (tiscam_setup(&cam, cam_idx, cam_serial, &viz) != 0) {
+  if (tis_setup(&cam, cam_idx, cam_serial, &viz) != 0) {
     return -1;
   }
 
   // Run
-  tiscam_run(&cam);
+  tis_run(&cam);
   viz_loop(&viz);
 
   // Clean up
-  tiscam_cleanup(&cam);
+  tis_cleanup(&cam);
   viz_free(&viz);
 
   return 0;
