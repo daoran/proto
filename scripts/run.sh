@@ -147,19 +147,52 @@ run_sbgc_tests() {
 dev_tiscam() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-  cd ~/projects/proto/proto && make tiscam_driver && ./build/bin/tiscam_driver
+  cd ~/projects/proto/proto && make test_tis && ./build/bin/test_tis
   " C-m C-m
   exit
 }
 
 # run_sbgc_tests
+dev_tiscam
 
-# gst-launch-1.0 v4l2src device=/dev/video2 \
-#   ! capsfilter caps=video/x-bayer,width=744,height=480,format=gbrg \
-#   ! bayer2rgb \
-#   ! capsfilter caps=video/x-raw,width=744,height=480,format=RGBx \
-#   ! videoconvert \
-#   ! autovideosink
+# CAM0_SERIAL=19220362
+# CAM1_SERIAL=19220363
+
+# gst-launch-1.0 \
+#   compositor name=comp \
+#     sink_0::alpha=1 sink_0::xpos=0 sink_0::ypos=0 \
+#     sink_1::alpha=0.5 sink_1::xpos=320 sink_1::ypos=0 \
+#     ! videoconvert \
+#     ! xvimagesink \
+#   videotestsrc pattern=1 ! "video/x-raw" ! comp.sink_0 \
+#   videotestsrc pattern=2 ! "video/x-raw" ! comp.sink_1
+
+# gst-launch-1.0 \
+#   compositor name=comp \
+#     sink_0::alpha=1 sink_0::xpos=0 sink_0::ypos=0 \
+#     sink_1::alpha=1 sink_1::xpos=744 sink_1::ypos=0 \
+#     ! videoconvert \
+#     ! xvimagesink \
+#   tcambin serial=$CAM0_SERIAL ! videoconvert ! comp.sink_0 \
+#   tcambin serial=$CAM1_SERIAL ! videoconvert ! comp.sink_1
+
+# gst-launch-1.0 \
+#   compositor name=comp ! videoconvert ! ximagesink \
+#   tcamsrc serial=$CAM0_SERIAL ! videoconvert ! comp. \
+#   tcamsrc serial=$CAM1_SERIAL ! videoconvert ! comp.
+
+# gst-launch-1.0 \
+#   compositor name=comp \
+#     sink_0::alpha=1 sink_0::xpos=0 sink_0::ypos=0 \
+#     sink_1::alpha=1 sink_1::xpos=320 sink_1::ypos=0 \
+#     ! videoconvert \
+#     ! xvimagesink \
+#   videotestsrc pattern="red" ! videoconvert ! comp.sink_0 \
+#   videotestsrc pattern="green" ! videoconvert ! comp.sink_1
+
+# gst-launch-1.0 \
+#   tcambin serial=$CAM1_SERIAL ! videoconvert ! autovideosink
+
 
 # format="video/x-bayer, format=gbrg, width=640, height=480,framerate=30/1"
 # displayformat="video/x-raw, format=GRAY8, width=640, height=480,framerate=30/1"
@@ -392,8 +425,8 @@ dev_tiscam() {
 # ARDUINO
 ###############################################################################
 
-arduino-cli compile -b teensy:avr:teensy40 firmware
-arduino-cli upload -b teensy:avr:teensy40 -p usb1/1-6 firmware
+# arduino-cli compile -b teensy:avr:teensy40 firmware
+# arduino-cli upload -b teensy:avr:teensy40 -p usb1/1-6 firmware
 # python3 firmware/firmware_debugger.py
 
 # tmux send-keys -t dev -R C-l C-m

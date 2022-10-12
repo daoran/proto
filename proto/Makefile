@@ -7,6 +7,7 @@ TESTS_DIR := $(PWD)/tests
 
 
 # COMPILER SETTINGS
+BUILD_TYPE := debug
 CC := gcc
 
 SDL2_CFLAGS:=$(shell sdl2-config --cflags)
@@ -16,15 +17,16 @@ TIS_CFLAGS+=$(shell pkg-config gstreamer-video-1.0 --cflags)
 TIS_CFLAGS+=$(shell pkg-config gobject-introspection-1.0 --cflags)
 TIS_CFLAGS+=$(shell pkg-config tcam --cflags)
 CFLAGS := \
-	-g \
-	-Wall \
-	-Wpedantic \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
 	$(SDL2_CFLAGS) \
 	$(TIS_CFLAGS)
 
-
+ifeq ($(BUILD_TYPE), debug)
+	CFLAGS += -g -Wall -Wpedantic
+else
+	CFLAGS += -O3 -DNDEBUG
+endif
 
 # LIBRARIES
 SDL2_LIBS := `sdl2-config --libs` -lSDL2_image
@@ -64,6 +66,7 @@ LIB := $(BLD_DIR)/libproto.a
 TEST_PROTO := $(BIN_DIR)/test_proto
 TEST_SBGC := $(BIN_DIR)/test_sbgc
 TEST_UBX := $(BIN_DIR)/test_ubx
+TEST_TIS := $(BIN_DIR)/test_tis
 
 default: dirs $(LIB) shaders test_data $(TEST_PROTO) $(TEST_SBGC) $(TEST_UBX)
 .PHONY: dirs shaders test_data tests
@@ -94,8 +97,8 @@ $(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
 	echo "TEST [$(shell basename $@)]"; \
 	$(CC) $(CFLAGS) $< -o $@ $(DEPS)
 
-tiscam_driver: tiscam_driver.c
-	$(CC) $(CFLAGS) $< -o $(BIN_DIR)/$@ $(TIS_LIBS) $(SDL2_LIBS)
+test_tis: test_tis.c
+	$(CC) $(CFLAGS) -O3 $< -o $(BIN_DIR)/$@ $(TIS_LIBS) $(SDL2_LIBS)
 
 tests: $(LIB) $(BIN_DIR)/test_proto
 	$(BIN_DIR)/test_proto
