@@ -1185,7 +1185,7 @@ module gimbal_yaw_frame(mount_w, mount_d, show_roll_frame=1) {
   }
 }
 
-module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
+module gimbal_frame(mount_w, mount_d, show_yaw_frame=1, show_sbgc=1, show_pololu=1) {
   has_encoders = 0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_d = (has_encoders) ? 14.2 : 20.5;
@@ -1193,6 +1193,16 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
   roll_mount_w = 30.0;
   roll_mount_h = 50.0;
   encoder_standoff_h = 12;
+
+  sbgc_standoff_w = 5.0;
+  sbgc_standoff_base_w = 8.0;
+  sbgc_standoff_h = 8.0;
+
+  psu_standoff_w = 5.0;
+  psu_standoff_base_w = 8.0;
+  psu_standoff_h = 8.0;
+  psu_support_w = 3.0;
+  psu_support_h = 4.0;
 
   // Show yaw frame
   if (show_yaw_frame) {
@@ -1207,14 +1217,24 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
       gimbal_yaw_frame();
   }
 
+  // Simple BGC
+  if (show_sbgc) {
+    color([1.0, 0.5, 0.0])
+      translate([-sbgc_w / 2, -sbgc_d / 2 + 35, sbgc_standoff_h + 1])
+        import("../proto_parts/SimpleBGC_Tiny/Tiny_revC_PCB.stl");
+  }
+
+  // Pololu PSU
+  if (show_pololu) {
+    rotate(90)
+    color([0.0, 1.0, 0.0])
+      translate([-pololu_w / 2, -pololu_d / 2 - 32, psu_standoff_h])
+        import("../proto_parts/Pololu_U3V50X/Pololu-U3V50X.STL");
+  }
+
   difference() {
     union() {
       // Yaw motor mount
-      // rotate(45)
-      // frame(motor_mount_d, motor_mount_d,
-      //       M2_screw_w, M2_nut_w, M2_nut_h,
-      //       standoff_w + 6, support_h,
-      //       support_w + 6, support_h);
       translate([0, 0, support_h / 2])
         cylinder(r=20, h=support_h, center=true);
 
@@ -1224,15 +1244,52 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
             standoff_w, support_h,
             support_w, support_h);
 
+      // SBGC frame
+      sbgc_holes = [
+        [sbgc_mount_w / 2,  35.0 + sbgc_mount_d / 2, 0],
+        [-sbgc_mount_w / 2, 35.0 + -sbgc_mount_d / 2, 0]
+      ];
+      for (pos = sbgc_holes) {
+        translate(pos) {
+          translate([0, 0, sbgc_standoff_h / 2])
+            cylinder(r=sbgc_standoff_w / 2, h=sbgc_standoff_h, center=true);
+          translate([0, 0, support_h / 2])
+            cylinder(r=sbgc_standoff_base_w / 2, h=support_h, center=true);
+        }
+      }
+
+      // Pololu PSU frame
+      psu_holes = [
+        [pololu_mount_w / 2,  -32.0 + pololu_mount_d / 2, 0],
+        [-pololu_mount_w / 2, -32.0 + -pololu_mount_d / 2, 0]
+      ];
+      for (pos = psu_holes) {
+        rotate(90)
+        translate(pos) {
+          translate([0, 0, psu_standoff_h / 2])
+            cylinder(r=psu_standoff_w / 2, h=psu_standoff_h, center=true);
+          translate([0, 0, support_h / 2])
+            cylinder(r=psu_standoff_base_w / 2, h=support_h, center=true);
+        }
+      }
+
       // Supports
-      translate([motor_mount_d / 2, 0, support_h / 2])
+      translate([motor_mount_d / 2 + 1.5, 0, support_h / 2])
         cube([support_w, mount_d, support_h], center=true);
-      translate([-motor_mount_d / 2, 0, support_h / 2])
+      translate([-motor_mount_d / 2 - 1.2, 0, support_h / 2])
         cube([support_w, mount_d, support_h], center=true);
       translate([0, motor_mount_d / 2, support_h / 2])
         cube([mount_w, support_w, support_h], center=true);
       translate([0, -motor_mount_d / 2, support_h / 2])
         cube([mount_w, support_w, support_h], center=true);
+
+      // Pololu supports
+      rotate(90) {
+        translate([pololu_mount_w / 2 - 5, -32 + pololu_mount_d / 2, support_h / 2])
+          cube([10, psu_standoff_base_w, support_h], center=true);
+        translate([-pololu_mount_w / 2 + 5, -32 - pololu_mount_d / 2, support_h / 2])
+          cube([10, psu_standoff_base_w, support_h], center=true);
+      }
     }
 
     // Yaw motor center holes
@@ -1251,16 +1308,46 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
         translate(pos)
           cylinder(r=M2_screw_w / 2, h=support_h + 0.01, center=true);
     }
+
+    // SBGC mount holes
+    sbgc_holes = [
+      [sbgc_mount_w / 2,  35.0 + sbgc_mount_d / 2, 0],
+      [-sbgc_mount_w / 2, 35.0 + -sbgc_mount_d / 2, 0]
+    ];
+    for (pos = sbgc_holes) {
+      translate(pos) {
+        translate([0, 0, sbgc_standoff_h / 2])
+          cylinder(r=M2_screw_w / 2, h=sbgc_standoff_h + 0.01, center=true);
+        translate([0, 0, support_h / 2])
+          cylinder(r=M2_nut_w / 2, h=support_h + 0.01, $fn=6, center=true);
+      }
+    }
+
+    // PSU mount holes
+    psu_holes = [
+      [pololu_mount_w / 2,  -32.0 + pololu_mount_d / 2, 0],
+      [-pololu_mount_w / 2, -32.0 + -pololu_mount_d / 2, 0]
+    ];
+    for (pos = psu_holes) {
+      rotate(90) {
+        translate(pos) {
+          translate([0, 0, psu_standoff_h / 2])
+            cylinder(r=M2_screw_w / 2, h=psu_standoff_h + 0.01, center=true);
+          translate([0, 0, support_h / 2])
+            cylinder(r=M2_nut_w / 2, h=support_h + 0.01, $fn=6, center=true);
+        }
+      }
+    }
   }
 }
 
 module sbgc_frame(mount_w, mount_d, show_sbgc=1, show_pololu=1) {
-  psu_standoff_w = 5.0;
+  psu_standoff_w = 7.0;
   psu_standoff_h = 6.0;
   psu_support_w = 3.0;
   psu_support_h = 4.0;
 
-  sbgc_standoff_w = 5.0;
+  sbgc_standoff_w = 7.0;
   sbgc_standoff_h = 8.0;
   sbgc_support_w = 3.0;
   sbgc_support_h = 4.0;
@@ -1438,18 +1525,18 @@ module top_stack(show_fcu=1, show_battery=1) {
 module perception_module() {
   rotate([0, 0, 0])
     payload_frame(mav_payload_mount_w, mav_payload_mount_d,
-                  mav_frame_standoff_w, mav_frame_standoff_h,
+                  mav_frame_standoff_w, mav_payload_standoff_h,
                   mav_frame_support_w, mav_frame_support_h,
                   nuc_mount_w, nuc_mount_d);
 
-  translate([0.0, 0.0, mav_frame_standoff_h])
+  translate([0.0, 0.0, mav_payload_standoff_h])
       nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=1);
 
-  translate([0.0, 0.0, 32.0])
+  translate([0.0, 0.0, mav_payload_standoff_h + 32.0])
     rotate([0, 0, 180])
       sbgc_frame(nuc_mount_w, nuc_mount_d);
 
-  translate([0, 0, 55.0])
+  translate([0, 0, mav_payload_standoff_h + 50.0])
       gimbal_frame(nuc_mount_w, nuc_mount_d);
 }
 
@@ -1545,8 +1632,8 @@ module print() {
 // gimbal_roll_bar_frame();
 // gimbal_roll_frame();
 // gimbal_yaw_frame(0);
-// gimbal_frame(nuc_mount_w, nuc_mount_d, 0);
-// sbgc_frame(nuc_mount_w, nuc_mount_d, show_sbgc=1, show_pololu=1);
+gimbal_frame(nuc_mount_w, nuc_mount_d, 0, 0, 0);
+// sbgc_frame(nuc_mount_w, nuc_mount_d, show_sbgc=0, show_pololu=0);
 // nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=1);
 // payload_frame(mav_payload_mount_w, mav_payload_mount_d,
 //               mav_frame_support_w, mav_frame_support_h,

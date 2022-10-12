@@ -1,6 +1,6 @@
 include <config.scad>
 include <frame.scad>
-include <perception_module.scad>
+// include <perception_module.scad>
 
 motor_mount_w = 26.0;
 motor_mount_d = 26.0;
@@ -343,7 +343,7 @@ module mav_assembly() {
   for (i = [0:4]) {
     rotate(45.0 + 90.0 * i)
       translate([0.0, arm_l / 2.0 + 15.0, 0.0])
-        mav_arm(arm_w, arm_l, show_motor_mount=1, show_motor=1);
+        mav_arm(arm_w, arm_l, show_motor_mount=1, show_motor=0);
   }
 
   // Arm supports
@@ -373,13 +373,13 @@ module mav_assembly() {
   translate([0.0, 0.0, -4 + 0.1])
     rotate([180, 0, 0])
       mav_payload_frame(mav_payload_mount_w, mav_payload_mount_d,
-                        mav_frame_standoff_w, mav_frame_standoff_h,
+                        mav_frame_standoff_w, mav_frame_support_h,
                         mav_frame_support_w, mav_frame_support_h,
                         mav_peg_inner_screw_hole_w, mav_peg_outer_screw_hole_w);
 
-  rotate([180, 0, 0])
-    translate([0, 0, 14])
-      perception_module();
+  // rotate([180, 0, 0])
+  //   translate([0, 0, 8])
+  //     perception_module();
 }
 
 module print() {
@@ -400,14 +400,15 @@ module print() {
 
 // Main
 // print();
-mav_assembly();
+// mav_assembly();
 
 // Develop
-// motor_mount(motor_mount_w, motor_mount_d, motor_mount_h, show_motor=1);
-// motor_mount_spacer(motor_mount_w, motor_mount_d, motor_mount_h, show_motor=1);
+// motor_mount(motor_mount_w, motor_mount_d, motor_mount_h, show_motor=0);
+// motor_mount_spacer(motor_mount_w, motor_mount_d, motor_mount_h, show_motor=0);
 // mav_arm(arm_w, arm_l);
-// mav_arm_peg(peg_inner_w, peg_outer_w,
-//             peg_inner_screw_hole_w, peg_outer_screw_hole_w);
+// translate([-40, 0, 0])
+// mav_arm_peg(mav_peg_inner_w, mav_peg_outer_w,
+//             mav_peg_inner_screw_hole_w, mav_peg_outer_screw_hole_w);
 // mav_arm_supports();
 // mav_frame(mav_frame_standoff_w, mav_frame_standoff_h,
 //           mav_frame_support_w, mav_frame_support_h);

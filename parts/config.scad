@@ -61,3 +61,4 @@ mav_peg_outer_screw_hole_w = 90.0;
 
 mav_payload_mount_w = 110.0;
 mav_payload_mount_d = 50.0;
+mav_payload_standoff_h = 8.0;
