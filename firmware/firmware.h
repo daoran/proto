@@ -7,6 +7,7 @@
 
 #include <Wire.h>
 #include <SPI.h>
+#include <SD.h>
 #include <Arduino.h>
 
 #include "config.h"
@@ -1541,7 +1542,7 @@ void mpu9250_setup(mpu9250_t *imu) {
   mpu9250_config_dplf(imu, 3);
   mpu9250_config_gyro(imu, 1);
   mpu9250_config_accel(imu, 2);
-  mpu9250_get_sample_rate(mpu9250_t * imu);
+  mpu9250_get_sample_rate(imu);
 }
 
 void mpu9250_calibrate(mpu9250_t *imu) {
@@ -1939,53 +1940,59 @@ void att_ctrl_update(att_ctrl_t *att_ctrl,
 
 // TELEMETRY DATA ////////////////////////////////////////////////////////////
 
-#define TELEM_BUF_SIZE 10
-
 typedef struct telemetry_t {
   uint16_t buf_size;
 
-  uint32_t ts[TELEM_BUF_SIZE];
-  uint8_t mav_arm[TELEM_BUF_SIZE];
-  uint8_t mav_ready[TELEM_BUF_SIZE];
-  uint8_t mav_failsafe[TELEM_BUF_SIZE];
+  uint8_t log_file_opened;
+  File log_file;
 
-  float acc[TELEM_BUF_SIZE][3];
-  float gyr[TELEM_BUF_SIZE][3];
-  float attitude[TELEM_BUF_SIZE][3];
-  float height[TELEM_BUF_SIZE];
+  uint32_t ts;
+  uint8_t mav_arm;
+  uint8_t mav_ready;
+  uint8_t mav_failsafe;
 
-  uint16_t sbus[TELEM_BUF_SIZE][16];
-  float setpoint[TELEM_BUF_SIZE][4];
-  float outputs[TELEM_BUF_SIZE][4];
+  float acc[3];
+  float gyr[3];
+  float attitude[3];
+  float height;
+
+  uint16_t sbus[16];
+  float setpoint[4];
+  float outputs[4];
 } telemetry_t;
 
 void telemetry_setup(telemetry_t *telem) {
   telem->buf_size = 0;
 
-  for (size_t k = 0; k < TELEM_BUF_SIZE; k++) {
-    telem->ts[k] = 0;
-    telem->mav_arm[k] = 0;
-    telem->mav_ready[k] = 0;
-    telem->mav_failsafe[k] = 0;
+  telem->log_file_opened = 1;
+  telem->log_file = SD.open("log.txt", FILE_WRITE);
 
-    for (size_t i = 0; i < 3; i++) {
-      telem->acc[k][i] = 0;
-      telem->gyr[k][i] = 0;
-      telem->attitude[k][i] = 0;
-    }
+  telem->ts = 0;
+  telem->mav_arm = 0;
+  telem->mav_ready = 0;
+  telem->mav_failsafe = 0;
 
-    for (size_t i = 0; i < 16; i++) {
-      telem->sbus[k][i] = 0;
-    }
-    for (size_t i = 0; i < 4; i++) {
-      telem->setpoint[k][i] = 0;
-      telem->outputs[k][i] = 0;
-    }
+  for (size_t i = 0; i < 3; i++) {
+    telem->acc[i] = 0;
+    telem->gyr[i] = 0;
+    telem->attitude[i] = 0;
+  }
+  for (size_t i = 0; i < 16; i++) {
+    telem->sbus[i] = 0;
+  }
+  for (size_t i = 0; i < 4; i++) {
+    telem->setpoint[i] = 0;
+    telem->outputs[i] = 0;
   }
 }
 
 void telemetry_reset(telemetry_t *telem) {
   telemetry_setup(telem);
+}
+
+void telemetry_stop(telemetry_t *telem) {
+  telem->log_file_opened = 0;
+  telem->log_file.close();
 }
 
 void telemetry_record(telemetry_t *telem,
@@ -1999,85 +2006,94 @@ void telemetry_record(telemetry_t *telem,
                       const float setpoint[3],
                       const float outputs[4],
                       const uint16_t sbus_channels[16]) {
-  const uint16_t buf_size = telem->buf_size;
+  telem->ts = ts_us;
+  telem->mav_arm = mav_arm;
+  telem->mav_ready = mav_ready;
+  telem->mav_failsafe = mav_failsafe;
 
-  telem->ts[buf_size] = ts_us;
-  telem->mav_arm[buf_size] = mav_arm;
-  telem->mav_ready[buf_size] = mav_ready;
-  telem->mav_failsafe[buf_size] = mav_failsafe;
+  telem->acc[0] = acc[0];
+  telem->acc[1] = acc[1];
+  telem->acc[2] = acc[2];
 
-  telem->acc[buf_size][0] = acc[0];
-  telem->acc[buf_size][1] = acc[1];
-  telem->acc[buf_size][2] = acc[2];
+  telem->gyr[0] = gyr[0];
+  telem->gyr[1] = gyr[1];
+  telem->gyr[2] = gyr[2];
 
-  telem->gyr[buf_size][0] = gyr[0];
-  telem->gyr[buf_size][1] = gyr[1];
-  telem->gyr[buf_size][2] = gyr[2];
+  telem->attitude[0] = state[0];
+  telem->attitude[1] = state[1];
+  telem->attitude[2] = state[2];
+  telem->height = state[3];
 
-  telem->attitude[buf_size][0] = state[0];
-  telem->attitude[buf_size][1] = state[1];
-  telem->attitude[buf_size][2] = state[2];
-  telem->height[buf_size] = state[3];
+  telem->setpoint[0] = setpoint[0];
+  telem->setpoint[1] = setpoint[1];
+  telem->setpoint[2] = setpoint[2];
+  telem->setpoint[3] = setpoint[3];
 
-  telem->setpoint[buf_size][0] = setpoint[0];
-  telem->setpoint[buf_size][1] = setpoint[1];
-  telem->setpoint[buf_size][2] = setpoint[2];
-  telem->setpoint[buf_size][3] = setpoint[3];
-
-  telem->outputs[buf_size][0] = outputs[0];
-  telem->outputs[buf_size][1] = outputs[1];
-  telem->outputs[buf_size][2] = outputs[2];
-  telem->outputs[buf_size][3] = outputs[3];
+  telem->outputs[0] = outputs[0];
+  telem->outputs[1] = outputs[1];
+  telem->outputs[2] = outputs[2];
+  telem->outputs[3] = outputs[3];
 
   for (uint8_t i = 0; i < 16; i++) {
-    telem->sbus[buf_size][i] = sbus_channels[i];
+    telem->sbus[i] = sbus_channels[i];
   }
-  telem->buf_size++;
+}
+
+void telemetry_build_frame(telemetry_t *telem, char f[1024]) {
+  sprintf(f + strlen(f), "ts:%ld ", telem->ts);
+  sprintf(f + strlen(f), "mav_arm:%d ", telem->mav_arm);
+  sprintf(f + strlen(f), "mav_ready:%d ", telem->mav_ready);
+
+  for (uint8_t i = 0; i < 16; i++) {
+    sprintf(f + strlen(f), "ch[%d]:%d ", i, telem->sbus[i]);
+  }
+
+  sprintf(f + strlen(f), "accel_x:%f ", telem->acc[0]);
+  sprintf(f + strlen(f), "accel_y:%f ", telem->acc[1]);
+  sprintf(f + strlen(f), "accel_z:%f ", telem->acc[2]);
+
+  sprintf(f + strlen(f), "gyro_x:%f ", telem->gyr[0]);
+  sprintf(f + strlen(f), "gyro_y:%f ", telem->gyr[1]);
+  sprintf(f + strlen(f), "gyro_z:%f ", telem->gyr[2]);
+
+  sprintf(f + strlen(f), "roll:%f ", rad2deg(telem->attitude[0]));
+  sprintf(f + strlen(f), "pitch:%f ", rad2deg(telem->attitude[1]));
+  sprintf(f + strlen(f), "yaw:%f ", rad2deg(telem->attitude[2]));
+  sprintf(f + strlen(f), "height:%f ", telem->height);
+
+  const float r = rad2deg(telem->setpoint[0]);
+  const float p = rad2deg(telem->setpoint[1]);
+  const float y = rad2deg(telem->setpoint[2]);
+  sprintf(f + strlen(f), "roll_setpoint:%f ", r);
+  sprintf(f + strlen(f), "pitch_setpoint:%f ", p);
+  sprintf(f + strlen(f), "yaw_setpoint:%f ", y);
+  sprintf(f + strlen(f), "thrust_setpoint:%f ", telem->setpoint[3]);
+
+  sprintf(f + strlen(f), "outputs[0]:%f ", telem->outputs[0]);
+  sprintf(f + strlen(f), "outputs[1]:%f ", telem->outputs[1]);
+  sprintf(f + strlen(f), "outputs[2]:%f ", telem->outputs[2]);
+  sprintf(f + strlen(f), "outputs[3]:%f ", telem->outputs[3]);
+
+  sprintf(f + strlen(f), "\r\n");
 }
 
 void telemetry_transmit(telemetry_t *telem, uart_t *uart) {
-  const uint32_t ts_telem = micros();
+  char f[1024] = {0};
+  telemetry_build_frame(telem, f);
+  uart_printf(uart, "%s", f);
+}
 
-  for (uint16_t k = 0; k < telem->buf_size; k++) {
-    char s[1024] = {0};
-    sprintf(s, "telem_ts:%ld ", ts_telem);
-    sprintf(s + strlen(s), "ts:%ld ", telem->ts[k]);
-    sprintf(s + strlen(s), "mav_arm:%d ", telem->mav_arm[k]);
-    sprintf(s + strlen(s), "mav_ready:%d ", telem->mav_ready[k]);
+void telemetry_transmit_log(telemetry_t *telem, uart_t *uart) {
+  telemetry_stop(telem);
 
-    for (uint8_t i = 0; i < 16; i++) {
-      sprintf(s + strlen(s), "ch[%d]:%d ", i, telem->sbus[k][i]);
+  SdFile log_file("log.txt", O_READ);
+  uint32_t n;
+  char line[4096] = {0};
+  while ((n = log_file.fgets(line, sizeof(line))) > 0) {
+    if (line[n - 1] == '\n') {
+      line[n - 1] = '\0';
+      uart_printf(uart, "%s", line);
     }
-
-    sprintf(s + strlen(s), "accel_x:%f ", telem->acc[k][0]);
-    sprintf(s + strlen(s), "accel_y:%f ", telem->acc[k][1]);
-    sprintf(s + strlen(s), "accel_z:%f ", telem->acc[k][2]);
-
-    sprintf(s + strlen(s), "gyro_x:%f ", telem->gyr[k][0]);
-    sprintf(s + strlen(s), "gyro_y:%f ", telem->gyr[k][1]);
-    sprintf(s + strlen(s), "gyro_z:%f ", telem->gyr[k][2]);
-
-    sprintf(s + strlen(s), "roll:%f ", rad2deg(telem->attitude[k][0]));
-    sprintf(s + strlen(s), "pitch:%f ", rad2deg(telem->attitude[k][1]));
-    sprintf(s + strlen(s), "yaw:%f ", rad2deg(telem->attitude[k][2]));
-    sprintf(s + strlen(s), "height:%f ", telem->height[k]);
-
-    const float r = rad2deg(telem->setpoint[k][0]);
-    const float p = rad2deg(telem->setpoint[k][1]);
-    const float y = rad2deg(telem->setpoint[k][2]);
-    sprintf(s + strlen(s), "roll_setpoint:%f ", r);
-    sprintf(s + strlen(s), "pitch_setpoint:%f ", p);
-    sprintf(s + strlen(s), "yaw_setpoint:%f ", y);
-    sprintf(s + strlen(s), "thrust_setpoint:%f ", telem->setpoint[k][3]);
-
-    sprintf(s + strlen(s), "outputs[0]:%f ", telem->outputs[k][0]);
-    sprintf(s + strlen(s), "outputs[1]:%f ", telem->outputs[k][1]);
-    sprintf(s + strlen(s), "outputs[2]:%f ", telem->outputs[k][2]);
-    sprintf(s + strlen(s), "outputs[3]:%f ", telem->outputs[k][3]);
-
-    sprintf(s + strlen(s), "\r\n");
-
-    uart_printf(uart, "%s", s);
   }
 }
 
