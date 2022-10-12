@@ -29,7 +29,7 @@ void viz_setup(viz_t *viz,
                const int win_w,
                const int win_h);
 void viz_free(viz_t *viz);
-void viz_update(viz_t *viz, const uint8_t *img_data, const int pitch);
+void viz_update(viz_t *viz, const uint8_t *img_data, const int stride);
 void viz_loop(viz_t *viz);
 void bgr2csv(const GstMapInfo *frame);
 
@@ -58,7 +58,8 @@ void tis_cleanup(tis_t *cam);
 void viz_setup(viz_t *viz,
                const char *win_title,
                const int win_w,
-               const int win_h) {
+               const int win_h,
+               const uint32_t pixel_format) {
   // SDL init
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
@@ -77,7 +78,7 @@ void viz_setup(viz_t *viz,
       SDL_CreateWindow(win_title, win_x, win_y, win_w, win_h, SDL_WINDOW_SHOWN);
   viz->renderer = SDL_CreateRenderer(viz->window, -1, SDL_RENDERER_ACCELERATED);
   viz->texture = SDL_CreateTexture(viz->renderer,
-                                   SDL_PIXELFORMAT_BGRA32,
+                                   pixel_format,
                                    SDL_TEXTUREACCESS_STREAMING,
                                    win_w,
                                    win_h);
@@ -98,8 +99,8 @@ void viz_free(viz_t *viz) {
 }
 
 /** Updat visualizer **/
-void viz_update(viz_t *viz, const uint8_t *img_data, const int pitch) {
-  SDL_UpdateTexture(viz->texture, NULL, img_data, pitch);
+void viz_update(viz_t *viz, const uint8_t *img_data, const int stride) {
+  SDL_UpdateTexture(viz->texture, NULL, img_data, stride);
   SDL_RenderCopy(viz->renderer, viz->texture, NULL, NULL);
   SDL_RenderPresent(viz->renderer);
 }
@@ -161,19 +162,22 @@ GstFlowReturn tis_callback(GstElement *sink, void *user_data) {
     return GST_FLOW_OK;
   }
 
+  // Process frame data
   GstBuffer *buffer = gst_sample_get_buffer(sample);
   GstMapInfo frame;
-
   if (gst_buffer_map(buffer, &frame, GST_MAP_READ)) {
+    // Get frame info
     GstVideoInfo *video_info = gst_video_info_new();
     if (!gst_video_info_from_caps(video_info, gst_sample_get_caps(sample))) {
       g_warning("Failed to parse video info");
       return GST_FLOW_ERROR;
     }
 
+    // Visualize
     if (cam->viz) {
       const int img_width = video_info->width;
-      viz_update(cam->viz, frame.data, img_width * 4);
+      const int stride = img_width * 4;
+      viz_update(cam->viz, frame.data, stride);
     }
 
     // Clean up
@@ -181,6 +185,7 @@ GstFlowReturn tis_callback(GstElement *sink, void *user_data) {
     gst_video_info_free(video_info);
   }
 
+  // Print timestamp and frame rate
   GstClockTime ts = GST_BUFFER_PTS(buffer);
   g_print("Timestamp=%" GST_TIME_FORMAT "\t", GST_TIME_ARGS(ts));
   if (cam->viz && cam->viz->last_ts != 0) {
@@ -269,7 +274,7 @@ int main(int argc, char *argv[]) {
   tis_t cam;
   viz_t viz;
 
-  viz_setup(&viz, "TIS Camera", 744, 480);
+  viz_setup(&viz, "TIS Camera", 744, 480, SDL_PIXELFORMAT_BGRA32);
   if (tis_setup(&cam, cam_idx, cam_serial, &viz) != 0) {
     return -1;
   }
