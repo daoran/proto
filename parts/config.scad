@@ -64,10 +64,7 @@ mav_motor_hole_h = 6.0;
 
 mav_peg_inner_w = 30.0;
 mav_peg_outer_w = arm_l * 0.4;
-mav_peg_inner_screw_hole_w = mav_peg_inner_w + mav_motor_mount_d / 2;
-mav_peg_outer_screw_hole_w = mav_peg_inner_screw_hole_w + 19.0;
-// mav_peg_outer_screw_hole_w = mav_peg_inner_screw_hole_w + 50.0;
 
 mav_payload_mount_w = 110.0;
-mav_payload_mount_d = 50.0;
+mav_payload_mount_d = 40.0;
 mav_payload_standoff_h = 8.0;
