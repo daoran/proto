@@ -1,4 +1,4 @@
-$fn = 60;
+$fn = 30;
 
 // M2 Screw and Nut
 M2_screw_w = 2.7;
@@ -54,10 +54,19 @@ mav_frame_standoff_h = 10.0;
 mav_frame_support_w = 8.0;
 mav_frame_support_h = 5.0;
 
+mav_motor_mount_w = 26.0;
+mav_motor_mount_d = 26.0;
+mav_motor_mount_h = 6.0;
+
+mav_motor_hole_w = 19.0;
+mav_motor_hole_d = 16.0;
+mav_motor_hole_h = 6.0;
+
 mav_peg_inner_w = 30.0;
 mav_peg_outer_w = arm_l * 0.4;
-mav_peg_inner_screw_hole_w = 50.0;
-mav_peg_outer_screw_hole_w = 90.0;
+mav_peg_inner_screw_hole_w = mav_peg_inner_w + mav_motor_mount_d / 2;
+mav_peg_outer_screw_hole_w = mav_peg_inner_screw_hole_w + 19.0;
+// mav_peg_outer_screw_hole_w = mav_peg_inner_screw_hole_w + 50.0;
 
 mav_payload_mount_w = 110.0;
 mav_payload_mount_d = 50.0;
