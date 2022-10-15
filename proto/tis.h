@@ -27,7 +27,8 @@ typedef struct viz_t {
 void viz_setup(viz_t *viz,
                const char *win_title,
                const int win_w,
-               const int win_h);
+               const int win_h,
+               const uint32_t pixel_format);
 void viz_free(viz_t *viz);
 void viz_update(viz_t *viz, const uint8_t *img_data, const int stride);
 void viz_loop(viz_t *viz);
