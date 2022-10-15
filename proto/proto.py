@@ -1814,7 +1814,7 @@ def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
 # UTILS #######################################################################
 
 
-def illum_invar_transform(image, alpha=0.9):
+def illumination_invariant_transform(image, alpha=0.9):
   """ Illumination Invariant Transform
 
   Source:
@@ -6980,6 +6980,14 @@ class TestCV(unittest.TestCase):
       # Triangulate
       p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
       self.assertTrue(np.allclose(p_Ci_est, p_Ci_gnd))
+
+  def test_illumination_invariant_transform(self):
+    """ Test harris_corner() """
+    img_path = os.path.join(SCRIPT_DIR, "./test_data/images/flower.jpg")
+    img = cv2.imread(img_path)
+    img = illumination_invariant_transform(img)
+    # cv2.imshow("Image", img)
+    # cv2.waitKey(0)
 
   def test_pinhole_K(self):
     """ Test pinhole_K() """
