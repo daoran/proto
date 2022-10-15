@@ -1814,6 +1814,45 @@ def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
 # UTILS #######################################################################
 
 
+def illum_invar_transform(image, alpha=0.9):
+  """ Illumination Invariant Transform
+
+  Source:
+
+  Maddern, Will, et al. "Illumination invariant imaging: Applications in robust
+  vision-based localisation, mapping and classification for autonomous
+  vehicles." Proceedings of the Visual Place Recognition in Changing
+  Environments Workshop, IEEE International Conference on Robotics and
+  Automation (ICRA), Hong Kong, China. Vol. 2. No. 3. 2014.
+
+  """
+  # Assert image has 3 channels and pixel values are 0-255
+  assert image.shape[2] == 3
+  assert image.dtype == "uint8"
+
+  # An RGB image values are 0-255 (uint8)
+  # convert from 0-255 (uint8) to 0-1 (float)
+  red = image[:, :, 0] / 255.0
+  green = image[:, :, 1] / 255.0
+  blue = image[:, :, 2] / 255.0
+  assert red.dtype == "float64"
+  assert green.dtype == "float64"
+  assert blue.dtype == "float64"
+
+  # Log the red, green and blue channels
+  log_red = np.log(red, where=(red != 0))
+  log_green = np.log(green, where=(green != 0))
+  log_blue = np.log(blue, where=(blue != 0))
+
+  # Form illumination invariance transform image
+  ii_image = 0.5 + log_green - alpha * log_blue - (1.0 - alpha) * log_red
+
+  return ii_image
+
+
+# GEOMETRY ####################################################################
+
+
 def lookat(cam_pos, target_pos, **kwargs):
   """ Form look at matrix """
   up_axis = kwargs.get('up_axis', np.array([0.0, -1.0, 0.0]))
