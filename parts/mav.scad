@@ -475,7 +475,7 @@ module tool_mav_arm_holes(dev_mode=0) {
 
 // Main
 // print();
-mav_assembly();
+// mav_assembly();
 
 // Develop
 // translate([mav_peg_inner_w / 2 + mav_motor_mount_d / 2, 0, 15])

@@ -378,7 +378,8 @@ module encoder_frame(show_encoder=1, show_motor=0) {
   mount_d = 11;
 
   motor_standoff_w = 5;
-  motor_standoff_h = 12;
+  // motor_standoff_h = 12; // Roll and Yaw motor
+  motor_standoff_h = 7; // Pitch motor
   encoder_standoff_w = 7;
   encoder_standoff_h = 6;
   support_w = 4;
@@ -1610,7 +1611,7 @@ module print() {
 
 // Component Development
 // battery_frame(batt_frame_w, batt_frame_d);
-// encoder_frame(0);
+encoder_frame(0);
 // fcu_frame(show_fcu);
 // stack_spacer(batt_h + 2, nut_counter_sink=1);
 // odroid_frame(nuc_mount_w, nuc_mount_d, 0);
