@@ -48,12 +48,17 @@ import cv2
 import yaml
 import numpy as np
 import scipy
+import scipy.signal
 import scipy.sparse
 import scipy.sparse.linalg
+import scipy.ndimage
 import pandas
 
 import cProfile
 from pstats import Stats
+
+SCRIPT_PATH = os.path.realpath(__file__)
+SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 ###############################################################################
 # YAML
@@ -1877,9 +1882,6 @@ def lookat(cam_pos, target_pos, **kwargs):
   return T_WC
 
 
-# GEOMETRY ####################################################################
-
-
 def linear_triangulation(P_i, P_j, z_i, z_j):
   """
   Linear triangulation
@@ -1926,6 +1928,156 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   hp = hp / hp[-1]  # Normalize the homogeneous 3D point
   p = hp[0:3]  # Return only the first three components (x, y, z)
   return p
+
+
+# FEATURES ####################################################################
+
+
+def convolve2d(image, kernel):
+  # f is an image and is indexed by (v, w)
+  # kernel is a filter kernel and is indexed by (s, t),
+  #   it needs odd dimensions
+  # h is the output image and is indexed by (x, y),
+  #   it is not cropped
+  if kernel.shape[0] % 2 != 1 or kernel.shape[1] % 2 != 1:
+    raise ValueError("Only odd dimensions on filter supported")
+
+  # smid and tmid are number of pixels between the center pixel
+  # and the edge, ie for a 5x5 filter they will be 2.
+  #
+  # The output size is calculated by adding smid, tmid to each
+  # side of the dimensions of the input image.
+  vmax = image.shape[0]
+  wmax = image.shape[1]
+  smax = kernel.shape[0]
+  tmax = kernel.shape[1]
+  smid = smax // 2
+  tmid = tmax // 2
+  xmax = vmax + 2 * smid
+  ymax = wmax + 2 * tmid
+
+  # Allocate result image.
+  out = np.zeros((xmax, ymax), dtype=image.dtype)
+
+  # Do convolution
+  for x in range(xmax):
+    for y in range(ymax):
+      # Calculate pixel value for out at (x,y). Sum one component
+      # for each pixel (s, t) of the kernel filter.
+      s_from = max(smid - x, -smid)
+      s_to = min((xmax - x) - smid, smid + 1)
+      t_from = max(tmid - y, -tmid)
+      t_to = min((ymax - y) - tmid, tmid + 1)
+      value = 0
+      for s in range(s_from, s_to):
+        for t in range(t_from, t_to):
+          v = x - smid + s
+          w = y - tmid + t
+          value += kernel[smid - s, tmid - t] * image[v, w]
+      out[x, y] = value
+
+  return out
+
+
+def harris_corner(image_gray, **kwargs):
+  """ Harris Corner Detector """
+  assert len(image_gray.shape) == 2  # Ensure image is 1 channel (grayscale)
+  assert image_gray.dtype == "uint8"
+
+  # Apply Sobel filter find image gradients in x and y directions
+  img = image_gray / 255.0
+  sobel_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+  sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+  Ix = scipy.signal.convolve2d(img, sobel_x, mode="same")
+  Iy = scipy.signal.convolve2d(img, sobel_y, mode="same")
+
+  # Compute element-wise product of gradients and apply Gaussian filter
+  gauss_kern = 1.0 / 16.0 * np.array([[0, 2, 0], [2, 4, 2], [0, 2, 0]])
+  Ixx = scipy.signal.convolve2d(Ix * Ix, gauss_kern, mode="same")
+  Ixy = scipy.signal.convolve2d(Ix * Iy, gauss_kern, mode="same")
+  Iyy = scipy.signal.convolve2d(Iy * Iy, gauss_kern, mode="same")
+
+  # Calculate Harris corner response
+  k = 0.05
+  detA = Ixx * Iyy - Ixy**2
+  traceA = Ixx + Iyy
+  R = detA - k * traceA**2
+
+  radius = 5
+  size = 2 * radius + 1  # Size of dilation mask.
+  R_max = scipy.ndimage.rank_filter(R, -1, size=size)
+
+  bordermask = np.zeros(R.shape)
+  bordermask[radius:-radius, radius:-radius] = 1
+
+  # Extract corners
+  corners = []
+  image_rgb = cv2.cvtColor(image_gray, cv2.COLOR_GRAY2RGB)
+  image_h, image_w = image_gray.shape
+
+  for i, R_row in enumerate(R):
+    for j, r in enumerate(R_row):
+      if r > 0:
+        w = 10
+        offset = int(w / 2)
+        row_start = max(0, i - offset)
+        col_start = max(0, j - offset)
+        row_end = min(image_h, i + offset)
+        col_end = min(image_w, j + offset)
+
+        max_val = True
+        for py in range(row_start, row_end):
+          for px in range(col_start, col_end):
+            if r < R[py, px]:
+              max_val = False
+              break
+
+        if max_val:
+          if i > radius and i < (image_h - radius) and j > radius and j < (
+              image_w - radius):
+            corners.append([i, j, r])
+          # image_rgb[i, j] = [0, 0, 255]
+          # cv2.imshow("Corner", image_rgb[row_start:row_end, col_start:col_end])
+          # cv2.waitKey()
+
+  filtered_corners = []
+  corner_idx = 0
+  for corner in corners[corner_idx:]:
+    cx, cy, cr = corner
+    px, py, pr = corners[corner_idx - 1]
+    corner_idx += 1
+
+    dx = cx - px
+    dy = cy - py
+    dist = np.sqrt(dx**2 + dy**2)
+
+    if dist > 20:
+      filtered_corners.append((cx, cy))
+      image_rgb[cx, cy] = [0, 0, 255]
+      print(f"corner_idx: {corner_idx}, dist: {dist}", flush=True)
+
+      w = 10
+      offset = int(w / 2)
+      row_start = max(0, cy - offset)
+      col_start = max(0, cx - offset)
+      row_end = min(image_h, cy + offset)
+      col_end = min(image_w, cx + offset)
+      cv2.imshow("Corner", image_rgb[row_start:row_end, col_start:col_end])
+      cv2.waitKey()
+
+  # cv2.imshow("Ix", Ix)
+  # cv2.imshow("Iy", Iy)
+  # cv2.imshow("Ixx", Ixx)
+  # cv2.imshow("Ixy", Ixy)
+  # cv2.imshow("Iyy", Iyy)
+  # cv2.imshow("Corners", img_corners)
+  # cv2.imshow("Edges", img_edges)
+
+  # print(f"num corners: {len(filtered_corners)}")
+  # cv2.imshow("Corners", image_rgb)
+  # cv2.imshow("Response", R)
+
+  cv2.waitKey()
 
 
 # PINHOLE #####################################################################
@@ -6986,6 +7138,16 @@ class TestCV(unittest.TestCase):
     img_path = os.path.join(SCRIPT_DIR, "./test_data/images/flower.jpg")
     img = cv2.imread(img_path)
     img = illumination_invariant_transform(img)
+    # cv2.imshow("Image", img)
+    # cv2.waitKey(0)
+
+  def test_harris_corner(self):
+    """ Test harris_corner() """
+    img_file = "./test_data/images/checker_board-5x5.png"
+    img_path = os.path.join(SCRIPT_DIR, img_file)
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
+    img = harris_corner(img)
     # cv2.imshow("Image", img)
     # cv2.waitKey(0)
 
