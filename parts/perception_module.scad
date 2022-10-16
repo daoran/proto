@@ -378,10 +378,12 @@ module encoder_frame(show_encoder=1, show_motor=0) {
   mount_d = 11;
 
   motor_standoff_w = 5;
-  // motor_standoff_h = 12; // Roll and Yaw motor
-  motor_standoff_h = 7; // Pitch motor
+  motor_standoff_h = 12; // Roll and Yaw motor
+  // motor_standoff_h = 7; // Pitch motor
+
   encoder_standoff_w = 7;
-  encoder_standoff_h = 6;
+  encoder_standoff_h = 6; // Roll and Yaw motor
+
   support_w = 4;
   support_h = 3.5;
 
@@ -1602,6 +1604,101 @@ module print() {
     gimbal_pitch_frame(0, 0, 0);
 }
 
+module gimbal_roll_frame2(show_roll_motor=1, show_pitch_motor=1, show_encoder=1) {
+  motor_h = 15.0;
+  motor_mount_w = 13.2;
+  motor_mount_d = 20.5;
+  motor_offset_z = 35;
+
+  roll_mount_w = 30.0;
+  roll_mount_d = 39.0;
+  roll_mount_h = 5.0;
+
+  pitch_mount_w = roll_mount_w;
+  pitch_mount_d = roll_mount_h;
+  pitch_mount_h = 50;
+  pitch_mount_offset_y = (roll_mount_d + pitch_mount_d) / 2;
+  pitch_standoff_w = 6;
+  pitch_standoff_h = 7.5;
+
+  // Show roll motor
+  if (show_roll_motor) {
+    translate([0, 0, -motor_h]) gimbal_motor();
+  }
+
+  // Show pitch motor
+  if (show_pitch_motor) {
+    translate([0, motor_h / 2, motor_offset_z])
+      rotate([90, 45, 0])
+        gimbal_motor();
+  }
+
+  // Show encoder
+  if (show_encoder) {
+    translate([0, pitch_mount_offset_y - pitch_mount_d / 2, motor_offset_z])
+      rotate([90, 0, 0])
+        encoder_frame();
+  }
+
+  // Roll frame
+  difference() {
+    union() {
+      // Roll motor mount
+      translate([0, 0, roll_mount_h / 2])
+        cube([roll_mount_w, roll_mount_d, roll_mount_h], center=true);
+
+      // Pitch motor mount
+      translate([0, pitch_mount_offset_y, motor_offset_z])
+        rotate([90, 0, 0])
+          cylinder(r=motor_mount_d, h=pitch_mount_d, center=true);
+
+      // Pitch mount plate support
+      translate([0, pitch_mount_offset_y, motor_offset_z / 2])
+        cube([roll_mount_w, pitch_mount_d, motor_offset_z], center=true);
+    }
+
+    // Roll mount holes
+    roll_motor_holes = [
+      [motor_mount_w / 2, motor_mount_w / 2, roll_mount_h / 2],
+      [-motor_mount_w / 2, motor_mount_w / 2, roll_mount_h / 2],
+      [motor_mount_w / 2, -motor_mount_w / 2, roll_mount_h / 2],
+      [-motor_mount_w / 2, -motor_mount_w / 2, roll_mount_h / 2]
+    ];
+    for (pos = roll_motor_holes) {
+      translate(pos)
+        cylinder(r=M2_screw_w / 2, h=roll_mount_h + 0.01, center=true);
+    }
+
+    // Pitch motor center hole
+    translate([0, pitch_mount_offset_y, motor_offset_z])
+      rotate([90, 0, 0])
+        cylinder(r=10, h=pitch_mount_d + 0.01, center=true);
+
+    // Pitch motor holes
+    pitch_motor_holes = [
+      [motor_mount_d / 2, motor_mount_d / 2, 0],
+      [-motor_mount_d / 2, motor_mount_d / 2, 0],
+      [-motor_mount_d / 2, -motor_mount_d / 2, 0]
+    ];
+    for (pos = pitch_motor_holes) {
+      translate([0, pitch_mount_offset_y, motor_offset_z])
+        rotate([90, 45, 0])
+          translate(pos)
+            #cylinder(r=M2_screw_w / 2, h=roll_mount_h + 0.01, center=true);
+    }
+
+    // Wire management holes
+    translate([5, pitch_mount_offset_y, 12])
+      rotate([90, 0, 0])
+        cylinder(r=5, h=pitch_mount_d + 0.01, center=true);
+    translate([-5, pitch_mount_offset_y, 12])
+      rotate([90, 0, 0])
+        cylinder(r=5, h=pitch_mount_d + 0.01, center=true);
+    translate([0, pitch_mount_offset_y, 12])
+      cube([10, pitch_mount_d + 0.01, 10], center=true);
+  }
+}
+
 // Main
 // print();
 
@@ -1611,7 +1708,7 @@ module print() {
 
 // Component Development
 // battery_frame(batt_frame_w, batt_frame_d);
-encoder_frame(0);
+// encoder_frame(0);
 // fcu_frame(show_fcu);
 // stack_spacer(batt_h + 2, nut_counter_sink=1);
 // odroid_frame(nuc_mount_w, nuc_mount_d, 0);
@@ -1621,6 +1718,7 @@ encoder_frame(0);
 // sbgc_frame(show_sbgc=0);
 // gimbal_motor();
 // gimbal_pitch_frame(0, 0, 0, 0);
+gimbal_roll_frame2();
 // gimbal_roll_pivot_frame();
 // gimbal_roll_motor_frame();
 // gimbal_roll_bar_frame();
