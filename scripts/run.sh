@@ -156,7 +156,7 @@ dev_tiscam() {
 # run_sbgc_tests
 # dev_tiscam
 
-CAM0_SERIAL=19220362
+# CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363
 
 # gst-launch-1.0 \
