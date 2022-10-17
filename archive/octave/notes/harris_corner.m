@@ -11,7 +11,8 @@ N = 100;
 subpixel = true;
 
 % Load image
-im = imread("tests/test_data/chessboard.png");
+% im = imread("/home/chutsu/projects/proto/proto/test_data/images/checker_board-5x5.png");
+im = imread("/home/chutsu/checker_board.png");
 im = rgb2gray(im);
 
 % Calculate image gradients
@@ -45,28 +46,48 @@ Rmx = (R==mx) & (R>thresh) & bordermask;
 [r, c] = find(Rmx);  % Find row,col coords.
 keypoints = [c'; r'];
 
-% Visualize
+size(keypoints)
+
 figure();
-subplot(411)
-imshow(im);
-title("Image");
 
-subplot(412)
-imshow(Ix);
-title("Ix");
-
-subplot(413)
-imshow(Iy);
-title("Iy");
-
-subplot(414)
-imshow(R);
+subplot(131)
+imshow(R)
 title("R");
 
-figure();
-hold on;
-imshow(im);
-plot(keypoints(1, :), keypoints(2, :), "r+", "linewidth", 2.0);
-title("Detected Corners");
+subplot(132)
+imshow(mx)
+title("mx");
 
+subplot(133)
+imshow(Rmx)
+title("Rmx");
+
+% figure();
+% imshow(Rmx)
+% title("Rmx")
+
+%% Visualize
+%figure();
+%subplot(411)
+%imshow(im);
+%title("Image");
+%
+%subplot(412)
+%imshow(Ix);
+%title("Ix");
+%
+%subplot(413)
+%imshow(Iy);
+%title("Iy");
+%
+%subplot(414)
+%imshow(R);
+%title("R");
+%
+% figure();
+% hold on;
+% imshow(im);
+% plot(keypoints(1, :), keypoints(2, :), "r+", "linewidth", 2.0);
+% title("Detected Corners");
+%
 ginput();

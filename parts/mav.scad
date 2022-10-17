@@ -440,13 +440,13 @@ module tool_mav_arm_holes(dev_mode=0) {
         translate([0, 15, 0])
         cube([tool_w, tool_d, tool_h], center=true);
 
-        // Drill guide
-        translate([0, mav_motor_hole_d / 2, (tool_h + guide_h) / 2])
-          cylinder(r=guide_w / 2, h=guide_h, center=true);
-        translate([0, -mav_motor_hole_d / 2, (tool_h + guide_h) / 2])
-          cylinder(r=guide_w / 2, h=guide_h, center=true);
-        translate([0, 48 / 2, , (tool_h + guide_h) / 2])
-          cylinder(r=guide_w / 2, h=guide_h + 0.01, center=true);
+        // // Drill guide
+        // translate([0, mav_motor_hole_d / 2, (tool_h + guide_h) / 2])
+        //   cylinder(r=guide_w / 2, h=guide_h, center=true);
+        // translate([0, -mav_motor_hole_d / 2, (tool_h + guide_h) / 2])
+        //   cylinder(r=guide_w / 2, h=guide_h, center=true);
+        // translate([0, 48 / 2, , (tool_h + guide_h) / 2])
+        //   cylinder(r=guide_w / 2, h=guide_h + 0.01, center=true);
       }
     }
 

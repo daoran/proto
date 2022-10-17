@@ -36,6 +36,7 @@ run_memcheck() {
 # python3 proto/proto.py TestTransform.test_quat_conj
 # python3 proto/proto.py TestTransform.test_quat_slerp
 # python3 proto/proto.py TestCV
+python3 proto/proto.py TestCV.test_harris_corner
 # python3 proto/proto.py TestFactors
 # python3 proto/proto.py TestFactors.test_pose_factor
 # python3 proto/proto.py TestFactors.test_ba_factor
@@ -153,9 +154,9 @@ dev_tiscam() {
 }
 
 # run_sbgc_tests
-dev_tiscam
+# dev_tiscam
 
-# CAM0_SERIAL=19220362
+CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363
 
 # gst-launch-1.0 \
@@ -191,7 +192,9 @@ dev_tiscam
 #   videotestsrc pattern="green" ! videoconvert ! comp.sink_1
 
 # gst-launch-1.0 \
-#   tcambin serial=$CAM1_SERIAL ! videoconvert ! autovideosink
+#   tcambin serial=$CAM0_SERIAL \
+#   ! videoconvert \
+#   ! autovideosink
 
 
 # format="video/x-bayer, format=gbrg, width=640, height=480,framerate=30/1"

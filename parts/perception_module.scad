@@ -747,6 +747,44 @@ module gimbal_motor(has_encoders=0) {
   }
 }
 
+module gimbal_camera_frame(show_camera=1) {
+  camera_mount_w = 24.5;
+  frame_standoff_w = 4;
+  frame_standoff_h = 6;
+  frame_support_w = 6;
+  frame_support_h = 3;
+
+  // Show camera
+  if (show_camera) {
+    translate([0, 0, frame_standoff_h])
+      board_camera();
+  }
+
+  // Camera frame
+  frame(camera_mount_w, camera_mount_w,
+        M2_screw_w, M2_nut_w, M2_nut_h,
+        frame_support_w, frame_support_h,
+        frame_support_w - 3, frame_support_h,
+        0, 1);
+
+  // Board camera standoffs
+  mount_w = 24.5;
+  dh = frame_standoff_h - frame_support_h;
+  x = mount_w / 2.0;
+  y = mount_w / 2.0;
+  z = frame_support_h + dh / 2;
+  positions = [[x, y, z], [x, -y, z], [-x, y, z], [-x, -y, z]];
+  for (pos = positions) {
+    translate(pos) {
+      difference() {
+        cylinder(r=frame_standoff_w / 2, h=dh, center=true);
+        cylinder(r=M2_screw_w / 2.0, h=dh + 0.01, center=true);
+      }
+    }
+  }
+
+}
+
 module gimbal_pitch_frame(has_encoders=0, show_camera=1, show_motor=1, show_imu=1, dual_motors=1) {
   motor_h = (has_encoders) ? 25.0 : 15.0;
   camera_mount_w = 18.5;
@@ -1147,7 +1185,10 @@ module gimbal_roll_frame(has_encoders=0, show_pitch_frame=1, dual_motors=1) {
   }
 }
 
-module gimbal_roll_frame2(show_roll_motor=1, show_pitch_motor=1, show_encoder=1) {
+module gimbal_roll_frame2(show_roll_motor=1, 
+                          show_pitch_motor=1, 
+                          show_pitch_frame=1, 
+                          show_encoder=1) {
   motor_h = 15.0;
   motor_mount_w = 13.2;
   motor_mount_d = 20.5;
@@ -1185,9 +1226,11 @@ module gimbal_roll_frame2(show_roll_motor=1, show_pitch_motor=1, show_encoder=1)
   }
 
   // Show pitch frame
-  translate([0, motor_offset_y - motor_h / 2 - 5, motor_offset_z])
-    rotate([-90, 0, 0])
-    gimbal_pitch_frame2();
+  if (show_pitch_frame) {
+    translate([0, motor_offset_y - motor_h / 2 - 5, motor_offset_z])
+      rotate([-90, 0, 0])
+      gimbal_pitch_frame2();
+  }
 
   // Roll frame
   difference() {
@@ -1262,8 +1305,14 @@ module gimbal_pitch_frame2(show_pitch_motor=0, show_encoder=0) {
   pitch_standoff_h = 37.5;
   pitch_support_h = pitch_standoff_h;
 
-  rod_offset_x = motor_mount_d + 8;
+  rod_offset_x = motor_mount_d + 15;
   rod_standoff_w = 10;
+
+  support_hole_d = 15;
+  support_hole_h = 8;
+  support_h = pitch_support_h / 2;
+
+  ext_mount_w = 8;
 
   // Show pitch motor
   if (show_pitch_motor) {
@@ -1271,6 +1320,12 @@ module gimbal_pitch_frame2(show_pitch_motor=0, show_encoder=0) {
       gimbal_motor();
   }
 
+
+  rotate([0, 90, 0])
+    translate([0, 0, pitch_standoff_h / 2])
+      gimbal_camera_frame(show_camera=1);
+
+  // Pitch frame
   difference() {
     union() {
       // Pitch motor mount
@@ -1308,39 +1363,30 @@ module gimbal_pitch_frame2(show_pitch_motor=0, show_encoder=0) {
     translate([rod_offset_x, -motor_mount_d * 0.8, pitch_standoff_h / 2])
       cylinder(r=M2_screw_w / 2 + tol, h=pitch_standoff_h + 0.01, center=true);
 
-    // Support holes
-    support_hole_d = 15;
-    support_hole_h = 6;
-    upper_support_h = pitch_support_h / 2 + pitch_mount_h / 2 + 9;
-    middle_support_h = pitch_support_h / 2 + pitch_mount_h / 2;
-    lower_support_h = pitch_support_h / 2 + pitch_mount_h / 2 - 9;
-
-    translate([rod_offset_x, 0, upper_support_h])
+    // Support hole
+    translate([rod_offset_x, 0, support_h])
       cube([rod_standoff_w + 0.01, support_hole_d, support_hole_h], center=true);
-    translate([rod_offset_x, support_hole_d / 2, upper_support_h])
+    translate([rod_offset_x, support_hole_d / 2, support_h])
       rotate([0, 90, 0])
         cylinder(r=support_hole_h / 2, h=rod_standoff_w + 0.01, center=true);
-    translate([rod_offset_x, -support_hole_d / 2, upper_support_h])
+    translate([rod_offset_x, -support_hole_d / 2, support_h])
       rotate([0, 90, 0])
         cylinder(r=support_hole_h / 2, h=rod_standoff_w + 0.01, center=true);
 
-    translate([rod_offset_x, 0, middle_support_h])
-      cube([rod_standoff_w + 0.01, support_hole_d, support_hole_h], center=true);
-    translate([rod_offset_x, support_hole_d / 2, middle_support_h])
-      rotate([0, 90, 0])
-        cylinder(r=support_hole_h / 2, h=rod_standoff_w + 0.01, center=true);
-    translate([rod_offset_x, -support_hole_d / 2, middle_support_h])
-      rotate([0, 90, 0])
-        cylinder(r=support_hole_h / 2, h=rod_standoff_w + 0.01, center=true);
+    // External mount holes
+    translate([rod_offset_x, 0, support_h]) {
+      rotate([0, 90, 0]) {
+        for (i = [1:4]) {
+          rotate(90 * i) {
+            translate([ext_mount_w, ext_mount_w, 0])
+              cylinder(r=M2_screw_w / 2, h=rod_standoff_w + 0.01, center=true);
 
-    translate([rod_offset_x, 0, lower_support_h])
-      cube([rod_standoff_w + 0.01, support_hole_d, support_hole_h], center=true);
-    translate([rod_offset_x, support_hole_d / 2, lower_support_h])
-      rotate([0, 90, 0])
-        cylinder(r=support_hole_h / 2, h=rod_standoff_w + 0.01, center=true);
-    translate([rod_offset_x, -support_hole_d / 2, lower_support_h])
-      rotate([0, 90, 0])
-        cylinder(r=support_hole_h / 2, h=rod_standoff_w + 0.01, center=true);
+            translate([ext_mount_w, ext_mount_w, -rod_standoff_w / 2 + M2_nut_h / 2])
+              cylinder(r=M2_nut_w / 2, h=M2_nut_h + 0.01, $fn=6, center=true);
+          }
+        }
+      }
+    }
   }
 }
 
@@ -1820,13 +1866,17 @@ module print() {
 // stereo_camera_frame();
 // sbgc_frame(show_sbgc=0);
 // gimbal_motor();
+// gimbal_camera_frame();
 // gimbal_pitch_frame(0, 0, 0, 0);
 // gimbal_roll_pivot_frame();
 // gimbal_roll_motor_frame();
 // gimbal_roll_bar_frame();
 // gimbal_roll_frame();
-gimbal_roll_frame2();
-// gimbal_pitch_frame2();
+// gimbal_roll_frame2(show_roll_motor=1,
+//                    show_pitch_motor=1,
+//                    show_pitch_frame=1,
+//                    show_encoder=1);
+gimbal_pitch_frame2();
 // gimbal_yaw_frame(0);
 // gimbal_frame(nuc_mount_w, nuc_mount_d, 0, 0, 0);
 // nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=1);
