@@ -1980,9 +1980,16 @@ def convolve2d(image, kernel):
 
 
 def harris_corner(image_gray, **kwargs):
-  """ Harris Corner Detector """
+  """ Harris Corner Detector
+
+  For educational purposes only, this implementation is slower than OpenCV's.
+
+  """
   assert len(image_gray.shape) == 2  # Ensure image is 1 channel (grayscale)
   assert image_gray.dtype == "uint8"
+  k = kwargs.get("k", 0.05)
+  radius = kwargs.get("radius", 5)
+  min_dist = kwargs.get("min_dist", 10)
 
   # Apply Sobel filter find image gradients in x and y directions
   img = image_gray / 255.0
@@ -1998,14 +2005,12 @@ def harris_corner(image_gray, **kwargs):
   Iyy = scipy.signal.convolve2d(Iy * Iy, gauss_kern, mode="same")
 
   # Calculate Harris corner response
-  k = 0.05
-  detA = Ixx * Iyy - Ixy**2
-  traceA = Ixx + Iyy
-  R = detA - k * traceA**2
+  detM = Ixx * Iyy - Ixy**2
+  traceM = Ixx + Iyy
+  R = detM - k * traceM**2
 
   # Extract corners
   corners = []
-  radius = 5
   image_h, image_w = image_gray.shape
 
   for i, R_row in enumerate(R):
@@ -2022,15 +2027,86 @@ def harris_corner(image_gray, **kwargs):
   # Make sure corners are N pixels apart
   mask = np.zeros((image_h, image_w))
   filtered_corners = []
+  offset = int(min_dist / 2)
   for corner in corners:
     cx, cy, _ = corner
 
-    w = 10
-    offset = int(w / 2)
     row_start = max(0, cy - offset)
     col_start = max(0, cx - offset)
     row_end = min(image_h, cy + offset)
     col_end = min(image_w, cx + offset)
+
+    occuppied = False
+    for i in range(row_start, row_end):
+      for j in range(col_start, col_end):
+        if mask[i, j] == 1:
+          occuppied = True
+          break
+
+    if occuppied is False:
+      mask[row_start:row_end, col_start:col_end] = 1
+      filtered_corners.append((cx, cy))
+
+  return filtered_corners
+
+
+def shi_tomasi_corner(image_gray, **kwargs):
+  """ Shi-Tomasi Corner Detector
+
+  For educational purposes only, this implementation is slower than OpenCV's.
+
+  """
+  assert len(image_gray.shape) == 2  # Ensure image is 1 channel (grayscale)
+  assert image_gray.dtype == "uint8"
+  radius = kwargs.get("radius", 5)
+  min_dist = kwargs.get("min_dist", 10)
+  thresh = 0.1
+  offset = 0
+
+  # Apply Sobel filter find image gradients in x and y directions
+  img = image_gray / 255.0
+  img_h, img_w = image_gray.shape
+  sobel_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+  sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+  Ix = scipy.signal.convolve2d(img, sobel_x, mode="same")
+  Iy = scipy.signal.convolve2d(img, sobel_y, mode="same")
+
+  # Compute element-wise product of gradients and apply Gaussian filter
+  gauss_kern = 1.0 / 16.0 * np.array([[0, 2, 0], [2, 4, 2], [0, 2, 0]])
+  Ixx = scipy.signal.convolve2d(Ix * Ix, gauss_kern, mode="same")
+  Ixy = scipy.signal.convolve2d(Ix * Iy, gauss_kern, mode="same")
+  Iyy = scipy.signal.convolve2d(Iy * Iy, gauss_kern, mode="same")
+
+  # Extract corners
+  corners = []
+  for i in range(offset, img_h - offset):
+    for j in range(offset, img_w - offset):
+      # Calculate sum of squares
+      Sxx = Ixx[i - offset:i + offset + 1, j - offset:j + offset + 1].sum()
+      Syy = Iyy[i - offset:i + offset + 1, j - offset:j + offset + 1].sum()
+      r = min(Sxx, Syy)
+
+      # Threshold for corner
+      if r > thresh:
+        x_ok = i > radius and i < (img_h - radius)
+        y_ok = j > radius and j < (img_w - radius)
+        if x_ok and y_ok:
+          corners.append((i, j, r))
+
+  # Sort corners by responses
+  corners = sorted(corners, key=lambda x: x[2], reverse=True)
+
+  # Make sure corners are N pixels apart
+  mask = np.zeros((img_h, img_w))
+  filtered_corners = []
+  offset = int(min_dist / 2)
+  for corner in corners:
+    cx, cy, _ = corner
+
+    row_start = max(0, cy - offset)
+    col_start = max(0, cx - offset)
+    row_end = min(img_h, cy + offset)
+    col_end = min(img_w, cx + offset)
 
     occuppied = False
     for i in range(row_start, row_end):
@@ -7126,6 +7202,26 @@ class TestCV(unittest.TestCase):
       x, y = corner
       img[x, y] = [0, 0, 255]
 
+    print(f"num corners: {len(corners)}")
+    cv2.imshow("Image", img)
+    cv2.waitKey(0)
+
+  def test_shi_tomasi_corner(self):
+    """ Test shi_tomasi_corner() """
+    img_file = "./test_data/images/checker_board-5x5.png"
+    img_path = os.path.join(SCRIPT_DIR, img_file)
+    img = cv2.imread(img_path)
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # corners = cv2.goodFeaturesToTrack(img_gray, 1000, 0.01, 10)
+    # corners = np.int0(corners)
+
+    corners = shi_tomasi_corner(img_gray)
+    for corner in corners:
+      x, y = corner
+      img[x, y] = [0, 0, 255]
+
+    print(f"num corners: {len(corners)}")
     cv2.imshow("Image", img)
     cv2.waitKey(0)
 
