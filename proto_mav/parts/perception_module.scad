@@ -1505,7 +1505,7 @@ module gimbal_pitch_frame2(show_pitch_motor=0, show_encoder=0) {
   }
 }
 
-module gimbal_yaw_frame(show_roll_frame=1, show_sbgc_frame=1) {
+module gimbal_yaw_frame(show_roll_frame=1, show_sbgc_frame=0) {
   has_encoders = 0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   motor_mount_w = 13.2;
@@ -1618,7 +1618,7 @@ module gimbal_yaw_frame(show_roll_frame=1, show_sbgc_frame=1) {
         for (i = [1:4]) {
           rotate(90 * i + 45)
             translate([motor_mount_d / 2, motor_mount_d / 2, standoff_h / 2])
-              #cylinder(r=M2_screw_w / 2, h=standoff_h + 0.01, center=true);
+              cylinder(r=M2_screw_w / 2, h=standoff_h + 0.01, center=true);
         }
 
         translate([0, 0, standoff_h / 2])
