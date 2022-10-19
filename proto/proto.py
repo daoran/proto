@@ -2003,81 +2003,47 @@ def harris_corner(image_gray, **kwargs):
   traceA = Ixx + Iyy
   R = detA - k * traceA**2
 
-  radius = 5
-  size = 2 * radius + 1  # Size of dilation mask.
-  R_max = scipy.ndimage.rank_filter(R, -1, size=size)
-
-  bordermask = np.zeros(R.shape)
-  bordermask[radius:-radius, radius:-radius] = 1
-
   # Extract corners
   corners = []
-  image_rgb = cv2.cvtColor(image_gray, cv2.COLOR_GRAY2RGB)
+  radius = 5
   image_h, image_w = image_gray.shape
 
   for i, R_row in enumerate(R):
     for j, r in enumerate(R_row):
       if r > 0:
-        w = 10
-        offset = int(w / 2)
-        row_start = max(0, i - offset)
-        col_start = max(0, j - offset)
-        row_end = min(image_h, i + offset)
-        col_end = min(image_w, j + offset)
+        x_ok = i > radius and i < (image_h - radius)
+        y_ok = j > radius and j < (image_w - radius)
+        if x_ok and y_ok:
+          corners.append([i, j, r])
 
-        max_val = True
-        for py in range(row_start, row_end):
-          for px in range(col_start, col_end):
-            if r < R[py, px]:
-              max_val = False
-              break
+  # Sort corners by responses
+  corners = sorted(corners, key=lambda x: x[2], reverse=True)
 
-        if max_val:
-          if i > radius and i < (image_h - radius) and j > radius and j < (
-              image_w - radius):
-            corners.append([i, j, r])
-          # image_rgb[i, j] = [0, 0, 255]
-          # cv2.imshow("Corner", image_rgb[row_start:row_end, col_start:col_end])
-          # cv2.waitKey()
-
+  # Make sure corners are N pixels apart
+  mask = np.zeros((image_h, image_w))
   filtered_corners = []
-  corner_idx = 0
-  for corner in corners[corner_idx:]:
-    cx, cy, cr = corner
-    px, py, pr = corners[corner_idx - 1]
-    corner_idx += 1
+  for corner in corners:
+    cx, cy, _ = corner
 
-    dx = cx - px
-    dy = cy - py
-    dist = np.sqrt(dx**2 + dy**2)
+    w = 10
+    offset = int(w / 2)
+    row_start = max(0, cy - offset)
+    col_start = max(0, cx - offset)
+    row_end = min(image_h, cy + offset)
+    col_end = min(image_w, cx + offset)
 
-    if dist > 20:
+    occuppied = False
+    for i in range(row_start, row_end):
+      for j in range(col_start, col_end):
+        if mask[i, j] == 1:
+          occuppied = True
+          break
+
+    if occuppied is False:
+      mask[row_start:row_end, col_start:col_end] = 1
       filtered_corners.append((cx, cy))
-      image_rgb[cx, cy] = [0, 0, 255]
-      print(f"corner_idx: {corner_idx}, dist: {dist}", flush=True)
 
-      w = 10
-      offset = int(w / 2)
-      row_start = max(0, cy - offset)
-      col_start = max(0, cx - offset)
-      row_end = min(image_h, cy + offset)
-      col_end = min(image_w, cx + offset)
-      cv2.imshow("Corner", image_rgb[row_start:row_end, col_start:col_end])
-      cv2.waitKey()
-
-  # cv2.imshow("Ix", Ix)
-  # cv2.imshow("Iy", Iy)
-  # cv2.imshow("Ixx", Ixx)
-  # cv2.imshow("Ixy", Ixy)
-  # cv2.imshow("Iyy", Iyy)
-  # cv2.imshow("Corners", img_corners)
-  # cv2.imshow("Edges", img_edges)
-
-  # print(f"num corners: {len(filtered_corners)}")
-  # cv2.imshow("Corners", image_rgb)
-  # cv2.imshow("Response", R)
-
-  cv2.waitKey()
+  return filtered_corners
 
 
 # PINHOLE #####################################################################
@@ -7145,11 +7111,23 @@ class TestCV(unittest.TestCase):
     """ Test harris_corner() """
     img_file = "./test_data/images/checker_board-5x5.png"
     img_path = os.path.join(SCRIPT_DIR, img_file)
-    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread(img_path)
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    img = harris_corner(img)
-    # cv2.imshow("Image", img)
-    # cv2.waitKey(0)
+    # corners = cv2.goodFeaturesToTrack(img_gray, 1000, 0.01, 10)
+    # corners = np.int0(corners)
+    # for i in corners:
+    #   x, y = i.ravel()
+    #   # cv2.circle(img, (x, y), 1, 255, -1)
+    #   img[x, y] = [0, 0, 255]
+
+    corners = harris_corner(img_gray)
+    for corner in corners:
+      x, y = corner
+      img[x, y] = [0, 0, 255]
+
+    cv2.imshow("Image", img)
+    cv2.waitKey(0)
 
   def test_pinhole_K(self):
     """ Test pinhole_K() """
