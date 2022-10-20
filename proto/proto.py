@@ -1930,10 +1930,11 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   return p
 
 
-# FEATURES ####################################################################
+# FEATURES 2D #################################################################
 
 
 def convolve2d(image, kernel):
+  """ Convolve 2D image with kernel """
   # f is an image and is indexed by (v, w)
   # kernel is a filter kernel and is indexed by (s, t),
   #   it needs odd dimensions
@@ -2015,11 +2016,15 @@ def harris_corner(image_gray, **kwargs):
 
   for i, R_row in enumerate(R):
     for j, r in enumerate(R_row):
+      # Check pixel is not too close to image boundary
+      x_ok = i > radius and i < (image_h - radius)
+      y_ok = j > radius and j < (image_w - radius)
+      if not x_ok or not y_ok:
+        continue
+
+      # Region is a corner
       if r > 0:
-        x_ok = i > radius and i < (image_h - radius)
-        y_ok = j > radius and j < (image_w - radius)
-        if x_ok and y_ok:
-          corners.append([i, j, r])
+        corners.append([i, j, r])
 
   # Sort corners by responses
   corners = sorted(corners, key=lambda x: x[2], reverse=True)
@@ -2074,13 +2079,18 @@ def shi_tomasi_corner(image_gray, **kwargs):
   # Compute element-wise product of gradients and apply Gaussian filter
   gauss_kern = 1.0 / 16.0 * np.array([[0, 2, 0], [2, 4, 2], [0, 2, 0]])
   Ixx = scipy.signal.convolve2d(Ix * Ix, gauss_kern, mode="same")
-  Ixy = scipy.signal.convolve2d(Ix * Iy, gauss_kern, mode="same")
   Iyy = scipy.signal.convolve2d(Iy * Iy, gauss_kern, mode="same")
 
   # Extract corners
   corners = []
   for i in range(offset, img_h - offset):
     for j in range(offset, img_w - offset):
+      # Check pixel is not too close to image boundary
+      x_ok = i > radius and i < (img_h - radius)
+      y_ok = j > radius and j < (img_w - radius)
+      if not x_ok or not y_ok:
+        continue
+
       # Calculate sum of squares
       Sxx = Ixx[i - offset:i + offset + 1, j - offset:j + offset + 1].sum()
       Syy = Iyy[i - offset:i + offset + 1, j - offset:j + offset + 1].sum()
@@ -2088,10 +2098,7 @@ def shi_tomasi_corner(image_gray, **kwargs):
 
       # Threshold for corner
       if r > thresh:
-        x_ok = i > radius and i < (img_h - radius)
-        y_ok = j > radius and j < (img_w - radius)
-        if x_ok and y_ok:
-          corners.append((i, j, r))
+        corners.append((i, j, r))
 
   # Sort corners by responses
   corners = sorted(corners, key=lambda x: x[2], reverse=True)
