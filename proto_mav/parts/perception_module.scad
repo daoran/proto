@@ -639,7 +639,7 @@ module stereo_camera_frame(show_cameras=1) {
 module sbgc_board() {
   difference() {
     // Body
-    color([1.0, 0.5, 0.0])
+    color([0.0, 1.0, 0.0])
       translate([0, 0, sbgc_h / 2])
         cube([sbgc_w, sbgc_d, sbgc_h], center=true);
 
@@ -676,11 +676,10 @@ module sbgc_frame(show_sbgc=1) {
               mount_support_w, mount_support_h);
 
       // Simple BGC
-      // if (show_sbgc) {
-      //   color([1.0, 0.5, 0.0])
-      //     translate([sbgc_offset_x, 0, sbgc_standoff_h])
-      //       sbgc_board();
-      // }
+      if (show_sbgc) {
+        translate([sbgc_offset_x, 0, sbgc_standoff_h])
+          sbgc_board();
+      }
 
       // SBGC frame
       translate([sbgc_offset_x, 0, 0])
@@ -1535,15 +1534,18 @@ module gimbal_yaw_frame(show_roll_frame=1, show_sbgc_frame=1) {
   support_w = 8.0;
   support_h = 8.0;
 
-  encoder_h = 7.5;
+  encoder_h = 12;
   roll_mount_h = 50;
   roll_mount_d = 48;
 
   // Show roll frame
   if (show_roll_frame) {
+    // rotate([0, 90, 0])
+      // translate([-roll_mount_h, 0.0, -roll_mount_d + motor_h + encoder_h - 0.01])
+        // gimbal_roll_frame();
+
     rotate([0, 90, 0])
       translate([-roll_mount_h, 0.0, -roll_mount_d + motor_h + encoder_h - 0.01])
-        // gimbal_roll_frame();
         gimbal_roll_frame2();
 
     rotate([0, 90, 0])
@@ -1998,7 +2000,7 @@ module print() {
 //                    show_encoder=1);
 // gimbal_pitch_frame2();
 // gimbal_yaw_frame();
-// gimbal_frame(nuc_mount_w, nuc_mount_d, 1);
+gimbal_frame(nuc_mount_w, nuc_mount_d, 1);
 // nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=1);
 // payload_frame(mav_payload_mount_w, mav_payload_mount_d,
 //               mav_frame_support_w, mav_frame_support_h,
