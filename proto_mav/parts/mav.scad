@@ -407,9 +407,9 @@ module mav_assembly() {
                         mav_peg_inner_w);
 
   // Perception Module
-  // rotate([180, 0, 0])
-  //   translate([0, 0, 8])
-  //     perception_module();
+  rotate([180, 0, 0])
+    translate([0, 0, 8])
+      perception_module();
 }
 
 module tool_mav_arm_holes(dev_mode=0) {
@@ -484,7 +484,7 @@ module tool_mav_arm_holes(dev_mode=0) {
 // mav_arm(arm_w, arm_l);
 // mav_arm_peg(mav_peg_inner_w, mav_peg_outer_w);
 // mav_arm_supports(mav_peg_inner_w, 0);
-// mav_arm_supports(mav_peg_inner_w, 1);
+mav_arm_supports(mav_peg_inner_w, 1);
 // mav_frame(mav_frame_standoff_w, mav_frame_standoff_h,
 //           mav_frame_support_w, mav_frame_support_h,
 //           mav_peg_inner_w);

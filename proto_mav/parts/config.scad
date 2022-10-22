@@ -27,10 +27,11 @@ pololu_mount_w = 43.2;
 pololu_mount_d = 10.2;
 
 // SBGC
-sbgc_w = 40.0;
-sbgc_d = 25.0;
-sbgc_mount_w = 23.1;
-sbgc_mount_d = 19.0;
+sbgc_w = 50.0;
+sbgc_d = 50.0;
+sbgc_h = 15.0;
+sbgc_mount_w = 45;
+sbgc_mount_d = 45;
 
 // 4S Lipo Battery
 batt_w = 76.0;
