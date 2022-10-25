@@ -10,10 +10,8 @@ module mount_holes(mount_w, mount_d, hole_w, hole_h, fn=30, wtol=0.0, htol=0.01)
   }
 }
 
-
-difference() {
-  translate([0, 0, 2.5])
-    cube([10, 10, 5], center=true);
-
-  #mount_holes(8, 8, 2, 5, fn=6);
-}
+// difference() {
+//   translate([0, 0, 2.5])
+//     cube([10, 10, 5], center=true);
+//   #mount_holes(8, 8, 2, 5, fn=6);
+// }

@@ -1,6 +1,8 @@
 module frame(w, d, screw_w, nut_w, nut_h,
-             standoff_w, standoff_h, support_w, support_h,
-             nut_cst=0, nut_csb=0, disable=[]) {
+             standoff_w, standoff_h,
+             support_w, support_h,
+             nut_cst=0, nut_csb=0,
+             disable=[]) {
   positions = [
     [w / 2, d / 2, standoff_h / 2],
     [w / 2, -d / 2, standoff_h / 2],
