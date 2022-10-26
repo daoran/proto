@@ -892,8 +892,8 @@ def Exp(phi):
   phi_skew_sq = phi_skew @ phi_skew
 
   C = eye(3)
-  C += (sin(phi_norm) / phi_norm) * phi_skew
-  C += ((1 - cos(phi_norm)) / phi_norm**2) * phi_skew_sq
+  C += (sin(phi_norm) / phi_norm) @ phi_skew
+  C += ((1 - cos(phi_norm)) / phi_norm**2) @ phi_skew_sq
   return C
 
 
@@ -975,15 +975,18 @@ def Jr_inv(theta):
 
 def boxplus(C, alpha):
   """ Box plus """
+  assert C.shape == (3, 3)
   # C_updated = C [+] alpha
-  C_updated = C * Exp(alpha)
+  C_updated = C @ Exp(alpha)
   return C_updated
 
 
 def boxminus(C_a, C_b):
   """ Box minus """
+  assert C_a.shape == (3, 3)
+  assert C_b.shape == (3, 3)
   # alpha = C_a [-] C_b
-  alpha = Log(inv(C_b) * C_a)
+  alpha = Log(C_b.T @ C_a)
   return alpha
 
 
@@ -3149,6 +3152,15 @@ def compl_filter(gyro, accel, dt, roll, pitch):
 # STATE VARIABLES #############################################################
 
 
+class StateVariableType(Enum):
+  """ State Variable Type """
+  POSE = 1
+  EXTRINSICS = 2
+  FEATURE = 3
+  CAMERA = 4
+  SPEED_AND_BIASES = 5
+
+
 @dataclass
 class StateVariable:
   """ State variable """
@@ -3169,15 +3181,6 @@ class StateVariable:
   def __hash__(self):
     """ Hash function """
     return hash(repr(self))
-
-
-class StateVariableType(Enum):
-  """ State Variable Type """
-  POSE = 1
-  EXTRINSICS = 2
-  FEATURE = 3
-  CAMERA = 4
-  SPEED_AND_BIASES = 5
 
 
 class FeatureMeasurements:
@@ -4176,6 +4179,7 @@ class MargFactor(Factor):
     self.marg_param_ids = set()  # Parameters to be marginalized
     self.remain_param_ids = set()  # Parameters to remain
     self.factors = []  # Factors to be marginalized
+    self.param_idxs = {}  # Param column indicies
 
     self.r0 = None  # Linearized residuals
     self.J0 = None  # Linearized jacobians
@@ -4199,14 +4203,13 @@ class MargFactor(Factor):
     H_idx = 0
     marg_size = 0
     remain_size = 0
-    param_idxs = {}
     marg_params = []
     remain_params = []
 
     # -- Column indices for parameter blocks to be marginalized
     for param_id in self.marg_param_ids:
       param_block = param_blocks[param_id]
-      param_idxs[param_id] = H_idx
+      self.param_idxs[param_id] = H_idx
       H_idx += param_block.min_dims
       marg_size += param_block.min_dims
       marg_params.append(param_block)
@@ -4214,7 +4217,7 @@ class MargFactor(Factor):
     # -- Column indices for parameter blocks to remain
     for param_id in self.remain_param_ids:
       param_block = param_blocks[param_id]
-      param_idxs[param_id] = H_idx
+      self.param_idxs[param_id] = H_idx
       H_idx += param_block.min_dims
       remain_size += param_block.min_dims
       remain_params.append(param_block)
@@ -4235,7 +4238,7 @@ class MargFactor(Factor):
         param_i = param_blocks[factor.param_ids[i]]
         if param_i.fix:
           continue
-        idx_i = param_idxs[factor.param_ids[i]]
+        idx_i = self.param_idxs[factor.param_ids[i]]
         size_i = param_i.min_dims
         J_i = jacobians[i]
 
@@ -4243,7 +4246,7 @@ class MargFactor(Factor):
           param_j = param_blocks[factor.param_ids[j]]
           if param_j.fix:
             continue
-          idx_j = param_idxs[factor.param_ids[j]]
+          idx_j = self.param_idxs[factor.param_ids[j]]
           size_j = param_j.min_dims
           J_j = jacobians[j]
 
@@ -4263,16 +4266,20 @@ class MargFactor(Factor):
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
-    return (H, g, param_idxs, marg_size, remain_size)
+    return (H, g, marg_size, remain_size)
 
   @staticmethod
   def _shur_complement(H, b, m, eps=1e-8):
     """ Schur complement """
+    # H = [H_mm, H_mr,
+    #      H_rm, H_rr]
     H_mm = H[:m, :m]
     H_mr = H[:m, m:]
     H_rm = H[m:, :m]
     H_rr = H[m:, m:]
 
+    # b = [b_mm,
+    #      b_rr]
     b_mm = b[:m]
     b_rr = b[m:]
 
@@ -4291,8 +4298,12 @@ class MargFactor(Factor):
     Lambda_inv = np.diag(w_inv)
     H_mm_inv = V @ Lambda_inv @ V.T
 
-    # -- Check inverse
-    inv_check_sum = ((H_mm @ H_mm_inv) - np.eye(H_mm.shape[0])).sum()
+    # Check inverse
+    check_inverse = True
+    if check_inverse:
+      inv_norm = np.linalg.norm((H_mm @ H_mm_inv) - np.eye(H_mm.shape[0]))
+      if inv_norm > 1e-8:
+        print("Hmmm... inverse check failed in MargFactor!")
 
     # Apply Shur-Complement
     H_marg = H_rr - H_rm @ H_mm_inv @ H_mr
@@ -4303,8 +4314,10 @@ class MargFactor(Factor):
   @staticmethod
   def _decomp_hessian(H, eps=1e-12):
     """ Decompose Hessian into J.T * J """
+    # Decompose Hessian via Eigen-Decomposition
     w, V = np.linalg.eigh(H)
 
+    # Check eigen-values
     w_inv = np.zeros(w.shape)
     for idx, w_i in enumerate(w):
       if w_i > eps:
@@ -4313,47 +4326,81 @@ class MargFactor(Factor):
         w[idx] = 0.0
         w_inv[idx] = 0.0
 
-    S_sqrt = np.diag(w**0.5)
-    S_inv_sqrt = np.diag(w_inv**0.5)
-
+    # Form J.T and J
+    S_sqrt = np.diag(np.sqrt(w))
+    S_inv_sqrt = np.diag(np.sqrt(w_inv))
     J = S_sqrt @ V.T
     J_inv = S_inv_sqrt @ V.T
 
     # Check decomposition
-    decomp_norm = np.linalg.norm((J.T @ J) - H)
-    print((J.T @ J) - H)
-    # print(f"decomp norm: {decomp_norm}")
+    # decomp_norm = np.linalg.norm((J.T @ J) - H)
 
     return J, J_inv
 
   def marginalize(self, param_blocks):
     """ Marginalize """
     # Marginalize
-    H, g, _, marg_size, _ = self._linearize(param_blocks)
+    H, g, marg_size, _ = self._linearize(param_blocks)
     H_marg, b_marg = self._shur_complement(H, g, marg_size)
     J, J_inv = self._decomp_hessian(H_marg)
 
     # First-Estimate Jacobians (FEJ)
     # Keep track of:
-    # - Linearized Jacobians
-    # - Linearized residuals
-    # - Linearized state variable estimates
+    # - First linearized Jacobians
+    # - First linearized residuals
+    # - First linearized state variable estimates
     self.J0 = J  # Linearized jacobians
     self.r0 = -J_inv @ b_marg  # Linearized residuals
     for param_id in self.remain_param_ids:
       param_block = param_blocks[param_id]
       self.x0[param_id] = param_block.param
 
-  def _calc_delta_chi(self):
+  def _calc_delta_chi(self, params):
     """ Calculate Delta Chi """
-    pass
+    dchi = np.array([])
+
+    for param in params:
+      x0 = self.x0[param.param_id]
+      x = param.param
+
+      if param.var_type in ["pose", "extrinsics"]:
+        # Map out pose vector [rx, ry, rz, qx, qy, qz, qw]
+        # into translation and rotation components
+        # -- First linearization point
+        r0 = x0[0:3]
+        q0 = np.array([x0[6], x0[3], x0[4], x0[5]])
+        # -- Current linearization point
+        r = x[0:3]
+        q = np.array([x[6], x[3], x[4], x[5]])
+
+        # Calculate delta chi
+        dr = r - r0
+        dq = quat_mul(q, quat_inv(q0))
+        dchi = np.append(dchi, [dr, dq[3], dq[0], dq[1], dq[2]])
+
+      else:
+        dchi = np.append(dchi, x - x0)
+
+    return dchi
 
   def eval(self, params, **kwargs):
     """ Evaluate Marginalization Factor """
+    # Calculate residuals
+    dchi = self._calc_delta_chi(params)
+    r = self.r0 + self.J0 @ dchi
+    if kwargs.get('only_residuals', False):
+      return r
 
-    # r = np.zeros((2, 2))
-    # if kwargs.get('only_residuals', False):
-    #   return r
+    # Get First-Estimate Jacobians
+    jacs = []
+    r_size = r.shape[0]
+    for param in params:
+      J_idx = self.param_idxs[param.param_id]
+      J_size = param.min_dims
+      J_param = self.J0[J_idx:J_idx + r_size, J_idx:J_idx + J_size]
+      jacs.append(J_param)
+
+    return (r, jacs)
 
 
 # SOLVER #######################################################################
@@ -7950,9 +7997,10 @@ class TestFactors(unittest.TestCase):
     cam_poses = [cam_pose_0]
 
     # Setup feature
+    nb_features = 10
     features = []
     feature_positions = []
-    for i in range(10):
+    for i in range(nb_features):
       p_W = np.array([10, random.uniform(-2.0, 2.0), random.uniform(-2.0, 2.0)])
       features.append(feature_setup(p_W))
       feature_positions.append(p_W)
