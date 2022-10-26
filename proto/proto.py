@@ -594,7 +594,7 @@ def schurs_complement(H, g, m, r, precond=False):
   Hrr = H[m:, m:]
 
   # g = [gmm, grr]
-  gmm = g[1:]
+  gmm = g[:m]
   grr = g[m:]
 
   # Precondition Hmm
@@ -608,8 +608,8 @@ def schurs_complement(H, g, m, r, precond=False):
   Hmm_inv = V * W_inv * V.T
 
   # Schurs complement
-  H_marg = Hrr - Hrm * Hmm_inv * Hmr
-  g_marg = grr - Hrm * Hmm_inv * gmm
+  H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+  g_marg = grr - Hrm @ Hmm_inv @ gmm
 
   return (H_marg, g_marg)
 
@@ -3166,6 +3166,10 @@ class StateVariable:
     """ Set parameter id """
     self.param_id = pid
 
+  def __hash__(self):
+    """ Hash function """
+    return hash(repr(self))
+
 
 class StateVariableType(Enum):
   """ State Variable Type """
@@ -3363,8 +3367,12 @@ class Factor:
     self.factor_type = ftype
     self.param_ids = pids
     self.measurement = z
-    self.covar = covar
-    self.sqrt_info = chol(inv(self.covar)).T
+    if covar is not None:
+      self.covar = covar
+      self.sqrt_info = chol(inv(self.covar)).T
+    else:
+      self.covar = None
+      self.sqrt_info = None
 
   def set_factor_id(self, fid):
     """ Set factor id """
@@ -3400,6 +3408,10 @@ class Factor:
 
     J = jacs[var_idx]
     return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
+
+  def __hash__(self):
+    """ Hash function """
+    return hash(repr(self))
 
 
 class PoseFactor(Factor):
@@ -3510,9 +3522,9 @@ class BAFactor(Factor):
   def eval(self, params, **kwargs):
     """ Evaluate """
     assert len(params) == 3
-    assert len(params[0]) == 7
-    assert len(params[1]) == 3
-    assert len(params[2]) == self.cam_geom.get_params_size()
+    assert len(params[0]) == 7  # Camera pose T_WC
+    assert len(params[1]) == 3  # Feature position (x, y, z)
+    assert len(params[2]) == self.cam_geom.get_params_size()  # Camera params
 
     # Setup
     r = np.array([0.0, 0.0])
@@ -4158,63 +4170,190 @@ class ImuFactor(Factor):
 
 class MargFactor(Factor):
   """ Marginalization Factor """
-  def __init__(self, pids):
-    assert len(pids) > 0
-    Factor.__init__(self, "MargFactor", pids, None, data.state_P)
+  def __init__(self):
+    Factor.__init__(self, "MargFactor", [], None, None)
+
+    self.marg_param_ids = set()  # Parameters to be marginalized
+    self.remain_param_ids = set()  # Parameters to remain
+    self.factors = []  # Factors to be marginalized
 
     self.r0 = None  # Linearized residuals
     self.J0 = None  # Linearized jacobians
-    self.x0 = None  # Linearized estimates
+    self.x0 = {}  # Linearized estimates
 
-  def shur_complement(H, b, m, r):
+  def add_factor(self, factor, marg_param_idxs):
+    """ Add factors to be marginalized """
+    # Track factor
+    self.factors.append(factor)
+
+    # Track parameters to remain / marginalized
+    for idx, param_id in enumerate(factor.param_ids):
+      if idx not in marg_param_idxs:
+        self.remain_param_ids.add(param_id)
+      else:
+        self.marg_param_ids.add(param_id)
+
+  def _linearize(self, param_blocks):
+    """ Linearize Nonlinear System """
+    #  Determine parameter block column indicies for Hessian matrix H
+    H_idx = 0
+    marg_size = 0
+    remain_size = 0
+    param_idxs = {}
+    marg_params = []
+    remain_params = []
+
+    # -- Column indices for parameter blocks to be marginalized
+    for param_id in self.marg_param_ids:
+      param_block = param_blocks[param_id]
+      param_idxs[param_id] = H_idx
+      H_idx += param_block.min_dims
+      marg_size += param_block.min_dims
+      marg_params.append(param_block)
+
+    # -- Column indices for parameter blocks to remain
+    for param_id in self.remain_param_ids:
+      param_block = param_blocks[param_id]
+      param_idxs[param_id] = H_idx
+      H_idx += param_block.min_dims
+      remain_size += param_block.min_dims
+      remain_params.append(param_block)
+
+    # Form the H and g. Left and RHS of Gauss-Newton
+    # H = J.T * J
+    # g = -J.T * e
+    param_size = marg_size + remain_size
+    H = zeros((param_size, param_size))
+    g = zeros(param_size)
+    for factor in self.factors:
+      factor_params = [param_blocks[pid].param for pid in factor.param_ids]
+      r, jacobians = factor.eval(factor_params)
+
+      # Form Hessian
+      nb_params = len(factor_params)
+      for i in range(nb_params):
+        param_i = param_blocks[factor.param_ids[i]]
+        if param_i.fix:
+          continue
+        idx_i = param_idxs[factor.param_ids[i]]
+        size_i = param_i.min_dims
+        J_i = jacobians[i]
+
+        for j in range(i, nb_params):
+          param_j = param_blocks[factor.param_ids[j]]
+          if param_j.fix:
+            continue
+          idx_j = param_idxs[factor.param_ids[j]]
+          size_j = param_j.min_dims
+          J_j = jacobians[j]
+
+          rs = idx_i
+          re = idx_i + size_i
+          cs = idx_j
+          ce = idx_j + size_j
+
+          if i == j:  # Diagonal
+            H[rs:re, cs:ce] += J_i.T @ J_j
+          else:  # Off-Diagonal
+            H[rs:re, cs:ce] += J_i.T @ J_j
+            H[cs:ce, rs:re] += H[rs:re, cs:ce].T
+
+        # Form R.H.S. Gauss Newton g
+        rs = idx_i
+        re = idx_i + size_i
+        g[rs:re] += (-J_i.T @ r)
+
+    return (H, g, param_idxs, marg_size, remain_size)
+
+  @staticmethod
+  def _shur_complement(H, b, m, eps=1e-8):
     """ Schur complement """
-    H_mm = H[0:m, 0:m]
-    H_mr = H[0:m, m:]
-    H_rm = H[m:, 0:m]
+    H_mm = H[:m, :m]
+    H_mr = H[:m, m:]
+    H_rm = H[m:, :m]
     H_rr = H[m:, m:]
 
     b_mm = b[:m]
     b_rr = b[m:]
 
+    # Invert H_mm matrix sub-block via Eigen-decomposition
     H_mm = 0.5 * (H_mm + H_mm.T)  # Enforce symmetry
-    w, V = np.linalg.eig(H_mm)
-    for idx, w_i in enumerate(w):
-      if w_i < 1e-12:
-        w[idx] = 0.0
+    w, V = eig(H_mm)
+    w_inv = np.zeros(w.shape)
 
-    Lambda_inv = np.diag(1.0 / w)
+    for idx, w_i in enumerate(w):
+      if w_i > eps:
+        w_inv[idx] = 1.0 / w_i
+      else:
+        w[idx] = 0.0
+        w_inv[idx] = 0.0
+
+    Lambda_inv = np.diag(w_inv)
     H_mm_inv = V @ Lambda_inv @ V.T
-    H_marg = H_rr - (H_rm @ H_mm_inv @ H_mr)
-    b_marg = b_rr - (H_rm @ H_mm_inv @ b_mm)
+
+    # -- Check inverse
+    inv_check_sum = ((H_mm @ H_mm_inv) - np.eye(H_mm.shape[0])).sum()
+
+    # Apply Shur-Complement
+    H_marg = H_rr - H_rm @ H_mm_inv @ H_mr
+    b_marg = b_rr - H_rm @ H_mm_inv @ b_mm
 
     return (H_marg, b_marg)
 
-  def decomp_hessian(H):
-    """ Decompose Hessian into E' * E """
-    w, V = np.linalg.eig(H)
+  @staticmethod
+  def _decomp_hessian(H, eps=1e-12):
+    """ Decompose Hessian into J.T * J """
+    w, V = np.linalg.eigh(H)
+
+    w_inv = np.zeros(w.shape)
     for idx, w_i in enumerate(w):
-      if w_i < 1e-12:
+      if w_i > eps:
+        w_inv[idx] = 1.0 / w_i
+      else:
         w[idx] = 0.0
+        w_inv[idx] = 0.0
 
     S_sqrt = np.diag(w**0.5)
-    E = S_sqrt @ V.T
+    S_inv_sqrt = np.diag(w_inv**0.5)
 
-    return E
+    J = S_sqrt @ V.T
+    J_inv = S_inv_sqrt @ V.T
 
-  def marginalize(self):
+    # Check decomposition
+    decomp_norm = np.linalg.norm((J.T @ J) - H)
+    print((J.T @ J) - H)
+    # print(f"decomp norm: {decomp_norm}")
+
+    return J, J_inv
+
+  def marginalize(self, param_blocks):
     """ Marginalize """
-    pass
+    # Marginalize
+    H, g, _, marg_size, _ = self._linearize(param_blocks)
+    H_marg, b_marg = self._shur_complement(H, g, marg_size)
+    J, J_inv = self._decomp_hessian(H_marg)
 
-  def calc_delta_chi(self):
+    # First-Estimate Jacobians (FEJ)
+    # Keep track of:
+    # - Linearized Jacobians
+    # - Linearized residuals
+    # - Linearized state variable estimates
+    self.J0 = J  # Linearized jacobians
+    self.r0 = -J_inv @ b_marg  # Linearized residuals
+    for param_id in self.remain_param_ids:
+      param_block = param_blocks[param_id]
+      self.x0[param_id] = param_block.param
+
+  def _calc_delta_chi(self):
     """ Calculate Delta Chi """
     pass
 
   def eval(self, params, **kwargs):
     """ Evaluate Marginalization Factor """
 
-    r = np.zeros((2, 2))
-    if kwargs.get('only_residuals', False):
-      return r
+    # r = np.zeros((2, 2))
+    # if kwargs.get('only_residuals', False):
+    #   return r
 
 
 # SOLVER #######################################################################
@@ -7757,6 +7896,170 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
     # yapf: enable
 
+  def test_marg_factor(self):
+    """ Test MargFactor """
+    # Setup cam0 parameters and geometry
+    cam_idx = 0
+    img_w = 640
+    img_h = 480
+    res = [img_w, img_h]
+    fov = 60.0
+    fx = focal_length(img_w, fov)
+    fy = focal_length(img_h, fov)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    params = [fx, fy, cx, cy, -0.01, 0.01, 1e-4, 1e-4]
+    cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
+    cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
+
+    # Setup camera poses T_WC
+    rot0 = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
+    rot1 = euler2quat(-pi / 2.0 + 0.01, 0.0 + 0.01, -pi / 2.0 + 0.01)
+    rot2 = euler2quat(-pi / 2.0 + 0.02, 0.0 + 0.02, -pi / 2.0 + 0.02)
+    rot3 = euler2quat(-pi / 2.0 + 0.03, 0.0 + 0.03, -pi / 2.0 + 0.03)
+    pos0 = np.array([0.1, 0.2, 0.3])
+    pos1 = np.array([0.11, 0.21, 0.31])
+    pos2 = np.array([0.12, 0.22, 0.32])
+    pos3 = np.array([0.13, 0.23, 0.33])
+    T_WC_0 = tf(rot0, pos0)
+    T_WC_1 = tf(rot1, pos1)
+    T_WC_2 = tf(rot2, pos2)
+    T_WC_3 = tf(rot3, pos3)
+    cam_tfs = [T_WC_0, T_WC_1, T_WC_2, T_WC_3]
+    cam_pose_0 = pose_setup(0, T_WC_0)
+    cam_pose_1 = pose_setup(1, T_WC_1)
+    cam_pose_2 = pose_setup(2, T_WC_2)
+    cam_pose_3 = pose_setup(3, T_WC_3)
+
+    cam_pose_0.param[0] += random.uniform(-0.1, 0.1)
+    cam_pose_0.param[1] += random.uniform(-0.1, 0.1)
+    cam_pose_0.param[2] += random.uniform(-0.1, 0.1)
+
+    cam_pose_1.param[0] += random.uniform(-0.1, 0.1)
+    cam_pose_1.param[1] += random.uniform(-0.1, 0.1)
+    cam_pose_1.param[2] += random.uniform(-0.1, 0.1)
+
+    cam_pose_2.param[0] += random.uniform(-0.1, 0.1)
+    cam_pose_2.param[1] += random.uniform(-0.1, 0.1)
+    cam_pose_2.param[2] += random.uniform(-0.1, 0.1)
+
+    cam_pose_3.param[0] += random.uniform(-0.1, 0.1)
+    cam_pose_3.param[1] += random.uniform(-0.1, 0.1)
+    cam_pose_3.param[2] += random.uniform(-0.1, 0.1)
+
+    cam_poses = [cam_pose_0]
+
+    # Setup feature
+    features = []
+    feature_positions = []
+    for i in range(10):
+      p_W = np.array([10, random.uniform(-2.0, 2.0), random.uniform(-2.0, 2.0)])
+      features.append(feature_setup(p_W))
+      feature_positions.append(p_W)
+
+    # Setup parameter blocks
+    param_blocks = {}
+    param_idx = 0
+    param_ids = []
+    # -- Camera poses
+    for cam_pose in cam_poses:
+      param_blocks[param_idx] = cam_pose
+      param_ids.append(param_idx)
+      param_idx += 1
+    # -- Features
+    for feature in features:
+      param_blocks[param_idx] = feature
+      param_ids.append(param_idx)
+      param_idx += 1
+    # -- Camera params
+    param_blocks[param_idx] = cam_params
+    param_ids.append(param_idx)
+
+    # Setup BAFactors
+    ba_factors = []
+    for k, cam_pose in enumerate(cam_poses):  # Iterate through camera poses
+      for i, feature in enumerate(features):  # Iterate through features
+        # Calculate image point
+        T_WC = cam_tfs[k]
+        p_W = feature_positions[i]
+        p_C = tf_point(inv(T_WC), p_W)
+        status, z = cam_geom.project(cam_params.param, p_C)
+        self.assertTrue(status)
+
+        # Create BA Factor
+        pids = [k, len(cam_poses) + i, param_ids[-1]]
+        fvars = [cam_pose, feature, cam_params]
+        factor = BAFactor(cam_geom, pids, z)
+        ba_factors.append(factor)
+
+        # Check BA factor jacobians
+        self.assertTrue(factor)
+        self.assertTrue(factor.check_jacobian(fvars, 0, "J_cam_pose"))
+        self.assertTrue(factor.check_jacobian(fvars, 1, "J_feature"))
+        self.assertTrue(factor.check_jacobian(fvars, 2, "J_cam_params"))
+
+    # Setup MargFactor
+    marg_factor = MargFactor()
+    for ba_factor in ba_factors:
+      # Form marginalization parameter index
+      marg_param_idxs = []
+      if ba_factor.param_ids[0] == 0:
+        marg_param_idxs = [0]
+
+      # Add BA factor to marginalization factor
+      marg_factor.add_factor(ba_factor, marg_param_idxs)
+
+    # Test Linearize
+    H, g, param_idxs, m, r = marg_factor._linearize(param_blocks)
+
+    H_size = len(cam_poses) * 6 + len(features) * 3 + len(cam_params.param)
+    g_size = H_size
+    self.assertTrue(len(param_idxs) == len(param_blocks))
+    self.assertTrue(H.shape == (H_size, H_size))
+    self.assertTrue(g.shape == (g_size,))
+    self.assertTrue(H_size == (m + r))
+
+    # Check if Gauss-Newton is solve-able: H dx = g (solve for dx)
+    check_hessian = False
+    if check_hessian:
+      # -- Get cost before Gauss-Newton step
+      residuals = np.array([])
+      for factor in marg_factor.factors:
+        factor_params = [param_blocks[pid].param for pid in factor.param_ids]
+        r = factor.eval(factor_params, only_residuals=True)
+        residuals = np.append(residuals, r)
+      cost = 0.5 * (r.T @ r)
+      print(f"cost: {cost}")
+      # -- Solve for dx
+      lambda_k = 1e-4
+      H = H + lambda_k * eye(H.shape[0])
+      c, low = scipy.linalg.cho_factor(H)
+      dx = scipy.linalg.cho_solve((c, low), g)
+      # -- Update state-variables
+      for param_id, param in param_blocks.items():
+        start = param_idxs[param_id]
+        end = start + param.min_dims
+        param_dx = dx[start:end]
+        update_state_variable(param, param_dx)
+      # -- Get cost after Gauss-Newton step
+      residuals = np.array([])
+      for factor in marg_factor.factors:
+        factor_params = [param_blocks[pid].param for pid in factor.param_ids]
+        r = factor.eval(factor_params, only_residuals=True)
+        residuals = np.append(residuals, r)
+      cost = 0.5 * (r.T @ r)
+      print(f"cost: {cost}")
+
+    # Test Shurs-Complement
+    H_marg, b_marg = marg_factor._shur_complement(H, g, m)
+    self.assertTrue(H_marg.shape == (H_size - m, H_size - m))
+    self.assertTrue(b_marg.shape == (H_size - m,))
+
+    # Test marginalization
+    marg_factor.marginalize(param_blocks)
+    # self.assertEqual(len(marg_factor.remain_param_ids), 2)
+    # self.assertEqual(len(marg_factor.marg_param_ids), 5)
+
 
 class TestFactorGraph(unittest.TestCase):
   """ Test Factor Graph """
@@ -7867,8 +8170,8 @@ class TestFactorGraph(unittest.TestCase):
         graph.add_factor(BAFactor(cam0_geom, param_ids, z))
 
     # Solve
-    # debug = True
-    debug = False
+    debug = True
+    # debug = False
     # prof = profile_start()
     graph.solve(debug)
     # profile_stop(prof)
