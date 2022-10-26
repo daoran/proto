@@ -4337,24 +4337,6 @@ class MargFactor(Factor):
 
     return J, J_inv
 
-  def marginalize(self, param_blocks):
-    """ Marginalize """
-    # Marginalize
-    H, g, marg_size, _ = self._linearize(param_blocks)
-    H_marg, b_marg = self._shur_complement(H, g, marg_size)
-    J, J_inv = self._decomp_hessian(H_marg)
-
-    # First-Estimate Jacobians (FEJ)
-    # Keep track of:
-    # - First linearized Jacobians
-    # - First linearized residuals
-    # - First linearized state variable estimates
-    self.J0 = J  # Linearized jacobians
-    self.r0 = -J_inv @ b_marg  # Linearized residuals
-    for param_id in self.remain_param_ids:
-      param_block = param_blocks[param_id]
-      self.x0[param_id] = param_block.param
-
   def _calc_delta_chi(self, params):
     """ Calculate Delta Chi """
     dchi = np.array([])
@@ -4382,6 +4364,24 @@ class MargFactor(Factor):
         dchi = np.append(dchi, x - x0)
 
     return dchi
+
+  def marginalize(self, param_blocks):
+    """ Marginalize """
+    # Marginalize
+    H, g, marg_size, _ = self._linearize(param_blocks)
+    H_marg, b_marg = self._shur_complement(H, g, marg_size)
+    J, J_inv = self._decomp_hessian(H_marg)
+
+    # First-Estimate Jacobians (FEJ)
+    # Keep track of:
+    # - First linearized Jacobians
+    # - First linearized residuals
+    # - First linearized state variable estimates
+    self.J0 = J  # Linearized jacobians
+    self.r0 = -J_inv @ b_marg  # Linearized residuals
+    for param_id in self.remain_param_ids:
+      param_block = param_blocks[param_id]
+      self.x0[param_id] = param_block.param
 
   def eval(self, params, **kwargs):
     """ Evaluate Marginalization Factor """
