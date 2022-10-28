@@ -43,11 +43,13 @@ TIS_LIBS:=$(shell pkg-config gstreamer-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config gstreamer-video-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config gobject-introspection-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config tcam --libs)
+APRILTAG_LIBS := -lapriltag
 
 
 # DEPENDENCIES
 DEPS=-L$(BLD_DIR) \
   -lproto \
+	$(APRILTAG_LIBS) \
 	$(CERES_LIBS) \
 	$(OPENGL_LIBS) \
 	$(BLAS_LIBS) \
