@@ -716,7 +716,18 @@ int test_aprilgrid_save_and_load() {
   // Load
   aprilgrid_t grid_load;
   aprilgrid_load(&grid_load, "/tmp/test_aprilgrid.dat");
-  aprilgrid_print(&grid_load);
+  TEST_ASSERT(grid_load.init == grid.init);
+  TEST_ASSERT(grid_load.num_rows == grid.num_rows);
+  TEST_ASSERT(grid_load.num_cols == grid.num_cols);
+  TEST_ASSERT(fltcmp(grid_load.tag_size, grid.tag_size) == 0);
+  TEST_ASSERT(fltcmp(grid_load.tag_spacing, grid.tag_spacing) == 0);
+  TEST_ASSERT(grid_load.corners_detected == grid.corners_detected);
+  for (int i = 0; i < APRILGRID_MAX_NUM_CORNERS; i++) {
+    for (int j = 0; j < 6; j++) {
+      TEST_ASSERT(fltcmp(grid_load.data[i][j], grid.data[i][j]) == 0);
+    }
+  }
+  // aprilgrid_print(&grid_load);
 
   return 0;
 }
