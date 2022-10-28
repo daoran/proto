@@ -78,6 +78,16 @@ int aprilgrid_load(aprilgrid_t *grid, const char *data_path);
 
 #ifdef APRILGRID_IMPLEMENTATION
 
+/**
+ * Setup AprilGrid
+ *
+ * @param grid AprilGrid
+ * @param ts Timestamp
+ * @param num_rows Number of rows
+ * @param num_cols Number of cols
+ * @param tag_size Tag size [m]
+ * @param tag_spacing Ratio of space between tags over tag size
+ */
 void aprilgrid_setup(aprilgrid_t *grid,
                      const timestamp_t ts,
                      const int num_rows,
@@ -102,6 +112,9 @@ void aprilgrid_setup(aprilgrid_t *grid,
   }
 }
 
+/**
+ * Reset Aprilgrid
+ */
 void aprilgrid_reset(aprilgrid_t *grid) {
   assert(grid->init == 1);
   aprilgrid_setup(grid,
@@ -112,6 +125,9 @@ void aprilgrid_reset(aprilgrid_t *grid) {
                   grid->tag_spacing);
 }
 
+/**
+ * Print Aprilgrid
+ */
 void aprilgrid_print(const aprilgrid_t *grid) {
   printf("timestamp: %ld\n", grid->timestamp);
   printf("num_rows: %d\n", grid->num_rows);
@@ -139,6 +155,9 @@ void aprilgrid_print(const aprilgrid_t *grid) {
   }
 }
 
+/**
+ * Return center of AprilGrid
+ */
 void aprilgrid_center(const aprilgrid_t *grid, double *cx, double *cy) {
   assert(grid->init == 1);
   assert(cx != NULL);
@@ -153,6 +172,9 @@ void aprilgrid_center(const aprilgrid_t *grid, double *cx, double *cy) {
   *cy += (0.5 * grid->tag_spacing * grid->tag_size);
 }
 
+/**
+ * Return AprilTag grid index within the AprilGrid based on tag id
+ */
 void aprilgrid_grid_index(const aprilgrid_t *grid,
                           const int tag_id,
                           int *i,
@@ -170,6 +192,9 @@ void aprilgrid_grid_index(const aprilgrid_t *grid,
   *j = (int) (tag_id % grid->num_cols);
 }
 
+/**
+ * Return AprilGrid object point from tag id and corner index
+ */
 void aprilgrid_object_point(const aprilgrid_t *grid,
                             const int tag_id,
                             const int corner_idx,
@@ -216,6 +241,9 @@ void aprilgrid_object_point(const aprilgrid_t *grid,
   }
 }
 
+/**
+ * Add AprilGrid corner measurement
+ */
 void aprilgrid_add_corner(aprilgrid_t *grid,
                           const int tag_id,
                           const int corner_idx,
@@ -239,6 +267,9 @@ void aprilgrid_add_corner(aprilgrid_t *grid,
   grid->data[data_row][5] = p[2];
 }
 
+/**
+ * Remove AprilGrid corner measurement
+ */
 void aprilgrid_remove_corner(aprilgrid_t *grid,
                              const int tag_id,
                              const int corner_idx) {
@@ -256,6 +287,9 @@ void aprilgrid_remove_corner(aprilgrid_t *grid,
   grid->corners_detected--;
 }
 
+/**
+ * Add AprilGrid AprilTag measurement
+ */
 void aprilgrid_add_tag(aprilgrid_t *grid,
                        const int tag_id,
                        const double tag_kps[4][2]) {
@@ -271,6 +305,9 @@ void aprilgrid_add_tag(aprilgrid_t *grid,
   }
 }
 
+/**
+ * Remove AprilGrid AprilTag measurement
+ */
 void aprilgrid_remove_tag(aprilgrid_t *grid, const int tag_id) {
   assert(grid != NULL);
   assert(grid->init == 1);
@@ -280,6 +317,9 @@ void aprilgrid_remove_tag(aprilgrid_t *grid, const int tag_id) {
   }
 }
 
+/**
+ * Save AprilGrid
+ */
 int aprilgrid_save(const aprilgrid_t *grid, const char *save_path) {
   assert(grid != NULL);
   assert(grid->init == 1);
@@ -369,6 +409,9 @@ static void aprilgrid_parse_skip_line(FILE *fp) {
   fgets(buf, buf_len, fp);
 }
 
+/**
+ * Load AprilGrid
+ */
 int aprilgrid_load(aprilgrid_t *grid, const char *data_path) {
   assert(grid != NULL);
   assert(grid->init == 1);
