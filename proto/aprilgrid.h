@@ -1,0 +1,736 @@
+#ifndef APRILGRID_H
+#define APRILGRID_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <inttypes.h>
+
+// CONSTANTS
+#ifndef timestamp_t
+#define timestamp_t uint64_t
+#endif
+
+// MACROS
+#ifndef APRILGRID_LOG
+#define APRILGRID_LOG(...) printf(__VA_ARGS__);
+#endif
+
+#ifndef APRILGRID_FATAL
+#define APRILGRID_FATAL(...)                                                   \
+  printf(__VA_ARGS__);                                                         \
+  exit(-1);
+#endif
+
+#define APRILGRID_MAX_NUM_TAGS 100
+#define APRILGRID_MAX_NUM_CORNERS APRILGRID_MAX_NUM_TAGS * 4
+
+typedef struct aprilgrid_t {
+  // Grid properties
+  int init;
+  timestamp_t timestamp;
+  int num_rows;
+  int num_cols;
+  double tag_size;
+  double tag_spacing;
+
+  // Grid data
+  int corners_detected;
+  double data[APRILGRID_MAX_NUM_CORNERS][6];
+} aprilgrid_t;
+
+void aprilgrid_setup(aprilgrid_t *grid,
+                     const timestamp_t ts,
+                     const int num_rows,
+                     const int num_cols,
+                     const double tag_size,
+                     const double tag_spacing);
+void aprilgrid_reset(aprilgrid_t *grid);
+void aprilgrid_center(const aprilgrid_t *grid, double *cx, double *cy);
+void aprilgrid_grid_index(const aprilgrid_t *grid,
+                          const int tag_id,
+                          int *i,
+                          int *j);
+void aprilgrid_object_point(const aprilgrid_t *grid,
+                            const int tag_id,
+                            const int corner_idx,
+                            double object_point[3]);
+void aprilgrid_add_corner(aprilgrid_t *grid,
+                          const int tag_id,
+                          const int corner_idx,
+                          const double kp[2]);
+void aprilgrid_remove_corner(aprilgrid_t *grid,
+                             const int tag_id,
+                             const int corner_idx);
+void aprilgrid_add_tag(aprilgrid_t *grid,
+                       const int tag_id,
+                       const double kp[4][2]);
+void aprilgrid_remove_tag(aprilgrid_t *grid, const int tag_id);
+int aprilgrid_save(const aprilgrid_t *grid, const char *save_path);
+int aprilgrid_load(aprilgrid_t *grid, const char *data_path);
+
+#endif // APRILGRID_H
+
+//////////////////////////////////////////////////////////////////////////////
+//                             IMPLEMENTATION                               //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef APRILGRID_IMPLEMENTATION
+
+void aprilgrid_setup(aprilgrid_t *grid,
+                     const timestamp_t ts,
+                     const int num_rows,
+                     const int num_cols,
+                     const double tag_size,
+                     const double tag_spacing) {
+  assert(num_rows * num_cols * 4 <= APRILGRID_MAX_NUM_CORNERS);
+
+  grid->init = 1;
+  grid->timestamp = ts;
+  grid->num_rows = num_rows;
+  grid->num_cols = num_cols;
+  grid->tag_size = tag_size;
+  grid->tag_spacing = tag_spacing;
+
+  // Grid data
+  grid->corners_detected = 0; // Number of corners detected
+  for (int i = 0; i < APRILGRID_MAX_NUM_CORNERS; i++) {
+    for (int j = 0; j < 6; j++) {
+      grid->data[i][j] = 0;
+    }
+  }
+}
+
+void aprilgrid_reset(aprilgrid_t *grid) {
+  assert(grid->init == 1);
+  aprilgrid_setup(grid,
+                  grid->timestamp,
+                  grid->num_rows,
+                  grid->num_cols,
+                  grid->tag_size,
+                  grid->tag_spacing);
+}
+
+void aprilgrid_print(const aprilgrid_t *grid) {
+  printf("timestamp: %ld\n", grid->timestamp);
+  printf("num_rows: %d\n", grid->num_rows);
+  printf("num_cols: %d\n", grid->num_cols);
+  printf("tag_size: %f\n", grid->tag_size);
+  printf("tag_spacing: %f\n", grid->tag_spacing);
+  printf("\n");
+  printf("corners_detected: %d\n", grid->corners_detected);
+  printf("#tag_id, corner_idx, kp_x, kp_y, p_x, p_y, p_z\n");
+  for (int i = 0; i < APRILGRID_MAX_NUM_CORNERS; i++) {
+    if (grid->data[i][0] <= 0) {
+      continue;
+    }
+
+    const int tag_id = i / 4;
+    const int corner_idx = i % 4;
+    printf("%d, ", tag_id);
+    printf("%d, ", corner_idx);
+    printf("%.2f, ", grid->data[i][1]);
+    printf("%.2f, ", grid->data[i][2]);
+    printf("%.2f, ", grid->data[i][3]);
+    printf("%.2f, ", grid->data[i][4]);
+    printf("%.2f", grid->data[i][5]);
+    printf("\n");
+  }
+}
+
+void aprilgrid_center(const aprilgrid_t *grid, double *cx, double *cy) {
+  assert(grid->init == 1);
+  assert(cx != NULL);
+  assert(cy != NULL);
+
+  *cx = ((grid->num_cols / 2.0) * grid->tag_size);
+  *cx += (((grid->num_cols / 2.0) - 1) * grid->tag_spacing * grid->tag_size);
+  *cx += (0.5 * grid->tag_spacing * grid->tag_size);
+
+  *cy = ((grid->num_rows / 2.0) * grid->tag_size);
+  *cy += (((grid->num_rows / 2.0) - 1) * grid->tag_spacing * grid->tag_size);
+  *cy += (0.5 * grid->tag_spacing * grid->tag_size);
+}
+
+void aprilgrid_grid_index(const aprilgrid_t *grid,
+                          const int tag_id,
+                          int *i,
+                          int *j) {
+  assert(grid != NULL);
+  assert(grid->init == 1);
+
+  if (tag_id > (grid->num_rows * grid->num_cols)) {
+    APRILGRID_FATAL("tag_id > (num_rows * num_cols)!\n");
+  } else if (tag_id < 0) {
+    APRILGRID_FATAL("tag_id < 0!\n");
+  }
+
+  *i = (int) (tag_id / grid->num_cols);
+  *j = (int) (tag_id % grid->num_cols);
+}
+
+void aprilgrid_object_point(const aprilgrid_t *grid,
+                            const int tag_id,
+                            const int corner_idx,
+                            double object_point[3]) {
+  assert(grid != NULL);
+  assert(grid->init == 1);
+  assert(object_point != NULL);
+
+  // Calculate the AprilGrid index using tag id
+  int i = 0;
+  int j = 0;
+  aprilgrid_grid_index(grid, tag_id, &i, &j);
+
+  // Caculate the x and y of the tag origin (bottom left corner of tag)
+  // relative to grid origin (bottom left corner of entire grid)
+  const double x = j * (grid->tag_size + grid->tag_size * grid->tag_spacing);
+  const double y = i * (grid->tag_size + grid->tag_size * grid->tag_spacing);
+
+  // Calculate the x and y of each corner
+  switch (corner_idx) {
+    case 0: // Bottom left
+      object_point[0] = x;
+      object_point[1] = y;
+      object_point[2] = 0;
+      break;
+    case 1: // Bottom right
+      object_point[0] = x + grid->tag_size;
+      object_point[1] = y;
+      object_point[2] = 0;
+      break;
+    case 2: // Top right
+      object_point[0] = x + grid->tag_size;
+      object_point[1] = y + grid->tag_size;
+      object_point[2] = 0;
+      break;
+    case 3: // Top left
+      object_point[0] = x;
+      object_point[1] = y + grid->tag_size;
+      object_point[2] = 0;
+      break;
+    default:
+      APRILGRID_FATAL("Incorrect corner id [%d]!\n", corner_idx);
+      break;
+  }
+}
+
+void aprilgrid_add_corner(aprilgrid_t *grid,
+                          const int tag_id,
+                          const int corner_idx,
+                          const double kp[2]) {
+  assert(grid != NULL);
+  assert(grid->init == 1);
+
+  // Set AprilGrid as detected
+  grid->corners_detected++;
+
+  // Push tag_id and keypoints
+  const int data_row = (tag_id * 4) + corner_idx;
+  double p[3] = {0};
+  aprilgrid_object_point(grid, tag_id, corner_idx, p);
+
+  grid->data[data_row][0] = 1;
+  grid->data[data_row][1] = kp[0];
+  grid->data[data_row][2] = kp[1];
+  grid->data[data_row][3] = p[0];
+  grid->data[data_row][4] = p[1];
+  grid->data[data_row][5] = p[2];
+}
+
+void aprilgrid_remove_corner(aprilgrid_t *grid,
+                             const int tag_id,
+                             const int corner_idx) {
+  assert(grid != NULL);
+  assert(grid->init == 1);
+
+  const int data_row = (tag_id * 4) + corner_idx;
+  assert(data_row >= 0);
+  grid->data[data_row][0] = 0;
+  grid->data[data_row][1] = 0;
+  grid->data[data_row][2] = 0;
+  grid->data[data_row][3] = 0;
+  grid->data[data_row][4] = 0;
+  grid->data[data_row][5] = 0;
+  grid->corners_detected--;
+}
+
+void aprilgrid_add_tag(aprilgrid_t *grid,
+                       const int tag_id,
+                       const double tag_kps[4][2]) {
+  assert(grid != NULL);
+  assert(grid->init == 1);
+  assert(tag_kps != NULL);
+
+  for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
+    if (tag_kps[corner_idx] == NULL) {
+      continue;
+    }
+    aprilgrid_add_corner(grid, tag_id, corner_idx, tag_kps[corner_idx]);
+  }
+}
+
+void aprilgrid_remove_tag(aprilgrid_t *grid, const int tag_id) {
+  assert(grid != NULL);
+  assert(grid->init == 1);
+
+  for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
+    aprilgrid_remove_corner(grid, tag_id, corner_idx);
+  }
+}
+
+int aprilgrid_save(const aprilgrid_t *grid, const char *save_path) {
+  assert(grid != NULL);
+  assert(grid->init == 1);
+  assert(save_path != NULL);
+
+  // Open file for saving
+  FILE *fp = fopen(save_path, "w");
+  if (fp == NULL) {
+    APRILGRID_LOG("Failed to open [%s] for saving!", save_path);
+    return -1;
+  }
+
+  // Output header
+  // -- Configuration
+  fprintf(fp, "timestamp:%ld\n", grid->timestamp);
+  fprintf(fp, "num_rows:%d\n", grid->num_rows);
+  fprintf(fp, "num_cols:%d\n", grid->num_cols);
+  fprintf(fp, "tag_size:%f\n", grid->tag_size);
+  fprintf(fp, "tag_spacing:%f\n", grid->tag_spacing);
+  fprintf(fp, "\n");
+  // -- Data
+  fprintf(fp, "corners_detected:%d\n", grid->corners_detected);
+  fprintf(fp, "tag_id,corner_idx,kp_x,kp_y,p_x,p_y,p_z\n");
+
+  // Output data
+  if (grid->corners_detected) {
+    // vec2s_t kps = keypoints();
+    for (long i = 0; i < (grid->num_rows * grid->num_cols * 4); i++) {
+      const int tag_id = i / 4;
+      const int corner_idx = i % 4;
+
+      if (grid->data[i][0] > 0) { // Corner detected?
+        fprintf(fp, "%d,", tag_id);
+        fprintf(fp, "%d,", corner_idx);
+        fprintf(fp, "%f,", grid->data[i][1]);
+        fprintf(fp, "%f,", grid->data[i][2]);
+        fprintf(fp, "%f,", grid->data[i][3]);
+        fprintf(fp, "%f,", grid->data[i][4]);
+        fprintf(fp, "%f", grid->data[i][5]);
+        fprintf(fp, "\n");
+      }
+    }
+  }
+
+  // Close up
+  fclose(fp);
+
+  return 0;
+}
+
+static void aprilgrid_parse_line(FILE *fp,
+                                 const char *key,
+                                 const char *value_type,
+                                 void *value) {
+  // Parse line
+  const size_t buf_len = 1024;
+  char buf[1024] = {0};
+  if (fgets(buf, buf_len, fp) == NULL) {
+    APRILGRID_FATAL("Failed to parse [%s]\n", key);
+  }
+
+  // Split key-value
+  char delim[2] = ":";
+  char *key_str = strtok(buf, delim);
+  char *value_str = strtok(NULL, delim);
+
+  // Check key matches
+  if (strcmp(key_str, key) != 0) {
+    APRILGRID_FATAL("Failed to parse [%s]\n", key);
+  }
+
+  // Typecase value
+  if (strcmp(value_type, "uint64_t") == 0) {
+    *(uint64_t *) value = atol(value_str);
+  } else if (strcmp(value_type, "int") == 0) {
+    *(int *) value = atoi(value_str);
+  } else if (strcmp(value_type, "double") == 0) {
+    *(double *) value = atof(value_str);
+  } else {
+    APRILGRID_FATAL("Invalid value type [%s]\n", value_type);
+  }
+}
+
+static void aprilgrid_parse_skip_line(FILE *fp) {
+  const size_t buf_len = 1024;
+  char buf[1024] = {0};
+  fgets(buf, buf_len, fp);
+}
+
+int aprilgrid_load(aprilgrid_t *grid, const char *data_path) {
+  assert(grid != NULL);
+  assert(grid->init == 1);
+  assert(data_path != NULL);
+
+  // Open file for loading
+  FILE *fp = fopen(data_path, "r");
+  if (fp == NULL) {
+    APRILGRID_LOG("Failed to open [%s]!\n", data_path);
+    return -1;
+  }
+
+  // Parse configuration
+  timestamp_t timestamp;
+  int num_rows = 0;
+  int num_cols = 0;
+  double tag_size = 0;
+  double tag_spacing = 0;
+  aprilgrid_parse_line(fp, "timestamp", "uint64_t", &timestamp);
+  aprilgrid_parse_line(fp, "num_rows", "int", &num_rows);
+  aprilgrid_parse_line(fp, "num_cols", "int", &num_cols);
+  aprilgrid_parse_line(fp, "tag_size", "double", &tag_size);
+  aprilgrid_parse_line(fp, "tag_spacing", "double", &tag_spacing);
+  aprilgrid_parse_skip_line(fp);
+  aprilgrid_setup(grid, timestamp, num_rows, num_cols, tag_size, tag_spacing);
+
+  // Parse data
+  int corners_detected = 0;
+  aprilgrid_parse_line(fp, "corners_detected", "int", &corners_detected);
+  aprilgrid_parse_skip_line(fp);
+
+  const char *scan_format = "%d,%d,%lf,%lf,%lf,%lf,%lf";
+  for (int i = 0; i < corners_detected; i++) {
+    // Parse data line
+    int tag_id = 0;
+    int corner_idx = 0;
+    double kp[2] = {0};
+    double p[3] = {0};
+    const int retval = fscanf(fp,
+                              scan_format,
+                              &tag_id,
+                              &corner_idx,
+                              &kp[0],
+                              &kp[1],
+                              &p[0],
+                              &p[1],
+                              &p[2]);
+    if (retval != 7) {
+      APRILGRID_FATAL("Failed to parse data line in [%s]\n", data_path);
+    }
+
+    // Add corner
+    aprilgrid_add_corner(grid, tag_id, corner_idx, kp);
+  }
+
+  return 0;
+}
+
+#endif // APRILGRID_IMPLEMENTATION
+
+//////////////////////////////////////////////////////////////////////////////
+//                                UNITTESTS                                 //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef APRILGRID_UNITTEST
+
+#include <stdio.h>
+#include <math.h>
+
+// UNITESTS GLOBAL VARIABLES
+static int nb_tests = 0;
+static int nb_passed = 0;
+static int nb_failed = 0;
+
+#define ENABLE_TERM_COLORS 0
+#if ENABLE_TERM_COLORS == 1
+#define TERM_RED "\x1B[1;31m"
+#define TERM_GRN "\x1B[1;32m"
+#define TERM_WHT "\x1B[1;37m"
+#define TERM_NRM "\x1B[1;0m"
+#else
+#define TERM_RED
+#define TERM_GRN
+#define TERM_WHT
+#define TERM_NRM
+#endif
+
+/**
+ * Run unittests
+ * @param[in] test_name Test name
+ * @param[in] test_ptr Pointer to unittest
+ */
+void run_test(const char *test_name, int (*test_ptr)()) {
+  if ((*test_ptr)() == 0) {
+    printf("-> [%s] " TERM_GRN "OK!\n" TERM_NRM, test_name);
+    fflush(stdout);
+    nb_passed++;
+  } else {
+    printf(TERM_RED "FAILED!\n" TERM_NRM);
+    fflush(stdout);
+    nb_failed++;
+  }
+  nb_tests++;
+}
+
+/**
+ * Add unittest
+ * @param[in] TEST Test function
+ */
+#define TEST(TEST_FN) run_test(#TEST_FN, TEST_FN);
+
+/**
+ * Unit-test assert
+ * @param[in] TEST Test condition
+ */
+#define TEST_ASSERT(TEST)                                                      \
+  do {                                                                         \
+    if ((TEST) == 0) {                                                         \
+      printf(TERM_RED "ERROR!" TERM_NRM " [%s:%d] %s FAILED!\n",               \
+             __func__,                                                         \
+             __LINE__,                                                         \
+             #TEST);                                                           \
+      return -1;                                                               \
+    }                                                                          \
+  } while (0)
+
+static int fltcmp(const float x, const float y) {
+  if (fabs(x - y) < 1e-10) {
+    return 0;
+  } else if (x > y) {
+    return 1;
+  }
+
+  return -1;
+}
+
+int test_aprilgrid_setup() {
+  // Setup
+  const timestamp_t ts = 0;
+  const int num_rows = 6;
+  const int num_cols = 6;
+  const double tag_size = 0.088;
+  const double tag_spacing = 0.3;
+  aprilgrid_t grid;
+  aprilgrid_setup(&grid, ts, num_rows, num_cols, tag_size, tag_spacing);
+
+  TEST_ASSERT(grid.timestamp == 0);
+  TEST_ASSERT(grid.num_rows == 6);
+  TEST_ASSERT(grid.num_cols == 6);
+  TEST_ASSERT(fltcmp(grid.tag_size, 0.088) == 0);
+  TEST_ASSERT(fltcmp(grid.tag_spacing, 0.3) == 0);
+  TEST_ASSERT(grid.corners_detected == 0);
+
+  return 0;
+}
+
+int test_aprilgrid_center() {
+  // Setup
+  const timestamp_t ts = 0;
+  const int num_rows = 5;
+  const int num_cols = 2;
+  const double tag_size = 0.1;
+  const double tag_spacing = 0.0;
+  aprilgrid_t grid;
+  aprilgrid_setup(&grid, ts, num_rows, num_cols, tag_size, tag_spacing);
+
+  // Aprilgrid center
+  double cx = 0.0;
+  double cy = 0.0;
+  aprilgrid_center(&grid, &cx, &cy);
+  TEST_ASSERT(fltcmp(cx, 0.1) == 0);
+  TEST_ASSERT(fltcmp(cy, 0.25) == 0);
+
+  return 0;
+}
+
+int test_aprilgrid_grid_index() {
+  // Setup
+  const timestamp_t ts = 0;
+  const int num_rows = 6;
+  const int num_cols = 6;
+  const double tag_size = 0.088;
+  const double tag_spacing = 0.3;
+  aprilgrid_t grid;
+  aprilgrid_setup(&grid, ts, num_rows, num_cols, tag_size, tag_spacing);
+
+  // Get grid index
+  int i = 0;
+  int j = 0;
+  aprilgrid_grid_index(&grid, 0, &i, &j);
+  TEST_ASSERT(i == 0);
+  TEST_ASSERT(j == 0);
+
+  aprilgrid_grid_index(&grid, 1, &i, &j);
+  TEST_ASSERT(i == 0);
+  TEST_ASSERT(j == 1);
+
+  aprilgrid_grid_index(&grid, 5, &i, &j);
+  TEST_ASSERT(i == 0);
+  TEST_ASSERT(j == 5);
+
+  aprilgrid_grid_index(&grid, 7, &i, &j);
+  TEST_ASSERT(i == 1);
+  TEST_ASSERT(j == 1);
+
+  aprilgrid_grid_index(&grid, 17, &i, &j);
+  TEST_ASSERT(i == 2);
+  TEST_ASSERT(j == 5);
+
+  return 0;
+}
+
+int test_aprilgrid_object_point() {
+  // Setup
+  const timestamp_t ts = 0;
+  const int num_rows = 6;
+  const int num_cols = 6;
+  const double tag_size = 0.1;
+  const double tag_spacing = 0.0;
+  aprilgrid_t grid;
+  aprilgrid_setup(&grid, ts, num_rows, num_cols, tag_size, tag_spacing);
+
+  // Get object point
+  double p[3] = {0};
+  aprilgrid_object_point(&grid, 1, 0, p);
+  TEST_ASSERT(fltcmp(p[0], tag_size) == 0);
+  TEST_ASSERT(fltcmp(p[1], 0) == 0);
+  TEST_ASSERT(fltcmp(p[2], 0) == 0);
+
+  aprilgrid_object_point(&grid, 1, 1, p);
+  TEST_ASSERT(fltcmp(p[0], tag_size * 2) == 0);
+  TEST_ASSERT(fltcmp(p[1], 0) == 0);
+  TEST_ASSERT(fltcmp(p[2], 0) == 0);
+
+  aprilgrid_object_point(&grid, 1, 2, p);
+  TEST_ASSERT(fltcmp(p[0], tag_size * 2) == 0);
+  TEST_ASSERT(fltcmp(p[1], tag_size) == 0);
+  TEST_ASSERT(fltcmp(p[2], 0) == 0);
+
+  aprilgrid_object_point(&grid, 1, 3, p);
+  TEST_ASSERT(fltcmp(p[0], tag_size) == 0);
+  TEST_ASSERT(fltcmp(p[1], tag_size) == 0);
+  TEST_ASSERT(fltcmp(p[2], 0) == 0);
+
+  return 0;
+}
+
+int test_aprilgrid_add_and_remove_corner() {
+  // Setup
+  const timestamp_t ts = 0;
+  const int num_rows = 6;
+  const int num_cols = 6;
+  const double tag_size = 0.1;
+  const double tag_spacing = 0.0;
+  aprilgrid_t grid;
+  aprilgrid_setup(&grid, ts, num_rows, num_cols, tag_size, tag_spacing);
+
+  // Add corner
+  const int tag_id = 5;
+  const int corner_idx = 0;
+  const double kp[2] = {1.0, 2.0};
+  aprilgrid_add_corner(&grid, tag_id, corner_idx, kp);
+
+  const int data_row = (tag_id * 4) + corner_idx;
+  TEST_ASSERT(grid.corners_detected == 1);
+  TEST_ASSERT(grid.data[data_row][0] == 1);
+  TEST_ASSERT(fltcmp(grid.data[data_row][1], kp[0]) == 0);
+  TEST_ASSERT(fltcmp(grid.data[data_row][2], kp[1]) == 0);
+
+  // Remove corner
+  aprilgrid_remove_corner(&grid, tag_id, corner_idx);
+
+  TEST_ASSERT(grid.corners_detected == 0);
+  TEST_ASSERT(grid.data[data_row][0] == 0);
+  TEST_ASSERT(fltcmp(grid.data[data_row][1], 0.0) == 0);
+  TEST_ASSERT(fltcmp(grid.data[data_row][2], 0.0) == 0);
+
+  return 0;
+}
+
+int test_aprilgrid_add_and_remove_tag() {
+  // Setup
+  const timestamp_t ts = 0;
+  const int num_rows = 6;
+  const int num_cols = 6;
+  const double tag_size = 0.1;
+  const double tag_spacing = 0.0;
+  aprilgrid_t grid;
+  aprilgrid_setup(&grid, ts, num_rows, num_cols, tag_size, tag_spacing);
+
+  // Add tag
+  const int tag_id = 5;
+  const double tag_kps[4][2] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
+  aprilgrid_add_tag(&grid, tag_id, tag_kps);
+
+  TEST_ASSERT(grid.corners_detected == 4);
+  for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
+    const int data_row = (tag_id * 4) + corner_idx;
+    TEST_ASSERT(grid.data[data_row][0] == 1);
+    TEST_ASSERT(fltcmp(grid.data[data_row][1], tag_kps[corner_idx][0]) == 0);
+    TEST_ASSERT(fltcmp(grid.data[data_row][2], tag_kps[corner_idx][1]) == 0);
+  }
+
+  // Remove tag
+  aprilgrid_remove_tag(&grid, tag_id);
+
+  TEST_ASSERT(grid.corners_detected == 0);
+  for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
+    const int data_row = (tag_id * 4) + corner_idx;
+    TEST_ASSERT(grid.data[data_row][0] == 0);
+    TEST_ASSERT(fltcmp(grid.data[data_row][1], 0.0) == 0);
+    TEST_ASSERT(fltcmp(grid.data[data_row][2], 0.0) == 0);
+  }
+
+  return 0;
+}
+
+int test_aprilgrid_save_and_load() {
+  // Setup
+  const timestamp_t ts = 0;
+  const int num_rows = 6;
+  const int num_cols = 6;
+  const double tag_size = 0.088;
+  const double tag_spacing = 0.3;
+  aprilgrid_t grid;
+  aprilgrid_setup(&grid, ts, num_rows, num_cols, tag_size, tag_spacing);
+
+  // Add tag
+  const int tag_id = 5;
+  const double tag_kps[4][2] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
+  aprilgrid_add_tag(&grid, tag_id, tag_kps);
+
+  TEST_ASSERT(grid.corners_detected == 4);
+  for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
+    const int data_row = (tag_id * 4) + corner_idx;
+    TEST_ASSERT(grid.data[data_row][0] == 1);
+    TEST_ASSERT(fltcmp(grid.data[data_row][1], tag_kps[corner_idx][0]) == 0);
+    TEST_ASSERT(fltcmp(grid.data[data_row][2], tag_kps[corner_idx][1]) == 0);
+  }
+
+  // Save
+  const int retval = aprilgrid_save(&grid, "/tmp/test_aprilgrid.dat");
+  TEST_ASSERT(retval == 0);
+
+  // Load
+  aprilgrid_t grid_load;
+  aprilgrid_load(&grid_load, "/tmp/test_aprilgrid.dat");
+  aprilgrid_print(&grid_load);
+
+  return 0;
+}
+
+int main(int argc, char *argv[]) {
+  TEST(test_aprilgrid_setup);
+  TEST(test_aprilgrid_center);
+  TEST(test_aprilgrid_grid_index);
+  TEST(test_aprilgrid_object_point);
+  TEST(test_aprilgrid_add_and_remove_corner);
+  TEST(test_aprilgrid_add_and_remove_tag);
+  TEST(test_aprilgrid_save_and_load);
+
+  return (nb_failed) ? -1 : 0;
+}
+
+#endif // APRILGRID_UNITTEST
