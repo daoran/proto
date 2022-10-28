@@ -18,9 +18,6 @@ run_memcheck() {
 # PYTHON
 ###############################################################################
 
-# python3 scripts/codegen.py
-# python3 scripts/comment_converter.py
-
 # ctags proto/proto.c proto/proto.py
 # python3 proto/proto.py
 # python3 proto/proto.py TestNetwork.test_http_parse_request
@@ -36,7 +33,8 @@ run_memcheck() {
 # python3 proto/proto.py TestTransform.test_quat_conj
 # python3 proto/proto.py TestTransform.test_quat_slerp
 # python3 proto/proto.py TestCV
-python3 proto/proto.py TestCV.test_harris_corner
+# python3 proto/proto.py TestCV.test_harris_corner
+# python3 proto/proto.py TestCV.test_shi_tomasi_corner
 # python3 proto/proto.py TestFactors
 # python3 proto/proto.py TestFactors.test_pose_factor
 # python3 proto/proto.py TestFactors.test_ba_factor
@@ -47,6 +45,7 @@ python3 proto/proto.py TestCV.test_harris_corner
 # python3 proto/proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto/proto.py TestFactors.test_imu_factor_propagate
 # python3 proto/proto.py TestFactors.test_imu_factor
+# python3 proto/proto.py TestFactors.test_marg_factor
 # python3 proto/proto.py TestFactorGraph
 # python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_vo
 # python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_io
@@ -137,7 +136,7 @@ run_test() {
   exit
 }
 
-run_sbgc_tests() {
+dev_sbgc() {
   touch proto/proto.c;
   time make build
   cd ./proto/build/bin;
@@ -147,14 +146,20 @@ run_sbgc_tests() {
 
 dev_tiscam() {
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "\
-  cd ~/projects/proto/proto && make test_tis && ./build/bin/test_tis
-  " C-m C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_tis && ./build/bin/test_tis " C-m
   exit
 }
 
-# run_sbgc_tests
+dev_aprilgrid() {
+  touch proto/proto.c;
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make && ./build/bin/test_aprilgrid" C-m
+  exit
+}
+
+# dev_sbgc
 # dev_tiscam
+dev_aprilgrid
 
 # CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363

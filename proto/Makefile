@@ -67,8 +67,10 @@ TEST_PROTO := $(BIN_DIR)/test_proto
 TEST_SBGC := $(BIN_DIR)/test_sbgc
 TEST_UBX := $(BIN_DIR)/test_ubx
 TEST_TIS := $(BIN_DIR)/test_tis
+TEST_APRILGRID := $(BIN_DIR)/test_aprilgrid
+TESTS := $(TEST_PROTO) $(TEST_SBGC) $(TEST_UBX) $(TEST_APRILGRID)
 
-default: dirs $(LIB) shaders test_data $(TEST_PROTO) $(TEST_SBGC) $(TEST_UBX)
+default: dirs $(LIB) shaders test_data $(TESTS)
 .PHONY: dirs shaders test_data tests
 
 dirs:
@@ -94,7 +96,7 @@ $(LIB): $(BLD_DIR)/proto.o
 	$(AR) $(ARFLAGS) $@ $^ > /dev/null 2>&1
 
 $(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
-	echo "TEST [$(shell basename $@)]"; \
+	@echo "TEST [$(shell basename $@)]"; \
 	$(CC) $(CFLAGS) $< -o $@ $(DEPS)
 
 test_tis: test_tis.c

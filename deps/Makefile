@@ -1,6 +1,3 @@
-# default: dirs openblas suitesparse stb fast glfw
-# .PHONY: dirs openblas suitesparse stb fast glfw
-
 default: dirs install
 .PHONY: dirs install
 
