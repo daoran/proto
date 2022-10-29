@@ -160,7 +160,7 @@ dev_aprilgrid() {
 # dev_sbgc
 # dev_tiscam
 # dev_aprilgrid
-make
+# make
 
 # CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363

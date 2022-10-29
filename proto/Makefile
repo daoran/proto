@@ -67,11 +67,11 @@ ARFLAGS = rvs
 # TARGETS
 LIBPROTO := $(BLD_DIR)/libproto.a
 TESTS := \
-	$(BIN_DIR)/test_proto \
-	$(BIN_DIR)/test_aprilgrid \
-	$(BIN_DIR)/test_tis \
-	$(BIN_DIR)/test_sbgc \
-	$(BIN_DIR)/test_ubx
+	test_proto \
+	test_aprilgrid \
+	test_tis \
+	test_sbgc \
+	test_ubx
 
 default: dirs $(LIBPROTO) shaders test_data
 .PHONY: dirs shaders test_data
@@ -90,16 +90,43 @@ shaders: dirs
 test_data: dirs
 	@cp -r test_data $(BIN_DIR)
 
-$(BLD_DIR)/%.o: %.c %.h
-	@echo "CC [$<]"; \
-	$(CC) $(CFLAGS) -c $< -o $@
+libproto: dirs
+	@echo "Building [libproto.a]"
+	@python3 scripts/make_cmodule.py --infile proto.h
+	@echo "CC [proto.c]"
+	@$(CC) $(CFLAGS) -c proto.c -o $(BLD_DIR)/proto.o
+	@echo "AR [libproto.a]"
+	@$(AR) $(ARFLAGS) $(BLD_DIR)/libproto.a $(BLD_DIR)/proto.o > /dev/null 2>&1
+	@rm proto.c
 
-$(LIBPROTO): $(BLD_DIR)/proto.o
-	@echo "AR [libproto.a]"; \
-	$(AR) $(ARFLAGS) $@ $^ > /dev/null 2>&1
+test_proto:
+	@echo "CC [test_proto.c]"
+	@python3 scripts/make_cmodule.py -in proto.h -test true
+	@$(CC) $(CFLAGS) test_proto.c -o $(BIN_DIR)/test_proto $(DEPS)
+	@rm test_proto.c
 
-$(BIN_DIR)/test_%: test_%.c munit.h $(LIBPROTO)
-	@echo "CC [$(shell basename $@)]"; \
-	$(CC) $(CFLAGS) $< -o $@ $(DEPS)
+test_aprilgrid:
+	@echo "CC [test_aprilgrid.c]"
+	@python3 scripts/make_cmodule.py -in aprilgrid.h -test true
+	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BIN_DIR)/test_aprilgrid $(DEPS)
+	@rm test_aprilgrid.c
+
+test_tis:
+	@echo "CC [test_tis.c]"
+	@python3 scripts/make_cmodule.py -in tis.h -test true
+	@$(CC) $(CFLAGS) test_tis.c -o $(BIN_DIR)/test_tis $(DEPS)
+	@rm test_tis.c
+
+test_sbgc:
+	@echo "CC [test_sbgc.c]"
+	@python3 scripts/make_cmodule.py -in sbgc.h -test true
+	@$(CC) $(CFLAGS) test_sbgc.c -o $(BIN_DIR)/test_sbgc $(DEPS)
+	@rm test_sbgc.c
+
+test_ubx:
+	@echo "CC [test_ubx.c]"
+	@python3 scripts/make_cmodule.py -in ubx.h -test true
+	@$(CC) $(CFLAGS) test_ubx.c -o $(BIN_DIR)/test_ubx $(DEPS)
+	@rm test_ubx.c
 
 tests: $(TESTS)

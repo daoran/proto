@@ -8,13 +8,17 @@ if __name__ == "__main__":
   )
 
   parser.add_argument('-in', '--infile', required=True)
+  parser.add_argument('-test', '--unittest', default=False)
   args = parser.parse_args()
 
   guard_prefix = args.infile.replace(".h", "").upper()
-  outfile = "test_" + args.infile.replace(".h", ".c")
+  outfile = args.infile.replace(".h", ".c")
+  if args.unittest:
+    outfile = "test_" + outfile
 
   unittest = open(outfile, "w")
   unittest.write(f"#define {guard_prefix}_IMPLEMENTATION\n")
-  unittest.write(f"#define {guard_prefix}_UNITTEST\n")
+  if args.unittest:
+    unittest.write(f"#define {guard_prefix}_UNITTEST\n")
   unittest.write(f"#include \"{args.infile}\"\n")
   unittest.close()
