@@ -194,6 +194,9 @@ void aprilgrid_grid_index(const aprilgrid_t *grid,
                           int *i,
                           int *j) {
   assert(grid != NULL);
+  assert(tag_id >= 0 && tag_id <= (grid->num_rows * grid->num_cols - 1));
+  assert(i != NULL);
+  assert(j != NULL);
 
   if (tag_id > (grid->num_rows * grid->num_cols)) {
     APRILGRID_FATAL("tag_id > (num_rows * num_cols)!\n");
@@ -213,6 +216,8 @@ void aprilgrid_object_point(const aprilgrid_t *grid,
                             const int corner_idx,
                             double object_point[3]) {
   assert(grid != NULL);
+  assert(tag_id >= 0 && tag_id <= (grid->num_rows * grid->num_cols - 1));
+  assert(corner_idx >= 0 && corner_idx <= 3);
   assert(object_point != NULL);
 
   // Calculate the AprilGrid index using tag id
@@ -261,6 +266,8 @@ void aprilgrid_add_corner(aprilgrid_t *grid,
                           const int corner_idx,
                           const double kp[2]) {
   assert(grid != NULL);
+  assert(tag_id >= 0 && tag_id <= (grid->num_rows * grid->num_cols - 1));
+  assert(corner_idx >= 0 && corner_idx <= 3);
 
   // Set AprilGrid as detected
   grid->corners_detected++;
@@ -285,6 +292,8 @@ void aprilgrid_remove_corner(aprilgrid_t *grid,
                              const int tag_id,
                              const int corner_idx) {
   assert(grid != NULL);
+  assert(tag_id >= 0 && tag_id <= (grid->num_rows * grid->num_cols - 1));
+  assert(corner_idx >= 0 && corner_idx <= 3);
 
   const int data_row = (tag_id * 4) + corner_idx;
   assert(data_row >= 0);
@@ -304,6 +313,7 @@ void aprilgrid_add_tag(aprilgrid_t *grid,
                        const int tag_id,
                        const double tag_kps[4][2]) {
   assert(grid != NULL);
+  assert(tag_id >= 0 && tag_id <= (grid->num_rows * grid->num_cols - 1));
   assert(tag_kps != NULL);
 
   for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
@@ -319,6 +329,8 @@ void aprilgrid_add_tag(aprilgrid_t *grid,
  */
 void aprilgrid_remove_tag(aprilgrid_t *grid, const int tag_id) {
   assert(grid != NULL);
+  assert(tag_id >= 0 && tag_id <= (grid->num_rows * grid->num_cols - 1));
+
   for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
     aprilgrid_remove_corner(grid, tag_id, corner_idx);
   }
@@ -425,6 +437,11 @@ static void aprilgrid_parse_line(FILE *fp,
                                  const char *key,
                                  const char *value_type,
                                  void *value) {
+  assert(fp != NULL);
+  assert(key != NULL);
+  assert(value_type != NULL);
+  assert(value != NULL);
+
   // Parse line
   const size_t buf_len = 1024;
   char buf[1024] = {0};
@@ -459,6 +476,7 @@ static void aprilgrid_parse_line(FILE *fp,
 }
 
 static void aprilgrid_parse_skip_line(FILE *fp) {
+  assert(fp != NULL);
   const size_t buf_len = 1024;
   char buf[1024] = {0};
   fgets(buf, buf_len, fp);
@@ -557,6 +575,10 @@ int aprilgrid_detector_detect(const aprilgrid_detector_t *det,
                               uint8_t *image_data) {
   assert(det != NULL);
   assert(grid != NULL);
+  assert(image_width > 0);
+  assert(image_height > 0);
+  assert(image_stride > 0);
+  assert(image_data != NULL);
 
   // Form image_u8_t
   image_u8_t im = {.width = image_width,
