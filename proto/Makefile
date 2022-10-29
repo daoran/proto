@@ -1,9 +1,9 @@
 # PATHS
-BLD_DIR := $(PWD)/build
-BIN_DIR := $(PWD)/build/bin
+BLD_DIR := build
+BIN_DIR := build/bin
 INC_DIR := $(PWD)
-DEPS_DIR := $(PWD)/deps
-TESTS_DIR := $(PWD)/tests
+DEPS_DIR := third_party
+TESTS_DIR := tests
 
 
 # COMPILER SETTINGS
@@ -54,6 +54,7 @@ DEPS=-L$(BLD_DIR) \
 	$(OPENGL_LIBS) \
 	$(BLAS_LIBS) \
 	$(OPENSSL_LIBS) \
+	$(TIS_LIBS) \
 	-lpthread \
   -lm
 
@@ -64,16 +65,16 @@ ARFLAGS = rvs
 
 
 # TARGETS
-LIB := $(BLD_DIR)/libproto.a
-TEST_PROTO := $(BIN_DIR)/test_proto
-TEST_SBGC := $(BIN_DIR)/test_sbgc
-TEST_UBX := $(BIN_DIR)/test_ubx
-TEST_TIS := $(BIN_DIR)/test_tis
-TEST_APRILGRID := $(BIN_DIR)/test_aprilgrid
-TESTS := $(TEST_PROTO) $(TEST_SBGC) $(TEST_UBX) $(TEST_APRILGRID)
+LIBPROTO := $(BLD_DIR)/libproto.a
+TESTS := \
+	$(BIN_DIR)/test_proto \
+	$(BIN_DIR)/test_aprilgrid \
+	$(BIN_DIR)/test_tis \
+	$(BIN_DIR)/test_sbgc \
+	$(BIN_DIR)/test_ubx
 
-default: dirs $(LIB) shaders test_data $(TESTS)
-.PHONY: dirs shaders test_data tests
+default: dirs $(LIBPROTO) shaders test_data
+.PHONY: dirs shaders test_data
 
 dirs:
 	@mkdir -p $(BLD_DIR)
@@ -93,16 +94,12 @@ $(BLD_DIR)/%.o: %.c %.h
 	@echo "CC [$<]"; \
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(LIB): $(BLD_DIR)/proto.o
+$(LIBPROTO): $(BLD_DIR)/proto.o
 	@echo "AR [libproto.a]"; \
 	$(AR) $(ARFLAGS) $@ $^ > /dev/null 2>&1
 
-$(BIN_DIR)/test_%: test_%.c munit.h $(LIB)
-	@echo "TEST [$(shell basename $@)]"; \
+$(BIN_DIR)/test_%: test_%.c munit.h $(LIBPROTO)
+	@echo "CC [$(shell basename $@)]"; \
 	$(CC) $(CFLAGS) $< -o $@ $(DEPS)
 
-test_tis: test_tis.c
-	$(CC) $(CFLAGS) -O3 $< -o $(BIN_DIR)/$@ $(TIS_LIBS) $(SDL2_LIBS)
-
-tests: $(LIB) $(BIN_DIR)/test_proto
-	$(BIN_DIR)/test_proto
+tests: $(TESTS)

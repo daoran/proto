@@ -137,7 +137,7 @@ run_test() {
 }
 
 dev_sbgc() {
-  touch proto/proto.c;
+  touch proto.c;
   time make build
   cd ./proto/build/bin;
   ./test_sbgc
@@ -151,7 +151,7 @@ dev_tiscam() {
 }
 
 dev_aprilgrid() {
-  touch proto/proto.c;
+  touch proto.c;
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "cd ~/projects/proto/proto && make && ./build/bin/test_aprilgrid" C-m
   exit
@@ -159,7 +159,8 @@ dev_aprilgrid() {
 
 # dev_sbgc
 # dev_tiscam
-dev_aprilgrid
+# dev_aprilgrid
+make
 
 # CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363

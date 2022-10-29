@@ -24,8 +24,8 @@ install ceres
 install eigen
 install lapacke
 install opencv
-# install apriltag
-install apriltags3
+install apriltag
+install apriltag-imgs
 # install octomap
 install fast
 install glew
