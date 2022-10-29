@@ -5,8 +5,10 @@
 #include "stb_image.h"
 #endif
 
+#ifdef USE_SBGC
 #define SBGC_IMPLEMENTATION
 #include "sbgc.h"
+#endif
 
 /******************************************************************************
  * FILE SYSTEM
