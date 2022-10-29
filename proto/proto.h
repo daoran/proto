@@ -579,7 +579,7 @@ int ws_server();
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 /** Based on sign of b, return +ve or -ve a. */
-#define SIGN2(a, b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
+#define SIGN2(a, b) ((b) > 0.0 ? fabs(a) : -fabs(a))
 
 float randf(float a, float b);
 real_t deg2rad(const real_t d);
@@ -714,7 +714,7 @@ int check_jacobian(const char *jac_name,
 void lapack_svd(
     real_t *A, const int m, const int n, real_t **s, real_t **U, real_t **V_t);
 void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv);
-#endif
+#endif // USE_LAPACK
 
 /******************************************************************************
  * CHOL
@@ -729,7 +729,7 @@ void lapack_chol_solve(const real_t *A,
                        const real_t *b,
                        real_t *x,
                        const size_t n);
-#endif
+#endif // USE_LAPACK
 
 /******************************************************************************
  * TRANSFORMS
@@ -5000,16 +5000,19 @@ int check_jacobian(const char *jac_name,
 
 /**
  * Modified from Numerical Recipes in C
- * Given a matrix a[nRows][nCols], svdcmp() computes its singular value
+ *
+ * Given a matrix A[nRows * nCols], svdcmp() computes its singular value
  * decomposition, A = U * W * Vt.  A is replaced by U when svdcmp
  * returns. The diagonal matrix W is output as a vector w[nCols].
- * V (not V transpose) is output as the matrix V[nCols][nCols].
+ * V (not V transpose) is output as the matrix V[nCols * nCols].
+ *
+ * @returns 0 for success, -1 for failure
  */
-int svdcmp(double **a, int nRows, int nCols, double *w, double **v) {
+int svdcmp(real_t *a, int nRows, int nCols, real_t *w, real_t *v) {
   int flag, i, its, j, jj, k, l, nm;
-  double anorm, c, f, g, h, s, scale, x, y, z;
+  double anorm, c, f, g, h, s, scale, x, y, z, *rv1;
 
-  double *rv1 = malloc(sizeof(double) * nCols);
+  rv1 = (double *) malloc(sizeof(double) * nCols);
   if (rv1 == NULL) {
     printf("svdcmp(): Unable to allocate vector\n");
     return (-1);
@@ -5022,103 +5025,96 @@ int svdcmp(double **a, int nRows, int nCols, double *w, double **v) {
     g = s = scale = 0.0;
     if (i < nRows) {
       for (k = i; k < nRows; k++)
-        scale += fabs(a[k][i]);
+        scale += fabs(a[k * nCols + i]);
       if (scale) {
         for (k = i; k < nRows; k++) {
-          a[k][i] /= scale;
-          s += a[k][i] * a[k][i];
+          a[k * nCols + i] /= scale;
+          s += a[k * nCols + i] * a[k * nCols + i];
         }
-        f = a[i][i];
+        f = a[i * nCols + i];
         g = -SIGN2(sqrt(s), f);
         h = f * g - s;
-        a[i][i] = f - g;
+        a[i * nCols + i] = f - g;
         for (j = l; j < nCols; j++) {
           for (s = 0.0, k = i; k < nRows; k++)
-            s += a[k][i] * a[k][j];
+            s += a[k * nCols + i] * a[k * nCols + j];
           f = s / h;
           for (k = i; k < nRows; k++)
-            a[k][j] += f * a[k][i];
+            a[k * nCols + j] += f * a[k * nCols + i];
         }
         for (k = i; k < nRows; k++)
-          a[k][i] *= scale;
+          a[k * nCols + i] *= scale;
       }
     }
     w[i] = scale * g;
     g = s = scale = 0.0;
     if (i < nRows && i != nCols - 1) {
       for (k = l; k < nCols; k++)
-        scale += fabs(a[i][k]);
+        scale += fabs(a[i * nCols + k]);
       if (scale) {
         for (k = l; k < nCols; k++) {
-          a[i][k] /= scale;
-          s += a[i][k] * a[i][k];
+          a[i * nCols + k] /= scale;
+          s += a[i * nCols + k] * a[i * nCols + k];
         }
-        f = a[i][l];
+        f = a[i * nCols + l];
         g = -SIGN2(sqrt(s), f);
         h = f * g - s;
-        a[i][l] = f - g;
+        a[i * nCols + l] = f - g;
         for (k = l; k < nCols; k++)
-          rv1[k] = a[i][k] / h;
+          rv1[k] = a[i * nCols + k] / h;
         for (j = l; j < nRows; j++) {
           for (s = 0.0, k = l; k < nCols; k++)
-            s += a[j][k] * a[i][k];
+            s += a[j * nCols + k] * a[i * nCols + k];
           for (k = l; k < nCols; k++)
-            a[j][k] += s * rv1[k];
+            a[j * nCols + k] += s * rv1[k];
         }
         for (k = l; k < nCols; k++)
-          a[i][k] *= scale;
+          a[i * nCols + k] *= scale;
       }
     }
     anorm = MAX(anorm, (fabs(w[i]) + fabs(rv1[i])));
-
-    printf(".");
-    fflush(stdout);
   }
 
   for (i = nCols - 1; i >= 0; i--) {
     if (i < nCols - 1) {
       if (g) {
         for (j = l; j < nCols; j++)
-          v[j][i] = (a[i][j] / a[i][l]) / g;
+          v[j * nCols + i] = (a[i * nCols + j] / a[i * nCols + l]) / g;
         for (j = l; j < nCols; j++) {
           for (s = 0.0, k = l; k < nCols; k++)
-            s += a[i][k] * v[k][j];
+            s += a[i * nCols + k] * v[k * nCols + j];
           for (k = l; k < nCols; k++)
-            v[k][j] += s * v[k][i];
+            v[k * nCols + j] += s * v[k * nCols + i];
         }
       }
       for (j = l; j < nCols; j++)
-        v[i][j] = v[j][i] = 0.0;
+        v[i * nCols + j] = v[j * nCols + i] = 0.0;
     }
-    v[i][i] = 1.0;
+    v[i * nCols + i] = 1.0;
     g = rv1[i];
     l = i;
-    printf(".");
-    fflush(stdout);
   }
 
   for (i = MIN(nRows, nCols) - 1; i >= 0; i--) {
     l = i + 1;
     g = w[i];
     for (j = l; j < nCols; j++)
-      a[i][j] = 0.0;
+      a[i * nCols + j] = 0.0;
     if (g) {
       g = 1.0 / g;
       for (j = l; j < nCols; j++) {
         for (s = 0.0, k = l; k < nRows; k++)
-          s += a[k][i] * a[k][j];
-        f = (s / a[i][i]) * g;
+          s += a[k * nCols + i] * a[k * nCols + j];
+        f = (s / a[i * nCols + i]) * g;
         for (k = i; k < nRows; k++)
-          a[k][j] += f * a[k][i];
+          a[k * nCols + j] += f * a[k * nCols + i];
       }
       for (j = i; j < nRows; j++)
-        a[j][i] *= g;
+        a[j * nCols + i] *= g;
     } else
       for (j = i; j < nRows; j++)
-        a[j][i] = 0.0;
-    ++a[i][i];
-    printf(".");
-    fflush(stdout);
+        a[j * nCols + i] = 0.0;
+    ++a[i * nCols + i];
   }
 
   for (k = nCols - 1; k >= 0; k--) {
@@ -5148,10 +5144,10 @@ int svdcmp(double **a, int nRows, int nCols, double *w, double **v) {
           c = g * h;
           s = -f * h;
           for (j = 0; j < nRows; j++) {
-            y = a[j][nm];
-            z = a[j][i];
-            a[j][nm] = y * c + z * s;
-            a[j][i] = z * c - y * s;
+            y = a[j * nCols + nm];
+            z = a[j * nCols + i];
+            a[j * nCols + nm] = y * c + z * s;
+            a[j * nCols + i] = z * c - y * s;
           }
         }
       }
@@ -5160,7 +5156,7 @@ int svdcmp(double **a, int nRows, int nCols, double *w, double **v) {
         if (z < 0.0) {
           w[k] = -z;
           for (j = 0; j < nCols; j++)
-            v[j][k] = -v[j][k];
+            v[j * nCols + k] = -v[j * nCols + k];
         }
         break;
       }
@@ -5190,10 +5186,10 @@ int svdcmp(double **a, int nRows, int nCols, double *w, double **v) {
         h = y * s;
         y *= c;
         for (jj = 0; jj < nCols; jj++) {
-          x = v[jj][j];
-          z = v[jj][i];
-          v[jj][j] = x * c + z * s;
-          v[jj][i] = z * c - x * s;
+          x = v[jj * nCols + j];
+          z = v[jj * nCols + i];
+          v[jj * nCols + j] = x * c + z * s;
+          v[jj * nCols + i] = z * c - x * s;
         }
         z = pythag(f, h);
         w[j] = z;
@@ -5205,20 +5201,17 @@ int svdcmp(double **a, int nRows, int nCols, double *w, double **v) {
         f = c * g + s * y;
         x = c * y - s * g;
         for (jj = 0; jj < nRows; jj++) {
-          y = a[jj][j];
-          z = a[jj][i];
-          a[jj][j] = y * c + z * s;
-          a[jj][i] = z * c - y * s;
+          y = a[jj * nCols + j];
+          z = a[jj * nCols + i];
+          a[jj * nCols + j] = y * c + z * s;
+          a[jj * nCols + i] = z * c - y * s;
         }
       }
       rv1[l] = 0.0;
       rv1[k] = f;
       w[k] = x;
     }
-    printf(".");
-    fflush(stdout);
   }
-  printf("\n");
 
   free(rv1);
 
@@ -5242,7 +5235,6 @@ void lapack_svd(
   LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *s, *U, m, *V_t, n);
 #endif
 }
-#endif
 
 /**
  * Pseudo inverse of matrix A with SVD
@@ -5288,6 +5280,8 @@ void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv) {
   free(V_t);
   free(V_Sinv);
 }
+
+#endif // USE_LAPACK
 
 /******************************************************************************
  * CHOL
@@ -12749,6 +12743,40 @@ int test_check_jacobian() {
  * TEST SVD
  ******************************************************************************/
 
+int test_svd() {
+  // Matrix A
+  // clang-format off
+  real_t A[6 * 4] = {
+    7.52, -1.10, -7.95,  1.08,
+    -0.76,  0.62,  9.34, -7.10,
+     5.13,  6.62, -5.66,  0.87,
+    -4.75,  8.52,  5.75,  5.30,
+     1.33,  4.91, -5.49, -3.52,
+    -2.40, -6.77,  2.34,  3.95
+  };
+  // clang-format on
+
+  // Decompose A with SVD
+  real_t w[4] = {0};
+  real_t V[4 * 4] = {0};
+  svdcmp(A, 6, 4, w, V);
+
+  // Multiply the output to see if it can form matrix A again
+  // U * W * Vt
+  real_t W[4 * 4] = {0};
+  real_t Vt[4 * 4] = {0};
+  real_t A_W[6 * 4] = {0};
+  real_t A_W_Vt[6 * 4] = {0};
+  mat_diag_set(W, 4, 4, w);
+  mat_transpose(V, 4, 4, Vt);
+  dot(A, 6, 4, W, 4, 4, A_W);
+  dot(A_W, 6, 4, Vt, 4, 4, A_W_Vt);
+
+  print_matrix("A", A_W_Vt, 6, 4);
+
+  return 0;
+}
+
 #ifdef USE_LAPACK
 
 int test_lapack_svd() {
@@ -14172,7 +14200,6 @@ int test_pose_factor_eval() {
   // print_matrix("J1", J1, 6, 3);
 
   /* Check jacobians */
-  const int r_size = 6;
   const real_t step_size = 1e-8;
   const real_t tol = 1e-4;
 
@@ -16127,7 +16154,7 @@ void test_suite() {
   MU_ADD_TEST(test_check_jacobian);
 
   /* SVD */
-  /* MU_ADD_TEST(test_svd); */
+  MU_ADD_TEST(test_svd);
 #ifdef USE_LAPACK
   MU_ADD_TEST(test_lapack_svd);
   MU_ADD_TEST(test_lapack_svd_inverse);
