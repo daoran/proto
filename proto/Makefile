@@ -9,6 +9,7 @@ TESTS_DIR := tests
 # COMPILER SETTINGS
 BUILD_TYPE := debug
 CC := gcc
+# CC := tcc
 
 SDL2_CFLAGS:=$(shell sdl2-config --cflags)
 TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED

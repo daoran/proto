@@ -5008,116 +5008,116 @@ int check_jacobian(const char *jac_name,
  *
  * @returns 0 for success, -1 for failure
  */
-int svdcmp(real_t *a, int nRows, int nCols, real_t *w, real_t *v) {
+int svdcmp(real_t *A, int m, int n, real_t *w, real_t *V) {
   int flag, i, its, j, jj, k, l, nm;
   double anorm, c, f, g, h, s, scale, x, y, z, *rv1;
 
-  rv1 = (double *) malloc(sizeof(double) * nCols);
+  rv1 = malloc(sizeof(double) * n);
   if (rv1 == NULL) {
     printf("svdcmp(): Unable to allocate vector\n");
     return (-1);
   }
 
   g = scale = anorm = 0.0;
-  for (i = 0; i < nCols; i++) {
+  for (i = 0; i < n; i++) {
     l = i + 1;
     rv1[i] = scale * g;
     g = s = scale = 0.0;
-    if (i < nRows) {
-      for (k = i; k < nRows; k++)
-        scale += fabs(a[k * nCols + i]);
+    if (i < m) {
+      for (k = i; k < m; k++)
+        scale += fabs(A[k * n + i]);
       if (scale) {
-        for (k = i; k < nRows; k++) {
-          a[k * nCols + i] /= scale;
-          s += a[k * nCols + i] * a[k * nCols + i];
+        for (k = i; k < m; k++) {
+          A[k * n + i] /= scale;
+          s += A[k * n + i] * A[k * n + i];
         }
-        f = a[i * nCols + i];
+        f = A[i * n + i];
         g = -SIGN2(sqrt(s), f);
         h = f * g - s;
-        a[i * nCols + i] = f - g;
-        for (j = l; j < nCols; j++) {
-          for (s = 0.0, k = i; k < nRows; k++)
-            s += a[k * nCols + i] * a[k * nCols + j];
+        A[i * n + i] = f - g;
+        for (j = l; j < n; j++) {
+          for (s = 0.0, k = i; k < m; k++)
+            s += A[k * n + i] * A[k * n + j];
           f = s / h;
-          for (k = i; k < nRows; k++)
-            a[k * nCols + j] += f * a[k * nCols + i];
+          for (k = i; k < m; k++)
+            A[k * n + j] += f * A[k * n + i];
         }
-        for (k = i; k < nRows; k++)
-          a[k * nCols + i] *= scale;
+        for (k = i; k < m; k++)
+          A[k * n + i] *= scale;
       }
     }
     w[i] = scale * g;
     g = s = scale = 0.0;
-    if (i < nRows && i != nCols - 1) {
-      for (k = l; k < nCols; k++)
-        scale += fabs(a[i * nCols + k]);
+    if (i < m && i != n - 1) {
+      for (k = l; k < n; k++)
+        scale += fabs(A[i * n + k]);
       if (scale) {
-        for (k = l; k < nCols; k++) {
-          a[i * nCols + k] /= scale;
-          s += a[i * nCols + k] * a[i * nCols + k];
+        for (k = l; k < n; k++) {
+          A[i * n + k] /= scale;
+          s += A[i * n + k] * A[i * n + k];
         }
-        f = a[i * nCols + l];
+        f = A[i * n + l];
         g = -SIGN2(sqrt(s), f);
         h = f * g - s;
-        a[i * nCols + l] = f - g;
-        for (k = l; k < nCols; k++)
-          rv1[k] = a[i * nCols + k] / h;
-        for (j = l; j < nRows; j++) {
-          for (s = 0.0, k = l; k < nCols; k++)
-            s += a[j * nCols + k] * a[i * nCols + k];
-          for (k = l; k < nCols; k++)
-            a[j * nCols + k] += s * rv1[k];
+        A[i * n + l] = f - g;
+        for (k = l; k < n; k++)
+          rv1[k] = A[i * n + k] / h;
+        for (j = l; j < m; j++) {
+          for (s = 0.0, k = l; k < n; k++)
+            s += A[j * n + k] * A[i * n + k];
+          for (k = l; k < n; k++)
+            A[j * n + k] += s * rv1[k];
         }
-        for (k = l; k < nCols; k++)
-          a[i * nCols + k] *= scale;
+        for (k = l; k < n; k++)
+          A[i * n + k] *= scale;
       }
     }
     anorm = MAX(anorm, (fabs(w[i]) + fabs(rv1[i])));
   }
 
-  for (i = nCols - 1; i >= 0; i--) {
-    if (i < nCols - 1) {
+  for (i = n - 1; i >= 0; i--) {
+    if (i < n - 1) {
       if (g) {
-        for (j = l; j < nCols; j++)
-          v[j * nCols + i] = (a[i * nCols + j] / a[i * nCols + l]) / g;
-        for (j = l; j < nCols; j++) {
-          for (s = 0.0, k = l; k < nCols; k++)
-            s += a[i * nCols + k] * v[k * nCols + j];
-          for (k = l; k < nCols; k++)
-            v[k * nCols + j] += s * v[k * nCols + i];
+        for (j = l; j < n; j++)
+          V[j * n + i] = (A[i * n + j] / A[i * n + l]) / g;
+        for (j = l; j < n; j++) {
+          for (s = 0.0, k = l; k < n; k++)
+            s += A[i * n + k] * V[k * n + j];
+          for (k = l; k < n; k++)
+            V[k * n + j] += s * V[k * n + i];
         }
       }
-      for (j = l; j < nCols; j++)
-        v[i * nCols + j] = v[j * nCols + i] = 0.0;
+      for (j = l; j < n; j++)
+        V[i * n + j] = V[j * n + i] = 0.0;
     }
-    v[i * nCols + i] = 1.0;
+    V[i * n + i] = 1.0;
     g = rv1[i];
     l = i;
   }
 
-  for (i = MIN(nRows, nCols) - 1; i >= 0; i--) {
+  for (i = MIN(m, n) - 1; i >= 0; i--) {
     l = i + 1;
     g = w[i];
-    for (j = l; j < nCols; j++)
-      a[i * nCols + j] = 0.0;
+    for (j = l; j < n; j++)
+      A[i * n + j] = 0.0;
     if (g) {
       g = 1.0 / g;
-      for (j = l; j < nCols; j++) {
-        for (s = 0.0, k = l; k < nRows; k++)
-          s += a[k * nCols + i] * a[k * nCols + j];
-        f = (s / a[i * nCols + i]) * g;
-        for (k = i; k < nRows; k++)
-          a[k * nCols + j] += f * a[k * nCols + i];
+      for (j = l; j < n; j++) {
+        for (s = 0.0, k = l; k < m; k++)
+          s += A[k * n + i] * A[k * n + j];
+        f = (s / A[i * n + i]) * g;
+        for (k = i; k < m; k++)
+          A[k * n + j] += f * A[k * n + i];
       }
-      for (j = i; j < nRows; j++)
-        a[j * nCols + i] *= g;
+      for (j = i; j < m; j++)
+        A[j * n + i] *= g;
     } else
-      for (j = i; j < nRows; j++)
-        a[j * nCols + i] = 0.0;
-    ++a[i * nCols + i];
+      for (j = i; j < m; j++)
+        A[j * n + i] = 0.0;
+    ++A[i * n + i];
   }
 
-  for (k = nCols - 1; k >= 0; k--) {
+  for (k = n - 1; k >= 0; k--) {
     for (its = 0; its < 30; its++) {
       flag = 1;
       for (l = k; l >= 0; l--) {
@@ -5143,11 +5143,11 @@ int svdcmp(real_t *a, int nRows, int nCols, real_t *w, real_t *v) {
           h = 1.0 / h;
           c = g * h;
           s = -f * h;
-          for (j = 0; j < nRows; j++) {
-            y = a[j * nCols + nm];
-            z = a[j * nCols + i];
-            a[j * nCols + nm] = y * c + z * s;
-            a[j * nCols + i] = z * c - y * s;
+          for (j = 0; j < m; j++) {
+            y = A[j * n + nm];
+            z = A[j * n + i];
+            A[j * n + nm] = y * c + z * s;
+            A[j * n + i] = z * c - y * s;
           }
         }
       }
@@ -5155,8 +5155,8 @@ int svdcmp(real_t *a, int nRows, int nCols, real_t *w, real_t *v) {
       if (l == k) {
         if (z < 0.0) {
           w[k] = -z;
-          for (j = 0; j < nCols; j++)
-            v[j * nCols + k] = -v[j * nCols + k];
+          for (j = 0; j < n; j++)
+            V[j * n + k] = -V[j * n + k];
         }
         break;
       }
@@ -5185,11 +5185,11 @@ int svdcmp(real_t *a, int nRows, int nCols, real_t *w, real_t *v) {
         g = g * c - x * s;
         h = y * s;
         y *= c;
-        for (jj = 0; jj < nCols; jj++) {
-          x = v[jj * nCols + j];
-          z = v[jj * nCols + i];
-          v[jj * nCols + j] = x * c + z * s;
-          v[jj * nCols + i] = z * c - x * s;
+        for (jj = 0; jj < n; jj++) {
+          x = V[jj * n + j];
+          z = V[jj * n + i];
+          V[jj * n + j] = x * c + z * s;
+          V[jj * n + i] = z * c - x * s;
         }
         z = pythag(f, h);
         w[j] = z;
@@ -5200,11 +5200,11 @@ int svdcmp(real_t *a, int nRows, int nCols, real_t *w, real_t *v) {
         }
         f = c * g + s * y;
         x = c * y - s * g;
-        for (jj = 0; jj < nRows; jj++) {
-          y = a[jj * nCols + j];
-          z = a[jj * nCols + i];
-          a[jj * nCols + j] = y * c + z * s;
-          a[jj * nCols + i] = z * c - y * s;
+        for (jj = 0; jj < m; jj++) {
+          y = A[jj * n + j];
+          z = A[jj * n + i];
+          A[jj * n + j] = y * c + z * s;
+          A[jj * n + i] = z * c - y * s;
         }
       }
       rv1[l] = 0.0;
@@ -12746,6 +12746,14 @@ int test_check_jacobian() {
 int test_svd() {
   // Matrix A
   // clang-format off
+  real_t A_original[6 * 4] = {
+    7.52, -1.10, -7.95,  1.08,
+    -0.76,  0.62,  9.34, -7.10,
+     5.13,  6.62, -5.66,  0.87,
+    -4.75,  8.52,  5.75,  5.30,
+     1.33,  4.91, -5.49, -3.52,
+    -2.40, -6.77,  2.34,  3.95
+  };
   real_t A[6 * 4] = {
     7.52, -1.10, -7.95,  1.08,
     -0.76,  0.62,  9.34, -7.10,
@@ -12773,6 +12781,7 @@ int test_svd() {
   dot(A_W, 6, 4, Vt, 4, 4, A_W_Vt);
 
   print_matrix("A", A_W_Vt, 6, 4);
+  MU_ASSERT(mat_equals(A_W_Vt, A_original, 6, 4, 1e-5) == 0);
 
   return 0;
 }
