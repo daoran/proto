@@ -990,6 +990,113 @@ def boxminus(C_a, C_b):
   return alpha
 
 
+def screw_to_se3(s):
+  """ Screw axis to se(3)
+
+  Let s be the screw axis:
+
+    s = [w, v]
+
+  This function turns
+
+    s  -> [s]
+    R6 -> se(3)
+
+  Example Input:
+
+    s = np.array([1, 2, 3, 4, 5, 6])
+
+  Example Output:
+
+    np.array([[ 0, -3,  2, 4],
+              [ 3,  0, -1, 5],
+              [-2,  1,  0, 6],
+              [ 0,  0,  0, 0]])
+
+  """
+  w = s[0:3]
+  v = s[3:]
+  return np.block([[hat(w), v.reshape((3, 1))], [np.zeros((1, 4))]])
+
+
+def se3_to_screw(se3mat):
+  """ Convert se(3) matrix back to screw axis
+
+  Example Input:
+
+    np.array([[ 0, -3,  2, 4],
+              [ 3,  0, -1, 5],
+              [-2,  1,  0, 6],
+              [ 0,  0,  0, 0]])
+
+  Example Output:
+
+    s = np.array([1, 2, 3, 4, 5, 6])
+
+  """
+  w = np.array([se3mat[2][1], se3mat[0][2], se3mat[1][0]])
+  v = np.array([se3mat[0][3], se3mat[1][3], se3mat[2][3]])
+  return np.array([*w, *v])
+
+
+def so3_exp(so3mat, tol=1e-6):
+  """ Computes the matrix exponential of a matrix in so(3)
+
+  Example Input:
+    so3mat = np.array([[ 0, -3,  2],
+                       [ 3,  0, -1],
+                       [-2,  1,  0]])
+  Output:
+
+    np.array([[-0.69492056,  0.71352099,  0.08929286],
+              [-0.19200697, -0.30378504,  0.93319235],
+              [ 0.69297817,  0.6313497 ,  0.34810748]])
+
+  """
+  aa = vee(so3mat)
+  if np.linalg.norm(aa) < tol:
+    return np.eye(3)
+
+  _, theta = aa_decomp(aa)
+  omgmat = so3mat / theta
+
+  I3 = np.eye(3)
+  s_theta = np.sin(theta)
+  c_theta = np.cos(theta)
+
+  return I3 + s_theta * omgmat + (1.0 - c_theta) * np.dot(omgmat, omgmat)
+
+
+def so3_Exp(w):
+  """ Exponential Map R3 to so3 """
+  return so3_exp(hat(w))
+
+
+def poe(screw_axis, joint_angle, tol=1e-6):
+  """ Matrix exponential of se(3) matrix """
+  s = screw_axis * joint_angle
+  aa = s[0:3]  # Axis-angle (w * theta)
+  v = s[3:]  # Linear velocity
+
+  if np.linalg.norm(aa) < tol:
+    return np.block([[np.eye(3), v.reshape((3, 1))], [0, 0, 0, 1]])
+
+  se3mat = screw_to_se3(s)
+
+  _, theta = aa_decomp(aa)
+  w_skew = se3mat[0:3, 0:3] / theta
+  w_skew_sq = w_skew @ w_skew
+
+  I3 = np.eye(3)
+  c_th = np.cos(theta)
+  s_th = np.sin(theta)
+
+  A = so3_exp(se3mat[0:3, 0:3])
+  B = (I3 * theta + (1.0 - c_th) * w_skew + (theta - s_th) * w_skew_sq) @ v
+
+  return np.block([[A, B.reshape((3, 1))], [0.0, 0.0, 0.0, 1.0]])
+
+
 ###############################################################################
 # TRANSFORM
 ###############################################################################
@@ -1468,6 +1575,20 @@ def tf_quat(T):
   """ Return quaternion from 4x4 homogeneous transform """
   assert T.shape == (4, 4)
   return rot2quat(tf_rot(T))
+
+
+def tf2pose(T):
+  """ Form pose vector """
+  rx, ry, rz = tf_trans(T)
+  qw, qx, qy, qz = tf_quat(T)
+  return np.array([rx, ry, rz, qx, qy, qz, qw])
+
+
+def pose2tf(pose_vec):
+  """ Convert pose vector to transformation matrix """
+  rx, ry, rz = pose_vec[0:3]
+  qx, qy, qz, qw = pose_vec[3:7]
+  return tf(np.array([qw, qx, qy, qz]), np.array([rx, ry, rz]))
 
 
 def tf_trans(T):
@@ -3218,20 +3339,6 @@ class FeatureMeasurements:
     for cam_idx, z in self._data[ts].items():
       overlaps.append((cam_idx, z))
     return overlaps
-
-
-def tf2pose(T):
-  """ Form pose vector """
-  rx, ry, rz = tf_trans(T)
-  qw, qx, qy, qz = tf_quat(T)
-  return np.array([rx, ry, rz, qx, qy, qz, qw])
-
-
-def pose2tf(pose_vec):
-  """ Convert pose vector to transformation matrix """
-  rx, ry, rz = pose_vec[0:3]
-  qx, qy, qz, qw = pose_vec[3:7]
-  return tf(np.array([qw, qx, qy, qz]), np.array([rx, ry, rz]))
 
 
 def pose_setup(ts, param, **kwargs):
@@ -6680,13 +6787,6 @@ def dh_matrix(theta, d, a, alpha):
   return np.array([row0, row1, row2, row3])
 
 
-class RobotArmSimulation:
-  """ RobotArmSimulation """
-  def __init__(self, **kwargs):
-    # Settings
-    pass
-
-
 ###############################################################################
 # CONTROL
 ###############################################################################
@@ -7010,6 +7110,158 @@ class MultiPlot:
     if time_diff > (1.0 / self.emit_rate):
       await ws.send(self.get_plot_data())
       self.last_updated = time_now
+
+
+###############################################################################
+# Sandbox
+###############################################################################
+
+
+class GimbalSandbox:
+  """ Gimbal Sandbox"""
+  def __init__(self):
+    self.calib_target, self.T_WF = self._setup_calib_target()
+    self.cam_params = self._setup_camera_params()
+
+    # Base link
+    offset_x = 0.0
+    offset_y = -self.calib_target.get_dimensions()[0] / 2.0
+    offset_z = 0
+
+    C_WB = euler321(0.0, 0.0, 0.0)
+    r_WB = np.array([offset_x, offset_y, offset_z])
+    T_WB = tf(C_WB, r_WB)
+    self.motor0_ext = tf2pose(T_WB)
+    self.base_link = T_WB
+
+    # Roll link
+    C_M0M1 = euler321(0.0, deg2rad(90.0), 0.0)
+    r_M0M1 = np.array([-0.1, 0.0, 0.15])
+    T_M0M1 = tf(C_M0M1, r_M0M1)
+    self.motor1_ext = tf2pose(T_M0M1)
+    self.roll_link = T_M0M1
+
+    # Pitch link
+    C_M1M2 = euler321(deg2rad(0.0), 0.0, deg2rad(-90.0))
+    r_M1M2 = np.array([0.0, -0.05, 0.1])
+    T_M1M2 = tf(C_M1M2, r_M1M2)
+    self.motor1_ext = tf2pose(T_M0M1)
+    self.pitch_link = T_M1M2
+
+    # cam0 link
+    C_M2C0 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
+    r_M2C0 = np.array([0.0, -0.05, 0.12])
+    T_M2C0 = tf(C_M2C0, r_M2C0)
+    self.motor2_ext = tf2pose(T_M1M2)
+    self.cam0_ext = T_M2C0
+
+    # cam1 link
+    C_M2C1 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
+    r_M2C1 = np.array([0.0, -0.05, -0.12])
+    T_M2C1 = tf(C_M2C1, r_M2C1)
+    self.cam1_ext = T_M2C1
+
+  @staticmethod
+  def _setup_calib_target():
+    """ Setup Calibration Target """
+    calib_target = AprilGrid()
+    C_WF = euler321(-pi / 2.0, 0.0, deg2rad(90.0))
+    r_WF = np.array([0.5, 0.0, 0.0])
+    T_WF = tf(C_WF, r_WF)
+    return calib_target, T_WF
+
+  @staticmethod
+  def _setup_camera_params():
+    """ Setup Camera Parameters """
+    cam_idx = 0
+    res = [640, 480]
+    fov = 120.0
+    fx = focal_length(res[0], fov)
+    fy = focal_length(res[0], fov)
+    cx = res[0] / 2.0
+    cy = res[1] / 2.0
+
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    proj_params = [fx, fy, cx, cy]
+    dist_params = [0.0, 0.0, 0.0, 0.0]
+    params = np.block([*proj_params, *dist_params])
+
+    return camera_params_setup(cam_idx, res, proj_model, dist_model, params)
+
+  def get_extrinsics(self, target):
+    """ Get extrinsics """
+    if target == "T_WM0":
+      T_WM0 = self.base_link
+      return T_WM0
+    elif target == "T_WM1":
+      T_WM1 = self.base_link @ self.roll_link
+      return T_WM1
+    elif target == "T_WM2":
+      T_WM2 = self.base_link @ self.roll_link @ self.pitch_link
+      return T_WM2
+    elif target == "T_WC0":
+      T_WC0 = self.base_link @ self.roll_link @ self.pitch_link @ self.cam0_ext
+      return T_WC0
+    elif target == "T_WC1":
+      T_WC1 = self.base_link @ self.roll_link @ self.pitch_link @ self.cam1_ext
+      return T_WC1
+
+  def get_camera_measurements(self, cam_idx):
+    """ Simulate camera frame """
+    cam_geom = self.cam_params.data
+    T_CiW = None
+    if cam_idx == 0:
+      T_CiW = np.linalg.inv(self.get_extrinsics("T_WC0"))
+    elif cam_idx == 1:
+      T_CiW = np.linalg.inv(self.get_extrinsics("T_WC1"))
+
+    keypoints = []
+    object_points = self.calib_target.get_object_points()
+    for r_FFi in object_points:
+      r_Ci = tf_point(T_CiW @ self.T_WF, r_FFi)
+      status, z = cam_geom.project(self.cam_params.param, r_Ci)
+      if status:
+        keypoints.append(z)
+
+    return np.array(keypoints)
+
+  def plot_camera_frame(self, cam_idx):
+    """ Plot camera frame """
+    cam_geom = self.cam_params.data
+    cam_res = cam_geom.resolution
+    measurements = self.get_camera_measurements(cam_idx)
+
+    plt.figure()
+    ax = plt.subplot(111)
+    ax.plot(measurements[:, 0], measurements[:, 1], 'r.')
+    ax.set_xlim([0, cam_res[0]])
+    ax.set_ylim([0, cam_res[1]])
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+    plt.show()
+
+  def visualize_scene(self):
+    """ Visualize Scene """
+    # Visualize
+    plt.figure()
+    ax = plt.axes(projection='3d')
+    self.calib_target.plot(ax, self.T_WF)
+
+    plot_tf(ax, self.get_extrinsics("T_WM0"), name="Yaw", size=0.05)
+    plot_tf(ax, self.get_extrinsics("T_WM1"), name="Roll", size=0.05)
+    plot_tf(ax, self.get_extrinsics("T_WM2"), name="pitch", size=0.05)
+
+    plot_tf(ax, self.get_extrinsics("T_WC0"), name="cam0", size=0.05)
+    plot_tf(ax, self.get_extrinsics("T_WC1"), name="cam1", size=0.05)
+
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
 
 
 ###############################################################################
@@ -9523,6 +9775,29 @@ class TestViz(unittest.TestCase):
     viz_server = DevServer(fake_loop)
     viz_server.run()
     self.assertTrue(viz_server is not None)
+
+
+class TestSandbox(unittest.TestCase):
+  """ Test Sandbox """
+  def test_gimbal_sandbox(self):
+    sandbox = GimbalSandbox()
+    # sandbox.visualize_scene()
+    sandbox.plot_camera_frame(0)
+    sandbox.plot_camera_frame(1)
+
+    # measurements = sandbox.get_camera_measurements()
+
+    # cam_params = sandbox.cam_params.param
+    # cam_geom = sandbox.cam_params.data
+    # T_WF = sandbox.T_WF
+    # _, T_BE = sandbox.get_end_effector_tf()
+    # T_WC = T_BE @ sandbox.T_EC
+    # T_CW = np.linalg.inv(T_WC)
+    # p_FFi = sandbox.calib_target.get_object_points()[0]
+
+    # p_C = tf_point(T_CW @ T_WF, p_FFi)
+    # status, z = cam_geom.project(cam_params, p_C)
+    # print(f"status: {status}, z: {z}")
 
 
 if __name__ == '__main__':
