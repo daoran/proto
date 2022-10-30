@@ -4999,22 +4999,27 @@ int check_jacobian(const char *jac_name,
  ******************************************************************************/
 
 /**
- * Modified from Numerical Recipes in C
+ * Singular Value Decomposition
  *
- * Given a matrix A[nRows * nCols], svdcmp() computes its singular value
- * decomposition, A = U * W * Vt.  A is replaced by U when svdcmp
- * returns. The diagonal matrix W is output as a vector w[nCols].
- * V (not V transpose) is output as the matrix V[nCols * nCols].
+ * Given a matrix A of size m x n, compute the singular value decomposition of
+ * A = U * W * Vt, where the input A is replaced by U, the diagonal matrix W is
+ * output as a vector w of size n, and the matrix V (not V transpose) is of
+ * size n x n.
+ *
+ * Source (Singular-Value-Decomposition: page 59-70):
+ *
+ *   Press, William H., et al. "Numerical recipes in C++." The art of
+ *   scientific computing 2 (2007): 1002.
  *
  * @returns 0 for success, -1 for failure
  */
-int svdcmp(real_t *A, int m, int n, real_t *w, real_t *V) {
+int svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
   int flag, i, its, j, jj, k, l, nm;
   double anorm, c, f, g, h, s, scale, x, y, z, *rv1;
 
   rv1 = malloc(sizeof(double) * n);
   if (rv1 == NULL) {
-    printf("svdcmp(): Unable to allocate vector\n");
+    printf("svd(): Unable to allocate vector\n");
     return (-1);
   }
 
@@ -5161,7 +5166,7 @@ int svdcmp(real_t *A, int m, int n, real_t *w, real_t *V) {
         break;
       }
       if (its == 29)
-        printf("no convergence in 30 svdcmp iterations\n");
+        printf("no convergence in 30 svd iterations\n");
       x = w[l];
       nm = k - 1;
       y = w[nm];
@@ -5212,7 +5217,6 @@ int svdcmp(real_t *A, int m, int n, real_t *w, real_t *V) {
       w[k] = x;
     }
   }
-
   free(rv1);
 
   return (0);
@@ -5246,38 +5250,38 @@ void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv) {
   // Decompose A = U * S * V_t
   real_t *s = NULL;
   real_t *U = NULL;
-  real_t *V_t = NULL;
-  lapack_svd(A, m, n, &s, &U, &V_t);
+  real_t *Vt = NULL;
+  lapack_svd(A, m, n, &s, &U, &Vt);
 
-  real_t *U_t = malloc(sizeof(real_t) * m * n);
+  real_t *Ut = malloc(sizeof(real_t) * m * n);
   real_t *V = malloc(sizeof(real_t) * m * n);
-  mat_transpose(U, m, n, U_t);
-  mat_transpose(V_t, m, n, V);
+  mat_transpose(U, m, n, Ut);
+  mat_transpose(Vt, m, n, V);
 
-  // Form S_inv diagonal matrix
-  real_t *S_inv = malloc(sizeof(real_t) * m * n);
-  zeros(S_inv, n, m);
+  // Form Sinv diagonal matrix
+  real_t *Sinv = malloc(sizeof(real_t) * m * n);
+  zeros(Sinv, n, m);
   for (int idx = 0; idx < m; idx++) {
     const int diag_idx = idx * n + idx;
     if (s[idx] > 1e-8) {
-      S_inv[diag_idx] = 1.0 / s[idx];
+      Sinv[diag_idx] = 1.0 / s[idx];
     } else {
-      S_inv[diag_idx] = 0.0;
+      Sinv[diag_idx] = 0.0;
     }
   }
 
-  // A_inv = V_t * S_inv * U
+  // A_inv = Vt * Sinv * U
   real_t *V_Sinv = malloc(sizeof(real_t) * m * m);
-  dot(V, m, n, S_inv, n, m, V_Sinv);
-  dot(V_Sinv, m, m, U_t, m, n, A_inv);
+  dot(V, m, n, Sinv, n, m, V_Sinv);
+  dot(V_Sinv, m, m, Ut, m, n, A_inv);
 
   // Clean up
   free(s);
-  free(S_inv);
+  free(Sinv);
   free(U);
-  free(U_t);
+  free(Ut);
   free(V);
-  free(V_t);
+  free(Vt);
   free(V_Sinv);
 }
 
@@ -12767,7 +12771,7 @@ int test_svd() {
   // Decompose A with SVD
   real_t w[4] = {0};
   real_t V[4 * 4] = {0};
-  svdcmp(A, 6, 4, w, V);
+  svd(A, 6, 4, w, V);
 
   // Multiply the output to see if it can form matrix A again
   // U * W * Vt
