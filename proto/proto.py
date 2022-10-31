@@ -9779,6 +9779,49 @@ class TestViz(unittest.TestCase):
 
 class TestSandbox(unittest.TestCase):
   """ Test Sandbox """
+  def test_axis_angle_jacobian(self):
+    """ Test axis-angle jacobian """
+    axis = np.array([1.0, 0.0, 0.0])
+    angle = 0.1
+    aa = aa_vec(axis, angle)
+
+    # Transform point p with rotation matrix C parameterized with axis-angle aa
+    C = aa2rot(aa)
+    p = np.array([
+        np.random.uniform(-0.05, 0.05),
+        np.random.uniform(-0.05, 0.05),
+        np.random.uniform(-0.05, 0.05)
+    ])
+    p_new = C @ p
+
+    # Numerical-differentiation w.r.t Axis-Angle (i.e. rotation vector)
+    J_fdiff = zeros((3, 3))
+    h = 1e-8
+    for i in range(3):
+      # Forward finite difference
+      aa_fwd = copy.deepcopy(aa)
+      aa_fwd[i] += 0.5 * h
+      C = aa2rot(aa_fwd)
+      p_fwd = C @ p
+
+      # Backward finite difference
+      aa_bwd = copy.deepcopy(aa)
+      aa_bwd[i] -= 0.5 * h
+      C = aa2rot(aa_bwd)
+      p_bwd = C @ p
+
+      # Central finite difference
+      J_fdiff[:, i] = (p_fwd - p_bwd) / h
+    # print(J_fdiff)
+
+    # Analytical differentiation
+    J = -aa2rot(aa) @ hat(p) @ Jr(aa)
+
+    threshold = 1e-4
+    check_jacobian("Axis-Angle Jacobian", J_fdiff, J, threshold)
+    print(f"J_fdiff: {J_fdiff}")
+    print(f"J: {J}")
+
   def test_gimbal_sandbox(self):
     sandbox = GimbalSandbox()
     # sandbox.visualize_scene()
