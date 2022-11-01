@@ -7252,11 +7252,40 @@ class GimbalSandbox:
 
     return np.array(keypoints)
 
-  def plot_camera_frame(self, cam_idx):
+  def plot_camera_frame(self, **kwargs):
     """ Plot camera frame """
-    cam_geom = self.cam_params[cam_idx].data
-    cam_res = cam_geom.resolution
-    measurements = self.get_camera_measurements(cam_idx)
+    figsize = kwargs.get("figsize", (1200, 600))
+    dpi = kwargs.get("dpi", 96)
+
+    # Camera resolution and measurements
+    cam0_res = self.cam_params[0].data.resolution
+    cam1_res = self.cam_params[1].data.resolution
+    cam0_data = self.get_camera_measurements(0)
+    cam1_data = self.get_camera_measurements(1)
+
+    # Setup plot
+    figsize = (figsize[0] / dpi, figsize[1] / dpi)
+    plt.figure(figsize=figsize, dpi=dpi)
+
+    # -- Plot cam0
+    ax0 = plt.subplot(121)
+    ax0.plot(cam0_data[:, 0], cam0_data[:, 1], 'r.')
+    ax0.set_xlim([0, cam0_res[0]])
+    ax0.set_ylim([0, cam0_res[1]])
+    ax0.set_xlabel('pixel')
+    ax0.set_ylabel('pixel')
+    ax0.xaxis.tick_top()
+    ax0.xaxis.set_label_position('top')
+
+    # -- Plot cam1
+    ax1 = plt.subplot(122)
+    ax1.plot(cam1_data[:, 0], cam1_data[:, 1], 'r.')
+    ax1.set_xlim([0, cam1_res[0]])
+    ax1.set_ylim([0, cam1_res[1]])
+    ax1.set_xlabel('pixel')
+    ax1.set_ylabel('pixel')
+    ax1.xaxis.tick_top()
+    ax1.xaxis.set_label_position('top')
 
     plt.figure()
     ax = plt.subplot(111)
@@ -9919,11 +9948,10 @@ class TestSandbox(unittest.TestCase):
     sandbox = GimbalSandbox()
 
     # sandbox.set_joint_angle(0, deg2rad(90))
-    # sandbox.set_joint_angle(1, deg2rad(10))
+    # sandbox.set_joint_angle(1, deg2rad(0))
     # sandbox.set_joint_angle(2, deg2rad(-10))
     # sandbox.visualize_scene()
-    # sandbox.plot_camera_frame(0)
-    # sandbox.plot_camera_frame(1)
+    sandbox.plot_camera_frame()
 
     # measurements = sandbox.get_camera_measurements()
 
