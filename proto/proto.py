@@ -7120,58 +7120,35 @@ class MultiPlot:
 class GimbalSandbox:
   """ Gimbal Sandbox"""
   def __init__(self):
-    self.calib_target, self.T_WF = self._setup_calib_target()
-    self.cam_params = self._setup_camera_params()
+    # Calibration target
+    self.calib_target = None
+    self.T_WF = None
 
-    # Base link
-    offset_x = 0.0
-    offset_y = -self.calib_target.get_dimensions()[0] / 2.0
-    offset_z = 0
+    # Gimbal links and joint angles
+    self.T_WB = None
+    self.links = []
+    self.joint_angles = [0.0, 0.0, 0.0]
 
-    C_WB = euler321(0.0, 0.0, 0.0)
-    r_WB = np.array([offset_x, offset_y, offset_z])
-    T_WB = tf(C_WB, r_WB)
-    self.motor0_ext = tf2pose(T_WB)
-    self.base_link = T_WB
+    # Camera parameters and extrinsics
+    self.cam_params = []
+    self.cam_exts = []
 
-    # Roll link
-    C_M0M1 = euler321(0.0, deg2rad(90.0), 0.0)
-    r_M0M1 = np.array([-0.1, 0.0, 0.15])
-    T_M0M1 = tf(C_M0M1, r_M0M1)
-    self.motor1_ext = tf2pose(T_M0M1)
-    self.roll_link = T_M0M1
+    # Setup
+    self._setup_calib_target()
+    self._setup_camera_params()
+    self._setup_gimbal_pose()
+    self._setup_gimbal_links()
+    self._setup_camera_extrinsics()
 
-    # Pitch link
-    C_M1M2 = euler321(deg2rad(0.0), 0.0, deg2rad(-90.0))
-    r_M1M2 = np.array([0.0, -0.05, 0.1])
-    T_M1M2 = tf(C_M1M2, r_M1M2)
-    self.motor1_ext = tf2pose(T_M0M1)
-    self.pitch_link = T_M1M2
-
-    # cam0 link
-    C_M2C0 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
-    r_M2C0 = np.array([0.0, -0.05, 0.12])
-    T_M2C0 = tf(C_M2C0, r_M2C0)
-    self.motor2_ext = tf2pose(T_M1M2)
-    self.cam0_ext = T_M2C0
-
-    # cam1 link
-    C_M2C1 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
-    r_M2C1 = np.array([0.0, -0.05, -0.12])
-    T_M2C1 = tf(C_M2C1, r_M2C1)
-    self.cam1_ext = T_M2C1
-
-  @staticmethod
-  def _setup_calib_target():
+  def _setup_calib_target(self):
     """ Setup Calibration Target """
-    calib_target = AprilGrid()
+    self.calib_target = AprilGrid()
+
     C_WF = euler321(-pi / 2.0, 0.0, deg2rad(90.0))
     r_WF = np.array([0.5, 0.0, 0.0])
-    T_WF = tf(C_WF, r_WF)
-    return calib_target, T_WF
+    self.T_WF = tf(C_WF, r_WF)
 
-  @staticmethod
-  def _setup_camera_params():
+  def _setup_camera_params(self):
     """ Setup Camera Parameters """
     cam_idx = 0
     res = [640, 480]
@@ -7187,40 +7164,89 @@ class GimbalSandbox:
     dist_params = [0.0, 0.0, 0.0, 0.0]
     params = np.block([*proj_params, *dist_params])
 
-    return camera_params_setup(cam_idx, res, proj_model, dist_model, params)
+    cam0 = camera_params_setup(cam_idx, res, proj_model, dist_model, params)
+    cam1 = camera_params_setup(cam_idx, res, proj_model, dist_model, params)
 
-  def get_extrinsics(self, target):
-    """ Get extrinsics """
-    if target == "T_WM0":
-      T_WM0 = self.base_link
-      return T_WM0
-    elif target == "T_WM1":
-      T_WM1 = self.base_link @ self.roll_link
-      return T_WM1
-    elif target == "T_WM2":
-      T_WM2 = self.base_link @ self.roll_link @ self.pitch_link
-      return T_WM2
-    elif target == "T_WC0":
-      T_WC0 = self.base_link @ self.roll_link @ self.pitch_link @ self.cam0_ext
-      return T_WC0
-    elif target == "T_WC1":
-      T_WC1 = self.base_link @ self.roll_link @ self.pitch_link @ self.cam1_ext
-      return T_WC1
+    self.cam_params.append(cam0)
+    self.cam_params.append(cam1)
+
+  def _setup_gimbal_pose(self):
+    """ Setup gimbal pose """
+    offset_x = 0.0
+    offset_y = -self.calib_target.get_dimensions()[0] / 2.0
+    offset_z = 0
+
+    C_WB = euler321(0.0, 0.0, 0.0)
+    r_WB = np.array([offset_x, offset_y, offset_z])
+    self.T_WB = tf(C_WB, r_WB)
+
+  def _setup_gimbal_links(self):
+    """ Setup gimbal links """
+    # Yaw link
+    C_BM0b = euler321(0.0, 0.0, 0.0)
+    r_BM0b = np.array([0.0, 0.0, 0.0])
+    T_BM0b = tf(C_BM0b, r_BM0b)
+    link0 = tf2pose(T_BM0b)
+    self.links.append(link0)
+
+    # Roll link
+    C_M0eM1b = euler321(0.0, deg2rad(90.0), 0.0)
+    r_M0eM1b = np.array([-0.1, 0.0, 0.15])
+    T_M0eM1b = tf(C_M0eM1b, r_M0eM1b)
+    link1 = tf2pose(T_M0eM1b)
+    self.links.append(link1)
+
+    # Pitch link
+    C_M1eM2b = euler321(0.0, 0.0, deg2rad(-90.0))
+    r_M1eM2b = np.array([0.0, -0.05, 0.1])
+    T_M1eM2b = tf(C_M1eM2b, r_M1eM2b)
+    link2 = tf2pose(T_M1eM2b)
+    self.links.append(link2)
+
+  def _setup_camera_extrinsics(self):
+    """ Setup camera extrinsics """
+    # cam0 link
+    C_M2eC0 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
+    r_M2eC0 = np.array([0.0, -0.05, 0.12])
+    T_M2eC0 = tf(C_M2eC0, r_M2eC0)
+    self.cam_exts.append(T_M2eC0)
+
+    # cam1 link
+    C_M2eC1 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
+    r_M2eC1 = np.array([0.0, -0.05, -0.12])
+    T_M2eC1 = tf(C_M2eC1, r_M2eC1)
+    self.cam_exts.append(T_M2eC1)
+
+  def set_joint_angle(self, joint_idx, angle):
+    """ Set joint angle """
+    self.joint_angles[joint_idx] = angle
+
+  def get_link_tf(self, joint_idx):
+    """ Get link_tf """
+    ext = self.T_WB
+    for i, link in enumerate(self.links[:joint_idx + 1]):
+      ext = ext @ pose2tf(link)
+
+      r = np.zeros((3,))
+      C = rotz(self.joint_angles[i])
+      joint_angle = tf(C, r)
+      ext = ext @ joint_angle
+
+    return ext
 
   def get_camera_measurements(self, cam_idx):
     """ Simulate camera frame """
-    cam_geom = self.cam_params.data
-    T_CiW = None
-    if cam_idx == 0:
-      T_CiW = np.linalg.inv(self.get_extrinsics("T_WC0"))
-    elif cam_idx == 1:
-      T_CiW = np.linalg.inv(self.get_extrinsics("T_WC1"))
+    cam_geom = self.cam_params[cam_idx].data
+    T_WM2e = self.get_link_tf(2)
+    T_M2eCi = self.cam_exts[cam_idx]
+    T_WCi = T_WM2e @ T_M2eCi
+    T_CiW = np.linalg.inv(T_WCi)
 
     keypoints = []
     object_points = self.calib_target.get_object_points()
     for r_FFi in object_points:
       r_Ci = tf_point(T_CiW @ self.T_WF, r_FFi)
-      status, z = cam_geom.project(self.cam_params.param, r_Ci)
+      status, z = cam_geom.project(self.cam_params[cam_idx].param, r_Ci)
       if status:
         keypoints.append(z)
 
@@ -7228,7 +7254,7 @@ class GimbalSandbox:
 
   def plot_camera_frame(self, cam_idx):
     """ Plot camera frame """
-    cam_geom = self.cam_params.data
+    cam_geom = self.cam_params[cam_idx].data
     cam_res = cam_geom.resolution
     measurements = self.get_camera_measurements(cam_idx)
 
@@ -7250,13 +7276,18 @@ class GimbalSandbox:
     ax = plt.axes(projection='3d')
     self.calib_target.plot(ax, self.T_WF)
 
-    plot_tf(ax, self.get_extrinsics("T_WM0"), name="Yaw", size=0.05)
-    plot_tf(ax, self.get_extrinsics("T_WM1"), name="Roll", size=0.05)
-    plot_tf(ax, self.get_extrinsics("T_WM2"), name="pitch", size=0.05)
+    # -- Plot gimbal links
+    plot_tf(ax, self.get_link_tf(0), name="Yaw", size=0.05)
+    plot_tf(ax, self.get_link_tf(1), name="Roll", size=0.05)
+    plot_tf(ax, self.get_link_tf(2), name="Pitch", size=0.05)
 
-    plot_tf(ax, self.get_extrinsics("T_WC0"), name="cam0", size=0.05)
-    plot_tf(ax, self.get_extrinsics("T_WC1"), name="cam1", size=0.05)
+    # -- Plot cameras
+    T_WC0 = self.get_link_tf(2) @ self.cam_exts[0]
+    T_WC1 = self.get_link_tf(2) @ self.cam_exts[1]
+    plot_tf(ax, T_WC0, name="cam0", size=0.05)
+    plot_tf(ax, T_WC1, name="cam1", size=0.05)
 
+    # Plot settings
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
     ax.set_zlabel("z [m]")
@@ -9782,7 +9813,7 @@ class TestSandbox(unittest.TestCase):
   def test_axis_angle_jacobian(self):
     """ Test axis-angle jacobian """
     axis = np.array([1.0, 0.0, 0.0])
-    angle = 0.1
+    angle = 0.0
     aa = aa_vec(axis, angle)
 
     # Transform point p with rotation matrix C parameterized with axis-angle aa
@@ -9794,19 +9825,50 @@ class TestSandbox(unittest.TestCase):
     ])
     p_new = C @ p
 
-    # Numerical-differentiation w.r.t Axis-Angle (i.e. rotation vector)
+    # # Numerical-differentiation w.r.t Axis-Angle (i.e. rotation vector)
+    # J_fdiff = zeros((3, 3))
+    # h = 1e-8
+    # for i in range(3):
+    #   # Forward finite difference
+    #   aa_fwd = copy.deepcopy(aa)
+    #   aa_fwd[i] += 0.5 * h
+    #   C = aa2rot(aa_fwd)
+    #   p_fwd = C @ p
+
+    #   # Backward finite difference
+    #   aa_bwd = copy.deepcopy(aa)
+    #   aa_bwd[i] -= 0.5 * h
+    #   C = aa2rot(aa_bwd)
+    #   p_bwd = C @ p
+
+    #   # Central finite difference
+    #   J_fdiff[:, i] = (p_fwd - p_bwd) / h
+    # # print(J_fdiff)
+
+    # # Analytical differentiation
+    # J = -aa2rot(aa) @ hat(p) @ Jr(aa)
+
+    # # Check Axis-Angle Jacobian is correct
+    # threshold = 1e-4
+    # check_jacobian("Axis-Angle Jacobian", J_fdiff, J, threshold)
+    # print(f"J_fdiff: {J_fdiff}")
+    # print(f"J: {J}")
+
+    # Numerical-differentiation w.r.t Axis
     J_fdiff = zeros((3, 3))
     h = 1e-8
     for i in range(3):
       # Forward finite difference
-      aa_fwd = copy.deepcopy(aa)
-      aa_fwd[i] += 0.5 * h
+      axis_fwd = copy.deepcopy(axis)
+      axis_fwd[i] = axis[i] + 0.5 * h
+      aa_fwd = aa_vec(axis_fwd, angle)
       C = aa2rot(aa_fwd)
       p_fwd = C @ p
 
       # Backward finite difference
-      aa_bwd = copy.deepcopy(aa)
-      aa_bwd[i] -= 0.5 * h
+      axis_bwd = copy.deepcopy(axis)
+      axis_bwd[i] = axis[i] - 0.5 * h
+      aa_bwd = aa_vec(axis_bwd, angle)
       C = aa2rot(aa_bwd)
       p_bwd = C @ p
 
@@ -9815,18 +9877,53 @@ class TestSandbox(unittest.TestCase):
     # print(J_fdiff)
 
     # Analytical differentiation
-    J = -aa2rot(aa) @ hat(p) @ Jr(aa)
+    J = -aa2rot(aa) @ hat(p) @ Jr(aa) @ np.eye(3) * angle
 
+    # Check Axis Jacobian is correct
     threshold = 1e-4
-    check_jacobian("Axis-Angle Jacobian", J_fdiff, J, threshold)
+    check_jacobian("Axis Jacobian", J_fdiff, J, threshold, True)
     print(f"J_fdiff: {J_fdiff}")
-    print(f"J: {J}")
+    print(f"J:       {J}")
+
+    # # Numerical-differentiation w.r.t Angle
+    # J_fdiff = zeros((3, 1))
+    # h = 1e-8
+    # for i in range(1):
+    #   # Forward finite difference
+    #   angle_fwd = angle + 0.5 * h
+    #   aa_fwd = aa_vec(axis, angle_fwd)
+    #   C = aa2rot(aa_fwd)
+    #   p_fwd = C @ p
+
+    #   # Backward finite difference
+    #   angle_bwd = angle - 0.5 * h
+    #   aa_bwd = aa_vec(axis, angle_bwd)
+    #   C = aa2rot(aa_bwd)
+    #   p_bwd = C @ p
+
+    #   # Central finite difference
+    #   J_fdiff[:, i] = (p_fwd - p_bwd) / h
+    # # print(J_fdiff)
+
+    # # Analytical differentiation
+    # J = -aa2rot(aa) @ hat(p) @ Jr(aa) @ axis
+
+    # # Check Angle Jacobian is correct
+    # threshold = 1e-4
+    # check_jacobian("Angle Jacobian", J_fdiff, J, threshold)
+    # print(f"J_fdiff: {J_fdiff}")
+    # print(f"J: {J}")
 
   def test_gimbal_sandbox(self):
+    """ Test gimbal sandbox """
     sandbox = GimbalSandbox()
+
+    # sandbox.set_joint_angle(0, deg2rad(90))
+    # sandbox.set_joint_angle(1, deg2rad(10))
+    # sandbox.set_joint_angle(2, deg2rad(-10))
     # sandbox.visualize_scene()
-    sandbox.plot_camera_frame(0)
-    sandbox.plot_camera_frame(1)
+    # sandbox.plot_camera_frame(0)
+    # sandbox.plot_camera_frame(1)
 
     # measurements = sandbox.get_camera_measurements()
 

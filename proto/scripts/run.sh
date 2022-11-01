@@ -79,6 +79,7 @@ run_memcheck() {
 # python3 proto.py TestSimulation.test_sim_arm
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
+# python3 proto.py TestSandbox.test_axis_angle_jacobian
 python3 proto.py TestSandbox.test_gimbal_sandbox
 
 ###############################################################################
@@ -305,7 +306,7 @@ dev_aprilgrid() {
 # run_test test_skew
 # run_test test_check_jacobian
 # PROTO-SVD
-run_test test_svd
+# run_test test_svd
 # run_test test_lapack_svd
 # run_test test_pinv
 # PROTO-CHOL
