@@ -3379,13 +3379,19 @@ def speed_biases_setup(ts, vel, ba, bg, **kwargs):
 def inverse_depth_setup(param, **kwargs):
   """ Form inverse depth state-variable """
   fix = kwargs.get('fix', False)
-  return StateVariable(None, "inverse_depth", param, None, 1, fix)
+  return StateVariable(None, "inverse_depth", np.array([param]), None, 1, fix)
 
 
 def time_delay_setup(param, **kwargs):
   """ Form time delay state-variable """
   fix = kwargs.get('fix', False)
-  return StateVariable(None, "time_delay", param, None, 1, fix)
+  return StateVariable(None, "time_delay", np.array([param]), None, 1, fix)
+
+
+def euler_angle_setup(param, **kwargs):
+  """ Form time delay state-variable """
+  fix = kwargs.get('fix', False)
+  return StateVariable(None, "euler_angle", np.array([param]), None, 1, fix)
 
 
 def perturb_state_variable(sv, i, step_size):
@@ -3617,16 +3623,22 @@ class BAFactor(Factor):
     Factor.__init__(self, "BAFactor", pids, z, covar)
     self.cam_geom = cam_geom
 
-  def get_reproj_error(self, cam_pose, feature, cam_params):
-    """ Get reprojection error """
+  def get_residual(self, cam_pose, feature, cam_params):
+    """ Get residual """
     T_WC = pose2tf(cam_pose)
     p_W = feature
     p_C = tf_point(inv(T_WC), p_W)
     status, z_hat = self.cam_geom.project(cam_params, p_C)
 
     z = self.measurement
-    reproj_error = norm(z - z_hat)
+    r = z - z_hat
 
+    return status, r
+
+  def get_reproj_error(self, cam_pose, feature, cam_params):
+    """ Get reprojection error """
+    status, r = self.get_residual(cam_pose, feature, cam_params)
+    reproj_error = norm(r)
     return status, reproj_error
 
   def eval(self, params, **kwargs):
@@ -3694,8 +3706,8 @@ class VisionFactor(Factor):
     Factor.__init__(self, "VisionFactor", pids, z, covar)
     self.cam_geom = cam_geom
 
-  def get_reproj_error(self, pose, cam_exts, feature, cam_params):
-    """ Get reprojection error """
+  def get_residual(self, pose, cam_exts, feature, cam_params):
+    """ Get residual """
     T_WB = pose2tf(pose)
     T_BCi = pose2tf(cam_exts)
     p_W = feature
@@ -3703,8 +3715,14 @@ class VisionFactor(Factor):
     status, z_hat = self.cam_geom.project(cam_params, p_C)
 
     z = self.measurement
-    reproj_error = norm(z - z_hat)
+    r = z - z_hat
 
+    return status, r
+
+  def get_reproj_error(self, pose, cam_exts, feature, cam_params):
+    """ Get reprojection error """
+    status, r = self.get_residual(pose, cam_exts, feature, cam_params)
+    reproj_error = norm(r)
     return status, reproj_error
 
   def eval(self, params, **kwargs):
@@ -3959,6 +3977,157 @@ class TwoStateVisionFactor(Factor):
     J5 = neg_sqrt_info @ J_cam_params
 
     return (r, [J0, J1, J2, J3, J4, J5])
+
+
+class Gimbal3AxisVisionFactor(Factor):
+  """ Gimbal Vision Factor """
+  def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
+    assert covar.shape == (2, 2)
+    tag_id, corner_idx, p_FFi, z = grid_data
+    Factor.__init__(self, "Gimbal3AxisVisionFactor", pids, z, covar)
+    self.cam_geom = cam_geom
+    self.tag_id = tag_id
+    self.corner_idx = corner_idx
+    self.p_FFi = p_FFi
+
+  def form_forward_kinematics(self, links, joints, cam_ext):
+    """ Get forward kinematics transform T_BCi"""
+    # Gimbal in world frame
+    T = np.eye(4)
+
+    # Chain transforms to form T_WMie
+    for i, link in enumerate(links):
+      # Link
+      T = T @ link
+
+      # Joint angle
+      r = np.zeros((3,))
+      C = rotz(joints[i])
+      joint_angle = tf(C, r)
+      T = T @ joint_angle
+
+    # Form camera pose w.r.t world frame
+    T_BCi = T @ cam_ext
+
+    return T_BCi
+
+  def get_residual(self, fiducial, links, joints, cam_ext, cam_params):
+    """ Get Residual """
+    # Project feature to image plane
+    T_CiB = inv(self.form_forward_kinematics(links, joints, cam_ext))
+    T_BF = fiducial
+    p_Ci = tf_point(T_CiB @ T_BF, self.p_FFi)
+    status, z_hat = self.cam_geom.project(cam_params, p_Ci)
+
+    # Calculate residual
+    z = self.measurement
+    r = z - z_hat
+
+    return status, r, p_Ci
+
+  def get_reproj_error(self, fiducial, links, joints, cam_ext, cam_params):
+    """ Get reprojection error """
+    status, r, _ = self.get_residual(fiducial, links, joints, cam_ext,
+                                     cam_params)
+    reproj_error = norm(r)
+    return status, reproj_error
+
+  def eval(self, params, **kwargs):
+    """ Evaluate """
+    # Setup
+    r = np.array([0.0, 0.0])
+    jacs = [
+        zeros((2, 6)),  # Fiducial relative pose T_BF
+        zeros((2, 6)),  # link0
+        zeros((2, 6)),  # link1
+        zeros((2, 6)),  # link2
+        zeros((2, 1)),  # th0
+        zeros((2, 1)),  # th1
+        zeros((2, 1)),  # th2
+        zeros((2, 6)),  # Camera extrinsics
+        zeros((2, self.cam_geom.get_params_size())),
+    ]
+
+    # Map out parameters
+    fiducial = pose2tf(params[0])
+    links = [pose2tf(link) for link in params[1:4]]
+    joints = params[4:7]
+    cam_exts = pose2tf(params[7])
+    cam_params = params[8]
+
+    # Calculate residual
+    sqrt_info = self.sqrt_info
+    status, r, p_CiFi = self.get_residual(fiducial, links, joints, cam_exts,
+                                          cam_params)
+    r = sqrt_info @ r
+    if kwargs.get('only_residuals', False):
+      return r
+
+    # Calculate jacobians
+    if status is False:
+      return (r, jacs)
+
+    neg_sqrt_info = -1.0 * sqrt_info
+    T_BCi = self.form_forward_kinematics(links, joints, cam_exts)
+    T_CiB = inv(T_BCi)
+
+    T_BM0b = links[0]
+    T_M0bM0e = tf(rotz(joints[0]), np.zeros((3,)))
+    T_M0eM1b = links[1]
+    T_M1bM1e = tf(rotz(joints[1]), np.zeros((3,)))
+    T_M1eM2b = links[2]
+    T_M2bM2e = tf(rotz(joints[2]), np.zeros((3,)))
+
+    T_BM0e = T_BM0b @ T_M0bM0e
+    T_BM1b = T_BM0b @ T_M0bM0e @ T_M0eM1b
+    T_BM1e = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e
+    T_BM2b = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b
+    T_BM2e = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e
+
+    C_M2eCi = tf_rot(cam_exts)
+    r_M2eCi = tf_trans(cam_exts)
+
+    # -- Measurement model jacobian
+    Jh = self.cam_geom.J_proj(cam_params, p_CiFi)
+    Jh_weighted = neg_sqrt_info @ Jh
+    # -- Jacobian w.r.t. fiducial pose T_BF
+    C_CiB = tf_rot(T_CiB)
+    C_BF = tf_rot(fiducial)
+    jacs[0][0:2, 0:3] = Jh_weighted @ C_CiB
+    jacs[0][0:2, 3:6] = Jh_weighted @ C_CiB @ -C_BF @ hat(self.p_FFi)
+    # -- Jacobian w.r.t. link0 (yaw): T_BM0b
+    p_M0bFi = tf_point(inv(T_BM0b) @ fiducial, self.p_FFi)
+
+    C_BCi = tf_rot(T_BCi)
+    C_BM0b, r_BM0b = tf_decompose(T_BM0b)
+    p_M0bFi = tf_point(inv(T_BM0b) * fiducial, self.p_FFi)
+    jacs[1][0:2, 0:3] = Jh_weighted @ -C_CiB
+    jacs[1][0:2, 3:6] = Jh_weighted @ -C_CiB @ hat(-C_BM0b @ p_M0bFi) @ -C_BM0b
+
+    # # -- Jacobian w.r.t. th2 (pitch joint): T_M2bM2e
+    # C_M2bM2e = tf_rot(T_M2bM2e)
+    # p_M2bFi = tf_point(inv(T_BM2b) @ fiducial, self.p_FFi)
+    # r_M2bM2e = np.zeros((3,))
+    # dr = p_M2bFi - r_M2bM2e
+    # th2 = joints[2]
+    # p = np.array([
+    #     -dr[0] * sin(th2) - dr[1] * cos(th2),
+    #     dr[0] * cos(th2) - dr[1] * sin(th2),
+    #     0.0,
+    # ])
+    # jacs[6][0:2,
+    #         0] = Jh_weighted @ C_M2eCi.T @ -C_M2bM2e.T @ hat(dr) @ -C_M2bM2e @ p
+
+    # -- Jacobian w.r.t. camera extrinsics T_M2eCi
+    p_M2eFi = tf_point(inv(T_BM2e) @ fiducial, self.p_FFi)
+    dr = p_M2eFi - r_M2eCi
+    jacs[7][0:2, 0:3] = Jh_weighted @ -C_M2eCi.T
+    jacs[7][0:2, 3:6] = Jh_weighted @ -C_M2eCi.T @ hat(dr) @ -C_M2eCi
+    # -- Jacobian w.r.t. camera parameters
+    J_cam_params = self.cam_geom.J_params(cam_params, p_CiFi)
+    jacs[8] = neg_sqrt_info @ J_cam_params
+
+    return (r, jacs)
 
 
 class ImuBuffer:
@@ -6084,8 +6253,9 @@ class AprilGrid:
     object_points = []
     for tag_id in range(self.nb_tags):
       for corner_idx in range(4):
-        object_points.append(self.get_object_point(tag_id, corner_idx))
-    return np.array(object_points)
+        pt = self.get_object_point(tag_id, corner_idx)
+        object_points.append((tag_id, corner_idx, pt))
+    return object_points
 
   def get_dimensions(self):
     """ Get AprilGrid dimensions """
@@ -6173,11 +6343,9 @@ class AprilGrid:
 
   def plot(self, ax, T_WF):
     """ Plot """
-    obj_pts = self.get_object_points()
-
     points = []
-    for row_idx in range(obj_pts.shape[0]):
-      r_FFi = obj_pts[row_idx, :]
+    for data in self.get_object_points():
+      tag_id, corner_idx, r_FFi = data
       r_WFi = tf_point(T_WF, r_FFi)
       points.append(r_WFi)
     points = np.array(points)
@@ -7183,8 +7351,8 @@ class GimbalSandbox:
   def _setup_gimbal_links(self):
     """ Setup gimbal links """
     # Yaw link
-    C_BM0b = euler321(0.0, 0.0, 0.0)
-    r_BM0b = np.array([0.0, 0.0, 0.0])
+    C_BM0b = euler321(0.01, 0.01, 0.02)
+    r_BM0b = np.array([0.01, 0.01, 0.01])
     T_BM0b = tf(C_BM0b, r_BM0b)
     link0 = tf2pose(T_BM0b)
     self.links.append(link0)
@@ -7242,15 +7410,27 @@ class GimbalSandbox:
     T_WCi = T_WM2e @ T_M2eCi
     T_CiW = np.linalg.inv(T_WCi)
 
+    tag_ids = []
+    corner_idxs = []
+    object_points = []
     keypoints = []
-    object_points = self.calib_target.get_object_points()
-    for r_FFi in object_points:
-      r_Ci = tf_point(T_CiW @ self.T_WF, r_FFi)
+    for (tag_id, corner_idx, p_FFi) in self.calib_target.get_object_points():
+      r_Ci = tf_point(T_CiW @ self.T_WF, p_FFi)
       status, z = cam_geom.project(self.cam_params[cam_idx].param, r_Ci)
       if status:
+        tag_ids.append(tag_id)
+        corner_idxs.append(corner_idx)
+        object_points.append(p_FFi)
         keypoints.append(z)
 
-    return np.array(keypoints)
+    cam_data = {
+        "tag_ids": tag_ids,
+        "corner_idxs": corner_idxs,
+        "object_points": np.array(object_points),
+        "keypoints": np.array(keypoints),
+    }
+
+    return cam_data
 
   def plot_camera_frame(self, **kwargs):
     """ Plot camera frame """
@@ -7260,8 +7440,8 @@ class GimbalSandbox:
     # Camera resolution and measurements
     cam0_res = self.cam_params[0].data.resolution
     cam1_res = self.cam_params[1].data.resolution
-    cam0_data = self.get_camera_measurements(0)
-    cam1_data = self.get_camera_measurements(1)
+    cam0_data = self.get_camera_measurements(0)["keypoints"]
+    cam1_data = self.get_camera_measurements(1)["keypoints"]
 
     # Setup plot
     figsize = (figsize[0] / dpi, figsize[1] / dpi)
@@ -7287,15 +7467,6 @@ class GimbalSandbox:
     ax1.xaxis.tick_top()
     ax1.xaxis.set_label_position('top')
 
-    plt.figure()
-    ax = plt.subplot(111)
-    ax.plot(measurements[:, 0], measurements[:, 1], 'r.')
-    ax.set_xlim([0, cam_res[0]])
-    ax.set_ylim([0, cam_res[1]])
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
-    ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
     plt.show()
 
   def visualize_scene(self):
@@ -9947,13 +10118,69 @@ class TestSandbox(unittest.TestCase):
     """ Test gimbal sandbox """
     sandbox = GimbalSandbox()
 
-    # sandbox.set_joint_angle(0, deg2rad(90))
+    # sandbox.set_joint_angle(0, deg2rad(0))
     # sandbox.set_joint_angle(1, deg2rad(0))
-    # sandbox.set_joint_angle(2, deg2rad(-10))
+    # sandbox.set_joint_angle(2, deg2rad(0))
     # sandbox.visualize_scene()
-    sandbox.plot_camera_frame()
+    # sandbox.plot_camera_frame()
 
-    # measurements = sandbox.get_camera_measurements()
+    # Test Gimbal3AxisVisionFactor
+    # -- Simulate camera measurement
+    grid = sandbox.calib_target
+    cam_idx = 0
+    tag_id = 1
+    corner_idx = 2
+    p_FFi = grid.get_object_point(tag_id, corner_idx)
+
+    T_WM2e = sandbox.get_link_tf(2)
+    T_M2eCi = sandbox.cam_exts[cam_idx]
+    T_WCi = T_WM2e @ T_M2eCi
+    T_CiW = np.linalg.inv(T_WCi)
+    T_WF = sandbox.T_WF
+    p_CiFi = tf_point(T_CiW @ T_WF, p_FFi)
+
+    cam_geom = sandbox.cam_params[cam_idx].data
+    cam_params = sandbox.cam_params[cam_idx].param
+    status, z = cam_geom.project(cam_params, p_CiFi)
+    self.assertTrue(status)
+
+    # -- Form Gimbal3AxisVisionFactor
+    fiducial = pose_setup(0, sandbox.T_WB @ sandbox.T_WF)
+    link0 = extrinsics_setup(sandbox.links[0])
+    link1 = extrinsics_setup(sandbox.links[1])
+    link2 = extrinsics_setup(sandbox.links[2])
+    th0 = euler_angle_setup(sandbox.joint_angles[0])
+    th1 = euler_angle_setup(sandbox.joint_angles[1])
+    th2 = euler_angle_setup(sandbox.joint_angles[2])
+    cam0_exts = extrinsics_setup(sandbox.cam_exts[0])
+    cam0_params = sandbox.cam_params[0]
+
+    cam0_geom = sandbox.cam_params[0].data
+    pids = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    grid_data = tag_id, corner_idx, p_FFi, z
+    factor = Gimbal3AxisVisionFactor(cam0_geom, pids, grid_data)
+
+    # -- Test Jacobians
+    fvars = [
+        fiducial,
+        link0,
+        link1,
+        link2,
+        th0,
+        th1,
+        th2,
+        cam0_exts,
+        cam0_params,
+    ]
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
+    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_link0", verbose=True))
+    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_link1"))
+    # self.assertTrue(factor.check_jacobian(fvars, 3, "J_link2"))
+    # self.assertTrue(factor.check_jacobian(fvars, 4, "J_th0"))
+    # self.assertTrue(factor.check_jacobian(fvars, 5, "J_th1"))
+    # self.assertTrue(factor.check_jacobian(fvars, 6, "J_th2", verbose=True))
+    self.assertTrue(factor.check_jacobian(fvars, 7, "J_cam_exts"))
+    self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_params"))
 
     # cam_params = sandbox.cam_params.param
     # cam_geom = sandbox.cam_params.data
@@ -9966,6 +10193,21 @@ class TestSandbox(unittest.TestCase):
     # p_C = tf_point(T_CW @ T_WF, p_FFi)
     # status, z = cam_geom.project(cam_params, p_C)
     # print(f"status: {status}, z: {z}")
+
+  # def test_gimbal_jacobians(self):
+  #   """ Test gimbal Jacobians """
+  #   import sympy
+  #   theta = sympy.symbols("theta")
+  #   px, py, pz = sympy.symbols("px py pz")
+  #   ctheta = sympy.cos(theta)
+  #   stheta = sympy.sin(theta)
+  #   row0 = [ctheta, -stheta, 0.0]
+  #   row1 = [stheta, ctheta, 0.0]
+  #   row2 = [0.0, 0.0, 1.0]
+  #   rotz = sympy.Matrix([row0, row1, row2])
+  #   p = sympy.Matrix([px, py, pz])
+  #   print(rotz)
+  #   print(sympy.diff(rotz @ p, theta))
 
 
 if __name__ == '__main__':

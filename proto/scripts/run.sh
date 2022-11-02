@@ -81,6 +81,7 @@ run_memcheck() {
 # python3 proto.py TestViz.test_server
 # python3 proto.py TestSandbox.test_axis_angle_jacobian
 python3 proto.py TestSandbox.test_gimbal_sandbox
+# python3 proto.py TestSandbox.test_gimbal_jacobians
 
 ###############################################################################
 # C
