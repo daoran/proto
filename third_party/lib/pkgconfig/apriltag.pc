@@ -1,4 +1,4 @@
-prefix=/home/chutsu/projects/proto/deps
+prefix=/home/chutsu/projects/proto/third_party
 exec_prefix=${prefix}
 includedir=${prefix}/include
 libdir=${exec_prefix}/lib

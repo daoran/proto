@@ -20,11 +20,11 @@ proto_mav/fcu/fcu-backups
 docs/build/doctrees
 
 # Dependencies
-deps/bin
-deps/include
-deps/lib
-deps/share
-deps/src
+third_party/bin
+third_party/include
+third_party/lib
+third_party/share
+third_party/src
 
 # Python
 .ropeproject
