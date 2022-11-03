@@ -4083,9 +4083,8 @@ class Gimbal3AxisVisionFactor(Factor):
       return (r, jacs)
 
     neg_sqrt_info = -1.0 * sqrt_info
-    T_BCi = self.form_forward_kinematics(links, joints, cam_exts)
-    T_CiB = inv(T_BCi)
 
+    T_BF = fiducial
     T_BM0b = links[0]
     T_M0bM0e = tf(rotz(joints[0]), np.zeros((3,)))
     T_M0eM1b = links[1]
@@ -4096,13 +4095,15 @@ class Gimbal3AxisVisionFactor(Factor):
     # -- Measurement model jacobian
     Jh = neg_sqrt_info @ self.cam_geom.J_proj(cam_params, p_CiFi)
     # -- Jacobian w.r.t. fiducial pose T_BF
+    T_BCi = self.form_forward_kinematics(links, joints, cam_exts)
+    T_CiB = inv(T_BCi)
     C_CiB = tf_rot(T_CiB)
-    C_BF = tf_rot(fiducial)
+    C_BF = tf_rot(T_BF)
     jacs[0][0:2, 0:3] = Jh @ C_CiB
     jacs[0][0:2, 3:6] = Jh @ C_CiB @ -C_BF @ hat(self.p_FFi)
 
     # -- Jacobian w.r.t. link0 (yaw): T_BM0b
-    p_BFi = tf_point(fiducial, self.p_FFi)
+    p_BFi = tf_point(T_BF, self.p_FFi)
     C_BM0b, r_BM0b = tf_decompose(T_BM0b)
     T_M0bCi = T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ cam_exts
     T_CiM0b = inv(T_M0bCi)
@@ -4113,7 +4114,7 @@ class Gimbal3AxisVisionFactor(Factor):
     jacs[1][0:2, 3:6] = Jh @ C_CiM0b @ -C_BM0b.T @ hat(dr) @ -C_BM0b
 
     # -- Jacobian w.r.t. link1 (roll): T_M0eM1b
-    p_M0eFi = tf_point(inv(T_M0bM0e) @ inv(T_BM0b) @ fiducial, self.p_FFi)
+    p_M0eFi = tf_point(inv(T_M0bM0e) @ inv(T_BM0b) @ T_BF, self.p_FFi)
     C_M0eM1b, r_M0eM1b = tf_decompose(T_M0eM1b)
     T_M1bCi = T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ cam_exts
     T_CiM1b = inv(T_M1bCi)
@@ -4125,10 +4126,9 @@ class Gimbal3AxisVisionFactor(Factor):
 
     # -- Jacobian w.r.t. link2 (pitch): T_M1eM2b
     p_M1eFi = tf_point(
-        inv(T_M1bM1e) @ inv(T_M0eM1b) @ inv(T_M0bM0e) @ inv(T_BM0b) @ fiducial,
+        inv(T_M1bM1e) @ inv(T_M0eM1b) @ inv(T_M0bM0e) @ inv(T_BM0b) @ T_BF,
         self.p_FFi)
     C_M1eM2b, r_M1eM2b = tf_decompose(T_M1eM2b)
-
     T_M2bCi = T_M2bM2e @ cam_exts
     T_CiM2b = inv(T_M2bCi)
     C_CiM2b = tf_rot(T_CiM2b)
@@ -4140,7 +4140,7 @@ class Gimbal3AxisVisionFactor(Factor):
     # -- Jacobian w.r.t. th2 (pitch joint): T_M2bM2e
     # T_BM2b = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b
     # C_M2bM2e = tf_rot(T_M2bM2e)
-    # p_M2bFi = tf_point(inv(T_BM2b) @ fiducial, self.p_FFi)
+    # p_M2bFi = tf_point(inv(T_BM2b) @ T_BF, self.p_FFi)
     # r_M2bM2e = np.zeros((3,))
     # dr = p_M2bFi - r_M2bM2e
     # th2 = joints[2]
@@ -4153,7 +4153,7 @@ class Gimbal3AxisVisionFactor(Factor):
 
     # -- Jacobian w.r.t. camera extrinsics T_M2eCi
     T_BM2e = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e
-    p_M2eFi = tf_point(inv(T_BM2e) @ fiducial, self.p_FFi)
+    p_M2eFi = tf_point(inv(T_BM2e) @ T_BF, self.p_FFi)
     C_M2eCi, r_M2eCi = tf_decompose(cam_exts)
     dr = p_M2eFi - r_M2eCi
     jacs[7][0:2, 0:3] = Jh @ -C_M2eCi.T
