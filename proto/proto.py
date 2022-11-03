@@ -1647,6 +1647,21 @@ def tf_lerp(pose_i, pose_j, t):
   return tf(q_lerp, r_lerp)
 
 
+def rot_perturb(C, i, step_size):
+  """ Perturb rotation matrix """
+  # Perturb rotation
+  rvec = np.array([0.0, 0.0, 0.0])
+  rvec[i - 3] = step_size
+
+  q = rot2quat(C)
+  dq = quat_delta(rvec)
+
+  q_diff = quat_mul(q, dq)
+  q_diff = quat_normalize(q_diff)
+
+  return quat2rot(q_diff)
+
+
 def tf_perturb(T, i, step_size):
   """ Perturb transformation matrix """
   assert T.shape == (4, 4)
@@ -4078,33 +4093,52 @@ class Gimbal3AxisVisionFactor(Factor):
     T_M1eM2b = links[2]
     T_M2bM2e = tf(rotz(joints[2]), np.zeros((3,)))
 
-    T_BM0e = T_BM0b @ T_M0bM0e
-    T_BM1b = T_BM0b @ T_M0bM0e @ T_M0eM1b
-    T_BM1e = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e
-    T_BM2b = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b
-    T_BM2e = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e
-
-    C_M2eCi = tf_rot(cam_exts)
-    r_M2eCi = tf_trans(cam_exts)
-
     # -- Measurement model jacobian
-    Jh = self.cam_geom.J_proj(cam_params, p_CiFi)
-    Jh_weighted = neg_sqrt_info @ Jh
+    Jh = neg_sqrt_info @ self.cam_geom.J_proj(cam_params, p_CiFi)
     # -- Jacobian w.r.t. fiducial pose T_BF
     C_CiB = tf_rot(T_CiB)
     C_BF = tf_rot(fiducial)
-    jacs[0][0:2, 0:3] = Jh_weighted @ C_CiB
-    jacs[0][0:2, 3:6] = Jh_weighted @ C_CiB @ -C_BF @ hat(self.p_FFi)
+    jacs[0][0:2, 0:3] = Jh @ C_CiB
+    jacs[0][0:2, 3:6] = Jh @ C_CiB @ -C_BF @ hat(self.p_FFi)
+
     # -- Jacobian w.r.t. link0 (yaw): T_BM0b
-    p_M0bFi = tf_point(inv(T_BM0b) @ fiducial, self.p_FFi)
-
-    C_BCi = tf_rot(T_BCi)
+    p_BFi = tf_point(fiducial, self.p_FFi)
     C_BM0b, r_BM0b = tf_decompose(T_BM0b)
-    p_M0bFi = tf_point(inv(T_BM0b) * fiducial, self.p_FFi)
-    jacs[1][0:2, 0:3] = Jh_weighted @ -C_CiB
-    jacs[1][0:2, 3:6] = Jh_weighted @ -C_CiB @ hat(-C_BM0b @ p_M0bFi) @ -C_BM0b
+    T_M0bCi = T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ cam_exts
+    T_CiM0b = inv(T_M0bCi)
+    C_CiM0b = tf_rot(T_CiM0b)
+    dr = p_BFi - r_BM0b
 
-    # # -- Jacobian w.r.t. th2 (pitch joint): T_M2bM2e
+    jacs[1][0:2, 0:3] = Jh @ C_CiM0b @ -C_BM0b.T
+    jacs[1][0:2, 3:6] = Jh @ C_CiM0b @ -C_BM0b.T @ hat(dr) @ -C_BM0b
+
+    # -- Jacobian w.r.t. link1 (roll): T_M0eM1b
+    p_M0eFi = tf_point(inv(T_M0bM0e) @ inv(T_BM0b) @ fiducial, self.p_FFi)
+    C_M0eM1b, r_M0eM1b = tf_decompose(T_M0eM1b)
+    T_M1bCi = T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ cam_exts
+    T_CiM1b = inv(T_M1bCi)
+    C_CiM1b = tf_rot(T_CiM1b)
+    dr = p_M0eFi - r_M0eM1b
+
+    jacs[2][0:2, 0:3] = Jh @ C_CiM1b @ -C_M0eM1b.T
+    jacs[2][0:2, 3:6] = Jh @ C_CiM1b @ -C_M0eM1b.T @ hat(dr) @ -C_M0eM1b
+
+    # -- Jacobian w.r.t. link2 (pitch): T_M1eM2b
+    p_M1eFi = tf_point(
+        inv(T_M1bM1e) @ inv(T_M0eM1b) @ inv(T_M0bM0e) @ inv(T_BM0b) @ fiducial,
+        self.p_FFi)
+    C_M1eM2b, r_M1eM2b = tf_decompose(T_M1eM2b)
+
+    T_M2bCi = T_M2bM2e @ cam_exts
+    T_CiM2b = inv(T_M2bCi)
+    C_CiM2b = tf_rot(T_CiM2b)
+    dr = p_M1eFi - r_M1eM2b
+
+    jacs[3][0:2, 0:3] = Jh @ C_CiM2b @ -C_M1eM2b.T
+    jacs[3][0:2, 3:6] = Jh @ C_CiM2b @ -C_M1eM2b.T @ hat(dr) @ -C_M1eM2b
+
+    # -- Jacobian w.r.t. th2 (pitch joint): T_M2bM2e
+    # T_BM2b = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b
     # C_M2bM2e = tf_rot(T_M2bM2e)
     # p_M2bFi = tf_point(inv(T_BM2b) @ fiducial, self.p_FFi)
     # r_M2bM2e = np.zeros((3,))
@@ -4115,14 +4149,16 @@ class Gimbal3AxisVisionFactor(Factor):
     #     dr[0] * cos(th2) - dr[1] * sin(th2),
     #     0.0,
     # ])
-    # jacs[6][0:2,
-    #         0] = Jh_weighted @ C_M2eCi.T @ -C_M2bM2e.T @ hat(dr) @ -C_M2bM2e @ p
+    # jacs[6][0:2, 0] = Jh @ C_M2eCi.T @ -C_M2bM2e.T @ hat(dr) @ -C_M2bM2e @ p
 
     # -- Jacobian w.r.t. camera extrinsics T_M2eCi
+    T_BM2e = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e
     p_M2eFi = tf_point(inv(T_BM2e) @ fiducial, self.p_FFi)
+    C_M2eCi, r_M2eCi = tf_decompose(cam_exts)
     dr = p_M2eFi - r_M2eCi
-    jacs[7][0:2, 0:3] = Jh_weighted @ -C_M2eCi.T
-    jacs[7][0:2, 3:6] = Jh_weighted @ -C_M2eCi.T @ hat(dr) @ -C_M2eCi
+    jacs[7][0:2, 0:3] = Jh @ -C_M2eCi.T
+    jacs[7][0:2, 3:6] = Jh @ -C_M2eCi.T @ hat(dr) @ -C_M2eCi
+
     # -- Jacobian w.r.t. camera parameters
     J_cam_params = self.cam_geom.J_params(cam_params, p_CiFi)
     jacs[8] = neg_sqrt_info @ J_cam_params
@@ -7622,11 +7658,132 @@ class TestLinearAlgebra(unittest.TestCase):
   #   self.assertTrue(check_jacobian(jac_name, fdiff, jac, threshold))
 
 
+# LIE ########################################################################
+
+
 class TestLie(unittest.TestCase):
   """ Test Lie algebra functions """
   def test_Exp_Log(self):
     """ Test Exp() and Log() """
     pass
+
+  def test_sandbox(self):
+    """ Test sandbox """
+    step_size = 1e-8
+    threshold = 1e-4
+
+    # Test Jacobian w.r.t C_10 in p_1 = T_10 * p_0
+    C_10 = euler321(0.1, 0.2, 0.3)
+    r_10 = np.array([0.1, 0.2, 0.3])
+    T_10 = tf(C_10, r_10)
+    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_1 = tf_point(T_10, p_0)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      T_fwd = tf_perturb(T_10, 3 + i, step_size)
+      p_1_fwd = tf_point(T_fwd, p_0)
+      J_fdiff[:, i] = (p_1_fwd - p_1) / step_size
+
+    J = np.zeros((3, 3))
+    J[0:3, 0:3] = -tf_rot(T_10) @ hat(p_0)
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=True)
+
+    # Test Jacobian w.r.t C_10 in p_2 = T_21 * T_10 * p_0
+    C_10 = euler321(0.1, 0.2, 0.3)
+    r_10 = np.array([0.1, 0.2, 0.3])
+    T_10 = tf(C_10, r_10)
+
+    C_21 = euler321(0.1, 0.2, 0.3)
+    r_21 = np.array([0.1, 0.2, 0.3])
+    T_21 = tf(C_21, r_21)
+
+    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_2 = tf_point(T_21 @ T_10, p_0)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      T_10_fwd = tf_perturb(T_10, 3 + i, step_size)
+      p_2_fwd = tf_point(T_21 @ T_10_fwd, p_0)
+      J_fdiff[:, i] = (p_2_fwd - p_2) / step_size
+
+    J = np.zeros((3, 3))
+    J[0:3, 0:3] = C_21 @ -tf_rot(T_10) @ hat(p_0)
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=True)
+
+    # Test Jacobian w.r.t C_21 in p_3 = T_32 * inv(T_21) * T_10 * p_0
+    C_10 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_10 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_10 = tf(C_10, r_10)
+
+    C_21 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_21 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_21 = tf(C_21, r_21)
+
+    C_32 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_32 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_32 = tf(C_32, r_32)
+
+    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_3 = tf_point(T_32 @ inv(T_21) @ T_10, p_0)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      T_21_fwd = tf_perturb(T_21, 3 + i, step_size)
+      p_3_fwd = tf_point(T_32 @ inv(T_21_fwd) @ T_10, p_0)
+      J_fdiff[:, i] = (p_3_fwd - p_3) / step_size
+
+    J = np.zeros((3, 3))
+    p_1 = tf_point(T_10, p_0)
+    J[0:3, 0:3] = C_32 @ -C_21.T @ hat(p_1 - r_21) @ -C_21
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=True)
+
+    # Test Jacobian w.r.t C_21 in p_3 = inv(T_32) * inv(T_21) * T_10 * p_0
+    C_10 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_10 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_10 = tf(C_10, r_10)
+
+    C_21 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_21 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_21 = tf(C_21, r_21)
+
+    C_32 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_32 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_32 = tf(C_32, r_32)
+
+    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_3 = tf_point(inv(T_32) @ inv(T_21) @ T_10, p_0)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      T_21_fwd = tf_perturb(T_21, 3 + i, step_size)
+      p_3_fwd = tf_point(inv(T_32) @ inv(T_21_fwd) @ T_10, p_0)
+      J_fdiff[:, i] = (p_3_fwd - p_3) / step_size
+
+    J = np.zeros((3, 3))
+    p_1 = tf_point(T_10, p_0)
+    J[0:3, 0:3] = C_32.T @ -C_21.T @ hat(p_1 - r_21) @ -C_21
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=True)
+
+    # Test Jacobian w.r.t C_10 in p_1 = inv(T_10) * p_0
+    C_10 = euler321(0.1, 0.2, 0.3)
+    r_10 = np.array([0.1, 0.2, 0.3])
+    T_10 = tf(C_10, r_10)
+    T_01 = inv(T_10)
+    p_1 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_0 = tf_point(T_01, p_1)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      C_10_fwd = rot_perturb(C_10, i, step_size)
+      T_10_fwd = tf(C_10_fwd, r_10)
+      T_01_fwd = inv(T_10_fwd)
+      p_0_fwd = tf_point(T_01_fwd, p_1)
+      J_fdiff[:, i] = (p_0_fwd - p_0) / step_size
+
+    J = np.zeros((3, 3))
+    J[0:3, 0:3] = -C_10.T @ hat(p_1 - r_10) @ -C_10
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=True)
 
 
 # TRANSFORM ###################################################################
@@ -10145,7 +10302,7 @@ class TestSandbox(unittest.TestCase):
     self.assertTrue(status)
 
     # -- Form Gimbal3AxisVisionFactor
-    fiducial = pose_setup(0, sandbox.T_WB @ sandbox.T_WF)
+    fiducial = pose_setup(0, inv(sandbox.T_WB) @ sandbox.T_WF)
     link0 = extrinsics_setup(sandbox.links[0])
     link1 = extrinsics_setup(sandbox.links[1])
     link2 = extrinsics_setup(sandbox.links[2])
@@ -10172,15 +10329,16 @@ class TestSandbox(unittest.TestCase):
         cam0_exts,
         cam0_params,
     ]
-    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
-    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_link0", verbose=True))
-    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_link1"))
-    # self.assertTrue(factor.check_jacobian(fvars, 3, "J_link2"))
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial", verbose=True))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_link0", verbose=True))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_link1", verbose=True))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_link2", verbose=True))
     # self.assertTrue(factor.check_jacobian(fvars, 4, "J_th0"))
     # self.assertTrue(factor.check_jacobian(fvars, 5, "J_th1"))
     # self.assertTrue(factor.check_jacobian(fvars, 6, "J_th2", verbose=True))
-    self.assertTrue(factor.check_jacobian(fvars, 7, "J_cam_exts"))
-    self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_params"))
+    self.assertTrue(factor.check_jacobian(fvars, 7, "J_cam_exts", verbose=True))
+    self.assertTrue(
+        factor.check_jacobian(fvars, 8, "J_cam_params", verbose=True))
 
     # cam_params = sandbox.cam_params.param
     # cam_geom = sandbox.cam_params.data

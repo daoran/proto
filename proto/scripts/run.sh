@@ -25,6 +25,8 @@ run_memcheck() {
 # python3 proto.py TestNetwork.test_websocket_encode_frame
 # python3 proto.py TestNetwork.test_debug_server
 # python3 proto.py TestLinearAlgebra
+# python3 proto.py TestLie
+# python3 proto.py TestLie.test_sandbox
 # python3 proto.py TestTransform
 # python3 proto.py TestTransform.test_quat2rot
 # python3 proto.py TestTransform.test_rot2quat
