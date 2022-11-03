@@ -4083,7 +4083,6 @@ class Gimbal3AxisVisionFactor(Factor):
       return (r, jacs)
 
     neg_sqrt_info = -1.0 * sqrt_info
-
     T_BF = fiducial
     T_BM0b = links[0]
     T_M0bM0e = tf(rotz(joints[0]), np.zeros((3,)))
@@ -4091,6 +4090,7 @@ class Gimbal3AxisVisionFactor(Factor):
     T_M1bM1e = tf(rotz(joints[1]), np.zeros((3,)))
     T_M1eM2b = links[2]
     T_M2bM2e = tf(rotz(joints[2]), np.zeros((3,)))
+    T_M2eCi = cam_exts
 
     # -- Measurement model jacobian
     Jh = neg_sqrt_info @ self.cam_geom.J_proj(cam_params, p_CiFi)
@@ -4105,7 +4105,7 @@ class Gimbal3AxisVisionFactor(Factor):
     # -- Jacobian w.r.t. link0 (yaw): T_BM0b
     p_BFi = tf_point(T_BF, self.p_FFi)
     C_BM0b, r_BM0b = tf_decompose(T_BM0b)
-    T_M0bCi = T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ cam_exts
+    T_M0bCi = T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ T_M2eCi
     T_CiM0b = inv(T_M0bCi)
     C_CiM0b = tf_rot(T_CiM0b)
     dr = p_BFi - r_BM0b
@@ -4116,7 +4116,7 @@ class Gimbal3AxisVisionFactor(Factor):
     # -- Jacobian w.r.t. link1 (roll): T_M0eM1b
     p_M0eFi = tf_point(inv(T_M0bM0e) @ inv(T_BM0b) @ T_BF, self.p_FFi)
     C_M0eM1b, r_M0eM1b = tf_decompose(T_M0eM1b)
-    T_M1bCi = T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ cam_exts
+    T_M1bCi = T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ T_M2eCi
     T_CiM1b = inv(T_M1bCi)
     C_CiM1b = tf_rot(T_CiM1b)
     dr = p_M0eFi - r_M0eM1b
@@ -4129,7 +4129,7 @@ class Gimbal3AxisVisionFactor(Factor):
         inv(T_M1bM1e) @ inv(T_M0eM1b) @ inv(T_M0bM0e) @ inv(T_BM0b) @ T_BF,
         self.p_FFi)
     C_M1eM2b, r_M1eM2b = tf_decompose(T_M1eM2b)
-    T_M2bCi = T_M2bM2e @ cam_exts
+    T_M2bCi = T_M2bM2e @ T_M2eCi
     T_CiM2b = inv(T_M2bCi)
     C_CiM2b = tf_rot(T_CiM2b)
     dr = p_M1eFi - r_M1eM2b
@@ -4137,24 +4137,45 @@ class Gimbal3AxisVisionFactor(Factor):
     jacs[3][0:2, 0:3] = Jh @ C_CiM2b @ -C_M1eM2b.T
     jacs[3][0:2, 3:6] = Jh @ C_CiM2b @ -C_M1eM2b.T @ hat(dr) @ -C_M1eM2b
 
+    # -- Jacobian w.r.t. th0 (yaw joint): T_M0bM0e
+    p_M0bFi = tf_point(inv(T_BM0b) @ T_BF, self.p_FFi)
+    T_M0eCi = T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ T_M2eCi
+    C_CiM0e = tf_rot(inv(T_M0eCi))
+    p = np.array([
+        -p_M0bFi[0] * sin(joints[0]) + p_M0bFi[1] * cos(joints[0]),
+        -p_M0bFi[0] * cos(joints[0]) - p_M0bFi[1] * sin(joints[0]),
+        0,
+    ])
+    jacs[4][0:2, 0] = Jh @ C_CiM0e @ p
+
+    # -- Jacobian w.r.t. th1 (roll joint): T_M1bM1e
+    p_M1bFi = tf_point(
+        inv(T_M0eM1b) @ inv(T_M0bM0e) @ inv(T_BM0b) @ T_BF, self.p_FFi)
+    T_M1eCi = T_M1eM2b @ T_M2bM2e @ T_M2eCi
+    C_CiM1e = tf_rot(inv(T_M1eCi))
+    p = np.array([
+        -p_M1bFi[0] * sin(joints[1]) + p_M1bFi[1] * cos(joints[1]),
+        -p_M1bFi[0] * cos(joints[1]) - p_M1bFi[1] * sin(joints[1]),
+        0,
+    ])
+    jacs[5][0:2, 0] = Jh @ C_CiM1e @ p
+
     # -- Jacobian w.r.t. th2 (pitch joint): T_M2bM2e
-    # T_BM2b = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b
-    # C_M2bM2e = tf_rot(T_M2bM2e)
-    # p_M2bFi = tf_point(inv(T_BM2b) @ T_BF, self.p_FFi)
-    # r_M2bM2e = np.zeros((3,))
-    # dr = p_M2bFi - r_M2bM2e
-    # th2 = joints[2]
-    # p = np.array([
-    #     -dr[0] * sin(th2) - dr[1] * cos(th2),
-    #     dr[0] * cos(th2) - dr[1] * sin(th2),
-    #     0.0,
-    # ])
-    # jacs[6][0:2, 0] = Jh @ C_M2eCi.T @ -C_M2bM2e.T @ hat(dr) @ -C_M2bM2e @ p
+    p_M2bFi = tf_point(
+        inv(T_M1eM2b) @ inv(T_M1bM1e) @ inv(T_M0eM1b) @ inv(T_M0bM0e)
+        @ inv(T_BM0b) @ T_BF, self.p_FFi)
+    C_CiM2e = tf_rot(inv(T_M2eCi))
+    p = np.array([
+        -p_M2bFi[0] * sin(joints[2]) + p_M2bFi[1] * cos(joints[2]),
+        -p_M2bFi[0] * cos(joints[2]) - p_M2bFi[1] * sin(joints[2]),
+        0,
+    ])
+    jacs[6][0:2, 0] = Jh @ C_CiM2e @ p
 
     # -- Jacobian w.r.t. camera extrinsics T_M2eCi
     T_BM2e = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e
     p_M2eFi = tf_point(inv(T_BM2e) @ T_BF, self.p_FFi)
-    C_M2eCi, r_M2eCi = tf_decompose(cam_exts)
+    C_M2eCi, r_M2eCi = tf_decompose(T_M2eCi)
     dr = p_M2eFi - r_M2eCi
     jacs[7][0:2, 0:3] = Jh @ -C_M2eCi.T
     jacs[7][0:2, 3:6] = Jh @ -C_M2eCi.T @ hat(dr) @ -C_M2eCi
@@ -7331,7 +7352,7 @@ class GimbalSandbox:
     # Gimbal links and joint angles
     self.T_WB = None
     self.links = []
-    self.joint_angles = [0.0, 0.0, 0.0]
+    self.joint_angles = [0.01, 0.02, 0.03]
 
     # Camera parameters and extrinsics
     self.cam_params = []
@@ -10329,43 +10350,29 @@ class TestSandbox(unittest.TestCase):
         cam0_exts,
         cam0_params,
     ]
-    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial", verbose=True))
-    self.assertTrue(factor.check_jacobian(fvars, 1, "J_link0", verbose=True))
-    self.assertTrue(factor.check_jacobian(fvars, 2, "J_link1", verbose=True))
-    self.assertTrue(factor.check_jacobian(fvars, 3, "J_link2", verbose=True))
-    # self.assertTrue(factor.check_jacobian(fvars, 4, "J_th0"))
-    # self.assertTrue(factor.check_jacobian(fvars, 5, "J_th1"))
-    # self.assertTrue(factor.check_jacobian(fvars, 6, "J_th2", verbose=True))
-    self.assertTrue(factor.check_jacobian(fvars, 7, "J_cam_exts", verbose=True))
-    self.assertTrue(
-        factor.check_jacobian(fvars, 8, "J_cam_params", verbose=True))
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_link0"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_link1"))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_link2"))
+    self.assertTrue(factor.check_jacobian(fvars, 4, "J_th0"))
+    self.assertTrue(factor.check_jacobian(fvars, 5, "J_th1"))
+    self.assertTrue(factor.check_jacobian(fvars, 6, "J_th2"))
+    self.assertTrue(factor.check_jacobian(fvars, 7, "J_cam_exts"))
+    self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_params"))
 
-    # cam_params = sandbox.cam_params.param
-    # cam_geom = sandbox.cam_params.data
-    # T_WF = sandbox.T_WF
-    # _, T_BE = sandbox.get_end_effector_tf()
-    # T_WC = T_BE @ sandbox.T_EC
-    # T_CW = np.linalg.inv(T_WC)
-    # p_FFi = sandbox.calib_target.get_object_points()[0]
-
-    # p_C = tf_point(T_CW @ T_WF, p_FFi)
-    # status, z = cam_geom.project(cam_params, p_C)
-    # print(f"status: {status}, z: {z}")
-
-  # def test_gimbal_jacobians(self):
-  #   """ Test gimbal Jacobians """
-  #   import sympy
-  #   theta = sympy.symbols("theta")
-  #   px, py, pz = sympy.symbols("px py pz")
-  #   ctheta = sympy.cos(theta)
-  #   stheta = sympy.sin(theta)
-  #   row0 = [ctheta, -stheta, 0.0]
-  #   row1 = [stheta, ctheta, 0.0]
-  #   row2 = [0.0, 0.0, 1.0]
-  #   rotz = sympy.Matrix([row0, row1, row2])
-  #   p = sympy.Matrix([px, py, pz])
-  #   print(rotz)
-  #   print(sympy.diff(rotz @ p, theta))
+  def test_gimbal_jacobians(self):
+    """ Test gimbal Jacobians """
+    import sympy
+    theta = sympy.symbols("theta")
+    px, py, pz = sympy.symbols("px py pz")
+    ctheta = sympy.cos(theta)
+    stheta = sympy.sin(theta)
+    row0 = [ctheta, -stheta, 0.0]
+    row1 = [stheta, ctheta, 0.0]
+    row2 = [0.0, 0.0, 1.0]
+    rotz = sympy.Matrix([row0, row1, row2])
+    p = sympy.Matrix([px, py, pz])
+    print(sympy.diff(rotz.T @ p, theta))
 
 
 if __name__ == '__main__':
