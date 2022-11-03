@@ -43,6 +43,7 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_vision_factor
 # python3 proto.py TestFactors.test_calib_vision_factor
 # python3 proto.py TestFactors.test_two_state_vision_factor
+# python3 proto.py TestFactors.test_gimbal_vision_factor
 # python3 proto.py TestFactors.test_imu_buffer
 # python3 proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto.py TestFactors.test_imu_factor_propagate

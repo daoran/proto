@@ -3994,18 +3994,19 @@ class TwoStateVisionFactor(Factor):
     return (r, [J0, J1, J2, J3, J4, J5])
 
 
-class Gimbal3AxisVisionFactor(Factor):
+class GimbalVisionFactor(Factor):
   """ Gimbal Vision Factor """
   def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
     assert covar.shape == (2, 2)
     tag_id, corner_idx, p_FFi, z = grid_data
-    Factor.__init__(self, "Gimbal3AxisVisionFactor", pids, z, covar)
+    Factor.__init__(self, "GimbalVisionFactor", pids, z, covar)
     self.cam_geom = cam_geom
     self.tag_id = tag_id
     self.corner_idx = corner_idx
     self.p_FFi = p_FFi
 
-  def form_forward_kinematics(self, links, joints, cam_ext):
+  @staticmethod
+  def form_forward_kinematics(links, joints, cam_ext):
     """ Get forward kinematics transform T_BCi"""
     # Gimbal in world frame
     T = np.eye(4)
@@ -8424,6 +8425,66 @@ class TestFactors(unittest.TestCase):
     kwargs = {"verbose": True}
     self.assertTrue(factor.check_jacobian(fvars, 5, "J_cam_params", **kwargs))
 
+  def test_gimbal_vision_factor(self):
+    """ Test gimbal vision factor """
+    # Setup
+    sandbox = GimbalSandbox()
+    grid = sandbox.calib_target
+    cam_idx = 0
+    tag_id = 1
+    corner_idx = 2
+    p_FFi = grid.get_object_point(tag_id, corner_idx)
+
+    T_WM2e = sandbox.get_link_tf(2)
+    T_M2eCi = sandbox.cam_exts[cam_idx]
+    T_WCi = T_WM2e @ T_M2eCi
+    T_CiW = np.linalg.inv(T_WCi)
+    T_WF = sandbox.T_WF
+    p_CiFi = tf_point(T_CiW @ T_WF, p_FFi)
+
+    cam_geom = sandbox.cam_params[cam_idx].data
+    cam_params = sandbox.cam_params[cam_idx].param
+    status, z = cam_geom.project(cam_params, p_CiFi)
+    self.assertTrue(status)
+
+    # Form GimbalVisionFactor
+    fiducial = pose_setup(0, inv(sandbox.T_WB) @ sandbox.T_WF)
+    link0 = extrinsics_setup(sandbox.links[0])
+    link1 = extrinsics_setup(sandbox.links[1])
+    link2 = extrinsics_setup(sandbox.links[2])
+    th0 = euler_angle_setup(sandbox.joint_angles[0])
+    th1 = euler_angle_setup(sandbox.joint_angles[1])
+    th2 = euler_angle_setup(sandbox.joint_angles[2])
+    cam0_exts = extrinsics_setup(sandbox.cam_exts[0])
+    cam0_params = sandbox.cam_params[0]
+
+    cam0_geom = sandbox.cam_params[0].data
+    pids = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    grid_data = tag_id, corner_idx, p_FFi, z
+    factor = GimbalVisionFactor(cam0_geom, pids, grid_data)
+
+    # Test Jacobians
+    fvars = [
+        fiducial,
+        link0,
+        link1,
+        link2,
+        th0,
+        th1,
+        th2,
+        cam0_exts,
+        cam0_params,
+    ]
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_link0"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_link1"))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_link2"))
+    self.assertTrue(factor.check_jacobian(fvars, 4, "J_th0"))
+    self.assertTrue(factor.check_jacobian(fvars, 5, "J_th1"))
+    self.assertTrue(factor.check_jacobian(fvars, 6, "J_th2"))
+    self.assertTrue(factor.check_jacobian(fvars, 7, "J_cam_exts"))
+    self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_params"))
+
   def test_imu_buffer(self):
     """ Test IMU Buffer """
     # Extract measurements from ts: 4 - 7
@@ -10188,191 +10249,15 @@ class TestViz(unittest.TestCase):
 
 class TestSandbox(unittest.TestCase):
   """ Test Sandbox """
-  def test_axis_angle_jacobian(self):
-    """ Test axis-angle jacobian """
-    axis = np.array([1.0, 0.0, 0.0])
-    angle = 0.0
-    aa = aa_vec(axis, angle)
-
-    # Transform point p with rotation matrix C parameterized with axis-angle aa
-    C = aa2rot(aa)
-    p = np.array([
-        np.random.uniform(-0.05, 0.05),
-        np.random.uniform(-0.05, 0.05),
-        np.random.uniform(-0.05, 0.05)
-    ])
-    p_new = C @ p
-
-    # # Numerical-differentiation w.r.t Axis-Angle (i.e. rotation vector)
-    # J_fdiff = zeros((3, 3))
-    # h = 1e-8
-    # for i in range(3):
-    #   # Forward finite difference
-    #   aa_fwd = copy.deepcopy(aa)
-    #   aa_fwd[i] += 0.5 * h
-    #   C = aa2rot(aa_fwd)
-    #   p_fwd = C @ p
-
-    #   # Backward finite difference
-    #   aa_bwd = copy.deepcopy(aa)
-    #   aa_bwd[i] -= 0.5 * h
-    #   C = aa2rot(aa_bwd)
-    #   p_bwd = C @ p
-
-    #   # Central finite difference
-    #   J_fdiff[:, i] = (p_fwd - p_bwd) / h
-    # # print(J_fdiff)
-
-    # # Analytical differentiation
-    # J = -aa2rot(aa) @ hat(p) @ Jr(aa)
-
-    # # Check Axis-Angle Jacobian is correct
-    # threshold = 1e-4
-    # check_jacobian("Axis-Angle Jacobian", J_fdiff, J, threshold)
-    # print(f"J_fdiff: {J_fdiff}")
-    # print(f"J: {J}")
-
-    # Numerical-differentiation w.r.t Axis
-    J_fdiff = zeros((3, 3))
-    h = 1e-8
-    for i in range(3):
-      # Forward finite difference
-      axis_fwd = copy.deepcopy(axis)
-      axis_fwd[i] = axis[i] + 0.5 * h
-      aa_fwd = aa_vec(axis_fwd, angle)
-      C = aa2rot(aa_fwd)
-      p_fwd = C @ p
-
-      # Backward finite difference
-      axis_bwd = copy.deepcopy(axis)
-      axis_bwd[i] = axis[i] - 0.5 * h
-      aa_bwd = aa_vec(axis_bwd, angle)
-      C = aa2rot(aa_bwd)
-      p_bwd = C @ p
-
-      # Central finite difference
-      J_fdiff[:, i] = (p_fwd - p_bwd) / h
-    # print(J_fdiff)
-
-    # Analytical differentiation
-    J = -aa2rot(aa) @ hat(p) @ Jr(aa) @ np.eye(3) * angle
-
-    # Check Axis Jacobian is correct
-    threshold = 1e-4
-    check_jacobian("Axis Jacobian", J_fdiff, J, threshold, True)
-    print(f"J_fdiff: {J_fdiff}")
-    print(f"J:       {J}")
-
-    # # Numerical-differentiation w.r.t Angle
-    # J_fdiff = zeros((3, 1))
-    # h = 1e-8
-    # for i in range(1):
-    #   # Forward finite difference
-    #   angle_fwd = angle + 0.5 * h
-    #   aa_fwd = aa_vec(axis, angle_fwd)
-    #   C = aa2rot(aa_fwd)
-    #   p_fwd = C @ p
-
-    #   # Backward finite difference
-    #   angle_bwd = angle - 0.5 * h
-    #   aa_bwd = aa_vec(axis, angle_bwd)
-    #   C = aa2rot(aa_bwd)
-    #   p_bwd = C @ p
-
-    #   # Central finite difference
-    #   J_fdiff[:, i] = (p_fwd - p_bwd) / h
-    # # print(J_fdiff)
-
-    # # Analytical differentiation
-    # J = -aa2rot(aa) @ hat(p) @ Jr(aa) @ axis
-
-    # # Check Angle Jacobian is correct
-    # threshold = 1e-4
-    # check_jacobian("Angle Jacobian", J_fdiff, J, threshold)
-    # print(f"J_fdiff: {J_fdiff}")
-    # print(f"J: {J}")
-
   def test_gimbal_sandbox(self):
     """ Test gimbal sandbox """
     sandbox = GimbalSandbox()
-
     # sandbox.set_joint_angle(0, deg2rad(0))
     # sandbox.set_joint_angle(1, deg2rad(0))
     # sandbox.set_joint_angle(2, deg2rad(0))
     # sandbox.visualize_scene()
     # sandbox.plot_camera_frame()
-
-    # Test Gimbal3AxisVisionFactor
-    # -- Simulate camera measurement
-    grid = sandbox.calib_target
-    cam_idx = 0
-    tag_id = 1
-    corner_idx = 2
-    p_FFi = grid.get_object_point(tag_id, corner_idx)
-
-    T_WM2e = sandbox.get_link_tf(2)
-    T_M2eCi = sandbox.cam_exts[cam_idx]
-    T_WCi = T_WM2e @ T_M2eCi
-    T_CiW = np.linalg.inv(T_WCi)
-    T_WF = sandbox.T_WF
-    p_CiFi = tf_point(T_CiW @ T_WF, p_FFi)
-
-    cam_geom = sandbox.cam_params[cam_idx].data
-    cam_params = sandbox.cam_params[cam_idx].param
-    status, z = cam_geom.project(cam_params, p_CiFi)
-    self.assertTrue(status)
-
-    # -- Form Gimbal3AxisVisionFactor
-    fiducial = pose_setup(0, inv(sandbox.T_WB) @ sandbox.T_WF)
-    link0 = extrinsics_setup(sandbox.links[0])
-    link1 = extrinsics_setup(sandbox.links[1])
-    link2 = extrinsics_setup(sandbox.links[2])
-    th0 = euler_angle_setup(sandbox.joint_angles[0])
-    th1 = euler_angle_setup(sandbox.joint_angles[1])
-    th2 = euler_angle_setup(sandbox.joint_angles[2])
-    cam0_exts = extrinsics_setup(sandbox.cam_exts[0])
-    cam0_params = sandbox.cam_params[0]
-
-    cam0_geom = sandbox.cam_params[0].data
-    pids = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-    grid_data = tag_id, corner_idx, p_FFi, z
-    factor = Gimbal3AxisVisionFactor(cam0_geom, pids, grid_data)
-
-    # -- Test Jacobians
-    fvars = [
-        fiducial,
-        link0,
-        link1,
-        link2,
-        th0,
-        th1,
-        th2,
-        cam0_exts,
-        cam0_params,
-    ]
-    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
-    self.assertTrue(factor.check_jacobian(fvars, 1, "J_link0"))
-    self.assertTrue(factor.check_jacobian(fvars, 2, "J_link1"))
-    self.assertTrue(factor.check_jacobian(fvars, 3, "J_link2"))
-    self.assertTrue(factor.check_jacobian(fvars, 4, "J_th0"))
-    self.assertTrue(factor.check_jacobian(fvars, 5, "J_th1"))
-    self.assertTrue(factor.check_jacobian(fvars, 6, "J_th2"))
-    self.assertTrue(factor.check_jacobian(fvars, 7, "J_cam_exts"))
-    self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_params"))
-
-  def test_gimbal_jacobians(self):
-    """ Test gimbal Jacobians """
-    import sympy
-    theta = sympy.symbols("theta")
-    px, py, pz = sympy.symbols("px py pz")
-    ctheta = sympy.cos(theta)
-    stheta = sympy.sin(theta)
-    row0 = [ctheta, -stheta, 0.0]
-    row1 = [stheta, ctheta, 0.0]
-    row2 = [0.0, 0.0, 1.0]
-    rotz = sympy.Matrix([row0, row1, row2])
-    p = sympy.Matrix([px, py, pz])
-    print(sympy.diff(rotz.T @ p, theta))
+    self.assertTrue(sandbox)
 
 
 if __name__ == '__main__':
