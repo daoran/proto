@@ -736,6 +736,7 @@ void lapack_chol_solve(const real_t *A,
  ******************************************************************************/
 
 void tf(const real_t params[7], real_t T[4 * 4]);
+void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]);
 void tf_vector(const real_t T[4 * 4], real_t params[7]);
 void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]);
 void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]);
@@ -1066,23 +1067,65 @@ typedef struct cam_factor_t {
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
   real_t z[2];
-} cam_factor_t;
+} vision_factor_t;
 
-void cam_factor_setup(cam_factor_t *factor,
-                      const pose_t *pose,
-                      const extrinsics_t *extrinsics,
-                      const feature_t *feature,
-                      const camera_params_t *camera,
-                      const real_t z[2],
-                      const real_t var[2]);
-int cam_factor_eval(cam_factor_t *factor,
-                    real_t **params,
-                    real_t *residuals,
-                    real_t **jacobians);
-int cam_factor_ceres_eval(void *factor,
-                          double **params,
-                          double *residuals,
-                          double **jacobians);
+void vision_factor_setup(vision_factor_t *factor,
+                         const pose_t *pose,
+                         const extrinsics_t *extrinsics,
+                         const feature_t *feature,
+                         const camera_params_t *camera,
+                         const real_t z[2],
+                         const real_t var[2]);
+int vision_factor_eval(vision_factor_t *factor,
+                       real_t **params,
+                       real_t *residuals,
+                       real_t **jacobians);
+int vision_factor_ceres_eval(void *factor,
+                             double **params,
+                             double *residuals,
+                             double **jacobians);
+
+// GIMBAL FACTOR ///////////////////////////////////////////////////////////////
+
+typedef struct gimbal_factor_t {
+  const pose_t *pose;
+  const extrinsics_t *link0;
+  const extrinsics_t *link1;
+  const extrinsics_t *link2;
+  const joint_angle_t *joint0;
+  const joint_angle_t *joint1;
+  const joint_angle_t *joint2;
+  const extrinsics_t *cam_exts;
+  const camera_params_t *cam;
+  const feature_t *feature;
+  int nb_params;
+
+  real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
+  real_t z[2];
+} gimbal_factor_t;
+
+void gimbal_factor_setup(gimbal_factor_t *factor,
+                         const pose_t *pose,
+                         const extrinsics_t *link0,
+                         const extrinsics_t *link1,
+                         const extrinsics_t *link2,
+                         const joint_angle_t *joint0,
+                         const joint_angle_t *joint1,
+                         const joint_angle_t *joint2,
+                         const extrinsics_t *cam_exts,
+                         const camera_params_t *cam,
+                         const feature_t *feature,
+                         const real_t z[2],
+                         const real_t var[2]);
+int gimbal_factor_eval(gimbal_factor_t *factor,
+                       real_t **params,
+                       real_t *residuals,
+                       real_t **jacobians);
+int gimbal_factor_ceres_eval(void *factor,
+                             double **params,
+                             double *residuals,
+                             double **jacobians);
 
 // IMU FACTOR //////////////////////////////////////////////////////////////////
 
@@ -5558,6 +5601,35 @@ void tf(const real_t params[7], real_t T[4 * 4]) {
   const real_t r[3] = {params[0], params[1], params[2]};
   const real_t q[4] = {params[6], params[3], params[4], params[5]};
 
+  real_t C[3 * 3] = {0};
+  quat2rot(q, C);
+
+  T[0] = C[0];
+  T[1] = C[1];
+  T[2] = C[2];
+  T[3] = r[0];
+
+  T[4] = C[3];
+  T[5] = C[4];
+  T[6] = C[5];
+  T[7] = r[1];
+
+  T[8] = C[6];
+  T[9] = C[7];
+  T[10] = C[8];
+  T[11] = r[2];
+
+  T[12] = 0.0;
+  T[13] = 0.0;
+  T[14] = 0.0;
+  T[15] = 1.0;
+}
+
+/**
+ * Form 4x4 homogeneous transformation matrix `T` from a quaternion `q` and
+ * translation vector `r`.
+ */
+void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]) {
   real_t C[3 * 3] = {0};
   quat2rot(q, C);
 
