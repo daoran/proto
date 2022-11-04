@@ -948,6 +948,15 @@ typedef struct extrinsics_t {
 void extrinsics_setup(extrinsics_t *extrinsics, const real_t *param);
 void extrinsics_print(const char *prefix, const extrinsics_t *exts);
 
+// JOINT ANGLE /////////////////////////////////////////////////////////////////
+
+typedef struct joint_angle_t {
+  real_t angle[1];
+} joint_angle_t;
+
+void joint_angle_setup(joint_angle_t *joint, const real_t *param);
+void joint_angle_print(const char *prefix, const joint_angle_t *joint);
+
 // CAMERA PARAMS ///////////////////////////////////////////////////////////////
 
 typedef struct camera_params_t {
@@ -7375,6 +7384,25 @@ void extrinsics_print(const char *prefix, const extrinsics_t *exts) {
   printf("[%s] ", prefix);
   printf("pos: (%.2f, %.2f, %.2f), ", x, y, z);
   printf("quat: (%.2f, %.2f, %.2f, %.2f)\n", qw, qx, qy, qz);
+}
+
+// JOINT ANGLES ////////////////////////////////////////////////////////////////
+
+/**
+ * Joint Angle Setup
+ */
+void joint_angle_setup(joint_angle_t *joint, const real_t *param) {
+  assert(joint != NULL);
+  assert(param != NULL);
+  joint->angle[0] = param;
+}
+
+/**
+ * Print Joint Angle
+ */
+void joint_angle_print(const char *prefix, const joint_angle_t *joint) {
+  printf("[%s] ", prefix);
+  printf("%f\n", joint->angle[0]);
 }
 
 // CAMERA PARAMS ///////////////////////////////////////////////////////////////
