@@ -735,7 +735,11 @@ void lapack_chol_solve(const real_t *A,
  * TRANSFORMS
  ******************************************************************************/
 
+void rotx(const real_t theta, real_t C[3 * 3]);
+void roty(const real_t theta, real_t C[3 * 3]);
+void rotz(const real_t theta, real_t C[3 * 3]);
 void tf(const real_t params[7], real_t T[4 * 4]);
+void tf_cr(const real_t C[3 * 3], const real_t r[3], real_t T[4 * 4]);
 void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]);
 void tf_vector(const real_t T[4 * 4], real_t params[7]);
 void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]);
@@ -5587,6 +5591,51 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
  * TRANSFORMS
  ******************************************************************************/
 
+/** Form rotation matrix around x axis **/
+void rotx(const real_t theta, real_t C[3 * 3]) {
+  C[0] = 1.0;
+  C[1] = 0.0;
+  C[2] = 0.0;
+
+  C[3] = 0.0;
+  C[4] = cos(theta);
+  C[5] = -sin(theta);
+
+  C[6] = 0.0;
+  C[7] = sin(theta);
+  C[8] = cos(theta);
+}
+
+/** Form rotation matrix around y axis */
+void roty(const real_t theta, real_t C[3 * 3]) {
+  C[0] = cos(theta);
+  C[1] = 0.0;
+  C[2] = sin(theta);
+
+  C[3] = 0.0;
+  C[4] = 1.0;
+  C[5] = 0.0;
+
+  C[6] = -sin(theta);
+  C[7] = 0.0;
+  C[8] = cos(theta);
+}
+
+/** Form rotation matrix around z axis */
+void rotz(const real_t theta, real_t C[3 * 3]) {
+  C[0] = cos(theta);
+  C[1] = -sin(theta);
+  C[2] = 0.0;
+
+  C[3] = sin(theta);
+  C[4] = cos(theta);
+  C[5] = 0.0;
+
+  C[6] = 0.0;
+  C[7] = 0.0;
+  C[8] = 1.0;
+}
+
 /**
  * Form 4x4 homogeneous transformation matrix `T` from a 7x1 pose vector
  * `params`.
@@ -5626,13 +5675,10 @@ void tf(const real_t params[7], real_t T[4 * 4]) {
 }
 
 /**
- * Form 4x4 homogeneous transformation matrix `T` from a quaternion `q` and
+ * Form 4x4 homogeneous transformation matrix `T` from a rotation matrix `C` and
  * translation vector `r`.
  */
-void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]) {
-  real_t C[3 * 3] = {0};
-  quat2rot(q, C);
-
+void tf_cr(const real_t C[3 * 3], const real_t r[3], real_t T[4 * 4]) {
   T[0] = C[0];
   T[1] = C[1];
   T[2] = C[2];
@@ -5652,6 +5698,16 @@ void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]) {
   T[13] = 0.0;
   T[14] = 0.0;
   T[15] = 1.0;
+}
+
+/**
+ * Form 4x4 homogeneous transformation matrix `T` from a quaternion `q` and
+ * translation vector `r`.
+ */
+void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]) {
+  real_t C[3 * 3] = {0};
+  quat2rot(q, C);
+  tf_cr(C, r);
 }
 
 /**
