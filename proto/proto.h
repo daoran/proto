@@ -5377,12 +5377,95 @@ void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv) {
  * CHOL
  ******************************************************************************/
 
+#ifdef USE_LAPACK
+/**
+ * Decompose matrix A to lower triangular matrix L
+ */
+void __lapack_chol(const real_t *A, const size_t m, real_t *L) {
+  assert(A != NULL);
+  assert(m > 0);
+  assert(L != NULL);
+
+  // Cholesky Decomposition
+  int info = 0;
+  int lda = m;
+  int n = m;
+  char uplo = 'L';
+  mat_copy(A, m, m, L);
+#if PRECISION == 1
+  spotrf_(&uplo, &n, L, &lda, &info);
+#elif PRECISION == 2
+  dpotrf_(&uplo, &n, L, &lda, &info);
+#endif
+  if (info != 0) {
+    fprintf(stderr, "Failed to decompose A using Cholesky Decomposition!\n");
+  }
+
+  // Transpose and zero upper triangular result
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = i; j < m; j++) {
+      if (i != j) {
+        L[(j * m) + i] = L[(i * m) + j];
+        L[(i * m) + j] = 0.0;
+      }
+    }
+  }
+}
+
+/**
+ * Solve Ax = b using LAPACK's implementation of Cholesky decomposition, where
+ * `A` is a square matrix, `b` is a vector and `x` is the solution vector of
+ * size `n`.
+ */
+void __lapack_chol_solve(const real_t *A,
+                         const real_t *b,
+                         real_t *x,
+                         const size_t m) {
+  assert(A != NULL);
+  assert(b != NULL);
+  assert(x != NULL);
+  assert(m > 0);
+
+  // Cholesky Decomposition
+  int info = 0;
+  int lda = m;
+  int n = m;
+  char uplo = 'L';
+  real_t *a = mat_malloc(m, m);
+  mat_copy(A, m, m, a);
+#if PRECISION == 1
+  spotrf_(&uplo, &n, a, &lda, &info);
+#elif PRECISION == 2
+  dpotrf_(&uplo, &n, a, &lda, &info);
+#endif
+  if (info != 0) {
+    fprintf(stderr, "Failed to decompose A using Cholesky Decomposition!\n");
+  }
+
+  // Solve Ax = b using Cholesky decomposed A from above
+  vec_copy(b, m, x);
+  int nhrs = 1;
+  int ldb = m;
+#if PRECISION == 1
+  spotrs_(&uplo, &n, &nhrs, a, &lda, x, &ldb, &info);
+#elif PRECISION == 2
+  dpotrs_(&uplo, &n, &nhrs, a, &lda, x, &ldb, &info);
+#endif
+  if (info != 0) {
+    fprintf(stderr, "Failed to solve Ax = b!\n");
+  }
+
+  free(a);
+}
+
+#else
+
 /**
  * Cholesky decomposition. Takes a `m x m` matrix `A` and decomposes it into a
  * lower and upper triangular matrix `L` and `U` with Cholesky decomposition.
  * This function only returns the `L` triangular matrix.
  */
-void chol(const real_t *A, const size_t m, real_t *L) {
+void __chol(const real_t *A, const size_t m, real_t *L) {
   assert(A != NULL);
   assert(m > 0);
   assert(L != NULL);
@@ -5412,7 +5495,7 @@ void chol(const real_t *A, const size_t m, real_t *L) {
  * Solve `Ax = b` using Cholesky decomposition, where `A` is a square matrix,
  * `b` is a vector and `x` is the solution vector of size `n`.
  */
-void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
+void __chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
   assert(A != NULL);
   assert(b != NULL);
   assert(x != NULL);
@@ -5466,87 +5549,32 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
   free(Lt);
 }
 
+#endif // USE_LAPACK
+
+/**
+ * Cholesky decomposition. Takes a `m x m` matrix `A` and decomposes it into a
+ * lower and upper triangular matrix `L` and `U` with Cholesky decomposition.
+ * This function only returns the `L` triangular matrix.
+ */
+void chol(const real_t *A, const size_t m, real_t *L) {
 #ifdef USE_LAPACK
-/**
- * Decompose matrix A to lower triangular matrix L
- */
-void lapack_chol(const real_t *A, const size_t m, real_t *L) {
-  assert(A != NULL);
-  assert(m > 0);
-  assert(L != NULL);
-
-  // Cholesky Decomposition
-  int info = 0;
-  int lda = m;
-  int n = m;
-  char uplo = 'L';
-  mat_copy(A, m, m, L);
-#if PRECISION == 1
-  spotrf_(&uplo, &n, L, &lda, &info);
-#elif PRECISION == 2
-  dpotrf_(&uplo, &n, L, &lda, &info);
-#endif
-  if (info != 0) {
-    fprintf(stderr, "Failed to decompose A using Cholesky Decomposition!\n");
-  }
-
-  // Transpose and zero upper triangular result
-  for (size_t i = 0; i < m; i++) {
-    for (size_t j = i; j < m; j++) {
-      if (i != j) {
-        L[(j * m) + i] = L[(i * m) + j];
-        L[(i * m) + j] = 0.0;
-      }
-    }
-  }
+  __lapack_chol(A, m, L);
+#else
+  __chol(A, m, L);
+#endif // USE_LAPACK
 }
 
 /**
- * Solve Ax = b using LAPACK's implementation of Cholesky decomposition, where
- * `A` is a square matrix, `b` is a vector and `x` is the solution vector of
- * size `n`.
+ * Solve `Ax = b` using Cholesky decomposition, where `A` is a square matrix,
+ * `b` is a vector and `x` is the solution vector of size `n`.
  */
-void lapack_chol_solve(const real_t *A,
-                       const real_t *b,
-                       real_t *x,
-                       const size_t m) {
-  assert(A != NULL);
-  assert(b != NULL);
-  assert(x != NULL);
-  assert(m > 0);
-
-  // Cholesky Decomposition
-  int info = 0;
-  int lda = m;
-  int n = m;
-  char uplo = 'L';
-  real_t *a = mat_malloc(m, m);
-  mat_copy(A, m, m, a);
-#if PRECISION == 1
-  spotrf_(&uplo, &n, a, &lda, &info);
-#elif PRECISION == 2
-  dpotrf_(&uplo, &n, a, &lda, &info);
-#endif
-  if (info != 0) {
-    fprintf(stderr, "Failed to decompose A using Cholesky Decomposition!\n");
-  }
-
-  // Solve Ax = b using Cholesky decomposed A from above
-  vec_copy(b, m, x);
-  int nhrs = 1;
-  int ldb = m;
-#if PRECISION == 1
-  spotrs_(&uplo, &n, &nhrs, a, &lda, x, &ldb, &info);
-#elif PRECISION == 2
-  dpotrs_(&uplo, &n, &nhrs, a, &lda, x, &ldb, &info);
-#endif
-  if (info != 0) {
-    fprintf(stderr, "Failed to solve Ax = b!\n");
-  }
-
-  free(a);
+void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
+#ifdef USE_LAPACK
+  __lapack_chol_solve(A, b, x, n);
+#else
+  __chol_solve(A, b, x, n);
+#endif // USE_LAPACK
 }
-#endif
 
 /******************************************************************************
  * Lie
@@ -13110,93 +13138,6 @@ int test_chol_solve() {
   return 0;
 }
 
-#ifdef USE_LAPACK
-int test_lapack_chol() {
-  // clang-format off
-  const int n = 3;
-  real_t A[9] = {
-    4.0, 12.0, -16.0,
-    12.0, 37.0, -43.0,
-    -16.0, -43.0, 98.0
-  };
-  // clang-format on
-
-  struct timespec t = tic();
-  real_t L[9] = {0};
-  lapack_chol(A, n, L);
-  printf("time taken: [%fs]\n", toc(&t));
-
-  real_t Lt[9] = {0};
-  real_t LLt[9] = {0};
-  mat_transpose(L, n, n, Lt);
-  dot(L, n, n, Lt, n, n, LLt);
-
-  int debug = 1;
-  // int debug = 0;
-  if (debug) {
-    print_matrix("L", L, n, n);
-    printf("\n");
-    print_matrix("Lt", Lt, n, n);
-    printf("\n");
-    print_matrix("LLt", LLt, n, n);
-    printf("\n");
-    print_matrix("A", A, n, n);
-  }
-
-  int retval = mat_equals(A, LLt, n, n, 1e-5);
-  MU_ASSERT(retval == 0);
-
-  return 0;
-}
-
-int test_lapack_chol_solve() {
-  /* #<{(| clang-format off |)}># */
-  /* const int m = 3; */
-  /* const real_t A[9] = { */
-  /*   2.0, -1.0, 0.0, */
-  /*   -1.0, 2.0, -1.0, */
-  /*   0.0, -1.0, 1.0 */
-  /* }; */
-  /* const real_t b[3] = {1.0, 0.0, 0.0}; */
-  /* real_t x[3] = {0.0, 0.0, 0.0}; */
-  /* #<{(| clang-format on |)}># */
-
-  /* real_t a[9] = { 1.0, .6, .3, .6, 1., .5, .3, .5, 1 }; */
-  /* print_matrix("a", a, 3, 3); */
-  /* int retval = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, 'L', 3, a, 3); */
-  /* if (retval != 0) { */
-  /*   fprintf(stderr, "Failed to decompose A using Cholesky Decomposition!\n");
-   */
-  /* } */
-  /* print_matrix("a", a, 3, 3); */
-  /* mat_save("/tmp/A.csv", A, m, m); */
-
-  // clang-format off
-  int m = 4;
-  real_t A[16] = {
-    4.16, -3.12, 0.56, -0.10,
-    -3.12, 5.03, -0.83, 1.18,
-    0.56, -0.83, 0.76, 0.34,
-    -0.10, 1.18,  0.34, 1.18
-  };
-  real_t b[4] = {1.0, 0.0, 0.0, 0.0};
-  real_t x[4] = {0.0, 0.0, 0.0, 0.0};
-  // clang-format on
-
-  struct timespec t = tic();
-  lapack_chol_solve(A, b, x, m);
-  /* OCTAVE_SCRIPT("scripts/plot_matrix.m /tmp/A.csv"); */
-  printf("time taken: [%fs]\n", toc(&t));
-  print_vector("x", x, m);
-
-  /* MU_ASSERT(fltcmp(x[0], 1.0) == 0); */
-  /* MU_ASSERT(fltcmp(x[1], 1.0) == 0); */
-  /* MU_ASSERT(fltcmp(x[2], 1.0) == 0); */
-
-  return 0;
-}
-#endif
-
 /******************************************************************************
  * TEST TRANSFORMS
  ******************************************************************************/
@@ -16362,10 +16303,6 @@ void test_suite() {
   /* CHOL */
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
-#ifdef USE_LAPACK
-  MU_ADD_TEST(test_lapack_chol);
-  MU_ADD_TEST(test_lapack_chol_solve);
-#endif
 
   /* TRANSFORMS */
   MU_ADD_TEST(test_tf_rot_set);
