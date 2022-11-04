@@ -678,6 +678,16 @@ void dot(const real_t *A,
          const size_t B_m,
          const size_t B_n,
          real_t *C);
+void dot3(const real_t *A,
+          const size_t A_m,
+          const size_t A_n,
+          const real_t *B,
+          const size_t B_m,
+          const size_t B_n,
+          const real_t *C,
+          const size_t C_m,
+          const size_t C_n,
+          real_t *D);
 void dot_XtAX(const real_t *X,
               const size_t X_m,
               const size_t X_n,
@@ -4855,6 +4865,26 @@ void dot(const real_t *A,
   }
 
 #endif
+}
+
+/**
+ * Dot product of two matrices or vectors `A` and `B` of size `A_m x A_n` and
+ * `B_m x B_n`. Results are written to `C`.
+ */
+void dot3(const real_t *A,
+          const size_t A_m,
+          const size_t A_n,
+          const real_t *B,
+          const size_t B_m,
+          const size_t B_n,
+          const real_t *C,
+          const size_t C_m,
+          const size_t C_n,
+          real_t *D) {
+  real_t *AB = malloc(sizeof(real_t) * A_m * B_n);
+  dot(A, A_m, A_n, B, B_m, B_n, AB);
+  dot(AB, A_m, B_m, C, C_m, C_n, D);
+  free(AB);
 }
 
 /**
