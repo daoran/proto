@@ -708,6 +708,7 @@ void vee(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
 
+int check_inv(const real_t *A, const real_t *A_inv, const int m);
 int check_jacobian(const char *jac_name,
                    const real_t *fdiff,
                    const real_t *jac,
@@ -5014,6 +5015,24 @@ void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n) {
     }
     x[i] = alpha / U[i * n + i];
   }
+}
+
+/**
+ * Check inverted matrix A by multiplying by its inverse.
+ */
+int check_inv(const real_t *A, const real_t *A_inv, const int m) {
+  real_t *inv_check = malloc(sizeof(real_t) * m * m);
+  dot(A, m, m, A_inv, m, m, inv_check);
+
+  for (int i = 0; i < m; i++) {
+    if (fltcmp(inv_check[i * m + i], 1.0) != 0) {
+      free(inv_check);
+      return -1;
+    }
+  }
+
+  free(inv_check);
+  return 0;
 }
 
 /**
