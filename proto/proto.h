@@ -8670,10 +8670,6 @@ static void gimbal_factor_joint_jac(const real_t Jh_w[2 * 3],
                                     const real_t p_MbFi[3],
                                     const real_t theta,
                                     real_t J_joint[2 * 1]) {
-  // p_MbFi = tf_point(T_MbF, p_FFi)
-  // real_t p_MbFi[3] = {0};
-  // tf_point(T_MbF, p_FFi, p_MbFi);
-
   // C_CiMe = tf_rot(T_CiMe)
   real_t C_CiMe[3 * 3] = {0};
   tf_rot_get(T_CiMe, C_CiMe);
@@ -8688,12 +8684,36 @@ static void gimbal_factor_joint_jac(const real_t Jh_w[2 * 3],
   dot3(Jh_w, 2, 3, C_CiMe, 3, 3, p, 3, 1, J_joint);
 }
 
+static void gimbal_factor_cam_ext_jac(const real_t Jh_w[2 * 3],
+                                      const real_t T_M2eCi[4 * 4],
+                                      const real_t p_M2eFi[3],
+                                      real_t J_pos[2 * 3],
+                                      real_t J_rot[2 * 3]) {
+  // Form: -C_CiM2e
+  real_t nC_M2eCi[3 * 3] = {0};
+  real_t nC_CiM2e[3 * 3] = {0};
+  tf_rot_get(T_M2eCi, nC_M2eCi);
+  mat_scale(nC_M2eCi, 3, 3, -1.0);
+  mat_transpose(nC_M2eCi, 3, 3, nC_CiM2e);
+
+  // J_pos = Jh * -C_M2eCi.T
+  dot(Jh_w, 2, 3, nC_CiM2e, 3, 3, J_pos);
+
+  // J_rot = Jh * -C_M2eCi.T * hat(p_M2eFi - r_M2eCi) * -C_M2eCi
+  real_t r_M2eCi[3] = {0};
+  real_t dr[3] = {0};
+  real_t dr_x[3 * 3] = {0};
+  tf_trans_get(T_M2eCi, r_M2eCi);
+  dr[0] = p_M2eFi[0] - r_M2eCi[0];
+  dr[1] = p_M2eFi[1] - r_M2eCi[1];
+  dr[2] = p_M2eFi[2] - r_M2eCi[2];
+  hat(dr, dr_x);
+  dot3(J_rot, 2, 3, dr_x, 3, 3, nC_M2eCi, 3, 3, J_rot);
+}
+
 static void gimbal_factor_camera_jac(const real_t neg_sqrt_info[2 * 2],
                                      const real_t J_cam_params[2 * 8],
                                      real_t J[2 * 8]) {
-  assert(neg_sqrt_info != NULL);
-  assert(J_cam_params != NULL);
-  assert(J != NULL);
   dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
 }
 
@@ -8829,10 +8849,12 @@ int calib_gimbal_factor_eval(calib_gimbal_factor_t *factor,
   real_t p_M0bFi[3] = {0};
   real_t p_M1bFi[3] = {0};
   real_t p_M2bFi[3] = {0};
+  real_t p_M2eFi[3] = {0};
   tf_point(T_BF, p_FFi, p_BFi);
   tf_point(T_M0bCi, p_CiFi, p_M0bFi);
   tf_point(T_M1bCi, p_CiFi, p_M1bFi);
   tf_point(T_M2bCi, p_CiFi, p_M2bFi);
+  tf_point(T_M2eCi, p_CiFi, p_M2eFi);
 
   gimbal_factor_fiducial_jac(Jh_w, T_CiB, T_BF, p_FFi, J_out[0], J_out[1]);
   gimbal_factor_link_jac(Jh_w, T_BM0b, T_CiB, p_BFi, J_out[2], J_out[3]);
@@ -8841,6 +8863,7 @@ int calib_gimbal_factor_eval(calib_gimbal_factor_t *factor,
   gimbal_factor_joint_jac(Jh_w, T_CiM0e, p_M0bFi, th0, J_out[8]);
   gimbal_factor_joint_jac(Jh_w, T_CiM1e, p_M1bFi, th0, J_out[9]);
   gimbal_factor_joint_jac(Jh_w, T_CiM2e, p_M2bFi, th0, J_out[10]);
+  gimbal_factor_cam_ext_jac(Jh_w, T_M2eCi, p_M2eFi, J_out[12], J_out[13]);
   gimbal_factor_camera_jac(neg_sqrt_info, J_cam_params, J_out[13]);
 
   return 0;
@@ -8856,8 +8879,7 @@ int calib_gimbal_factor_ceres_eval(void *factor,
   return 0;
 }
 
-// IMU FACTOR
-// //////////////////////////////////////////////////////////////////
+// IMU FACTOR //////////////////////////////////////////////////////////////////
 
 /**
  * Setup IMU buffer
