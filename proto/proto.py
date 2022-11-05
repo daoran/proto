@@ -892,8 +892,8 @@ def Exp(phi):
   phi_skew_sq = phi_skew @ phi_skew
 
   C = eye(3)
-  C += (sin(phi_norm) / phi_norm) @ phi_skew
-  C += ((1 - cos(phi_norm)) / phi_norm**2) @ phi_skew_sq
+  C += (sin(phi_norm) / phi_norm) * phi_skew
+  C += ((1 - cos(phi_norm)) / phi_norm**2) * phi_skew_sq
   return C
 
 
@@ -3994,12 +3994,12 @@ class TwoStateVisionFactor(Factor):
     return (r, [J0, J1, J2, J3, J4, J5])
 
 
-class GimbalVisionFactor(Factor):
-  """ Gimbal Vision Factor """
+class CalibGimbalFactor(Factor):
+  """ Calib Gimbal Factor """
   def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
     assert covar.shape == (2, 2)
     tag_id, corner_idx, p_FFi, z = grid_data
-    Factor.__init__(self, "GimbalVisionFactor", pids, z, covar)
+    Factor.__init__(self, "CalibGimbalFactor", pids, z, covar)
     self.cam_geom = cam_geom
     self.tag_id = tag_id
     self.corner_idx = corner_idx
@@ -4093,8 +4093,13 @@ class GimbalVisionFactor(Factor):
     T_M2bM2e = tf(rotz(joints[2]), np.zeros((3,)))
     T_M2eCi = cam_exts
 
+    T_M0bCi = T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ T_M2eCi
+    T_M1bCi = T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ T_M2eCi
+    T_M2bCi = T_M2bM2e @ T_M2eCi
+
     # -- Measurement model jacobian
     Jh = neg_sqrt_info @ self.cam_geom.J_proj(cam_params, p_CiFi)
+
     # -- Jacobian w.r.t. fiducial pose T_BF
     T_BCi = self.form_forward_kinematics(links, joints, cam_exts)
     T_CiB = inv(T_BCi)
@@ -4106,7 +4111,6 @@ class GimbalVisionFactor(Factor):
     # -- Jacobian w.r.t. link0 (yaw): T_BM0b
     p_BFi = tf_point(T_BF, self.p_FFi)
     C_BM0b, r_BM0b = tf_decompose(T_BM0b)
-    T_M0bCi = T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ T_M2eCi
     T_CiM0b = inv(T_M0bCi)
     C_CiM0b = tf_rot(T_CiM0b)
     dr = p_BFi - r_BM0b
@@ -4117,7 +4121,6 @@ class GimbalVisionFactor(Factor):
     # -- Jacobian w.r.t. link1 (roll): T_M0eM1b
     p_M0eFi = tf_point(inv(T_M0bM0e) @ inv(T_BM0b) @ T_BF, self.p_FFi)
     C_M0eM1b, r_M0eM1b = tf_decompose(T_M0eM1b)
-    T_M1bCi = T_M1bM1e @ T_M1eM2b @ T_M2bM2e @ T_M2eCi
     T_CiM1b = inv(T_M1bCi)
     C_CiM1b = tf_rot(T_CiM1b)
     dr = p_M0eFi - r_M0eM1b
@@ -4130,7 +4133,6 @@ class GimbalVisionFactor(Factor):
         inv(T_M1bM1e) @ inv(T_M0eM1b) @ inv(T_M0bM0e) @ inv(T_BM0b) @ T_BF,
         self.p_FFi)
     C_M1eM2b, r_M1eM2b = tf_decompose(T_M1eM2b)
-    T_M2bCi = T_M2bM2e @ T_M2eCi
     T_CiM2b = inv(T_M2bCi)
     C_CiM2b = tf_rot(T_CiM2b)
     dr = p_M1eFi - r_M1eM2b
@@ -4147,7 +4149,8 @@ class GimbalVisionFactor(Factor):
         -p_M0bFi[0] * cos(joints[0]) - p_M0bFi[1] * sin(joints[0]),
         0,
     ])
-    jacs[4][0:2, 0] = Jh @ C_CiM0e @ p
+    jacs[4] = Jh @ C_CiM0e @ p
+    jacs[4] = jacs[4].reshape((2, 1))
 
     # -- Jacobian w.r.t. th1 (roll joint): T_M1bM1e
     p_M1bFi = tf_point(
@@ -4159,7 +4162,8 @@ class GimbalVisionFactor(Factor):
         -p_M1bFi[0] * cos(joints[1]) - p_M1bFi[1] * sin(joints[1]),
         0,
     ])
-    jacs[5][0:2, 0] = Jh @ C_CiM1e @ p
+    jacs[5] = Jh @ C_CiM1e @ p
+    jacs[5] = jacs[5].reshape((2, 1))
 
     # -- Jacobian w.r.t. th2 (pitch joint): T_M2bM2e
     p_M2bFi = tf_point(
@@ -4171,7 +4175,8 @@ class GimbalVisionFactor(Factor):
         -p_M2bFi[0] * cos(joints[2]) - p_M2bFi[1] * sin(joints[2]),
         0,
     ])
-    jacs[6][0:2, 0] = Jh @ C_CiM2e @ p
+    jacs[6] = Jh @ C_CiM2e @ p
+    jacs[6] = jacs[6].reshape((2, 1))
 
     # -- Jacobian w.r.t. camera extrinsics T_M2eCi
     T_BM2e = T_BM0b @ T_M0bM0e @ T_M0eM1b @ T_M1bM1e @ T_M1eM2b @ T_M2bM2e
@@ -4795,6 +4800,7 @@ class Solver:
         'feature': set(),
         'camera': set(),
         'extrinsics': set(),
+        'euler_angle': set(),
     }
 
     # Track parameters
@@ -4810,6 +4816,7 @@ class Solver:
 
     # Assign global parameter order
     param_order = []
+    param_order.append("euler_angle")
     param_order.append("pose")
     param_order.append("speed_and_biases")
     param_order.append("feature")
@@ -4864,7 +4871,7 @@ class Solver:
             H[rs:re, cs:ce] += J_i.T @ J_j
           else:  # Off-Diagonal
             H[rs:re, cs:ce] += J_i.T @ J_j
-            H[cs:ce, rs:re] += H[rs:re, cs:ce].T
+            H[cs:ce, rs:re] += (J_i.T @ J_j).T
 
         # Form R.H.S. Gauss Newton g
         rs = idx_i
@@ -4880,10 +4887,8 @@ class Solver:
     for _, factor in self.factors.items():
       factor_params = [params[pid].param for pid in factor.param_ids]
       r = factor.eval(factor_params, only_residuals=True)
-      # residuals.append(r)
       residuals = np.append(residuals, r)
 
-    # return np.array(residuals).flatten()
     return residuals
 
   def _calculate_cost(self, params):
@@ -4920,6 +4925,7 @@ class Solver:
     # dx = pinv(H) @ g
 
     # Cholesky decomposition
+    # print(f"np.linalg.det(H): {np.linalg.det(H)}", flush=True)
     c, low = scipy.linalg.cho_factor(H)
     dx = scipy.linalg.cho_solve((c, low), g)
 
@@ -7353,7 +7359,7 @@ class GimbalSandbox:
     # Gimbal links and joint angles
     self.T_WB = None
     self.links = []
-    self.joint_angles = [0.01, 0.02, 0.03]
+    self.joint_angles = [0.0, 0.0, 0.0]
 
     # Camera parameters and extrinsics
     self.cam_params = []
@@ -7482,6 +7488,7 @@ class GimbalSandbox:
         keypoints.append(z)
 
     cam_data = {
+        "num_measurements": len(tag_ids),
         "tag_ids": tag_ids,
         "corner_idxs": corner_idxs,
         "object_points": np.array(object_points),
@@ -7551,6 +7558,96 @@ class GimbalSandbox:
     ax.set_zlabel("z [m]")
     plot_set_axes_equal(ax)
     plt.show()
+
+  def simulate(self):
+    # Setup factor graph
+    check_jacs = False
+    debug = True
+    graph = FactorGraph()
+
+    # -- Add cameras
+    cam_params_ids = [
+        graph.add_param(self.cam_params[0]),
+        graph.add_param(self.cam_params[1])
+    ]
+    cam_exts_ids = [
+        graph.add_param(extrinsics_setup(self.cam_exts[0])),
+        graph.add_param(extrinsics_setup(self.cam_exts[1]))
+    ]
+
+    # -- Add fiducial
+    fiducial_id = graph.add_param(
+        pose_setup(0, inv(self.T_WB) @ self.T_WF, fix=True))
+
+    # -- Add gimbal links
+    link_ids = [
+        graph.add_param(extrinsics_setup(self.links[0])),
+        graph.add_param(extrinsics_setup(self.links[1])),
+        graph.add_param(extrinsics_setup(self.links[2]))
+    ]
+
+    # -- Add views
+    nb_views = 5
+    joint_angles = []
+    factor_ids = []
+
+    for view_idx in range(nb_views):
+      # -- Perturb joint angles for a different view
+      self.joint_angles[0] += np.random.uniform(-0.1, 0.1)
+      self.joint_angles[1] += np.random.uniform(-0.1, 0.1)
+      self.joint_angles[2] += np.random.uniform(-0.1, 0.1)
+
+      # -- Add joint angles
+      joint_angles.append([
+          graph.add_param(euler_angle_setup(self.joint_angles[0])),
+          graph.add_param(euler_angle_setup(self.joint_angles[1])),
+          graph.add_param(euler_angle_setup(self.joint_angles[2]))
+      ])
+
+      # -- Add camera measurements
+      for cam_idx in range(2):
+        cam_data = self.get_camera_measurements(cam_idx)
+        cam_geom = self.cam_params[cam_idx].data
+
+        pids = [
+            fiducial_id,
+            link_ids[0],
+            link_ids[1],
+            link_ids[2],
+            joint_angles[view_idx][0],
+            joint_angles[view_idx][1],
+            joint_angles[view_idx][2],
+            cam_exts_ids[cam_idx],
+            cam_params_ids[cam_idx],
+        ]
+
+        for i in range(cam_data["num_measurements"]):
+          tag_id = cam_data["tag_ids"][i]
+          corner_idx = cam_data["corner_idxs"][i]
+          pt = cam_data["object_points"][i]
+          kp = cam_data["keypoints"][i]
+          grid_data = tag_id, corner_idx, pt, kp
+          factor = CalibGimbalFactor(cam_geom, pids, grid_data)
+          factor_ids.append(graph.add_factor(factor))
+
+          if check_jacs:
+            fvars = [graph.params[param_id] for param_id in pids]
+            assert factor.check_jacobian(fvars, 0, "J_fiducial")
+            assert factor.check_jacobian(fvars, 1, "J_link0")
+            assert factor.check_jacobian(fvars, 2, "J_link1")
+            assert factor.check_jacobian(fvars, 3, "J_link2")
+            assert factor.check_jacobian(fvars, 4, "J_th0")
+            assert factor.check_jacobian(fvars, 5, "J_th1")
+            assert factor.check_jacobian(fvars, 6, "J_th2")
+            assert factor.check_jacobian(fvars, 7, "J_cam_exts")
+            assert factor.check_jacobian(fvars, 8, "J_cam_params")
+
+      # -- Perturb estimated joint angles
+      for i in range(3):
+        joint_id = joint_angles[view_idx][i]
+        graph.params[joint_id].param[0] += np.random.uniform(-0.05, 0.05)
+
+    graph.solve(debug)
 
 
 ###############################################################################
@@ -8447,7 +8544,7 @@ class TestFactors(unittest.TestCase):
     status, z = cam_geom.project(cam_params, p_CiFi)
     self.assertTrue(status)
 
-    # Form GimbalVisionFactor
+    # Form CalibGimbalFactor
     fiducial = pose_setup(0, inv(sandbox.T_WB) @ sandbox.T_WF)
     link0 = extrinsics_setup(sandbox.links[0])
     link1 = extrinsics_setup(sandbox.links[1])
@@ -8461,7 +8558,7 @@ class TestFactors(unittest.TestCase):
     cam0_geom = sandbox.cam_params[0].data
     pids = [0, 1, 2, 3, 4, 5, 6, 7, 8]
     grid_data = tag_id, corner_idx, p_FFi, z
-    factor = GimbalVisionFactor(cam0_geom, pids, grid_data)
+    factor = CalibGimbalFactor(cam0_geom, pids, grid_data)
 
     # Test Jacobians
     fvars = [
@@ -10249,15 +10346,17 @@ class TestViz(unittest.TestCase):
 
 class TestSandbox(unittest.TestCase):
   """ Test Sandbox """
-  def test_gimbal_sandbox(self):
-    """ Test gimbal sandbox """
+  def test_gimbal(self):
+    """ Test gimbal """
     sandbox = GimbalSandbox()
+    self.assertTrue(sandbox)
+
     # sandbox.set_joint_angle(0, deg2rad(0))
     # sandbox.set_joint_angle(1, deg2rad(0))
     # sandbox.set_joint_angle(2, deg2rad(0))
     # sandbox.visualize_scene()
     # sandbox.plot_camera_frame()
-    self.assertTrue(sandbox)
+    sandbox.simulate()
 
 
 if __name__ == '__main__':

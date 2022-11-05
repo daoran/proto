@@ -82,9 +82,7 @@ run_memcheck() {
 # python3 proto.py TestSimulation.test_sim_arm
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
-# python3 proto.py TestSandbox.test_axis_angle_jacobian
-python3 proto.py TestSandbox.test_gimbal_sandbox
-# python3 proto.py TestSandbox.test_gimbal_jacobians
+# python3 proto.py TestSandbox.test_gimbal
 
 ###############################################################################
 # C
@@ -105,19 +103,12 @@ python3 proto.py TestSandbox.test_gimbal_sandbox
 #   && ./test_proto --target test_mat_transpose
 
 run_all_tests() {
-  # cd ~/projects/proto
-  # time make build
-  # cd ./proto/build/bin;
-  # ./test_proto
-  # cd -
-
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-    cd ~/projects/proto
-    time make build
-    cd ./proto/build/bin;
-    ./test_proto
-    cd -
+    cd ~/projects/proto/proto
+    time make libproto
+    time make test_proto
+    ./build/bin/test_proto
   " C-m C-m
   exit
 }
@@ -132,6 +123,7 @@ run_test() {
 
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
+    cd ~/projects/proto/proto
     make test_proto
     ./build/bin/test_proto --target $1
   " C-m C-m
@@ -166,44 +158,6 @@ dev_aprilgrid() {
 
 # CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363
-
-# gst-launch-1.0 \
-#   compositor name=comp \
-#     sink_0::alpha=1 sink_0::xpos=0 sink_0::ypos=0 \
-#     sink_1::alpha=0.5 sink_1::xpos=320 sink_1::ypos=0 \
-#     ! videoconvert \
-#     ! xvimagesink \
-#   videotestsrc pattern=1 ! "video/x-raw" ! comp.sink_0 \
-#   videotestsrc pattern=2 ! "video/x-raw" ! comp.sink_1
-
-# gst-launch-1.0 \
-#   compositor name=comp \
-#     sink_0::alpha=1 sink_0::xpos=0 sink_0::ypos=0 \
-#     sink_1::alpha=1 sink_1::xpos=744 sink_1::ypos=0 \
-#     ! videoconvert \
-#     ! xvimagesink \
-#   tcambin serial=$CAM0_SERIAL ! videoconvert ! comp.sink_0 \
-#   tcambin serial=$CAM1_SERIAL ! videoconvert ! comp.sink_1
-
-# gst-launch-1.0 \
-#   compositor name=comp ! videoconvert ! ximagesink \
-#   tcamsrc serial=$CAM0_SERIAL ! videoconvert ! comp. \
-#   tcamsrc serial=$CAM1_SERIAL ! videoconvert ! comp.
-
-# gst-launch-1.0 \
-#   compositor name=comp \
-#     sink_0::alpha=1 sink_0::xpos=0 sink_0::ypos=0 \
-#     sink_1::alpha=1 sink_1::xpos=320 sink_1::ypos=0 \
-#     ! videoconvert \
-#     ! xvimagesink \
-#   videotestsrc pattern="red" ! videoconvert ! comp.sink_0 \
-#   videotestsrc pattern="green" ! videoconvert ! comp.sink_1
-
-# gst-launch-1.0 \
-#   tcambin serial=$CAM0_SERIAL \
-#   ! videoconvert \
-#   ! autovideosink
-
 
 # format="video/x-bayer, format=gbrg, width=640, height=480,framerate=30/1"
 # displayformat="video/x-raw, format=GRAY8, width=640, height=480,framerate=30/1"
@@ -311,13 +265,10 @@ dev_aprilgrid() {
 # run_test test_check_jacobian
 # PROTO-SVD
 # run_test test_svd
-# run_test test_lapack_svd
-# run_test test_pinv
+# run_test test_svd_inv
 # PROTO-CHOL
 # run_test test_chol
-# run_test test_chol_lls_solve
-# run_test test_chol_lls_solve2
-# run_test test_chol_Axb
+# run_test test_chol_solve
 # PROTO-TIME
 # PROTO-TRANSFORMS
 # run_test test_tf_set_rot
@@ -374,9 +325,12 @@ dev_aprilgrid() {
 # run_test test_ba_factor_setup
 # run_test test_ba_factor_eval
 # run_test test_ba_factor_ceres_eval
-# run_test test_cam_factor_setup
-# run_test test_cam_factor_eval
-# run_test test_cam_factor_ceres_eval
+# run_test test_vision_factor_setup
+# run_test test_vision_factor_eval
+# run_test test_vision_factor_ceres_eval
+# run_test test_gimbal_factor_setup
+run_test test_gimbal_factor_eval
+# run_test test_gimbal_factor_ceres_eval
 # run_test test_imu_buf_setup
 # run_test test_imu_buf_add
 # run_test test_imu_buf_clear
