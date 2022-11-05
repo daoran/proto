@@ -5103,6 +5103,21 @@ int check_jacobian(const char *jac_name,
  * SVD
  ******************************************************************************/
 
+#ifdef USE_LAPACK
+/**
+ * Decompose matrix A with SVD
+ */
+void __lapack_svd(
+    real_t *A, const int m, const int n, real_t *s, real_t *U, real_t *Vt) {
+  const int lda = n;
+#if PRECISION == 1
+  LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, s, U, n, Vt, n);
+#elif PRECISION == 2
+  LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, s, U, n, Vt, n);
+#endif
+}
+#endif // USE_LAPACK
+
 /**
  * Singular Value Decomposition
  *
@@ -5118,7 +5133,7 @@ int check_jacobian(const char *jac_name,
  *
  * @returns 0 for success, -1 for failure
  */
-int svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
+int __svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
   int flag, i, its, j, jj, k, l, nm;
   double anorm, c, f, g, h, s, scale, x, y, z, *rv1;
 
@@ -5324,73 +5339,65 @@ int svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
   }
   free(rv1);
 
-  return (0);
+  return 0;
 }
 
-#ifdef USE_LAPACK
 /**
  * Decompose matrix A with SVD
  */
-void lapack_svd(
-    real_t *A, const int m, const int n, real_t **s, real_t **U, real_t **V_t) {
-  const int lda = n;
-  const int diag_size = (m < n) ? m : n;
-  *s = malloc(sizeof(real_t) * diag_size);
-  *U = malloc(sizeof(real_t) * m * m);
-  *V_t = malloc(sizeof(real_t) * n * n);
-#if PRECISION == 1
-  LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *s, *U, m, *V_t, n);
-#elif PRECISION == 2
-  LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, *s, *U, m, *V_t, n);
-#endif
+int svd(real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V) {
+#ifdef USE_LAPACK
+  real_t *Vt = malloc(sizeof(real_t) * n * n);
+  __lapack_svd(A, m, n, s, U, Vt);
+  mat_transpose(Vt, n, n, V);
+  free(Vt);
+#else
+  mat_copy(A, m, n, U);
+  __svd(U, m, n, s, V);
+#endif // USE_LAPACK
+  return 0;
 }
 
 /**
  * Pseudo inverse of matrix A with SVD
  */
-void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv) {
-  // Asserts
+void svd_inv(real_t *A, const int m, const int n, real_t *A_inv) {
   assert(m == n);
 
   // Decompose A = U * S * V_t
-  real_t *s = NULL;
-  real_t *U = NULL;
-  real_t *Vt = NULL;
-  lapack_svd(A, m, n, &s, &U, &Vt);
-
+  const int diag_size = (m < n) ? m : n;
+  real_t *s = malloc(sizeof(real_t) * diag_size);
+  real_t *U = malloc(sizeof(real_t) * m * n);
   real_t *Ut = malloc(sizeof(real_t) * m * n);
-  real_t *V = malloc(sizeof(real_t) * m * n);
+  real_t *V = malloc(sizeof(real_t) * n * n);
+  svd(A, m, n, U, s, V);
   mat_transpose(U, m, n, Ut);
-  mat_transpose(Vt, m, n, V);
 
   // Form Sinv diagonal matrix
-  real_t *Sinv = malloc(sizeof(real_t) * m * n);
-  zeros(Sinv, n, m);
+  real_t *S_inv = malloc(sizeof(real_t) * m * n);
+  zeros(S_inv, n, m);
   for (int idx = 0; idx < m; idx++) {
     const int diag_idx = idx * n + idx;
     if (s[idx] > 1e-8) {
-      Sinv[diag_idx] = 1.0 / s[idx];
+      S_inv[diag_idx] = 1.0 / s[idx];
     } else {
-      Sinv[diag_idx] = 0.0;
+      S_inv[diag_idx] = 0.0;
     }
   }
 
-  // A_inv = Vt * Sinv * U
-  real_t *V_Sinv = malloc(sizeof(real_t) * m * m);
-  dot(V, m, n, Sinv, n, m, V_Sinv);
-  dot(V_Sinv, m, m, Ut, m, n, A_inv);
+  // A_inv = Vt * S_inv * U
+  real_t *V_S_inv = malloc(sizeof(real_t) * m * m);
+  dot(V, m, n, S_inv, n, m, V_S_inv);
+  dot(V_S_inv, m, m, Ut, m, n, A_inv);
 
   // Clean up
   free(s);
-  free(Sinv);
   free(U);
   free(Ut);
   free(V);
-  free(Vt);
-  free(V_Sinv);
+  free(S_inv);
+  free(V_S_inv);
 }
-
-#endif // USE_LAPACK
 
 /******************************************************************************
  * CHOL
@@ -5476,8 +5483,7 @@ void __lapack_chol_solve(const real_t *A,
 
   free(a);
 }
-
-#else
+#endif // USE_LAPACK
 
 /**
  * Cholesky decomposition. Takes a `m x m` matrix `A` and decomposes it into a
@@ -5567,8 +5573,6 @@ void __chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
   free(L);
   free(Lt);
 }
-
-#endif // USE_LAPACK
 
 /**
  * Cholesky decomposition. Takes a `m x m` matrix `A` and decomposes it into a
@@ -12983,7 +12987,7 @@ int test_check_jacobian() {
 int test_svd() {
   // Matrix A
   // clang-format off
-  real_t A_original[6 * 4] = {
+  real_t A[6 * 4] = {
     7.52, -1.10, -7.95,  1.08,
     -0.76,  0.62,  9.34, -7.10,
      5.13,  6.62, -5.66,  0.87,
@@ -12991,7 +12995,7 @@ int test_svd() {
      1.33,  4.91, -5.49, -3.52,
     -2.40, -6.77,  2.34,  3.95
   };
-  real_t A[6 * 4] = {
+  real_t A_copy[6 * 4] = {
     7.52, -1.10, -7.95,  1.08,
     -0.76,  0.62,  9.34, -7.10,
      5.13,  6.62, -5.66,  0.87,
@@ -13002,72 +13006,44 @@ int test_svd() {
   // clang-format on
 
   // Decompose A with SVD
-  real_t w[4] = {0};
+  struct timespec t = tic();
+  real_t U[6 * 4] = {0};
+  real_t s[4] = {0};
   real_t V[4 * 4] = {0};
-  svd(A, 6, 4, w, V);
+  svd(A, 6, 4, U, s, V);
+  printf("time taken: [%fs]\n", toc(&t));
 
   // Multiply the output to see if it can form matrix A again
-  // U * W * Vt
-  real_t W[4 * 4] = {0};
+  // U * S * Vt
+  real_t S[4 * 4] = {0};
   real_t Vt[4 * 4] = {0};
-  real_t A_W[6 * 4] = {0};
-  real_t A_W_Vt[6 * 4] = {0};
-  mat_diag_set(W, 4, 4, w);
+  real_t US[6 * 4] = {0};
+  real_t USVt[6 * 4] = {0};
+  mat_diag_set(S, 4, 4, s);
   mat_transpose(V, 4, 4, Vt);
-  dot(A, 6, 4, W, 4, 4, A_W);
-  dot(A_W, 6, 4, Vt, 4, 4, A_W_Vt);
+  dot(U, 6, 4, S, 4, 4, US);
+  dot(US, 6, 4, Vt, 4, 4, USVt);
 
-  print_matrix("A", A_W_Vt, 6, 4);
-  MU_ASSERT(mat_equals(A_W_Vt, A_original, 6, 4, 1e-5) == 0);
+  print_matrix("U", U, 6, 4);
+  print_matrix("S", S, 4, 4);
+  print_matrix("V", V, 4, 4);
+  print_matrix("USVt", USVt, 6, 4);
+  MU_ASSERT(mat_equals(USVt, A_copy, 6, 4, 1e-5) == 0);
 
   return 0;
 }
 
-#ifdef USE_LAPACK
-
-int test_lapack_svd() {
+int test_svd_inv() {
   // clang-format off
-  real_t A[6 * 4] = {
-     7.52, -1.10, -7.95,  1.08,
-    -0.76,  0.62,  9.34, -7.10,
-     5.13,  6.62, -5.66,  0.87,
-    -4.75,  8.52,  5.75,  5.30,
-     1.33,  4.91, -5.49, -3.52,
-    -2.40, -6.77,  2.34,  3.95
-  };
-  // clang-format on
-
-  const int m = 6;
+  const int m = 4;
   const int n = 4;
-  real_t *s = NULL;
-  real_t *U = NULL;
-  real_t *V_t = NULL;
-
-  lapack_svd(A, m, n, &s, &U, &V_t);
-
-  print_matrix("A", A, m, n);
-  print_matrix("U", U, m, n);
-  print_vector("s", s, n);
-  print_matrix("V_t", V_t, m, n);
-
-  free(s);
-  free(U);
-  free(V_t);
-
-  return 0;
-}
-
-int test_lapack_svd_inverse() {
-  // clang-format off
-  const int A_m = 4;
-  const int A_n = 4;
   real_t A[4 * 4] = {
      7.52, -1.10, -7.95,  1.08,
     -0.76,  0.62,  9.34, -7.10,
      5.13,  6.62, -5.66,  0.87,
     -4.75,  8.52,  5.75,  5.30,
   };
-  real_t A_original[4 * 4] = {
+  real_t A_copy[4 * 4] = {
      7.52, -1.10, -7.95,  1.08,
     -0.76,  0.62,  9.34, -7.10,
      5.13,  6.62, -5.66,  0.87,
@@ -13076,20 +13052,21 @@ int test_lapack_svd_inverse() {
   // clang-format on
 
   // Invert matrix A using SVD
+  struct timespec t = tic();
   real_t A_inv[4 * 4] = {0};
-  lapack_svd_inverse(A, A_m, A_n, A_inv);
+  svd_inv(A, m, n, A_inv);
+  printf("time taken: [%fs]\n", toc(&t));
 
   // Inverse check: A * A_inv = eye
-  real_t inv_check[4 * 4] = {0};
-  dot(A_original, A_m, A_n, A_inv, A_n, A_m, inv_check);
-  for (int i = 0; i < 4; i++) {
-    MU_ASSERT(fltcmp(inv_check[i * 4 + i], 1.0) == 0);
-  }
+  MU_ASSERT(check_inv(A_copy, A_inv, 4) == 0);
+  // real_t inv_check[4 * 4] = {0};
+  // dot(A_original, m, n, A_inv, n, m, inv_check);
+  // for (int i = 0; i < 4; i++) {
+  //   MU_ASSERT(fltcmp(inv_check[i * 4 + i], 1.0) == 0);
+  // }
 
   return 0;
 }
-
-#endif /* USE LAPACK */
 
 /******************************************************************************
  * TEST CHOL
@@ -16314,10 +16291,7 @@ void test_suite() {
 
   /* SVD */
   MU_ADD_TEST(test_svd);
-#ifdef USE_LAPACK
-  MU_ADD_TEST(test_lapack_svd);
-  MU_ADD_TEST(test_lapack_svd_inverse);
-#endif /* USE LAPACK */
+  MU_ADD_TEST(test_svd_inv);
 
   /* CHOL */
   MU_ADD_TEST(test_chol);
