@@ -721,11 +721,8 @@ int check_jacobian(const char *jac_name,
  * SVD
  ******************************************************************************/
 
-#ifdef USE_LAPACK
-void lapack_svd(
-    real_t *A, const int m, const int n, real_t **s, real_t **U, real_t **V_t);
-void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv);
-#endif // USE_LAPACK
+int svd(real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V);
+void svd_inv(real_t *A, const int m, const int n, real_t *A_inv);
 
 /******************************************************************************
  * CHOL
@@ -733,14 +730,6 @@ void lapack_svd_inverse(real_t *A, const int m, const int n, real_t *A_inv);
 
 void chol(const real_t *A, const size_t n, real_t *L);
 void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n);
-
-#ifdef USE_LAPACK
-void lapack_chol(const real_t *A, const size_t m, real_t *L);
-void lapack_chol_solve(const real_t *A,
-                       const real_t *b,
-                       real_t *x,
-                       const size_t n);
-#endif // USE_LAPACK
 
 /******************************************************************************
  * TRANSFORMS
