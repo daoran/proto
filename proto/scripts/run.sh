@@ -324,13 +324,10 @@ dev_aprilgrid() {
 # run_test test_pose_factor_eval
 # run_test test_ba_factor_setup
 # run_test test_ba_factor_eval
-# run_test test_ba_factor_ceres_eval
 # run_test test_vision_factor_setup
 # run_test test_vision_factor_eval
-# run_test test_vision_factor_ceres_eval
-# run_test test_gimbal_factor_setup
-run_test test_gimbal_factor_eval
-# run_test test_gimbal_factor_ceres_eval
+run_test test_calib_gimbal_factor_setup
+# run_test test_calib_gimbal_factor_eval
 # run_test test_imu_buf_setup
 # run_test test_imu_buf_add
 # run_test test_imu_buf_clear
@@ -339,7 +336,7 @@ run_test test_gimbal_factor_eval
 # run_test test_imu_factor_propagate_step
 # run_test test_imu_factor_setup
 # run_test test_imu_factor_eval
-# run_test test_ceres_solver
+# run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
@@ -362,8 +359,8 @@ run_test test_gimbal_factor_eval
 # run_test test_gl_normalize
 # run_test test_gl_perspective
 # run_test test_gl_lookat
-# run_test test_shader_compile
-# run_test test_shader_link
+# run_test test_gl_shader_compile
+# run_test test_gl_shaders_link
 # run_test test_gl_prog_setup
 # run_test test_gl_camera_setup
 # run_test test_gui

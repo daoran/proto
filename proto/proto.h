@@ -739,6 +739,7 @@ void rotz(const real_t theta, real_t C[3 * 3]);
 void tf(const real_t params[7], real_t T[4 * 4]);
 void tf_cr(const real_t C[3 * 3], const real_t r[3], real_t T[4 * 4]);
 void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]);
+void tf_er(const real_t C[3 * 3], const real_t r[3], real_t T[4 * 4]);
 void tf_vector(const real_t T[4 * 4], real_t params[7]);
 void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]);
 void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]);
@@ -5776,6 +5777,16 @@ void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]) {
 }
 
 /**
+ * Form 4x4 homogeneous transformation matrix `T` from a euler-angles `ypr`
+ * (yaw-pitch-roll) and translation vector `r`.
+ */
+void tf_er(const real_t ypr[3], const real_t r[3], real_t T[4 * 4]) {
+  real_t C[3 * 3] = {0};
+  euler321(ypr, C);
+  tf_cr(C, r, T);
+}
+
+/**
  * Form 7x1 pose parameter vector `params` from 4x4 homogeneous transformation
  * matrix `T`.
  */
@@ -7549,10 +7560,10 @@ void extrinsics_setup(extrinsics_t *exts, const real_t *data) {
   exts->pos[2] = data[2]; // rz
 
   // Rotation (Quaternion)
-  exts->quat[0] = data[6]; // qw
-  exts->quat[1] = data[3]; // qx
-  exts->quat[2] = data[4]; // qy
-  exts->quat[3] = data[5]; // qz
+  exts->quat[0] = data[3]; // qw
+  exts->quat[1] = data[4]; // qx
+  exts->quat[2] = data[5]; // qy
+  exts->quat[3] = data[6]; // qz
 }
 
 /**
@@ -8433,16 +8444,26 @@ int vision_factor_eval(vision_factor_t *factor,
 
 // CALIB GIMBAL FACTOR /////////////////////////////////////////////////////////
 
-void gimbal_setup_link(const real_t ypr_link[3],
-                       const real_t r_link[3],
-                       real_t T_link[4 * 4],
-                       extrinsics_t *link) {
-  real_t C_link[3 * 3] = {0};
-  euler321(ypr_link, C_link);
-  tf_cr(C_link, r_link, T_link);
+void gimbal_setup_extrinsics(const real_t ypr[3],
+                             const real_t r[3],
+                             real_t T[4 * 4],
+                             extrinsics_t *link) {
+  real_t C[3 * 3] = {0};
+  euler321(ypr, C);
+  tf_cr(C, r, T);
+
+  real_t q[4] = {0};
+  rot2quat(C, q);
 
   real_t x[7] = {0};
-  tf_vector(T_link, x);
+  x[0] = r[0];
+  x[1] = r[1];
+  x[2] = r[2];
+  x[3] = q[0];
+  x[4] = q[1];
+  x[5] = q[2];
+  x[6] = q[3];
+
   extrinsics_setup(link, x);
 }
 
@@ -8519,7 +8540,7 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
 
 static void gimbal_factor_joint_tf(const real_t theta, real_t T[4 * 4]) {
   real_t C[3 * 3] = {0};
-  real_t r[3] = {0};
+  real_t r[3] = {0.0, 0.0, 0.0};
   rotz(theta, C);
   tf_cr(C, r, T);
 }
@@ -8701,14 +8722,14 @@ int calib_gimbal_factor_eval(calib_gimbal_factor_t *factor,
   real_t T_BCi[4 * 4] = {0};
   real_t T_CiB[4 * 4] = {0};
   real_t T_CiF[4 * 4] = {0};
-  tf_chain(T_chain, 6, T_BCi);
+  tf_chain(T_chain, 7, T_BCi);
   tf_inv(T_BCi, T_CiB);
   dot(T_CiB, 4, 4, T_BF, 4, 4, T_CiF);
 
   // Project to image plane
   real_t p_CiFi[3] = {0};
-  tf_point(T_CiF, factor->p_FFi, p_CiFi);
   real_t z_hat[2];
+  tf_point(T_CiF, factor->p_FFi, p_CiFi);
   pinhole_radtan4_project(cam_params, p_CiFi, z_hat);
 
   // Calculate residuals
@@ -15002,52 +15023,61 @@ int test_vision_factor_eval() {
 int test_calib_gimbal_factor_setup() {
   // Body pose T_WB
   real_t ypr_WB[3] = {0.0, 0.0, 0.0};
-  real_t C_WB[3 * 3] = {0};
   real_t r_WB[3] = {0.0, 0.0, 0.0};
   real_t T_WB[4 * 4] = {0};
-  euler321(ypr_WB, C_WB);
-  tf_cr(C_WB, r_WB, T_WB);
+  tf_er(ypr_WB, r_WB, T_WB);
 
   // Fiducial pose T_WF
   real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
-  real_t C_WF[3 * 3] = {0};
   real_t r_WF[3] = {0.5, 0.0, 0.0};
   real_t T_WF[4 * 4] = {0};
-  euler321(ypr_WF, C_WF);
-  tf_cr(C_WF, r_WF, T_WF);
+  tf_er(ypr_WF, r_WF, T_WF);
 
   // Relative fiducial pose T_BF
   real_t T_BW[4 * 4] = {0};
   real_t T_BF[4 * 4] = {0};
-  real_t fiducial_vec[7] = {0};
-
   tf_inv(T_WB, T_BW);
   dot(T_BW, 4, 4, T_WF, 4, 4, T_BF);
-  tf_vector(T_BF, fiducial_vec);
+
+  real_t C_BF[3 * 3] = {0};
+  real_t r_BF[3] = {0};
+  real_t q_BF[4] = {0};
+  tf_trans_get(T_BF, r_BF);
+  tf_rot_get(T_BF, C_BF);
+  rot2quat(C_BF, q_BF);
+
+  real_t x_BF[7] = {0};
+  x_BF[0] = r_BF[0];
+  x_BF[1] = r_BF[1];
+  x_BF[2] = r_BF[2];
+  x_BF[3] = q_BF[0];
+  x_BF[4] = q_BF[1];
+  x_BF[5] = q_BF[2];
+  x_BF[6] = q_BF[3];
 
   extrinsics_t fiducial;
-  extrinsics_setup(&fiducial, fiducial_vec);
+  extrinsics_setup(&fiducial, x_BF);
 
   // Yaw link
   real_t ypr_BM0b[3] = {0.0, 0.0, 0.0};
   real_t r_BM0b[3] = {0.0, 0.0, 0.0};
   real_t T_BM0b[4 * 4] = {0};
   extrinsics_t link0;
-  gimbal_setup_link(ypr_BM0b, r_BM0b, T_BM0b, &link0);
+  gimbal_setup_extrinsics(ypr_BM0b, r_BM0b, T_BM0b, &link0);
 
   // Roll link
   real_t ypr_M0eM1b[3] = {0.0, M_PI / 2, 0.0};
   real_t r_M0eM1b[3] = {-0.1, 0.0, 0.15};
   real_t T_M0eM1b[4 * 4] = {0};
   extrinsics_t link1;
-  gimbal_setup_link(ypr_M0eM1b, r_M0eM1b, T_M0eM1b, &link1);
+  gimbal_setup_extrinsics(ypr_M0eM1b, r_M0eM1b, T_M0eM1b, &link1);
 
   // Pitch link
   real_t ypr_M1eM2b[3] = {0.0, 0.0, -M_PI / 2.0};
   real_t r_M1eM2b[3] = {0.0, -0.05, 0.1};
   real_t T_M1eM2b[4 * 4] = {0};
   extrinsics_t link2;
-  gimbal_setup_link(ypr_M1eM2b, r_M1eM2b, T_M1eM2b, &link2);
+  gimbal_setup_extrinsics(ypr_M1eM2b, r_M1eM2b, T_M1eM2b, &link2);
 
   // Joint0
   const real_t th0 = 0.0;
@@ -15071,14 +15101,17 @@ int test_calib_gimbal_factor_setup() {
   const real_t ypr_M2eC0[3] = {-M_PI / 2, M_PI / 2, 0.0};
   const real_t r_M2eC0[3] = {0.0, -0.05, 0.12};
   real_t T_M2eC0[4 * 4] = {0};
-  real_t C_M2eC0[3 * 3] = {0};
-  real_t cam_exts_vec[7] = {0.0};
   extrinsics_t cam_exts;
+  gimbal_setup_extrinsics(ypr_M2eC0, r_M2eC0, T_M2eC0, &cam_exts);
 
-  euler321(ypr_M2eC0, C_M2eC0);
-  tf_cr(C_M2eC0, r_M2eC0, T_M2eC0);
-  tf_vector(T_M2eC0, cam_exts_vec);
-  extrinsics_setup(&cam_exts, cam_exts_vec);
+  // real_t T_M2eC0[4 * 4] = {0};
+  // tf_er(ypr_M2eC0, r_M2eC0, T_M2eC0);
+
+  // real_t cam_exts_vec[7] = {0.0};
+  // tf_vector(T_M2eC0, cam_exts_vec);
+
+  // extrinsics_t cam_exts;
+  // extrinsics_setup(&cam_exts, cam_exts_vec);
 
   // Camera parameters K
   const int cam_idx = 0;
@@ -15114,7 +15147,7 @@ int test_calib_gimbal_factor_setup() {
   real_t T_C0F[4 * 4] = {0};
   tf_chain(T_chain, 7, T_BC0);
   tf_inv(T_BC0, T_C0B);
-  dot3(T_C0B, 4, 4, T_BW, 4, 4, T_WF, 4, 4, T_C0F);
+  dot(T_C0B, 4, 4, T_BF, 4, 4, T_C0F);
 
   // Project point to image plane
   const real_t p_FFi[3] = {0.0, 0.0, 0.0};
@@ -15122,6 +15155,7 @@ int test_calib_gimbal_factor_setup() {
   real_t z[2] = {0};
   tf_point(T_C0F, p_FFi, p_C0Fi);
   pinhole_radtan4_project(cam_params, p_C0Fi, z);
+  print_matrix("T_C0F", T_C0F, 4, 4);
 
   // Setup factor
   calib_gimbal_factor_t factor;
@@ -15143,6 +15177,25 @@ int test_calib_gimbal_factor_setup() {
                             p_FFi,
                             z,
                             var);
+
+  real_t *params[14] = {fiducial.pos,
+                        fiducial.quat,
+                        link0.pos,
+                        link0.quat,
+                        link1.pos,
+                        link1.quat,
+                        link2.pos,
+                        link2.quat,
+                        joint0.angle,
+                        joint1.angle,
+                        joint2.angle,
+                        cam_exts.pos,
+                        cam_exts.quat,
+                        cam.data};
+  real_t r_out[2] = {0};
+  real_t **J_out = NULL;
+  calib_gimbal_factor_eval(&factor, params, r_out, J_out);
+  printf("r_out: %.4f, %.4f\n", r_out[0], r_out[1]);
 
   return 0;
 }
