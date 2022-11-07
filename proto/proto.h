@@ -1,9 +1,7 @@
 #ifndef PROTO_H
 #define PROTO_H
 
-#define _DEFAULT_SOURCE 1
-
-/** PROTO SETTINGS **/
+// PROTO SETTINGS
 #define PRECISION 2
 #define MAX_LINE_LENGTH 9046
 #define USE_CBLAS
@@ -12,8 +10,8 @@
 #define USE_STB_IMAGE
 // #define USE_GUI
 
-#ifndef WARN_UNUSED
-#define WARN_UNUSED __attribute__((warn_unused_result))
+#ifndef STATUS
+#define STATUS __attribute__((warn_unused_result)) int
 #endif
 
 #include <stdio.h>
@@ -213,9 +211,9 @@ char **list_files(const char *path, int *nb_files);
 void list_files_free(char **data, const int n);
 char *file_read(const char *fp);
 void skip_line(FILE *fp);
-int file_exists(const char *fp);
-int file_rows(const char *fp);
-int file_copy(const char *src, const char *dest);
+STATUS file_exists(const char *fp);
+STATUS file_rows(const char *fp);
+STATUS file_copy(const char *src, const char *dest);
 
 /******************************************************************************
  * DATA
@@ -956,10 +954,13 @@ void extrinsics_print(const char *prefix, const extrinsics_t *exts);
 // JOINT ANGLE /////////////////////////////////////////////////////////////////
 
 typedef struct joint_angle_t {
+  int joint_idx;
   real_t angle[1];
 } joint_angle_t;
 
-void joint_angle_setup(joint_angle_t *joint, const real_t *param);
+void joint_angle_setup(joint_angle_t *joint,
+                       const int joint_idx,
+                       const real_t *param);
 void joint_angle_print(const char *prefix, const joint_angle_t *joint);
 
 // CAMERA PARAMS ///////////////////////////////////////////////////////////////
@@ -1026,10 +1027,6 @@ int pose_factor_eval(const void *factor,
                      real_t **params,
                      real_t *residuals,
                      real_t **jacobians);
-int pose_factor_ceres_eval(void *factor,
-                           double **params,
-                           double *residuals,
-                           double **jacobians);
 
 // BA FACTOR ///////////////////////////////////////////////////////////////////
 
@@ -1054,10 +1051,6 @@ int ba_factor_eval(ba_factor_t *factor,
                    real_t **params,
                    real_t *residuals,
                    real_t **jacobians);
-int ba_factor_ceres_eval(void *factor,
-                         double **params,
-                         double *residuals,
-                         double **jacobians);
 
 // CAMERA FACTOR ///////////////////////////////////////////////////////////////
 
@@ -1084,10 +1077,6 @@ int vision_factor_eval(vision_factor_t *factor,
                        real_t **params,
                        real_t *residuals,
                        real_t **Jacobians);
-int vision_factor_ceres_eval(void *factor,
-                             double **params,
-                             double *residuals,
-                             double **jacobians);
 
 // CALIB GIMBAL FACTOR /////////////////////////////////////////////////////////
 
@@ -1132,10 +1121,6 @@ int calib_gimbal_factor_eval(calib_gimbal_factor_t *factor,
                              real_t **params,
                              real_t *residuals,
                              real_t **jacobians);
-int calib_gimbal_factor_ceres_eval(void *factor,
-                                   double **params,
-                                   double *residuals,
-                                   double **jacobians);
 
 // IMU FACTOR //////////////////////////////////////////////////////////////////
 
@@ -1232,10 +1217,10 @@ int imu_factor_eval(imu_factor_t *factor,
 
 typedef struct keyframe_t {
   vision_factor_t *vision_factors;
-  int nb_vision_factors;
+  int num_vision_factors;
 
   imu_factor_t *imu_factors;
-  int nb_imu_factors;
+  int num_imu_factors;
 
   pose_t *pose;
 } keyframe_t;
@@ -1268,7 +1253,7 @@ void solver_setup(solver_t *solver);
 void solver_print(solver_t *solver);
 int solver_add_factor(solver_t *solver, void *factor, int factor_type);
 int solver_eval(solver_t *solver);
-void solver_optimize(solver_t *solver);
+void solver_solve(solver_t *solver);
 
 /******************************************************************************
  * DATASET
@@ -1408,10 +1393,10 @@ void gl_lookat(const GLfloat eye[3],
 
 // SHADER //////////////////////////////////////////////////////////////////////
 
-GLuint shader_compile(const char *shader_src, const int type);
-GLuint shaders_link(const GLuint vertex_shader,
-                    const GLuint fragment_shader,
-                    const GLuint geometry_shader);
+GLuint gl_shader_compile(const char *shader_src, const int type);
+GLuint gl_shaders_link(const GLuint vertex_shader,
+                       const GLuint fragment_shader,
+                       const GLuint geometry_shader);
 
 // GL PROGRAM //////////////////////////////////////////////////////////////////
 
@@ -7593,9 +7578,12 @@ void extrinsics_print(const char *prefix, const extrinsics_t *exts) {
 /**
  * Joint Angle Setup
  */
-void joint_angle_setup(joint_angle_t *joint, const real_t *param) {
+void joint_angle_setup(joint_angle_t *joint,
+                       const int joint_idx,
+                       const real_t *param) {
   assert(joint != NULL);
   assert(param != NULL);
+  joint->joint_idx = joint_idx;
   joint->angle[0] = param[0];
 }
 
@@ -7927,39 +7915,6 @@ int pose_factor_eval(const void *factor,
   return 0;
 }
 
-/**
- * Evaluate factor (wrapper for ceres-solver)
- */
-int pose_factor_ceres_eval(void *factor,
-                           double **params,
-                           double *r_out,
-                           double **J_out) {
-  assert(factor != NULL);
-  assert(factor != NULL);
-  assert(params != NULL);
-  assert(r_out != NULL);
-
-  real_t J0[6 * 3] = {0};
-  real_t J1[6 * 3] = {0};
-  real_t *factor_jacs[2] = {J0, J1};
-  pose_factor_t *pose_factor = (pose_factor_t *) factor;
-  int retval = pose_factor_eval(pose_factor, params, r_out, factor_jacs);
-
-  if (J_out == NULL) {
-    return retval;
-  }
-
-  if (J_out[0]) {
-    mat_copy(factor_jacs[0], 6, 3, J_out[0]);
-  }
-
-  if (J_out[1]) {
-    mat_copy(factor_jacs[1], 6, 3, J_out[1]);
-  }
-
-  return retval;
-}
-
 // BA FACTOR ///////////////////////////////////////////////////////////////////
 
 /**
@@ -8164,22 +8119,6 @@ int ba_factor_eval(ba_factor_t *factor,
   ba_factor_pose_jacobian(Jh_weighted, T_WCi, p_W, J_out[0], J_out[1]);
   ba_factor_feature_jacobian(Jh_weighted, T_WCi, J_out[2]);
   ba_factor_camera_jacobian(neg_sqrt_info, J_cam_params, J_out[3]);
-
-  return 0;
-}
-
-/**
- * Evaluate bundle adjustment factor (wrapper for ceres-solver)
- * @returns `0` for success, `-1` for failure
- */
-int ba_factor_ceres_eval(void *factor,
-                         double **params,
-                         double *r_out,
-                         double **J_out) {
-  assert(factor != NULL);
-  assert(params != NULL);
-  assert(r_out != NULL);
-  UNUSED(J_out);
 
   return 0;
 }
@@ -8492,61 +8431,33 @@ int vision_factor_eval(vision_factor_t *factor,
   return 0;
 }
 
-/**
- * Evaluate camera factor (ceres-solver wrapper)
- */
-int vision_factor_ceres_eval(void *factor,
-                             double **params,
-                             double *r_out,
-                             double **J_out) {
-  assert(factor != NULL);
-  assert(params != NULL);
-  assert(r_out != NULL);
+// CALIB GIMBAL FACTOR /////////////////////////////////////////////////////////
 
-  real_t J0[2 * 3] = {0};
-  real_t J1[2 * 4] = {0};
-  real_t J2[2 * 3] = {0};
-  real_t J3[2 * 4] = {0};
-  real_t J4[2 * 8] = {0};
-  real_t J5[2 * 3] = {0};
-  real_t *factor_jacs[6] = {J0, J1, J2, J3, J4, J5};
-  vision_factor_t *vision_factor = (vision_factor_t *) factor;
-  int retval = vision_factor_eval(vision_factor, params, r_out, factor_jacs);
+void gimbal_setup_link(const real_t ypr_link[3],
+                       const real_t r_link[3],
+                       real_t T_link[4 * 4],
+                       extrinsics_t *link) {
+  real_t C_link[3 * 3] = {0};
+  euler321(ypr_link, C_link);
+  tf_cr(C_link, r_link, T_link);
 
-  if (J_out == NULL) {
-    return retval;
-  }
-
-  if (J_out[0]) {
-    mat_copy(factor_jacs[0], 2, 3, J_out[0]);
-  }
-
-  if (J_out[1]) {
-    zeros(J_out[1], 2, 3);
-    mat_block_set(J_out[1], 4, 0, 1, 0, 3, factor_jacs[1]);
-  }
-
-  if (J_out[2]) {
-    mat_copy(factor_jacs[2], 2, 3, J_out[2]);
-  }
-
-  if (J_out[3]) {
-    zeros(J_out[3], 2, 3);
-    mat_block_set(J_out[3], 4, 0, 1, 0, 3, factor_jacs[3]);
-  }
-
-  if (J_out[4]) {
-    mat_copy(factor_jacs[4], 2, 8, J_out[4]);
-  }
-
-  if (J_out[5]) {
-    mat_copy(factor_jacs[5], 2, 3, J_out[5]);
-  }
-
-  return retval;
+  real_t x[7] = {0};
+  tf_vector(T_link, x);
+  extrinsics_setup(link, x);
 }
 
-// CALIB GIMBAL FACTOR /////////////////////////////////////////////////////////
+void gimbal_setup_joint(const int joint_idx,
+                        const real_t theta,
+                        real_t T_joint[4 * 4],
+                        joint_angle_t *joint) {
+  real_t C_joint[3 * 3] = {0};
+  rotz(theta, C_joint);
+
+  const real_t r_joint[3] = {0.0, 0.0, 0.0};
+  tf_cr(C_joint, r_joint, T_joint);
+
+  joint_angle_setup(joint, joint_idx, &theta);
+}
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                const extrinsics_t *fiducial,
@@ -8866,16 +8777,6 @@ int calib_gimbal_factor_eval(calib_gimbal_factor_t *factor,
   gimbal_factor_cam_ext_jac(Jh_w, T_M2eCi, p_M2eFi, J_out[12], J_out[13]);
   gimbal_factor_camera_jac(neg_sqrt_info, J_cam_params, J_out[13]);
 
-  return 0;
-}
-
-/**
- * Evaluate factor (wrapper for ceres-solver)
- */
-int calib_gimbal_factor_ceres_eval(void *factor,
-                                   double **params,
-                                   double *residuals,
-                                   double **jacobians) {
   return 0;
 }
 
@@ -9696,28 +9597,28 @@ int solver_eval(solver_t *solver) {
   // int exts_idx = lmks_idx + solver->nb_features * 3;
   // int cams_idx = exts_idx + solver->nb_exts * 6;
 
-  // #<{(| Evaluate camera factors |)}>#
-  // for (int i = 0; i < solver->nb_vision_factors; i++) {
+  // // Evaluate camera factors
+  // for (int i = 0; i < solver->num_vision_factors; i++) {
   //   vision_factor_t *factor = &solver->vision_factors[i];
-  //   #<{(| vision_factor_eval(factor); |)}>#
-  //
+  //   vision_factor_eval(factor);
+
   //   int *param_orders[4] = {&pose_idx, &exts_idx, &cams_idx, &lmks_idx};
   //   int param_sizes[4] = {6, 6, 8, 3};
   //   int num_params = 4;
-  //
-  //   #<{(| solver_evaluator(solver, |)}>#
-  //   #<{(|                 param_orders, |)}>#
-  //   #<{(|                 param_sizes, |)}>#
-  //   #<{(|                 num_params, |)}>#
-  //   #<{(|                 factor->r, |)}>#
-  //   #<{(|                 factor->r_size, |)}>#
-  //   #<{(|                 factor->jacs); |)}>#
+
+  //   solver_evaluator(solver,
+  //                    param_orders,
+  //                    param_sizes,
+  //                    num_params,
+  //                    factor->r,
+  //                    factor->r_size,
+  //                    factor->jacs);
   // }
 
   return 0;
 }
 
-// int solver_optimize(solver_t *solver) {
+// int solver_solve(solver_t *solver) {
 //   struct timespec solve_tic = tic();
 //   real_t lambda_k = 1e-4;
 //
@@ -10620,7 +10521,7 @@ void gl_lookat(const GLfloat eye[3],
 
 // SHADER ////////////////////////////////////////////////////////////////////
 
-GLuint shader_compile(const char *shader_src, const int type) {
+GLuint gl_shader_compile(const char *shader_src, const int type) {
   if (shader_src == NULL) {
     LOG_ERROR("Shader source is NULL!");
     return GL_FALSE;
@@ -10642,9 +10543,9 @@ GLuint shader_compile(const char *shader_src, const int type) {
   return shader;
 }
 
-GLuint shaders_link(const GLuint vertex_shader,
-                    const GLuint fragment_shader,
-                    const GLuint geometry_shader) {
+GLuint gl_shaders_link(const GLuint vertex_shader,
+                       const GLuint fragment_shader,
+                       const GLuint geometry_shader) {
   // Attach shaders to link
   GLuint program = glCreateProgram();
   glAttachShader(program, vertex_shader);
@@ -10684,18 +10585,18 @@ GLuint gl_prog_setup(const char *vs_src,
   GLuint gs = GL_FALSE;
 
   if (vs_src) {
-    vs = shader_compile(vs_src, GL_VERTEX_SHADER);
+    vs = gl_shader_compile(vs_src, GL_VERTEX_SHADER);
   }
 
   if (fs_src) {
-    fs = shader_compile(fs_src, GL_FRAGMENT_SHADER);
+    fs = gl_shader_compile(fs_src, GL_FRAGMENT_SHADER);
   }
 
   if (gs_src) {
-    gs = shader_compile(gs_src, GL_GEOMETRY_SHADER);
+    gs = gl_shader_compile(gs_src, GL_GEOMETRY_SHADER);
   }
 
-  const GLuint program_id = shaders_link(vs, fs, gs);
+  const GLuint program_id = gl_shaders_link(vs, fs, gs);
   return program_id;
 }
 
@@ -14869,57 +14770,6 @@ int test_ba_factor_eval() {
   return 0;
 }
 
-int test_ba_factor_ceres_eval() {
-  /* Timestamp */
-  timestamp_t ts = 0;
-
-  /* Camera pose */
-  const real_t pose_data[7] = {0.01, 0.01, 0.0, -0.5, 0.5, -0.5, 0.5};
-  pose_t pose;
-  pose_setup(&pose, ts, pose_data);
-
-  /* Feature */
-  const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_t feature;
-  feature_setup(&feature, p_W);
-
-  /* Camera parameters */
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {640, 480, 320, 240, 0.03, 0.01, 0.001, 0.001};
-  camera_params_t cam;
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
-
-  /* Project point from world to image plane */
-  real_t T_WC[4 * 4] = {0};
-  real_t T_CW[4 * 4] = {0};
-  real_t p_C[3] = {0};
-  real_t z[2];
-  tf(pose_data, T_WC);
-  tf_inv(T_WC, T_CW);
-  tf_point(T_CW, p_W, p_C);
-  pinhole_radtan4_project(cam_data, p_C, z);
-
-  /* Bundle adjustment factor */
-  ba_factor_t ba_factor;
-  real_t var[2] = {1.0, 1.0};
-  ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
-
-  /* Evaluate bundle adjustment factor */
-  real_t *params[4] = {pose.pos, pose.quat, feature.data, cam.data};
-  real_t r[2] = {0};
-  real_t J0[2 * 3] = {0};
-  real_t J1[2 * 3] = {0};
-  real_t J2[2 * 3] = {0};
-  real_t J3[2 * 8] = {0};
-  real_t *jacs[4] = {J0, J1, J2, J3};
-  ba_factor_ceres_eval(&ba_factor, params, r, jacs);
-
-  return 0;
-}
-
 int test_vision_factor_setup() {
   /* Timestamp */
   timestamp_t ts = 0;
@@ -15149,89 +14999,150 @@ int test_vision_factor_eval() {
   return 0;
 }
 
-int test_vision_factor_ceres_eval() {
-  /* Timestamp */
-  timestamp_t ts = 0;
+int test_calib_gimbal_factor_setup() {
+  // Body pose T_WB
+  real_t ypr_WB[3] = {0.0, 0.0, 0.0};
+  real_t C_WB[3 * 3] = {0};
+  real_t r_WB[3] = {0.0, 0.0, 0.0};
+  real_t T_WB[4 * 4] = {0};
+  euler321(ypr_WB, C_WB);
+  tf_cr(C_WB, r_WB, T_WB);
 
-  /* Body pose */
-  pose_t pose;
-  const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
-  pose_setup(&pose, ts, pose_data);
+  // Fiducial pose T_WF
+  real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
+  real_t C_WF[3 * 3] = {0};
+  real_t r_WF[3] = {0.5, 0.0, 0.0};
+  real_t T_WF[4 * 4] = {0};
+  euler321(ypr_WF, C_WF);
+  tf_cr(C_WF, r_WF, T_WF);
 
-  /* Extrinsics */
-  extrinsics_t extrinsics;
-  const real_t exts_data[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
-  extrinsics_setup(&extrinsics, exts_data);
+  // Relative fiducial pose T_BF
+  real_t T_BW[4 * 4] = {0};
+  real_t T_BF[4 * 4] = {0};
+  real_t fiducial_vec[7] = {0};
 
-  /* Feature */
-  feature_t feature;
-  const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_setup(&feature, p_W);
+  tf_inv(T_WB, T_BW);
+  dot(T_BW, 4, 4, T_WF, 4, 4, T_BF);
+  tf_vector(T_BF, fiducial_vec);
 
-  /* Camera parameters */
-  camera_params_t cam;
+  extrinsics_t fiducial;
+  extrinsics_setup(&fiducial, fiducial_vec);
+
+  // Yaw link
+  real_t ypr_BM0b[3] = {0.0, 0.0, 0.0};
+  real_t r_BM0b[3] = {0.0, 0.0, 0.0};
+  real_t T_BM0b[4 * 4] = {0};
+  extrinsics_t link0;
+  gimbal_setup_link(ypr_BM0b, r_BM0b, T_BM0b, &link0);
+
+  // Roll link
+  real_t ypr_M0eM1b[3] = {0.0, M_PI / 2, 0.0};
+  real_t r_M0eM1b[3] = {-0.1, 0.0, 0.15};
+  real_t T_M0eM1b[4 * 4] = {0};
+  extrinsics_t link1;
+  gimbal_setup_link(ypr_M0eM1b, r_M0eM1b, T_M0eM1b, &link1);
+
+  // Pitch link
+  real_t ypr_M1eM2b[3] = {0.0, 0.0, -M_PI / 2.0};
+  real_t r_M1eM2b[3] = {0.0, -0.05, 0.1};
+  real_t T_M1eM2b[4 * 4] = {0};
+  extrinsics_t link2;
+  gimbal_setup_link(ypr_M1eM2b, r_M1eM2b, T_M1eM2b, &link2);
+
+  // Joint0
+  const real_t th0 = 0.0;
+  real_t T_M0bM0e[4 * 4] = {0};
+  joint_angle_t joint0;
+  gimbal_setup_joint(0, th0, T_M0bM0e, &joint0);
+
+  // Joint1
+  const real_t th1 = 0.0;
+  real_t T_M1bM1e[4 * 4] = {0};
+  joint_angle_t joint1;
+  gimbal_setup_joint(1, th1, T_M1bM1e, &joint1);
+
+  // Joint2
+  const real_t th2 = 0.0;
+  real_t T_M2bM2e[4 * 4] = {0};
+  joint_angle_t joint2;
+  gimbal_setup_joint(2, th2, T_M2bM2e, &joint2);
+
+  // Camera extrinsics T_M2eCi
+  const real_t ypr_M2eC0[3] = {-M_PI / 2, M_PI / 2, 0.0};
+  const real_t r_M2eC0[3] = {0.0, -0.05, 0.12};
+  real_t T_M2eC0[4 * 4] = {0};
+  real_t C_M2eC0[3 * 3] = {0};
+  real_t cam_exts_vec[7] = {0.0};
+  extrinsics_t cam_exts;
+
+  euler321(ypr_M2eC0, C_M2eC0);
+  tf_cr(C_M2eC0, r_M2eC0, T_M2eC0);
+  tf_vector(T_M2eC0, cam_exts_vec);
+  extrinsics_setup(&cam_exts, cam_exts_vec);
+
+  // Camera parameters K
   const int cam_idx = 0;
   const int cam_res[2] = {640, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(cam_res[0], fov);
+  const real_t fy = pinhole_focal(cam_res[0], fov);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam_params[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  camera_params_t cam;
+  camera_params_setup(&cam,
+                      cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_params);
 
-  /* Project point from world to image plane */
-  real_t T_WB[4 * 4] = {0};
-  real_t T_BW[4 * 4] = {0};
-  real_t T_BCi[4 * 4] = {0};
-  real_t T_CiB[4 * 4] = {0};
-  real_t T_CiW[4 * 4] = {0};
-  real_t p_Ci[3] = {0};
-  real_t z[2];
-  tf(pose_data, T_WB);
-  tf(exts_data, T_BCi);
-  tf_inv(T_WB, T_BW);
-  tf_inv(T_BCi, T_CiB);
-  dot(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
-  tf_point(T_CiW, p_W, p_Ci);
-  pinhole_radtan4_project(cam_data, p_Ci, z);
+  // Form T_C0f
+  const real_t *T_chain[7] = {
+      T_BM0b,
+      T_M0bM0e,
+      T_M0eM1b,
+      T_M1bM1e,
+      T_M1eM2b,
+      T_M2bM2e,
+      T_M2eC0,
+  };
+  real_t T_BC0[4 * 4] = {0};
+  real_t T_C0B[4 * 4] = {0};
+  real_t T_C0F[4 * 4] = {0};
+  tf_chain(T_chain, 7, T_BC0);
+  tf_inv(T_BC0, T_C0B);
+  dot3(T_C0B, 4, 4, T_BW, 4, 4, T_WF, 4, 4, T_C0F);
 
-  /* Setup camera factor */
-  vision_factor_t vision_factor;
-  real_t var[2] = {1.0, 1.0};
-  vision_factor_setup(&vision_factor,
-                      &pose,
-                      &extrinsics,
-                      &feature,
-                      &cam,
-                      z,
-                      var);
+  // Project point to image plane
+  const real_t p_FFi[3] = {0.0, 0.0, 0.0};
+  real_t p_C0Fi[3] = {0};
+  real_t z[2] = {0};
+  tf_point(T_C0F, p_FFi, p_C0Fi);
+  pinhole_radtan4_project(cam_params, p_C0Fi, z);
 
-  /* Evaluate camera factor */
-  real_t *params[6] = {pose.pos,
-                       pose.quat,
-                       extrinsics.pos,
-                       extrinsics.quat,
-                       cam.data,
-                       feature.data};
-  double residuals[2] = {0};
-  double J0[2 * 7] = {0};
-  double J1[2 * 7] = {0};
-  double J2[2 * 3] = {0};
-  double J3[2 * 8] = {0};
-  double *jacobians[4] = {J0, J1, J2, J3};
-  vision_factor_ceres_eval(&vision_factor, params, residuals, jacobians);
-  print_vector("z", z, 2);
-
-  print_matrix("vision_factor.covar", vision_factor.covar, 2, 2);
-  print_matrix("vision_factor.sqrt_info", vision_factor.sqrt_info, 2, 2);
-  print_matrix("vision_factor.r", residuals, 2, 1);
-  print_matrix("vision_factor.J0", jacobians[0], 2, 6);
-  print_matrix("vision_factor.J1", jacobians[1], 2, 6);
-  print_matrix("vision_factor.J2", jacobians[2], 2, 8);
-  print_matrix("vision_factor.J3", jacobians[3], 2, 3);
-
-  return 0;
-}
-
-int test_calib_gimbal_factor_setup() {
+  // Setup factor
+  calib_gimbal_factor_t factor;
+  const int tag_id = 0;
+  const int corner_idx = 0;
+  const real_t var[2] = {1.0, 1.0};
+  calib_gimbal_factor_setup(&factor,
+                            &fiducial,
+                            &link0,
+                            &link1,
+                            &link2,
+                            &joint0,
+                            &joint1,
+                            &joint2,
+                            &cam_exts,
+                            &cam,
+                            tag_id,
+                            corner_idx,
+                            p_FFi,
+                            z,
+                            var);
 
   return 0;
 }
@@ -15723,99 +15634,99 @@ int test_imu_factor_eval() {
   return 0;
 }
 
-// int test_ceres_graph() {
-//   int num_observations = 67;
-//   double data[] = {
-//       0.000000e+00, 1.133898e+00, 7.500000e-02, 1.334902e+00, 1.500000e-01,
-//       1.213546e+00, 2.250000e-01, 1.252016e+00, 3.000000e-01, 1.392265e+00,
-//       3.750000e-01, 1.314458e+00, 4.500000e-01, 1.472541e+00, 5.250000e-01,
-//       1.536218e+00, 6.000000e-01, 1.355679e+00, 6.750000e-01, 1.463566e+00,
-//       7.500000e-01, 1.490201e+00, 8.250000e-01, 1.658699e+00, 9.000000e-01,
-//       1.067574e+00, 9.750000e-01, 1.464629e+00, 1.050000e+00, 1.402653e+00,
-//       1.125000e+00, 1.713141e+00, 1.200000e+00, 1.527021e+00, 1.275000e+00,
-//       1.702632e+00, 1.350000e+00, 1.423899e+00, 1.425000e+00, 1.543078e+00,
-//       1.500000e+00, 1.664015e+00, 1.575000e+00, 1.732484e+00, 1.650000e+00,
-//       1.543296e+00, 1.725000e+00, 1.959523e+00, 1.800000e+00, 1.685132e+00,
-//       1.875000e+00, 1.951791e+00, 1.950000e+00, 2.095346e+00, 2.025000e+00,
-//       2.361460e+00, 2.100000e+00, 2.169119e+00, 2.175000e+00, 2.061745e+00,
-//       2.250000e+00, 2.178641e+00, 2.325000e+00, 2.104346e+00, 2.400000e+00,
-//       2.584470e+00, 2.475000e+00, 1.914158e+00, 2.550000e+00, 2.368375e+00,
-//       2.625000e+00, 2.686125e+00, 2.700000e+00, 2.712395e+00, 2.775000e+00,
-//       2.499511e+00, 2.850000e+00, 2.558897e+00, 2.925000e+00, 2.309154e+00,
-//       3.000000e+00, 2.869503e+00, 3.075000e+00, 3.116645e+00, 3.150000e+00,
-//       3.094907e+00, 3.225000e+00, 2.471759e+00, 3.300000e+00, 3.017131e+00,
-//       3.375000e+00, 3.232381e+00, 3.450000e+00, 2.944596e+00, 3.525000e+00,
-//       3.385343e+00, 3.600000e+00, 3.199826e+00, 3.675000e+00, 3.423039e+00,
-//       3.750000e+00, 3.621552e+00, 3.825000e+00, 3.559255e+00, 3.900000e+00,
-//       3.530713e+00, 3.975000e+00, 3.561766e+00, 4.050000e+00, 3.544574e+00,
-//       4.125000e+00, 3.867945e+00, 4.200000e+00, 4.049776e+00, 4.275000e+00,
-//       3.885601e+00, 4.350000e+00, 4.110505e+00, 4.425000e+00, 4.345320e+00,
-//       4.500000e+00, 4.161241e+00, 4.575000e+00, 4.363407e+00, 4.650000e+00,
-//       4.161576e+00, 4.725000e+00, 4.619728e+00, 4.800000e+00, 4.737410e+00,
-//       4.875000e+00, 4.727863e+00, 4.950000e+00, 4.669206e+00,
-//   };
-//
-//   /* This is the equivalent of a use-defined CostFunction in the C++ Ceres
-//   API.
-//    * This is passed as a callback to the Ceres C API, which internally
-//    converts
-//    * the callback into a CostFunction. */
-//   int exponential_residual(void *user_data,
-//                            double **parameters,
-//                            double *residuals,
-//                            double **jacobians) {
-//     double *measurement = (double *) user_data;
-//     double x = measurement[0];
-//     double y = measurement[1];
-//     double m = parameters[0][0];
-//     double c = parameters[1][0];
-//     residuals[0] = y - exp(m * x + c);
-//     if (jacobians == NULL) {
-//       return 1;
-//     }
-//     if (jacobians[0] != NULL) {
-//       jacobians[0][0] = -x * exp(m * x + c); /* dr/dm */
-//     }
-//     if (jacobians[1] != NULL) {
-//       jacobians[1][0] = -exp(m * x + c); /* dr/dc */
-//     }
-//     return 1;
-//   }
-//
-//   /* Note: Typically it is better to compact m and c into one block,
-//    * but in this case use separate blocks to illustrate the use of
-//    * multiple parameter blocks. */
-//   double m = 0.0;
-//   double c = 0.0;
-//   double *parameter_pointers[] = {&m, &c};
-//   int parameter_sizes[] = {1, 1};
-//   int i;
-//   ceres_problem_t *problem;
-//   /* Ceres has some internal stuff that needs to get initialized. */
-//   ceres_init();
-//   problem = ceres_create_problem();
-//   /* Add all the residuals. */
-//   for (i = 0; i < num_observations; ++i) {
-//     ceres_problem_add_residual_block(problem,
-//                                      exponential_residual, /* Cost function
-//                                      */ &data[2 * i],         /* Points to
-//                                      (x,y)
-//                                                               measurement
-//                                                               */
-//                                      NULL,                 /* Loss function
-//                                      */ NULL, /* Loss function user data */
-//                                      1,    /* Number of residuals */
-//                                      2,    /* Number of parameter blocks */
-//                                      parameter_sizes,
-//                                      parameter_pointers);
-//   }
-//   ceres_solve(problem);
-//   ceres_free_problem(problem);
-//   printf("Initial m: 0.0, c: 0.0\n");
-//   printf("Final m: %g, c: %g\n", m, c);
-//
-//   return 0;
-// }
+/**
+ * This is the equivalent of a use-defined CostFunction in the C++ Ceres API.
+ * This is passed as a callback to the Ceres C API, which internally converts
+ * the callback into a CostFunction.
+ */
+static int ceres_exp_residual(void *user_data,
+                              double **parameters,
+                              double *residuals,
+                              double **jacobians) {
+  double *measurement = (double *) user_data;
+  double x = measurement[0];
+  double y = measurement[1];
+  double m = parameters[0][0];
+  double c = parameters[1][0];
+  residuals[0] = y - exp(m * x + c);
+  if (jacobians == NULL) {
+    return 1;
+  }
+  if (jacobians[0] != NULL) {
+    jacobians[0][0] = -x * exp(m * x + c); /* dr/dm */
+  }
+  if (jacobians[1] != NULL) {
+    jacobians[1][0] = -exp(m * x + c); /* dr/dc */
+  }
+  return 1;
+}
+
+int test_ceres_example() {
+  int num_observations = 67;
+  double data[] = {
+      0.000000e+00, 1.133898e+00, 7.500000e-02, 1.334902e+00, 1.500000e-01,
+      1.213546e+00, 2.250000e-01, 1.252016e+00, 3.000000e-01, 1.392265e+00,
+      3.750000e-01, 1.314458e+00, 4.500000e-01, 1.472541e+00, 5.250000e-01,
+      1.536218e+00, 6.000000e-01, 1.355679e+00, 6.750000e-01, 1.463566e+00,
+      7.500000e-01, 1.490201e+00, 8.250000e-01, 1.658699e+00, 9.000000e-01,
+      1.067574e+00, 9.750000e-01, 1.464629e+00, 1.050000e+00, 1.402653e+00,
+      1.125000e+00, 1.713141e+00, 1.200000e+00, 1.527021e+00, 1.275000e+00,
+      1.702632e+00, 1.350000e+00, 1.423899e+00, 1.425000e+00, 1.543078e+00,
+      1.500000e+00, 1.664015e+00, 1.575000e+00, 1.732484e+00, 1.650000e+00,
+      1.543296e+00, 1.725000e+00, 1.959523e+00, 1.800000e+00, 1.685132e+00,
+      1.875000e+00, 1.951791e+00, 1.950000e+00, 2.095346e+00, 2.025000e+00,
+      2.361460e+00, 2.100000e+00, 2.169119e+00, 2.175000e+00, 2.061745e+00,
+      2.250000e+00, 2.178641e+00, 2.325000e+00, 2.104346e+00, 2.400000e+00,
+      2.584470e+00, 2.475000e+00, 1.914158e+00, 2.550000e+00, 2.368375e+00,
+      2.625000e+00, 2.686125e+00, 2.700000e+00, 2.712395e+00, 2.775000e+00,
+      2.499511e+00, 2.850000e+00, 2.558897e+00, 2.925000e+00, 2.309154e+00,
+      3.000000e+00, 2.869503e+00, 3.075000e+00, 3.116645e+00, 3.150000e+00,
+      3.094907e+00, 3.225000e+00, 2.471759e+00, 3.300000e+00, 3.017131e+00,
+      3.375000e+00, 3.232381e+00, 3.450000e+00, 2.944596e+00, 3.525000e+00,
+      3.385343e+00, 3.600000e+00, 3.199826e+00, 3.675000e+00, 3.423039e+00,
+      3.750000e+00, 3.621552e+00, 3.825000e+00, 3.559255e+00, 3.900000e+00,
+      3.530713e+00, 3.975000e+00, 3.561766e+00, 4.050000e+00, 3.544574e+00,
+      4.125000e+00, 3.867945e+00, 4.200000e+00, 4.049776e+00, 4.275000e+00,
+      3.885601e+00, 4.350000e+00, 4.110505e+00, 4.425000e+00, 4.345320e+00,
+      4.500000e+00, 4.161241e+00, 4.575000e+00, 4.363407e+00, 4.650000e+00,
+      4.161576e+00, 4.725000e+00, 4.619728e+00, 4.800000e+00, 4.737410e+00,
+      4.875000e+00, 4.727863e+00, 4.950000e+00, 4.669206e+00,
+  };
+
+  /* Note: Typically it is better to compact m and c into one block,
+   * but in this case use separate blocks to illustrate the use of
+   * multiple parameter blocks. */
+  double m = 0.0;
+  double c = 0.0;
+  double *parameter_pointers[] = {&m, &c};
+  int parameter_sizes[] = {1, 1};
+  int i;
+  ceres_problem_t *problem;
+  /* Ceres has some internal stuff that needs to get initialized. */
+  ceres_init();
+  problem = ceres_create_problem();
+  /* Add all the residuals. */
+  for (i = 0; i < num_observations; ++i) {
+    ceres_problem_add_residual_block(problem,
+                                     ceres_exp_residual,
+                                     &data[2 *
+                                           i], /* Points to (x,y) measurement */
+                                     NULL,
+                                     /* Loss function
+                                      */
+                                     NULL, /* Loss function user data */
+                                     1,    /* Number of residuals */
+                                     2,    /* Number of parameter blocks */
+                                     parameter_sizes,
+                                     parameter_pointers);
+  }
+  ceres_solve(problem);
+  ceres_free_problem(problem);
+  printf("Initial m: 0.0, c: 0.0\n");
+  printf("Final m: %g, c: %g\n", m, c);
+
+  return 0;
+}
 
 int test_solver_setup() {
   solver_t solver;
@@ -16296,7 +16207,7 @@ int test_gl_lookat() {
 
 // TEST SHADER ///////////////////////////////////////////////////////////////
 
-int test_shader_compile() {
+int test_gl_shader_compile() {
   /* SDL init */
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
@@ -16330,19 +16241,19 @@ int test_shader_compile() {
   }
 
   char *glcube_vs = file_read("./shaders/cube.vert");
-  const GLuint vs = shader_compile(glcube_vs, GL_VERTEX_SHADER);
+  const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
   free(glcube_vs);
   MU_ASSERT(vs != GL_FALSE);
 
   char *glcube_fs = file_read("./shaders/cube.frag");
-  const GLuint fs = shader_compile(glcube_fs, GL_VERTEX_SHADER);
+  const GLuint fs = gl_shader_compile(glcube_fs, GL_VERTEX_SHADER);
   free(glcube_fs);
   MU_ASSERT(fs != GL_FALSE);
 
   return 0;
 }
 
-int test_shader_link() {
+int test_gl_shaders_link() {
   /* SDL init */
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
@@ -16377,19 +16288,19 @@ int test_shader_link() {
 
   /* Cube vertex shader */
   char *glcube_vs = file_read("./shaders/cube.vert");
-  const GLuint vs = shader_compile(glcube_vs, GL_VERTEX_SHADER);
+  const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
   free(glcube_vs);
   MU_ASSERT(vs != GL_FALSE);
 
   /* Cube fragment shader */
   char *glcube_fs = file_read("./shaders/cube.frag");
-  const GLuint fs = shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
+  const GLuint fs = gl_shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
   free(glcube_fs);
   MU_ASSERT(fs != GL_FALSE);
 
   /* Link shakders */
   const GLuint gs = GL_FALSE;
-  const GLuint prog = shaders_link(vs, fs, gs);
+  const GLuint prog = gl_shaders_link(vs, fs, gs);
   MU_ASSERT(prog != GL_FALSE);
 
   return 0;
@@ -16517,17 +16428,17 @@ int test_imshow() {
   return 0;
 }
 
-#endif /* USE_GUI */
+#endif // USE_GUI
 
 void test_suite() {
-  /* MACROS */
+  // MACROS
   MU_ADD_TEST(test_debug);
   MU_ADD_TEST(test_log_error);
   MU_ADD_TEST(test_log_warn);
   MU_ADD_TEST(test_median_value);
   MU_ADD_TEST(test_mean_value);
 
-  /* FILE SYSTEM */
+  // FILE SYSTEM
   MU_ADD_TEST(test_path_file_name);
   MU_ADD_TEST(test_path_file_ext);
   MU_ADD_TEST(test_path_dir_name);
@@ -16539,7 +16450,7 @@ void test_suite() {
   MU_ADD_TEST(test_file_rows);
   MU_ADD_TEST(test_file_copy);
 
-  /* DATA */
+  // DATA
   MU_ADD_TEST(test_string_malloc);
   MU_ADD_TEST(test_dsv_rows);
   MU_ADD_TEST(test_dsv_cols);
@@ -16547,7 +16458,7 @@ void test_suite() {
   MU_ADD_TEST(test_dsv_data);
   MU_ADD_TEST(test_dsv_free);
 
-  /* DATA-STRUCTURE */
+  // DATA-STRUCTURE
   MU_ADD_TEST(test_darray_new_and_destroy);
   MU_ADD_TEST(test_darray_push_pop);
   MU_ADD_TEST(test_darray_contains);
@@ -16558,7 +16469,7 @@ void test_suite() {
   MU_ADD_TEST(test_darray_remove);
   MU_ADD_TEST(test_darray_expand_and_contract);
   MU_ADD_TEST(test_list_new_and_destroy);
-  /* MU_ADD_TEST(test_list_push_pop); */
+  // MU_ADD_TEST(test_list_push_pop);
   MU_ADD_TEST(test_list_shift);
   MU_ADD_TEST(test_list_unshift);
   MU_ADD_TEST(test_list_remove);
@@ -16574,19 +16485,19 @@ void test_suite() {
   MU_ADD_TEST(test_hashmap_delete);
   MU_ADD_TEST(test_hashmap_traverse);
 
-  /* TIME */
+  // TIME
   MU_ADD_TEST(test_tic);
   MU_ADD_TEST(test_toc);
   MU_ADD_TEST(test_mtoc);
   MU_ADD_TEST(test_time_now);
 
-  /* NETWORK */
+  // NETWORK
   MU_ADD_TEST(test_tcp_server_setup);
   MU_ADD_TEST(test_http_parse_request);
   MU_ADD_TEST(test_ws_hash);
-  /* MU_ADD_TEST(test_ws_server); */
+  // MU_ADD_TEST(test_ws_server);
 
-  /* MATHS */
+  // MATHS
   MU_ADD_TEST(test_min);
   MU_ADD_TEST(test_max);
   MU_ADD_TEST(test_randf);
@@ -16603,7 +16514,7 @@ void test_suite() {
   MU_ADD_TEST(test_var);
   MU_ADD_TEST(test_stddev);
 
-  /* LINEAR ALGEBRA */
+  // LINEAR ALGEBRA
   MU_ADD_TEST(test_eye);
   MU_ADD_TEST(test_ones);
   MU_ADD_TEST(test_zeros);
@@ -16629,15 +16540,15 @@ void test_suite() {
   MU_ADD_TEST(test_hat);
   MU_ADD_TEST(test_check_jacobian);
 
-  /* SVD */
+  // SVD
   MU_ADD_TEST(test_svd);
   MU_ADD_TEST(test_svd_inv);
 
-  /* CHOL */
+  // CHOL
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
 
-  /* TRANSFORMS */
+  // TRANSFORMS
   MU_ADD_TEST(test_tf_rot_set);
   MU_ADD_TEST(test_tf_trans_set);
   MU_ADD_TEST(test_tf_trans_get);
@@ -16654,10 +16565,10 @@ void test_suite() {
   MU_ADD_TEST(test_quat2euler);
   MU_ADD_TEST(test_quat2rot);
 
-  /* LIE */
+  // LIE
   MU_ADD_TEST(test_lie_Exp_Log);
 
-  /* CV */
+  // CV
   MU_ADD_TEST(test_image_setup);
   MU_ADD_TEST(test_image_load);
   MU_ADD_TEST(test_image_print_properties);
@@ -16682,7 +16593,7 @@ void test_suite() {
   MU_ADD_TEST(test_pinhole_equi4_project_jacobian);
   MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
 
-  /* SENSOR FUSION */
+  // SENSOR FUSION
   MU_ADD_TEST(test_pose_setup);
   MU_ADD_TEST(test_imu_biases_setup);
   MU_ADD_TEST(test_feature_setup);
@@ -16691,10 +16602,8 @@ void test_suite() {
   MU_ADD_TEST(test_pose_factor_eval);
   MU_ADD_TEST(test_ba_factor_setup);
   MU_ADD_TEST(test_ba_factor_eval);
-  /* MU_ADD_TEST(test_ba_factor_ceres_eval); */
   MU_ADD_TEST(test_vision_factor_setup);
   MU_ADD_TEST(test_vision_factor_eval);
-  MU_ADD_TEST(test_vision_factor_ceres_eval);
   MU_ADD_TEST(test_calib_gimbal_factor_setup);
   MU_ADD_TEST(test_imu_buf_setup);
   MU_ADD_TEST(test_imu_buf_add);
@@ -16704,22 +16613,21 @@ void test_suite() {
   MU_ADD_TEST(test_imu_factor_propagate_step);
   MU_ADD_TEST(test_imu_factor_setup);
   MU_ADD_TEST(test_imu_factor_eval);
-  /* MU_ADD_TEST(test_ceres_graph); */
+  MU_ADD_TEST(test_ceres_example);
   MU_ADD_TEST(test_solver_setup);
   MU_ADD_TEST(test_solver_print);
-  /* MU_ADD_TEST(test_solver_eval); */
-  /* MU_ADD_TEST(test_solver_solve); */
+  MU_ADD_TEST(test_solver_eval);
 
-  /* DATASET */
-  /* MU_ADD_TEST(test_assoc_pose_data); */
+  // DATASET
+  // MU_ADD_TEST(test_assoc_pose_data);
 
-  /* SIM */
+  // SIM
   MU_ADD_TEST(test_sim_features_load);
   MU_ADD_TEST(test_sim_imu_data_load);
   MU_ADD_TEST(test_sim_camera_frame_load);
   MU_ADD_TEST(test_sim_camera_data_load);
 
-  /* GUI */
+  // GUI
 #ifdef USE_GUI
   MU_ADD_TEST(test_gl_zeros);
   MU_ADD_TEST(test_gl_ones);
@@ -16732,15 +16640,15 @@ void test_suite() {
   MU_ADD_TEST(test_gl_dot);
   MU_ADD_TEST(test_gl_norm);
   MU_ADD_TEST(test_gl_normalize);
-  /* MU_ADD_TEST(test_gl_perspective); */
-  /* MU_ADD_TEST(test_gl_lookat); */
-  /* MU_ADD_TEST(test_shader_compile); */
-  /* MU_ADD_TEST(test_shader_link); */
-  /* MU_ADD_TEST(test_gl_prog_setup); */
-  /* MU_ADD_TEST(test_gl_camera_setup); */
-  /* MU_ADD_TEST(test_gui); */
+  MU_ADD_TEST(test_gl_perspective);
+  MU_ADD_TEST(test_gl_lookat);
+  MU_ADD_TEST(test_gl_shader_compile);
+  MU_ADD_TEST(test_gl_shaders_link);
+  MU_ADD_TEST(test_gl_prog_setup);
+  MU_ADD_TEST(test_gl_camera_setup);
+  MU_ADD_TEST(test_gui);
   MU_ADD_TEST(test_imshow);
-#endif /* USE_GUI */
+#endif // USE_GUI
 }
 
 MU_RUN_TESTS(test_suite)

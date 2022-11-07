@@ -14,7 +14,7 @@ static int nb_failed = 0;
 static char *test_target_name = NULL;
 
 /* MUNIT */
-#define MU_REDIRECT_STREAMS 1
+#define MU_REDIRECT_STREAMS 0
 #define MU_LOG_DIR "/tmp"
 #define MU_KEEP_LOGS 1
 #define MU_ENABLE_TERM_COLORS 1
