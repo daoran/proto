@@ -11,6 +11,8 @@ help:
 		{printf "\033[1;36m%-12s\033[0m%s\n", $$1, $$2}'
 
 third_party: ## Install dependencies
+	@git submodule init
+	@git submodule update
 	@make -s -C third_party
 
 docs: ## Build docs
