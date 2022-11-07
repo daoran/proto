@@ -40,7 +40,8 @@ CERES_DEPS := -lgflags -lglog \
 							-lcxsparse
 CERES_LIBS := -L$(DEPS_DIR)/lib -lceres $(CERES_DEPS)
 
-TIS_LIBS:=$(shell pkg-config gstreamer-1.0 --libs)
+TIS_LIBS:=-L$(DEP_DIR)/lib
+TIS_LIBS+=$(shell pkg-config gstreamer-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config gstreamer-video-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config gobject-introspection-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config tcam --libs)
