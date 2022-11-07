@@ -14541,7 +14541,7 @@ int test_pose_factor_setup() {
   /* Pose */
   timestamp_t ts = 1;
   pose_t pose;
-  real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
+  real_t data[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
   pose_setup(&pose, ts, data);
 
   /* Setup pose factor */
@@ -14560,7 +14560,7 @@ int test_pose_factor_eval() {
   /* Pose */
   timestamp_t ts = 1;
   pose_t pose;
-  real_t data[7] = {0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0};
+  real_t data[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
   pose_setup(&pose, ts, data);
 
   /* Setup pose factor */

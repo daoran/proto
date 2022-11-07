@@ -19,5 +19,5 @@ dirs:
 
 install: dirs
 	@echo "[Installing Dependencies]"
-	@sudo bash install.bash
+	@bash install.bash
 	@echo "done!"

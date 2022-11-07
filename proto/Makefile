@@ -74,8 +74,15 @@ TESTS := \
 	test_sbgc \
 	test_ubx
 
+.PHONY: dirs benchmarks scripts shaders test_data viz
+
+help:
+	@echo "\033[1;34m[make targets]:\033[0m"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; \
+		{printf "\033[1;36m%-7s\033[0m%s\n", $$1, $$2}'
+
 default: dirs $(LIBPROTO) shaders test_data
-.PHONY: dirs shaders test_data
 
 dirs:
 	@mkdir -p $(BLD_DIR)
@@ -100,31 +107,31 @@ libproto: dirs
 	@$(AR) $(ARFLAGS) $(BLD_DIR)/libproto.a $(BLD_DIR)/proto.o > /dev/null 2>&1
 	@rm proto.c
 
-test_proto:
+test_proto: dirs
 	@echo "CC [test_proto.c]"
 	@python3 scripts/make_cmodule.py -in proto.h -test true
 	@$(CC) $(CFLAGS) test_proto.c -o $(BIN_DIR)/test_proto $(DEPS)
 	@rm test_proto.c
 
-test_aprilgrid:
+test_aprilgrid: dirs
 	@echo "CC [test_aprilgrid.c]"
 	@python3 scripts/make_cmodule.py -in aprilgrid.h -test true
 	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BIN_DIR)/test_aprilgrid $(DEPS)
 	@rm test_aprilgrid.c
 
-test_tis:
+test_tis: dirs
 	@echo "CC [test_tis.c]"
 	@python3 scripts/make_cmodule.py -in tis.h -test true
 	@$(CC) $(CFLAGS) test_tis.c -o $(BIN_DIR)/test_tis $(DEPS)
 	@rm test_tis.c
 
-test_sbgc:
+test_sbgc: dirs
 	@echo "CC [test_sbgc.c]"
 	@python3 scripts/make_cmodule.py -in sbgc.h -test true
 	@$(CC) $(CFLAGS) test_sbgc.c -o $(BIN_DIR)/test_sbgc $(DEPS)
 	@rm test_sbgc.c
 
-test_ubx:
+test_ubx: dirs
 	@echo "CC [test_ubx.c]"
 	@python3 scripts/make_cmodule.py -in ubx.h -test true
 	@$(CC) $(CFLAGS) test_ubx.c -o $(BIN_DIR)/test_ubx $(DEPS)

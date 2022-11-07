@@ -12,7 +12,7 @@ check_dir() {
 
 apt_update() {
   echo -n "[Updating APT package list]";
-  if apt-get update -qqq > log/update.log 2>&1 ; then
+  if sudo apt-get update -qqq > log/update.log 2>&1 ; then
     echo -e "\033[0;32m OK! \033[0m"
   else
     echo -e "\033[0;31m FAILED!: \033[0m"
@@ -22,7 +22,7 @@ apt_update() {
 }
 
 apt_install() {
-  apt-get install -qqq -y "$@"
+  sudo apt-get install -qqq -y "$@"
 }
 
 install() {
@@ -41,95 +41,60 @@ install_base() {
   apt_install python3-pip python3-setuptools
 
   pip3 install --upgrade pip
-  pip3 install dataclasses
-  pip3 install numpy
-  pip3 install scipy
-  pip3 install scikit-build
-  pip3 install pandas
-  pip3 install opencv-python
-  pip3 install matplotlib
+  pip3 install --user dataclasses
+  pip3 install --user numpy
+  pip3 install --user scipy
+  pip3 install --user scikit-build
+  pip3 install --user pandas
+  pip3 install --user opencv-python
+  pip3 install --user matplotlib
+}
+
+build_cmake_project() {
+  # Go into repo
+  cd "$SRC_PATH/$1" || return
+
+  # Prepare for build
+  mkdir -p build
+  cd build || return
+  cmake .. \
+    -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+    -DCMAKE_INSTALL_PREFIX="$PREFIX"
+
+  # Compile and install
+  make -j2 && make install
 }
 
 # $1 - Git Repo URL
-# $2 - Repo folder name
+# $2 - Destination
 clone_git_repo() {
-  cd "$DOWNLOAD_PATH" || exit
+  cd "$SRC_PATH" || exit
   if [ ! -d "$2" ]; then
     git clone "$1" "$2"
   fi
   cd - > /dev/null || exit
 }
 
-# $1 - Git Repo URL
-# $2 - Repo folder name
-install_git_repo() {
-    # Clone repo
-    mkdir -p "$DOWNLOAD_PATH"
-    cd "$DOWNLOAD_PATH" || return
-    if [ ! -d "$2" ]; then
-      git clone "$1" "$2"
-    fi
-
-    # Go into repo
-    cd "$2" || return
-    # git pull
-
-    # Prepare for build
-    mkdir -p build
-    cd build || return
-    cmake .. \
-      -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-      -DCMAKE_INSTALL_PREFIX="$PREFIX"
-
-    # Compile and install
-    make -j2 && make install
-}
-
 # $1 - Mercurial Repo URL
 # $2 - Repo folder name
-install_hg_repo() {
-    # Clone repo
-    mkdir -p "$DOWNLOAD_PATH"
-    cd "$DOWNLOAD_PATH" || return
-    if [ ! -d "$2" ]; then
-      hg clone "$1" "$2"
-    fi
-
-    # Go into repo
-    cd "$2" || return
-    hg pull
-
-    # Prepare for build
-    mkdir -p build
-    cd build || return
-    cmake .. \
-      -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-      -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-      "$CMAKE_EXTRA_ARGS"
-
-    # Compile and install
-    make -j2 && make install
+clone_hg_repo() {
+  # Clone repo
+  mkdir -p "$SRC_PATH"
+  cd "$SRC_PATH" || return
+  if [ ! -d "$2" ]; then
+    hg clone "$1" "$2"
+  fi
 }
 
 # "$1" - Repo URL
 # "$2" - Repo folder name
-install_zip_repo() {
+download_zip_repo() {
   # Download repo
-  mkdir -p "$DOWNLOAD_PATH"
-  cd "$DOWNLOAD_PATH" || return
+  mkdir -p "$SRC_PATH"
+  cd "$SRC_PATH" || return
   if [ ! -f "$2".zip ]; then
     wget --no-check-certificate "$1" -O "$2".zip
   fi
   unzip -oqq "$2".zip
   cd "$2" || return
-
-  # Compile and install opencv
-  mkdir -p build
-  cd build || return
-  cmake .. \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-    "$CMAKE_EXTRA_ARGS"
-
-  make -j"$(nproc)" && make install
 }

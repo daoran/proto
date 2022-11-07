@@ -2,12 +2,12 @@
 set -e  # Exit on first error
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 PREFIX="$SCRIPTPATH"
-DOWNLOAD_PATH="$PREFIX/src"
+SRC_PATH="$PREFIX/src"
 source "config.bash"
 
 export DEBIAN_FRONTEND="noninteractive"
 export PREFIX=$PREFIX
-export DOWNLOAD_PATH=$DOWNLOAD_PATH
+export SRC_PATH=$SRC_PATH
 
 check_dir "$PREFIX/bin"
 check_dir "$PREFIX/include"
@@ -25,12 +25,10 @@ install eigen
 install lapacke
 install opencv
 install apriltag
-install apriltag-imgs
 # install octomap
-install fast
 install glew
 install sdl2
 # install glfw
-install stb
 # install suitesparse
 install yamlcpp
+install tiscamera
