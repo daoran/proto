@@ -1,18 +1,24 @@
 [submodule "third_party/src/tiscamera"]
 	path = third_party/src/tiscamera
 	url = https://github.com/TheImagingSource/tiscamera
+        ignore = dirty
 [submodule "third_party/src/fast"]
 	path = third_party/src/fast
 	url = https://github.com/edrosten/fast-C-src
+        ignore = dirty
 [submodule "third_party/src/apriltag"]
 	path = third_party/src/apriltag
 	url = https://github.com/AprilRobotics/apriltag
+        ignore = dirty
 [submodule "third_party/src/apriltag-imgs"]
 	path = third_party/src/apriltag-imgs
 	url = https://github.com/AprilRobotics/apriltag-imgs
+        ignore = dirty
 [submodule "third_party/src/stb"]
 	path = third_party/src/stb
 	url = https://github.com/nothings/stb
+        ignore = dirty
 [submodule "proto_parts"]
 	path = proto_parts
 	url = https://github.com/chutsu/proto_parts
+        ignore = dirty
