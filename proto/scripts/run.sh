@@ -105,10 +105,10 @@ run_memcheck() {
 run_all_tests() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-    cd ~/projects/proto/proto
-    time make libproto
-    time make test_proto
-    ./build/bin/test_proto
+    cd ~/projects/proto/proto \
+      && clear \
+      && make test_proto \
+      && ./build/bin/test_proto
   " C-m C-m
   exit
 }
@@ -123,9 +123,10 @@ run_test() {
 
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-    cd ~/projects/proto/proto
-    make test_proto
-    ./build/bin/test_proto --target $1
+    cd ~/projects/proto/proto \
+      && clear \
+      && make test_proto \
+      && ./build/bin/test_proto --target $1
   " C-m C-m
   exit
 }
@@ -164,7 +165,7 @@ dev_aprilgrid() {
 # gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
-# run_all_tests
+run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error

@@ -80,7 +80,7 @@ help:
 	@echo "\033[1;34m[make targets]:\033[0m"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; \
-		{printf "\033[1;36m%-7s\033[0m%s\n", $$1, $$2}'
+		{printf "\033[1;36m%-20s\033[0m%s\n", $$1, $$2}'
 
 default: dirs $(LIBPROTO) shaders test_data
 
@@ -88,7 +88,7 @@ dirs:
 	@mkdir -p $(BLD_DIR)
 	@mkdir -p $(BIN_DIR)
 
-clean:
+clean:  ## Clean build directory
 	@rm -rf $(BLD_DIR)
 	@rm -rf $(BIN_DIR)
 
@@ -98,7 +98,7 @@ shaders: dirs
 test_data: dirs
 	@cp -r test_data $(BIN_DIR)
 
-libproto: dirs
+libproto: dirs  ## Compile libproto
 	@echo "Building [libproto.a]"
 	@python3 scripts/make_cmodule.py --infile proto.h
 	@echo "CC [proto.c]"
@@ -107,31 +107,31 @@ libproto: dirs
 	@$(AR) $(ARFLAGS) $(BLD_DIR)/libproto.a $(BLD_DIR)/proto.o > /dev/null 2>&1
 	@rm proto.c
 
-test_proto: dirs
+test_proto: dirs  ## Compile libproto unittests
 	@echo "CC [test_proto.c]"
 	@python3 scripts/make_cmodule.py -in proto.h -test true
 	@$(CC) $(CFLAGS) test_proto.c -o $(BIN_DIR)/test_proto $(DEPS)
 	@rm test_proto.c
 
-test_aprilgrid: dirs
+test_aprilgrid: dirs  ## Compile test_aprilgrid
 	@echo "CC [test_aprilgrid.c]"
 	@python3 scripts/make_cmodule.py -in aprilgrid.h -test true
 	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BIN_DIR)/test_aprilgrid $(DEPS)
 	@rm test_aprilgrid.c
 
-test_tis: dirs
+test_tis: dirs  ## Compile test_tis
 	@echo "CC [test_tis.c]"
 	@python3 scripts/make_cmodule.py -in tis.h -test true
 	@$(CC) $(CFLAGS) test_tis.c -o $(BIN_DIR)/test_tis $(DEPS)
 	@rm test_tis.c
 
-test_sbgc: dirs
+test_sbgc: dirs  ## Compile test_sbgc
 	@echo "CC [test_sbgc.c]"
 	@python3 scripts/make_cmodule.py -in sbgc.h -test true
 	@$(CC) $(CFLAGS) test_sbgc.c -o $(BIN_DIR)/test_sbgc $(DEPS)
 	@rm test_sbgc.c
 
-test_ubx: dirs
+test_ubx: dirs  ## Compile test_ubx
 	@echo "CC [test_ubx.c]"
 	@python3 scripts/make_cmodule.py -in ubx.h -test true
 	@$(CC) $(CFLAGS) test_ubx.c -o $(BIN_DIR)/test_ubx $(DEPS)
