@@ -2,7 +2,7 @@
 BLD_DIR := build
 BIN_DIR := build/bin
 INC_DIR := $(PWD)
-DEPS_DIR := third_party
+DEPS_DIR := ../third_party
 TESTS_DIR := tests
 
 
@@ -44,12 +44,12 @@ TIS_LIBS:=$(shell pkg-config gstreamer-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config gstreamer-video-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config gobject-introspection-1.0 --libs)
 TIS_LIBS+=$(shell pkg-config tcam --libs)
-APRILTAG_LIBS := -lapriltag
+APRILTAG_LIBS := -L$(DEPS_DIR)/lib -lapriltag
 
 
 # DEPENDENCIES
-DEPS=-L$(BLD_DIR) \
-  -lproto \
+DEPS= \
+  -L$(BLD_DIR) -lproto \
 	$(APRILTAG_LIBS) \
 	$(CERES_LIBS) \
 	$(OPENGL_LIBS) \

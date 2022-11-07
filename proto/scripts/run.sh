@@ -326,8 +326,8 @@ dev_aprilgrid() {
 # run_test test_ba_factor_eval
 # run_test test_vision_factor_setup
 # run_test test_vision_factor_eval
-run_test test_calib_gimbal_factor_setup
-# run_test test_calib_gimbal_factor_eval
+# run_test test_calib_gimbal_factor_setup
+run_test test_calib_gimbal_factor_eval
 # run_test test_imu_buf_setup
 # run_test test_imu_buf_add
 # run_test test_imu_buf_clear
