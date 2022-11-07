@@ -82,7 +82,7 @@ run_memcheck() {
 # python3 proto.py TestSimulation.test_sim_arm
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
-# python3 proto.py TestSandbox.test_gimbal
+python3 proto.py TestSandbox.test_gimbal
 
 ###############################################################################
 # C
@@ -165,7 +165,7 @@ dev_aprilgrid() {
 # gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
-run_all_tests
+# run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
@@ -328,7 +328,7 @@ run_all_tests
 # run_test test_vision_factor_setup
 # run_test test_vision_factor_eval
 # run_test test_calib_gimbal_factor_setup
-run_test test_calib_gimbal_factor_eval
+# run_test test_calib_gimbal_factor_eval
 # run_test test_imu_buf_setup
 # run_test test_imu_buf_add
 # run_test test_imu_buf_clear
