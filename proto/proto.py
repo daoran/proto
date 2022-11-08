@@ -7587,11 +7587,14 @@ class GimbalSandbox:
     ]
 
     # -- Add views
-    nb_views = 5
+    num_views = 5
+    num_joints = len(self.joint_angles)
+
+    joint_angle_data = []
     view_data = [[], []]
     factor_ids = []
 
-    for view_idx in range(nb_views):
+    for view_idx in range(num_views):
       # -- Perturb joint angles for a different view
       self.joint_angles[0] += np.random.uniform(-0.1, 0.1)
       self.joint_angles[1] += np.random.uniform(-0.1, 0.1)
@@ -7603,6 +7606,7 @@ class GimbalSandbox:
           graph.add_param(euler_angle_setup(self.joint_angles[1])),
           graph.add_param(euler_angle_setup(self.joint_angles[2]))
       ]
+      joint_angle_data.append(copy.deepcopy(self.joint_angles))
 
       # -- Add camera measurements
       for cam_idx in range(2):
@@ -7621,9 +7625,7 @@ class GimbalSandbox:
             cam_params_ids[cam_idx],
         ]
 
-        cam_data["joints"] = self.joint_angles
         view_data[cam_idx].append(cam_data)
-
         for i in range(cam_data["num_measurements"]):
           tag_id = cam_data["tag_ids"][i]
           corner_idx = cam_data["corner_idxs"][i]
@@ -7645,10 +7647,10 @@ class GimbalSandbox:
             assert factor.check_jacobian(fvars, 7, "J_cam_exts")
             assert factor.check_jacobian(fvars, 8, "J_cam_params")
 
-      # -- Perturb estimated joint angles
-      for i in range(3):
-        joint_id = view_joints[i]
-        graph.params[joint_id].param[0] += np.random.uniform(-0.05, 0.05)
+      # # -- Perturb estimated joint angles
+      # for i in range(3):
+      #   joint_id = view_joints[i]
+      #   graph.params[joint_id].param[0] += np.random.uniform(-0.05, 0.05)
 
     # Solve factor graph
     # graph.solve(debug)
@@ -7659,7 +7661,6 @@ class GimbalSandbox:
       # -- Save camera parameters
       calib_file.write(f"num_cams: {len(self.cam_params)}\n")
       calib_file.write(f"num_links: {len(self.links)}\n")
-      calib_file.write(f"num_views: {len(view_data[0])}\n")
       calib_file.write("\n")
       for cam_idx, cam_params in enumerate(self.cam_params):
         cam_str = f"cam{cam_idx}"
@@ -7681,29 +7682,26 @@ class GimbalSandbox:
         qw, qx, qy, qz = tf_quat(cam_ext)
         tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
         calib_file.write(f"cam{cam_idx}_exts: [{tf_str}]\n")
-      # -- Save fiducial extrinsics
-      T_BF = inv(self.T_WB) @ self.T_WF
-      rx, ry, rz = tf_trans(T_BF)
-      qw, qx, qy, qz = tf_quat(T_BF)
-      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      calib_file.write(f"fiducial_exts: [{tf_str}]\n")
       # -- Save gimbal links
       for link_idx, link_ext in enumerate(self.links):
         rx, ry, rz = tf_trans(pose2tf(link_ext))
         qw, qx, qy, qz = tf_quat(pose2tf(link_ext))
         tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
         calib_file.write(f"link{link_idx}_exts: [{tf_str}]\n")
+      # -- Save fiducial extrinsics
+      T_BF = inv(self.T_WB) @ self.T_WF
+      rx, ry, rz = tf_trans(T_BF)
+      qw, qx, qy, qz = tf_quat(T_BF)
+      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+      calib_file.write(f"fiducial_exts: [{tf_str}]\n")
       # -- Clean up
       calib_file.close()
 
       # Save camera data
       for cam_idx, view in enumerate(view_data):
         for view_idx, cam_data in enumerate(view):
-          joints_str = ', '.join([str(x) for x in cam_data['joints']])
           view_file = open(f"/tmp/sim_gimbal/cam{cam_idx}/{view_idx}.dat", "w")
           view_file.write(f"num_corners: {cam_data['num_measurements']}\n")
-          view_file.write(f"num_joints: {len(cam_data['joints'])}\n")
-          view_file.write(f"joints: [{joints_str}]\n")
           view_file.write("\n")
 
           view_file.write(f"#tag_id,corner_idx,px,py,pz,kp_x,kp_y\n")
@@ -7718,6 +7716,18 @@ class GimbalSandbox:
             view_file.write(f"{pt[0]},{pt[1]},{pt[2]},")
             view_file.write(f"{kp[0]},{kp[1]}\n")
           view_file.close()
+
+      # Save joints data
+      joints_file = open(f"/tmp/sim_gimbal/joint_angles.dat", "w")
+      joints_file.write(f"num_views: {len(view_data[0])}\n")
+      joints_file.write(f"num_joints: {num_joints}\n")
+      joints_file.write(f"\n")
+      joints_str = ','.join([f"joint{i}" for i in range(num_joints)])
+      joints_file.write(f"#ts,{joints_str}\n")
+      for i, data in enumerate(joint_angle_data):
+        joints_str = ','.join([str(x) for x in data])
+        joints_file.write(f"{i},{joints_str}\n")
+      joints_file.close()
 
 
 ###############################################################################
