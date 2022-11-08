@@ -21,7 +21,7 @@ docs: ## Build docs
 	@sphinx-autobuild docs/source docs/build/html
 
 build: ## Build libproto
-	@cd proto && make -s
+	@cd proto && make -s libproto
 
 tests: ## Run unittests
 	@cd proto && make -s tests

@@ -82,7 +82,7 @@ run_memcheck() {
 # python3 proto.py TestSimulation.test_sim_arm
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
-python3 proto.py TestSandbox.test_gimbal
+# python3 proto.py TestSandbox.test_gimbal
 
 ###############################################################################
 # C
@@ -126,7 +126,7 @@ run_test() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && ./build/bin/test_proto --target $1
+      && valgrind --leak-check=full ./build/bin/test_proto --target $1
   " C-m C-m
   exit
 }
@@ -341,6 +341,7 @@ dev_aprilgrid() {
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
+run_test test_calib_gimbal_load
 # PROTO-SIM
 # run_test test_load_sim_features
 # run_test test_load_sim_imu_data

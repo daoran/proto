@@ -7,7 +7,7 @@
 // #define USE_DATA_STRUCTURES
 #define USE_CBLAS
 #define USE_LAPACK
-#define USE_CERES
+// #define USE_CERES
 #define USE_STB_IMAGE
 // #define USE_GUI
 
@@ -241,6 +241,7 @@ size_t string_copy(char *dst, const char *src);
 void string_cat(char *dst, const char *src);
 char *string_malloc(const char *s);
 char *string_strip(char *s);
+char *string_strip_char(char *s, const char c);
 
 int **load_iarrays(const char *csv_path, int *nb_arrays);
 real_t **load_darrays(const char *csv_path, int *nb_arrays);
@@ -297,7 +298,7 @@ void *darray_remove(darray_t *array, int i);
 int darray_expand(darray_t *array);
 int darray_contract(darray_t *array);
 
-// LIST ////////////////////////////////////////////////////////////////////////
+// LIST //////////////////////////////////////////////////////////////////////
 
 typedef struct list_node_t list_node_t;
 struct list_node_t {
@@ -329,7 +330,7 @@ int list_remove_destroy(list_t *list,
                         int (*cmp)(const void *, const void *),
                         void (*free_func)(void *));
 
-// STACK ///////////////////////////////////////////////////////////////////////
+// STACK /////////////////////////////////////////////////////////////////////
 
 typedef struct mstack_node_t mstack_node_t;
 struct mstack_node_t {
@@ -351,7 +352,7 @@ void mstack_destroy(mstack_t *s);
 int mstack_push(mstack_t *s, void *value);
 void *mstack_pop(mstack_t *s);
 
-// QUEUE ///////////////////////////////////////////////////////////////////////
+// QUEUE /////////////////////////////////////////////////////////////////////
 
 typedef struct queue_t {
   int count;
@@ -450,7 +451,7 @@ int tcp_client_setup(tcp_client_t *client,
                      const int server_port);
 int tcp_client_loop(tcp_client_t *client);
 
-// HTTP ////////////////////////////////////////////////////////////////////////
+// HTTP //////////////////////////////////////////////////////////////////////
 
 /**
  * HTTP Status Code
@@ -615,6 +616,7 @@ void print_matrix(const char *prefix,
                   const size_t m,
                   const size_t n);
 void print_vector(const char *prefix, const real_t *v, const size_t n);
+void vec2str(const real_t *v, const int n, char *s);
 
 void eye(real_t *A, const size_t m, const size_t n);
 void ones(real_t *A, const size_t m, const size_t n);
@@ -884,7 +886,7 @@ image_t *image_load(const char *file_path);
 void image_print_properties(const image_t *img);
 void image_free(image_t *img);
 
-// GEOMETRY ////////////////////////////////////////////////////////////////////
+// GEOMETRY //////////////////////////////////////////////////////////////////
 
 void linear_triangulation(const real_t P_i[3 * 4],
                           const real_t P_j[3 * 4],
@@ -892,7 +894,7 @@ void linear_triangulation(const real_t P_i[3 * 4],
                           const real_t z_j[2],
                           real_t p[3]);
 
-// RADTAN //////////////////////////////////////////////////////////////////////
+// RADTAN ////////////////////////////////////////////////////////////////////
 
 void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
 void radtan4_point_jacobian(const real_t params[4],
@@ -902,7 +904,7 @@ void radtan4_params_jacobian(const real_t params[4],
                              const real_t p[2],
                              real_t J_param[2 * 4]);
 
-// EQUI ////////////////////////////////////////////////////////////////////////
+// EQUI //////////////////////////////////////////////////////////////////////
 
 void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
 void equi4_point_jacobian(const real_t params[4],
@@ -912,7 +914,7 @@ void equi4_params_jacobian(const real_t params[4],
                            const real_t p[2],
                            real_t J_param[2 * 4]);
 
-// PINHOLE /////////////////////////////////////////////////////////////////////
+// PINHOLE ///////////////////////////////////////////////////////////////////
 
 real_t pinhole_focal(const int image_width, const real_t fov);
 void pinhole_K(const real_t params[4], real_t K[3 * 3]);
@@ -925,7 +927,7 @@ void pinhole_params_jacobian(const real_t params[4],
                              const real_t x[2],
                              real_t J[2 * 4]);
 
-// PINHOLE-RADTAN4 /////////////////////////////////////////////////////////////
+// PINHOLE-RADTAN4 ///////////////////////////////////////////////////////////
 
 void pinhole_radtan4_project(const real_t params[8],
                              const real_t p_C[3],
@@ -937,7 +939,7 @@ void pinhole_radtan4_params_jacobian(const real_t params[8],
                                      const real_t p_C[3],
                                      real_t J[2 * 8]);
 
-// PINHOLE-EQUI4 ///////////////////////////////////////////////////////////////
+// PINHOLE-EQUI4 /////////////////////////////////////////////////////////////
 
 void pinhole_equi4_project(const real_t params[8],
                            const real_t p_C[3],
@@ -959,7 +961,7 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 #define EXTRINSICS_PARAM 4
 #define CAM_PARAM 5
 
-// POSE ////////////////////////////////////////////////////////////////////////
+// POSE //////////////////////////////////////////////////////////////////////
 
 typedef struct pose_t {
   timestamp_t ts;
@@ -970,7 +972,7 @@ typedef struct pose_t {
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_print(const char *prefix, const pose_t *pose);
 
-// VELOCITY ////////////////////////////////////////////////////////////////////
+// VELOCITY //////////////////////////////////////////////////////////////////
 
 typedef struct velocity_t {
   timestamp_t ts;
@@ -979,7 +981,7 @@ typedef struct velocity_t {
 
 void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
 
-// IMU BIASES /////////////////////////////////////////////////////////////////
+// IMU BIASES ////////////////////////////////////////////////////////////////
 
 typedef struct imu_biases_t {
   timestamp_t ts;
@@ -992,7 +994,7 @@ void imu_biases_setup(imu_biases_t *sb,
                       const real_t ba[3],
                       const real_t bg[3]);
 
-// FEATURE /////////////////////////////////////////////////////////////////////
+// FEATURE ///////////////////////////////////////////////////////////////////
 
 #define MAX_FEATURES 10000
 
@@ -1017,7 +1019,7 @@ feature_t *features_add(features_t *features,
                         const real_t *param);
 void features_remove(features_t *features, const int feature_id);
 
-// EXTRINSICS //////////////////////////////////////////////////////////////////
+// EXTRINSICS ////////////////////////////////////////////////////////////////
 
 typedef struct extrinsics_t {
   real_t pos[3];
@@ -1027,7 +1029,7 @@ typedef struct extrinsics_t {
 void extrinsics_setup(extrinsics_t *extrinsics, const real_t *param);
 void extrinsics_print(const char *prefix, const extrinsics_t *exts);
 
-// JOINT ANGLE /////////////////////////////////////////////////////////////////
+// JOINT ANGLE ///////////////////////////////////////////////////////////////
 
 typedef struct joint_angle_t {
   int joint_idx;
@@ -1039,13 +1041,13 @@ void joint_angle_setup(joint_angle_t *joint,
                        const real_t *param);
 void joint_angle_print(const char *prefix, const joint_angle_t *joint);
 
-// CAMERA PARAMS ///////////////////////////////////////////////////////////////
+// CAMERA PARAMS /////////////////////////////////////////////////////////////
 
 typedef struct camera_params_t {
   int cam_idx;
   int resolution[2];
-  char proj_model[20];
-  char dist_model[20];
+  char proj_model[30];
+  char dist_model[30];
   real_t data[8];
 } camera_params_t;
 
@@ -1057,7 +1059,7 @@ void camera_params_setup(camera_params_t *camera,
                          const real_t *data);
 void camera_params_print(const camera_params_t *camera);
 
-// POSE FACTOR /////////////////////////////////////////////////////////////////
+// POSE FACTOR ///////////////////////////////////////////////////////////////
 
 #define FACTOR_EVAL_PTR                                                        \
   int (*factor_eval)(const void *factor,                                       \
@@ -1104,7 +1106,7 @@ int pose_factor_eval(const void *factor,
                      real_t *residuals,
                      real_t **jacobians);
 
-// BA FACTOR ///////////////////////////////////////////////////////////////////
+// BA FACTOR /////////////////////////////////////////////////////////////////
 
 typedef struct ba_factor_t {
   const pose_t *pose;
@@ -1128,7 +1130,7 @@ int ba_factor_eval(ba_factor_t *factor,
                    real_t *residuals,
                    real_t **jacobians);
 
-// CAMERA FACTOR ///////////////////////////////////////////////////////////////
+// CAMERA FACTOR /////////////////////////////////////////////////////////////
 
 typedef struct vision_factor_t {
   const pose_t *pose;
@@ -1154,7 +1156,7 @@ int vision_factor_eval(vision_factor_t *factor,
                        real_t *residuals,
                        real_t **Jacobians);
 
-// CALIB GIMBAL FACTOR /////////////////////////////////////////////////////////
+// CALIB GIMBAL FACTOR ///////////////////////////////////////////////////////
 
 typedef struct calib_gimbal_factor_t {
   const extrinsics_t *fiducial;
@@ -1198,7 +1200,7 @@ int calib_gimbal_factor_eval(calib_gimbal_factor_t *factor,
                              real_t *residuals,
                              real_t **jacobians);
 
-// IMU FACTOR //////////////////////////////////////////////////////////////////
+// IMU FACTOR ////////////////////////////////////////////////////////////////
 
 #define MAX_IMU_BUF_SIZE 1000
 
@@ -1331,6 +1333,29 @@ int solver_add_factor(solver_t *solver, void *factor, int factor_type);
 int solver_eval(solver_t *solver);
 void solver_solve(solver_t *solver);
 
+// CALIBRATION ///////////////////////////////////////////////////////////////
+
+typedef struct calib_gimbal_view_t {
+  int view_idx;
+  int cam_idx;
+} calib_gimbal_view_t;
+
+typedef struct calib_gimbal_t {
+  camera_params_t **cam_params;
+  extrinsics_t **cam_exts;
+  extrinsics_t *fiducial;
+  extrinsics_t **links;
+  int num_cams;
+  int num_links;
+
+  calib_gimbal_view_t **views;
+  int num_views;
+} calib_gimbal_t;
+
+void calib_gimbal_setup(calib_gimbal_t *calib);
+STATUS calib_gimbal_load(calib_gimbal_t *calib, const char *data_path);
+void calib_gimbal_free(calib_gimbal_t *calib);
+
 /******************************************************************************
  * DATASET
  ******************************************************************************/
@@ -1347,7 +1372,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
  * SIM
  ******************************************************************************/
 
-// SIM FEATURES ////////////////////////////////////////////////////////////////
+// SIM FEATURES //////////////////////////////////////////////////////////////
 
 typedef struct sim_features_t {
   real_t **features;
@@ -1357,7 +1382,7 @@ typedef struct sim_features_t {
 sim_features_t *sim_features_load(const char *csv_path);
 void sim_features_free(sim_features_t *features_data);
 
-// SIM IMU DATA ////////////////////////////////////////////////////////////////
+// SIM IMU DATA //////////////////////////////////////////////////////////////
 
 typedef struct sim_imu_data_t {
   real_t **data;
@@ -1367,7 +1392,7 @@ typedef struct sim_imu_data_t {
 sim_imu_data_t *sim_imu_data_load(const char *csv_path);
 void sim_imu_data_free(sim_imu_data_t *imu_data);
 
-// SIM CAM DATA ////////////////////////////////////////////////////////////////
+// SIM CAM DATA //////////////////////////////////////////////////////////////
 
 typedef struct sim_camera_frame_t {
   timestamp_t ts;
@@ -1400,7 +1425,7 @@ real_t **sim_create_features(const real_t origin[3],
  *****************************************************************************/
 #ifdef USE_GUI
 
-// OPENGL UTILS ////////////////////////////////////////////////////////////////
+// OPENGL UTILS //////////////////////////////////////////////////////////////
 
 GLfloat gl_deg2rad(const GLfloat d);
 GLfloat gl_rad2deg(const GLfloat r);
@@ -1467,14 +1492,14 @@ void gl_lookat(const GLfloat eye[3],
                const GLfloat up[3],
                GLfloat V[4 * 4]);
 
-// SHADER //////////////////////////////////////////////////////////////////////
+// SHADER ////////////////////////////////////////////////////////////////////
 
 GLuint gl_shader_compile(const char *shader_src, const int type);
 GLuint gl_shaders_link(const GLuint vertex_shader,
                        const GLuint fragment_shader,
                        const GLuint geometry_shader);
 
-// GL PROGRAM //////////////////////////////////////////////////////////////////
+// GL PROGRAM ////////////////////////////////////////////////////////////////
 
 typedef struct gl_entity_t {
   GLfloat T[4 * 4];
@@ -1502,7 +1527,7 @@ int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2 * 2]);
 int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3 * 3]);
 int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4 * 4]);
 
-// GL-CAMERA ///////////////////////////////////////////////////////////////////
+// GL-CAMERA /////////////////////////////////////////////////////////////////
 
 typedef struct gl_camera_t {
   int *window_width;
@@ -1543,7 +1568,7 @@ void gl_camera_zoom(gl_camera_t *camera,
                     const float dx,
                     const float dy);
 
-// GL-PRIMITIVES ///////////////////////////////////////////////////////////////
+// GL-PRIMITIVES /////////////////////////////////////////////////////////////
 
 void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]);
 void gl_cube_cleanup(const gl_entity_t *entity);
@@ -1561,7 +1586,7 @@ void gl_grid_setup(gl_entity_t *entity);
 void gl_grid_cleanup(const gl_entity_t *entity);
 void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera);
 
-// GUI /////////////////////////////////////////////////////////////////////////
+// GUI ///////////////////////////////////////////////////////////////////////
 
 typedef struct gui_t {
   int screen_width;
@@ -1592,7 +1617,7 @@ void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);
 void gui_loop(gui_t *gui);
 
-// IMSHOW //////////////////////////////////////////////////////////////////////
+// IMSHOW ////////////////////////////////////////////////////////////////////
 
 typedef struct imshow_t {
   SDL_Window *window;
@@ -1940,7 +1965,34 @@ char *string_strip(char *s) {
 
   // Trim trailing space
   end = s + strlen(s) - 1;
-  while (end > s && *end == ' ') {
+  while (end > s && (*end == ' ' || *end == '\n')) {
+    end--;
+  }
+
+  // Write new null terminator character
+  end[1] = '\0';
+
+  return s;
+}
+
+/**
+ * Strip specific character `c` from string `s`.
+ */
+char *string_strip_char(char *s, const char c) {
+  char *end;
+
+  // Trim leading space
+  while (*s == c) {
+    s++;
+  }
+
+  if (*s == 0) { // All spaces?
+    return s;
+  }
+
+  // Trim trailing space
+  end = s + strlen(s) - 1;
+  while (end > s && *end == c) {
     end--;
   }
 
@@ -2344,7 +2396,7 @@ void csv_free(real_t **data, const int nb_rows) {
 
 #ifdef USE_DATA_STRUCTURES
 
-// DARRAY //////////////////////////////////////////////////////////////////////
+// DARRAY ////////////////////////////////////////////////////////////////////
 
 darray_t *darray_new(size_t element_size, size_t initial_max) {
   assert(element_size > 0);
@@ -2581,7 +2633,7 @@ int darray_contract(darray_t *array) {
   return darray_resize(array, (size_t) new_size + 1);
 }
 
-// LIST ////////////////////////////////////////////////////////////////////////
+// LIST //////////////////////////////////////////////////////////////////////
 
 list_t *list_new() {
   list_t *list = calloc(1, sizeof(list_t));
@@ -2802,7 +2854,7 @@ int list_remove_destroy(list_t *list,
   return 0;
 }
 
-// STACK ///////////////////////////////////////////////////////////////////////
+// STACK /////////////////////////////////////////////////////////////////////
 
 mstack_t *stack_new() {
   mstack_t *s = MALLOC(mstack_t, 1);
@@ -2879,7 +2931,7 @@ void *mstack_pop(mstack_t *s) {
   return value;
 }
 
-// QUEUE ///////////////////////////////////////////////////////////////////////
+// QUEUE /////////////////////////////////////////////////////////////////////
 
 queue_t *queue_new() {
   queue_t *q = calloc(1, sizeof(queue_t));
@@ -2931,7 +2983,7 @@ void *queue_last(queue_t *q) {
   return NULL;
 }
 
-// HASHMAP /////////////////////////////////////////////////////////////////////
+// HASHMAP ///////////////////////////////////////////////////////////////////
 
 static inline int default_cmp(void *a, void *b) {
   return strcmp(a, b);
@@ -3473,7 +3525,7 @@ int tcp_client_loop(tcp_client_t *client) {
   return 0;
 }
 
-// HTTP ////////////////////////////////////////////////////////////////////////
+// HTTP //////////////////////////////////////////////////////////////////////
 
 static char b64_encode_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -4277,6 +4329,20 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
     idx++;
   }
   printf("\n");
+}
+
+/**
+ * Convert vector string
+ */
+void vec2str(const real_t *v, const int n, char *s) {
+  s[0] = '[';
+  for (int i = 0; i < n; i++) {
+    sprintf(s + strlen(s), "%f", v[i]);
+    if (i < (n - 1)) {
+      strcat(s + strlen(s), ", ");
+    }
+  }
+  strcat(s + strlen(s), "]");
 }
 
 /**
@@ -9614,6 +9680,8 @@ int imu_factor_eval(imu_factor_t *factor,
   return 0;
 }
 
+// CALIBRATION ///////////////////////////////////////////////////////////////
+
 // SOLVER ////////////////////////////////////////////////////////////////////
 
 void solver_setup(solver_t *solver) {
@@ -9789,6 +9857,270 @@ int solver_eval(solver_t *solver) {
 //   #<{(|   printf("solver took: %.4fs\n", solve_time); |)}>#
 //   #<{(| } |)}>#
 // }
+
+// CALIBRATION ///////////////////////////////////////////////////////////////
+
+/**
+ * Setup gimbal calibration data
+ */
+void calib_gimbal_setup(calib_gimbal_t *calib) {
+  calib->cam_params = NULL;
+  calib->cam_exts = NULL;
+  calib->fiducial = NULL;
+  calib->links = NULL;
+  calib->num_cams = 0;
+  calib->num_links = 0;
+
+  calib->views = NULL;
+  calib->num_views = 0;
+}
+
+/**
+ * Skip line
+ */
+static void parse_skip_line(FILE *fp) {
+  assert(fp != NULL);
+  const size_t buf_len = 9046;
+  char buf[9046] = {0};
+  fgets(buf, buf_len, fp);
+}
+
+/**
+ * Parse integer vector from string line.
+ * @returns `0` for success or `-1` for failure
+ */
+static int parse_vector_line(char *line, const char *type, void *data, int n) {
+  assert(line != NULL);
+  assert(data != NULL);
+  char entry[MAX_LINE_LENGTH] = {0};
+  int index = 0;
+
+  for (size_t i = 0; i < strlen(line); i++) {
+    char c = line[i];
+    if (c == '[' || c == ' ') {
+      continue;
+    }
+
+    if (c == ',' || c == ']' || c == '\n') {
+      if (strcmp(type, "int") == 0) {
+        ((int *) data)[index] = strtod(entry, NULL);
+      } else if (strcmp(type, "double") == 0) {
+        ((double *) data)[index] = strtod(entry, NULL);
+      } else {
+        FATAL("Invalid type [%s]\n", type);
+      }
+      index++;
+      memset(entry, '\0', sizeof(char) * 100);
+    } else {
+      entry[strlen(entry)] = c;
+    }
+  }
+
+  if (index != n) {
+    return -1;
+  }
+
+  return 0;
+}
+
+static void parse_key_value(FILE *fp,
+                            const char *key,
+                            const char *value_type,
+                            void *value) {
+  assert(fp != NULL);
+  assert(key != NULL);
+  assert(value_type != NULL);
+  assert(value != NULL);
+
+  // Parse line
+  const size_t buf_len = 1024;
+  char buf[1024] = {0};
+  if (fgets(buf, buf_len, fp) == NULL) {
+    FATAL("Failed to parse [%s]\n", key);
+  }
+
+  // Split key-value
+  char delim[2] = ":";
+  char *key_str = strtok(buf, delim);
+  char *value_str = strtok(NULL, delim);
+  key_str = string_strip(key_str);
+  value_str = string_strip(value_str);
+
+  // Check key matches
+  if (strcmp(key_str, key) != 0) {
+    FATAL("Failed to parse [%s]\n", key);
+  }
+
+  // Typecase value
+  if (value_type == NULL) {
+    FATAL("Value type not set!\n");
+  }
+
+  // Parse value
+  if (strcmp(value_type, "int") == 0) {
+    *(int *) value = atoi(value_str);
+  } else if (strcmp(value_type, "double") == 0) {
+    *(double *) value = atof(value_str);
+  } else if (strcmp(value_type, "uint64_t") == 0) {
+    *(uint64_t *) value = atol(value_str);
+  } else if (strcmp(value_type, "string") == 0) {
+    value_str = string_strip_char(value_str, '"');
+    string_copy(value, value_str);
+  } else if (strcmp(value_type, "vec2i") == 0) {
+    parse_vector_line(value_str, "int", value, 2);
+  } else if (strcmp(value_type, "vec2d") == 0) {
+    parse_vector_line(value_str, "double", value, 2);
+  } else if (strcmp(value_type, "vec4d") == 0) {
+    parse_vector_line(value_str, "double", value, 4);
+  } else if (strcmp(value_type, "pose") == 0) {
+    parse_vector_line(value_str, "double", value, 6);
+  } else {
+    FATAL("Invalid value type [%s]\n", value_type);
+  }
+}
+
+static STATUS calib_gimbal_load_config(calib_gimbal_t *calib,
+                                       const char *data_path) {
+  // Form config path
+  char conf_path[100] = {0};
+  string_cat(conf_path, data_path);
+  string_cat(conf_path, "/calib.config");
+
+  // Open config file
+  FILE *conf = fopen(conf_path, "r");
+  if (conf == NULL) {
+    LOG_ERROR("Failed to open [%s]!\n", conf_path);
+    return -1;
+  }
+
+  // Parse configuration
+  // -- Parse general
+  parse_key_value(conf, "num_cams", "int", &calib->num_cams);
+  parse_key_value(conf, "num_links", "int", &calib->num_links);
+  parse_skip_line(conf);
+  // -- Parse camera parameters
+  calib->cam_params = MALLOC(camera_params_t *, calib->num_cams);
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    real_t proj_params[4] = {0};
+    real_t dist_params[4] = {0};
+
+    camera_params_t *cam_params = MALLOC(camera_params_t, 1);
+    cam_params->cam_idx = cam_idx;
+
+    parse_skip_line(conf);
+    parse_key_value(conf, "resolution", "vec2i", cam_params->resolution);
+    parse_key_value(conf, "proj_model", "string", cam_params->proj_model);
+    parse_key_value(conf, "dist_model", "string", cam_params->dist_model);
+    parse_key_value(conf, "proj_params", "vec4d", proj_params);
+    parse_key_value(conf, "dist_params", "vec4d", dist_params);
+    parse_skip_line(conf);
+
+    cam_params->data[0] = proj_params[0];
+    cam_params->data[1] = proj_params[1];
+    cam_params->data[2] = proj_params[2];
+    cam_params->data[3] = proj_params[3];
+
+    cam_params->data[4] = dist_params[0];
+    cam_params->data[5] = dist_params[1];
+    cam_params->data[6] = dist_params[2];
+    cam_params->data[7] = dist_params[3];
+
+    calib->cam_params[cam_idx] = cam_params;
+  }
+  // -- Parse camera extrinsics
+  calib->cam_exts = MALLOC(extrinsics_t *, calib->num_cams);
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    char key[30] = {0};
+    real_t pose[7] = {0};
+    sprintf(key, "cam%d_exts", cam_idx);
+    parse_key_value(conf, key, "pose", pose);
+
+    calib->cam_exts[cam_idx] = MALLOC(extrinsics_t, 1);
+    extrinsics_setup(calib->cam_exts[cam_idx], pose);
+  }
+  // -- Parse fiducial
+  {
+    real_t pose[7] = {0};
+    parse_key_value(conf, "fiducial_exts", "pose", pose);
+    calib->fiducial = MALLOC(extrinsics_t, 1);
+    extrinsics_setup(calib->fiducial, pose);
+  }
+  // -- Parse links
+  calib->links = MALLOC(extrinsics_t *, calib->num_links);
+  for (int link_idx = 0; link_idx < calib->num_links; link_idx++) {
+    char key[30] = {0};
+    real_t pose[7] = {0};
+    sprintf(key, "link%d_exts", link_idx);
+    parse_key_value(conf, key, "pose", pose);
+
+    calib->links[link_idx] = MALLOC(extrinsics_t, 1);
+    extrinsics_setup(calib->links[link_idx], pose);
+  }
+
+  // camera_params_print(calib->cam_params[0]);
+  // camera_params_print(calib->cam_params[1]);
+  // extrinsics_print("cam0_exts", calib->cam_exts[0]);
+  // extrinsics_print("cam1_exts", calib->cam_exts[1]);
+  // extrinsics_print("fiducial_exts", calib->fiducial);
+  // extrinsics_print("link0_exts", calib->links[0]);
+  // extrinsics_print("link1_exts", calib->links[1]);
+  // extrinsics_print("link2_exts", calib->links[2]);
+
+  // Clean up
+  fclose(conf);
+
+  return 0;
+}
+
+STATUS calib_gimbal_load(calib_gimbal_t *calib, const char *data_path) {
+  // Setup calib data
+  calib_gimbal_setup(calib);
+
+  // Load config
+  if (calib_gimbal_load_config(calib, data_path) != 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
+void calib_gimbal_free(calib_gimbal_t *calib) {
+  if (calib->cam_params) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      free(calib->cam_params[cam_idx]);
+    }
+    free(calib->cam_params);
+  }
+
+  if (calib->cam_exts) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      free(calib->cam_exts[cam_idx]);
+    }
+    free(calib->cam_exts);
+  }
+
+  if (calib->links) {
+    for (int link_idx = 0; link_idx < calib->num_links; link_idx++) {
+      free(calib->links[link_idx]);
+    }
+    free(calib->links);
+  }
+
+  if (calib->fiducial) {
+    free(calib->fiducial);
+  }
+
+  calib->num_cams = 0;
+  calib->num_links = 0;
+
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    free(calib->views[view_idx]);
+  }
+  if (calib->views) {
+    free(calib->views);
+  }
+  calib->num_views = 0;
+}
 
 /******************************************************************************
  * DATASET
@@ -15839,6 +16171,8 @@ int test_imu_factor_eval() {
   return 0;
 }
 
+#ifdef USE_CERES
+
 /**
  * This is the equivalent of a use-defined CostFunction in the C++ Ceres API.
  * This is passed as a callback to the Ceres C API, which internally converts
@@ -15929,6 +16263,8 @@ int test_ceres_example() {
   return 0;
 }
 
+#endif // USE_CERES
+
 int test_solver_setup() {
   solver_t solver;
   solver_setup(&solver);
@@ -15998,6 +16334,15 @@ int test_solver_eval() {
   /* Clean up */
   free(cam_views);
   sim_camera_data_free(cam_data);
+
+  return 0;
+}
+
+int test_calib_gimbal_load() {
+  const char *data_path = "/tmp/sim_gimbal";
+  calib_gimbal_t calib_data;
+  MU_ASSERT(calib_gimbal_load(&calib_data, data_path) == 0);
+  calib_gimbal_free(&calib_data);
 
   return 0;
 }
@@ -16804,9 +17149,12 @@ void test_suite() {
   MU_ADD_TEST(test_imu_factor_propagate_step);
   MU_ADD_TEST(test_imu_factor_setup);
   MU_ADD_TEST(test_imu_factor_eval);
+#ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
+#endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
   MU_ADD_TEST(test_solver_eval);
+  MU_ADD_TEST(test_calib_gimbal_load);
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);
