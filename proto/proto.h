@@ -1371,6 +1371,15 @@ void calib_gimbal_setup(calib_gimbal_t *calib);
 void calib_gimbal_print(calib_gimbal_t *calib);
 void calib_gimbal_free(calib_gimbal_t *calib);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
+void calib_gimbal_linearize(const calib_gimbal_t *calib,
+                            int **param_orders,
+                            int *param_sizes,
+                            int num_params,
+                            real_t *H,
+                            int H_m,
+                            int H_n,
+                            real_t *r,
+                            int r_size);
 
 /******************************************************************************
  * DATASET
@@ -1695,12 +1704,12 @@ void path_file_name(const char *path, char *fname) {
   assert(fname != NULL);
 
   char path_copy[9046] = {0};
-  strncpy(path_copy, path, strlen(path));
+  memcpy(path_copy, path, strlen(path));
 
   char *base = strrchr(path_copy, '/');
   base = base ? base + 1 : path_copy;
 
-  strncpy(fname, base, strlen(base));
+  memcpy(fname, base, strlen(base));
 }
 
 /**
@@ -1711,12 +1720,12 @@ void path_file_ext(const char *path, char *fext) {
   assert(fext != NULL);
 
   char path_copy[9046] = {0};
-  strncpy(path_copy, path, strlen(path));
+  memcpy(path_copy, path, strlen(path));
 
   char *base = strrchr(path_copy, '.');
   if (base) {
     base = base ? base + 1 : path_copy;
-    strncpy(fext, base, strlen(base));
+    memcpy(fext, base, strlen(base));
   } else {
     fext[0] = '\0';
   }
@@ -1730,10 +1739,10 @@ void path_dir_name(const char *path, char *dir_name) {
   assert(dir_name != NULL);
 
   char path_copy[9046] = {0};
-  strncpy(path_copy, path, strlen(path));
+  memcpy(path_copy, path, strlen(path));
 
   char *base = strrchr(path_copy, '/');
-  strncpy(dir_name, path_copy, base - path_copy);
+  memcpy(dir_name, path_copy, base - path_copy);
 }
 
 /**
@@ -1788,7 +1797,7 @@ char **list_files(const char *path, int *n) {
     string_cat(fp, namelist[i]->d_name);
 
     files[*n] = MALLOC(char, strlen(fp) + 1);
-    strncpy(files[*n], fp, strlen(fp));
+    memcpy(files[*n], fp, strlen(fp));
     files[*n][strlen(fp)] = '\0'; // strncpy does not null terminate
     (*n)++;
 
@@ -1828,10 +1837,14 @@ char *file_read(const char *fp) {
   fseek(f, 0, SEEK_SET);
 
   char *buf = MALLOC(char, len + 1);
-  if (buf) {
-    fread(buf, 1, len, f);
-    buf[len] = '\0';
+  if (buf == NULL) {
+    return NULL;
   }
+  const size_t read = fread(buf, 1, len, f);
+  if (read != len) {
+    FATAL("Failed to read file [%s]\n", fp);
+  }
+  buf[len] = '\0';
   fclose(f);
 
   return buf;
@@ -1940,8 +1953,8 @@ int file_copy(const char *src, const char *dst) {
  */
 size_t string_copy(char *dst, const char *src) {
   dst[0] = '\0';
-  strncpy(dst, src, strlen(src));
-  dst[strlen(src)] = '\0'; // strncpy does not null terminate
+  memcpy(dst, src, strlen(src));
+  dst[strlen(src)] = '\0'; // Null terminate
   return strlen(dst);
 }
 
@@ -1950,7 +1963,7 @@ size_t string_copy(char *dst, const char *src) {
  */
 void string_cat(char *dst, const char *src) {
   size_t dst_len = strlen(dst);
-  strncat(dst + dst_len, src, strlen(src));
+  strcat(dst + dst_len, src);
   dst[dst_len + strlen(src)] = '\0'; // strncat does not null terminate
 }
 
@@ -1960,8 +1973,8 @@ void string_cat(char *dst, const char *src) {
 char *string_malloc(const char *s) {
   assert(s != NULL);
   char *retval = MALLOC(char, strlen(s) + 1);
-  strncpy(retval, s, strlen(s));
-  retval[strlen(s)] = '\0'; // strncpy does not null terminate
+  memcpy(retval, s, strlen(s));
+  retval[strlen(s)] = '\0'; // Null terminate
   return retval;
 }
 
@@ -2274,7 +2287,7 @@ char **dsv_fields(const char *fp, const char delim, int *nb_fields) {
     if (line[0] != '#') {
       break;
     } else {
-      strncpy(field_line, line, strlen(line));
+      memcpy(field_line, line, strlen(line));
     }
   }
 
@@ -3401,7 +3414,8 @@ int ip_port_info(const int sockfd, char *ip, int *port) {
     *port = ntohs(s->sin6_port);
     inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
   }
-  strncpy(ip, ipstr, strlen(ipstr));
+  memcpy(ip, ipstr, strlen(ipstr));
+  ip[strlen(ip)] = '\0';
 
   return 0;
 }
@@ -3494,7 +3508,7 @@ int tcp_client_setup(tcp_client_t *client,
   assert(server_ip != NULL);
 
   // Setup client struct
-  strncpy(client->server_ip, server_ip, strlen(server_ip));
+  string_copy(client->server_ip, server_ip);
   client->server_port = server_port;
   client->sockfd = -1;
 
@@ -3964,7 +3978,8 @@ void ws_send(int connfd, const uint8_t *msg) {
 
   // Write
   uint8_t *frame_bytes = ws_frame_serialize(frame);
-  write(connfd, frame_bytes, frame->payload_size + 2);
+  const size_t wrote = write(connfd, frame_bytes, frame->payload_size + 2);
+  UNUSED(wrote);
 
   // Clean up
   free(frame_bytes);
@@ -4024,7 +4039,8 @@ int ws_handshake(const int connfd) {
   char *hash = ws_hash(ws_key);
   char resp[1024] = {0};
   snprintf(resp, sizeof(resp), WEBSOCKET_HANDSHAKE_RESPONSE, hash);
-  write(connfd, resp, strlen(resp));
+  const size_t wrote = write(connfd, resp, strlen(resp));
+  UNUSED(wrote);
   free(hash);
 
   return 0;
@@ -4693,7 +4709,8 @@ void mat_block_set(real_t *A,
   size_t idx = 0;
   for (size_t i = rs; i <= re; i++) {
     for (size_t j = cs; j <= ce; j++) {
-      mat_set(A, stride, i, j, block[idx]);
+      // mat_set(A, stride, i, j, block[idx]);
+      A[(i * stride) + j] = block[idx];
       idx++;
     }
   }
@@ -5282,6 +5299,7 @@ int __lapack_svd(
 int __svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
   int flag, i, its, j, jj, k, l, nm;
   double anorm, c, f, g, h, s, scale, x, y, z, *rv1;
+  l = 0;
 
   rv1 = MALLOC(double, n);
   if (rv1 == NULL) {
@@ -7787,8 +7805,8 @@ void camera_params_setup(camera_params_t *camera,
   camera->resolution[0] = cam_res[0];
   camera->resolution[1] = cam_res[1];
 
-  strncpy(camera->proj_model, proj_model, strlen(proj_model));
-  strncpy(camera->dist_model, dist_model, strlen(dist_model));
+  string_copy(camera->proj_model, proj_model);
+  string_copy(camera->dist_model, dist_model);
 
   camera->data[0] = data[0];
   camera->data[1] = data[1];
@@ -9401,11 +9419,11 @@ int imu_factor_eval(imu_factor_t *factor,
   real_t dq_dbg[3 * 3] = {0};
   real_t dba[3] = {0};
   real_t dbg[3] = {0};
-  mat_block_get(factor->F, 15, 0, 9, 3, 12, dr_dba);
-  mat_block_get(factor->F, 15, 0, 12, 3, 15, dr_dbg);
-  mat_block_get(factor->F, 15, 3, 9, 6, 12, dv_dba);
-  mat_block_get(factor->F, 15, 3, 12, 6, 15, dv_dbg);
-  mat_block_get(factor->F, 15, 6, 12, 9, 15, dq_dbg);
+  // mat_block_get(factor->F, 15, 0, 9, 3, 12, dr_dba);
+  // mat_block_get(factor->F, 15, 0, 12, 3, 15, dr_dbg);
+  // mat_block_get(factor->F, 15, 3, 9, 6, 12, dv_dba);
+  // mat_block_get(factor->F, 15, 3, 12, 6, 15, dv_dbg);
+  // mat_block_get(factor->F, 15, 6, 12, 9, 15, dq_dbg);
   dba[0] = ba_i[0] - factor->ba[0];
   dba[1] = ba_i[1] - factor->ba[1];
   dba[2] = ba_i[2] - factor->ba[2];
@@ -9458,8 +9476,8 @@ int imu_factor_eval(imu_factor_t *factor,
   const real_t g_W[3] = {0.0, 0.0, 10.0};
   const real_t Dt = factor->Dt;
   const real_t Dt_sq = Dt * Dt;
-  real_t C_i[3] = {0};
-  real_t C_it[3] = {0};
+  real_t C_i[3 * 3] = {0};
+  real_t C_it[3 * 3] = {0};
   quat2rot(q_i, C_i);
   mat_transpose(C_i, 3, 3, C_it);
 
@@ -10023,7 +10041,8 @@ static void parse_skip_line(FILE *fp) {
   assert(fp != NULL);
   const size_t buf_len = 9046;
   char buf[9046] = {0};
-  fgets(buf, buf_len, fp);
+  const char *read = fgets(buf, buf_len, fp);
+  UNUSED(read);
 }
 
 /**
@@ -10341,6 +10360,61 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
   return calib;
 }
 
+void calib_gimbal_linearize(const calib_gimbal_t *calib,
+                            int **param_orders,
+                            int *param_sizes,
+                            int num_params,
+                            real_t *H,
+                            int H_m,
+                            int H_n,
+                            real_t *r,
+                            int r_size) {
+  for (int i = 0; i < num_params; i++) {
+    int *idx_i = param_orders[i];
+    int size_i = param_sizes[i];
+    const real_t *J_i = jacs[i];
+
+    real_t *J_i_trans = {0};
+    mat_transpose(J_i, r_size, size_i, J_i_trans);
+
+    for (int j = i; j < num_params; j++) {
+      int *idx_j = param_orders[j];
+      int size_j = param_sizes[i];
+      const real_t *J_j = jacs[j];
+
+      real_t *H_ij = {0};
+      dot(J_i_trans, size_i, r_size, J_j, r_size, size_j, H_ij);
+
+      // Fill Hessian H
+      // H_ij = J_i' * J_j
+      // H_ji = H_ij'
+      int stride = H_size;
+      int rs = *idx_i;
+      int cs = *idx_j;
+      int re = rs + size_i;
+      int ce = cs + size_j;
+      if (i == j) {
+        mat_block_set(H, stride, rs, re, cs, ce, H_ij);
+      } else {
+        real_t *H_ji = {0};
+        mat_transpose(H_ij, size_i, size_j, H_ji);
+        mat_block_set(H, stride, rs, re, cs, ce, H_ij);
+        mat_block_set(H, stride, cs, ce, rs, re, H_ij);
+      }
+
+      // Fill in the R.H.S of H dx = g
+      // g = -J_i * r
+      mat_scale(J_i_trans, H_size, r_size, -1);
+      dot(J_i_trans, H_size, r_size, r, r_size, 1, g);
+    }
+  }
+
+  // Update parameter order
+  for (int i = 0; i < num_params; i++) {
+    param_orders[i] = param_orders[i] + param_sizes[i];
+  }
+}
+
 /******************************************************************************
  * DATASET
  ******************************************************************************/
@@ -10587,7 +10661,7 @@ static timestamp_t ts_from_path(const char *path) {
   path_file_ext(path, fext);
 
   char ts_str[128] = {0};
-  strncpy(ts_str, fname, strlen(fname) - strlen(fext) - 1);
+  memcpy(ts_str, fname, strlen(fname) - strlen(fext) - 1);
 
   char *ptr;
   return strtol(ts_str, &ptr, 10);
@@ -16568,94 +16642,77 @@ int test_calib_gimbal_load() {
 }
 
 int test_calib_gimbal_solve() {
-  // // Setup
-  // const char *data_path = "/tmp/sim_gimbal";
-  // calib_gimbal_t *calib = calib_gimbal_load(data_path);
-  // MU_ASSERT(calib != NULL);
+  // Setup
+  const char *data_path = "/tmp/sim_gimbal";
+  calib_gimbal_t *calib = calib_gimbal_load(data_path);
+  MU_ASSERT(calib != NULL);
 
-  // calib_gimbal_factor_t factors[2000];
-  // joint_angle_t **joint_angles = MALLOC(joint_angle_t *, calib->num_views);
-  // int num_factors = 0;
+  const real_t var[2] = {1.0, 1.0};
+  calib_gimbal_factor_t factors[2000];
+  int num_factors = 0;
 
-  // // struct timespec t = tic();
-  // const real_t var[2] = {1.0, 1.0};
+  // Setup factors
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
+      for (int i = 0; i < view->num_corners; i++) {
+        const int tag_id = view->tag_ids[i];
+        const int corner_idx = view->corner_indices[i];
+        const real_t *p_FFi = view->object_points[i];
+        const real_t *z = view->keypoints[i];
 
-  // // Setup factors
-  // for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
-  //   joint_angles[view_idx] = MALLOC(joint_angle_t, 3);
-  //   joint_angle_setup(&joint_angles[view_idx][0], 0, view->joints[0]);
-  //   joint_angle_setup(&joint_angles[view_idx][1], 1, view->joints[1]);
-  //   joint_angle_setup(&joint_angles[view_idx][2], 2, view->joints[2]);
+        calib_gimbal_factor_setup(&factors[num_factors],
+                                  calib->fiducial,
+                                  calib->links[0],
+                                  calib->links[1],
+                                  calib->links[2],
+                                  &calib->joints[view_idx][0],
+                                  &calib->joints[view_idx][1],
+                                  &calib->joints[view_idx][2],
+                                  calib->cam_exts[cam_idx],
+                                  calib->cam_params[cam_idx],
+                                  tag_id,
+                                  corner_idx,
+                                  p_FFi,
+                                  z,
+                                  var);
+        num_factors++;
+      }
+    }
+  }
 
-  //   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+  // Evaluate factors
+  int r_idx = 0;
+  int r_size = num_factors * 2;
+  real_t *r = CALLOC(real_t, r_size);
 
-  //     for (int i = 0; i < view->num_corners; i++) {
-  //       const int tag_id = view->tag_ids[i];
-  //       const int corner_idx = view->corner_indices[i];
-  //       const real_t *p_FFi = view->object_points[i];
-  //       const real_t *z = view->keypoints[i];
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      for (int i = 0; i < calib->views[view_idx][cam_idx]->num_corners; i++) {
+        real_t *params[14] = {calib->fiducial->pos,
+                              calib->fiducial->quat,
+                              calib->links[0]->pos,
+                              calib->links[0]->quat,
+                              calib->links[1]->pos,
+                              calib->links[1]->quat,
+                              calib->links[2]->pos,
+                              calib->links[2]->quat,
+                              calib->joints[view_idx][0].angle,
+                              calib->joints[view_idx][1].angle,
+                              calib->joints[view_idx][2].angle,
+                              calib->cam_exts[cam_idx]->pos,
+                              calib->cam_exts[cam_idx]->quat,
+                              calib->cam_params[cam_idx]->data};
 
-  //       calib_gimbal_factor_setup(&factors[num_factors],
-  //                                 calib->fiducial,
-  //                                 calib->links[0],
-  //                                 calib->links[1],
-  //                                 calib->links[2],
-  //                                 &joint_angles[view_idx][0],
-  //                                 &joint_angles[view_idx][1],
-  //                                 &joint_angles[view_idx][2],
-  //                                 calib->cam_exts[cam_idx],
-  //                                 calib->cam_params[cam_idx],
-  //                                 tag_id,
-  //                                 corner_idx,
-  //                                 p_FFi,
-  //                                 z,
-  //                                 var);
-  //       num_factors++;
-  //     }
-  //   }
-  // }
+        calib_gimbal_factor_eval(&factors[r_idx], params, &r[r_idx * 2], NULL);
+        r_idx++;
+      }
+    }
+  }
 
-  // // Evaluate factors
-  // int r_idx = 0;
-  // int r_size = num_factors * 2;
-  // real_t *r = CALLOC(real_t, r_size);
-
-  // for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-  //   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
-  //     for (int i = 0; i < calib->views[cam_idx][view_idx]->num_corners; i++)
-  //     {
-  //       real_t *params[14] = {calib->fiducial->pos,
-  //                             calib->fiducial->quat,
-  //                             calib->links[0]->pos,
-  //                             calib->links[0]->quat,
-  //                             calib->links[1]->pos,
-  //                             calib->links[1]->quat,
-  //                             calib->links[2]->pos,
-  //                             calib->links[2]->quat,
-  //                             joint_angles[view_idx][0].angle,
-  //                             joint_angles[view_idx][1].angle,
-  //                             joint_angles[view_idx][2].angle,
-  //                             calib->cam_exts[cam_idx]->pos,
-  //                             calib->cam_exts[cam_idx]->quat,
-  //                             calib->cam_params[cam_idx]->data};
-
-  //       calib_gimbal_factor_eval(&factors[r_idx], params, &r[r_idx * 2],
-  //       NULL); r_idx++;
-  //     }
-  //   }
-  // }
-
-  // // real_t r_sq[1] = {0};
-  // // dot(r, 1, r_size, r, r_size, 1, r_sq);
-  // // printf("r_sq: %f\n", r_sq[0]);
-
-  // // Clean up
-  // for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
-  //   free(joint_angles[view_idx]);
-  // }
-  // free(joint_angles);
-  // free(r);
-  // calib_gimbal_free(calib);
+  // Clean up
+  free(r);
+  calib_gimbal_free(calib);
 
   return 0;
 }

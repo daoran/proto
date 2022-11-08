@@ -121,12 +121,14 @@ run_test() {
   # gdb -ex run -ex bt -ex quit --args ./test_proto --target "$1"
   # cd -
 
+      # && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/bin/test_proto --target $1
+
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/bin/test_proto --target $1
+      && ./build/bin/test_proto --target $1
   " C-m C-m
   exit
 }
@@ -165,7 +167,7 @@ dev_aprilgrid() {
 # gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
-# run_all_tests
+run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
@@ -341,7 +343,8 @@ dev_aprilgrid() {
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
-run_test test_calib_gimbal_load
+# run_test test_calib_gimbal_load
+run_test test_calib_gimbal_solve
 # PROTO-SIM
 # run_test test_load_sim_features
 # run_test test_load_sim_imu_data

@@ -106,7 +106,11 @@ void mu_print_log(const char *log_path) {
 
   /* Print log and close log file */
   char buf[9046] = {0};
-  fread(buf, 1, log_length, log_file);
+  const size_t read = fread(buf, 1, log_length, log_file);
+  if (read != log_length) {
+    printf("Failed to read log file [%s]\n", log_path);
+    exit(-1);
+  }
   printf("%s\n\n", buf);
   fflush(stdout);
   fclose(log_file);

@@ -8,6 +8,7 @@ TESTS_DIR := tests
 
 # COMPILER SETTINGS
 BUILD_TYPE := debug
+# BUILD_TYPE := release
 CC := gcc
 # CC := tcc
 
@@ -26,7 +27,7 @@ CFLAGS := \
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += -g -Wall -Wpedantic
 else
-	CFLAGS += -O3 -DNDEBUG
+	CFLAGS += -O3 -Wall -Wpedantic -DNDEBUG
 endif
 
 # LIBRARIES
