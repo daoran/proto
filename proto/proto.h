@@ -80,11 +80,11 @@
 
 /** Macro that adds the ability to switch between C / C++ style mallocs */
 #ifdef __cplusplus
-#define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * N);
-#define CALLOC(TYPE, N) (TYPE *) calloc(N, sizeof(TYPE));
+#define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
+#define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
 #else
-#define MALLOC(TYPE, N) malloc(sizeof(TYPE) * N);
-#define CALLOC(TYPE, N) calloc(N, sizeof(TYPE));
+#define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
+#define CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
 #endif
 
 /**
@@ -1039,7 +1039,7 @@ typedef struct joint_angle_t {
 
 void joint_angle_setup(joint_angle_t *joint,
                        const int joint_idx,
-                       const real_t *param);
+                       const real_t theta);
 void joint_angle_print(const char *prefix, const joint_angle_t *joint);
 
 // CAMERA PARAMS /////////////////////////////////////////////////////////////
@@ -1340,24 +1340,25 @@ typedef struct calib_gimbal_view_t {
   timestamp_t ts;
   int cam_idx;
   int view_idx;
-
-  real_t *joints;
-  int num_joints;
+  int num_corners;
 
   int *tag_ids;
   int *corner_indices;
   real_t **object_points;
   real_t **keypoints;
-  int num_corners;
 } calib_gimbal_view_t;
 
 typedef struct calib_gimbal_t {
-  camera_params_t **cam_params;
-  extrinsics_t **cam_exts;
-  extrinsics_t **links;
   extrinsics_t *fiducial;
+  extrinsics_t **cam_exts;
+  camera_params_t **cam_params;
   int num_cams;
+
+  extrinsics_t **links;
   int num_links;
+
+  joint_angle_t **joints;
+  int num_joints;
 
   calib_gimbal_view_t ***views;
   int num_views;
@@ -7751,11 +7752,10 @@ void extrinsics_print(const char *prefix, const extrinsics_t *exts) {
  */
 void joint_angle_setup(joint_angle_t *joint,
                        const int joint_idx,
-                       const real_t *param) {
+                       const real_t theta) {
   assert(joint != NULL);
-  assert(param != NULL);
   joint->joint_idx = joint_idx;
-  joint->angle[0] = param[0];
+  joint->angle[0] = theta;
 }
 
 /**
@@ -8637,7 +8637,7 @@ void gimbal_setup_joint(const int joint_idx,
   const real_t r_joint[3] = {0.0, 0.0, 0.0};
   tf_cr(C_joint, r_joint, T_joint);
 
-  joint_angle_setup(joint, joint_idx, &theta);
+  joint_angle_setup(joint, joint_idx, theta);
 }
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
@@ -9882,9 +9882,6 @@ void calib_gimbal_view_setup(calib_gimbal_view_t *view) {
   view->cam_idx = 0;
   view->view_idx = 0;
 
-  view->joints = NULL;
-  view->num_joints = 0;
-
   view->tag_ids = NULL;
   view->corner_indices = NULL;
   view->object_points = NULL;
@@ -9896,10 +9893,6 @@ void calib_gimbal_view_setup(calib_gimbal_view_t *view) {
  * Free gimbal calibration view
  */
 void calib_gimbal_view_free(calib_gimbal_view_t *view) {
-  if (view->num_joints) {
-    free(view->joints);
-  }
-
   if (view->num_corners) {
     free(view->tag_ids);
     free(view->corner_indices);
@@ -9921,11 +9914,7 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
   printf("ts: %ld\n", view->ts);
   printf("cam_idx: %d\n", view->cam_idx);
   printf("view_idx: %d\n", view->view_idx);
-  printf("\n");
-
-  // print_vector("joints", view->joints, view->num_joints);
   printf("num_corners: %d\n", view->num_corners);
-  printf("num_joints: %d\n", view->num_joints);
   printf("\n");
 
   printf("tag_id  corner_idx  object_point          keypoint\n");
@@ -9945,12 +9934,16 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
  * Setup gimbal calibration data
  */
 void calib_gimbal_setup(calib_gimbal_t *calib) {
+  calib->fiducial = NULL;
   calib->cam_params = NULL;
   calib->cam_exts = NULL;
-  calib->fiducial = NULL;
-  calib->links = NULL;
   calib->num_cams = 0;
+
+  calib->links = NULL;
   calib->num_links = 0;
+
+  calib->joints = NULL;
+  calib->num_joints = 0;
 
   calib->views = NULL;
   calib->num_views = 0;
@@ -9960,11 +9953,8 @@ void calib_gimbal_setup(calib_gimbal_t *calib) {
  * Free gimbal calibration data
  */
 void calib_gimbal_free(calib_gimbal_t *calib) {
-  if (calib->cam_params) {
-    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      free(calib->cam_params[cam_idx]);
-    }
-    free(calib->cam_params);
+  if (calib->fiducial) {
+    free(calib->fiducial);
   }
   if (calib->cam_exts) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
@@ -9972,22 +9962,33 @@ void calib_gimbal_free(calib_gimbal_t *calib) {
     }
     free(calib->cam_exts);
   }
+  if (calib->cam_params) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      free(calib->cam_params[cam_idx]);
+    }
+    free(calib->cam_params);
+  }
+
   if (calib->links) {
     for (int link_idx = 0; link_idx < calib->num_links; link_idx++) {
       free(calib->links[link_idx]);
     }
     free(calib->links);
   }
-  if (calib->fiducial) {
-    free(calib->fiducial);
+
+  if (calib->joints) {
+    for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+      free(calib->joints[view_idx]);
+    }
+    free(calib->joints);
   }
 
   if (calib->views) {
-    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
-        calib_gimbal_view_free(calib->views[cam_idx][view_idx]);
+    for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+      for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+        calib_gimbal_view_free(calib->views[view_idx][cam_idx]);
       }
-      free(calib->views[cam_idx]);
+      free(calib->views[view_idx]);
     }
     free(calib->views);
   }
@@ -10000,14 +10001,19 @@ void calib_gimbal_free(calib_gimbal_t *calib) {
  */
 void calib_gimbal_print(calib_gimbal_t *calib) {
   // Print
-  camera_params_print(calib->cam_params[0]);
-  camera_params_print(calib->cam_params[1]);
-  extrinsics_print("cam0_exts", calib->cam_exts[0]);
-  extrinsics_print("cam1_exts", calib->cam_exts[1]);
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    char cam_str[20] = {0};
+    sprintf(cam_str, "cam%d_exts", cam_idx);
+    extrinsics_print(cam_str, calib->cam_exts[cam_idx]);
+  }
+
+  for (int link_idx = 0; link_idx < calib->num_links; link_idx++) {
+    char link_str[20] = {0};
+    sprintf(link_str, "link%d_exts", link_idx);
+    extrinsics_print("link0_exts", calib->links[link_idx]);
+  }
+
   extrinsics_print("fiducial_exts", calib->fiducial);
-  extrinsics_print("link0_exts", calib->links[0]);
-  extrinsics_print("link1_exts", calib->links[1]);
-  extrinsics_print("link2_exts", calib->links[2]);
 }
 
 /**
@@ -10142,7 +10148,6 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
   // -- Parse general
   parse_key_value(conf, "num_cams", "int", &calib->num_cams);
   parse_key_value(conf, "num_links", "int", &calib->num_links);
-  parse_key_value(conf, "num_views", "int", &calib->num_views);
   parse_skip_line(conf);
   // -- Parse camera parameters
   calib->cam_params = MALLOC(camera_params_t *, calib->num_cams);
@@ -10184,13 +10189,6 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
     calib->cam_exts[cam_idx] = MALLOC(extrinsics_t, 1);
     extrinsics_setup(calib->cam_exts[cam_idx], pose);
   }
-  // -- Parse fiducial
-  {
-    real_t pose[7] = {0};
-    parse_key_value(conf, "fiducial_exts", "pose", pose);
-    calib->fiducial = MALLOC(extrinsics_t, 1);
-    extrinsics_setup(calib->fiducial, pose);
-  }
   // -- Parse links
   calib->links = MALLOC(extrinsics_t *, calib->num_links);
   for (int link_idx = 0; link_idx < calib->num_links; link_idx++) {
@@ -10202,11 +10200,58 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
     calib->links[link_idx] = MALLOC(extrinsics_t, 1);
     extrinsics_setup(calib->links[link_idx], pose);
   }
+  // -- Parse fiducial
+  {
+    real_t pose[7] = {0};
+    parse_key_value(conf, "fiducial_exts", "pose", pose);
+    calib->fiducial = MALLOC(extrinsics_t, 1);
+    extrinsics_setup(calib->fiducial, pose);
+  }
   // -- Clean up
   fclose(conf);
 
+  // Load joint angles
+  // -- Open joint angles file
+  char joints_path[100] = {0};
+  string_cat(joints_path, data_path);
+  string_cat(joints_path, "/joint_angles.dat");
+  FILE *joints_file = fopen(joints_path, "r");
+  if (joints_file == NULL) {
+    LOG_ERROR("Failed to open [%s]!\n", joints_path);
+    return NULL;
+  }
+  // -- Parse
+  parse_key_value(joints_file, "num_views", "int", &calib->num_views);
+  parse_key_value(joints_file, "num_joints", "int", &calib->num_joints);
+  parse_skip_line(joints_file);
+  parse_skip_line(joints_file);
+
+  calib->joints = MALLOC(joint_angle_t *, calib->num_views);
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    // Get line
+    const size_t buf_len = 1024;
+    char buf[1024] = {0};
+    if (fgets(buf, buf_len, joints_file) == NULL) {
+      FATAL("Failed to view parse data!\n");
+    }
+
+    // Parse line
+    calib->joints[view_idx] = MALLOC(joint_angle_t, calib->num_joints);
+    real_t *data = MALLOC(real_t, calib->num_joints + 1);
+    parse_vector_line(buf, "double", data, calib->num_joints + 1);
+    for (int joint_idx = 0; joint_idx < calib->num_joints; joint_idx++) {
+      joint_angle_setup(&calib->joints[view_idx][joint_idx],
+                        joint_idx,
+                        data[joint_idx + 1]);
+    }
+    free(data);
+  }
+  // -- Clean up
+  fclose(joints_file);
+
   // Load views
-  calib->views = MALLOC(calib_gimbal_view_t **, calib->num_cams);
+  char ***view_files = MALLOC(char *, calib->num_cams);
+  // -- List view files
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
     // Camera directory
     char cam_path[100] = {0};
@@ -10217,17 +10262,18 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
 
     // List files
     int num_files = 0;
-    char **file_list = list_files(cam_path, &num_files);
-    calib->views[cam_idx] = MALLOC(calib_gimbal_view_t *, calib->num_views);
-    for (int view_idx = 0; view_idx < num_files; view_idx++) {
-      // Pre-check
-      if (file_list[view_idx] == NULL) {
-        break;
-      }
+    view_files[cam_idx] = list_files(cam_path, &num_files);
+  }
 
+  calib->views = MALLOC(calib_gimbal_view_t **, calib->num_views);
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    calib->views[view_idx] = MALLOC(calib_gimbal_view_t *, calib->num_cams);
+
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
       // Get file name
       char fname[1024] = {0};
-      path_file_name(file_list[view_idx], fname);
+      char *view_fpath = view_files[cam_idx][view_idx];
+      path_file_name(view_fpath, fname);
 
       // Extract timestamp from filename
       char delim[2] = ".";
@@ -10235,24 +10281,23 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
       timestamp_t ts = atol(ts_str);
 
       // Load view data
-      FILE *view_file = fopen(file_list[view_idx], "r");
+      FILE *view_file = fopen(view_fpath, "r");
       if (view_file == NULL) {
-        FATAL("Failed to open file [%s]\n", file_list[view_idx]);
+        FATAL("Failed to open file [%s]\n", view_fpath);
       }
-      // -- Parse general
+      // -- Parse data
+      int num_corners = 0;
+      parse_key_value(view_file, "num_corners", "int", &num_corners);
+      parse_skip_line(view_file);
+
       calib_gimbal_view_t *view = MALLOC(calib_gimbal_view_t, 1);
+      calib_gimbal_view_setup(view);
+
       view->ts = ts;
       view->cam_idx = cam_idx;
       view->view_idx = view_idx;
+      view->num_corners = num_corners;
 
-      parse_key_value(view_file, "num_corners", "int", &view->num_corners);
-      parse_key_value(view_file, "num_joints", "int", &view->num_joints);
-
-      view->joints = MALLOC(real_t, view->num_joints);
-      parse_key_value(view_file, "joints", "vec3d", view->joints);
-      parse_skip_line(view_file);
-
-      // -- Parse measurements
       view->tag_ids = MALLOC(int, view->num_corners);
       view->corner_indices = MALLOC(int, view->num_corners);
       view->object_points = MALLOC(real_t *, view->num_corners);
@@ -10279,12 +10324,19 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
       }
 
       // Clean up
-      calib->views[cam_idx][view_idx] = view;
+      calib->views[view_idx][cam_idx] = view;
       fclose(view_file);
-      free(file_list[view_idx]);
     }
-    free(file_list);
   }
+
+  // Clean up
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+      free(view_files[cam_idx][view_idx]);
+    }
+    free(view_files[cam_idx]);
+  }
+  free(view_files);
 
   return calib;
 }
@@ -16515,6 +16567,99 @@ int test_calib_gimbal_load() {
   return 0;
 }
 
+int test_calib_gimbal_solve() {
+  // // Setup
+  // const char *data_path = "/tmp/sim_gimbal";
+  // calib_gimbal_t *calib = calib_gimbal_load(data_path);
+  // MU_ASSERT(calib != NULL);
+
+  // calib_gimbal_factor_t factors[2000];
+  // joint_angle_t **joint_angles = MALLOC(joint_angle_t *, calib->num_views);
+  // int num_factors = 0;
+
+  // // struct timespec t = tic();
+  // const real_t var[2] = {1.0, 1.0};
+
+  // // Setup factors
+  // for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+  //   joint_angles[view_idx] = MALLOC(joint_angle_t, 3);
+  //   joint_angle_setup(&joint_angles[view_idx][0], 0, view->joints[0]);
+  //   joint_angle_setup(&joint_angles[view_idx][1], 1, view->joints[1]);
+  //   joint_angle_setup(&joint_angles[view_idx][2], 2, view->joints[2]);
+
+  //   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+
+  //     for (int i = 0; i < view->num_corners; i++) {
+  //       const int tag_id = view->tag_ids[i];
+  //       const int corner_idx = view->corner_indices[i];
+  //       const real_t *p_FFi = view->object_points[i];
+  //       const real_t *z = view->keypoints[i];
+
+  //       calib_gimbal_factor_setup(&factors[num_factors],
+  //                                 calib->fiducial,
+  //                                 calib->links[0],
+  //                                 calib->links[1],
+  //                                 calib->links[2],
+  //                                 &joint_angles[view_idx][0],
+  //                                 &joint_angles[view_idx][1],
+  //                                 &joint_angles[view_idx][2],
+  //                                 calib->cam_exts[cam_idx],
+  //                                 calib->cam_params[cam_idx],
+  //                                 tag_id,
+  //                                 corner_idx,
+  //                                 p_FFi,
+  //                                 z,
+  //                                 var);
+  //       num_factors++;
+  //     }
+  //   }
+  // }
+
+  // // Evaluate factors
+  // int r_idx = 0;
+  // int r_size = num_factors * 2;
+  // real_t *r = CALLOC(real_t, r_size);
+
+  // for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+  //   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+  //     for (int i = 0; i < calib->views[cam_idx][view_idx]->num_corners; i++)
+  //     {
+  //       real_t *params[14] = {calib->fiducial->pos,
+  //                             calib->fiducial->quat,
+  //                             calib->links[0]->pos,
+  //                             calib->links[0]->quat,
+  //                             calib->links[1]->pos,
+  //                             calib->links[1]->quat,
+  //                             calib->links[2]->pos,
+  //                             calib->links[2]->quat,
+  //                             joint_angles[view_idx][0].angle,
+  //                             joint_angles[view_idx][1].angle,
+  //                             joint_angles[view_idx][2].angle,
+  //                             calib->cam_exts[cam_idx]->pos,
+  //                             calib->cam_exts[cam_idx]->quat,
+  //                             calib->cam_params[cam_idx]->data};
+
+  //       calib_gimbal_factor_eval(&factors[r_idx], params, &r[r_idx * 2],
+  //       NULL); r_idx++;
+  //     }
+  //   }
+  // }
+
+  // // real_t r_sq[1] = {0};
+  // // dot(r, 1, r_size, r, r_size, 1, r_sq);
+  // // printf("r_sq: %f\n", r_sq[0]);
+
+  // // Clean up
+  // for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+  //   free(joint_angles[view_idx]);
+  // }
+  // free(joint_angles);
+  // free(r);
+  // calib_gimbal_free(calib);
+
+  return 0;
+}
+
 /******************************************************************************
  * TEST DATASET
  ******************************************************************************/
@@ -17324,6 +17469,7 @@ void test_suite() {
   MU_ADD_TEST(test_solver_setup);
   MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_calib_gimbal_load);
+  MU_ADD_TEST(test_calib_gimbal_solve);
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);
