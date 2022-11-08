@@ -7658,7 +7658,8 @@ class GimbalSandbox:
       calib_file = open(f"/tmp/sim_gimbal/calib.config", "w")
       # -- Save camera parameters
       calib_file.write(f"num_cams: {len(self.cam_params)}\n")
-      calib_file.write(f"num_joints: {len(self.links)}\n")
+      calib_file.write(f"num_links: {len(self.links)}\n")
+      calib_file.write(f"num_views: {len(view_data[0])}\n")
       calib_file.write("\n")
       for cam_idx, cam_params in enumerate(self.cam_params):
         cam_str = f"cam{cam_idx}"
@@ -7700,6 +7701,7 @@ class GimbalSandbox:
         for view_idx, cam_data in enumerate(view):
           joints_str = ', '.join([str(x) for x in cam_data['joints']])
           view_file = open(f"/tmp/sim_gimbal/cam{cam_idx}/{view_idx}.dat", "w")
+          view_file.write(f"num_corners: {cam_data['num_measurements']}\n")
           view_file.write(f"num_joints: {len(cam_data['joints'])}\n")
           view_file.write(f"joints: [{joints_str}]\n")
           view_file.write("\n")

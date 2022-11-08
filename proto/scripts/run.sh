@@ -126,7 +126,7 @@ run_test() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && valgrind --leak-check=full ./build/bin/test_proto --target $1
+      && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/bin/test_proto --target $1
   " C-m C-m
   exit
 }
