@@ -940,8 +940,8 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 #define SB_PARAM 2
 #define FEATURE_PARAM 3
 #define EXTRINSICS_PARAM 4
-#define JOINT_ANGLE_PARAM 5
-#define CAM_PARAM 6
+#define JOINT_PARAM 5
+#define CAMERA_PARAM 6
 
 // POSE //////////////////////////////////////////////////////////////////////
 
@@ -1344,6 +1344,7 @@ typedef struct calib_gimbal_t {
   calib_gimbal_view_t ***views;
   int num_views;
 
+  int idx_counter;
   void **params;
   int *param_types;
   int *param_indices;
@@ -1358,11 +1359,7 @@ void calib_gimbal_setup(calib_gimbal_t *calib);
 void calib_gimbal_print(calib_gimbal_t *calib);
 void calib_gimbal_free(calib_gimbal_t *calib);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
-void calib_gimbal_add_param(calib_gimbal_t *calib,
-                            void *param,
-                            int param_type,
-                            int param_index,
-                            int param_size);
+void calib_gimbal_add_param(calib_gimbal_t *calib, void *param, int param_type);
 void calib_gimbal_linearize(const calib_gimbal_t *calib,
                             int **param_orders,
                             int *param_sizes,
@@ -10082,7 +10079,44 @@ void calib_gimbal_free(calib_gimbal_t *calib) {
     free(calib->views);
   }
 
+  if (calib->num_params) {
+    free(calib->params);
+    free(calib->param_types);
+    free(calib->param_indices);
+    free(calib->param_sizes);
+  }
+
   free(calib);
+}
+
+void calib_gimbal_print_params(calib_gimbal_t *calib) {
+  for (int i = 0; i < calib->num_params; i++) {
+    char type[20] = {0};
+    switch (calib->param_types[i]) {
+      case POSE_PARAM:
+        string_copy(type, "POSE_PARAM");
+        break;
+      case SB_PARAM:
+        string_copy(type, "SB_PARAM");
+        break;
+      case FEATURE_PARAM:
+        string_copy(type, "FEATURE_PARAM");
+        break;
+      case EXTRINSICS_PARAM:
+        string_copy(type, "EXTRINSICS_PARAM");
+        break;
+      case JOINT_PARAM:
+        string_copy(type, "JOINT_PARAM");
+        break;
+      case CAMERA_PARAM:
+        string_copy(type, "CAMERA_PARAM");
+        break;
+    }
+    printf("param[%d], param_idx: %d, type: %s\n",
+           i,
+           calib->param_indices[i],
+           type);
+  }
 }
 
 /**
@@ -10420,9 +10454,12 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
   }
 
   // Parameters
-  calib->params = CALLOC(void *, CALIB_GIMBAL_EXPAND_SIZE);
-  calib->param_indices = CALLOC(int *, CALIB_GIMBAL_EXPAND_SIZE);
-  calib->param_sizes = CALLOC(int *, CALIB_GIMBAL_EXPAND_SIZE);
+  calib->idx_counter = 0;
+  calib->params = MALLOC(void *, CALIB_GIMBAL_EXPAND_SIZE);
+  calib->param_types = MALLOC(int, CALIB_GIMBAL_EXPAND_SIZE);
+  calib->param_indices = MALLOC(int, CALIB_GIMBAL_EXPAND_SIZE);
+  calib->param_sizes = MALLOC(int, CALIB_GIMBAL_EXPAND_SIZE);
+  calib->num_params = 0;
 
   // Clean up
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
@@ -10438,14 +10475,35 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
 
 void calib_gimbal_add_param(calib_gimbal_t *calib,
                             void *param,
-                            int param_type,
-                            int param_index,
-                            int param_size) {
-  // calib->params[calib->num_params] = param;
+                            int param_type) {
+  size_t param_size = 0;
+  switch (param_type) {
+    case POSE_PARAM:
+      param_size = 6;
+      break;
+    case SB_PARAM:
+      param_size = 9;
+      break;
+    case FEATURE_PARAM:
+      param_size = 3;
+      break;
+    case EXTRINSICS_PARAM:
+      param_size = 6;
+      break;
+    case JOINT_PARAM:
+      param_size = 1;
+      break;
+    case CAMERA_PARAM:
+      param_size = 8;
+      break;
+  }
+
+  calib->params[calib->num_params] = param;
   calib->param_types[calib->num_params] = param_type;
-  calib->param_indices[calib->num_params] = param_index;
+  calib->param_indices[calib->num_params] = calib->idx_counter;
   calib->param_sizes[calib->num_params] = param_size;
   calib->num_params++;
+  calib->idx_counter += param_size;
 }
 
 // void calib_gimbal_linearize(const calib_gimbal_t *calib,
@@ -15907,21 +15965,15 @@ int test_calib_gimbal_factor_eval() {
   real_t r[2] = {0};
 
   // Jacobians
-  // -- Fiducial Jacobians
   real_t J_fiducial[2 * 6] = {0};
-  // -- Link Jacobians
   real_t J_link0[2 * 6] = {0};
   real_t J_link1[2 * 6] = {0};
   real_t J_link2[2 * 6] = {0};
-  // -- Joint Jacobians
   real_t J_joint0[2 * 1] = {0};
   real_t J_joint1[2 * 1] = {0};
   real_t J_joint2[2 * 1] = {0};
-  // -- Camera Extrinsics Jacobians
   real_t J_cam_exts[2 * 6] = {0};
-  // -- Camera Parameters Jacobian
   real_t J_cam_params[2 * 8] = {0};
-  // -- Jacobians array
   real_t *jacs[9] = {J_fiducial,
                      J_link0,
                      J_link1,
@@ -16681,6 +16733,12 @@ int test_calib_gimbal_solve() {
 
   // Setup factors
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    // Links
+    joint_angle_t *joints = calib->joints[view_idx];
+    calib_gimbal_add_param(calib, &joints[0], JOINT_PARAM);
+    calib_gimbal_add_param(calib, &joints[1], JOINT_PARAM);
+    calib_gimbal_add_param(calib, &joints[2], JOINT_PARAM);
+
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
       calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
       for (int i = 0; i < view->num_corners; i++) {
@@ -16688,22 +16746,6 @@ int test_calib_gimbal_solve() {
         const int corner_idx = view->corner_indices[i];
         const real_t *p_FFi = view->object_points[i];
         const real_t *z = view->keypoints[i];
-
-        calib_gimbal_add_param(calib,
-                               &calib->joints[view_idx][0],
-                               0,
-                               JOINT_ANGLE_PARAM,
-                               1);
-        calib_gimbal_add_param(calib,
-                               &calib->joints[view_idx][1],
-                               1,
-                               JOINT_ANGLE_PARAM,
-                               1);
-        calib_gimbal_add_param(calib,
-                               &calib->joints[view_idx][2],
-                               2,
-                               JOINT_ANGLE_PARAM,
-                               1);
 
         calib_gimbal_factor_setup(&factors[num_factors],
                                   calib->fiducial,
@@ -16725,7 +16767,24 @@ int test_calib_gimbal_solve() {
     }
   }
 
-  // calib_gimbal_add_param(calib, &calib->links[0], EXTRINSICS_PARAM, 6);
+  // Links
+  for (int i = 0; i < 3; i++) {
+    calib_gimbal_add_param(calib, &calib->links[i], EXTRINSICS_PARAM);
+  }
+
+  // Camera extrinsics
+  for (int i = 0; i < calib->num_cams; i++) {
+    calib_gimbal_add_param(calib, &calib->cam_exts[i], EXTRINSICS_PARAM);
+  }
+
+  // Fiducial
+  calib_gimbal_add_param(calib, &calib->fiducial, EXTRINSICS_PARAM);
+
+  // Camera parameters
+  for (int i = 0; i < calib->num_cams; i++) {
+    calib_gimbal_add_param(calib, &calib->cam_params[i], CAMERA_PARAM);
+  }
+  calib_gimbal_print_params(calib);
 
   // Evaluate factors
   int r_idx = 0;
@@ -16745,7 +16804,64 @@ int test_calib_gimbal_solve() {
                              calib->cam_exts[cam_idx]->data,
                              calib->cam_params[cam_idx]->data};
 
-        calib_gimbal_factor_eval(&factors[r_idx], params, &r[r_idx * 2], NULL);
+        real_t J_fiducial[2 * 6] = {0};
+        real_t J_link0[2 * 6] = {0};
+        real_t J_link1[2 * 6] = {0};
+        real_t J_link2[2 * 6] = {0};
+        real_t J_joint0[2 * 1] = {0};
+        real_t J_joint1[2 * 1] = {0};
+        real_t J_joint2[2 * 1] = {0};
+        real_t J_cam_exts[2 * 6] = {0};
+        real_t J_cam_params[2 * 8] = {0};
+        real_t *jacs[9] = {J_fiducial,
+                           J_link0,
+                           J_link1,
+                           J_link2,
+                           J_joint0,
+                           J_joint1,
+                           J_joint2,
+                           J_cam_exts,
+                           J_cam_params};
+        calib_gimbal_factor_eval(&factors[r_idx], params, &r[r_idx * 2], jacs);
+
+        // for (int i = 0; i < 9; i++) {
+        //   int *idx_i = calib->param_indices[i];
+        //   int size_i = calib->param_sizes[i];
+        //   const real_t *J_i = jacs[i];
+        //   real_t *J_i_trans = CALLOC(real_t, 2 * size_i);
+        //   mat_transpose(J_i, r_size, size_i, J_i_trans);
+
+        //   for (int j = i; j < num_params; j++) {
+        //     int *idx_j = calib->param_indices[j];
+        //     int size_j = calib->param_sizes[j];
+        //     const real_t *J_j = jacs[j];
+        //     real_t *H_ij = MALLOC(real_t, size_i * size_j);
+        //     dot(J_i_trans, size_i, r_size, J_j, r_size, size_j, H_ij);
+
+        //     // Fill Hessian H
+        //     // H_ij = J_i' * J_j
+        //     // H_ji = H_ij'
+        //     int stride = H_size;
+        //     int rs = *idx_i;
+        //     int cs = *idx_j;
+        //     int re = rs + size_i;
+        //     int ce = cs + size_j;
+        //     if (i == j) {
+        //       mat_block_set(H, stride, rs, re, cs, ce, H_ij);
+        //     } else {
+        //       real_t *H_ji = MALLOC(real_t, size_i * size_j);
+        //       mat_transpose(H_ij, size_i, size_j, H_ji);
+        //       mat_block_set(H, stride, rs, re, cs, ce, H_ij);
+        //       mat_block_set(H, stride, cs, ce, rs, re, H_ji);
+        //     }
+
+        //     // Fill in the R.H.S of H dx = g
+        //     // g = -J_i * r
+        //     mat_scale(J_i_trans, H_size, r_size, -1);
+        //     dot(J_i_trans, H_size, r_size, r, r_size, 1, g);
+        //   }
+        // }
+
         r_idx++;
       }
     }

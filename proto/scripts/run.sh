@@ -128,7 +128,7 @@ run_test() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && ./build/bin/test_proto --target $1
+      && valgrind --leak-check=full ./build/bin/test_proto --target $1
   " C-m C-m
   exit
 }
@@ -167,7 +167,7 @@ dev_aprilgrid() {
 # gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
-run_all_tests
+# run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
