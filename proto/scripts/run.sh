@@ -128,7 +128,8 @@ run_test() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && valgrind --leak-check=full ./build/bin/test_proto --target $1
+      && valgrind --leak-check=full ./build/bin/test_proto --target $1 \
+      && python3 scripts/plot_matrix.py --input /tmp/H_damped.csv
   " C-m C-m
   exit
 }

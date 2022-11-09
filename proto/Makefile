@@ -12,6 +12,7 @@ BUILD_TYPE := debug
 CC := gcc
 # CC := tcc
 
+STB_CFLAGS:=-I$(DEPS_DIR)/src/stb
 SDL2_CFLAGS:=$(shell sdl2-config --cflags)
 TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
 TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
@@ -22,6 +23,7 @@ CFLAGS := \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
 	$(SDL2_CFLAGS) \
+	$(STB_CFLAGS) \
 	$(TIS_CFLAGS)
 
 ifeq ($(BUILD_TYPE), debug)
