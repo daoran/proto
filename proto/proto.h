@@ -1393,7 +1393,8 @@ void calib_gimbal_linearize(const calib_gimbal_t *calib,
                             const int sv_size,
                             param_order_t *hash,
                             real_t *H,
-                            real_t *g);
+                            real_t *g,
+                            real_t *r);
 
 /******************************************************************************
  * DATASET
@@ -10396,7 +10397,7 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
     for (int joint_idx = 0; joint_idx < calib->num_joints; joint_idx++) {
       joint_angle_setup(&calib->joints[view_idx][joint_idx],
                         joint_idx,
-                        data[joint_idx + 1]);
+                        data[joint_idx + 1] + 0.01);
     }
     free(data);
   }
@@ -10580,7 +10581,8 @@ void calib_gimbal_linearize(const calib_gimbal_t *calib,
                             const int sv_size,
                             param_order_t *hash,
                             real_t *H,
-                            real_t *g) {
+                            real_t *g,
+                            real_t *r) {
   // Evaluate factors
   int factor_idx = 0;
   int r_size = 2;
@@ -10599,7 +10601,7 @@ void calib_gimbal_linearize(const calib_gimbal_t *calib,
                              calib->cam_exts[cam_idx]->data,
                              calib->cam_params[cam_idx]->data};
 
-        real_t r[2] = {0};
+        real_t factor_r[2] = {0};
         real_t J_fiducial[2 * 6] = {0};
         real_t J_link0[2 * 6] = {0};
         real_t J_link1[2 * 6] = {0};
@@ -10618,8 +10620,14 @@ void calib_gimbal_linearize(const calib_gimbal_t *calib,
                            J_joint2,
                            J_cam_exts,
                            J_cam_params};
-        calib_gimbal_factor_eval(&calib->factors[factor_idx], params, r, jacs);
+        calib_gimbal_factor_eval(&calib->factors[factor_idx],
+                                 params,
+                                 factor_r,
+                                 jacs);
         int num_params = 9;
+
+        r[factor_idx * 2] = factor_r[0];
+        r[factor_idx * 2 + 1] = factor_r[1];
 
         for (int i = 0; i < num_params; i++) {
           int idx_i = hmgets(hash, params[i]).idx;
@@ -10684,7 +10692,7 @@ void calib_gimbal_linearize(const calib_gimbal_t *calib,
           // Fill in the R.H.S of H dx = g, where g = -J_i' * r
           real_t *g_i = MALLOC(real_t, size_i);
           mat_scale(Jt_i, size_i, r_size, -1);
-          dot(Jt_i, size_i, r_size, r, r_size, 1, g_i);
+          dot(Jt_i, size_i, r_size, factor_r, r_size, 1, g_i);
           for (int g_idx = 0; g_idx < size_i; g_idx++) {
             g[idx_i + g_idx] += g_i[g_idx];
           }
@@ -10714,17 +10722,17 @@ static void calib_gimbal_param_update(const calib_gimbal_t *calib,
         data[1] += dx[idx + 1];
         data[2] += dx[idx + 2];
 
-        const real_t dalpha[3] = {dx[idx + 3], dx[idx + 4], dx[idx + 5]};
-        real_t q[4] = {data[3], data[4], data[5], data[6]};
-        real_t dq[4] = {0};
-        real_t q_new[4] = {0};
-        quat_delta(dalpha, dq);
-        quat_mul(q, dq, q_new);
+        // const real_t dalpha[3] = {dx[idx + 3], dx[idx + 4], dx[idx + 5]};
+        // real_t q[4] = {data[3], data[4], data[5], data[6]};
+        // real_t dq[4] = {0};
+        // real_t q_new[4] = {0};
+        // quat_delta(dalpha, dq);
+        // quat_mul(q, dq, q_new);
 
-        data[3] = q_new[0];
-        data[4] = q_new[1];
-        data[5] = q_new[3];
-        data[6] = q_new[4];
+        // data[3] = q_new[0];
+        // data[4] = q_new[1];
+        // data[5] = q_new[3];
+        // data[6] = q_new[4];
       }
 
       break;
@@ -10739,21 +10747,21 @@ static void calib_gimbal_param_update(const calib_gimbal_t *calib,
         }
         break;
       case EXTRINSICS_PARAM: {
-        data[0] += dx[idx];
-        data[1] += dx[idx + 1];
-        data[2] += dx[idx + 2];
+        // data[0] += dx[idx];
+        // data[1] += dx[idx + 1];
+        // data[2] += dx[idx + 2];
 
-        const real_t dalpha[3] = {dx[idx + 3], dx[idx + 4], dx[idx + 5]};
-        real_t q[4] = {data[3], data[4], data[5], data[6]};
-        real_t dq[4] = {0};
-        real_t q_new[4] = {0};
-        quat_delta(dalpha, dq);
-        quat_mul(q, dq, q_new);
+        // const real_t dalpha[3] = {dx[idx + 3], dx[idx + 4], dx[idx + 5]};
+        // real_t q[4] = {data[3], data[4], data[5], data[6]};
+        // real_t dq[4] = {0};
+        // real_t q_new[4] = {0};
+        // quat_delta(dalpha, dq);
+        // quat_mul(q, dq, q_new);
 
-        data[3] = q_new[0];
-        data[4] = q_new[1];
-        data[5] = q_new[3];
-        data[6] = q_new[4];
+        // data[3] = q_new[0];
+        // data[4] = q_new[1];
+        // data[5] = q_new[3];
+        // data[6] = q_new[4];
       } break;
       case JOINT_PARAM:
         data[0] += dx[idx];
@@ -16947,9 +16955,15 @@ int test_calib_gimbal_solve() {
   param_order_t *hash = calib_gimbal_param_order(calib, &sv_size);
 
   // Linearize
+  int r_size = calib->num_factors * 2;
   real_t *H = CALLOC(real_t, sv_size * sv_size);
   real_t *g = CALLOC(real_t, sv_size);
-  calib_gimbal_linearize(calib, sv_size, hash, H, g);
+  real_t *r = CALLOC(real_t, r_size);
+  calib_gimbal_linearize(calib, sv_size, hash, H, g, r);
+
+  real_t r_sq[1] = {0};
+  dot(r, 1, r_size, r, r_size, 1, r_sq);
+  printf("cost: %f\n", 0.5 * r_sq[0]);
 
   real_t *dx = CALLOC(real_t, sv_size);
   for (int i = 0; i < sv_size; i++) {
@@ -16960,14 +16974,25 @@ int test_calib_gimbal_solve() {
   // Update parameters
   calib_gimbal_param_update(calib, hash, dx, sv_size);
 
+  {
+    real_t r_sq[1] = {0};
+    zeros(H, sv_size, sv_size);
+    zeros(g, sv_size, 1);
+    zeros(r, r_size, 1);
+    calib_gimbal_linearize(calib, sv_size, hash, H, g, r);
+    dot(r, 1, r_size, r, r_size, 1, r_sq);
+    printf("cost: %f\n", 0.5 * r_sq[0]);
+  }
+
   // Clean up
   hmfree(hash);
-  mat_save("/tmp/H.csv", H, sv_size, sv_size);
-  mat_save("/tmp/g.csv", g, sv_size, 1);
-  mat_save("/tmp/dx.csv", dx, sv_size, 1);
+  // mat_save("/tmp/H.csv", H, sv_size, sv_size);
+  // mat_save("/tmp/g.csv", g, sv_size, 1);
+  // mat_save("/tmp/dx.csv", dx, sv_size, 1);
   free(H);
-  free(dx);
   free(g);
+  free(r);
+  free(dx);
   calib_gimbal_free(calib);
 
   return 0;

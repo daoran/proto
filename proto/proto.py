@@ -7653,7 +7653,7 @@ class GimbalSandbox:
       #   graph.params[joint_id].param[0] += np.random.uniform(-0.05, 0.05)
 
     # Solve factor graph
-    # graph.solve(debug)
+    graph.solve(debug)
 
     if save:
       # Save calib file
