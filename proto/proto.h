@@ -793,6 +793,27 @@ void chol(const real_t *A, const size_t n, real_t *L);
 void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n);
 
 /******************************************************************************
+ * SUITE-SPARSE
+ *****************************************************************************/
+
+cholmod_sparse *cholmod_sparse_malloc(cholmod_common *c,
+                                      const real_t *A,
+                                      const int m,
+                                      const int n,
+                                      const int stype);
+cholmod_dense *cholmod_dense_malloc(cholmod_common *c,
+                                    const real_t *x,
+                                    const int n);
+void cholmod_dense_raw(const cholmod_dense *src, real_t *dst, const int n);
+real_t suitesparse_chol_solve(cholmod_common *c,
+                              const real_t *A,
+                              const int A_m,
+                              const int A_n,
+                              const real_t *b,
+                              const int b_m,
+                              real_t *x);
+
+/******************************************************************************
  * TRANSFORMS
  ******************************************************************************/
 
