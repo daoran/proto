@@ -122,15 +122,16 @@ run_test() {
   # cd -
 
       # && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/bin/test_proto --target $1
+      # && python3 scripts/plot_matrix.py --input /tmp/H_damped.csv
 
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && valgrind --leak-check=full ./build/bin/test_proto --target $1 \
-      && python3 scripts/plot_matrix.py --input /tmp/H_damped.csv
+      && ./build/bin/test_proto --target $1
   " C-m C-m
+  #valgrind --leak-check=full 
   exit
 }
 
@@ -273,6 +274,8 @@ dev_aprilgrid() {
 # PROTO-CHOL
 # run_test test_chol
 # run_test test_chol_solve
+# PROTO-SUITE-SPARSE
+# run_test test_suitesparse_chol_solve
 # PROTO-TIME
 # PROTO-TRANSFORMS
 # run_test test_tf_set_rot

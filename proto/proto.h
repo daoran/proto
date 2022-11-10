@@ -7,6 +7,7 @@
 // #define USE_DATA_STRUCTURES
 #define USE_CBLAS
 #define USE_LAPACK
+#define USE_SUITESPARSE
 // #define USE_CERES
 #define USE_STB
 // #define USE_GUI
@@ -43,6 +44,10 @@
 
 #ifdef USE_LAPACK
 #include <lapacke.h>
+#endif
+
+#ifdef USE_SUITESPARSE
+#include <suitesparse/cholmod.h>
 #endif
 
 #ifdef USE_CERES
@@ -5780,6 +5785,179 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
 }
 
 /******************************************************************************
+ * SUITE-SPARSE
+ *****************************************************************************/
+
+#define CHOLMOD_NZERO_EPS 1e-12
+
+/**
+ * Allocate memory and form a sparse matrix
+ *
+ * @param c Cholmod workspace
+ * @param A Matrix A
+ * @param m Number of rows in A
+ * @param n Number of cols in A
+ * @param stype
+ *
+ *   0:  matrix is "unsymmetric": use both upper and lower triangular parts
+ *       (the matrix may actually be symmetric in pattern and value, but
+ *       both parts are explicitly stored and used).  May be square or
+ *       rectangular.
+ *   >0: matrix is square and symmetric, use upper triangular part.
+ *       Entries in the lower triangular part are ignored.
+ *   <0: matrix is square and symmetric, use lower triangular part.
+ *       Entries in the upper triangular part are ignored.
+ *
+ *   Note that stype>0 and stype<0 are different for cholmod_sparse and
+ *   cholmod_triplet.  See the cholmod_triplet data structure for more
+ *   details.
+ *
+ * @returns A suite-sparse sparse matrix
+ */
+cholmod_sparse *cholmod_sparse_malloc(cholmod_common *c,
+                                      const real_t *A,
+                                      const int m,
+                                      const int n,
+                                      const int stype) {
+  assert(c != NULL);
+  assert(A != NULL);
+  assert(m > 0 && n > 0);
+
+  // Count number of non-zeros
+  size_t nzmax = 0;
+  for (long int idx = 0; idx < (m * n); idx++) {
+    if (fabs(A[idx]) > CHOLMOD_NZERO_EPS) {
+      nzmax++;
+    }
+  }
+
+  // Allocate memory for sparse matrix
+  cholmod_sparse *A_cholmod =
+      cholmod_allocate_sparse(m, n, nzmax, 1, 1, stype, CHOLMOD_REAL, c);
+  assert(A_cholmod);
+
+  // Fill sparse matrix
+  int *row_ind = A_cholmod->i;
+  int *col_ptr = A_cholmod->p;
+  real_t *values = A_cholmod->x;
+  size_t row_it = 0;
+  size_t col_it = 1;
+  for (long int j = 0; j < n; ++j) {
+    for (long int i = 0; i < m; ++i) {
+      if (fabs(A[(i * n) + j]) > CHOLMOD_NZERO_EPS) {
+        values[row_it] = A[(i * n) + j];
+        row_ind[row_it] = i;
+        row_it++;
+      }
+    }
+    col_ptr[col_it] = row_it;
+    col_it++;
+  }
+
+  return A_cholmod;
+}
+
+/**
+ * Allocate memory and form a dense vector
+ *
+ * @param c Cholmod workspace
+ * @param x Vector x
+ * @param n Length of vector x
+ *
+ * @returns A dense suite-sparse vector
+ */
+cholmod_dense *cholmod_dense_malloc(cholmod_common *c,
+                                    const real_t *x,
+                                    const int n) {
+  assert(c != NULL);
+  assert(x != NULL);
+
+  cholmod_dense *out = cholmod_allocate_dense(n, 1, n, CHOLMOD_REAL, c);
+  assert(out != NULL);
+
+  double *out_x = out->x;
+  for (size_t i = 0; i < n; i++) {
+    out_x[i] = x[i];
+  }
+
+  return out;
+}
+
+/**
+ * Extract dense suite-sparse vector of length `n` from `src` to `dst`.
+ */
+void cholmod_dense_raw(const cholmod_dense *src, real_t *dst, const int n) {
+  assert(src != NULL);
+  assert(dst != NULL);
+  assert(n > 0);
+
+  double *data = src->x;
+  for (int i = 0; i < n; i++) {
+    dst[i] = data[i];
+  }
+}
+
+/**
+ * Solve Ax = b with Suite-Sparse's CHOLMOD package
+ *
+ * @param c Cholmod workspace
+ * @param A Matrix A
+ * @param A_m Number of rows in A
+ * @param A_n Number of cols in A
+ * @param b Vector b
+ * @param b_m Number of rows in A
+ * @param x Vector x
+ *
+ * @returns the residual norm of (Ax - b)
+ */
+real_t suitesparse_chol_solve(cholmod_common *c,
+                              const real_t *A,
+                              const int A_m,
+                              const int A_n,
+                              const real_t *b,
+                              const int b_m,
+                              real_t *x) {
+  assert(c != NULL);
+  assert(A != NULL && A_m > 0 && A_n > 0);
+  assert(b != NULL && b_m > 0);
+  assert(A_n == b_m);
+  assert(x != NULL);
+
+  // Setup
+  cholmod_sparse *A_sparse = cholmod_sparse_malloc(c, A, A_m, A_n, 1);
+  cholmod_dense *b_dense = cholmod_dense_malloc(c, b, b_m);
+  assert(A_sparse);
+  assert(b_dense);
+  assert(cholmod_check_sparse(A_sparse, c) != -1);
+  assert(cholmod_check_dense(b_dense, c) != -1);
+
+  // Analyze and factorize
+  cholmod_factor *L_factor = cholmod_analyze(A_sparse, c);
+  cholmod_factorize(A_sparse, L_factor, c);
+  assert(cholmod_check_factor(L_factor, c) != -1);
+
+  // Solve A * x = b
+  cholmod_dense *x_dense = cholmod_solve(CHOLMOD_A, L_factor, b_dense, c);
+  cholmod_dense_raw(x_dense, x, b_m);
+
+  // r = r - A * x
+  double m1[2] = {-1, 0};
+  double one[2] = {1, 0};
+  cholmod_dense *r_dense = cholmod_copy_dense(b_dense, c);
+  cholmod_sdmult(A_sparse, 0, m1, one, x_dense, r_dense, c);
+  const real_t norm = cholmod_norm_dense(r_dense, 0, c);
+
+  // Clean up
+  cholmod_free_sparse(&A_sparse, c);
+  cholmod_free_dense(&b_dense, c);
+  cholmod_free_factor(&L_factor, c);
+  cholmod_free_dense(&x_dense, c);
+  cholmod_free_dense(&r_dense, c);
+
+  return norm;
+}
+
+/******************************************************************************
  * Lie
  ******************************************************************************/
 
@@ -10708,6 +10886,12 @@ void calib_gimbal_linearize(const calib_gimbal_t *calib,
   }     // views
 }
 
+static real_t calib_gimbal_cost(const real_t *r, const int r_size) {
+  real_t r_sq[1] = {0};
+  dot(r, 1, r_size, r, r_size, 1, r_sq);
+  return 0.5 * r_sq[0];
+}
+
 static void calib_gimbal_param_update(const calib_gimbal_t *calib,
                                       param_order_t *hash,
                                       real_t *dx,
@@ -10722,17 +10906,17 @@ static void calib_gimbal_param_update(const calib_gimbal_t *calib,
         data[1] += dx[idx + 1];
         data[2] += dx[idx + 2];
 
-        // const real_t dalpha[3] = {dx[idx + 3], dx[idx + 4], dx[idx + 5]};
-        // real_t q[4] = {data[3], data[4], data[5], data[6]};
-        // real_t dq[4] = {0};
-        // real_t q_new[4] = {0};
-        // quat_delta(dalpha, dq);
-        // quat_mul(q, dq, q_new);
+        const real_t dalpha[3] = {dx[idx + 3], dx[idx + 4], dx[idx + 5]};
+        real_t q[4] = {data[3], data[4], data[5], data[6]};
+        real_t dq[4] = {0};
+        real_t q_new[4] = {0};
+        quat_delta(dalpha, dq);
+        quat_mul(q, dq, q_new);
 
-        // data[3] = q_new[0];
-        // data[4] = q_new[1];
-        // data[5] = q_new[3];
-        // data[6] = q_new[4];
+        data[3] = q_new[0];
+        data[4] = q_new[1];
+        data[5] = q_new[2];
+        data[6] = q_new[3];
       }
 
       break;
@@ -10747,6 +10931,7 @@ static void calib_gimbal_param_update(const calib_gimbal_t *calib,
         }
         break;
       case EXTRINSICS_PARAM: {
+        // print_vector("dx", dx + idx, 6);
         // data[0] += dx[idx];
         // data[1] += dx[idx + 1];
         // data[2] += dx[idx + 2];
@@ -10760,8 +10945,8 @@ static void calib_gimbal_param_update(const calib_gimbal_t *calib,
 
         // data[3] = q_new[0];
         // data[4] = q_new[1];
-        // data[5] = q_new[3];
-        // data[6] = q_new[4];
+        // data[5] = q_new[2];
+        // data[6] = q_new[3];
       } break;
       case JOINT_PARAM:
         data[0] += dx[idx];
@@ -14409,6 +14594,33 @@ int test_chol_solve() {
   return 0;
 }
 
+int test_suitesparse_chol_solve() {
+  // clang-format off
+  const int n = 3;
+  real_t A[9] = {
+    2.0, -1.0, 0.0,
+    -1.0, 2.0, -1.0,
+    0.0, -1.0, 1.0
+  };
+  real_t b[3] = {1.0, 0.0, 0.0};
+  real_t x[3] = {0.0, 0.0, 0.0};
+  // clang-format on
+
+  // struct timespec t = tic();
+  cholmod_common common;
+  cholmod_start(&common);
+  suitesparse_chol_solve(&common, A, n, n, b, n, x);
+  cholmod_finish(&common);
+  // printf("time taken: [%fs]\n", toc(&t));
+  // print_vector("x", x, n);
+
+  MU_ASSERT(fltcmp(x[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(x[1], 1.0) == 0);
+  MU_ASSERT(fltcmp(x[2], 1.0) == 0);
+
+  return 0;
+}
+
 /******************************************************************************
  * TEST TRANSFORMS
  ******************************************************************************/
@@ -16959,32 +17171,36 @@ int test_calib_gimbal_solve() {
   real_t *H = CALLOC(real_t, sv_size * sv_size);
   real_t *g = CALLOC(real_t, sv_size);
   real_t *r = CALLOC(real_t, r_size);
+  real_t *dx = CALLOC(real_t, sv_size);
   calib_gimbal_linearize(calib, sv_size, hash, H, g, r);
 
-  real_t r_sq[1] = {0};
-  dot(r, 1, r_size, r, r_size, 1, r_sq);
-  printf("cost: %f\n", 0.5 * r_sq[0]);
+  cholmod_common common;
+  cholmod_start(&common);
 
-  real_t *dx = CALLOC(real_t, sv_size);
-  for (int i = 0; i < sv_size; i++) {
-    H[(i * sv_size) + i] += 1e-4;
-  }
-  chol_solve(H, g, dx, sv_size);
+  int max_iter = 100;
+  for (int iter = 0; iter < max_iter; iter++) {
+    // Solve linear equations
+    for (int i = 0; i < sv_size; i++) {
+      H[(i * sv_size) + i] += 1e-4;
+    }
+    chol_solve(H, g, dx, sv_size);
+    // suitesparse_chol_solve(&common, H, sv_size, sv_size, g, sv_size, dx);
 
-  // Update parameters
-  calib_gimbal_param_update(calib, hash, dx, sv_size);
+    // Update parameters
+    calib_gimbal_param_update(calib, hash, dx, sv_size);
 
-  {
-    real_t r_sq[1] = {0};
-    zeros(H, sv_size, sv_size);
-    zeros(g, sv_size, 1);
-    zeros(r, r_size, 1);
-    calib_gimbal_linearize(calib, sv_size, hash, H, g, r);
-    dot(r, 1, r_size, r, r_size, 1, r_sq);
-    printf("cost: %f\n", 0.5 * r_sq[0]);
+    // Re-linearize
+    {
+      zeros(H, sv_size, sv_size);
+      zeros(g, sv_size, 1);
+      zeros(r, r_size, 1);
+      calib_gimbal_linearize(calib, sv_size, hash, H, g, r);
+      printf("cost: %e\n", calib_gimbal_cost(r, r_size));
+    }
   }
 
   // Clean up
+  cholmod_finish(&common);
   hmfree(hash);
   // mat_save("/tmp/H.csv", H, sv_size, sv_size);
   // mat_save("/tmp/g.csv", g, sv_size, 1);
@@ -17735,6 +17951,9 @@ void test_suite() {
   // CHOL
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
+
+  // SUITE-SPARSE
+  MU_ADD_TEST(test_suitesparse_chol_solve);
 
   // TRANSFORMS
   MU_ADD_TEST(test_tf_rot_set);
