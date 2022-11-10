@@ -26,3 +26,6 @@
 	path = third_party/src/SuiteSparse
 	url = https://github.com/DrTimothyAldenDavis/SuiteSparse/
         ignore = dirty
+[submodule "third_party/src/ceres-solver"]
+	path = third_party/src/ceres-solver
+	url = https://github.com/ceres-solver/ceres-solver
