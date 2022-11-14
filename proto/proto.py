@@ -3403,10 +3403,10 @@ def time_delay_setup(param, **kwargs):
   return StateVariable(None, "time_delay", np.array([param]), None, 1, fix)
 
 
-def euler_angle_setup(param, **kwargs):
+def joint_angle_setup(param, **kwargs):
   """ Form time delay state-variable """
   fix = kwargs.get('fix', False)
-  return StateVariable(None, "euler_angle", np.array([param]), None, 1, fix)
+  return StateVariable(None, "joint_angle", np.array([param]), None, 1, fix)
 
 
 def perturb_state_variable(sv, i, step_size):
@@ -3509,9 +3509,14 @@ class Factor:
     """ Set factor id """
     self.factor_id = fid
 
-  def check_jacobian(self, fvars, var_idx, jac_name, **kwargs):
-    """ Check factor jacobian """
+  def calculate_jacobian(self, fvars, var_idx):
+    """ Calculate Jacobian """
+    params = [sv.param for sv in fvars]
+    _, jacs = self.eval(params)
+    return jacs[var_idx]
 
+  def check_jacobian(self, fvars, var_idx, jac_name, **kwargs):
+    """ Check factor Jacobian """
     # Step size and threshold
     h = kwargs.get('step_size', 1e-8)
     threshold = kwargs.get('threshold', 1e-4)
@@ -4800,7 +4805,7 @@ class Solver:
         'feature': set(),
         'camera': set(),
         'extrinsics': set(),
-        'euler_angle': set(),
+        'joint_angle': set(),
     }
 
     # Track parameters
@@ -4816,12 +4821,12 @@ class Solver:
 
     # Assign global parameter order
     param_order = []
-    param_order.append("euler_angle")
+    param_order.append("joint_angle")
     param_order.append("pose")
     param_order.append("speed_and_biases")
     param_order.append("feature")
-    param_order.append("camera")
     param_order.append("extrinsics")
+    param_order.append("camera")
 
     param_idxs = {}
     param_size = 0
@@ -4937,7 +4942,7 @@ class Solver:
     # p = np.dot(q.T, g)
     # dx = np.dot(np.linalg.inv(r), p)
 
-    # # Sparse cholesky decomposition
+    # Sparse cholesky decomposition
     # sH = scipy.sparse.csc_matrix(H)
     # dx = scipy.sparse.linalg.spsolve(sH, g)
     # dx = scipy.sparse.linalg.spsolve(H, g, permc_spec="NATURAL")
@@ -7359,7 +7364,7 @@ class GimbalSandbox:
     # Gimbal links and joint angles
     self.T_WB = None
     self.links = []
-    self.joint_angles = [0.0, 0.0, 0.0]
+    self.joint_angles = [0.01, 0.02, 0.03]
 
     # Camera parameters and extrinsics
     self.cam_params = []
@@ -7376,7 +7381,7 @@ class GimbalSandbox:
     """ Setup Calibration Target """
     self.calib_target = AprilGrid()
 
-    C_WF = euler321(-pi / 2.0, 0.0, deg2rad(90.0))
+    C_WF = euler321(-pi / 2.0, 0.0, pi / 2.0)
     r_WF = np.array([0.5, 0.0, 0.0])
     self.T_WF = tf(C_WF, r_WF)
 
@@ -7405,7 +7410,8 @@ class GimbalSandbox:
   def _setup_gimbal_pose(self):
     """ Setup gimbal pose """
     offset_x = 0.0
-    offset_y = -self.calib_target.get_dimensions()[0] / 2.0
+    # offset_y = -self.calib_target.get_dimensions()[0] / 2.0
+    offset_y = 0
     offset_z = 0
 
     C_WB = euler321(0.0, 0.0, 0.0)
@@ -7415,8 +7421,8 @@ class GimbalSandbox:
   def _setup_gimbal_links(self):
     """ Setup gimbal links """
     # Yaw link
-    C_BM0b = euler321(0.01, 0.01, 0.02)
-    r_BM0b = np.array([0.01, 0.01, 0.01])
+    C_BM0b = euler321(0.01, 0.01, 0.01)
+    r_BM0b = np.array([0.0, 0.0, 0.0])
     T_BM0b = tf(C_BM0b, r_BM0b)
     link0 = tf2pose(T_BM0b)
     self.links.append(link0)
@@ -7565,48 +7571,64 @@ class GimbalSandbox:
     debug = True
     graph = FactorGraph()
 
+    fix_cam = False
+    fix_cam_exts = False
+    fix_fiducial = False
+    fix_links = False
+    fix_joints = False
+
     # -- Add cameras
     cam_params_ids = [
         graph.add_param(self.cam_params[0]),
         graph.add_param(self.cam_params[1])
     ]
+    self.cam_params[0].fix = fix_cam
+    self.cam_params[1].fix = fix_cam
     cam_exts_ids = [
-        graph.add_param(extrinsics_setup(self.cam_exts[0])),
-        graph.add_param(extrinsics_setup(self.cam_exts[1]))
+        graph.add_param(extrinsics_setup(self.cam_exts[0], fix=fix_cam_exts)),
+        graph.add_param(extrinsics_setup(self.cam_exts[1], fix=fix_cam_exts))
     ]
 
     # -- Add fiducial
     fiducial_id = graph.add_param(
-        pose_setup(0, inv(self.T_WB) @ self.T_WF, fix=True))
+        pose_setup(0, inv(self.T_WB) @ self.T_WF, fix=fix_fiducial))
 
     # -- Add gimbal links
     link_ids = [
-        graph.add_param(extrinsics_setup(self.links[0])),
-        graph.add_param(extrinsics_setup(self.links[1])),
-        graph.add_param(extrinsics_setup(self.links[2]))
+        graph.add_param(extrinsics_setup(self.links[0], fix=fix_links)),
+        graph.add_param(extrinsics_setup(self.links[1], fix=fix_links)),
+        graph.add_param(extrinsics_setup(self.links[2], fix=fix_links))
     ]
 
     # -- Add views
-    num_views = 5
+    num_views = 100
     num_joints = len(self.joint_angles)
 
     joint_angle_data = []
+    joint_angle_ids = []
     view_data = [[], []]
     factor_ids = []
 
     for view_idx in range(num_views):
       # -- Perturb joint angles for a different view
-      self.joint_angles[0] += np.random.uniform(-0.1, 0.1)
-      self.joint_angles[1] += np.random.uniform(-0.1, 0.1)
-      self.joint_angles[2] += np.random.uniform(-0.1, 0.1)
+      # self.joint_angles[0] += np.random.uniform(-0.5, 0.5)
+      # self.joint_angles[1] += np.random.uniform(-0.5, 0.5)
+      # self.joint_angles[2] += np.random.uniform(-0.5, 0.5)
+      self.joint_angles[0] = np.random.uniform(-0.5, 0.5)
+      self.joint_angles[1] = np.random.uniform(-0.5, 0.5)
+      self.joint_angles[2] = np.random.uniform(-0.5, 0.5)
 
       # -- Add joint angles
       view_joints = [
-          graph.add_param(euler_angle_setup(self.joint_angles[0])),
-          graph.add_param(euler_angle_setup(self.joint_angles[1])),
-          graph.add_param(euler_angle_setup(self.joint_angles[2]))
+          graph.add_param(
+              joint_angle_setup(self.joint_angles[0], fix=fix_joints)),
+          graph.add_param(
+              joint_angle_setup(self.joint_angles[1], fix=fix_joints)),
+          graph.add_param(
+              joint_angle_setup(self.joint_angles[2], fix=fix_joints))
       ]
       joint_angle_data.append(copy.deepcopy(self.joint_angles))
+      joint_angle_ids.append(view_joints)
 
       # -- Add camera measurements
       for cam_idx in range(2):
@@ -7650,12 +7672,38 @@ class GimbalSandbox:
       # # -- Perturb estimated joint angles
       # for i in range(3):
       #   joint_id = view_joints[i]
-      #   graph.params[joint_id].param[0] += np.random.uniform(-0.05, 0.05)
+      #   graph.params[joint_id].param[0] += np.random.uniform(-0.1, 0.1)
 
-    # Solve factor graph
-    graph.solve(debug)
+    # print("Ground Truth:")
+    # import pprint
+    # pprint.pprint(joint_angle_data)
+    # print()
+
+    # print("Initial:")
+    # for joint_angles in joint_angle_ids:
+    #   for param_id in joint_angles:
+    #     print(f"{graph.params[param_id].param[0]} ", end="")
+    #   print()
+
+    # # Solve factor graph
+    # graph.solver_max_iter = 5
+    # graph.solve(debug)
+
+    # print("Estimated:")
+    # for joint_angles in joint_angle_ids:
+    #   for param_id in joint_angles:
+    #     print(f"{graph.params[param_id].param[0]} ", end="")
+    #   print()
 
     if save:
+      # solver = Solver()
+      # for _, factor in graph.factors.items():
+      #   factor_params = [graph.params[pid] for pid in factor.param_ids]
+      #   solver.add(factor, factor_params)
+      # (H, g, _) = solver._linearize(solver.params)
+      # np.savetxt("/tmp/sim_gimbal/H.csv", H, delimiter=",")
+      # np.savetxt("/tmp/sim_gimbal/g.csv", g, delimiter=",")
+
       # Save calib file
       calib_file = open(f"/tmp/sim_gimbal/calib.config", "w")
       # -- Save camera parameters
@@ -8602,14 +8650,14 @@ class TestFactors(unittest.TestCase):
     kwargs = {"verbose": True}
     self.assertTrue(factor.check_jacobian(fvars, 5, "J_cam_params", **kwargs))
 
-  def test_gimbal_vision_factor(self):
-    """ Test gimbal vision factor """
+  def test_calib_gimbal_factor(self):
+    """ Test calib gimbal factor """
     # Setup
     sandbox = GimbalSandbox()
     grid = sandbox.calib_target
     cam_idx = 0
-    tag_id = 1
-    corner_idx = 2
+    tag_id = 0
+    corner_idx = 0
     p_FFi = grid.get_object_point(tag_id, corner_idx)
 
     T_WM2e = sandbox.get_link_tf(2)
@@ -8629,9 +8677,9 @@ class TestFactors(unittest.TestCase):
     link0 = extrinsics_setup(sandbox.links[0])
     link1 = extrinsics_setup(sandbox.links[1])
     link2 = extrinsics_setup(sandbox.links[2])
-    th0 = euler_angle_setup(sandbox.joint_angles[0])
-    th1 = euler_angle_setup(sandbox.joint_angles[1])
-    th2 = euler_angle_setup(sandbox.joint_angles[2])
+    th0 = joint_angle_setup(sandbox.joint_angles[0])
+    th1 = joint_angle_setup(sandbox.joint_angles[1])
+    th2 = joint_angle_setup(sandbox.joint_angles[2])
     cam0_exts = extrinsics_setup(sandbox.cam_exts[0])
     cam0_params = sandbox.cam_params[0]
 
@@ -8661,6 +8709,47 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 6, "J_th2"))
     self.assertTrue(factor.check_jacobian(fvars, 7, "J_cam_exts"))
     self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_params"))
+
+    save_jacobians = True
+    if save_jacobians:
+      fp = open("/tmp/test_calib_gimbal_factor.conf", "w")
+      param_strs = {}
+      param_strs["tag_id"] = str(tag_id)
+      param_strs["corner_idx"] = str(corner_idx)
+      param_strs["p_FFi"] = ', '.join([str(x) for x in p_FFi])
+      param_strs["fiducial"] = ', '.join([str(x) for x in fiducial.param])
+      param_strs["link0"] = ', '.join([str(x) for x in link0.param])
+      param_strs["link1"] = ', '.join([str(x) for x in link1.param])
+      param_strs["link2"] = ', '.join([str(x) for x in link2.param])
+      param_strs["th0"] = ', '.join([str(x) for x in th0.param])
+      param_strs["th1"] = ', '.join([str(x) for x in th1.param])
+      param_strs["th2"] = ', '.join([str(x) for x in th2.param])
+      param_strs["cam0_exts"] = ', '.join([str(x) for x in cam0_exts.param])
+      param_strs["cam0_params"] = ', '.join([str(x) for x in cam0_params.param])
+
+      fp.write(f"tag_id: {param_strs['tag_id']}\n")
+      fp.write(f"corner_idx: {param_strs['corner_idx']}\n")
+      fp.write(f"p_FFi: [{param_strs['p_FFi']}]\n")
+      fp.write(f"fiducial: [{param_strs['fiducial']}]\n")
+      fp.write(f"link0: [{param_strs['link0']}]\n")
+      fp.write(f"link1: [{param_strs['link1']}]\n")
+      fp.write(f"link1: [{param_strs['link2']}]\n")
+      fp.write(f"th0: [{param_strs['th0']}]\n")
+      fp.write(f"th1: [{param_strs['th1']}]\n")
+      fp.write(f"th2: [{param_strs['th2']}]\n")
+      fp.write(f"cam0_exts: [{param_strs['cam0_exts']}]\n")
+      fp.write(f"cam0_params: [{param_strs['cam0_params']}]\n")
+      fp.write("\n")
+      fp.close()
+
+      jac_names = [
+          "fiducial", "link0", "link1", "link2", "joint0", "joint1", "joint2",
+          "cam_exts", "cam_params"
+      ]
+      for i, jac_name in enumerate(jac_names):
+        J_fp = f"/tmp/test_calib_gimbal_factor-jacobian-{jac_name}.csv"
+        J = factor.calculate_jacobian(fvars, i)
+        np.savetxt(J_fp, J, delimiter=",")
 
   def test_imu_buffer(self):
     """ Test IMU Buffer """

@@ -22,4 +22,14 @@ source "config.bash"
 #   https://github.com/ceres-solver/ceres-solver.git \
 #   ceres-solver
 
-apt_install libceres-dev
+# # Go into repo
+# cd "$SRC_PATH/ceres-solver" || return
+
+# # Prepare for build
+# mkdir -p build
+# cd build || return
+# cmake .. \
+#   -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+#   -DCMAKE_INSTALL_PREFIX="$PREFIX"
+
+# apt_install libceres-dev

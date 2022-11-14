@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e  # Exit on first error
+source "config.bash"
+
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 PREFIX="$SCRIPTPATH"
 SRC_PATH="$PREFIX/src"
-source "config.bash"
-
 export DEBIAN_FRONTEND="noninteractive"
 export PREFIX=$PREFIX
 export SRC_PATH=$SRC_PATH

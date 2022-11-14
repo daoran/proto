@@ -43,7 +43,7 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_vision_factor
 # python3 proto.py TestFactors.test_calib_vision_factor
 # python3 proto.py TestFactors.test_two_state_vision_factor
-# python3 proto.py TestFactors.test_gimbal_vision_factor
+# python3 proto.py TestFactors.test_calib_gimbal_factor
 # python3 proto.py TestFactors.test_imu_buffer
 # python3 proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto.py TestFactors.test_imu_factor_propagate
@@ -83,6 +83,16 @@ run_memcheck() {
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
 # python3 proto.py TestSandbox.test_gimbal
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "\
+  cd ~/projects/proto/proto \
+    && clear \
+    && make test_proto \
+    && valgrind ./build/bin/test_proto --target test_calib_gimbal_solve
+" C-m C-m
+#valgrind --leak-check=full --show-leak-kinds=all
+# python3 scripts/sandbox.py
+# python3 scripts/plot_matrix.py --input /tmp/sim_gimbal/H.csv
 
 ###############################################################################
 # C
@@ -129,9 +139,10 @@ run_test() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && ./build/bin/test_proto --target $1
+      && ./build/bin/test_proto --target $1 \
   " C-m C-m
-  #valgrind --leak-check=full 
+      # && python3 scripts/sandbox.py
+  #valgrind --leak-check=full
   exit
 }
 
@@ -348,7 +359,7 @@ dev_aprilgrid() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
-run_test test_calib_gimbal_solve
+# run_test test_calib_gimbal_solve
 # PROTO-SIM
 # run_test test_load_sim_features
 # run_test test_load_sim_imu_data
