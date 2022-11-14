@@ -88,7 +88,7 @@ tmux send-keys -t dev -R "\
   cd ~/projects/proto/proto \
     && clear \
     && make test_proto \
-    && valgrind ./build/bin/test_proto --target test_calib_gimbal_solve
+    && ./build/bin/test_proto --target test_calib_gimbal_solve
 " C-m C-m
 #valgrind --leak-check=full --show-leak-kinds=all
 # python3 scripts/sandbox.py
