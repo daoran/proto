@@ -8,7 +8,7 @@
 #define USE_CBLAS
 #define USE_LAPACK
 #define USE_SUITESPARSE
-// #define USE_CERES
+#define USE_CERES
 #define USE_STB
 // #define USE_GUI
 
@@ -51,7 +51,8 @@
 #endif
 
 #ifdef USE_CERES
-#include <ceres/c_api.h>
+// #include <ceres/c_api.h>
+#include "ceres_bridge.h"
 #endif
 
 #ifdef USE_GUI
@@ -1228,10 +1229,14 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                const real_t p_FFi[3],
                                const real_t z[2],
                                const real_t var[2]);
-int calib_gimbal_factor_eval(const calib_gimbal_factor_t *factor,
+int calib_gimbal_factor_eval(void *factor,
                              real_t **params,
                              real_t *residuals,
                              real_t **jacobians);
+int calib_gimbal_factor_ceres_eval(void *factor,
+                                   real_t **params,
+                                   real_t *residuals,
+                                   real_t **jacobians);
 
 // IMU FACTOR ////////////////////////////////////////////////////////////////
 
@@ -9229,6 +9234,10 @@ static void gimbal_factor_fiducial_jac(const real_t Jh_w[2 * 3],
                                        const real_t T_BF[4 * 4],
                                        const real_t p_FFi[3],
                                        real_t J[2 * 6]) {
+  if (J == NULL) {
+    return;
+  }
+
   // J_pos = Jh * C_CiB
   real_t J_pos[2 * 3] = {0};
   real_t C_CiB[3 * 3] = {0};
@@ -9273,6 +9282,10 @@ static void gimbal_factor_link_jac(const real_t Jh_w[2 * 3],
                                    const real_t T_CiLa[4 * 4],
                                    const real_t p_La[3],
                                    real_t J[2 * 6]) {
+  if (J == NULL) {
+    return;
+  }
+
   // Form: -C_LaLb
   real_t nC_LaLb[3 * 3] = {0};
   tf_rot_get(T_LaLb, nC_LaLb);
@@ -9318,11 +9331,15 @@ static void gimbal_factor_joint_jac(const real_t Jh_w[2 * 3],
                                     const real_t T_CiMe[4 * 4],
                                     const real_t p_MbFi[3],
                                     const real_t theta,
-                                    real_t J_joint[2 * 1]) {
+                                    real_t J[2 * 1]) {
+  if (J == NULL) {
+    return;
+  }
+
   assert(Jh_w != NULL);
   assert(T_CiMe != NULL);
   assert(p_MbFi != NULL);
-  assert(J_joint != NULL);
+  assert(J != NULL);
 
   // C_CiMe = tf_rot(T_CiMe)
   real_t C_CiMe[3 * 3] = {0};
@@ -9331,17 +9348,21 @@ static void gimbal_factor_joint_jac(const real_t Jh_w[2 * 3],
   // p = [-p_M0bFi[0] * sin(joints[0]) + p_M0bFi[1] * cos(joints[0]),
   //      -p_M0bFi[0] * cos(joints[0]) - p_M0bFi[1] * sin(joints[0]),
   //      0.0]
-  // J_joint = Jh * C_CiMe @ p
+  // J = Jh * C_CiMe @ p
   const real_t p[3] = {-p_MbFi[0] * sin(theta) + p_MbFi[1] * cos(theta),
                        -p_MbFi[0] * cos(theta) - p_MbFi[1] * sin(theta),
                        0.0};
-  dot3(Jh_w, 2, 3, C_CiMe, 3, 3, p, 3, 1, J_joint);
+  dot3(Jh_w, 2, 3, C_CiMe, 3, 3, p, 3, 1, J);
 }
 
 static void gimbal_factor_cam_ext_jac(const real_t Jh_w[2 * 3],
                                       const real_t T_M2eCi[4 * 4],
                                       const real_t p_M2eFi[3],
                                       real_t J[2 * 6]) {
+  if (J == NULL) {
+    return;
+  }
+
   assert(Jh_w != NULL);
   assert(T_M2eCi != NULL);
   assert(p_M2eFi != NULL);
@@ -9390,6 +9411,10 @@ static void gimbal_factor_cam_ext_jac(const real_t Jh_w[2 * 3],
 static void gimbal_factor_camera_jac(const real_t neg_sqrt_info[2 * 2],
                                      const real_t J_cam_params[2 * 8],
                                      real_t J[2 * 8]) {
+  if (J == NULL) {
+    return;
+  }
+
   assert(neg_sqrt_info != NULL);
   assert(J_cam_params != NULL);
   assert(J != NULL);
@@ -9415,13 +9440,16 @@ static void gimbal_factor_camera_jac(const real_t neg_sqrt_info[2 * 2],
  *
  * @returns `0` for success, `-1` for failure
  */
-int calib_gimbal_factor_eval(const calib_gimbal_factor_t *factor,
+int calib_gimbal_factor_eval(void *factor_ptr,
                              real_t **params,
                              real_t *r_out,
                              real_t **J_out) {
-  assert(factor != NULL);
+  assert(factor_ptr != NULL);
   assert(params != NULL);
   assert(r_out != NULL);
+
+  // Map factor
+  calib_gimbal_factor_t *factor = (calib_gimbal_factor_t *) factor_ptr;
 
   // Map params
   const real_t *p_FFi = factor->p_FFi;
@@ -9549,6 +9577,81 @@ int calib_gimbal_factor_eval(const calib_gimbal_factor_t *factor,
   gimbal_factor_camera_jac(neg_sqrt_info, J_cam_params, J_out[8]);
 
   return 0;
+}
+
+int calib_gimbal_factor_ceres_eval(void *factor_ptr,
+                                   real_t **params,
+                                   real_t *r_out,
+                                   real_t **J_out) {
+  real_t J_fiducial[2 * 6] = {0};
+  real_t J_link0[2 * 6] = {0};
+  real_t J_link1[2 * 6] = {0};
+  real_t J_link2[2 * 6] = {0};
+  real_t J_joint0[2 * 1] = {0};
+  real_t J_joint1[2 * 1] = {0};
+  real_t J_joint2[2 * 1] = {0};
+  real_t J_cam_exts[2 * 6] = {0};
+  real_t J_cam[2 * 8] = {0};
+  real_t *jacs[9] = {J_fiducial,
+                     J_link0,
+                     J_link1,
+                     J_link2,
+                     J_joint0,
+                     J_joint1,
+                     J_joint2,
+                     J_cam_exts,
+                     J_cam};
+  calib_gimbal_factor_eval(factor_ptr, params, r_out, jacs);
+  if (J_out == NULL) {
+    return 1;
+  }
+
+  if (J_out[0]) {
+    zeros(J_out[0], 2, 7);
+    mat_block_set(J_out[0], 7, 0, 1, 0, 5, jacs[0]);
+  }
+
+  if (J_out[1]) {
+    zeros(J_out[1], 2, 7);
+    mat_block_set(J_out[1], 7, 0, 1, 0, 5, jacs[1]);
+  }
+
+  if (J_out[2]) {
+    zeros(J_out[2], 2, 7);
+    mat_block_set(J_out[2], 7, 0, 1, 0, 5, jacs[2]);
+  }
+
+  if (J_out[3]) {
+    zeros(J_out[3], 2, 7);
+    mat_block_set(J_out[3], 7, 0, 1, 0, 5, jacs[3]);
+  }
+
+  if (J_out[4]) {
+    zeros(J_out[4], 2, 1);
+    mat_copy(jacs[4], 2, 1, J_out[4]);
+  }
+
+  if (J_out[5]) {
+    zeros(J_out[5], 2, 1);
+    mat_copy(jacs[5], 2, 1, J_out[5]);
+  }
+
+  if (J_out[6]) {
+    zeros(J_out[6], 2, 1);
+    mat_copy(jacs[6], 2, 1, J_out[6]);
+  }
+
+  if (J_out[7]) {
+    zeros(J_out[7], 2, 7);
+    mat_block_set(J_out[7], 7, 0, 1, 0, 5, jacs[7]);
+  }
+
+  if (J_out[8]) {
+    zeros(J_out[8], 2, 8);
+    mat_copy(jacs[8], 2, 8, J_out[8]);
+  }
+
+  return 1;
 }
 
 // IMU FACTOR //////////////////////////////////////////////////////////////////
@@ -10463,6 +10566,7 @@ int solver_solve(solver_t *solver, void *data) {
   real_t *dx = CALLOC(real_t, sv_size);
   solver->linearize_func(data, sv_size, hash, H, g, r);
   real_t cost_km1 = solver_cost(r, r_size);
+  printf("iter: 0, lambda_k: %.2e, cost: %.2e\n", solver->lambda, cost_km1);
 
   // Start cholmod workspace
   cholmod_common common;
@@ -10587,10 +10691,10 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
  * Setup gimbal calibration data
  */
 void calib_gimbal_setup(calib_gimbal_t *calib) {
-  calib->fix_fiducial = 1;
+  calib->fix_fiducial = 0;
   calib->fix_cam_params = 1;
-  calib->fix_cam_exts = 0;
-  calib->fix_links = 0;
+  calib->fix_cam_exts = 1;
+  calib->fix_links = 1;
   calib->fix_joints = 1;
 
   calib->fiducial = NULL;
@@ -10672,7 +10776,7 @@ void calib_gimbal_print(calib_gimbal_t *calib) {
     extrinsics_print("link0_exts", calib->links[link_idx]);
   }
 
-  extrinsics_print("fiducial_exts", calib->fiducial);
+  extrinsics_print("fiducial", calib->fiducial);
 }
 
 /**
@@ -11092,6 +11196,8 @@ void calib_gimbal_linearize(const void *data,
   int factor_idx = 0;
   int r_size = 2;
 
+  struct timespec t_start = tic();
+  real_t eval_time = 0.0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
       calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
@@ -11125,10 +11231,12 @@ void calib_gimbal_linearize(const void *data,
                            J_joint2,
                            J_cam_exts,
                            J_cam_params};
+        struct timespec eval_start = tic();
         calib_gimbal_factor_eval(&calib->factors[factor_idx],
                                  params,
                                  factor_r,
                                  jacs);
+        eval_time += toc(&eval_start);
         int num_params = 9;
 
         r[factor_idx * 2] = factor_r[0];
@@ -11202,6 +11310,8 @@ void calib_gimbal_linearize(const void *data,
       } // For each corners
     }   // For each cameras
   }     // For each views
+  printf("eval_time: %f\n", eval_time);
+  printf("time elasped: %f\n", toc(&t_start));
 }
 
 /******************************************************************************
@@ -17397,7 +17507,8 @@ int test_ceres_example() {
                                      parameter_sizes,
                                      parameter_pointers);
   }
-  ceres_solve(problem);
+
+  ceres_solve(problem, 10);
   ceres_free_problem(problem);
   // printf("Initial m: 0.0, c: 0.0\n");
   // printf("Final m: %g, c: %g\n", m, c);
@@ -17504,13 +17615,13 @@ int test_calib_gimbal_solve() {
     // printf("\n");
 
     // Perturb
-    real_t dx[6] = {0.01, 0.02, 0.02, 0.1, 0.1, 0.1};
-    // pose_vector_update(calib_est->fiducial->data, dx);
-    pose_vector_update(calib_est->cam_exts[0]->data, dx);
-    pose_vector_update(calib_est->cam_exts[1]->data, dx);
-    for (int link_idx = 0; link_idx < 3; link_idx++) {
-      pose_vector_update(calib_est->links[link_idx]->data, dx);
-    }
+    real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
+    pose_vector_update(calib_est->fiducial->data, dx);
+    // pose_vector_update(calib_est->cam_exts[0]->data, dx);
+    // pose_vector_update(calib_est->cam_exts[1]->data, dx);
+    // for (int link_idx = 0; link_idx < 3; link_idx++) {
+    //   pose_vector_update(calib_est->links[link_idx]->data, dx);
+    // }
     // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
     //   for (int joint_idx = 0; joint_idx < 3; joint_idx++) {
     //     calib_est->joints[view_idx][joint_idx].data[0] += 0.1;
@@ -17532,6 +17643,23 @@ int test_calib_gimbal_solve() {
 
   // Compare estimated vs ground-truth
   {
+    printf("num_views: %d\n", calib_gnd->num_views);
+    printf("num_cams: %d\n", calib_gnd->num_cams);
+    printf("num_factors: %d\n", calib_gnd->num_factors);
+
+    // Fiducial
+    {
+      real_t dr[3] = {0};
+      real_t dtheta = 0.0;
+      pose_diff2(calib_gnd->fiducial->data,
+                 calib_est->fiducial->data,
+                 dr,
+                 &dtheta);
+      printf("fiducial ");
+      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
+      printf("dtheta: %f\n", dtheta);
+    }
+
     // Links
     for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
       real_t dr[3] = {0};
@@ -17575,6 +17703,171 @@ int test_calib_gimbal_solve() {
   // printf("\n");
 
   // Clean up
+  calib_gimbal_free(calib_gnd);
+  calib_gimbal_free(calib_est);
+
+  return 0;
+}
+
+int test_calib_gimbal_ceres_solve() {
+  // Setup simulation data
+  const char *data_path = "/tmp/sim_gimbal";
+  calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
+  calib_gimbal_t *calib_est = calib_gimbal_load(data_path);
+  MU_ASSERT(calib_gnd != NULL);
+  MU_ASSERT(calib_est != NULL);
+
+  // Perturb parameters
+  {
+    // printf("Ground Truth:\n");
+    // calib_gimbal_print(calib_gnd);
+    // printf("\n");
+
+    // Perturb
+    real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
+    pose_vector_update(calib_est->fiducial->data, dx);
+    pose_vector_update(calib_est->cam_exts[0]->data, dx);
+    pose_vector_update(calib_est->cam_exts[1]->data, dx);
+    // for (int link_idx = 0; link_idx < 3; link_idx++) {
+    //   pose_vector_update(calib_est->links[link_idx]->data, dx);
+    // }
+    // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+    //   for (int joint_idx = 0; joint_idx < 3; joint_idx++) {
+    //     calib_est->joints[view_idx][joint_idx].data[0] += 0.1;
+    //   }
+    // }
+    // printf("\n");
+
+    //     printf("Initial:\n");
+    //     calib_gimbal_print(calib_est);
+    //     printf("\n");
+  }
+
+  // Setup ceres problem
+  ceres_init();
+  ceres_problem_t *problem = ceres_create_problem();
+  ceres_local_parameterization_t *pose_pm =
+      ceres_create_pose_local_parameterization();
+
+  int factor_idx = 0;
+  for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
+      calib_gimbal_view_t *view = calib_est->views[view_idx][cam_idx];
+      for (int corner_idx = 0; corner_idx < view->num_corners; corner_idx++) {
+        int num_residuals = 2;
+        int num_params = 9;
+        real_t *param_ptrs[9] = {calib_est->fiducial->data,
+                                 calib_est->links[0]->data,
+                                 calib_est->links[1]->data,
+                                 calib_est->links[2]->data,
+                                 calib_est->joints[view_idx][0].data,
+                                 calib_est->joints[view_idx][1].data,
+                                 calib_est->joints[view_idx][2].data,
+                                 calib_est->cam_exts[cam_idx]->data,
+                                 calib_est->cam_params[cam_idx]->data};
+        int param_sizes[9] = {
+            7, // Fiducial
+            7, // Link0
+            7, // Link1
+            7, // Link2
+            1, // Joint0
+            1, // Joint1
+            1, // Joint2
+            7, // Camera Extrinsics
+            8, // Camera Parameters
+        };
+        ceres_problem_add_residual_block(problem,
+                                         &calib_gimbal_factor_ceres_eval,
+                                         &calib_est->factors[factor_idx],
+                                         NULL,
+                                         NULL,
+                                         num_residuals,
+                                         num_params,
+                                         param_sizes,
+                                         param_ptrs);
+        factor_idx++;
+      } // For each corners
+    }   // For each cameras
+  }     // For each views
+
+  for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+    ceres_set_parameter_constant(problem, calib_est->joints[view_idx][0].data);
+    ceres_set_parameter_constant(problem, calib_est->joints[view_idx][1].data);
+    ceres_set_parameter_constant(problem, calib_est->joints[view_idx][2].data);
+  }
+
+  // ceres_set_parameter_constant(problem, calib_est->fiducial->data);
+  // ceres_set_parameter_constant(problem, calib_est->links[0]->data);
+  // ceres_set_parameter_constant(problem, calib_est->links[1]->data);
+  // ceres_set_parameter_constant(problem, calib_est->links[2]->data);
+  // ceres_set_parameter_constant(problem, calib_est->cam_exts[0]->data);
+  // ceres_set_parameter_constant(problem, calib_est->cam_exts[1]->data);
+  ceres_set_parameter_constant(problem, calib_est->cam_params[0]->data);
+  ceres_set_parameter_constant(problem, calib_est->cam_params[1]->data);
+
+  ceres_set_parameterization(problem, calib_est->fiducial->data, pose_pm);
+  ceres_set_parameterization(problem, calib_est->links[0]->data, pose_pm);
+  ceres_set_parameterization(problem, calib_est->links[1]->data, pose_pm);
+  ceres_set_parameterization(problem, calib_est->links[2]->data, pose_pm);
+  ceres_set_parameterization(problem, calib_est->cam_exts[0]->data, pose_pm);
+  ceres_set_parameterization(problem, calib_est->cam_exts[1]->data, pose_pm);
+  ceres_solve(problem, 10);
+
+  // Compare estimated vs ground-truth
+  {
+    // Fiducial
+    {
+      real_t dr[3] = {0};
+      real_t dtheta = 0.0;
+      pose_diff2(calib_gnd->fiducial->data,
+                 calib_est->fiducial->data,
+                 dr,
+                 &dtheta);
+      printf("fiducial ");
+      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
+      printf("dtheta: %f\n", dtheta);
+    }
+
+    // Links
+    for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
+      real_t dr[3] = {0};
+      real_t dtheta = 0.0;
+      pose_diff2(calib_gnd->links[link_idx]->data,
+                 calib_est->links[link_idx]->data,
+                 dr,
+                 &dtheta);
+      printf("link_exts[%d] ", link_idx);
+      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
+      printf("dtheta: %f\n", dtheta);
+    }
+
+    // Camera extrinsics
+    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
+      real_t dr[3] = {0};
+      real_t dtheta = 0.0;
+      pose_diff2(calib_gnd->cam_exts[cam_idx]->data,
+                 calib_est->cam_exts[cam_idx]->data,
+                 dr,
+                 &dtheta);
+      printf("cam_exts[%d] ", cam_idx);
+      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
+      printf("dtheta: %f\n", dtheta);
+    }
+
+    // Camera parameters
+    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
+      real_t *cam_gnd = calib_gnd->cam_params[cam_idx]->data;
+      real_t *cam_est = calib_est->cam_params[cam_idx]->data;
+      real_t diff[8] = {0};
+      vec_sub(cam_gnd, cam_est, diff, 8);
+
+      printf("cam_params[%d] ", cam_idx);
+      print_vector("diff", diff, 8);
+    }
+  }
+
+  // Clean up
+  ceres_free_problem(problem);
   calib_gimbal_free(calib_gnd);
   calib_gimbal_free(calib_est);
 
@@ -18394,6 +18687,7 @@ void test_suite() {
   MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_calib_gimbal_load);
   MU_ADD_TEST(test_calib_gimbal_solve);
+  MU_ADD_TEST(test_calib_gimbal_ceres_solve);
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);
