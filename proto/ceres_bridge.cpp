@@ -8,6 +8,9 @@
 #include <ceres/solver.h>
 #include <ceres/types.h>
 
+/**
+ * Wrapper for ceres::CostFunction
+ */
 class CostFunctionWrapper final : public ceres::CostFunction {
 public:
   CostFunctionWrapper(ceres_cost_function_t cost_function,
@@ -36,6 +39,9 @@ private:
   void *user_data_;
 };
 
+/**
+ * Wrapper for ceres::LossFunction
+ */
 class LossFunctionWrapper final : public ceres::LossFunction {
 public:
   explicit LossFunctionWrapper(ceres_loss_function_t loss_function,
@@ -51,6 +57,89 @@ private:
   void *user_data_;
 };
 
+/**
+ * Calculate vector norm of `x` of length `n`.
+ * @returns Norm of vector x
+ */
+static double vec_norm(const double *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
+  double sum = 0.0;
+  for (size_t i = 0; i < n; i++) {
+    sum += x[i] * x[i];
+  }
+  return sqrt(sum);
+}
+
+/**
+ * Sinc.
+ * @return Result of sinc
+ */
+static double sinc(const double x) {
+  if (fabs(x) > 1e-6) {
+    return sin(x) / x;
+  } else {
+    const double c2 = 1.0 / 6.0;
+    const double c4 = 1.0 / 120.0;
+    const double c6 = 1.0 / 5040.0;
+    const double x2 = x * x;
+    const double x4 = x2 * x2;
+    const double x6 = x2 * x2 * x2;
+    return 1.0 - c2 * x2 + c4 * x4 - c6 * x6;
+  }
+}
+
+/**
+ * Form delta quaternion `dq` from a small rotation vector `dalpha`.
+ */
+static void quat_delta(const double dalpha[3], double dq[4]) {
+  assert(dalpha != NULL);
+  assert(dq != NULL);
+
+  const double half_norm = 0.5 * vec_norm(dalpha, 3);
+  const double k = sinc(half_norm) * 0.5;
+  const double vector[3] = {k * dalpha[0], k * dalpha[1], k * dalpha[2]};
+  double scalar = cos(half_norm);
+
+  dq[0] = scalar;
+  dq[1] = vector[0];
+  dq[2] = vector[1];
+  dq[3] = vector[2];
+}
+
+/**
+ * Quaternion left-multiply `p` with `q`, results are outputted to `r`.
+ */
+static void quat_lmul(const double p[4], const double q[4], double r[4]) {
+  assert(p != NULL);
+  assert(q != NULL);
+  assert(r != NULL);
+
+  const double pw = p[0];
+  const double px = p[1];
+  const double py = p[2];
+  const double pz = p[3];
+
+  r[0] = pw * q[0] - px * q[1] - py * q[2] - pz * q[3];
+  r[1] = px * q[0] + pw * q[1] - pz * q[2] + py * q[3];
+  r[2] = py * q[0] + pz * q[1] + pw * q[2] - px * q[3];
+  r[3] = pz * q[0] - py * q[1] + px * q[2] + pw * q[3];
+}
+
+/**
+ * Quaternion multiply `p` with `q`, results are outputted to `r`.
+ */
+static void quat_mul(const double p[4], const double q[4], double r[4]) {
+  assert(p != NULL);
+  assert(q != NULL);
+  assert(r != NULL);
+  quat_lmul(p, q, r);
+}
+
+/**
+ * Pose local parameterization
+ */
 class PoseLocalParameterization : public ceres::LocalParameterization {
   virtual bool Plus(const double *x,
                     const double *dx,
@@ -59,26 +148,23 @@ class PoseLocalParameterization : public ceres::LocalParameterization {
     x_plus_dx[1] = x[1] + dx[1];
     x_plus_dx[2] = x[2] + dx[2];
 
-    const double q[4] = {x[3], x[4], x[5], x[6]};
-    const double dq[4] = {1.0, 0.5 * dx[3], 0.5 * dx[4], 0.5 * dx[5]};
-    x_plus_dx[3] = q[0] * dq[0] - q[1] * dq[1] - q[2] * dq[2] - q[3] * dq[3];
-    x_plus_dx[4] = q[1] * dq[0] + q[0] * dq[1] - q[3] * dq[2] + q[2] * dq[3];
-    x_plus_dx[5] = q[2] * dq[0] + q[3] * dq[1] + q[0] * dq[2] - q[1] * dq[3];
-    x_plus_dx[6] = q[3] * dq[0] - q[2] * dq[1] + q[1] * dq[2] + q[0] * dq[3];
+    double dq[4] = {0};
+    quat_delta(dx + 3, dq);
+    quat_mul(x + 3, dq, x_plus_dx + 3);
 
     return true;
   }
 
   virtual bool ComputeJacobian(const double *x, double *J) const {
-    // Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> j(jacobian);
-    // j.topRows<6>().setIdentity();
-    // j.bottomRows<1>().setZero();
-    for (int i = 0; i < 7; i++) {
-      for (int j = 0; j < 6; j++) {
-        J[(i * 6) + j] = (i == j) ? 1.0 : 0.0;
-      }
-    }
-
+    // clang-format off
+    J[0]  = 1; J[1]  = 0; J[2]  = 0;  J[3] = 0; J[4]  = 0; J[5]  = 0;
+    J[6]  = 0; J[7]  = 1; J[8]  = 0;  J[9] = 0; J[10] = 0; J[11] = 0;
+    J[12] = 0; J[13] = 0; J[14] = 1; J[15] = 0; J[16] = 0; J[17] = 0;
+    J[18] = 0; J[19] = 0; J[20] = 0; J[21] = 1; J[22] = 0; J[23] = 0;
+    J[24] = 0; J[25] = 0; J[26] = 0; J[27] = 0; J[28] = 1; J[29] = 0;
+    J[30] = 0; J[31] = 0; J[32] = 0; J[33] = 0; J[34] = 0; J[35] = 1;
+    J[36] = 0; J[37] = 0; J[38] = 0; J[39] = 0; J[40] = 0; J[41] = 0;
+    // clang-format on
     return true;
   }
 
