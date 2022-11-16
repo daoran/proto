@@ -7636,20 +7636,31 @@ class GimbalSandbox:
     num_views = 10
     num_joints = len(self.joint_angles)
 
-    joint_angle_data = []
-    joint_angle_ids = []
-    view_data = [[], []]
     factor_ids = []
+    joint_angle_ids = []
+    joint_angle_data = []
+    pose_data = []
+    view_data = [[], []]
 
     for view_idx in range(num_views):
-      print(view_idx, flush=True)
-      # -- Perturb joint angles for a different view
+      # print(view_idx, flush=True)
+      # Perturb joint angles for a different view
       # self.joint_angles[0] += np.random.uniform(-0.5, 0.5)
       # self.joint_angles[1] += np.random.uniform(-0.5, 0.5)
       # self.joint_angles[2] += np.random.uniform(-0.5, 0.5)
       self.joint_angles[0] = np.random.uniform(-0.5, 0.5)
       self.joint_angles[1] = np.random.uniform(-0.5, 0.5)
       self.joint_angles[2] = np.random.uniform(-0.5, 0.5)
+      joint_angle_data.append(copy.deepcopy(self.joint_angles))
+
+      # Perturb body pose
+      self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.01, 0.01))
+      self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.01, 0.01))
+      self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.01, 0.01))
+      self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
+      self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
+      self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
+      pose_data.append(copy.deepcopy(self.T_WB))
 
       # -- Add joint angles
       view_joints = [
@@ -7660,7 +7671,6 @@ class GimbalSandbox:
           graph.add_param(
               joint_angle_setup(self.joint_angles[2], fix=fix_joints))
       ]
-      joint_angle_data.append(copy.deepcopy(self.joint_angles))
       joint_angle_ids.append(view_joints)
 
       # -- Add camera measurements
@@ -7721,8 +7731,8 @@ class GimbalSandbox:
     #   print()
 
     # Solve factor graph
-    graph.solver_max_iter = 10
-    graph.solve(debug)
+    # graph.solver_max_iter = 10
+    # graph.solve(debug)
 
     # print("Estimated:")
     # for joint_angles in joint_angle_ids:
@@ -7741,8 +7751,13 @@ class GimbalSandbox:
       # plt.colorbar()
       # plt.show()
 
-      np.savetxt("/tmp/sim_gimbal/H.csv", H, delimiter=",")
-      np.savetxt("/tmp/sim_gimbal/g.csv", g, delimiter=",")
+      # np.savetxt("/tmp/sim_gimbal/H.csv", H, delimiter=",")
+      # np.savetxt("/tmp/sim_gimbal/g.csv", g, delimiter=",")
+
+      os.system("rm -rf /tmp/sim_gimbal")
+      os.system("mkdir -p /tmp/sim_gimbal")
+      os.system("mkdir -p /tmp/sim_gimbal/cam0")
+      os.system("mkdir -p /tmp/sim_gimbal/cam1")
 
       # Save calib file
       calib_file = open(f"/tmp/sim_gimbal/calib.config", "w")
@@ -7751,7 +7766,6 @@ class GimbalSandbox:
       calib_file.write(f"num_links: {len(self.links)}\n")
       calib_file.write("\n")
       for cam_idx, cam_params in enumerate(self.cam_params):
-        cam_str = f"cam{cam_idx}"
         cam_geom = cam_params.data
         cam_res = cam_geom.resolution
         proj_params = [str(x) for x in cam_geom.proj_params(cam_params.param)]
@@ -7777,9 +7791,8 @@ class GimbalSandbox:
         tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
         calib_file.write(f"link{link_idx}_exts: [{tf_str}]\n")
       # -- Save fiducial extrinsics
-      T_BF = inv(self.T_WB) @ self.T_WF
-      rx, ry, rz = tf_trans(T_BF)
-      qw, qx, qy, qz = tf_quat(T_BF)
+      rx, ry, rz = tf_trans(self.T_WF)
+      qw, qx, qy, qz = tf_quat(self.T_WF)
       tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
       calib_file.write(f"fiducial_exts: [{tf_str}]\n")
       # -- Clean up
@@ -7788,7 +7801,7 @@ class GimbalSandbox:
       # Save camera data
       for cam_idx, view in enumerate(view_data):
         for view_idx, cam_data in enumerate(view):
-          view_file = open(f"/tmp/sim_gimbal/cam{cam_idx}/{view_idx}.dat", "w")
+          view_file = open(f"/tmp/sim_gimbal/cam{cam_idx}/{view_idx}.sim", "w")
           view_file.write(f"num_corners: {cam_data['num_measurements']}\n")
           view_file.write("\n")
 
@@ -7805,8 +7818,20 @@ class GimbalSandbox:
             view_file.write(f"{kp[0]},{kp[1]}\n")
           view_file.close()
 
+      # Save pose data
+      poses_file = open(f"/tmp/sim_gimbal/poses.sim", "w")
+      poses_file.write(f"num_poses: {len(pose_data)}\n")
+      poses_file.write(f"\n")
+      poses_file.write(f"#x,y,z,qw,qx,qy,qz\n")
+      for pose in pose_data:
+        rx, ry, rz = tf_trans(pose)
+        qw, qx, qy, qz = tf_quat(pose)
+        tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+        poses_file.write(f"{tf_str}\n")
+      poses_file.close()
+
       # Save joints data
-      joints_file = open(f"/tmp/sim_gimbal/joint_angles.dat", "w")
+      joints_file = open(f"/tmp/sim_gimbal/joint_angles.sim", "w")
       joints_file.write(f"num_views: {len(view_data[0])}\n")
       joints_file.write(f"num_joints: {num_joints}\n")
       joints_file.write(f"\n")
