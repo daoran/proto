@@ -43,7 +43,7 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_vision_factor
 # python3 proto.py TestFactors.test_calib_vision_factor
 # python3 proto.py TestFactors.test_two_state_vision_factor
-# python3 proto.py TestFactors.test_calib_gimbal_factor
+python3 proto.py TestFactors.test_calib_gimbal_factor
 # python3 proto.py TestFactors.test_imu_buffer
 # python3 proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto.py TestFactors.test_imu_factor_propagate
@@ -138,9 +138,6 @@ run_test() {
   tmux send-keys -t dev -R "\
     cd ~/projects/proto/proto \
       && clear \
-      && make clean \
-      && make ceres_bridge \
-      && make libproto \
       && make test_proto \
       && ./build/bin/test_proto --target $1 \
   " C-m C-m
@@ -362,7 +359,7 @@ dev_aprilgrid() {
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_solve
-run_test test_calib_gimbal_ceres_solve
+# run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features
 # run_test test_load_sim_imu_data
