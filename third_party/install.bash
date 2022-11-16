@@ -25,10 +25,8 @@ install eigen
 install lapacke
 install opencv
 install apriltag
-# install octomap
 install glew
 install sdl2
-# install glfw
-# install suitesparse
+install suitesparse
 install yamlcpp
 install tiscamera
