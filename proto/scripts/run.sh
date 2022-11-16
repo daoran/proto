@@ -83,13 +83,13 @@ run_memcheck() {
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
 # python3 proto.py TestSandbox.test_gimbal
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "\
-  cd ~/projects/proto/proto \
-    && clear \
-    && make test_proto \
-    && ./build/bin/test_proto --target test_calib_gimbal_solve
-" C-m C-m
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto/proto \
+#     && clear \
+#     && make test_proto \
+#     && ./build/bin/test_proto --target test_calib_gimbal_solve
+# " C-m C-m
 #valgrind --leak-check=full --show-leak-kinds=all
 # python3 scripts/sandbox.py
 # python3 scripts/plot_matrix.py --input /tmp/sim_gimbal/H.csv
@@ -138,10 +138,12 @@ run_test() {
   tmux send-keys -t dev -R "\
     cd ~/projects/proto/proto \
       && clear \
+      && make clean \
+      && make ceres_bridge \
+      && make libproto \
       && make test_proto \
       && ./build/bin/test_proto --target $1 \
   " C-m C-m
-      # && python3 scripts/sandbox.py
   #valgrind --leak-check=full
   exit
 }
@@ -360,6 +362,7 @@ dev_aprilgrid() {
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_solve
+run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features
 # run_test test_load_sim_imu_data
@@ -401,7 +404,6 @@ dev_aprilgrid() {
 #   && cd ~/projects/proto
 # " C-m C-m
 # exit
-
 
 ###############################################################################
 # ARDUINO

@@ -8,6 +8,9 @@
 #include <ceres/solver.h>
 #include <ceres/types.h>
 
+// GLOBAL VARIABLES
+static int ceres_initialized = 0;
+
 /**
  * Wrapper for ceres::CostFunction
  */
@@ -178,10 +181,15 @@ class PoseLocalParameterization : public ceres::LocalParameterization {
 };
 
 void ceres_init() {
+  if (ceres_initialized) {
+    return;
+  }
+
   // This is not ideal, but it's not clear what to do if there is no gflags and
   // no access to command line arguments.
   char message[] = "<unknown>";
   google::InitGoogleLogging(message);
+  ceres_initialized = 1;
 }
 
 ceres_problem_t *ceres_create_problem() {
@@ -253,6 +261,7 @@ void ceres_solve(ceres_problem_t *c_problem, const int max_iter) {
   ceres::Solver::Options options;
   options.max_num_iterations = max_iter;
   options.minimizer_progress_to_stdout = true;
+  // options.check_gradients = true;
 
   ceres::Solver::Summary summary;
   ceres::Solve(options, problem, &summary);

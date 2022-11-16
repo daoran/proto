@@ -51,7 +51,6 @@
 #endif
 
 #ifdef USE_CERES
-// #include <ceres/c_api.h>
 #include "ceres_bridge.h"
 #endif
 
@@ -17725,9 +17724,9 @@ int test_calib_gimbal_ceres_solve() {
 
     // Perturb
     real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    pose_vector_update(calib_est->fiducial->data, dx);
-    pose_vector_update(calib_est->cam_exts[0]->data, dx);
-    pose_vector_update(calib_est->cam_exts[1]->data, dx);
+    // pose_vector_update(calib_est->fiducial->data, dx);
+    // pose_vector_update(calib_est->cam_exts[0]->data, dx);
+    // pose_vector_update(calib_est->cam_exts[1]->data, dx);
     // for (int link_idx = 0; link_idx < 3; link_idx++) {
     //   pose_vector_update(calib_est->links[link_idx]->data, dx);
     // }
@@ -17790,20 +17789,23 @@ int test_calib_gimbal_ceres_solve() {
     }   // For each cameras
   }     // For each views
 
-  for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
-    ceres_set_parameter_constant(problem, calib_est->joints[view_idx][0].data);
-    ceres_set_parameter_constant(problem, calib_est->joints[view_idx][1].data);
-    ceres_set_parameter_constant(problem, calib_est->joints[view_idx][2].data);
-  }
+  // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+  //   ceres_set_parameter_constant(problem,
+  //   calib_est->joints[view_idx][0].data);
+  //   ceres_set_parameter_constant(problem,
+  //   calib_est->joints[view_idx][1].data);
+  //   ceres_set_parameter_constant(problem,
+  //   calib_est->joints[view_idx][2].data);
+  // }
 
   // ceres_set_parameter_constant(problem, calib_est->fiducial->data);
-  // ceres_set_parameter_constant(problem, calib_est->links[0]->data);
-  // ceres_set_parameter_constant(problem, calib_est->links[1]->data);
-  // ceres_set_parameter_constant(problem, calib_est->links[2]->data);
+  ceres_set_parameter_constant(problem, calib_est->links[0]->data);
+  ceres_set_parameter_constant(problem, calib_est->links[1]->data);
+  ceres_set_parameter_constant(problem, calib_est->links[2]->data);
   // ceres_set_parameter_constant(problem, calib_est->cam_exts[0]->data);
   // ceres_set_parameter_constant(problem, calib_est->cam_exts[1]->data);
-  ceres_set_parameter_constant(problem, calib_est->cam_params[0]->data);
-  ceres_set_parameter_constant(problem, calib_est->cam_params[1]->data);
+  // ceres_set_parameter_constant(problem, calib_est->cam_params[0]->data);
+  // ceres_set_parameter_constant(problem, calib_est->cam_params[1]->data);
 
   ceres_set_parameterization(problem, calib_est->fiducial->data, pose_pm);
   ceres_set_parameterization(problem, calib_est->links[0]->data, pose_pm);
