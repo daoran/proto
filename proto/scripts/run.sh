@@ -43,7 +43,7 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_vision_factor
 # python3 proto.py TestFactors.test_calib_vision_factor
 # python3 proto.py TestFactors.test_two_state_vision_factor
-python3 proto.py TestFactors.test_calib_gimbal_factor
+# python3 proto.py TestFactors.test_calib_gimbal_factor
 # python3 proto.py TestFactors.test_imu_buffer
 # python3 proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto.py TestFactors.test_imu_factor_propagate
@@ -83,16 +83,18 @@ python3 proto.py TestFactors.test_calib_gimbal_factor
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
 # python3 proto.py TestSandbox.test_gimbal
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "\
-#   cd ~/projects/proto/proto \
-#     && clear \
-#     && make test_proto \
-#     && ./build/bin/test_proto --target test_calib_gimbal_solve
-# " C-m C-m
-#valgrind --leak-check=full --show-leak-kinds=all
-# python3 scripts/sandbox.py
-# python3 scripts/plot_matrix.py --input /tmp/sim_gimbal/H.csv
+
+
+# num_views = 5
+
+# cam_params =              2
+# cam_exts =                2
+# links =                   3
+# joints = 3 * num_views = 15 22
+# fiducial =                1 23
+# poses = num_views =       5 28
+
+
 
 ###############################################################################
 # C
@@ -124,15 +126,8 @@ run_all_tests() {
 }
 
 run_test() {
-  # time make build
-  # cd ./proto/build/bin;
-  # # ./test_proto --target "$1"
-  # # valgrind ./test_proto --target "$1"
   # gdb -ex run -ex bt -ex quit --args ./test_proto --target "$1"
-  # cd -
-
-      # && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/bin/test_proto --target $1
-      # && python3 scripts/plot_matrix.py --input /tmp/H_damped.csv
+  # && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/bin/test_proto --target $1
 
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
@@ -140,8 +135,8 @@ run_test() {
       && clear \
       && make test_proto \
       && ./build/bin/test_proto --target $1 \
+      && python3 scripts/plot_matrix.py --input /tmp/H.csv
   " C-m C-m
-  #valgrind --leak-check=full
   exit
 }
 
@@ -358,7 +353,7 @@ dev_aprilgrid() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
-# run_test test_calib_gimbal_solve
+run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features

@@ -82,23 +82,16 @@ TESTS := \
 
 .PHONY: benchmarks build scripts shaders test_data viz
 
+
 help:
 	@echo "\033[1;34m[make targets]:\033[0m"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; \
 		{printf "\033[1;36m%-20s\033[0m%s\n", $$1, $$2}'
 
-$(BLD_DIR)/%.o: %.h Makefile
-	@echo "CC [$(patsubst %.h,%.c,$<)]"
-	@python3 scripts/make_cmodule.py --infile $<
-	@$(CC) $(CFLAGS) $< -o $@
-	@rm -f $(patsubst %.h,%.c,$<)
-
-$(BIN_DIR)/test_%: %.h Makefile
-	@echo "CC [test_$(patsubst %.h,%.c,$<)]"
-	@python3 scripts/make_cmodule.py -in $< -test true
-	@$(CC) $(CFLAGS) test_$(patsubst %.h,%.c,$<) -o $@ $(DEPS)
-	@rm test_$(patsubst %.h,%.c,$<)
+$(BLD_DIR)/%.o: %.c %.h Makefile
+	@echo "CC [$<]"
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BLD_DIR)/ceres_bridge.o: ceres_bridge.cpp Makefile
 	@echo "CXX [ceres_bridge.c]"
@@ -122,10 +115,26 @@ clean:  ## Clean build directory
 	@rm -rf $(BLD_DIR)
 	@rm -rf $(BIN_DIR)
 
-libproto: setup $(BLD_DIR)/libproto.a             ## Compile libproto
-test_proto: setup libproto $(BIN_DIR)/test_proto  ## Compile test_proto
-test_aprilgrid: setup $(BIN_DIR)/test_aprilgrid   ## Compile test_aprilgrid
-test_tis: setup $(BIN_DIR)/test_tis               ## Compile test_tis
-test_sbgc: setup $(BIN_DIR)/test_sbgc             ## Compile test_sbgc
-test_ubx: setup $(BIN_DIR)/test_ubx               ## Compile test_ubx
-tests: setup $(TESTS)                             ## Compile all unittests
+libproto: setup $(BLD_DIR)/libproto.a               ## Compile libproto
+
+test_proto: libproto    ## Compile test_proto
+	@echo "CC [$@]"
+	$(CC) $(CFLAGS) test_proto.c -o $(BIN_DIR)/test_proto $(DEPS)
+
+test_aprilgrid:  ## Compile test_aprilgrid
+	@echo "CC [$@]"
+	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BIN_DIR)/test_aprilgrid $(DEPS)
+
+test_tis:  ## Compile test_tis
+	@echo "CC [$@]"
+	@$(CC) $(CFLAGS) test_tis.c -o $(BIN_DIR)/test_tis $(DEPS)
+
+test_sbgc: ## Compile test_sbgc
+	@echo "CC [$@]"
+	@$(CC) $(CFLAGS) test_sbgc.c -o $(BIN_DIR)/test_sbgc $(DEPS)
+
+test_ubx: ## Compile test_ubx
+	@echo "CC [$@]"
+	@$(CC) $(CFLAGS) test_ubx.c -o $(BIN_DIR)/test_ubx $(DEPS)
+
+tests: test_proto test_aprilgrid test_tis test_sbgc test_ubx

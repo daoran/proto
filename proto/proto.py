@@ -7633,7 +7633,7 @@ class GimbalSandbox:
     ]
 
     # -- Add views
-    num_views = 10
+    num_views = 1
     num_joints = len(self.joint_angles)
 
     factor_ids = []
@@ -7650,13 +7650,13 @@ class GimbalSandbox:
       # self.joint_angles[2] += np.random.uniform(-0.5, 0.5)
       self.joint_angles[0] = np.random.uniform(-0.5, 0.5)
       self.joint_angles[1] = np.random.uniform(-0.5, 0.5)
-      self.joint_angles[2] = np.random.uniform(-0.5, 0.5)
+      self.joint_angles[2] = np.random.uniform(-1.0, 1.0)
       joint_angle_data.append(copy.deepcopy(self.joint_angles))
 
       # Perturb body pose
-      self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.01, 0.01))
-      self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.01, 0.01))
-      self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.01, 0.01))
+      self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
+      self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
+      self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
       self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
       self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
       self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))

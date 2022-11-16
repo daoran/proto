@@ -13,6 +13,20 @@ if __name__ == "__main__":
 
   A = np.genfromtxt(args.input, delimiter=",")
 
-  plt.matshow(A)
+  A_binary = np.zeros(A.shape)
+  for i in range(A.shape[0]):
+    for j in range(A.shape[1]):
+      if abs(A[i, j]) > 1e-14:
+        A_binary[i, j] = 1.0
+      else:
+        A_binary[i, j] = 0.0
+
+  plt.subplot(211)
+  plt.imshow(A_binary, cmap='Greys')
   plt.colorbar()
+
+  plt.subplot(212)
+  plt.imshow(abs(A))
+  plt.colorbar()
+
   plt.show()
