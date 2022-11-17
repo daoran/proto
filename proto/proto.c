@@ -4309,6 +4309,23 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
 }
 
 /******************************************************************************
+ * QR
+ ******************************************************************************/
+
+void __lapack_qr(real_t *A, const int m, const int n, real_t *R) {
+  int lda = m;
+  real_t *tau = MALLOC(real_t, (m < n) ? m : n);
+  LAPACKE_dgeqrf(LAPACK_ROW_MAJOR, m, n, A, lda, tau);
+  free(tau);
+}
+
+void qr(real_t *A, const int m, const int n, real_t *R) {
+#ifdef USE_LAPACK
+  __lapack_qr(A, m, n, R);
+#endif // USE_LAPACK
+}
+
+/******************************************************************************
  * SUITE-SPARSE
  *****************************************************************************/
 

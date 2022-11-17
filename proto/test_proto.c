@@ -1689,6 +1689,25 @@ int test_chol_solve() {
   return 0;
 }
 
+int test_qr() {
+  // clang-format off
+  const int m = 3;
+  const int n = 3;
+  real_t A[3 * 3] = {
+    12, -51,   4,
+    6,  167, -68,
+    -4,  24, -41
+  };
+  // clang-format on
+
+  real_t R[3 * 3] = {0};
+  qr(A, m, n, R);
+  print_matrix("A", A, 3, 3);
+  print_matrix("R", R, 3, 3);
+
+  return 0;
+}
+
 int test_suitesparse_chol_solve() {
   // clang-format off
   const int n = 3;
@@ -5447,6 +5466,9 @@ void test_suite() {
   // CHOL
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
+
+  // QR
+  MU_ADD_TEST(test_qr);
 
   // SUITE-SPARSE
   MU_ADD_TEST(test_suitesparse_chol_solve);
