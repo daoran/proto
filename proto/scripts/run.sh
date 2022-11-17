@@ -134,8 +134,8 @@ run_test() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && ./build/bin/test_proto --target $1 \
-      && python3 scripts/plot_matrix.py --input /tmp/H.csv
+      && valgrind --leak-check=full --show-leak-kinds=all ./build/bin/test_proto --target $1 \
+      # && python3 scripts/plot_matrix.py --input /tmp/H.csv
   " C-m C-m
   exit
 }
@@ -276,9 +276,12 @@ dev_aprilgrid() {
 # PROTO-SVD
 # run_test test_svd
 # run_test test_svd_inv
+# run_test test_svd_det
 # PROTO-CHOL
 # run_test test_chol
 # run_test test_chol_solve
+# PROTO-QR
+run_test test_qr
 # PROTO-SUITE-SPARSE
 # run_test test_suitesparse_chol_solve
 # PROTO-TIME
@@ -353,13 +356,14 @@ dev_aprilgrid() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
-run_test test_calib_gimbal_solve
+# run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features
 # run_test test_load_sim_imu_data
 # run_test test_load_sim_cam_frame
 # run_test test_load_sim_cam_data
+# run_test test_sim_gimbal_malloc_free
 # PROTO-GUI
 # run_test test_gl_zeros
 # run_test test_gl_ones

@@ -4,17 +4,16 @@
 // PROTO SETTINGS
 #define PRECISION 2
 #define MAX_LINE_LENGTH 9046
-// #define USE_DATA_STRUCTURES
+
 #define USE_CBLAS
 #define USE_LAPACK
 #define USE_SUITESPARSE
-#define USE_CERES
+// #define USE_CERES
 #define USE_STB
-// #define USE_GUI
 
-#ifndef STATUS
-#define STATUS __attribute__((warn_unused_result)) int
-#endif
+// #define USE_GUI
+// #define USE_SBGC
+#define USE_APRILGRID
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,8 +35,6 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 
-#include <openssl/sha.h>
-
 #ifdef USE_CBLAS
 #include <cblas.h>
 #endif
@@ -54,20 +51,17 @@
 #include "ceres_bridge.h"
 #endif
 
-#ifdef USE_GUI
-#include <GL/glew.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
-#define SDL_DISABLE_IMMINTRIN_H 1
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#ifdef USE_APRILGRID
+#include "aprilgrid.h"
 #endif
-
-// #include "sbgc.h"
 
 /******************************************************************************
  * LOGGING / MACROS
  ******************************************************************************/
+
+#ifndef STATUS
+#define STATUS __attribute__((warn_unused_result)) int
+#endif
 
 /** Terminal ANSI colors */
 #define KRED "\x1B[1;31m"
@@ -85,11 +79,33 @@
 
 /** Macro that adds the ability to switch between C / C++ style mallocs */
 #ifdef __cplusplus
+
+#ifndef MALLOC
 #define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
+#endif
+
+#ifndef CALLOC
 #define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
+#endif
+
 #else
+
+#ifndef MALLOC
 #define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
+#endif
+
+#ifndef CALLOC
 #define CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
+#endif
+
+#endif
+
+/** Free Macro */
+#ifndef FREE
+#define FREE(X)                                                                \
+  if (X != NULL) {                                                             \
+    free(X);                                                                   \
+  }
 #endif
 
 /**
@@ -97,44 +113,52 @@
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
+#ifndef DEBUG
 #define DEBUG(...)                                                             \
   do {                                                                         \
     fprintf(stderr, "[DEBUG] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
     fprintf(stderr, __VA_ARGS__);                                              \
   } while (0);
+#endif
 
 /**
  * Log info
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
+#ifndef LOG_INFO
 #define LOG_INFO(...)                                                          \
   do {                                                                         \
     fprintf(stderr, "[INFO] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);    \
     fprintf(stderr, __VA_ARGS__);                                              \
   } while (0)
+#endif
 
 /**
  * Log error
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
+#ifndef LOG_ERROR
 #define LOG_ERROR(...)                                                         \
   do {                                                                         \
     fprintf(stderr, "[ERROR] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
     fprintf(stderr, __VA_ARGS__);                                              \
   } while (0)
+#endif
 
 /**
  * Log warn
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
+#ifndef LOG_WARN
 #define LOG_WARN(...)                                                          \
   do {                                                                         \
     fprintf(stderr, "[WARN] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);    \
     fprintf(stderr, __VA_ARGS__);                                              \
   } while (0)
+#endif
 
 /**
  * Fatal
@@ -142,21 +166,25 @@
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
+#ifndef FATAL
 #define FATAL(...)                                                             \
   do {                                                                         \
     fprintf(stderr, "[FATAL] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
     fprintf(stderr, __VA_ARGS__);                                              \
   } while (0);                                                                 \
   exit(-1)
+#endif
 
 /**
  * Mark variable unused.
  * @param[in] expr Variable to mark as unused
  */
+#ifndef UNUSED
 #define UNUSED(expr)                                                           \
   do {                                                                         \
     (void) (expr);                                                             \
   } while (0)
+#endif
 
 /**
  * Check if condition is satisfied.
@@ -168,19 +196,23 @@
  * @param[in] M Error message
  * @param[in] ... Varadic arguments for error message
  */
+#ifndef CHECK
 #define CHECK(A, M, ...)                                                       \
   if (!(A)) {                                                                  \
     LOG_ERROR(M, ##__VA_ARGS__);                                               \
     goto error;                                                                \
   }
+#endif
 
 /**
  * Free memory
  */
+#ifndef FREE_MEM
 #define FREE_MEM(TARGET, FREE_FUNC)                                            \
   if (TARGET) {                                                                \
     FREE_FUNC((void *) TARGET);                                                \
   }
+#endif
 
 /**
  * Median value in buffer
@@ -414,7 +446,9 @@ void *hashmap_delete(hashmap_t *map, void *key);
  ******************************************************************************/
 
 /** Timestamp Type */
+#ifndef timestamp_t
 typedef int64_t timestamp_t;
+#endif
 
 struct timespec tic();
 float toc(struct timespec *tic);
@@ -457,122 +491,6 @@ int tcp_client_setup(tcp_client_t *client,
                      const char *server_ip,
                      const int server_port);
 int tcp_client_loop(tcp_client_t *client);
-
-// HTTP //////////////////////////////////////////////////////////////////////
-
-/**
- * HTTP Status Code
- */
-#define HTTP_STATUS_100 "100 Continue"
-#define HTTP_STATUS_101 "101 Switching Protocols"
-#define HTTP_STATUS_200 "200 OK"
-#define HTTP_STATUS_201 "201 Created"
-#define HTTP_STATUS_202 "202 Accepted"
-#define HTTP_STATUS_203 "203 Non-Authoritative Information"
-#define HTTP_STATUS_204 "204 No Content"
-#define HTTP_STATUS_205 "205 Reset Content"
-#define HTTP_STATUS_206 "206 Partial Content"
-#define HTTP_STATUS_300 "300 Multiple Choices"
-#define HTTP_STATUS_301 "301 Moved Permanently"
-#define HTTP_STATUS_302 "302 Found"
-#define HTTP_STATUS_303 "303 See Other"
-#define HTTP_STATUS_304 "304 Not Modified"
-#define HTTP_STATUS_305 "305 Use Proxy"
-#define HTTP_STATUS_307 "307 Temporary Redirect"
-#define HTTP_STATUS_400 "400 Bad Request"
-#define HTTP_STATUS_401 "401 Unauthorized"
-#define HTTP_STATUS_402 "402 Payment Required"
-#define HTTP_STATUS_403 "403 Forbidden"
-#define HTTP_STATUS_404 "404 Not Found"
-#define HTTP_STATUS_405 "405 Method Not Allowed"
-#define HTTP_STATUS_406 "406 Not Acceptable"
-#define HTTP_STATUS_407 "407 Proxy Authentication Required"
-#define HTTP_STATUS_408 "408 Request Time-out"
-#define HTTP_STATUS_409 "409 Conflict"
-#define HTTP_STATUS_410 "410 Gone"
-#define HTTP_STATUS_411 "411 Length Required"
-#define HTTP_STATUS_412 "412 Precondition Failed"
-#define HTTP_STATUS_413 "413 Request Entity Too Large"
-#define HTTP_STATUS_414 "414 Request-URI Too Large"
-#define HTTP_STATUS_415 "415 Unsupported Media Type"
-#define HTTP_STATUS_416 "416 Requested range not satisfiable"
-#define HTTP_STATUS_417 "417 Expectation Failed"
-#define HTTP_STATUS_500 "500 Internal Server Error"
-#define HTTP_STATUS_501 "501 Not Implemented"
-#define HTTP_STATUS_502 "502 Bad Gateway"
-#define HTTP_STATUS_503 "503 Service Unavailable"
-#define HTTP_STATUS_504 "504 Gateway Time-out"
-#define HTTP_STATUS_505 "505 HTTP Version not supported"
-
-#define WS_FIN 0x80
-#define WS_CONT 0x00
-#define WS_TEXT 0x01
-#define WS_BIN 0x02
-#define WS_CLOSE 0x08
-#define WS_PING 0x09
-#define WS_PONG 0xA
-#define WS_MASK_ON 0x80
-#define WS_MASK_OFF 0x00
-
-#define WEBSOCKET_HANDSHAKE_RESPONSE                                           \
-  "HTTP/1.1 101 Switching Protocols\r\n"                                       \
-  "Upgrade: websocket\r\n"                                                     \
-  "Connection: Upgrade\r\n"                                                    \
-  "Sec-WebSocket-Accept: %s\r\n"                                               \
-  "\r\n"
-
-typedef struct http_msg_t {
-  // Protocol version
-  char *protocol;
-
-  // Request
-  char *method;
-  char *path;
-
-  // Response
-  char *status;
-
-  // Headers
-  char *user_agent;
-  char *host;
-  char *upgrade;
-  char *connection;
-  char *sec_websocket_key;
-  char *sec_websocket_version;
-} http_msg_t;
-
-typedef struct ws_frame_t {
-  uint8_t header;
-  uint8_t mask[4];
-
-  size_t payload_size;
-  uint8_t *payload_data;
-} ws_frame_t;
-
-char *base64_encode(const uint8_t *data, size_t in_len, size_t *out_len);
-uint8_t *base64_decode(const char *data, size_t in_len, size_t *out_len);
-
-void http_msg_setup(http_msg_t *msg);
-void http_msg_free(http_msg_t *msg);
-void http_msg_print(http_msg_t *msg);
-int http_parse_request(char *msg_str, http_msg_t *msg);
-
-ws_frame_t *ws_frame_malloc();
-void ws_frame_free(ws_frame_t *frame);
-void ws_frame_print(ws_frame_t *frame);
-uint8_t *ws_frame_serialize(ws_frame_t *frame);
-int ws_frame_fin_bit(uint8_t *data_frame);
-int ws_frame_rsv_bit(uint8_t *data_frame);
-int ws_frame_op_code(uint8_t *data_frame);
-int ws_frame_mask_enabled(uint8_t *data_frame);
-ws_frame_t *ws_frame_parse(int connfd);
-
-char *ws_recv(int connfd);
-void ws_send(int connfd, const uint8_t *msg);
-char *ws_read(ws_frame_t *ws_frame);
-char *ws_hash(const char *ws_key);
-int ws_handshake(const int connfd);
-int ws_server();
 
 /******************************************************************************
  * MATHS
@@ -693,7 +611,7 @@ void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale);
 
-real_t *vec_malloc(const size_t n);
+real_t *vec_malloc(const real_t *x, const size_t n);
 void vec_copy(const real_t *src, const size_t n, real_t *dest);
 int vec_equals(const real_t *x, const real_t *y, const size_t n);
 real_t *vec_load(const char *save_path, int *nb_rows, int *nb_cols);
@@ -856,13 +774,20 @@ real_t suitesparse_chol_solve(cholmod_common *c,
   real_t T[4 * 4] = {0};                                                       \
   tf_chain2(N, __VA_ARGS__, T);
 
+#define POSE_ER(YPR, POS, POSE)                                                \
+  real_t POSE[7] = {0};                                                        \
+  POSE[0] = POS[0];                                                            \
+  POSE[1] = POS[1];                                                            \
+  POSE[2] = POS[2];                                                            \
+  euler2quat(YPR, POSE + 3);
+
 void rotx(const real_t theta, real_t C[3 * 3]);
 void roty(const real_t theta, real_t C[3 * 3]);
 void rotz(const real_t theta, real_t C[3 * 3]);
 void tf(const real_t params[7], real_t T[4 * 4]);
 void tf_cr(const real_t C[3 * 3], const real_t r[3], real_t T[4 * 4]);
 void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]);
-void tf_er(const real_t C[3 * 3], const real_t r[3], real_t T[4 * 4]);
+void tf_er(const real_t ypr[3], const real_t r[3], real_t T[4 * 4]);
 void tf_vector(const real_t T[4 * 4], real_t params[7]);
 void tf_decompose(const real_t T[4 * 4], real_t C[3 * 3], real_t r[3]);
 void tf_rot_set(real_t T[4 * 4], const real_t C[3 * 3]);
@@ -1236,6 +1161,15 @@ typedef struct calib_gimbal_factor_t {
   real_t sqrt_info[2 * 2];
 } calib_gimbal_factor_t;
 
+void gimbal_setup_extrinsics(const real_t ypr[3],
+                             const real_t r[3],
+                             real_t T[4 * 4],
+                             extrinsics_t *link);
+void gimbal_setup_joint(const int joint_idx,
+                        const real_t theta,
+                        real_t T_joint[4 * 4],
+                        joint_angle_t *joint);
+
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                const extrinsics_t *fiducial,
                                const pose_t *pose,
@@ -1262,15 +1196,6 @@ int calib_gimbal_factor_ceres_eval(void *factor,
                                    real_t **params,
                                    real_t *residuals,
                                    real_t **jacobians);
-
-void gimbal_setup_extrinsics(const real_t ypr[3],
-                             const real_t r[3],
-                             real_t T[4 * 4],
-                             extrinsics_t *link);
-void gimbal_setup_joint(const int joint_idx,
-                        const real_t theta,
-                        real_t T_joint[4 * 4],
-                        joint_angle_t *joint);
 
 // IMU FACTOR ////////////////////////////////////////////////////////////////
 
@@ -1461,7 +1386,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
                       size_t *nb_matches);
 
 /******************************************************************************
- * SIM
+ * SIMULATION
  ******************************************************************************/
 
 // SIM FEATURES //////////////////////////////////////////////////////////////
@@ -1512,233 +1437,39 @@ real_t **sim_create_features(const real_t origin[3],
                              const real_t dim[3],
                              const int nb_features);
 
-/******************************************************************************
- * GUI
- *****************************************************************************/
-#ifdef USE_GUI
+// SIM GIMBAL DATA ///////////////////////////////////////////////////////////
 
-// OPENGL UTILS //////////////////////////////////////////////////////////////
+typedef struct sim_gimbal_t {
+  aprilgrid_t grid;
 
-GLfloat gl_deg2rad(const GLfloat d);
-GLfloat gl_rad2deg(const GLfloat r);
-void gl_print_vector(const char *prefix, const GLfloat *x, const int length);
-void gl_print_matrix(const char *prefix,
-                     const GLfloat *A,
-                     const int nb_rows,
-                     const int nb_cols);
-int gl_equals(const GLfloat *A,
-              const GLfloat *B,
-              const int nb_rows,
-              const int nb_cols,
-              const GLfloat tol);
-void gl_matf_set(GLfloat *A,
-                 const int m,
-                 const int n,
-                 const int i,
-                 const int j,
-                 const GLfloat val);
-GLfloat gl_matf_val(
-    const GLfloat *A, const int m, const int n, const int i, const int j);
-void gl_copy(const GLfloat *src, const int m, const int n, GLfloat *dest);
-void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t);
-void gl_zeros(GLfloat *A, const int nb_rows, const int nb_cols);
-void gl_ones(GLfloat *A, const int nb_rows, const int nb_cols);
-void gl_eye(GLfloat *A, const int nb_rows, const int nb_cols);
-void gl_vec2f(GLfloat *v, const GLfloat x, const GLfloat y);
-void gl_vec3f(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z);
-void gl_vec4f(GLfloat *v,
-              const GLfloat x,
-              const GLfloat y,
-              const GLfloat z,
-              const GLfloat w);
-void gl_vec3f_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]);
+  extrinsics_t fiducial;
 
-void gl_add(const GLfloat *A,
-            const GLfloat *B,
-            const int nb_rows,
-            const int nb_cols,
-            GLfloat *C);
-void gl_sub(const GLfloat *A,
-            const GLfloat *B,
-            const int nb_rows,
-            const int nb_cols,
-            GLfloat *C);
-void gl_dot(const GLfloat *A,
-            const int A_m,
-            const int A_n,
-            const GLfloat *B,
-            const int B_m,
-            const int B_n,
-            GLfloat *C);
-void gl_scale(GLfloat factor, GLfloat *A, const int nb_rows, const int nb_cols);
-GLfloat gl_norm(const GLfloat *x, const int size);
-void gl_normalize(GLfloat *x, const int size);
+  extrinsics_t *links;
+  int num_links;
 
-void gl_perspective(const GLfloat fov,
-                    const GLfloat aspect,
-                    const GLfloat near,
-                    const GLfloat far,
-                    GLfloat P[4 * 4]);
-void gl_lookat(const GLfloat eye[3],
-               const GLfloat at[3],
-               const GLfloat up[3],
-               GLfloat V[4 * 4]);
+  joint_angle_t *joints;
+  int num_joints;
 
-// SHADER ////////////////////////////////////////////////////////////////////
+  extrinsics_t *cam_exts;
+  camera_params_t *cam_params;
+  int num_cams;
+} sim_gimbal_t;
 
-GLuint gl_shader_compile(const char *shader_src, const int type);
-GLuint gl_shaders_link(const GLuint vertex_shader,
-                       const GLuint fragment_shader,
-                       const GLuint geometry_shader);
+typedef struct sim_gimbal_calib_view_t {
+  int *tag_ids;
+  int *corner_idxs;
+  real_t **object_points;
+  real_t **keypoints;
+} sim_gimbal_calib_view_t;
 
-// GL PROGRAM ////////////////////////////////////////////////////////////////
-
-typedef struct gl_entity_t {
-  GLfloat T[4 * 4];
-
-  GLint program_id;
-  GLuint vao;
-  GLuint vbo;
-  GLuint ebo;
-} gl_entity_t;
-
-GLuint gl_prog_setup(const char *vs_src,
-                     const char *fs_src,
-                     const char *gs_src);
-
-int gl_prog_set_int(const GLint id, const char *k, const GLint v);
-int gl_prog_set_vec2i(const GLint id, const char *k, const GLint v[2]);
-int gl_prog_set_vec3i(const GLint id, const char *k, const GLint v[3]);
-int gl_prog_set_vec4i(const GLint id, const char *k, const GLint v[4]);
-
-int gl_prog_set_float(const GLint id, const char *k, const GLfloat v);
-int gl_prog_set_vec2f(const GLint id, const char *k, const GLfloat v[2]);
-int gl_prog_set_vec3f(const GLint id, const char *k, const GLfloat v[3]);
-int gl_prog_set_vec4f(const GLint id, const char *k, const GLfloat v[4]);
-int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2 * 2]);
-int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3 * 3]);
-int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4 * 4]);
-
-// GL-CAMERA /////////////////////////////////////////////////////////////////
-
-typedef struct gl_camera_t {
-  int *window_width;
-  int *window_height;
-
-  GLfloat focal[3];
-  GLfloat world_up[3];
-  GLfloat position[3];
-  GLfloat right[3];
-  GLfloat up[3];
-  GLfloat front[3];
-  GLfloat yaw;
-  GLfloat pitch;
-  GLfloat radius;
-
-  GLfloat fov;
-  GLfloat near;
-  GLfloat far;
-
-  GLfloat P[4 * 4]; // Projection matrix
-  GLfloat V[4 * 4]; // View matrix
-} gl_camera_t;
-
-void gl_camera_setup(gl_camera_t *camera,
-                     int *screen_width,
-                     int *screen_height);
-void gl_camera_update(gl_camera_t *camera);
-void gl_camera_rotate(gl_camera_t *camera,
-                      const float factor,
-                      const float dx,
-                      const float dy);
-void gl_camera_pan(gl_camera_t *camera,
-                   const float factor,
-                   const float dx,
-                   const float dy);
-void gl_camera_zoom(gl_camera_t *camera,
-                    const float factor,
-                    const float dx,
-                    const float dy);
-
-// GL-PRIMITIVES /////////////////////////////////////////////////////////////
-
-void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]);
-void gl_cube_cleanup(const gl_entity_t *entity);
-void gl_cube_draw(const gl_entity_t *entity, const gl_camera_t *camera);
-
-void gl_camera_frame_setup(gl_entity_t *entity);
-void gl_camera_frame_cleanup(const gl_entity_t *entity);
-void gl_camera_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
-
-void gl_axis_frame_setup(gl_entity_t *entity);
-void gl_axis_frame_cleanup(const gl_entity_t *entity);
-void gl_axis_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
-
-void gl_grid_setup(gl_entity_t *entity);
-void gl_grid_cleanup(const gl_entity_t *entity);
-void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera);
-
-// GUI ///////////////////////////////////////////////////////////////////////
-
-typedef struct gui_t {
-  int screen_width;
-  int screen_height;
-
-  SDL_Window *window;
-  char *window_title;
-  int window_width;
-  int window_height;
-  int loop;
-
-  gl_camera_t camera;
-  GLfloat movement_speed;
-  GLfloat mouse_sensitivity;
-
-  int left_click;
-  int right_click;
-  int last_cursor_set;
-  float last_cursor_x;
-  float last_cursor_y;
-} gui_t;
-
-void gui_window_callback(gui_t *gui, const SDL_Event event);
-void gui_keyboard_callback(gui_t *gui, const SDL_Event event);
-void gui_mouse_callback(gui_t *gui, const SDL_Event event);
-void gui_event_handler(gui_t *gui);
-void gui_setup(gui_t *gui);
-void gui_reset(gui_t *gui);
-void gui_loop(gui_t *gui);
-
-// IMSHOW ////////////////////////////////////////////////////////////////////
-
-typedef struct imshow_t {
-  SDL_Window *window;
-  SDL_Renderer *renderer;
-
-  char *window_title;
-  int window_width;
-  int window_height;
-  int loop;
-
-  SDL_Surface *image_surface;
-
-  gl_camera_t camera;
-  GLfloat movement_speed;
-  GLfloat mouse_sensitivity;
-
-  int left_click;
-  int right_click;
-  int last_cursor_set;
-  float last_cursor_x;
-  float last_cursor_y;
-} imshow_t;
-
-void imshow_window_callback(imshow_t *imshow, const SDL_Event event);
-void imshow_keyboard_callback(imshow_t *imshow, const SDL_Event event);
-void imshow_event_handler(imshow_t *gui);
-void imshow_setup(imshow_t *imshow, const char *fp);
-void imshow_reset(imshow_t *imshow);
-void imshow_loop(imshow_t *imshow);
-#endif // USE_GUI
+sim_gimbal_t *sim_gimbal_malloc();
+void sim_gimbal_free(sim_gimbal_t *sim);
+void sim_gimbal_set_joint(sim_gimbal_t *sim,
+                          const int joint_idx,
+                          const real_t angle);
+void sim_gimbal_get_camera_measurements(sim_gimbal_t *sim,
+                                        const int cam_idx,
+                                        const real_t T_WB[4 * 4],
+                                        calib_gimbal_view_t *view);
 
 #endif // PROTO_H

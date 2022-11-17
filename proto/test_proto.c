@@ -222,10 +222,7 @@ int test_csv_data() {
  * TEST DATA-STRUCTURE
  ******************************************************************************/
 
-#ifdef USE_DATA_STRUCTURES
-
-// DARRAY
-// //////////////////////////////////////////////////////////////////////
+// DARRAY ////////////////////////////////////////////////////////////////////
 
 int test_darray_new_and_destroy(void) {
   darray_t *array = darray_new(sizeof(int), 100);
@@ -399,8 +396,7 @@ int test_darray_expand_and_contract(void) {
   return 0;
 }
 
-// LIST
-// ////////////////////////////////////////////////////////////////////////
+// LIST //////////////////////////////////////////////////////////////////////
 
 int test_list_new_and_destroy(void) {
   list_t *list = list_new();
@@ -571,8 +567,7 @@ int test_list_remove_destroy(void) {
   return 0;
 }
 
-// STACK
-// ///////////////////////////////////////////////////////////////////////
+// STACK /////////////////////////////////////////////////////////////////////
 
 int test_mstack_new_and_destroy(void) {
   mstack_t *s = stack_new();
@@ -907,8 +902,6 @@ int test_hashmap_traverse(void) {
   return 0;
 }
 
-#endif // USE_DATA_STRUCTURES
-
 /******************************************************************************
  * TEST TIME
  ******************************************************************************/
@@ -942,63 +935,6 @@ int test_tcp_server_setup() {
   tcp_server_t server;
   const int port = 8080;
   tcp_server_setup(&server, port);
-  return 0;
-}
-
-int test_http_msg_setup() {
-  http_msg_t msg;
-  http_msg_setup(&msg);
-
-  return 0;
-}
-
-int test_http_msg_print() {
-  char buf[9046] = "\
-GET /chat HTTP/1.1\r\n\
-Host: example.com:8000\r\n\
-Upgrade: websocket\r\n\
-Connection: Upgrade\r\n\
-Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\
-Sec-WebSocket-Version: 13\r\n\
-\r\n";
-  http_msg_t msg;
-  http_msg_setup(&msg);
-  http_parse_request(buf, &msg);
-  // http_msg_print(&msg);
-  http_msg_free(&msg);
-
-  return 0;
-}
-
-int test_http_parse_request() {
-  char buf[9046] = "\
-GET /chat HTTP/1.1\r\n\
-Host: example.com:8000\r\n\
-Upgrade: websocket\r\n\
-Connection: Upgrade\r\n\
-Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\
-Sec-WebSocket-Version: 13\r\n\
-\r\n";
-
-  http_msg_t msg;
-  http_msg_setup(&msg);
-  http_parse_request(buf, &msg);
-  // http_msg_print(&msg);
-  http_msg_free(&msg);
-
-  return 0;
-}
-
-int test_ws_hash() {
-  const char *key = "dGhlIHNhbXBsZSBub25jZQ==";
-  char *hash = ws_hash(key);
-  MU_ASSERT(strcmp(hash, "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") == 0);
-  free(hash);
-  return 0;
-}
-
-int test_ws_server() {
-  ws_server();
   return 0;
 }
 
@@ -4551,6 +4487,7 @@ int test_calib_gimbal_solve() {
   return 0;
 }
 
+#ifdef USE_CERES
 int test_calib_gimbal_ceres_solve() {
   // Setup simulation data
   const char *data_path = "/tmp/sim_gimbal";
@@ -4727,6 +4664,7 @@ int test_calib_gimbal_ceres_solve() {
 
   return 0;
 }
+#endif // USE_CERES
 
 /******************************************************************************
  * TEST DATASET
@@ -4833,522 +4771,11 @@ int test_sim_camera_data_load() {
   return 0;
 }
 
-/*******************************************************************************
- * TEST GUI
- ******************************************************************************/
-#ifdef USE_GUI
-
-// TEST OPENGL UTILS
-// ///////////////////////////////////////////////////////////
-
-int test_gl_zeros() {
-  // clang-format off
-  GLfloat A[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
-  GLfloat expected[3*3] = {0.0, 0.0, 0.0,
-                           0.0, 0.0, 0.0,
-                           0.0, 0.0, 0.0};
-  // clang-format on
-
-  gl_zeros(A, 3, 3);
-  gl_print_matrix("A", A, 3, 3);
-  MU_ASSERT(gl_equals(A, expected, 3, 3, 1e-8));
-
+int test_sim_gimbal_malloc_free() {
+  sim_gimbal_t *sim = sim_gimbal_malloc();
+  sim_gimbal_free(sim);
   return 0;
 }
-
-int test_gl_ones() {
-  // clang-format off
-  GLfloat A[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
-  GLfloat expected[3*3] = {1.0, 1.0, 1.0,
-                           1.0, 1.0, 1.0,
-                           1.0, 1.0, 1.0};
-  // clang-format on
-
-  gl_ones(A, 3, 3);
-  gl_print_matrix("A", A, 3, 3);
-  MU_ASSERT(gl_equals(A, expected, 3, 3, 1e-8));
-
-  return 0;
-}
-
-int test_gl_eye() {
-  /* Check 4x4 matrix */
-  // clang-format off
-  GLfloat A[4*4] = {0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0, 0.0};
-  GLfloat A_expected[4*4] = {1.0, 0.0, 0.0, 0.0,
-                             0.0, 1.0, 0.0, 0.0,
-                             0.0, 0.0, 1.0, 0.0,
-                             0.0, 0.0, 0.0, 1.0};
-  // clang-format on
-  gl_eye(A, 4, 4);
-  gl_print_matrix("A", A, 4, 4);
-  MU_ASSERT(gl_equals(A, A_expected, 4, 4, 1e-8));
-
-  /* Check 3x4 matrix */
-  // clang-format off
-  GLfloat B[3*4] = {0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0};
-  GLfloat B_expected[3*4] = {1.0, 0.0, 0.0,
-                             0.0, 1.0, 0.0,
-                             0.0, 0.0, 1.0,
-                             0.0, 0.0, 0.0};
-  // clang-format on
-  gl_eye(B, 3, 4);
-  gl_print_matrix("B", B, 3, 4);
-  MU_ASSERT(gl_equals(B, B_expected, 3, 4, 1e-8));
-
-  return 0;
-}
-
-int test_gl_equals() {
-  // clang-format off
-  GLfloat A[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
-  GLfloat B[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
-  GLfloat C[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 10.0};
-  // clang-format on
-
-  /* Assert */
-  MU_ASSERT(gl_equals(A, B, 3, 3, 1e-8) == 1);
-  MU_ASSERT(gl_equals(A, C, 3, 3, 1e-8) == 0);
-
-  return 0;
-}
-
-int test_gl_matf_set() {
-  // clang-format off
-  GLfloat A[3*4] = {0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0};
-  // clang-format on
-
-  gl_matf_set(A, 3, 4, 0, 1, 1.0);
-  gl_matf_set(A, 3, 4, 1, 0, 2.0);
-  gl_matf_set(A, 3, 4, 0, 2, 3.0);
-  gl_matf_set(A, 3, 4, 2, 0, 4.0);
-  gl_print_matrix("A", A, 3, 4);
-
-  return 0;
-}
-
-int test_gl_matf_val() {
-  // clang-format off
-  GLfloat A[3*4] = {1.0, 2.0, 3.0,
-                    4.0, 5.0, 6.0,
-                    7.0, 8.0, 9.0,
-                    10.0, 11.0, 12.0};
-  // clang-format on
-
-  const float tol = 1e-4;
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 0) - 1.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 0) - 2.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 0) - 3.0) < tol);
-
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 1) - 4.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 1) - 5.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 1) - 6.0) < tol);
-
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 2) - 7.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 2) - 8.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 2) - 9.0) < tol);
-
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 3) - 10.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 3) - 11.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 3) - 12.0) < tol);
-
-  return 0;
-}
-
-int test_gl_transpose() {
-  /* Transpose a 3x3 matrix */
-  // clang-format off
-  GLfloat A[3*3] = {1.0, 2.0, 3.0,
-                    4.0, 5.0, 6.0,
-                    7.0, 8.0, 9.0};
-  // clang-format on
-  GLfloat A_t[3 * 3] = {0};
-
-  gl_transpose(A, 3, 3, A_t);
-  gl_print_matrix("A", A, 3, 3);
-  gl_print_matrix("A_t", A_t, 3, 3);
-
-  /* Transpose a 3x4 matrix */
-  // clang-format off
-  GLfloat B[3*4] = {1.0, 2.0, 3.0,
-                    4.0, 5.0, 6.0,
-                    7.0, 8.0, 9.0,
-                    10.0, 11.0, 12.0};
-  // clang-format on
-  GLfloat B_t[3 * 4] = {0};
-  gl_transpose(B, 3, 4, B_t);
-  gl_print_matrix("B", B, 3, 4);
-  gl_print_matrix("B_t", B_t, 4, 3);
-
-  return 0;
-}
-
-int test_gl_vec3_cross() {
-  const GLfloat u[3] = {1.0f, 2.0f, 3.0f};
-  const GLfloat v[3] = {4.0f, 5.0f, 6.0f};
-  GLfloat z[3] = {0};
-  gl_vec3f_cross(u, v, z);
-
-  /* Assert */
-  GLfloat expected[3] = {-3.0f, 6.0f, -3.0f};
-  gl_print_vector("z", z, 3);
-  gl_print_vector("expected", z, 3);
-  MU_ASSERT(gl_equals(z, expected, 3, 1, 1e-8));
-
-  return 0;
-}
-
-int test_gl_dot() {
-  // clang-format off
-  GLfloat A[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
-  GLfloat B[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
-  // clang-format on
-  GLfloat C[3 * 3] = {0.0};
-  gl_dot(A, 3, 3, B, 3, 3, C);
-
-  /* Assert */
-  // clang-format off
-  GLfloat expected[3*3] = {30.0f, 66.0f, 102.0f,
-                           36.0f, 81.0f, 126.0f,
-                           42.0f, 96.0f, 150.0f};
-  // clang-format on
-  gl_print_matrix("C", C, 3, 3);
-  gl_print_matrix("expected", expected, 3, 3);
-  MU_ASSERT(gl_equals(C, expected, 3, 3, 1e-8));
-
-  return 0;
-}
-
-int test_gl_norm() {
-  const GLfloat x[3] = {1.0f, 2.0f, 3.0f};
-  const GLfloat n = gl_norm(x, 3);
-
-  /* Assert */
-  const GLfloat expected = 3.741657f;
-  MU_ASSERT(fabs(n - expected) < 1e-6);
-
-  return 0;
-}
-
-int test_gl_normalize() {
-  GLfloat x[3] = {1.0f, 2.0f, 3.0f};
-  gl_normalize(x, 3);
-
-  /* Assert */
-  const GLfloat expected[3] = {0.26726f, 0.53452f, 0.80178f};
-  MU_ASSERT(gl_equals(x, expected, 3, 1, 1e-5));
-
-  return 0;
-}
-
-int test_gl_perspective() {
-  const GLfloat fov = gl_deg2rad(60.0);
-  const GLfloat window_width = 1000.0f;
-  const GLfloat window_height = 1000.0f;
-  const GLfloat ratio = window_width / window_height;
-  const GLfloat near = 0.1f;
-  const GLfloat far = 100.0f;
-
-  GLfloat P[4 * 4] = {0};
-  gl_perspective(fov, ratio, near, far, P);
-
-  // clang-format off
-  const GLfloat P_expected[4*4] = {1.886051, 0.000000, 0.000000, 0.000000,
-                                   0.000000, 1.732051, 0.000000, 0.000000,
-                                   0.000000, 0.000000, -1.002002, -1.000000,
-                                   0.000000, 0.000000, -0.200200, 0.000000};
-  // clang-format on
-  printf("fov: %f\n", fov);
-  printf("ratio: %f\n", ratio);
-  printf("near: %f\n", near);
-  printf("far: %f\n", far);
-  printf("\n");
-  gl_print_matrix("P", P, 4, 4);
-  gl_print_matrix("P_expected", P_expected, 4, 4);
-  MU_ASSERT(gl_equals(P, P_expected, 4, 4, 1e-4));
-
-  return 0;
-}
-
-int test_gl_lookat() {
-  const GLfloat yaw = -0.785398;
-  const GLfloat pitch = 0.000000;
-  const GLfloat radius = 10.000000;
-  const GLfloat focal[3] = {0.000000, 0.000000, 0.000000};
-  const GLfloat world_up[3] = {0.000000, 1.000000, 0.000000};
-
-  GLfloat eye[3];
-  eye[0] = focal[0] + radius * sin(yaw);
-  eye[1] = focal[1] + radius * cos(pitch);
-  eye[2] = focal[2] + radius * cos(yaw);
-
-  GLfloat V[4 * 4] = {0};
-  gl_lookat(eye, focal, world_up, V);
-
-  // clang-format off
-  const GLfloat V_expected[4*4] = {0.707107, 0.500000, -0.500000, 0.000000,
-                                   -0.000000, 0.707107, 0.707107, 0.000000,
-                                   0.707107, -0.500000, 0.500000, 0.000000,
-                                   0.000000, 0.000000, -14.142136, 1.000000};
-  // clang-format on
-  /* gl_print_vector("eye", eye, 3); */
-  /* gl_print_vector("focal", focal, 3); */
-  /* gl_print_vector("world_up", world_up, 3); */
-  /* printf("\n"); */
-  /* gl_print_matrix("V", V, 4, 4); */
-  /* gl_print_matrix("V_expected", V_expected, 4, 4); */
-  MU_ASSERT(gl_equals(V, V_expected, 4, 4, 1e-4));
-
-  return 0;
-}
-
-// TEST SHADER ///////////////////////////////////////////////////////////////
-
-int test_gl_shader_compile() {
-  /* SDL init */
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    printf("SDL_Init Error: %s/n", SDL_GetError());
-    return -1;
-  }
-
-  /* Window */
-  const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-  if (window == NULL) {
-    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-    return -1;
-  }
-
-  /* OpenGL context */
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  SDL_GL_SetSwapInterval(1);
-  UNUSED(context);
-
-  /* GLEW */
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    FATAL("glewInit failed: %s", glewGetErrorString(err));
-  }
-
-  char *glcube_vs = file_read("./shaders/cube.vert");
-  const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
-  free(glcube_vs);
-  MU_ASSERT(vs != GL_FALSE);
-
-  char *glcube_fs = file_read("./shaders/cube.frag");
-  const GLuint fs = gl_shader_compile(glcube_fs, GL_VERTEX_SHADER);
-  free(glcube_fs);
-  MU_ASSERT(fs != GL_FALSE);
-
-  return 0;
-}
-
-int test_gl_shaders_link() {
-  /* SDL init */
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    printf("SDL_Init Error: %s/n", SDL_GetError());
-    return -1;
-  }
-
-  /* Window */
-  const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-  if (window == NULL) {
-    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-    return -1;
-  }
-
-  /* OpenGL context */
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  SDL_GL_SetSwapInterval(1);
-  UNUSED(context);
-
-  /* GLEW */
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    FATAL("glewInit failed: %s", glewGetErrorString(err));
-  }
-
-  /* Cube vertex shader */
-  char *glcube_vs = file_read("./shaders/cube.vert");
-  const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
-  free(glcube_vs);
-  MU_ASSERT(vs != GL_FALSE);
-
-  /* Cube fragment shader */
-  char *glcube_fs = file_read("./shaders/cube.frag");
-  const GLuint fs = gl_shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
-  free(glcube_fs);
-  MU_ASSERT(fs != GL_FALSE);
-
-  /* Link shakders */
-  const GLuint gs = GL_FALSE;
-  const GLuint prog = gl_shaders_link(vs, fs, gs);
-  MU_ASSERT(prog != GL_FALSE);
-
-  return 0;
-}
-
-// TEST GL PROGRAM ///////////////////////////////////////////////////////////
-
-int test_gl_prog_setup() {
-  /* SDL init */
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    printf("SDL_Init Error: %s/n", SDL_GetError());
-    return -1;
-  }
-
-  /* Window */
-  const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-  if (window == NULL) {
-    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-    return -1;
-  }
-
-  /* OpenGL context */
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  SDL_GL_SetSwapInterval(1);
-  UNUSED(context);
-
-  /* GLEW */
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    FATAL("glewInit failed: %s", glewGetErrorString(err));
-  }
-
-  /* Shader program */
-  char *glcube_vs = file_read("./shaders/cube.vert");
-  char *glcube_fs = file_read("./shaders/cube.frag");
-  const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL);
-  free(glcube_vs);
-  free(glcube_fs);
-  MU_ASSERT(program_id != GL_FALSE);
-
-  return 0;
-}
-
-// TEST GL-CAMERA ////////////////////////////////////////////////////////////
-
-int test_gl_camera_setup() {
-  int window_width = 640;
-  int window_height = 480;
-
-  gl_camera_t camera;
-  gl_camera_setup(&camera, &window_width, &window_height);
-
-  const GLfloat focal_expected[3] = {0.0f, 0.0f, 0.0f};
-  const GLfloat world_up_expected[3] = {0.0f, 1.0f, 0.0f};
-  const GLfloat position_expected[3] = {0.0f, 0.0f, 0.0f};
-  const GLfloat right_expected[3] = {-1.0f, 0.0f, 0.0f};
-  const GLfloat up_expected[3] = {0.0f, 1.0f, 0.0f};
-  const GLfloat front_expected[3] = {0.0f, 0.0f, -1.0f};
-  const GLfloat yaw_expected = gl_deg2rad(0.0f);
-  const GLfloat pitch_expected = gl_deg2rad(0.0f);
-  const GLfloat fov_expected = gl_deg2rad(45.0f);
-  const GLfloat near_expected = 0.1f;
-  const GLfloat far_expected = 100.0f;
-
-  MU_ASSERT(camera.window_width == &window_width);
-  MU_ASSERT(camera.window_height == &window_height);
-
-  MU_ASSERT(gl_equals(camera.focal, focal_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.world_up, world_up_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.position, position_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.right, right_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.up, up_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.front, front_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(fabs(camera.yaw - yaw_expected) < 1e-8);
-  MU_ASSERT(fabs(camera.pitch - pitch_expected) < 1e-8);
-
-  MU_ASSERT(fabs(camera.fov - fov_expected) < 1e-8);
-  MU_ASSERT(fabs(camera.near - near_expected) < 1e-8);
-  MU_ASSERT(fabs(camera.far - far_expected) < 1e-8);
-
-  return 0;
-}
-
-// TEST GUI //////////////////////////////////////////////////////////////////
-
-int test_gui() {
-  gui_t gui;
-  gui.window_title = "Test";
-  gui.window_width = 640;
-  gui.window_height = 480;
-
-  gui_setup(&gui);
-  gui_loop(&gui);
-
-  return 0;
-}
-
-// TEST IMSHOW ///////////////////////////////////////////////////////////////
-
-int test_imshow() {
-  imshow_t imshow;
-  imshow.window_title = "Test";
-  imshow_setup(&imshow, "test_data/images/awesomeface.png");
-
-  /* int x = 100; */
-  /* int y = 100; */
-  /* int radius = 10; */
-  /* SDL_Color color; */
-  /* color.r = 0; */
-  /* color.g = 0; */
-  /* color.b = 0; */
-  /* color.a = 255; */
-  /* draw_circle(imshow.renderer, x, y, radius, color); */
-
-  imshow_loop(&imshow);
-
-  return 0;
-}
-
-#endif // USE_GUI
 
 void test_suite() {
   // MACROS
@@ -5376,7 +4803,6 @@ void test_suite() {
   MU_ADD_TEST(test_dsv_free);
 
   // DATA-STRUCTURE
-#ifdef USE_DATA_STRUCTURES
   MU_ADD_TEST(test_darray_new_and_destroy);
   MU_ADD_TEST(test_darray_push_pop);
   MU_ADD_TEST(test_darray_contains);
@@ -5402,7 +4828,6 @@ void test_suite() {
   MU_ADD_TEST(test_hashmap_get_set);
   MU_ADD_TEST(test_hashmap_delete);
   MU_ADD_TEST(test_hashmap_traverse);
-#endif // USE_DATA_STRUCTURES
 
   // TIME
   MU_ADD_TEST(test_tic_toc);
@@ -5411,9 +4836,6 @@ void test_suite() {
 
   // NETWORK
   MU_ADD_TEST(test_tcp_server_setup);
-  MU_ADD_TEST(test_http_parse_request);
-  MU_ADD_TEST(test_ws_hash);
-  // MU_ADD_TEST(test_ws_server);
 
   // MATHS
   MU_ADD_TEST(test_min);
@@ -5545,7 +4967,9 @@ void test_suite() {
   MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_calib_gimbal_load);
   MU_ADD_TEST(test_calib_gimbal_solve);
+#ifdef USE_CERES
   MU_ADD_TEST(test_calib_gimbal_ceres_solve);
+#endif // USE_CERES
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);
@@ -5555,29 +4979,7 @@ void test_suite() {
   MU_ADD_TEST(test_sim_imu_data_load);
   MU_ADD_TEST(test_sim_camera_frame_load);
   MU_ADD_TEST(test_sim_camera_data_load);
-
-  // GUI
-#ifdef USE_GUI
-  MU_ADD_TEST(test_gl_zeros);
-  MU_ADD_TEST(test_gl_ones);
-  MU_ADD_TEST(test_gl_eye);
-  MU_ADD_TEST(test_gl_equals);
-  MU_ADD_TEST(test_gl_matf_set);
-  MU_ADD_TEST(test_gl_matf_val);
-  MU_ADD_TEST(test_gl_transpose);
-  MU_ADD_TEST(test_gl_vec3_cross);
-  MU_ADD_TEST(test_gl_dot);
-  MU_ADD_TEST(test_gl_norm);
-  MU_ADD_TEST(test_gl_normalize);
-  MU_ADD_TEST(test_gl_perspective);
-  MU_ADD_TEST(test_gl_lookat);
-  MU_ADD_TEST(test_gl_shader_compile);
-  MU_ADD_TEST(test_gl_shaders_link);
-  MU_ADD_TEST(test_gl_prog_setup);
-  MU_ADD_TEST(test_gl_camera_setup);
-  MU_ADD_TEST(test_gui);
-  MU_ADD_TEST(test_imshow);
-#endif // USE_GUI
+  MU_ADD_TEST(test_sim_gimbal_malloc_free);
 }
 
 MU_RUN_TESTS(test_suite)

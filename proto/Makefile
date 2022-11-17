@@ -12,21 +12,6 @@ BUILD_TYPE := debug
 CC := gcc
 # CC := tcc
 
-STB_CFLAGS:=-I$(DEPS_DIR)/src/stb
-SDL2_CFLAGS:=$(shell sdl2-config --cflags)
-TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
-TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config gstreamer-video-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config gobject-introspection-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config tcam --cflags)
-CFLAGS := \
-	-I$(INC_DIR) \
-	-I$(DEPS_DIR)/include \
-	$(SDL2_CFLAGS) \
-	$(STB_CFLAGS) \
-	$(TIS_CFLAGS) \
-	-fopenmp
-
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += -g -Wall -Wpedantic
 else
@@ -34,33 +19,46 @@ else
 endif
 
 # LIBRARIES
-SDL2_LIBS := `sdl2-config --libs` -lSDL2_image
-GLEW_LIBS := -lGLEW
-OPENGL_LIBS := $(SDL2_LIBS) $(GLEW_LIBS) -lGL
-BLAS_LIBS := -lblas -llapack -llapacke
-OPENSSL_LIBS := -lssl -lcrypto
-CERES_DEPS := -lgflags -lglog \
-							-llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod \
-							-lcxsparse
-CERES_LIBS := -lceres $(CERES_DEPS)
+STB_CFLAGS:=-I$(DEPS_DIR)/src/stb
+OPENSSL_LDFLAGS := -lssl -lcrypto
+GLEW_LDFLAGS := -lGLEW
+SDL2_CFLAGS:=$(shell sdl2-config --cflags)
+SDL2_LDFLAGS := `sdl2-config --libs` -lSDL2_image
+OPENGL_LDFLAGS := $(SDL2_LDFLAGS) $(GLEW_LDFLAGS) -lGL
+BLAS_LDFLAGS := -lblas -llapack -llapacke
+SUITESPARSE_LDFLAGS := -llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod -lcxsparse
+CERES_DEPS := -lgflags -lglog -lceres
 
-TIS_LIBS:=-L$(DEP_DIR)/lib
-TIS_LIBS+=$(shell pkg-config gstreamer-1.0 --libs)
-TIS_LIBS+=$(shell pkg-config gstreamer-video-1.0 --libs)
-TIS_LIBS+=$(shell pkg-config gobject-introspection-1.0 --libs)
-TIS_LIBS+=$(shell pkg-config tcam --libs)
-APRILTAG_LIBS := -L$(DEPS_DIR)/lib -lapriltag
+TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
+TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config gstreamer-video-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config gobject-introspection-1.0 --cflags)
+TIS_CFLAGS+=$(shell pkg-config tcam --cflags)
+TIS_LDFLAGS:=-L$(DEP_DIR)/lib
+TIS_LDFLAGS+=$(shell pkg-config gstreamer-1.0 --libs)
+TIS_LDFLAGS+=$(shell pkg-config gstreamer-video-1.0 --libs)
+TIS_LDFLAGS+=$(shell pkg-config gobject-introspection-1.0 --libs)
+TIS_LDFLAGS+=$(shell pkg-config tcam --libs)
 
+APRILTAG_LDFLAGS := -L$(DEPS_DIR)/lib -lapriltag
 
-# DEPENDENCIES
-DEPS= \
+# CFLAGS
+CFLAGS := \
+	-I$(INC_DIR) \
+	-I$(DEPS_DIR)/include \
+	$(SDL2_CFLAGS) \
+	$(STB_CFLAGS) \
+	$(TIS_CFLAGS)
+
+# LDFLAGS
+LDFLAGS= \
   -L$(BLD_DIR) -lproto \
-	$(APRILTAG_LIBS) \
-	$(CERES_LIBS) \
-	$(OPENGL_LIBS) \
-	$(BLAS_LIBS) \
-	$(OPENSSL_LIBS) \
-	$(TIS_LIBS) \
+	$(APRILTAG_LDFLAGS) \
+	$(OPENGL_LDFLAGS) \
+	$(SUITESPARSE_LDFLAGS) \
+	$(BLAS_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
+	$(TIS_LDFLAGS) \
 	-lstdc++ \
 	-lpthread \
   -lm
@@ -115,26 +113,30 @@ clean:  ## Clean build directory
 	@rm -rf $(BLD_DIR)
 	@rm -rf $(BIN_DIR)
 
-libproto: setup $(BLD_DIR)/libproto.a               ## Compile libproto
+libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
 
-test_proto: libproto    ## Compile test_proto
+test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"
-	$(CC) $(CFLAGS) test_proto.c -o $(BIN_DIR)/test_proto $(DEPS)
+	@$(CC) $(CFLAGS) test_proto.c -o $(BIN_DIR)/test_proto $(LDFLAGS)
 
 test_aprilgrid:  ## Compile test_aprilgrid
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BIN_DIR)/test_aprilgrid $(DEPS)
+	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BIN_DIR)/test_aprilgrid $(LDFLAGS)
 
 test_tis:  ## Compile test_tis
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_tis.c -o $(BIN_DIR)/test_tis $(DEPS)
+	@$(CC) $(CFLAGS) test_tis.c -o $(BIN_DIR)/test_tis $(LDFLAGS)
 
-test_sbgc: ## Compile test_sbgc
+test_sbgc:  ## Compile test_sbgc
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_sbgc.c -o $(BIN_DIR)/test_sbgc $(DEPS)
+	@$(CC) $(CFLAGS) test_sbgc.c -o $(BIN_DIR)/test_sbgc $(LDFLAGS)
 
-test_ubx: ## Compile test_ubx
+test_ubx:  ## Compile test_ubx
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_ubx.c -o $(BIN_DIR)/test_ubx $(DEPS)
+	@$(CC) $(CFLAGS) test_ubx.c -o $(BIN_DIR)/test_ubx $(LDFLAGS)
+
+test_http:  ## Compile test_http
+	@echo "CC [$@]"
+	@$(CC) $(CFLAGS) test_http.c -o $(BIN_DIR)/test_http $(LDFLAGS)
 
 tests: test_proto test_aprilgrid test_tis test_sbgc test_ubx

@@ -14,7 +14,7 @@
 
 // CONSTANTS
 #ifndef timestamp_t
-#define timestamp_t uint64_t
+#define timestamp_t int64_t
 #endif
 
 // MACROS
