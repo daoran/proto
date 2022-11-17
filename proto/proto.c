@@ -4078,6 +4078,36 @@ void svd_inv(real_t *A, const int m, const int n, real_t *A_inv) {
   free(V_S_inv);
 }
 
+/**
+ * Use SVD to find the determinant of matrix `A` of size `m` x `n`.
+ *
+ * WARNING: This method assumes the matrix `A` is invertible, additionally the
+ * returned determinant is the **absolute** value, the sign is not returned.
+ */
+int svd_det(real_t *A, const int m, const int n, real_t *det) {
+  assert(m == n);
+
+  // Decompose matrix A with SVD
+  const int k = (m < n) ? m : n;
+  real_t *U = MALLOC(real_t, m * n);
+  real_t *s = MALLOC(real_t, k);
+  real_t *V = MALLOC(real_t, k * k);
+  int retval = svd(A, m, n, U, s, V);
+
+  // Calculate determinant by via product of the diagonal singular values
+  *det = s[0];
+  for (int i = 1; i < k; i++) {
+    *det *= s[i];
+  }
+
+  // Clean up
+  free(U);
+  free(s);
+  free(V);
+
+  return retval;
+}
+
 /******************************************************************************
  * CHOL
  ******************************************************************************/

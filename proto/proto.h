@@ -800,6 +800,7 @@ int check_jacobian(const char *jac_name,
 
 int svd(real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V);
 void svd_inv(real_t *A, const int m, const int n, real_t *A_inv);
+int svd_det(real_t *A, const int m, const int n, real_t *det);
 
 /******************************************************************************
  * CHOL

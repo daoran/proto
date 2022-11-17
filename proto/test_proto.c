@@ -1608,6 +1608,24 @@ int test_svd_inv() {
   return 0;
 }
 
+int test_svd_det() {
+  // clang-format off
+  const int m = 4;
+  const int n = 4;
+  real_t A[4 * 4] = {
+     7.52, -1.10, -7.95,  1.08,
+    -0.76,  0.62,  9.34, -7.10,
+     5.13,  6.62, -5.66,  0.87,
+    -4.75,  8.52,  5.75,  5.30,
+  };
+  // clang-format on
+
+  real_t det = 0.0;
+  MU_ASSERT(svd_det(A, m, n, &det) == 0);
+
+  return 0;
+}
+
 /******************************************************************************
  * TEST CHOL
  ******************************************************************************/
@@ -5424,6 +5442,7 @@ void test_suite() {
   // SVD
   MU_ADD_TEST(test_svd);
   MU_ADD_TEST(test_svd_inv);
+  MU_ADD_TEST(test_svd_det);
 
   // CHOL
   MU_ADD_TEST(test_chol);
