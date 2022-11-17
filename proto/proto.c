@@ -1890,15 +1890,13 @@ int tcp_client_setup(tcp_client_t *client,
   }
 
   // Assign IP, PORT
-  struct sockaddr_in server;
-  size_t server_size = sizeof(server);
-  bzero(&server, server_size);
-  server.sin_family = AF_INET;
-  server.sin_addr.s_addr = inet_addr(client->server_ip);
-  server.sin_port = htons(client->server_port);
+  struct sockaddr_in server = {.sin_family = AF_INET,
+                               .sin_addr.s_addr = inet_addr(client->server_ip),
+                               .sin_port = htons(client->server_port)};
 
   // Connect to server
-  if (connect(client->sockfd, (struct sockaddr *) &server, server_size) != 0) {
+  if (connect(client->sockfd, (struct sockaddr *) &server, sizeof(server)) !=
+      0) {
     LOG_ERROR("Failed to connect to server!");
     return -1;
   }
@@ -8553,6 +8551,44 @@ int solver_solve(solver_t *solver, void *data) {
 // CALIBRATION ///////////////////////////////////////////////////////////////
 
 /**
+ * Malloc a gimbal calibration view
+ */
+calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
+                                              const int view_idx,
+                                              const int cam_idx,
+                                              int *tag_ids,
+                                              int *corner_indices,
+                                              real_t **object_points,
+                                              real_t **keypoints,
+                                              const int N) {
+  calib_gimbal_view_t *view = MALLOC(calib_gimbal_view_t, 1);
+  calib_gimbal_view_setup(view);
+
+  view->cam_idx = cam_idx;
+  view->num_corners = N;
+  if (N) {
+    view->tag_ids = MALLOC(int, N);
+    view->corner_indices = MALLOC(int, N);
+    view->object_points = MALLOC(real_t *, N);
+    view->keypoints = MALLOC(real_t *, N);
+
+    assert(view->tag_ids != NULL);
+    assert(view->corner_indices != NULL);
+    assert(view->object_points != NULL);
+    assert(view->keypoints != NULL);
+
+    for (int i = 0; i < N; i++) {
+      view->tag_ids[i] = tag_ids[i];
+      view->corner_indices[i] = corner_indices[i];
+      view->object_points[i] = vec_malloc(object_points[i], 3);
+      view->keypoints[i] = vec_malloc(keypoints[i], 2);
+    }
+  }
+
+  return view;
+}
+
+/**
  * Setup gimbal calibration view
  */
 void calib_gimbal_view_setup(calib_gimbal_view_t *view) {
@@ -9888,10 +9924,11 @@ void sim_gimbal_set_joint(sim_gimbal_t *sim,
   sim->joints[joint_idx].data[0] = angle;
 }
 
-void sim_gimbal_get_camera_measurements(sim_gimbal_t *sim,
-                                        const int cam_idx,
-                                        const real_t T_WB[4 * 4],
-                                        calib_gimbal_view_t *view) {
+calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
+                                     const timestamp_t ts,
+                                     const int view_idx,
+                                     const int cam_idx,
+                                     const real_t T_WB[4 * 4]) {
   // Form: T_CiF
   TF(sim->fiducial.data, T_WF);
   TF(sim->links[0].data, T_BM0b);
@@ -9960,22 +9997,25 @@ void sim_gimbal_get_camera_measurements(sim_gimbal_t *sim,
     }
   }
 
-  view->cam_idx = cam_idx;
-  view->num_corners = num_measurements;
-  view->tag_ids = MALLOC(int, num_measurements);
-  view->corner_indices = MALLOC(int, num_measurements);
-  view->object_points = MALLOC(real_t *, num_measurements);
-  view->keypoints = MALLOC(real_t *, num_measurements);
+  // Malloc gimbal calibration view
+  calib_gimbal_view_t *view = calib_gimbal_view_malloc(ts,
+                                                       view_idx,
+                                                       cam_idx,
+                                                       tag_ids,
+                                                       corner_indices,
+                                                       object_points,
+                                                       keypoints,
+                                                       num_measurements);
 
-  assert(view->tag_ids != NULL);
-  assert(view->corner_indices != NULL);
-  assert(view->object_points != NULL);
-  assert(view->keypoints != NULL);
-
+  // Clean up
+  free(tag_ids);
+  free(corner_indices);
   for (int i = 0; i < num_measurements; i++) {
-    view->tag_ids[i] = tag_ids[i];
-    view->corner_indices[i] = corner_indices[i];
-    view->object_points[i] = vec_malloc(object_points[i], 3);
-    view->keypoints[i] = vec_malloc(keypoints[i], 2);
+    free(object_points[i]);
+    free(keypoints[i]);
   }
+  free(object_points);
+  free(keypoints);
+
+  return view;
 }

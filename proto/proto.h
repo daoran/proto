@@ -100,11 +100,20 @@
 
 #endif
 
-/** Free Macro */
+/**
+ * Free macro
+ */
 #ifndef FREE
-#define FREE(X)                                                                \
-  if (X != NULL) {                                                             \
-    free(X);                                                                   \
+#define FREE(X) free(X);
+#endif
+
+/**
+ * Free memory
+ */
+#ifndef FREE_MEM
+#define FREE_MEM(TARGET, FREE_FUNC)                                            \
+  if (TARGET) {                                                                \
+    FREE_FUNC((void *) TARGET);                                                \
   }
 #endif
 
@@ -201,16 +210,6 @@
   if (!(A)) {                                                                  \
     LOG_ERROR(M, ##__VA_ARGS__);                                               \
     goto error;                                                                \
-  }
-#endif
-
-/**
- * Free memory
- */
-#ifndef FREE_MEM
-#define FREE_MEM(TARGET, FREE_FUNC)                                            \
-  if (TARGET) {                                                                \
-    FREE_FUNC((void *) TARGET);                                                \
   }
 #endif
 
@@ -1318,8 +1317,8 @@ int solver_solve(solver_t *solver, void *data);
 
 typedef struct calib_gimbal_view_t {
   timestamp_t ts;
-  int cam_idx;
   int view_idx;
+  int cam_idx;
   int num_corners;
 
   int *tag_ids;
@@ -1359,6 +1358,14 @@ typedef struct calib_gimbal_t {
 } calib_gimbal_t;
 
 void calib_gimbal_view_setup(calib_gimbal_view_t *calib);
+calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
+                                              const int view_idx,
+                                              const int cam_idx,
+                                              int *tag_ids,
+                                              int *corner_indices,
+                                              real_t **object_points,
+                                              real_t **keypoints,
+                                              const int N);
 void calib_gimbal_view_free(calib_gimbal_view_t *calib);
 
 void calib_gimbal_setup(calib_gimbal_t *calib);
@@ -1455,21 +1462,15 @@ typedef struct sim_gimbal_t {
   int num_cams;
 } sim_gimbal_t;
 
-typedef struct sim_gimbal_calib_view_t {
-  int *tag_ids;
-  int *corner_idxs;
-  real_t **object_points;
-  real_t **keypoints;
-} sim_gimbal_calib_view_t;
-
 sim_gimbal_t *sim_gimbal_malloc();
 void sim_gimbal_free(sim_gimbal_t *sim);
 void sim_gimbal_set_joint(sim_gimbal_t *sim,
                           const int joint_idx,
                           const real_t angle);
-void sim_gimbal_get_camera_measurements(sim_gimbal_t *sim,
-                                        const int cam_idx,
-                                        const real_t T_WB[4 * 4],
-                                        calib_gimbal_view_t *view);
+calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
+                                     const timestamp_t ts,
+                                     const int view_idx,
+                                     const int cam_idx,
+                                     const real_t T_WB[4 * 4]);
 
 #endif // PROTO_H

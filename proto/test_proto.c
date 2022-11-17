@@ -4777,6 +4777,22 @@ int test_sim_gimbal_malloc_free() {
   return 0;
 }
 
+int test_sim_gimbal_view() {
+  sim_gimbal_t *sim = sim_gimbal_malloc();
+
+  const timestamp_t ts = 0;
+  const int view_idx = 0;
+  const int cam_idx = 0;
+  real_t T_WB[4 * 4] = {0};
+  eye(T_WB, 4, 4);
+
+  calib_gimbal_view_t *view = sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);
+  calib_gimbal_view_free(view);
+
+  sim_gimbal_free(sim);
+  return 0;
+}
+
 void test_suite() {
   // MACROS
   MU_ADD_TEST(test_median_value);
@@ -4980,6 +4996,7 @@ void test_suite() {
   MU_ADD_TEST(test_sim_camera_frame_load);
   MU_ADD_TEST(test_sim_camera_data_load);
   MU_ADD_TEST(test_sim_gimbal_malloc_free);
+  MU_ADD_TEST(test_sim_gimbal_view);
 }
 
 MU_RUN_TESTS(test_suite)

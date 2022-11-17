@@ -281,7 +281,7 @@ dev_aprilgrid() {
 # run_test test_chol
 # run_test test_chol_solve
 # PROTO-QR
-run_test test_qr
+# run_test test_qr
 # PROTO-SUITE-SPARSE
 # run_test test_suitesparse_chol_solve
 # PROTO-TIME
@@ -364,6 +364,7 @@ run_test test_qr
 # run_test test_load_sim_cam_frame
 # run_test test_load_sim_cam_data
 # run_test test_sim_gimbal_malloc_free
+run_test test_sim_gimbal_view
 # PROTO-GUI
 # run_test test_gl_zeros
 # run_test test_gl_ones
@@ -384,22 +385,6 @@ run_test test_qr
 # run_test test_gl_camera_setup
 # run_test test_gui
 # run_test test_imshow
-
-# valgrind --leak-check=full ./test_traj_eval
-# time ./test_traj_eval
-
-# ./test_gui
-# gdb -ex run -ex bt -args ./test_gui --target test_gui_setup
-
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "\
-#   cd ~/projects/proto \
-#   && time make build \
-#   && cd ./proto/build/bin \
-#   && ./test_proto --target test_cam_factor_eval \
-#   && cd ~/projects/proto
-# " C-m C-m
-# exit
 
 ###############################################################################
 # ARDUINO
