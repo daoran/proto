@@ -689,7 +689,9 @@ int check_jacobian(const char *jac_name,
     real_t J_fdiff[2 * 6] = {0};                                               \
     for (int i = 0; i < 3; i++) {                                              \
       PARAMS[JAC_IDX][i] += STEP_SIZE;                                         \
-      FACTOR_EVAL(FACTOR, PARAMS, r_fwd, NULL);                                \
+      FACTOR_EVAL((void *) &FACTOR);                                           \
+      r_fwd[0] = FACTOR.r[0];                                                  \
+      r_fwd[1] = FACTOR.r[1];                                                  \
       PARAMS[JAC_IDX][i] -= STEP_SIZE;                                         \
                                                                                \
       vec_sub(r_fwd, R, r_diff, 2);                                            \
@@ -698,7 +700,9 @@ int check_jacobian(const char *jac_name,
     }                                                                          \
     for (int i = 0; i < 3; i++) {                                              \
       quat_perturb(PARAMS[JAC_IDX] + 3, i, STEP_SIZE);                         \
-      FACTOR_EVAL(FACTOR, PARAMS, r_fwd, NULL);                                \
+      FACTOR_EVAL((void *) &FACTOR);                                           \
+      r_fwd[0] = FACTOR.r[0];                                                  \
+      r_fwd[1] = FACTOR.r[1];                                                  \
       quat_perturb(PARAMS[JAC_IDX] + 3, i, -STEP_SIZE);                        \
                                                                                \
       vec_sub(r_fwd, R, r_diff, 2);                                            \
@@ -1136,18 +1140,16 @@ int vision_factor_eval(vision_factor_t *factor,
 // CALIB GIMBAL FACTOR ///////////////////////////////////////////////////////
 
 typedef struct calib_gimbal_factor_t {
-  const extrinsics_t *fiducial;
-  const pose_t *pose;
-  const extrinsics_t *link0;
-  const extrinsics_t *link1;
-  const extrinsics_t *link2;
-  const joint_angle_t *joint0;
-  const joint_angle_t *joint1;
-  const joint_angle_t *joint2;
-  const extrinsics_t *cam_exts;
-  const camera_params_t *cam;
-  const feature_t *feature;
-  int num_params;
+  extrinsics_t *fiducial;
+  pose_t *pose;
+  extrinsics_t *link0;
+  extrinsics_t *link1;
+  extrinsics_t *link2;
+  joint_angle_t *joint0;
+  joint_angle_t *joint1;
+  joint_angle_t *joint2;
+  extrinsics_t *cam_exts;
+  camera_params_t *cam;
 
   timestamp_t ts;
   int cam_idx;
@@ -1158,6 +1160,24 @@ typedef struct calib_gimbal_factor_t {
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
+
+  int r_size;
+  int num_params;
+  int param_types[10];
+
+  real_t *params[10];
+  real_t r[2];
+  real_t J_fiducial[2 * 6];
+  real_t J_pose[2 * 6];
+  real_t J_link0[2 * 6];
+  real_t J_link1[2 * 6];
+  real_t J_link2[2 * 6];
+  real_t J_joint0[2 * 1];
+  real_t J_joint1[2 * 1];
+  real_t J_joint2[2 * 1];
+  real_t J_cam_exts[2 * 6];
+  real_t J_cam_params[2 * 8];
+  real_t *jacs[10];
 } calib_gimbal_factor_t;
 
 void gimbal_setup_extrinsics(const real_t ypr[3],
@@ -1170,16 +1190,16 @@ void gimbal_setup_joint(const int joint_idx,
                         joint_angle_t *joint);
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
-                               const extrinsics_t *fiducial,
-                               const pose_t *pose,
-                               const extrinsics_t *link0,
-                               const extrinsics_t *link1,
-                               const extrinsics_t *link2,
-                               const joint_angle_t *joint0,
-                               const joint_angle_t *joint1,
-                               const joint_angle_t *joint2,
-                               const extrinsics_t *cam_exts,
-                               const camera_params_t *cam,
+                               extrinsics_t *fiducial,
+                               pose_t *pose,
+                               extrinsics_t *link0,
+                               extrinsics_t *link1,
+                               extrinsics_t *link2,
+                               joint_angle_t *joint0,
+                               joint_angle_t *joint1,
+                               joint_angle_t *joint2,
+                               extrinsics_t *cam_exts,
+                               camera_params_t *cam,
                                const timestamp_t ts,
                                const int cam_idx,
                                const int tag_id,
@@ -1187,10 +1207,7 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                const real_t p_FFi[3],
                                const real_t z[2],
                                const real_t var[2]);
-int calib_gimbal_factor_eval(void *factor,
-                             real_t **params,
-                             real_t *residuals,
-                             real_t **jacobians);
+int calib_gimbal_factor_eval(void *factor);
 int calib_gimbal_factor_ceres_eval(void *factor,
                                    real_t **params,
                                    real_t *residuals,
@@ -1307,6 +1324,15 @@ typedef struct solver_t {
 
 void solver_setup(solver_t *solver);
 real_t solver_cost(const real_t *r, const int r_size);
+void solver_fill_hessian(param_order_t *hash,
+                         int num_params,
+                         real_t **params,
+                         real_t **jacs,
+                         real_t *r,
+                         int r_size,
+                         int sv_size,
+                         real_t *H,
+                         real_t *g);
 real_t **solver_params_copy(const param_order_t *hash);
 void solver_params_restore(param_order_t *hash, real_t **x);
 void solver_params_free(const param_order_t *hash, real_t **x);
@@ -1325,6 +1351,9 @@ typedef struct calib_gimbal_view_t {
   int *corner_indices;
   real_t **object_points;
   real_t **keypoints;
+
+  calib_gimbal_factor_t factors[1000];
+  int num_factors;
 } calib_gimbal_view_t;
 
 typedef struct calib_gimbal_t {
@@ -1352,8 +1381,6 @@ typedef struct calib_gimbal_t {
 
   calib_gimbal_view_t ***views;
   int num_views;
-
-  calib_gimbal_factor_t factors[100000];
   int num_factors;
 } calib_gimbal_t;
 

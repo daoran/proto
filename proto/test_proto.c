@@ -3446,42 +3446,8 @@ int test_calib_gimbal_factor_eval() {
                             &cam_exts,
                             &cam);
 
-  real_t *params[10] = {fiducial.data,
-                        pose.data,
-                        link0.data,
-                        link1.data,
-                        link2.data,
-                        joint0.data,
-                        joint1.data,
-                        joint2.data,
-                        cam_exts.data,
-                        cam.data};
-
-  // Residual
-  real_t r[2] = {0};
-
   // Jacobians
-  real_t J_fiducial[2 * 6] = {0};
-  real_t J_pose[2 * 6] = {0};
-  real_t J_link0[2 * 6] = {0};
-  real_t J_link1[2 * 6] = {0};
-  real_t J_link2[2 * 6] = {0};
-  real_t J_joint0[2 * 1] = {0};
-  real_t J_joint1[2 * 1] = {0};
-  real_t J_joint2[2 * 1] = {0};
-  real_t J_cam_exts[2 * 6] = {0};
-  real_t J_cam_params[2 * 8] = {0};
-  real_t *jacs[10] = {J_fiducial,
-                      J_pose,
-                      J_link0,
-                      J_link1,
-                      J_link2,
-                      J_joint0,
-                      J_joint1,
-                      J_joint2,
-                      J_cam_exts,
-                      J_cam_params};
-  calib_gimbal_factor_eval(&factor, params, r, jacs);
+  calib_gimbal_factor_eval(&factor);
 
   // print_vector("fiducial", params[0], 7);
   // print_vector("link0", params[1], 7);
@@ -3572,17 +3538,19 @@ int test_calib_gimbal_factor_eval() {
   // print_matrix("J_cam_params", J_cam_params, 2, 8);
 
   // Check Jacobians
+  calib_gimbal_factor_eval(&factor);
   const double tol = 1e-4;
   const double step_size = 1e-8;
+  const real_t r[2] = {factor.r[0], factor.r[1]};
 
   // -- Check fiducial Jacobian
   CHECK_POSE_JACOBIAN("J_fiducial",
                       0,
                       r,
                       2,
-                      params,
-                      jacs,
-                      &factor,
+                      factor.params,
+                      factor.jacs,
+                      factor,
                       calib_gimbal_factor_eval,
                       step_size,
                       tol,
@@ -3593,9 +3561,9 @@ int test_calib_gimbal_factor_eval() {
                       1,
                       r,
                       2,
-                      params,
-                      jacs,
-                      &factor,
+                      factor.params,
+                      factor.jacs,
+                      factor,
                       calib_gimbal_factor_eval,
                       step_size,
                       tol,
@@ -3610,9 +3578,9 @@ int test_calib_gimbal_factor_eval() {
                         2 + link_idx,
                         r,
                         2,
-                        params,
-                        jacs,
-                        &factor,
+                        factor.params,
+                        factor.jacs,
+                        factor,
                         calib_gimbal_factor_eval,
                         step_size,
                         tol,
@@ -3628,13 +3596,16 @@ int test_calib_gimbal_factor_eval() {
     real_t J_fdiff[2 * 1] = {0};
     real_t r_fwd[2] = {0};
 
-    params[idx][0] += step_size;
-    calib_gimbal_factor_eval(&factor, params, r_fwd, NULL);
-    params[idx][0] -= step_size;
+    factor.params[idx][0] += step_size;
+    calib_gimbal_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    factor.params[idx][0] -= step_size;
 
     vec_sub(r_fwd, r, J_fdiff, 2);
     vec_scale(J_fdiff, 2, 1.0 / step_size);
-    MU_ASSERT(check_jacobian(jac_name, J_fdiff, jacs[idx], 2, 1, tol, 0) == 0);
+    real_t *J = factor.jacs[idx];
+    MU_ASSERT(check_jacobian(jac_name, J_fdiff, J, 2, 1, tol, 0) == 0);
   }
 
   // -- Check camera extrinsics Jacobian
@@ -3642,9 +3613,9 @@ int test_calib_gimbal_factor_eval() {
                       8,
                       r,
                       2,
-                      params,
-                      jacs,
-                      &factor,
+                      factor.params,
+                      factor.jacs,
+                      factor,
                       calib_gimbal_factor_eval,
                       step_size,
                       tol,
@@ -3659,15 +3630,19 @@ int test_calib_gimbal_factor_eval() {
     real_t r_diff[2] = {0};
 
     for (int i = 0; i < 8; i++) {
-      params[9][i] += step_size;
-      calib_gimbal_factor_eval(&factor, params, r_fwd, NULL);
-      params[9][i] -= step_size;
+      factor.params[9][i] += step_size;
+      calib_gimbal_factor_eval(&factor);
+      r_fwd[0] = factor.r[0];
+      r_fwd[1] = factor.r[1];
+      factor.params[9][i] -= step_size;
 
       vec_sub(r_fwd, r, r_diff, 2);
       vec_scale(r_diff, 2, 1.0 / step_size);
       mat_col_set(J_fdiff, 8, 2, i, r_diff);
     }
-    MU_ASSERT(check_jacobian(jac_name, J_fdiff, jacs[9], 2, 8, tol, 0) == 0);
+
+    real_t *J = factor.jacs[9];
+    MU_ASSERT(check_jacobian(jac_name, J_fdiff, J, 2, 8, tol, 0) == 0);
   }
 
   return 0;
@@ -4337,7 +4312,7 @@ int test_calib_gimbal_solve() {
 
     // Perturb
     real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    pose_vector_update(calib_est->fiducial.data, dx);
+    // pose_vector_update(calib_est->fiducial.data, dx);
     pose_vector_update(calib_est->cam_exts[0].data, dx);
     pose_vector_update(calib_est->cam_exts[1].data, dx);
     // for (int link_idx = 0; link_idx < 3; link_idx++) {
@@ -4793,6 +4768,39 @@ int test_sim_gimbal_view() {
   return 0;
 }
 
+int test_sim_gimbal_solve() {
+  int num_views = 5;
+  int num_cams = 2;
+
+  sim_gimbal_t *sim = sim_gimbal_malloc();
+
+  calib_gimbal_t calib;
+  calib_gimbal_setup(&calib);
+
+  // for (int view_idx = 0; view_idx < num_views; view_idx++) {
+  //   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+  //     const timestamp_t ts = view_idx;
+  //     real_t T_WB[4 * 4] = {0};
+  //     eye(T_WB, 4, 4);
+
+  //     calib_gimbal_view_t *view =
+  //         sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);
+  //   }
+  // }
+
+  // // Solve
+  // solver_t solver;
+  // solver_setup(&solver);
+  // solver.param_order_func = &calib_gimbal_param_order;
+  // solver.linearize_func = &calib_gimbal_linearize;
+  // solver_solve(&solver, calib_est);
+
+  // Clean up
+  sim_gimbal_free(sim);
+
+  return 0;
+}
+
 void test_suite() {
   // MACROS
   MU_ADD_TEST(test_median_value);
@@ -4997,6 +5005,7 @@ void test_suite() {
   MU_ADD_TEST(test_sim_camera_data_load);
   MU_ADD_TEST(test_sim_gimbal_malloc_free);
   MU_ADD_TEST(test_sim_gimbal_view);
+  MU_ADD_TEST(test_sim_gimbal_solve);
 }
 
 MU_RUN_TESTS(test_suite)
