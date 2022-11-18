@@ -2841,21 +2841,21 @@ int test_pose_factor_eval() {
   pose_setup(&pose, ts, data);
 
   /* Setup pose factor */
-  pose_factor_t pose_factor;
+  pose_factor_t factor;
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
-  pose_factor_setup(&pose_factor, &pose, var);
+  pose_factor_setup(&factor, &pose, var);
 
   /* Evaluate pose factor */
-  real_t *params[1] = {pose.data};
-  real_t r[6] = {0};
-  real_t J[6 * 6] = {0};
-  real_t *jacs[1] = {J};
-  const int retval = pose_factor_eval(&pose_factor, params, r, jacs);
+  const int retval = pose_factor_eval(&factor);
   MU_ASSERT(retval == 0);
 
   /* Check Jacobians */
   const real_t step_size = 1e-8;
   const real_t tol = 1e-4;
+
+  real_t r[6] = {0};
+  pose_factor_eval(&factor);
+  vec_copy(factor.r, 6, r);
 
   /* -- Check pose position jacobian */
   real_t J_fdiff[6 * 6] = {0};
@@ -2863,9 +2863,10 @@ int test_pose_factor_eval() {
     real_t r_fwd[6] = {0};
     real_t r_diff[6] = {0};
 
-    params[0][i] += step_size;
-    pose_factor_eval(&pose_factor, params, r_fwd, NULL);
-    params[0][i] -= step_size;
+    factor.params[0][i] += step_size;
+    pose_factor_eval(&factor);
+    vec_copy(factor.r, 6, r_fwd);
+    factor.params[0][i] -= step_size;
 
     vec_sub(r_fwd, r, r_diff, 6);
     vec_scale(r_diff, 6, 1.0 / step_size);
@@ -2875,14 +2876,16 @@ int test_pose_factor_eval() {
     real_t r_fwd[6] = {0};
     real_t r_diff[6] = {0};
 
-    quat_perturb(params[0] + 3, i, step_size);
-    pose_factor_eval(&pose_factor, params, r_fwd, NULL);
-    quat_perturb(params[0] + 3, i, -step_size);
+    quat_perturb(factor.params[0] + 3, i, step_size);
+    pose_factor_eval(&factor);
+    vec_copy(factor.r, 6, r_fwd);
+    quat_perturb(factor.params[0] + 3, i, -step_size);
 
     vec_sub(r_fwd, r, r_diff, 6);
     vec_scale(r_diff, 6, 1.0 / step_size);
     mat_col_set(J_fdiff, 6, 6, i + 3, r_diff);
   }
+  real_t *J = factor.jacs[0];
   MU_ASSERT(check_jacobian("J", J_fdiff, J, 6, 6, tol, 0) == 0);
 
   return 0;
@@ -2963,22 +2966,17 @@ int test_ba_factor_eval() {
   pinhole_radtan4_project(cam_data, p_C, z);
 
   // Bundle adjustment factor
-  ba_factor_t ba_factor;
+  ba_factor_t factor;
   real_t var[2] = {1.0, 1.0};
-  ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
+  ba_factor_setup(&factor, &pose, &feature, &cam, z, var);
 
   // Evaluate bundle adjustment factor
-  real_t *params[3] = {pose.data, feature.data, cam.data};
-  real_t r[2] = {0};
-  real_t J0[2 * 6] = {0};
-  real_t J1[2 * 3] = {0};
-  real_t J2[2 * 8] = {0};
-  real_t *jacs[3] = {J0, J1, J2};
-  ba_factor_eval(&ba_factor, params, r, jacs);
+  ba_factor_eval(&factor);
 
   // Check Jacobians
   const real_t step_size = 1e-8;
   const real_t tol = 1e-4;
+  const real_t r[2] = {factor.r[0], factor.r[1]};
 
   // -- Check pose jacobian
   real_t J0_fdiff[2 * 6] = {0};
@@ -2986,9 +2984,11 @@ int test_ba_factor_eval() {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    params[0][i] += step_size;
-    ba_factor_eval(&ba_factor, params, r_fwd, NULL);
-    params[0][i] -= step_size;
+    factor.params[0][i] += step_size;
+    ba_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    factor.params[0][i] -= step_size;
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
@@ -2998,14 +2998,17 @@ int test_ba_factor_eval() {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    quat_perturb(params[0] + 3, i, step_size);
-    ba_factor_eval(&ba_factor, params, r_fwd, NULL);
-    quat_perturb(params[0] + 3, i, -step_size);
+    quat_perturb(factor.params[0] + 3, i, step_size);
+    ba_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    quat_perturb(factor.params[0] + 3, i, -step_size);
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J0_fdiff, 6, 2, i + 3, r_diff);
   }
+  const real_t *J0 = factor.jacs[0];
   MU_ASSERT(check_jacobian("J0", J0_fdiff, J0, 2, 6, tol, 0) == 0);
 
   // -- Check feature jacobian
@@ -3014,14 +3017,17 @@ int test_ba_factor_eval() {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    params[1][i] += step_size;
-    ba_factor_eval(&ba_factor, params, r_fwd, NULL);
-    params[1][i] -= step_size;
+    factor.params[1][i] += step_size;
+    ba_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    factor.params[1][i] -= step_size;
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J1_numdiff, 3, 2, i, r_diff);
   }
+  const real_t *J1 = factor.jacs[1];
   MU_ASSERT(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 0) == 0);
 
   // -- Check camera parameters jacobian
@@ -3030,15 +3036,18 @@ int test_ba_factor_eval() {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    params[2][i] += step_size;
-    ba_factor_eval(&ba_factor, params, r_fwd, NULL);
-    params[2][i] -= step_size;
+    factor.params[2][i] += step_size;
+    ba_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    factor.params[2][i] -= step_size;
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J2_numdiff, 8, 2, i, r_diff);
   }
-  MU_ASSERT(check_jacobian("J2", J2_numdiff, J2, 2, 8, tol, 1) == 0);
+  const real_t *J2 = factor.jacs[2];
+  MU_ASSERT(check_jacobian("J2", J2_numdiff, J2, 2, 8, tol, 0) == 0);
 
   return 0;
 }
@@ -4312,7 +4321,7 @@ int test_calib_gimbal_solve() {
 
     // Perturb
     real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    // pose_vector_update(calib_est->fiducial.data, dx);
+    pose_vector_update(calib_est->fiducial.data, dx);
     pose_vector_update(calib_est->cam_exts[0].data, dx);
     pose_vector_update(calib_est->cam_exts[1].data, dx);
     // for (int link_idx = 0; link_idx < 3; link_idx++) {

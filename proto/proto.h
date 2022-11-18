@@ -302,7 +302,7 @@ void csv_free(real_t **data, const int nb_rows);
  * DATA-STRUCTURES
  ******************************************************************************/
 
-// DARRAY //////////////////////////////////////////////////////////////////////
+/** DARRAY ********************************************************************/
 
 #ifndef DEFAULT_EXPAND_RATE
 #define DEFAULT_EXPAND_RATE 300
@@ -336,7 +336,7 @@ void *darray_remove(darray_t *array, int i);
 int darray_expand(darray_t *array);
 int darray_contract(darray_t *array);
 
-// LIST //////////////////////////////////////////////////////////////////////
+/** LIST **********************************************************************/
 
 typedef struct list_node_t list_node_t;
 struct list_node_t {
@@ -368,7 +368,7 @@ int list_remove_destroy(list_t *list,
                         int (*cmp)(const void *, const void *),
                         void (*free_func)(void *));
 
-// STACK /////////////////////////////////////////////////////////////////////
+/** STACK *********************************************************************/
 
 typedef struct mstack_node_t mstack_node_t;
 struct mstack_node_t {
@@ -390,7 +390,7 @@ void mstack_destroy(mstack_t *s);
 int mstack_push(mstack_t *s, void *value);
 void *mstack_pop(mstack_t *s);
 
-// QUEUE /////////////////////////////////////////////////////////////////////
+/** QUEUE *********************************************************************/
 
 typedef struct queue_t {
   int count;
@@ -407,7 +407,7 @@ int queue_full(queue_t *q);
 void *queue_first(queue_t *q);
 void *queue_last(queue_t *q);
 
-// HASHMAP /////////////////////////////////////////////////////////////////////
+/** HASHMAP *******************************************************************/
 
 #ifndef DEFEAULT_NUMBER_OF_BUCKETS
 #define DEFAULT_NUMBER_OF_BUCKETS 10000
@@ -850,7 +850,7 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]);
  * CV
  ******************************************************************************/
 
-// IMAGE ///////////////////////////////////////////////////////////////////////
+/** IMAGE *********************************************************************/
 
 typedef struct image_t {
   int width;
@@ -867,7 +867,7 @@ image_t *image_load(const char *file_path);
 void image_print_properties(const image_t *img);
 void image_free(image_t *img);
 
-// GEOMETRY //////////////////////////////////////////////////////////////////
+/** GEOMETRY ******************************************************************/
 
 void linear_triangulation(const real_t P_i[3 * 4],
                           const real_t P_j[3 * 4],
@@ -875,7 +875,7 @@ void linear_triangulation(const real_t P_i[3 * 4],
                           const real_t z_j[2],
                           real_t p[3]);
 
-// RADTAN ////////////////////////////////////////////////////////////////////
+/** RADTAN ********************************************************************/
 
 void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
 void radtan4_point_jacobian(const real_t params[4],
@@ -885,7 +885,7 @@ void radtan4_params_jacobian(const real_t params[4],
                              const real_t p[2],
                              real_t J_param[2 * 4]);
 
-// EQUI //////////////////////////////////////////////////////////////////////
+/** EQUI **********************************************************************/
 
 void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
 void equi4_point_jacobian(const real_t params[4],
@@ -895,7 +895,7 @@ void equi4_params_jacobian(const real_t params[4],
                            const real_t p[2],
                            real_t J_param[2 * 4]);
 
-// PINHOLE ///////////////////////////////////////////////////////////////////
+/** PINHOLE *******************************************************************/
 
 real_t pinhole_focal(const int image_width, const real_t fov);
 void pinhole_K(const real_t params[4], real_t K[3 * 3]);
@@ -908,7 +908,7 @@ void pinhole_params_jacobian(const real_t params[4],
                              const real_t x[2],
                              real_t J[2 * 4]);
 
-// PINHOLE-RADTAN4 ///////////////////////////////////////////////////////////
+/** PINHOLE-RADTAN4 ***********************************************************/
 
 void pinhole_radtan4_project(const real_t params[8],
                              const real_t p_C[3],
@@ -920,7 +920,7 @@ void pinhole_radtan4_params_jacobian(const real_t params[8],
                                      const real_t p_C[3],
                                      real_t J[2 * 8]);
 
-// PINHOLE-EQUI4 /////////////////////////////////////////////////////////////
+/** PINHOLE-EQUI4 *************************************************************/
 
 void pinhole_equi4_project(const real_t params[8],
                            const real_t p_C[3],
@@ -944,7 +944,7 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 #define JOINT_PARAM 6
 #define CAMERA_PARAM 7
 
-// POSE //////////////////////////////////////////////////////////////////////
+/** POSE **********************************************************************/
 
 typedef struct pose_t {
   timestamp_t ts;
@@ -954,7 +954,7 @@ typedef struct pose_t {
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_print(const char *prefix, const pose_t *pose);
 
-// VELOCITY //////////////////////////////////////////////////////////////////
+/** VELOCITY ******************************************************************/
 
 typedef struct velocity_t {
   timestamp_t ts;
@@ -963,7 +963,7 @@ typedef struct velocity_t {
 
 void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
 
-// IMU BIASES ////////////////////////////////////////////////////////////////
+/** IMU BIASES ****************************************************************/
 
 typedef struct imu_biases_t {
   timestamp_t ts;
@@ -976,7 +976,7 @@ void imu_biases_setup(imu_biases_t *sb,
                       const real_t ba[3],
                       const real_t bg[3]);
 
-// FEATURE ///////////////////////////////////////////////////////////////////
+/** FEATURE *******************************************************************/
 
 #define MAX_FEATURES 10000
 
@@ -1001,7 +1001,7 @@ feature_t *features_add(features_t *features,
                         const real_t *param);
 void features_remove(features_t *features, const int feature_id);
 
-// EXTRINSICS ////////////////////////////////////////////////////////////////
+/** EXTRINSICS ****************************************************************/
 
 typedef struct extrinsics_t {
   real_t data[7];
@@ -1010,7 +1010,7 @@ typedef struct extrinsics_t {
 void extrinsics_setup(extrinsics_t *extrinsics, const real_t *param);
 void extrinsics_print(const char *prefix, const extrinsics_t *exts);
 
-// JOINT ANGLE ///////////////////////////////////////////////////////////////
+/** JOINT ANGLES **************************************************************/
 
 typedef struct joint_angle_t {
   int joint_idx;
@@ -1022,7 +1022,7 @@ void joint_angle_setup(joint_angle_t *joint,
                        const real_t theta);
 void joint_angle_print(const char *prefix, const joint_angle_t *joint);
 
-// CAMERA PARAMS /////////////////////////////////////////////////////////////
+/** CAMERA PARAMS *************************************************************/
 
 typedef struct camera_params_t {
   int cam_idx;
@@ -1040,7 +1040,7 @@ void camera_params_setup(camera_params_t *camera,
                          const real_t *data);
 void camera_params_print(const camera_params_t *camera);
 
-// POSE FACTOR ///////////////////////////////////////////////////////////////
+/** POSE FACTOR ***************************************************************/
 
 #define FACTOR_EVAL_PTR                                                        \
   int (*factor_eval)(const void *factor,                                       \
@@ -1073,45 +1073,57 @@ typedef struct pose_factor_t {
   real_t pos_meas[3];
   real_t quat_meas[4];
   pose_t *pose_est;
-  int num_params;
 
   real_t covar[6 * 6];
   real_t sqrt_info[6 * 6];
+
+  int r_size;
+  int num_params;
+  int param_types[1];
+
+  real_t *params[1];
+  real_t r[6];
+  real_t *jacs[1];
+  real_t J_pose[6 * 6];
 } pose_factor_t;
 
 void pose_factor_setup(pose_factor_t *factor,
                        pose_t *pose,
                        const real_t var[6]);
-int pose_factor_eval(const void *factor,
-                     real_t **params,
-                     real_t *residuals,
-                     real_t **jacobians);
+int pose_factor_eval(void *factor);
 
-// BA FACTOR /////////////////////////////////////////////////////////////////
+/** BA FACTOR *****************************************************************/
 
 typedef struct ba_factor_t {
-  const pose_t *pose;
-  const camera_params_t *camera;
-  const feature_t *feature;
-  int num_params;
+  pose_t *pose;
+  feature_t *feature;
+  camera_params_t *camera;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
   real_t z[2];
+
+  int r_size;
+  int num_params;
+  int param_types[3];
+
+  real_t *params[3];
+  real_t r[2];
+  real_t *jacs[3];
+  real_t J_pose[2 * 6];
+  real_t J_feature[2 * 3];
+  real_t J_camera[2 * 8];
 } ba_factor_t;
 
 void ba_factor_setup(ba_factor_t *factor,
-                     const pose_t *pose,
-                     const feature_t *feature,
-                     const camera_params_t *camera,
+                     pose_t *pose,
+                     feature_t *feature,
+                     camera_params_t *camera,
                      const real_t z[2],
                      const real_t var[2]);
-int ba_factor_eval(ba_factor_t *factor,
-                   real_t **params,
-                   real_t *residuals,
-                   real_t **jacobians);
+int ba_factor_eval(void *factor_ptr);
 
-// CAMERA FACTOR /////////////////////////////////////////////////////////////
+/** VISION FACTOR *************************************************************/
 
 typedef struct vision_factor_t {
   const pose_t *pose;
@@ -1137,7 +1149,7 @@ int vision_factor_eval(vision_factor_t *factor,
                        real_t *residuals,
                        real_t **Jacobians);
 
-// CALIB GIMBAL FACTOR ///////////////////////////////////////////////////////
+/** CALIB GIMBAL FACTOR *******************************************************/
 
 typedef struct calib_gimbal_factor_t {
   extrinsics_t *fiducial;
@@ -1167,6 +1179,7 @@ typedef struct calib_gimbal_factor_t {
 
   real_t *params[10];
   real_t r[2];
+  real_t *jacs[10];
   real_t J_fiducial[2 * 6];
   real_t J_pose[2 * 6];
   real_t J_link0[2 * 6];
@@ -1177,7 +1190,6 @@ typedef struct calib_gimbal_factor_t {
   real_t J_joint2[2 * 1];
   real_t J_cam_exts[2 * 6];
   real_t J_cam_params[2 * 8];
-  real_t *jacs[10];
 } calib_gimbal_factor_t;
 
 void gimbal_setup_extrinsics(const real_t ypr[3],
@@ -1213,7 +1225,7 @@ int calib_gimbal_factor_ceres_eval(void *factor,
                                    real_t *residuals,
                                    real_t **jacobians);
 
-// IMU FACTOR ////////////////////////////////////////////////////////////////
+/** IMU FACTOR ****************************************************************/
 
 #define MAX_IMU_BUF_SIZE 1000
 
@@ -1297,7 +1309,7 @@ int imu_factor_eval(imu_factor_t *factor,
                     real_t *residuals,
                     real_t **jacobians);
 
-// SOLVER ////////////////////////////////////////////////////////////////////
+/** SOLVER ********************************************************************/
 
 typedef struct param_order_t {
   void *key;
@@ -1339,7 +1351,7 @@ void solver_params_free(const param_order_t *hash, real_t **x);
 void solver_update(param_order_t *hash, real_t *dx, int sv_size);
 int solver_solve(solver_t *solver, void *data);
 
-// CALIBRATION ///////////////////////////////////////////////////////////////
+/** CALIBRATION ***************************************************************/
 
 typedef struct calib_gimbal_view_t {
   timestamp_t ts;
@@ -1423,7 +1435,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
  * SIMULATION
  ******************************************************************************/
 
-// SIM FEATURES //////////////////////////////////////////////////////////////
+/** SIM FEATURES **************************************************************/
 
 typedef struct sim_features_t {
   real_t **features;
@@ -1433,7 +1445,7 @@ typedef struct sim_features_t {
 sim_features_t *sim_features_load(const char *csv_path);
 void sim_features_free(sim_features_t *features_data);
 
-// SIM IMU DATA //////////////////////////////////////////////////////////////
+/** SIM IMU DATA **************************************************************/
 
 typedef struct sim_imu_data_t {
   real_t **data;
@@ -1443,7 +1455,7 @@ typedef struct sim_imu_data_t {
 sim_imu_data_t *sim_imu_data_load(const char *csv_path);
 void sim_imu_data_free(sim_imu_data_t *imu_data);
 
-// SIM CAM DATA //////////////////////////////////////////////////////////////
+/** SIM CAMERA DATA ***********************************************************/
 
 typedef struct sim_camera_frame_t {
   timestamp_t ts;
@@ -1471,7 +1483,7 @@ real_t **sim_create_features(const real_t origin[3],
                              const real_t dim[3],
                              const int nb_features);
 
-// SIM GIMBAL DATA ///////////////////////////////////////////////////////////
+/** SIM GIMBAL DATA ***********************************************************/
 
 typedef struct sim_gimbal_t {
   aprilgrid_t grid;

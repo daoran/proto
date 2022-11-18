@@ -339,7 +339,7 @@ dev_aprilgrid() {
 # run_test test_pose_factor_setup
 # run_test test_pose_factor_eval
 # run_test test_ba_factor_setup
-# run_test test_ba_factor_eval
+run_test test_ba_factor_eval
 # run_test test_vision_factor_setup
 # run_test test_vision_factor_eval
 # run_test test_calib_gimbal_factor_setup
@@ -357,7 +357,7 @@ dev_aprilgrid() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
-run_test test_calib_gimbal_solve
+# run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features
