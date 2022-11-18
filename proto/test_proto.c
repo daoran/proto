@@ -1233,8 +1233,8 @@ int test_mat_block_set() {
   // print_matrix("A", A, 3, 3);
   // print_matrix("B", B, 2, 2);
   mat_block_set(A, 4, 1, 2, 1, 2, B);
-  print_matrix("A", A, 4, 4);
-  print_matrix("B", B, 2, 2);
+  // print_matrix("A", A, 4, 4);
+  // print_matrix("B", B, 2, 2);
 
   MU_ASSERT(fltcmp(mat_val(A, 4, 1, 1), 0.0) == 0);
   MU_ASSERT(fltcmp(mat_val(A, 4, 1, 2), 0.0) == 0);
@@ -1638,8 +1638,8 @@ int test_qr() {
 
   real_t R[3 * 3] = {0};
   qr(A, m, n, R);
-  print_matrix("A", A, 3, 3);
-  print_matrix("R", R, 3, 3);
+  // print_matrix("A", A, 3, 3);
+  // print_matrix("R", R, 3, 3);
 
   return 0;
 }
@@ -3155,23 +3155,17 @@ int test_vision_factor_eval() {
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   // Setup camera factor
-  vision_factor_t vision_factor;
+  vision_factor_t factor;
   real_t var[2] = {1.0, 1.0};
-  vision_factor_setup(&vision_factor, &pose, &cam_exts, &feature, &cam, z, var);
+  vision_factor_setup(&factor, &pose, &cam_exts, &feature, &cam, z, var);
 
   // Evaluate camera factor
-  real_t *params[4] = {pose.data, cam_exts.data, cam.data, feature.data};
-  real_t r[2] = {0};
-  real_t J0[2 * 6] = {0};
-  real_t J1[2 * 6] = {0};
-  real_t J2[2 * 8] = {0};
-  real_t J3[2 * 3] = {0};
-  real_t *jacs[4] = {J0, J1, J2, J3};
-  vision_factor_eval(&vision_factor, params, r, jacs);
+  vision_factor_eval(&factor);
 
   // Check Jacobians
-  real_t step_size = 1e-8;
-  real_t tol = 1e-4;
+  const real_t step_size = 1e-8;
+  const real_t tol = 1e-4;
+  const real_t r[2] = {factor.r[0], factor.r[1]};
 
   // -- Check pose position jacobian
   real_t J0_fdiff[2 * 6] = {0};
@@ -3179,9 +3173,11 @@ int test_vision_factor_eval() {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    params[0][i] += step_size;
-    vision_factor_eval(&vision_factor, params, r_fwd, NULL);
-    params[0][i] -= step_size;
+    factor.params[0][i] += step_size;
+    vision_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    factor.params[0][i] -= step_size;
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
@@ -3191,14 +3187,17 @@ int test_vision_factor_eval() {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    quat_perturb(params[0] + 3, i, step_size);
-    vision_factor_eval(&vision_factor, params, r_fwd, NULL);
-    quat_perturb(params[0] + 3, i, -step_size);
+    quat_perturb(factor.params[0] + 3, i, step_size);
+    vision_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    quat_perturb(factor.params[0] + 3, i, -step_size);
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J0_fdiff, 6, 2, i + 3, r_diff);
   }
+  const real_t *J0 = factor.jacs[0];
   MU_ASSERT(check_jacobian("J0", J0_fdiff, J0, 2, 6, tol, 0) == 0);
 
   // -- Check extrinsics position jacobian
@@ -3207,9 +3206,11 @@ int test_vision_factor_eval() {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    params[1][i] += step_size;
-    vision_factor_eval(&vision_factor, params, r_fwd, NULL);
-    params[1][i] -= step_size;
+    factor.params[1][i] += step_size;
+    vision_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    factor.params[1][i] -= step_size;
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
@@ -3219,47 +3220,56 @@ int test_vision_factor_eval() {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    quat_perturb(params[1] + 3, i, step_size);
-    vision_factor_eval(&vision_factor, params, r_fwd, NULL);
-    quat_perturb(params[1] + 3, i, -step_size);
+    quat_perturb(factor.params[1] + 3, i, step_size);
+    vision_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    quat_perturb(factor.params[1] + 3, i, -step_size);
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
     mat_col_set(J1_fdiff, 6, 2, i + 3, r_diff);
   }
+  const real_t *J1 = factor.jacs[1];
   MU_ASSERT(check_jacobian("J1", J1_fdiff, J1, 2, 6, tol, 0) == 0);
 
-  // -- Check camera parameters jacobian
-  real_t J2_fdiff[2 * 8] = {0};
-  for (int i = 0; i < 8; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    params[2][i] += step_size;
-    vision_factor_eval(&vision_factor, params, r_fwd, NULL);
-    params[2][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J2_fdiff, 8, 2, i, r_diff);
-  }
-  MU_ASSERT(check_jacobian("J2", J2_fdiff, J2, 2, 8, tol, 0) == 0);
-
   // -- Check feature jacobian
-  real_t J3_fdiff[2 * 3] = {0};
+  real_t J2_fdiff[2 * 3] = {0};
   for (int i = 0; i < 3; i++) {
     real_t r_fwd[2] = {0};
     real_t r_diff[2] = {0};
 
-    params[3][i] += step_size;
-    vision_factor_eval(&vision_factor, params, r_fwd, NULL);
-    params[3][i] -= step_size;
+    factor.params[2][i] += step_size;
+    vision_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    factor.params[2][i] -= step_size;
 
     vec_sub(r_fwd, r, r_diff, 2);
     vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J3_fdiff, 3, 2, i, r_diff);
+    mat_col_set(J2_fdiff, 3, 2, i, r_diff);
   }
-  MU_ASSERT(check_jacobian("J3", J3_fdiff, J3, 2, 3, tol, 0) == 0);
+  const real_t *J2 = factor.jacs[2];
+  MU_ASSERT(check_jacobian("J2", J2_fdiff, J2, 2, 3, tol, 0) == 0);
+
+  // -- Check camera parameters jacobian
+  real_t J3_fdiff[2 * 8] = {0};
+  for (int i = 0; i < 8; i++) {
+    real_t r_fwd[2] = {0};
+    real_t r_diff[2] = {0};
+
+    factor.params[3][i] += step_size;
+    vision_factor_eval(&factor);
+    r_fwd[0] = factor.r[0];
+    r_fwd[1] = factor.r[1];
+    factor.params[3][i] -= step_size;
+
+    vec_sub(r_fwd, r, r_diff, 2);
+    vec_scale(r_diff, 2, 1.0 / step_size);
+    mat_col_set(J3_fdiff, 8, 2, i, r_diff);
+  }
+  const real_t *J3 = factor.jacs[3];
+  MU_ASSERT(check_jacobian("J3", J3_fdiff, J3, 2, 8, tol, 0) == 0);
 
   return 0;
 }

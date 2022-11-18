@@ -7633,7 +7633,7 @@ class GimbalSandbox:
     ]
 
     # -- Add views
-    num_views = 1
+    num_views = 10
     num_joints = len(self.joint_angles)
 
     factor_ids = []
@@ -10590,12 +10590,12 @@ class TestSandbox(unittest.TestCase):
     sandbox = GimbalSandbox()
     self.assertTrue(sandbox)
 
-    # sandbox.set_joint_angle(0, deg2rad(0))
-    # sandbox.set_joint_angle(1, deg2rad(0))
-    # sandbox.set_joint_angle(2, deg2rad(0))
-    # sandbox.visualize_scene()
+    sandbox.set_joint_angle(0, deg2rad(0))
+    sandbox.set_joint_angle(1, deg2rad(0))
+    sandbox.set_joint_angle(2, deg2rad(0))
+    sandbox.visualize_scene()
     # sandbox.plot_camera_frame()
-    sandbox.simulate(save=True)
+    # sandbox.simulate(save=True)
 
 
 if __name__ == '__main__':

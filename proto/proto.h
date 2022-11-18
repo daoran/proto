@@ -1126,28 +1126,36 @@ int ba_factor_eval(void *factor_ptr);
 /** VISION FACTOR *************************************************************/
 
 typedef struct vision_factor_t {
-  const pose_t *pose;
-  const extrinsics_t *extrinsics;
-  const camera_params_t *camera;
-  const feature_t *feature;
-  int num_params;
+  pose_t *pose;
+  extrinsics_t *extrinsics;
+  camera_params_t *camera;
+  feature_t *feature;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
   real_t z[2];
+
+  int r_size;
+  int num_params;
+  int param_types[4];
+
+  real_t *params[4];
+  real_t r[2];
+  real_t *jacs[4];
+  real_t J_pose[2 * 6];
+  real_t J_extrinsics[2 * 6];
+  real_t J_feature[2 * 3];
+  real_t J_camera[2 * 8];
 } vision_factor_t;
 
 void vision_factor_setup(vision_factor_t *factor,
-                         const pose_t *pose,
-                         const extrinsics_t *extrinsics,
-                         const feature_t *feature,
-                         const camera_params_t *camera,
+                         pose_t *pose,
+                         extrinsics_t *extrinsics,
+                         feature_t *feature,
+                         camera_params_t *camera,
                          const real_t z[2],
                          const real_t var[2]);
-int vision_factor_eval(vision_factor_t *factor,
-                       real_t **params,
-                       real_t *residuals,
-                       real_t **Jacobians);
+int vision_factor_eval(void *factor_ptr);
 
 /** CALIB GIMBAL FACTOR *******************************************************/
 

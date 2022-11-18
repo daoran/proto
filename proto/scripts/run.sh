@@ -175,7 +175,7 @@ dev_aprilgrid() {
 # gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
-# run_all_tests
+run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
@@ -339,7 +339,7 @@ dev_aprilgrid() {
 # run_test test_pose_factor_setup
 # run_test test_pose_factor_eval
 # run_test test_ba_factor_setup
-run_test test_ba_factor_eval
+# run_test test_ba_factor_eval
 # run_test test_vision_factor_setup
 # run_test test_vision_factor_eval
 # run_test test_calib_gimbal_factor_setup

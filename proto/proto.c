@@ -6645,10 +6645,10 @@ int ba_factor_eval(void *factor_ptr) {
  * Setup vision factor
  */
 void vision_factor_setup(vision_factor_t *factor,
-                         const pose_t *pose,
-                         const extrinsics_t *extrinsics,
-                         const feature_t *feature,
-                         const camera_params_t *camera,
+                         pose_t *pose,
+                         extrinsics_t *extrinsics,
+                         feature_t *feature,
+                         camera_params_t *camera,
                          const real_t z[2],
                          const real_t var[2]) {
   assert(factor != NULL);
@@ -6664,7 +6664,6 @@ void vision_factor_setup(vision_factor_t *factor,
   factor->extrinsics = extrinsics;
   factor->feature = feature;
   factor->camera = camera;
-  factor->num_params = 4;
 
   // Measurement covariance matrix
   factor->covar[0] = 1.0 / (var[0] * var[0]);
@@ -6681,6 +6680,25 @@ void vision_factor_setup(vision_factor_t *factor,
   // Measurement
   factor->z[0] = z[0];
   factor->z[1] = z[1];
+
+  // Parameters, residuals, jacobians
+  factor->r_size = 2;
+  factor->num_params = 4;
+
+  factor->param_types[0] = POSE_PARAM;
+  factor->param_types[1] = EXTRINSICS_PARAM;
+  factor->param_types[2] = FEATURE_PARAM;
+  factor->param_types[3] = CAMERA_PARAM;
+
+  factor->params[0] = factor->pose->data;
+  factor->params[1] = factor->extrinsics->data;
+  factor->params[2] = factor->feature->data;
+  factor->params[3] = factor->camera->data;
+
+  factor->jacs[0] = factor->J_pose;
+  factor->jacs[1] = factor->J_extrinsics;
+  factor->jacs[2] = factor->J_feature;
+  factor->jacs[3] = factor->J_camera;
 }
 
 /**
@@ -6899,13 +6917,9 @@ static void vision_factor_feature_jacobian(const real_t Jh_weighted[2 * 3],
  *
  * @returns `0` for success, `-1` for failure
  */
-int vision_factor_eval(vision_factor_t *factor,
-                       real_t **params,
-                       real_t *r_out,
-                       real_t **J_out) {
+int vision_factor_eval(void *factor_ptr) {
+  vision_factor_t *factor = (vision_factor_t *) factor_ptr;
   assert(factor != NULL);
-  assert(params != NULL);
-  assert(r_out != NULL);
   assert(factor->pose);
   assert(factor->extrinsics);
   assert(factor->feature);
@@ -6914,10 +6928,10 @@ int vision_factor_eval(vision_factor_t *factor,
   // Map params
   real_t T_WB[4 * 4] = {0};
   real_t T_BCi[4 * 4] = {0};
-  tf(params[0], T_WB);
-  tf(params[1], T_BCi);
-  const real_t *cam_params = params[2];
-  const real_t *p_W = params[3];
+  tf(factor->params[0], T_WB);
+  tf(factor->params[1], T_BCi);
+  const real_t *p_W = factor->params[2];
+  const real_t *cam_params = factor->params[3];
 
   // Form camera pose
   real_t T_WCi[4 * 4] = {0};
@@ -6938,12 +6952,9 @@ int vision_factor_eval(vision_factor_t *factor,
   r[0] = factor->z[0] - z_hat[0];
   r[1] = factor->z[1] - z_hat[1];
   // -- Weighted residual
-  dot(factor->sqrt_info, 2, 2, r, 2, 1, r_out);
+  dot(factor->sqrt_info, 2, 2, r, 2, 1, factor->r);
 
   // Calculate jacobians
-  if (J_out == NULL) {
-    return 0;
-  }
   // -- Form: -1 * sqrt_info
   real_t neg_sqrt_info[2 * 2] = {0};
   mat_copy(factor->sqrt_info, 2, 2, neg_sqrt_info);
@@ -6957,10 +6968,10 @@ int vision_factor_eval(vision_factor_t *factor,
   real_t J_cam_params[2 * 8] = {0};
   pinhole_radtan4_params_jacobian(cam_params, p_Ci, J_cam_params);
   // -- Fill Jacobians
-  vision_factor_pose_jacobian(Jh_, T_WB, T_BCi, p_W, J_out[0]);
-  vision_factor_extrinsics_jacobian(Jh_, T_BCi, p_Ci, J_out[1]);
-  vision_factor_camera_jacobian(neg_sqrt_info, J_cam_params, J_out[2]);
-  vision_factor_feature_jacobian(Jh_, T_WB, T_BCi, J_out[3]);
+  vision_factor_pose_jacobian(Jh_, T_WB, T_BCi, p_W, factor->jacs[0]);
+  vision_factor_extrinsics_jacobian(Jh_, T_BCi, p_Ci, factor->jacs[1]);
+  vision_factor_feature_jacobian(Jh_, T_WB, T_BCi, factor->jacs[2]);
+  vision_factor_camera_jacobian(neg_sqrt_info, J_cam_params, factor->jacs[3]);
 
   return 0;
 }
