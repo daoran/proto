@@ -666,53 +666,127 @@ int check_jacobian(const char *jac_name,
                    const real_t tol,
                    const int verbose);
 
-#define CHECK_POSE_JACOBIAN(JAC_NAME,                                          \
-                            JAC_IDX,                                           \
-                            R,                                                 \
-                            R_SIZE,                                            \
-                            PARAMS,                                            \
-                            JACS,                                              \
+#define CHECK_JACOBIAN(JAC_IDX, FACTOR, FACTOR_EVAL, STEP_SIZE, TOL, VERBOSE)  \
+  {                                                                            \
+    const int r_size = FACTOR.r_size;                                          \
+    const int J_cols = param_local_size(FACTOR.param_types[JAC_IDX]);          \
+                                                                               \
+    real_t *r = MALLOC(real_t, r_size);                                        \
+    real_t *r_fwd = MALLOC(real_t, r_size);                                    \
+    real_t *r_diff = MALLOC(real_t, r_size);                                   \
+    real_t *J = factor.jacs[JAC_IDX];                                          \
+    real_t *J_fdiff = MALLOC(real_t, r_size * J_cols);                         \
+                                                                               \
+    /* Eval */                                                                 \
+    FACTOR_EVAL(&FACTOR);                                                      \
+    vec_copy(FACTOR.r, r_size, r);                                             \
+                                                                               \
+    /* Check pose position jacobian */                                         \
+    for (int i = 0; i < J_cols; i++) {                                         \
+      FACTOR.params[JAC_IDX][i] += STEP_SIZE;                                  \
+      FACTOR_EVAL((void *) &FACTOR);                                           \
+      vec_copy(FACTOR.r, r_size, r_fwd);                                       \
+      FACTOR.params[JAC_IDX][i] -= STEP_SIZE;                                  \
+                                                                               \
+      vec_sub(r_fwd, r, r_diff, r_size);                                       \
+      vec_scale(r_diff, r_size, 1.0 / STEP_SIZE);                              \
+      mat_col_set(J_fdiff, J_cols, r_size, i, r_diff);                         \
+    }                                                                          \
+                                                                               \
+    char s[100] = {0};                                                         \
+    sprintf(s, "J%d", JAC_IDX);                                                \
+    int retval = check_jacobian(s, J_fdiff, J, r_size, J_cols, TOL, VERBOSE);  \
+                                                                               \
+    free(r);                                                                   \
+    free(r_fwd);                                                               \
+    free(r_diff);                                                              \
+    free(J_fdiff);                                                             \
+                                                                               \
+    MU_ASSERT(retval == 0);                                                    \
+  }
+
+#define CHECK_POSE_JACOBIAN(JAC_IDX,                                           \
                             FACTOR,                                            \
                             FACTOR_EVAL,                                       \
                             STEP_SIZE,                                         \
                             TOL,                                               \
                             VERBOSE)                                           \
   {                                                                            \
-    real_t *r_fwd = MALLOC(real_t, R_SIZE);                                    \
-    real_t *r_diff = MALLOC(real_t, R_SIZE);                                   \
-    real_t *J = JACS[JAC_IDX];                                                 \
+    const int r_size = FACTOR.r_size;                                          \
+    const int J_cols = param_local_size(FACTOR.param_types[JAC_IDX]);          \
+                                                                               \
+    real_t *r = MALLOC(real_t, r_size);                                        \
+    real_t *r_fwd = MALLOC(real_t, r_size);                                    \
+    real_t *r_diff = MALLOC(real_t, r_size);                                   \
+    real_t *J = factor.jacs[JAC_IDX];                                          \
+    real_t *J_fdiff = MALLOC(real_t, r_size * J_cols);                         \
+                                                                               \
+    /* Eval */                                                                 \
+    FACTOR_EVAL(&FACTOR);                                                      \
+    vec_copy(FACTOR.r, r_size, r);                                             \
                                                                                \
     /* Check pose position jacobian */                                         \
-    char J_name[100] = {'\0'};                                                 \
-    strcpy(J_name, JAC_NAME);                                                  \
-                                                                               \
-    real_t J_fdiff[2 * 6] = {0};                                               \
     for (int i = 0; i < 3; i++) {                                              \
-      PARAMS[JAC_IDX][i] += STEP_SIZE;                                         \
+      FACTOR.params[JAC_IDX][i] += STEP_SIZE;                                  \
       FACTOR_EVAL((void *) &FACTOR);                                           \
-      r_fwd[0] = FACTOR.r[0];                                                  \
-      r_fwd[1] = FACTOR.r[1];                                                  \
-      PARAMS[JAC_IDX][i] -= STEP_SIZE;                                         \
+      vec_copy(FACTOR.r, r_size, r_fwd);                                       \
+      FACTOR.params[JAC_IDX][i] -= STEP_SIZE;                                  \
                                                                                \
-      vec_sub(r_fwd, R, r_diff, 2);                                            \
-      vec_scale(r_diff, 2, 1.0 / STEP_SIZE);                                   \
-      mat_col_set(J_fdiff, 6, 2, i, r_diff);                                   \
+      vec_sub(r_fwd, r, r_diff, r_size);                                       \
+      vec_scale(r_diff, r_size, 1.0 / STEP_SIZE);                              \
+      mat_col_set(J_fdiff, J_cols, r_size, i, r_diff);                         \
     }                                                                          \
     for (int i = 0; i < 3; i++) {                                              \
-      quat_perturb(PARAMS[JAC_IDX] + 3, i, STEP_SIZE);                         \
+      quat_perturb(FACTOR.params[JAC_IDX] + 3, i, STEP_SIZE);                  \
       FACTOR_EVAL((void *) &FACTOR);                                           \
-      r_fwd[0] = FACTOR.r[0];                                                  \
-      r_fwd[1] = FACTOR.r[1];                                                  \
-      quat_perturb(PARAMS[JAC_IDX] + 3, i, -STEP_SIZE);                        \
+      vec_copy(FACTOR.r, r_size, r_fwd);                                       \
+      quat_perturb(FACTOR.params[JAC_IDX] + 3, i, -STEP_SIZE);                 \
                                                                                \
-      vec_sub(r_fwd, R, r_diff, 2);                                            \
-      vec_scale(r_diff, 2, 1.0 / STEP_SIZE);                                   \
-      mat_col_set(J_fdiff, 6, 2, i + 3, r_diff);                               \
+      vec_sub(r_fwd, r, r_diff, r_size);                                       \
+      vec_scale(r_diff, r_size, 1.0 / STEP_SIZE);                              \
+      mat_col_set(J_fdiff, J_cols, r_size, i + 3, r_diff);                     \
     }                                                                          \
-    MU_ASSERT(check_jacobian(J_name, J_fdiff, J, 2, 6, TOL, VERBOSE) == 0);    \
                                                                                \
+    char s[100] = {0};                                                         \
+    sprintf(s, "J%d", JAC_IDX);                                                \
+    int retval = check_jacobian(s, J_fdiff, J, r_size, J_cols, TOL, VERBOSE);  \
+                                                                               \
+    free(r);                                                                   \
     free(r_fwd);                                                               \
     free(r_diff);                                                              \
+    free(J_fdiff);                                                             \
+                                                                               \
+    MU_ASSERT(retval == 0);                                                    \
+  }
+
+#define CHECK_FACTOR_J(PARAM_IDX,                                              \
+                       FACTOR,                                                 \
+                       FACTOR_EVAL,                                            \
+                       STEP_SIZE,                                              \
+                       TOL,                                                    \
+                       VERBOSE)                                                \
+  {                                                                            \
+    int param_type = FACTOR.param_types[PARAM_IDX];                            \
+    switch (param_type) {                                                      \
+      case POSE_PARAM:                                                         \
+      case EXTRINSICS_PARAM:                                                   \
+      case FIDUCIAL_PARAM:                                                     \
+        CHECK_POSE_JACOBIAN(PARAM_IDX,                                         \
+                            FACTOR,                                            \
+                            FACTOR_EVAL,                                       \
+                            STEP_SIZE,                                         \
+                            TOL,                                               \
+                            VERBOSE)                                           \
+        break;                                                                 \
+      default:                                                                 \
+        CHECK_JACOBIAN(PARAM_IDX,                                              \
+                       FACTOR,                                                 \
+                       FACTOR_EVAL,                                            \
+                       STEP_SIZE,                                              \
+                       TOL,                                                    \
+                       VERBOSE)                                                \
+        break;                                                                 \
+    }                                                                          \
   }
 
 /******************************************************************************

@@ -2845,48 +2845,10 @@ int test_pose_factor_eval() {
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   pose_factor_setup(&factor, &pose, var);
 
-  /* Evaluate pose factor */
-  const int retval = pose_factor_eval(&factor);
-  MU_ASSERT(retval == 0);
-
   /* Check Jacobians */
   const real_t step_size = 1e-8;
   const real_t tol = 1e-4;
-
-  real_t r[6] = {0};
-  pose_factor_eval(&factor);
-  vec_copy(factor.r, 6, r);
-
-  /* -- Check pose position jacobian */
-  real_t J_fdiff[6 * 6] = {0};
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[6] = {0};
-    real_t r_diff[6] = {0};
-
-    factor.params[0][i] += step_size;
-    pose_factor_eval(&factor);
-    vec_copy(factor.r, 6, r_fwd);
-    factor.params[0][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 6);
-    vec_scale(r_diff, 6, 1.0 / step_size);
-    mat_col_set(J_fdiff, 6, 6, i, r_diff);
-  }
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[6] = {0};
-    real_t r_diff[6] = {0};
-
-    quat_perturb(factor.params[0] + 3, i, step_size);
-    pose_factor_eval(&factor);
-    vec_copy(factor.r, 6, r_fwd);
-    quat_perturb(factor.params[0] + 3, i, -step_size);
-
-    vec_sub(r_fwd, r, r_diff, 6);
-    vec_scale(r_diff, 6, 1.0 / step_size);
-    mat_col_set(J_fdiff, 6, 6, i + 3, r_diff);
-  }
-  real_t *J = factor.jacs[0];
-  MU_ASSERT(check_jacobian("J", J_fdiff, J, 6, 6, tol, 0) == 0);
+  CHECK_FACTOR_J(0, factor, pose_factor_eval, step_size, tol, 0);
 
   return 0;
 }
@@ -2970,84 +2932,12 @@ int test_ba_factor_eval() {
   real_t var[2] = {1.0, 1.0};
   ba_factor_setup(&factor, &pose, &feature, &cam, z, var);
 
-  // Evaluate bundle adjustment factor
-  ba_factor_eval(&factor);
-
   // Check Jacobians
   const real_t step_size = 1e-8;
   const real_t tol = 1e-4;
-  const real_t r[2] = {factor.r[0], factor.r[1]};
-
-  // -- Check pose jacobian
-  real_t J0_fdiff[2 * 6] = {0};
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    factor.params[0][i] += step_size;
-    ba_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    factor.params[0][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J0_fdiff, 6, 2, i, r_diff);
-  }
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    quat_perturb(factor.params[0] + 3, i, step_size);
-    ba_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    quat_perturb(factor.params[0] + 3, i, -step_size);
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J0_fdiff, 6, 2, i + 3, r_diff);
-  }
-  const real_t *J0 = factor.jacs[0];
-  MU_ASSERT(check_jacobian("J0", J0_fdiff, J0, 2, 6, tol, 0) == 0);
-
-  // -- Check feature jacobian
-  real_t J1_numdiff[2 * 3] = {0};
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    factor.params[1][i] += step_size;
-    ba_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    factor.params[1][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J1_numdiff, 3, 2, i, r_diff);
-  }
-  const real_t *J1 = factor.jacs[1];
-  MU_ASSERT(check_jacobian("J1", J1_numdiff, J1, 2, 3, tol, 0) == 0);
-
-  // -- Check camera parameters jacobian
-  real_t J2_numdiff[2 * 8] = {0};
-  for (int i = 0; i < 8; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    factor.params[2][i] += step_size;
-    ba_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    factor.params[2][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J2_numdiff, 8, 2, i, r_diff);
-  }
-  const real_t *J2 = factor.jacs[2];
-  MU_ASSERT(check_jacobian("J2", J2_numdiff, J2, 2, 8, tol, 0) == 0);
+  CHECK_FACTOR_J(0, factor, ba_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(1, factor, ba_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, ba_factor_eval, step_size, tol, 0);
 
   return 0;
 }
@@ -3159,117 +3049,13 @@ int test_vision_factor_eval() {
   real_t var[2] = {1.0, 1.0};
   vision_factor_setup(&factor, &pose, &cam_exts, &feature, &cam, z, var);
 
-  // Evaluate camera factor
-  vision_factor_eval(&factor);
-
   // Check Jacobians
   const real_t step_size = 1e-8;
   const real_t tol = 1e-4;
-  const real_t r[2] = {factor.r[0], factor.r[1]};
-
-  // -- Check pose position jacobian
-  real_t J0_fdiff[2 * 6] = {0};
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    factor.params[0][i] += step_size;
-    vision_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    factor.params[0][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J0_fdiff, 6, 2, i, r_diff);
-  }
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    quat_perturb(factor.params[0] + 3, i, step_size);
-    vision_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    quat_perturb(factor.params[0] + 3, i, -step_size);
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J0_fdiff, 6, 2, i + 3, r_diff);
-  }
-  const real_t *J0 = factor.jacs[0];
-  MU_ASSERT(check_jacobian("J0", J0_fdiff, J0, 2, 6, tol, 0) == 0);
-
-  // -- Check extrinsics position jacobian
-  real_t J1_fdiff[2 * 6] = {0};
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    factor.params[1][i] += step_size;
-    vision_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    factor.params[1][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J1_fdiff, 6, 2, i, r_diff);
-  }
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    quat_perturb(factor.params[1] + 3, i, step_size);
-    vision_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    quat_perturb(factor.params[1] + 3, i, -step_size);
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J1_fdiff, 6, 2, i + 3, r_diff);
-  }
-  const real_t *J1 = factor.jacs[1];
-  MU_ASSERT(check_jacobian("J1", J1_fdiff, J1, 2, 6, tol, 0) == 0);
-
-  // -- Check feature jacobian
-  real_t J2_fdiff[2 * 3] = {0};
-  for (int i = 0; i < 3; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    factor.params[2][i] += step_size;
-    vision_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    factor.params[2][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J2_fdiff, 3, 2, i, r_diff);
-  }
-  const real_t *J2 = factor.jacs[2];
-  MU_ASSERT(check_jacobian("J2", J2_fdiff, J2, 2, 3, tol, 0) == 0);
-
-  // -- Check camera parameters jacobian
-  real_t J3_fdiff[2 * 8] = {0};
-  for (int i = 0; i < 8; i++) {
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    factor.params[3][i] += step_size;
-    vision_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    factor.params[3][i] -= step_size;
-
-    vec_sub(r_fwd, r, r_diff, 2);
-    vec_scale(r_diff, 2, 1.0 / step_size);
-    mat_col_set(J3_fdiff, 8, 2, i, r_diff);
-  }
-  const real_t *J3 = factor.jacs[3];
-  MU_ASSERT(check_jacobian("J3", J3_fdiff, J3, 2, 8, tol, 0) == 0);
+  CHECK_FACTOR_J(0, factor, vision_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(1, factor, vision_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, vision_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(3, factor, vision_factor_eval, step_size, tol, 0);
 
   return 0;
 }
@@ -3468,201 +3254,18 @@ int test_calib_gimbal_factor_eval() {
   // Jacobians
   calib_gimbal_factor_eval(&factor);
 
-  // print_vector("fiducial", params[0], 7);
-  // print_vector("link0", params[1], 7);
-  // print_vector("link1", params[2], 7);
-  // print_vector("link2", params[3], 7);
-  // print_vector("joint0", params[4], 1);
-  // print_vector("joint1", params[5], 1);
-  // print_vector("joint2", params[6], 1);
-  // print_vector("cam_exts", params[7], 7);
-  // print_vector("cam_params", params[8], 8);
-
-  // // J_fiducial
-  // {
-  //   const char *J_fp = "/tmp/test_calib_gimbal_factor-jacobian-fiducial.csv";
-  //   int nb_rows = 0;
-  //   int nb_cols = 0;
-  //   real_t *J_expected = mat_load(J_fp, &nb_rows, &nb_cols);
-  //   MU_ASSERT(mat_cmp(J_fiducial, J_expected, nb_rows, nb_cols) == 0);
-  //   free(J_expected);
-  // }
-
-  // // J_link
-  // {
-  //   for (int link_idx = 0; link_idx < 3; link_idx++) {
-  //     char J_fp[1024] = {'\0'};
-  //     char *fmt_str = "/tmp/test_calib_gimbal_factor-jacobian-link%d.csv";
-  //     sprintf(J_fp, fmt_str, link_idx);
-  //     int nb_rows = 0;
-  //     int nb_cols = 0;
-  //     real_t *J_got = jacs[1 + link_idx];
-  //     real_t *J_expected = mat_load(J_fp, &nb_rows, &nb_cols);
-
-  //     print_matrix("J_got", J_got, nb_rows, nb_cols);
-  //     print_matrix("J_expected", J_expected, nb_rows, nb_cols);
-
-  //     MU_ASSERT(mat_cmp(J_got, J_expected, nb_rows, nb_cols) == 0);
-  //     free(J_expected);
-  //   }
-  // }
-
-  // // J_joint
-  // {
-  //   for (int link_idx = 0; link_idx < 3; link_idx++) {
-  //     char J_fp[1024] = {'\0'};
-  //     char *fmt_str = "/tmp/test_calib_gimbal_factor-jacobian-joint%d.csv";
-  //     sprintf(J_fp, fmt_str, link_idx);
-  //     int nb_rows = 0;
-  //     int nb_cols = 0;
-  //     real_t *J_got = jacs[4 + link_idx];
-  //     real_t *J_expected = vec_load(J_fp, &nb_rows, &nb_cols);
-  //     print_matrix("J_got", J_got, nb_rows, nb_cols);
-  //     print_matrix("J_expected", J_expected, nb_rows, nb_cols);
-  //     MU_ASSERT(mat_cmp(J_got, J_expected, nb_rows, nb_cols) == 0);
-  //     free(J_expected);
-  //   }
-  // }
-
-  // // J_cam_exts
-  // {
-  //   char *J_fp = "/tmp/test_calib_gimbal_factor-jacobian-cam_exts.csv";
-  //   int nb_rows = 0;
-  //   int nb_cols = 0;
-  //   real_t *J_got = jacs[7];
-  //   real_t *J_expected = mat_load(J_fp, &nb_rows, &nb_cols);
-  //   MU_ASSERT(mat_cmp(J_got, J_expected, nb_rows, nb_cols) == 0);
-  //   free(J_expected);
-  // }
-
-  // // J_cam_params
-  // {
-  //   char *J_fp = "/tmp/test_calib_gimbal_factor-jacobian-cam_params.csv";
-  //   int nb_rows = 0;
-  //   int nb_cols = 0;
-  //   real_t *J_got = jacs[8];
-  //   real_t *J_expected = mat_load(J_fp, &nb_rows, &nb_cols);
-  //   MU_ASSERT(mat_cmp(J_got, J_expected, nb_rows, nb_cols) == 0);
-  //   free(J_expected);
-  // }
-
-  // print_matrix("J_fiducial", J_fiducial, 2, 6);
-  // print_matrix("J_link0", J_link0, 2, 6);
-  // print_matrix("J_link1", J_link1, 2, 6);
-  // print_matrix("J_link2", J_link2, 2, 6);
-  // print_matrix("J_joint0", J_joint0, 2, 1);
-  // print_matrix("J_joint1", J_joint1, 2, 1);
-  // print_matrix("J_joint2", J_joint2, 2, 1);
-  // print_matrix("J_cam_exts", J_cam_exts, 2, 6);
-  // print_matrix("J_cam_params", J_cam_params, 2, 8);
-
   // Check Jacobians
-  calib_gimbal_factor_eval(&factor);
   const double tol = 1e-4;
   const double step_size = 1e-8;
-  const real_t r[2] = {factor.r[0], factor.r[1]};
-
-  // -- Check fiducial Jacobian
-  CHECK_POSE_JACOBIAN("J_fiducial",
-                      0,
-                      r,
-                      2,
-                      factor.params,
-                      factor.jacs,
-                      factor,
-                      calib_gimbal_factor_eval,
-                      step_size,
-                      tol,
-                      0);
-
-  // -- Check pose Jacobian
-  CHECK_POSE_JACOBIAN("J_pose",
-                      1,
-                      r,
-                      2,
-                      factor.params,
-                      factor.jacs,
-                      factor,
-                      calib_gimbal_factor_eval,
-                      step_size,
-                      tol,
-                      0);
-
-  // -- Check link Jacobians
-  for (int link_idx = 0; link_idx < 3; link_idx++) {
-    char jac_name[100] = {'\0'};
-    sprintf(jac_name, "J_link%d", link_idx);
-
-    CHECK_POSE_JACOBIAN(jac_name,
-                        2 + link_idx,
-                        r,
-                        2,
-                        factor.params,
-                        factor.jacs,
-                        factor,
-                        calib_gimbal_factor_eval,
-                        step_size,
-                        tol,
-                        0);
-  }
-
-  // -- Check joint Jacobians
-  for (int joint_idx = 0; joint_idx < 3; joint_idx++) {
-    char jac_name[100] = {'\0'};
-    sprintf(jac_name, "J_joint%d", joint_idx);
-
-    int idx = 5 + joint_idx;
-    real_t J_fdiff[2 * 1] = {0};
-    real_t r_fwd[2] = {0};
-
-    factor.params[idx][0] += step_size;
-    calib_gimbal_factor_eval(&factor);
-    r_fwd[0] = factor.r[0];
-    r_fwd[1] = factor.r[1];
-    factor.params[idx][0] -= step_size;
-
-    vec_sub(r_fwd, r, J_fdiff, 2);
-    vec_scale(J_fdiff, 2, 1.0 / step_size);
-    real_t *J = factor.jacs[idx];
-    MU_ASSERT(check_jacobian(jac_name, J_fdiff, J, 2, 1, tol, 0) == 0);
-  }
-
-  // -- Check camera extrinsics Jacobian
-  CHECK_POSE_JACOBIAN("J_cam_exts",
-                      8,
-                      r,
-                      2,
-                      factor.params,
-                      factor.jacs,
-                      factor,
-                      calib_gimbal_factor_eval,
-                      step_size,
-                      tol,
-                      0);
-
-  // -- Check camera parameter Jacobians
-  {
-    const char *jac_name = "J_cam";
-
-    real_t J_fdiff[2 * 8] = {0};
-    real_t r_fwd[2] = {0};
-    real_t r_diff[2] = {0};
-
-    for (int i = 0; i < 8; i++) {
-      factor.params[9][i] += step_size;
-      calib_gimbal_factor_eval(&factor);
-      r_fwd[0] = factor.r[0];
-      r_fwd[1] = factor.r[1];
-      factor.params[9][i] -= step_size;
-
-      vec_sub(r_fwd, r, r_diff, 2);
-      vec_scale(r_diff, 2, 1.0 / step_size);
-      mat_col_set(J_fdiff, 8, 2, i, r_diff);
-    }
-
-    real_t *J = factor.jacs[9];
-    MU_ASSERT(check_jacobian(jac_name, J_fdiff, J, 2, 8, tol, 0) == 0);
-  }
+  CHECK_FACTOR_J(0, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(1, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(3, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(4, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(5, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(6, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(7, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(8, factor, calib_gimbal_factor_eval, step_size, tol, 0);
 
   return 0;
 }

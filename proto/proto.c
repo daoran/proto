@@ -8527,9 +8527,6 @@ int solver_solve(solver_t *solver, void *data) {
   real_t cost_km1 = solver_cost(r, r_size);
   printf("iter: 0, lambda_k: %.2e, cost: %.2e\n", solver->lambda, cost_km1);
 
-  // mat_save("/tmp/H.csv", H, sv_size, sv_size);
-  // exit(0);
-
   // Start cholmod workspace
   cholmod_common common;
   cholmod_start(&common);
