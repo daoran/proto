@@ -135,6 +135,8 @@ run_test() {
       && clear \
       && make test_proto \
       && ./build/bin/test_proto --target $1 \
+      && python3 proto.py TestFactors.test_imu_factor \
+      && python3 scripts/compare_matrices.py --mata /tmp/sqrt_info.csv --matb /tmp/sqrt_info_test.csv
       # && valgrind --leak-check=full --show-leak-kinds=all ./build/bin/test_proto --target $1 \
       # && python3 scripts/plot_matrix.py --input /tmp/H.csv
   " C-m C-m
@@ -175,7 +177,7 @@ dev_aprilgrid() {
 # gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
-run_all_tests
+# run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
@@ -350,7 +352,7 @@ run_all_tests
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
 # run_test test_imu_factor_propagate_step
-# run_test test_imu_factor_setup
+run_test test_imu_factor_setup
 # run_test test_imu_factor_eval
 # run_test test_ceres_example
 # run_test test_solver_setup

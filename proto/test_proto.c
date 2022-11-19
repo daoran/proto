@@ -2760,13 +2760,13 @@ int test_imu_biases_setup() {
 
   MU_ASSERT(biases.ts == 1);
 
-  MU_ASSERT(fltcmp(biases.ba[0], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(biases.ba[1], 2.0) == 0.0);
-  MU_ASSERT(fltcmp(biases.ba[2], 3.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.data[0], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.data[1], 2.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.data[2], 3.0) == 0.0);
 
-  MU_ASSERT(fltcmp(biases.bg[0], 4.0) == 0.0);
-  MU_ASSERT(fltcmp(biases.bg[1], 5.0) == 0.0);
-  MU_ASSERT(fltcmp(biases.bg[2], 6.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.data[3], 4.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.data[4], 5.0) == 0.0);
+  MU_ASSERT(fltcmp(biases.data[5], 6.0) == 0.0);
 
   return 0;
 }
@@ -3419,7 +3419,7 @@ static int setup_imu_test_data(imu_test_data_t *test_data) {
     // -- Accelerometer measurement
     real_t acc[3] = {0};
     dot(C_SW, 3, 3, a_WS, 3, 1, acc);
-    acc[2] += 10.0;
+    acc[2] += 9.81;
     // -- Gyroscope measurement
     real_t gyr[3] = {0};
     dot(C_SW, 3, 3, w_WS, 3, 1, gyr);
@@ -3460,14 +3460,16 @@ int test_imu_factor_propagate_step() {
   setup_imu_test_data(&test_data);
 
   // Setup IMU buffer
+  const int n = 9;
   imu_buf_t imu_buf;
   imu_buf_setup(&imu_buf);
-  for (int k = 0; k < 9; k++) {
+  for (int k = 0; k < n; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
     imu_buf_add(&imu_buf, ts, acc, gyr);
   }
+  // imu_buf_print(&imu_buf);
 
   // Setup state
   // const real_t *pose_init = test_data.poses[0];
@@ -3479,9 +3481,6 @@ int test_imu_factor_propagate_step() {
   real_t bg[3] = {0};
 
   // Integrate imu measuremenets
-  FILE *est_csv = fopen("/tmp/imu_est.csv", "w");
-  fprintf(est_csv, "ts,rx,ry,rz,qw,qx,qy,qz,vx,vy,vz\n");
-
   real_t Dt = 0.0;
   real_t dt = 0.0;
   for (int k = 0; k < imu_buf.size; k++) {
@@ -3490,57 +3489,30 @@ int test_imu_factor_propagate_step() {
       const timestamp_t ts_j = imu_buf.ts[k + 1];
       dt = ts2sec(ts_j) - ts2sec(ts_i);
     }
-    const timestamp_t ts = imu_buf.ts[k];
     const real_t *a = imu_buf.acc[k];
     const real_t *w = imu_buf.gyr[k];
     imu_factor_propagate_step(r, v, q, ba, bg, a, w, dt);
     Dt += dt;
-
-    // real_t C_est[3 * 3] = {0};
-    // real_t C_gnd[3 * 3] = {0};
-    // real_t C_gnd_T[3 * 3] = {0};
-    // real_t dC[3 * 3] = {0};
-    // const real_t *pose = test_data.poses[k];
-    // const real_t q_gnd[4] = {pose[3], pose[4], pose[5], pose[6]};
-    // quat2rot(q, C_est);
-    // quat2rot(q_gnd, C_gnd);
-    // mat_transpose(C_gnd, 3, 3, C_gnd_T);
-    // dot(C_gnd_T, 3, 3, C_est, 3, 3, dC);
-    // const real_t ddeg = rad2deg(acos((mat_trace(dC, 3, 3) - 1.0) / 2.0));
-
-    // const real_t *pose = test_data.poses[k];
-    // const real_t r_gnd[3] = {pose[0], pose[1], pose[2]};
-    // const real_t dr[3] = {r_gnd[0] - r[0], r_gnd[1] - r[1], r_gnd[2] -
-    // r[2]}; const real_t dpos = vec_norm(dr, 3); printf("dpos: %f\n", dpos);
-
-    fprintf(est_csv, "%ld,", ts);
-    fprintf(est_csv, "%f,%f,%f,", r[0], r[1], r[2]);
-    fprintf(est_csv, "%f,%f,%f,%f,", q[0], q[1], q[2], q[3]);
-    fprintf(est_csv, "%f,%f,%f\n", v[0], v[1], v[2]);
   }
-  fclose(est_csv);
 
   // printf("dr: %f, %f, %f\n", r[0], r[1], r[2]);
   // printf("dv: %f, %f, %f\n", v[0], v[1], v[2]);
   // printf("dq: %f, %f, %f, %f\n", q[0], q[1], q[2], q[3]);
   // printf("Dt: %f\n", Dt);
 
-  // Save ground-truth data
-  FILE *gnd_csv = fopen("/tmp/imu_gnd.csv", "w");
-  fprintf(gnd_csv, "ts,rx,ry,rz,qw,qx,qy,qz,vx,vy,vz\n");
-  for (size_t k = 0; k < test_data.nb_measurements; k++) {
-    const timestamp_t ts = test_data.timestamps[k];
-    const real_t *pose = test_data.poses[k];
-    const real_t *v = test_data.velocities[k];
-    const real_t r[3] = {pose[0], pose[1], pose[2]};
-    const real_t q[4] = {pose[3], pose[4], pose[5], pose[6]};
+  TF(test_data.poses[0], T_WS_i_gnd);
+  TF(test_data.poses[n], T_WS_j_gnd);
+  TF_QR(q, r, dT);
+  TF_CHAIN(T_WS_j_est, 2, T_WS_i_gnd, dT);
+  // print_matrix("T_WS_j_gnd", T_WS_j_gnd, 4, 4);
+  // print_matrix("T_WS_j_est", T_WS_j_est, 4, 4);
 
-    fprintf(gnd_csv, "%ld,", ts);
-    fprintf(gnd_csv, "%f,%f,%f,", r[0], r[1], r[2]);
-    fprintf(gnd_csv, "%f,%f,%f,%f,", q[0], q[1], q[2], q[3]);
-    fprintf(gnd_csv, "%f,%f,%f\n", v[0], v[1], v[2]);
-  }
-  fclose(gnd_csv);
+  real_t dr[3] = {0};
+  real_t dtheta = 0.0;
+  TF_VECTOR(T_WS_j_est, pose_j_est);
+  TF_VECTOR(T_WS_j_gnd, pose_j_gnd);
+  pose_diff2(pose_j_gnd, pose_j_est, dr, &dtheta);
+  MU_ASSERT(fltcmp(dtheta, 0.0) == 0);
 
   return 0;
 }
@@ -3604,15 +3576,17 @@ int test_imu_factor_setup() {
                    &vel_j,
                    &biases_j);
 
-  // printf("idx_i: %d, idx_j: %d\n", idx_i, idx_j);
-  // pose_print("pose_i", &pose_i);
-  // pose_print("pose_j", &pose_j);
-  // print_vector("dr", imu_factor.dr, 3);
-  // print_vector("dv", imu_factor.dv, 3);
-  // print_quat("dq", imu_factor.dq);
-  // printf("Dt: %f\n", imu_factor.Dt);
-  // mat_save("/tmp/F_test.csv", imu_factor.F, 15, 15);
-  // mat_save("/tmp/P_test.csv", imu_factor.P, 15, 15);
+  printf("idx_i: %d, idx_j: %d\n", idx_i, idx_j);
+  pose_print("pose_i", &pose_i);
+  pose_print("pose_j", &pose_j);
+  print_vector("dr", imu_factor.dr, 3);
+  print_vector("dv", imu_factor.dv, 3);
+  print_quat("dq", imu_factor.dq);
+  printf("Dt: %f\n", imu_factor.Dt);
+
+  mat_save("/tmp/F_test.csv", imu_factor.F, 15, 15);
+  mat_save("/tmp/P_test.csv", imu_factor.P, 15, 15);
+  mat_save("/tmp/sqrt_info_test.csv", imu_factor.sqrt_info, 15, 15);
 
   MU_ASSERT(imu_factor.pose_i == &pose_i);
   MU_ASSERT(imu_factor.vel_i == &vel_i);
@@ -3687,27 +3661,7 @@ int test_imu_factor_eval() {
                    &biases_j);
 
   // Evaluate IMU factor
-  real_t *params[8] = {pose_i.data,
-                       vel_i.v,
-                       biases_i.ba,
-                       biases_i.bg,
-                       pose_j.data,
-                       vel_j.v,
-                       biases_j.ba,
-                       biases_j.bg};
-  real_t r[15] = {0};
-  real_t J0[15 * 3] = {0};
-  real_t J1[15 * 3] = {0};
-  real_t J2[15 * 3] = {0};
-  real_t J3[15 * 3] = {0};
-  real_t J4[15 * 3] = {0};
-  real_t J5[15 * 3] = {0};
-  real_t J6[15 * 3] = {0};
-  real_t J7[15 * 3] = {0};
-  real_t J8[15 * 3] = {0};
-  real_t J9[15 * 3] = {0};
-  real_t *jacs[10] = {J0, J1, J2, J3, J4, J5, J6, J7, J8, J9};
-  imu_factor_eval(&imu_factor, params, r, jacs);
+  imu_factor_eval(&imu_factor);
   // print_vector("r", r, 15);
   // print_matrix("J0", J0, 15, 3);
 

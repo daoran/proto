@@ -26,6 +26,7 @@
 #include <libgen.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <float.h>
 
 #include <errno.h>
 #include <netdb.h>
@@ -839,6 +840,22 @@ real_t suitesparse_chol_solve(cholmod_common *c,
   real_t T[4 * 4] = {0};                                                       \
   tf(PARAMS, T);
 
+#define TF_CR(C, R, T)                                                         \
+  real_t T[4 * 4] = {0};                                                       \
+  tf_cr(C, R, T);
+
+#define TF_ER(E, R, T)                                                         \
+  real_t T[4 * 4] = {0};                                                       \
+  tf_er(E, R, T);
+
+#define TF_VECTOR(T, V)                                                        \
+  real_t V[7] = {0};                                                           \
+  tf_vector(T, V);
+
+#define TF_QR(Q, R, T)                                                         \
+  real_t T[4 * 4] = {0};                                                       \
+  tf_qr(Q, R, T);
+
 #define TF_INV(T, T_INV)                                                       \
   real_t T_INV[4 * 4] = {0};                                                   \
   tf_inv(T, T_INV);
@@ -1013,10 +1030,11 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 #define POSE_PARAM 1
 #define EXTRINSICS_PARAM 2
 #define FIDUCIAL_PARAM 3
-#define SB_PARAM 4
-#define FEATURE_PARAM 5
-#define JOINT_PARAM 6
-#define CAMERA_PARAM 7
+#define VELOCITY_PARAM 4
+#define IMU_BIASES_PARAM 5
+#define FEATURE_PARAM 6
+#define JOINT_PARAM 7
+#define CAMERA_PARAM 8
 
 /** POSE **********************************************************************/
 
@@ -1032,7 +1050,7 @@ void pose_print(const char *prefix, const pose_t *pose);
 
 typedef struct velocity_t {
   timestamp_t ts;
-  real_t v[3];
+  real_t data[3];
 } velocity_t;
 
 void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
@@ -1041,14 +1059,15 @@ void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
 
 typedef struct imu_biases_t {
   timestamp_t ts;
-  real_t ba[3];
-  real_t bg[3];
+  real_t data[6];
 } imu_biases_t;
 
 void imu_biases_setup(imu_biases_t *sb,
                       const timestamp_t ts,
                       const real_t ba[3],
                       const real_t bg[3]);
+void imu_biases_get_accel_bias(const imu_biases_t *biases, real_t ba[3]);
+void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 
 /** FEATURE *******************************************************************/
 
@@ -1309,7 +1328,7 @@ int calib_gimbal_factor_ceres_eval(void *factor,
 
 /** IMU FACTOR ****************************************************************/
 
-#define MAX_IMU_BUF_SIZE 1000
+#define IMU_BUF_MAX_SIZE 1000
 
 typedef struct imu_params_t {
   int imu_idx;
@@ -1323,39 +1342,57 @@ typedef struct imu_params_t {
 } imu_params_t;
 
 typedef struct imu_buf_t {
-  timestamp_t ts[MAX_IMU_BUF_SIZE];
-  real_t acc[MAX_IMU_BUF_SIZE][3];
-  real_t gyr[MAX_IMU_BUF_SIZE][3];
+  timestamp_t ts[IMU_BUF_MAX_SIZE];
+  real_t acc[IMU_BUF_MAX_SIZE][3];
+  real_t gyr[IMU_BUF_MAX_SIZE][3];
   int size;
 } imu_buf_t;
 
 typedef struct imu_factor_t {
-  imu_params_t *imu_params;
+  // IMU buffer and parameters
   imu_buf_t imu_buf;
-  pose_t *pose_i;
-  pose_t *pose_j;
-  velocity_t *vel_i;
-  velocity_t *vel_j;
-  imu_biases_t *biases_i;
-  imu_biases_t *biases_j;
+  imu_params_t *imu_params;
+
+  // Parameters
   int num_params;
 
-  real_t covar[15 * 15];
-  real_t sqrt_info[15 * 15];
-  real_t r[15];
-  int r_size;
+  pose_t *pose_i;
+  velocity_t *vel_i;
+  imu_biases_t *biases_i;
+  pose_t *pose_j;
+  velocity_t *vel_j;
+  imu_biases_t *biases_j;
+
+  real_t *params[6];
+  int param_types[6];
 
   // Preintegration variables
-  real_t Dt;
+  real_t Dt;         // Time difference between pose_i and pose_j in seconds
   real_t F[15 * 15]; // State jacobian
   real_t P[15 * 15]; // State covariance
   real_t Q[12 * 12]; // Noise matrix
+  real_t dr[3];      // Relative position
+  real_t dv[3];      // Relative velocity
+  real_t dq[4];      // Relative rotation
+  real_t ba[3];      // Accel biase
+  real_t bg[3];      // Gyro biase
 
-  real_t dr[3]; // Relative position
-  real_t dv[3]; // Relative velocity
-  real_t dq[4]; // Relative rotation
-  real_t ba[3]; // Accel biase
-  real_t bg[3]; // Gyro biase
+  // Covariance and square-root info
+  real_t covar[15 * 15];
+  real_t sqrt_info[15 * 15];
+
+  // Residuals
+  real_t r[15];
+  int r_size;
+
+  // Jacobians
+  real_t *jacs[6];
+  real_t J_pose_i[15 * 6];
+  real_t J_vel_i[15 * 3];
+  real_t J_biases_i[15 * 6];
+  real_t J_pose_j[15 * 6];
+  real_t J_vel_j[15 * 3];
+  real_t J_biases_j[15 * 6];
 } imu_factor_t;
 
 void imu_buf_setup(imu_buf_t *imu_buf);
@@ -1386,10 +1423,7 @@ void imu_factor_setup(imu_factor_t *factor,
                       imu_biases_t *biases_j);
 void imu_factor_reset(imu_factor_t *factor);
 int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
-int imu_factor_eval(imu_factor_t *factor,
-                    real_t **params,
-                    real_t *residuals,
-                    real_t **jacobians);
+int imu_factor_eval(void *factor_ptr);
 
 /** SOLVER ********************************************************************/
 
