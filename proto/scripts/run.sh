@@ -135,8 +135,8 @@ run_test() {
       && clear \
       && make test_proto \
       && ./build/bin/test_proto --target $1 \
-      && python3 proto.py TestFactors.test_imu_factor \
-      && python3 scripts/compare_matrices.py --mata /tmp/sqrt_info.csv --matb /tmp/sqrt_info_test.csv
+      # && python3 proto.py TestFactors.test_imu_factor \
+      # && python3 scripts/compare_matrices.py --mata /tmp/J0.csv --matb /tmp/J_fdiff.csv
       # && python3 scripts/plot_matrix.py --input /tmp/sqrt_info_test.csv
       # # && valgrind --leak-check=full --show-leak-kinds=all ./build/bin/test_proto --target $1 \
       # # && python3 scripts/plot_matrix.py --input /tmp/H.csv
@@ -261,7 +261,7 @@ dev_aprilgrid() {
 # run_test test_mat_copy
 # run_test test_mat_row_set
 # run_test test_mat_col_set
-# run_test test_mat_block_get
+run_test test_mat_block_get
 # run_test test_mat_block_set
 # run_test test_mat_diag_get
 # run_test test_mat_diag_set
@@ -353,8 +353,8 @@ dev_aprilgrid() {
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
 # run_test test_imu_factor_propagate_step
-run_test test_imu_factor_setup
-# run_test test_imu_factor_eval
+# run_test test_imu_factor_setup
+run_test test_imu_factor_eval
 # run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print

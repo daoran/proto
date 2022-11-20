@@ -1206,16 +1206,29 @@ int test_mat_col_set() {
 }
 
 int test_mat_block_get() {
-  real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+  // clang-format off
+  real_t A[9] = {0.0, 1.0, 2.0,
+                 3.0, 4.0, 5.0,
+                 6.0, 7.0, 8.0};
   real_t B[4] = {0.0};
-  mat_block_get(A, 3, 1, 1, 2, 2, B);
+  real_t C[4] = {0.0};
+  // clang-format on
+  mat_block_get(A, 3, 1, 2, 1, 2, B);
+  mat_block_get(A, 3, 0, 1, 1, 2, C);
 
   // print_matrix("A", A, 3, 3);
   // print_matrix("B", B, 2, 2);
-  MU_ASSERT(fltcmp(mat_val(B, 2, 0, 0), 5.0) == 0);
-  MU_ASSERT(fltcmp(mat_val(B, 2, 0, 1), 6.0) == 0);
-  MU_ASSERT(fltcmp(mat_val(B, 2, 1, 0), 8.0) == 0);
-  MU_ASSERT(fltcmp(mat_val(B, 2, 1, 1), 9.0) == 0);
+  // print_matrix("C", C, 2, 2);
+
+  MU_ASSERT(fltcmp(mat_val(B, 2, 0, 0), 4.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(B, 2, 0, 1), 5.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(B, 2, 1, 0), 7.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(B, 2, 1, 1), 8.0) == 0);
+
+  MU_ASSERT(fltcmp(mat_val(C, 2, 0, 0), 1.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(C, 2, 0, 1), 2.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(C, 2, 1, 0), 4.0) == 0);
+  MU_ASSERT(fltcmp(mat_val(C, 2, 1, 1), 5.0) == 0);
 
   return 0;
 }
@@ -3610,7 +3623,7 @@ int test_imu_factor_eval() {
   // Setup IMU buffer
   imu_buf_t imu_buf;
   imu_buf_setup(&imu_buf);
-  for (int k = 0; k < 10; k++) {
+  for (int k = 0; k < 20; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
@@ -3619,7 +3632,7 @@ int test_imu_factor_eval() {
 
   // Setup IMU factor
   const int idx_i = 0;
-  const int idx_j = 10 - 1;
+  const int idx_j = 20 - 1;
   const timestamp_t ts_i = test_data.timestamps[idx_i];
   const timestamp_t ts_j = test_data.timestamps[idx_j];
   const real_t *v_i = test_data.velocities[idx_i];
@@ -3650,8 +3663,8 @@ int test_imu_factor_eval() {
   imu_params.sigma_gw = 2.0e-6;
   imu_params.g = 9.81;
 
-  imu_factor_t imu_factor;
-  imu_factor_setup(&imu_factor,
+  imu_factor_t factor;
+  imu_factor_setup(&factor,
                    &imu_params,
                    &imu_buf,
                    &pose_i,
@@ -3662,33 +3675,19 @@ int test_imu_factor_eval() {
                    &biases_j);
 
   // Evaluate IMU factor
-  imu_factor_eval(&imu_factor);
-  // print_vector("r", r, 15);
+  imu_factor_eval(&factor);
+  print_vector("r", factor.r, 15);
   // print_matrix("J0", J0, 15, 3);
 
-  // // Check Jacobians
-  // const int r_size = 15;
-  // real_t step_size = 1e-8;
-  // real_t tol = 1e-4;
-
-  // // -- Check pose i position jacobian
-  // real_t J0_numdiff[15 * 3] = {0};
-  // for (int i = 0; i < 3; i++) {
-  //   real_t r_fwd[15] = {0};
-  //   real_t r_diff[15] = {0};
-
-  //   params[0][i] += step_size;
-  //   imu_factor_eval(&imu_factor, params, r_fwd, NULL);
-  //   params[0][i] -= step_size;
-
-  //   vec_sub(r_fwd, r, r_diff, r_size);
-  //   vec_scale(r_diff, r_size, 1.0 / step_size);
-  //   mat_col_set(J0_numdiff, 3, r_size, i, r_diff);
-  // }
-  // print_matrix("J0_numdiff", J0_numdiff, 15, 3);
-  // MU_ASSERT(check_jacobian("J0", J0_numdiff, J0, r_size, 3, tol, 1) == 0);
-
-  // -- Check pose i rotation jacobian
+  // Check Jacobians
+  const double tol = 1e-4;
+  const double step_size = 1e-8;
+  // CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, tol, 1);
+  // CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 1);
+  CHECK_FACTOR_J(3, factor, imu_factor_eval, step_size, 1e-3, 0);
+  CHECK_FACTOR_J(4, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(5, factor, imu_factor_eval, step_size, tol, 0);
 
   // Clean up
   free_imu_test_data(&test_data);

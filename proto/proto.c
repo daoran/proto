@@ -2517,8 +2517,8 @@ void mat_col_set(real_t *A,
 void mat_block_get(const real_t *A,
                    const size_t stride,
                    const size_t rs,
-                   const size_t cs,
                    const size_t re,
+                   const size_t cs,
                    const size_t ce,
                    real_t *block) {
   assert(A != NULL);
@@ -4570,6 +4570,25 @@ void tf_chain2(const int n, ...) {
 }
 
 /**
+ * Return translation vector `r` from pose vector `p`.
+ */
+void pose_get_trans(const real_t p[7], real_t r[3]) {
+  r[0] = p[0];
+  r[1] = p[1];
+  r[2] = p[2];
+}
+
+/**
+ * Return Quaternion `q` from pose vector `p`.
+ */
+void pose_get_quat(const real_t p[7], real_t q[4]) {
+  q[0] = p[3];
+  q[1] = p[4];
+  q[2] = p[5];
+  q[3] = p[6];
+}
+
+/**
  * Pose difference between `pose0` and `pose`, returns difference in
  * translation and rotation `diff`.
  */
@@ -6032,9 +6051,9 @@ void imu_biases_get_accel_bias(const imu_biases_t *biases, real_t ba[3]) {
  * Get IMU gyroscope biases
  */
 void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]) {
-  bg[0] = biases->data[0];
-  bg[1] = biases->data[1];
-  bg[2] = biases->data[2];
+  bg[0] = biases->data[3];
+  bg[1] = biases->data[4];
+  bg[2] = biases->data[5];
 }
 
 /** FEATURE  ******************************************************************/
@@ -8038,318 +8057,300 @@ int imu_factor_eval(void *factor_ptr) {
   assert(factor->biases_i);
   assert(factor->biases_j);
 
-  // // Map params
-  // const real_t *r_i = params[0];
-  // const real_t *q_i = params[1];
-  // const real_t *v_i = params[2];
-  // const real_t *ba_i = params[3];
-  // const real_t *bg_i = params[4];
-  // const real_t *r_j = params[5];
-  // const real_t *q_j = params[6];
-  // const real_t *v_j = params[7];
-  // const real_t *ba_j = params[8];
-  // const real_t *bg_j = params[9];
+  // Map params
+  real_t r_i[3] = {0};
+  real_t q_i[3] = {0};
+  real_t v_i[3] = {0};
+  real_t ba_i[3] = {0};
+  real_t bg_i[3] = {0};
 
-  // // Correct the relative position, velocity and rotation
-  // // -- Extract Jacobians from error-state jacobian
-  // real_t dr_dba[3 * 3] = {0};
-  // real_t dr_dbg[3 * 3] = {0};
-  // real_t dv_dba[3 * 3] = {0};
-  // real_t dv_dbg[3 * 3] = {0};
-  // real_t dq_dbg[3 * 3] = {0};
-  // real_t dba[3] = {0};
-  // real_t dbg[3] = {0};
-  // // mat_block_get(factor->F, 15, 0, 9, 3, 12, dr_dba);
-  // // mat_block_get(factor->F, 15, 0, 12, 3, 15, dr_dbg);
-  // // mat_block_get(factor->F, 15, 3, 9, 6, 12, dv_dba);
-  // // mat_block_get(factor->F, 15, 3, 12, 6, 15, dv_dbg);
-  // // mat_block_get(factor->F, 15, 6, 12, 9, 15, dq_dbg);
-  // dba[0] = ba_i[0] - factor->ba[0];
-  // dba[1] = ba_i[1] - factor->ba[1];
-  // dba[2] = ba_i[2] - factor->ba[2];
-  // dbg[0] = bg_i[0] - factor->bg[0];
-  // dbg[1] = bg_i[1] - factor->bg[1];
-  // dbg[2] = bg_i[2] - factor->bg[2];
-  // // -- Correct relative position
-  // // dr = dr + dr_dba * dba + dr_dbg * dbg
-  // real_t dr[3] = {0};
-  // {
-  //   real_t ba_correction[3] = {0};
-  //   real_t bg_correction[3] = {0};
-  //   dot(dr_dba, 3, 3, dba, 3, 1, ba_correction);
-  //   dot(dr_dbg, 3, 3, dbg, 3, 1, bg_correction);
-  //   dr[0] = factor->dr[0] + ba_correction[0] + bg_correction[0];
-  //   dr[1] = factor->dr[1] + ba_correction[1] + bg_correction[1];
-  //   dr[2] = factor->dr[2] + ba_correction[2] + bg_correction[2];
-  // }
-  // // -- Correct relative velocity
-  // // dv = dv + dv_dba * dba + dv_dbg * dbg
-  // real_t dv[3] = {0};
-  // {
-  //   real_t ba_correction[3] = {0};
-  //   real_t bg_correction[3] = {0};
-  //   dot(dv_dba, 3, 3, dba, 3, 1, ba_correction);
-  //   dot(dv_dbg, 3, 3, dbg, 3, 1, bg_correction);
-  //   dv[0] = factor->dv[0] + ba_correction[0] + bg_correction[0];
-  //   dv[1] = factor->dv[1] + ba_correction[1] + bg_correction[1];
-  //   dv[2] = factor->dv[2] + ba_correction[2] + bg_correction[2];
-  // }
-  // // -- Correct relative rotation
-  // // dq = quat_mul(dq, [1.0, 0.5 * dq_dbg * dbg])
-  // real_t dq[4] = {0};
-  // {
-  //   real_t theta[3] = {0};
-  //   dot(dq_dbg, 3, 3, dbg, 3, 1, theta);
+  real_t r_j[3] = {0};
+  real_t q_j[3] = {0};
+  real_t v_j[3] = {0};
+  real_t ba_j[3] = {0};
+  real_t bg_j[3] = {0};
 
-  //   real_t q_correction[4] = {0};
-  //   q_correction[0] = 1.0;
-  //   q_correction[1] = 0.5 * theta[0];
-  //   q_correction[2] = 0.5 * theta[1];
-  //   q_correction[3] = 0.5 * theta[2];
+  pose_get_trans(factor->pose_i->data, r_i);
+  pose_get_quat(factor->pose_i->data, q_i);
+  vec_copy(factor->vel_i->data, 3, v_i);
+  imu_biases_get_accel_bias(factor->biases_i, ba_i);
+  imu_biases_get_gyro_bias(factor->biases_i, bg_i);
 
-  //   quat_mul(factor->dq, q_correction, dq);
-  //   quat_normalize(dq);
-  // }
+  pose_get_trans(factor->pose_j->data, r_j);
+  pose_get_quat(factor->pose_j->data, q_j);
+  vec_copy(factor->vel_j->data, 3, v_j);
+  imu_biases_get_accel_bias(factor->biases_j, ba_j);
+  imu_biases_get_gyro_bias(factor->biases_j, bg_j);
 
-  // // Form residuals
-  // // sqrt_info = self.sqrt_info
-  // const real_t g_W[3] = {0.0, 0.0, 10.0};
-  // const real_t Dt = factor->Dt;
-  // const real_t Dt_sq = Dt * Dt;
-  // real_t C_i[3 * 3] = {0};
-  // real_t C_it[3 * 3] = {0};
-  // quat2rot(q_i, C_i);
-  // mat_transpose(C_i, 3, 3, C_it);
+  // Correct the relative position, velocity and rotation
+  // -- Extract Jacobians from error-state jacobian
+  real_t dr_dba[3 * 3] = {0};
+  real_t dr_dbg[3 * 3] = {0};
+  real_t dv_dba[3 * 3] = {0};
+  real_t dv_dbg[3 * 3] = {0};
+  real_t dq_dbg[3 * 3] = {0};
+  mat_block_get(factor->F, 15, 0, 2, 9, 11, dr_dba);
+  mat_block_get(factor->F, 15, 0, 2, 12, 14, dr_dbg);
+  mat_block_get(factor->F, 15, 3, 5, 9, 11, dv_dba);
+  mat_block_get(factor->F, 15, 3, 5, 12, 14, dv_dbg);
+  mat_block_get(factor->F, 15, 6, 8, 12, 14, dq_dbg);
 
-  // // dr_est = C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g_W * Dt_sq))
-  // real_t dr_est[3] = {0};
-  // {
-  //   real_t dr_tmp[3] = {0};
-  //   dr_tmp[0] = (r_j[0] - r_i[0]) - (v_i[0] * Dt) + (0.5 * g_W[0] * Dt_sq);
-  //   dr_tmp[1] = (r_j[1] - r_i[1]) - (v_i[1] * Dt) + (0.5 * g_W[1] * Dt_sq);
-  //   dr_tmp[2] = (r_j[2] - r_i[2]) - (v_i[2] * Dt) + (0.5 * g_W[2] * Dt_sq);
+  real_t dba[3] = {0};
+  dba[0] = ba_i[0] - factor->ba[0];
+  dba[1] = ba_i[1] - factor->ba[1];
+  dba[2] = ba_i[2] - factor->ba[2];
 
-  //   dot(C_it, 3, 3, dr_tmp, 3, 1, dr_est);
-  // }
+  real_t dbg[3] = {0};
+  dbg[0] = bg_i[0] - factor->bg[0];
+  dbg[1] = bg_i[1] - factor->bg[1];
+  dbg[2] = bg_i[2] - factor->bg[2];
 
-  // // dv_est = C_i.T @ ((v_j - v_i) + (g_W * Dt))
-  // real_t dv_est[3] = {0};
-  // {
-  //   real_t dv_tmp[3] = {0};
-  //   dv_tmp[0] = (v_j[0] - v_i[0]) + (g_W[0] * Dt);
-  //   dv_tmp[1] = (v_j[1] - v_i[1]) + (g_W[1] * Dt);
-  //   dv_tmp[2] = (v_j[2] - v_i[2]) + (g_W[2] * Dt);
+  // -- Correct relative position
+  // dr = dr + dr_dba * dba + dr_dbg * dbg
+  real_t dr[3] = {0};
+  {
+    real_t ba_correction[3] = {0};
+    real_t bg_correction[3] = {0};
+    dot(dr_dba, 3, 3, dba, 3, 1, ba_correction);
+    dot(dr_dbg, 3, 3, dbg, 3, 1, bg_correction);
+    dr[0] = factor->dr[0] + ba_correction[0] + bg_correction[0];
+    dr[1] = factor->dr[1] + ba_correction[1] + bg_correction[1];
+    dr[2] = factor->dr[2] + ba_correction[2] + bg_correction[2];
+  }
+  // -- Correct relative velocity
+  // dv = dv + dv_dba * dba + dv_dbg * dbg
+  real_t dv[3] = {0};
+  {
+    real_t ba_correction[3] = {0};
+    real_t bg_correction[3] = {0};
+    dot(dv_dba, 3, 3, dba, 3, 1, ba_correction);
+    dot(dv_dbg, 3, 3, dbg, 3, 1, bg_correction);
+    dv[0] = factor->dv[0] + ba_correction[0] + bg_correction[0];
+    dv[1] = factor->dv[1] + ba_correction[1] + bg_correction[1];
+    dv[2] = factor->dv[2] + ba_correction[2] + bg_correction[2];
+  }
+  // -- Correct relative rotation
+  // dq = quat_mul(dq, [1.0, 0.5 * dq_dbg * dbg])
+  real_t dq[4] = {0};
+  {
+    real_t theta[3] = {0};
+    dot(dq_dbg, 3, 3, dbg, 3, 1, theta);
 
-  //   dot(C_it, 3, 3, dv_tmp, 3, 1, dv_est);
-  // }
+    real_t q_correction[4] = {0};
+    q_correction[0] = 1.0;
+    q_correction[1] = 0.5 * theta[0];
+    q_correction[2] = 0.5 * theta[1];
+    q_correction[3] = 0.5 * theta[2];
 
-  // // err_pos = dr_est - dr
-  // real_t err_pos[3] = {0.0, 0.0, 0.0};
-  // err_pos[0] = dr_est[0] - dr[0];
-  // err_pos[1] = dr_est[1] - dr[1];
-  // err_pos[2] = dr_est[2] - dr[2];
+    quat_mul(factor->dq, q_correction, dq);
+    quat_normalize(dq);
+  }
 
-  // // err_vel = dv_est - dv
-  // real_t err_vel[3] = {0.0, 0.0, 0.0};
-  // err_vel[0] = dv_est[0] - dv[0];
-  // err_vel[1] = dv_est[1] - dv[1];
-  // err_vel[2] = dv_est[2] - dv[2];
+  // Form residuals
+  const real_t g_W[3] = {0.0, 0.0, 9.81};
+  const real_t Dt = factor->Dt;
+  const real_t Dt_sq = Dt * Dt;
+  real_t C_i[3 * 3] = {0};
+  real_t C_it[3 * 3] = {0};
+  quat2rot(q_i, C_i);
+  mat_transpose(C_i, 3, 3, C_it);
 
-  // // err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i),
-  // // q_j)))[1:4]
-  // real_t err_rot[3] = {0.0, 0.0, 0.0};
-  // {
-  //   real_t dq_inv[4] = {0};
-  //   real_t q_i_inv[4] = {0};
-  //   real_t q_i_inv_j[4] = {0};
-  //   real_t err_quat[4] = {0};
+  // dr_est = C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g_W * Dt_sq))
+  real_t dr_est[3] = {0};
+  {
+    real_t dr_tmp[3] = {0};
+    dr_tmp[0] = (r_j[0] - r_i[0]) - (v_i[0] * Dt) + (0.5 * g_W[0] * Dt_sq);
+    dr_tmp[1] = (r_j[1] - r_i[1]) - (v_i[1] * Dt) + (0.5 * g_W[1] * Dt_sq);
+    dr_tmp[2] = (r_j[2] - r_i[2]) - (v_i[2] * Dt) + (0.5 * g_W[2] * Dt_sq);
 
-  //   quat_inv(factor->dq, dq_inv);
-  //   quat_inv(q_i, q_i_inv);
-  //   quat_mul(q_i_inv, q_j, q_i_inv_j);
-  //   quat_mul(dq_inv, q_i_inv_j, err_quat);
+    dot(C_it, 3, 3, dr_tmp, 3, 1, dr_est);
+  }
 
-  //   err_rot[0] = 2.0 * err_quat[1];
-  //   err_rot[1] = 2.0 * err_quat[2];
-  //   err_rot[2] = 2.0 * err_quat[3];
-  // }
+  // dv_est = C_i.T @ ((v_j - v_i) + (g_W * Dt))
+  real_t dv_est[3] = {0};
+  {
+    real_t dv_tmp[3] = {0};
+    dv_tmp[0] = (v_j[0] - v_i[0]) + (g_W[0] * Dt);
+    dv_tmp[1] = (v_j[1] - v_i[1]) + (g_W[1] * Dt);
+    dv_tmp[2] = (v_j[2] - v_i[2]) + (g_W[2] * Dt);
 
-  // // err_ba = [0.0, 0.0, 0.0]
-  // real_t err_ba[3] = {0.0, 0.0, 0.0};
+    dot(C_it, 3, 3, dv_tmp, 3, 1, dv_est);
+  }
 
-  // // err_bg = [0.0, 0.0, 0.0]
-  // real_t err_bg[3] = {0.0, 0.0, 0.0};
+  // err_pos = dr_est - dr
+  real_t err_pos[3] = {0.0, 0.0, 0.0};
+  err_pos[0] = dr_est[0] - dr[0];
+  err_pos[1] = dr_est[1] - dr[1];
+  err_pos[2] = dr_est[2] - dr[2];
 
-  // // Residual vector
-  // // r = sqrt_info * [err_pos; err_vel; err_rot; err_ba; err_bg]
-  // {
-  //   real_t r_raw[15] = {0};
-  //   r_raw[0] = err_pos[0];
-  //   r_raw[1] = err_pos[1];
-  //   r_raw[2] = err_pos[2];
+  // err_vel = dv_est - dv
+  real_t err_vel[3] = {0.0, 0.0, 0.0};
+  err_vel[0] = dv_est[0] - dv[0];
+  err_vel[1] = dv_est[1] - dv[1];
+  err_vel[2] = dv_est[2] - dv[2];
 
-  //   r_raw[3] = err_vel[0];
-  //   r_raw[4] = err_vel[1];
-  //   r_raw[5] = err_vel[2];
+  // err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))[1:4]
+  real_t err_rot[3] = {0.0, 0.0, 0.0};
+  {
+    real_t dq_inv[4] = {0};
+    real_t q_i_inv[4] = {0};
+    real_t q_i_inv_j[4] = {0};
+    real_t err_quat[4] = {0};
 
-  //   r_raw[6] = err_rot[0];
-  //   r_raw[7] = err_rot[1];
-  //   r_raw[8] = err_rot[2];
+    quat_inv(factor->dq, dq_inv);
+    quat_inv(q_i, q_i_inv);
+    quat_mul(q_i_inv, q_j, q_i_inv_j);
+    quat_mul(dq_inv, q_i_inv_j, err_quat);
 
-  //   r_raw[9] = err_ba[0];
-  //   r_raw[10] = err_ba[1];
-  //   r_raw[11] = err_ba[2];
+    err_rot[0] = 2.0 * err_quat[1];
+    err_rot[1] = 2.0 * err_quat[2];
+    err_rot[2] = 2.0 * err_quat[3];
+  }
 
-  //   r_raw[12] = err_bg[0];
-  //   r_raw[13] = err_bg[1];
-  //   r_raw[14] = err_bg[2];
-  //   // print_vector("r_raw", r_raw, 15);
+  // err_ba = [0.0, 0.0, 0.0]
+  real_t err_ba[3] = {0.0, 0.0, 0.0};
 
-  //   dot(factor->sqrt_info, 15, 15, r_raw, 15, 1, factor->r);
-  // }
+  // err_bg = [0.0, 0.0, 0.0]
+  real_t err_bg[3] = {0.0, 0.0, 0.0};
 
-  // // Form Jacobians
-  // if (J_out == NULL) {
-  //   return 0;
-  // }
-  // // -- Setup
-  // real_t dC[3 * 3] = {0};
-  // real_t C_j[3 * 3] = {0};
-  // real_t C_jt[3 * 3] = {0};
-  // real_t C_ji[3 * 3] = {0};
-  // real_t C_ji_dC[3 * 3] = {0};
-  // real_t qji_dC[4] = {0};
-  // real_t left_xyz[3 * 3] = {0};
-  // quat2rot(factor->dq, dC);
-  // quat2rot(q_j, C_j);
-  // mat_transpose(C_j, 3, 3, C_jt);
-  // dot(C_jt, 3, 3, C_i, 3, 3, C_ji);
-  // dot(C_ji, 3, 3, dC, 3, 3, C_ji_dC);
-  // rot2quat(C_ji_dC, qji_dC);
-  // quat_left_xyz(qji_dC, left_xyz);
-  // // -- Jacobian w.r.t. r_i
-  // if (J_out[0]) {
-  //   real_t J0[15 * 3] = {0};
-  //   real_t drij_dri[3 * 3] = {0};
-  //   for (int idx = 0; idx < 9; idx++) {
-  //     drij_dri[idx] = -1.0 * C_it[idx];
-  //   }
-  //   mat_block_set(J0, 3, 0, 2, 0, 2, drij_dri);
-  //   dot(factor->sqrt_info, 15, 15, J0, 15, 3, J_out[0]);
-  // }
+  // Residual vector
+  // r = sqrt_info * [err_pos; err_vel; err_rot; err_ba; err_bg]
+  {
+    real_t r_raw[15] = {0};
+    r_raw[0] = err_pos[0];
+    r_raw[1] = err_pos[1];
+    r_raw[2] = err_pos[2];
 
-  // // -- Jacobian w.r.t. q_i
-  // if (J_out[1]) {
-  //   real_t drij_dCi[3 * 3] = {0};
-  //   real_t dvij_dCi[3 * 3] = {0};
-  //   real_t dtheta_dCi[3 * 3] = {0};
+    r_raw[3] = err_vel[0];
+    r_raw[4] = err_vel[1];
+    r_raw[5] = err_vel[2];
 
-  //   hat(dr_est, drij_dCi);
-  //   hat(dv_est, dvij_dCi);
-  //   mat_copy(left_xyz, 3, 3, dtheta_dCi);
-  //   for (int i = 0; i < 9; i++) {
-  //     dtheta_dCi[i] *= -1.0;
-  //   }
+    r_raw[6] = err_rot[0];
+    r_raw[7] = err_rot[1];
+    r_raw[8] = err_rot[2];
 
-  //   real_t J1[15 * 3] = {0};
-  //   mat_block_set(J1, 3, 0, 2, 0, 2, drij_dCi);
-  //   mat_block_set(J1, 3, 3, 5, 0, 2, dvij_dCi);
-  //   mat_block_set(J1, 3, 6, 8, 0, 2, dtheta_dCi);
-  //   dot(factor->sqrt_info, 15, 15, J1, 15, 3, J_out[1]);
-  // }
+    r_raw[9] = err_ba[0];
+    r_raw[10] = err_ba[1];
+    r_raw[11] = err_ba[2];
 
-  // // -- Jacobian w.r.t. v_i
-  // if (J_out[2]) {
-  //   real_t drij_dvi[3 * 3] = {0};
-  //   real_t dvij_dvi[3 * 3] = {0};
-  //   for (int idx = 0; idx < 9; idx++) {
-  //     drij_dvi[idx] = -1.0 * C_it[idx] * factor->Dt;
-  //     dvij_dvi[idx] = -1.0 * C_it[idx];
-  //   }
+    r_raw[12] = err_bg[0];
+    r_raw[13] = err_bg[1];
+    r_raw[14] = err_bg[2];
 
-  //   real_t J2[15 * 3] = {0};
-  //   mat_block_set(J2, 3, 0, 2, 0, 2, drij_dvi);
-  //   mat_block_set(J2, 3, 3, 5, 0, 2, dvij_dvi);
-  //   dot(factor->sqrt_info, 15, 15, J2, 15, 3, J_out[2]);
-  // }
+    dot(factor->sqrt_info, 15, 15, r_raw, 15, 1, factor->r);
+  }
 
-  // // -- Jacobian w.r.t ba_i
-  // if (J_out[3]) {
-  //   real_t drij_dbai[3 * 3] = {0};
-  //   real_t dvij_dbai[3 * 3] = {0};
-  //   for (int idx = 0; idx < 9; idx++) {
-  //     drij_dbai[idx] = -1.0 * dr_dba[idx];
-  //     dvij_dbai[idx] = -1.0 * dr_dba[idx];
-  //   }
+  // Form Jacobians
+  // -- Setup
+  real_t dC[3 * 3] = {0};
+  real_t C_j[3 * 3] = {0};
+  real_t C_jt[3 * 3] = {0};
+  real_t C_ji[3 * 3] = {0};
+  real_t C_ji_dC[3 * 3] = {0};
+  real_t qji_dC[4] = {0};
+  real_t left_xyz[3 * 3] = {0};
+  quat2rot(factor->dq, dC);
+  quat2rot(q_j, C_j);
+  mat_transpose(C_j, 3, 3, C_jt);
+  dot(C_jt, 3, 3, C_i, 3, 3, C_ji);
+  dot(C_ji, 3, 3, dC, 3, 3, C_ji_dC);
+  rot2quat(C_ji_dC, qji_dC);
+  quat_left_xyz(qji_dC, left_xyz);
 
-  //   real_t J3[15 * 3] = {0};
-  //   mat_block_set(J3, 3, 0, 2, 0, 2, drij_dbai);
-  //   mat_block_set(J3, 3, 3, 5, 0, 2, dvij_dbai);
-  //   dot(factor->sqrt_info, 15, 15, J3, 15, 3, J_out[3]);
-  // }
+  // -- Jacobian w.r.t pose_i
+  real_t J_pose_i[15 * 6] = {0};
+  zeros(J_pose_i, 15, 6);
+  // ---- Jacobian w.r.t. r_i
+  real_t drij_dri[3 * 3] = {0};
+  for (int idx = 0; idx < 9; idx++) {
+    drij_dri[idx] = -1.0 * C_it[idx];
+  }
+  mat_block_set(J_pose_i, 6, 0, 2, 0, 2, drij_dri);
+  // -- Jacobian w.r.t. q_i
+  real_t drij_dCi[3 * 3] = {0};
+  real_t dvij_dCi[3 * 3] = {0};
+  real_t dtheta_dCi[3 * 3] = {0};
 
-  // // -- Jacobian w.r.t bg_i
-  // if (J_out[4]) {
-  //   real_t drij_dbgi[3 * 3] = {0};
-  //   real_t dvij_dbgi[3 * 3] = {0};
-  //   real_t dtheta_dbgi[3 * 3] = {0};
+  hat(dr_est, drij_dCi);
+  hat(dv_est, dvij_dCi);
+  mat_copy(left_xyz, 3, 3, dtheta_dCi);
+  for (int i = 0; i < 9; i++) {
+    dtheta_dCi[i] *= -1.0;
+  }
+  mat_block_set(J_pose_i, 6, 0, 2, 3, 5, drij_dCi);
+  mat_block_set(J_pose_i, 6, 3, 5, 3, 5, dvij_dCi);
+  mat_block_set(J_pose_i, 6, 6, 8, 3, 5, dtheta_dCi);
+  // -- Multiply with sqrt_info
+  dot(factor->sqrt_info, 15, 15, J_pose_i, 15, 6, factor->jacs[0]);
 
-  //   for (int idx = 0; idx < 9; idx++) {
-  //     drij_dbgi[idx] = -1.0 * dr_dbg[idx];
-  //     dvij_dbgi[idx] = -1.0 * dr_dbg[idx];
-  //   }
+  // -- Jacobian w.r.t. v_i
+  real_t drij_dvi[3 * 3] = {0};
+  real_t dvij_dvi[3 * 3] = {0};
+  for (int idx = 0; idx < 9; idx++) {
+    drij_dvi[idx] = -1.0 * C_it[idx] * factor->Dt;
+    dvij_dvi[idx] = -1.0 * C_it[idx];
+  }
 
-  //   dot(left_xyz, 3, 3, dq_dbg, 3, 3, dtheta_dbgi);
-  //   for (int i = 0; i < 9; i++) {
-  //     dtheta_dbgi[i] *= -1.0;
-  //   }
+  real_t J_vel_i[15 * 3] = {0};
+  mat_block_set(J_vel_i, 3, 0, 2, 0, 2, drij_dvi);
+  mat_block_set(J_vel_i, 3, 3, 5, 0, 2, dvij_dvi);
+  dot(factor->sqrt_info, 15, 15, J_vel_i, 15, 3, factor->jacs[1]);
 
-  //   real_t J4[15 * 3] = {0};
-  //   mat_block_set(J4, 3, 0, 2, 0, 2, drij_dbgi);
-  //   mat_block_set(J4, 3, 3, 5, 0, 2, dvij_dbgi);
-  //   mat_block_set(J4, 3, 6, 8, 0, 2, dtheta_dbgi);
-  //   dot(factor->sqrt_info, 15, 15, J4, 15, 3, J_out[4]);
-  // }
+  // Jacobian w.r.t IMU biases
+  real_t J_biases_i[15 * 6] = {0};
+  // ---- Jacobian w.r.t ba_i
+  real_t drij_dbai[3 * 3] = {0};
+  real_t dvij_dbai[3 * 3] = {0};
+  for (int idx = 0; idx < 9; idx++) {
+    drij_dbai[idx] = -1.0 * dr_dba[idx];
+    dvij_dbai[idx] = -1.0 * dr_dba[idx];
+  }
+  mat_block_set(J_biases_i, 6, 0, 2, 0, 2, drij_dbai);
+  mat_block_set(J_biases_i, 6, 3, 5, 0, 2, dvij_dbai);
 
-  // // -- Jacobian w.r.t. r_j
-  // if (J_out[5]) {
-  //   real_t drij_drj[3 * 3] = {0};
-  //   mat_copy(C_it, 3, 3, drij_drj);
+  // -- Jacobian w.r.t bg_i
+  real_t drij_dbgi[3 * 3] = {0};
+  real_t dvij_dbgi[3 * 3] = {0};
+  real_t dtheta_dbgi[3 * 3] = {0};
 
-  //   real_t J5[15 * 3] = {0};
-  //   mat_block_set(J5, 3, 0, 2, 0, 2, drij_drj);
-  //   dot(factor->sqrt_info, 15, 15, J5, 15, 3, J_out[5]);
-  // }
+  for (int idx = 0; idx < 9; idx++) {
+    drij_dbgi[idx] = -1.0 * dr_dbg[idx];
+    dvij_dbgi[idx] = -1.0 * dr_dbg[idx];
+  }
 
-  // // -- Jacobian w.r.t. q_j
-  // if (J_out[6]) {
-  //   real_t dtheta_dqj[3 * 3] = {0};
-  //   quat_left_xyz(qji_dC, dtheta_dqj);
+  dot(left_xyz, 3, 3, dq_dbg, 3, 3, dtheta_dbgi);
+  for (int i = 0; i < 9; i++) {
+    dtheta_dbgi[i] *= -1.0;
+  }
 
-  //   real_t J6[15 * 3] = {0};
-  //   mat_block_set(J6, 3, 6, 8, 0, 2, dtheta_dqj);
-  //   dot(factor->sqrt_info, 15, 15, J6, 15, 3, J_out[6]);
-  // }
+  mat_block_set(J_biases_i, 6, 0, 2, 3, 5, drij_dbgi);
+  mat_block_set(J_biases_i, 6, 3, 5, 3, 5, dvij_dbgi);
+  mat_block_set(J_biases_i, 6, 6, 8, 3, 5, dtheta_dbgi);
+  // -- Multiply with sqrt info
+  dot(factor->sqrt_info, 15, 15, J_biases_i, 15, 6, factor->jacs[2]);
 
-  // // -- Jacobian w.r.t. v_j
-  // if (J_out[7]) {
-  //   real_t dv_dvj[3 * 3] = {0};
-  //   mat_copy(C_it, 3, 3, dv_dvj);
+  // -- Jacobian w.r.t. pose_j
+  real_t J_pose_j[15 * 6] = {0};
+  // ---- Jacobian w.r.t. r_j
+  real_t drij_drj[3 * 3] = {0};
+  mat_copy(C_it, 3, 3, drij_drj);
+  real_t J_r_j[15 * 3] = {0};
+  mat_block_set(J_pose_j, 6, 0, 2, 0, 2, drij_drj);
+  // ---- Jacobian w.r.t. q_j
+  real_t dtheta_dqj[3 * 3] = {0};
+  quat_left_xyz(qji_dC, dtheta_dqj);
+  mat_block_set(J_pose_j, 6, 6, 8, 3, 5, dtheta_dqj);
+  dot(factor->sqrt_info, 15, 15, J_pose_j, 15, 6, factor->jacs[3]);
 
-  //   real_t J7[15 * 3] = {0};
-  //   mat_block_set(J7, 3, 3, 5, 0, 2, dv_dvj);
-  //   dot(factor->sqrt_info, 15, 15, J7, 15, 3, J_out[6]);
-  // }
+  // -- Jacobian w.r.t. v_j
+  real_t dv_dvj[3 * 3] = {0};
+  mat_copy(C_it, 3, 3, dv_dvj);
+  real_t J_vel_j[15 * 3] = {0};
+  mat_block_set(J_vel_j, 3, 3, 5, 0, 2, dv_dvj);
+  dot(factor->sqrt_info, 15, 15, J_vel_j, 15, 3, factor->jacs[4]);
 
-  // // -- Jacobian w.r.t. ba_j
-  // if (J_out[8]) {
-  //   zeros(J_out[8], 15, 3);
-  // }
-
-  // // -- Jacobian w.r.t. bg_j
-  // if (J_out[9]) {
-  //   zeros(J_out[9], 15, 3);
-  // }
+  // -- Jacobian w.r.t. imu biases j
+  zeros(factor->jacs[5], 15, 6);
 
   return 0;
 }

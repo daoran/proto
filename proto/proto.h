@@ -575,8 +575,8 @@ void mat_col_set(real_t *A,
 void mat_block_get(const real_t *A,
                    const size_t stride,
                    const size_t rs,
-                   const size_t cs,
                    const size_t re,
+                   const size_t cs,
                    const size_t ce,
                    real_t *block);
 void mat_block_set(real_t *A,
@@ -900,6 +900,8 @@ void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_chain(const real_t **tfs, const int nb_tfs, real_t T_out[4 * 4]);
 void tf_chain2(const int nb_tfs, ...);
+void pose_get_trans(const real_t pose[7], real_t r[3]);
+void pose_get_quat(const real_t pose[7], real_t q[4]);
 void pose_diff(const real_t pose0[7], const real_t pose1[7], real_t diff[6]);
 void pose_diff2(const real_t pose0[7],
                 const real_t pose1[7],

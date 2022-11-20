@@ -720,15 +720,18 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
       print("-" * 60)
 
       print("J_fdiff:")
-      print(np.round(fdiff, 4))
+      # print(np.round(fdiff, 10))
+      print(fdiff)
       print()
 
       print("J:")
-      print(np.round(jac, 4))
+      # print(np.round(jac, 10))
+      print(jac)
       print()
 
       print("J_fdiff - J:")
-      print(np.round(fdiff - jac, 4))
+      # print(np.round(fdiff - jac, 10))
+      print(fdiff - jac)
       print()
 
       print("-" * 60)
@@ -742,15 +745,15 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
     print("-" * 60)
 
     print("J_fdiff:")
-    print(np.round(fdiff, 4))
+    print(np.round(fdiff, 10))
     print()
 
     print("J:")
-    print(np.round(jac, 4))
+    print(np.round(jac, 10))
     print()
 
     print("J_fdiff - J:")
-    print(np.round(fdiff_minus_jac, 4))
+    print(np.round(fdiff_minus_jac, 10))
     print()
 
     print("-" * 60)
@@ -8945,7 +8948,7 @@ class TestFactors(unittest.TestCase):
 
     # Setup imu buffer
     start_idx = 0
-    end_idx = 10
+    end_idx = 20
     imu_buf = imu_data.form_imu_buffer(start_idx, end_idx)
 
     # Pose i
@@ -8978,23 +8981,28 @@ class TestFactors(unittest.TestCase):
     # Print
     params = [sv.param for sv in fvars]
     r, _ = factor.eval(params)
-    print(f"pose_i: {np.round(pose_i.param, 4)}")
-    print(f"pose_j: {np.round(pose_j.param, 4)}")
-    print(f"dr: {factor.dr}")
-    print(f"dv: {factor.dv}")
-    print(f"dq: {rot2quat(factor.dC)}")
-    print(f"Dt: {factor.Dt}")
+    # print(f"pose_i: {np.round(pose_i.param, 4)}")
+    # print(f"pose_j: {np.round(pose_j.param, 4)}")
+    # print(f"dr: {factor.dr}")
+    # print(f"dv: {factor.dv}")
+    # print(f"dq: {rot2quat(factor.dC)}")
+    # print(f"Dt: {factor.Dt}")
     print(f"residuals: {r}")
 
     # Save matrix F, P and Q
-    np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
-    np.savetxt("/tmp/P.csv", factor.state_P, delimiter=",")
-    np.savetxt("/tmp/sqrt_info.csv", factor.sqrt_info, delimiter=",")
+    # np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
+    # np.savetxt("/tmp/P.csv", factor.state_P, delimiter=",")
+    # np.savetxt("/tmp/sqrt_info.csv", factor.sqrt_info, delimiter=",")
 
     # Test jacobians
     # yapf: disable
-    # self.assertTrue(factor)
-    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
+    self.assertTrue(factor)
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
+
+    params = [sv.param for sv in fvars]
+    r, jacs = factor.eval(params)
+    np.savetxt("/tmp/J0.csv", jacs[0], delimiter=",")
+
     # self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
     # self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j", threshold=1e-3))
     # self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
