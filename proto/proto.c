@@ -2182,7 +2182,8 @@ void print_matrix(const char *prefix,
   printf("%s:\n", prefix);
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
-      printf("%f  ", A[idx]);
+      // printf("%f  ", A[idx]);
+      printf("%e  ", A[idx]);
       idx++;
     }
     printf("\n");
@@ -2201,7 +2202,8 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
   size_t idx = 0;
   printf("%s: ", prefix);
   for (size_t i = 0; i < n; i++) {
-    printf("%.4f ", v[idx]);
+    printf("%e ", v[idx]);
+    // printf("%.4f ", v[idx]);
     // printf("%.10f ", v[idx]);
     idx++;
   }
@@ -2361,7 +2363,7 @@ int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
   int idx = 0;
   for (int i = 0; i < m; i++) {
     for (int j = 0; j < n; j++) {
-      fprintf(csv_file, "%.*e", DECIMAL_DIG, A[idx]);
+      fprintf(csv_file, "%e", A[idx]);
       idx++;
       if ((j + 1) != n) {
         fprintf(csv_file, ",");
@@ -2710,7 +2712,8 @@ void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
 
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
-      mat_set(A_t, m, j, i, mat_val(A, n, i, j));
+      // mat_set(A_t, m, j, i, mat_val(A, n, i, j));
+      A_t[(j * m) + i] = A[(i * n) + j];
     }
   }
 }
@@ -3083,12 +3086,12 @@ void dot_XAXt(const real_t *X,
   assert(Y != NULL);
   assert(X_n == A_m);
 
-  real_t *XA = MALLOC(real_t, (X_m * A_n));
   real_t *Xt = MALLOC(real_t, (X_m * X_n));
+  real_t *XA = MALLOC(real_t, (X_m * A_n));
 
-  dot(X, X_m, X_n, A, A_m, A_n, XA);
   mat_transpose(X, X_m, X_n, Xt);
-  dot(XA, X_n, A_m, Xt, X_n, X_m, Y);
+  dot(X, X_m, X_n, A, A_m, A_n, XA);
+  dot(XA, X_m, A_n, Xt, X_n, X_m, Y);
 
   free(XA);
   free(Xt);
@@ -3168,6 +3171,23 @@ void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n) {
       alpha -= U[i * n + j] * x[j];
     }
     x[i] = alpha / U[i * n + i];
+  }
+}
+
+/**
+ * Enforce semi-positive definite. This function assumes the matrix `A` is
+ * square where number of rows `m` and columns `n` is equal, and symmetric.
+ */
+void enforce_spd(real_t *A, const int m, const int n) {
+  assert(A != NULL);
+  assert(m == n);
+
+  for (int i = 0; i < m; i++) {
+    for (int j = 0; j < n; j++) {
+      const real_t a = A[(i * n) + j];
+      const real_t b = A[(j * n) + i];
+      A[(i * n) + j] = (a + b) / 2.0;
+    }
   }
 }
 
@@ -3267,14 +3287,15 @@ int __lapack_svd(
   const int lda = n;
 #if PRECISION == 1
   const int info =
-      LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, s, U, n, Vt, n);
+      LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n, A, lda, s, U, n, Vt, n);
   return (info == 0) ? 0 : -1;
 #elif PRECISION == 2
   const int info =
-      LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'S', m, n, A, lda, s, U, n, Vt, n);
+      LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'A', m, n, A, lda, s, U, n, Vt, n);
   return (info == 0) ? 0 : -1;
 #endif
 }
+
 #endif // USE_LAPACK
 
 /**
@@ -3505,12 +3526,20 @@ int __svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
 /**
  * Decompose matrix A with SVD
  */
-int svd(real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V) {
+int svd(const real_t *A,
+        const int m,
+        const int n,
+        real_t *U,
+        real_t *s,
+        real_t *V) {
 #ifdef USE_LAPACK
+  real_t *A_copy = MALLOC(real_t, m * n);
   real_t *Vt = MALLOC(real_t, n * n);
-  const int retval = __lapack_svd(A, m, n, s, U, Vt);
+  mat_copy(A, m, n, A_copy);
+  const int retval = __lapack_svd(A_copy, m, n, s, U, Vt);
   mat_transpose(Vt, n, n, V);
   free(Vt);
+  free(A_copy);
   return retval;
 #else
   mat_copy(A, m, n, U);
@@ -3521,42 +3550,51 @@ int svd(real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V) {
 /**
  * Pseudo inverse of matrix A with SVD
  */
-void svd_inv(real_t *A, const int m, const int n, real_t *A_inv) {
+void svd_inv(const real_t *A, const int m, const int n, real_t *A_inv) {
   assert(m == n);
 
-  // Decompose A = U * S * V_t
+  // Decompose A = U * S * Vt
   const int diag_size = (m < n) ? m : n;
   real_t *s = MALLOC(real_t, diag_size);
   real_t *U = MALLOC(real_t, m * n);
-  real_t *Ut = MALLOC(real_t, m * n);
   real_t *V = MALLOC(real_t, n * n);
   svd(A, m, n, U, s, V);
-  mat_transpose(U, m, n, Ut);
 
   // Form Sinv diagonal matrix
-  real_t *S_inv = MALLOC(real_t, m * n);
-  zeros(S_inv, n, m);
+  real_t *Si = MALLOC(real_t, m * n);
+  zeros(Si, n, m);
   for (int idx = 0; idx < m; idx++) {
     const int diag_idx = idx * n + idx;
-    if (s[idx] > 1e-12) {
-      S_inv[diag_idx] = 1.0 / s[idx];
+
+    if (s[idx] > 1e-24) {
+      Si[diag_idx] = 1.0 / s[idx];
     } else {
-      S_inv[diag_idx] = 0.0;
+      Si[diag_idx] = 0.0;
     }
   }
 
-  // A_inv = Vt * S_inv * U
-  real_t *V_S_inv = MALLOC(real_t, m * m);
-  dot(V, m, n, S_inv, n, m, V_S_inv);
-  dot(V_S_inv, m, m, Ut, m, n, A_inv);
+  // A_inv = Vt * Si * U
+  // real_t *V_Si = MALLOC(real_t, m * m);
+  // zeros(A_inv, m, n);
+  // dot(V, m, n, Si, n, m, V_Si);
+  // dot(V_Si, m, m, Ut, m, n, A_inv);
+
+  // A_inv = U * Si * Ut
+  real_t *Ut = MALLOC(real_t, m * n);
+  real_t *Si_Ut = MALLOC(real_t, diag_size * n);
+  mat_transpose(U, m, n, Ut);
+  dot(Si, diag_size, diag_size, Ut, m, n, Si_Ut);
+  dot(U, m, n, Si_Ut, diag_size, n, A_inv);
 
   // Clean up
   free(s);
   free(U);
-  free(Ut);
   free(V);
-  free(S_inv);
-  free(V_S_inv);
+
+  free(Si);
+
+  free(Ut);
+  free(Si_Ut);
 }
 
 /**
@@ -3565,7 +3603,7 @@ void svd_inv(real_t *A, const int m, const int n, real_t *A_inv) {
  * WARNING: This method assumes the matrix `A` is invertible, additionally the
  * returned determinant is the **absolute** value, the sign is not returned.
  */
-int svd_det(real_t *A, const int m, const int n, real_t *det) {
+int svd_det(const real_t *A, const int m, const int n, real_t *det) {
   assert(m == n);
 
   // Decompose matrix A with SVD
@@ -3622,7 +3660,7 @@ void __lapack_chol(const real_t *A, const size_t m, real_t *L) {
     for (size_t j = i; j < m; j++) {
       if (i != j) {
         L[(j * m) + i] = L[(i * m) + j];
-        L[(i * m) + j] = 0.0;
+        L[(i * m) + j] = 0;
       }
     }
   }
@@ -7681,7 +7719,17 @@ void imu_factor_propagate_step(real_t r[3],
   v[2] += dv[2];
 
   // Update rotation
-  quat_update_dt(q, w_t, dt);
+  // quat_update_dt(q, w_t, dt);
+  // quat_normalize(q);
+
+  const real_t phi[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt};
+  real_t phi_SO3[3 * 3] = {0};
+  real_t dC[3 * 3] = {0};
+  lie_Exp(phi, phi_SO3);
+  dot(C, 3, 3, phi_SO3, 3, 3, dC);
+
+  rot2quat(dC, q);
+  quat_normalize(q);
 
   // Update accelerometer biases
   // ba = ba;
@@ -7927,10 +7975,8 @@ void imu_factor_setup(imu_factor_t *factor,
 
     // Update covariance matrix P
     // P = I_F_dt * P * I_F_dt' + G_dt * Q * G_dt';
-    real_t P_prev[15 * 15] = {0};
     real_t A[15 * 15] = {0};
     real_t B[15 * 15] = {0};
-    mat_copy(factor->P, 15, 15, P_prev);
     dot_XAXt(I_F_dt, 15, 15, factor->P, 15, 15, A);
     dot_XAXt(G_dt, 15, 12, factor->Q, 12, 12, B);
     mat_add(A, B, factor->P, 15, 15);
@@ -7940,21 +7986,22 @@ void imu_factor_setup(imu_factor_t *factor,
   }
 
   // Covariance
+  enforce_spd(factor->P, 15, 15);
   mat_copy(factor->P, 15, 15, factor->covar);
 
   // Square root information
   real_t info[15 * 15] = {0};
   real_t sqrt_info[15 * 15] = {0};
+
   svd_inv(factor->covar, 15, 15, info);
-  if (check_inv(info, factor->covar, 15) != 0) {
-    printf("Inv check failed!\n");
-  }
+  assert(check_inv(info, factor->covar, 15) == 0);
+  zeros(factor->sqrt_info, 15, 15);
   chol(info, 15, sqrt_info);
   mat_transpose(sqrt_info, 15, 15, factor->sqrt_info);
 
   // Residuals
-  zeros(factor->r, 15, 1);
   factor->r_size = 15;
+  zeros(factor->r, 15, 1);
 
   // Jacobians
   factor->jacs[0] = factor->J_pose_i;

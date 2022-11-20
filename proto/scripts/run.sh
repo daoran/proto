@@ -137,8 +137,9 @@ run_test() {
       && ./build/bin/test_proto --target $1 \
       && python3 proto.py TestFactors.test_imu_factor \
       && python3 scripts/compare_matrices.py --mata /tmp/sqrt_info.csv --matb /tmp/sqrt_info_test.csv
-      # && valgrind --leak-check=full --show-leak-kinds=all ./build/bin/test_proto --target $1 \
-      # && python3 scripts/plot_matrix.py --input /tmp/H.csv
+      # && python3 scripts/plot_matrix.py --input /tmp/sqrt_info_test.csv
+      # # && valgrind --leak-check=full --show-leak-kinds=all ./build/bin/test_proto --target $1 \
+      # # && python3 scripts/plot_matrix.py --input /tmp/H.csv
   " C-m C-m
   exit
 }

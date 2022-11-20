@@ -1580,6 +1580,7 @@ int test_chol() {
   real_t L[9] = {0};
   chol(A, n, L);
   // printf("time taken: [%fs]\n", toc(&t));
+  // mat_save("/tmp/L.csv", L, 3, 3);
 
   real_t Lt[9] = {0};
   real_t LLt[9] = {0};
@@ -3576,17 +3577,17 @@ int test_imu_factor_setup() {
                    &vel_j,
                    &biases_j);
 
-  printf("idx_i: %d, idx_j: %d\n", idx_i, idx_j);
-  pose_print("pose_i", &pose_i);
-  pose_print("pose_j", &pose_j);
-  print_vector("dr", imu_factor.dr, 3);
-  print_vector("dv", imu_factor.dv, 3);
-  print_quat("dq", imu_factor.dq);
-  printf("Dt: %f\n", imu_factor.Dt);
+  // printf("idx_i: %d, idx_j: %d\n", idx_i, idx_j);
+  // pose_print("pose_i", &pose_i);
+  // pose_print("pose_j", &pose_j);
+  // print_vector("dr", imu_factor.dr, 3);
+  // print_vector("dv", imu_factor.dv, 3);
+  // print_quat("dq", imu_factor.dq);
+  // printf("Dt: %f\n", imu_factor.Dt);
 
-  mat_save("/tmp/F_test.csv", imu_factor.F, 15, 15);
-  mat_save("/tmp/P_test.csv", imu_factor.P, 15, 15);
-  mat_save("/tmp/sqrt_info_test.csv", imu_factor.sqrt_info, 15, 15);
+  // mat_save("/tmp/F_test.csv", imu_factor.F, 15, 15);
+  // mat_save("/tmp/P_test.csv", imu_factor.P, 15, 15);
+  // mat_save("/tmp/sqrt_info_test.csv", imu_factor.sqrt_info, 15, 15);
 
   MU_ASSERT(imu_factor.pose_i == &pose_i);
   MU_ASSERT(imu_factor.vel_i == &vel_i);

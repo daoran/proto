@@ -26,7 +26,6 @@
 #include <libgen.h>
 #include <assert.h>
 #include <sys/time.h>
-#include <float.h>
 
 #include <errno.h>
 #include <netdb.h>
@@ -657,6 +656,7 @@ void hat(const real_t x[3], real_t A[3 * 3]);
 void vee(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
+void enforce_spd(real_t *A, const int m, const int n);
 
 int check_inv(const real_t *A, const real_t *A_inv, const int m);
 int check_jacobian(const char *jac_name,
@@ -794,9 +794,10 @@ int check_jacobian(const char *jac_name,
  * SVD
  ******************************************************************************/
 
-int svd(real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V);
-void svd_inv(real_t *A, const int m, const int n, real_t *A_inv);
-int svd_det(real_t *A, const int m, const int n, real_t *det);
+int svd(
+    const real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V);
+void svd_inv(const real_t *A, const int m, const int n, real_t *A_inv);
+int svd_det(const real_t *A, const int m, const int n, real_t *det);
 
 /******************************************************************************
  * CHOL
@@ -1382,8 +1383,8 @@ typedef struct imu_factor_t {
   real_t sqrt_info[15 * 15];
 
   // Residuals
-  real_t r[15];
   int r_size;
+  real_t r[15];
 
   // Jacobians
   real_t *jacs[6];
