@@ -3483,11 +3483,8 @@ int test_imu_factor_propagate_step() {
     const real_t *gyr = test_data.imu_gyr[k];
     imu_buf_add(&imu_buf, ts, acc, gyr);
   }
-  // imu_buf_print(&imu_buf);
 
   // Setup state
-  // const real_t *pose_init = test_data.poses[0];
-  // const real_t *vel_init = test_data.velocities[0];
   real_t r[3] = {0.0, 0.0, 0.0};
   real_t v[3] = {0.0, 0.0, 0.0};
   real_t q[4] = {1.0, 0.0, 0.0, 0.0};
@@ -3509,17 +3506,10 @@ int test_imu_factor_propagate_step() {
     Dt += dt;
   }
 
-  // printf("dr: %f, %f, %f\n", r[0], r[1], r[2]);
-  // printf("dv: %f, %f, %f\n", v[0], v[1], v[2]);
-  // printf("dq: %f, %f, %f, %f\n", q[0], q[1], q[2], q[3]);
-  // printf("Dt: %f\n", Dt);
-
   TF(test_data.poses[0], T_WS_i_gnd);
   TF(test_data.poses[n], T_WS_j_gnd);
   TF_QR(q, r, dT);
   TF_CHAIN(T_WS_j_est, 2, T_WS_i_gnd, dT);
-  // print_matrix("T_WS_j_gnd", T_WS_j_gnd, 4, 4);
-  // print_matrix("T_WS_j_est", T_WS_j_est, 4, 4);
 
   real_t dr[3] = {0};
   real_t dtheta = 0.0;
@@ -3589,18 +3579,6 @@ int test_imu_factor_setup() {
                    &pose_j,
                    &vel_j,
                    &biases_j);
-
-  // printf("idx_i: %d, idx_j: %d\n", idx_i, idx_j);
-  // pose_print("pose_i", &pose_i);
-  // pose_print("pose_j", &pose_j);
-  // print_vector("dr", imu_factor.dr, 3);
-  // print_vector("dv", imu_factor.dv, 3);
-  // print_quat("dq", imu_factor.dq);
-  // printf("Dt: %f\n", imu_factor.Dt);
-
-  // mat_save("/tmp/F_test.csv", imu_factor.F, 15, 15);
-  // mat_save("/tmp/P_test.csv", imu_factor.P, 15, 15);
-  // mat_save("/tmp/sqrt_info_test.csv", imu_factor.sqrt_info, 15, 15);
 
   MU_ASSERT(imu_factor.pose_i == &pose_i);
   MU_ASSERT(imu_factor.vel_i == &vel_i);
@@ -3676,15 +3654,14 @@ int test_imu_factor_eval() {
 
   // Evaluate IMU factor
   imu_factor_eval(&factor);
-  print_vector("r", factor.r, 15);
-  // print_matrix("J0", J0, 15, 3);
 
   // Check Jacobians
   const double tol = 1e-4;
   const double step_size = 1e-8;
-  // CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, tol, 1);
-  // CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 1);
+  eye(factor.sqrt_info, 15, 15);
+  CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, 1e-3, 0);
+  CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 0);
   CHECK_FACTOR_J(3, factor, imu_factor_eval, step_size, 1e-3, 0);
   CHECK_FACTOR_J(4, factor, imu_factor_eval, step_size, tol, 0);
   CHECK_FACTOR_J(5, factor, imu_factor_eval, step_size, tol, 0);

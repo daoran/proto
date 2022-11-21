@@ -620,6 +620,10 @@ void vec_scale(real_t *x, const size_t n, const real_t scale);
 real_t vec_norm(const real_t *x, const size_t n);
 void vec_normalize(real_t *x, const size_t n);
 
+#define DOT(A, AM, AN, B, BM, BN, C)                                           \
+  real_t C[AM * BN] = {0};                                                     \
+  dot(A, AM, AN, B, BM, BN, C);
+
 void dot(const real_t *A,
          const size_t A_m,
          const size_t A_n,
@@ -670,26 +674,35 @@ int check_jacobian(const char *jac_name,
 #define CHECK_JACOBIAN(JAC_IDX, FACTOR, FACTOR_EVAL, STEP_SIZE, TOL, VERBOSE)  \
   {                                                                            \
     const int r_size = FACTOR.r_size;                                          \
+    const int p_size = param_global_size(FACTOR.param_types[JAC_IDX]);         \
     const int J_cols = param_local_size(FACTOR.param_types[JAC_IDX]);          \
                                                                                \
-    real_t *r = MALLOC(real_t, r_size);                                        \
+    real_t *param_copy = MALLOC(real_t, p_size);                               \
     real_t *r_fwd = MALLOC(real_t, r_size);                                    \
+    real_t *r_bwd = MALLOC(real_t, r_size);                                    \
     real_t *r_diff = MALLOC(real_t, r_size);                                   \
-    real_t *J = factor.jacs[JAC_IDX];                                          \
     real_t *J_fdiff = MALLOC(real_t, r_size * J_cols);                         \
+    real_t *J = MALLOC(real_t, r_size * J_cols);                               \
                                                                                \
-    /* Eval */                                                                 \
-    FACTOR_EVAL(&FACTOR);                                                      \
-    vec_copy(FACTOR.r, r_size, r);                                             \
+    /* Evaluate factor to get analytical Jacobian */                           \
+    FACTOR_EVAL((void *) &FACTOR);                                             \
+    mat_copy(factor.jacs[JAC_IDX], r_size, J_cols, J);                         \
                                                                                \
-    /* Check pose position jacobian */                                         \
+    /* Calculate numerical differerntiated Jacobian */                         \
     for (int i = 0; i < J_cols; i++) {                                         \
-      FACTOR.params[JAC_IDX][i] += STEP_SIZE;                                  \
+      vec_copy(FACTOR.params[JAC_IDX], p_size, param_copy);                    \
+                                                                               \
+      FACTOR.params[JAC_IDX][i] += 0.5 * STEP_SIZE;                            \
       FACTOR_EVAL((void *) &FACTOR);                                           \
       vec_copy(FACTOR.r, r_size, r_fwd);                                       \
-      FACTOR.params[JAC_IDX][i] -= STEP_SIZE;                                  \
+      vec_copy(param_copy, p_size, FACTOR.params[JAC_IDX]);                    \
                                                                                \
-      vec_sub(r_fwd, r, r_diff, r_size);                                       \
+      FACTOR.params[JAC_IDX][i] -= 0.5 * STEP_SIZE;                            \
+      FACTOR_EVAL((void *) &FACTOR);                                           \
+      vec_copy(FACTOR.r, r_size, r_bwd);                                       \
+      vec_copy(param_copy, p_size, FACTOR.params[JAC_IDX]);                    \
+                                                                               \
+      vec_sub(r_fwd, r_bwd, r_diff, r_size);                                   \
       vec_scale(r_diff, r_size, 1.0 / STEP_SIZE);                              \
       mat_col_set(J_fdiff, J_cols, r_size, i, r_diff);                         \
     }                                                                          \
@@ -698,10 +711,12 @@ int check_jacobian(const char *jac_name,
     sprintf(s, "J%d", JAC_IDX);                                                \
     int retval = check_jacobian(s, J_fdiff, J, r_size, J_cols, TOL, VERBOSE);  \
                                                                                \
-    free(r);                                                                   \
+    free(param_copy);                                                          \
     free(r_fwd);                                                               \
+    free(r_bwd);                                                               \
     free(r_diff);                                                              \
     free(J_fdiff);                                                             \
+    free(J);                                                                   \
                                                                                \
     MU_ASSERT(retval == 0);                                                    \
   }
@@ -719,12 +734,13 @@ int check_jacobian(const char *jac_name,
     real_t *r = MALLOC(real_t, r_size);                                        \
     real_t *r_fwd = MALLOC(real_t, r_size);                                    \
     real_t *r_diff = MALLOC(real_t, r_size);                                   \
-    real_t *J = factor.jacs[JAC_IDX];                                          \
     real_t *J_fdiff = MALLOC(real_t, r_size * J_cols);                         \
+    real_t *J = MALLOC(real_t, r_size * J_cols);                               \
                                                                                \
     /* Eval */                                                                 \
     FACTOR_EVAL(&FACTOR);                                                      \
     vec_copy(FACTOR.r, r_size, r);                                             \
+    mat_copy(FACTOR.jacs[JAC_IDX], r_size, J_cols, J);                         \
                                                                                \
     /* Check pose position jacobian */                                         \
     for (int i = 0; i < 3; i++) {                                              \
@@ -756,6 +772,7 @@ int check_jacobian(const char *jac_name,
     free(r_fwd);                                                               \
     free(r_diff);                                                              \
     free(J_fdiff);                                                             \
+    free(J);                                                                   \
                                                                                \
     MU_ASSERT(retval == 0);                                                    \
   }

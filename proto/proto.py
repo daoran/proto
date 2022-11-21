@@ -499,6 +499,17 @@ from numpy.linalg import svd
 from numpy.linalg import cholesky as chol
 
 
+def pprint_matrix(mat, fmt="g"):
+  """ Pretty Print matrix """
+  col_maxes = [
+      max([len(("{:" + fmt + "}").format(x)) for x in col]) for col in mat.T
+  ]
+  for x in mat:
+    for i, y in enumerate(x):
+      print(("{:" + str(col_maxes[i]) + fmt + "}").format(y), end="  ")
+    print("")
+
+
 def normalize(v):
   """ Normalize vector v """
   n = np.linalg.norm(v)
@@ -720,18 +731,15 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
       print("-" * 60)
 
       print("J_fdiff:")
-      # print(np.round(fdiff, 10))
-      print(fdiff)
+      pprint_matrix(fdiff)
       print()
 
       print("J:")
-      # print(np.round(jac, 10))
-      print(jac)
+      pprint_matrix(jac)
       print()
 
       print("J_fdiff - J:")
-      # print(np.round(fdiff - jac, 10))
-      print(fdiff - jac)
+      pprint_matrix(fdiff - jac)
       print()
 
       print("-" * 60)
@@ -745,15 +753,15 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
     print("-" * 60)
 
     print("J_fdiff:")
-    print(np.round(fdiff, 10))
+    pprint_matrix(fdiff)
     print()
 
     print("J:")
-    print(np.round(jac, 10))
+    pprint_matrix(jac)
     print()
 
     print("J_fdiff - J:")
-    print(np.round(fdiff_minus_jac, 10))
+    pprint_matrix(fdiff_minus_jac)
     print()
 
     print("-" * 60)
@@ -3538,7 +3546,7 @@ class Factor:
     # Step size and threshold
     h = kwargs.get('step_size', 1e-8)
     threshold = kwargs.get('threshold', 1e-4)
-    verbose = kwargs.get('verbose', True)
+    verbose = kwargs.get('verbose', False)
 
     # Calculate baseline
     params = [sv.param for sv in fvars]
@@ -4485,6 +4493,7 @@ class ImuFactor(Factor):
     dq_dbg = self.state_F[6:9, 12:15]
     dba = ba_i - self.ba
     dbg = bg_i - self.bg
+
     # -- Correct the relative position, velocity and rotation
     dr = self.dr + dr_dba @ dba + dr_dbg @ dbg
     dv = self.dv + dv_dba @ dba + dv_dbg @ dbg
@@ -4506,6 +4515,7 @@ class ImuFactor(Factor):
     err_ba = np.array([0.0, 0.0, 0.0])
     err_bg = np.array([0.0, 0.0, 0.0])
     r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
+
     if kwargs.get('only_residuals', False):
       return r
 
@@ -8979,15 +8989,15 @@ class TestFactors(unittest.TestCase):
     factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
 
     # Print
-    params = [sv.param for sv in fvars]
-    r, _ = factor.eval(params)
+    # params = [sv.param for sv in fvars]
+    # r, _ = factor.eval(params)
     # print(f"pose_i: {np.round(pose_i.param, 4)}")
     # print(f"pose_j: {np.round(pose_j.param, 4)}")
     # print(f"dr: {factor.dr}")
     # print(f"dv: {factor.dv}")
     # print(f"dq: {rot2quat(factor.dC)}")
     # print(f"Dt: {factor.Dt}")
-    print(f"residuals: {r}")
+    # print(f"r: {r}")
 
     # Save matrix F, P and Q
     # np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
@@ -8996,14 +9006,16 @@ class TestFactors(unittest.TestCase):
 
     # Test jacobians
     # yapf: disable
-    self.assertTrue(factor)
-    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
+    # self.assertTrue(factor)
+    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
 
-    params = [sv.param for sv in fvars]
-    r, jacs = factor.eval(params)
-    np.savetxt("/tmp/J0.csv", jacs[0], delimiter=",")
+    # factor.sqrt_info = np.eye(15)
+    # params = [sv.param for sv in fvars]
+    # r, jacs = factor.eval(params)
+    # np.savetxt("/tmp/J.csv", jacs[1][:, 3:], delimiter=",")
 
-    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
+    factor.sqrt_info = np.eye(15)
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
     # self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j", threshold=1e-3))
     # self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
     # yapf: enable

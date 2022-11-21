@@ -2363,7 +2363,7 @@ int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
   int idx = 0;
   for (int i = 0; i < m; i++) {
     for (int j = 0; j < n; j++) {
-      fprintf(csv_file, "%e", A[idx]);
+      fprintf(csv_file, "%.18e", A[idx]);
       idx++;
       if ((j + 1) != n) {
         fprintf(csv_file, ",");
@@ -8067,8 +8067,6 @@ int imu_factor_eval(void *factor_ptr) {
   real_t r_j[3] = {0};
   real_t q_j[3] = {0};
   real_t v_j[3] = {0};
-  real_t ba_j[3] = {0};
-  real_t bg_j[3] = {0};
 
   pose_get_trans(factor->pose_i->data, r_i);
   pose_get_quat(factor->pose_i->data, q_i);
@@ -8079,8 +8077,6 @@ int imu_factor_eval(void *factor_ptr) {
   pose_get_trans(factor->pose_j->data, r_j);
   pose_get_quat(factor->pose_j->data, q_j);
   vec_copy(factor->vel_j->data, 3, v_j);
-  imu_biases_get_accel_bias(factor->biases_j, ba_j);
-  imu_biases_get_gyro_bias(factor->biases_j, bg_j);
 
   // Correct the relative position, velocity and rotation
   // -- Extract Jacobians from error-state jacobian
@@ -8269,14 +8265,23 @@ int imu_factor_eval(void *factor_ptr) {
   // -- Jacobian w.r.t. q_i
   real_t drij_dCi[3 * 3] = {0};
   real_t dvij_dCi[3 * 3] = {0};
-  real_t dtheta_dCi[3 * 3] = {0};
-
   hat(dr_est, drij_dCi);
   hat(dv_est, dvij_dCi);
-  mat_copy(left_xyz, 3, 3, dtheta_dCi);
-  for (int i = 0; i < 9; i++) {
-    dtheta_dCi[i] *= -1.0;
+
+  // -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]
+  real_t dtheta_dCi[3 * 3] = {0};
+  {
+    real_t q_ji[4] = {0};
+    real_t Left[4 * 4] = {0};
+    real_t Right[4 * 4] = {0};
+    rot2quat(C_ji, q_ji);
+    quat_left(q_ji, Left);
+    quat_right(dq, Right);
+    DOT(Left, 4, 4, Right, 4, 4, LR);
+    mat_block_get(LR, 4, 1, 3, 1, 3, dtheta_dCi);
+    mat_scale(dtheta_dCi, 3, 3, -1.0);
   }
+
   mat_block_set(J_pose_i, 6, 0, 2, 3, 5, drij_dCi);
   mat_block_set(J_pose_i, 6, 3, 5, 3, 5, dvij_dCi);
   mat_block_set(J_pose_i, 6, 6, 8, 3, 5, dtheta_dCi);
@@ -8290,7 +8295,6 @@ int imu_factor_eval(void *factor_ptr) {
     drij_dvi[idx] = -1.0 * C_it[idx] * factor->Dt;
     dvij_dvi[idx] = -1.0 * C_it[idx];
   }
-
   real_t J_vel_i[15 * 3] = {0};
   mat_block_set(J_vel_i, 3, 0, 2, 0, 2, drij_dvi);
   mat_block_set(J_vel_i, 3, 3, 5, 0, 2, dvij_dvi);
@@ -8303,7 +8307,7 @@ int imu_factor_eval(void *factor_ptr) {
   real_t dvij_dbai[3 * 3] = {0};
   for (int idx = 0; idx < 9; idx++) {
     drij_dbai[idx] = -1.0 * dr_dba[idx];
-    dvij_dbai[idx] = -1.0 * dr_dba[idx];
+    dvij_dbai[idx] = -1.0 * dv_dba[idx];
   }
   mat_block_set(J_biases_i, 6, 0, 2, 0, 2, drij_dbai);
   mat_block_set(J_biases_i, 6, 3, 5, 0, 2, dvij_dbai);
@@ -8311,13 +8315,12 @@ int imu_factor_eval(void *factor_ptr) {
   // -- Jacobian w.r.t bg_i
   real_t drij_dbgi[3 * 3] = {0};
   real_t dvij_dbgi[3 * 3] = {0};
-  real_t dtheta_dbgi[3 * 3] = {0};
-
   for (int idx = 0; idx < 9; idx++) {
     drij_dbgi[idx] = -1.0 * dr_dbg[idx];
-    dvij_dbgi[idx] = -1.0 * dr_dbg[idx];
+    dvij_dbgi[idx] = -1.0 * dv_dbg[idx];
   }
 
+  real_t dtheta_dbgi[3 * 3] = {0};
   dot(left_xyz, 3, 3, dq_dbg, 3, 3, dtheta_dbgi);
   for (int i = 0; i < 9; i++) {
     dtheta_dbgi[i] *= -1.0;
