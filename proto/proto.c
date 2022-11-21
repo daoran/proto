@@ -8197,7 +8197,7 @@ int imu_factor_eval(void *factor_ptr) {
     real_t q_i_inv_j[4] = {0};
     real_t err_quat[4] = {0};
 
-    quat_inv(factor->dq, dq_inv);
+    quat_inv(dq, dq_inv);
     quat_inv(q_i, q_i_inv);
     quat_mul(q_i_inv, q_j, q_i_inv_j);
     quat_mul(dq_inv, q_i_inv_j, err_quat);
