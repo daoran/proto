@@ -1,9 +1,7 @@
 # PATHS
-BLD_DIR := build
-BIN_DIR := build/bin
-INC_DIR := $(PWD)
-DEPS_DIR := ../third_party
-TESTS_DIR := tests
+BLD_DIR := $(realpath build)
+INC_DIR := $(realpath $(PWD))
+DEPS_DIR := $(realpath ../third_party)
 
 
 # COMPILER SETTINGS
@@ -55,7 +53,7 @@ CFLAGS := \
 
 
 # LDFLAGS
-RPATH := -Wl,-rpath,../third_party/lib
+RPATH := -Wl,-rpath,$(DEPS_DIR)/lib
 LDFLAGS= \
 	$(RPATH) \
   $(PROTO_LDFLAGS) \
@@ -111,38 +109,36 @@ $(BLD_DIR)/libproto.a: $(BLD_DIR)/proto.o $(BLD_DIR)/ceres_bridge.o
 
 setup:
 	@mkdir -p $(BLD_DIR)
-	@mkdir -p $(BIN_DIR)
-	@cp -r shaders $(BIN_DIR)
-	@cp -r test_data $(BIN_DIR)
+	@cp -r shaders $(BLD_DIR)
+	@cp -r test_data $(BLD_DIR)
 
 clean:  ## Clean build directory
 	@rm -rf $(BLD_DIR)
-	@rm -rf $(BIN_DIR)
 
 libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
 
 test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_proto.c -o $(BIN_DIR)/test_proto $(LDFLAGS)
+	@$(CC) $(CFLAGS) test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
 
 test_aprilgrid:  ## Compile test_aprilgrid
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BIN_DIR)/test_aprilgrid $(LDFLAGS)
+	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BLD_DIR)/test_aprilgrid $(LDFLAGS)
 
 test_tis:  ## Compile test_tis
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_tis.c -o $(BIN_DIR)/test_tis $(LDFLAGS)
+	@$(CC) $(CFLAGS) test_tis.c -o $(BLD_DIR)/test_tis $(LDFLAGS)
 
 test_sbgc:  ## Compile test_sbgc
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_sbgc.c -o $(BIN_DIR)/test_sbgc $(LDFLAGS)
+	@$(CC) $(CFLAGS) test_sbgc.c -o $(BLD_DIR)/test_sbgc $(LDFLAGS)
 
 test_ubx:  ## Compile test_ubx
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_ubx.c -o $(BIN_DIR)/test_ubx $(LDFLAGS)
+	@$(CC) $(CFLAGS) test_ubx.c -o $(BLD_DIR)/test_ubx $(LDFLAGS)
 
 test_http:  ## Compile test_http
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_http.c -o $(BIN_DIR)/test_http $(LDFLAGS)
+	@$(CC) $(CFLAGS) test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
 
 tests: test_proto test_aprilgrid test_tis test_sbgc test_ubx

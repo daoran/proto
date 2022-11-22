@@ -111,7 +111,7 @@ run_memcheck() {
 # time make debug
 # export ASAN_OPTIONS=print_legend=0 && time make tests
 # export ASAN_OPTIONS=print_legend=0 \
-#   && cd ./proto/build/bin/ \
+#   && cd ./proto/build/ \
 #   && ./test_proto --target test_mat_transpose
 
 run_all_tests() {
@@ -120,14 +120,14 @@ run_all_tests() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && ./build/bin/test_proto
+      && ./build/test_proto
   " C-m C-m
   exit
 }
 
 run_test() {
   # gdb -ex run -ex bt -ex quit --args ./test_proto --target "$1"
-  # && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/bin/test_proto --target $1
+  # && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/test_proto --target $1
 
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
@@ -135,10 +135,10 @@ run_test() {
       && clear \
       && make test_proto \
       && python3 proto.py TestFactors.test_imu_factor \
-      && ./build/bin/test_proto --target $1 \
+      && ./build/test_proto --target $1 \
       # && python3 scripts/compare_matrices.py --mata /tmp/J.csv --matb /tmp/J_test.csv
       # && python3 scripts/plot_matrix.py --input /tmp/sqrt_info_test.csv
-      # # && valgrind --leak-check=full --show-leak-kinds=all ./build/bin/test_proto --target $1 \
+      # # && valgrind --leak-check=full --show-leak-kinds=all ./build/test_proto --target $1 \
       # # && python3 scripts/plot_matrix.py --input /tmp/H.csv
   " C-m C-m
   exit
@@ -147,21 +147,21 @@ run_test() {
 dev_sbgc() {
   touch proto.c;
   time make build
-  cd ./proto/build/bin;
+  cd ./proto/build;
   ./test_sbgc
   cd -
 }
 
 dev_tiscam() {
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_tis && ./build/bin/test_tis " C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_tis && ./build/test_tis " C-m
   exit
 }
 
 dev_aprilgrid() {
   touch proto.c;
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make && ./build/bin/test_aprilgrid" C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make && ./build/test_aprilgrid" C-m
   exit
 }
 
@@ -354,13 +354,14 @@ dev_aprilgrid() {
 # run_test test_imu_buf_print
 # run_test test_imu_factor_propagate_step
 # run_test test_imu_factor_setup
-run_test test_imu_factor_eval
+# run_test test_imu_factor_eval
+# run_test test_inertial_odometry
 # run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
-# run_test test_calib_gimbal_solve
+run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features

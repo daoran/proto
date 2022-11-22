@@ -3672,6 +3672,85 @@ int test_imu_factor_eval() {
   return 0;
 }
 
+int test_inertial_odometry() {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data);
+
+  // IMU params
+  imu_params_t imu_params;
+  imu_params.imu_idx = 0;
+  imu_params.rate = 200.0;
+  imu_params.sigma_a = 0.08;
+  imu_params.sigma_g = 0.004;
+  imu_params.sigma_aw = 0.00004;
+  imu_params.sigma_gw = 2.0e-6;
+  imu_params.g = 9.81;
+
+  const int num_partitions = 20;
+  const size_t N = test_data.nb_measurements / (real_t) num_partitions;
+  imu_factor_t factors[20];
+  pose_t poses[21];
+  velocity_t vels[21];
+  imu_biases_t biases[21];
+
+  real_t *r = MALLOC(real_t, num_partitions * 15);
+  for (int i = 0; i < num_partitions; i++) {
+    const int ks = i * N;
+    const int ke = MIN((i + 1) * N - 1, test_data.nb_measurements - 1);
+
+    // Setup imu buffer
+    imu_buf_t imu_buf;
+    imu_buf_setup(&imu_buf);
+    for (size_t k = 0; k < N; k++) {
+      const timestamp_t ts = test_data.timestamps[ks + k];
+      const real_t *acc = test_data.imu_acc[ks + k];
+      const real_t *gyr = test_data.imu_gyr[ks + k];
+      imu_buf_add(&imu_buf, ts, acc, gyr);
+    }
+
+    // Setup parameters
+    const timestamp_t ts_i = test_data.timestamps[ks];
+    const timestamp_t ts_j = test_data.timestamps[ke];
+    const real_t *v_i = test_data.velocities[ks];
+    const real_t *v_j = test_data.velocities[ke];
+    const real_t ba_i[3] = {0, 0, 0};
+    const real_t bg_i[3] = {0, 0, 0};
+    const real_t ba_j[3] = {0, 0, 0};
+    const real_t bg_j[3] = {0, 0, 0};
+
+    pose_setup(&poses[i], ts_i, test_data.poses[ks]);
+    pose_setup(&poses[i + 1], ts_j, test_data.poses[ke]);
+    velocity_setup(&vels[i], ts_i, v_i);
+    velocity_setup(&vels[i + 1], ts_j, v_j);
+    imu_biases_setup(&biases[i], ts_i, ba_i, bg_i);
+    imu_biases_setup(&biases[i + 1], ts_j, ba_j, bg_j);
+
+    // Setup IMU factor
+    imu_factor_setup(&factors[i],
+                     &imu_params,
+                     &imu_buf,
+                     &poses[i],
+                     &vels[i],
+                     &biases[i],
+                     &poses[i + 1],
+                     &vels[i + 1],
+                     &biases[i + 1]);
+
+    // Evaluate imu factor
+    imu_factor_eval(&factors[i]);
+    vec_copy(factors[i].r, 15, &r[15 * i]);
+  }
+
+  // DOT(r, 300, 1, r, 1, 300, r_sq);
+  // printf("cost: %e\n", 0.5 * r_sq[0]);
+
+  // Clean up
+  free_imu_test_data(&test_data);
+
+  return 0;
+}
+
 #ifdef USE_CERES
 
 /**
@@ -4537,6 +4616,7 @@ void test_suite() {
   MU_ADD_TEST(test_imu_factor_propagate_step);
   MU_ADD_TEST(test_imu_factor_setup);
   MU_ADD_TEST(test_imu_factor_eval);
+  MU_ADD_TEST(test_inertial_odometry);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES

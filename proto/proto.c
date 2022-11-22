@@ -8799,7 +8799,7 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
 void calib_gimbal_setup(calib_gimbal_t *calib) {
   calib->fix_fiducial = 0;
   calib->fix_poses = 0;
-  calib->fix_links = 1;
+  calib->fix_links = 0;
   calib->fix_joints = 0;
   calib->fix_cam_params = 0;
   calib->fix_cam_exts = 0;
