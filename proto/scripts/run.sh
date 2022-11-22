@@ -85,17 +85,6 @@ run_memcheck() {
 # python3 proto.py TestSandbox.test_gimbal
 
 
-# num_views = 5
-
-# cam_params =              2
-# cam_exts =                2
-# links =                   3
-# joints = 3 * num_views = 15 22
-# fiducial =                1 23
-# poses = num_views =       5 28
-
-
-
 ###############################################################################
 # C
 ###############################################################################
@@ -134,14 +123,14 @@ run_test() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && python3 proto.py TestFactors.test_imu_factor \
       && ./build/test_proto --target $1 \
+  " C-m C-m
+  exit
+      # && python3 proto.py TestFactors.test_imu_factor \
       # && python3 scripts/compare_matrices.py --mata /tmp/J.csv --matb /tmp/J_test.csv
       # && python3 scripts/plot_matrix.py --input /tmp/sqrt_info_test.csv
       # # && valgrind --leak-check=full --show-leak-kinds=all ./build/test_proto --target $1 \
       # # && python3 scripts/plot_matrix.py --input /tmp/H.csv
-  " C-m C-m
-  exit
 }
 
 dev_sbgc() {

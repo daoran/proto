@@ -5,16 +5,10 @@ DEPS_DIR := $(realpath ../third_party)
 
 
 # COMPILER SETTINGS
-BUILD_TYPE := debug
-# BUILD_TYPE := release
+# BUILD_TYPE := debug
+BUILD_TYPE := release
 CC := gcc
 # CC := tcc
-
-ifeq ($(BUILD_TYPE), debug)
-	CFLAGS += -g -Wall -Wpedantic
-else
-	CFLAGS += -O3 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG
-endif
 
 # LIBRARIES
 STB_CFLAGS:=-I$(DEPS_DIR)/src/stb
@@ -25,7 +19,7 @@ SDL2_LDFLAGS := `sdl2-config --libs` -lSDL2_image
 OPENGL_LDFLAGS := $(SDL2_LDFLAGS) $(GLEW_LDFLAGS) -lGL
 BLAS_LDFLAGS := -lblas -llapack -llapacke
 SUITESPARSE_LDFLAGS := -llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod -lcxsparse
-CERES_DEPS := -lgflags -lglog -lceres
+CERES_LDFLAGS := -lgflags -lglog -lceres
 
 TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
 TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
@@ -44,12 +38,18 @@ PROTO_LDFLAGS := -L$(BLD_DIR) -lproto
 
 # CFLAGS
 CFLAGS := \
-	-g \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
 	$(SDL2_CFLAGS) \
 	$(STB_CFLAGS) \
 	$(TIS_CFLAGS)
+
+ifeq ($(BUILD_TYPE), debug)
+	CFLAGS += -g -Wall -Wpedantic
+else
+	CFLAGS += -O3 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG
+endif
+
 
 
 # LDFLAGS
@@ -57,6 +57,7 @@ RPATH := -Wl,-rpath,$(DEPS_DIR)/lib
 LDFLAGS= \
 	$(RPATH) \
   $(PROTO_LDFLAGS) \
+	$(CERES_LDFLAGS) \
 	$(APRILTAG_LDFLAGS) \
 	$(OPENGL_LDFLAGS) \
 	$(SUITESPARSE_LDFLAGS) \

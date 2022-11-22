@@ -8,7 +8,7 @@
 #define USE_CBLAS
 #define USE_LAPACK
 #define USE_SUITESPARSE
-// #define USE_CERES
+#define USE_CERES
 #define USE_STB
 
 // #define USE_GUI
@@ -1273,11 +1273,11 @@ int vision_factor_eval(void *factor_ptr);
 /** CALIB GIMBAL FACTOR *******************************************************/
 
 typedef struct calib_gimbal_factor_t {
-  extrinsics_t *fiducial;
+  extrinsics_t *fiducial_exts;
+  extrinsics_t *gimbal_exts;
   pose_t *pose;
   extrinsics_t *link0;
   extrinsics_t *link1;
-  extrinsics_t *link2;
   joint_angle_t *joint0;
   joint_angle_t *joint1;
   joint_angle_t *joint2;
@@ -1301,11 +1301,11 @@ typedef struct calib_gimbal_factor_t {
   real_t *params[10];
   real_t r[2];
   real_t *jacs[10];
-  real_t J_fiducial[2 * 6];
+  real_t J_fiducial_exts[2 * 6];
+  real_t J_gimbal_exts[2 * 6];
   real_t J_pose[2 * 6];
   real_t J_link0[2 * 6];
   real_t J_link1[2 * 6];
-  real_t J_link2[2 * 6];
   real_t J_joint0[2 * 1];
   real_t J_joint1[2 * 1];
   real_t J_joint2[2 * 1];
@@ -1323,11 +1323,11 @@ void gimbal_setup_joint(const int joint_idx,
                         joint_angle_t *joint);
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
-                               extrinsics_t *fiducial,
+                               extrinsics_t *fiducial_exts,
+                               extrinsics_t *gimbal_exts,
                                pose_t *pose,
                                extrinsics_t *link0,
                                extrinsics_t *link1,
-                               extrinsics_t *link2,
                                joint_angle_t *joint0,
                                joint_angle_t *joint1,
                                joint_angle_t *joint2,
@@ -1505,14 +1505,16 @@ typedef struct calib_gimbal_view_t {
 } calib_gimbal_view_t;
 
 typedef struct calib_gimbal_t {
-  int fix_fiducial;
+  int fix_fiducial_exts;
+  int fix_gimbal_exts;
   int fix_poses;
   int fix_cam_params;
   int fix_cam_exts;
   int fix_links;
   int fix_joints;
 
-  extrinsics_t fiducial;
+  extrinsics_t fiducial_exts;
+  extrinsics_t gimbal_exts;
 
   extrinsics_t *cam_exts;
   camera_params_t *cam_params;

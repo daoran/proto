@@ -3075,11 +3075,11 @@ int test_vision_factor_eval() {
 }
 
 static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
-                                      extrinsics_t *fiducial,
+                                      extrinsics_t *fiducial_exts,
+                                      extrinsics_t *gimbal_exts,
                                       pose_t *pose,
                                       extrinsics_t *link0,
                                       extrinsics_t *link1,
-                                      extrinsics_t *link2,
                                       joint_angle_t *joint0,
                                       joint_angle_t *joint1,
                                       joint_angle_t *joint2,
@@ -3103,51 +3103,51 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
 
   real_t x_WF[7] = {0};
   tf_vector(T_WF, x_WF);
-  extrinsics_setup(fiducial, x_WF);
+  extrinsics_setup(fiducial_exts, x_WF);
 
   // Relative fiducial pose T_BF
   real_t T_BF[4 * 4] = {0};
   TF_INV(T_WB, T_BW);
   dot(T_BW, 4, 4, T_WF, 4, 4, T_BF);
 
-  // Yaw link
-  real_t ypr_BM0b[3] = {0.01, 0.01, 0.01};
-  real_t r_BM0b[3] = {0.0, 0.0, 0.0};
-  real_t T_BM0b[4 * 4] = {0};
-  gimbal_setup_extrinsics(ypr_BM0b, r_BM0b, T_BM0b, link0);
+  // Gimbal extrinsics
+  real_t ypr_BM0[3] = {0.01, 0.01, 0.01};
+  real_t r_BM0[3] = {0.0, 0.0, 0.0};
+  real_t T_BM0[4 * 4] = {0};
+  gimbal_setup_extrinsics(ypr_BM0, r_BM0, T_BM0, gimbal_exts);
 
   // Roll link
-  real_t ypr_M0eM1b[3] = {0.0, M_PI / 2, 0.0};
-  real_t r_M0eM1b[3] = {-0.1, 0.0, 0.15};
-  real_t T_M0eM1b[4 * 4] = {0};
-  gimbal_setup_extrinsics(ypr_M0eM1b, r_M0eM1b, T_M0eM1b, link1);
+  real_t ypr_L0M1[3] = {0.0, M_PI / 2, 0.0};
+  real_t r_L0M1[3] = {-0.1, 0.0, 0.15};
+  real_t T_L0M1[4 * 4] = {0};
+  gimbal_setup_extrinsics(ypr_L0M1, r_L0M1, T_L0M1, link0);
 
   // Pitch link
-  real_t ypr_M1eM2b[3] = {0.0, 0.0, -M_PI / 2.0};
-  real_t r_M1eM2b[3] = {0.0, -0.05, 0.1};
-  real_t T_M1eM2b[4 * 4] = {0};
-  gimbal_setup_extrinsics(ypr_M1eM2b, r_M1eM2b, T_M1eM2b, link2);
+  real_t ypr_L1M2[3] = {0.0, 0.0, -M_PI / 2.0};
+  real_t r_L1M2[3] = {0.0, -0.05, 0.1};
+  real_t T_L1M2[4 * 4] = {0};
+  gimbal_setup_extrinsics(ypr_L1M2, r_L1M2, T_L1M2, link1);
 
   // Joint0
   const real_t th0 = 0.01;
-  real_t T_M0bM0e[4 * 4] = {0};
-  gimbal_setup_joint(0, th0, T_M0bM0e, joint0);
+  real_t T_M0L0[4 * 4] = {0};
+  gimbal_setup_joint(0, th0, T_M0L0, joint0);
 
   // Joint1
   const real_t th1 = 0.02;
-  real_t T_M1bM1e[4 * 4] = {0};
-  gimbal_setup_joint(1, th1, T_M1bM1e, joint1);
+  real_t T_M1L1[4 * 4] = {0};
+  gimbal_setup_joint(1, th1, T_M1L1, joint1);
 
   // Joint2
   const real_t th2 = 0.03;
-  real_t T_M2bM2e[4 * 4] = {0};
-  gimbal_setup_joint(2, th2, T_M2bM2e, joint2);
+  real_t T_M2L2[4 * 4] = {0};
+  gimbal_setup_joint(2, th2, T_M2L2, joint2);
 
-  // Camera extrinsics T_M2eCi
-  const real_t ypr_M2eC0[3] = {-M_PI / 2, M_PI / 2, 0.0};
-  const real_t r_M2eC0[3] = {0.0, -0.05, 0.12};
-  real_t T_M2eC0[4 * 4] = {0};
-  gimbal_setup_extrinsics(ypr_M2eC0, r_M2eC0, T_M2eC0, cam_exts);
+  // Camera extrinsics
+  const real_t ypr_L2C0[3] = {-M_PI / 2, M_PI / 2, 0.0};
+  const real_t r_L2C0[3] = {0.0, -0.05, 0.12};
+  real_t T_L2C0[4 * 4] = {0};
+  gimbal_setup_extrinsics(ypr_L2C0, r_L2C0, T_L2C0, cam_exts);
 
   // Camera parameters K
   const int cam_idx = 0;
@@ -3170,15 +3170,7 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
   // Form T_C0F
   real_t T_BC0[4 * 4] = {0};
   real_t T_C0F[4 * 4] = {0};
-  tf_chain2(7,
-            T_BM0b,
-            T_M0bM0e,
-            T_M0eM1b,
-            T_M1bM1e,
-            T_M1eM2b,
-            T_M2bM2e,
-            T_M2eC0,
-            T_BC0);
+  tf_chain2(7, T_BM0, T_M0L0, T_L0M1, T_M1L1, T_L1M2, T_M2L2, T_L2C0, T_BC0);
   TF_INV(T_BC0, T_C0B);
   tf_chain2(2, T_C0B, T_BF, T_C0F);
 
@@ -3195,11 +3187,11 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
   const int corner_idx = 0;
   const real_t var[2] = {1.0, 1.0};
   calib_gimbal_factor_setup(factor,
-                            fiducial,
+                            fiducial_exts,
+                            gimbal_exts,
                             pose,
                             link0,
                             link1,
-                            link2,
                             joint0,
                             joint1,
                             joint2,
@@ -3216,22 +3208,22 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
 
 int test_calib_gimbal_factor_setup() {
   calib_gimbal_factor_t factor;
-  extrinsics_t fiducial;
+  extrinsics_t fiducial_exts;
+  extrinsics_t gimbal_exts;
   pose_t pose;
   extrinsics_t link0;
   extrinsics_t link1;
-  extrinsics_t link2;
   joint_angle_t joint0;
   joint_angle_t joint1;
   joint_angle_t joint2;
   extrinsics_t cam_exts;
   camera_params_t cam;
   setup_calib_gimbal_factor(&factor,
-                            &fiducial,
+                            &fiducial_exts,
+                            &gimbal_exts,
                             &pose,
                             &link0,
                             &link1,
-                            &link2,
                             &joint0,
                             &joint1,
                             &joint2,
@@ -3243,22 +3235,22 @@ int test_calib_gimbal_factor_setup() {
 
 int test_calib_gimbal_factor_eval() {
   calib_gimbal_factor_t factor;
-  extrinsics_t fiducial;
+  extrinsics_t fiducial_exts;
+  extrinsics_t gimbal_exts;
   pose_t pose;
   extrinsics_t link0;
   extrinsics_t link1;
-  extrinsics_t link2;
   joint_angle_t joint0;
   joint_angle_t joint1;
   joint_angle_t joint2;
   extrinsics_t cam_exts;
   camera_params_t cam;
   setup_calib_gimbal_factor(&factor,
-                            &fiducial,
+                            &fiducial_exts,
+                            &gimbal_exts,
                             &pose,
                             &link0,
                             &link1,
-                            &link2,
                             &joint0,
                             &joint1,
                             &joint2,
@@ -3944,7 +3936,7 @@ int test_calib_gimbal_solve() {
 
     // Perturb
     real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    pose_vector_update(calib_est->fiducial.data, dx);
+    pose_vector_update(calib_est->fiducial_exts.data, dx);
     pose_vector_update(calib_est->cam_exts[0].data, dx);
     pose_vector_update(calib_est->cam_exts[1].data, dx);
     // for (int link_idx = 0; link_idx < 3; link_idx++) {
@@ -3972,8 +3964,8 @@ int test_calib_gimbal_solve() {
     {
       real_t dr[3] = {0};
       real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->fiducial.data,
-                 calib_est->fiducial.data,
+      pose_diff2(calib_gnd->fiducial_exts.data,
+                 calib_est->fiducial_exts.data,
                  dr,
                  &dtheta);
       printf("fiducial ");
@@ -4036,8 +4028,8 @@ int test_calib_gimbal_solve() {
     {
       real_t dr[3] = {0};
       real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->fiducial.data,
-                 calib_est->fiducial.data,
+      pose_diff2(calib_gnd->fiducial_exts.data,
+                 calib_est->fiducial_exts.data,
                  dr,
                  &dtheta);
       printf("fiducial ");
@@ -4111,9 +4103,9 @@ int test_calib_gimbal_ceres_solve() {
 
     // Perturb
     real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    pose_vector_update(calib_est->fiducial.data, dx);
-    pose_vector_update(calib_est->cam_exts[0].data, dx);
-    pose_vector_update(calib_est->cam_exts[1].data, dx);
+    pose_vector_update(calib_est->fiducial_exts.data, dx);
+    // pose_vector_update(calib_est->cam_exts[0].data, dx);
+    // pose_vector_update(calib_est->cam_exts[1].data, dx);
     // for (int link_idx = 0; link_idx < 3; link_idx++) {
     //   pose_vector_update(calib_est->links[link_idx].data, dx);
     // }
@@ -4135,29 +4127,28 @@ int test_calib_gimbal_ceres_solve() {
   ceres_local_parameterization_t *pose_pm =
       ceres_create_pose_local_parameterization();
 
-  int factor_idx = 0;
+  const int num_residuals = 2;
+  const int num_params = 10;
   for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
       calib_gimbal_view_t *view = calib_est->views[view_idx][cam_idx];
-      for (int corner_idx = 0; corner_idx < view->num_corners; corner_idx++) {
-        int num_residuals = 2;
-        int num_params = 10;
-        real_t *param_ptrs[] = {calib_est->fiducial.data,
+      for (int factor_idx = 0; factor_idx < view->num_factors; factor_idx++) {
+        real_t *param_ptrs[] = {calib_est->fiducial_exts.data,
+                                calib_est->gimbal_exts.data,
                                 calib_est->poses[view_idx].data,
                                 calib_est->links[0].data,
                                 calib_est->links[1].data,
-                                calib_est->links[2].data,
                                 calib_est->joints[view_idx][0].data,
                                 calib_est->joints[view_idx][1].data,
                                 calib_est->joints[view_idx][2].data,
                                 calib_est->cam_exts[cam_idx].data,
                                 calib_est->cam_params[cam_idx].data};
         int param_sizes[10] = {
-            7, // Fiducial
+            7, // Fiducial extrinsics
+            7, // Gimbal extrinscis
             7, // Pose
             7, // Link0
             7, // Link1
-            7, // Link2
             1, // Joint0
             1, // Joint1
             1, // Joint2
@@ -4166,14 +4157,13 @@ int test_calib_gimbal_ceres_solve() {
         };
         ceres_problem_add_residual_block(problem,
                                          &calib_gimbal_factor_ceres_eval,
-                                         &calib_est->factors[factor_idx],
+                                         &view->factors[factor_idx],
                                          NULL,
                                          NULL,
                                          num_residuals,
                                          num_params,
                                          param_sizes,
                                          param_ptrs);
-        factor_idx++;
       } // For each corners
     }   // For each cameras
   }     // For each views
@@ -4187,26 +4177,25 @@ int test_calib_gimbal_ceres_solve() {
   //   calib_est->joints[view_idx][2].data);
   // }
 
-  // ceres_set_parameter_constant(problem, calib_est->fiducial.data);
-  // ceres_set_parameter_constant(problem, calib_est->links[0].data);
-  // ceres_set_parameter_constant(problem, calib_est->links[1].data);
-  // ceres_set_parameter_constant(problem, calib_est->links[2].data);
-  // ceres_set_parameter_constant(problem, calib_est->cam_exts[0].data);
-  // ceres_set_parameter_constant(problem, calib_est->cam_exts[1].data);
-  // ceres_set_parameter_constant(problem, calib_est->cam_params[0].data);
-  // ceres_set_parameter_constant(problem, calib_est->cam_params[1].data);
+  // ceres_set_parameter_constant(problem, calib_est->fiducial_exts.data);
+  ceres_set_parameter_constant(problem, calib_est->gimbal_exts.data);
+  ceres_set_parameter_constant(problem, calib_est->links[0].data);
+  ceres_set_parameter_constant(problem, calib_est->links[1].data);
+  ceres_set_parameter_constant(problem, calib_est->cam_exts[0].data);
+  ceres_set_parameter_constant(problem, calib_est->cam_exts[1].data);
+  ceres_set_parameter_constant(problem, calib_est->cam_params[0].data);
+  ceres_set_parameter_constant(problem, calib_est->cam_params[1].data);
 
-  // for (int view_idx = 0; view_idx < calib_est->num_poses; view_idx++) {
-  //   printf("view_idx: %d\n", view_idx);
-  //   ceres_set_parameter_constant(problem, calib_est->poses[view_idx].data);
-  //   ceres_set_parameterization(problem,
-  //                              calib_est->poses[view_idx].data,
-  //                              pose_pm);
-  // }
-  ceres_set_parameterization(problem, calib_est->fiducial.data, pose_pm);
+  for (int view_idx = 0; view_idx < calib_est->num_poses; view_idx++) {
+    ceres_set_parameter_constant(problem, calib_est->poses[view_idx].data);
+    ceres_set_parameterization(problem,
+                               calib_est->poses[view_idx].data,
+                               pose_pm);
+  }
+  ceres_set_parameterization(problem, calib_est->fiducial_exts.data, pose_pm);
+  ceres_set_parameterization(problem, calib_est->gimbal_exts.data, pose_pm);
   ceres_set_parameterization(problem, calib_est->links[0].data, pose_pm);
   ceres_set_parameterization(problem, calib_est->links[1].data, pose_pm);
-  ceres_set_parameterization(problem, calib_est->links[2].data, pose_pm);
   ceres_set_parameterization(problem, calib_est->cam_exts[0].data, pose_pm);
   ceres_set_parameterization(problem, calib_est->cam_exts[1].data, pose_pm);
   ceres_solve(problem, 10);
@@ -4217,8 +4206,8 @@ int test_calib_gimbal_ceres_solve() {
     {
       real_t dr[3] = {0};
       real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->fiducial.data,
-                 calib_est->fiducial.data,
+      pose_diff2(calib_gnd->fiducial_exts.data,
+                 calib_est->fiducial_exts.data,
                  dr,
                  &dtheta);
       printf("fiducial ");
@@ -4401,8 +4390,8 @@ int test_sim_gimbal_view() {
 }
 
 int test_sim_gimbal_solve() {
-  int num_views = 5;
-  int num_cams = 2;
+  // int num_views = 5;
+  // int num_cams = 2;
 
   sim_gimbal_t *sim = sim_gimbal_malloc();
 
