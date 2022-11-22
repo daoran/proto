@@ -42,17 +42,23 @@ TIS_LDFLAGS+=$(shell pkg-config tcam --libs)
 
 APRILTAG_LDFLAGS := -L$(DEPS_DIR)/lib -lapriltag
 
+PROTO_LDFLAGS := -L$(BLD_DIR) -lproto
+
 # CFLAGS
 CFLAGS := \
+	-g \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
 	$(SDL2_CFLAGS) \
 	$(STB_CFLAGS) \
 	$(TIS_CFLAGS)
 
+
 # LDFLAGS
+RPATH := -Wl,-rpath,../third_party/lib
 LDFLAGS= \
-  -L$(BLD_DIR) -lproto \
+	$(RPATH) \
+  $(PROTO_LDFLAGS) \
 	$(APRILTAG_LDFLAGS) \
 	$(OPENGL_LDFLAGS) \
 	$(SUITESPARSE_LDFLAGS) \
