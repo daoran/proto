@@ -28,6 +28,13 @@
   exit(-1);
 #endif
 
+#ifndef APRILGRID_UNUSED
+#define APRILGRID_UNUSED(expr)                                                 \
+  do {                                                                         \
+    (void) (expr);                                                             \
+  } while (0)
+#endif
+
 // APRILGRID /////////////////////////////////////////////////////////////////
 
 #define APRILGRID_NUM_ROWS 5
@@ -479,7 +486,8 @@ static void aprilgrid_parse_skip_line(FILE *fp) {
   assert(fp != NULL);
   const size_t buf_len = 1024;
   char buf[1024] = {0};
-  fgets(buf, buf_len, fp);
+  char *retval = fgets(buf, buf_len, fp);
+  APRILGRID_UNUSED(retval);
 }
 
 /**

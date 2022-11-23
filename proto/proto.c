@@ -8408,7 +8408,6 @@ int imu_factor_eval(void *factor_ptr) {
   // ---- Jacobian w.r.t. r_j
   real_t drij_drj[3 * 3] = {0};
   mat_copy(C_it, 3, 3, drij_drj);
-  real_t J_r_j[15 * 3] = {0};
   mat_block_set(J_pose_j, 6, 0, 2, 0, 2, drij_drj);
   // ---- Jacobian w.r.t. q_j
   real_t dtheta_dqj[3 * 3] = {0};
