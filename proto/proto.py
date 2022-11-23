@@ -7518,20 +7518,20 @@ class CalibGimbalPoEFactor(Factor):
       return (r, jacs)
 
     step_size = 1e-8
-    for param_idx in range(3):
-      global_size = len(params[param_idx])
-      local_size = 6 if global_size == 7 else global_size
+    param_types = [1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0]
+    local_sizes = [6, 6, 6, 6, 6, 6, 1, 1, 1, 6, 8]
 
+    for pidx, (ptype, local_size) in enumerate(zip(param_types, local_sizes)):
       for i in range(local_size):
         params_copy = copy.deepcopy(params)
-        if jacs[param_idx].shape == (2, 6):
+        if ptype == 1:
           # Perturb pose
-          T = pose2tf(params_copy[param_idx])
+          T = pose2tf(params_copy[pidx])
           T_dash = tf_perturb(T, i, step_size)
-          params_copy[param_idx] = tf2pose(T_dash)
+          params_copy[pidx] = tf2pose(T_dash)
         else:
           # Perturb everything else
-          params_copy[param_idx] += step_size
+          params_copy[pidx][i] += step_size
 
         # Calculate residual
         fiducial = pose2tf(params_copy[0])
@@ -7546,7 +7546,7 @@ class CalibGimbalPoEFactor(Factor):
                                         cam_params)
 
         # Calculate numerical jacobian
-        jacs[param_idx][:, i] = (r_fwd - r) / step_size
+        jacs[pidx][:, i] = (r_fwd - r) / step_size
 
     return (r, jacs)
 
@@ -11103,14 +11103,11 @@ class TestSandbox(unittest.TestCase):
 
     sandbox.simulate(save=True)
 
-  def test_poe(self):
-    """ Test product of expoenentials """
+  def test_calib_gimbal_poe_factor(self):
     sim = GimbalSim()
     sim.gimbal.set_joint_angle(0, deg2rad(0))
     sim.gimbal.set_joint_angle(1, deg2rad(10))
     sim.gimbal.set_joint_angle(2, deg2rad(0))
-    # sim.plot_camera_frame()
-    # sim.visualize()
 
     num_views = 10
     (pose_data, view_data, joint_data) = sim.simulate(num_views)
@@ -11161,8 +11158,28 @@ class TestSandbox(unittest.TestCase):
         cam0_params,
     ]
     self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
-    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_gimbal_pose"))
-    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_home"))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_gimbal_pose"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_home"))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_gimbal_link0"))
+    self.assertTrue(factor.check_jacobian(fvars, 4, "J_gimbal_link1"))
+    self.assertTrue(factor.check_jacobian(fvars, 5, "J_gimbal_link2"))
+    self.assertTrue(factor.check_jacobian(fvars, 6, "J_gimbal_joint0"))
+    self.assertTrue(factor.check_jacobian(fvars, 7, "J_gimbal_joint1"))
+    self.assertTrue(factor.check_jacobian(fvars, 8, "J_gimbal_joint2"))
+    self.assertTrue(factor.check_jacobian(fvars, 9, "J_camera_extrinsics"))
+    self.assertTrue(factor.check_jacobian(fvars, 10, "J_camera_params"))
+
+  def test_poe(self):
+    """ Test product of expoenentials """
+    sim = GimbalSim()
+    sim.gimbal.set_joint_angle(0, deg2rad(0))
+    sim.gimbal.set_joint_angle(1, deg2rad(10))
+    sim.gimbal.set_joint_angle(2, deg2rad(0))
+    # sim.plot_camera_frame()
+    # sim.visualize()
+
+    num_views = 10
+    (pose_data, view_data, joint_data) = sim.simulate(num_views)
 
     # import pprint
     # pprint.pprint(pose_data)
