@@ -7407,6 +7407,39 @@ class MultiPlot:
 ###############################################################################
 
 
+class GimbalKinematics:
+  """ Gimbal Kinematics """
+  def __init__(self):
+    self.joint_angles = [0.0, 0.0, 0.0]
+
+    L1 = 0.5
+    L2 = 0.3
+    self.screw_axes = np.array([
+        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+        [0.0, -1.0, 0.0, 0.0, 0.0, -L1],
+        [1.0, 0.0, 0.0, 0.0, -L2, 0.0],
+    ])
+    self.M = np.array([
+        [0.0, 0.0, 1.0, L1],
+        [0.0, 1.0, 0.0, 0.0],
+        [-1.0, 0.0, 0.0, -L2],
+        [0.0, 0.0, 0.0, 1.0],
+    ])
+
+  def set_joint_angle(self, joint_idx, joint_angle):
+    """ Set joint angle """
+    self.joint_angles[joint_idx] = joint_angle
+
+  def forward_kinematics(self):
+    """ Forward kinematics """
+    T = np.eye(4)
+
+    for _, (s, theta) in enumerate(zip(self.screw_axes, self.joint_angles)):
+      T = T @ poe(s, theta)
+
+    return T @ self.M
+
+
 class GimbalSandbox:
   """ Gimbal Sandbox"""
   def __init__(self):
@@ -10638,6 +10671,29 @@ class TestSandbox(unittest.TestCase):
     # sandbox.plot_camera_frame()
 
     sandbox.simulate(save=True)
+
+  def test_poe(self):
+    """ Test product of expoenentials """
+    T_WB = np.eye(4)
+
+    gimbal = GimbalKinematics()
+    gimbal.set_joint_angle(0, deg2rad(0))
+    gimbal.set_joint_angle(1, deg2rad(90))
+    gimbal.set_joint_angle(2, deg2rad(45))
+    T_BE = gimbal.forward_kinematics()
+
+    # Visualize
+    plt.figure()
+    ax = plt.axes(projection='3d')
+    plot_tf(ax, T_WB, name="BASE", size=0.05)
+    plot_tf(ax, T_WB @ T_BE, name="END", size=0.05)
+
+    # Plot settings
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
 
 
 if __name__ == '__main__':
