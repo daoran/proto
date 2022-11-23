@@ -83,6 +83,7 @@ run_memcheck() {
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
 # python3 proto.py TestSandbox.test_gimbal
+python3 proto.py TestSandbox.test_poe
 
 
 ###############################################################################
@@ -350,7 +351,7 @@ dev_aprilgrid() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
-run_test test_calib_gimbal_solve
+# run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features

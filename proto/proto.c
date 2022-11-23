@@ -4096,6 +4096,166 @@ void lie_Log(const real_t C[3 * 3], real_t rvec[3]) {
   rvec[2] = phi * vec[2];
 }
 
+/**
+ * Box-plus operator:
+ *
+ *   C_new = C [+] alpha
+ *
+ */
+void box_plus(const real_t C[3 * 3],
+              const real_t alpha[3],
+              real_t C_new[3 * 3]) {
+  real_t dC[3 * 3] = {0};
+  lie_Exp(alpha, dC);
+  dot(C, 3, 3, dC, 3, 3, C_new);
+}
+
+/**
+ * Box-minus operator:
+ *
+ *   alpha = C_a [-] C_b
+ *
+ */
+void box_minus(const real_t Ca[3 * 3],
+               const real_t Cb[3 * 3],
+               real_t alpha[3]) {
+  real_t Cbt[3 * 3] = {0};
+  real_t dC[3 * 3] = {0};
+  mat_transpose(Cb, 3, 3, Cbt);
+  dot(Cbt, 3, 3, Ca, 3, 3, dC);
+  lie_Log(dC, alpha);
+}
+
+/**
+ * Screw axis to se(3)
+ *
+ * Let s be the screw axis:
+ *
+ *   s = [w, v]
+ *
+ * This function turns
+ *
+ *   s  -> [s]
+ *   R6 -> se(3)
+ *
+ * Example Input:
+ *
+ *   s = [1, 2, 3, 4, 5, 6]
+ *
+ * Example Output:
+ * [
+ *    0, -3,  2,  4,
+ *    3,  0, -1,  5,
+ *   -2,  1,  0,  6,
+ *    0,  0,  0,  0
+ * ]
+ *
+ */
+void satose3(const real_t sa[6], const real_t theta, real_t se3mat[4 * 4]) {
+  real_t w[3] = {sa[0] * theta, sa[1] * theta, sa[2] * theta};
+  real_t v[3] = {sa[3] * theta, sa[4] * theta, sa[5] * theta};
+  real_t w_hat[3 * 3] = {0};
+
+  hat(w, w_hat);
+  zeros(se3mat, 4, 4);
+  mat_block_set(se4mat, 4, 0, 2, 0, 2, w_hat);
+  mat_block_set(se4mat, 4, 0, 2, 3, 3, v);
+}
+
+/**
+ * Convert se(3) matrix back to screw axis
+ *
+ * Example Input:
+ *
+ *   [
+ *      0, -3,  2,  4,
+ *      3,  0, -1,  5,
+ *     -2,  1,  0,  6,
+ *      0,  0,  0,  0
+ *   ]
+ *
+ * Example Output:
+ *
+ *   s = [1, 2, 3, 4, 5, 6]
+ *
+ */
+void se3tosa(const real_t se3mat[4 * 4], real_t s[6]) {
+  s[0] = se3mat[9];
+  s[1] = se3mat[2];
+  s[2] = se3mat[4];
+  s[3] = se4mat[3];
+  s[4] = se4mat[7];
+  s[5] = se4mat[11];
+}
+
+/**
+ *
+ *  Computes the matrix exponential of a matrix in so(3)
+ *
+ *  Example Input:
+ *    so3mat = np.array([[ 0, -3,  2],
+ *                       [ 3,  0, -1],
+ *                       [-2,  1,  0]])
+ *  Output:
+ *
+ *    np.array([[-0.69492056,  0.71352099,  0.08929286],
+ *              [-0.19200697, -0.30378504,  0.93319235],
+ *              [ 0.69297817,  0.6313497 ,  0.34810748]])
+ *
+ */
+void so3_exp(const real_t so3mat, real_t tol) {
+  // aa = vee(so3mat);
+  // if (np.linalg.norm(aa) < tol) {
+  //   return np.eye(3)
+  // }
+
+  // _, theta = aa_decomp(aa)
+  // omgmat = so3mat / theta
+
+  // I3 = np.eye(3)
+  // s_theta = np.sin(theta)
+  // c_theta = np.cos(theta)
+
+  // return I3 + s_theta * omgmat + (1.0 - c_theta) * np.dot(omgmat, omgmat)
+}
+
+/**
+ * Form a Product of Expontial transformation matrix
+ */
+void poe(const real_t sa[6], const real_t theta, real_t T[4 * 4]) {
+  const real_t tol = 1e-6;
+  real_t C[3 * 3] = {0};
+  real_t r[3] = {0};
+
+  if (theta < tol) {
+    eye(C, 3, 3);
+    r[0] = theta * sa[3];
+    r[1] = theta * sa[4];
+    r[2] = theta * sa[5];
+    tf_cr(C, r, T);
+    return;
+  }
+
+  real_t I3[3 * 3] = {0};
+  real_t w_hat[3 * 3] = {0};
+  real_t w_hat_sq[3 * 3] = {0};
+
+  eye(I3, 3, 3);
+  hat(sa, w_hat);
+  dot(w_hat, 3, 3, w_hat, 3, 3, w_hat_sq);
+  const real_t ctheta = cos(theta);
+  const real_t stheta = sin(theta);
+
+  real_t se3mat[4 * 4] = {0};
+  satose3(sa, theta, se3mat);
+
+  // A = so3_exp(se3mat[0:3, 0:3])
+  // B = (I3 * theta + (1.0 - c_th) * w_skew +
+  //      (theta - s_th) * w_skew_sq) @ screw_axis[3:]
+
+  // return np.block([[A, B.reshape((3, 1))], [0.0, 0.0, 0.0, 1.0]])
+}
+
 /******************************************************************************
  * TRANSFORMS
  ******************************************************************************/

@@ -956,6 +956,10 @@ void quat_perturb(real_t q[4], const int i, const real_t h);
 
 void lie_Exp(const real_t phi[3], real_t C[3 * 3]);
 void lie_Log(const real_t C[3 * 3], real_t rvec[3]);
+void box_plus(const real_t C[3 * 3],
+              const real_t alpha[3],
+              real_t C_new[3 * 3]);
+void box_minus(const real_t Ca[3 * 3], const real_t Cb[3 * 3], real_t alpha[3]);
 
 /******************************************************************************
  * CV
