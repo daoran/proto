@@ -109,3 +109,14 @@ build_stb:
     && ln -s $(PWD)/src/stb/stb_tilemap_editor.h . \
     && ln -s $(PWD)/src/stb/stb_truetype.h . \
     && ln -s $(PWD)/src/stb/stb_voxel_render.h
+
+build_dbow2:
+	@cd "$(SRC_PATH)/DBoW2" \
+	  && mkdir -p build \
+	  && cd build || return \
+	  && cmake \
+		  -DCMAKE_BUILD_TYPE=Release \
+		  -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		  .. \
+	  && make \
+		&& make install
