@@ -4158,8 +4158,8 @@ void satose3(const real_t sa[6], const real_t theta, real_t se3mat[4 * 4]) {
 
   hat(w, w_hat);
   zeros(se3mat, 4, 4);
-  mat_block_set(se4mat, 4, 0, 2, 0, 2, w_hat);
-  mat_block_set(se4mat, 4, 0, 2, 3, 3, v);
+  mat_block_set(se3mat, 4, 0, 2, 0, 2, w_hat);
+  mat_block_set(se3mat, 4, 0, 2, 3, 3, v);
 }
 
 /**
@@ -4183,9 +4183,9 @@ void se3tosa(const real_t se3mat[4 * 4], real_t s[6]) {
   s[0] = se3mat[9];
   s[1] = se3mat[2];
   s[2] = se3mat[4];
-  s[3] = se4mat[3];
-  s[4] = se4mat[7];
-  s[5] = se4mat[11];
+  s[3] = se3mat[3];
+  s[4] = se3mat[7];
+  s[5] = se3mat[11];
 }
 
 /**
@@ -9029,13 +9029,13 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
  * Setup gimbal calibration data
  */
 void calib_gimbal_setup(calib_gimbal_t *calib) {
-  calib->fix_fiducial_exts = 0;
+  calib->fix_fiducial_exts = 1;
   calib->fix_gimbal_exts = 1;
-  calib->fix_poses = 0;
+  calib->fix_poses = 1;
   calib->fix_links = 0;
   calib->fix_joints = 0;
-  calib->fix_cam_params = 0;
-  calib->fix_cam_exts = 0;
+  calib->fix_cam_params = 1;
+  calib->fix_cam_exts = 1;
 
   calib->cam_params = NULL;
   calib->cam_exts = NULL;

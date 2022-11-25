@@ -3920,6 +3920,82 @@ int test_calib_gimbal_load() {
   return 0;
 }
 
+static void compare_gimbal_calib(const calib_gimbal_t *gnd,
+                                 const calib_gimbal_t *est) {
+  assert(gnd->num_views == est->num_views);
+  assert(gnd->num_cams == est->num_cams);
+  assert(gnd->num_factors == est->num_factors);
+
+  // Compare estimated vs ground-truth
+  printf("\n");
+  {
+    printf("num_views: %d\n", gnd->num_views);
+    printf("num_cams: %d\n", gnd->num_cams);
+    printf("num_factors: %d\n", gnd->num_factors);
+
+    // Fiducial
+    {
+      real_t dr[3] = {0};
+      real_t dtheta = 0.0;
+      pose_diff2(gnd->fiducial_exts.data, est->fiducial_exts.data, dr, &dtheta);
+      printf("fiducial ");
+      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
+      printf("dtheta: %f\n", dtheta);
+    }
+
+    // Links
+    for (int link_idx = 0; link_idx < est->num_links; link_idx++) {
+      real_t dr[3] = {0};
+      real_t dtheta = 0.0;
+      pose_diff2(gnd->links[link_idx].data,
+                 est->links[link_idx].data,
+                 dr,
+                 &dtheta);
+      printf("link_exts[%d] ", link_idx);
+      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
+      printf("dtheta: %f\n", dtheta);
+    }
+
+    // Joints
+    real_t joints[3] = {0};
+    for (int view_idx = 0; view_idx < gnd->num_views; view_idx++) {
+      for (int joint_idx = 0; joint_idx < gnd->num_joints; joint_idx++) {
+        const real_t gnd_angle = gnd->joints[view_idx][joint_idx].data[0];
+        const real_t est_angle = est->joints[view_idx][joint_idx].data[0];
+        joints[joint_idx] += fabs(gnd_angle - est_angle);
+      }
+    }
+    for (int joint_idx = 0; joint_idx < gnd->num_joints; joint_idx++) {
+      printf("joint[%d] total diff: %f\n", joint_idx, joints[joint_idx]);
+    }
+
+    // Camera extrinsics
+    for (int cam_idx = 0; cam_idx < est->num_cams; cam_idx++) {
+      real_t dr[3] = {0};
+      real_t dtheta = 0.0;
+      pose_diff2(gnd->cam_exts[cam_idx].data,
+                 est->cam_exts[cam_idx].data,
+                 dr,
+                 &dtheta);
+      printf("cam_exts[%d] ", cam_idx);
+      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
+      printf("dtheta: %f\n", dtheta);
+    }
+
+    // Camera parameters
+    for (int cam_idx = 0; cam_idx < est->num_cams; cam_idx++) {
+      real_t *cam_gnd = gnd->cam_params[cam_idx].data;
+      real_t *cam_est = est->cam_params[cam_idx].data;
+      real_t diff[8] = {0};
+      vec_sub(cam_gnd, cam_est, diff, 8);
+
+      printf("cam_params[%d] ", cam_idx);
+      print_vector("diff", diff, 8);
+    }
+  }
+  printf("\n");
+}
+
 int test_calib_gimbal_solve() {
   // Setup
   const char *data_path = "/tmp/sim_gimbal";
@@ -3936,80 +4012,24 @@ int test_calib_gimbal_solve() {
 
     // Perturb
     real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    pose_vector_update(calib_est->fiducial_exts.data, dx);
-    pose_vector_update(calib_est->cam_exts[0].data, dx);
-    pose_vector_update(calib_est->cam_exts[1].data, dx);
+    // pose_vector_update(calib_est->fiducial_exts.data, dx);
+    // pose_vector_update(calib_est->cam_exts[0].data, dx);
+    // pose_vector_update(calib_est->cam_exts[1].data, dx);
     // for (int link_idx = 0; link_idx < 3; link_idx++) {
     //   pose_vector_update(calib_est->links[link_idx].data, dx);
     // }
-    // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
-    //   for (int joint_idx = 0; joint_idx < 3; joint_idx++) {
-    //     calib_est->joints[view_idx][joint_idx].data[0] += 0.1;
-    //   }
-    // }
+    for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+      for (int joint_idx = 0; joint_idx < 3; joint_idx++) {
+        calib_est->joints[view_idx][joint_idx].data[0] += 0.1;
+      }
+    }
     // printf("\n");
 
     //     printf("Initial:\n");
     //     calib_gimbal_print(calib_est);
     //     printf("\n");
   }
-
-  // Compare estimated vs ground-truth
-  {
-    printf("num_views: %d\n", calib_gnd->num_views);
-    printf("num_cams: %d\n", calib_gnd->num_cams);
-    printf("num_factors: %d\n", calib_gnd->num_factors);
-
-    // Fiducial
-    {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->fiducial_exts.data,
-                 calib_est->fiducial_exts.data,
-                 dr,
-                 &dtheta);
-      printf("fiducial ");
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Links
-    for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->links[link_idx].data,
-                 calib_est->links[link_idx].data,
-                 dr,
-                 &dtheta);
-      printf("link_exts[%d] ", link_idx);
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Camera extrinsics
-    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->cam_exts[cam_idx].data,
-                 calib_est->cam_exts[cam_idx].data,
-                 dr,
-                 &dtheta);
-      printf("cam_exts[%d] ", cam_idx);
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Camera parameters
-    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
-      real_t *cam_gnd = calib_gnd->cam_params[cam_idx].data;
-      real_t *cam_est = calib_est->cam_params[cam_idx].data;
-      real_t diff[8] = {0};
-      vec_sub(cam_gnd, cam_est, diff, 8);
-
-      printf("cam_params[%d] ", cam_idx);
-      print_vector("diff", diff, 8);
-    }
-  }
+  compare_gimbal_calib(calib_gnd, calib_est);
 
   // Solve
   solver_t solver;
@@ -4017,63 +4037,7 @@ int test_calib_gimbal_solve() {
   solver.param_order_func = &calib_gimbal_param_order;
   solver.linearize_func = &calib_gimbal_linearize;
   solver_solve(&solver, calib_est);
-
-  // Compare estimated vs ground-truth
-  {
-    printf("num_views: %d\n", calib_gnd->num_views);
-    printf("num_cams: %d\n", calib_gnd->num_cams);
-    printf("num_factors: %d\n", calib_gnd->num_factors);
-
-    // Fiducial
-    {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->fiducial_exts.data,
-                 calib_est->fiducial_exts.data,
-                 dr,
-                 &dtheta);
-      printf("fiducial ");
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Links
-    for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->links[link_idx].data,
-                 calib_est->links[link_idx].data,
-                 dr,
-                 &dtheta);
-      printf("link_exts[%d] ", link_idx);
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Camera extrinsics
-    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->cam_exts[cam_idx].data,
-                 calib_est->cam_exts[cam_idx].data,
-                 dr,
-                 &dtheta);
-      printf("cam_exts[%d] ", cam_idx);
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Camera parameters
-    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
-      real_t *cam_gnd = calib_gnd->cam_params[cam_idx].data;
-      real_t *cam_est = calib_est->cam_params[cam_idx].data;
-      real_t diff[8] = {0};
-      vec_sub(cam_gnd, cam_est, diff, 8);
-
-      printf("cam_params[%d] ", cam_idx);
-      print_vector("diff", diff, 8);
-    }
-  }
+  compare_gimbal_calib(calib_gnd, calib_est);
 
   // printf("Estimated:\n");
   // calib_gimbal_print(calib);
