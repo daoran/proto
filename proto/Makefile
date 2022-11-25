@@ -45,7 +45,7 @@ CFLAGS := \
 	$(TIS_CFLAGS)
 
 ifeq ($(BUILD_TYPE), debug)
-	CFLAGS += -g -Wall -Wpedantic
+	CFLAGS += -g -Wall -Wpedantic -fsanitize=address -static-libasan
 else
 	CFLAGS += -O3 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG
 endif

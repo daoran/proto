@@ -8,7 +8,7 @@
 #define USE_CBLAS
 #define USE_LAPACK
 #define USE_SUITESPARSE
-#define USE_CERES
+// #define USE_CERES
 #define USE_STB
 
 // #define USE_GUI
@@ -1503,9 +1503,7 @@ typedef struct calib_gimbal_view_t {
   int *corner_indices;
   real_t **object_points;
   real_t **keypoints;
-
-  calib_gimbal_factor_t factors[1000];
-  int num_factors;
+  calib_gimbal_factor_t *factors;
 } calib_gimbal_view_t;
 
 typedef struct calib_gimbal_t {
@@ -1516,6 +1514,8 @@ typedef struct calib_gimbal_t {
   int fix_cam_exts;
   int fix_links;
   int fix_joints;
+
+  timestamp_t *timestamps;
 
   extrinsics_t fiducial_exts;
   extrinsics_t gimbal_exts;
