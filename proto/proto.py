@@ -7804,23 +7804,89 @@ class GimbalSim:
     if fix_gimbal is True:
       pose_data.append(copy.deepcopy(self.T_WB))
 
+    # Perturb Yaw
+    yaw_start = deg2rad(-45)
+    yaw_end = deg2rad(45)
+    yaw_diff = deg2rad(10)
+    yaw = yaw_start
+
+    while yaw <= yaw_end:
+      # Perturb joint angles for a different view
+      self.gimbal.joint_angles[0] = yaw
+      self.gimbal.joint_angles[1] = 0.0
+      self.gimbal.joint_angles[2] = 0.0
+      joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+
+      # Get camera data
+      cam_data = []
+      for cam_idx in range(len(self.cam_params)):
+        cam_data.append(self.get_camera_measurements(cam_idx))
+      view_data.append(cam_data)
+
+      # Update
+      yaw += yaw_diff
+
+    # Perturb Roll
+    roll_start = deg2rad(-45)
+    roll_end = deg2rad(45)
+    roll_diff = deg2rad(10)
+    roll = roll_start
+
+    while roll <= roll_end:
+      # Perturb joint angles for a different view
+      self.gimbal.joint_angles[0] = 0.0
+      self.gimbal.joint_angles[1] = roll
+      self.gimbal.joint_angles[2] = 0.0
+      joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+
+      # Get camera data
+      cam_data = []
+      for cam_idx in range(len(self.cam_params)):
+        cam_data.append(self.get_camera_measurements(cam_idx))
+      view_data.append(cam_data)
+
+      # Update
+      roll += roll_diff
+
+    # Perturb pitch
+    pitch_start = deg2rad(-45)
+    pitch_end = deg2rad(45)
+    pitch_diff = deg2rad(10)
+    pitch = pitch_start
+
+    while pitch <= pitch_end:
+      # Perturb joint angles for a different view
+      self.gimbal.joint_angles[0] = 0.0
+      self.gimbal.joint_angles[1] = pitch
+      self.gimbal.joint_angles[2] = 0.0
+      joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+
+      # Get camera data
+      cam_data = []
+      for cam_idx in range(len(self.cam_params)):
+        cam_data.append(self.get_camera_measurements(cam_idx))
+      view_data.append(cam_data)
+
+      # Update
+      pitch += pitch_diff
+
     # Simulate Random joint angles
-    for view_idx in range(num_views):
+    for _ in range(num_views):
       # Perturb joint angles for a different view
       self.gimbal.joint_angles[0] = np.random.uniform(-0.5, 0.5)
       self.gimbal.joint_angles[1] = np.random.uniform(-0.5, 0.5)
       self.gimbal.joint_angles[2] = np.random.uniform(-1.0, 1.0)
       joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
 
-      # Perturb body pose
-      if fix_gimbal is False:
-        self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
-        self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
-        self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
-        self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
-        self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
-        self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
-        pose_data.append(copy.deepcopy(self.T_WB))
+      # # Perturb body pose
+      # if fix_gimbal is False:
+      #   self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
+      #   self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
+      #   self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
+      #   self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
+      #   self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
+      #   self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
+      #   pose_data.append(copy.deepcopy(self.T_WB))
 
       # Get camera data
       cam_data = []
