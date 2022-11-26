@@ -4035,7 +4035,7 @@ int test_calib_gimbal_solve() {
   solver_t solver;
   solver_setup(&solver);
   solver.param_order_func = &calib_gimbal_param_order;
-  solver.linearize_func = &calib_gimbal_linearize;
+  solver.linearize_func = &calib_gimbal_linearize_compact;
   solver_solve(&solver, calib_est);
   compare_gimbal_calib(calib_gnd, calib_est);
 
@@ -4377,7 +4377,7 @@ int test_sim_gimbal_solve() {
   // solver_t solver;
   // solver_setup(&solver);
   // solver.param_order_func = &calib_gimbal_param_order;
-  // solver.linearize_func = &calib_gimbal_linearize;
+  // solver.linearize_func = &calib_gimbal_linearize_compact;
   // solver_solve(&solver, calib_est);
 
   // Clean up

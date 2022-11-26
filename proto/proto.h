@@ -1526,6 +1526,16 @@ typedef struct solver_t {
 
 void solver_setup(solver_t *solver);
 real_t solver_cost(const real_t *r, const int r_size);
+void solver_fill_jacobian(param_order_t *hash,
+                          int num_params,
+                          real_t **params,
+                          real_t **jacs,
+                          real_t *r,
+                          int r_size,
+                          int sv_size,
+                          int J_row_idx,
+                          real_t *J,
+                          real_t *g);
 void solver_fill_hessian(param_order_t *hash,
                          int num_params,
                          real_t **params,
@@ -1605,11 +1615,18 @@ void calib_gimbal_free(calib_gimbal_t *calib);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
 param_order_t *calib_gimbal_param_order(const void *data, int *sv_size);
 void calib_gimbal_linearize(const void *data,
-                            const int sv_size,
+                            const int J_rows,
+                            const int J_cols,
                             param_order_t *hash,
-                            real_t *H,
+                            real_t *J,
                             real_t *g,
                             real_t *r);
+void calib_gimbal_linearize_compact(const void *data,
+                                    const int sv_size,
+                                    param_order_t *hash,
+                                    real_t *H,
+                                    real_t *g,
+                                    real_t *r);
 
 /******************************************************************************
  * DATASET

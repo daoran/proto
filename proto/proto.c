@@ -8716,6 +8716,53 @@ real_t solver_cost(const real_t *r, const int r_size) {
 }
 
 /**
+ * Fill Jacobian matrix
+ */
+void solver_fill_jacobian(param_order_t *hash,
+                          int num_params,
+                          real_t **params,
+                          real_t **jacs,
+                          real_t *r,
+                          int r_size,
+                          int sv_size,
+                          int J_row_idx,
+                          real_t *J,
+                          real_t *g) {
+  for (int i = 0; i < num_params; i++) {
+    // Check if i-th parameter is fixed
+    if (hmgets(hash, params[i]).fix) {
+      continue;
+    }
+
+    // Get i-th parameter and corresponding Jacobian
+    int idx_i = hmgets(hash, params[i]).idx;
+    int size_i = param_local_size(hmgets(hash, params[i]).type);
+    const real_t *J_i = jacs[i];
+
+    // Fill in the Jacobian
+    const int rs = J_row_idx;
+    const int re = rs + r_size - 1;
+    const int cs = idx_i;
+    const int ce = idx_i + size_i - 1;
+    mat_block_set(J, sv_size, rs, re, cs, ce, J_i);
+
+    // Fill in the R.H.S of H dx = g, where g = -J_i' * r
+    real_t *Jt_i = MALLOC(real_t, r_size * size_i);
+    real_t *g_i = MALLOC(real_t, size_i);
+    mat_transpose(J_i, r_size, size_i, Jt_i);
+    mat_scale(Jt_i, size_i, r_size, -1);
+    dot(Jt_i, size_i, r_size, r, r_size, 1, g_i);
+    for (int g_idx = 0; g_idx < size_i; g_idx++) {
+      g[idx_i + g_idx] += g_i[g_idx];
+    }
+
+    // Clean up
+    free(g_i);
+    free(Jt_i);
+  }
+}
+
+/**
  * Fill Hessian matrix
  */
 void solver_fill_hessian(param_order_t *hash,
@@ -9066,12 +9113,12 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
  * Setup gimbal calibration data
  */
 void calib_gimbal_setup(calib_gimbal_t *calib) {
-  calib->fix_fiducial_exts = 1;
+  calib->fix_fiducial_exts = 0;
   calib->fix_gimbal_exts = 1;
-  calib->fix_poses = 1;
-  calib->fix_links = 0;
+  calib->fix_poses = 0;
+  calib->fix_links = 1;
   calib->fix_joints = 0;
-  calib->fix_cam_params = 1;
+  calib->fix_cam_params = 0;
   calib->fix_cam_exts = 1;
 
   calib->timestamps = NULL;
@@ -9492,11 +9539,17 @@ static void calib_gimbal_load_views(calib_gimbal_t *calib,
         const int corner_idx = view->corner_indices[i];
         const real_t *p_FFi = view->object_points[i];
         const real_t *z = view->keypoints[i];
+        pose_t *pose = NULL;
+        if (calib->num_poses == 1) {
+          pose = &calib->poses[0];
+        } else {
+          pose = &calib->poses[view_idx];
+        }
 
         calib_gimbal_factor_setup(&view->factors[i],
                                   &calib->fiducial_exts,
                                   &calib->gimbal_exts,
-                                  &calib->poses[view_idx],
+                                  pose,
                                   &calib->links[0],
                                   &calib->links[1],
                                   &calib->joints[view_idx][0],
@@ -9554,8 +9607,8 @@ param_order_t *calib_gimbal_param_order(const void *data, int *sv_size) {
     }
   }
   // -- Add poses
-  for (int view_idx = 0; view_idx < calib->num_poses; view_idx++) {
-    void *key = &calib->poses[view_idx].data;
+  for (int pose_idx = 0; pose_idx < calib->num_poses; pose_idx++) {
+    void *key = &calib->poses[pose_idx].data;
     param_order_t kv = {key, col_idx, POSE_PARAM, calib->fix_poses};
     hmputs(hash, kv);
     if (calib->fix_poses == 0) {
@@ -9613,11 +9666,47 @@ param_order_t *calib_gimbal_param_order(const void *data, int *sv_size) {
 }
 
 void calib_gimbal_linearize(const void *data,
-                            const int sv_size,
+                            const int J_rows,
+                            const int J_cols,
                             param_order_t *hash,
-                            real_t *H,
+                            real_t *J,
                             real_t *g,
                             real_t *r) {
+  // Evaluate factors
+  calib_gimbal_t *calib = (calib_gimbal_t *) data;
+  int J_row_idx = 0;
+
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_gimbal_factor_t *factor = &view->factors[factor_idx];
+        calib_gimbal_factor_eval(factor);
+        r[factor_idx * 2] = factor->r[0];
+        r[factor_idx * 2 + 1] = factor->r[1];
+
+        solver_fill_jacobian(hash,
+                             factor->num_params,
+                             factor->params,
+                             factor->jacs,
+                             factor->r,
+                             factor->r_size,
+                             J_cols,
+                             J_row_idx,
+                             J,
+                             g);
+        J_row_idx += 2;
+      } // For each factor
+    }   // For each cameras
+  }     // For each views
+}
+
+void calib_gimbal_linearize_compact(const void *data,
+                                    const int sv_size,
+                                    param_order_t *hash,
+                                    real_t *H,
+                                    real_t *g,
+                                    real_t *r) {
   // Evaluate factors
   calib_gimbal_t *calib = (calib_gimbal_t *) data;
 
@@ -9629,7 +9718,6 @@ void calib_gimbal_linearize(const void *data,
         calib_gimbal_factor_eval(factor);
         r[factor_idx * 2] = factor->r[0];
         r[factor_idx * 2 + 1] = factor->r[1];
-        factor_idx++;
 
         solver_fill_hessian(hash,
                             factor->num_params,
