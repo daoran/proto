@@ -29,6 +29,8 @@
 [submodule "third_party/src/ceres-solver"]
 	path = third_party/src/ceres-solver
 	url = https://github.com/ceres-solver/ceres-solver
+        ignore = dirty
 [submodule "third_party/src/DBoW2"]
 	path = third_party/src/DBoW2
 	url = https://github.com/dorian3d/DBoW2
+        ignore = dirty
