@@ -7415,8 +7415,8 @@ class MultiPlot:
 ###############################################################################
 
 
-class GimbalKinematics:
-  """ Gimbal Kinematics """
+class GimbalPoEKinematics:
+  """ Gimbal PoE Kinematics """
   def __init__(self, M, screw_axes, joint_angles):
     self.M = M
     self.screw_axes = screw_axes
@@ -7426,7 +7426,7 @@ class GimbalKinematics:
     """ Set joint angle """
     self.joint_angles[joint_idx] = joint_angle
 
-  def forward_kinematics(self):
+  def forward_kinematics(self, **kwargs):
     """ Forward kinematics """
     T = np.eye(4)
 
@@ -7434,6 +7434,36 @@ class GimbalKinematics:
       T = T @ poe(s, theta)
 
     return T @ self.M
+
+
+class GimbalKinematics:
+  """ Gimbal Kinematics """
+  def __init__(self, links, joint_angles):
+    self.links = links
+    self.joint_angles = joint_angles
+
+  def set_joint_angle(self, joint_idx, joint_angle):
+    """ Set joint angle """
+    self.joint_angles[joint_idx] = joint_angle
+
+  def forward_kinematics(self, **kwargs):
+    """ Forward kinematics """
+    joint_idx = kwargs.get("joint_idx", len(self.joint_angles) - 1)
+    T = np.eye(4)
+
+    for i, joint_angle in enumerate(self.joint_angles[:joint_idx + 1]):
+      if i == 0:
+        T_link = np.eye(4)
+      else:
+        T_link = pose2tf(self.links[i - 1])
+
+      r = np.zeros((3,))
+      C = rotz(joint_angle)
+      T_joint = tf(C, r)
+
+      T = T @ T_link @ T_joint
+
+    return T
 
 
 class CalibGimbalPoEFactor(Factor):
@@ -7450,7 +7480,7 @@ class CalibGimbalPoEFactor(Factor):
   def get_residual(self, fiducial, gimbal_pose, gimbal_home, gimbal_links,
                    gimbal_joints, cam_exts, cam_params):
     """ Get Residual """
-    gimbal = GimbalKinematics(gimbal_home, gimbal_links, gimbal_joints)
+    gimbal = GimbalPoEKinematics(gimbal_home, gimbal_links, gimbal_joints)
 
     # Project feature to image plane
     T_WB = gimbal_pose
@@ -7554,29 +7584,16 @@ class CalibGimbalPoEFactor(Factor):
 class GimbalSim:
   """ Gimbal Simulation """
   def __init__(self):
-    self.joint_angles = [0.0, 0.0, 0.0]
-    L1 = 0.3
-    L2 = 0.1
-    self.screw_axes = np.array([
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-        [0.0, -1.0, 0.0, 0.0, 0.0, -L1],
-        [1.0, 0.0, 0.0, 0.0, -L2, 0.0],
-    ])
-    self.M = np.array([
-        [0.0, 0.0, 1.0, L1],
-        [0.0, 1.0, 0.0, 0.0],
-        [-1.0, 0.0, 0.0, -L2],
-        [0.0, 0.0, 0.0, 1.0],
-    ])
-    self.T_WF = None
     self.T_WB = None
+    self.T_BM0 = None
+    self.links = []
+    self.joint_angles = []
     self.cam_params = []
     self.cam_exts = []
-    self.gimbal = GimbalKinematics(self.M, self.screw_axes, self.joint_angles)
 
     # Setup
     self._setup_calib_target()
-    self._setup_gimbal_pose()
+    self._setup_gimbal()
     self._setup_camera_params()
     self._setup_camera_extrinsics()
 
@@ -7584,18 +7601,57 @@ class GimbalSim:
     """ Setup calibration target """
     self.calib_target = AprilGrid()
     C_WF = euler321(-pi / 2.0, 0.0, pi / 2.0)
-    r_WF = np.array([0.8, 0.0, 0.0])
+    r_WF = np.array([0.3, 0.0, 0.0])
     self.T_WF = tf(C_WF, r_WF)
 
-  def _setup_gimbal_pose(self):
-    """ Setup gimbal pose """
+  def _setup_gimbal(self):
+    # Gimbal pose
     offset_x = 0.0
     offset_y = -self.calib_target.get_dimensions()[0] / 2.0
-    offset_z = self.calib_target.get_dimensions()[1] / 2.0
-
+    offset_z = self.calib_target.get_dimensions()[1] / 2.0 - 0.2
     C_WB = euler321(0.01, 0.01, 0.01)
     r_WB = np.array([offset_x, offset_y, offset_z])
     self.T_WB = tf(C_WB, r_WB)
+
+    # Body to gimbal extrinsics
+    C_BM0 = euler321(0.01, 0.01, 0.01)
+    r_BM0 = np.array([0.001, 0.001, 0.001])
+    self.T_BM0 = tf(C_BM0, r_BM0)
+
+    # Gimbal links
+    # -- Roll link
+    C_L0M1 = euler321(0.0, deg2rad(90.0), 0.0)
+    r_L0M1 = np.array([-0.1, 0.0, 0.15])
+    T_L0M1 = tf(C_L0M1, r_L0M1)
+    self.links.append(tf2pose(T_L0M1))
+    # -- Pitch link
+    C_L1M2 = euler321(0.0, 0.0, deg2rad(-90.0))
+    r_L1M2 = np.array([0.0, -0.05, 0.1])
+    T_L1M2 = tf(C_L1M2, r_L1M2)
+    self.links.append(tf2pose(T_L1M2))
+
+    # Gimbal joint angles
+    self.joint_angles = [0.0, 0.0, 0.0]
+
+    # Gimbal
+    self.gimbal = GimbalKinematics(self.links, self.joint_angles)
+
+  # def _setup_poe_gimbal():
+  # L1 = 0.3
+  # L2 = 0.1
+  # self.screw_axes = np.array([
+  #     [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+  #     [0.0, -1.0, 0.0, 0.0, 0.0, -L1],
+  #     [1.0, 0.0, 0.0, 0.0, -L2, 0.0],
+  # ])
+  # self.M = np.array([
+  #     [0.0, 0.0, 1.0, L1],
+  #     [0.0, 1.0, 0.0, 0.0],
+  #     [-1.0, 0.0, 0.0, -L2],
+  #     [0.0, 0.0, 0.0, 1.0],
+  # ])
+  # self.gimbal = GimbalPoEKinematics(self.M, self.screw_axes,
+  #                                   self.joint_angles)
 
   def _setup_camera_params(self):
     """ Setup Camera Parameters """
@@ -7622,23 +7678,23 @@ class GimbalSim:
   def _setup_camera_extrinsics(self):
     """ Setup camera extrinsics """
     # cam0 extrinsics
-    C_EC0 = euler321(deg2rad(-90.0), deg2rad(0.0), 0.0)
-    r_EC0 = np.array([0.0, 0.1, 0.0])
-    T_EC0 = tf(C_EC0, r_EC0)
-    self.cam_exts.append(T_EC0)
+    C_L2C0 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
+    r_L2C0 = np.array([0.0, -0.05, 0.12])
+    T_L2C0 = tf(C_L2C0, r_L2C0)
+    self.cam_exts.append(T_L2C0)
 
     # cam1 extrinsics
-    C_EC1 = euler321(deg2rad(-90.0), deg2rad(0.0), 0.0)
-    r_EC1 = np.array([0.0, -0.1, 0.0])
-    T_EC1 = tf(C_EC1, r_EC1)
-    self.cam_exts.append(T_EC1)
+    C_L2C1 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
+    r_L2C1 = np.array([0.0, -0.05, -0.12])
+    T_L2C1 = tf(C_L2C1, r_L2C1)
+    self.cam_exts.append(T_L2C1)
 
   def get_camera_measurements(self, cam_idx):
     """ Simulate camera frame """
     cam_geom = self.cam_params[cam_idx].data
-    T_BE = self.gimbal.forward_kinematics()
-    T_ECi = self.cam_exts[cam_idx]
-    T_WCi = self.T_WB @ T_BE @ T_ECi
+    T_M0L2 = self.gimbal.forward_kinematics(joint_idx=2)
+    T_L2Ci = self.cam_exts[cam_idx]
+    T_WCi = self.T_WB @ self.T_BM0 @ T_M0L2 @ T_L2Ci
     T_CiW = np.linalg.inv(T_WCi)
 
     tag_ids = []
@@ -7664,6 +7720,36 @@ class GimbalSim:
 
     return cam_data
 
+  def visualize(self):
+    """ Visualize """
+    T_M0L0 = self.gimbal.forward_kinematics(joint_idx=0)
+    T_M0L1 = self.gimbal.forward_kinematics(joint_idx=1)
+    T_M0L2 = self.gimbal.forward_kinematics(joint_idx=2)
+    T_WL0 = self.T_WB @ self.T_BM0 @ T_M0L0
+    T_WL1 = self.T_WB @ self.T_BM0 @ T_M0L1
+    T_WL2 = self.T_WB @ self.T_BM0 @ T_M0L2
+    T_WC0 = T_WL2 @ self.cam_exts[0]
+    T_WC1 = T_WL2 @ self.cam_exts[1]
+
+    # Visualize
+    plt.figure()
+    ax = plt.axes(projection='3d')
+
+    # Plot transforms
+    self.calib_target.plot(ax, self.T_WF)
+    plot_tf(ax, T_WL0, name="Link0", size=0.05)
+    plot_tf(ax, T_WL1, name="Link1", size=0.05)
+    plot_tf(ax, T_WL2, name="Link2", size=0.05)
+    plot_tf(ax, T_WC0, name="cam0", size=0.05)
+    plot_tf(ax, T_WC1, name="cam1", size=0.05)
+
+    # Plot settings
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
+
   def plot_camera_frame(self, **kwargs):
     """ Plot camera frame """
     figsize = kwargs.get("figsize", (1200, 600))
@@ -7687,6 +7773,7 @@ class GimbalSim:
     ax0.set_ylabel('pixel')
     ax0.xaxis.tick_top()
     ax0.xaxis.set_label_position('top')
+    ax0.set_title("Camera 0")
     plt.gca().set_aspect('equal', adjustable='box')
 
     # -- Plot cam1
@@ -7697,34 +7784,51 @@ class GimbalSim:
     ax1.set_ylabel('pixel')
     ax1.xaxis.tick_top()
     ax1.xaxis.set_label_position('top')
+    ax1.set_title("Camera 1")
     plt.gca().set_aspect('equal', adjustable='box')
 
     plt.show()
 
-  def visualize(self):
-    """ Visualize """
-    T_BE = self.gimbal.forward_kinematics()
-    T_WE = self.T_WB @ T_BE
-    T_WC0 = self.T_WB @ T_BE @ self.cam_exts[0]
-    T_WC1 = self.T_WB @ T_BE @ self.cam_exts[1]
+  def simulate(self, **kwargs):
+    """ Simulate """
+    # Settings
+    num_views = kwargs.get("num_views", 10)
+    fix_gimbal = kwargs.get("fix_gimbal", True)
 
-    # Visualize
-    plt.figure()
-    ax = plt.axes(projection='3d')
+    # Simulation data
+    pose_data = []
+    view_data = []
+    joint_data = []
 
-    # Plot transforms
-    self.calib_target.plot(ax, self.T_WF)
-    plot_tf(ax, self.T_WB, name="BASE", size=0.05)
-    plot_tf(ax, T_WE, name="END", size=0.05)
-    plot_tf(ax, T_WC0, name="cam0", size=0.05)
-    plot_tf(ax, T_WC1, name="cam1", size=0.05)
+    # Fix gimbal pose?
+    if fix_gimbal is True:
+      pose_data.append(copy.deepcopy(self.T_WB))
 
-    # Plot settings
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
-    plot_set_axes_equal(ax)
-    plt.show()
+    # Simulate Random joint angles
+    for view_idx in range(num_views):
+      # Perturb joint angles for a different view
+      self.gimbal.joint_angles[0] = np.random.uniform(-0.5, 0.5)
+      self.gimbal.joint_angles[1] = np.random.uniform(-0.5, 0.5)
+      self.gimbal.joint_angles[2] = np.random.uniform(-1.0, 1.0)
+      joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+
+      # Perturb body pose
+      if fix_gimbal is False:
+        self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
+        self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
+        self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
+        pose_data.append(copy.deepcopy(self.T_WB))
+
+      # Get camera data
+      cam_data = []
+      for cam_idx in range(len(self.cam_params)):
+        cam_data.append(self.get_camera_measurements(cam_idx))
+      view_data.append(cam_data)
+
+    return (pose_data, view_data, joint_data)
 
   @staticmethod
   def _setup_save_dir():
@@ -7762,16 +7866,16 @@ class GimbalSim:
       tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
       calib_file.write(f"cam{cam_idx}_exts: [{tf_str}]\n")
     # -- Save gimbal links
-    # for link_idx, link_ext in enumerate(self.links):
-    #   rx, ry, rz = tf_trans(pose2tf(link_ext))
-    #   qw, qx, qy, qz = tf_quat(pose2tf(link_ext))
-    #   tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-    #   calib_file.write(f"link{link_idx}_exts: [{tf_str}]\n")
-    # # -- Save gimbal extrinsics
-    # rx, ry, rz = tf_trans(self.T_WB)
-    # qw, qx, qy, qz = tf_quat(self.T_WB)
-    # tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-    # calib_file.write(f"gimbal_exts: [{tf_str}]\n")
+    for link_idx, link_ext in enumerate(self.links):
+      rx, ry, rz = tf_trans(pose2tf(link_ext))
+      qw, qx, qy, qz = tf_quat(pose2tf(link_ext))
+      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+      calib_file.write(f"link{link_idx}_exts: [{tf_str}]\n")
+    # -- Save gimbal extrinsics
+    rx, ry, rz = tf_trans(self.T_WB)
+    qw, qx, qy, qz = tf_quat(self.T_WB)
+    tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+    calib_file.write(f"gimbal_exts: [{tf_str}]\n")
     # -- Save fiducial extrinsics
     rx, ry, rz = tf_trans(self.T_WF)
     qw, qx, qy, qz = tf_quat(self.T_WF)
@@ -7781,11 +7885,11 @@ class GimbalSim:
     calib_file.close()
 
   @staticmethod
-  def _save_camera_data(self, view_data):
+  def _save_camera_data(view_data):
     """ Save camera data """
     # Save camera data
-    for cam_idx, view in enumerate(view_data):
-      for view_idx, cam_data in enumerate(view):
+    for view_idx, view_set in enumerate(view_data):
+      for cam_idx, cam_data in enumerate(view_set):
         view_file = open(f"/tmp/sim_gimbal/cam{cam_idx}/{view_idx}.sim", "w")
         view_file.write(f"num_corners: {cam_data['num_measurements']}\n")
         view_file.write("\n")
@@ -7817,524 +7921,110 @@ class GimbalSim:
       poses_file.write(f"{tf_str}\n")
     poses_file.close()
 
-  @staticmethod
-  def _save_joints_data(view_data, joint_angle_data):
+  def _save_joints_data(self, view_data, joint_data):
     """ Save joints data """
+    num_joints = len(self.joint_angles)
     joints_file = open(f"/tmp/sim_gimbal/joint_angles.sim", "w")
-    joints_file.write(f"num_views: {len(view_data[0])}\n")
+    joints_file.write(f"num_views: {len(view_data)}\n")
     joints_file.write(f"num_joints: {num_joints}\n")
     joints_file.write(f"\n")
     joints_str = ','.join([f"joint{i}" for i in range(num_joints)])
     joints_file.write(f"#ts,{joints_str}\n")
-    for i, data in enumerate(joint_angle_data):
+    for i, data in enumerate(joint_data):
       joints_str = ','.join([str(x) for x in data])
       joints_file.write(f"{i},{joints_str}\n")
     joints_file.close()
 
-  def save(self):
+  def save(self, sim_data):
     """ Save """
+    pose_data, view_data, joint_data = sim_data
     self._setup_save_dir()
     self._save_calib_file()
-    # self._save_camera_data()
-    # self._save_poses_data()
-    # self._save_joints_data()
+    self._save_camera_data(view_data)
+    self._save_poses_data(pose_data)
+    self._save_joints_data(view_data, joint_data)
 
-  def simulate(self, num_views):
-    """ Simulate """
-    pose_data = []
-    view_data = [[] for _ in range(len(self.cam_params))]
-    joint_data = []
+  def solve(self, sim_data):
+    """ Solve """
+    (pose_data, _, _) = sim_data
 
-    for view_idx in range(num_views):
-      # Perturb joint angles for a different view
-      self.gimbal.joint_angles[0] = np.random.uniform(-0.5, 0.5)
-      self.gimbal.joint_angles[1] = np.random.uniform(-0.5, 0.5)
-      self.gimbal.joint_angles[2] = np.random.uniform(-1.0, 1.0)
-      joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+    fix_fiducial = False
+    fix_gimbal_exts = False
+    fix_gimbal_pose = False
+    fix_gimbal_links = [False, False]
+    fix_gimbal_joints = [False, False, False]
+    fix_cam_exts = [False, False]
+    fix_cam_params = [False, False]
 
-      # Perturb body pose
-      self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
-      self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
-      self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
-      self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
-      self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
-      self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
-      pose_data.append(copy.deepcopy(self.T_WB))
-
-      for cam_idx in range(len(self.cam_params)):
-        cam_data = self.get_camera_measurements(cam_idx)
-        view_data[cam_idx].append(cam_data)
-
-    return (pose_data, view_data, joint_data)
-
-
-class GimbalSandbox:
-  """ Gimbal Sandbox"""
-  def __init__(self):
-    # Calibration target
-    self.calib_target = None
-    self.T_WF = None
-
-    # Gimbal links and joint angles
-    self.T_WB = None
-    self.T_BM0 = None
-    self.links = []
-    self.joint_angles = [0.01, 0.02, 0.03]
-
-    # Camera parameters and extrinsics
-    self.cam_params = []
-    self.cam_exts = []
-
-    # Setup
-    self._setup_calib_target()
-    self._setup_camera_params()
-    self._setup_gimbal_pose()
-    self._setup_gimbal_extrinsics()
-    self._setup_gimbal_links()
-    self._setup_camera_extrinsics()
-
-  def _setup_calib_target(self):
-    """ Setup Calibration Target """
-    self.calib_target = AprilGrid()
-
-    C_WF = euler321(-pi / 2.0, 0.0, pi / 2.0)
-    r_WF = np.array([0.5, 0.0, 0.0])
-    self.T_WF = tf(C_WF, r_WF)
-
-  def _setup_camera_params(self):
-    """ Setup Camera Parameters """
-    cam_idx = 0
-    res = [640, 480]
-    fov = 120.0
-    fx = focal_length(res[0], fov)
-    fy = focal_length(res[0], fov)
-    cx = res[0] / 2.0
-    cy = res[1] / 2.0
-
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    proj_params = [fx, fy, cx, cy]
-    dist_params = [0.0, 0.0, 0.0, 0.0]
-    params = np.block([*proj_params, *dist_params])
-
-    cam0 = camera_params_setup(cam_idx, res, proj_model, dist_model, params)
-    cam1 = camera_params_setup(cam_idx, res, proj_model, dist_model, params)
-
-    self.cam_params.append(cam0)
-    self.cam_params.append(cam1)
-
-  def _setup_gimbal_pose(self):
-    """ Setup gimbal pose """
-    offset_x = 0.0
-    offset_y = -self.calib_target.get_dimensions()[0] / 2.0
-    offset_z = 0
-
-    C_WB = euler321(0.01, 0.01, 0.01)
-    r_WB = np.array([offset_x, offset_y, offset_z])
-    self.T_WB = tf(C_WB, r_WB)
-
-  def _setup_gimbal_extrinsics(self):
-    # Body to gimbal extrinsics
-    C_BM0 = euler321(0.01, 0.01, 0.01)
-    r_BM0 = np.array([0.001, 0.001, 0.001])
-    self.T_BM0 = tf(C_BM0, r_BM0)
-
-  def _setup_gimbal_links(self):
-    """ Setup gimbal links """
-    # Roll link
-    C_L0M1 = euler321(0.0, deg2rad(90.0), 0.0)
-    r_L0M1 = np.array([-0.1, 0.0, 0.15])
-    T_L0M1 = tf(C_L0M1, r_L0M1)
-    self.links.append(tf2pose(T_L0M1))
-
-    # Pitch link
-    C_L1M2 = euler321(0.0, 0.0, deg2rad(-90.0))
-    r_L1M2 = np.array([0.0, -0.05, 0.1])
-    T_L1M2 = tf(C_L1M2, r_L1M2)
-    self.links.append(tf2pose(T_L1M2))
-
-  def _setup_camera_extrinsics(self):
-    """ Setup camera extrinsics """
-    # cam0 link
-    C_L1C0 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
-    r_L1C0 = np.array([0.0, -0.05, 0.12])
-    T_L1C0 = tf(C_L1C0, r_L1C0)
-    self.cam_exts.append(T_L1C0)
-
-    # cam1 link
-    C_L1C1 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
-    r_L1C1 = np.array([0.0, -0.05, -0.12])
-    T_L1C1 = tf(C_L1C1, r_L1C1)
-    self.cam_exts.append(T_L1C1)
-
-  def set_joint_angle(self, joint_idx, angle):
-    """ Set joint angle """
-    self.joint_angles[joint_idx] = angle
-
-  def get_link_tf(self, joint_idx):
-    """ Get link_tf """
-    ext = self.T_WB
-
-    for i, joint_angle in enumerate(self.joint_angles[:joint_idx + 1]):
-      T_LiMi = None
-      if i == 0:
-        T_LiMi = self.T_BM0
-      else:
-        T_LiMi = pose2tf(self.links[i - 1])
-
-      r = np.zeros((3,))
-      C = rotz(joint_angle)
-      T_MiLip1 = tf(C, r)
-
-      ext = ext @ T_LiMi @ T_MiLip1
-
-    return ext
-
-  def get_camera_measurements(self, cam_idx):
-    """ Simulate camera frame """
-    cam_geom = self.cam_params[cam_idx].data
-    T_WL2 = self.get_link_tf(2)
-    T_L2Ci = self.cam_exts[cam_idx]
-    T_WCi = T_WL2 @ T_L2Ci
-    T_CiW = np.linalg.inv(T_WCi)
-
-    tag_ids = []
-    corner_idxs = []
-    object_points = []
-    keypoints = []
-    for (tag_id, corner_idx, p_FFi) in self.calib_target.get_object_points():
-      r_Ci = tf_point(T_CiW @ self.T_WF, p_FFi)
-      status, z = cam_geom.project(self.cam_params[cam_idx].param, r_Ci)
-      if status:
-        tag_ids.append(tag_id)
-        corner_idxs.append(corner_idx)
-        object_points.append(p_FFi)
-        keypoints.append(z)
-
-    cam_data = {
-        "num_measurements": len(tag_ids),
-        "tag_ids": tag_ids,
-        "corner_idxs": corner_idxs,
-        "object_points": np.array(object_points),
-        "keypoints": np.array(keypoints),
-    }
-
-    return cam_data
-
-  def plot_camera_frame(self, **kwargs):
-    """ Plot camera frame """
-    figsize = kwargs.get("figsize", (1200, 600))
-    dpi = kwargs.get("dpi", 96)
-
-    # Camera resolution and measurements
-    cam0_res = self.cam_params[0].data.resolution
-    cam1_res = self.cam_params[1].data.resolution
-    cam0_data = self.get_camera_measurements(0)["keypoints"]
-    cam1_data = self.get_camera_measurements(1)["keypoints"]
-
-    # Setup plot
-    figsize = (figsize[0] / dpi, figsize[1] / dpi)
-    plt.figure(figsize=figsize, dpi=dpi)
-
-    # -- Plot cam0
-    ax0 = plt.subplot(121)
-    ax0.plot(cam0_data[:, 0], cam0_data[:, 1], 'r.')
-    ax0.axis([0, cam0_res[0], cam0_res[1], 0])
-    ax0.set_xlabel('pixel')
-    ax0.set_ylabel('pixel')
-    ax0.xaxis.tick_top()
-    ax0.xaxis.set_label_position('top')
-    plt.gca().set_aspect('equal', adjustable='box')
-
-    # -- Plot cam1
-    ax1 = plt.subplot(122)
-    ax1.plot(cam1_data[:, 0], cam1_data[:, 1], 'r.')
-    ax1.axis([0, cam1_res[0], cam1_res[1], 0])
-    ax1.set_xlabel('pixel')
-    ax1.set_ylabel('pixel')
-    ax1.xaxis.tick_top()
-    ax1.xaxis.set_label_position('top')
-    plt.gca().set_aspect('equal', adjustable='box')
-
-    plt.show()
-
-  def visualize_scene(self):
-    """ Visualize Scene """
-    # Visualize
-    plt.figure()
-    ax = plt.axes(projection='3d')
-    self.calib_target.plot(ax, self.T_WF)
-
-    # -- Plot gimbal links
-    T_WL0 = self.get_link_tf(0)
-    T_WL1 = self.get_link_tf(1)
-    T_WL2 = self.get_link_tf(2)
-    plot_tf(ax, T_WL0, name="Yaw", size=0.05)
-    plot_tf(ax, T_WL1, name="Roll", size=0.05)
-    plot_tf(ax, T_WL2, name="Pitch", size=0.05)
-
-    # -- Plot cameras
-    T_WC0 = T_WL2 @ self.cam_exts[0]
-    T_WC1 = T_WL2 @ self.cam_exts[1]
-    plot_tf(ax, T_WC0, name="cam0", size=0.05)
-    plot_tf(ax, T_WC1, name="cam1", size=0.05)
-
-    # Plot settings
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
-    plot_set_axes_equal(ax)
-    plt.show()
-
-  def simulate(self, save=False):
-    # Setup factor graph
-    check_jacs = False
-    debug = True
     graph = FactorGraph()
-
-    fix_fiducial = True
-    fix_gimbal_exts = True
-    fix_pose = True
-    fix_links = True
-    fix_joints = False
-    fix_cam_exts = True
-    fix_cam = True
-
-    # -- Add cameras
-    cam_params_ids = [
-        graph.add_param(self.cam_params[0]),
-        graph.add_param(self.cam_params[1])
-    ]
-    self.cam_params[0].fix = fix_cam
-    self.cam_params[1].fix = fix_cam
-    cam_exts_ids = [
-        graph.add_param(extrinsics_setup(self.cam_exts[0], fix=fix_cam_exts)),
-        graph.add_param(extrinsics_setup(self.cam_exts[1], fix=fix_cam_exts))
-    ]
-
-    # -- Add fiducial and pose
-    fiducial_id = graph.add_param(pose_setup(0, self.T_WF, fix=fix_fiducial))
-    # pose_id = graph.add_param(pose_setup(0, self.T_WB, fix=fix_pose))
-    gimbal_exts_id = graph.add_param(
-        extrinsics_setup(self.T_BM0, fix=fix_gimbal_exts))
-
-    # -- Add gimbal links
-    link_ids = [
-        graph.add_param(extrinsics_setup(self.links[0], fix=fix_links)),
-        graph.add_param(extrinsics_setup(self.links[1], fix=fix_links)),
-    ]
-
-    # -- Add views
-    num_views = 10
-    num_joints = len(self.joint_angles)
-
+    fiducial_id = None
+    gimbal_exts_id = None
+    gimbal_pose_id = None
+    gimbal_link_ids = []
+    gimbal_joint_ids = []
+    cam_params_ids = []
+    cam_exts_ids = []
     factor_ids = []
-    joint_angle_ids = []
-    joint_angle_data = []
-    pose_data = []
-    view_data = [[], []]
 
-    for view_idx in range(num_views):
-      # Perturb joint angles for a different view
-      self.joint_angles[0] = np.random.uniform(-0.5, 0.5)
-      self.joint_angles[1] = np.random.uniform(-0.5, 0.5)
-      self.joint_angles[2] = np.random.uniform(-1.0, 1.0)
-      joint_angle_data.append(copy.deepcopy(self.joint_angles))
+    fiducial = pose_setup(0, self.T_WF, fix=fix_fiducial)
+    gimbal_exts = extrinsics_setup(self.T_BM0, fix=fix_gimbal_exts)
+    gimbal_pose = extrinsics_setup(pose_data[0], fix=fix_gimbal_pose)
+    gimbal_link0 = extrinsics_setup(self.links[0], fix=fix_gimbal_links[0])
+    gimbal_link1 = extrinsics_setup(self.links[1], fix=fix_gimbal_links[1])
+    cam0_params = self.cam_params[0]
+    cam1_params = self.cam_params[1]
+    cam0_params.fix = fix_cam_params[0]
+    cam1_params.fix = fix_cam_params[1]
+    cam0_exts = extrinsics_setup(self.cam_exts[0], fix=fix_cam_exts[0])
+    cam1_exts = extrinsics_setup(self.cam_exts[1], fix=fix_cam_exts[1])
 
-      # Perturb body pose
-      self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
-      self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
-      self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
-      self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
-      self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
-      self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
-      pose_data.append(copy.deepcopy(self.T_WB))
-      pose_id = graph.add_param(pose_setup(0, self.T_WB, fix=fix_pose))
+    fiducial_id = graph.add_param(fiducial)
+    gimbal_exts_id = graph.add_param(gimbal_exts)
+    gimbal_pose_id = graph.add_param(gimbal_pose)
+    gimbal_link_ids.append(graph.add_param(gimbal_link0))
+    gimbal_link_ids.append(graph.add_param(gimbal_link1))
+    cam_params_ids.append(graph.add_param(self.cam_params[0]))
+    cam_params_ids.append(graph.add_param(self.cam_params[1]))
+    cam_exts_ids.append(graph.add_param(cam0_exts))
+    cam_exts_ids.append(graph.add_param(cam1_exts))
 
-      # -- Add joint angles
-      view_joints = [
-          graph.add_param(
-              joint_angle_setup(self.joint_angles[0], fix=fix_joints)),
-          graph.add_param(
-              joint_angle_setup(self.joint_angles[1], fix=fix_joints)),
-          graph.add_param(
-              joint_angle_setup(self.joint_angles[2], fix=fix_joints))
-      ]
-      joint_angle_ids.append(view_joints)
+    for view_idx, (pose, view_set, joints) in enumerate(zip(*sim_data)):
+      joint0_var = joint_angle_setup(joints[0], fix=fix_gimbal_joints[0])
+      joint1_var = joint_angle_setup(joints[1], fix=fix_gimbal_joints[1])
+      joint2_var = joint_angle_setup(joints[2], fix=fix_gimbal_joints[2])
+      joint0_id = graph.add_param(joint0_var)
+      joint1_id = graph.add_param(joint1_var)
+      joint2_id = graph.add_param(joint2_var)
+      gimbal_joint_ids.append([joint0_id, joint1_id, joint2_id])
 
-      # -- Add camera measurements
-      for cam_idx in range(2):
-        cam_data = self.get_camera_measurements(cam_idx)
+      for cam_idx, cam_view in enumerate(view_set):
         cam_geom = self.cam_params[cam_idx].data
-
         pids = [
             fiducial_id,
-            pose_id,
+            gimbal_pose_id,
             gimbal_exts_id,
-            link_ids[0],
-            link_ids[1],
-            view_joints[0],
-            view_joints[1],
-            view_joints[2],
+            gimbal_link_ids[0],
+            gimbal_link_ids[1],
+            joint0_id,
+            joint1_id,
+            joint2_id,
             cam_exts_ids[cam_idx],
             cam_params_ids[cam_idx],
         ]
 
-        view_data[cam_idx].append(cam_data)
-        for i in range(cam_data["num_measurements"]):
-          tag_id = cam_data["tag_ids"][i]
-          corner_idx = cam_data["corner_idxs"][i]
-          pt = cam_data["object_points"][i]
-          kp = cam_data["keypoints"][i]
+        for i in range(cam_view["num_measurements"]):
+          tag_id = cam_view["tag_ids"][i]
+          corner_idx = cam_view["corner_idxs"][i]
+          pt = cam_view["object_points"][i]
+          kp = cam_view["keypoints"][i]
           grid_data = tag_id, corner_idx, pt, kp
           factor = CalibGimbalFactor(cam_geom, pids, grid_data)
           factor_ids.append(graph.add_factor(factor))
 
-          if check_jacs:
-            fvars = [graph.params[param_id] for param_id in pids]
-            assert factor.check_jacobian(fvars, 0, "J_fiducial")
-            assert factor.check_jacobian(fvars, 1, "J_pose")
-            assert factor.check_jacobian(fvars, 2, "J_gimbal_exts")
-            assert factor.check_jacobian(fvars, 3, "J_link1")
-            assert factor.check_jacobian(fvars, 4, "J_link2")
-            assert factor.check_jacobian(fvars, 5, "J_th0")
-            assert factor.check_jacobian(fvars, 6, "J_th1")
-            assert factor.check_jacobian(fvars, 7, "J_th2")
-            assert factor.check_jacobian(fvars, 8, "J_cam_exts")
-            assert factor.check_jacobian(fvars, 9, "J_cam_params")
-
-      # -- Perturb estimated joint angles
-      for i in range(3):
-        joint_id = view_joints[i]
-        graph.params[joint_id].param[0] += np.random.uniform(-0.1, 0.1)
-
-    # print("Ground Truth:")
-    # import pprint
-    # pprint.pprint(joint_angle_data)
-    # print()
-
-    # print("Initial:")
-    # for joint_angles in joint_angle_ids:
-    #   for param_id in joint_angles:
-    #     print(f"{graph.params[param_id].param[0]} ", end="")
-    #   print()
-
     # Solve factor graph
+    debug = True
     # graph.solver_max_iter = 10
-    # graph.solve(debug)
-
-    # print("Estimated:")
-    # for joint_angles in joint_angle_ids:
-    #   for param_id in joint_angles:
-    #     print(f"{graph.params[param_id].param[0]} ", end="")
-    #   print()
-
-    if save:
-      # solver = Solver()
-      # for _, factor in graph.factors.items():
-      #   factor_params = [graph.params[pid] for pid in factor.param_ids]
-      #   solver.add(factor, factor_params)
-      # (H, g, _) = solver._linearize(solver.params)
-
-      # plt.matshow(H)
-      # plt.colorbar()
-      # plt.show()
-
-      # np.savetxt("/tmp/sim_gimbal/H.csv", H, delimiter=",")
-      # np.savetxt("/tmp/sim_gimbal/g.csv", g, delimiter=",")
-
-      os.system("rm -rf /tmp/sim_gimbal")
-      os.system("mkdir -p /tmp/sim_gimbal")
-      os.system("mkdir -p /tmp/sim_gimbal/cam0")
-      os.system("mkdir -p /tmp/sim_gimbal/cam1")
-
-      # Save calib file
-      calib_file = open(f"/tmp/sim_gimbal/calib.config", "w")
-      # -- Save camera parameters
-      calib_file.write(f"num_cams: {len(self.cam_params)}\n")
-      calib_file.write(f"num_links: {len(self.links)}\n")
-      calib_file.write("\n")
-      for cam_idx, cam_params in enumerate(self.cam_params):
-        cam_geom = cam_params.data
-        cam_res = cam_geom.resolution
-        proj_params = [str(x) for x in cam_geom.proj_params(cam_params.param)]
-        dist_params = [str(x) for x in cam_geom.dist_params(cam_params.param)]
-
-        calib_file.write(f"cam{cam_idx}:\n")
-        calib_file.write(f"  resolution: [{cam_res[0]}, {cam_res[1]}]\n")
-        calib_file.write(f"  proj_model: \"{cam_geom.proj_model}\"\n")
-        calib_file.write(f"  dist_model: \"{cam_geom.dist_model}\"\n")
-        calib_file.write(f"  proj_params: [{', '.join(proj_params)}]\n")
-        calib_file.write(f"  dist_params: [{', '.join(dist_params)}]\n")
-        calib_file.write(f"\n")
-      # -- Save camera extrinsics
-      for cam_idx, cam_ext in enumerate(self.cam_exts):
-        rx, ry, rz = tf_trans(cam_ext)
-        qw, qx, qy, qz = tf_quat(cam_ext)
-        tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-        calib_file.write(f"cam{cam_idx}_exts: [{tf_str}]\n")
-      # -- Save gimbal links
-      for link_idx, link_ext in enumerate(self.links):
-        rx, ry, rz = tf_trans(pose2tf(link_ext))
-        qw, qx, qy, qz = tf_quat(pose2tf(link_ext))
-        tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-        calib_file.write(f"link{link_idx}_exts: [{tf_str}]\n")
-      # -- Save gimbal extrinsics
-      rx, ry, rz = tf_trans(self.T_BM0)
-      qw, qx, qy, qz = tf_quat(self.T_BM0)
-      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      calib_file.write(f"gimbal_exts: [{tf_str}]\n")
-      # -- Save fiducial extrinsics
-      rx, ry, rz = tf_trans(self.T_WF)
-      qw, qx, qy, qz = tf_quat(self.T_WF)
-      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      calib_file.write(f"fiducial_exts: [{tf_str}]\n")
-      # -- Clean up
-      calib_file.close()
-
-      # Save camera data
-      for cam_idx, view in enumerate(view_data):
-        for view_idx, cam_data in enumerate(view):
-          view_file = open(f"/tmp/sim_gimbal/cam{cam_idx}/{view_idx}.sim", "w")
-          view_file.write(f"num_corners: {cam_data['num_measurements']}\n")
-          view_file.write("\n")
-
-          view_file.write(f"#tag_id,corner_idx,px,py,pz,kp_x,kp_y\n")
-          for i in range(cam_data["num_measurements"]):
-            tag_id = cam_data["tag_ids"][i]
-            corner_idx = cam_data["corner_idxs"][i]
-            pt = cam_data["object_points"][i]
-            kp = cam_data["keypoints"][i]
-
-            view_file.write(f"{tag_id},")
-            view_file.write(f"{corner_idx},")
-            view_file.write(f"{pt[0]},{pt[1]},{pt[2]},")
-            view_file.write(f"{kp[0]},{kp[1]}\n")
-          view_file.close()
-
-      # Save pose data
-      poses_file = open(f"/tmp/sim_gimbal/poses.sim", "w")
-      poses_file.write(f"num_poses: {len(pose_data)}\n")
-      poses_file.write(f"\n")
-      poses_file.write(f"#x,y,z,qw,qx,qy,qz\n")
-      for pose in pose_data:
-        rx, ry, rz = tf_trans(pose)
-        qw, qx, qy, qz = tf_quat(pose)
-        tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-        poses_file.write(f"{tf_str}\n")
-      poses_file.close()
-
-      # Save joints data
-      joints_file = open(f"/tmp/sim_gimbal/joint_angles.sim", "w")
-      joints_file.write(f"num_views: {len(view_data[0])}\n")
-      joints_file.write(f"num_joints: {num_joints}\n")
-      joints_file.write(f"\n")
-      joints_str = ','.join([f"joint{i}" for i in range(num_joints)])
-      joints_file.write(f"#ts,{joints_str}\n")
-      for i, data in enumerate(joint_angle_data):
-        joints_str = ','.join([str(x) for x in data])
-        joints_file.write(f"{i},{joints_str}\n")
-      joints_file.close()
+    graph.solve(debug)
 
 
 ###############################################################################
@@ -11085,106 +10775,195 @@ class TestViz(unittest.TestCase):
     self.assertTrue(viz_server is not None)
 
 
-from mr import *
-
-
 class TestSandbox(unittest.TestCase):
   """ Test Sandbox """
   def test_gimbal(self):
     """ Test gimbal """
-    sandbox = GimbalSandbox()
-    self.assertTrue(sandbox)
-
-    # sandbox.set_joint_angle(0, deg2rad(0))
-    # sandbox.set_joint_angle(1, deg2rad(0))
-    # sandbox.set_joint_angle(2, deg2rad(45))
-    # sandbox.visualize_scene()
-    # sandbox.plot_camera_frame()
-
-    sandbox.simulate(save=True)
-
-  def test_calib_gimbal_poe_factor(self):
     sim = GimbalSim()
+    self.assertTrue(sim)
+
     sim.gimbal.set_joint_angle(0, deg2rad(0))
-    sim.gimbal.set_joint_angle(1, deg2rad(10))
+    sim.gimbal.set_joint_angle(1, deg2rad(0))
     sim.gimbal.set_joint_angle(2, deg2rad(0))
-
-    num_views = 10
-    (pose_data, view_data, joint_data) = sim.simulate(num_views)
-
-    fiducial = pose_setup(0, sim.T_WF)
-    gimbal_pose = pose_setup(0, sim.T_WB)
-    gimbal_home = extrinsics_setup(sim.M)
-    gimbal_link0 = screw_axis_setup(sim.screw_axes[0])
-    gimbal_link1 = screw_axis_setup(sim.screw_axes[1])
-    gimbal_link2 = screw_axis_setup(sim.screw_axes[2])
-    gimbal_joint0 = joint_angle_setup(sim.joint_angles[0])
-    gimbal_joint1 = joint_angle_setup(sim.joint_angles[1])
-    gimbal_joint2 = joint_angle_setup(sim.joint_angles[2])
-    cam0_exts = extrinsics_setup(sim.cam_exts[0])
-    cam0_params = sim.cam_params[0]
-
-    grid = sim.calib_target
-    cam_idx = 0
-    tag_id = 2
-    corner_idx = 2
-
-    p_FFi = grid.get_object_point(tag_id, corner_idx)
-    cam_geom = sim.cam_params[cam_idx].data
-    cam_params = sim.cam_params[cam_idx].param
-
-    T_BE = sim.gimbal.forward_kinematics()
-    T_ECi = sim.cam_exts[cam_idx]
-    T_WCi = sim.T_WB @ T_BE @ T_ECi
-    T_CiW = np.linalg.inv(T_WCi)
-    p_CiFi = tf_point(T_CiW @ sim.T_WF, p_FFi)
-
-    _, z = cam_geom.project(cam_params, p_CiFi)
-    grid_data = tag_id, corner_idx, p_FFi, z
-    pids = range(10)
-    factor = CalibGimbalPoEFactor(cam_geom, pids, grid_data)
-
-    fvars = [
-        fiducial,
-        gimbal_pose,
-        gimbal_home,
-        gimbal_link0,
-        gimbal_link1,
-        gimbal_link2,
-        gimbal_joint0,
-        gimbal_joint1,
-        gimbal_joint2,
-        cam0_exts,
-        cam0_params,
-    ]
-    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
-    self.assertTrue(factor.check_jacobian(fvars, 1, "J_gimbal_pose"))
-    self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_home"))
-    self.assertTrue(factor.check_jacobian(fvars, 3, "J_gimbal_link0"))
-    self.assertTrue(factor.check_jacobian(fvars, 4, "J_gimbal_link1"))
-    self.assertTrue(factor.check_jacobian(fvars, 5, "J_gimbal_link2"))
-    self.assertTrue(factor.check_jacobian(fvars, 6, "J_gimbal_joint0"))
-    self.assertTrue(factor.check_jacobian(fvars, 7, "J_gimbal_joint1"))
-    self.assertTrue(factor.check_jacobian(fvars, 8, "J_gimbal_joint2"))
-    self.assertTrue(factor.check_jacobian(fvars, 9, "J_camera_extrinsics"))
-    self.assertTrue(factor.check_jacobian(fvars, 10, "J_camera_params"))
-
-  def test_poe(self):
-    """ Test product of expoenentials """
-    sim = GimbalSim()
-    sim.gimbal.set_joint_angle(0, deg2rad(0))
-    sim.gimbal.set_joint_angle(1, deg2rad(10))
-    sim.gimbal.set_joint_angle(2, deg2rad(0))
-    # sim.plot_camera_frame()
     # sim.visualize()
+    # sim.plot_camera_frame()
+    sim_data = sim.simulate()
+    # sim.save(sim_data)
+    sim.solve(sim_data)
 
-    num_views = 10
-    (pose_data, view_data, joint_data) = sim.simulate(num_views)
+  # def test_calib_gimbal_poe_factor(self):
+  #   sim = GimbalSim()
+  #   sim.gimbal.set_joint_angle(0, deg2rad(0))
+  #   sim.gimbal.set_joint_angle(1, deg2rad(10))
+  #   sim.gimbal.set_joint_angle(2, deg2rad(0))
 
-    # import pprint
-    # pprint.pprint(pose_data)
-    # pprint.pprint(view_data)
-    # pprint.pprint(joint_data)
+  #   num_views = 10
+  #   (pose_data, view_data, joint_data) = sim.simulate(num_views)
+
+  #   fiducial = pose_setup(0, sim.T_WF)
+  #   gimbal_pose = pose_setup(0, sim.T_WB)
+  #   gimbal_home = extrinsics_setup(sim.M)
+  #   gimbal_link0 = screw_axis_setup(sim.screw_axes[0])
+  #   gimbal_link1 = screw_axis_setup(sim.screw_axes[1])
+  #   gimbal_link2 = screw_axis_setup(sim.screw_axes[2])
+  #   gimbal_joint0 = joint_angle_setup(sim.joint_angles[0])
+  #   gimbal_joint1 = joint_angle_setup(sim.joint_angles[1])
+  #   gimbal_joint2 = joint_angle_setup(sim.joint_angles[2])
+  #   cam0_exts = extrinsics_setup(sim.cam_exts[0])
+  #   cam0_params = sim.cam_params[0]
+
+  #   grid = sim.calib_target
+  #   cam_idx = 0
+  #   tag_id = 2
+  #   corner_idx = 2
+
+  #   p_FFi = grid.get_object_point(tag_id, corner_idx)
+  #   cam_geom = sim.cam_params[cam_idx].data
+  #   cam_params = sim.cam_params[cam_idx].param
+
+  #   T_BE = sim.gimbal.forward_kinematics()
+  #   T_ECi = sim.cam_exts[cam_idx]
+  #   T_WCi = sim.T_WB @ T_BE @ T_ECi
+  #   T_CiW = np.linalg.inv(T_WCi)
+  #   p_CiFi = tf_point(T_CiW @ sim.T_WF, p_FFi)
+
+  #   _, z = cam_geom.project(cam_params, p_CiFi)
+  #   grid_data = tag_id, corner_idx, p_FFi, z
+  #   pids = range(10)
+  #   factor = CalibGimbalPoEFactor(cam_geom, pids, grid_data)
+
+  #   fvars = [
+  #       fiducial,
+  #       gimbal_pose,
+  #       gimbal_home,
+  #       gimbal_link0,
+  #       gimbal_link1,
+  #       gimbal_link2,
+  #       gimbal_joint0,
+  #       gimbal_joint1,
+  #       gimbal_joint2,
+  #       cam0_exts,
+  #       cam0_params,
+  #   ]
+  #   self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 1, "J_gimbal_pose"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_home"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 3, "J_gimbal_link0"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 4, "J_gimbal_link1"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 5, "J_gimbal_link2"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 6, "J_gimbal_joint0"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 7, "J_gimbal_joint1"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 8, "J_gimbal_joint2"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 9, "J_camera_extrinsics"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 10, "J_camera_params"))
+
+  # def test_poe(self):
+  #   """ Test product of expoenentials """
+  #   sim = GimbalSim()
+  #   sim.gimbal.set_joint_angle(0, deg2rad(0))
+  #   sim.gimbal.set_joint_angle(1, deg2rad(10))
+  #   sim.gimbal.set_joint_angle(2, deg2rad(0))
+  #   # sim.plot_camera_frame()
+  #   # sim.visualize()
+
+  #   # num_views = 10
+  #   # sim_data = sim.simulate(num_views)
+
+  #   # fix_fiducial = False
+  #   # fix_pose = False
+  #   # fix_gimbal_home = False
+  #   # fix_links = False
+  #   # fix_joints = False
+  #   # fix_cam_exts = False
+  #   # fix_cam = False
+
+  #   # fiducial = pose_setup(0, sim.T_WF, fix=fix_fiducial)
+  #   # gimbal_home = extrinsics_setup(sim.M, fix=fix_gimbal_home)
+  #   # link0 = screw_axis_setup(sim.screw_axes[0], fix=fix_links)
+  #   # link1 = screw_axis_setup(sim.screw_axes[1], fix=fix_links)
+  #   # link2 = screw_axis_setup(sim.screw_axes[2], fix=fix_links)
+  #   # cam0_params = sim.cam_params[0]
+  #   # cam1_params = sim.cam_params[1]
+  #   # cam0_exts = extrinsics_setup(sim.cam_exts[0], fix=fix_cam_exts)
+  #   # cam1_exts = extrinsics_setup(sim.cam_exts[1], fix=fix_cam_exts)
+
+  #   # fiducial_id = None
+  #   # gimbal_home_id = None
+  #   # link0_id = None
+  #   # link1_id = None
+  #   # link2_id = None
+  #   # cam_params_ids = []
+  #   # cam_exts_ids = []
+  #   # pose_ids = []
+  #   # joint_ids = []
+  #   # factor_ids = []
+
+  #   # graph = FactorGraph()
+  #   # fiducial_id = graph.add_param(fiducial)
+  #   # gimbal_home_id = graph.add_param(gimbal_home)
+  #   # link0_id = graph.add_param(link0)
+  #   # link1_id = graph.add_param(link1)
+  #   # link2_id = graph.add_param(link2)
+  #   # cam_params_ids.append(graph.add_param(cam0_params))
+  #   # cam_params_ids.append(graph.add_param(cam1_params))
+  #   # cam_exts_ids.append(graph.add_param(cam0_exts))
+  #   # cam_exts_ids.append(graph.add_param(cam1_exts))
+
+  #   # for view_idx, (pose, view_set, joints) in enumerate(sim_data):
+  #   #   pose_var = pose_setup(view_idx, pose, fix=fix_pose)
+  #   #   joint0_var = joint_angle_setup(joints[0], fix=fix_joints)
+  #   #   joint1_var = joint_angle_setup(joints[1], fix=fix_joints)
+  #   #   joint2_var = joint_angle_setup(joints[2], fix=fix_joints)
+
+  #   #   pose_id = graph.add_param(pose_var)
+  #   #   joint0_id = graph.add_param(joint0_var)
+  #   #   joint1_id = graph.add_param(joint1_var)
+  #   #   joint2_id = graph.add_param(joint2_var)
+  #   #   pose_ids.append(pose_id)
+  #   #   joint_ids.append([joint0_id, joint1_id, joint2_id])
+
+  #   #   for cam_idx, cam_view in enumerate(view_set):
+  #   #     cam_geom = sim.cam_params[cam_idx].data
+  #   #     pids = [
+  #   #         fiducial_id,
+  #   #         pose_id,
+  #   #         gimbal_home_id,
+  #   #         link0_id,
+  #   #         link1_id,
+  #   #         link2_id,
+  #   #         joint0_id,
+  #   #         joint1_id,
+  #   #         joint2_id,
+  #   #         cam_exts_ids[cam_idx],
+  #   #         cam_params_ids[cam_idx],
+  #   #     ]
+
+  #   #     for i in range(cam_view["num_measurements"]):
+  #   #       tag_id = cam_view["tag_ids"][i]
+  #   #       corner_idx = cam_view["corner_idxs"][i]
+  #   #       pt = cam_view["object_points"][i]
+  #   #       kp = cam_view["keypoints"][i]
+  #   #       grid_data = tag_id, corner_idx, pt, kp
+  #   #       factor = CalibGimbalPoEFactor(cam_geom, pids, grid_data)
+  #   #       factor_ids.append(graph.add_factor(factor))
+
+  #   # # Solve factor graph
+  #   # # debug = True
+  #   # # graph.solver_max_iter = 10
+  #   # # graph.solve(debug)
+
+  #   # solver = Solver()
+  #   # for _, factor in graph.factors.items():
+  #   #   factor_params = [graph.params[pid] for pid in factor.param_ids]
+  #   #   solver.add(factor, factor_params)
+  #   # (H, g, _) = solver._linearize(solver.params)
+  #   # np.savetxt("/tmp/H.csv", H, delimiter=",")
+  #   H = np.genfromtxt("/tmp/H.csv", delimiter=",")
+  #   print(np.rank(H))
+
+  #   plt.matshow(H)
+  #   plt.colorbar()
+  #   plt.show()
 
 
 if __name__ == '__main__':
