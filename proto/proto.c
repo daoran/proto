@@ -9116,10 +9116,10 @@ void calib_gimbal_setup(calib_gimbal_t *calib) {
   calib->fix_fiducial_exts = 0;
   calib->fix_gimbal_exts = 1;
   calib->fix_poses = 0;
-  calib->fix_links = 1;
+  calib->fix_links = 0;
   calib->fix_joints = 0;
   calib->fix_cam_params = 0;
-  calib->fix_cam_exts = 1;
+  calib->fix_cam_exts = 0;
 
   calib->timestamps = NULL;
 
