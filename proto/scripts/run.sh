@@ -82,8 +82,15 @@ run_memcheck() {
 # python3 proto.py TestSimulation.test_sim_arm
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
-python3 proto.py TestSandbox.test_gimbal
+# python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestSandbox.test_poe
+
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "\
+  cd ~/projects/proto/proto \
+  && python3 proto.py TestSandbox.test_gimbal
+" C-m C-m
+exit
 
 
 ###############################################################################
