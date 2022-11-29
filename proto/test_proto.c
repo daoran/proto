@@ -3734,8 +3734,8 @@ int test_inertial_odometry() {
     vec_copy(factors[i].r, 15, &r[15 * i]);
   }
 
-  // DOT(r, 300, 1, r, 1, 300, r_sq);
-  // printf("cost: %e\n", 0.5 * r_sq[0]);
+  DOT(r, 300, 1, r, 1, 300, r_sq);
+  printf("cost: %e\n", 0.5 * r_sq[0]);
 
   // Clean up
   free_imu_test_data(&test_data);

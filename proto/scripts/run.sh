@@ -85,12 +85,12 @@ run_memcheck() {
 # python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestSandbox.test_poe
 
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "\
-  cd ~/projects/proto/proto \
-  && python3 proto.py TestSandbox.test_gimbal
-" C-m C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto/proto \
+#   && python3 proto.py TestSandbox.test_gimbal
+# " C-m C-m
+# exit
 
 
 ###############################################################################
@@ -352,7 +352,7 @@ dev_aprilgrid() {
 # run_test test_imu_factor_propagate_step
 # run_test test_imu_factor_setup
 # run_test test_imu_factor_eval
-# run_test test_inertial_odometry
+run_test test_inertial_odometry
 # run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print

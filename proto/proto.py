@@ -5077,6 +5077,10 @@ class Solver:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
+    w, v, = np.linalg.eig(H)
+    print(w)
+    exit(0)
+
     # covar = pinv(H)
     # print(covar @ H - eye(H.shape[0]))
 
@@ -8168,7 +8172,7 @@ class SimGimbal:
     fix_fiducial = True
     fix_gimbal_exts = True
     fix_gimbal_pose = True
-    fix_gimbal_links = [True, True]
+    fix_gimbal_links = [False, False]
     fix_gimbal_joints = [False, False, False]
     fix_cam_exts = [True, True]
     fix_cam_params = [True, True]
@@ -8197,21 +8201,21 @@ class SimGimbal:
     # Estimation
     est = copy.deepcopy(gnd)
 
-    # # -- Perturb gimbal link 0
-    # perturb_state_variable(est.gimbal_link0, 0, 0.01)
-    # perturb_state_variable(est.gimbal_link0, 1, 0.01)
-    # perturb_state_variable(est.gimbal_link0, 2, 0.01)
-    # perturb_state_variable(est.gimbal_link0, 3, 0.01)
-    # perturb_state_variable(est.gimbal_link0, 4, 0.01)
-    # perturb_state_variable(est.gimbal_link0, 5, 0.01)
+    # -- Perturb gimbal link 0
+    perturb_state_variable(est.gimbal_link0, 0, 0.01)
+    perturb_state_variable(est.gimbal_link0, 1, 0.01)
+    perturb_state_variable(est.gimbal_link0, 2, 0.01)
+    perturb_state_variable(est.gimbal_link0, 3, 0.01)
+    perturb_state_variable(est.gimbal_link0, 4, 0.01)
+    perturb_state_variable(est.gimbal_link0, 5, 0.01)
 
     # # -- Perturb gimbal link 1
-    # perturb_state_variable(est.gimbal_link1, 0, 0.01)
-    # perturb_state_variable(est.gimbal_link1, 1, 0.01)
-    # perturb_state_variable(est.gimbal_link1, 2, 0.01)
-    # perturb_state_variable(est.gimbal_link1, 3, 0.01)
-    # perturb_state_variable(est.gimbal_link1, 4, 0.01)
-    # perturb_state_variable(est.gimbal_link1, 5, 0.01)
+    perturb_state_variable(est.gimbal_link1, 0, 0.01)
+    perturb_state_variable(est.gimbal_link1, 1, 0.01)
+    perturb_state_variable(est.gimbal_link1, 2, 0.01)
+    perturb_state_variable(est.gimbal_link1, 3, 0.01)
+    perturb_state_variable(est.gimbal_link1, 4, 0.01)
+    perturb_state_variable(est.gimbal_link1, 5, 0.01)
 
     # -- Perturb Fiducial pose
     # perturb_state_variable(est.fiducial, 0, 0.1)
@@ -8302,7 +8306,7 @@ class SimGimbal:
 
     # Solve factor graph
     debug = True
-    graph.solver_max_iter = 20
+    graph.solver_max_iter = 10
     init = copy.deepcopy(est)
     graph.solve(debug)
 
@@ -8382,41 +8386,10 @@ class SimGimbal:
 
     # Visualize
     plt.figure()
-    ax = plt.axes(projection='3d')
-    # Plot transforms
-    # -- Plot ground Truth
-    gnd_colors = ('r-', 'r-', 'r-')
-    self.calib_target.plot(ax,
-                           T_WF_gnd,
-                           tf_colors=gnd_colors,
-                           pt_colors='#ff0000')
-    plot_tf(ax, T_WL0_gnd, name="Link0", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WL1_gnd, name="Link1", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WL2_gnd, name="Link2", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WC0_gnd, name="cam0", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WC1_gnd, name="cam1", size=0.05, colors=gnd_colors)
-    # -- Plot Estimate
-    est_colors = ('b-', 'b-', 'b-')
-    self.calib_target.plot(ax,
-                           T_WF_est,
-                           tf_colors=est_colors,
-                           pt_colors="#0000ff")
-    plot_tf(ax, T_WL0_est, name="Link0", size=0.05, colors=est_colors)
-    plot_tf(ax, T_WL1_est, name="Link1", size=0.05, colors=est_colors)
-    plot_tf(ax, T_WL2_est, name="Link2", size=0.05, colors=est_colors)
-    plot_tf(ax, T_WC0_est, name="cam0", size=0.05, colors=est_colors)
-    plot_tf(ax, T_WC1_est, name="cam1", size=0.05, colors=est_colors)
-    # Plot settings
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
-    ax.set_title("After Optimisation")
-    plot_set_axes_equal(ax)
 
-    # Visualize
-    plt.figure()
-    ax = plt.axes(projection='3d')
-    # Plot transforms
+    # -- Before optimisation
+    ax = plt.subplot(121, projection='3d')
+    # ax = plt.axes(projection='3d')
     # -- Plot ground Truth
     gnd_colors = ('r-', 'r-', 'r-')
     self.calib_target.plot(ax,
@@ -8445,6 +8418,39 @@ class SimGimbal:
     ax.set_zlabel("z [m]")
     plot_set_axes_equal(ax)
     ax.set_title("Before Optimisation")
+
+    # -- After optimisation
+    # plt.subplot(212)
+    # ax = plt.axes(projection='3d')
+    ax = plt.subplot(122, projection='3d')
+    # -- Plot ground Truth
+    gnd_colors = ('r-', 'r-', 'r-')
+    self.calib_target.plot(ax,
+                           T_WF_gnd,
+                           tf_colors=gnd_colors,
+                           pt_colors='#ff0000')
+    plot_tf(ax, T_WL0_gnd, name="Link0", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WL1_gnd, name="Link1", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WL2_gnd, name="Link2", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WC0_gnd, name="cam0", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WC1_gnd, name="cam1", size=0.05, colors=gnd_colors)
+    # -- Plot Estimate
+    est_colors = ('b-', 'b-', 'b-')
+    self.calib_target.plot(ax,
+                           T_WF_est,
+                           tf_colors=est_colors,
+                           pt_colors="#0000ff")
+    plot_tf(ax, T_WL0_est, name="Link0", size=0.05, colors=est_colors)
+    plot_tf(ax, T_WL1_est, name="Link1", size=0.05, colors=est_colors)
+    plot_tf(ax, T_WL2_est, name="Link2", size=0.05, colors=est_colors)
+    plot_tf(ax, T_WC0_est, name="cam0", size=0.05, colors=est_colors)
+    plot_tf(ax, T_WC1_est, name="cam1", size=0.05, colors=est_colors)
+    # Plot settings
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    ax.set_title("After Optimisation")
+    plot_set_axes_equal(ax)
 
     plt.show()
 
