@@ -5077,9 +5077,9 @@ class Solver:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
-    w, v, = np.linalg.eig(H)
-    print(w)
-    exit(0)
+    # w, v, = np.linalg.eig(H)
+    # print(w)
+    # exit(0)
 
     # covar = pinv(H)
     # print(covar @ H - eye(H.shape[0]))
@@ -5176,8 +5176,8 @@ class Solver:
 
     # First evaluation
     if verbose:
-      print(f"nb_factors: {len(self.factors)}")
-      print(f"nb_params: {len(self.params)}")
+      print(f"num_factors: {len(self.factors)}")
+      print(f"num_params: {len(self.params)}")
       self._print_to_console(0, lambda_k, cost_k, cost_k)
 
     # Iterate
@@ -6801,9 +6801,9 @@ class Calibrator:
     self.graph.solve(True)
 
     reproj_errors = self.graph.get_reproj_errors()
-    print(f"nb_cams: {self.get_num_cams()}")
-    print(f"nb_views: {self.get_num_views()}")
-    print(f"nb_reproj_errors: {len(reproj_errors)}")
+    print(f"num_cams: {self.get_num_cams()}")
+    print(f"num_views: {self.get_num_views()}")
+    print(f"num_reproj_errors: {len(reproj_errors)}")
     print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
     sys.stdout.flush()
 
@@ -9968,10 +9968,10 @@ class TestFactorGraph(unittest.TestCase):
       # -- Pose j
       ts_j = imu0_data.timestamps[ts_idx]
       T_WS_j = imu0_data.poses[ts_j]
-      # ---- Pertrub pose j
-      trans_rand = np.random.rand(3)
-      rvec_rand = np.random.rand(3) * 0.01
-      T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
+      # # ---- Pertrub pose j
+      # trans_rand = np.random.rand(3)
+      # rvec_rand = np.random.rand(3) * 0.01
+      # T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
       # ---- Add to factor graph
       pose_j = pose_setup(ts_j, T_WS_j)
       pose_j_id = graph.add_param(pose_j)
@@ -10004,6 +10004,7 @@ class TestFactorGraph(unittest.TestCase):
     # debug = False
     debug = True
     # prof = profile_start()
+    graph.solver_max_iter = 10
     graph.solve(debug)
     # profile_stop(prof)
 

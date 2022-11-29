@@ -3373,11 +3373,11 @@ static int setup_imu_test_data(imu_test_data_t *test_data) {
 
   // Allocate memory for test data
   test_data->nb_measurements = time_taken * imu_rate;
-  test_data->timestamps = MALLOC(real_t, test_data->nb_measurements);
-  test_data->poses = MALLOC(real_t *, test_data->nb_measurements);
-  test_data->velocities = MALLOC(real_t *, test_data->nb_measurements);
-  test_data->imu_acc = MALLOC(real_t *, test_data->nb_measurements);
-  test_data->imu_gyr = MALLOC(real_t *, test_data->nb_measurements);
+  test_data->timestamps = CALLOC(real_t, test_data->nb_measurements);
+  test_data->poses = CALLOC(real_t *, test_data->nb_measurements);
+  test_data->velocities = CALLOC(real_t *, test_data->nb_measurements);
+  test_data->imu_acc = CALLOC(real_t *, test_data->nb_measurements);
+  test_data->imu_gyr = CALLOC(real_t *, test_data->nb_measurements);
 
   // Simulate IMU poses
   const real_t dt = 1.0 / imu_rate;
