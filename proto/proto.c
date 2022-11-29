@@ -4223,31 +4223,31 @@ void so3_exp(const real_t so3mat, real_t tol) {
  * Form a Product of Expontial transformation matrix
  */
 void poe(const real_t sa[6], const real_t theta, real_t T[4 * 4]) {
-  const real_t tol = 1e-6;
-  real_t C[3 * 3] = {0};
-  real_t r[3] = {0};
+  // const real_t tol = 1e-6;
+  // real_t C[3 * 3] = {0};
+  // real_t r[3] = {0};
 
-  if (theta < tol) {
-    eye(C, 3, 3);
-    r[0] = theta * sa[3];
-    r[1] = theta * sa[4];
-    r[2] = theta * sa[5];
-    tf_cr(C, r, T);
-    return;
-  }
+  // if (theta < tol) {
+  //   eye(C, 3, 3);
+  //   r[0] = theta * sa[3];
+  //   r[1] = theta * sa[4];
+  //   r[2] = theta * sa[5];
+  //   tf_cr(C, r, T);
+  //   return;
+  // }
 
-  real_t I3[3 * 3] = {0};
-  real_t w_hat[3 * 3] = {0};
-  real_t w_hat_sq[3 * 3] = {0};
+  // real_t I3[3 * 3] = {0};
+  // real_t w_hat[3 * 3] = {0};
+  // real_t w_hat_sq[3 * 3] = {0};
 
-  eye(I3, 3, 3);
-  hat(sa, w_hat);
-  dot(w_hat, 3, 3, w_hat, 3, 3, w_hat_sq);
-  const real_t ctheta = cos(theta);
-  const real_t stheta = sin(theta);
+  // eye(I3, 3, 3);
+  // hat(sa, w_hat);
+  // dot(w_hat, 3, 3, w_hat, 3, 3, w_hat_sq);
+  // const real_t ctheta = cos(theta);
+  // const real_t stheta = sin(theta);
 
-  real_t se3mat[4 * 4] = {0};
-  satose3(sa, theta, se3mat);
+  // real_t se3mat[4 * 4] = {0};
+  // satose3(sa, theta, se3mat);
 
   // A = so3_exp(se3mat[0:3, 0:3])
   // B = (I3 * theta + (1.0 - c_th) * w_skew +
@@ -8933,10 +8933,12 @@ int solver_solve(solver_t *solver, void *data) {
 
   // Determine parameter order
   int sv_size = 0;
-  param_order_t *hash = solver->param_order_func(data, &sv_size);
+  int r_size = 0;
+  param_order_t *hash = solver->param_order_func(data, &sv_size, &r_size);
+  assert(sv_size > 0);
+  assert(r_size > 0);
 
   // Linearize
-  int r_size = ((calib_gimbal_t *) data)->num_factors * 2;
   real_t *H = CALLOC(real_t, sv_size * sv_size);
   real_t *g = CALLOC(real_t, sv_size);
   real_t *r = CALLOC(real_t, r_size);
@@ -9587,7 +9589,9 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
   return calib;
 }
 
-param_order_t *calib_gimbal_param_order(const void *data, int *sv_size) {
+param_order_t *calib_gimbal_param_order(const void *data,
+                                        int *sv_size,
+                                        int *r_size) {
   // Setup parameter order
   calib_gimbal_t *calib = (calib_gimbal_t *) data;
   param_order_t *hash = NULL;
@@ -9662,6 +9666,7 @@ param_order_t *calib_gimbal_param_order(const void *data, int *sv_size) {
   }
 
   *sv_size = col_idx;
+  *r_size = calib->num_factors * 2;
   return hash;
 }
 
@@ -9741,6 +9746,113 @@ void calib_gimbal_linearize_compact(const void *data,
 
   // mat_save("/tmp/H.csv", H, sv_size, sv_size);
   // exit(0);
+}
+
+///////////////////////
+// INERTIAL ODOMETRY //
+///////////////////////
+
+void inertial_odometry_free(inertial_odometry_t *odom) {
+  free(odom->factors);
+  free(odom->poses);
+  free(odom->vels);
+  free(odom->biases);
+  free(odom);
+}
+
+void inertial_odometry_save(const inertial_odometry_t *odom,
+                            const char *save_path) {
+  // Load file
+  FILE *fp = fopen(save_path, "w");
+  if (fp == NULL) {
+    FATAL("Failed to open [%s]!\n", save_path);
+  }
+
+  // Write header
+  fprintf(fp, "x,y,z,qw,qx,qy,qz,");
+  fprintf(fp, "vx,vy,vz,");
+  fprintf(fp, "ba_x,ba_y,ba_z,");
+  fprintf(fp, "bg_x,bg_y,bg_z\n");
+
+  // Write data
+  for (int k = 0; k < (odom->num_factors + 1); k++) {
+    const real_t *pos = odom->poses[k].data;
+    const real_t *quat = odom->poses[k].data + 3;
+    const real_t *vel = odom->vels[k].data;
+    const real_t *ba = odom->biases[k].data;
+    const real_t *bg = odom->biases[k].data + 3;
+    fprintf(fp, "%f,%f,%f,", pos[0], pos[1], pos[2]);
+    fprintf(fp, "%f,%f,%f,%f,", quat[0], quat[1], quat[2], quat[3]);
+    fprintf(fp, "%f,%f,%f,", vel[0], vel[1], vel[2]);
+    fprintf(fp, "%f,%f,%f,", ba[0], ba[1], ba[2]);
+    fprintf(fp, "%f,%f,%f", bg[0], bg[1], bg[2]);
+    fprintf(fp, "\n");
+  }
+}
+
+param_order_t *inertial_odometry_param_order(const void *data,
+                                             int *sv_size,
+                                             int *r_size) {
+  // Setup parameter order
+  inertial_odometry_t *odom = (inertial_odometry_t *) data;
+  param_order_t *hash = NULL;
+  int col_idx = 0;
+
+  for (int k = 0; k <= odom->num_factors; k++) {
+    // Pose
+    {
+      pose_t *pose_k = &odom->poses[k];
+      param_order_t val = {&pose_k->data, col_idx, POSE_PARAM, 0};
+      hmputs(hash, val);
+      col_idx += param_local_size(POSE_PARAM);
+    }
+
+    // Velocity
+    {
+      velocity_t *vel_k = &odom->vels[k];
+      param_order_t val = {&vel_k->data, col_idx, VELOCITY_PARAM, 0};
+      hmputs(hash, val);
+      col_idx += param_local_size(VELOCITY_PARAM);
+    }
+
+    // Biases
+    {
+      imu_biases_t *biase_k = &odom->biases[k];
+      param_order_t val = {&biase_k->data, col_idx, IMU_BIASES_PARAM, 0};
+      hmputs(hash, val);
+      col_idx += param_local_size(IMU_BIASES_PARAM);
+    }
+  }
+
+  *sv_size = col_idx;
+  *r_size = odom->num_factors * 15;
+  return hash;
+}
+
+void inertial_odometry_linearize_compact(const void *data,
+                                         const int sv_size,
+                                         param_order_t *hash,
+                                         real_t *H,
+                                         real_t *g,
+                                         real_t *r) {
+  // Evaluate factors
+  inertial_odometry_t *odom = (inertial_odometry_t *) data;
+
+  for (int k = 0; k < odom->num_factors; k++) {
+    imu_factor_t *factor = &odom->factors[k];
+    imu_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[k * factor->r_size]);
+
+    solver_fill_hessian(hash,
+                        factor->num_params,
+                        factor->params,
+                        factor->jacs,
+                        factor->r,
+                        factor->r_size,
+                        sv_size,
+                        H,
+                        g);
+  }
 }
 
 /******************************************************************************

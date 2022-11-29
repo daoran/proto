@@ -88,7 +88,8 @@ run_memcheck() {
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "\
 #   cd ~/projects/proto/proto \
-#   && python3 proto.py TestSandbox.test_gimbal
+#   && python3 proto.py TestFactorGraph.test_factor_graph_solve_io \
+#   # && python3 proto.py TestSandbox.test_gimbal \
 # " C-m C-m
 # exit
 
@@ -132,6 +133,7 @@ run_test() {
       && clear \
       && make test_proto \
       && ./build/test_proto --target $1 \
+      && python3 scripts/plot_imu_odom.py
   " C-m C-m
   exit
       # && python3 proto.py TestFactors.test_imu_factor \

@@ -3363,8 +3363,8 @@ typedef struct imu_test_data_t {
 static int setup_imu_test_data(imu_test_data_t *test_data) {
   // Circle trajectory configurations
   const real_t imu_rate = 200.0;
-  const real_t circle_r = 1.0;
-  const real_t circle_v = 0.1;
+  const real_t circle_r = 5.0;
+  const real_t circle_v = 1.0;
   const real_t circle_dist = 2.0 * M_PI * circle_r;
   const real_t time_taken = circle_dist / circle_v;
   const real_t w = -2.0 * M_PI * (1.0 / time_taken);
@@ -3669,25 +3669,34 @@ int test_inertial_odometry() {
   imu_test_data_t test_data;
   setup_imu_test_data(&test_data);
 
-  // IMU params
-  imu_params_t imu_params;
-  imu_params.imu_idx = 0;
-  imu_params.rate = 200.0;
-  imu_params.sigma_a = 0.08;
-  imu_params.sigma_g = 0.004;
-  imu_params.sigma_aw = 0.00004;
-  imu_params.sigma_gw = 2.0e-6;
-  imu_params.g = 9.81;
-
-  const int num_partitions = 20;
+  // Inertial Odometry
+  const int num_partitions = test_data.nb_measurements / 20.0;
   const size_t N = test_data.nb_measurements / (real_t) num_partitions;
-  imu_factor_t factors[20];
-  pose_t poses[21];
-  velocity_t vels[21];
-  imu_biases_t biases[21];
+  inertial_odometry_t *odom = MALLOC(inertial_odometry_t, 1);
+  // -- IMU params
+  odom->imu_params.imu_idx = 0;
+  odom->imu_params.rate = 200.0;
+  odom->imu_params.sigma_a = 0.08;
+  odom->imu_params.sigma_g = 0.004;
+  odom->imu_params.sigma_aw = 0.00004;
+  odom->imu_params.sigma_gw = 2.0e-6;
+  odom->imu_params.g = 9.81;
+  // -- Variables
+  odom->num_factors = 0;
+  odom->factors = MALLOC(imu_factor_t, num_partitions);
+  odom->poses = MALLOC(pose_t, num_partitions + 1);
+  odom->vels = MALLOC(velocity_t, num_partitions + 1);
+  odom->biases = MALLOC(imu_biases_t, num_partitions + 1);
 
-  real_t *r = MALLOC(real_t, num_partitions * 15);
-  for (int i = 0; i < num_partitions; i++) {
+  const timestamp_t ts_i = test_data.timestamps[0];
+  const real_t *v_i = test_data.velocities[0];
+  const real_t ba_i[3] = {0, 0, 0};
+  const real_t bg_i[3] = {0, 0, 0};
+  pose_setup(&odom->poses[0], ts_i, test_data.poses[0]);
+  velocity_setup(&odom->vels[0], ts_i, v_i);
+  imu_biases_setup(&odom->biases[0], ts_i, ba_i, bg_i);
+
+  for (int i = 1; i < num_partitions; i++) {
     const int ks = i * N;
     const int ke = MIN((i + 1) * N - 1, test_data.nb_measurements - 1);
 
@@ -3702,42 +3711,54 @@ int test_inertial_odometry() {
     }
 
     // Setup parameters
-    const timestamp_t ts_i = test_data.timestamps[ks];
     const timestamp_t ts_j = test_data.timestamps[ke];
-    const real_t *v_i = test_data.velocities[ks];
     const real_t *v_j = test_data.velocities[ke];
-    const real_t ba_i[3] = {0, 0, 0};
-    const real_t bg_i[3] = {0, 0, 0};
     const real_t ba_j[3] = {0, 0, 0};
     const real_t bg_j[3] = {0, 0, 0};
-
-    pose_setup(&poses[i], ts_i, test_data.poses[ks]);
-    pose_setup(&poses[i + 1], ts_j, test_data.poses[ke]);
-    velocity_setup(&vels[i], ts_i, v_i);
-    velocity_setup(&vels[i + 1], ts_j, v_j);
-    imu_biases_setup(&biases[i], ts_i, ba_i, bg_i);
-    imu_biases_setup(&biases[i + 1], ts_j, ba_j, bg_j);
+    pose_setup(&odom->poses[i], ts_j, test_data.poses[ke]);
+    velocity_setup(&odom->vels[i], ts_j, v_j);
+    imu_biases_setup(&odom->biases[i], ts_j, ba_j, bg_j);
 
     // Setup IMU factor
-    imu_factor_setup(&factors[i],
-                     &imu_params,
+    imu_factor_setup(&odom->factors[i - 1],
+                     &odom->imu_params,
                      &imu_buf,
-                     &poses[i],
-                     &vels[i],
-                     &biases[i],
-                     &poses[i + 1],
-                     &vels[i + 1],
-                     &biases[i + 1]);
-
-    // Evaluate imu factor
-    imu_factor_eval(&factors[i]);
-    vec_copy(factors[i].r, 15, &r[15 * i]);
+                     &odom->poses[i - 1],
+                     &odom->vels[i - 1],
+                     &odom->biases[i - 1],
+                     &odom->poses[i],
+                     &odom->vels[i],
+                     &odom->biases[i]);
+    odom->num_factors++;
   }
 
-  DOT(r, 300, 1, r, 1, 300, r_sq);
-  printf("cost: %e\n", 0.5 * r_sq[0]);
+  // Save ground truth
+  inertial_odometry_save(odom, "/tmp/imu_odom-gnd.csv");
+
+  // Perturb ground truth
+  for (int k = 0; k <= odom->num_factors; k++) {
+    odom->poses[k].data[0] += randf(-1.0, 1.0);
+    odom->poses[k].data[1] += randf(-1.0, 1.0);
+    odom->poses[k].data[2] += randf(-1.0, 1.0);
+
+    odom->vels[k].data[0] += randf(-1.0, 1.0);
+    odom->vels[k].data[1] += randf(-1.0, 1.0);
+    odom->vels[k].data[2] += randf(-1.0, 1.0);
+  }
+  inertial_odometry_save(odom, "/tmp/imu_odom-init.csv");
+
+  // Solve
+  solver_t solver;
+  solver_setup(&solver);
+  solver.param_order_func = &inertial_odometry_param_order;
+  solver.linearize_func = &inertial_odometry_linearize_compact;
+  printf("num_measurements: %ld\n", test_data.nb_measurements);
+  printf("num_factors: %d\n", odom->num_factors);
+  solver_solve(&solver, odom);
+  inertial_odometry_save(odom, "/tmp/imu_odom-est.csv");
 
   // Clean up
+  inertial_odometry_free(odom);
   free_imu_test_data(&test_data);
 
   return 0;
@@ -4011,7 +4032,7 @@ int test_calib_gimbal_solve() {
     // printf("\n");
 
     // Perturb
-    real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
+    // real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
     // pose_vector_update(calib_est->fiducial_exts.data, dx);
     // pose_vector_update(calib_est->cam_exts[0].data, dx);
     // pose_vector_update(calib_est->cam_exts[1].data, dx);

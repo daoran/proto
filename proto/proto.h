@@ -1515,7 +1515,9 @@ typedef struct solver_t {
   int max_iter;
   real_t lambda;
 
-  param_order_t *(*param_order_func)(const void *data, int *sv_size);
+  param_order_t *(*param_order_func)(const void *data,
+                                     int *sv_size,
+                                     int *r_size);
   void (*linearize_func)(const void *data,
                          const int sv_size,
                          param_order_t *hash,
@@ -1551,7 +1553,9 @@ void solver_params_free(const param_order_t *hash, real_t **x);
 void solver_update(param_order_t *hash, real_t *dx, int sv_size);
 int solver_solve(solver_t *solver, void *data);
 
-/** CALIBRATION ***************************************************************/
+/////////////////
+// CALIBRATION //
+/////////////////
 
 typedef struct calib_gimbal_view_t {
   timestamp_t ts;
@@ -1613,7 +1617,9 @@ void calib_gimbal_setup(calib_gimbal_t *calib);
 void calib_gimbal_print(calib_gimbal_t *calib);
 void calib_gimbal_free(calib_gimbal_t *calib);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
-param_order_t *calib_gimbal_param_order(const void *data, int *sv_size);
+param_order_t *calib_gimbal_param_order(const void *data,
+                                        int *sv_size,
+                                        int *r_size);
 void calib_gimbal_linearize(const void *data,
                             const int J_rows,
                             const int J_cols,
@@ -1627,6 +1633,37 @@ void calib_gimbal_linearize_compact(const void *data,
                                     real_t *H,
                                     real_t *g,
                                     real_t *r);
+
+///////////////////////
+// INERTIAL ODOMETRY //
+///////////////////////
+
+typedef struct inertial_odometry_t {
+  // IMU Parameters
+  imu_params_t imu_params;
+
+  // Factors
+  int num_factors;
+  imu_factor_t *factors;
+
+  // Variables
+  pose_t *poses;
+  velocity_t *vels;
+  imu_biases_t *biases;
+} inertial_odometry_t;
+
+void inertial_odometry_free(inertial_odometry_t *odom);
+void inertial_odometry_save(const inertial_odometry_t *odom,
+                            const char *save_path);
+param_order_t *inertial_odometry_param_order(const void *data,
+                                             int *sv_size,
+                                             int *r_size);
+void inertial_odometry_linearize_compact(const void *data,
+                                         const int sv_size,
+                                         param_order_t *hash,
+                                         real_t *H,
+                                         real_t *g,
+                                         real_t *r);
 
 /******************************************************************************
  * DATASET
@@ -1644,7 +1681,9 @@ int **assoc_pose_data(pose_t *gnd_poses,
  * SIMULATION
  ******************************************************************************/
 
-/** SIM FEATURES **************************************************************/
+//////////////////
+// SIM FEATURES //
+//////////////////
 
 typedef struct sim_features_t {
   real_t **features;
@@ -1654,7 +1693,9 @@ typedef struct sim_features_t {
 sim_features_t *sim_features_load(const char *csv_path);
 void sim_features_free(sim_features_t *features_data);
 
-/** SIM IMU DATA **************************************************************/
+//////////////////
+// SIM IMU DATA //
+//////////////////
 
 typedef struct sim_imu_data_t {
   real_t **data;
@@ -1664,7 +1705,9 @@ typedef struct sim_imu_data_t {
 sim_imu_data_t *sim_imu_data_load(const char *csv_path);
 void sim_imu_data_free(sim_imu_data_t *imu_data);
 
-/** SIM CAMERA DATA ***********************************************************/
+/////////////////////
+// SIM CAMERA DATA //
+/////////////////////
 
 typedef struct sim_camera_frame_t {
   timestamp_t ts;
@@ -1692,7 +1735,9 @@ real_t **sim_create_features(const real_t origin[3],
                              const real_t dim[3],
                              const int nb_features);
 
-/** SIM GIMBAL DATA ***********************************************************/
+/////////////////////
+// SIM GIMBAL DATA //
+/////////////////////
 
 typedef struct sim_gimbal_t {
   aprilgrid_t grid;
