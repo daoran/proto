@@ -1474,10 +1474,6 @@ int test_check_jacobian() {
   return 0;
 }
 
-/******************************************************************************
- * TEST SVD
- ******************************************************************************/
-
 int test_svd() {
   // Matrix A
   // clang-format off
@@ -1575,10 +1571,6 @@ int test_svd_det() {
   return 0;
 }
 
-/******************************************************************************
- * TEST CHOL
- ******************************************************************************/
-
 int test_chol() {
   // clang-format off
   const int n = 3;
@@ -1654,6 +1646,56 @@ int test_qr() {
   qr(A, m, n, R);
   // print_matrix("A", A, 3, 3);
   // print_matrix("R", R, 3, 3);
+
+  return 0;
+}
+
+int test_eig_sym() {
+  // clang-format off
+  const int m = 5;
+  const int n = 5;
+  real_t A[5 * 5] = {
+     1.96, -6.49, -0.47, -7.20, -0.65,
+    -6.49,  3.80, -6.39,  1.50, -6.34,
+    -0.47, -6.39,  4.17, -1.51,  2.67,
+    -7.20,  1.50, -1.51,  5.70,  1.80,
+    -0.65, -6.34,  2.67,  1.80, -7.10
+  };
+  // clang-format on
+
+  // Eigen-decomposition
+  real_t V[5 * 5] = {0};
+  real_t w[5] = {0};
+  int retval = eig_sym(A, m, n, V, w);
+  MU_ASSERT(retval == 0);
+
+  // Assert
+  //
+  //   A * V == lambda * V
+  //
+  // where:
+  //
+  //   A: original matrix
+  //   V: Eigen-vectors
+  //   lambda: Eigen-values
+  //
+  DOT(A, 5, 5, V, 5, 5, AV);
+
+  for (int j = 0; j < n; j++) {
+    real_t lv[5] = {0};
+    mat_col_get(V, m, n, j, lv);
+    vec_scale(lv, 5, w[j]);
+
+    real_t av[5] = {0};
+    mat_col_get(A, m, n, j, av);
+
+    MU_ASSERT(vec_equals(av, lv, 5) == 0);
+  }
+
+  // print_matrix("AV", AV, 5, 5);
+  // print_matrix("A", A, 5, 5);
+  // print_matrix("V", V, 5, 5);
+  // print_vector("w", w, 5);
 
   return 0;
 }
@@ -4074,14 +4116,14 @@ int test_calib_gimbal_solve() {
     // pose_vector_update(calib_est->fiducial_exts.data, dx);
     // pose_vector_update(calib_est->cam_exts[0].data, dx);
     // pose_vector_update(calib_est->cam_exts[1].data, dx);
-    for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
-      pose_vector_update(calib_est->links[link_idx].data, dx);
-    }
-    // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
-    //   for (int joint_idx = 0; joint_idx < 3; joint_idx++) {
-    //     calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.1, 0.1);
-    //   }
+    // for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
+    //   pose_vector_update(calib_est->links[link_idx].data, dx);
     // }
+    for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+      for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
+        calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.1, 0.1);
+      }
+    }
     // printf("\n");
 
     //     printf("Initial:\n");
@@ -4548,18 +4590,13 @@ void test_suite() {
   MU_ADD_TEST(test_dot);
   MU_ADD_TEST(test_hat);
   MU_ADD_TEST(test_check_jacobian);
-
-  // SVD
   MU_ADD_TEST(test_svd);
   MU_ADD_TEST(test_svd_inv);
   MU_ADD_TEST(test_svd_det);
-
-  // CHOL
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
-
-  // QR
   MU_ADD_TEST(test_qr);
+  MU_ADD_TEST(test_eig_sym);
 
   // SUITE-SPARSE
   MU_ADD_TEST(test_suitesparse_chol_solve);

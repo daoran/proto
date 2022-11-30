@@ -2519,6 +2519,17 @@ void mat_col_set(real_t *A,
 }
 
 /**
+ * Get matrix column.
+ */
+void mat_col_get(
+    const real_t *A, const int m, const int n, const int col_idx, real_t *x) {
+  int vec_idx = 0;
+  for (int i = 0; i < m; i++) {
+    x[vec_idx++] = A[i * n + col_idx];
+  }
+}
+
+/**
  * Get matrix sub-block from `A` with `stride` from row and column start `rs`
  * and `cs`, to row and column end `re` and `ce`. The sub-block is written to
  * `block`.
@@ -3283,9 +3294,9 @@ int check_jacobian(const char *jac_name,
   return retval;
 }
 
-/******************************************************************************
- * SVD
- ******************************************************************************/
+/////////
+// SVD //
+/////////
 
 #ifdef USE_LAPACK
 /**
@@ -3636,9 +3647,9 @@ int svd_det(const real_t *A, const int m, const int n, real_t *det) {
   return retval;
 }
 
-/******************************************************************************
- * CHOL
- ******************************************************************************/
+//////////
+// CHOL //
+//////////
 
 #ifdef USE_LAPACK
 /**
@@ -3836,9 +3847,9 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
 #endif // USE_LAPACK
 }
 
-/******************************************************************************
- * QR
- ******************************************************************************/
+////////
+// QR //
+////////
 
 void __lapack_qr(real_t *A, const int m, const int n, real_t *R) {
   int lda = m;
@@ -3851,6 +3862,72 @@ void qr(real_t *A, const int m, const int n, real_t *R) {
 #ifdef USE_LAPACK
   __lapack_qr(A, m, n, R);
 #endif // USE_LAPACK
+}
+
+/////////
+// EIG //
+/////////
+
+int __lapack_eig(
+    const real_t *A, const int m, const int n, real_t *V, real_t *w) {
+  assert(A != NULL);
+  assert(m > 0 && n > 0);
+  assert(m == n);
+  const int lda = n;
+
+  //   mat_triu(A, n, V);
+  // #if PRECISION == 1
+  //   const int info = LAPACKE_ssyev(LAPACK_ROW_MAJOR, 'V', 'U', n, A, lda, w);
+  // #elif PRECISION == 2
+  //   const int info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', n, A, lda, w);
+  // #endif // Precision
+  //   // Check for convergence
+  //   if (info > 0) {
+  //     LOG_ERROR("The algorithm failed to compute eigenvalues.\n");
+  //     return -1;
+  //   }
+
+  // Copy matrix A to output matrix V
+  mat_triu(A, n, V);
+
+  // Query and allocate the optimal workspace
+  int lwork = -1;
+  int info = 0;
+  real_t wkopt;
+#if PRECISION == 1
+  ssyev_("Vectors", "Lower", &n, V, &lda, w, &wkopt, &lwork, &info);
+#elif PRECISION == 2
+  dsyev_("Vectors", "Lower", &n, V, &lda, w, &wkopt, &lwork, &info);
+#endif // Precision
+  lwork = (int) wkopt;
+  real_t *work = MALLOC(double, lwork);
+
+  // Solve eigenproblem
+#if PRECISION == 1
+  ssyev_("Vectors", "Lower", &n, V, &lda, w, work, &lwork, &info);
+#elif PRECISION == 2
+  dsyev_("Vectors", "Lower", &n, V, &lda, w, work, &lwork, &info);
+#endif // Precision
+  if (info > 0) {
+    LOG_ERROR("The algorithm failed to compute eigenvalues.\n");
+    free(work);
+    return -1;
+  }
+
+  // Clean up
+  mat_transpose(V, n, n, work);
+  mat_copy(work, n, n, V);
+  free(work);
+
+  return 0;
+}
+
+int eig_sym(real_t *A, const int m, const int n, real_t *V, real_t *w) {
+  assert(A != NULL);
+  assert(m > 0 && n > 0);
+  assert(m == n);
+  assert(V != NULL && w != NULL);
+  return __lapack_eig(A, m, n, V, w);
 }
 
 /******************************************************************************
@@ -9005,34 +9082,35 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
  * Setup gimbal calibration data
  */
 void calib_gimbal_setup(calib_gimbal_t *calib) {
+  // Settings
   calib->fix_fiducial_exts = 1;
   calib->fix_gimbal_exts = 1;
   calib->fix_poses = 1;
-  calib->fix_links = 0;
+  calib->fix_links = 1;
   calib->fix_joints = 0;
-  calib->fix_cam_exts = 0;
+  calib->fix_cam_exts = 1;
   calib->fix_cam_params = 1;
 
-  calib->timestamps = NULL;
-
-  calib->cam_params = NULL;
-  calib->cam_exts = NULL;
+  // Counters
   calib->num_cams = 0;
-
-  calib->links = NULL;
-  calib->num_links = 0;
-
-  calib->joints = NULL;
-  calib->joint_factors = NULL;
-  calib->num_joints = 0;
-
-  calib->poses = NULL;
-  calib->num_poses = 0;
-
-  calib->views = NULL;
   calib->num_views = 0;
+  calib->num_poses = 0;
+  calib->num_links = 0;
+  calib->num_joints = 0;
   calib->num_calib_factors = 0;
   calib->num_joint_factors = 0;
+
+  // Variables
+  calib->timestamps = NULL;
+  calib->cam_params = NULL;
+  calib->cam_exts = NULL;
+  calib->links = NULL;
+  calib->joints = NULL;
+  calib->poses = NULL;
+
+  // Factors
+  calib->views = NULL;
+  calib->joint_factors = NULL;
 }
 
 /**
@@ -9042,8 +9120,8 @@ void calib_gimbal_free(calib_gimbal_t *calib) {
   assert(calib);
 
   free(calib->timestamps);
-  free(calib->cam_exts);
   free(calib->cam_params);
+  free(calib->cam_exts);
   free(calib->links);
 
   if (calib->joints) {
@@ -9054,7 +9132,6 @@ void calib_gimbal_free(calib_gimbal_t *calib) {
     free(calib->joints);
     free(calib->joint_factors);
   }
-
   free(calib->poses);
 
   if (calib->views) {
@@ -9074,6 +9151,16 @@ void calib_gimbal_free(calib_gimbal_t *calib) {
  * Print gimbal calibration data
  */
 void calib_gimbal_print(calib_gimbal_t *calib) {
+  // Settings
+  printf("fix_fiducial_exts: %d\n", calib->fix_fiducial_exts);
+  printf("fix_gimbal_exts: %d\n", calib->fix_gimbal_exts);
+  printf("fix_poses: %d\n", calib->fix_poses);
+  printf("fix_links: %d\n", calib->fix_links);
+  printf("fix_joints: %d\n", calib->fix_joints);
+  printf("fix_cam_exts: %d\n", calib->fix_cam_exts);
+  printf("fix_cam_params: %d\n", calib->fix_cam_params);
+  printf("\n");
+
   // Configuration file
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
     camera_params_print(&calib->cam_params[cam_idx]);
@@ -9576,7 +9663,6 @@ param_order_t *calib_gimbal_param_order(const void *data,
   }
 
   *sv_size = col_idx;
-  // *r_size = (calib->num_calib_factors * 2);
   *r_size = (calib->num_calib_factors * 2) + calib->num_joint_factors;
   return hash;
 }
@@ -9675,8 +9761,8 @@ void calib_gimbal_linearize_compact(const void *data,
   // printf("det(H): %e\n", H_det);
   // free(H_copy);
 
-  // mat_save("/tmp/H.csv", H, sv_size, sv_size);
-  // exit(0);
+  mat_save("/tmp/H.csv", H, sv_size, sv_size);
+  exit(0);
 }
 
 ///////////////////////

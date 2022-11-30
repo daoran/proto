@@ -582,6 +582,8 @@ void mat_col_set(real_t *A,
                  const int nb_rows,
                  const int col_idx,
                  const real_t *x);
+void mat_col_get(
+    const real_t *A, const int m, const int n, const int col_idx, real_t *x);
 void mat_block_get(const real_t *A,
                    const size_t stride,
                    const size_t rs,
@@ -817,27 +819,36 @@ int check_jacobian(const char *jac_name,
     }                                                                          \
   }
 
-/******************************************************************************
- * SVD
- ******************************************************************************/
+/////////
+// SVD //
+/////////
 
 int svd(
     const real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V);
 void svd_inv(const real_t *A, const int m, const int n, real_t *A_inv);
 int svd_det(const real_t *A, const int m, const int n, real_t *det);
 
-/******************************************************************************
- * CHOL
- ******************************************************************************/
+//////////
+// CHOL //
+//////////
 
 void chol(const real_t *A, const size_t n, real_t *L);
 void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n);
 
-/******************************************************************************
- * QR
- ******************************************************************************/
+////////
+// QR //
+////////
 
 void qr(real_t *A, const int m, const int n, real_t *R);
+
+/////////
+// EIG //
+/////////
+
+#define EIG_V_SIZE(Am, An) (Am * An)
+#define EIG_W_SIZE(Am, An) (An)
+
+int eig_sym(real_t *A, const int m, const int n, real_t *V, real_t *w);
 
 /******************************************************************************
  * SUITE-SPARSE
@@ -1585,7 +1596,7 @@ int imu_factor_eval(void *factor_ptr);
 // SOLVER //
 ////////////
 
-// #define SOLVER_USE_SUITESPARSE
+#define SOLVER_USE_SUITESPARSE
 
 typedef struct param_order_t {
   void *key;
@@ -1657,6 +1668,7 @@ typedef struct calib_gimbal_view_t {
 } calib_gimbal_view_t;
 
 typedef struct calib_gimbal_t {
+  // Settings
   int fix_fiducial_exts;
   int fix_gimbal_exts;
   int fix_poses;
@@ -1665,29 +1677,28 @@ typedef struct calib_gimbal_t {
   int fix_links;
   int fix_joints;
 
-  timestamp_t *timestamps;
-
-  extrinsic_t fiducial_exts;
-  extrinsic_t gimbal_exts;
-
-  extrinsic_t *cam_exts;
-  camera_params_t *cam_params;
+  // Counters
   int num_cams;
-
-  extrinsic_t *links;
-  int num_links;
-
-  joint_angle_t **joints;
-  joint_angle_factor_t **joint_factors;
-  int num_joints;
-
-  pose_t *poses;
-  int num_poses;
-
-  calib_gimbal_view_t ***views;
   int num_views;
+  int num_poses;
+  int num_links;
+  int num_joints;
   int num_calib_factors;
   int num_joint_factors;
+
+  // Variables
+  timestamp_t *timestamps;
+  extrinsic_t fiducial_exts;
+  extrinsic_t gimbal_exts;
+  extrinsic_t *cam_exts;
+  camera_params_t *cam_params;
+  extrinsic_t *links;
+  joint_angle_t **joints;
+  pose_t *poses;
+
+  // Factors
+  calib_gimbal_view_t ***views;
+  joint_angle_factor_t **joint_factors;
 } calib_gimbal_t;
 
 void calib_gimbal_view_setup(calib_gimbal_view_t *calib);
