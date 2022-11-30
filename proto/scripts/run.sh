@@ -132,8 +132,7 @@ run_test() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto \
-      && ./build/test_proto --target $1 \
-      && python3 scripts/plot_imu_odom.py
+      && ./build/test_proto --target $1
   " C-m C-m
   exit
       # && python3 proto.py TestFactors.test_imu_factor \
@@ -344,6 +343,8 @@ dev_aprilgrid() {
 # run_test test_ba_factor_eval
 # run_test test_vision_factor_setup
 # run_test test_vision_factor_eval
+# run_test test_joint_angle_factor_setup
+run_test test_joint_angle_factor_eval
 # run_test test_calib_gimbal_factor_setup
 # run_test test_calib_gimbal_factor_eval
 # run_test test_imu_buf_setup
@@ -354,7 +355,7 @@ dev_aprilgrid() {
 # run_test test_imu_factor_propagate_step
 # run_test test_imu_factor_setup
 # run_test test_imu_factor_eval
-run_test test_inertial_odometry
+# run_test test_inertial_odometry
 # run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print

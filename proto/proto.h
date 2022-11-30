@@ -797,7 +797,7 @@ int check_jacobian(const char *jac_name,
     int param_type = FACTOR.param_types[PARAM_IDX];                            \
     switch (param_type) {                                                      \
       case POSE_PARAM:                                                         \
-      case EXTRINSICS_PARAM:                                                   \
+      case EXTRINSIC_PARAM:                                                    \
       case FIDUCIAL_PARAM:                                                     \
         CHECK_POSE_JACOBIAN(PARAM_IDX,                                         \
                             FACTOR,                                            \
@@ -1076,7 +1076,7 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
  ******************************************************************************/
 
 #define POSE_PARAM 1
-#define EXTRINSICS_PARAM 2
+#define EXTRINSIC_PARAM 2
 #define FIDUCIAL_PARAM 3
 #define VELOCITY_PARAM 4
 #define IMU_BIASES_PARAM 5
@@ -1151,26 +1151,28 @@ feature_t *features_add(features_t *features,
 void features_remove(features_t *features, const int feature_id);
 
 ////////////////
-// EXTRINSICS //
+// EXTRINSIC //
 ////////////////
 
-typedef struct extrinsics_t {
+typedef struct extrinsic_t {
   real_t data[7];
-} extrinsics_t;
+} extrinsic_t;
 
-void extrinsics_setup(extrinsics_t *extrinsics, const real_t *param);
-void extrinsics_print(const char *prefix, const extrinsics_t *exts);
+void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
+void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 
 //////////////////
 // JOINT-ANGLES //
 //////////////////
 
 typedef struct joint_angle_t {
+  timestamp_t ts;
   int joint_idx;
   real_t data[1];
 } joint_angle_t;
 
 void joint_angle_setup(joint_angle_t *joint,
+                       const timestamp_t ts,
                        const int joint_idx,
                        const real_t theta);
 void joint_angle_print(const char *prefix, const joint_angle_t *joint);
@@ -1195,15 +1197,69 @@ void camera_params_setup(camera_params_t *camera,
                          const real_t *data);
 void camera_params_print(const camera_params_t *camera);
 
-/////////////////
-// POSE-FACTOR //
-/////////////////
+////////////
+// FACTOR //
+////////////
 
 #define FACTOR_EVAL_PTR                                                        \
   int (*factor_eval)(const void *factor,                                       \
                      real_t **params,                                          \
                      real_t *residuals,                                        \
                      real_t **jacobians)
+
+#define CERES_FACTOR_EVAL(FACTOR_TYPE,                                         \
+                          FACTOR,                                              \
+                          FACTOR_EVAL,                                         \
+                          PARAMS,                                              \
+                          R_OUT,                                               \
+                          J_OUT)                                               \
+  {                                                                            \
+    assert(FACTOR);                                                            \
+    assert(PARAMS);                                                            \
+    assert(R_OUT);                                                             \
+                                                                               \
+    /* Copy parameters */                                                      \
+    for (int i = 0; i < FACTOR->num_params; i++) {                             \
+      const int global_size = param_global_size(FACTOR->param_types[i]);       \
+      vec_copy(PARAMS[i], global_size, FACTOR->params[i]);                     \
+    }                                                                          \
+                                                                               \
+    /* Evaluate factor */                                                      \
+    FACTOR_EVAL(factor_ptr);                                                   \
+                                                                               \
+    /* Residuals */                                                            \
+    vec_copy(FACTOR->r, FACTOR->r_size, r_out);                                \
+                                                                               \
+    /* Jacobians */                                                            \
+    if (J_OUT == NULL) {                                                       \
+      return 1;                                                                \
+    }                                                                          \
+                                                                               \
+    const int r_size = FACTOR->r_size;                                         \
+    for (int jac_idx = 0; jac_idx < FACTOR->num_params; jac_idx++) {           \
+      if (J_OUT[jac_idx]) {                                                    \
+        const int gs = param_global_size(FACTOR->param_types[jac_idx]);        \
+        const int ls = param_local_size(FACTOR->param_types[jac_idx]);         \
+        const int rs = 0;                                                      \
+        const int re = r_size - 1;                                             \
+        const int cs = 0;                                                      \
+        const int ce = ls - 1;                                                 \
+        zeros(J_OUT[jac_idx], r_size, gs);                                     \
+        mat_block_set(J_OUT[jac_idx],                                          \
+                      gs,                                                      \
+                      rs,                                                      \
+                      re,                                                      \
+                      cs,                                                      \
+                      ce,                                                      \
+                      FACTOR->jacs[jac_idx]);                                  \
+      }                                                                        \
+    }                                                                          \
+    return 1;                                                                  \
+  }
+
+/////////////////
+// POSE-FACTOR //
+/////////////////
 
 int check_factor_jacobian(const void *factor,
                           FACTOR_EVAL_PTR,
@@ -1288,7 +1344,7 @@ int ba_factor_eval(void *factor_ptr);
 
 typedef struct vision_factor_t {
   pose_t *pose;
-  extrinsics_t *extrinsics;
+  extrinsic_t *extrinsic;
   camera_params_t *camera;
   feature_t *feature;
 
@@ -1304,34 +1360,61 @@ typedef struct vision_factor_t {
   real_t r[2];
   real_t *jacs[4];
   real_t J_pose[2 * 6];
-  real_t J_extrinsics[2 * 6];
+  real_t J_extrinsic[2 * 6];
   real_t J_feature[2 * 3];
   real_t J_camera[2 * 8];
 } vision_factor_t;
 
 void vision_factor_setup(vision_factor_t *factor,
                          pose_t *pose,
-                         extrinsics_t *extrinsics,
+                         extrinsic_t *extrinsic,
                          feature_t *feature,
                          camera_params_t *camera,
                          const real_t z[2],
                          const real_t var[2]);
 int vision_factor_eval(void *factor_ptr);
 
+////////////////////////
+// JOINT-ANGLE FACTOR //
+////////////////////////
+
+typedef struct joint_angle_factor_t {
+  joint_angle_t *joint;
+
+  real_t z[1];
+  real_t covar[1];
+  real_t sqrt_info[1];
+
+  int r_size;
+  int num_params;
+  int param_types[1];
+
+  real_t *params[1];
+  real_t r[1];
+  real_t *jacs[1];
+  real_t J_joint[1 * 1];
+} joint_angle_factor_t;
+
+void joint_angle_factor_setup(joint_angle_factor_t *factor,
+                              joint_angle_t *joint0,
+                              const real_t z,
+                              const real_t var);
+int joint_angle_factor_eval(void *factor_ptr);
+
 /////////////////////////
 // CALIB-GIMBAL-FACTOR //
 /////////////////////////
 
 typedef struct calib_gimbal_factor_t {
-  extrinsics_t *fiducial_exts;
-  extrinsics_t *gimbal_exts;
+  extrinsic_t *fiducial_exts;
+  extrinsic_t *gimbal_exts;
   pose_t *pose;
-  extrinsics_t *link0;
-  extrinsics_t *link1;
+  extrinsic_t *link0;
+  extrinsic_t *link1;
   joint_angle_t *joint0;
   joint_angle_t *joint1;
   joint_angle_t *joint2;
-  extrinsics_t *cam_exts;
+  extrinsic_t *cam_exts;
   camera_params_t *cam;
 
   timestamp_t ts;
@@ -1363,25 +1446,26 @@ typedef struct calib_gimbal_factor_t {
   real_t J_cam_params[2 * 8];
 } calib_gimbal_factor_t;
 
-void gimbal_setup_extrinsics(const real_t ypr[3],
-                             const real_t r[3],
-                             real_t T[4 * 4],
-                             extrinsics_t *link);
-void gimbal_setup_joint(const int joint_idx,
+void gimbal_setup_extrinsic(const real_t ypr[3],
+                            const real_t r[3],
+                            real_t T[4 * 4],
+                            extrinsic_t *link);
+void gimbal_setup_joint(const timestamp_t ts,
+                        const int joint_idx,
                         const real_t theta,
                         real_t T_joint[4 * 4],
                         joint_angle_t *joint);
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
-                               extrinsics_t *fiducial_exts,
-                               extrinsics_t *gimbal_exts,
+                               extrinsic_t *fiducial_exts,
+                               extrinsic_t *gimbal_exts,
                                pose_t *pose,
-                               extrinsics_t *link0,
-                               extrinsics_t *link1,
+                               extrinsic_t *link0,
+                               extrinsic_t *link1,
                                joint_angle_t *joint0,
                                joint_angle_t *joint1,
                                joint_angle_t *joint2,
-                               extrinsics_t *cam_exts,
+                               extrinsic_t *cam_exts,
                                camera_params_t *cam,
                                const timestamp_t ts,
                                const int cam_idx,
@@ -1391,10 +1475,10 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                const real_t z[2],
                                const real_t var[2]);
 int calib_gimbal_factor_eval(void *factor);
-int calib_gimbal_factor_ceres_eval(void *factor,
+int calib_gimbal_factor_ceres_eval(void *factor_ptr,
                                    real_t **params,
-                                   real_t *residuals,
-                                   real_t **jacobians);
+                                   real_t *r_out,
+                                   real_t **J_out);
 
 ////////////////
 // IMU-FACTOR //
@@ -1501,6 +1585,8 @@ int imu_factor_eval(void *factor_ptr);
 // SOLVER //
 ////////////
 
+// #define SOLVER_USE_SUITESPARSE
+
 typedef struct param_order_t {
   void *key;
   int idx;
@@ -1567,7 +1653,7 @@ typedef struct calib_gimbal_view_t {
   int *corner_indices;
   real_t **object_points;
   real_t **keypoints;
-  calib_gimbal_factor_t *factors;
+  calib_gimbal_factor_t *calib_factors;
 } calib_gimbal_view_t;
 
 typedef struct calib_gimbal_t {
@@ -1581,17 +1667,18 @@ typedef struct calib_gimbal_t {
 
   timestamp_t *timestamps;
 
-  extrinsics_t fiducial_exts;
-  extrinsics_t gimbal_exts;
+  extrinsic_t fiducial_exts;
+  extrinsic_t gimbal_exts;
 
-  extrinsics_t *cam_exts;
+  extrinsic_t *cam_exts;
   camera_params_t *cam_params;
   int num_cams;
 
-  extrinsics_t *links;
+  extrinsic_t *links;
   int num_links;
 
   joint_angle_t **joints;
+  joint_angle_factor_t **joint_factors;
   int num_joints;
 
   pose_t *poses;
@@ -1599,7 +1686,8 @@ typedef struct calib_gimbal_t {
 
   calib_gimbal_view_t ***views;
   int num_views;
-  int num_factors;
+  int num_calib_factors;
+  int num_joint_factors;
 } calib_gimbal_t;
 
 void calib_gimbal_view_setup(calib_gimbal_view_t *calib);
@@ -1664,6 +1752,24 @@ void inertial_odometry_linearize_compact(const void *data,
                                          real_t *H,
                                          real_t *g,
                                          real_t *r);
+
+//////////////////////////////
+// VISUAL INERTIAL ODOMETRY //
+//////////////////////////////
+
+// typedef struct vio_t {
+//   // IMU Parameters
+//   imu_params_t imu_params;
+
+//   // Factors
+//   int num_factors;
+//   imu_factor_t *factors;
+
+//   // Variables
+//   pose_t *poses;
+//   velocity_t *vels;
+//   imu_biases_t *biases;
+// } vio_t;
 
 /******************************************************************************
  * DATASET
@@ -1742,15 +1848,15 @@ real_t **sim_create_features(const real_t origin[3],
 typedef struct sim_gimbal_t {
   aprilgrid_t grid;
 
-  extrinsics_t fiducial;
+  extrinsic_t fiducial;
 
-  extrinsics_t *links;
+  extrinsic_t *links;
   int num_links;
 
   joint_angle_t *joints;
   int num_joints;
 
-  extrinsics_t *cam_exts;
+  extrinsic_t *cam_exts;
   camera_params_t *cam_params;
   int num_cams;
 } sim_gimbal_t;
