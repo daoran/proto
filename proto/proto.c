@@ -3570,7 +3570,7 @@ int svd(const real_t *A,
 /**
  * Pseudo inverse of matrix A with SVD
  */
-void svd_inv(const real_t *A, const int m, const int n, real_t *A_inv) {
+void pinv(const real_t *A, const int m, const int n, real_t *A_inv) {
   assert(m == n);
 
   // Decompose A = U * S * Vt
@@ -8203,7 +8203,7 @@ void imu_factor_setup(imu_factor_t *factor,
   real_t info[15 * 15] = {0};
   real_t sqrt_info[15 * 15] = {0};
 
-  svd_inv(factor->covar, 15, 15, info);
+  pinv(factor->covar, 15, 15, info);
   assert(check_inv(info, factor->covar, 15) == 0);
   zeros(factor->sqrt_info, 15, 15);
   chol(info, 15, sqrt_info);

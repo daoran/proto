@@ -825,7 +825,7 @@ int check_jacobian(const char *jac_name,
 
 int svd(
     const real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V);
-void svd_inv(const real_t *A, const int m, const int n, real_t *A_inv);
+void pinv(const real_t *A, const int m, const int n, real_t *A_inv);
 int svd_det(const real_t *A, const int m, const int n, real_t *det);
 
 //////////
