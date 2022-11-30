@@ -3618,10 +3618,18 @@ class Factor:
     self.factor_id = None
     self.factor_type = ftype
     self.param_ids = pids
-    self.measurement = z
-    if covar is not None:
+
+    if isinstance(z, np.ndarray):
+      self.measurement = z
+    else:
+      self.measurement = np.array([z])
+
+    if covar is not None and isinstance(covar, np.ndarray):
       self.covar = covar
       self.sqrt_info = chol(inv(self.covar)).T
+    elif covar is not None:
+      self.covar = np.array([covar])
+      self.sqrt_info = np.sqrt(1.0 / covar)
     else:
       self.covar = None
       self.sqrt_info = None
@@ -3629,6 +3637,10 @@ class Factor:
   def set_factor_id(self, fid):
     """ Set factor id """
     self.factor_id = fid
+
+  def eval(self, params, **kwargs):
+    """ Evalulate Factor """
+    raise NotImplementedError()
 
   def calculate_jacobian(self, fvars, var_idx):
     """ Calculate Jacobian """
@@ -3669,6 +3681,37 @@ class Factor:
   def __hash__(self):
     """ Hash function """
     return hash(repr(self))
+
+
+class MeasurementFactor(Factor):
+  """ Measurement Factor """
+  def __init__(self, pids, z, covar):
+    assert len(pids) == 1
+    Factor.__init__(self, "MeasurementFactor", pids, z, covar)
+
+  def eval(self, params, **kwargs):
+    """ Evaluate """
+    # Form residuals
+    z = self.measurement
+    z_hat = params[0]
+
+    if isinstance(self.sqrt_info, np.ndarray):
+      r = self.sqrt_info @ (z - z_hat)
+    else:
+      r = self.sqrt_info * (z - z_hat)
+
+    if kwargs.get('only_residuals', False):
+      return r
+
+    # Form Jacobians
+    J_rows = r.shape[0]
+    J = zeros((J_rows, J_rows))
+    if isinstance(self.sqrt_info, np.ndarray):
+      J = self.sqrt_info @ -eye(J_rows)
+    else:
+      J = self.sqrt_info * -eye(J_rows)
+
+    return (r, [J])
 
 
 class PoseFactor(Factor):
@@ -5077,6 +5120,7 @@ class Solver:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
+    print(f"rank(H): {np.linalg.matrix_rank(H)}, H.shape: {H.shape}")
     # w, v, = np.linalg.eig(H)
     # print(w)
     # exit(0)
@@ -7947,7 +7991,7 @@ class SimGimbal:
   def simulate(self, **kwargs):
     """ Simulate """
     # Settings
-    num_views = kwargs.get("num_views", 30)
+    num_views = kwargs.get("num_views", 10)
     fix_gimbal = kwargs.get("fix_gimbal", True)
 
     # Simulation data
@@ -8029,8 +8073,8 @@ class SimGimbal:
     for _ in range(num_views):
       # Perturb joint angles for a different view
       self.gimbal.joint_angles[0] = np.random.uniform(-1.0, 1.0)
-      self.gimbal.joint_angles[1] = np.random.uniform(-0.5, 0.5)
-      self.gimbal.joint_angles[2] = np.random.uniform(-0.5, 0.5)
+      self.gimbal.joint_angles[1] = np.random.uniform(-1.5, 1.5)
+      self.gimbal.joint_angles[2] = np.random.uniform(-1.5, 1.5)
       joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
 
       # # Perturb body pose
@@ -8065,7 +8109,7 @@ class SimGimbal:
     calib_file = open(f"/tmp/sim_gimbal/calib.config", "w")
     # -- Save camera parameters
     calib_file.write(f"num_cams: {len(self.cam_params)}\n")
-    # calib_file.write(f"num_links: {len(self.links)}\n")
+    calib_file.write(f"num_links: {len(self.links)}\n")
     calib_file.write("\n")
     for cam_idx, cam_params in enumerate(self.cam_params):
       cam_geom = cam_params.data
@@ -8093,8 +8137,8 @@ class SimGimbal:
       tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
       calib_file.write(f"link{link_idx}_exts: [{tf_str}]\n")
     # -- Save gimbal extrinsics
-    rx, ry, rz = tf_trans(self.T_WB)
-    qw, qx, qy, qz = tf_quat(self.T_WB)
+    rx, ry, rz = tf_trans(self.T_BM0)
+    qw, qx, qy, qz = tf_quat(self.T_BM0)
     tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
     calib_file.write(f"gimbal_exts: [{tf_str}]\n")
     # -- Save fiducial extrinsics
@@ -8171,10 +8215,10 @@ class SimGimbal:
 
     fix_fiducial = True
     fix_gimbal_exts = True
-    fix_gimbal_pose = True
+    fix_gimbal_pose = False
     fix_gimbal_links = [False, False]
     fix_gimbal_joints = [False, False, False]
-    fix_cam_exts = [True, True]
+    fix_cam_exts = [False, False]
     fix_cam_params = [True, True]
 
     graph = FactorGraph()
@@ -8209,7 +8253,7 @@ class SimGimbal:
     perturb_state_variable(est.gimbal_link0, 4, 0.01)
     perturb_state_variable(est.gimbal_link0, 5, 0.01)
 
-    # # -- Perturb gimbal link 1
+    # -- Perturb gimbal link 1
     perturb_state_variable(est.gimbal_link1, 0, 0.01)
     perturb_state_variable(est.gimbal_link1, 1, 0.01)
     perturb_state_variable(est.gimbal_link1, 2, 0.01)
@@ -8253,6 +8297,16 @@ class SimGimbal:
     est.cam0_params.fix = fix_cam_params[0]
     est.cam1_params.fix = fix_cam_params[1]
 
+    pids = [gimbal_link_ids[0]]
+    covar = eye(6) * 0.1
+    link0_factor = PoseFactor(pids, pose2tf(self.links[0]), covar)
+    factor_ids.append(graph.add_factor(link0_factor))
+
+    pids = [gimbal_link_ids[1]]
+    covar = eye(6) * 0.1
+    link1_factor = PoseFactor(pids, pose2tf(self.links[1]), covar)
+    factor_ids.append(graph.add_factor(link1_factor))
+
     for view_idx, (view_set, joints) in enumerate(zip(view_data, joint_data)):
       # Form joint angle state-variable
       joint0_var = joint_angle_setup(joints[0], fix=fix_gimbal_joints[0])
@@ -8278,6 +8332,24 @@ class SimGimbal:
       joint1_id = graph.add_param(joint1_var)
       joint2_id = graph.add_param(joint2_var)
       gimbal_joint_ids.append([joint0_id, joint1_id, joint2_id])
+
+      # Add joint factors
+      covar = 0.01
+
+      pids = [joint0_id]
+      z0 = copy.deepcopy(joints[0])
+      joint0_factor = MeasurementFactor(pids, z0, covar)
+      factor_ids.append(graph.add_factor(joint0_factor))
+
+      pids = [joint1_id]
+      z1 = copy.deepcopy(joints[1])
+      joint1_factor = MeasurementFactor(pids, z1, covar)
+      factor_ids.append(graph.add_factor(joint1_factor))
+
+      pids = [joint2_id]
+      z2 = copy.deepcopy(joints[2])
+      joint2_factor = MeasurementFactor(pids, z2, covar)
+      factor_ids.append(graph.add_factor(joint2_factor))
 
       # Add view factors
       for cam_idx, cam_view in enumerate(view_set):
