@@ -5149,32 +5149,6 @@ class Solver:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
-    print(f"rank(H): {np.linalg.matrix_rank(H)}, H.shape: {H.shape}")
-    # w, v, = np.linalg.eig(H)
-    # print(w)
-    # exit(0)
-
-    # covar = pinv(H)
-    # print(covar @ H - eye(H.shape[0]))
-
-    # n = covar.shape[0]
-    # u, s, vh = np.linalg.svd(covar)
-    # x = []
-    # for i in s:
-    #   if i > 1e-10:
-    #     x.append(i)
-
-    # print(x)
-    # covar_det = np.prod(x)
-    # entropy = 0.5 * np.log(pow(2 * pi * np.exp(1), n) * covar_det)
-    # print(f"entropy: {entropy}")
-
-    # print(f"rank(H): {rank(H)}, size(H): {H.shape}")
-    # H[H != 0] = 1
-    # plt.imshow(H)
-    # plt.colorbar()
-    # plt.show()
-
     return (H, g, param_idxs)
 
   def _calculate_residuals(self, params):
@@ -8081,23 +8055,6 @@ class SimGimbal:
     # Gimbal
     self.gimbal = GimbalKinematics(self.links, self.joint_angles)
 
-  # def _setup_poe_gimbal():
-  # L1 = 0.3
-  # L2 = 0.1
-  # self.screw_axes = np.array([
-  #     [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-  #     [0.0, -1.0, 0.0, 0.0, 0.0, -L1],
-  #     [1.0, 0.0, 0.0, 0.0, -L2, 0.0],
-  # ])
-  # self.M = np.array([
-  #     [0.0, 0.0, 1.0, L1],
-  #     [0.0, 1.0, 0.0, 0.0],
-  #     [-1.0, 0.0, 0.0, -L2],
-  #     [0.0, 0.0, 0.0, 1.0],
-  # ])
-  # self.gimbal = GimbalPoEKinematics(self.M, self.screw_axes,
-  #                                   self.joint_angles)
-
   def _setup_camera_params(self):
     """ Setup Camera Parameters """
     res = [640, 480]
@@ -8561,11 +8518,18 @@ class SimGimbal:
     # Estimation
     est = copy.deepcopy(gnd)
 
+    # -- Perturb gimbal pose
     dpos = [-0.1, 0.1]
     drot = [-0.1, 0.1]
     est.gimbal_pose = perturb_tf_random(est.gimbal_pose, dpos, drot)
-    # est.gimbal_link0 = perturb_tf_random(est.gimbal_link0, dpos, drot)
-    # est.gimbal_link1 = perturb_tf_random(est.gimbal_link1, dpos, drot)
+
+    # -- Perturb gimbal links
+    dpos = [-0.01, 0.01]
+    drot = [-0.1, 0.1]
+    est.gimbal_link0 = perturb_tf_random(est.gimbal_link0, dpos, drot)
+    est.gimbal_link1 = perturb_tf_random(est.gimbal_link1, dpos, drot)
+
+    # -- Perturb gimbal joints
     # for view_idx, joints in enumerate(est.joint_angles):
     #   drot = np.random.uniform(-0.01, 0.01, size=(3,))
     #   est.joint_angles[view_idx] = joints + drot
