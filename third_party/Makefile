@@ -81,7 +81,6 @@ build_tiscamera:
 	  && cd build || return \
 	  && cmake \
 		  -DCMAKE_BUILD_TYPE=Release \
-		  -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
 			-DTCAM_INSTALL_FORCE_PREFIX=ON \
 			-DTCAM_BUILD_ARAVIS=ON .. \
 	  && make \
