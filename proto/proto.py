@@ -6852,6 +6852,161 @@ class Calibrator:
     sys.stdout.flush()
 
 
+class GimbalCalibrator:
+  """ Gimbal Calibrator """
+  def __init__(self):
+    # Factor graph
+    self.graph = FactorGraph()
+
+    # Variable ids
+    self.fiducial_id = None
+    self.body_pose_ids = []
+    self.gimbal_ext_id = None
+    self.gimbal_link_ids = {}
+    self.gimbal_joint_ids = {}
+    self.cam_params_ids = {}
+    self.cam_ext_ids = {}
+
+    # Factor ids
+    self.link_factor_ids = []
+    self.joint_factor_ids = []
+    self.calib_factor_ids = []
+
+    # Variables
+    self.fiducial = None
+    self.body_poses = []
+    self.gimbal_ext = None
+    self.gimbal_links = {}
+    self.gimbal_joints = {}
+    self.cam_params = {}
+    self.cam_exts = {}
+
+  def add_fiducial(self, T_WF, fix=True):
+    """ Add fiducial """
+    self.fiducial = extrinsics_setup(T_WF, fix=fix)
+    self.fiducial_id = self.graph.add_param(self.fiducial)
+    return self.fiducial_id
+
+  def add_body_pose(self, ts, T_WB, fix=True):
+    """ Add body pose """
+    pose = pose_setup(ts, T_WB, fix=fix)
+    pose_id = self.graph.add_param(pose)
+    self.body_pose_ids.append(pose_id)
+    self.body_poses.append(pose)
+    return pose_id
+
+  def add_gimbal_extrinsic(self, T_BM0, fix=True):
+    """ Add gimbal extrinsic """
+    ext = extrinsics_setup(T_BM0, fix=fix)
+    ext_id = self.graph.add_param(ext)
+    self.gimbal_ext_id = ext_id
+    self.gimbal_ext = ext
+    return ext_id
+
+  def add_gimbal_link(self, link_idx, T_link, **kwargs):
+    """ Add gimbal link """
+    fix = kwargs.get("fix", False)
+    covar = kwargs.get("covar", eye(6) * 0.1)
+
+    link = extrinsics_setup(T_link, fix=fix)
+    link_id = self.graph.add_param(link)
+    self.gimbal_link_ids[link_idx] = link_id
+    self.gimbal_links[link_idx] = link
+
+    if fix is False:
+      pids = [link_id]
+      link_factor = PoseFactor(pids, T_link, covar)
+      self.link_factor_ids.append(self.graph.add_factor(link_factor))
+
+    return link_id
+
+  def add_gimbal_joint(self, view_idx, joint_idx, joint_angle, **kwargs):
+    """ Add gimbal joint """
+    fix = kwargs.get("fix", False)
+    covar = kwargs.get("covar", 0.01)
+
+    if view_idx not in self.gimbal_joint_ids:
+      self.gimbal_joint_ids[view_idx] = {}
+      self.gimbal_joints[view_idx] = {}
+
+    joint = joint_angle_setup(joint_angle, fix=fix)
+    joint_id = self.graph.add_param(joint)
+    self.gimbal_joint_ids[view_idx][joint_idx] = joint_id
+    self.gimbal_joints[view_idx][joint_idx] = joint
+
+    if fix is False:
+      pids = [joint_id]
+      joint_factor = MeasurementFactor(pids, joint_angle, covar)
+      self.joint_factor_ids.append(self.graph.add_factor(joint_factor))
+
+    return joint_id
+
+  def add_camera(self, **kwargs):
+    """ Add camera """
+    cam_params = kwargs.get("cam_params")
+    if cam_params is not None:
+      cam_idx = cam_params.data.cam_idx
+      cam_params_id = self.graph.add_param(cam_params)
+      self.cam_params_ids[cam_idx] = cam_params_id
+      self.cam_params[cam_idx] = cam_params
+      return cam_params_id
+
+    cam_idx = kwargs["cam_idx"]
+    cam_res = kwargs["cam_res"]
+    proj_model = kwargs["proj_model"]
+    dist_model = kwargs["dist_model"]
+    params = kwargs["params"]
+    cam_params = camera_params_setup(cam_idx, cam_res, proj_model, dist_model,
+                                     params)
+    cam_params_id = self.graph.add_param(cam_params)
+    self.cam_params_ids[cam_idx] = cam_params_id
+    self.cam_params[cam_idx] = cam_params
+    return cam_params_id
+
+  def add_camera_extrinsic(self, cam_idx, cam_ext, fix=False):
+    """ Add camera extrinsic """
+    ext = extrinsics_setup(cam_ext, fix=fix)
+    ext_id = self.graph.add_param(ext)
+    self.cam_ext_ids[cam_idx] = ext_id
+    self.cam_exts[cam_idx] = ext
+    return ext_id
+
+  def add_camera_view_set(self, view_idx, view_set):
+    """ Add multi-camera data """
+    for cam_idx, cam_view in enumerate(view_set):
+      cam_params_id = self.cam_params_ids[cam_idx]
+      cam_params = self.graph.params[cam_params_id]
+      cam_geom = cam_params.data
+      pids = [
+          self.fiducial_id,
+          self.body_pose_ids[-1],
+          self.gimbal_ext_id,
+          self.gimbal_link_ids[0],
+          self.gimbal_link_ids[1],
+          self.gimbal_joint_ids[view_idx][0],
+          self.gimbal_joint_ids[view_idx][1],
+          self.gimbal_joint_ids[view_idx][2],
+          self.cam_ext_ids[cam_idx],
+          self.cam_params_ids[cam_idx],
+      ]
+
+      for i in range(cam_view["num_measurements"]):
+        tag_id = cam_view["tag_ids"][i]
+        corner_idx = cam_view["corner_idxs"][i]
+        pt = cam_view["object_points"][i]
+        kp = cam_view["keypoints"][i]
+        grid_data = tag_id, corner_idx, pt, kp
+        factor = CalibGimbalFactor(cam_geom, pids, grid_data)
+        self.calib_factor_ids.append(self.graph.add_factor(factor))
+
+  def solve(self, **kwargs):
+    """ Solve """
+    debug = kwargs.get("debug", True)
+    max_iter = kwargs.get("max_iter", 10)
+    self.graph.solver_max_iter = max_iter
+    self.graph.solve(debug)
+
+
 ###############################################################################
 # SIMULATION
 ###############################################################################
@@ -7854,7 +8009,6 @@ class SimGimbal:
 
   def _setup_camera_params(self):
     """ Setup Camera Parameters """
-    cam_idx = 0
     res = [640, 480]
     fov = 120.0
     fx = focal_length(res[0], fov)
@@ -7868,8 +8022,8 @@ class SimGimbal:
     dist_params = [0.0, 0.0, 0.0, 0.0]
     params = np.block([*proj_params, *dist_params])
 
-    cam0 = camera_params_setup(cam_idx, res, proj_model, dist_model, params)
-    cam1 = camera_params_setup(cam_idx, res, proj_model, dist_model, params)
+    cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
+    cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
 
     self.cam_params.append(cam0)
     self.cam_params.append(cam1)
@@ -8461,7 +8615,6 @@ class SimGimbal:
 
     # -- Before optimisation
     ax = plt.subplot(121, projection='3d')
-    # ax = plt.axes(projection='3d')
     # -- Plot ground Truth
     gnd_colors = ('r-', 'r-', 'r-')
     self.calib_target.plot(ax,
@@ -8492,8 +8645,6 @@ class SimGimbal:
     ax.set_title("Before Optimisation")
 
     # -- After optimisation
-    # plt.subplot(212)
-    # ax = plt.axes(projection='3d')
     ax = plt.subplot(122, projection='3d')
     # -- Plot ground Truth
     gnd_colors = ('r-', 'r-', 'r-')
@@ -8525,6 +8676,37 @@ class SimGimbal:
     plot_set_axes_equal(ax)
 
     plt.show()
+
+  def solve2(self, sim_data):
+    """ Solve """
+    (pose_data, view_data, joint_data) = sim_data
+
+    fix_fiducial = True
+    fix_gimbal_pose = False
+    fix_gimbal_exts = True
+    fix_gimbal_links = [False, False]
+    fix_gimbal_joints = [False, False, False]
+    fix_cam_exts = [False, False]
+    fix_cam_params = [True, True]
+
+    calib = GimbalCalibrator()
+    calib.add_fiducial(self.T_WF, fix=fix_fiducial)
+    calib.add_body_pose(0, self.T_WB, fix=fix_gimbal_pose)
+    calib.add_gimbal_extrinsic(self.T_BM0, fix=fix_gimbal_exts)
+    calib.add_gimbal_link(0, pose2tf(self.links[0]), fix=fix_gimbal_links[0])
+    calib.add_gimbal_link(1, pose2tf(self.links[1]), fix=fix_gimbal_links[1])
+    calib.add_camera(cam_params=self.cam_params[0])
+    calib.add_camera(cam_params=self.cam_params[1])
+    calib.add_camera_extrinsic(0, self.cam_exts[0])
+    calib.add_camera_extrinsic(1, self.cam_exts[1])
+
+    for view_idx, (view_set, joints) in enumerate(zip(view_data, joint_data)):
+      calib.add_gimbal_joint(view_idx, 0, joints[0], fix=fix_gimbal_joints[0])
+      calib.add_gimbal_joint(view_idx, 1, joints[1], fix=fix_gimbal_joints[1])
+      calib.add_gimbal_joint(view_idx, 2, joints[2], fix=fix_gimbal_joints[2])
+      calib.add_camera_view_set(view_idx, view_set)
+
+    calib.solve()
 
 
 ###############################################################################
@@ -11292,7 +11474,8 @@ class TestSandbox(unittest.TestCase):
 
     sim_data = sim.simulate()
     # sim.save(sim_data)
-    sim.solve(sim_data)
+    # sim.solve(sim_data)
+    sim.solve2(sim_data)
 
   # def test_calib_gimbal_poe_factor(self):
   #   sim = SimGimbal()
