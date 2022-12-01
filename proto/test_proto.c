@@ -1523,7 +1523,7 @@ int test_svd() {
   return 0;
 }
 
-int test_svd_inv() {
+int test_pinv() {
   // clang-format off
   const int m = 4;
   const int n = 4;
@@ -1544,7 +1544,7 @@ int test_svd_inv() {
   // Invert matrix A using SVD
   // struct timespec t = tic();
   real_t A_inv[4 * 4] = {0};
-  svd_inv(A, m, n, A_inv);
+  pinv(A, m, n, A_inv);
   // printf("time taken: [%fs]\n", toc(&t));
 
   // Inverse check: A * A_inv = eye
@@ -4591,7 +4591,7 @@ void test_suite() {
   MU_ADD_TEST(test_hat);
   MU_ADD_TEST(test_check_jacobian);
   MU_ADD_TEST(test_svd);
-  MU_ADD_TEST(test_svd_inv);
+  MU_ADD_TEST(test_pinv);
   MU_ADD_TEST(test_svd_det);
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);

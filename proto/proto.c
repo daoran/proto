@@ -9086,7 +9086,7 @@ void calib_gimbal_setup(calib_gimbal_t *calib) {
   calib->fix_fiducial_exts = 1;
   calib->fix_gimbal_exts = 1;
   calib->fix_poses = 1;
-  calib->fix_links = 1;
+  calib->fix_links = 0;
   calib->fix_joints = 0;
   calib->fix_cam_exts = 1;
   calib->fix_cam_params = 1;
@@ -9761,8 +9761,8 @@ void calib_gimbal_linearize_compact(const void *data,
   // printf("det(H): %e\n", H_det);
   // free(H_copy);
 
-  mat_save("/tmp/H.csv", H, sv_size, sv_size);
-  exit(0);
+  // mat_save("/tmp/H.csv", H, sv_size, sv_size);
+  // exit(0);
 }
 
 ///////////////////////
