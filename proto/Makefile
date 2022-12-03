@@ -15,7 +15,7 @@ STB_CFLAGS:=-I$(DEPS_DIR)/src/stb
 OPENSSL_LDFLAGS := -lssl -lcrypto
 GLEW_LDFLAGS := -lGLEW
 SDL2_CFLAGS:=$(shell sdl2-config --cflags)
-SDL2_LDFLAGS := `sdl2-config --libs` -lSDL2_image
+SDL2_LDFLAGS := $(shell sdl2-config --libs) -lSDL2_image
 OPENGL_LDFLAGS := $(SDL2_LDFLAGS) $(GLEW_LDFLAGS) -lGL
 BLAS_LDFLAGS := -lblas -llapack -llapacke
 SUITESPARSE_LDFLAGS := -llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod -lcxsparse
@@ -33,6 +33,8 @@ TIS_LDFLAGS+=$(shell pkg-config gobject-introspection-1.0 --libs)
 TIS_LDFLAGS+=$(shell pkg-config tcam --libs)
 
 APRILTAG_LDFLAGS := -L$(DEPS_DIR)/lib -lapriltag
+
+YAML_LDFLAGS := -lyaml
 
 PROTO_LDFLAGS := -L$(BLD_DIR) -lproto
 
@@ -64,6 +66,7 @@ LDFLAGS= \
 	$(BLAS_LDFLAGS) \
 	$(OPENSSL_LDFLAGS) \
 	$(TIS_LDFLAGS) \
+	$(YAML_LDFLAGS) \
 	-lstdc++ \
 	-lpthread \
   -lm
@@ -125,6 +128,10 @@ test_proto: libproto  ## Compile test_proto
 test_aprilgrid:  ## Compile test_aprilgrid
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BLD_DIR)/test_aprilgrid $(LDFLAGS)
+
+test_euroc:  ## Compile test_euroc
+	@echo "CC [$@]"
+	@$(CC) $(CFLAGS) test_euroc.c -o $(BLD_DIR)/test_euroc $(LDFLAGS)
 
 test_tis:  ## Compile test_tis
 	@echo "CC [$@]"

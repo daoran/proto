@@ -1859,17 +1859,17 @@ real_t **sim_create_features(const real_t origin[3],
 typedef struct sim_gimbal_t {
   aprilgrid_t grid;
 
-  extrinsic_t fiducial;
-
-  extrinsic_t *links;
   int num_links;
-
-  joint_angle_t *joints;
   int num_joints;
+  int num_cams;
 
+  extrinsic_t fiducial_ext;
+  extrinsic_t gimbal_ext;
+  pose_t gimbal_pose;
+  extrinsic_t *gimbal_links;
+  joint_angle_t *gimbal_joints;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
-  int num_cams;
 } sim_gimbal_t;
 
 sim_gimbal_t *sim_gimbal_malloc();
