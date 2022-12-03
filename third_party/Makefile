@@ -1,4 +1,6 @@
-PREFIX := $(PWD)
+MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+MKFILE_DIR := $(dir $(MKFILE_PATH))
+PREFIX := $(MKFILE_DIR)
 SRC_PATH := $(PREFIX)/src
 ROS_VERSION := "noetic"
 
@@ -22,10 +24,7 @@ clean:
 	@rm -rf share
 	@rm -rf src
 
-install: setup
-	@echo "[Installing Dependencies]"
-	@bash install.bash
-	@echo "done!"
+install: setup apt_base install_apt_pkgs install_ros build_pkgs
 
 apt_base:
 	@sudo apt-get install -y -qqq \
@@ -49,9 +48,6 @@ apt_base:
 	@pip3 install --user opencv-python
 	@pip3 install --user matplotlib
 
-install_ros:
-	@bash scripts/install_ros.bash
-
 install_apt_pkgs:
 	@sudo apt-get update -qqq
 	@sudo apt-get install -y -qqq liblapacke liblapacke-dev
@@ -63,6 +59,11 @@ install_apt_pkgs:
 	@sudo apt-get install -y -qqq libsdl2-*
 	@sudo apt-get install -y -qqq libyaml-cpp-dev
 
+install_ros:
+	@bash scripts/install_ros.bash
+
+build_pkgs: build_apriltag build_tiscamera build_stb build_dbow2
+
 build_apriltag:
 	@sudo apt-get install -y -qqq cmake libeigen3-dev libv4l-dev libopencv-*
 	@cd "$(SRC_PATH)/apriltag" \
@@ -71,17 +72,19 @@ build_apriltag:
 	  && cmake \
 		  -DCMAKE_BUILD_TYPE=Release \
 		  -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+			.. \
 		&& make \
 		&& make install
 
 build_tiscamera:
 	@cd "$(SRC_PATH)/tiscamera" \
-	  && ./scripts/dependency-manager install \
+	  && ./scripts/dependency-manager install -y \
 	  && mkdir -p build \
 	  && cd build || return \
 	  && cmake \
 		  -DCMAKE_BUILD_TYPE=Release \
 			-DTCAM_INSTALL_FORCE_PREFIX=ON \
+			-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
 			-DTCAM_BUILD_ARAVIS=ON .. \
 	  && make \
 		&& make install
