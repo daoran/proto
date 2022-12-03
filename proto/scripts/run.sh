@@ -85,12 +85,12 @@ run_memcheck() {
 # python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestSandbox.test_poe
 
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "\
-  cd ~/projects/proto/proto \
-  && python3 proto.py TestSandbox.test_gimbal
-" C-m C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto/proto \
+#   && python3 proto.py TestSandbox.test_gimbal
+# " C-m C-m
+# exit
 
 
 ###############################################################################
@@ -162,9 +162,18 @@ dev_aprilgrid() {
   exit
 }
 
+dev_euroc() {
+  touch proto.c;
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_euroc && ./build/test_euroc" C-m
+  exit
+  # cd ~/projects/proto/proto && make test_euroc && ./build/test_euroc
+}
+
 # dev_sbgc
 # dev_tiscam
 # dev_aprilgrid
+dev_euroc
 # make libproto
 
 # CAM0_SERIAL=19220362
