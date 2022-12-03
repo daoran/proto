@@ -6,6 +6,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include <yaml.h>
 
@@ -100,6 +101,7 @@ typedef struct euroc_camera_t {
 } euroc_camera_t;
 
 euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data);
+void euroc_camera_free(euroc_camera_t *data);
 void euroc_camera_print(const euroc_camera_t *data);
 
 /*****************************************************************************
@@ -121,76 +123,8 @@ typedef struct euroc_ground_truth_t {
 
 } euroc_ground_truth_t;
 
-//   euroc_ground_truth_t(const std::string &data_dir_) : data_dir{data_dir_} {
-//     // Open file for loading
-//     const std::string data_path = data_dir + "/data.csv";
-//     int nb_rows = 0;
-//     FILE *fp = file_open(data_path, "r", &nb_rows);
-//     if (fp == NULL) {
-//       FATAL("Failed to open [%s]!", data_path.c_str());
-//     }
-
-//     // Parse file
-//     std::string str_format;
-//     str_format += "%" SCNu64 ",";     // Timestamp
-//     str_format += "%lf,%lf,%lf,";     // Position
-//     str_format += "%lf,%lf,%lf,%lf,"; // Quaternion
-//     str_format += "%lf,%lf,%lf,";     // Velocity
-//     str_format += "%lf,%lf,%lf,";     // Gyro bias
-//     str_format += "%lf,%lf,%lf";      // Accel bias
-
-//     for (int i = 0; i < nb_rows; i++) {
-//       // Skip first line
-//       if (i == 0) {
-//         skip_line(fp);
-//         continue;
-//       }
-
-//       // Parse line
-//       timestamp_t ts = 0;
-//       double p_x, p_y, p_z = 0.0;
-//       double q_x, q_y, q_z, q_w = 0.0;
-//       double v_x, v_y, v_z = 0.0;
-//       double b_w_x, b_w_y, b_w_z = 0.0;
-//       double b_a_x, b_a_y, b_a_z = 0.0;
-//       int retval = fscanf(fp,
-//                           str_format.c_str(),
-//                           &ts,
-//                           &p_x,
-//                           &p_y,
-//                           &p_z,
-//                           &q_x,
-//                           &q_y,
-//                           &q_z,
-//                           &q_w,
-//                           &v_x,
-//                           &v_y,
-//                           &v_z,
-//                           &b_w_x,
-//                           &b_w_y,
-//                           &b_w_z,
-//                           &b_a_x,
-//                           &b_a_y,
-//                           &b_a_z);
-//       if (retval != 17) {
-//         FATAL("Failed to parse line in [%s]", data_path.c_str());
-//       }
-
-//       timestamps.push_back(ts);
-//       p_RS_R.emplace_back(p_x, p_y, p_z);
-//       q_RS.emplace_back(q_w, q_x, q_y, q_z);
-//       v_RS_R.emplace_back(v_x, v_y, v_z);
-//       b_w_RS_S.emplace_back(b_w_x, b_w_y, b_w_z);
-//       b_a_RS_S.emplace_back(b_a_x, b_a_y, b_a_z);
-//     }
-//     fclose(fp);
-
-//     ok = true;
-//   }
-
-//   ~euroc_ground_truth_t() {
-//   }
-// };
+euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir);
+void euroc_ground_truth_free(euroc_ground_truth_t *data);
 
 /*****************************************************************************
  * euroc_data_t
@@ -204,83 +138,22 @@ typedef struct euroc_data_t {
   euroc_camera_t *cam0_data;
   euroc_camera_t *cam1_data;
   euroc_ground_truth_t *ground_truth;
-  // cv::Size image_size;
+  int image_size[2];
 
   timestamp_t ts_start;
   timestamp_t ts_end;
   timestamp_t ts_now;
-  long time_index;
-  long imu_index;
-  long frame_index;
+  size_t time_index;
+  size_t imu_index;
+  size_t frame_index;
 
   // std::set<timestamp_t> timestamps;
   // std::map<timestamp_t, double> time;
   // std::multimap<timestamp_t, timeline_event_t> timeline;
 } euroc_data_t;
 
-//   euroc_data_t(const std::string &data_path)
-//       : data_path{strip_end(data_path, "/")} {
-//     // Load IMU data
-//     imu_data = euroc_imu_t{data_path + "/mav0/imu0"};
-//     for (size_t i = 0; i < imu_data.timestamps.size(); i++) {
-//       const timestamp_t ts = imu_data.timestamps[i];
-//       const vec3_t a_B = imu_data.a_B[i];
-//       const vec3_t w_B = imu_data.w_B[i];
-//       const auto imu_event = timeline_event_t{ts, a_B, w_B};
-//       timeline.insert({ts, imu_event});
-//     }
-
-//     // Load camera data
-//     // -- Load cam0 data
-//     const auto cam0_path = data_path + "/mav0/cam0";
-//     cam0_data = euroc_camera_t{cam0_path};
-//     for (size_t i = 0; i < cam0_data.timestamps.size(); i++) {
-//       const timestamp_t ts = cam0_data.timestamps[i];
-//       const auto image_path = cam0_data.image_paths[i];
-//       const auto cam0_event = timeline_event_t(ts, 0, image_path);
-//       timeline.insert({ts, cam0_event});
-//     }
-//     // -- Load cam1 data
-//     const auto cam1_path = data_path + "/mav0/cam1";
-//     cam1_data = euroc_camera_t{cam0_path};
-//     for (size_t i = 0; i < cam1_data.timestamps.size(); i++) {
-//       const timestamp_t ts = cam1_data.timestamps[i];
-//       const auto image_path = cam1_data.image_paths[i];
-//       const auto cam1_event = timeline_event_t(ts, 1, image_path);
-//       timeline.insert({ts, cam1_event});
-//     }
-//     // -- Set camera image size
-//     cv::Mat image = cv::imread(cam0_data.image_paths[0]);
-//     image_size = cv::Size(image.size());
-
-//     // Load ground truth
-//     const auto gt_path = data_path + "/mav0/state_groundtruth_estimate0";
-//     ground_truth = euroc_ground_truth_t{gt_path};
-
-//     // Process timestamps
-//     ts_start = min_timestamp();
-//     ts_end = max_timestamp();
-//     ts_now = ts_start;
-
-//     // Get timestamps and calculate relative time
-//     auto it = timeline.begin();
-//     auto it_end = timeline.end();
-//     while (it != it_end) {
-//       const timestamp_t ts = it->first;
-//       timestamps.insert(ts);
-//       time[ts] = ((double) ts - ts_start) * 1e-9;
-
-//       // Advance to next non-duplicate entry.
-//       do {
-//         ++it;
-//       } while (ts == it->first);
-//     }
-
-//     ok = true;
-//   }
-
-//   ~euroc_data_t() {
-//   }
+euroc_data_t *euroc_data_load(const char *data_path);
+void euroc_data_free(euroc_data_t *data);
 
 //   void reset() {
 //     ts_start = min_timestamp();
@@ -316,117 +189,41 @@ typedef struct euroc_data_t {
 //   }
 // };
 
-// /*****************************************************************************
-//  * euroc_target_t
-//  ****************************************************************************/
+/*****************************************************************************
+ * euroc_target_t
+ ****************************************************************************/
 
-// /**
-//  * EuRoC calibration target
-//  */
-// struct euroc_target_t {
-//   bool ok = false;
-//   std::string file_path;
+/**
+ * EuRoC calibration target
+ */
+typedef struct euroc_target_t {
+  char type[100];
+  int tag_rows;
+  int tag_cols;
+  double tag_size;
+  double tag_spacing;
+} euroc_target_t;
 
-//   std::string type;
-//   int tag_rows = 0;
-//   int tag_cols = 0;
-//   double tag_size = 0.0;
-//   double tag_spacing = 0.0;
+euroc_target_t *euroc_target_load(const char *conf);
+void euroc_target_free(euroc_target_t *target);
+void euroc_target_print(const euroc_target_t *target);
 
-//   euroc_target_t() {
-//   }
+/*****************************************************************************
+ * euroc_calib_t
+ ****************************************************************************/
 
-//   euroc_target_t(const std::string &target_file) : file_path{target_file} {
-//     config_t config{target_file};
-//     if (config.ok != true) {
-//       FATAL("Failed to load target file [%s]!", target_file.c_str());
-//     }
-//     parse(config, "target_type", type);
-//     parse(config, "tagRows", tag_rows);
-//     parse(config, "tagCols", tag_cols);
-//     parse(config, "tagSize", tag_size);
-//     parse(config, "tagSpacing", tag_spacing);
+/**
+ * EuRoC calibration data
+ */
+typedef struct euroc_calib_t {
+  euroc_imu_t imu_data;
+  euroc_camera_t cam0_data;
+  euroc_camera_t cam1_data;
+  euroc_target_t calib_target;
+  // cv::Size image_size;
+} euroc_calib_t;
 
-//     ok = true;
-//   }
-
-//   ~euroc_target_t() {
-//   }
-// };
-
-// /**
-//  * EuRoC target to output stream
-//  */
-// std::ostream &operator<<(std::ostream &os, const euroc_target_t &target) {
-//   os << "target_type: " << target.type << std::endl;
-//   os << "tag_rows: " << target.tag_rows << std::endl;
-//   os << "tag_cols: " << target.tag_cols << std::endl;
-//   os << "tag_size: " << target.tag_size << std::endl;
-//   os << "tag_spacing: " << target.tag_spacing << std::endl;
-//   return os;
-// }
-
-// /*****************************************************************************
-//  * euroc_calib_t
-//  ****************************************************************************/
-
-// /**
-//  * EuRoC calibration data
-//  */
-// struct euroc_calib_t {
-//   bool ok = false;
-
-//   // Settings
-//   std::string data_path;
-//   bool imshow = false;
-
-//   // Data
-//   euroc_imu_t imu_data;
-//   euroc_camera_t cam0_data;
-//   euroc_camera_t cam1_data;
-//   euroc_target_t calib_target;
-//   cv::Size image_size;
-
-//   euroc_calib_t(const std::string &data_path)
-//       : data_path{strip_end(data_path, "/")} {
-//     // Load IMU data
-//     const std::string imu_data_dir = data_path + "/mav0/imu0";
-//     imu_data = euroc_imu_t{imu_data_dir};
-
-//     // Load cam0 data
-//     const std::string cam0_dir = data_path + "/mav0/cam0";
-//     cam0_data = euroc_camera_t{cam0_dir, true};
-
-//     // Load cam1 data
-//     const std::string cam1_dir = data_path + "/mav0/cam1";
-//     cam1_data = euroc_camera_t{cam1_dir, true};
-
-//     // Check if cam0 has same amount of images as cam1
-//     const size_t cam0_nb_images = cam0_data.image_paths.size();
-//     const size_t cam1_nb_images = cam1_data.image_paths.size();
-//     if (cam0_nb_images != cam1_nb_images) {
-//       if (cam0_nb_images > cam1_nb_images) {
-//         cam0_data.timestamps.pop_back();
-//         cam0_data.image_paths.pop_back();
-//       } else if (cam0_nb_images < cam1_nb_images) {
-//         cam1_data.timestamps.pop_back();
-//         cam1_data.image_paths.pop_back();
-//       }
-//     }
-
-//     // Get image size
-//     const cv::Mat image = cv::imread(cam0_data.image_paths[0]);
-//     image_size = cv::Size(image.size());
-
-//     // Load calibration target data
-//     const std::string target_path = data_path + "/april_6x6.yaml";
-//     calib_target = euroc_target_t{target_path};
-
-//     ok = true;
-//   }
-
-//   ~euroc_calib_t() {
-//   }
+euroc_calib_t *euroc_calib_load(const char *data_path);
 
 //   timeline_t timeline() {
 //     // Create timeline
@@ -497,6 +294,41 @@ size_t file_lines(const char *path) {
   }
 
   return lines;
+}
+
+/**
+ * Check if file exists.
+ * @returns
+ * - 1 File exists
+ * - 0 File does not exist
+ */
+int file_exists(const char *fp) {
+  return (access(fp, F_OK) == 0) ? 1 : 0;
+}
+
+/**
+ * Allocate heap memory for string `s`.
+ */
+char *string_malloc(const char *s) {
+  assert(s != NULL);
+  char *retval = MALLOC(char, strlen(s) + 1);
+  memcpy(retval, s, strlen(s));
+  retval[strlen(s)] = '\0'; // Null terminate
+  return retval;
+}
+
+/**
+ * Create new vector of length `n` in heap memory.
+ * @returns Heap allocated vector
+ */
+double *vec_malloc(const double *x, const size_t n) {
+  assert(n > 0);
+  double *vec = CALLOC(double, n);
+  for (size_t i = 0; i < n; i++) {
+    vec[i] = x[i];
+  }
+
+  return vec;
 }
 
 /**
@@ -618,7 +450,7 @@ int yaml_get(const char *yaml_file,
         state = 1;
         break;
       case YAML_SCALAR_TOKEN: {
-        char *tk = token.data.scalar.value;
+        char *tk = (char *) token.data.scalar.value;
 
         // Check key
         if (state == 0 && strcmp(tk, key) == 0) {
@@ -656,132 +488,69 @@ int yaml_get(const char *yaml_file,
 /**
  * Get key-value from yaml file
  */
-int yaml_get_tf(const char *yaml_file, const char *key, void *value) {
+int yaml_get_tf(const char *yaml_file, const char *key, double *value) {
   // Load calibration data
   yaml_parser_t parser;
   yaml_token_t token;
 
-  // -- Open sensor file
+  // Open sensor file
   FILE *fp = fopen(yaml_file, "r");
   if (fp == NULL) {
     return -1;
   }
 
-  // -- Initialize YAML parser
+  // Initialize YAML parser
   yaml_parser_initialize(&parser);
   yaml_parser_set_input_file(&parser, fp);
 
-  int found_rows = 0;
-  int found_cols = 0;
-  // int found_data = 0;
-
-  // -- Parse YAML data
+  // Parse YAML data
+  int state = 0;
+  int match = 0;
+  int found = 0;
   do {
     yaml_parser_scan(&parser, &token);
 
     switch (token.type) {
       case YAML_KEY_TOKEN:
-        // Key token
-        yaml_token_delete(&token);
-
-        // Key
-        yaml_parser_scan(&parser, &token);
-        if (strcmp((char *) token.data.scalar.value, key) != 0) {
-          break;
-        }
-        yaml_token_delete(&token);
-
-        // Value token
-        yaml_parser_scan(&parser, &token);
-        yaml_token_delete(&token);
-
-        // Block mapping
-        yaml_parser_scan(&parser, &token);
-        yaml_print_token(token);
-        yaml_token_delete(&token);
-
-        // field 'rows'
-        // -- Key token
-        yaml_parser_scan(&parser, &token);
-        yaml_token_delete(&token);
-        // -- Key
-        yaml_parser_scan(&parser, &token);
-        if (strcmp((char *) token.data.scalar.value, "rows") == 0) {
-          yaml_token_delete(&token);
-          // -- Value token
-          yaml_parser_scan(&parser, &token);
-          yaml_token_delete(&token);
-          // -- Value
-          yaml_parser_scan(&parser, &token);
-          printf("rows: %s\n", (char *) token.data.scalar.value);
-          yaml_token_delete(&token);
-          found_rows = 1;
-          break;
-        }
-
-        // field 'cols'
-        // -- Key token
-        yaml_parser_scan(&parser, &token);
-        yaml_token_delete(&token);
-        // -- Key
-        yaml_parser_scan(&parser, &token);
-        if (strcmp((char *) token.data.scalar.value, "cols") == 0) {
-          yaml_token_delete(&token);
-          // -- Value token
-          yaml_parser_scan(&parser, &token);
-          yaml_token_delete(&token);
-          // -- Value
-          yaml_parser_scan(&parser, &token);
-          printf("cols: %s\n", (char *) token.data.scalar.value);
-          yaml_token_delete(&token);
-          found_cols = 1;
-          break;
-        }
-
-        // // field 'data'
-        // // -- Key token
-        // yaml_parser_scan(&parser, &token);
-        // yaml_token_delete(&token);
-        // // -- Key
-        // yaml_parser_scan(&parser, &token);
-        // if (strcmp((char *) token.data.scalar.value, "data") != 0) {
-        //   return -1;
-        // }
-        // yaml_token_delete(&token);
-        // // -- Value token
-        // yaml_parser_scan(&parser, &token);
-        // yaml_token_delete(&token);
-        // // -- Value
-        // yaml_parser_scan(&parser, &token);
-        // printf("rows: %s\n", (char *) token.data.scalar.value);
-        // yaml_token_delete(&token);
-
-        // for (int i = 0; i < 36; i++) {
-        //   // Get next value
-        //   yaml_parser_scan(&parser, &token);
-        //   yaml_print_token(token);
-        //   yaml_token_delete(&token);
-        // }
-
+        state = 0;
         break;
+      case YAML_VALUE_TOKEN:
+        state = 1;
+        break;
+      case YAML_SCALAR_TOKEN: {
+        char *tk = (char *) token.data.scalar.value;
+
+        // Check key
+        if (state == 0 && strcmp(tk, key) == 0) {
+          match = 1;
+        }
+
+        // // Parse value
+        // if (state == 1 && match == 1) {
+        //   if (strcmp(value_type, "d") == 0) {
+        //     *(double *) value = strtod(tk, NULL);
+        //   } else if (strcmp(value_type, "s") == 0) {
+        //     strcpy((char *) value, tk);
+        //   }
+        //   found = 1;
+        // }
+        break;
+      }
       default:
-        // Do nothing
         break;
     }
 
-    // Clean up token
     if (token.type != YAML_STREAM_END_TOKEN) {
       yaml_token_delete(&token);
     }
-
-  } while (token.type != YAML_STREAM_END_TOKEN);
+  } while (token.type != YAML_STREAM_END_TOKEN && found == 0);
 
   // Clean up
   yaml_token_delete(&token);
   yaml_parser_delete(&parser);
   fclose(fp);
 
-  return 0;
+  return (found) ? 0 : -1;
 }
 
 /**
@@ -823,39 +592,34 @@ euroc_imu_t *euroc_imu_load(const char *data_dir) {
 
     // Parse line
     timestamp_t ts = 0;
-    double wx, wy, wz = 0.0;
-    double ax, ay, az = 0.0;
+    double w[3] = {0};
+    double a[3] = {0};
     int retval = fscanf(fp,
                         "%" SCNd64 ",%lf,%lf,%lf,%lf,%lf,%lf",
                         &ts,
-                        &wx,
-                        &wy,
-                        &wz,
-                        &ax,
-                        &ay,
-                        &az);
+                        &w[0],
+                        &w[1],
+                        &w[2],
+                        &a[0],
+                        &a[1],
+                        &a[2]);
     if (retval != 7) {
       FATAL("Failed to parse line in [%s]\n", data_path);
     }
 
     // Add data
     data->timestamps[data->num_timestamps] = ts;
-    data->w_B[data->num_timestamps] = MALLOC(double, 3);
-    data->w_B[data->num_timestamps][0] = wx;
-    data->w_B[data->num_timestamps][1] = wy;
-    data->w_B[data->num_timestamps][2] = wz;
-    data->a_B[data->num_timestamps] = MALLOC(double, 3);
-    data->a_B[data->num_timestamps][0] = ax;
-    data->a_B[data->num_timestamps][1] = ay;
-    data->a_B[data->num_timestamps][2] = az;
+    data->w_B[data->num_timestamps] = vec_malloc(w, 3);
+    data->a_B[data->num_timestamps] = vec_malloc(a, 3);
     data->num_timestamps++;
   }
   fclose(fp);
 
+  // Load sensor configuration
   // clang-format off
   yaml_get(conf, "sensor_type", "s", &data->sensor_type);
   yaml_get(conf, "comment", "s", &data->comment);
-  // // yaml_get_tf(conf, "T_BS", &data->T_BS);
+  // yaml_get_tf(conf, "T_BS", &data->T_BS);
   yaml_get(conf, "rate_hz", "d", &data->rate_hz);
   yaml_get(conf, "gyroscope_noise_density", "d", &data->gyro_noise_density);
   yaml_get(conf, "gyroscope_random_walk", "d", &data->gyro_random_walk);
@@ -884,7 +648,7 @@ void euroc_imu_free(euroc_imu_t *data) {
 void euroc_imu_print(const euroc_imu_t *data) {
   printf("sensor_type: %s\n", data->sensor_type);
   printf("comment: %s\n", data->comment);
-  // // printf("T_BS:\n", data->T_BS);
+  // printf("T_BS:\n", data->T_BS);
   printf("rate_hz: %f\n", data->rate_hz);
   printf("gyroscope_noise_density: %f\n", data->gyro_noise_density);
   printf("gyroscope_random_walk: %f\n", data->gyro_random_walk);
@@ -919,55 +683,76 @@ euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
   assert(num_rows > 0);
   data->num_timestamps = 0;
   data->timestamps = MALLOC(timestamp_t, num_rows);
+  data->image_paths = MALLOC(char *, num_rows);
 
-  // // Parse file
-  // for (size_t i = 0; i < num_rows; i++) {
-  //   // Skip first line
-  //   if (i == 0) {
-  //     skip_line(fp);
-  //     continue;
-  //   }
+  // Parse file
+  for (size_t i = 0; i < num_rows; i++) {
+    // Skip first line
+    if (i == 0) {
+      skip_line(fp);
+      continue;
+    }
 
-  //   // Parse line
-  //   timestamp_t ts = 0;
-  //   char filename[50] = {0};
-  //   int retval = fscanf(fp, "%" SCNu64 ",%s", &ts, filename);
-  //   if (retval != 2) {
-  //     FATAL("Failed to parse line in [%s]", data_path.c_str());
-  //   }
+    // Parse line
+    timestamp_t ts = 0;
+    char filename[50] = {0};
+    int retval = fscanf(fp, "%" SCNd64 ",%s", &ts, filename);
+    if (retval != 2) {
+      FATAL("Failed to parse line in [%s]\n", data_path);
+    }
 
-  //   // // Check if file exists
-  //   // const std::string image_file{filename};
-  //   // const auto image_path = data_dir + "/data/" + image_file;
-  //   // if (file_exists(image_path) == false) {
-  //   //   FATAL("File [%s] does not exist!", image_path.c_str());
-  //   // }
+    // Check if file exists
+    char image_path[9046] = {0};
+    strcat(image_path, data_dir);
+    strcat(image_path, "/data/");
+    strcat(image_path, filename);
+    if (file_exists(image_path) == 0) {
+      FATAL("File [%s] does not exist!\n", image_path);
+    }
 
-  //   // Add data
-  //   timestamps.emplace_back(ts);
-  //   image_paths.emplace_back(image_path);
-  // }
-  // fclose(fp);
+    // Add data
+    const int k = data->num_timestamps;
+    data->timestamps[k] = ts;
+    data->image_paths[k] = string_malloc(image_path);
+    data->num_timestamps++;
+  }
+  fclose(fp);
 
-  //     // Load calibration data
-  //     config_t config{sensor_path};
-  //     if (config.ok == false) {
-  //       FATAL("Failed to load senor file [%s]!", sensor_path.c_str());
-  //     }
-  //     parse(config, "sensor_type", sensor_type);
-  //     parse(config, "comment", comment);
-  //     parse(config, "T_BS", T_BS);
-  //     parse(config, "rate_hz", rate_hz);
-  //     parse(config, "resolution", resolution);
-  //     parse(config, "camera_model", camera_model, is_calib_data);
-  //     parse(config, "intrinsics", intrinsics, is_calib_data);
-  //     parse(config, "distortion_model", distortion_model, is_calib_data);
-  //     parse(config,
-  //           "distortion_coefficients",
-  //           distortion_coefficients,
-  //           is_calib_data);
+  // Load sensor configuration
+  yaml_get(conf, "sensor_type", "s", &data->sensor_type);
+  yaml_get(conf, "comment", "s", &data->comment);
+  //  parse(config, "T_BS", T_BS);
+  yaml_get(conf, "rate_hz", "d", &data->rate_hz);
+  //  parse(config, "resolution", resolution);
+  //  parse(config, "camera_model", camera_model, is_calib_data);
+  yaml_get(conf, "camera_model", "s", &data->camera_model);
+  //  parse(config, "intrinsics", intrinsics, is_calib_data);
+  yaml_get(conf, "distortion_model", "s", &data->distortion_model);
+  //  parse(config,
+  //        "distortion_coefficients",
+  //        distortion_coefficients,
+  //        is_calib_data);
 
   return data;
+}
+
+/**
+ * Free EuRoC camera data
+ */
+void euroc_camera_free(euroc_camera_t *data) {
+  free(data->timestamps);
+  for (size_t k = 0; k < data->num_timestamps; k++) {
+    free(data->image_paths[k]);
+  }
+  free(data->image_paths);
+
+  free(data->sensor_type);
+  free(data->comment);
+  free(data->camera_model);
+  free(data->intrinsics);
+  free(data->distortion_model);
+  free(data->distortion_coefficients);
+  free(data);
 }
 
 /**
@@ -977,12 +762,12 @@ void euroc_camera_print(const euroc_camera_t *data) {
   // clang-format off
   printf("sensor_type: %s\n", data->sensor_type);
   printf("comment: %s\n", data->comment);
-  // printf("T_BS:\n" << data.T_BS);
-  // printf("rate_hz: %s\n" << data.rate_hz);
-  // printf("resolution: %s\n" << data.resolution.transpose());
-  // printf("camera_model: %s\n" << data.camera_model);
-  // printf("intrinsics: %s\n" << data.intrinsics.transpose());
-  // printf("distortion_model: %s\n" << data.distortion_model);
+  // printf("T_BS:\n", data->T_BS);
+  printf("rate_hz: %f\n", data->rate_hz);
+  // printf("resolution: %s\n", data->resolution.transpose());
+  printf("camera_model: %s\n", data->camera_model);
+  // printf("intrinsics: %s\n", data->intrinsics.transpose());
+  printf("distortion_model: %s\n", data->distortion_model);
   // printf("distortion_coefficients: %s\n" <<
   // data.distortion_coefficients.transpose() << std::endl;
   // clang-format on
@@ -991,6 +776,244 @@ void euroc_camera_print(const euroc_camera_t *data) {
 /*****************************************************************************
  * euroc_ground_truth_t
  ****************************************************************************/
+
+euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir) {
+  // Setup
+  euroc_ground_truth_t *data = MALLOC(euroc_ground_truth_t, 1);
+
+  // Form data path
+  char data_path[9046] = {0};
+  strcat(data_path, data_dir);
+  strcat(data_path, "/data.csv");
+
+  // Open file for loading
+  const size_t num_rows = file_lines(data_path);
+  FILE *fp = fopen(data_path, "r");
+  if (fp == NULL) {
+    FATAL("Failed to open [%s]!\n", data_path);
+  }
+
+  // Parse file
+  char str_format[9046] = {0};
+  strcat(str_format, "%" SCNd64 ",");     // Timestamp
+  strcat(str_format, "%lf,%lf,%lf,");     // Position
+  strcat(str_format, "%lf,%lf,%lf,%lf,"); // Quaternion
+  strcat(str_format, "%lf,%lf,%lf,");     // Velocity
+  strcat(str_format, "%lf,%lf,%lf,");     // Gyro bias
+  strcat(str_format, "%lf,%lf,%lf");      // Accel bias
+
+  for (size_t i = 0; i < num_rows; i++) {
+    // Skip first line
+    if (i == 0) {
+      skip_line(fp);
+      continue;
+    }
+
+    // Parse line
+    timestamp_t ts = 0;
+    double p[3] = {0};
+    double q[4] = {0};
+    double v[3] = {0};
+    double w[3] = {0};
+    double a[3] = {0};
+    int retval = fscanf(fp,
+                        str_format,
+                        &ts,
+                        &p[0],
+                        &p[1],
+                        &p[2],
+                        &q[1],
+                        &q[2],
+                        &q[3],
+                        &q[0],
+                        &v[0],
+                        &v[1],
+                        &v[2],
+                        &w[0],
+                        &w[1],
+                        &w[2],
+                        &a[0],
+                        &a[1],
+                        &a[2]);
+    if (retval != 17) {
+      FATAL("Failed to parse line in [%s]", data_path);
+    }
+
+    // Add data
+    const int k = data->num_timestamps;
+    data->timestamps[k] = ts;
+    data->p_RS_R[k] = vec_malloc(p, 3);
+    data->q_RS[k] = vec_malloc(q, 4);
+    data->v_RS_R[k] = vec_malloc(v, 3);
+    data->b_w_RS_S[k] = vec_malloc(w, 3);
+    data->b_a_RS_S[k] = vec_malloc(a, 3);
+    data->num_timestamps++;
+  }
+  fclose(fp);
+
+  return data;
+}
+
+void euroc_ground_truth_free(euroc_ground_truth_t *data) {
+  free(data->timestamps);
+
+  for (size_t k = 0; k < data->num_timestamps; k++) {
+    free(data->p_RS_R[k]);
+    free(data->q_RS[k]);
+    free(data->v_RS_R[k]);
+    free(data->b_w_RS_S[k]);
+    free(data->b_a_RS_S[k]);
+  }
+  free(data->p_RS_R);
+  free(data->q_RS);
+  free(data->v_RS_R);
+  free(data->b_w_RS_S);
+  free(data->b_a_RS_S);
+
+  free(data);
+}
+
+/*****************************************************************************
+ * euroc_data_t
+ ****************************************************************************/
+
+euroc_data_t *euroc_data_load(const char *data_path) {
+  //  // Load IMU data
+  //  imu_data = euroc_imu_t{data_path + "/mav0/imu0"};
+  //  for (size_t i = 0; i < imu_data.timestamps.size(); i++) {
+  //    const timestamp_t ts = imu_data.timestamps[i];
+  //    const vec3_t a_B = imu_data.a_B[i];
+  //    const vec3_t w_B = imu_data.w_B[i];
+  //    const auto imu_event = timeline_event_t{ts, a_B, w_B};
+  //    timeline.insert({ts, imu_event});
+  //  }
+
+  //  // Load camera data
+  //  // -- Load cam0 data
+  //  const auto cam0_path = data_path + "/mav0/cam0";
+  //  cam0_data = euroc_camera_t{cam0_path};
+  //  for (size_t i = 0; i < cam0_data.timestamps.size(); i++) {
+  //    const timestamp_t ts = cam0_data.timestamps[i];
+  //    const auto image_path = cam0_data.image_paths[i];
+  //    const auto cam0_event = timeline_event_t(ts, 0, image_path);
+  //    timeline.insert({ts, cam0_event});
+  //  }
+  //  // -- Load cam1 data
+  //  const auto cam1_path = data_path + "/mav0/cam1";
+  //  cam1_data = euroc_camera_t{cam0_path};
+  //  for (size_t i = 0; i < cam1_data.timestamps.size(); i++) {
+  //    const timestamp_t ts = cam1_data.timestamps[i];
+  //    const auto image_path = cam1_data.image_paths[i];
+  //    const auto cam1_event = timeline_event_t(ts, 1, image_path);
+  //    timeline.insert({ts, cam1_event});
+  //  }
+  //  // -- Set camera image size
+  //  cv::Mat image = cv::imread(cam0_data.image_paths[0]);
+  //  image_size = cv::Size(image.size());
+
+  //  // Load ground truth
+  //  const auto gt_path = data_path + "/mav0/state_groundtruth_estimate0";
+  //  ground_truth = euroc_ground_truth_t{gt_path};
+
+  //  // Process timestamps
+  //  ts_start = min_timestamp();
+  //  ts_end = max_timestamp();
+  //  ts_now = ts_start;
+
+  //  // Get timestamps and calculate relative time
+  //  auto it = timeline.begin();
+  //  auto it_end = timeline.end();
+  //  while (it != it_end) {
+  //    const timestamp_t ts = it->first;
+  //    timestamps.insert(ts);
+  //    time[ts] = ((double) ts - ts_start) * 1e-9;
+
+  //    // Advance to next non-duplicate entry.
+  //    do {
+  //      ++it;
+  //    } while (ts == it->first);
+  //  }
+  return NULL;
+}
+
+/*****************************************************************************
+ * euroc_target_t
+ ****************************************************************************/
+
+/**
+ * Load EuRoC calibration target configuration
+ */
+euroc_target_t *euroc_target_load(const char *conf) {
+  euroc_target_t *data = MALLOC(euroc_target_t, 1);
+  yaml_get(conf, "target_type", "s", &data->type);
+  yaml_get(conf, "tagRows", "i", &data->tag_rows);
+  yaml_get(conf, "tagCols", "i", &data->tag_cols);
+  yaml_get(conf, "tagSize", "d", &data->tag_size);
+  yaml_get(conf, "tagSpacing", "d", &data->tag_spacing);
+  return data;
+}
+
+/**
+ * Free EuRoC calibration target
+ */
+void euroc_target_free(euroc_target_t *target) {
+  free(target);
+}
+
+/**
+ * EuRoC calibration target to output stream
+ */
+void euroc_target_print(const euroc_target_t *target) {
+  printf("target_type: %s\n", target->type);
+  printf("tag_rows: %d\n", target->tag_rows);
+  printf("tag_cols: %d\n", target->tag_cols);
+  printf("tag_size: %f\n", target->tag_size);
+  printf("tag_spacing: %f\n", target->tag_spacing);
+}
+
+/*****************************************************************************
+ * euroc_calib_t
+ ****************************************************************************/
+
+euroc_calib_t *euroc_calib_load(const char *data_path) {
+  // Setup
+  euroc_calib_t *data = MALLOC(euroc_calib_t, 1);
+
+  //  // Load IMU data
+  //  const std::string imu_data_dir = data_path + "/mav0/imu0";
+  //  imu_data = euroc_imu_t{imu_data_dir};
+
+  //  // Load cam0 data
+  //  const std::string cam0_dir = data_path + "/mav0/cam0";
+  //  cam0_data = euroc_camera_t{cam0_dir, true};
+
+  //  // Load cam1 data
+  //  const std::string cam1_dir = data_path + "/mav0/cam1";
+  //  cam1_data = euroc_camera_t{cam1_dir, true};
+
+  //  // Check if cam0 has same amount of images as cam1
+  //  const size_t cam0_nb_images = cam0_data.image_paths.size();
+  //  const size_t cam1_nb_images = cam1_data.image_paths.size();
+  //  if (cam0_nb_images != cam1_nb_images) {
+  //    if (cam0_nb_images > cam1_nb_images) {
+  //      cam0_data.timestamps.pop_back();
+  //      cam0_data.image_paths.pop_back();
+  //    } else if (cam0_nb_images < cam1_nb_images) {
+  //      cam1_data.timestamps.pop_back();
+  //      cam1_data.image_paths.pop_back();
+  //    }
+  //  }
+
+  //  // Get image size
+  //  const cv::Mat image = cv::imread(cam0_data.image_paths[0]);
+  //  image_size = cv::Size(image.size());
+
+  //  // Load calibration target data
+  //  const std::string target_path = data_path + "/april_6x6.yaml";
+  //  calib_target = euroc_target_t{target_path};
+
+  return data;
+}
 
 #endif // EUROC_IMPLEMENTATION
 
