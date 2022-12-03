@@ -145,6 +145,40 @@ void euroc_ground_truth_free(euroc_ground_truth_t *data);
 void euroc_ground_truth_print(const euroc_ground_truth_t *data);
 
 /*****************************************************************************
+ * euroc_timeline_t
+ ****************************************************************************/
+
+typedef struct euroc_event_t {
+  int has_imu0;
+  int has_cam0;
+  int has_cam1;
+
+  timestamp_t ts;
+
+  size_t imu0_idx;
+  double *acc;
+  double *gyr;
+
+  size_t cam0_idx;
+  char *cam0_image;
+
+  size_t cam1_idx;
+  char *cam1_image;
+} euroc_event_t;
+
+typedef struct euroc_timeline_t {
+  int num_timestamps;
+  timestamp_t *timestamps;
+  euroc_event_t *events;
+
+} euroc_timeline_t;
+
+euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
+                                        const euroc_camera_t *cam0_data,
+                                        const euroc_camera_t *cam1_data);
+void euroc_timeline_free(euroc_timeline_t *timeline);
+
+/*****************************************************************************
  * euroc_data_t
  ****************************************************************************/
 
@@ -156,56 +190,11 @@ typedef struct euroc_data_t {
   euroc_camera_t *cam0_data;
   euroc_camera_t *cam1_data;
   euroc_ground_truth_t *ground_truth;
-  int image_size[2];
-
-  timestamp_t ts_start;
-  timestamp_t ts_end;
-  timestamp_t ts_now;
-  size_t time_index;
-  size_t imu_index;
-  size_t frame_index;
-
-  // std::set<timestamp_t> timestamps;
-  // std::map<timestamp_t, double> time;
-  // std::multimap<timestamp_t, timeline_event_t> timeline;
+  euroc_timeline_t *timeline;
 } euroc_data_t;
 
 euroc_data_t *euroc_data_load(const char *data_path);
 void euroc_data_free(euroc_data_t *data);
-
-//   void reset() {
-//     ts_start = min_timestamp();
-//     ts_end = max_timestamp();
-//     ts_now = ts_start;
-//     time_index = 0;
-//     imu_index = 0;
-//     frame_index = 0;
-//   }
-
-//   timestamp_t min_timestamp() {
-//     const timestamp_t cam0_ts0 = cam0_data.timestamps.front();
-//     const timestamp_t imu_ts0 = imu_data.timestamps.front();
-
-//     timestamps_t first_ts{cam0_ts0, imu_ts0};
-//     auto ts0 = std::min_element(first_ts.begin(), first_ts.end());
-//     const size_t first_ts_index = std::distance(first_ts.begin(), ts0);
-
-//     return first_ts[first_ts_index];
-//   }
-
-//   timestamp_t max_timestamp() {
-//     const timestamp_t cam0_last_ts = cam0_data.timestamps.back();
-//     const timestamp_t imu_last_ts = imu_data.timestamps.back();
-
-//     timestamps_t last_ts{cam0_last_ts, imu_last_ts};
-//     auto last_result = std::max_element(last_ts.begin(), last_ts.end());
-//     const timestamp_t last_ts_index =
-//         std::distance(last_ts.begin(), last_result);
-//     const timestamp_t max_ts = last_ts[last_ts_index];
-
-//     return max_ts;
-//   }
-// };
 
 /*****************************************************************************
  * euroc_calib_target_t
@@ -238,6 +227,7 @@ typedef struct euroc_calib_t {
   euroc_camera_t *cam0_data;
   euroc_camera_t *cam1_data;
   euroc_calib_target_t *calib_target;
+  euroc_timeline_t *timeline;
 } euroc_calib_t;
 
 euroc_calib_t *euroc_calib_load(const char *data_path);
@@ -303,7 +293,7 @@ static void skip_line(FILE *fp) {
  * Count number of lines in file
  * @returns Number of lines or `-1` for failure
  */
-size_t file_lines(const char *path) {
+static size_t file_lines(const char *path) {
   FILE *fp = fopen(path, "r");
   size_t lines = 0;
 
@@ -324,14 +314,14 @@ size_t file_lines(const char *path) {
  * - 1 File exists
  * - 0 File does not exist
  */
-int file_exists(const char *fp) {
+static int file_exists(const char *fp) {
   return (access(fp, F_OK) == 0) ? 1 : 0;
 }
 
 /**
  * Allocate heap memory for string `s`.
  */
-char *string_malloc(const char *s) {
+static char *string_malloc(const char *s) {
   assert(s != NULL);
   char *retval = MALLOC(char, strlen(s) + 1);
   memcpy(retval, s, strlen(s));
@@ -343,7 +333,7 @@ char *string_malloc(const char *s) {
  * Create new vector of length `n` in heap memory.
  * @returns Heap allocated vector
  */
-double *vec_malloc(const double *x, const size_t n) {
+static double *vec_malloc(const double *x, const size_t n) {
   assert(n > 0);
   double *vec = CALLOC(double, n);
   for (size_t i = 0; i < n; i++) {
@@ -356,7 +346,7 @@ double *vec_malloc(const double *x, const size_t n) {
 /**
  * Print vector
  */
-void print_vector(const char *prefix, const double *v, const int n) {
+static void print_vector(const char *prefix, const double *v, const int n) {
   printf("%s: [", prefix);
   for (int i = 0; i < n; i++) {
     printf("%f ", v[i]);
@@ -367,7 +357,7 @@ void print_vector(const char *prefix, const double *v, const int n) {
 /**
  * Print vector
  */
-void print_int_vector(const char *prefix, const int *v, const int n) {
+static void print_int_vector(const char *prefix, const int *v, const int n) {
   printf("%s: [", prefix);
   for (int i = 0; i < n; i++) {
     printf("%d ", v[i]);
@@ -378,10 +368,8 @@ void print_int_vector(const char *prefix, const int *v, const int n) {
 /**
  * Print matrix
  */
-void print_matrix(const char *prefix,
-                  const double *A,
-                  const int m,
-                  const int n) {
+static void
+print_matrix(const char *prefix, const double *A, const int m, const int n) {
   printf("%s:\n", prefix);
   int idx = 0;
   for (int i = 0; i < m; i++) {
@@ -393,96 +381,94 @@ void print_matrix(const char *prefix,
   }
 }
 
-/**
- * Print YAML Token
- */
-void yaml_print_token(const yaml_token_t token) {
-  switch (token.type) {
-    case YAML_NO_TOKEN:
-      printf("YAML_NO_TOKEN\n");
-      break;
-    case YAML_STREAM_START_TOKEN:
-      printf("YAML_STREAM_START_TOKEN\n");
-      break;
-    case YAML_STREAM_END_TOKEN:
-      printf("YAML_STREAM_END_TOKEN\n");
-      break;
+// /**
+//  * Print YAML Token
+//  */
+// static void yaml_print_token(const yaml_token_t token) {
+//   switch (token.type) {
+//     case YAML_NO_TOKEN:
+//       printf("YAML_NO_TOKEN\n");
+//       break;
+//     case YAML_STREAM_START_TOKEN:
+//       printf("YAML_STREAM_START_TOKEN\n");
+//       break;
+//     case YAML_STREAM_END_TOKEN:
+//       printf("YAML_STREAM_END_TOKEN\n");
+//       break;
 
-    case YAML_VERSION_DIRECTIVE_TOKEN:
-      printf("YAML_VERSION_DIRECTIVE_TOKEN\n");
-      break;
-    case YAML_TAG_DIRECTIVE_TOKEN:
-      printf("YAML_TAG_DIRECTIVE_TOKEN\n");
-      break;
-    case YAML_DOCUMENT_START_TOKEN:
-      printf("YAML_DOCUMENT_START_TOKEN\n");
-      break;
-    case YAML_DOCUMENT_END_TOKEN:
-      printf("YAML_DOCUMENT_END_TOKEN\n");
-      break;
+//     case YAML_VERSION_DIRECTIVE_TOKEN:
+//       printf("YAML_VERSION_DIRECTIVE_TOKEN\n");
+//       break;
+//     case YAML_TAG_DIRECTIVE_TOKEN:
+//       printf("YAML_TAG_DIRECTIVE_TOKEN\n");
+//       break;
+//     case YAML_DOCUMENT_START_TOKEN:
+//       printf("YAML_DOCUMENT_START_TOKEN\n");
+//       break;
+//     case YAML_DOCUMENT_END_TOKEN:
+//       printf("YAML_DOCUMENT_END_TOKEN\n");
+//       break;
 
-    case YAML_BLOCK_SEQUENCE_START_TOKEN:
-      printf("YAML_BLOCK_SEQUENCE_START_TOKEN\n");
-      break;
-    case YAML_BLOCK_MAPPING_START_TOKEN:
-      printf("YAML_BLOCK_MAPPING_START_TOKEN\n");
-      break;
-    case YAML_BLOCK_END_TOKEN:
-      printf("YAML_BLOCK_END_TOKEN\n");
-      break;
+//     case YAML_BLOCK_SEQUENCE_START_TOKEN:
+//       printf("YAML_BLOCK_SEQUENCE_START_TOKEN\n");
+//       break;
+//     case YAML_BLOCK_MAPPING_START_TOKEN:
+//       printf("YAML_BLOCK_MAPPING_START_TOKEN\n");
+//       break;
+//     case YAML_BLOCK_END_TOKEN:
+//       printf("YAML_BLOCK_END_TOKEN\n");
+//       break;
 
-    case YAML_FLOW_SEQUENCE_START_TOKEN:
-      printf("YAML_FLOW_SEQUENCE_START_TOKEN\n");
-      break;
-    case YAML_FLOW_SEQUENCE_END_TOKEN:
-      printf("YAML_FLOW_SEQUENCE_END_TOKEN\n");
-      break;
-    case YAML_FLOW_MAPPING_START_TOKEN:
-      printf("YAML_FLOW_MAPPING_START_TOKEN\n");
-      break;
-    case YAML_FLOW_MAPPING_END_TOKEN:
-      printf("YAML_FLOW_MAPPING_END_TOKEN\n");
-      break;
+//     case YAML_FLOW_SEQUENCE_START_TOKEN:
+//       printf("YAML_FLOW_SEQUENCE_START_TOKEN\n");
+//       break;
+//     case YAML_FLOW_SEQUENCE_END_TOKEN:
+//       printf("YAML_FLOW_SEQUENCE_END_TOKEN\n");
+//       break;
+//     case YAML_FLOW_MAPPING_START_TOKEN:
+//       printf("YAML_FLOW_MAPPING_START_TOKEN\n");
+//       break;
+//     case YAML_FLOW_MAPPING_END_TOKEN:
+//       printf("YAML_FLOW_MAPPING_END_TOKEN\n");
+//       break;
 
-    case YAML_BLOCK_ENTRY_TOKEN:
-      printf("YAML_BLOCK_ENTRY_TOKEN\n");
-      break;
-    case YAML_FLOW_ENTRY_TOKEN:
-      printf("YAML_FLOW_ENTRY_TOKEN\n");
-      break;
-    case YAML_KEY_TOKEN:
-      printf("YAML_KEY_TOKEN\n");
-      break;
-    case YAML_VALUE_TOKEN:
-      printf("YAML_VALUE_TOKEN\n");
-      break;
+//     case YAML_BLOCK_ENTRY_TOKEN:
+//       printf("YAML_BLOCK_ENTRY_TOKEN\n");
+//       break;
+//     case YAML_FLOW_ENTRY_TOKEN:
+//       printf("YAML_FLOW_ENTRY_TOKEN\n");
+//       break;
+//     case YAML_KEY_TOKEN:
+//       printf("YAML_KEY_TOKEN\n");
+//       break;
+//     case YAML_VALUE_TOKEN:
+//       printf("YAML_VALUE_TOKEN\n");
+//       break;
 
-    case YAML_ALIAS_TOKEN:
-      printf("YAML_ALIAS_TOKEN\n");
-      break;
-    case YAML_ANCHOR_TOKEN:
-      printf("YAML_ANCHOR_TOKEN\n");
-      break;
-    case YAML_TAG_TOKEN:
-      printf("YAML_TAG_TOKEN\n");
-      break;
-    case YAML_SCALAR_TOKEN:
-      printf("YAML_SCALAR_TOKEN [%s]\n", token.data.scalar.value);
-      break;
+//     case YAML_ALIAS_TOKEN:
+//       printf("YAML_ALIAS_TOKEN\n");
+//       break;
+//     case YAML_ANCHOR_TOKEN:
+//       printf("YAML_ANCHOR_TOKEN\n");
+//       break;
+//     case YAML_TAG_TOKEN:
+//       printf("YAML_TAG_TOKEN\n");
+//       break;
+//     case YAML_SCALAR_TOKEN:
+//       printf("YAML_SCALAR_TOKEN [%s]\n", token.data.scalar.value);
+//       break;
 
-    default:
-      printf("-\n");
-      break;
-  }
-}
+//     default:
+//       printf("-\n");
+//       break;
+//   }
+// }
 
 /**
  * Get key-value from yaml file
  */
-int yaml_get(const char *yaml_file,
-             const char *key,
-             char value_type,
-             void *value) {
+static int
+yaml_get(const char *yaml_file, const char *key, char value_type, void *value) {
   // Load calibration data
   yaml_parser_t parser;
   yaml_token_t token;
@@ -555,11 +541,11 @@ int yaml_get(const char *yaml_file,
 /**
  * Get vector from yaml file
  */
-int yaml_get_vector(const char *yaml_file,
-                    const char *key,
-                    const char value_type,
-                    const int n,
-                    void *v) {
+static int yaml_get_vector(const char *yaml_file,
+                           const char *key,
+                           const char value_type,
+                           const int n,
+                           void *v) {
   // Load calibration data
   yaml_parser_t parser;
   yaml_token_t token;
@@ -632,11 +618,11 @@ int yaml_get_vector(const char *yaml_file,
 /**
  * Get matrix from yaml file
  */
-int yaml_get_matrix(const char *yaml_file,
-                    const char *key,
-                    const int m,
-                    const int n,
-                    double *A) {
+static int yaml_get_matrix(const char *yaml_file,
+                           const char *key,
+                           const int m,
+                           const int n,
+                           double *A) {
   // Load calibration data
   yaml_parser_t parser;
   yaml_token_t token;
@@ -919,7 +905,8 @@ euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
   yaml_get_vector(conf, "resolution", 'i', 2, data->resolution);
 
   if (is_calib_data) {
-    // Camera data is calibration data, thus there are no calibration parameters
+    // Camera data is calibration data, thus there are no calibration
+    // parameters
     data->camera_model[0] = '\0';
     memset(data->intrinsics, 0, 4 * sizeof(double));
     data->distortion_model[0] = '\0';
@@ -1082,6 +1069,158 @@ void euroc_ground_truth_free(euroc_ground_truth_t *data) {
 }
 
 /*****************************************************************************
+ * euroc_timeline_t
+ ****************************************************************************/
+
+static void timestamp_swap(timestamp_t *xp, timestamp_t *yp) {
+  timestamp_t temp = *xp;
+  *xp = *yp;
+  *yp = temp;
+}
+
+static void timestamp_bubble_sort(timestamp_t *arr, const size_t n) {
+  for (size_t i = 0; i < n - 1; i++) {
+    for (size_t j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        timestamp_swap(&arr[j], &arr[j + 1]);
+      }
+    }
+  }
+}
+
+static void timestamps_unique(timestamp_t *set,
+                              size_t *set_len,
+                              const timestamp_t *timestamps,
+                              const size_t num_timestamps) {
+  for (size_t i = 0; i < num_timestamps; i++) {
+    const timestamp_t ts_k = timestamps[i];
+
+    // Check duplicate in set
+    int dup = 0;
+    for (size_t j = 0; j < *set_len; j++) {
+      if (set[j] == ts_k) {
+        dup = 1;
+        break;
+      }
+    }
+
+    // Add to set if no duplicate
+    if (dup == 0) {
+      set[*set_len] = ts_k;
+      (*set_len)++;
+    }
+  }
+
+  // Sort timestamps (just to be sure)
+  timestamp_bubble_sort(set, *set_len);
+}
+
+/**
+ * Create EuRoC timeline
+ */
+euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
+                                        const euroc_camera_t *cam0_data,
+                                        const euroc_camera_t *cam1_data) {
+  // Determine unique set of timestamps
+  int max_len = 0;
+  max_len += imu0_data->num_timestamps;
+  max_len += cam0_data->num_timestamps;
+  max_len += cam1_data->num_timestamps;
+
+  size_t ts_set_len = 0;
+  timestamp_t *ts_set = MALLOC(timestamp_t, max_len);
+  timestamps_unique(ts_set,
+                    &ts_set_len,
+                    imu0_data->timestamps,
+                    imu0_data->num_timestamps);
+  timestamps_unique(ts_set,
+                    &ts_set_len,
+                    cam0_data->timestamps,
+                    cam0_data->num_timestamps);
+  timestamps_unique(ts_set,
+                    &ts_set_len,
+                    cam1_data->timestamps,
+                    cam1_data->num_timestamps);
+
+  // Create timeline
+  euroc_timeline_t *timeline = MALLOC(euroc_timeline_t, 1);
+  timeline->num_timestamps = ts_set_len;
+  timeline->timestamps = ts_set;
+  timeline->events = MALLOC(euroc_event_t, ts_set_len);
+
+  size_t imu0_idx = 0;
+  size_t cam0_idx = 0;
+  size_t cam1_idx = 0;
+
+  for (size_t k = 0; k < timeline->num_timestamps; k++) {
+    const timestamp_t ts_k = timeline->timestamps[k];
+
+    // imu0 event
+    int has_imu0 = 0;
+    double *acc = NULL;
+    double *gyr = NULL;
+    for (size_t i = imu0_idx; i < imu0_data->num_timestamps; i++) {
+      if (imu0_data->timestamps[i] == ts_k) {
+        has_imu0 = 1;
+        acc = imu0_data->a_B[imu0_idx];
+        gyr = imu0_data->w_B[imu0_idx];
+        imu0_idx++;
+        break;
+      }
+    }
+
+    // cam0 event
+    int has_cam0 = 0;
+    char *cam0_image = NULL;
+    for (size_t i = cam0_idx; i < cam0_data->num_timestamps; i++) {
+      if (cam0_data->timestamps[i] == ts_k) {
+        has_cam0 = 1;
+        cam0_image = cam0_data->image_paths[cam0_idx];
+        cam0_idx++;
+        break;
+      }
+    }
+
+    // cam1 event
+    int has_cam1 = 0;
+    char *cam1_image = NULL;
+    for (size_t i = cam1_idx; i < cam1_data->num_timestamps; i++) {
+      if (cam1_data->timestamps[i] == ts_k) {
+        has_cam1 = 1;
+        cam1_image = cam1_data->image_paths[cam1_idx];
+        cam1_idx++;
+        break;
+      }
+    }
+
+    // Add to event
+    euroc_event_t *event = &timeline->events[k];
+    event->has_imu0 = has_imu0;
+    event->has_cam0 = has_cam0;
+    event->has_cam1 = has_cam1;
+    event->ts = ts_k;
+    event->imu0_idx = imu0_idx - 1;
+    event->acc = acc;
+    event->gyr = gyr;
+    event->cam0_idx = cam0_idx - 1;
+    event->cam0_image = cam0_image;
+    event->cam1_idx = cam1_idx - 1;
+    event->cam1_image = cam1_image;
+  }
+
+  return timeline;
+}
+
+/**
+ * Free EuRoC timeline
+ */
+void euroc_timeline_free(euroc_timeline_t *timeline) {
+  free(timeline->timestamps);
+  free(timeline->events);
+  free(timeline);
+}
+
+/*****************************************************************************
  * euroc_data_t
  ****************************************************************************/
 
@@ -1116,44 +1255,9 @@ euroc_data_t *euroc_data_load(const char *data_path) {
   strcat(gnd_path, "/mav0/state_groundtruth_estimate0");
   data->ground_truth = euroc_ground_truth_load(gnd_path);
 
-  //  for (size_t i = 0; i < imu_data.timestamps.size(); i++) {
-  //    const timestamp_t ts = imu_data.timestamps[i];
-  //    const vec3_t a_B = imu_data.a_B[i];
-  //    const vec3_t w_B = imu_data.w_B[i];
-  //    const auto imu_event = timeline_event_t{ts, a_B, w_B};
-  //    timeline.insert({ts, imu_event});
-  //  }
-  //  for (size_t i = 0; i < cam0_data.timestamps.size(); i++) {
-  //    const timestamp_t ts = cam0_data.timestamps[i];
-  //    const auto image_path = cam0_data.image_paths[i];
-  //    const auto cam0_event = timeline_event_t(ts, 0, image_path);
-  //    timeline.insert({ts, cam0_event});
-  //  }
-  //  for (size_t i = 0; i < cam1_data.timestamps.size(); i++) {
-  //    const timestamp_t ts = cam1_data.timestamps[i];
-  //    const auto image_path = cam1_data.image_paths[i];
-  //    const auto cam1_event = timeline_event_t(ts, 1, image_path);
-  //    timeline.insert({ts, cam1_event});
-  //  }
-
-  //  // Process timestamps
-  //  ts_start = min_timestamp();
-  //  ts_end = max_timestamp();
-  //  ts_now = ts_start;
-
-  //  // Get timestamps and calculate relative time
-  //  auto it = timeline.begin();
-  //  auto it_end = timeline.end();
-  //  while (it != it_end) {
-  //    const timestamp_t ts = it->first;
-  //    timestamps.insert(ts);
-  //    time[ts] = ((double) ts - ts_start) * 1e-9;
-
-  //    // Advance to next non-duplicate entry.
-  //    do {
-  //      ++it;
-  //    } while (ts == it->first);
-  //  }
+  // Create timeline
+  data->timeline =
+      euroc_timeline_create(data->imu0_data, data->cam0_data, data->cam1_data);
 
   return data;
 }
@@ -1167,6 +1271,7 @@ void euroc_data_free(euroc_data_t *data) {
   euroc_camera_free(data->cam0_data);
   euroc_camera_free(data->cam1_data);
   euroc_ground_truth_free(data->ground_truth);
+  euroc_timeline_free(data->timeline);
   free(data);
 }
 
@@ -1240,18 +1345,9 @@ euroc_calib_t *euroc_calib_load(const char *data_path) {
   strcat(target_path, "/april_6x6.yaml");
   data->calib_target = euroc_calib_target_load(target_path);
 
-  //  // Check if cam0 has same amount of images as cam1
-  //  const size_t cam0_nb_images = cam0_data.image_paths.size();
-  //  const size_t cam1_nb_images = cam1_data.image_paths.size();
-  //  if (cam0_nb_images != cam1_nb_images) {
-  //    if (cam0_nb_images > cam1_nb_images) {
-  //      cam0_data.timestamps.pop_back();
-  //      cam0_data.image_paths.pop_back();
-  //    } else if (cam0_nb_images < cam1_nb_images) {
-  //      cam1_data.timestamps.pop_back();
-  //      cam1_data.image_paths.pop_back();
-  //    }
-  //  }
+  // Create timeline
+  data->timeline =
+      euroc_timeline_create(data->imu0_data, data->cam0_data, data->cam1_data);
 
   return data;
 }
@@ -1264,6 +1360,7 @@ void euroc_calib_free(euroc_calib_t *data) {
   euroc_camera_free(data->cam0_data);
   euroc_camera_free(data->cam1_data);
   euroc_calib_target_free(data->calib_target);
+  euroc_timeline_free(data->timeline);
   free(data);
 }
 
