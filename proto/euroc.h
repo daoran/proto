@@ -41,13 +41,29 @@
  * @param[in] M Message
  * @param[in] ... Varadic arguments
  */
-#ifndef FATAL
-#define FATAL(...)                                                             \
+#ifndef EUROC_FATAL
+#define EUROC_FATAL(...)                                                       \
   do {                                                                         \
-    fprintf(stderr, "[FATAL] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
+    fprintf(stderr,                                                            \
+            "[EUROC_FATAL] [%s:%d:%s()]: ",                                    \
+            __FILE__,                                                          \
+            __LINE__,                                                          \
+            __func__);                                                         \
     fprintf(stderr, __VA_ARGS__);                                              \
   } while (0);                                                                 \
   exit(-1)
+#endif
+
+#ifndef EUROC_LOG
+#define EUROC_LOG(...)                                                         \
+  do {                                                                         \
+    fprintf(stderr,                                                            \
+            "[EUROC_LOG] [%s:%d:%s()]: ",                                      \
+            __FILE__,                                                          \
+            __LINE__,                                                          \
+            __func__);                                                         \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0);
 #endif
 
 /**
@@ -84,20 +100,21 @@ void euroc_imu_print(const euroc_imu_t *data);
  */
 typedef struct euroc_camera_t {
   // Data
+  int is_calib_data;
   int num_timestamps;
   timestamp_t *timestamps;
   char **image_paths;
 
   // Sensor properties
-  char *sensor_type;
-  char *comment;
+  char sensor_type[100];
+  char comment[9046];
   double T_BS[4 * 4];
   double rate_hz;
   int resolution[2];
-  char *camera_model;
-  double *intrinsics;
-  char *distortion_model;
-  double *distortion_coefficients;
+  char camera_model[100];
+  double intrinsics[4];
+  char distortion_model[100];
+  double distortion_coefficients[4];
 } euroc_camera_t;
 
 euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data);
@@ -125,6 +142,7 @@ typedef struct euroc_ground_truth_t {
 
 euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir);
 void euroc_ground_truth_free(euroc_ground_truth_t *data);
+void euroc_ground_truth_print(const euroc_ground_truth_t *data);
 
 /*****************************************************************************
  * euroc_data_t
@@ -134,7 +152,7 @@ void euroc_ground_truth_free(euroc_ground_truth_t *data);
  * EuRoC data
  */
 typedef struct euroc_data_t {
-  euroc_imu_t *imu_data;
+  euroc_imu_t *imu0_data;
   euroc_camera_t *cam0_data;
   euroc_camera_t *cam1_data;
   euroc_ground_truth_t *ground_truth;
@@ -190,23 +208,23 @@ void euroc_data_free(euroc_data_t *data);
 // };
 
 /*****************************************************************************
- * euroc_target_t
+ * euroc_calib_target_t
  ****************************************************************************/
 
 /**
  * EuRoC calibration target
  */
-typedef struct euroc_target_t {
+typedef struct euroc_calib_target_t {
   char type[100];
   int tag_rows;
   int tag_cols;
   double tag_size;
   double tag_spacing;
-} euroc_target_t;
+} euroc_calib_target_t;
 
-euroc_target_t *euroc_target_load(const char *conf);
-void euroc_target_free(euroc_target_t *target);
-void euroc_target_print(const euroc_target_t *target);
+euroc_calib_target_t *euroc_calib_target_load(const char *conf);
+void euroc_calib_target_free(euroc_calib_target_t *target);
+void euroc_calib_target_print(const euroc_calib_target_t *target);
 
 /*****************************************************************************
  * euroc_calib_t
@@ -216,14 +234,14 @@ void euroc_target_print(const euroc_target_t *target);
  * EuRoC calibration data
  */
 typedef struct euroc_calib_t {
-  euroc_imu_t imu_data;
-  euroc_camera_t cam0_data;
-  euroc_camera_t cam1_data;
-  euroc_target_t calib_target;
-  // cv::Size image_size;
+  euroc_imu_t *imu0_data;
+  euroc_camera_t *cam0_data;
+  euroc_camera_t *cam1_data;
+  euroc_calib_target_t *calib_target;
 } euroc_calib_t;
 
 euroc_calib_t *euroc_calib_load(const char *data_path);
+void euroc_calib_free(euroc_calib_t *data);
 
 //   timeline_t timeline() {
 //     // Create timeline
@@ -264,6 +282,10 @@ euroc_calib_t *euroc_calib_load(const char *data_path);
 
 #ifdef EUROC_IMPLEMENTATION
 
+/*****************************************************************************
+ * UTILS
+ ****************************************************************************/
+
 /**
  * Skip line in file.
  */
@@ -273,7 +295,7 @@ static void skip_line(FILE *fp) {
   char header[BUFSIZ];
   char *retval = fgets(header, BUFSIZ, fp);
   if (retval == NULL) {
-    FATAL("Failed to skip line!\n");
+    EUROC_FATAL("Failed to skip line!\n");
   }
 }
 
@@ -329,6 +351,46 @@ double *vec_malloc(const double *x, const size_t n) {
   }
 
   return vec;
+}
+
+/**
+ * Print vector
+ */
+void print_vector(const char *prefix, const double *v, const int n) {
+  printf("%s: [", prefix);
+  for (int i = 0; i < n; i++) {
+    printf("%f ", v[i]);
+  }
+  printf("\b]\n");
+}
+
+/**
+ * Print vector
+ */
+void print_int_vector(const char *prefix, const int *v, const int n) {
+  printf("%s: [", prefix);
+  for (int i = 0; i < n; i++) {
+    printf("%d ", v[i]);
+  }
+  printf("\b]\n");
+}
+
+/**
+ * Print matrix
+ */
+void print_matrix(const char *prefix,
+                  const double *A,
+                  const int m,
+                  const int n) {
+  printf("%s:\n", prefix);
+  int idx = 0;
+  for (int i = 0; i < m; i++) {
+    printf("  ");
+    for (int j = 0; j < n; j++) {
+      printf("%f ", A[idx++]);
+    }
+    printf("\n");
+  }
 }
 
 /**
@@ -419,7 +481,7 @@ void yaml_print_token(const yaml_token_t token) {
  */
 int yaml_get(const char *yaml_file,
              const char *key,
-             char *value_type,
+             char value_type,
              void *value) {
   // Load calibration data
   yaml_parser_t parser;
@@ -428,6 +490,7 @@ int yaml_get(const char *yaml_file,
   // Open sensor file
   FILE *fp = fopen(yaml_file, "r");
   if (fp == NULL) {
+    EUROC_FATAL("YAML file [%s] not found!\n", yaml_file);
     return -1;
   }
 
@@ -459,10 +522,14 @@ int yaml_get(const char *yaml_file,
 
         // Parse value
         if (state == 1 && match == 1) {
-          if (strcmp(value_type, "d") == 0) {
+          if (value_type == 'd') {
             *(double *) value = strtod(tk, NULL);
-          } else if (strcmp(value_type, "s") == 0) {
+          } else if (value_type == 's') {
             strcpy((char *) value, tk);
+          } else if (value_type == 'i') {
+            *(int *) value = strtol(tk, NULL, 10);
+          } else {
+            EUROC_FATAL("Unrecognized value type: '%c'!\n", value_type);
           }
           found = 1;
         }
@@ -486,9 +553,13 @@ int yaml_get(const char *yaml_file,
 }
 
 /**
- * Get key-value from yaml file
+ * Get vector from yaml file
  */
-int yaml_get_tf(const char *yaml_file, const char *key, double *value) {
+int yaml_get_vector(const char *yaml_file,
+                    const char *key,
+                    const char value_type,
+                    const int n,
+                    void *v) {
   // Load calibration data
   yaml_parser_t parser;
   yaml_token_t token;
@@ -504,9 +575,12 @@ int yaml_get_tf(const char *yaml_file, const char *key, double *value) {
   yaml_parser_set_input_file(&parser, fp);
 
   // Parse YAML data
+  int done = 0;
   int state = 0;
-  int match = 0;
-  int found = 0;
+  int match_key = 0;
+  int found_key = 0;
+  int v_idx = 0;
+
   do {
     yaml_parser_scan(&parser, &token);
 
@@ -522,18 +596,20 @@ int yaml_get_tf(const char *yaml_file, const char *key, double *value) {
 
         // Check key
         if (state == 0 && strcmp(tk, key) == 0) {
-          match = 1;
+          match_key = 1;
+          found_key = 1;
         }
 
-        // // Parse value
-        // if (state == 1 && match == 1) {
-        //   if (strcmp(value_type, "d") == 0) {
-        //     *(double *) value = strtod(tk, NULL);
-        //   } else if (strcmp(value_type, "s") == 0) {
-        //     strcpy((char *) value, tk);
-        //   }
-        //   found = 1;
-        // }
+        // Parse data
+        if (match_key == 1 && state == 1) {
+          if (value_type == 'd') {
+            ((double *) v)[v_idx++] = strtod(tk, NULL);
+          } else if (value_type == 'i') {
+            ((int *) v)[v_idx++] = strtol(tk, NULL, 10);
+          } else {
+            EUROC_FATAL("Unrecognized value type: '%c'!\n", value_type);
+          }
+        }
         break;
       }
       default:
@@ -543,15 +619,125 @@ int yaml_get_tf(const char *yaml_file, const char *key, double *value) {
     if (token.type != YAML_STREAM_END_TOKEN) {
       yaml_token_delete(&token);
     }
-  } while (token.type != YAML_STREAM_END_TOKEN && found == 0);
+  } while (token.type != YAML_STREAM_END_TOKEN && done == 0);
 
   // Clean up
   yaml_token_delete(&token);
   yaml_parser_delete(&parser);
   fclose(fp);
 
-  return (found) ? 0 : -1;
+  return (found_key && (n == v_idx)) ? 0 : -1;
 }
+
+/**
+ * Get matrix from yaml file
+ */
+int yaml_get_matrix(const char *yaml_file,
+                    const char *key,
+                    const int m,
+                    const int n,
+                    double *A) {
+  // Load calibration data
+  yaml_parser_t parser;
+  yaml_token_t token;
+
+  // Open sensor file
+  FILE *fp = fopen(yaml_file, "r");
+  if (fp == NULL) {
+    return -1;
+  }
+
+  // Initialize YAML parser
+  yaml_parser_initialize(&parser);
+  yaml_parser_set_input_file(&parser, fp);
+
+  // Parse YAML data
+  int done = 0;
+  int state = 0;
+  int match_key = 0;
+  int parse_rows = 0;
+  int parse_cols = 0;
+  int parse_data = 0;
+
+  int num_rows = 0;
+  int num_cols = 0;
+  int tf_idx = 0;
+
+  do {
+    yaml_parser_scan(&parser, &token);
+    // yaml_print_token(token);
+
+    switch (token.type) {
+      case YAML_KEY_TOKEN:
+        state = 0;
+        break;
+      case YAML_VALUE_TOKEN:
+        state = 1;
+        break;
+      case YAML_SCALAR_TOKEN: {
+        char *tk = (char *) token.data.scalar.value;
+
+        // Check key
+        if (state == 0 && strcmp(tk, key) == 0) {
+          match_key = 1;
+        }
+
+        // Parse rows
+        if (match_key == 1 && state == 0 && strcmp(tk, "rows") == 0) {
+          parse_rows = 1;
+        } else if (match_key == 1 && state == 1 && parse_rows == 1) {
+          num_rows = strtol(tk, NULL, 10);
+          parse_rows = 0;
+        }
+
+        // Parse cols
+        if (match_key == 1 && state == 0 && strcmp(tk, "cols") == 0) {
+          parse_cols = 1;
+        } else if (match_key == 1 && state == 1 && parse_cols == 1) {
+          num_cols = strtol(tk, NULL, 10);
+          parse_cols = 0;
+        }
+
+        // Parse data
+        if (match_key == 1 && state == 0 && strcmp(tk, "data") == 0) {
+          parse_data = 1;
+        } else if (match_key == 1 && state == 1 && parse_data == 1) {
+          // Pre-check
+          if (num_rows != m || num_cols != n) {
+            EUROC_LOG("Number of rows or columns expected != parsed\n");
+            EUROC_LOG("rows expected: %d, got: %d\n", m, num_rows);
+            EUROC_LOG("cols expected: %d, got: %d\n", m, num_cols);
+          }
+
+          // Set matrix
+          A[tf_idx++] = strtod(tk, NULL);
+          if (tf_idx >= (num_rows * num_cols)) {
+            parse_data = 0;
+            done = 1;
+          }
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    if (token.type != YAML_STREAM_END_TOKEN) {
+      yaml_token_delete(&token);
+    }
+  } while (token.type != YAML_STREAM_END_TOKEN && done == 0);
+
+  // Clean up
+  yaml_token_delete(&token);
+  yaml_parser_delete(&parser);
+  fclose(fp);
+
+  return ((num_rows * num_cols) == tf_idx) ? 0 : -1;
+}
+
+/*****************************************************************************
+ * euroc_imu_t
+ ****************************************************************************/
 
 /**
  * Load EuRoC IMU data
@@ -572,7 +758,7 @@ euroc_imu_t *euroc_imu_load(const char *data_dir) {
   const size_t num_rows = file_lines(data_path);
   FILE *fp = fopen(data_path, "r");
   if (fp == NULL) {
-    FATAL("Failed to open [%s]!\n", data_path);
+    EUROC_FATAL("Failed to open [%s]!\n", data_path);
   }
 
   // Malloc
@@ -604,7 +790,7 @@ euroc_imu_t *euroc_imu_load(const char *data_dir) {
                         &a[1],
                         &a[2]);
     if (retval != 7) {
-      FATAL("Failed to parse line in [%s]\n", data_path);
+      EUROC_FATAL("Failed to parse line in [%s]\n", data_path);
     }
 
     // Add data
@@ -617,19 +803,22 @@ euroc_imu_t *euroc_imu_load(const char *data_dir) {
 
   // Load sensor configuration
   // clang-format off
-  yaml_get(conf, "sensor_type", "s", &data->sensor_type);
-  yaml_get(conf, "comment", "s", &data->comment);
-  // yaml_get_tf(conf, "T_BS", &data->T_BS);
-  yaml_get(conf, "rate_hz", "d", &data->rate_hz);
-  yaml_get(conf, "gyroscope_noise_density", "d", &data->gyro_noise_density);
-  yaml_get(conf, "gyroscope_random_walk", "d", &data->gyro_random_walk);
-  yaml_get(conf, "accelerometer_noise_density", "d", &data->accel_noise_density);
-  yaml_get(conf, "accelerometer_random_walk", "d", &data->accel_random_walk);
+  yaml_get(conf, "sensor_type", 's', &data->sensor_type);
+  yaml_get(conf, "comment", 's', &data->comment);
+  yaml_get_matrix(conf, "T_BS", 4, 4, data->T_BS);
+  yaml_get(conf, "rate_hz", 'd', &data->rate_hz);
+  yaml_get(conf, "gyroscope_noise_density", 'd', &data->gyro_noise_density);
+  yaml_get(conf, "gyroscope_random_walk", 'd', &data->gyro_random_walk);
+  yaml_get(conf, "accelerometer_noise_density", 'd', &data->accel_noise_density);
+  yaml_get(conf, "accelerometer_random_walk", 'd', &data->accel_random_walk);
   // clang-format on
 
   return data;
 }
 
+/**
+ * Free EuRoC IMU data
+ */
 void euroc_imu_free(euroc_imu_t *data) {
   assert(data != NULL);
   free(data->timestamps);
@@ -648,7 +837,7 @@ void euroc_imu_free(euroc_imu_t *data) {
 void euroc_imu_print(const euroc_imu_t *data) {
   printf("sensor_type: %s\n", data->sensor_type);
   printf("comment: %s\n", data->comment);
-  // printf("T_BS:\n", data->T_BS);
+  print_matrix("T_BS", data->T_BS, 4, 4);
   printf("rate_hz: %f\n", data->rate_hz);
   printf("gyroscope_noise_density: %f\n", data->gyro_noise_density);
   printf("gyroscope_random_walk: %f\n", data->gyro_random_walk);
@@ -660,9 +849,13 @@ void euroc_imu_print(const euroc_imu_t *data) {
  * euroc_camera_t
  ****************************************************************************/
 
+/**
+ * Load EuRoC camera data
+ */
 euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
   // Setup
   euroc_camera_t *data = MALLOC(euroc_camera_t, 1);
+  data->is_calib_data = is_calib_data;
 
   // Form data and sensor paths
   char data_path[1024] = {0};
@@ -676,7 +869,7 @@ euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
   const size_t num_rows = file_lines(data_path);
   FILE *fp = fopen(data_path, "r");
   if (fp == NULL) {
-    FATAL("Failed to open [%s]!\n", data_path);
+    EUROC_FATAL("Failed to open [%s]!\n", data_path);
   }
 
   // Malloc
@@ -698,7 +891,7 @@ euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
     char filename[50] = {0};
     int retval = fscanf(fp, "%" SCNd64 ",%s", &ts, filename);
     if (retval != 2) {
-      FATAL("Failed to parse line in [%s]\n", data_path);
+      EUROC_FATAL("Failed to parse line in [%s]\n", data_path);
     }
 
     // Check if file exists
@@ -707,7 +900,7 @@ euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
     strcat(image_path, "/data/");
     strcat(image_path, filename);
     if (file_exists(image_path) == 0) {
-      FATAL("File [%s] does not exist!\n", image_path);
+      EUROC_FATAL("File [%s] does not exist!\n", image_path);
     }
 
     // Add data
@@ -719,19 +912,26 @@ euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
   fclose(fp);
 
   // Load sensor configuration
-  yaml_get(conf, "sensor_type", "s", &data->sensor_type);
-  yaml_get(conf, "comment", "s", &data->comment);
-  //  parse(config, "T_BS", T_BS);
-  yaml_get(conf, "rate_hz", "d", &data->rate_hz);
-  //  parse(config, "resolution", resolution);
-  //  parse(config, "camera_model", camera_model, is_calib_data);
-  yaml_get(conf, "camera_model", "s", &data->camera_model);
-  //  parse(config, "intrinsics", intrinsics, is_calib_data);
-  yaml_get(conf, "distortion_model", "s", &data->distortion_model);
-  //  parse(config,
-  //        "distortion_coefficients",
-  //        distortion_coefficients,
-  //        is_calib_data);
+  yaml_get(conf, "sensor_type", 's', &data->sensor_type);
+  yaml_get(conf, "comment", 's', &data->comment);
+  yaml_get_matrix(conf, "T_BS", 4, 4, data->T_BS);
+  yaml_get(conf, "rate_hz", 'd', &data->rate_hz);
+  yaml_get_vector(conf, "resolution", 'i', 2, data->resolution);
+
+  if (is_calib_data) {
+    // Camera data is calibration data, thus there are no calibration parameters
+    data->camera_model[0] = '\0';
+    memset(data->intrinsics, 0, 4 * sizeof(double));
+    data->distortion_model[0] = '\0';
+    memset(data->distortion_coefficients, 0, 4 * sizeof(double));
+
+  } else {
+    // Camera data is calibrated
+    yaml_get(conf, "camera_model", 's', &data->camera_model);
+    yaml_get_vector(conf, "intrinsics", 'd', 4, data->intrinsics);
+    yaml_get(conf, "distortion_model", 's', &data->distortion_model);
+    yaml_get_vector(conf, "distortion_coefficients", 'd', 4, data->intrinsics);
+  }
 
   return data;
 }
@@ -745,13 +945,6 @@ void euroc_camera_free(euroc_camera_t *data) {
     free(data->image_paths[k]);
   }
   free(data->image_paths);
-
-  free(data->sensor_type);
-  free(data->comment);
-  free(data->camera_model);
-  free(data->intrinsics);
-  free(data->distortion_model);
-  free(data->distortion_coefficients);
   free(data);
 }
 
@@ -759,24 +952,26 @@ void euroc_camera_free(euroc_camera_t *data) {
  * EuRoC camera to output stream
  */
 void euroc_camera_print(const euroc_camera_t *data) {
-  // clang-format off
   printf("sensor_type: %s\n", data->sensor_type);
   printf("comment: %s\n", data->comment);
-  // printf("T_BS:\n", data->T_BS);
+  print_matrix("T_BS", data->T_BS, 4, 4);
   printf("rate_hz: %f\n", data->rate_hz);
-  // printf("resolution: %s\n", data->resolution.transpose());
-  printf("camera_model: %s\n", data->camera_model);
-  // printf("intrinsics: %s\n", data->intrinsics.transpose());
-  printf("distortion_model: %s\n", data->distortion_model);
-  // printf("distortion_coefficients: %s\n" <<
-  // data.distortion_coefficients.transpose() << std::endl;
-  // clang-format on
+  print_int_vector("resolution", data->resolution, 2);
+  if (data->is_calib_data == 0) {
+    printf("camera_model: %s\n", data->camera_model);
+    print_vector("intrinsics", data->intrinsics, 4);
+    printf("distortion_model: %s\n", data->distortion_model);
+    print_vector("distortion_coefficients", data->distortion_coefficients, 4);
+  }
 }
 
 /*****************************************************************************
  * euroc_ground_truth_t
  ****************************************************************************/
 
+/**
+ * Load EuRoC ground truth data
+ */
 euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir) {
   // Setup
   euroc_ground_truth_t *data = MALLOC(euroc_ground_truth_t, 1);
@@ -790,8 +985,18 @@ euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir) {
   const size_t num_rows = file_lines(data_path);
   FILE *fp = fopen(data_path, "r");
   if (fp == NULL) {
-    FATAL("Failed to open [%s]!\n", data_path);
+    EUROC_FATAL("Failed to open [%s]!\n", data_path);
   }
+
+  // Malloc
+  assert(num_rows > 0);
+  data->num_timestamps = 0;
+  data->timestamps = MALLOC(timestamp_t, num_rows);
+  data->p_RS_R = MALLOC(double *, num_rows);
+  data->q_RS = MALLOC(double *, num_rows);
+  data->v_RS_R = MALLOC(double *, num_rows);
+  data->b_w_RS_S = MALLOC(double *, num_rows);
+  data->b_a_RS_S = MALLOC(double *, num_rows);
 
   // Parse file
   char str_format[9046] = {0};
@@ -836,7 +1041,7 @@ euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir) {
                         &a[1],
                         &a[2]);
     if (retval != 17) {
-      FATAL("Failed to parse line in [%s]", data_path);
+      EUROC_FATAL("Failed to parse line in [%s]", data_path);
     }
 
     // Add data
@@ -854,6 +1059,9 @@ euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir) {
   return data;
 }
 
+/**
+ * Free EuRoC ground truth data
+ */
 void euroc_ground_truth_free(euroc_ground_truth_t *data) {
   free(data->timestamps);
 
@@ -877,9 +1085,37 @@ void euroc_ground_truth_free(euroc_ground_truth_t *data) {
  * euroc_data_t
  ****************************************************************************/
 
+/**
+ * Load EuRoC data
+ */
 euroc_data_t *euroc_data_load(const char *data_path) {
-  //  // Load IMU data
-  //  imu_data = euroc_imu_t{data_path + "/mav0/imu0"};
+  // Setup
+  euroc_data_t *data = MALLOC(euroc_data_t, 1);
+
+  // Load IMU data
+  char imu0_path[9046] = {0};
+  strcat(imu0_path, data_path);
+  strcat(imu0_path, "/mav0/imu0");
+  data->imu0_data = euroc_imu_load(imu0_path);
+
+  // Load cam0 data
+  char cam0_path[9046] = {0};
+  strcat(cam0_path, data_path);
+  strcat(cam0_path, "/mav0/cam0");
+  data->cam0_data = euroc_camera_load(cam0_path, 0);
+
+  // Load cam1 data
+  char cam1_path[9046] = {0};
+  strcat(cam1_path, data_path);
+  strcat(cam1_path, "/mav0/cam1");
+  data->cam1_data = euroc_camera_load(cam1_path, 0);
+
+  // Load ground truth
+  char gnd_path[9046] = {0};
+  strcat(gnd_path, data_path);
+  strcat(gnd_path, "/mav0/state_groundtruth_estimate0");
+  data->ground_truth = euroc_ground_truth_load(gnd_path);
+
   //  for (size_t i = 0; i < imu_data.timestamps.size(); i++) {
   //    const timestamp_t ts = imu_data.timestamps[i];
   //    const vec3_t a_B = imu_data.a_B[i];
@@ -887,33 +1123,18 @@ euroc_data_t *euroc_data_load(const char *data_path) {
   //    const auto imu_event = timeline_event_t{ts, a_B, w_B};
   //    timeline.insert({ts, imu_event});
   //  }
-
-  //  // Load camera data
-  //  // -- Load cam0 data
-  //  const auto cam0_path = data_path + "/mav0/cam0";
-  //  cam0_data = euroc_camera_t{cam0_path};
   //  for (size_t i = 0; i < cam0_data.timestamps.size(); i++) {
   //    const timestamp_t ts = cam0_data.timestamps[i];
   //    const auto image_path = cam0_data.image_paths[i];
   //    const auto cam0_event = timeline_event_t(ts, 0, image_path);
   //    timeline.insert({ts, cam0_event});
   //  }
-  //  // -- Load cam1 data
-  //  const auto cam1_path = data_path + "/mav0/cam1";
-  //  cam1_data = euroc_camera_t{cam0_path};
   //  for (size_t i = 0; i < cam1_data.timestamps.size(); i++) {
   //    const timestamp_t ts = cam1_data.timestamps[i];
   //    const auto image_path = cam1_data.image_paths[i];
   //    const auto cam1_event = timeline_event_t(ts, 1, image_path);
   //    timeline.insert({ts, cam1_event});
   //  }
-  //  // -- Set camera image size
-  //  cv::Mat image = cv::imread(cam0_data.image_paths[0]);
-  //  image_size = cv::Size(image.size());
-
-  //  // Load ground truth
-  //  const auto gt_path = data_path + "/mav0/state_groundtruth_estimate0";
-  //  ground_truth = euroc_ground_truth_t{gt_path};
 
   //  // Process timestamps
   //  ts_start = min_timestamp();
@@ -933,37 +1154,50 @@ euroc_data_t *euroc_data_load(const char *data_path) {
   //      ++it;
   //    } while (ts == it->first);
   //  }
-  return NULL;
+
+  return data;
+}
+
+/**
+ * Free EuRoC data
+ */
+void euroc_data_free(euroc_data_t *data) {
+  assert(data != NULL);
+  euroc_imu_free(data->imu0_data);
+  euroc_camera_free(data->cam0_data);
+  euroc_camera_free(data->cam1_data);
+  euroc_ground_truth_free(data->ground_truth);
+  free(data);
 }
 
 /*****************************************************************************
- * euroc_target_t
+ * euroc_calib_target_t
  ****************************************************************************/
 
 /**
  * Load EuRoC calibration target configuration
  */
-euroc_target_t *euroc_target_load(const char *conf) {
-  euroc_target_t *data = MALLOC(euroc_target_t, 1);
-  yaml_get(conf, "target_type", "s", &data->type);
-  yaml_get(conf, "tagRows", "i", &data->tag_rows);
-  yaml_get(conf, "tagCols", "i", &data->tag_cols);
-  yaml_get(conf, "tagSize", "d", &data->tag_size);
-  yaml_get(conf, "tagSpacing", "d", &data->tag_spacing);
+euroc_calib_target_t *euroc_calib_target_load(const char *conf) {
+  euroc_calib_target_t *data = MALLOC(euroc_calib_target_t, 1);
+  yaml_get(conf, "target_type", 's', &data->type);
+  yaml_get(conf, "tagRows", 'i', &data->tag_rows);
+  yaml_get(conf, "tagCols", 'i', &data->tag_cols);
+  yaml_get(conf, "tagSize", 'd', &data->tag_size);
+  yaml_get(conf, "tagSpacing", 'd', &data->tag_spacing);
   return data;
 }
 
 /**
  * Free EuRoC calibration target
  */
-void euroc_target_free(euroc_target_t *target) {
+void euroc_calib_target_free(euroc_calib_target_t *target) {
   free(target);
 }
 
 /**
  * EuRoC calibration target to output stream
  */
-void euroc_target_print(const euroc_target_t *target) {
+void euroc_calib_target_print(const euroc_calib_target_t *target) {
   printf("target_type: %s\n", target->type);
   printf("tag_rows: %d\n", target->tag_rows);
   printf("tag_cols: %d\n", target->tag_cols);
@@ -975,21 +1209,36 @@ void euroc_target_print(const euroc_target_t *target) {
  * euroc_calib_t
  ****************************************************************************/
 
+/**
+ * Load EuRoC calibration data
+ */
 euroc_calib_t *euroc_calib_load(const char *data_path) {
   // Setup
   euroc_calib_t *data = MALLOC(euroc_calib_t, 1);
 
-  //  // Load IMU data
-  //  const std::string imu_data_dir = data_path + "/mav0/imu0";
-  //  imu_data = euroc_imu_t{imu_data_dir};
+  // Load IMU data
+  char imu0_path[9046] = {0};
+  strcat(imu0_path, data_path);
+  strcat(imu0_path, "/mav0/imu0");
+  data->imu0_data = euroc_imu_load(imu0_path);
 
-  //  // Load cam0 data
-  //  const std::string cam0_dir = data_path + "/mav0/cam0";
-  //  cam0_data = euroc_camera_t{cam0_dir, true};
+  // Load cam0 data
+  char cam0_path[9046] = {0};
+  strcat(cam0_path, data_path);
+  strcat(cam0_path, "/mav0/cam0");
+  data->cam0_data = euroc_camera_load(cam0_path, 0);
 
-  //  // Load cam1 data
-  //  const std::string cam1_dir = data_path + "/mav0/cam1";
-  //  cam1_data = euroc_camera_t{cam1_dir, true};
+  // Load cam1 data
+  char cam1_path[9046] = {0};
+  strcat(cam1_path, data_path);
+  strcat(cam1_path, "/mav0/cam1");
+  data->cam1_data = euroc_camera_load(cam1_path, 0);
+
+  // Load calibration target data
+  char target_path[9046] = {0};
+  strcat(target_path, data_path);
+  strcat(target_path, "/april_6x6.yaml");
+  data->calib_target = euroc_calib_target_load(target_path);
 
   //  // Check if cam0 has same amount of images as cam1
   //  const size_t cam0_nb_images = cam0_data.image_paths.size();
@@ -1004,15 +1253,18 @@ euroc_calib_t *euroc_calib_load(const char *data_path) {
   //    }
   //  }
 
-  //  // Get image size
-  //  const cv::Mat image = cv::imread(cam0_data.image_paths[0]);
-  //  image_size = cv::Size(image.size());
-
-  //  // Load calibration target data
-  //  const std::string target_path = data_path + "/april_6x6.yaml";
-  //  calib_target = euroc_target_t{target_path};
-
   return data;
+}
+
+/**
+ * Free EuRoC calibration data
+ */
+void euroc_calib_free(euroc_calib_t *data) {
+  euroc_imu_free(data->imu0_data);
+  euroc_camera_free(data->cam0_data);
+  euroc_camera_free(data->cam1_data);
+  euroc_calib_target_free(data->calib_target);
+  free(data);
 }
 
 #endif // EUROC_IMPLEMENTATION
@@ -1099,13 +1351,56 @@ int fltcmp(const float x, const float y) {
 int test_euroc_imu_load() {
   const char *data_dir = "/data/euroc/imu_april/mav0/imu0";
   euroc_imu_t *data = euroc_imu_load(data_dir);
-  euroc_imu_print(data);
+  // euroc_imu_print(data);
   euroc_imu_free(data);
+  return 0;
+}
+
+int test_euroc_camera_load() {
+  const char *data_dir = "/data/euroc/imu_april/mav0/cam0";
+  euroc_camera_t *data = euroc_camera_load(data_dir, 1);
+  // euroc_camera_print(data);
+  euroc_camera_free(data);
+  return 0;
+}
+
+int test_euroc_ground_truth_load() {
+  const char *data_dir = "/data/euroc/V1_01/mav0/state_groundtruth_estimate0";
+  euroc_ground_truth_t *data = euroc_ground_truth_load(data_dir);
+  // euroc_ground_truth_print(data);
+  euroc_ground_truth_free(data);
+  return 0;
+}
+
+int test_euroc_data_load() {
+  const char *data_dir = "/data/euroc/V1_01";
+  euroc_data_t *data = euroc_data_load(data_dir);
+  euroc_data_free(data);
+  return 0;
+}
+
+int test_euroc_calib_target_load() {
+  const char *config_path = "/data/euroc/imu_april/april_6x6.yaml";
+  euroc_calib_target_t *data = euroc_calib_target_load(config_path);
+  // euroc_calib_target_print(data);
+  euroc_calib_target_free(data);
+  return 0;
+}
+
+int test_euroc_calib_load() {
+  const char *config_path = "/data/euroc/imu_april";
+  euroc_calib_t *data = euroc_calib_load(config_path);
+  euroc_calib_free(data);
   return 0;
 }
 
 int main(int argc, char *argv[]) {
   TEST(test_euroc_imu_load);
+  TEST(test_euroc_camera_load);
+  TEST(test_euroc_ground_truth_load);
+  TEST(test_euroc_data_load);
+  TEST(test_euroc_calib_target_load);
+  TEST(test_euroc_calib_load);
   return (nb_failed) ? -1 : 0;
 }
 
