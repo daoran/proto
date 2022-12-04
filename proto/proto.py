@@ -6134,6 +6134,30 @@ class FeatureTracker:
     return self.cam_data
 
 
+class OrbFeatureTracker:
+  """ ORB feature tracker """
+  def __init__(self):
+    self.prev_ts = None
+    self.frame_idx = 0
+
+    self.detector = cv2.FastFeatureDetector_create(threshold=50)
+
+    self.cam_idxs = []
+    self.cam_params = {}
+    self.cam_exts = {}
+    self.cam_data = {}
+
+  def add_camera(self, cam_idx, cam_params, cam_exts):
+    """ Add camera """
+    self.cam_idxs.append(cam_idx)
+    self.cam_params[cam_idx] = cam_params
+    self.cam_exts[cam_idx] = cam_exts
+    self.cam_data[cam_idx] = None
+
+  def update(self, ts, mcam_imgs):
+    """ Update """
+
+
 def visualize_tracking(ft_data):
   """ Visualize feature tracking data """
   viz = []
@@ -10560,6 +10584,94 @@ class TestFeatureTracker(unittest.TestCase):
         if cv2.waitKey(1) == ord('q'):
           break
     cv2.destroyAllWindows()
+
+
+class TestOrbFeatureTracker(unittest.TestCase):
+  """ Test OrbFeatureTracker """
+
+  # @classmethod
+  # def setUpClass(cls):
+  #   super(TestOrbFeatureTracker, cls).setUpClass()
+  #   cls.dataset = EurocDataset(euroc_data_path)
+
+  # def setUp(self):
+  #   # Setup test images
+  #   self.dataset = TestOrbFeatureTracker.dataset
+  #   ts = self.dataset.cam0_data.timestamps[0]
+  #   img0_path = self.dataset.cam0_data.image_paths[ts]
+  #   img1_path = self.dataset.cam1_data.image_paths[ts]
+  #   self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+  #   self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+  #   # Setup cameras
+  #   # -- cam0
+  #   res = self.dataset.cam0_data.config.resolution
+  #   proj_params = self.dataset.cam0_data.config.intrinsics
+  #   dist_params = self.dataset.cam0_data.config.distortion_coefficients
+  #   proj_model = "pinhole"
+  #   dist_model = "radtan4"
+  #   params = np.block([*proj_params, *dist_params])
+  #   cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
+  #   # -- cam1
+  #   res = self.dataset.cam1_data.config.resolution
+  #   proj_params = self.dataset.cam1_data.config.intrinsics
+  #   dist_params = self.dataset.cam1_data.config.distortion_coefficients
+  #   proj_model = "pinhole"
+  #   dist_model = "radtan4"
+  #   params = np.block([*proj_params, *dist_params])
+  #   cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
+
+  #   # Setup camera extrinsics
+  #   # -- cam0
+  #   T_BC0 = self.dataset.cam0_data.config.T_BS
+  #   cam0_exts = extrinsics_setup(T_BC0)
+  #   # -- cam1
+  #   T_BC1 = self.dataset.cam1_data.config.T_BS
+  #   cam1_exts = extrinsics_setup(T_BC1)
+
+  #   # Setup feature tracker
+  #   self.feature_tracker = OrbFeatureTracker()
+  #   self.feature_tracker.add_camera(0, cam0, cam0_exts)
+  #   self.feature_tracker.add_camera(1, cam1, cam1_exts)
+
+  # def test_update(self):
+  #   for ts in self.dataset.cam0_data.timestamps[1000:1200]:
+  #     # Load images
+  #     img0_path = self.dataset.cam0_data.image_paths[ts]
+  #     img1_path = self.dataset.cam1_data.image_paths[ts]
+  #     img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+  #     img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+  #     # Feed camera images to feature tracker
+  #     mcam_imgs = {0: img0, 1: img1}
+  #     # ft_data = self.feature_tracker.update(ts, mcam_imgs)
+
+  #     cv2.imshow("image", img0)
+  #     cv2.waitKey(0)
+
+  def test_update(self):
+    cam0_imgs = sorted(glob.glob("test_data/frontend/cam0/*.png"))
+    cam1_imgs = sorted(glob.glob("test_data/frontend/cam1/*.png"))
+
+    matcher = cv2.BFMatcher()
+    for i, (img0_path, img1_path) in enumerate(zip(cam0_imgs, cam1_imgs)):
+      img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+      img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+      orb = cv2.ORB_create(nfeatures=100)
+      kps0, des0 = grid_detect(orb, img0)
+      kps1, des1 = grid_detect(orb, img1)
+
+      # kps0, des0 = orb.detectAndCompute(img0, None)
+      # kps1, des1 = orb.detectAndCompute(img1, None)
+
+      matches = matcher.match(des0, des1)
+      matches_img = cv2.drawMatches(img0, kps0, img1, kps1, matches[:30], None)
+
+      # viz = cv2.hconcat([img0, img1])
+      # cv2.imshow("image", viz)
+      cv2.imshow("image", matches_img)
+      cv2.waitKey(0)
 
 
 class TestTracker(unittest.TestCase):

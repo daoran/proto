@@ -1,5 +1,5 @@
 # PATHS
-BLD_DIR := $(realpath build)
+BLD_DIR := build
 INC_DIR := $(realpath $(PWD))
 DEPS_DIR := $(realpath ../third_party)
 
@@ -79,6 +79,13 @@ ARFLAGS = rvs
 
 # TARGETS
 LIBPROTO := $(BLD_DIR)/libproto.a
+LIBPROTO_OBJS := \
+	$(BLD_DIR)/proto.o \
+	$(BLD_DIR)/ceres_bridge.o \
+	$(BLD_DIR)/euroc.o \
+	$(BLD_DIR)/sbgc.o \
+	$(BLD_DIR)/tis.o
+
 TESTS := \
 	test_proto \
 	test_aprilgrid \
@@ -103,23 +110,31 @@ $(BLD_DIR)/ceres_bridge.o: ceres_bridge.cpp Makefile
 	@echo "CXX [ceres_bridge.c]"
 	@g++ -Wall -O3 -c ceres_bridge.cpp -o $(BLD_DIR)/ceres_bridge.o
 
-$(BLD_DIR)/libproto.a: $(BLD_DIR)/proto.o $(BLD_DIR)/ceres_bridge.o
+$(BLD_DIR)/libproto.a: $(LIBPROTO_OBJS)
 	@echo "AR [libproto.a]"
 	@$(AR) $(ARFLAGS) \
 		$(BLD_DIR)/libproto.a \
-		$(BLD_DIR)/ceres_bridge.o \
-		$(BLD_DIR)/proto.o \
+		$(LIBPROTO_OBJS) \
 		> /dev/null 2>&1
 
 setup:
-	@mkdir -p $(BLD_DIR)
-	@cp -r shaders $(BLD_DIR)
-	@cp -r test_data $(BLD_DIR)
+	mkdir -p $(BLD_DIR)
+	cp -r shaders $(BLD_DIR)
+	cp -r test_data $(BLD_DIR)
 
 clean:  ## Clean build directory
 	@rm -rf $(BLD_DIR)
 
 libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
+
+avs: $(BLD_DIR)/libproto.a
+	@g++ \
+		-std=c++11 \
+		-fsanitize=address -static-libasan \
+		$(shell pkg-config opencv4 --cflags) \
+		avs.cpp -o $(BLD_DIR)/avs \
+		$(LDFLAGS) \
+		$(shell pkg-config opencv4 --libs)
 
 test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"

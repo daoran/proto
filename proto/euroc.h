@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <time.h>
 #include <assert.h>
 #include <unistd.h>
 
@@ -275,6 +276,32 @@ void euroc_calib_free(euroc_calib_t *data);
 /*****************************************************************************
  * UTILS
  ****************************************************************************/
+
+// /**
+//  * Tic, start timer.
+//  * @returns A timespec encapsulating the time instance when tic() is called
+//  */
+// static struct timespec tic() {
+//   struct timespec time_start;
+//   clock_gettime(CLOCK_MONOTONIC, &time_start);
+//   return time_start;
+// }
+
+// /**
+//  * Toc, stop timer.
+//  * @returns Time elapsed in seconds
+//  */
+// static float toc(struct timespec *tic) {
+//   assert(tic != NULL);
+//   struct timespec toc;
+//   float time_elasped;
+
+//   clock_gettime(CLOCK_MONOTONIC, &toc);
+//   time_elasped = (toc.tv_sec - tic->tv_sec);
+//   time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
+
+//   return time_elasped;
+// }
 
 /**
  * Skip line in file.
@@ -1072,19 +1099,16 @@ void euroc_ground_truth_free(euroc_ground_truth_t *data) {
  * euroc_timeline_t
  ****************************************************************************/
 
-static void timestamp_swap(timestamp_t *xp, timestamp_t *yp) {
-  timestamp_t temp = *xp;
-  *xp = *yp;
-  *yp = temp;
-}
+static void timestamps_insertion_sort(timestamp_t *timestamps, const size_t n) {
+  for (size_t i = 1; i < n; i++) {
+    timestamp_t key = timestamps[i];
+    size_t j = i - 1;
 
-static void timestamp_bubble_sort(timestamp_t *arr, const size_t n) {
-  for (size_t i = 0; i < n - 1; i++) {
-    for (size_t j = 0; j < n - i - 1; j++) {
-      if (arr[j] > arr[j + 1]) {
-        timestamp_swap(&arr[j], &arr[j + 1]);
-      }
+    while (j >= 0 && timestamps[j] > key) {
+      timestamps[j + 1] = timestamps[j];
+      j = j - 1;
     }
+    timestamps[j + 1] = key;
   }
 }
 
@@ -1112,7 +1136,9 @@ static void timestamps_unique(timestamp_t *set,
   }
 
   // Sort timestamps (just to be sure)
-  timestamp_bubble_sort(set, *set_len);
+  // struct timespec t_start = tic();
+  timestamps_insertion_sort(set, *set_len);
+  // printf("sort: %f\n", toc(&t_start));
 }
 
 /**
@@ -1153,14 +1179,14 @@ euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
   size_t cam1_idx = 0;
 
   for (size_t k = 0; k < timeline->num_timestamps; k++) {
-    const timestamp_t ts_k = timeline->timestamps[k];
+    const timestamp_t ts = timeline->timestamps[k];
 
     // imu0 event
     int has_imu0 = 0;
     double *acc = NULL;
     double *gyr = NULL;
     for (size_t i = imu0_idx; i < imu0_data->num_timestamps; i++) {
-      if (imu0_data->timestamps[i] == ts_k) {
+      if (imu0_data->timestamps[i] == ts) {
         has_imu0 = 1;
         acc = imu0_data->a_B[imu0_idx];
         gyr = imu0_data->w_B[imu0_idx];
@@ -1173,7 +1199,7 @@ euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
     int has_cam0 = 0;
     char *cam0_image = NULL;
     for (size_t i = cam0_idx; i < cam0_data->num_timestamps; i++) {
-      if (cam0_data->timestamps[i] == ts_k) {
+      if (cam0_data->timestamps[i] == ts) {
         has_cam0 = 1;
         cam0_image = cam0_data->image_paths[cam0_idx];
         cam0_idx++;
@@ -1185,7 +1211,7 @@ euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
     int has_cam1 = 0;
     char *cam1_image = NULL;
     for (size_t i = cam1_idx; i < cam1_data->num_timestamps; i++) {
-      if (cam1_data->timestamps[i] == ts_k) {
+      if (cam1_data->timestamps[i] == ts) {
         has_cam1 = 1;
         cam1_image = cam1_data->image_paths[cam1_idx];
         cam1_idx++;
@@ -1198,7 +1224,7 @@ euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
     event->has_imu0 = has_imu0;
     event->has_cam0 = has_cam0;
     event->has_cam1 = has_cam1;
-    event->ts = ts_k;
+    event->ts = ts;
     event->imu0_idx = imu0_idx - 1;
     event->acc = acc;
     event->gyr = gyr;

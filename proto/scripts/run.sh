@@ -65,6 +65,7 @@ run_memcheck() {
 # python3 proto.py TestFeatureTracker.test_detect_nonoverlaps
 # python3 proto.py TestFeatureTracker.test_detect_new
 # python3 proto.py TestFeatureTracker.test_update
+# python3 proto.py TestOrbFeatureTracker.test_update
 # python3 proto.py TestTracker
 # python3 proto.py TestTracker.test_tracker_process_features
 # python3 proto.py TestTracker.test_tracker_vision_callback
@@ -173,8 +174,11 @@ dev_euroc() {
 # dev_sbgc
 # dev_tiscam
 # dev_aprilgrid
-dev_euroc
-# make libproto
+# dev_euroc
+
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "cd ~/projects/proto/proto && make avs && ./build/avs" C-m
+exit
 
 # CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363

@@ -8,15 +8,15 @@
 #include <stb_ds.h>
 #endif
 
-#ifdef USE_APRILGRID
-#define APRILGRID_IMPLEMENTATION
-#include "aprilgrid.h"
-#endif
+// #ifdef USE_APRILGRID
+// #define APRILGRID_IMPLEMENTATION
+// #include "aprilgrid.h"
+// #endif
 
-#ifdef USE_SBGC
-#define SBGC_IMPLEMENTATION
-#include "sbgc.h"
-#endif
+// #ifdef USE_SBGC
+// #define SBGC_IMPLEMENTATION
+// #include "sbgc.h"
+// #endif
 
 /******************************************************************************
  * FILE SYSTEM
@@ -3398,7 +3398,7 @@ int __svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
           A[i * n + k] *= scale;
       }
     }
-    anorm = MAX(anorm, (fabs(w[i]) + fabs(rv1[i])));
+    anorm = PMAX(anorm, (fabs(w[i]) + fabs(rv1[i])));
   }
 
   for (i = n - 1; i >= 0; i--) {
@@ -3421,7 +3421,7 @@ int __svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
     l = i;
   }
 
-  for (i = MIN(m, n) - 1; i >= 0; i--) {
+  for (i = PMIN(m, n) - 1; i >= 0; i--) {
     l = i + 1;
     g = w[i];
     for (j = l; j < n; j++)

@@ -12,8 +12,9 @@
 #define USE_STB
 
 // #define USE_GUI
-// #define USE_SBGC
 #define USE_APRILGRID
+// #define USE_TIS
+// #define USE_SBGC
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,8 +52,20 @@
 #include "ceres_bridge.h"
 #endif
 
+#ifdef USE_GUI
+#include "gui.h"
+#endif
+
 #ifdef USE_APRILGRID
 #include "aprilgrid.h"
+#endif
+
+#ifdef USE_TIS
+#include "tis.h"
+#endif
+
+#ifdef USE_SBGC
+#include "sbgc.h"
 #endif
 
 /******************************************************************************
@@ -516,10 +529,10 @@ int tcp_client_loop(tcp_client_t *client);
 #endif
 
 /** Min of two numbers, X or Y. */
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define PMIN(x, y) ((x) < (y) ? (x) : (y))
 
 /** Max of two numbers, X or Y. */
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define PMAX(x, y) ((x) > (y) ? (x) : (y))
 
 /** Based on sign of b, return +ve or -ve a. */
 #define SIGN2(a, b) ((b) > 0.0 ? fabs(a) : -fabs(a))
