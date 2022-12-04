@@ -9,6 +9,33 @@ extern "C" {
 #include <vector>
 #include <opencv2/opencv.hpp>
 
+///////////
+// UTILS //
+///////////
+
+/** Macro that adds the ability to switch between C / C++ style mallocs */
+#ifdef __cplusplus
+
+#ifndef MALLOC
+#define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
+#endif
+
+#ifndef CALLOC
+#define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
+#endif
+
+#else
+
+#ifndef MALLOC
+#define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
+#endif
+
+#ifndef CALLOC
+#define CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
+#endif
+
+#endif
+
 //////////////////
 // FEATURE GRID //
 //////////////////
@@ -36,7 +63,8 @@ extern "C" {
  *   cell_id = int(grid_x + (grid_y * grid_cols))
  */
 struct feature_grid_t {
-  cv::Size image_shape;
+  int image_width;
+  int image_height;
   std::vector<cv::KeyPoint> keypoints;
   int grid_rows;
   int grid_cols;
@@ -48,7 +76,8 @@ struct feature_grid_t {
  */
 void feature_grid_setup(
     feature_grid_t *grid,
-    const cv::Size &image_shape,
+    const int image_width,
+    const int image_height,
     const std::vector<cv::KeyPoint> &keypoints = std::vector<cv::KeyPoint>(),
     const int grid_rows = 3,
     const int grid_cols = 4);
