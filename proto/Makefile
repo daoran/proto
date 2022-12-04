@@ -131,6 +131,7 @@ avs: $(BLD_DIR)/libproto.a
 	@g++ \
 		-std=c++11 \
 		-fsanitize=address -static-libasan \
+		-I$(DEPS_DIR)/include \
 		$(shell pkg-config opencv4 --cflags) \
 		avs.cpp -o $(BLD_DIR)/avs \
 		$(LDFLAGS) \

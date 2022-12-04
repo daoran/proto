@@ -177,7 +177,7 @@ dev_euroc() {
 # dev_euroc
 
 tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "cd ~/projects/proto/proto && make avs && ./build/avs" C-m
+tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs && ./build/avs" C-m
 exit
 
 # CAM0_SERIAL=19220362

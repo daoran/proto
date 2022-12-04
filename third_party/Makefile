@@ -86,8 +86,7 @@ build_tiscamera:
 			-DTCAM_INSTALL_FORCE_PREFIX=ON \
 			-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
 			-DTCAM_BUILD_ARAVIS=ON .. \
-	  && make \
-		&& make install
+	  && make
 
 build_stb:
 	@cd "$(PREFIX)/include" \
