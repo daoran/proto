@@ -1,59 +1,92 @@
 #include "avs.hpp"
 
+///////////
+// UTILS //
+///////////
+
+std::string cvtype2str(const int type) {
+  std::string r;
+
+  uchar depth = type & CV_MAT_DEPTH_MASK;
+  uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+  switch (depth) {
+    case CV_8U:
+      r = "8U";
+      break;
+    case CV_8S:
+      r = "8S";
+      break;
+    case CV_16U:
+      r = "16U";
+      break;
+    case CV_16S:
+      r = "16S";
+      break;
+    case CV_32S:
+      r = "32S";
+      break;
+    case CV_32F:
+      r = "32F";
+      break;
+    case CV_64F:
+      r = "64F";
+      break;
+    default:
+      r = "User";
+      break;
+  }
+
+  r += "C";
+  r += (chans + '0');
+
+  return r;
+}
+
 //////////////////
 // FEATURE GRID //
 //////////////////
 
-void feature_grid_setup(feature_grid_t &grid,
-                        const int image_width,
-                        const int image_height,
-                        const int grid_rows,
-                        const int grid_cols) {
-  grid.image_width = image_width;
-  grid.image_height = image_height;
-  grid.grid_rows = grid_rows;
-  grid.grid_cols = grid_cols;
-  for (int i = 0; i < (grid_rows * grid_cols); i++) {
-    grid.cells.push_back(0);
+FeatureGrid::FeatureGrid(const int image_width,
+                         const int image_height,
+                         const int grid_rows,
+                         const int grid_cols)
+    : image_width_{image_width}, image_height_{image_height},
+      grid_rows_{grid_rows}, grid_cols_{grid_cols} {
+  for (int i = 0; i < (grid_rows_ * grid_cols_); i++) {
+    cells_.push_back(0);
   }
 }
 
-void feature_grid_add(feature_grid_t &grid,
-                      const int pixel_x,
-                      const int pixel_y) {
-  assert(pixel_x >= 0 && pixel_x <= grid.image_width);
-  assert(pixel_y >= 0 && pixel_y <= grid.image_height);
-  const int cell_idx = feature_grid_cell_index(grid, pixel_x, pixel_y);
-  grid.cells[cell_idx] += 1;
-  grid.keypoints.emplace_back(pixel_x, pixel_y);
+void FeatureGrid::add(const int pixel_x, const int pixel_y) {
+  assert(pixel_x >= 0 && pixel_x <= image_width_);
+  assert(pixel_y >= 0 && pixel_y <= image_height_);
+  const int cell_idx = cellIndex(pixel_x, pixel_y);
+  cells_[cell_idx] += 1;
+  keypoints_.emplace_back(pixel_x, pixel_y);
 }
 
-int feature_grid_cell_index(const feature_grid_t &grid,
-                            const int pixel_x,
-                            const int pixel_y) {
-  const float img_w = grid.image_width;
-  const float img_h = grid.image_height;
-  const int grid_rows = grid.grid_rows;
-  const int grid_cols = grid.grid_cols;
-  const float grid_x = ceil((std::max(1, pixel_x) / img_w) * grid_cols) - 1.0;
-  const float grid_y = ceil((std::max(1, pixel_y) / img_h) * grid_rows) - 1.0;
-  const int cell_id = int(grid_x + (grid_y * grid_cols));
+int FeatureGrid::cellIndex(const int pixel_x, const int pixel_y) const {
+  const float img_w = image_width_;
+  const float img_h = image_height_;
+  float grid_x = ceil((std::max(1, pixel_x) / img_w) * grid_cols_) - 1.0;
+  float grid_y = ceil((std::max(1, pixel_y) / img_h) * grid_rows_) - 1.0;
+  const int cell_id = int(grid_x + (grid_y * grid_cols_));
   return cell_id;
 }
 
-int feature_grid_count(const feature_grid_t &grid, const int cell_idx) {
-  return grid.cells[cell_idx];
+int FeatureGrid::count(const int cell_idx) const {
+  return cells_[cell_idx];
 }
 
-void feature_grid_debug(const feature_grid_t &grid, const bool imshow) {
-  const int w = grid.image_width;
-  const int h = grid.image_height;
+void FeatureGrid::debug(const bool imshow) const {
+  const int w = image_width_;
+  const int h = image_height_;
   cv::Mat viz = cv::Mat::zeros(h, w, CV_32F);
 
-  for (const auto kp : grid.keypoints) {
+  for (const auto kp : keypoints_) {
     const auto x = kp.first;
     const auto y = kp.second;
-    printf("(%d, %d)\n", x, y);
 
     const cv::Point p(x, y);
     const int radius = 2;
@@ -77,102 +110,99 @@ void sort_keypoints(std::vector<cv::KeyPoint> &kps) {
   });
 }
 
-std::vector<int>
+std::vector<cv::KeyPoint>
 spread_keypoints(const cv::Mat &image,
-                 const std::vector<cv::KeyPoint> &keypoints,
+                 const std::vector<cv::KeyPoint> &kps,
                  const int min_dist,
-                 const std::vector<cv::KeyPoint> prev_keypoints,
+                 const std::vector<cv::KeyPoint> &kps_prev,
                  const bool debug) {
-  // Setup
-  std::vector<int> outliers = std::vector<int>(keypoints.size(), 0);
-
   // Pre-check
-  if (keypoints.size() == 0) {
-    return outliers;
+  std::vector<cv::KeyPoint> kps_filtered;
+  if (kps.size() == 0) {
+    return kps_filtered;
   }
 
   // Setup
   const int img_w = image.size().width;
   const int img_h = image.size().height;
-  uint8_t *A = CALLOC(uint8_t, img_w * img_h);
-  uint8_t *W = CALLOC(uint8_t, (min_dist * 2) * (min_dist * 2));
+  cv::Mat A = cv::Mat::zeros(img_h, img_w, CV_8UC1);
 
   // Loop through previous keypoints
-  for (const auto kp : prev_keypoints) {
+  for (const auto kp : kps_prev) {
     // Fill the area of the matrix where the next keypoint cannot be around
-    const int p[2] = {(int) kp.pt.x, (int) kp.pt.y};
-    const int rs = std::max(p[1] - min_dist, 0);
-    const int re = std::min(p[1] + min_dist + 1, img_h);
-    const int cs = std::max(p[0] - min_dist, 0);
-    const int ce = std::min(p[0] + min_dist + 1, img_w);
+    const int px = kp.pt.x;
+    const int py = kp.pt.y;
+    const int rs = std::max(py - min_dist, 0);
+    const int re = std::min(py + min_dist + 1, img_h - 1);
+    const int cs = std::max(px - min_dist, 0);
+    const int ce = std::min(px + min_dist + 1, img_w - 1);
 
-    size_t idx = 0;
-    for (size_t i = rs; i <= re; i++) {
-      for (size_t j = cs; j <= ce; j++) {
-        A[(i * img_w) + j] = W[idx];
-        idx++;
+    for (size_t i = rs; i < re; i++) {
+      for (size_t j = cs; j < ce; j++) {
+        A.at<uint8_t>(i, j) = 255;
       }
     }
   }
 
   // Loop through keypoints
-  std::vector<cv::KeyPoint> kps_results;
-  for (const auto kp : keypoints) {
+  for (const auto kp : kps) {
     // Check if point is ok to be added to results
-    const int p[2] = {(int) kp.pt.x, (int) kp.pt.y};
-    if (A[(p[1] * img_w) + p[0]] > 0.0) {
+    const int px = kp.pt.x;
+    const int py = kp.pt.y;
+    if (A.at<uint8_t>(py, px) > 0) {
       continue;
     }
+    kps_filtered.push_back(kp);
 
     // Fill the area of the matrix where the next keypoint cannot be around
-    const int rs = std::max(p[1] - min_dist, 0);
-    const int re = std::min(p[1] + min_dist + 1, img_h);
-    const int cs = std::max(p[0] - min_dist, 0);
-    const int ce = std::min(p[0] + min_dist + 1, img_w);
+    const int rs = std::max(py - min_dist, 0);
+    const int re = std::min(py + min_dist + 1, img_h - 1);
+    const int cs = std::max(px - min_dist, 0);
+    const int ce = std::min(px + min_dist + 1, img_w - 1);
 
-    size_t idx = 0;
-    for (size_t i = rs; i <= re; i++) {
-      for (size_t j = cs; j <= ce; j++) {
-        A[(i * img_w) + j] = W[idx];
-        idx++;
+    for (size_t i = rs; i < re; i++) {
+      for (size_t j = cs; j < ce; j++) {
+        A.at<uint8_t>(i, j) = 255;
       }
     }
   }
 
-  return outliers;
+  // Debug
+  if (debug) {
+    cv::imshow("Debug", A);
+    cv::waitKey(0);
+  }
+
+  return kps_filtered;
 }
 
-void grid_detector_detect(const grid_detector_t &detector,
-                          const cv::Mat &image,
-                          const std::vector<cv::KeyPoint> &prev_kps,
-                          std::vector<cv::KeyPoint> &kps,
-                          cv::Mat &des,
-                          bool debug = false) {
+void GridDetector::detect(const cv::Mat &image,
+                          const std::vector<cv::KeyPoint> &kps_prev,
+                          std::vector<cv::KeyPoint> &kps_new,
+                          cv::Mat &des_new,
+                          bool debug) {
   // Asserts
   assert(image.channels() == 1);
 
   // Calculate number of grid cells and max corners per cell
   const int img_w = image.size().width;
   const int img_h = image.size().height;
-  const int grid_rows = detector.grid_rows;
-  const int grid_cols = detector.grid_cols;
-  const int dx = int(std::ceil(float(img_w) / float(grid_cols)));
-  const int dy = int(std::ceil(float(img_h) / float(grid_rows)));
-  const int num_cells = grid_rows * grid_cols;
-  const int max_per_cell = floor(detector.max_keypoints / num_cells);
+  const int dx = int(std::ceil(float(img_w) / float(grid_cols_)));
+  const int dy = int(std::ceil(float(img_h) / float(grid_rows_)));
+  const int num_cells = grid_rows_ * grid_cols_;
+  const int max_per_cell = floor(max_keypoints_ / num_cells);
 
-  // Detect corners in each grid cell
-  feature_grid_t grid;
-  feature_grid_setup(grid, img_w, img_h);
-  for (const auto &kp : prev_kps) {
+  // Create feature grid of previous keypoints
+  FeatureGrid grid{img_w, img_h};
+  for (const auto &kp : kps_prev) {
     const int pixel_x = kp.pt.x;
     const int pixel_y = kp.pt.y;
-    feature_grid_add(grid, pixel_x, pixel_y);
+    grid.add(pixel_x, pixel_y);
   }
 
-  std::vector<cv::KeyPoint> kps_all;
-  cv::Mat des_all;
+  // Detect corners in each grid cell
   int cell_idx = 0;
+
   for (int y = 0; y < img_h; y += dy) {
     for (int x = 0; x < img_w; x += dx) {
       // Make sure roi width and height are not out of bounds
@@ -181,24 +211,33 @@ void grid_detector_detect(const grid_detector_t &detector,
 
       // Detect corners in grid cell
       cv::Rect roi(x, y, w, h);
-      std::vector<cv::KeyPoint> kps;
-      cv::Mat des;
-      detector.detector->detectAndCompute(image(roi), cv::Mat(), kps, des);
+      std::vector<cv::KeyPoint> kps_roi;
+      cv::Mat des_roi;
+
+      detector_->detect(image(roi), kps_roi);
+      kps_roi = spread_keypoints(image(roi), kps_roi, 10, kps_prev);
+      detector_->compute(image(roi), kps_roi, des_roi);
+      // detector_->detectAndCompute(image(roi), cv::Mat(), kps_roi, des_roi);
 
       // Offset keypoints
-      const size_t vacancy = max_per_cell - feature_grid_count(grid, cell_idx);
+      const size_t vacancy = max_per_cell - grid.count(cell_idx);
       if (vacancy <= 0) {
         continue;
       }
 
-      for (int i = 0; i < std::min(kps.size(), vacancy); i++) {
-        cv::KeyPoint kp = kps[i];
+      for (int i = 0; i < std::min(kps_roi.size(), vacancy); i++) {
+        cv::KeyPoint kp = kps_roi[i];
         kp.pt.x += x;
         kp.pt.y += y;
-        kps_all.push_back(kp);
-        // des_all.push_back(des[i, :]);
 
-        feature_grid_add(grid, kp.pt.x, kp.pt.y);
+        kps_new.push_back(kp);
+        if (des_new.empty()) {
+          des_new = des_roi.row(i);
+        } else {
+          cv::vconcat(des_roi.row(i), des_new, des_new);
+        }
+
+        grid.add(kp.pt.x, kp.pt.y);
       }
 
       // Update cell_idx
@@ -231,7 +270,7 @@ void grid_detector_detect(const grid_detector_t &detector,
     int cell_idx = 0;
     for (int y = 0; y < img_h; y += dy) {
       for (int x = 0; x < img_w; x += dx) {
-        auto text = std::to_string(feature_grid_count(grid, cell_idx));
+        auto text = std::to_string(grid.count(cell_idx));
         auto origin = cv::Point2f{x + 10.0f, y + 20.0f};
         cv::putText(viz, text, origin, font, 0.5, red, 1, line);
         cell_idx += 1;
@@ -239,8 +278,8 @@ void grid_detector_detect(const grid_detector_t &detector,
     }
 
     // Draw keypoints
-    cv::drawKeypoints(viz, kps_all, viz, red);
-    cv::drawKeypoints(viz, prev_kps, viz, yellow);
+    cv::drawKeypoints(viz, kps_new, viz, red);
+    cv::drawKeypoints(viz, kps_prev, viz, yellow);
 
     // Imshow
     cv::imshow("viz", viz);
@@ -255,24 +294,33 @@ void grid_detector_detect(const grid_detector_t &detector,
 void FrontEnd::detect(const cv::Mat &img0,
                       const cv::Mat &img1,
                       const bool debug) {
-  detector_->detect(img0, kps0_);
-  detector_->detect(img1, kps1_);
-  descriptor_->compute(img0, kps0_, des0_);
-  descriptor_->compute(img1, kps1_, des1_);
+  // Detect
+  std::vector<cv::KeyPoint> kps0_new;
+  std::vector<cv::KeyPoint> kps1_new;
+  cv::Mat des0_new;
+  cv::Mat des1_new;
+  detector_.detect(img0, kps0_, kps0_new, des0_new);
+  detector_.detect(img1, kps1_, kps1_new, des1_new);
+
+  std::vector<std::vector<cv::DMatch>> matches;
+  matcher_->knnMatch(des0_new, des1_new, matches, 2);
 
   if (debug) {
-    const cv::Scalar color = cv::Scalar::all(-1);
+    const cv::Scalar yellow = cv::Scalar{0, 255, 255};
+    const cv::Scalar red = cv::Scalar{0, 0, 255};
     const auto flags = cv::DrawMatchesFlags::DEFAULT;
 
     cv::Mat viz0;
     cv::Mat viz1;
-    drawKeypoints(img0, kps0_, viz0, color, flags);
-    drawKeypoints(img1, kps1_, viz1, color, flags);
+    drawKeypoints(img0, kps0_, viz0, yellow, flags);
+    drawKeypoints(img1, kps1_, viz1, yellow, flags);
+    drawKeypoints(img0, kps0_new, viz0, red, flags);
+    drawKeypoints(img1, kps1_new, viz1, red, flags);
 
     cv::Mat viz;
     cv::hconcat(viz0, viz1, viz);
-    cv::imshow("Stereo-Camera", viz);
-    cv::waitKey(1);
+    cv::imshow("Debug", viz);
+    cv::waitKey(0);
   }
 }
 
@@ -340,22 +388,58 @@ void run_test(const char *test_name, int (*test_ptr)()) {
 int test_feature_grid() {
   int image_width = 640;
   int image_height = 480;
-  feature_grid_t grid;
-  feature_grid_setup(grid, image_width, image_height);
-
   int grid_rows = 3;
   int grid_cols = 4;
+  FeatureGrid grid{image_width, image_height, grid_rows, grid_cols};
+
   const float dx = (image_width / grid_cols);
   const float dy = (image_height / grid_rows);
   for (int i = 0; i < grid_rows; i++) {
     for (int j = 0; j < grid_cols; j++) {
       const int pixel_x = dx * j + dx / 2;
       const int pixel_y = dy * i + dy / 2;
-      feature_grid_add(grid, pixel_x, pixel_y);
+      grid.add(pixel_x, pixel_y);
     }
   }
+  // grid.debug(false);
 
-  // feature_grid_debug(&grid, true);
+  return 0;
+}
+
+int test_spread_keypoints() {
+  // Load image
+  const auto img_path = "./test_data/frontend/cam0/1403715297312143104.png";
+  const auto img = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+
+  // Detect keypoints
+  const cv::Ptr<cv::Feature2D> detector = cv::ORB::create();
+  std::vector<cv::KeyPoint> kps;
+  detector->detect(img, kps);
+
+  // Spread keypoints
+  const int min_dist = 5;
+  const std::vector<cv::KeyPoint> kps_prev;
+  const bool debug = false;
+  const auto kps_new = spread_keypoints(img, kps, min_dist, kps_prev, debug);
+
+  // Assert keypoints are a Euclidean distance away from each other
+  for (const auto kp : kps_new) {
+    for (const auto kp_ref : kps_new) {
+      const int px = kp.pt.x;
+      const int py = kp.pt.y;
+      const int px_ref = kp_ref.pt.x;
+      const int py_ref = kp_ref.pt.y;
+
+      const int dx = std::abs(px_ref - px);
+      const int dy = std::abs(py_ref - py);
+      if (dx == 0 && dy == 0) {
+        continue;
+      }
+
+      const int dist = sqrt(dx * dx + dy * dy);
+      TEST_ASSERT(dist >= min_dist);
+    }
+  }
 
   return 0;
 }
@@ -364,18 +448,32 @@ int test_grid_detect() {
   const auto img_path = "./test_data/frontend/cam0/1403715297312143104.png";
   const auto img = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
 
-  std::vector<cv::KeyPoint> prev_kps;
+  std::vector<cv::KeyPoint> kps_prev;
   std::vector<cv::KeyPoint> kps;
   cv::Mat des;
-  grid_detector_t detector;
-  grid_detector_detect(detector, img, prev_kps, kps, des, true);
+  GridDetector detector;
+  detector.detect(img, kps_prev, kps, des, false);
+
+  return 0;
+}
+
+int test_front_end() {
+  const auto img0_path = "./test_data/frontend/cam0/1403715297312143104.png";
+  const auto img1_path = "./test_data/frontend/cam1/1403715297312143104.png";
+  const auto img0 = cv::imread(img0_path, cv::IMREAD_GRAYSCALE);
+  const auto img1 = cv::imread(img1_path, cv::IMREAD_GRAYSCALE);
+
+  FrontEnd frontend;
+  frontend.detect(img0, img1, true);
 
   return 0;
 }
 
 void run_unittests() {
   TEST(test_feature_grid);
+  TEST(test_spread_keypoints);
   TEST(test_grid_detect);
+  TEST(test_front_end);
 }
 
 //////////////////////////////////////////////////////////////////////////////
