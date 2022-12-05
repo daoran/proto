@@ -5461,6 +5461,54 @@ void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
 }
 
 /**
+ * Radial-Tangential undistort
+ */
+void radtan4_undistort(const real_t params[4],
+                       const real_t p_in[2],
+                       real_t p_out[2]) {
+  const int max_iter = 5;
+  real_t p[2] = {p_in[0], p_in[1]};
+
+  for (int i = 0; i < max_iter; i++) {
+    // Error
+    real_t p_d[2] = {0};
+    radtan4_distort(params, p, p_d);
+    const real_t e[2] = {p_in[0] - p_d[0], p_in[1] - p_d[1]};
+
+    // Jacobian
+    real_t J[2 * 2] = {0};
+    radtan4_point_jacobian(params, p, J);
+
+    // Calculate update
+    // dp = inv(J' * J) * J' * e;
+    real_t Jt[2 * 2] = {0};
+    real_t JtJ[2 * 2] = {0};
+    real_t JtJ_inv[2 * 2] = {0};
+    real_t dp[2] = {0};
+
+    mat_transpose(J, 2, 2, Jt);
+    dot(Jt, 2, 2, J, 2, 2, JtJ);
+    pinv(JtJ, 2, 2, JtJ_inv);
+    dot3(JtJ_inv, 2, 2, Jt, 2, 2, e, 2, 1, dp);
+
+    // Update
+    p[0] += dp[0];
+    p[1] += dp[1];
+
+    // Calculate cost
+    // cost = e' * e
+    const real_t cost = e[0] * e[0] + e[1] * e[1];
+    if (cost < 1.0e-15) {
+      break;
+    }
+  }
+
+  // Return result
+  p_out[0] = p[0];
+  p_out[1] = p[1];
+}
+
+/**
  * Form Radial-Tangential point jacobian, using distortion `params` (k1, k2,
  * p1, p2), 2x1 image point `p`, the jacobian is written to 2x2 `J_point`.
  */
@@ -5564,6 +5612,32 @@ void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
 
   p_d[0] = s * x;
   p_d[1] = s * y;
+}
+
+/**
+ * Equi-distant un-distort
+ */
+void equi4_undistort(const real_t dist_params[4],
+                     const real_t p_in[2],
+                     real_t p_out[2]) {
+  const real_t k1 = dist_params[0];
+  const real_t k2 = dist_params[1];
+  const real_t k3 = dist_params[2];
+  const real_t k4 = dist_params[3];
+
+  const real_t thd = sqrt(p_in[0] * p_in[0] + p_in[1] * p_in[1]);
+  real_t th = thd; // Initial guess
+  for (int i = 20; i > 0; i--) {
+    const real_t th2 = th * th;
+    const real_t th4 = th2 * th2;
+    const real_t th6 = th4 * th2;
+    const real_t th8 = th4 * th4;
+    th = thd / (1 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
+  }
+
+  const real_t scaling = tan(th) / thd;
+  p_out[0] = p_in[0] * scaling;
+  p_out[1] = p_in[1] * scaling;
 }
 
 /**
@@ -5795,10 +5869,10 @@ void pinhole_params_jacobian(const real_t params[4],
  */
 void pinhole_radtan4_project(const real_t params[8],
                              const real_t p_C[3],
-                             real_t x[2]) {
+                             real_t z[2]) {
   assert(params != NULL);
   assert(p_C != NULL);
-  assert(x != NULL);
+  assert(z != NULL);
 
   // Project
   const real_t p[2] = {p_C[0] / p_C[2], p_C[1] / p_C[2]};
@@ -5814,8 +5888,56 @@ void pinhole_radtan4_project(const real_t params[8],
   const real_t cx = params[2];
   const real_t cy = params[3];
 
-  x[0] = p_d[0] * fx + cx;
-  x[1] = p_d[1] * fy + cy;
+  z[0] = p_d[0] * fx + cx;
+  z[1] = p_d[1] * fy + cy;
+}
+
+/**
+ * Pinhole Radial-Tangential Undistort
+ */
+void pinhole_radtan4_undistort(const real_t params[8],
+                               const real_t z_in[2],
+                               real_t z_out[2]) {
+  assert(params != NULL);
+  assert(z_in != NULL);
+  assert(z_out != NULL);
+
+  // Back project and undistort
+  const real_t fx = params[0];
+  const real_t fy = params[1];
+  const real_t cx = params[2];
+  const real_t cy = params[3];
+  const real_t p[2] = {(z_in[0] - cx) / fx, (z_in[1] - cy) / fy};
+  real_t p_undist[2] = {0};
+  radtan4_undistort(params + 4, p, p_undist);
+
+  // Project undistorted point to image plane
+  z_out[0] = p_undist[0] * fx + cx;
+  z_out[1] = p_undist[1] * fy + cy;
+}
+
+/**
+ * Pinhole Radial-Tangential back project
+ */
+void pinhole_radtan4_back_project(const real_t params[8],
+                                  const real_t z[2],
+                                  real_t ray[3]) {
+  assert(params != NULL);
+  assert(z != NULL);
+  assert(ray != NULL);
+
+  // Back project and undistort
+  const real_t fx = params[0];
+  const real_t fy = params[1];
+  const real_t cx = params[2];
+  const real_t cy = params[3];
+  const real_t p[2] = {(z[0] - cx) / fx, (z[1] - cy) / fy};
+  real_t p_undist[2] = {0};
+  radtan4_undistort(params + 4, p, p_undist);
+
+  ray[0] = p_undist[0];
+  ray[1] = p_undist[1];
+  ray[2] = 1.0;
 }
 
 /**
@@ -5941,10 +6063,10 @@ void pinhole_radtan4_params_jacobian(const real_t params[8],
  */
 void pinhole_equi4_project(const real_t params[8],
                            const real_t p_C[3],
-                           real_t x[2]) {
+                           real_t z[2]) {
   assert(params != NULL);
   assert(p_C != NULL);
-  assert(x != NULL);
+  assert(z != NULL);
 
   // Project
   const real_t p[2] = {p_C[0] / p_C[2], p_C[1] / p_C[2]};
@@ -5960,8 +6082,56 @@ void pinhole_equi4_project(const real_t params[8],
   const real_t cx = params[2];
   const real_t cy = params[3];
 
-  x[0] = p_d[0] * fx + cx;
-  x[1] = p_d[1] * fy + cy;
+  z[0] = p_d[0] * fx + cx;
+  z[1] = p_d[1] * fy + cy;
+}
+
+/**
+ * Pinhole Equi-distant Undistort
+ */
+void pinhole_equi4_undistort(const real_t params[8],
+                             const real_t z_in[2],
+                             real_t z_out[2]) {
+  assert(params != NULL);
+  assert(z_in != NULL);
+  assert(z_out != NULL);
+
+  // Back project and undistort
+  const real_t fx = params[0];
+  const real_t fy = params[1];
+  const real_t cx = params[2];
+  const real_t cy = params[3];
+  const real_t p[2] = {(z_in[0] - cx) / fx, (z_in[1] - cy) / fy};
+  real_t p_undist[2] = {0};
+  equi4_undistort(params + 4, p, p_undist);
+
+  // Project undistorted point to image plane
+  z_out[0] = p_undist[0] * fx + cx;
+  z_out[1] = p_undist[1] * fy + cy;
+}
+
+/**
+ * Pinhole Equi-distant back project
+ */
+void pinhole_equi4_back_project(const real_t params[8],
+                                const real_t z[2],
+                                real_t ray[3]) {
+  assert(params != NULL);
+  assert(z != NULL);
+  assert(ray != NULL);
+
+  // Back project and undistort
+  const real_t fx = params[0];
+  const real_t fy = params[1];
+  const real_t cx = params[2];
+  const real_t cy = params[3];
+  const real_t p[2] = {(z[0] - cx) / fx, (z[1] - cy) / fy};
+  real_t p_undist[2] = {0};
+  equi4_undistort(params + 4, p, p_undist);
+
+  ray[0] = p_undist[0];
+  ray[1] = p_undist[1];
+  ray[2] = 1.0;
 }
 
 /**

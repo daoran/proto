@@ -943,14 +943,14 @@ int test_tcp_server_setup() {
  ******************************************************************************/
 
 int test_min() {
-  MU_ASSERT(MIN(1, 2) == 1);
-  MU_ASSERT(MIN(2, 1) == 1);
+  MU_ASSERT(PMIN(1, 2) == 1);
+  MU_ASSERT(PMIN(2, 1) == 1);
   return 0;
 }
 
 int test_max() {
-  MU_ASSERT(MAX(1, 2) == 2);
-  MU_ASSERT(MAX(2, 1) == 2);
+  MU_ASSERT(PMAX(1, 2) == 2);
+  MU_ASSERT(PMAX(2, 1) == 2);
   return 0;
 }
 
@@ -2229,6 +2229,27 @@ int test_radtan4_distort() {
   return 0;
 }
 
+int test_radtan4_undistort() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+
+  real_t p_d[2] = {0};
+  real_t p_out[2] = {0};
+  radtan4_distort(params, p, p_d);
+  radtan4_undistort(params, p_d, p_out);
+
+  print_vector("p", p, 2);
+  print_vector("p_d", p_d, 2);
+  print_vector("p_out", p_out, 2);
+  printf("dp[0]: %f\n", p[0] - p_out[0]);
+  printf("dp[1]: %f\n", p[1] - p_out[1]);
+
+  MU_ASSERT(fltcmp(p[0], p_out[0]) == 0);
+  MU_ASSERT(fltcmp(p[1], p_out[1]) == 0);
+
+  return 0;
+}
+
 int test_radtan4_point_jacobian() {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
@@ -2308,6 +2329,25 @@ int test_equi4_distort() {
   // print_vector("p", p, 2);
   // print_vector("p_d", p_d, 2);
 
+  return 0;
+}
+
+int test_equi4_undistort() {
+  const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
+  const real_t p[2] = {0.1, 0.2};
+  real_t p_d[2] = {0};
+  real_t p_out[2] = {0};
+  equi4_distort(params, p, p_d);
+  equi4_undistort(params, p_d, p_out);
+
+  print_vector("p", p, 2);
+  print_vector("p_d", p_d, 2);
+  print_vector("p_out", p_out, 2);
+  printf("dp[0]: %f\n", p[0] - p_out[0]);
+  printf("dp[1]: %f\n", p[1] - p_out[1]);
+
+  MU_ASSERT(fltcmp(p[0], p_out[0]) == 0);
+  MU_ASSERT(fltcmp(p[1], p_out[1]) == 0);
   return 0;
 }
 
@@ -3774,7 +3814,7 @@ int test_inertial_odometry() {
 
   for (int i = 1; i < num_partitions; i++) {
     const int ks = i * N;
-    const int ke = MIN((i + 1) * N - 1, test_data.nb_measurements - 1);
+    const int ke = PMIN((i + 1) * N - 1, test_data.nb_measurements - 1);
 
     // Setup imu buffer
     imu_buf_t imu_buf;
@@ -4628,9 +4668,11 @@ void test_suite() {
   MU_ADD_TEST(test_image_free);
   MU_ADD_TEST(test_linear_triangulation);
   MU_ADD_TEST(test_radtan4_distort);
+  MU_ADD_TEST(test_radtan4_undistort);
   MU_ADD_TEST(test_radtan4_point_jacobian);
   MU_ADD_TEST(test_radtan4_params_jacobian);
   MU_ADD_TEST(test_equi4_distort);
+  MU_ADD_TEST(test_equi4_undistort);
   MU_ADD_TEST(test_equi4_point_jacobian);
   MU_ADD_TEST(test_equi4_params_jacobian);
   MU_ADD_TEST(test_pinhole_focal);
