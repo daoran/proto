@@ -4,45 +4,67 @@
 // FEATURE GRID //
 //////////////////
 
-void feature_grid_setup(feature_grid_t *grid,
+void feature_grid_setup(feature_grid_t &grid,
                         const int image_width,
                         const int image_height,
-                        const std::vector<cv::KeyPoint> &keypoints,
                         const int grid_rows,
                         const int grid_cols) {
-  grid->image_width = image_width;
-  grid->image_height = image_height;
-  grid->keypoints = keypoints;
-  grid->grid_rows = grid_rows;
-  grid->grid_cols = grid_cols;
+  grid.image_width = image_width;
+  grid.image_height = image_height;
+  grid.grid_rows = grid_rows;
+  grid.grid_cols = grid_cols;
   for (int i = 0; i < (grid_rows * grid_cols); i++) {
-    grid->cells.push_back(0);
-  }
-
-  for (const auto &kp : keypoints) {
-    assert(kp.pt.x >= 0 and kp.pt.x <= image_width);
-    assert(kp.pt.y >= 0 and kp.pt.y <= image_height);
-    const int cell_idx = feature_grid_cell_index(grid, kp);
-    grid->cells[cell_idx] += 1;
+    grid.cells.push_back(0);
   }
 }
 
-int feature_grid_cell_index(const feature_grid_t *grid,
-                            const cv::KeyPoint &kp) {
-  const float px = kp.pt.x;
-  const float py = kp.pt.y;
-  const float img_w = grid->image_width;
-  const float img_h = grid->image_height;
-  const int grid_rows = grid->grid_rows;
-  const int grid_cols = grid->grid_cols;
-  const float grid_x = ceil((std::max(1.0f, px) / img_w) * grid_cols) - 1.0;
-  const float grid_y = ceil((std::max(1.0f, py) / img_h) * grid_rows) - 1.0;
+void feature_grid_add(feature_grid_t &grid,
+                      const int pixel_x,
+                      const int pixel_y) {
+  assert(pixel_x >= 0 && pixel_x <= grid.image_width);
+  assert(pixel_y >= 0 && pixel_y <= grid.image_height);
+  const int cell_idx = feature_grid_cell_index(grid, pixel_x, pixel_y);
+  grid.cells[cell_idx] += 1;
+  grid.keypoints.emplace_back(pixel_x, pixel_y);
+}
+
+int feature_grid_cell_index(const feature_grid_t &grid,
+                            const int pixel_x,
+                            const int pixel_y) {
+  const float img_w = grid.image_width;
+  const float img_h = grid.image_height;
+  const int grid_rows = grid.grid_rows;
+  const int grid_cols = grid.grid_cols;
+  const float grid_x = ceil((std::max(1, pixel_x) / img_w) * grid_cols) - 1.0;
+  const float grid_y = ceil((std::max(1, pixel_y) / img_h) * grid_rows) - 1.0;
   const int cell_id = int(grid_x + (grid_y * grid_cols));
   return cell_id;
 }
 
-int feature_grid_count(const feature_grid_t *grid, const int cell_idx) {
-  return grid->cells[cell_idx];
+int feature_grid_count(const feature_grid_t &grid, const int cell_idx) {
+  return grid.cells[cell_idx];
+}
+
+void feature_grid_debug(const feature_grid_t &grid, const bool imshow) {
+  const int w = grid.image_width;
+  const int h = grid.image_height;
+  cv::Mat viz = cv::Mat::zeros(h, w, CV_32F);
+
+  for (const auto kp : grid.keypoints) {
+    const auto x = kp.first;
+    const auto y = kp.second;
+    printf("(%d, %d)\n", x, y);
+
+    const cv::Point p(x, y);
+    const int radius = 2;
+    const cv::Scalar color{255, 255, 255};
+    cv::circle(viz, p, radius, color, -1);
+  }
+
+  if (imshow) {
+    cv::imshow("Figure 1", viz);
+    cv::waitKey(0);
+  }
 }
 
 ///////////////////
@@ -120,29 +142,36 @@ spread_keypoints(const cv::Mat &image,
   return outliers;
 }
 
-void grid_detect(const cv::Ptr<cv::Feature2D> &detector,
-                 const cv::Mat &image,
-                 const int max_keypoints,
-                 const int grid_rows,
-                 const int grid_cols,
-                 const std::vector<cv::KeyPoint> &prev_keypoints) {
+void grid_detector_detect(const grid_detector_t &detector,
+                          const cv::Mat &image,
+                          const std::vector<cv::KeyPoint> &prev_kps,
+                          std::vector<cv::KeyPoint> &kps,
+                          cv::Mat &des,
+                          bool debug = false) {
   // Asserts
   assert(image.channels() == 1);
 
   // Calculate number of grid cells and max corners per cell
   const int img_w = image.size().width;
   const int img_h = image.size().height;
+  const int grid_rows = detector.grid_rows;
+  const int grid_cols = detector.grid_cols;
   const int dx = int(std::ceil(float(img_w) / float(grid_cols)));
   const int dy = int(std::ceil(float(img_h) / float(grid_rows)));
-  const int nb_cells = grid_rows * grid_cols;
-  const int max_per_cell = floor(max_keypoints / nb_cells);
+  const int num_cells = grid_rows * grid_cols;
+  const int max_per_cell = floor(detector.max_keypoints / num_cells);
 
   // Detect corners in each grid cell
   feature_grid_t grid;
-  feature_grid_setup(&grid, img_w, img_h);
+  feature_grid_setup(grid, img_w, img_h);
+  for (const auto &kp : prev_kps) {
+    const int pixel_x = kp.pt.x;
+    const int pixel_y = kp.pt.y;
+    feature_grid_add(grid, pixel_x, pixel_y);
+  }
+
   std::vector<cv::KeyPoint> kps_all;
   cv::Mat des_all;
-
   int cell_idx = 0;
   for (int y = 0; y < img_h; y += dy) {
     for (int x = 0; x < img_w; x += dx) {
@@ -154,10 +183,10 @@ void grid_detect(const cv::Ptr<cv::Feature2D> &detector,
       cv::Rect roi(x, y, w, h);
       std::vector<cv::KeyPoint> kps;
       cv::Mat des;
-      detector->detectAndCompute(image(roi), cv::Mat(), kps, des);
+      detector.detector->detectAndCompute(image(roi), cv::Mat(), kps, des);
 
       // Offset keypoints
-      const size_t vacancy = max_per_cell - feature_grid_count(&grid, cell_idx);
+      const size_t vacancy = max_per_cell - feature_grid_count(grid, cell_idx);
       if (vacancy <= 0) {
         continue;
       }
@@ -168,11 +197,54 @@ void grid_detect(const cv::Ptr<cv::Feature2D> &detector,
         kp.pt.y += y;
         kps_all.push_back(kp);
         // des_all.push_back(des[i, :]);
+
+        feature_grid_add(grid, kp.pt.x, kp.pt.y);
       }
 
       // Update cell_idx
       cell_idx += 1;
     }
+  }
+
+  if (debug) {
+    // Visualization properties
+    const auto red = cv::Scalar{0, 0, 255};
+    const auto yellow = cv::Scalar{0, 255, 255};
+    const auto line = cv::LINE_AA;
+    const auto font = cv::FONT_HERSHEY_SIMPLEX;
+
+    // Setup
+    cv::Mat viz;
+    cv::cvtColor(image, viz, cv::COLOR_GRAY2RGB);
+
+    // Draw horizontal lines
+    for (int x = 0; x < img_w; x += dx) {
+      cv::line(viz, cv::Point2f(x, 0), cv::Point2f(x, img_w), red, 1, line);
+    }
+
+    // Draw vertical lines
+    for (int y = 0; y < img_h; y += dy) {
+      cv::line(viz, cv::Point2f(0, y), cv::Point2f(img_w, y), red, 1, line);
+    }
+
+    // Draw bin numbers
+    int cell_idx = 0;
+    for (int y = 0; y < img_h; y += dy) {
+      for (int x = 0; x < img_w; x += dx) {
+        auto text = std::to_string(feature_grid_count(grid, cell_idx));
+        auto origin = cv::Point2f{x + 10.0f, y + 20.0f};
+        cv::putText(viz, text, origin, font, 0.5, red, 1, line);
+        cell_idx += 1;
+      }
+    }
+
+    // Draw keypoints
+    cv::drawKeypoints(viz, kps_all, viz, red);
+    cv::drawKeypoints(viz, prev_kps, viz, yellow);
+
+    // Imshow
+    cv::imshow("viz", viz);
+    cv::waitKey(0);
   }
 }
 
@@ -204,11 +276,115 @@ void FrontEnd::detect(const cv::Mat &img0,
   }
 }
 
-//////////
-// MAIN //
-//////////
+//////////////////////////////////////////////////////////////////////////////
+//                                UNITTESTS                                 //
+//////////////////////////////////////////////////////////////////////////////
+
+// UNITESTS GLOBAL VARIABLES
+static int nb_tests = 0;
+static int nb_passed = 0;
+static int nb_failed = 0;
+
+#define ENABLE_TERM_COLORS 0
+#if ENABLE_TERM_COLORS == 1
+#define TERM_RED "\x1B[1;31m"
+#define TERM_GRN "\x1B[1;32m"
+#define TERM_WHT "\x1B[1;37m"
+#define TERM_NRM "\x1B[1;0m"
+#else
+#define TERM_RED
+#define TERM_GRN
+#define TERM_WHT
+#define TERM_NRM
+#endif
+
+/**
+ * Run unittests
+ * @param[in] test_name Test name
+ * @param[in] test_ptr Pointer to unittest
+ */
+void run_test(const char *test_name, int (*test_ptr)()) {
+  if ((*test_ptr)() == 0) {
+    printf("-> [%s] " TERM_GRN "OK!\n" TERM_NRM, test_name);
+    fflush(stdout);
+    nb_passed++;
+  } else {
+    printf(TERM_RED "FAILED!\n" TERM_NRM);
+    fflush(stdout);
+    nb_failed++;
+  }
+  nb_tests++;
+}
+
+/**
+ * Add unittest
+ * @param[in] TEST Test function
+ */
+#define TEST(TEST_FN) run_test(#TEST_FN, TEST_FN);
+
+/**
+ * Unit-test assert
+ * @param[in] TEST Test condition
+ */
+#define TEST_ASSERT(TEST)                                                      \
+  do {                                                                         \
+    if ((TEST) == 0) {                                                         \
+      printf(TERM_RED "ERROR!" TERM_NRM " [%s:%d] %s FAILED!\n",               \
+             __func__,                                                         \
+             __LINE__,                                                         \
+             #TEST);                                                           \
+      return -1;                                                               \
+    }                                                                          \
+  } while (0)
+
+int test_feature_grid() {
+  int image_width = 640;
+  int image_height = 480;
+  feature_grid_t grid;
+  feature_grid_setup(grid, image_width, image_height);
+
+  int grid_rows = 3;
+  int grid_cols = 4;
+  const float dx = (image_width / grid_cols);
+  const float dy = (image_height / grid_rows);
+  for (int i = 0; i < grid_rows; i++) {
+    for (int j = 0; j < grid_cols; j++) {
+      const int pixel_x = dx * j + dx / 2;
+      const int pixel_y = dy * i + dy / 2;
+      feature_grid_add(grid, pixel_x, pixel_y);
+    }
+  }
+
+  // feature_grid_debug(&grid, true);
+
+  return 0;
+}
+
+int test_grid_detect() {
+  const auto img_path = "./test_data/frontend/cam0/1403715297312143104.png";
+  const auto img = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+
+  std::vector<cv::KeyPoint> prev_kps;
+  std::vector<cv::KeyPoint> kps;
+  cv::Mat des;
+  grid_detector_t detector;
+  grid_detector_detect(detector, img, prev_kps, kps, des, true);
+
+  return 0;
+}
+
+void run_unittests() {
+  TEST(test_feature_grid);
+  TEST(test_grid_detect);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//                                MAIN                                      //
+//////////////////////////////////////////////////////////////////////////////
 
 int main() {
+  run_unittests();
+
   // // Setup
   // const char *data_path = "/data/euroc/V1_01";
   // euroc_data_t *data = euroc_data_load(data_path);
