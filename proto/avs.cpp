@@ -4,7 +4,9 @@
 // UTILS //
 ///////////
 
-std::string cvtype2str(const int type) {
+namespace cv {
+
+std::string type2str(const int type) {
   std::string r;
 
   uchar depth = type & CV_MAT_DEPTH_MASK;
@@ -41,6 +43,61 @@ std::string cvtype2str(const int type) {
   r += (chans + '0');
 
   return r;
+}
+
+std::vector<cv::Point2f> kps2pts(const std::vector<cv::KeyPoint> &kps) {
+  std::vector<cv::Point2f> pts;
+  for (const auto &kp : kps) {
+    pts.push_back(kp.pt);
+  }
+  return pts;
+}
+
+} // namespace cv
+
+std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
+                          const std::vector<cv::KeyPoint> &kps1,
+                          const undistort_func_t cam0_undist,
+                          const undistort_func_t cam1_undist,
+                          const real_t cam0_params[8],
+                          const real_t cam1_params[8],
+                          const double reproj_threshold,
+                          const double confidence) {
+  assert(kps0.size() > 0 && kps1.size() > 0);
+  assert(kps0.size() == kps1.size());
+  assert(cam0_undist && cam1_undist);
+  assert(cam0_params && cam1_params);
+
+  // Undistort image points
+  std::vector<cv::Point2f> pts0 = cv::kps2pts(kps0);
+  std::vector<cv::Point2f> pts1 = cv::kps2pts(kps1);
+  for (size_t i = 0; i < pts0.size(); i++) {
+    const real_t z0_in[2] = {pts0[i].x, pts0[i].y};
+    const real_t z1_in[2] = {pts1[i].x, pts1[i].y};
+
+    real_t z0[2] = {0};
+    real_t z1[2] = {0};
+    cam0_undist(cam0_params, z0_in, z0);
+    cam1_undist(cam1_params, z1_in, z1);
+
+    pts0[i].x = z0[0];
+    pts0[i].y = z0[1];
+
+    pts1[i].x = z1[0];
+    pts1[i].y = z1[1];
+  }
+
+  // Perform ransac
+  const int method = cv::FM_RANSAC;
+  std::vector<uchar> outliers;
+  cv::findFundamentalMat(pts0,
+                         pts1,
+                         method,
+                         reproj_threshold,
+                         confidence,
+                         outliers);
+
+  return outliers;
 }
 
 //////////////////
@@ -291,6 +348,18 @@ void GridDetector::detect(const cv::Mat &image,
 // FRONT-END //
 ///////////////
 
+void FrontEnd::addCamera(const camera_params_t &cam_params,
+                         const extrinsic_t &cam_ext) {
+  cam_params_[cam_params.cam_idx] = cam_params;
+  cam_exts_[cam_params.cam_idx] = cam_ext;
+}
+
+void FrontEnd::_reprojFilter(const int idx_i,
+                             const int idx_j,
+                             const std::vector<cv::KeyPoint> &kps_i,
+                             const std::vector<cv::KeyPoint> &kps_j) {
+}
+
 void FrontEnd::detect(const cv::Mat &img0,
                       const cv::Mat &img1,
                       const bool debug) {
@@ -302,8 +371,8 @@ void FrontEnd::detect(const cv::Mat &img0,
   detector_.detect(img0, kps0_, kps0_new, des0_new);
   detector_.detect(img1, kps1_, kps1_new, des1_new);
 
-  std::vector<std::vector<cv::DMatch>> matches;
-  matcher_->knnMatch(des0_new, des1_new, matches, 2);
+  std::vector<cv::DMatch> matches;
+  matcher_->match(des0_new, des1_new, matches);
 
   if (debug) {
     const cv::Scalar yellow = cv::Scalar{0, 255, 255};
@@ -318,7 +387,11 @@ void FrontEnd::detect(const cv::Mat &img0,
     drawKeypoints(img1, kps1_new, viz1, red, flags);
 
     cv::Mat viz;
-    cv::hconcat(viz0, viz1, viz);
+    cv::drawMatches(img0, kps0_new, img1, kps1_new, matches, viz);
+
+    // cv::Mat viz;
+    // cv::hconcat(viz0, viz1, viz);
+
     cv::imshow("Debug", viz);
     cv::waitKey(0);
   }
@@ -401,7 +474,7 @@ int test_feature_grid() {
       grid.add(pixel_x, pixel_y);
     }
   }
-  // grid.debug(false);
+  grid.debug(true);
 
   return 0;
 }
@@ -452,7 +525,7 @@ int test_grid_detect() {
   std::vector<cv::KeyPoint> kps;
   cv::Mat des;
   GridDetector detector;
-  detector.detect(img, kps_prev, kps, des, false);
+  detector.detect(img, kps_prev, kps, des, true);
 
   return 0;
 }
