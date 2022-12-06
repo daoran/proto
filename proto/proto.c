@@ -5426,10 +5426,12 @@ void linear_triangulation(const real_t P_i[3 * 4],
  * distortion params are stored in `params` (k1, k2, p1, p2), results are
  * written to 2x1 vector `p_d`.
  */
-void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
+void radtan4_distort(const real_t params[4],
+                     const real_t p_in[2],
+                     real_t p_out[2]) {
   assert(params != NULL);
-  assert(p != NULL);
-  assert(p_d != NULL);
+  assert(p_in != NULL);
+  assert(p_out != NULL);
 
   // Distortion parameters
   const real_t k1 = params[0];
@@ -5438,8 +5440,8 @@ void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
   const real_t p2 = params[3];
 
   // Point
-  const real_t x = p[0];
-  const real_t y = p[1];
+  const real_t x = p_in[0];
+  const real_t y = p_in[1];
 
   // Apply radial distortion
   const real_t x2 = x * x;
@@ -5456,8 +5458,8 @@ void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
   const real_t y_ddash = y_dash + (2.0 * p2 * xy + p1 * (r2 + 2.0 * y2));
 
   // Distorted point
-  p_d[0] = x_ddash;
-  p_d[1] = y_ddash;
+  p_out[0] = x_ddash;
+  p_out[1] = y_ddash;
 }
 
 /**
@@ -5588,18 +5590,20 @@ void radtan4_params_jacobian(const real_t params[4],
  * distortion params are stored in `params` (k1, k2, k3, k4), results are
  * written to 2x1 vector `p_d`.
  */
-void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
+void equi4_distort(const real_t params[4],
+                   const real_t p_in[2],
+                   real_t p_out[2]) {
   assert(params != NULL);
-  assert(p != NULL);
-  assert(p_d != NULL);
+  assert(p_in != NULL);
+  assert(p_out != NULL);
 
   const real_t k1 = params[0];
   const real_t k2 = params[1];
   const real_t k3 = params[2];
   const real_t k4 = params[3];
 
-  const real_t x = p[0];
-  const real_t y = p[1];
+  const real_t x = p_in[0];
+  const real_t y = p_in[1];
   const real_t r = sqrt(x * x + y * y);
 
   const real_t th = atan(r);
@@ -5610,8 +5614,8 @@ void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]) {
   const real_t thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8);
   const real_t s = thd / r;
 
-  p_d[0] = s * x;
-  p_d[1] = s * y;
+  p_out[0] = s * x;
+  p_out[1] = s * y;
 }
 
 /**

@@ -1032,7 +1032,9 @@ void linear_triangulation(const real_t P_i[3 * 4],
 // RADTAN //
 ////////////
 
-void radtan4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
+void radtan4_distort(const real_t params[4],
+                     const real_t p_in[2],
+                     real_t p_out[2]);
 void radtan4_undistort(const real_t params[4],
                        const real_t p_in[2],
                        real_t p_out[2]);
@@ -1047,7 +1049,9 @@ void radtan4_params_jacobian(const real_t params[4],
 // EQUI //
 //////////
 
-void equi4_distort(const real_t params[4], const real_t p[2], real_t p_d[2]);
+void equi4_distort(const real_t params[4],
+                   const real_t p_in[2],
+                   real_t p_out[2]);
 void equi4_undistort(const real_t params[4],
                      const real_t p_in[2],
                      real_t p_out[2]);
@@ -1061,6 +1065,10 @@ void equi4_params_jacobian(const real_t params[4],
 /////////////
 // PINHOLE //
 /////////////
+
+typedef void (*undistort_func_t)(const real_t *params,
+                                 const real_t z_in[2],
+                                 real_t z_out[2]);
 
 real_t pinhole_focal(const int image_width, const real_t fov);
 void pinhole_K(const real_t params[4], real_t K[3 * 3]);
@@ -1076,10 +1084,6 @@ void pinhole_params_jacobian(const real_t params[4],
 /////////////////////
 // PINHOLE-RADTAN4 //
 /////////////////////
-
-typedef void (*undistort_func_t)(const real_t *params,
-                                 const real_t z_in[2],
-                                 real_t z_out[2]);
 
 void pinhole_radtan4_project(const real_t params[8],
                              const real_t p_C[3],
@@ -1107,6 +1111,9 @@ void pinhole_equi4_project(const real_t params[8],
 void pinhole_equi4_undistort(const real_t params[8],
                              const real_t z_in[2],
                              real_t z_out[2]);
+void pinhole_equi4_back_project(const real_t params[8],
+                                const real_t z[2],
+                                real_t ray[3]);
 void pinhole_equi4_project_jacobian(const real_t params[8],
                                     const real_t p_C[3],
                                     real_t J[2 * 3]);
