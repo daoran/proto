@@ -86,12 +86,12 @@ run_memcheck() {
 # python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestSandbox.test_poe
 
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "\
-#   cd ~/projects/proto/proto \
-#   && python3 proto.py TestSandbox.test_gimbal
-# " C-m C-m
-# exit
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "\
+  cd ~/projects/proto/proto \
+  && python3 proto.py TestSandbox.test_gimbal
+" C-m C-m
+exit
 
 
 ###############################################################################
@@ -176,9 +176,9 @@ dev_euroc() {
 # dev_aprilgrid
 # dev_euroc
 
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs && ./build/avs" C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
+# exit
 
 # CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363
@@ -321,9 +321,11 @@ exit
 # run_test test_lie_Exp_Log
 # run_test test_linear_triangulation
 # run_test test_radtan4_distort
+# run_test test_radtan4_undistort
 # run_test test_radtan4_point_jacobian
 # run_test test_radtan4_params_jacobian
 # run_test test_equi4_distort
+# run_test test_equi4_undistort
 # run_test test_equi4_point_jacobian
 # run_test test_equi4_params_jacobian
 # run_test test_pinhole_focal

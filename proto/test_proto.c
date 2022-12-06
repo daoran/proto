@@ -2340,11 +2340,11 @@ int test_equi4_undistort() {
   equi4_distort(params, p, p_d);
   equi4_undistort(params, p_d, p_out);
 
-  print_vector("p", p, 2);
-  print_vector("p_d", p_d, 2);
-  print_vector("p_out", p_out, 2);
-  printf("dp[0]: %f\n", p[0] - p_out[0]);
-  printf("dp[1]: %f\n", p[1] - p_out[1]);
+  // print_vector("p", p, 2);
+  // print_vector("p_d", p_d, 2);
+  // print_vector("p_out", p_out, 2);
+  // printf("dp[0]: %f\n", p[0] - p_out[0]);
+  // printf("dp[1]: %f\n", p[1] - p_out[1]);
 
   MU_ASSERT(fltcmp(p[0], p_out[0]) == 0);
   MU_ASSERT(fltcmp(p[1], p_out[1]) == 0);

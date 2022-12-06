@@ -5149,6 +5149,11 @@ class Solver:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
+    print(f"rank: {np.linalg.matrix_rank(H)}")
+    print(f"H.shape: {H.shape}")
+    # print(f"eig(H): {np.linalg.eigh(H)}")
+    exit(0)
+
     return (H, g, param_idxs)
 
   def _calculate_residuals(self, params):
@@ -6940,10 +6945,10 @@ class GimbalCalibrator:
     self.gimbal_link_ids[link_idx] = link_id
     self.gimbal_links[link_idx] = link
 
-    if fix is False:
-      pids = [link_id]
-      link_factor = PoseFactor(pids, T_link, covar)
-      self.link_factor_ids.append(self.graph.add_factor(link_factor))
+    # if fix is False:
+    #   pids = [link_id]
+    #   link_factor = PoseFactor(pids, T_link, covar)
+    #   self.link_factor_ids.append(self.graph.add_factor(link_factor))
 
     return link_id
 
@@ -8560,12 +8565,12 @@ class SimGimbal:
     init = copy.deepcopy(est)
 
     fix_fiducial = True
-    fix_gimbal_pose = False
+    fix_gimbal_pose = True
     fix_gimbal_exts = True
     fix_gimbal_links = [False, False]
     fix_gimbal_joints = [False, False, False]
     fix_cam_params = [True, True]
-    fix_cam_exts = [False, False]
+    fix_cam_exts = [True, True]
 
     calib = GimbalCalibrator()
     calib.add_fiducial(est.fiducial, fix=fix_fiducial)
