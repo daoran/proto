@@ -4192,27 +4192,6 @@ class TwoStateVisionFactor(Factor):
     return (r, [J0, J1, J2, J3, J4, J5])
 
 
-class GimbalPoEKinematics:
-  """ Gimbal PoE Kinematics """
-  def __init__(self, M, screw_axes, joint_angles):
-    self.M = M
-    self.screw_axes = screw_axes
-    self.joint_angles = joint_angles
-
-  def set_joint_angle(self, joint_idx, joint_angle):
-    """ Set joint angle """
-    self.joint_angles[joint_idx] = joint_angle
-
-  def forward_kinematics(self, **kwargs):
-    """ Forward kinematics """
-    T = np.eye(4)
-
-    for _, (s, theta) in enumerate(zip(self.screw_axes, self.joint_angles)):
-      T = T @ poe(s, theta)
-
-    return T @ self.M
-
-
 class GimbalKinematics:
   """ Gimbal Kinematics """
   def __init__(self, links, joint_angles):
@@ -5069,7 +5048,6 @@ class Solver:
         'feature': set(),
         'camera': set(),
         'extrinsics': set(),
-        'screw_axis': set(),
         'joint_angle': set(),
     }
 
@@ -5090,7 +5068,6 @@ class Solver:
     param_order.append("pose")
     param_order.append("speed_and_biases")
     param_order.append("feature")
-    param_order.append("screw_axis")
     param_order.append("extrinsics")
     param_order.append("camera")
 
@@ -7822,121 +7799,6 @@ class MultiPlot:
 ###############################################################################
 
 
-class CalibGimbalPoEFactor(Factor):
-  """ Calib Gimbal PoE Factor """
-  def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
-    assert covar.shape == (2, 2)
-    tag_id, corner_idx, p_FFi, z = grid_data
-    Factor.__init__(self, "CalibGimbalFactor", pids, z, covar)
-    self.cam_geom = cam_geom
-    self.tag_id = tag_id
-    self.corner_idx = corner_idx
-    self.p_FFi = p_FFi
-
-  def get_residual(self, fiducial, gimbal_pose, gimbal_home, gimbal_links,
-                   gimbal_joints, cam_exts, cam_params):
-    """ Get Residual """
-    gimbal = GimbalPoEKinematics(gimbal_home, gimbal_links, gimbal_joints)
-
-    # Project feature to image plane
-    T_WB = gimbal_pose
-    T_BE = gimbal.forward_kinematics()
-    T_ECi = cam_exts
-    T_CiW = inv(T_WB @ T_BE @ T_ECi)
-    T_WF = fiducial
-    T_CiF = T_CiW @ T_WF
-    p_Ci = tf_point(T_CiF, self.p_FFi)
-    status, z_hat = self.cam_geom.project(cam_params, p_Ci)
-
-    # Calculate residual
-    z = self.measurement
-    r = z - z_hat
-
-    return status, r, p_Ci
-
-  def get_reproj_error(self, fiducial, gimbal_pose, gimbal_home, gimbal_links,
-                       gimbal_joints, cam_exts, cam_params):
-    """ Get reprojection error """
-    status, r, _ = self.get_residual(self, fiducial, gimbal_pose, gimbal_home,
-                                     gimbal_links, gimbal_joints, cam_exts,
-                                     cam_params)
-    reproj_error = norm(r)
-    return status, reproj_error
-
-  def eval(self, params, **kwargs):
-    """ Evaluate """
-    # Setup
-    r = np.array([0.0, 0.0])
-    jacs = [
-        zeros((2, 6)),  # Fiducial pose T_WF
-        zeros((2, 6)),  # Gimbal pose T_WB
-        zeros((2, 6)),  # Gimbal home M
-        zeros((2, 6)),  # Gimbal link0
-        zeros((2, 6)),  # Gimbal link1
-        zeros((2, 6)),  # Gimbal link2
-        zeros((2, 1)),  # Gimbal joint0
-        zeros((2, 1)),  # Gimbal joint1
-        zeros((2, 1)),  # Gimbal joint2
-        zeros((2, 6)),  # Camera extrinsics
-        zeros((2, self.cam_geom.get_params_size())),
-    ]
-
-    # Map out parameters
-    fiducial = pose2tf(params[0])
-    gimbal_pose = pose2tf(params[1])
-    gimbal_home = pose2tf(params[2])
-    gimbal_links = params[3:6]
-    gimbal_joints = params[6:9]
-    cam_exts = pose2tf(params[9])
-    cam_params = params[10]
-
-    # Calculate residual
-    sqrt_info = self.sqrt_info
-    status, r, p_CiFi = self.get_residual(fiducial, gimbal_pose, gimbal_home,
-                                          gimbal_links, gimbal_joints, cam_exts,
-                                          cam_params)
-    r = sqrt_info @ r
-    if kwargs.get('only_residuals', False):
-      return r
-
-    # Calculate numerical jacobians
-    if status is False:
-      return (r, jacs)
-
-    step_size = 1e-8
-    param_types = [1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0]
-    local_sizes = [6, 6, 6, 6, 6, 6, 1, 1, 1, 6, 8]
-
-    for pidx, (ptype, local_size) in enumerate(zip(param_types, local_sizes)):
-      for i in range(local_size):
-        params_copy = copy.deepcopy(params)
-        if ptype == 1:
-          # Perturb pose
-          T = pose2tf(params_copy[pidx])
-          T_dash = tf_perturb(T, i, step_size)
-          params_copy[pidx] = tf2pose(T_dash)
-        else:
-          # Perturb everything else
-          params_copy[pidx][i] += step_size
-
-        # Calculate residual
-        fiducial = pose2tf(params_copy[0])
-        gimbal_pose = pose2tf(params_copy[1])
-        gimbal_home = pose2tf(params_copy[2])
-        gimbal_links = params_copy[3:6]
-        gimbal_joints = params_copy[6:9]
-        cam_exts = pose2tf(params_copy[9])
-        cam_params = params_copy[10]
-        _, r_fwd, _ = self.get_residual(fiducial, gimbal_pose, gimbal_home,
-                                        gimbal_links, gimbal_joints, cam_exts,
-                                        cam_params)
-
-        # Calculate numerical jacobian
-        jacs[pidx][:, i] = (r_fwd - r) / step_size
-
-    return (r, jacs)
-
-
 @dataclass
 class GimbalProblem:
   """ Gimbal Problem """
@@ -8591,9 +8453,6 @@ class SimGimbal:
       calib.add_camera_view_set(view_idx, view_set)
 
     # Solve
-    calib.solve(max_iter=10)
-
-    # Compare results
     print(f"fix_fiducial: {fix_fiducial}")
     print(f"fix_gimbal_pose: {fix_gimbal_pose}")
     print(f"fix_gimbal_exts: {fix_gimbal_exts}")
@@ -8602,7 +8461,9 @@ class SimGimbal:
     print(f"fix_cam_params: {fix_cam_params}")
     print(f"fix_cam_exts:  {fix_cam_exts}")
     print("")
+    calib.solve(max_iter=10)
 
+    # Compare results
     print("\ngnd - init")
     gnd.compare(init)
 
@@ -11467,72 +11328,6 @@ class TestSandbox(unittest.TestCase):
     sim_data = sim.simulate()
     # sim.save(sim_data)
     sim.solve(sim_data)
-
-  # def test_calib_gimbal_poe_factor(self):
-  #   sim = SimGimbal()
-  #   sim.gimbal.set_joint_angle(0, deg2rad(0))
-  #   sim.gimbal.set_joint_angle(1, deg2rad(10))
-  #   sim.gimbal.set_joint_angle(2, deg2rad(0))
-
-  #   num_views = 10
-  #   (pose_data, view_data, joint_data) = sim.simulate(num_views)
-
-  #   fiducial = pose_setup(0, sim.T_WF)
-  #   gimbal_pose = pose_setup(0, sim.T_WB)
-  #   gimbal_home = extrinsics_setup(sim.M)
-  #   gimbal_link0 = screw_axis_setup(sim.screw_axes[0])
-  #   gimbal_link1 = screw_axis_setup(sim.screw_axes[1])
-  #   gimbal_link2 = screw_axis_setup(sim.screw_axes[2])
-  #   gimbal_joint0 = joint_angle_setup(sim.joint_angles[0])
-  #   gimbal_joint1 = joint_angle_setup(sim.joint_angles[1])
-  #   gimbal_joint2 = joint_angle_setup(sim.joint_angles[2])
-  #   cam0_exts = extrinsics_setup(sim.cam_exts[0])
-  #   cam0_params = sim.cam_params[0]
-
-  #   grid = sim.calib_target
-  #   cam_idx = 0
-  #   tag_id = 2
-  #   corner_idx = 2
-
-  #   p_FFi = grid.get_object_point(tag_id, corner_idx)
-  #   cam_geom = sim.cam_params[cam_idx].data
-  #   cam_params = sim.cam_params[cam_idx].param
-
-  #   T_BE = sim.gimbal.forward_kinematics()
-  #   T_ECi = sim.cam_exts[cam_idx]
-  #   T_WCi = sim.T_WB @ T_BE @ T_ECi
-  #   T_CiW = np.linalg.inv(T_WCi)
-  #   p_CiFi = tf_point(T_CiW @ sim.T_WF, p_FFi)
-
-  #   _, z = cam_geom.project(cam_params, p_CiFi)
-  #   grid_data = tag_id, corner_idx, p_FFi, z
-  #   pids = range(10)
-  #   factor = CalibGimbalPoEFactor(cam_geom, pids, grid_data)
-
-  #   fvars = [
-  #       fiducial,
-  #       gimbal_pose,
-  #       gimbal_home,
-  #       gimbal_link0,
-  #       gimbal_link1,
-  #       gimbal_link2,
-  #       gimbal_joint0,
-  #       gimbal_joint1,
-  #       gimbal_joint2,
-  #       cam0_exts,
-  #       cam0_params,
-  #   ]
-  #   self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 1, "J_gimbal_pose"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_home"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 3, "J_gimbal_link0"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 4, "J_gimbal_link1"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 5, "J_gimbal_link2"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 6, "J_gimbal_joint0"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 7, "J_gimbal_joint1"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 8, "J_gimbal_joint2"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 9, "J_camera_extrinsics"))
-  #   self.assertTrue(factor.check_jacobian(fvars, 10, "J_camera_params"))
 
 
 if __name__ == '__main__':
