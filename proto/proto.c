@@ -6760,12 +6760,12 @@ void pose_factor_setup(pose_factor_t *factor,
 
   // Measurement covariance matrix
   zeros(factor->covar, 6, 6);
-  factor->covar[0] = 1.0 / (var[0] * var[0]);
-  factor->covar[7] = 1.0 / (var[1] * var[1]);
-  factor->covar[14] = 1.0 / (var[2] * var[2]);
-  factor->covar[21] = 1.0 / (var[3] * var[3]);
-  factor->covar[28] = 1.0 / (var[4] * var[4]);
-  factor->covar[35] = 1.0 / (var[5] * var[5]);
+  factor->covar[0] = var[0];
+  factor->covar[7] = var[1];
+  factor->covar[14] = var[2];
+  factor->covar[21] = var[3];
+  factor->covar[28] = var[4];
+  factor->covar[35] = var[5];
 
   // Square root information matrix
   zeros(factor->sqrt_info, 6, 6);
