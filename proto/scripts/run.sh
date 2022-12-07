@@ -374,6 +374,11 @@ dev_euroc() {
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
+# run_test test_calib_gimbal_add_fiducial
+# run_test test_calib_gimbal_add_gimbal_extrinsic
+# run_test test_calib_gimbal_add_gimbal_link
+# run_test test_calib_gimbal_add_camera
+# run_test test_calib_gimbal_add_view
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
@@ -383,7 +388,7 @@ dev_euroc() {
 # run_test test_load_sim_cam_frame
 # run_test test_load_sim_cam_data
 # run_test test_sim_gimbal_malloc_free
-run_test test_sim_gimbal_view
+# run_test test_sim_gimbal_view
 # PROTO-GUI
 # run_test test_gl_zeros
 # run_test test_gl_ones

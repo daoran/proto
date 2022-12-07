@@ -9359,6 +9359,15 @@ void calib_gimbal_setup(calib_gimbal_t *calib) {
 }
 
 /**
+ * Malloc gimbal calibration
+ */
+calib_gimbal_t *calib_gimbal_malloc() {
+  calib_gimbal_t *calib = MALLOC(calib_gimbal_t, 1);
+  calib_gimbal_setup(calib);
+  return calib;
+}
+
+/**
  * Free gimbal calibration data
  */
 void calib_gimbal_free(calib_gimbal_t *calib) {
@@ -9454,15 +9463,13 @@ void calib_gimbal_add_gimbal_link(calib_gimbal_t *calib,
   assert(calib != NULL);
   assert(gimbal_link);
 
-  if (calib->num_links == 0) {
-    calib->links = MALLOC(extrinsic_t, 1);
-  } else {
+  if (link_idx > (calib->num_links - 1)) {
     const int new_size = calib->num_links + 1;
     calib->links = REALLOC(calib->links, extrinsic_t, new_size);
+    calib->num_links++;
   }
 
   extrinsic_setup(&calib->links[link_idx], gimbal_link);
-  calib->num_links++;
 }
 
 /**

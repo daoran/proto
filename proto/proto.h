@@ -1762,8 +1762,9 @@ calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
 void calib_gimbal_view_free(calib_gimbal_view_t *calib);
 
 void calib_gimbal_setup(calib_gimbal_t *calib);
-void calib_gimbal_print(calib_gimbal_t *calib);
+calib_gimbal_t *calib_gimbal_malloc();
 void calib_gimbal_free(calib_gimbal_t *calib);
+void calib_gimbal_print(calib_gimbal_t *calib);
 void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
                                const real_t fiducial_pose[7]);
 void calib_gimbal_add_gimbal_extrinsic(calib_gimbal_t *calib,

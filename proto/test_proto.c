@@ -4048,6 +4048,59 @@ int test_solver_eval() {
   return 0;
 }
 
+int test_calib_gimbal_add_fiducial() {
+  calib_gimbal_t *calib = calib_gimbal_malloc();
+
+  real_t fiducial_pose[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  calib_gimbal_add_fiducial(calib, fiducial_pose);
+  MU_ASSERT(fltcmp(calib->fiducial_exts.data[0], fiducial_pose[0]) == 0);
+  MU_ASSERT(fltcmp(calib->fiducial_exts.data[1], fiducial_pose[1]) == 0);
+  MU_ASSERT(fltcmp(calib->fiducial_exts.data[2], fiducial_pose[2]) == 0);
+  MU_ASSERT(fltcmp(calib->fiducial_exts.data[3], fiducial_pose[3]) == 0);
+  MU_ASSERT(fltcmp(calib->fiducial_exts.data[4], fiducial_pose[4]) == 0);
+  MU_ASSERT(fltcmp(calib->fiducial_exts.data[5], fiducial_pose[5]) == 0);
+  MU_ASSERT(fltcmp(calib->fiducial_exts.data[6], fiducial_pose[6]) == 0);
+
+  calib_gimbal_free(calib);
+
+  return 0;
+}
+
+int test_calib_gimbal_add_gimbal_extrinsic() {
+  calib_gimbal_t *calib = calib_gimbal_malloc();
+
+  real_t gimbal_ext[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  calib_gimbal_add_gimbal_extrinsic(calib, gimbal_ext);
+  MU_ASSERT(fltcmp(calib->gimbal_exts.data[0], gimbal_ext[0]) == 0);
+  MU_ASSERT(fltcmp(calib->gimbal_exts.data[1], gimbal_ext[1]) == 0);
+  MU_ASSERT(fltcmp(calib->gimbal_exts.data[2], gimbal_ext[2]) == 0);
+  MU_ASSERT(fltcmp(calib->gimbal_exts.data[3], gimbal_ext[3]) == 0);
+  MU_ASSERT(fltcmp(calib->gimbal_exts.data[4], gimbal_ext[4]) == 0);
+  MU_ASSERT(fltcmp(calib->gimbal_exts.data[5], gimbal_ext[5]) == 0);
+  MU_ASSERT(fltcmp(calib->gimbal_exts.data[6], gimbal_ext[6]) == 0);
+
+  calib_gimbal_free(calib);
+  return 0;
+}
+
+int test_calib_gimbal_add_gimbal_link() {
+  calib_gimbal_t *calib = calib_gimbal_malloc();
+  calib_gimbal_free(calib);
+  return 0;
+}
+
+int test_calib_gimbal_add_camera() {
+  calib_gimbal_t *calib = calib_gimbal_malloc();
+  calib_gimbal_free(calib);
+  return 0;
+}
+
+int test_calib_gimbal_add_view() {
+  calib_gimbal_t *calib = calib_gimbal_malloc();
+  calib_gimbal_free(calib);
+  return 0;
+}
+
 int test_calib_gimbal_load() {
   const char *data_path = "/tmp/sim_gimbal";
   calib_gimbal_t *calib = calib_gimbal_load(data_path);
@@ -4725,6 +4778,11 @@ void test_suite() {
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
   MU_ADD_TEST(test_solver_eval);
+  MU_ADD_TEST(test_calib_gimbal_add_fiducial);
+  MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
+  MU_ADD_TEST(test_calib_gimbal_add_gimbal_link);
+  MU_ADD_TEST(test_calib_gimbal_add_camera);
+  MU_ADD_TEST(test_calib_gimbal_add_view);
   MU_ADD_TEST(test_calib_gimbal_load);
   MU_ADD_TEST(test_calib_gimbal_solve);
 #ifdef USE_CERES
