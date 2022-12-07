@@ -131,7 +131,7 @@ run_test() {
   tmux send-keys -t dev -R "\
     cd ~/projects/proto/proto \
       && clear \
-      && make test_proto \
+      && time make test_proto -j \
       && ./build/test_proto --target $1
   " C-m C-m
   exit
@@ -375,7 +375,7 @@ dev_euroc() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
-# run_test test_calib_gimbal_solve
+run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features

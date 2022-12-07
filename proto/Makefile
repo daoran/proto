@@ -119,9 +119,9 @@ $(BLD_DIR)/libproto.a: $(LIBPROTO_OBJS)
 		> /dev/null 2>&1
 
 setup:
-	mkdir -p $(BLD_DIR)
-	cp -r shaders $(BLD_DIR)
-	cp -r test_data $(BLD_DIR)
+	@mkdir -p $(BLD_DIR)
+	@cp -r shaders $(BLD_DIR)
+	@cp -r test_data $(BLD_DIR)
 
 clean:  ## Clean build directory
 	@rm -rf $(BLD_DIR)
