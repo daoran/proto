@@ -6932,7 +6932,7 @@ class GimbalCalibrator:
   def add_gimbal_joint(self, view_idx, joint_idx, joint_angle, **kwargs):
     """ Add gimbal joint """
     fix = kwargs.get("fix", False)
-    covar = kwargs.get("covar", 0.001)
+    covar = kwargs.get("covar", np.deg2rad(5))
 
     if view_idx not in self.gimbal_joint_ids:
       self.gimbal_joint_ids[view_idx] = {}
@@ -7804,7 +7804,7 @@ class GimbalProblem:
   """ Gimbal Problem """
   fiducial: np.ndarray
   gimbal_exts: np.ndarray
-  gimbal_pose: np.ndarray
+  gimbal_poses: np.ndarray
   gimbal_link0: np.ndarray
   gimbal_link1: np.ndarray
   cam0_params: np.ndarray
@@ -7881,7 +7881,7 @@ class GimbalProblem:
     """ Compare against another gimbal problem """
     self._compare_tfs("fiducial", self.fiducial, data.fiducial)
     self._compare_tfs("gimbal_exts", self.gimbal_exts, data.gimbal_exts)
-    self._compare_tfs("gimbal_pose", self.gimbal_pose, data.gimbal_pose)
+    # self._compare_tfs("gimbal_pose", self.gimbal_pose, data.gimbal_pose)
     self._compare_tfs("gimbal_link0", self.gimbal_link0, data.gimbal_link0)
     self._compare_tfs("gimbal_link1", self.gimbal_link1, data.gimbal_link1)
     self._compare_vectors("cam0_params", self.cam0_params, data.cam0_params)
@@ -8170,15 +8170,15 @@ class SimGimbal:
       self.gimbal.joint_angles[2] = np.random.uniform(-1.5, 1.5)
       joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
 
-      # # Perturb body pose
-      # if fix_gimbal is False:
-      #   self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
-      #   self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
-      #   self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
-      #   self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
-      #   self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
-      #   self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
-      #   pose_data.append(copy.deepcopy(self.T_WB))
+      # Perturb body pose
+      if fix_gimbal is False:
+        self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
+        self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
+        self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
+        pose_data.append(copy.deepcopy(self.T_WB))
 
       # Get camera data
       cam_data = []
@@ -8399,12 +8399,14 @@ class SimGimbal:
   def solve(self, sim_data):
     """ Solve """
     (pose_data, view_data, joint_data) = sim_data
+    print(f"num_poses: {len(pose_data)}")
 
     # Ground-truth
-    gnd = GimbalProblem(self.T_WF, self.T_BM0, pose_data[0],
-                        pose2tf(self.links[0]), pose2tf(self.links[1]),
-                        self.cam_params[0], self.cam_params[1],
-                        self.cam_exts[0], self.cam_exts[1], joint_data)
+    gnd = GimbalProblem(self.T_WF,
+                        self.T_BM0, pose_data, pose2tf(self.links[0]),
+                        pose2tf(self.links[1]), self.cam_params[0],
+                        self.cam_params[1], self.cam_exts[0], self.cam_exts[1],
+                        joint_data)
 
     # Estimation
     est = copy.deepcopy(gnd)
@@ -8412,7 +8414,9 @@ class SimGimbal:
     # -- Perturb gimbal pose
     dpos = [-0.1, 0.1]
     drot = [-0.1, 0.1]
-    est.gimbal_pose = perturb_tf_random(est.gimbal_pose, dpos, drot)
+    for i, pose in enumerate(est.gimbal_poses):
+      pose = perturb_tf_random(pose, dpos, drot)
+      est.gimbal_poses[i] = pose
 
     # -- Perturb gimbal links
     dpos = [-0.01, 0.01]
@@ -8427,7 +8431,7 @@ class SimGimbal:
     init = copy.deepcopy(est)
 
     fix_fiducial = True
-    fix_gimbal_pose = True
+    fix_gimbal_pose = False
     fix_gimbal_exts = True
     fix_gimbal_links = [False, False]
     fix_gimbal_joints = [False, False, False]
@@ -8436,7 +8440,7 @@ class SimGimbal:
 
     calib = GimbalCalibrator()
     calib.add_fiducial(est.fiducial, fix=fix_fiducial)
-    calib.add_body_pose(0, est.gimbal_pose, fix=fix_gimbal_pose)
+    calib.add_body_pose(0, est.gimbal_poses[0], fix=fix_gimbal_pose)
     calib.add_gimbal_extrinsic(est.gimbal_exts, fix=fix_gimbal_exts)
     calib.add_gimbal_link(0, est.gimbal_link0, fix=fix_gimbal_links[0])
     calib.add_gimbal_link(1, est.gimbal_link1, fix=fix_gimbal_links[1])
@@ -8445,8 +8449,16 @@ class SimGimbal:
     calib.add_camera_extrinsic(0, est.cam0_exts, fix=fix_cam_exts[0])
     calib.add_camera_extrinsic(1, est.cam1_exts, fix=fix_cam_exts[1])
 
+    # Add camera views
     est_data = zip(view_data, est.joint_angles)
     for view_idx, (view_set, joints) in enumerate(est_data):
+      # Add pose
+      if len(est.gimbal_poses) > 1 and view_idx >= 1:
+        calib.add_body_pose(view_idx,
+                            est.gimbal_poses[view_idx],
+                            fix=fix_gimbal_pose)
+
+      # Add views
       calib.add_gimbal_joint(view_idx, 0, joints[0], fix=fix_gimbal_joints[0])
       calib.add_gimbal_joint(view_idx, 1, joints[1], fix=fix_gimbal_joints[1])
       calib.add_gimbal_joint(view_idx, 2, joints[2], fix=fix_gimbal_joints[2])
@@ -11325,9 +11337,9 @@ class TestSandbox(unittest.TestCase):
     # pyqtgraph_example(sys)
     # sim.plot_camera_frame()
 
-    sim_data = sim.simulate()
-    # sim.save(sim_data)
-    sim.solve(sim_data)
+    sim_data = sim.simulate(num_views=100)
+    sim.save(sim_data)
+    # sim.solve(sim_data)
 
 
 if __name__ == '__main__':

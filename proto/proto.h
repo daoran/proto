@@ -840,6 +840,7 @@ int svd(
     const real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V);
 void pinv(const real_t *A, const int m, const int n, real_t *A_inv);
 int svd_det(const real_t *A, const int m, const int n, real_t *det);
+int svd_rank(const real_t *A, const int m, const int n, real_t tol);
 
 //////////
 // CHOL //
@@ -861,7 +862,8 @@ void qr(real_t *A, const int m, const int n, real_t *R);
 #define EIG_V_SIZE(Am, An) (Am * An)
 #define EIG_W_SIZE(Am, An) (An)
 
-int eig_sym(real_t *A, const int m, const int n, real_t *V, real_t *w);
+int eig_sym(const real_t *A, const int m, const int n, real_t *V, real_t *w);
+int eig_rank(const real_t *A, const int m, const int n, const real_t tol);
 
 /******************************************************************************
  * SUITE-SPARSE

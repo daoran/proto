@@ -4070,6 +4070,9 @@ static void compare_gimbal_calib(const calib_gimbal_t *gnd,
   {
     printf("num_views: %d\n", gnd->num_views);
     printf("num_cams: %d\n", gnd->num_cams);
+    printf("num_poses: %d\n", gnd->num_poses);
+    printf("num_links: %d\n", gnd->num_links);
+    printf("num_joints: %d\n", gnd->num_joints);
     printf("num_calib_factors: %d\n", gnd->num_calib_factors);
     printf("num_joint_factors: %d\n", gnd->num_joint_factors);
 
@@ -4152,13 +4155,13 @@ int test_calib_gimbal_solve() {
     // printf("\n");
 
     // Perturb
-    real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
+    real_t dx[6] = {0.01, 0.01, 0.01, 0.05, 0.05, 0.05};
     // pose_vector_update(calib_est->fiducial_exts.data, dx);
     // pose_vector_update(calib_est->cam_exts[0].data, dx);
     // pose_vector_update(calib_est->cam_exts[1].data, dx);
-    // for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
-    //   pose_vector_update(calib_est->links[link_idx].data, dx);
-    // }
+    for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
+      pose_vector_update(calib_est->links[link_idx].data, dx);
+    }
     for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
       for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
         calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.1, 0.1);
@@ -4172,10 +4175,18 @@ int test_calib_gimbal_solve() {
   }
   compare_gimbal_calib(calib_gnd, calib_est);
 
+  calib_est->cam_exts[0].data[0] = 0.0;
+  calib_est->cam_exts[0].data[1] = 0.0;
+  calib_est->cam_exts[0].data[2] = 0.0;
+  // calib_est->cam_exts[0].data[3] = 1.0;
+  // calib_est->cam_exts[0].data[4] = 0.0;
+  // calib_est->cam_exts[0].data[5] = 0.0;
+  // calib_est->cam_exts[0].data[6] = 0.0;
+
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.max_iter = 10;
+  solver.max_iter = 20;
   solver.param_order_func = &calib_gimbal_param_order;
   solver.linearize_func = &calib_gimbal_linearize_compact;
   solver_solve(&solver, calib_est);

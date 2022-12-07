@@ -2732,7 +2732,6 @@ void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
 
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
-      // mat_set(A_t, m, j, i, mat_val(A, n, i, j));
       A_t[(j * m) + i] = A[(i * n) + j];
     }
   }
@@ -3647,6 +3646,39 @@ int svd_det(const real_t *A, const int m, const int n, real_t *det) {
   return retval;
 }
 
+/**
+ * Calculate matrix rank of `A` of size `m` x `n`.
+ */
+int svd_rank(const real_t *A, const int m, const int n, real_t tol) {
+  // Decompose matrix A with SVD
+  const int k = (m < n) ? m : n;
+  real_t *U = MALLOC(real_t, m * n);
+  real_t *s = MALLOC(real_t, k);
+  real_t *V = MALLOC(real_t, k * k);
+  int retval = svd(A, m, n, U, s, V);
+  if (retval != 0) {
+    free(U);
+    free(s);
+    free(V);
+    return -1;
+  }
+
+  // Calculate determinant by via product of the diagonal singular values
+  int rank = 0;
+  for (int i = 0; i < k; i++) {
+    if (s[i] >= tol) {
+      rank++;
+    }
+  }
+
+  // Clean up
+  free(U);
+  free(s);
+  free(V);
+
+  return rank;
+}
+
 //////////
 // CHOL //
 //////////
@@ -3915,19 +3947,55 @@ int __lapack_eig(
   }
 
   // Clean up
-  mat_transpose(V, n, n, work);
-  mat_copy(work, n, n, V);
+  real_t *Vt = MALLOC(real_t, n * n);
+  mat_transpose(V, n, n, Vt);
+  mat_copy(Vt, n, n, V);
+  free(Vt);
   free(work);
 
   return 0;
 }
 
-int eig_sym(real_t *A, const int m, const int n, real_t *V, real_t *w) {
+/**
+ * Perform Eigen-Decomposition of a symmetric matrix `A` of size `m` x `n`.
+ */
+int eig_sym(const real_t *A, const int m, const int n, real_t *V, real_t *w) {
   assert(A != NULL);
   assert(m > 0 && n > 0);
   assert(m == n);
   assert(V != NULL && w != NULL);
   return __lapack_eig(A, m, n, V, w);
+}
+
+/**
+ * Calculate matrix rank of `A` of size `m` x `n`.
+ */
+int eig_rank(const real_t *A, const int m, const int n, const real_t tol) {
+  assert(A != NULL);
+  assert(m > 0 && n > 0);
+  assert(m == n);
+
+  real_t *V = MALLOC(real_t, m * n);
+  real_t *w = MALLOC(real_t, m);
+  int retval = eig_sym(A, m, n, V, w);
+  if (retval != 0) {
+    free(V);
+    free(w);
+    return -1;
+  }
+
+  int rank = 0;
+  for (int i = 0; i < m; i++) {
+    if (w[i] >= tol) {
+      rank++;
+    }
+  }
+
+  // Clean up
+  free(V);
+  free(w);
+
+  return rank;
 }
 
 /******************************************************************************
@@ -6834,10 +6902,10 @@ void ba_factor_setup(ba_factor_t *factor,
   factor->num_params = 3;
 
   // Measurement covariance
-  factor->covar[0] = 1.0 / (var[0] * var[0]);
+  factor->covar[0] = var[0];
   factor->covar[1] = 0.0;
   factor->covar[2] = 0.0;
-  factor->covar[3] = 1.0 / (var[1] * var[1]);
+  factor->covar[3] = var[1];
 
   // Square-root information matrix
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
@@ -7069,10 +7137,10 @@ void vision_factor_setup(vision_factor_t *factor,
   factor->camera = camera;
 
   // Measurement covariance matrix
-  factor->covar[0] = 1.0 / (var[0] * var[0]);
+  factor->covar[0] = var[0];
   factor->covar[1] = 0.0;
   factor->covar[2] = 0.0;
-  factor->covar[3] = 1.0 / (var[1] * var[1]);
+  factor->covar[3] = var[1];
 
   // Square-root information matrix
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
@@ -7401,7 +7469,7 @@ void joint_angle_factor_setup(joint_angle_factor_t *factor,
   factor->z[0] = z;
 
   // Measurement covariance matrix
-  factor->covar[0] = 1.0 / (var * var);
+  factor->covar[0] = var;
 
   // Square-root information matrix
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
@@ -7536,10 +7604,10 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
   factor->z[1] = z[1];
 
   // Measurement covariance matrix
-  factor->covar[0] = 1.0 / (var[0] * var[0]);
+  factor->covar[0] = var[0];
   factor->covar[1] = 0.0;
   factor->covar[2] = 0.0;
-  factor->covar[3] = 1.0 / (var[1] * var[1]);
+  factor->covar[3] = var[1];
 
   // Square-root information matrix
   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
@@ -8550,7 +8618,8 @@ int imu_factor_eval(void *factor_ptr) {
   err_vel[1] = dv_est[1] - dv[1];
   err_vel[2] = dv_est[2] - dv[2];
 
-  // err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))[1:4]
+  // err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i),
+  // q_j)))[1:4]
   real_t err_rot[3] = {0.0, 0.0, 0.0};
   {
     real_t dq_inv[4] = {0};
@@ -9262,7 +9331,7 @@ void calib_gimbal_setup(calib_gimbal_t *calib) {
   calib->fix_poses = 1;
   calib->fix_links = 0;
   calib->fix_joints = 0;
-  calib->fix_cam_exts = 1;
+  calib->fix_cam_exts = 0;
   calib->fix_cam_params = 1;
 
   // Counters
@@ -9591,7 +9660,7 @@ static void calib_gimbal_load_joint_angles(calib_gimbal_t *calib,
     calib->joints[view_idx] = MALLOC(joint_angle_t, num_joints);
     calib->joint_factors[view_idx] = MALLOC(joint_angle_factor_t, num_joints);
 
-    const real_t joint_var = 0.01;
+    const real_t joint_var = 0.1;
     for (size_t joint_idx = 0; joint_idx < num_joints; joint_idx++) {
       // Joint angles
       joint_angle_t *joint = &calib->joints[view_idx][joint_idx];
@@ -9927,6 +9996,10 @@ void calib_gimbal_linearize_compact(const void *data,
       } // For each calib factor
     }   // For each cameras
   }     // For each views
+
+  printf("rank: %d, sv_size: %d\n",
+         eig_rank(H, sv_size, sv_size, 1e-4),
+         sv_size);
 
   // real_t H_det = 0.0;
   // real_t *H_copy = MALLOC(real_t, sv_size * sv_size);
