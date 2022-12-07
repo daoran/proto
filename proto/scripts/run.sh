@@ -86,12 +86,12 @@ run_memcheck() {
 # python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestSandbox.test_poe
 
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "\
-  cd ~/projects/proto/proto \
-  && python3 proto.py TestSandbox.test_gimbal
-" C-m C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto/proto \
+#   && python3 proto.py TestSandbox.test_gimbal
+# " C-m C-m
+# exit
 
 
 ###############################################################################
@@ -382,7 +382,7 @@ dev_euroc() {
 # run_test test_load_sim_imu_data
 # run_test test_load_sim_cam_frame
 # run_test test_load_sim_cam_data
-# run_test test_sim_gimbal_malloc_free
+run_test test_sim_gimbal_malloc_free
 # run_test test_sim_gimbal_view
 # PROTO-GUI
 # run_test test_gl_zeros

@@ -1903,10 +1903,10 @@ typedef struct sim_gimbal_t {
   int num_cams;
 
   extrinsic_t fiducial_ext;
-  extrinsic_t gimbal_ext;
   pose_t gimbal_pose;
+  extrinsic_t gimbal_ext;
   extrinsic_t *gimbal_links;
-  joint_angle_t *gimbal_joints;
+  joint_angle_t **gimbal_joints;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
 } sim_gimbal_t;
@@ -1914,6 +1914,7 @@ typedef struct sim_gimbal_t {
 sim_gimbal_t *sim_gimbal_malloc();
 void sim_gimbal_free(sim_gimbal_t *sim);
 void sim_gimbal_set_joint(sim_gimbal_t *sim,
+                          const int view_idx,
                           const int joint_idx,
                           const real_t angle);
 calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,

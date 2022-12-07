@@ -10578,8 +10578,8 @@ sim_gimbal_t *sim_gimbal_malloc() {
   // Fiducial pose
   const real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
   const real_t r_WF[3] = {0.5, 0.0, 0.0};
-  POSE_ER(ypr_WF, r_WF, fiducial_pose);
-  extrinsic_setup(&sim->fiducial_ext, fiducial_pose);
+  POSE_ER(ypr_WF, r_WF, fiducial_ext);
+  extrinsic_setup(&sim->fiducial_ext, fiducial_ext);
 
   // Gimbal pose
   real_t x = 0.0;
@@ -10588,32 +10588,34 @@ sim_gimbal_t *sim_gimbal_malloc() {
   const real_t r_WB[3] = {0, -y, 0};
   const real_t ypr_WB[3] = {0, 0, 0};
   POSE_ER(ypr_WB, r_WB, gimbal_pose);
+  pose_setup(&sim->gimbal_pose, 0, gimbal_pose);
+
+  // Gimbal extrinsic (body to gimbal)
+  const real_t ypr_BM0[3] = {0.01, 0.01, 0.01};
+  const real_t r_BM0[3] = {0.001, 0.001, 0.001};
+  POSE_ER(ypr_BM0, r_BM0, gimbal_ext);
+  extrinsic_setup(&sim->gimbal_ext, gimbal_ext);
 
   // Links
   sim->num_links = 2;
-  sim->gimbal_links = MALLOC(extrinsic_t, 3);
-  // // -- Yaw link
-  // const real_t ypr_BM0[3] = {0.01, 0.01, 0.01};
-  // const real_t r_BM0[3] = {0.001, 0.001, 0.001};
-  // POSE_ER(ypr_BM0, r_BM0, link_yaw);
-  // extrinsic_setup(&sim->gimbal_links[0], link_yaw);
-  // // -- Roll link
-  // const real_t ypr_L0M1[3] = {0.0, M_PI / 2, 0.0};
-  // const real_t r_L0M1[3] = {-0.1, 0.0, 0.15};
-  // POSE_ER(ypr_L0M1, r_L0M1, link_roll);
-  // extrinsic_setup(&sim->gimbal_links[1], link_roll);
-  // // -- Pitch link
-  // const real_t ypr_L1M2[3] = {0.0, 0.0, -M_PI / 2.0};
-  // const real_t r_L1M2[3] = {0.0, -0.05, 0.1};
-  // POSE_ER(ypr_L1M2, r_L1M2, link_pitch);
-  // extrinsic_setup(&sim->gimbal_links[2], link_pitch);
+  sim->gimbal_links = MALLOC(extrinsic_t, sim->num_links);
+  // -- Roll link
+  const real_t ypr_L0M1[3] = {0.0, M_PI / 2, 0.0};
+  const real_t r_L0M1[3] = {-0.1, 0.0, 0.15};
+  POSE_ER(ypr_L0M1, r_L0M1, link_roll);
+  extrinsic_setup(&sim->gimbal_links[0], link_roll);
+  // -- Pitch link
+  const real_t ypr_L1M2[3] = {0.0, 0.0, -M_PI / 2.0};
+  const real_t r_L1M2[3] = {0.0, -0.05, 0.1};
+  POSE_ER(ypr_L1M2, r_L1M2, link_pitch);
+  extrinsic_setup(&sim->gimbal_links[1], link_pitch);
 
   // Joints
   // sim->num_joints = 3;
-  // sim->joints = MALLOC(joint_angle_t, 3);
-  // joint_angle_setup(&sim->joints[0], 0, 0.0);
-  // joint_angle_setup(&sim->joints[1], 1, 0.0);
-  // joint_angle_setup(&sim->joints[2], 2, 0.0);
+  // sim->gimbal_joints = MALLOC(joint_angle_t, sim->num_links);
+  // joint_angle_setup(&sim->gimbal_joints[0], 0, 0.0);
+  // joint_angle_setup(&sim->gimbal_joints[1], 1, 0.0);
+  // joint_angle_setup(&sim->gimbal_joints[2], 2, 0.0);
 
   // Setup cameras
   sim->num_cams = 2;
@@ -10669,9 +10671,10 @@ void sim_gimbal_free(sim_gimbal_t *sim) {
 }
 
 void sim_gimbal_set_joint(sim_gimbal_t *sim,
+                          const int view_idx,
                           const int joint_idx,
                           const real_t angle) {
-  sim->gimbal_joints[joint_idx].data[0] = angle;
+  sim->gimbal_joints[view_idx][joint_idx].data[0] = angle;
 }
 
 calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
@@ -10681,14 +10684,14 @@ calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
                                      const real_t T_WB[4 * 4]) {
   // Form: T_CiF
   TF(sim->fiducial_ext.data, T_WF);
-  TF(sim->gimbal_links[0].data, T_BM0);
-  TF(sim->gimbal_links[1].data, T_L0M1);
-  TF(sim->gimbal_links[2].data, T_L1M2);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[0].data[0], T_M0L0);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[1].data[0], T_M1L1);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[2].data[0], T_M2bM2e);
-  TF(sim->cam_exts[cam_idx].data, T_M2eCi);
-  TF_CHAIN(T_BCi, 7, T_BM0, T_M0L0, T_L0M1, T_M1L1, T_L1M2, T_M2bM2e, T_M2eCi);
+  TF(sim->gimbal_ext.data, T_BM0);
+  TF(sim->gimbal_links[0].data, T_L0M1);
+  TF(sim->gimbal_links[1].data, T_L1M2);
+  GIMBAL_JOINT_TF(sim->gimbal_joints[view_idx][0].data[0], T_M0L0);
+  GIMBAL_JOINT_TF(sim->gimbal_joints[view_idx][1].data[0], T_M1L1);
+  GIMBAL_JOINT_TF(sim->gimbal_joints[view_idx][2].data[0], T_M2L2);
+  TF(sim->cam_exts[cam_idx].data, T_L2Ci);
+  TF_CHAIN(T_BCi, 7, T_BM0, T_M0L0, T_L0M1, T_M1L1, T_L1M2, T_M2L2, T_L2Ci);
   TF_INV(T_BCi, T_CiB);
   TF_INV(T_WB, T_BW);
   TF_CHAIN(T_CiF, 3, T_CiB, T_BW, T_WF);
