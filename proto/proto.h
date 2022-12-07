@@ -97,6 +97,10 @@
 #define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
 #endif
 
+#ifndef REALLOC
+#define REALLOC(PTR, TYPE, N) (TYPE *) realloc(PTR, sizeof(TYPE) * (N));
+#endif
+
 #ifndef CALLOC
 #define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
 #endif
@@ -105,6 +109,10 @@
 
 #ifndef MALLOC
 #define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
+#endif
+
+#ifndef REALLOC
+#define REALLOC(PTR, TYPE, N) realloc(PTR, sizeof(TYPE) * (N));
 #endif
 
 #ifndef CALLOC
@@ -1756,6 +1764,32 @@ void calib_gimbal_view_free(calib_gimbal_view_t *calib);
 void calib_gimbal_setup(calib_gimbal_t *calib);
 void calib_gimbal_print(calib_gimbal_t *calib);
 void calib_gimbal_free(calib_gimbal_t *calib);
+void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
+                               const real_t fiducial_pose[7]);
+void calib_gimbal_add_gimbal_extrinsic(calib_gimbal_t *calib,
+                                       const real_t gimbal_ext[7]);
+void calib_gimbal_add_gimbal_link(calib_gimbal_t *calib,
+                                  const int link_idx,
+                                  const real_t link[7]);
+void calib_gimbal_add_camera(calib_gimbal_t *calib,
+                             const int cam_idx,
+                             const int cam_res[2],
+                             const char *proj_model,
+                             const char *dist_model,
+                             const real_t *cam_params,
+                             const real_t *cam_ext);
+void calib_gimbal_add_view(calib_gimbal_t *calib,
+                           const int pose_idx,
+                           const int view_idx,
+                           const timestamp_t ts,
+                           const int cam_idx,
+                           const int num_corners,
+                           const int *tag_ids,
+                           const int *corner_indices,
+                           const real_t **object_points,
+                           const real_t **keypoints,
+                           const real_t *joint_angles,
+                           const int num_joints);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
 param_order_t *calib_gimbal_param_order(const void *data,
                                         int *sv_size,
@@ -1908,7 +1942,7 @@ typedef struct sim_gimbal_t {
   pose_t gimbal_pose;
   extrinsic_t gimbal_ext;
   extrinsic_t *gimbal_links;
-  joint_angle_t **gimbal_joints;
+  joint_angle_t *gimbal_joints;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
 } sim_gimbal_t;
@@ -1916,7 +1950,6 @@ typedef struct sim_gimbal_t {
 sim_gimbal_t *sim_gimbal_malloc();
 void sim_gimbal_free(sim_gimbal_t *sim);
 void sim_gimbal_set_joint(sim_gimbal_t *sim,
-                          const int view_idx,
                           const int joint_idx,
                           const real_t angle);
 calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,

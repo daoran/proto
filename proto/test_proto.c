@@ -4507,8 +4507,8 @@ int test_sim_gimbal_view() {
 }
 
 int test_sim_gimbal_solve() {
-  // int num_views = 5;
-  // int num_cams = 2;
+  int num_views = 5;
+  int num_cams = 2;
 
   sim_gimbal_t *sim = sim_gimbal_malloc();
 
@@ -4518,8 +4518,6 @@ int test_sim_gimbal_solve() {
   // for (int view_idx = 0; view_idx < num_views; view_idx++) {
   //   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
   //     const timestamp_t ts = view_idx;
-  //     real_t T_WB[4 * 4] = {0};
-  //     eye(T_WB, 4, 4);
 
   //     calib_gimbal_view_t *view =
   //         sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);

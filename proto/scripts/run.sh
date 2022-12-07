@@ -375,15 +375,15 @@ dev_euroc() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_calib_gimbal_load
-run_test test_calib_gimbal_solve
+# run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-SIM
 # run_test test_load_sim_features
 # run_test test_load_sim_imu_data
 # run_test test_load_sim_cam_frame
 # run_test test_load_sim_cam_data
-run_test test_sim_gimbal_malloc_free
-# run_test test_sim_gimbal_view
+# run_test test_sim_gimbal_malloc_free
+run_test test_sim_gimbal_view
 # PROTO-GUI
 # run_test test_gl_zeros
 # run_test test_gl_ones

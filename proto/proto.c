@@ -9259,6 +9259,8 @@ calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
       view->object_points[i] = vec_malloc(object_points[i], 3);
       view->keypoints[i] = vec_malloc(keypoints[i], 2);
     }
+
+    view->calib_factors = NULL;
   }
 
   return view;
@@ -9421,6 +9423,197 @@ void calib_gimbal_print(calib_gimbal_t *calib) {
   }
   extrinsic_print("gimbal_exts", &calib->gimbal_exts);
   extrinsic_print("fiducial_exts", &calib->fiducial_exts);
+}
+
+/**
+ * Add fiducial to gimbal calibration problem
+ */
+void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
+                               const real_t fiducial_pose[7]) {
+  assert(calib != NULL);
+  assert(fiducial_pose);
+  extrinsic_setup(&calib->fiducial_exts, fiducial_pose);
+}
+
+/**
+ * Add gimbal extrinsic to gimbal calibration problem
+ */
+void calib_gimbal_add_gimbal_extrinsic(calib_gimbal_t *calib,
+                                       const real_t gimbal_ext[7]) {
+  assert(calib != NULL);
+  assert(gimbal_ext);
+  extrinsic_setup(&calib->gimbal_exts, gimbal_ext);
+}
+
+/**
+ * Add gimbal link to gimbal calibration problem
+ */
+void calib_gimbal_add_gimbal_link(calib_gimbal_t *calib,
+                                  const int link_idx,
+                                  const real_t gimbal_link[7]) {
+  assert(calib != NULL);
+  assert(gimbal_link);
+
+  if (calib->num_links == 0) {
+    calib->links = MALLOC(extrinsic_t, 1);
+  } else {
+    const int new_size = calib->num_links + 1;
+    calib->links = REALLOC(calib->links, extrinsic_t, new_size);
+  }
+
+  extrinsic_setup(&calib->links[link_idx], gimbal_link);
+  calib->num_links++;
+}
+
+/**
+ * Add camera to gimbal calibration problem
+ */
+void calib_gimbal_add_camera(calib_gimbal_t *calib,
+                             const int cam_idx,
+                             const int cam_res[2],
+                             const char *proj_model,
+                             const char *dist_model,
+                             const real_t *cam_params,
+                             const real_t *cam_ext) {
+  assert(calib != NULL);
+  assert(cam_idx <= calib->num_cams);
+  assert(cam_res != NULL);
+  assert(proj_model != NULL);
+  assert(dist_model != NULL);
+  assert(cam_params != NULL);
+  assert(cam_ext != NULL);
+
+  if (calib->num_cams == 0) {
+    calib->cam_params = MALLOC(camera_params_t, 1);
+    calib->cam_exts = MALLOC(extrinsic_t, 1);
+  } else {
+    const int new_size = calib->num_cams + 1;
+    calib->cam_params = REALLOC(calib->cam_params, camera_params_t, new_size);
+    calib->cam_exts = REALLOC(calib->cam_exts, extrinsic_t, new_size);
+  }
+
+  camera_params_setup(&calib->cam_params[cam_idx],
+                      cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_params);
+  extrinsic_setup(&calib->cam_exts[cam_idx], cam_ext);
+  calib->num_cams++;
+}
+
+/**
+ * Add view to gimbal calibration problem
+ */
+void calib_gimbal_add_view(calib_gimbal_t *calib,
+                           const int pose_idx,
+                           const int view_idx,
+                           const timestamp_t ts,
+                           const int cam_idx,
+                           const int num_corners,
+                           const int *tag_ids,
+                           const int *corner_indices,
+                           const real_t **object_points,
+                           const real_t **keypoints,
+                           const real_t *joint_angles,
+                           const int num_joints) {
+  assert(calib != NULL);
+  assert(tag_ids != NULL);
+  assert(corner_indices != NULL);
+  assert(object_points != NULL);
+  assert(keypoints != NULL);
+  assert(&calib->poses[pose_idx] != NULL);
+  assert(&calib->joints[view_idx] != NULL);
+
+  // Allocate memory for joints and view
+  const int num_cams = calib->num_cams;
+  const real_t joint_var = 0.1;
+
+  if (view_idx > (calib->num_views - 1)) {
+    const int new_size = calib->num_views + 1;
+    // Allocate memory for a new timestamp
+    calib->timestamps = REALLOC(calib->timestamps, timestamp_t, new_size);
+    calib->timestamps[view_idx] = ts;
+
+    // Allocate memory for a new view
+    calib->views = REALLOC(calib->views, calib_gimbal_view_t **, new_size);
+    calib->views[view_idx] = MALLOC(calib_gimbal_view_t *, num_cams);
+
+    // Allocate memory for gimbal joints
+    calib->joints = REALLOC(calib->joints, joint_angle_t *, new_size);
+    calib->joints[view_idx] = MALLOC(joint_angle_t, num_joints);
+
+    // Allocate memory for gimbal joint factors
+    calib->joint_factors = MALLOC(joint_angle_factor_t *, new_size);
+    calib->joint_factors[view_idx] = MALLOC(joint_angle_factor_t, num_joints);
+
+    for (int joint_idx = 0; joint_idx < num_joints; joint_idx++) {
+      // Joint angle
+      joint_angle_setup(&calib->joints[view_idx][joint_idx],
+                        ts,
+                        joint_idx,
+                        joint_angles[joint_idx]);
+
+      // Joint factor
+      joint_angle_factor_setup(&calib->joint_factors[view_idx][joint_idx],
+                               &calib->joints[view_idx][joint_idx],
+                               calib->joints[view_idx][joint_idx].data[0],
+                               joint_var);
+      calib->num_joint_factors++;
+    }
+  }
+  calib->num_views++;
+
+  // Form a new calibration view
+  calib_gimbal_view_t *view = MALLOC(calib_gimbal_view_t, 1);
+  calib_gimbal_view_setup(view);
+  view->ts = ts;
+  view->cam_idx = cam_idx;
+  view->view_idx = view_idx;
+  view->num_corners = num_corners;
+
+  if (num_corners) {
+    view->tag_ids = MALLOC(int, view->num_corners);
+    view->corner_indices = MALLOC(int, view->num_corners);
+    view->object_points = MALLOC(real_t *, view->num_corners);
+    view->keypoints = MALLOC(real_t *, view->num_corners);
+    view->calib_factors = MALLOC(calib_gimbal_factor_t, view->num_corners);
+
+    const real_t var[2] = {1.0, 1.0};
+    for (int i = 0; i < view->num_corners; i++) {
+      const int tag_id = tag_ids[i];
+      const int corner_idx = corner_indices[i];
+      const real_t *p_FFi = object_points[i];
+      const real_t *z = keypoints[i];
+
+      view->tag_ids[i] = tag_id;
+      view->corner_indices[i] = corner_idx;
+      view->object_points[i] = vector_malloc(p_FFi, 3);
+      view->keypoints[i] = vector_malloc(z, 2);
+      calib_gimbal_factor_setup(&view->calib_factors[i],
+                                &calib->fiducial_exts,
+                                &calib->gimbal_exts,
+                                &calib->poses[pose_idx],
+                                &calib->links[0],
+                                &calib->links[1],
+                                &calib->joints[view_idx][0],
+                                &calib->joints[view_idx][1],
+                                &calib->joints[view_idx][2],
+                                &calib->cam_exts[cam_idx],
+                                &calib->cam_params[cam_idx],
+                                ts,
+                                cam_idx,
+                                tag_id,
+                                corner_idx,
+                                p_FFi,
+                                z,
+                                var);
+    }
+  }
+
+  // Update
+  calib->views[view_idx][cam_idx] = view;
+  calib->num_calib_factors++;
 }
 
 /**
@@ -10684,11 +10877,11 @@ sim_gimbal_t *sim_gimbal_malloc() {
   extrinsic_setup(&sim->gimbal_links[1], link_pitch);
 
   // Joints
-  // sim->num_joints = 3;
-  // sim->gimbal_joints = MALLOC(joint_angle_t, sim->num_links);
-  // joint_angle_setup(&sim->gimbal_joints[0], 0, 0.0);
-  // joint_angle_setup(&sim->gimbal_joints[1], 1, 0.0);
-  // joint_angle_setup(&sim->gimbal_joints[2], 2, 0.0);
+  sim->num_joints = 3;
+  sim->gimbal_joints = MALLOC(joint_angle_t, sim->num_joints);
+  joint_angle_setup(&sim->gimbal_joints[0], 0, 0, 0.0);
+  joint_angle_setup(&sim->gimbal_joints[1], 0, 1, 0.0);
+  joint_angle_setup(&sim->gimbal_joints[2], 0, 2, 0.0);
 
   // Setup cameras
   sim->num_cams = 2;
@@ -10744,10 +10937,9 @@ void sim_gimbal_free(sim_gimbal_t *sim) {
 }
 
 void sim_gimbal_set_joint(sim_gimbal_t *sim,
-                          const int view_idx,
                           const int joint_idx,
                           const real_t angle) {
-  sim->gimbal_joints[view_idx][joint_idx].data[0] = angle;
+  sim->gimbal_joints[joint_idx].data[0] = angle;
 }
 
 calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
@@ -10760,9 +10952,9 @@ calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
   TF(sim->gimbal_ext.data, T_BM0);
   TF(sim->gimbal_links[0].data, T_L0M1);
   TF(sim->gimbal_links[1].data, T_L1M2);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[view_idx][0].data[0], T_M0L0);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[view_idx][1].data[0], T_M1L1);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[view_idx][2].data[0], T_M2L2);
+  GIMBAL_JOINT_TF(sim->gimbal_joints[0].data[0], T_M0L0);
+  GIMBAL_JOINT_TF(sim->gimbal_joints[1].data[0], T_M1L1);
+  GIMBAL_JOINT_TF(sim->gimbal_joints[2].data[0], T_M2L2);
   TF(sim->cam_exts[cam_idx].data, T_L2Ci);
   TF_CHAIN(T_BCi, 7, T_BM0, T_M0L0, T_L0M1, T_M1L1, T_L1M2, T_M2L2, T_L2Ci);
   TF_INV(T_BCi, T_CiB);
