@@ -4175,14 +4175,17 @@ int test_calib_gimbal_add_view() {
   const int pose_idx = 0;
   const int view_idx = 0;
   const int cam_idx = 0;
-  const int num_corners = 0;
+  const int num_corners = 4;
   const int tag_ids[4] = {0, 0, 0, 0};
   const int corner_indices[4] = {0, 1, 2, 3};
-  const real_t object_points[][3] = {{0, 1, 2},
-                                     {3, 4, 5},
-                                     {6, 7, 8},
-                                     {9, 10, 11}};
-  const real_t keypoints[][2] = {{0, 0}, {1, 1}, {2, 2}, {2, 2}};
+  real_t **object_points = MALLOC(real_t *, num_corners);
+  real_t **keypoints = MALLOC(real_t *, num_corners);
+  for (int i = 0; i < 4; i++) {
+    const real_t p[3] = {i, i, i};
+    const real_t z[2] = {i, i};
+    object_points[i] = vec_malloc(p, 3);
+    keypoints[i] = vec_malloc(z, 2);
+  }
   const real_t joint_angles[3] = {0.0, 0.0, 0.0};
   const int num_joints = 3;
   calib_gimbal_add_view(calib,
@@ -4193,8 +4196,8 @@ int test_calib_gimbal_add_view() {
                         num_corners,
                         tag_ids,
                         corner_indices,
-                        (const real_t **) object_points,
-                        (const real_t **) keypoints,
+                        object_points,
+                        keypoints,
                         joint_angles,
                         num_joints);
 
@@ -4203,6 +4206,12 @@ int test_calib_gimbal_add_view() {
   printf("num_joints: %d\n", calib->num_joints);
 
   // Clean up
+  for (int i = 0; i < num_corners; i++) {
+    free(object_points[i]);
+    free(keypoints[i]);
+  }
+  free(object_points);
+  free(keypoints);
   calib_gimbal_free(calib);
 
   return 0;
@@ -4477,58 +4486,8 @@ int test_calib_gimbal_ceres_solve() {
   ceres_set_parameterization(problem, calib_est->cam_exts[1].data, pose_pm);
   ceres_solve(problem, 10);
 
-  // Compare estimated vs ground-truth
-  {
-    // Fiducial
-    {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->fiducial_exts.data,
-                 calib_est->fiducial_exts.data,
-                 dr,
-                 &dtheta);
-      printf("fiducial ");
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Links
-    for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->links[link_idx].data,
-                 calib_est->links[link_idx].data,
-                 dr,
-                 &dtheta);
-      printf("link_exts[%d] ", link_idx);
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Camera extrinsic
-    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
-      real_t dr[3] = {0};
-      real_t dtheta = 0.0;
-      pose_diff2(calib_gnd->cam_exts[cam_idx].data,
-                 calib_est->cam_exts[cam_idx].data,
-                 dr,
-                 &dtheta);
-      printf("cam_exts[%d] ", cam_idx);
-      printf("dr: [%.4f, %.4f, %.4f], ", dr[0], dr[1], dr[2]);
-      printf("dtheta: %f\n", dtheta);
-    }
-
-    // Camera parameters
-    for (int cam_idx = 0; cam_idx < calib_est->num_cams; cam_idx++) {
-      real_t *cam_gnd = calib_gnd->cam_params[cam_idx].data;
-      real_t *cam_est = calib_est->cam_params[cam_idx].data;
-      real_t diff[8] = {0};
-      vec_sub(cam_gnd, cam_est, diff, 8);
-
-      printf("cam_params[%d] ", cam_idx);
-      print_vector("diff", diff, 8);
-    }
-  }
+  // Compare ground-truth vs estimates
+  compare_gimbal_calib(calib_gnd, calib_est);
 
   // Clean up
   ceres_free_problem(problem);
@@ -4671,18 +4630,49 @@ int test_sim_gimbal_solve() {
   int num_cams = 2;
 
   sim_gimbal_t *sim = sim_gimbal_malloc();
+  POSE2TF(sim->gimbal_pose.data, T_WB);
 
-  calib_gimbal_t calib;
-  calib_gimbal_setup(&calib);
+  calib_gimbal_t *calib = calib_gimbal_malloc();
+  const timestamp_t ts = 0;
+  calib_gimbal_add_fiducial(calib, sim->fiducial_ext.data);
+  calib_gimbal_add_pose(calib, ts, sim->gimbal_pose.data);
+  calib_gimbal_add_gimbal_link(calib, 0, sim->gimbal_links[0].data);
+  calib_gimbal_add_gimbal_link(calib, 1, sim->gimbal_links[1].data);
+  for (int cam_idx = 0; cam_idx < sim->num_cams; cam_idx++) {
+    calib_gimbal_add_camera(calib,
+                            cam_idx,
+                            sim->cam_params[cam_idx].resolution,
+                            sim->cam_params[cam_idx].proj_model,
+                            sim->cam_params[cam_idx].dist_model,
+                            sim->cam_params[cam_idx].data,
+                            sim->cam_exts[cam_idx].data);
+  }
 
-  // for (int view_idx = 0; view_idx < num_views; view_idx++) {
-  //   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-  //     const timestamp_t ts = view_idx;
+  const int pose_idx = 0;
+  for (int view_idx = 0; view_idx < num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+      const timestamp_t ts = view_idx;
+      calib_gimbal_view_t *view =
+          sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);
 
-  //     calib_gimbal_view_t *view =
-  //         sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);
-  //   }
-  // }
+      real_t joint_angles[3] = {sim->gimbal_joints[0].data[0],
+                                sim->gimbal_joints[1].data[1],
+                                sim->gimbal_joints[1].data[2]};
+      calib_gimbal_add_view(calib,
+                            pose_idx,
+                            view_idx,
+                            view_idx,
+                            cam_idx,
+                            view->num_corners,
+                            view->tag_ids,
+                            view->corner_indices,
+                            view->object_points,
+                            view->keypoints,
+                            joint_angles,
+                            sim->num_joints);
+      calib_gimbal_view_free(view);
+    }
+  }
 
   // // Solve
   // solver_t solver;
@@ -4692,6 +4682,7 @@ int test_sim_gimbal_solve() {
   // solver_solve(&solver, calib_est);
 
   // Clean up
+  calib_gimbal_free(calib);
   sim_gimbal_free(sim);
 
   return 0;

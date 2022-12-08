@@ -9532,8 +9532,8 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                            const int num_corners,
                            const int *tag_ids,
                            const int *corner_indices,
-                           const real_t **object_points,
-                           const real_t **keypoints,
+                           real_t **object_points,
+                           real_t **keypoints,
                            const real_t *joint_angles,
                            const int num_joints) {
   assert(calib != NULL);
@@ -9588,7 +9588,7 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
   view->view_idx = view_idx;
   view->num_corners = num_corners;
 
-  if (num_corners) {
+  if (view->num_corners) {
     view->tag_ids = MALLOC(int, view->num_corners);
     view->corner_indices = MALLOC(int, view->num_corners);
     view->object_points = MALLOC(real_t *, view->num_corners);
@@ -9601,6 +9601,10 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
       const int corner_idx = corner_indices[i];
       const real_t *p_FFi = object_points[i];
       const real_t *z = keypoints[i];
+      printf("i: %d\n", i);
+      print_vector("keypoints[i]", keypoints[i], 2);
+      print_vector("p_FFi", p_FFi, 3);
+      print_vector("z", z, 2);
 
       view->tag_ids[i] = tag_id;
       view->corner_indices[i] = corner_idx;

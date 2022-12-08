@@ -937,6 +937,10 @@ real_t suitesparse_chol_solve(cholmod_common *c,
   POSE[2] = POS[2];                                                            \
   euler2quat(YPR, POSE + 3);
 
+#define POSE2TF(POSE, TF)                                                      \
+  real_t TF[4 * 4] = {0};                                                      \
+  tf(POSE, TF);
+
 void rotx(const real_t theta, real_t C[3 * 3]);
 void roty(const real_t theta, real_t C[3 * 3]);
 void rotz(const real_t theta, real_t C[3 * 3]);
@@ -1790,8 +1794,8 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                            const int num_corners,
                            const int *tag_ids,
                            const int *corner_indices,
-                           const real_t **object_points,
-                           const real_t **keypoints,
+                           real_t **object_points,
+                           real_t **keypoints,
                            const real_t *joint_angles,
                            const int num_joints);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
