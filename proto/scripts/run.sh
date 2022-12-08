@@ -117,7 +117,7 @@ run_all_tests() {
   tmux send-keys -t dev -R "\
     cd ~/projects/proto/proto \
       && clear \
-      && make test_proto \
+      && make test_proto -j \
       && ./build/test_proto
   " C-m C-m
   exit
@@ -378,7 +378,7 @@ dev_euroc() {
 # run_test test_calib_gimbal_add_gimbal_extrinsic
 # run_test test_calib_gimbal_add_gimbal_link
 # run_test test_calib_gimbal_add_camera
-# run_test test_calib_gimbal_add_view
+run_test test_calib_gimbal_add_view
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve

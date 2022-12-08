@@ -1767,6 +1767,9 @@ void calib_gimbal_free(calib_gimbal_t *calib);
 void calib_gimbal_print(calib_gimbal_t *calib);
 void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
                                const real_t fiducial_pose[7]);
+void calib_gimbal_add_pose(calib_gimbal_t *calib,
+                           const timestamp_t ts,
+                           const real_t pose[7]);
 void calib_gimbal_add_gimbal_extrinsic(calib_gimbal_t *calib,
                                        const real_t gimbal_ext[7]);
 void calib_gimbal_add_gimbal_link(calib_gimbal_t *calib,

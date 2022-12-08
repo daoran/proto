@@ -9445,6 +9445,21 @@ void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
 }
 
 /**
+ * Add pose to gimbal calibration problem
+ */
+void calib_gimbal_add_pose(calib_gimbal_t *calib,
+                           const timestamp_t ts,
+                           const real_t pose[7]) {
+  assert(calib != NULL);
+  assert(pose);
+
+  const int k = calib->num_poses + 1;
+  calib->poses = REALLOC(calib->poses, pose_t, k);
+  pose_setup(&calib->poses[k - 1], ts, pose);
+  calib->num_poses++;
+}
+
+/**
  * Add gimbal extrinsic to gimbal calibration problem
  */
 void calib_gimbal_add_gimbal_extrinsic(calib_gimbal_t *calib,
@@ -9490,10 +9505,7 @@ void calib_gimbal_add_camera(calib_gimbal_t *calib,
   assert(cam_params != NULL);
   assert(cam_ext != NULL);
 
-  if (calib->num_cams == 0) {
-    calib->cam_params = MALLOC(camera_params_t, 1);
-    calib->cam_exts = MALLOC(extrinsic_t, 1);
-  } else {
+  if (cam_idx > (calib->num_cams - 1)) {
     const int new_size = calib->num_cams + 1;
     calib->cam_params = REALLOC(calib->cam_params, camera_params_t, new_size);
     calib->cam_exts = REALLOC(calib->cam_exts, extrinsic_t, new_size);
@@ -9525,12 +9537,8 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                            const real_t *joint_angles,
                            const int num_joints) {
   assert(calib != NULL);
-  assert(tag_ids != NULL);
-  assert(corner_indices != NULL);
-  assert(object_points != NULL);
-  assert(keypoints != NULL);
   assert(&calib->poses[pose_idx] != NULL);
-  assert(&calib->joints[view_idx] != NULL);
+  assert((calib->num_joints == 0) ? 1 : (calib->num_joints == num_joints));
 
   // Allocate memory for joints and view
   const int num_cams = calib->num_cams;
@@ -9549,6 +9557,7 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
     // Allocate memory for gimbal joints
     calib->joints = REALLOC(calib->joints, joint_angle_t *, new_size);
     calib->joints[view_idx] = MALLOC(joint_angle_t, num_joints);
+    calib->num_joints = num_joints;
 
     // Allocate memory for gimbal joint factors
     calib->joint_factors = MALLOC(joint_angle_factor_t *, new_size);
@@ -9615,12 +9624,12 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                                 p_FFi,
                                 z,
                                 var);
+      calib->num_calib_factors++;
     }
   }
 
   // Update
   calib->views[view_idx][cam_idx] = view;
-  calib->num_calib_factors++;
 }
 
 /**

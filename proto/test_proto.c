@@ -4053,13 +4053,20 @@ int test_calib_gimbal_add_fiducial() {
 
   real_t fiducial_pose[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
   calib_gimbal_add_fiducial(calib, fiducial_pose);
-  MU_ASSERT(fltcmp(calib->fiducial_exts.data[0], fiducial_pose[0]) == 0);
-  MU_ASSERT(fltcmp(calib->fiducial_exts.data[1], fiducial_pose[1]) == 0);
-  MU_ASSERT(fltcmp(calib->fiducial_exts.data[2], fiducial_pose[2]) == 0);
-  MU_ASSERT(fltcmp(calib->fiducial_exts.data[3], fiducial_pose[3]) == 0);
-  MU_ASSERT(fltcmp(calib->fiducial_exts.data[4], fiducial_pose[4]) == 0);
-  MU_ASSERT(fltcmp(calib->fiducial_exts.data[5], fiducial_pose[5]) == 0);
-  MU_ASSERT(fltcmp(calib->fiducial_exts.data[6], fiducial_pose[6]) == 0);
+  MU_ASSERT(vec_equals(calib->fiducial_exts.data, fiducial_pose, 7));
+
+  calib_gimbal_free(calib);
+
+  return 0;
+}
+
+int test_calib_gimbal_add_pose() {
+  calib_gimbal_t *calib = calib_gimbal_malloc();
+
+  real_t pose[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  calib_gimbal_add_pose(calib, 0, pose);
+  MU_ASSERT(vec_equals(calib->poses[0].data, pose, 7));
+  MU_ASSERT(calib->num_poses == 1);
 
   calib_gimbal_free(calib);
 
@@ -4071,13 +4078,7 @@ int test_calib_gimbal_add_gimbal_extrinsic() {
 
   real_t gimbal_ext[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
   calib_gimbal_add_gimbal_extrinsic(calib, gimbal_ext);
-  MU_ASSERT(fltcmp(calib->gimbal_exts.data[0], gimbal_ext[0]) == 0);
-  MU_ASSERT(fltcmp(calib->gimbal_exts.data[1], gimbal_ext[1]) == 0);
-  MU_ASSERT(fltcmp(calib->gimbal_exts.data[2], gimbal_ext[2]) == 0);
-  MU_ASSERT(fltcmp(calib->gimbal_exts.data[3], gimbal_ext[3]) == 0);
-  MU_ASSERT(fltcmp(calib->gimbal_exts.data[4], gimbal_ext[4]) == 0);
-  MU_ASSERT(fltcmp(calib->gimbal_exts.data[5], gimbal_ext[5]) == 0);
-  MU_ASSERT(fltcmp(calib->gimbal_exts.data[6], gimbal_ext[6]) == 0);
+  MU_ASSERT(vec_equals(gimbal_ext, calib->gimbal_exts.data, 7));
 
   calib_gimbal_free(calib);
   return 0;
@@ -4085,19 +4086,125 @@ int test_calib_gimbal_add_gimbal_extrinsic() {
 
 int test_calib_gimbal_add_gimbal_link() {
   calib_gimbal_t *calib = calib_gimbal_malloc();
+
+  real_t link0[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  calib_gimbal_add_gimbal_link(calib, 0, link0);
+  MU_ASSERT(vec_equals(link0, calib->links[0].data, 7));
+  MU_ASSERT(calib->num_links == 1);
+
+  real_t link1[7] = {8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0};
+  calib_gimbal_add_gimbal_link(calib, 1, link1);
+  MU_ASSERT(vec_equals(link1, calib->links[1].data, 7));
+  MU_ASSERT(calib->num_links == 2);
+
   calib_gimbal_free(calib);
   return 0;
 }
 
 int test_calib_gimbal_add_camera() {
   calib_gimbal_t *calib = calib_gimbal_malloc();
+
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  real_t cam0_params[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  real_t cam0_ext[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+  real_t cam1_params[8] = {2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0};
+  real_t cam1_ext[7] = {3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0};
+
+  calib_gimbal_add_camera(calib,
+                          0,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam0_params,
+                          cam0_ext);
+  MU_ASSERT(vec_equals(cam0_params, calib->cam_params[0].data, 8));
+  MU_ASSERT(vec_equals(cam0_ext, calib->cam_exts[0].data, 7));
+  MU_ASSERT(calib->num_cams == 1);
+
+  calib_gimbal_add_camera(calib,
+                          1,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam1_params,
+                          cam1_ext);
+  MU_ASSERT(vec_equals(cam1_params, calib->cam_params[1].data, 8));
+  MU_ASSERT(vec_equals(cam1_ext, calib->cam_exts[1].data, 7));
+  MU_ASSERT(calib->num_cams == 2);
+
   calib_gimbal_free(calib);
   return 0;
 }
 
 int test_calib_gimbal_add_view() {
+  // Setup gimbal calibration
   calib_gimbal_t *calib = calib_gimbal_malloc();
+
+  // -- Add fiducial
+  real_t fiducial[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  calib_gimbal_add_fiducial(calib, fiducial);
+
+  // -- Add pose
+  const timestamp_t ts = 0;
+  real_t pose[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  calib_gimbal_add_pose(calib, ts, pose);
+
+  // -- Add gimbal links
+  real_t link0[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  real_t link1[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  calib_gimbal_add_gimbal_link(calib, 0, link0);
+  calib_gimbal_add_gimbal_link(calib, 1, link1);
+
+  // -- Add camera
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  real_t cam0_params[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  real_t cam0_ext[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+  calib_gimbal_add_camera(calib,
+                          0,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam0_params,
+                          cam0_ext);
+
+  // -- Add view
+  const int pose_idx = 0;
+  const int view_idx = 0;
+  const int cam_idx = 0;
+  const int num_corners = 0;
+  const int tag_ids[4] = {0, 0, 0, 0};
+  const int corner_indices[4] = {0, 1, 2, 3};
+  const real_t object_points[][3] = {{0, 1, 2},
+                                     {3, 4, 5},
+                                     {6, 7, 8},
+                                     {9, 10, 11}};
+  const real_t keypoints[][2] = {{0, 0}, {1, 1}, {2, 2}, {2, 2}};
+  const real_t joint_angles[3] = {0.0, 0.0, 0.0};
+  const int num_joints = 3;
+  calib_gimbal_add_view(calib,
+                        pose_idx,
+                        view_idx,
+                        ts,
+                        cam_idx,
+                        num_corners,
+                        tag_ids,
+                        corner_indices,
+                        (const real_t **) object_points,
+                        (const real_t **) keypoints,
+                        joint_angles,
+                        num_joints);
+
+  printf("num_views: %d\n", calib->num_views);
+  printf("num_calib_factors: %d\n", calib->num_calib_factors);
+  printf("num_joints: %d\n", calib->num_joints);
+
+  // Clean up
   calib_gimbal_free(calib);
+
   return 0;
 }
 
@@ -4779,6 +4886,7 @@ void test_suite() {
   MU_ADD_TEST(test_solver_setup);
   MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
+  MU_ADD_TEST(test_calib_gimbal_add_pose);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_link);
   MU_ADD_TEST(test_calib_gimbal_add_camera);
