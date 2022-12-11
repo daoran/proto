@@ -10042,6 +10042,31 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
   return calib;
 }
 
+int calib_gimbal_validate(calib_gimbal_t *calib) {
+  const int num_checks = 6;
+  const char *checklist_names[] = {"calib->fiducial_ext_ok",
+                                   "calib->gimbal_ext_ok",
+                                   "calib->poses_ok",
+                                   "calib->cams_ok",
+                                   "calib->links_ok",
+                                   "calib->joints_ok"};
+  const int checklist_vals[] = {calib->fiducial_ext_ok,
+                                calib->gimbal_ext_ok,
+                                calib->poses_ok,
+                                calib->cams_ok,
+                                calib->links_ok,
+                                calib->joints_ok};
+
+  for (int i = 0; i < num_checks; i++) {
+    if (checklist_vals[i] != 1) {
+      LOG_ERROR("%s != 1\n", checklist_names[i]);
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
 param_order_t *calib_gimbal_param_order(const void *data,
                                         int *sv_size,
                                         int *r_size) {

@@ -1799,6 +1799,7 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                            const real_t *joint_angles,
                            const int num_joints);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
+int calib_gimbal_validate(calib_gimbal_t *calib);
 param_order_t *calib_gimbal_param_order(const void *data,
                                         int *sv_size,
                                         int *r_size);
