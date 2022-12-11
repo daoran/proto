@@ -1229,17 +1229,17 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 // JOINT-ANGLES //
 //////////////////
 
-typedef struct joint_angle_t {
+typedef struct joint_t {
   timestamp_t ts;
   int joint_idx;
   real_t data[1];
-} joint_angle_t;
+} joint_t;
 
-void joint_angle_setup(joint_angle_t *joint,
-                       const timestamp_t ts,
-                       const int joint_idx,
-                       const real_t theta);
-void joint_angle_print(const char *prefix, const joint_angle_t *joint);
+void joint_setup(joint_t *joint,
+                 const timestamp_t ts,
+                 const int joint_idx,
+                 const real_t theta);
+void joint_print(const char *prefix, const joint_t *joint);
 
 ///////////////////////
 // CAMERA-PARAMETERS //
@@ -1442,8 +1442,8 @@ int vision_factor_eval(void *factor_ptr);
 // JOINT-ANGLE FACTOR //
 ////////////////////////
 
-typedef struct joint_angle_factor_t {
-  joint_angle_t *joint;
+typedef struct joint_factor_t {
+  joint_t *joint;
 
   real_t z[1];
   real_t covar[1];
@@ -1457,13 +1457,13 @@ typedef struct joint_angle_factor_t {
   real_t r[1];
   real_t *jacs[1];
   real_t J_joint[1 * 1];
-} joint_angle_factor_t;
+} joint_factor_t;
 
-void joint_angle_factor_setup(joint_angle_factor_t *factor,
-                              joint_angle_t *joint0,
-                              const real_t z,
-                              const real_t var);
-int joint_angle_factor_eval(void *factor_ptr);
+void joint_factor_setup(joint_factor_t *factor,
+                        joint_t *joint0,
+                        const real_t z,
+                        const real_t var);
+int joint_factor_eval(void *factor_ptr);
 
 /////////////////////////
 // CALIB-GIMBAL-FACTOR //
@@ -1475,9 +1475,9 @@ typedef struct calib_gimbal_factor_t {
   pose_t *pose;
   extrinsic_t *link0;
   extrinsic_t *link1;
-  joint_angle_t *joint0;
-  joint_angle_t *joint1;
-  joint_angle_t *joint2;
+  joint_t *joint0;
+  joint_t *joint1;
+  joint_t *joint2;
   extrinsic_t *cam_exts;
   camera_params_t *cam;
 
@@ -1518,7 +1518,7 @@ void gimbal_setup_joint(const timestamp_t ts,
                         const int joint_idx,
                         const real_t theta,
                         real_t T_joint[4 * 4],
-                        joint_angle_t *joint);
+                        joint_t *joint);
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                extrinsic_t *fiducial_exts,
@@ -1526,9 +1526,9 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                pose_t *pose,
                                extrinsic_t *link0,
                                extrinsic_t *link1,
-                               joint_angle_t *joint0,
-                               joint_angle_t *joint1,
-                               joint_angle_t *joint2,
+                               joint_t *joint0,
+                               joint_t *joint1,
+                               joint_t *joint2,
                                extrinsic_t *cam_exts,
                                camera_params_t *cam,
                                const timestamp_t ts,
@@ -1715,8 +1715,8 @@ typedef struct calib_gimbal_view_t {
 
   int *tag_ids;
   int *corner_indices;
-  real_t **object_points;
-  real_t **keypoints;
+  real_t *object_points;
+  real_t *keypoints;
   calib_gimbal_factor_t *calib_factors;
 } calib_gimbal_view_t;
 
@@ -1729,6 +1729,14 @@ typedef struct calib_gimbal_t {
   int fix_cam_exts;
   int fix_links;
   int fix_joints;
+
+  // Flags
+  int fiducial_ext_ok;
+  int gimbal_ext_ok;
+  int poses_ok;
+  int cams_ok;
+  int links_ok;
+  int joints_ok;
 
   // Counters
   int num_cams;
@@ -1746,22 +1754,22 @@ typedef struct calib_gimbal_t {
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
   extrinsic_t *links;
-  joint_angle_t **joints;
+  joint_t **joints;
   pose_t *poses;
 
   // Factors
   calib_gimbal_view_t ***views;
-  joint_angle_factor_t **joint_factors;
+  joint_factor_t **joint_factors;
 } calib_gimbal_t;
 
 void calib_gimbal_view_setup(calib_gimbal_view_t *calib);
 calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
                                               const int view_idx,
                                               const int cam_idx,
-                                              int *tag_ids,
-                                              int *corner_indices,
-                                              real_t **object_points,
-                                              real_t **keypoints,
+                                              const int *tag_ids,
+                                              const int *corner_indices,
+                                              const real_t *object_points,
+                                              const real_t *keypoints,
                                               const int N);
 void calib_gimbal_view_free(calib_gimbal_view_t *calib);
 
@@ -1794,9 +1802,9 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                            const int num_corners,
                            const int *tag_ids,
                            const int *corner_indices,
-                           real_t **object_points,
-                           real_t **keypoints,
-                           const real_t *joint_angles,
+                           const real_t *object_points,
+                           const real_t *keypoints,
+                           const real_t *joints,
                            const int num_joints);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
 int calib_gimbal_validate(calib_gimbal_t *calib);
@@ -1951,16 +1959,20 @@ typedef struct sim_gimbal_t {
   pose_t gimbal_pose;
   extrinsic_t gimbal_ext;
   extrinsic_t *gimbal_links;
-  joint_angle_t *gimbal_joints;
+  joint_t *gimbal_joints;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
 } sim_gimbal_t;
 
 sim_gimbal_t *sim_gimbal_malloc();
 void sim_gimbal_free(sim_gimbal_t *sim);
+void sim_gimbal_print(const sim_gimbal_t *sim);
 void sim_gimbal_set_joint(sim_gimbal_t *sim,
                           const int joint_idx,
                           const real_t angle);
+void sim_gimbal_get_joints(sim_gimbal_t *sim,
+                           const int num_joints,
+                           real_t *angles);
 calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
                                      const timestamp_t ts,
                                      const int view_idx,

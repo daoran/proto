@@ -3156,36 +3156,36 @@ int test_vision_factor_eval() {
   return 0;
 }
 
-int test_joint_angle_factor_setup() {
-  joint_angle_factor_t factor;
-  joint_angle_t joint;
+int test_joint_factor_setup() {
+  joint_factor_t factor;
+  joint_t joint;
   const real_t z = 0.0;
   const real_t var = 0.1;
-  joint_angle_factor_setup(&factor, &joint, z, var);
+  joint_factor_setup(&factor, &joint, z, var);
 
   return 0;
 }
 
-int test_joint_angle_factor_eval() {
+int test_joint_factor_eval() {
   // Joint angle
   const timestamp_t ts = 0;
   const int joint_idx = 0;
   const real_t z = 0.01;
-  joint_angle_t joint;
-  joint_angle_setup(&joint, ts, joint_idx, z);
+  joint_t joint;
+  joint_setup(&joint, ts, joint_idx, z);
 
   // Joint angle factor
-  joint_angle_factor_t factor;
+  joint_factor_t factor;
   const real_t var = 0.1;
-  joint_angle_factor_setup(&factor, &joint, z, var);
+  joint_factor_setup(&factor, &joint, z, var);
 
   // Jacobians
-  joint_angle_factor_eval(&factor);
+  joint_factor_eval(&factor);
 
   // Check Jacobians
   const double tol = 1e-4;
   const double step_size = 1e-8;
-  CHECK_FACTOR_J(0, factor, joint_angle_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(0, factor, joint_factor_eval, step_size, tol, 0);
 
   return 0;
 }
@@ -3196,9 +3196,9 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
                                       pose_t *pose,
                                       extrinsic_t *link0,
                                       extrinsic_t *link1,
-                                      joint_angle_t *joint0,
-                                      joint_angle_t *joint1,
-                                      joint_angle_t *joint2,
+                                      joint_t *joint0,
+                                      joint_t *joint1,
+                                      joint_t *joint2,
                                       extrinsic_t *cam_exts,
                                       camera_params_t *cam) {
   // Body pose T_WB
@@ -3329,9 +3329,9 @@ int test_calib_gimbal_factor_setup() {
   pose_t pose;
   extrinsic_t link0;
   extrinsic_t link1;
-  joint_angle_t joint0;
-  joint_angle_t joint1;
-  joint_angle_t joint2;
+  joint_t joint0;
+  joint_t joint1;
+  joint_t joint2;
   extrinsic_t cam_exts;
   camera_params_t cam;
   setup_calib_gimbal_factor(&factor,
@@ -3356,9 +3356,9 @@ int test_calib_gimbal_factor_eval() {
   pose_t pose;
   extrinsic_t link0;
   extrinsic_t link1;
-  joint_angle_t joint0;
-  joint_angle_t joint1;
-  joint_angle_t joint2;
+  joint_t joint0;
+  joint_t joint1;
+  joint_t joint2;
   extrinsic_t cam_exts;
   camera_params_t cam;
   setup_calib_gimbal_factor(&factor,
@@ -4178,15 +4178,9 @@ int test_calib_gimbal_add_view() {
   const int num_corners = 4;
   const int tag_ids[4] = {0, 0, 0, 0};
   const int corner_indices[4] = {0, 1, 2, 3};
-  real_t **object_points = MALLOC(real_t *, num_corners);
-  real_t **keypoints = MALLOC(real_t *, num_corners);
-  for (int i = 0; i < 4; i++) {
-    const real_t p[3] = {i, i, i};
-    const real_t z[2] = {i, i};
-    object_points[i] = vec_malloc(p, 3);
-    keypoints[i] = vec_malloc(z, 2);
-  }
-  const real_t joint_angles[3] = {0.0, 0.0, 0.0};
+  const real_t object_points[12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  const real_t keypoints[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+  const real_t joints[3] = {0.0, 0.0, 0.0};
   const int num_joints = 3;
   calib_gimbal_add_view(calib,
                         pose_idx,
@@ -4198,7 +4192,7 @@ int test_calib_gimbal_add_view() {
                         corner_indices,
                         object_points,
                         keypoints,
-                        joint_angles,
+                        joints,
                         num_joints);
 
   printf("num_views: %d\n", calib->num_views);
@@ -4206,12 +4200,6 @@ int test_calib_gimbal_add_view() {
   printf("num_joints: %d\n", calib->num_joints);
 
   // Clean up
-  for (int i = 0; i < num_corners; i++) {
-    free(object_points[i]);
-    free(keypoints[i]);
-  }
-  free(object_points);
-  free(keypoints);
   calib_gimbal_free(calib);
 
   return 0;
@@ -4626,16 +4614,16 @@ int test_sim_gimbal_view() {
 }
 
 int test_sim_gimbal_solve() {
-  int num_views = 5;
-  int num_cams = 2;
-
+  // Setup gimbal simulator
   sim_gimbal_t *sim = sim_gimbal_malloc();
   POSE2TF(sim->gimbal_pose.data, T_WB);
 
+  // Setup gimbal calibrator
   calib_gimbal_t *calib = calib_gimbal_malloc();
   const timestamp_t ts = 0;
   calib_gimbal_add_fiducial(calib, sim->fiducial_ext.data);
   calib_gimbal_add_pose(calib, ts, sim->gimbal_pose.data);
+  calib_gimbal_add_gimbal_extrinsic(calib, sim->gimbal_ext.data);
   calib_gimbal_add_gimbal_link(calib, 0, sim->gimbal_links[0].data);
   calib_gimbal_add_gimbal_link(calib, 1, sim->gimbal_links[1].data);
   for (int cam_idx = 0; cam_idx < sim->num_cams; cam_idx++) {
@@ -4648,16 +4636,27 @@ int test_sim_gimbal_solve() {
                             sim->cam_exts[cam_idx].data);
   }
 
+  // Simulate gimbal views
+  int num_views = 100;
+  int num_cams = 2;
   const int pose_idx = 0;
-  for (int view_idx = 0; view_idx < num_views; view_idx++) {
-    for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-      const timestamp_t ts = view_idx;
-      calib_gimbal_view_t *view =
-          sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);
+  calib_gimbal_view_t *view = NULL;
 
-      real_t joint_angles[3] = {sim->gimbal_joints[0].data[0],
-                                sim->gimbal_joints[1].data[1],
-                                sim->gimbal_joints[1].data[2]};
+  for (int view_idx = 0; view_idx < num_views; view_idx++) {
+    // Perturb gimbal joint
+    sim_gimbal_set_joint(sim, 0, randf(-0.5, 0.5));
+    sim_gimbal_set_joint(sim, 1, randf(-0.5, 0.5));
+    sim_gimbal_set_joint(sim, 2, randf(-0.5, 0.5));
+
+    // Add gimbal view
+    for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+      // Simulate single gimbal view
+      const timestamp_t ts = view_idx;
+      view = sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);
+
+      // Add view to calibration problem
+      real_t joints[3] = {0};
+      sim_gimbal_get_joints(sim, 3, joints);
       calib_gimbal_add_view(calib,
                             pose_idx,
                             view_idx,
@@ -4668,18 +4667,18 @@ int test_sim_gimbal_solve() {
                             view->corner_indices,
                             view->object_points,
                             view->keypoints,
-                            joint_angles,
+                            joints,
                             sim->num_joints);
       calib_gimbal_view_free(view);
     }
   }
 
-  // // Solve
-  // solver_t solver;
-  // solver_setup(&solver);
-  // solver.param_order_func = &calib_gimbal_param_order;
-  // solver.linearize_func = &calib_gimbal_linearize_compact;
-  // solver_solve(&solver, calib_est);
+  // Solve
+  solver_t solver;
+  solver_setup(&solver);
+  solver.param_order_func = &calib_gimbal_param_order;
+  solver.linearize_func = &calib_gimbal_linearize_compact;
+  solver_solve(&solver, calib);
 
   // Clean up
   calib_gimbal_free(calib);
@@ -4859,8 +4858,8 @@ void test_suite() {
   MU_ADD_TEST(test_ba_factor_eval);
   MU_ADD_TEST(test_vision_factor_setup);
   MU_ADD_TEST(test_vision_factor_eval);
-  MU_ADD_TEST(test_joint_angle_factor_setup);
-  MU_ADD_TEST(test_joint_angle_factor_eval);
+  MU_ADD_TEST(test_joint_factor_setup);
+  MU_ADD_TEST(test_joint_factor_eval);
   MU_ADD_TEST(test_calib_gimbal_factor_setup);
   MU_ADD_TEST(test_calib_gimbal_factor_eval);
   MU_ADD_TEST(test_imu_buf_setup);
