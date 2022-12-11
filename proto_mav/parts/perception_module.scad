@@ -395,11 +395,11 @@ module encoder_frame(show_encoder=1, show_motor=0) {
   mount_d = 11;
 
   motor_standoff_w = 5;
-  motor_standoff_h = 12; // Roll and Yaw motor
+  motor_standoff_h = 10; // Roll and Yaw motor
   // motor_standoff_h = 7; // Pitch motor
 
   encoder_standoff_w = 7;
-  encoder_standoff_h = 6; // Roll and Yaw motor
+  encoder_standoff_h = 4; // Roll and Yaw motor
 
   support_w = 4;
   support_h = 3.5;
@@ -957,7 +957,7 @@ module gimbal_roll_frame(show_roll_motor=1,
   motor_h = 15.0;
   motor_mount_w = 13.2;
   motor_mount_d = 20.5;
-  motor_offset_y = -8;
+  motor_offset_y = -4;
   motor_offset_z = 40;
 
   roll_mount_w = 30.0;
@@ -967,7 +967,7 @@ module gimbal_roll_frame(show_roll_motor=1,
   pitch_mount_w = roll_mount_w;
   pitch_mount_d = roll_mount_h;
   pitch_mount_h = 50;
-  pitch_mount_offset_y = (39 + pitch_mount_d) / 2;
+  pitch_mount_offset_y = (35 + pitch_mount_d) / 2;
   pitch_standoff_w = 6;
   pitch_standoff_h = 7.5;
 
@@ -1002,8 +1002,12 @@ module gimbal_roll_frame(show_roll_motor=1,
     union() {
       // Roll motor mount
       translate([0, 0, roll_mount_h / 2])
-        // cylinder(r=(motor_mount_d + 15) / 2, h=roll_mount_h, center=true);
-        cube([roll_mount_w, roll_mount_d, roll_mount_h], center=true);
+        cylinder(r=motor_mount_d - 2, h=roll_mount_h, center=true);
+        // cube([roll_mount_w, roll_mount_d, roll_mount_h], center=true);
+
+      // Roll-Pitch mount connector
+      translate([0, pitch_mount_offset_y / 2, roll_mount_h / 2])
+        cube([roll_mount_w, pitch_mount_offset_y / 2, roll_mount_h], center=true);
 
       // Pitch motor mount
       translate([0, pitch_mount_offset_y + motor_offset_y, motor_offset_z])
@@ -1041,7 +1045,7 @@ module gimbal_roll_frame(show_roll_motor=1,
 }
 
 module gimbal_pitch_frame(show_pitch_motor=0, show_encoder=0, show_cameras=1) {
-  tol = 0.4;
+  tol = 0.6;
 
   motor_h = 15.0;
   motor_mount_w = 13.2;
@@ -1555,12 +1559,12 @@ module perception_module() {
 // gimbal_motor();
 // gimbal_imu();
 // gimbal_imu_frame();
-// gimbal_camera_frame(show_camera=0);
+gimbal_camera_frame(show_camera=0);
 // gimbal_camera_frame_spacer(3.5, 3);
 // gimbal_roll_frame(show_roll_motor=0,
-//                   show_pitch_motor=0,
-//                   show_pitch_frame=0,
-//                   show_encoder=0);
+//                   show_pitch_motor=1,
+//                   show_pitch_frame=1,
+//                   show_encoder=1);
 // gimbal_pitch_frame(show_pitch_motor=0, show_encoder=0, show_cameras=0);
 // gimbal_yaw_frame(show_roll_frame=1, show_sbgc_frame=1);
 // gimbal_frame(nuc_mount_w, nuc_mount_d, 1);
