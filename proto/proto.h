@@ -1821,6 +1821,7 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                            const real_t *keypoints,
                            const real_t *joints,
                            const int num_joints);
+int calib_gimbal_remove_view(calib_gimbal_t *calib, const int view_idx);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
 int calib_gimbal_validate(calib_gimbal_t *calib);
 param_order_t *calib_gimbal_param_order(const void *data,

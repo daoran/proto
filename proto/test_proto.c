@@ -4160,7 +4160,7 @@ int test_calib_gimbal_add_camera() {
   return 0;
 }
 
-int test_calib_gimbal_add_view() {
+int test_calib_gimbal_add_remove_view() {
   // Setup gimbal calibration
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
@@ -4216,10 +4216,25 @@ int test_calib_gimbal_add_view() {
                         keypoints,
                         joints,
                         num_joints);
+  MU_ASSERT(calib->num_cams == 1);
+  MU_ASSERT(calib->num_views == 1);
+  MU_ASSERT(calib->num_poses == 1);
+  MU_ASSERT(calib->num_links == 2);
+  MU_ASSERT(calib->num_joints == 3);
+  MU_ASSERT(calib->num_calib_factors == 4);
+  MU_ASSERT(calib->num_joint_factors == 3);
+  MU_ASSERT(calib->num_joints == 3);
 
-  printf("num_views: %d\n", calib->num_views);
-  printf("num_calib_factors: %d\n", calib->num_calib_factors);
-  printf("num_joints: %d\n", calib->num_joints);
+  // -- Remove view
+  calib_gimbal_remove_view(calib, view_idx);
+  MU_ASSERT(calib->num_cams == 1);
+  MU_ASSERT(calib->num_views == 0);
+  MU_ASSERT(calib->num_poses == 1);
+  MU_ASSERT(calib->num_links == 2);
+  MU_ASSERT(calib->num_joints == 3);
+  MU_ASSERT(calib->num_calib_factors == 0);
+  MU_ASSERT(calib->num_joint_factors == 0);
+  MU_ASSERT(calib->num_joints == 3);
 
   // Clean up
   calib_gimbal_free(calib);
@@ -4903,7 +4918,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_link);
   MU_ADD_TEST(test_calib_gimbal_add_camera);
-  MU_ADD_TEST(test_calib_gimbal_add_view);
+  MU_ADD_TEST(test_calib_gimbal_add_remove_view);
   MU_ADD_TEST(test_calib_gimbal_load);
   MU_ADD_TEST(test_calib_gimbal_solve);
 #ifdef USE_CERES

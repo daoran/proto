@@ -9754,6 +9754,27 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
 }
 
 /**
+ * Remove view from gimbal calibration problem.
+ */
+int calib_gimbal_remove_view(calib_gimbal_t *calib, const int view_idx) {
+  assert(view_idx < calib->num_views);
+
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
+    calib->num_calib_factors -= view->num_corners;
+    calib_gimbal_view_free(view);
+  }
+  free(calib->views[view_idx]);
+
+  free(calib->joints[view_idx]);
+  free(calib->joint_factors[view_idx]);
+  calib->num_joint_factors -= calib->num_joints;
+  calib->num_views--;
+
+  return 0;
+}
+
+/**
  * Skip line
  */
 static void parse_skip_line(FILE *fp) {
