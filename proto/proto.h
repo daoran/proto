@@ -1160,7 +1160,6 @@ int schurs_complement(const real_t *H,
                       const int b_m,
                       const int m,
                       const int r,
-                      const real_t tol,
                       real_t *H_marg,
                       real_t *b_marg);
 

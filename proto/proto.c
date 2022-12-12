@@ -6368,9 +6368,16 @@ int schurs_complement(const real_t *H,
                       const int b_m,
                       const int m,
                       const int r,
-                      const real_t tol,
                       real_t *H_marg,
                       real_t *b_marg) {
+  assert(H != NULL);
+  assert(H_m > 0 && H_n > 0);
+  assert(H_m == H_n);
+  assert(b);
+  assert(b_m > 0);
+  assert((m + r) == H_m);
+  assert(H_marg != NULL && b_marg != NULL);
+
   // Extract sub-blocks of matrix H
   // H = [Hmm, Hmr,
   //      Hrm, Hrr]
