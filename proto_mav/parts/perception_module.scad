@@ -1163,7 +1163,7 @@ module gimbal_yaw_frame(show_roll_frame=1, show_sbgc_frame=1) {
   support_w = 8.0;
   support_h = 8.0;
 
-  encoder_h = 12;
+  encoder_h = 10;
   roll_mount_h = 50;
   roll_mount_d = 45;
 
@@ -1284,7 +1284,7 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
 
   roll_mount_w = 30.0;
   roll_mount_h = 50.0;
-  encoder_standoff_h = 12;
+  encoder_standoff_h = 10;
 
   sbgc_standoff_w = 5.0;
   sbgc_standoff_base_w = 8.0;
@@ -1415,6 +1415,40 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
     //     }
     //   }
     // }
+  }
+}
+
+module pcb_frame(mount_w, mount_d) {
+  pcb_mount_w = 66;
+  pcb_mount_d = 46;
+  pcb_standoff_w = 5;
+  pcb_standoff_h = support_h + 4;
+
+  difference() {
+    union() {
+      // Mount frame
+      frame(mount_w, mount_d,
+            M3_screw_w, M3_nut_w, M3_nut_h,
+            standoff_w, support_h,
+            support_w, support_h);
+
+      // PCB frame
+      frame(pcb_mount_w, pcb_mount_d,
+            M2_screw_w, M2_nut_w, M2_nut_h,
+            pcb_standoff_w, pcb_standoff_h,
+            support_w, support_h,
+            nut_csb=1);
+
+      // Supports
+      translate([pcb_mount_w / 2, 0, support_h / 2])
+        cube([support_w, mount_d, support_h], center=true);
+      translate([-pcb_mount_w / 2, 0, support_h / 2])
+        cube([support_w, mount_d, support_h], center=true);
+    }
+
+    // Holes
+    mount_holes(pcb_mount_w, pcb_mount_d, M2_screw_w, support_h);
+    mount_holes(pcb_mount_w, pcb_mount_d, M2_nut_w, M2_nut_h, fn=6);
   }
 }
 
@@ -1559,7 +1593,7 @@ module perception_module() {
 // gimbal_motor();
 // gimbal_imu();
 // gimbal_imu_frame();
-gimbal_camera_frame(show_camera=0);
+// gimbal_camera_frame(show_camera=0);
 // gimbal_camera_frame_spacer(3.5, 3);
 // gimbal_roll_frame(show_roll_motor=0,
 //                   show_pitch_motor=1,
@@ -1568,6 +1602,7 @@ gimbal_camera_frame(show_camera=0);
 // gimbal_pitch_frame(show_pitch_motor=0, show_encoder=0, show_cameras=0);
 // gimbal_yaw_frame(show_roll_frame=1, show_sbgc_frame=1);
 // gimbal_frame(nuc_mount_w, nuc_mount_d, 1);
+pcb_frame(nuc_mount_w, nuc_mount_d);
 // nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=1);
 // payload_frame(mav_payload_mount_w, mav_payload_mount_d,
 //               mav_frame_support_w, mav_frame_support_h,
