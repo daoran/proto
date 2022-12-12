@@ -1533,12 +1533,6 @@ int test_pinv() {
      5.13,  6.62, -5.66,  0.87,
     -4.75,  8.52,  5.75,  5.30,
   };
-  real_t A_copy[4 * 4] = {
-     7.52, -1.10, -7.95,  1.08,
-    -0.76,  0.62,  9.34, -7.10,
-     5.13,  6.62, -5.66,  0.87,
-    -4.75,  8.52,  5.75,  5.30,
-  };
   // clang-format on
 
   // Invert matrix A using SVD
@@ -1548,7 +1542,7 @@ int test_pinv() {
   // printf("time taken: [%fs]\n", toc(&t));
 
   // Inverse check: A * A_inv = eye
-  MU_ASSERT(check_inv(A_copy, A_inv, 4) == 0);
+  MU_ASSERT(check_inv(A, A_inv, 4) == 0);
 
   return 0;
 }
@@ -1696,6 +1690,34 @@ int test_eig_sym() {
   // print_matrix("A", A, 5, 5);
   // print_matrix("V", V, 5, 5);
   // print_vector("w", w, 5);
+
+  return 0;
+}
+
+int test_eig_inv() {
+  // clang-format off
+  const int m = 5;
+  const int n = 5;
+  real_t A[5 * 5] = {
+     1.96, -6.49, -0.47, -7.20, -0.65,
+    -6.49,  3.80, -6.39,  1.50, -6.34,
+    -0.47, -6.39,  4.17, -1.51,  2.67,
+    -7.20,  1.50, -1.51,  5.70,  1.80,
+    -0.65, -6.34,  2.67,  1.80, -7.10
+  };
+  // clang-format on
+
+  // Invert matrix A using SVD
+  // struct timespec t = tic();
+  real_t A_inv[5 * 5] = {0};
+  eig_inv(A, m, n, 1, A_inv);
+
+  // DOT(A, 5, 5, A_inv, 5, 5, check);
+  // print_matrix("check", check, 5, 5);
+  // printf("time taken: [%fs]\n", toc(&t));
+
+  // Inverse check: A * A_inv = eye
+  MU_ASSERT(check_inv(A, A_inv, 5) == 0);
 
   return 0;
 }
@@ -4796,6 +4818,7 @@ void test_suite() {
   MU_ADD_TEST(test_chol_solve);
   MU_ADD_TEST(test_qr);
   MU_ADD_TEST(test_eig_sym);
+  MU_ADD_TEST(test_eig_inv);
 
   // SUITE-SPARSE
   MU_ADD_TEST(test_suitesparse_chol_solve);

@@ -287,10 +287,11 @@ dev_euroc() {
 # run_test test_dot
 # run_test test_skew
 # run_test test_check_jacobian
-# PROTO-SVD
 # run_test test_svd
-# run_test test_svd_inv
+# run_test test_pinv
 # run_test test_svd_det
+# run_test test_eig_sym
+run_test test_eig_inv
 # PROTO-CHOL
 # run_test test_chol
 # run_test test_chol_solve
@@ -389,7 +390,7 @@ dev_euroc() {
 # run_test test_load_sim_cam_data
 # run_test test_sim_gimbal_malloc_free
 # run_test test_sim_gimbal_view
-run_test test_sim_gimbal_solve
+# run_test test_sim_gimbal_solve
 # PROTO-GUI
 # run_test test_gl_zeros
 # run_test test_gl_ones

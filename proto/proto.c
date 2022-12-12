@@ -3603,7 +3603,7 @@ void pinv(const real_t *A, const int m, const int n, real_t *A_inv) {
   real_t *Si_Ut = MALLOC(real_t, diag_size * n);
   mat_transpose(U, m, n, Ut);
   dot(Si, diag_size, diag_size, Ut, m, n, Si_Ut);
-  dot(U, m, n, Si_Ut, diag_size, n, A_inv);
+  dot(V, m, n, Si_Ut, diag_size, n, A_inv);
 
   // Clean up
   free(s);
@@ -3965,6 +3965,42 @@ int eig_sym(const real_t *A, const int m, const int n, real_t *V, real_t *w) {
   assert(m == n);
   assert(V != NULL && w != NULL);
   return __lapack_eig(A, m, n, V, w);
+}
+
+/**
+ * Invert matrix `A` of size `m` x `n` with Eigen-decomposition.
+ */
+int eig_inv(real_t *A, const int m, const int n, const int c, real_t *A_inv) {
+  assert(A != NULL);
+  assert(m == n);
+  assert(A_inv != NULL);
+
+  // Enforce Symmetric Positive Definite
+  if (c) {
+    enforce_spd(A, m, m);
+  }
+
+  // Invert matrix via Eigen-decomposition
+  real_t *V = MALLOC(real_t, m * m);
+  real_t *Vt = MALLOC(real_t, m * m);
+  real_t *Lambda_inv = MALLOC(real_t, m * m);
+  real_t *w = MALLOC(real_t, m);
+
+  eig_sym(A, m, m, V, w);
+  for (int i = 0; i < m; i++) {
+    w[i] = 1.0 / w[i];
+  }
+  mat_diag_set(Lambda_inv, m, m, w);
+  mat_transpose(V, m, m, Vt);
+  dot3(V, m, m, Lambda_inv, m, m, Vt, m, m, A_inv);
+
+  // Clean up
+  free(V);
+  free(Vt);
+  free(Lambda_inv);
+  free(w);
+
+  return 0;
 }
 
 /**
@@ -6320,6 +6356,74 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 /******************************************************************************
  * SENSOR FUSION
  ******************************************************************************/
+
+///////////
+// UTILS //
+///////////
+
+int schurs_complement(const real_t *H,
+                      const int H_m,
+                      const int H_n,
+                      const real_t *b,
+                      const int b_m,
+                      const int m,
+                      const int r,
+                      const real_t tol,
+                      real_t *H_marg,
+                      real_t *b_marg) {
+  // Extract sub-blocks of matrix H
+  // H = [Hmm, Hmr,
+  //      Hrm, Hrr]
+  real_t *Hmm = MALLOC(real_t, m * m);
+  real_t *Hmr = MALLOC(real_t, m * r);
+  real_t *Hrm = MALLOC(real_t, m * r);
+  real_t *Hrr = MALLOC(real_t, r * r);
+  real_t *Hmm_inv = MALLOC(real_t, m * m);
+  mat_block_get(H, H_n, 0, m, 0, m, Hmm);
+  mat_block_get(H, H_n, 0, m, m, H_n, Hmr);
+  mat_block_get(H, H_n, m, 0, 0, 0, Hrm);
+  mat_block_get(H, H_n, m, m + r, m, m + r, Hrr);
+
+  // Extract sub-blocks of vector b
+  // b = [b_mm, b_rr]
+  real_t *bmm = MALLOC(real_t, m);
+  real_t *brr = MALLOC(real_t, r);
+  vec_copy(b, m, bmm);
+  vec_copy(b + m, r, brr);
+
+  // Invert Hmm
+  int status = 0;
+  const int c = 1;
+  if (eig_inv(Hmm, m, m, c, Hmm_inv) != 0) {
+    status = -1;
+    goto cleanup;
+  }
+
+  // Shur-Complement
+  // H_marg = H_rr - H_rm * H_mm_inv * H_mr
+  // b_marg = b_rr - H_rm * H_mm_inv * b_mm
+  dot3(Hrm, r, m, Hmm_inv, m, m, Hmr, m, r, H_marg);
+  dot3(Hrm, r, m, Hmm_inv, m, m, bmm, m, r, b_marg);
+  for (int i = 0; i < (m * m); i++) {
+    H_marg[i] = Hrr[i] - H_marg[i];
+  }
+  for (int i = 0; i < m; i++) {
+    b_marg[i] = brr[i] - b_marg[i];
+  }
+
+  // Clean-up
+cleanup:
+  free(Hmm);
+  free(Hmr);
+  free(Hrm);
+  free(Hrr);
+  free(Hmm_inv);
+
+  free(bmm);
+  free(brr);
+
+  return status;
+}
 
 //////////
 // POSE //

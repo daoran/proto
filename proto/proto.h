@@ -871,6 +871,7 @@ void qr(real_t *A, const int m, const int n, real_t *R);
 #define EIG_W_SIZE(Am, An) (An)
 
 int eig_sym(const real_t *A, const int m, const int n, real_t *V, real_t *w);
+int eig_inv(real_t *A, const int m, const int n, const int c, real_t *A_inv);
 int eig_rank(const real_t *A, const int m, const int n, const real_t tol);
 
 /******************************************************************************
@@ -1147,6 +1148,21 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 #define FEATURE_PARAM 6
 #define JOINT_PARAM 7
 #define CAMERA_PARAM 8
+
+///////////
+// UTILS //
+///////////
+
+int schurs_complement(const real_t *H,
+                      const int H_m,
+                      const int H_n,
+                      const real_t *b,
+                      const int b_m,
+                      const int m,
+                      const int r,
+                      const real_t tol,
+                      real_t *H_marg,
+                      real_t *b_marg);
 
 //////////
 // POSE //
