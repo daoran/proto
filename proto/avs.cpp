@@ -274,7 +274,6 @@ void GridDetector::detect(const cv::Mat &image,
       detector_->detect(image(roi), kps_roi);
       kps_roi = spread_keypoints(image(roi), kps_roi, 10, kps_prev);
       detector_->compute(image(roi), kps_roi, des_roi);
-      // detector_->detectAndCompute(image(roi), cv::Mat(), kps_roi, des_roi);
 
       // Offset keypoints
       const size_t vacancy = max_per_cell - grid.count(cell_idx);
@@ -518,7 +517,7 @@ int test_spread_keypoints() {
 }
 
 int test_grid_detect() {
-  const auto img_path = "./test_data/frontend/cam0/1403715297312143104.png";
+  const auto img_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
   const auto img = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
 
   std::vector<cv::KeyPoint> kps_prev;
@@ -531,8 +530,8 @@ int test_grid_detect() {
 }
 
 int test_front_end() {
-  const auto img0_path = "./test_data/frontend/cam0/1403715297312143104.png";
-  const auto img1_path = "./test_data/frontend/cam1/1403715297312143104.png";
+  const auto img0_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
+  const auto img1_path = "./test_data/frontend/cam1/1403715297312143104.jpg";
   const auto img0 = cv::imread(img0_path, cv::IMREAD_GRAYSCALE);
   const auto img1 = cv::imread(img1_path, cv::IMREAD_GRAYSCALE);
 
