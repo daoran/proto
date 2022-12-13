@@ -8,10 +8,17 @@
 
 #include <gst/gst.h>
 #include <gst/video/video.h>
+#include <tcam-property-1.0.h>
 
 #define SDL_DISABLE_IMMINTRIN_H 1
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+
+#define TIS_HARDWARE_TRIGGER 1
+#define TIS_EXPOSURE 0
+#define TIS_EXPOSURE_TIME 33333
+#define TIS_GAIN 0
+#define TIS_GAIN_VAL 0
 
 typedef struct viz_t {
   SDL_Window *window;
@@ -32,18 +39,25 @@ void viz_setup(viz_t *viz,
 void viz_free(viz_t *viz);
 void viz_update(viz_t *viz, const uint8_t *img_data, const int stride);
 void viz_loop(viz_t *viz);
-void bgr2csv(const GstMapInfo *frame);
+void bgr2csv(const GstMapInfo *frame, const char *save_path);
 
 typedef struct tis_t {
   int cam_idx;
   const char *serial;
-  GstElement *pipeline;
+  int trigger_mode;
+  int exposure_on;
+  int exposure_time;
+  int gain_on;
+  int gain_val;
   viz_t *viz;
+
+  GstElement *pipeline;
 } tis_t;
 
 void gst_setup(int argc, char *argv[]);
 GstFlowReturn tis_callback(GstElement *sink, void *user_data);
 int tis_setup(tis_t *cam, const int cam_idx, const char *serial, viz_t *viz);
+void tis_print(const tis_t *cam);
 void tis_run(tis_t *cam);
 void tis_cleanup(tis_t *cam);
 
@@ -131,20 +145,25 @@ void viz_loop(viz_t *viz) {
   }
 }
 
-// /** Write BGR image to csv file **/
-// void bgr2csv(const GstMapInfo *frame) {
-//   FILE *csv = fopen("/tmp/test.csv", "w");
-//   for (int i = 0; i < frame->size; i += 4) {
-//     // Assuming BGRX format
-//     const uint8_t b = frame->data[i];
-//     const uint8_t g = frame->data[i + 1];
-//     const uint8_t r = frame->data[i + 2];
-//     const uint8_t v = 0.3 * r + 0.59 * g + 0.11 * b;
-//     fprintf(csv, "%d ", v);
-//   }
-//   fflush(csv);
-//   fclose(csv);
-// }
+/** Write BGR image to csv file **/
+void bgr2csv(const GstMapInfo *frame, const char *save_path) {
+  FILE *csv = fopen(save_path, "w");
+  if (csv == NULL) {
+    printf("Failed to open [%s]!\n", save_path);
+    return;
+  }
+
+  for (int i = 0; i < frame->size; i += 4) {
+    // Assuming BGRX format
+    const uint8_t b = frame->data[i];
+    const uint8_t g = frame->data[i + 1];
+    const uint8_t r = frame->data[i + 2];
+    const uint8_t v = 0.3 * r + 0.59 * g + 0.11 * b;
+    fprintf(csv, "%d ", v);
+  }
+  fflush(csv);
+  fclose(csv);
+}
 
 /** Setup Gstreamer **/
 void gst_setup(int argc, char *argv[]) {
@@ -178,6 +197,7 @@ GstFlowReturn tis_callback(GstElement *sink, void *user_data) {
     if (cam->viz) {
       const int img_width = video_info->width;
       const int stride = img_width * 4;
+      // bgr2csv(&frame, "/tmp/frame.csv");
       viz_update(cam->viz, frame.data, stride);
     }
 
@@ -188,15 +208,15 @@ GstFlowReturn tis_callback(GstElement *sink, void *user_data) {
 
   // Print timestamp and frame rate
   GstClockTime ts = GST_BUFFER_PTS(buffer);
-  g_print("Timestamp=%" GST_TIME_FORMAT "\t", GST_TIME_ARGS(ts));
+  // g_print("Timestamp=%" GST_TIME_FORMAT "\t", GST_TIME_ARGS(ts));
   if (cam->viz && cam->viz->last_ts != 0) {
-    const uint64_t last_ts = cam->viz->last_ts;
-    const float time_diff_s = ((float) ts - last_ts) * 1e-9;
-    const float frame_rate = 1.0 / time_diff_s;
+    // const uint64_t last_ts = cam->viz->last_ts;
+    // const float time_diff_s = ((float) ts - last_ts) * 1e-9;
+    // const float frame_rate = 1.0 / time_diff_s;
     cam->viz->last_ts = ts;
-    printf("frame_rate: %f\n", frame_rate);
+    // printf("frame_rate: %f\n", frame_rate);
   } else {
-    g_print("\n");
+    // g_print("\n");
   }
 
   // Clean up
@@ -214,25 +234,42 @@ int tis_setup(tis_t *cam, const int cam_idx, const char *serial, viz_t *viz) {
   cam->cam_idx = cam_idx;
   cam->serial = serial;
   cam->viz = viz;
+  cam->trigger_mode = TIS_HARDWARE_TRIGGER;
+  cam->exposure_on = TIS_EXPOSURE;
+  cam->exposure_time = TIS_EXPOSURE_TIME;
+  cam->gain_on = TIS_GAIN;
+  cam->gain_val = TIS_GAIN_VAL;
 
   // Setup pipeline
-  const char *pipeline_str =
-      "tcambin name=source ! videoconvert ! appsink name=sink";
+  char s[1024] = {0};
+  strcat(s, "tcambin name=source ");
+  strcat(s, "tcam-properties=tcam");
+  sprintf(s + strlen(s), ",TriggerMode=%s", cam->trigger_mode ? "On" : "Off");
+  sprintf(s + strlen(s), ",ExposureAuto=%s", cam->exposure_on ? "On" : "Off");
+  sprintf(s + strlen(s), ",ExposureTime=%d", cam->exposure_time);
+  sprintf(s + strlen(s), ",GainAuto=%s", cam->gain_on ? "On" : "Off");
+  strcat(s, " ! videoconvert");
+  strcat(s, " ! appsink name=sink");
+  // printf("s: %s\n", s);
+
   GError *err = NULL;
-  GstElement *pipeline = gst_parse_launch(pipeline_str, &err);
+  GstElement *pipeline = gst_parse_launch(s, &err);
   if (pipeline == NULL) {
     printf("Could not create pipeline. Cause: %s\n", err->message);
     return 1;
   }
   cam->pipeline = pipeline;
 
-  // Setup pipeline source
+  // Set camera serial
+  GstElement *source = NULL;
   if (serial != NULL) {
-    GstElement *source = gst_bin_get_by_name(GST_BIN(pipeline), "source");
+    source = gst_bin_get_by_name(GST_BIN(pipeline), "source");
+
     GValue val = {0};
     g_value_init(&val, G_TYPE_STRING);
     g_value_set_static_string(&val, serial);
     g_object_set_property(G_OBJECT(source), "serial", &val);
+
     gst_object_unref(source);
   }
 
@@ -243,6 +280,17 @@ int tis_setup(tis_t *cam, const int cam_idx, const char *serial, viz_t *viz) {
   gst_object_unref(sink);
 
   return 0;
+}
+
+/** Print TIS camera settings **/
+void tis_print(const tis_t *cam) {
+  printf("cam_idx: %d\n", cam->cam_idx);
+  printf("serial: %s\n", cam->serial);
+  printf("trigger_mode: %d\n", cam->trigger_mode);
+  printf("exposure_on: %d\n", cam->exposure_on);
+  printf("exposure_time: %d\n", cam->exposure_time);
+  printf("gain_on: %d\n", cam->gain_on);
+  printf("gain_val: %d\n", cam->gain_val);
 }
 
 /** Run TIS camera **/
@@ -269,9 +317,9 @@ int main(int argc, char *argv[]) {
 
   // Setup
   int cam_idx = 0;
-  const char *cam_serial = "19220362";
   // int cam_idx = 1;
-  // const char *cam_serial = "19220363";
+  // const char *cam_serial = "19220362";
+  const char *cam_serial = "19220363";
   tis_t cam;
   viz_t viz;
 
@@ -279,6 +327,8 @@ int main(int argc, char *argv[]) {
   if (tis_setup(&cam, cam_idx, cam_serial, &viz) != 0) {
     return -1;
   }
+  tis_print(&cam);
+  exit(0);
 
   // Run
   tis_run(&cam);
