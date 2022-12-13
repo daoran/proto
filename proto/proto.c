@@ -10288,8 +10288,12 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   const real_t dpitch = (range_pitch[1] - range_pitch[0]) / parts_pitch;
   const real_t dyaw = (range_yaw[1] - range_yaw[0]) / parts_yaw;
 
+  real_t entropy_init = 0.0;
   real_t entropy_best = 0.0;
   real_t joints_best[3] = {0.0, 0.0, 0.0};
+  if (calib_gimbal_shannon_entropy(calib, &entropy_init) != 0) {
+    return;
+  }
 
   const int nbv_idx = calib->num_views;
   const timestamp_t ts = nbv_idx;
@@ -10357,18 +10361,25 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
           joints_best[2] = p;
         }
 
-        printf("yaw: %.2f, ", y);
-        printf("roll: %.2f, ", r);
-        printf("pitch: %.2f, ", p);
-        printf("entropy_view: %.2f, ", entropy_view);
-        printf("entropy_best: %.2f\n", entropy_best);
+        // printf("yaw: %.2f, ", y);
+        // printf("roll: %.2f, ", r);
+        // printf("pitch: %.2f, ", p);
+        // printf("entropy_view: %.2f, ", entropy_view);
+        // printf("entropy_best: %.2f\n", entropy_best);
+        printf(".");
+        fflush(stdout);
       }
     }
   }
-  printf("\n\n");
 
   vec_copy(joints_best, 3, nbv_joints);
-  print_vector("nbv_joints", nbv_joints, 3);
+  printf("calib_entropy: %.2f, ", entropy_init);
+  printf("nbv_entropy: %.2f, ", entropy_best);
+  printf("nbv_joints: [");
+  printf("%.2f, ", rad2deg(nbv_joints[0]));
+  printf("%.2f, ", rad2deg(nbv_joints[1]));
+  printf("%.2f]\n", rad2deg(nbv_joints[2]));
+  // printf("\n");
 }
 
 param_order_t *calib_gimbal_param_order(const void *data,

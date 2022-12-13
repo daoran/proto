@@ -4685,9 +4685,9 @@ int test_sim_gimbal_solve() {
 
   for (int view_idx = 0; view_idx < num_views; view_idx++) {
     // Perturb gimbal joint
-    sim_gimbal_set_joint(sim, 0, randf(-0.5, 0.5));
-    sim_gimbal_set_joint(sim, 1, randf(-0.5, 0.5));
-    sim_gimbal_set_joint(sim, 2, randf(-0.5, 0.5));
+    // sim_gimbal_set_joint(sim, 0, randf(-0.5, 0.5));
+    // sim_gimbal_set_joint(sim, 1, randf(-0.5, 0.5));
+    // sim_gimbal_set_joint(sim, 2, randf(-0.5, 0.5));
 
     // Add gimbal view
     for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
@@ -4716,6 +4716,9 @@ int test_sim_gimbal_solve() {
     // Calculate information
     real_t nbv_joints[3] = {0};
     calib_gimbal_nbv(calib, nbv_joints);
+    sim_gimbal_set_joint(sim, 0, nbv_joints[0]);
+    sim_gimbal_set_joint(sim, 1, nbv_joints[1]);
+    sim_gimbal_set_joint(sim, 2, nbv_joints[2]);
   }
 
   // Solve

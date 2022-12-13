@@ -187,6 +187,11 @@ dev_euroc() {
 # displayformat="video/x-raw, format=GRAY8, width=640, height=480,framerate=30/1"
 # gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
+# format="video/x-bayer, format=gbrg, width=640, height=480,framerate=30/1"
+# displayformat="video/x-raw, format=GRAY8, width=640, height=480,framerate=30/1"
+# gst-launch-1.0 tcambin tcam-properties="tcam,ExposureAuto=Off,ExposureTime=30000,GainAuto=Off,TriggerMode=On" \
+#   ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
+
 # PROTO
 # run_all_tests
 # PROTO-LOGGING
@@ -291,7 +296,7 @@ dev_euroc() {
 # run_test test_pinv
 # run_test test_svd_det
 # run_test test_eig_sym
-run_test test_eig_inv
+# run_test test_eig_inv
 # PROTO-CHOL
 # run_test test_chol
 # run_test test_chol_solve
@@ -379,7 +384,7 @@ run_test test_eig_inv
 # run_test test_calib_gimbal_add_gimbal_extrinsic
 # run_test test_calib_gimbal_add_gimbal_link
 # run_test test_calib_gimbal_add_camera
-# run_test test_calib_gimbal_add_view
+# run_test test_calib_gimbal_add_remove_view
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
@@ -390,7 +395,7 @@ run_test test_eig_inv
 # run_test test_load_sim_cam_data
 # run_test test_sim_gimbal_malloc_free
 # run_test test_sim_gimbal_view
-# run_test test_sim_gimbal_solve
+run_test test_sim_gimbal_solve
 # PROTO-GUI
 # run_test test_gl_zeros
 # run_test test_gl_ones
