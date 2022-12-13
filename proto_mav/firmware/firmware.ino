@@ -1,4 +1,5 @@
 #include "firmware.h"
+#define CAMERA_TRIGGER_PIN 9
 
 // // GLOBAL VARIABLES
 // // -- Timers
@@ -35,6 +36,9 @@ void setup() {
   // sbus_setup(&sbus);
   // telemetry_setup(&telem);
   // delay(1000);
+
+  // Camera PWM trigger
+  pinMode(CAMERA_TRIGGER_PIN, OUTPUT);
 
   // Sensors
   mpu9250_setup(&imu);
@@ -235,6 +239,12 @@ void loop() {
   // uart_printf(&uart, "ay: %f ", imu.accel[1]);
   // uart_printf(&uart, "az: %f\n", imu.accel[2]);
   // delay(10);
+
+  // Trigger camera
+  digitalWrite(CAMERA_TRIGGER_PIN, HIGH);
+  delay(20);
+  digitalWrite(CAMERA_TRIGGER_PIN, LOW);
+  delay(100);
 
   // task_control();
   // task_rc();
