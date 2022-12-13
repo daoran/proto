@@ -6403,23 +6403,23 @@ int schurs_complement(const real_t *H,
   const int c = 1;
   if (eig_inv(Hmm, m, m, c, Hmm_inv) != 0) {
     status = -1;
-    goto cleanup;
   }
 
   // Shur-Complement
   // H_marg = H_rr - H_rm * H_mm_inv * H_mr
   // b_marg = b_rr - H_rm * H_mm_inv * b_mm
-  dot3(Hrm, r, m, Hmm_inv, m, m, Hmr, m, r, H_marg);
-  dot3(Hrm, r, m, Hmm_inv, m, m, bmm, m, r, b_marg);
-  for (int i = 0; i < (m * m); i++) {
-    H_marg[i] = Hrr[i] - H_marg[i];
-  }
-  for (int i = 0; i < m; i++) {
-    b_marg[i] = brr[i] - b_marg[i];
+  if (status == 0) {
+    dot3(Hrm, r, m, Hmm_inv, m, m, Hmr, m, r, H_marg);
+    dot3(Hrm, r, m, Hmm_inv, m, m, bmm, m, r, b_marg);
+    for (int i = 0; i < (m * m); i++) {
+      H_marg[i] = Hrr[i] - H_marg[i];
+    }
+    for (int i = 0; i < m; i++) {
+      b_marg[i] = brr[i] - b_marg[i];
+    }
   }
 
   // Clean-up
-cleanup:
   free(Hmm);
   free(Hmr);
   free(Hrm);
@@ -6430,6 +6430,25 @@ cleanup:
   free(brr);
 
   return status;
+}
+
+/**
+ * Calculate the Shannon Entropy
+ */
+int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
+  assert(covar != NULL);
+  assert(m > 0);
+  assert(entropy != NULL);
+
+  real_t covar_det = 0.0f;
+  if (svd_det(covar, m, m, &covar_det) != 0) {
+    return -1;
+  }
+
+  const real_t k = pow(2 * M_PI * exp(1), m);
+  *entropy = 0.5 * log(k * covar_det);
+
+  return 0;
 }
 
 //////////
@@ -9444,6 +9463,7 @@ void calib_gimbal_setup(calib_gimbal_t *calib) {
   calib->fix_joints = 0;
   calib->fix_cam_exts = 0;
   calib->fix_cam_params = 0;
+  aprilgrid_setup(0, &calib->calib_target);
 
   // Counters
   calib->num_cams = 0;
@@ -10214,6 +10234,143 @@ int calib_gimbal_validate(calib_gimbal_t *calib) {
   return 0;
 }
 
+/**
+ * Calculate the Shannon-Entropy of the current gimbal calibration problem.
+ */
+int calib_gimbal_shannon_entropy(const calib_gimbal_t *calib, real_t *entropy) {
+  // Determine parameter order
+  int sv_size = 0;
+  int r_size = 0;
+  param_order_t *hash = calib_gimbal_param_order(calib, &sv_size, &r_size);
+
+  // Form Hessian H
+  real_t *H = CALLOC(real_t, sv_size * sv_size);
+  real_t *g = CALLOC(real_t, sv_size);
+  real_t *r = CALLOC(real_t, r_size);
+  calib_gimbal_linearize_compact(calib, sv_size, hash, H, g, r);
+
+  // Estimate covariance
+  real_t *covar = CALLOC(real_t, sv_size * sv_size);
+  pinv(H, sv_size, sv_size, covar);
+
+  // Calculate shannon-entropy
+  int status = 0;
+  if (shannon_entropy(covar, sv_size, entropy) != 0) {
+    status = -1;
+  }
+
+  // printf("entropy: %f\n", *entropy);
+  // mat_save("/tmp/covar.csv", covar, sv_size, sv_size);
+
+  // Clean up
+  hmfree(hash);
+  free(H);
+  free(g);
+  free(r);
+
+  return status;
+}
+
+/**
+ * Find the next best view for the gimbal calibration problem.
+ */
+void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
+  // Sample settings
+  const real_t parts_roll = 5;
+  const real_t parts_pitch = 5;
+  const real_t parts_yaw = 5;
+  const real_t range_roll[2] = {deg2rad(-45.0), deg2rad(45.0)};
+  const real_t range_pitch[2] = {deg2rad(-45.0), deg2rad(45.0)};
+  const real_t range_yaw[2] = {deg2rad(-45.0), deg2rad(45.0)};
+
+  // Find Next-Best-View
+  const real_t droll = (range_roll[1] - range_roll[0]) / parts_roll;
+  const real_t dpitch = (range_pitch[1] - range_pitch[0]) / parts_pitch;
+  const real_t dyaw = (range_yaw[1] - range_yaw[0]) / parts_yaw;
+
+  real_t entropy_best = 0.0;
+  real_t joints_best[3] = {0.0, 0.0, 0.0};
+
+  const int nbv_idx = calib->num_views;
+  const timestamp_t ts = nbv_idx;
+  const int pose_idx = 0;
+
+  for (real_t r = range_roll[0]; r < range_roll[1]; r += droll) {
+    for (real_t p = range_pitch[0]; p < range_pitch[1]; p += dpitch) {
+      for (real_t y = range_yaw[0]; y < range_yaw[1]; y += dyaw) {
+        // Form gimbal joint angles
+        const int num_joints = 3;
+        const real_t joints[3] = {y, r, p};
+
+        // Simulate gimbal view
+        for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+          // Gimbal view
+          calib_gimbal_view_t *view = NULL;
+          view = sim_gimbal3_view(&calib->calib_target,
+                                  ts,
+                                  nbv_idx,
+                                  calib->fiducial_exts.data,
+                                  calib->poses[pose_idx].data,
+                                  calib->gimbal_exts.data,
+                                  calib->links[0].data,
+                                  calib->links[1].data,
+                                  joints[0],
+                                  joints[1],
+                                  joints[2],
+                                  cam_idx,
+                                  calib->cam_params[cam_idx].resolution,
+                                  calib->cam_params[cam_idx].data,
+                                  calib->cam_exts[cam_idx].data);
+
+          // Add view to calibration problem
+          calib_gimbal_add_view(calib,
+                                pose_idx,
+                                nbv_idx,
+                                view->ts,
+                                view->cam_idx,
+                                view->num_corners,
+                                view->tag_ids,
+                                view->corner_indices,
+                                view->object_points,
+                                view->keypoints,
+                                joints,
+                                num_joints);
+
+          // Free view data
+          calib_gimbal_view_free(view);
+        }
+
+        // Calculate shannon entropy
+        real_t entropy_view = 0.0;
+        if (calib_gimbal_shannon_entropy(calib, &entropy_view) != 0) {
+          continue;
+        }
+
+        // Remove view
+        calib_gimbal_remove_view(calib, nbv_idx);
+
+        // New best?
+        if (entropy_view < entropy_best) {
+          entropy_best = entropy_view;
+          joints_best[0] = y;
+          joints_best[1] = r;
+          joints_best[2] = p;
+        }
+
+        printf("yaw: %.2f, ", y);
+        printf("roll: %.2f, ", r);
+        printf("pitch: %.2f, ", p);
+        printf("entropy_view: %.2f, ", entropy_view);
+        printf("entropy_best: %.2f\n", entropy_best);
+      }
+    }
+  }
+  printf("\n\n");
+
+  vec_copy(joints_best, 3, nbv_joints);
+  print_vector("nbv_joints", nbv_joints, 3);
+}
+
 param_order_t *calib_gimbal_param_order(const void *data,
                                         int *sv_size,
                                         int *r_size) {
@@ -10223,20 +10380,6 @@ param_order_t *calib_gimbal_param_order(const void *data,
   param_order_t *hash = NULL;
   int col_idx = 0;
 
-  // -- Add joints to hash
-  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
-    joint_t *joints = calib->joints[view_idx];
-    for (int i = 0; i < calib->num_joints; i++) {
-      param_order_t val = {&joints[i].data,
-                           col_idx,
-                           JOINT_PARAM,
-                           calib->fix_joints};
-      hmputs(hash, val);
-      if (calib->fix_joints == 0) {
-        col_idx += param_local_size(JOINT_PARAM);
-      }
-    }
-  }
   // -- Add body poses
   for (int pose_idx = 0; pose_idx < calib->num_poses; pose_idx++) {
     void *key = &calib->poses[pose_idx].data;
@@ -10289,6 +10432,20 @@ param_order_t *calib_gimbal_param_order(const void *data,
     hmputs(hash, kv);
     if (calib->fix_cam_params == 0) {
       col_idx += param_local_size(CAMERA_PARAM);
+    }
+  }
+  // -- Add joints to hash
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    joint_t *joints = calib->joints[view_idx];
+    for (int i = 0; i < calib->num_joints; i++) {
+      param_order_t val = {&joints[i].data,
+                           col_idx,
+                           JOINT_PARAM,
+                           calib->fix_joints};
+      hmputs(hash, val);
+      if (calib->fix_joints == 0) {
+        col_idx += param_local_size(JOINT_PARAM);
+      }
     }
   }
 
@@ -11166,26 +11323,37 @@ void sim_gimbal_get_joints(sim_gimbal_t *sim,
   }
 }
 
-calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
-                                     const timestamp_t ts,
-                                     const int view_idx,
-                                     const int cam_idx,
-                                     const real_t T_WB[4 * 4]) {
+calib_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
+                                      const timestamp_t ts,
+                                      const int view_idx,
+                                      const real_t fiducial_pose[7],
+                                      const real_t body_pose[7],
+                                      const real_t gimbal_ext[7],
+                                      const real_t gimbal_link0[7],
+                                      const real_t gimbal_link1[7],
+                                      const real_t gimbal_joint0,
+                                      const real_t gimbal_joint1,
+                                      const real_t gimbal_joint2,
+                                      const int cam_idx,
+                                      const int cam_res[2],
+                                      const real_t cam_params[8],
+                                      const real_t cam_ext[7]) {
   // Form: T_CiF
-  TF(sim->fiducial_ext.data, T_WF);
-  TF(sim->gimbal_ext.data, T_BM0);
-  TF(sim->gimbal_links[0].data, T_L0M1);
-  TF(sim->gimbal_links[1].data, T_L1M2);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[0].data[0], T_M0L0);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[1].data[0], T_M1L1);
-  GIMBAL_JOINT_TF(sim->gimbal_joints[2].data[0], T_M2L2);
-  TF(sim->cam_exts[cam_idx].data, T_L2Ci);
+  TF(fiducial_pose, T_WF);
+  TF(body_pose, T_WB);
+  TF(gimbal_ext, T_BM0);
+  TF(gimbal_link0, T_L0M1);
+  TF(gimbal_link1, T_L1M2);
+  GIMBAL_JOINT_TF(gimbal_joint0, T_M0L0);
+  GIMBAL_JOINT_TF(gimbal_joint1, T_M1L1);
+  GIMBAL_JOINT_TF(gimbal_joint2, T_M2L2);
+  TF(cam_ext, T_L2Ci);
   TF_CHAIN(T_BCi, 7, T_BM0, T_M0L0, T_L0M1, T_M1L1, T_L1M2, T_M2L2, T_L2Ci);
   TF_INV(T_BCi, T_CiB);
   TF_INV(T_WB, T_BW);
   TF_CHAIN(T_CiF, 3, T_CiB, T_BW, T_WF);
 
-  const int max_tags = sim->grid.num_rows * sim->grid.num_cols;
+  const int max_tags = grid->num_rows * grid->num_cols;
   const int max_corners = max_tags * 4;
   int num_measurements = 0;
   int *tag_ids = MALLOC(int, max_corners);
@@ -11201,7 +11369,7 @@ calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
     for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
       // Transform fiducial point to camera frame
       real_t p_FFi[3] = {0};
-      aprilgrid_object_point(&sim->grid, tag_id, corner_idx, p_FFi);
+      aprilgrid_object_point(grid, tag_id, corner_idx, p_FFi);
       TF_POINT(T_CiF, p_FFi, p_CiFi);
 
       // Check point is infront of camera
@@ -11211,13 +11379,11 @@ calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
 
       // Project image point to image plane
       real_t z[2] = {0};
-      camera_params_t *cam_params = &sim->cam_params[cam_idx];
-      int *res = cam_params->resolution;
-      pinhole_radtan4_project(cam_params->data, p_CiFi, z);
+      pinhole_radtan4_project(cam_params, p_CiFi, z);
 
       // Check projection
-      const int x_ok = (z[0] < res[0] && z[0] > 0);
-      const int y_ok = (z[1] < res[1] && z[1] > 0);
+      const int x_ok = (z[0] < cam_res[0] && z[0] > 0);
+      const int y_ok = (z[1] < cam_res[1] && z[1] > 0);
       if (x_ok == 0 || y_ok == 0) {
         continue;
       }
@@ -11251,4 +11417,27 @@ calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
   free(keypoints);
 
   return view;
+}
+
+calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
+                                     const timestamp_t ts,
+                                     const int view_idx,
+                                     const int cam_idx,
+                                     const real_t body_pose[7]) {
+
+  return sim_gimbal3_view(&sim->grid,
+                          ts,
+                          view_idx,
+                          sim->fiducial_ext.data,
+                          body_pose,
+                          sim->gimbal_ext.data,
+                          sim->gimbal_links[0].data,
+                          sim->gimbal_links[1].data,
+                          sim->gimbal_joints[0].data[0],
+                          sim->gimbal_joints[1].data[0],
+                          sim->gimbal_joints[2].data[0],
+                          cam_idx,
+                          sim->cam_params->resolution,
+                          sim->cam_params->data,
+                          sim->cam_exts[cam_idx].data);
 }

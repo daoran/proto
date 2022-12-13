@@ -4640,10 +4640,9 @@ int test_sim_gimbal_view() {
   const timestamp_t ts = 0;
   const int view_idx = 0;
   const int cam_idx = 0;
-  real_t T_WB[4 * 4] = {0};
-  eye(T_WB, 4, 4);
+  real_t pose[7] = {0, 0, 0, 1, 0, 0, 0};
 
-  calib_gimbal_view_t *view = sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);
+  calib_gimbal_view_t *view = sim_gimbal_view(sim, ts, view_idx, cam_idx, pose);
   calib_gimbal_view_free(view);
 
   sim_gimbal_free(sim);
@@ -4653,7 +4652,6 @@ int test_sim_gimbal_view() {
 int test_sim_gimbal_solve() {
   // Setup gimbal simulator
   sim_gimbal_t *sim = sim_gimbal_malloc();
-  POSE2TF(sim->gimbal_pose.data, T_WB);
 
   // Setup gimbal calibrator
   calib_gimbal_t *calib = calib_gimbal_malloc();
@@ -4673,6 +4671,12 @@ int test_sim_gimbal_solve() {
                             sim->cam_exts[cam_idx].data);
   }
 
+  // Setup solver
+  solver_t solver;
+  solver_setup(&solver);
+  solver.param_order_func = &calib_gimbal_param_order;
+  solver.linearize_func = &calib_gimbal_linearize_compact;
+
   // Simulate gimbal views
   int num_views = 100;
   int num_cams = 2;
@@ -4689,7 +4693,7 @@ int test_sim_gimbal_solve() {
     for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
       // Simulate single gimbal view
       const timestamp_t ts = view_idx;
-      view = sim_gimbal_view(sim, ts, view_idx, cam_idx, T_WB);
+      view = sim_gimbal_view(sim, ts, view_idx, cam_idx, sim->gimbal_pose.data);
 
       // Add view to calibration problem
       real_t joints[3] = {0};
@@ -4708,13 +4712,13 @@ int test_sim_gimbal_solve() {
                             sim->num_joints);
       calib_gimbal_view_free(view);
     }
+
+    // Calculate information
+    real_t nbv_joints[3] = {0};
+    calib_gimbal_nbv(calib, nbv_joints);
   }
 
   // Solve
-  solver_t solver;
-  solver_setup(&solver);
-  solver.param_order_func = &calib_gimbal_param_order;
-  solver.linearize_func = &calib_gimbal_linearize_compact;
   solver_solve(&solver, calib);
 
   // Clean up

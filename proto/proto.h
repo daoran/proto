@@ -52,6 +52,11 @@
 #include "ceres_bridge.h"
 #endif
 
+#ifdef USE_STB
+#include <stb_image.h>
+#include <stb_ds.h>
+#endif
+
 #ifdef USE_GUI
 #include "gui.h"
 #endif
@@ -1162,6 +1167,7 @@ int schurs_complement(const real_t *H,
                       const int r,
                       real_t *H_marg,
                       real_t *b_marg);
+int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
 
 //////////
 // POSE //
@@ -1744,6 +1750,7 @@ typedef struct calib_gimbal_t {
   int fix_cam_exts;
   int fix_links;
   int fix_joints;
+  aprilgrid_t calib_target;
 
   // Flags
   int fiducial_ext_ok;
@@ -1824,6 +1831,7 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
 int calib_gimbal_remove_view(calib_gimbal_t *calib, const int view_idx);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
 int calib_gimbal_validate(calib_gimbal_t *calib);
+void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]);
 param_order_t *calib_gimbal_param_order(const void *data,
                                         int *sv_size,
                                         int *r_size);
@@ -1989,6 +1997,21 @@ void sim_gimbal_set_joint(sim_gimbal_t *sim,
 void sim_gimbal_get_joints(sim_gimbal_t *sim,
                            const int num_joints,
                            real_t *angles);
+calib_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
+                                      const timestamp_t ts,
+                                      const int view_idx,
+                                      const real_t fiducial_pose[7],
+                                      const real_t body_pose[7],
+                                      const real_t gimbal_ext[7],
+                                      const real_t gimbal_link0[7],
+                                      const real_t gimbal_link1[7],
+                                      const real_t gimbal_joint0,
+                                      const real_t gimbal_joint1,
+                                      const real_t gimbal_joint2,
+                                      const int cam_idx,
+                                      const int cam_res[2],
+                                      const real_t cam_params[8],
+                                      const real_t cam_ext[7]);
 calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
                                      const timestamp_t ts,
                                      const int view_idx,
