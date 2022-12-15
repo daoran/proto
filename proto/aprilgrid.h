@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <assert.h>
 #include <inttypes.h>
 
@@ -35,6 +36,14 @@
   } while (0)
 #endif
 
+#ifndef APRILGRID_CHECK
+#define APRILGRID_CHECK(X)                                                     \
+  if (!(X)) {                                                                  \
+    APRILGRID_LOG(#X " Failed!\n");                                            \
+    goto error;                                                                \
+  }
+#endif
+
 // APRILGRID /////////////////////////////////////////////////////////////////
 
 #define APRILGRID_NUM_ROWS 5
@@ -58,6 +67,8 @@ typedef struct aprilgrid_t {
 
 void aprilgrid_setup(const timestamp_t ts, aprilgrid_t *grid);
 void aprilgrid_reset(aprilgrid_t *grid);
+void aprilgrid_copy(const aprilgrid_t *src, aprilgrid_t *dst);
+int aprilgrid_equals(const aprilgrid_t *grid0, const aprilgrid_t *grid1);
 void aprilgrid_center(const aprilgrid_t *grid, double *cx, double *cy);
 void aprilgrid_grid_index(const aprilgrid_t *grid,
                           const int tag_id,
@@ -142,6 +153,46 @@ void aprilgrid_setup(const timestamp_t ts, aprilgrid_t *grid) {
 void aprilgrid_reset(aprilgrid_t *grid) {
   assert(grid != NULL);
   aprilgrid_setup(grid->timestamp, grid);
+}
+
+/**
+ * Copy AprilGrid
+ */
+void aprilgrid_copy(const aprilgrid_t *src, aprilgrid_t *dst) {
+  dst->timestamp = src->timestamp;
+  dst->num_rows = src->num_rows;
+  dst->num_cols = src->num_cols;
+  dst->tag_size = src->tag_size;
+  dst->tag_spacing = src->tag_spacing;
+
+  dst->corners_detected = src->corners_detected;
+  for (size_t i = 0; i < (dst->num_rows * dst->num_cols * 4); i++) {
+    for (size_t j = 0; j < 6; j++) {
+      dst->data[i][j] = src->data[i][j];
+    }
+  }
+}
+
+/**
+ * Check AprilGrids are equal
+ */
+int aprilgrid_equals(const aprilgrid_t *grid0, const aprilgrid_t *grid1) {
+  APRILGRID_CHECK(grid0->timestamp == grid1->timestamp);
+  APRILGRID_CHECK(grid0->num_rows == grid1->num_rows);
+  APRILGRID_CHECK(grid0->num_cols == grid1->num_cols);
+  APRILGRID_CHECK(fabs(grid0->tag_size - grid1->tag_size) < 1e-8);
+  APRILGRID_CHECK(fabs(grid0->tag_spacing - grid1->tag_spacing) < 1e-8);
+  APRILGRID_CHECK(grid0->corners_detected == grid1->corners_detected);
+
+  for (size_t i = 0; i < (grid0->num_rows * grid0->num_cols * 4); i++) {
+    for (size_t j = 0; j < 6; j++) {
+      APRILGRID_CHECK(fabs(grid0->data[i][j] - grid1->data[i][j]) < 1e-8);
+    }
+  }
+
+  return 1;
+error:
+  return 0;
 }
 
 /**
