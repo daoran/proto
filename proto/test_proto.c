@@ -1330,7 +1330,7 @@ int test_mat_transpose() {
   real_t At[9] = {0.0};
   real_t At_expected[9] = {1.0, 4.0, 7.0, 2.0, 5.0, 8.0, 3.0, 6.0, 9.0};
   mat_transpose(A, 3, 3, At);
-  MU_ASSERT(mat_equals(At, At_expected, 3, 3, 1e-8) == 0);
+  MU_ASSERT(mat_equals(At, At_expected, 3, 3, 1e-8));
 
   real_t B[2 * 3] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
   real_t Bt[3 * 2] = {0};
@@ -1518,7 +1518,7 @@ int test_svd() {
   // print_matrix("S", S, 4, 4);
   // print_matrix("V", V, 4, 4);
   // print_matrix("USVt", USVt, 6, 4);
-  MU_ASSERT(mat_equals(USVt, A_copy, 6, 4, 1e-5) == 0);
+  MU_ASSERT(mat_equals(USVt, A_copy, 6, 4, 1e-5));
 
   return 0;
 }
@@ -1596,7 +1596,7 @@ int test_chol() {
     printf("\n");
     print_matrix("A", A, n, n);
   }
-  MU_ASSERT(mat_equals(A, LLt, n, n, 1e-5) == 0);
+  MU_ASSERT(mat_equals(A, LLt, n, n, 1e-5));
 
   return 0;
 }

@@ -2326,7 +2326,7 @@ int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n) {
 /**
  * Check to see if two matrices `A` and `B` of size `m x n` are equal to a
  * tolerance.
- * @returns 0 if A == B or -1 if A != B
+ * @returns 1 if A == B or 0 if A != B
  */
 int mat_equals(const real_t *A,
                const real_t *B,
@@ -2345,13 +2345,13 @@ int mat_equals(const real_t *A,
     for (size_t j = 0; j < n; j++) {
       if (fabs(A[index] - B[index]) > tol) {
         printf("Failed at index[%zu]\n", index);
-        return -1;
+        return 0;
       }
       index++;
     }
   }
 
-  return 0;
+  return 1;
 }
 
 /**
@@ -7631,6 +7631,28 @@ int joint_factor_eval(void *factor_ptr) {
   return 0;
 }
 
+/**
+ * Check if two joint factors are equal in value.
+ */
+int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1) {
+  CHECK(vec_equals(j0->z, j1->z, 2));
+  CHECK(mat_equals(j0->covar, j1->covar, 2, 2, 1e-8));
+  CHECK(mat_equals(j0->sqrt_info, j1->sqrt_info, 2, 2, 1e-8));
+
+  CHECK(j0->r_size == j1->r_size);
+  CHECK(j0->num_params == j1->num_params);
+  CHECK(j0->param_types[0] == j1->param_types[0]);
+
+  CHECK(vec_equals(j0->params[0], j1->params[0], 1));
+  CHECK(vec_equals(j0->r, j1->r, 1));
+  CHECK(vec_equals(j0->jacs[0], j1->jacs[0], 1));
+  CHECK(mat_equals(j0->J_joint, j1->J_joint, 1, 1, 1e-8));
+
+  return 1;
+error:
+  return 0;
+}
+
 /////////////////////////
 // CALIB-GIMBAL-FACTOR //
 /////////////////////////
@@ -8166,6 +8188,33 @@ int calib_gimbal_factor_ceres_eval(void *factor_ptr,
                     params,
                     r_out,
                     J_out);
+}
+
+/**
+ * Check whether two `calib_gimbal_factor_t` are equal.
+ */
+int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
+                               const calib_gimbal_factor_t *c1) {
+  CHECK(c0->ts == c1->ts);
+  CHECK(c0->cam_idx == c1->cam_idx);
+  CHECK(c0->tag_id == c1->tag_id);
+  CHECK(c0->corner_idx == c1->corner_idx);
+  CHECK(vec_equals(c0->p_FFi, c1->p_FFi, 3));
+  CHECK(vec_equals(c0->z, c1->z, 2));
+
+  CHECK(c0->r_size == c1->r_size);
+  CHECK(c0->num_params == c1->num_params);
+  for (int i = 0; i < c0->num_params; i++) {
+    const int m = c0->r_size;
+    const int n = param_local_size(c0->param_types[i]);
+    CHECK(c0->param_types[i] == c1->param_types[i]);
+    CHECK(vec_equals(c0->params[i], c1->params[i], n));
+    CHECK(mat_equals(c0->jacs[i], c1->jacs[i], m, n, 1e-8));
+  }
+
+  return 1;
+error:
+  return 0;
 }
 
 ////////////////
@@ -9472,19 +9521,35 @@ void calib_gimbal_view_free(calib_gimbal_view_t *view) {
 }
 
 /**
- * Copy gimbal calibration view
+ * Check whether `calib_gimbal_view_t` are equal
  */
-// calib_gimbal_view_t *calib_gimbal_view_copy(const calib_gimbal_view_t *view)
-// {
-//   return calib_gimbal_view_malloc(view->ts,
-//                                   view->view_idx,
-//                                   view->cam_idx,
-//                                   view->tag_ids,
-//                                   view->corner_indices,
-//                                   view->object_points,
-//                                   view->keypoints,
-//                                   view->num_corners);
-// }
+int calib_gimbal_view_equals(const calib_gimbal_view_t *v0,
+                             const calib_gimbal_view_t *v1) {
+  CHECK(v0->ts == v1->ts);
+  CHECK(v0->view_idx == v1->view_idx);
+  CHECK(v0->cam_idx == v1->cam_idx);
+  CHECK(v0->num_corners == v1->num_corners);
+
+  if (v0->num_corners) {
+    const size_t pts_len = v0->num_corners * 3;
+    const size_t kps_len = v0->num_corners * 2;
+
+    for (int i = 0; i < v0->num_corners; i++) {
+      CHECK(v0->tag_ids[i] == v1->tag_ids[i]);
+    }
+    CHECK(vec_equals(v0->object_points, v1->object_points, pts_len));
+    CHECK(vec_equals(v0->keypoints, v1->keypoints, kps_len));
+    for (int i = 0; i < v0->num_corners; i++) {
+      const calib_gimbal_factor_t *c0 = &v0->calib_factors[i];
+      const calib_gimbal_factor_t *c1 = &v1->calib_factors[i];
+      CHECK(calib_gimbal_factor_equals(c0, c1));
+    }
+  }
+
+  return 1;
+error:
+  return 0;
+}
 
 /**
  * Print gimbal calibration view
@@ -9617,6 +9682,52 @@ int calib_gimbal_equals(const calib_gimbal_t *calib0,
   CHECK(calib0->num_calib_factors == calib1->num_calib_factors);
   CHECK(calib0->num_joint_factors == calib1->num_joint_factors);
 
+  CHECK(vec_equals(calib0->fiducial_exts.data, calib1->fiducial_exts.data, 7));
+  CHECK(vec_equals(calib0->gimbal_exts.data, calib1->gimbal_exts.data, 7));
+  for (int cam_idx = 0; cam_idx < calib0->num_cams; cam_idx++) {
+    const real_t *p0 = calib0->cam_params[cam_idx].data;
+    const real_t *p1 = calib1->cam_params[cam_idx].data;
+    const real_t *e0 = calib0->cam_exts[cam_idx].data;
+    const real_t *e1 = calib1->cam_exts[cam_idx].data;
+    CHECK(vec_equals(p0, p1, 8));
+    CHECK(vec_equals(e0, e1, 7));
+  }
+  for (int link_idx = 0; link_idx < calib0->num_links; link_idx++) {
+    const real_t *p0 = calib0->links[link_idx].data;
+    const real_t *p1 = calib1->links[link_idx].data;
+    CHECK(vec_equals(p0, p1, 7));
+  }
+  for (int view_idx = 0; view_idx < calib0->num_views; view_idx++) {
+    for (int joint_idx = 0; joint_idx < calib0->num_joints; joint_idx++) {
+      const real_t *p0 = calib0->joints[view_idx][joint_idx].data;
+      const real_t *p1 = calib1->joints[view_idx][joint_idx].data;
+      CHECK(vec_equals(p0, p1, 1));
+    }
+  }
+  for (int pose_idx = 0; pose_idx < calib0->num_poses; pose_idx++) {
+    const real_t *p0 = calib0->poses[pose_idx].data;
+    const real_t *p1 = calib1->poses[pose_idx].data;
+    CHECK(vec_equals(p0, p1, 7));
+  }
+
+  // Compare factors
+  // -- Compare Calib Factors
+  for (int view_idx = 0; view_idx < calib0->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib0->num_cams; cam_idx++) {
+      const calib_gimbal_view_t *v0 = calib0->views[view_idx][cam_idx];
+      const calib_gimbal_view_t *v1 = calib1->views[view_idx][cam_idx];
+      CHECK(calib_gimbal_view_equals(v0, v1));
+    }
+  }
+  // -- Compare Joint Factors
+  for (int view_idx = 0; view_idx < calib0->num_views; view_idx++) {
+    for (int joint_idx = 0; joint_idx < calib0->num_joints; joint_idx++) {
+      const joint_factor_t *j0 = &calib0->joint_factors[view_idx][joint_idx];
+      const joint_factor_t *j1 = &calib1->joint_factors[view_idx][joint_idx];
+      CHECK(joint_factor_equals(j0, j1));
+    }
+  }
+
   return 1;
 error:
   return 0;
@@ -9652,8 +9763,8 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
   dst->num_poses = src->num_poses;
   dst->num_links = src->num_links;
   dst->num_joints = src->num_joints;
-  dst->num_calib_factors = src->num_calib_factors;
-  dst->num_joint_factors = src->num_joint_factors;
+  dst->num_calib_factors = 0;
+  dst->num_joint_factors = 0;
 
   // Variables
   // -- Timestamps
@@ -9699,6 +9810,37 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
 
   // Factors
   // -- View Factors
+  dst->views = MALLOC(calib_gimbal_view_t **, dst->num_views);
+  for (int view_idx = 0; view_idx < dst->num_views; view_idx++) {
+    const int pose_idx = (dst->num_poses == 1) ? 0 : view_idx;
+    dst->views[view_idx] = MALLOC(calib_gimbal_view_t *, dst->num_cams);
+
+    for (int cam_idx = 0; cam_idx < dst->num_cams; cam_idx++) {
+      calib_gimbal_view_t *src_view = src->views[view_idx][cam_idx];
+      calib_gimbal_view_t *view =
+          calib_gimbal_view_malloc(src_view->ts,
+                                   src_view->view_idx,
+                                   src_view->cam_idx,
+                                   src_view->tag_ids,
+                                   src_view->corner_indices,
+                                   src_view->object_points,
+                                   src_view->keypoints,
+                                   src_view->num_corners,
+                                   &dst->fiducial_exts,
+                                   &dst->gimbal_exts,
+                                   &dst->poses[pose_idx],
+                                   &dst->links[0],
+                                   &dst->links[1],
+                                   &dst->joints[view_idx][0],
+                                   &dst->joints[view_idx][1],
+                                   &dst->joints[view_idx][2],
+                                   &dst->cam_exts[cam_idx],
+                                   &dst->cam_params[cam_idx]);
+      dst->views[view_idx][cam_idx] = view;
+      dst->num_calib_factors += view->num_corners;
+    }
+  }
+
   // -- Joint Factors
   const real_t joint_var = 0.1;
   dst->joint_factors = MALLOC(joint_factor_t *, src->num_views);
@@ -9709,6 +9851,7 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
                          &dst->joints[view_idx][joint_idx],
                          dst->joints[view_idx][joint_idx].data[0],
                          joint_var);
+      dst->num_joint_factors++;
     }
   }
 

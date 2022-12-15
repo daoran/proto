@@ -1483,6 +1483,7 @@ void joint_factor_setup(joint_factor_t *factor,
                         const real_t z,
                         const real_t var);
 int joint_factor_eval(void *factor_ptr);
+int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
 
 /////////////////////////
 // CALIB-GIMBAL-FACTOR //
@@ -1562,6 +1563,8 @@ int calib_gimbal_factor_ceres_eval(void *factor_ptr,
                                    real_t **params,
                                    real_t *r_out,
                                    real_t **J_out);
+int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
+                               const calib_gimbal_factor_t *c1);
 
 ////////////////
 // IMU-FACTOR //
@@ -1803,7 +1806,8 @@ calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
                                               extrinsic_t *cam_ext,
                                               camera_params_t *cam_params);
 void calib_gimbal_view_free(calib_gimbal_view_t *calib);
-calib_gimbal_view_t *calib_gimbal_view_copy(const calib_gimbal_view_t *view);
+int calib_gimbal_view_equals(const calib_gimbal_view_t *v0,
+                             const calib_gimbal_view_t *v1);
 
 void calib_gimbal_setup(calib_gimbal_t *calib);
 calib_gimbal_t *calib_gimbal_malloc();
