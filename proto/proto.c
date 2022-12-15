@@ -10554,41 +10554,38 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   const real_t parts_roll = 5;
   const real_t parts_pitch = 5;
   const real_t parts_yaw = 5;
+  const int num_views = parts_roll * parts_pitch * parts_yaw;
   const real_t range_roll[2] = {deg2rad(-45.0), deg2rad(45.0)};
   const real_t range_pitch[2] = {deg2rad(-45.0), deg2rad(45.0)};
   const real_t range_yaw[2] = {deg2rad(-45.0), deg2rad(45.0)};
-
-  // Find Next-Best-View
   const real_t droll = (range_roll[1] - range_roll[0]) / parts_roll;
   const real_t dpitch = (range_pitch[1] - range_pitch[0]) / parts_pitch;
   const real_t dyaw = (range_yaw[1] - range_yaw[0]) / parts_yaw;
 
+  real_t *entropy_scores = MALLOC(real_t, num_views);
+  real_t *entropy_joints = MALLOC(real_t, num_views * 3);
+  int idx = 0;
+  for (real_t r = range_roll[0]; r < range_roll[1]; r += droll) {
+    for (real_t p = range_pitch[0]; p < range_pitch[1]; p += dpitch) {
+      for (real_t y = range_yaw[0]; y < range_yaw[1]; y += dyaw) {
+        entropy_joints[idx + 0] = y;
+        entropy_joints[idx + 1] = r;
+        entropy_joints[idx + 2] = p;
+        idx++;
+      }
+    }
+  }
+
+  // Calculate current entropy
   real_t entropy_init = 0.0;
   if (calib_gimbal_shannon_entropy(calib, &entropy_init) != 0) {
     return;
   }
 
+  // Calculate NBV entropies
   const int nbv_idx = calib->num_views;
   const timestamp_t ts = nbv_idx;
   const int pose_idx = 0;
-
-  const int num_views = parts_roll * parts_pitch * parts_yaw;
-  real_t *entropy_scores = MALLOC(real_t, num_views);
-  real_t *entropy_joints = MALLOC(real_t, num_views * 3);
-
-  {
-    int idx = 0;
-    for (real_t r = range_roll[0]; r < range_roll[1]; r += droll) {
-      for (real_t p = range_pitch[0]; p < range_pitch[1]; p += dpitch) {
-        for (real_t y = range_yaw[0]; y < range_yaw[1]; y += dyaw) {
-          entropy_joints[idx + 0] = y;
-          entropy_joints[idx + 1] = r;
-          entropy_joints[idx + 2] = p;
-          idx++;
-        }
-      }
-    }
-  }
 
 #pragma omp parallel for
   for (int view_idx = 0; view_idx < num_views; view_idx++) {
