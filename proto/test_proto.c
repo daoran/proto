@@ -4070,6 +4070,22 @@ int test_solver_eval() {
   return 0;
 }
 
+int test_calib_gimbal_copy() {
+  const char *data_path = "/tmp/sim_gimbal";
+  calib_gimbal_t *src = calib_gimbal_load(data_path);
+  calib_gimbal_t *dst = calib_gimbal_copy(src);
+
+  MU_ASSERT(src != NULL);
+  MU_ASSERT(dst != NULL);
+  MU_ASSERT(calib_gimbal_equals(src, dst) == 1);
+
+  calib_gimbal_print(src);
+  calib_gimbal_free(src);
+  calib_gimbal_free(dst);
+
+  return 0;
+}
+
 int test_calib_gimbal_add_fiducial() {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
@@ -4642,8 +4658,8 @@ int test_sim_gimbal_view() {
   const int cam_idx = 0;
   real_t pose[7] = {0, 0, 0, 1, 0, 0, 0};
 
-  calib_gimbal_view_t *view = sim_gimbal_view(sim, ts, view_idx, cam_idx, pose);
-  calib_gimbal_view_free(view);
+  sim_gimbal_view_t *view = sim_gimbal_view(sim, ts, view_idx, cam_idx, pose);
+  sim_gimbal_view_free(view);
 
   sim_gimbal_free(sim);
   return 0;
@@ -4681,7 +4697,7 @@ int test_sim_gimbal_solve() {
   int num_views = 100;
   int num_cams = 2;
   const int pose_idx = 0;
-  calib_gimbal_view_t *view = NULL;
+  sim_gimbal_view_t *view = NULL;
 
   for (int view_idx = 0; view_idx < num_views; view_idx++) {
     // Perturb gimbal joint
@@ -4703,14 +4719,14 @@ int test_sim_gimbal_solve() {
                             view_idx,
                             view_idx,
                             cam_idx,
-                            view->num_corners,
+                            view->num_measurements,
                             view->tag_ids,
                             view->corner_indices,
                             view->object_points,
                             view->keypoints,
                             joints,
                             sim->num_joints);
-      calib_gimbal_view_free(view);
+      sim_gimbal_view_free(view);
     }
 
     // Calculate information
@@ -4920,6 +4936,7 @@ void test_suite() {
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
   MU_ADD_TEST(test_solver_eval);
+  MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);

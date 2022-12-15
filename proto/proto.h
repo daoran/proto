@@ -228,13 +228,11 @@
  * error is called.
  *
  * @param[in] A Condition to be checked
- * @param[in] M Error message
- * @param[in] ... Varadic arguments for error message
  */
 #ifndef CHECK
-#define CHECK(A, M, ...)                                                       \
+#define CHECK(A)                                                               \
   if (!(A)) {                                                                  \
-    LOG_ERROR(M, ##__VA_ARGS__);                                               \
+    LOG_ERROR(#A " Failed!\n");                                                \
     goto error;                                                                \
   }
 #endif
@@ -1679,6 +1677,7 @@ typedef struct param_order_t {
   int fix;
 } param_order_t;
 
+void param_type_string(const int param_type, char *s);
 size_t param_global_size(const int param_type);
 size_t param_local_size(const int param_type);
 
@@ -1792,13 +1791,27 @@ calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
                                               const int *corner_indices,
                                               const real_t *object_points,
                                               const real_t *keypoints,
-                                              const int N);
+                                              const int N,
+                                              extrinsic_t *fiducial_ext,
+                                              extrinsic_t *gimbal_ext,
+                                              pose_t *pose,
+                                              extrinsic_t *link0,
+                                              extrinsic_t *link1,
+                                              joint_t *joint0,
+                                              joint_t *joint1,
+                                              joint_t *joint2,
+                                              extrinsic_t *cam_ext,
+                                              camera_params_t *cam_params);
 void calib_gimbal_view_free(calib_gimbal_view_t *calib);
+calib_gimbal_view_t *calib_gimbal_view_copy(const calib_gimbal_view_t *view);
 
 void calib_gimbal_setup(calib_gimbal_t *calib);
 calib_gimbal_t *calib_gimbal_malloc();
 void calib_gimbal_free(calib_gimbal_t *calib);
-void calib_gimbal_print(calib_gimbal_t *calib);
+int calib_gimbal_equals(const calib_gimbal_t *calib0,
+                        const calib_gimbal_t *calib1);
+calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src);
+void calib_gimbal_print(const calib_gimbal_t *calib);
 void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
                                const real_t fiducial_pose[7]);
 void calib_gimbal_add_pose(calib_gimbal_t *calib,
@@ -1972,6 +1985,14 @@ real_t **sim_create_features(const real_t origin[3],
 // SIM GIMBAL DATA //
 /////////////////////
 
+typedef struct sim_gimbal_view_t {
+  int num_measurements;
+  int *tag_ids;
+  int *corner_indices;
+  real_t *object_points;
+  real_t *keypoints;
+} sim_gimbal_view_t;
+
 typedef struct sim_gimbal_t {
   aprilgrid_t grid;
 
@@ -1988,6 +2009,10 @@ typedef struct sim_gimbal_t {
   camera_params_t *cam_params;
 } sim_gimbal_t;
 
+sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners);
+void sim_gimbal_view_free(sim_gimbal_view_t *view);
+void sim_gimbal_view_print(const sim_gimbal_view_t *view);
+
 sim_gimbal_t *sim_gimbal_malloc();
 void sim_gimbal_free(sim_gimbal_t *sim);
 void sim_gimbal_print(const sim_gimbal_t *sim);
@@ -1997,25 +2022,25 @@ void sim_gimbal_set_joint(sim_gimbal_t *sim,
 void sim_gimbal_get_joints(sim_gimbal_t *sim,
                            const int num_joints,
                            real_t *angles);
-calib_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
-                                      const timestamp_t ts,
-                                      const int view_idx,
-                                      const real_t fiducial_pose[7],
-                                      const real_t body_pose[7],
-                                      const real_t gimbal_ext[7],
-                                      const real_t gimbal_link0[7],
-                                      const real_t gimbal_link1[7],
-                                      const real_t gimbal_joint0,
-                                      const real_t gimbal_joint1,
-                                      const real_t gimbal_joint2,
-                                      const int cam_idx,
-                                      const int cam_res[2],
-                                      const real_t cam_params[8],
-                                      const real_t cam_ext[7]);
-calib_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
-                                     const timestamp_t ts,
-                                     const int view_idx,
-                                     const int cam_idx,
-                                     const real_t T_WB[4 * 4]);
+sim_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
+                                    const timestamp_t ts,
+                                    const int view_idx,
+                                    const real_t fiducial_pose[7],
+                                    const real_t body_pose[7],
+                                    const real_t gimbal_ext[7],
+                                    const real_t gimbal_link0[7],
+                                    const real_t gimbal_link1[7],
+                                    const real_t gimbal_joint0,
+                                    const real_t gimbal_joint1,
+                                    const real_t gimbal_joint2,
+                                    const int cam_idx,
+                                    const int cam_res[2],
+                                    const real_t cam_params[8],
+                                    const real_t cam_ext[7]);
+sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
+                                   const timestamp_t ts,
+                                   const int view_idx,
+                                   const int cam_idx,
+                                   const real_t T_WB[4 * 4]);
 
 #endif // PROTO_H
