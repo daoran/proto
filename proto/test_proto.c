@@ -4077,7 +4077,7 @@ int test_calib_gimbal_copy() {
 
   MU_ASSERT(src != NULL);
   MU_ASSERT(dst != NULL);
-  MU_ASSERT(calib_gimbal_equals(src, dst) == 1);
+  MU_ASSERT(calib_gimbal_equals(src, dst));
 
   calib_gimbal_print(src);
   calib_gimbal_free(src);
@@ -4700,11 +4700,6 @@ int test_sim_gimbal_solve() {
   sim_gimbal_view_t *view = NULL;
 
   for (int view_idx = 0; view_idx < num_views; view_idx++) {
-    // Perturb gimbal joint
-    // sim_gimbal_set_joint(sim, 0, randf(-0.5, 0.5));
-    // sim_gimbal_set_joint(sim, 1, randf(-0.5, 0.5));
-    // sim_gimbal_set_joint(sim, 2, randf(-0.5, 0.5));
-
     // Add gimbal view
     for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
       // Simulate single gimbal view
@@ -4729,7 +4724,7 @@ int test_sim_gimbal_solve() {
       sim_gimbal_view_free(view);
     }
 
-    // Calculate information
+    // Find gimbal NBV
     real_t nbv_joints[3] = {0};
     calib_gimbal_nbv(calib, nbv_joints);
     sim_gimbal_set_joint(sim, 0, nbv_joints[0]);

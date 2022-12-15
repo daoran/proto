@@ -5,8 +5,8 @@ DEPS_DIR := $(realpath ../third_party)
 
 
 # COMPILER SETTINGS
-BUILD_TYPE := debug
-# BUILD_TYPE := release
+# BUILD_TYPE := debug
+BUILD_TYPE := release
 CC := gcc
 # CC := tcc
 
@@ -47,9 +47,9 @@ CFLAGS := \
 	$(TIS_CFLAGS)
 
 ifeq ($(BUILD_TYPE), debug)
-	CFLAGS += -g -Wall -Wpedantic -fsanitize=address -static-libasan
+	CFLAGS += -g -Wall -Wpedantic -fsanitize=address -static-libasan -fopenmp
 else
-	CFLAGS += -O3 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG
+	CFLAGS += -O3 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG -fopenmp
 endif
 
 

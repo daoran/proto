@@ -9772,13 +9772,10 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
   for (size_t k = 0; k < dst->num_views; k++) {
     dst->timestamps[k] = src->timestamps[k];
   }
-
   // -- Fiducial
   dst->fiducial_exts = src->fiducial_exts;
-
   // -- Gimbal extrinsic T_BM0
   dst->gimbal_exts = src->gimbal_exts;
-
   // -- Cameras
   dst->cam_params = MALLOC(camera_params_t, src->num_cams);
   dst->cam_exts = MALLOC(extrinsic_t, src->num_cams);
@@ -9786,13 +9783,11 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
     dst->cam_params[cam_idx] = src->cam_params[cam_idx];
     dst->cam_exts[cam_idx] = src->cam_exts[cam_idx];
   }
-
   // -- Links
   dst->links = MALLOC(extrinsic_t, src->num_links);
   for (size_t link_idx = 0; link_idx < dst->num_links; link_idx++) {
     dst->links[link_idx] = src->links[link_idx];
   }
-
   // -- Joints
   dst->joints = MALLOC(joint_t *, src->num_views);
   for (size_t view_idx = 0; view_idx < src->num_views; view_idx++) {
@@ -9801,13 +9796,11 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
       dst->joints[view_idx][joint_idx] = src->joints[view_idx][joint_idx];
     }
   }
-
   // -- Poses
   dst->poses = MALLOC(pose_t, src->num_poses);
   for (size_t pose_idx = 0; pose_idx < src->num_poses; pose_idx++) {
     dst->poses[pose_idx] = src->poses[pose_idx];
   }
-
   // Factors
   // -- View Factors
   dst->views = MALLOC(calib_gimbal_view_t **, dst->num_views);
@@ -10571,8 +10564,6 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   const real_t dyaw = (range_yaw[1] - range_yaw[0]) / parts_yaw;
 
   real_t entropy_init = 0.0;
-  real_t entropy_best = 0.0;
-  real_t joints_best[3] = {0.0, 0.0, 0.0};
   if (calib_gimbal_shannon_entropy(calib, &entropy_init) != 0) {
     return;
   }
@@ -10581,78 +10572,107 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   const timestamp_t ts = nbv_idx;
   const int pose_idx = 0;
 
-  for (real_t r = range_roll[0]; r < range_roll[1]; r += droll) {
-    for (real_t p = range_pitch[0]; p < range_pitch[1]; p += dpitch) {
-      for (real_t y = range_yaw[0]; y < range_yaw[1]; y += dyaw) {
-        // Form gimbal joint angles
-        const int num_joints = 3;
-        const real_t joints[3] = {y, r, p};
+  const int num_views = parts_roll * parts_pitch * parts_yaw;
+  real_t *entropy_scores = MALLOC(real_t, num_views);
+  real_t *entropy_joints = MALLOC(real_t, num_views * 3);
 
-        // Simulate gimbal view
-        for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-          // Gimbal view
-          sim_gimbal_view_t *view =
-              sim_gimbal3_view(&calib->calib_target,
-                               ts,
-                               nbv_idx,
-                               calib->fiducial_exts.data,
-                               calib->poses[pose_idx].data,
-                               calib->gimbal_exts.data,
-                               calib->links[0].data,
-                               calib->links[1].data,
-                               joints[0],
-                               joints[1],
-                               joints[2],
-                               cam_idx,
-                               calib->cam_params[cam_idx].resolution,
-                               calib->cam_params[cam_idx].data,
-                               calib->cam_exts[cam_idx].data);
-
-          // Add view to calibration problem
-          calib_gimbal_add_view(calib,
-                                pose_idx,
-                                nbv_idx,
-                                ts,
-                                cam_idx,
-                                view->num_measurements,
-                                view->tag_ids,
-                                view->corner_indices,
-                                view->object_points,
-                                view->keypoints,
-                                joints,
-                                num_joints);
-
-          // Free view data
-          sim_gimbal_view_free(view);
+  {
+    int idx = 0;
+    for (real_t r = range_roll[0]; r < range_roll[1]; r += droll) {
+      for (real_t p = range_pitch[0]; p < range_pitch[1]; p += dpitch) {
+        for (real_t y = range_yaw[0]; y < range_yaw[1]; y += dyaw) {
+          entropy_joints[idx + 0] = y;
+          entropy_joints[idx + 1] = r;
+          entropy_joints[idx + 2] = p;
+          idx++;
         }
-
-        // Calculate shannon entropy
-        real_t entropy_view = 0.0;
-        if (calib_gimbal_shannon_entropy(calib, &entropy_view) != 0) {
-          continue;
-        }
-
-        // Remove view
-        calib_gimbal_remove_view(calib, nbv_idx);
-
-        // New best?
-        if (entropy_view < entropy_best) {
-          entropy_best = entropy_view;
-          joints_best[0] = y;
-          joints_best[1] = r;
-          joints_best[2] = p;
-        }
-
-        // printf("yaw: %.2f, ", y);
-        // printf("roll: %.2f, ", r);
-        // printf("pitch: %.2f, ", p);
-        // printf("entropy_view: %.2f, ", entropy_view);
-        // printf("entropy_best: %.2f\n", entropy_best);
-        printf(".");
-        fflush(stdout);
       }
     }
   }
+
+#pragma omp parallel for
+  for (int view_idx = 0; view_idx < num_views; view_idx++) {
+    // Make a copy of the gimbal calibration problem
+    calib_gimbal_t *calib_copy = calib_gimbal_copy(calib);
+
+    // Form gimbal joint angles
+    const int num_joints = 3;
+    const real_t y = entropy_joints[view_idx + 0];
+    const real_t r = entropy_joints[view_idx + 1];
+    const real_t p = entropy_joints[view_idx + 2];
+    const real_t joints[3] = {y, r, p};
+
+    // Simulate gimbal view
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      // Gimbal view
+      sim_gimbal_view_t *view =
+          sim_gimbal3_view(&calib_copy->calib_target,
+                           ts,
+                           nbv_idx,
+                           calib_copy->fiducial_exts.data,
+                           calib_copy->poses[pose_idx].data,
+                           calib_copy->gimbal_exts.data,
+                           calib_copy->links[0].data,
+                           calib_copy->links[1].data,
+                           joints[0],
+                           joints[1],
+                           joints[2],
+                           cam_idx,
+                           calib_copy->cam_params[cam_idx].resolution,
+                           calib_copy->cam_params[cam_idx].data,
+                           calib_copy->cam_exts[cam_idx].data);
+
+      // Add view to calibration problem
+      calib_gimbal_add_view(calib_copy,
+                            pose_idx,
+                            nbv_idx,
+                            ts,
+                            cam_idx,
+                            view->num_measurements,
+                            view->tag_ids,
+                            view->corner_indices,
+                            view->object_points,
+                            view->keypoints,
+                            joints,
+                            num_joints);
+
+      // Free view data
+      sim_gimbal_view_free(view);
+    }
+
+    // Calculate shannon entropy
+    real_t entropy_view = 0.0;
+    if (calib_gimbal_shannon_entropy(calib_copy, &entropy_view) != 0) {
+      continue;
+    }
+    entropy_scores[view_idx] = entropy_view;
+
+    // // Remove view
+    // calib_gimbal_remove_view(calib, nbv_idx);
+    calib_gimbal_free(calib_copy);
+
+    // printf("yaw: %.2f, ", y);
+    // printf("roll: %.2f, ", r);
+    // printf("pitch: %.2f, ", p);
+    // printf("entropy_view: %.2f, ", entropy_view);
+    // printf("entropy_best: %.2f\n", entropy_best);
+    printf(".");
+    fflush(stdout);
+  }
+
+  // Find best
+  real_t entropy_best = 0.0;
+  real_t joints_best[3] = {0.0, 0.0, 0.0};
+  for (int view_idx = 0; view_idx < num_views; view_idx++) {
+    if (entropy_scores[view_idx] < entropy_best) {
+      entropy_best = entropy_scores[view_idx];
+      joints_best[0] = entropy_joints[view_idx + 0];
+      joints_best[1] = entropy_joints[view_idx + 1];
+      joints_best[2] = entropy_joints[view_idx + 2];
+    }
+  }
+  free(entropy_scores);
+  free(entropy_joints);
 
   vec_copy(joints_best, 3, nbv_joints);
   printf("calib_entropy: %.2f, ", entropy_init);
