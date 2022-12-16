@@ -1731,9 +1731,58 @@ void solver_params_free(const param_order_t *hash, real_t **x);
 void solver_update(param_order_t *hash, real_t *dx, int sv_size);
 int solver_solve(solver_t *solver, void *data);
 
-/////////////////
-// CALIBRATION //
-/////////////////
+////////////////////////
+// CAMERA CALIBRATION //
+////////////////////////
+
+typedef struct calib_view_t {
+  timestamp_t ts;
+  int view_idx;
+  int cam_idx;
+  int num_corners;
+
+  int *tag_ids;
+  int *corner_indices;
+  real_t *object_points;
+  real_t *keypoints;
+  calib_camera_factor_t *factors;
+} calib_view_t;
+
+typedef struct calib_camera_t {
+  // Settings
+  int fix_fiducial;
+  int fix_poses;
+  int fix_cam_params;
+  int fix_cam_exts;
+  aprilgrid_t calib_target;
+
+  // Flags
+  int fiducial_ok;
+  int poses_ok;
+  int cams_ok;
+
+  // Counters
+  int num_cams;
+  int num_views;
+  int num_poses;
+  int num_calib_factors;
+
+  // Variables
+  timestamp_t *timestamps;
+  extrinsic_t fiducial_exts;
+  extrinsic_t *cam_exts;
+  camera_params_t *cam_params;
+  pose_t *poses;
+
+  // Factors
+  calib_view_t **views;
+} calib_camera_t;
+
+void calib_camear_setup(calib_camera_t *calib);
+
+////////////////////////
+// GIMBAL CALIBRATION //
+////////////////////////
 
 typedef struct calib_gimbal_view_t {
   timestamp_t ts;

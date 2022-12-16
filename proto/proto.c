@@ -9416,9 +9416,50 @@ int solver_solve(solver_t *solver, void *data) {
   return 0;
 }
 
-/////////////////
-// CALIBRATION //
-/////////////////
+////////////////////////
+// CAMERA CALIBRATION //
+////////////////////////
+
+/**
+ * Setup camera calibration data
+ */
+void calib_camera_setup(calib_camera_t *calib) {
+  // Settings
+  calib->fix_fiducial = 0;
+  calib->fix_poses = 0;
+  calib->fix_cam_exts = 0;
+  calib->fix_cam_params = 0;
+  aprilgrid_setup(0, &calib->calib_target);
+
+  // Counters
+  calib->num_cams = 0;
+  calib->num_views = 0;
+  calib->num_poses = 0;
+  calib->num_calib_factors = 0;
+
+  // Variables
+  calib->timestamps = NULL;
+  calib->cam_params = NULL;
+  calib->cam_exts = NULL;
+  calib->poses = NULL;
+
+  // Factors
+  calib->views = NULL;
+}
+
+calib_camera_t *calib_camera_malloc() {
+  calib_camera_t *calib = MALLOC(calib_camera_t, 1);
+  calib_camera_setup(calib);
+  return calib;
+}
+
+void calib_camera_free(calib_camera_t *calib) {
+  free(calib);
+}
+
+////////////////////////
+// GIMBAL CALIBRATION //
+////////////////////////
 
 /**
  * Malloc a gimbal calibration view
