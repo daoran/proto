@@ -9080,6 +9080,21 @@ size_t param_local_size(const int param_type) {
 }
 
 /**
+ * Add parameter to hash
+ */
+void param_order_add(param_order_t **hash,
+                     const int param_type,
+                     const int fix,
+                     real_t *data,
+                     int *col_idx) {
+  param_order_t kv = {data, *col_idx, param_type, fix};
+  hmputs(*hash, kv);
+  if (fix == 0) {
+    *col_idx += param_local_size(param_type);
+  }
+}
+
+/**
  * Setup Solver
  */
 void solver_setup(solver_t *solver) {
@@ -10692,70 +10707,47 @@ param_order_t *calib_gimbal_param_order(const void *data,
 
   // -- Add body poses
   for (int pose_idx = 0; pose_idx < calib->num_poses; pose_idx++) {
-    void *key = &calib->poses[pose_idx].data;
-    param_order_t kv = {key, col_idx, POSE_PARAM, calib->fix_poses};
-    hmputs(hash, kv);
-    if (calib->fix_poses == 0) {
-      col_idx += param_local_size(POSE_PARAM);
-    }
+    void *data = &calib->poses[pose_idx].data;
+    const int fix = calib->fix_poses;
+    param_order_add(&hash, POSE_PARAM, fix, data, &col_idx);
   }
   // -- Add fiducial extrinsic
   {
-    void *key = &calib->fiducial_exts.data;
-    param_order_t kv = {key, col_idx, FIDUCIAL_PARAM, calib->fix_fiducial_exts};
-    hmputs(hash, kv);
-    if (calib->fix_fiducial_exts == 0) {
-      col_idx += param_local_size(FIDUCIAL_PARAM);
-    }
+    void *data = &calib->fiducial_exts.data;
+    const int fix = calib->fix_fiducial_exts;
+    param_order_add(&hash, FIDUCIAL_PARAM, fix, data, &col_idx);
   }
   // -- Add gimbal extrinsic
   {
-    void *key = &calib->gimbal_exts.data;
-    param_order_t kv = {key, col_idx, EXTRINSIC_PARAM, calib->fix_gimbal_exts};
-    hmputs(hash, kv);
-    if (calib->fix_gimbal_exts == 0) {
-      col_idx += param_local_size(EXTRINSIC_PARAM);
-    }
+    void *data = &calib->gimbal_exts.data;
+    const int fix = calib->fix_gimbal_exts;
+    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add links
   for (int i = 0; i < calib->num_links; i++) {
-    void *key = &calib->links[i].data;
-    param_order_t kv = {key, col_idx, EXTRINSIC_PARAM, calib->fix_links};
-    hmputs(hash, kv);
-    if (calib->fix_links == 0) {
-      col_idx += param_local_size(EXTRINSIC_PARAM);
-    }
+    void *data = &calib->links[i].data;
+    const int fix = calib->fix_links;
+    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add camera extrinsic
   for (int i = 0; i < calib->num_cams; i++) {
-    void *key = &calib->cam_exts[i].data;
-    param_order_t kv = {key, col_idx, EXTRINSIC_PARAM, calib->fix_cam_exts};
-    hmputs(hash, kv);
-    if (calib->fix_cam_exts == 0) {
-      col_idx += param_local_size(EXTRINSIC_PARAM);
-    }
+    void *data = &calib->cam_exts[i].data;
+    const int fix = calib->fix_cam_exts;
+    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add camera parameters
   for (int i = 0; i < calib->num_cams; i++) {
-    void *key = &calib->cam_params[i].data;
-    param_order_t kv = {key, col_idx, CAMERA_PARAM, calib->fix_cam_params};
-    hmputs(hash, kv);
-    if (calib->fix_cam_params == 0) {
-      col_idx += param_local_size(CAMERA_PARAM);
-    }
+    void *data = &calib->cam_params[i].data;
+    const int fix = calib->fix_cam_params;
+    param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
   }
   // -- Add joints to hash
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     joint_t *joints = calib->joints[view_idx];
     for (int i = 0; i < calib->num_joints; i++) {
-      param_order_t val = {&joints[i].data,
-                           col_idx,
-                           JOINT_PARAM,
-                           calib->fix_joints};
-      hmputs(hash, val);
-      if (calib->fix_joints == 0) {
-        col_idx += param_local_size(JOINT_PARAM);
-      }
+      void *data = &joints[i].data;
+      const int fix = calib->fix_joints;
+      param_order_add(&hash, JOINT_PARAM, fix, data, &col_idx);
     }
   }
 

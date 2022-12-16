@@ -1683,6 +1683,11 @@ typedef struct param_order_t {
 void param_type_string(const int param_type, char *s);
 size_t param_global_size(const int param_type);
 size_t param_local_size(const int param_type);
+void param_order_add(param_order_t **hash,
+                     const int param_type,
+                     const int fix,
+                     real_t *data,
+                     int *col_idx);
 
 typedef struct solver_t {
   int max_iter;
