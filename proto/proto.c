@@ -9635,22 +9635,67 @@ void calib_camera_setup(calib_camera_t *calib) {
 
   // Variables
   calib->timestamps = NULL;
-  calib->cam_params = NULL;
-  calib->cam_exts = NULL;
   calib->poses = NULL;
+  calib->cam_exts = NULL;
+  calib->cam_params = NULL;
 
   // Factors
   calib->views = NULL;
 }
 
+/**
+ * Malloc camera calibration problem
+ */
 calib_camera_t *calib_camera_malloc() {
   calib_camera_t *calib = MALLOC(calib_camera_t, 1);
   calib_camera_setup(calib);
   return calib;
 }
 
+/**
+ * Free camera calibration problem
+ */
 void calib_camera_free(calib_camera_t *calib) {
+  free(calib->timestamps);
+  free(calib->poses);
+  free(calib->cam_exts);
+  free(calib->cam_params);
   free(calib);
+}
+
+/**
+ * Add camera to camera calibration problem
+ */
+void calib_camera_add_camera(calib_camera_t *calib,
+                             const int cam_idx,
+                             const int cam_res[2],
+                             const char *proj_model,
+                             const char *dist_model,
+                             const real_t *cam_params,
+                             const real_t *cam_ext) {
+  assert(calib != NULL);
+  assert(cam_idx <= calib->num_cams);
+  assert(cam_res != NULL);
+  assert(proj_model != NULL);
+  assert(dist_model != NULL);
+  assert(cam_params != NULL);
+  assert(cam_ext != NULL);
+
+  if (cam_idx > (calib->num_cams - 1)) {
+    const int new_size = calib->num_cams + 1;
+    calib->cam_params = REALLOC(calib->cam_params, camera_params_t, new_size);
+    calib->cam_exts = REALLOC(calib->cam_exts, extrinsic_t, new_size);
+  }
+
+  camera_params_setup(&calib->cam_params[cam_idx],
+                      cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_params);
+  extrinsic_setup(&calib->cam_exts[cam_idx], cam_ext);
+  calib->num_cams++;
+  calib->cams_ok = 1;
 }
 
 ////////////////////////

@@ -1812,10 +1812,9 @@ typedef struct calib_camera_t {
 
   // Variables
   timestamp_t *timestamps;
-  extrinsic_t fiducial_exts;
+  pose_t *poses;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
-  pose_t *poses;
 
   // Factors
   calib_view_t **views;
@@ -1824,6 +1823,13 @@ typedef struct calib_camera_t {
 void calib_camera_setup(calib_camera_t *calib);
 calib_camera_t *calib_camera_malloc();
 void calib_camera_free(calib_camera_t *calib);
+void calib_camera_add_camera(calib_camera_t *calib,
+                             const int cam_idx,
+                             const int cam_res[2],
+                             const char *proj_model,
+                             const char *dist_model,
+                             const real_t *cam_params,
+                             const real_t *cam_ext);
 
 ////////////////////////
 // GIMBAL CALIBRATION //
