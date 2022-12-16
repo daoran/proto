@@ -1486,6 +1486,49 @@ int joint_factor_eval(void *factor_ptr);
 int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
 
 /////////////////////////
+// CALIB-CAMERA-FACTOR //
+/////////////////////////
+
+typedef struct calib_camera_factor_t {
+  pose_t *pose;
+  extrinsic_t *cam_ext;
+  camera_params_t *cam_params;
+
+  timestamp_t ts;
+  int cam_idx;
+  int tag_id;
+  int corner_idx;
+  real_t p_FFi[3];
+  real_t z[2];
+
+  real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
+
+  int r_size;
+  int num_params;
+  int param_types[3];
+
+  real_t *params[3];
+  real_t r[2];
+  real_t *jacs[3];
+  real_t J_pose[2 * 6];
+  real_t J_cam_ext[2 * 6];
+  real_t J_cam_params[2 * 8];
+} calib_camera_factor_t;
+
+void calib_camera_factor_setup(calib_camera_factor_t *factor,
+                               pose_t *pose,
+                               extrinsic_t *cam_ext,
+                               camera_params_t *cam_params,
+                               const int cam_idx,
+                               const int tag_id,
+                               const int corner_idx,
+                               const real_t p_FFi[3],
+                               const real_t z[2],
+                               const real_t var[2]);
+int calib_camera_factor_eval(void *factor_ptr);
+
+/////////////////////////
 // CALIB-GIMBAL-FACTOR //
 /////////////////////////
 
@@ -1778,7 +1821,9 @@ typedef struct calib_camera_t {
   calib_view_t **views;
 } calib_camera_t;
 
-void calib_camear_setup(calib_camera_t *calib);
+void calib_camera_setup(calib_camera_t *calib);
+calib_camera_t *calib_camera_malloc();
+void calib_camera_free(calib_camera_t *calib);
 
 ////////////////////////
 // GIMBAL CALIBRATION //

@@ -5,8 +5,8 @@ DEPS_DIR := $(realpath ../third_party)
 
 
 # COMPILER SETTINGS
-# BUILD_TYPE := debug
-BUILD_TYPE := release
+BUILD_TYPE := debug
+# BUILD_TYPE := release
 CC := gcc
 # CC := tcc
 
