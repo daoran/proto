@@ -3212,6 +3212,168 @@ int test_joint_factor_eval() {
   return 0;
 }
 
+int test_calib_camera_factor_setup() {
+  // Calibration target pose T_WF
+  real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, deg2rad(80.0)};
+  real_t r_WF[3] = {0.001, 0.001, 0.001};
+  real_t T_WF[4 * 4] = {0};
+  tf_er(ypr_WF, r_WF, T_WF);
+
+  // Body pose T_WB
+  real_t ypr_WB[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  real_t r_WB[3] = {-10.0, 0.0, 0.0};
+  real_t T_WB[4 * 4] = {0};
+  tf_er(ypr_WB, r_WB, T_WB);
+
+  // Relative pose T_BF
+  pose_t pose;
+  real_t pose_data[7] = {0};
+  TF_INV(T_WB, T_BW);
+  TF_CHAIN(T_BF, 2, T_BW, T_WF);
+  tf_vector(T_BF, pose_data);
+  pose_setup(&pose, 0, pose_data);
+
+  // Camera extrinsics T_BCi
+  extrinsic_t cam_ext;
+  real_t cam_ext_data[7] = {0};
+  real_t ypr_BCi[3] = {0.0, 0.0, 0.0};
+  real_t r_BCi[3] = {0.001, 0.002, 0.003};
+  real_t T_BCi[4 * 4] = {0};
+  tf_er(ypr_BCi, r_BCi, T_BCi);
+  tf_vector(T_BCi, cam_ext_data);
+  extrinsic_setup(&cam_ext, cam_ext_data);
+
+  // Camera
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const real_t fov = 90.0;
+  const real_t fx = pinhole_focal(cam_res[0], fov);
+  const real_t fy = pinhole_focal(cam_res[0], fov);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam_data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  camera_params_t cam;
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+
+  // Project to image plane
+  aprilgrid_t grid;
+  aprilgrid_setup(0, &grid);
+
+  const int tag_id = 1;
+  const int corner_idx = 2;
+  real_t p_FFi[3] = {0};
+  aprilgrid_object_point(&grid, tag_id, corner_idx, p_FFi);
+
+  TF_INV(T_BCi, T_CiB);
+  TF_CHAIN(T_CiF, 2, T_CiB, T_BF);
+  real_t z[2] = {0};
+  TF_POINT(T_CiF, p_FFi, p_CiFi);
+  pinhole_radtan4_project(cam_data, p_CiFi, z);
+
+  calib_camera_factor_t factor;
+  const real_t var[2] = {1.0, 1.0};
+  calib_camera_factor_setup(&factor,
+                            &pose,
+                            &cam_ext,
+                            &cam,
+                            cam_idx,
+                            tag_id,
+                            corner_idx,
+                            p_FFi,
+                            z,
+                            var);
+
+  return 0;
+}
+
+int test_calib_camera_factor_eval() {
+  // Calibration target pose T_WF
+  real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, deg2rad(80.0)};
+  real_t r_WF[3] = {0.001, 0.001, 0.001};
+  real_t T_WF[4 * 4] = {0};
+  tf_er(ypr_WF, r_WF, T_WF);
+
+  // Body pose T_WB
+  real_t ypr_WB[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  real_t r_WB[3] = {-10.0, 0.0, 0.0};
+  real_t T_WB[4 * 4] = {0};
+  tf_er(ypr_WB, r_WB, T_WB);
+
+  // Relative pose T_BF
+  pose_t pose;
+  real_t pose_data[7] = {0};
+  TF_INV(T_WB, T_BW);
+  TF_CHAIN(T_BF, 2, T_BW, T_WF);
+  tf_vector(T_BF, pose_data);
+  pose_setup(&pose, 0, pose_data);
+
+  // Camera extrinsics T_BCi
+  extrinsic_t cam_ext;
+  real_t cam_ext_data[7] = {0};
+  real_t ypr_BCi[3] = {0.0, 0.0, 0.0};
+  real_t r_BCi[3] = {0.001, 0.002, 0.003};
+  real_t T_BCi[4 * 4] = {0};
+  tf_er(ypr_BCi, r_BCi, T_BCi);
+  tf_vector(T_BCi, cam_ext_data);
+  extrinsic_setup(&cam_ext, cam_ext_data);
+
+  // Camera
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const real_t fov = 90.0;
+  const real_t fx = pinhole_focal(cam_res[0], fov);
+  const real_t fy = pinhole_focal(cam_res[0], fov);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam_data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  camera_params_t cam;
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+
+  // Project to image plane
+  aprilgrid_t grid;
+  aprilgrid_setup(0, &grid);
+
+  const int tag_id = 1;
+  const int corner_idx = 2;
+  real_t p_FFi[3] = {0};
+  aprilgrid_object_point(&grid, tag_id, corner_idx, p_FFi);
+
+  TF_INV(T_BCi, T_CiB);
+  TF_CHAIN(T_CiF, 2, T_CiB, T_BF);
+  real_t z[2] = {0};
+  TF_POINT(T_CiF, p_FFi, p_CiFi);
+  pinhole_radtan4_project(cam_data, p_CiFi, z);
+
+  calib_camera_factor_t factor;
+  const real_t var[2] = {1.0, 1.0};
+  calib_camera_factor_setup(&factor,
+                            &pose,
+                            &cam_ext,
+                            &cam,
+                            cam_idx,
+                            tag_id,
+                            corner_idx,
+                            p_FFi,
+                            z,
+                            var);
+
+  // Jacobians
+  calib_camera_factor_eval(&factor);
+
+  // Check Jacobians
+  const double tol = 1e-4;
+  const double step_size = 1e-8;
+  CHECK_FACTOR_J(0, factor, calib_camera_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(1, factor, calib_camera_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, calib_camera_factor_eval, step_size, tol, 0);
+
+  return 0;
+}
+
 static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
                                       extrinsic_t *fiducial_exts,
                                       extrinsic_t *gimbal_exts,
@@ -4916,6 +5078,8 @@ void test_suite() {
   MU_ADD_TEST(test_vision_factor_eval);
   MU_ADD_TEST(test_joint_factor_setup);
   MU_ADD_TEST(test_joint_factor_eval);
+  MU_ADD_TEST(test_calib_camera_factor_setup);
+  MU_ADD_TEST(test_calib_camera_factor_eval);
   MU_ADD_TEST(test_calib_gimbal_factor_setup);
   MU_ADD_TEST(test_calib_gimbal_factor_eval);
   MU_ADD_TEST(test_imu_buf_setup);
