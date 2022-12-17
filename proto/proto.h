@@ -1778,7 +1778,7 @@ int solver_solve(solver_t *solver, void *data);
 // CAMERA CALIBRATION //
 ////////////////////////
 
-typedef struct calib_view_t {
+typedef struct calib_camera_view_t {
   timestamp_t ts;
   int view_idx;
   int cam_idx;
@@ -1788,37 +1788,47 @@ typedef struct calib_view_t {
   int *corner_indices;
   real_t *object_points;
   real_t *keypoints;
+
   calib_camera_factor_t *factors;
-} calib_view_t;
+} calib_camera_view_t;
 
 typedef struct calib_camera_t {
   // Settings
-  int fix_fiducial;
   int fix_poses;
   int fix_cam_params;
   int fix_cam_exts;
   aprilgrid_t calib_target;
 
   // Flags
-  int fiducial_ok;
-  int poses_ok;
   int cams_ok;
 
   // Counters
   int num_cams;
   int num_views;
-  int num_poses;
-  int num_calib_factors;
+  int num_factors;
 
   // Variables
-  timestamp_t *timestamps;
-  pose_t *poses;
+  pose_t **poses;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
 
   // Factors
-  calib_view_t **views;
+  calib_camera_view_t ***views;
 } calib_camera_t;
+
+void calib_camera_view_setup(calib_camera_view_t *view);
+calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
+                                              const int view_idx,
+                                              const int cam_idx,
+                                              const int num_corners,
+                                              const int *tag_ids,
+                                              const int *corner_indices,
+                                              const real_t *object_points,
+                                              const real_t *keypoints,
+                                              pose_t *pose,
+                                              extrinsic_t *cam_ext,
+                                              camera_params_t *cam_params);
+void calib_camera_view_free(calib_camera_view_t *view);
 
 void calib_camera_setup(calib_camera_t *calib);
 calib_camera_t *calib_camera_malloc();
@@ -1830,6 +1840,18 @@ void calib_camera_add_camera(calib_camera_t *calib,
                              const char *dist_model,
                              const real_t *cam_params,
                              const real_t *cam_ext);
+void calib_camera_add_view(calib_camera_t *calib,
+                           const timestamp_t ts,
+                           const int view_idx,
+                           const int cam_idx,
+                           const int num_corners,
+                           const int *tag_ids,
+                           const int *corner_indices,
+                           const real_t *object_points,
+                           const real_t *keypoints,
+                           extrinsic_t *cam_ext,
+                           camera_params_t *cam_params,
+                           pose_t *pose);
 
 ////////////////////////
 // GIMBAL CALIBRATION //

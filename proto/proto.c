@@ -9617,25 +9617,129 @@ int solver_solve(solver_t *solver, void *data) {
 ////////////////////////
 
 /**
- * Setup camera calibration data
+ * Setup camera calibration view.
+ */
+void calib_camera_view_setup(calib_camera_view_t *view) {
+  view->ts = 0;
+  view->view_idx = 0;
+  view->cam_idx = 0;
+  view->num_corners = 0;
+
+  view->tag_ids = NULL;
+  view->corner_indices = NULL;
+  view->object_points = NULL;
+  view->keypoints = NULL;
+
+  view->factors = NULL;
+}
+
+/**
+ * Malloc camera calibration view.
+ */
+calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
+                                              const int view_idx,
+                                              const int cam_idx,
+                                              const int num_corners,
+                                              const int *tag_ids,
+                                              const int *corner_indices,
+                                              const real_t *object_points,
+                                              const real_t *keypoints,
+                                              pose_t *pose,
+                                              extrinsic_t *cam_ext,
+                                              camera_params_t *cam_params) {
+  calib_camera_view_t *view = MALLOC(calib_camera_view_t, 1);
+  calib_camera_view_setup(view);
+
+  // Properties
+  view->ts = ts;
+  view->view_idx = view_idx;
+  view->cam_idx = cam_idx;
+  view->num_corners = num_corners;
+
+  // Measurements
+  view->tag_ids = MALLOC(int, num_corners);
+  view->corner_indices = MALLOC(int, num_corners);
+  view->object_points = MALLOC(real_t, num_corners * 3);
+  view->keypoints = MALLOC(real_t, num_corners * 2);
+
+  // Factors
+  view->factors = MALLOC(calib_camera_factor_t, num_corners);
+  assert(view->tag_ids != NULL);
+  assert(view->corner_indices != NULL);
+  assert(view->object_points != NULL);
+  assert(view->keypoints != NULL);
+  assert(view->factors != NULL);
+
+  for (int i = 0; i < num_corners; i++) {
+    view->tag_ids[i] = tag_ids[i];
+    view->corner_indices[i] = corner_indices[i];
+    view->object_points[i * 3] = object_points[i * 3];
+    view->object_points[i * 3 + 1] = object_points[i * 3 + 1];
+    view->object_points[i * 3 + 2] = object_points[i * 3 + 2];
+    view->keypoints[i * 2] = keypoints[i * 2];
+    view->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
+  }
+
+  const real_t var[2] = {1.0, 1.0};
+  for (int i = 0; i < view->num_corners; i++) {
+    const int tag_id = tag_ids[i];
+    const int corner_idx = corner_indices[i];
+    const real_t *p_FFi = &object_points[i * 3];
+    const real_t *z = &keypoints[i * 2];
+
+    view->tag_ids[i] = tag_id;
+    view->corner_indices[i] = corner_idx;
+    view->object_points[i * 3] = p_FFi[0];
+    view->object_points[i * 3 + 1] = p_FFi[1];
+    view->object_points[i * 3 + 2] = p_FFi[2];
+    view->keypoints[i * 2] = z[0];
+    view->keypoints[i * 2 + 1] = z[1];
+
+    calib_camera_factor_setup(&view->factors[i],
+                              pose,
+                              cam_ext,
+                              cam_params,
+                              cam_idx,
+                              tag_id,
+                              corner_idx,
+                              p_FFi,
+                              z,
+                              var);
+  }
+
+  return view;
+}
+
+/**
+ * Free camera calibration view.
+ */
+void calib_camera_view_free(calib_camera_view_t *view) {
+  free(view->tag_ids);
+  free(view->corner_indices);
+  free(view->object_points);
+  free(view->keypoints);
+  free(view->factors);
+}
+
+/**
+ * Setup camera calibration data.
  */
 void calib_camera_setup(calib_camera_t *calib) {
   // Settings
-  calib->fix_fiducial = 0;
   calib->fix_poses = 0;
   calib->fix_cam_exts = 0;
   calib->fix_cam_params = 0;
   aprilgrid_setup(0, &calib->calib_target);
 
+  // Flags
+  calib->cams_ok = 0;
+
   // Counters
   calib->num_cams = 0;
   calib->num_views = 0;
-  calib->num_poses = 0;
-  calib->num_calib_factors = 0;
+  calib->num_factors = 0;
 
   // Variables
-  calib->timestamps = NULL;
-  calib->poses = NULL;
   calib->cam_exts = NULL;
   calib->cam_params = NULL;
 
@@ -9656,10 +9760,19 @@ calib_camera_t *calib_camera_malloc() {
  * Free camera calibration problem
  */
 void calib_camera_free(calib_camera_t *calib) {
-  free(calib->timestamps);
-  free(calib->poses);
   free(calib->cam_exts);
   free(calib->cam_params);
+
+  for (int k = 0; k < calib->num_views; k++) {
+    free(calib->poses[k]);
+  }
+  free(calib->poses);
+
+  for (int k = 0; k < calib->num_views; k++) {
+    free(calib->views[k]);
+  }
+  free(calib->views);
+
   free(calib);
 }
 
@@ -9696,6 +9809,59 @@ void calib_camera_add_camera(calib_camera_t *calib,
   extrinsic_setup(&calib->cam_exts[cam_idx], cam_ext);
   calib->num_cams++;
   calib->cams_ok = 1;
+}
+
+/**
+ * Add camera calibration view.
+ */
+void calib_camera_add_view(calib_camera_t *calib,
+                           const timestamp_t ts,
+                           const int view_idx,
+                           const int cam_idx,
+                           const int num_corners,
+                           const int *tag_ids,
+                           const int *corner_indices,
+                           const real_t *object_points,
+                           const real_t *keypoints,
+                           extrinsic_t *cam_ext,
+                           camera_params_t *cam_params,
+                           pose_t *pose) {
+  assert(calib != NULL);
+  assert(calib->cams_ok);
+
+  // Allocate memory for a new pose & view
+  if (view_idx > (calib->num_views - 1)) {
+    const int new_size = calib->num_views + 1;
+
+    // New pose
+    calib->poses = REALLOC(calib->poses, pose_t *, new_size);
+    calib->poses[view_idx] = MALLOC(pose_t, 1);
+    const real_t pose_data[7] = {0};
+    pose_setup(calib->poses[view_idx], ts, pose_data);
+
+    // New view
+    calib->views = REALLOC(calib->views, calib_gimbal_view_t **, new_size);
+    calib->views[view_idx] = MALLOC(calib_gimbal_view_t *, calib->num_cams);
+    calib->num_views++;
+  }
+
+  // Form a new calibration view
+  calib_camera_view_t *view =
+      calib_camera_view_malloc(ts,
+                               view_idx,
+                               cam_idx,
+                               num_corners,
+                               tag_ids,
+                               corner_indices,
+                               object_points,
+                               keypoints,
+                               pose,
+                               &calib->cam_exts[cam_idx],
+                               &calib->cam_params[cam_idx]);
+  calib->num_factors += num_corners;
+
+  // Update
+  calib->views[view_idx][cam_idx] = view;
 }
 
 ////////////////////////
