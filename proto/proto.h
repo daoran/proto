@@ -1244,6 +1244,17 @@ typedef struct extrinsic_t {
 void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
 void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 
+////////////////
+// TIME-DELAY //
+////////////////
+
+typedef struct time_delay_t {
+  real_t data[1];
+} time_delay_t;
+
+void time_delay_setup(time_delay_t *time_delay, const real_t *param);
+void time_delay_print(const char *prefix, const time_delay_t *exts);
+
 //////////////////
 // JOINT-ANGLES //
 //////////////////

@@ -6668,6 +6668,25 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts) {
   printf("quat: (%.2f, %.2f, %.2f, %.2f)\n", qw, qx, qy, qz);
 }
 
+////////////////
+// TIME-DELAY //
+////////////////
+
+/**
+ * Setup time-delay.
+ */
+void time_delay_setup(time_delay_t *time_delay, const real_t td) {
+  assert(time_delay != NULL);
+  time_delay->data[0] = td;
+}
+
+/**
+ * Print time-delay.
+ */
+void time_delay_print(const char *prefix, const time_delay_t *td) {
+  printf("[%s] time_delay: %f\n", prefix, td->data[0]);
+}
+
 //////////////////
 // JOINT-ANGLES //
 //////////////////
