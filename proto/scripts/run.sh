@@ -193,7 +193,7 @@ dev_euroc() {
 #   ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
-# run_all_tests
+run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
@@ -297,12 +297,9 @@ dev_euroc() {
 # run_test test_svd_det
 # run_test test_eig_sym
 # run_test test_eig_inv
-# PROTO-CHOL
 # run_test test_chol
 # run_test test_chol_solve
-# PROTO-QR
 # run_test test_qr
-# PROTO-SUITE-SPARSE
 # run_test test_suitesparse_chol_solve
 # PROTO-TIME
 # PROTO-TRANSFORMS

@@ -9792,6 +9792,7 @@ void param_order_add(param_order_t **hash,
  */
 void solver_setup(solver_t *solver) {
   assert(solver);
+  solver->verbose = 0;
   solver->max_iter = 10;
   solver->lambda = 1e4;
 }
@@ -10035,7 +10036,10 @@ int solver_solve(solver_t *solver, void *data) {
   real_t *dx = CALLOC(real_t, sv_size);
   solver->linearize_func(data, sv_size, hash, H, g, r);
   real_t cost_km1 = solver_cost(r, r_size);
-  printf("iter: 0, lambda_k: %.2e, cost: %.2e\n", solver->lambda, cost_km1);
+
+  if (solver->verbose) {
+    printf("iter: 0, lambda_k: %.2e, cost: %.2e\n", solver->lambda, cost_km1);
+  }
 
   // Start cholmod workspace
 #ifdef SOLVER_USE_SUITESPARSE
@@ -10072,10 +10076,13 @@ int solver_solve(solver_t *solver, void *data) {
       zeros(r, r_size, 1);
       solver->linearize_func(data, sv_size, hash, H, g, r);
       cost_k = solver_cost(r, r_size);
-      printf("iter: %d, lambda_k: %.2e, cost: %.2e\n",
-             iter + 1,
-             lambda_k,
-             cost_k);
+
+      if (solver->verbose) {
+        printf("iter: %d, lambda_k: %.2e, cost: %.2e\n",
+               iter + 1,
+               lambda_k,
+               cost_k);
+      }
     }
 
     // Accept or reject update*/

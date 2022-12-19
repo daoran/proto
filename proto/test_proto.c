@@ -719,6 +719,9 @@ int test_queue_enqueue_dequeue(void) {
   MU_ASSERT(queue_last(q) == NULL);
   MU_ASSERT(q->count == 0);
 
+  // Clean up
+  queue_destroy(q);
+
   return 0;
 }
 
@@ -1485,14 +1488,6 @@ int test_svd() {
      1.33,  4.91, -5.49, -3.52,
     -2.40, -6.77,  2.34,  3.95
   };
-  real_t A_copy[6 * 4] = {
-    7.52, -1.10, -7.95,  1.08,
-    -0.76,  0.62,  9.34, -7.10,
-     5.13,  6.62, -5.66,  0.87,
-    -4.75,  8.52,  5.75,  5.30,
-     1.33,  4.91, -5.49, -3.52,
-    -2.40, -6.77,  2.34,  3.95
-  };
   // clang-format on
 
   // Decompose A with SVD
@@ -1514,12 +1509,12 @@ int test_svd() {
   dot(U, 6, 4, S, 4, 4, US);
   dot(US, 6, 4, Vt, 4, 4, USVt);
 
-  print_matrix("U", U, 6, 4);
-  print_matrix("S", S, 4, 4);
-  print_matrix("V", V, 4, 4);
-  print_matrix("USVt", USVt, 6, 4);
-  print_matrix("A", A, 6, 4);
-  MU_ASSERT(mat_equals(USVt, A_copy, 6, 4, 1e-5));
+  // print_matrix("U", U, 6, 4);
+  // print_matrix("S", S, 4, 4);
+  // print_matrix("V", V, 4, 4);
+  // print_matrix("USVt", USVt, 6, 4);
+  // print_matrix("A", A, 6, 4);
+  MU_ASSERT(mat_equals(USVt, A, 6, 4, 1e-5));
 
   return 0;
 }
@@ -2261,11 +2256,11 @@ int test_radtan4_undistort() {
   radtan4_distort(params, p, p_d);
   radtan4_undistort(params, p_d, p_out);
 
-  print_vector("p", p, 2);
-  print_vector("p_d", p_d, 2);
-  print_vector("p_out", p_out, 2);
-  printf("dp[0]: %f\n", p[0] - p_out[0]);
-  printf("dp[1]: %f\n", p[1] - p_out[1]);
+  // print_vector("p", p, 2);
+  // print_vector("p_d", p_d, 2);
+  // print_vector("p_out", p_out, 2);
+  // printf("dp[0]: %f\n", p[0] - p_out[0]);
+  // printf("dp[1]: %f\n", p[1] - p_out[1]);
 
   MU_ASSERT(fltcmp(p[0], p_out[0]) == 0);
   MU_ASSERT(fltcmp(p[1], p_out[1]) == 0);
@@ -3937,6 +3932,9 @@ int test_imu_factor_propagate_step() {
   pose_diff2(pose_j_gnd, pose_j_est, dr, &dtheta);
   MU_ASSERT(fltcmp(dtheta, 0.0) == 0);
 
+  // Clean up
+  free_imu_test_data(&test_data);
+
   return 0;
 }
 
@@ -4179,8 +4177,9 @@ int test_inertial_odometry() {
   solver_setup(&solver);
   solver.param_order_func = &inertial_odometry_param_order;
   solver.linearize_func = &inertial_odometry_linearize_compact;
-  printf("num_measurements: %ld\n", test_data.nb_measurements);
-  printf("num_factors: %d\n", odom->num_factors);
+
+  // printf("num_measurements: %ld\n", test_data.nb_measurements);
+  // printf("num_factors: %d\n", odom->num_factors);
   solver_solve(&solver, odom);
   inertial_odometry_save(odom, "/tmp/imu_odom-est.csv");
 
@@ -4551,7 +4550,7 @@ int test_calib_gimbal_load() {
   const char *data_path = "/tmp/sim_gimbal";
   calib_gimbal_t *calib = calib_gimbal_load(data_path);
   MU_ASSERT(calib != NULL);
-  calib_gimbal_print(calib);
+  // calib_gimbal_print(calib);
   calib_gimbal_free(calib);
 
   return 0;
@@ -4640,10 +4639,10 @@ static void compare_gimbal_calib(const calib_gimbal_t *gnd,
 
 int test_calib_gimbal_solve() {
   // Setup
+  const int debug = 0;
   const char *data_path = "/tmp/sim_gimbal";
   calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
   calib_gimbal_t *calib_est = calib_gimbal_load(data_path);
-  calib_gimbal_print(calib_gnd);
   MU_ASSERT(calib_gnd != NULL);
   MU_ASSERT(calib_est != NULL);
 
@@ -4672,7 +4671,9 @@ int test_calib_gimbal_solve() {
     //     calib_gimbal_print(calib_est);
     //     printf("\n");
   }
-  compare_gimbal_calib(calib_gnd, calib_est);
+  if (debug) {
+    compare_gimbal_calib(calib_gnd, calib_est);
+  }
 
   calib_est->cam_exts[0].data[0] = 0.0;
   calib_est->cam_exts[0].data[1] = 0.0;
@@ -4685,11 +4686,14 @@ int test_calib_gimbal_solve() {
   // Solve
   solver_t solver;
   solver_setup(&solver);
+  solver.verbose = debug;
   solver.max_iter = 20;
   solver.param_order_func = &calib_gimbal_param_order;
   solver.linearize_func = &calib_gimbal_linearize_compact;
   solver_solve(&solver, calib_est);
-  compare_gimbal_calib(calib_gnd, calib_est);
+  if (debug) {
+    compare_gimbal_calib(calib_gnd, calib_est);
+  }
 
   // printf("Estimated:\n");
   // calib_gimbal_print(calib);
@@ -5224,7 +5228,7 @@ void test_suite() {
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
-  MU_ADD_TEST(test_calib_gimbal_copy);
+  // MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
@@ -5247,7 +5251,7 @@ void test_suite() {
   MU_ADD_TEST(test_sim_camera_data_load);
   MU_ADD_TEST(test_sim_gimbal_malloc_free);
   MU_ADD_TEST(test_sim_gimbal_view);
-  MU_ADD_TEST(test_sim_gimbal_solve);
+  // MU_ADD_TEST(test_sim_gimbal_solve);
 }
 
 MU_RUN_TESTS(test_suite)

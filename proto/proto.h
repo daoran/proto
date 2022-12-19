@@ -1871,6 +1871,7 @@ void param_order_add(param_order_t **hash,
                      int *col_idx);
 
 typedef struct solver_t {
+  int verbose;
   int max_iter;
   real_t lambda;
 
