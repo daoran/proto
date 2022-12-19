@@ -6627,12 +6627,12 @@ void features_remove(features_t *features, const int feature_id) {
   features->status[feature_id] = 0;
 }
 
-////////////////
-// extrinsic //
-////////////////
+///////////////
+// EXTRINSIC //
+///////////////
 
 /**
- * Setup extrinsic
+ * Setup extrinsic.
  */
 void extrinsic_setup(extrinsic_t *exts, const real_t *data) {
   assert(exts != NULL);
@@ -6651,7 +6651,7 @@ void extrinsic_setup(extrinsic_t *exts, const real_t *data) {
 }
 
 /**
- * Print extrinsic
+ * Print extrinsic.
  */
 void extrinsic_print(const char *prefix, const extrinsic_t *exts) {
   const real_t x = exts->data[0];
@@ -6692,7 +6692,7 @@ void time_delay_print(const char *prefix, const time_delay_t *td) {
 //////////////////
 
 /**
- * Joint Angle Setup
+ * Joint Angle Setup.
  */
 void joint_setup(joint_t *joint,
                  const timestamp_t ts,
@@ -6705,7 +6705,7 @@ void joint_setup(joint_t *joint,
 }
 
 /**
- * Print Joint Angle
+ * Print Joint Angle.
  */
 void joint_print(const char *prefix, const joint_t *joint) {
   printf("[%s] ", prefix);
@@ -6771,7 +6771,7 @@ void camera_params_print(const camera_params_t *cam) {
 }
 
 /////////////////
-// POSE-FACTOR //
+// POSE FACTOR //
 /////////////////
 
 int check_factor_jacobian(const void *factor,
@@ -7026,7 +7026,7 @@ int pose_factor_eval(void *factor_ptr) {
 }
 
 ///////////////
-// BA-FACTOR //
+// BA FACTOR //
 ///////////////
 
 /**
@@ -7258,7 +7258,7 @@ int ba_factor_eval(void *factor_ptr) {
 }
 
 ///////////////////
-// VISION-FACTOR //
+// VISION FACTOR //
 ///////////////////
 
 /**
@@ -7596,6 +7596,129 @@ int vision_factor_eval(void *factor_ptr) {
   return 0;
 }
 
+/////////////////////////////
+// TWO-STATE VISION FACTOR //
+/////////////////////////////
+
+/**
+ * Setup Two-State vision factor.
+ */
+void two_state_vision_factor_setup(two_state_vision_factor_t *factor,
+                                   pose_t *pose_i,
+                                   pose_t *pose_j,
+                                   feature_t *feature,
+                                   extrinsic_t *cam_ext,
+                                   camera_params_t *cam_params,
+                                   time_delay_t *time_delay,
+                                   const real_t z_i[2],
+                                   const real_t z_j[2],
+                                   const real_t v_i[2],
+                                   const real_t v_j[2],
+                                   const real_t var[2]) {
+  assert(factor != NULL);
+  assert(pose_i != NULL);
+  assert(pose_j != NULL);
+  assert(feature != NULL);
+  assert(cam_ext != NULL);
+  assert(cam_params != NULL);
+  assert(time_delay != NULL);
+  assert(z_i != NULL && z_j != NULL);
+  assert(v_i != NULL && v_j != NULL);
+  assert(var != NULL);
+
+  // Parameters
+  factor->pose_i = pose_i;
+  factor->pose_j = pose_j;
+  factor->feature = feature;
+  factor->cam_ext = cam_ext;
+  factor->cam_params = cam_params;
+  factor->time_delay = time_delay;
+
+  // Measurement covariance matrix
+  factor->covar[0] = var[0];
+  factor->covar[1] = 0.0;
+  factor->covar[2] = 0.0;
+  factor->covar[3] = var[1];
+
+  // Square-root information matrix
+  factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
+  factor->sqrt_info[1] = 0.0;
+  factor->sqrt_info[2] = 0.0;
+  factor->sqrt_info[3] = sqrt(1.0 / factor->covar[3]);
+
+  // Measurement
+  factor->z_i[0] = z_i[0];
+  factor->z_i[1] = z_i[1];
+  factor->z_j[0] = z_j[0];
+  factor->z_j[1] = z_j[1];
+  factor->v_i[0] = v_i[0];
+  factor->v_i[1] = v_i[1];
+  factor->v_j[0] = v_j[0];
+  factor->v_j[1] = v_j[1];
+
+  // Parameters, residuals, jacobians
+  factor->r_size = 2;
+  factor->num_params = 6;
+
+  factor->param_types[0] = POSE_PARAM;
+  factor->param_types[1] = POSE_PARAM;
+  factor->param_types[2] = FEATURE_PARAM;
+  factor->param_types[3] = EXTRINSIC_PARAM;
+  factor->param_types[4] = CAMERA_PARAM;
+  factor->param_types[5] = TIME_DELAY_PARAM;
+
+  factor->params[0] = factor->pose_i->data;
+  factor->params[1] = factor->pose_j->data;
+  factor->params[2] = factor->feature->data;
+  factor->params[3] = factor->cam_ext->data;
+  factor->params[4] = factor->cam_params->data;
+  factor->params[5] = factor->time_delay->data;
+
+  factor->jacs[0] = factor->J_pose_i;
+  factor->jacs[1] = factor->J_pose_j;
+  factor->jacs[2] = factor->J_feature;
+  factor->jacs[3] = factor->J_cam_ext;
+  factor->jacs[4] = factor->J_cam_params;
+  factor->jacs[5] = factor->J_time_delay;
+}
+
+/**
+ * Evaluate Two-State vision factor.
+ */
+int two_state_vision_factor_eval(void *factor_ptr) {
+  two_state_vision_factor_t *factor = (two_state_vision_factor_t *) factor_ptr;
+  assert(factor != NULL);
+  assert(factor->pose_i);
+  assert(factor->pose_j);
+  assert(factor->cam_ext);
+  assert(factor->cam_params);
+  assert(factor->time_delay);
+
+  // // Calculate residuals
+  // // -- Project point from world to image plane
+  // real_t z_hat[2];
+  // pinhole_radtan4_project(cam_params, p_Ci, z_hat);
+  // // -- Residual
+  // real_t r[2] = {0};
+  // r[0] = factor->z[0] - z_hat[0];
+  // r[1] = factor->z[1] - z_hat[1];
+  // // -- Weighted residual
+  // dot(factor->sqrt_info, 2, 2, r, 2, 1, factor->r);
+
+  // // Calculate jacobians
+  // // -- Form: -1 * sqrt_info
+  // real_t neg_sqrt_info[2 * 2] = {0};
+  // mat_copy(factor->sqrt_info, 2, 2, neg_sqrt_info);
+  // mat_scale(neg_sqrt_info, 2, 2, -1.0);
+  // // -- Form: Jh_ = -1 * sqrt_info * Jh
+  // real_t Jh[2 * 3] = {0};
+  // real_t Jh_w[2 * 3] = {0};
+  // pinhole_radtan4_project_jacobian(cam_params, p_Ci, Jh);
+  // dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_w);
+
+  return 0;
+}
+
 ////////////////////////
 // JOINT-ANGLE FACTOR //
 ////////////////////////
@@ -7673,7 +7796,7 @@ error:
 }
 
 /////////////////////////
-// CALIB-CAMERA-FACTOR //
+// CALIB-CAMERA FACTOR //
 /////////////////////////
 
 /**
@@ -7740,10 +7863,9 @@ void calib_camera_factor_setup(calib_camera_factor_t *factor,
 }
 
 int calib_camera_factor_eval(void *factor_ptr) {
-  assert(factor_ptr != NULL);
-
   // Map factor
   calib_camera_factor_t *factor = (calib_camera_factor_t *) factor_ptr;
+  assert(factor != NULL);
 
   // Map params
   const real_t *p_FFi = factor->p_FFi;
@@ -7869,7 +7991,328 @@ int calib_camera_factor_eval(void *factor_ptr) {
 }
 
 /////////////////////////
-// CALIB-GIMBAL-FACTOR //
+// CALIB-IMUCAM FACTOR //
+/////////////////////////
+
+/**
+ * Setup imu-camera time-delay calibration factor
+ */
+void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
+                               pose_t *fiducial,
+                               pose_t *imu_pose,
+                               extrinsic_t *imu_ext,
+                               extrinsic_t *cam_ext,
+                               camera_params_t *cam_params,
+                               time_delay_t *time_delay,
+                               const int cam_idx,
+                               const int tag_id,
+                               const int corner_idx,
+                               const real_t p_FFi[3],
+                               const real_t z[2],
+                               const real_t v[2],
+                               const real_t var[2]) {
+  assert(factor != NULL);
+  assert(fiducial != NULL);
+  assert(imu_pose != NULL);
+  assert(imu_ext != NULL);
+  assert(cam_ext != NULL);
+  assert(cam_params != NULL);
+  assert(time_delay != NULL);
+  assert(p_FFi != NULL);
+  assert(z != NULL);
+  assert(v != NULL);
+  assert(var != NULL);
+
+  // Parameters
+  factor->fiducial = fiducial;
+  factor->imu_pose = imu_pose;
+  factor->imu_ext = imu_ext;
+  factor->cam_ext = cam_ext;
+  factor->cam_params = cam_params;
+  factor->time_delay = time_delay;
+  factor->num_params = 6;
+
+  // Measurement
+  factor->cam_idx = cam_idx;
+  factor->tag_id = tag_id;
+  factor->corner_idx = corner_idx;
+  factor->p_FFi[0] = p_FFi[0];
+  factor->p_FFi[1] = p_FFi[1];
+  factor->p_FFi[2] = p_FFi[2];
+  factor->z[0] = z[0];
+  factor->z[1] = z[1];
+  factor->v[0] = v[0];
+  factor->v[1] = v[1];
+
+  // Measurement covariance matrix
+  factor->covar[0] = var[0];
+  factor->covar[1] = 0.0;
+  factor->covar[2] = 0.0;
+  factor->covar[3] = var[1];
+
+  // Square-root information matrix
+  factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
+  factor->sqrt_info[1] = 0.0;
+  factor->sqrt_info[2] = 0.0;
+  factor->sqrt_info[3] = sqrt(1.0 / factor->covar[3]);
+
+  // Factor residuals, parameters and Jacobians
+  factor->r_size = 2;
+  factor->param_types[0] = POSE_PARAM;
+  factor->param_types[1] = POSE_PARAM;
+  factor->param_types[2] = EXTRINSIC_PARAM;
+  factor->param_types[3] = EXTRINSIC_PARAM;
+  factor->param_types[4] = CAMERA_PARAM;
+  factor->param_types[5] = TIME_DELAY_PARAM;
+
+  factor->params[0] = factor->fiducial->data;
+  factor->params[1] = factor->imu_pose->data;
+  factor->params[2] = factor->imu_ext->data;
+  factor->params[3] = factor->cam_ext->data;
+  factor->params[4] = factor->cam_params->data;
+  factor->params[5] = factor->time_delay->data;
+
+  factor->jacs[0] = factor->J_fiducial;
+  factor->jacs[1] = factor->J_imu_pose;
+  factor->jacs[2] = factor->J_imu_ext;
+  factor->jacs[3] = factor->J_cam_ext;
+  factor->jacs[4] = factor->J_cam_params;
+  factor->jacs[5] = factor->J_time_delay;
+}
+
+int calib_imucam_factor_eval(void *factor_ptr) {
+  // Map factor
+  calib_imucam_factor_t *factor = (calib_imucam_factor_t *) factor_ptr;
+  assert(factor != NULL);
+
+  // Map params
+  TF(factor->params[0], T_WF);                  // Fiducial T_WF
+  TF(factor->params[1], T_WS);                  // IMU Pose T_WS
+  TF(factor->params[2], T_SC0);                 // IMU extrinsic T_SC0
+  TF(factor->params[3], T_C0Ci);                // Camera extrinsic T_C0Ci
+  const real_t *cam_params = factor->params[4]; // Camera parameters
+  const real_t td = factor->params[5][0];       // Time delay
+
+  // Form T_CiW and T_CiF
+  // T_CiW = inv(T_C0Ci) * inv(T_SC0) * inv(T_WS) * T_WF
+  TF_INV(T_WS, T_SW);
+  TF_INV(T_SC0, T_C0S);
+  TF_INV(T_C0Ci, T_CiC0);
+  TF_CHAIN(T_CiS, 2, T_CiC0, T_C0S);
+  TF_CHAIN(T_CiW, 2, T_CiS, T_SW);
+  TF_CHAIN(T_CiF, 2, T_CiW, T_WF);
+
+  // Project to image plane
+  real_t z_hat[2];
+  TF_POINT(T_CiF, factor->p_FFi, p_CiFi);
+  pinhole_radtan4_project(cam_params, p_CiFi, z_hat);
+
+  // Calculate residuals
+  real_t r[2] = {0, 0};
+  r[0] = (factor->z[0] + td * factor->v[0]) - z_hat[0];
+  r[1] = (factor->z[1] + td * factor->v[1]) - z_hat[1];
+  dot(factor->sqrt_info, 2, 2, r, 2, 1, factor->r);
+
+  // Calculate Jacobians
+  // Form: -1 * sqrt_info
+  real_t sqrt_info[2 * 2] = {0};
+  real_t neg_sqrt_info[2 * 2] = {0};
+  mat_copy(factor->sqrt_info, 2, 2, sqrt_info);
+  mat_copy(factor->sqrt_info, 2, 2, neg_sqrt_info);
+  mat_scale(neg_sqrt_info, 2, 2, -1.0);
+  // Form: Jh_w = -1 * sqrt_info * Jh
+  real_t Jh[2 * 3] = {0};
+  real_t Jh_w[2 * 3] = {0};
+  pinhole_radtan4_project_jacobian(cam_params, p_CiFi, Jh);
+  dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_w);
+  // Form: J_cam_params
+  real_t J_cam_params[2 * 8] = {0};
+  pinhole_radtan4_params_jacobian(cam_params, p_CiFi, J_cam_params);
+
+  // -- Jacobians w.r.t fiducial pose T_WF
+  {
+    // J_pos = Jh * C_CiW
+    real_t J_pos[2 * 3] = {0};
+    real_t C_CiW[3 * 3] = {0};
+    tf_rot_get(T_CiW, C_CiW);
+    dot(Jh_w, 2, 3, C_CiW, 3, 3, J_pos);
+    factor->jacs[0][0] = J_pos[0];
+    factor->jacs[0][1] = J_pos[1];
+    factor->jacs[0][2] = J_pos[2];
+
+    factor->jacs[0][6] = J_pos[3];
+    factor->jacs[0][7] = J_pos[4];
+    factor->jacs[0][8] = J_pos[5];
+
+    // J_rot = Jh * C_CiW * -C_WF @ hat(p_FFi)
+    real_t C_WF[3 * 3] = {0};
+    real_t C_CiF[3 * 3] = {0};
+    tf_rot_get(T_WF, C_WF);
+    dot(C_CiW, 3, 3, C_WF, 3, 3, C_CiF);
+    mat_scale(C_CiF, 3, 3, -1);
+
+    real_t J_rot[2 * 3] = {0};
+    real_t p_FFi_x[3 * 3] = {0};
+    hat(factor->p_FFi, p_FFi_x);
+    dot3(Jh_w, 2, 3, C_CiF, 3, 3, p_FFi_x, 3, 3, J_rot);
+
+    factor->jacs[0][3] = J_rot[0];
+    factor->jacs[0][4] = J_rot[1];
+    factor->jacs[0][5] = J_rot[2];
+
+    factor->jacs[0][9] = J_rot[3];
+    factor->jacs[0][10] = J_rot[4];
+    factor->jacs[0][11] = J_rot[5];
+  }
+
+  // -- Jacobians w.r.t IMU pose T_WS
+  {
+    // J_pos = Jh * -C_CiW
+    real_t J_pos[2 * 3] = {0};
+    real_t nC_CiW[3 * 3] = {0};
+    tf_rot_get(T_CiW, nC_CiW);
+    mat_scale(nC_CiW, 3, 3, -1.0);
+    dot(Jh_w, 2, 3, nC_CiW, 3, 3, J_pos);
+    factor->jacs[1][0] = J_pos[0];
+    factor->jacs[1][1] = J_pos[1];
+    factor->jacs[1][2] = J_pos[2];
+
+    factor->jacs[1][6] = J_pos[3];
+    factor->jacs[1][7] = J_pos[4];
+    factor->jacs[1][8] = J_pos[5];
+
+    // J_rot = Jh * -C_CiW * hat(p_WFi - r_WS) * -C_WS
+    real_t r_WS[3] = {0};
+    real_t dp[3] = {0};
+    real_t dp_x[3 * 3] = {0};
+    real_t p_WFi[3] = {0};
+    tf_trans_get(T_WS, r_WS);
+    tf_point(T_WF, factor->p_FFi, p_WFi);
+    dp[0] = p_WFi[0] - r_WS[0];
+    dp[1] = p_WFi[1] - r_WS[1];
+    dp[2] = p_WFi[2] - r_WS[2];
+    hat(dp, dp_x);
+
+    real_t nC_WS[3 * 3] = {0};
+    tf_rot_get(T_WS, nC_WS);
+    mat_scale(nC_WS, 3, 3, -1.0);
+
+    real_t J_rot[2 * 3] = {0};
+    dot3(J_pos, 2, 3, dp_x, 3, 3, nC_WS, 3, 3, J_rot);
+
+    factor->jacs[1][3] = J_rot[0];
+    factor->jacs[1][4] = J_rot[1];
+    factor->jacs[1][5] = J_rot[2];
+
+    factor->jacs[1][9] = J_rot[3];
+    factor->jacs[1][10] = J_rot[4];
+    factor->jacs[1][11] = J_rot[5];
+  }
+
+  // -- Jacobians w.r.t IMU extrinsic T_SC0
+  {
+    // J_pos = Jh * -C_CiS
+    real_t J_pos[2 * 3] = {0};
+    real_t nC_CiS[3 * 3] = {0};
+    tf_rot_get(T_CiS, nC_CiS);
+    mat_scale(nC_CiS, 3, 3, -1.0);
+    dot(Jh_w, 2, 3, nC_CiS, 3, 3, J_pos);
+    factor->jacs[2][0] = J_pos[0];
+    factor->jacs[2][1] = J_pos[1];
+    factor->jacs[2][2] = J_pos[2];
+
+    factor->jacs[2][6] = J_pos[3];
+    factor->jacs[2][7] = J_pos[4];
+    factor->jacs[2][8] = J_pos[5];
+
+    // J_rot = Jh * -C_CiS * hat(p_SFi - r_SC0) * -C_SC0
+    real_t r_SC0[3] = {0};
+    real_t dp[3] = {0};
+    real_t dp_x[3 * 3] = {0};
+    real_t p_SFi[3] = {0};
+    tf_trans_get(T_SC0, r_SC0);
+    TF_CHAIN(T_SF, 2, T_SW, T_WF);
+    tf_point(T_SF, factor->p_FFi, p_SFi);
+    dp[0] = p_SFi[0] - r_SC0[0];
+    dp[1] = p_SFi[1] - r_SC0[1];
+    dp[2] = p_SFi[2] - r_SC0[2];
+    hat(dp, dp_x);
+
+    real_t nC_SC0[3 * 3] = {0};
+    tf_rot_get(T_SC0, nC_SC0);
+    mat_scale(nC_SC0, 3, 3, -1.0);
+
+    real_t J_rot[2 * 3] = {0};
+    dot3(J_pos, 2, 3, dp_x, 3, 3, nC_SC0, 3, 3, J_rot);
+
+    factor->jacs[2][3] = J_rot[0];
+    factor->jacs[2][4] = J_rot[1];
+    factor->jacs[2][5] = J_rot[2];
+
+    factor->jacs[2][9] = J_rot[3];
+    factor->jacs[2][10] = J_rot[4];
+    factor->jacs[2][11] = J_rot[5];
+  }
+
+  // -- Jacobians w.r.t camera extrinsic T_C0Ci
+  {
+    // J_pos = Jh * -C_CiC0
+    real_t J_pos[2 * 3] = {0};
+    real_t nC_CiC0[3 * 3] = {0};
+    tf_rot_get(T_CiC0, nC_CiC0);
+    mat_scale(nC_CiC0, 3, 3, -1.0);
+    dot(Jh_w, 2, 3, nC_CiC0, 3, 3, J_pos);
+    factor->jacs[3][0] = J_pos[0];
+    factor->jacs[3][1] = J_pos[1];
+    factor->jacs[3][2] = J_pos[2];
+
+    factor->jacs[3][6] = J_pos[3];
+    factor->jacs[3][7] = J_pos[4];
+    factor->jacs[3][8] = J_pos[5];
+
+    // J_rot = Jh * -C_CiC0 * hat(p_C0Fi - r_C0Ci) * -C_C0Ci
+    real_t J_rot[2 * 3] = {0};
+    real_t r_C0Fi[3] = {0};
+    real_t r_C0Ci[3] = {0};
+    real_t dr[3] = {0};
+    real_t hdr[3 * 3] = {0};
+    real_t nC_C0Ci[3 * 3] = {0};
+
+    TF_CHAIN(T_C0F, 2, T_C0Ci, T_CiF);
+    tf_point(T_C0F, factor->p_FFi, r_C0Fi);
+    tf_trans_get(T_C0Ci, r_C0Ci);
+    dr[0] = r_C0Fi[0] - r_C0Ci[0];
+    dr[1] = r_C0Fi[1] - r_C0Ci[1];
+    dr[2] = r_C0Fi[2] - r_C0Ci[2];
+    hat(dr, hdr);
+    tf_rot_get(T_C0Ci, nC_C0Ci);
+    mat_scale(nC_C0Ci, 3, 3, -1.0);
+
+    real_t B[3 * 3] = {0};
+    dot(hdr, 3, 3, nC_C0Ci, 3, 3, B);
+    dot(J_pos, 2, 3, B, 3, 3, J_rot);
+
+    factor->jacs[3][3] = J_rot[0];
+    factor->jacs[3][4] = J_rot[1];
+    factor->jacs[3][5] = J_rot[2];
+
+    factor->jacs[3][9] = J_rot[3];
+    factor->jacs[3][10] = J_rot[4];
+    factor->jacs[3][11] = J_rot[5];
+  }
+
+  // -- Jacobians w.r.t. camera parameters
+  dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, factor->jacs[4]);
+
+  // -- Jacobians w.r.t. time delay
+  real_t J_time_delay[2 * 1] = {factor->v[0], factor->v[1]};
+  dot(sqrt_info, 2, 2, J_time_delay, 2, 1, factor->jacs[5]);
+
+  return 0;
+}
+
+/////////////////////////
+// CALIB-GIMBAL FACTOR //
 /////////////////////////
 
 #define GIMBAL_JOINT_TF(THETA, T_JOINT)                                        \
@@ -8125,7 +8568,7 @@ static void gimbal_factor_pose_jac(const real_t Jh_w[2 * 3],
 static void gimbal_factor_link_jac(const real_t Jh_w[2 * 3],
                                    const real_t T_LaLb[4 * 4],
                                    const real_t T_CiLa[4 * 4],
-                                   const real_t p_La[3],
+                                   const real_t p_LaFi[3],
                                    real_t J[2 * 6]) {
   if (J == NULL) {
     return;
@@ -8151,15 +8594,15 @@ static void gimbal_factor_link_jac(const real_t Jh_w[2 * 3],
   J[7] = J_pos[4];
   J[8] = J_pos[5];
 
-  // J_rot = Jh * -C_CiLa.T * hat(p_BFi - r_BM0) * -C_BM0
+  // J_rot = Jh * -C_CiLa.T * hat(p_LaFi - r_LaLb) * -C_LaLb
   real_t J_rot[2 * 3] = {0};
   real_t r_LaLb[3] = {0};
   real_t dp[3] = {0};
   real_t dp_x[3 * 3] = {0};
   tf_trans_get(T_LaLb, r_LaLb);
-  dp[0] = p_La[0] - r_LaLb[0];
-  dp[1] = p_La[1] - r_LaLb[1];
-  dp[2] = p_La[2] - r_LaLb[2];
+  dp[0] = p_LaFi[0] - r_LaLb[0];
+  dp[1] = p_LaFi[1] - r_LaLb[1];
+  dp[2] = p_LaFi[2] - r_LaLb[2];
   hat(dp, dp_x);
   dot3(J_pos, 2, 3, dp_x, 3, 3, nC_LaLb, 3, 3, J_rot);
 
@@ -8268,22 +8711,6 @@ static void gimbal_factor_camera_jac(const real_t neg_sqrt_info[2 * 2],
 
 /**
  * Evaluate gimbal calibration factor
- *
- * Parameter `params`:
- * 1. Fiducial pose T_WF
- * 2. Gimbal pose T_WB
- * 3. Link0 pose T_BM0
- * 4. Link1 pose T_L0M1
- * 5. Link2 pose T_L1M2
- * 6. Joint0 angle
- * 7. Joint1 angle
- * 8. Joint2 angle
- * 9. Camera extrinsic pose T_L2Ci
- * 10. Camera parameters K_Ci
- *
- * Residuals `r_out` camera reprojection error
- * Jacobians `J_out` with respect to `params`
- *
  * @returns `0` for success, `-1` for failure
  */
 int calib_gimbal_factor_eval(void *factor_ptr) {
@@ -9218,6 +9645,9 @@ void param_type_string(const int param_type, char *s) {
     case CAMERA_PARAM:
       strcpy(s, "CAMERA_PARAM");
       break;
+    case TIME_DELAY_PARAM:
+      strcpy(s, "TIME_DELAY_PARAM");
+      break;
     default:
       FATAL("Invalid param type [%d]!\n", param_type);
       break;
@@ -9250,6 +9680,9 @@ size_t param_global_size(const int param_type) {
       break;
     case CAMERA_PARAM:
       param_size = 8;
+      break;
+    case TIME_DELAY_PARAM:
+      param_size = 1;
       break;
     default:
       FATAL("Invalid param type [%d]!\n", param_type);
@@ -9285,6 +9718,9 @@ size_t param_local_size(const int param_type) {
       break;
     case CAMERA_PARAM:
       param_size = 8;
+      break;
+    case TIME_DELAY_PARAM:
+      param_size = 1;
       break;
     default:
       FATAL("Invalid param type [%d]!\n", param_type);

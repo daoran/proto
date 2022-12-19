@@ -365,6 +365,10 @@ dev_euroc() {
 # run_test test_vision_factor_eval
 # run_test test_joint_angle_factor_setup
 # run_test test_joint_angle_factor_eval
+# run_test test_calib_camera_factor_setup
+# run_test test_calib_camera_factor_eval
+# run_test test_calib_imucam_factor_setup
+# run_test test_calib_imucam_factor_eval
 # run_test test_calib_gimbal_factor_setup
 # run_test test_calib_gimbal_factor_eval
 # run_test test_imu_buf_setup
@@ -396,7 +400,7 @@ dev_euroc() {
 # run_test test_load_sim_cam_data
 # run_test test_sim_gimbal_malloc_free
 # run_test test_sim_gimbal_view
-run_test test_sim_gimbal_solve
+# run_test test_sim_gimbal_solve
 # PROTO-GUI
 # run_test test_gl_zeros
 # run_test test_gl_ones

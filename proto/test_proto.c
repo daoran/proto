@@ -3201,7 +3201,7 @@ int test_joint_factor_eval() {
   const real_t var = 0.1;
   joint_factor_setup(&factor, &joint, z, var);
 
-  // Jacobians
+  // Evaluate
   joint_factor_eval(&factor);
 
   // Check Jacobians
@@ -3212,39 +3212,59 @@ int test_joint_factor_eval() {
   return 0;
 }
 
-int test_calib_camera_factor_setup() {
+typedef struct test_calib_camera_data_t {
+  real_t T_WF[4 * 4];
+  real_t T_WB[4 * 4];
+  real_t T_BF[4 * 4];
+  real_t T_BCi[4 * 4];
+
+  pose_t fiducial;     // T_WF
+  pose_t pose;         // T_WB
+  pose_t rel_pose;     // T_BF
+  extrinsic_t cam_ext; // T_BCi
+  camera_params_t cam_params;
+
+  int cam_idx;
+  int tag_id;
+  int corner_idx;
+  real_t p_FFi[3];
+  real_t z[2];
+} test_calib_camera_data_t;
+
+void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   // Calibration target pose T_WF
-  real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, deg2rad(80.0)};
-  real_t r_WF[3] = {0.001, 0.001, 0.001};
-  real_t T_WF[4 * 4] = {0};
-  tf_er(ypr_WF, r_WF, T_WF);
+  real_t fiducial_data[7] = {0};
+  real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
+  real_t r_WF[3] = {0.01, 0.01, 0.01};
+  tf_er(ypr_WF, r_WF, data->T_WF);
+  tf_vector(data->T_WF, fiducial_data);
+  pose_setup(&data->fiducial, 0, fiducial_data);
 
   // Body pose T_WB
+  real_t pose_data[7] = {0};
   real_t ypr_WB[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
-  real_t r_WB[3] = {-10.0, 0.0, 0.0};
-  real_t T_WB[4 * 4] = {0};
-  tf_er(ypr_WB, r_WB, T_WB);
+  real_t r_WB[3] = {-10.0, 0.001, 0.001};
+  tf_er(ypr_WB, r_WB, data->T_WB);
+  tf_vector(data->T_BF, pose_data);
+  pose_setup(&data->pose, 0, pose_data);
 
   // Relative pose T_BF
-  pose_t pose;
-  real_t pose_data[7] = {0};
-  TF_INV(T_WB, T_BW);
-  TF_CHAIN(T_BF, 2, T_BW, T_WF);
-  tf_vector(T_BF, pose_data);
-  pose_setup(&pose, 0, pose_data);
+  real_t rel_pose_data[7] = {0};
+  TF_INV(data->T_WB, T_BW);
+  tf_chain2(2, T_BW, data->T_WF, data->T_BF);
+  tf_vector(data->T_BF, rel_pose_data);
+  pose_setup(&data->rel_pose, 0, rel_pose_data);
 
   // Camera extrinsics T_BCi
-  extrinsic_t cam_ext;
   real_t cam_ext_data[7] = {0};
-  real_t ypr_BCi[3] = {0.0, 0.0, 0.0};
-  real_t r_BCi[3] = {0.001, 0.002, 0.003};
-  real_t T_BCi[4 * 4] = {0};
-  tf_er(ypr_BCi, r_BCi, T_BCi);
-  tf_vector(T_BCi, cam_ext_data);
-  extrinsic_setup(&cam_ext, cam_ext_data);
+  real_t ypr_BCi[3] = {0.01, 0.01, 0.0};
+  real_t r_BCi[3] = {0.001, 0.001, 0.001};
+  tf_er(ypr_BCi, r_BCi, data->T_BCi);
+  tf_vector(data->T_BCi, cam_ext_data);
+  extrinsic_setup(&data->cam_ext, cam_ext_data);
 
   // Camera
-  const int cam_idx = 0;
+  data->cam_idx = 0;
   const int cam_res[2] = {640, 480};
   const real_t fov = 90.0;
   const real_t fx = pinhole_focal(cam_res[0], fov);
@@ -3254,114 +3274,67 @@ int test_calib_camera_factor_setup() {
   const real_t cam_data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  camera_params_t cam;
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+  camera_params_setup(&data->cam_params,
+                      data->cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_data);
 
   // Project to image plane
   aprilgrid_t grid;
   aprilgrid_setup(0, &grid);
 
-  const int tag_id = 1;
-  const int corner_idx = 2;
-  real_t p_FFi[3] = {0};
-  aprilgrid_object_point(&grid, tag_id, corner_idx, p_FFi);
+  data->tag_id = 1;
+  data->corner_idx = 2;
+  aprilgrid_object_point(&grid, data->tag_id, data->corner_idx, data->p_FFi);
 
-  TF_INV(T_BCi, T_CiB);
-  TF_CHAIN(T_CiF, 2, T_CiB, T_BF);
-  real_t z[2] = {0};
-  TF_POINT(T_CiF, p_FFi, p_CiFi);
-  pinhole_radtan4_project(cam_data, p_CiFi, z);
+  TF_INV(data->T_BCi, T_CiB);
+  TF_CHAIN(T_CiF, 2, T_CiB, data->T_BF);
+  TF_POINT(T_CiF, data->p_FFi, p_CiFi);
+  pinhole_radtan4_project(cam_data, p_CiFi, data->z);
+}
+
+int test_calib_camera_factor_setup() {
+  // Setup
+  test_calib_camera_data_t calib_data;
+  test_calib_camera_data_setup(&calib_data);
 
   calib_camera_factor_t factor;
   const real_t var[2] = {1.0, 1.0};
   calib_camera_factor_setup(&factor,
-                            &pose,
-                            &cam_ext,
-                            &cam,
-                            cam_idx,
-                            tag_id,
-                            corner_idx,
-                            p_FFi,
-                            z,
+                            &calib_data.rel_pose,
+                            &calib_data.cam_ext,
+                            &calib_data.cam_params,
+                            calib_data.cam_idx,
+                            calib_data.tag_id,
+                            calib_data.corner_idx,
+                            calib_data.p_FFi,
+                            calib_data.z,
                             var);
 
   return 0;
 }
 
 int test_calib_camera_factor_eval() {
-  // Calibration target pose T_WF
-  real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, deg2rad(80.0)};
-  real_t r_WF[3] = {0.001, 0.001, 0.001};
-  real_t T_WF[4 * 4] = {0};
-  tf_er(ypr_WF, r_WF, T_WF);
-
-  // Body pose T_WB
-  real_t ypr_WB[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
-  real_t r_WB[3] = {-10.0, 0.0, 0.0};
-  real_t T_WB[4 * 4] = {0};
-  tf_er(ypr_WB, r_WB, T_WB);
-
-  // Relative pose T_BF
-  pose_t pose;
-  real_t pose_data[7] = {0};
-  TF_INV(T_WB, T_BW);
-  TF_CHAIN(T_BF, 2, T_BW, T_WF);
-  tf_vector(T_BF, pose_data);
-  pose_setup(&pose, 0, pose_data);
-
-  // Camera extrinsics T_BCi
-  extrinsic_t cam_ext;
-  real_t cam_ext_data[7] = {0};
-  real_t ypr_BCi[3] = {0.0, 0.0, 0.0};
-  real_t r_BCi[3] = {0.001, 0.002, 0.003};
-  real_t T_BCi[4 * 4] = {0};
-  tf_er(ypr_BCi, r_BCi, T_BCi);
-  tf_vector(T_BCi, cam_ext_data);
-  extrinsic_setup(&cam_ext, cam_ext_data);
-
-  // Camera
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const real_t fov = 90.0;
-  const real_t fx = pinhole_focal(cam_res[0], fov);
-  const real_t fy = pinhole_focal(cam_res[0], fov);
-  const real_t cx = cam_res[0] / 2.0;
-  const real_t cy = cam_res[1] / 2.0;
-  const real_t cam_data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  camera_params_t cam;
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
-
-  // Project to image plane
-  aprilgrid_t grid;
-  aprilgrid_setup(0, &grid);
-
-  const int tag_id = 1;
-  const int corner_idx = 2;
-  real_t p_FFi[3] = {0};
-  aprilgrid_object_point(&grid, tag_id, corner_idx, p_FFi);
-
-  TF_INV(T_BCi, T_CiB);
-  TF_CHAIN(T_CiF, 2, T_CiB, T_BF);
-  real_t z[2] = {0};
-  TF_POINT(T_CiF, p_FFi, p_CiFi);
-  pinhole_radtan4_project(cam_data, p_CiFi, z);
+  // Setup
+  test_calib_camera_data_t calib_data;
+  test_calib_camera_data_setup(&calib_data);
 
   calib_camera_factor_t factor;
   const real_t var[2] = {1.0, 1.0};
   calib_camera_factor_setup(&factor,
-                            &pose,
-                            &cam_ext,
-                            &cam,
-                            cam_idx,
-                            tag_id,
-                            corner_idx,
-                            p_FFi,
-                            z,
+                            &calib_data.rel_pose,
+                            &calib_data.cam_ext,
+                            &calib_data.cam_params,
+                            calib_data.cam_idx,
+                            calib_data.tag_id,
+                            calib_data.corner_idx,
+                            calib_data.p_FFi,
+                            calib_data.z,
                             var);
 
-  // Jacobians
+  // Evaluate
   calib_camera_factor_eval(&factor);
 
   // Check Jacobians
@@ -3370,6 +3343,159 @@ int test_calib_camera_factor_eval() {
   CHECK_FACTOR_J(0, factor, calib_camera_factor_eval, step_size, tol, 0);
   CHECK_FACTOR_J(1, factor, calib_camera_factor_eval, step_size, tol, 0);
   CHECK_FACTOR_J(2, factor, calib_camera_factor_eval, step_size, tol, 0);
+
+  return 0;
+}
+
+typedef struct test_calib_imucam_data_t {
+  real_t T_WF[4 * 4];
+  real_t T_WS[4 * 4];
+  real_t T_SC0[4 * 4];
+  real_t T_C0Ci[4 * 4];
+
+  pose_t fiducial;     // T_WF
+  pose_t imu_pose;     // T_WB
+  extrinsic_t imu_ext; // T_SC0
+  extrinsic_t cam_ext; // T_C0Ci
+  camera_params_t cam_params;
+  time_delay_t time_delay;
+
+  int cam_idx;
+  int tag_id;
+  int corner_idx;
+  real_t p_FFi[3];
+  real_t z[2];
+} test_calib_imucam_data_t;
+
+void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
+  // Calibration target pose T_WF
+  real_t fiducial_data[7] = {0};
+  real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
+  real_t r_WF[3] = {0.01, 0.01, 0.01};
+  tf_er(ypr_WF, r_WF, data->T_WF);
+  tf_vector(data->T_WF, fiducial_data);
+  pose_setup(&data->fiducial, 0, fiducial_data);
+
+  // IMU pose T_WS
+  real_t imu_pose_data[7] = {0};
+  real_t ypr_WS[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  real_t r_WS[3] = {-10.0, 0.001, 0.001};
+  tf_er(ypr_WS, r_WS, data->T_WS);
+  tf_vector(data->T_WS, imu_pose_data);
+  pose_setup(&data->imu_pose, 0, imu_pose_data);
+
+  // IMU extrinsics T_SC0
+  real_t imu_ext_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  tf(imu_ext_data, data->T_SC0);
+  extrinsic_setup(&data->imu_ext, imu_ext_data);
+
+  // Camera extrinsics T_C0Ci
+  real_t cam_ext_data[7] = {0};
+  real_t ypr_C0Ci[3] = {0.01, 0.01, 0.0};
+  real_t r_C0Ci[3] = {0.001, 0.001, 0.001};
+  tf_er(ypr_C0Ci, r_C0Ci, data->T_C0Ci);
+  tf_vector(data->T_C0Ci, cam_ext_data);
+  extrinsic_setup(&data->cam_ext, cam_ext_data);
+
+  // Camera
+  data->cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const real_t fov = 90.0;
+  const real_t fx = pinhole_focal(cam_res[0], fov);
+  const real_t fy = pinhole_focal(cam_res[0], fov);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam_data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  camera_params_setup(&data->cam_params,
+                      data->cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_data);
+
+  // Time delay
+  time_delay_setup(&data->time_delay, 0.0);
+
+  // Project to image plane
+  aprilgrid_t grid;
+  aprilgrid_setup(0, &grid);
+
+  data->tag_id = 1;
+  data->corner_idx = 2;
+  aprilgrid_object_point(&grid, data->tag_id, data->corner_idx, data->p_FFi);
+
+  TF_INV(data->T_WS, T_SW);
+  TF_INV(data->T_SC0, T_C0S);
+  TF_INV(data->T_C0Ci, T_CiC0);
+  TF_CHAIN(T_CiF, 4, T_CiC0, T_C0S, T_SW, data->T_WF);
+  TF_POINT(T_CiF, data->p_FFi, p_CiFi);
+  pinhole_radtan4_project(cam_data, p_CiFi, data->z);
+}
+
+int test_calib_imucam_factor_setup() {
+  // Setup
+  test_calib_imucam_data_t calib_data;
+  test_calib_imucam_data_setup(&calib_data);
+
+  calib_imucam_factor_t factor;
+  const real_t var[2] = {1.0, 1.0};
+  const real_t v[2] = {0.01, 0.02};
+  calib_imucam_factor_setup(&factor,
+                            &calib_data.fiducial,
+                            &calib_data.imu_pose,
+                            &calib_data.imu_ext,
+                            &calib_data.cam_ext,
+                            &calib_data.cam_params,
+                            &calib_data.time_delay,
+                            calib_data.cam_idx,
+                            calib_data.tag_id,
+                            calib_data.corner_idx,
+                            calib_data.p_FFi,
+                            calib_data.z,
+                            v,
+                            var);
+
+  return 0;
+}
+
+int test_calib_imucam_factor_eval() {
+  // Setup
+  test_calib_imucam_data_t calib_data;
+  test_calib_imucam_data_setup(&calib_data);
+
+  calib_imucam_factor_t factor;
+  const real_t var[2] = {1.0, 1.0};
+  const real_t v[2] = {0.01, 0.02};
+  calib_imucam_factor_setup(&factor,
+                            &calib_data.fiducial,
+                            &calib_data.imu_pose,
+                            &calib_data.imu_ext,
+                            &calib_data.cam_ext,
+                            &calib_data.cam_params,
+                            &calib_data.time_delay,
+                            calib_data.cam_idx,
+                            calib_data.tag_id,
+                            calib_data.corner_idx,
+                            calib_data.p_FFi,
+                            calib_data.z,
+                            v,
+                            var);
+
+  // Evaluate
+  calib_imucam_factor_eval(&factor);
+
+  // Check Jacobians
+  const double tol = 1e-2;
+  const double step_size = 1e-8;
+  const int debug = 0;
+  CHECK_FACTOR_J(0, factor, calib_imucam_factor_eval, step_size, tol, debug);
+  CHECK_FACTOR_J(1, factor, calib_imucam_factor_eval, step_size, tol, debug);
+  CHECK_FACTOR_J(2, factor, calib_imucam_factor_eval, step_size, tol, debug);
+  CHECK_FACTOR_J(3, factor, calib_imucam_factor_eval, step_size, tol, debug);
+  CHECK_FACTOR_J(4, factor, calib_imucam_factor_eval, step_size, tol, debug);
+  CHECK_FACTOR_J(5, factor, calib_imucam_factor_eval, step_size, tol, debug);
 
   return 0;
 }
@@ -3557,7 +3683,7 @@ int test_calib_gimbal_factor_eval() {
                             &cam_exts,
                             &cam);
 
-  // Jacobians
+  // Evaluate
   calib_gimbal_factor_eval(&factor);
 
   // Check Jacobians
@@ -5080,6 +5206,8 @@ void test_suite() {
   MU_ADD_TEST(test_joint_factor_eval);
   MU_ADD_TEST(test_calib_camera_factor_setup);
   MU_ADD_TEST(test_calib_camera_factor_eval);
+  MU_ADD_TEST(test_calib_imucam_factor_setup);
+  MU_ADD_TEST(test_calib_imucam_factor_eval);
   MU_ADD_TEST(test_calib_gimbal_factor_setup);
   MU_ADD_TEST(test_calib_gimbal_factor_eval);
   MU_ADD_TEST(test_imu_buf_setup);

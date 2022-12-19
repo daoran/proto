@@ -1151,6 +1151,7 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 #define FEATURE_PARAM 6
 #define JOINT_PARAM 7
 #define CAMERA_PARAM 8
+#define TIME_DELAY_PARAM 9
 
 ///////////
 // UTILS //
@@ -1233,9 +1234,9 @@ feature_t *features_add(features_t *features,
                         const real_t *param);
 void features_remove(features_t *features, const int feature_id);
 
-////////////////
+///////////////
 // EXTRINSIC //
-////////////////
+///////////////
 
 typedef struct extrinsic_t {
   real_t data[7];
@@ -1252,7 +1253,7 @@ typedef struct time_delay_t {
   real_t data[1];
 } time_delay_t;
 
-void time_delay_setup(time_delay_t *time_delay, const real_t *param);
+void time_delay_setup(time_delay_t *time_delay, const real_t param);
 void time_delay_print(const char *prefix, const time_delay_t *exts);
 
 //////////////////
@@ -1352,7 +1353,7 @@ void camera_params_print(const camera_params_t *camera);
   }
 
 /////////////////
-// POSE-FACTOR //
+// POSE FACTOR //
 /////////////////
 
 int check_factor_jacobian(const void *factor,
@@ -1400,7 +1401,7 @@ void pose_factor_setup(pose_factor_t *factor,
 int pose_factor_eval(void *factor);
 
 ///////////////
-// BA-FACTOR //
+// BA FACTOR //
 ///////////////
 
 typedef struct ba_factor_t {
@@ -1433,7 +1434,7 @@ void ba_factor_setup(ba_factor_t *factor,
 int ba_factor_eval(void *factor_ptr);
 
 ///////////////////
-// VISION-FACTOR //
+// VISION FACTOR //
 ///////////////////
 
 typedef struct vision_factor_t {
@@ -1468,6 +1469,54 @@ void vision_factor_setup(vision_factor_t *factor,
                          const real_t var[2]);
 int vision_factor_eval(void *factor_ptr);
 
+/////////////////////////////
+// TWO-STATE VISION FACTOR //
+/////////////////////////////
+
+typedef struct two_state_vision_factor_t {
+  pose_t *pose_i;
+  pose_t *pose_j;
+  feature_t *feature;
+  extrinsic_t *cam_ext;
+  camera_params_t *cam_params;
+  time_delay_t *time_delay;
+
+  real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
+  real_t z_i[2]; // Keypoint at pose i
+  real_t z_j[2]; // Keypoint at pose j
+  real_t v_i[2]; // Keypoint velocity at pose i
+  real_t v_j[2]; // Keypoint velocity at pose j
+
+  int r_size;
+  int num_params;
+  int param_types[6];
+
+  real_t *params[6];
+  real_t r[2];
+  real_t *jacs[6];
+  real_t J_pose_i[2 * 6];
+  real_t J_pose_j[2 * 6];
+  real_t J_feature[2 * 3];
+  real_t J_cam_ext[2 * 6];
+  real_t J_cam_params[2 * 8];
+  real_t J_time_delay[2 * 1];
+} two_state_vision_factor_t;
+
+void two_state_vision_factor_setup(two_state_vision_factor_t *factor,
+                                   pose_t *pose_i,
+                                   pose_t *pose_j,
+                                   feature_t *feature,
+                                   extrinsic_t *cam_ext,
+                                   camera_params_t *cam_params,
+                                   time_delay_t *time_delay,
+                                   const real_t z_i[2],
+                                   const real_t z_j[2],
+                                   const real_t v_i[2],
+                                   const real_t v_j[2],
+                                   const real_t var[2]);
+int two_state_vision_factor_eval(void *factor_ptr);
+
 ////////////////////////
 // JOINT-ANGLE FACTOR //
 ////////////////////////
@@ -1497,7 +1546,7 @@ int joint_factor_eval(void *factor_ptr);
 int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
 
 /////////////////////////
-// CALIB-CAMERA-FACTOR //
+// CALIB-CAMERA FACTOR //
 /////////////////////////
 
 typedef struct calib_camera_factor_t {
@@ -1540,7 +1589,61 @@ void calib_camera_factor_setup(calib_camera_factor_t *factor,
 int calib_camera_factor_eval(void *factor_ptr);
 
 /////////////////////////
-// CALIB-GIMBAL-FACTOR //
+// CALIB-IMUCAM FACTOR //
+/////////////////////////
+
+typedef struct calib_imucam_factor_t {
+  pose_t *fiducial;            // fiducial pose: T_WF
+  pose_t *imu_pose;            // IMU pose: T_WS
+  extrinsic_t *imu_ext;        // IMU extrinsic: T_SC0
+  extrinsic_t *cam_ext;        // Camera extrinsic: T_C0Ci
+  camera_params_t *cam_params; // Camera parameters
+  time_delay_t *time_delay;    // Time delay
+
+  timestamp_t ts;
+  int cam_idx;
+  int tag_id;
+  int corner_idx;
+  real_t p_FFi[3];
+  real_t z[2];
+  real_t v[2];
+
+  real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
+
+  int r_size;
+  int num_params;
+  int param_types[6];
+
+  real_t *params[6];
+  real_t r[2];
+  real_t *jacs[6];
+  real_t J_fiducial[2 * 6];
+  real_t J_imu_pose[2 * 6];
+  real_t J_imu_ext[2 * 6];
+  real_t J_cam_ext[2 * 6];
+  real_t J_cam_params[2 * 8];
+  real_t J_time_delay[2 * 1];
+} calib_imucam_factor_t;
+
+void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
+                               pose_t *fiducial,
+                               pose_t *pose,
+                               extrinsic_t *imu_ext,
+                               extrinsic_t *cam_ext,
+                               camera_params_t *cam_params,
+                               time_delay_t *time_delay,
+                               const int cam_idx,
+                               const int tag_id,
+                               const int corner_idx,
+                               const real_t p_FFi[3],
+                               const real_t z[2],
+                               const real_t v[2],
+                               const real_t var[2]);
+int calib_imucam_factor_eval(void *factor_ptr);
+
+/////////////////////////
+// CALIB-GIMBAL FACTOR //
 /////////////////////////
 
 typedef struct calib_gimbal_factor_t {
@@ -1621,7 +1724,7 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
                                const calib_gimbal_factor_t *c1);
 
 ////////////////
-// IMU-FACTOR //
+// IMU FACTOR //
 ////////////////
 
 #define IMU_BUF_MAX_SIZE 1000
@@ -1863,6 +1966,54 @@ void calib_camera_add_view(calib_camera_t *calib,
                            extrinsic_t *cam_ext,
                            camera_params_t *cam_params,
                            pose_t *pose);
+
+////////////////////////////
+// CAMERA-IMU CALIBRATION //
+////////////////////////////
+
+typedef struct calib_imucam_view_t {
+  timestamp_t ts;
+  int view_idx;
+  int cam_idx;
+
+  imu_buf_t imu_buf;
+  aprilgrid_t *grid_i;
+  aprilgrid_t *grid_j;
+
+  imu_factor_t *imu_factors;
+  two_state_vision_factor_t *vision_factors;
+} calib_imucam_view_t;
+
+typedef struct calib_imucam_t {
+  // Settings
+  int fix_fiducial;
+  int fix_poses;
+  int fix_cam_params;
+  int fix_cam_exts;
+  aprilgrid_t calib_target;
+
+  // Flags
+  int imu_ok;
+  int cams_ok;
+
+  // Counters
+  int num_cams;
+  int num_views;
+  int num_factors;
+
+  // Variables
+  pose_t fiducal;
+  pose_t **poses;
+  extrinsic_t *cam_exts;
+  camera_params_t *cam_params;
+
+  // Factors
+  calib_imucam_view_t ***views;
+} calib_imucam_t;
+
+void calib_imucam_setup(calib_imucam_t *calib);
+calib_imucam_t *calib_imucam_malloc();
+void calib_imucam_free(calib_imucam_t *calib);
 
 ////////////////////////
 // GIMBAL CALIBRATION //
