@@ -3304,15 +3304,16 @@ int check_jacobian(const char *jac_name,
 int __lapack_svd(
     real_t *A, const int m, const int n, real_t *s, real_t *U, real_t *Vt) {
   const int lda = n;
+
 #if PRECISION == 1
   const int info =
-      LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n, A, lda, s, U, n, Vt, n);
-  return (info == 0) ? 0 : -1;
+      LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n, A, lda, s, U, m, Vt, n);
 #elif PRECISION == 2
   const int info =
-      LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'A', m, n, A, lda, s, U, n, Vt, n);
-  return (info == 0) ? 0 : -1;
+      LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'A', m, n, A, lda, s, U, m, Vt, n);
 #endif
+
+  return (info == 0) ? 0 : -1;
 }
 
 #endif // USE_LAPACK
@@ -3553,12 +3554,19 @@ int svd(const real_t *A,
         real_t *V) {
 #ifdef USE_LAPACK
   real_t *A_copy = MALLOC(real_t, m * n);
+  real_t *U_ = MALLOC(real_t, m * m);
   real_t *Vt = MALLOC(real_t, n * n);
+
   mat_copy(A, m, n, A_copy);
-  const int retval = __lapack_svd(A_copy, m, n, s, U, Vt);
+  const int retval = __lapack_svd(A_copy, m, n, s, U_, Vt);
+
+  mat_block_get(U_, m, 0, m - 1, 0, n - 1, U);
   mat_transpose(Vt, n, n, V);
+
   free(Vt);
+  free(U_);
   free(A_copy);
+
   return retval;
 #else
   mat_copy(A, m, n, U);
@@ -6495,6 +6503,47 @@ void pose_print(const char *prefix, const pose_t *pose) {
   printf("quat: (%f, %f, %f, %f)\n", qw, qx, qy, qz);
 }
 
+///////////////
+// EXTRINSIC //
+///////////////
+
+/**
+ * Setup extrinsic.
+ */
+void extrinsic_setup(extrinsic_t *exts, const real_t *data) {
+  assert(exts != NULL);
+  assert(data != NULL);
+
+  // Translation
+  exts->data[0] = data[0]; // rx
+  exts->data[1] = data[1]; // ry
+  exts->data[2] = data[2]; // rz
+
+  // Rotation (Quaternion)
+  exts->data[3] = data[3]; // qw
+  exts->data[4] = data[4]; // qx
+  exts->data[5] = data[5]; // qy
+  exts->data[6] = data[6]; // qz
+}
+
+/**
+ * Print extrinsic.
+ */
+void extrinsic_print(const char *prefix, const extrinsic_t *exts) {
+  const real_t x = exts->data[0];
+  const real_t y = exts->data[1];
+  const real_t z = exts->data[2];
+
+  const real_t qw = exts->data[3];
+  const real_t qx = exts->data[4];
+  const real_t qy = exts->data[5];
+  const real_t qz = exts->data[6];
+
+  printf("[%s] ", prefix);
+  printf("pos: (%.2f, %.2f, %.2f), ", x, y, z);
+  printf("quat: (%.2f, %.2f, %.2f, %.2f)\n", qw, qx, qy, qz);
+}
+
 //////////////
 // VELOCITY //
 //////////////
@@ -6571,13 +6620,50 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]) {
 /**
  * Setup feature
  */
-void feature_setup(feature_t *feature, const real_t *data) {
-  assert(feature != NULL);
+void feature_setup(feature_t *f, const real_t *data) {
+  assert(f != NULL);
   assert(data != NULL);
 
-  feature->data[0] = data[0];
-  feature->data[1] = data[1];
-  feature->data[2] = data[2];
+  f->data[0] = data[0];
+  f->data[1] = data[1];
+  f->data[2] = data[2];
+}
+
+/**
+ * Print feature.
+ */
+void feature_print(const feature_t *f) {
+  printf("status: %d\n", f->status);
+  printf("feature_id: %ld\n", f->feature_id);
+  printf("data: (%.2f, %.2f, %.2f)\n", f->data[0], f->data[1], f->data[2]);
+  printf("\n");
+
+  printf("cam_indices: [");
+  for (int i = 0; i < f->num_cams; i++) {
+    if ((i + 1) < f->num_cams) {
+      printf("%d ", f->cam_indices[i]);
+    } else {
+      printf("%d", f->cam_indices[i]);
+    }
+  }
+  printf("]\n");
+  printf("num_cams: %d\n", f->num_cams);
+
+  printf("timestamps: [\n");
+  for (int i = 0; i < f->num_frames; i++) {
+    printf("  %ld\n", f->timestamps[i]);
+  }
+  printf("]\n");
+  printf("frame_indices: [\n");
+  for (int i = 0; i < f->num_frames; i++) {
+    if ((i + 1) < f->num_cams) {
+      printf("%ld ", f->frame_indices[i]);
+    } else {
+      printf("%ld", f->frame_indices[i]);
+    }
+  }
+  printf("]\n");
+  printf("num_frames: %d\n", f->num_cams);
 }
 
 /**
@@ -6585,10 +6671,8 @@ void feature_setup(feature_t *feature, const real_t *data) {
  */
 void features_setup(features_t *features) {
   assert(features);
-  features->nb_features = 0;
-  for (int i = 0; i < MAX_FEATURES; i++) {
-    features->status[i] = 0;
-  }
+  features->data = NULL;
+  features->num_features = 0;
 }
 
 /**
@@ -6596,7 +6680,8 @@ void features_setup(features_t *features) {
  * @returns 1 for yes, 0 for no
  */
 int features_exists(const features_t *features, const int feature_id) {
-  return features->status[feature_id];
+  // return features->status[feature_id];
+  return 0;
 }
 
 /**
@@ -6614,7 +6699,6 @@ feature_t *features_add(features_t *features,
                         const int feature_id,
                         const real_t *param) {
   feature_setup(&features->data[feature_id], param);
-  features->status[feature_id] = 1;
   return &features->data[feature_id];
 }
 
@@ -6624,48 +6708,6 @@ feature_t *features_add(features_t *features,
 void features_remove(features_t *features, const int feature_id) {
   const real_t param[3] = {0};
   feature_setup(&features->data[feature_id], param);
-  features->status[feature_id] = 0;
-}
-
-///////////////
-// EXTRINSIC //
-///////////////
-
-/**
- * Setup extrinsic.
- */
-void extrinsic_setup(extrinsic_t *exts, const real_t *data) {
-  assert(exts != NULL);
-  assert(data != NULL);
-
-  // Translation
-  exts->data[0] = data[0]; // rx
-  exts->data[1] = data[1]; // ry
-  exts->data[2] = data[2]; // rz
-
-  // Rotation (Quaternion)
-  exts->data[3] = data[3]; // qw
-  exts->data[4] = data[4]; // qx
-  exts->data[5] = data[5]; // qy
-  exts->data[6] = data[6]; // qz
-}
-
-/**
- * Print extrinsic.
- */
-void extrinsic_print(const char *prefix, const extrinsic_t *exts) {
-  const real_t x = exts->data[0];
-  const real_t y = exts->data[1];
-  const real_t z = exts->data[2];
-
-  const real_t qw = exts->data[3];
-  const real_t qx = exts->data[4];
-  const real_t qy = exts->data[5];
-  const real_t qz = exts->data[6];
-
-  printf("[%s] ", prefix);
-  printf("pos: (%.2f, %.2f, %.2f), ", x, y, z);
-  printf("quat: (%.2f, %.2f, %.2f, %.2f)\n", qw, qx, qy, qz);
 }
 
 ////////////////

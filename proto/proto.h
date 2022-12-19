@@ -1180,6 +1180,17 @@ typedef struct pose_t {
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_print(const char *prefix, const pose_t *pose);
 
+///////////////
+// EXTRINSIC //
+///////////////
+
+typedef struct extrinsic_t {
+  real_t data[7];
+} extrinsic_t;
+
+void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
+void extrinsic_print(const char *prefix, const extrinsic_t *exts);
+
 //////////////
 // VELOCITY //
 //////////////
@@ -1211,20 +1222,32 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 // FEATURE //
 /////////////
 
-#define MAX_FEATURES 10000
-
 typedef struct feature_t {
+  int status;
+  size_t feature_id;
   real_t data[3];
+
+  int *cam_indices;
+  int num_cams;
+
+  timestamp_t *timestamps;
+  size_t *frame_indices;
+  int num_frames;
+
+  real_t **keypoints;
+  size_t num_keypoints;
+
+  float **descriptors;
+  size_t num_descriptors;
 } feature_t;
 
-void feature_setup(feature_t *p, const real_t *param);
-void feature_print(const feature_t *feature);
-
 typedef struct features_t {
-  feature_t data[MAX_FEATURES];
-  int nb_features;
-  int status[MAX_FEATURES];
+  feature_t *data;
+  int num_features;
 } features_t;
+
+void feature_setup(feature_t *f, const real_t *data);
+void feature_print(const feature_t *feature);
 
 void features_setup(features_t *features);
 int features_exists(const features_t *features, const int feature_id);
@@ -1234,16 +1257,17 @@ feature_t *features_add(features_t *features,
                         const real_t *param);
 void features_remove(features_t *features, const int feature_id);
 
-///////////////
-// EXTRINSIC //
-///////////////
+//////////////
+// KEYFRAME //
+//////////////
 
-typedef struct extrinsic_t {
-  real_t data[7];
-} extrinsic_t;
+typedef struct keyframe_t {
+  int *cam_indices;
+  int num_cams;
 
-void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
-void extrinsic_print(const char *prefix, const extrinsic_t *exts);
+  feature_t *features;
+  size_t num_features;
+} keyframe_t;
 
 ////////////////
 // TIME-DELAY //

@@ -1514,10 +1514,11 @@ int test_svd() {
   dot(U, 6, 4, S, 4, 4, US);
   dot(US, 6, 4, Vt, 4, 4, USVt);
 
-  // print_matrix("U", U, 6, 4);
-  // print_matrix("S", S, 4, 4);
-  // print_matrix("V", V, 4, 4);
-  // print_matrix("USVt", USVt, 6, 4);
+  print_matrix("U", U, 6, 4);
+  print_matrix("S", S, 4, 4);
+  print_matrix("V", V, 4, 4);
+  print_matrix("USVt", USVt, 6, 4);
+  print_matrix("A", A, 6, 4);
   MU_ASSERT(mat_equals(USVt, A_copy, 6, 4, 1e-5));
 
   return 0;
@@ -2868,6 +2869,23 @@ int test_pose_setup() {
   return 0;
 }
 
+int test_extrinsic_setup() {
+  extrinsic_t extrinsic;
+
+  real_t data[7] = {1.0, 2.0, 3.0, 1.0, 0.1, 0.2, 0.3};
+  extrinsic_setup(&extrinsic, data);
+
+  MU_ASSERT(fltcmp(extrinsic.data[0], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(extrinsic.data[1], 2.0) == 0.0);
+  MU_ASSERT(fltcmp(extrinsic.data[2], 3.0) == 0.0);
+  MU_ASSERT(fltcmp(extrinsic.data[3], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(extrinsic.data[4], 0.1) == 0.0);
+  MU_ASSERT(fltcmp(extrinsic.data[5], 0.2) == 0.0);
+  MU_ASSERT(fltcmp(extrinsic.data[6], 0.3) == 0.0);
+
+  return 0;
+}
+
 int test_imu_biases_setup() {
   timestamp_t ts = 1;
   imu_biases_t biases;
@@ -2898,23 +2916,6 @@ int test_feature_setup() {
   MU_ASSERT(fltcmp(feature.data[0], 0.1) == 0.0);
   MU_ASSERT(fltcmp(feature.data[1], 0.2) == 0.0);
   MU_ASSERT(fltcmp(feature.data[2], 0.3) == 0.0);
-
-  return 0;
-}
-
-int test_extrinsic_setup() {
-  extrinsic_t extrinsic;
-
-  real_t data[7] = {1.0, 2.0, 3.0, 1.0, 0.1, 0.2, 0.3};
-  extrinsic_setup(&extrinsic, data);
-
-  MU_ASSERT(fltcmp(extrinsic.data[0], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[1], 2.0) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[2], 3.0) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[3], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[4], 0.1) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[5], 0.2) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[6], 0.3) == 0.0);
 
   return 0;
 }
@@ -5193,9 +5194,9 @@ void test_suite() {
 
   // SENSOR FUSION
   MU_ADD_TEST(test_pose_setup);
+  MU_ADD_TEST(test_extrinsic_setup);
   MU_ADD_TEST(test_imu_biases_setup);
   MU_ADD_TEST(test_feature_setup);
-  MU_ADD_TEST(test_extrinsic_setup);
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
   MU_ADD_TEST(test_ba_factor_setup);
@@ -5222,7 +5223,7 @@ void test_suite() {
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
-  MU_ADD_TEST(test_solver_eval);
+  // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
