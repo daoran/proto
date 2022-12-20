@@ -69,6 +69,22 @@ std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
                           const double reproj_threshold = 0.75,
                           const double confidence = 0.99);
 
+/**
+ * Filter features by triangulating them via a stereo-pair and see if the
+ * reprojection error is reasonable.
+ */
+void reproj_filter(const project_func_t cam_i_proj_func,
+                   const int cam_i_res[2],
+                   const real_t *cam_i_params,
+                   const real_t *cam_j_params,
+                   const real_t T_C0Ci[4 * 4],
+                   const real_t T_C0Cj[4 * 4],
+                   const std::vector<cv::KeyPoint> &kps_i,
+                   const std::vector<cv::KeyPoint> &kps_j,
+                   std::vector<cv::Point3d> &points,
+                   std::vector<bool> &inliers,
+                   const real_t reproj_threshold = 0.5);
+
 //////////////////
 // FEATURE GRID //
 //////////////////
@@ -77,8 +93,9 @@ std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
  * Feature Grid
  *
  * The idea is to take all the feature positions and put them into grid cells
- * across the full image space. This is so that one could keep track of how many
- * feautures are being tracked in each individual grid cell and act accordingly.
+ * across the full image space. This is so that one could keep track of how
+ * many feautures are being tracked in each individual grid cell and act
+ * accordingly.
  *
  * o-----> x
  * | ---------------------
