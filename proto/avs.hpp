@@ -41,6 +41,22 @@ std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
                           const double reproj_threshold = 0.75,
                           const double confidence = 0.99);
 
+/**
+ * Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
+ * flow. Returns a tuple of `(pts_i, pts_j, inliers)` points in image i, j and a
+ * vector of inliers.
+ */
+void optflow_track(const cv::Mat &img_i,
+                   const cv::Mat &img_j,
+                   const std::vector<cv::KeyPoint> &kps_i,
+                   std::vector<cv::KeyPoint> &kps_j,
+                   std::vector<uchar> &inliers,
+                   const int patch_size = 50,
+                   const int max_iter = 50,
+                   const int max_level = 3,
+                   const real_t epsilon = 0.001,
+                   const bool debug = true);
+
 //////////////////
 // FEATURE GRID //
 //////////////////
