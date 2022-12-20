@@ -1084,6 +1084,10 @@ void equi4_params_jacobian(const real_t params[4],
 // PINHOLE //
 /////////////
 
+typedef void (*project_func_t)(const real_t *params,
+                               const real_t p_C[3],
+                               real_t z_out[2]);
+
 typedef void (*undistort_func_t)(const real_t *params,
                                  const real_t z_in[2],
                                  real_t z_out[2]);
