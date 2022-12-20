@@ -132,10 +132,13 @@ avs: $(BLD_DIR)/libproto.a
 	@g++ \
 		-std=c++11 \
 		-fsanitize=address -static-libasan \
+		-fopenmp \
 		-I$(DEPS_DIR)/include \
 		$(shell pkg-config opencv4 --cflags) \
-		avs.cpp -o $(BLD_DIR)/avs \
+		avs.cpp \
+		-o $(BLD_DIR)/avs \
 		$(LDFLAGS) \
+		-lproto \
 		$(shell pkg-config opencv4 --libs)
 
 test_proto: libproto  ## Compile test_proto

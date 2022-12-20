@@ -6624,9 +6624,24 @@ void feature_setup(feature_t *f, const real_t *data) {
   assert(f != NULL);
   assert(data != NULL);
 
+  f->status = -1;
+  f->feature_id = 0;
   f->data[0] = data[0];
   f->data[1] = data[1];
   f->data[2] = data[2];
+
+  f->num_cams = 0;
+  f->num_frames = 0;
+
+  for (int cam_idx = 0; cam_idx < FEATURE_MAX_CAMS; cam_idx++) {
+    f->cam_indices[cam_idx] = 0;
+  }
+
+  for (size_t k = 0; k < FEATURE_MAX_TRACKED; k++) {
+    f->timestamps[FEATURE_MAX_TRACKED] = 0;
+    f->frame_indices[FEATURE_MAX_TRACKED] = 0;
+    f->keyframe_indices[FEATURE_MAX_TRACKED] = 0;
+  }
 }
 
 /**
@@ -6671,7 +6686,7 @@ void feature_print(const feature_t *f) {
  */
 void features_setup(features_t *features) {
   assert(features);
-  features->data = NULL;
+  // features->data = NULL;
   features->num_features = 0;
 }
 
@@ -6680,8 +6695,9 @@ void features_setup(features_t *features) {
  * @returns 1 for yes, 0 for no
  */
 int features_exists(const features_t *features, const int feature_id) {
-  // return features->status[feature_id];
-  return 0;
+  assert(feature_id < FEATURES_MAX_NUM);
+  const int status = features->data[feature_id].status;
+  return (status == 0 || status == 1) ? 1 : 0;
 }
 
 /**
@@ -6693,7 +6709,6 @@ feature_t *features_get(features_t *features, const int feature_id) {
 
 /**
  * Add feature
- * @returns Pointer to feature
  */
 feature_t *features_add(features_t *features,
                         const int feature_id,
@@ -6708,6 +6723,18 @@ feature_t *features_add(features_t *features,
 void features_remove(features_t *features, const int feature_id) {
   const real_t param[3] = {0};
   feature_setup(&features->data[feature_id], param);
+}
+
+//////////////
+// KEYFRAME //
+//////////////
+
+/**
+ * Setup keyframe
+ */
+void keyframe_setup(keyframe_t *kf) {
+  kf->num_cams = 0;
+  kf->num_features = 0;
 }
 
 ////////////////
@@ -12052,7 +12079,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
     int threshold_met = t_k_diff < threshold;
     int smallest_diff = t_k_diff < t_kp1_diff;
 
-    // Mark pairs as a match or increment appropriate indicies
+    // Mark pairs as a match or increment appropriate indices
     if (threshold_met && smallest_diff) {
       matches[match_idx] = MALLOC(int, 2);
       matches[match_idx][0] = gnd_idx;

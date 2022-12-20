@@ -54,7 +54,6 @@
 
 #ifdef USE_STB
 #include <stb_image.h>
-#include <stb_ds.h>
 #endif
 
 #ifdef USE_GUI
@@ -934,6 +933,16 @@ real_t suitesparse_chol_solve(cholmod_common *c,
   real_t T[4 * 4] = {0};                                                       \
   tf_chain2(N, __VA_ARGS__, T);
 
+// clang-format off
+#define TF_IDENTITY(T)                                                         \
+  real_t T[4 * 4] = {                                                          \
+    1.0, 0.0, 0.0, 0.0,                                                        \
+    0.0, 1.0, 0.0, 0.0,                                                        \
+    0.0, 0.0, 1.0, 0.0,                                                        \
+    0.0, 0.0, 0.0, 1.0                                                         \
+  };
+// clang-format on
+
 #define POSE_ER(YPR, POS, POSE)                                                \
   real_t POSE[7] = {0};                                                        \
   POSE[0] = POS[0];                                                            \
@@ -1226,27 +1235,27 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 // FEATURE //
 /////////////
 
+#define FEATURE_MAX_CAMS 5
+#define FEATURE_MAX_TRACKED 20
+#define FEATURE_DESCRIPTOR_LEN 36
+#define FEATURES_MAX_NUM 1000000
+
 typedef struct feature_t {
   int status;
   size_t feature_id;
   real_t data[3];
 
-  int *cam_indices;
   int num_cams;
-
-  timestamp_t *timestamps;
-  size_t *frame_indices;
   int num_frames;
 
-  real_t **keypoints;
-  size_t num_keypoints;
-
-  float **descriptors;
-  size_t num_descriptors;
+  int cam_indices[FEATURE_MAX_CAMS];
+  timestamp_t timestamps[FEATURE_MAX_TRACKED];
+  size_t frame_indices[FEATURE_MAX_TRACKED];
+  size_t keyframe_indices[FEATURE_MAX_TRACKED];
 } feature_t;
 
 typedef struct features_t {
-  feature_t *data;
+  feature_t data[FEATURES_MAX_NUM];
   int num_features;
 } features_t;
 
@@ -1265,13 +1274,20 @@ void features_remove(features_t *features, const int feature_id);
 // KEYFRAME //
 //////////////
 
-typedef struct keyframe_t {
-  int *cam_indices;
-  int num_cams;
+#define KEYFRAME_MAX_CAMS 5
+#define KEYFRAME_MAX_FEATURES 1000
 
-  feature_t *features;
+typedef struct keyframe_t {
+  int num_cams;
   size_t num_features;
+
+  int cam_indices[KEYFRAME_MAX_CAMS];
+  feature_t features[KEYFRAME_MAX_FEATURES];
+  real_t keypoints[KEYFRAME_MAX_FEATURES * 2];
+  uint8_t descriptors[KEYFRAME_MAX_FEATURES * FEATURE_DESCRIPTOR_LEN];
 } keyframe_t;
+
+void keyframe_setup(keyframe_t *kf);
 
 ////////////////
 // TIME-DELAY //

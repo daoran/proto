@@ -176,9 +176,9 @@ dev_euroc() {
 # dev_aprilgrid
 # dev_euroc
 
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
-# exit
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
+exit
 
 # CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363
@@ -193,7 +193,7 @@ dev_euroc() {
 #   ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
-run_all_tests
+# run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error

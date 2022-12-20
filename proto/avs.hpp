@@ -7,15 +7,13 @@
 extern "C" {
 #include "proto.h"
 #include "euroc.h"
-} // extern C
+}
 
 #include <opencv2/opencv.hpp>
 
 ///////////
 // UTILS //
 ///////////
-
-namespace cv {
 
 /**
  * Convert cv::Mat type to string
@@ -27,19 +25,21 @@ std::string type2str(const int type);
  */
 std::vector<cv::Point2f> kps2pts(const std::vector<cv::KeyPoint> &kps);
 
-} // namespace cv
+/**
+ * Sort Keypoints
+ */
+void sort_keypoints(std::vector<cv::KeyPoint> &kps);
 
 /**
- * Perform RANSAC on keypoints `kps0` and `kps1` to reject outliers.
+ * Given a set of keypoints `kps` make sure they are atleast `min_dist` pixels
+ * away from each other, if they are not remove them.
  */
-std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
-                          const std::vector<cv::KeyPoint> &kps1,
-                          const undistort_func_t cam0_undist,
-                          const undistort_func_t cam1_undist,
-                          const real_t cam0_params[8],
-                          const real_t cam1_params[8],
-                          const double reproj_threshold = 0.75,
-                          const double confidence = 0.99);
+std::vector<cv::KeyPoint> spread_keypoints(
+    const cv::Mat &image,
+    const std::vector<cv::KeyPoint> &kps,
+    const int min_dist = 10,
+    const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
+    const bool debug = false);
 
 /**
  * Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
@@ -56,6 +56,18 @@ void optflow_track(const cv::Mat &img_i,
                    const int max_level = 3,
                    const real_t epsilon = 0.001,
                    const bool debug = true);
+
+/**
+ * Perform RANSAC on keypoints `kps0` and `kps1` to reject outliers.
+ */
+std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
+                          const std::vector<cv::KeyPoint> &kps1,
+                          const undistort_func_t cam0_undist,
+                          const undistort_func_t cam1_undist,
+                          const real_t cam0_params[8],
+                          const real_t cam1_params[8],
+                          const double reproj_threshold = 0.75,
+                          const double confidence = 0.99);
 
 //////////////////
 // FEATURE GRID //
@@ -117,27 +129,14 @@ public:
 ///////////////////
 
 /**
- * Sort Keypoints
- */
-void sort_keypoints(std::vector<cv::KeyPoint> &kps);
-
-/**
- * Given a set of keypoints `kps` make sure they are atleast `min_dist` pixels
- * away from each other, if they are not remove them.
- */
-std::vector<cv::KeyPoint> spread_keypoints(
-    const cv::Mat &image,
-    const std::vector<cv::KeyPoint> &kps,
-    const int min_dist = 10,
-    const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
-    const bool debug = false);
-
-/**
  * Grid detector
  */
 class GridDetector {
 public:
-  cv::Ptr<cv::Feature2D> detector_ = cv::ORB::create();
+  // cv::Ptr<cv::Feature2D> detector_ = cv::ORB::create();
+  // bool optflow_mode_ = false;
+  cv::Ptr<cv::Feature2D> detector_ = cv::FastFeatureDetector::create();
+  bool optflow_mode_ = true;
   int max_keypoints_ = 200;
   int grid_rows_ = 3;
   int grid_cols_ = 4;
@@ -146,16 +145,28 @@ public:
   virtual ~GridDetector() = default;
 
   /** Detect new keypoints **/
-  void detect(const cv::Mat &image,
-              const std::vector<cv::KeyPoint> &prev_kps,
-              std::vector<cv::KeyPoint> &kps,
-              cv::Mat &des,
-              bool debug = false);
+  void detect(
+      const cv::Mat &image,
+      std::vector<cv::KeyPoint> &kps_new,
+      cv::Mat &des_new,
+      const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
+      bool debug = false);
+  void detect(
+      const cv::Mat &image,
+      std::vector<cv::KeyPoint> &kps_new,
+      const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
+      bool debug = false);
+
+  /** Debug **/
+  void _debug(const cv::Mat &image,
+              const FeatureGrid &grid,
+              const std::vector<cv::KeyPoint> &kps_new,
+              const std::vector<cv::KeyPoint> &kps_prev) const;
 };
 
-///////////////
-// FRONT-END //
-///////////////
+/////////////////////
+// FEATURE-TRACKER //
+/////////////////////
 
 class KeyFrame {
 public:
@@ -172,22 +183,19 @@ public:
             cv::Mat &des) const;
 };
 
-class FrontEnd {
+class FeatureTracker {
 public:
   GridDetector detector_;
   cv::Ptr<cv::DescriptorMatcher> matcher_ =
       cv::DescriptorMatcher::create("BruteForce-Hamming");
 
-  std::vector<cv::KeyPoint> kps0_;
-  std::vector<cv::KeyPoint> kps1_;
-  cv::Mat des0_;
-  cv::Mat des1_;
-
   std::map<int, camera_params_t> cam_params_;
   std::map<int, extrinsic_t> cam_exts_;
+  std::vector<std::pair<int, int>> overlaps_;
+  real_t reproj_threshold_ = 5.0;
 
-  FrontEnd() = default;
-  virtual ~FrontEnd() = default;
+  FeatureTracker() = default;
+  virtual ~FeatureTracker() = default;
 
   /** Add camera **/
   void addCamera(const camera_params_t &cam_params, const extrinsic_t &cam_ext);
@@ -203,6 +211,7 @@ public:
    */
   void detect(const cv::Mat &img0,
               const cv::Mat &img1,
+              keyframe_t &kf,
               const bool debug = false);
 };
 
