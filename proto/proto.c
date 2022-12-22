@@ -6629,19 +6629,6 @@ void feature_setup(feature_t *f, const real_t *data) {
   f->data[0] = data[0];
   f->data[1] = data[1];
   f->data[2] = data[2];
-
-  f->num_cams = 0;
-  f->num_frames = 0;
-
-  for (int cam_idx = 0; cam_idx < FEATURE_MAX_CAMS; cam_idx++) {
-    f->cam_indices[cam_idx] = 0;
-  }
-
-  for (size_t k = 0; k < FEATURE_MAX_TRACKED; k++) {
-    f->timestamps[FEATURE_MAX_TRACKED] = 0;
-    f->frame_indices[FEATURE_MAX_TRACKED] = 0;
-    f->keyframe_indices[FEATURE_MAX_TRACKED] = 0;
-  }
 }
 
 /**
@@ -6652,33 +6639,6 @@ void feature_print(const feature_t *f) {
   printf("feature_id: %ld\n", f->feature_id);
   printf("data: (%.2f, %.2f, %.2f)\n", f->data[0], f->data[1], f->data[2]);
   printf("\n");
-
-  printf("cam_indices: [");
-  for (int i = 0; i < f->num_cams; i++) {
-    if ((i + 1) < f->num_cams) {
-      printf("%d ", f->cam_indices[i]);
-    } else {
-      printf("%d", f->cam_indices[i]);
-    }
-  }
-  printf("]\n");
-  printf("num_cams: %d\n", f->num_cams);
-
-  printf("timestamps: [\n");
-  for (int i = 0; i < f->num_frames; i++) {
-    printf("  %ld\n", f->timestamps[i]);
-  }
-  printf("]\n");
-  printf("frame_indices: [\n");
-  for (int i = 0; i < f->num_frames; i++) {
-    if ((i + 1) < f->num_cams) {
-      printf("%ld ", f->frame_indices[i]);
-    } else {
-      printf("%ld", f->frame_indices[i]);
-    }
-  }
-  printf("]\n");
-  printf("num_frames: %d\n", f->num_cams);
 }
 
 /**
@@ -6735,6 +6695,17 @@ void features_remove(features_t *features, const int feature_id) {
 void keyframe_setup(keyframe_t *kf) {
   kf->num_cams = 0;
   kf->num_features = 0;
+
+  real_t feature_data[3] = {0};
+  for (size_t cam_idx = 0; cam_idx < KEYFRAME_MAX_CAMS; cam_idx++) {
+    for (size_t i = 0; i < KEYFRAME_MAX_FEATURES; i++) {
+      kf->feature_ids[cam_idx][i] = 0;
+      // feature_setup(&kf->features[cam_idx][i], feature_data);
+
+      kf->keypoints[cam_idx][i * 2 + 0] = 0.0;
+      kf->keypoints[cam_idx][i * 2 + 1] = 0.0;
+    }
+  }
 }
 
 ////////////////

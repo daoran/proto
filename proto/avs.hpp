@@ -42,6 +42,15 @@ std::vector<cv::KeyPoint> spread_keypoints(
     const bool debug = false);
 
 /**
+ * Returns number of inliers, outliers and total from inlier vector.
+ */
+void inlier_stats(const std::vector<uchar> inliers,
+                  size_t &num_inliers,
+                  size_t &num_outliers,
+                  size_t &num_total,
+                  float &inlier_ratio);
+
+/**
  * Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
  * flow. Returns a tuple of `(pts_i, pts_j, inliers)` points in image i, j and a
  * vector of inliers.
@@ -55,19 +64,20 @@ void optflow_track(const cv::Mat &img_i,
                    const int max_iter = 50,
                    const int max_level = 3,
                    const real_t epsilon = 0.001,
-                   const bool debug = true);
+                   const bool debug = false);
 
 /**
  * Perform RANSAC on keypoints `kps0` and `kps1` to reject outliers.
  */
-std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
-                          const std::vector<cv::KeyPoint> &kps1,
-                          const undistort_func_t cam0_undist,
-                          const undistort_func_t cam1_undist,
-                          const real_t cam0_params[8],
-                          const real_t cam1_params[8],
-                          const double reproj_threshold = 0.75,
-                          const double confidence = 0.99);
+void ransac(const std::vector<cv::KeyPoint> &kps0,
+            const std::vector<cv::KeyPoint> &kps1,
+            const undistort_func_t cam0_undist,
+            const undistort_func_t cam1_undist,
+            const real_t cam0_params[8],
+            const real_t cam1_params[8],
+            std::vector<uchar> &inliers,
+            const double reproj_threshold = 0.75,
+            const double confidence = 0.99);
 
 /**
  * Filter features by triangulating them via a stereo-pair and see if the
@@ -167,12 +177,12 @@ public:
       std::vector<cv::KeyPoint> &kps_new,
       cv::Mat &des_new,
       const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
-      bool debug = false);
+      bool debug = false) const;
   void detect(
       const cv::Mat &image,
       std::vector<cv::KeyPoint> &kps_new,
       const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
-      bool debug = false);
+      bool debug = false) const;
 
   /** Debug **/
   void _debug(const cv::Mat &image,
@@ -181,55 +191,70 @@ public:
               const std::vector<cv::KeyPoint> &kps_prev) const;
 };
 
-/////////////////////
-// FEATURE-TRACKER //
-/////////////////////
+/////////////
+// TRACKER //
+/////////////
 
 class KeyFrame {
 public:
-  std::map<int, std::vector<cv::KeyPoint>> keypoints;
-  std::map<int, cv::Mat> descriptors;
-  pose_t pose;
+  std::map<int, cv::Mat> images_;
+  std::map<int, std::vector<cv::KeyPoint>> keypoints_ol_;
+  std::map<int, std::vector<cv::KeyPoint>> keypoints_nol_;
 
-  KeyFrame();
+  KeyFrame(const std::map<int, cv::Mat> images,
+           const std::map<int, std::vector<cv::KeyPoint>> &keypoints_ol,
+           const std::map<int, std::vector<cv::KeyPoint>> &keypoints_nol);
   virtual ~KeyFrame() = default;
 
-  /** Return camera keypoints **/
-  void data(const int cam_idx,
-            std::vector<cv::KeyPoint> &kps,
-            cv::Mat &des) const;
+  /** Debug **/
+  void debug() const;
 };
 
-class FeatureTracker {
+class Tracker {
 public:
-  GridDetector detector_;
-  cv::Ptr<cv::DescriptorMatcher> matcher_ =
-      cv::DescriptorMatcher::create("BruteForce-Hamming");
+  // Counters
+  size_t keypoint_counter_ = 0;
 
-  std::map<int, camera_params_t> cam_params_;
-  std::map<int, extrinsic_t> cam_exts_;
-  std::vector<std::pair<int, int>> overlaps_;
+  // Settings
   real_t reproj_threshold_ = 5.0;
 
-  FeatureTracker() = default;
-  virtual ~FeatureTracker() = default;
+  // Feature detector and matcher
+  GridDetector detector_;
+  cv::Ptr<cv::DescriptorMatcher> matcher_;
+
+  // Variables
+  std::map<int, camera_params_t> cam_params_;
+  std::map<int, extrinsic_t> cam_exts_;
+  std::set<std::pair<int, int>> overlaps_;
+  std::unique_ptr<KeyFrame> kf_;
+  std::vector<std::unique_ptr<KeyFrame>> old_kfs_;
+
+  Tracker();
+  virtual ~Tracker() = default;
 
   /** Add camera **/
   void addCamera(const camera_params_t &cam_params, const extrinsic_t &cam_ext);
 
-  /** Reprojection Filter **/
-  void _reprojFilter(const int idx_i,
-                     const int idx_j,
-                     const std::vector<cv::KeyPoint> &kps_i,
-                     const std::vector<cv::KeyPoint> &kps_j);
+  /** Add overlap **/
+  void addOverlap(const std::pair<int, int> &overlap);
 
-  /**
-   * Detect new keypoints
-   */
-  void detect(const cv::Mat &img0,
-              const cv::Mat &img1,
-              keyframe_t &kf,
-              const bool debug = false);
+  /** Detect overlapping keypoints **/
+  void _detectOverlap(
+      const std::map<int, cv::Mat> &mcam_imgs,
+      std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap) const;
+
+  /** Detect non-overlapping keypoints **/
+  void _detectNonOverlap(
+      const std::map<int, cv::Mat> &mcam_imgs,
+      const std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap,
+      std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_nonoverlap) const;
+
+  /** Create New Keyframe **/
+  KeyFrame _newKeyFrame(const std::map<int, cv::Mat> &mcam_imgs,
+                        const bool debug = false) const;
+
+  /** Track **/
+  int track(const std::map<int, cv::Mat> &mcam_imgs, const bool debug = false);
 };
 
 #endif // AVS_HPP

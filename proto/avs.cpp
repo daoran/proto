@@ -132,6 +132,37 @@ spread_keypoints(const cv::Mat &image,
   return kps_filtered;
 }
 
+void inlier_stats(const std::vector<uchar> inliers,
+                  size_t &num_inliers,
+                  size_t &num_outliers,
+                  size_t &num_total,
+                  float &inlier_ratio) {
+  num_inliers = 0;
+  num_outliers = 0;
+  num_total = inliers.size();
+  for (size_t i = 0; i < inliers.size(); i++) {
+    if (inliers[i]) {
+      num_inliers++;
+    } else {
+      num_outliers++;
+    }
+  }
+
+  inlier_ratio = (float) num_inliers / (float) num_total;
+}
+
+std::vector<cv::KeyPoint>
+filter_outliers(const std::vector<cv::KeyPoint> &keypoints,
+                const std::vector<uchar> inliers) {
+  std::vector<cv::KeyPoint> kps_inliers;
+  for (size_t i = 0; i < keypoints.size(); i++) {
+    if (inliers[i]) {
+      kps_inliers.push_back(keypoints[i]);
+    }
+  }
+  return kps_inliers;
+}
+
 void optflow_track(const cv::Mat &img_i,
                    const cv::Mat &img_j,
                    const std::vector<cv::KeyPoint> &kps_i,
@@ -234,14 +265,15 @@ void optflow_track(const cv::Mat &img_i,
   }
 }
 
-std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
-                          const std::vector<cv::KeyPoint> &kps1,
-                          const undistort_func_t cam0_undist,
-                          const undistort_func_t cam1_undist,
-                          const real_t cam0_params[8],
-                          const real_t cam1_params[8],
-                          const double reproj_threshold,
-                          const double confidence) {
+void ransac(const std::vector<cv::KeyPoint> &kps0,
+            const std::vector<cv::KeyPoint> &kps1,
+            const undistort_func_t cam0_undist,
+            const undistort_func_t cam1_undist,
+            const real_t cam0_params[8],
+            const real_t cam1_params[8],
+            std::vector<uchar> &inliers,
+            const double reproj_threshold,
+            const double confidence) {
   assert(kps0.size() > 0 && kps1.size() > 0);
   assert(kps0.size() == kps1.size());
   assert(cam0_undist && cam1_undist);
@@ -268,15 +300,12 @@ std::vector<uchar> ransac(const std::vector<cv::KeyPoint> &kps0,
 
   // Perform ransac
   const int method = cv::FM_RANSAC;
-  std::vector<uchar> outliers;
   cv::findFundamentalMat(pts0,
                          pts1,
                          method,
                          reproj_threshold,
                          confidence,
-                         outliers);
-
-  return outliers;
+                         inliers);
 }
 
 void reproj_filter(const project_func_t cam_i_proj_func,
@@ -306,8 +335,14 @@ void reproj_filter(const project_func_t cam_i_proj_func,
     // Triangulate feature
     const real_t z_i[2] = {kps_i[n].pt.x, kps_i[n].pt.y};
     const real_t z_j[2] = {kps_j[n].pt.x, kps_j[n].pt.y};
+
+    real_t uz_i[2] = {0};
+    real_t uz_j[2] = {0};
+    pinhole_radtan4_undistort(cam_i_params, z_i, uz_i);
+    pinhole_radtan4_undistort(cam_j_params, z_j, uz_j);
+
     real_t p_Ci[3] = {0};
-    linear_triangulation(P_i, P_j, z_i, z_j, p_Ci);
+    linear_triangulation(P_i, P_j, uz_i, uz_j, p_Ci);
     points.emplace_back(p_Ci[0], p_Ci[1], p_Ci[2]);
 
     // Check feature depth
@@ -406,7 +441,7 @@ void GridDetector::detect(const cv::Mat &image,
                           std::vector<cv::KeyPoint> &kps_new,
                           cv::Mat &des_new,
                           const std::vector<cv::KeyPoint> &kps_prev,
-                          bool debug) {
+                          bool debug) const {
   // Asserts
   assert(image.channels() == 1);
 
@@ -485,7 +520,7 @@ void GridDetector::detect(const cv::Mat &image,
 void GridDetector::detect(const cv::Mat &image,
                           std::vector<cv::KeyPoint> &kps_new,
                           const std::vector<cv::KeyPoint> &kps_prev,
-                          bool debug) {
+                          bool debug) const {
   assert(optflow_mode_ == true);
   cv::Mat des_new;
   detect(image, kps_new, des_new, kps_prev, debug);
@@ -539,88 +574,291 @@ void GridDetector::_debug(const cv::Mat &image,
   cv::waitKey(0);
 }
 
-/////////////////////
-// FEATURE-TRACKER //
-/////////////////////
+/////////////
+// TRACKER //
+/////////////
 
-void FeatureTracker::addCamera(const camera_params_t &cam_params,
-                               const extrinsic_t &cam_ext) {
+KeyFrame::KeyFrame(
+    const std::map<int, cv::Mat> images,
+    const std::map<int, std::vector<cv::KeyPoint>> &keypoints_ol,
+    const std::map<int, std::vector<cv::KeyPoint>> &keypoints_nol)
+    : images_{images}, keypoints_ol_{keypoints_ol}, keypoints_nol_{
+                                                        keypoints_nol} {
+}
+
+void KeyFrame::debug() const {
+  const cv::Scalar red = cv::Scalar{0, 0, 255};
+  const auto flags = cv::DrawMatchesFlags::DEFAULT;
+
+  bool quit = false;
+  while (quit == false) {
+    // Draw Keypoints
+    std::vector<cv::Mat> viz_imgs;
+    for (auto &[cam_idx, cam_img] : images_) {
+      const auto &kps_ol = keypoints_ol_.at(cam_idx);
+      const auto &kps_nol = keypoints_nol_.at(cam_idx);
+
+      cv::Mat viz_img;
+      cv::drawKeypoints(cam_img, kps_ol, viz_img, red, flags);
+      cv::drawKeypoints(cam_img, kps_nol, viz_img, red, flags);
+      viz_imgs.push_back(viz_img);
+    }
+
+    // Stitch images horizontally
+    cv::Mat viz;
+    for (const auto img : viz_imgs) {
+      if (viz.empty()) {
+        viz = img;
+      } else {
+        cv::hconcat(viz, img, viz);
+      }
+    }
+
+    // Show
+    cv::imshow("KeyFrame", viz);
+    if (cv::waitKey(0) == 'q') {
+      quit = true;
+    }
+  }
+}
+
+Tracker::Tracker() {
+  matcher_ = cv::DescriptorMatcher::create("BruteForce-Hamming");
+}
+
+void Tracker::addCamera(const camera_params_t &cam_params,
+                        const extrinsic_t &cam_ext) {
   cam_params_[cam_params.cam_idx] = cam_params;
   cam_exts_[cam_params.cam_idx] = cam_ext;
 }
 
-void FeatureTracker::_reprojFilter(const int idx_i,
-                                   const int idx_j,
-                                   const std::vector<cv::KeyPoint> &kps_i,
-                                   const std::vector<cv::KeyPoint> &kps_j) {
-  // Form Projection matrices P_i and P_j
-  const project_func_t cam_i_proj_func = pinhole_radtan4_project;
-  const int cam_i_res[2] = cam_params_.at(idx_i).resolution;
-  const real_t *cam_i_params = cam_params_.at(idx_i).data;
-  const real_t *cam_j_params = cam_params_.at(idx_j).data;
-  POSE2TF(cam_exts_.at(idx_i).data, T_C0Ci);
-  POSE2TF(cam_exts_.at(idx_j).data, T_C0Cj);
-
-  std::vector<cv::Point3d> points;
-  std::vector<bool> inliers;
-  reproj_filter(cam_i_proj_func,
-                cam_i_res,
-                cam_i_params,
-                cam_j_params,
-                T_C0Ci,
-                T_C0Cj,
-                kps_i,
-                kps_j,
-                points,
-                inliers,
-                reproj_threshold_);
+void Tracker::addOverlap(const std::pair<int, int> &overlap) {
+  overlaps_.insert(overlap);
 }
 
-void FeatureTracker::detect(const cv::Mat &img0,
-                            const cv::Mat &img1,
-                            keyframe_t &kf,
-                            const bool debug) {
-  assert(cam_params_.size() == 2);
-  assert(cam_exts_.size() == 2);
+void Tracker::_detectOverlap(
+    const std::map<int, cv::Mat> &mcam_imgs,
+    std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap) const {
+  assert(cam_params_.size() > 0);
+  assert(cam_exts_.size() > 0);
 
-  // Detect
-  std::vector<cv::KeyPoint> kps0_;
-  std::vector<cv::KeyPoint> kps1_;
-  std::vector<cv::KeyPoint> kps0_new;
-  std::vector<cv::KeyPoint> kps1_new;
-  cv::Mat des0_new;
-  cv::Mat des1_new;
-  detector_.detect(img0, kps0_new, des0_new, kps0_);
-  detector_.detect(img1, kps1_new, des1_new, kps1_);
+  // Detect overlapping features
+  for (const auto &[idx_i, idx_j] : overlaps_) {
+    const auto &img_i = mcam_imgs.at(idx_i);
+    const auto &img_j = mcam_imgs.at(idx_j);
 
-  std::vector<cv::DMatch> matches;
-  matcher_->match(des0_new, des1_new, matches);
+    // Detect new corners
+    std::vector<cv::KeyPoint> kps_i;
+    detector_.detect(img_i, kps_i);
 
-  // std::cout << "rows: " << des0_new.rows << std::endl;
-  // std::cout << "cols: " << des0_new.cols << std::endl;
-  // std::cout << cv::type2str(des0_new.type()) << std::endl;
+    // Optical-flow track
+    std::vector<cv::KeyPoint> kps_j;
+    std::vector<uchar> optflow_inliers;
+    optflow_track(img_i, img_j, kps_i, kps_j, optflow_inliers);
 
+    // RANSAC
+    undistort_func_t cam_i_undist = pinhole_radtan4_undistort;
+    undistort_func_t cam_j_undist = pinhole_radtan4_undistort;
+    const real_t *cam_i_params = cam_params_.at(idx_i).data;
+    const real_t *cam_j_params = cam_params_.at(idx_j).data;
+    std::vector<uchar> ransac_inliers;
+    ransac(kps_i,
+           kps_j,
+           cam_i_undist,
+           cam_j_undist,
+           cam_i_params,
+           cam_j_params,
+           ransac_inliers);
+
+    // Reprojection filter
+    const project_func_t cam_i_proj_func = pinhole_radtan4_project;
+    const int *cam_i_res = cam_params_.at(idx_i).resolution;
+    std::vector<cv::Point3d> points;
+    std::vector<bool> reproj_inliers;
+    TF(cam_exts_.at(idx_i).data, T_C0Ci);
+    TF(cam_exts_.at(idx_j).data, T_C0Cj);
+    reproj_filter(cam_i_proj_func,
+                  cam_i_res,
+                  cam_i_params,
+                  cam_j_params,
+                  T_C0Ci,
+                  T_C0Cj,
+                  kps_i,
+                  kps_j,
+                  points,
+                  reproj_inliers);
+
+    // Filter outliers
+    for (size_t n = 0; n < kps_i.size(); n++) {
+      if (optflow_inliers[n] && ransac_inliers[n] && reproj_inliers[n]) {
+        mcam_kps_overlap[idx_i].push_back(kps_i[n]);
+        mcam_kps_overlap[idx_j].push_back(kps_j[n]);
+      }
+    }
+  }
+}
+
+void Tracker::_detectNonOverlap(
+    const std::map<int, cv::Mat> &mcam_imgs,
+    const std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap,
+    std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_nonoverlap) const {
+  // Detect non-overlapping features
+  for (const auto &[cam_idx, cam_img] : mcam_imgs) {
+    std::vector<cv::KeyPoint> kps_prev = mcam_kps_overlap.at(cam_idx);
+    std::vector<cv::KeyPoint> kps_new;
+    detector_.detect(cam_img, kps_new, kps_prev);
+    mcam_kps_nonoverlap[cam_idx] = kps_new;
+  }
+}
+
+KeyFrame Tracker::_newKeyFrame(const std::map<int, cv::Mat> &mcam_imgs,
+                               const bool debug) const {
+  // Detect overlapping and non-overlapping features
+  std::map<int, std::vector<cv::KeyPoint>> mcam_kps_overlap;
+  _detectOverlap(mcam_imgs, mcam_kps_overlap);
+
+  std::map<int, std::vector<cv::KeyPoint>> mcam_kps_nonoverlap;
+  _detectNonOverlap(mcam_imgs, mcam_kps_overlap, mcam_kps_nonoverlap);
+
+  // Debug
   if (debug) {
-    const cv::Scalar yellow = cv::Scalar{0, 255, 255};
+    bool quit = false;
+    while (debug && quit == false) {
+      const cv::Scalar red = cv::Scalar{0, 0, 255};
+      const cv::Scalar yellow = cv::Scalar{0, 255, 255};
+      const auto flags = cv::DrawMatchesFlags::DEFAULT;
+
+      // Draw Keypoints
+      std::vector<cv::Mat> viz_imgs;
+      for (auto &[cam_idx, cam_img] : mcam_imgs) {
+        const auto &kps_prev = mcam_kps_overlap.at(cam_idx);
+        const auto &kps_new = mcam_kps_nonoverlap.at(cam_idx);
+        cv::Mat viz_img;
+        cv::drawKeypoints(cam_img, kps_prev, viz_img, yellow, flags);
+        cv::drawKeypoints(viz_img, kps_new, viz_img, red, flags);
+        viz_imgs.push_back(viz_img);
+      }
+
+      // Stitch images horizontally
+      cv::Mat viz;
+      for (const auto img : viz_imgs) {
+        if (viz.empty()) {
+          viz = img;
+        } else {
+          cv::hconcat(viz, img, viz);
+        }
+      }
+
+      cv::imshow("New features", viz);
+      if (cv::waitKey(0) == 'q') {
+        quit = true;
+      }
+    }
+  }
+
+  KeyFrame kf{mcam_imgs, mcam_kps_overlap, mcam_kps_nonoverlap};
+  return kf;
+}
+
+int Tracker::track(const std::map<int, cv::Mat> &mcam_imgs, const bool debug) {
+  // Create new keyframe
+  if (kf_ == nullptr) {
+    LOG_INFO("New Keyframe!\n");
+    kf_ = std::make_unique<KeyFrame>(_newKeyFrame(mcam_imgs));
+    // if (debug) {
+    //   kf_->debug();
+    // }
+    return 0;
+  }
+
+  // Track features
+  bool new_keyframe = false;
+  std::map<int, std::vector<cv::KeyPoint>> kps_tracked;
+  for (auto &[cam_idx, kps_i] : kf_->keypoints_ol_) {
+    const cv::Mat &img_i = kf_->images_[cam_idx];
+    const cv::Mat &img_j = mcam_imgs.at(cam_idx);
+    std::vector<cv::KeyPoint> kps_j;
+    std::vector<uchar> inliers;
+    optflow_track(img_i, img_j, kps_i, kps_j, inliers);
+
+    size_t num_inliers = 0;
+    size_t num_outliers = 0;
+    size_t num_total = 0;
+    float inlier_ratio = 0.0f;
+    inlier_stats(inliers, num_inliers, num_outliers, num_total, inlier_ratio);
+    printf("num_inliers: %ld, ", num_inliers);
+    printf("num_outliers: %ld, ", num_outliers);
+    printf("num_total: %ld, ", num_total);
+    printf("inlier ratio: %f", inlier_ratio);
+    printf("\n");
+
+    if (inlier_ratio < 0.8) {
+      new_keyframe = true;
+    }
+
+    // Filter outliers
+    kps_tracked[cam_idx] = filter_outliers(kps_j, inliers);
+  }
+
+  // Debug
+  {
+    // Draw keypoints
     const cv::Scalar red = cv::Scalar{0, 0, 255};
     const auto flags = cv::DrawMatchesFlags::DEFAULT;
 
-    cv::Mat viz0;
-    cv::Mat viz1;
-    drawKeypoints(img0, kps0_, viz0, yellow, flags);
-    drawKeypoints(img1, kps1_, viz1, yellow, flags);
-    drawKeypoints(img0, kps0_new, viz0, red, flags);
-    drawKeypoints(img1, kps1_new, viz1, red, flags);
+    // Draw KeyFrame
+    std::vector<cv::Mat> kframe_imgs;
+    for (auto &[cam_idx, cam_img] : kf_->images_) {
+      const auto &kps_ol = kf_->keypoints_ol_.at(cam_idx);
+      const auto &kps_nol = kf_->keypoints_nol_.at(cam_idx);
 
+      cv::Mat kframe_img = cam_img;
+      cv::drawKeypoints(kframe_img, kps_ol, kframe_img, red, flags);
+      cv::drawKeypoints(kframe_img, kps_nol, kframe_img, red, flags);
+      kframe_imgs.push_back(kframe_img);
+    }
+    // -- Stitch images horizontally
+    cv::Mat kframe;
+    for (const auto img : kframe_imgs) {
+      if (kframe.empty()) {
+        kframe = img;
+      } else {
+        cv::hconcat(kframe, img, kframe);
+      }
+    }
+
+    // Draw tracked keypoints
+    std::vector<cv::Mat> frame_imgs;
+    for (auto &[cam_idx, cam_img] : mcam_imgs) {
+      cv::Mat frame_img;
+      auto kps = kps_tracked[cam_idx];
+      cv::drawKeypoints(cam_img, kps, frame_img, red, flags);
+      frame_imgs.push_back(frame_img);
+    }
+    // -- Stitch images horizontally
+    cv::Mat frame;
+    for (const auto img : frame_imgs) {
+      if (frame.empty()) {
+        frame = img;
+      } else {
+        cv::hconcat(frame, img, frame);
+      }
+    }
+
+    // Show
     cv::Mat viz;
-    cv::drawMatches(img0, kps0_new, img1, kps1_new, matches, viz);
-
-    // cv::Mat viz;
-    // cv::hconcat(viz0, viz1, viz);
-
-    cv::imshow("Debug", viz);
-    cv::waitKey(0);
+    cv::vconcat(kframe, frame, viz);
+    cv::imshow("Tracked", viz);
+    // cv::waitKey(100);
   }
+
+  if (new_keyframe) {
+    LOG_INFO("New Keyframe!");
+    old_kfs_.push_back(std::move(kf_));
+    kf_ = std::make_unique<KeyFrame>(_newKeyFrame(mcam_imgs));
+  }
+
+  return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -776,53 +1014,102 @@ int test_grid_detect() {
   return 0;
 }
 
-int test_front_end() {
-  const auto img0_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
-  const auto img1_path = "./test_data/frontend/cam1/1403715297312143104.jpg";
-  const auto img0 = cv::imread(img0_path, cv::IMREAD_GRAYSCALE);
-  const auto img1 = cv::imread(img1_path, cv::IMREAD_GRAYSCALE);
-
-  // clang-format off
+class EuRoCParams {
+public:
   camera_params_t cam0_params;
   camera_params_t cam1_params;
   extrinsic_t cam0_ext;
   extrinsic_t cam1_ext;
 
-  const int cam_res[2] = {752, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  real_t cam0_data[8] = {458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05};
-  real_t cam1_data[8] = {457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.55590700e-05};
-  real_t cam0_ext_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  real_t cam1_ext_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  EuRoCParams() {
+    // clang-format off
+    // camera_params_t cam0_params;
+    // camera_params_t cam1_params;
+    // extrinsic_t cam0_ext;
+    // extrinsic_t cam1_ext;
 
-  const real_t T_SC0[4 * 4] = {
-    0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
-    0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
-    -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
-    0.0, 0.0, 0.0, 1.0
-  };
-  const real_t T_SC1[4 * 4] = {
-    0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
-    0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
-    -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
-    0.0, 0.0, 0.0, 1.0
-  };
-  TF_INV(T_SC0, T_C0S);
-  TF_CHAIN(T_C0C1, 2, T_C0S, T_SC1);
-  tf_vector(T_C0C1, cam1_ext_data);
+    const int cam_res[2] = {752, 480};
+    const char *proj_model = "pinhole";
+    const char *dist_model = "radtan4";
+    real_t cam0_data[8] = {458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05};
+    real_t cam1_data[8] = {457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.55590700e-05};
+    real_t cam0_ext_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+    real_t cam1_ext_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
 
-  camera_params_setup(&cam0_params, 0, cam_res, proj_model, dist_model, cam0_data);
-  camera_params_setup(&cam1_params, 1, cam_res, proj_model, dist_model, cam1_data);
-  extrinsic_setup(&cam0_ext, cam0_ext_data);
-  extrinsic_setup(&cam1_ext, cam1_ext_data);
-  // clang-format on
+    const real_t T_SC0[4 * 4] = {
+      0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+      0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+      -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+      0.0, 0.0, 0.0, 1.0
+    };
+    const real_t T_SC1[4 * 4] = {
+      0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
+      0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
+      -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
+      0.0, 0.0, 0.0, 1.0
+    };
+    TF_INV(T_SC0, T_C0S);
+    TF_CHAIN(T_C0C1, 2, T_C0S, T_SC1);
+    tf_vector(T_C0C1, cam1_ext_data);
 
-  FeatureTracker ft;
-  keyframe_t kf;
-  ft.addCamera(cam0_params, cam0_ext);
-  ft.addCamera(cam1_params, cam1_ext);
-  ft.detect(img0, img1, kf, false);
+    camera_params_setup(&cam0_params, 0, cam_res, proj_model, dist_model, cam0_data);
+    camera_params_setup(&cam1_params, 1, cam_res, proj_model, dist_model, cam1_data);
+    extrinsic_setup(&cam0_ext, cam0_ext_data);
+    extrinsic_setup(&cam1_ext, cam1_ext_data);
+    // clang-format on
+  }
+};
+
+int test_front_end() {
+  // const auto img0_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
+  // const auto img1_path = "./test_data/frontend/cam1/1403715297312143104.jpg";
+  // const auto img0 = cv::imread(img0_path, cv::IMREAD_GRAYSCALE);
+  // const auto img1 = cv::imread(img1_path, cv::IMREAD_GRAYSCALE);
+
+  // Tracker
+  EuRoCParams euroc;
+  Tracker tracker;
+  tracker.addCamera(euroc.cam0_params, euroc.cam0_ext);
+  tracker.addCamera(euroc.cam1_params, euroc.cam1_ext);
+  tracker.addOverlap({0, 1});
+
+  // Setup
+  const char *data_path = "/data/euroc/V1_01";
+  euroc_data_t *data = euroc_data_load(data_path);
+  euroc_timeline_t *timeline = data->timeline;
+
+  int imshow_wait = 10;
+  for (size_t k = 0; k < timeline->num_timestamps; k++) {
+    const timestamp_t ts = timeline->timestamps[k];
+    const euroc_event_t *event = &timeline->events[k];
+
+    if (event->has_cam0 && event->has_cam1) {
+      const cv::Mat img0 = cv::imread(event->cam0_image, cv::IMREAD_GRAYSCALE);
+      const cv::Mat img1 = cv::imread(event->cam1_image, cv::IMREAD_GRAYSCALE);
+      assert(img0.empty() == false);
+      assert(img1.empty() == false);
+      tracker.track({{0, img0}, {1, img1}}, true);
+
+      // cv::Mat viz;
+      // cv::hconcat(img0, img1, viz);
+      // cv::imshow("Stereo-Camera", viz);
+      // cv::waitKey(1);
+      char key = cv::waitKey(imshow_wait);
+      printf("key: %c\n", key);
+      if (key == 'q') {
+        k = timeline->num_timestamps;
+      } else if (key == 's') {
+        imshow_wait = 0;
+      } else if (key == ' ' && imshow_wait == 10) {
+        imshow_wait = 0;
+      } else if (key == ' ' && imshow_wait == 0) {
+        imshow_wait = 10;
+      }
+    }
+  }
+
+  // Clean up
+  euroc_data_free(data);
 
   return 0;
 }
@@ -832,7 +1119,7 @@ void run_unittests() {
   // TEST(test_spread_keypoints);
   // TEST(test_optflow_track);
   // TEST(test_grid_detect);
-  // TEST(test_front_end);
+  TEST(test_front_end);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -847,7 +1134,7 @@ int main() {
   // euroc_data_t *data = euroc_data_load(data_path);
   // euroc_timeline_t *timeline = data->timeline;
 
-  // auto front_end = FeatureTracker();
+  // auto front_end = Tracker();
 
   // for (size_t k = 0; k < timeline->num_timestamps; k++) {
   //   const timestamp_t ts = timeline->timestamps[k];

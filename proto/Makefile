@@ -130,7 +130,7 @@ libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
 
 avs: $(BLD_DIR)/libproto.a
 	@g++ \
-		-std=c++11 \
+		-std=c++17 \
 		-fsanitize=address -static-libasan \
 		-fopenmp \
 		-I$(DEPS_DIR)/include \

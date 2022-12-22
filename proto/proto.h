@@ -1244,14 +1244,6 @@ typedef struct feature_t {
   int status;
   size_t feature_id;
   real_t data[3];
-
-  int num_cams;
-  int num_frames;
-
-  int cam_indices[FEATURE_MAX_CAMS];
-  timestamp_t timestamps[FEATURE_MAX_TRACKED];
-  size_t frame_indices[FEATURE_MAX_TRACKED];
-  size_t keyframe_indices[FEATURE_MAX_TRACKED];
 } feature_t;
 
 typedef struct features_t {
@@ -1274,17 +1266,16 @@ void features_remove(features_t *features, const int feature_id);
 // KEYFRAME //
 //////////////
 
-#define KEYFRAME_MAX_CAMS 5
+#define KEYFRAME_MAX_CAMS 2
 #define KEYFRAME_MAX_FEATURES 1000
 
 typedef struct keyframe_t {
   int num_cams;
   size_t num_features;
 
-  int cam_indices[KEYFRAME_MAX_CAMS];
+  size_t feature_ids[KEYFRAME_MAX_CAMS][KEYFRAME_MAX_FEATURES];
   feature_t features[KEYFRAME_MAX_FEATURES];
-  real_t keypoints[KEYFRAME_MAX_FEATURES * 2];
-  uint8_t descriptors[KEYFRAME_MAX_FEATURES * FEATURE_DESCRIPTOR_LEN];
+  real_t keypoints[KEYFRAME_MAX_CAMS][KEYFRAME_MAX_FEATURES * 2];
 } keyframe_t;
 
 void keyframe_setup(keyframe_t *kf);
