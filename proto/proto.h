@@ -1859,6 +1859,47 @@ void imu_factor_reset(imu_factor_t *factor);
 int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
 int imu_factor_eval(void *factor_ptr);
 
+/////////////////
+// MARG FACTOR //
+/////////////////
+
+#define MARG_FACTOR_MAX_FACTORS 1000
+
+typedef struct marg_factor_t {
+  // Remain Parameters
+  int num_remain_params;
+  void *remain_param_ptrs;
+  real_t **remain_params;
+  int *remain_param_types;
+
+  // Marginal Parameters
+  int num_marg_params;
+  void *marg_param_ptrs;
+  real_t **marg_params;
+  int *marg_param_types;
+
+  // Factors
+  int num_factors;
+  void factors[MARG_FACTOR_MAX_FACTORS];
+  int factor_types[MARG_FACTOR_MAX_FACTORS];
+
+  // Covariance and square-root info
+  real_t *covar;
+  real_t *sqrt_info;
+
+  // Residuals
+  int r_size;
+  real_t *r;
+
+  // Jacobians
+  real_t **jacs;
+} marg_factor_t;
+
+void marg_factor_setup(marg_factor_t *factor);
+void marg_factor_add_imu_factor(imu_factor_t *factor,
+                                const int num_marg,
+                                const int *marg_indices);
+
 ////////////
 // SOLVER //
 ////////////

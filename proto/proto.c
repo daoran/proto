@@ -9652,6 +9652,34 @@ int imu_factor_eval(void *factor_ptr) {
   return 0;
 }
 
+/////////////////
+// MARG FACTOR //
+/////////////////
+
+void marg_factor_setup(marg_factor_t *factor) {
+  factor->num_params = 0;
+  factor->param_ptrs = NULL;
+  factor->params = NULL;
+  factor->param_types;
+
+  factor->covar = NULL;
+  factor->sqrt_info = NULL;
+
+  factor->r_size = 0;
+  factor->r = NULL;
+
+  factor->jacs = NULL;
+}
+
+void marg_factor_add_imu_factor(imu_factor_t *factor,
+                                const int num_marg,
+                                const int *marg_indices) {
+  const int idx = factor->num_factors;
+  factor->factors[idx] = factor;
+  factor->factor_types[idx] = IMU_FACTOR;
+  factor->num_factors++;
+}
+
 ////////////
 // SOLVER //
 ////////////
