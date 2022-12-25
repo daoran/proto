@@ -6459,6 +6459,56 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
   return 0;
 }
 
+//////////////
+// POSITION //
+//////////////
+
+void position_setup(position_t *pos, const real_t *data) {
+  assret(pos != NULL);
+  assret(data != NULL);
+  pos->data[0] = data[0];
+  pos->data[1] = data[1];
+  pos->data[2] = data[2];
+}
+
+void position_print(const char *prefix, const position_t *pos) {
+  assret(prefix != NULL);
+  assret(pos != NULL);
+
+  const real_t x = pos->data[0];
+  const real_t y = pos->data[1];
+  const real_t z = pos->data[2];
+
+  printf("[%s] ", prefix);
+  printf("pos: (%f, %f, %f), ", x, y, z);
+}
+
+//////////////
+// ROTATION //
+//////////////
+
+void rotation_setup(rotation_t *rot, const real_t *data) {
+  assret(rot != NULL);
+  assret(data != NULL);
+  rot->data[0] = data[0];
+  rot->data[1] = data[1];
+  rot->data[2] = data[2];
+  rot->data[3] = data[3];
+}
+
+void rotation_print(const char *prefix, const rotation_t *rot) {
+  assret(prefix != NULL);
+  assret(rot != NULL);
+
+  const real_t qw = rot->data[0];
+  const real_t qx = rot->data[1];
+  const real_t qy = rot->data[2];
+  const real_t qz = rot->data[3];
+
+  printf("[%s] ", prefix);
+  printf("rot: (%f, %f, %f, %f), ", qw, qx, qy, qz);
+}
+
 //////////
 // POSE //
 //////////

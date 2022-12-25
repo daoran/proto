@@ -1181,6 +1181,28 @@ int schurs_complement(const real_t *H,
                       real_t *b_marg);
 int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
 
+//////////////
+// POSITION //
+//////////////
+
+typedef struct position_t {
+  real_t data[3];
+} position_t;
+
+void position_setup(position_t *pos, const real_t *data);
+void position_print(const char *prefix, const position_t *pos);
+
+//////////////
+// ROTATION //
+//////////////
+
+typedef struct rotation_t {
+  real_t data[4];
+} rotation_t;
+
+void rotation_setup(rotation_t *rot, const real_t *data);
+void rotation_print(const char *prefix, const rotation_t *rot);
+
 //////////
 // POSE //
 //////////
