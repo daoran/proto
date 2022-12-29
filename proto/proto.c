@@ -6735,6 +6735,50 @@ void features_remove(features_t *features, const int feature_id) {
   feature_setup(&features->data[feature_id], param);
 }
 
+///////////////////////////
+// INVERSE-DEPTH FEATURE //
+///////////////////////////
+
+/**
+ * Setup Inverse-Depth Features (IDFS) container
+ */
+void idfs_setup(idfs_t *idfs) {
+  idfs->num_features = 0;
+  for (size_t i = 0; i < IDFS_MAX_NUM; i++) {
+    idfs->status[i] = 0;
+    idfs->feature_ids[i] = 0;
+    idfs->data[i * 3] = 0;
+  }
+}
+
+/**
+ * Add inverse depth feature.
+ *
+ * IMPORTANT NOTE: For performance reasons it is assumed that as features are
+ * added in ascending order.
+ */
+void idfs_add(idfs_t *idfs,
+              const size_t feature_id,
+              const real_t *feature_data) {
+  const size_t idx = idfs->num_features;
+  assert(idx > 0 && idfs->feature_ids[idx - 1] > feature_id);
+
+  idfs->status[idx] = 1;
+  idfs->feature_ids[idx] = feature_id;
+  vec_copy(feature_data, 3, idfs->data + idx);
+  idfs->num_features++;
+}
+
+/**
+ * Mark inverse depth feature as lost.
+ */
+void idfs_mark_lost(idfs_t *idfs, const size_t feature_id) {
+  assert(idfs->num_features > 0);
+  const size_t first_id = idfs->feature_ids[0];
+  const size_t idx = feature_id - first_id;
+  idfs->status[idx] = 0;
+}
+
 //////////////
 // KEYFRAME //
 //////////////

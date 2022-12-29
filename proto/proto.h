@@ -1284,6 +1284,25 @@ feature_t *features_add(features_t *features,
                         const real_t *param);
 void features_remove(features_t *features, const int feature_id);
 
+///////////////////////////
+// INVERSE-DEPTH FEATURE //
+///////////////////////////
+
+#define IDFS_MAX_NUM 1000
+
+typedef struct idfs_t {
+  size_t num_features;
+  int status[IDFS_MAX_NUM];
+  size_t feature_ids[IDFS_MAX_NUM];
+  real_t data[IDFS_MAX_NUM * 3];
+} idfs_t;
+
+void idfs_setup(idfs_t *idfs);
+void idfs_add(idfs_t *idfs,
+              const size_t feature_id,
+              const real_t *feature_data);
+void idfs_mark_lost(idfs_t *idfs, const size_t feature_id);
+
 //////////////
 // KEYFRAME //
 //////////////
