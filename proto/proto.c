@@ -6464,16 +6464,16 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
 //////////////
 
 void position_setup(position_t *pos, const real_t *data) {
-  assret(pos != NULL);
-  assret(data != NULL);
+  assert(pos != NULL);
+  assert(data != NULL);
   pos->data[0] = data[0];
   pos->data[1] = data[1];
   pos->data[2] = data[2];
 }
 
 void position_print(const char *prefix, const position_t *pos) {
-  assret(prefix != NULL);
-  assret(pos != NULL);
+  assert(prefix != NULL);
+  assert(pos != NULL);
 
   const real_t x = pos->data[0];
   const real_t y = pos->data[1];
@@ -6488,8 +6488,8 @@ void position_print(const char *prefix, const position_t *pos) {
 //////////////
 
 void rotation_setup(rotation_t *rot, const real_t *data) {
-  assret(rot != NULL);
-  assret(data != NULL);
+  assert(rot != NULL);
+  assert(data != NULL);
   rot->data[0] = data[0];
   rot->data[1] = data[1];
   rot->data[2] = data[2];
@@ -6497,8 +6497,8 @@ void rotation_setup(rotation_t *rot, const real_t *data) {
 }
 
 void rotation_print(const char *prefix, const rotation_t *rot) {
-  assret(prefix != NULL);
-  assret(rot != NULL);
+  assert(prefix != NULL);
+  assert(rot != NULL);
 
   const real_t qw = rot->data[0];
   const real_t qx = rot->data[1];
@@ -6743,29 +6743,46 @@ void features_remove(features_t *features, const int feature_id) {
  * Setup Inverse-Depth Features (IDFS) container
  */
 void idfs_setup(idfs_t *idfs) {
+  const real_t zero3[3] = {0.0, 0.0, 0.0};
+
   idfs->num_features = 0;
   for (size_t i = 0; i < IDFS_MAX_NUM; i++) {
     idfs->status[i] = 0;
     idfs->feature_ids[i] = 0;
-    idfs->data[i * 3] = 0;
+    vec_copy(zero3, 3, idfs->data + i * 3);
+  }
+}
+
+/**
+ * Print Inverse-Depth Features (IDFS) container
+ */
+void idfs_print(const idfs_t *idfs) {
+  printf("num_features: %ld\n", idfs->num_features);
+  for (size_t i = 0; i < idfs->num_features; i++) {
+    const real_t theta = idfs->data[i * 3 + 0];
+    const real_t phi = idfs->data[i * 3 + 1];
+    const real_t rho = idfs->data[i * 3 + 2];
+    printf("feature_id: %ld, ", idfs->feature_ids[i]);
+    printf("status: %d, ", idfs->status[i]);
+    printf("feature: (%.4f, %.4f, %.4f)\n", theta, phi, rho);
   }
 }
 
 /**
  * Add inverse depth feature.
  *
- * IMPORTANT NOTE: For performance reasons it is assumed that as features are
+ * IMPORTANT NOTE: For performance reasons it is assumed that feature ids are
  * added in ascending order.
  */
 void idfs_add(idfs_t *idfs,
               const size_t feature_id,
               const real_t *feature_data) {
   const size_t idx = idfs->num_features;
-  assert(idx > 0 && idfs->feature_ids[idx - 1] > feature_id);
+  ASSERT_IF(idx > 0, idfs->feature_ids[idx - 1] < feature_id);
 
   idfs->status[idx] = 1;
   idfs->feature_ids[idx] = feature_id;
-  vec_copy(feature_data, 3, idfs->data + idx);
+  vec_copy(feature_data, 3, idfs->data + idx * 3);
   idfs->num_features++;
 }
 
@@ -6794,7 +6811,7 @@ void keyframe_setup(keyframe_t *kf) {
   for (size_t cam_idx = 0; cam_idx < KEYFRAME_MAX_CAMS; cam_idx++) {
     for (size_t i = 0; i < KEYFRAME_MAX_FEATURES; i++) {
       kf->feature_ids[cam_idx][i] = 0;
-      // feature_setup(&kf->features[cam_idx][i], feature_data);
+      feature_setup(&kf->features[cam_idx][i], feature_data);
 
       kf->keypoints[cam_idx][i * 2 + 0] = 0.0;
       kf->keypoints[cam_idx][i * 2 + 1] = 0.0;
@@ -9751,10 +9768,10 @@ int imu_factor_eval(void *factor_ptr) {
 /////////////////
 
 void marg_factor_setup(marg_factor_t *factor) {
-  factor->num_params = 0;
-  factor->param_ptrs = NULL;
-  factor->params = NULL;
-  factor->param_types;
+  // factor->num_params = 0;
+  // factor->param_ptrs = NULL;
+  // factor->params = NULL;
+  // factor->param_types;
 
   factor->covar = NULL;
   factor->sqrt_info = NULL;
@@ -9768,10 +9785,10 @@ void marg_factor_setup(marg_factor_t *factor) {
 void marg_factor_add_imu_factor(imu_factor_t *factor,
                                 const int num_marg,
                                 const int *marg_indices) {
-  const int idx = factor->num_factors;
-  factor->factors[idx] = factor;
-  factor->factor_types[idx] = IMU_FACTOR;
-  factor->num_factors++;
+  // const int idx = factor->num_factors;
+  // factor->factors[idx] = factor;
+  // factor->factor_types[idx] = IMU_FACTOR;
+  // factor->num_factors++;
 }
 
 ////////////

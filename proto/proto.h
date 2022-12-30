@@ -143,6 +143,16 @@
 #endif
 
 /**
+ * Assert if condition is true
+ */
+#ifndef ASSERT_IF
+#define ASSERT_IF(COND, ASSERT_COND)                                           \
+  if (COND) {                                                                  \
+    assert(ASSERT_COND);                                                       \
+  }
+#endif
+
+/**
  * Debug
  * @param[in] M Message
  * @param[in] ... Varadic arguments
@@ -1298,6 +1308,7 @@ typedef struct idfs_t {
 } idfs_t;
 
 void idfs_setup(idfs_t *idfs);
+void idfs_print(const idfs_t *idfs);
 void idfs_add(idfs_t *idfs,
               const size_t feature_id,
               const real_t *feature_data);
@@ -1315,7 +1326,7 @@ typedef struct keyframe_t {
   size_t num_features;
 
   size_t feature_ids[KEYFRAME_MAX_CAMS][KEYFRAME_MAX_FEATURES];
-  feature_t features[KEYFRAME_MAX_FEATURES];
+  feature_t features[KEYFRAME_MAX_CAMS][KEYFRAME_MAX_FEATURES];
   real_t keypoints[KEYFRAME_MAX_CAMS][KEYFRAME_MAX_FEATURES * 2];
 } keyframe_t;
 
@@ -1921,7 +1932,7 @@ typedef struct marg_factor_t {
 
   // Factors
   int num_factors;
-  void factors[MARG_FACTOR_MAX_FACTORS];
+  void *factors[MARG_FACTOR_MAX_FACTORS];
   int factor_types[MARG_FACTOR_MAX_FACTORS];
 
   // Covariance and square-root info

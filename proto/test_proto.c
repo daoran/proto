@@ -2844,7 +2844,7 @@ int test_pinhole_equi4_params_jacobian() {
  * TEST SENSOR FUSION
  ******************************************************************************/
 
-int test_pose_setup() {
+int test_pose() {
   timestamp_t ts = 1;
   pose_t pose;
 
@@ -2864,7 +2864,7 @@ int test_pose_setup() {
   return 0;
 }
 
-int test_extrinsic_setup() {
+int test_extrinsics() {
   extrinsic_t extrinsic;
 
   real_t data[7] = {1.0, 2.0, 3.0, 1.0, 0.1, 0.2, 0.3};
@@ -2881,7 +2881,7 @@ int test_extrinsic_setup() {
   return 0;
 }
 
-int test_imu_biases_setup() {
+int test_imu_biases() {
   timestamp_t ts = 1;
   imu_biases_t biases;
 
@@ -2902,7 +2902,7 @@ int test_imu_biases_setup() {
   return 0;
 }
 
-int test_feature_setup() {
+int test_feature() {
   feature_t feature;
 
   real_t data[3] = {0.1, 0.2, 0.3};
@@ -2961,26 +2961,7 @@ int test_camera_params_setup() {
   return 0;
 }
 
-int test_pose_factor_setup() {
-  /* Pose */
-  timestamp_t ts = 1;
-  pose_t pose;
-  real_t data[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose, ts, data);
-
-  /* Setup pose factor */
-  pose_factor_t pose_factor;
-  real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
-  pose_factor_setup(&pose_factor, &pose, var);
-
-  // print_matrix("pose_factor.pos_meas", pose_factor.pos_meas, 3, 1);
-  // print_matrix("pose_factor.quat_meas", pose_factor.quat_meas, 4, 1);
-  // print_matrix("pose_factor.covar", pose_factor.covar, 6, 6);
-
-  return 0;
-}
-
-int test_pose_factor_eval() {
+int test_pose_factor() {
   /* Pose */
   timestamp_t ts = 1;
   pose_t pose;
@@ -3000,48 +2981,7 @@ int test_pose_factor_eval() {
   return 0;
 }
 
-int test_ba_factor_setup() {
-  /* Timestamp */
-  timestamp_t ts = 0;
-
-  /* Camera pose */
-  const real_t pose_data[7] = {0.01, 0.02, 0.0, -0.5, 0.5, -0.5, 0.5};
-  pose_t pose;
-  pose_setup(&pose, ts, pose_data);
-
-  /* Feature */
-  const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_t feature;
-  feature_setup(&feature, p_W);
-
-  /* Camera parameters */
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_t cam;
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
-
-  /* Project point from world to image plane */
-  real_t T_WC[4 * 4] = {0};
-  real_t T_CW[4 * 4] = {0};
-  real_t p_C[3] = {0};
-  real_t z[2];
-  tf(pose_data, T_WC);
-  tf_inv(T_WC, T_CW);
-  tf_point(T_CW, p_W, p_C);
-  pinhole_radtan4_project(cam_data, p_C, z);
-
-  /* Bundle adjustment factor */
-  ba_factor_t ba_factor;
-  real_t var[2] = {1.0, 1.0};
-  ba_factor_setup(&ba_factor, &pose, &feature, &cam, z, var);
-
-  return 0;
-}
-
-int test_ba_factor_eval() {
+int test_ba_factor() {
   // Timestamp
   timestamp_t ts = 0;
 
@@ -3089,65 +3029,7 @@ int test_ba_factor_eval() {
   return 0;
 }
 
-int test_vision_factor_setup() {
-  // Timestamp
-  timestamp_t ts = 0;
-
-  // Body pose
-  pose_t pose;
-  const real_t pose_data[7] = {0.01, 0.02, 0.0, 0.5, 0.5, -0.5, -0.5};
-  pose_setup(&pose, ts, pose_data);
-
-  // Extrinsic
-  extrinsic_t extrinsic;
-  const real_t exts_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  extrinsic_setup(&extrinsic, exts_data);
-
-  // Feature
-  feature_t feature;
-  const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_setup(&feature, p_W);
-
-  // Camera parameters
-  camera_params_t cam;
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
-
-  // Project point from world to image plane
-  real_t T_WB[4 * 4] = {0};
-  real_t T_BW[4 * 4] = {0};
-  real_t T_BCi[4 * 4] = {0};
-  real_t T_CiB[4 * 4] = {0};
-  real_t T_CiW[4 * 4] = {0};
-  real_t p_Ci[3] = {0};
-  real_t z[2];
-  tf(pose_data, T_WB);
-  tf(exts_data, T_BCi);
-  tf_inv(T_WB, T_BW);
-  tf_inv(T_BCi, T_CiB);
-  dot(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
-  tf_point(T_CiW, p_W, p_Ci);
-  pinhole_radtan4_project(cam_data, p_Ci, z);
-
-  // Camera factor
-  vision_factor_t vision_factor;
-  real_t var[2] = {1.0, 1.0};
-  vision_factor_setup(&vision_factor,
-                      &pose,
-                      &extrinsic,
-                      &feature,
-                      &cam,
-                      z,
-                      var);
-
-  return 0;
-}
-
-int test_vision_factor_eval() {
+int test_vision_factor() {
   // Timestamp
   timestamp_t ts = 0;
 
@@ -3207,17 +3089,7 @@ int test_vision_factor_eval() {
   return 0;
 }
 
-int test_joint_factor_setup() {
-  joint_factor_t factor;
-  joint_t joint;
-  const real_t z = 0.0;
-  const real_t var = 0.1;
-  joint_factor_setup(&factor, &joint, z, var);
-
-  return 0;
-}
-
-int test_joint_factor_eval() {
+int test_joint_factor() {
   // Joint angle
   const timestamp_t ts = 0;
   const int joint_idx = 0;
@@ -3324,28 +3196,7 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   pinhole_radtan4_project(cam_data, p_CiFi, data->z);
 }
 
-int test_calib_camera_factor_setup() {
-  // Setup
-  test_calib_camera_data_t calib_data;
-  test_calib_camera_data_setup(&calib_data);
-
-  calib_camera_factor_t factor;
-  const real_t var[2] = {1.0, 1.0};
-  calib_camera_factor_setup(&factor,
-                            &calib_data.rel_pose,
-                            &calib_data.cam_ext,
-                            &calib_data.cam_params,
-                            calib_data.cam_idx,
-                            calib_data.tag_id,
-                            calib_data.corner_idx,
-                            calib_data.p_FFi,
-                            calib_data.z,
-                            var);
-
-  return 0;
-}
-
-int test_calib_camera_factor_eval() {
+int test_calib_camera_factor() {
   // Setup
   test_calib_camera_data_t calib_data;
   test_calib_camera_data_setup(&calib_data);
@@ -3463,33 +3314,7 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   pinhole_radtan4_project(cam_data, p_CiFi, data->z);
 }
 
-int test_calib_imucam_factor_setup() {
-  // Setup
-  test_calib_imucam_data_t calib_data;
-  test_calib_imucam_data_setup(&calib_data);
-
-  calib_imucam_factor_t factor;
-  const real_t var[2] = {1.0, 1.0};
-  const real_t v[2] = {0.01, 0.02};
-  calib_imucam_factor_setup(&factor,
-                            &calib_data.fiducial,
-                            &calib_data.imu_pose,
-                            &calib_data.imu_ext,
-                            &calib_data.cam_ext,
-                            &calib_data.cam_params,
-                            &calib_data.time_delay,
-                            calib_data.cam_idx,
-                            calib_data.tag_id,
-                            calib_data.corner_idx,
-                            calib_data.p_FFi,
-                            calib_data.z,
-                            v,
-                            var);
-
-  return 0;
-}
-
-int test_calib_imucam_factor_eval() {
+int test_calib_imucam_factor() {
   // Setup
   test_calib_imucam_data_t calib_data;
   test_calib_imucam_data_setup(&calib_data);
@@ -3661,34 +3486,7 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
                             var);
 }
 
-int test_calib_gimbal_factor_setup() {
-  calib_gimbal_factor_t factor;
-  extrinsic_t fiducial_exts;
-  extrinsic_t gimbal_exts;
-  pose_t pose;
-  extrinsic_t link0;
-  extrinsic_t link1;
-  joint_t joint0;
-  joint_t joint1;
-  joint_t joint2;
-  extrinsic_t cam_exts;
-  camera_params_t cam;
-  setup_calib_gimbal_factor(&factor,
-                            &fiducial_exts,
-                            &gimbal_exts,
-                            &pose,
-                            &link0,
-                            &link1,
-                            &joint0,
-                            &joint1,
-                            &joint2,
-                            &cam_exts,
-                            &cam);
-
-  return 0;
-}
-
-int test_calib_gimbal_factor_eval() {
+int test_calib_gimbal_factor() {
   calib_gimbal_factor_t factor;
   extrinsic_t fiducial_exts;
   extrinsic_t gimbal_exts;
@@ -3971,77 +3769,77 @@ int test_imu_factor_propagate_step() {
   return 0;
 }
 
-int test_imu_factor_setup() {
-  // Setup test data
-  imu_test_data_t test_data;
-  setup_imu_test_data(&test_data);
+// int test_imu_factor_setup() {
+//   // Setup test data
+//   imu_test_data_t test_data;
+//   setup_imu_test_data(&test_data);
 
-  // Setup IMU buffer
-  imu_buf_t imu_buf;
-  imu_buf_setup(&imu_buf);
-  for (int k = 0; k < 10; k++) {
-    const timestamp_t ts = test_data.timestamps[k];
-    const real_t *acc = test_data.imu_acc[k];
-    const real_t *gyr = test_data.imu_gyr[k];
-    imu_buf_add(&imu_buf, ts, acc, gyr);
-  }
+//   // Setup IMU buffer
+//   imu_buf_t imu_buf;
+//   imu_buf_setup(&imu_buf);
+//   for (int k = 0; k < 10; k++) {
+//     const timestamp_t ts = test_data.timestamps[k];
+//     const real_t *acc = test_data.imu_acc[k];
+//     const real_t *gyr = test_data.imu_gyr[k];
+//     imu_buf_add(&imu_buf, ts, acc, gyr);
+//   }
 
-  // Setup IMU factor
-  const int idx_i = 0;
-  const int idx_j = 10 - 1;
-  const timestamp_t ts_i = test_data.timestamps[idx_i];
-  const timestamp_t ts_j = test_data.timestamps[idx_j];
-  const real_t *v_i = test_data.velocities[idx_i];
-  const real_t ba_i[3] = {0, 0, 0};
-  const real_t bg_i[3] = {0, 0, 0};
-  const real_t *v_j = test_data.velocities[idx_j];
-  const real_t ba_j[3] = {0, 0, 0};
-  const real_t bg_j[3] = {0, 0, 0};
-  pose_t pose_i;
-  pose_t pose_j;
-  velocity_t vel_i;
-  velocity_t vel_j;
-  imu_biases_t biases_i;
-  imu_biases_t biases_j;
-  pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
-  pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
-  velocity_setup(&vel_i, ts_i, v_i);
-  velocity_setup(&vel_j, ts_j, v_j);
-  imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
-  imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
+//   // Setup IMU factor
+//   const int idx_i = 0;
+//   const int idx_j = 10 - 1;
+//   const timestamp_t ts_i = test_data.timestamps[idx_i];
+//   const timestamp_t ts_j = test_data.timestamps[idx_j];
+//   const real_t *v_i = test_data.velocities[idx_i];
+//   const real_t ba_i[3] = {0, 0, 0};
+//   const real_t bg_i[3] = {0, 0, 0};
+//   const real_t *v_j = test_data.velocities[idx_j];
+//   const real_t ba_j[3] = {0, 0, 0};
+//   const real_t bg_j[3] = {0, 0, 0};
+//   pose_t pose_i;
+//   pose_t pose_j;
+//   velocity_t vel_i;
+//   velocity_t vel_j;
+//   imu_biases_t biases_i;
+//   imu_biases_t biases_j;
+//   pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
+//   pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
+//   velocity_setup(&vel_i, ts_i, v_i);
+//   velocity_setup(&vel_j, ts_j, v_j);
+//   imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
+//   imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
 
-  imu_params_t imu_params;
-  imu_params.imu_idx = 0;
-  imu_params.rate = 200.0;
-  imu_params.sigma_a = 0.08;
-  imu_params.sigma_g = 0.004;
-  imu_params.sigma_aw = 0.00004;
-  imu_params.sigma_gw = 2.0e-6;
-  imu_params.g = 9.81;
+//   imu_params_t imu_params;
+//   imu_params.imu_idx = 0;
+//   imu_params.rate = 200.0;
+//   imu_params.sigma_a = 0.08;
+//   imu_params.sigma_g = 0.004;
+//   imu_params.sigma_aw = 0.00004;
+//   imu_params.sigma_gw = 2.0e-6;
+//   imu_params.g = 9.81;
 
-  imu_factor_t imu_factor;
-  imu_factor_setup(&imu_factor,
-                   &imu_params,
-                   &imu_buf,
-                   &pose_i,
-                   &vel_i,
-                   &biases_i,
-                   &pose_j,
-                   &vel_j,
-                   &biases_j);
+//   imu_factor_t imu_factor;
+//   imu_factor_setup(&imu_factor,
+//                    &imu_params,
+//                    &imu_buf,
+//                    &pose_i,
+//                    &vel_i,
+//                    &biases_i,
+//                    &pose_j,
+//                    &vel_j,
+//                    &biases_j);
 
-  MU_ASSERT(imu_factor.pose_i == &pose_i);
-  MU_ASSERT(imu_factor.vel_i == &vel_i);
-  MU_ASSERT(imu_factor.biases_i == &biases_i);
-  MU_ASSERT(imu_factor.pose_i == &pose_i);
-  MU_ASSERT(imu_factor.vel_j == &vel_j);
-  MU_ASSERT(imu_factor.biases_j == &biases_j);
+//   MU_ASSERT(imu_factor.pose_i == &pose_i);
+//   MU_ASSERT(imu_factor.vel_i == &vel_i);
+//   MU_ASSERT(imu_factor.biases_i == &biases_i);
+//   MU_ASSERT(imu_factor.pose_i == &pose_i);
+//   MU_ASSERT(imu_factor.vel_j == &vel_j);
+//   MU_ASSERT(imu_factor.biases_j == &biases_j);
 
-  // Clean up
-  free_imu_test_data(&test_data);
+//   // Clean up
+//   free_imu_test_data(&test_data);
 
-  return 0;
-}
+//   return 0;
+// }
 
 int test_imu_factor_eval() {
   // Setup test data
@@ -4101,6 +3899,13 @@ int test_imu_factor_eval() {
                    &pose_j,
                    &vel_j,
                    &biases_j);
+
+  MU_ASSERT(factor.pose_i == &pose_i);
+  MU_ASSERT(factor.vel_i == &vel_i);
+  MU_ASSERT(factor.biases_i == &biases_i);
+  MU_ASSERT(factor.pose_i == &pose_i);
+  MU_ASSERT(factor.vel_j == &vel_j);
+  MU_ASSERT(factor.biases_j == &biases_j);
 
   // Evaluate IMU factor
   imu_factor_eval(&factor);
@@ -5230,31 +5035,23 @@ void test_suite() {
   MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
 
   // SENSOR FUSION
-  MU_ADD_TEST(test_pose_setup);
-  MU_ADD_TEST(test_extrinsic_setup);
-  MU_ADD_TEST(test_imu_biases_setup);
-  MU_ADD_TEST(test_feature_setup);
+  MU_ADD_TEST(test_pose);
+  MU_ADD_TEST(test_extrinsics);
+  MU_ADD_TEST(test_imu_biases);
+  MU_ADD_TEST(test_feature);
   MU_ADD_TEST(test_idfs);
-  MU_ADD_TEST(test_pose_factor_setup);
-  MU_ADD_TEST(test_pose_factor_eval);
-  MU_ADD_TEST(test_ba_factor_setup);
-  MU_ADD_TEST(test_ba_factor_eval);
-  MU_ADD_TEST(test_vision_factor_setup);
-  MU_ADD_TEST(test_vision_factor_eval);
-  MU_ADD_TEST(test_joint_factor_setup);
-  MU_ADD_TEST(test_joint_factor_eval);
-  MU_ADD_TEST(test_calib_camera_factor_setup);
-  MU_ADD_TEST(test_calib_camera_factor_eval);
-  MU_ADD_TEST(test_calib_imucam_factor_setup);
-  MU_ADD_TEST(test_calib_imucam_factor_eval);
-  MU_ADD_TEST(test_calib_gimbal_factor_setup);
-  MU_ADD_TEST(test_calib_gimbal_factor_eval);
+  MU_ADD_TEST(test_pose_factor);
+  MU_ADD_TEST(test_ba_factor);
+  MU_ADD_TEST(test_vision_factor);
+  MU_ADD_TEST(test_joint_factor);
+  MU_ADD_TEST(test_calib_camera_factor);
+  MU_ADD_TEST(test_calib_imucam_factor);
+  MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_imu_buf_setup);
   MU_ADD_TEST(test_imu_buf_add);
   MU_ADD_TEST(test_imu_buf_clear);
   MU_ADD_TEST(test_imu_buf_copy);
   MU_ADD_TEST(test_imu_factor_propagate_step);
-  MU_ADD_TEST(test_imu_factor_setup);
   MU_ADD_TEST(test_imu_factor_eval);
   MU_ADD_TEST(test_inertial_odometry);
 #ifdef USE_CERES
