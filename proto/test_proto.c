@@ -2915,6 +2915,39 @@ int test_feature_setup() {
   return 0;
 }
 
+int test_idfs() {
+  const real_t zero3[3] = {0.0, 0.0, 0.0};
+  idfs_t idfs;
+
+  // Setup
+  idfs_setup(&idfs);
+  MU_ASSERT(idfs.num_features == 0);
+  for (size_t i = 0; i < IDFS_MAX_NUM; i++) {
+    MU_ASSERT(idfs.status[i] == 0);
+    MU_ASSERT(idfs.feature_ids[i] == 0);
+    MU_ASSERT(vec_equals(idfs.data + i * 3, zero3, 3));
+  }
+
+  // Add features
+  for (size_t i = 0; i < 10; i++) {
+    const size_t feature_id = i;
+    const real_t feature_data[3] = {i, i, i};
+    idfs_add(&idfs, feature_id, feature_data);
+  }
+  // idfs_print(&idfs);
+
+  // Make feature as lost
+  idfs_mark_lost(&idfs, 2);
+  idfs_mark_lost(&idfs, 4);
+  idfs_mark_lost(&idfs, 6);
+  MU_ASSERT(idfs.status[2] == 0);
+  MU_ASSERT(idfs.status[4] == 0);
+  MU_ASSERT(idfs.status[6] == 0);
+  // idfs_print(&idfs);
+
+  return 0;
+}
+
 int test_camera_params_setup() {
   camera_params_t camera;
   const int cam_idx = 0;
@@ -5201,6 +5234,7 @@ void test_suite() {
   MU_ADD_TEST(test_extrinsic_setup);
   MU_ADD_TEST(test_imu_biases_setup);
   MU_ADD_TEST(test_feature_setup);
+  MU_ADD_TEST(test_idfs);
   MU_ADD_TEST(test_pose_factor_setup);
   MU_ADD_TEST(test_pose_factor_eval);
   MU_ADD_TEST(test_ba_factor_setup);
