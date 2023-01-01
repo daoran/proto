@@ -287,7 +287,7 @@ void path_file_name(const char *path, char *fname);
 void path_file_ext(const char *path, char *fext);
 void path_dir_name(const char *path, char *dir_name);
 char *path_join(const char *x, const char *y);
-char **list_files(const char *path, int *nb_files);
+char **list_files(const char *path, int *num_files);
 void list_files_free(char **data, const int n);
 char *file_read(const char *fp);
 void skip_line(FILE *fp);
@@ -314,8 +314,8 @@ char *string_strip(char *s);
 char *string_strip_char(char *s, const char c);
 char **string_split(char *s, const char d, size_t *n);
 
-int **load_iarrays(const char *csv_path, int *nb_arrays);
-real_t **load_darrays(const char *csv_path, int *nb_arrays);
+int **load_iarrays(const char *csv_path, int *num_arrays);
+real_t **load_darrays(const char *csv_path, int *num_arrays);
 
 int *int_malloc(const int val);
 float *float_malloc(const float val);
@@ -324,12 +324,13 @@ real_t *vector_malloc(const real_t *vec, const real_t N);
 
 int dsv_rows(const char *fp);
 int dsv_cols(const char *fp, const char delim);
-char **dsv_fields(const char *fp, const char delim, int *nb_fields);
-real_t **dsv_data(const char *fp, const char delim, int *nb_rows, int *nb_cols);
-void dsv_free(real_t **data, const int nb_rows);
+char **dsv_fields(const char *fp, const char delim, int *num_fields);
+real_t **
+dsv_data(const char *fp, const char delim, int *num_rows, int *num_cols);
+void dsv_free(real_t **data, const int num_rows);
 
-real_t **csv_data(const char *fp, int *nb_rows, int *nb_cols);
-void csv_free(real_t **data, const int nb_rows);
+real_t **csv_data(const char *fp, int *num_rows, int *num_cols);
+void csv_free(real_t **data, const int num_rows);
 
 /******************************************************************************
  * DATA-STRUCTURES
@@ -524,15 +525,15 @@ typedef struct tcp_client_t {
   int (*loop_cb)(struct tcp_client_t *);
 } tcp_client_t;
 
-int ip_port_info(const int sockfd, char *ip, int *port);
+STATUS ip_port_info(const int sockfd, char *ip, int *port);
 
-int tcp_server_setup(tcp_server_t *server, const int port);
-int tcp_server_loop(tcp_server_t *server);
+STATUS tcp_server_setup(tcp_server_t *server, const int port);
+STATUS tcp_server_loop(tcp_server_t *server);
 
-int tcp_client_setup(tcp_client_t *client,
-                     const char *server_ip,
-                     const int server_port);
-int tcp_client_loop(tcp_client_t *client);
+STATUS tcp_client_setup(tcp_client_t *client,
+                        const char *server_ip,
+                        const int server_port);
+STATUS tcp_client_loop(tcp_client_t *client);
 
 /******************************************************************************
  * MATHS
@@ -597,7 +598,7 @@ int mat_equals(const real_t *A,
                const size_t n,
                const real_t tol);
 int mat_save(const char *save_path, const real_t *A, const int m, const int n);
-real_t *mat_load(const char *save_path, int *nb_rows, int *nb_cols);
+real_t *mat_load(const char *save_path, int *num_rows, int *num_cols);
 void mat_set(real_t *A,
              const size_t stride,
              const size_t i,
@@ -612,7 +613,7 @@ void mat_row_set(real_t *A,
                  const real_t *x);
 void mat_col_set(real_t *A,
                  const size_t stride,
-                 const int nb_rows,
+                 const int num_rows,
                  const int col_idx,
                  const real_t *x);
 void mat_col_get(
@@ -655,10 +656,14 @@ void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale);
 
+#define MAT_TRANSPOSE(A, M, N, B)                                              \
+  real_t B[N * M] = {0};                                                       \
+  mat_transpose(A, M, N, B);
+
 real_t *vec_malloc(const real_t *x, const size_t n);
 void vec_copy(const real_t *src, const size_t n, real_t *dest);
 int vec_equals(const real_t *x, const real_t *y, const size_t n);
-real_t *vec_load(const char *save_path, int *nb_rows, int *nb_cols);
+real_t *vec_load(const char *save_path, int *num_rows, int *num_cols);
 void vec_add(const real_t *x, const real_t *y, real_t *z, size_t n);
 void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t n);
 void vec_scale(real_t *x, const size_t n, const real_t scale);
@@ -915,6 +920,18 @@ real_t suitesparse_chol_solve(cholmod_common *c,
   real_t T[4 * 4] = {0};                                                       \
   tf(PARAMS, T);
 
+#define TF_TRANS(T, TRANS)                                                     \
+  real_t TRANS[3] = {0};                                                       \
+  tf_trans_get(T, TRANS);
+
+#define TF_ROT(T, ROT)                                                         \
+  real_t ROT[3 * 3] = {0};                                                     \
+  tf_rot_get(T, ROT);
+
+#define TF_QUAT(T, QUAT)                                                       \
+  real_t QUAT[4] = {0};                                                        \
+  tf_quat_get(T, QUAT);
+
 #define TF_CR(C, R, T)                                                         \
   real_t T[4 * 4] = {0};                                                       \
   tf_cr(C, R, T);
@@ -986,8 +1003,8 @@ void tf_point(const real_t T[4 * 4], const real_t p[3], real_t retval[3]);
 void tf_hpoint(const real_t T[4 * 4], const real_t p[4], real_t retval[4]);
 void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i);
-void tf_chain(const real_t **tfs, const int nb_tfs, real_t T_out[4 * 4]);
-void tf_chain2(const int nb_tfs, ...);
+void tf_chain(const real_t **tfs, const int num_tfs, real_t T_out[4 * 4]);
+void tf_chain2(const int num_tfs, ...);
 void pose_get_trans(const real_t pose[7], real_t r[3]);
 void pose_get_quat(const real_t pose[7], real_t q[4]);
 void pose_diff(const real_t pose0[7], const real_t pose1[7], real_t diff[6]);
@@ -1107,6 +1124,10 @@ typedef void (*project_func_t)(const real_t *params,
                                const real_t p_C[3],
                                real_t z_out[2]);
 
+typedef void (*back_project_func_t)(const real_t *params,
+                                    const real_t z[2],
+                                    real_t bearing[3]);
+
 typedef void (*undistort_func_t)(const real_t *params,
                                  const real_t z_in[2],
                                  real_t z_out[2]);
@@ -1172,9 +1193,10 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 #define VELOCITY_PARAM 4
 #define IMU_BIASES_PARAM 5
 #define FEATURE_PARAM 6
-#define JOINT_PARAM 7
-#define CAMERA_PARAM 8
-#define TIME_DELAY_PARAM 9
+#define IDF_PARAM 7
+#define JOINT_PARAM 8
+#define CAMERA_PARAM 9
+#define TIME_DELAY_PARAM 10
 
 ///////////
 // UTILS //
@@ -1235,6 +1257,26 @@ typedef struct extrinsic_t {
 
 void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
 void extrinsic_print(const char *prefix, const extrinsic_t *exts);
+
+///////////////////////
+// CAMERA-PARAMETERS //
+///////////////////////
+
+typedef struct camera_params_t {
+  int cam_idx;
+  int resolution[2];
+  char proj_model[30];
+  char dist_model[30];
+  real_t data[8];
+} camera_params_t;
+
+void camera_params_setup(camera_params_t *camera,
+                         const int cam_idx,
+                         const int cam_res[2],
+                         const char *proj_model,
+                         const char *dist_model,
+                         const real_t *data);
+void camera_params_print(const camera_params_t *camera);
 
 //////////////
 // VELOCITY //
@@ -1298,36 +1340,70 @@ void features_remove(features_t *features, const int feature_id);
 // INVERSE-DEPTH FEATURE //
 ///////////////////////////
 
-#define IDFS_MAX_NUM 1000
+typedef struct idf_t {
+  const camera_params_t *cam_params;
+  back_project_func_t back_proj_func;
+
+  int status;
+  size_t feature_id;
+  real_t data[6];
+} idf_t;
+
+void idf_setup(idf_t *idf,
+               const camera_params_t *cam_params,
+               const back_project_func_t back_proj_func,
+               const int status,
+               const size_t feature_id,
+               const real_t T_WC[4 * 4],
+               const real_t z[2]);
+void idf_print(const idf_t *idf);
+void idf_point(const idf_t *idf, real_t p_W[3]);
+
+/////////////////////////////////////
+// INVERSE-DEPTH FEATURE CONTAINER //
+/////////////////////////////////////
+
+#define IDFS_MAX_NUM 200
+#define IDFS_PARAM_SIZE 3
 
 typedef struct idfs_t {
+  const pose_t *pose;
+  const extrinsic_t *extrinsic;
+  const camera_params_t *cam_params;
+  back_project_func_t back_proj_func;
+
   size_t num_features;
   int status[IDFS_MAX_NUM];
   size_t feature_ids[IDFS_MAX_NUM];
-  real_t data[IDFS_MAX_NUM * 3];
+  real_t data[IDFS_MAX_NUM * IDFS_PARAM_SIZE];
+  real_t keypoints[IDFS_MAX_NUM * 2];
 } idfs_t;
 
-void idfs_setup(idfs_t *idfs);
+void idfs_setup(idfs_t *idfs,
+                const pose_t *pose,
+                const extrinsic_t *extrinsic,
+                const camera_params_t *cam_params,
+                const back_project_func_t back_proj_func);
 void idfs_print(const idfs_t *idfs);
-void idfs_add(idfs_t *idfs,
-              const size_t feature_id,
-              const real_t *feature_data);
+void idfs_add_keypoint(idfs_t *idfs,
+                       const size_t feature_id,
+                       const real_t z[2]);
 void idfs_mark_lost(idfs_t *idfs, const size_t feature_id);
+int idfs_num_alive(const idfs_t *idfs);
+void idfs_point(const idfs_t *idfs,
+                const int feature_id,
+                const real_t r_WC[3],
+                real_t p_W[3]);
 
 //////////////
 // KEYFRAME //
 //////////////
 
-#define KEYFRAME_MAX_CAMS 2
-#define KEYFRAME_MAX_FEATURES 1000
-
 typedef struct keyframe_t {
   int num_cams;
   size_t num_features;
-
-  size_t feature_ids[KEYFRAME_MAX_CAMS][KEYFRAME_MAX_FEATURES];
-  feature_t features[KEYFRAME_MAX_CAMS][KEYFRAME_MAX_FEATURES];
-  real_t keypoints[KEYFRAME_MAX_CAMS][KEYFRAME_MAX_FEATURES * 2];
+  size_t *feature_ids;
+  feature_t *features;
 } keyframe_t;
 
 void keyframe_setup(keyframe_t *kf);
@@ -1343,9 +1419,9 @@ typedef struct time_delay_t {
 void time_delay_setup(time_delay_t *time_delay, const real_t param);
 void time_delay_print(const char *prefix, const time_delay_t *exts);
 
-//////////////////
-// JOINT-ANGLES //
-//////////////////
+///////////
+// JOINT //
+///////////
 
 typedef struct joint_t {
   timestamp_t ts;
@@ -1358,26 +1434,6 @@ void joint_setup(joint_t *joint,
                  const int joint_idx,
                  const real_t theta);
 void joint_print(const char *prefix, const joint_t *joint);
-
-///////////////////////
-// CAMERA-PARAMETERS //
-///////////////////////
-
-typedef struct camera_params_t {
-  int cam_idx;
-  int resolution[2];
-  char proj_model[30];
-  char dist_model[30];
-  real_t data[8];
-} camera_params_t;
-
-void camera_params_setup(camera_params_t *camera,
-                         const int cam_idx,
-                         const int cam_res[2],
-                         const char *proj_model,
-                         const char *dist_model,
-                         const real_t *data);
-void camera_params_print(const camera_params_t *camera);
 
 ////////////
 // FACTOR //
@@ -1439,10 +1495,6 @@ void camera_params_print(const camera_params_t *camera);
     return 1;                                                                  \
   }
 
-/////////////////
-// POSE FACTOR //
-/////////////////
-
 int check_factor_jacobian(const void *factor,
                           FACTOR_EVAL_PTR,
                           real_t **params,
@@ -1463,6 +1515,10 @@ int check_factor_so3_jacobian(const void *factor,
                               const real_t step_size,
                               const real_t tol,
                               const int verbose);
+
+/////////////////
+// POSE FACTOR //
+/////////////////
 
 typedef struct pose_factor_t {
   real_t pos_meas[3];
@@ -1556,53 +1612,142 @@ void vision_factor_setup(vision_factor_t *factor,
                          const real_t var[2]);
 int vision_factor_eval(void *factor_ptr);
 
-/////////////////////////////
-// TWO-STATE VISION FACTOR //
-/////////////////////////////
+////////////////////////////////////////
+// INVERSE-DEPTH FEATURE (IDF) FACTOR //
+////////////////////////////////////////
 
-typedef struct two_state_vision_factor_t {
-  pose_t *pose_i;
-  pose_t *pose_j;
-  feature_t *feature;
-  extrinsic_t *cam_ext;
-  camera_params_t *cam_params;
-  time_delay_t *time_delay;
+typedef struct idf_factor_t {
+  pose_t *pose;
+  extrinsic_t *extrinsic;
+  camera_params_t *camera;
+  idf_t *idf;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
-  real_t z_i[2]; // Keypoint at pose i
-  real_t z_j[2]; // Keypoint at pose j
-  real_t v_i[2]; // Keypoint velocity at pose i
-  real_t v_j[2]; // Keypoint velocity at pose j
+  real_t z[2];
 
   int r_size;
   int num_params;
-  int param_types[6];
+  int param_types[4];
+
+  real_t *params[4];
+  real_t r[2];
+  real_t *jacs[4];
+  real_t J_pose[2 * 6];
+  real_t J_extrinsic[2 * 6];
+  real_t J_camera[2 * 8];
+  real_t J_idf[2 * 6];
+} idf_factor_t;
+
+void idf_factor_setup(idf_factor_t *factor,
+                      pose_t *pose,
+                      extrinsic_t *extrinsic,
+                      camera_params_t *camera,
+                      idf_t *idf,
+                      const real_t z[2],
+                      const real_t var[2]);
+int idf_factor_eval(void *factor_ptr);
+
+////////////////
+// IMU FACTOR //
+////////////////
+
+#define IMU_BUF_MAX_SIZE 1000
+
+typedef struct imu_params_t {
+  int imu_idx;
+  real_t rate;
+
+  real_t sigma_aw;
+  real_t sigma_gw;
+  real_t sigma_a;
+  real_t sigma_g;
+  real_t g;
+} imu_params_t;
+
+typedef struct imu_buf_t {
+  timestamp_t ts[IMU_BUF_MAX_SIZE];
+  real_t acc[IMU_BUF_MAX_SIZE][3];
+  real_t gyr[IMU_BUF_MAX_SIZE][3];
+  int size;
+} imu_buf_t;
+
+typedef struct imu_factor_t {
+  // IMU buffer and parameters
+  imu_buf_t imu_buf;
+  imu_params_t *imu_params;
+
+  // Parameters
+  int num_params;
+
+  pose_t *pose_i;
+  velocity_t *vel_i;
+  imu_biases_t *biases_i;
+  pose_t *pose_j;
+  velocity_t *vel_j;
+  imu_biases_t *biases_j;
 
   real_t *params[6];
-  real_t r[2];
-  real_t *jacs[6];
-  real_t J_pose_i[2 * 6];
-  real_t J_pose_j[2 * 6];
-  real_t J_feature[2 * 3];
-  real_t J_cam_ext[2 * 6];
-  real_t J_cam_params[2 * 8];
-  real_t J_time_delay[2 * 1];
-} two_state_vision_factor_t;
+  int param_types[6];
 
-void two_state_vision_factor_setup(two_state_vision_factor_t *factor,
-                                   pose_t *pose_i,
-                                   pose_t *pose_j,
-                                   feature_t *feature,
-                                   extrinsic_t *cam_ext,
-                                   camera_params_t *cam_params,
-                                   time_delay_t *time_delay,
-                                   const real_t z_i[2],
-                                   const real_t z_j[2],
-                                   const real_t v_i[2],
-                                   const real_t v_j[2],
-                                   const real_t var[2]);
-int two_state_vision_factor_eval(void *factor_ptr);
+  // Preintegration variables
+  real_t Dt;         // Time difference between pose_i and pose_j in seconds
+  real_t F[15 * 15]; // State jacobian
+  real_t P[15 * 15]; // State covariance
+  real_t Q[12 * 12]; // Noise matrix
+  real_t dr[3];      // Relative position
+  real_t dv[3];      // Relative velocity
+  real_t dq[4];      // Relative rotation
+  real_t ba[3];      // Accel biase
+  real_t bg[3];      // Gyro biase
+
+  // Covariance and square-root info
+  real_t covar[15 * 15];
+  real_t sqrt_info[15 * 15];
+
+  // Residuals
+  int r_size;
+  real_t r[15];
+
+  // Jacobians
+  real_t *jacs[6];
+  real_t J_pose_i[15 * 6];
+  real_t J_vel_i[15 * 3];
+  real_t J_biases_i[15 * 6];
+  real_t J_pose_j[15 * 6];
+  real_t J_vel_j[15 * 3];
+  real_t J_biases_j[15 * 6];
+} imu_factor_t;
+
+void imu_buf_setup(imu_buf_t *imu_buf);
+void imu_buf_add(imu_buf_t *imu_buf,
+                 const timestamp_t ts,
+                 const real_t acc[3],
+                 const real_t gyr[3]);
+void imu_buf_clear(imu_buf_t *imu_buf);
+void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
+void imu_buf_print(const imu_buf_t *imu_buf);
+
+void imu_factor_propagate_step(real_t r[3],
+                               real_t v[3],
+                               real_t q[4],
+                               real_t ba[3],
+                               real_t bg[3],
+                               const real_t a[3],
+                               const real_t w[3],
+                               const real_t dt);
+void imu_factor_setup(imu_factor_t *factor,
+                      imu_params_t *imu_params,
+                      imu_buf_t *imu_buf,
+                      pose_t *pose_i,
+                      velocity_t *v_i,
+                      imu_biases_t *biases_i,
+                      pose_t *pose_j,
+                      velocity_t *v_j,
+                      imu_biases_t *biases_j);
+void imu_factor_reset(imu_factor_t *factor);
+int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
+int imu_factor_eval(void *factor_ptr);
 
 ////////////////////////
 // JOINT-ANGLE FACTOR //
@@ -1809,108 +1954,6 @@ int calib_gimbal_factor_ceres_eval(void *factor_ptr,
                                    real_t **J_out);
 int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
                                const calib_gimbal_factor_t *c1);
-
-////////////////
-// IMU FACTOR //
-////////////////
-
-#define IMU_BUF_MAX_SIZE 1000
-
-typedef struct imu_params_t {
-  int imu_idx;
-  real_t rate;
-
-  real_t sigma_aw;
-  real_t sigma_gw;
-  real_t sigma_a;
-  real_t sigma_g;
-  real_t g;
-} imu_params_t;
-
-typedef struct imu_buf_t {
-  timestamp_t ts[IMU_BUF_MAX_SIZE];
-  real_t acc[IMU_BUF_MAX_SIZE][3];
-  real_t gyr[IMU_BUF_MAX_SIZE][3];
-  int size;
-} imu_buf_t;
-
-typedef struct imu_factor_t {
-  // IMU buffer and parameters
-  imu_buf_t imu_buf;
-  imu_params_t *imu_params;
-
-  // Parameters
-  int num_params;
-
-  pose_t *pose_i;
-  velocity_t *vel_i;
-  imu_biases_t *biases_i;
-  pose_t *pose_j;
-  velocity_t *vel_j;
-  imu_biases_t *biases_j;
-
-  real_t *params[6];
-  int param_types[6];
-
-  // Preintegration variables
-  real_t Dt;         // Time difference between pose_i and pose_j in seconds
-  real_t F[15 * 15]; // State jacobian
-  real_t P[15 * 15]; // State covariance
-  real_t Q[12 * 12]; // Noise matrix
-  real_t dr[3];      // Relative position
-  real_t dv[3];      // Relative velocity
-  real_t dq[4];      // Relative rotation
-  real_t ba[3];      // Accel biase
-  real_t bg[3];      // Gyro biase
-
-  // Covariance and square-root info
-  real_t covar[15 * 15];
-  real_t sqrt_info[15 * 15];
-
-  // Residuals
-  int r_size;
-  real_t r[15];
-
-  // Jacobians
-  real_t *jacs[6];
-  real_t J_pose_i[15 * 6];
-  real_t J_vel_i[15 * 3];
-  real_t J_biases_i[15 * 6];
-  real_t J_pose_j[15 * 6];
-  real_t J_vel_j[15 * 3];
-  real_t J_biases_j[15 * 6];
-} imu_factor_t;
-
-void imu_buf_setup(imu_buf_t *imu_buf);
-void imu_buf_add(imu_buf_t *imu_buf,
-                 const timestamp_t ts,
-                 const real_t acc[3],
-                 const real_t gyr[3]);
-void imu_buf_clear(imu_buf_t *imu_buf);
-void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
-void imu_buf_print(const imu_buf_t *imu_buf);
-
-void imu_factor_propagate_step(real_t r[3],
-                               real_t v[3],
-                               real_t q[4],
-                               real_t ba[3],
-                               real_t bg[3],
-                               const real_t a[3],
-                               const real_t w[3],
-                               const real_t dt);
-void imu_factor_setup(imu_factor_t *factor,
-                      imu_params_t *imu_params,
-                      imu_buf_t *imu_buf,
-                      pose_t *pose_i,
-                      velocity_t *v_i,
-                      imu_biases_t *biases_i,
-                      pose_t *pose_j,
-                      velocity_t *v_j,
-                      imu_biases_t *biases_j);
-void imu_factor_reset(imu_factor_t *factor);
-int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
-int imu_factor_eval(void *factor_ptr);
-
 /////////////////
 // MARG FACTOR //
 /////////////////
@@ -2110,7 +2153,6 @@ typedef struct calib_imucam_view_t {
   aprilgrid_t *grid_j;
 
   imu_factor_t *imu_factors;
-  two_state_vision_factor_t *vision_factors;
 } calib_imucam_view_t;
 
 typedef struct calib_imucam_t {
@@ -2337,13 +2379,13 @@ void inertial_odometry_linearize_compact(const void *data,
  * DATASET
  ******************************************************************************/
 
-pose_t *load_poses(const char *fp, int *nb_poses);
+pose_t *load_poses(const char *fp, int *num_poses);
 int **assoc_pose_data(pose_t *gnd_poses,
-                      size_t nb_gnd_poses,
+                      size_t num_gnd_poses,
                       pose_t *est_poses,
-                      size_t nb_est_poses,
+                      size_t num_est_poses,
                       double threshold,
-                      size_t *nb_matches);
+                      size_t *num_matches);
 
 /******************************************************************************
  * SIMULATION
@@ -2355,7 +2397,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
 
 typedef struct sim_features_t {
   real_t **features;
-  int nb_features;
+  int num_features;
 } sim_features_t;
 
 sim_features_t *sim_features_load(const char *csv_path);
@@ -2367,7 +2409,7 @@ void sim_features_free(sim_features_t *features_data);
 
 typedef struct sim_imu_data_t {
   real_t **data;
-  int nb_measurements;
+  int num_measurements;
 } sim_imu_data_t;
 
 sim_imu_data_t *sim_imu_data_load(const char *csv_path);
@@ -2381,12 +2423,12 @@ typedef struct sim_camera_frame_t {
   timestamp_t ts;
   int *feature_ids;
   real_t **keypoints;
-  int nb_measurements;
+  int num_measurements;
 } sim_camera_frame_t;
 
 typedef struct sim_camera_data_t {
   sim_camera_frame_t **frames;
-  int nb_frames;
+  int num_frames;
 
   timestamp_t *ts;
   real_t **poses;
@@ -2401,7 +2443,7 @@ void sim_camera_data_free(sim_camera_data_t *cam_data);
 
 real_t **sim_create_features(const real_t origin[3],
                              const real_t dim[3],
-                             const int nb_features);
+                             const int num_features);
 
 /////////////////////
 // SIM GIMBAL DATA //
