@@ -656,10 +656,6 @@ void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale);
 
-#define MAT_TRANSPOSE(A, M, N, B)                                              \
-  real_t B[N * M] = {0};                                                       \
-  mat_transpose(A, M, N, B);
-
 real_t *vec_malloc(const real_t *x, const size_t n);
 void vec_copy(const real_t *src, const size_t n, real_t *dest);
 int vec_equals(const real_t *x, const real_t *y, const size_t n);
@@ -669,10 +665,6 @@ void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t n);
 void vec_scale(real_t *x, const size_t n, const real_t scale);
 real_t vec_norm(const real_t *x, const size_t n);
 void vec_normalize(real_t *x, const size_t n);
-
-#define DOT(A, AM, AN, B, BM, BN, C)                                           \
-  real_t C[AM * BN] = {0};                                                     \
-  dot(A, AM, AN, B, BM, BN, C);
 
 void dot(const real_t *A,
          const size_t A_m,
@@ -711,6 +703,34 @@ void vee(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
 void enforce_spd(real_t *A, const int m, const int n);
+
+#define MAT_TRANSPOSE(A, M, N, B)                                              \
+  real_t B[N * M] = {0};                                                       \
+  mat_transpose(A, M, N, B);
+
+#define DOT(A, AM, AN, B, BM, BN, C)                                           \
+  real_t C[AM * BN] = {0};                                                     \
+  dot(A, AM, AN, B, BM, BN, C);
+
+#define DOT3(A, AM, AN, B, BM, BN, C, CM, CN, D)                               \
+  real_t D[AM * CN] = {0};                                                     \
+  dot3(A, AM, AN, B, BM, BN, C, CM, CN, D);
+
+#define DOT_XTAX(X, XM, XN, A, AM, AN, Y)                                      \
+  real_t Y[XN * XN] = {0};                                                     \
+  dot_XtAX(X, XM, XN, A, AM, AN, Y);
+
+#define DOT_XAXt(X, XM, XN, A, AM, AN, Y)                                      \
+  real_t Y[XM * XM] = {0};                                                     \
+  dot_XAXt(X, XM, XN, A, AM, AN, Y);
+
+#define HAT(X, X_HAT)                                                          \
+  real_t X_HAT[3 * 3] = {0};                                                   \
+  hat(X, X_HAT);
+
+#define VEE(A, X)                                                              \
+  real_t X[3] = {0};                                                           \
+  vee(A, X);
 
 int check_inv(const real_t *A, const real_t *A_inv, const int m);
 int check_jacobian(const char *jac_name,
@@ -1356,44 +1376,43 @@ void idf_setup(idf_t *idf,
                const size_t feature_id,
                const real_t T_WC[4 * 4],
                const real_t z[2]);
+void idf_param(const camera_params_t *cam_params,
+               const back_project_func_t back_proj_func,
+               const real_t T_WC[4 * 4],
+               const real_t z[2],
+               const real_t depth_init,
+               real_t param[6]);
 void idf_print(const idf_t *idf);
 void idf_point(const idf_t *idf, real_t p_W[3]);
 
-/////////////////////////////////////
-// INVERSE-DEPTH FEATURE CONTAINER //
-/////////////////////////////////////
+//////////////////////////////////
+// INVERSE-DEPTH FEATURE BUNDLE //
+//////////////////////////////////
 
-#define IDFS_MAX_NUM 200
-#define IDFS_PARAM_SIZE 3
+#define IDFB_MAX_NUM 200
+#define IDFB_PARAM_SIZE 3
 
-typedef struct idfs_t {
-  const pose_t *pose;
-  const extrinsic_t *extrinsic;
-  const camera_params_t *cam_params;
-  back_project_func_t back_proj_func;
-
+typedef struct idfb_t {
   size_t num_features;
-  int status[IDFS_MAX_NUM];
-  size_t feature_ids[IDFS_MAX_NUM];
-  real_t data[IDFS_MAX_NUM * IDFS_PARAM_SIZE];
-  real_t keypoints[IDFS_MAX_NUM * 2];
-} idfs_t;
+  size_t num_alive;
+  int status[IDFB_MAX_NUM];
+  size_t feature_ids[IDFB_MAX_NUM];
+  real_t data[3 + IDFB_MAX_NUM * IDFB_PARAM_SIZE];
+} idfb_t;
 
-void idfs_setup(idfs_t *idfs,
-                const pose_t *pose,
-                const extrinsic_t *extrinsic,
+void idfb_setup(idfb_t *idfb,
                 const camera_params_t *cam_params,
-                const back_project_func_t back_proj_func);
-void idfs_print(const idfs_t *idfs);
-void idfs_add_keypoint(idfs_t *idfs,
-                       const size_t feature_id,
-                       const real_t z[2]);
-void idfs_mark_lost(idfs_t *idfs, const size_t feature_id);
-int idfs_num_alive(const idfs_t *idfs);
-void idfs_point(const idfs_t *idfs,
-                const int feature_id,
-                const real_t r_WC[3],
-                real_t p_W[3]);
+                const back_project_func_t back_proj_func,
+                const int num_features,
+                const size_t *feature_ids,
+                const real_t T_WC[4 * 4],
+                const real_t *z,
+                const real_t depth_init);
+void idfb_reset(idfb_t *idfb);
+void idfb_print(const idfb_t *idfb);
+void idfb_mark_lost(idfb_t *idfb, const size_t feature_id);
+int idfb_num_alive(const idfb_t *idfb);
+void idfb_point(const idfb_t *idfb, const int feature_id, real_t p_W[3]);
 
 //////////////
 // KEYFRAME //

@@ -2965,7 +2965,7 @@ int test_idf() {
   return 0;
 }
 
-int test_idfs() {
+int test_idfb() {
   // Body pose
   pose_t pose;
   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
@@ -2991,67 +2991,69 @@ int test_idfs() {
   TF_INV(T_WB, T_BW);
   TF_INV(T_BCi, T_CiB);
   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
+  TF_INV(T_CiW, T_WCi);
 
-  // Setup
-  const real_t zero3[3] = {0.0, 0.0, 0.0};
-  idfs_t idfs;
-  idfs_setup(&idfs, &pose, &cam_ext, &cam, pinhole_radtan4_back_project);
-  MU_ASSERT(idfs.num_features == 0);
-  for (size_t i = 0; i < IDFS_MAX_NUM; i++) {
-    MU_ASSERT(idfs.status[i] == 0);
-    MU_ASSERT(idfs.feature_ids[i] == 0);
-    MU_ASSERT(vec_equals(idfs.data + i * 3, zero3, 3));
-  }
-
-  // Add features
+  // Form features and image points
   int num_features = 10;
-  real_t feature_points[3 * 10] = {0};
+  size_t feature_ids[10] = {0};
+  real_t features[3 * 10] = {0};
+  real_t keypoints[2 * 10] = {0};
   for (size_t i = 0; i < num_features; i++) {
     // Create a feature in world frame
-    const int feature_id = i;
     const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
-    feature_points[feature_id * 3 + 0] = p_W[0];
-    feature_points[feature_id * 3 + 1] = p_W[1];
-    feature_points[feature_id * 3 + 2] = p_W[2];
+    feature_ids[i] = i;
+    features[i * 3 + 0] = p_W[0];
+    features[i * 3 + 1] = p_W[1];
+    features[i * 3 + 2] = p_W[2];
 
     // Project point from world to image plane
     real_t z[2] = {0};
     TF_POINT(T_CiW, p_W, p_Ci);
     pinhole_radtan4_project(cam_data, p_Ci, z);
-    idfs_add_keypoint(&idfs, feature_id, z);
+    keypoints[i * 2 + 0] = z[0];
+    keypoints[i * 2 + 1] = z[1];
   }
-  // idfs_print(&idfs);
 
-  // Transform Inverse Depth Feature to 3D point p_W
-  TF_CHAIN(T_WCi, 2, T_WB, T_BCi);
-  TF_TRANS(T_WCi, r_WCi);
+  // Setup
+  const real_t depth_init = 0.1;
+  idfb_t idfb;
+  idfb_setup(&idfb,
+             &cam,
+             pinhole_radtan4_back_project,
+             num_features,
+             feature_ids,
+             T_WCi,
+             keypoints,
+             depth_init);
+  MU_ASSERT(idfb.num_features == num_features);
+  // idfb_print(&idfb);
 
-  for (size_t i = 0; i < num_features; i++) {
-    const size_t feature_id = i;
-    real_t *gnd = feature_points + feature_id * 3;
+  for (int i = 0; i < idfb.num_features; i++) {
+    const real_t *gnd = features + i * 3;
     real_t est[3] = {0};
-    idfs_point(&idfs, feature_id, r_WCi, est);
+    idfb_point(&idfb, i, est);
 
     const real_t dx = fabs(gnd[0] - est[0]);
     const real_t dy = fabs(gnd[1] - est[1]);
     const real_t dz = fabs(gnd[2] - est[2]);
     const real_t diff = sqrt(dx * dx + dy * dy + dz * dz);
-    MU_ASSERT(diff < 1e-1);
 
-    // printf("p_W [gnd]: (%.4f, %.4f, %.4f) ", gnd[0], gnd[1], gnd[2]);
-    // printf("p_W [est]: (%.4f, %.4f, %.4f) ", est[0], est[1], est[2]);
+    // printf("gnd: (%.4f, %.4f, %.4f), ", gnd[0], gnd[1], gnd[2]);
+    // printf("est: (%.4f, %.4f, %.4f), ", est[0], est[1], est[2]);
     // printf("diff: %f ", diff);
     // printf("\n");
+
+    MU_ASSERT(diff < 1e-1);
   }
 
   // Make feature as lost
-  idfs_mark_lost(&idfs, 2);
-  idfs_mark_lost(&idfs, 4);
-  idfs_mark_lost(&idfs, 6);
-  MU_ASSERT(idfs.status[2] == 0);
-  MU_ASSERT(idfs.status[4] == 0);
-  MU_ASSERT(idfs.status[6] == 0);
-  // idfs_print(&idfs);
+  idfb_mark_lost(&idfb, 2);
+  idfb_mark_lost(&idfb, 4);
+  idfb_mark_lost(&idfb, 6);
+  MU_ASSERT(idfb.status[2] == 0);
+  MU_ASSERT(idfb.status[4] == 0);
+  MU_ASSERT(idfb.status[6] == 0);
+  // idfb_print(&idfb);
 
   return 0;
 }
@@ -5161,7 +5163,7 @@ void test_suite() {
   MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
   MU_ADD_TEST(test_idf);
-  MU_ADD_TEST(test_idfs);
+  MU_ADD_TEST(test_idfb);
   MU_ADD_TEST(test_keyframe);
   MU_ADD_TEST(test_time_delay);
   MU_ADD_TEST(test_joint);

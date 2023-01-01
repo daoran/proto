@@ -6833,6 +6833,35 @@ void idf_setup(idf_t *idf,
 }
 
 /**
+ * Initialize Inverse-Depth Feature
+ */
+void idf_param(const camera_params_t *cam_params,
+               const back_project_func_t back_proj_func,
+               const real_t T_WC[4 * 4],
+               const real_t z[2],
+               const real_t depth_init,
+               real_t param[6]) {
+  // Keypoint to bearing (u, v, 1)
+  real_t bearing[3] = {0};
+  back_proj_func(cam_params->data, z, bearing);
+
+  // Convert bearing to theta, phi and rho
+  TF_ROT(T_WC, C_WC);
+  TF_TRANS(T_WC, r_WC);
+  DOT(C_WC, 3, 3, bearing, 3, 1, h_W);
+  const real_t theta = atan2(h_W[0], h_W[2]);
+  const real_t phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]));
+  const real_t rho = depth_init;
+
+  param[0] = r_WC[0];
+  param[1] = r_WC[1];
+  param[2] = r_WC[2];
+  param[3] = theta;
+  param[4] = phi;
+  param[5] = rho;
+}
+
+/**
  * Print Inverse-Depth Feature
  */
 void idf_print(const idf_t *idf) {
@@ -6868,133 +6897,103 @@ void idf_point(const idf_t *idf, real_t p_W[3]) {
   p_W[2] = r_WCi[2] + depth * m[2];
 }
 
-/////////////////////////////////////
-// INVERSE-DEPTH FEATURE CONTAINER //
-/////////////////////////////////////
+//////////////////////////////////
+// INVERSE-DEPTH FEATURE BUNDLE //
+//////////////////////////////////
 
 /**
- * Setup Inverse-Depth Features (IDFS) container
+ * Setup Inverse-Depth Feature Bundle (IDFB)
  */
-void idfs_setup(idfs_t *idfs,
-                const pose_t *pose,
-                const extrinsic_t *extrinsic,
+void idfb_setup(idfb_t *idfb,
                 const camera_params_t *cam_params,
-                const back_project_func_t back_proj_func) {
-  idfs->pose = pose;
-  idfs->extrinsic = extrinsic;
-  idfs->cam_params = cam_params;
-  idfs->back_proj_func = back_proj_func;
+                const back_project_func_t back_proj_func,
+                const int num_features,
+                const size_t *feature_ids,
+                const real_t T_WC[4 * 4],
+                const real_t *z,
+                const real_t depth_init) {
+  // Reset idfb
+  idfb_reset(idfb);
 
-  idfs->num_features = 0;
-  for (size_t i = 0; i < IDFS_MAX_NUM; i++) {
-    idfs->status[i] = 0;
-    idfs->feature_ids[i] = 0;
-#if IDFS_PARAM_SIZE == 1
-    idfs->data[i] = 0.0;
-#elif IDFS_PARAM_SIZE == 3
-    const real_t zero3[3] = {0.0, 0.0, 0.0};
-    vec_copy(zero3, 3, idfs->data + i * 3);
-#endif
+  // Setup
+  TF_TRANS(T_WC, r_WC);
+
+  // Initialize Inverse-Depth Features
+  idfb->num_features = num_features;
+  idfb->num_alive = num_features;
+  vec_copy(r_WC, 3, idfb->data);
+
+  for (int i = 0; i < num_features; i++) {
+    const real_t *z_i = z + i * 2;
+    real_t idf[6] = {0};
+    idf_param(cam_params, back_proj_func, T_WC, z_i, depth_init, idf);
+
+    idfb->status[i] = 1;
+    idfb->feature_ids[i] = feature_ids[i];
+    idfb->data[3 + (IDFB_PARAM_SIZE * i + 0)] = idf[3];
+    idfb->data[3 + (IDFB_PARAM_SIZE * i + 1)] = idf[4];
+    idfb->data[3 + (IDFB_PARAM_SIZE * i + 2)] = idf[5];
   }
 }
 
 /**
- * Print Inverse-Depth Features (IDFS) container
+ * Reset Inverse-Depth Feature Bundle (IDFB)
  */
-void idfs_print(const idfs_t *idfs) {
-  printf("num_features: %ld\n", idfs->num_features);
-  for (size_t i = 0; i < idfs->num_features; i++) {
-    printf("feature_id: %ld, ", idfs->feature_ids[i]);
-    printf("status: %d, ", idfs->status[i]);
+void idfb_reset(idfb_t *idfb) {
+  idfb->num_features = 0;
+  for (size_t i = 0; i < IDFB_MAX_NUM; i++) {
+    idfb->status[i] = 0;
+    idfb->feature_ids[i] = 0;
+  }
+  for (size_t i = 0; i < (3 + (IDFB_MAX_NUM * IDFB_PARAM_SIZE)); i++) {
+    idfb->data[i] = 0;
+  }
+}
 
-#if IDFS_PARAM_SIZE == 1
-    printf("feature: (%.4f)\n", idfs->data[i]);
+/**
+ * Print Inverse-Depth Feature Bundle (IDFB)
+ */
+void idfb_print(const idfb_t *idfb) {
+  printf("num_features: %ld\n", idfb->num_features);
+  printf("pos: (%.4f, %.4f, %.4f)\n",
+         idfb->data[0],
+         idfb->data[1],
+         idfb->data[2]);
 
-#elif IDFS_PARAM_SIZE == 3
-    const real_t theta = idfs->data[i * 3 + 0];
-    const real_t phi = idfs->data[i * 3 + 1];
-    const real_t rho = idfs->data[i * 3 + 2];
+  for (size_t i = 0; i < idfb->num_features; i++) {
+    printf("feature_id: %ld, ", idfb->feature_ids[i]);
+    printf("status: %d, ", idfb->status[i]);
+
+    const real_t theta = idfb->data[3 + (i * 3 + 0)];
+    const real_t phi = idfb->data[3 + (i * 3 + 1)];
+    const real_t rho = idfb->data[3 + (i * 3 + 2)];
     printf("feature: (%.4f, %.4f, %.4f)\n", theta, phi, rho);
-#endif
   }
-}
-
-/**
- * Add inverse depth feature.
- *
- * IMPORTANT NOTE: For performance reasons it is assumed that feature ids are
- * added in ascending order.
- */
-void idfs_add_keypoint(idfs_t *idfs,
-                       const size_t feature_id,
-                       const real_t z[2]) {
-  const size_t idx = idfs->num_features;
-  ASSERT_IF(idx > 0, idfs->feature_ids[idx - 1] < feature_id);
-
-  idfs->status[idx] = 1;
-  idfs->feature_ids[idx] = feature_id;
-
-#if IDFS_PARAM_SIZE == 1
-  idfs->data[idx] = 1.0;
-
-#elif IDFS_PARAM_SIZE == 3
-  // Keypoint to bearing (u, v, 1)
-  real_t bearing[3] = {0};
-  idfs->back_proj_func(idfs->cam_params->data, z, bearing);
-
-  // Convert bearing to theta, phi and rho
-  TF(idfs->pose->data, T_WB);
-  TF(idfs->extrinsic->data, T_BCi);
-  TF_CHAIN(T_WCi, 2, T_WB, T_BCi);
-  TF_ROT(T_WCi, C_WCi);
-  DOT(C_WCi, 3, 3, bearing, 3, 1, h_W);
-
-  const real_t theta = atan2(h_W[0], h_W[2]);
-  const real_t phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]));
-  const real_t rho = 0.1;
-
-  // Add to data
-  idfs->data[idx * 3 + 0] = theta;
-  idfs->data[idx * 3 + 1] = phi;
-  idfs->data[idx * 3 + 2] = rho;
-
-#endif
-  idfs->num_features++;
 }
 
 /**
  * Mark inverse depth feature as lost.
  */
-void idfs_mark_lost(idfs_t *idfs, const size_t feature_id) {
-  assert(idfs->num_features > 0);
-  const size_t first_id = idfs->feature_ids[0];
+void idfb_mark_lost(idfb_t *idfb, const size_t feature_id) {
+  assert(idfb->num_features > 0);
+  const size_t first_id = idfb->feature_ids[0];
   const size_t idx = feature_id - first_id;
-  idfs->status[idx] = 0;
-}
-
-/**
- * Return number of features still alive.
- */
-int idfs_num_alive(const idfs_t *idfs) {
-  int num_alive = 0;
-  for (int i = 0; i < idfs->num_features; i++) {
-    num_alive += (idfs->status[i]) ? 1 : 0;
-  }
-  return num_alive;
+  idfb->status[idx] = 0;
+  idfb->num_alive--;
 }
 
 /**
  * Inverse-Depth Feature to 3D point
  */
-void idfs_point(const idfs_t *idfs,
-                const int feature_id,
-                const real_t r_WC[3],
-                real_t p_W[3]) {
-  const int first_id = idfs->feature_ids[0];
+void idfb_point(const idfb_t *idfb, const int feature_id, real_t p_W[3]) {
+  const int first_id = idfb->feature_ids[0];
   const int f_idx = feature_id - first_id;
-  const real_t theta = idfs->data[f_idx * 3 + 0];
-  const real_t phi = idfs->data[f_idx * 3 + 1];
-  const real_t depth = 1.0 / idfs->data[f_idx * 3 + 2];
+  const real_t x0 = idfb->data[0];
+  const real_t y0 = idfb->data[1];
+  const real_t z0 = idfb->data[2];
+  const real_t theta = idfb->data[3 + f_idx * 3 + 0];
+  const real_t phi = idfb->data[3 + f_idx * 3 + 1];
+  const real_t depth = 1.0 / idfb->data[3 + f_idx * 3 + 2];
 
   const real_t cphi = cos(phi);
   const real_t sphi = sin(phi);
@@ -7002,9 +7001,9 @@ void idfs_point(const idfs_t *idfs,
   const real_t stheta = sin(theta);
   const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
 
-  p_W[0] = r_WC[0] + depth * m[0];
-  p_W[1] = r_WC[1] + depth * m[1];
-  p_W[2] = r_WC[2] + depth * m[2];
+  p_W[0] = x0 + depth * m[0];
+  p_W[1] = y0 + depth * m[1];
+  p_W[2] = z0 + depth * m[2];
 }
 
 //////////////
@@ -7864,7 +7863,7 @@ int vision_factor_eval(void *factor_ptr) {
 }
 
 //////////////////////////////////////////
-// INVERSE-DEPTH FEATURES (IDFS) FACTOR //
+// INVERSE-DEPTH FEATURES (idfb) FACTOR //
 //////////////////////////////////////////
 
 /**
@@ -8095,7 +8094,7 @@ static void idf_factor_feature_jacobian(const real_t Jh_w[2 * 3],
 }
 
 /**
- * Setup IDFS factor
+ * Setup idfb factor
  */
 void idf_factor_setup(idf_factor_t *factor,
                       pose_t *pose,
@@ -8153,7 +8152,7 @@ void idf_factor_setup(idf_factor_t *factor,
 }
 
 /**
- * Evaluate IDFS factor
+ * Evaluate IDF factor
  */
 int idf_factor_eval(void *factor_ptr) {
   idf_factor_t *factor = (idf_factor_t *) factor_ptr;
