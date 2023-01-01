@@ -2696,7 +2696,7 @@ def pinhole_radtan4_backproject(proj_params, dist_params, z):
 
   # Convert image pixel coordinates to normalized retinal coordintes
   fx, fy, cx, cy = proj_params
-  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy, 1.0])
+  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy])
 
   # Undistort
   x = radtan4_undistort(dist_params, x)
@@ -2787,7 +2787,7 @@ def pinhole_equi4_backproject(proj_params, dist_params, z):
 
   # Convert image pixel coordinates to normalized retinal coordintes
   fx, fy, cx, cy = proj_params
-  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy, 1.0])
+  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy])
 
   # Undistort
   x = equi4_undistort(dist_params, x)
@@ -2910,7 +2910,7 @@ class CameraGeometry:
     """ Back-project image point `z` with camera parameters `params` """
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
-    return self.project_fn(proj_params, dist_params, z)
+    return self.backproject_fn(proj_params, dist_params, z)
 
   def undistort(self, params, z):
     """ Undistort image point `z` with camera parameters `params` """
@@ -3594,7 +3594,7 @@ def idp_param(cam_params, T_WC, z):
 
   # Obtain bearing (theta, phi) and inverse depth (rho)
   theta = atan2(h_W[0], h_W[2])
-  phi = atan2(-h_W[1], sqrt(h_W[0] * h_W(1) + h_W[2] * h_W[2]))
+  phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]))
   rho = 0.1
   # sigma_rho = 0.5  # variance of inverse depth
 
@@ -3607,17 +3607,20 @@ def idp_param_jacobian(param):
   """ Inverse depth parameter jacobian """
   _, _, _, theta, phi, rho = param
   p_W = np.array([cos(phi) * sin(theta), -sin(phi), cos(phi) * cos(theta)])
+  d = 1.0 / rho
+  cphi = cos(phi)
+  sphi = sin(phi)
+  ctheta = cos(theta)
+  stheta = sin(theta)
 
   J_x = np.array([1.0, 0.0, 0.0])
   J_y = np.array([0.0, 1.0, 0.0])
   J_z = np.array([0.0, 0.0, 1.0])
-  J_theta = 1.0 / rho * np.array(
-      [cos(phi) * cos(theta), 0.0,
-       cos(phi) * -sin(theta)])
-  J_phi = 1.0 / rho * np.array(
-      [-sin(phi) * sin(theta), -cos(phi), -sin(phi) * cos(theta)])
+  J_theta = d * np.array([cphi * ctheta, 0.0, cphi * -stheta])
+  J_phi = d * np.array([-sphi * stheta, -cphi, -sphi * ctheta])
   J_rho = -1.0 / rho**2 @ p_W
   J_param = np.block([J_x, J_y, J_z, J_theta, J_phi, J_rho])
+
   return J_param
 
 
@@ -3999,6 +4002,35 @@ class VisionFactor(Factor):
     J3 = neg_sqrt_info @ J_cam_params
 
     return (r, [J0, J1, J2, J3])
+
+
+class CameraFactor(Factor):
+  """ Camera Factor """
+  def __init__(self, cam_geom, pids, z, covar=eye(2)):
+    assert len(pids) == 4
+    assert len(z) == 2
+    assert covar.shape == (2, 2)
+    Factor.__init__(self, "CameraFactor", pids, z, covar)
+    self.cam_geom = cam_geom
+
+  def get_residual(self, pose, cam_exts, bearing_vec, depth, cam_params):
+    """ Get residual """
+    T_WB = pose2tf(pose)
+    T_BCi = pose2tf(cam_exts)
+    p_W = feature
+    p_C = tf_point(inv(T_WB @ T_BCi), p_W)
+    status, z_hat = self.cam_geom.project(cam_params, p_C)
+
+    z = self.measurement
+    r = z - z_hat
+
+    return status, r
+
+  # def get_reproj_error(self, pose, cam_exts, feature, cam_params):
+  #   """ Get reprojection error """
+  #   status, r = self.get_residual(pose, cam_exts, feature, cam_params)
+  #   reproj_error = norm(r)
+  #   return status, reproj_error
 
 
 class CalibVisionFactor(Factor):
@@ -9199,7 +9231,7 @@ class TestFactors(unittest.TestCase):
     # param = idp_param(camera, T_WC, z)
     # feature = feature_init(0, param)
     # -- Calculate image point
-    T_WCi = T_WB * T_BCi
+    T_WCi = T_WB @ T_BCi
     p_C = tf_point(inv(T_WCi), p_W)
     status, z = cam_geom.project(cam_params.param, p_C)
     self.assertTrue(status)
@@ -9214,6 +9246,69 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
     self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
+
+  def test_camera_factor(self):
+    """ Test camera factor """
+    # Setup camera pose T_WB
+    rot = euler2quat(0.0, 0.0, 0.0)
+    trans = np.array([0.0, 0.0, 0.0])
+    T_WB = tf(rot, trans)
+    pose = pose_setup(0, T_WB)
+
+    # Setup camera extrinsics T_BCi
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
+    trans = np.array([0.0, 0.0, 0.0])
+    T_BCi = tf(rot, trans)
+    cam_exts = extrinsics_setup(T_BCi)
+
+    # Setup cam0
+    cam_idx = 0
+    img_w = 640
+    img_h = 480
+    res = [img_w, img_h]
+    fov = 60.0
+    fx = focal_length(img_w, fov)
+    fy = focal_length(img_h, fov)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    params = [fx, fy, cx, cy, 0.01, 0.01, 0.0001, 0.0001]
+    cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
+    cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
+
+    # Setup feature
+    p_W = np.array([10, random.uniform(0.0, 1.0), random.uniform(0.0, 1.0)])
+    # -- Feature XYZ parameterization
+    feature = feature_setup(p_W)
+    # # -- Feature inverse depth parameterization
+    # param = idp_param(camera, T_WC, z)
+    # feature = feature_init(0, param)
+    # -- Calculate image point
+    T_WCi = T_WB @ T_BCi
+    p_C = tf_point(inv(T_WCi), p_W)
+    status, z = cam_geom.project(cam_params.param, p_C)
+    self.assertTrue(status)
+
+    # Convert 3D ray from camera frame to world frame
+    x = cam_geom.backproject(cam_params.param, z)
+    theta = x[0]
+    phi = x[1]
+    rho = 0.1
+
+    print(f"p_C: {np.round(p_C, 4)}")
+    print(f"x: {np.round(x, 4)}")
+    print(f"theta: {theta:.4f}")
+    print(f"phi: {phi:.4f}")
+
+    # Setup factor
+    param_ids = [0, 1, 2, 3]
+    factor = CameraFactor(cam_geom, param_ids, z)
+
+    # # Test jacobians
+    # fvars = [pose, cam_exts, feature, cam_params]
+    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose"))
+    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
+    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
+    # self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
 
   def test_calib_vision_factor(self):
     """ Test CalibVisionFactor """
