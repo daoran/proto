@@ -990,6 +990,17 @@ int test_fltcmp2() {
   return 0;
 }
 
+int test_cumsum() {
+  real_t x[10] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+  real_t s[10] = {0};
+  cumsum(x, 10, s);
+
+  print_vector("x", x, 10);
+  print_vector("s", s, 10);
+
+  return 0;
+}
+
 int test_pythag() {
   MU_ASSERT(fltcmp(pythag(3.0, 4.0), 5.0) == 0);
   return 0;
@@ -5064,6 +5075,7 @@ void test_suite() {
   MU_ADD_TEST(test_rad2deg);
   MU_ADD_TEST(test_fltcmp);
   MU_ADD_TEST(test_fltcmp2);
+  MU_ADD_TEST(test_cumsum);
   MU_ADD_TEST(test_pythag);
   MU_ADD_TEST(test_lerp);
   MU_ADD_TEST(test_lerp3);

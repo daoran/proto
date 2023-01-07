@@ -566,6 +566,7 @@ int intcmp2(const void *x, const void *y);
 int fltcmp(const real_t x, const real_t y);
 int fltcmp2(const void *x, const void *y);
 int strcmp2(const void *x, const void *y);
+void cumsum(const real_t *x, const size_t n, real_t *s);
 real_t pythag(const real_t a, const real_t b);
 real_t lerp(const real_t a, const real_t b, const real_t t);
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);

@@ -2030,6 +2030,17 @@ int strcmp2(const void *x, const void *y) {
 }
 
 /**
+ * Cumulative Sum.
+ */
+void cumsum(const real_t *x, const size_t n, real_t *s) {
+  s[0] = x[0];
+  for (size_t i = 1; i < n; i++) {
+    s[i] = x[i];
+    s[i] = s[i] + s[i - 1];
+  }
+}
+
+/**
  * Pythagoras
  *
  *   c = sqrt(a^2 + b^2)
