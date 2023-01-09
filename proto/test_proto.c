@@ -3288,6 +3288,7 @@ int test_idf_factor() {
   TF_INV(T_BCi, T_CiB);
   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
   TF_INV(T_CiW, T_WCi);
+  TF_TRANS(T_WCi, r_WCi);
 
   const int status = 1;
   const size_t feature_id = 0;
@@ -3297,8 +3298,10 @@ int test_idf_factor() {
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   // Setup IDF
-  idf_t idf;
-  idf_setup(&idf,
+  pos_t idf_pos;
+  idf_t idf_param;
+  pos_setup(&idf_pos, r_WCi);
+  idf_setup(&idf_param,
             &cam,
             pinhole_radtan4_back_project,
             status,
@@ -3309,7 +3312,14 @@ int test_idf_factor() {
   // Setup IDF Factor
   const real_t var[2] = {1.0, 1.0};
   idf_factor_t factor;
-  idf_factor_setup(&factor, &pose, &cam_ext, &cam, &idf, z, var);
+  idf_factor_setup(&factor,
+                   &pose,
+                   &cam_ext,
+                   &cam,
+                   &idf_pos,
+                   &idf_param,
+                   z,
+                   var);
 
   // Check Jacobians
   const real_t step_size = 1e-8;
@@ -3319,6 +3329,7 @@ int test_idf_factor() {
   CHECK_FACTOR_J(1, factor, idf_factor_eval, step_size, tol, debug);
   CHECK_FACTOR_J(2, factor, idf_factor_eval, step_size, tol, debug);
   CHECK_FACTOR_J(3, factor, idf_factor_eval, step_size, tol, debug);
+  CHECK_FACTOR_J(4, factor, idf_factor_eval, step_size, tol, debug);
 
   return 0;
 }

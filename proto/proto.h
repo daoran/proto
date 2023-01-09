@@ -1211,16 +1211,18 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
  * SENSOR FUSION
  ******************************************************************************/
 
-#define POSE_PARAM 1
-#define EXTRINSIC_PARAM 2
-#define FIDUCIAL_PARAM 3
-#define VELOCITY_PARAM 4
-#define IMU_BIASES_PARAM 5
-#define FEATURE_PARAM 6
-#define IDF_PARAM 7
-#define JOINT_PARAM 8
-#define CAMERA_PARAM 9
-#define TIME_DELAY_PARAM 10
+#define POSITION_PARAM 1
+#define ROTATION_PARAM 2
+#define POSE_PARAM 3
+#define EXTRINSIC_PARAM 4
+#define FIDUCIAL_PARAM 5
+#define VELOCITY_PARAM 6
+#define IMU_BIASES_PARAM 7
+#define FEATURE_PARAM 8
+#define IDF_PARAM 9
+#define JOINT_PARAM 10
+#define CAMERA_PARAM 11
+#define TIME_DELAY_PARAM 12
 
 ///////////
 // UTILS //
@@ -1241,23 +1243,23 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
 // POSITION //
 //////////////
 
-typedef struct position_t {
+typedef struct pos_t {
   real_t data[3];
-} position_t;
+} pos_t;
 
-void position_setup(position_t *pos, const real_t *data);
-void position_print(const char *prefix, const position_t *pos);
+void pos_setup(pos_t *pos, const real_t *data);
+void pos_print(const char *prefix, const pos_t *pos);
 
 //////////////
 // ROTATION //
 //////////////
 
-typedef struct rotation_t {
+typedef struct rot_t {
   real_t data[4];
-} rotation_t;
+} rot_t;
 
-void rotation_setup(rotation_t *rot, const real_t *data);
-void rotation_print(const char *prefix, const rotation_t *rot);
+void rot_setup(rot_t *rot, const real_t *data);
+void rot_print(const char *prefix, const rot_t *rot);
 
 //////////
 // POSE //
@@ -1364,7 +1366,7 @@ void features_remove(features_t *features, const int feature_id);
 // INVERSE-DEPTH FEATURE //
 ///////////////////////////
 
-#define IDF_PARAM_SIZE 6
+#define IDF_PARAM_SIZE 3
 
 typedef struct idf_t {
   const camera_params_t *cam_params;
@@ -1389,11 +1391,7 @@ void idf_param(const camera_params_t *cam_params,
                const real_t depth_init,
                real_t param[IDF_PARAM_SIZE]);
 void idf_print(const idf_t *idf);
-#if IDF_PARAM_SIZE == 6
-void idf_point(const idf_t *idf, real_t p_W[3]);
-#elif IDF_PARAM_SIZE == 3
 void idf_point(const idf_t *idf, const real_t r_WC[3], real_t p_W[3]);
-#endif
 
 //////////////////////////////////
 // INVERSE-DEPTH FEATURE BUNDLE //
@@ -1649,7 +1647,8 @@ typedef struct idf_factor_t {
   pose_t *pose;
   extrinsic_t *extrinsic;
   camera_params_t *camera;
-  idf_t *idf;
+  pos_t *idf_pos;
+  idf_t *idf_param;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
@@ -1657,21 +1656,23 @@ typedef struct idf_factor_t {
 
   int r_size;
   int num_params;
-  int param_types[4];
+  int param_types[5];
 
-  real_t *params[4];
+  real_t *params[5];
   real_t r[2];
-  real_t *jacs[4];
+  real_t *jacs[5];
   real_t J_pose[2 * 6];
   real_t J_extrinsic[2 * 6];
   real_t J_camera[2 * 8];
-  real_t J_idf[2 * IDF_PARAM_SIZE];
+  real_t J_idf_pos[2 * 3];
+  real_t J_idf_param[2 * 3];
 } idf_factor_t;
 
 void idf_factor_setup(idf_factor_t *factor,
                       pose_t *pose,
                       extrinsic_t *extrinsic,
                       camera_params_t *camera,
+                      pos_t *idf_pos,
                       idf_t *idf,
                       const real_t z[2],
                       const real_t var[2]);
@@ -1685,7 +1686,7 @@ typedef struct idfb_factor_t {
   pose_t *pose;
   extrinsic_t *extrinsic;
   camera_params_t *camera;
-  position_t *pos;
+  pos_t *pos;
   idfb_t *idfb;
 
   real_t *z;

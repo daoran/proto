@@ -6503,7 +6503,7 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
 // POSITION //
 //////////////
 
-void position_setup(position_t *pos, const real_t *data) {
+void pos_setup(pos_t *pos, const real_t *data) {
   assert(pos != NULL);
   assert(data != NULL);
   pos->data[0] = data[0];
@@ -6511,7 +6511,7 @@ void position_setup(position_t *pos, const real_t *data) {
   pos->data[2] = data[2];
 }
 
-void position_print(const char *prefix, const position_t *pos) {
+void pos_print(const char *prefix, const pos_t *pos) {
   assert(prefix != NULL);
   assert(pos != NULL);
 
@@ -6527,7 +6527,7 @@ void position_print(const char *prefix, const position_t *pos) {
 // ROTATION //
 //////////////
 
-void rotation_setup(rotation_t *rot, const real_t *data) {
+void rot_setup(rot_t *rot, const real_t *data) {
   assert(rot != NULL);
   assert(data != NULL);
   rot->data[0] = data[0];
@@ -6536,7 +6536,7 @@ void rotation_setup(rotation_t *rot, const real_t *data) {
   rot->data[3] = data[3];
 }
 
-void rotation_print(const char *prefix, const rotation_t *rot) {
+void rot_print(const char *prefix, const rot_t *rot) {
   assert(prefix != NULL);
   assert(rot != NULL);
 
@@ -6864,18 +6864,9 @@ void idf_setup(idf_t *idf,
   // Set data
   idf->status = status;
   idf->feature_id = feature_id;
-#if IDF_PARAM_SIZE == 6
-  idf->data[0] = r_WC[0];
-  idf->data[1] = r_WC[1];
-  idf->data[2] = r_WC[2];
-  idf->data[3] = theta;
-  idf->data[4] = phi;
-  idf->data[5] = rho;
-#elif IDF_PARAM_SIZE == 3
   idf->data[0] = theta;
   idf->data[1] = phi;
   idf->data[2] = rho;
-#endif
 }
 
 /**
@@ -6899,54 +6890,30 @@ void idf_param(const camera_params_t *cam_params,
   const real_t phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]));
   const real_t rho = depth_init;
 
-#if IDF_PARAM_SIZE == 6
-  param[0] = r_WC[0];
-  param[1] = r_WC[1];
-  param[2] = r_WC[2];
-  param[3] = theta;
-  param[4] = phi;
-  param[5] = rho;
-#elif IDF_PARAM_SIZE == 3
   param[0] = theta;
   param[1] = phi;
   param[2] = rho;
-#endif
 }
 
 /**
  * Print Inverse-Depth Feature
  */
 void idf_print(const idf_t *idf) {
-#if IDF_PARAM_SIZE == 6
-  const real_t x = idf->data[0];
-  const real_t y = idf->data[1];
-  const real_t z = idf->data[2];
-  const real_t theta = idf->data[3];
-  const real_t phi = idf->data[4];
-  const real_t rho = idf->data[5];
-  printf("feature_id: %ld, ", idf->feature_id);
-  printf("status: %d, ", idf->status);
-  printf("r_WC: (%.4f, %.4f, %.4f), ", x, y, z);
-  printf("p_W: (theta: %.4f, phi: %.4f, rho: %.4f)\n", theta, phi, rho);
-#elif IDF_PARAM_SIZE == 3
   const real_t theta = idf->data[0];
   const real_t phi = idf->data[1];
   const real_t rho = idf->data[2];
   printf("feature_id: %ld, ", idf->feature_id);
   printf("status: %d, ", idf->status);
   printf("p_W: (theta: %.4f, phi: %.4f, rho: %.4f)\n", theta, phi, rho);
-#endif
 }
 
-#if IDF_PARAM_SIZE == 6
 /**
  * Convert Inverse-Depth Feature to 3D point
  */
-void idf_point(const idf_t *idf, real_t p_W[3]) {
-  const real_t r_WCi[3] = {idf->data[0], idf->data[1], idf->data[2]};
-  const real_t theta = idf->data[3];
-  const real_t phi = idf->data[4];
-  const real_t depth = 1.0 / idf->data[5];
+void idf_point(const idf_t *idf, const real_t r_WCi[3], real_t p_W[3]) {
+  const real_t theta = idf->data[0];
+  const real_t phi = idf->data[1];
+  const real_t depth = 1.0 / idf->data[2];
 
   const real_t cphi = cos(phi);
   const real_t sphi = sin(phi);
@@ -6958,26 +6925,6 @@ void idf_point(const idf_t *idf, real_t p_W[3]) {
   p_W[1] = r_WCi[1] + depth * m[1];
   p_W[2] = r_WCi[2] + depth * m[2];
 }
-#elif IDF_PARAM_SIZE == 3
-/**
- * Convert Inverse-Depth Feature to 3D point
- */
-void idf_point(const idf_t *idf, const real_t r_WC[3], real_t p_W[3]) {
-  const real_t theta = idf->data[3];
-  const real_t phi = idf->data[4];
-  const real_t depth = 1.0 / idf->data[5];
-
-  const real_t cphi = cos(phi);
-  const real_t sphi = sin(phi);
-  const real_t ctheta = cos(theta);
-  const real_t stheta = sin(theta);
-  const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
-
-  p_W[0] = r_WC[0] + depth * m[0];
-  p_W[1] = r_WC[1] + depth * m[1];
-  p_W[2] = r_WC[2] + depth * m[2];
-}
-#endif
 
 //////////////////////////////////
 // INVERSE-DEPTH FEATURE BUNDLE //
@@ -8117,19 +8064,18 @@ static void idf_factor_feature_jacobian(const real_t Jh_w[2 * 3],
                                         const real_t T_BC[4 * 4],
                                         const real_t p_W[3],
                                         const idf_t *idf,
-                                        real_t J[2 * 6]) {
-  if (J == NULL) {
-    return;
-  }
+                                        real_t J_idf_pos[2 * 3],
+                                        real_t J_idf_param[2 * 3]) {
   assert(Jh_w != NULL);
   assert(T_WB != NULL);
   assert(T_BC != NULL);
   assert(idf != NULL);
-  assert(J != NULL);
+  assert(J_idf_pos != NULL);
+  assert(J_idf_param != NULL);
 
-  const real_t theta = idf->data[3];
-  const real_t phi = idf->data[4];
-  const real_t rho = idf->data[5];
+  const real_t theta = idf->data[0];
+  const real_t phi = idf->data[1];
+  const real_t rho = idf->data[2];
   const real_t d = 1.0 / rho;
   const real_t k = -1.0 / (rho * rho);
 
@@ -8169,10 +8115,25 @@ static void idf_factor_feature_jacobian(const real_t Jh_w[2 * 3],
 
   // Jh_w = -1 * sqrt_info * Jh;
   // J = Jh_w * C_CW * J_idf;
+  real_t J[2 * 6] = {0};
   TF_CHAIN(T_WC, 2, T_WB, T_BC);
   TF_ROT(T_WC, C_WC);
   MAT_TRANSPOSE(C_WC, 3, 3, C_CW);
   dot3(Jh_w, 2, 3, C_CW, 3, 3, J_idf, 3, 6, J);
+
+  J_idf_pos[0] = J[0];
+  J_idf_pos[1] = J[1];
+  J_idf_pos[2] = J[2];
+  J_idf_pos[3] = J[6];
+  J_idf_pos[4] = J[7];
+  J_idf_pos[5] = J[8];
+
+  J_idf_param[0] = J[3];
+  J_idf_param[1] = J[4];
+  J_idf_param[2] = J[5];
+  J_idf_param[3] = J[9];
+  J_idf_param[4] = J[10];
+  J_idf_param[5] = J[11];
 }
 
 /**
@@ -8182,20 +8143,23 @@ void idf_factor_setup(idf_factor_t *factor,
                       pose_t *pose,
                       extrinsic_t *extrinsic,
                       camera_params_t *camera,
-                      idf_t *idf,
+                      pos_t *idf_pos,
+                      idf_t *idf_param,
                       const real_t z[2],
                       const real_t var[2]) {
   assert(factor != NULL);
   assert(pose != NULL);
   assert(extrinsic != NULL);
   assert(camera != NULL);
-  assert(idf != NULL);
+  assert(idf_pos != NULL);
+  assert(idf_param != NULL);
 
   // Parameters
   factor->pose = pose;
   factor->extrinsic = extrinsic;
   factor->camera = camera;
-  factor->idf = idf;
+  factor->idf_pos = idf_pos;
+  factor->idf_param = idf_param;
 
   // Measurement covariance matrix
   factor->covar[0] = var[0];
@@ -8215,22 +8179,25 @@ void idf_factor_setup(idf_factor_t *factor,
 
   // Parameters, residuals, jacobians
   factor->r_size = 2;
-  factor->num_params = 4;
+  factor->num_params = 5;
 
   factor->param_types[0] = POSE_PARAM;
   factor->param_types[1] = EXTRINSIC_PARAM;
   factor->param_types[2] = CAMERA_PARAM;
-  factor->param_types[3] = IDF_PARAM;
+  factor->param_types[3] = POSITION_PARAM;
+  factor->param_types[4] = IDF_PARAM;
 
   factor->params[0] = factor->pose->data;
   factor->params[1] = factor->extrinsic->data;
   factor->params[2] = factor->camera->data;
-  factor->params[3] = factor->idf->data;
+  factor->params[3] = factor->idf_pos->data;
+  factor->params[4] = factor->idf_param->data;
 
   factor->jacs[0] = factor->J_pose;
   factor->jacs[1] = factor->J_extrinsic;
   factor->jacs[2] = factor->J_camera;
-  factor->jacs[3] = factor->J_idf;
+  factor->jacs[3] = factor->J_idf_pos;
+  factor->jacs[4] = factor->J_idf_param;
 }
 
 /**
@@ -8254,7 +8221,7 @@ int idf_factor_eval(void *factor_ptr) {
 
   // Form 3D point in world frame
   real_t p_W[3] = {0};
-  idf_point(factor->idf, p_W);
+  idf_point(factor->idf_param, factor->idf_pos->data, p_W);
 
   // Project to image frame
   real_t z_hat[2];
@@ -8286,8 +8253,9 @@ int idf_factor_eval(void *factor_ptr) {
                               T_WB,
                               T_BCi,
                               p_W,
-                              factor->idf,
-                              factor->jacs[3]);
+                              factor->idf_param,
+                              factor->jacs[3],
+                              factor->jacs[4]);
 
   return 0;
 }
@@ -10222,6 +10190,12 @@ void marg_factor_add_imu_factor(imu_factor_t *factor,
  */
 void param_type_string(const int param_type, char *s) {
   switch (param_type) {
+    case POSITION_PARAM:
+      strcpy(s, "POSITION_PARAM");
+      break;
+    case ROTATION_PARAM:
+      strcpy(s, "ROTATION_PARAM");
+      break;
     case POSE_PARAM:
       strcpy(s, "POSE_PARAM");
       break;
@@ -10262,6 +10236,12 @@ size_t param_global_size(const int param_type) {
   size_t param_size = 0;
 
   switch (param_type) {
+    case POSITION_PARAM:
+      param_size = 3;
+      break;
+    case ROTATION_PARAM:
+      param_size = 4;
+      break;
     case POSE_PARAM:
     case EXTRINSIC_PARAM:
     case FIDUCIAL_PARAM:
@@ -10303,6 +10283,12 @@ size_t param_local_size(const int param_type) {
   size_t param_size = 0;
 
   switch (param_type) {
+    case POSITION_PARAM:
+      param_size = 3;
+      break;
+    case ROTATION_PARAM:
+      param_size = 3;
+      break;
     case POSE_PARAM:
     case EXTRINSIC_PARAM:
     case FIDUCIAL_PARAM:
