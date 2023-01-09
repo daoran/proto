@@ -2030,6 +2030,22 @@ int strcmp2(const void *x, const void *y) {
 }
 
 /**
+ * Check if reals are equal.
+ * @returns 1 if x == y, 0 if x != y.
+ */
+int flt_equals(const real_t x, const real_t y) {
+  return (fltcmp(x, y) == 0) ? 1 : 0;
+}
+
+/**
+ * Check if strings are equal.
+ * @returns 1 if x == y, 0 if x != y.
+ */
+int str_equals(const char *x, const char *y) {
+  return (strcmp(x, y) == 0) ? 1 : 0;
+}
+
+/**
  * Cumulative Sum.
  */
 void cumsum(const real_t *x, const size_t n, real_t *s) {
@@ -2037,6 +2053,19 @@ void cumsum(const real_t *x, const size_t n, real_t *s) {
   for (size_t i = 1; i < n; i++) {
     s[i] = x[i];
     s[i] = s[i] + s[i - 1];
+  }
+}
+
+/**
+ * Logspace. Generates `n` points between decades `10^a` and `10^b`.
+ */
+void logspace(const real_t a, const real_t b, const size_t n, real_t *x) {
+  const real_t h = (b - a) / (n - 1);
+
+  real_t c = a;
+  for (size_t i = 0; i < n; i++) {
+    x[i] = pow(10, c);
+    c += h;
   }
 }
 
@@ -6835,12 +6864,18 @@ void idf_setup(idf_t *idf,
   // Set data
   idf->status = status;
   idf->feature_id = feature_id;
+#if IDF_PARAM_SIZE == 6
   idf->data[0] = r_WC[0];
   idf->data[1] = r_WC[1];
   idf->data[2] = r_WC[2];
   idf->data[3] = theta;
   idf->data[4] = phi;
   idf->data[5] = rho;
+#elif IDF_PARAM_SIZE == 3
+  idf->data[0] = theta;
+  idf->data[1] = phi;
+  idf->data[2] = rho;
+#endif
 }
 
 /**
@@ -6851,7 +6886,7 @@ void idf_param(const camera_params_t *cam_params,
                const real_t T_WC[4 * 4],
                const real_t z[2],
                const real_t depth_init,
-               real_t param[6]) {
+               real_t param[IDF_PARAM_SIZE]) {
   // Keypoint to bearing (u, v, 1)
   real_t bearing[3] = {0};
   back_proj_func(cam_params->data, z, bearing);
@@ -6864,18 +6899,25 @@ void idf_param(const camera_params_t *cam_params,
   const real_t phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]));
   const real_t rho = depth_init;
 
+#if IDF_PARAM_SIZE == 6
   param[0] = r_WC[0];
   param[1] = r_WC[1];
   param[2] = r_WC[2];
   param[3] = theta;
   param[4] = phi;
   param[5] = rho;
+#elif IDF_PARAM_SIZE == 3
+  param[0] = theta;
+  param[1] = phi;
+  param[2] = rho;
+#endif
 }
 
 /**
  * Print Inverse-Depth Feature
  */
 void idf_print(const idf_t *idf) {
+#if IDF_PARAM_SIZE == 6
   const real_t x = idf->data[0];
   const real_t y = idf->data[1];
   const real_t z = idf->data[2];
@@ -6886,8 +6928,17 @@ void idf_print(const idf_t *idf) {
   printf("status: %d, ", idf->status);
   printf("r_WC: (%.4f, %.4f, %.4f), ", x, y, z);
   printf("p_W: (theta: %.4f, phi: %.4f, rho: %.4f)\n", theta, phi, rho);
+#elif IDF_PARAM_SIZE == 3
+  const real_t theta = idf->data[0];
+  const real_t phi = idf->data[1];
+  const real_t rho = idf->data[2];
+  printf("feature_id: %ld, ", idf->feature_id);
+  printf("status: %d, ", idf->status);
+  printf("p_W: (theta: %.4f, phi: %.4f, rho: %.4f)\n", theta, phi, rho);
+#endif
 }
 
+#if IDF_PARAM_SIZE == 6
 /**
  * Convert Inverse-Depth Feature to 3D point
  */
@@ -6907,6 +6958,26 @@ void idf_point(const idf_t *idf, real_t p_W[3]) {
   p_W[1] = r_WCi[1] + depth * m[1];
   p_W[2] = r_WCi[2] + depth * m[2];
 }
+#elif IDF_PARAM_SIZE == 3
+/**
+ * Convert Inverse-Depth Feature to 3D point
+ */
+void idf_point(const idf_t *idf, const real_t r_WC[3], real_t p_W[3]) {
+  const real_t theta = idf->data[3];
+  const real_t phi = idf->data[4];
+  const real_t depth = 1.0 / idf->data[5];
+
+  const real_t cphi = cos(phi);
+  const real_t sphi = sin(phi);
+  const real_t ctheta = cos(theta);
+  const real_t stheta = sin(theta);
+  const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
+
+  p_W[0] = r_WC[0] + depth * m[0];
+  p_W[1] = r_WC[1] + depth * m[1];
+  p_W[2] = r_WC[2] + depth * m[2];
+}
+#endif
 
 //////////////////////////////////
 // INVERSE-DEPTH FEATURE BUNDLE //
@@ -6961,61 +7032,61 @@ void idfb_reset(idfb_t *idfb) {
   }
 }
 
-/**
- * Print Inverse-Depth Feature Bundle (IDFB)
- */
-void idfb_print(const idfb_t *idfb) {
-  printf("num_features: %ld\n", idfb->num_features);
-  printf("pos: (%.4f, %.4f, %.4f)\n",
-         idfb->data[0],
-         idfb->data[1],
-         idfb->data[2]);
+// /**
+//  * Print Inverse-Depth Feature Bundle (IDFB)
+//  */
+// void idfb_print(const idfb_t *idfb) {
+//   printf("num_features: %ld\n", idfb->num_features);
+//   printf("pos: (%.4f, %.4f, %.4f)\n",
+//          idfb->data[0],
+//          idfb->data[1],
+//          idfb->data[2]);
 
-  for (size_t i = 0; i < idfb->num_features; i++) {
-    printf("feature_id: %ld, ", idfb->feature_ids[i]);
-    printf("status: %d, ", idfb->status[i]);
+//   for (size_t i = 0; i < idfb->num_features; i++) {
+//     printf("feature_id: %ld, ", idfb->feature_ids[i]);
+//     printf("status: %d, ", idfb->status[i]);
 
-    const real_t theta = idfb->data[3 + (i * 3 + 0)];
-    const real_t phi = idfb->data[3 + (i * 3 + 1)];
-    const real_t rho = idfb->data[3 + (i * 3 + 2)];
-    printf("feature: (%.4f, %.4f, %.4f)\n", theta, phi, rho);
-  }
-}
+//     const real_t theta = idfb->data[3 + (i * 3 + 0)];
+//     const real_t phi = idfb->data[3 + (i * 3 + 1)];
+//     const real_t rho = idfb->data[3 + (i * 3 + 2)];
+//     printf("feature: (%.4f, %.4f, %.4f)\n", theta, phi, rho);
+//   }
+// }
 
-/**
- * Mark inverse depth feature as lost.
- */
-void idfb_mark_lost(idfb_t *idfb, const size_t feature_id) {
-  assert(idfb->num_features > 0);
-  const size_t first_id = idfb->feature_ids[0];
-  const size_t idx = feature_id - first_id;
-  idfb->status[idx] = 0;
-  idfb->num_alive--;
-}
+// /**
+//  * Mark inverse depth feature as lost.
+//  */
+// void idfb_mark_lost(idfb_t *idfb, const size_t feature_id) {
+//   assert(idfb->num_features > 0);
+//   const size_t first_id = idfb->feature_ids[0];
+//   const size_t idx = feature_id - first_id;
+//   idfb->status[idx] = 0;
+//   idfb->num_alive--;
+// }
 
-/**
- * Inverse-Depth Feature to 3D point
- */
-void idfb_point(const idfb_t *idfb, const int feature_id, real_t p_W[3]) {
-  const int first_id = idfb->feature_ids[0];
-  const int f_idx = feature_id - first_id;
-  const real_t x0 = idfb->data[0];
-  const real_t y0 = idfb->data[1];
-  const real_t z0 = idfb->data[2];
-  const real_t theta = idfb->data[3 + f_idx * 3 + 0];
-  const real_t phi = idfb->data[3 + f_idx * 3 + 1];
-  const real_t depth = 1.0 / idfb->data[3 + f_idx * 3 + 2];
+// /**
+//  * Inverse-Depth Feature to 3D point
+//  */
+// void idfb_point(const idfb_t *idfb, const int feature_id, real_t p_W[3]) {
+//   const int first_id = idfb->feature_ids[0];
+//   const int f_idx = feature_id - first_id;
+//   const real_t x0 = idfb->data[0];
+//   const real_t y0 = idfb->data[1];
+//   const real_t z0 = idfb->data[2];
+//   const real_t theta = idfb->data[3 + f_idx * 3 + 0];
+//   const real_t phi = idfb->data[3 + f_idx * 3 + 1];
+//   const real_t depth = 1.0 / idfb->data[3 + f_idx * 3 + 2];
 
-  const real_t cphi = cos(phi);
-  const real_t sphi = sin(phi);
-  const real_t ctheta = cos(theta);
-  const real_t stheta = sin(theta);
-  const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
+//   const real_t cphi = cos(phi);
+//   const real_t sphi = sin(phi);
+//   const real_t ctheta = cos(theta);
+//   const real_t stheta = sin(theta);
+//   const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
 
-  p_W[0] = x0 + depth * m[0];
-  p_W[1] = y0 + depth * m[1];
-  p_W[2] = z0 + depth * m[2];
-}
+//   p_W[0] = x0 + depth * m[0];
+//   p_W[1] = y0 + depth * m[1];
+//   p_W[2] = z0 + depth * m[2];
+// }
 
 //////////////
 // KEYFRAME //
@@ -10206,7 +10277,7 @@ size_t param_global_size(const int param_type) {
       param_size = 3;
       break;
     case IDF_PARAM:
-      param_size = 6;
+      param_size = IDF_PARAM_SIZE;
       break;
     case JOINT_PARAM:
       param_size = 1;
@@ -10247,7 +10318,7 @@ size_t param_local_size(const int param_type) {
       param_size = 3;
       break;
     case IDF_PARAM:
-      param_size = 6;
+      param_size = IDF_PARAM_SIZE;
       break;
     case JOINT_PARAM:
       param_size = 1;
@@ -10608,6 +10679,45 @@ int solver_solve(solver_t *solver, void *data) {
   free(dx);
 
   return 0;
+}
+
+/////////////////////
+// IMU CALIBRATION //
+/////////////////////
+
+/**
+ * The Allan variance (AVAR), also known as two-sample variance, is a measure
+ * of frequency stability in clocks, oscillators and amplifiers. In
+ * visual-inertial state-estimation in robotics, this is typically used to
+ * identify the noise characteristics of an IMU.
+ *
+ * Consider a measurement y(t) from a sensor over time intervals of length dt.
+ * These measurements x(k * dt) form the input to this function. Allan variance
+ * is defined for different averaging times tau = m * dt as follows:
+ *
+ *   AVAR(tau) = 1/2 * <(Y(k + m) - Y(k))>,
+ *
+ * where Y(j) is the time average value of y(t) over [k * dt, (k + m) * dt]
+ * (call it a cluster), and < ... > means averaging over different clusters.
+ *
+ * If we define X(j) being an integral of x(s) from 0 to dt * j,
+ * we can rewrite the AVAR as  follows:
+ *
+ *   AVAR(tau) = 1/(2 * tau**2) * <X(k + 2 * m) - 2 * X(k + m) + X(k)>
+ *
+ * We implement < ... > by averaging over different clusters of a given sample
+ * with overlapping, and X(j) is readily available from x.
+ */
+void avar(const real_t *x, const real_t dt, const real_t *tau, const size_t n) {
+  // Integrate signal
+  real_t *theta = MALLOC(real_t, n);
+  cumsum(x, n, theta);
+  for (size_t k = 0; k < n; k++) {
+    theta[k] *= dt;
+  }
+
+  // Clean up
+  free(theta);
 }
 
 ////////////////////////
@@ -12413,6 +12523,160 @@ void inertial_odometry_linearize_compact(const void *data,
   }
 }
 
+//////////////////////////////////////
+// TWO STATE IMPLICIT FILTER (TSIF) //
+//////////////////////////////////////
+
+/**
+ * Setup TSIF.
+ */
+void tsif_setup(tsif_t *tsif) {
+  // tsif->imu_factor;
+  tsif->has_imu = 0;
+
+  // tsif->idf_factors;
+  tsif->num_idf_factors = 0;
+
+  // tsif->cam_params;
+  // tsif->cam_exts;
+  tsif->num_cams = 0;
+}
+
+/**
+ * Print TSIF.
+ */
+void tsif_print(const tsif_t *tsif);
+
+/**
+ * Add camera to TSIF.
+ */
+void tsif_add_camera(tsif_t *tsif,
+                     const int cam_idx,
+                     const int cam_res[2],
+                     const char *proj_model,
+                     const char *dist_model,
+                     const real_t cam_vec[8],
+                     const real_t T_BC[4 * 4]) {
+  assert(cam_idx >= 0 && cam_idx < TSIF_MAX_CAMS);
+
+  // Camera parameters
+  camera_params_setup(&tsif->cam_params[cam_idx],
+                      cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_vec);
+
+  // Camera extrinsic
+  TF_VECTOR(T_BC, cam_ext);
+  extrinsic_setup(&tsif->cam_exts[cam_idx], cam_ext);
+}
+
+/**
+ * Add IMU to TSIF.
+ */
+void tsif_add_imu(tsif_t *tsif,
+                  const real_t rate,
+                  const real_t sigma_aw,
+                  const real_t sigma_gw,
+                  const real_t sigma_a,
+                  const real_t sigma_g,
+                  const real_t g) {
+  // IMU parameters
+  tsif->imu_params.rate = rate;
+  tsif->imu_params.sigma_aw = sigma_aw;
+  tsif->imu_params.sigma_gw = sigma_gw;
+  tsif->imu_params.sigma_a = sigma_a;
+  tsif->imu_params.sigma_g = sigma_g;
+  tsif->imu_params.g = g;
+
+  // Flag TSIF has imu
+  tsif->has_imu = 1;
+}
+
+/**
+ * Form TSIF parameter order.
+ */
+param_order_t *tsif_param_order(const void *data, int *sv_size, int *r_size) {
+  // Setup parameter order
+  tsif_t *tsif = (tsif_t *) data;
+  param_order_t *hash = NULL;
+  int col_idx = 0;
+
+  // Timestep k - 1
+  param_order_add(&hash, POSE_PARAM, 0, tsif->pose_i.data, &col_idx);
+  if (tsif->has_imu) {
+    param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_i.data, &col_idx);
+    param_order_add(&hash, IMU_BIASES_PARAM, 0, tsif->biases_i.data, &col_idx);
+  }
+
+  // Timestep k
+  param_order_add(&hash, POSE_PARAM, 0, tsif->pose_j.data, &col_idx);
+  if (tsif->has_imu) {
+    param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_j.data, &col_idx);
+    param_order_add(&hash, IMU_BIASES_PARAM, 0, tsif->biases_j.data, &col_idx);
+  }
+
+  *sv_size = col_idx;
+  *r_size = (tsif->num_idf_factors * 2) + (tsif->has_imu * 15);
+  return hash;
+}
+
+/**
+ * Linearize TSIF Non-linear Least Square Problem.
+ */
+void tsif_linearize_compact(const void *data,
+                            const int sv_size,
+                            param_order_t *hash,
+                            real_t *H,
+                            real_t *g,
+                            real_t *r) {
+  // Evaluate factors
+  tsif_t *tsif = (tsif_t *) data;
+  size_t r_idx = 0;
+
+  // -- IMU factor
+  if (tsif->has_imu) {
+    imu_factor_t *factor = &tsif->imu_factor;
+    SOLVER_EVAL_FACTOR_COMPACT(hash,
+                               sv_size,
+                               H,
+                               g,
+                               imu_factor_eval,
+                               factor,
+                               r,
+                               r_idx);
+  }
+
+  // -- IDF factors
+  for (int cam_idx = 0; cam_idx < tsif->num_cams; cam_idx++) {
+    for (int i = 0; i < tsif->num_cams; i++) {
+      idf_factor_t *factor = &tsif->idf_factors[cam_idx][i];
+      SOLVER_EVAL_FACTOR_COMPACT(hash,
+                                 sv_size,
+                                 H,
+                                 g,
+                                 idf_factor_eval,
+                                 factor,
+                                 r,
+                                 r_idx);
+    }
+  }
+}
+
+/**
+ * Update TSIF.
+ */
+void tsif_update(tsif_t *tsif) {
+  // Solve
+  solver_t solver;
+  solver_setup(&solver);
+  solver.max_iter = 1;
+  solver.param_order_func = &tsif_param_order;
+  solver.linearize_func = &tsif_linearize_compact;
+  solver_solve(&solver, tsif);
+}
+
 /******************************************************************************
  * DATASET
  ******************************************************************************/
@@ -12440,8 +12704,8 @@ parse_pose_data(const int i, const int j, const char *entry, pose_t *poses) {
 }
 
 /**
- * Load poses from file `fp`. The number of poses in file will be outputted to
- * `num_poses`.
+ * Load poses from file `fp`. The number of poses in file
+ * will be outputted to `num_poses`.
  */
 pose_t *load_poses(const char *fp, int *num_poses) {
   assert(fp != NULL);
@@ -12531,23 +12795,27 @@ int **assoc_pose_data(pose_t *gnd_poses,
   int **matches = MALLOC(int *, k_end);
 
   while ((gnd_idx + 1) < num_gnd_poses && (est_idx + 1) < num_est_poses) {
-    // Calculate time difference between ground truth and estimate
+    // Calculate time difference between ground truth and
+    // estimate
     double gnd_k_time = ts2sec(gnd_poses[gnd_idx].ts);
     double est_k_time = ts2sec(est_poses[est_idx].ts);
     double t_k_diff = fabs(gnd_k_time - est_k_time);
 
-    // Check to see if next ground truth timestamp forms a smaller time diff
+    // Check to see if next ground truth timestamp forms
+    // a smaller time diff
     double t_kp1_diff = threshold;
     if ((gnd_idx + 1) < num_gnd_poses) {
       double gnd_kp1_time = ts2sec(gnd_poses[gnd_idx + 1].ts);
       t_kp1_diff = fabs(gnd_kp1_time - est_k_time);
     }
 
-    // Conditions to call this pair (ground truth and estimate) a match
+    // Conditions to call this pair (ground truth and
+    // estimate) a match
     int threshold_met = t_k_diff < threshold;
     int smallest_diff = t_k_diff < t_kp1_diff;
 
-    // Mark pairs as a match or increment appropriate indices
+    // Mark pairs as a match or increment appropriate
+    // indices
     if (threshold_met && smallest_diff) {
       matches[match_idx] = MALLOC(int, 2);
       matches[match_idx][0] = gnd_idx;
@@ -12617,16 +12885,23 @@ void sim_features_free(sim_features_t *feature_data) {
 //////////////////
 
 /**
- * Load simulation imu data
+ * Setup sim imu data.
  */
-sim_imu_data_t *sim_imu_data_load(const char *csv_path) {
+void sim_imu_data_setup(sim_imu_data_t *imu_data) {
+  imu_data->num_measurements = 0;
+  imu_data->timestamps = NULL;
+  imu_data->poses = NULL;
+  imu_data->velocities = NULL;
+  imu_data->imu_acc = NULL;
+  imu_data->imu_gyr = NULL;
+}
+
+/**
+ * Malloc sim imu data.
+ */
+sim_imu_data_t *sim_imu_data_malloc() {
   sim_imu_data_t *imu_data = MALLOC(sim_imu_data_t, 1);
-
-  int num_rows = 0;
-  int num_cols = 0;
-  imu_data->data = csv_data(csv_path, &num_rows, &num_cols);
-  imu_data->num_measurements = num_rows;
-
+  sim_imu_data_setup(imu_data);
   return imu_data;
 }
 
@@ -12640,11 +12915,107 @@ void sim_imu_data_free(sim_imu_data_t *imu_data) {
   }
 
   // Free data
-  for (int i = 0; i < imu_data->num_measurements; i++) {
-    free(imu_data->data[i]);
-  }
-  free(imu_data->data);
+  free(imu_data->timestamps);
+  free(imu_data->poses);
+  free(imu_data->velocities);
+  free(imu_data->imu_acc);
+  free(imu_data->imu_gyr);
   free(imu_data);
+}
+
+/**
+ * Load simulation imu data
+ */
+sim_imu_data_t *sim_imu_data_load(const char *csv_path) {
+  return NULL;
+}
+
+/**
+ * Simulate IMU circle trajectory.
+ */
+sim_imu_data_t *sim_imu_circle_trajectory(const int imu_rate,
+                                          const real_t circle_r,
+                                          const real_t circle_v,
+                                          const real_t theta_init,
+                                          const real_t yaw_init) {
+  // Circle trajectory configurations
+  const real_t circle_dist = 2.0 * M_PI * circle_r;
+  const real_t time_taken = circle_dist / circle_v;
+  const real_t w = -2.0 * M_PI * (1.0 / time_taken);
+
+  // Allocate memory for test data
+  sim_imu_data_t *imu_data = sim_imu_data_malloc();
+  imu_data->num_measurements = time_taken * imu_rate;
+  imu_data->timestamps = CALLOC(real_t, imu_data->num_measurements);
+  imu_data->poses = CALLOC(real_t, imu_data->num_measurements * 7);
+  imu_data->velocities = CALLOC(real_t, imu_data->num_measurements * 3);
+  imu_data->imu_acc = CALLOC(real_t, imu_data->num_measurements * 3);
+  imu_data->imu_gyr = CALLOC(real_t, imu_data->num_measurements * 3);
+
+  // Simulate IMU poses
+  const real_t dt = 1.0 / imu_rate;
+  timestamp_t ts = 0.0;
+  real_t theta = theta_init;
+  real_t yaw = yaw_init;
+
+  for (size_t k = 0; k < imu_data->num_measurements; k++) {
+    // IMU pose
+    // -- Position
+    const real_t rx = circle_r * cos(theta);
+    const real_t ry = circle_r * sin(theta);
+    const real_t rz = 0.0;
+    // -- Orientation
+    const real_t ypr[3] = {yaw, 0.0, 0.0};
+    real_t q[4] = {0};
+    euler2quat(ypr, q);
+    // -- Pose vector
+    const real_t pose[7] = {rx, ry, rz, q[0], q[1], q[2], q[3]};
+    // print_vector("pose", pose, 7);
+
+    // Velocity
+    const real_t vx = -circle_r * w * sin(theta);
+    const real_t vy = circle_r * w * cos(theta);
+    const real_t vz = 0.0;
+    const real_t v_WS[3] = {vx, vy, vz};
+
+    // Acceleration
+    const real_t ax = -circle_r * w * w * cos(theta);
+    const real_t ay = -circle_r * w * w * sin(theta);
+    const real_t az = 0.0;
+    const real_t a_WS[3] = {ax, ay, az};
+
+    // Angular velocity
+    const real_t wx = 0.0;
+    const real_t wy = 0.0;
+    const real_t wz = w;
+    const real_t w_WS[3] = {wx, wy, wz};
+
+    // IMU measurements
+    real_t C_WS[3 * 3] = {0};
+    real_t C_SW[3 * 3] = {0};
+    quat2rot(q, C_WS);
+    mat_transpose(C_WS, 3, 3, C_SW);
+    // -- Accelerometer measurement
+    real_t acc[3] = {0};
+    dot(C_SW, 3, 3, a_WS, 3, 1, acc);
+    acc[2] += 9.81;
+    // -- Gyroscope measurement
+    real_t gyr[3] = {0};
+    dot(C_SW, 3, 3, w_WS, 3, 1, gyr);
+
+    // Update
+    imu_data->timestamps[k] = ts;
+    vec_copy(pose, 7, imu_data->poses + k * 7);
+    vec_copy(v_WS, 3, imu_data->velocities + k * 3);
+    vec_copy(acc, 3, imu_data->imu_acc + k * 3);
+    vec_copy(gyr, 3, imu_data->imu_gyr + k * 3);
+
+    theta += w * dt;
+    yaw += w * dt;
+    ts += sec2ts(dt);
+  }
+
+  return imu_data;
 }
 
 /////////////////////
@@ -12668,6 +13039,59 @@ static timestamp_t ts_from_path(const char *path) {
 }
 
 /**
+ * Setup simulated camera frame.
+ */
+void sim_camera_frame_setup(sim_camera_frame_t *frame,
+                            const timestamp_t ts,
+                            const int cam_idx) {
+  frame->ts = ts;
+  frame->cam_idx = cam_idx;
+  frame->num_measurements = 0;
+  frame->feature_ids = NULL;
+  frame->keypoints = NULL;
+}
+
+/**
+ * Malloc simulated camera frame.
+ */
+sim_camera_frame_t *sim_camera_frame_malloc(const timestamp_t ts,
+                                            const int cam_idx) {
+  sim_camera_frame_t *frame = MALLOC(sim_camera_frame_t, 1);
+  sim_camera_frame_setup(frame, ts, cam_idx);
+  return frame;
+}
+
+/**
+ * Free simulated camera frame
+ */
+void sim_camera_frame_free(sim_camera_frame_t *frame_data) {
+  // Pre-check
+  if (frame_data == NULL) {
+    return;
+  }
+
+  // Free data
+  free(frame_data->keypoints);
+  free(frame_data->feature_ids);
+  free(frame_data);
+}
+
+/**
+ * Add keypoint measurement to camera frame.
+ */
+void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame,
+                                   const int feature_id,
+                                   const real_t kp[2]) {
+  const int N = frame->num_measurements + 1;
+  frame->num_measurements = N;
+  frame->feature_ids = REALLOC(frame->feature_ids, real_t, N);
+  frame->keypoints = REALLOC(frame->keypoints, real_t, N * 2);
+  frame->feature_ids[N - 1] = feature_id;
+  frame->keypoints[(N - 1) * 2 + 0] = kp[0];
+  frame->keypoints[(N - 1) * 2 + 1] = kp[1];
+}
+
+/**
  * Load simulated camera frame
  */
 sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
@@ -12685,13 +13109,12 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
   sim_camera_frame_t *frame_data = MALLOC(sim_camera_frame_t, 1);
   frame_data->ts = ts_from_path(csv_path);
   frame_data->feature_ids = MALLOC(int, num_rows);
-  frame_data->keypoints = MALLOC(real_t *, num_rows);
+  frame_data->keypoints = MALLOC(real_t, num_rows * 2);
   frame_data->num_measurements = num_rows;
   for (int i = 0; i < num_rows; i++) {
     frame_data->feature_ids[i] = (int) data[i][0];
-    frame_data->keypoints[i] = MALLOC(real_t, 2);
-    frame_data->keypoints[i][0] = data[i][1];
-    frame_data->keypoints[i][1] = data[i][2];
+    frame_data->keypoints[i * 2 + 0] = data[i][1];
+    frame_data->keypoints[i * 2 + 1] = data[i][2];
   }
 
   // Clean up
@@ -12703,12 +13126,12 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
 /**
  * Print camera frame
  */
-void sim_camera_frame_print(sim_camera_frame_t *frame_data) {
+void sim_camera_frame_print(const sim_camera_frame_t *frame_data) {
   printf("ts: %ld\n", frame_data->ts);
   printf("num_frames: %d\n", frame_data->num_measurements);
   for (int i = 0; i < frame_data->num_measurements; i++) {
     const int feature_id = frame_data->feature_ids[i];
-    const real_t *kp = frame_data->keypoints[i];
+    const real_t *kp = frame_data->keypoints + i * 2;
     printf("- ");
     printf("feature_id: [%d], ", feature_id);
     printf("kp: [%.2f, %.2f]\n", kp[0], kp[1]);
@@ -12717,21 +13140,41 @@ void sim_camera_frame_print(sim_camera_frame_t *frame_data) {
 }
 
 /**
- * Free simulated camera frame
+ * Setup simulated camera frames.
  */
-void sim_camera_frame_free(sim_camera_frame_t *frame_data) {
+void sim_camera_data_setup(sim_camera_data_t *data) {
+  data->frames = NULL;
+  data->num_frames = 0;
+  data->timestamps = NULL;
+  data->poses = NULL;
+}
+
+/**
+ * Malloc simulated camera frames.
+ */
+sim_camera_data_t *sim_camerea_data_malloc() {
+  sim_camera_data_t *data = MALLOC(sim_camera_data_t, 1);
+  sim_camera_data_setup(data);
+  return data;
+}
+
+/**
+ * Free simulated camera data
+ */
+void sim_camera_data_free(sim_camera_data_t *cam_data) {
   // Pre-check
-  if (frame_data == NULL) {
+  if (cam_data == NULL) {
     return;
   }
 
   // Free data
-  free(frame_data->feature_ids);
-  for (int i = 0; i < frame_data->num_measurements; i++) {
-    free(frame_data->keypoints[i]);
+  for (size_t k = 0; k < cam_data->num_frames; k++) {
+    sim_camera_frame_free(cam_data->frames[k]);
   }
-  free(frame_data->keypoints);
-  free(frame_data);
+  free(cam_data->frames);
+  free(cam_data->timestamps);
+  free(cam_data->poses);
+  free(cam_data);
 }
 
 /**
@@ -12765,8 +13208,8 @@ sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
   sim_camera_data_t *cam_data = MALLOC(sim_camera_data_t, 1);
   cam_data->frames = MALLOC(sim_camera_frame_t *, num_rows);
   cam_data->num_frames = num_rows;
-  cam_data->ts = MALLOC(timestamp_t, num_rows);
-  cam_data->poses = MALLOC(real_t *, num_rows);
+  cam_data->timestamps = MALLOC(timestamp_t, num_rows);
+  cam_data->poses = MALLOC(real_t *, num_rows * 7);
 
   int line_idx = 0;
   char line[MAX_LINE_LENGTH] = {0};
@@ -12799,15 +13242,14 @@ sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
     free(frame_csv);
 
     // Add pose to sim_camera_frame_t
-    cam_data->ts[line_idx] = ts;
-    cam_data->poses[line_idx] = MALLOC(real_t, 7);
-    cam_data->poses[line_idx][0] = r[0];
-    cam_data->poses[line_idx][1] = r[1];
-    cam_data->poses[line_idx][2] = r[2];
-    cam_data->poses[line_idx][3] = q[0];
-    cam_data->poses[line_idx][4] = q[1];
-    cam_data->poses[line_idx][5] = q[2];
-    cam_data->poses[line_idx][6] = q[3];
+    cam_data->timestamps[line_idx] = ts;
+    cam_data->poses[line_idx * 7 + 0] = r[0];
+    cam_data->poses[line_idx * 7 + 1] = r[1];
+    cam_data->poses[line_idx * 7 + 2] = r[2];
+    cam_data->poses[line_idx * 7 + 3] = q[0];
+    cam_data->poses[line_idx * 7 + 4] = q[1];
+    cam_data->poses[line_idx * 7 + 5] = q[2];
+    cam_data->poses[line_idx * 7 + 6] = q[3];
 
     // Update
     line_idx++;
@@ -12821,34 +13263,16 @@ sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
 }
 
 /**
- * Free simulated camera data
- */
-void sim_camera_data_free(sim_camera_data_t *cam_data) {
-  // Pre-check
-  if (cam_data == NULL) {
-    return;
-  }
-
-  // Free data
-  for (int k = 0; k < cam_data->num_frames; k++) {
-    sim_camera_frame_free(cam_data->frames[k]);
-    free(cam_data->poses[k]);
-  }
-  free(cam_data->frames);
-  free(cam_data->ts);
-  free(cam_data->poses);
-  free(cam_data);
-}
-
-/**
  * Simulate 3D features
  */
-real_t **sim_create_features(const real_t origin[3],
-                             const real_t dim[3],
-                             const int num_features) {
+void sim_create_features(const real_t origin[3],
+                         const real_t dim[3],
+                         const int num_features,
+                         real_t *features) {
   assert(origin != NULL);
   assert(dim != NULL);
   assert(num_features > 0);
+  assert(features != NULL);
 
   // Setup
   const real_t w = dim[0];
@@ -12856,7 +13280,6 @@ real_t **sim_create_features(const real_t origin[3],
   const real_t h = dim[2];
   const int features_per_side = num_features / 4.0;
   int feature_idx = 0;
-  real_t **features = MALLOC(real_t *, num_features);
 
   // Features in the east side
   {
@@ -12864,10 +13287,9 @@ real_t **sim_create_features(const real_t origin[3],
     const real_t y_bounds[2] = {origin[1] + l, origin[1] + l};
     const real_t z_bounds[2] = {origin[2] - h, origin[2] + h};
     for (int i = 0; i < features_per_side; i++) {
-      features[feature_idx] = MALLOC(real_t, 3);
-      features[feature_idx][0] = randf(x_bounds[0], x_bounds[1]);
-      features[feature_idx][1] = randf(y_bounds[0], y_bounds[1]);
-      features[feature_idx][2] = randf(z_bounds[0], z_bounds[1]);
+      features[feature_idx * 3 + 0] = randf(x_bounds[0], x_bounds[1]);
+      features[feature_idx * 3 + 1] = randf(y_bounds[0], y_bounds[1]);
+      features[feature_idx * 3 + 2] = randf(z_bounds[0], z_bounds[1]);
       feature_idx++;
     }
   }
@@ -12878,10 +13300,9 @@ real_t **sim_create_features(const real_t origin[3],
     const real_t y_bounds[2] = {origin[1] - l, origin[1] + l};
     const real_t z_bounds[2] = {origin[2] - h, origin[2] + h};
     for (int i = 0; i < features_per_side; i++) {
-      features[feature_idx] = MALLOC(real_t, 3);
-      features[feature_idx][0] = randf(x_bounds[0], x_bounds[1]);
-      features[feature_idx][1] = randf(y_bounds[0], y_bounds[1]);
-      features[feature_idx][2] = randf(z_bounds[0], z_bounds[1]);
+      features[feature_idx * 3 + 0] = randf(x_bounds[0], x_bounds[1]);
+      features[feature_idx * 3 + 1] = randf(y_bounds[0], y_bounds[1]);
+      features[feature_idx * 3 + 2] = randf(z_bounds[0], z_bounds[1]);
       feature_idx++;
     }
   }
@@ -12892,10 +13313,9 @@ real_t **sim_create_features(const real_t origin[3],
     const real_t y_bounds[2] = {origin[1] - l, origin[1] - l};
     const real_t z_bounds[2] = {origin[2] - h, origin[2] + h};
     for (int i = 0; i < features_per_side; i++) {
-      features[feature_idx] = MALLOC(real_t, 3);
-      features[feature_idx][0] = randf(x_bounds[0], x_bounds[1]);
-      features[feature_idx][1] = randf(y_bounds[0], y_bounds[1]);
-      features[feature_idx][2] = randf(z_bounds[0], z_bounds[1]);
+      features[feature_idx * 3 + 0] = randf(x_bounds[0], x_bounds[1]);
+      features[feature_idx * 3 + 1] = randf(y_bounds[0], y_bounds[1]);
+      features[feature_idx * 3 + 2] = randf(z_bounds[0], z_bounds[1]);
       feature_idx++;
     }
   }
@@ -12906,32 +13326,101 @@ real_t **sim_create_features(const real_t origin[3],
     const real_t y_bounds[2] = {origin[1] - l, origin[1] + l};
     const real_t z_bounds[2] = {origin[2] - h, origin[2] + h};
     for (int i = 0; i < features_per_side; i++) {
-      features[feature_idx] = MALLOC(real_t, 3);
-      features[feature_idx][0] = randf(x_bounds[0], x_bounds[1]);
-      features[feature_idx][1] = randf(y_bounds[0], y_bounds[1]);
-      features[feature_idx][2] = randf(z_bounds[0], z_bounds[1]);
+      features[feature_idx * 3 + 0] = randf(x_bounds[0], x_bounds[1]);
+      features[feature_idx * 3 + 1] = randf(y_bounds[0], y_bounds[1]);
+      features[feature_idx * 3 + 2] = randf(z_bounds[0], z_bounds[1]);
       feature_idx++;
     }
   }
-
-  return features;
 }
 
-// void sim_circle_trajectory() {
-//   real_t circle_r = 1.0;
-//   real_t circle_v = 1.0;
-//   real_t cam_rate = 10.0;
-//   real_t imu_rate = 200.0;
-//   int num_features = 1000;
+sim_camera_data_t *
+sim_camera_circle_trajectory(const real_t cam_rate,
+                             const real_t circle_r,
+                             const real_t circle_v,
+                             const real_t theta_init,
+                             const real_t yaw_init,
+                             const real_t T_BC[4 * 4],
+                             const camera_params_t *cam_params,
+                             const real_t *features,
+                             const int num_features) {
+  // Circle trajectory configurations
+  const real_t circle_dist = 2.0 * M_PI * circle_r;
+  const real_t time_taken = circle_dist / circle_v;
+  const real_t w = -2.0 * M_PI * (1.0 / time_taken);
 
-//   // Trajectory data
-//   real_t g[3] = {0.0, 0.0, 9.81};
-//   real_t circle_dist = 2.0 * M_PI * circle_r;
-//   real_t time_taken = circle_dist / circle_v;
-//   real_t w = -2.0 * M_PI * (1.0 / time_taken);
-//   real_t theta_init = M_PI;
-//   real_t yaw_init = M_PI / 2.0;
-// }
+  // Allocate memory for test data
+  const int cam_idx = cam_params->cam_idx;
+  const int num_frames = time_taken * cam_rate;
+  sim_camera_data_t *data = sim_camerea_data_malloc();
+  data->cam_idx = cam_idx;
+  data->frames = CALLOC(sim_camera_frame_t *, num_frames);
+  data->num_frames = num_frames;
+  data->timestamps = CALLOC(real_t, data->num_frames);
+  data->poses = CALLOC(real_t, data->num_frames * 7);
+
+  // Simulate camera
+  const real_t dt = 1.0 / cam_rate;
+  timestamp_t ts = 0.0;
+  real_t theta = theta_init;
+  real_t yaw = yaw_init;
+
+  for (size_t k = 0; k < data->num_frames; k++) {
+    // Body pose T_WB
+    // -- Position
+    const real_t rx = circle_r * cos(theta);
+    const real_t ry = circle_r * sin(theta);
+    const real_t rz = 0.0;
+    const real_t r_WB[3] = {rx, ry, rz};
+    // -- Orientation
+    const real_t ypr_WB[3] = {yaw, 0.0, 0.0};
+    real_t q_WB[4] = {0};
+    euler2quat(ypr_WB, q_WB);
+    // -- Body Pose
+    TF_QR(q_WB, r_WB, T_WB);
+
+    // Camera pose
+    TF_CHAIN(T_WC, 2, T_WB, T_BC);
+    TF_VECTOR(T_WC, cam_pose);
+    TF_INV(T_WC, T_CW);
+
+    // Simulate camera frame
+    sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, cam_idx);
+    for (int feature_id = 0; feature_id < num_features; feature_id++) {
+      // Check point is infront of camera
+      const real_t *p_W = features + feature_id * 3;
+      TF_POINT(T_CW, p_W, p_C);
+      if (p_C[2] < 0) {
+        continue;
+      }
+
+      // Project image point to image plane
+      real_t z[2] = {0};
+      pinhole_radtan4_project(cam_params->data, p_C, z);
+
+      // Check projection
+      const int x_ok = (z[0] < cam_params->resolution[0] && z[0] > 0);
+      const int y_ok = (z[1] < cam_params->resolution[1] && z[1] > 0);
+      if (x_ok == 0 || y_ok == 0) {
+        continue;
+      }
+
+      // Add keypoint to camera frame
+      sim_camera_frame_add_keypoint(frame, feature_id, z);
+    }
+    data->frames[k] = frame;
+
+    // Update
+    data->timestamps[k] = ts;
+    vec_copy(cam_pose, 7, data->poses + k * 7);
+
+    theta += w * dt;
+    yaw += w * dt;
+    ts += sec2ts(dt);
+  }
+
+  return data;
+}
 
 /////////////////////
 // SIM GIMBAL DATA //
