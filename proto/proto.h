@@ -1366,61 +1366,50 @@ void features_remove(features_t *features, const int feature_id);
 // INVERSE-DEPTH FEATURE //
 ///////////////////////////
 
-#define IDF_PARAM_SIZE 3
+#define IDFB_MAX_NUM 200
 
-typedef struct idf_t {
+typedef struct idf_pos_t {
+  real_t data[3];
+} idf_pos_t;
+
+typedef struct idf_param_t {
   const camera_params_t *cam_params;
   back_project_func_t back_proj_func;
 
   int status;
   size_t feature_id;
-  real_t data[IDF_PARAM_SIZE];
-} idf_t;
-
-void idf_setup(idf_t *idf,
-               const camera_params_t *cam_params,
-               const back_project_func_t back_proj_func,
-               const int status,
-               const size_t feature_id,
-               const real_t T_WC[4 * 4],
-               const real_t z[2]);
-void idf_param(const camera_params_t *cam_params,
-               const back_project_func_t back_proj_func,
-               const real_t T_WC[4 * 4],
-               const real_t z[2],
-               const real_t depth_init,
-               real_t param[IDF_PARAM_SIZE]);
-void idf_print(const idf_t *idf);
-void idf_point(const idf_t *idf, const real_t r_WC[3], real_t p_W[3]);
-
-//////////////////////////////////
-// INVERSE-DEPTH FEATURE BUNDLE //
-//////////////////////////////////
-
-#define IDFB_MAX_NUM 200
-#define IDFB_PARAM_SIZE 3
+  real_t data[3];
+} idf_param_t;
 
 typedef struct idfb_t {
   size_t num_features;
   size_t num_alive;
-  int status[IDFB_MAX_NUM];
-  size_t feature_ids[IDFB_MAX_NUM];
-  real_t data[3 + IDFB_MAX_NUM * IDFB_PARAM_SIZE];
+
+  idf_pos_t pos;
+  idf_param_t features[IDFB_MAX_NUM];
 } idfb_t;
 
-void idfb_setup(idfb_t *idfb,
-                const camera_params_t *cam_params,
-                const back_project_func_t back_proj_func,
-                const int num_features,
-                const size_t *feature_ids,
-                const real_t T_WC[4 * 4],
-                const real_t *z,
-                const real_t depth_init);
-void idfb_reset(idfb_t *idfb);
-// void idfb_print(const idfb_t *idfb);
-// void idfb_mark_lost(idfb_t *idfb, const size_t feature_id);
-// int idfb_num_alive(const idfb_t *idfb);
-// void idfb_point(const idfb_t *idfb, const int feature_id, real_t p_W[3]);
+void idf_pos_setup(idf_pos_t *pos, const real_t *data);
+void idf_pos_print(const char *prefix, const idf_pos_t *pos);
+
+void idf_param_setup(idf_param_t *idf,
+                     const camera_params_t *cam_params,
+                     const back_project_func_t back_proj_func,
+                     const int status,
+                     const size_t feature_id,
+                     const real_t T_WC[4 * 4],
+                     const real_t z[2]);
+void idf_param_form(const camera_params_t *cam_params,
+                    const back_project_func_t back_proj_func,
+                    const real_t T_WC[4 * 4],
+                    const real_t z[2],
+                    const real_t depth_init,
+                    real_t param[3]);
+void idf_param_print(const idf_param_t *idf);
+
+void idf_point(const idf_param_t *idf_param,
+               const idf_pos_t *idf_pos,
+               real_t p_W[3]);
 
 //////////////
 // KEYFRAME //
@@ -1647,8 +1636,8 @@ typedef struct idf_factor_t {
   pose_t *pose;
   extrinsic_t *extrinsic;
   camera_params_t *camera;
-  pos_t *idf_pos;
-  idf_t *idf_param;
+  idf_pos_t *idf_pos;
+  idf_param_t *idf_param;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
@@ -1672,46 +1661,11 @@ void idf_factor_setup(idf_factor_t *factor,
                       pose_t *pose,
                       extrinsic_t *extrinsic,
                       camera_params_t *camera,
-                      pos_t *idf_pos,
-                      idf_t *idf,
+                      idf_pos_t *idf_pos,
+                      idf_param_t *idf_param,
                       const real_t z[2],
                       const real_t var[2]);
 int idf_factor_eval(void *factor_ptr);
-
-////////////////////////////////////////////////
-// INVERSE-DEPTH FEATURE BUNDLE (IDFB) FACTOR //
-////////////////////////////////////////////////
-
-typedef struct idfb_factor_t {
-  pose_t *pose;
-  extrinsic_t *extrinsic;
-  camera_params_t *camera;
-  pos_t *pos;
-  idfb_t *idfb;
-
-  real_t *z;
-
-  int r_size;
-  int num_params;
-  int param_types[4];
-
-  real_t *params[4];
-  real_t *r;
-  real_t *jacs[4];
-  real_t *J_pose;
-  real_t *J_extrinsic;
-  real_t *J_camera;
-  real_t *J_idfb;
-} idfb_factor_t;
-
-void idfb_factor_setup(idfb_factor_t *factor,
-                       pose_t *pose,
-                       extrinsic_t *extrinsic,
-                       camera_params_t *camera,
-                       idfb_t *idfb,
-                       const real_t z[2],
-                       const real_t var[2]);
-int idfb_factor_eval(void *factor_ptr);
 
 ////////////////
 // IMU FACTOR //
@@ -2468,6 +2422,7 @@ typedef struct tsif_t {
   extrinsic_t cam_exts[TSIF_MAX_CAMS];
   int num_cams;
 
+  idfb_t idfb;
   idf_factor_t idf_factors[TSIF_MAX_CAMS][TSIF_MAX_IDFS];
   int num_idf_factors;
 

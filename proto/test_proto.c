@@ -2982,6 +2982,7 @@ int test_idf() {
   TF_INV(T_BCi, T_CiB);
   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
   TF_INV(T_CiW, T_WCi);
+  TF_TRANS(T_WCi, r_WCi);
 
   const int status = 1;
   const size_t feature_id = 0;
@@ -2991,108 +2992,28 @@ int test_idf() {
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   // Setup IDF
-  idf_t idf;
-  idf_setup(&idf,
-            &cam,
-            pinhole_radtan4_back_project,
-            status,
-            feature_id,
-            T_WCi,
-            z);
-  idf_print(&idf);
+  idf_pos_t idf_pos;
+  idf_pos_setup(&idf_pos, r_WCi);
 
-  return 0;
-}
+  idf_param_t idf_param;
+  idf_param_setup(&idf_param,
+                  &cam,
+                  pinhole_radtan4_back_project,
+                  status,
+                  feature_id,
+                  T_WCi,
+                  z);
+  idf_param_print(&idf_param);
 
-int test_idfb() {
-  // Body pose
-  pose_t pose;
-  const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose, 0, pose_data);
+  // Reproject IDF to feature in world frame
+  real_t p_W_est[3] = {0};
+  idf_point(&idf_param, &idf_pos, p_W_est);
 
-  // Extrinsic
-  extrinsic_t cam_ext;
-  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
-  extrinsic_setup(&cam_ext, ext_data);
-
-  // Camera parameters
-  camera_params_t cam;
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
-
-  // Form T_CiW
-  TF(pose_data, T_WB);
-  TF(ext_data, T_BCi);
-  TF_INV(T_WB, T_BW);
-  TF_INV(T_BCi, T_CiB);
-  TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-  TF_INV(T_CiW, T_WCi);
-
-  // Form features and image points
-  int num_features = 10;
-  size_t feature_ids[10] = {0};
-  real_t features[3 * 10] = {0};
-  real_t keypoints[2 * 10] = {0};
-  for (size_t i = 0; i < num_features; i++) {
-    // Create a feature in world frame
-    const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
-    feature_ids[i] = i;
-    features[i * 3 + 0] = p_W[0];
-    features[i * 3 + 1] = p_W[1];
-    features[i * 3 + 2] = p_W[2];
-
-    // Project point from world to image plane
-    real_t z[2] = {0};
-    TF_POINT(T_CiW, p_W, p_Ci);
-    pinhole_radtan4_project(cam_data, p_Ci, z);
-    keypoints[i * 2 + 0] = z[0];
-    keypoints[i * 2 + 1] = z[1];
-  }
-
-  // Setup
-  const real_t depth_init = 0.1;
-  idfb_t idfb;
-  idfb_setup(&idfb,
-             &cam,
-             pinhole_radtan4_back_project,
-             num_features,
-             feature_ids,
-             T_WCi,
-             keypoints,
-             depth_init);
-  MU_ASSERT(idfb.num_features == num_features);
-  // idfb_print(&idfb);
-
-  // for (int i = 0; i < idfb.num_features; i++) {
-  //   const real_t *gnd = features + i * 3;
-  //   real_t est[3] = {0};
-  //   idfb_point(&idfb, i, est);
-
-  //   const real_t dx = fabs(gnd[0] - est[0]);
-  //   const real_t dy = fabs(gnd[1] - est[1]);
-  //   const real_t dz = fabs(gnd[2] - est[2]);
-  //   const real_t diff = sqrt(dx * dx + dy * dy + dz * dz);
-
-  //   // printf("gnd: (%.4f, %.4f, %.4f), ", gnd[0], gnd[1], gnd[2]);
-  //   // printf("est: (%.4f, %.4f, %.4f), ", est[0], est[1], est[2]);
-  //   // printf("diff: %f ", diff);
-  //   // printf("\n");
-
-  //   MU_ASSERT(diff < 1e-1);
-  // }
-
-  // // Make feature as lost
-  // idfb_mark_lost(&idfb, 2);
-  // idfb_mark_lost(&idfb, 4);
-  // idfb_mark_lost(&idfb, 6);
-  // MU_ASSERT(idfb.status[2] == 0);
-  // MU_ASSERT(idfb.status[4] == 0);
-  // MU_ASSERT(idfb.status[6] == 0);
-  // // idfb_print(&idfb);
+  const real_t dx = p_W_est[0] - p_W[0];
+  const real_t dy = p_W_est[1] - p_W[1];
+  const real_t dz = p_W_est[2] - p_W[2];
+  const real_t dist = sqrt(dx * dx + dy * dy + dz * dz);
+  MU_ASSERT(dist < 1e-1);
 
   return 0;
 }
@@ -3298,16 +3219,17 @@ int test_idf_factor() {
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   // Setup IDF
-  pos_t idf_pos;
-  idf_t idf_param;
-  pos_setup(&idf_pos, r_WCi);
-  idf_setup(&idf_param,
-            &cam,
-            pinhole_radtan4_back_project,
-            status,
-            feature_id,
-            T_WCi,
-            z);
+  idf_pos_t idf_pos;
+  idf_pos_setup(&idf_pos, r_WCi);
+
+  idf_param_t idf_param;
+  idf_param_setup(&idf_param,
+                  &cam,
+                  pinhole_radtan4_back_project,
+                  status,
+                  feature_id,
+                  T_WCi,
+                  z);
 
   // Setup IDF Factor
   const real_t var[2] = {1.0, 1.0};
@@ -5282,7 +5204,6 @@ void test_suite() {
   MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
   MU_ADD_TEST(test_idf);
-  MU_ADD_TEST(test_idfb);
   MU_ADD_TEST(test_keyframe);
   MU_ADD_TEST(test_time_delay);
   MU_ADD_TEST(test_joint);

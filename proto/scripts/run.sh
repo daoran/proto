@@ -41,6 +41,7 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_pose_factor
 # python3 proto.py TestFactors.test_ba_factor
 # python3 proto.py TestFactors.test_vision_factor
+# python3 proto.py TestFactors.test_camera_factor
 # python3 proto.py TestFactors.test_calib_vision_factor
 # python3 proto.py TestFactors.test_two_state_vision_factor
 # python3 proto.py TestFactors.test_calib_gimbal_factor
@@ -65,7 +66,6 @@ run_memcheck() {
 # python3 proto.py TestFeatureTracker.test_detect_nonoverlaps
 # python3 proto.py TestFeatureTracker.test_detect_new
 # python3 proto.py TestFeatureTracker.test_update
-# python3 proto.py TestOrbFeatureTracker.test_update
 # python3 proto.py TestTracker
 # python3 proto.py TestTracker.test_tracker_process_features
 # python3 proto.py TestTracker.test_tracker_vision_callback
@@ -93,6 +93,12 @@ run_memcheck() {
 # " C-m C-m
 # exit
 
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "\
+#   cd ~/projects/proto/proto \
+#   && python3 proto.py TestTracker.test_tracker_vision_callback
+# " C-m C-m
+# exit
 
 ###############################################################################
 # C
@@ -176,9 +182,9 @@ dev_euroc() {
 # dev_aprilgrid
 # dev_euroc
 
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
+# exit
 
 # CAM0_SERIAL=19220362
 # CAM1_SERIAL=19220363
@@ -259,6 +265,8 @@ exit
 # run_test test_rad2deg
 # run_test test_fltcmp
 # run_test test_fltcmp2
+# run_test test_cumsum
+# run_test test_logspace
 # run_test test_pythag
 # run_test test_lerp
 # run_test test_lerp3
@@ -349,34 +357,30 @@ exit
 # memcheck run_test test_load_sim_cam_frame
 # memcheck run_test test_load_sim_cam_data
 # PROTO-SF
-# run_test test_pose_setup
-# run_test test_speed_bias_setup
-# run_test test_landmark_setup
-# run_test test_extrinsics_setup
-# run_test test_camera_setup
-# run_test test_pose_factor_setup
-# run_test test_pose_factor_eval
-# run_test test_ba_factor_setup
-# run_test test_ba_factor_eval
-# run_test test_vision_factor_setup
-# run_test test_vision_factor_eval
-# run_test test_joint_angle_factor_setup
-# run_test test_joint_angle_factor_eval
-# run_test test_calib_camera_factor_setup
-# run_test test_calib_camera_factor_eval
-# run_test test_calib_imucam_factor_setup
-# run_test test_calib_imucam_factor_eval
-# run_test test_calib_gimbal_factor_setup
-# run_test test_calib_gimbal_factor_eval
+# run_test test_pose
+# run_test test_speed_bias
+# run_test test_extrinsics
+# run_test test_camera
+# run_test test_feature
+run_test test_idf
+# run_test test_idfb
+# run_test test_pose_factor
+# run_test test_ba_factor
+# run_test test_vision_factor
+# run_test test_idf_factor
 # run_test test_imu_buf_setup
 # run_test test_imu_buf_add
 # run_test test_imu_buf_clear
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
 # run_test test_imu_factor_propagate_step
-# run_test test_imu_factor_setup
-# run_test test_imu_factor_eval
+# run_test test_imu_factor
+# run_test test_joint_angle_factor
+# run_test test_calib_camera_factor
+# run_test test_calib_imucam_factor
+# run_test test_calib_gimbal_factor
 # run_test test_inertial_odometry
+# run_test test_visual_odometry
 # run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print
