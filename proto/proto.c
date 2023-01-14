@@ -7008,6 +7008,23 @@ void idfb_point(idfb_t *idfb, const size_t feature_id, real_t p_W[3]) {
   idf_point(idf_param, idf_pos, p_W);
 }
 
+/**
+ * Return IDFB feature ids, keypoints and points.
+ */
+void idfb_points(idfb_t *idfb, size_t **feature_ids, real_t **points) {
+  *feature_ids = MALLOC(size_t, idfb->num_alive);
+  *points = MALLOC(real_t, idfb->num_alive * 3);
+
+  size_t idx = 0;
+  for (size_t i = 0; i < hmlen(idfb->params); i++) {
+    if (idfb->params[i].param.status) {
+      (*feature_ids)[idx] = idfb->params[i].key;
+      idf_point(&idfb->params[i].param, &idfb->pos, &(*points)[idx * 3]);
+      idx++;
+    }
+  }
+}
+
 //////////////
 // KEYFRAME //
 //////////////

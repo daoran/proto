@@ -3092,6 +3092,23 @@ int test_idfb() {
     MU_ASSERT(dist < 1e-1);
   }
 
+  {
+    size_t *feature_ids = NULL;
+    real_t *points = NULL;
+    idfb_points(idfb, &feature_ids, &points);
+
+    // for (size_t i = 0; i < idfb->num_alive; i++) {
+    //   printf("feature_id [%ld] ", feature_ids[i]);
+    //   printf("point [%.2f, %.2f, %.2f]\n",
+    //          points[i * 3 + 0],
+    //          points[i * 3 + 1],
+    //          points[i * 3 + 2]);
+    // }
+
+    free(feature_ids);
+    free(points);
+  }
+
   // Clean up
   free(feature_ids);
   free(features);
