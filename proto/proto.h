@@ -1381,12 +1381,16 @@ typedef struct idf_param_t {
   real_t data[3];
 } idf_param_t;
 
-typedef struct idfb_t {
-  size_t num_features;
-  size_t num_alive;
+typedef struct idf_kv_t {
+  size_t key;
+  idf_param_t param;
+} idf_kv_t;
 
+typedef struct idfb_t {
+  int num_alive;
+  int num_features;
   idf_pos_t pos;
-  idf_param_t features[IDFB_MAX_NUM];
+  idf_kv_t *params;
 } idfb_t;
 
 void idf_pos_setup(idf_pos_t *pos, const real_t *data);
@@ -1410,6 +1414,15 @@ void idf_param_print(const idf_param_t *idf);
 void idf_point(const idf_param_t *idf_param,
                const idf_pos_t *idf_pos,
                real_t p_W[3]);
+
+idfb_t *idfb_malloc(const camera_params_t *cam_params,
+                    const back_project_func_t back_proj_func,
+                    const size_t num_features,
+                    const size_t *feature_ids,
+                    const real_t *keypoints,
+                    const real_t T_WC[4 * 4]);
+void idfb_free(idfb_t *idfb);
+void idfb_point(idfb_t *idfb, const size_t feature_id, real_t p_W[3]);
 
 //////////////
 // KEYFRAME //

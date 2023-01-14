@@ -6957,6 +6957,57 @@ void idf_point(const idf_param_t *idf_param,
   p_W[2] = z + depth * m[2];
 }
 
+/**
+ * Malloc IDFB.
+ */
+idfb_t *idfb_malloc(const camera_params_t *cam_params,
+                    const back_project_func_t back_proj_func,
+                    const size_t num_features,
+                    const size_t *feature_ids,
+                    const real_t *keypoints,
+                    const real_t T_WC[4 * 4]) {
+  idfb_t *idfb = MALLOC(idfb_t, 1);
+  idfb->num_features = 0;
+  idfb->num_alive = 0;
+  idfb->params = NULL;
+
+  TF_TRANS(T_WC, r_WC);
+  idf_pos_setup(&idfb->pos, r_WC);
+
+  for (size_t i = 0; i < num_features; i++) {
+    idf_kv_t kv;
+    kv.key = feature_ids[i];
+    idf_param_setup(&kv.param,
+                    cam_params,
+                    back_proj_func,
+                    1,
+                    feature_ids[i],
+                    T_WC,
+                    keypoints + 2 * i);
+
+    hmputs(idfb->params, kv);
+  }
+
+  return idfb;
+}
+
+/**
+ * Free IDFB.
+ */
+void idfb_free(idfb_t *idfb) {
+  hmfree(idfb->params);
+  free(idfb);
+}
+
+/**
+ * Reproject IDF to feature in world frame.
+ */
+void idfb_point(idfb_t *idfb, const size_t feature_id, real_t p_W[3]) {
+  const idf_pos_t *idf_pos = &idfb->pos;
+  const idf_param_t *idf_param = &hmgets(idfb->params, feature_id).param;
+  idf_point(idf_param, idf_pos, p_W);
+}
+
 //////////////
 // KEYFRAME //
 //////////////
