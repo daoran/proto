@@ -995,16 +995,16 @@ int test_cumsum() {
   real_t s[10] = {0};
   cumsum(x, 10, s);
 
-  MU_ASSERT(flt_equals(s[0], 1.0));
-  MU_ASSERT(flt_equals(s[1], 3.0));
-  MU_ASSERT(flt_equals(s[2], 6.0));
-  MU_ASSERT(flt_equals(s[3], 10.0));
-  MU_ASSERT(flt_equals(s[4], 15.0));
-  MU_ASSERT(flt_equals(s[5], 21.0));
-  MU_ASSERT(flt_equals(s[6], 28.0));
-  MU_ASSERT(flt_equals(s[7], 36.0));
-  MU_ASSERT(flt_equals(s[8], 45.0));
-  MU_ASSERT(flt_equals(s[9], 55.0));
+  MU_ASSERT(flteqs(s[0], 1.0));
+  MU_ASSERT(flteqs(s[1], 3.0));
+  MU_ASSERT(flteqs(s[2], 6.0));
+  MU_ASSERT(flteqs(s[3], 10.0));
+  MU_ASSERT(flteqs(s[4], 15.0));
+  MU_ASSERT(flteqs(s[5], 21.0));
+  MU_ASSERT(flteqs(s[6], 28.0));
+  MU_ASSERT(flteqs(s[7], 36.0));
+  MU_ASSERT(flteqs(s[8], 45.0));
+  MU_ASSERT(flteqs(s[9], 55.0));
 
   return 0;
 }
@@ -1013,16 +1013,16 @@ int test_logspace() {
   real_t x[10] = {0};
   logspace(1.0, 2.0, 10, x);
 
-  MU_ASSERT(flt_equals(x[0], 10.000000));
-  MU_ASSERT(flt_equals(x[1], 12.915497));
-  MU_ASSERT(flt_equals(x[2], 16.681005));
-  MU_ASSERT(flt_equals(x[3], 21.544347));
-  MU_ASSERT(flt_equals(x[4], 27.825594));
-  MU_ASSERT(flt_equals(x[5], 35.938137));
-  MU_ASSERT(flt_equals(x[6], 46.415888));
-  MU_ASSERT(flt_equals(x[7], 59.948425));
-  MU_ASSERT(flt_equals(x[8], 77.426368));
-  MU_ASSERT(flt_equals(x[9], 100.00000));
+  MU_ASSERT(flteqs(x[0], 10.000000));
+  MU_ASSERT(flteqs(x[1], 12.915497));
+  MU_ASSERT(flteqs(x[2], 16.681005));
+  MU_ASSERT(flteqs(x[3], 21.544347));
+  MU_ASSERT(flteqs(x[4], 27.825594));
+  MU_ASSERT(flteqs(x[5], 35.938137));
+  MU_ASSERT(flteqs(x[6], 46.415888));
+  MU_ASSERT(flteqs(x[7], 59.948425));
+  MU_ASSERT(flteqs(x[8], 77.426368));
+  MU_ASSERT(flteqs(x[9], 100.00000));
 
   print_vector("x", x, 10);
 

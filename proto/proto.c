@@ -2033,7 +2033,7 @@ int strcmp2(const void *x, const void *y) {
  * Check if reals are equal.
  * @returns 1 if x == y, 0 if x != y.
  */
-int flt_equals(const real_t x, const real_t y) {
+int flteqs(const real_t x, const real_t y) {
   return (fltcmp(x, y) == 0) ? 1 : 0;
 }
 
@@ -2041,7 +2041,7 @@ int flt_equals(const real_t x, const real_t y) {
  * Check if strings are equal.
  * @returns 1 if x == y, 0 if x != y.
  */
-int str_equals(const char *x, const char *y) {
+int streqs(const char *x, const char *y) {
   return (strcmp(x, y) == 0) ? 1 : 0;
 }
 
@@ -6668,6 +6668,16 @@ void camera_params_setup(camera_params_t *camera,
   camera->data[5] = data[5];
   camera->data[6] = data[6];
   camera->data[7] = data[7];
+
+  if (streqs(proj_model, "pinhole") && streqs(dist_model, "radtan4")) {
+    camera->proj_func = pinhole_radtan4_project;
+    camera->back_proj_func = pinhole_radtan4_back_project;
+  } else if (streqs(proj_model, "pinhole") && streqs(dist_model, "equi4")) {
+    camera->proj_func = pinhole_equi4_project;
+    camera->back_proj_func = pinhole_equi4_back_project;
+  } else {
+    FATAL("Unknown [%s-%s] camera model!\n", proj_model, dist_model);
+  }
 }
 
 /**
@@ -6689,6 +6699,24 @@ void camera_params_print(const camera_params_t *cam) {
     }
   }
   printf("]\n");
+}
+
+/**
+ * Project 3D point to image point.
+ */
+void camera_project(const camera_params_t *camera,
+                    const real_t p_C[3],
+                    real_t z[2]) {
+  camera->proj_func(camera->data, p_C, z);
+}
+
+/**
+ * Back project image point to bearing vector.
+ */
+void camera_back_project(const camera_params_t *camera,
+                         const real_t z[2],
+                         real_t bearing[3]) {
+  camera->back_proj_func(camera->data, z, bearing);
 }
 
 //////////////
@@ -6891,32 +6919,6 @@ void idf_param_setup(idf_param_t *idf,
   idf->data[0] = theta;
   idf->data[1] = phi;
   idf->data[2] = rho;
-}
-
-/**
- * Initialize Inverse-Depth Feature
- */
-void idf_param_form(const camera_params_t *cam_params,
-                    const back_project_func_t back_proj_func,
-                    const real_t T_WC[4 * 4],
-                    const real_t z[2],
-                    const real_t depth_init,
-                    real_t param[3]) {
-  // Keypoint to bearing (u, v, 1)
-  real_t bearing[3] = {0};
-  back_proj_func(cam_params->data, z, bearing);
-
-  // Convert bearing to theta, phi and rho
-  TF_ROT(T_WC, C_WC);
-  TF_TRANS(T_WC, r_WC);
-  DOT(C_WC, 3, 3, bearing, 3, 1, h_W);
-  const real_t theta = atan2(h_W[0], h_W[2]);
-  const real_t phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]));
-  const real_t rho = depth_init;
-
-  param[0] = theta;
-  param[1] = phi;
-  param[2] = rho;
 }
 
 /**
@@ -7522,7 +7524,7 @@ int ba_factor_eval(void *factor_ptr) {
   real_t z_hat[2];
   tf_inv(T_WCi, T_CiW);
   tf_point(T_CiW, p_W, p_Ci);
-  pinhole_radtan4_project(cam_params, p_Ci, z_hat);
+  camera_project(factor->camera, p_Ci, z_hat);
   // -- Residual
   real_t r[2] = {0};
   r[0] = factor->z[0] - z_hat[0];
@@ -7845,7 +7847,7 @@ int vision_factor_eval(void *factor_ptr) {
   // Calculate residuals
   // -- Project point from world to image plane
   real_t z_hat[2];
-  pinhole_radtan4_project(cam_params, p_Ci, z_hat);
+  camera_project(factor->camera, p_Ci, z_hat);
   // -- Residual
   real_t r[2] = {0};
   r[0] = factor->z[0] - z_hat[0];
@@ -8210,7 +8212,7 @@ int idf_factor_eval(void *factor_ptr) {
   // Project to image frame
   real_t z_hat[2];
   TF_POINT(T_CiW, p_W, p_Ci);
-  pinhole_radtan4_project(factor->camera->data, p_Ci, z_hat);
+  camera_project(factor->camera, p_Ci, z_hat);
 
   // Residual z - z_hat
   real_t r[2] = {0};
@@ -9158,7 +9160,7 @@ int calib_camera_factor_eval(void *factor_ptr) {
   // Project to image plane
   real_t z_hat[2];
   TF_POINT(T_CiF, factor->p_FFi, p_CiFi);
-  pinhole_radtan4_project(cam_params, p_CiFi, z_hat);
+  camera_project(factor->cam_params, p_CiFi, z_hat);
 
   // Calculate residuals
   real_t r[2] = {0, 0};
@@ -9383,7 +9385,7 @@ int calib_imucam_factor_eval(void *factor_ptr) {
   // Project to image plane
   real_t z_hat[2];
   TF_POINT(T_CiF, factor->p_FFi, p_CiFi);
-  pinhole_radtan4_project(cam_params, p_CiFi, z_hat);
+  camera_project(factor->cam_params, p_CiFi, z_hat);
 
   // Calculate residuals
   real_t r[2] = {0, 0};
@@ -10039,7 +10041,7 @@ int calib_gimbal_factor_eval(void *factor_ptr) {
   // Project to image plane
   real_t z_hat[2];
   TF_POINT(T_CiF, factor->p_FFi, p_CiFi);
-  pinhole_radtan4_project(cam_params, p_CiFi, z_hat);
+  camera_project(factor->cam, p_CiFi, z_hat);
 
   // Calculate residuals
   real_t r[2] = {0, 0};

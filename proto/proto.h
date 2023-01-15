@@ -566,8 +566,8 @@ int intcmp2(const void *x, const void *y);
 int fltcmp(const real_t x, const real_t y);
 int fltcmp2(const void *x, const void *y);
 int strcmp2(const void *x, const void *y);
-int flt_equals(const real_t x, const real_t y);
-int str_equals(const char *x, const char *y);
+int flteqs(const real_t x, const real_t y);
+int streqs(const char *x, const char *y);
 void cumsum(const real_t *x, const size_t n, real_t *s);
 void logspace(const real_t a, const real_t b, const size_t n, real_t *x);
 real_t pythag(const real_t a, const real_t b);
@@ -1294,6 +1294,9 @@ typedef struct camera_params_t {
   char proj_model[30];
   char dist_model[30];
   real_t data[8];
+
+  project_func_t proj_func;
+  back_project_func_t back_proj_func;
 } camera_params_t;
 
 void camera_params_setup(camera_params_t *camera,
@@ -1303,6 +1306,12 @@ void camera_params_setup(camera_params_t *camera,
                          const char *dist_model,
                          const real_t *data);
 void camera_params_print(const camera_params_t *camera);
+void camera_project(const camera_params_t *camera,
+                    const real_t p_C[3],
+                    real_t z[2]);
+void camera_back_project(const camera_params_t *camera,
+                         const real_t z[2],
+                         real_t bearing[3]);
 
 //////////////
 // VELOCITY //
@@ -1399,20 +1408,8 @@ void idf_param_setup(idf_param_t *idf_param,
                      const size_t feature_id,
                      const real_t T_WC[4 * 4],
                      const real_t z[2]);
-void idf_param_form(const camera_params_t *cam_params,
-                    const back_project_func_t back_proj_func,
-                    const real_t T_WC[4 * 4],
-                    const real_t z[2],
-                    const real_t depth_init,
-                    real_t param[3]);
 void idf_param_print(const idf_param_t *idf);
 
-// void idf_setup(idf_t *idf,
-//                const camera_params_t *cam_params,
-//                const back_project_func_t back_proj_func,
-//                const size_t feature_id,
-//                const real_t T_WC[4 * 4],
-//                const real_t z[2]);
 void idf_point(const idf_param_t *idf_param,
                const idf_pos_t *idf_pos,
                real_t p_W[3]);
