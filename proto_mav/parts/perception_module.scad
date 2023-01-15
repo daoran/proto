@@ -1572,11 +1572,14 @@ module perception_module() {
 
 // Component Development
 // spacer(batt_h + 2, nut_counter_sink=1);
-// spacer(spacer_w=M2_screw_w + 3,
-//        spacer_h=12,
-//        hole_w=M2_screw_w,
-//        nut_w=M2_nut_w,
-//        nut_h=M2_nut_h,
+
+// spacer_h = 16; // NUC frame
+// spacer_h = 25; // PCB frame
+// spacer(spacer_w=9,
+//        spacer_h=spacer_h,
+//        hole_w=M3_screw_w,
+//        nut_w=M3_nut_w,
+//        nut_h=M3_nut_h,
 //        nts=1);
 
 // battery_frame(batt_frame_w, batt_frame_d);
@@ -1602,7 +1605,7 @@ module perception_module() {
 // gimbal_pitch_frame(show_pitch_motor=0, show_encoder=0, show_cameras=0);
 // gimbal_yaw_frame(show_roll_frame=1, show_sbgc_frame=1);
 // gimbal_frame(nuc_mount_w, nuc_mount_d, 1);
-pcb_frame(nuc_mount_w, nuc_mount_d);
+// pcb_frame(nuc_mount_w, nuc_mount_d);
 // nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=1);
 // payload_frame(mav_payload_mount_w, mav_payload_mount_d,
 //               mav_frame_support_w, mav_frame_support_h,
