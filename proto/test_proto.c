@@ -2984,7 +2984,6 @@ int test_idf() {
   TF_INV(T_CiW, T_WCi);
   TF_TRANS(T_WCi, r_WCi);
 
-  const int status = 1;
   const size_t feature_id = 0;
   const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
   real_t z[2] = {0};
@@ -2999,11 +2998,10 @@ int test_idf() {
   idf_param_setup(&idf_param,
                   &cam,
                   pinhole_radtan4_back_project,
-                  status,
                   feature_id,
                   T_WCi,
                   z);
-  idf_param_print(&idf_param);
+  // idf_param_print(&idf_param);
 
   // Reproject IDF to feature in world frame
   real_t p_W_est[3] = {0};
@@ -3082,8 +3080,8 @@ int test_idfb() {
     idfb_point(idfb, feature_id, p_W_est);
 
     // print_vector("p_W_est", p_W_est, 3);
+    // printf("feature_id [%ld] ", feature_ids[i]);
     // print_vector("p_W_gnd", p_W_gnd, 3);
-    // printf("\n");
 
     const real_t dx = p_W_est[0] - p_W_gnd[0];
     const real_t dy = p_W_est[1] - p_W_gnd[1];
@@ -3095,7 +3093,8 @@ int test_idfb() {
   {
     size_t *feature_ids = NULL;
     real_t *points = NULL;
-    idfb_points(idfb, &feature_ids, &points);
+    size_t num_points = 0;
+    idfb_points(idfb, &feature_ids, &points, &num_points);
 
     // for (size_t i = 0; i < idfb->num_alive; i++) {
     //   printf("feature_id [%ld] ", feature_ids[i]);
@@ -3311,7 +3310,6 @@ int test_idf_factor() {
   TF_INV(T_CiW, T_WCi);
   TF_TRANS(T_WCi, r_WCi);
 
-  const int status = 1;
   const size_t feature_id = 0;
   const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
   real_t z[2] = {0};
@@ -3326,7 +3324,6 @@ int test_idf_factor() {
   idf_param_setup(&idf_param,
                   &cam,
                   pinhole_radtan4_back_project,
-                  status,
                   feature_id,
                   T_WCi,
                   z);
@@ -4223,10 +4220,10 @@ int test_inertial_odometry() {
   return 0;
 }
 
-int test_visual_odometry() {
+int test_tsif() {
   // Simulate features
   const real_t origin[3] = {0.0, 0.0, 0.0};
-  const real_t dim[3] = {10.0, 10.0, 5.0};
+  const real_t dim[3] = {5.0, 5.0, 5.0};
   const int num_features = 1000;
   real_t features[3 * 1000] = {0};
   sim_create_features(origin, dim, num_features, features);
@@ -4277,9 +4274,26 @@ int test_visual_odometry() {
                                                              num_features);
 
   // Simulate VO
-  for (size_t k = 0; k < cam_data->num_frames; k++) {
+  tsif_t tsif;
+  tsif_setup(&tsif);
+  tsif_add_camera(&tsif,
+                  cam_idx,
+                  cam_res,
+                  proj_model,
+                  dist_model,
+                  cam_vec,
+                  T_SC);
+
+  // for (size_t k = 0; k < cam_data->num_frames; k++) {
+  for (size_t k = 0; k < 1; k++) {
     const sim_camera_frame_t *frame = cam_data->frames[k];
+    const timestamp_t ts = frame->ts;
+    const size_t num_features[1] = {frame->num_measurements};
+    const size_t *feature_ids[1] = {frame->feature_ids};
+    const real_t *keypoints[1] = {frame->keypoints};
     // sim_camera_frame_print(frame);
+
+    tsif_update(&tsif, ts, num_features, feature_ids, keypoints);
   }
 
   // Clean up
@@ -5304,6 +5318,7 @@ void test_suite() {
   MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
   MU_ADD_TEST(test_idf);
+  MU_ADD_TEST(test_idfb);
   MU_ADD_TEST(test_keyframe);
   MU_ADD_TEST(test_time_delay);
   MU_ADD_TEST(test_joint);
@@ -5323,7 +5338,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_imucam_factor);
   MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_inertial_odometry);
-  MU_ADD_TEST(test_visual_odometry);
+  MU_ADD_TEST(test_tsif);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES

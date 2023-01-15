@@ -1366,7 +1366,7 @@ void features_remove(features_t *features, const int feature_id);
 // INVERSE-DEPTH FEATURE //
 ///////////////////////////
 
-#define IDFB_MAX_NUM 200
+#define IDF_BUNDLE_MAX_NUM 200
 
 typedef struct idf_pos_t {
   real_t data[3];
@@ -1376,7 +1376,6 @@ typedef struct idf_param_t {
   const camera_params_t *cam_params;
   back_project_func_t back_proj_func;
 
-  int status;
   size_t feature_id;
   real_t data[3];
 } idf_param_t;
@@ -1387,8 +1386,6 @@ typedef struct idf_kv_t {
 } idf_kv_t;
 
 typedef struct idfb_t {
-  int num_alive;
-  int num_features;
   idf_pos_t pos;
   idf_kv_t *params;
 } idfb_t;
@@ -1396,10 +1393,9 @@ typedef struct idfb_t {
 void idf_pos_setup(idf_pos_t *pos, const real_t *data);
 void idf_pos_print(const char *prefix, const idf_pos_t *pos);
 
-void idf_param_setup(idf_param_t *idf,
+void idf_param_setup(idf_param_t *idf_param,
                      const camera_params_t *cam_params,
                      const back_project_func_t back_proj_func,
-                     const int status,
                      const size_t feature_id,
                      const real_t T_WC[4 * 4],
                      const real_t z[2]);
@@ -1411,6 +1407,12 @@ void idf_param_form(const camera_params_t *cam_params,
                     real_t param[3]);
 void idf_param_print(const idf_param_t *idf);
 
+// void idf_setup(idf_t *idf,
+//                const camera_params_t *cam_params,
+//                const back_project_func_t back_proj_func,
+//                const size_t feature_id,
+//                const real_t T_WC[4 * 4],
+//                const real_t z[2]);
 void idf_point(const idf_param_t *idf_param,
                const idf_pos_t *idf_pos,
                real_t p_W[3]);
@@ -1423,6 +1425,10 @@ idfb_t *idfb_malloc(const camera_params_t *cam_params,
                     const real_t T_WC[4 * 4]);
 void idfb_free(idfb_t *idfb);
 void idfb_point(idfb_t *idfb, const size_t feature_id, real_t p_W[3]);
+void idfb_points(idfb_t *idfb,
+                 size_t **feature_ids,
+                 real_t **points,
+                 size_t *num_features);
 
 //////////////
 // KEYFRAME //
@@ -2424,7 +2430,17 @@ void inertial_odometry_linearize_compact(const void *data,
 #define TSIF_MAX_CAMS 2
 #define TSIF_MAX_IDFS 1000
 
+#define TSIF_INIT_MODE 1
+#define TSIF_EST_MODE 2
+
+typedef struct tsif_frame_t {
+  timestamp_t key;
+  pose_t pose;
+} tsif_frame_t;
+
 typedef struct tsif_t {
+  int state;
+
   // IMU
   imu_params_t imu_params;
   imu_factor_t imu_factor;
@@ -2435,17 +2451,22 @@ typedef struct tsif_t {
   extrinsic_t cam_exts[TSIF_MAX_CAMS];
   int num_cams;
 
-  idfb_t idfb;
-  idf_factor_t idf_factors[TSIF_MAX_CAMS][TSIF_MAX_IDFS];
-  int num_idf_factors;
+  tsif_frame_t frame_i;
+  tsif_frame_t frame_j;
+
+  // idf_factor_t idf_factors[TSIF_MAX_CAMS][TSIF_MAX_IDFS];
+  // int num_idf_factors[TSIF_MAX_CAMS];
 
   // Variables
-  pose_t pose_i;
-  pose_t pose_j;
-  velocity_t vel_i;
-  velocity_t vel_j;
-  imu_biases_t biases_i;
-  imu_biases_t biases_j;
+  timestamp_t ts_i;
+  timestamp_t ts_j;
+
+  // pose_t pose_i;
+  // pose_t pose_j;
+  // velocity_t vel_i;
+  // velocity_t vel_j;
+  // imu_biases_t biases_i;
+  // imu_biases_t biases_j;
 } tsif_t;
 
 void tsif_setup(tsif_t *tsif);
@@ -2471,7 +2492,11 @@ void tsif_linearize_compact(const void *data,
                             real_t *H,
                             real_t *g,
                             real_t *r);
-void tsif_update(tsif_t *tsif);
+void tsif_update(tsif_t *tsif,
+                 const timestamp_t ts,
+                 const size_t *num_features,
+                 const size_t **feature_ids,
+                 const real_t **keypoints);
 
 /******************************************************************************
  * DATASET
@@ -2531,7 +2556,7 @@ sim_imu_data_t *sim_imu_circle_trajectory(const int imu_rate,
 typedef struct sim_camera_frame_t {
   timestamp_t ts;
   int cam_idx;
-  int *feature_ids;
+  size_t *feature_ids;
   real_t *keypoints;
   int num_measurements;
 } sim_camera_frame_t;
@@ -2552,7 +2577,7 @@ sim_camera_frame_t *sim_camera_frame_malloc(const timestamp_t ts,
                                             const int cam_idx);
 void sim_camera_frame_free(sim_camera_frame_t *frame_data);
 void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame_data,
-                                   const int feature_id,
+                                   const size_t feature_id,
                                    const real_t kp[2]);
 sim_camera_frame_t *sim_camera_frame_load(const char *csv_path);
 void sim_camera_frame_print(const sim_camera_frame_t *frame_data);

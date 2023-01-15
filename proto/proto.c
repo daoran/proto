@@ -6868,7 +6868,6 @@ void idf_pos_print(const char *prefix, const idf_pos_t *pos) {
 void idf_param_setup(idf_param_t *idf,
                      const camera_params_t *cam_params,
                      const back_project_func_t back_proj_func,
-                     const int status,
                      const size_t feature_id,
                      const real_t T_WC[4 * 4],
                      const real_t z[2]) {
@@ -6888,7 +6887,6 @@ void idf_param_setup(idf_param_t *idf,
   const real_t rho = 0.1;
 
   // Set data
-  idf->status = status;
   idf->feature_id = feature_id;
   idf->data[0] = theta;
   idf->data[1] = phi;
@@ -6929,7 +6927,6 @@ void idf_param_print(const idf_param_t *idf) {
   const real_t phi = idf->data[1];
   const real_t rho = idf->data[2];
   printf("feature_id: %ld, ", idf->feature_id);
-  printf("status: %d, ", idf->status);
   printf("p_W: (theta: %.4f, phi: %.4f, rho: %.4f)\n", theta, phi, rho);
 }
 
@@ -6967,8 +6964,6 @@ idfb_t *idfb_malloc(const camera_params_t *cam_params,
                     const real_t *keypoints,
                     const real_t T_WC[4 * 4]) {
   idfb_t *idfb = MALLOC(idfb_t, 1);
-  idfb->num_features = 0;
-  idfb->num_alive = 0;
   idfb->params = NULL;
 
   TF_TRANS(T_WC, r_WC);
@@ -6980,7 +6975,6 @@ idfb_t *idfb_malloc(const camera_params_t *cam_params,
     idf_param_setup(&kv.param,
                     cam_params,
                     back_proj_func,
-                    1,
                     feature_ids[i],
                     T_WC,
                     keypoints + 2 * i);
@@ -7011,17 +7005,17 @@ void idfb_point(idfb_t *idfb, const size_t feature_id, real_t p_W[3]) {
 /**
  * Return IDFB feature ids, keypoints and points.
  */
-void idfb_points(idfb_t *idfb, size_t **feature_ids, real_t **points) {
-  *feature_ids = MALLOC(size_t, idfb->num_alive);
-  *points = MALLOC(real_t, idfb->num_alive * 3);
+void idfb_points(idfb_t *idfb,
+                 size_t **feature_ids,
+                 real_t **points,
+                 size_t *num_points) {
+  *num_points = hmlen(idfb->params);
+  *feature_ids = MALLOC(size_t, *num_points);
+  *points = MALLOC(real_t, *num_points * 3);
 
-  size_t idx = 0;
   for (size_t i = 0; i < hmlen(idfb->params); i++) {
-    if (idfb->params[i].param.status) {
-      (*feature_ids)[idx] = idfb->params[i].key;
-      idf_point(&idfb->params[i].param, &idfb->pos, &(*points)[idx * 3]);
-      idx++;
-    }
+    (*feature_ids)[i] = idfb->params[i].key;
+    idf_point(&idfb->params[i].param, &idfb->pos, &(*points)[i * 3]);
   }
 }
 
@@ -10668,8 +10662,8 @@ int solver_solve(solver_t *solver, void *data) {
  * identify the noise characteristics of an IMU.
  *
  * Consider a measurement y(t) from a sensor over time intervals of length dt.
- * These measurements x(k * dt) form the input to this function. Allan variance
- * is defined for different averaging times tau = m * dt as follows:
+ * These measurements x(k * dt) form the input to this function. Allan
+ * variance is defined for different averaging times tau = m * dt as follows:
  *
  *   AVAR(tau) = 1/2 * <(Y(k + m) - Y(k))>,
  *
@@ -12507,21 +12501,27 @@ void inertial_odometry_linearize_compact(const void *data,
  * Setup TSIF.
  */
 void tsif_setup(tsif_t *tsif) {
-  // tsif->imu_factor;
+  tsif->state = TSIF_INIT_MODE;
   tsif->has_imu = 0;
-
-  // tsif->idf_factors;
-  tsif->num_idf_factors = 0;
-
-  // tsif->cam_params;
-  // tsif->cam_exts;
   tsif->num_cams = 0;
+  // for (int i = 0; i < TSIF_MAX_CAMS; i++) {
+  //   tsif->num_idf_factors[i] = 0;
+  // }
+
+  tsif->ts_i = 0;
+  tsif->ts_j = 0;
 }
 
 /**
  * Print TSIF.
  */
-void tsif_print(const tsif_t *tsif);
+void tsif_print(const tsif_t *tsif) {
+  printf("has_imu: %d\n", tsif->has_imu);
+  printf("num_cams: %d\n", tsif->num_cams);
+
+  printf("ts_i: %ld\n", tsif->ts_i);
+  printf("ts_j: %ld\n", tsif->ts_j);
+}
 
 /**
  * Add camera to TSIF.
@@ -12579,22 +12579,24 @@ param_order_t *tsif_param_order(const void *data, int *sv_size, int *r_size) {
   param_order_t *hash = NULL;
   int col_idx = 0;
 
-  // Timestep k - 1
-  param_order_add(&hash, POSE_PARAM, 0, tsif->pose_i.data, &col_idx);
-  if (tsif->has_imu) {
-    param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_i.data, &col_idx);
-    param_order_add(&hash, IMU_BIASES_PARAM, 0, tsif->biases_i.data, &col_idx);
-  }
+  // // Timestep k - 1
+  // param_order_add(&hash, POSE_PARAM, 0, tsif->pose_i.data, &col_idx);
+  // if (tsif->has_imu) {
+  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_i.data, &col_idx);
+  //   param_order_add(&hash, IMU_BIASES_PARAM, 0, tsif->biases_i.data,
+  //   &col_idx);
+  // }
 
-  // Timestep k
-  param_order_add(&hash, POSE_PARAM, 0, tsif->pose_j.data, &col_idx);
-  if (tsif->has_imu) {
-    param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_j.data, &col_idx);
-    param_order_add(&hash, IMU_BIASES_PARAM, 0, tsif->biases_j.data, &col_idx);
-  }
+  // // Timestep k
+  // param_order_add(&hash, POSE_PARAM, 0, tsif->pose_j.data, &col_idx);
+  // if (tsif->has_imu) {
+  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_j.data, &col_idx);
+  //   param_order_add(&hash, IMU_BIASES_PARAM, 0, tsif->biases_j.data,
+  //   &col_idx);
+  // }
 
   *sv_size = col_idx;
-  *r_size = (tsif->num_idf_factors * 2) + (tsif->has_imu * 15);
+  // *r_size = (tsif->num_idf_factors * 2) + (tsif->has_imu * 15);
   return hash;
 }
 
@@ -12624,33 +12626,50 @@ void tsif_linearize_compact(const void *data,
                                r_idx);
   }
 
-  // -- IDF factors
-  for (int cam_idx = 0; cam_idx < tsif->num_cams; cam_idx++) {
-    for (int i = 0; i < tsif->num_cams; i++) {
-      idf_factor_t *factor = &tsif->idf_factors[cam_idx][i];
-      SOLVER_EVAL_FACTOR_COMPACT(hash,
-                                 sv_size,
-                                 H,
-                                 g,
-                                 idf_factor_eval,
-                                 factor,
-                                 r,
-                                 r_idx);
-    }
-  }
+  // // -- IDF factors
+  // for (int cam_idx = 0; cam_idx < tsif->num_cams; cam_idx++) {
+  //   for (int i = 0; i < tsif->num_cams; i++) {
+  //     idf_factor_t *factor = &tsif->idf_factors[cam_idx][i];
+  //     SOLVER_EVAL_FACTOR_COMPACT(hash,
+  //                                sv_size,
+  //                                H,
+  //                                g,
+  //                                idf_factor_eval,
+  //                                factor,
+  //                                r,
+  //                                r_idx);
+  //   }
+  // }
 }
 
 /**
  * Update TSIF.
  */
-void tsif_update(tsif_t *tsif) {
-  // Solve
-  solver_t solver;
-  solver_setup(&solver);
-  solver.max_iter = 1;
-  solver.param_order_func = &tsif_param_order;
-  solver.linearize_func = &tsif_linearize_compact;
-  solver_solve(&solver, tsif);
+void tsif_update(tsif_t *tsif,
+                 const timestamp_t ts,
+                 const size_t *num_features,
+                 const size_t **feature_ids,
+                 const real_t **keypoints) {
+  printf("\n");
+  printf("num_features: %zu\n", num_features[0]);
+  for (size_t i = 0; i < num_features[0]; i++) {
+    printf("kp[%zu]: (%.2f, %.2f)\n",
+           feature_ids[0][i],
+           keypoints[0][i * 2 + 0],
+           keypoints[0][i * 2 + 1]);
+  }
+
+  if (tsif->state == TSIF_INIT_MODE) {}
+
+  // hmputs(*tsif->hash, kv);
+
+  // // Solve
+  // solver_t solver;
+  // solver_setup(&solver);
+  // solver.max_iter = 1;
+  // solver.param_order_func = &tsif_param_order;
+  // solver.linearize_func = &tsif_linearize_compact;
+  // solver_solve(&solver, tsif);
 }
 
 /******************************************************************************
@@ -13001,7 +13020,7 @@ sim_imu_data_t *sim_imu_circle_trajectory(const int imu_rate,
 /**
  * Extract timestamp from path
  */
-static timestamp_t ts_from_path(const char *path) {
+static timestamp_t path2ts(const char *path) {
   char fname[128] = {0};
   char fext[128] = {0};
   path_file_name(path, fname);
@@ -13056,7 +13075,7 @@ void sim_camera_frame_free(sim_camera_frame_t *frame_data) {
  * Add keypoint measurement to camera frame.
  */
 void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame,
-                                   const int feature_id,
+                                   const size_t feature_id,
                                    const real_t kp[2]) {
   const int N = frame->num_measurements + 1;
   frame->num_measurements = N;
@@ -13083,7 +13102,7 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
 
   // Create sim_camera_frame_t
   sim_camera_frame_t *frame_data = MALLOC(sim_camera_frame_t, 1);
-  frame_data->ts = ts_from_path(csv_path);
+  frame_data->ts = path2ts(csv_path);
   frame_data->feature_ids = MALLOC(int, num_rows);
   frame_data->keypoints = MALLOC(real_t, num_rows * 2);
   frame_data->num_measurements = num_rows;
@@ -13362,7 +13381,7 @@ sim_camera_circle_trajectory(const real_t cam_rate,
 
     // Simulate camera frame
     sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, cam_idx);
-    for (int feature_id = 0; feature_id < num_features; feature_id++) {
+    for (size_t feature_id = 0; feature_id < num_features; feature_id++) {
       // Check point is infront of camera
       const real_t *p_W = features + feature_id * 3;
       TF_POINT(T_CW, p_W, p_C);
