@@ -6895,16 +6895,14 @@ void idf_pos_print(const char *prefix, const idf_pos_t *pos) {
  */
 void idf_param_setup(idf_param_t *idf,
                      const camera_params_t *cam_params,
-                     const back_project_func_t back_proj_func,
                      const size_t feature_id,
                      const real_t T_WC[4 * 4],
                      const real_t z[2]) {
   idf->cam_params = cam_params;
-  idf->back_proj_func = back_proj_func;
 
   // Keypoint to bearing (u, v, 1)
   real_t bearing[3] = {0};
-  idf->back_proj_func(idf->cam_params->data, z, bearing);
+  camera_back_project(idf->cam_params, z, bearing);
 
   // Convert bearing to theta, phi and rho
   TF_ROT(T_WC, C_WC);
@@ -6960,7 +6958,6 @@ void idf_point(const idf_param_t *idf_param,
  * Malloc IDFB.
  */
 idfb_t *idfb_malloc(const camera_params_t *cam_params,
-                    const back_project_func_t back_proj_func,
                     const size_t num_features,
                     const size_t *feature_ids,
                     const real_t *keypoints,
@@ -6976,7 +6973,6 @@ idfb_t *idfb_malloc(const camera_params_t *cam_params,
     kv.key = feature_ids[i];
     idf_param_setup(&kv.param,
                     cam_params,
-                    back_proj_func,
                     feature_ids[i],
                     T_WC,
                     keypoints + 2 * i);

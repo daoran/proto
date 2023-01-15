@@ -2995,12 +2995,7 @@ int test_idf() {
   idf_pos_setup(&idf_pos, r_WCi);
 
   idf_param_t idf_param;
-  idf_param_setup(&idf_param,
-                  &cam,
-                  pinhole_radtan4_back_project,
-                  feature_id,
-                  T_WCi,
-                  z);
+  idf_param_setup(&idf_param, &cam, feature_id, T_WCi, z);
   // idf_param_print(&idf_param);
 
   // Reproject IDF to feature in world frame
@@ -3065,12 +3060,7 @@ int test_idfb() {
   }
 
   // Setup IDFB
-  idfb_t *idfb = idfb_malloc(&cam,
-                             pinhole_radtan4_back_project,
-                             num_features,
-                             feature_ids,
-                             keypoints,
-                             T_WCi);
+  idfb_t *idfb = idfb_malloc(&cam, num_features, feature_ids, keypoints, T_WCi);
 
   // Reproject IDF to feature in world frame
   for (size_t i = 0; i < num_features; i++) {
@@ -3321,12 +3311,7 @@ int test_idf_factor() {
   idf_pos_setup(&idf_pos, r_WCi);
 
   idf_param_t idf_param;
-  idf_param_setup(&idf_param,
-                  &cam,
-                  pinhole_radtan4_back_project,
-                  feature_id,
-                  T_WCi,
-                  z);
+  idf_param_setup(&idf_param, &cam, feature_id, T_WCi, z);
 
   // Setup IDF Factor
   const real_t var[2] = {1.0, 1.0};
