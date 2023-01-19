@@ -46,8 +46,8 @@
 
 // APRILGRID /////////////////////////////////////////////////////////////////
 
-#define APRILGRID_NUM_ROWS 5
-#define APRILGRID_NUM_COLS 5
+#define APRILGRID_NUM_ROWS 6
+#define APRILGRID_NUM_COLS 6
 #define APRILGRID_MAX_CORNERS APRILGRID_NUM_ROWS *APRILGRID_NUM_COLS * 4
 #define APRILGRID_TAG_SIZE 0.10
 #define APRILGRID_TAG_SPACING 0.0
@@ -92,8 +92,8 @@ void aprilgrid_remove_tag(aprilgrid_t *grid, const int tag_id);
 void aprilgrid_measurements(const aprilgrid_t *grid,
                             int *tag_ids,
                             int *corner_idxs,
-                            int *tag_kps,
-                            int *obj_pts);
+                            double *tag_kps,
+                            double *obj_pts);
 int aprilgrid_save(const aprilgrid_t *grid, const char *save_path);
 int aprilgrid_load(aprilgrid_t *grid, const char *data_path);
 
@@ -400,8 +400,8 @@ void aprilgrid_remove_tag(aprilgrid_t *grid, const int tag_id) {
 void aprilgrid_measurements(const aprilgrid_t *grid,
                             int *tag_ids,
                             int *corner_idxs,
-                            int *tag_kps,
-                            int *obj_pts) {
+                            double *tag_kps,
+                            double *obj_pts) {
   assert(grid != NULL);
   assert(tag_ids != NULL);
   assert(corner_idxs != NULL);
