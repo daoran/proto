@@ -633,7 +633,7 @@ void Tracker::addCamera(const camera_params_t &cam_params,
 }
 
 void Tracker::addOverlap(const std::pair<int, int> &overlap) {
-  overlaps_.insert(overlap);
+  overlaps_.push_back(overlap);
 }
 
 void Tracker::_detectOverlap(
@@ -643,7 +643,10 @@ void Tracker::_detectOverlap(
   assert(cam_exts_.size() > 0);
 
   // Detect overlapping features
-  for (const auto &[idx_i, idx_j] : overlaps_) {
+#pragma omp parallel for
+  for (size_t i = 0; i < overlaps_.size(); i++) {
+    const auto idx_i = overlaps_.at(i).first;
+    const auto idx_j = overlaps_.at(i).second;
     const auto &img_i = mcam_imgs.at(idx_i);
     const auto &img_j = mcam_imgs.at(idx_j);
 
@@ -765,34 +768,54 @@ int Tracker::track(const std::map<int, cv::Mat> &mcam_imgs, const bool debug) {
   if (kf_ == nullptr) {
     LOG_INFO("New Keyframe!\n");
     kf_ = std::make_unique<KeyFrame>(_newKeyFrame(mcam_imgs));
-    // if (debug) {
-    //   kf_->debug();
-    // }
     return 0;
   }
 
   // Track features
   bool new_keyframe = false;
   std::map<int, std::vector<cv::KeyPoint>> kps_tracked;
-  for (auto &[cam_idx, kps_i] : kf_->keypoints_ol_) {
+
+  for (int cam_idx = 0; cam_idx < kf_->keypoints_ol_.size(); cam_idx++) {
+    // Setup
+    const auto kps_i = kf_->keypoints_ol_[cam_idx];
     const cv::Mat &img_i = kf_->images_[cam_idx];
     const cv::Mat &img_j = mcam_imgs.at(cam_idx);
+
+    // Optflow track through time
     std::vector<cv::KeyPoint> kps_j;
+    std::vector<uchar> optflow_inliers;
+    optflow_track(img_i, img_j, kps_i, kps_j, optflow_inliers);
+
+    // RANSAC
+    undistort_func_t cam_undist = pinhole_radtan4_undistort;
+    const real_t *cam_params = cam_params_.at(cam_idx).data;
+    std::vector<uchar> ransac_inliers;
+    ransac(kps_i,
+           kps_j,
+           cam_undist,
+           cam_undist,
+           cam_params,
+           cam_params,
+           ransac_inliers);
+
+    // Inliers
     std::vector<uchar> inliers;
-    optflow_track(img_i, img_j, kps_i, kps_j, inliers);
+    for (size_t i = 0; i < optflow_inliers.size(); i++) {
+      inliers.push_back(optflow_inliers[i] && ransac_inliers[i]);
+    }
 
     size_t num_inliers = 0;
     size_t num_outliers = 0;
     size_t num_total = 0;
     float inlier_ratio = 0.0f;
     inlier_stats(inliers, num_inliers, num_outliers, num_total, inlier_ratio);
-    printf("num_inliers: %ld, ", num_inliers);
-    printf("num_outliers: %ld, ", num_outliers);
-    printf("num_total: %ld, ", num_total);
-    printf("inlier ratio: %f", inlier_ratio);
-    printf("\n");
+    // printf("num_inliers: %ld, ", num_inliers);
+    // printf("num_outliers: %ld, ", num_outliers);
+    // printf("num_total: %ld, ", num_total);
+    // printf("inlier ratio: %f", inlier_ratio);
+    // printf("\n");
 
-    if (inlier_ratio < 0.8) {
+    if (inlier_ratio < 0.6) {
       new_keyframe = true;
     }
 
@@ -858,6 +881,224 @@ int Tracker::track(const std::map<int, cv::Mat> &mcam_imgs, const bool debug) {
     kf_ = std::make_unique<KeyFrame>(_newKeyFrame(mcam_imgs));
   }
 
+  return 0;
+}
+
+/////////////////////
+// FEATURE-TRACKER //
+/////////////////////
+
+FeatureTracker::FeatureTracker() {
+  matcher_ = cv::DescriptorMatcher::create("BruteForce-Hamming");
+}
+
+void FeatureTracker::addCamera(const camera_params_t &cam_params,
+                               const extrinsic_t &cam_ext) {
+  cam_params_[cam_params.cam_idx] = cam_params;
+  cam_exts_[cam_params.cam_idx] = cam_ext;
+}
+
+void FeatureTracker::addOverlap(const std::pair<int, int> &overlap) {
+  overlaps_.push_back(overlap);
+}
+
+void FeatureTracker::_detectOverlap(
+    const std::map<int, cv::Mat> &mcam_imgs,
+    std::map<int, std::vector<cv::KeyPoint>> &keypoints) const {
+  assert(cam_params_.size() > 0);
+  assert(cam_exts_.size() > 0);
+
+  // Detect overlapping features
+  for (size_t i = 0; i < overlaps_.size(); i++) {
+    const auto idx_i = overlaps_.at(i).first;
+    const auto idx_j = overlaps_.at(i).second;
+    const auto &img_i = mcam_imgs.at(idx_i);
+    const auto &img_j = mcam_imgs.at(idx_j);
+
+    // Detect new corners
+    std::vector<cv::KeyPoint> kps_i;
+    std::vector<cv::KeyPoint> kps_i_prev;
+    for (const auto &[feature_id, feature] : features_) {
+      kps_i_prev.push_back(feature.lastKeyPoint(idx_i));
+    }
+    detector_.detect(img_i, kps_i, kps_i_prev);
+
+    // Optical-flow track
+    std::vector<cv::KeyPoint> kps_j;
+    std::vector<uchar> optflow_inliers;
+    optflow_track(img_i, img_j, kps_i, kps_j, optflow_inliers);
+
+    // RANSAC
+    undistort_func_t cam_i_undist = pinhole_radtan4_undistort;
+    undistort_func_t cam_j_undist = pinhole_radtan4_undistort;
+    const real_t *cam_i_params = cam_params_.at(idx_i).data;
+    const real_t *cam_j_params = cam_params_.at(idx_j).data;
+    std::vector<uchar> ransac_inliers;
+    ransac(kps_i,
+           kps_j,
+           cam_i_undist,
+           cam_j_undist,
+           cam_i_params,
+           cam_j_params,
+           ransac_inliers);
+
+    // Reprojection filter
+    const project_func_t cam_i_proj_func = pinhole_radtan4_project;
+    const int *cam_i_res = cam_params_.at(idx_i).resolution;
+    std::vector<cv::Point3d> points;
+    std::vector<bool> reproj_inliers;
+    TF(cam_exts_.at(idx_i).data, T_C0Ci);
+    TF(cam_exts_.at(idx_j).data, T_C0Cj);
+    reproj_filter(cam_i_proj_func,
+                  cam_i_res,
+                  cam_i_params,
+                  cam_j_params,
+                  T_C0Ci,
+                  T_C0Cj,
+                  kps_i,
+                  kps_j,
+                  points,
+                  reproj_inliers);
+
+    // Filter outliers
+    for (size_t n = 0; n < kps_i.size(); n++) {
+      if (optflow_inliers[n] && ransac_inliers[n] && reproj_inliers[n]) {
+        keypoints[idx_i].push_back(kps_i[n]);
+        keypoints[idx_j].push_back(kps_j[n]);
+      }
+    }
+  }
+}
+
+int FeatureTracker::track(const timestamp_t ts,
+                          const std::map<int, cv::Mat> &mcam_imgs,
+                          const bool debug) {
+  // Detect new features
+  if (init_ == false) {
+    std::map<int, std::vector<cv::KeyPoint>> keypoints;
+    _detectOverlap(mcam_imgs, keypoints);
+
+    const auto &kps_i = keypoints[0];
+    const auto &kps_j = keypoints[1];
+    for (size_t n = 0; n < kps_i.size(); n++) {
+      const size_t fid = feature_counter_++;
+      features_[fid] = FeatureInfo{fid, ts, {{0, kps_i[n]}, {1, kps_j[n]}}};
+    }
+    init_ = true;
+    prev_imgs_ = mcam_imgs;
+    return 0;
+  }
+
+  // Track features through time
+  bool detect_new = false;
+  for (const auto &[cam_idx, img_k] : mcam_imgs) {
+    const cv::Mat &img_km1 = prev_imgs_[cam_idx];
+    std::vector<size_t> feature_ids;
+    std::vector<cv::KeyPoint> kps_km1;
+    for (const auto &[feature_id, feature] : features_) {
+      feature_ids.push_back(feature_id);
+      kps_km1.push_back(feature.lastKeyPoint(cam_idx));
+    }
+
+    // Optflow track through time
+    std::vector<cv::KeyPoint> kps_k;
+    std::vector<uchar> optflow_inliers;
+    optflow_track(img_km1, img_k, kps_km1, kps_k, optflow_inliers);
+
+    // RANSAC
+    undistort_func_t cam_undist = pinhole_radtan4_undistort;
+    const real_t *cam_params = cam_params_.at(cam_idx).data;
+    std::vector<uchar> ransac_inliers;
+    ransac(kps_km1,
+           kps_k,
+           cam_undist,
+           cam_undist,
+           cam_params,
+           cam_params,
+           ransac_inliers);
+
+    // Inliers
+    std::vector<uchar> inliers;
+    for (size_t i = 0; i < optflow_inliers.size(); i++) {
+      inliers.push_back(optflow_inliers[i] && ransac_inliers[i]);
+    }
+
+    size_t num_inliers = 0;
+    size_t num_outliers = 0;
+    size_t num_total = 0;
+    float inlier_ratio = 0.0f;
+    inlier_stats(inliers, num_inliers, num_outliers, num_total, inlier_ratio);
+    printf("num_inliers: %ld, ", num_inliers);
+    printf("num_outliers: %ld, ", num_outliers);
+    printf("num_total: %ld, ", num_total);
+    printf("inlier ratio: %f", inlier_ratio);
+    printf("\n");
+
+    if (num_inliers < 100) {
+      detect_new = true;
+    }
+
+    // Update features
+    for (size_t i = 0; i < inliers.size(); i++) {
+      if (inliers[i] == false) {
+        features_.erase(feature_ids[i]);
+      } else {
+        if (features_.count(feature_ids[i])) {
+          features_[feature_ids[i]].update(ts, cam_idx, kps_k[i]);
+        }
+      }
+    }
+  }
+
+  // Detect new features
+  if (detect_new) {
+    LOG_INFO("Detecting new features!\n");
+    std::map<int, std::vector<cv::KeyPoint>> keypoints;
+    _detectOverlap(mcam_imgs, keypoints);
+
+    const auto &kps_i = keypoints[0];
+    const auto &kps_j = keypoints[1];
+    for (size_t n = 0; n < kps_i.size(); n++) {
+      const size_t fid = feature_counter_++;
+      features_[fid] = FeatureInfo{fid, ts, {{0, kps_i[n]}, {1, kps_j[n]}}};
+    }
+  }
+
+  // Debug
+  {
+    // Draw keypoints
+    const cv::Scalar red = cv::Scalar{0, 0, 255};
+    const auto flags = cv::DrawMatchesFlags::DEFAULT;
+
+    // Draw tracked keypoints
+    std::vector<cv::Mat> frame_imgs;
+    for (auto &[cam_idx, cam_img] : mcam_imgs) {
+      cv::Mat frame_img;
+      std::vector<cv::KeyPoint> kps;
+      for (const auto &[feature_id, feature] : features_) {
+        kps.push_back(feature.lastKeyPoint(cam_idx));
+      }
+
+      cv::drawKeypoints(cam_img, kps, frame_img, red, flags);
+      frame_imgs.push_back(frame_img);
+    }
+    // -- Stitch images horizontally
+    cv::Mat viz;
+    for (const auto img : frame_imgs) {
+      if (viz.empty()) {
+        viz = img;
+      } else {
+        cv::hconcat(viz, img, viz);
+      }
+    }
+
+    // Show
+    cv::imshow("Tracked", viz);
+    // cv::waitKey(100);
+  }
+
+  // Update previous images
+  prev_imgs_ = mcam_imgs;
   return 0;
 }
 
@@ -1068,17 +1309,23 @@ int test_front_end() {
 
   // Tracker
   EuRoCParams euroc;
-  Tracker tracker;
-  tracker.addCamera(euroc.cam0_params, euroc.cam0_ext);
-  tracker.addCamera(euroc.cam1_params, euroc.cam1_ext);
-  tracker.addOverlap({0, 1});
+
+  // Tracker tracker;
+  // tracker.addCamera(euroc.cam0_params, euroc.cam0_ext);
+  // tracker.addCamera(euroc.cam1_params, euroc.cam1_ext);
+  // tracker.addOverlap({0, 1});
+
+  FeatureTracker ft;
+  ft.addCamera(euroc.cam0_params, euroc.cam0_ext);
+  ft.addCamera(euroc.cam1_params, euroc.cam1_ext);
+  ft.addOverlap({0, 1});
 
   // Setup
   const char *data_path = "/data/euroc/V1_01";
   euroc_data_t *data = euroc_data_load(data_path);
   euroc_timeline_t *timeline = data->timeline;
 
-  int imshow_wait = 10;
+  int imshow_wait = 1;
   for (size_t k = 0; k < timeline->num_timestamps; k++) {
     const timestamp_t ts = timeline->timestamps[k];
     const euroc_event_t *event = &timeline->events[k];
@@ -1088,22 +1335,24 @@ int test_front_end() {
       const cv::Mat img1 = cv::imread(event->cam1_image, cv::IMREAD_GRAYSCALE);
       assert(img0.empty() == false);
       assert(img1.empty() == false);
-      tracker.track({{0, img0}, {1, img1}}, true);
+      struct timespec t_start = tic();
+      // tracker.track({{0, img0}, {1, img1}}, true);
+      ft.track(ts, {{0, img0}, {1, img1}}, true);
+      printf("track elasped: %f [s]\n", toc(&t_start));
 
       // cv::Mat viz;
       // cv::hconcat(img0, img1, viz);
       // cv::imshow("Stereo-Camera", viz);
       // cv::waitKey(1);
       char key = cv::waitKey(imshow_wait);
-      printf("key: %c\n", key);
       if (key == 'q') {
         k = timeline->num_timestamps;
       } else if (key == 's') {
         imshow_wait = 0;
-      } else if (key == ' ' && imshow_wait == 10) {
+      } else if (key == ' ' && imshow_wait == 1) {
         imshow_wait = 0;
       } else if (key == ' ' && imshow_wait == 0) {
-        imshow_wait = 10;
+        imshow_wait = 1;
       }
     }
   }
