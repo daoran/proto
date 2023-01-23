@@ -163,9 +163,15 @@ dev_tiscam() {
 }
 
 dev_aprilgrid() {
-  touch proto.c;
-  tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make && ./build/test_aprilgrid" C-m
+  # touch proto.c;
+  # tmux send-keys -t dev -R C-l C-m
+  # tmux send-keys -t dev -R "cd ~/projects/proto/proto && make && ./build/test_aprilgrid" C-m
+  cd ~/projects/proto/proto && make test_aprilgrid && ./build/test_aprilgrid
+  exit
+}
+
+dev_p3p() {
+  cd ~/projects/proto/proto && make test_p3p && ./build/test_p3p
   exit
 }
 
@@ -180,6 +186,7 @@ dev_euroc() {
 # dev_sbgc
 # dev_tiscam
 # dev_aprilgrid
+# dev_p3p
 # dev_euroc
 
 # tmux send-keys -t dev -R C-l C-m
@@ -279,7 +286,7 @@ dev_euroc() {
 # run_test test_eye
 # run_test test_ones
 # run_test test_protos
-# run_test test_mat_set
+run_test test_mat_set
 # run_test test_mat_val
 # run_test test_mat_copy
 # run_test test_mat_row_set
@@ -362,7 +369,7 @@ dev_euroc() {
 # run_test test_extrinsics
 # run_test test_camera
 # run_test test_feature
-run_test test_idf
+# run_test test_idf
 # run_test test_idfb
 # run_test test_pose_factor
 # run_test test_ba_factor
@@ -380,11 +387,12 @@ run_test test_idf
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
 # run_test test_inertial_odometry
-# run_test test_visual_odometry
+# run_test test_tsif
 # run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
+run_test test_calib_camera
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
 # run_test test_calib_gimbal_add_gimbal_extrinsic
