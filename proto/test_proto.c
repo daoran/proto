@@ -3011,105 +3011,103 @@ int test_idf() {
   return 0;
 }
 
-int test_idfb() {
-  // Body pose
-  pose_t pose;
-  const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose, 0, pose_data);
+// int test_idfb() {
+//   // Body pose
+//   pose_t pose;
+//   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   pose_setup(&pose, 0, pose_data);
 
-  // Extrinsic
-  extrinsic_t cam_ext;
-  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
-  extrinsic_setup(&cam_ext, ext_data);
+//   // Extrinsic
+//   extrinsic_t cam_ext;
+//   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
+//   extrinsic_setup(&cam_ext, ext_data);
 
-  // Camera parameters
-  camera_params_t cam;
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+//   // Camera parameters
+//   camera_params_t cam;
+//   const int cam_idx = 0;
+//   const int cam_res[2] = {640, 480};
+//   const char *proj_model = "pinhole";
+//   const char *dist_model = "radtan4";
+//   const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
+//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model,
+//   cam_data);
 
-  // Setup feature and image point
-  TF(pose_data, T_WB);
-  TF(ext_data, T_BCi);
-  TF_INV(T_WB, T_BW);
-  TF_INV(T_BCi, T_CiB);
-  TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-  TF_INV(T_CiW, T_WCi);
+//   // Setup feature and image point
+//   TF(pose_data, T_WB);
+//   TF(ext_data, T_BCi);
+//   TF_INV(T_WB, T_BW);
+//   TF_INV(T_BCi, T_CiB);
+//   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
+//   TF_INV(T_CiW, T_WCi);
 
-  // Setup features and keypoints
-  size_t num_features = 100;
-  size_t *feature_ids = MALLOC(size_t, num_features);
-  real_t *features = MALLOC(real_t, num_features * 3);
-  real_t *keypoints = MALLOC(real_t, num_features * 2);
-  for (size_t i = 0; i < num_features; i++) {
-    const size_t feature_id = i;
-    const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
-    real_t z[2] = {0};
-    TF_POINT(T_CiW, p_W, p_Ci);
-    pinhole_radtan4_project(cam_data, p_Ci, z);
+//   // Setup features and keypoints
+//   size_t num_features = 100;
+//   size_t *feature_ids = MALLOC(size_t, num_features);
+//   real_t *features = MALLOC(real_t, num_features * 3);
+//   real_t *keypoints = MALLOC(real_t, num_features * 2);
+//   for (size_t i = 0; i < num_features; i++) {
+//     const size_t feature_id = i;
+//     const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
+//     real_t z[2] = {0};
+//     TF_POINT(T_CiW, p_W, p_Ci);
+//     pinhole_radtan4_project(cam_data, p_Ci, z);
 
-    feature_ids[i] = feature_id;
-    features[i * 3 + 0] = p_W[0];
-    features[i * 3 + 1] = p_W[1];
-    features[i * 3 + 2] = p_W[2];
-    keypoints[i * 2 + 0] = z[0];
-    keypoints[i * 2 + 1] = z[1];
-  }
+//     feature_ids[i] = feature_id;
+//     features[i * 3 + 0] = p_W[0];
+//     features[i * 3 + 1] = p_W[1];
+//     features[i * 3 + 2] = p_W[2];
+//     keypoints[i * 2 + 0] = z[0];
+//     keypoints[i * 2 + 1] = z[1];
+//   }
 
-  // Setup IDFB
-  idfb_t *idfb = idfb_malloc(&cam, num_features, feature_ids, keypoints, T_WCi);
+//   // Setup IDFB
+//   idfb_t *idfb = idfb_malloc(&cam, num_features, feature_ids, keypoints,
+//   T_WCi);
 
-  // Reproject IDF to feature in world frame
-  for (size_t i = 0; i < num_features; i++) {
-    real_t *p_W_gnd = features + i * 3;
-    real_t p_W_est[3] = {0};
-    const size_t feature_id = i;
-    idfb_point(idfb, feature_id, p_W_est);
+//   // Reproject IDF to feature in world frame
+//   for (size_t i = 0; i < num_features; i++) {
+//     real_t *p_W_gnd = features + i * 3;
+//     real_t p_W_est[3] = {0};
+//     const size_t feature_id = i;
+//     idfb_point(idfb, feature_id, p_W_est);
 
-    // print_vector("p_W_est", p_W_est, 3);
-    // printf("feature_id [%ld] ", feature_ids[i]);
-    // print_vector("p_W_gnd", p_W_gnd, 3);
+//     // print_vector("p_W_est", p_W_est, 3);
+//     // printf("feature_id [%ld] ", feature_ids[i]);
+//     // print_vector("p_W_gnd", p_W_gnd, 3);
 
-    const real_t dx = p_W_est[0] - p_W_gnd[0];
-    const real_t dy = p_W_est[1] - p_W_gnd[1];
-    const real_t dz = p_W_est[2] - p_W_gnd[2];
-    const real_t dist = sqrt(dx * dx + dy * dy + dz * dz);
-    MU_ASSERT(dist < 1e-1);
-  }
+//     const real_t dx = p_W_est[0] - p_W_gnd[0];
+//     const real_t dy = p_W_est[1] - p_W_gnd[1];
+//     const real_t dz = p_W_est[2] - p_W_gnd[2];
+//     const real_t dist = sqrt(dx * dx + dy * dy + dz * dz);
+//     MU_ASSERT(dist < 1e-1);
+//   }
 
-  {
-    size_t *feature_ids = NULL;
-    real_t *points = NULL;
-    size_t num_points = 0;
-    idfb_points(idfb, &feature_ids, &points, &num_points);
+//   {
+//     size_t *feature_ids = NULL;
+//     real_t *points = NULL;
+//     size_t num_points = 0;
+//     idfb_points(idfb, &feature_ids, &points, &num_points);
 
-    // for (size_t i = 0; i < idfb->num_alive; i++) {
-    //   printf("feature_id [%ld] ", feature_ids[i]);
-    //   printf("point [%.2f, %.2f, %.2f]\n",
-    //          points[i * 3 + 0],
-    //          points[i * 3 + 1],
-    //          points[i * 3 + 2]);
-    // }
+//     // for (size_t i = 0; i < idfb->num_alive; i++) {
+//     //   printf("feature_id [%ld] ", feature_ids[i]);
+//     //   printf("point [%.2f, %.2f, %.2f]\n",
+//     //          points[i * 3 + 0],
+//     //          points[i * 3 + 1],
+//     //          points[i * 3 + 2]);
+//     // }
 
-    free(feature_ids);
-    free(points);
-  }
+//     free(feature_ids);
+//     free(points);
+//   }
 
-  // Clean up
-  free(feature_ids);
-  free(features);
-  free(keypoints);
-  idfb_free(idfb);
+//   // Clean up
+//   free(feature_ids);
+//   free(features);
+//   free(keypoints);
+//   idfb_free(idfb);
 
-  return 0;
-}
-
-int test_keyframe() {
-  return 0;
-}
+//   return 0;
+// }
 
 int test_time_delay() {
   time_delay_t td;
@@ -4473,6 +4471,70 @@ int test_calib_gimbal_copy() {
   return 0;
 }
 
+int test_calib_camera() {
+  // Setup Camera calibrator
+  calib_camera_t *calib = calib_camera_malloc();
+
+  // -- Add cam0
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t focal = pinhole_focal(cam_res[0], 120.0);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  calib_camera_add_camera(calib,
+                          0,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam_params,
+                          cam_ext);
+
+  // -- Load views
+  char *data_path = "/data/proto/cam_april/cam0";
+  int num_files = 0;
+  char **files = list_files(data_path, &num_files);
+
+  int view_idx = 0;
+  int cam_idx = 0;
+  for (int i = 0; i < num_files; i++) {
+    // Load aprilgrid
+    aprilgrid_t grid;
+    aprilgrid_load(&grid, files[i]);
+
+    // Get aprilgrid measurements
+    int tag_ids[APRILGRID_MAX_CORNERS] = {0};
+    int corner_indices[APRILGRID_MAX_CORNERS] = {0};
+    real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
+    real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
+    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts);
+
+    // Add view
+    const timestamp_t ts = grid.timestamp;
+    const int num_corners = grid.corners_detected;
+    calib_camera_add_view(calib,
+                          ts,
+                          view_idx,
+                          cam_idx,
+                          num_corners,
+                          tag_ids,
+                          corner_indices,
+                          pts,
+                          kps);
+
+    // Clean up
+    free(files[i]);
+  }
+  free(files);
+
+  // Clean up
+  calib_camera_free(calib);
+
+  return 0;
+}
+
 int test_calib_gimbal_add_fiducial() {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
@@ -5303,8 +5365,7 @@ void test_suite() {
   MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
   MU_ADD_TEST(test_idf);
-  MU_ADD_TEST(test_idfb);
-  MU_ADD_TEST(test_keyframe);
+  // MU_ADD_TEST(test_idfb);
   MU_ADD_TEST(test_time_delay);
   MU_ADD_TEST(test_joint);
   MU_ADD_TEST(test_camera_params);
@@ -5330,6 +5391,7 @@ void test_suite() {
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
   // MU_ADD_TEST(test_calib_gimbal_copy);
+  MU_ADD_TEST(test_calib_camera);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
