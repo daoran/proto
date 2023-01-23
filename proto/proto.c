@@ -2815,6 +2815,57 @@ void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale) {
 }
 
 /**
+ * Copy 3x3 matrix from `src` to `dst`.
+ */
+void mat3_copy(const real_t src[3 * 3], real_t dst[3 * 3]) {
+  dst[0] = src[0];
+  dst[1] = src[1];
+  dst[2] = src[2];
+
+  dst[3] = src[3];
+  dst[4] = src[4];
+  dst[5] = src[5];
+
+  dst[6] = src[6];
+  dst[7] = src[7];
+  dst[8] = src[8];
+}
+
+/**
+ * Add 3x3 matrix `A + B = C`.
+ */
+void mat3_add(const real_t A[3 * 3], const real_t B[3 * 3], real_t C[3 * 3]) {
+  C[0] = A[0] + B[0];
+  C[1] = A[1] + B[1];
+  C[2] = A[2] + B[2];
+
+  C[3] = A[3] + B[3];
+  C[4] = A[4] + B[4];
+  C[5] = A[5] + B[5];
+
+  C[6] = A[6] + B[6];
+  C[7] = A[7] + B[7];
+  C[8] = A[8] + B[8];
+}
+
+/**
+ * Subtract 3x3 matrix `A - B = C`.
+ */
+void mat3_sub(const real_t A[3 * 3], const real_t B[3 * 3], real_t C[3 * 3]) {
+  C[0] = A[0] - B[0];
+  C[1] = A[1] - B[1];
+  C[2] = A[2] - B[2];
+
+  C[3] = A[3] - B[3];
+  C[4] = A[4] - B[4];
+  C[5] = A[5] - B[5];
+
+  C[6] = A[6] - B[6];
+  C[7] = A[7] - B[7];
+  C[8] = A[8] - B[8];
+}
+
+/**
  * Create new vector of length `n` in heap memory.
  * @returns Heap allocated vector
  */
@@ -3020,6 +3071,65 @@ void vec_normalize(real_t *x, const size_t n) {
   for (size_t i = 0; i < n; i++) {
     x[i] = x[i] / norm;
   }
+}
+
+/**
+ * Copy vector of size 3 from `src` to `dst`.
+ */
+void vec3_copy(const real_t *src, real_t *dst) {
+  dst[0] = src[0];
+  dst[1] = src[1];
+  dst[2] = src[2];
+}
+
+/**
+ * Add vector of size 3 `x + y = z`.
+ */
+void vec3_add(const real_t x[3], const real_t y[3], real_t z[3]) {
+  z[0] = x[0] + y[0];
+  z[1] = x[1] + y[1];
+  z[2] = x[2] + y[2];
+}
+
+/**
+ * Subtract vector of size 3 `x - y = z`.
+ */
+void vec3_sub(const real_t x[3], const real_t y[3], real_t z[3]) {
+  z[0] = x[0] - y[0];
+  z[1] = x[1] - y[1];
+  z[2] = x[2] - y[2];
+}
+
+/**
+ * Cross product between vector `a` and `b`, output is written to `c`.
+ */
+void cross3(const real_t a[3], const real_t b[3], real_t c[3]) {
+  assert(a != b);
+  assert(a != c);
+
+  // cx = ay * bz - az * by
+  // cy = az * bx - ax * bz
+  // cz = ax * by - ay * bx
+  c[0] = a[1] * b[2] - a[2] * b[1];
+  c[1] = a[2] * b[0] - a[0] * b[2];
+  c[2] = a[0] * b[1] - a[1] * b[0];
+}
+
+/**
+ * Calculate the norm of vector `x` of size 3.
+ */
+real_t norm3(const real_t x[3]) {
+  return sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
+}
+
+/**
+ * Normalize vector `x` of size 3.
+ */
+void normalize3(real_t x[3]) {
+  const real_t n = norm3(x);
+  x[0] = x[0] / n;
+  x[1] = x[1] / n;
+  x[2] = x[2] / n;
 }
 
 /**
@@ -5569,6 +5679,347 @@ void linear_triangulation(const real_t P_i[3 * 4],
   p[2] = z / w;
 }
 
+static int kneip_solve_quadratic(const real_t factors[5],
+                                 real_t real_roots[4]) {
+  const real_t A = factors[0];
+  const real_t B = factors[1];
+  const real_t C = factors[2];
+  const real_t D = factors[3];
+  const real_t E = factors[4];
+
+  const real_t A_pw2 = A * A;
+  const real_t B_pw2 = B * B;
+  const real_t A_pw3 = A_pw2 * A;
+  const real_t B_pw3 = B_pw2 * B;
+  const real_t A_pw4 = A_pw3 * A;
+  const real_t B_pw4 = B_pw3 * B;
+
+  const real_t alpha = -3 * B_pw2 / (8 * A_pw2) + C / A;
+  const real_t beta = B_pw3 / (8 * A_pw3) - B * C / (2 * A_pw2) + D / A;
+  const real_t gamma = -3 * B_pw4 / (256 * A_pw4) + B_pw2 * C / (16 * A_pw3) -
+                       B * D / (4 * A_pw2) + E / A;
+
+  const real_t alpha_pw2 = alpha * alpha;
+  const real_t alpha_pw3 = alpha_pw2 * alpha;
+
+  const real_complex_t P = (-alpha_pw2 / 12 - gamma);
+  const real_complex_t Q =
+      -alpha_pw3 / 108 + alpha * gamma / 3 - pow(beta, 2) / 8;
+  const real_complex_t R =
+      -Q / 2.0 + sqrt(pow(Q, 2.0) / 4.0 + pow(P, 3.0) / 27.0);
+
+  const real_complex_t U = pow(R, (1.0 / 3.0));
+  real_complex_t y;
+  if (fabs(creal(U)) < 1e-10) {
+    y = -5.0 * alpha / 6.0 - pow(Q, (1.0 / 3.0));
+  } else {
+    y = -5.0 * alpha / 6.0 - P / (3.0 * U) + U;
+  }
+
+  const real_complex_t w = sqrt(alpha + 2.0 * y);
+  const real_t m = -B / (4.0 * A);
+  const real_t a = sqrt(-(3.0 * alpha + 2.0 * y + 2.0 * beta / w));
+  const real_t b = sqrt(-(3.0 * alpha + 2.0 * y - 2.0 * beta / w));
+  real_roots[0] = creal(m + 0.5 * (w + a));
+  real_roots[1] = creal(m + 0.5 * (w - a));
+  real_roots[2] = creal(m + 0.5 * (-w + b));
+  real_roots[3] = creal(m + 0.5 * (-w - b));
+
+  return 0;
+}
+
+/**
+ * Kneip's Perspective-3-Point solver.
+ *
+ * This function uses 3 2D point correspondants to 3D features to determine the
+ * camera pose.
+ *
+ * Source: Kneip, Laurent, Davide Scaramuzza, and Roland Siegwart. "A novel
+ * parametrization of the perspective-three-point problem for a direct
+ * computation of absolute camera position and orientation." CVPR 2011. IEEE,
+ * 2011.
+ */
+int kneip_p3p(const real_t features[3][3],
+              const real_t points[3][3],
+              real_t solutions[4][4 * 4]) {
+  assert(features != NULL);
+  assert(points != NULL);
+  assert(solutions != NULL);
+
+  // Extract points
+  real_t P1[3] = {points[0][0], points[0][1], points[0][2]};
+  real_t P2[3] = {points[1][0], points[1][1], points[1][2]};
+  real_t P3[3] = {points[2][0], points[2][1], points[2][2]};
+
+  // Verify points are not colinear
+  real_t temp1[3] = {P2[0] - P1[0], P2[1] - P1[1], P2[2] - P2[2]};
+  real_t temp2[3] = {P3[0] - P1[0], P3[1] - P1[1], P3[2] - P2[2]};
+  real_t temp3[3] = {0};
+  cross3(temp1, temp2, temp3);
+  if (fabs(norm3(temp3)) > 1e-10) {
+    return -1;
+  }
+
+  // Extract feature vectors
+  real_t f1[3] = {features[0][0], features[0][1], features[0][2]};
+  real_t f2[3] = {features[1][0], features[1][1], features[1][2]};
+  real_t f3[3] = {features[2][0], features[2][1], features[2][2]};
+
+  // Creation of intermediate camera frame
+  real_t e1[3] = {f1[0], f1[1], f1[2]};
+  real_t e3[3] = {0};
+  cross3(f1, f2, e3);
+  normalize3(e3);
+  real_t e2[3] = {0};
+  cross3(e3, e1, e2);
+
+  // clang-format off
+  real_t T[3 * 3] = {
+    e1[0], e1[1], e1[2],
+    e2[0], e2[1], e2[2],
+    e3[0], e3[1], e3[2]
+  };
+  // clang-format on
+
+  // f3 = T * f3;
+  {
+    real_t x[3] = {0};
+    x[0] = T[0] * f3[0] + T[1] * f3[1] + T[2] * f3[2];
+    x[1] = T[3] * f3[0] + T[4] * f3[1] + T[5] * f3[2];
+    x[2] = T[6] * f3[0] + T[7] * f3[1] + T[8] * f3[2];
+    f3[0] = x[0];
+    f3[1] = x[1];
+    f3[2] = x[2];
+  }
+
+  // Reinforce that f3(2,0) > 0 for having theta in [0;pi]
+  if (f3[2] > 0) {
+    // f1 = features.col(1);
+    f1[0] = features[0][0];
+    f1[1] = features[0][1];
+    f1[2] = features[0][2];
+
+    // f2 = features.col(0);
+    f2[0] = features[1][0];
+    f2[1] = features[1][1];
+    f2[2] = features[1][2];
+
+    // f3 = features.col(2);
+    f3[0] = features[2][0];
+    f3[1] = features[2][1];
+    f3[2] = features[2][2];
+
+    // e1 = f1;
+    e1[0] = f1[0];
+    e1[1] = f1[1];
+    e1[2] = f1[2];
+
+    // e3 = f1.cross(f2);
+    // e3 = e3 / e3.norm();
+    cross3(f1, f2, e3);
+    normalize3(e3);
+
+    // e2 = e3.cross(e1);
+    cross3(e3, e1, e2);
+
+    // T.row(0) = e1.transpose();
+    T[0] = e1[0];
+    T[1] = e1[1];
+    T[2] = e1[2];
+
+    // T.row(1) = e2.transpose();
+    T[3] = e2[0];
+    T[4] = e2[1];
+    T[5] = e2[2];
+
+    // T.row(2) = e3.transpose();
+    T[6] = e3[0];
+    T[7] = e3[1];
+    T[8] = e3[2];
+
+    // f3 = T * f3;
+    {
+      real_t x[3] = {0};
+      x[0] = T[0] * f3[0] + T[1] * f3[1] + T[2] * f3[2];
+      x[1] = T[3] * f3[0] + T[4] * f3[1] + T[5] * f3[2];
+      x[2] = T[6] * f3[0] + T[7] * f3[1] + T[8] * f3[2];
+      f3[0] = x[0];
+      f3[1] = x[1];
+      f3[2] = x[2];
+    }
+
+    // P1 = points.col(1);
+    P1[0] = points[0][0];
+    P1[1] = points[0][1];
+    P1[2] = points[0][2];
+
+    // P2 = points.col(0);
+    P2[0] = points[1][0];
+    P2[1] = points[1][1];
+    P2[2] = points[1][2];
+
+    // P3 = points.col(2);
+    P3[0] = points[2][0];
+    P3[1] = points[2][1];
+    P3[2] = points[2][2];
+  }
+
+  // Creation of intermediate world frame
+  // n1 = P2 - P1;
+  // n1 = n1 / n1.norm();
+  real_t n1[3] = {0};
+  vec3_sub(P2, P1, n1);
+  normalize3(n1);
+
+  // n3 = n1.cross(P3 - P1);
+  // n3 = n3 / n3.norm();
+  real_t n3[3] = {0};
+  vec3_sub(P3, P1, n3);
+  normalize3(n3);
+
+  // n2 = n3.cross(n1);
+  real_t n2[3] = {0};
+  cross3(n3, n1, n2);
+
+  // N.row(0) = n1.transpose();
+  // N.row(1) = n2.transpose();
+  // N.row(2) = n3.transpose();
+  // clang-format off
+  real_t N[3 * 3] = {
+    n1[0], n1[1], n1[2],
+    n2[0], n2[1], n2[2],
+    n3[0], n3[1], n3[2]
+  };
+  // clang-format on
+
+  // Extraction of known parameters
+  // P3 = N * (P3 - P1);
+  {
+    real_t d[3] = {0};
+    vec3_sub(P3, P1, d);
+    P3[0] = N[0] * d[0] + N[1] * d[1] + N[2] * d[2];
+    P3[1] = N[3] * d[0] + N[4] * d[1] + N[5] * d[2];
+    P3[2] = N[6] * d[0] + N[7] * d[1] + N[8] * d[2];
+  }
+
+  real_t dP21[3] = {0};
+  vec3_sub(P2, P1, dP21);
+  real_t d_12 = norm3(dP21);
+  real_t f_1 = f3[0] / f3[2];
+  real_t f_2 = f3[1] / f3[2];
+  real_t p_1 = P3[0];
+  real_t p_2 = P3[1];
+
+  // cos_beta = f1.dot(f2);
+  // b = 1 / (1 - pow(cos_beta, 2)) - 1;
+  const real_t cos_beta = f1[0] * f2[0] + f1[1] * f2[1] + f1[1] * f2[1];
+  real_t b = 1 / (1 - pow(cos_beta, 2)) - 1;
+  if (cos_beta < 0) {
+    b = -sqrt(b);
+  } else {
+    b = sqrt(b);
+  }
+
+  // Definition of temporary variables for avoiding multiple computation
+  const real_t f_1_pw2 = pow(f_1, 2);
+  const real_t f_2_pw2 = pow(f_2, 2);
+  const real_t p_1_pw2 = pow(p_1, 2);
+  const real_t p_1_pw3 = p_1_pw2 * p_1;
+  const real_t p_1_pw4 = p_1_pw3 * p_1;
+  const real_t p_2_pw2 = pow(p_2, 2);
+  const real_t p_2_pw3 = p_2_pw2 * p_2;
+  const real_t p_2_pw4 = p_2_pw3 * p_2;
+  const real_t d_12_pw2 = pow(d_12, 2);
+  const real_t b_pw2 = pow(b, 2);
+
+  // Computation of factors of 4th degree polynomial
+  real_t factors[5] = {0};
+  factors[0] = -f_2_pw2 * p_2_pw4 - p_2_pw4 * f_1_pw2 - p_2_pw4;
+  factors[1] = 2 * p_2_pw3 * d_12 * b + 2 * f_2_pw2 * p_2_pw3 * d_12 * b -
+               2 * f_2 * p_2_pw3 * f_1 * d_12;
+  factors[2] =
+      -f_2_pw2 * p_2_pw2 * p_1_pw2 - f_2_pw2 * p_2_pw2 * d_12_pw2 * b_pw2 -
+      f_2_pw2 * p_2_pw2 * d_12_pw2 + f_2_pw2 * p_2_pw4 + p_2_pw4 * f_1_pw2 +
+      2 * p_1 * p_2_pw2 * d_12 + 2 * f_1 * f_2 * p_1 * p_2_pw2 * d_12 * b -
+      p_2_pw2 * p_1_pw2 * f_1_pw2 + 2 * p_1 * p_2_pw2 * f_2_pw2 * d_12 -
+      p_2_pw2 * d_12_pw2 * b_pw2 - 2 * p_1_pw2 * p_2_pw2;
+  factors[3] = 2 * p_1_pw2 * p_2 * d_12 * b + 2 * f_2 * p_2_pw3 * f_1 * d_12 -
+               2 * f_2_pw2 * p_2_pw3 * d_12 * b - 2 * p_1 * p_2 * d_12_pw2 * b;
+  factors[4] =
+      -2 * f_2 * p_2_pw2 * f_1 * p_1 * d_12 * b + f_2_pw2 * p_2_pw2 * d_12_pw2 +
+      2 * p_1_pw3 * d_12 - p_1_pw2 * d_12_pw2 + f_2_pw2 * p_2_pw2 * p_1_pw2 -
+      p_1_pw4 - 2 * f_2_pw2 * p_2_pw2 * p_1 * d_12 +
+      p_2_pw2 * f_1_pw2 * p_1_pw2 + f_2_pw2 * p_2_pw2 * d_12_pw2 * b_pw2;
+
+  // Computation of roots
+  real_t real_roots[4] = {0};
+  kneip_solve_quadratic(factors, real_roots);
+
+  // Backsubstitution of each solution
+  for (int i = 0; i < 4; ++i) {
+    const real_t cot_alpha =
+        (-f_1 * p_1 / f_2 - real_roots[i] * p_2 + d_12 * b) /
+        (-f_1 * real_roots[i] * p_2 / f_2 + p_1 - d_12);
+    const real_t cos_theta = real_roots[i];
+    const real_t sin_theta = sqrt(1 - pow((real_t) real_roots[i], 2));
+    const real_t sin_alpha = sqrt(1 / (pow(cot_alpha, 2) + 1));
+    real_t cos_alpha = sqrt(1 - pow(sin_alpha, 2));
+    if (cot_alpha < 0) {
+      cos_alpha = -cos_alpha;
+    }
+
+    real_t C[3] = {0};
+    C[0] = d_12 * cos_alpha * (sin_alpha * b + cos_alpha);
+    C[1] = cos_theta * d_12 * sin_alpha * (sin_alpha * b + cos_alpha);
+    C[2] = sin_theta * d_12 * sin_alpha * (sin_alpha * b + cos_alpha);
+    // C = P1 + N.transpose() * C;
+    C[0] = P1[0] + (N[0] * C[0] + N[3] * C[1] + N[6] * C[2]);
+    C[1] = P1[1] + (N[1] * C[0] + N[4] * C[1] + N[7] * C[2]);
+    C[2] = P1[2] + (N[2] * C[0] + N[5] * C[1] + N[8] * C[2]);
+
+    real_t R[3 * 3] = {0};
+    R[0] = -cos_alpha;
+    R[1] = -sin_alpha * cos_theta;
+    R[2] = -sin_alpha * sin_theta;
+    R[3] = sin_alpha;
+    R[4] = -cos_alpha * cos_theta;
+    R[5] = -cos_alpha * sin_theta;
+    R[6] = 0;
+    R[7] = -sin_theta;
+    R[8] = cos_theta;
+    // R = N.transpose() * R.transpose() * T;
+    // clang-format off
+    {
+      real_t tmp[3 * 3] = {0};
+      tmp[0] = T[0]*(N[0]*R[0] + N[3]*R[1] + N[6]*R[2]) + T[3]*(N[0]*R[3] + N[3]*R[4] + N[6]*R[5]) + T[6]*(N[0]*R[6] + N[3]*R[7] + N[6]*R[8]);
+      tmp[1] = T[1]*(N[0]*R[0] + N[3]*R[1] + N[6]*R[2]) + T[4]*(N[0]*R[3] + N[3]*R[4] + N[6]*R[5]) + T[7]*(N[0]*R[6] + N[3]*R[7] + N[6]*R[8]);
+      tmp[2] = T[2]*(N[0]*R[0] + N[3]*R[1] + N[6]*R[2]) + T[5]*(N[0]*R[3] + N[3]*R[4] + N[6]*R[5]) + T[8]*(N[0]*R[6] + N[3]*R[7] + N[6]*R[8]);
+
+      tmp[3] = T[0]*(N[1]*R[0] + N[4]*R[1] + N[7]*R[2]) + T[3]*(N[1]*R[3] + N[4]*R[4] + N[7]*R[5]) + T[6]*(N[1]*R[6] + N[4]*R[7] + N[7]*R[8]);
+      tmp[4] = T[1]*(N[1]*R[0] + N[4]*R[1] + N[7]*R[2]) + T[4]*(N[1]*R[3] + N[4]*R[4] + N[7]*R[5]) + T[7]*(N[1]*R[6] + N[4]*R[7] + N[7]*R[8]);
+      tmp[5] = T[2]*(N[1]*R[0] + N[4]*R[1] + N[7]*R[2]) + T[5]*(N[1]*R[3] + N[4]*R[4] + N[7]*R[5]) + T[8]*(N[1]*R[6] + N[4]*R[7] + N[7]*R[8]);
+
+      tmp[6] = T[0]*(N[2]*R[0] + N[5]*R[1] + N[8]*R[2]) + T[3]*(N[2]*R[3] + N[5]*R[4] + N[8]*R[5]) + T[6]*(N[2]*R[6] + N[5]*R[7] + N[8]*R[8]);
+      tmp[7] = T[1]*(N[2]*R[0] + N[5]*R[1] + N[8]*R[2]) + T[4]*(N[2]*R[3] + N[5]*R[4] + N[8]*R[5]) + T[7]*(N[2]*R[6] + N[5]*R[7] + N[8]*R[8]);
+      tmp[8] = T[2]*(N[2]*R[0] + N[5]*R[1] + N[8]*R[2]) + T[5]*(N[2]*R[3] + N[5]*R[4] + N[8]*R[5]) + T[8]*(N[2]*R[6] + N[5]*R[7] + N[8]*R[8]);
+
+      mat3_copy(tmp, R);
+    }
+    // clang-format on
+
+    // solution.block<3, 3>(0, 0) = R;
+    // solution.col(3) = C;
+    // clang-format off
+    solutions[i][0] = R[0]; solutions[i][1] = R[1]; solutions[i][2]  = R[2]; solutions[i][3] = C[0];
+    solutions[i][4] = R[3]; solutions[i][5] = R[4]; solutions[i][6]  = R[5]; solutions[i][7] = C[1];
+    solutions[i][8] = R[3]; solutions[i][9] = R[4]; solutions[i][10] = R[5]; solutions[i][11] = C[2];
+    solutions[i][12] = 0.0; solutions[i][13] = 0.0; solutions[i][14] = 0.0;  solutions[i][15] = 1.0;
+    // clang-format on
+  }
+
+  return 0;
+}
+
 ////////////
 // RADTAN //
 ////////////
@@ -7017,20 +7468,6 @@ void idfb_points(idfb_t *idfb,
   }
 }
 
-//////////////
-// KEYFRAME //
-//////////////
-
-/**
- * Setup keyframe
- */
-void keyframe_setup(keyframe_t *kf) {
-  kf->num_cams = 0;
-  kf->num_features = 0;
-  kf->feature_ids = NULL;
-  kf->features = NULL;
-}
-
 ////////////////
 // TIME-DELAY //
 ////////////////
@@ -8240,6 +8677,26 @@ int idf_factor_eval(void *factor_ptr) {
                               factor->jacs[4]);
 
   return 0;
+}
+
+idf_database_t *idf_database_malloc() {
+  idf_database_t *db = MALLOC(idf_database_t, 1);
+  db->num_bundles = 0;
+  db->num_features = 0;
+  db->bundles = NULL;
+  return db;
+}
+
+void idf_database_add(idf_database_t *db,
+                      const camera_params_t *cam_params,
+                      const size_t num_features,
+                      const size_t *feature_ids,
+                      const real_t *keypoints,
+                      const real_t T_WC[4 * 4]) {
+  idfb_t *idfb =
+      idfb_malloc(cam_params, num_features, feature_ids, keypoints, T_WC);
+
+  // hmputs(db->bundles);
 }
 
 ////////////////
@@ -10898,10 +11355,7 @@ void calib_camera_add_view(calib_camera_t *calib,
                            const int *tag_ids,
                            const int *corner_indices,
                            const real_t *object_points,
-                           const real_t *keypoints,
-                           extrinsic_t *cam_ext,
-                           camera_params_t *cam_params,
-                           pose_t *pose) {
+                           const real_t *keypoints) {
   assert(calib != NULL);
   assert(calib->cams_ok);
 
@@ -10931,7 +11385,7 @@ void calib_camera_add_view(calib_camera_t *calib,
                                corner_indices,
                                object_points,
                                keypoints,
-                               pose,
+                               calib->poses[view_idx],
                                &calib->cam_exts[cam_idx],
                                &calib->cam_params[cam_idx]);
   calib->num_factors += num_corners;

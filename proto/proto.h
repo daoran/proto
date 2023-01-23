@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include <complex.h>
 #include <time.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -301,8 +302,10 @@ STATUS file_copy(const char *src, const char *dest);
 
 #if PRECISION == 1
 typedef float real_t;
+typedef float complex real_complex_t;
 #elif PRECISION == 2
 typedef double real_t;
+typedef double complex real_complex_t;
 #else
 #error "Floating Point Precision not defined!"
 #endif
@@ -660,6 +663,10 @@ void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
 void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale);
 
+void mat3_copy(const real_t src[3 * 3], real_t dst[3 * 3]);
+void mat3_add(const real_t A[3 * 3], const real_t B[3 * 3], real_t C[3 * 3]);
+void mat3_sub(const real_t A[3 * 3], const real_t B[3 * 3], real_t C[3 * 3]);
+
 real_t *vec_malloc(const real_t *x, const size_t n);
 void vec_copy(const real_t *src, const size_t n, real_t *dest);
 int vec_equals(const real_t *x, const real_t *y, const size_t n);
@@ -669,6 +676,13 @@ void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t n);
 void vec_scale(real_t *x, const size_t n, const real_t scale);
 real_t vec_norm(const real_t *x, const size_t n);
 void vec_normalize(real_t *x, const size_t n);
+
+void vec3_copy(const real_t src[3], real_t dst[3]);
+void vec3_add(const real_t a[3], const real_t b[3], real_t c[3]);
+void vec3_sub(const real_t a[3], const real_t b[3], real_t c[3]);
+void cross3(const real_t a[3], const real_t b[3], real_t c[3]);
+real_t norm3(const real_t x[3]);
+void normalize3(real_t x[3]);
 
 void dot(const real_t *A,
          const size_t A_m,
@@ -1106,6 +1120,10 @@ void linear_triangulation(const real_t P_i[3 * 4],
                           const real_t z_j[2],
                           real_t p[3]);
 
+int kneip_p3p(const real_t features[3][3],
+              const real_t points[3][3],
+              real_t solutions[4][4 * 4]);
+
 ////////////
 // RADTAN //
 ////////////
@@ -1393,9 +1411,16 @@ typedef struct idf_kv_t {
 } idf_kv_t;
 
 typedef struct idfb_t {
+  size_t key;
   idf_pos_t pos;
   idf_kv_t *params;
 } idfb_t;
+
+typedef struct idf_database_t {
+  int num_bundles;
+  int num_features;
+  idfb_t *bundles;
+} idf_database_t;
 
 void idf_pos_setup(idf_pos_t *pos, const real_t *data);
 void idf_pos_print(const char *prefix, const idf_pos_t *pos);
@@ -1423,18 +1448,13 @@ void idfb_points(idfb_t *idfb,
                  real_t **points,
                  size_t *num_features);
 
-//////////////
-// KEYFRAME //
-//////////////
-
-typedef struct keyframe_t {
-  int num_cams;
-  size_t num_features;
-  size_t *feature_ids;
-  feature_t *features;
-} keyframe_t;
-
-void keyframe_setup(keyframe_t *kf);
+idf_database_t *idf_database_malloc();
+void idf_database_add(idf_database_t *db,
+                      const camera_params_t *cam_params,
+                      const size_t num_features,
+                      const size_t *feature_ids,
+                      const real_t *keypoints,
+                      const real_t T_WC[4 * 4]);
 
 ////////////////
 // TIME-DELAY //
@@ -2193,10 +2213,7 @@ void calib_camera_add_view(calib_camera_t *calib,
                            const int *tag_ids,
                            const int *corner_indices,
                            const real_t *object_points,
-                           const real_t *keypoints,
-                           extrinsic_t *cam_ext,
-                           camera_params_t *cam_params,
-                           pose_t *pose);
+                           const real_t *keypoints);
 
 ////////////////////////////
 // CAMERA-IMU CALIBRATION //
