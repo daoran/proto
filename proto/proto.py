@@ -2184,6 +2184,154 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   return p
 
 
+def homography_find(pts_i, pts_j):
+  """
+  A Homography is a transformation (a 3x3 matrix) that maps the normalized
+  image points from one image to the corresponding normalized image points in
+  the other image. Specifically, let x and y be the n-th homogeneous points of
+  pts_i and pts_j:
+
+    x = [u_i, v_i, 1.0]
+    y = [u_j, v_j, 1.0]
+
+  The Homography is a 3x3 matrix that transforms x to y:
+
+    y = H @ x
+
+  **IMPORTANT**: The normalized image points `pts_i` and `pts_j` must
+  correspond to points in 3D that on a plane.
+  """
+  assert pts_i.shape == pts_j.shape
+  assert pts_i.shape[1] == 2
+
+  num_points = pts_i.shape[0]
+  A = np.zeros((num_points * 2, 9))
+  for i in range(num_points):
+    x, y = pts_i[i, :]
+    x_, y_ = pts_j[i, :]
+    A[2 * i, :] = [-x, -y, -1, 0, 0, 0, x * x_, y * x_, x_]
+    A[2 * i + 1, :] = [0, 0, 0, -x, -y, -1, x * y_, y * y_, y_]
+
+  _, _, v = np.linalg.svd(A)
+  h = v[-1, :] / v[-1, -1]
+  return h.reshape((3, 3))
+
+
+def homography_decompose(H, fx, fy, cx, cy):
+  """
+  Decompose Homography into Rotation and translation
+
+  The projection matrix is:
+
+  [fx  0  cx  0]
+  [ 0 fy  cy  0]
+  [ 0  0   1  0]
+
+  And that the homography is equal to the projection matrix times the model
+  matrix, recover the model matrix (which is returned). Note that the third
+  column of the model matrix is missing in the expresison below, reflecting the
+  fact that the homography assumes all points are at z=0 (i.e., planar) and
+  that the element of z is thus omitted.  (3x1 instead of 4x1).
+
+  [ fx  0  cx  0 ] [ R00  R01  TX ]   [ H00 H01 H02 ]
+  [  0 fy  cy  0 ] [ R10  R11  TY ] = [ H10 H11 H12 ]
+  [  0  0   1  0 ] [ R20  R21  TZ ]   [ H20 H21 H22 ]
+                   [  0    0    1 ]
+
+  Note: H only known up to scale; some additional adjustments required;
+
+  fx * R00 + cx * R20 = H00
+  fx * R01 + cx * R21 = H01
+  fx * TX  + cx * TZ  = H02
+  fy * R10 + cy * R20 = H10
+  fy * R11 + cy * R21 = H11
+  fy * TY  + cy * TZ  = H12
+
+  R20 = H20
+  R21 = H21
+  TZ  = H22
+  """
+  # Note that every variable that we compute is proportional to the scale factor of H.
+  R20 = H[2, 0]
+  R21 = H[2, 1]
+  TZ = H[2, 2]
+
+  R00 = (H[0, 0] - cx * R20) / fx
+  R01 = (H[0, 1] - cx * R21) / fx
+  TX = (H[0, 2] - cx * TZ) / fx
+  R10 = (H[1, 0] - cy * R20) / fy
+  R11 = (H[1, 1] - cy * R21) / fy
+  TY = (H[1, 2] - cy * TZ) / fy
+
+  # Compute the scale by requiring that the rotation columns are unit length
+  # (Use geometric average of the two length vectors we have)
+  length1 = sqrt(R00 * R00 + R10 * R10 + R20 * R20)
+  length2 = sqrt(R01 * R01 + R11 * R11 + R21 * R21)
+  s = 1.0 / sqrt(length1 * length2)
+
+  # Get sign of S by requiring the tag to be in front the camera;
+  # we assume camera looks in the -Z direction.
+  if TZ > 0:
+    s *= -1
+
+  R20 *= s
+  R21 *= s
+  TZ *= s
+  R00 *= s
+  R01 *= s
+  TX *= s
+  R10 *= s
+  R11 *= s
+  TY *= s
+
+  # Recover [R02 R12 R22] by noting that it is the cross product of the other
+  # two columns.
+  R02 = R10 * R21 - R20 * R11
+  R12 = R20 * R01 - R00 * R21
+  R22 = R00 * R11 - R10 * R01
+
+  # Improve rotation matrix by applying polar decomposition.
+  # This makes the rotation matrix "proper", but probably increases the
+  # reprojection error. An iterative alignment step would be superior.
+  R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
+  # U, S, Vt = np.linalg.svd(R)
+  # R = U * Vt
+
+  return R, np.array([TX, TY, TZ])
+
+
+def homography_pose(proj_params, image_points, object_points):
+  """ Compute relative pose between camera and planar object """
+  # Compute homography
+  pts_i = []
+  pts_j = []
+  for i in range(image_points.shape[0]):
+    p = pinhole_back_project(proj_params, image_points[i, :])
+    pts_i.append([p[0], p[1]])
+    pts_j.append([object_points[i, 0], object_points[i, 1]])
+  pts_i = np.array(pts_i)
+  pts_j = np.array(pts_j)
+  H = homography_find(pts_i, pts_j)
+
+  # Extract the normal of the plane
+  p0 = np.array([object_points[0][0], object_points[0][1], 1.0])
+  p1 = np.array([object_points[1][0], object_points[1][1], 1.0])
+  plane_normal = np.cross(p0, p1)
+
+  # Extract the last column of the camera matrix
+  fx, fy, cx, cy = proj_params
+  K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+  camera_center = np.linalg.inv(K) @ np.array([0, 0, 1])
+
+  # Compute the translation vector
+  t = H @ camera_center / np.linalg.norm(plane_normal)
+
+  # Extract the rotation matrix
+  R = H[:2, :2] @ np.linalg.inv(K[:2, :2])
+
+  return R, t
+
+
 # FEATURES 2D #################################################################
 
 
@@ -2427,6 +2575,14 @@ def pinhole_project(proj_params, p_C):
   z = np.array([fx * x[0] + cx, fy * x[1] + cy])
 
   return z
+
+
+def pinhole_back_project(proj_params, z):
+  """ Back project image point to bearing """
+  fx, fy, cx, cy = proj_params
+  x = (z[0] - cx) / fx
+  y = (z[1] - cy) / fy
+  return np.array([x, y])
 
 
 def pinhole_params_jacobian(x):
@@ -8970,6 +9126,195 @@ class TestCV(unittest.TestCase):
       # Triangulate
       p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
       self.assertTrue(np.allclose(p_Ci_est, p_Ci_gnd))
+
+  def test_homography_find(self):
+    """ Test homography_find() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose i
+    C_WC_i = euler321(-pi / 2 - deg2rad(45), 0.0, -pi / 2)
+    r_WC_i = np.array([0.0, 1.0, 0.0])
+    T_WC_i = tf(C_WC_i, r_WC_i)
+
+    # Camera pose j
+    C_WC_j = euler321(-pi / 2 + deg2rad(45), 0.0, -pi / 2)
+    r_WC_j = np.array([0.0, -1.0, 0.0])
+    T_WC_j = tf(C_WC_j, r_WC_j)
+
+    # Generate image points
+    num_points = 10
+    points = []
+    pts_i = []
+    pts_j = []
+    for _ in range(num_points):
+      # Project feature point p_W to image plane
+      x = np.random.uniform(-0.5, 0.5)
+      y = np.random.uniform(-0.5, 0.5)
+      p_W = np.array([1.0, x, y])
+      p_Ci_gnd = tf_point(inv(T_WC_i), p_W)
+      p_Cj_gnd = tf_point(inv(T_WC_j), p_W)
+      z_i = pinhole_project(proj_params, p_Ci_gnd)
+      z_j = pinhole_project(proj_params, p_Cj_gnd)
+      pt_i = pinhole_back_project(proj_params, z_i)
+      pt_j = pinhole_back_project(proj_params, z_j)
+
+      points.append(p_W)
+      pts_i.append(pt_i)
+      pts_j.append(pt_j)
+    points = np.array(points)
+    pts_i = np.array(pts_i)
+    pts_j = np.array(pts_j)
+
+    H = homography_find(pts_i, pts_j)
+    for i in range(num_points):
+      pt_j_gnd = np.array([pts_j[i, 0], pts_j[i, 1], 1.0])
+      pt_j_est = H @ np.array([pts_i[i, 0], pts_i[i, 1], 1.0])
+
+      pt_j_est[0] /= pt_j_est[2]
+      pt_j_est[1] /= pt_j_est[2]
+      pt_j_est[2] /= pt_j_est[2]
+
+      diff = pt_j_gnd - pt_j_est
+      self.assertTrue(diff < 1e-5)
+
+      # print(f"pt_j_gnd: {pt_j_gnd}")
+      # print(f"pt_j_est: {pt_j_est}")
+      # print(f"diff: {pt_j_gnd - pt_j_est}")
+      # print()
+
+    # # Plot 3D
+    # plt.figure()
+    # ax = plt.axes(projection='3d')
+    # plot_tf(ax, T_WC_i, size=0.1, name="pose_i")
+    # plot_tf(ax, T_WC_j, size=0.1, name="pose_j")
+    # ax.scatter(points[:, 0], points[:, 1], points[:, 2])
+    # ax.set_xlabel("x [m]")
+    # ax.set_ylabel("y [m]")
+    # ax.set_zlabel("z [m]")
+    # plot_set_axes_equal(ax)
+    # plt.show()
+
+  def test_homography_pose(self):
+    """ Test homography_pose() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose T_WC
+    C_WC = euler321(deg2rad(10.0), 0.0, 0.0)
+    r_WC = np.array([0.0, 0.0, 3.0])
+    T_WC = tf(C_WC, r_WC)
+
+    # Calibration target pose T_WF
+    num_rows = 4
+    num_cols = 4
+    tag_size = 0.1
+
+    C_WF = euler321(0.0, 0.0, 0.0)
+    r_WF = np.array([0, 0, 0])
+    T_WF = tf(C_WF, r_WF)
+
+    # Generate data
+    world_points = []
+    object_points = []
+    image_points = []
+
+    for i in range(num_rows):
+      for j in range(num_cols):
+        p_F = np.array([i * tag_size, j * tag_size, 0.0])
+        p_W = tf_point(T_WF, p_F)
+        p_C = tf_point(inv(T_WC), p_W)
+        z = pinhole_project(proj_params, p_C)
+
+        object_points.append(p_F)
+        world_points.append(p_W)
+        image_points.append(z)
+
+    object_points = np.array(object_points)
+    world_points = np.array(world_points)
+    image_points = np.array(image_points)
+
+    # Compute homography
+    pts_i = []
+    pts_j = []
+    for i in range(image_points.shape[0]):
+      p = pinhole_back_project(proj_params, image_points[i, :])
+      pts_i.append([p[0], p[1]])
+      pts_j.append([object_points[i, 0], object_points[i, 1]])
+    pts_i = np.array(pts_i)
+    pts_j = np.array(pts_j)
+
+    H = homography_find(pts_j, pts_i)
+    H_opencv, status = cv2.findHomography(pts_j, pts_i)
+
+    # print(f"H:\n{H}")
+    # print(f"H_opencv:\n{H_opencv}")
+    # print("")
+
+    # K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+    # # K = np.eye(3)
+    # T_WC_est = None
+    # num, Rs, Ts, Ns = cv2.decomposeHomographyMat(H, K)
+    # for i in range(num):
+    #   C = Rs[i]
+    #   r = Ts[i].flatten()
+    #   T_WC_est = tf(C, r)
+
+    #   z = image_points[-1, :]
+    #   p_F = object_points[-1, :]
+    #   T_CF = inv(T_WC_est) @ T_WF
+    #   p_C = tf_point(T_CF, p_F)
+    #   if p_C[2] > 0.01:
+    #     z_hat = pinhole_project(proj_params, p_C)
+    #     print(f"p_C: {p_C}, z: {z}, z_hat: {z_hat}")
+
+    # Normalization to ensure that ||c1|| = 1
+    n = sqrt(H[0, 0] * H[0, 0] + H[1, 0] * H[1, 0] + H[2, 0] * H[2, 0])
+    H /= n
+    c1 = H[:, 0]
+    c2 = H[:, 1]
+    c3 = np.cross(c1, c2)
+    tvec = H[:, 2]
+
+    R = np.zeros((3, 3))
+    for i in range(3):
+      R[i, 0] = c1[i]
+      R[i, 1] = c2[i]
+      R[i, 2] = c3[i]
+    T_WC_est = tf(R, tvec)
+
+    # z = image_points[-1, :]
+    # p_F = object_points[-1, :]
+    # T_CF = inv(T_WC_est) @ T_WF
+    # p_C = tf_point(T_CF, p_F)
+    # z_hat = pinhole_project(proj_params, p_C)
+    # print(f"z: {z}, z_hat: {z_hat}")
+    # T_WC_est
+
+    # Plot 3D
+    plt.figure()
+    ax = plt.axes(projection='3d')
+    plot_tf(ax, T_WC, size=0.1, name="camera")
+    plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
+    plot_tf(ax, T_WF, size=0.1, name="fiducial")
+    ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
 
   def test_illumination_invariant_transform(self):
     """ Test harris_corner() """

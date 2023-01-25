@@ -35,6 +35,9 @@ run_memcheck() {
 # python3 proto.py TestTransform.test_quat_conj
 # python3 proto.py TestTransform.test_quat_slerp
 # python3 proto.py TestCV
+# python3 proto.py TestCV.test_linear_triangulation
+# python3 proto.py TestCV.test_homography_find
+python3 proto.py TestCV.test_homography_pose
 # python3 proto.py TestCV.test_harris_corner
 # python3 proto.py TestCV.test_shi_tomasi_corner
 # python3 proto.py TestFactors
@@ -286,7 +289,7 @@ dev_euroc() {
 # run_test test_eye
 # run_test test_ones
 # run_test test_protos
-run_test test_mat_set
+# run_test test_mat_set
 # run_test test_mat_val
 # run_test test_mat_copy
 # run_test test_mat_row_set
@@ -338,6 +341,8 @@ run_test test_mat_set
 # PROTO-CV
 # run_test test_lie_Exp_Log
 # run_test test_linear_triangulation
+# run_test test_homography_find
+# run_test test_p3p_kneip
 # run_test test_radtan4_distort
 # run_test test_radtan4_undistort
 # run_test test_radtan4_point_jacobian
@@ -392,7 +397,7 @@ run_test test_mat_set
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
-run_test test_calib_camera
+# run_test test_calib_camera
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
 # run_test test_calib_gimbal_add_gimbal_extrinsic
