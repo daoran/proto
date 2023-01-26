@@ -2251,7 +2251,7 @@ def homography_pose(object_points, image_points, fx, fy, cx, cy):
 
   Source:
 
-    Section 3.1.2 "PnP: pose estimation from N point correspondences"
+    Section 4.1.3: From homography to pose computation
 
     Marchand, Eric, Hideaki Uchiyama, and Fabien Spindler. "Pose estimation for
     augmented reality: a hands-on survey." IEEE transactions on visualization and
