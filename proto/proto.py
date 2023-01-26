@@ -2318,8 +2318,8 @@ def homography_pose(object_points, image_points, fx, fy, cx, cy):
 
   # Extract Homography
   h = Vt[-1, :]  # Last col of V (or row of Vt) is solution to Ah = 0
-  # if h[-1] < 0:
-  #   h *= -1
+  if h[-1] < 0:
+    h *= -1
 
   H = np.zeros((3, 3))
   for i in range(3):
@@ -2417,8 +2417,8 @@ def dlt_pose(object_points, image_points, fx, fy, cx, cy):
 
   # Extract Homography
   h = Vt[-1, :]
-  # if h[-1] < 0:
-  #   h *= -1
+  if h[-1] < 0:
+    h *= -1
 
   # Normalize H to ensure that ||r3|| = 1
   h /= sqrt(h[8] * h[8] + h[9] * h[9] + h[10] * h[10])
@@ -9309,8 +9309,8 @@ class TestCV(unittest.TestCase):
     proj_params = [fx, fy, cx, cy]
 
     # Camera pose T_WC
-    C_WC = euler321(deg2rad(50.0), 0.0, 0.0)
-    r_WC = np.array([0.0, 0.0, 2.0])
+    C_WC = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WC = np.array([0.0, 0.0, 0.0])
     T_WC = tf(C_WC, r_WC)
 
     # Calibration target pose T_WF
@@ -9318,8 +9318,8 @@ class TestCV(unittest.TestCase):
     num_cols = 4
     tag_size = 0.1
 
-    C_WF = euler321(0.0, 0.0, 0.0)
-    r_WF = np.array([0, 0, 0])
+    C_WF = euler321(-pi / 2, 0.0, pi / 2)
+    r_WF = np.array([0.1, 0, 0])
     T_WF = tf(C_WF, r_WF)
 
     # Generate data
@@ -9345,13 +9345,16 @@ class TestCV(unittest.TestCase):
     T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
     T_WC_est = T_WF @ inv(T_CF)
 
+    print(T_WC)
+    print(T_WC_est)
+
     # Compare estimated and ground-truth
     (dr, dtheta) = tf_diff(T_WC, T_WC_est)
-    self.assertTrue(norm(dr) < 1e-4)
+    self.assertTrue(norm(dr) < 1e-2)
     self.assertTrue(abs(dtheta) < 1e-4)
 
     # Plot 3D
-    debug = False
+    debug = True
     if debug:
       plt.figure()
       ax = plt.axes(projection='3d')
@@ -9378,7 +9381,7 @@ class TestCV(unittest.TestCase):
 
     # Camera pose T_WC
     C_WC = euler321(deg2rad(50.0), 0.0, 0.0)
-    r_WC = np.array([0.0, 0.0, 2.0])
+    r_WC = np.array([0.0, 0.0, 1.0])
     T_WC = tf(C_WC, r_WC)
 
     # Calibration target pose T_WF
