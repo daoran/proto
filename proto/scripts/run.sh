@@ -19,7 +19,7 @@ run_memcheck() {
 ###############################################################################
 
 # ctags proto/proto.c proto/proto.py
-# python3 proto.py
+python3 proto.py
 # python3 proto.py TestNetwork.test_http_parse_request
 # python3 proto.py TestNetwork.test_websocket_hash
 # python3 proto.py TestNetwork.test_websocket_encode_frame
