@@ -2463,7 +2463,6 @@ def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
   T_FC_est = pose2tf(pose)
   T_CF_est = inv(T_FC_est)
   H = np.zeros((6, 6))
-  r = np.zeros(2 * N)
   g = np.zeros(6)
   r_idx = 0
 
@@ -2473,7 +2472,7 @@ def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
     p_F = object_points[n, :]
     p_C = tf_point(T_CF_est, p_F)
     zhat = pinhole_project([fx, fy, cx, cy], p_C)
-    res = z - zhat
+    r = z - zhat
 
     # Calculate Jacobian
     C_CF, r_CF = tf_decompose(T_CF_est)
@@ -2497,14 +2496,9 @@ def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
     H += J.T @ J
 
     # Form R.H.S. Gauss Newton g
-    rs = r_idx
-    re = r_idx + 2
-    r[rs:re] = res
-    r_idx = re
+    g += (-J.T @ r)
 
-    g += (-J.T @ res)
-
-  return (H, g, r)
+  return (H, g)
 
 
 def _solvepnp_solve(lambda_k, H, g):
@@ -2583,7 +2577,7 @@ def solvepnp(obj_pts, img_pts, fx, fy, cx, cy, **kwargs):
   cost_k = _solvepnp_cost(obj_pts, img_pts, fx, fy, cx, cy, pose_k)
   for i in range(max_iter):
     # Solve
-    H, g, r = _solvepnp_linearize(obj_pts, img_pts, fx, fy, cx, cy, pose_k)
+    H, g = _solvepnp_linearize(obj_pts, img_pts, fx, fy, cx, cy, pose_k)
     dx = _solvepnp_solve(lambda_k, H, g)
     pose_kp1 = _solvepnp_update(pose_k, dx)
     cost_kp1 = _solvepnp_cost(obj_pts, img_pts, fx, fy, cx, cy, pose_kp1)
