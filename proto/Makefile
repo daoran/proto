@@ -7,7 +7,9 @@ DEPS_DIR := $(realpath ../third_party)
 # COMPILER SETTINGS
 BUILD_TYPE := debug
 # BUILD_TYPE := release
-CC := gcc
+ADDRESS_SANITIZER := 1
+CC := clang
+# CC := gcc
 # CC := tcc
 
 # LIBRARIES
@@ -39,19 +41,28 @@ YAML_LDFLAGS := -lyaml
 PROTO_LDFLAGS := -L$(BLD_DIR) -lproto
 
 # CFLAGS
-CFLAGS := \
+CFLAGS :=
+
+ifeq ($(BUILD_TYPE), debug)
+	CFLAGS += -g -Wall -Wpedantic -fopenmp
+else
+	CFLAGS += -O3 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG -fopenmp
+endif
+
+ifeq ($(ADDRESS_SANITIZER), 1)
+ifeq ($(CC), gcc)
+  CFLAGS += -fsanitize=address -static-libasan
+else
+  CFLAGS += -fsanitize=address -static-libsan
+endif
+endif
+
+CFLAGS += \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
 	$(SDL2_CFLAGS) \
 	$(STB_CFLAGS) \
 	$(TIS_CFLAGS)
-
-ifeq ($(BUILD_TYPE), debug)
-	CFLAGS += -g -Wall -Wpedantic -fsanitize=address -static-libasan -fopenmp
-else
-	CFLAGS += -O3 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG -fopenmp
-endif
-
 
 
 # LDFLAGS
@@ -128,10 +139,10 @@ clean:  ## Clean build directory
 
 libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
 
+# -fsanitize=address -static-libasan
 avs: $(BLD_DIR)/libproto.a
 	@g++ \
 		-std=c++17 \
-		-fsanitize=address -static-libasan \
 		-fopenmp \
 		-I$(DEPS_DIR)/include \
 		$(shell pkg-config opencv4 --cflags) \
@@ -140,6 +151,10 @@ avs: $(BLD_DIR)/libproto.a
 		$(LDFLAGS) \
 		-lproto \
 		$(shell pkg-config opencv4 --libs)
+
+test_p3p: ## Compile test_p3p
+	@echo "CC [$@]"
+	@$(CC) $(CFLAGS) test_p3p.c -o $(BLD_DIR)/test_p3p $(LDFLAGS)
 
 test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"

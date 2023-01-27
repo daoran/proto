@@ -225,7 +225,7 @@ public:
   // Variables
   std::map<int, camera_params_t> cam_params_;
   std::map<int, extrinsic_t> cam_exts_;
-  std::set<std::pair<int, int>> overlaps_;
+  std::vector<std::pair<int, int>> overlaps_;
   std::unique_ptr<KeyFrame> kf_;
   std::vector<std::unique_ptr<KeyFrame>> old_kfs_;
 
@@ -255,6 +255,106 @@ public:
 
   /** Track **/
   int track(const std::map<int, cv::Mat> &mcam_imgs, const bool debug = false);
+};
+
+/////////////////////
+// FEATURE-TRACKER //
+/////////////////////
+
+class FeatureInfo {
+public:
+  size_t feature_id_ = 0;
+  std::vector<timestamp_t> timestamps_;
+  std::map<int, std::vector<cv::KeyPoint>> keypoints_;
+
+  FeatureInfo() = default;
+  FeatureInfo(const size_t feature_id,
+              const timestamp_t ts,
+              const std::map<int, cv::KeyPoint> &keypoints)
+      : feature_id_{feature_id} {
+    timestamps_.push_back(ts);
+    for (const auto &[cam_idx, kp] : keypoints) {
+      keypoints_[cam_idx].push_back(kp);
+    }
+  }
+  virtual ~FeatureInfo() = default;
+
+  /** Return Feature ID **/
+  size_t featureId() const {
+    return feature_id_;
+  }
+
+  /** Return Timestamp **/
+  timestamp_t timestamp(const size_t idx) const {
+    return timestamps_.at(idx);
+  }
+
+  /** Return First Timestamp **/
+  timestamp_t firstTimestamp() const {
+    return timestamps_.front();
+  }
+
+  /** Return Last Timestamp **/
+  timestamp_t lastTimestamp() const {
+    return timestamps_.back();
+  }
+
+  /** Return Camera Keypoints **/
+  std::vector<cv::KeyPoint> keyPoints(const int cam_idx) const {
+    return keypoints_.at(cam_idx);
+  }
+
+  /** Return Last Camera Keypoints **/
+  cv::KeyPoint lastKeyPoint(const int cam_idx) const {
+    return keypoints_.at(cam_idx).back();
+  }
+
+  /** Update feature with new measurement **/
+  void update(const timestamp_t ts, const int cam_idx, const cv::KeyPoint &kp) {
+    timestamps_.push_back(ts);
+    keypoints_[cam_idx].push_back(kp);
+  }
+};
+
+class FeatureTracker {
+public:
+  // Flags and counters
+  bool init_ = false;
+  size_t feature_counter_ = 0;
+
+  // Settings
+  real_t reproj_threshold_ = 5.0;
+
+  // Feature detector and matcher
+  GridDetector detector_;
+  cv::Ptr<cv::DescriptorMatcher> matcher_;
+
+  // Variables
+  std::map<int, camera_params_t> cam_params_;
+  std::map<int, extrinsic_t> cam_exts_;
+  std::vector<std::pair<int, int>> overlaps_;
+
+  std::map<int, cv::Mat> prev_imgs_;
+  std::map<size_t, FeatureInfo> features_;
+
+  FeatureTracker();
+  virtual ~FeatureTracker() = default;
+
+  /** Add camera **/
+  void addCamera(const camera_params_t &cam_params, const extrinsic_t &cam_ext);
+
+  /** Add overlap **/
+  void addOverlap(const std::pair<int, int> &overlap);
+
+  /** Detect overlapping keypoints **/
+  void _detectOverlap(
+      const std::map<int, cv::Mat> &mcam_imgs,
+      std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap) const;
+
+  /** Track **/
+  int track(const timestamp_t ts,
+            const std::map<int, cv::Mat> &mcam_imgs,
+            const bool debug = false);
 };
 
 #endif // AVS_HPP

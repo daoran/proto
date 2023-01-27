@@ -1729,6 +1729,34 @@ def tf_update(T, dx):
   return tf(quat_mul(q, dq), r + dr)
 
 
+def tf_diff(T0, T1):
+  """ Return difference between two 4x4 homogeneous transforms """
+  r0 = tf_trans(T0)
+  r1 = tf_trans(T1)
+  C0 = tf_rot(T0)
+  C1 = tf_rot(T1)
+
+  # dr = r0 - r1
+  dr = np.zeros((3,))
+  dr[0] = r0[0] - r1[0]
+  dr[1] = r0[1] - r1[1]
+  dr[2] = r0[2] - r1[2]
+
+  # dC = C0.T * C1
+  # dtheta = acos((tr(dC) - 1.0) / 2.0)
+  dC = C0.T @ C1
+  tr = np.trace(dC)
+  if tr < 0:
+    tr *= -1
+
+  if np.fabs(tr - 3.0) < 1e-5:
+    dtheta = 0.0
+  else:
+    dtheta = acos((tr - 1.0) / 2.0)
+
+  return (dr, dtheta)
+
+
 def pose_diff(pose0, pose1):
   """ Return difference between two poses """
   # dr = r0 - r1
@@ -2187,6 +2215,222 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   return p
 
 
+def homography_find(pts_i, pts_j):
+  """
+  A Homography is a transformation (a 3x3 matrix) that maps the normalized
+  image points from one image to the corresponding normalized image points in
+  the other image. Specifically, let x and y be the n-th homogeneous points of
+  pts_i and pts_j:
+
+    x = [u_i, v_i, 1.0]
+    y = [u_j, v_j, 1.0]
+
+  The Homography is a 3x3 matrix that transforms x to y:
+
+    y = H @ x
+
+  **IMPORTANT**: The normalized image points `pts_i` and `pts_j` must
+  correspond to points in 3D that on a plane.
+  """
+  assert pts_i.shape == pts_j.shape
+  assert pts_i.shape[1] == 2
+
+  num_points = pts_i.shape[0]
+  A = np.zeros((num_points * 2, 9))
+  for i in range(num_points):
+    x, y = pts_i[i, :]
+    x_, y_ = pts_j[i, :]
+    A[2 * i, :] = [-x, -y, -1, 0, 0, 0, x * x_, y * x_, x_]
+    A[2 * i + 1, :] = [0, 0, 0, -x, -y, -1, x * y_, y * y_, y_]
+
+  _, _, v = np.linalg.svd(A)
+  h = v[-1, :] / v[-1, -1]
+  return h.reshape((3, 3))
+
+
+def homography_pose(object_points, image_points, fx, fy, cx, cy):
+  """
+  Compute relative pose between camera and planar object T_CF.
+
+  Source:
+
+    Section 4.1.3: From homography to pose computation
+
+    Marchand, Eric, Hideaki Uchiyama, and Fabien Spindler. "Pose estimation for
+    augmented reality: a hands-on survey." IEEE transactions on visualization and
+    computer graphics 22.12 (2015): 2633-2651.
+
+    https://github.com/lagadic/camera_localization
+
+  Args:
+
+    object_points: (ndarray)
+      3D object points
+
+    image_points: (ndarray)
+      2D image points in pixels
+
+    fx: (float)
+      Focal length in pixels
+
+    fy: (float)
+      Focal length in pixels
+
+    cx: (float)
+      Principal center in pixels
+
+    cy: (float)
+      Principal center in pixels
+
+  Returns:
+
+    4x4 Homogeneous transform T_camera_object
+
+  """
+  assert len(object_points) == len(image_points)
+  # Form A to compute ||Ah|| = 0 using SVD, where A is an (N * 2) x 9 matrix
+  # and h is the vectorized Homography matrix h, N is the number of points. if
+  # N == 4, the matrix has more columns than rows. The solution is to add an
+  # extra line with zeros.
+  N = len(object_points)
+  A = np.zeros((2 * N, 9))
+  if N == 4:
+    A = np.zeros((2 * N + 1, 9))
+
+  for i in range(N):
+    kp = image_points[i, :]
+    x0 = object_points[i, :2]
+    x1 = np.array([(kp[0] - cx) / fx, (kp[1] - cy) / fy])  # normalize keypoint
+
+    A[2 * i, 3] = -x0[0]
+    A[2 * i, 4] = -x0[1]
+    A[2 * i, 5] = -1.0
+    A[2 * i, 6] = x1[1] * x0[0]
+    A[2 * i, 7] = x1[1] * x0[1]
+    A[2 * i, 8] = x1[1]
+
+    A[2 * i + 1, 0] = x0[0]
+    A[2 * i + 1, 1] = x0[1]
+    A[2 * i + 1, 2] = 1.0
+    A[2 * i + 1, 6] = -x1[0] * x0[0]
+    A[2 * i + 1, 7] = -x1[0] * x0[1]
+    A[2 * i + 1, 8] = -x1[0]
+
+  # Solve Ah = 0
+  _, _, Vt = np.linalg.svd(A)
+
+  # Extract Homography
+  h = Vt[-1, :]  # Last col of V (or row of Vt) is solution to Ah = 0
+  if h[-1] < 0:
+    h *= -1
+
+  H = np.zeros((3, 3))
+  for i in range(3):
+    for j in range(3):
+      H[i, j] = h[3 * i + j]
+
+  # Normalize H to ensure that ||c1|| = 1
+  H /= sqrt(H[0, 0] * H[0, 0] + H[1, 0] * H[1, 0] + H[2, 0] * H[2, 0])
+
+  # Form translation vector
+  r = H[:, 2]
+
+  # Form Rotation matrix
+  c1 = H[:, 0]
+  c2 = H[:, 1]
+  c3 = np.cross(c1, c2)
+  C = np.zeros((3, 3))
+  for i in range(3):
+    C[i, 0] = c1[i]
+    C[i, 1] = c2[i]
+    C[i, 2] = c3[i]
+
+  return tf(C, r)
+
+
+def dlt_pose(object_points, image_points, fx, fy, cx, cy):
+  """ DLT Pose
+
+  **IMPORTANT NOTE**: This function will not work if the object points are on a
+  plane.
+
+  Source:
+
+    Section 3.1.2 "PnP: pose estimation from N point correspondences"
+
+    Marchand, Eric, Hideaki Uchiyama, and Fabien Spindler. "Pose estimation for
+    augmented reality: a hands-on survey." IEEE transactions on visualization and
+    computer graphics 22.12 (2015): 2633-2651.
+
+    https://github.com/lagadic/camera_localization
+
+  Args:
+
+    object_points: (ndarray)
+      3D object points
+
+    image_points: (ndarray)
+      2D image points in pixels
+
+    fx: (float)
+      Focal length in pixels
+
+    fy: (float)
+      Focal length in pixels
+
+    cx: (float)
+      Principal center in pixels
+
+    cy: (float)
+      Principal center in pixels
+
+  Returns:
+
+    4x4 Homogeneous transform T_camera_object
+
+  """
+  N = len(object_points)
+  A = np.zeros((2 * N, 12))
+
+  for i in range(N):
+    pt = object_points[i, :]
+    kp = image_points[i, :]
+    x = np.array([(kp[0] - cx) / fx, (kp[1] - cy) / fy])  # normalize keypoint
+
+    A[2 * i, 0] = pt[0]
+    A[2 * i, 1] = pt[1]
+    A[2 * i, 2] = pt[2]
+    A[2 * i, 3] = 1.0
+    A[2 * i, 8] = -x[0] * pt[0]
+    A[2 * i, 9] = -x[0] * pt[1]
+    A[2 * i, 10] = -x[0] * pt[2]
+    A[2 * i, 11] = -x[0]
+
+    A[2 * i + 1, 4] = pt[0]
+    A[2 * i + 1, 5] = pt[1]
+    A[2 * i + 1, 6] = pt[2]
+    A[2 * i + 1, 7] = 1.0
+    A[2 * i + 1, 8] = -x[1] * pt[0]
+    A[2 * i + 1, 9] = -x[1] * pt[1]
+    A[2 * i + 1, 10] = -x[1] * pt[2]
+    A[2 * i + 1, 11] = -x[1]
+
+  # Solve Ah = 0
+  _, _, Vt = np.linalg.svd(A)
+
+  # Extract Homography
+  h = Vt[-1, :]
+  if h[-1] < 0:
+    h *= -1
+
+  # Normalize H to ensure that ||r3|| = 1
+  h /= sqrt(h[8] * h[8] + h[9] * h[9] + h[10] * h[10])
+
+  C = np.array([[h[0], h[1], h[2]], [h[4], h[5], h[6]], [h[8], h[9], h[10]]])
+  r = np.array([h[3], h[7], h[11]])
+  return tf(C, r)
+
+
 # FEATURES 2D #################################################################
 
 
@@ -2434,6 +2678,14 @@ def pinhole_project(proj_params, p_C):
   z = np.array([fx * x[0] + cx, fy * x[1] + cy])
 
   return z
+
+
+def pinhole_back_project(proj_params, z):
+  """ Back project image point to bearing """
+  fx, fy, cx, cy = proj_params
+  x = (z[0] - cx) / fx
+  y = (z[1] - cy) / fy
+  return np.array([x, y])
 
 
 def pinhole_params_jacobian(x):
@@ -2703,7 +2955,7 @@ def pinhole_radtan4_backproject(proj_params, dist_params, z):
 
   # Convert image pixel coordinates to normalized retinal coordintes
   fx, fy, cx, cy = proj_params
-  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy, 1.0])
+  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy])
 
   # Undistort
   x = radtan4_undistort(dist_params, x)
@@ -2794,7 +3046,7 @@ def pinhole_equi4_backproject(proj_params, dist_params, z):
 
   # Convert image pixel coordinates to normalized retinal coordintes
   fx, fy, cx, cy = proj_params
-  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy, 1.0])
+  x = np.array([(z[0] - cx) / fx, (z[1] - cy) / fy])
 
   # Undistort
   x = equi4_undistort(dist_params, x)
@@ -2917,7 +3169,7 @@ class CameraGeometry:
     """ Back-project image point `z` with camera parameters `params` """
     proj_params = params[:self.proj_params_size]
     dist_params = params[-self.dist_params_size:]
-    return self.project_fn(proj_params, dist_params, z)
+    return self.backproject_fn(proj_params, dist_params, z)
 
   def undistort(self, params, z):
     """ Undistort image point `z` with camera parameters `params` """
@@ -3603,7 +3855,7 @@ def idp_param(cam_params, T_WC, z):
 
   # Obtain bearing (theta, phi) and inverse depth (rho)
   theta = atan2(h_W[0], h_W[2])
-  phi = atan2(-h_W[1], sqrt(h_W[0] * h_W(1) + h_W[2] * h_W[2]))
+  phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]))
   rho = 0.1
   # sigma_rho = 0.5  # variance of inverse depth
 
@@ -3616,17 +3868,20 @@ def idp_param_jacobian(param):
   """ Inverse depth parameter jacobian """
   _, _, _, theta, phi, rho = param
   p_W = np.array([cos(phi) * sin(theta), -sin(phi), cos(phi) * cos(theta)])
+  d = 1.0 / rho
+  cphi = cos(phi)
+  sphi = sin(phi)
+  ctheta = cos(theta)
+  stheta = sin(theta)
 
   J_x = np.array([1.0, 0.0, 0.0])
   J_y = np.array([0.0, 1.0, 0.0])
   J_z = np.array([0.0, 0.0, 1.0])
-  J_theta = 1.0 / rho * np.array(
-      [cos(phi) * cos(theta), 0.0,
-       cos(phi) * -sin(theta)])
-  J_phi = 1.0 / rho * np.array(
-      [-sin(phi) * sin(theta), -cos(phi), -sin(phi) * cos(theta)])
+  J_theta = d * np.array([cphi * ctheta, 0.0, cphi * -stheta])
+  J_phi = d * np.array([-sphi * stheta, -cphi, -sphi * ctheta])
   J_rho = -1.0 / rho**2 @ p_W
   J_param = np.block([J_x, J_y, J_z, J_theta, J_phi, J_rho])
+
   return J_param
 
 
@@ -4008,6 +4263,35 @@ class VisionFactor(Factor):
     J3 = neg_sqrt_info @ J_cam_params
 
     return (r, [J0, J1, J2, J3])
+
+
+class CameraFactor(Factor):
+  """ Camera Factor """
+  def __init__(self, cam_geom, pids, z, covar=eye(2)):
+    assert len(pids) == 4
+    assert len(z) == 2
+    assert covar.shape == (2, 2)
+    Factor.__init__(self, "CameraFactor", pids, z, covar)
+    self.cam_geom = cam_geom
+
+  def get_residual(self, pose, cam_exts, bearing_vec, depth, cam_params):
+    """ Get residual """
+    T_WB = pose2tf(pose)
+    T_BCi = pose2tf(cam_exts)
+    p_W = feature
+    p_C = tf_point(inv(T_WB @ T_BCi), p_W)
+    status, z_hat = self.cam_geom.project(cam_params, p_C)
+
+    z = self.measurement
+    r = z - z_hat
+
+    return status, r
+
+  # def get_reproj_error(self, pose, cam_exts, feature, cam_params):
+  #   """ Get reprojection error """
+  #   status, r = self.get_residual(pose, cam_exts, feature, cam_params)
+  #   reproj_error = norm(r)
+  #   return status, reproj_error
 
 
 class CalibVisionFactor(Factor):
@@ -8953,6 +9237,219 @@ class TestCV(unittest.TestCase):
       p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
       self.assertTrue(np.allclose(p_Ci_est, p_Ci_gnd))
 
+  def test_homography_find(self):
+    """ Test homography_find() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose i
+    C_WC_i = euler321(-pi / 2 - deg2rad(45), 0.0, -pi / 2)
+    r_WC_i = np.array([0.0, 1.0, 0.0])
+    T_WC_i = tf(C_WC_i, r_WC_i)
+
+    # Camera pose j
+    C_WC_j = euler321(-pi / 2 + deg2rad(45), 0.0, -pi / 2)
+    r_WC_j = np.array([0.0, -1.0, 0.0])
+    T_WC_j = tf(C_WC_j, r_WC_j)
+
+    # Generate image points
+    num_points = 10
+    points = []
+    pts_i = []
+    pts_j = []
+    for _ in range(num_points):
+      # Project feature point p_W to image plane
+      x = np.random.uniform(-0.5, 0.5)
+      y = np.random.uniform(-0.5, 0.5)
+      p_W = np.array([1.0, x, y])
+      p_Ci_gnd = tf_point(inv(T_WC_i), p_W)
+      p_Cj_gnd = tf_point(inv(T_WC_j), p_W)
+      z_i = pinhole_project(proj_params, p_Ci_gnd)
+      z_j = pinhole_project(proj_params, p_Cj_gnd)
+      pt_i = pinhole_back_project(proj_params, z_i)
+      pt_j = pinhole_back_project(proj_params, z_j)
+
+      points.append(p_W)
+      pts_i.append(pt_i)
+      pts_j.append(pt_j)
+    points = np.array(points)
+    pts_i = np.array(pts_i)
+    pts_j = np.array(pts_j)
+
+    H = homography_find(pts_i, pts_j)
+    for i in range(num_points):
+      pt_j_gnd = np.array([pts_j[i, 0], pts_j[i, 1], 1.0])
+      pt_j_est = H @ np.array([pts_i[i, 0], pts_i[i, 1], 1.0])
+
+      pt_j_est[0] /= pt_j_est[2]
+      pt_j_est[1] /= pt_j_est[2]
+      pt_j_est[2] /= pt_j_est[2]
+
+      diff = pt_j_gnd - pt_j_est
+      self.assertTrue(diff < 1e-5)
+
+      # print(f"pt_j_gnd: {pt_j_gnd}")
+      # print(f"pt_j_est: {pt_j_est}")
+      # print(f"diff: {pt_j_gnd - pt_j_est}")
+      # print()
+
+    # # Plot 3D
+    # plt.figure()
+    # ax = plt.axes(projection='3d')
+    # plot_tf(ax, T_WC_i, size=0.1, name="pose_i")
+    # plot_tf(ax, T_WC_j, size=0.1, name="pose_j")
+    # ax.scatter(points[:, 0], points[:, 1], points[:, 2])
+    # ax.set_xlabel("x [m]")
+    # ax.set_ylabel("y [m]")
+    # ax.set_zlabel("z [m]")
+    # plot_set_axes_equal(ax)
+    # plt.show()
+
+  def test_homography_pose(self):
+    """ Test homography_pose() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose T_WC
+    C_WC = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WC = np.array([0.0, 0.0, 0.0])
+    T_WC = tf(C_WC, r_WC)
+
+    # Calibration target pose T_WF
+    num_rows = 4
+    num_cols = 4
+    tag_size = 0.1
+
+    C_WF = euler321(-pi / 2, 0.0, pi / 2)
+    r_WF = np.array([0.1, 0, 0])
+    T_WF = tf(C_WF, r_WF)
+
+    # Generate data
+    world_points = []
+    object_points = []
+    image_points = []
+
+    for i in range(num_rows):
+      for j in range(num_cols):
+        p_F = np.array([i * tag_size, j * tag_size, 0.0])
+        p_W = tf_point(T_WF, p_F)
+        p_C = tf_point(inv(T_WC), p_W)
+        z = pinhole_project(proj_params, p_C)
+
+        object_points.append(p_F)
+        world_points.append(p_W)
+        image_points.append(z)
+
+    object_points = np.array(object_points)
+    world_points = np.array(world_points)
+    image_points = np.array(image_points)
+
+    T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
+    T_WC_est = T_WF @ inv(T_CF)
+
+    print(T_WC)
+    print(T_WC_est)
+
+    # Compare estimated and ground-truth
+    (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+    self.assertTrue(norm(dr) < 1e-2)
+    self.assertTrue(abs(dtheta) < 1e-4)
+
+    # Plot 3D
+    debug = True
+    if debug:
+      plt.figure()
+      ax = plt.axes(projection='3d')
+      plot_tf(ax, T_WC, size=0.1, name="camera")
+      plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
+      plot_tf(ax, T_WF, size=0.1, name="fiducial")
+      ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plot_set_axes_equal(ax)
+      plt.show()
+
+  def test_dlt_pose(self):
+    """ Test dlt_pose() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose T_WC
+    C_WC = euler321(deg2rad(50.0), 0.0, 0.0)
+    r_WC = np.array([0.0, 0.0, 1.0])
+    T_WC = tf(C_WC, r_WC)
+
+    # Calibration target pose T_WF
+    num_rows = 4
+    num_cols = 4
+    tag_size = 0.1
+
+    C_WF = euler321(0.0, 0.0, 0.0)
+    r_WF = np.array([0, 0, 0])
+    T_WF = tf(C_WF, r_WF)
+
+    # Generate data
+    world_points = []
+    object_points = []
+    image_points = []
+
+    for i in range(num_rows):
+      for j in range(num_cols):
+        p_F = np.array([i * tag_size, j * tag_size, random.uniform(0.0, 1.0)])
+        p_W = tf_point(T_WF, p_F)
+        p_C = tf_point(inv(T_WC), p_W)
+        z = pinhole_project(proj_params, p_C)
+
+        object_points.append(p_F)
+        world_points.append(p_W)
+        image_points.append(z)
+
+    object_points = np.array(object_points)
+    world_points = np.array(world_points)
+    image_points = np.array(image_points)
+
+    T_CF = dlt_pose(object_points, image_points, fx, fy, cx, cy)
+    T_WC_est = T_WF @ inv(T_CF)
+
+    # Compare estimated and ground-truth
+    (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+    self.assertTrue(norm(dr) < 1e-4)
+    self.assertTrue(abs(dtheta) < 1e-4)
+
+    # Plot 3D
+    debug = False
+    if debug:
+      plt.figure()
+      ax = plt.axes(projection='3d')
+      plot_tf(ax, T_WC, size=0.1, name="camera")
+      plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
+      plot_tf(ax, T_WF, size=0.1, name="fiducial")
+      ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plot_set_axes_equal(ax)
+      plt.show()
+
   def test_illumination_invariant_transform(self):
     """ Test harris_corner() """
     img_path = os.path.join(SCRIPT_DIR, "./test_data/images/flower.jpg")
@@ -9219,7 +9716,7 @@ class TestFactors(unittest.TestCase):
     # param = idp_param(camera, T_WC, z)
     # feature = feature_init(0, param)
     # -- Calculate image point
-    T_WCi = T_WB * T_BCi
+    T_WCi = T_WB @ T_BCi
     p_C = tf_point(inv(T_WCi), p_W)
     status, z = cam_geom.project(cam_params.param, p_C)
     self.assertTrue(status)
@@ -9234,6 +9731,69 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
     self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
+
+  def test_camera_factor(self):
+    """ Test camera factor """
+    # Setup camera pose T_WB
+    rot = euler2quat(0.0, 0.0, 0.0)
+    trans = np.array([0.0, 0.0, 0.0])
+    T_WB = tf(rot, trans)
+    pose = pose_setup(0, T_WB)
+
+    # Setup camera extrinsics T_BCi
+    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
+    trans = np.array([0.0, 0.0, 0.0])
+    T_BCi = tf(rot, trans)
+    cam_exts = extrinsics_setup(T_BCi)
+
+    # Setup cam0
+    cam_idx = 0
+    img_w = 640
+    img_h = 480
+    res = [img_w, img_h]
+    fov = 60.0
+    fx = focal_length(img_w, fov)
+    fy = focal_length(img_h, fov)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    params = [fx, fy, cx, cy, 0.01, 0.01, 0.0001, 0.0001]
+    cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
+    cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
+
+    # Setup feature
+    p_W = np.array([10, random.uniform(0.0, 1.0), random.uniform(0.0, 1.0)])
+    # -- Feature XYZ parameterization
+    feature = feature_setup(p_W)
+    # # -- Feature inverse depth parameterization
+    # param = idp_param(camera, T_WC, z)
+    # feature = feature_init(0, param)
+    # -- Calculate image point
+    T_WCi = T_WB @ T_BCi
+    p_C = tf_point(inv(T_WCi), p_W)
+    status, z = cam_geom.project(cam_params.param, p_C)
+    self.assertTrue(status)
+
+    # Convert 3D ray from camera frame to world frame
+    x = cam_geom.backproject(cam_params.param, z)
+    theta = x[0]
+    phi = x[1]
+    rho = 0.1
+
+    print(f"p_C: {np.round(p_C, 4)}")
+    print(f"x: {np.round(x, 4)}")
+    print(f"theta: {theta:.4f}")
+    print(f"phi: {phi:.4f}")
+
+    # Setup factor
+    param_ids = [0, 1, 2, 3]
+    factor = CameraFactor(cam_geom, param_ids, z)
+
+    # # Test jacobians
+    # fvars = [pose, cam_exts, feature, cam_params]
+    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose"))
+    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
+    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
+    # self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
 
   def test_calib_vision_factor(self):
     """ Test CalibVisionFactor """
