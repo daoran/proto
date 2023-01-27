@@ -2510,9 +2510,9 @@ def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
 def _solvepnp_solve(lambda_k, H, g):
   """ Solve for dx """
   H_damped = H + lambda_k * eye(H.shape[0])
-  # c, low = scipy.linalg.cho_factor(H_damped)
-  # dx = scipy.linalg.cho_solve((c, low), g)
-  dx = solve_svd(H, g)
+  c, low = scipy.linalg.cho_factor(H_damped)
+  dx = scipy.linalg.cho_solve((c, low), g)
+  # dx = solve_svd(H_damped, g)
   return dx
 
 
@@ -2560,11 +2560,11 @@ def solvepnp(obj_pts, img_pts, fx, fy, cx, cy, **kwargs):
   assert len(obj_pts) == len(img_pts)
   assert len(obj_pts) > 6
   verbose = kwargs.get("verbose", False)
-  max_iter = kwargs.get("max_iter", 5)
-  lambda_init = kwargs.get("lambda_init", 1e4)
   T_CF_init = kwargs.get("T_CF_init", None)
+  max_iter = kwargs.get("max_iter", 10)
+  lambda_init = kwargs.get("lambda_init", 1e4)
   param_threshold = kwargs.get("param_threshold", 1e-10)
-  cost_threshold = kwargs.get("cost_threshold", 1e-10)
+  cost_threshold = kwargs.get("cost_threshold", 1e-15)
 
   # Initialize pose with DLT
   T_CF = homography_pose(obj_pts, img_pts, fx, fy, cx, cy)
@@ -9655,77 +9655,115 @@ class TestCV(unittest.TestCase):
     cy = img_h / 2.0
     proj_params = [fx, fy, cx, cy]
 
-    # Camera pose T_WC
-    C_WC = euler321(-pi / 2, 0.0, -pi / 2)
-    r_WC = np.array([0.0, 0.0, 0.0])
-    T_WC = tf(C_WC, r_WC)
+    num_points = 10
+    for _ in range(num_points):
+      # Camera pose T_WC
+      dr = np.random.uniform(-0.01, 0.01, size=(3,))
+      drot = np.random.uniform(-0.01, 0.01, size=(3,))
+      C_WC = euler321(-pi / 2 + drot[0], 0.0 + drot[1], -pi / 2 + drot[2])
+      r_WC = np.array([0.0 + dr[0], 0.0 + dr[1], 0.0 + dr[2]])
+      T_WC = tf(C_WC, r_WC)
 
-    # Calibration target pose T_WF
-    num_rows = 4
-    num_cols = 4
-    tag_size = 0.1
+      # Calibration target pose T_WF
+      num_rows = 4
+      num_cols = 4
+      tag_size = 0.1
 
-    C_WF = euler321(-pi / 2, 0.0, pi / 2)
-    r_WF = np.array([0.1, 0, 0])
-    T_WF = tf(C_WF, r_WF)
+      C_WF = euler321(-pi / 2, 0.0, pi / 2)
+      r_WF = np.array([0.1, 0, 0])
+      T_WF = tf(C_WF, r_WF)
 
-    # Generate data
-    world_points = []
-    object_points = []
-    image_points = []
+      # Generate data
+      world_points = []
+      object_points = []
+      image_points = []
 
-    for i in range(num_rows):
-      for j in range(num_cols):
-        p_F = np.array([i * tag_size, j * tag_size, 0.0])
-        p_W = tf_point(T_WF, p_F)
-        p_C = tf_point(inv(T_WC), p_W)
-        z = pinhole_project(proj_params, p_C)
+      for i in range(num_rows):
+        for j in range(num_cols):
+          p_F = np.array([i * tag_size, j * tag_size, 0.0])
+          p_W = tf_point(T_WF, p_F)
+          p_C = tf_point(inv(T_WC), p_W)
+          z = pinhole_project(proj_params, p_C)
 
-        object_points.append(p_F)
-        world_points.append(p_W)
-        image_points.append(z)
+          object_points.append(p_F)
+          world_points.append(p_W)
+          image_points.append(z)
 
-    object_points = np.array(object_points)
-    world_points = np.array(world_points)
-    image_points = np.array(image_points)
+      object_points = np.array(object_points)
+      world_points = np.array(world_points)
+      image_points = np.array(image_points)
 
-    # Get initial T_CF using DLT and perturb it
-    T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
-    trans_rand = np.random.rand(3) * 0.05
-    rvec_rand = np.random.rand(3) * 0.01
-    T_CF = tf_update(T_CF, np.block([*trans_rand, *rvec_rand]))
+      # Get initial T_CF using DLT and perturb it
+      T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
+      trans_rand = np.random.rand(3) * 0.01
+      rvec_rand = np.random.rand(3) * 0.01
+      T_CF = tf_update(T_CF, np.block([*trans_rand, *rvec_rand]))
 
-    # Test solvepnp
-    T_CF = solvepnp(object_points,
-                    image_points,
-                    fx,
-                    fy,
-                    cx,
-                    cy,
-                    T_CF_init=T_CF,
-                    verbose=True)
-    T_WC_est = T_WF @ inv(T_CF)
+      # Test solvepnp
+      t_start = datetime.now()
+      T_CF = solvepnp(object_points,
+                      image_points,
+                      fx,
+                      fy,
+                      cx,
+                      cy,
+                      T_CF_init=T_CF,
+                      verbose=False)
+      t_end = datetime.now()
+      solvepnp_time = (t_end - t_start).total_seconds()
+      T_WC_est = T_WF @ inv(T_CF)
 
-    # # Compare estimated and ground-truth
-    # (dr, dtheta) = tf_diff(T_WC, T_WC_est)
-    # self.assertTrue(norm(dr) < 1e-2)
-    # self.assertTrue(abs(dtheta) < 1e-4)
+      # Compare estimated and ground-truth
+      (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+      self.assertTrue(norm(dr) < 1e-1)
+      self.assertTrue(abs(dtheta) < 1e-1)
 
-    # Plot 3D
-    # debug = True
-    debug = False
-    if debug:
-      plt.figure()
-      ax = plt.axes(projection='3d')
-      plot_tf(ax, T_WC, size=0.1, name="camera")
-      plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
-      plot_tf(ax, T_WF, size=0.1, name="fiducial")
-      ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
-      ax.set_xlabel("x [m]")
-      ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
-      plot_set_axes_equal(ax)
-      plt.show()
+      # Solve pnp with OpenCV
+      K = pinhole_K([fx, fy, cx, cy])
+      D = np.array([0.0, 0.0, 0.0, 0.0])
+      flags = cv2.SOLVEPNP_ITERATIVE
+      t_start = datetime.now()
+      _, rvec, tvec = cv2.solvePnP(object_points,
+                                   image_points,
+                                   K,
+                                   D,
+                                   False,
+                                   flags=flags)
+      C, _ = cv2.Rodrigues(rvec)
+      r = tvec.flatten()
+      T_CF_opencv = tf(C, r)
+      t_end = datetime.now()
+      opencv_time = (t_end - t_start).total_seconds()
+      T_WC_opencv = T_WF @ inv(T_CF_opencv)
+
+      # Compare against opencv
+      (dr, dtheta) = tf_diff(T_CF, T_CF_opencv)
+      self.assertTrue(norm(dr) < 1e-1)
+      self.assertTrue(abs(dtheta) < 1e-1)
+      # print(f"dr: {norm(dr)}, dtheta: {dtheta}")
+
+      # (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+      # print(f"dr: {norm(dr):.2e}, dtheta: {dtheta:.2e}")
+      # (dr, dtheta) = tf_diff(T_WC, T_WC_opencv)
+      # print(f"dr: {norm(dr):.2e}, dtheta: {dtheta:.2e}")
+      # print(f"time: {solvepnp_time}, {opencv_time}")
+      # print()
+
+      # Plot 3D
+      # debug = True
+      debug = False
+      if debug:
+        plt.figure()
+        ax = plt.axes(projection='3d')
+        plot_tf(ax, T_WC, size=0.1, name="camera")
+        plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
+        plot_tf(ax, T_WF, size=0.1, name="fiducial")
+        ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        ax.set_zlabel("z [m]")
+        plot_set_axes_equal(ax)
+        plt.show()
 
   def test_illumination_invariant_transform(self):
     """ Test illumination_invariant_transform() """
