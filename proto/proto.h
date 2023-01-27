@@ -1120,9 +1120,23 @@ void linear_triangulation(const real_t P_i[3 * 4],
                           const real_t z_j[2],
                           real_t p[3]);
 
-int kneip_p3p(const real_t features[3][3],
+int find_homography(const real_t *pts_i,
+                    const real_t *pts_j,
+                    const int num_points,
+                    real_t H[3 * 3]);
+
+int p3p_kneip(const real_t features[3][3],
               const real_t points[3][3],
               real_t solutions[4][4 * 4]);
+
+int solvepnp(const real_t fx,
+             const real_t fy,
+             const real_t cx,
+             const real_t cy,
+             const real_t *image_points,
+             const real_t *object_points,
+             const int N,
+             real_t T_CO);
 
 ////////////
 // RADTAN //

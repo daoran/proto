@@ -5679,6 +5679,91 @@ void linear_triangulation(const real_t P_i[3 * 4],
   p[2] = z / w;
 }
 
+/**
+ * Find Homography.
+ *
+ * A Homography is a transformation (a 3x3 matrix) that maps the normalized
+ * image points from one image to the corresponding normalized image points in
+ * the other image. Specifically, let x and y be the n-th homogeneous points of
+ * pts_i and pts_j:
+ *
+ *   x = [u_i, v_i, 1.0]
+ *   y = [u_j, v_j, 1.0]
+ *
+ * The Homography is a 3x3 matrix that transforms x to y:
+ *
+ *   y = H * x
+ *
+ * **IMPORTANT**: The normalized image points `pts_i` and `pts_j` must
+ * correspond to points in 3D that on a plane.
+ */
+int find_homography(const real_t *pts_i,
+                    const real_t *pts_j,
+                    const int num_points,
+                    real_t H[3 * 3]) {
+
+  const int Am = 2 * num_points;
+  const int An = 9;
+  real_t *A = MALLOC(real_t, Am * An);
+
+  for (int n = 0; n < num_points; n++) {
+    const real_t x_i = pts_i[n * 2 + 0];
+    const real_t y_i = pts_i[n * 2 + 1];
+    const real_t x_j = pts_j[n * 2 + 0];
+    const real_t y_j = pts_j[n * 2 + 1];
+
+    const int rs = n * 18;
+    const int re = n * 18 + 9;
+    A[rs + 0] = -x_i;
+    A[rs + 1] = -y_i;
+    A[rs + 2] = -1.0;
+    A[rs + 3] = 0.0;
+    A[rs + 4] = 0.0;
+    A[rs + 5] = 0.0;
+    A[rs + 6] = x_i * x_j;
+    A[rs + 7] = y_i * x_j;
+    A[rs + 8] = x_j;
+
+    A[re + 0] = 0.0;
+    A[re + 1] = 0.0;
+    A[re + 2] = 0.0;
+    A[re + 3] = -x_i;
+    A[re + 4] = -y_i;
+    A[re + 5] = -1.0;
+    A[re + 6] = x_i * y_j;
+    A[re + 7] = y_i * y_j;
+    A[re + 8] = y_j;
+  }
+
+  real_t *U = MALLOC(real_t, Am * Am);
+  real_t *s = MALLOC(real_t, Am);
+  real_t *V = MALLOC(real_t, An * An);
+  if (svd(A, Am, An, U, s, V) != 0) {
+    return -1;
+  }
+
+  // Form the Homography matrix using the last column of V and normalize
+  H[0] = V[8] / V[80];
+  H[1] = V[17] / V[80];
+  H[2] = V[26] / V[80];
+
+  H[3] = V[35] / V[80];
+  H[4] = V[44] / V[80];
+  H[5] = V[53] / V[80];
+
+  H[6] = V[62] / V[80];
+  H[7] = V[71] / V[80];
+  H[8] = V[80] / V[80];
+
+  // Clean up
+  free(A);
+  free(U);
+  free(s);
+  free(V);
+
+  return 0;
+}
+
 static int kneip_solve_quadratic(const real_t factors[5],
                                  real_t real_roots[4]) {
   const real_t A = factors[0];
@@ -5739,7 +5824,7 @@ static int kneip_solve_quadratic(const real_t factors[5],
  * computation of absolute camera position and orientation." CVPR 2011. IEEE,
  * 2011.
  */
-int kneip_p3p(const real_t features[3][3],
+int p3p_kneip(const real_t features[3][3],
               const real_t points[3][3],
               real_t solutions[4][4 * 4]) {
   assert(features != NULL);
@@ -6016,6 +6101,21 @@ int kneip_p3p(const real_t features[3][3],
     solutions[i][12] = 0.0; solutions[i][13] = 0.0; solutions[i][14] = 0.0;  solutions[i][15] = 1.0;
     // clang-format on
   }
+
+  return 0;
+}
+
+/**
+ * Solve the Perspective-N-Points problem.
+ */
+int solvepnp(const real_t fx,
+             const real_t fy,
+             const real_t cx,
+             const real_t cy,
+             const real_t *image_points,
+             const real_t *object_points,
+             const int N,
+             real_t T_CO) {
 
   return 0;
 }
