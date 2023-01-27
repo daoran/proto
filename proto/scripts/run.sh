@@ -37,7 +37,8 @@ run_memcheck() {
 # python3 proto.py TestCV
 # python3 proto.py TestCV.test_linear_triangulation
 # python3 proto.py TestCV.test_homography_find
-python3 proto.py TestCV.test_homography_pose
+# python3 proto.py TestCV.test_homography_pose
+# python3 proto.py TestCV.test_dlt_pose
 # python3 proto.py TestCV.test_harris_corner
 # python3 proto.py TestCV.test_shi_tomasi_corner
 # python3 proto.py TestFactors

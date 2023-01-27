@@ -2240,8 +2240,8 @@ def homography_find(pts_i, pts_j):
     A[2 * i, :] = [-x, -y, -1, 0, 0, 0, x * x_, y * x_, x_]
     A[2 * i + 1, :] = [0, 0, 0, -x, -y, -1, x * y_, y * y_, y_]
 
-  _, _, v = np.linalg.svd(A)
-  h = v[-1, :] / v[-1, -1]
+  _, _, Vt = np.linalg.svd(A)
+  h = Vt[-1, :] / Vt[-1, -1]
   return h.reshape((3, 3))
 
 
