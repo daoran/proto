@@ -27,7 +27,12 @@ disable=
   wrong-import-order,
   wrong-import-position,
   protected-access,
-  chained-comparison
+  chained-comparison,
+  import-outside-toplevel,
+  no-else-return,
+  no-else-continue,
+  unnecessary-pass,
+  invalid-unary-operand-type
 
 
 [TYPECHECK]
