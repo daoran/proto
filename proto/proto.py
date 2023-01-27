@@ -2388,6 +2388,7 @@ def dlt_pose(object_points, image_points, fx, fy, cx, cy):
     4x4 Homogeneous transform T_camera_object
 
   """
+  assert len(object_points) == len(image_points)
   N = len(object_points)
   A = np.zeros((2 * N, 12))
 
@@ -2428,6 +2429,196 @@ def dlt_pose(object_points, image_points, fx, fy, cx, cy):
   C = np.array([[h[0], h[1], h[2]], [h[4], h[5], h[6]], [h[8], h[9], h[10]]])
   r = np.array([h[3], h[7], h[11]])
   return tf(C, r)
+
+
+def _solvepnp_cost(object_points, image_points, fx, fy, cx, cy, pose):
+  """ Calculate cost """
+  N = len(object_points)
+  T_FC_est = pose2tf(pose)
+  T_CF_est = inv(T_FC_est)
+  r = np.zeros(2 * N)
+  r_idx = 0
+
+  for n in range(N):
+    # Calculate residual
+    z = image_points[n, :]
+    p_F = object_points[n, :]
+    p_C = tf_point(T_CF_est, p_F)
+    zhat = pinhole_project([fx, fy, cx, cy], p_C)
+    res = z - zhat
+
+    # Form R.H.S. Gauss Newton g
+    rs = r_idx
+    re = r_idx + 2
+    r[rs:re] = res
+    r_idx = re
+
+  return 0.5 * r.T @ r
+
+
+def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
+  """ Linearize Nonlinear-Least Squares Problem """
+  # Form Gauss-Newton system
+  N = len(object_points)
+  T_FC_est = pose2tf(pose)
+  T_CF_est = inv(T_FC_est)
+  H = np.zeros((6, 6))
+  r = np.zeros(2 * N)
+  g = np.zeros(6)
+  r_idx = 0
+
+  for n in range(N):
+    # Calculate residual
+    z = image_points[n, :]
+    p_F = object_points[n, :]
+    p_C = tf_point(T_CF_est, p_F)
+    zhat = pinhole_project([fx, fy, cx, cy], p_C)
+    res = z - zhat
+
+    # Calculate Jacobian
+    C_CF, r_CF = tf_decompose(T_CF_est)
+    C_FC, r_FC = tf_decompose(T_FC_est)
+    # -- Jacobian w.r.t 3D point p_C
+    Jp = zeros((2, 3))
+    Jp[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2]**2]
+    Jp[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2]**2]
+    # -- Jacobian w.r.t 2D point x
+    Jk = zeros((2, 2))
+    Jk[0, 0] = fx
+    Jk[1, 1] = fy
+    # -- Pinhole projection Jacobian
+    Jh = -1 * Jk @ Jp
+    # -- Jacobian of reprojection w.r.t. pose T_FC
+    J = np.zeros((2, 6))
+    J[0:2, 0:3] = Jh @ -C_CF
+    J[0:2, 3:6] = Jh @ -C_CF @ hat(p_F - r_FC) @ -C_FC
+
+    # Form Hessian
+    H += J.T @ J
+
+    # Form R.H.S. Gauss Newton g
+    rs = r_idx
+    re = r_idx + 2
+    r[rs:re] = res
+    r_idx = re
+
+    g += (-J.T @ res)
+
+  return (H, g, r)
+
+
+def _solvepnp_solve(lambda_k, H, g):
+  """ Solve for dx """
+  H_damped = H + lambda_k * eye(H.shape[0])
+  # c, low = scipy.linalg.cho_factor(H_damped)
+  # dx = scipy.linalg.cho_solve((c, low), g)
+  dx = solve_svd(H, g)
+  return dx
+
+
+def _solvepnp_update(pose, dx):
+  """ Update pose estimate """
+  T_FC_est = pose2tf(pose)
+  T_FC_est = tf_update(T_FC_est, dx)
+  pose = tf2pose(T_FC_est)
+  return pose
+
+
+def solvepnp(obj_pts, img_pts, fx, fy, cx, cy, **kwargs):
+  """
+  Solve Perspective-N-Points
+
+  **IMPORTANT**: This function assumes that object points lie on the plane
+  because the initialization step uses DLT to estimate the homography between
+  camera and planar object, then the relative pose between them is recovered.
+
+  Args:
+
+    obj_pts: (ndarray)
+      3D object points
+
+    img_pts: (ndarray)
+      2D image points in pixels
+
+    fx: (float)
+      Focal length in pixels
+
+    fy: (float)
+      Focal length in pixels
+
+    cx: (float)
+      Principal center in pixels
+
+    cy: (float)
+      Principal center in pixels
+
+  Returns:
+
+    4x4 Homogeneous transform T_camera_object
+
+  """
+  assert len(obj_pts) == len(img_pts)
+  assert len(obj_pts) > 6
+  verbose = kwargs.get("verbose", False)
+  max_iter = kwargs.get("max_iter", 5)
+  lambda_init = kwargs.get("lambda_init", 1e4)
+  T_CF_init = kwargs.get("T_CF_init", None)
+  param_threshold = kwargs.get("param_threshold", 1e-10)
+  cost_threshold = kwargs.get("cost_threshold", 1e-10)
+
+  # Initialize pose with DLT
+  T_CF = homography_pose(obj_pts, img_pts, fx, fy, cx, cy)
+
+  # Solve Bundle Adjustment
+  pose = None
+  if T_CF_init is not None:
+    T_FC = inv(T_CF_init)
+    pose = tf2pose(T_FC)
+  else:
+    T_FC = inv(T_CF)
+    pose = tf2pose(T_FC)
+
+  lambda_k = lambda_init
+  pose_k = copy.deepcopy(pose)
+  cost_k = _solvepnp_cost(obj_pts, img_pts, fx, fy, cx, cy, pose_k)
+  for i in range(max_iter):
+    # Solve
+    H, g, r = _solvepnp_linearize(obj_pts, img_pts, fx, fy, cx, cy, pose_k)
+    dx = _solvepnp_solve(lambda_k, H, g)
+    pose_kp1 = _solvepnp_update(pose_k, dx)
+    cost_kp1 = _solvepnp_cost(obj_pts, img_pts, fx, fy, cx, cy, pose_kp1)
+
+    # Accept or reject update
+    dcost = cost_kp1 - cost_k
+    if cost_kp1 < cost_k:
+      # Accept update
+      cost_k = cost_kp1
+      pose_k = pose_kp1
+      lambda_k /= 10.0
+
+    else:
+      # Reject update
+      lambda_k *= 10.0
+
+    # Display
+    if verbose:
+      print(f"iter: {i}, ", end="")
+      print(f"lambda_k: {lambda_k:.2e}, ", end="")
+      print(f"norm(dx): {norm(dx):.2e}, ", end="")
+      print(f"dcost: {dcost:.2e}, ", end="")
+      print(f"cost: {cost_kp1:.2e}", end="")
+      print("")
+
+    # Terminate?
+    if cost_k < cost_threshold:
+      break
+    elif param_threshold > norm(dx):
+      break
+
+  # Return solution
+  T_FC = pose2tf(pose)
+  T_CF = inv(T_FC)
+  return T_CF
 
 
 # FEATURES 2D #################################################################
@@ -9439,6 +9630,89 @@ class TestCV(unittest.TestCase):
     self.assertTrue(abs(dtheta) < 1e-4)
 
     # Plot 3D
+    debug = False
+    if debug:
+      plt.figure()
+      ax = plt.axes(projection='3d')
+      plot_tf(ax, T_WC, size=0.1, name="camera")
+      plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
+      plot_tf(ax, T_WF, size=0.1, name="fiducial")
+      ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plot_set_axes_equal(ax)
+      plt.show()
+
+  def test_solvepnp(self):
+    """ Test solvepnp() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose T_WC
+    C_WC = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WC = np.array([0.0, 0.0, 0.0])
+    T_WC = tf(C_WC, r_WC)
+
+    # Calibration target pose T_WF
+    num_rows = 4
+    num_cols = 4
+    tag_size = 0.1
+
+    C_WF = euler321(-pi / 2, 0.0, pi / 2)
+    r_WF = np.array([0.1, 0, 0])
+    T_WF = tf(C_WF, r_WF)
+
+    # Generate data
+    world_points = []
+    object_points = []
+    image_points = []
+
+    for i in range(num_rows):
+      for j in range(num_cols):
+        p_F = np.array([i * tag_size, j * tag_size, 0.0])
+        p_W = tf_point(T_WF, p_F)
+        p_C = tf_point(inv(T_WC), p_W)
+        z = pinhole_project(proj_params, p_C)
+
+        object_points.append(p_F)
+        world_points.append(p_W)
+        image_points.append(z)
+
+    object_points = np.array(object_points)
+    world_points = np.array(world_points)
+    image_points = np.array(image_points)
+
+    # Get initial T_CF using DLT and perturb it
+    T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
+    trans_rand = np.random.rand(3) * 0.05
+    rvec_rand = np.random.rand(3) * 0.01
+    T_CF = tf_update(T_CF, np.block([*trans_rand, *rvec_rand]))
+
+    # Test solvepnp
+    T_CF = solvepnp(object_points,
+                    image_points,
+                    fx,
+                    fy,
+                    cx,
+                    cy,
+                    T_CF_init=T_CF,
+                    verbose=True)
+    T_WC_est = T_WF @ inv(T_CF)
+
+    # # Compare estimated and ground-truth
+    # (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+    # self.assertTrue(norm(dr) < 1e-2)
+    # self.assertTrue(abs(dtheta) < 1e-4)
+
+    # Plot 3D
+    # debug = True
     debug = False
     if debug:
       plt.figure()
