@@ -19,7 +19,7 @@ run_memcheck() {
 ###############################################################################
 
 # ctags proto/proto.c proto/proto.py
-# python3 proto.py
+python3 proto.py
 # python3 proto.py TestNetwork.test_http_parse_request
 # python3 proto.py TestNetwork.test_websocket_hash
 # python3 proto.py TestNetwork.test_websocket_encode_frame
@@ -37,7 +37,7 @@ run_memcheck() {
 # python3 proto.py TestCV
 # python3 proto.py TestCV.test_linear_triangulation
 # python3 proto.py TestCV.test_homography_find
-python3 proto.py TestCV.test_homography_pose
+# python3 proto.py TestCV.test_homography_pose
 # python3 proto.py TestCV.test_harris_corner
 # python3 proto.py TestCV.test_shi_tomasi_corner
 # python3 proto.py TestFactors
