@@ -4932,6 +4932,9 @@ void tf_chain(const real_t **tfs, const int N, real_t T_out[4 * 4]) {
   }
 }
 
+/**
+ * Chain `N` homogeneous transformations `tfs`.
+ */
 void tf_chain2(const int n, ...) {
   va_list args;
   real_t T_out[4 * 4] = {0};
@@ -4945,6 +4948,29 @@ void tf_chain2(const int n, ...) {
   }
   mat_copy(T_out, 4, 4, va_arg(args, real_t *));
   va_end(args);
+}
+
+/**
+ * Pose difference between `pose0` and `pose`, returns difference in
+ * translation and rotation `diff`.
+ */
+void tf_diff(const real_t Ti[4 * 4], const real_t Tj[4 * 4], real_t diff[6]) {
+  TF_VECTOR(Ti, pose_i);
+  TF_VECTOR(Tj, pose_j);
+  pose_diff(pose_i, pose_j, diff);
+}
+
+/**
+ * Find the difference between two transforms, returns difference in
+ * translation `dr` and rotation angle `dtheta` in radians.
+ */
+void tf_diff2(const real_t Ti[4 * 4],
+              const real_t Tj[4 * 4],
+              real_t dr[3],
+              real_t *dtheta) {
+  TF_VECTOR(Ti, pose_i);
+  TF_VECTOR(Tj, pose_j);
+  pose_diff2(pose_i, pose_j, dr, dtheta);
 }
 
 /**

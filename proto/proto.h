@@ -1048,6 +1048,11 @@ void tf_perturb_rot(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_perturb_trans(real_t T[4 * 4], const real_t step_size, const int i);
 void tf_chain(const real_t **tfs, const int num_tfs, real_t T_out[4 * 4]);
 void tf_chain2(const int num_tfs, ...);
+void tf_diff(const real_t Ti[4 * 4], const real_t Tj[4 * 4], real_t diff[6]);
+void tf_diff2(const real_t Ti[4 * 4],
+              const real_t Tj[4 * 4],
+              real_t dr[3],
+              real_t *dtheta);
 void pose_get_trans(const real_t pose[7], real_t r[3]);
 void pose_get_quat(const real_t pose[7], real_t q[4]);
 void pose_diff(const real_t pose0[7], const real_t pose1[7], real_t diff[6]);
