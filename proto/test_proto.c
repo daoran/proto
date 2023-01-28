@@ -2544,13 +2544,24 @@ int test_solvepnp() {
 
   // Find homography pose
   real_t T_CF_est[4 * 4] = {0};
-  struct timespec t_start = tic();
+  // struct timespec t_start = tic();
   int retval = solvepnp(proj_params, img_pts, obj_pts, N, T_CF_est);
   MU_ASSERT(retval == 0);
-  printf("time: %f\n", toc(&t_start));
+  // printf("time: %f\n", toc(&t_start));
 
   TF_INV(T_WC, T_CW);
   TF_CHAIN(T_CF_gnd, 2, T_CW, T_WF);
+
+  real_t dr[3] = {0};
+  real_t dr_norm = {0};
+  real_t dtheta = 0;
+  tf_diff2(T_CF_gnd, T_CF_est, dr, &dtheta);
+  dr_norm = vec_norm(dr, 3);
+
+  // printf("dr: %f, dtheta: %f\n", dr_norm, dtheta);
+  MU_ASSERT(dr_norm < 1e-5);
+  MU_ASSERT(dtheta < 1e-5);
+
   // print_matrix("T_CF_gnd", T_CF_gnd, 4, 4);
   // print_matrix("T_CF_est", T_CF_est, 4, 4);
 
