@@ -2366,6 +2366,84 @@ int test_find_homography() {
   return 0;
 }
 
+int test_homography_pose() {
+  // Setup camera
+  const int image_width = 640;
+  const int image_height = 480;
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+
+  // Setup camera pose T_WC
+  const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC[3] = {0.0, 0.0, 0.0};
+  real_t T_WC[4 * 4] = {0};
+  tf_euler_set(T_WC, ypr_WC);
+  tf_trans_set(T_WC, r_WC);
+
+  // Calibration target pose T_WF
+  const int num_rows = 4;
+  const int num_cols = 4;
+  const real_t tag_size = 0.1;
+  const real_t target_x = ((num_cols - 1) * tag_size) / 2.0;
+  const real_t target_y = -((num_rows - 1) * tag_size) / 2.0;
+  const real_t ypr_WF[3] = {-M_PI / 2, 0.0, M_PI / 2};
+  const real_t r_WF[3] = {0.5, target_x, target_y};
+  TF_ER(ypr_WF, r_WF, T_WF);
+
+  // Setup 3D and 2D correspondance points
+  const int N = num_rows * num_cols;
+  real_t *world_pts = MALLOC(real_t, N * 3);
+  real_t *obj_pts = MALLOC(real_t, N * 3);
+  real_t *img_pts = MALLOC(real_t, N * 2);
+
+  int idx = 0;
+  for (int i = 0; i < num_rows; i++) {
+    for (int j = 0; j < num_cols; j++) {
+      const real_t p_F[3] = {i * tag_size, j * tag_size, 0.0};
+      TF_POINT(T_WF, p_F, p_W);
+      TF_INV(T_WC, T_CW);
+      TF_POINT(T_CW, p_W, p_C);
+
+      real_t z[2] = {0};
+      pinhole_project(proj_params, p_C, z);
+
+      obj_pts[idx * 3 + 0] = p_F[0];
+      obj_pts[idx * 3 + 1] = p_F[1];
+      obj_pts[idx * 3 + 2] = p_F[2];
+
+      world_pts[idx * 3 + 0] = p_W[0];
+      world_pts[idx * 3 + 1] = p_W[1];
+      world_pts[idx * 3 + 2] = p_W[2];
+
+      img_pts[idx * 2 + 0] = z[0];
+      img_pts[idx * 2 + 1] = z[1];
+
+      idx++;
+    }
+  }
+
+  // Find homography pose
+  real_t T_CF_est[4 * 4] = {0};
+  int retval = homography_pose(proj_params, obj_pts, img_pts, N, T_CF_est);
+  MU_ASSERT(retval == 0);
+
+  TF_INV(T_WC, T_CW);
+  TF_CHAIN(T_CF_gnd, 2, T_CW, T_WF);
+  // print_matrix("T_CF_gnd", T_CF_gnd, 4, 4);
+  // print_matrix("T_CF_est", T_CF_est, 4, 4);
+
+  // Cleanup
+  free(obj_pts);
+  free(world_pts);
+  free(img_pts);
+
+  return 0;
+}
+
 int test_p3p_kneip() {
   // Setup camera
   const int image_width = 640;

@@ -5764,6 +5764,156 @@ int find_homography(const real_t *pts_i,
   return 0;
 }
 
+/**
+ * Compute relative pose between camera and planar object `T_CF` using `N` 3D
+ * object points `obj_pts`, 2D image points in pixels, as well as the pinhole
+ * focal lengths `fx`, `fy` and principal centers `cx` and `cy`.
+ *
+ * Source:
+ *
+ *   Section 4.1.3: From homography to pose computation
+ *
+ *   Marchand, Eric, Hideaki Uchiyama, and Fabien Spindler. "Pose estimation
+ *   for augmented reality: a hands-on survey." IEEE transactions on
+ *   visualization and computer graphics 22.12 (2015): 2633-2651.
+ *
+ *   https://github.com/lagadic/camera_localization
+ *
+ * Returns:
+ *
+ *   `0` for success and `-1` for failure.
+ *
+ */
+int homography_pose(const real_t *proj_params,
+                    const real_t *obj_pts,
+                    const real_t *img_pts,
+                    const int N,
+                    real_t T_CF[4 * 4]) {
+  // Form A to compute ||Ah|| = 0 using SVD, where A is an (N * 2) x 9 matrix
+  // and h is the vectorized Homography matrix h, N is the number of points. if
+  // N == 4, the matrix has more columns than rows. The solution is to add an
+  // extra line with zeros.
+  const int num_rows = 2 * N + ((N == 4) ? 1 : 0);
+  const int num_cols = 9;
+  const real_t fx = proj_params[0];
+  const real_t fy = proj_params[1];
+  const real_t cx = proj_params[2];
+  const real_t cy = proj_params[3];
+  real_t *A = MALLOC(real_t, num_rows * num_cols);
+
+  for (int i = 0; i < N; i++) {
+    const real_t kp[2] = {img_pts[i * 2 + 0], img_pts[i * 2 + 1]};
+    const real_t x0[2] = {obj_pts[i * 3 + 0], obj_pts[i * 3 + 1]};
+    const real_t x1[2] = {(kp[0] - cx) / fx, (kp[1] - cy) / fy};
+
+    const int rs = i * 18;
+    const int re = i * 18 + 9;
+    A[rs + 0] = 0.0;
+    A[rs + 1] = 0.0;
+    A[rs + 2] = 0.0;
+    A[rs + 3] = -x0[0];
+    A[rs + 4] = -x0[1];
+    A[rs + 5] = -1.0;
+    A[rs + 6] = x1[1] * x0[0];
+    A[rs + 7] = x1[1] * x0[1];
+    A[rs + 8] = x1[1];
+
+    A[re + 0] = x0[0];
+    A[re + 1] = x0[1];
+    A[re + 2] = 1.0;
+    A[re + 3] = 0.0;
+    A[re + 4] = 0.0;
+    A[re + 5] = 0.0;
+    A[re + 6] = -x1[0] * x0[0];
+    A[re + 7] = -x1[0] * x0[1];
+    A[re + 8] = -x1[0];
+  }
+
+  const int Am = num_rows;
+  const int An = num_cols;
+  real_t *U = MALLOC(real_t, Am * Am);
+  real_t *s = MALLOC(real_t, Am);
+  real_t *V = MALLOC(real_t, An * An);
+  if (svd(A, Am, An, U, s, V) != 0) {
+    free(A);
+    free(U);
+    free(s);
+    free(V);
+    return -1;
+  }
+
+  // Form the Homography matrix using the last column of V
+  real_t H[3 * 3] = {0};
+  H[0] = V[8];
+  H[1] = V[17];
+  H[2] = V[26];
+
+  H[3] = V[35];
+  H[4] = V[44];
+  H[5] = V[53];
+
+  H[6] = V[62];
+  H[7] = V[71];
+  H[8] = V[80];
+
+  if (H[8] < 0) {
+    for (int i = 0; i < 9; i++) {
+      H[i] *= -1.0;
+    }
+  }
+
+  // Normalize H to ensure that || c1 || = 1
+  const real_t H_norm = sqrt(H[0] * H[0] + H[3] * H[3] + H[6] * H[6]);
+  for (int i = 0; i < 9; i++) {
+    H[i] /= H_norm;
+  }
+
+  // Form translation vector
+  const real_t r[3] = {H[2], H[5], H[8]};
+
+  // Form Rotation matrix
+  const real_t c1[3] = {H[0], H[3], H[6]};
+  const real_t c2[3] = {H[1], H[4], H[7]};
+  real_t c3[3] = {0};
+  cross3(c1, c2, c3);
+
+  real_t C[3 * 3] = {0};
+  for (int i = 0; i < 3; i++) {
+    C[(i * 3) + 0] = c1[i];
+    C[(i * 3) + 1] = c2[i];
+    C[(i * 3) + 2] = c3[i];
+  }
+
+  // Set T_CF
+  T_CF[0] = C[0];
+  T_CF[1] = C[1];
+  T_CF[2] = C[2];
+  T_CF[3] = r[0];
+
+  T_CF[4] = C[3];
+  T_CF[5] = C[4];
+  T_CF[6] = C[5];
+  T_CF[7] = r[1];
+
+  T_CF[8] = C[6];
+  T_CF[9] = C[7];
+  T_CF[10] = C[8];
+  T_CF[11] = r[2];
+
+  T_CF[12] = 0.0;
+  T_CF[13] = 0.0;
+  T_CF[14] = 0.0;
+  T_CF[15] = 1.0;
+
+  // Clean up
+  free(A);
+  free(U);
+  free(s);
+  free(V);
+
+  return 0;
+}
+
 static int kneip_solve_quadratic(const real_t factors[5],
                                  real_t real_roots[4]) {
   const real_t A = factors[0];

@@ -1125,6 +1125,12 @@ int find_homography(const real_t *pts_i,
                     const int num_points,
                     real_t H[3 * 3]);
 
+int homography_pose(const real_t *proj_params,
+                    const real_t *obj_pts,
+                    const real_t *img_pts,
+                    const int N,
+                    real_t T_CF[4 * 4]);
+
 int p3p_kneip(const real_t features[3][3],
               const real_t points[3][3],
               real_t solutions[4][4 * 4]);
