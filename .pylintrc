@@ -31,6 +31,7 @@ disable=
   import-outside-toplevel,
   no-else-return,
   no-else-continue,
+  no-else-break,
   unnecessary-pass,
   invalid-unary-operand-type
 
