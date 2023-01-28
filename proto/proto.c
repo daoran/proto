@@ -6255,17 +6255,236 @@ int p3p_kneip(const real_t features[3][3],
   return 0;
 }
 
+static real_t _solvepnp_cost(const real_t *proj_params,
+                             const real_t *img_pts,
+                             const real_t *obj_pts,
+                             const int N,
+                             real_t *param) {
+  POSE2TF(param, T_FC_est);
+  TF_INV(T_FC_est, T_CF_est);
+  real_t *r = MALLOC(real_t, 2 * N);
+
+  for (int n = 0; n < N; n++) {
+    // Calculate residual
+    real_t z[2] = {img_pts[n * 2 + 0], img_pts[n * 2 + 1]};
+    real_t p_F[3] = {obj_pts[n * 3 + 0],
+                     obj_pts[n * 3 + 1],
+                     obj_pts[n * 3 + 2]};
+    TF_POINT(T_CF_est, p_F, p_C);
+    real_t zhat[2] = {0};
+    pinhole_project(proj_params, p_C, zhat);
+    real_t res[2] = {z[0] - zhat[0], z[1] - zhat[1]};
+
+    // Form R.H.S.Gauss Newton g
+    r[n * 2 + 0] = res[0];
+    r[n * 2 + 1] = res[1];
+  }
+
+  real_t cost = 0;
+  dot(r, 1, 2 * N, r, 2 * N, 1, &cost);
+  free(r);
+
+  return 0.5 * cost;
+}
+
+static void _solvepnp_linearize(const real_t *proj_params,
+                                const real_t *img_pts,
+                                const real_t *obj_pts,
+                                const int N,
+                                const real_t *param,
+                                real_t *H,
+                                real_t *g) {
+  // Form Gauss-Newton system
+  POSE2TF(param, T_FC_est);
+  TF_INV(T_FC_est, T_CF_est);
+  zeros(H, 6, 6);
+  zeros(g, 6, 1);
+
+  for (int i = 0; i < N; i++) {
+    // Calculate residual
+    const real_t z[2] = {img_pts[i * 2 + 0], img_pts[i * 2 + 1]};
+    const real_t p_F[3] = {obj_pts[i * 3 + 0],
+                           obj_pts[i * 3 + 1],
+                           obj_pts[i * 3 + 2]};
+    TF_POINT(T_CF_est, p_F, p_C);
+    real_t zhat[2] = {0};
+    pinhole_project(proj_params, p_C, zhat);
+    const real_t r[2] = {z[0] - zhat[0], z[1] - zhat[1]};
+
+    // Calculate Jacobian
+    TF_DECOMPOSE(T_FC_est, C_FC, r_FC);
+    TF_DECOMPOSE(T_CF_est, C_CF, r_CF);
+    // -- Jacobian w.r.t 3D point p_C
+    // clang-format off
+    const real_t Jp[2 * 3] = {
+      1.0 / p_C[2], 0.0, -p_C[0] / (p_C[2] * p_C[2]),
+      0.0, 1.0 / p_C[2], -p_C[1] / (p_C[2] * p_C[2])
+    };
+    // clang-format on
+    // -- Jacobian w.r.t 2D point x
+    const real_t Jk[2 * 2] = {proj_params[0], 0, 0, proj_params[1]};
+    // -- Pinhole projection Jacobian
+    // Jh = -1 * Jk @ Jp
+    real_t Jh[2 * 3] = {0};
+    dot(Jk, 2, 2, Jp, 2, 3, Jh);
+    for (int i = 0; i < 6; i++) {
+      Jh[i] *= -1.0;
+    }
+    // -- Jacobian of reprojection w.r.t. pose T_FC
+    real_t nC_CF[3 * 3] = {0};
+    real_t nC_FC[3 * 3] = {0};
+    mat3_copy(C_CF, nC_CF);
+    mat3_copy(C_FC, nC_FC);
+    mat_scale(nC_CF, 3, 3, -1.0);
+    mat_scale(nC_FC, 3, 3, -1.0);
+    // -- J_pos = Jh * -C_CF
+    real_t J_pos[2 * 3] = {0};
+    dot(Jh, 2, 3, nC_CF, 3, 3, J_pos);
+    // -- J_rot = Jh * -C_CF * hat(p_F - r_FC) * -C_FC
+    real_t J_rot[2 * 3] = {0};
+    real_t A[3 * 3] = {0};
+    real_t dp[3] = {0};
+    real_t dp_hat[3 * 3] = {0};
+    dp[0] = p_F[0] - r_FC[0];
+    dp[1] = p_F[1] - r_FC[1];
+    dp[2] = p_F[2] - r_FC[2];
+    hat(dp, dp_hat);
+    dot(dp_hat, 3, 3, nC_FC, 3, 3, A);
+    dot(J_pos, 2, 3, A, 3, 3, J_rot);
+    // -- J = [J_pos | J_rot]
+    real_t J[2 * 6] = {0};
+    real_t Jt[6 * 2] = {0};
+    J[0] = J_pos[0];
+    J[1] = J_pos[1];
+    J[2] = J_pos[2];
+    J[6] = J_pos[3];
+    J[7] = J_pos[4];
+    J[8] = J_pos[5];
+
+    J[3] = J_rot[0];
+    J[4] = J_rot[1];
+    J[5] = J_rot[2];
+    J[9] = J_rot[3];
+    J[10] = J_rot[4];
+    J[11] = J_rot[5];
+    mat_transpose(J, 2, 6, Jt);
+
+    // Form Hessian
+    // H += J.T * J
+    real_t Hi[6 * 6] = {0};
+    dot(Jt, 6, 2, J, 2, 6, Hi);
+    for (int i = 0; i < 36; i++) {
+      H[i] += Hi[i];
+    }
+
+    // Form R.H.S. Gauss Newton g
+    // g += -J.T @ r
+    real_t gi[6] = {0};
+    mat_scale(Jt, 6, 2, -1.0);
+    dot(Jt, 6, 2, r, 2, 1, gi);
+    g[0] += gi[0];
+    g[1] += gi[1];
+    g[2] += gi[2];
+    g[3] += gi[3];
+    g[4] += gi[4];
+    g[5] += gi[5];
+  }
+}
+
+static void _solvepnp_solve(real_t lambda_k, real_t *H, real_t *g, real_t *dx) {
+  // Damp Hessian: H = H + lambda * I
+  for (int i = 0; i < 6; i++) {
+    H[(i * 6) + i] += lambda_k;
+  }
+
+  // Solve: H * dx = g
+  chol_solve(H, g, dx, 6);
+}
+
+static void _solvepnp_update(const real_t *param_k,
+                             const real_t *dx,
+                             real_t *param_kp1) {
+  param_kp1[0] = param_k[0];
+  param_kp1[1] = param_k[1];
+  param_kp1[2] = param_k[2];
+  param_kp1[3] = param_k[3];
+  param_kp1[4] = param_k[4];
+  param_kp1[5] = param_k[5];
+  param_kp1[6] = param_k[6];
+  pose_vector_update(param_kp1, dx);
+}
+
 /**
  * Solve the Perspective-N-Points problem.
+ *
+ * **IMPORTANT**: This function assumes that object points lie on the plane
+ * because the initialization step uses DLT to estimate the homography between
+ * camera and planar object, then the relative pose between them is recovered.
  */
-int solvepnp(const real_t fx,
-             const real_t fy,
-             const real_t cx,
-             const real_t cy,
-             const real_t *image_points,
-             const real_t *object_points,
+int solvepnp(const real_t proj_params[4],
+             const real_t *img_pts,
+             const real_t *obj_pts,
              const int N,
-             real_t T_CO) {
+             real_t T_CO[4 * 4]) {
+  const int verbose = 1;
+  const int max_iter = 5;
+  const real_t lambda_init = 1e4;
+  const real_t dx_threshold = 1e-10;
+  const real_t J_threshold = 1e-15;
+
+  // Initialize pose with DLT
+  if (homography_pose(proj_params, img_pts, obj_pts, N, T_CO) != 0) {
+    return -1;
+  }
+
+  TF_INV(T_CO, T_OC);
+  TF_VECTOR(T_OC, param_k);
+  real_t lambda_k = lambda_init;
+  real_t J_k = _solvepnp_cost(proj_params, img_pts, obj_pts, N, param_k);
+
+  real_t H[6 * 6] = {0};
+  real_t g[6 * 1] = {0};
+  real_t dx[6 * 1] = {0};
+  real_t dJ = 0;
+  real_t dx_norm = 0;
+  real_t J_kp1 = 0;
+  real_t param_kp1[7] = {0};
+
+  for (int iter = 0; iter < max_iter; iter++) {
+    // Solve
+    _solvepnp_linearize(proj_params, img_pts, obj_pts, N, param_k, H, g);
+    _solvepnp_solve(lambda_k, H, g, dx);
+    _solvepnp_update(param_k, dx, param_kp1);
+    J_kp1 = _solvepnp_cost(proj_params, img_pts, obj_pts, N, param_kp1);
+
+    // Accept or reject update
+    dJ = J_kp1 - J_k;
+    dx_norm = vec_norm(dx, 6);
+    if (J_kp1 < J_k) {
+      // Accept update
+      J_k = J_kp1;
+      vec_copy(param_kp1, 7, param_k);
+      lambda_k /= 10.0;
+    } else {
+      // Reject update
+      lambda_k *= 10.0;
+    }
+
+    // Display
+    if (verbose) {
+      printf("iter: %d, ", iter);
+      printf("lambda_k: %.2e, ", lambda_k);
+      printf("norm(dx): %.2e, ", dx_norm);
+      printf("dcost: %.2e, ", dJ);
+      printf("cost:  %.2e\n", J_k);
+    }
+    // Terminate?
+    if (J_k < J_threshold) {
+      break;
+    } else if (dx_threshold > dx_norm) {
+      break;
+    }
+  }
 
   return 0;
 }
