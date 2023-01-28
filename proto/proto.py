@@ -576,17 +576,34 @@ def solve_svd(A, b):
   """
   Solve Ax = b with SVD
   """
-  # compute svd of A
+  # First decompose A with SVD to get U, s, Vh
+  #
+  #   A x = b
+  #   (U diag(s) Vh) x = b
+  #
+  # Moving U to the R.H.S
+  #
+  #   diag(s) Vh x = U.T b
+  #
+  # Let c = U.T b
   U, s, Vh = svd(A)
-
-  # U diag(s) Vh x = b <=> diag(s) Vh x = U.T b = c
   c = np.dot(U.T, b)
 
-  # diag(s) Vh x = c <=> Vh x = diag(1/s) c = w (trivial inversion of a diagonal matrix)
+  # Now lets move diag(s) to the R.H.S
+  #
+  #   diag(s) Vh x = c
+  #   Vh x = diag(1/s) c
+  #
+  # Let w = diag(1/s) c
   w = np.dot(np.diag(1 / s), c)
 
-  # Vh x = w <=> x = Vh.H w (where .H stands for hermitian = conjugate transpose)
-  x = np.dot(Vh.conj().T, w)
+  # Finally to solve for x we move Vh to the R.H.S
+  #
+  #   Vh x = w
+  #   x = Vh.H w
+  #
+  # where .H stands for hermitian = conjugate transpose)
+  x = Vh.conj().T @ w
 
   return x
 
