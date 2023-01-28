@@ -2274,7 +2274,7 @@ int test_linear_triangulation() {
   return 0;
 }
 
-int test_find_homography() {
+int test_homography_find() {
   // Setup camera
   const int image_width = 640;
   const int image_height = 480;
@@ -2335,7 +2335,7 @@ int test_find_homography() {
   }
 
   real_t H[3 * 3] = {0};
-  int retval = find_homography(pts_i, pts_j, num_points, H);
+  int retval = homography_find(pts_i, pts_j, num_points, H);
   MU_ASSERT(retval == 0);
 
   for (int i = 0; i < num_points; i++) {
@@ -2428,7 +2428,7 @@ int test_homography_pose() {
 
   // Find homography pose
   real_t T_CF_est[4 * 4] = {0};
-  int retval = homography_pose(proj_params, obj_pts, img_pts, N, T_CF_est);
+  int retval = homography_pose(proj_params, img_pts, obj_pts, N, T_CF_est);
   MU_ASSERT(retval == 0);
 
   TF_INV(T_WC, T_CW);
@@ -5625,8 +5625,10 @@ void test_suite() {
   MU_ADD_TEST(test_image_print_properties);
   MU_ADD_TEST(test_image_free);
   MU_ADD_TEST(test_linear_triangulation);
-  MU_ADD_TEST(test_find_homography);
+  MU_ADD_TEST(test_homography_find);
+  MU_ADD_TEST(test_homography_pose);
   MU_ADD_TEST(test_p3p_kneip);
+  MU_ADD_TEST(test_solvepnp);
   MU_ADD_TEST(test_radtan4_distort);
   MU_ADD_TEST(test_radtan4_undistort);
   MU_ADD_TEST(test_radtan4_point_jacobian);

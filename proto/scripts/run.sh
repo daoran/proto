@@ -39,7 +39,7 @@ run_memcheck() {
 # python3 proto.py TestCV.test_homography_find
 # python3 proto.py TestCV.test_homography_pose
 # python3 proto.py TestCV.test_dlt_pose
-python3 proto.py TestCV.test_solvepnp
+# python3 proto.py TestCV.test_solvepnp
 # python3 proto.py TestCV.test_harris_corner
 # python3 proto.py TestCV.test_shi_tomasi_corner
 # python3 proto.py TestFactors
@@ -344,7 +344,9 @@ dev_euroc() {
 # run_test test_lie_Exp_Log
 # run_test test_linear_triangulation
 # run_test test_homography_find
+# run_test test_homography_pose
 # run_test test_p3p_kneip
+run_test test_solvepnp
 # run_test test_radtan4_distort
 # run_test test_radtan4_undistort
 # run_test test_radtan4_point_jacobian

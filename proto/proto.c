@@ -2232,8 +2232,8 @@ void print_matrix(const char *prefix,
   printf("%s:\n", prefix);
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
-      // printf("%f  ", A[idx]);
-      printf("%e  ", A[idx]);
+      printf("%.4f  ", A[idx]);
+      // printf("%e  ", A[idx]);
       idx++;
     }
     printf("\n");
@@ -5697,7 +5697,7 @@ void linear_triangulation(const real_t P_i[3 * 4],
  * **IMPORTANT**: The normalized image points `pts_i` and `pts_j` must
  * correspond to points in 3D that on a plane.
  */
-int find_homography(const real_t *pts_i,
+int homography_find(const real_t *pts_i,
                     const real_t *pts_j,
                     const int num_points,
                     real_t H[3 * 3]) {
@@ -5785,8 +5785,8 @@ int find_homography(const real_t *pts_i,
  *
  */
 int homography_pose(const real_t *proj_params,
-                    const real_t *obj_pts,
                     const real_t *img_pts,
+                    const real_t *obj_pts,
                     const int N,
                     real_t T_CF[4 * 4]) {
   // Form A to compute ||Ah|| = 0 using SVD, where A is an (N * 2) x 9 matrix
