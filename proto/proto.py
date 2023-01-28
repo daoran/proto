@@ -9536,8 +9536,10 @@ class TestCV(unittest.TestCase):
     num_cols = 4
     tag_size = 0.1
 
+    target_x = ((num_cols - 1) * tag_size) / 2.0
+    target_y = -((num_rows - 1) * tag_size) / 2.0
     C_WF = euler321(-pi / 2, 0.0, pi / 2)
-    r_WF = np.array([0.1, 0, 0])
+    r_WF = np.array([0.5, target_x, target_y])
     T_WF = tf(C_WF, r_WF)
 
     # Generate data
@@ -9562,9 +9564,6 @@ class TestCV(unittest.TestCase):
 
     T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
     T_WC_est = T_WF @ inv(T_CF)
-
-    # print(T_WC)
-    # print(T_WC_est)
 
     # Compare estimated and ground-truth
     (dr, dtheta) = tf_diff(T_WC, T_WC_est)
