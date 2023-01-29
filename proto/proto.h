@@ -2120,10 +2120,12 @@ typedef struct solver_t {
   int verbose;
   int max_iter;
   real_t lambda;
+  real_t lambda_factor;
 
   param_order_t *(*param_order_func)(const void *data,
                                      int *sv_size,
                                      int *r_size);
+  void (*cost_func)(const void *data, real_t *r);
   void (*linearize_func)(const void *data,
                          const int sv_size,
                          param_order_t *hash,
@@ -2133,7 +2135,10 @@ typedef struct solver_t {
 } solver_t;
 
 void solver_setup(solver_t *solver);
-real_t solver_cost(const real_t *r, const int r_size);
+real_t solver_cost(const solver_t *solver,
+                   const void *data,
+                   const int r_size,
+                   real_t *r);
 void solver_fill_jacobian(param_order_t *hash,
                           int num_params,
                           real_t **params,
@@ -2223,6 +2228,7 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
 void calib_camera_view_free(calib_camera_view_t *view);
 
 void calib_camera_setup(calib_camera_t *calib);
+void calib_camera_print(calib_camera_t *calib);
 calib_camera_t *calib_camera_malloc();
 void calib_camera_free(calib_camera_t *calib);
 void calib_camera_add_camera(calib_camera_t *calib,
@@ -2241,6 +2247,21 @@ void calib_camera_add_view(calib_camera_t *calib,
                            const int *corner_indices,
                            const real_t *object_points,
                            const real_t *keypoints);
+void calib_camera_errors(calib_camera_t *calib,
+                         real_t *reproj_rmse,
+                         real_t *reproj_mean,
+                         real_t *reproj_median);
+
+param_order_t *calib_camera_param_order(const void *data,
+                                        int *sv_size,
+                                        int *r_size);
+void calib_camera_cost(const void *data, real_t *r);
+void calib_camera_linearize_compact(const void *data,
+                                    const int sv_size,
+                                    param_order_t *hash,
+                                    real_t *H,
+                                    real_t *g,
+                                    real_t *r);
 
 ////////////////////////////
 // CAMERA-IMU CALIBRATION //

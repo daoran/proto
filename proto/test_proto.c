@@ -4753,22 +4753,6 @@ int test_solver_eval() {
   return 0;
 }
 
-int test_calib_gimbal_copy() {
-  const char *data_path = "/tmp/sim_gimbal";
-  calib_gimbal_t *src = calib_gimbal_load(data_path);
-  calib_gimbal_t *dst = calib_gimbal_copy(src);
-
-  MU_ASSERT(src != NULL);
-  MU_ASSERT(dst != NULL);
-  MU_ASSERT(calib_gimbal_equals(src, dst));
-
-  calib_gimbal_print(src);
-  calib_gimbal_free(src);
-  calib_gimbal_free(dst);
-
-  return 0;
-}
-
 int test_calib_camera() {
   // Setup Camera calibrator
   calib_camera_t *calib = calib_camera_malloc();
@@ -4777,7 +4761,7 @@ int test_calib_camera() {
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  const real_t focal = pinhole_focal(cam_res[0], 120.0);
+  const real_t focal = pinhole_focal(cam_res[0], 90.0);
   const real_t cx = cam_res[0] / 2.0;
   const real_t cy = cam_res[1] / 2.0;
   const real_t cam_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
@@ -4795,12 +4779,11 @@ int test_calib_camera() {
   int num_files = 0;
   char **files = list_files(data_path, &num_files);
 
-  int view_idx = 0;
   int cam_idx = 0;
-  for (int i = 0; i < num_files; i++) {
+  for (int view_idx = 0; view_idx < num_files; view_idx++) {
     // Load aprilgrid
     aprilgrid_t grid;
-    aprilgrid_load(&grid, files[i]);
+    aprilgrid_load(&grid, files[view_idx]);
 
     // Get aprilgrid measurements
     int tag_ids[APRILGRID_MAX_CORNERS] = {0};
@@ -4823,9 +4806,20 @@ int test_calib_camera() {
                           kps);
 
     // Clean up
-    free(files[i]);
+    free(files[view_idx]);
   }
   free(files);
+
+  // Solve
+  solver_t solver;
+  solver_setup(&solver);
+  solver.verbose = 1;
+  solver.max_iter = 30;
+  solver.param_order_func = &calib_camera_param_order;
+  solver.cost_func = &calib_camera_cost;
+  solver.linearize_func = &calib_camera_linearize_compact;
+  solver_solve(&solver, calib);
+  calib_camera_print(calib);
 
   // Clean up
   calib_camera_free(calib);
@@ -5291,6 +5285,22 @@ int test_calib_gimbal_ceres_solve() {
 }
 #endif // USE_CERES
 
+int test_calib_gimbal_copy() {
+  const char *data_path = "/tmp/sim_gimbal";
+  calib_gimbal_t *src = calib_gimbal_load(data_path);
+  calib_gimbal_t *dst = calib_gimbal_copy(src);
+
+  MU_ASSERT(src != NULL);
+  MU_ASSERT(dst != NULL);
+  MU_ASSERT(calib_gimbal_equals(src, dst));
+
+  calib_gimbal_print(src);
+  calib_gimbal_free(src);
+  calib_gimbal_free(dst);
+
+  return 0;
+}
+
 /******************************************************************************
  * TEST DATASET
  ******************************************************************************/
@@ -5692,7 +5702,6 @@ void test_suite() {
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
-  // MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_camera);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
@@ -5705,6 +5714,7 @@ void test_suite() {
 #ifdef USE_CERES
   MU_ADD_TEST(test_calib_gimbal_ceres_solve);
 #endif // USE_CERES
+  // MU_ADD_TEST(test_calib_gimbal_copy);
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);

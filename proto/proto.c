@@ -6452,8 +6452,8 @@ int solvepnp(const real_t proj_params[4],
              const real_t *obj_pts,
              const int N,
              real_t T_CO[4 * 4]) {
-  const int verbose = 1;
-  const int max_iter = 5;
+  const int verbose = 0;
+  const int max_iter = 10;
   const real_t lambda_init = 1e4;
   const real_t dx_threshold = 1e-10;
   const real_t J_threshold = 1e-15;
@@ -11280,15 +11280,20 @@ void solver_setup(solver_t *solver) {
   solver->verbose = 0;
   solver->max_iter = 10;
   solver->lambda = 1e4;
+  solver->lambda_factor = 10.0;
 }
 
 /**
  * Calculate cost with residual vector `r` of length `r_size`.
  */
-real_t solver_cost(const real_t *r, const int r_size) {
-  real_t r_sq[1] = {0};
-  dot(r, 1, r_size, r, r_size, 1, r_sq);
-  return 0.5 * r_sq[0];
+real_t solver_cost(const solver_t *solver,
+                   const void *data,
+                   const int r_size,
+                   real_t *r) {
+  solver->cost_func(data, r);
+  real_t r_sq = {0};
+  dot(r, 1, r_size, r, r_size, 1, &r_sq);
+  return 0.5 * r_sq;
 }
 
 /**
@@ -11350,6 +11355,10 @@ void solver_fill_hessian(param_order_t *hash,
                          int sv_size,
                          real_t *H,
                          real_t *g) {
+  if (H == NULL || g == NULL) {
+    return;
+  }
+
   for (int i = 0; i < num_params; i++) {
     // Check if i-th parameter is fixed
     if (hmgets(hash, params[i]).fix) {
@@ -11498,12 +11507,62 @@ void solver_update(param_order_t *hash, real_t *dx, int sv_size) {
   }
 }
 
+#ifdef SOLVER_USE_SUITESPARSE
+real_t **solver_step(cholmod_common *common,
+                     solver_t *solver,
+                     const real_t lambda_k,
+                     const int r_size,
+                     const int sv_size,
+                     param_order_t *hash,
+                     void *data,
+                     real_t *H,
+                     real_t *g,
+                     real_t *r,
+                     real_t *dx) {
+#else
+real_t **solver_step(solver_t *solver,
+                     const real_t lambda_k,
+                     const int r_size,
+                     const int sv_size,
+                     param_order_t *hash,
+                     void *data,
+                     real_t *H,
+                     real_t *g,
+                     real_t *r,
+                     real_t *dx) {
+#endif
+  // Linearize non-linear system
+  zeros(H, sv_size, sv_size);
+  zeros(g, sv_size, 1);
+  zeros(r, r_size, 1);
+  solver->linearize_func(data, sv_size, hash, H, g, r);
+
+  // Damp Hessian: H = H + lambda * I
+  for (int i = 0; i < sv_size; i++) {
+    H[(i * sv_size) + i] += lambda_k;
+  }
+
+  // Solve: H * dx = g
+#ifdef SOLVER_USE_SUITESPARSE
+  suitesparse_chol_solve(common, H, sv_size, sv_size, g, sv_size, dx);
+#else
+  chol_solve(H, g, dx, sv_size);
+#endif
+
+  // Update
+  real_t **x_copy = solver_params_copy(hash);
+  solver_update(hash, dx, sv_size);
+
+  return x_copy;
+}
+
 /**
  * Solve problem
  */
 int solver_solve(solver_t *solver, void *data) {
   assert(solver != NULL);
   assert(solver->param_order_func != NULL);
+  assert(solver->cost_func != NULL);
   assert(solver->linearize_func != NULL);
   assert(data != NULL);
 
@@ -11514,84 +11573,72 @@ int solver_solve(solver_t *solver, void *data) {
   assert(sv_size > 0);
   assert(r_size > 0);
 
-  // Linearize
+  // Calculate initial cost
   real_t *H = CALLOC(real_t, sv_size * sv_size);
   real_t *g = CALLOC(real_t, sv_size);
   real_t *r = CALLOC(real_t, r_size);
   real_t *dx = CALLOC(real_t, sv_size);
-  solver->linearize_func(data, sv_size, hash, H, g, r);
-  real_t cost_km1 = solver_cost(r, r_size);
-
+  real_t J_km1 = solver_cost(solver, data, r_size, r);
   if (solver->verbose) {
-    printf("iter: 0, lambda_k: %.2e, cost: %.2e\n", solver->lambda, cost_km1);
+    printf("iter: 0, lambda_k: %.2e, cost: %.2e\n", solver->lambda, J_km1);
   }
 
-  // Start cholmod workspace
+// Start cholmod workspace
 #ifdef SOLVER_USE_SUITESPARSE
-  cholmod_common common;
-  cholmod_start(&common);
+  cholmod_common *common = MALLOC(cholmod_common, 1);
+  cholmod_start(common);
 #endif
 
   // Solve
   int max_iter = solver->max_iter;
   real_t lambda_k = solver->lambda;
-  real_t cost_k = 0.0;
+  real_t J_k = 0.0;
 
   for (int iter = 0; iter < max_iter; iter++) {
-    // Damp Hessian: H = H + lambda * I
-    for (int i = 0; i < sv_size; i++) {
-      H[(i * sv_size) + i] += lambda_k;
-    }
-
-    // Solve: H * dx = g
-#ifdef SOLVER_USE_SUITESPARSE
-    suitesparse_chol_solve(&common, H, sv_size, sv_size, g, sv_size, dx);
-#else
-    chol_solve(H, g, dx, sv_size);
-#endif
-
-    // Update parameters
-    real_t **x_copy = solver_params_copy(hash);
-    solver_update(hash, dx, sv_size);
-
-    // Re-linearize
-    {
-      zeros(H, sv_size, sv_size);
-      zeros(g, sv_size, 1);
-      zeros(r, r_size, 1);
-      solver->linearize_func(data, sv_size, hash, H, g, r);
-      cost_k = solver_cost(r, r_size);
-
-      if (solver->verbose) {
-        printf("iter: %d, lambda_k: %.2e, cost: %.2e\n",
-               iter + 1,
-               lambda_k,
-               cost_k);
-      }
-    }
+    real_t **x_copy = solver_step(common,
+                                  solver,
+                                  lambda_k,
+                                  r_size,
+                                  sv_size,
+                                  hash,
+                                  data,
+                                  H,
+                                  g,
+                                  r,
+                                  dx);
+    J_k = solver_cost(solver, data, r_size, r);
 
     // Accept or reject update*/
-    if (cost_k < cost_km1) {
+    if (J_k < J_km1) {
       // Accept update
-      cost_km1 = cost_k;
-      lambda_k /= 10.0;
+      J_km1 = J_k;
+      lambda_k /= solver->lambda_factor;
     } else {
       // Reject update
-      lambda_k *= 10.0;
+      lambda_k *= solver->lambda_factor;
       solver_params_restore(hash, x_copy);
     }
     solver_params_free(hash, x_copy);
 
-    // Termination criteria
-    // if (cost_k < 1e-10) {
+    // Display
+    if (solver->verbose) {
+      printf("iter: %d, lambda_k: %.2e, cost: %.2e\n",
+             iter + 1,
+             lambda_k,
+             J_km1);
+    }
+
+    // // Termination criteria
+    // if (J_k < 1e-10) {
     //   break;
     // }
   }
 
-  // Clean up
+// Clean up
 #ifdef SOLVER_USE_SUITESPARSE
-  cholmod_finish(&common);
+  cholmod_finish(common);
 #endif
+  free(common);
   hmfree(hash);
   free(H);
   free(g);
@@ -11747,6 +11794,7 @@ void calib_camera_view_free(calib_camera_view_t *view) {
   free(view->object_points);
   free(view->keypoints);
   free(view->factors);
+  free(view);
 }
 
 /**
@@ -11776,6 +11824,47 @@ void calib_camera_setup(calib_camera_t *calib) {
 }
 
 /**
+ * Print camera calibration.
+ */
+void calib_camera_print(calib_camera_t *calib) {
+  real_t reproj_rmse = 0.0;
+  real_t reproj_mean = 0.0;
+  real_t reproj_median = 0.0;
+  calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+
+  printf("settings:\n");
+  printf("  fix_poses: %d\n", calib->fix_poses);
+  printf("  fix_cam_exts: %d\n", calib->fix_cam_exts);
+  printf("  fix_cam_params: %d\n", calib->fix_cam_params);
+  printf("\n");
+
+  printf("statistics:\n");
+  printf("  num_cams: %d\n", calib->num_cams);
+  printf("  num_views: %d\n", calib->num_views);
+  printf("  num_factors: %d\n", calib->num_factors);
+  printf("\n");
+
+  printf("reproj_errors:\n");
+  printf("  rmse: %f\n", reproj_rmse);
+  printf("  mean: %f\n", reproj_mean);
+  printf("  median: %f\n", reproj_median);
+  printf("\n");
+
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    camera_params_t *cam = &calib->cam_params[cam_idx];
+    char param_str[100] = {0};
+    vec2str(cam->data, 8, param_str);
+
+    printf("cam%d:\n", cam_idx);
+    printf("  resolution: [%d, %d]\n", cam->resolution[0], cam->resolution[1]);
+    printf("  proj_model: %s\n", cam->proj_model);
+    printf("  dist_model: %s\n", cam->dist_model);
+    printf("  param: %s\n", param_str);
+    printf("\n");
+  }
+}
+
+/**
  * Malloc camera calibration problem
  */
 calib_camera_t *calib_camera_malloc() {
@@ -11797,6 +11886,9 @@ void calib_camera_free(calib_camera_t *calib) {
   free(calib->poses);
 
   for (int k = 0; k < calib->num_views; k++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_camera_view_free(calib->views[k][cam_idx]);
+    }
     free(calib->views[k]);
   }
   free(calib->views);
@@ -11859,10 +11951,17 @@ void calib_camera_add_view(calib_camera_t *calib,
     const int new_size = calib->num_views + 1;
 
     // New pose
+    real_t T_CO[4 * 4] = {0};
+    solvepnp(calib->cam_params->data,
+             keypoints,
+             object_points,
+             num_corners,
+             T_CO);
+    TF_INV(T_CO, T_OC);
+    TF_VECTOR(T_OC, pose);
     calib->poses = REALLOC(calib->poses, pose_t *, new_size);
     calib->poses[view_idx] = MALLOC(pose_t, 1);
-    const real_t pose_data[7] = {0};
-    pose_setup(calib->poses[view_idx], ts, pose_data);
+    pose_setup(calib->poses[view_idx], ts, pose);
 
     // New view
     calib->views = REALLOC(calib->views, calib_gimbal_view_t **, new_size);
@@ -11887,6 +11986,140 @@ void calib_camera_add_view(calib_camera_t *calib,
 
   // Update
   calib->views[view_idx][cam_idx] = view;
+}
+
+void calib_camera_errors(calib_camera_t *calib,
+                         real_t *reproj_rmse,
+                         real_t *reproj_mean,
+                         real_t *reproj_median) {
+  // Setup
+  const int N = calib->num_factors;
+  const int r_size = N * 2;
+  real_t *r = CALLOC(real_t, r_size);
+
+  // Evaluate residuals
+  int r_idx = 0;
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_camera_view_t *view = calib->views[view_idx][cam_idx];
+
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_camera_factor_t *factor = &view->factors[factor_idx];
+        calib_camera_factor_eval(factor);
+        vec_copy(factor->r, factor->r_size, &r[r_idx]);
+        r_idx += factor->r_size;
+      } // For each calib factor
+    }   // For each cameras
+  }     // For each views
+
+  // Calculate reprojection errors
+  real_t reproj_error = 0.0;
+  real_t *errors = CALLOC(real_t, N);
+  for (int i = 0; i < N; i++) {
+    const real_t x = r[i * 2 + 0];
+    const real_t y = r[i * 2 + 1];
+    errors[i] = sqrt(x * x + y * y);
+  }
+
+  // Calculate RMSE
+  real_t sum = 0.0;
+  real_t sse = 0.0;
+  for (int i = 0; i < N; i++) {
+    sum += errors[i];
+    sse += errors[i] * errors[i];
+  }
+  *reproj_rmse = sqrt(sse / N);
+  *reproj_mean = sum / N;
+  *reproj_median = median(errors, N);
+
+  // Clean up
+  free(errors);
+  free(r);
+}
+
+param_order_t *calib_camera_param_order(const void *data,
+                                        int *sv_size,
+                                        int *r_size) {
+  // Setup parameter order
+  calib_camera_t *calib = (calib_camera_t *) data;
+  param_order_t *hash = NULL;
+  int col_idx = 0;
+
+  // -- Add body poses
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    void *data = &calib->poses[view_idx]->data;
+    const int fix = calib->fix_poses;
+    param_order_add(&hash, POSE_PARAM, fix, data, &col_idx);
+  }
+  // -- Add camera extrinsic
+  for (int i = 0; i < calib->num_cams; i++) {
+    void *data = &calib->cam_exts[i].data;
+    const int fix = (calib->fix_cam_exts || (i == 0) ? 1 : 0);
+    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
+  }
+  // -- Add camera parameters
+  for (int i = 0; i < calib->num_cams; i++) {
+    void *data = &calib->cam_params[i].data;
+    const int fix = calib->fix_cam_params;
+    param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
+  }
+
+  *sv_size = col_idx;
+  *r_size = (calib->num_factors * 2);
+  return hash;
+}
+
+void calib_camera_cost(const void *data, real_t *r) {
+  // Evaluate factors
+  calib_camera_t *calib = (calib_camera_t *) data;
+
+  int r_idx = 0;
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_camera_view_t *view = calib->views[view_idx][cam_idx];
+
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_camera_factor_t *factor = &view->factors[factor_idx];
+        calib_camera_factor_eval(factor);
+        vec_copy(factor->r, factor->r_size, &r[r_idx]);
+        r_idx += factor->r_size;
+      } // For each calib factor
+    }   // For each cameras
+  }     // For each views
+}
+
+void calib_camera_linearize_compact(const void *data,
+                                    const int sv_size,
+                                    param_order_t *hash,
+                                    real_t *H,
+                                    real_t *g,
+                                    real_t *r) {
+  // Evaluate factors
+  calib_camera_t *calib = (calib_camera_t *) data;
+
+  int r_idx = 0;
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_camera_view_t *view = calib->views[view_idx][cam_idx];
+
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_camera_factor_t *factor = &view->factors[factor_idx];
+        calib_camera_factor_eval(factor);
+        vec_copy(factor->r, factor->r_size, &r[r_idx]);
+
+        solver_fill_hessian(hash,
+                            factor->num_params,
+                            factor->params,
+                            factor->jacs,
+                            factor->r,
+                            factor->r_size,
+                            sv_size,
+                            H,
+                            g);
+        r_idx += factor->r_size;
+      } // For each calib factor
+    }   // For each cameras
+  }     // For each views
 }
 
 ////////////////////////

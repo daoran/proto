@@ -346,7 +346,7 @@ dev_euroc() {
 # run_test test_homography_find
 # run_test test_homography_pose
 # run_test test_p3p_kneip
-run_test test_solvepnp
+# run_test test_solvepnp
 # run_test test_radtan4_distort
 # run_test test_radtan4_undistort
 # run_test test_radtan4_point_jacobian
@@ -401,7 +401,7 @@ run_test test_solvepnp
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
-# run_test test_calib_camera
+run_test test_calib_camera
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
 # run_test test_calib_gimbal_add_gimbal_extrinsic
