@@ -17,7 +17,7 @@ dependencies and building of ``proto``. To install dependencies, build and test
 
 .. code-block::
 
-   make deps
+   make third_party
    make install
    make tests
 
