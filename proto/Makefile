@@ -152,10 +152,6 @@ avs: $(BLD_DIR)/libproto.a
 		-lproto \
 		$(shell pkg-config opencv4 --libs)
 
-test_p3p: ## Compile test_p3p
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_p3p.c -o $(BLD_DIR)/test_p3p $(LDFLAGS)
-
 test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
