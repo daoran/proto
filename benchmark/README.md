@@ -1,6 +1,6 @@
-# slam_bench
+# Benchmark
 
-`slam_bench` features the following state-estimation algorithms as Docker
+This folder features the following state-estimation algorithms as Docker
 images:
 
 - [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono)
