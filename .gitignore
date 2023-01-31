@@ -32,3 +32,6 @@ third_party/share
 # Misc
 tags
 .cache
+*.bag
+*.pdf
+.bash_history

@@ -3,7 +3,6 @@ BLD_DIR := build
 INC_DIR := $(realpath $(PWD))
 DEPS_DIR := $(realpath ../third_party)
 
-
 # COMPILER SETTINGS
 BUILD_TYPE := debug
 # BUILD_TYPE := release
@@ -15,10 +14,12 @@ CC := clang
 # LIBRARIES
 STB_CFLAGS:=-I$(DEPS_DIR)/src/stb
 OPENSSL_LDFLAGS := -lssl -lcrypto
+
 GLEW_LDFLAGS := -lGLEW
 SDL2_CFLAGS:=$(shell sdl2-config --cflags)
 SDL2_LDFLAGS := $(shell sdl2-config --libs) -lSDL2_image
 OPENGL_LDFLAGS := $(SDL2_LDFLAGS) $(GLEW_LDFLAGS) -lGL
+
 BLAS_LDFLAGS := -lblas -llapack -llapacke
 SUITESPARSE_LDFLAGS := -llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod -lcxsparse
 CERES_LDFLAGS := -lgflags -lglog -lceres
@@ -35,10 +36,9 @@ TIS_LDFLAGS+=$(shell pkg-config gobject-introspection-1.0 --libs)
 TIS_LDFLAGS+=$(shell pkg-config tcam --libs)
 
 APRILTAG_LDFLAGS := -L$(DEPS_DIR)/lib -lapriltag
-
 YAML_LDFLAGS := -lyaml
-
 PROTO_LDFLAGS := -L$(BLD_DIR) -lproto
+
 
 # CFLAGS
 CFLAGS :=
@@ -151,10 +151,6 @@ avs: $(BLD_DIR)/libproto.a
 		$(LDFLAGS) \
 		-lproto \
 		$(shell pkg-config opencv4 --libs)
-
-test_p3p: ## Compile test_p3p
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_p3p.c -o $(BLD_DIR)/test_p3p $(LDFLAGS)
 
 test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"
