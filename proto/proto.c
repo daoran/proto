@@ -11281,6 +11281,10 @@ void solver_setup(solver_t *solver) {
   solver->max_iter = 10;
   solver->lambda = 1e4;
   solver->lambda_factor = 10.0;
+
+#ifdef SOLVER_USE_SUITESPARSE
+  solver->common = NULL;
+#endif
 }
 
 /**
@@ -11507,19 +11511,6 @@ void solver_update(param_order_t *hash, real_t *dx, int sv_size) {
   }
 }
 
-#ifdef SOLVER_USE_SUITESPARSE
-real_t **solver_step(cholmod_common *common,
-                     solver_t *solver,
-                     const real_t lambda_k,
-                     const int r_size,
-                     const int sv_size,
-                     param_order_t *hash,
-                     void *data,
-                     real_t *H,
-                     real_t *g,
-                     real_t *r,
-                     real_t *dx) {
-#else
 real_t **solver_step(solver_t *solver,
                      const real_t lambda_k,
                      const int r_size,
@@ -11530,7 +11521,6 @@ real_t **solver_step(solver_t *solver,
                      real_t *g,
                      real_t *r,
                      real_t *dx) {
-#endif
   // Linearize non-linear system
   zeros(H, sv_size, sv_size);
   zeros(g, sv_size, 1);
@@ -11544,7 +11534,7 @@ real_t **solver_step(solver_t *solver,
 
   // Solve: H * dx = g
 #ifdef SOLVER_USE_SUITESPARSE
-  suitesparse_chol_solve(common, H, sv_size, sv_size, g, sv_size, dx);
+  suitesparse_chol_solve(solver->common, H, sv_size, sv_size, g, sv_size, dx);
 #else
   chol_solve(H, g, dx, sv_size);
 #endif
@@ -11585,8 +11575,8 @@ int solver_solve(solver_t *solver, void *data) {
 
 // Start cholmod workspace
 #ifdef SOLVER_USE_SUITESPARSE
-  cholmod_common *common = MALLOC(cholmod_common, 1);
-  cholmod_start(common);
+  solver->common = MALLOC(cholmod_common, 1);
+  cholmod_start(solver->common);
 #endif
 
   // Solve
@@ -11595,17 +11585,8 @@ int solver_solve(solver_t *solver, void *data) {
   real_t J_k = 0.0;
 
   for (int iter = 0; iter < max_iter; iter++) {
-    real_t **x_copy = solver_step(common,
-                                  solver,
-                                  lambda_k,
-                                  r_size,
-                                  sv_size,
-                                  hash,
-                                  data,
-                                  H,
-                                  g,
-                                  r,
-                                  dx);
+    real_t **x_copy =
+        solver_step(solver, lambda_k, r_size, sv_size, hash, data, H, g, r, dx);
     J_k = solver_cost(solver, data, r_size, r);
 
     // Accept or reject update*/
@@ -11636,9 +11617,10 @@ int solver_solve(solver_t *solver, void *data) {
 
 // Clean up
 #ifdef SOLVER_USE_SUITESPARSE
-  cholmod_finish(common);
+  cholmod_finish(solver->common);
 #endif
-  free(common);
+  free(solver->common);
+  solver->common = NULL;
   hmfree(hash);
   free(H);
   free(g);
@@ -12120,6 +12102,18 @@ void calib_camera_linearize_compact(const void *data,
       } // For each calib factor
     }   // For each cameras
   }     // For each views
+}
+
+void calib_camera_solve(calib_camera_t *calib) {
+  solver_t solver;
+  solver_setup(&solver);
+  solver.verbose = 1;
+  solver.max_iter = 30;
+  solver.cost_func = &calib_camera_cost;
+  solver.param_order_func = &calib_camera_param_order;
+  solver.linearize_func = &calib_camera_linearize_compact;
+  solver_solve(&solver, calib);
+  calib_camera_print(calib);
 }
 
 ////////////////////////

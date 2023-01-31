@@ -11788,7 +11788,7 @@ class TestCalibration(unittest.TestCase):
 
     # Calibrator
     calib = Calibrator()
-    calib.verbose = False
+    calib.verbose = True
     # -- Add cam0
     cam_idx = 0
     cam_res = [752, 480]
@@ -11799,10 +11799,13 @@ class TestCalibration(unittest.TestCase):
     for grid in grids:
       if grid is not None:
         calib.add_camera_view(grid.ts, cam_idx, grid)
-        if calib.get_num_views() == 10:
+        if calib.get_num_views() == 30:
           break
     # -- Solve
     calib.solve()
+    print(calib.cam_params[0])
+    for ts, pose in calib.poses.items():
+      print(ts, pose.param)
 
 
 # SIMULATION  #################################################################

@@ -2122,10 +2122,14 @@ typedef struct solver_t {
   real_t lambda;
   real_t lambda_factor;
 
+#ifdef SOLVER_USE_SUITESPARSE
+  cholmod_common *common;
+#endif
+
+  void (*cost_func)(const void *data, real_t *r);
   param_order_t *(*param_order_func)(const void *data,
                                      int *sv_size,
                                      int *r_size);
-  void (*cost_func)(const void *data, real_t *r);
   void (*linearize_func)(const void *data,
                          const int sv_size,
                          param_order_t *hash,
@@ -2262,6 +2266,7 @@ void calib_camera_linearize_compact(const void *data,
                                     real_t *H,
                                     real_t *g,
                                     real_t *r);
+void calib_camera_solve(calib_camera_t *calib);
 
 ////////////////////////////
 // CAMERA-IMU CALIBRATION //
