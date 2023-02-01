@@ -13641,6 +13641,16 @@ param_order_t *inertial_odometry_param_order(const void *data,
   return hash;
 }
 
+void inertial_odometry_cost(const void *data, real_t *r) {
+  // Evaluate factors
+  inertial_odometry_t *odom = (inertial_odometry_t *) data;
+  for (int k = 0; k < odom->num_factors; k++) {
+    imu_factor_t *factor = &odom->factors[k];
+    imu_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[k * factor->r_size]);
+  }
+}
+
 void inertial_odometry_linearize_compact(const void *data,
                                          const int sv_size,
                                          param_order_t *hash,

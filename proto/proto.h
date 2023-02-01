@@ -2126,10 +2126,10 @@ typedef struct solver_t {
   cholmod_common *common;
 #endif
 
-  void (*cost_func)(const void *data, real_t *r);
   param_order_t *(*param_order_func)(const void *data,
                                      int *sv_size,
                                      int *r_size);
+  void (*cost_func)(const void *data, real_t *r);
   void (*linearize_func)(const void *data,
                          const int sv_size,
                          param_order_t *hash,
@@ -2479,6 +2479,7 @@ void inertial_odometry_save(const inertial_odometry_t *odom,
 param_order_t *inertial_odometry_param_order(const void *data,
                                              int *sv_size,
                                              int *r_size);
+void inertial_odometry_cost(const void *data, real_t *r);
 void inertial_odometry_linearize_compact(const void *data,
                                          const int sv_size,
                                          param_order_t *hash,
