@@ -54,6 +54,7 @@ install_apt_pkgs:
 	@sudo apt-get install -y -qqq libsuitesparse-dev libsuitesparse-doc
 	@sudo apt-get install -y -qqq libeigen3-dev libeigen3-doc
 	@sudo apt-get install -y -qqq libceres-dev
+	@sudo apt-get install -y -qqq libomp-dev
 	@sudo apt-get install -y -qqq libopencv-*
 	@sudo apt-get install -y -qqq libglew-dev
 	@sudo apt-get install -y -qqq libsdl2-*
