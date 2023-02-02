@@ -13396,6 +13396,9 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   // printf("\n");
 }
 
+/**
+ * Determine gimbal calibration parameter order.
+ */
 param_order_t *calib_gimbal_param_order(const void *data,
                                         int *sv_size,
                                         int *r_size) {
@@ -13456,6 +13459,30 @@ param_order_t *calib_gimbal_param_order(const void *data,
   return hash;
 }
 
+/**
+ * Calculate gimbal calibration cost.
+ */
+void calib_gimbal_cost(const void *data, real_t *r) {
+  calib_gimbal_t *calib = (calib_gimbal_t *) data;
+  assert(calib != NULL);
+  assert(calib_gimbal_validate(calib) == 0);
+
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_gimbal_factor_t *factor = &view->calib_factors[factor_idx];
+        calib_gimbal_factor_eval(factor);
+        r[factor_idx * 2] = factor->r[0];
+        r[factor_idx * 2 + 1] = factor->r[1];
+      } // For each factor
+    }   // For each cameras
+  }     // For each views
+}
+
+/**
+ * Linearize gimbal calibration problem.
+ */
 void calib_gimbal_linearize(const void *data,
                             const int J_rows,
                             const int J_cols,
@@ -13493,6 +13520,9 @@ void calib_gimbal_linearize(const void *data,
   }     // For each views
 }
 
+/**
+ * Linearize gimbal calibration problem.
+ */
 void calib_gimbal_linearize_compact(const void *data,
                                     const int sv_size,
                                     param_order_t *hash,
@@ -13564,6 +13594,9 @@ void calib_gimbal_linearize_compact(const void *data,
 // INERTIAL ODOMETRY //
 ///////////////////////
 
+/**
+ * Free inertial odometry.
+ */
 void inertial_odometry_free(inertial_odometry_t *odom) {
   free(odom->factors);
   free(odom->poses);
@@ -13572,6 +13605,9 @@ void inertial_odometry_free(inertial_odometry_t *odom) {
   free(odom);
 }
 
+/**
+ * Save inertial odometry.
+ */
 void inertial_odometry_save(const inertial_odometry_t *odom,
                             const char *save_path) {
   // Load file
@@ -13602,6 +13638,9 @@ void inertial_odometry_save(const inertial_odometry_t *odom,
   }
 }
 
+/**
+ * Determine inertial odometry parameter order.
+ */
 param_order_t *inertial_odometry_param_order(const void *data,
                                              int *sv_size,
                                              int *r_size) {
@@ -13641,6 +13680,9 @@ param_order_t *inertial_odometry_param_order(const void *data,
   return hash;
 }
 
+/**
+ * Calculate inertial odometry cost.
+ */
 void inertial_odometry_cost(const void *data, real_t *r) {
   // Evaluate factors
   inertial_odometry_t *odom = (inertial_odometry_t *) data;
@@ -13651,6 +13693,9 @@ void inertial_odometry_cost(const void *data, real_t *r) {
   }
 }
 
+/**
+ * Linearize inertial odometry problem.
+ */
 void inertial_odometry_linearize_compact(const void *data,
                                          const int sv_size,
                                          param_order_t *hash,

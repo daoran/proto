@@ -2441,6 +2441,7 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]);
 param_order_t *calib_gimbal_param_order(const void *data,
                                         int *sv_size,
                                         int *r_size);
+void calib_gimbal_cost(const void *data, real_t *r);
 void calib_gimbal_linearize(const void *data,
                             const int J_rows,
                             const int J_cols,
