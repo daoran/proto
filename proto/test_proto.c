@@ -3255,58 +3255,6 @@ int test_feature() {
   return 0;
 }
 
-int test_features() {
-  real_t f0_param[3] = {0.1, 0.2, 0.3};
-  real_t f1_param[3] = {0.4, 0.5, 0.6};
-  real_t f2_param[3] = {0.7, 0.8, 0.9};
-
-  // Setup
-  features_t *features = features_malloc();
-
-  // -- Add features
-  features_add(features, 1, f0_param);
-  features_add(features, 2, f1_param);
-  features_add(features, 3, f2_param);
-  MU_ASSERT(features->num_features == 3);
-
-  // -- Check features exists
-  MU_ASSERT(features_exists(features, 1) == 1);
-  MU_ASSERT(features_exists(features, 2) == 1);
-  MU_ASSERT(features_exists(features, 3) == 1);
-  MU_ASSERT(features_exists(features, 10) == 0);
-
-  // -- Get features
-  feature_t *f0 = features_get(features, 1);
-  feature_t *f1 = features_get(features, 2);
-  feature_t *f2 = features_get(features, 3);
-  feature_t *f3 = features_get(features, 10);
-
-  MU_ASSERT(f0->feature_id == 1);
-  MU_ASSERT(f0->status == 1);
-  MU_ASSERT(vec_equals(f0->data, f0_param, 3) == 1);
-
-  MU_ASSERT(f1->feature_id == 2);
-  MU_ASSERT(f1->status == 1);
-  MU_ASSERT(vec_equals(f1->data, f1_param, 3) == 1);
-
-  MU_ASSERT(f2->feature_id == 3);
-  MU_ASSERT(f2->status == 1);
-  MU_ASSERT(vec_equals(f2->data, f2_param, 3) == 1);
-
-  MU_ASSERT(f3 == NULL);
-
-  // -- Remove features
-  features_remove(features, 1);
-  features_remove(features, 2);
-  features_remove(features, 3);
-  MU_ASSERT(features->num_features == 0);
-
-  // Clean up
-  features_free(features);
-
-  return 0;
-}
-
 int test_idf() {
   // Body pose
   pose_t pose;
@@ -3334,6 +3282,7 @@ int test_idf() {
   TF_INV(T_BCi, T_CiB);
   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
   TF_INV(T_CiW, T_WCi);
+  TF_ROT(T_WCi, C_WCi);
   TF_TRANS(T_WCi, r_WCi);
 
   const size_t feature_id = 0;
@@ -3343,16 +3292,15 @@ int test_idf() {
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   // Setup IDF
-  idf_pos_t idf_pos;
-  idf_pos_setup(&idf_pos, r_WCi);
+  pos_t idf_pos;
+  pos_setup(&idf_pos, r_WCi);
 
-  idf_param_t idf_param;
-  idf_param_setup(&idf_param, &cam, feature_id, T_WCi, z);
-  // idf_param_print(&idf_param);
+  feature_t idf_param;
+  idf_setup(&idf_param, feature_id, 0, &cam, C_WCi, z);
 
   // Reproject IDF to feature in world frame
   real_t p_W_est[3] = {0};
-  idf_point(&idf_param, &idf_pos, p_W_est);
+  idf_point(&idf_param, idf_pos.data, p_W_est);
 
   const real_t dx = p_W_est[0] - p_W[0];
   const real_t dy = p_W_est[1] - p_W[1];
@@ -3363,103 +3311,107 @@ int test_idf() {
   return 0;
 }
 
-// int test_idfb() {
-//   // Body pose
-//   pose_t pose;
-//   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-//   pose_setup(&pose, 0, pose_data);
+int test_features() {
+  // XYZ Features
+  // clang-format off
+  size_t feature_ids[3] = {1, 2, 3};
+  real_t params[3 * 3] = {0.1, 0.2, 0.3,
+                          0.4, 0.5, 0.6,
+                          0.7, 0.8, 0.9};
+  // clang-format on
 
-//   // Extrinsic
-//   extrinsic_t cam_ext;
-//   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
-//   extrinsic_setup(&cam_ext, ext_data);
+  // Body pose
+  pose_t pose;
+  const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  pose_setup(&pose, 0, pose_data);
 
-//   // Camera parameters
-//   camera_params_t cam;
-//   const int cam_idx = 0;
-//   const int cam_res[2] = {640, 480};
-//   const char *proj_model = "pinhole";
-//   const char *dist_model = "radtan4";
-//   const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model,
-//   cam_data);
+  // Extrinsic
+  extrinsic_t cam_ext;
+  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
+  extrinsic_setup(&cam_ext, ext_data);
 
-//   // Setup feature and image point
-//   TF(pose_data, T_WB);
-//   TF(ext_data, T_BCi);
-//   TF_INV(T_WB, T_BW);
-//   TF_INV(T_BCi, T_CiB);
-//   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-//   TF_INV(T_CiW, T_WCi);
+  // Camera parameters
+  camera_params_t cam;
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
-//   // Setup features and keypoints
-//   size_t num_features = 100;
-//   size_t *feature_ids = MALLOC(size_t, num_features);
-//   real_t *features = MALLOC(real_t, num_features * 3);
-//   real_t *keypoints = MALLOC(real_t, num_features * 2);
-//   for (size_t i = 0; i < num_features; i++) {
-//     const size_t feature_id = i;
-//     const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
-//     real_t z[2] = {0};
-//     TF_POINT(T_CiW, p_W, p_Ci);
-//     pinhole_radtan4_project(cam_data, p_Ci, z);
+  // Setup feature and image point
+  TF(pose_data, T_WB);
+  TF(ext_data, T_BCi);
+  TF_INV(T_WB, T_BW);
+  TF_INV(T_BCi, T_CiB);
+  TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
+  TF_INV(T_CiW, T_WCi);
 
-//     feature_ids[i] = feature_id;
-//     features[i * 3 + 0] = p_W[0];
-//     features[i * 3 + 1] = p_W[1];
-//     features[i * 3 + 2] = p_W[2];
-//     keypoints[i * 2 + 0] = z[0];
-//     keypoints[i * 2 + 1] = z[1];
-//   }
+  // Setup inverse-depth features and keypoints
+  size_t num_idfs = 10;
+  size_t *idf_ids = MALLOC(size_t, num_idfs);
+  real_t *idf_features = MALLOC(real_t, num_idfs * 3);
+  real_t *idf_keypoints = MALLOC(real_t, num_idfs * 2);
+  for (size_t i = 0; i < num_idfs; i++) {
+    const size_t feature_id = i + (4);
+    const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
+    real_t z[2] = {0};
+    TF_POINT(T_CiW, p_W, p_Ci);
+    pinhole_radtan4_project(cam_data, p_Ci, z);
 
-//   // Setup IDFB
-//   idfb_t *idfb = idfb_malloc(&cam, num_features, feature_ids, keypoints,
-//   T_WCi);
+    idf_ids[i] = feature_id;
+    idf_features[i * 3 + 0] = p_W[0];
+    idf_features[i * 3 + 1] = p_W[1];
+    idf_features[i * 3 + 2] = p_W[2];
+    idf_keypoints[i * 2 + 0] = z[0];
+    idf_keypoints[i * 2 + 1] = z[1];
+  }
 
-//   // Reproject IDF to feature in world frame
-//   for (size_t i = 0; i < num_features; i++) {
-//     real_t *p_W_gnd = features + i * 3;
-//     real_t p_W_est[3] = {0};
-//     const size_t feature_id = i;
-//     idfb_point(idfb, feature_id, p_W_est);
+  // Setup
+  features_t *features = features_malloc();
 
-//     // print_vector("p_W_est", p_W_est, 3);
-//     // printf("feature_id [%ld] ", feature_ids[i]);
-//     // print_vector("p_W_gnd", p_W_gnd, 3);
+  // -- Add XYZ features
+  features_add_xyzs(features, feature_ids, params, 3);
+  MU_ASSERT(features->num_features == 3);
 
-//     const real_t dx = p_W_est[0] - p_W_gnd[0];
-//     const real_t dy = p_W_est[1] - p_W_gnd[1];
-//     const real_t dz = p_W_est[2] - p_W_gnd[2];
-//     const real_t dist = sqrt(dx * dx + dy * dy + dz * dz);
-//     MU_ASSERT(dist < 1e-1);
-//   }
+  // -- Add IDF features
+  features_add_idfs(features, idf_ids, &cam, T_WCi, idf_keypoints, num_idfs);
+  MU_ASSERT(features->num_features == 3 + num_idfs);
 
-//   {
-//     size_t *feature_ids = NULL;
-//     real_t *points = NULL;
-//     size_t num_points = 0;
-//     idfb_points(idfb, &feature_ids, &points, &num_points);
+  // -- Check features exists
+  MU_ASSERT(features_exists(features, 1) == 1);
+  MU_ASSERT(features_exists(features, 2) == 1);
+  MU_ASSERT(features_exists(features, 3) == 1);
+  MU_ASSERT(features_exists(features, 99) == 0);
 
-//     // for (size_t i = 0; i < idfb->num_alive; i++) {
-//     //   printf("feature_id [%ld] ", feature_ids[i]);
-//     //   printf("point [%.2f, %.2f, %.2f]\n",
-//     //          points[i * 3 + 0],
-//     //          points[i * 3 + 1],
-//     //          points[i * 3 + 2]);
-//     // }
+  // -- Get features
+  feature_t *f0 = features_get(features, 1);
+  feature_t *f1 = features_get(features, 2);
+  feature_t *f2 = features_get(features, 3);
+  feature_t *f3 = features_get(features, 99);
 
-//     free(feature_ids);
-//     free(points);
-//   }
+  MU_ASSERT(f0->feature_id == 1);
+  MU_ASSERT(f0->status == 1);
+  MU_ASSERT(vec_equals(f0->data, params + 0, 3) == 1);
 
-//   // Clean up
-//   free(feature_ids);
-//   free(features);
-//   free(keypoints);
-//   idfb_free(idfb);
+  MU_ASSERT(f1->feature_id == 2);
+  MU_ASSERT(f1->status == 1);
+  MU_ASSERT(vec_equals(f1->data, params + 3, 3) == 1);
 
-//   return 0;
-// }
+  MU_ASSERT(f2->feature_id == 3);
+  MU_ASSERT(f2->status == 1);
+  MU_ASSERT(vec_equals(f2->data, params + 6, 3) == 1);
+
+  MU_ASSERT(f3 == NULL);
+
+  // Clean up
+  features_free(features);
+  free(idf_ids);
+  free(idf_features);
+  free(idf_keypoints);
+
+  return 0;
+}
 
 int test_time_delay() {
   time_delay_t td;
@@ -3657,11 +3609,12 @@ int test_idf_factor() {
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   // Setup IDF
-  idf_pos_t idf_pos;
-  idf_pos_setup(&idf_pos, r_WCi);
+  pos_t idf_pos;
+  pos_setup(&idf_pos, r_WCi);
 
-  idf_param_t idf_param;
-  idf_param_setup(&idf_param, &cam, feature_id, T_WCi, z);
+  feature_t idf_param;
+  TF_ROT(T_WCi, C_WCi);
+  idf_setup(&idf_param, feature_id, 0, &cam, C_WCi, z);
 
   // Setup IDF Factor
   const real_t var[2] = {1.0, 1.0};

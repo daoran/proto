@@ -5,7 +5,7 @@ proto
   :target: https://github.com/chutsu/proto/actions?query=ci
 
 ``proto`` contain notes and code used to learn about different aspects of
-robotics. From estimation, mapping to control and planning.
+robotics.
 
 
 Build

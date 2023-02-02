@@ -7745,11 +7745,15 @@ void feature_setup(feature_t *f, const size_t feature_id, const real_t *data) {
   assert(f != NULL);
   assert(data != NULL);
 
+  f->type = FEATURE_XYZ;
   f->feature_id = feature_id;
   f->status = 1;
   f->data[0] = data[0];
   f->data[1] = data[1];
   f->data[2] = data[2];
+
+  f->cam_params = NULL;
+  f->pos_id = 0;
 }
 
 /**
@@ -7763,166 +7767,46 @@ void feature_print(const feature_t *f) {
 }
 
 /**
- * Malloc features.
+ * Setup inverse-depth feature.
  */
-features_t *features_malloc() {
-  features_t *features = MALLOC(features_t, 1);
-  features->data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
-  features->num_features = 0;
-  features->capacity = FEATURES_CAPACITY_INITIAL;
-  return features;
-}
-
-/**
- * Free features.
- */
-void features_free(features_t *features) {
-  for (size_t i = 0; i < features->capacity; i++) {
-    free(features->data[i]);
-  }
-  free(features->data);
-  free(features);
-}
-
-/**
- * Add feature
- */
-feature_t *features_add(features_t *features,
-                        const size_t feature_id,
-                        const real_t *param) {
-  // Expand dynamic array if needed
-  if (feature_id >= features->capacity) {
-    size_t old_size = features->capacity;
-    size_t new_size = features->capacity * FEATURES_CAPACITY_GROWTH_FACTOR;
-    features->data = REALLOC(features->data, feature_t *, new_size);
-    features->capacity = new_size;
-    for (size_t i = old_size; i < new_size; i++) {
-      features->data[i] = NULL;
-    }
-    // The above step is quite important because by default realloc will not
-    // initialize pointers to NULL, and there will be no way of knowing whether
-    // a feature exists.
-  }
-
-  // Add feature
-  feature_t *f = MALLOC(feature_t, 1);
-  feature_setup(f, feature_id, param);
-  features->data[feature_id] = f;
-  features->num_features++;
-
-  return f;
-}
-
-/**
- * Check whether feature with `feature_id` exists
- * @returns 1 for yes, 0 for no
- */
-int features_exists(const features_t *features, const size_t feature_id) {
-  return features->data[feature_id] != NULL;
-}
-
-/**
- * @returns pointer to feature with `feature_id`
- */
-feature_t *features_get(features_t *features, const size_t feature_id) {
-  return features->data[feature_id];
-}
-
-/**
- * Remove feature with `feature_id`
- */
-void features_remove(features_t *features, const size_t feature_id) {
-  if (features->data[feature_id] == NULL) {
-    return;
-  }
-
-  free(features->data[feature_id]);
-  features->data[feature_id] = NULL;
-  features->num_features--;
-}
-
-///////////////////////////
-// INVERSE-DEPTH FEATURE //
-///////////////////////////
-
-/**
- * Setup IDF Position.
- */
-void idf_pos_setup(idf_pos_t *pos, const real_t *data) {
-  assert(pos != NULL);
-  assert(data != NULL);
-  pos->data[0] = data[0];
-  pos->data[1] = data[1];
-  pos->data[2] = data[2];
-}
-
-/**
- * Print IDF Position.
- */
-void idf_pos_print(const char *prefix, const idf_pos_t *pos) {
-  assert(prefix != NULL);
-  assert(pos != NULL);
-
-  const real_t x = pos->data[0];
-  const real_t y = pos->data[1];
-  const real_t z = pos->data[2];
-
-  printf("[%s] ", prefix);
-  printf("pos: (%f, %f, %f), ", x, y, z);
-}
-
-/**
- * Setup Inverse-Depth Feature
- */
-void idf_param_setup(idf_param_t *idf,
-                     const camera_params_t *cam_params,
-                     const size_t feature_id,
-                     const real_t T_WC[4 * 4],
-                     const real_t z[2]) {
-  idf->cam_params = cam_params;
-
+void idf_setup(feature_t *f,
+               const size_t feature_id,
+               const size_t pos_id,
+               const camera_params_t *cam_params,
+               const real_t C_WC[3 * 3],
+               const real_t z[2]) {
   // Keypoint to bearing (u, v, 1)
   real_t bearing[3] = {0};
-  camera_back_project(idf->cam_params, z, bearing);
+  camera_back_project(cam_params, z, bearing);
 
   // Convert bearing to theta, phi and rho
-  TF_ROT(T_WC, C_WC);
-  TF_TRANS(T_WC, r_WC);
   DOT(C_WC, 3, 3, bearing, 3, 1, h_W);
   const real_t theta = atan2(h_W[0], h_W[2]);
   const real_t phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]));
   const real_t rho = 0.1;
 
   // Set data
-  idf->feature_id = feature_id;
-  idf->data[0] = theta;
-  idf->data[1] = phi;
-  idf->data[2] = rho;
+  f->type = FEATURE_INVERSE_DEPTH;
+  f->feature_id = feature_id;
+  f->status = 1;
+  f->data[0] = theta;
+  f->data[1] = phi;
+  f->data[2] = rho;
+
+  f->cam_params = cam_params;
+  f->pos_id = pos_id;
 }
 
 /**
- * Print Inverse-Depth Feature
+ * Convert inverse-depth feature to 3D point.
  */
-void idf_param_print(const idf_param_t *idf) {
-  const real_t theta = idf->data[0];
-  const real_t phi = idf->data[1];
-  const real_t rho = idf->data[2];
-  printf("feature_id: %ld, ", idf->feature_id);
-  printf("p_W: (theta: %.4f, phi: %.4f, rho: %.4f)\n", theta, phi, rho);
-}
-
-/**
- * Convert Inverse-Depth Feature to 3D point
- */
-void idf_point(const idf_param_t *idf_param,
-               const idf_pos_t *idf_pos,
-               real_t p_W[3]) {
-  const real_t x = idf_pos->data[0];
-  const real_t y = idf_pos->data[1];
-  const real_t z = idf_pos->data[2];
-  const real_t theta = idf_param->data[0];
-  const real_t phi = idf_param->data[1];
-  const real_t depth = 1.0 / idf_param->data[2];
+void idf_point(const feature_t *f, const real_t r_WC[3], real_t p_W[3]) {
+  const real_t x = r_WC[0];
+  const real_t y = r_WC[1];
+  const real_t z = r_WC[2];
+  const real_t theta = f->data[0];
+  const real_t phi = f->data[1];
+  const real_t depth = 1.0 / f->data[2];
 
   const real_t cphi = cos(phi);
   const real_t sphi = sin(phi);
@@ -7936,67 +7820,195 @@ void idf_point(const idf_param_t *idf_param,
 }
 
 /**
- * Malloc IDFB.
+ * Malloc features.
  */
-idfb_t *idfb_malloc(const camera_params_t *cam_params,
-                    const size_t num_features,
-                    const size_t *feature_ids,
-                    const real_t *keypoints,
-                    const real_t T_WC[4 * 4]) {
-  idfb_t *idfb = MALLOC(idfb_t, 1);
-  idfb->params = NULL;
+features_t *features_malloc() {
+  features_t *features = MALLOC(features_t, 1);
 
-  TF_TRANS(T_WC, r_WC);
-  idf_pos_setup(&idfb->pos, r_WC);
+  features->data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
+  features->num_features = 0;
+  features->feature_capacity = FEATURES_CAPACITY_INITIAL;
 
+  features->pos_data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
+  features->num_positions = 0;
+  features->position_capacity = FEATURES_CAPACITY_INITIAL;
+
+  return features;
+}
+
+/**
+ * Free features.
+ */
+void features_free(features_t *features) {
+  assert(features != NULL);
+
+  for (size_t i = 0; i < features->feature_capacity; i++) {
+    free(features->data[i]);
+  }
+  free(features->data);
+
+  for (size_t i = 0; i < features->position_capacity; i++) {
+    free(features->pos_data[i]);
+  }
+  free(features->pos_data);
+
+  free(features);
+}
+
+/**
+ * Add XYZ feature.
+ */
+void features_add_xyzs(features_t *features,
+                       const size_t *feature_ids,
+                       const real_t *params,
+                       const size_t num_features) {
+  assert(features != NULL);
+  assert(feature_ids != NULL);
+  assert(params != NULL);
+
+  // Expand features dynamic array if needed
+  if (feature_ids[num_features - 1] >= features->feature_capacity) {
+    size_t old_size = features->feature_capacity;
+    size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
+    features->data = REALLOC(features->data, feature_t *, new_size);
+    features->feature_capacity = new_size;
+    for (size_t i = old_size; i < new_size; i++) {
+      features->data[i] = NULL;
+    }
+    // The above step is quite important because by default realloc will not
+    // initialize pointers to NULL, and there will be no way of knowing
+    // whether a feature exists.
+  }
+
+  // Add features
   for (size_t i = 0; i < num_features; i++) {
-    idf_kv_t kv;
-    kv.key = feature_ids[i];
-    idf_param_setup(&kv.param,
-                    cam_params,
-                    feature_ids[i],
-                    T_WC,
-                    keypoints + 2 * i);
-
-    hmputs(idfb->params, kv);
-  }
-
-  return idfb;
-}
-
-/**
- * Free IDFB.
- */
-void idfb_free(idfb_t *idfb) {
-  hmfree(idfb->params);
-  free(idfb);
-}
-
-/**
- * Reproject IDF to feature in world frame.
- */
-void idfb_point(idfb_t *idfb, const size_t feature_id, real_t p_W[3]) {
-  const idf_pos_t *idf_pos = &idfb->pos;
-  const idf_param_t *idf_param = &hmgets(idfb->params, feature_id).param;
-  idf_point(idf_param, idf_pos, p_W);
-}
-
-/**
- * Return IDFB feature ids, keypoints and points.
- */
-void idfb_points(idfb_t *idfb,
-                 size_t **feature_ids,
-                 real_t **points,
-                 size_t *num_points) {
-  *num_points = hmlen(idfb->params);
-  *feature_ids = MALLOC(size_t, *num_points);
-  *points = MALLOC(real_t, *num_points * 3);
-
-  for (size_t i = 0; i < hmlen(idfb->params); i++) {
-    (*feature_ids)[i] = idfb->params[i].key;
-    idf_point(&idfb->params[i].param, &idfb->pos, &(*points)[i * 3]);
+    feature_t *f = MALLOC(feature_t, 1);
+    feature_setup(f, feature_ids[i], params + i * 3);
+    features->data[feature_ids[i]] = f;
+    features->num_features++;
   }
 }
+
+/**
+ * Add inverse-depth feature.
+ */
+void features_add_idfs(features_t *features,
+                       const size_t *feature_ids,
+                       const camera_params_t *cam_params,
+                       const real_t T_WC[4 * 4],
+                       const real_t *keypoints,
+                       const size_t num_keypoints) {
+  assert(features != NULL);
+  assert(feature_ids != NULL);
+  assert(cam_params != NULL);
+  assert(T_WC != NULL);
+  assert(keypoints != NULL);
+
+  // Expand features dynamic array if needed
+  if (feature_ids[num_keypoints - 1] >= features->feature_capacity) {
+    size_t old_size = features->feature_capacity;
+    size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
+    features->data = REALLOC(features->data, feature_t *, new_size);
+    features->feature_capacity = new_size;
+    for (size_t i = old_size; i < new_size; i++) {
+      features->data[i] = NULL;
+    }
+    // The above step is quite important because by default realloc will not
+    // initialize pointers to NULL, and there will be no way of knowing
+    // whether a feature exists.
+  }
+
+  // Expand positions dynamic array if needed
+  const size_t pos_id = features->num_positions;
+  if (pos_id >= features->position_capacity) {
+    size_t old_size = features->position_capacity;
+    size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
+    features->data = REALLOC(features->pos_data, pos_t *, new_size);
+    features->position_capacity = new_size;
+    for (size_t i = old_size; i < new_size; i++) {
+      features->pos_data[i] = NULL;
+    }
+    // The above step is quite important because by default realloc will not
+    // initialize pointers to NULL, and there will be no way of knowing
+    // whether a feature exists.
+  }
+
+  // Setup
+  TF_ROT(T_WC, C_WC);
+  TF_TRANS(T_WC, r_WC);
+
+  // Add feature
+  for (size_t i = 0; i < num_keypoints; i++) {
+    const size_t feature_id = feature_ids[i];
+    feature_t *f = MALLOC(feature_t, 1);
+    idf_setup(f, feature_id, pos_id, cam_params, C_WC, keypoints + i * 2);
+    features->data[feature_id] = f;
+    features->num_features++;
+  }
+
+  // Add inverse-depth "first-seen" position
+  pos_t *pos = MALLOC(pos_t, 1);
+  pos_setup(pos, r_WC);
+  features->pos_data[pos_id] = pos;
+  features->num_positions++;
+}
+
+/**
+ * Check whether feature with `feature_id` exists
+ * @returns 1 for yes, 0 for no
+ */
+int features_exists(const features_t *features, const size_t feature_id) {
+  return features->data[feature_id] != NULL;
+}
+
+/**
+ * Returns pointer to feature with `feature_id`.
+ */
+feature_t *features_get(const features_t *features, const size_t feature_id) {
+  return features->data[feature_id];
+}
+
+/**
+ * Returns 3D point corresponding to feature.
+ */
+int features_point(const features_t *features,
+                   const size_t feature_id,
+                   real_t p_W[3]) {
+  if (features_exists(features, feature_id) != 0) {
+    return -1;
+  }
+
+  const feature_t *f = features->data[feature_id];
+  if (f->type == FEATURE_XYZ) {
+    p_W[0] = f->data[0];
+    p_W[1] = f->data[1];
+    p_W[2] = f->data[2];
+  } else if (f->type == FEATURE_INVERSE_DEPTH) {
+    const pos_t *pos = features->pos_data[f->pos_id];
+    idf_point(f, pos->data, p_W);
+  } else {
+    FATAL("Invalid feature type [%d]!\n", f->type);
+  }
+
+  return 0;
+}
+
+// /**
+//  * Return IDFB feature ids, keypoints and points.
+//  */
+// void idfb_points(idfb_t *idfb,
+//                  size_t **feature_ids,
+//                  real_t **points,
+//                  size_t *num_points) {
+//   *num_points = hmlen(idfb->params);
+//   *feature_ids = MALLOC(size_t, *num_points);
+//   *points = MALLOC(real_t, *num_points * 3);
+
+//   for (size_t i = 0; i < hmlen(idfb->params); i++) {
+//     (*feature_ids)[i] = idfb->params[i].key;
+//     idf_point(&idfb->params[i].param, &idfb->pos, &(*points)[i * 3]);
+//   }
+// }
 
 ////////////////
 // TIME-DELAY //
@@ -9012,7 +9024,7 @@ static void idf_factor_feature_jacobian(const real_t Jh_w[2 * 3],
                                         const real_t T_WB[4 * 4],
                                         const real_t T_BC[4 * 4],
                                         const real_t p_W[3],
-                                        const idf_param_t *idf_param,
+                                        const feature_t *idf_param,
                                         real_t J_idf_pos[2 * 3],
                                         real_t J_idf_param[2 * 3]) {
   assert(Jh_w != NULL);
@@ -9092,8 +9104,8 @@ void idf_factor_setup(idf_factor_t *factor,
                       pose_t *pose,
                       extrinsic_t *extrinsic,
                       camera_params_t *camera,
-                      idf_pos_t *idf_pos,
-                      idf_param_t *idf_param,
+                      pos_t *idf_pos,
+                      feature_t *idf_param,
                       const real_t z[2],
                       const real_t var[2]) {
   assert(factor != NULL);
@@ -9170,7 +9182,7 @@ int idf_factor_eval(void *factor_ptr) {
 
   // Form 3D point in world frame
   real_t p_W[3] = {0};
-  idf_point(factor->idf_param, factor->idf_pos, p_W);
+  idf_point(factor->idf_param, factor->idf_pos->data, p_W);
 
   // Project to image frame
   real_t z_hat[2];
@@ -9207,26 +9219,6 @@ int idf_factor_eval(void *factor_ptr) {
                               factor->jacs[4]);
 
   return 0;
-}
-
-idf_database_t *idf_database_malloc() {
-  idf_database_t *db = MALLOC(idf_database_t, 1);
-  db->num_bundles = 0;
-  db->num_features = 0;
-  db->bundles = NULL;
-  return db;
-}
-
-void idf_database_add(idf_database_t *db,
-                      const camera_params_t *cam_params,
-                      const size_t num_features,
-                      const size_t *feature_ids,
-                      const real_t *keypoints,
-                      const real_t T_WC[4 * 4]) {
-  idfb_t *idfb =
-      idfb_malloc(cam_params, num_features, feature_ids, keypoints, T_WC);
-
-  // hmputs(db->bundles);
 }
 
 ////////////////
@@ -9563,8 +9555,9 @@ void imu_factor_setup(imu_factor_t *factor,
   // Pre-integrate imu measuremenets
   // -------------------------------
   // This step is essentially like a Kalman Filter whereby you propagate the
-  // system inputs (in this case the system is an IMU model with acceleration
-  // and angular velocity as inputs. In this step we are interested in the:
+  // system inputs (in this case the system is an IMU model with
+  // acceleration and angular velocity as inputs. In this step we are
+  // interested in the:
   //
   // - Relative position between pose i and pose j
   // - Relative rotation between pose i and pose j

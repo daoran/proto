@@ -379,7 +379,7 @@ dev_euroc() {
 # run_test test_camera
 # run_test test_feature
 # run_test test_idf
-# run_test test_idfb
+run_test test_features
 # run_test test_pose_factor
 # run_test test_ba_factor
 # run_test test_vision_factor
