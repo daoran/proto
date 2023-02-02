@@ -24,7 +24,7 @@ clean:
 	@rm -rf share
 	@rm -rf src
 
-install: setup apt_base install_apt_pkgs install_ros build_pkgs
+install: setup apt_base install_apt_pkgs build_pkgs
 
 apt_base:
 	@sudo apt-get install -y -qqq \
