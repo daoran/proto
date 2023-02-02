@@ -4701,62 +4701,61 @@ typedef struct cam_view_t {
 } cam_view_t;
 
 int test_solver_eval() {
-  // /* Load test data */
-  // const char *dir_path = TEST_SIM_DATA "/cam0";
-  // sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
+  // Load test data
+  const char *dir_path = TEST_SIM_DATA "/cam0";
+  sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
 
-  // /* Camera parameters */
-  // camera_params_t cam;
-  // const int cam_idx = 0;
-  // const int cam_res[2] = {640, 480};
-  // const char *proj_model = "pinhole";
-  // const char *dist_model = "radtan4";
-  // const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  // camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model,
-  // params);
+  // Camera parameters
+  camera_params_t cam;
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
 
-  // /* Features container */
-  // features_t features;
-  // features_setup(&features);
+  // Features container
+  features_t *features = features_malloc();
 
-  // /* Loop over simulated camera frames */
-  // const real_t var[2] = {1.0, 1.0};
-  // cam_view_t *cam_views = MALLOC(cam_view_t, cam_data->num_frames);
-  // for (int k = 0; k < cam_data->num_frames; k++) {
-  //   /* Camera frame */
-  //   const sim_camera_frame_t *frame = cam_data->frames[k];
+  // Loop over simulated camera frames
+  const real_t var[2] = {1.0, 1.0};
+  cam_view_t *cam_views = MALLOC(cam_view_t, cam_data->num_frames);
+  for (int k = 0; k < cam_data->num_frames; k++) {
+    // Camera frame
+    const sim_camera_frame_t *frame = cam_data->frames[k];
 
-  //   /* Pose */
-  //   pose_t *pose = &cam_views[k].pose;
-  //   pose_setup(pose, frame->ts, &cam_data->poses[k]);
+    // Pose
+    pose_t *pose = &cam_views[k].pose;
+    pose_setup(pose, frame->ts, &cam_data->poses[k]);
 
-  //   /* Add factors */
-  //   cam_views[k].num_factors = frame->num_measurements;
-  //   for (int i = 0; i < frame->num_measurements; i++) {
-  //     const int feature_id = frame->feature_ids[i];
-  //     const real_t *z = frame->keypoints[i];
+    // // Add factors
+    // cam_views[k].num_factors = frame->num_measurements;
+    // for (int i = 0; i < frame->num_measurements; i++) {
+    //   const int feature_id = frame->feature_ids[i];
+    //   const real_t *z = &frame->keypoints[i];
 
-  //     /* Feature */
-  //     feature_t *feature = NULL;
-  //     if (features_exists(&features, feature_id)) {
-  //       feature = features_get(&features, feature_id);
-  //     } else {
-  //       const real_t param[3] = {0};
-  //       feature = features_add(&features, feature_id, param);
-  //     }
+    //   // Feature
+    //   feature_t *feature = NULL;
+    //   if (features_exists(features, feature_id)) {
+    //     feature = features_get(features, feature_id);
+    //   } else {
+    //     const real_t param[3] = {0};
+    //     feature = features_add(features, feature_id, param);
+    //   }
 
-  //     /* Factor */
-  //     ba_factor_t *factor = &cam_views[k].factors[i];
-  //     ba_factor_setup(factor, pose, feature, &cam, z, var);
-  //   }
-  // }
+    //   // Factor
+    //   ba_factor_t *factor = &cam_views[k].factors[i];
+    //   ba_factor_setup(factor, pose, feature, &cam, z, var);
+    // }
+  }
 
-  // /* solver_t solver; */
-  // /* solver_setup(&solver); */
+  solver_t solver;
+  solver_setup(&solver);
 
-  // /* Clean up */
-  // free(cam_views);
-  // sim_camera_data_free(cam_data);
+  // Clean up
+  sim_camera_data_free(cam_data);
+  free(cam_views);
+  features_free(features);
 
   return 0;
 }
@@ -5160,6 +5159,7 @@ int test_calib_gimbal_solve() {
   solver.verbose = debug;
   solver.max_iter = 20;
   solver.param_order_func = &calib_gimbal_param_order;
+  solver.cost_func = &calib_gimbal_cost;
   solver.linearize_func = &calib_gimbal_linearize_compact;
   solver_solve(&solver, calib_est);
   if (debug) {
@@ -5332,6 +5332,7 @@ int test_assoc_pose_data() {
   /* Load ground-truth poses */
   int num_gnd_poses = 0;
   pose_t *gnd_poses = load_poses(gnd_data_path, &num_gnd_poses);
+  printf("num_gnd_poses: %d\n", num_gnd_poses);
 
   /* Load estimate poses */
   int num_est_poses = 0;
@@ -5471,6 +5472,7 @@ int test_sim_gimbal_solve() {
   solver_t solver;
   solver_setup(&solver);
   solver.param_order_func = &calib_gimbal_param_order;
+  solver.cost_func = &calib_gimbal_cost;
   solver.linearize_func = &calib_gimbal_linearize_compact;
 
   // Simulate gimbal views
@@ -5720,7 +5722,7 @@ void test_suite() {
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
-  // MU_ADD_TEST(test_solver_eval);
+  MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_calib_camera);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);

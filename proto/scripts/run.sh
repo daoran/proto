@@ -379,7 +379,7 @@ dev_euroc() {
 # run_test test_camera
 # run_test test_feature
 # run_test test_idf
-run_test test_features
+# run_test test_features
 # run_test test_pose_factor
 # run_test test_ba_factor
 # run_test test_vision_factor
@@ -400,8 +400,8 @@ run_test test_features
 # run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print
-# run_test test_solver_eval
-run_test test_calib_camera
+run_test test_solver_eval
+# run_test test_calib_camera
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
 # run_test test_calib_gimbal_add_gimbal_extrinsic
@@ -411,11 +411,13 @@ run_test test_calib_camera
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
+# PROTO-DATASET
+# run_test test_assoc_pose_data
 # PROTO-SIM
-# run_test test_load_sim_features
-# run_test test_load_sim_imu_data
-# run_test test_load_sim_cam_frame
-# run_test test_load_sim_cam_data
+# run_test test_sim_features_load
+# run_test test_sim_imu_data_load
+# run_test test_sim_camera_frame_load
+# run_test test_sim_camera_data_load
 # run_test test_sim_gimbal_malloc_free
 # run_test test_sim_gimbal_view
 # run_test test_sim_gimbal_solve

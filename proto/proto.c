@@ -14360,7 +14360,7 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
   // Create sim_camera_frame_t
   sim_camera_frame_t *frame_data = MALLOC(sim_camera_frame_t, 1);
   frame_data->ts = path2ts(csv_path);
-  frame_data->feature_ids = MALLOC(int, num_rows);
+  frame_data->feature_ids = MALLOC(size_t, num_rows);
   frame_data->keypoints = MALLOC(real_t, num_rows * 2);
   frame_data->num_measurements = num_rows;
   for (int i = 0; i < num_rows; i++) {
