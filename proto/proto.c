@@ -7739,14 +7739,14 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]) {
 /////////////
 
 /**
- * Setup feature
+ * Setup feature.
  */
-void feature_setup(feature_t *f, const real_t *data) {
+void feature_setup(feature_t *f, const size_t feature_id, const real_t *data) {
   assert(f != NULL);
   assert(data != NULL);
 
-  f->status = -1;
-  f->feature_id = 0;
+  f->feature_id = feature_id;
+  f->status = 1;
   f->data[0] = data[0];
   f->data[1] = data[1];
   f->data[2] = data[2];
@@ -7756,54 +7756,89 @@ void feature_setup(feature_t *f, const real_t *data) {
  * Print feature.
  */
 void feature_print(const feature_t *f) {
-  printf("status: %d\n", f->status);
   printf("feature_id: %ld\n", f->feature_id);
+  printf("status: %d\n", f->status);
   printf("data: (%.2f, %.2f, %.2f)\n", f->data[0], f->data[1], f->data[2]);
   printf("\n");
 }
 
 /**
- * Setup features
+ * Malloc features.
  */
-void features_setup(features_t *features) {
-  assert(features);
-  // features->data = NULL;
+features_t *features_malloc() {
+  features_t *features = MALLOC(features_t, 1);
+  features->data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
   features->num_features = 0;
+  features->capacity = FEATURES_CAPACITY_INITIAL;
+  return features;
 }
 
 /**
- * Check whether feature with `feature_id` exists
- * @returns 1 for yes, 0 for no
+ * Free features.
  */
-int features_exists(const features_t *features, const int feature_id) {
-  assert(feature_id < FEATURES_MAX_NUM);
-  const int status = features->data[feature_id].status;
-  return (status == 0 || status == 1) ? 1 : 0;
-}
-
-/**
- * @returns pointer to feature with `feature_id`
- */
-feature_t *features_get(features_t *features, const int feature_id) {
-  return &features->data[feature_id];
+void features_free(features_t *features) {
+  for (size_t i = 0; i < features->capacity; i++) {
+    free(features->data[i]);
+  }
+  free(features->data);
+  free(features);
 }
 
 /**
  * Add feature
  */
 feature_t *features_add(features_t *features,
-                        const int feature_id,
+                        const size_t feature_id,
                         const real_t *param) {
-  feature_setup(&features->data[feature_id], param);
-  return &features->data[feature_id];
+  // Expand dynamic array if needed
+  if (feature_id >= features->capacity) {
+    size_t old_size = features->capacity;
+    size_t new_size = features->capacity * FEATURES_CAPACITY_GROWTH_FACTOR;
+    features->data = REALLOC(features->data, feature_t *, new_size);
+    features->capacity = new_size;
+    for (size_t i = old_size; i < new_size; i++) {
+      features->data[i] = NULL;
+    }
+    // The above step is quite important because by default realloc will not
+    // initialize pointers to NULL, and there will be no way of knowing whether
+    // a feature exists.
+  }
+
+  // Add feature
+  feature_t *f = MALLOC(feature_t, 1);
+  feature_setup(f, feature_id, param);
+  features->data[feature_id] = f;
+  features->num_features++;
+
+  return f;
+}
+
+/**
+ * Check whether feature with `feature_id` exists
+ * @returns 1 for yes, 0 for no
+ */
+int features_exists(const features_t *features, const size_t feature_id) {
+  return features->data[feature_id] != NULL;
+}
+
+/**
+ * @returns pointer to feature with `feature_id`
+ */
+feature_t *features_get(features_t *features, const size_t feature_id) {
+  return features->data[feature_id];
 }
 
 /**
  * Remove feature with `feature_id`
  */
-void features_remove(features_t *features, const int feature_id) {
-  const real_t param[3] = {0};
-  feature_setup(&features->data[feature_id], param);
+void features_remove(features_t *features, const size_t feature_id) {
+  if (features->data[feature_id] == NULL) {
+    return;
+  }
+
+  free(features->data[feature_id]);
+  features->data[feature_id] = NULL;
+  features->num_features--;
 }
 
 ///////////////////////////

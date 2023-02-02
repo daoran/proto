@@ -3243,12 +3243,66 @@ int test_imu_biases() {
 int test_feature() {
   feature_t feature;
 
+  size_t feature_id = 99;
   real_t data[3] = {0.1, 0.2, 0.3};
-  feature_setup(&feature, data);
+  feature_setup(&feature, feature_id, data);
 
+  MU_ASSERT(feature.feature_id == feature_id);
   MU_ASSERT(fltcmp(feature.data[0], 0.1) == 0.0);
   MU_ASSERT(fltcmp(feature.data[1], 0.2) == 0.0);
   MU_ASSERT(fltcmp(feature.data[2], 0.3) == 0.0);
+
+  return 0;
+}
+
+int test_features() {
+  real_t f0_param[3] = {0.1, 0.2, 0.3};
+  real_t f1_param[3] = {0.4, 0.5, 0.6};
+  real_t f2_param[3] = {0.7, 0.8, 0.9};
+
+  // Setup
+  features_t *features = features_malloc();
+
+  // -- Add features
+  features_add(features, 1, f0_param);
+  features_add(features, 2, f1_param);
+  features_add(features, 3, f2_param);
+  MU_ASSERT(features->num_features == 3);
+
+  // -- Check features exists
+  MU_ASSERT(features_exists(features, 1) == 1);
+  MU_ASSERT(features_exists(features, 2) == 1);
+  MU_ASSERT(features_exists(features, 3) == 1);
+  MU_ASSERT(features_exists(features, 10) == 0);
+
+  // -- Get features
+  feature_t *f0 = features_get(features, 1);
+  feature_t *f1 = features_get(features, 2);
+  feature_t *f2 = features_get(features, 3);
+  feature_t *f3 = features_get(features, 10);
+
+  MU_ASSERT(f0->feature_id == 1);
+  MU_ASSERT(f0->status == 1);
+  MU_ASSERT(vec_equals(f0->data, f0_param, 3) == 1);
+
+  MU_ASSERT(f1->feature_id == 2);
+  MU_ASSERT(f1->status == 1);
+  MU_ASSERT(vec_equals(f1->data, f1_param, 3) == 1);
+
+  MU_ASSERT(f2->feature_id == 3);
+  MU_ASSERT(f2->status == 1);
+  MU_ASSERT(vec_equals(f2->data, f2_param, 3) == 1);
+
+  MU_ASSERT(f3 == NULL);
+
+  // -- Remove features
+  features_remove(features, 1);
+  features_remove(features, 2);
+  features_remove(features, 3);
+  MU_ASSERT(features->num_features == 0);
+
+  // Clean up
+  features_free(features);
 
   return 0;
 }
@@ -3468,7 +3522,7 @@ int test_ba_factor() {
   // Feature
   const real_t p_W[3] = {1.0, 0.1, 0.2};
   feature_t feature;
-  feature_setup(&feature, p_W);
+  feature_setup(&feature, 0, p_W);
 
   // Camera parameters
   const int cam_idx = 0;
@@ -3521,7 +3575,7 @@ int test_vision_factor() {
   // Feature p_W
   feature_t feature;
   const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_setup(&feature, p_W);
+  feature_setup(&feature, 0, p_W);
 
   // Camera parameters
   camera_params_t cam;
@@ -5687,6 +5741,7 @@ void test_suite() {
   MU_ADD_TEST(test_extrinsics);
   MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
+  MU_ADD_TEST(test_features);
   MU_ADD_TEST(test_idf);
   // MU_ADD_TEST(test_idfb);
   MU_ADD_TEST(test_time_delay);
@@ -5725,7 +5780,7 @@ void test_suite() {
 #ifdef USE_CERES
   MU_ADD_TEST(test_calib_gimbal_ceres_solve);
 #endif // USE_CERES
-  // MU_ADD_TEST(test_calib_gimbal_copy);
+  MU_ADD_TEST(test_calib_gimbal_copy);
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);

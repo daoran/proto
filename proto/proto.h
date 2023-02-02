@@ -1389,32 +1389,32 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 // FEATURE //
 /////////////
 
-#define FEATURE_MAX_CAMS 5
-#define FEATURE_MAX_TRACKED 20
-#define FEATURE_DESCRIPTOR_LEN 36
-#define FEATURES_MAX_NUM 1000000
+#define FEATURES_CAPACITY_INITIAL 10000
+#define FEATURES_CAPACITY_GROWTH_FACTOR 2
 
 typedef struct feature_t {
-  int status;
   size_t feature_id;
+  int status;
   real_t data[3];
 } feature_t;
 
 typedef struct features_t {
-  feature_t data[FEATURES_MAX_NUM];
-  int num_features;
+  feature_t **data;
+  size_t num_features;
+  size_t capacity;
 } features_t;
 
-void feature_setup(feature_t *f, const real_t *data);
+void feature_setup(feature_t *f, const size_t feature_id, const real_t *data);
 void feature_print(const feature_t *feature);
 
-void features_setup(features_t *features);
-int features_exists(const features_t *features, const int feature_id);
-feature_t *features_get(features_t *features, const int feature_id);
+features_t *features_malloc();
+void features_free(features_t *features);
 feature_t *features_add(features_t *features,
-                        const int feature_id,
+                        const size_t feature_id,
                         const real_t *param);
-void features_remove(features_t *features, const int feature_id);
+int features_exists(const features_t *features, const size_t feature_id);
+feature_t *features_get(features_t *features, const size_t feature_id);
+void features_remove(features_t *features, const size_t feature_id);
 
 ///////////////////////////
 // INVERSE-DEPTH FEATURE //
