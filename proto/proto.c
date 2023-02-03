@@ -9123,6 +9123,9 @@ void idf_factor_setup(idf_factor_t *factor,
                       camera_params_t *camera,
                       pos_t *idf_pos,
                       feature_t *idf_param,
+                      const timestamp_t ts,
+                      const int cam_idx,
+                      const size_t feature_id,
                       const real_t z[2],
                       const real_t var[2]) {
   assert(factor != NULL);
@@ -9131,6 +9134,11 @@ void idf_factor_setup(idf_factor_t *factor,
   assert(camera != NULL);
   assert(idf_pos != NULL);
   assert(idf_param != NULL);
+
+  // Property
+  factor->ts = ts;
+  factor->cam_idx = cam_idx;
+  factor->feature_id = feature_id;
 
   // Parameters
   factor->pose = pose;
@@ -11132,32 +11140,138 @@ error:
   return 0;
 }
 
-/////////////////
-// MARG FACTOR //
-/////////////////
+//////////////////
+// MARGINALIZER //
+//////////////////
 
-void marg_factor_setup(marg_factor_t *factor) {
-  // factor->num_params = 0;
-  // factor->param_ptrs = NULL;
-  // factor->params = NULL;
-  // factor->param_types;
+marginalizer_t *marginalizer_malloc() {
+  marginalizer_t *marg = MALLOC(marginalizer_t, 1);
 
-  factor->covar = NULL;
-  factor->sqrt_info = NULL;
+  // Remain parameters
+  marg->num_remain_params = 0;
+  marg->remain_param_ptrs = NULL;
+  marg->remain_param_types = NULL;
+  marg->remain_param_capacity = MARGINALIZER_CAPACITY_INIT;
 
-  factor->r_size = 0;
-  factor->r = NULL;
+  // Marginal parameters
+  marg->num_marg_params = 0;
+  marg->marg_param_ptrs = NULL;
+  marg->marg_param_types = NULL;
+  marg->marg_param_capacity = MARGINALIZER_CAPACITY_INIT;
 
-  factor->jacs = NULL;
+  // Factors
+  marg->num_factors = 0;
+  marg->factors = MALLOC(void *, MARGINALIZER_CAPACITY_INIT);
+  marg->factor_types = MALLOC(int, MARGINALIZER_CAPACITY_INIT);
+  marg->factors_capacity = MARGINALIZER_CAPACITY_INIT;
+
+  // Covariance and square-root info
+  marg->covar = NULL;
+  marg->sqrt_info = NULL;
+
+  // Residuals
+  marg->r_size = 0;
+  marg->r = NULL;
+
+  // Jacobians
+  marg->jacs = NULL;
+
+  return marg;
 }
 
-void marg_factor_add_imu_factor(imu_factor_t *factor,
-                                const int num_marg,
-                                const int *marg_indices) {
-  // const int idx = factor->num_factors;
-  // factor->factors[idx] = factor;
-  // factor->factor_types[idx] = IMU_FACTOR;
-  // factor->num_factors++;
+void marginalizer_free(marginalizer_t *factor) {
+  // Remain parameters
+  free(factor->remain_param_ptrs);
+  free(factor->remain_param_types);
+
+  // Marginal parameters
+  free(factor->marg_param_ptrs);
+  free(factor->marg_param_types);
+
+  // Factors
+  free(factor->factors);
+  free(factor->factor_types);
+
+  // Covariance and square root info
+  free(factor->covar);
+  free(factor->sqrt_info);
+
+  // Residuals
+  free(factor->r);
+
+  // Jacobians
+  for (int i = 0; i < factor->num_remain_params; i++) {
+    free(factor->jacs[i]);
+  }
+  free(factor->jacs);
+
+  free(factor);
+}
+
+static void marg_resize(marginalizer_t *marg, const int r, const int m) {
+  // Extend remain parameters capacity
+  if ((marg->num_remain_params + r) >= marg->remain_param_capacity) {
+    const size_t os = marg->remain_param_capacity;
+    const size_t ns = os * MARGINALIZER_CAPACITY_GROWTH;
+    marg->remain_param_ptrs = REALLOC(marg->remain_param_ptrs, void *, ns);
+    marg->remain_param_types = REALLOC(marg->remain_param_types, int, ns);
+    marg->remain_param_capacity = ns;
+
+    for (size_t i = os; i < ns; i++) {
+      marg->remain_param_ptrs[i] = NULL;
+      marg->remain_param_types[i] = -1;
+    }
+  }
+
+  // Extend marg parameters capacity
+  if ((marg->num_marg_params + m) >= marg->marg_param_capacity) {
+    const size_t os = marg->marg_param_capacity;
+    const size_t ns = os * MARGINALIZER_CAPACITY_GROWTH;
+    marg->marg_param_ptrs = REALLOC(marg->marg_param_ptrs, void *, ns);
+    marg->marg_param_types = REALLOC(marg->marg_param_types, int, ns);
+    marg->marg_param_capacity = ns;
+
+    for (size_t i = os; i < ns; i++) {
+      marg->marg_param_ptrs[i] = NULL;
+      marg->marg_param_types[i] = -1;
+    }
+  }
+
+  // Extend factors capacity
+  if ((marg->num_factors + 1) >= marg->factors_capacity) {
+    const size_t os = marg->factors_capacity;
+    const size_t ns = os * MARGINALIZER_CAPACITY_GROWTH;
+    marg->factors = REALLOC(marg->factors, void *, ns);
+    marg->factor_types = REALLOC(marg->factor_types, int, ns);
+    marg->factors_capacity = ns;
+
+    for (size_t i = os; i < ns; i++) {
+      marg->factors[i] = NULL;
+      marg->factor_types[i] = -1;
+    }
+  }
+}
+
+static void marg_add_remain_param(marginalizer_t *marg,
+                                  void *param_ptr,
+                                  int param_type) {
+  marg->remain_param_ptrs[marg->num_remain_params] = param_ptr;
+  marg->remain_param_types[marg->num_remain_params] = param_type;
+  marg->num_remain_params++;
+}
+
+static void marg_add_marg_param(marginalizer_t *marg,
+                                void *param_ptr,
+                                int param_type) {
+  marg->marg_param_ptrs[marg->num_marg_params] = param_ptr;
+  marg->marg_param_types[marg->num_marg_params] = param_type;
+  marg->num_marg_params++;
+}
+
+void marginalizer_add(marginalizer_t *marg, void *factor_ptr, int factor_type) {
+  marg->factors[marg->num_factors] = factor_ptr;
+  marg->factor_types[marg->num_factors] = factor_type;
+  marg->num_factors++;
 }
 
 ////////////
@@ -11722,10 +11836,11 @@ void avar(const real_t *x, const real_t dt, const real_t *tau, const size_t n) {
  * Malloc camera view.
  */
 camera_view_t *camera_view_malloc(const timestamp_t ts,
-                                  const int view_idx,
-                                  const int num_cams,
-                                  const int *num_keypoints,
-                                  const real_t **keypoints,
+                                  const size_t view_id,
+                                  const int cam_idx,
+                                  const int num_keypoints,
+                                  const real_t *keypoints,
+                                  size_t *feature_ids,
                                   pose_t *pose,
                                   extrinsic_t *cam_exts,
                                   camera_params_t *cam_params,
@@ -11733,36 +11848,35 @@ camera_view_t *camera_view_malloc(const timestamp_t ts,
   // Setup
   camera_view_t *view = MALLOC(camera_view_t, 1);
   view->ts = ts;
-  view->view_idx = view_idx;
-  view->prev = NULL;
-  view->next = NULL;
+  view->view_id = view_id;
+  view->cam_idx = cam_idx;
 
   // Determine total number of factors and allocate memory
-  view->num_factors = 0;
-  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-    view->num_factors += num_keypoints[cam_idx];
-  }
+  view->num_factors = num_keypoints;
   view->factors = MALLOC(idf_factor_t, view->num_factors);
 
   // Form factors
   const real_t var[2] = {1.0, 1.0};
   int factor_idx = 0;
-  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-    for (int i = 0; i < num_keypoints[cam_idx]; i++) {
-      const real_t *z = &keypoints[cam_idx][i];
-      pos_t *idf_pos = NULL;
-      feature_t *idf_param = NULL;
+  for (int i = 0; i < num_keypoints; i++) {
+    const real_t *z = &keypoints[i];
+    const size_t feature_id = feature_ids[i];
+    pos_t *idf_pos = NULL;
+    feature_t *idf_param = NULL;
+    features_get_idf(features, feature_id, idf_param, idf_pos);
 
-      idf_factor_setup(&view->factors[factor_idx],
-                       pose,
-                       &cam_exts[cam_idx],
-                       &cam_params[cam_idx],
-                       idf_pos,
-                       idf_param,
-                       z,
-                       var);
-      factor_idx++;
-    }
+    idf_factor_setup(&view->factors[factor_idx],
+                     pose,
+                     cam_exts,
+                     cam_params,
+                     idf_pos,
+                     idf_param,
+                     ts,
+                     cam_idx,
+                     feature_id,
+                     z,
+                     var);
+    factor_idx++;
   }
 
   return view;
@@ -11788,17 +11902,22 @@ bundler_t *bundler_malloc() {
   // Counters
   bundler->num_cams = 0;
   bundler->num_views = 0;
+  bundler->last_view_id = -1;
+  bundler->last_pose_id = -1;
+  bundler->last_feature_id = -1;
 
   // Variables
-  bundler->poses = NULL;
   bundler->cam_exts = NULL;
   bundler->cam_params = NULL;
-  bundler->poses = NULL;
   bundler->features = features_malloc();
 
+  // Poses
+  bundler->poses_head = NULL;
+  bundler->poses_tail = NULL;
+
   // Views
-  bundler->view_first = NULL;
-  bundler->view_last = NULL;
+  bundler->views_head = NULL;
+  bundler->views_tail = NULL;
 
   return bundler;
 }
@@ -11856,26 +11975,28 @@ void bundler_add_view(bundler_t *bundler,
   // Create pose
   pose_t *pose = NULL;
 
-  // Create view
-  camera_view_t *view = camera_view_malloc(ts,
-                                           view_idx,
-                                           num_cams,
-                                           num_keypoints,
-                                           keypoints,
-                                           pose,
-                                           bundler->cam_exts,
-                                           bundler->cam_params,
-                                           bundler->features);
+  // Create viewset
+  // size_t **feature_ids = NULL;
+  // camera_view_t *view = camera_view_malloc(ts,
+  //                                          view_idx,
+  //                                          num_cams,
+  //                                          num_keypoints,
+  //                                          keypoints,
+  //                                          feature_ids,
+  //                                          pose,
+  //                                          bundler->cam_exts,
+  //                                          bundler->cam_params,
+  //                                          bundler->features);
 
-  // Push new view
-  if (bundler->view_last == NULL) {
-    bundler->view_first = view;
-    bundler->view_last = view;
-  } else {
-    bundler->view_last->next = view;
-    view->prev = bundler->view_last;
-    bundler->view_last = view;
-  }
+  // // Push new view
+  // if (bundler->views_tail == NULL) {
+  //   bundler->views_head = view;
+  //   bundler->views_tail = view;
+  // } else {
+  //   bundler->views_tail->next = view;
+  //   view->prev = bundler->views_tail;
+  //   bundler->views_tail = view;
+  // }
   bundler->num_views++;
 }
 

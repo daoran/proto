@@ -1666,6 +1666,10 @@ int camera_factor_eval(void *factor_ptr);
 ////////////////////////////////////////
 
 typedef struct idf_factor_t {
+  timestamp_t ts;
+  int cam_idx;
+  size_t feature_id;
+
   pose_t *pose;
   extrinsic_t *extrinsic;
   camera_params_t *camera;
@@ -1696,6 +1700,9 @@ void idf_factor_setup(idf_factor_t *factor,
                       camera_params_t *camera,
                       pos_t *idf_pos,
                       feature_t *idf_param,
+                      const timestamp_t ts,
+                      const int cam_idx,
+                      const size_t feature_id,
                       const real_t z[2],
                       const real_t var[2]);
 int idf_factor_eval(void *factor_ptr);
@@ -2006,29 +2013,37 @@ int calib_gimbal_factor_ceres_eval(void *factor_ptr,
                                    real_t **J_out);
 int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
                                const calib_gimbal_factor_t *c1);
-/////////////////
-// MARG FACTOR //
-/////////////////
+//////////////////
+// MARGINALIZER //
+//////////////////
 
-#define MARG_FACTOR_MAX_FACTORS 1000
+#define BA_FACTOR 1
+#define CAMERA_FACTOR 2
+#define IDF_FACTOR 3
+#define IMU_FACTOR 4
+#define CALIB_CAMERA_FACTOR 5
 
-typedef struct marg_factor_t {
+#define MARGINALIZER_CAPACITY_INIT 1000
+#define MARGINALIZER_CAPACITY_GROWTH 2.0
+
+typedef struct marginalizer_t {
   // Remain Parameters
   int num_remain_params;
-  void *remain_param_ptrs;
-  real_t **remain_params;
+  void **remain_param_ptrs;
   int *remain_param_types;
+  size_t remain_param_capacity;
 
   // Marginal Parameters
   int num_marg_params;
-  void *marg_param_ptrs;
-  real_t **marg_params;
+  void **marg_param_ptrs;
   int *marg_param_types;
+  size_t marg_param_capacity;
 
   // Factors
   int num_factors;
-  void *factors[MARG_FACTOR_MAX_FACTORS];
-  int factor_types[MARG_FACTOR_MAX_FACTORS];
+  void **factors;
+  int *factor_types;
+  int factors_capacity;
 
   // Covariance and square-root info
   real_t *covar;
@@ -2040,12 +2055,10 @@ typedef struct marg_factor_t {
 
   // Jacobians
   real_t **jacs;
-} marg_factor_t;
+} marginalizer_t;
 
-void marg_factor_setup(marg_factor_t *factor);
-void marg_factor_add_imu_factor(imu_factor_t *factor,
-                                const int num_marg,
-                                const int *marg_indices);
+marginalizer_t *marginalizer_malloc();
+void marginalizer_free(marginalizer_t *factor);
 
 ////////////
 // SOLVER //
@@ -2146,24 +2159,30 @@ int solver_solve(solver_t *solver, void *data);
 // IMU CALIBRATION //
 /////////////////////
 
-// void avar(const real_t *x, const real_t *dt, const real_t *tau, const size_t
-// n);
+void avar(const real_t *x, const real_t dt, const real_t *tau, const size_t n);
 
 /////////////
 // BUNDLER //
 /////////////
 
-typedef struct camera_view_t camera_view_t;
 typedef struct camera_view_t {
   timestamp_t ts;
-  int view_idx;
+  size_t view_id;
+  int cam_idx;
   int num_factors;
-  // camera_factor_t *factors;
   idf_factor_t *factors;
-
-  camera_view_t *prev;
-  camera_view_t *next;
 } camera_view_t;
+
+typedef struct camera_viewset_t camera_viewset_t;
+typedef struct camera_viewset_t {
+  timestamp_t ts;
+  size_t view_id;
+  int num_cams;
+  camera_view_t **cam_views;
+
+  camera_viewset_t *prev;
+  camera_viewset_t *next;
+} camera_viewset_t;
 
 typedef struct bundler_t {
   // Flags
@@ -2172,23 +2191,30 @@ typedef struct bundler_t {
   // Counters
   int num_cams;
   int num_views;
+  ssize_t last_view_id;
+  ssize_t last_pose_id;
+  ssize_t last_feature_id;
 
   // Variables
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
-  pose_t *poses;
   features_t *features;
 
+  // Poses
+  pose_t *poses_head;
+  pose_t *poses_tail;
+
   // Views
-  camera_view_t *view_first;
-  camera_view_t *view_last;
+  camera_viewset_t *views_head;
+  camera_viewset_t *views_tail;
 } bundler_t;
 
 camera_view_t *camera_view_malloc(const timestamp_t ts,
-                                  const int view_idx,
-                                  const int num_cams,
-                                  const int *num_keypoints,
-                                  const real_t **keypoints,
+                                  const size_t view_id,
+                                  const int cam_idx,
+                                  const int num_keypoints,
+                                  const real_t *keypoints,
+                                  size_t *feature_ids,
                                   pose_t *pose,
                                   extrinsic_t *cam_exts,
                                   camera_params_t *cam_params,

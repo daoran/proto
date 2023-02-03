@@ -3629,6 +3629,9 @@ int test_idf_factor() {
                    &cam,
                    &idf_pos,
                    &idf_param,
+                   ts,
+                   cam_idx,
+                   feature_id,
                    z,
                    var);
 
@@ -4407,6 +4410,13 @@ int test_calib_gimbal_factor() {
   CHECK_FACTOR_J(6, factor, calib_gimbal_factor_eval, step_size, tol, 0);
   CHECK_FACTOR_J(7, factor, calib_gimbal_factor_eval, step_size, tol, 0);
   CHECK_FACTOR_J(8, factor, calib_gimbal_factor_eval, step_size, tol, 0);
+
+  return 0;
+}
+
+int test_marginalizer() {
+  marginalizer_t *marg = marginalizer_malloc();
+  marginalizer_free(marg);
 
   return 0;
 }
@@ -5732,6 +5742,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_factor);
   MU_ADD_TEST(test_calib_imucam_factor);
   MU_ADD_TEST(test_calib_gimbal_factor);
+  MU_ADD_TEST(test_marginalizer);
   MU_ADD_TEST(test_inertial_odometry);
   MU_ADD_TEST(test_tsif);
 #ifdef USE_CERES
