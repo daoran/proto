@@ -3385,10 +3385,14 @@ int test_features() {
   MU_ASSERT(features_exists(features, 99) == 0);
 
   // -- Get features
-  feature_t *f0 = features_get(features, 1);
-  feature_t *f1 = features_get(features, 2);
-  feature_t *f2 = features_get(features, 3);
-  feature_t *f3 = features_get(features, 99);
+  feature_t *f0 = NULL;
+  feature_t *f1 = NULL;
+  feature_t *f2 = NULL;
+  feature_t *f3 = NULL;
+  features_get_xyz(features, 1, f0);
+  features_get_xyz(features, 2, f1);
+  features_get_xyz(features, 3, f2);
+  features_get_xyz(features, 99, f3);
 
   MU_ASSERT(f0->feature_id == 1);
   MU_ASSERT(f0->status == 1);
@@ -4752,7 +4756,8 @@ int test_solver_eval() {
     for (int i = 0; i < frame->num_measurements; i++) {
       const int feature_id = frame->feature_ids[i];
       const real_t *z = &frame->keypoints[i];
-      feature_t *f = features_get(features, feature_id);
+      feature_t *f = NULL;
+      features_get_xyz(features, feature_id, f);
 
       // Factor
       ba_factor_t *factor = &cam_views[k].factors[i];

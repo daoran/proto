@@ -7516,6 +7516,10 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   pose->data[4] = data[4]; // qx
   pose->data[5] = data[5]; // qy
   pose->data[6] = data[6]; // qz
+
+  // Linked list
+  pose->prev = NULL;
+  pose->next = NULL;
 }
 
 /**
@@ -7964,8 +7968,21 @@ int features_exists(const features_t *features, const size_t feature_id) {
 /**
  * Returns pointer to feature with `feature_id`.
  */
-feature_t *features_get(const features_t *features, const size_t feature_id) {
-  return features->data[feature_id];
+void features_get_xyz(const features_t *features,
+                      const size_t feature_id,
+                      feature_t *feature) {
+  feature = features->data[feature_id];
+}
+
+/**
+ * Returns pointer to feature with `feature_id`.
+ */
+void features_get_idf(const features_t *features,
+                      const size_t feature_id,
+                      feature_t *feature,
+                      pos_t *pos) {
+  feature = features->data[feature_id];
+  pos = features->pos_data[feature->pos_id];
 }
 
 /**
@@ -11702,6 +11719,64 @@ void avar(const real_t *x, const real_t dt, const real_t *tau, const size_t n) {
 /////////////
 
 /**
+ * Malloc camera view.
+ */
+camera_view_t *camera_view_malloc(const timestamp_t ts,
+                                  const int view_idx,
+                                  const int num_cams,
+                                  const int *num_keypoints,
+                                  const real_t **keypoints,
+                                  pose_t *pose,
+                                  extrinsic_t *cam_exts,
+                                  camera_params_t *cam_params,
+                                  features_t *features) {
+  // Setup
+  camera_view_t *view = MALLOC(camera_view_t, 1);
+  view->ts = ts;
+  view->view_idx = view_idx;
+  view->prev = NULL;
+  view->next = NULL;
+
+  // Determine total number of factors and allocate memory
+  view->num_factors = 0;
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    view->num_factors += num_keypoints[cam_idx];
+  }
+  view->factors = MALLOC(idf_factor_t, view->num_factors);
+
+  // Form factors
+  const real_t var[2] = {1.0, 1.0};
+  int factor_idx = 0;
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    for (int i = 0; i < num_keypoints[cam_idx]; i++) {
+      const real_t *z = &keypoints[cam_idx][i];
+      pos_t *idf_pos = NULL;
+      feature_t *idf_param = NULL;
+
+      idf_factor_setup(&view->factors[factor_idx],
+                       pose,
+                       &cam_exts[cam_idx],
+                       &cam_params[cam_idx],
+                       idf_pos,
+                       idf_param,
+                       z,
+                       var);
+      factor_idx++;
+    }
+  }
+
+  return view;
+}
+
+/**
+ * Free camera view.
+ */
+void camera_view_free(camera_view_t *view) {
+  free(view->factors);
+  free(view);
+}
+
+/**
  * Malloc bundler.
  */
 bundler_t *bundler_malloc() {
@@ -11718,6 +11793,12 @@ bundler_t *bundler_malloc() {
   bundler->poses = NULL;
   bundler->cam_exts = NULL;
   bundler->cam_params = NULL;
+  bundler->poses = NULL;
+  bundler->features = features_malloc();
+
+  // Views
+  bundler->view_first = NULL;
+  bundler->view_last = NULL;
 
   return bundler;
 }
@@ -11764,17 +11845,39 @@ void bundler_add_camera(bundler_t *bundler,
   bundler->cams_ok = 1;
 }
 
-// void bundler_add_view(bundler_t *bundler,
-//                       const timestamp_t ts,
-//                       const int view_idx,
-//                       const int num_cams,
-//                       const int *num_keypoints,
-//                       const real_t **keypoints) {
-//   assert(bundler->num_cams == num_cams);
+void bundler_add_view(bundler_t *bundler,
+                      const timestamp_t ts,
+                      const int view_idx,
+                      const int num_cams,
+                      const int *num_keypoints,
+                      const real_t **keypoints) {
+  assert(bundler->num_cams == num_cams);
 
-//   const int new_size = bundler->num_views;
-//   bundler->views = REALLOC(bundler->views, camera_viewset_t, new_size);
-// }
+  // Create pose
+  pose_t *pose = NULL;
+
+  // Create view
+  camera_view_t *view = camera_view_malloc(ts,
+                                           view_idx,
+                                           num_cams,
+                                           num_keypoints,
+                                           keypoints,
+                                           pose,
+                                           bundler->cam_exts,
+                                           bundler->cam_params,
+                                           bundler->features);
+
+  // Push new view
+  if (bundler->view_last == NULL) {
+    bundler->view_first = view;
+    bundler->view_last = view;
+  } else {
+    bundler->view_last->next = view;
+    view->prev = bundler->view_last;
+    bundler->view_last = view;
+  }
+  bundler->num_views++;
+}
 
 ////////////////////////
 // CAMERA CALIBRATION //

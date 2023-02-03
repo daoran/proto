@@ -1310,9 +1310,13 @@ void rot_print(const char *prefix, const rot_t *rot);
 // POSE //
 //////////
 
+typedef struct pose_t pose_t;
 typedef struct pose_t {
   timestamp_t ts;
   real_t data[7];
+
+  pose_t *prev;
+  pose_t *next;
 } pose_t;
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
@@ -1442,7 +1446,13 @@ void features_add_idfs(features_t *features,
                        const real_t *keypoints,
                        const size_t num_keypoints);
 int features_exists(const features_t *features, const size_t feature_id);
-feature_t *features_get(const features_t *features, const size_t feature_id);
+void features_get_xyz(const features_t *features,
+                      const size_t feature_id,
+                      feature_t *feature);
+void features_get_idf(const features_t *features,
+                      const size_t feature_id,
+                      feature_t *feature,
+                      pos_t *pos);
 int features_point(const features_t *features,
                    const size_t feature_id,
                    real_t p_W[3]);
@@ -2143,12 +2153,16 @@ int solver_solve(solver_t *solver, void *data);
 // BUNDLER //
 /////////////
 
+typedef struct camera_view_t camera_view_t;
 typedef struct camera_view_t {
   timestamp_t ts;
   int view_idx;
-  int cam_idx;
   int num_factors;
-  camera_factor_t *factors;
+  // camera_factor_t *factors;
+  idf_factor_t *factors;
+
+  camera_view_t *prev;
+  camera_view_t *next;
 } camera_view_t;
 
 typedef struct bundler_t {
@@ -2163,10 +2177,23 @@ typedef struct bundler_t {
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
   pose_t *poses;
+  features_t *features;
 
-  // Window
-  camera_view_t **views;
+  // Views
+  camera_view_t *view_first;
+  camera_view_t *view_last;
 } bundler_t;
+
+camera_view_t *camera_view_malloc(const timestamp_t ts,
+                                  const int view_idx,
+                                  const int num_cams,
+                                  const int *num_keypoints,
+                                  const real_t **keypoints,
+                                  pose_t *pose,
+                                  extrinsic_t *cam_exts,
+                                  camera_params_t *cam_params,
+                                  features_t *features);
+void camera_view_free(camera_view_t *view);
 
 bundler_t *bundler_malloc();
 void bundler_free(bundler_t *calib);
