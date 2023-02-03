@@ -11764,6 +11764,18 @@ void bundler_add_camera(bundler_t *bundler,
   bundler->cams_ok = 1;
 }
 
+// void bundler_add_view(bundler_t *bundler,
+//                       const timestamp_t ts,
+//                       const int view_idx,
+//                       const int num_cams,
+//                       const int *num_keypoints,
+//                       const real_t **keypoints) {
+//   assert(bundler->num_cams == num_cams);
+
+//   const int new_size = bundler->num_views;
+//   bundler->views = REALLOC(bundler->views, camera_viewset_t, new_size);
+// }
+
 ////////////////////////
 // CAMERA CALIBRATION //
 ////////////////////////

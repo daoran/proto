@@ -2147,8 +2147,8 @@ typedef struct camera_view_t {
   timestamp_t ts;
   int view_idx;
   int cam_idx;
-  real_t *keypoints;
-  // camera_factor_t *factors;
+  int num_factors;
+  camera_factor_t *factors;
 } camera_view_t;
 
 typedef struct bundler_t {
@@ -2160,12 +2160,12 @@ typedef struct bundler_t {
   int num_views;
 
   // Variables
-  pose_t **poses;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
+  pose_t *poses;
 
-  // Views
-  camera_view_t ***views;
+  // Window
+  camera_view_t **views;
 } bundler_t;
 
 bundler_t *bundler_malloc();
@@ -2177,6 +2177,12 @@ void bundler_add_camera(bundler_t *calib,
                         const char *dist_model,
                         const real_t *cam_params,
                         const real_t *cam_ext);
+void bundler_add_view(bundler_t *calib,
+                      const timestamp_t ts,
+                      const int view_idx,
+                      const int num_cams,
+                      const int *num_keypoints,
+                      const real_t **keypoints);
 
 ////////////////////////
 // CAMERA CALIBRATION //
