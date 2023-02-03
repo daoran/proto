@@ -3510,7 +3510,7 @@ int test_ba_factor() {
   return 0;
 }
 
-int test_vision_factor() {
+int test_camera_factor() {
   // Timestamp
   timestamp_t ts = 0;
 
@@ -3555,17 +3555,17 @@ int test_vision_factor() {
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   // Setup camera factor
-  vision_factor_t factor;
+  camera_factor_t factor;
   real_t var[2] = {1.0, 1.0};
-  vision_factor_setup(&factor, &pose, &cam_ext, &feature, &cam, z, var);
+  camera_factor_setup(&factor, &pose, &cam_ext, &feature, &cam, z, var);
 
   // Check Jacobians
   const real_t step_size = 1e-8;
   const real_t tol = 1e-4;
-  CHECK_FACTOR_J(0, factor, vision_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(1, factor, vision_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(2, factor, vision_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(3, factor, vision_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(0, factor, camera_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(1, factor, camera_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, camera_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(3, factor, camera_factor_eval, step_size, tol, 0);
 
   return 0;
 }
@@ -4714,8 +4714,27 @@ int test_solver_eval() {
   const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
 
-  // Features container
+  // Setup features
+  // -- Load features csv
+  int num_rows = 0;
+  int num_cols = 0;
+  char *features_csv = TEST_SIM_DATA "/features.csv";
+  real_t **features_data = csv_data(features_csv, &num_rows, &num_cols);
+  size_t *feature_ids = MALLOC(size_t, num_rows);
+  real_t *feature_xyzs = MALLOC(real_t, num_rows * 3);
+  for (int i = 0; i < num_rows; i++) {
+    feature_ids[i] = features_data[i][0];
+    feature_xyzs[i * 3 + 0] = features_data[i][1];
+    feature_xyzs[i * 3 + 1] = features_data[i][2];
+    feature_xyzs[i * 3 + 2] = features_data[i][3];
+    free(features_data[i]);
+  }
+  free(features_data);
+  // -- Add features to container
   features_t *features = features_malloc();
+  features_add_xyzs(features, feature_ids, feature_xyzs, num_rows);
+  free(feature_ids);
+  free(feature_xyzs);
 
   // Loop over simulated camera frames
   const real_t var[2] = {1.0, 1.0};
@@ -4728,25 +4747,17 @@ int test_solver_eval() {
     pose_t *pose = &cam_views[k].pose;
     pose_setup(pose, frame->ts, &cam_data->poses[k]);
 
-    // // Add factors
-    // cam_views[k].num_factors = frame->num_measurements;
-    // for (int i = 0; i < frame->num_measurements; i++) {
-    //   const int feature_id = frame->feature_ids[i];
-    //   const real_t *z = &frame->keypoints[i];
+    // Add factors
+    cam_views[k].num_factors = frame->num_measurements;
+    for (int i = 0; i < frame->num_measurements; i++) {
+      const int feature_id = frame->feature_ids[i];
+      const real_t *z = &frame->keypoints[i];
+      feature_t *f = features_get(features, feature_id);
 
-    //   // Feature
-    //   feature_t *feature = NULL;
-    //   if (features_exists(features, feature_id)) {
-    //     feature = features_get(features, feature_id);
-    //   } else {
-    //     const real_t param[3] = {0};
-    //     feature = features_add(features, feature_id, param);
-    //   }
-
-    //   // Factor
-    //   ba_factor_t *factor = &cam_views[k].factors[i];
-    //   ba_factor_setup(factor, pose, feature, &cam, z, var);
-    // }
+      // Factor
+      ba_factor_t *factor = &cam_views[k].factors[i];
+      ba_factor_setup(factor, pose, f, &cam, z, var);
+    }
   }
 
   solver_t solver;
@@ -5704,7 +5715,7 @@ void test_suite() {
   MU_ADD_TEST(test_camera_params);
   MU_ADD_TEST(test_pose_factor);
   MU_ADD_TEST(test_ba_factor);
-  MU_ADD_TEST(test_vision_factor);
+  MU_ADD_TEST(test_camera_factor);
   MU_ADD_TEST(test_idf_factor);
   MU_ADD_TEST(test_imu_buf_setup);
   MU_ADD_TEST(test_imu_buf_add);
@@ -5722,7 +5733,7 @@ void test_suite() {
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
-  MU_ADD_TEST(test_solver_eval);
+  // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_calib_camera);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);

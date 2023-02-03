@@ -382,7 +382,7 @@ dev_euroc() {
 # run_test test_features
 # run_test test_pose_factor
 # run_test test_ba_factor
-# run_test test_vision_factor
+# run_test test_camera_factor
 # run_test test_idf_factor
 # run_test test_imu_buf_setup
 # run_test test_imu_buf_add
@@ -400,7 +400,7 @@ dev_euroc() {
 # run_test test_ceres_example
 # run_test test_solver_setup
 # run_test test_solver_print
-run_test test_solver_eval
+# run_test test_solver_eval
 # run_test test_calib_camera
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial

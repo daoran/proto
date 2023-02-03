@@ -1616,10 +1616,10 @@ void ba_factor_setup(ba_factor_t *factor,
 int ba_factor_eval(void *factor_ptr);
 
 ///////////////////
-// VISION FACTOR //
+// CAMERA FACTOR //
 ///////////////////
 
-typedef struct vision_factor_t {
+typedef struct camera_factor_t {
   pose_t *pose;
   extrinsic_t *extrinsic;
   camera_params_t *camera;
@@ -1640,16 +1640,16 @@ typedef struct vision_factor_t {
   real_t J_extrinsic[2 * 6];
   real_t J_feature[2 * 3];
   real_t J_camera[2 * 8];
-} vision_factor_t;
+} camera_factor_t;
 
-void vision_factor_setup(vision_factor_t *factor,
+void camera_factor_setup(camera_factor_t *factor,
                          pose_t *pose,
                          extrinsic_t *extrinsic,
                          feature_t *feature,
                          camera_params_t *camera,
                          const real_t z[2],
                          const real_t var[2]);
-int vision_factor_eval(void *factor_ptr);
+int camera_factor_eval(void *factor_ptr);
 
 ////////////////////////////////////////
 // INVERSE-DEPTH FEATURE (IDF) FACTOR //
@@ -2138,6 +2138,45 @@ int solver_solve(solver_t *solver, void *data);
 
 // void avar(const real_t *x, const real_t *dt, const real_t *tau, const size_t
 // n);
+
+/////////////
+// BUNDLER //
+/////////////
+
+typedef struct camera_view_t {
+  timestamp_t ts;
+  int view_idx;
+  int cam_idx;
+  real_t *keypoints;
+  // camera_factor_t *factors;
+} camera_view_t;
+
+typedef struct bundler_t {
+  // Flags
+  int cams_ok;
+
+  // Counters
+  int num_cams;
+  int num_views;
+
+  // Variables
+  pose_t **poses;
+  extrinsic_t *cam_exts;
+  camera_params_t *cam_params;
+
+  // Views
+  camera_view_t ***views;
+} bundler_t;
+
+bundler_t *bundler_malloc();
+void bundler_free(bundler_t *calib);
+void bundler_add_camera(bundler_t *calib,
+                        const int cam_idx,
+                        const int cam_res[2],
+                        const char *proj_model,
+                        const char *dist_model,
+                        const real_t *cam_params,
+                        const real_t *cam_ext);
 
 ////////////////////////
 // CAMERA CALIBRATION //

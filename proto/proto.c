@@ -8529,13 +8529,13 @@ int ba_factor_eval(void *factor_ptr) {
 }
 
 ///////////////////
-// VISION FACTOR //
+// CAMERA FACTOR //
 ///////////////////
 
 /**
- * Setup vision factor
+ * Setup camera factor
  */
-void vision_factor_setup(vision_factor_t *factor,
+void camera_factor_setup(camera_factor_t *factor,
                          pose_t *pose,
                          extrinsic_t *extrinsic,
                          feature_t *feature,
@@ -8595,7 +8595,7 @@ void vision_factor_setup(vision_factor_t *factor,
 /**
  * Pose jacobian
  */
-static void vision_factor_pose_jacobian(const real_t Jh_w[2 * 3],
+static void camera_factor_pose_jacobian(const real_t Jh_w[2 * 3],
                                         const real_t T_WB[3 * 3],
                                         const real_t T_BC[3 * 3],
                                         const real_t p_W[3],
@@ -8676,7 +8676,7 @@ static void vision_factor_pose_jacobian(const real_t Jh_w[2 * 3],
 /**
  * Body-camera extrinsic jacobian
  */
-static void vision_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
+static void camera_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
                                              const real_t T_BC[3 * 3],
                                              const real_t p_C[3],
                                              real_t J[2 * 6]) {
@@ -8748,7 +8748,7 @@ static void vision_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
 /**
  * Camera parameters jacobian
  */
-static void vision_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
+static void camera_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
                                           const real_t J_cam_params[2 * 8],
                                           real_t J[2 * 8]) {
   assert(neg_sqrt_info != NULL);
@@ -8762,7 +8762,7 @@ static void vision_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
 /**
  * Feature jacobian
  */
-static void vision_factor_feature_jacobian(const real_t Jh_w[2 * 3],
+static void camera_factor_feature_jacobian(const real_t Jh_w[2 * 3],
                                            const real_t T_WB[4 * 4],
                                            const real_t T_BC[4 * 4],
                                            real_t J[2 * 3]) {
@@ -8793,8 +8793,8 @@ static void vision_factor_feature_jacobian(const real_t Jh_w[2 * 3],
  * Evaluate vision factor
  * @returns `0` for success, `-1` for failure
  */
-int vision_factor_eval(void *factor_ptr) {
-  vision_factor_t *factor = (vision_factor_t *) factor_ptr;
+int camera_factor_eval(void *factor_ptr) {
+  camera_factor_t *factor = (camera_factor_t *) factor_ptr;
   assert(factor != NULL);
   assert(factor->pose);
   assert(factor->extrinsic);
@@ -8844,10 +8844,10 @@ int vision_factor_eval(void *factor_ptr) {
   real_t J_cam_params[2 * 8] = {0};
   pinhole_radtan4_params_jacobian(cam_params, p_Ci, J_cam_params);
   // -- Fill Jacobians
-  vision_factor_pose_jacobian(Jh_, T_WB, T_BCi, p_W, factor->jacs[0]);
-  vision_factor_extrinsic_jacobian(Jh_, T_BCi, p_Ci, factor->jacs[1]);
-  vision_factor_feature_jacobian(Jh_, T_WB, T_BCi, factor->jacs[2]);
-  vision_factor_camera_jacobian(neg_sqrt_info, J_cam_params, factor->jacs[3]);
+  camera_factor_pose_jacobian(Jh_, T_WB, T_BCi, p_W, factor->jacs[0]);
+  camera_factor_extrinsic_jacobian(Jh_, T_BCi, p_Ci, factor->jacs[1]);
+  camera_factor_feature_jacobian(Jh_, T_WB, T_BCi, factor->jacs[2]);
+  camera_factor_camera_jacobian(neg_sqrt_info, J_cam_params, factor->jacs[3]);
 
   return 0;
 }
@@ -11697,6 +11697,73 @@ void avar(const real_t *x, const real_t dt, const real_t *tau, const size_t n) {
   free(theta);
 }
 
+/////////////
+// BUNDLER //
+/////////////
+
+/**
+ * Malloc bundler.
+ */
+bundler_t *bundler_malloc() {
+  bundler_t *bundler = MALLOC(bundler_t, 1);
+
+  // Flags
+  bundler->cams_ok = 1;
+
+  // Counters
+  bundler->num_cams = 0;
+  bundler->num_views = 0;
+
+  // Variables
+  bundler->poses = NULL;
+  bundler->cam_exts = NULL;
+  bundler->cam_params = NULL;
+
+  return bundler;
+}
+
+/**
+ * Free bundler.
+ */
+void bundler_free(bundler_t *bundler) {
+  free(bundler);
+}
+
+/**
+ * Add camera to bundler.
+ */
+void bundler_add_camera(bundler_t *bundler,
+                        const int cam_idx,
+                        const int cam_res[2],
+                        const char *proj_model,
+                        const char *dist_model,
+                        const real_t *cam_params,
+                        const real_t *cam_ext) {
+  assert(bundler != NULL);
+  assert(cam_idx <= bundler->num_cams);
+  assert(cam_res != NULL);
+  assert(proj_model != NULL);
+  assert(dist_model != NULL);
+  assert(cam_params != NULL);
+  assert(cam_ext != NULL);
+
+  if (cam_idx > (bundler->num_cams - 1)) {
+    const int ns = bundler->num_cams + 1;
+    bundler->cam_params = REALLOC(bundler->cam_params, camera_params_t, ns);
+    bundler->cam_exts = REALLOC(bundler->cam_exts, extrinsic_t, ns);
+  }
+
+  camera_params_setup(&bundler->cam_params[cam_idx],
+                      cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_params);
+  extrinsic_setup(&bundler->cam_exts[cam_idx], cam_ext);
+  bundler->num_cams++;
+  bundler->cams_ok = 1;
+}
+
 ////////////////////////
 // CAMERA CALIBRATION //
 ////////////////////////
@@ -11958,7 +12025,7 @@ void calib_camera_add_view(calib_camera_t *calib,
 
   // Allocate memory for a new pose & view
   if (view_idx > (calib->num_views - 1)) {
-    const int new_size = calib->num_views + 1;
+    const int ns = calib->num_views + 1;
 
     // New pose
     real_t T_CO[4 * 4] = {0};
@@ -11969,12 +12036,12 @@ void calib_camera_add_view(calib_camera_t *calib,
              T_CO);
     TF_INV(T_CO, T_OC);
     TF_VECTOR(T_OC, pose);
-    calib->poses = REALLOC(calib->poses, pose_t *, new_size);
+    calib->poses = REALLOC(calib->poses, pose_t *, ns);
     calib->poses[view_idx] = MALLOC(pose_t, 1);
     pose_setup(calib->poses[view_idx], ts, pose);
 
     // New view
-    calib->views = REALLOC(calib->views, calib_gimbal_view_t **, new_size);
+    calib->views = REALLOC(calib->views, calib_gimbal_view_t **, ns);
     calib->views[view_idx] = MALLOC(calib_gimbal_view_t *, calib->num_cams);
     calib->num_views++;
   }
@@ -12023,7 +12090,6 @@ void calib_camera_errors(calib_camera_t *calib,
   }     // For each views
 
   // Calculate reprojection errors
-  real_t reproj_error = 0.0;
   real_t *errors = CALLOC(real_t, N);
   for (int i = 0; i < N; i++) {
     const real_t x = r[i * 2 + 0];
