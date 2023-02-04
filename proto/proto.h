@@ -1333,6 +1333,18 @@ typedef struct extrinsic_t {
 void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
 void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 
+//////////////
+// FIDUCIAL //
+//////////////
+
+typedef struct fiducial_t {
+  int marginalize;
+  real_t data[7];
+} fiducial_t;
+
+void fiducial_setup(fiducial_t *fiducial, const real_t *param);
+void fiducial_print(const char *prefix, const fiducial_t *exts);
+
 ///////////////////////
 // CAMERA-PARAMETERS //
 ///////////////////////

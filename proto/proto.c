@@ -7584,6 +7584,50 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts) {
   printf("quat: (%.2f, %.2f, %.2f, %.2f)\n", qw, qx, qy, qz);
 }
 
+//////////////
+// FIDUCIAL //
+//////////////
+
+/**
+ * Setup fiducial.
+ */
+void fiducial_setup(fiducial_t *exts, const real_t *data) {
+  assert(exts != NULL);
+  assert(data != NULL);
+
+  // Marginalize
+  exts->marginalize = 0;
+
+  // Translation
+  exts->data[0] = data[0]; // rx
+  exts->data[1] = data[1]; // ry
+  exts->data[2] = data[2]; // rz
+
+  // Rotation (Quaternion)
+  exts->data[3] = data[3]; // qw
+  exts->data[4] = data[4]; // qx
+  exts->data[5] = data[5]; // qy
+  exts->data[6] = data[6]; // qz
+}
+
+/**
+ * Print fiducial.
+ */
+void fiducial_print(const char *prefix, const fiducial_t *fiducial) {
+  const real_t x = fiducial->data[0];
+  const real_t y = fiducial->data[1];
+  const real_t z = fiducial->data[2];
+
+  const real_t qw = fiducial->data[3];
+  const real_t qx = fiducial->data[4];
+  const real_t qy = fiducial->data[5];
+  const real_t qz = fiducial->data[6];
+
+  printf("[%s] ", prefix);
+  printf("pos: (%.2f, %.2f, %.2f), ", x, y, z);
+  printf("quat: (%.2f, %.2f, %.2f, %.2f)\n", qw, qx, qy, qz);
+}
+
 ///////////////////////
 // CAMERA-PARAMETERS //
 ///////////////////////
