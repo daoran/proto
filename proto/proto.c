@@ -7452,6 +7452,7 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
 void pos_setup(pos_t *pos, const real_t *data) {
   assert(pos != NULL);
   assert(data != NULL);
+  pos->marginalize = 0;
   pos->data[0] = data[0];
   pos->data[1] = data[1];
   pos->data[2] = data[2];
@@ -7476,6 +7477,7 @@ void pos_print(const char *prefix, const pos_t *pos) {
 void rot_setup(rot_t *rot, const real_t *data) {
   assert(rot != NULL);
   assert(data != NULL);
+  rot->marginalize = 0;
   rot->data[0] = data[0];
   rot->data[1] = data[1];
   rot->data[2] = data[2];
@@ -7502,6 +7504,9 @@ void rot_print(const char *prefix, const rot_t *rot) {
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   assert(pose != NULL);
   assert(data != NULL);
+
+  // Marginalize
+  pose->marginalize = 0;
 
   // Timestamp
   pose->ts = ts;
@@ -7553,6 +7558,9 @@ void pose_print(const char *prefix, const pose_t *pose) {
 void extrinsic_setup(extrinsic_t *exts, const real_t *data) {
   assert(exts != NULL);
   assert(data != NULL);
+
+  // Marginalize
+  exts->marginalize = 0;
 
   // Translation
   exts->data[0] = data[0]; // rx
@@ -7647,6 +7655,7 @@ void camera_params_setup(camera_params_t *camera,
   assert(dist_model != NULL);
   assert(data != NULL);
 
+  camera->marginalize = 0;
   camera->cam_idx = cam_idx;
   camera->resolution[0] = cam_res[0];
   camera->resolution[1] = cam_res[1];
@@ -7724,6 +7733,9 @@ void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]) {
   assert(vel != NULL);
   assert(v != NULL);
 
+  // Marginalize
+  vel->marginalize = 0;
+
   // Timestamp
   vel->ts = ts;
 
@@ -7749,6 +7761,9 @@ void imu_biases_setup(imu_biases_t *sb,
   assert(sb != NULL);
   assert(ba != NULL);
   assert(bg != NULL);
+
+  // Marginalize
+  biases->marginalize = 0;
 
   // Timestamp
   sb->ts = ts;
@@ -7793,6 +7808,7 @@ void feature_setup(feature_t *f, const size_t feature_id, const real_t *data) {
   assert(f != NULL);
   assert(data != NULL);
 
+  f->marginalize = 0;
   f->type = FEATURE_XYZ;
   f->feature_id = feature_id;
   f->status = 1;
@@ -7834,6 +7850,7 @@ void idf_setup(feature_t *f,
   const real_t rho = 0.1;
 
   // Set data
+  f->marginalize = 0;
   f->type = FEATURE_INVERSE_DEPTH;
   f->feature_id = feature_id;
   f->status = 1;

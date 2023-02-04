@@ -1289,6 +1289,7 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
 //////////////
 
 typedef struct pos_t {
+  int marginalize;
   real_t data[3];
 } pos_t;
 
@@ -1300,6 +1301,7 @@ void pos_print(const char *prefix, const pos_t *pos);
 //////////////
 
 typedef struct rot_t {
+  int marginalize;
   real_t data[4];
 } rot_t;
 
@@ -1312,6 +1314,7 @@ void rot_print(const char *prefix, const rot_t *rot);
 
 typedef struct pose_t pose_t;
 typedef struct pose_t {
+  int marginalize;
   timestamp_t ts;
   real_t data[7];
 
@@ -1327,6 +1330,7 @@ void pose_print(const char *prefix, const pose_t *pose);
 ///////////////
 
 typedef struct extrinsic_t {
+  int marginalize;
   real_t data[7];
 } extrinsic_t;
 
@@ -1350,6 +1354,7 @@ void fiducial_print(const char *prefix, const fiducial_t *exts);
 ///////////////////////
 
 typedef struct camera_params_t {
+  int marginalize;
   int cam_idx;
   int resolution[2];
   char proj_model[30];
@@ -1379,6 +1384,7 @@ void camera_back_project(const camera_params_t *camera,
 //////////////
 
 typedef struct velocity_t {
+  int marginalize;
   timestamp_t ts;
   real_t data[3];
 } velocity_t;
@@ -1390,6 +1396,7 @@ void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
 ////////////////
 
 typedef struct imu_biases_t {
+  int marginalize;
   timestamp_t ts;
   real_t data[6];
 } imu_biases_t;
@@ -1412,6 +1419,7 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 #define FEATURES_CAPACITY_GROWTH_FACTOR 2
 
 typedef struct feature_t {
+  int marginalize;
   int type;
 
   // Feature data
