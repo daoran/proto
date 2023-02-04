@@ -390,11 +390,12 @@ dev_euroc() {
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
 # run_test test_imu_factor_propagate_step
-run_test test_imu_factor
+# run_test test_imu_factor
 # run_test test_joint_angle_factor
 # run_test test_calib_camera_factor
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
+run_test test_marg
 # run_test test_inertial_odometry
 # run_test test_tsif
 # run_test test_ceres_example

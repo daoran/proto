@@ -7754,11 +7754,11 @@ void velocity_print(const velocity_t *vel);
 /**
  * Setup speed and biases
  */
-void imu_biases_setup(imu_biases_t *sb,
+void imu_biases_setup(imu_biases_t *biases,
                       const timestamp_t ts,
                       const real_t ba[3],
                       const real_t bg[3]) {
-  assert(sb != NULL);
+  assert(biases != NULL);
   assert(ba != NULL);
   assert(bg != NULL);
 
@@ -7766,17 +7766,17 @@ void imu_biases_setup(imu_biases_t *sb,
   biases->marginalize = 0;
 
   // Timestamp
-  sb->ts = ts;
+  biases->ts = ts;
 
   // Accel biases
-  sb->data[0] = ba[0];
-  sb->data[1] = ba[1];
-  sb->data[2] = ba[2];
+  biases->data[0] = ba[0];
+  biases->data[1] = ba[1];
+  biases->data[2] = ba[2];
 
   // Gyro biases
-  sb->data[3] = bg[0];
-  sb->data[4] = bg[1];
-  sb->data[5] = bg[2];
+  biases->data[3] = bg[0];
+  biases->data[4] = bg[1];
+  biases->data[5] = bg[2];
 }
 
 /**
@@ -10340,7 +10340,7 @@ int calib_camera_factor_eval(void *factor_ptr) {
  * Setup imu-camera time-delay calibration factor
  */
 void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
-                               pose_t *fiducial,
+                               fiducial_t *fiducial,
                                pose_t *imu_pose,
                                extrinsic_t *imu_ext,
                                extrinsic_t *cam_ext,
@@ -10704,7 +10704,7 @@ void gimbal_setup_joint(const timestamp_t ts,
 }
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
-                               extrinsic_t *fiducial_exts,
+                               fiducial_t *fiducial_exts,
                                extrinsic_t *gimbal_exts,
                                pose_t *pose,
                                extrinsic_t *link0,
@@ -11205,8 +11205,8 @@ error:
 // MARGINALIZER //
 //////////////////
 
-marginalizer_t *marginalizer_malloc() {
-  marginalizer_t *marg = MALLOC(marginalizer_t, 1);
+marg_t *marg_malloc() {
+  marg_t *marg = MALLOC(marg_t, 1);
 
   // Remain parameters
   marg->num_remain_params = 0;
@@ -11231,8 +11231,11 @@ marginalizer_t *marginalizer_malloc() {
   marg->sqrt_info = NULL;
 
   // Residuals
+  marg->hash = NULL;
   marg->r_size = 0;
-  marg->r = NULL;
+  marg->r0 = NULL;
+  marg->H = NULL;
+  marg->g = NULL;
 
   // Jacobians
   marg->jacs = NULL;
@@ -11240,7 +11243,7 @@ marginalizer_t *marginalizer_malloc() {
   return marg;
 }
 
-void marginalizer_free(marginalizer_t *factor) {
+void marg_free(marg_t *factor) {
   // Remain parameters
   free(factor->remain_param_ptrs);
   free(factor->remain_param_types);
@@ -11258,7 +11261,10 @@ void marginalizer_free(marginalizer_t *factor) {
   free(factor->sqrt_info);
 
   // Residuals
-  free(factor->r);
+  hmfree(factor->hash);
+  free(factor->r0);
+  free(factor->H);
+  free(factor->g);
 
   // Jacobians
   for (int i = 0; i < factor->num_remain_params; i++) {
@@ -11269,7 +11275,7 @@ void marginalizer_free(marginalizer_t *factor) {
   free(factor);
 }
 
-static void marg_resize(marginalizer_t *marg, const int r, const int m) {
+static void marg_resize(marg_t *marg, const int r, const int m) {
   // Extend remain parameters capacity
   if ((marg->num_remain_params + r) >= marg->remain_param_capacity) {
     const size_t os = marg->remain_param_capacity;
@@ -11313,26 +11319,166 @@ static void marg_resize(marginalizer_t *marg, const int r, const int m) {
   }
 }
 
-static void marg_add_remain_param(marginalizer_t *marg,
-                                  void *param_ptr,
-                                  int param_type) {
-  marg->remain_param_ptrs[marg->num_remain_params] = param_ptr;
-  marg->remain_param_types[marg->num_remain_params] = param_type;
-  marg->num_remain_params++;
-}
-
-static void marg_add_marg_param(marginalizer_t *marg,
-                                void *param_ptr,
-                                int param_type) {
-  marg->marg_param_ptrs[marg->num_marg_params] = param_ptr;
-  marg->marg_param_types[marg->num_marg_params] = param_type;
-  marg->num_marg_params++;
-}
-
-void marginalizer_add(marginalizer_t *marg, void *factor_ptr, int factor_type) {
+void marg_add(marg_t *marg, int factor_type, void *factor_ptr) {
   marg->factors[marg->num_factors] = factor_ptr;
   marg->factor_types[marg->num_factors] = factor_type;
   marg->num_factors++;
+}
+
+void marg_form_hessian(marg_t *marg) {
+  // Track parameters
+  // -- Remain parameters
+  pos_hash_t *remain_positions = NULL;
+  rot_hash_t *remain_rotations = NULL;
+  pose_hash_t *remain_poses = NULL;
+  extrinsic_hash_t *remain_extrinsics = NULL;
+  fiducial_hash_t *remain_fiducials = NULL;
+  velocity_hash_t *remain_velocities = NULL;
+  feature_hash_t *remain_features = NULL;
+  joint_hash_t *remain_joints = NULL;
+  camera_params_hash_t *remain_cam_params = NULL;
+  time_delay_hash_t *remain_time_delays = NULL;
+  // -- Marginal parameters
+  pos_hash_t *marg_positions = NULL;
+  rot_hash_t *marg_rotations = NULL;
+  pose_hash_t *marg_poses = NULL;
+  extrinsic_hash_t *marg_extrinsics = NULL;
+  fiducial_hash_t *marg_fiducials = NULL;
+  velocity_hash_t *marg_velocities = NULL;
+  feature_hash_t *marg_features = NULL;
+  joint_hash_t *marg_joints = NULL;
+  camera_params_hash_t *marg_cam_params = NULL;
+  time_delay_hash_t *marg_time_delays = NULL;
+
+  // -- Track camera factor params
+  for (size_t i = 0; i < marg->num_factors; i++) {
+    camera_factor_t *factor = (camera_factor_t *) marg->factors[i];
+    MARG_TRACK(remain_poses, marg_poses, factor->pose);
+    MARG_TRACK(remain_extrinsics, marg_extrinsics, factor->extrinsic);
+    MARG_TRACK(remain_features, marg_features, factor->feature);
+    MARG_TRACK(remain_cam_params, marg_cam_params, factor->camera);
+  }
+
+  // Determine parameter block column indicies for Hessian matrix H
+  int H_idx = 0; // Column / row index of Hessian matrix H
+  int m_sz = 0;
+  int r_sz = 0;
+  // -- Column indices for parameter blocks to be marginalized
+  MARG_INDEX(marg_positions, POSITION_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_rotations, ROTATION_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_poses, POSE_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_features, FEATURE_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_joints, JOINT_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_cam_params, CAMERA_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, m_sz);
+  // -- Column indices for parameter blocks to remain
+  MARG_INDEX(remain_positions, POSITION_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_rotations, ROTATION_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_poses, POSE_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_velocities, VELOCITY_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_features, FEATURE_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_joints, JOINT_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r_sz);
+
+  // Allocate memory for residuals and Hessian
+  marg->m_size = m_sz;
+  marg->r_size = r_sz;
+  marg->sv_size = m_sz + r_sz;
+  marg->r0 = MALLOC(real_t, r_sz);
+  marg->H = MALLOC(real_t, marg->sv_size * marg->sv_size);
+  marg->g = MALLOC(real_t, marg->sv_size * 1);
+
+  // Fill Hessian
+  MARG_H(marg, camera_factor_t, marg->factors, marg->num_factors);
+
+  // Clean up
+  // -- Hash
+  // hmfree(hash);
+  // -- Remain parameters
+  hmfree(remain_positions);
+  hmfree(remain_rotations);
+  hmfree(remain_poses);
+  hmfree(remain_extrinsics);
+  hmfree(remain_fiducials);
+  hmfree(remain_velocities);
+  hmfree(remain_features);
+  hmfree(remain_joints);
+  hmfree(remain_cam_params);
+  hmfree(remain_time_delays);
+  // -- Marginal parameters
+  hmfree(marg_positions);
+  hmfree(marg_rotations);
+  hmfree(marg_poses);
+  hmfree(marg_extrinsics);
+  hmfree(marg_fiducials);
+  hmfree(marg_velocities);
+  hmfree(marg_features);
+  hmfree(marg_joints);
+  hmfree(marg_cam_params);
+  hmfree(marg_time_delays);
+}
+
+void marg_marginalize(marg_t *marg) {
+  // Form Hessian and RHS of Gauss newton
+  marg_form_hessian(marg);
+
+  // Compute Schurs Complement
+  // schurs_complement(H, b, m_, r_, H_marg, b_marg);
+
+  // Decompose matrix H into J' * J to obtain J via eigen-decomposition
+  // i.e.
+  //
+  //   H = J' * J = U * S * U'
+  //   J = S^{0.5} * U'
+  //
+  // clang-format off
+  // H_marg = 0.5 * (H_marg + H_marg.transpose()); // Enforce Symmetry
+  // const Eigen::SelfAdjointEigenSolver<matx_t> eig(H_marg);
+  // const double eps = std::numeric_limits<double>::epsilon();
+  // const double tol = eps * H_marg.cols() * eig.eigenvalues().array().maxCoeff();
+  // const vecx_t S = (eig.eigenvalues().array() > tol).select(eig.eigenvalues().array(), 0.0);
+  // const vecx_t S_inv = (eig.eigenvalues().array() > tol).select(eig.eigenvalues().array().inverse(), 0);
+  // const vecx_t S_sqrt = S.cwiseSqrt();
+  // const vecx_t S_inv_sqrt = S_inv.cwiseSqrt();
+  // const matx_t J = S_sqrt.asDiagonal() * eig.eigenvectors().transpose();
+  // const matx_t J_inv = S_inv_sqrt.asDiagonal() * eig.eigenvectors().transpose();
+  // // -- Check decomposition
+  // const real_t decomp_norm = ((J.transpose() * J) - H_marg).norm();
+  // const bool decomp_check = decomp_norm < 1.0e-2;
+  // if (decomp_check == false) {
+  //   LOG_WARN("Decompose JtJ check: %f", decomp_norm);
+  //   LOG_WARN("This is bad ... Usually means marg_residual_t is bad!");
+  // }
+  // clang-format on
+
+  // // Form:
+  // // - Linearized jacobians
+  // // - Linearized residuals
+  // // - Linearization point x0
+  // J0_ = J;
+  // r0_ = -J_inv * b_marg;
+  // for (const auto &param_block : remain_param_ptrs_) {
+  //   x0_.insert({param_block->param.data(), param_block->param});
+  // }
+
+  // Copy parameters and residuals to be removed
+  // IMPORTANT NOTE: By doing this, this transfers ownership out of
+  // marg_residual_t. This means you have to free it yourself outside of
+  // marg_residual_t.
+  // marg_params = marg_param_ptrs_;
+  // marg_residuals = res_blocks_;
+  // Clear the pointers in the member variables
+  // marg_param_ptrs_.clear();
+  // res_blocks_.clear();
+
+  // Update state
+  // marginalized_ = true;
 }
 
 ////////////
@@ -12034,7 +12180,7 @@ void bundler_add_view(bundler_t *bundler,
   assert(bundler->num_cams == num_cams);
 
   // Create pose
-  pose_t *pose = NULL;
+  // pose_t *pose = NULL;
 
   // Create viewset
   // size_t **feature_ids = NULL;
@@ -12522,7 +12668,7 @@ calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
                                               const real_t *object_points,
                                               const real_t *keypoints,
                                               const int N,
-                                              extrinsic_t *fiducial_ext,
+                                              fiducial_t *fiducial_ext,
                                               extrinsic_t *gimbal_ext,
                                               pose_t *pose,
                                               extrinsic_t *link0,
@@ -12987,7 +13133,7 @@ void calib_gimbal_print(const calib_gimbal_t *calib) {
     extrinsic_print(link_str, &calib->links[link_idx]);
   }
   extrinsic_print("gimbal_exts", &calib->gimbal_exts);
-  extrinsic_print("fiducial_exts", &calib->fiducial_exts);
+  fiducial_print("fiducial_exts", &calib->fiducial_exts);
 }
 
 /**
@@ -12997,7 +13143,7 @@ void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
                                const real_t fiducial_pose[7]) {
   assert(calib != NULL);
   assert(fiducial_pose);
-  extrinsic_setup(&calib->fiducial_exts, fiducial_pose);
+  fiducial_setup(&calib->fiducial_exts, fiducial_pose);
   calib->fiducial_ext_ok = 1;
 }
 
@@ -13385,7 +13531,7 @@ static void calib_gimbal_load_config(calib_gimbal_t *calib,
   {
     real_t pose[7] = {0};
     parse_key_value(conf, "fiducial_exts", "pose", pose);
-    extrinsic_setup(&calib->fiducial_exts, pose);
+    fiducial_setup(&calib->fiducial_exts, pose);
     calib->fiducial_ext_ok = 1;
   }
 
@@ -15102,7 +15248,7 @@ sim_gimbal_t *sim_gimbal_malloc() {
   const real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
   const real_t r_WF[3] = {0.5, 0.0, 0.0};
   POSE_ER(ypr_WF, r_WF, fiducial_ext);
-  extrinsic_setup(&sim->fiducial_ext, fiducial_ext);
+  fiducial_setup(&sim->fiducial_ext, fiducial_ext);
 
   // Gimbal pose
   real_t x = 0.0;
@@ -15216,7 +15362,7 @@ void sim_gimbal_print(const sim_gimbal_t *sim) {
     extrinsic_print(link_str, &sim->gimbal_links[link_idx]);
   }
   extrinsic_print("gimbal_ext", &sim->gimbal_ext);
-  extrinsic_print("fiducial_ext", &sim->fiducial_ext);
+  fiducial_print("fiducial_ext", &sim->fiducial_ext);
 }
 
 /**

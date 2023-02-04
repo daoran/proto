@@ -1904,7 +1904,7 @@ int calib_camera_factor_eval(void *factor_ptr);
 /////////////////////////
 
 typedef struct calib_imucam_factor_t {
-  pose_t *fiducial;            // fiducial pose: T_WF
+  fiducial_t *fiducial;        // fiducial pose: T_WF
   pose_t *imu_pose;            // IMU pose: T_WS
   extrinsic_t *imu_ext;        // IMU extrinsic: T_SC0
   extrinsic_t *cam_ext;        // Camera extrinsic: T_C0Ci
@@ -1938,7 +1938,7 @@ typedef struct calib_imucam_factor_t {
 } calib_imucam_factor_t;
 
 void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
-                               pose_t *fiducial,
+                               fiducial_t *fiducial,
                                pose_t *pose,
                                extrinsic_t *imu_ext,
                                extrinsic_t *cam_ext,
@@ -1958,7 +1958,7 @@ int calib_imucam_factor_eval(void *factor_ptr);
 /////////////////////////
 
 typedef struct calib_gimbal_factor_t {
-  extrinsic_t *fiducial_exts;
+  fiducial_t *fiducial_exts;
   extrinsic_t *gimbal_exts;
   pose_t *pose;
   extrinsic_t *link0;
@@ -2009,7 +2009,7 @@ void gimbal_setup_joint(const timestamp_t ts,
                         joint_t *joint);
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
-                               extrinsic_t *fiducial_exts,
+                               fiducial_t *fiducial_exts,
                                extrinsic_t *gimbal_exts,
                                pose_t *pose,
                                extrinsic_t *link0,
@@ -2046,7 +2046,55 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 #define MARGINALIZER_CAPACITY_INIT 1000
 #define MARGINALIZER_CAPACITY_GROWTH 2.0
 
-typedef struct marginalizer_t {
+#define MARG_TRACK(RHASH, MHASH, PARAM)                                        \
+  if (PARAM->marginalize == 0) {                                               \
+    hmput(RHASH, PARAM, PARAM);                                                \
+  } else {                                                                     \
+    hmput(MHASH, PARAM, PARAM);                                                \
+  }
+
+#define MARG_INDEX(HASH, PARAM_TYPE, PARAM_ORDER, COL_IDX, SZ)                 \
+  for (size_t i = 0; i < hmlen(HASH); i++) {                                   \
+    const int fix = 0;                                                         \
+    real_t *data = HASH[i].value->data;                                        \
+    SZ += param_local_size(PARAM_TYPE);                                        \
+    param_order_add(&PARAM_ORDER, PARAM_TYPE, fix, data, COL_IDX);             \
+  }
+
+#define MARG_H(MARG, FACTOR_TYPE, FACTORS, NUM_FACTORS)                        \
+  for (size_t i = 0; i < NUM_FACTORS; i++) {                                   \
+    FACTOR_TYPE *factor = (FACTOR_TYPE *) FACTORS[i];                          \
+    solver_fill_hessian(marg->hash,                                            \
+                        factor->num_params,                                    \
+                        factor->params,                                        \
+                        factor->jacs,                                          \
+                        factor->r,                                             \
+                        factor->r_size,                                        \
+                        MARG->sv_size,                                         \
+                        MARG->H,                                               \
+                        MARG->g);                                              \
+  }
+
+#define PARAM_HASH(PARAM_TYPE, HASH_NAME)                                      \
+  typedef struct HASH_NAME {                                                   \
+    void *key;                                                                 \
+    PARAM_TYPE *value;                                                         \
+  } HASH_NAME;
+
+PARAM_HASH(pos_t, pos_hash_t)
+PARAM_HASH(rot_t, rot_hash_t)
+PARAM_HASH(pose_t, pose_hash_t)
+PARAM_HASH(extrinsic_t, extrinsic_hash_t)
+PARAM_HASH(fiducial_t, fiducial_hash_t)
+PARAM_HASH(velocity_t, velocity_hash_t)
+PARAM_HASH(feature_t, feature_hash_t)
+PARAM_HASH(joint_t, joint_hash_t)
+PARAM_HASH(camera_params_t, camera_params_hash_t)
+PARAM_HASH(time_delay_t, time_delay_hash_t)
+
+typedef struct param_order_t param_order_t;
+
+typedef struct marg_t {
   // Remain Parameters
   int num_remain_params;
   void **remain_param_ptrs;
@@ -2069,16 +2117,24 @@ typedef struct marginalizer_t {
   real_t *covar;
   real_t *sqrt_info;
 
-  // Residuals
+  // Hessian and residuals
+  param_order_t *hash;
+  int m_size;
   int r_size;
-  real_t *r;
+  int sv_size;
+  real_t *r0;
+  real_t *H;
+  real_t *g;
 
   // Jacobians
   real_t **jacs;
-} marginalizer_t;
+} marg_t;
 
-marginalizer_t *marginalizer_malloc();
-void marginalizer_free(marginalizer_t *factor);
+marg_t *marg_malloc();
+void marg_free(marg_t *marg);
+void marg_add(marg_t *marg, int factor_type, void *factor_ptr);
+void marg_form_hessian(marg_t *marg);
+void marg_marginalize(marg_t *marg);
 
 ////////////
 // SOLVER //
@@ -2444,7 +2500,7 @@ typedef struct calib_gimbal_t {
 
   // Variables
   timestamp_t *timestamps;
-  extrinsic_t fiducial_exts;
+  fiducial_t fiducial_exts;
   extrinsic_t gimbal_exts;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
@@ -2466,7 +2522,7 @@ calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
                                               const real_t *object_points,
                                               const real_t *keypoints,
                                               const int N,
-                                              extrinsic_t *fiducial_ext,
+                                              fiducial_t *fiducial_ext,
                                               extrinsic_t *gimbal_ext,
                                               pose_t *pose,
                                               extrinsic_t *link0,
@@ -2768,7 +2824,7 @@ typedef struct sim_gimbal_t {
   int num_joints;
   int num_cams;
 
-  extrinsic_t fiducial_ext;
+  fiducial_t fiducial_ext;
   pose_t gimbal_pose;
   extrinsic_t gimbal_ext;
   extrinsic_t *gimbal_links;

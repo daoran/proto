@@ -3543,19 +3543,13 @@ int test_camera_factor() {
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   // Project point from world to image plane
-  real_t T_WB[4 * 4] = {0};
-  real_t T_BW[4 * 4] = {0};
-  real_t T_BCi[4 * 4] = {0};
-  real_t T_CiB[4 * 4] = {0};
-  real_t T_CiW[4 * 4] = {0};
-  real_t p_Ci[3] = {0};
   real_t z[2];
-  tf(pose_data, T_WB);
-  tf(ext_data, T_BCi);
-  tf_inv(T_WB, T_BW);
-  tf_inv(T_BCi, T_CiB);
-  dot(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
-  tf_point(T_CiW, p_W, p_Ci);
+  TF(pose_data, T_WB);
+  TF(ext_data, T_BCi);
+  TF_INV(T_WB, T_BW);
+  TF_INV(T_BCi, T_CiB);
+  DOT(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
+  TF_POINT(T_CiW, p_W, p_Ci);
   pinhole_radtan4_project(cam_data, p_Ci, z);
 
   // Setup camera factor
@@ -4118,7 +4112,7 @@ typedef struct test_calib_imucam_data_t {
   real_t T_SC0[4 * 4];
   real_t T_C0Ci[4 * 4];
 
-  pose_t fiducial;     // T_WF
+  fiducial_t fiducial; // T_WF
   pose_t imu_pose;     // T_WB
   extrinsic_t imu_ext; // T_SC0
   extrinsic_t cam_ext; // T_C0Ci
@@ -4139,7 +4133,7 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   real_t r_WF[3] = {0.01, 0.01, 0.01};
   tf_er(ypr_WF, r_WF, data->T_WF);
   tf_vector(data->T_WF, fiducial_data);
-  pose_setup(&data->fiducial, 0, fiducial_data);
+  fiducial_setup(&data->fiducial, fiducial_data);
 
   // IMU pose T_WS
   real_t imu_pose_data[7] = {0};
@@ -4240,7 +4234,7 @@ int test_calib_imucam_factor() {
 }
 
 static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
-                                      extrinsic_t *fiducial_exts,
+                                      fiducial_t *fiducial_exts,
                                       extrinsic_t *gimbal_exts,
                                       pose_t *pose,
                                       extrinsic_t *link0,
@@ -4268,7 +4262,7 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
 
   real_t x_WF[7] = {0};
   tf_vector(T_WF, x_WF);
-  extrinsic_setup(fiducial_exts, x_WF);
+  fiducial_setup(fiducial_exts, x_WF);
 
   // Relative fiducial pose T_BF
   real_t T_BF[4 * 4] = {0};
@@ -4373,7 +4367,7 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
 
 int test_calib_gimbal_factor() {
   calib_gimbal_factor_t factor;
-  extrinsic_t fiducial_exts;
+  fiducial_t fiducial_exts;
   extrinsic_t gimbal_exts;
   pose_t pose;
   extrinsic_t link0;
@@ -4414,9 +4408,84 @@ int test_calib_gimbal_factor() {
   return 0;
 }
 
-int test_marginalizer() {
-  marginalizer_t *marg = marginalizer_malloc();
-  marginalizer_free(marg);
+int test_marg() {
+  // Timestamp
+  timestamp_t ts = 0;
+
+  // Body pose T_WB
+  pose_t pose_i;
+  const real_t pose_i_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  pose_setup(&pose_i, ts, pose_i_data);
+  pose_i.marginalize = 1;
+
+  pose_t pose_j;
+  const real_t pose_j_data[7] = {0.01, 0.01, 0.01, 1.0, 0.0, 0.0, 0.0};
+  pose_setup(&pose_j, ts, pose_j_data);
+
+  // Extrinsic T_BC
+  extrinsic_t cam_ext;
+  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, 0.5, -0.5, -0.5};
+  extrinsic_setup(&cam_ext, ext_data);
+
+  // Feature p_W
+  feature_t feature;
+  const real_t p_W[3] = {1.0, 0.0, 0.0};
+  feature_setup(&feature, 0, p_W);
+
+  // Camera parameters
+  camera_params_t cam;
+  const int cam_idx = 0;
+  const int cam_res[2] = {640, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_data[8] = {320, 240, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+
+  // Project point from world to image plane
+  TF(pose_i_data, T_WB_i);
+  TF(pose_j_data, T_WB_j);
+  TF(ext_data, T_BCi);
+  TF_INV(T_BCi, T_CiB);
+  TF_INV(T_WB_i, T_BW_i);
+  TF_INV(T_WB_j, T_BW_j);
+  DOT(T_CiB, 4, 4, T_BW_i, 4, 4, T_CiW_i);
+  DOT(T_CiB, 4, 4, T_BW_j, 4, 4, T_CiW_j);
+  TF_POINT(T_CiW_i, p_W, p_Ci_i);
+  TF_POINT(T_CiW_j, p_W, p_Ci_j);
+
+  real_t z_i[2];
+  real_t z_j[2];
+  pinhole_radtan4_project(cam_data, p_Ci_i, z_i);
+  pinhole_radtan4_project(cam_data, p_Ci_j, z_j);
+
+  // Setup camera factor
+  camera_factor_t cam_factor_i;
+  camera_factor_t cam_factor_j;
+  real_t var[2] = {1.0, 1.0};
+  camera_factor_setup(&cam_factor_i,
+                      &pose_i,
+                      &cam_ext,
+                      &feature,
+                      &cam,
+                      z_i,
+                      var);
+  camera_factor_setup(&cam_factor_j,
+                      &pose_j,
+                      &cam_ext,
+                      &feature,
+                      &cam,
+                      z_j,
+                      var);
+
+  // Setup
+  marg_t *marg = marg_malloc();
+  marg_add(marg, CAMERA_FACTOR, &cam_factor_i);
+  marg_add(marg, CAMERA_FACTOR, &cam_factor_j);
+
+  marg_marginalize(marg);
+
+  // Clean up
+  marg_free(marg);
 
   return 0;
 }
@@ -5742,7 +5811,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_factor);
   MU_ADD_TEST(test_calib_imucam_factor);
   MU_ADD_TEST(test_calib_gimbal_factor);
-  MU_ADD_TEST(test_marginalizer);
+  MU_ADD_TEST(test_marg);
   MU_ADD_TEST(test_inertial_odometry);
   MU_ADD_TEST(test_tsif);
 #ifdef USE_CERES
