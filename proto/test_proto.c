@@ -4412,16 +4412,6 @@ int test_marg() {
   // Timestamp
   timestamp_t ts = 0;
 
-  // Body pose T_WB
-  pose_t pose_i;
-  const real_t pose_i_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose_i, ts, pose_i_data);
-  pose_i.marginalize = 1;
-
-  pose_t pose_j;
-  const real_t pose_j_data[7] = {0.01, 0.01, 0.01, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose_j, ts, pose_j_data);
-
   // Extrinsic T_BC
   extrinsic_t cam_ext;
   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, 0.5, -0.5, -0.5};
@@ -4436,53 +4426,76 @@ int test_marg() {
   const real_t cam_data[8] = {320, 240, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
-  // Feature p_W
-  feature_t feature;
-  const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_setup(&feature, 0, p_W);
+  // Setup features and poses
+  int num_poses = 10;
+  int num_features = 100;
+  pose_t poses[10] = {0};
+  feature_t features[100] = {0};
+  real_t points[100 * 3] = {0};
+  real_t keypoints[100 * 2] = {0};
+  camera_factor_t factors[10 * 100];
 
-  // Project point from world to image plane
-  TF(pose_i_data, T_WB_i);
-  TF(pose_j_data, T_WB_j);
-  TF(ext_data, T_BCi);
-  TF_INV(T_BCi, T_CiB);
-  TF_INV(T_WB_i, T_BW_i);
-  TF_INV(T_WB_j, T_BW_j);
-  DOT(T_CiB, 4, 4, T_BW_i, 4, 4, T_CiW_i);
-  DOT(T_CiB, 4, 4, T_BW_j, 4, 4, T_CiW_j);
-  TF_POINT(T_CiW_i, p_W, p_Ci_i);
-  TF_POINT(T_CiW_j, p_W, p_Ci_j);
+  for (int i = 0; i < num_features; i++) {
+    const real_t dx = randf(-0.5, 0.5);
+    const real_t dy = randf(-0.5, 0.5);
+    const real_t dz = randf(-0.5, 0.5);
+    const real_t p_W[3] = {5.0 + dx, 0.0 + dy, 0.0 + dz};
+    feature_t *feature = &features[i];
+    feature_setup(feature, 0, p_W);
+    points[i * 3 + 0] = p_W[0];
+    points[i * 3 + 1] = p_W[1];
+    points[i * 3 + 2] = p_W[2];
+  }
 
-  real_t z_i[2];
-  real_t z_j[2];
-  pinhole_radtan4_project(cam_data, p_Ci_i, z_i);
-  pinhole_radtan4_project(cam_data, p_Ci_j, z_j);
+  int factor_idx = 0;
+  for (int k = 0; k < num_poses; k++) {
+    // Body pose T_WB
+    const real_t dx = randf(-0.05, 0.05);
+    const real_t dy = randf(-0.05, 0.05);
+    const real_t dz = randf(-0.05, 0.05);
 
-  // Setup camera factor
-  camera_factor_t cam_factor_i;
-  camera_factor_t cam_factor_j;
-  real_t var[2] = {1.0, 1.0};
-  camera_factor_setup(&cam_factor_i,
-                      &pose_i,
-                      &cam_ext,
-                      &feature,
-                      &cam,
-                      z_i,
-                      var);
-  camera_factor_setup(&cam_factor_j,
-                      &pose_j,
-                      &cam_ext,
-                      &feature,
-                      &cam,
-                      z_j,
-                      var);
-  camera_factor_eval(&cam_factor_i);
-  camera_factor_eval(&cam_factor_j);
+    const real_t droll = randf(-0.1, 0.1);
+    const real_t dpitch = randf(-0.1, 0.1);
+    const real_t dyaw = randf(-0.1, 0.1);
+    const real_t ypr[3] = {dyaw, dpitch, droll};
+    real_t q[4] = {0};
+    euler2quat(ypr, q);
+
+    pose_t *pose = &poses[k];
+    real_t pose_data[7] = {dx, dy, dz, q[0], q[1], q[2], q[3]};
+    pose_setup(pose, ts + k, pose_data);
+    pose->marginalize = (k == 0) ? 1 : 0;
+
+    for (int i = 0; i < num_features; i++) {
+      // Project point from world to image plane
+      real_t *p_W = &points[i * 3];
+      TF(pose_data, T_WB);
+      TF(ext_data, T_BCi);
+      TF_INV(T_BCi, T_CiB);
+      TF_INV(T_WB, T_BW);
+      DOT(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
+      TF_POINT(T_CiW, p_W, p_Ci);
+
+      real_t z[2];
+      pinhole_radtan4_project(cam_data, p_Ci, z);
+      keypoints[i * 2 + 0] = z[0];
+      keypoints[i * 2 + 1] = z[1];
+
+      // Setup camera factor
+      camera_factor_t *cam_factor = &factors[factor_idx];
+      feature_t *feature = &features[i];
+      real_t var[2] = {1.0, 1.0};
+      camera_factor_setup(cam_factor, pose, &cam_ext, feature, &cam, z, var);
+      camera_factor_eval(cam_factor);
+      factor_idx++;
+    }
+  }
 
   // Setup
   marg_t *marg = marg_malloc();
-  marg_add(marg, CAMERA_FACTOR, &cam_factor_i);
-  marg_add(marg, CAMERA_FACTOR, &cam_factor_j);
+  for (int i = 0; i < (num_poses * num_features); i++) {
+    marg_add(marg, CAMERA_FACTOR, &factors[i]);
+  }
   marg_marginalize(marg);
 
   // Clean up

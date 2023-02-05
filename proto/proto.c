@@ -11379,16 +11379,15 @@ void marg_marginalize(marg_t *marg) {
   marg_form_hessian(marg, &H, &g);
 
   // Compute Schurs Complement
-  const int local_size = marg->m_size + marg->r_size;
-  real_t *H_marg = MALLOC(real_t, marg->r_size * marg->r_size);
-  real_t *b_marg = MALLOC(real_t, marg->r_size * 1);
-  schur_complement(H,
-                   g,
-                   local_size,
-                   marg->m_size,
-                   marg->r_size,
-                   H_marg,
-                   b_marg);
+  const int m = marg->m_size;
+  const int r = marg->r_size;
+  const int local_size = m + r;
+  real_t *H_marg = MALLOC(real_t, r * r);
+  real_t *b_marg = MALLOC(real_t, r * 1);
+  schur_complement(H, g, local_size, m, r, H_marg, b_marg);
+
+  mat_save("/tmp/H.csv", H, local_size, local_size);
+  mat_save("/tmp/H_marg.csv", H_marg, r, r);
 
   // Decompose H into J'and J, and in the process also obtain inv(J).
   // Hessian H can be decomposed via Eigen-decomposition:
@@ -11397,44 +11396,43 @@ void marg_marginalize(marg_t *marg) {
   //   J = diag(w^{0.5}) * V'
   //
   // -- Setup
-  const int sv_size = marg->r_size;
-  real_t *J = CALLOC(real_t, sv_size * sv_size);
-  real_t *J_inv = CALLOC(real_t, sv_size * sv_size);
-  real_t *V = CALLOC(real_t, sv_size * sv_size);
-  real_t *Vt = CALLOC(real_t, sv_size * sv_size);
-  real_t *w = CALLOC(real_t, sv_size);
-  real_t *W_inv = CALLOC(real_t, sv_size * sv_size);
-  real_t *W_inv_sqrt = CALLOC(real_t, sv_size * sv_size);
+  real_t *J = CALLOC(real_t, r * r);
+  real_t *J_inv = CALLOC(real_t, r * r);
+  real_t *V = CALLOC(real_t, r * r);
+  real_t *Vt = CALLOC(real_t, r * r);
+  real_t *w = CALLOC(real_t, r);
+  real_t *W_inv = CALLOC(real_t, r * r);
+  real_t *W_inv_sqrt = CALLOC(real_t, r * r);
   // -- Enforce symmetry: H = 0.5 * (H + H')
-  enforce_spd(H_marg, sv_size, sv_size);
+  enforce_spd(H_marg, r, r);
   // -- Eigen decomposition
-  if (eig_sym(H_marg, sv_size, sv_size, V, w) != 0) {
+  if (eig_sym(H_marg, r, r, V, w) != 0) {
     goto cleanup;
   }
-  mat_transpose(V, sv_size, sv_size, Vt);
+  mat_transpose(V, r, r, Vt);
   // -- Form J and J_inv:
   //
   //   J = diag(w^0.5) * V'
   //   J_inv = diag(w^-0.5) * V'
   //
   const real_t tol = 1e-12;
-  for (int i = 0; i < sv_size; i++) {
+  for (int i = 0; i < r; i++) {
     if (w[i] > tol) {
-      W_inv[(i * sv_size) + i] = 1.0 / w[i];
-      W_inv_sqrt[(i * sv_size) + i] = sqrt(1.0 / w[i]);
+      W_inv[(i * r) + i] = 1.0 / w[i];
+      W_inv_sqrt[(i * r) + i] = sqrt(1.0 / w[i]);
     } else {
-      W_inv[(i * sv_size) + i] = 0.0;
-      W_inv_sqrt[(i * sv_size) + i] = 0.0;
+      W_inv[(i * r) + i] = 0.0;
+      W_inv_sqrt[(i * r) + i] = 0.0;
     }
   }
-  dot(W_inv_sqrt, sv_size, sv_size, Vt, sv_size, sv_size, J);
-  dot(W_inv, sv_size, sv_size, Vt, sv_size, sv_size, J_inv);
-  mat_scale(J_inv, sv_size, sv_size, -1.0);
+  dot(W_inv_sqrt, r, r, Vt, r, r, J);
+  dot(W_inv, r, r, Vt, r, r, J_inv);
+  mat_scale(J_inv, r, r, -1.0);
 
   // Track Linearized residuals, jacobians and linearization point x0
   // -- Linearized residuals: r0 = -J_inv * b_marg;
-  marg->r0 = MALLOC(real_t, sv_size);
-  dot(J_inv, sv_size, sv_size, b_marg, sv_size, 1, marg->r0);
+  marg->r0 = MALLOC(real_t, r);
+  dot(J_inv, r, r, b_marg, r, 1, marg->r0);
   // -- Linearized jacobians: J0 = J;
   marg->J0 = J;
   // -- Linearization point x0
