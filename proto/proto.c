@@ -5710,8 +5710,8 @@ void linear_triangulation(const real_t P_i[3 * 4],
  *
  * A Homography is a transformation (a 3x3 matrix) that maps the normalized
  * image points from one image to the corresponding normalized image points in
- * the other image. Specifically, let x and y be the n-th homogeneous points of
- * pts_i and pts_j:
+ * the other image. Specifically, let x and y be the n-th homogeneous points
+ * of pts_i and pts_j:
  *
  *   x = [u_i, v_i, 1.0]
  *   y = [u_j, v_j, 1.0]
@@ -5816,9 +5816,9 @@ int homography_pose(const real_t *proj_params,
                     const int N,
                     real_t T_CF[4 * 4]) {
   // Form A to compute ||Ah|| = 0 using SVD, where A is an (N * 2) x 9 matrix
-  // and h is the vectorized Homography matrix h, N is the number of points. if
-  // N == 4, the matrix has more columns than rows. The solution is to add an
-  // extra line with zeros.
+  // and h is the vectorized Homography matrix h, N is the number of points.
+  // if N == 4, the matrix has more columns than rows. The solution is to add
+  // an extra line with zeros.
   const int num_rows = 2 * N + ((N == 4) ? 1 : 0);
   const int num_cols = 9;
   const real_t fx = proj_params[0];
@@ -5992,8 +5992,8 @@ static int kneip_solve_quadratic(const real_t factors[5],
 /**
  * Kneip's Perspective-3-Point solver.
  *
- * This function uses 3 2D point correspondants to 3D features to determine the
- * camera pose.
+ * This function uses 3 2D point correspondants to 3D features to determine
+ * the camera pose.
  *
  * Source: Kneip, Laurent, Davide Scaramuzza, and Roland Siegwart. "A novel
  * parametrization of the perspective-three-point problem for a direct
@@ -7355,21 +7355,17 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 // UTILS //
 ///////////
 
-int schurs_complement(const real_t *H,
-                      const int H_m,
-                      const int H_n,
-                      const real_t *b,
-                      const int b_m,
-                      const int m,
-                      const int r,
-                      real_t *H_marg,
-                      real_t *b_marg) {
+int schur_complement(const real_t *H,
+                     const real_t *b,
+                     const int H_size,
+                     const int m,
+                     const int r,
+                     real_t *H_marg,
+                     real_t *b_marg) {
   assert(H != NULL);
-  assert(H_m > 0 && H_n > 0);
-  assert(H_m == H_n);
   assert(b);
-  assert(b_m > 0);
-  assert((m + r) == H_m);
+  assert(H_size > 0);
+  assert((m + r) == H_size);
   assert(H_marg != NULL && b_marg != NULL);
 
   // Extract sub-blocks of matrix H
@@ -7380,10 +7376,11 @@ int schurs_complement(const real_t *H,
   real_t *Hrm = MALLOC(real_t, m * r);
   real_t *Hrr = MALLOC(real_t, r * r);
   real_t *Hmm_inv = MALLOC(real_t, m * m);
-  mat_block_get(H, H_n, 0, m, 0, m, Hmm);
-  mat_block_get(H, H_n, 0, m, m, H_n, Hmr);
-  mat_block_get(H, H_n, m, 0, 0, 0, Hrm);
-  mat_block_get(H, H_n, m, m + r, m, m + r, Hrr);
+
+  mat_block_get(H, H_size, 0, m - 1, 0, m - 1, Hmm);
+  mat_block_get(H, H_size, 0, m - 1, m, H_size - 1, Hmr);
+  mat_block_get(H, H_size, m, H_size - 1, 0, m - 1, Hrm);
+  mat_block_get(H, H_size, m, H_size - 1, m, H_size - 1, Hrr);
 
   // Extract sub-blocks of vector b
   // b = [b_mm, b_rr]
@@ -7404,7 +7401,7 @@ int schurs_complement(const real_t *H,
   // b_marg = b_rr - H_rm * H_mm_inv * b_mm
   if (status == 0) {
     dot3(Hrm, r, m, Hmm_inv, m, m, Hmr, m, r, H_marg);
-    dot3(Hrm, r, m, Hmm_inv, m, m, bmm, m, r, b_marg);
+    dot3(Hrm, r, m, Hmm_inv, m, m, bmm, m, 1, b_marg);
     for (int i = 0; i < (m * m); i++) {
       H_marg[i] = Hrr[i] - H_marg[i];
     }
@@ -11208,17 +11205,8 @@ error:
 marg_t *marg_malloc() {
   marg_t *marg = MALLOC(marg_t, 1);
 
-  // Remain parameters
-  marg->num_remain_params = 0;
-  marg->remain_param_ptrs = NULL;
-  marg->remain_param_types = NULL;
-  marg->remain_param_capacity = MARGINALIZER_CAPACITY_INIT;
-
-  // Marginal parameters
-  marg->num_marg_params = 0;
-  marg->marg_param_ptrs = NULL;
-  marg->marg_param_types = NULL;
-  marg->marg_param_capacity = MARGINALIZER_CAPACITY_INIT;
+  // Flags
+  marg->marginalized = 0;
 
   // Factors
   marg->num_factors = 0;
@@ -11232,10 +11220,9 @@ marg_t *marg_malloc() {
 
   // Residuals
   marg->hash = NULL;
+  marg->m_size = 0;
   marg->r_size = 0;
   marg->r0 = NULL;
-  marg->H = NULL;
-  marg->g = NULL;
 
   // Jacobians
   marg->jacs = NULL;
@@ -11244,14 +11231,6 @@ marg_t *marg_malloc() {
 }
 
 void marg_free(marg_t *factor) {
-  // Remain parameters
-  free(factor->remain_param_ptrs);
-  free(factor->remain_param_types);
-
-  // Marginal parameters
-  free(factor->marg_param_ptrs);
-  free(factor->marg_param_types);
-
   // Factors
   free(factor->factors);
   free(factor->factor_types);
@@ -11263,47 +11242,17 @@ void marg_free(marg_t *factor) {
   // Residuals
   hmfree(factor->hash);
   free(factor->r0);
-  free(factor->H);
-  free(factor->g);
 
   // Jacobians
-  for (int i = 0; i < factor->num_remain_params; i++) {
-    free(factor->jacs[i]);
-  }
-  free(factor->jacs);
+  // for (int i = 0; i < factor->num_remain_params; i++) {
+  //   free(factor->jacs[i]);
+  // }
+  // free(factor->jacs);
 
   free(factor);
 }
 
 static void marg_resize(marg_t *marg, const int r, const int m) {
-  // Extend remain parameters capacity
-  if ((marg->num_remain_params + r) >= marg->remain_param_capacity) {
-    const size_t os = marg->remain_param_capacity;
-    const size_t ns = os * MARGINALIZER_CAPACITY_GROWTH;
-    marg->remain_param_ptrs = REALLOC(marg->remain_param_ptrs, void *, ns);
-    marg->remain_param_types = REALLOC(marg->remain_param_types, int, ns);
-    marg->remain_param_capacity = ns;
-
-    for (size_t i = os; i < ns; i++) {
-      marg->remain_param_ptrs[i] = NULL;
-      marg->remain_param_types[i] = -1;
-    }
-  }
-
-  // Extend marg parameters capacity
-  if ((marg->num_marg_params + m) >= marg->marg_param_capacity) {
-    const size_t os = marg->marg_param_capacity;
-    const size_t ns = os * MARGINALIZER_CAPACITY_GROWTH;
-    marg->marg_param_ptrs = REALLOC(marg->marg_param_ptrs, void *, ns);
-    marg->marg_param_types = REALLOC(marg->marg_param_types, int, ns);
-    marg->marg_param_capacity = ns;
-
-    for (size_t i = os; i < ns; i++) {
-      marg->marg_param_ptrs[i] = NULL;
-      marg->marg_param_types[i] = -1;
-    }
-  }
-
   // Extend factors capacity
   if ((marg->num_factors + 1) >= marg->factors_capacity) {
     const size_t os = marg->factors_capacity;
@@ -11325,7 +11274,7 @@ void marg_add(marg_t *marg, int factor_type, void *factor_ptr) {
   marg->num_factors++;
 }
 
-void marg_form_hessian(marg_t *marg) {
+void marg_form_hessian(marg_t *marg, real_t **H, real_t **g) {
   // Track parameters
   // -- Remain parameters
   pos_hash_t *remain_positions = NULL;
@@ -11386,16 +11335,15 @@ void marg_form_hessian(marg_t *marg) {
   MARG_INDEX(remain_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r_sz);
   MARG_INDEX(remain_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r_sz);
 
-  // Allocate memory for residuals and Hessian
+  // Allocate memory LHS and RHS of Gauss newton
   marg->m_size = m_sz;
   marg->r_size = r_sz;
-  marg->sv_size = m_sz + r_sz;
-  marg->r0 = MALLOC(real_t, r_sz);
-  marg->H = MALLOC(real_t, marg->sv_size * marg->sv_size);
-  marg->g = MALLOC(real_t, marg->sv_size * 1);
+  const int ls = m_sz + r_sz;
+  *H = CALLOC(real_t, ls * ls);
+  *g = CALLOC(real_t, ls * 1);
 
   // Fill Hessian
-  MARG_H(marg, camera_factor_t, marg->factors, marg->num_factors);
+  MARG_H(marg, camera_factor_t, marg->factors, marg->num_factors, *H, *g, ls);
 
   // Clean up
   // -- Hash
@@ -11426,59 +11374,148 @@ void marg_form_hessian(marg_t *marg) {
 
 void marg_marginalize(marg_t *marg) {
   // Form Hessian and RHS of Gauss newton
-  marg_form_hessian(marg);
+  real_t *H = NULL;
+  real_t *g = NULL;
+  marg_form_hessian(marg, &H, &g);
 
   // Compute Schurs Complement
-  // schurs_complement(H, b, m_, r_, H_marg, b_marg);
+  const int local_size = marg->m_size + marg->r_size;
+  real_t *H_marg = MALLOC(real_t, marg->r_size * marg->r_size);
+  real_t *b_marg = MALLOC(real_t, marg->r_size * 1);
+  schur_complement(H,
+                   g,
+                   local_size,
+                   marg->m_size,
+                   marg->r_size,
+                   H_marg,
+                   b_marg);
 
-  // Decompose matrix H into J' * J to obtain J via eigen-decomposition
-  // i.e.
+  // Decompose H into J'and J, and in the process also obtain inv(J).
+  // Hessian H can be decomposed via Eigen-decomposition:
   //
-  //   H = J' * J = U * S * U'
-  //   J = S^{0.5} * U'
+  //   H = J' * J = V * diag(w) * V'
+  //   J = diag(w^{0.5}) * V'
   //
-  // clang-format off
-  // H_marg = 0.5 * (H_marg + H_marg.transpose()); // Enforce Symmetry
-  // const Eigen::SelfAdjointEigenSolver<matx_t> eig(H_marg);
-  // const double eps = std::numeric_limits<double>::epsilon();
-  // const double tol = eps * H_marg.cols() * eig.eigenvalues().array().maxCoeff();
-  // const vecx_t S = (eig.eigenvalues().array() > tol).select(eig.eigenvalues().array(), 0.0);
-  // const vecx_t S_inv = (eig.eigenvalues().array() > tol).select(eig.eigenvalues().array().inverse(), 0);
-  // const vecx_t S_sqrt = S.cwiseSqrt();
-  // const vecx_t S_inv_sqrt = S_inv.cwiseSqrt();
-  // const matx_t J = S_sqrt.asDiagonal() * eig.eigenvectors().transpose();
-  // const matx_t J_inv = S_inv_sqrt.asDiagonal() * eig.eigenvectors().transpose();
-  // // -- Check decomposition
-  // const real_t decomp_norm = ((J.transpose() * J) - H_marg).norm();
-  // const bool decomp_check = decomp_norm < 1.0e-2;
-  // if (decomp_check == false) {
-  //   LOG_WARN("Decompose JtJ check: %f", decomp_norm);
-  //   LOG_WARN("This is bad ... Usually means marg_residual_t is bad!");
-  // }
-  // clang-format on
+  // -- Setup
+  const int sv_size = marg->r_size;
+  real_t *J = CALLOC(real_t, sv_size * sv_size);
+  real_t *J_inv = CALLOC(real_t, sv_size * sv_size);
+  real_t *V = CALLOC(real_t, sv_size * sv_size);
+  real_t *Vt = CALLOC(real_t, sv_size * sv_size);
+  real_t *w = CALLOC(real_t, sv_size);
+  real_t *W_inv = CALLOC(real_t, sv_size * sv_size);
+  real_t *W_inv_sqrt = CALLOC(real_t, sv_size * sv_size);
+  // -- Enforce symmetry: H = 0.5 * (H + H')
+  enforce_spd(H_marg, sv_size, sv_size);
+  // -- Eigen decomposition
+  if (eig_sym(H_marg, sv_size, sv_size, V, w) != 0) {
+    goto cleanup;
+  }
+  mat_transpose(V, sv_size, sv_size, Vt);
+  // -- Form J and J_inv:
+  //
+  //   J = diag(w^0.5) * V'
+  //   J_inv = diag(w^-0.5) * V'
+  //
+  const real_t tol = 1e-12;
+  for (int i = 0; i < sv_size; i++) {
+    if (w[i] > tol) {
+      W_inv[(i * sv_size) + i] = 1.0 / w[i];
+      W_inv_sqrt[(i * sv_size) + i] = sqrt(1.0 / w[i]);
+    } else {
+      W_inv[(i * sv_size) + i] = 0.0;
+      W_inv_sqrt[(i * sv_size) + i] = 0.0;
+    }
+  }
+  dot(W_inv_sqrt, sv_size, sv_size, Vt, sv_size, sv_size, J);
+  dot(W_inv, sv_size, sv_size, Vt, sv_size, sv_size, J_inv);
+  mat_scale(J_inv, sv_size, sv_size, -1.0);
 
-  // // Form:
-  // // - Linearized jacobians
-  // // - Linearized residuals
-  // // - Linearization point x0
-  // J0_ = J;
-  // r0_ = -J_inv * b_marg;
+  // Track Linearized residuals, jacobians and linearization point x0
+  // -- Linearized residuals: r0 = -J_inv * b_marg;
+  marg->r0 = MALLOC(real_t, sv_size);
+  dot(J_inv, sv_size, sv_size, b_marg, sv_size, 1, marg->r0);
+  // -- Linearized jacobians: J0 = J;
+  marg->J0 = J;
+  // -- Linearization point x0
   // for (const auto &param_block : remain_param_ptrs_) {
   //   x0_.insert({param_block->param.data(), param_block->param});
   // }
 
-  // Copy parameters and residuals to be removed
-  // IMPORTANT NOTE: By doing this, this transfers ownership out of
-  // marg_residual_t. This means you have to free it yourself outside of
-  // marg_residual_t.
-  // marg_params = marg_param_ptrs_;
-  // marg_residuals = res_blocks_;
-  // Clear the pointers in the member variables
-  // marg_param_ptrs_.clear();
-  // res_blocks_.clear();
+  // Form First-Estimate Jacobians (FEJ)
+  // const size_t J_rows = r0_.rows();
+  // for (size_t i = 0; i < remain_param_ptrs_.size(); i++) {
+  //   if (jacs[i] != nullptr) {
+  //     const auto &param = remain_param_ptrs_[i];
+  //     const size_t index = param_index_.at(param) - m_;
+  //     const size_t J_cols = param->global_size;
+  //     const matx_t J_min = J0_.middleCols(index, param->local_size);
+
+  //     // Local-Jacobian
+  //     if (min_jacs && min_jacs[i]) {
+  //       Eigen::Map<matx_row_major_t> min_J(min_jacs[i],
+  //                                          J_min.rows(),
+  //                                          J_min.cols());
+  //       min_J = J_min;
+  //     }
+  //   }
+  // }
+
+  // Clean up
+cleanup:
+  free(H);
+  free(g);
+  free(H_marg);
+  free(b_marg);
+
+  free(J);
+  free(J_inv);
+  free(V);
+  free(Vt);
+  free(w);
+  free(W_inv);
+  free(W_inv_sqrt);
 
   // Update state
-  // marginalized_ = true;
+  marg->marginalized = 1;
+}
+
+int marg_eval(void *marg_ptr) {
+  assert(marg_ptr);
+
+  // Map factor
+  marg_t *marg = (marg_t *) marg_ptr;
+  assert(marg->marginalized);
+
+  // Compute residuals
+  // r = r0 + J0 * dchi;
+  // // -- Compute dchi vector
+  // vecx_t DeltaChi(r0_.size());
+  // for (size_t i = 0; i < remain_param_ptrs_.size(); i++) {
+  //   const auto param_block = remain_param_ptrs_[i];
+  //   const auto idx = param_index_.at(param_block) - m_;
+  //   const vecx_t x0_i = x0_.at(param_block->param.data());
+  //   const size_t size = param_block->global_size;
+  //   const Eigen::Map<const vecx_t> x(params[i], size);
+
+  //   // Calculate i-th DeltaChi
+  //   if (is_pose(param_block)) {
+  //     // Pose minus
+  //     const vec3_t dr = x.head<3>() - x0_i.head<3>();
+  //     const quat_t q_i(x(6), x(3), x(4), x(5));
+  //     const quat_t q_j(x0_i(6), x0_i(3), x0_i(4), x0_i(5));
+  //     const quat_t dq = q_i * q_j.inverse();
+  //     DeltaChi.segment<3>(idx + 0) = dr;
+  //     DeltaChi.segment<3>(idx + 3) = 2.0 * dq.vec();
+  //   } else {
+  //     // Trivial minus
+  //     DeltaChi.segment(idx, size) = x - x0_i;
+  //   }
+  // }
+  // real_t *dchi;
+  // marg_compute_delta_chi(marg, dchi);
+
+  return 0;
 }
 
 ////////////

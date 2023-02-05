@@ -1273,15 +1273,13 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 // UTILS //
 ///////////
 
-int schurs_complement(const real_t *H,
-                      const int H_m,
-                      const int H_n,
-                      const real_t *b,
-                      const int b_m,
-                      const int m,
-                      const int r,
-                      real_t *H_marg,
-                      real_t *b_marg);
+int schur_complement(const real_t *H,
+                     const real_t *b,
+                     const int H_size,
+                     const int m,
+                     const int r,
+                     real_t *H_marg,
+                     real_t *b_marg);
 int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
 
 //////////////
@@ -2061,7 +2059,7 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
     param_order_add(&PARAM_ORDER, PARAM_TYPE, fix, data, COL_IDX);             \
   }
 
-#define MARG_H(MARG, FACTOR_TYPE, FACTORS, NUM_FACTORS)                        \
+#define MARG_H(MARG, FACTOR_TYPE, FACTORS, NUM_FACTORS, H, G, LOCAL_SIZE)      \
   for (size_t i = 0; i < NUM_FACTORS; i++) {                                   \
     FACTOR_TYPE *factor = (FACTOR_TYPE *) FACTORS[i];                          \
     solver_fill_hessian(marg->hash,                                            \
@@ -2070,9 +2068,9 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
                         factor->jacs,                                          \
                         factor->r,                                             \
                         factor->r_size,                                        \
-                        MARG->sv_size,                                         \
-                        MARG->H,                                               \
-                        MARG->g);                                              \
+                        LOCAL_SIZE,                                            \
+                        H,                                                     \
+                        G);                                                    \
   }
 
 #define PARAM_HASH(PARAM_TYPE, HASH_NAME)                                      \
@@ -2092,26 +2090,24 @@ PARAM_HASH(joint_t, joint_hash_t)
 PARAM_HASH(camera_params_t, camera_params_hash_t)
 PARAM_HASH(time_delay_t, time_delay_hash_t)
 
-typedef struct param_order_t param_order_t;
+typedef struct param_order_t param_order_t; // Forward declartion
 
 typedef struct marg_t {
-  // Remain Parameters
-  int num_remain_params;
-  void **remain_param_ptrs;
-  int *remain_param_types;
-  size_t remain_param_capacity;
-
-  // Marginal Parameters
-  int num_marg_params;
-  void **marg_param_ptrs;
-  int *marg_param_types;
-  size_t marg_param_capacity;
+  // Flags
+  int marginalized;
 
   // Factors
   int num_factors;
   void **factors;
   int *factor_types;
   int factors_capacity;
+
+  list_t *ba_factors;
+  list_t *camera_factors;
+  list_t *idf_factors;
+  list_t *imu_factors;
+  list_t *calib_camera_factors;
+  list_t *calib_vi_factors;
 
   // Covariance and square-root info
   real_t *covar;
@@ -2121,20 +2117,21 @@ typedef struct marg_t {
   param_order_t *hash;
   int m_size;
   int r_size;
-  int sv_size;
   real_t *r0;
-  real_t *H;
-  real_t *g;
+  real_t *J0;
 
-  // Jacobians
+  // Parameters, residuals and Jacobians (needed by the solver)
+  real_t **params;
+  real_t *r;
   real_t **jacs;
 } marg_t;
 
 marg_t *marg_malloc();
 void marg_free(marg_t *marg);
 void marg_add(marg_t *marg, int factor_type, void *factor_ptr);
-void marg_form_hessian(marg_t *marg);
+void marg_form_hessian(marg_t *marg, real_t **H, real_t **g);
 void marg_marginalize(marg_t *marg);
+int marg_eval(void *marg_ptr);
 
 ////////////
 // SOLVER //

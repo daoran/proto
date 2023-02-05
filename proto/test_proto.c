@@ -4427,11 +4427,6 @@ int test_marg() {
   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, 0.5, -0.5, -0.5};
   extrinsic_setup(&cam_ext, ext_data);
 
-  // Feature p_W
-  feature_t feature;
-  const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_setup(&feature, 0, p_W);
-
   // Camera parameters
   camera_params_t cam;
   const int cam_idx = 0;
@@ -4440,6 +4435,11 @@ int test_marg() {
   const char *dist_model = "radtan4";
   const real_t cam_data[8] = {320, 240, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+
+  // Feature p_W
+  feature_t feature;
+  const real_t p_W[3] = {1.0, 0.0, 0.0};
+  feature_setup(&feature, 0, p_W);
 
   // Project point from world to image plane
   TF(pose_i_data, T_WB_i);
@@ -4476,12 +4476,13 @@ int test_marg() {
                       &cam,
                       z_j,
                       var);
+  camera_factor_eval(&cam_factor_i);
+  camera_factor_eval(&cam_factor_j);
 
   // Setup
   marg_t *marg = marg_malloc();
   marg_add(marg, CAMERA_FACTOR, &cam_factor_i);
   marg_add(marg, CAMERA_FACTOR, &cam_factor_j);
-
   marg_marginalize(marg);
 
   // Clean up
