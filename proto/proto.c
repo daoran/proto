@@ -4993,7 +4993,7 @@ void pose_get_quat(const real_t p[7], real_t q[4]) {
 }
 
 /**
- * Pose difference between `pose0` and `pose`, returns difference in
+ * Pose difference between `pose0` and `pose1`, returns difference in
  * translation and rotation `diff`.
  */
 void pose_diff(const real_t pose0[7], const real_t pose1[7], real_t diff[6]) {
@@ -5022,7 +5022,7 @@ void pose_diff(const real_t pose0[7], const real_t pose1[7], real_t diff[6]) {
 }
 
 /**
- * Pose difference between `pose0` and `pose`, returns difference in
+ * Pose difference between `pose0` and `pose1`, returns difference in
  * translation `dr` and rotation angle `dtheta` in radians.
  */
 void pose_diff2(const real_t pose0[7],
@@ -11499,7 +11499,8 @@ static void marg_factor_decomp_hessian(marg_factor_t *marg,
   dot(W_inv_sqrt, r, r, Vt, r, r, *J_inv);
   mat_scale(*J_inv, r, r, -1.0);
   marg->eigen_decomp_ok = 1;
-  // -- Check J' * J == H_marg
+
+  // Check J' * J == H_marg
   if (marg->debug) {
     real_t *Jt = CALLOC(real_t, r * r);
     real_t *H_ = CALLOC(real_t, r * r);
@@ -11520,7 +11521,8 @@ static void marg_factor_decomp_hessian(marg_factor_t *marg,
     free(Jt);
     free(H_);
   }
-  // -- Check J_inv * J == eye
+
+  // Check J_inv * J == eye
   if (marg->debug) {
     if (check_inv(*J_inv, *J, r) != 0) {
       marg->eigen_decomp_ok = 0;
