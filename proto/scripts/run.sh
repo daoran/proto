@@ -396,8 +396,8 @@ dev_euroc() {
 # run_test test_calib_camera_factor
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
-run_test test_marg
-# run_test test_inertial_odometry
+# run_test test_marg
+run_test test_inertial_odometry
 # run_test test_tsif
 # run_test test_ceres_example
 # run_test test_solver_setup

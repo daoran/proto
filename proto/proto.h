@@ -2206,6 +2206,16 @@ typedef struct solver_t {
   real_t lambda;
   real_t lambda_factor;
 
+  // Data
+  int linearize;
+  int r_size;
+  int sv_size;
+  real_t *H_damped;
+  real_t *H;
+  real_t *g;
+  real_t *r;
+  real_t *dx;
+
 #ifdef SOLVER_USE_SUITESPARSE
   cholmod_common *common;
 #endif

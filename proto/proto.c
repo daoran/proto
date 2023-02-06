@@ -11836,13 +11836,10 @@ void solver_setup(solver_t *solver) {
 /**
  * Calculate cost with residual vector `r` of length `r_size`.
  */
-real_t solver_cost(const solver_t *solver,
-                   const void *data,
-                   const int r_size,
-                   real_t *r) {
-  solver->cost_func(data, r);
+real_t solver_cost(const solver_t *solver, const void *data) {
+  solver->cost_func(data, solver->r);
   real_t r_sq = {0};
-  dot(r, 1, r_size, r, r_size, 1, &r_sq);
+  dot(solver->r, 1, solver->r_size, solver->r, solver->r_size, 1, &r_sq);
   return 0.5 * r_sq;
 }
 
@@ -12059,35 +12056,43 @@ void solver_update(param_order_t *hash, real_t *dx, int sv_size) {
 
 real_t **solver_step(solver_t *solver,
                      const real_t lambda_k,
-                     const int r_size,
-                     const int sv_size,
                      param_order_t *hash,
-                     void *data,
-                     real_t *H,
-                     real_t *g,
-                     real_t *r,
-                     real_t *dx) {
+                     void *data) {
   // Linearize non-linear system
-  zeros(H, sv_size, sv_size);
-  zeros(g, sv_size, 1);
-  zeros(r, r_size, 1);
-  solver->linearize_func(data, sv_size, hash, H, g, r);
+  if (solver->linearize) {
+    zeros(solver->H, solver->sv_size, solver->sv_size);
+    zeros(solver->g, solver->sv_size, 1);
+    zeros(solver->r, solver->r_size, 1);
+    solver->linearize_func(data,
+                           solver->sv_size,
+                           hash,
+                           solver->H,
+                           solver->g,
+                           solver->r);
+  }
 
   // Damp Hessian: H = H + lambda * I
-  for (int i = 0; i < sv_size; i++) {
-    H[(i * sv_size) + i] += lambda_k;
+  mat_copy(solver->H, solver->sv_size, solver->sv_size, solver->H_damped);
+  for (int i = 0; i < solver->sv_size; i++) {
+    solver->H_damped[(i * solver->sv_size) + i] += lambda_k;
   }
 
   // Solve: H * dx = g
 #ifdef SOLVER_USE_SUITESPARSE
-  suitesparse_chol_solve(solver->common, H, sv_size, sv_size, g, sv_size, dx);
+  suitesparse_chol_solve(solver->common,
+                         solver->H_damped,
+                         solver->sv_size,
+                         solver->sv_size,
+                         solver->g,
+                         solver->sv_size,
+                         solver->dx);
 #else
-  chol_solve(H, g, dx, sv_size);
+  chol_solve(solver->H_damped, solver->g, solver->dx, solver->sv_size);
 #endif
 
   // Update
   real_t **x_copy = solver_params_copy(hash);
-  solver_update(hash, dx, sv_size);
+  solver_update(hash, solver->dx, solver->sv_size);
 
   return x_copy;
 }
@@ -12110,11 +12115,15 @@ int solver_solve(solver_t *solver, void *data) {
   assert(r_size > 0);
 
   // Calculate initial cost
-  real_t *H = CALLOC(real_t, sv_size * sv_size);
-  real_t *g = CALLOC(real_t, sv_size);
-  real_t *r = CALLOC(real_t, r_size);
-  real_t *dx = CALLOC(real_t, sv_size);
-  real_t J_km1 = solver_cost(solver, data, r_size, r);
+  solver->linearize = 1;
+  solver->r_size = r_size;
+  solver->sv_size = sv_size;
+  solver->H_damped = CALLOC(real_t, sv_size * sv_size);
+  solver->H = CALLOC(real_t, sv_size * sv_size);
+  solver->g = CALLOC(real_t, sv_size);
+  solver->r = CALLOC(real_t, r_size);
+  solver->dx = CALLOC(real_t, sv_size);
+  real_t J_km1 = solver_cost(solver, data);
   if (solver->verbose) {
     printf("iter: 0, lambda_k: %.2e, cost: %.2e\n", solver->lambda, J_km1);
   }
@@ -12131,19 +12140,21 @@ int solver_solve(solver_t *solver, void *data) {
   real_t J_k = 0.0;
 
   for (int iter = 0; iter < max_iter; iter++) {
-    real_t **x_copy =
-        solver_step(solver, lambda_k, r_size, sv_size, hash, data, H, g, r, dx);
-    J_k = solver_cost(solver, data, r_size, r);
+    // Linearize and calculate cost
+    real_t **x_copy = solver_step(solver, lambda_k, hash, data);
+    J_k = solver_cost(solver, data);
 
     // Accept or reject update*/
     if (J_k < J_km1) {
       // Accept update
       J_km1 = J_k;
       lambda_k /= solver->lambda_factor;
+      solver->linearize = 1;
     } else {
       // Reject update
       lambda_k *= solver->lambda_factor;
       solver_params_restore(hash, x_copy);
+      solver->linearize = 0;
     }
     solver_params_free(hash, x_copy);
 
@@ -12168,10 +12179,11 @@ int solver_solve(solver_t *solver, void *data) {
   free(solver->common);
   solver->common = NULL;
   hmfree(hash);
-  free(H);
-  free(g);
-  free(r);
-  free(dx);
+  free(solver->H_damped);
+  free(solver->H);
+  free(solver->g);
+  free(solver->r);
+  free(solver->dx);
 
   return 0;
 }

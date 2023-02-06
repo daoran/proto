@@ -4645,6 +4645,7 @@ int test_inertial_odometry() {
   // Solve
   solver_t solver;
   solver_setup(&solver);
+  solver.verbose = 1;
   solver.param_order_func = &inertial_odometry_param_order;
   solver.cost_func = &inertial_odometry_cost;
   solver.linearize_func = &inertial_odometry_linearize_compact;
