@@ -392,10 +392,10 @@ typedef struct list_t {
   list_node_t *last;
 } list_t;
 
-list_t *list_new();
-void list_destroy(list_t *list);
+list_t *list_malloc();
+void list_free(list_t *list);
 void list_clear(list_t *list);
-void list_clear_destroy(list_t *list);
+void list_clear_free(list_t *list);
 void list_push(list_t *list, void *value);
 void *list_pop(list_t *list);
 void *list_pop_front(list_t *list);
@@ -2040,6 +2040,7 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 #define IDF_FACTOR 3
 #define IMU_FACTOR 4
 #define CALIB_CAMERA_FACTOR 5
+#define CALIB_VI_FACTOR 6
 
 #define MARGINALIZER_CAPACITY_INIT 2000
 #define MARGINALIZER_CAPACITY_GROWTH 2.0
@@ -2051,26 +2052,45 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
     hmput(MHASH, PARAM, PARAM);                                                \
   }
 
-#define MARG_INDEX(HASH, PARAM_TYPE, PARAM_ORDER, COL_IDX, SZ)                 \
+#define MARG_INDEX(HASH, PARAM_TYPE, PARAM_ORDER, COL_IDX, SZ, GZ, N)          \
   for (size_t i = 0; i < hmlen(HASH); i++) {                                   \
     const int fix = 0;                                                         \
     real_t *data = HASH[i].value->data;                                        \
     SZ += param_local_size(PARAM_TYPE);                                        \
+    GZ += param_global_size(PARAM_TYPE);                                       \
+    N += 1;                                                                    \
     param_order_add(&PARAM_ORDER, PARAM_TYPE, fix, data, COL_IDX);             \
   }
 
-#define MARG_H(MARG, FACTOR_TYPE, FACTORS, NUM_FACTORS, H, G, LOCAL_SIZE)      \
-  for (size_t i = 0; i < NUM_FACTORS; i++) {                                   \
-    FACTOR_TYPE *factor = (FACTOR_TYPE *) FACTORS[i];                          \
-    solver_fill_hessian(marg->hash,                                            \
-                        factor->num_params,                                    \
-                        factor->params,                                        \
-                        factor->jacs,                                          \
-                        factor->r,                                             \
-                        factor->r_size,                                        \
-                        LOCAL_SIZE,                                            \
-                        H,                                                     \
-                        G);                                                    \
+#define MARG_PARAMS(MARG, HASH, PARAM_TYPE, PARAM_IDX, X0_IDX)                 \
+  for (size_t i = 0; i < hmlen(HASH); i++) {                                   \
+    const size_t param_size = param_global_size(PARAM_TYPE);                   \
+    real_t *data = HASH[i].value->data;                                        \
+                                                                               \
+    MARG->param_types[PARAM_IDX] = PARAM_TYPE;                                 \
+    MARG->params[PARAM_IDX] = data;                                            \
+    PARAM_IDX++;                                                               \
+                                                                               \
+    vec_copy(data, param_size, MARG->x0 + X0_IDX);                             \
+    X0_IDX += param_size;                                                      \
+  }
+
+#define MARG_H(MARG, FACTOR_TYPE, FACTORS, H, G, LOCAL_SIZE)                   \
+  {                                                                            \
+    list_node_t *node = FACTORS->first;                                        \
+    while (node != NULL) {                                                     \
+      FACTOR_TYPE *factor = (FACTOR_TYPE *) node->value;                       \
+      solver_fill_hessian(marg->hash,                                          \
+                          factor->num_params,                                  \
+                          factor->params,                                      \
+                          factor->jacs,                                        \
+                          factor->r,                                           \
+                          factor->r_size,                                      \
+                          LOCAL_SIZE,                                          \
+                          H,                                                   \
+                          G);                                                  \
+      node = node->next;                                                       \
+    }                                                                          \
   }
 
 #define PARAM_HASH(PARAM_TYPE, HASH_NAME)                                      \
@@ -2102,11 +2122,6 @@ typedef struct marg_t {
   int eigen_decomp_ok;
 
   // Factors
-  int num_factors;
-  void **factors;
-  int *factor_types;
-  int factors_capacity;
-
   list_t *ba_factors;
   list_t *camera_factors;
   list_t *idf_factors;
@@ -2122,10 +2137,13 @@ typedef struct marg_t {
   param_order_t *hash;
   int m_size;
   int r_size;
+  real_t *x0;
   real_t *r0;
   real_t *J0;
 
   // Parameters, residuals and Jacobians (needed by the solver)
+  int num_params;
+  int *param_types;
   real_t **params;
   real_t *r;
   real_t **jacs;

@@ -398,16 +398,16 @@ int test_darray_expand_and_contract(void) {
 
 // LIST //////////////////////////////////////////////////////////////////////
 
-int test_list_new_and_destroy(void) {
-  list_t *list = list_new();
+int test_list_malloc_and_free(void) {
+  list_t *list = list_malloc();
   MU_ASSERT(list != NULL);
-  list_clear_destroy(list);
+  list_clear_free(list);
   return 0;
 }
 
 int test_list_push_pop(void) {
   /* Setup */
-  list_t *list = list_new();
+  list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
   char *t3 = string_malloc("test3 data");
@@ -445,13 +445,13 @@ int test_list_push_pop(void) {
   MU_ASSERT(list->length == 0);
   free(val);
 
-  list_clear_destroy(list);
+  list_clear_free(list);
   return 0;
 }
 
 int test_list_shift(void) {
   /* Setup */
-  list_t *list = list_new();
+  list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
 
@@ -470,13 +470,13 @@ int test_list_shift(void) {
   MU_ASSERT(list->length == 0);
   free(val);
 
-  list_clear_destroy(list);
+  list_clear_free(list);
   return 0;
 }
 
 int test_list_unshift(void) {
   /* Setup */
-  list_t *list = list_new();
+  list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
   char *t3 = string_malloc("test3 data");
@@ -496,14 +496,14 @@ int test_list_unshift(void) {
   MU_ASSERT(strcmp(list->first->value, t3) == 0);
   MU_ASSERT(strcmp(list->first->value, t3) == 0);
   MU_ASSERT(list->length == 3);
-  list_clear_destroy(list);
+  list_clear_free(list);
 
   return 0;
 }
 
 int test_list_remove(void) {
   /* Push elements */
-  list_t *list = list_new();
+  list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
   char *t3 = string_malloc("test3 data");
@@ -528,14 +528,14 @@ int test_list_remove(void) {
   MU_ASSERT(list->length == 1);
   MU_ASSERT(list->first->next == NULL);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
-  list_clear_destroy(list);
+  list_clear_free(list);
 
   return 0;
 }
 
 int test_list_remove_destroy(void) {
   /* Setup */
-  list_t *list = list_new();
+  list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
   char *t3 = string_malloc("test3 data");
@@ -562,7 +562,7 @@ int test_list_remove_destroy(void) {
   MU_ASSERT(list->length == 1);
   MU_ASSERT(list->first->next == NULL);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
-  list_clear_destroy(list);
+  list_clear_free(list);
 
   return 0;
 }
@@ -5723,7 +5723,7 @@ void test_suite() {
   MU_ADD_TEST(test_darray_update);
   MU_ADD_TEST(test_darray_remove);
   MU_ADD_TEST(test_darray_expand_and_contract);
-  MU_ADD_TEST(test_list_new_and_destroy);
+  MU_ADD_TEST(test_list_malloc_and_free);
   // MU_ADD_TEST(test_list_push_pop);
   MU_ADD_TEST(test_list_shift);
   MU_ADD_TEST(test_list_unshift);
