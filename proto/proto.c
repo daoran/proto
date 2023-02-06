@@ -11206,8 +11206,8 @@ error:
 // MARGINALIZER //
 //////////////////
 
-marg_t *marg_malloc() {
-  marg_t *marg = MALLOC(marg_t, 1);
+marg_factor_t *marg_factor_malloc() {
+  marg_factor_t *marg = MALLOC(marg_factor_t, 1);
 
   // Settings
   marg->debug = 0;
@@ -11249,7 +11249,7 @@ marg_t *marg_malloc() {
   return marg;
 }
 
-void marg_free(marg_t *marg) {
+void marg_factor_free(marg_factor_t *marg) {
   // Factors
   list_free(marg->ba_factors);
   list_free(marg->camera_factors);
@@ -11282,7 +11282,7 @@ void marg_free(marg_t *marg) {
   free(marg);
 }
 
-void marg_add(marg_t *marg, int factor_type, void *factor_ptr) {
+void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr) {
   switch (factor_type) {
     case BA_FACTOR:
       list_push(marg->ba_factors, factor_ptr);
@@ -11308,9 +11308,9 @@ void marg_add(marg_t *marg, int factor_type, void *factor_ptr) {
   };
 }
 
-static void marg_schur_complement(marg_t *marg,
-                                  real_t **H_marg,
-                                  real_t **b_marg) {
+static void marg_factor_schur_complement(marg_factor_t *marg,
+                                         real_t **H_marg,
+                                         real_t **b_marg) {
   // Track parameters
   // -- Remain parameters
   pos_hash_t *r_positions = NULL;
@@ -11450,11 +11450,11 @@ static void marg_schur_complement(marg_t *marg,
   free(b);
 }
 
-static void marg_decomp_hessian(marg_t *marg,
-                                const real_t *H_marg,
-                                const real_t *b_marg,
-                                real_t **J,
-                                real_t **J_inv) {
+static void marg_factor_decomp_hessian(marg_factor_t *marg,
+                                       const real_t *H_marg,
+                                       const real_t *b_marg,
+                                       real_t **J,
+                                       real_t **J_inv) {
   // Decompose H_marg into J'and J, and in the process also obtain inv(J).
   // Hessian H_marg can be decomposed via Eigen-decomposition:
   //
@@ -11536,10 +11536,10 @@ static void marg_decomp_hessian(marg_t *marg,
   free(W_inv_sqrt);
 }
 
-static void marg_form_fejs(marg_t *marg,
-                           const real_t *b_marg,
-                           const real_t *J_inv,
-                           real_t *J) {
+static void marg_factor_form_fejs(marg_factor_t *marg,
+                                  const real_t *b_marg,
+                                  const real_t *J_inv,
+                                  real_t *J) {
   // Track Linearized residuals, jacobians
   // -- Linearized residuals: r0 = -J_inv * b_marg;
   marg->r0 = MALLOC(real_t, marg->r_size);
@@ -11566,19 +11566,19 @@ static void marg_form_fejs(marg_t *marg,
   }
 }
 
-void marg_marginalize(marg_t *marg) {
+void marg_factor_marginalize(marg_factor_t *marg) {
   // Form Hessian and RHS of Gauss newton and apply Schur Complement
   real_t *H_marg = NULL;
   real_t *b_marg = NULL;
-  marg_schur_complement(marg, &H_marg, &b_marg);
+  marg_factor_schur_complement(marg, &H_marg, &b_marg);
 
   // Decompose marginalized Hessian
   real_t *J = NULL;
   real_t *J_inv = NULL;
-  marg_decomp_hessian(marg, H_marg, b_marg, &J, &J_inv);
+  marg_factor_decomp_hessian(marg, H_marg, b_marg, &J, &J_inv);
 
   // Form FEJs
-  marg_form_fejs(marg, b_marg, J_inv, J);
+  marg_factor_form_fejs(marg, b_marg, J_inv, J);
 
   // Clean up
   free(H_marg);
@@ -11589,11 +11589,11 @@ void marg_marginalize(marg_t *marg) {
   marg->marginalized = 1;
 }
 
-int marg_eval(void *marg_ptr) {
+int marg_factor_eval(void *marg_ptr) {
   assert(marg_ptr);
 
   // Map factor
-  marg_t *marg = (marg_t *) marg_ptr;
+  marg_factor_t *marg = (marg_factor_t *) marg_ptr;
   assert(marg->marginalized);
 
   // Compute residuals

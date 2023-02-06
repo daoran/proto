@@ -2112,7 +2112,7 @@ PARAM_HASH(time_delay_t, time_delay_hash_t)
 
 typedef struct param_order_t param_order_t; // Forward declartion
 
-typedef struct marg_t {
+typedef struct marg_factor_t {
   // Settings
   int debug;
 
@@ -2149,13 +2149,13 @@ typedef struct marg_t {
   real_t **params;
   real_t *r;
   real_t **jacs;
-} marg_t;
+} marg_factor_t;
 
-marg_t *marg_malloc();
-void marg_free(marg_t *marg);
-void marg_add(marg_t *marg, int factor_type, void *factor_ptr);
-void marg_marginalize(marg_t *marg);
-int marg_eval(void *marg_ptr);
+marg_factor_t *marg_factor_malloc();
+void marg_factor_free(marg_factor_t *marg);
+void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr);
+void marg_factor_marginalize(marg_factor_t *marg);
+int marg_factor_eval(void *marg_ptr);
 
 ////////////
 // SOLVER //

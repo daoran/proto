@@ -4547,14 +4547,14 @@ int test_marg() {
   }
 
   // Setup
-  marg_t *marg = marg_malloc();
+  marg_factor_t *marg = marg_factor_malloc();
   for (int i = 0; i < (num_poses * num_features); i++) {
-    marg_add(marg, CAMERA_FACTOR, &factors[i]);
+    marg_factor_add(marg, CAMERA_FACTOR, &factors[i]);
   }
-  marg_marginalize(marg);
+  marg_factor_marginalize(marg);
 
   // Clean up
-  marg_free(marg);
+  marg_factor_free(marg);
 
   return 0;
 }
