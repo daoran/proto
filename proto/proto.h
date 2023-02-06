@@ -2041,7 +2041,7 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 #define IMU_FACTOR 4
 #define CALIB_CAMERA_FACTOR 5
 
-#define MARGINALIZER_CAPACITY_INIT 1000
+#define MARGINALIZER_CAPACITY_INIT 2000
 #define MARGINALIZER_CAPACITY_GROWTH 2.0
 
 #define MARG_TRACK(RHASH, MHASH, PARAM)                                        \
@@ -2093,8 +2093,13 @@ PARAM_HASH(time_delay_t, time_delay_hash_t)
 typedef struct param_order_t param_order_t; // Forward declartion
 
 typedef struct marg_t {
+  // Settings
+  int debug;
+
   // Flags
   int marginalized;
+  int schur_complement_ok;
+  int eigen_decomp_ok;
 
   // Factors
   int num_factors;
@@ -2129,7 +2134,6 @@ typedef struct marg_t {
 marg_t *marg_malloc();
 void marg_free(marg_t *marg);
 void marg_add(marg_t *marg, int factor_type, void *factor_ptr);
-void marg_form_hessian(marg_t *marg, real_t **H, real_t **g);
 void marg_marginalize(marg_t *marg);
 int marg_eval(void *marg_ptr);
 

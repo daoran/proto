@@ -7395,6 +7395,10 @@ int schur_complement(const real_t *H,
   if (eig_inv(Hmm, m, m, c, Hmm_inv) != 0) {
     status = -1;
   }
+  // if (check_inv(Hmm, Hmm_inv, m) == -1) {
+  //   status = -1;
+  //   printf("Inverse Hmm failed!\n");
+  // }
 
   // Shur-Complement
   // H_marg = H_rr - H_rm * H_mm_inv * H_mr
@@ -7402,10 +7406,10 @@ int schur_complement(const real_t *H,
   if (status == 0) {
     dot3(Hrm, r, m, Hmm_inv, m, m, Hmr, m, r, H_marg);
     dot3(Hrm, r, m, Hmm_inv, m, m, bmm, m, 1, b_marg);
-    for (int i = 0; i < (m * m); i++) {
+    for (int i = 0; i < (r * r); i++) {
       H_marg[i] = Hrr[i] - H_marg[i];
     }
-    for (int i = 0; i < m; i++) {
+    for (int i = 0; i < r; i++) {
       b_marg[i] = brr[i] - b_marg[i];
     }
   }
@@ -11205,8 +11209,13 @@ error:
 marg_t *marg_malloc() {
   marg_t *marg = MALLOC(marg_t, 1);
 
+  // Settings
+  marg->debug = 0;
+
   // Flags
   marg->marginalized = 0;
+  marg->schur_complement_ok = 0;
+  marg->eigen_decomp_ok = 0;
 
   // Factors
   marg->num_factors = 0;
@@ -11242,6 +11251,7 @@ void marg_free(marg_t *factor) {
   // Residuals
   hmfree(factor->hash);
   free(factor->r0);
+  free(factor->J0);
 
   // Jacobians
   // for (int i = 0; i < factor->num_remain_params; i++) {
@@ -11274,7 +11284,9 @@ void marg_add(marg_t *marg, int factor_type, void *factor_ptr) {
   marg->num_factors++;
 }
 
-void marg_form_hessian(marg_t *marg, real_t **H, real_t **g) {
+static void marg_schur_complement(marg_t *marg,
+                                  real_t **H_marg,
+                                  real_t **b_marg) {
   // Track parameters
   // -- Remain parameters
   pos_hash_t *remain_positions = NULL;
@@ -11310,40 +11322,40 @@ void marg_form_hessian(marg_t *marg, real_t **H, real_t **g) {
 
   // Determine parameter block column indicies for Hessian matrix H
   int H_idx = 0; // Column / row index of Hessian matrix H
-  int m_sz = 0;
-  int r_sz = 0;
+  int m = 0;
+  int r = 0;
   // -- Column indices for parameter blocks to be marginalized
-  MARG_INDEX(marg_positions, POSITION_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_rotations, ROTATION_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_poses, POSE_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_features, FEATURE_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_joints, JOINT_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_cam_params, CAMERA_PARAM, marg->hash, &H_idx, m_sz);
-  MARG_INDEX(marg_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, m_sz);
+  MARG_INDEX(marg_positions, POSITION_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_rotations, ROTATION_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_poses, POSE_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_features, FEATURE_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_joints, JOINT_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_cam_params, CAMERA_PARAM, marg->hash, &H_idx, m);
+  MARG_INDEX(marg_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, m);
   // -- Column indices for parameter blocks to remain
-  MARG_INDEX(remain_positions, POSITION_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_rotations, ROTATION_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_poses, POSE_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_velocities, VELOCITY_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_features, FEATURE_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_joints, JOINT_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r_sz);
-  MARG_INDEX(remain_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r_sz);
+  MARG_INDEX(remain_positions, POSITION_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_rotations, ROTATION_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_poses, POSE_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_velocities, VELOCITY_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_features, FEATURE_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_joints, JOINT_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r);
+  MARG_INDEX(remain_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r);
 
   // Allocate memory LHS and RHS of Gauss newton
-  marg->m_size = m_sz;
-  marg->r_size = r_sz;
-  const int ls = m_sz + r_sz;
-  *H = CALLOC(real_t, ls * ls);
-  *g = CALLOC(real_t, ls * 1);
+  marg->m_size = m;
+  marg->r_size = r;
+  const int ls = m + r;
+  real_t *H = CALLOC(real_t, ls * ls);
+  real_t *b = CALLOC(real_t, ls * 1);
 
   // Fill Hessian
-  MARG_H(marg, camera_factor_t, marg->factors, marg->num_factors, *H, *g, ls);
+  MARG_H(marg, camera_factor_t, marg->factors, marg->num_factors, H, b, ls);
 
   // Clean up
   // -- Hash
@@ -11370,44 +11382,48 @@ void marg_form_hessian(marg_t *marg, real_t **H, real_t **g) {
   hmfree(marg_joints);
   hmfree(marg_cam_params);
   hmfree(marg_time_delays);
-}
-
-void marg_marginalize(marg_t *marg) {
-  // Form Hessian and RHS of Gauss newton
-  real_t *H = NULL;
-  real_t *g = NULL;
-  marg_form_hessian(marg, &H, &g);
 
   // Compute Schurs Complement
-  const int m = marg->m_size;
-  const int r = marg->r_size;
-  const int local_size = m + r;
-  real_t *H_marg = MALLOC(real_t, r * r);
-  real_t *b_marg = MALLOC(real_t, r * 1);
-  schur_complement(H, g, local_size, m, r, H_marg, b_marg);
+  *H_marg = MALLOC(real_t, r * r);
+  *b_marg = MALLOC(real_t, r * 1);
+  if (schur_complement(H, b, ls, m, r, *H_marg, *b_marg) == 0) {
+    marg->schur_complement_ok = 1;
+  }
 
-  mat_save("/tmp/H.csv", H, local_size, local_size);
-  mat_save("/tmp/H_marg.csv", H_marg, r, r);
+  // Clean up
+  free(H);
+  free(b);
+}
 
-  // Decompose H into J'and J, and in the process also obtain inv(J).
-  // Hessian H can be decomposed via Eigen-decomposition:
+static void marg_decomp_hessian(
+    marg_t *marg, real_t *H_marg, real_t *b_marg, real_t **J, real_t **J_inv) {
+  // Decompose H_marg into J'and J, and in the process also obtain inv(J).
+  // Hessian H_marg can be decomposed via Eigen-decomposition:
   //
-  //   H = J' * J = V * diag(w) * V'
+  //   H_marg = J' * J = V * diag(w) * V'
   //   J = diag(w^{0.5}) * V'
   //
   // -- Setup
-  real_t *J = CALLOC(real_t, r * r);
-  real_t *J_inv = CALLOC(real_t, r * r);
+  const int r = marg->r_size;
+  *J = CALLOC(real_t, r * r);
+  *J_inv = CALLOC(real_t, r * r);
   real_t *V = CALLOC(real_t, r * r);
   real_t *Vt = CALLOC(real_t, r * r);
   real_t *w = CALLOC(real_t, r);
-  real_t *W_inv = CALLOC(real_t, r * r);
+  real_t *W_sqrt = CALLOC(real_t, r * r);
   real_t *W_inv_sqrt = CALLOC(real_t, r * r);
   // -- Enforce symmetry: H = 0.5 * (H + H')
   enforce_spd(H_marg, r, r);
   // -- Eigen decomposition
   if (eig_sym(H_marg, r, r, V, w) != 0) {
-    goto cleanup;
+    // free(J);
+    // free(J_inv);
+    free(V);
+    free(Vt);
+    free(w);
+    free(W_sqrt);
+    free(W_inv_sqrt);
+    return;
   }
   mat_transpose(V, r, r, Vt);
   // -- Form J and J_inv:
@@ -11415,24 +11431,65 @@ void marg_marginalize(marg_t *marg) {
   //   J = diag(w^0.5) * V'
   //   J_inv = diag(w^-0.5) * V'
   //
-  const real_t tol = 1e-12;
+  const real_t tol = 1e-18;
   for (int i = 0; i < r; i++) {
     if (w[i] > tol) {
-      W_inv[(i * r) + i] = 1.0 / w[i];
+      W_sqrt[(i * r) + i] = sqrt(w[i]);
       W_inv_sqrt[(i * r) + i] = sqrt(1.0 / w[i]);
     } else {
-      W_inv[(i * r) + i] = 0.0;
+      W_sqrt[(i * r) + i] = 0.0;
       W_inv_sqrt[(i * r) + i] = 0.0;
     }
   }
-  dot(W_inv_sqrt, r, r, Vt, r, r, J);
-  dot(W_inv, r, r, Vt, r, r, J_inv);
-  mat_scale(J_inv, r, r, -1.0);
+  dot(W_sqrt, r, r, Vt, r, r, *J);
+  dot(W_inv_sqrt, r, r, Vt, r, r, *J_inv);
+  mat_scale(*J_inv, r, r, -1.0);
+  marg->eigen_decomp_ok = 1;
+  // -- Check J' * J == H_marg
+  if (marg->debug) {
+    real_t *Jt = CALLOC(real_t, r * r);
+    real_t *H_ = CALLOC(real_t, r * r);
+    mat_transpose(*J, r, r, Jt);
+    dot(Jt, r, r, *J, r, r, H_);
 
+    real_t diff = 0.0;
+    for (int i = 0; i < (r * r); i++) {
+      diff += fabs(H_[i] - H_marg[i]);
+    }
+
+    if (diff > 1.0) {
+      marg->eigen_decomp_ok = 0;
+      LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
+      LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
+    }
+
+    free(Jt);
+    free(H_);
+  }
+  // -- Check J_inv * J == eye
+  if (marg->debug) {
+    if (check_inv(*J_inv, *J, r) != 0) {
+      marg->eigen_decomp_ok = 0;
+      LOG_WARN("inv(J) * J != eye\n");
+    }
+  }
+
+  // Clean up
+  free(V);
+  free(Vt);
+  free(w);
+  free(W_sqrt);
+  free(W_inv_sqrt);
+}
+
+static void marg_form_fejs(marg_t *marg,
+                           const real_t *b_marg,
+                           const real_t *J_inv,
+                           real_t *J) {
   // Track Linearized residuals, jacobians and linearization point x0
   // -- Linearized residuals: r0 = -J_inv * b_marg;
-  marg->r0 = MALLOC(real_t, r);
-  dot(J_inv, r, r, b_marg, r, 1, marg->r0);
+  marg->r0 = MALLOC(real_t, marg->r_size);
+  dot(J_inv, marg->r_size, marg->r_size, b_marg, marg->r_size, 1, marg->r0);
   // -- Linearized jacobians: J0 = J;
   marg->J0 = J;
   // -- Linearization point x0
@@ -11458,21 +11515,26 @@ void marg_marginalize(marg_t *marg) {
   //     }
   //   }
   // }
+}
+
+void marg_marginalize(marg_t *marg) {
+  // Form Hessian and RHS of Gauss newton
+  real_t *H_marg = NULL;
+  real_t *b_marg = NULL;
+  marg_schur_complement(marg, &H_marg, &b_marg);
+
+  // Decompose marginalized Hessian
+  real_t *J = NULL;
+  real_t *J_inv = NULL;
+  marg_decomp_hessian(marg, H_marg, b_marg, &J, &J_inv);
+
+  // Form FEJs
+  marg_form_fejs(marg, b_marg, J_inv, J);
 
   // Clean up
-cleanup:
-  free(H);
-  free(g);
   free(H_marg);
   free(b_marg);
-
-  free(J);
   free(J_inv);
-  free(V);
-  free(Vt);
-  free(w);
-  free(W_inv);
-  free(W_inv_sqrt);
 
   // Update state
   marg->marginalized = 1;

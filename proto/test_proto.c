@@ -3182,6 +3182,61 @@ int test_pinhole_equi4_params_jacobian() {
  * TEST SENSOR FUSION
  ******************************************************************************/
 
+int test_schur_complement() {
+  // clang-format off
+  real_t H[10 * 10] = {
+    0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
+    2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
+    2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
+    2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
+    2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
+    2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
+    2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
+  };
+  real_t b[10] = {0, 0, 0, 0, 1, 1, 1, 1, 1, 1};
+  // clang-format on
+
+  // H = [Hmm, Hmr,
+  //      Hrm, Hrr]
+  real_t Hmm[4 * 4] = {0};
+  real_t Hmr[4 * 6] = {0};
+  real_t Hrm[6 * 4] = {0};
+  real_t Hrr[6 * 6] = {0};
+  int H_size = 10;
+  int m = 4;
+  int r = 6;
+  mat_block_get(H, H_size, 0, m - 1, 0, m - 1, Hmm);
+  mat_block_get(H, H_size, 0, m - 1, m, H_size - 1, Hmr);
+  mat_block_get(H, H_size, m, H_size - 1, 0, m - 1, Hrm);
+  mat_block_get(H, H_size, m, H_size - 1, m, H_size - 1, Hrr);
+
+  print_matrix("H", H, 10, 10);
+  print_matrix("Hmm", Hmm, m, m);
+  print_matrix("Hmr", Hmr, m, r);
+  print_matrix("Hrm", Hrm, r, m);
+  print_matrix("Hrr", Hrr, r, r);
+
+  real_t bmm[4] = {0};
+  real_t brr[6] = {0};
+  vec_copy(b, m, bmm);
+  vec_copy(b + m, r, brr);
+
+  print_vector("b", b, 10);
+  print_vector("bmm", bmm, m);
+  print_vector("brr", brr, r);
+
+  // real_t *Hmm = MALLOC(real_t, m * m);
+  // real_t *Hmr = MALLOC(real_t, m * r);
+  // real_t *Hrm = MALLOC(real_t, m * r);
+  // real_t *Hrr = MALLOC(real_t, r * r);
+  // real_t *Hmm_inv = MALLOC(real_t, m * m);
+
+  return 0;
+}
+
 int test_pose() {
   timestamp_t ts = 1;
   pose_t pose;
@@ -4427,13 +4482,13 @@ int test_marg() {
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   // Setup features and poses
-  int num_poses = 10;
+  int num_poses = 20;
   int num_features = 100;
-  pose_t poses[10] = {0};
+  pose_t poses[20] = {0};
   feature_t features[100] = {0};
   real_t points[100 * 3] = {0};
   real_t keypoints[100 * 2] = {0};
-  camera_factor_t factors[10 * 100];
+  camera_factor_t factors[20 * 100];
 
   for (int i = 0; i < num_features; i++) {
     const real_t dx = randf(-0.5, 0.5);
@@ -4454,8 +4509,8 @@ int test_marg() {
     const real_t dy = randf(-0.05, 0.05);
     const real_t dz = randf(-0.05, 0.05);
 
-    const real_t droll = randf(-0.1, 0.1);
-    const real_t dpitch = randf(-0.1, 0.1);
+    const real_t droll = randf(-0.2, 0.2);
+    const real_t dpitch = randf(-0.2, 0.2);
     const real_t dyaw = randf(-0.1, 0.1);
     const real_t ypr[3] = {dyaw, dpitch, droll};
     real_t q[4] = {0};
@@ -4464,7 +4519,7 @@ int test_marg() {
     pose_t *pose = &poses[k];
     real_t pose_data[7] = {dx, dy, dz, q[0], q[1], q[2], q[3]};
     pose_setup(pose, ts + k, pose_data);
-    pose->marginalize = (k == 0) ? 1 : 0;
+    pose->marginalize = (k == 0 || k == 1) ? 1 : 0;
 
     for (int i = 0; i < num_features; i++) {
       // Project point from world to image plane
@@ -5801,6 +5856,7 @@ void test_suite() {
   MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
 
   // SENSOR FUSION
+  MU_ADD_TEST(test_schur_complement);
   MU_ADD_TEST(test_pose);
   MU_ADD_TEST(test_extrinsics);
   MU_ADD_TEST(test_imu_biases);
