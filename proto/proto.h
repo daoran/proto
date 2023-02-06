@@ -1502,6 +1502,26 @@ void joint_setup(joint_t *joint,
                  const real_t theta);
 void joint_print(const char *prefix, const joint_t *joint);
 
+////////////////
+// PARAMETERS //
+////////////////
+
+typedef struct param_order_t {
+  void *key;
+  int idx;
+  int type;
+  int fix;
+} param_order_t;
+
+void param_type_string(const int param_type, char *s);
+size_t param_global_size(const int param_type);
+size_t param_local_size(const int param_type);
+void param_order_add(param_order_t **hash,
+                     const int param_type,
+                     const int fix,
+                     real_t *data,
+                     int *col_idx);
+
 ////////////
 // FACTOR //
 ////////////
@@ -2102,15 +2122,14 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 PARAM_HASH(pos_t, pos_hash_t)
 PARAM_HASH(rot_t, rot_hash_t)
 PARAM_HASH(pose_t, pose_hash_t)
-PARAM_HASH(extrinsic_t, extrinsic_hash_t)
-PARAM_HASH(fiducial_t, fiducial_hash_t)
 PARAM_HASH(velocity_t, velocity_hash_t)
+PARAM_HASH(imu_biases_t, imu_biases_hash_t)
 PARAM_HASH(feature_t, feature_hash_t)
 PARAM_HASH(joint_t, joint_hash_t)
+PARAM_HASH(extrinsic_t, extrinsic_hash_t)
+PARAM_HASH(fiducial_t, fiducial_hash_t)
 PARAM_HASH(camera_params_t, camera_params_hash_t)
 PARAM_HASH(time_delay_t, time_delay_hash_t)
-
-typedef struct param_order_t param_order_t; // Forward declartion
 
 typedef struct marg_factor_t {
   // Settings
@@ -2128,10 +2147,6 @@ typedef struct marg_factor_t {
   list_t *imu_factors;
   list_t *calib_camera_factors;
   list_t *calib_vi_factors;
-
-  // Covariance and square-root info
-  real_t *covar;
-  real_t *sqrt_info;
 
   // Hessian and residuals
   param_order_t *hash;
@@ -2184,29 +2199,15 @@ int marg_factor_eval(void *marg_ptr);
                       H,                                                       \
                       G);
 
-typedef struct param_order_t {
-  void *key;
-  int idx;
-  int type;
-  int fix;
-} param_order_t;
-
-void param_type_string(const int param_type, char *s);
-size_t param_global_size(const int param_type);
-size_t param_local_size(const int param_type);
-void param_order_add(param_order_t **hash,
-                     const int param_type,
-                     const int fix,
-                     real_t *data,
-                     int *col_idx);
-
 typedef struct solver_t {
+  // Settings
   int verbose;
   int max_iter;
   real_t lambda;
   real_t lambda_factor;
 
   // Data
+  param_order_t *hash;
   int linearize;
   int r_size;
   int sv_size;
@@ -2216,10 +2217,12 @@ typedef struct solver_t {
   real_t *r;
   real_t *dx;
 
+  // SuiteSparse
 #ifdef SOLVER_USE_SUITESPARSE
   cholmod_common *common;
 #endif
 
+  // Callbacks
   param_order_t *(*param_order_func)(const void *data,
                                      int *sv_size,
                                      int *r_size);
@@ -2233,10 +2236,7 @@ typedef struct solver_t {
 } solver_t;
 
 void solver_setup(solver_t *solver);
-real_t solver_cost(const solver_t *solver,
-                   const void *data,
-                   const int r_size,
-                   real_t *r);
+real_t solver_cost(const solver_t *solver, const void *data);
 void solver_fill_jacobian(param_order_t *hash,
                           int num_params,
                           real_t **params,
@@ -2256,10 +2256,10 @@ void solver_fill_hessian(param_order_t *hash,
                          int sv_size,
                          real_t *H,
                          real_t *g);
-real_t **solver_params_copy(const param_order_t *hash);
-void solver_params_restore(param_order_t *hash, real_t **x);
-void solver_params_free(const param_order_t *hash, real_t **x);
-void solver_update(param_order_t *hash, real_t *dx, int sv_size);
+real_t **solver_params_copy(const solver_t *solver);
+void solver_params_restore(solver_t *solver, real_t **x);
+void solver_params_free(const solver_t *solver, real_t **x);
+void solver_update(solver_t *solver, real_t *dx, int sv_size);
 int solver_solve(solver_t *solver, void *data);
 
 /////////////////////

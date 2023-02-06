@@ -8134,6 +8134,163 @@ void joint_print(const char *prefix, const joint_t *joint) {
   printf("data: %f\n", joint->data[0]);
 }
 
+////////////////
+// PARAMETERS //
+////////////////
+
+/**
+ * Return parameter type as a string
+ */
+void param_type_string(const int param_type, char *s) {
+  switch (param_type) {
+    case POSITION_PARAM:
+      strcpy(s, "POSITION_PARAM");
+      break;
+    case ROTATION_PARAM:
+      strcpy(s, "ROTATION_PARAM");
+      break;
+    case POSE_PARAM:
+      strcpy(s, "POSE_PARAM");
+      break;
+    case EXTRINSIC_PARAM:
+      strcpy(s, "EXTRINSIC_PARAM");
+      break;
+    case FIDUCIAL_PARAM:
+      strcpy(s, "FIDUCIAL_PARAM");
+      break;
+    case VELOCITY_PARAM:
+      strcpy(s, "VELOCITY_PARAM");
+      break;
+    case IMU_BIASES_PARAM:
+      strcpy(s, "IMU_BIASES_PARAM");
+      break;
+    case FEATURE_PARAM:
+      strcpy(s, "FEATURE_PARAM");
+      break;
+    case JOINT_PARAM:
+      strcpy(s, "JOINT_PARAM");
+      break;
+    case CAMERA_PARAM:
+      strcpy(s, "CAMERA_PARAM");
+      break;
+    case TIME_DELAY_PARAM:
+      strcpy(s, "TIME_DELAY_PARAM");
+      break;
+    default:
+      FATAL("Invalid param type [%d]!\n", param_type);
+      break;
+  }
+}
+
+/**
+ * Return parameter global size depending on parameter type
+ */
+size_t param_global_size(const int param_type) {
+  size_t param_size = 0;
+
+  switch (param_type) {
+    case POSITION_PARAM:
+      param_size = 3;
+      break;
+    case ROTATION_PARAM:
+      param_size = 4;
+      break;
+    case POSE_PARAM:
+    case EXTRINSIC_PARAM:
+    case FIDUCIAL_PARAM:
+      param_size = 7;
+      break;
+    case VELOCITY_PARAM:
+      param_size = 3;
+      break;
+    case IMU_BIASES_PARAM:
+      param_size = 6;
+      break;
+    case FEATURE_PARAM:
+      param_size = 3;
+      break;
+    case IDF_PARAM:
+      param_size = 3;
+      break;
+    case JOINT_PARAM:
+      param_size = 1;
+      break;
+    case CAMERA_PARAM:
+      param_size = 8;
+      break;
+    case TIME_DELAY_PARAM:
+      param_size = 1;
+      break;
+    default:
+      FATAL("Invalid param type [%d]!\n", param_type);
+      break;
+  }
+
+  return param_size;
+}
+
+/**
+ * Return parameter local size depending on parameter type
+ */
+size_t param_local_size(const int param_type) {
+  size_t param_size = 0;
+
+  switch (param_type) {
+    case POSITION_PARAM:
+      param_size = 3;
+      break;
+    case ROTATION_PARAM:
+      param_size = 3;
+      break;
+    case POSE_PARAM:
+    case EXTRINSIC_PARAM:
+    case FIDUCIAL_PARAM:
+      param_size = 6;
+      break;
+    case VELOCITY_PARAM:
+      param_size = 3;
+      break;
+    case IMU_BIASES_PARAM:
+      param_size = 6;
+      break;
+    case FEATURE_PARAM:
+      param_size = 3;
+      break;
+    case IDF_PARAM:
+      param_size = 3;
+      break;
+    case JOINT_PARAM:
+      param_size = 1;
+      break;
+    case CAMERA_PARAM:
+      param_size = 8;
+      break;
+    case TIME_DELAY_PARAM:
+      param_size = 1;
+      break;
+    default:
+      FATAL("Invalid param type [%d]!\n", param_type);
+      break;
+  }
+
+  return param_size;
+}
+
+/**
+ * Add parameter to hash
+ */
+void param_order_add(param_order_t **hash,
+                     const int param_type,
+                     const int fix,
+                     real_t *data,
+                     int *col_idx) {
+  param_order_t kv = {data, *col_idx, param_type, fix};
+  hmputs(*hash, kv);
+  if (fix == 0) {
+    *col_idx += param_local_size(param_type);
+  }
+}
+
 ////////////
 // FACTOR //
 ////////////
@@ -11225,11 +11382,7 @@ marg_factor_t *marg_factor_malloc() {
   marg->calib_camera_factors = list_malloc();
   marg->calib_vi_factors = list_malloc();
 
-  // Covariance and square-root info
-  marg->covar = NULL;
-  marg->sqrt_info = NULL;
-
-  // Residuals
+  // Hessian and residuals
   marg->hash = NULL;
   marg->m_size = 0;
   marg->r_size = 0;
@@ -11257,10 +11410,6 @@ void marg_factor_free(marg_factor_t *marg) {
   list_free(marg->imu_factors);
   list_free(marg->calib_camera_factors);
   list_free(marg->calib_vi_factors);
-
-  // Covariance and square root info
-  free(marg->covar);
-  free(marg->sqrt_info);
 
   // Residuals
   hmfree(marg->hash);
@@ -11316,25 +11465,39 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
   pos_hash_t *r_positions = NULL;
   rot_hash_t *r_rotations = NULL;
   pose_hash_t *r_poses = NULL;
-  extrinsic_hash_t *r_extrinsics = NULL;
-  fiducial_hash_t *r_fiducials = NULL;
   velocity_hash_t *r_velocities = NULL;
-  feature_hash_t *r_features = NULL;
+  imu_biases_hash_t *r_imu_biases = NULL;
+  fiducial_hash_t *r_fiducials = NULL;
   joint_hash_t *r_joints = NULL;
+  extrinsic_hash_t *r_extrinsics = NULL;
+  feature_hash_t *r_features = NULL;
   camera_params_hash_t *r_cam_params = NULL;
   time_delay_hash_t *r_time_delays = NULL;
   // -- Marginal parameters
   pos_hash_t *m_positions = NULL;
   rot_hash_t *m_rotations = NULL;
   pose_hash_t *m_poses = NULL;
-  extrinsic_hash_t *m_extrinsics = NULL;
-  fiducial_hash_t *m_fiducials = NULL;
   velocity_hash_t *m_velocities = NULL;
+  imu_biases_hash_t *m_imu_biases = NULL;
   feature_hash_t *m_features = NULL;
+  fiducial_hash_t *m_fiducials = NULL;
+  extrinsic_hash_t *m_extrinsics = NULL;
   joint_hash_t *m_joints = NULL;
   camera_params_hash_t *m_cam_params = NULL;
   time_delay_hash_t *m_time_delays = NULL;
 
+  // Track Factor Params
+  // -- Track BA factor params
+  {
+    list_node_t *node = marg->ba_factors->first;
+    while (node != NULL) {
+      ba_factor_t *factor = (ba_factor_t *) node->value;
+      MARG_TRACK(r_poses, m_poses, factor->pose);
+      MARG_TRACK(r_features, m_features, factor->feature);
+      MARG_TRACK(r_cam_params, m_cam_params, factor->camera);
+      node = node->next;
+    }
+  }
   // -- Track camera factor params
   {
     list_node_t *node = marg->camera_factors->first;
@@ -11344,6 +11507,33 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
       MARG_TRACK(r_extrinsics, m_extrinsics, factor->extrinsic);
       MARG_TRACK(r_features, m_features, factor->feature);
       MARG_TRACK(r_cam_params, m_cam_params, factor->camera);
+      node = node->next;
+    }
+  }
+  // -- Track IDF factor params
+  {
+    list_node_t *node = marg->idf_factors->first;
+    while (node != NULL) {
+      idf_factor_t *factor = (idf_factor_t *) node->value;
+      MARG_TRACK(r_poses, m_poses, factor->pose);
+      MARG_TRACK(r_extrinsics, m_extrinsics, factor->extrinsic);
+      MARG_TRACK(r_cam_params, m_cam_params, factor->camera);
+      MARG_TRACK(r_positions, m_positions, factor->idf_pos);
+      MARG_TRACK(r_features, m_features, factor->idf_param);
+      node = node->next;
+    }
+  }
+  // -- Track IMU factor params
+  {
+    list_node_t *node = marg->imu_factors->first;
+    while (node != NULL) {
+      imu_factor_t *factor = (imu_factor_t *) node->value;
+      MARG_TRACK(r_poses, m_poses, factor->pose_i);
+      MARG_TRACK(r_velocities, m_velocities, factor->vel_i);
+      MARG_TRACK(r_imu_biases, m_imu_biases, factor->biases_i);
+      MARG_TRACK(r_poses, m_poses, factor->pose_j);
+      MARG_TRACK(r_velocities, m_velocities, factor->vel_j);
+      MARG_TRACK(r_imu_biases, m_imu_biases, factor->biases_j);
       node = node->next;
     }
   }
@@ -11360,22 +11550,25 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
   MARG_INDEX(m_positions, POSITION_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(m_rotations, ROTATION_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(m_poses, POSE_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(m_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(m_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(m_features, FEATURE_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(m_joints, JOINT_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(m_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(m_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(m_cam_params, CAMERA_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(m_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, m, gm, nm);
   // -- Column indices for parameter blocks to remain
   MARG_INDEX(r_positions, POSITION_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_rotations, ROTATION_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_poses, POSE_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(r_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m, gr, nr);
+  MARG_INDEX(r_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, m, gr, nr);
+  MARG_INDEX(r_features, FEATURE_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(r_joints, JOINT_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_velocities, VELOCITY_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_features, FEATURE_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_joints, JOINT_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r, gr, nr);
 
@@ -11389,11 +11582,12 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
   MARG_PARAMS(marg, r_positions, POSITION_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, r_rotations, ROTATION_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, r_poses, POSE_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_extrinsics, EXTRINSIC_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_fiducials, FIDUCIAL_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, r_velocities, VELOCITY_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, r_imu_biases, IMU_BIASES_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, r_features, FEATURE_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, r_joints, JOINT_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, r_extrinsics, EXTRINSIC_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, r_fiducials, FIDUCIAL_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, r_cam_params, CAMERA_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, r_time_delays, TIME_DELAY_PARAM, param_idx, x0_idx);
 
@@ -11416,22 +11610,24 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
   hmfree(r_positions);
   hmfree(r_rotations);
   hmfree(r_poses);
-  hmfree(r_extrinsics);
-  hmfree(r_fiducials);
   hmfree(r_velocities);
+  hmfree(r_imu_biases);
   hmfree(r_features);
   hmfree(r_joints);
+  hmfree(r_extrinsics);
+  hmfree(r_fiducials);
   hmfree(r_cam_params);
   hmfree(r_time_delays);
   // -- Marginal parameters
   hmfree(m_positions);
   hmfree(m_rotations);
   hmfree(m_poses);
-  hmfree(m_extrinsics);
-  hmfree(m_fiducials);
   hmfree(m_velocities);
+  hmfree(m_imu_biases);
   hmfree(m_features);
   hmfree(m_joints);
+  hmfree(m_extrinsics);
+  hmfree(m_fiducials);
   hmfree(m_cam_params);
   hmfree(m_time_delays);
 
@@ -11596,7 +11792,7 @@ int marg_factor_eval(void *marg_ptr) {
 
   // Map factor
   marg_factor_t *marg = (marg_factor_t *) marg_ptr;
-  assert(marg->marginalized);
+  assert(marg->marginalized == 1);
 
   // Compute residuals
   // -- Compute dchi vector
@@ -11615,14 +11811,6 @@ int marg_factor_eval(void *marg_ptr) {
         // Pose minus
         // dr = r - r0
         const real_t dr[3] = {x[0] - x0[0], x[1] - x0[1], x[2] - x0[2]};
-
-        // // dq = q * q0.inverse();
-        // const real_t q[4] = {x[3], x[4], x[5], x[6]};
-        // const real_t q0[4] = {x0[3], x0[4], x0[5], x0[6]};
-        // real_t q0_inv[4] = {0};
-        // real_t dq[4] = {0};
-        // quat_inv(q0, q0_inv);
-        // quat_mul(q, q0_inv, dq);
 
         // dq = q0.inverse() * q
         const real_t q[4] = {x[3], x[4], x[5], x[6]};
@@ -11666,171 +11854,37 @@ int marg_factor_eval(void *marg_ptr) {
 ////////////
 
 /**
- * Return parameter type as a string
- */
-void param_type_string(const int param_type, char *s) {
-  switch (param_type) {
-    case POSITION_PARAM:
-      strcpy(s, "POSITION_PARAM");
-      break;
-    case ROTATION_PARAM:
-      strcpy(s, "ROTATION_PARAM");
-      break;
-    case POSE_PARAM:
-      strcpy(s, "POSE_PARAM");
-      break;
-    case EXTRINSIC_PARAM:
-      strcpy(s, "EXTRINSIC_PARAM");
-      break;
-    case FIDUCIAL_PARAM:
-      strcpy(s, "FIDUCIAL_PARAM");
-      break;
-    case VELOCITY_PARAM:
-      strcpy(s, "VELOCITY_PARAM");
-      break;
-    case IMU_BIASES_PARAM:
-      strcpy(s, "IMU_BIASES_PARAM");
-      break;
-    case FEATURE_PARAM:
-      strcpy(s, "FEATURE_PARAM");
-      break;
-    case JOINT_PARAM:
-      strcpy(s, "JOINT_PARAM");
-      break;
-    case CAMERA_PARAM:
-      strcpy(s, "CAMERA_PARAM");
-      break;
-    case TIME_DELAY_PARAM:
-      strcpy(s, "TIME_DELAY_PARAM");
-      break;
-    default:
-      FATAL("Invalid param type [%d]!\n", param_type);
-      break;
-  }
-}
-
-/**
- * Return parameter global size depending on parameter type
- */
-size_t param_global_size(const int param_type) {
-  size_t param_size = 0;
-
-  switch (param_type) {
-    case POSITION_PARAM:
-      param_size = 3;
-      break;
-    case ROTATION_PARAM:
-      param_size = 4;
-      break;
-    case POSE_PARAM:
-    case EXTRINSIC_PARAM:
-    case FIDUCIAL_PARAM:
-      param_size = 7;
-      break;
-    case VELOCITY_PARAM:
-      param_size = 3;
-      break;
-    case IMU_BIASES_PARAM:
-      param_size = 6;
-      break;
-    case FEATURE_PARAM:
-      param_size = 3;
-      break;
-    case IDF_PARAM:
-      param_size = 3;
-      break;
-    case JOINT_PARAM:
-      param_size = 1;
-      break;
-    case CAMERA_PARAM:
-      param_size = 8;
-      break;
-    case TIME_DELAY_PARAM:
-      param_size = 1;
-      break;
-    default:
-      FATAL("Invalid param type [%d]!\n", param_type);
-      break;
-  }
-
-  return param_size;
-}
-
-/**
- * Return parameter local size depending on parameter type
- */
-size_t param_local_size(const int param_type) {
-  size_t param_size = 0;
-
-  switch (param_type) {
-    case POSITION_PARAM:
-      param_size = 3;
-      break;
-    case ROTATION_PARAM:
-      param_size = 3;
-      break;
-    case POSE_PARAM:
-    case EXTRINSIC_PARAM:
-    case FIDUCIAL_PARAM:
-      param_size = 6;
-      break;
-    case VELOCITY_PARAM:
-      param_size = 3;
-      break;
-    case IMU_BIASES_PARAM:
-      param_size = 6;
-      break;
-    case FEATURE_PARAM:
-      param_size = 3;
-      break;
-    case IDF_PARAM:
-      param_size = 3;
-      break;
-    case JOINT_PARAM:
-      param_size = 1;
-      break;
-    case CAMERA_PARAM:
-      param_size = 8;
-      break;
-    case TIME_DELAY_PARAM:
-      param_size = 1;
-      break;
-    default:
-      FATAL("Invalid param type [%d]!\n", param_type);
-      break;
-  }
-
-  return param_size;
-}
-
-/**
- * Add parameter to hash
- */
-void param_order_add(param_order_t **hash,
-                     const int param_type,
-                     const int fix,
-                     real_t *data,
-                     int *col_idx) {
-  param_order_t kv = {data, *col_idx, param_type, fix};
-  hmputs(*hash, kv);
-  if (fix == 0) {
-    *col_idx += param_local_size(param_type);
-  }
-}
-
-/**
  * Setup Solver
  */
 void solver_setup(solver_t *solver) {
   assert(solver);
+
+  // Settings
   solver->verbose = 0;
   solver->max_iter = 10;
   solver->lambda = 1e4;
   solver->lambda_factor = 10.0;
 
+  // Data
+  solver->hash = NULL;
+  solver->linearize = 0;
+  solver->r_size = 0;
+  solver->sv_size = 0;
+  solver->H_damped = NULL;
+  solver->H = NULL;
+  solver->g = NULL;
+  solver->r = NULL;
+  solver->dx = NULL;
+
+  // SuiteSparse
 #ifdef SOLVER_USE_SUITESPARSE
   solver->common = NULL;
 #endif
+
+  // Callbacks
+  solver->param_order_func = NULL;
+  solver->cost_func = NULL;
+  solver->linearize_func = NULL;
 }
 
 /**
@@ -11971,15 +12025,15 @@ void solver_fill_hessian(param_order_t *hash,
 /**
  * Create a copy of the parameter vector
  */
-real_t **solver_params_copy(const param_order_t *hash) {
-  real_t **x = MALLOC(real_t *, hmlen(hash));
+real_t **solver_params_copy(const solver_t *solver) {
+  real_t **x = MALLOC(real_t *, hmlen(solver->hash));
 
-  for (int idx = 0; idx < hmlen(hash); idx++) {
-    const int global_size = param_global_size(hash[idx].type);
+  for (int idx = 0; idx < hmlen(solver->hash); idx++) {
+    const int global_size = param_global_size(solver->hash[idx].type);
     x[idx] = MALLOC(real_t, global_size);
 
     for (int i = 0; i < global_size; i++) {
-      x[idx][i] = ((real_t *) hash[idx].key)[i];
+      x[idx][i] = ((real_t *) solver->hash[idx].key)[i];
     }
   }
 
@@ -11989,10 +12043,10 @@ real_t **solver_params_copy(const param_order_t *hash) {
 /**
  * Restore parameter values
  */
-void solver_params_restore(param_order_t *hash, real_t **x) {
-  for (int idx = 0; idx < hmlen(hash); idx++) {
-    for (int i = 0; i < param_global_size(hash[idx].type); i++) {
-      ((real_t *) hash[idx].key)[i] = x[idx][i];
+void solver_params_restore(solver_t *solver, real_t **x) {
+  for (int idx = 0; idx < hmlen(solver->hash); idx++) {
+    for (int i = 0; i < param_global_size(solver->hash[idx].type); i++) {
+      ((real_t *) solver->hash[idx].key)[i] = x[idx][i];
     }
   }
 }
@@ -12000,8 +12054,8 @@ void solver_params_restore(param_order_t *hash, real_t **x) {
 /**
  * Free params
  */
-void solver_params_free(const param_order_t *hash, real_t **x) {
-  for (int idx = 0; idx < hmlen(hash); idx++) {
+void solver_params_free(const solver_t *solver, real_t **x) {
+  for (int idx = 0; idx < hmlen(solver->hash); idx++) {
     free(x[idx]);
   }
   free(x);
@@ -12010,15 +12064,15 @@ void solver_params_free(const param_order_t *hash, real_t **x) {
 /**
  * Update parameter
  */
-void solver_update(param_order_t *hash, real_t *dx, int sv_size) {
-  for (int i = 0; i < hmlen(hash); i++) {
-    if (hash[i].fix) {
+void solver_update(solver_t *solver, real_t *dx, int sv_size) {
+  for (int i = 0; i < hmlen(solver->hash); i++) {
+    if (solver->hash[i].fix) {
       continue;
     }
 
-    real_t *data = hash[i].key;
-    int idx = hash[i].idx;
-    switch (hash[i].type) {
+    real_t *data = solver->hash[i].key;
+    int idx = solver->hash[i].idx;
+    switch (solver->hash[i].type) {
       case POSE_PARAM:
       case FIDUCIAL_PARAM:
       case EXTRINSIC_PARAM:
@@ -12048,16 +12102,16 @@ void solver_update(param_order_t *hash, real_t *dx, int sv_size) {
         }
         break;
       default:
-        FATAL("Invalid param type [%d]!\n", hash[i].type);
+        FATAL("Invalid param type [%d]!\n", solver->hash[i].type);
         break;
     }
   }
 }
 
-real_t **solver_step(solver_t *solver,
-                     const real_t lambda_k,
-                     param_order_t *hash,
-                     void *data) {
+/**
+ * Step nonlinear least squares problem.
+ */
+real_t **solver_step(solver_t *solver, const real_t lambda_k, void *data) {
   // Linearize non-linear system
   if (solver->linearize) {
     zeros(solver->H, solver->sv_size, solver->sv_size);
@@ -12065,7 +12119,7 @@ real_t **solver_step(solver_t *solver,
     zeros(solver->r, solver->r_size, 1);
     solver->linearize_func(data,
                            solver->sv_size,
-                           hash,
+                           solver->hash,
                            solver->H,
                            solver->g,
                            solver->r);
@@ -12091,14 +12145,14 @@ real_t **solver_step(solver_t *solver,
 #endif
 
   // Update
-  real_t **x_copy = solver_params_copy(hash);
-  solver_update(hash, solver->dx, solver->sv_size);
+  real_t **x_copy = solver_params_copy(solver);
+  solver_update(solver, solver->dx, solver->sv_size);
 
   return x_copy;
 }
 
 /**
- * Solve problem
+ * Solve nonlinear least squares problem.
  */
 int solver_solve(solver_t *solver, void *data) {
   assert(solver != NULL);
@@ -12110,7 +12164,7 @@ int solver_solve(solver_t *solver, void *data) {
   // Determine parameter order
   int sv_size = 0;
   int r_size = 0;
-  param_order_t *hash = solver->param_order_func(data, &sv_size, &r_size);
+  solver->hash = solver->param_order_func(data, &sv_size, &r_size);
   assert(sv_size > 0);
   assert(r_size > 0);
 
@@ -12141,7 +12195,7 @@ int solver_solve(solver_t *solver, void *data) {
 
   for (int iter = 0; iter < max_iter; iter++) {
     // Linearize and calculate cost
-    real_t **x_copy = solver_step(solver, lambda_k, hash, data);
+    real_t **x_copy = solver_step(solver, lambda_k, data);
     J_k = solver_cost(solver, data);
 
     // Accept or reject update*/
@@ -12153,10 +12207,10 @@ int solver_solve(solver_t *solver, void *data) {
     } else {
       // Reject update
       lambda_k *= solver->lambda_factor;
-      solver_params_restore(hash, x_copy);
+      solver_params_restore(solver, x_copy);
       solver->linearize = 0;
     }
-    solver_params_free(hash, x_copy);
+    solver_params_free(solver, x_copy);
 
     // Display
     if (solver->verbose) {
@@ -12175,10 +12229,10 @@ int solver_solve(solver_t *solver, void *data) {
 // Clean up
 #ifdef SOLVER_USE_SUITESPARSE
   cholmod_finish(solver->common);
-#endif
   free(solver->common);
   solver->common = NULL;
-  hmfree(hash);
+#endif
+  hmfree(solver->hash);
   free(solver->H_damped);
   free(solver->H);
   free(solver->g);
