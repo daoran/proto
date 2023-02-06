@@ -373,6 +373,7 @@ dev_euroc() {
 # memcheck run_test test_load_sim_cam_frame
 # memcheck run_test test_load_sim_cam_data
 # PROTO-SF
+# run_test test_schur_complement
 # run_test test_pose
 # run_test test_speed_bias
 # run_test test_extrinsics

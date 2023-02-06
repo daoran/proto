@@ -1087,7 +1087,7 @@ void quat_update_dt(real_t q[4], const real_t w[3], const real_t dt);
 void quat_perturb(real_t q[4], const int i, const real_t h);
 
 /******************************************************************************
- * Lie
+ * LIE
  ******************************************************************************/
 
 void lie_Exp(const real_t phi[3], real_t C[3 * 3]);
@@ -2140,6 +2140,8 @@ typedef struct marg_t {
   real_t *x0;
   real_t *r0;
   real_t *J0;
+  real_t *dchi;
+  real_t *J0_dchi;
 
   // Parameters, residuals and Jacobians (needed by the solver)
   int num_params;

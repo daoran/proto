@@ -11233,7 +11233,11 @@ marg_t *marg_malloc() {
   marg->hash = NULL;
   marg->m_size = 0;
   marg->r_size = 0;
+  marg->x0 = NULL;
   marg->r0 = NULL;
+  marg->J0 = NULL;
+  marg->dchi = NULL;
+  marg->J0_dchi = NULL;
 
   // Parameters, residuals and Jacobians
   marg->num_params = 0;
@@ -11263,6 +11267,8 @@ void marg_free(marg_t *marg) {
   free(marg->x0);
   free(marg->r0);
   free(marg->J0);
+  free(marg->dchi);
+  free(marg->J0_dchi);
 
   // Jacobians
   free(marg->param_types);
@@ -11540,6 +11546,8 @@ static void marg_form_fejs(marg_t *marg,
   dot(J_inv, marg->r_size, marg->r_size, b_marg, marg->r_size, 1, marg->r0);
   // -- Linearized jacobians: J0 = J;
   marg->J0 = J;
+  marg->dchi = MALLOC(real_t, marg->r_size);
+  marg->J0_dchi = MALLOC(real_t, marg->r_size);
 
   // Form First-Estimate Jacobians (FEJ)
   const size_t m = marg->r_size;
@@ -11589,32 +11597,64 @@ int marg_eval(void *marg_ptr) {
   assert(marg->marginalized);
 
   // Compute residuals
-  // r = r0 + J0 * dchi;
-  // // -- Compute dchi vector
-  // vecx_t DeltaChi(r0_.size());
-  // for (size_t i = 0; i < remain_param_ptrs_.size(); i++) {
-  //   const auto param_block = remain_param_ptrs_[i];
-  //   const auto idx = param_index_.at(param_block) - m_;
-  //   const vecx_t x0_i = x0_.at(param_block->param.data());
-  //   const size_t size = param_block->global_size;
-  //   const Eigen::Map<const vecx_t> x(params[i], size);
+  // -- Compute dchi vector
+  int row_idx = 0;
+  for (size_t i = 0; i < marg->num_params; i++) {
+    const int param_type = marg->param_types[i];
+    const int global_size = param_global_size(param_type);
+    const real_t *x0 = marg->x0 + row_idx;
+    const real_t *x = marg->params[i];
 
-  //   // Calculate i-th DeltaChi
-  //   if (is_pose(param_block)) {
-  //     // Pose minus
-  //     const vec3_t dr = x.head<3>() - x0_i.head<3>();
-  //     const quat_t q_i(x(6), x(3), x(4), x(5));
-  //     const quat_t q_j(x0_i(6), x0_i(3), x0_i(4), x0_i(5));
-  //     const quat_t dq = q_i * q_j.inverse();
-  //     DeltaChi.segment<3>(idx + 0) = dr;
-  //     DeltaChi.segment<3>(idx + 3) = 2.0 * dq.vec();
-  //   } else {
-  //     // Trivial minus
-  //     DeltaChi.segment(idx, size) = x - x0_i;
-  //   }
-  // }
-  // real_t *dchi;
-  // marg_compute_delta_chi(marg, dchi);
+    // Calculate i-th dchi
+    switch (param_type) {
+      case POSE_PARAM:
+      case FIDUCIAL_PARAM:
+      case EXTRINSIC_PARAM: {
+        // Pose minus
+        // dr = r - r0
+        const real_t dr[3] = {x[0] - x0[0], x[1] - x0[1], x[2] - x0[2]};
+
+        // // dq = q * q0.inverse();
+        // const real_t q[4] = {x[3], x[4], x[5], x[6]};
+        // const real_t q0[4] = {x0[3], x0[4], x0[5], x0[6]};
+        // real_t q0_inv[4] = {0};
+        // real_t dq[4] = {0};
+        // quat_inv(q0, q0_inv);
+        // quat_mul(q, q0_inv, dq);
+
+        // dq = q0.inverse() * q
+        const real_t q[4] = {x[3], x[4], x[5], x[6]};
+        const real_t q0[4] = {x0[3], x0[4], x0[5], x0[6]};
+        real_t q0_inv[4] = {0};
+        real_t dq[4] = {0};
+        quat_inv(q0, q0_inv);
+        quat_mul(q0_inv, q, dq);
+
+        marg->dchi[row_idx + 0] = dr[0];
+        marg->dchi[row_idx + 1] = dr[1];
+        marg->dchi[row_idx + 2] = dr[2];
+        marg->dchi[row_idx + 3] = 2.0 * dq[1];
+        marg->dchi[row_idx + 4] = 2.0 * dq[2];
+        marg->dchi[row_idx + 5] = 2.0 * dq[3];
+      } break;
+      default:
+        // Trivial minus: x - x0
+        vec_sub(x, x0, marg->dchi + row_idx, global_size);
+        break;
+    }
+    row_idx += global_size;
+  }
+  // -- Compute residuals: r = r0 + J0 * dchi;
+  dot(marg->J0,
+      marg->r_size,
+      marg->r_size,
+      marg->dchi,
+      marg->r_size,
+      1,
+      marg->J0_dchi);
+  for (int i = 0; i < marg->r_size; i++) {
+    marg->r[i] = marg->r0[i] + marg->J0_dchi[i];
+  }
 
   return 0;
 }
