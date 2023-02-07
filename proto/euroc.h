@@ -17,23 +17,23 @@
 
 /** Macro that adds the ability to switch between C / C++ style mallocs */
 #ifdef __cplusplus
-#ifndef MALLOC
-#define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
-#endif // MALLOC
+#ifndef EUROC_MALLOC
+#define EUROC_MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
+#endif // EUROC_MALLOC
 
-#ifndef CALLOC
-#define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
-#endif // CALLOC
+#ifndef EUROC_CALLOC
+#define EUROC_CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
+#endif // EUROC_CALLOC
 
 #else
 
-#ifndef MALLOC
-#define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
-#endif // MALLOC
+#ifndef EUROC_MALLOC
+#define EUROC_MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
+#endif // EUROC_MALLOC
 
-#ifndef CALLOC
-#define CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
-#endif // CALLOC
+#ifndef EUROC_CALLOC
+#define EUROC_CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
+#endif // EUROC_CALLOC
 #endif // __cplusplus
 
 /**
@@ -350,7 +350,7 @@ static int file_exists(const char *fp) {
  */
 static char *string_malloc(const char *s) {
   assert(s != NULL);
-  char *retval = MALLOC(char, strlen(s) + 1);
+  char *retval = EUROC_MALLOC(char, strlen(s) + 1);
   memcpy(retval, s, strlen(s));
   retval[strlen(s)] = '\0'; // Null terminate
   return retval;
@@ -362,7 +362,7 @@ static char *string_malloc(const char *s) {
  */
 static double *vec_malloc(const double *x, const size_t n) {
   assert(n > 0);
-  double *vec = CALLOC(double, n);
+  double *vec = EUROC_CALLOC(double, n);
   for (size_t i = 0; i < n; i++) {
     vec[i] = x[i];
   }
@@ -757,7 +757,7 @@ static int yaml_get_matrix(const char *yaml_file,
  */
 euroc_imu_t *euroc_imu_load(const char *data_dir) {
   // Setup
-  euroc_imu_t *data = MALLOC(euroc_imu_t, 1);
+  euroc_imu_t *data = EUROC_MALLOC(euroc_imu_t, 1);
 
   // Form data and sensor paths
   char data_path[1024] = {0};
@@ -777,9 +777,9 @@ euroc_imu_t *euroc_imu_load(const char *data_dir) {
   // Malloc
   assert(num_rows > 0);
   data->num_timestamps = 0;
-  data->timestamps = MALLOC(timestamp_t, num_rows);
-  data->w_B = MALLOC(double *, num_rows);
-  data->a_B = MALLOC(double *, num_rows);
+  data->timestamps = EUROC_MALLOC(timestamp_t, num_rows);
+  data->w_B = EUROC_MALLOC(double *, num_rows);
+  data->a_B = EUROC_MALLOC(double *, num_rows);
 
   // Parse file
   for (size_t i = 0; i < num_rows; i++) {
@@ -867,7 +867,7 @@ void euroc_imu_print(const euroc_imu_t *data) {
  */
 euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
   // Setup
-  euroc_camera_t *data = MALLOC(euroc_camera_t, 1);
+  euroc_camera_t *data = EUROC_MALLOC(euroc_camera_t, 1);
   data->is_calib_data = is_calib_data;
 
   // Form data and sensor paths
@@ -888,8 +888,8 @@ euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
   // Malloc
   assert(num_rows > 0);
   data->num_timestamps = 0;
-  data->timestamps = MALLOC(timestamp_t, num_rows);
-  data->image_paths = MALLOC(char *, num_rows);
+  data->timestamps = EUROC_MALLOC(timestamp_t, num_rows);
+  data->image_paths = EUROC_MALLOC(char *, num_rows);
 
   // Parse file
   for (size_t i = 0; i < num_rows; i++) {
@@ -988,7 +988,7 @@ void euroc_camera_print(const euroc_camera_t *data) {
  */
 euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir) {
   // Setup
-  euroc_ground_truth_t *data = MALLOC(euroc_ground_truth_t, 1);
+  euroc_ground_truth_t *data = EUROC_MALLOC(euroc_ground_truth_t, 1);
 
   // Form data path
   char data_path[9046] = {0};
@@ -1005,12 +1005,12 @@ euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir) {
   // Malloc
   assert(num_rows > 0);
   data->num_timestamps = 0;
-  data->timestamps = MALLOC(timestamp_t, num_rows);
-  data->p_RS_R = MALLOC(double *, num_rows);
-  data->q_RS = MALLOC(double *, num_rows);
-  data->v_RS_R = MALLOC(double *, num_rows);
-  data->b_w_RS_S = MALLOC(double *, num_rows);
-  data->b_a_RS_S = MALLOC(double *, num_rows);
+  data->timestamps = EUROC_MALLOC(timestamp_t, num_rows);
+  data->p_RS_R = EUROC_MALLOC(double *, num_rows);
+  data->q_RS = EUROC_MALLOC(double *, num_rows);
+  data->v_RS_R = EUROC_MALLOC(double *, num_rows);
+  data->b_w_RS_S = EUROC_MALLOC(double *, num_rows);
+  data->b_a_RS_S = EUROC_MALLOC(double *, num_rows);
 
   // Parse file
   char str_format[9046] = {0};
@@ -1154,7 +1154,7 @@ euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
   max_len += cam1_data->num_timestamps;
 
   size_t ts_set_len = 0;
-  timestamp_t *ts_set = MALLOC(timestamp_t, max_len);
+  timestamp_t *ts_set = EUROC_MALLOC(timestamp_t, max_len);
   timestamps_unique(ts_set,
                     &ts_set_len,
                     imu0_data->timestamps,
@@ -1169,10 +1169,10 @@ euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
                     cam1_data->num_timestamps);
 
   // Create timeline
-  euroc_timeline_t *timeline = MALLOC(euroc_timeline_t, 1);
+  euroc_timeline_t *timeline = EUROC_MALLOC(euroc_timeline_t, 1);
   timeline->num_timestamps = ts_set_len;
   timeline->timestamps = ts_set;
-  timeline->events = MALLOC(euroc_event_t, ts_set_len);
+  timeline->events = EUROC_MALLOC(euroc_event_t, ts_set_len);
 
   size_t imu0_idx = 0;
   size_t cam0_idx = 0;
@@ -1255,7 +1255,7 @@ void euroc_timeline_free(euroc_timeline_t *timeline) {
  */
 euroc_data_t *euroc_data_load(const char *data_path) {
   // Setup
-  euroc_data_t *data = MALLOC(euroc_data_t, 1);
+  euroc_data_t *data = EUROC_MALLOC(euroc_data_t, 1);
 
   // Load IMU data
   char imu0_path[9046] = {0};
@@ -1309,7 +1309,7 @@ void euroc_data_free(euroc_data_t *data) {
  * Load EuRoC calibration target configuration
  */
 euroc_calib_target_t *euroc_calib_target_load(const char *conf) {
-  euroc_calib_target_t *data = MALLOC(euroc_calib_target_t, 1);
+  euroc_calib_target_t *data = EUROC_MALLOC(euroc_calib_target_t, 1);
   yaml_get(conf, "target_type", 's', &data->type);
   yaml_get(conf, "tagRows", 'i', &data->tag_rows);
   yaml_get(conf, "tagCols", 'i', &data->tag_cols);
@@ -1345,7 +1345,7 @@ void euroc_calib_target_print(const euroc_calib_target_t *target) {
  */
 euroc_calib_t *euroc_calib_load(const char *data_path) {
   // Setup
-  euroc_calib_t *data = MALLOC(euroc_calib_t, 1);
+  euroc_calib_t *data = EUROC_MALLOC(euroc_calib_t, 1);
 
   // Load IMU data
   char imu0_path[9046] = {0};
