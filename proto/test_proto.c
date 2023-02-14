@@ -4996,7 +4996,7 @@ int test_calib_camera() {
   solver_t solver;
   solver_setup(&solver);
   solver.verbose = 1;
-  solver.max_iter = 30;
+  solver.max_iter = 20;
   solver.param_order_func = &calib_camera_param_order;
   solver.cost_func = &calib_camera_cost;
   solver.linearize_func = &calib_camera_linearize_compact;
@@ -5494,16 +5494,16 @@ int test_assoc_pose_data() {
   const char *gnd_data_path = "test_data/euroc/MH01_groundtruth.csv";
   const char *est_data_path = "test_data/euroc/MH01_estimate.csv";
 
-  /* Load ground-truth poses */
+  // Load ground-truth poses
   int num_gnd_poses = 0;
   pose_t *gnd_poses = load_poses(gnd_data_path, &num_gnd_poses);
   printf("num_gnd_poses: %d\n", num_gnd_poses);
 
-  /* Load estimate poses */
+  // Load estimate poses
   int num_est_poses = 0;
   pose_t *est_poses = load_poses(est_data_path, &num_est_poses);
 
-  /* Associate data */
+  // Associate data
   size_t num_matches = 0;
   int **matches = assoc_pose_data(gnd_poses,
                                   num_gnd_poses,
@@ -5517,7 +5517,7 @@ int test_assoc_pose_data() {
   printf("threshold:  %.4f [s]\n", threshold);
   printf("num_matches: %ld\n", num_matches);
 
-  /* Save matches to file */
+  // Save matches to file
   FILE *matches_csv = fopen(matches_fpath, "w");
   fprintf(matches_csv, "#gnd_idx,est_idx\n");
   for (size_t i = 0; i < num_matches; i++) {
@@ -5534,7 +5534,7 @@ int test_assoc_pose_data() {
   }
   fclose(matches_csv);
 
-  /* Clean up */
+  // Clean up
   for (size_t i = 0; i < num_matches; i++) {
     free(matches[i]);
   }

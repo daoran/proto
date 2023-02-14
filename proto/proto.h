@@ -2378,7 +2378,7 @@ typedef struct calib_camera_t {
   int num_factors;
 
   // Variables
-  pose_t **poses;
+  list_t *poses;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
 
@@ -2400,10 +2400,9 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
                                               camera_params_t *cam_params);
 void calib_camera_view_free(calib_camera_view_t *view);
 
-void calib_camera_setup(calib_camera_t *calib);
-void calib_camera_print(calib_camera_t *calib);
 calib_camera_t *calib_camera_malloc();
 void calib_camera_free(calib_camera_t *calib);
+void calib_camera_print(calib_camera_t *calib);
 void calib_camera_add_camera(calib_camera_t *calib,
                              const int cam_idx,
                              const int cam_res[2],

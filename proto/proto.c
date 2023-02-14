@@ -6453,7 +6453,7 @@ int solvepnp(const real_t proj_params[4],
              const int N,
              real_t T_CO[4 * 4]) {
   const int verbose = 0;
-  const int max_iter = 10;
+  const int max_iter = 20;
   const real_t lambda_init = 1e4;
   const real_t dx_threshold = 1e-10;
   const real_t J_threshold = 1e-15;
@@ -10369,7 +10369,7 @@ int calib_camera_factor_eval(void *factor_ptr) {
 
   // Map params
   const real_t *p_FFi = factor->p_FFi;
-  TF(factor->params[0], T_BF);                  // Relative pose T_BF_
+  TF(factor->params[0], T_BF);                  // Relative pose T_BF
   TF(factor->params[1], T_BCi);                 // Camera extrinsic T_BCi
   const real_t *cam_params = factor->params[2]; // Camera parameters
 
@@ -12131,6 +12131,40 @@ real_t **solver_step(solver_t *solver, const real_t lambda_k, void *data) {
     solver->H_damped[(i * solver->sv_size) + i] += lambda_k;
   }
 
+  // // Form Preconditioner M_inv
+  // real_t *M_inv = CALLOC(real_t, solver->sv_size * solver->sv_size);
+  // real_t *h_diag = MALLOC(real_t, solver->sv_size);
+  // real_t *H_ = MALLOC(real_t, solver->sv_size * solver->sv_size);
+  // real_t *g_ = MALLOC(real_t, solver->sv_size * solver->sv_size);
+  // mat_diag_get(solver->H_damped, solver->sv_size, solver->sv_size, h_diag);
+  // for (int i = 0; i < solver->sv_size; i++) {
+  //   printf("h_diag[%d]: %f -> ", i, h_diag[i]);
+  //   h_diag[i] = 1.0 / h_diag[i];
+  //   printf("h_diag[%d]: %f\n", i, h_diag[i]);
+  // }
+  // mat_diag_set(M_inv, solver->sv_size, solver->sv_size, h_diag);
+  // dot(M_inv,
+  //     solver->sv_size,
+  //     solver->sv_size,
+  //     solver->H,
+  //     solver->sv_size,
+  //     solver->sv_size,
+  //     H_);
+  // dot(M_inv,
+  //     solver->sv_size,
+  //     solver->sv_size,
+  //     solver->g,
+  //     solver->sv_size,
+  //     1,
+  //     g_);
+  // mat_copy(H_, solver->sv_size, solver->sv_size, solver->H_damped);
+  // vec_copy(g_, solver->sv_size, solver->g);
+
+  // free(M_inv);
+  // free(h_diag);
+  // free(H_);
+  // free(g_);
+
   // Solve: H * dx = g
 #ifdef SOLVER_USE_SUITESPARSE
   suitesparse_chol_solve(solver->common,
@@ -12564,9 +12598,11 @@ void calib_camera_view_free(calib_camera_view_t *view) {
 }
 
 /**
- * Setup camera calibration data.
+ * Malloc camera calibration problem
  */
-void calib_camera_setup(calib_camera_t *calib) {
+calib_camera_t *calib_camera_malloc() {
+  calib_camera_t *calib = MALLOC(calib_camera_t, 1);
+
   // Settings
   calib->fix_poses = 0;
   calib->fix_cam_exts = 0;
@@ -12582,11 +12618,39 @@ void calib_camera_setup(calib_camera_t *calib) {
   calib->num_factors = 0;
 
   // Variables
+  calib->poses = list_malloc();
   calib->cam_exts = NULL;
   calib->cam_params = NULL;
 
   // Factors
   calib->views = NULL;
+
+  return calib;
+}
+
+/**
+ * Free camera calibration problem
+ */
+void calib_camera_free(calib_camera_t *calib) {
+  free(calib->cam_exts);
+  free(calib->cam_params);
+
+  list_node_t *node = calib->poses->first;
+  while (node != NULL) {
+    free(node->value);
+    node = node->next;
+  }
+  list_free(calib->poses);
+
+  for (int k = 0; k < calib->num_views; k++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_camera_view_free(calib->views[k][cam_idx]);
+    }
+    free(calib->views[k]);
+  }
+  free(calib->views);
+
+  free(calib);
 }
 
 /**
@@ -12628,38 +12692,6 @@ void calib_camera_print(calib_camera_t *calib) {
     printf("  param: %s\n", param_str);
     printf("\n");
   }
-}
-
-/**
- * Malloc camera calibration problem
- */
-calib_camera_t *calib_camera_malloc() {
-  calib_camera_t *calib = MALLOC(calib_camera_t, 1);
-  calib_camera_setup(calib);
-  return calib;
-}
-
-/**
- * Free camera calibration problem
- */
-void calib_camera_free(calib_camera_t *calib) {
-  free(calib->cam_exts);
-  free(calib->cam_params);
-
-  for (int k = 0; k < calib->num_views; k++) {
-    free(calib->poses[k]);
-  }
-  free(calib->poses);
-
-  for (int k = 0; k < calib->num_views; k++) {
-    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      calib_camera_view_free(calib->views[k][cam_idx]);
-    }
-    free(calib->views[k]);
-  }
-  free(calib->views);
-
-  free(calib);
 }
 
 /**
@@ -12713,21 +12745,23 @@ void calib_camera_add_view(calib_camera_t *calib,
   assert(calib->cams_ok);
 
   // Allocate memory for a new pose & view
+  pose_t *pose = NULL;
   if (view_idx > (calib->num_views - 1)) {
     const int ns = calib->num_views + 1;
 
-    // New pose
+    // Estimate relative pose T_CO
     real_t T_CO[4 * 4] = {0};
     solvepnp(calib->cam_params->data,
              keypoints,
              object_points,
              num_corners,
              T_CO);
-    TF_INV(T_CO, T_OC);
-    TF_VECTOR(T_OC, pose);
-    calib->poses = REALLOC(calib->poses, pose_t *, ns);
-    calib->poses[view_idx] = MALLOC(pose_t, 1);
-    pose_setup(calib->poses[view_idx], ts, pose);
+    TF_VECTOR(T_CO, pose_vector);
+
+    // New pose
+    pose = MALLOC(pose_t, 1);
+    pose_setup(pose, ts, pose_vector);
+    list_push(calib->poses, pose);
 
     // New view
     calib->views = REALLOC(calib->views, calib_gimbal_view_t **, ns);
@@ -12745,7 +12779,7 @@ void calib_camera_add_view(calib_camera_t *calib,
                                corner_indices,
                                object_points,
                                keypoints,
-                               calib->poses[view_idx],
+                               pose,
                                &calib->cam_exts[cam_idx],
                                &calib->cam_params[cam_idx]);
   calib->num_factors += num_corners;
@@ -12811,10 +12845,13 @@ param_order_t *calib_camera_param_order(const void *data,
   int col_idx = 0;
 
   // -- Add body poses
-  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
-    void *data = &calib->poses[view_idx]->data;
+  list_node_t *node = calib->poses->first;
+  while (node != NULL) {
+    pose_t *pose = (pose_t *) node->value;
+    void *data = pose->data;
     const int fix = calib->fix_poses;
     param_order_add(&hash, POSE_PARAM, fix, data, &col_idx);
+    node = node->next;
   }
   // -- Add camera extrinsic
   for (int i = 0; i < calib->num_cams; i++) {
