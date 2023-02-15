@@ -133,30 +133,37 @@
 
 // DEBUG
 #ifdef NDEBUG
-#define UBX_DEBUG(M, ...)
+#define UBX_DEBUG(...)
 #else
-#define UBX_DEBUG(M, ...)                                                      \
-  fprintf(stderr, "[DEBUG] %s:%d: " M "\n", __func__, __LINE__, ##__VA_ARGS__)
+#define UBX_DEBUG(...)                                                         \
+  fprintf(stderr, "[UBX DEBUG] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__); \
+  fprintf(stderr, __VA_ARGS__);
 #endif
 
 // LOG
 #ifndef UBX_ERROR
-#define UBX_ERROR(M, ...)                                                      \
-  fprintf(stderr, "[ERROR] [%s] " M "\n", __func__, ##__VA_ARGS__)
+#define UBX_ERROR(...)                                                         \
+  fprintf(stderr, "[UBX ERROR] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__); \
+  fprintf(stderr, __VA_ARGS__);
 #endif
 
 #ifndef UBX_WARN
-#define UBX_WARN(M, ...) fprintf(stderr, "[WARN] " M "\n", ##__VA_ARGS__)
+#define UBX_WARN(...)                                                          \
+  fprintf(stderr, "[UBX INFO] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);  \
+  fprintf(stderr, __VA_ARGS__);
 #endif
 
 #ifndef UBX_INFO
-#define UBX_INFO(M, ...) fprintf(stderr, "[INFO] " M "\n", ##__VA_ARGS__)
+#define UBX_INFO(...)                                                          \
+  fprintf(stderr, "[UBX INFO] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);  \
+  fprintf(stderr, __VA_ARGS__);
 #endif
 
 // FATAL
 #ifndef UBX_FATAL
-#define UBX_FATAL(M, ...)                                                      \
-  fprintf(stderr, "[FATAL] " M "\n", ##__VA_ARGS__);                           \
+#define UBX_FATAL(...)                                                         \
+  fprintf(stderr, "[UBX FATAL] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__); \
+  fprintf(stderr, __VA_ARGS__);                                                \
   exit(-1);
 #endif
 
