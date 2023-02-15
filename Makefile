@@ -26,6 +26,9 @@ build: ## Build libproto
 tests: ## Run unittests
 	@cd proto && make -s tests
 
+run_test_proto:
+	@cd proto && make -s run_test_proto
+
 clean: ## Clean
 	@cd proto && make -s clean
 
