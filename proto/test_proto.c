@@ -2329,9 +2329,6 @@ int test_homography_find() {
     pts_i[i * 2 + 1] = pt_i[1];
     pts_j[i * 2 + 0] = pt_j[0];
     pts_j[i * 2 + 1] = pt_j[1];
-
-    // print_vector("pt_i", pt_i, 2);
-    // print_vector("pt_j", pt_j, 2);
   }
 
   real_t H[3 * 3] = {0};
@@ -2348,14 +2345,15 @@ int test_homography_find() {
     p1_est[1] /= p1_est[2];
     p1_est[2] /= p1_est[2];
 
-    // print_vector("p1_gnd", p1, 3);
-    // print_vector("p1_est", p1_est, 3);
-    // printf("\n");
-
     const real_t dx = p1[0] - p1_est[0];
     const real_t dy = p1[1] - p1_est[1];
     const real_t dz = p1[2] - p1_est[2];
     const real_t diff = sqrt(dx * dx + dy * dy + dz * dz);
+    if (diff >= 1e-3) {
+      print_vector("p1_gnd", p1, 3);
+      print_vector("p1_est", p1_est, 3);
+      printf("\n");
+    }
     MU_ASSERT(diff < 1e-3);
   }
 
@@ -4926,19 +4924,21 @@ int test_solver_eval() {
   return 0;
 }
 
-int test_calib_camera() {
-  // Setup Camera calibrator
-  calib_camera_t *calib = calib_camera_malloc();
-
-  // -- Add cam0
+int test_calib_camera_mono() {
+  // Initialize camera intrinsics
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  const real_t focal = pinhole_focal(cam_res[0], 90.0);
-  const real_t cx = cam_res[0] / 2.0;
-  const real_t cy = cam_res[1] / 2.0;
-  const real_t cam_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  // const real_t focal = pinhole_focal(cam_res[0], 90.0);
+  // const real_t cx = cam_res[0] / 2.0;
+  // const real_t cy = cam_res[1] / 2.0;
+  // real_t cam_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
   const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+
+  const real_t cam_params[8] =
+      {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
+
+  calib_camera_t *calib = calib_camera_malloc();
   calib_camera_add_camera(calib,
                           0,
                           cam_res,
@@ -4946,71 +4946,97 @@ int test_calib_camera() {
                           dist_model,
                           cam_params,
                           cam_ext);
-
-  // -- Load views
-  char *data_path = "/data/proto/cam_april/cam0";
-  int num_files = 0;
-  char **files = list_files(data_path, &num_files);
-
-  // -- Exit if no calibration data
-  if (num_files == 0) {
-    for (int view_idx = 0; view_idx < num_files; view_idx++) {
-      free(files[view_idx]);
-    }
-    free(files);
-    calib_camera_free(calib);
-    return 0;
-  }
-
-  int max_views = 20;
-  int cam_idx = 0;
-  for (int view_idx = 0; view_idx < num_files; view_idx++) {
-    // Load aprilgrid
-    aprilgrid_t grid;
-    aprilgrid_load(&grid, files[view_idx]);
-
-    // Get aprilgrid measurements
-    int tag_ids[APRILGRID_MAX_CORNERS] = {0};
-    int corner_indices[APRILGRID_MAX_CORNERS] = {0};
-    real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
-    real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
-    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts);
-
-    // Add view
-    const timestamp_t ts = grid.timestamp;
-    const int num_corners = grid.corners_detected;
-    if (view_idx < max_views) {
-      calib_camera_add_view(calib,
-                            ts,
-                            view_idx,
-                            cam_idx,
-                            num_corners,
-                            tag_ids,
-                            corner_indices,
-                            pts,
-                            kps);
-    }
-
-    // Clean up
-    free(files[view_idx]);
-  }
-  free(files);
-
-  // Solve
-  solver_t solver;
-  solver_setup(&solver);
-  solver.verbose = 1;
-  solver.max_iter = 10;
-  solver.param_order_func = &calib_camera_param_order;
-  solver.cost_func = &calib_camera_cost;
-  solver.linearize_func = &calib_camera_linearize_compact;
-  solver_solve(&solver, calib);
-  if (solver.verbose) {
-    calib_camera_print(calib);
-  }
-
-  // Clean up
+  calib_camera_add_data(calib, 0, "/data/proto/cam_april/cam0");
+  calib_camera_solve(calib);
   calib_camera_free(calib);
+
+  return 0;
+}
+
+int test_calib_camera() {
+  // Initialize camera intrinsics
+  // const int cam_res[2] = {752, 480};
+  // const char *proj_model = "pinhole";
+  // const char *dist_model = "radtan4";
+  // const real_t focal = pinhole_focal(cam_res[0], 90.0);
+  // const real_t cx = cam_res[0] / 2.0;
+  // const real_t cy = cam_res[1] / 2.0;
+  // real_t cam_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  // const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  // const real_t cam0_params[8] = {460.247856,
+  //                                459.024694,
+  //                                369.722862,
+  //                                245.367257,
+  //                                -0.276739,
+  //                                0.068194,
+  //                                0.000701,
+  //                                -0.000500};
+
+  // const real_t cam0_params[8] =
+  //     {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
+
+  // calib_camera_t *cam0_calib = calib_camera_malloc();
+  // calib_camera_add_camera(cam0_calib,
+  //                         0,
+  //                         cam_res,
+  //                         proj_model,
+  //                         dist_model,
+  //                         cam0_params,
+  //                         cam_ext);
+  // calib_camera_add_data(cam0_calib, 0, "/data/proto/cam_april/cam0");
+  // calib_camera_solve(cam0_calib);
+  // calib_camera_free(cam0_calib);
+
+  // calib_camera_t *cam1_calib = calib_camera_malloc();
+  // calib_camera_add_camera(cam1_calib,
+  //                         0,
+  //                         cam_res,
+  //                         proj_model,
+  //                         dist_model,
+  //                         cam_params,
+  //                         cam_ext);
+  // calib_camera_add_data(cam1_calib, 0, "/data/proto/cam_april/cam1");
+  // calib_camera_solve(cam1_calib);
+  // calib_camera_free(cam1_calib);
+
+  // Setup Camera calibrator
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t focal = pinhole_focal(cam_res[0], 90.0);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam0_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam1_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  const real_t cam1_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+
+  calib_camera_t *stereo_calib = calib_camera_malloc();
+  calib_camera_add_camera(stereo_calib,
+                          0,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam0_params,
+                          cam0_ext);
+  calib_camera_add_camera(stereo_calib,
+                          1,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam1_params,
+                          cam1_ext);
+
+  char *data_dir = "/data/proto/cam_april/cam%d";
+  for (int cam_idx = 0; cam_idx < stereo_calib->num_cams; cam_idx++) {
+    // Form camera data path
+    char data_path[1024] = {0};
+    sprintf(data_path, data_dir, cam_idx);
+    calib_camera_add_data(stereo_calib, cam_idx, data_path);
+  }
+
+  calib_camera_solve(stereo_calib);
+  calib_camera_free(stereo_calib);
 
   return 0;
 }
@@ -5896,6 +5922,7 @@ void test_suite() {
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
+  MU_ADD_TEST(test_calib_camera_mono);
   MU_ADD_TEST(test_calib_camera);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);

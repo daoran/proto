@@ -403,6 +403,7 @@ dev_euroc() {
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
+# run_test test_calib_camera_mono
 run_test test_calib_camera
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial

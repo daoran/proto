@@ -1361,6 +1361,7 @@ typedef struct camera_params_t {
 
   project_func_t proj_func;
   back_project_func_t back_proj_func;
+  undistort_func_t undistort_func;
 } camera_params_t;
 
 void camera_params_setup(camera_params_t *camera,
@@ -1376,6 +1377,10 @@ void camera_project(const camera_params_t *camera,
 void camera_back_project(const camera_params_t *camera,
                          const real_t z[2],
                          real_t bearing[3]);
+void camera_undistort_points(const camera_params_t *camera,
+                             const real_t *kps,
+                             const int num_points,
+                             real_t *kps_und);
 
 //////////////
 // VELOCITY //
@@ -1506,23 +1511,23 @@ void joint_print(const char *prefix, const joint_t *joint);
 // PARAMETERS //
 ////////////////
 
-#define PARAM_HASH(PARAM_TYPE, HASH_NAME)                                      \
+#define PARAM_HASH(PARAM_TYPE, HASH_NAME, KEY_TYPE)                            \
   typedef struct HASH_NAME {                                                   \
-    ssize_t key;                                                               \
+    KEY_TYPE key;                                                              \
     PARAM_TYPE *value;                                                         \
   } HASH_NAME;
 
-PARAM_HASH(pos_t, pos_hash_t)
-PARAM_HASH(rot_t, rot_hash_t)
-PARAM_HASH(pose_t, pose_hash_t)
-PARAM_HASH(velocity_t, velocity_hash_t)
-PARAM_HASH(imu_biases_t, imu_biases_hash_t)
-PARAM_HASH(feature_t, feature_hash_t)
-PARAM_HASH(joint_t, joint_hash_t)
-PARAM_HASH(extrinsic_t, extrinsic_hash_t)
-PARAM_HASH(fiducial_t, fiducial_hash_t)
-PARAM_HASH(camera_params_t, camera_params_hash_t)
-PARAM_HASH(time_delay_t, time_delay_hash_t)
+PARAM_HASH(pos_t, pos_hash_t, timestamp_t)
+PARAM_HASH(rot_t, rot_hash_t, timestamp_t)
+PARAM_HASH(pose_t, pose_hash_t, timestamp_t)
+PARAM_HASH(velocity_t, velocity_hash_t, timestamp_t)
+PARAM_HASH(imu_biases_t, imu_biases_hash_t, timestamp_t)
+PARAM_HASH(feature_t, feature_hash_t, size_t)
+PARAM_HASH(joint_t, joint_hash_t, size_t)
+PARAM_HASH(extrinsic_t, extrinsic_hash_t, size_t)
+PARAM_HASH(fiducial_t, fiducial_hash_t, size_t)
+PARAM_HASH(camera_params_t, camera_params_hash_t, size_t)
+PARAM_HASH(time_delay_t, time_delay_hash_t, size_t)
 
 typedef struct param_order_t {
   void *key;
@@ -2380,12 +2385,19 @@ typedef struct calib_camera_view_t {
   calib_camera_factor_t *factors;
 } calib_camera_view_t;
 
+typedef struct calib_camera_viewset_t {
+  timestamp_t key;
+  calib_camera_view_t **value;
+} calib_camera_viewset_t;
+
 typedef struct calib_camera_t {
   // Settings
   int fix_poses;
   int fix_cam_params;
   int fix_cam_exts;
   aprilgrid_t calib_target;
+  int verbose;
+  int max_iter;
 
   // Flags
   int cams_ok;
@@ -2401,7 +2413,7 @@ typedef struct calib_camera_t {
   camera_params_t *cam_params;
 
   // Factors
-  calib_camera_view_t ***views;
+  calib_camera_viewset_t *view_sets;
 } calib_camera_t;
 
 calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
@@ -2427,6 +2439,9 @@ void calib_camera_add_camera(calib_camera_t *calib,
                              const char *dist_model,
                              const real_t *cam_params,
                              const real_t *cam_ext);
+int calib_camera_add_data(calib_camera_t *calib,
+                          const int cam_idx,
+                          const char *data_path);
 void calib_camera_add_view(calib_camera_t *calib,
                            const timestamp_t ts,
                            const int view_idx,

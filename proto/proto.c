@@ -6453,7 +6453,7 @@ int solvepnp(const real_t proj_params[4],
              const int N,
              real_t T_CO[4 * 4]) {
   const int verbose = 0;
-  const int max_iter = 20;
+  const int max_iter = 10;
   const real_t lambda_init = 1e4;
   const real_t dx_threshold = 1e-10;
   const real_t J_threshold = 1e-15;
@@ -7676,9 +7676,11 @@ void camera_params_setup(camera_params_t *camera,
   if (streqs(proj_model, "pinhole") && streqs(dist_model, "radtan4")) {
     camera->proj_func = pinhole_radtan4_project;
     camera->back_proj_func = pinhole_radtan4_back_project;
+    camera->undistort_func = pinhole_radtan4_undistort;
   } else if (streqs(proj_model, "pinhole") && streqs(dist_model, "equi4")) {
     camera->proj_func = pinhole_equi4_project;
     camera->back_proj_func = pinhole_equi4_back_project;
+    camera->undistort_func = pinhole_equi4_undistort;
   } else {
     FATAL("Unknown [%s-%s] camera model!\n", proj_model, dist_model);
   }
@@ -7721,6 +7723,20 @@ void camera_back_project(const camera_params_t *camera,
                          const real_t z[2],
                          real_t bearing[3]) {
   camera->back_proj_func(camera->data, z, bearing);
+}
+
+/**
+ * Undistort image points.
+ */
+void camera_undistort_points(const camera_params_t *camera,
+                             const real_t *kps,
+                             const int num_points,
+                             real_t *kps_und) {
+  for (int i = 0; i < num_points; i++) {
+    const real_t *z_in = &kps[2 * i];
+    real_t *z_out = &kps_und[i * 2];
+    camera->undistort_func(camera->data, z_in, z_out);
+  }
 }
 
 //////////////
@@ -10378,9 +10394,18 @@ int calib_camera_factor_eval(void *factor_ptr) {
   TF_CHAIN(T_CiF, 2, T_CiB, T_BF);
 
   // Project to image plane
+  int status = 0;
   real_t z_hat[2];
   TF_POINT(T_CiF, factor->p_FFi, p_CiFi);
   camera_project(factor->cam_params, p_CiFi, z_hat);
+  const int res_x = factor->cam_params->resolution[0];
+  const int res_y = factor->cam_params->resolution[1];
+  const int x_ok = (z_hat[0] > 0 && z_hat[0] < res_x);
+  const int y_ok = (z_hat[1] > 0 && z_hat[1] < res_y);
+  const int z_ok = p_CiFi[2] > 0;
+  if (x_ok && y_ok && z_ok) {
+    status = 1;
+  }
 
   // Calculate residuals
   real_t r[2] = {0, 0};
@@ -10389,6 +10414,13 @@ int calib_camera_factor_eval(void *factor_ptr) {
   dot(factor->sqrt_info, 2, 2, r, 2, 1, factor->r);
 
   // Calculate Jacobians
+  // -- Zero out jacobians if reprojection is not valid
+  if (status == 0) {
+    zeros(factor->J_pose, 2, 6);
+    zeros(factor->J_cam_ext, 2, 6);
+    zeros(factor->J_cam_params, 2, 8);
+    return 0;
+  }
   // Form: -1 * sqrt_info
   real_t neg_sqrt_info[2 * 2] = {0};
   mat_copy(factor->sqrt_info, 2, 2, neg_sqrt_info);
@@ -12213,7 +12245,7 @@ int solver_solve(solver_t *solver, void *data) {
   solver->dx = CALLOC(real_t, sv_size);
   real_t J_km1 = solver_cost(solver, data);
   if (solver->verbose) {
-    printf("iter: 0, lambda_k: %.2e, cost: %.2e\n", solver->lambda, J_km1);
+    printf("iter: 0, lambda_k: %.2e, J: %.2e\n", solver->lambda, J_km1);
   }
 
 // Start cholmod workspace
@@ -12233,6 +12265,7 @@ int solver_solve(solver_t *solver, void *data) {
     J_k = solver_cost(solver, data);
 
     // Accept or reject update*/
+    const real_t dJ = J_k - J_km1;
     if (J_k < J_km1) {
       // Accept update
       J_km1 = J_k;
@@ -12248,16 +12281,17 @@ int solver_solve(solver_t *solver, void *data) {
 
     // Display
     if (solver->verbose) {
-      printf("iter: %d, lambda_k: %.2e, cost: %.2e\n",
+      printf("iter: %d, lambda_k: %.2e, J: %e, dJ: %e\n",
              iter + 1,
              lambda_k,
-             J_km1);
+             J_km1,
+             dJ);
     }
 
-    // // Termination criteria
-    // if (J_k < 1e-10) {
-    //   break;
-    // }
+    // Termination criteria
+    if (solver->linearize && fabs(dJ) < fabs(-1e-10)) {
+      break;
+    }
   }
 
 // Clean up
@@ -12514,10 +12548,12 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
   view->num_corners = num_corners;
 
   // Measurements
-  view->tag_ids = MALLOC(int, num_corners);
-  view->corner_indices = MALLOC(int, num_corners);
-  view->object_points = MALLOC(real_t, num_corners * 3);
-  view->keypoints = MALLOC(real_t, num_corners * 2);
+  if (num_corners) {
+    view->tag_ids = MALLOC(int, num_corners);
+    view->corner_indices = MALLOC(int, num_corners);
+    view->object_points = MALLOC(real_t, num_corners * 3);
+    view->keypoints = MALLOC(real_t, num_corners * 2);
+  }
 
   // Factors
   view->factors = MALLOC(calib_camera_factor_t, num_corners);
@@ -12571,12 +12607,14 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
  * Free camera calibration view.
  */
 void calib_camera_view_free(calib_camera_view_t *view) {
-  free(view->tag_ids);
-  free(view->corner_indices);
-  free(view->object_points);
-  free(view->keypoints);
-  free(view->factors);
-  free(view);
+  if (view) {
+    free(view->tag_ids);
+    free(view->corner_indices);
+    free(view->object_points);
+    free(view->keypoints);
+    free(view->factors);
+    free(view);
+  }
 }
 
 /**
@@ -12590,6 +12628,8 @@ calib_camera_t *calib_camera_malloc() {
   calib->fix_cam_exts = 0;
   calib->fix_cam_params = 0;
   aprilgrid_setup(0, &calib->calib_target);
+  calib->verbose = 1;
+  calib->max_iter = 20;
 
   // Flags
   calib->cams_ok = 0;
@@ -12606,7 +12646,8 @@ calib_camera_t *calib_camera_malloc() {
   hmdefault(calib->poses, NULL);
 
   // Factors
-  calib->views = NULL;
+  calib->view_sets = NULL;
+  hmdefault(calib->view_sets, NULL);
 
   return calib;
 }
@@ -12618,20 +12659,23 @@ void calib_camera_free(calib_camera_t *calib) {
   free(calib->cam_exts);
   free(calib->cam_params);
 
-  if (calib->poses) {
+  if (calib->num_views) {
+    // Poses
     for (int i = 0; i < hmlen(calib->poses); i++) {
       free(calib->poses[i].value);
     }
     hmfree(calib->poses);
-  }
 
-  for (int k = 0; k < calib->num_views; k++) {
-    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      calib_camera_view_free(calib->views[k][cam_idx]);
+    // View sets
+    for (int i = 0; i < hmlen(calib->view_sets); i++) {
+      calib_camera_view_t **cam_views = calib->view_sets[i].value;
+      for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+        calib_camera_view_free(cam_views[cam_idx]);
+      }
+      free(cam_views);
     }
-    free(calib->views[k]);
+    hmfree(calib->view_sets);
   }
-  free(calib->views);
 
   free(calib);
 }
@@ -12674,6 +12718,22 @@ void calib_camera_print(calib_camera_t *calib) {
     printf("  dist_model: %s\n", cam->dist_model);
     printf("  param: %s\n", param_str);
     printf("\n");
+
+    if (cam_idx > 0) {
+      char tf_str[20] = {0};
+      sprintf(tf_str, "T_cam0_cam%d", cam_idx);
+
+      POSE2TF(calib->cam_exts[cam_idx].data, T);
+      printf("%s:\n", tf_str);
+      printf("  rows: 4\n");
+      printf("  cols: 4\n");
+      printf("  data: [\n");
+      printf("    %.8f, %.8f, %.8f, %.8f,\n", T[0], T[1], T[2], T[3]);
+      printf("    %.8f, %.8f, %.8f, %.8f,\n", T[4], T[5], T[6], T[7]);
+      printf("    %.8f, %.8f, %.8f, %.8f,\n", T[8], T[9], T[10], T[11]);
+      printf("    %.8f, %.8f, %.8f, %.8f,\n", T[12], T[13], T[14], T[15]);
+      printf("  ]\n");
+    }
   }
 }
 
@@ -12713,6 +12773,59 @@ void calib_camera_add_camera(calib_camera_t *calib,
 }
 
 /**
+ * Add camera calibration data.
+ */
+int calib_camera_add_data(calib_camera_t *calib,
+                          const int cam_idx,
+                          const char *data_path) {
+  // Get camera data
+  int num_files = 0;
+  char **files = list_files(data_path, &num_files);
+
+  // Exit if no calibration data
+  if (num_files == 0) {
+    for (int view_idx = 0; view_idx < num_files; view_idx++) {
+      free(files[view_idx]);
+    }
+    free(files);
+    calib_camera_free(calib);
+    return -1;
+  }
+
+  for (int view_idx = 0; view_idx < num_files; view_idx++) {
+    // Load aprilgrid
+    aprilgrid_t grid;
+    aprilgrid_load(&grid, files[view_idx]);
+
+    // Get aprilgrid measurements
+    int tag_ids[APRILGRID_MAX_CORNERS] = {0};
+    int corner_indices[APRILGRID_MAX_CORNERS] = {0};
+    real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
+    real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
+    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts);
+
+    // Add view
+    const timestamp_t ts = grid.timestamp;
+    const int num_corners = grid.corners_detected;
+    calib_camera_add_view(calib,
+                          ts,
+                          view_idx,
+                          cam_idx,
+                          num_corners,
+                          tag_ids,
+                          corner_indices,
+                          pts,
+                          kps);
+
+    // Clean up
+    free(files[view_idx]);
+  }
+  free(files);
+
+  return 0;
+}
+
+/**
  * Add camera calibration view.
  */
 void calib_camera_add_view(calib_camera_t *calib,
@@ -12726,17 +12839,32 @@ void calib_camera_add_view(calib_camera_t *calib,
                            const real_t *keypoints) {
   assert(calib != NULL);
   assert(calib->cams_ok);
+  if (num_corners == 0) {
+    return;
+  }
 
   // Pose T_C0F
   pose_t *pose = hmgets(calib->poses, ts).value;
   if (pose == NULL) {
     // Estimate relative pose T_CiF
+    // -- Undistort keypoints
+    real_t *kps_und = MALLOC(real_t, num_corners * 2);
+    camera_undistort_points(&calib->cam_params[cam_idx],
+                            keypoints,
+                            num_corners,
+                            kps_und);
+    // -- Estimate T_CiF
     real_t T_CiF[4 * 4] = {0};
-    solvepnp(calib->cam_params->data,
-             keypoints,
-             object_points,
-             num_corners,
-             T_CiF);
+    const int status = solvepnp(calib->cam_params[cam_idx].data,
+                                kps_und,
+                                object_points,
+                                num_corners,
+                                T_CiF);
+    free(kps_und);
+    // -- Return early if failed to estimate T_CiF
+    if (status != 0) {
+      return;
+    }
 
     // Form T_BF
     POSE2TF(calib->cam_exts[cam_idx].data, T_BCi);
@@ -12749,30 +12877,31 @@ void calib_camera_add_view(calib_camera_t *calib,
     hmput(calib->poses, ts, pose);
   }
 
-  if (view_idx > (calib->num_views - 1)) {
-    const int ns = calib->num_views + 1;
-
-    // New view
-    calib->views = REALLOC(calib->views, calib_camera_view_t **, ns);
-    calib->views[view_idx] = MALLOC(calib_camera_view_t *, calib->num_cams);
+  // Form new view
+  calib_camera_view_t **cam_views = hmgets(calib->view_sets, ts).value;
+  if (cam_views == NULL) {
+    cam_views = CALLOC(calib_camera_view_t **, 2);
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      cam_views[cam_idx] = NULL;
+    }
+    hmput(calib->view_sets, ts, cam_views);
     calib->num_views++;
-
-    // Form a new calibration view
-    calib_camera_view_t *view =
-        calib_camera_view_malloc(ts,
-                                 view_idx,
-                                 cam_idx,
-                                 num_corners,
-                                 tag_ids,
-                                 corner_indices,
-                                 object_points,
-                                 keypoints,
-                                 pose,
-                                 &calib->cam_exts[cam_idx],
-                                 &calib->cam_params[cam_idx]);
-    calib->num_factors += num_corners;
-    calib->views[view_idx][cam_idx] = view;
   }
+
+  calib_camera_view_t *view =
+      calib_camera_view_malloc(ts,
+                               view_idx,
+                               cam_idx,
+                               num_corners,
+                               tag_ids,
+                               corner_indices,
+                               object_points,
+                               keypoints,
+                               pose,
+                               &calib->cam_exts[cam_idx],
+                               &calib->cam_params[cam_idx]);
+  cam_views[cam_idx] = view;
+  calib->num_factors += num_corners;
 }
 
 void calib_camera_errors(calib_camera_t *calib,
@@ -12788,7 +12917,10 @@ void calib_camera_errors(calib_camera_t *calib,
   int r_idx = 0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      calib_camera_view_t *view = calib->views[view_idx][cam_idx];
+      calib_camera_view_t *view = calib->view_sets[view_idx].value[cam_idx];
+      if (view == NULL) {
+        continue;
+      }
 
       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
         calib_camera_factor_t *factor = &view->factors[factor_idx];
@@ -12838,14 +12970,14 @@ param_order_t *calib_camera_param_order(const void *data,
     param_order_add(&hash, POSE_PARAM, fix, data, &col_idx);
   }
   // -- Add camera extrinsic
-  for (int i = 0; i < calib->num_cams; i++) {
-    void *data = &calib->cam_exts[i].data;
-    const int fix = (calib->fix_cam_exts || (i == 0) ? 1 : 0);
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    void *data = &calib->cam_exts[cam_idx].data;
+    const int fix = (calib->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
     param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add camera parameters
-  for (int i = 0; i < calib->num_cams; i++) {
-    void *data = &calib->cam_params[i].data;
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    void *data = &calib->cam_params[cam_idx].data;
     const int fix = calib->fix_cam_params;
     param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
   }
@@ -12862,7 +12994,10 @@ void calib_camera_cost(const void *data, real_t *r) {
   int r_idx = 0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      calib_camera_view_t *view = calib->views[view_idx][cam_idx];
+      calib_camera_view_t *view = calib->view_sets[view_idx].value[cam_idx];
+      if (view == NULL) {
+        continue;
+      }
 
       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
         calib_camera_factor_t *factor = &view->factors[factor_idx];
@@ -12886,7 +13021,10 @@ void calib_camera_linearize_compact(const void *data,
   int r_idx = 0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      calib_camera_view_t *view = calib->views[view_idx][cam_idx];
+      calib_camera_view_t *view = calib->view_sets[view_idx].value[cam_idx];
+      if (view == NULL) {
+        continue;
+      }
 
       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
         calib_camera_factor_t *factor = &view->factors[factor_idx];
@@ -12913,6 +13051,7 @@ void calib_camera_solve(calib_camera_t *calib) {
   solver_setup(&solver);
   solver.verbose = 1;
   solver.max_iter = 30;
+  solver.lambda_factor = 10;
   solver.cost_func = &calib_camera_cost;
   solver.param_order_func = &calib_camera_param_order;
   solver.linearize_func = &calib_camera_linearize_compact;
