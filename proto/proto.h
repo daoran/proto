@@ -1466,11 +1466,11 @@ void features_add_idfs(features_t *features,
 int features_exists(const features_t *features, const size_t feature_id);
 void features_get_xyz(const features_t *features,
                       const size_t feature_id,
-                      feature_t *feature);
+                      feature_t **feature);
 void features_get_idf(const features_t *features,
                       const size_t feature_id,
-                      feature_t *feature,
-                      pos_t *pos);
+                      feature_t **feature,
+                      pos_t **pos);
 int features_point(const features_t *features,
                    const size_t feature_id,
                    real_t p_W[3]);
@@ -1505,6 +1505,24 @@ void joint_print(const char *prefix, const joint_t *joint);
 ////////////////
 // PARAMETERS //
 ////////////////
+
+#define PARAM_HASH(PARAM_TYPE, HASH_NAME)                                      \
+  typedef struct HASH_NAME {                                                   \
+    ssize_t key;                                                               \
+    PARAM_TYPE *value;                                                         \
+  } HASH_NAME;
+
+PARAM_HASH(pos_t, pos_hash_t)
+PARAM_HASH(rot_t, rot_hash_t)
+PARAM_HASH(pose_t, pose_hash_t)
+PARAM_HASH(velocity_t, velocity_hash_t)
+PARAM_HASH(imu_biases_t, imu_biases_hash_t)
+PARAM_HASH(feature_t, feature_hash_t)
+PARAM_HASH(joint_t, joint_hash_t)
+PARAM_HASH(extrinsic_t, extrinsic_hash_t)
+PARAM_HASH(fiducial_t, fiducial_hash_t)
+PARAM_HASH(camera_params_t, camera_params_hash_t)
+PARAM_HASH(time_delay_t, time_delay_hash_t)
 
 typedef struct param_order_t {
   void *key;
@@ -2113,23 +2131,23 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
     }                                                                          \
   }
 
-#define PARAM_HASH(PARAM_TYPE, HASH_NAME)                                      \
+#define MARG_PARAM_HASH(PARAM_TYPE, HASH_NAME)                                 \
   typedef struct HASH_NAME {                                                   \
     void *key;                                                                 \
     PARAM_TYPE *value;                                                         \
   } HASH_NAME;
 
-PARAM_HASH(pos_t, pos_hash_t)
-PARAM_HASH(rot_t, rot_hash_t)
-PARAM_HASH(pose_t, pose_hash_t)
-PARAM_HASH(velocity_t, velocity_hash_t)
-PARAM_HASH(imu_biases_t, imu_biases_hash_t)
-PARAM_HASH(feature_t, feature_hash_t)
-PARAM_HASH(joint_t, joint_hash_t)
-PARAM_HASH(extrinsic_t, extrinsic_hash_t)
-PARAM_HASH(fiducial_t, fiducial_hash_t)
-PARAM_HASH(camera_params_t, camera_params_hash_t)
-PARAM_HASH(time_delay_t, time_delay_hash_t)
+MARG_PARAM_HASH(pos_t, marg_pos_t)
+MARG_PARAM_HASH(rot_t, marg_rot_t)
+MARG_PARAM_HASH(pose_t, marg_pose_t)
+MARG_PARAM_HASH(velocity_t, marg_velocity_t)
+MARG_PARAM_HASH(imu_biases_t, marg_imu_biases_t)
+MARG_PARAM_HASH(feature_t, marg_feature_t)
+MARG_PARAM_HASH(joint_t, marg_joint_t)
+MARG_PARAM_HASH(extrinsic_t, marg_extrinsic_t)
+MARG_PARAM_HASH(fiducial_t, marg_fiducial_t)
+MARG_PARAM_HASH(camera_params_t, marg_camera_params_t)
+MARG_PARAM_HASH(time_delay_t, marg_time_delay_t)
 
 typedef struct marg_factor_t {
   // Settings
@@ -2378,7 +2396,7 @@ typedef struct calib_camera_t {
   int num_factors;
 
   // Variables
-  list_t *poses;
+  pose_hash_t *poses;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
 
@@ -2386,7 +2404,6 @@ typedef struct calib_camera_t {
   calib_camera_view_t ***views;
 } calib_camera_t;
 
-void calib_camera_view_setup(calib_camera_view_t *view);
 calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
                                               const int view_idx,
                                               const int cam_idx,

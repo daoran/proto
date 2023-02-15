@@ -8032,8 +8032,8 @@ int features_exists(const features_t *features, const size_t feature_id) {
  */
 void features_get_xyz(const features_t *features,
                       const size_t feature_id,
-                      feature_t *feature) {
-  feature = features->data[feature_id];
+                      feature_t **feature) {
+  *feature = features->data[feature_id];
 }
 
 /**
@@ -8041,10 +8041,10 @@ void features_get_xyz(const features_t *features,
  */
 void features_get_idf(const features_t *features,
                       const size_t feature_id,
-                      feature_t *feature,
-                      pos_t *pos) {
-  feature = features->data[feature_id];
-  pos = features->pos_data[feature->pos_id];
+                      feature_t **feature,
+                      pos_t **pos) {
+  *feature = features->data[feature_id];
+  *pos = features->pos_data[(*feature)->pos_id];
 }
 
 /**
@@ -11462,29 +11462,29 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
                                          real_t **b_marg) {
   // Track parameters
   // -- Remain parameters
-  pos_hash_t *r_positions = NULL;
-  rot_hash_t *r_rotations = NULL;
-  pose_hash_t *r_poses = NULL;
-  velocity_hash_t *r_velocities = NULL;
-  imu_biases_hash_t *r_imu_biases = NULL;
-  fiducial_hash_t *r_fiducials = NULL;
-  joint_hash_t *r_joints = NULL;
-  extrinsic_hash_t *r_extrinsics = NULL;
-  feature_hash_t *r_features = NULL;
-  camera_params_hash_t *r_cam_params = NULL;
-  time_delay_hash_t *r_time_delays = NULL;
+  marg_pos_t *r_positions = NULL;
+  marg_rot_t *r_rotations = NULL;
+  marg_pose_t *r_poses = NULL;
+  marg_velocity_t *r_velocities = NULL;
+  marg_imu_biases_t *r_imu_biases = NULL;
+  marg_fiducial_t *r_fiducials = NULL;
+  marg_joint_t *r_joints = NULL;
+  marg_extrinsic_t *r_extrinsics = NULL;
+  marg_feature_t *r_features = NULL;
+  marg_camera_params_t *r_cam_params = NULL;
+  marg_time_delay_t *r_time_delays = NULL;
   // -- Marginal parameters
-  pos_hash_t *m_positions = NULL;
-  rot_hash_t *m_rotations = NULL;
-  pose_hash_t *m_poses = NULL;
-  velocity_hash_t *m_velocities = NULL;
-  imu_biases_hash_t *m_imu_biases = NULL;
-  feature_hash_t *m_features = NULL;
-  fiducial_hash_t *m_fiducials = NULL;
-  extrinsic_hash_t *m_extrinsics = NULL;
-  joint_hash_t *m_joints = NULL;
-  camera_params_hash_t *m_cam_params = NULL;
-  time_delay_hash_t *m_time_delays = NULL;
+  marg_pos_t *m_positions = NULL;
+  marg_rot_t *m_rotations = NULL;
+  marg_pose_t *m_poses = NULL;
+  marg_velocity_t *m_velocities = NULL;
+  marg_imu_biases_t *m_imu_biases = NULL;
+  marg_feature_t *m_features = NULL;
+  marg_fiducial_t *m_fiducials = NULL;
+  marg_extrinsic_t *m_extrinsics = NULL;
+  marg_joint_t *m_joints = NULL;
+  marg_camera_params_t *m_cam_params = NULL;
+  marg_time_delay_t *m_time_delays = NULL;
 
   // Track Factor Params
   // -- Track BA factor params
@@ -12350,7 +12350,7 @@ camera_view_t *camera_view_malloc(const timestamp_t ts,
     const size_t feature_id = feature_ids[i];
     pos_t *idf_pos = NULL;
     feature_t *idf_param = NULL;
-    features_get_idf(features, feature_id, idf_param, idf_pos);
+    features_get_idf(features, feature_id, &idf_param, &idf_pos);
 
     idf_factor_setup(&view->factors[factor_idx],
                      pose,
@@ -12492,23 +12492,6 @@ void bundler_add_view(bundler_t *bundler,
 ////////////////////////
 
 /**
- * Setup camera calibration view.
- */
-void calib_camera_view_setup(calib_camera_view_t *view) {
-  view->ts = 0;
-  view->view_idx = 0;
-  view->cam_idx = 0;
-  view->num_corners = 0;
-
-  view->tag_ids = NULL;
-  view->corner_indices = NULL;
-  view->object_points = NULL;
-  view->keypoints = NULL;
-
-  view->factors = NULL;
-}
-
-/**
  * Malloc camera calibration view.
  */
 calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
@@ -12523,7 +12506,6 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
                                               extrinsic_t *cam_ext,
                                               camera_params_t *cam_params) {
   calib_camera_view_t *view = MALLOC(calib_camera_view_t, 1);
-  calib_camera_view_setup(view);
 
   // Properties
   view->ts = ts;
@@ -12618,9 +12600,10 @@ calib_camera_t *calib_camera_malloc() {
   calib->num_factors = 0;
 
   // Variables
-  calib->poses = list_malloc();
+  calib->poses = NULL;
   calib->cam_exts = NULL;
   calib->cam_params = NULL;
+  hmdefault(calib->poses, NULL);
 
   // Factors
   calib->views = NULL;
@@ -12635,12 +12618,12 @@ void calib_camera_free(calib_camera_t *calib) {
   free(calib->cam_exts);
   free(calib->cam_params);
 
-  list_node_t *node = calib->poses->first;
-  while (node != NULL) {
-    free(node->value);
-    node = node->next;
+  if (calib->poses) {
+    for (int i = 0; i < hmlen(calib->poses); i++) {
+      free(calib->poses[i].value);
+    }
+    hmfree(calib->poses);
   }
-  list_free(calib->poses);
 
   for (int k = 0; k < calib->num_views; k++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
@@ -12761,31 +12744,31 @@ void calib_camera_add_view(calib_camera_t *calib,
     // New pose
     pose = MALLOC(pose_t, 1);
     pose_setup(pose, ts, pose_vector);
-    list_push(calib->poses, pose);
+    hmput(calib->poses, ts, pose);
 
     // New view
-    calib->views = REALLOC(calib->views, calib_gimbal_view_t **, ns);
-    calib->views[view_idx] = MALLOC(calib_gimbal_view_t *, calib->num_cams);
+    calib->views = REALLOC(calib->views, calib_camera_view_t **, ns);
+    calib->views[view_idx] = MALLOC(calib_camera_view_t *, calib->num_cams);
     calib->num_views++;
+
+    // Form a new calibration view
+    calib_camera_view_t *view =
+        calib_camera_view_malloc(ts,
+                                 view_idx,
+                                 cam_idx,
+                                 num_corners,
+                                 tag_ids,
+                                 corner_indices,
+                                 object_points,
+                                 keypoints,
+                                 pose,
+                                 &calib->cam_exts[cam_idx],
+                                 &calib->cam_params[cam_idx]);
+    calib->num_factors += num_corners;
+    calib->views[view_idx][cam_idx] = view;
+  } else {
+    pose = hmgets(calib->poses, ts).value;
   }
-
-  // Form a new calibration view
-  calib_camera_view_t *view =
-      calib_camera_view_malloc(ts,
-                               view_idx,
-                               cam_idx,
-                               num_corners,
-                               tag_ids,
-                               corner_indices,
-                               object_points,
-                               keypoints,
-                               pose,
-                               &calib->cam_exts[cam_idx],
-                               &calib->cam_params[cam_idx]);
-  calib->num_factors += num_corners;
-
-  // Update
-  calib->views[view_idx][cam_idx] = view;
 }
 
 void calib_camera_errors(calib_camera_t *calib,
@@ -12845,13 +12828,10 @@ param_order_t *calib_camera_param_order(const void *data,
   int col_idx = 0;
 
   // -- Add body poses
-  list_node_t *node = calib->poses->first;
-  while (node != NULL) {
-    pose_t *pose = (pose_t *) node->value;
-    void *data = pose->data;
+  for (int i = 0; i < hmlen(calib->poses); i++) {
+    void *data = calib->poses[i].value->data;
     const int fix = calib->fix_poses;
     param_order_add(&hash, POSE_PARAM, fix, data, &col_idx);
-    node = node->next;
   }
   // -- Add camera extrinsic
   for (int i = 0; i < calib->num_cams; i++) {
@@ -14699,14 +14679,14 @@ void tsif_update(tsif_t *tsif,
                  const size_t *num_features,
                  const size_t **feature_ids,
                  const real_t **keypoints) {
-  printf("\n");
-  printf("num_features: %zu\n", num_features[0]);
-  for (size_t i = 0; i < num_features[0]; i++) {
-    printf("kp[%zu]: (%.2f, %.2f)\n",
-           feature_ids[0][i],
-           keypoints[0][i * 2 + 0],
-           keypoints[0][i * 2 + 1]);
-  }
+  // printf("\n");
+  // printf("num_features: %zu\n", num_features[0]);
+  // for (size_t i = 0; i < num_features[0]; i++) {
+  //   printf("kp[%zu]: (%.2f, %.2f)\n",
+  //          feature_ids[0][i],
+  //          keypoints[0][i * 2 + 0],
+  //          keypoints[0][i * 2 + 1]);
+  // }
 
   if (tsif->state == TSIF_INIT_MODE) {}
 

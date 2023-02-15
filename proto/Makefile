@@ -181,3 +181,26 @@ test_http:  ## Compile test_http
 	@$(CC) $(CFLAGS) test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
 
 tests: test_proto test_aprilgrid test_tis test_sbgc test_ubx
+
+run_test_proto: test_proto ## Run test_proto
+	@./build/test_proto
+
+run_test_aprilgrid: test_aprilgrid ## Run test_aprilgrid
+	@./build/test_aprilgrid
+
+run_test_euroc: test_euroc ## Run test_euroc
+	@./build/test_euroc
+
+run_test_tis: test_tis ## Run test_tis
+	@./build/test_tis
+
+run_test_sbgc: test_sbgc ## Run test_sbgc
+	@./build/test_sbgc
+
+run_test_ubx: test_ubx ## Run test_ubx
+	@./build/test_ubx
+
+run_test_http: test_http ## Run test_http
+	@./build/test_http
+
+run_tests: run_test_proto run_test_aprilgrid run_test_tis run_test_run_sbgc run_test_ubx

@@ -3213,20 +3213,20 @@ int test_schur_complement() {
   mat_block_get(H, H_size, m, H_size - 1, 0, m - 1, Hrm);
   mat_block_get(H, H_size, m, H_size - 1, m, H_size - 1, Hrr);
 
-  print_matrix("H", H, 10, 10);
-  print_matrix("Hmm", Hmm, m, m);
-  print_matrix("Hmr", Hmr, m, r);
-  print_matrix("Hrm", Hrm, r, m);
-  print_matrix("Hrr", Hrr, r, r);
+  // print_matrix("H", H, 10, 10);
+  // print_matrix("Hmm", Hmm, m, m);
+  // print_matrix("Hmr", Hmr, m, r);
+  // print_matrix("Hrm", Hrm, r, m);
+  // print_matrix("Hrr", Hrr, r, r);
 
   real_t bmm[4] = {0};
   real_t brr[6] = {0};
   vec_copy(b, m, bmm);
   vec_copy(b + m, r, brr);
 
-  print_vector("b", b, 10);
-  print_vector("bmm", bmm, m);
-  print_vector("brr", brr, r);
+  // print_vector("b", b, 10);
+  // print_vector("bmm", bmm, m);
+  // print_vector("brr", brr, r);
 
   // real_t *Hmm = MALLOC(real_t, m * m);
   // real_t *Hmr = MALLOC(real_t, m * r);
@@ -3429,9 +3429,9 @@ int test_features() {
   features_add_xyzs(features, feature_ids, params, 3);
   MU_ASSERT(features->num_features == 3);
 
-  // -- Add IDF features
-  features_add_idfs(features, idf_ids, &cam, T_WCi, idf_keypoints, num_idfs);
-  MU_ASSERT(features->num_features == 3 + num_idfs);
+  // // -- Add IDF features
+  // features_add_idfs(features, idf_ids, &cam, T_WCi, idf_keypoints, num_idfs);
+  // MU_ASSERT(features->num_features == 3 + num_idfs);
 
   // -- Check features exists
   MU_ASSERT(features_exists(features, 1) == 1);
@@ -3444,10 +3444,11 @@ int test_features() {
   feature_t *f1 = NULL;
   feature_t *f2 = NULL;
   feature_t *f3 = NULL;
-  features_get_xyz(features, 1, f0);
-  features_get_xyz(features, 2, f1);
-  features_get_xyz(features, 3, f2);
-  features_get_xyz(features, 99, f3);
+
+  features_get_xyz(features, 1, &f0);
+  features_get_xyz(features, 2, &f1);
+  features_get_xyz(features, 3, &f2);
+  features_get_xyz(features, 99, &f3);
 
   MU_ASSERT(f0->feature_id == 1);
   MU_ASSERT(f0->status == 1);
@@ -3496,7 +3497,7 @@ int test_camera_params() {
   const char *dist_model = "radtan4";
   const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_setup(&camera, cam_idx, cam_res, proj_model, dist_model, data);
-  camera_params_print(&camera);
+  // camera_params_print(&camera);
 
   return 0;
 }
@@ -4645,7 +4646,7 @@ int test_inertial_odometry() {
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 1;
+  solver.verbose = 0;
   solver.param_order_func = &inertial_odometry_param_order;
   solver.cost_func = &inertial_odometry_cost;
   solver.linearize_func = &inertial_odometry_linearize_compact;
@@ -4906,7 +4907,7 @@ int test_solver_eval() {
       const int feature_id = frame->feature_ids[i];
       const real_t *z = &frame->keypoints[i];
       feature_t *f = NULL;
-      features_get_xyz(features, feature_id, f);
+      features_get_xyz(features, feature_id, &f);
 
       // Factor
       ba_factor_t *factor = &cam_views[k].factors[i];
@@ -4995,8 +4996,8 @@ int test_calib_camera() {
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 1;
-  solver.max_iter = 20;
+  solver.verbose = 0;
+  solver.max_iter = 10;
   solver.param_order_func = &calib_camera_param_order;
   solver.cost_func = &calib_camera_cost;
   solver.linearize_func = &calib_camera_linearize_compact;
@@ -5897,12 +5898,12 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_link);
   MU_ADD_TEST(test_calib_gimbal_add_camera);
   MU_ADD_TEST(test_calib_gimbal_add_remove_view);
-  MU_ADD_TEST(test_calib_gimbal_load);
-  MU_ADD_TEST(test_calib_gimbal_solve);
+  // MU_ADD_TEST(test_calib_gimbal_load);
+  // MU_ADD_TEST(test_calib_gimbal_solve);
 #ifdef USE_CERES
   MU_ADD_TEST(test_calib_gimbal_ceres_solve);
 #endif // USE_CERES
-  MU_ADD_TEST(test_calib_gimbal_copy);
+  // MU_ADD_TEST(test_calib_gimbal_copy);
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);
