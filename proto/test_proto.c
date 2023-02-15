@@ -2476,7 +2476,7 @@ int test_p3p_kneip() {
   tf_point(T_CW, features[2], points[2]);
 
   real_t solutions[4][4 * 4];
-  int retval = p3p_kneip(features, points, solutions);
+  p3p_kneip(features, points, solutions);
   // printf("retval: %d\n", retval);
 
   return 0;
@@ -4962,6 +4962,7 @@ int test_calib_camera() {
     return 0;
   }
 
+  int max_views = 20;
   int cam_idx = 0;
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
     // Load aprilgrid
@@ -4978,15 +4979,17 @@ int test_calib_camera() {
     // Add view
     const timestamp_t ts = grid.timestamp;
     const int num_corners = grid.corners_detected;
-    calib_camera_add_view(calib,
-                          ts,
-                          view_idx,
-                          cam_idx,
-                          num_corners,
-                          tag_ids,
-                          corner_indices,
-                          pts,
-                          kps);
+    if (view_idx < max_views) {
+      calib_camera_add_view(calib,
+                            ts,
+                            view_idx,
+                            cam_idx,
+                            num_corners,
+                            tag_ids,
+                            corner_indices,
+                            pts,
+                            kps);
+    }
 
     // Clean up
     free(files[view_idx]);
@@ -4996,13 +4999,15 @@ int test_calib_camera() {
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 0;
+  solver.verbose = 1;
   solver.max_iter = 10;
   solver.param_order_func = &calib_camera_param_order;
   solver.cost_func = &calib_camera_cost;
   solver.linearize_func = &calib_camera_linearize_compact;
   solver_solve(&solver, calib);
-  // calib_camera_print(calib);
+  if (solver.verbose) {
+    calib_camera_print(calib);
+  }
 
   // Clean up
   calib_camera_free(calib);

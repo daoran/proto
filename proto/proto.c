@@ -12727,24 +12727,30 @@ void calib_camera_add_view(calib_camera_t *calib,
   assert(calib != NULL);
   assert(calib->cams_ok);
 
-  // Allocate memory for a new pose & view
-  pose_t *pose = NULL;
-  if (view_idx > (calib->num_views - 1)) {
-    const int ns = calib->num_views + 1;
-
-    // Estimate relative pose T_CO
-    real_t T_CO[4 * 4] = {0};
+  // Pose T_C0F
+  pose_t *pose = hmgets(calib->poses, ts).value;
+  if (pose == NULL) {
+    // Estimate relative pose T_CiF
+    real_t T_CiF[4 * 4] = {0};
     solvepnp(calib->cam_params->data,
              keypoints,
              object_points,
              num_corners,
-             T_CO);
-    TF_VECTOR(T_CO, pose_vector);
+             T_CiF);
+
+    // Form T_BF
+    POSE2TF(calib->cam_exts[cam_idx].data, T_BCi);
+    TF_CHAIN(T_BF, 2, T_BCi, T_CiF);
+    TF_VECTOR(T_BF, pose_vector);
 
     // New pose
     pose = MALLOC(pose_t, 1);
     pose_setup(pose, ts, pose_vector);
     hmput(calib->poses, ts, pose);
+  }
+
+  if (view_idx > (calib->num_views - 1)) {
+    const int ns = calib->num_views + 1;
 
     // New view
     calib->views = REALLOC(calib->views, calib_camera_view_t **, ns);
@@ -12766,8 +12772,6 @@ void calib_camera_add_view(calib_camera_t *calib,
                                  &calib->cam_params[cam_idx]);
     calib->num_factors += num_corners;
     calib->views[view_idx][cam_idx] = view;
-  } else {
-    pose = hmgets(calib->poses, ts).value;
   }
 }
 
