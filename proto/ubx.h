@@ -149,7 +149,7 @@
 
 #ifndef UBX_WARN
 #define UBX_WARN(...)                                                          \
-  fprintf(stderr, "[UBX INFO] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);  \
+  fprintf(stderr, "[UBX WARN] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);  \
   fprintf(stderr, __VA_ARGS__);
 #endif
 
