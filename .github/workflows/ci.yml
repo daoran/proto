@@ -12,8 +12,8 @@ jobs:
     - name: Build libproto
       run: make build
 
-    - name: Run tests
+    - name: Build tests
       run: make tests
 
-    # - name: Build ROS interface
-    #   run: make ros
+    - name: Run tests
+      run: make run_test_proto
