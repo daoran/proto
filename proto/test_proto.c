@@ -2477,7 +2477,7 @@ int test_p3p_kneip() {
 
   real_t solutions[4][4 * 4];
   int retval = p3p_kneip(features, points, solutions);
-  printf("retval: %d\n", retval);
+  // printf("retval: %d\n", retval);
 
   return 0;
 }
@@ -5002,7 +5002,7 @@ int test_calib_camera() {
   solver.cost_func = &calib_camera_cost;
   solver.linearize_func = &calib_camera_linearize_compact;
   solver_solve(&solver, calib);
-  calib_camera_print(calib);
+  // calib_camera_print(calib);
 
   // Clean up
   calib_camera_free(calib);
