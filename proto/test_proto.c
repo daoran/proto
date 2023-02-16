@@ -4924,6 +4924,36 @@ int test_solver_eval() {
   return 0;
 }
 
+int test_camchain() {
+  // Setup camera parameters
+  // clang-format off
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam0_params[8] = {460.097642, 458.868450, 367.918456, 245.039255, -0.276674, 0.068236, 0.000705, -0.000282};
+  const real_t cam1_params[8] = {458.656627, 457.377517, 378.700154, 251.700103, -0.273148, 0.065139, 0.000462, -0.000173};
+
+  camera_params_t cam0;
+  camera_params_t cam1;
+  camera_params_setup(&cam0, 0, cam_res, proj_model, dist_model, cam0_params);
+  camera_params_setup(&cam1, 1, cam_res, proj_model, dist_model, cam1_params);
+  // clang-format on
+
+  // Camchain
+  camchain_t *camchain = camchain_malloc();
+  camchain_add_camera(camchain, &cam0);
+  camchain_add_camera(camchain, &cam1);
+
+  real_t T_CiF[4 * 4] = {1};
+  camchain_add_pose(camchain, 0, 0, T_CiF);
+  camchain_add_pose(camchain, 0, 1, T_CiF);
+  camchain_add_pose(camchain, 0, 2, T_CiF);
+
+  camchain_free(camchain);
+
+  return 0;
+}
+
 int test_calib_camera_mono() {
   // Initialize camera intrinsics
   const int cam_res[2] = {752, 480};
@@ -4953,88 +4983,60 @@ int test_calib_camera_mono() {
   return 0;
 }
 
-int test_calib_camera() {
+int test_calib_camera_stereo() {
   // Initialize camera intrinsics
-  // const int cam_res[2] = {752, 480};
-  // const char *proj_model = "pinhole";
-  // const char *dist_model = "radtan4";
-  // const real_t focal = pinhole_focal(cam_res[0], 90.0);
-  // const real_t cx = cam_res[0] / 2.0;
-  // const real_t cy = cam_res[1] / 2.0;
-  // real_t cam_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
-  // const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  // const real_t cam0_params[8] = {460.247856,
-  //                                459.024694,
-  //                                369.722862,
-  //                                245.367257,
-  //                                -0.276739,
-  //                                0.068194,
-  //                                0.000701,
-  //                                -0.000500};
-
-  // const real_t cam0_params[8] =
-  //     {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
-
-  // calib_camera_t *cam0_calib = calib_camera_malloc();
-  // calib_camera_add_camera(cam0_calib,
-  //                         0,
-  //                         cam_res,
-  //                         proj_model,
-  //                         dist_model,
-  //                         cam0_params,
-  //                         cam_ext);
-  // calib_camera_add_data(cam0_calib, 0, "/data/proto/cam_april/cam0");
-  // calib_camera_solve(cam0_calib);
-  // calib_camera_free(cam0_calib);
-
-  // calib_camera_t *cam1_calib = calib_camera_malloc();
-  // calib_camera_add_camera(cam1_calib,
-  //                         0,
-  //                         cam_res,
-  //                         proj_model,
-  //                         dist_model,
-  //                         cam_params,
-  //                         cam_ext);
-  // calib_camera_add_data(cam1_calib, 0, "/data/proto/cam_april/cam1");
-  // calib_camera_solve(cam1_calib);
-  // calib_camera_free(cam1_calib);
-
-  // Setup Camera calibrator
+  char *data_dir = "/data/proto/cam_april/cam%d";
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   const real_t focal = pinhole_focal(cam_res[0], 90.0);
   const real_t cx = cam_res[0] / 2.0;
   const real_t cy = cam_res[1] / 2.0;
-  const real_t cam0_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
-  const real_t cam1_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  real_t cam_params[2][8] = {{focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0},
+                             {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0}};
+
+  for (int cam_idx = 0; cam_idx < 2; cam_idx++) {
+    char data_path[1024] = {0};
+    sprintf(data_path, data_dir, cam_idx);
+
+    calib_camera_t *cam_calib = calib_camera_malloc();
+    calib_camera_add_camera(cam_calib,
+                            0,
+                            cam_res,
+                            proj_model,
+                            dist_model,
+                            cam_params[cam_idx],
+                            cam_ext);
+    calib_camera_add_data(cam_calib, 0, data_path);
+    calib_camera_solve(cam_calib);
+    vec_copy(cam_calib->cam_params[0].data, 8, cam_params[cam_idx]);
+    calib_camera_free(cam_calib);
+  }
+
+  // Setup Camera calibrator
   const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   const real_t cam1_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-
   calib_camera_t *stereo_calib = calib_camera_malloc();
   calib_camera_add_camera(stereo_calib,
                           0,
                           cam_res,
                           proj_model,
                           dist_model,
-                          cam0_params,
+                          cam_params[0],
                           cam0_ext);
   calib_camera_add_camera(stereo_calib,
                           1,
                           cam_res,
                           proj_model,
                           dist_model,
-                          cam1_params,
+                          cam_params[1],
                           cam1_ext);
-
-  char *data_dir = "/data/proto/cam_april/cam%d";
   for (int cam_idx = 0; cam_idx < stereo_calib->num_cams; cam_idx++) {
-    // Form camera data path
     char data_path[1024] = {0};
     sprintf(data_path, data_dir, cam_idx);
     calib_camera_add_data(stereo_calib, cam_idx, data_path);
   }
-
   calib_camera_solve(stereo_calib);
   calib_camera_free(stereo_calib);
 
@@ -5922,8 +5924,9 @@ void test_suite() {
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
+  MU_ADD_TEST(test_camchain);
   MU_ADD_TEST(test_calib_camera_mono);
-  MU_ADD_TEST(test_calib_camera);
+  MU_ADD_TEST(test_calib_camera_stereo);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);

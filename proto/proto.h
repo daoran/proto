@@ -2367,6 +2367,28 @@ void bundler_add_view(bundler_t *calib,
                       const int *num_keypoints,
                       const real_t **keypoints);
 
+//////////////
+// CAMCHAIN //
+//////////////
+
+typedef struct camchain_pose_hash_t {
+  timestamp_t key;
+  real_t *value;
+} camchain_pose_hash_t;
+
+typedef struct camchain_t {
+  camera_params_hash_t *cam_params;
+  camchain_pose_hash_t **cam_poses;
+} camchain_t;
+
+camchain_t *camchain_malloc();
+void camchain_free(camchain_t *cc);
+void camchain_add_camera(camchain_t *cc, camera_params_t *cam_params);
+void camchain_add_pose(camchain_t *cc,
+                       const int cam_idx,
+                       const timestamp_t ts,
+                       const real_t T_CiF[4 * 4]);
+
 ////////////////////////
 // CAMERA CALIBRATION //
 ////////////////////////

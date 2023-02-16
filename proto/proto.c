@@ -12521,6 +12521,55 @@ void bundler_add_view(bundler_t *bundler,
   bundler->num_views++;
 }
 
+//////////////
+// CAMCHAIN //
+//////////////
+
+camchain_t *camchain_malloc() {
+  camchain_t *cc = MALLOC(camchain_t, 1);
+
+  cc->cam_params = NULL;
+  cc->cam_poses = NULL;
+  hmdefault(cc->cam_params, NULL);
+
+  return cc;
+}
+
+void camchain_free(camchain_t *cc) {
+
+  // Camera poses
+  for (int cam_idx = 0; cam_idx < hmlen(cc->cam_params); cam_idx++) {
+    for (int k = 0; k < hmlen(cc->cam_poses[cam_idx]); k++) {
+      free(cc->cam_poses[cam_idx][k].value);
+    }
+    hmfree(cc->cam_poses[cam_idx]);
+  }
+  free(cc->cam_poses);
+
+  // Camera parameters
+  hmfree(cc->cam_params);
+
+  free(cc);
+}
+
+void camchain_add_camera(camchain_t *cc, camera_params_t *cam_params) {
+  const int cam_idx = cam_params->cam_idx;
+  hmput(cc->cam_params, cam_idx, cam_params);
+
+  cc->cam_poses = REALLOC(cc->cam_poses, camchain_pose_hash_t *, cam_idx + 1);
+  cc->cam_poses[cam_idx] = NULL;
+  hmdefault(cc->cam_poses[cam_idx], NULL);
+}
+
+void camchain_add_pose(camchain_t *cc,
+                       const int cam_idx,
+                       const timestamp_t ts,
+                       const real_t T_CiF[4 * 4]) {
+  real_t *tf = MALLOC(real_t, 4 * 4);
+  mat_copy(T_CiF, 4, 4, tf);
+  hmput(cc->cam_poses[cam_idx], ts, tf);
+}
+
 ////////////////////////
 // CAMERA CALIBRATION //
 ////////////////////////
@@ -12664,7 +12713,6 @@ void calib_camera_free(calib_camera_t *calib) {
     for (int i = 0; i < hmlen(calib->poses); i++) {
       free(calib->poses[i].value);
     }
-    hmfree(calib->poses);
 
     // View sets
     for (int i = 0; i < hmlen(calib->view_sets); i++) {
@@ -12674,8 +12722,9 @@ void calib_camera_free(calib_camera_t *calib) {
       }
       free(cam_views);
     }
-    hmfree(calib->view_sets);
   }
+  hmfree(calib->poses);
+  hmfree(calib->view_sets);
 
   free(calib);
 }
@@ -12788,7 +12837,6 @@ int calib_camera_add_data(calib_camera_t *calib,
       free(files[view_idx]);
     }
     free(files);
-    calib_camera_free(calib);
     return -1;
   }
 
@@ -13047,16 +13095,24 @@ void calib_camera_linearize_compact(const void *data,
 }
 
 void calib_camera_solve(calib_camera_t *calib) {
+  assert(calib != NULL);
+
+  if (calib->num_views == 0) {
+    return;
+  }
+
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 1;
-  solver.max_iter = 30;
-  solver.lambda_factor = 10;
+  solver.verbose = calib->verbose;
+  solver.max_iter = calib->max_iter;
   solver.cost_func = &calib_camera_cost;
   solver.param_order_func = &calib_camera_param_order;
   solver.linearize_func = &calib_camera_linearize_compact;
   solver_solve(&solver, calib);
-  calib_camera_print(calib);
+
+  if (calib->verbose) {
+    calib_camera_print(calib);
+  }
 }
 
 ////////////////////////
