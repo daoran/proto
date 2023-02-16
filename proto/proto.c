@@ -12570,6 +12570,9 @@ void bundler_add_view(bundler_t *bundler,
 // CAMCHAIN //
 //////////////
 
+/**
+ * Allocate memory for the camchain initialzer.
+ */
 camchain_t *camchain_malloc(const int num_cams) {
   camchain_t *cc = MALLOC(camchain_t, 1);
 
@@ -12595,6 +12598,9 @@ camchain_t *camchain_malloc(const int num_cams) {
   return cc;
 }
 
+/**
+ * Free camchain initialzer.
+ */
 void camchain_free(camchain_t *cc) {
   // Adjacency list and extrinsic
   for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
@@ -12617,6 +12623,9 @@ void camchain_free(camchain_t *cc) {
   free(cc);
 }
 
+/**
+ * Add camera pose to camchain.
+ */
 void camchain_add_pose(camchain_t *cc,
                        const int cam_idx,
                        const timestamp_t ts,
@@ -12626,6 +12635,9 @@ void camchain_add_pose(camchain_t *cc,
   hmput(cc->cam_poses[cam_idx], ts, tf);
 }
 
+/**
+ * Form camchain adjacency list.
+ */
 void camchain_adjacency(camchain_t *cc) {
   // Iterate through camera i data
   for (int cam_i = 0; cam_i < cc->num_cams; cam_i++) {
@@ -12665,6 +12677,9 @@ void camchain_adjacency(camchain_t *cc) {
   cc->analyzed = 1;
 }
 
+/**
+ * Print camchain adjacency matrix.
+ */
 void camchain_adjacency_print(const camchain_t *cc) {
   for (int i = 0; i < cc->num_cams; i++) {
     printf("%d: ", i);
@@ -12675,6 +12690,31 @@ void camchain_adjacency_print(const camchain_t *cc) {
   }
 }
 
+/**
+ * The purpose of camchain initializer is to find the initial camera
+ * to camera extrinsic of arbitrary cameras. So lets say you are calibrating a
+ * N multi-camera rig observing the same calibration fiducial target (F). The
+ * idea is as you add the relative pose between the i-th camera (Ci) and
+ * fiducial target (F), the camchain initialzer will build an adjacency matrix
+ * and form all possible camera-camera extrinsic combinations. This is useful
+ * for multi-camera extrinsics where you need to initialize the
+ * camera-extrinsic parameter.
+ *
+ * Usage:
+ *
+ *   camchain_t *camchain = camchain_malloc(num_cams);
+ *   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+ *     for (int ts_idx = 0; ts_idx < len(camera_poses); ts_idx++) {
+ *       timestamp_t ts = camera_timestamps[ts_idx];
+ *       real_t *T_CiF = camera_poses[cam_idx][ts_idx];
+ *       camchain_add_pose(camchain, cam_idx, ts, T_CiF);
+ *     }
+ *   }
+ *   camchain_adjacency(camchain);
+ *   camchain_adjacency_print(camchain);
+ *   camchain_find(camchain, cam_i, cam_j, T_CiCj);
+ *
+ */
 int camchain_find(camchain_t *cc,
                   const int cam_i,
                   const int cam_j,
