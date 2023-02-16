@@ -442,8 +442,8 @@ typedef struct queue_t {
   list_t *queue;
 } queue_t;
 
-queue_t *queue_new();
-void queue_destroy(queue_t *q);
+queue_t *queue_malloc();
+void queue_free(queue_t *q);
 int queue_enqueue(queue_t *q, void *data);
 void *queue_dequeue(queue_t *q);
 int queue_count(queue_t *q);
@@ -1381,6 +1381,11 @@ void camera_undistort_points(const camera_params_t *camera,
                              const real_t *kps,
                              const int num_points,
                              real_t *kps_und);
+int solvepnp_camera(const camera_params_t *cam_params,
+                    const real_t *img_pts,
+                    const real_t *obj_pts,
+                    const int N,
+                    real_t T_CO[4 * 4]);
 
 //////////////
 // VELOCITY //
@@ -2376,7 +2381,14 @@ typedef struct camchain_pose_hash_t {
   real_t *value;
 } camchain_pose_hash_t;
 
+typedef struct camchain_path_hash_t {
+  int key;
+  int value;
+} camchain_path_hash_t;
+
 typedef struct camchain_t {
+  int **adj_list;
+  real_t **adj_exts;
   camera_params_hash_t *cam_params;
   camchain_pose_hash_t **cam_poses;
 } camchain_t;
@@ -2388,6 +2400,11 @@ void camchain_add_pose(camchain_t *cc,
                        const int cam_idx,
                        const timestamp_t ts,
                        const real_t T_CiF[4 * 4]);
+void camchain_print_adjacency(const camchain_t *cc);
+int camchain_find(camchain_t *cc,
+                  const int idx_i,
+                  const int idx_j,
+                  real_t T_CiCj[4 * 4]);
 
 ////////////////////////
 // CAMERA CALIBRATION //

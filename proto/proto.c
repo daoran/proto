@@ -1343,14 +1343,14 @@ void *mstack_pop(mstack_t *s) {
 // QUEUE //
 ///////////
 
-queue_t *queue_new() {
+queue_t *queue_malloc() {
   queue_t *q = calloc(1, sizeof(queue_t));
   q->queue = list_malloc();
   q->count = 0;
   return q;
 }
 
-void queue_destroy(queue_t *q) {
+void queue_free(queue_t *q) {
   assert(q != NULL);
   list_free(q->queue);
   free(q);
@@ -6452,6 +6452,12 @@ int solvepnp(const real_t proj_params[4],
              const real_t *obj_pts,
              const int N,
              real_t T_CO[4 * 4]) {
+  assert(proj_params != NULL);
+  assert(img_pts != NULL);
+  assert(obj_pts != NULL);
+  assert(N > 0);
+  assert(T_CO != NULL);
+
   const int verbose = 0;
   const int max_iter = 10;
   const real_t lambda_init = 1e4;
@@ -7713,6 +7719,9 @@ void camera_params_print(const camera_params_t *cam) {
 void camera_project(const camera_params_t *camera,
                     const real_t p_C[3],
                     real_t z[2]) {
+  assert(camera != NULL);
+  assert(p_C != NULL);
+  assert(z != NULL);
   camera->proj_func(camera->data, p_C, z);
 }
 
@@ -7722,6 +7731,9 @@ void camera_project(const camera_params_t *camera,
 void camera_back_project(const camera_params_t *camera,
                          const real_t z[2],
                          real_t bearing[3]) {
+  assert(camera != NULL);
+  assert(z != NULL);
+  assert(bearing != NULL);
   camera->back_proj_func(camera->data, z, bearing);
 }
 
@@ -7732,11 +7744,44 @@ void camera_undistort_points(const camera_params_t *camera,
                              const real_t *kps,
                              const int num_points,
                              real_t *kps_und) {
+  assert(camera != NULL);
+  assert(kps != NULL);
+  assert(kps_und != NULL);
+
   for (int i = 0; i < num_points; i++) {
     const real_t *z_in = &kps[2 * i];
     real_t *z_out = &kps_und[i * 2];
     camera->undistort_func(camera->data, z_in, z_out);
   }
+}
+
+/**
+ * Solve the Perspective-N-Points problem.
+ *
+ * **IMPORTANT**: This function assumes that object points lie on the plane
+ * because the initialization step uses DLT to estimate the homography between
+ * camera and planar object, then the relative pose between them is recovered.
+ */
+int solvepnp_camera(const camera_params_t *cam_params,
+                    const real_t *img_pts,
+                    const real_t *obj_pts,
+                    const int N,
+                    real_t T_CO[4 * 4]) {
+  assert(cam_params != NULL);
+  assert(img_pts != NULL);
+  assert(obj_pts != NULL);
+  assert(N > 0);
+  assert(T_CO != NULL);
+
+  // Undistort keypoints
+  real_t *img_pts_ud = MALLOC(real_t, N * 2);
+  camera_undistort_points(cam_params, img_pts, N, img_pts_ud);
+
+  // Estimate relative pose T_CO
+  const int status = solvepnp(cam_params->data, img_pts_ud, obj_pts, N, T_CO);
+  free(img_pts_ud);
+
+  return status;
 }
 
 //////////////
@@ -12528,6 +12573,8 @@ void bundler_add_view(bundler_t *bundler,
 camchain_t *camchain_malloc() {
   camchain_t *cc = MALLOC(camchain_t, 1);
 
+  cc->adj_list = NULL;
+  cc->adj_exts = NULL;
   cc->cam_params = NULL;
   cc->cam_poses = NULL;
   hmdefault(cc->cam_params, NULL);
@@ -12536,6 +12583,13 @@ camchain_t *camchain_malloc() {
 }
 
 void camchain_free(camchain_t *cc) {
+  // Adjacency list and extrinsic
+  for (int cam_idx = 0; cam_idx < hmlen(cc->cam_params); cam_idx++) {
+    free(cc->adj_list[cam_idx]);
+    free(cc->adj_exts[cam_idx]);
+  }
+  free(cc->adj_list);
+  free(cc->adj_exts);
 
   // Camera poses
   for (int cam_idx = 0; cam_idx < hmlen(cc->cam_params); cam_idx++) {
@@ -12568,6 +12622,146 @@ void camchain_add_pose(camchain_t *cc,
   real_t *tf = MALLOC(real_t, 4 * 4);
   mat_copy(T_CiF, 4, 4, tf);
   hmput(cc->cam_poses[cam_idx], ts, tf);
+}
+
+static void camchain_adjacency(camchain_t *cc) {
+  // Allocate memory for the adjacency list and extrinsics
+  const int num_cams = hmlen(cc->cam_params);
+  cc->adj_list = CALLOC(int *, num_cams);
+  cc->adj_exts = CALLOC(real_t *, num_cams);
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    cc->adj_list[cam_idx] = CALLOC(int, num_cams);
+    cc->adj_exts[cam_idx] = CALLOC(real_t, num_cams * (4 * 4));
+  }
+
+  // Iterate through camera i data
+  for (int cam_i = 0; cam_i < num_cams; cam_i++) {
+    for (int k = 0; k < hmlen(cc->cam_poses[cam_i]); k++) {
+      const timestamp_t ts_i = cc->cam_poses[cam_i][k].key;
+      const real_t *T_CiF = hmgets(cc->cam_poses[cam_i], ts_i).value;
+
+      // Iterate through camera j data
+      for (int cam_j = cam_i + 1; cam_j < num_cams; cam_j++) {
+        // Check if a link has already been discovered
+        if (cc->adj_list[cam_i][cam_j] == 1) {
+          continue;
+        }
+
+        // Check if a link exists between camera i and j in the data
+        const real_t *T_CjF = hmgets(cc->cam_poses[cam_j], ts_i).value;
+        if (T_CjF == NULL) {
+          continue;
+        }
+
+        // Form T_CiCj and T_CjCi
+        TF_INV(T_CjF, T_FCj);
+        TF_INV(T_CiF, T_FCi);
+        TF_CHAIN(T_CiCj, 2, T_CiF, T_FCj);
+        TF_CHAIN(T_CjCi, 2, T_CjF, T_FCi);
+
+        // Add link between camera i and j
+        cc->adj_list[cam_i][cam_j] = 1;
+        cc->adj_list[cam_j][cam_i] = 1;
+        mat_copy(T_CiCj, 4, 4, &cc->adj_exts[cam_i][cam_j * (4 * 4)]);
+        mat_copy(T_CjCi, 4, 4, &cc->adj_exts[cam_j][cam_i * (4 * 4)]);
+      }
+    }
+  }
+}
+
+void camchain_print_adjacency(const camchain_t *cc) {
+  for (int i = 0; i < hmlen(cc->cam_params); i++) {
+    printf("%d: ", i);
+    for (int j = 0; j < hmlen(cc->cam_params); j++) {
+      printf("%d ", cc->adj_list[i][j]);
+    }
+    printf("\n");
+  }
+}
+
+int camchain_find(camchain_t *cc,
+                  const int cam_i,
+                  const int cam_j,
+                  real_t T_CiCj[4 * 4]) {
+  // Form adjacency
+  if (cc->adj_list == NULL) {
+    camchain_adjacency(cc);
+    camchain_print_adjacency(cc);
+  }
+
+  // Straight forward case where extrinsic of itself is identity
+  if (cam_i == cam_j) {
+    eye(T_CiCj, 4, 4);
+    return 0;
+  }
+
+  // Check if T_CiCj was formed before
+  if (cc->adj_list[cam_i][cam_j] == 1) {
+    mat_copy(&cc->adj_exts[cam_i][cam_j * (4 * 4)], 4, 4, T_CiCj);
+    return 0;
+  }
+
+  // Iterative BFS - To get path from cam_i to cam_j
+  const int num_cams = hmlen(cc->cam_params);
+  int found_target = 0;
+  int *visited = CALLOC(int, num_cams);
+  camchain_path_hash_t *path_map = NULL;
+  hmdefault(path_map, -1);
+
+  queue_t *q = queue_malloc();
+  int *q_vals = CALLOC(int, num_cams);
+  for (int i = 0; i < num_cams; i++) {
+    q_vals[i] = i;
+  }
+
+  queue_enqueue(q, &q_vals[cam_i]);
+  while (queue_empty(q) == 0) {
+    const int parent = *(int *) queue_dequeue(q);
+    visited[parent] = 1;
+
+    for (int i = 0; i < num_cams; i++) {
+      const int child = cc->adj_list[parent][i];
+      if (visited[child]) {
+        continue;
+      }
+
+      queue_enqueue(q, &q_vals[child]);
+      hmput(path_map, child, parent);
+
+      if (child == cam_j) {
+        found_target = 1;
+        break;
+      }
+    }
+  }
+  queue_free(q);
+  free(q_vals);
+
+  // Check if we've found the target
+  if (found_target == 0) {
+    hmfree(path_map);
+    return -1;
+  }
+
+  // Traverse the path backwards and chain the transforms
+  real_t T_CjCi[4 * 4] = {0};
+  eye(T_CjCi, 4, 4);
+
+  int child = cam_j;
+  while (hmget(path_map, child) != -1) {
+    const int parent = hmget(path_map, child);
+    const real_t *parent_ext = &cc->adj_exts[child][parent * (4 * 4)];
+    TF_CHAIN(T_CjCi_, 2, T_CjCi, parent_ext);
+    mat_copy(T_CjCi_, 4, 4, T_CjCi);
+    child = parent;
+  }
+  TF_INV(T_CjCi, T_CiCj_);
+  mat_copy(T_CiCj_, 4, 4, T_CiCj);
+
+  // Clean up
+  hmfree(path_map);
+
+  return 0;
 }
 
 ////////////////////////
@@ -12846,20 +13040,20 @@ int calib_camera_add_data(calib_camera_t *calib,
     aprilgrid_load(&grid, files[view_idx]);
 
     // Get aprilgrid measurements
+    int n = 0;
     int tag_ids[APRILGRID_MAX_CORNERS] = {0};
     int corner_indices[APRILGRID_MAX_CORNERS] = {0};
     real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
     real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
-    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts);
+    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
 
     // Add view
     const timestamp_t ts = grid.timestamp;
-    const int num_corners = grid.corners_detected;
     calib_camera_add_view(calib,
                           ts,
                           view_idx,
                           cam_idx,
-                          num_corners,
+                          n,
                           tag_ids,
                           corner_indices,
                           pts,
@@ -12895,21 +13089,12 @@ void calib_camera_add_view(calib_camera_t *calib,
   pose_t *pose = hmgets(calib->poses, ts).value;
   if (pose == NULL) {
     // Estimate relative pose T_CiF
-    // -- Undistort keypoints
-    real_t *kps_und = MALLOC(real_t, num_corners * 2);
-    camera_undistort_points(&calib->cam_params[cam_idx],
-                            keypoints,
-                            num_corners,
-                            kps_und);
-    // -- Estimate T_CiF
     real_t T_CiF[4 * 4] = {0};
-    const int status = solvepnp(calib->cam_params[cam_idx].data,
-                                kps_und,
-                                object_points,
-                                num_corners,
-                                T_CiF);
-    free(kps_und);
-    // -- Return early if failed to estimate T_CiF
+    const int status = solvepnp_camera(&calib->cam_params[cam_idx],
+                                       keypoints,
+                                       object_points,
+                                       num_corners,
+                                       T_CiF);
     if (status != 0) {
       return;
     }
@@ -14810,17 +14995,17 @@ param_order_t *tsif_param_order(const void *data, int *sv_size, int *r_size) {
   // // Timestep k - 1
   // param_order_add(&hash, POSE_PARAM, 0, tsif->pose_i.data, &col_idx);
   // if (tsif->has_imu) {
-  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_i.data, &col_idx);
-  //   param_order_add(&hash, IMU_BIASES_PARAM, 0, tsif->biases_i.data,
-  //   &col_idx);
+  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_i.data,
+  //   &col_idx); param_order_add(&hash, IMU_BIASES_PARAM, 0,
+  //   tsif->biases_i.data, &col_idx);
   // }
 
   // // Timestep k
   // param_order_add(&hash, POSE_PARAM, 0, tsif->pose_j.data, &col_idx);
   // if (tsif->has_imu) {
-  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_j.data, &col_idx);
-  //   param_order_add(&hash, IMU_BIASES_PARAM, 0, tsif->biases_j.data,
-  //   &col_idx);
+  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsif->vel_j.data,
+  //   &col_idx); param_order_add(&hash, IMU_BIASES_PARAM, 0,
+  //   tsif->biases_j.data, &col_idx);
   // }
 
   *sv_size = col_idx;

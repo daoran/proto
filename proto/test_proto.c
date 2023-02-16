@@ -669,17 +669,17 @@ int test_mstack_pop(void) {
 
 // QUEUE /////////////////////////////////////////////////////////////////////
 
-int test_queue_new_and_destroy(void) {
-  queue_t *q = queue_new();
+int test_queue_malloc_and_free(void) {
+  queue_t *q = queue_malloc();
   MU_ASSERT(q != NULL);
   MU_ASSERT(q->count == 0);
-  queue_destroy(q);
+  queue_free(q);
 
   return 0;
 }
 
 int test_queue_enqueue_dequeue(void) {
-  queue_t *q = queue_new();
+  queue_t *q = queue_malloc();
   char *t1 = "test1 data";
   char *t2 = "test2 data";
   char *t3 = "test3 data";
@@ -720,7 +720,7 @@ int test_queue_enqueue_dequeue(void) {
   MU_ASSERT(q->count == 0);
 
   // Clean up
-  queue_destroy(q);
+  queue_free(q);
 
   return 0;
 }
@@ -1023,8 +1023,6 @@ int test_logspace() {
   MU_ASSERT(flteqs(x[7], 59.948425));
   MU_ASSERT(flteqs(x[8], 77.426368));
   MU_ASSERT(flteqs(x[9], 100.00000));
-
-  print_vector("x", x, 10);
 
   return 0;
 }
@@ -4930,25 +4928,73 @@ int test_camchain() {
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  const real_t cam0_params[8] = {460.097642, 458.868450, 367.918456, 245.039255, -0.276674, 0.068236, 0.000705, -0.000282};
-  const real_t cam1_params[8] = {458.656627, 457.377517, 378.700154, 251.700103, -0.273148, 0.065139, 0.000462, -0.000173};
-
-  camera_params_t cam0;
-  camera_params_t cam1;
-  camera_params_setup(&cam0, 0, cam_res, proj_model, dist_model, cam0_params);
-  camera_params_setup(&cam1, 1, cam_res, proj_model, dist_model, cam1_params);
+  const real_t cam0[8] = {460.097642, 458.868450, 367.918456, 245.039255, -0.276674, 0.068236, 0.000705, -0.000282};
+  const real_t cam1[8] = {458.656627, 457.377517, 378.700154, 251.700103, -0.273148, 0.065139, 0.000462, -0.000173};
+  camera_params_t cam_params[2];
+  camera_params_setup(&cam_params[0], 0, cam_res, proj_model, dist_model, cam0);
+  camera_params_setup(&cam_params[1], 1, cam_res, proj_model, dist_model, cam1);
   // clang-format on
 
   // Camchain
   camchain_t *camchain = camchain_malloc();
-  camchain_add_camera(camchain, &cam0);
-  camchain_add_camera(camchain, &cam1);
+  camchain_add_camera(camchain, &cam_params[0]);
+  camchain_add_camera(camchain, &cam_params[1]);
 
-  real_t T_CiF[4 * 4] = {1};
-  camchain_add_pose(camchain, 0, 0, T_CiF);
-  camchain_add_pose(camchain, 0, 1, T_CiF);
-  camchain_add_pose(camchain, 0, 2, T_CiF);
+  // Add camera data
+  int num_cams = 2;
+  char *data_dir = "/data/proto/cam_april-small/cam%d";
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    char data_path[1024] = {0};
+    sprintf(data_path, data_dir, cam_idx);
 
+    // Get camera data
+    int num_files = 0;
+    char **files = list_files(data_path, &num_files);
+
+    // Exit if no calibration data
+    if (num_files == 0) {
+      for (int view_idx = 0; view_idx < num_files; view_idx++) {
+        free(files[view_idx]);
+      }
+      free(files);
+      return -1;
+    }
+
+    for (int view_idx = 0; view_idx < num_files; view_idx++) {
+      // Load aprilgrid
+      aprilgrid_t grid;
+      aprilgrid_load(&grid, files[view_idx]);
+      if (grid.corners_detected == 0) {
+        continue;
+      }
+      free(files[view_idx]);
+
+      // Get aprilgrid measurements
+      int n = 0;
+      int tag_ids[APRILGRID_MAX_CORNERS] = {0};
+      int corner_indices[APRILGRID_MAX_CORNERS] = {0};
+      real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
+      real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
+      aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
+
+      // Estimate relative pose T_CiF
+      real_t T_CiF[4 * 4] = {0};
+      if (solvepnp_camera(&cam_params[cam_idx], kps, pts, n, T_CiF) != 0) {
+        continue;
+      }
+
+      // Add to camchain
+      camchain_add_pose(camchain, cam_idx, grid.timestamp, T_CiF);
+    }
+    free(files);
+  }
+
+  real_t T_CiCj[4 * 4] = {0};
+  // camchain_find(camchain, 0, 1, T_CiCj);
+  camchain_find(camchain, 1, 0, T_CiCj);
+  print_matrix("T_CiCj", T_CiCj, 4, 4);
+
+  // Clean up
   camchain_free(camchain);
 
   return 0;
@@ -5767,7 +5813,7 @@ void test_suite() {
   MU_ADD_TEST(test_mstack_new_and_destroy);
   MU_ADD_TEST(test_mstack_push);
   MU_ADD_TEST(test_mstack_pop);
-  MU_ADD_TEST(test_queue_new_and_destroy);
+  MU_ADD_TEST(test_queue_malloc_and_free);
   MU_ADD_TEST(test_queue_enqueue_dequeue);
   MU_ADD_TEST(test_hashmap_new_destroy);
   MU_ADD_TEST(test_hashmap_clear_destroy);
