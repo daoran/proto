@@ -12570,21 +12570,34 @@ void bundler_add_view(bundler_t *bundler,
 // CAMCHAIN //
 //////////////
 
-camchain_t *camchain_malloc() {
+camchain_t *camchain_malloc(const int num_cams) {
   camchain_t *cc = MALLOC(camchain_t, 1);
 
-  cc->adj_list = NULL;
-  cc->adj_exts = NULL;
-  cc->cam_params = NULL;
-  cc->cam_poses = NULL;
-  hmdefault(cc->cam_params, NULL);
+  // Flags
+  cc->analyzed = 0;
+  cc->num_cams = num_cams;
+
+  // Allocate memory for the adjacency list and extrinsics
+  cc->adj_list = CALLOC(int *, cc->num_cams);
+  cc->adj_exts = CALLOC(real_t *, cc->num_cams);
+  for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
+    cc->adj_list[cam_idx] = CALLOC(int, cc->num_cams);
+    cc->adj_exts[cam_idx] = CALLOC(real_t, cc->num_cams * (4 * 4));
+  }
+
+  // Allocate memory for camera poses
+  cc->cam_poses = CALLOC(camchain_pose_hash_t *, num_cams);
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    cc->cam_poses[cam_idx] = NULL;
+    hmdefault(cc->cam_poses[cam_idx], NULL);
+  }
 
   return cc;
 }
 
 void camchain_free(camchain_t *cc) {
   // Adjacency list and extrinsic
-  for (int cam_idx = 0; cam_idx < hmlen(cc->cam_params); cam_idx++) {
+  for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
     free(cc->adj_list[cam_idx]);
     free(cc->adj_exts[cam_idx]);
   }
@@ -12592,7 +12605,7 @@ void camchain_free(camchain_t *cc) {
   free(cc->adj_exts);
 
   // Camera poses
-  for (int cam_idx = 0; cam_idx < hmlen(cc->cam_params); cam_idx++) {
+  for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
     for (int k = 0; k < hmlen(cc->cam_poses[cam_idx]); k++) {
       free(cc->cam_poses[cam_idx][k].value);
     }
@@ -12600,19 +12613,8 @@ void camchain_free(camchain_t *cc) {
   }
   free(cc->cam_poses);
 
-  // Camera parameters
-  hmfree(cc->cam_params);
-
+  // Finish
   free(cc);
-}
-
-void camchain_add_camera(camchain_t *cc, camera_params_t *cam_params) {
-  const int cam_idx = cam_params->cam_idx;
-  hmput(cc->cam_params, cam_idx, cam_params);
-
-  cc->cam_poses = REALLOC(cc->cam_poses, camchain_pose_hash_t *, cam_idx + 1);
-  cc->cam_poses[cam_idx] = NULL;
-  hmdefault(cc->cam_poses[cam_idx], NULL);
 }
 
 void camchain_add_pose(camchain_t *cc,
@@ -12624,24 +12626,15 @@ void camchain_add_pose(camchain_t *cc,
   hmput(cc->cam_poses[cam_idx], ts, tf);
 }
 
-static void camchain_adjacency(camchain_t *cc) {
-  // Allocate memory for the adjacency list and extrinsics
-  const int num_cams = hmlen(cc->cam_params);
-  cc->adj_list = CALLOC(int *, num_cams);
-  cc->adj_exts = CALLOC(real_t *, num_cams);
-  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-    cc->adj_list[cam_idx] = CALLOC(int, num_cams);
-    cc->adj_exts[cam_idx] = CALLOC(real_t, num_cams * (4 * 4));
-  }
-
+void camchain_adjacency(camchain_t *cc) {
   // Iterate through camera i data
-  for (int cam_i = 0; cam_i < num_cams; cam_i++) {
+  for (int cam_i = 0; cam_i < cc->num_cams; cam_i++) {
     for (int k = 0; k < hmlen(cc->cam_poses[cam_i]); k++) {
       const timestamp_t ts_i = cc->cam_poses[cam_i][k].key;
       const real_t *T_CiF = hmgets(cc->cam_poses[cam_i], ts_i).value;
 
       // Iterate through camera j data
-      for (int cam_j = cam_i + 1; cam_j < num_cams; cam_j++) {
+      for (int cam_j = cam_i + 1; cam_j < cc->num_cams; cam_j++) {
         // Check if a link has already been discovered
         if (cc->adj_list[cam_i][cam_j] == 1) {
           continue;
@@ -12667,12 +12660,15 @@ static void camchain_adjacency(camchain_t *cc) {
       }
     }
   }
+
+  // Mark camchain as analyzed
+  cc->analyzed = 1;
 }
 
-void camchain_print_adjacency(const camchain_t *cc) {
-  for (int i = 0; i < hmlen(cc->cam_params); i++) {
+void camchain_adjacency_print(const camchain_t *cc) {
+  for (int i = 0; i < cc->num_cams; i++) {
     printf("%d: ", i);
-    for (int j = 0; j < hmlen(cc->cam_params); j++) {
+    for (int j = 0; j < cc->num_cams; j++) {
       printf("%d ", cc->adj_list[i][j]);
     }
     printf("\n");
@@ -12684,15 +12680,18 @@ int camchain_find(camchain_t *cc,
                   const int cam_j,
                   real_t T_CiCj[4 * 4]) {
   // Form adjacency
-  if (cc->adj_list == NULL) {
+  if (cc->analyzed == 0) {
     camchain_adjacency(cc);
-    camchain_print_adjacency(cc);
   }
 
   // Straight forward case where extrinsic of itself is identity
   if (cam_i == cam_j) {
-    eye(T_CiCj, 4, 4);
-    return 0;
+    if (hmlen(cc->cam_poses[cam_i])) {
+      eye(T_CiCj, 4, 4);
+      return 0;
+    } else {
+      return -1;
+    }
   }
 
   // Check if T_CiCj was formed before
@@ -12701,67 +12700,7 @@ int camchain_find(camchain_t *cc,
     return 0;
   }
 
-  // Iterative BFS - To get path from cam_i to cam_j
-  const int num_cams = hmlen(cc->cam_params);
-  int found_target = 0;
-  int *visited = CALLOC(int, num_cams);
-  camchain_path_hash_t *path_map = NULL;
-  hmdefault(path_map, -1);
-
-  queue_t *q = queue_malloc();
-  int *q_vals = CALLOC(int, num_cams);
-  for (int i = 0; i < num_cams; i++) {
-    q_vals[i] = i;
-  }
-
-  queue_enqueue(q, &q_vals[cam_i]);
-  while (queue_empty(q) == 0) {
-    const int parent = *(int *) queue_dequeue(q);
-    visited[parent] = 1;
-
-    for (int i = 0; i < num_cams; i++) {
-      const int child = cc->adj_list[parent][i];
-      if (visited[child]) {
-        continue;
-      }
-
-      queue_enqueue(q, &q_vals[child]);
-      hmput(path_map, child, parent);
-
-      if (child == cam_j) {
-        found_target = 1;
-        break;
-      }
-    }
-  }
-  queue_free(q);
-  free(q_vals);
-
-  // Check if we've found the target
-  if (found_target == 0) {
-    hmfree(path_map);
-    return -1;
-  }
-
-  // Traverse the path backwards and chain the transforms
-  real_t T_CjCi[4 * 4] = {0};
-  eye(T_CjCi, 4, 4);
-
-  int child = cam_j;
-  while (hmget(path_map, child) != -1) {
-    const int parent = hmget(path_map, child);
-    const real_t *parent_ext = &cc->adj_exts[child][parent * (4 * 4)];
-    TF_CHAIN(T_CjCi_, 2, T_CjCi, parent_ext);
-    mat_copy(T_CjCi_, 4, 4, T_CjCi);
-    child = parent;
-  }
-  TF_INV(T_CjCi, T_CiCj_);
-  mat_copy(T_CiCj_, 4, 4, T_CiCj);
-
-  // Clean up
-  hmfree(path_map);
-
-  return 0;
+  return -1;
 }
 
 ////////////////////////

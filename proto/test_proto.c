@@ -4923,76 +4923,53 @@ int test_solver_eval() {
 }
 
 int test_camchain() {
-  // Setup camera parameters
-  // clang-format off
-  const int cam_res[2] = {752, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam0[8] = {460.097642, 458.868450, 367.918456, 245.039255, -0.276674, 0.068236, 0.000705, -0.000282};
-  const real_t cam1[8] = {458.656627, 457.377517, 378.700154, 251.700103, -0.273148, 0.065139, 0.000462, -0.000173};
-  camera_params_t cam_params[2];
-  camera_params_setup(&cam_params[0], 0, cam_res, proj_model, dist_model, cam0);
-  camera_params_setup(&cam_params[1], 1, cam_res, proj_model, dist_model, cam1);
-  // clang-format on
+  // Form camera poses
+  int num_cams = 5;
+  real_t T_C0F[4 * 4] = {0};
+  real_t T_C1F[4 * 4] = {0};
+  real_t T_C2F[4 * 4] = {0};
+  real_t T_C3F[4 * 4] = {0};
+  real_t T_C4F[4 * 4] = {0};
+  real_t *poses[5] = {T_C0F, T_C1F, T_C2F, T_C3F, T_C4F};
 
-  // Camchain
-  camchain_t *camchain = camchain_malloc();
-  camchain_add_camera(camchain, &cam_params[0]);
-  camchain_add_camera(camchain, &cam_params[1]);
-
-  // Add camera data
-  int num_cams = 2;
-  char *data_dir = "/data/proto/cam_april-small/cam%d";
-  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-    char data_path[1024] = {0};
-    sprintf(data_path, data_dir, cam_idx);
-
-    // Get camera data
-    int num_files = 0;
-    char **files = list_files(data_path, &num_files);
-
-    // Exit if no calibration data
-    if (num_files == 0) {
-      for (int view_idx = 0; view_idx < num_files; view_idx++) {
-        free(files[view_idx]);
-      }
-      free(files);
-      return -1;
-    }
-
-    for (int view_idx = 0; view_idx < num_files; view_idx++) {
-      // Load aprilgrid
-      aprilgrid_t grid;
-      aprilgrid_load(&grid, files[view_idx]);
-      if (grid.corners_detected == 0) {
-        continue;
-      }
-      free(files[view_idx]);
-
-      // Get aprilgrid measurements
-      int n = 0;
-      int tag_ids[APRILGRID_MAX_CORNERS] = {0};
-      int corner_indices[APRILGRID_MAX_CORNERS] = {0};
-      real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
-      real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
-      aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
-
-      // Estimate relative pose T_CiF
-      real_t T_CiF[4 * 4] = {0};
-      if (solvepnp_camera(&cam_params[cam_idx], kps, pts, n, T_CiF) != 0) {
-        continue;
-      }
-
-      // Add to camchain
-      camchain_add_pose(camchain, cam_idx, grid.timestamp, T_CiF);
-    }
-    free(files);
+  for (int k = 0; k < num_cams; k++) {
+    const real_t ypr[3] = {randf(-90, 90), randf(-90, 90), randf(-90, 90)};
+    const real_t r[3] = {randf(-1, 1), randf(-1, 1), randf(-1, 1)};
+    tf_er(ypr, r, poses[k]);
   }
 
-  real_t T_CiCj[4 * 4] = {0};
-  // camchain_find(camchain, 0, 1, T_CiCj);
-  camchain_find(camchain, 1, 0, T_CiCj);
-  print_matrix("T_CiCj", T_CiCj, 4, 4);
+  TF_INV(T_C0F, T_FC0);
+  TF_INV(T_C1F, T_FC1);
+  TF_INV(T_C2F, T_FC2);
+  TF_INV(T_C3F, T_FC3);
+  TF_INV(T_C4F, T_FC4);
+  real_t *poses_inv[5] = {T_FC0, T_FC1, T_FC2, T_FC3, T_FC4};
+
+  // Camchain
+  camchain_t *camchain = camchain_malloc(num_cams);
+  camchain_add_pose(camchain, 0, 0, T_C0F);
+  camchain_add_pose(camchain, 1, 0, T_C1F);
+  camchain_add_pose(camchain, 2, 0, T_C2F);
+  camchain_add_pose(camchain, 3, 0, T_C3F);
+  camchain_adjacency(camchain);
+  camchain_adjacency_print(camchain);
+
+  for (int cam_i = 1; cam_i < num_cams; cam_i++) {
+    for (int cam_j = 1; cam_j < num_cams; cam_j++) {
+      // Get ground-truth
+      TF_CHAIN(T_CiCj_gnd, 2, poses[cam_i], poses_inv[cam_j]);
+
+      // Get camchain result
+      real_t T_CiCj_est[4 * 4] = {0};
+      int status = camchain_find(camchain, cam_i, cam_j, T_CiCj_est);
+
+      if (cam_i != 4 && cam_j != 4) { // Because camera 4 is not added
+        MU_ASSERT(status == 0);
+      } else {
+        MU_ASSERT(status == -1);
+      }
+    }
+  }
 
   // Clean up
   camchain_free(camchain);

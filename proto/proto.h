@@ -2387,20 +2387,22 @@ typedef struct camchain_path_hash_t {
 } camchain_path_hash_t;
 
 typedef struct camchain_t {
+  int analyzed;
+  int num_cams;
+
   int **adj_list;
   real_t **adj_exts;
-  camera_params_hash_t *cam_params;
   camchain_pose_hash_t **cam_poses;
 } camchain_t;
 
-camchain_t *camchain_malloc();
+camchain_t *camchain_malloc(const int num_cams);
 void camchain_free(camchain_t *cc);
-void camchain_add_camera(camchain_t *cc, camera_params_t *cam_params);
 void camchain_add_pose(camchain_t *cc,
                        const int cam_idx,
                        const timestamp_t ts,
                        const real_t T_CiF[4 * 4]);
-void camchain_print_adjacency(const camchain_t *cc);
+void camchain_adjacency(camchain_t *cc);
+void camchain_adjacency_print(const camchain_t *cc);
 int camchain_find(camchain_t *cc,
                   const int idx_i,
                   const int idx_j,
