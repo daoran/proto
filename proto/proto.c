@@ -6461,8 +6461,9 @@ int solvepnp(const real_t proj_params[4],
   const int verbose = 0;
   const int max_iter = 10;
   const real_t lambda_init = 1e4;
-  const real_t dx_threshold = 1e-10;
-  const real_t J_threshold = 1e-15;
+  const real_t lambda_factor = 10.0;
+  const real_t dx_threshold = 1e-5;
+  const real_t J_threshold = 1e-5;
 
   // Initialize pose with DLT
   if (homography_pose(proj_params, img_pts, obj_pts, N, T_CO) != 0) {
@@ -6496,10 +6497,10 @@ int solvepnp(const real_t proj_params[4],
       // Accept update
       J_k = J_kp1;
       vec_copy(param_kp1, 7, param_k);
-      lambda_k /= 10.0;
+      lambda_k /= lambda_factor;
     } else {
       // Reject update
-      lambda_k *= 10.0;
+      lambda_k *= lambda_factor;
     }
 
     // Display
@@ -15252,24 +15253,16 @@ void gnuplot_send(FILE *pipe, const char *command) {
   fprintf(pipe, "%s\n", command);
 }
 
-void gnuplot_plot_xy(FILE *pipe,
+void gnuplot_send_xy(FILE *pipe,
+                     const char *data_name,
                      const real_t *xvals,
                      const real_t *yvals,
-                     const int n,
-                     const char *props) {
-  // Send data block
-  fprintf(pipe, "$DATA << EOD \n");
+                     const int n) {
+  fprintf(pipe, "%s << EOD \n", data_name);
   for (int i = 0; i < n; i++) {
     fprintf(pipe, "%lf %lf\n", xvals[i], yvals[i]);
   }
   fprintf(pipe, "EOD\n");
-
-  // Plot data block
-  if (props) {
-    fprintf(pipe, "plot $DATA %s\n", props);
-  } else {
-    fprintf(pipe, "plot $DATA\n");
-  }
 }
 
 /******************************************************************************

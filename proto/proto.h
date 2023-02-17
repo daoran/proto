@@ -2819,11 +2819,11 @@ FILE *gnuplot_init();
 void gnuplot_close(FILE *pipe);
 void gnuplot_multiplot(FILE *pipe, const int num_rows, const int num_cols);
 void gnuplot_send(FILE *pipe, const char *command);
-void gnuplot_plot_xy(FILE *pipe,
+void gnuplot_send_xy(FILE *pipe,
+                     const char *data_name,
                      const real_t *xvals,
                      const real_t *yvals,
-                     const int n,
-                     const char *props);
+                     const int n);
 
 /******************************************************************************
  * SIMULATION

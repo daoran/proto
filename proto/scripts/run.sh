@@ -403,7 +403,7 @@ dev_euroc() {
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
-run_test test_camchain
+# run_test test_camchain
 # run_test test_calib_camera_mono
 # run_test test_calib_camera_stereo
 # run_test test_calib_gimbal_copy
@@ -417,6 +417,9 @@ run_test test_camchain
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-DATASET
 # run_test test_assoc_pose_data
+# PROTO-PLOTTING
+run_test test_gnuplot_xyplot
+# run_test test_gnuplot_multiplot
 # PROTO-SIM
 # run_test test_sim_features_load
 # run_test test_sim_imu_data_load

@@ -5008,6 +5008,7 @@ int test_calib_camera_mono() {
 
 int test_calib_camera_stereo() {
   // Initialize camera intrinsics
+  int num_cams = 2;
   char *data_dir = "/data/proto/cam_april/cam%d";
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
@@ -5016,10 +5017,24 @@ int test_calib_camera_stereo() {
   const real_t cx = cam_res[0] / 2.0;
   const real_t cy = cam_res[1] / 2.0;
   const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  real_t cam_params[2][8] = {{focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0},
-                             {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0}};
+  real_t cam[2][8] = {{focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0},
+                      {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0}};
 
-  for (int cam_idx = 0; cam_idx < 2; cam_idx++) {
+  camera_params_t cam_params[2];
+  camera_params_setup(&cam_params[0],
+                      0,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam[0]);
+  camera_params_setup(&cam_params[1],
+                      1,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam[1]);
+
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
     char data_path[1024] = {0};
     sprintf(data_path, data_dir, cam_idx);
 
@@ -5029,31 +5044,90 @@ int test_calib_camera_stereo() {
                             cam_res,
                             proj_model,
                             dist_model,
-                            cam_params[cam_idx],
+                            cam[cam_idx],
                             cam_ext);
     calib_camera_add_data(cam_calib, 0, data_path);
     calib_camera_solve(cam_calib);
-    vec_copy(cam_calib->cam_params[0].data, 8, cam_params[cam_idx]);
+    vec_copy(cam_calib->cam_params[0].data, 8, cam_params[cam_idx].data);
     calib_camera_free(cam_calib);
   }
 
+  // Initialize camera extrinsics
+  camchain_t *camchain = camchain_malloc(num_cams);
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    char data_path[1024] = {0};
+    sprintf(data_path, data_dir, cam_idx);
+
+    // Get camera data
+    int num_files = 0;
+    char **files = list_files(data_path, &num_files);
+
+    // Exit if no calibration data
+    if (num_files == 0) {
+      for (int view_idx = 0; view_idx < num_files; view_idx++) {
+        free(files[view_idx]);
+      }
+      free(files);
+      return -1;
+    }
+
+    for (int view_idx = 0; view_idx < num_files; view_idx++) {
+      // Load aprilgrid
+      aprilgrid_t grid;
+      aprilgrid_load(&grid, files[view_idx]);
+      if (grid.corners_detected == 0) {
+        free(files[view_idx]);
+        continue;
+      }
+
+      // Get aprilgrid measurements
+      int n = 0;
+      int tag_ids[APRILGRID_MAX_CORNERS] = {0};
+      int corner_indices[APRILGRID_MAX_CORNERS] = {0};
+      real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
+      real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
+      aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
+
+      // Estimate relative pose T_CiF
+      real_t T_CiF[4 * 4] = {0};
+      if (solvepnp_camera(&cam_params[cam_idx], kps, pts, n, T_CiF) != 0) {
+        continue;
+      }
+
+      // Add to camchain
+      camchain_add_pose(camchain, cam_idx, grid.timestamp, T_CiF);
+
+      // Clean up
+      free(files[view_idx]);
+    }
+    free(files);
+  }
+  camchain_adjacency(camchain);
+  camchain_adjacency_print(camchain);
+  real_t T_CiCj[4 * 4] = {0};
+  camchain_find(camchain, 0, 1, T_CiCj);
+  camchain_free(camchain);
+  printf("Initialize camera extrinsics T_C0C1:\n");
+  print_matrix("T_CiCj", T_CiCj, 4, 4);
+
   // Setup Camera calibrator
   const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  const real_t cam1_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  TF_VECTOR(T_CiCj, cam1_ext);
+
   calib_camera_t *stereo_calib = calib_camera_malloc();
   calib_camera_add_camera(stereo_calib,
                           0,
                           cam_res,
                           proj_model,
                           dist_model,
-                          cam_params[0],
+                          cam_params[0].data,
                           cam0_ext);
   calib_camera_add_camera(stereo_calib,
                           1,
                           cam_res,
                           proj_model,
                           dist_model,
-                          cam_params[1],
+                          cam_params[1].data,
                           cam1_ext);
   for (int cam_idx = 0; cam_idx < stereo_calib->num_cams; cam_idx++) {
     char data_path[1024] = {0};
@@ -5606,23 +5680,53 @@ int test_assoc_pose_data() {
  * TEST PLOTTING
  ******************************************************************************/
 
-int test_gnuplot() {
+int test_gnuplot_xyplot() {
   // Start gnuplot
   FILE *gnuplot = gnuplot_init();
 
-  // // Setup multiplot
-  // const int num_rows = 1;
-  // const int num_cols = 2;
-  // gnuplot_multiplot(gnuplot, num_rows, num_cols);
+  // First dataset
+  {
+    int num_points = 5;
+    double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    double yvals[5] = {5.0, 3.0, 1.0, 3.0, 5.0};
+    gnuplot_send(gnuplot, "set title 'Plot 1'");
+    gnuplot_send_xy(gnuplot, "$DATA1", xvals, yvals, num_points);
+  }
+
+  // Second dataset
+  {
+    int num_points = 5;
+    double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    double yvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    gnuplot_send_xy(gnuplot, "$DATA2", xvals, yvals, num_points);
+  }
+
+  // Plot both datasets in same plot
+  gnuplot_send(gnuplot, "plot $DATA1 with lines, $DATA2 with lines");
+
+  // Clean up
+  gnuplot_close(gnuplot);
+
+  return 0;
+}
+
+int test_gnuplot_multiplot() {
+  // Start gnuplot
+  FILE *gnuplot = gnuplot_init();
+
+  // Setup multiplot
+  const int num_rows = 1;
+  const int num_cols = 2;
+  gnuplot_multiplot(gnuplot, num_rows, num_cols);
 
   // First plot
   {
     int num_points = 5;
     double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
     double yvals[5] = {5.0, 3.0, 1.0, 3.0, 5.0};
-    const char *props = "title 'data1' with lines";
     gnuplot_send(gnuplot, "set title 'Plot 1'");
-    gnuplot_plot_xy(gnuplot, xvals, yvals, num_points, props);
+    gnuplot_send_xy(gnuplot, "$DATA1", xvals, yvals, num_points);
+    gnuplot_send(gnuplot, "plot $DATA1 title 'data1' with lines lt 1");
   }
 
   // Second plot
@@ -5630,10 +5734,9 @@ int test_gnuplot() {
     int num_points = 5;
     double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
     double yvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
-    const char *props = "title 'data2' ls 5";
     gnuplot_send(gnuplot, "set title 'Plot 2'");
-    gnuplot_send(gnuplot, "set style line 5 lt rgb \"cyan\" lw 3 pt 6");
-    gnuplot_plot_xy(gnuplot, xvals, yvals, num_points, props);
+    gnuplot_send_xy(gnuplot, "$DATA2", xvals, yvals, num_points);
+    gnuplot_send(gnuplot, "plot $DATA2 title 'data1' with lines lt 2");
   }
 
   // Clean up
@@ -6005,6 +6108,10 @@ void test_suite() {
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);
+
+  // PLOTTING
+  MU_ADD_TEST(test_gnuplot_xyplot);
+  MU_ADD_TEST(test_gnuplot_multiplot);
 
   // SIM
   MU_ADD_TEST(test_sim_features_load);
