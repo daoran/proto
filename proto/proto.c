@@ -12658,6 +12658,8 @@ void camchain_adjacency(camchain_t *cc) {
           continue;
         }
 
+        // TODO: Maybe move this outside this loop and collect
+        // mutliple measurements and use the median to form T_CiCj and T_CjCi?
         // Form T_CiCj and T_CjCi
         TF_INV(T_CjF, T_FCj);
         TF_INV(T_CiF, T_FCi);
@@ -15228,6 +15230,46 @@ int **assoc_pose_data(pose_t *gnd_poses,
 
   *num_matches = match_idx;
   return matches;
+}
+
+/******************************************************************************
+ * PLOTTING
+ ******************************************************************************/
+
+FILE *gnuplot_init() {
+  return popen("gnuplot -persistent", "w");
+}
+
+void gnuplot_close(FILE *pipe) {
+  fclose(pipe);
+}
+
+void gnuplot_multiplot(FILE *pipe, const int num_rows, const int num_cols) {
+  fprintf(pipe, "set multiplot layout %d, %d\n", num_rows, num_cols);
+}
+
+void gnuplot_send(FILE *pipe, const char *command) {
+  fprintf(pipe, "%s\n", command);
+}
+
+void gnuplot_plot_xy(FILE *pipe,
+                     const real_t *xvals,
+                     const real_t *yvals,
+                     const int n,
+                     const char *props) {
+  // Send data block
+  fprintf(pipe, "$DATA << EOD \n");
+  for (int i = 0; i < n; i++) {
+    fprintf(pipe, "%lf %lf\n", xvals[i], yvals[i]);
+  }
+  fprintf(pipe, "EOD\n");
+
+  // Plot data block
+  if (props) {
+    fprintf(pipe, "plot $DATA %s\n", props);
+  } else {
+    fprintf(pipe, "plot $DATA\n");
+  }
 }
 
 /******************************************************************************

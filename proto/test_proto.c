@@ -4952,7 +4952,7 @@ int test_camchain() {
   camchain_add_pose(camchain, 2, 0, T_C2F);
   camchain_add_pose(camchain, 3, 0, T_C3F);
   camchain_adjacency(camchain);
-  camchain_adjacency_print(camchain);
+  // camchain_adjacency_print(camchain);
 
   for (int cam_i = 1; cam_i < num_cams; cam_i++) {
     for (int cam_j = 1; cam_j < num_cams; cam_j++) {
@@ -4963,7 +4963,7 @@ int test_camchain() {
       real_t T_CiCj_est[4 * 4] = {0};
       int status = camchain_find(camchain, cam_i, cam_j, T_CiCj_est);
 
-      if (cam_i != 4 && cam_j != 4) { // Because camera 4 is not added
+      if (cam_i != 4 && cam_j != 4) { // Camera 4 was not added
         MU_ASSERT(status == 0);
       } else {
         MU_ASSERT(status == -1);
@@ -5598,6 +5598,46 @@ int test_assoc_pose_data() {
   free(matches);
   free(gnd_poses);
   free(est_poses);
+
+  return 0;
+}
+
+/******************************************************************************
+ * TEST PLOTTING
+ ******************************************************************************/
+
+int test_gnuplot() {
+  // Start gnuplot
+  FILE *gnuplot = gnuplot_init();
+
+  // // Setup multiplot
+  // const int num_rows = 1;
+  // const int num_cols = 2;
+  // gnuplot_multiplot(gnuplot, num_rows, num_cols);
+
+  // First plot
+  {
+    int num_points = 5;
+    double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    double yvals[5] = {5.0, 3.0, 1.0, 3.0, 5.0};
+    const char *props = "title 'data1' with lines";
+    gnuplot_send(gnuplot, "set title 'Plot 1'");
+    gnuplot_plot_xy(gnuplot, xvals, yvals, num_points, props);
+  }
+
+  // Second plot
+  {
+    int num_points = 5;
+    double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    double yvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    const char *props = "title 'data2' ls 5";
+    gnuplot_send(gnuplot, "set title 'Plot 2'");
+    gnuplot_send(gnuplot, "set style line 5 lt rgb \"cyan\" lw 3 pt 6");
+    gnuplot_plot_xy(gnuplot, xvals, yvals, num_points, props);
+  }
+
+  // Clean up
+  gnuplot_close(gnuplot);
 
   return 0;
 }
