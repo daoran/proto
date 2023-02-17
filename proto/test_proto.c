@@ -4837,6 +4837,45 @@ int test_ceres_example() {
 
 #endif // USE_CERES
 
+int test_invert_block_diagonal() {
+  int num_rows = 0;
+  int num_cols = 0;
+  real_t *H = mat_load("/tmp/H.csv", &num_rows, &num_cols);
+
+  // Invert taking advantage of block diagonal structure
+  {
+    real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
+
+    struct timespec t_start = tic();
+    invert_block_diagonal(H, num_rows, 6, H_inv);
+    // printf("H: %dx%d\n", num_rows, num_cols);
+    // printf("invert block diagonal -> time taken: %f\n", toc(&t_start));
+
+    MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
+
+    free(H_inv);
+  }
+
+  // Invert the dumb way
+  {
+
+    real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
+
+    struct timespec t_start = tic();
+    pinv(H, num_rows, num_rows, H_inv);
+    // eig_inv(H, num_rows, num_rows, 0, H_inv);
+    // printf("invert dumb way -> time taken: %f\n", toc(&t_start));
+
+    MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
+
+    free(H_inv);
+  }
+
+  free(H);
+
+  return 0;
+}
+
 int test_solver_setup() {
   solver_t solver;
   solver_setup(&solver);

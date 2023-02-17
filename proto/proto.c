@@ -11932,6 +11932,37 @@ int marg_factor_eval(void *marg_ptr) {
 ////////////
 
 /**
+ * Invert a block diagonal matrix.
+ */
+void invert_block_diagonal(const real_t *A,
+                           const int m,
+                           const int bs,
+                           real_t *A_inv) {
+  real_t *A_sub = MALLOC(real_t, bs * bs);
+  real_t *A_sub_inv = MALLOC(real_t, bs * bs);
+
+  for (int idx = 0; idx < m; idx += bs) {
+    const int rs = idx;
+    const int re = idx + bs - 1;
+    const int cs = idx;
+    const int ce = idx + bs - 1;
+
+    mat_block_get(A, m, rs, re, cs, ce, A_sub);
+
+    // Invert using SVD
+    pinv(A_sub, bs, bs, A_sub_inv);
+
+    // Inverse using Eigen-decomp
+    // eig_inv(A_sub, bs, bs, 0, A_sub_inv);
+
+    mat_block_set(A_inv, m, rs, re, cs, ce, A_sub_inv);
+  }
+
+  free(A_sub);
+  free(A_sub_inv);
+}
+
+/**
  * Setup Solver
  */
 void solver_setup(solver_t *solver) {

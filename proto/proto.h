@@ -2263,6 +2263,11 @@ typedef struct solver_t {
                          real_t *r);
 } solver_t;
 
+void invert_block_diagonal(const real_t *A,
+                           const int m,
+                           const int bs,
+                           real_t *A_inv);
+
 void solver_setup(solver_t *solver);
 real_t solver_cost(const solver_t *solver, const void *data);
 void solver_fill_jacobian(param_order_t *hash,
