@@ -7571,6 +7571,7 @@ void pos_setup(pos_t *pos, const real_t *data) {
   assert(pos != NULL);
   assert(data != NULL);
   pos->marginalize = 0;
+  pos->fix = 0;
   pos->data[0] = data[0];
   pos->data[1] = data[1];
   pos->data[2] = data[2];
@@ -7596,6 +7597,7 @@ void rot_setup(rot_t *rot, const real_t *data) {
   assert(rot != NULL);
   assert(data != NULL);
   rot->marginalize = 0;
+  rot->fix = 0;
   rot->data[0] = data[0];
   rot->data[1] = data[1];
   rot->data[2] = data[2];
@@ -7623,8 +7625,9 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   assert(pose != NULL);
   assert(data != NULL);
 
-  // Marginalize
+  // Flags
   pose->marginalize = 0;
+  pose->fix = 0;
 
   // Timestamp
   pose->ts = ts;
@@ -7639,10 +7642,6 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   pose->data[4] = data[4]; // qx
   pose->data[5] = data[5]; // qy
   pose->data[6] = data[6]; // qz
-
-  // Linked list
-  pose->prev = NULL;
-  pose->next = NULL;
 }
 
 /**
@@ -7677,8 +7676,9 @@ void extrinsic_setup(extrinsic_t *exts, const real_t *data) {
   assert(exts != NULL);
   assert(data != NULL);
 
-  // Marginalize
+  // Flags
   exts->marginalize = 0;
+  exts->fix = 0;
 
   // Translation
   exts->data[0] = data[0]; // rx
@@ -7721,8 +7721,9 @@ void fiducial_setup(fiducial_t *exts, const real_t *data) {
   assert(exts != NULL);
   assert(data != NULL);
 
-  // Marginalize
+  // Flags
   exts->marginalize = 0;
+  exts->fix = 0;
 
   // Translation
   exts->data[0] = data[0]; // rx
@@ -7774,6 +7775,8 @@ void camera_params_setup(camera_params_t *camera,
   assert(data != NULL);
 
   camera->marginalize = 0;
+  camera->fix = 0;
+
   camera->cam_idx = cam_idx;
   camera->resolution[0] = cam_res[0];
   camera->resolution[1] = cam_res[1];
@@ -7906,8 +7909,9 @@ void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]) {
   assert(vel != NULL);
   assert(v != NULL);
 
-  // Marginalize
+  // Flags
   vel->marginalize = 0;
+  vel->fix = 0;
 
   // Timestamp
   vel->ts = ts;
@@ -7935,8 +7939,9 @@ void imu_biases_setup(imu_biases_t *biases,
   assert(ba != NULL);
   assert(bg != NULL);
 
-  // Marginalize
+  // Flags
   biases->marginalize = 0;
+  biases->fix = 0;
 
   // Timestamp
   biases->ts = ts;
@@ -7982,6 +7987,8 @@ void feature_setup(feature_t *f, const size_t feature_id, const real_t *data) {
   assert(data != NULL);
 
   f->marginalize = 0;
+  f->fix = 0;
+
   f->type = FEATURE_XYZ;
   f->feature_id = feature_id;
   f->status = 1;
@@ -8270,6 +8277,8 @@ int features_point(const features_t *features,
  */
 void time_delay_setup(time_delay_t *time_delay, const real_t td) {
   assert(time_delay != NULL);
+  time_delay->marginalize = 0;
+  time_delay->fix = 0;
   time_delay->data[0] = td;
 }
 
@@ -8292,6 +8301,9 @@ void joint_setup(joint_t *joint,
                  const int joint_idx,
                  const real_t theta) {
   assert(joint != NULL);
+  joint->marginalize = 0;
+  joint->fix = 0;
+
   joint->ts = ts;
   joint->joint_idx = joint_idx;
   joint->data[0] = theta;
@@ -8309,6 +8321,13 @@ void joint_print(const char *prefix, const joint_t *joint) {
 ////////////////
 // PARAMETERS //
 ////////////////
+
+/**
+ * Free parameter order.
+ */
+void param_order_free(param_order_t *hash) {
+  hmfree(hash);
+}
 
 /**
  * Return parameter type as a string
@@ -11555,7 +11574,7 @@ marg_factor_t *marg_factor_malloc() {
   marg_factor_t *marg = MALLOC(marg_factor_t, 1);
 
   // Settings
-  marg->debug = 0;
+  marg->debug = 1;
 
   // Flags
   marg->marginalized = 0;
@@ -11760,6 +11779,34 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
   MARG_INDEX(r_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r, gr, nr);
 
+  // printf("Parameters to be marginalized:\n");
+  // printf("m_positions: %ld\n", hmlen(m_positions));
+  // printf("m_rotations: %ld\n", hmlen(m_rotations));
+  // printf("m_poses: %ld\n", hmlen(m_poses));
+  // printf("m_velocities: %ld\n", hmlen(m_velocities));
+  // printf("m_imu_biases: %ld\n", hmlen(m_imu_biases));
+  // printf("m_features: %ld\n", hmlen(m_features));
+  // printf("m_joints: %ld\n", hmlen(m_joints));
+  // printf("m_extrinsics: %ld\n", hmlen(m_extrinsics));
+  // printf("m_fiducials: %ld\n", hmlen(m_fiducials));
+  // printf("m_cam_params: %ld\n", hmlen(m_cam_params));
+  // printf("m_time_delays: %ld\n", hmlen(m_time_delays));
+  // printf("\n");
+
+  // printf("Parameters to remain:\n");
+  // printf("r_positions: %ld\n", hmlen(r_positions));
+  // printf("r_rotations: %ld\n", hmlen(r_rotations));
+  // printf("r_poses: %ld\n", hmlen(r_poses));
+  // printf("r_velocities: %ld\n", hmlen(r_velocities));
+  // printf("r_imu_biases: %ld\n", hmlen(r_imu_biases));
+  // printf("r_features: %ld\n", hmlen(r_features));
+  // printf("r_joints: %ld\n", hmlen(r_joints));
+  // printf("r_extrinsics: %ld\n", hmlen(r_extrinsics));
+  // printf("r_fiducials: %ld\n", hmlen(r_fiducials));
+  // printf("r_cam_params: %ld\n", hmlen(r_cam_params));
+  // printf("r_time_delays: %ld\n", hmlen(r_time_delays));
+  // printf("\n");
+
   // Track linearization point x0 and parameter pointers
   int param_idx = 0;
   int x0_idx = 0;
@@ -11939,7 +11986,7 @@ static void marg_factor_form_fejs(marg_factor_t *marg,
   const size_t m = marg->r_size;
   const int rs = 0;
   const int re = m - 1;
-  marg->r = MALLOC(real_t, marg->num_params);
+  marg->r = MALLOC(real_t, marg->r_size);
   marg->jacs = MALLOC(real_t *, marg->num_params);
   int col_idx = 0;
   for (size_t i = 0; i < marg->num_params; i++) {
@@ -11987,7 +12034,7 @@ int marg_factor_eval(void *marg_ptr) {
   int row_idx = 0;
   for (size_t i = 0; i < marg->num_params; i++) {
     const int param_type = marg->param_types[i];
-    const int global_size = param_global_size(param_type);
+    const int local_size = param_local_size(param_type);
     const real_t *x0 = marg->x0 + row_idx;
     const real_t *x = marg->params[i];
 
@@ -12017,10 +12064,10 @@ int marg_factor_eval(void *marg_ptr) {
       } break;
       default:
         // Trivial minus: x - x0
-        vec_sub(x, x0, marg->dchi + row_idx, global_size);
+        vec_sub(x, x0, marg->dchi + row_idx, local_size);
         break;
     }
-    row_idx += global_size;
+    row_idx += local_size;
   }
   // -- Compute residuals: r = r0 + J0 * dchi;
   dot(marg->J0,
@@ -13438,23 +13485,23 @@ void calib_camera_linsolve(const void *data,
   // Invert A
   bdiag_inv_sub(H, sv_size, m, bs, A_inv);
 
-  // Reduce H b = b with Shur-Complement
-  // D_ = D - C * A_inv * B
-  // b1_ = b1 - C * A_inv * b0
-  real_t *D_ = MALLOC(real_t, r * r);
-  real_t *b1_ = MALLOC(real_t, r * 1);
-  dot3(C, r, m, A_inv, m, m, B, m, r, D_);
-  dot3(C, r, m, A_inv, m, m, b0, m, 1, b1_);
+  // Reduce H * dx = b with Shur-Complement
+  // D_bar = D - C * A_inv * B
+  // b1_bar = b1 - C * A_inv * b0
+  real_t *D_bar = MALLOC(real_t, r * r);
+  real_t *b1_bar = MALLOC(real_t, r * 1);
+  dot3(C, r, m, A_inv, m, m, B, m, r, D_bar);
+  dot3(C, r, m, A_inv, m, m, b0, m, 1, b1_bar);
   for (int i = 0; i < (r * r); i++) {
-    D_[i] = D[i] - D_[i];
+    D_bar[i] = D[i] - D_bar[i];
   }
   for (int i = 0; i < r; i++) {
-    b1_[i] = b1[i] - b1_[i];
+    b1_bar[i] = b1[i] - b1_bar[i];
   }
 
-  // Solve reduced system: D_ * dx_r = b1_
+  // Solve reduced system: D_bar * dx_r = b1_bar
   real_t *dx_r = MALLOC(real_t, r * 1);
-  chol_solve(D_, b1_, dx_r, r);
+  chol_solve(D_bar, b1_bar, dx_r, r);
 
   // Back-subsitute
   real_t *B_dx_r = CALLOC(real_t, m * 1);
@@ -13482,8 +13529,8 @@ void calib_camera_linsolve(const void *data,
   free(b0);
   free(b1);
 
-  free(D_);
-  free(b1_);
+  free(D_bar);
+  free(b1_bar);
 
   free(B_dx_r);
   free(dx_m);
@@ -13507,7 +13554,7 @@ void calib_camera_solve(calib_camera_t *calib) {
   solver.cost_func = &calib_camera_cost;
   solver.param_order_func = &calib_camera_param_order;
   solver.linearize_func = &calib_camera_linearize_compact;
-  // solver.linsolve_func = &calib_camera_linsolve;
+  solver.linsolve_func = &calib_camera_linsolve;
   solver_solve(&solver, calib);
 
   if (calib->verbose) {

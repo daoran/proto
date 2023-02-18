@@ -396,7 +396,7 @@ dev_euroc() {
 # run_test test_calib_camera_factor
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
-# run_test test_marg
+run_test test_marg
 # run_test test_inertial_odometry
 # run_test test_tsif
 # run_test test_ceres_example
@@ -405,7 +405,7 @@ dev_euroc() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_camchain
-run_test test_calib_camera_mono
+# run_test test_calib_camera_mono
 # run_test test_calib_camera_stereo
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial

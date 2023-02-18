@@ -1311,6 +1311,7 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
 
 typedef struct pos_t {
   int marginalize;
+  int fix;
   real_t data[3];
 } pos_t;
 
@@ -1323,6 +1324,7 @@ void pos_print(const char *prefix, const pos_t *pos);
 
 typedef struct rot_t {
   int marginalize;
+  int fix;
   real_t data[4];
 } rot_t;
 
@@ -1333,14 +1335,11 @@ void rot_print(const char *prefix, const rot_t *rot);
 // POSE //
 //////////
 
-typedef struct pose_t pose_t;
 typedef struct pose_t {
   int marginalize;
+  int fix;
   timestamp_t ts;
   real_t data[7];
-
-  pose_t *prev;
-  pose_t *next;
 } pose_t;
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
@@ -1352,6 +1351,7 @@ void pose_print(const char *prefix, const pose_t *pose);
 
 typedef struct extrinsic_t {
   int marginalize;
+  int fix;
   real_t data[7];
 } extrinsic_t;
 
@@ -1364,6 +1364,7 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 
 typedef struct fiducial_t {
   int marginalize;
+  int fix;
   real_t data[7];
 } fiducial_t;
 
@@ -1376,6 +1377,8 @@ void fiducial_print(const char *prefix, const fiducial_t *exts);
 
 typedef struct camera_params_t {
   int marginalize;
+  int fix;
+
   int cam_idx;
   int resolution[2];
   char proj_model[30];
@@ -1416,6 +1419,8 @@ int solvepnp_camera(const camera_params_t *cam_params,
 
 typedef struct velocity_t {
   int marginalize;
+  int fix;
+
   timestamp_t ts;
   real_t data[3];
 } velocity_t;
@@ -1428,6 +1433,8 @@ void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
 
 typedef struct imu_biases_t {
   int marginalize;
+  int fix;
+
   timestamp_t ts;
   real_t data[6];
 } imu_biases_t;
@@ -1451,6 +1458,7 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 
 typedef struct feature_t {
   int marginalize;
+  int fix;
   int type;
 
   // Feature data
@@ -1513,6 +1521,8 @@ int features_point(const features_t *features,
 ////////////////
 
 typedef struct time_delay_t {
+  int marginalize;
+  int fix;
   real_t data[1];
 } time_delay_t;
 
@@ -1524,6 +1534,9 @@ void time_delay_print(const char *prefix, const time_delay_t *exts);
 ///////////
 
 typedef struct joint_t {
+  int marginalize;
+  int fix;
+
   timestamp_t ts;
   int joint_idx;
   real_t data[1];
@@ -1564,6 +1577,7 @@ typedef struct param_order_t {
   int fix;
 } param_order_t;
 
+void param_order_free(param_order_t *hash);
 void param_type_string(const int param_type, char *s);
 size_t param_global_size(const int param_type);
 size_t param_local_size(const int param_type);
@@ -2125,17 +2139,22 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 
 #define MARG_INDEX(HASH, PARAM_TYPE, PARAM_ORDER, COL_IDX, SZ, GZ, N)          \
   for (size_t i = 0; i < hmlen(HASH); i++) {                                   \
-    const int fix = 0;                                                         \
     real_t *data = HASH[i].value->data;                                        \
-    SZ += param_local_size(PARAM_TYPE);                                        \
-    GZ += param_global_size(PARAM_TYPE);                                       \
-    N += 1;                                                                    \
+    const int fix = HASH[i].value->fix;                                        \
+    if (fix == 0) {                                                            \
+      SZ += param_local_size(PARAM_TYPE);                                      \
+      GZ += param_global_size(PARAM_TYPE);                                     \
+      N += 1;                                                                  \
+    }                                                                          \
     param_order_add(&PARAM_ORDER, PARAM_TYPE, fix, data, COL_IDX);             \
   }
 
 #define MARG_PARAMS(MARG, HASH, PARAM_TYPE, PARAM_IDX, X0_IDX)                 \
   for (size_t i = 0; i < hmlen(HASH); i++) {                                   \
     const size_t param_size = param_global_size(PARAM_TYPE);                   \
+    if (HASH[i].value->fix) {                                                  \
+      continue;                                                                \
+    }                                                                          \
     real_t *data = HASH[i].value->data;                                        \
                                                                                \
     MARG->param_types[PARAM_IDX] = PARAM_TYPE;                                 \
